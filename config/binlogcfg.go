@@ -52,7 +52,7 @@ type BinlogInput struct {
 }
 
 type BinlogDatasource struct {
-	FTGateway string `yaml:"ft_gatway"`
+	FTGateway string `yaml:"ft_gateway"`
 
 	Addr     string `yaml:"addr"`
 	User     string `yaml:"user"`
