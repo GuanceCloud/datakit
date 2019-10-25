@@ -36,7 +36,7 @@ Golang Version: %s
 	}
 
 	if *flagLogFile == "" {
-		*flagLogFile = filepath.Join(*flagInstallDir, "ft.log")
+		*flagLogFile = filepath.Join(*flagInstallDir, "ftcollector.log")
 	}
 
 	h, err := log.NewRotatingFileHandler(*flagLogFile, 10<<10<<10, 1)
