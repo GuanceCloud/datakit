@@ -1,0 +1,28 @@
+
+log: binlog.log
+log_level: info
+installdir: .
+
+datasources:
+- ft_gatway: "http://localhost"
+  addr: "192.168.56.20:3306"
+  user: "aaa"
+  password: ""
+
+  inputs:
+  - database: test
+    tables:
+    - table: products
+    #  measurement: table1
+      columns:
+        price: field
+        name: tag
+    #  exclude_events:
+    #  - delete
+    #- table: table2
+    #  measurement: table2
+    #  columns:
+    #    field1: field
+    #    tag1: tag
+    #exclude_tables:
+    #- table3
