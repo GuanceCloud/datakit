@@ -9,9 +9,10 @@
 
 权限：`SUPER, REPLICATION CLIENT`
 
-    log_bin = ON
+    log_bin = /var/lib/mysql/mysql-bin
     binlog_format = ROW  
-    binlog_row_image = FULL #mysql
+    binlog_row_image = FULL #mysql5.6
+    server_id = 1 #非0值
 
 
 <h3>ftcollector中binlog配置规范</h3>
