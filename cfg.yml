@@ -6,7 +6,7 @@ installdir: .
 binlog:
   disable: false
   jobs:
-  - ft_gatway: "http://10.100.3.4"
+  - ft_gatway: "http://localhost:9528/v1/write/metrics"
     addr: "192.168.56.20:3306"
     user: "aaa"
     password: ""

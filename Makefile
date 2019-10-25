@@ -3,9 +3,7 @@
 default: local
 
 # devops 测试环境
-TEST_KODO_HOST = http://testing.kodo.cloudcare.cn
-TEST_CS_HOST = http://testing.kodo-via-core-stone.cloudcare.cn:10100
-TEST_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/ftagent/test
+TEST_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/ftcollector/test
 TEST_SSL = 0
 TEST_PORT = 10401
 
@@ -16,9 +14,7 @@ LOCAL_SSL = 0
 LOCAL_PORT = 9527
 
 # 预发环境
-PREPROD_KODO_HOST = https://preprod-kodo.cloudcare.cn
-PREPROD_CS_HOST = https://preprod-kodo-via-core-stone.cloudcare.cn
-PREPROD_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/ftagent/preprod
+PREPROD_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/ftcollector/preprod
 PREPROD_SSL = 1
 PREPROD_PORT = 443
 
