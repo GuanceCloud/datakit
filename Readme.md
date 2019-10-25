@@ -23,7 +23,7 @@
     binlog:
     disable: false #是否开启binlog抓取
     jobs:
-    - ft_gatway: "http://localhost:9528/v1/write/metrics" #ftgateway地址
+    - ft_gateway: "http://localhost:9528/v1/write/metrics" #ftgateway地址
         addr: "192.168.56.20:3306" #mysql地址(包含端口)
         user: "" #mysql用户名
         password: "" #mysql密码
