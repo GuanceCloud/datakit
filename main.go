@@ -16,7 +16,7 @@ var (
 	flagVersion = flag.Bool("version", false, `show verison info`)
 	flagInit    = flag.Bool(`init`, false, `init agent`)
 
-	flagInstallDir = flag.String("install-dir", "/usr/local/cloudcare/forethought/binlog", "install directory")
+	flagInstallDir = flag.String("install-dir", "/usr/local/cloudcare/forethought/ftcollector", "install directory")
 	flagCfgFile    = flag.String("cfg", ``, `configure file`)
 	flagLogFile    = flag.String(`log`, ``, `log file`)
 	flagLogLevel   = flag.String(`log-level`, `info`, `log level`)
