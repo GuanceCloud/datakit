@@ -1,0 +1,18 @@
+#
+# systemd serivce setting
+#
+[Unit]
+Description=cloudcare ftcollector
+After=network.target
+
+[Service]
+Environment=HOME=/root
+WorkingDirectory=/usr/local/cloudcare/forethought/ftcollector
+ExecReload=/bin/kill -2 $MAINPID
+KillMode=process
+Restart=always
+RestartSec=3s
+ExecStart=/usr/local/cloudcare/forethought/ftcollector/ftcollector --cfg /usr/local/cloudcare/forethought/ftcollector/cfg.yml
+
+[Install]
+WantedBy=default.target
