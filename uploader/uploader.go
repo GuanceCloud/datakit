@@ -229,7 +229,6 @@ func (s *shards) runShard(ctx context.Context, i int, queue chan *LogItem) {
 
 		case <-timer.C:
 			if len(pendingSamples) > 0 {
-				log.Infoln("time up send")
 				if err := s.sendSamples(ctx, pendingSamples, i); err == nil {
 					okNum += uint64(len(pendingSamples))
 				} else {
@@ -257,7 +256,7 @@ func (s *shards) enqueue(ref int64, sample *LogItem) bool {
 	case <-s.softShutdown:
 		return false
 	case s.queues[shard] <- sample:
-		log.Infoln("enqueue ok")
+		//log.Infoln("enqueue ok")
 		s.u.totalRecv++
 		return true
 	}
@@ -300,12 +299,13 @@ func (s *shards) sendSamples(ctx context.Context, samples []*LogItem, shardIndex
 }
 
 func generatePacket(samples []*LogItem) []byte {
-	buf := bytes.NewBufferString("")
+
+	s := ""
 
 	for _, l := range samples {
-		buf.WriteString(string(l.Log))
-		buf.WriteString("\n")
+		s += l.Log
+		s += "\n"
 	}
 
-	return []byte(buf.String())
+	return []byte(s)
 }

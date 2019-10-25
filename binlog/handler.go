@@ -232,7 +232,7 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 			//line += fmt.Sprintf(" %v", uint64(e.Header.Timestamp)*1000000000)
 			line += fmt.Sprintf(" %v", time.Now().UnixNano())
 
-			log.Infof("*** %s", line)
+			log.Debugf("*** %s", line)
 
 			if h.binloger.storage != nil {
 				h.binloger.storage.AddLog(&uploader.LogItem{
