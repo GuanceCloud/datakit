@@ -29,3 +29,6 @@ version
 install.sh
 agent/webtty/resource.go
 agent/rdpweb/resource.go
+ftcollector
+ft.log
+*.log
