@@ -5,6 +5,7 @@
 # 下载地址
 dl_url="http://{{.DownloadAddr}}/{{.Name}}-{{.Version}}.tar.gz"
 
+
 upgrade_flag=0
 within_docker=0
 
