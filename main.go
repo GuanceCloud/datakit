@@ -44,14 +44,16 @@ Golang Version: %s
 		fmt.Printf("[error] %s\n", err)
 		return
 	}
+
 	log.SetDefaultLogger(log.NewDefault(h))
-	setLogLevel(*flagLogLevel)
 
 	if *flagCfgFile == "" {
 		*flagCfgFile = *flagInstallDir + "/cfg.yml"
 	}
 
 	if *flagInit {
+
+		setLogLevel(*flagLogLevel)
 
 		config.Cfg.Log = *flagLogFile
 		config.Cfg.LogLevel = *flagLogLevel
@@ -66,6 +68,8 @@ Golang Version: %s
 	if err := config.LoadConfig(*flagCfgFile); err != nil {
 		log.Fatalf("check config fail: %s", err.Error())
 	}
+
+	setLogLevel(config.Cfg.LogLevel)
 
 	binlog.Start(config.Cfg.Binlog)
 
