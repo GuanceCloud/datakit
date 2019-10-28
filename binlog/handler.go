@@ -199,7 +199,12 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 					continue
 				}
 				k := tuneTagKVFieldK(col.col.Name)
-				v := tuneTagKVFieldK(fmt.Sprintf("%v", row[col.index]))
+				v := ""
+				if row[col.index] == nil {
+					v = "NULL"
+				} else {
+					v = tuneTagKVFieldK(fmt.Sprintf("%v", row[col.index]))
+				}
 				strTags += fmt.Sprintf(",%s=%s", k, v)
 			}
 
@@ -209,14 +214,19 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 				}
 				k := tuneTagKVFieldK(col.col.Name)
 				v := ""
-				switch col.col.Type {
-				case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
-					v = fmt.Sprintf("%v", row[col.index])
-				case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT:
-					v = fmt.Sprintf("%vi", row[col.index])
-				default:
-					v = fmt.Sprintf("\"%v\"", row[col.index])
+				if row[col.index] == nil {
+					v = "\"NULL\""
+				} else {
+					switch col.col.Type {
+					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
+						v = fmt.Sprintf("%v", row[col.index])
+					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT, schema.TYPE_ENUM, schema.TYPE_SET:
+						v = fmt.Sprintf("%vi", row[col.index])
+					default:
+						v = fmt.Sprintf("\"%v\"", row[col.index])
+					}
 				}
+
 				var pair string
 				if i == 0 {
 					pair = fmt.Sprintf(" %s=%s", k, v)
