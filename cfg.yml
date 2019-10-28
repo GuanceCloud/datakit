@@ -1,6 +1,6 @@
 
 log: ft.log
-log_level: info
+log_level: debug
 installdir: .
 
 binlog:
@@ -14,12 +14,14 @@ binlog:
     inputs:
     - database: test
       tables:
-      - table: products
-        measurement: products
+      - table: t1
+        measurement: t1
         columns:
-          price: field
-          count: field
-          name: tag
+          fa: field
+          fb: field
+          fc: field
+          fd: field
+          fe: field
       #  exclude_events:
       #  - delete
       #- table: table2
