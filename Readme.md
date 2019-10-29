@@ -37,13 +37,11 @@
             columns: #设置表中低端哪些作为field，哪些作为tag，不支持blob类型
             username: field #至少配置一个field
             sex: tag #可为空，应使用值不常变或只有固定范围值的表字段
-        #  exclude_events:#监听的事件，默认全部开启：insert, delete, update
+        #  exclude_events:#排除监听的事件，默认全部开启：insert, delete, update
         #  - delete
         #- table: table2
         #  measurement: table2
         #  columns:
         #    f1: field
         #    t1: tag
-        #exclude_tables:#排除以下表名
-        #- table3
 
