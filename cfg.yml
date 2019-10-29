@@ -18,10 +18,11 @@ binlog:
         measurement: t1
         columns:
           fa: field
-          fb: field
-          fc: field
-          fd: field
-          fe: field
+          fb: tag
+          fc: tag
+          fd: tag
+          fe: tag
+          ft: tag
       #  exclude_events:
       #  - delete
       #- table: table2

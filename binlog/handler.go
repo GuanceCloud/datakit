@@ -202,9 +202,43 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 				v := ""
 				if row[col.index] == nil {
 					v = "NULL"
+					switch col.col.Type {
+					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
+						v = fmt.Sprintf("%v", config.Cfg.Binlog.NullFloat)
+					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT:
+						v = fmt.Sprintf("%v", config.Cfg.Binlog.NullInt)
+					}
 				} else {
-					v = tuneTagKVFieldK(fmt.Sprintf("%v", row[col.index]))
+
+					switch col.col.Type {
+					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL, schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT, schema.TYPE_SET:
+						v = fmt.Sprintf("%v", row[col.index])
+					case schema.TYPE_ENUM:
+						enumindex := 0
+						if iv, ok := (row[col.index]).(int64); ok {
+							enumindex = int(iv)
+						} else {
+							if iv, ok := (row[col.index]).(int32); ok {
+								enumindex = int(iv)
+							} else {
+								if iv, ok := (row[col.index]).(int); ok {
+									enumindex = iv
+								}
+							}
+						}
+
+						if enumindex > 0 && (enumindex-1) < len(col.col.EnumValues) {
+							v = col.col.EnumValues[enumindex-1]
+						} else {
+							v = `NULL`
+						}
+
+					default:
+						v = fmt.Sprintf("%s", row[col.index])
+					}
 				}
+
+				v = tuneTagKVFieldK(v)
 				strTags += fmt.Sprintf(",%s=%s", k, v)
 			}
 
@@ -216,14 +250,39 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 				v := ""
 				if row[col.index] == nil {
 					v = "\"NULL\""
+					switch col.col.Type {
+					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
+						v = fmt.Sprintf("%v", config.Cfg.Binlog.NullFloat)
+					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT:
+						v = fmt.Sprintf("%vi", config.Cfg.Binlog.NullInt)
+					}
 				} else {
 					switch col.col.Type {
 					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
 						v = fmt.Sprintf("%v", row[col.index])
-					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT, schema.TYPE_ENUM, schema.TYPE_SET:
+					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT, schema.TYPE_SET:
 						v = fmt.Sprintf("%vi", row[col.index])
+					case schema.TYPE_ENUM:
+						enumindex := 0
+						if iv, ok := (row[col.index]).(int64); ok {
+							enumindex = int(iv)
+						} else {
+							if iv, ok := (row[col.index]).(int32); ok {
+								enumindex = int(iv)
+							} else {
+								if iv, ok := (row[col.index]).(int); ok {
+									enumindex = iv
+								}
+							}
+						}
+
+						if enumindex > 0 && (enumindex-1) < len(col.col.EnumValues) {
+							v = fmt.Sprintf("\"%s\"", col.col.EnumValues[enumindex-1])
+						} else {
+							v = `""`
+						}
 					default:
-						v = fmt.Sprintf("\"%v\"", row[col.index])
+						v = fmt.Sprintf("\"%s\"", row[col.index])
 					}
 				}
 

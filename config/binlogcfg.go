@@ -8,8 +8,10 @@ import (
 
 var (
 	binlogCfgTemplate = `  disable: false
+  null_int: 0
+  null_float: 0
   jobs:
-  - ft_gatway: ""
+  - ft_gateway: ""
     addr: ""
     user: ""
     password: ""
@@ -29,8 +31,6 @@ var (
       #  columns:
       #    field1: field
       #    tag1: tag
-      #exclude_tables:
-      #- table3
 `
 )
 
@@ -88,6 +88,8 @@ type BinlogDatasource struct {
 
 type BinlogConfig struct {
 	Disable     bool                `yaml:"disable"`
+	NullInt     int                 `yaml:"null_int"`
+	NullFloat   float64             `yaml:"null_float"`
 	Datasources []*BinlogDatasource `yaml:"jobs"`
 }
 
