@@ -17,14 +17,13 @@ import (
 	"github.com/siddontang/go-mysql/mysql"
 	"github.com/siddontang/go-mysql/replication"
 	"github.com/siddontang/go-mysql/schema"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftcollector/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftcollector/uploader"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/uploader"
 )
 
 type Binloger struct {
 	m sync.Mutex
 
-	cfg *config.BinlogDatasource
+	cfg *BinlogDatasource
 
 	parser *parser.Parser
 	master *masterInfo
@@ -49,7 +48,7 @@ type Binloger struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	storage *uploader.Uploader
+	storage uploader.IUploader
 }
 
 var (
@@ -58,11 +57,13 @@ var (
 
 	HeartbeatPeriod = 60 * time.Second
 	ReadTimeout     = 90 * time.Second
+
+	binlogs []*Binloger
 )
 
-func Start(cfg *config.BinlogConfig) error {
+func Start(up uploader.IUploader) error {
 
-	if cfg == nil || cfg.Disable {
+	if BinlogCfg.Disable {
 		return nil
 	}
 
@@ -70,7 +71,9 @@ func Start(cfg *config.BinlogConfig) error {
 
 	var err error
 
-	for _, dt := range cfg.Datasources {
+	binlogs = []*Binloger{}
+
+	for _, dt := range BinlogCfg.Datasources {
 		dt.ServerID = uint32(rand.New(rand.NewSource(time.Now().Unix())).Intn(1000)) + 1001
 		dt.Charset = mysql.DEFAULT_CHARSET
 		dt.Flavor = mysql.MySQLFlavor
@@ -81,16 +84,19 @@ func Start(cfg *config.BinlogConfig) error {
 		dt.ParseTime = true
 		dt.SemiSyncEnabled = false
 
-		binloger, err := NewBinloger(dt)
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
+		binloger := NewBinloger(dt)
+		binloger.storage = up
+
+		binlogs = append(binlogs, binloger)
 
 		wg.Add(1)
-		go func() {
+		go func(b *Binloger) {
 			defer wg.Done()
-			binloger.run()
-		}()
+			if err := b.run(); err != nil {
+				log.Errorf("start binlog parser failed: %s", err.Error())
+			}
+		}(binloger)
+
 	}
 
 	wg.Wait()
@@ -98,23 +104,52 @@ func Start(cfg *config.BinlogConfig) error {
 	return err
 }
 
-func (c *Binloger) run() error {
-	defer func() {
-		c.cancel()
-	}()
+func Stop() {
+	for _, b := range binlogs {
+		b.Stop()
+	}
+}
 
-	up := uploader.New(c.cfg.FTGateway)
-	up.Start()
+func (b *Binloger) run() error {
 
-	c.storage = up
+	b.ctx, b.cancel = context.WithCancel(context.Background())
+	b.tables = make(map[string]*schema.Table)
+	if b.cfg.DiscardNoMetaRowEvent {
+		b.errorTablesGetTime = make(map[string]time.Time)
+	}
+	b.master = &masterInfo{}
 
-	defer func() {
-		up.Stop()
-	}()
+	// if c.includeTableRegex != nil || c.excludeTableRegex != nil {
+	b.tableMatchCache = make(map[string]bool)
+	// }
 
-	c.master.UpdateTimestamp(uint32(time.Now().Unix()))
+	var err error
 
-	if err := c.runSyncBinlog(); err != nil {
+	if err = b.prepareSyncer(); err != nil {
+		return err
+	}
+
+	if err = b.checkMysqlVersion(); err != nil {
+		return err
+	}
+
+	if err := b.checkBinlogRowFormat(); err != nil {
+		return err
+	}
+
+	if err := b.CheckBinlogRowImage("FULL"); err != nil {
+		return err
+	}
+
+	log.Infof("check requirments ok")
+
+	b.master.UpdateTimestamp(uint32(time.Now().Unix()))
+
+	if err = b.getMasterStatus(b.master); err != nil {
+		return err
+	}
+
+	if err := b.runSyncBinlog(); err != nil {
 		if errors.Cause(err) != context.Canceled {
 			log.Errorf("start sync binlog err: %v", err)
 			return err
@@ -124,86 +159,72 @@ func (c *Binloger) run() error {
 	return nil
 }
 
-func (c *Binloger) Close() {
+func (c *Binloger) reset() {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	c.cancel()
 	c.syncer.Close()
+
 	c.connLock.Lock()
-	c.conn.Close()
-	c.conn = nil
+	if c.conn != nil {
+		c.conn.Close()
+		c.conn = nil
+	}
 	c.connLock.Unlock()
-
-	c.eventHandler.OnPosSynced(c.master.Position(), c.master.GTIDSet(), true)
 }
 
-func NewBinloger(cfg *config.BinlogDatasource) (*Binloger, error) {
-	c := &Binloger{}
-	c.cfg = cfg
+func (b *Binloger) Stop() {
+	b.m.Lock()
+	defer b.m.Unlock()
 
-	c.ctx, c.cancel = context.WithCancel(context.Background())
-
-	c.eventHandler = &MainEventHandler{
-		binloger: c,
+	b.cancel()
+	b.syncer.Close()
+	b.connLock.Lock()
+	if b.conn != nil {
+		b.conn.Close()
+		b.conn = nil
 	}
-	c.parser = parser.New()
-	c.tables = make(map[string]*schema.Table)
+	b.connLock.Unlock()
 
-	if c.cfg.DiscardNoMetaRowEvent {
-		c.errorTablesGetTime = make(map[string]time.Time)
-	}
-	c.master = &masterInfo{}
-
-	c.delay = new(uint32)
-
-	var err error
-
-	if err = c.prepareSyncer(); err != nil {
-		return nil, errors.Trace(err)
-	}
-
-	if err = c.checkMysqlVersion(); err != nil {
-		return nil, errors.Trace(err)
-	}
-
-	if err := c.checkBinlogRowFormat(); err != nil {
-		return nil, errors.Trace(err)
-	}
-
-	if err := c.CheckBinlogRowImage("FULL"); err != nil {
-		return nil, errors.Trace(err)
-	}
-
-	// if c.includeTableRegex != nil || c.excludeTableRegex != nil {
-	c.tableMatchCache = make(map[string]bool)
-	// }
-
-	return c, nil
+	b.eventHandler.OnPosSynced(b.master.Position(), b.master.GTIDSet(), true)
 }
 
-func (c *Binloger) prepareSyncer() error {
+func NewBinloger(cfg *BinlogDatasource) *Binloger {
+	b := &Binloger{}
+	b.cfg = cfg
+
+	b.eventHandler = &MainEventHandler{
+		binloger: b,
+	}
+	b.parser = parser.New()
+
+	b.delay = new(uint32)
+
+	return b
+}
+
+func (b *Binloger) prepareSyncer() error {
 	cfg := replication.BinlogSyncerConfig{
-		ServerID:                c.cfg.ServerID,
+		ServerID:                b.cfg.ServerID,
 		Flavor:                  "mysql",
-		User:                    c.cfg.User,
-		Password:                c.cfg.Password,
-		Charset:                 c.cfg.Charset,
-		HeartbeatPeriod:         c.cfg.HeartbeatPeriod,
-		ReadTimeout:             c.cfg.ReadTimeout,
-		UseDecimal:              c.cfg.UseDecimal,
-		ParseTime:               c.cfg.ParseTime,
-		SemiSyncEnabled:         c.cfg.SemiSyncEnabled,
-		MaxReconnectAttempts:    c.cfg.MaxReconnectAttempts,
-		TimestampStringLocation: c.cfg.TimestampStringLocation,
+		User:                    b.cfg.User,
+		Password:                b.cfg.Password,
+		Charset:                 b.cfg.Charset,
+		HeartbeatPeriod:         b.cfg.HeartbeatPeriod,
+		ReadTimeout:             b.cfg.ReadTimeout,
+		UseDecimal:              b.cfg.UseDecimal,
+		ParseTime:               b.cfg.ParseTime,
+		SemiSyncEnabled:         b.cfg.SemiSyncEnabled,
+		MaxReconnectAttempts:    b.cfg.MaxReconnectAttempts,
+		TimestampStringLocation: b.cfg.TimestampStringLocation,
 	}
 
-	if strings.Contains(c.cfg.Addr, "/") {
-		cfg.Host = c.cfg.Addr
+	if strings.Contains(b.cfg.Addr, "/") {
+		cfg.Host = b.cfg.Addr
 	} else {
-		seps := strings.Split(c.cfg.Addr, ":")
+		seps := strings.Split(b.cfg.Addr, ":")
 		if len(seps) != 2 {
-			return errors.Errorf("invalid mysql addr format %s, must host:port", c.cfg.Addr)
+			return errors.Errorf("invalid mysql addr format %s, must host:port", b.cfg.Addr)
 		}
 
 		port, err := strconv.ParseUint(seps[1], 10, 16)
@@ -215,12 +236,12 @@ func (c *Binloger) prepareSyncer() error {
 		cfg.Port = uint16(port)
 	}
 
-	c.syncer = replication.NewBinlogSyncer(cfg)
+	b.syncer = replication.NewBinlogSyncer(cfg)
 
 	return nil
 }
 
-func (c *Binloger) GetTable(db string, table string) (*schema.Table, *config.BinlogInput, error) {
+func (c *Binloger) GetTable(db string, table string) (*schema.Table, *BinlogDatabase, error) {
 	key := fmt.Sprintf("%s.%s", db, table)
 	// if table is excluded, return error and skip parsing event or dump
 	target := c.checkTableMatch(db, table)
@@ -391,6 +412,7 @@ func (c *Binloger) Execute(cmd string, args ...interface{}) (rr *mysql.Result, e
 	retryNum := 3
 	for i := 0; i < retryNum; i++ {
 		if c.conn == nil {
+			log.Infof("user is %s", c.cfg.User)
 			c.conn, err = client.Connect(c.cfg.Addr, c.cfg.User, c.cfg.Password, "")
 			if err != nil {
 				return nil, errors.Trace(err)
@@ -411,10 +433,10 @@ func (c *Binloger) Execute(cmd string, args ...interface{}) (rr *mysql.Result, e
 	return
 }
 
-func (c *Binloger) checkTableMatch(db, table string) *config.BinlogInput {
+func (c *Binloger) checkTableMatch(db, table string) *BinlogDatabase {
 
-	var destdb *config.BinlogInput
-	for _, t := range c.cfg.Inputs {
+	var destdb *BinlogDatabase
+	for _, t := range c.cfg.Databases {
 		if t.Database == db {
 			destdb = t
 			break
@@ -429,7 +451,7 @@ func (c *Binloger) checkTableMatch(db, table string) *config.BinlogInput {
 
 	if len(destdb.Tables) > 0 {
 		for _, tbl := range destdb.Tables {
-			if tbl.Table == table {
+			if tbl.Name == table {
 				bmatch = true
 				break
 			}
@@ -438,14 +460,14 @@ func (c *Binloger) checkTableMatch(db, table string) *config.BinlogInput {
 		bmatch = true
 	}
 
-	if len(destdb.ExcludeTables) > 0 {
-		for _, tblname := range destdb.ExcludeTables {
-			if table == tblname {
-				bmatch = false
-				break
-			}
-		}
-	}
+	// if len(destdb.ExcludeTables) > 0 {
+	// 	for _, tblname := range destdb.ExcludeTables {
+	// 		if table == tblname {
+	// 			bmatch = false
+	// 			break
+	// 		}
+	// 	}
+	// }
 
 	if !bmatch {
 		return nil

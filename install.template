@@ -9,7 +9,7 @@ dl_url="http://{{.DownloadAddr}}/{{.Name}}-{{.Version}}.tar.gz"
 upgrade_flag=0
 within_docker=0
 
-bin_name=ftcollector
+bin_name=datakit
 service_name=${bin_name}
 install_dir=/usr/local/cloudcare/forethought/${service_name}
 binary="${install_dir}/${bin_name}"
@@ -102,7 +102,7 @@ fi
 arch=`uname -m` 
 if [ "${arch}" = "x86_64" ]; then
   echo 'install on platform x86_64...' | tee -a $install_log
-  mv "${install_dir}"/ftcollector-linux-amd64/${bin_name} "${install_dir}"/
+  mv "${install_dir}"/datakit-linux-amd64/${bin_name} "${install_dir}"/
 else
   echo 'i386 not support, exit now!' | tee -a $install_log
   exit -1

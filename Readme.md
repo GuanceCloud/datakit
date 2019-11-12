@@ -1,6 +1,6 @@
 <h1>安装</h1>
 
-`sudo bash -c "$(curl http://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/ftcollector/test/install.sh)"`
+`sudo bash -c "$(curl http://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/test/install.sh)"`
 
 
 <h1>配置</h1>
@@ -23,6 +23,8 @@
 
     binlog:
     disable: false #是否开启binlog抓取
+    null_int: 0 #作为整型空值
+    null_float: 0 #作为浮点型空值
     jobs:
     - ft_gateway: "http://localhost:9528/v1/write/metrics" #ftgateway地址
         addr: "192.168.56.20:3306" #mysql地址(包含端口)
