@@ -1,5 +1,19 @@
 package config
 
+// func TestGenMainCfg(t *testing.T) {
+// 	var cfg MainConfig
+// 	cfg.Log = "/var/log/aa.log"
+// 	cfg.LogLevel = "info"
+
+// 	cfg.GenInitCfg("./test.yml")
+// }
+
+// func TestCheckCfg(t *testing.T) {
+// 	if err := LoadConfig("./test.yml"); err != nil {
+// 		log.Fatalln(err)
+// 	}
+// }
+
 // config.Cfg.Binlog = &config.BinlogConfig{}
 
 // var datasource config.BinlogDatasource
