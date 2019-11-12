@@ -2,17 +2,17 @@
 # systemd serivce setting
 #
 [Unit]
-Description=cloudcare ftcollector
+Description=cloudcare datakit
 After=network.target
 
 [Service]
 Environment=HOME=/root
-WorkingDirectory=/usr/local/cloudcare/forethought/ftcollector
+WorkingDirectory=/usr/local/cloudcare/forethought/datakit
 ExecReload=/bin/kill -2 $MAINPID
 KillMode=process
 Restart=always
 RestartSec=3s
-ExecStart=/usr/local/cloudcare/forethought/ftcollector/ftcollector --cfg /usr/local/cloudcare/forethought/ftcollector/cfg.yml
+ExecStart=/usr/local/cloudcare/forethought/datakit/datakit --config /usr/local/cloudcare/forethought/datakit/datakit.conf
 
 [Install]
 WantedBy=default.target

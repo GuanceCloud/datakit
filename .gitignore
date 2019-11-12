@@ -30,5 +30,6 @@ install.sh
 agent/webtty/resource.go
 agent/rdpweb/resource.go
 ftcollector
+datakit
 ft.log
 *.log

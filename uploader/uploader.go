@@ -13,11 +13,15 @@ import (
 	"time"
 
 	"github.com/siddontang/go-log/log"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftcollector/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 type LogItem struct {
 	Log string
+}
+
+type IUploader interface {
+	AddLog(*LogItem) error
 }
 
 const maxErrMsgLen = 256

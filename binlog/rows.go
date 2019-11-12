@@ -5,7 +5,6 @@ import (
 
 	"github.com/siddontang/go-mysql/replication"
 	"github.com/siddontang/go-mysql/schema"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftcollector/config"
 )
 
 // The action name for sync.
@@ -28,7 +27,7 @@ type RowsEvent struct {
 	// Header can be used to inspect the event
 	Header *replication.EventHeader
 
-	Input *config.BinlogInput
+	Input *BinlogDatabase
 }
 
 func newRowsEvent(table *schema.Table, action string, rows [][]interface{}, header *replication.EventHeader) *RowsEvent {
