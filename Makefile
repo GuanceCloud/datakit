@@ -61,7 +61,7 @@ release:
 		-kodo-host $(RELEASE_KODO_HOST) -download-addr $(RELEASE_DOWNLOAD_ADDR) -ssl $(RELEASE_SSL) -port $(RELEASE_PORT) \
 		-release release -pub-dir $(PUB_DIR) -cs-host $(RELEASE_CS_HOST) -cgo
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart -C build .
+	@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
 	tree -Csh $(PUB_DIR)
 
 test:
@@ -73,7 +73,7 @@ test:
 	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
 		 -download-addr $(TEST_DOWNLOAD_ADDR) -release test -pub-dir $(PUB_DIR)
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	@tar czf $(PUB_DIR)/test/$(NAME)-$(VERSION).tar.gz autostart -C build .
+	@tar czf $(PUB_DIR)/test/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
 	tree -Csh $(PUB_DIR)
 
 
