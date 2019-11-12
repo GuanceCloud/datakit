@@ -17,17 +17,17 @@
 #   2. custom env info
 ### END INIT INFO
 
-SERVICE=ftcollector
-INSTALL_DIR="/usr/local/cloudcare/forethought/ftcollector"
+SERVICE=datakit
+INSTALL_DIR="/usr/local/cloudcare/forethought/datakit"
 BINARY="${INSTALL_DIR}/${SERVICE}"
-YAML_CFG="${INSTALL_DIR}/cfg.yml"
+YAML_CFG="${INSTALL_DIR}/datakit.conf"
 PID="${INSTALL_DIR}/${SERVICE}".pid
 LOG="${INSTALL_DIR}/${SERVICE}".log
 
 start() {
 
     printf "$SERVICE starting... "
-    (${BINARY} --cfg "${YAML_CFG}" &) # run in backend
+    (${BINARY} --config "${YAML_CFG}" &) # run in backend
 
     for i in {1..5}
     do

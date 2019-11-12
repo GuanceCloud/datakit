@@ -18,6 +18,7 @@ binlog:
         measurement: t1
         columns:
           fa: field
+          ff: field
           fb: tag
           fc: tag
           fd: tag

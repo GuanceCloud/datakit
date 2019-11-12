@@ -3,12 +3,12 @@ package binlog
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/siddontang/go-mysql/schema"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftcollector/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftcollector/uploader"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/uploader"
 
 	"github.com/siddontang/go-log/log"
 	"github.com/siddontang/go-mysql/mysql"
@@ -88,25 +88,25 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 			return nil
 		}
 
-		var targetTable *config.BinlogTable
+		var targetTable *BinlogTable
 
 		if len(target.Tables) > 0 {
 			for _, t := range target.Tables {
-				if t.Table == e.Table.Name {
+				if t.Name == e.Table.Name {
 					targetTable = t
 					break
 				}
 			}
 		}
 
-		if len(target.ExcludeTables) > 0 {
-			for _, t := range target.ExcludeTables {
-				if t == e.Table.Name {
-					targetTable = nil
-					break
-				}
-			}
-		}
+		// if len(target.ExcludeTables) > 0 {
+		// 	for _, t := range target.ExcludeTables {
+		// 		if t == e.Table.Name {
+		// 			targetTable = nil
+		// 			break
+		// 		}
+		// 	}
+		// }
 
 		if targetTable == nil {
 			return nil
@@ -204,9 +204,9 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 					v = "NULL"
 					switch col.col.Type {
 					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
-						v = fmt.Sprintf("%v", config.Cfg.Binlog.NullFloat)
+						v = fmt.Sprintf("%v", BinlogCfg.NullFloat)
 					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT:
-						v = fmt.Sprintf("%v", config.Cfg.Binlog.NullInt)
+						v = fmt.Sprintf("%v", BinlogCfg.NullInt)
 					}
 				} else {
 
@@ -252,9 +252,9 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 					v = "\"NULL\""
 					switch col.col.Type {
 					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
-						v = fmt.Sprintf("%v", config.Cfg.Binlog.NullFloat)
+						v = fmt.Sprintf("%v", BinlogCfg.NullFloat)
 					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT:
-						v = fmt.Sprintf("%vi", config.Cfg.Binlog.NullInt)
+						v = fmt.Sprintf("%vi", BinlogCfg.NullInt)
 					}
 				} else {
 					switch col.col.Type {
@@ -262,6 +262,15 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 						v = fmt.Sprintf("%v", row[col.index])
 					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT, schema.TYPE_SET:
 						v = fmt.Sprintf("%vi", row[col.index])
+						if strings.HasPrefix(strings.ToLower(col.col.RawType), "bool") {
+							if bv, err := strconv.Atoi(fmt.Sprintf("%v", row[col.index])); err == nil {
+								if bv > 0 {
+									v = "true"
+								} else {
+									v = "false"
+								}
+							}
+						}
 					case schema.TYPE_ENUM:
 						enumindex := 0
 						if iv, ok := (row[col.index]).(int64); ok {
@@ -281,6 +290,7 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 						} else {
 							v = `""`
 						}
+
 					default:
 						v = fmt.Sprintf("\"%s\"", row[col.index])
 					}
