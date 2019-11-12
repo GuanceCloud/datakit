@@ -3,7 +3,7 @@
 default: local
 
 # devops 测试环境
-TEST_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/ftcollector/test
+TEST_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/test
 TEST_SSL = 0
 TEST_PORT = 10401
 
@@ -14,7 +14,7 @@ LOCAL_SSL = 0
 LOCAL_PORT = 9527
 
 # 预发环境
-PREPROD_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/ftcollector/preprod
+PREPROD_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/preprod
 PREPROD_SSL = 1
 PREPROD_PORT = 443
 
@@ -26,8 +26,8 @@ RELEASE_SSL = 1
 RELEASE_PORT = 443
 
 PUB_DIR = pub
-BIN = ftcollector
-NAME = ftcollector
+BIN = datakit
+NAME = datakit
 ENTRY = main.go
 
 VERSION := $(shell git describe --always --tags)

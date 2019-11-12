@@ -35,13 +35,9 @@ func (c *Binloger) startSyncer() (*replication.BinlogStreamer, error) {
 	}
 }
 
-func (c *Binloger) runSyncBinlog() error {
+func (b *Binloger) runSyncBinlog() error {
 
-	if err := c.getMasterStatus(c.master); err != nil {
-		return err
-	}
-
-	s, err := c.startSyncer()
+	s, err := b.startSyncer()
 	if err != nil {
 		return err
 	}
@@ -54,13 +50,13 @@ func (c *Binloger) runSyncBinlog() error {
 	fakeRotateLogName := ""
 
 	for {
-		ev, err := s.GetEvent(c.ctx)
+		ev, err := s.GetEvent(b.ctx)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
 		// Update the delay between the Canal and the Master before the handler hooks are called
-		c.updateReplicationDelay(ev)
+		b.updateReplicationDelay(ev)
 
 		// If log pos equals zero then the received event is a fake rotate event and
 		// contains only a name of the next binlog file
@@ -78,7 +74,7 @@ func (c *Binloger) runSyncBinlog() error {
 
 		savePos = false
 		force = false
-		pos := c.master.Position()
+		pos := b.master.Position()
 
 		curPos := pos.Pos
 		// next binlog pos
@@ -100,12 +96,12 @@ func (c *Binloger) runSyncBinlog() error {
 			log.Infof("rotate binlog to %s", pos)
 			savePos = true
 			force = true
-			if err = c.eventHandler.OnRotate(e); err != nil {
+			if err = b.eventHandler.OnRotate(e); err != nil {
 				return errors.Trace(err)
 			}
 		case *replication.RowsEvent:
 			// we only focus row based event
-			err = c.handleRowsEvent(ev)
+			err = b.handleRowsEvent(ev)
 			if err != nil {
 				e := errors.Cause(err)
 				// if error is not ErrExcludedTable or ErrTableNotExist or ErrMissingTableMeta, stop canal
@@ -120,11 +116,11 @@ func (c *Binloger) runSyncBinlog() error {
 		case *replication.XIDEvent:
 			savePos = true
 			// try to save the position later
-			if err := c.eventHandler.OnXID(pos); err != nil {
+			if err := b.eventHandler.OnXID(pos); err != nil {
 				return errors.Trace(err)
 			}
 			if e.GSet != nil {
-				c.master.UpdateGTIDSet(e.GSet)
+				b.master.UpdateGTIDSet(e.GSet)
 			}
 		case *replication.MariadbGTIDEvent:
 			// try to save the GTID later
@@ -132,7 +128,7 @@ func (c *Binloger) runSyncBinlog() error {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			if err := c.eventHandler.OnGTID(gtid); err != nil {
+			if err := b.eventHandler.OnGTID(gtid); err != nil {
 				return errors.Trace(err)
 			}
 		case *replication.GTIDEvent:
@@ -141,11 +137,11 @@ func (c *Binloger) runSyncBinlog() error {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			if err := c.eventHandler.OnGTID(gtid); err != nil {
+			if err := b.eventHandler.OnGTID(gtid); err != nil {
 				return errors.Trace(err)
 			}
 		case *replication.QueryEvent:
-			stmts, _, err := c.parser.Parse(string(e.Query), "", "")
+			stmts, _, err := b.parser.Parse(string(e.Query), "", "")
 			if err != nil {
 				log.Errorf("parse query(%s) err %v, will skip this event", e.Query, err)
 				continue
@@ -156,7 +152,7 @@ func (c *Binloger) runSyncBinlog() error {
 					if node.db == "" {
 						node.db = string(e.Schema)
 					}
-					if err = c.updateTable(node.db, node.table); err != nil {
+					if err = b.updateTable(node.db, node.table); err != nil {
 						return errors.Trace(err)
 					}
 				}
@@ -164,24 +160,24 @@ func (c *Binloger) runSyncBinlog() error {
 					savePos = true
 					force = true
 					// Now we only handle Table Changed DDL, maybe we will support more later.
-					if err = c.eventHandler.OnDDL(pos, e); err != nil {
+					if err = b.eventHandler.OnDDL(pos, e); err != nil {
 						return errors.Trace(err)
 					}
 				}
 			}
 			if savePos && e.GSet != nil {
-				c.master.UpdateGTIDSet(e.GSet)
+				b.master.UpdateGTIDSet(e.GSet)
 			}
 		default:
 			continue
 		}
 
 		if savePos {
-			c.master.Update(pos)
-			c.master.UpdateTimestamp(ev.Header.Timestamp)
+			b.master.Update(pos)
+			b.master.UpdateTimestamp(ev.Header.Timestamp)
 			fakeRotateLogName = ""
 
-			if err := c.eventHandler.OnPosSynced(pos, c.master.GTIDSet(), force); err != nil {
+			if err := b.eventHandler.OnPosSynced(pos, b.master.GTIDSet(), force); err != nil {
 				return errors.Trace(err)
 			}
 		}
@@ -251,14 +247,14 @@ func (c *Binloger) updateReplicationDelay(ev *replication.BinlogEvent) {
 	atomic.StoreUint32(c.delay, newDelay)
 }
 
-func (c *Binloger) handleRowsEvent(e *replication.BinlogEvent) error {
+func (b *Binloger) handleRowsEvent(e *replication.BinlogEvent) error {
 	ev := e.Event.(*replication.RowsEvent)
 
 	// Caveat: table may be altered at runtime.
 	schema := string(ev.Table.Schema)
 	table := string(ev.Table.Table)
 
-	t, target, err := c.GetTable(schema, table)
+	t, target, err := b.GetTable(schema, table)
 	if err != nil {
 		return err
 	}
@@ -276,7 +272,7 @@ func (c *Binloger) handleRowsEvent(e *replication.BinlogEvent) error {
 	}
 	events := newRowsEvent(t, action, ev.Rows, e.Header)
 	events.Input = target
-	return c.eventHandler.OnRow(events)
+	return b.eventHandler.OnRow(events)
 }
 
 func (c *Binloger) FlushBinlog() error {
