@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/siddontang/go-log/log"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 type LogItem struct {
@@ -80,7 +80,9 @@ func (u *Uploader) SendData(data []byte) error {
 	}
 
 	httpReq.Header.Set("Content-Encoding", "gzip")
-	httpReq.Header.Set("X-Version", git.Version)
+	httpReq.Header.Set("X-Datakit-Version", config.DKVersion)
+	httpReq.Header.Set("X-Datakit-UUID", config.Cfg.UUID)
+	httpReq.Header.Set("User-Agent", "forethought datakit")
 
 	httpResp, err := http.DefaultClient.Do(httpReq)
 	if err != nil {
