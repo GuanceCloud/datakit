@@ -27,7 +27,7 @@ var (
 	flagVersion = flag.Bool("version", false, `show verison info`)
 	flagInit    = flag.Bool(`init`, false, `init agent`)
 
-	flagFtGateway = flag.String("ftgateway", ``, ``)
+	flagFtGateway = flag.String("ftdataway", ``, ``)
 
 	flagCfgFile = flag.String("config", ``, `configure file`)
 	flagCfgDir  = flag.String("sub-config-dir", ``, `sub configuration dir`)
