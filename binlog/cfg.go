@@ -19,7 +19,7 @@ var (
 	BinlogCfg BinlogConfig
 
 	binlogConfigSample = `
-disable=false
+disable=true
 null_int=0
 null_float=0.0
 [[sources]]
