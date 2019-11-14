@@ -29,7 +29,7 @@ const maxErrMsgLen = 256
 func New(r string) *Uploader {
 	u := &Uploader{
 		Remote:              r,
-		numShards:           2,
+		numShards:           5,
 		shardCap:            1000,
 		maxSamplesPerSecond: 100,
 		Compress:            true,

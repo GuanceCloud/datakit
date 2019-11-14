@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/siddontang/go-log/log"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/aliyuncms"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/binlog"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/config/all"
@@ -219,8 +220,14 @@ Golang Version: %s
 		}
 	}()
 
-	wg.Wait()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		m := aliyuncms.NewAliyunCMSManager(up)
+		m.Start()
+	}()
 
+	wg.Wait()
 }
 
 func stopAgent() {
