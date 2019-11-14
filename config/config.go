@@ -40,10 +40,20 @@ const (
   method = "POST"
   data_format = "influx"
   content_encoding = "gzip"
+
+  ## Additional HTTP headers
+  [outputs.http.headers]
+    ## Should be set manually to "application/json" for json data_format
+	X-Datakit-UUID = "{{.DKUUID}}"
+	X-Datakit-Version = "{{.DKVERSION}}"
+	User-Agent = "forethought datakit"
 `
 )
 
+var DKVersion string
+
 type Config struct {
+	UUID      string `toml:"uuid"`
 	FtGateway string `toml:"ftdataway"`
 
 	Log      string `toml:"log"`
@@ -121,11 +131,15 @@ func GenerateTelegrafConfig() (string, error) {
 	type AgentCfg struct {
 		LogFile   string
 		FtGateway string
+		DKUUID    string
+		DKVERSION string
 	}
 
 	agentcfg := AgentCfg{
 		LogFile:   filepath.Join(ExecutableDir, "agent.log"),
 		FtGateway: Cfg.FtGateway,
+		DKUUID:    Cfg.UUID,
+		DKVERSION: DKVersion,
 	}
 
 	var err error

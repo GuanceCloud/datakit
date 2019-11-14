@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/satori/go.uuid"
+
 	"github.com/siddontang/go-log/log"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/aliyuncms"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/binlog"
@@ -90,6 +92,11 @@ Golang Version: %s
 			*flagCfgDir = filepath.Join(config.ExecutableDir, "conf.d")
 		}
 
+		uid, err := uuid.NewV4()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		config.Cfg.UUID = "dkit_" + uid.String()
 		config.Cfg.FtGateway = *flagFtGateway
 		config.Cfg.Log = *flagLogFile
 		config.Cfg.LogLevel = *flagLogLevel
@@ -101,6 +108,8 @@ Golang Version: %s
 
 		return
 	}
+
+	config.DKVersion = "datakit-v" + git.Version
 
 	if err := config.LoadConfig(config.CfgPath); err != nil {
 		log.Fatalf("[error] load config failed: %s", err.Error())
