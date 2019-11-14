@@ -23,8 +23,8 @@ const (
 region_id = "cn-hangzhou"
 
 ## Aliyun Credentials (required)
-access_key_id = "LTAIu5wzrLOGHdq1"
-access_key_secret = "dK8YkBkQDRL8yqD0MVUBx1TzKZml9h"
+access_key_id = ""
+access_key_secret = ""
 
   [[cms.project]]
     ## Metric Statistic Project (required)

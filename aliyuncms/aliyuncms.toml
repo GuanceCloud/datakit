@@ -5,8 +5,8 @@
   region_id = "cn-hangzhou"
   
   ## Aliyun Credentials (required)
-  access_key_id = "xxx"
-  access_key_secret = "xxx"
+  access_key_id = ""
+  access_key_secret = ""
 
   [[cms.project]]
     ## Metric Statistic Project (required)
