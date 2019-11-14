@@ -44,7 +44,7 @@ const (
 )
 
 type Config struct {
-	FtGateway string `toml:"ft_gateway"`
+	FtGateway string `toml:"ftdataway"`
 
 	Log      string `toml:"log"`
 	LogLevel string `toml:"log_level"`
