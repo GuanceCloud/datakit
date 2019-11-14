@@ -48,7 +48,7 @@ func TestCredential(t *testing.T) {
 	cmscfg := &CmsCfg{
 		RegionID:        `cn-hangzhou`,
 		AccessKeyID:     `LTAIu5wzrLOGHdq1`,
-		AccessKeySecret: `dK8YkBkQDRL8yqD0MVUBx1TzKZml9h`,
+		AccessKeySecret: `***`,
 	}
 
 	ac := &AliyunCMS{
@@ -72,7 +72,7 @@ func TestAliyunCms(t *testing.T) {
 		log.Println("config file is ok")
 	}
 
-	m := NewAliyunCMSManager()
+	m := NewAliyunCMSManager(nil)
 	m.Start()
 
 }
