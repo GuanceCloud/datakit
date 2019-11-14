@@ -87,7 +87,7 @@ Golang Version: %s
 		}
 
 		if *flagCfgDir == "" {
-			*flagCfgDir = filepath.Join(config.ExecutableDir, "config.d")
+			*flagCfgDir = filepath.Join(config.ExecutableDir, "conf.d")
 		}
 
 		config.Cfg.FtGateway = *flagFtGateway
