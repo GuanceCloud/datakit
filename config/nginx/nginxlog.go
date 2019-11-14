@@ -11,9 +11,9 @@ import (
 
 const (
 	nginxLogSample = `
-[[access_log]]
-  file="/var/log/nginx/access.log"
-  measurement="nginx_access"
+#[[access_log]]
+#  file="/var/log/nginx/access.log"
+#  measurement="nginx_access"
 `
 
 	nginxLogTelegrafTemplate = `

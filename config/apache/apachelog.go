@@ -11,13 +11,9 @@ import (
 
 const (
 	apacheLogSample = `
-[[access_log]]
-  file="/var/log/apache/access.log"
-  measurement="apache_access"
-
-[[error_log]]
-  file="/var/log/apache/error.log"
-  measurement="apache_error"
+#[[access_log]]
+#  file="/var/log/apache/access.log"
+#  measurement="apache_access"
 `
 
 	apacheLogTelegrafTemplate = `
