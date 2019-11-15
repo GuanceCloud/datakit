@@ -1,6 +1,7 @@
 package binlog
 
 import (
+	"context"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -35,7 +36,7 @@ func (c *Binloger) startSyncer() (*replication.BinlogStreamer, error) {
 	}
 }
 
-func (b *Binloger) runSyncBinlog() error {
+func (b *Binloger) runSyncBinlog(ctx context.Context) error {
 
 	s, err := b.startSyncer()
 	if err != nil {
@@ -50,8 +51,9 @@ func (b *Binloger) runSyncBinlog() error {
 	fakeRotateLogName := ""
 
 	for {
-		ev, err := s.GetEvent(b.ctx)
+		ev, err := s.GetEvent(ctx)
 		if err != nil {
+			b.syncer.Close()
 			return errors.Trace(err)
 		}
 

@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/influxdata/toml"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
@@ -50,7 +51,9 @@ const (
 `
 )
 
-var DKVersion string
+var (
+	DKVersion = "datakit-v" + git.Version
+)
 
 type Config struct {
 	UUID      string `toml:"uuid"`

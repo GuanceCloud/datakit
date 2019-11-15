@@ -204,9 +204,9 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 					v = "NULL"
 					switch col.col.Type {
 					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
-						v = fmt.Sprintf("%v", BinlogCfg.NullFloat)
+						v = fmt.Sprintf("%v", Cfg.NullFloat)
 					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT:
-						v = fmt.Sprintf("%v", BinlogCfg.NullInt)
+						v = fmt.Sprintf("%v", Cfg.NullInt)
 					}
 				} else {
 
@@ -252,9 +252,9 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 					v = "\"NULL\""
 					switch col.col.Type {
 					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
-						v = fmt.Sprintf("%v", BinlogCfg.NullFloat)
+						v = fmt.Sprintf("%v", Cfg.NullFloat)
 					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT:
-						v = fmt.Sprintf("%vi", BinlogCfg.NullInt)
+						v = fmt.Sprintf("%vi", Cfg.NullInt)
 					}
 				} else {
 					switch col.col.Type {
