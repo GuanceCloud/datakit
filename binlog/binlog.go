@@ -12,13 +12,26 @@ import (
 	"github.com/pingcap/errors"
 	"github.com/pingcap/parser"
 	_ "github.com/pingcap/tidb/types/parser_driver"
-	"github.com/siddontang/go-log/log"
+	//"github.com/siddontang/go-log/log"
 	"github.com/siddontang/go-mysql/client"
 	"github.com/siddontang/go-mysql/mysql"
 	"github.com/siddontang/go-mysql/replication"
 	"github.com/siddontang/go-mysql/schema"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/log"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/uploader"
 )
+
+func init() {
+	config.AddConfig("binlog", &Cfg)
+
+	service.Add("binlog", func(logger log.Logger) service.Service {
+		return &BinlogSvr{
+			logger: logger,
+		}
+	})
+}
 
 type Binloger struct {
 	m sync.Mutex
@@ -45,10 +58,17 @@ type Binloger struct {
 
 	delay *uint32
 
-	ctx    context.Context
-	cancel context.CancelFunc
+	//ctx    context.Context
+	//cancel context.CancelFunc
+
+	logger log.Logger
 
 	storage uploader.IUploader
+}
+
+type BinlogSvr struct {
+	binlogs []*Binloger
+	logger  log.Logger
 }
 
 var (
@@ -61,19 +81,15 @@ var (
 	binlogs []*Binloger
 )
 
-func Start(up uploader.IUploader) error {
+func (s *BinlogSvr) Start(ctx context.Context, up uploader.IUploader) error {
 
-	if BinlogCfg.Disable {
-		return nil
-	}
+	s.logger.Info("Starting Binlog...")
 
 	var wg sync.WaitGroup
 
-	var err error
+	s.binlogs = []*Binloger{}
 
-	binlogs = []*Binloger{}
-
-	for _, dt := range BinlogCfg.Datasources {
+	for _, dt := range Cfg.Datasources {
 		dt.ServerID = uint32(rand.New(rand.NewSource(time.Now().Unix())).Intn(1000)) + 1001
 		dt.Charset = mysql.DEFAULT_CHARSET
 		dt.Flavor = mysql.MySQLFlavor
@@ -84,16 +100,16 @@ func Start(up uploader.IUploader) error {
 		dt.ParseTime = true
 		dt.SemiSyncEnabled = false
 
-		binloger := NewBinloger(dt)
+		binloger := NewBinloger(dt, s.logger)
 		binloger.storage = up
 
-		binlogs = append(binlogs, binloger)
+		s.binlogs = append(s.binlogs, binloger)
 
 		wg.Add(1)
 		go func(b *Binloger) {
 			defer wg.Done()
-			if err := b.run(); err != nil {
-				log.Errorf("start binlog parser failed: %s", err.Error())
+			if err := b.Run(ctx); err != nil && err != context.Canceled {
+				s.logger.Errorf("%s", err.Error())
 			}
 		}(binloger)
 
@@ -101,18 +117,13 @@ func Start(up uploader.IUploader) error {
 
 	wg.Wait()
 
-	return err
+	s.logger.Info("Binlog done")
+
+	return nil
 }
 
-func Stop() {
-	for _, b := range binlogs {
-		b.Stop()
-	}
-}
+func (b *Binloger) Run(ctx context.Context) error {
 
-func (b *Binloger) run() error {
-
-	b.ctx, b.cancel = context.WithCancel(context.Background())
 	b.tables = make(map[string]*schema.Table)
 	if b.cfg.DiscardNoMetaRowEvent {
 		b.errorTablesGetTime = make(map[string]time.Time)
@@ -141,7 +152,13 @@ func (b *Binloger) run() error {
 		return err
 	}
 
-	log.Infof("check requirments ok")
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	default:
+	}
+
+	b.logger.Info("check requirments ok")
 
 	b.master.UpdateTimestamp(uint32(time.Now().Unix()))
 
@@ -149,9 +166,9 @@ func (b *Binloger) run() error {
 		return err
 	}
 
-	if err := b.runSyncBinlog(); err != nil {
-		if errors.Cause(err) != context.Canceled {
-			log.Errorf("start sync binlog err: %v", err)
+	if err := b.runSyncBinlog(ctx); err != nil {
+		if err != context.Canceled && errors.Cause(err) != context.Canceled {
+			b.logger.Errorf("start sync binlog err: %v", err)
 			return err
 		}
 	}
@@ -159,46 +176,32 @@ func (b *Binloger) run() error {
 	return nil
 }
 
-func (c *Binloger) reset() {
-	c.m.Lock()
-	defer c.m.Unlock()
+// func (b *Binloger) Stop() {
+// 	b.m.Lock()
+// 	defer b.m.Unlock()
 
-	c.syncer.Close()
+// 	b.syncer.Close()
+// 	b.connLock.Lock()
+// 	if b.conn != nil {
+// 		b.conn.Close()
+// 		b.conn = nil
+// 	}
+// 	b.connLock.Unlock()
 
-	c.connLock.Lock()
-	if c.conn != nil {
-		c.conn.Close()
-		c.conn = nil
+// 	b.eventHandler.OnPosSynced(b.master.Position(), b.master.GTIDSet(), true)
+// }
+
+func NewBinloger(cfg *BinlogDatasource, logger log.Logger) *Binloger {
+	b := &Binloger{
+		cfg:    cfg,
+		logger: logger,
+		parser: parser.New(),
+		delay:  new(uint32),
 	}
-	c.connLock.Unlock()
-}
-
-func (b *Binloger) Stop() {
-	b.m.Lock()
-	defer b.m.Unlock()
-
-	b.cancel()
-	b.syncer.Close()
-	b.connLock.Lock()
-	if b.conn != nil {
-		b.conn.Close()
-		b.conn = nil
-	}
-	b.connLock.Unlock()
-
-	b.eventHandler.OnPosSynced(b.master.Position(), b.master.GTIDSet(), true)
-}
-
-func NewBinloger(cfg *BinlogDatasource) *Binloger {
-	b := &Binloger{}
-	b.cfg = cfg
 
 	b.eventHandler = &MainEventHandler{
 		binloger: b,
 	}
-	b.parser = parser.New()
-
-	b.delay = new(uint32)
 
 	return b
 }
@@ -298,7 +301,7 @@ func (c *Binloger) GetTable(db string, table string) (*schema.Table, *BinlogData
 			c.errorTablesGetTime[key] = time.Now()
 			c.tableLock.Unlock()
 			// log error and return ErrMissingTableMeta
-			log.Errorf("get table meta err: %v", errors.Trace(err))
+			c.logger.Errorf("get table meta err: %v", errors.Trace(err))
 			return nil, nil, schema.ErrMissingTableMeta
 		}
 		return nil, nil, err
@@ -389,16 +392,16 @@ func (c *Binloger) getMasterStatus(m *masterInfo) error {
 	return nil
 }
 
-func (c *Binloger) checkMysqlVersion() error {
-	es, err := c.Execute(`SELECT version();`)
+func (b *Binloger) checkMysqlVersion() error {
+	es, err := b.Execute(`SELECT version();`)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
 	ver, _ := es.GetString(0, 0)
-	log.Infof("server version: %s", ver)
+	b.logger.Infof("server version: %s", ver)
 	if strings.Contains(strings.ToLower(ver), "maria") {
-		c.cfg.Flavor = "mariadb"
+		b.cfg.Flavor = "mariadb"
 	}
 
 	return nil
@@ -412,7 +415,7 @@ func (c *Binloger) Execute(cmd string, args ...interface{}) (rr *mysql.Result, e
 	retryNum := 3
 	for i := 0; i < retryNum; i++ {
 		if c.conn == nil {
-			log.Infof("user is %s", c.cfg.User)
+			c.logger.Infof("user is %s", c.cfg.User)
 			c.conn, err = client.Connect(c.cfg.Addr, c.cfg.User, c.cfg.Password, "")
 			if err != nil {
 				return nil, errors.Trace(err)
