@@ -88,6 +88,7 @@ func (c *NginxConfig) FilePath(dir string) string {
 }
 
 func (c *NginxConfig) ToTelegraf() (string, error) {
+
 	d, err := toml.Marshal(c)
 	if err != nil {
 		return "", err
