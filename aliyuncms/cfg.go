@@ -12,6 +12,7 @@ import (
 
 const (
 	aliyuncmsConfigSample = `
+disable = true
 [[cms]]
 ## Aliyun Region (required)
 ## See: https://www.alibabacloud.com/help/zh/doc-detail/40654.htm
@@ -74,7 +75,8 @@ type (
 	}
 
 	ACSCmsConfig struct {
-		CmsCfg []*CmsCfg `toml:"cms"`
+		Disable bool      `toml:"disable"`
+		CmsCfg  []*CmsCfg `toml:"cms"`
 	}
 )
 

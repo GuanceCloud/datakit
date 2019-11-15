@@ -11,9 +11,10 @@ import (
 
 const (
 	nginxLogSample = `
-#[[access_log]]
-#  file="/var/log/nginx/access.log"
-#  measurement="nginx_access"
+disable = true
+[[access_log]]
+  file="/var/log/nginx/access.log"
+  measurement="nginx_access"
 `
 
 	nginxLogTelegrafTemplate = `
@@ -42,6 +43,7 @@ type NginxErrorLog struct {
 
 type NginxLogConfig struct {
 	//Logs []*NginxAccessLog `yaml:"logs"`
+	Disable    bool              `toml:"disable"`
 	AccessLogs []*NginxAccessLog `toml:"access_log"`
 	ErrorLogs  []*NginxErrorLog  `toml:"error_log"`
 }
@@ -51,6 +53,9 @@ func (c *NginxLogConfig) SampleConfig() string {
 }
 
 func (c *NginxLogConfig) ToTelegraf() (string, error) {
+	if c.Disable {
+		return "", nil
+	}
 	cfg := ""
 	t := template.New("")
 	var err error
