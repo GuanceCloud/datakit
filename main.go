@@ -4,24 +4,20 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/satori/go.uuid"
 
 	"github.com/siddontang/go-log/log"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/aliyuncms"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/binlog"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/config/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/uploader"
 )
 
@@ -37,22 +33,6 @@ var (
 	flagLogFile  = flag.String(`log`, ``, `log file`)
 	flagLogLevel = flag.String(`log-level`, ``, `log level`)
 )
-
-func checkPid(pid int) error {
-	return syscall.Kill(pid, 0)
-}
-
-func agentConfPath() string {
-	return filepath.Join(config.ExecutableDir, "agent.conf")
-}
-
-func agentPidPath() string {
-	return filepath.Join(config.ExecutableDir, "agent.pid")
-}
-
-func agentPath() string {
-	return filepath.Join(config.ExecutableDir, "agent")
-}
 
 func main() {
 
@@ -109,8 +89,6 @@ Golang Version: %s
 		return
 	}
 
-	config.DKVersion = "datakit-v" + git.Version
-
 	if err := config.LoadConfig(config.CfgPath); err != nil {
 		log.Fatalf("[error] load config failed: %s", err.Error())
 		return
@@ -131,13 +109,14 @@ Golang Version: %s
 	config.Cfg.Log = logpath
 	config.Cfg.LogLevel = loglevel
 
-	if err = setupLog(logpath, loglevel); err != nil {
+	var gLogger *log.Logger
+	if gLogger, err = setupLog(logpath, loglevel); err != nil {
 		log.Fatalf("[error] %s", err)
 		return
 	}
 
 	if config.Cfg.FtGateway == "" {
-		log.Errorln("ftgateway required")
+		log.Errorln("ftdateway required")
 		return
 	}
 
@@ -155,144 +134,53 @@ Golang Version: %s
 		return
 	}
 
-	telcfg, err := config.GenerateTelegrafConfig()
-	if err != nil {
-		log.Fatalf("%s", err.Error())
-		return
-	}
-
-	if err = ioutil.WriteFile(agentConfPath(), []byte(telcfg), 0664); err != nil {
-		log.Fatalf("%s", err.Error())
-		return
-	}
-
-	log.Infoln("starting agent...")
-	startAgent()
-
-	signals := make(chan os.Signal)
-	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
-
 	ctx, cancel := context.WithCancel(context.Background())
 
-	var wg sync.WaitGroup
-
+	signals := make(chan os.Signal)
+	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	go func() {
 		select {
 		case sig := <-signals:
 			if sig == syscall.SIGINT || sig == syscall.SIGTERM {
-				stopAgent()
-				binlog.Stop()
 				cancel()
 			}
 		}
 	}()
 
+	var wg sync.WaitGroup
+
 	up := uploader.New(config.Cfg.FtGateway)
 	up.Start()
 	defer up.Stop()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err = binlog.Start(up); err != nil {
-			log.Errorf("start binlog fail: %s", err.Error())
-		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		ticker := time.NewTicker(1 * time.Second)
-
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				pid, err := ioutil.ReadFile(agentPidPath())
-				if err != nil {
-					return
-				}
-
-				npid, err := strconv.Atoi(string(pid))
-				if err != nil || npid <= 2 {
-					return
-				}
-
-				if checkPid(npid) != nil {
-					return
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		m := aliyuncms.NewAliyunCMSManager(up)
-		m.Start()
-	}()
+	for _, svrCreator := range service.Services {
+		wg.Add(1)
+		svr := svrCreator(gLogger)
+		go func(s service.Service) {
+			defer wg.Done()
+			s.Start(ctx, up)
+		}(svr)
+	}
 
 	wg.Wait()
+
 }
 
-func stopAgent() {
+func setupLog(f, l string) (*log.Logger, error) {
 
-	pid, err := ioutil.ReadFile(agentPidPath())
-	if err == nil {
-		npid, err := strconv.Atoi(string(pid))
-		if err == nil && npid > 2 {
-			if checkPid(npid) == nil {
-				prs, err := os.FindProcess(npid)
-				if err == nil && prs != nil {
-					prs.Kill()
-					time.Sleep(time.Millisecond * 100)
-				}
-			}
-		}
-	}
-}
+	var dl *log.Logger
 
-func startAgent() {
-
-	stopAgent()
-
-	env := os.Environ()
-	procAttr := &os.ProcAttr{
-		Env: env,
-		Files: []*os.File{
-			os.Stdin,
-			os.Stdout,
-			os.Stderr,
-		},
-	}
-
-	p, err := os.StartProcess(agentPath(), []string{"agent", "--config", agentConfPath()}, procAttr)
+	h, err := log.NewRotatingFileHandler(f, 10<<10<<10, 1)
 	if err != nil {
-		log.Errorf("start agent failed: %s", err.Error())
+		return nil, err
 	}
-	ioutil.WriteFile(agentPidPath(), []byte(fmt.Sprintf("%d", p.Pid)), 0664)
 
-	time.Sleep(time.Millisecond * 100)
-}
-
-func setupLog(f, l string) error {
-
-	if f != "" {
-		h, err := log.NewRotatingFileHandler(f, 10<<10<<10, 1)
-		if err != nil {
-			return err
-		}
-
-		log.SetDefaultLogger(log.NewDefault(h))
-	}
+	dl = log.NewDefault(h)
+	log.SetDefaultLogger(dl)
 
 	setLogLevel(l)
 
-	return nil
+	return dl, nil
 }
 
 func setLogLevel(level string) {
