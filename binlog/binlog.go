@@ -83,6 +83,10 @@ var (
 
 func (s *BinlogSvr) Start(ctx context.Context, up uploader.IUploader) error {
 
+	if Cfg.Disable {
+		return nil
+	}
+
 	s.logger.Info("Starting Binlog...")
 
 	var wg sync.WaitGroup
