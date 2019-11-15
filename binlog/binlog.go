@@ -27,6 +27,9 @@ func init() {
 	config.AddConfig("binlog", &Cfg)
 
 	service.Add("binlog", func(logger log.Logger) service.Service {
+		if Cfg.Disable {
+			return nil
+		}
 		return &BinlogSvr{
 			logger: logger,
 		}
