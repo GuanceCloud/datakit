@@ -9,9 +9,8 @@ After=network.target
 Environment=HOME=/root
 WorkingDirectory=/usr/local/cloudcare/forethought/datakit
 ExecReload=/bin/kill -2 $MAINPID
-KillMode=process
-Restart=always
-RestartSec=3s
+KillMode=control-group
+Restart=on-failure
 ExecStart=/usr/local/cloudcare/forethought/datakit/datakit --config /usr/local/cloudcare/forethought/datakit/datakit.conf
 
 [Install]
