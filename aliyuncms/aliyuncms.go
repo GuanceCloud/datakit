@@ -24,6 +24,18 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/uploader"
 )
 
+func init() {
+	config.AddConfig("aliyuncms", &Cfg)
+	service.Add("aliyuncms", func(logger log.Logger) service.Service {
+		if Cfg.Disable {
+			return nil
+		}
+		return &AliyuncmsSvr{
+			logger: logger,
+		}
+	})
+}
+
 var (
 	batchInterval = time.Duration(5) * time.Minute
 	metricPeriod  = time.Duration(5 * time.Minute)
@@ -53,15 +65,6 @@ type (
 		logger log.Logger
 	}
 )
-
-func init() {
-	config.AddConfig("aliyuncms", &Cfg)
-	service.Add("aliyuncms", func(logger log.Logger) service.Service {
-		return &AliyuncmsSvr{
-			logger: logger,
-		}
-	})
-}
 
 func (m *AliyuncmsSvr) Start(ctx context.Context, up uploader.IUploader) error {
 
