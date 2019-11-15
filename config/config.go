@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,6 +17,8 @@ var (
 	Cfg           Config
 	CfgPath       string
 	ExecutableDir string
+
+	ErrNoTelegrafConf = errors.New("no telegraf config")
 )
 
 const (
@@ -159,13 +162,21 @@ func GenerateTelegrafConfig() (string, error) {
 
 	cfg := string(buf.Bytes())
 
+	telcfgs := ""
+
 	for _, c := range SubConfigs {
 		telcfg, err := c.ToTelegraf()
 		if err != nil {
 			return "", err
 		}
-		cfg += telcfg
+		telcfgs += telcfg
 	}
+
+	if telcfgs == "" {
+		return "", ErrNoTelegrafConf
+	}
+
+	cfg += telcfgs
 
 	return cfg, err
 }
