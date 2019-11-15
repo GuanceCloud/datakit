@@ -8,12 +8,7 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 	"github.com/influxdata/toml"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
-
-func init() {
-	config.AddConfig("aliyuncms", &Cfg)
-}
 
 const (
 	aliyuncmsConfigSample = `

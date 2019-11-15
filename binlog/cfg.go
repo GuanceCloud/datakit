@@ -7,16 +7,10 @@ import (
 	"time"
 
 	"github.com/influxdata/toml"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
-func init() {
-	config.AddConfig("binlog", &BinlogCfg)
-}
-
 var (
-	BinlogCfg BinlogConfig
+	Cfg BinlogConfig
 
 	binlogConfigSample = `
 disable=true
