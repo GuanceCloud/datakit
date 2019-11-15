@@ -24,8 +24,8 @@ disable = true
       patterns = ["{{.Pattern}}"]
       measurement = "{{.Measurement}}"
 `
-	accessLogPattern = `COMMON_LOG_FORMAT`
-	errorLogPattern  = `HTTPD_ERRORLOG`
+	accessLogPattern = `%{COMMON_LOG_FORMAT}`
+	errorLogPattern  = `%{HTTPD_ERRORLOG}`
 )
 
 type ApacheAccessLog struct {
