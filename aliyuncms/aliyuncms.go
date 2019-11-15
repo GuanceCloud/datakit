@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/influxdata/telegraf/metric"
@@ -19,97 +18,148 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/providers"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/log"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/uploader"
 )
 
 var (
-	ErrServerShuttingDown = errors.New("server is shutting down")
-	ErrServerRunning      = errors.New("server is running")
-	ErrServerCanceled     = errors.New("server is canceled")
-
 	batchInterval = time.Duration(5) * time.Minute
 	metricPeriod  = time.Duration(5 * time.Minute)
 	rateLimit     = 20
 )
 
 type (
+	aliyuncmsClient interface {
+		DescribeMetricList(request *cms.DescribeMetricListRequest) (*cms.DescribeMetricListResponse, error)
+	}
+
 	AliyunCMS struct {
 		client aliyuncmsClient
 
-		cfg        *CmsCfg
-		inShutdown int32
-		inRunning  int32
-
-		exitCtx context.Context
-		exitFun context.CancelFunc
+		cfg *CmsCfg
 
 		timer *time.Timer
 
 		wg sync.WaitGroup
 
 		uploader uploader.IUploader
+		logger   log.Logger
 	}
 
-	aliyuncmsClient interface {
-		DescribeMetricList(request *cms.DescribeMetricListRequest) (*cms.DescribeMetricListResponse, error)
-	}
-
-	AliyunCMSManager struct {
-		cmss []*AliyunCMS
-
-		uploader uploader.IUploader
+	AliyuncmsSvr struct {
+		cmss   []*AliyunCMS
+		logger log.Logger
 	}
 )
 
-func NewAliyunCMSManager(up uploader.IUploader) *AliyunCMSManager {
+func init() {
+	config.AddConfig("aliyuncms", &Cfg)
+	service.Add("aliyuncms", func(logger log.Logger) service.Service {
+		return &AliyuncmsSvr{
+			logger: logger,
+		}
+	})
+}
 
-	m := &AliyunCMSManager{
-		cmss:     []*AliyunCMS{},
-		uploader: up,
-	}
+func (m *AliyuncmsSvr) Start(ctx context.Context, up uploader.IUploader) error {
+
+	m.cmss = []*AliyunCMS{}
 
 	for _, c := range Cfg.CmsCfg {
 		a := &AliyunCMS{
 			cfg:      c,
 			uploader: up,
+			logger:   m.logger,
 		}
 		m.cmss = append(m.cmss, a)
 	}
 
-	return m
-}
-
-func (m *AliyunCMSManager) Start() error {
 	var wg sync.WaitGroup
+
+	m.logger.Info("Starting AliyuncmsSvr...")
 
 	for _, c := range m.cmss {
 		wg.Add(1)
 		go func(ac *AliyunCMS) {
 			defer wg.Done()
-			if err := ac.Start(); err != nil {
-				log.Println(err)
-			} else {
-				log.Println("cms instance finish")
+
+			if err := ac.Run(ctx); err != nil && err != context.Canceled {
+				m.logger.Errorf("%s", err)
 			}
 		}(c)
 	}
+
 	wg.Wait()
-	log.Println("AliyunCMSManager finish")
+
+	m.logger.Info("AliyuncmsSvr done")
 	return nil
 }
 
-func (m *AliyunCMSManager) Stop() {
-	for _, c := range m.cmss {
-		c.Stop()
+func (s *AliyunCMS) Run(ctx context.Context) error {
+
+	if err := s.initializeAliyunCMS(); err != nil {
+		return err
 	}
-}
 
-func (s *AliyunCMS) isShuttingDown() bool {
-	return atomic.LoadInt32(&s.inShutdown) != 0
-}
+	s.logger.Info("retrieve aliyun credential success")
 
-func (s *AliyunCMS) isRunning() bool {
-	return atomic.LoadInt32(&s.inRunning) != 0
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	default:
+	}
+
+	lmtr := NewRateLimiter(rateLimit, time.Second)
+	defer lmtr.Stop()
+
+	s.wg.Add(1)
+	defer s.wg.Done()
+
+	for {
+
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
+		}
+
+		t := time.Now()
+		for _, req := range MetricsRequests {
+
+			select {
+			case <-ctx.Done():
+				return context.Canceled
+			default:
+			}
+
+			<-lmtr.C
+			if err := fetchMetric(req, s.client, s.uploader); err != nil {
+				s.logger.Errorf("fetchMetric error: %s", err)
+			}
+		}
+
+		useage := time.Now().Sub(t)
+		if useage < batchInterval {
+			remain := batchInterval - useage
+
+			if s.timer == nil {
+				s.timer = time.NewTimer(remain)
+			} else {
+				s.timer.Reset(remain)
+			}
+			select {
+			case <-ctx.Done():
+				if s.timer != nil {
+					s.timer.Stop()
+					s.timer = nil
+				}
+				return context.Canceled
+			case <-s.timer.C:
+			}
+		}
+	}
 }
 
 func (s *AliyunCMS) initializeAliyunCMS() error {
@@ -138,106 +188,6 @@ func (s *AliyunCMS) initializeAliyunCMS() error {
 	s.client = cli
 
 	return nil
-}
-
-func (s *AliyunCMS) Start() error {
-	if s.isShuttingDown() {
-		return ErrServerShuttingDown
-	}
-
-	if s.isRunning() {
-		return ErrServerRunning
-	}
-
-	s.exitCtx, s.exitFun = context.WithCancel(context.Background())
-
-	atomic.AddInt32(&s.inRunning, 1)
-	defer atomic.AddInt32(&s.inRunning, -1)
-
-	if err := s.initializeAliyunCMS(); err != nil {
-		return err
-	}
-
-	log.Println("check credential ok")
-
-	select {
-	case <-s.exitCtx.Done():
-		return ErrServerCanceled
-	default:
-	}
-
-	lmtr := NewRateLimiter(rateLimit, time.Second)
-	defer lmtr.Stop()
-
-	s.wg.Add(1)
-	defer s.wg.Done()
-
-	for {
-
-		select {
-		case <-s.exitCtx.Done():
-			return ErrServerCanceled
-		default:
-		}
-
-		t := time.Now()
-		for _, req := range MetricsRequests {
-
-			select {
-			case <-s.exitCtx.Done():
-				return ErrServerCanceled
-			default:
-			}
-
-			<-lmtr.C
-			if err := fetchMetric(req, s.client, s.uploader); err != nil {
-				log.Printf("fetchMetric error: %s", err)
-			}
-		}
-
-		useage := time.Now().Sub(t)
-		if useage < batchInterval {
-			remain := batchInterval - useage
-			log.Printf("start wait, useage: %v, towait: %v", useage, remain)
-
-			if s.timer == nil {
-				s.timer = time.NewTimer(remain)
-			} else {
-				s.timer.Reset(remain)
-			}
-			select {
-			case <-s.exitCtx.Done():
-				log.Println("cancel done")
-				if s.timer != nil {
-					s.timer.Stop()
-					s.timer = nil
-				}
-				return ErrServerCanceled
-			case <-s.timer.C:
-				log.Println("wait done")
-			}
-		}
-	}
-}
-
-func (s *AliyunCMS) Stop() {
-	if s.isShuttingDown() || !s.isRunning() {
-		return
-	}
-	atomic.AddInt32(&s.inShutdown, 1)
-	s.exitFun()
-	s.wg.Wait()
-	s.client = nil
-	if s.timer != nil {
-		s.timer.Stop()
-		s.timer = nil
-	}
-	atomic.AddInt32(&s.inShutdown, -1)
-}
-
-func (s *AliyunCMS) Restart() {
-	s.Stop()
-	s.Start()
 }
 
 func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up uploader.IUploader) error {
@@ -270,7 +220,7 @@ func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up 
 	req.EndTime = strconv.FormatInt(et, 10)
 	req.StartTime = strconv.FormatInt(st, 10)
 
-	log.Printf("req: %#v", req)
+	//log.Printf("req: %#v", req)
 
 	for more := true; more; {
 		resp, err := client.DescribeMetricList(req)
@@ -289,7 +239,7 @@ func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up 
 			return fmt.Errorf("failed to decode response datapoints: %v", err)
 		}
 
-		log.Printf("datapoints count: %v", len(datapoints))
+		//log.Printf("datapoints count: %v", len(datapoints))
 
 		for _, datapoint := range datapoints {
 
@@ -322,7 +272,7 @@ func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up 
 					})
 				}
 			} else {
-				log.Printf("[warn] Serialize to influx protocol line fail: %s", err)
+				//log.Printf("[warn] Serialize to influx protocol line fail: %s", err)
 			}
 		}
 
