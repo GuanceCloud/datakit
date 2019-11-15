@@ -65,6 +65,10 @@ func init() {
 
 func (m *AliyuncmsSvr) Start(ctx context.Context, up uploader.IUploader) error {
 
+	if Cfg.Disable {
+		return nil
+	}
+
 	m.cmss = []*AliyunCMS{}
 
 	for _, c := range Cfg.CmsCfg {
