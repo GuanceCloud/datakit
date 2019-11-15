@@ -20,6 +20,20 @@ import (
 func init() {
 
 	service.Add("agent", func(logger log.Logger) service.Service {
+
+		telcfg, err := config.GenerateTelegrafConfig()
+		if err != nil {
+			if err != config.ErrNoTelegrafConf {
+				logger.Errorf("%s", err.Error())
+			}
+			return nil
+		}
+
+		if err = ioutil.WriteFile(agentConfPath(), []byte(telcfg), 0664); err != nil {
+			logger.Errorf("%s", err.Error())
+			return nil
+		}
+
 		return &TelegrafSvr{
 			logger: logger,
 		}
@@ -39,18 +53,6 @@ type (
 func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 
 	s.logger.Info("Starting agent...")
-
-	telcfg, err := config.GenerateTelegrafConfig()
-	if err != nil {
-		s.logger.Errorf("%s", err.Error())
-		return err
-	}
-
-	if err = ioutil.WriteFile(agentConfPath(), []byte(telcfg), 0664); err != nil {
-		s.logger.Errorf("%s", err.Error())
-		return err
-	}
-
 	defer func() {
 		s.logger.Info("agent done")
 	}()
