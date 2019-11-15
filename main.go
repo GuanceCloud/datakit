@@ -28,7 +28,7 @@ var (
 	flagFtGateway = flag.String("ftdataway", ``, ``)
 
 	flagCfgFile = flag.String("config", ``, `configure file`)
-	flagCfgDir  = flag.String("sub-config-dir", ``, `sub configuration dir`)
+	flagCfgDir  = flag.String("config-dir", ``, `sub configuration dir`)
 
 	flagLogFile  = flag.String(`log`, ``, `log file`)
 	flagLogLevel = flag.String(`log-level`, ``, `log level`)
@@ -147,22 +147,32 @@ Golang Version: %s
 		}
 	}()
 
-	var wg sync.WaitGroup
-
 	up := uploader.New(config.Cfg.FtGateway)
 	up.Start()
 	defer up.Stop()
 
+	var wg sync.WaitGroup
+
+	svrCount := 0
 	for _, svrCreator := range service.Services {
-		wg.Add(1)
 		svr := svrCreator(gLogger)
-		go func(s service.Service) {
-			defer wg.Done()
-			s.Start(ctx, up)
-		}(svr)
+		if svr != nil {
+			wg.Add(1)
+			svrCount++
+			go func(s service.Service) {
+				defer wg.Done()
+				s.Start(ctx, up)
+			}(svr)
+		}
+	}
+
+	if svrCount == 0 {
+		gLogger.Warn("no datasource found, pleas check config files")
 	}
 
 	wg.Wait()
+
+	gLogger.Info("datakit finish")
 
 }
 
