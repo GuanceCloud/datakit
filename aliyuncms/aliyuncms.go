@@ -192,7 +192,7 @@ func (s *AliyunCMS) Run(ctx context.Context) error {
 			}
 
 			<-lmtr.C
-			if err := fetchMetric(req, s.client, s.uploader); err != nil {
+			if err := fetchMetric(req, s.client, s.uploader, s.logger); err != nil {
 				s.logger.Errorf("fetchMetric error: %s", err)
 			}
 		}
@@ -247,7 +247,7 @@ func (s *AliyunCMS) initializeAliyunCMS() error {
 	return nil
 }
 
-func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up uploader.IUploader) error {
+func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up uploader.IUploader, l log.Logger) error {
 	tags := make(map[string]string)
 
 	if req.Dimensions != "" {
@@ -333,6 +333,7 @@ func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up 
 
 			serializer := influx.NewSerializer()
 			output, err := serializer.Serialize(m)
+			l.Debug(string(output))
 			if err == nil {
 				if up != nil {
 					up.AddLog(&uploader.LogItem{
