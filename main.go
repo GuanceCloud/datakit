@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -12,6 +13,8 @@ import (
 	"syscall"
 
 	"github.com/satori/go.uuid"
+
+	_ "net/http/pprof"
 
 	"github.com/siddontang/go-log/log"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -34,9 +37,31 @@ var (
 	flagLogLevel = flag.String(`log-level`, ``, `log level`)
 )
 
+func fna() {
+	a := 0
+	a++
+}
+
 func main() {
 
 	flag.Parse()
+
+	// f, err := os.Create("./cpu.prof")
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+	// if err = pprof.StartCPUProfile(f); err != nil {
+	// 	log.Fatalln(err)
+	// }
+	// defer pprof.StopCPUProfile()
+
+	// for index := 0; index < 10000; index++ {
+	// 	fna()
+	// }
+
+	http.ListenAndServe(":8877", nil)
+
+	return
 
 	if *flagVersion {
 		fmt.Printf(`Version:        %s
