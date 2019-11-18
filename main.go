@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -45,23 +44,6 @@ func fna() {
 func main() {
 
 	flag.Parse()
-
-	// f, err := os.Create("./cpu.prof")
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
-	// if err = pprof.StartCPUProfile(f); err != nil {
-	// 	log.Fatalln(err)
-	// }
-	// defer pprof.StopCPUProfile()
-
-	// for index := 0; index < 10000; index++ {
-	// 	fna()
-	// }
-
-	http.ListenAndServe(":8877", nil)
-
-	return
 
 	if *flagVersion {
 		fmt.Printf(`Version:        %s
