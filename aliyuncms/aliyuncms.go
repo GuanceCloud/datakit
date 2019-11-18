@@ -40,6 +40,56 @@ var (
 	batchInterval = time.Duration(5) * time.Minute
 	metricPeriod  = time.Duration(5 * time.Minute)
 	rateLimit     = 20
+
+	dms = []string{
+		"userId",
+		"consumerGroup",
+		"topic",
+		"BucketName",
+		"storageType",
+		"Host",
+		"tableSchema",
+		"Status",
+		"workerId",
+		"apiUid",
+		"projectName",
+		"jobName",
+		"ip",
+		"port",
+		"protocol",
+		"vip",
+		"groupId",
+		"clusterId",
+		"nodeIP",
+		"vbrInstanceId",
+		"cenId",
+		"serviceId",
+		"diskname",
+		"mountpoint",
+		"state",
+		"processName",
+		"period",
+		"device",
+		"gpuId",
+		"role",
+		"appId",
+		"direction",
+		"pipelineId",
+		"domain",
+		"appName",
+		"serviceName",
+		"functionName",
+		"podId",
+		"subinstanceId",
+		"dspId",
+		"sspId",
+		"logstore",
+		"project",
+		"alarm_type",
+		"queue",
+		"regionName",
+		"SubscriptionName",
+	}
 )
 
 type (
@@ -264,7 +314,18 @@ func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up 
 			if value, ok := datapoint["Value"]; ok {
 				fields[formatField(req.MetricName, "Value")] = value
 			}
-			tags["userId"] = datapoint["userId"].(string)
+
+			for _, k := range dms {
+				if kv, ok := datapoint[k]; ok {
+					if kvstr, bok := kv.(string); bok {
+						tags[k] = kvstr
+					} else {
+						tags[k] = fmt.Sprintf("%v", kv)
+					}
+				}
+			}
+
+			//tags["userId"] = datapoint["userId"].(string)
 
 			datapointTime := int64(datapoint["timestamp"].(float64)) / 1000
 
