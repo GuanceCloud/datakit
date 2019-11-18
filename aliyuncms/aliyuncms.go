@@ -42,6 +42,7 @@ var (
 	rateLimit     = 20
 
 	dms = []string{
+		"instanceId",
 		"userId",
 		"consumerGroup",
 		"topic",
