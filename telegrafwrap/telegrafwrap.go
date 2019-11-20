@@ -126,7 +126,7 @@ func startAgent() error {
 		},
 	}
 
-	p, err := os.StartProcess(agentPath(), []string{"agent", "--config", agentConfPath()}, procAttr)
+	p, err := os.StartProcess(agentPath(), []string{"agent", "-config", agentConfPath()}, procAttr)
 	if err != nil {
 		return err
 	}
