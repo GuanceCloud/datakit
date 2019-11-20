@@ -19,10 +19,10 @@ disable = true
 
 	apacheLogTelegrafTemplate = `
 [[inputs.logparser]]
-    files = ["{{.LogFile}}"]
+    files = ['{{.LogFile}}']
     [inputs.logparser.grok]
-      patterns = ["{{.Pattern}}"]
-      measurement = "{{.Measurement}}"
+      patterns = ['{{.Pattern}}']
+      measurement = '{{.Measurement}}'
 `
 	accessLogPattern = `%{COMMON_LOG_FORMAT}`
 	errorLogPattern  = `%{HTTPD_ERRORLOG}`
