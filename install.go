@@ -35,6 +35,9 @@ func main() {
 
 	flag.Parse()
 
+	log.Printf("serviceName=%s", serviceName)
+	log.Printf("downloadUrl=%s", downloadUrl)
+
 	if err := os.MkdirAll(installDir, 0775); err != nil {
 		log.Fatalf("[error] %s", err.Error())
 	}
