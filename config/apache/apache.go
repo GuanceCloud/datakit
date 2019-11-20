@@ -54,7 +54,7 @@ func (c *ApacheConfig) SampleConfig() string {
 
 func (c *ApacheConfig) FilePath(root string) string {
 	d := filepath.Join(root, "apache")
-	return filepath.Join(d, "apache.toml")
+	return filepath.Join(d, "apache.conf")
 }
 
 func (c *ApacheConfig) ToTelegraf() (string, error) {
