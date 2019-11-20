@@ -33,7 +33,7 @@ const (
   flush_interval = "10s"
   flush_jitter = "0s"
   precision = ""
-  logfile="{{.LogFile}}"
+  logfile='{{.LogFile}}'
   debug = false
   quiet = false
   hostname = ""
