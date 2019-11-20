@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -15,6 +16,7 @@ import (
 
 	_ "net/http/pprof"
 
+	winsvr "github.com/kardianos/service"
 	"github.com/siddontang/go-log/log"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/config/all"
@@ -27,18 +29,34 @@ var (
 	flagVersion = flag.Bool("version", false, `show verison info`)
 	flagInit    = flag.Bool(`init`, false, `init agent`)
 
-	flagFtGateway = flag.String("ftdataway", ``, ``)
+	flagFtGateway = flag.String("ftdataway", ``, `address of ftdataway`)
 
 	flagCfgFile = flag.String("config", ``, `configure file`)
 	flagCfgDir  = flag.String("config-dir", ``, `sub configuration dir`)
 
 	flagLogFile  = flag.String(`log`, ``, `log file`)
 	flagLogLevel = flag.String(`log-level`, ``, `log level`)
+
+	gLogger *log.Logger
+	stopch  = make(chan struct{})
+
+	serviceName = `datakit`
 )
 
-func fna() {
-	a := 0
-	a++
+type program struct {
+}
+
+func (p *program) Start(s winsvr.Service) error {
+	go p.run(s)
+	return nil
+}
+func (p *program) run(s winsvr.Service) {
+	run()
+	s.Stop()
+}
+func (p *program) Stop(s winsvr.Service) error {
+	close(stopch)
+	return nil
 }
 
 func main() {
@@ -116,7 +134,6 @@ Golang Version: %s
 	config.Cfg.Log = logpath
 	config.Cfg.LogLevel = loglevel
 
-	var gLogger *log.Logger
 	if gLogger, err = setupLog(logpath, loglevel); err != nil {
 		log.Fatalf("[error] %s", err)
 		return
@@ -141,6 +158,31 @@ Golang Version: %s
 		return
 	}
 
+	if runtime.GOOS == "windows" && windowsRunAsService() {
+
+		svcConfig := &winsvr.Config{
+			Name: serviceName,
+		}
+
+		prg := &program{}
+		s, err := winsvr.New(prg, svcConfig)
+		if err != nil {
+			gLogger.Fatalf("%s", err.Error())
+		}
+
+		err = s.Run()
+
+		if err != nil {
+			gLogger.Fatalln(err.Error())
+		}
+
+	} else {
+		run()
+	}
+
+}
+
+func run() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	signals := make(chan os.Signal)
@@ -151,6 +193,8 @@ Golang Version: %s
 			if sig == syscall.SIGINT || sig == syscall.SIGTERM {
 				cancel()
 			}
+		case <-stopch:
+			cancel()
 		}
 	}()
 
@@ -179,8 +223,11 @@ Golang Version: %s
 
 	wg.Wait()
 
-	gLogger.Info("datakit finish")
+	gLogger.Info("datakit quit")
+}
 
+func windowsRunAsService() bool {
+	return !winsvr.Interactive()
 }
 
 func setupLog(f, l string) (*log.Logger, error) {
