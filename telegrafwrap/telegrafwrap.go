@@ -81,6 +81,11 @@ func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 
 			if pid.CheckPid(npid) != nil {
 				return errorAgentBeKilled
+			} else {
+				_, err := os.FindProcess(npid)
+				if err != nil {
+					s.logger.Warnf("agent has quited: %s", err.Error())
+				}
 			}
 		case <-ctx.Done():
 			stopAgent()
