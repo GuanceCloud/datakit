@@ -91,7 +91,7 @@ func (c *ApacheLogConfig) ToTelegraf() (string, error) {
 
 func (c *ApacheLogConfig) FilePath(root string) string {
 	d := filepath.Join(root, "apache")
-	return filepath.Join(d, "apachelog.toml")
+	return filepath.Join(d, "apachelog.conf")
 }
 
 func (c *ApacheLogConfig) Load(f string) error {

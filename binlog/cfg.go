@@ -104,7 +104,7 @@ func (c *BinlogConfig) SampleConfig() string {
 
 func (c *BinlogConfig) FilePath(d string) string {
 	dir := filepath.Join(d, "binlog")
-	return filepath.Join(dir, "binlog.toml")
+	return filepath.Join(dir, "binlog.conf")
 }
 
 func (c *BinlogConfig) ToTelegraf() (string, error) {
