@@ -85,6 +85,10 @@ Golang Version: %s
 
 	if *flagInit {
 
+		if *flagFtGateway == "" {
+			log.Fatalln("ftdataway required")
+		}
+
 		if *flagLogFile == "" {
 			*flagLogFile = filepath.Join(config.ExecutableDir, "datakit.log")
 		}
@@ -143,6 +147,8 @@ Golang Version: %s
 		log.Errorln("ftdateway required")
 		return
 	}
+
+	gLogger.Infof("starting %s v%s", serviceName, git.Version)
 
 	subcfgdir := config.Cfg.ConfigDir
 	if *flagCfgDir != "" {
