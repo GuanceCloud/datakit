@@ -4,7 +4,7 @@ default: local
 
 # devops 测试环境
 TEST_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/test
-TEST_DOWNLOAD_ADDR_WIN = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/test/windows
+TEST_DOWNLOAD_ADDR_WIN = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/windows/test
 TEST_SSL = 0
 TEST_PORT = 10401
 
