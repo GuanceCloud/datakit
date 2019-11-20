@@ -59,12 +59,14 @@ func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 		s.logger.Info("agent done")
 	}()
 
-	if err := startAgent(); err != nil {
+	if err := startAgent(ctx); err != nil {
 		s.logger.Errorf("start agent fail: %s", err.Error())
 		return err
 	}
 
-	ticker := time.NewTicker(1 * time.Second)
+	return nil
+
+	/*ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -92,7 +94,7 @@ func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 			stopAgent()
 			return context.Canceled
 		}
-	}
+	}*/
 }
 
 func stopAgent() error {
@@ -119,7 +121,7 @@ func stopAgent() error {
 	return nil
 }
 
-func startAgent() error {
+func startAgent(ctx context.Context) error {
 
 	stopAgent()
 
@@ -141,28 +143,31 @@ func startAgent() error {
 
 	if runtime.GOOS == "windows" {
 
-		pg := filepath.Join(config.ExecutableDir, "agent.log")
+		/*pg := filepath.Join(config.ExecutableDir, "agent.log")
 
 		f, _ := os.Create(pg)
 		procAttr.Files = []*os.File{
 			f,
 			f,
 			f,
-		}
+		}*/
 		// p, err = os.StartProcess(agentPath(true), []string{}, procAttr)
 		// if err != nil {
 		// 	return err
 		// }
 
-		cmd := exec.Command(agentPath(true), "-console")
+		//cmd := exec.Command(agentPath(true), "-console")
+		cmd := exec.CommandContext(ctx, agentPath(true), "-console")
 		cmd.Env = env
-		cmd.Stdout = f
-		cmd.Stderr = f
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 
 		if err := cmd.Start(); err != nil {
 			return err
 		}
 		p = cmd.Process
+
+		cmd.Wait()
 
 	} else {
 		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", agentConfPath(false)}, procAttr)
