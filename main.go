@@ -232,7 +232,7 @@ func run(ctx context.Context, cancel context.CancelFunc, up uploader.IUploader) 
 
 	svrCount := 0
 	for name, svrCreator := range service.Services {
-		if runtime.GOOS == "windows" && name == "agent" {
+		if runtime.GOOS == "windows" && windowsRunAsService() && name == "agent" {
 			continue
 		}
 		svr := svrCreator(gLogger)
