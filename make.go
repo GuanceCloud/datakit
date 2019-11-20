@@ -471,9 +471,13 @@ func buildWindowsInstall(outdir string) {
 
 	output := path.Join(outdir, `install.exe`)
 
+	gzName := fmt.Sprintf("%s-%s.tar.gz", *flagName, string(curVersion))
+
+	downloadUrl := *flagDownloadAddr + "/" + gzName
+
 	args := []string{
 		"go", "build",
-		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName="%s" -X main.downloadUrl="%s"`, *flagName, *flagDownloadAddr),
+		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s -X main.downloadUrl=%s`, *flagName, downloadUrl),
 		"-o", output,
 		"install.go",
 	}
