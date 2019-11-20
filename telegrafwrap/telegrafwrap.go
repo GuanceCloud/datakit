@@ -154,7 +154,7 @@ func startAgent() error {
 		// 	return err
 		// }
 
-		cmd := exec.Command(agentPath(true))
+		cmd := exec.Command(agentPath(true), "-console")
 		cmd.Env = env
 		cmd.Stdout = f
 		cmd.Stderr = f
