@@ -35,7 +35,7 @@ func main() {
 
 	flag.Parse()
 
-	if *flagFtDataway == "" {
+	if !*flagUpgrade && *flagFtDataway == "" {
 		log.Printf("[error] ftdataway required")
 		return
 	}
