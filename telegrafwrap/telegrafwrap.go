@@ -59,7 +59,7 @@ func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 		s.logger.Info("agent done")
 	}()
 
-	if err := startAgent(ctx); err != nil {
+	if err := startAgent(ctx, s.logger); err != nil {
 		s.logger.Errorf("start agent fail: %s", err.Error())
 		return err
 	}
@@ -121,7 +121,7 @@ func stopAgent() error {
 	return nil
 }
 
-func startAgent(ctx context.Context) error {
+func startAgent(ctx context.Context, l log.Logger) error {
 
 	stopAgent()
 
@@ -167,7 +167,9 @@ func startAgent(ctx context.Context) error {
 		}
 		p = cmd.Process
 
-		cmd.Wait()
+		err = cmd.Wait()
+
+		l.Infof("agent ok, %s", err)
 
 	} else {
 		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", agentConfPath(false)}, procAttr)
