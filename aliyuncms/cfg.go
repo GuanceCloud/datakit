@@ -132,7 +132,7 @@ func (c *ACSCmsConfig) SampleConfig() string {
 
 func (c *ACSCmsConfig) FilePath(root string) string {
 	d := filepath.Join(root, "aliyuncms")
-	return filepath.Join(d, "aliyuncms.toml")
+	return filepath.Join(d, "aliyuncms.conf")
 }
 
 func (c *ACSCmsConfig) ToTelegraf() (string, error) {
