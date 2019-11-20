@@ -91,7 +91,7 @@ func (c *NginxLogConfig) ToTelegraf() (string, error) {
 
 func (c *NginxLogConfig) FilePath(dir string) string {
 	nginxdir := filepath.Join(dir, "nginx")
-	return filepath.Join(nginxdir, "nginxlog.toml")
+	return filepath.Join(nginxdir, "nginxlog.conf")
 }
 
 func (c *NginxLogConfig) Load(f string) error {
