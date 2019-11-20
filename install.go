@@ -35,6 +35,10 @@ func main() {
 
 	flag.Parse()
 
+	if !strings.HasPrefix(downloadUrl, `http://`) {
+		downloadUrl = `http://` + downloadUrl
+	}
+
 	log.Printf("serviceName=%s", serviceName)
 	log.Printf("downloadUrl=%s", downloadUrl)
 
