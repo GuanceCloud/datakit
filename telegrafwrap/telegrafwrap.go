@@ -139,6 +139,14 @@ func startAgent() error {
 	var err error
 
 	if runtime.GOOS == "windows" {
+		pg := filepath.Join(config.ExecutableDir, "agent.log")
+
+		f, _ := os.Create(pg)
+		procAttr.Files = []*os.File{
+			f,
+			f,
+			f,
+		}
 		p, err = os.StartProcess(agentPath(true), []string{}, procAttr)
 		if err != nil {
 			return err
