@@ -29,6 +29,8 @@ var (
 	flagVersion = flag.Bool("version", false, `show verison info`)
 	flagInit    = flag.Bool(`init`, false, `init agent`)
 
+	flagConsole = flag.Bool(`console`, false, `run as console, only on windows`)
+
 	flagFtGateway = flag.String("ftdataway", ``, `address of ftdataway`)
 
 	flagCfgFile = flag.String("config", ``, `configure file`)
@@ -233,6 +235,9 @@ func run() {
 }
 
 func windowsRunAsService() bool {
+	if *flagConsole {
+		return false
+	}
 	return !winsvr.Interactive()
 }
 
