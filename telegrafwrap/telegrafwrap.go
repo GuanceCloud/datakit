@@ -8,11 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"syscall"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/log"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pid"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/uploader"
 )
@@ -68,17 +68,17 @@ func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 	for {
 		select {
 		case <-ticker.C:
-			pid, err := ioutil.ReadFile(agentPidPath())
+			piddata, err := ioutil.ReadFile(agentPidPath())
 			if err != nil {
 				return errorAgentBeKilled
 			}
 
-			npid, err := strconv.Atoi(string(pid))
+			npid, err := strconv.Atoi(string(piddata))
 			if err != nil || npid <= 2 {
 				return errorAgentBeKilled
 			}
 
-			if checkPid(npid) != nil {
+			if pid.CheckPid(npid) != nil {
 				return errorAgentBeKilled
 			}
 		case <-ctx.Done():
@@ -90,16 +90,16 @@ func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 
 func stopAgent() error {
 
-	pid, err := ioutil.ReadFile(agentPidPath())
+	piddata, err := ioutil.ReadFile(agentPidPath())
 	if err != nil {
 		return err
 	}
-	npid, err := strconv.Atoi(string(pid))
+	npid, err := strconv.Atoi(string(piddata))
 	if err != nil {
 		return err
 	}
 
-	if checkPid(npid) == nil {
+	if pid.CheckPid(npid) == nil {
 		prs, err := os.FindProcess(npid)
 		if err == nil && prs != nil {
 			if err = prs.Kill(); err != nil {
@@ -136,10 +136,6 @@ func startAgent() error {
 	time.Sleep(time.Millisecond * 100)
 
 	return nil
-}
-
-func checkPid(pid int) error {
-	return syscall.Kill(pid, 0)
 }
 
 func agentConfPath() string {
