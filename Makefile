@@ -4,6 +4,7 @@ default: local
 
 # devops 测试环境
 TEST_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/test
+TEST_DOWNLOAD_ADDR_WIN = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/test/windows
 TEST_SSL = 0
 TEST_PORT = 10401
 
@@ -76,6 +77,18 @@ test:
 	@tar czf $(PUB_DIR)/test/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
 	tree -Csh $(PUB_DIR)
 
+test_win:
+	@echo "===== $(BIN) test_win ===="
+	@rm -rf $(PUB_DIR)/test_win
+	@mkdir -p build $(PUB_DIR)/test_win
+	@mkdir -p git
+	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
+	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "windows/amd64" \
+		 -download-addr $(TEST_DOWNLOAD_ADDR_WIN) -release test -pub-dir $(PUB_DIR) -windows
+	#@strip build/$(NAME)-linux-amd64/$(BIN)
+	@tar czf $(PUB_DIR)/test_win/$(NAME)-$(VERSION).tar.gz -C windows agent -C ../build .
+	tree -Csh $(PUB_DIR)
+
 
 pub_local:
 	$(call pub,local)
@@ -84,6 +97,9 @@ pub_test:
 	@echo "publish test ${BIN} ..."
 	@go run make.go -pub -release test -pub-dir $(PUB_DIR) -name $(NAME)
 
+pub_test_win:
+	@echo "publish test windows ${BIN} ..."
+	@go run make.go -pub -release test -pub-dir $(PUB_DIR) -name $(NAME) -windows
 
 pub_preprod:
 	@echo "publish preprod ${BIN} ..."

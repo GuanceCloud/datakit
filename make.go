@@ -32,6 +32,7 @@ var (
 	flagBuildDir = flag.String("build-dir", "build", "output of build files")
 	flagMain     = flag.String(`main`, `main.go`, `binary build entry`)
 	flagCGO      = flag.Bool(`cgo`, false, `enable CGO or not`)
+	flagWindows  = flag.Bool(`windows`, false, `build for windows`)
 
 	flagKodoHost     = flag.String("kodo-host", "", "")
 	flagDownloadAddr = flag.String("download-addr", "", "")
@@ -240,9 +241,23 @@ func getCurrentVersionInfo(url string) *versionDesc {
 	return &vd
 }
 
-func releaseAgent() {
+func getPudirByRelease() string {
+	prefix := path.Join(*flagPubDir, *flagRelease)
+	if *flagWindows {
+		prefix += "_win"
+	}
+
+	return prefix
+
+}
+
+func publishAgent() {
 	var ak, sk, bucket, ossHost, prefix string
 	objPath := *flagName + "/" + *flagRelease
+
+	if *flagWindows {
+		objPath = *flagName + "/windows/" + *flagRelease
+	}
 
 	// 在你本地设置好这些 oss-key 环境变量
 	switch *flagRelease {
@@ -273,8 +288,11 @@ func releaseAgent() {
 		log.Fatalf("[fatal] %s", err)
 	}
 
-	// 请求线上的 corsair 版本信息
+	// 请求线上版本信息
 	url := fmt.Sprintf("http://%s.%s/%s/%s/%s", bucket, ossHost, *flagName, *flagRelease, `version`)
+	if *flagWindows {
+		url = fmt.Sprintf("http://%s.%s/%s/windows/%s/%s", bucket, ossHost, *flagName, *flagRelease, `version`)
+	}
 	curVd := getCurrentVersionInfo(url)
 
 	if curVd != nil {
@@ -288,18 +306,30 @@ func releaseAgent() {
 			os.Exit(0)
 		}
 
-		installObj := path.Join(objPath, "install.sh")
-		installObjOld := path.Join(objPath, fmt.Sprintf("install-%s.sh", curVd.Version))
+		installObj := ""
+		installObjOld := ""
+		if !*flagWindows {
+			installObj = path.Join(objPath, "install.sh")
+			installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.sh", curVd.Version))
+		} else {
+			installObj = path.Join(objPath, "install.exe")
+			installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.exe", curVd.Version))
+		}
 
 		oc.Move(installObj, installObjOld)
 	}
 
-	prefix = path.Join(*flagPubDir, *flagRelease)
+	prefix = getPudirByRelease()
 	gzName := fmt.Sprintf("%s-%s.tar.gz", *flagName, string(curVersion))
+
 	objs := map[string]string{
-		path.Join(prefix, gzName):       path.Join(objPath, gzName),
-		path.Join(prefix, `install.sh`): path.Join(objPath, `install.sh`),
-		path.Join(prefix, `version`):    path.Join(objPath, `version`),
+		path.Join(prefix, gzName):    path.Join(objPath, gzName),
+		path.Join(prefix, `version`): path.Join(objPath, `version`),
+	}
+	if !*flagWindows {
+		objs[path.Join(prefix, `install.sh`)] = path.Join(objPath, `install.sh`)
+	} else {
+		objs[path.Join(prefix, `install.exe`)] = path.Join(objPath, `install.exe`)
 	}
 
 	for k, v := range objs {
@@ -316,8 +346,12 @@ func main() {
 	var err error
 
 	flag.Parse()
-
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
+
+	if *flagShowArch {
+		fmt.Printf("available archs:\n\t%s\n", strings.Join(osarches, "\n\t"))
+		return
+	}
 
 	// 获取当前版本信息, 形如: v3.0.0-42-g3ed424a
 	curVersion, err = exec.Command("git", []string{`describe`, `--always`, `--tags`}...).Output()
@@ -328,8 +362,12 @@ func main() {
 	curVersion = bytes.TrimSpace(curVersion)
 
 	if *flagPub {
-		releaseAgent()
+		publishAgent()
 		return
+	}
+
+	if *flagBinary == "" {
+		log.Fatal("-binary required")
 	}
 
 	gitsha1, err := exec.Command("git", []string{`rev-parse`, `--short`, `HEAD`}...).Output()
@@ -380,77 +418,70 @@ const (
 		ChangeLog: string(bytes.TrimSpace(lastNCommits)),
 	}
 
-	outdir := path.Join(*flagPubDir, "test")
-
-	switch *flagRelease {
-	case `test`:
-		// default
-
-	case `local`:
-		outdir = path.Join(*flagPubDir, "local")
-
-	case `preprod`:
-		outdir = path.Join(*flagPubDir, "preprod")
-
-	case `release`:
-		outdir = path.Join(*flagPubDir, "release")
-
-	case `alpha`:
-		outdir = path.Join(*flagPubDir, "alpha")
-	default:
-		log.Fatalf("invalid release flag: %s", *flagRelease)
-	}
+	outdir := getPudirByRelease()
 
 	versionInfo, _ := json.Marshal(vd)
 	ioutil.WriteFile(path.Join(outdir, `version`), versionInfo, 0666)
 
-	// create install.sh script
-	type Install struct {
-		Name         string
-		DownloadAddr string
-		Version      string
-	}
+	if !*flagWindows {
+		// create install.sh script
+		type Install struct {
+			Name         string
+			DownloadAddr string
+			Version      string
+		}
 
-	install := &Install{
-		Name:         *flagName,
-		DownloadAddr: *flagDownloadAddr,
-		Version:      string(curVersion),
-	}
+		install := &Install{
+			Name:         *flagName,
+			DownloadAddr: *flagDownloadAddr,
+			Version:      string(curVersion),
+		}
 
-	// log.Printf("[debug] %+#v", install)
+		txt, err := ioutil.ReadFile("install.template")
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	txt, err := ioutil.ReadFile("install.template")
-	if err != nil {
-		log.Fatal(err)
-	}
+		t := template.New("")
+		t, err = t.Parse(string(txt))
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	t := template.New("")
-	t, err = t.Parse(string(txt))
-	if err != nil {
-		log.Fatal(err)
-	}
+		fd, err := os.OpenFile(path.Join(outdir, `install.sh`), os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	fd, err := os.OpenFile(path.Join(outdir, `install.sh`), os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer fd.Close()
-	err = t.Execute(fd, install)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if *flagShowArch {
-		fmt.Printf("available archs:\n\t%s\n", strings.Join(osarches, "\n\t"))
-		return
-	}
-
-	if *flagBinary == "" {
-		log.Fatal("-binary required")
+		defer fd.Close()
+		err = t.Execute(fd, install)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		buildWindowsInstall(outdir)
 	}
 
 	os.RemoveAll(*flagBuildDir)
 	_ = os.MkdirAll(*flagBuildDir, os.ModePerm)
 	compile()
+}
+
+func buildWindowsInstall(outdir string) {
+
+	output := path.Join(outdir, `install.exe`)
+
+	args := []string{
+		"go", "build",
+		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName="%s" -X main.downloadUrl="%s"`, *flagName, *flagDownloadAddr),
+		"-o", output,
+		"install.go",
+	}
+
+	env := []string{
+		"GOOS=windows",
+		"GOARCH=amd64",
+	}
+
+	runEnv(args, env)
 }
