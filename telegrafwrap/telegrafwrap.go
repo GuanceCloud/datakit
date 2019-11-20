@@ -29,7 +29,7 @@ func init() {
 			return nil
 		}
 
-		if err = ioutil.WriteFile(agentConfPath(), []byte(telcfg), 0664); err != nil {
+		if err = ioutil.WriteFile(agentConfPath(false), []byte(telcfg), 0664); err != nil {
 			logger.Errorf("%s", err.Error())
 			return nil
 		}
@@ -126,7 +126,7 @@ func startAgent() error {
 		},
 	}
 
-	p, err := os.StartProcess(agentPath(), []string{"agent", "-config", agentConfPath()}, procAttr)
+	p, err := os.StartProcess(agentPath(), []string{"agent", "-config", agentConfPath(true)}, procAttr)
 	if err != nil {
 		return err
 	}
@@ -138,8 +138,12 @@ func startAgent() error {
 	return nil
 }
 
-func agentConfPath() string {
-	return filepath.Join(config.ExecutableDir, "agent.conf")
+func agentConfPath(quote bool) string {
+	if quote {
+		return fmt.Sprintf(`"%s"`, filepath.Join(config.ExecutableDir, "agent.conf"))
+	} else {
+		return filepath.Join(config.ExecutableDir, "agent.conf")
+	}
 }
 
 func agentPidPath() string {
