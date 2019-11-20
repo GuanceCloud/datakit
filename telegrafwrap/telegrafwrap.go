@@ -134,12 +134,12 @@ func startAgent() error {
 	var err error
 
 	if runtime.GOOS == "windows" {
-		p, err = os.StartProcess(agentPath(), []string{}, procAttr)
+		p, err = os.StartProcess(agentPath(true), []string{}, procAttr)
 		if err != nil {
 			return err
 		}
 	} else {
-		p, err = os.StartProcess(agentPath(), []string{"agent", "-config", agentConfPath(false)}, procAttr)
+		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", agentConfPath(false)}, procAttr)
 		if err != nil {
 			return err
 		}
@@ -164,6 +164,9 @@ func agentPidPath() string {
 	return filepath.Join(config.ExecutableDir, "agent.pid")
 }
 
-func agentPath() string {
+func agentPath(win bool) string {
+	if win {
+		return filepath.Join(config.ExecutableDir, "agent.exe")
+	}
 	return filepath.Join(config.ExecutableDir, "agent")
 }
