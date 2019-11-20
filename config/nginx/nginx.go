@@ -84,7 +84,7 @@ func (c *NginxConfig) SampleConfig() string {
 
 func (c *NginxConfig) FilePath(dir string) string {
 	nginxdir := filepath.Join(dir, "nginx")
-	return filepath.Join(nginxdir, "nginx.toml")
+	return filepath.Join(nginxdir, "nginx.conf")
 }
 
 func (c *NginxConfig) ToTelegraf() (string, error) {
