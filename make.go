@@ -475,6 +475,8 @@ func buildWindowsInstall(outdir string) {
 
 	downloadUrl := *flagDownloadAddr + "/" + gzName
 
+	log.Printf("downloadUrl=%s", downloadUrl)
+
 	args := []string{
 		"go", "build",
 		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s -X main.downloadUrl=%s`, *flagName, downloadUrl),
