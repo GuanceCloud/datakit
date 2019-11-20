@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -117,6 +118,9 @@ func startAgent() error {
 	stopAgent()
 
 	env := os.Environ()
+	if runtime.GOOS == "windows" {
+		env = append(env, fmt.Sprintf(`TELEGRAF_CONFIG_PATH=%s`, agentConfPath(false)))
+	}
 	procAttr := &os.ProcAttr{
 		Env: env,
 		Files: []*os.File{
@@ -126,9 +130,19 @@ func startAgent() error {
 		},
 	}
 
-	p, err := os.StartProcess(agentPath(), []string{"agent", "-config", agentConfPath(true)}, procAttr)
-	if err != nil {
-		return err
+	var p *os.Process
+	var err error
+
+	if runtime.GOOS == "windows" {
+		p, err = os.StartProcess(agentPath(), []string{}, procAttr)
+		if err != nil {
+			return err
+		}
+	} else {
+		p, err = os.StartProcess(agentPath(), []string{"agent", "-config", agentConfPath(false)}, procAttr)
+		if err != nil {
+			return err
+		}
 	}
 
 	ioutil.WriteFile(agentPidPath(), []byte(fmt.Sprintf("%d", p.Pid)), 0664)
