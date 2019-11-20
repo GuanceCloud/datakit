@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -148,10 +149,21 @@ func startAgent() error {
 			f,
 			f,
 		}
-		p, err = os.StartProcess(agentPath(true), []string{`-console`}, procAttr)
-		if err != nil {
+		// p, err = os.StartProcess(agentPath(true), []string{}, procAttr)
+		// if err != nil {
+		// 	return err
+		// }
+
+		cmd := exec.Command(agentPath(true))
+		cmd.Env = env
+		cmd.Stdout = f
+		cmd.Stderr = f
+
+		if err := cmd.Start(); err != nil {
 			return err
 		}
+		p = cmd.Process
+
 	} else {
 		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", agentConfPath(false)}, procAttr)
 		if err != nil {
@@ -159,7 +171,9 @@ func startAgent() error {
 		}
 	}
 
-	ioutil.WriteFile(agentPidPath(), []byte(fmt.Sprintf("%d", p.Pid)), 0664)
+	if p != nil {
+		ioutil.WriteFile(agentPidPath(), []byte(fmt.Sprintf("%d", p.Pid)), 0664)
+	}
 
 	time.Sleep(time.Millisecond * 100)
 
