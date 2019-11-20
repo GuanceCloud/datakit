@@ -43,6 +43,12 @@ var (
 	stopch  = make(chan struct{})
 
 	serviceName = `datakit`
+
+	ctx    context.Context
+	cancel context.CancelFunc
+	up     *uploader.Uploader
+
+	wg sync.WaitGroup
 )
 
 type program struct {
@@ -53,7 +59,7 @@ func (p *program) Start(s winsvr.Service) error {
 	return nil
 }
 func (p *program) run(s winsvr.Service) {
-	run()
+	run(ctx, cancel, up)
 	s.Stop()
 }
 func (p *program) Stop(s winsvr.Service) error {
@@ -166,7 +172,26 @@ Golang Version: %s
 		return
 	}
 
+	ctx, cancel = context.WithCancel(context.Background())
+
+	up = uploader.New(config.Cfg.FtGateway)
+	up.Start()
+	defer up.Stop()
+
 	if runtime.GOOS == "windows" && windowsRunAsService() {
+
+		svrCreator, ok := service.Services[`agent`]
+		if ok {
+			svr := svrCreator(gLogger)
+			if svr != nil {
+
+				wg.Add(1)
+				go func(s service.Service) {
+					defer wg.Done()
+					s.Start(ctx, up)
+				}(svr)
+			}
+		}
 
 		svcConfig := &winsvr.Config{
 			Name: serviceName,
@@ -185,13 +210,12 @@ Golang Version: %s
 		}
 
 	} else {
-		run()
+		run(ctx, cancel, up)
 	}
 
 }
 
-func run() {
-	ctx, cancel := context.WithCancel(context.Background())
+func run(ctx context.Context, cancel context.CancelFunc, up uploader.IUploader) {
 
 	signals := make(chan os.Signal)
 	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
@@ -206,14 +230,11 @@ func run() {
 		}
 	}()
 
-	up := uploader.New(config.Cfg.FtGateway)
-	up.Start()
-	defer up.Stop()
-
-	var wg sync.WaitGroup
-
 	svrCount := 0
-	for _, svrCreator := range service.Services {
+	for name, svrCreator := range service.Services {
+		if runtime.GOOS == "windows" && name == "agent" {
+			continue
+		}
 		svr := svrCreator(gLogger)
 		if svr != nil {
 			wg.Add(1)
