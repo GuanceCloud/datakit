@@ -35,12 +35,14 @@ func main() {
 
 	flag.Parse()
 
+	if *flagFtDataway == "" {
+		log.Printf("[error] ftdataway required")
+		return
+	}
+
 	if !strings.HasPrefix(downloadUrl, `http://`) {
 		downloadUrl = `http://` + downloadUrl
 	}
-
-	log.Printf("serviceName=%s", serviceName)
-	log.Printf("downloadUrl=%s", downloadUrl)
 
 	if err := os.MkdirAll(installDir, 0775); err != nil {
 		log.Fatalf("[error] %s", err.Error())
