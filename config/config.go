@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"text/template"
 
 	"github.com/influxdata/toml"
@@ -22,8 +23,9 @@ var (
 
 	ServiceName = `datakit`
 
-	DKVersion   = git.Version
-	DKUserAgent = ``
+	DKVersion = git.Version
+
+	DKUserAgent = fmt.Sprintf(`%s/%s(%s.%s)`, ServiceName, DKVersion, runtime.GOOS, runtime.GOARCH)
 )
 
 const (
