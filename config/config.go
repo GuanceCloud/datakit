@@ -19,6 +19,11 @@ var (
 	ExecutableDir string
 
 	ErrNoTelegrafConf = errors.New("no telegraf config")
+
+	ServiceName = `datakit`
+
+	DKVersion   = git.Version
+	DKUserAgent = ``
 )
 
 const (
@@ -50,12 +55,8 @@ const (
     ## Should be set manually to "application/json" for json data_format
 	X-Datakit-UUID = "{{.DKUUID}}"
 	X-Datakit-Version = "{{.DKVERSION}}"
-	User-Agent = "forethought datakit"
+	User-Agent = '{{.DKUserAgent}}'
 `
-)
-
-var (
-	DKVersion = "datakit-v" + git.Version
 )
 
 type Config struct {
@@ -196,17 +197,19 @@ func CheckTelegrafCfgFile(f string) error {
 func GenerateTelegrafConfig() (string, error) {
 
 	type AgentCfg struct {
-		LogFile   string
-		FtGateway string
-		DKUUID    string
-		DKVERSION string
+		LogFile     string
+		FtGateway   string
+		DKUUID      string
+		DKVERSION   string
+		DKUserAgent string
 	}
 
 	agentcfg := AgentCfg{
-		LogFile:   filepath.Join(ExecutableDir, "agent.log"),
-		FtGateway: Cfg.FtGateway,
-		DKUUID:    Cfg.UUID,
-		DKVERSION: DKVersion,
+		LogFile:     filepath.Join(ExecutableDir, "agent.log"),
+		FtGateway:   Cfg.FtGateway,
+		DKUUID:      Cfg.UUID,
+		DKVERSION:   DKVersion,
+		DKUserAgent: DKUserAgent,
 	}
 
 	var err error
