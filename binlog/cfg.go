@@ -13,34 +13,33 @@ var (
 	Cfg BinlogConfig
 
 	binlogConfigSample = `
-disable=true
 null_int=0
 null_float=0.0
-[[sources]]
-  #host of mysql, include port
-  addr="localhost:3306"
+#[[sources]]
+#  ##host of mysql, include port
+#  addr="localhost:3306"
 
-  #username and password of mysql
-  user="admin"
-  password=""
+#  ##username and password of mysql
+#  user="admin"
+#  password=""
 
-  [[sources.databases]]
-    db = "test"
-	[[sources.databases.tables]]
+#  [[sources.databases]]
+#    db = "test"
+#	[[sources.databases.tables]]
 #     ##the name of table
-	  name="user"
+#	  name="user"
 
 #	  ##the name of metric, if empty use name as default
-	  measurement=""
+#	  measurement=""
 
 #	  ##specify the table's columns which will be taken as fields in metric, must be non-empty
-	  fields=["column0"]
+#	  fields=["column0"]
 
 #	  ##specify the table's columns which will be taken as tags in metric, may empty
-	  tags=["column1"]
+#	  tags=["column1"]
 
 #	  ##exlcude the events of binlog, there are 3 events: "insert","update","delete"
-      exclude_events=[]
+#      exclude_events=[]
 `
 )
 
@@ -92,10 +91,9 @@ type BinlogDatasource struct {
 }
 
 type BinlogConfig struct {
-	Disable     bool                `toml:"disable"`
 	NullInt     int                 `toml:"null_int"`
 	NullFloat   float64             `toml:"null_float"`
-	Datasources []*BinlogDatasource `toml:"sources"`
+	Datasources []*BinlogDatasource `toml:"sources,omitempty"`
 }
 
 func (c *BinlogConfig) SampleConfig() string {
