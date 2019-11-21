@@ -27,7 +27,7 @@ import (
 func init() {
 	config.AddConfig("aliyuncms", &Cfg)
 	service.Add("aliyuncms", func(logger log.Logger) service.Service {
-		if Cfg.Disable {
+		if len(Cfg.CmsCfg) == 0 {
 			return nil
 		}
 		return &AliyuncmsSvr{
@@ -119,7 +119,7 @@ type (
 
 func (m *AliyuncmsSvr) Start(ctx context.Context, up uploader.IUploader) error {
 
-	if Cfg.Disable {
+	if len(Cfg.CmsCfg) == 0 {
 		return nil
 	}
 
