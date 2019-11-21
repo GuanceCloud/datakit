@@ -53,22 +53,15 @@ type (
 )
 
 func (s *TelegrafSvr) killProcessByPID(npid int) error {
-	if runtime.GOOS == `windows` {
 
-		s.logger.Info("kill pricess", npid)
-		cmd := exec.Command(`tskill`, fmt.Sprintf(`%v`, npid))
-		cmd.Env = os.Environ()
-		cmd.Run()
+	if pid.CheckPid(npid) == nil {
+		prs, err := os.FindProcess(npid)
+		if err == nil && prs != nil {
 
-	} else {
-		if pid.CheckPid(npid) == nil {
-			prs, err := os.FindProcess(npid)
-			if err == nil && prs != nil {
-				if err = prs.Kill(); err != nil {
-					return err
-				}
-				time.Sleep(time.Millisecond * 100)
+			if err = prs.Kill(); err != nil {
+				return err
 			}
+			time.Sleep(time.Millisecond * 100)
 		}
 	}
 
@@ -112,9 +105,7 @@ func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 				}
 			}
 		case <-ctx.Done():
-			s.logger.Info("start quit agent")
 			s.stopAgent(s.logger)
-			s.logger.Info("end quit agent")
 			return context.Canceled
 		}
 	}
@@ -165,11 +156,6 @@ func (s *TelegrafSvr) startAgent(ctx context.Context, l log.Logger) error {
 		// 	f,
 		// }
 
-		// p, err = os.StartProcess(agentPath(true), []string{}, procAttr)
-		// if err != nil {
-		// 	return err
-		// }
-
 		cmd := exec.Command(agentPath(true), "-console")
 		//cmd := exec.CommandContext(ctx, agentPath(true), "-console")
 		cmd.Env = env
@@ -180,8 +166,6 @@ func (s *TelegrafSvr) startAgent(ctx context.Context, l log.Logger) error {
 			return err
 		}
 		p = cmd.Process
-
-		l.Infof("agent is running, %v", p.Pid)
 
 	} else {
 		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", agentConfPath(false)}, procAttr)
