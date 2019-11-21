@@ -64,9 +64,7 @@ func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 		return err
 	}
 
-	return nil
-
-	/*ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -91,13 +89,13 @@ func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 				}
 			}
 		case <-ctx.Done():
-			stopAgent()
+			stopAgent(s.logger)
 			return context.Canceled
 		}
-	}*/
+	}
 }
 
-func stopAgent() error {
+func stopAgent(l log.Logger) error {
 
 	piddata, err := ioutil.ReadFile(agentPidPath())
 	if err != nil {
@@ -111,7 +109,9 @@ func stopAgent() error {
 	if pid.CheckPid(npid) == nil {
 		prs, err := os.FindProcess(npid)
 		if err == nil && prs != nil {
+			l.Info("find agent by pid")
 			if err = prs.Kill(); err != nil {
+				l.Error("kill agent failed")
 				return err
 			}
 			time.Sleep(time.Millisecond * 100)
@@ -123,7 +123,7 @@ func stopAgent() error {
 
 func startAgent(ctx context.Context, l log.Logger) error {
 
-	stopAgent()
+	stopAgent(l)
 
 	env := os.Environ()
 	if runtime.GOOS == "windows" {
@@ -163,18 +163,12 @@ func startAgent(ctx context.Context, l log.Logger) error {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
-		if err := cmd.Run(); err != nil {
+		if err := cmd.Start(); err != nil {
 			return err
 		}
 		p = cmd.Process
 
 		l.Infof("agent is running, %v", p.Pid)
-
-		//err = cmd.Wait()
-
-		l.Infof("agent ok, %s", err)
-
-		return nil
 
 	} else {
 		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", agentConfPath(false)}, procAttr)
