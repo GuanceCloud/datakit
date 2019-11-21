@@ -143,14 +143,14 @@ func startAgent(ctx context.Context, l log.Logger) error {
 
 	if runtime.GOOS == "windows" {
 
-		/*pg := filepath.Join(config.ExecutableDir, "agent.log")
+		pg := filepath.Join(config.ExecutableDir, "agent_debug.log")
 
 		f, _ := os.Create(pg)
 		procAttr.Files = []*os.File{
 			f,
 			f,
 			f,
-		}*/
+		}
 		// p, err = os.StartProcess(agentPath(true), []string{}, procAttr)
 		// if err != nil {
 		// 	return err
@@ -167,9 +167,13 @@ func startAgent(ctx context.Context, l log.Logger) error {
 		}
 		p = cmd.Process
 
+		l.Infof("agent is running, %v", p.Pid)
+
 		err = cmd.Wait()
 
 		l.Infof("agent ok, %s", err)
+
+		return nil
 
 	} else {
 		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", agentConfPath(false)}, procAttr)
