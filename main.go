@@ -113,6 +113,8 @@ Golang Version: %s
 		config.Cfg.LogLevel = *flagLogLevel
 		config.Cfg.ConfigDir = *flagCfgDir
 
+		config.Init()
+
 		if err = config.InitializeConfigs(); err != nil {
 			log.Fatalf("intialize configs error: %s", err.Error())
 		}
@@ -146,7 +148,7 @@ Golang Version: %s
 	}
 
 	if config.Cfg.FtGateway == "" {
-		log.Errorln("ftdateway required")
+		gLogger.Errorln("ftdateway required")
 		return
 	}
 
@@ -162,24 +164,11 @@ Golang Version: %s
 	config.Cfg.ConfigDir = subcfgdir
 
 	if err = config.LoadSubConfigs(subcfgdir); err != nil {
-		log.Fatalf("%s", err.Error())
+		gLogger.Errorf("%s", err.Error())
 		return
 	}
 
 	if runtime.GOOS == "windows" && windowsRunAsService() {
-
-		// svrCreator, ok := service.Services[`agent`]
-		// if ok {
-		// 	svr := svrCreator(gLogger)
-		// 	if svr != nil {
-
-		// 		wg.Add(1)
-		// 		go func(s service.Service) {
-		// 			defer wg.Done()
-		// 			s.Start(ctx, up)
-		// 		}(svr)
-		// 	}
-		// }
 
 		svcConfig := &winsvr.Config{
 			Name: serviceName,
@@ -188,7 +177,8 @@ Golang Version: %s
 		prg := &program{}
 		s, err := winsvr.New(prg, svcConfig)
 		if err != nil {
-			gLogger.Fatalf("%s", err.Error())
+			gLogger.Errorf("%s", err.Error())
+			return
 		}
 
 		err = s.Run()
@@ -228,9 +218,6 @@ func run() {
 
 	svrCount := 0
 	for _, svrCreator := range service.Services {
-		// if runtime.GOOS == "windows" && windowsRunAsService() && name == "agent" {
-		// 	continue
-		// }
 		svr := svrCreator(gLogger)
 		if svr != nil {
 			wg.Add(1)
