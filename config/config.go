@@ -84,7 +84,7 @@ func LoadConfig(f string) error {
 type Configuration interface {
 	SampleConfig() string
 	FilePath(string) string
-	ToTelegraf() (string, error)
+	ToTelegraf(string) (string, error)
 	Load(string) error
 }
 
@@ -113,6 +113,22 @@ func InitializeConfigs() error {
 			return err
 		}
 	}
+
+	for _, n := range supportsTelegrafMetraicNames {
+
+		cfgdir := filepath.Join(Cfg.ConfigDir, n)
+		if err = os.MkdirAll(cfgdir, 0775); err != nil {
+			return err
+		}
+		cfgpath := filepath.Join(cfgdir, fmt.Sprintf(`%s.conf`, n))
+		if samp, ok := telegrafCfgSamples[n]; ok {
+
+			if err = ioutil.WriteFile(cfgpath, []byte(samp), 0664); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -127,6 +143,51 @@ func LoadSubConfigs(root string) error {
 		if err := c.Load(f); err != nil {
 			return fmt.Errorf("load config \"%s\" failed: %s", f, err.Error())
 		}
+	}
+
+	for index, n := range supportsTelegrafMetraicNames {
+		cfgdir := filepath.Join(Cfg.ConfigDir, n)
+		cfgpath := filepath.Join(cfgdir, fmt.Sprintf(`%s.conf`, n))
+		err := CheckTelegrafCfgFile(cfgpath)
+
+		if err == nil {
+			metricsEnablesFlags[index] = true
+		} else {
+			metricsEnablesFlags[index] = false
+			if err != ErrNoTelegrafConf {
+				return fmt.Errorf("load config \"%s\" failed: %s", cfgpath, err.Error())
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func CheckTelegrafCfgFile(f string) error {
+
+	_, err := os.Stat(f)
+
+	if err != nil {
+		return ErrNoTelegrafConf
+	}
+
+	cfgdata, err := ioutil.ReadFile(f)
+	if err != nil {
+		return err
+	}
+
+	tbl, err := toml.Parse(cfgdata)
+	if err != nil {
+		return err
+	}
+
+	if len(tbl.Fields) == 0 {
+		return ErrNoTelegrafConf
+	}
+
+	if _, ok := tbl.Fields[`inputs`]; !ok {
+		return errors.New("no inputs found")
 	}
 
 	return nil
@@ -165,11 +226,24 @@ func GenerateTelegrafConfig() (string, error) {
 	telcfgs := ""
 
 	for _, c := range SubConfigs {
-		telcfg, err := c.ToTelegraf()
+		telcfg, err := c.ToTelegraf(c.FilePath(Cfg.ConfigDir))
 		if err != nil {
 			return "", err
 		}
 		telcfgs += telcfg
+	}
+
+	for index, n := range supportsTelegrafMetraicNames {
+		if !metricsEnablesFlags[index] {
+			continue
+		}
+		cfgpath := filepath.Join(Cfg.ConfigDir, n, fmt.Sprintf(`%s.conf`, n))
+		d, err := ioutil.ReadFile(cfgpath)
+		if err != nil {
+			return "", err
+		}
+
+		telcfgs += string(d)
 	}
 
 	if telcfgs == "" {
