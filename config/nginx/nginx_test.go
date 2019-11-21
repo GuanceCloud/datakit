@@ -5,49 +5,6 @@ import (
 	"testing"
 )
 
-func TestNginxCfg(t *testing.T) {
-
-	// cfg := &NginxConfig{
-	// 	Status: []*NginxStatus{
-	// 		&NginxStatus{
-	// 			Urls: "http://localhost",
-	// 		},
-	// 	},
-
-	// 	PlusStatus: []*NginxStatus{
-	// 		&NginxStatus{
-	// 			Urls: "http://localhostplus",
-	// 		},
-	// 	},
-	// }
-
-	//ioutil.WriteFile("./nginx.toml", []byte(cfg.SampleConfig()), 0664)
-
-	// dt, err := toml.Marshal(cfg)
-
-	// if err == nil {
-	// 	ioutil.WriteFile("./aa.toml", dt, 0664)
-	// }
-
-	var cfg NginxConfig
-
-	if err := cfg.Load("./a.toml"); err != nil {
-		log.Fatalln(err)
-	} else {
-		log.Printf("-- %#v", cfg)
-		ts, e := cfg.ToTelegraf()
-		if e == nil {
-			log.Println(ts)
-		}
-	}
-
-	// if err := cfg.Load("./aa.toml"); err != nil {
-	// 	log.Fatalln(err)
-	// } else {
-	// 	log.Printf("%#v", cfg)
-	// }
-}
-
 func TestNginxLogCfg(t *testing.T) {
 
 	access_log := &NginxAccessLog{
@@ -77,7 +34,7 @@ func TestNginxLogCfg(t *testing.T) {
 
 	// ioutil.WriteFile("./nginxlog.toml", cfgdata, 0664)
 
-	telcfg, err := cfg.ToTelegraf()
+	telcfg, err := cfg.ToTelegraf(``)
 	if err == nil {
 		log.Println(telcfg)
 	}
