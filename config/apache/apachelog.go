@@ -7,14 +7,14 @@ import (
 	"text/template"
 
 	"github.com/influxdata/toml"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 const (
 	apacheLogSample = `
-disable = true
-[[access_log]]
-  file="/var/log/apache/access.log"
-  measurement="apache_access"
+#[[access_log]]
+#  file='/var/log/apache/access.log'
+#  measurement="apache_access"
 `
 
 	apacheLogTelegrafTemplate = `
@@ -43,7 +43,6 @@ type ApacheErrorLog struct {
 
 type ApacheLogConfig struct {
 	//Logs []*NginxAccessLog `yaml:"logs"`
-	Disable    bool               `toml:"disable"`
 	AccessLogs []*ApacheAccessLog `toml:"access_log"`
 	ErrorLogs  []*ApacheErrorLog  `toml:"error_log"`
 }
@@ -52,8 +51,8 @@ func (c *ApacheLogConfig) SampleConfig() string {
 	return apacheLogSample
 }
 
-func (c *ApacheLogConfig) ToTelegraf() (string, error) {
-	if c.Disable {
+func (c *ApacheLogConfig) ToTelegraf(f string) (string, error) {
+	if len(c.AccessLogs) == 0 && len(c.ErrorLogs) == 0 {
 		return "", nil
 	}
 	cfg := ""
@@ -101,4 +100,8 @@ func (c *ApacheLogConfig) Load(f string) error {
 	}
 
 	return toml.Unmarshal(cfgdata, c)
+}
+
+func init() {
+	config.AddConfig("apachelog", &ApacheLogConfig{})
 }

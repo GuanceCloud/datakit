@@ -135,7 +135,7 @@ func (c *ACSCmsConfig) FilePath(root string) string {
 	return filepath.Join(d, "aliyuncms.conf")
 }
 
-func (c *ACSCmsConfig) ToTelegraf() (string, error) {
+func (c *ACSCmsConfig) ToTelegraf(f string) (string, error) {
 	return "", nil
 }
 
