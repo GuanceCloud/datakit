@@ -12,36 +12,35 @@ import (
 
 const (
 	aliyuncmsConfigSample = `
-disable = true
-[[cms]]
-## Aliyun Region (required)
-## See: https://www.alibabacloud.com/help/zh/doc-detail/40654.htm
-region_id = "cn-hangzhou"
+#[[cms]]
+#  ## Aliyun Region (required)
+#  ## See: https://www.alibabacloud.com/help/zh/doc-detail/40654.htm
+#region_id = "cn-hangzhou"
 
-## Aliyun Credentials (required)
-access_key_id = ""
-access_key_secret = ""
+#  ## Aliyun Credentials (required)
+#access_key_id = ""
+#access_key_secret = ""
 
-  [[cms.project]]
-    ## Metric Statistic Project (required)
-	name="acs_ecs_dashboard"
+#  [[cms.project]]
+#    ## Metric Statistic Project (required)
+#	name="acs_ecs_dashboard"
 
-	## Optional instances from which you want to pull metrics, empty means to pull all instances 
-	#instanceIds=["xxx","yyy"]
+#	## Optional instances from which you want to pull metrics, empty means to pull all instances 
+#	#instanceIds=["xxx","yyy"]
 
-	## Metrics to Pull (Required)
-	## See: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.2.11.6ac47694AjhHt4
-	[cms.project.metrics]
-	names = [
-		"CPUUtilization",
-	]
+#	## Metrics to Pull (Required)
+#	## See: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.2.11.6ac47694AjhHt4
+#	[cms.project.metrics]
+#	names = [
+#		"CPUUtilization",
+#	]
 
-	## dimensions can be used to query the specified resource, which is a collection of key-value forms. 
-	## each metric may have its own dimensions, See: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.2.11.6ac47694AjhHt4 
-	## name is metric name, value is a json string, eg: '[{"instanceId":"xxx"},{"device":"xxx"}]'
-	#[[cms.project.metrics.dimensions]]
-	#  name = "diskusage_free"
-	#  value = '[{"instanceId":"xxx"},{"device":"xxx"}]'
+#	## dimensions can be used to query the specified resource, which is a collection of key-value forms. 
+#	## each metric may have its own dimensions, See: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.2.11.6ac47694AjhHt4 
+#	## name is metric name, value is a json string, eg: '[{"instanceId":"xxx"},{"device":"xxx"}]'
+#	#[[cms.project.metrics.dimensions]]
+#	#  name = "diskusage_free"
+#	#  value = '[{"instanceId":"xxx"},{"device":"xxx"}]'
 `
 )
 
@@ -75,8 +74,7 @@ type (
 	}
 
 	ACSCmsConfig struct {
-		Disable bool      `toml:"disable"`
-		CmsCfg  []*CmsCfg `toml:"cms"`
+		CmsCfg []*CmsCfg `toml:"cms"`
 	}
 )
 
