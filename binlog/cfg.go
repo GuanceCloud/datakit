@@ -107,7 +107,7 @@ func (c *BinlogConfig) FilePath(d string) string {
 	return filepath.Join(dir, "binlog.conf")
 }
 
-func (c *BinlogConfig) ToTelegraf() (string, error) {
+func (c *BinlogConfig) ToTelegraf(f string) (string, error) {
 	return "", nil
 }
 
