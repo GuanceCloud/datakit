@@ -46,8 +46,6 @@ do
 done
 
 
-echo ${ftdataway}
-
 # 安装预检
 printf "===================================\n" | tee -a $install_log
 echo "Date: `date`" | tee -a $install_log
