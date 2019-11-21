@@ -52,10 +52,12 @@ type (
 	}
 )
 
-func killProcessByPID(npid int) error {
+func (s *TelegrafSvr) killProcessByPID(npid int) error {
 	if runtime.GOOS == `windows` {
 
+		s.logger.Info("kill pricess", npid)
 		cmd := exec.Command(`tskill`, fmt.Sprintf(`%v`, npid))
+		cmd.Env = os.Environ()
 		cmd.Run()
 
 	} else {
@@ -129,7 +131,7 @@ func (s *TelegrafSvr) stopAgent(l log.Logger) error {
 		return err
 	}
 
-	return killProcessByPID(npid)
+	return s.killProcessByPID(npid)
 }
 
 func (s *TelegrafSvr) startAgent(ctx context.Context, l log.Logger) error {
