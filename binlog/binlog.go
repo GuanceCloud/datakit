@@ -27,7 +27,7 @@ func init() {
 	config.AddConfig("binlog", &Cfg)
 
 	service.Add("binlog", func(logger log.Logger) service.Service {
-		if Cfg.Disable {
+		if len(Cfg.Datasources) == 0 {
 			return nil
 		}
 		return &BinlogSvr{
@@ -86,7 +86,7 @@ var (
 
 func (s *BinlogSvr) Start(ctx context.Context, up uploader.IUploader) error {
 
-	if Cfg.Disable {
+	if len(Cfg.Datasources) == 0 {
 		return nil
 	}
 
