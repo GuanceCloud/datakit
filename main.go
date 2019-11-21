@@ -156,7 +156,7 @@ Golang Version: %s
 		return
 	}
 
-	gLogger.Infof("starting %s v%s", serviceName, git.Version)
+	gLogger.Infof("starting %s(v%s)", serviceName, git.Version)
 
 	subcfgdir := config.Cfg.ConfigDir
 	if *flagCfgDir != "" {
@@ -180,18 +180,18 @@ Golang Version: %s
 
 	if runtime.GOOS == "windows" && windowsRunAsService() {
 
-		svrCreator, ok := service.Services[`agent`]
-		if ok {
-			svr := svrCreator(gLogger)
-			if svr != nil {
+		// svrCreator, ok := service.Services[`agent`]
+		// if ok {
+		// 	svr := svrCreator(gLogger)
+		// 	if svr != nil {
 
-				wg.Add(1)
-				go func(s service.Service) {
-					defer wg.Done()
-					s.Start(ctx, up)
-				}(svr)
-			}
-		}
+		// 		wg.Add(1)
+		// 		go func(s service.Service) {
+		// 			defer wg.Done()
+		// 			s.Start(ctx, up)
+		// 		}(svr)
+		// 	}
+		// }
 
 		svcConfig := &winsvr.Config{
 			Name: serviceName,
@@ -231,10 +231,10 @@ func run(ctx context.Context, cancel context.CancelFunc, up uploader.IUploader) 
 	}()
 
 	svrCount := 0
-	for name, svrCreator := range service.Services {
-		if runtime.GOOS == "windows" && windowsRunAsService() && name == "agent" {
-			continue
-		}
+	for _, svrCreator := range service.Services {
+		// if runtime.GOOS == "windows" && windowsRunAsService() && name == "agent" {
+		// 	continue
+		// }
 		svr := svrCreator(gLogger)
 		if svr != nil {
 			wg.Add(1)
