@@ -121,7 +121,7 @@ func (c *BinlogConfig) Load(f string) error {
 	}
 
 	if len(c.Datasources) == 0 {
-		return fmt.Errorf("binlog source not found")
+		return nil
 	}
 
 	//var tables []*BinlogTable
