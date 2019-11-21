@@ -404,7 +404,7 @@ const (
 		bytes.Replace(bytes.TrimSpace(dateStr), []byte("'"), []byte(""), -1),
 
 		// 移除此处的 `v' 前缀.  前端的版本号判断机制容不下这个前缀
-		bytes.TrimSpace(curVersion[1:]),
+		bytes.TrimSpace(curVersion),
 		bytes.TrimSpace(golang),
 	)
 
@@ -413,7 +413,7 @@ const (
 
 	// create version info
 	vd := &versionDesc{
-		Version:   string(bytes.TrimSpace(curVersion[1:])),
+		Version:   string(bytes.TrimSpace(curVersion)),
 		Date:      string(bytes.TrimSpace(dateStr)),
 		ChangeLog: string(bytes.TrimSpace(lastNCommits)),
 	}
