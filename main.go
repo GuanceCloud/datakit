@@ -41,8 +41,6 @@ var (
 
 	gLogger *log.Logger
 	stopch  = make(chan struct{})
-
-	serviceName = `datakit`
 )
 
 type program struct {
@@ -152,7 +150,7 @@ Golang Version: %s
 		return
 	}
 
-	gLogger.Infof("starting %s(v%s)", serviceName, git.Version)
+	gLogger.Infof("%s", formatFullVersion())
 
 	subcfgdir := config.Cfg.ConfigDir
 	if *flagCfgDir != "" {
@@ -171,7 +169,7 @@ Golang Version: %s
 	if runtime.GOOS == "windows" && windowsRunAsService() {
 
 		svcConfig := &winsvr.Config{
-			Name: serviceName,
+			Name: config.ServiceName,
 		}
 
 		prg := &program{}
@@ -277,4 +275,14 @@ func setLogLevel(level string) {
 	default:
 		log.SetLevel(log.LevelInfo)
 	}
+}
+
+func formatFullVersion() string {
+	parts := []string{`Forethought`, config.ServiceName, git.Version}
+
+	return strings.Join(parts, " ")
+}
+
+func formatUserAgent() string {
+	return fmt.Sprintf(`%s/%s(%s.%s)`, config.ServiceName, git.Version, runtime.GOOS, runtime.GOARCH)
 }
