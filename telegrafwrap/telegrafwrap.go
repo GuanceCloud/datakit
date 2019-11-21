@@ -89,7 +89,9 @@ func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 				}
 			}
 		case <-ctx.Done():
+			s.logger.Info("start quit agent")
 			stopAgent(s.logger)
+			s.logger.Info("end quit agent")
 			return context.Canceled
 		}
 	}
