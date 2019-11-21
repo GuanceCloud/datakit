@@ -43,12 +43,6 @@ var (
 	stopch  = make(chan struct{})
 
 	serviceName = `datakit`
-
-	ctx    context.Context
-	cancel context.CancelFunc
-	up     *uploader.Uploader
-
-	wg sync.WaitGroup
 )
 
 type program struct {
@@ -59,7 +53,7 @@ func (p *program) Start(s winsvr.Service) error {
 	return nil
 }
 func (p *program) run(s winsvr.Service) {
-	run(ctx, cancel, up)
+	run()
 	s.Stop()
 }
 func (p *program) Stop(s winsvr.Service) error {
@@ -172,12 +166,6 @@ Golang Version: %s
 		return
 	}
 
-	ctx, cancel = context.WithCancel(context.Background())
-
-	up = uploader.New(config.Cfg.FtGateway)
-	up.Start()
-	defer up.Stop()
-
 	if runtime.GOOS == "windows" && windowsRunAsService() {
 
 		// svrCreator, ok := service.Services[`agent`]
@@ -210,12 +198,18 @@ Golang Version: %s
 		}
 
 	} else {
-		run(ctx, cancel, up)
+		run()
 	}
 
 }
 
-func run(ctx context.Context, cancel context.CancelFunc, up uploader.IUploader) {
+func run() {
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	up := uploader.New(config.Cfg.FtGateway)
+	up.Start()
+	defer up.Stop()
 
 	signals := make(chan os.Signal)
 	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
@@ -229,6 +223,8 @@ func run(ctx context.Context, cancel context.CancelFunc, up uploader.IUploader) 
 			cancel()
 		}
 	}()
+
+	var wg sync.WaitGroup
 
 	svrCount := 0
 	for _, svrCreator := range service.Services {
