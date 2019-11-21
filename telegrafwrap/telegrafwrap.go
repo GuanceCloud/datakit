@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"syscall"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -112,10 +113,12 @@ func stopAgent(l log.Logger) error {
 		prs, err := os.FindProcess(npid)
 		if err == nil && prs != nil {
 			l.Info("find agent by pid")
-			if err = prs.Kill(); err != nil {
+			if err = prs.Signal(syscall.SIGTERM); err != nil {
 				l.Error("kill agent failed")
 				return err
 			}
+			l.Info("killed agent by pid")
+
 			time.Sleep(time.Millisecond * 100)
 		}
 	}
