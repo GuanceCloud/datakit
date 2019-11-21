@@ -143,33 +143,34 @@ func startAgent(ctx context.Context, l log.Logger) error {
 
 	if runtime.GOOS == "windows" {
 
-		pg := filepath.Join(config.ExecutableDir, "agent_debug.log")
+		// pg := filepath.Join(config.ExecutableDir, "agent_debug.log")
 
-		f, _ := os.Create(pg)
-		procAttr.Files = []*os.File{
-			f,
-			f,
-			f,
-		}
+		// f, _ := os.Create(pg)
+		// procAttr.Files = []*os.File{
+		// 	nil,
+		// 	f,
+		// 	f,
+		// }
+
 		// p, err = os.StartProcess(agentPath(true), []string{}, procAttr)
 		// if err != nil {
 		// 	return err
 		// }
 
-		//cmd := exec.Command(agentPath(true), "-console")
-		cmd := exec.CommandContext(ctx, agentPath(true), "-console")
+		cmd := exec.Command(agentPath(true), "-console")
+		//cmd := exec.CommandContext(ctx, agentPath(true), "-console")
 		cmd.Env = env
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
-		if err := cmd.Start(); err != nil {
+		if err := cmd.Run(); err != nil {
 			return err
 		}
 		p = cmd.Process
 
 		l.Infof("agent is running, %v", p.Pid)
 
-		err = cmd.Wait()
+		//err = cmd.Wait()
 
 		l.Infof("agent ok, %s", err)
 
