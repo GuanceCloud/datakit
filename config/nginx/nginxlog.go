@@ -7,14 +7,14 @@ import (
 	"text/template"
 
 	"github.com/influxdata/toml"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 const (
 	nginxLogSample = `
-disable = true
-[[access_log]]
-  file="/var/log/nginx/access.log"
-  measurement="nginx_access"
+#[[access_log]]
+#  file='/var/log/nginx/access.log'
+#  measurement='nginx_access'
 `
 
 	nginxLogTelegrafTemplate = `
@@ -43,7 +43,6 @@ type NginxErrorLog struct {
 
 type NginxLogConfig struct {
 	//Logs []*NginxAccessLog `yaml:"logs"`
-	Disable    bool              `toml:"disable"`
 	AccessLogs []*NginxAccessLog `toml:"access_log"`
 	ErrorLogs  []*NginxErrorLog  `toml:"error_log"`
 }
@@ -52,8 +51,8 @@ func (c *NginxLogConfig) SampleConfig() string {
 	return nginxLogSample
 }
 
-func (c *NginxLogConfig) ToTelegraf() (string, error) {
-	if c.Disable {
+func (c *NginxLogConfig) ToTelegraf(f string) (string, error) {
+	if len(c.AccessLogs) == 0 && len(c.ErrorLogs) == 0 {
 		return "", nil
 	}
 	cfg := ""
@@ -101,4 +100,8 @@ func (c *NginxLogConfig) Load(f string) error {
 	}
 
 	return toml.Unmarshal(cfgdata, c)
+}
+
+func init() {
+	config.AddConfig("nginxlog", &NginxLogConfig{})
 }
