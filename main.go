@@ -282,7 +282,3 @@ func formatFullVersion() string {
 
 	return strings.Join(parts, " ")
 }
-
-func formatUserAgent() string {
-	return fmt.Sprintf(`%s/%s(%s.%s)`, config.ServiceName, git.Version, runtime.GOOS, runtime.GOARCH)
-}
