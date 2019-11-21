@@ -14,6 +14,7 @@ service_name=${bin_name}
 install_dir=/usr/local/cloudcare/forethought/${service_name}
 binary="${install_dir}/${bin_name}"
 install_log="${install_dir}"/install.log
+ftdataway=
 
 # 创建安装目录
 if ! mkdir -p "${install_dir}"; then
@@ -32,6 +33,11 @@ do
 			shift
 			;;
 
+		--ftdataway)
+			ftdataway="$2"
+			shift
+			;;
+
 		*)
 			# unknown option
 			;;
@@ -39,6 +45,8 @@ do
 	shift
 done
 
+
+echo ${ftdataway}
 
 # 安装预检
 printf "===================================\n" | tee -a $install_log
@@ -117,7 +125,8 @@ fi
 # init
 if [ $upgrade_flag -eq 0 ]; then
   printf "init ${service_name} ...\n" | tee -a ${install_log}
-  if ${binary} --init ; then
+  if ${binary} --init \
+  			   --ftdataway "${ftdataway}" ; then
 
     printf "ok\n" | tee -a ${install_log}
   else
