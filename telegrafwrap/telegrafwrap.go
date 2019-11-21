@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"syscall"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -53,6 +52,27 @@ type (
 	}
 )
 
+func killProcessByPID(npid int) error {
+	if runtime.GOOS == `windows` {
+
+		cmd := exec.Command(`tskill`, fmt.Sprintf(`%v`, npid))
+		cmd.Run()
+
+	} else {
+		if pid.CheckPid(npid) == nil {
+			prs, err := os.FindProcess(npid)
+			if err == nil && prs != nil {
+				if err = prs.Kill(); err != nil {
+					return err
+				}
+				time.Sleep(time.Millisecond * 100)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 
 	s.logger.Info("Starting agent...")
@@ -60,7 +80,7 @@ func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 		s.logger.Info("agent done")
 	}()
 
-	if err := startAgent(ctx, s.logger); err != nil {
+	if err := s.startAgent(ctx, s.logger); err != nil {
 		s.logger.Errorf("start agent fail: %s", err.Error())
 		return err
 	}
@@ -91,14 +111,14 @@ func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
 			}
 		case <-ctx.Done():
 			s.logger.Info("start quit agent")
-			stopAgent(s.logger)
+			s.stopAgent(s.logger)
 			s.logger.Info("end quit agent")
 			return context.Canceled
 		}
 	}
 }
 
-func stopAgent(l log.Logger) error {
+func (s *TelegrafSvr) stopAgent(l log.Logger) error {
 
 	piddata, err := ioutil.ReadFile(agentPidPath())
 	if err != nil {
@@ -109,26 +129,12 @@ func stopAgent(l log.Logger) error {
 		return err
 	}
 
-	if pid.CheckPid(npid) == nil {
-		prs, err := os.FindProcess(npid)
-		if err == nil && prs != nil {
-			l.Info("find agent by pid")
-			if err = prs.Signal(syscall.SIGTERM); err != nil {
-				l.Error("kill agent failed")
-				return err
-			}
-			l.Info("killed agent by pid")
-
-			time.Sleep(time.Millisecond * 100)
-		}
-	}
-
-	return nil
+	return killProcessByPID(npid)
 }
 
-func startAgent(ctx context.Context, l log.Logger) error {
+func (s *TelegrafSvr) startAgent(ctx context.Context, l log.Logger) error {
 
-	stopAgent(l)
+	s.stopAgent(l)
 
 	env := os.Environ()
 	if runtime.GOOS == "windows" {
