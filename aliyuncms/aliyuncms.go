@@ -251,6 +251,12 @@ func (s *AliyunCMS) initializeAliyunCMS() error {
 func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up uploader.IUploader, l log.Logger) error {
 	tags := make(map[string]string)
 
+	if config.Cfg.GlobalTags != nil {
+		for k, v := range config.Cfg.GlobalTags {
+			tags[k] = v
+		}
+	}
+
 	if req.Dimensions != "" {
 		ms := []map[string]string{}
 		if err := json.Unmarshal([]byte(req.Dimensions), &ms); err == nil {
@@ -297,8 +303,6 @@ func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up 
 			return fmt.Errorf("failed to decode response datapoints: %v", err)
 		}
 
-		//log.Printf("datapoints count: %v", len(datapoints))
-
 		for _, datapoint := range datapoints {
 
 			fields := make(map[string]interface{})
@@ -326,8 +330,6 @@ func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up 
 				}
 			}
 
-			//tags["userId"] = datapoint["userId"].(string)
-
 			datapointTime := int64(datapoint["timestamp"].(float64)) / 1000
 
 			m, _ := metric.New(formatMeasurement(req.Namespace), tags, fields, time.Unix(datapointTime, 0))
@@ -342,7 +344,7 @@ func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up 
 					})
 				}
 			} else {
-				//log.Printf("[warn] Serialize to influx protocol line fail: %s", err)
+				l.Warnf("[warn] Serialize to influx protocol line fail: %s", err)
 			}
 		}
 
