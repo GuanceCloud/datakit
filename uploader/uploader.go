@@ -299,6 +299,8 @@ func (s *shards) sendSamples(ctx context.Context, samples []*LogItem, shardIndex
 		return err
 	}
 
+	log.Debugf("send %d samples to %v ok", len(samples), config.Cfg.FtGateway)
+
 	atomic.AddInt64(&s.u.totalSend, int64(len(samples)))
 
 	return nil

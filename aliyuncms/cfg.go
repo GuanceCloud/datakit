@@ -3,7 +3,6 @@ package aliyuncms
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
@@ -161,10 +160,6 @@ func (c *ACSCmsConfig) Load(f string) error {
 				MetricsRequests = append(MetricsRequests, req)
 			}
 		}
-	}
-
-	if len(MetricsRequests) == 0 {
-		log.Println("[warn] no metric will be pulled")
 	}
 
 	return nil
