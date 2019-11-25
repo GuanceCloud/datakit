@@ -124,8 +124,6 @@ func (c *BinlogConfig) Load(f string) error {
 		return nil
 	}
 
-	//var tables []*BinlogTable
-
 	for _, dt := range c.Datasources {
 		if dt.Addr == "" || dt.User == "" {
 			return fmt.Errorf("mysql host and username required")
@@ -150,15 +148,6 @@ func (c *BinlogConfig) Load(f string) error {
 					return fmt.Errorf("table name must be non-empty")
 				}
 
-				// for k, v := range t.Columns {
-				// 	if v == "tag" {
-				// 		t.Tags = append(t.Tags, k)
-				// 	}
-				// 	if v == "field" {
-				// 		t.Fields = append(t.Fields, k)
-				// 	}
-				// }
-
 				if len(t.Fields) == 0 {
 					return fmt.Errorf("please specify at least one column as field for table: %s.%s", d.Database, t.Name)
 				}
@@ -171,25 +160,10 @@ func (c *BinlogConfig) Load(f string) error {
 					}
 				}
 
-				// bexclude := false
-				// for _, et := range d.ExcludeTables {
-				// 	if et == t.Table {
-				// 		bexclude = true
-				// 		break
-				// 	}
-				// }
-
-				// if !bexclude {
-				// 	tables = append(tables, t)
-				// }
 			}
 		}
 
 	}
-
-	// if len(tables) == 0 {
-	// 	return fmt.Errorf("no table specified")
-	// }
 
 	return nil
 }
