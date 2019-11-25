@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+
 	"github.com/siddontang/go-mysql/schema"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/uploader"
 
@@ -242,6 +244,12 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 
 				v = tuneTagKVFieldK(v)
 				strTags += fmt.Sprintf(",%s=%s", k, v)
+			}
+
+			if config.Cfg.GlobalTags != nil {
+				for k, v := range config.Cfg.GlobalTags {
+					strTags += fmt.Sprintf(",%s=%s", k, v)
+				}
 			}
 
 			for i, col := range fieldCols {

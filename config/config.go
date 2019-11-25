@@ -69,6 +69,8 @@ type Config struct {
 	LogLevel string `toml:"log_level"`
 
 	ConfigDir string `toml:"config_dir,omitempty"`
+
+	GlobalTags map[string]string `toml:"global_tags, omitempty"`
 }
 
 func LoadConfig(f string) error {
