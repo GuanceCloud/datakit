@@ -72,6 +72,8 @@ func tuneMeasureName(n string) string {
 
 func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 
+	log.Debugf("binlog action: %s, eventType: %v", e.Action, e.Header.EventType)
+
 	defer func() {
 		if e := recover(); e != nil {
 			log.Errorf("%s", e)
@@ -311,13 +313,12 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 			//line += fmt.Sprintf(" %v", uint64(e.Header.Timestamp)*1000000000)
 			line += fmt.Sprintf(" %v", time.Now().UnixNano())
 
-			log.Debugf("*** %s", line)
+			log.Debugf("binlog metric: %s", line)
 
 			if h.binloger.storage != nil {
 				h.binloger.storage.AddLog(&uploader.LogItem{
 					Log: line,
 				})
-
 			}
 		}
 
