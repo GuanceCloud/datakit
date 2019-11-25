@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/influxdata/toml"
+	"github.com/influxdata/toml/ast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -70,7 +71,7 @@ type Config struct {
 
 	ConfigDir string `toml:"config_dir,omitempty"`
 
-	GlobalTags map[string]string `toml:"global_tags, omitempty"`
+	GlobalTags map[string]string `toml:"-"`
 }
 
 func LoadConfig(f string) error {
@@ -81,6 +82,24 @@ func LoadConfig(f string) error {
 
 	if err := toml.Unmarshal(data, &Cfg); err != nil {
 		return err
+	}
+
+	fdata, _ := ioutil.ReadFile(f)
+
+	tbl, err := toml.Parse(fdata)
+	if err != nil {
+		return err
+	}
+
+	Cfg.GlobalTags = map[string]string{}
+
+	if val, ok := tbl.Fields["global_tags"]; ok {
+		subTable, ok := val.(*ast.Table)
+		if ok {
+			if err := toml.UnmarshalTable(subTable, Cfg.GlobalTags); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -106,7 +125,14 @@ func InitializeConfigs() error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(CfgPath, out, 0664); err != nil {
+	globalStr := string(out)
+	globalStr += `
+# Global tags can be specified here in key="value" format.
+[global_tags]
+
+`
+
+	if err := ioutil.WriteFile(CfgPath, []byte(globalStr), 0664); err != nil {
 		return err
 	}
 
