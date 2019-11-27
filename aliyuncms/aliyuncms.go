@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/log"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/uploader"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/utils"
 )
 
 func init() {
@@ -169,7 +170,7 @@ func (s *AliyunCMS) Run(ctx context.Context) error {
 	default:
 	}
 
-	lmtr := NewRateLimiter(rateLimit, time.Second)
+	lmtr := utils.NewRateLimiter(rateLimit, time.Second)
 	defer lmtr.Stop()
 
 	s.wg.Add(1)
@@ -265,8 +266,12 @@ func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up 
 					tags[k] = v
 				}
 			}
+		} else {
+			l.Errorf("dimesion err: %s", err)
 		}
 	}
+
+	l.Debugf("dimensions: %#v", req.Dimensions)
 
 	tags["regionId"] = req.RegionId
 
@@ -304,6 +309,8 @@ func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up 
 		}
 
 		for _, datapoint := range datapoints {
+
+			//l.Debugf("%#v", datapoint)
 
 			fields := make(map[string]interface{})
 
