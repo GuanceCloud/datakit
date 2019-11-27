@@ -115,7 +115,7 @@ func (c *CMSConfig) Load(f string) error {
 		for _, p := range item.Namespace {
 			for _, m := range p.Metrics.MetricNames {
 				req := &MetricsRequest{q: monitor.NewGetMonitorDataRequest()}
-				req.q.Period = common.Uint64Ptr(70)
+				req.q.Period = common.Uint64Ptr(60)
 				req.q.MetricName = common.StringPtr(m)
 				req.q.Namespace = common.StringPtr(p.Name)
 				if req.q.Instances, err = p.MakeDimension(m); err != nil {
