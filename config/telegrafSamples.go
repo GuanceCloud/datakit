@@ -32,7 +32,6 @@ var (
 		`udp`,
 		`http`,
 		`kernel`,
-		`activemq`,
 		`nats`,
 	}
 
