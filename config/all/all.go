@@ -6,4 +6,5 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/config/apache"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/config/nginx"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/telegrafwrap"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/tencentcms"
 )
