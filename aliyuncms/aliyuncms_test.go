@@ -1,40 +1,25 @@
 package aliyuncms
 
 import (
-	"log"
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/siddontang/go-log/log"
+
 	"github.com/influxdata/telegraf/metric"
 	"github.com/influxdata/telegraf/plugins/serializers/influx"
+
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
 
 func TestConfig(t *testing.T) {
 
-	log.Println("11")
-
-	t1 := time.Millisecond * 100
-	t2 := t1 / time.Millisecond
-
-	log.Printf("t2: %d", t2)
-
-	tm := time.Now()
-	time.Sleep(time.Second)
-	useage := time.Now().Sub(tm)
-
-	interval := 2 * time.Second
-
-	remain := time.Duration(interval) - useage
-
-	log.Println(useage)
-
-	timer := time.NewTimer(remain)
-	select {
-	case <-timer.C:
-		log.Println("expired")
-	}
-
-	var cfg ACSCmsConfig
+	var cfg CMSConfig
 
 	if err := cfg.Load("./aliyuncms.toml"); err != nil {
 		log.Fatalln(err)
@@ -45,36 +30,21 @@ func TestConfig(t *testing.T) {
 
 func TestCredential(t *testing.T) {
 
-	cmscfg := &CmsCfg{
-		RegionID:        `cn-hangzhou`,
-		AccessKeyID:     `LTAIu5wzrLOGHdq1`,
-		AccessKeySecret: `***`,
-	}
+	// cmscfg := &CMS{
+	// 	RegionID:        `cn-hangzhou`,
+	// 	AccessKeyID:     `LTAIu5wzrLOGHdq1`,
+	// 	AccessKeySecret: `***`,
+	// }
 
-	ac := &AliyunCMS{
-		cfg: cmscfg,
-	}
+	// ac := &CMSConfig{
+	// 	cfg: cmscfg,
+	// }
 
-	if err := ac.initializeAliyunCMS(); err != nil {
-		log.Fatalln(err)
-	} else {
-		log.Println("check credential ok")
-	}
-}
-
-func TestAliyunCms(t *testing.T) {
-
-	log.SetFlags(log.Lshortfile)
-
-	if err := Cfg.Load("./aliyuncms.toml"); err != nil {
-		log.Fatalln(err)
-	} else {
-		log.Println("config file is ok")
-	}
-
-	m := NewAliyunCMSManager(nil)
-	m.Start()
-
+	// if err := ac.initializeAliyunCMS(); err != nil {
+	// 	log.Fatalln(err)
+	// } else {
+	// 	log.Println("check credential ok")
+	// }
 }
 
 func TestInfluxLine(t *testing.T) {
@@ -98,4 +68,108 @@ func TestInfluxLine(t *testing.T) {
 	}
 
 	log.Printf("%s", string(output))
+}
+
+func TestMetricInfo(t *testing.T) {
+
+	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAIlsWpTrg1vUf4", "dy5lQzWpU17RDNHGCj84LBDhoU9LVU")
+
+	namespace := "acs_ecs_dashboard"
+	metricname := "IOPSUsage"
+
+	request := cms.CreateDescribeMetricMetaListRequest()
+	request.Scheme = "https"
+
+	request.Namespace = namespace
+	request.MetricName = metricname
+	request.PageSize = requests.NewInteger(100)
+
+	response, err := client.DescribeMetricMetaList(request)
+	if err != nil {
+		fmt.Print(err.Error())
+	}
+
+	if response.Resources.Resource != nil {
+		for _, res := range response.Resources.Resource {
+			fmt.Printf("%s: Periods=%s Statistics=%s\n", res.MetricName, res.Periods, res.Statistics)
+		}
+	}
+}
+
+func TestMetricList(t *testing.T) {
+
+	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAIlsWpTrg1vUf4", "dy5lQzWpU17RDNHGCj84LBDhoU9LVU")
+
+	namespace := "acs_ecs_dashboard"
+
+	request := cms.CreateDescribeMetricMetaListRequest()
+	request.Scheme = "https"
+
+	request.Namespace = namespace
+	request.PageSize = requests.NewInteger(100)
+
+	response, err := client.DescribeMetricMetaList(request)
+	if err != nil {
+		fmt.Print(err.Error())
+	}
+
+	if response.Resources.Resource != nil {
+		for _, res := range response.Resources.Resource {
+			fmt.Printf("%s: Periods=%s Statistics=%s\n", res.MetricName, res.Periods, res.Statistics)
+		}
+	}
+}
+
+func TestGetMetrics(t *testing.T) {
+	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAIlsWpTrg1vUf4", "dy5lQzWpU17RDNHGCj84LBDhoU9LVU")
+
+	request := cms.CreateDescribeMetricListRequest()
+	request.Scheme = "https"
+
+	request.MetricName = "CPUUtilization"
+	request.Namespace = "acs_ecs_dashboard"
+	request.Period = "60"
+	request.StartTime = "1574921940000"
+	request.EndTime = "1574922000000"
+	request.Dimensions = `[{"instanceId": "i-bp15wj5w33t8vfxi7z3d"}]`
+
+	response, err := client.DescribeMetricList(request)
+	if err != nil {
+		fmt.Print(err.Error())
+	}
+
+	var datapoints []map[string]interface{}
+	if err = json.Unmarshal([]byte(response.Datapoints), &datapoints); err != nil {
+		log.Fatalf("failed to decode response datapoints: %v", err)
+	}
+
+	log.Infof("Count: %v", len(datapoints))
+	for _, dp := range datapoints {
+		log.Infof("instanceId:%v,  Minimum:%v, Average:%v, timestamp:%v", dp["instanceId"], dp["Minimum"], dp["Average"], dp["timestamp"])
+	}
+}
+
+func TestSvr(t *testing.T) {
+
+	if err := Cfg.Load("./aliyuncms.toml"); err != nil {
+		log.Fatalln(err)
+	} else {
+		log.Println("ok")
+	}
+
+	//logHandler, _ := log.NewStreamHandler(os.Stdout)
+
+	logHandler, _ := log.NewFileHandler("./cms.log", os.O_RDWR)
+
+	ll := log.NewDefault(logHandler)
+	ll.SetLevel(log.LevelDebug)
+
+	svr := &AliyuncmsSvr{
+		logger: ll,
+	}
+
+	ctx, _ := context.WithCancel(context.Background())
+
+	svr.Start(ctx, nil)
+
 }
