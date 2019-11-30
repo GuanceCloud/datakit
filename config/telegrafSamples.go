@@ -4,10 +4,11 @@ var (
 	telegrafCfgSamples = make(map[string]string)
 
 	supportsTelegrafMetraicNames = []string{
-		`cpu`,
-		`disk`,
 		`nginx`,
 		`apache`,
+		`disk`,
+		`cpu`,
+		`diskio`,
 		`mysql`,
 		`mongodb`,
 		`redis`,
@@ -15,30 +16,299 @@ var (
 		`openldap`,
 		`sqlserver`,
 		`phpfpm`,
-		`mem`,
+		`memory`,
 		`activemq`,
-		`dns`,
+		`zookeeper`,
+		`ceph`,
+		`dns_query`,
 		`docker`,
+		`docker_log`,
+		`fluentd`,
+		`haproxy`,
 		`memcached`,
 		`iptables`,
+		`jenkins`,
 		`kapacitor`,
-		`ping`,
+		`ntpq`,
+		`openntpd`,
+		`ping_check`,
 		`postgresql`,
+		`rabbitmq`,
 		`swap`,
 		`system`,
-		`net`,
+		`tengine`,
+		`network`,
 		`processes`,
-		`tcp`,
-		`udp`,
-		`http`,
+		`tcp_udp_check`,
+		`http_check`,
 		`kernel`,
+		`tls`,
 		`nats`,
+		`win_services`,
 	}
 
 	metricsEnablesFlags = make([]bool, len(supportsTelegrafMetraicNames))
 )
 
 func Init() {
+
+	telegrafCfgSamples["win_services"] = `
+## Reports information about Windows service status.
+## Monitoring some services may require running Telegraf with administrator privileges.
+## Names of the services to monitor. Leave empty to monitor all the available services on the host
+#service_names = [
+#	"LanmanServer",
+#	"TermService",
+#]
+`
+
+	telegrafCfgSamples["tls"] = `
+# # Reads metrics from a SSL certificate
+# [[inputs.x509_cert]]
+#   ## List certificate sources
+#   sources = ["/etc/ssl/certs/ssl-cert-snakeoil.pem", "tcp://example.org:443"]
+#
+#   ## Timeout for SSL connection
+#   # timeout = "5s"
+#
+#   ## Optional TLS Config
+#   # tls_ca = "/etc/telegraf/ca.pem"
+#   # tls_cert = "/etc/telegraf/cert.pem"
+#   # tls_key = "/etc/telegraf/key.pem"
+`
+
+	telegrafCfgSamples["tengine"] = `
+# # Read Tengine's basic status information (ngx_http_reqstat_module)
+# [[inputs.tengine]]
+#   # An array of Tengine reqstat module URI to gather stats.
+#   urls = ["http://127.0.0.1/us"]
+#
+#   # HTTP response timeout (default: 5s)
+#   # response_timeout = "5s"
+#
+#   ## Optional TLS Config
+#   # tls_ca = "/etc/telegraf/ca.pem"
+#   # tls_cert = "/etc/telegraf/cert.cer"
+#   # tls_key = "/etc/telegraf/key.key"
+#   ## Use TLS but skip chain & host verification
+#   # insecure_skip_verify = false
+`
+	telegrafCfgSamples["rabbitmq"] = `
+# # Reads metrics from RabbitMQ servers via the Management Plugin
+# [[inputs.rabbitmq]]
+#   ## Management Plugin url. (default: http://localhost:15672)
+#   # url = "http://localhost:15672"
+#   ## Tag added to rabbitmq_overview series; deprecated: use tags
+#   # name = "rmq-server-1"
+#   ## Credentials
+#   # username = "guest"
+#   # password = "guest"
+#
+#   ## Optional TLS Config
+#   # tls_ca = "/etc/telegraf/ca.pem"
+#   # tls_cert = "/etc/telegraf/cert.pem"
+#   # tls_key = "/etc/telegraf/key.pem"
+#   ## Use TLS but skip chain & host verification
+#   # insecure_skip_verify = false
+#
+#   ## Optional request timeouts
+#   ##
+#   ## ResponseHeaderTimeout, if non-zero, specifies the amount of time to wait
+#   ## for a server's response headers after fully writing the request.
+#   # header_timeout = "3s"
+#   ##
+#   ## client_timeout specifies a time limit for requests made by this client.
+#   ## Includes connection time, any redirects, and reading the response body.
+#   # client_timeout = "4s"
+#
+#   ## A list of nodes to gather as the rabbitmq_node measurement. If not
+#   ## specified, metrics for all nodes are gathered.
+#   # nodes = ["rabbit@node1", "rabbit@node2"]
+#
+#   ## A list of queues to gather as the rabbitmq_queue measurement. If not
+#   ## specified, metrics for all queues are gathered.
+#   # queues = ["telegraf"]
+#
+#   ## A list of exchanges to gather as the rabbitmq_exchange measurement. If not
+#   ## specified, metrics for all exchanges are gathered.
+#   # exchanges = ["telegraf"]
+#
+#   ## Queues to include and exclude. Globs accepted.
+#   ## Note that an empty array for both will include all queues
+#   queue_name_include = []
+#   queue_name_exclude = []
+`
+
+	telegrafCfgSamples["openntpd"] = `
+# # Get standard NTP query metrics from OpenNTPD.
+# [[inputs.openntpd]]
+#   ## Run ntpctl binary with sudo.
+#   # use_sudo = false
+#
+#   ## Location of the ntpctl binary.
+#   # binary = "/usr/sbin/ntpctl"
+#
+#   ## Maximum time the ntpctl binary is allowed to run.
+#   # timeout = "5ms"
+`
+
+	telegrafCfgSamples["ntpq"] = `
+# # Get standard NTP query metrics, requires ntpq executable.
+# [[inputs.ntpq]]
+#   ## If false, set the -n ntpq flag. Can reduce metric gather time.
+#   dns_lookup = true
+`
+	telegrafCfgSamples["jenkins"] = `
+# # Read jobs and cluster metrics from Jenkins instances
+# [[inputs.jenkins]]
+#   ## The Jenkins URL
+#   url = "http://my-jenkins-instance:8080"
+#   # username = "admin"
+#   # password = "admin"
+#
+#   ## Set response_timeout
+#   response_timeout = "5s"
+#
+#   ## Optional TLS Config
+#   # tls_ca = "/etc/telegraf/ca.pem"
+#   # tls_cert = "/etc/telegraf/cert.pem"
+#   # tls_key = "/etc/telegraf/key.pem"
+#   ## Use SSL but skip chain & host verification
+#   # insecure_skip_verify = false
+#
+#   ## Optional Max Job Build Age filter
+#   ## Default 1 hour, ignore builds older than max_build_age
+#   # max_build_age = "1h"
+#
+#   ## Optional Sub Job Depth filter
+#   ## Jenkins can have unlimited layer of sub jobs
+#   ## This config will limit the layers of pulling, default value 0 means
+#   ## unlimited pulling until no more sub jobs
+#   # max_subjob_depth = 0
+#
+#   ## Optional Sub Job Per Layer
+#   ## In workflow-multibranch-plugin, each branch will be created as a sub job.
+#   ## This config will limit to call only the lasted branches in each layer,
+#   ## empty will use default value 10
+#   # max_subjob_per_layer = 10
+#
+#   ## Jobs to exclude from gathering
+#   # job_exclude = [ "job1", "job2/subjob1/subjob2", "job3/*"]
+#
+#   ## Nodes to exclude from gathering
+#   # node_exclude = [ "node1", "node2" ]
+#
+#   ## Worker pool for jenkins plugin only
+#   ## Empty this field will use default value 5
+#   # max_connections = 5
+`
+
+	telegrafCfgSamples["ceph"] = `
+# # Collects performance metrics from the MON and OSD nodes in a Ceph storage cluster.
+# [[inputs.ceph]]
+#   ## This is the recommended interval to poll.  Too frequent and you will lose
+#   ## data points due to timeouts during rebalancing and recovery
+#   interval = '1m'
+#
+#   ## All configuration values are optional, defaults are shown below
+#
+#   ## location of ceph binary
+#   ceph_binary = "/usr/bin/ceph"
+#
+#   ## directory in which to look for socket files
+#   socket_dir = "/var/run/ceph"
+#
+#   ## prefix of MON and OSD socket files, used to determine socket type
+#   mon_prefix = "ceph-mon"
+#   osd_prefix = "ceph-osd"
+#
+#   ## suffix used to identify socket files
+#   socket_suffix = "asok"
+#
+#   ## Ceph user to authenticate as
+#   ceph_user = "client.admin"
+#
+#   ## Ceph configuration to use to locate the cluster
+#   ceph_config = "/etc/ceph/ceph.conf"
+#
+#   ## Whether to gather statistics via the admin socket
+#   gather_admin_socket_stats = true
+#
+#   ## Whether to gather statistics via ceph commands
+#   gather_cluster_stats = false
+`
+
+	telegrafCfgSamples["zookeeper"] = `
+# # Reads 'mntr' stats from one or many zookeeper servers
+# [[inputs.zookeeper]]
+#   ## An array of address to gather stats about. Specify an ip or hostname
+#   ## with port. ie localhost:2181, 10.0.0.1:2181, etc.
+#
+#   ## If no servers are specified, then localhost is used as the host.
+#   ## If no port is specified, 2181 is used
+#   servers = [":2181"]
+#
+#   ## Timeout for metric collections from all servers.  Minimum timeout is "1s".
+#   # timeout = "5s"
+#
+#   ## Optional TLS Config
+#   # enable_tls = true
+#   # tls_ca = "/etc/telegraf/ca.pem"
+#   # tls_cert = "/etc/telegraf/cert.pem"
+#   # tls_key = "/etc/telegraf/key.pem"
+#   ## If false, skip chain & host verification
+#   # insecure_skip_verify = true
+`
+
+	telegrafCfgSamples["haproxy"] = `
+# # Read metrics of haproxy, via socket or csv stats page
+# [[inputs.haproxy]]
+#   ## An array of address to gather stats about. Specify an ip on hostname
+#   ## with optional port. ie localhost, 10.10.3.33:1936, etc.
+#   ## Make sure you specify the complete path to the stats endpoint
+#   ## including the protocol, ie http://10.10.3.33:1936/haproxy?stats
+#
+#   ## If no servers are specified, then default to 127.0.0.1:1936/haproxy?stats
+#   servers = ["http://myhaproxy.com:1936/haproxy?stats"]
+#
+#   ## Credentials for basic HTTP authentication
+#   # username = "admin"
+#   # password = "admin"
+#
+#   ## You can also use local socket with standard wildcard globbing.
+#   ## Server address not starting with 'http' will be treated as a possible
+#   ## socket, so both examples below are valid.
+#   # servers = ["socket:/run/haproxy/admin.sock", "/run/haproxy/*.sock"]
+#
+#   ## By default, some of the fields are renamed from what haproxy calls them.
+#   ## Setting this option to true results in the plugin keeping the original
+#   ## field names.
+#   # keep_field_names = false
+#
+#   ## Optional TLS Config
+#   # tls_ca = "/etc/telegraf/ca.pem"
+#   # tls_cert = "/etc/telegraf/cert.pem"
+#   # tls_key = "/etc/telegraf/key.pem"
+#   ## Use TLS but skip chain & host verification
+#   # insecure_skip_verify = false
+`
+
+	telegrafCfgSamples["fluentd"] = `
+# # Read metrics exposed by fluentd in_monitor plugin
+# [[inputs.fluentd]]
+#   ## This plugin reads information exposed by fluentd (using /api/plugins.json endpoint).
+#   ##
+#   ## Endpoint:
+#   ## - only one URI is allowed
+#   ## - https is not supported
+#   endpoint = "http://localhost:24220/api/plugins.json"
+#
+#   ## Define which plugins have to be excluded (based on "type" field - e.g. monitor_agent)
+#   exclude = [
+# 	  "monitor_agent",
+# 	  "dummy",
+#   ]
+`
 
 	telegrafCfgSamples["cpu"] = `
 #[[inputs.cpu]]
@@ -61,8 +331,9 @@ func Init() {
 
   ## Ignore mount points by filesystem type.
 #  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
+`
 
-
+	telegrafCfgSamples[`diskio`] = `
 # Read metrics about disk IO by device
 #[[inputs.diskio]]
   ## By default, telegraf will gather stats for all devices including
@@ -102,7 +373,7 @@ func Init() {
 #   # no configuration
 `
 
-	telegrafCfgSamples[`mem`] = `
+	telegrafCfgSamples[`memory`] = `
 # Read metrics about memory usage
 #[[inputs.mem]]
   # no configuration
@@ -156,7 +427,7 @@ func Init() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`dns`] = `
+	telegrafCfgSamples[`dns_query`] = `
 # # Query given DNS server and gives statistics
 # [[inputs.dns_query]]
 #   ## servers to query
@@ -227,7 +498,9 @@ func Init() {
 #   # tls_key = "/etc/telegraf/key.pem"
 #   ## Use TLS but skip chain & host verification
 #   # insecure_skip_verify = false
+`
 
+	telegrafCfgSamples[`docker_log`] = `
 # # Read logging output from the Docker engine
 # [[inputs.docker_log]]
 #   ## Docker Endpoint
@@ -319,7 +592,7 @@ func Init() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`http`] = `
+	telegrafCfgSamples[`http_check`] = `
 # # Read formatted metrics from one or more HTTP endpoints
 # [[inputs.http]]
 #   ## One or more URLs from which to read formatted metrics
@@ -621,7 +894,7 @@ func Init() {
 #   # response_timeout = "5s"
 `
 
-	telegrafCfgSamples[`net`] = `
+	telegrafCfgSamples[`network`] = `
 # # Read metrics about network interface usage
 # [[inputs.net]]
 #   ## By default, telegraf gathers stats from any up interface (excluding loopback)
@@ -635,8 +908,9 @@ func Init() {
 #   ##
 #   # ignore_protocol_stats = false
 #   ##
+`
 
-
+	telegrafCfgSamples[`tcp_udp_check`] = `
 # # Collect response time of a TCP or UDP connection
 # [[inputs.net_response]]
 #   ## Protocol, must be "tcp" or "udp"
@@ -788,22 +1062,6 @@ func Init() {
 #   # tls_key = "/etc/telegraf/key.pem"
 #   ## Use TLS but skip chain & host verification
 #   # insecure_skip_verify = false
-`
-
-	telegrafCfgSamples[`tcp`] = `
-# # Generic TCP listener
-# [[inputs.tcp_listener]]
-#   # DEPRECATED: the TCP listener plugin has been deprecated in favor of the
-#   # socket_listener plugin
-#   # see https://github.com/influxdata/telegraf/tree/master/plugins/inputs/socket_listener
-`
-
-	telegrafCfgSamples[`udp`] = `
-# # Generic UDP listener
-# [[inputs.udp_listener]]
-#   # DEPRECATED: the TCP listener plugin has been deprecated in favor of the
-#   # socket_listener plugin
-#   # see https://github.com/influxdata/telegraf/tree/master/plugins/inputs/socket_listener
 `
 
 	telegrafCfgSamples[`postgresql`] = `
@@ -1036,7 +1294,7 @@ func Init() {
 #   # unix_sockets = ["/var/run/memcached.sock"]
 `
 
-	telegrafCfgSamples[`ping`] = `
+	telegrafCfgSamples[`ping_check`] = `
 # # Ping given url(s) and return statistics
 # [[inputs.ping]]
 #   ## List of urls to ping
