@@ -16,6 +16,7 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/providers"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -28,7 +29,7 @@ import (
 func init() {
 	config.AddConfig("aliyuncms", &Cfg)
 	service.Add("aliyuncms", func(logger log.Logger) service.Service {
-		if len(Cfg.CmsCfg) == 0 {
+		if len(Cfg.CMSs) == 0 {
 			return nil
 		}
 		return &AliyuncmsSvr{
@@ -95,14 +96,10 @@ var (
 )
 
 type (
-	aliyuncmsClient interface {
-		DescribeMetricList(request *cms.DescribeMetricListRequest) (*cms.DescribeMetricListResponse, error)
-	}
+	RunningCMS struct {
+		cfg *CMS
 
-	AliyunCMS struct {
-		client aliyuncmsClient
-
-		cfg *CmsCfg
+		client *cms.Client
 
 		timer *time.Timer
 
@@ -113,21 +110,21 @@ type (
 	}
 
 	AliyuncmsSvr struct {
-		cmss   []*AliyunCMS
+		cmss   []*RunningCMS
 		logger log.Logger
 	}
 )
 
 func (m *AliyuncmsSvr) Start(ctx context.Context, up uploader.IUploader) error {
 
-	if len(Cfg.CmsCfg) == 0 {
+	if len(Cfg.CMSs) == 0 {
 		return nil
 	}
 
-	m.cmss = []*AliyunCMS{}
+	m.cmss = []*RunningCMS{}
 
-	for _, c := range Cfg.CmsCfg {
-		a := &AliyunCMS{
+	for _, c := range Cfg.CMSs {
+		a := &RunningCMS{
 			cfg:      c,
 			uploader: up,
 			logger:   m.logger,
@@ -141,7 +138,7 @@ func (m *AliyuncmsSvr) Start(ctx context.Context, up uploader.IUploader) error {
 
 	for _, c := range m.cmss {
 		wg.Add(1)
-		go func(ac *AliyunCMS) {
+		go func(ac *RunningCMS) {
 			defer wg.Done()
 
 			if err := ac.Run(ctx); err != nil && err != context.Canceled {
@@ -156,7 +153,7 @@ func (m *AliyuncmsSvr) Start(ctx context.Context, up uploader.IUploader) error {
 	return nil
 }
 
-func (s *AliyunCMS) Run(ctx context.Context) error {
+func (s *RunningCMS) Run(ctx context.Context) error {
 
 	if err := s.initializeAliyunCMS(); err != nil {
 		return err
@@ -194,8 +191,8 @@ func (s *AliyunCMS) Run(ctx context.Context) error {
 			}
 
 			<-lmtr.C
-			if err := fetchMetric(req, s.client, s.uploader, s.logger); err != nil {
-				s.logger.Errorf("fetchMetric error: %s", err)
+			if err := s.fetchMetric(req); err != nil {
+				s.logger.Errorf(`get aliyun metric "%s.%s" failed: %s`, req.q.Namespace, req.q.MetricName, err)
 			}
 		}
 
@@ -221,7 +218,7 @@ func (s *AliyunCMS) Run(ctx context.Context) error {
 	}
 }
 
-func (s *AliyunCMS) initializeAliyunCMS() error {
+func (s *RunningCMS) initializeAliyunCMS() error {
 	if s.cfg.RegionID == "" {
 		return errors.New("region id is not set")
 	}
@@ -249,50 +246,102 @@ func (s *AliyunCMS) initializeAliyunCMS() error {
 	return nil
 }
 
-func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up uploader.IUploader, l log.Logger) error {
-	tags := make(map[string]string)
+func (s *RunningCMS) fetchMetricInfo(namespace, metricname string) (*MetricInfo, error) {
 
-	if config.Cfg.GlobalTags != nil {
-		for k, v := range config.Cfg.GlobalTags {
-			tags[k] = v
-		}
+	request := cms.CreateDescribeMetricMetaListRequest()
+	request.Scheme = "https"
+
+	request.Namespace = namespace
+	request.MetricName = metricname
+	request.PageSize = requests.NewInteger(100)
+
+	response, err := s.client.DescribeMetricMetaList(request)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get metric(%s.%s) info: %s", namespace, metricname, err)
 	}
 
-	if req.Dimensions != "" {
-		ms := []map[string]string{}
-		if err := json.Unmarshal([]byte(req.Dimensions), &ms); err == nil {
-			for _, m := range ms {
-				for k, v := range m {
-					tags[k] = v
-				}
+	if len(response.Resources.Resource) == 0 {
+		return nil, fmt.Errorf("metric \"%s\" not support in %s", metricname, namespace)
+	}
+
+	for _, res := range response.Resources.Resource {
+		periodStrs := strings.Split(res.Periods, ",")
+		periods := []int64{}
+		for _, p := range periodStrs {
+			np, err := strconv.ParseInt(p, 10, 64)
+			if err == nil {
+				periods = append(periods, np)
 			}
-		} else {
-			l.Errorf("dimesion err: %s", err)
+		}
+		info := &MetricInfo{
+			Periods:    periods,
+			Statistics: strings.Split(res.Statistics, ","),
+			Dimensions: res.Dimensions,
+		}
+		s.logger.Debugf("%s.%s: Periods=%s, Statistics=%s", namespace, metricname, periodStrs, strings.Split(res.Statistics, ","))
+		return info, nil
+	}
+
+	return nil, nil
+}
+
+func (s *RunningCMS) fetchMetric(req *MetricsRequest) error {
+
+	var err error
+	if req.info == nil {
+		if req.info, err = s.fetchMetricInfo(req.q.Namespace, req.q.MetricName); err != nil {
+			return err
 		}
 	}
 
-	l.Debugf("dimensions: %#v", req.Dimensions)
+	if !req.checkPeriod {
 
-	tags["regionId"] = req.RegionId
+		pv, _ := strconv.ParseInt(req.q.Period, 10, 64)
+		bok := false
+		for _, n := range req.info.Periods {
+			if pv == n {
+				bok = true
+				break
+			}
+		}
 
-	//const timeInterval = int64(5 * time.Minute * 1000)
+		if !bok {
+			s.logger.Warnf("period of %v for %s.%s not support, avariable periods:%#v", pv, req.q.Namespace, req.q.MetricName, req.info.Periods)
+			//按照监控项默认的最小周期来查询数据
+			req.q.Period = ""
+		}
 
-	var st, et int64
-	//if req.StartTime == "" {
-	et = (time.Now().Unix() - 30) * 1000
-	st = et - int64(metricPeriod.Seconds())*1000
-	//} else {
-	//st, _ = strconv.ParseInt(req.EndTime, 10, 64)
-	//et = st + int64(metricPeriod.Seconds())*1000
-	//}
+		req.checkPeriod = true
+	}
 
-	req.EndTime = strconv.FormatInt(et, 10)
-	req.StartTime = strconv.FormatInt(st, 10)
+	// if req.q.Dimensions != "" {
+	// 	ms := []map[string]string{}
+	// 	if err := json.Unmarshal([]byte(req.q.Dimensions), &ms); err == nil {
+	// 		for _, m := range ms {
+	// 			for k, v := range m {
+	// 				tags[k] = v
+	// 			}
+	// 		}
+	// 	} else {
+	// 		s.logger.Errorf("dimesion err: %s", err)
+	// 	}
+	// }
 
-	//log.Printf("req: %#v", req)
+	nt := time.Now().Truncate(time.Minute)
+	et := nt.Unix() * 1000
+	st := nt.Add(-(5 * time.Minute)).Unix() * 1000 //-6因为是[)
+
+	req.q.EndTime = strconv.FormatInt(et, 10)
+	req.q.StartTime = strconv.FormatInt(st, 10)
+
+	//req.q.EndTime = `1574918880000`   // strconv.FormatInt(et, 10)
+	//req.q.StartTime = `1574918580000` //strconv.FormatInt(st, 10)
+	req.q.NextToken = ""
+
+	s.logger.Debugf("request: Namespace:%s, MetricName:%s, Period:%s, StartTime:%s, EndTime:%s, Dimensions:%s", req.q.Namespace, req.q.MetricName, req.q.Period, req.q.StartTime, req.q.EndTime, req.q.Dimensions)
 
 	for more := true; more; {
-		resp, err := client.DescribeMetricList(req)
+		resp, err := s.client.DescribeMetricList(req.q)
 		if err != nil {
 			return fmt.Errorf("failed to query metric list: %v", err)
 		} else if resp.Code != "200" {
@@ -310,21 +359,28 @@ func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up 
 
 		for _, datapoint := range datapoints {
 
-			//l.Debugf("%#v", datapoint)
+			tags := make(map[string]string)
+
+			if config.Cfg.GlobalTags != nil {
+				for k, v := range config.Cfg.GlobalTags {
+					tags[k] = v
+				}
+			}
+			tags["regionId"] = req.q.RegionId
 
 			fields := make(map[string]interface{})
 
 			if average, ok := datapoint["Average"]; ok {
-				fields[formatField(req.MetricName, "Average")] = average
+				fields[formatField(req.q.MetricName, "Average")] = average
 			}
 			if minimum, ok := datapoint["Minimum"]; ok {
-				fields[formatField(req.MetricName, "Minimum")] = minimum
+				fields[formatField(req.q.MetricName, "Minimum")] = minimum
 			}
 			if maximum, ok := datapoint["Maximum"]; ok {
-				fields[formatField(req.MetricName, "Maximum")] = maximum
+				fields[formatField(req.q.MetricName, "Maximum")] = maximum
 			}
 			if value, ok := datapoint["Value"]; ok {
-				fields[formatField(req.MetricName, "Value")] = value
+				fields[formatField(req.q.MetricName, "Value")] = value
 			}
 
 			for _, k := range dms {
@@ -339,31 +395,31 @@ func fetchMetric(req *cms.DescribeMetricListRequest, client aliyuncmsClient, up 
 
 			datapointTime := int64(datapoint["timestamp"].(float64)) / 1000
 
-			m, _ := metric.New(formatMeasurement(req.Namespace), tags, fields, time.Unix(datapointTime, 0))
+			m, _ := metric.New(formatMeasurement(req.q.Namespace), tags, fields, time.Unix(datapointTime, 0))
 
 			serializer := influx.NewSerializer()
 			output, err := serializer.Serialize(m)
-			l.Debug(string(output))
+			s.logger.Debug(string(output))
 			if err == nil {
-				if up != nil {
-					up.AddLog(&uploader.LogItem{
+				if s.uploader != nil {
+					s.uploader.AddLog(&uploader.LogItem{
 						Log: string(output),
 					})
 				}
 			} else {
-				l.Warnf("[warn] Serialize to influx protocol line fail: %s", err)
+				s.logger.Warnf("[warn] Serialize to influx protocol line fail: %s", err)
 			}
 		}
 
-		req.NextToken = resp.NextToken
-		more = req.NextToken != ""
+		req.q.NextToken = resp.NextToken
+		more = (req.q.NextToken != "")
 	}
 
 	return nil
 }
 
 func formatField(metricName string, statistic string) string {
-	return fmt.Sprintf("%s_%s", snakeCase(metricName), snakeCase(statistic))
+	return fmt.Sprintf("%s_%s", metricName, statistic)
 }
 
 func formatMeasurement(project string) string {
