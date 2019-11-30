@@ -12,17 +12,17 @@ import (
 const (
 	aliyuncmsConfigSample = `
 #[[cms]]
-#  ## Aliyun Region (required)
-#  ## See: https://www.alibabacloud.com/help/zh/doc-detail/40654.htm
-#region_id = "cn-hangzhou"
+# ## Aliyun Credentials (required)
+#access_key_id = ''
+#access_key_secret = ''
 
-#  ## Aliyun Credentials (required)
-#access_key_id = ""
-#access_key_secret = ""
+# ## Aliyun Region (required)
+# ## See: https://www.alibabacloud.com/help/zh/doc-detail/40654.htm
+#region_id = 'cn-hangzhou'
 
-#  [[cms.project]]
-#    ## Metric Statistic Project (required)
-#	name="acs_ecs_dashboard"
+#[[cms.project]]
+#	## Metric Statistic Project (required)
+#	name='acs_ecs_dashboard'
 
 #	## Optional instances from which you want to pull metrics, empty means to pull all instances 
 #	#instanceIds=["xxx","yyy"]
@@ -31,32 +31,37 @@ const (
 #	## See: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.2.11.6ac47694AjhHt4
 #	[cms.project.metrics]
 #	names = [
-#		"CPUUtilization",
+#		'CPUUtilization',
 #	]
 
 #	## dimensions can be used to query the specified resource, which is a collection of key-value forms. 
 #	## each metric may have its own dimensions, See: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.2.11.6ac47694AjhHt4 
-#	## name is metric name, value is a json string, eg: '[{"instanceId":"xxx"},{"device":"xxx"}]'
-#	#[[cms.project.metrics.dimensions]]
-#	#  name = "diskusage_free"
-#	#  value = '[{"instanceId":"xxx"},{"device":"xxx"}]'
+#	## name is metric name, value is a json string
+#	[[cms.project.metrics.dimensions]]
+#		name = "CPUUtilization"
+#		value = '''
+#		[
+#		{"instanceId":"i-bp15wj5w33t8vfxi****"},
+#		{"instanceId":"i-bp1bq3x84ko4ct6x****"}
+#		]
+#		'''
 `
 )
 
 var (
-	Cfg             ACSCmsConfig
-	MetricsRequests = []*cms.DescribeMetricListRequest{}
+	Cfg             CMSConfig
+	MetricsRequests = []*MetricsRequest{}
 )
 
 type (
-	Metric struct {
-		MetricNames []string     `toml:"names"`
-		Dimensions  []*Dimension `toml:"dimensions"`
-	}
-
 	Dimension struct {
 		Name  string `toml:"name"`
 		Value string `toml:"value"`
+	}
+
+	Metric struct {
+		MetricNames []string     `toml:"names"`
+		Dimensions  []*Dimension `toml:"dimensions"`
 	}
 
 	Project struct {
@@ -65,19 +70,76 @@ type (
 		Metrics     *Metric  `toml:"metrics"`
 	}
 
-	CmsCfg struct {
+	CMS struct {
 		RegionID        string     `toml:"region_id"`
 		AccessKeyID     string     `toml:"access_key_id"`
 		AccessKeySecret string     `toml:"access_key_secret"`
 		Project         []*Project `toml:"project"`
 	}
 
-	ACSCmsConfig struct {
-		CmsCfg []*CmsCfg `toml:"cms"`
+	CMSConfig struct {
+		CMSs []*CMS `toml:"cms"`
+	}
+
+	MetricInfo struct {
+		Periods    []int64
+		Statistics []string
+		Dimensions string
+	}
+
+	MetricsRequest struct {
+		q           *cms.DescribeMetricListRequest
+		info        *MetricInfo
+		checkPeriod bool
 	}
 )
 
-func (p *Project) MakeDimension(mestric string) (string, error) {
+func (c *CMSConfig) SampleConfig() string {
+	return aliyuncmsConfigSample
+}
+
+func (c *CMSConfig) FilePath(root string) string {
+	d := filepath.Join(root, "aliyuncms")
+	return filepath.Join(d, "aliyuncms.conf")
+}
+
+func (c *CMSConfig) ToTelegraf(f string) (string, error) {
+	return "", nil
+}
+
+func (c *CMSConfig) Load(f string) error {
+	data, err := ioutil.ReadFile(f)
+	if err != nil {
+		return err
+	}
+
+	if err = toml.Unmarshal(data, c); err != nil {
+		return err
+	}
+
+	for _, item := range c.CMSs {
+		for _, p := range item.Project {
+			for _, m := range p.Metrics.MetricNames {
+				req := cms.CreateDescribeMetricListRequest()
+				req.Scheme = "https"
+				req.RegionId = item.RegionID
+				req.Period = getPeriod(p.Name, m)
+				req.MetricName = m
+				req.Namespace = p.Name
+				if ds, err := p.GenDimension(m); err == nil {
+					req.Dimensions = ds
+				}
+				MetricsRequests = append(MetricsRequests, &MetricsRequest{
+					q: req,
+				})
+			}
+		}
+	}
+
+	return nil
+}
+
+func (p *Project) GenDimension(mestric string) (string, error) {
 
 	var dimension *Dimension
 	for _, d := range p.Metrics.Dimensions {
@@ -93,7 +155,7 @@ func (p *Project) MakeDimension(mestric string) (string, error) {
 
 	vals := []map[string]string{}
 
-	if dimension.Value != "" {
+	if dimension != nil && dimension.Value != "" {
 		if err := json.Unmarshal([]byte(dimension.Value), &vals); err != nil {
 			return "", err
 		}
@@ -123,44 +185,6 @@ func (p *Project) MakeDimension(mestric string) (string, error) {
 
 }
 
-func (c *ACSCmsConfig) SampleConfig() string {
-	return aliyuncmsConfigSample
-}
-
-func (c *ACSCmsConfig) FilePath(root string) string {
-	d := filepath.Join(root, "aliyuncms")
-	return filepath.Join(d, "aliyuncms.conf")
-}
-
-func (c *ACSCmsConfig) ToTelegraf(f string) (string, error) {
-	return "", nil
-}
-
-func (c *ACSCmsConfig) Load(f string) error {
-	data, err := ioutil.ReadFile(f)
-	if err != nil {
-		return err
-	}
-
-	if err = toml.Unmarshal(data, c); err != nil {
-		return err
-	}
-
-	for _, item := range c.CmsCfg {
-		for _, p := range item.Project {
-			for _, m := range p.Metrics.MetricNames {
-				req := cms.CreateDescribeMetricListRequest()
-				req.Period = "60" // strconv.FormatInt(int64(metricPeriod/time.Second), 10)
-				req.MetricName = m
-				req.Length = "10000"
-				req.Namespace = p.Name
-				if ds, err := p.MakeDimension(m); err == nil {
-					req.Dimensions = ds
-				}
-				MetricsRequests = append(MetricsRequests, req)
-			}
-		}
-	}
-
-	return nil
+func getPeriod(namespace, metricname string) string {
+	return "60"
 }
