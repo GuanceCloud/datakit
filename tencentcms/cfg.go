@@ -53,11 +53,11 @@ var (
 const (
 	cmsConfigSample = `
 #[[cms]]
-#access_key_id = "AKIDXVFk7EfwUmzvc9mZR3TnqlTwZuyoJTxK"
-#access_key_secret = "HH5f4PUJsBLFBrQjlY5TcXEuKTP7i5HG"
+#access_key_id = ""
+#access_key_secret = ""
 
 # ##See: https://cloud.tencent.com/document/product/213/6091
-#region_id = "ap-shanghai"
+#region_id = 'ap-shanghai'
 
 
 #[[cms.namespace]]
