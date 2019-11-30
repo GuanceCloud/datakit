@@ -163,7 +163,7 @@ func (s *RunningCMS) Run(ctx context.Context) error {
 			<-lmtr.C
 			_ = req
 			if err = s.fetchMetrics(req); err != nil {
-				s.logger.Errorf(`fetch metric "%s.%s" failed: %s`, *req.q.Namespace, *req.q.MetricName, err)
+				s.logger.Errorf(`get tencent metric "%s.%s" failed: %s`, *req.q.Namespace, *req.q.MetricName, err)
 			}
 		}
 
@@ -406,9 +406,9 @@ func (c *RunningCMS) fetchAllInstanceIds(namespace string) ([]string, error) {
 
 	if err != nil {
 		return nil, err
-	} else {
-		c.logger.Debugf("all instanceids: %#v", instanceIds)
 	}
+
+	c.logger.Debugf("all instanceids: %#v", instanceIds)
 
 	return instanceIds, err
 }
