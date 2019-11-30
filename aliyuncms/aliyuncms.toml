@@ -1,48 +1,36 @@
 
 [[cms]]
+  ## Aliyun Credentials (required)
+  access_key_id = 'LTAI4Fc72xGdZKKr6cTBV72S'
+  access_key_secret = 'QXZ4FFCq3yhN5TCGC9rj1kBNZNJksc'
+
   ## Aliyun Region (required)
   ## See: https://www.alibabacloud.com/help/zh/doc-detail/40654.htm
-  region_id = "cn-hangzhou"
+  region_id = 'cn-hangzhou'
   
-  ## Aliyun Credentials (required)
-  access_key_id = ""
-  access_key_secret = ""
 
   [[cms.project]]
     ## Metric Statistic Project (required)
-    name="acs_ecs_dashboard"
+    name='acs_ecs_dashboard'
 
     ## Optional instances from which you want to pull metrics, empty means to pull all instances 
-    #instanceIds=["xxx","yyy"]
+    instanceIds=["i-bp15wj5w33t8vfxi7z3d"]
 
     ## Metrics to Pull (Required)
     ## See: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.2.11.6ac47694AjhHt4
     [cms.project.metrics]
       names = [
-        "CPUUtilization",
+        'CPUUtilization',
       ]
 
       ## dimensions can be used to query the specified resource, which is a collection of key-value forms. 
       ## each metric may have its own dimensions, See: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.2.11.6ac47694AjhHt4 
-      ## name is metric name, value is a json string, eg: '[{"instanceId":"xxx"},{"device":"xxx"}]'
+      ## name is metric name, value is a json string
       #[[cms.project.metrics.dimensions]]
-      #  name = "diskusage_free"
-      #  value = '[{"instanceId":"xxx"},{"device":"xxx"}]'
-
-#  [[cms.project]]
-#    name="acs_slb_dashboard"
-#    #instanceIds=[]
-#    [cms.project.metrics]
-#      names = [
-#        "HeathyServerCount",
-#        "UnhealthyServerCount",
-#        "PacketTX",
-#        "PacketRX",
-#        "TrafficRXNew",
-#        "TrafficTXNew",
-#        "ActiveConnection",
-#        "DropConnection",
-#        "DropPacketRX",
-#        "DropPacketTX",
-#        "DropTrafficRX"
-#      ]
+      #  name = "CPUUtilization"
+      #  value = '''
+      #  [
+      #    {"instanceId":"i-bp15wj5w33t8vfxi7z3d"},
+      #    {"instanceId":"i-bp1bq3x84ko4ct6xkilz"}
+      #  ]
+      #  '''
