@@ -1,9 +1,25 @@
 package utils
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
+
+func SizeToName(size int64) string {
+	units := []string{"B", "KB", "MB", "GB"}
+	i := 0
+	for size >= 1024 {
+		size /= 1024
+		i++
+	}
+
+	if i > len(units)-1 {
+		i = len(units) - 1
+	}
+
+	return fmt.Sprintf("%d%s", size, units[i])
+}
 
 type rateLimiter struct {
 	C    chan bool
