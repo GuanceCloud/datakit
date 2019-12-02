@@ -3,6 +3,7 @@ package aliyunboa
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -159,11 +160,12 @@ func (b *BoaOrder) fetch(ctx context.Context, client *bssopenapi.Client, l log.L
 		}
 
 		fields := map[string]interface{}{
-			"OrderID":           item.OrderId,
-			"RelatedOrderId":    item.RelatedOrderId,
-			"PretaxGrossAmount": item.PretaxGrossAmount,
-			"PretaxAmount":      item.PretaxAmount,
+			"OrderID":        item.OrderId,
+			"RelatedOrderId": item.RelatedOrderId,
 		}
+
+		fields["PretaxGrossAmount"], _ = strconv.ParseFloat(item.PretaxGrossAmount, 64)
+		fields["PretaxAmount"], _ = strconv.ParseFloat(item.PretaxAmount, 64)
 
 		t, err := time.Parse(time.RFC3339, item.PaymentTime)
 		if err != nil {
@@ -209,7 +211,7 @@ func (b *BoaBill) fetch(ctx context.Context, client *bssopenapi.Client, l log.Lo
 		fields[`PretaxGrossAmount`] = item.PretaxGrossAmount
 		fields[`DeductedByCoupons`] = item.DeductedByCoupons
 		fields[`InvoiceDiscount`] = item.InvoiceDiscount
-		fields[`RoundDownDiscount`] = item.RoundDownDiscount
+		fields[`RoundDownDiscount`], _ = strconv.ParseFloat(item.RoundDownDiscount, 64)
 		fields[`PretaxAmount`] = item.PretaxAmount
 		fields[`DeductedByCashCoupons`] = item.DeductedByCashCoupons
 		fields[`DeductedByPrepaidCard`] = item.DeductedByPrepaidCard
@@ -315,10 +317,11 @@ func (b *BoaAccount) fetch(ctx context.Context, client *bssopenapi.Client, l log
 	fields := map[string]interface{}{}
 
 	tags[`Currency`] = respAmount.Data.Currency
-	fields[`AvailableAmount`] = respAmount.Data.AvailableAmount
-	fields[`MybankCreditAmount`] = respAmount.Data.MybankCreditAmount
-	fields[`AvailableCashAmount`] = respAmount.Data.AvailableCashAmount
-	fields[`CreditAmount`] = respAmount.Data.CreditAmount
+
+	fields[`AvailableAmount`], _ = strconv.ParseFloat(respAmount.Data.AvailableAmount, 64)
+	fields[`MybankCreditAmount`], _ = strconv.ParseFloat(respAmount.Data.MybankCreditAmount, 64)
+	fields[`AvailableCashAmount`], _ = strconv.ParseFloat(respAmount.Data.AvailableCashAmount, 64)
+	fields[`CreditAmount`], _ = strconv.ParseFloat(respAmount.Data.CreditAmount, 64)
 
 	addLine(b.getName(), tags, fields, time.Now().UTC(), up, l)
 
@@ -343,8 +346,8 @@ func (b *BoaAccount) fetch(ctx context.Context, client *bssopenapi.Client, l log
 			fields[`TransactionChannelSN`] = item.TransactionChannelSN
 			fields[`RecordID`] = item.RecordID
 			fields[`Remarks`] = item.Remarks
-			fields[`Amount`] = item.Amount
-			fields[`Balance`] = item.Balance
+			fields[`Amount`], _ = strconv.ParseFloat(item.Amount, 64)
+			fields[`Balance`], _ = strconv.ParseFloat(item.Balance, 64)
 
 			t, err := time.Parse(time.RFC3339, item.TransactionTime)
 			if err != nil {
