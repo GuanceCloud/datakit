@@ -1,0 +1,12 @@
+[[boa]]
+  ## Aliyun Region (required)
+  ## See: https://www.alibabacloud.com/help/zh/doc-detail/40654.htm
+  region_id = "cn-hangzhou"
+  
+  ## Aliyun Credentials (required)
+  access_key_id = "LTAI4Fc72xGdZKKr6cTBV72S"
+  access_key_secret = "QXZ4FFCq3yhN5TCGC9rj1kBNZNJksc"
+
+  account_interval = "24h"
+  bill_interval = "1h"
+  order_interval = "1h"
