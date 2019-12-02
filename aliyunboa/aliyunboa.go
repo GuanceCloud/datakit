@@ -21,8 +21,8 @@ import (
 )
 
 func init() {
-	config.AddConfig("aliyunboa", &Cfg)
-	service.Add("aliyunboa", func(logger log.Logger) service.Service {
+	config.AddConfig("aliyuncost", &Cfg)
+	service.Add("aliyuncost", func(logger log.Logger) service.Service {
 		if len(Cfg.Boas) == 0 {
 			return nil
 		}
