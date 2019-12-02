@@ -25,6 +25,7 @@ func init() {
 		if len(Cfg.Boas) == 0 {
 			return nil
 		}
+
 		return &AliyunBoaSvr{
 			logger: logger,
 		}
