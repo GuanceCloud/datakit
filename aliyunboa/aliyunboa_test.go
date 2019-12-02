@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -114,6 +115,12 @@ func TestQueryOrder(t *testing.T) {
 }
 
 func TestSvr(t *testing.T) {
+
+	sf := "1.23"
+	fv, _ := strconv.ParseFloat(sf, 64)
+	log.Infof("fv=%v", fv)
+
+	return
 
 	if err := Cfg.Load(`./demo.toml`); err != nil {
 		log.Fatalln(err)
