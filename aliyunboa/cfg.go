@@ -12,18 +12,18 @@ import (
 
 const (
 	aliyunboaConfigSample = `
-[[boa]]
-  ## Aliyun Region (required)
-  ## See: https://www.alibabacloud.com/help/zh/doc-detail/40654.htm
-  region_id = 'cn-hangzhou'
+#[[boa]]
+#  ## Aliyun Region (required)
+#  ## See: https://www.alibabacloud.com/help/zh/doc-detail/40654.htm
+#  region_id = 'cn-hangzhou'
   
-  ## Aliyun Credentials (required)
-  access_key_id = ''
-  access_key_secret = ''
+#  ## Aliyun Credentials (required)
+#  access_key_id = ''
+#  access_key_secret = ''
 
-  account_interval = "24h"
-  bill_interval = "1h"
-  order_interval = "1h"
+#  account_interval = "24h"
+#  bill_interval = "1h"
+#  order_interval = "1h"
 `
 )
 
@@ -51,8 +51,8 @@ func (c *AliyunBoaCfg) SampleConfig() string {
 }
 
 func (c *AliyunBoaCfg) FilePath(root string) string {
-	d := filepath.Join(root, "aliyunboa")
-	return filepath.Join(d, "aliyunboa.conf")
+	d := filepath.Join(root, "aliyuncost")
+	return filepath.Join(d, "aliyuncost.conf")
 }
 
 func (c *AliyunBoaCfg) ToTelegraf(f string) (string, error) {
