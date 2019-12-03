@@ -100,7 +100,7 @@ func Init() {
 # cache_ttl = "1h"
 
 ## Metric Statistic Namespace (required)
-namespace = "AWS/ELB"
+#namespace = "AWS/ELB"
 
 ## Maximum requests per second. Note that the global default AWS rate limit is
 ## 50 reqs/sec, so if you define multiple namespaces, these should add up to a
@@ -113,7 +113,7 @@ namespace = "AWS/ELB"
 
 ## Namespace-wide statistic filters. These allow fewer queries to be made to
 ## cloudwatch.
-# statistic_include = [ "average", "sum", "minimum", "maximum", sample_count" ]
+# statistic_include = [ "average", "sum", "minimum", "maximum", "sample_count" ]
 # statistic_exclude = []
 
 ## Metrics to Pull
