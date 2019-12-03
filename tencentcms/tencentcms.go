@@ -193,20 +193,18 @@ func (c *RunningCMS) fetchMetrics(req *MetricsRequest) error {
 
 	if len(req.q.Instances) == 0 {
 		ids, err := c.fetchAllInstanceIds(strings.ToUpper(*req.q.Namespace))
-		if err != nil {
-			return err
-		}
-
-		for _, id := range ids {
-			inst := &monitor.Instance{
-				Dimensions: []*monitor.Dimension{
-					&monitor.Dimension{
-						Name:  common.StringPtr(getInstanceKeyName(strings.ToUpper(*req.q.Namespace))),
-						Value: common.StringPtr(id),
+		if err == nil {
+			for _, id := range ids {
+				inst := &monitor.Instance{
+					Dimensions: []*monitor.Dimension{
+						&monitor.Dimension{
+							Name:  common.StringPtr(getInstanceKeyName(strings.ToUpper(*req.q.Namespace))),
+							Value: common.StringPtr(id),
+						},
 					},
-				},
+				}
+				req.q.Instances = append(req.q.Instances, inst)
 			}
-			req.q.Instances = append(req.q.Instances, inst)
 		}
 	}
 
@@ -253,7 +251,20 @@ func (c *RunningCMS) fetchMetrics(req *MetricsRequest) error {
 
 	resp, err := c.client.GetMonitorData(req.q)
 	if err != nil {
-		return err
+
+		nq := monitor.NewGetMonitorDataRequest()
+		nq.Period = common.Uint64Ptr(*req.q.Period)
+		nq.MetricName = common.StringPtr(*req.q.MetricName)
+		nq.Namespace = common.StringPtr(*req.q.Namespace)
+		nq.Instances = req.q.Instances
+		nq.EndTime = common.StringPtr(*req.q.StartTime)
+		nq.StartTime = common.StringPtr(*req.q.EndTime)
+
+		req.q = nq
+
+		if resp, err = c.client.GetMonitorData(req.q); err != nil {
+			return err
+		}
 	}
 
 	c.logger.Debugf("Response: Period=%v, StartTime=%s, EndTime=%s", *resp.Response.Period, *resp.Response.StartTime, *resp.Response.EndTime)
