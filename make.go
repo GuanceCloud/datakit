@@ -3,8 +3,6 @@
 package main
 
 import (
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
-	"syscall"
 	"bytes"
 	"encoding/json"
 	"flag"
@@ -462,8 +460,8 @@ const (
 			log.Fatal(err)
 		}
 
-		results := bytes.Replace(byts,[]byte{'\r','\n'}, []{'\n'},-1)
-		if err = ioutil.WriteFile(path.Join(outdir, `install.sh`), requests, os.ModePerm); err != nil {
+		results := bytes.Replace(byts.Bytes(), []byte{'\r', '\n'}, []byte{'\n'}, -1)
+		if err = ioutil.WriteFile(path.Join(outdir, `install.sh`), results, os.ModePerm); err != nil {
 			log.Fatal(err)
 		}
 
