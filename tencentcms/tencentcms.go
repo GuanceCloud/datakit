@@ -265,6 +265,7 @@ func (c *RunningCMS) fetchMetrics(req *MetricsRequest) error {
 		if resp, err = c.client.GetMonitorData(req.q); err != nil {
 			return err
 		}
+
 	}
 
 	c.logger.Debugf("Response: Period=%v, StartTime=%s, EndTime=%s", *resp.Response.Period, *resp.Response.StartTime, *resp.Response.EndTime)
