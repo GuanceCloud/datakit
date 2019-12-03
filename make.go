@@ -20,7 +20,7 @@ import (
 	"text/template"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/itos/agent/storage"
 	"gitlab.jiagouyun.com/cloudcare-tools/itos/tunnel"
 )
@@ -272,7 +272,7 @@ func publishAgent() {
 	}
 
 	if ak == "" || sk == "" {
-		log.Fatal("[fatal] oss access key or secret key missing")
+		log.Fatalf("[fatal] oss access key or secret key missing, tag=%s", strings.ToUpper(*flagRelease))
 	}
 
 	storage.DefaultOssOption = &tunnel.OssOption{
