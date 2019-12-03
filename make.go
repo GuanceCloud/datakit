@@ -3,6 +3,8 @@
 package main
 
 import (
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+	"syscall"
 	"bytes"
 	"encoding/json"
 	"flag"
@@ -448,16 +450,23 @@ const (
 			log.Fatal(err)
 		}
 
-		fd, err := os.OpenFile(path.Join(outdir, `install.sh`), os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
+		var byts bytes.Buffer
+
+		// fd, err := os.OpenFile(path.Join(outdir, `install.sh`), os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
+		// if err != nil {
+		// 	log.Fatal(err)
+		// }
+		// defer fd.Close()
+		err = t.Execute(&byts, install)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		defer fd.Close()
-		err = t.Execute(fd, install)
-		if err != nil {
+		results := bytes.Replace(byts,[]byte{'\r','\n'}, []{'\n'},-1)
+		if err = ioutil.WriteFile(path.Join(outdir, `install.sh`), requests, os.ModePerm); err != nil {
 			log.Fatal(err)
 		}
+
 	} else {
 		buildWindowsInstall(outdir)
 	}
