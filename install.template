@@ -21,6 +21,8 @@ if ! mkdir -p "${install_dir}"; then
   exit -1
 fi
 
+chmod 755 "${install_dir}"
+
 
 # 获取命令行参数
 while [[ $# > 1 ]]
@@ -110,6 +112,7 @@ if [ "${arch}" = "x86_64" ]; then
   echo 'install on platform x86_64...' | tee -a $install_log
   mv "${install_dir}"/datakit-linux-amd64/${bin_name} "${install_dir}"/
   chmod +x "${install_dir}/${bin_name}"
+  chmod +x "${install_dir}/agent"
   #mv "${install_dir}"/datakit-linux-amd64/agent "${install_dir}"/
 else
   echo 'i386 not support, exit now!' | tee -a $install_log
