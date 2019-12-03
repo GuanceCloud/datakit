@@ -135,6 +135,7 @@ namespace = "AWS/ELB"
 `
 
 	telegrafCfgSamples["win_services"] = `
+#[[inputs.win_services]]
 ## Reports information about Windows service status.
 ## Monitoring some services may require running Telegraf with administrator privileges.
 ## Names of the services to monitor. Leave empty to monitor all the available services on the host
