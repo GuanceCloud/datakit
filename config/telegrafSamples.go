@@ -46,12 +46,117 @@ var (
 		`nats`,
 		`win_services`,
 		`aws`,
+		`vmware`,
 	}
 
 	metricsEnablesFlags = make([]bool, len(supportsTelegrafMetraicNames))
 )
 
 func Init() {
+
+	telegrafCfgSamples[`vmware`] = `
+# Read metrics from one or many vCenters
+# See: https://github.com/influxdata/telegraf/tree/master/plugins/inputs/vsphere
+#[[inputs.vsphere]]
+#	## List of vCenter URLs to be monitored. These three lines must be uncommented
+#	## and edited for the plugin to work.
+#	vcenters = [ "https://vcenter.local/sdk" ]
+#	username = "user@corp.local"
+#	password = "secret"
+
+#	## VMs
+#	## Typical VM metrics (if omitted or empty, all metrics are collected)
+#	# vm_include = [ "/*/vm/**"] # Inventory path to VMs to collect (by default all are collected)
+#	vm_metric_include = [
+#	"cpu.demand.average",
+#	]
+#	vm_metric_exclude = [] ## Nothing is excluded by default
+#	vm_instances = true ## true by default
+
+	## Hosts
+	## Typical host metrics (if omitted or empty, all metrics are collected)
+	# host_include = [ "/*/host/**"] # Inventory path to hosts to collect (by default all are collected)
+#	host_metric_include = [
+#	"cpu.coreUtilization.average",
+#	]
+	## Collect IP addresses? Valid values are "ipv4" and "ipv6"
+	# ip_addresses = ["ipv6", "ipv4" ]
+	
+	# host_metric_exclude = [] ## Nothing excluded by default
+	# host_instances = true ## true by default
+
+
+	## Clusters
+	# cluster_include = [ "/*/host/**"] # Inventory path to clusters to collect (by default all are collected)
+	# cluster_metric_include = [] ## if omitted or empty, all metrics are collected
+	# cluster_metric_exclude = [] ## Nothing excluded by default
+	# cluster_instances = false ## false by default
+
+	## Datastores
+	# cluster_include = [ "/*/datastore/**"] # Inventory path to datastores to collect (by default all are collected)
+	# datastore_metric_include = [] ## if omitted or empty, all metrics are collected
+	# datastore_metric_exclude = [] ## Nothing excluded by default
+	# datastore_instances = false ## false by default
+
+	## Datacenters
+	# datacenter_include = [ "/*/host/**"] # Inventory path to clusters to collect (by default all are collected)
+	datacenter_metric_include = [] ## if omitted or empty, all metrics are collected
+	datacenter_metric_exclude = [ "*" ] ## Datacenters are not collected by default.
+	# datacenter_instances = false ## false by default
+
+	## Plugin Settings
+	## separator character to use for measurement and field names (default: "_")
+	# separator = "_"
+
+	## number of objects to retreive per query for realtime resources (vms and hosts)
+	## set to 64 for vCenter 5.5 and 6.0 (default: 256)
+	# max_query_objects = 256
+
+	## number of metrics to retreive per query for non-realtime resources (clusters and datastores)
+	## set to 64 for vCenter 5.5 and 6.0 (default: 256)
+	# max_query_metrics = 256
+
+	## number of go routines to use for collection and discovery of objects and metrics
+	# collect_concurrency = 1
+	# discover_concurrency = 1
+
+	## whether or not to force discovery of new objects on initial gather call before collecting metrics
+	## when true for large environments this may cause errors for time elapsed while collecting metrics
+	## when false (default) the first collection cycle may result in no or limited metrics while objects are discovered
+	# force_discover_on_init = false
+
+	## the interval before (re)discovering objects subject to metrics collection (default: 300s)
+	# object_discovery_interval = "300s"
+
+	## timeout applies to any of the api request made to vcenter
+	# timeout = "60s"
+
+	## When set to true, all samples are sent as integers. This makes the output
+	## data types backwards compatible with Telegraf 1.9 or lower. Normally all
+	## samples from vCenter, with the exception of percentages, are integer
+	## values, but under some conditions, some averaging takes place internally in
+	## the plugin. Setting this flag to "false" will send values as floats to
+	## preserve the full precision when averaging takes place.
+	# use_int_samples = true
+	
+	## Custom attributes from vCenter can be very useful for queries in order to slice the
+	## metrics along different dimension and for forming ad-hoc relationships. They are disabled
+	## by default, since they can add a considerable amount of tags to the resulting metrics. To
+	## enable, simply set custom_attribute_exlude to [] (empty set) and use custom_attribute_include
+	## to select the attributes you want to include. 
+	# by default, since they can add a considerable amount of tags to the resulting metrics. To
+	# enable, simply set custom_attribute_exlude to [] (empty set) and use custom_attribute_include
+	# to select the attributes you want to include. 
+	# custom_attribute_include = []
+	# custom_attribute_exclude = ["*"] # Default is to exclude everything
+
+	## Optional SSL Config
+	# ssl_ca = "/path/to/cafile"
+	# ssl_cert = "/path/to/certfile"
+	# ssl_key = "/path/to/keyfile"
+	## Use SSL but skip chain & host verification
+	# insecure_skip_verify = false	
+`
 
 	telegrafCfgSamples["aws"] = `
 #[[inputs.cloudwatch]]
@@ -466,6 +571,45 @@ func Init() {
 # Get the number of processes and group them by status
 #[[inputs.processes]]
   # no configuration
+
+# Monitor process cpu and memory usage
+#[[inputs.procstat]]
+## PID file to monitor process
+#pid_file = "/var/run/nginx.pid"
+## executable name (ie, pgrep <exe>)
+# exe = "nginx"
+## pattern as argument for pgrep (ie, pgrep -f <pattern>)
+# pattern = "nginx"
+## user as argument for pgrep (ie, pgrep -u <user>)
+# user = "nginx"
+## Systemd unit name
+# systemd_unit = "nginx.service"
+## CGroup name or path
+# cgroup = "systemd/system.slice/nginx.service"
+
+## Windows service name
+# win_service = ""
+
+## override for process_name
+## This is optional; default is sourced from /proc/<pid>/status
+# process_name = "bar"
+
+## Field name prefix
+# prefix = ""
+
+## When true add the full cmdline as a tag.
+# cmdline_tag = false
+
+## Add PID as a tag instead of a field; useful to differentiate between
+## processes whose tags are otherwise the same.  Can create a large number
+## of series, use judiciously.
+# pid_tag = false
+
+## Method to use when finding process IDs.  Can be one of 'pgrep', or
+## 'native'.  The pgrep finder calls the pgrep executable in the PATH while
+## the native finder performs the search directly in a manor dependent on the
+## platform.  Default is 'pgrep'
+# pid_finder = "pgrep"
 `
 
 	telegrafCfgSamples[`swap`] = `
