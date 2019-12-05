@@ -111,7 +111,7 @@ func TestGetCVMMetrics(t *testing.T) {
 
 	request := monitor.NewGetMonitorDataRequest()
 	request.Namespace = common.StringPtr(`QCE/CVM`)
-	request.MetricName = common.StringPtr("CPUUsage")
+	request.MetricName = common.StringPtr("acc_outtraffic")
 	request.Instances = []*monitor.Instance{
 		&monitor.Instance{
 			Dimensions: []*monitor.Dimension{
@@ -124,9 +124,9 @@ func TestGetCVMMetrics(t *testing.T) {
 	}
 	request.Period = common.Uint64Ptr(60)
 
-	nt := time.Now()
+	nt := time.Now().Add(-time.Hour)
 	et := nt.Format(time.RFC3339)
-	delta, _ := time.ParseDuration("-5m")
+	delta, _ := time.ParseDuration("-15m")
 	st := nt.Add(delta).Format(time.RFC3339)
 
 	log.Infof("StartTime=%s, EndTime=%s", st, et)
@@ -136,8 +136,8 @@ func TestGetCVMMetrics(t *testing.T) {
 
 	response, err := client.GetMonitorData(request)
 
-	if _, ok := err.(*errors.TencentCloudSDKError); ok {
-		log.Printf("An API error has returned: %s", err)
+	if err != nil {
+		log.Infof("An API error has returned: %s", err)
 		return
 	}
 
