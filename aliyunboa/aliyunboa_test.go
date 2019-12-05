@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+
 	"github.com/siddontang/go-log/log"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
@@ -45,15 +47,22 @@ func TestAccountTransactions(t *testing.T) {
 	cli := staticClient()
 
 	req := bssopenapi.CreateQueryAccountTransactionsRequest()
+	req.PageSize = requests.NewInteger(300)
+	now := time.Now().Truncate(time.Minute)
+	start := now.Add(-time.Hour * 8760).Format(`2006-01-02T15:04:05Z`)
+	req.CreateTimeStart = start
+	req.CreateTimeEnd = now.Format(`2006-01-02T15:04:05Z`)
 
 	resp, err := cli.QueryAccountTransactions(req)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	for _, at := range resp.Data.AccountTransactionsList.AccountTransactionsListItem {
-		log.Printf("%s - %s - %s, %s", at.TransactionTime, at.TransactionAccount, at.Amount, at.Balance)
-	}
+	fmt.Printf("TotalCount=%d, PageSize=%d, PageNum=%d\n", resp.Data.TotalCount, resp.Data.PageSize, resp.Data.PageNum)
+
+	// for _, at := range resp.Data.AccountTransactionsList.AccountTransactionsListItem {
+	// 	log.Printf("%s - %s - %s, %s", at.TransactionTime, at.TransactionAccount, at.Amount, at.Balance)
+	// }
 }
 
 func TestQueryBill(t *testing.T) {
@@ -61,16 +70,33 @@ func TestQueryBill(t *testing.T) {
 	cli := staticClient()
 
 	req := bssopenapi.CreateQueryBillRequest()
-	today := time.Now()
-	req.BillingCycle = fmt.Sprintf("%d-%d", today.Year(), today.Month()) // `2019-10-01`
+	req.BillingCycle = fmt.Sprintf("%d-%d", 2019, 12)
+	req.PageSize = requests.NewInteger(300)
 
-	resp, err := cli.QueryBill(req)
-	if err != nil {
-		log.Fatalln(err)
+	var respBill *bssopenapi.QueryBillResponse
+
+	for {
+		resp, err := cli.QueryBill(req)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if respBill == nil {
+			respBill = resp
+		} else {
+			respBill.Data.Items.Item = append(respBill.Data.Items.Item, resp.Data.Items.Item...)
+		}
+
+		if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
+			req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
+		} else {
+			break
+		}
 	}
 
-	for _, item := range resp.Data.Items.Item {
-		fmt.Printf("%s - %s, %v\n", item.UsageStartTime, item.ProductName, item.PretaxAmount)
+	for _, item := range respBill.Data.Items.Item {
+		if item.PaymentTime == "" {
+			fmt.Printf("%s -, %s, %v\n", item.UsageEndTime, item.ProductName, item.PretaxAmount)
+		}
 	}
 
 }
@@ -99,26 +125,26 @@ func TestQueryOrder(t *testing.T) {
 	cli := staticClient()
 
 	req := bssopenapi.CreateQueryOrdersRequest()
+	now := time.Now()
+	start := now.Add(-time.Hour * 8760).Format(`2006-01-02T15:04:05Z`)
+	log.Infof("start=%s", start)
+	req.CreateTimeStart = start
+	req.CreateTimeEnd = now.Format(`2006-01-02T15:04:05Z`)
 
 	resp, err := cli.QueryOrders(req)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	fmt.Println(resp.String())
+	fmt.Printf("TotalCount=%d, PageNum=%d, PageSize=%d\n", resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize)
 
-	for _, item := range resp.Data.OrderList.Order {
-		fmt.Printf("%s - %s, %v, %s\n", item.PaymentTime, item.PaymentStatus, item.PretaxAmount, item.Currency)
-	}
+	// for _, item := range resp.Data.OrderList.Order {
+	// 	fmt.Printf("%s - %s, %v, %s\n", item.PaymentTime, item.PaymentStatus, item.PretaxAmount, item.Currency)
+	// }
 
 }
 
 func TestSvr(t *testing.T) {
-
-	envval := os.Getenv(`TEST_OSS_SECRET_KEY`)
-	log.Infof("envval=%s", envval)
-
-	return
 
 	if err := Cfg.Load(`./demo.toml`); err != nil {
 		log.Fatalln(err)
@@ -135,8 +161,15 @@ func TestSvr(t *testing.T) {
 		logger: ll,
 	}
 
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 
-	svr.Start(ctx, nil)
+	go func() {
+		svr.Start(ctx, nil)
+	}()
 
+	time.Sleep(10000 * time.Second)
+
+	cancel()
+
+	time.Sleep(1 * time.Second)
 }
