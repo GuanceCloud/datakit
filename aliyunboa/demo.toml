@@ -10,3 +10,5 @@
   account_interval = "24h"
   bill_interval = "1h"
   order_interval = "1h"
+
+  collect_history_data = true
