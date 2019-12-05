@@ -24,6 +24,9 @@ const (
 #  account_interval = "24h"
 #  bill_interval = "1h"
 #  order_interval = "1h"
+
+#  ##是否采集账单最近1年历史数据
+#  collect_history_data = false
 `
 )
 
@@ -33,12 +36,13 @@ var (
 
 type (
 	Boa struct {
-		AccessKeyID     string   `toml:"access_key_id"`
-		AccessKeySecret string   `toml:"access_key_secret"`
-		RegionID        string   `toml:"region_id"`
-		AccountInterval Duration `toml:"account_interval"`
-		BiilInterval    Duration `toml:"bill_interval"`
-		OrdertInterval  Duration `toml:"order_interval"`
+		AccessKeyID        string   `toml:"access_key_id"`
+		AccessKeySecret    string   `toml:"access_key_secret"`
+		RegionID           string   `toml:"region_id"`
+		AccountInterval    Duration `toml:"account_interval"`
+		BiilInterval       Duration `toml:"bill_interval"`
+		OrdertInterval     Duration `toml:"order_interval"`
+		CollectHistoryData bool     `toml:"collect_history_data "`
 	}
 
 	AliyunBoaCfg struct {
