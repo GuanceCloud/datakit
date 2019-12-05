@@ -440,7 +440,7 @@ func getInstanceKeyName(namespace string) string {
 }
 
 func foramtNamespaceName(namespace string) string {
-	return strings.Replace(strings.ToLower(namespace), `/`, `-`, -1)
+	return strings.Replace(strings.ToLower(namespace), `/`, `_`, -1)
 }
 
 func (m MetricsPeriodInfo) String() string {
