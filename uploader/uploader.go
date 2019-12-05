@@ -30,7 +30,7 @@ func New(r string) *Uploader {
 	u := &Uploader{
 		Remote:              r,
 		numShards:           5,
-		shardCap:            1000,
+		shardCap:            2000,
 		maxSamplesPerSecond: 100,
 		Compress:            true,
 		batchSendDeadline:   time.Second * 10,
