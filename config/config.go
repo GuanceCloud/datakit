@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"text/template"
 
 	"github.com/influxdata/toml"
@@ -42,7 +43,7 @@ const (
   flush_jitter = "0s"
   precision = ""
   logfile='{{.LogFile}}'
-  debug = false
+  debug = {{.DebugMode}}
   quiet = false
   hostname = ""
   omit_hostname = false
@@ -232,6 +233,7 @@ func GenerateTelegrafConfig() (string, error) {
 		DKUUID      string
 		DKVERSION   string
 		DKUserAgent string
+		DebugMode   bool
 	}
 
 	agentcfg := AgentCfg{
@@ -240,6 +242,7 @@ func GenerateTelegrafConfig() (string, error) {
 		DKUUID:      Cfg.UUID,
 		DKVERSION:   DKVersion,
 		DKUserAgent: DKUserAgent,
+		DebugMode:   Cfg.LogLevel == "debug",
 	}
 
 	var err error
@@ -286,4 +289,20 @@ func GenerateTelegrafConfig() (string, error) {
 	cfg += telcfgs
 
 	return cfg, err
+}
+
+func SetLastyearFlag(key string, flag int) error {
+	return ioutil.WriteFile(filepath.Join(ExecutableDir, key), []byte(fmt.Sprintf("%d", flag)), 0775)
+}
+
+func GetLastyearFlag(key string) (int, error) {
+	data, err := ioutil.ReadFile(filepath.Join(ExecutableDir, key))
+	if err != nil {
+		return 0, err
+	}
+	f, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return int(f), nil
 }
