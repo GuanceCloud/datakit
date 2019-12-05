@@ -21,7 +21,7 @@ func SizeToName(size int64) string {
 	return fmt.Sprintf("%d%s", size, units[i])
 }
 
-type rateLimiter struct {
+type RateLimiter struct {
 	C    chan bool
 	rate time.Duration
 	n    int
@@ -30,8 +30,8 @@ type rateLimiter struct {
 	wg       sync.WaitGroup
 }
 
-func NewRateLimiter(n int, rate time.Duration) *rateLimiter {
-	r := &rateLimiter{
+func NewRateLimiter(n int, rate time.Duration) *RateLimiter {
+	r := &RateLimiter{
 		C:        make(chan bool),
 		rate:     rate,
 		n:        n,
@@ -42,13 +42,13 @@ func NewRateLimiter(n int, rate time.Duration) *rateLimiter {
 	return r
 }
 
-func (r *rateLimiter) Stop() {
+func (r *RateLimiter) Stop() {
 	close(r.shutdown)
 	r.wg.Wait()
 	close(r.C)
 }
 
-func (r *rateLimiter) limiter() {
+func (r *RateLimiter) limiter() {
 	defer r.wg.Done()
 	ticker := time.NewTicker(r.rate)
 	defer ticker.Stop()
@@ -68,7 +68,7 @@ func (r *rateLimiter) limiter() {
 					return
 				}
 			} else {
-				time.Sleep(time.Millisecond * 5)
+				time.Sleep(time.Second)
 			}
 		}
 	}
