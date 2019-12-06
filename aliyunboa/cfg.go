@@ -73,6 +73,20 @@ func (c *AliyunBoaCfg) Load(f string) error {
 		return err
 	}
 
+	for _, cfg := range c.Boas {
+		if cfg.AccountInterval.Duration == 0 {
+			cfg.AccountInterval.Duration = 24 * time.Hour
+		}
+
+		if cfg.BiilInterval.Duration == 0 {
+			cfg.BiilInterval.Duration = time.Hour
+		}
+
+		if cfg.OrdertInterval.Duration == 0 {
+			cfg.OrdertInterval.Duration = time.Hour
+		}
+	}
+
 	return nil
 }
 
