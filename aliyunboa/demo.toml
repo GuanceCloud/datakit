@@ -7,8 +7,8 @@
   access_key_id = "LTAI4Fc72xGdZKKr6cTBV72S"
   access_key_secret = "QXZ4FFCq3yhN5TCGC9rj1kBNZNJksc"
 
-  account_interval = "24h"
-  bill_interval = "1h"
-  order_interval = "1h"
+  #account_interval = "24h"
+  #bill_interval = "1h"
+  #order_interval = "1h"
 
-  collect_history_data = true
+  #collect_history_data = true
