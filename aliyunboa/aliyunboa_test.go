@@ -144,6 +144,14 @@ func TestQueryOrder(t *testing.T) {
 
 }
 
+func TestConfig(t *testing.T) {
+	if err := Cfg.Load(`./demo.toml`); err != nil {
+		fmt.Printf("%s", err)
+	}
+
+	fmt.Printf("%#v", Cfg.Boas[0].BiilInterval)
+}
+
 func TestSvr(t *testing.T) {
 
 	if err := Cfg.Load(`./demo.toml`); err != nil {
