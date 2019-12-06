@@ -100,8 +100,8 @@ func Init() {
 
 	## Datacenters
 	# datacenter_include = [ "/*/host/**"] # Inventory path to clusters to collect (by default all are collected)
-	datacenter_metric_include = [] ## if omitted or empty, all metrics are collected
-	datacenter_metric_exclude = [ "*" ] ## Datacenters are not collected by default.
+	# datacenter_metric_include = [] ## if omitted or empty, all metrics are collected
+	# datacenter_metric_exclude = [ "*" ] ## Datacenters are not collected by default.
 	# datacenter_instances = false ## false by default
 
 	## Plugin Settings
