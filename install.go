@@ -155,6 +155,7 @@ func main() {
 		cfgpath := filepath.Join(installDir, fmt.Sprintf("%s.conf", serviceName))
 
 		regSvr(destbin, cfgpath, true)
+		time.Sleep(time.Second)
 
 		if err = regSvr(destbin, cfgpath, false); err != nil {
 			log.Fatalf("[error] fail to register as service: %s", err.Error())
