@@ -161,7 +161,7 @@ func (b *BoaOrder) getOrders(ctx context.Context, start, end string, lmtr *utils
 		}
 	}
 
-	b.boa.logger.Debugf("get orders between %s-%s finish count=%d", start, end, len(respOrder.Data.OrderList.Order))
+	b.boa.logger.Debugf("finish getting Orders between %s-%s finish count=%d", start, end, len(respOrder.Data.OrderList.Order))
 
 	return b.parseOrderResponse(ctx, respOrder)
 }
