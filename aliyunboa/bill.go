@@ -167,24 +167,24 @@ func (b *BoaBill) getBills(ctx context.Context, cycle string, lmtr *utils.RateLi
 		resp, err := b.boa.client.QueryBill(req)
 		if err != nil {
 			return fmt.Errorf("fail to get bill of %s: %s", cycle, err)
+		}
+
+		b.boa.logger.Debugf("[Bill] %s: TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", cycle, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
+
+		if respBill == nil {
+			respBill = resp
 		} else {
-			b.boa.logger.Debugf("[Bill] %s: TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", cycle, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
+			respBill.Data.Items.Item = append(respBill.Data.Items.Item, resp.Data.Items.Item...)
+		}
 
-			if respBill == nil {
-				respBill = resp
-			} else {
-				respBill.Data.Items.Item = append(respBill.Data.Items.Item, resp.Data.Items.Item...)
-			}
-
-			if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
-				req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
-			} else {
-				break
-			}
+		if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
+			req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
+		} else {
+			break
 		}
 	}
 
-	b.boa.logger.Debugf("get bills of %s finish count=%d", cycle, len(respBill.Data.Items.Item))
+	b.boa.logger.Debugf("finish getting Bill of %s finish count=%d", cycle, len(respBill.Data.Items.Item))
 
 	return b.parseBillResponse(ctx, respBill)
 }
