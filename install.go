@@ -154,7 +154,7 @@ func main() {
 
 		cfgpath := filepath.Join(installDir, fmt.Sprintf("%s.conf", serviceName))
 
-		regSvr(destbin, cfgpath, true)
+		deleteSvr()
 		time.Sleep(time.Millisecond * 500)
 
 		if err = regSvr(destbin, cfgpath, false); err != nil {
@@ -231,12 +231,21 @@ func (p *program) Stop(s service.Service) error {
 }
 
 func deleteSvr() error {
-	cmd := exec.Command(`sc`, "delete", `datakit`)
+	cmd := exec.Command(`sc`, "stop", `datakit`)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
+	cmd.Run()
 
-	return cmd.Run()
+	time.Sleep(time.Millisecond * 200)
+
+	cmd = exec.Command(`sc`, "delete", `datakit`)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Run()
+
+	return nil
 }
 
 func regSvr(exepath, cfgpath string, remove bool) error {
