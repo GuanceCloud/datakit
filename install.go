@@ -155,20 +155,11 @@ func main() {
 		cfgpath := filepath.Join(installDir, fmt.Sprintf("%s.conf", serviceName))
 
 		regSvr(destbin, cfgpath, true)
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond * 500)
 
 		if err = regSvr(destbin, cfgpath, false); err != nil {
 			log.Fatalf("[error] fail to register as service: %s", err.Error())
 		}
-
-		// cmd = exec.Command(`sc`, "start", serviceName)
-		// cmd.Stderr = os.Stderr
-		// cmd.Stdout = os.Stdout
-		// cmd.Stdin = os.Stdin
-
-		// if err = cmd.Run(); err != nil {
-		// 	os.Exit(1)
-		// }
 	}
 
 	log.Println(":)Success!")
@@ -239,6 +230,15 @@ func (p *program) Stop(s service.Service) error {
 	return nil
 }
 
+func deleteSvr() error {
+	cmd := exec.Command(`sc`, "delete", `datakit`)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+
+	return cmd.Run()
+}
+
 func regSvr(exepath, cfgpath string, remove bool) error {
 	svcConfig := &service.Config{
 		Name:        serviceName,
@@ -255,6 +255,8 @@ func regSvr(exepath, cfgpath string, remove bool) error {
 	}
 
 	if remove {
+		service.Control(s, "stop")
+		time.Sleep(time.Millisecond * 100)
 		return service.Control(s, "uninstall")
 	} else {
 		return service.Control(s, "install")
