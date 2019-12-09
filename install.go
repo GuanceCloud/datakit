@@ -157,8 +157,19 @@ func main() {
 		deleteSvr()
 		time.Sleep(time.Millisecond * 500)
 
-		if err = regSvr(destbin, cfgpath, false); err != nil {
+		trynum := 0
+		err = nil
+		for index := 0; index < 3; index++ {
+			err = regSvr(destbin, cfgpath, false)
+			if err == nil {
+				break
+			} else {
+				time.Sleep(time.Second)
+			}
+		}
+		if err != nil {
 			log.Fatalf("[error] fail to register as service: %s", err.Error())
+			return
 		}
 	}
 
