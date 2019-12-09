@@ -171,7 +171,7 @@ func (b *BoaAccount) getTransactions(ctx context.Context, start, end string, lmt
 		}
 	}
 
-	b.boa.logger.Debugf("get transactions between %s-%s finish count=%d", start, end, len(respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem))
+	b.boa.logger.Debugf("finish getting Transactions between %s-%s finish count=%d", start, end, len(respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem))
 
 	return b.parseTransactionsResponse(ctx, respTransactions)
 }
