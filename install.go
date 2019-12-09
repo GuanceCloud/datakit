@@ -157,7 +157,6 @@ func main() {
 		deleteSvr()
 		time.Sleep(time.Millisecond * 500)
 
-		trynum := 0
 		err = nil
 		for index := 0; index < 3; index++ {
 			err = regSvr(destbin, cfgpath, false)
@@ -243,18 +242,12 @@ func (p *program) Stop(s service.Service) error {
 
 func deleteSvr() error {
 	cmd := exec.Command(`sc`, "stop", `datakit`)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	cmd.Run()
+	cmd.CombinedOutput()
 
 	time.Sleep(time.Millisecond * 200)
 
 	cmd = exec.Command(`sc`, "delete", `datakit`)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	cmd.Run()
+	cmd.CombinedOutput()
 
 	return nil
 }
