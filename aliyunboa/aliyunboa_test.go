@@ -94,8 +94,8 @@ func TestQueryBill(t *testing.T) {
 	}
 
 	for _, item := range respBill.Data.Items.Item {
-		if item.PaymentTime == "" {
-			fmt.Printf("%s -, %s, %v\n", item.UsageEndTime, item.ProductName, item.PretaxAmount)
+		if item.PaymentTime != "" {
+			fmt.Printf("%s -, %s, %v\n", item.PaymentTime, item.ProductName, item.PretaxAmount)
 		}
 	}
 
@@ -107,6 +107,7 @@ func TestQueryInstBill(t *testing.T) {
 
 	req := bssopenapi.CreateQueryInstanceBillRequest()
 	//today := time.Now()
+	req.PageSize = requests.NewInteger(300)
 	req.BillingCycle = "2019-10" // fmt.Sprintf("%d-%d", today.Year(), today.Month()) // `2019-10-01`
 
 	resp, err := cli.QueryInstanceBill(req)
@@ -115,7 +116,9 @@ func TestQueryInstBill(t *testing.T) {
 	}
 
 	for _, item := range resp.Data.Items.Item {
-		fmt.Printf("%s - %s, %v, %s\n", item.UsageStartTime, item.ProductName, item.PretaxAmount, item.Tag)
+		if item.PaymentTime != "" {
+			fmt.Printf("%s - %s, %v, %s\n", item.PaymentTime, item.ProductName, item.PretaxAmount, item.Tag)
+		}
 	}
 
 }
