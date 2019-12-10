@@ -47,12 +47,56 @@ var (
 		`win_services`,
 		`aws`,
 		`vmware`,
+		`win_perf_counters`,
 	}
 
 	metricsEnablesFlags = make([]bool, len(supportsTelegrafMetraicNames))
 )
 
 func Init() {
+
+	telegrafCfgSamples[`win_perf_counters`] = `
+#[[inputs.win_perf_counters]]
+#[[inputs.win_perf_counters.object]]
+# ##Processor usage, alternative to native, reports on a per core.
+#ObjectName = "Processor"
+#Instances = ["*"]
+#Counters = ["% Idle Time", "% Interrupt Time", "% Privileged Time", "% User Time", "% Processor Time"]
+#Measurement = "win_cpu"
+#IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
+
+#[[inputs.win_perf_counters.object]]
+# ##Disk times and queues
+#ObjectName = "LogicalDisk"
+#Instances = ["*"]
+#Counters = ["% Idle Time", "% Disk Time","% Disk Read Time", "% Disk Write Time", "% User Time", "Current Disk Queue Length"]
+#Measurement = "win_disk"
+#IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
+
+#[[inputs.win_perf_counters.object]]
+#ObjectName = "System"
+#Counters = ["Context Switches/sec","System Calls/sec", "Processor Queue Length"]
+#Instances = ["------"]
+#Measurement = "win_system"
+#IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
+
+#[[inputs.win_perf_counters.object]]
+# ##Example query where the Instance portion must be removed to get data back, such as from the Memory object.
+#ObjectName = "Memory"
+#Counters = ["Available Bytes","Cache Faults/sec","Demand Zero Faults/sec","Page Faults/sec","Pages/sec","Transition Faults/sec","Pool #Nonpaged Bytes","Pool Paged Bytes"]
+#Instances = ["------"] # Use 6 x - to remove the Instance bit from the query.
+#Measurement = "win_mem"
+#IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
+
+#[[inputs.win_perf_counters.object]]
+# ##more counters for the Network Interface Object can be found at
+# https://msdn.microsoft.com/en-us/library/ms803962.aspx
+#ObjectName = "Network Interface"
+#Counters = ["Bytes Received/sec","Bytes Sent/sec","Packets Received/sec","Packets Sent/sec"]
+#Instances = ["*"] # Use 6 x - to remove the Instance bit from the query.
+#Measurement = "win_net"
+#IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
+`
 
 	telegrafCfgSamples[`vmware`] = `
 # Read metrics from one or many vCenters
@@ -620,9 +664,9 @@ func Init() {
 
 	telegrafCfgSamples[`system`] = `
 # Read metrics about system load & uptime
-#[[inputs.system]]
+[[inputs.system]]
   ## Uncomment to remove deprecated metrics.
-  # fielddrop = ["uptime_format"]
+  fielddrop = ["uptime_format"]
 `
 
 	telegrafCfgSamples[`activemq`] = `
