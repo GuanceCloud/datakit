@@ -90,6 +90,19 @@ test_win:
 	tree -Csh $(PUB_DIR)
 
 
+test_mac:
+	@echo "===== $(BIN) test_mac ===="
+	@rm -rf $(PUB_DIR)/test_mac
+	@mkdir -p build $(PUB_DIR)/test_mac
+	@mkdir -p git
+	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
+	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "darwin/amd64" \
+		 -download-addr $(TEST_DOWNLOAD_ADDR_WIN) -release test -pub-dir $(PUB_DIR) -mac
+	#@strip build/$(NAME)-linux-amd64/$(BIN)
+	@tar czf $(PUB_DIR)/test_mac/$(NAME)-$(VERSION).tar.gz -C mac agent -C ../build .
+	tree -Csh $(PUB_DIR)
+
+
 pub_local:
 	$(call pub,local)
 
