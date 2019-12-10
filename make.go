@@ -33,6 +33,7 @@ var (
 	flagMain     = flag.String(`main`, `main.go`, `binary build entry`)
 	flagCGO      = flag.Bool(`cgo`, false, `enable CGO or not`)
 	flagWindows  = flag.Bool(`windows`, false, `build for windows`)
+	flagMac      = flag.Bool(`mac`, false, `build for mac`)
 
 	flagKodoHost     = flag.String("kodo-host", "", "")
 	flagDownloadAddr = flag.String("download-addr", "", "")
@@ -245,6 +246,8 @@ func getPudirByRelease() string {
 	prefix := path.Join(*flagPubDir, *flagRelease)
 	if *flagWindows {
 		prefix += "_win"
+	} else if *flagMac {
+		prefix += "_mac"
 	}
 
 	return prefix
@@ -257,6 +260,8 @@ func publishAgent() {
 
 	if *flagWindows {
 		objPath = *flagName + "/windows/" + *flagRelease
+	} else if *flagMac {
+		objPath = *flagName + "/mac/" + *flagRelease
 	}
 
 	// 在你本地设置好这些 oss-key 环境变量
@@ -292,6 +297,8 @@ func publishAgent() {
 	url := fmt.Sprintf("http://%s.%s/%s/%s/%s", bucket, ossHost, *flagName, *flagRelease, `version`)
 	if *flagWindows {
 		url = fmt.Sprintf("http://%s.%s/%s/windows/%s/%s", bucket, ossHost, *flagName, *flagRelease, `version`)
+	} else if *flagMac {
+		url = fmt.Sprintf("http://%s.%s/%s/mac/%s/%s", bucket, ossHost, *flagName, *flagRelease, `version`)
 	}
 	curVd := getCurrentVersionInfo(url)
 
