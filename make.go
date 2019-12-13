@@ -16,7 +16,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"text/template"
 	"time"
 
@@ -151,18 +150,10 @@ func compileArch(bin, goos, goarch, dir string) {
 
 func compile() {
 	start := time.Now()
-	var wg sync.WaitGroup
-
-	done := make(chan int, *flagParallel)
-	defer close(done)
 
 	compileTask := func(bin, goos, goarch, dir string) {
-		defer wg.Done()
 		compileArch(bin, goos, goarch, dir)
-		done <- 0
 	}
-
-	jobs := 0
 
 	var archs []string
 
@@ -173,18 +164,6 @@ func compile() {
 	}
 
 	for _, arch := range archs {
-
-	wait:
-		select {
-		case <-done:
-			jobs--
-		default:
-		}
-
-		if jobs >= *flagParallel {
-			time.Sleep(time.Second)
-			goto wait
-		}
 
 		parts := strings.Split(arch, "/")
 		if len(parts) != 2 {
@@ -205,12 +184,15 @@ func compile() {
 			log.Fatal("[fatal] %v", err)
 		}
 
-		wg.Add(1)
-		jobs++
-		go compileTask(*flagBinary, goos, goarch, dir)
+		compileTask(*flagBinary, goos, goarch, dir)
+
+		if *flagWindows {
+
+		} else {
+			tarFiles(fmt.Sprintf("%s-%s", goos, goarch))
+		}
 	}
 
-	wg.Wait()
 	log.Printf("build elapsed %v", time.Since(start))
 }
 
@@ -255,7 +237,7 @@ func getPudirByRelease() string {
 }
 
 func publishAgent() {
-	var ak, sk, bucket, ossHost, prefix string
+	var ak, sk, bucket, ossHost string
 	objPath := *flagName + "/" + *flagRelease
 
 	if *flagWindows {
@@ -303,12 +285,16 @@ func publishAgent() {
 	curVd := getCurrentVersionInfo(url)
 
 	if curVd != nil {
-		vOld := strings.Split(curVd.Version, `-`)
-		vCur := strings.Split(git.Version, `-`)
-		if vOld[0] == vCur[0] &&
-			vOld[1] == vCur[1] &&
-			vOld[2] == vCur[2] &&
-			vOld[3] == vCur[3] {
+		// vOld := strings.Split(curVd.Version, `-`)
+		// vCur := strings.Split(git.Version, `-`)
+		// if vOld[0] == vCur[0] &&
+		// 	vOld[1] == vCur[1] &&
+		// 	vOld[2] == vCur[2] &&
+		// 	vOld[3] == vCur[3] {
+		// 	log.Printf("[warn] Current OSS corsair verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
+		// 	os.Exit(0)
+		// }
+		if curVd.Version == git.Version {
 			log.Printf("[warn] Current OSS corsair verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
 			os.Exit(0)
 		}
@@ -326,17 +312,36 @@ func publishAgent() {
 		oc.Move(installObj, installObjOld)
 	}
 
-	prefix = getPudirByRelease()
-	gzName := fmt.Sprintf("%s-%s.tar.gz", *flagName, string(curVersion))
+	pubdir := getPudirByRelease()
+
+	// upload all build archs
+	archs := []string{}
+	switch *flagArchs {
+	case "all":
+		archs = osarches
+	default:
+		archs = strings.Split(*flagArchs, ",")
+	}
 
 	objs := map[string]string{
-		path.Join(prefix, gzName):    path.Join(objPath, gzName),
-		path.Join(prefix, `version`): path.Join(objPath, `version`),
+		path.Join(pubdir, `version`): path.Join(objPath, `version`),
 	}
 	if !*flagWindows {
-		objs[path.Join(prefix, `install.sh`)] = path.Join(objPath, `install.sh`)
+		objs[path.Join(pubdir, `install.sh`)] = path.Join(objPath, `install.sh`)
 	} else {
-		objs[path.Join(prefix, `install.exe`)] = path.Join(objPath, `install.exe`)
+		objs[path.Join(pubdir, `install.exe`)] = path.Join(objPath, `install.exe`)
+	}
+
+	for _, arch := range archs {
+		parts := strings.Split(arch, "/")
+		if len(parts) != 2 {
+			log.Fatalf("invalid arch %q", parts)
+		}
+		goos, goarch := parts[0], parts[1]
+
+		gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, string(curVersion))
+
+		objs[path.Join(pubdir, gzName)] = path.Join(objPath, gzName)
 	}
 
 	for k, v := range objs {
@@ -439,12 +444,12 @@ const (
 		}
 
 		install := &Install{
-			Name:         *flagName,
+			//Name:         *flagName,
 			DownloadAddr: *flagDownloadAddr,
 			Version:      string(curVersion),
 		}
 
-		txt, err := ioutil.ReadFile("install.template")
+		txt, err := ioutil.ReadFile("install.template.sh")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -504,4 +509,24 @@ func buildWindowsInstall(outdir string) {
 	}
 
 	runEnv(args, env)
+}
+
+func tarFiles(osarch string) {
+	args := []string{
+		`czf`,
+		path.Join(*flagPubDir, *flagRelease, fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, osarch, string(curVersion))),
+		`-C`,
+		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s", *flagName, osarch)),
+		`.`,
+	}
+
+	cmd := exec.Command("tar", args...)
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err := cmd.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
