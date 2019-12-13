@@ -74,7 +74,7 @@ test:
 	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
 		 -download-addr $(TEST_DOWNLOAD_ADDR) -release test -pub-dir $(PUB_DIR)
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	@tar czf $(PUB_DIR)/test/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
+	#@tar czf $(PUB_DIR)/test/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
 	tree -Csh $(PUB_DIR)
 
 test_win:
