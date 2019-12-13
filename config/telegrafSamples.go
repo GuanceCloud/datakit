@@ -45,7 +45,7 @@ var (
 		`tls`,
 		`nats`,
 		`win_services`,
-		`aws`,
+		`awscloudwatch`,
 		`vmware`,
 		`win_perf_counters`,
 	}
@@ -202,7 +202,7 @@ func Init() {
 	# insecure_skip_verify = false	
 `
 
-	telegrafCfgSamples["aws"] = `
+	telegrafCfgSamples["awscloudwatch"] = `
 #[[inputs.cloudwatch]]
 ## Amazon Region
 #region = "us-east-1"
