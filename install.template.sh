@@ -161,6 +161,7 @@ function host_install() {
 	# create workdir
 	$sudo_cmd mkdir -p ${USRDIR}
 
+    info "Downloading..."
 	$dl_cmd - "${download_addr}" | $sudo_cmd tar -xz -C ${USRDIR}
 
 	set_config $CONF
@@ -188,7 +189,7 @@ function host_install() {
 	fi
 
 	# install service only
-	install_cmd="$BINARY -install $install_type -config $CONF -install-only"
+	install_cmd="$BINARY -install $install_type -cfg $CONF -install-only"
 	$sudo_cmd $install_cmd
 }
 
