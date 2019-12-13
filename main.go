@@ -12,7 +12,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 
 	_ "net/http/pprof"
 
@@ -23,9 +23,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/uploader"
+
+	serviceutil "gitlab.jiagouyun.com/cloudcare-tools/cliutils/service"
 )
 
 var (
+	workdir = "/usr/local/cloudcare/forethought/datakit/"
+
+	flagInstall     = flag.String(`install`, ``, `install datakit with systemctl or upstart`)
+	flagInstallOnly = flag.Bool(`install-only`, false, `not run after installing`)
+
 	flagVersion = flag.Bool("version", false, `show verison info`)
 	flagInit    = flag.Bool(`init`, false, `init agent`)
 
@@ -69,6 +76,13 @@ Sha1:           %s
 Build At:       %s
 Golang Version: %s
 `, git.Version, git.Sha1, git.BuildAt, git.Golang)
+		return
+	}
+
+	if *flagInstall != "" {
+		if err := doInstall(*flagInstall); err != nil {
+			os.Exit(-1)
+		}
 		return
 	}
 
@@ -281,4 +295,24 @@ func formatFullVersion() string {
 	parts := []string{`Forethought`, config.ServiceName, git.Version}
 
 	return strings.Join(parts, " ")
+}
+
+func doInstall(serviceType string) error {
+
+	datakit := &serviceutil.Service{
+		Name:        config.ServiceName,
+		InstallDir:  workdir,
+		Description: `Forethought Datakit`,
+		StartCMD:    fmt.Sprintf("%s -cfg=%s", filepath.Join(workdir, `datakit`), *flagCfgFile),
+		Type:        serviceType,
+	}
+
+	if *flagInstallOnly {
+		datakit.InstallOnly = true
+	}
+
+	if err := datakit.Install(); err != nil {
+		return err
+	}
+	return nil
 }
