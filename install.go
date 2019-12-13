@@ -5,9 +5,11 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -25,24 +27,19 @@ var (
 	flagUpgrade   = flag.Bool("upgrade", false, ``)
 	flagFtDataway = flag.String("ftdataway", "", `address of ftdataway`)
 
-	serviceName = `datakit`
-	downloadUrl = ``
+	serviceName     = `datakit`
+	baseDownloadUrl = `https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/windows/test/`
 
 	installDir = fmt.Sprintf(`C:\Program Files (x86)\Forethought\%s`, serviceName)
 )
 
+type VerSt struct {
+	Version string `json:"version"`
+}
+
 func main() {
 
 	flag.Parse()
-
-	if !*flagUpgrade && *flagFtDataway == "" {
-		log.Printf("[error] ftdataway required")
-		return
-	}
-
-	if !strings.HasPrefix(downloadUrl, `http://`) {
-		downloadUrl = `http://` + downloadUrl
-	}
 
 	if err := os.MkdirAll(installDir, 0775); err != nil {
 		log.Fatalf("[error] %s", err.Error())
@@ -53,19 +50,46 @@ func main() {
 	}
 
 	//stop
-	log.Printf("try stop %s", serviceName)
+	log.Printf("stopping %s", serviceName)
 	cmd := exec.Command(`sc`, `stop`, serviceName)
 	cmd.CombinedOutput()
+
+	tarDownloadUrl := ""
+
+	//log.Println("check version...")
+	verUrl := baseDownloadUrl + `version`
+	verResp, err := http.Get(verUrl)
+	if err != nil {
+		log.Fatalf("[error] %s", err.Error())
+	}
+	defer verResp.Body.Close()
+	js, err := ioutil.ReadAll(verResp.Body)
+	if err != nil {
+		log.Fatalf("[error] %s", err.Error())
+	}
+	var vt VerSt
+	err = json.Unmarshal(js, &vt)
+	if err != nil {
+		log.Fatalf("[error] %s", err.Error())
+	}
+
+	osarch := fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH)
+
+	tarDownloadUrl = fmt.Sprintf("%sdatakit-%s-%s.tar.gz", baseDownloadUrl, osarch, vt.Version)
 
 	//download
 	log.Println("start downloading...")
 
 	client := &http.Client{}
-	resp, err := client.Get(downloadUrl)
+	resp, err := client.Get(tarDownloadUrl)
 	if err != nil {
 		log.Fatalf("[error] %s", err.Error())
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		log.Fatalf("[error] download failed: %s", resp.Status)
+	}
 
 	fsize, err := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
 	if err != nil {
