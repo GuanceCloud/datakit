@@ -17,7 +17,7 @@ VERSION="{{.Version}}"
 
 datestr=$(date +%Y-%m-%d_%H:%M:%S)
 
-dl_cmd="wget --quite -O"
+dl_cmd="wget --quiet -O"
 
 function info() {
     printf "\033[32m$1\033[0m\n"
