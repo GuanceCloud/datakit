@@ -515,6 +515,7 @@ func tarFiles(osarch string) {
 	args := []string{
 		`czf`,
 		path.Join(*flagPubDir, *flagRelease, fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, osarch, string(curVersion))),
+		`agent`,
 		`-C`,
 		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s", *flagName, osarch)),
 		`.`,
