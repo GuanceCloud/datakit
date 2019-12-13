@@ -20,9 +20,8 @@ PREPROD_SSL = 1
 PREPROD_PORT = 443
 
 # 正式环境
-RELEASE_KODO_HOST = https://kodo.cloudcare.cn
-RELEASE_CS_HOST = https://kodo-via-core-stone.cloudcare.cn
-RELEASE_DOWNLOAD_ADDR = cloudcare-files.oss-cn-hangzhou.aliyuncs.com/ftagent/release
+RELEASE_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/release
+RELEASE_DOWNLOAD_ADDR_WIN = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/windows/release
 RELEASE_SSL = 1
 RELEASE_PORT = 443
 
@@ -59,10 +58,9 @@ release:
 	@mkdir -p git
 	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
 	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
-		-kodo-host $(RELEASE_KODO_HOST) -download-addr $(RELEASE_DOWNLOAD_ADDR) -ssl $(RELEASE_SSL) -port $(RELEASE_PORT) \
-		-release release -pub-dir $(PUB_DIR) -cs-host $(RELEASE_CS_HOST) -cgo
+		 -download-addr $(RELEASE_DOWNLOAD_ADDR) -release release -pub-dir $(PUB_DIR)
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
+	#@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
 	tree -Csh $(PUB_DIR)
 
 test:
@@ -85,6 +83,18 @@ test_win:
 	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
 	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "windows/amd64" \
 		 -download-addr $(TEST_DOWNLOAD_ADDR_WIN) -release test -pub-dir $(PUB_DIR) -windows
+	#@strip build/$(NAME)-linux-amd64/$(BIN)
+	#@tar czf $(PUB_DIR)/test_win/$(NAME)-$(VERSION).tar.gz -C windows agent.exe -C ../build .
+	tree -Csh $(PUB_DIR)
+
+release_win:
+	@echo "===== $(BIN) release_win ===="
+	@rm -rf $(PUB_DIR)/release_win
+	@mkdir -p build $(PUB_DIR)/release_win
+	@mkdir -p git
+	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
+	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "windows/amd64" \
+		 -download-addr $(RELEASE_DOWNLOAD_ADDR_WIN) -release release -pub-dir $(PUB_DIR) -windows
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
 	#@tar czf $(PUB_DIR)/test_win/$(NAME)-$(VERSION).tar.gz -C windows agent.exe -C ../build .
 	tree -Csh $(PUB_DIR)
@@ -113,6 +123,10 @@ pub_test:
 pub_test_win:
 	@echo "publish test windows ${BIN} ..."
 	@go run make.go -pub -release test -pub-dir $(PUB_DIR) -archs "windows/amd64" -name $(NAME) -windows
+
+pub_release_win:
+	@echo "publish release windows ${BIN} ..."
+	@go run make.go -pub -release release -pub-dir $(PUB_DIR) -archs "windows/amd64" -name $(NAME) -windows
 
 pub_preprod:
 	@echo "publish preprod ${BIN} ..."
