@@ -206,3 +206,18 @@ command:
     $start_instructions"
     exit
 fi
+
+
+info "* Starting Datakit...";
+eval $restart_cmd
+
+info "Your Datakit is running and functioning properly. It will continue to run in the
+background and submit metrics to FtDataway.
+
+If you ever want to stop the Datakit, run:
+
+    \e[5m$stop_instructions\e[25m
+
+And to run it again run:
+
+    \e[5m$start_instructions\e[25m"
