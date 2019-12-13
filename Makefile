@@ -112,7 +112,7 @@ pub_test:
 
 pub_test_win:
 	@echo "publish test windows ${BIN} ..."
-	@go run make.go -pub -release test -pub-dir $(PUB_DIR) -archs "darwin/amd64" -name $(NAME) -windows
+	@go run make.go -pub -release test -pub-dir $(PUB_DIR) -archs "windows/amd64" -name $(NAME) -windows
 
 pub_preprod:
 	@echo "publish preprod ${BIN} ..."
