@@ -94,7 +94,7 @@ function set_config() {
 		
         #generate config
         config_cmd="$BINARY --init --ftdataway ${dk_ftdataway} --config $1"
-        $sudo_cmd $install_cmd
+        $sudo_cmd $config_cmd
 
 		# set permission on $1
 		$sudo_cmd chmod 640 $1
