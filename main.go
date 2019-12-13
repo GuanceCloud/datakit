@@ -40,7 +40,7 @@ var (
 
 	flagFtGateway = flag.String("ftdataway", ``, `address of ftdataway`)
 
-	flagCfgFile = flag.String("config", ``, `configure file`)
+	flagCfgFile = flag.String("cfg", ``, `configure file`)
 	flagCfgDir  = flag.String("config-dir", ``, `sub configuration dir`)
 
 	flagLogFile  = flag.String(`log`, ``, `log file`)
@@ -99,9 +99,9 @@ Golang Version: %s
 
 	if *flagInit {
 
-		if *flagFtGateway == "" {
-			log.Fatalln("ftdataway required")
-		}
+		// if *flagFtGateway == "" {
+		// 	log.Fatalln("ftdataway required")
+		// }
 
 		if *flagLogFile == "" {
 			*flagLogFile = filepath.Join(config.ExecutableDir, "datakit.log")
