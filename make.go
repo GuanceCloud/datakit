@@ -186,11 +186,8 @@ func compile() {
 
 		compileTask(*flagBinary, goos, goarch, dir)
 
-		if *flagWindows {
+		tarFiles(fmt.Sprintf("%s-%s", goos, goarch))
 
-		} else {
-			tarFiles(fmt.Sprintf("%s-%s", goos, goarch))
-		}
 	}
 
 	log.Printf("build elapsed %v", time.Since(start))
@@ -326,10 +323,10 @@ func publishAgent() {
 	objs := map[string]string{
 		path.Join(pubdir, `version`): path.Join(objPath, `version`),
 	}
-	if !*flagWindows {
-		objs[path.Join(pubdir, `install.sh`)] = path.Join(objPath, `install.sh`)
-	} else {
+	if *flagWindows {
 		objs[path.Join(pubdir, `install.exe`)] = path.Join(objPath, `install.exe`)
+	} else {
+		objs[path.Join(pubdir, `install.sh`)] = path.Join(objPath, `install.sh`)
 	}
 
 	for _, arch := range archs {
@@ -478,7 +475,24 @@ const (
 		}
 
 	} else {
-		buildWindowsInstall(outdir)
+
+		archs := []string{}
+		switch *flagArchs {
+		case "all":
+			archs = osarches
+		default:
+			archs = strings.Split(*flagArchs, ",")
+		}
+
+		for _, arch := range archs {
+			parts := strings.Split(arch, "/")
+			if len(parts) != 2 {
+				log.Fatalf("invalid arch %q", parts)
+			}
+
+			buildWindowsInstall(outdir, parts[1])
+		}
+
 	}
 
 	os.RemoveAll(*flagBuildDir)
@@ -486,39 +500,56 @@ const (
 	compile()
 }
 
-func buildWindowsInstall(outdir string) {
+func buildWindowsInstall(outdir, goarch string) {
 
 	output := path.Join(outdir, `install.exe`)
 
-	gzName := fmt.Sprintf("%s-%s.tar.gz", *flagName, string(curVersion))
+	//gzName := fmt.Sprintf("%s-%s.tar.gz", *flagName, string(curVersion))
 
-	downloadUrl := *flagDownloadAddr + "/" + gzName
+	//downloadUrl := *flagDownloadAddr + "/" + gzName
 
-	log.Printf("downloadUrl=%s", downloadUrl)
+	//log.Printf("downloadUrl=%s", downloadUrl)
 
 	args := []string{
 		"go", "build",
-		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s -X main.downloadUrl=%s`, *flagName, downloadUrl),
+		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s`, *flagName),
 		"-o", output,
 		"install.go",
 	}
 
 	env := []string{
 		"GOOS=windows",
-		"GOARCH=amd64",
+		"GOARCH=" + goarch,
 	}
 
 	runEnv(args, env)
 }
 
 func tarFiles(osarch string) {
+
+	pubdir := getPudirByRelease()
+
 	args := []string{
 		`czf`,
-		path.Join(*flagPubDir, *flagRelease, fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, osarch, string(curVersion))),
+		path.Join(pubdir, fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, osarch, string(curVersion))),
 		`agent`,
 		`-C`,
 		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s", *flagName, osarch)),
 		`.`,
+	}
+
+	if *flagWindows {
+		args = []string{
+			`czf`,
+			path.Join(pubdir, fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, osarch, string(curVersion))),
+			`-C`,
+			`windows`,
+			`agent.exe`,
+			`-C`,
+			`../build`,
+			//path.Join(*flagBuildDir, fmt.Sprintf("%s-%s", *flagName, osarch)),
+			`.`,
+		}
 	}
 
 	cmd := exec.Command("tar", args...)
