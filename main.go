@@ -35,6 +35,7 @@ var (
 
 	flagVersion = flag.Bool("version", false, `show verison info`)
 	flagInit    = flag.Bool(`init`, false, `init agent`)
+	flagUpgrade = flag.Bool(`upgrade`, false, `upgrade agent`)
 
 	flagConsole = flag.Bool(`console`, false, `run as console, only on windows`)
 
@@ -127,10 +128,17 @@ Golang Version: %s
 
 		config.Init()
 
-		if err = config.InitializeConfigs(); err != nil {
+		if err = config.InitializeConfigs(false); err != nil {
 			log.Fatalf("intialize configs error: %s", err.Error())
 		}
 
+		return
+	} else if *flagUpgrade {
+		config.Init()
+
+		if err = config.InitializeConfigs(true); err != nil {
+			log.Fatalf("update configs error: %s", err.Error())
+		}
 		return
 	}
 
