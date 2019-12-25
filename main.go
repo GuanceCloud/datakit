@@ -134,6 +134,12 @@ Golang Version: %s
 
 		return
 	} else if *flagUpgrade {
+
+		if *flagCfgDir == "" {
+			*flagCfgDir = filepath.Join(config.ExecutableDir, "conf.d")
+		}
+		config.Cfg.ConfigDir = *flagCfgDir
+
 		config.Init()
 
 		if err = config.InitializeConfigs(true); err != nil {
