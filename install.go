@@ -28,7 +28,7 @@ var (
 	flagFtDataway = flag.String("ftdataway", "", `address of ftdataway`)
 
 	serviceName     = `datakit`
-	baseDownloadUrl = `https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/windows/release/`
+	baseDownloadUrl = `https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit`
 
 	installDir = fmt.Sprintf(`C:\Program Files (x86)\Forethought\%s`, serviceName)
 )
@@ -57,7 +57,7 @@ func main() {
 	tarDownloadUrl := ""
 
 	//log.Println("check version...")
-	verUrl := baseDownloadUrl + `version`
+	verUrl := baseDownloadUrl + `/version-win`
 	verResp, err := http.Get(verUrl)
 	if err != nil {
 		log.Fatalf("[error] %s", err.Error())
@@ -75,7 +75,7 @@ func main() {
 
 	osarch := fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH)
 
-	tarDownloadUrl = fmt.Sprintf("%sdatakit-%s-%s.tar.gz", baseDownloadUrl, osarch, vt.Version)
+	tarDownloadUrl = fmt.Sprintf("%s/datakit-%s-%s.tar.gz", baseDownloadUrl, osarch, vt.Version)
 
 	//download
 	log.Println("start downloading...")
