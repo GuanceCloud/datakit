@@ -164,7 +164,14 @@ func main() {
 
 	if *flagUpgrade {
 		//upgrade
+		cmd = exec.Command(destbin, "-upgrade")
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
 
+		if err = cmd.Run(); err != nil {
+			os.Exit(1)
+		}
 	} else {
 		//init
 		cmd = exec.Command(destbin, "-init", "-ftdataway", *flagFtDataway)

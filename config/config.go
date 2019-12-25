@@ -119,27 +119,35 @@ func AddConfig(name string, c Configuration) {
 	SubConfigs[name] = c
 }
 
-func InitializeConfigs() error {
+func InitializeConfigs(upgrade bool) error {
 
-	out, err := toml.Marshal(&Cfg)
-	if err != nil {
-		return err
-	}
+	if !upgrade {
+		out, err := toml.Marshal(&Cfg)
+		if err != nil {
+			return err
+		}
 
-	globalStr := string(out)
-	globalStr += `
-# Global tags can be specified here in key="value" format.
-[global_tags]
+		globalStr := string(out)
+		globalStr += `
+	# Global tags can be specified here in key="value" format.
+	[global_tags]
+	
+	`
 
-`
-
-	if err := ioutil.WriteFile(CfgPath, []byte(globalStr), 0664); err != nil {
-		return err
+		if err := ioutil.WriteFile(CfgPath, []byte(globalStr), 0664); err != nil {
+			return err
+		}
 	}
 
 	for _, c := range SubConfigs {
-		sample := c.SampleConfig()
 		f := c.FilePath(Cfg.ConfigDir)
+		if upgrade {
+			_, err := os.Stat(f)
+			if err == nil {
+				continue
+			}
+		}
+		sample := c.SampleConfig()
 		os.MkdirAll(filepath.Dir(f), 0775)
 		if err := ioutil.WriteFile(f, []byte(sample), 0644); err != nil {
 			return err
@@ -149,13 +157,20 @@ func InitializeConfigs() error {
 	for _, n := range supportsTelegrafMetraicNames {
 
 		cfgdir := filepath.Join(Cfg.ConfigDir, n)
-		if err = os.MkdirAll(cfgdir, 0775); err != nil {
+		cfgpath := filepath.Join(cfgdir, fmt.Sprintf(`%s.conf`, n))
+		if upgrade {
+			_, err := os.Stat(cfgpath)
+			if err == nil {
+				continue
+			}
+		}
+
+		if err := os.MkdirAll(cfgdir, 0775); err != nil {
 			return err
 		}
-		cfgpath := filepath.Join(cfgdir, fmt.Sprintf(`%s.conf`, n))
 		if samp, ok := telegrafCfgSamples[n]; ok {
 
-			if err = ioutil.WriteFile(cfgpath, []byte(samp), 0664); err != nil {
+			if err := ioutil.WriteFile(cfgpath, []byte(samp), 0664); err != nil {
 				return err
 			}
 		}
