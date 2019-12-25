@@ -129,10 +129,9 @@ func InitializeConfigs(upgrade bool) error {
 
 		globalStr := string(out)
 		globalStr += `
-	# Global tags can be specified here in key="value" format.
-	[global_tags]
-	
-	`
+# Global tags can be specified here in key="value" format.
+[global_tags]	
+`
 
 		if err := ioutil.WriteFile(CfgPath, []byte(globalStr), 0664); err != nil {
 			return err
