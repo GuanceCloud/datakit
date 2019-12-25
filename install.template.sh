@@ -166,6 +166,8 @@ function host_install() {
     info "Downloading..."
 	$dl_cmd - "${download_addr}" | $sudo_cmd tar -xz -C ${USRDIR}
 
+	$sudo_cmd chmod +x "$BINARY" 
+
 	set_config $CONF
 
 	# Use /usr/sbin/service by default.
