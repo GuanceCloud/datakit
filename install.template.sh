@@ -8,10 +8,11 @@ initctl stop "$SERVICE" >/dev/null 2>&1
 set -e
 logfile="install.log"
 
-USRDIR="/usr/local/cloudcare/forethought/datakit"
-SERVICE=datakit
-BINARY="$USRDIR/datakit"
-CONF="$USRDIR/datakit.conf"
+SERVICE={{.Name}}
+USRDIR="/usr/local/cloudcare/forethought/${SERVICE}"
+BINARY="$USRDIR/${SERVICE}"
+AGENTBINARY="$USRDIR/agent"
+CONF="$USRDIR/${SERVICE}.conf"
 DOWNLOAD_BASE_ADDR="https://{{.DownloadAddr}}"
 VERSION="{{.Version}}"
 
@@ -89,7 +90,6 @@ fi
 # Set the configuration
 function set_config() {
 	if [ -e $1 ] && [ -n "$dk_upgrade" ]; then
-		#warn "* Keeping old datakit.conf on upgrading"
 		config_cmd="$BINARY --upgrade --cfg $1"
         $sudo_cmd $config_cmd
 	else
@@ -152,7 +152,7 @@ function host_install() {
 		exit -1
 	fi
 
-	download_addr="$DOWNLOAD_BASE_ADDR/datakit-$osarch-$VERSION.tar.gz"
+	download_addr="$DOWNLOAD_BASE_ADDR/${SERVICE}-$osarch-$VERSION.tar.gz"
 
 	# backup old install (install another dataway, but exist a different one before)
 	if [ -d $USRDIR ] && [ -z $dk_upgrade ]; then
@@ -167,6 +167,7 @@ function host_install() {
 	$dl_cmd - "${download_addr}" | $sudo_cmd tar -xz -C ${USRDIR}
 
 	$sudo_cmd chmod +x "$BINARY" 
+	$sudo_cmd chmod +x "$AGENTBINARY" 
 
 	set_config $CONF
 
