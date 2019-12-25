@@ -89,7 +89,9 @@ fi
 # Set the configuration
 function set_config() {
 	if [ -e $1 ] && [ -n "$dk_upgrade" ]; then
-		warn "* Keeping old datakit.conf on upgrading"
+		#warn "* Keeping old datakit.conf on upgrading"
+		config_cmd="$BINARY --upgrade --cfg $1"
+        $sudo_cmd $config_cmd
 	else
 		
         #generate config
