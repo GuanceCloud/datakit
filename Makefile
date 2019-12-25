@@ -1,29 +1,9 @@
 .PHONY: default test
 
-default: local
-
-# devops 测试环境
-TEST_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/test
-TEST_DOWNLOAD_ADDR_WIN = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/windows/test
-TEST_SSL = 0
-TEST_PORT = 10401
-
-# 本地搭建的 kodo 测试
-LOCAL_KODO_HOST = http://kodo-local.cloudcare.cn
-LOCAL_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/ftagent/local
-LOCAL_SSL = 0
-LOCAL_PORT = 9527
-
-# 预发环境
-PREPROD_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/preprod
-PREPROD_SSL = 1
-PREPROD_PORT = 443
+default: release
 
 # 正式环境
-RELEASE_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/release
-RELEASE_DOWNLOAD_ADDR_WIN = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/windows/release
-RELEASE_SSL = 1
-RELEASE_PORT = 443
+RELEASE_DOWNLOAD_ADDR = zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit
 
 PUB_DIR = pub
 BIN = datakit
@@ -38,18 +18,6 @@ all: test release preprod local
 local:
 	$(call build,local,$(LOCAL_KODO_HOST),$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_SSL),$(LOCAL_PORT))
 
-preprod:
-	@echo "===== $(BIN) preprod ===="
-	@rm -rf $(PUB_DIR)/preprod
-	@mkdir -p build $(PUB_DIR)/preprod
-	@mkdir -p git
-	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
-		-kodo-host $(PREPROD_KODO_HOST) -download-addr $(PREPROD_DOWNLOAD_ADDR) -ssl $(PREPROD_SSL) -port $(PREPROD_PORT) \
-		-release preprod -pub-dir $(PUB_DIR) -cs-host $(PREPROD_CS_HOST)  -cgo
-	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	@tar czf $(PUB_DIR)/preprod/$(NAME)-$(VERSION).tar.gz autostart -C build .
-	tree -Csh $(PUB_DIR)
 
 release:
 	@echo "===== $(BIN) release ===="
@@ -57,7 +25,7 @@ release:
 	@mkdir -p build $(PUB_DIR)/release
 	@mkdir -p git
 	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
+	@go run make.go -ldflags "-w -s" -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
 		 -download-addr $(RELEASE_DOWNLOAD_ADDR) -release release -pub-dir $(PUB_DIR)
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
 	#@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
@@ -94,19 +62,6 @@ release_win:
 	@mkdir -p git
 	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
 	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "windows/amd64" \
-		 -download-addr $(RELEASE_DOWNLOAD_ADDR_WIN) -release release -pub-dir $(PUB_DIR) -windows
-	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	#@tar czf $(PUB_DIR)/test_win/$(NAME)-$(VERSION).tar.gz -C windows agent.exe -C ../build .
-	tree -Csh $(PUB_DIR)
-
-
-release_win32:
-	@echo "===== $(BIN) release_win32 ===="
-	@rm -rf $(PUB_DIR)/release_win
-	@mkdir -p build $(PUB_DIR)/release_win
-	@mkdir -p git
-	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "windows/386" \
 		 -download-addr $(RELEASE_DOWNLOAD_ADDR_WIN) -release release -pub-dir $(PUB_DIR) -windows
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
 	#@tar czf $(PUB_DIR)/test_win/$(NAME)-$(VERSION).tar.gz -C windows agent.exe -C ../build .
