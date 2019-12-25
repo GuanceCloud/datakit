@@ -100,6 +100,19 @@ release_win:
 	tree -Csh $(PUB_DIR)
 
 
+release_win32:
+	@echo "===== $(BIN) release_win32 ===="
+	@rm -rf $(PUB_DIR)/release_win
+	@mkdir -p build $(PUB_DIR)/release_win
+	@mkdir -p git
+	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
+	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "windows/386" \
+		 -download-addr $(RELEASE_DOWNLOAD_ADDR_WIN) -release release -pub-dir $(PUB_DIR) -windows
+	#@strip build/$(NAME)-linux-amd64/$(BIN)
+	#@tar czf $(PUB_DIR)/test_win/$(NAME)-$(VERSION).tar.gz -C windows agent.exe -C ../build .
+	tree -Csh $(PUB_DIR)
+
+
 test_mac:
 	@echo "===== $(BIN) test_mac ===="
 	@rm -rf $(PUB_DIR)/test_mac
