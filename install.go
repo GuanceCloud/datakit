@@ -28,7 +28,7 @@ var (
 	flagFtDataway = flag.String("ftdataway", "", `address of ftdataway`)
 
 	serviceName     = `datakit`
-	baseDownloadUrl = `https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/windows/test/`
+	baseDownloadUrl = `https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/windows/release/`
 
 	installDir = fmt.Sprintf(`C:\Program Files (x86)\Forethought\%s`, serviceName)
 )
