@@ -275,7 +275,7 @@ func publishAgent() {
 	// 请求线上版本信息
 	url := fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, *flagName, `version`)
 	if *flagWindows {
-		url = fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, *flagName, `version-win`)
+		url = fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, *flagName, `version_win`)
 	}
 	//  else if *flagMac {
 	// 	url = fmt.Sprintf("http://%s.%s/%s/mac/%s/%s", bucket, ossHost, *flagName, *flagRelease, `version`)
@@ -293,7 +293,7 @@ func publishAgent() {
 		// 	os.Exit(0)
 		// }
 		if curVd.Version == git.Version {
-			log.Printf("[warn] Current OSS corsair verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
+			log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
 			os.Exit(0)
 		}
 
@@ -460,7 +460,7 @@ const (
 		}
 
 		var byts bytes.Buffer
-		s
+
 		err = t.Execute(&byts, install)
 		if err != nil {
 			log.Fatal(err)
@@ -516,7 +516,7 @@ func buildWindowsInstall(outdir, goarch string) {
 
 	env := []string{
 		"GOOS=windows",
-		"GOARCH=386",
+		"GOARCH=" + goarch,
 	}
 
 	runEnv(args, env)
