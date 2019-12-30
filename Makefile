@@ -25,7 +25,7 @@ release:
 	@mkdir -p build $(PUB_DIR)/release
 	@mkdir -p git
 	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -ldflags "-w -s" -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
+	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
 		 -download-addr $(RELEASE_DOWNLOAD_ADDR) -release release -pub-dir $(PUB_DIR)
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
 	#@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
@@ -62,7 +62,7 @@ release_win:
 	@mkdir -p git
 	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
 	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "windows/amd64" \
-		 -download-addr $(RELEASE_DOWNLOAD_ADDR_WIN) -release release -pub-dir $(PUB_DIR) -windows
+		 -download-addr $(RELEASE_DOWNLOAD_ADDR) -release release -pub-dir $(PUB_DIR) -windows
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
 	#@tar czf $(PUB_DIR)/test_win/$(NAME)-$(VERSION).tar.gz -C windows agent.exe -C ../build .
 	tree -Csh $(PUB_DIR)
