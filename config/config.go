@@ -58,7 +58,7 @@ const (
   [outputs.http.headers]
     ## Should be set manually to "application/json" for json data_format
 	X-Datakit-UUID = "{{.DKUUID}}"
-	X-Datakit-Version = "{{.DKVERSION}}"
+	X-Version = "{{.DKVERSION}}"
 	User-Agent = '{{.DKUserAgent}}'
 `
 )
