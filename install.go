@@ -24,10 +24,12 @@ import (
 )
 
 var (
-	flagUpgrade   = flag.Bool("upgrade", false, ``)
-	flagFtDataway = flag.String("ftdataway", "", `address of ftdataway`)
+	serviceName = `datakit`
 
-	serviceName     = `datakit`
+	flagUpgrade    = flag.Bool("upgrade", false, ``)
+	flagFtDataway  = flag.String("ftdataway", "", `address of ftdataway`)
+	flagInstallDir = flag.String("installdir", fmt.Sprintf(`C:\Program Files (x86)\Forethought\%s`, serviceName), `directory to install`)
+
 	baseDownloadUrl = `https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit`
 
 	installDir = fmt.Sprintf(`C:\Program Files (x86)\Forethought\%s`, serviceName)
@@ -57,7 +59,7 @@ func main() {
 	tarDownloadUrl := ""
 
 	//log.Println("check version...")
-	verUrl := baseDownloadUrl + `/version-win`
+	verUrl := baseDownloadUrl + `/version_win`
 	verResp, err := http.Get(verUrl)
 	if err != nil {
 		log.Fatalf("[error] %s", err.Error())
@@ -83,12 +85,12 @@ func main() {
 	client := &http.Client{}
 	resp, err := client.Get(tarDownloadUrl)
 	if err != nil {
-		log.Fatalf("[error] %s", err.Error())
+		log.Fatalf("[error] download %s failed:  %s", tarDownloadUrl, err.Error())
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
-		log.Fatalf("[error] download failed: %s", resp.Status)
+		log.Fatalf("[error] download %s failed: %s", tarDownloadUrl, resp.Status)
 	}
 
 	fsize, err := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
