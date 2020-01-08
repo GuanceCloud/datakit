@@ -34,11 +34,11 @@ function err() {
 
 function on_error() {
     err "$(caller)
-It looks like you hit an issue when trying to install Dataway.
+It looks like you hit an issue when trying to install Datakit.
 
-Troubleshooting and basic usage information for Dataway are available at:
+Troubleshooting and basic usage information for Datakit are available at:
 
-             \e[4mhttps://cloudcare.com/dataway/faq/[TODO]\e[24m
+             \e[4mhttps://cloudcare.com/datakit/faq/[TODO]\e[24m
 "
 }
 
