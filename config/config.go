@@ -241,6 +241,14 @@ func CheckTelegrafCfgFile(f string) error {
 
 func GenerateTelegrafConfig() (string, error) {
 
+	globalTags := "[global_tags]\n"
+	if len(Cfg.GlobalTags) > 0 {
+		for k, v := range Cfg.GlobalTags {
+			tag := fmt.Sprintf("%s='%s'\n", k, v)
+			globalTags += tag
+		}
+	}
+
 	type AgentCfg struct {
 		LogFile     string
 		FtGateway   string
@@ -271,7 +279,7 @@ func GenerateTelegrafConfig() (string, error) {
 		return "", err
 	}
 
-	cfg := string(buf.Bytes())
+	cfg := globalTags + string(buf.Bytes())
 
 	telcfgs := ""
 
