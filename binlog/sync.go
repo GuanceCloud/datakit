@@ -112,6 +112,8 @@ func (b *Binloger) runSyncBinlog(ctx context.Context) error {
 					e != schema.ErrMissingTableMeta {
 					log.Errorf("handle rows event at (%s, %d) error %v", pos.Name, curPos, err)
 					//return errors.Trace(err)
+				} else {
+					log.Errorf("handleRowsEvent failed, %s", err)
 				}
 			}
 			continue
