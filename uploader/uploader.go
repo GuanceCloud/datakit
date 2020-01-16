@@ -80,7 +80,7 @@ func (u *Uploader) SendData(data []byte) error {
 	}
 
 	httpReq.Header.Set("Content-Encoding", "gzip")
-	httpReq.Header.Set("X-Datakit-Version", config.DKVersion)
+	httpReq.Header.Set("X-Version", config.DKVersion)
 	httpReq.Header.Set("X-Datakit-UUID", config.Cfg.UUID)
 	httpReq.Header.Set("User-Agent", "forethought datakit")
 
