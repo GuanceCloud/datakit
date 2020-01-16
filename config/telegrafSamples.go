@@ -48,12 +48,204 @@ var (
 		`awscloudwatch`,
 		`vmware`,
 		`win_perf_counters`,
+		`snmp`,
+		`exec`,
+		`syslog`,
+		`varnish`,
+		`nsq_consumer`,
 	}
 
 	metricsEnablesFlags = make([]bool, len(supportsTelegrafMetraicNames))
 )
 
 func Init() {
+
+	telegrafCfgSamples[`nsq_consumer`] = `
+# # Read NSQ topic for metrics.
+# [[inputs.nsq_consumer]]
+#   ## Server option still works but is deprecated, we just prepend it to the nsqd array.
+#   # server = "localhost:4150"
+#   ## An array representing the NSQD TCP HTTP Endpoints
+#   nsqd = ["localhost:4150"]
+#   ## An array representing the NSQLookupd HTTP Endpoints
+#   nsqlookupd = ["localhost:4161"]
+#   topic = "telegraf"
+#   channel = "consumer"
+#   max_in_flight = 100
+#
+#   ## Maximum messages to read from the broker that have not been written by an
+#   ## output.  For best throughput set based on the number of metrics within
+#   ## each message and the size of the output's metric_batch_size.
+#   ##
+#   ## For example, if each message from the queue contains 10 metrics and the
+#   ## output metric_batch_size is 1000, setting this to 100 will ensure that a
+#   ## full batch is collected and the write is triggered immediately without
+#   ## waiting until the next flush_interval.
+#   # max_undelivered_messages = 1000
+#
+#   ## Data format to consume.
+#   ## Each data format has its own unique set of configuration options, read
+#   ## more about them here:
+#   ## https://github.com/influxdata/telegraf/blob/master/docs/DATA_FORMATS_INPUT.md
+#   data_format = "influx"
+`
+
+	telegrafCfgSamples[`varnish`] = `
+# # A plugin to collect stats from Varnish HTTP Cache
+# [[inputs.varnish]]
+#   ## If running as a restricted user you can prepend sudo for additional access:
+#   #use_sudo = false
+#
+#   ## The default location of the varnishstat binary can be overridden with:
+#   binary = "/usr/bin/varnishstat"
+#
+#   ## By default, telegraf gather stats for 3 metric points.
+#   ## Setting stats will override the defaults shown below.
+#   ## Glob matching can be used, ie, stats = ["MAIN.*"]
+#   ## stats may also be set to ["*"], which will collect all stats
+#   stats = ["MAIN.cache_hit", "MAIN.cache_miss", "MAIN.uptime"]
+#
+#   ## Optional name for the varnish instance (or working directory) to query
+#   ## Usually appened after -n in varnish cli
+#   # instance_name = instanceName
+#
+#   ## Timeout for varnishstat command
+#   # timeout = "1s"	
+`
+
+	telegrafCfgSamples[`syslog`] = `
+# # Accepts syslog messages following RFC5424 format with transports as per RFC5426, RFC5425, or RFC6587
+# [[inputs.syslog]]
+#   ## Specify an ip or hostname with port - eg., tcp://localhost:6514, tcp://10.0.0.1:6514
+#   ## Protocol, address and port to host the syslog receiver.
+#   ## If no host is specified, then localhost is used.
+#   ## If no port is specified, 6514 is used (RFC5425#section-4.1).
+#   server = "tcp://:6514"
+#
+#   ## TLS Config
+#   # tls_allowed_cacerts = ["/etc/telegraf/ca.pem"]
+#   # tls_cert = "/etc/telegraf/cert.pem"
+#   # tls_key = "/etc/telegraf/key.pem"
+#
+#   ## Period between keep alive probes.
+#   ## 0 disables keep alive probes.
+#   ## Defaults to the OS configuration.
+#   ## Only applies to stream sockets (e.g. TCP).
+#   # keep_alive_period = "5m"
+#
+#   ## Maximum number of concurrent connections (default = 0).
+#   ## 0 means unlimited.
+#   ## Only applies to stream sockets (e.g. TCP).
+#   # max_connections = 1024
+#
+#   ## Read timeout is the maximum time allowed for reading a single message (default = 5s).
+#   ## 0 means unlimited.
+#   # read_timeout = "5s"
+#
+#   ## The framing technique with which it is expected that messages are transported (default = "octet-counting").
+#   ## Whether the messages come using the octect-counting (RFC5425#section-4.3.1, RFC6587#section-3.4.1),
+#   ## or the non-transparent framing technique (RFC6587#section-3.4.2).
+#   ## Must be one of "octet-counting", "non-transparent".
+#   # framing = "octet-counting"
+#
+#   ## The trailer to be expected in case of non-trasparent framing (default = "LF").
+#   ## Must be one of "LF", or "NUL".
+#   # trailer = "LF"
+#
+#   ## Whether to parse in best effort mode or not (default = false).
+#   ## By default best effort parsing is off.
+#   # best_effort = false
+#
+#   ## Character to prepend to SD-PARAMs (default = "_").
+#   ## A syslog message can contain multiple parameters and multiple identifiers within structured data section.
+#   ## Eg., [id1 name1="val1" name2="val2"][id2 name1="val1" nameA="valA"]
+#   ## For each combination a field is created.
+#   ## Its name is created concatenating identifier, sdparam_separator, and parameter name.
+#   # sdparam_separator = "_"
+`
+
+	telegrafCfgSamples[`exec`] = `
+# # Read metrics from one or more commands that can output to stdout
+# [[inputs.exec]]
+#   ## Commands array
+#   commands = [
+#     "/tmp/test.sh",
+#     "/usr/bin/mycollector --foo=bar",
+#     "/tmp/collect_*.sh"
+#   ]
+#
+#   ## Timeout for each command to complete.
+#   timeout = "5s"
+#
+#   ## measurement name suffix (for separating different commands)
+#   name_suffix = "_mycollector"
+#
+#   ## Data format to consume.
+#   ## Each data format has its own unique set of configuration options, read
+#   ## more about them here:
+#   ## https://github.com/influxdata/telegraf/blob/master/docs/DATA_FORMATS_INPUT.md
+#   data_format = "influx"	
+`
+
+	telegrafCfgSamples[`snmp`] = `
+# # Retrieves SNMP values from remote agents
+# [[inputs.snmp]]
+#   agents = [ "127.0.0.1:161" ]
+#   ## Timeout for each SNMP query.
+#   timeout = "5s"
+#   ## Number of retries to attempt within timeout.
+#   retries = 3
+#   ## SNMP version, values can be 1, 2, or 3
+#   version = 2
+#
+#   ## SNMP community string.
+#   community = "public"
+#
+#   ## The GETBULK max-repetitions parameter
+#   max_repetitions = 10
+#
+#   ## SNMPv3 auth parameters
+#   #sec_name = "myuser"
+#   #auth_protocol = "md5"      # Values: "MD5", "SHA", ""
+#   #auth_password = "pass"
+#   #sec_level = "authNoPriv"   # Values: "noAuthNoPriv", "authNoPriv", "authPriv"
+#   #context_name = ""
+#   #priv_protocol = ""         # Values: "DES", "AES", ""
+#   #priv_password = ""
+#
+#   ## measurement name
+#   name = "system"
+#   [[inputs.snmp.field]]
+#     name = "hostname"
+#     oid = ".1.0.0.1.1"
+#   [[inputs.snmp.field]]
+#     name = "uptime"
+#     oid = ".1.0.0.1.2"
+#   [[inputs.snmp.field]]
+#     name = "load"
+#     oid = ".1.0.0.1.3"
+#   [[inputs.snmp.field]]
+#     oid = "HOST-RESOURCES-MIB::hrMemorySize"
+#
+#   [[inputs.snmp.table]]
+#     ## measurement name
+#     name = "remote_servers"
+#     inherit_tags = [ "hostname" ]
+#     [[inputs.snmp.table.field]]
+#       name = "server"
+#       oid = ".1.0.0.0.1.0"
+#       is_tag = true
+#     [[inputs.snmp.table.field]]
+#       name = "connections"
+#       oid = ".1.0.0.0.1.1"
+#     [[inputs.snmp.table.field]]
+#       name = "latency"
+#       oid = ".1.0.0.0.1.2"
+#
+#   [[inputs.snmp.table]]
+#     ## auto populate table's fields using the MIB
+#     oid = "HOST-RESOURCES-MIB::hrNetworkTable"		
+`
 
 	telegrafCfgSamples[`win_perf_counters`] = `
 #[[inputs.win_perf_counters]]
