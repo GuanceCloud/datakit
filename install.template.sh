@@ -8,10 +8,11 @@ initctl stop "$SERVICE" >/dev/null 2>&1
 set -e
 logfile="install.log"
 
-USRDIR="/usr/local/cloudcare/forethought/datakit"
-SERVICE=datakit
-BINARY="$USRDIR/datakit"
-CONF="$USRDIR/datakit.conf"
+SERVICE={{.Name}}
+USRDIR="/usr/local/cloudcare/forethought/${SERVICE}"
+BINARY="$USRDIR/${SERVICE}"
+AGENTBINARY="$USRDIR/agent"
+CONF="$USRDIR/${SERVICE}.conf"
 DOWNLOAD_BASE_ADDR="https://{{.DownloadAddr}}"
 VERSION="{{.Version}}"
 
@@ -33,11 +34,11 @@ function err() {
 
 function on_error() {
     err "$(caller)
-It looks like you hit an issue when trying to install Dataway.
+It looks like you hit an issue when trying to install Datakit.
 
-Troubleshooting and basic usage information for Dataway are available at:
+Troubleshooting and basic usage information for Datakit are available at:
 
-             \e[4mhttps://cloudcare.com/dataway/faq/[TODO]\e[24m
+             \e[4mhttps://cloudcare.com/datakit/faq/[TODO]\e[24m
 "
 }
 
@@ -89,7 +90,8 @@ fi
 # Set the configuration
 function set_config() {
 	if [ -e $1 ] && [ -n "$dk_upgrade" ]; then
-		warn "* Keeping old datakit.conf on upgrading"
+		config_cmd="$BINARY --upgrade --cfg $1"
+        $sudo_cmd $config_cmd
 	else
 		
         #generate config
@@ -150,7 +152,7 @@ function host_install() {
 		exit -1
 	fi
 
-	download_addr="$DOWNLOAD_BASE_ADDR/datakit-$osarch-$VERSION.tar.gz"
+	download_addr="$DOWNLOAD_BASE_ADDR/${SERVICE}-$osarch-$VERSION.tar.gz"
 
 	# backup old install (install another dataway, but exist a different one before)
 	if [ -d $USRDIR ] && [ -z $dk_upgrade ]; then
@@ -163,6 +165,9 @@ function host_install() {
 
     info "Downloading..."
 	$dl_cmd - "${download_addr}" | $sudo_cmd tar -xz -C ${USRDIR}
+
+	$sudo_cmd chmod +x "$BINARY" 
+	$sudo_cmd chmod +x "$AGENTBINARY" 
 
 	set_config $CONF
 
