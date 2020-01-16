@@ -235,13 +235,13 @@ func getPudirByRelease() string {
 
 func publishAgent() {
 	var ak, sk, bucket, ossHost string
-	objPath := *flagName + "/" + *flagRelease
+	objPath := *flagName
 
-	if *flagWindows {
-		objPath = *flagName + "/windows/" + *flagRelease
-	} else if *flagMac {
-		objPath = *flagName + "/mac/" + *flagRelease
-	}
+	// if *flagWindows {
+	// 	objPath = *flagName + "/windows/" + *flagRelease
+	// } else if *flagMac {
+	// 	objPath = *flagName + "/mac/" + *flagRelease
+	// }
 
 	// 在你本地设置好这些 oss-key 环境变量
 	switch *flagRelease {
@@ -273,12 +273,13 @@ func publishAgent() {
 	}
 
 	// 请求线上版本信息
-	url := fmt.Sprintf("http://%s.%s/%s/%s/%s", bucket, ossHost, *flagName, *flagRelease, `version`)
+	url := fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, *flagName, `version`)
 	if *flagWindows {
-		url = fmt.Sprintf("http://%s.%s/%s/windows/%s/%s", bucket, ossHost, *flagName, *flagRelease, `version`)
-	} else if *flagMac {
-		url = fmt.Sprintf("http://%s.%s/%s/mac/%s/%s", bucket, ossHost, *flagName, *flagRelease, `version`)
+		url = fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, *flagName, `version_win`)
 	}
+	//  else if *flagMac {
+	// 	url = fmt.Sprintf("http://%s.%s/%s/mac/%s/%s", bucket, ossHost, *flagName, *flagRelease, `version`)
+	// }
 	curVd := getCurrentVersionInfo(url)
 
 	if curVd != nil {
@@ -292,18 +293,18 @@ func publishAgent() {
 		// 	os.Exit(0)
 		// }
 		if curVd.Version == git.Version {
-			log.Printf("[warn] Current OSS corsair verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
+			log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
 			os.Exit(0)
 		}
 
 		installObj := ""
 		installObjOld := ""
-		if !*flagWindows {
-			installObj = path.Join(objPath, "install.sh")
-			installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.sh", curVd.Version))
-		} else {
+		if *flagWindows {
 			installObj = path.Join(objPath, "install.exe")
 			installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.exe", curVd.Version))
+		} else {
+			installObj = path.Join(objPath, "install.sh")
+			installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.sh", curVd.Version))
 		}
 
 		oc.Move(installObj, installObjOld)
@@ -320,12 +321,13 @@ func publishAgent() {
 		archs = strings.Split(*flagArchs, ",")
 	}
 
-	objs := map[string]string{
-		path.Join(pubdir, `version`): path.Join(objPath, `version`),
-	}
+	objs := map[string]string{}
+
 	if *flagWindows {
+		objs[path.Join(pubdir, `version`)] = path.Join(objPath, `version_win`)
 		objs[path.Join(pubdir, `install.exe`)] = path.Join(objPath, `install.exe`)
 	} else {
+		objs[path.Join(pubdir, `version`)] = path.Join(objPath, `version`)
 		objs[path.Join(pubdir, `install.sh`)] = path.Join(objPath, `install.sh`)
 	}
 
@@ -441,7 +443,7 @@ const (
 		}
 
 		install := &Install{
-			//Name:         *flagName,
+			Name:         *flagName,
 			DownloadAddr: *flagDownloadAddr,
 			Version:      string(curVersion),
 		}
@@ -459,11 +461,6 @@ const (
 
 		var byts bytes.Buffer
 
-		// fd, err := os.OpenFile(path.Join(outdir, `install.sh`), os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-		// defer fd.Close()
 		err = t.Execute(&byts, install)
 		if err != nil {
 			log.Fatal(err)
