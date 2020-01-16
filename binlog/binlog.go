@@ -254,6 +254,7 @@ func (b *Binloger) prepareSyncer() error {
 func (c *Binloger) GetTable(db string, table string) (*schema.Table, *BinlogDatabase, error) {
 	key := fmt.Sprintf("%s.%s", db, table)
 	// if table is excluded, return error and skip parsing event or dump
+	//fmt.Println(key)
 	target := c.checkTableMatch(db, table)
 	if target == nil {
 		return nil, nil, ErrExcludedTable
@@ -461,6 +462,7 @@ func (c *Binloger) checkTableMatch(db, table string) *BinlogDatabase {
 
 	if len(destdb.Tables) > 0 {
 		for _, tbl := range destdb.Tables {
+			//fmt.Printf("tbname: %s\n", tbl.Name)
 			if tbl.Name == table {
 				bmatch = true
 				break
