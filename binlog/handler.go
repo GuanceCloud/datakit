@@ -7,6 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/influxdata/telegraf/metric"
+	"github.com/influxdata/telegraf/plugins/serializers/influx"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 
 	"github.com/siddontang/go-mysql/schema"
@@ -59,22 +62,9 @@ type MainEventHandler struct {
 	binloger *Binloger
 }
 
-func tuneTagKVFieldK(n string) string {
-	res := strings.Replace(n, ",", "\\,", -1)
-	res = strings.Replace(res, " ", "\\ ", -1)
-	res = strings.Replace(res, "=", "\\=", -1)
-	return res
-}
-
-func tuneMeasureName(n string) string {
-	res := strings.Replace(n, ",", "\\,", -1)
-	res = strings.Replace(res, " ", "\\ ", -1)
-	return res
-}
-
 func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 
-	log.Debugf("binlog action: %s, eventType: %v", e.Action, e.Header.EventType)
+	h.binloger.logger.Debugf("binlog action: %s, eventType: %v", e.Action, e.Header.EventType)
 
 	defer func() {
 		if e := recover(); e != nil {
@@ -84,7 +74,6 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 
 	switch e.Header.EventType {
 	case replication.WRITE_ROWS_EVENTv0, replication.WRITE_ROWS_EVENTv1, replication.WRITE_ROWS_EVENTv2, replication.DELETE_ROWS_EVENTv0, replication.DELETE_ROWS_EVENTv1, replication.DELETE_ROWS_EVENTv2, replication.UPDATE_ROWS_EVENTv0, replication.UPDATE_ROWS_EVENTv1, replication.UPDATE_ROWS_EVENTv2:
-		//log.Infof("OnRow: %v\n", e)
 
 		target := e.Input
 
@@ -103,38 +92,36 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 			}
 		}
 
-		// if len(target.ExcludeTables) > 0 {
-		// 	for _, t := range target.ExcludeTables {
-		// 		if t == e.Table.Name {
-		// 			targetTable = nil
-		// 			break
-		// 		}
-		// 	}
-		// }
-
 		if targetTable == nil {
+			h.binloger.logger.Debugf("no match table of %s", e.Table.Name)
 			return nil
 		}
 
 		for _, le := range targetTable.ExcludeListenEvents {
 			if le == e.Action {
+				h.binloger.logger.Debugf("action [%s] is excluded", e.Action)
 				return nil
 			}
 		}
 
 		measureName := e.Table.Name
 
-		if targetTable != nil && targetTable.Measurement != "" {
+		if targetTable.Measurement != "" {
 			measureName = targetTable.Measurement
 		}
 
+		tags := map[string]string{}
+		fields := map[string]interface{}{}
+
 		hostname, _ := os.Hostname()
 
-		systags := fmt.Sprintf(",_host_=%s", h.binloger.cfg.Addr)
-		systags += fmt.Sprintf(",_collector_host_=%s", tuneTagKVFieldK(hostname))
-		systags += fmt.Sprintf(",_db_=%s", tuneTagKVFieldK(e.Table.Schema))
-		systags += fmt.Sprintf(",_table_=%s", tuneTagKVFieldK(e.Table.Name))
-		systags += fmt.Sprintf(",_event_=%s", e.Action)
+		tags = map[string]string{
+			"_host":            h.binloger.cfg.Addr,
+			"_collector_host_": hostname,
+			"_db":              e.Table.Schema,
+			"_table":           e.Table.Name,
+			"_event":           e.Action,
+		}
 
 		type TableColumWrap struct {
 			col   schema.TableColumn
@@ -177,8 +164,6 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 			}
 		}
 
-		//fmt.Printf("rowcount: %d\n", len(e.Rows))
-
 		var rows [][]interface{}
 		switch e.Header.EventType {
 		case replication.UPDATE_ROWS_EVENTv1, replication.UPDATE_ROWS_EVENTv2:
@@ -189,29 +174,18 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 			rows = e.Rows
 		}
 
+		defvalForEmptyTag := ""
+
 		for _, row := range rows {
-
-			line := fmt.Sprintf("%s", tuneMeasureName(measureName))
-
-			line += systags
-
-			strTags := ""
-			strFields := ""
 
 			for _, col := range tagCols {
 				if col.index >= len(row) || e.checkIgnoreColumn(&col.col) {
 					continue
 				}
-				k := tuneTagKVFieldK(col.col.Name)
+				k := col.col.Name
 				v := ""
 				if row[col.index] == nil {
-					v = "NULL"
-					switch col.col.Type {
-					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
-						v = fmt.Sprintf("%v", Cfg.NullFloat)
-					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT:
-						v = fmt.Sprintf("%v", Cfg.NullInt)
-					}
+					v = defvalForEmptyTag
 				} else {
 
 					switch col.col.Type {
@@ -234,7 +208,7 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 						if enumindex > 0 && (enumindex-1) < len(col.col.EnumValues) {
 							v = col.col.EnumValues[enumindex-1]
 						} else {
-							v = `NULL`
+							v = defvalForEmptyTag
 						}
 
 					default:
@@ -242,36 +216,35 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 					}
 				}
 
-				v = tuneTagKVFieldK(v)
-				strTags += fmt.Sprintf(",%s=%s", k, v)
+				tags[k] = v
 			}
 
 			if config.Cfg.GlobalTags != nil {
 				for k, v := range config.Cfg.GlobalTags {
-					strTags += fmt.Sprintf(",%s=%s", k, v)
+					tags[k] = v
 				}
 			}
 
-			for i, col := range fieldCols {
+			for _, col := range fieldCols {
 				if col.index >= len(row) || e.checkIgnoreColumn(&col.col) {
 					continue
 				}
-				k := tuneTagKVFieldK(col.col.Name)
-				v := ""
+				k := col.col.Name
+				var v interface{}
 				if row[col.index] == nil {
-					v = "\"NULL\""
+					//v = ""
 					switch col.col.Type {
 					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
-						v = fmt.Sprintf("%v", Cfg.NullFloat)
+						v = Cfg.NullFloat
 					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT:
-						v = fmt.Sprintf("%vi", Cfg.NullInt)
+						v = Cfg.NullInt
 					}
 				} else {
 					switch col.col.Type {
 					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
-						v = fmt.Sprintf("%v", row[col.index])
+						v = row[col.index] // fmt.Sprintf("%v", row[col.index])
 					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT, schema.TYPE_SET:
-						v = fmt.Sprintf("%vi", row[col.index])
+						v = row[col.index] // fmt.Sprintf("%vi", row[col.index])
 						if strings.HasPrefix(strings.ToLower(col.col.RawType), "bool") {
 							if bv, err := strconv.Atoi(fmt.Sprintf("%v", row[col.index])); err == nil {
 								if bv > 0 {
@@ -296,36 +269,35 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 						}
 
 						if enumindex > 0 && (enumindex-1) < len(col.col.EnumValues) {
-							v = fmt.Sprintf("\"%s\"", col.col.EnumValues[enumindex-1])
+							v = col.col.EnumValues[enumindex-1]
 						} else {
-							v = `""`
+							//v = `""`
 						}
 
 					default:
-						v = fmt.Sprintf("\"%s\"", row[col.index])
+						v = row[col.index]
 					}
 				}
-
-				var pair string
-				if i == 0 {
-					pair = fmt.Sprintf(" %s=%s", k, v)
-				} else {
-					pair = fmt.Sprintf(",%s=%s", k, v)
+				if v != nil {
+					fields[k] = v
 				}
-				strFields += pair
 			}
 
-			line += strTags
-			line += strFields
+			mt, _ := metric.New(measureName, tags, fields, time.Unix(0, time.Now().UnixNano()))
 
-			//line += fmt.Sprintf(" %v", uint64(e.Header.Timestamp)*1000000000)
-			line += fmt.Sprintf(" %v", time.Now().UnixNano())
+			serializer := influx.NewSerializer()
+			line, err := serializer.Serialize(mt)
 
-			log.Debugf("binlog metric: %s", line)
+			if err != nil {
+				h.binloger.logger.Errorf("fail to serialize as influx format: %s", err)
+				return nil
+			}
+
+			h.binloger.logger.Debugf("binlog event[%s]: %s", e.Action, string(line))
 
 			if h.binloger.storage != nil {
 				h.binloger.storage.AddLog(&uploader.LogItem{
-					Log: line,
+					Log: string(line),
 				})
 			}
 		}
