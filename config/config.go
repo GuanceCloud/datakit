@@ -58,7 +58,7 @@ const (
   [outputs.http.headers]
     ## Should be set manually to "application/json" for json data_format
 	X-Datakit-UUID = "{{.DKUUID}}"
-	X-Datakit-Version = "{{.DKVERSION}}"
+	X-Version = "{{.DKVERSION}}"
 	User-Agent = '{{.DKUserAgent}}'
 `
 )
@@ -119,27 +119,34 @@ func AddConfig(name string, c Configuration) {
 	SubConfigs[name] = c
 }
 
-func InitializeConfigs() error {
+func InitializeConfigs(upgrade bool) error {
 
-	out, err := toml.Marshal(&Cfg)
-	if err != nil {
-		return err
-	}
+	if !upgrade {
+		out, err := toml.Marshal(&Cfg)
+		if err != nil {
+			return err
+		}
 
-	globalStr := string(out)
-	globalStr += `
+		globalStr := string(out)
+		globalStr += `
 # Global tags can be specified here in key="value" format.
-[global_tags]
-
+[global_tags]	
 `
 
-	if err := ioutil.WriteFile(CfgPath, []byte(globalStr), 0664); err != nil {
-		return err
+		if err := ioutil.WriteFile(CfgPath, []byte(globalStr), 0664); err != nil {
+			return err
+		}
 	}
 
 	for _, c := range SubConfigs {
-		sample := c.SampleConfig()
 		f := c.FilePath(Cfg.ConfigDir)
+		if upgrade {
+			_, err := os.Stat(f)
+			if err == nil {
+				continue
+			}
+		}
+		sample := c.SampleConfig()
 		os.MkdirAll(filepath.Dir(f), 0775)
 		if err := ioutil.WriteFile(f, []byte(sample), 0644); err != nil {
 			return err
@@ -149,13 +156,20 @@ func InitializeConfigs() error {
 	for _, n := range supportsTelegrafMetraicNames {
 
 		cfgdir := filepath.Join(Cfg.ConfigDir, n)
-		if err = os.MkdirAll(cfgdir, 0775); err != nil {
+		cfgpath := filepath.Join(cfgdir, fmt.Sprintf(`%s.conf`, n))
+		if upgrade {
+			_, err := os.Stat(cfgpath)
+			if err == nil {
+				continue
+			}
+		}
+
+		if err := os.MkdirAll(cfgdir, 0775); err != nil {
 			return err
 		}
-		cfgpath := filepath.Join(cfgdir, fmt.Sprintf(`%s.conf`, n))
 		if samp, ok := telegrafCfgSamples[n]; ok {
 
-			if err = ioutil.WriteFile(cfgpath, []byte(samp), 0664); err != nil {
+			if err := ioutil.WriteFile(cfgpath, []byte(samp), 0664); err != nil {
 				return err
 			}
 		}
@@ -227,6 +241,14 @@ func CheckTelegrafCfgFile(f string) error {
 
 func GenerateTelegrafConfig() (string, error) {
 
+	globalTags := "[global_tags]\n"
+	if len(Cfg.GlobalTags) > 0 {
+		for k, v := range Cfg.GlobalTags {
+			tag := fmt.Sprintf("%s='%s'\n", k, v)
+			globalTags += tag
+		}
+	}
+
 	type AgentCfg struct {
 		LogFile     string
 		FtGateway   string
@@ -257,7 +279,7 @@ func GenerateTelegrafConfig() (string, error) {
 		return "", err
 	}
 
-	cfg := string(buf.Bytes())
+	cfg := globalTags + string(buf.Bytes())
 
 	telcfgs := ""
 
