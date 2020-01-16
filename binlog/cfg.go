@@ -17,26 +17,26 @@ null_int=0
 null_float=0.0
 #[[sources]]
 #  ##host of mysql, include port
-#  addr="localhost:3306"
+#  addr='localhost:3306'
 
 #  ##username and password of mysql
 #  user="admin"
 #  password=""
 
 #  [[sources.databases]]
-#    db = "test"
+#    db = 'test'
 #	[[sources.databases.tables]]
 #     ##the name of table
-#	  name="user"
+#	  name='user'
 
 #	  ##the name of metric, if empty use name as default
 #	  measurement=""
 
 #	  ##specify the table's columns which will be taken as fields in metric, must be non-empty
-#	  fields=["column0"]
+#	  fields=['column0']
 
 #	  ##specify the table's columns which will be taken as tags in metric, may empty
-#	  tags=["column1"]
+#	  tags=['column1']
 
 #	  ##exlcude the events of binlog, there are 3 events: "insert","update","delete"
 #      exclude_events=[]
