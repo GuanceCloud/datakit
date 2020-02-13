@@ -2,8 +2,13 @@ package binlog
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -130,6 +135,10 @@ func (s *BinlogSvr) Start(ctx context.Context, up uploader.IUploader) error {
 }
 
 func (b *Binloger) Run(ctx context.Context) error {
+
+	if err := recover(); err != nil {
+		b.logger.Errorf("%s", err)
+	}
 
 	b.tables = make(map[string]*schema.Table)
 	if b.cfg.DiscardNoMetaRowEvent {
@@ -367,9 +376,52 @@ func (c *Binloger) checkBinlogRowFormat() error {
 	return nil
 }
 
+func (c *Binloger) saveMasterStatus(m *masterInfo) error {
+
+	if m == nil {
+		return nil
+	}
+
+	data, err := json.Marshal(&m.pos)
+	if err != nil {
+		return err
+	}
+
+	h := md5.New()
+	h.Write([]byte(c.cfg.Addr))
+	k := hex.EncodeToString(h.Sum(nil))
+
+	path := filepath.Join(`\etc\datakit\binlog`, k)
+	ioutil.WriteFile(path, data, 0644)
+
+	return nil
+}
+
+func (c *Binloger) loadMasterStatus(addr string) (*mysql.Position, error) {
+
+	h := md5.New()
+	h.Write([]byte(addr))
+	k := hex.EncodeToString(h.Sum(nil))
+
+	path := filepath.Join(`\etc\datakit\binlog`, k)
+
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var p mysql.Position
+	if err := json.Unmarshal(data, &p); err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
 func (c *Binloger) getMasterStatus(m *masterInfo) error {
 	res, err := c.Execute(`show master status;`)
 	if err != nil {
+		if c.logger != nil {
+			c.logger.Errorf("check if mysql binlog enabled?")
+		}
 		return errors.Trace(err)
 	}
 
@@ -386,6 +438,13 @@ func (c *Binloger) getMasterStatus(m *masterInfo) error {
 		Name: filename,
 		Pos:  uint32(pos),
 	})
+
+	if savedpos, err := c.loadMasterStatus(c.cfg.Addr); err != nil && savedpos != nil {
+		m.Update(mysql.Position{
+			Name: savedpos.Name,
+			Pos:  savedpos.Pos,
+		})
+	}
 
 	dodb, err := res.GetString(0, 2)
 	if err == nil {
