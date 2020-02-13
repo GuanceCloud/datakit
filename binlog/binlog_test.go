@@ -13,7 +13,35 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/siddontang/go-mysql/mysql"
+
+	"github.com/siddontang/go-mysql/client"
 )
+
+type size struct {
+	w int
+	h int
+}
+
+type myst struct {
+	sz size
+}
+
+func (m *myst) getsize() size {
+	return m.sz
+}
+
+func TestConnMysql(t *testing.T) {
+
+	conn, err := client.Connect("", "root", "1", "")
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	rr, err := conn.Execute("show master logs;")
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	_ = rr
+}
 
 func TestConfig(t *testing.T) {
 
