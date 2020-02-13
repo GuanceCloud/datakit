@@ -50,6 +50,10 @@ func (b *Binloger) runSyncBinlog(ctx context.Context) error {
 	// It must be preserved until the new position is saved.
 	fakeRotateLogName := ""
 
+	defer func() {
+		b.saveMasterStatus(b.master)
+	}()
+
 	for {
 		ev, err := s.GetEvent(ctx)
 		if err != nil {
@@ -81,6 +85,8 @@ func (b *Binloger) runSyncBinlog(ctx context.Context) error {
 		curPos := pos.Pos
 		// next binlog pos
 		pos.Pos = ev.Header.LogPos
+
+		fmt.Printf("curpos: %#v\n", b.master.Position())
 
 		// new file name received in the fake rotate event
 		if fakeRotateLogName != "" {
