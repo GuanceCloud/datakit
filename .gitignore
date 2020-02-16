@@ -3,6 +3,7 @@ pub
 a.out
 bin/
 pkg/
+cmd/
 .DS_Store
 test.go
 latest
@@ -34,3 +35,6 @@ datakit
 ft.log
 *.log
 config.d/
+datakit
+test/
+vendor/
