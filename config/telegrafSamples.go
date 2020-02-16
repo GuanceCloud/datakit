@@ -3,7 +3,7 @@ package config
 var (
 	telegrafCfgSamples = make(map[string]string)
 
-	supportsTelegrafMetraicNames = []string{
+	SupportsTelegrafMetraicNames = []string{
 		`nginx`,
 		`apache`,
 		`disk`,
@@ -55,10 +55,10 @@ var (
 		`nsq_consumer`,
 	}
 
-	metricsEnablesFlags = make([]bool, len(supportsTelegrafMetraicNames))
+	MetricsEnablesFlags = make([]bool, len(SupportsTelegrafMetraicNames))
 )
 
-func Init() {
+func InitTelegrafSamples() {
 
 	telegrafCfgSamples[`nsq_consumer`] = `
 # # Read NSQ topic for metrics.
