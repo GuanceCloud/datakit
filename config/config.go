@@ -2,68 +2,74 @@ package config
 
 import (
 	"bytes"
-	"errors"
+	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"text/template"
+	"time"
+
+	"github.com/alecthomas/template"
+	"github.com/influxdata/telegraf"
+	"github.com/influxdata/telegraf/plugins/serializers"
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/file"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/http"
 )
 
 var (
-	Cfg           Config
-	CfgPath       string
+	ServiceName = "datakit"
+
+	MainCfgPath   string
 	ExecutableDir string
 
-	ErrNoTelegrafConf = errors.New("no telegraf config")
-
-	ServiceName = `datakit`
-
-	DKVersion = git.Version
-
-	DKUserAgent = fmt.Sprintf(`%s/%s(%s.%s)`, ServiceName, DKVersion, runtime.GOOS, runtime.GOARCH)
+	ConvertedCfg []string
 )
 
 const (
-	telegrafConfTemplate = `
-[agent]
-  interval = "10s"
-  round_interval = true
+	mainConfigTemplate = `uuid='{{.UUID}}'
+ftdataway='{{.FtGateway}}'
+log='{{.Log}}'
+log_level='{{.LogLevel}}'
+config_dir='{{.ConfigDir}}'
 
-  metric_batch_size = 1000
-  metric_buffer_limit = 10000
-  collection_jitter = "0s"
-  flush_interval = "10s"
-  flush_jitter = "0s"
-  precision = ""
-  logfile='{{.LogFile}}'
-  debug = {{.DebugMode}}
-  quiet = false
-  hostname = ""
-  omit_hostname = false
-
-[[outputs.http]]
-  url = "{{.FtGateway}}"
-  method = "POST"
-  data_format = "influx"
-  content_encoding = "gzip"
-
-  ## Additional HTTP headers
-  [outputs.http.headers]
-    ## Should be set manually to "application/json" for json data_format
-	X-Datakit-UUID = "{{.DKUUID}}"
-	X-Version = "{{.DKVERSION}}"
-	User-Agent = '{{.DKUserAgent}}'
+## Global tags can be specified here in key="value" format.
+#[global_tags]
+# name = 'admin'
 `
 )
 
 type Config struct {
+	MainCfg *MainConfig
+	Inputs  []*models.RunningInput
+	Outputs []*models.RunningOutput
+}
+
+func NewConfig() *Config {
+	c := &Config{
+		MainCfg: &MainConfig{
+			FlushInterval: internal.Duration{Duration: 10 * time.Second},
+			Interval:      internal.Duration{Duration: 10 * time.Second},
+			LogLevel:      "info",
+			RoundInterval: false,
+		},
+		Inputs:  make([]*models.RunningInput, 0),
+		Outputs: make([]*models.RunningOutput, 0),
+	}
+	return c
+}
+
+type MainConfig struct {
 	UUID      string `toml:"uuid"`
 	FtGateway string `toml:"ftdataway"`
 
@@ -72,252 +78,225 @@ type Config struct {
 
 	ConfigDir string `toml:"config_dir,omitempty"`
 
-	GlobalTags map[string]string `toml:"-"`
+	GlobalTags map[string]string `toml:"global_tags"`
+
+	MetricBatchSize   int
+	MetricBufferLimit int
+
+	Interval internal.Duration
+
+	RoundInterval bool
+
+	// FlushInterval is the Interval at which to flush data
+	FlushInterval internal.Duration
+
+	// // FlushJitter Jitters the flush interval by a random amount.
+	// // This is primarily to avoid large write spikes for users running a large
+	// // number of telegraf instances.
+	// // ie, a jitter of 5s and interval 10s means flushes will happen every 10-15s
+	FlushJitter internal.Duration
+
+	OutputsFile string `toml:"output_file,omitempty"`
+
+	CustomAgentConfigFile string `toml:"custom_agent_config_file,omitempty"`
 }
 
-func LoadConfig(f string) error {
-	data, err := ioutil.ReadFile(f)
+type ConvertTelegrafConfig interface {
+	Load(f string) error
+	ToTelegraf(f string) (string, error)
+	FilePath(cfgdir string) string
+}
+
+func UserAgent() string {
+	return fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
+}
+
+func (c *Config) LoadConfig(ctx context.Context, maincfg string) error {
+
+	//main config
+	data, err := ioutil.ReadFile(maincfg)
 	if err != nil {
 		return err
 	}
 
-	if err := toml.Unmarshal(data, &Cfg); err != nil {
-		return err
+	if err := toml.Unmarshal(data, c.MainCfg); err != nil {
+		return fmt.Errorf("Error loading config file %s, %s", maincfg, err)
 	}
 
-	fdata, _ := ioutil.ReadFile(f)
+	for name, creator := range inputs.Inputs {
 
-	tbl, err := toml.Parse(fdata)
-	if err != nil {
-		return err
-	}
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
+		}
 
-	Cfg.GlobalTags = map[string]string{}
+		if name == "apachelog" || name == "nginxlog" {
+			if theip, ok := creator().(ConvertTelegrafConfig); ok {
+				thepath := theip.FilePath(c.MainCfg.ConfigDir)
+				_, err := os.Stat(thepath)
 
-	if val, ok := tbl.Fields["global_tags"]; ok {
-		subTable, ok := val.(*ast.Table)
-		if ok {
-			if err := toml.UnmarshalTable(subTable, Cfg.GlobalTags); err != nil {
-				return err
+				if err != nil && os.IsNotExist(err) {
+					continue
+				}
+				if err := theip.Load(thepath); err != nil {
+					return fmt.Errorf("fail to load %s, %s", thepath, err)
+				}
+				if telestr, err := theip.ToTelegraf(thepath); err == nil {
+					ConvertedCfg = append(ConvertedCfg, telestr)
+				} else {
+					return fmt.Errorf("convert %s to telegraf failed, %s", name, err)
+				}
 			}
+			continue
+		}
+
+		path := filepath.Join(c.MainCfg.ConfigDir, name, fmt.Sprintf("%s.conf", name))
+
+		_, err := os.Stat(path)
+		if err != nil && os.IsNotExist(err) {
+			continue
+		}
+
+		input := creator()
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			if err != nil {
+				return fmt.Errorf("Error loading config file %s, %s", path, err)
+			}
+		}
+
+		tbl, err := parseConfig(data)
+		if err != nil {
+			return fmt.Errorf("Error loading config file %s, %s", path, err)
+		}
+
+		if err := c.addInput(name, input, tbl); err != nil {
+			return err
 		}
 	}
 
+	// for name, creator := range outputs.Outputs {
+	// 	output := creator()
+	// 	if cfgdata, ok := embbed.EmbeddedOutputsConfs[name]; ok {
+	// 		tbl, err := parseConfig([]byte(cfgdata))
+	// 		if err != nil {
+	// 			return fmt.Errorf("Error loading embbed config %s, %s", name, err)
+	// 		}
+	// 		if err := c.addOutput(name, output, tbl); err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	// }
+
+	if c.MainCfg.OutputsFile != "" {
+		fileOutput := file.NewFileOutput()
+		fileOutput.Files = []string{c.MainCfg.OutputsFile}
+		if err := c.addOutputDirectly("file", fileOutput); err != nil {
+			return err
+		}
+	}
+
+	if c.MainCfg.FtGateway != "" {
+		httpOutput := http.NewHttpOutput()
+		if httpOutput.Headers == nil {
+			httpOutput.Headers = map[string]string{}
+		}
+		httpOutput.Headers[`X-Datakit-UUID`] = c.MainCfg.UUID
+		httpOutput.Headers[`X-Version`] = git.Version
+		httpOutput.Headers[`User-Agent`] = UserAgent()
+		httpOutput.ContentEncoding = "gzip"
+		httpOutput.URL = c.MainCfg.FtGateway
+		if err := c.addOutputDirectly("http", httpOutput); err != nil {
+			return err
+		}
+	}
+
+	return LoadTelegrafConfigs(ctx, c.MainCfg.ConfigDir)
+}
+
+func InitMainCfg(cfg *MainConfig, path string) error {
+
+	var err error
+	tm := template.New("")
+	tm, err = tm.Parse(mainConfigTemplate)
+	if err != nil {
+		return fmt.Errorf("Error creating %s, %s", path, err)
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	if err = tm.Execute(buf, cfg); err != nil {
+		return fmt.Errorf("Error creating %s, %s", path, err)
+	}
+
+	if err := ioutil.WriteFile(path, []byte(buf.Bytes()), 0664); err != nil {
+		return fmt.Errorf("Error creating %s, %s", path, err)
+	}
 	return nil
 }
 
-type Configuration interface {
-	SampleConfig() string
-	FilePath(string) string
-	ToTelegraf(string) (string, error)
-	Load(string) error
-}
+func CreatePluginConfigs(cfgdir string, upgrade bool) error {
 
-var SubConfigs = map[string]Configuration{}
-
-func AddConfig(name string, c Configuration) {
-	SubConfigs[name] = c
-}
-
-func InitializeConfigs(upgrade bool) error {
-
-	if !upgrade {
-		out, err := toml.Marshal(&Cfg)
-		if err != nil {
-			return err
+	//datakit定义的插件的配置文件
+	for name, creator := range inputs.Inputs {
+		plugindir := ""
+		if name == "apachelog" {
+			plugindir = filepath.Join(cfgdir, "apache")
+		} else if name == "nginxlog" {
+			plugindir = filepath.Join(cfgdir, "nginx")
+		} else {
+			plugindir = filepath.Join(cfgdir, name)
 		}
+		cfgpath := filepath.Join(plugindir, fmt.Sprintf(`%s.conf`, name))
 
-		globalStr := string(out)
-		globalStr += `
-# Global tags can be specified here in key="value" format.
-[global_tags]	
-`
-
-		if err := ioutil.WriteFile(CfgPath, []byte(globalStr), 0664); err != nil {
-			return err
-		}
-	}
-
-	for _, c := range SubConfigs {
-		f := c.FilePath(Cfg.ConfigDir)
 		if upgrade {
-			_, err := os.Stat(f)
+			//更新时，不动它
+			_, err := os.Stat(cfgpath)
 			if err == nil {
 				continue
 			}
 		}
-		sample := c.SampleConfig()
-		os.MkdirAll(filepath.Dir(f), 0775)
-		if err := ioutil.WriteFile(f, []byte(sample), 0644); err != nil {
-			return err
+		if err := os.MkdirAll(plugindir, 0775); err != nil {
+			return fmt.Errorf("Error create %s, %s", plugindir, err)
+		}
+		input := creator()
+		if err := ioutil.WriteFile(cfgpath, []byte(input.SampleConfig()), 0664); err != nil {
+			return fmt.Errorf("Error create %s, %s", cfgpath, err)
 		}
 	}
 
-	for _, n := range supportsTelegrafMetraicNames {
+	//创建各个telegraf插件的配置文件
+	for _, name := range SupportsTelegrafMetraicNames {
 
-		cfgdir := filepath.Join(Cfg.ConfigDir, n)
-		cfgpath := filepath.Join(cfgdir, fmt.Sprintf(`%s.conf`, n))
+		plugindir := filepath.Join(cfgdir, name)
+		cfgpath := filepath.Join(plugindir, fmt.Sprintf(`%s.conf`, name))
 		if upgrade {
+			//更新时，不动它
 			_, err := os.Stat(cfgpath)
 			if err == nil {
 				continue
 			}
 		}
 
-		if err := os.MkdirAll(cfgdir, 0775); err != nil {
-			return err
+		if err := os.MkdirAll(plugindir, 0775); err != nil {
+			return fmt.Errorf("Error create %s, %s", plugindir, err)
 		}
-		if samp, ok := telegrafCfgSamples[n]; ok {
+		if samp, ok := telegrafCfgSamples[name]; ok {
 
 			if err := ioutil.WriteFile(cfgpath, []byte(samp), 0664); err != nil {
-				return err
+				return fmt.Errorf("Error create %s, %s", cfgpath, err)
 			}
 		}
 	}
 
 	return nil
-}
-
-func LoadSubConfigs(root string) error {
-
-	for _, c := range SubConfigs {
-		f := c.FilePath(root)
-		_, err := os.Stat(f)
-		if err != nil && os.IsNotExist(err) {
-			continue
-		}
-		if err := c.Load(f); err != nil {
-			return fmt.Errorf("load config \"%s\" failed: %s", f, err.Error())
-		}
-	}
-
-	for index, n := range supportsTelegrafMetraicNames {
-		cfgdir := filepath.Join(Cfg.ConfigDir, n)
-		cfgpath := filepath.Join(cfgdir, fmt.Sprintf(`%s.conf`, n))
-		err := CheckTelegrafCfgFile(cfgpath)
-
-		if err == nil {
-			metricsEnablesFlags[index] = true
-		} else {
-			metricsEnablesFlags[index] = false
-			if err != ErrNoTelegrafConf {
-				return fmt.Errorf("load config \"%s\" failed: %s", cfgpath, err.Error())
-			}
-		}
-
-	}
-
-	return nil
-}
-
-func CheckTelegrafCfgFile(f string) error {
-
-	_, err := os.Stat(f)
-
-	if err != nil {
-		return ErrNoTelegrafConf
-	}
-
-	cfgdata, err := ioutil.ReadFile(f)
-	if err != nil {
-		return err
-	}
-
-	tbl, err := toml.Parse(cfgdata)
-	if err != nil {
-		return err
-	}
-
-	if len(tbl.Fields) == 0 {
-		return ErrNoTelegrafConf
-	}
-
-	if _, ok := tbl.Fields[`inputs`]; !ok {
-		return errors.New("no inputs found")
-	}
-
-	return nil
-}
-
-func GenerateTelegrafConfig() (string, error) {
-
-	globalTags := "[global_tags]\n"
-	if len(Cfg.GlobalTags) > 0 {
-		for k, v := range Cfg.GlobalTags {
-			tag := fmt.Sprintf("%s='%s'\n", k, v)
-			globalTags += tag
-		}
-	}
-
-	type AgentCfg struct {
-		LogFile     string
-		FtGateway   string
-		DKUUID      string
-		DKVERSION   string
-		DKUserAgent string
-		DebugMode   bool
-	}
-
-	agentcfg := AgentCfg{
-		LogFile:     filepath.Join(ExecutableDir, "agent.log"),
-		FtGateway:   Cfg.FtGateway,
-		DKUUID:      Cfg.UUID,
-		DKVERSION:   DKVersion,
-		DKUserAgent: DKUserAgent,
-		DebugMode:   Cfg.LogLevel == "debug",
-	}
-
-	var err error
-	tm := template.New("")
-	tm, err = tm.Parse(telegrafConfTemplate)
-	if err != nil {
-		return "", err
-	}
-
-	buf := bytes.NewBuffer([]byte{})
-	if err = tm.Execute(buf, &agentcfg); err != nil {
-		return "", err
-	}
-
-	cfg := globalTags + string(buf.Bytes())
-
-	telcfgs := ""
-
-	for _, c := range SubConfigs {
-		telcfg, err := c.ToTelegraf(c.FilePath(Cfg.ConfigDir))
-		if err != nil {
-			return "", err
-		}
-		telcfgs += telcfg
-	}
-
-	for index, n := range supportsTelegrafMetraicNames {
-		if !metricsEnablesFlags[index] {
-			continue
-		}
-		cfgpath := filepath.Join(Cfg.ConfigDir, n, fmt.Sprintf(`%s.conf`, n))
-		d, err := ioutil.ReadFile(cfgpath)
-		if err != nil {
-			return "", err
-		}
-
-		telcfgs += string(d)
-	}
-
-	if telcfgs == "" {
-		return "", ErrNoTelegrafConf
-	}
-
-	cfg += telcfgs
-
-	return cfg, err
 }
 
 func SetLastyearFlag(key string, flag int) error {
 	return ioutil.WriteFile(filepath.Join(ExecutableDir, key), []byte(fmt.Sprintf("%d", flag)), 0775)
 }
 
-func GetLastyearFlag(key string) (int, error) {
+func GetAliyunCostHistory(key string) (int, error) {
 	data, err := ioutil.ReadFile(filepath.Join(ExecutableDir, key))
 	if err != nil {
 		return 0, err
@@ -327,4 +306,414 @@ func GetLastyearFlag(key string) (int, error) {
 		return 0, err
 	}
 	return int(f), nil
+}
+
+func parseConfig(contents []byte) (*ast.Table, error) {
+	// contents = trimBOM(contents)
+
+	// parameters := envVarRe.FindAllSubmatch(contents, -1)
+	// for _, parameter := range parameters {
+	// 	if len(parameter) != 3 {
+	// 		continue
+	// 	}
+
+	// 	var env_var []byte
+	// 	if parameter[1] != nil {
+	// 		env_var = parameter[1]
+	// 	} else if parameter[2] != nil {
+	// 		env_var = parameter[2]
+	// 	} else {
+	// 		continue
+	// 	}
+
+	// 	env_val, ok := os.LookupEnv(strings.TrimPrefix(string(env_var), "$"))
+	// 	if ok {
+	// 		env_val = escapeEnv(env_val)
+	// 		contents = bytes.Replace(contents, parameter[0], []byte(env_val), 1)
+	// 	}
+	// }
+
+	return toml.Parse(contents)
+}
+
+func (c *Config) addInput(name string, input telegraf.Input, table *ast.Table) error {
+
+	pluginConfig, err := buildInput(name, table)
+	if err != nil {
+		return err
+	}
+
+	if err := toml.UnmarshalTable(table, input); err != nil {
+		return err
+	}
+
+	rp := models.NewRunningInput(input, pluginConfig)
+	rp.SetDefaultTags(c.MainCfg.GlobalTags)
+	c.Inputs = append(c.Inputs, rp)
+	return nil
+}
+
+func (c *Config) addOutputDirectly(name string, output telegraf.Output) error {
+
+	switch t := output.(type) {
+	case serializers.SerializerOutput:
+		serializer, err := buildSerializer(name, nil)
+		if err != nil {
+			return err
+		}
+		t.SetSerializer(serializer)
+	}
+
+	outputConfig, err := buildOutput(name, nil)
+	if err != nil {
+		return err
+	}
+
+	ro := models.NewRunningOutput(name, output, outputConfig,
+		c.MainCfg.MetricBatchSize, c.MainCfg.MetricBufferLimit)
+	c.Outputs = append(c.Outputs, ro)
+	return nil
+}
+
+func (c *Config) addOutput(name string, output telegraf.Output, table *ast.Table) error {
+
+	switch t := output.(type) {
+	case serializers.SerializerOutput:
+		serializer, err := buildSerializer(name, table)
+		if err != nil {
+			return err
+		}
+		t.SetSerializer(serializer)
+	}
+
+	outputConfig, err := buildOutput(name, table)
+	if err != nil {
+		return err
+	}
+
+	if err := toml.UnmarshalTable(table, output); err != nil {
+		return err
+	}
+
+	ro := models.NewRunningOutput(name, output, outputConfig,
+		c.MainCfg.MetricBatchSize, c.MainCfg.MetricBufferLimit)
+	c.Outputs = append(c.Outputs, ro)
+	return nil
+}
+
+func buildSerializer(name string, tbl *ast.Table) (serializers.Serializer, error) {
+	c := &serializers.Config{TimestampUnits: time.Duration(1 * time.Second)}
+
+	if tbl != nil {
+		if node, ok := tbl.Fields["data_format"]; ok {
+			if kv, ok := node.(*ast.KeyValue); ok {
+				if str, ok := kv.Value.(*ast.String); ok {
+					c.DataFormat = str.Value
+				}
+			}
+		}
+	}
+
+	if c.DataFormat == "" {
+		c.DataFormat = "influx"
+	}
+
+	if tbl != nil {
+		delete(tbl.Fields, "influx_max_line_bytes")
+		delete(tbl.Fields, "influx_sort_fields")
+		delete(tbl.Fields, "influx_uint_support")
+		delete(tbl.Fields, "graphite_tag_support")
+		delete(tbl.Fields, "data_format")
+		delete(tbl.Fields, "prefix")
+		delete(tbl.Fields, "template")
+		delete(tbl.Fields, "json_timestamp_units")
+		delete(tbl.Fields, "splunkmetric_hec_routing")
+		delete(tbl.Fields, "wavefront_source_override")
+		delete(tbl.Fields, "wavefront_use_strict")
+	}
+
+	return serializers.NewSerializer(c)
+}
+
+func buildOutput(name string, tbl *ast.Table) (*models.OutputConfig, error) {
+	var filter models.Filter
+	var err error
+
+	if tbl != nil {
+		filter, err = buildFilter(tbl)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	oc := &models.OutputConfig{
+		Name:   name,
+		Filter: filter,
+	}
+
+	// TODO
+	// Outputs don't support FieldDrop/FieldPass, so set to NameDrop/NamePass
+	if len(oc.Filter.FieldDrop) > 0 {
+		oc.Filter.NameDrop = oc.Filter.FieldDrop
+	}
+	if len(oc.Filter.FieldPass) > 0 {
+		oc.Filter.NamePass = oc.Filter.FieldPass
+	}
+
+	if tbl != nil {
+		if node, ok := tbl.Fields["flush_interval"]; ok {
+			if kv, ok := node.(*ast.KeyValue); ok {
+				if str, ok := kv.Value.(*ast.String); ok {
+					dur, err := time.ParseDuration(str.Value)
+					if err != nil {
+						return nil, err
+					}
+
+					oc.FlushInterval = dur
+				}
+			}
+		}
+
+		if node, ok := tbl.Fields["metric_buffer_limit"]; ok {
+			if kv, ok := node.(*ast.KeyValue); ok {
+				if integer, ok := kv.Value.(*ast.Integer); ok {
+					v, err := integer.Int()
+					if err != nil {
+						return nil, err
+					}
+					oc.MetricBufferLimit = int(v)
+				}
+			}
+		}
+
+		if node, ok := tbl.Fields["metric_batch_size"]; ok {
+			if kv, ok := node.(*ast.KeyValue); ok {
+				if integer, ok := kv.Value.(*ast.Integer); ok {
+					v, err := integer.Int()
+					if err != nil {
+						return nil, err
+					}
+					oc.MetricBatchSize = int(v)
+				}
+			}
+		}
+
+		if node, ok := tbl.Fields["alias"]; ok {
+			if kv, ok := node.(*ast.KeyValue); ok {
+				if str, ok := kv.Value.(*ast.String); ok {
+					oc.Alias = str.Value
+				}
+			}
+		}
+
+		delete(tbl.Fields, "flush_interval")
+		delete(tbl.Fields, "metric_buffer_limit")
+		delete(tbl.Fields, "metric_batch_size")
+		delete(tbl.Fields, "alias")
+	}
+
+	return oc, nil
+}
+
+func buildInput(name string, tbl *ast.Table) (*models.InputConfig, error) {
+	cp := &models.InputConfig{Name: name}
+	if node, ok := tbl.Fields["interval"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if str, ok := kv.Value.(*ast.String); ok {
+				dur, err := time.ParseDuration(str.Value)
+				if err != nil {
+					return nil, err
+				}
+
+				cp.Interval = dur
+			}
+		}
+	}
+
+	if node, ok := tbl.Fields["name_prefix"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if str, ok := kv.Value.(*ast.String); ok {
+				cp.MeasurementPrefix = str.Value
+			}
+		}
+	}
+
+	if node, ok := tbl.Fields["name_suffix"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if str, ok := kv.Value.(*ast.String); ok {
+				cp.MeasurementSuffix = str.Value
+			}
+		}
+	}
+
+	if node, ok := tbl.Fields["name_override"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if str, ok := kv.Value.(*ast.String); ok {
+				cp.NameOverride = str.Value
+			}
+		}
+	}
+
+	if node, ok := tbl.Fields["alias"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if str, ok := kv.Value.(*ast.String); ok {
+				cp.Alias = str.Value
+			}
+		}
+	}
+
+	cp.Tags = make(map[string]string)
+	if node, ok := tbl.Fields["tags"]; ok {
+		if subtbl, ok := node.(*ast.Table); ok {
+			if err := toml.UnmarshalTable(subtbl, cp.Tags); err != nil {
+				log.Printf("E! Could not parse tags for input %s\n", name)
+			}
+		}
+	}
+
+	delete(tbl.Fields, "name_prefix")
+	delete(tbl.Fields, "name_suffix")
+	delete(tbl.Fields, "name_override")
+	delete(tbl.Fields, "alias")
+	delete(tbl.Fields, "interval")
+	delete(tbl.Fields, "tags")
+	var err error
+	cp.Filter, err = buildFilter(tbl)
+	if err != nil {
+		return cp, err
+	}
+	return cp, nil
+}
+
+func buildFilter(tbl *ast.Table) (models.Filter, error) {
+	f := models.Filter{}
+
+	if node, ok := tbl.Fields["namepass"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if ary, ok := kv.Value.(*ast.Array); ok {
+				for _, elem := range ary.Value {
+					if str, ok := elem.(*ast.String); ok {
+						f.NamePass = append(f.NamePass, str.Value)
+					}
+				}
+			}
+		}
+	}
+
+	if node, ok := tbl.Fields["namedrop"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if ary, ok := kv.Value.(*ast.Array); ok {
+				for _, elem := range ary.Value {
+					if str, ok := elem.(*ast.String); ok {
+						f.NameDrop = append(f.NameDrop, str.Value)
+					}
+				}
+			}
+		}
+	}
+
+	fields := []string{"pass", "fieldpass"}
+	for _, field := range fields {
+		if node, ok := tbl.Fields[field]; ok {
+			if kv, ok := node.(*ast.KeyValue); ok {
+				if ary, ok := kv.Value.(*ast.Array); ok {
+					for _, elem := range ary.Value {
+						if str, ok := elem.(*ast.String); ok {
+							f.FieldPass = append(f.FieldPass, str.Value)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	fields = []string{"drop", "fielddrop"}
+	for _, field := range fields {
+		if node, ok := tbl.Fields[field]; ok {
+			if kv, ok := node.(*ast.KeyValue); ok {
+				if ary, ok := kv.Value.(*ast.Array); ok {
+					for _, elem := range ary.Value {
+						if str, ok := elem.(*ast.String); ok {
+							f.FieldDrop = append(f.FieldDrop, str.Value)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if node, ok := tbl.Fields["tagpass"]; ok {
+		if subtbl, ok := node.(*ast.Table); ok {
+			for name, val := range subtbl.Fields {
+				if kv, ok := val.(*ast.KeyValue); ok {
+					tagfilter := &models.TagFilter{Name: name}
+					if ary, ok := kv.Value.(*ast.Array); ok {
+						for _, elem := range ary.Value {
+							if str, ok := elem.(*ast.String); ok {
+								tagfilter.Filter = append(tagfilter.Filter, str.Value)
+							}
+						}
+					}
+					f.TagPass = append(f.TagPass, *tagfilter)
+				}
+			}
+		}
+	}
+
+	if node, ok := tbl.Fields["tagdrop"]; ok {
+		if subtbl, ok := node.(*ast.Table); ok {
+			for name, val := range subtbl.Fields {
+				if kv, ok := val.(*ast.KeyValue); ok {
+					tagfilter := &models.TagFilter{Name: name}
+					if ary, ok := kv.Value.(*ast.Array); ok {
+						for _, elem := range ary.Value {
+							if str, ok := elem.(*ast.String); ok {
+								tagfilter.Filter = append(tagfilter.Filter, str.Value)
+							}
+						}
+					}
+					f.TagDrop = append(f.TagDrop, *tagfilter)
+				}
+			}
+		}
+	}
+
+	if node, ok := tbl.Fields["tagexclude"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if ary, ok := kv.Value.(*ast.Array); ok {
+				for _, elem := range ary.Value {
+					if str, ok := elem.(*ast.String); ok {
+						f.TagExclude = append(f.TagExclude, str.Value)
+					}
+				}
+			}
+		}
+	}
+
+	if node, ok := tbl.Fields["taginclude"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if ary, ok := kv.Value.(*ast.Array); ok {
+				for _, elem := range ary.Value {
+					if str, ok := elem.(*ast.String); ok {
+						f.TagInclude = append(f.TagInclude, str.Value)
+					}
+				}
+			}
+		}
+	}
+	if err := f.Compile(); err != nil {
+		return f, err
+	}
+
+	delete(tbl.Fields, "namedrop")
+	delete(tbl.Fields, "namepass")
+	delete(tbl.Fields, "fielddrop")
+	delete(tbl.Fields, "fieldpass")
+	delete(tbl.Fields, "drop")
+	delete(tbl.Fields, "pass")
+	delete(tbl.Fields, "tagdrop")
+	delete(tbl.Fields, "tagpass")
+	delete(tbl.Fields, "tagexclude")
+	delete(tbl.Fields, "taginclude")
+	return f, nil
 }
