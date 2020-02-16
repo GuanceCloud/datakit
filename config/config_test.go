@@ -1,101 +1,46 @@
 package config
 
 import (
-	"io/ioutil"
 	"log"
-	"net"
 	"testing"
 
-	"github.com/influxdata/toml"
-	"github.com/influxdata/toml/ast"
+	uuid "github.com/satori/go.uuid"
+
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
 )
 
-func TestA(t *testing.T) {
+func TestInitCfg(t *testing.T) {
 
-	l, _ := net.Listen("tcp", ":9528")
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		log.Println("new conn")
-		go func(c net.Conn) {
+	log.SetFlags(log.Lshortfile)
 
-			tc, err := net.Dial("tcp", `192.168.56.20:9528`)
-			if err != nil {
-				log.Printf("connect target fail: %s", err)
-			}
+	uid, err := uuid.NewV4()
 
-			defer tc.Close()
-
-			go func(toServer net.Conn, toClient net.Conn) {
-				buf := make([]byte, 1024)
-				for {
-					nc, err := toServer.Read(buf)
-					if err != nil {
-						//log.Fatalln(err)
-					}
-					if nc > 0 {
-						toClient.Write(buf[:nc])
-					}
-				}
-			}(tc, conn)
-
-			buf := make([]byte, 1024)
-			for {
-				nc, err := c.Read(buf)
-				if err != nil {
-					log.Printf("read from client err: %s", err)
-					break
-				}
-				if nc > 0 {
-					tc.Write(buf[:nc])
-				}
-			}
-
-		}(conn)
+	maincfg := &MainConfig{
+		UUID:      "dkit_" + uid.String(),
+		FtGateway: "http://localhost",
+		Log:       "./datakit.log",
+		LogLevel:  "debug",
+		ConfigDir: "conf.d",
 	}
 
+	err = InitMainCfg(maincfg, `test.conf`)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	InitTelegrafSamples()
+
+	if err = CreatePluginConfigs("./testconf.d", false); err != nil {
+		log.Fatalf("%s", err)
+	}
 }
 
-func TestCfg(t *testing.T) {
+func TestLoadCfg(t *testing.T) {
+	// c := NewConfig()
+	// if err := c.LoadConfig(`test.conf`, `testconf.d`); err != nil {
+	// 	log.Fatalf("%s", err)
+	// }
 
-	// cfgstr := `
-	// uuid = '1122'
-	// ftdataway = 'http://localhost:9527'
-	// log = 'aa'
-	// log_level = 'info'
-	// config_dir = '/ect/cfg'
-
-	// `
-
-	// Cfg.GlobalTags = make(map[string]string)
-
-	// out, _ := toml.Marshal(&Cfg)
-	// fmt.Println(string(out))
-	if err := LoadConfig(`./cfg.toml`); err != nil {
-		log.Fatalln(err)
-	}
-
-	fdata, _ := ioutil.ReadFile(`./cfg.toml`)
-
-	tbl, err := toml.Parse(fdata)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	if val, ok := tbl.Fields["global_tags"]; ok {
-		subTable, ok := val.(*ast.Table)
-		var tags map[string]string
-		tags = map[string]string{}
-		if ok {
-			if err := toml.UnmarshalTable(subTable, tags); err != nil {
-				log.Fatalln(err)
-			} else {
-				log.Println("global_tags:", tags)
-			}
-		}
-	}
-
-	log.Printf("%#v", Cfg)
+	// log.Printf("ok: %#v", *c)
 }
