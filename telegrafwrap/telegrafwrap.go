@@ -2,9 +2,9 @@ package telegrafwrap
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,126 +12,109 @@ import (
 	"strconv"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/log"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pid"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/uploader"
-)
-
-func init() {
-
-	service.Add("agent", func(logger log.Logger) service.Service {
-
-		telcfg, err := config.GenerateTelegrafConfig()
-		if err != nil {
-			if err != config.ErrNoTelegrafConf {
-				logger.Errorf("%s", err.Error())
-			}
-			return nil
-		}
-
-		if err = ioutil.WriteFile(agentConfPath(false), []byte(telcfg), 0664); err != nil {
-			logger.Errorf("%s", err.Error())
-			return nil
-		}
-
-		return &TelegrafSvr{
-			logger: logger,
-		}
-	})
-}
-
-var (
-	errorAgentBeKilled = errors.New("agent has been killed")
 )
 
 type (
 	TelegrafSvr struct {
-		logger log.Logger
+		MainCfg *config.MainConfig
 	}
 )
 
-func (s *TelegrafSvr) killProcessByPID(npid int) error {
+var Svr = &TelegrafSvr{}
 
-	if pid.CheckPid(npid) == nil {
-		prs, err := os.FindProcess(npid)
-		if err == nil && prs != nil {
+func (s *TelegrafSvr) Start(ctx context.Context) error {
 
-			if err = prs.Kill(); err != nil {
-				return err
-			}
-			time.Sleep(time.Millisecond * 100)
+	if s.MainCfg.CustomAgentConfigFile == "" {
+		telcfg, err := s.GenerateTelegrafConfig()
+		if err == config.ErrNoTelegrafConf {
+			log.Printf("no sub service configuration found")
+			return nil
+		}
+
+		if err != nil {
+			return fmt.Errorf("fail to generate sub service config, %s", err)
+		}
+
+		if err = ioutil.WriteFile(s.agentConfPath(false), []byte(telcfg), 0664); err != nil {
+			return fmt.Errorf("fail to create file, %s", err.Error())
 		}
 	}
 
-	return nil
-}
+	log.Printf("starting sub service...")
 
-func (s *TelegrafSvr) Start(ctx context.Context, up uploader.IUploader) error {
-
-	s.logger.Info("Starting agent...")
-	defer func() {
-		s.logger.Info("agent done")
-	}()
-
-	if err := s.startAgent(ctx, s.logger); err != nil {
-		s.logger.Errorf("start agent fail: %s", err.Error())
+	if err := s.startAgent(ctx); err != nil {
 		return err
 	}
 
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
+	//检查telegraf是否被kill掉
+	go func(ctx context.Context) {
 
-	for {
-		select {
-		case <-ticker.C:
+		for {
+
+			select {
+			case <-ctx.Done():
+				s.StopAgent()
+				return
+			default:
+			}
+
 			piddata, err := ioutil.ReadFile(agentPidPath())
 			if err != nil {
-				return errorAgentBeKilled
+				log.Printf("W! read pid file failed, %s", err)
 			}
 
 			npid, err := strconv.Atoi(string(piddata))
 			if err != nil || npid <= 2 {
-				return errorAgentBeKilled
+				log.Printf("W! invalid pid, %s", err)
 			}
 
 			if pid.CheckPid(npid) != nil {
-				return errorAgentBeKilled
+				log.Printf("W! sub service(%v) was killed", npid)
 			} else {
 				_, err := os.FindProcess(npid)
 				if err != nil {
-					s.logger.Warnf("agent has quited: %s", err.Error())
+					log.Printf("W! sub service(%v) not found: %s", npid, err.Error())
 				}
 			}
-		case <-ctx.Done():
-			s.stopAgent(s.logger)
-			return context.Canceled
+
+			internal.SleepContext(ctx, 3*time.Second)
 		}
-	}
+	}(ctx)
+
+	return nil
 }
 
-func (s *TelegrafSvr) stopAgent(l log.Logger) error {
+func (s *TelegrafSvr) StopAgent() error {
 
 	piddata, err := ioutil.ReadFile(agentPidPath())
 	if err != nil {
 		return err
+	}
+	if string(piddata) == "" {
+		return nil
 	}
 	npid, err := strconv.Atoi(string(piddata))
 	if err != nil {
 		return err
 	}
 
-	return s.killProcessByPID(npid)
+	if npid > 0 {
+		return s.killProcessByPID(npid)
+	}
+	return nil
 }
 
-func (s *TelegrafSvr) startAgent(ctx context.Context, l log.Logger) error {
+func (s *TelegrafSvr) startAgent(ctx context.Context) error {
 
-	s.stopAgent(l)
+	s.StopAgent()
 
 	env := os.Environ()
 	if runtime.GOOS == "windows" {
-		env = append(env, fmt.Sprintf(`TELEGRAF_CONFIG_PATH=%s`, agentConfPath(false)))
+		env = append(env, fmt.Sprintf(`TELEGRAF_CONFIG_PATH=%s`, s.agentConfPath(false)))
 	}
 	procAttr := &os.ProcAttr{
 		Env: env,
@@ -168,9 +151,9 @@ func (s *TelegrafSvr) startAgent(ctx context.Context, l log.Logger) error {
 		p = cmd.Process
 
 	} else {
-		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", agentConfPath(false)}, procAttr)
+		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", s.agentConfPath(false)}, procAttr)
 		if err != nil {
-			return err
+			return fmt.Errorf("start agent failed, %s", err)
 		}
 	}
 
@@ -183,12 +166,34 @@ func (s *TelegrafSvr) startAgent(ctx context.Context, l log.Logger) error {
 	return nil
 }
 
-func agentConfPath(quote bool) string {
-	if quote {
-		return fmt.Sprintf(`"%s"`, filepath.Join(config.ExecutableDir, "agent.conf"))
-	} else {
-		return filepath.Join(config.ExecutableDir, "agent.conf")
+func (s *TelegrafSvr) killProcessByPID(npid int) error {
+
+	if pid.CheckPid(npid) == nil {
+		prs, err := os.FindProcess(npid)
+		if err == nil && prs != nil {
+
+			if err = prs.Kill(); err != nil {
+				return err
+			}
+			time.Sleep(time.Millisecond * 100)
+		}
 	}
+
+	return nil
+}
+
+func (s *TelegrafSvr) agentConfPath(quote bool) string {
+	path := ""
+	if s.MainCfg.CustomAgentConfigFile != "" {
+		path = s.MainCfg.CustomAgentConfigFile
+	} else {
+		path = filepath.Join(config.ExecutableDir, "agent.conf")
+	}
+
+	if quote {
+		return fmt.Sprintf(`"%s"`, path)
+	}
+	return path
 }
 
 func agentPidPath() string {
