@@ -24,15 +24,9 @@ old/
 git/git.go
 diaobao-*/
 oss/*
-agent/webtty/bindata/static/js/csos-widget.min.js
-agent/webtty/bindata/static/js/frog-widget.min.js
 version
 install.sh
-agent/webtty/resource.go
-agent/rdpweb/resource.go
 ftcollector
-datakit
-ft.log
 *.log
 config.d/
 datakit
