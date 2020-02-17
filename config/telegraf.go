@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -31,6 +32,7 @@ func LoadTelegrafConfigs(ctx context.Context, cfgdir string) error {
 		err := CheckTelegrafCfgFile(cfgpath)
 
 		if err == nil {
+			log.Printf("I! metric '%s' is enabled", name)
 			MetricsEnablesFlags[index] = true
 		} else {
 			MetricsEnablesFlags[index] = false
