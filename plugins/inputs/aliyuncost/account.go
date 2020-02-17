@@ -3,6 +3,7 @@ package aliyuncost
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -45,7 +46,7 @@ func (ca *CostAccount) run(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		//ca.getLastyearData(ctx, ca.runningInstance.lmtr)
+		ca.getHistoryData(ctx, ca.runningInstance.lmtr)
 	}()
 
 	ca.getRealtimeData(ctx)
@@ -61,13 +62,13 @@ func (ca *CostAccount) getRealtimeData(ctx context.Context) error {
 
 	for {
 		//暂停历史数据抓取
-		//ca.runningInstance.suspendLastyearFetch()
+		ca.runningInstance.suspendHistoryFetch()
 		now := time.Now().Truncate(time.Minute)
 		start := now.Add(-ca.interval)
 
 		from := strings.Replace(start.Format(time.RFC3339), "+", "Z", -1)
 		end := strings.Replace(now.Format(time.RFC3339), "+", "Z", -1)
-		if err := ca.getTransactions(ctx, from, end, ca.runningInstance.lmtr, false); err != nil && err != context.Canceled {
+		if err := ca.getTransactions(ctx, from, end, ca.runningInstance.lmtr, nil); err != nil && err != context.Canceled {
 			ca.logger.Errorf("%s", err)
 		}
 
@@ -77,7 +78,7 @@ func (ca *CostAccount) getRealtimeData(ctx context.Context) error {
 		default:
 		}
 
-		//ca.runningInstance.resumeLastyearFetch()
+		ca.runningInstance.resumeHistoryFetch()
 		internal.SleepContext(ctx, ca.interval)
 
 		select {
@@ -86,71 +87,45 @@ func (ca *CostAccount) getRealtimeData(ctx context.Context) error {
 		default:
 		}
 	}
-
-	// ticker := time.NewTicker(ca.interval)
-	// defer ticker.Stop()
-
-	// for {
-	// 	select {
-	// 	case <-ctx.Done():
-	// 		return context.Canceled
-	// 	case <-ticker.C:
-
-	// 		ca.runningInstance.suspendLastyearFetch()
-
-	// 		if err := ca.getBalance(ctx); err != nil {
-	// 			log.Printf("E! %s", err)
-	// 		}
-
-	// 		now := time.Now()
-	// 		start := now.Add(-ca.interval).Format(`2006-01-02T15:04:05Z`)
-	// 		end := now.Format(`2006-01-02T15:04:05Z`)
-	// 		if err := ca.getTransactions(ctx, start, end, ca.runningInstance.lmtr, false); err != nil && err != context.Canceled {
-	// 			log.Printf("E! %s", err)
-	// 		}
-
-	// 		ca.runningInstance.resumeLastyearFetch()
-	// 	}
-	// }
 }
 
 func (ca *CostAccount) getHistoryData(ctx context.Context, lmtr *limiter.RateLimiter) error {
 
-	// if !ca.runningInstance.cfg.CollectHistoryData {
-	// 	return nil
-	// }
+	if !ca.runningInstance.cfg.CollectHistoryData {
+		return nil
+	}
 
-	// ca.logger.Info("start getting history Transactions")
+	ca.logger.Info("start getting history Transactions")
 
-	// m := md5.New()
-	// m.Write([]byte(ca.runningInstance.cfg.AccessKeyID))
-	// m.Write([]byte(ca.runningInstance.cfg.AccessKeySecret))
-	// m.Write([]byte(ca.runningInstance.cfg.RegionID))
-	// m.Write([]byte(`account`))
-	// k := "." + hex.EncodeToString(m.Sum(nil))
+	k := "." + ca.runningInstance.cacheFileKey(`account`)
 
-	// orderFlag, _ := config.GetLastyearFlag(k)
+	info, err := GetAliyunCostHistory(k)
 
-	// if orderFlag == 1 {
-	// 	return nil
-	// }
+	if err != nil {
+		info = &historyInfo{}
+	}
 
-	// now := time.Now().Truncate(time.Minute).Add(-ca.interval)
-	// start := now.Add(-time.Hour * 8760).Format(`2006-01-02T15:04:05Z`)
-	// end := now.Format(`2006-01-02T15:04:05Z`)
-	// if err := ca.getTransactions(ctx, start, end, lmtr, true); err != nil && err != context.Canceled {
-	// 	log.Printf("E! fail to get account transactions of last year(%s-%s): %s", start, end, err)
-	// 	return err
-	// }
+	if info.Start == "" {
+		now := time.Now().Truncate(time.Minute)
+		start := now.Add(-time.Hour * 8760)
+		info.Start = strings.Replace(start.Format(time.RFC3339), "+", "Z", -1)
+		info.End = strings.Replace(now.Format(time.RFC3339), "+", "Z", -1)
+		info.Current = info.Start
+		info.Statue = 0
+		info.PageNum = 0
+	}
 
-	// config.SetLastyearFlag(k1, 1)
+	if err := ca.getTransactions(ctx, info.Current, info.End, lmtr, info); err != nil && err != context.Canceled {
+		log.Printf("E! fail to get account transactions of history(%s-%s): %s", info.Current, info.End, err)
+		return err
+	}
 
 	return nil
 }
 
 //获取账户流水收支明细查询
 //https://www.alibabacloud.com/help/zh/doc-detail/118472.htm?spm=a2c63.p38356.b99.35.457e524dKiDhkZ
-func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, lmtr *limiter.RateLimiter, fromLastyear bool) error {
+func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, lmtr *limiter.RateLimiter, info *historyInfo) error {
 
 	defer func() {
 		recover()
@@ -181,9 +156,12 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, l
 	req.CreateTimeStart = start
 	req.CreateTimeEnd = end
 	req.PageSize = requests.NewInteger(300)
+	if info != nil {
+		req.PageNum = requests.NewInteger(info.PageNum)
+	}
 
 	for { //分页
-		if fromLastyear {
+		if info != nil {
 			ca.runningInstance.wait()
 		}
 
@@ -209,8 +187,18 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, l
 		if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
 			//有后续页
 			req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
+			info.PageNum = resp.Data.PageNum + 1
 		} else {
 			break
+		}
+
+		if info != nil {
+			if ca.parseTransactionsResponse(ctx, balanceResp, respTransactions) == nil {
+				respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem = respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem[:0]
+
+				SetAliyunCostHistory("", info)
+			}
+
 		}
 	}
 
