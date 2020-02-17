@@ -5,28 +5,32 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 type historyInfo struct {
 	Start   string
 	End     string
-	Current string
 	Statue  int
 	PageNum int
+
+	key string
 }
 
 func SetAliyunCostHistory(key string, info *historyInfo) error {
 	if data, err := json.Marshal(info); err != nil {
 		return err
 	} else {
-		return ioutil.WriteFile(filepath.Join(config.ExecutableDir, key), data, 0755)
+		return ioutil.WriteFile(filepath.Join(historyCacheDir, key), data, 0755)
 	}
 }
 
+func DelAliyunCostHistory(key string) {
+	path := filepath.Join(historyCacheDir, key)
+	os.Remove(path)
+}
+
 func GetAliyunCostHistory(key string) (*historyInfo, error) {
-	path := filepath.Join(config.ExecutableDir, key)
+	path := filepath.Join(historyCacheDir, key)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil, nil
 	}
