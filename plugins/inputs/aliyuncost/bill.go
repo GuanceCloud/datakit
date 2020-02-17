@@ -226,13 +226,6 @@ func (cb *CostBill) getInstnceBills(ctx context.Context, cycle string, lmtr *lim
 			return fmt.Errorf("fail to get instance bill of %s: %s", cycle, err)
 		} else {
 			cb.logger.Debugf("InstnceBills(%s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", cycle, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
-			// if respInstill == nil {
-			// 	respInstill = resp
-			// } else {
-			// 	if resp.Data.TotalCount > 0 {
-			// 		respInstill.Data.Items.Item = append(respInstill.Data.Items.Item, resp.Data.Items.Item...)
-			// 	}
-			// }
 
 			if err := cb.parseInstanceBillResponse(ctx, resp); err != nil {
 				return err
