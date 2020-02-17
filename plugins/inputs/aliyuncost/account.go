@@ -3,9 +3,7 @@ package aliyuncost
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -66,8 +64,8 @@ func (ca *CostAccount) getRealtimeData(ctx context.Context) error {
 		now := time.Now().Truncate(time.Minute)
 		start := now.Add(-ca.interval)
 
-		from := strings.Replace(start.Format(time.RFC3339), "+", "Z", -1)
-		end := strings.Replace(now.Format(time.RFC3339), "+", "Z", -1)
+		from := unixTimeStr(start)
+		end := unixTimeStr(now)
 		if err := ca.getTransactions(ctx, from, end, ca.runningInstance.lmtr, nil); err != nil && err != context.Canceled {
 			ca.logger.Errorf("%s", err)
 		}
@@ -91,8 +89,6 @@ func (ca *CostAccount) getRealtimeData(ctx context.Context) error {
 
 func (ca *CostAccount) getHistoryData(ctx context.Context, lmtr *limiter.RateLimiter) error {
 
-	ca.logger.Info("start getting history Transactions")
-
 	key := "." + ca.runningInstance.cacheFileKey(`account`)
 
 	if !ca.runningInstance.cfg.CollectHistoryData {
@@ -100,17 +96,21 @@ func (ca *CostAccount) getHistoryData(ctx context.Context, lmtr *limiter.RateLim
 		return nil
 	}
 
+	ca.logger.Info("start getting history Transactions")
+
 	info, _ := GetAliyunCostHistory(key)
 
 	if info == nil {
 		info = &historyInfo{}
+	} else if info.Statue == 1 {
+		return nil
 	}
 
 	if info.Start == "" {
 		now := time.Now().Truncate(time.Minute)
 		start := now.Add(-time.Hour * 8760)
-		info.Start = strings.Replace(start.Format(time.RFC3339), "+", "Z", -1)
-		info.End = strings.Replace(now.Format(time.RFC3339), "+", "Z", -1)
+		info.Start = unixTimeStr(start)
+		info.End = unixTimeStr(now)
 		info.Statue = 0
 		info.PageNum = 0
 	}
@@ -118,7 +118,7 @@ func (ca *CostAccount) getHistoryData(ctx context.Context, lmtr *limiter.RateLim
 	info.key = key
 
 	if err := ca.getTransactions(ctx, info.Start, info.End, lmtr, info); err != nil && err != context.Canceled {
-		log.Printf("E! fail to get account transactions of history(%s-%s): %s", info.Start, info.End, err)
+		ca.logger.Errorf("fail to get account transactions of history(%s-%s): %s", info.Start, info.End, err)
 		return err
 	}
 
@@ -199,22 +199,28 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, l
 			respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem = append(respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem, resp.Data.AccountTransactionsList.AccountTransactionsListItem...)
 		}
 
+		if info != nil {
+			if err := ca.parseTransactionsResponse(ctx, balanceResp, respTransactions); err != nil {
+				return err
+			}
+			respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem = respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem[:0]
+		}
+
 		if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
 			//有后续页
 			req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
-			info.PageNum = resp.Data.PageNum + 1
+			if info != nil {
+				info.PageNum = resp.Data.PageNum + 1
+				SetAliyunCostHistory(info.key, info)
+			}
 		} else {
+			if info != nil {
+				info.Statue = 1
+				SetAliyunCostHistory(info.key, info)
+			}
 			break
 		}
 
-		if info != nil {
-			if ca.parseTransactionsResponse(ctx, balanceResp, respTransactions) == nil {
-				respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem = respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem[:0]
-
-				SetAliyunCostHistory(info.key, info)
-			}
-
-		}
 	}
 
 	if info != nil {
