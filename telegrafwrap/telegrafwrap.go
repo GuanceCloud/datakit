@@ -15,7 +15,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pid"
 )
 
 type (
@@ -72,7 +71,7 @@ func (s *TelegrafSvr) Start(ctx context.Context) error {
 				log.Printf("W! invalid pid, %s", err)
 			}
 
-			if pid.CheckPid(npid) != nil {
+			if CheckPid(npid) != nil {
 				log.Printf("W! sub service(%v) was killed", npid)
 			} else {
 				_, err := os.FindProcess(npid)
@@ -168,7 +167,7 @@ func (s *TelegrafSvr) startAgent(ctx context.Context) error {
 
 func (s *TelegrafSvr) killProcessByPID(npid int) error {
 
-	if pid.CheckPid(npid) == nil {
+	if CheckPid(npid) == nil {
 		prs, err := os.FindProcess(npid)
 		if err == nil && prs != nil {
 
