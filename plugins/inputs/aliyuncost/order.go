@@ -100,6 +100,7 @@ func (co *CostOrder) getHistoryData(ctx context.Context, lmtr *limiter.RateLimit
 	if info == nil {
 		info = &historyInfo{}
 	} else if info.Statue == 1 {
+		co.logger.Infof("already fetched the history data")
 		return nil
 	}
 
@@ -109,7 +110,7 @@ func (co *CostOrder) getHistoryData(ctx context.Context, lmtr *limiter.RateLimit
 		info.Start = unixTimeStr(start)
 		info.End = unixTimeStr(now)
 		info.Statue = 0
-		info.PageNum = 0
+		info.PageNum = 1
 	}
 
 	info.key = key
@@ -196,7 +197,7 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, lmtr *lim
 	}
 
 	if info != nil {
-		co.logger.Debugf("(history)finish getting Orders(%s - %s), count=%d", start, end, len(respOrder.Data.OrderList.Order))
+		co.logger.Debugf("(history)finish getting Orders(%s - %s)", start, end)
 	} else {
 		co.logger.Debugf("finish getting Orders(%s - %s), count=%d", start, end, len(respOrder.Data.OrderList.Order))
 	}
@@ -237,6 +238,16 @@ func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			_ = t
 			if co.runningInstance.cost.accumulator != nil {
 				co.runningInstance.cost.accumulator.AddFields(co.getName(), fields, tags)
+			} else {
+				line := co.getName()
+				for k, v := range tags {
+					line += fmt.Sprintf(",%s=%s", k, v)
+				}
+				line += " "
+				for k, v := range fields {
+					line += fmt.Sprintf("%s=%s,", k, v)
+				}
+				fmt.Printf("%s", line)
 			}
 		}
 
