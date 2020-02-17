@@ -100,8 +100,9 @@ func TestQueryBill(t *testing.T) {
 	cli := staticClient()
 
 	req := bssopenapi.CreateQueryBillRequest()
-	req.BillingCycle = fmt.Sprintf("%d-%d", 2019, 12)
+	req.BillingCycle = fmt.Sprintf("%d-%d", 2020, 2)
 	req.PageSize = requests.NewInteger(300)
+	req.PageNum = requests.NewInteger(1)
 
 	var respBill *bssopenapi.QueryBillResponse
 
@@ -110,6 +111,9 @@ func TestQueryBill(t *testing.T) {
 		if err != nil {
 			log.Fatalln(err)
 		}
+
+		log.Printf("total count: %v", resp.Data.TotalCount)
+
 		if respBill == nil {
 			respBill = resp
 		} else {
@@ -117,6 +121,7 @@ func TestQueryBill(t *testing.T) {
 		}
 
 		if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
+
 			req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
 		} else {
 			break
@@ -124,8 +129,8 @@ func TestQueryBill(t *testing.T) {
 	}
 
 	for _, item := range respBill.Data.Items.Item {
-		if item.PaymentTime != "" {
-			fmt.Printf("%s -, %s, %v\n", item.PaymentTime, item.ProductName, item.PretaxAmount)
+		if item.UsageEndTime == "" {
+			fmt.Printf("%s; %v; %v\n", item.ProductName, item.PretaxAmount, item.UsageEndTime)
 		}
 	}
 
