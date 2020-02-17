@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"time"
 
 	"github.com/alecthomas/template"
@@ -290,22 +289,6 @@ func CreatePluginConfigs(cfgdir string, upgrade bool) error {
 	}
 
 	return nil
-}
-
-func SetLastyearFlag(key string, flag int) error {
-	return ioutil.WriteFile(filepath.Join(ExecutableDir, key), []byte(fmt.Sprintf("%d", flag)), 0775)
-}
-
-func GetAliyunCostHistory(key string) (int, error) {
-	data, err := ioutil.ReadFile(filepath.Join(ExecutableDir, key))
-	if err != nil {
-		return 0, err
-	}
-	f, err := strconv.ParseInt(string(data), 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return int(f), nil
 }
 
 func parseConfig(contents []byte) (*ast.Table, error) {
