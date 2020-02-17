@@ -42,18 +42,18 @@ func (m *Mock) makeMetric(value interface{}, name ...string) telegraf.Metric {
 
 func (m *Mock) Gather(acc telegraf.Accumulator) error {
 
-	acc.AddMetric(m.makeMetric(1.0))
+	// acc.AddMetric(m.makeMetric(1.0))
 
-	fields := map[string]interface{}{
-		"val1": 3.14,
-		"val2": 10,
-		"val3": true,
-		"val4": "",
-	}
-	tags := map[string]string{
-		"t1": "aa",
-	}
-	acc.AddFields("test2", fields, tags)
+	// fields := map[string]interface{}{
+	// 	"val1": 3.14,
+	// 	"val2": 10,
+	// 	"val3": true,
+	// 	"val4": "",
+	// }
+	// tags := map[string]string{
+	// 	"t1": "aa",
+	// }
+	// acc.AddFields("test2", fields, tags)
 	return nil
 }
 
