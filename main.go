@@ -58,6 +58,89 @@ var (
 	datakitConfig *config.Config
 )
 
+func main() {
+
+	flag.Parse()
+
+	if *flagVersion {
+		fmt.Printf(`Version:        %s
+Sha1:           %s
+Build At:       %s
+Golang Version: %s
+`, git.Version, git.Sha1, git.BuildAt, git.Golang)
+		return
+	}
+
+	if *flagInstall != "" {
+		if err := doInstall(*flagInstall); err != nil {
+			os.Exit(-1)
+		}
+		return
+	}
+
+	if *fService != "" && runtime.GOOS == "windows" {
+		serviceCmd()
+		return
+	}
+
+	exepath, err := os.Executable()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	config.ExecutableDir = filepath.Dir(exepath)
+
+	if *flagCfgFile == "" {
+		*flagCfgFile = filepath.Join(config.ExecutableDir, fmt.Sprintf("%s.conf", config.ServiceName))
+	}
+	if *flagCfgDir == "" {
+		*flagCfgDir = filepath.Join(config.ExecutableDir, "conf.d")
+	}
+	config.MainCfgPath = *flagCfgFile
+
+	if *flagInit {
+		if err := initialize(); err != nil {
+			log.Fatalf("%s", err)
+		}
+		return
+	} else if *flagUpgrade {
+
+		if *flagCfgDir == "" {
+			*flagCfgDir = filepath.Join(config.ExecutableDir, "conf.d")
+		}
+
+		config.InitTelegrafSamples()
+
+		if err = config.CreatePluginConfigs(*flagCfgDir, true); err != nil {
+			log.Fatalf("%s", err)
+		}
+		return
+	}
+
+	if runtime.GOOS == "windows" && windowsRunAsService() {
+
+		svcConfig := &winsvr.Config{
+			Name: config.ServiceName,
+		}
+
+		prg := &program{}
+		s, err := winsvr.New(prg, svcConfig)
+		if err != nil {
+			log.Fatal("E! " + err.Error())
+			return
+		}
+
+		err = s.Run()
+
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+	} else {
+		stop = make(chan struct{})
+		reloadLoop(stop)
+	}
+}
+
 type program struct {
 }
 
@@ -140,90 +223,6 @@ func serviceCmd() {
 	}
 	log.Println("Success!")
 	os.Exit(0)
-}
-
-func main() {
-
-	flag.Parse()
-
-	if *flagVersion {
-		fmt.Printf(`Version:        %s
-Sha1:           %s
-Build At:       %s
-Golang Version: %s
-`, git.Version, git.Sha1, git.BuildAt, git.Golang)
-		return
-	}
-
-	if *flagInstall != "" {
-		if err := doInstall(*flagInstall); err != nil {
-			os.Exit(-1)
-		}
-		return
-	}
-
-	if *fService != "" && runtime.GOOS == "windows" {
-		serviceCmd()
-		return
-	}
-
-	exepath, err := os.Executable()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	config.ExecutableDir = filepath.Dir(exepath)
-
-	if *flagCfgFile == "" {
-		*flagCfgFile = filepath.Join(config.ExecutableDir, fmt.Sprintf("%s.conf", config.ServiceName))
-	}
-	if *flagCfgDir == "" {
-		*flagCfgDir = filepath.Join(config.ExecutableDir, "conf.d")
-	}
-	config.MainCfgPath = *flagCfgFile
-	config.ServiceName = config.ServiceName
-
-	if *flagInit {
-		if err := initialize(); err != nil {
-			log.Fatalf("%s", err)
-		}
-		return
-	} else if *flagUpgrade {
-
-		if *flagCfgDir == "" {
-			*flagCfgDir = filepath.Join(config.ExecutableDir, "conf.d")
-		}
-
-		config.InitTelegrafSamples()
-
-		if err = config.CreatePluginConfigs(*flagCfgDir, true); err != nil {
-			log.Fatalf("%s", err)
-		}
-		return
-	}
-
-	if runtime.GOOS == "windows" && windowsRunAsService() {
-
-		svcConfig := &winsvr.Config{
-			Name: config.ServiceName,
-		}
-
-		prg := &program{}
-		s, err := winsvr.New(prg, svcConfig)
-		if err != nil {
-			log.Fatal("E! " + err.Error())
-			return
-		}
-
-		err = s.Run()
-
-		if err != nil {
-			log.Fatalln(err.Error())
-		}
-
-	} else {
-		stop = make(chan struct{})
-		reloadLoop(stop)
-	}
 }
 
 func initialize() error {
