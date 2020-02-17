@@ -59,10 +59,10 @@ func (cb *CostBill) run(ctx context.Context) error {
 func (cb *CostBill) getRealtimeData(ctx context.Context) error {
 
 	for {
-		//cb.runningInstance.suspendLastyearFetch()
+		cb.runningInstance.suspendHistoryFetch()
 		start := time.Now().Truncate(time.Minute)
 		cycle := fmt.Sprintf("%d-%02d", start.Year(), start.Month())
-		if err := cb.getBills(ctx, cycle, cb.runningInstance.lmtr, false); err != nil && err != context.Canceled {
+		if err := cb.getBills(ctx, cycle, cb.runningInstance.lmtr, nil); err != nil && err != context.Canceled {
 			cb.logger.Errorf("%s", err)
 		}
 
@@ -71,7 +71,7 @@ func (cb *CostBill) getRealtimeData(ctx context.Context) error {
 			return context.Canceled
 		default:
 		}
-		//cb.runningInstance.resumeLastyearFetch()
+		cb.runningInstance.resumeHistoryFetch()
 		internal.SleepContext(ctx, cb.interval)
 
 		select {
@@ -145,7 +145,7 @@ func (cb *CostBill) getLastyearData(ctx context.Context, lmtr *limiter.RateLimit
 	return nil
 }
 
-func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.RateLimiter, fromLastyear bool) error {
+func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.RateLimiter, info *historyInfo) error {
 
 	defer func() {
 		recover()
@@ -162,7 +162,7 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 
 	for {
 
-		if fromLastyear {
+		if info != nil {
 			cb.runningInstance.wait()
 		}
 
@@ -193,14 +193,14 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 		}
 	}
 
-	cb.logger.Debugf("finish getting Bill(%s), count=%d", cycle, len(respBill.Data.Items.Item))
+	cb.logger.Infof("finish getting Bill(%s), count=%d", cycle, len(respBill.Data.Items.Item))
 
 	return cb.parseBillResponse(ctx, respBill)
 }
 
 func (cb *CostBill) getInstnceBills(ctx context.Context, cycle string, lmtr *limiter.RateLimiter) error {
 
-	var respInstill *bssopenapi.QueryInstanceBillResponse
+	//var respInstill *bssopenapi.QueryInstanceBillResponse
 
 	req := bssopenapi.CreateQueryInstanceBillRequest()
 	req.BillingCycle = cycle
@@ -220,12 +220,16 @@ func (cb *CostBill) getInstnceBills(ctx context.Context, cycle string, lmtr *lim
 			return fmt.Errorf("fail to get instance bill of %s: %s", cycle, err)
 		} else {
 			cb.logger.Debugf("InstnceBills(%s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", cycle, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
-			if respInstill == nil {
-				respInstill = resp
-			} else {
-				if resp.Data.TotalCount > 0 {
-					respInstill.Data.Items.Item = append(respInstill.Data.Items.Item, resp.Data.Items.Item...)
-				}
+			// if respInstill == nil {
+			// 	respInstill = resp
+			// } else {
+			// 	if resp.Data.TotalCount > 0 {
+			// 		respInstill.Data.Items.Item = append(respInstill.Data.Items.Item, resp.Data.Items.Item...)
+			// 	}
+			// }
+
+			if err := cb.parseInstanceBillResponse(ctx, resp); err != nil {
+				return err
 			}
 
 			if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
@@ -236,7 +240,7 @@ func (cb *CostBill) getInstnceBills(ctx context.Context, cycle string, lmtr *lim
 		}
 	}
 
-	return cb.parseInstanceBillResponse(ctx, respInstill)
+	return nil // cb.parseInstanceBillResponse(ctx, respInstill)
 }
 
 func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.QueryBillResponse) error {
@@ -277,16 +281,12 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		fields[`OutstandingAmount`] = item.OutstandingAmount
 
 		billtime := item.UsageEndTime
-		if billtime == "" {
-			billtime = item.PaymentTime
-		}
 		t, err := time.Parse(`2006-01-02 15:04:05`, billtime)
 		if err != nil {
 			cb.logger.Warnf("fail to parse time:%v of product:%s, error: %s", billtime, item.ProductName, err)
 		} else {
-			_ = t
 			if cb.runningInstance.cost.accumulator != nil {
-				cb.runningInstance.cost.accumulator.AddFields(cb.getName(), fields, tags)
+				cb.runningInstance.cost.accumulator.AddFields(cb.getName(), fields, tags, t)
 			}
 		}
 	}
