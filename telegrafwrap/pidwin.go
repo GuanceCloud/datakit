@@ -1,6 +1,6 @@
 //+build windows
 
-package pid
+package telegrafwrap
 
 func CheckPid(pid int) error {
 	return nil
