@@ -1,6 +1,10 @@
 package aliyuncost
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+import (
+	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+)
 
 const (
 	aliyuncostConfigSample = `
@@ -37,3 +41,10 @@ type (
 		CollectHistoryData bool              `toml:"collect_history_data "`
 	}
 )
+
+func unixTimeStr(t time.Time) string {
+	_, zoff := t.Zone()
+	nt := t.Add(-(time.Duration(zoff) * time.Second))
+	s := nt.Format(`2006-01-02T15:04:05Z`)
+	return s
+}
