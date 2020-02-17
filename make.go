@@ -246,7 +246,7 @@ func publishAgent() {
 	// 在你本地设置好这些 oss-key 环境变量
 	switch *flagRelease {
 	case `test`, `local`, `release`, `preprod`, `alpha`:
-		tag := strings.ToUpper(*flagRelease)
+		tag := "DK_" + strings.ToUpper(*flagRelease)
 		ak = os.Getenv(tag + "_OSS_ACCESS_KEY")
 		sk = os.Getenv(tag + "_OSS_SECRET_KEY")
 		bucket = os.Getenv(tag + "_OSS_BUCKET")
