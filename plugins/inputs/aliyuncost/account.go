@@ -103,6 +103,7 @@ func (ca *CostAccount) getHistoryData(ctx context.Context, lmtr *limiter.RateLim
 	if info == nil {
 		info = &historyInfo{}
 	} else if info.Statue == 1 {
+		ca.logger.Infof("already fetched the history data")
 		return nil
 	}
 
