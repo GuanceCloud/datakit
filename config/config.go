@@ -139,7 +139,11 @@ func (c *Config) LoadConfig(ctx context.Context, maincfg string) error {
 					continue
 				}
 				if err := theip.Load(thepath); err != nil {
-					return fmt.Errorf("fail to load %s, %s", thepath, err)
+					if err == ErrNoTelegrafConf {
+						continue
+					} else {
+						return fmt.Errorf("fail to load %s, %s", thepath, err)
+					}
 				}
 				if telestr, err := theip.ToTelegraf(thepath); err == nil {
 					ConvertedCfg = append(ConvertedCfg, telestr)
