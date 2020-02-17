@@ -2,6 +2,8 @@ package aliyuncost
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"log"
 	"sync"
 	"time"
@@ -139,13 +141,13 @@ func (ac *AliyunCost) Stop() {
 	ac.cancelFun()
 }
 
-func (s *RunningInstance) suspendLastyearFetch() {
+func (s *RunningInstance) suspendHistoryFetch() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.wgSuspend.Add(1)
 }
 
-func (s *RunningInstance) resumeLastyearFetch() {
+func (s *RunningInstance) resumeHistoryFetch() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.wgSuspend.Done()
@@ -153,6 +155,15 @@ func (s *RunningInstance) resumeLastyearFetch() {
 
 func (s *RunningInstance) wait() {
 	s.wgSuspend.Wait()
+}
+
+func (s *RunningInstance) cacheFileKey(subname string) string {
+	m := md5.New()
+	m.Write([]byte(s.cfg.AccessKeyID))
+	m.Write([]byte(s.cfg.AccessKeySecret))
+	m.Write([]byte(s.cfg.RegionID))
+	m.Write([]byte(subname))
+	return hex.EncodeToString(m.Sum(nil))
 }
 
 func (s *RunningInstance) run() error {
