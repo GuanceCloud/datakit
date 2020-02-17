@@ -98,7 +98,7 @@ func (ac *AliyunCost) Init() error {
 func (ac *AliyunCost) Start(acc telegraf.Accumulator) error {
 
 	if len(ac.Costs) == 0 {
-		log.Printf("W! no aliyun cost configuration")
+		log.Printf("W! [aliyuncost] no configuration found")
 		return nil
 	}
 
