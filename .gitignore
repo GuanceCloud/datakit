@@ -38,4 +38,3 @@ config.d/
 datakit
 test/
 vendor/
-agent
