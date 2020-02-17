@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/run"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/telegrafwrap"
 
 	"github.com/influxdata/telegraf/logger"
@@ -22,7 +23,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/agent"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 
 	serviceutil "gitlab.jiagouyun.com/cloudcare-tools/cliutils/service"
@@ -321,7 +321,7 @@ func loadConfig(ctx context.Context) error {
 	logConfig.RotationMaxSize.Size = (20 << 10 << 10)
 	logger.SetupLogging(logConfig)
 
-	log.Printf("%s-%s-%s", config.ServiceName, git.Version, git.Sha1)
+	log.Printf("%s v%s", config.ServiceName, git.Version)
 
 	return nil
 }
@@ -345,7 +345,7 @@ func runAgent(ctx context.Context) error {
 	}
 	log.Printf("[agent] avariable outputs: %s", strings.Join(pnames, ","))
 
-	ag, err := agent.NewAgent(datakitConfig)
+	ag, err := run.NewAgent(datakitConfig)
 	if err != nil {
 		return err
 	}
