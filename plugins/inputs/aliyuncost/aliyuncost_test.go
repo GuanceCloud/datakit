@@ -1,11 +1,15 @@
 package aliyuncost
 
 import (
+	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/influxdata/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 
@@ -129,7 +133,7 @@ func TestQueryBill(t *testing.T) {
 	}
 
 	for _, item := range respBill.Data.Items.Item {
-		if item.UsageEndTime == "" {
+		if item.ProductName == "负载均衡" {
 			fmt.Printf("%s; %v; %v\n", item.ProductName, item.PretaxAmount, item.UsageEndTime)
 		}
 	}
@@ -166,8 +170,8 @@ func TestQueryOrder(t *testing.T) {
 	now := time.Now().Truncate(time.Hour)
 	start := unixTimeStr(now.Add(-time.Hour * 24 * 30))
 	log.Printf("start=%s", start)
-	req.CreateTimeStart = start
-	//req.CreateTimeEnd = now.Format(`2006-01-02T15:04:05Z`)
+	req.CreateTimeStart = "2019-02-17T08:34:00Z" // start
+	req.CreateTimeEnd = "2020-02-17T08:34:00Z"
 
 	resp, err := cli.QueryOrders(req)
 	if err != nil {
@@ -192,30 +196,20 @@ func TestConfig(t *testing.T) {
 
 func TestSvr(t *testing.T) {
 
-	// if err := Cfg.Load(`./demo.toml`); err != nil {
-	// 	log.Fatalln(err)
-	// }
+	var alicost AliyunCost
 
-	// logHandler, _ := log.NewStreamHandler(os.Stdout)
+	if data, err := ioutil.ReadFile("./demo.toml"); err != nil {
+		log.Fatalf("%s", err)
+	} else {
+		if toml.Unmarshal(data, &alicost); err != nil {
+			log.Fatalf("%s", err)
+		}
+	}
 
-	// ll := log.NewDefault(logHandler)
-	// ll.SetLevel(log.LevelDebug)
+	alicost.ctx, alicost.cancelFun = context.WithCancel(context.Background())
 
-	// ll.Debugf("acckey: %s, accountInterval: %v", Cfg.Boas[0].AccessKeySecret, Cfg.Boas[0].AccountInterval)
+	alicost.Start(nil)
 
-	// svr := &AliyunBoaSvr{
-	// 	logger: ll,
-	// }
+	time.Sleep(time.Hour)
 
-	// ctx, cancel := context.WithCancel(context.Background())
-
-	// go func() {
-	// 	svr.Start(ctx, nil)
-	// }()
-
-	// time.Sleep(10000 * time.Second)
-
-	// cancel()
-
-	// time.Sleep(1 * time.Second)
 }
