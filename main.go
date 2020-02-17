@@ -306,20 +306,24 @@ func reloadLoop(stop chan struct{}) {
 func loadConfig(ctx context.Context) error {
 	c := config.NewConfig()
 
-	err := c.LoadConfig(ctx, config.MainCfgPath)
-	if err != nil {
+	if err := c.LoadMainConfig(ctx, config.MainCfgPath); err != nil {
 		return err
 	}
-	datakitConfig = c
 
 	logConfig := logger.LogConfig{
-		Debug:     (strings.ToLower(datakitConfig.MainCfg.LogLevel) == "debug"),
+		Debug:     (strings.ToLower(c.MainCfg.LogLevel) == "debug"),
 		Quiet:     false,
 		LogTarget: logger.LogTargetFile,
-		Logfile:   datakitConfig.MainCfg.Log,
+		Logfile:   c.MainCfg.Log,
 	}
 	logConfig.RotationMaxSize.Size = (20 << 10 << 10)
 	logger.SetupLogging(logConfig)
+
+	if err := c.LoadConfig(ctx); err != nil {
+		return err
+	}
+
+	datakitConfig = c
 
 	log.Printf("%s v%s", config.ServiceName, git.Version)
 
