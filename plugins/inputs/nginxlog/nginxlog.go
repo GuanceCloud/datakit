@@ -8,6 +8,7 @@ import (
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/toml"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -70,7 +71,15 @@ func (c *NginxLogConfig) Load(f string) error {
 		return err
 	}
 
-	return toml.Unmarshal(cfgdata, c)
+	if err = toml.Unmarshal(cfgdata, c); err != nil {
+		return err
+	}
+
+	if len(c.AccessLogs) == 0 && len(c.ErrorLogs) == 0 {
+		return config.ErrNoTelegrafConf
+	}
+
+	return nil
 }
 
 func (c *NginxLogConfig) ToTelegraf(f string) (string, error) {
