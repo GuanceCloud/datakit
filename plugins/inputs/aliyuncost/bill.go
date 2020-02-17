@@ -153,7 +153,7 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 
 	cb.logger.Infof("start getting Bills of %s", cycle)
 
-	var respBill *bssopenapi.QueryBillResponse
+	//var respBill *bssopenapi.QueryBillResponse
 
 	req := bssopenapi.CreateQueryBillRequest()
 	req.BillingCycle = cycle
@@ -180,10 +180,14 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 
 		cb.logger.Debugf("Bills(%s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", cycle, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
 
-		if respBill == nil {
-			respBill = resp
-		} else {
-			respBill.Data.Items.Item = append(respBill.Data.Items.Item, resp.Data.Items.Item...)
+		// if respBill == nil {
+		// 	respBill = resp
+		// } else {
+		// 	respBill.Data.Items.Item = append(respBill.Data.Items.Item, resp.Data.Items.Item...)
+		// }
+
+		if err := cb.parseBillResponse(ctx, resp); err != nil {
+			return err
 		}
 
 		if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
@@ -193,9 +197,11 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 		}
 	}
 
-	cb.logger.Infof("finish getting Bill(%s), count=%d", cycle, len(respBill.Data.Items.Item))
+	// if info == nil {
+	// 	cb.logger.Infof("finish getting Bill(%s), count=%d", cycle, len(respBill.Data.Items.Item))
+	// }
 
-	return cb.parseBillResponse(ctx, respBill)
+	return nil //cb.parseBillResponse(ctx, respBill)
 }
 
 func (cb *CostBill) getInstnceBills(ctx context.Context, cycle string, lmtr *limiter.RateLimiter) error {
@@ -280,7 +286,10 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		fields[`PaymentAmount`] = item.PaymentAmount
 		fields[`OutstandingAmount`] = item.OutstandingAmount
 
-		billtime := item.UsageEndTime
+		billtime := item.UsageStartTime
+		if billtime == "" {
+			continue
+		}
 		t, err := time.Parse(`2006-01-02 15:04:05`, billtime)
 		if err != nil {
 			cb.logger.Warnf("fail to parse time:%v of product:%s, error: %s", billtime, item.ProductName, err)
