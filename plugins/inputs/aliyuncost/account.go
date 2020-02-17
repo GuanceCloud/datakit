@@ -91,17 +91,18 @@ func (ca *CostAccount) getRealtimeData(ctx context.Context) error {
 
 func (ca *CostAccount) getHistoryData(ctx context.Context, lmtr *limiter.RateLimiter) error {
 
+	ca.logger.Info("start getting history Transactions")
+
+	key := "." + ca.runningInstance.cacheFileKey(`account`)
+
 	if !ca.runningInstance.cfg.CollectHistoryData {
+		DelAliyunCostHistory(key)
 		return nil
 	}
 
-	ca.logger.Info("start getting history Transactions")
+	info, _ := GetAliyunCostHistory(key)
 
-	k := "." + ca.runningInstance.cacheFileKey(`account`)
-
-	info, err := GetAliyunCostHistory(k)
-
-	if err != nil {
+	if info == nil {
 		info = &historyInfo{}
 	}
 
@@ -110,13 +111,14 @@ func (ca *CostAccount) getHistoryData(ctx context.Context, lmtr *limiter.RateLim
 		start := now.Add(-time.Hour * 8760)
 		info.Start = strings.Replace(start.Format(time.RFC3339), "+", "Z", -1)
 		info.End = strings.Replace(now.Format(time.RFC3339), "+", "Z", -1)
-		info.Current = info.Start
 		info.Statue = 0
 		info.PageNum = 0
 	}
 
-	if err := ca.getTransactions(ctx, info.Current, info.End, lmtr, info); err != nil && err != context.Canceled {
-		log.Printf("E! fail to get account transactions of history(%s-%s): %s", info.Current, info.End, err)
+	info.key = key
+
+	if err := ca.getTransactions(ctx, info.Start, info.End, lmtr, info); err != nil && err != context.Canceled {
+		log.Printf("E! fail to get account transactions of history(%s-%s): %s", info.Start, info.End, err)
 		return err
 	}
 
@@ -133,7 +135,11 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, l
 
 	//账户余额查询接口
 	//https://www.alibabacloud.com/help/zh/doc-detail/87997.htm?spm=a2c63.p38356.b99.34.717125earDjnGX
-	ca.logger.Info("start getting Balance")
+	if info != nil {
+		ca.logger.Info("(history) start getting Balance")
+	} else {
+		ca.logger.Info("start getting Balance")
+	}
 	balanceReq := bssopenapi.CreateQueryAccountBalanceRequest()
 	//balanceReq.Scheme = "https"
 	balanceResp, err := ca.runningInstance.client.QueryAccountBalance(balanceReq)
@@ -148,7 +154,11 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, l
 	default:
 	}
 
-	ca.logger.Infof("start getting Transactions(%s - %s)", start, end)
+	if info != nil {
+		ca.logger.Infof("(history)start getting Transactions(%s - %s)", start, end)
+	} else {
+		ca.logger.Infof("start getting Transactions(%s - %s)", start, end)
+	}
 
 	var respTransactions *bssopenapi.QueryAccountTransactionsResponse
 
@@ -175,7 +185,12 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, l
 		if err != nil {
 			return fmt.Errorf("fail to get transactions from %s to %s: %s", start, end, err)
 		}
-		ca.logger.Debugf("Transactions(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.AccountTransactionsList.AccountTransactionsListItem))
+		if info != nil {
+			ca.logger.Debugf("(history)Transactions(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.AccountTransactionsList.AccountTransactionsListItem))
+		} else {
+			ca.logger.Debugf("Transactions(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.AccountTransactionsList.AccountTransactionsListItem))
+
+		}
 
 		if respTransactions == nil {
 			respTransactions = resp
@@ -196,13 +211,17 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, l
 			if ca.parseTransactionsResponse(ctx, balanceResp, respTransactions) == nil {
 				respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem = respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem[:0]
 
-				SetAliyunCostHistory("", info)
+				SetAliyunCostHistory(info.key, info)
 			}
 
 		}
 	}
 
-	ca.logger.Debugf("finish getting Transactions(%s - %s), count=%v", start, end, len(respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem))
+	if info != nil {
+		ca.logger.Debugf("(history)finish getting Transactions(%s - %s), count=%v", start, end, len(respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem))
+	} else {
+		ca.logger.Debugf("finish getting Transactions(%s - %s), count=%v", start, end, len(respTransactions.Data.AccountTransactionsList.AccountTransactionsListItem))
+	}
 
 	return ca.parseTransactionsResponse(ctx, balanceResp, respTransactions)
 }
