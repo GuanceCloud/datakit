@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -44,7 +43,7 @@ func (co *CostOrder) run(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		//b.getLastyearData(ctx, b.runningInstance.lmtr)
+		co.getHistoryData(ctx, co.runningInstance.lmtr)
 	}()
 
 	co.getRealtimeData(ctx)
@@ -59,15 +58,14 @@ func (co *CostOrder) run(ctx context.Context) error {
 func (co *CostOrder) getRealtimeData(ctx context.Context) error {
 
 	for {
-		//co.runningInstance.suspendLastyearFetch()
-
+		co.runningInstance.suspendHistoryFetch()
 		now := time.Now().Truncate(time.Minute)
 		start := now.Add(-co.interval)
 
-		from := strings.Replace(start.Format(time.RFC3339), "+", "Z", -1)
-		to := strings.Replace(now.Format(time.RFC3339), "+", "Z", -1)
+		from := unixTimeStr(start)
+		to := unixTimeStr(now)
 
-		if err := co.getOrders(ctx, from, to, co.runningInstance.lmtr, false); err != nil && err != context.Canceled {
+		if err := co.getOrders(ctx, from, to, co.runningInstance.lmtr, nil); err != nil && err != context.Canceled {
 			co.logger.Errorf("%s", err)
 		}
 
@@ -76,7 +74,7 @@ func (co *CostOrder) getRealtimeData(ctx context.Context) error {
 			return context.Canceled
 		default:
 		}
-		//co.runningInstance.resumeLastyearFetch()
+		co.runningInstance.resumeHistoryFetch()
 		internal.SleepContext(ctx, co.interval)
 
 		select {
@@ -87,48 +85,54 @@ func (co *CostOrder) getRealtimeData(ctx context.Context) error {
 	}
 }
 
-func (co *CostOrder) getLastyearData(ctx context.Context, lmtr *limiter.RateLimiter) error {
+func (co *CostOrder) getHistoryData(ctx context.Context, lmtr *limiter.RateLimiter) error {
+
+	key := "." + co.runningInstance.cacheFileKey(`orders`)
 
 	if !co.runningInstance.cfg.CollectHistoryData {
 		return nil
 	}
 
-	// log.Printf("I! [aliyunboa:order] start get orders of last year")
+	co.logger.Info("start getting history Orders")
 
-	// m := md5.New()
-	// m.Write([]byte(b.runningInstance.cfg.AccessKeyID))
-	// m.Write([]byte(b.runningInstance.cfg.AccessKeySecret))
-	// m.Write([]byte(b.runningInstance.cfg.RegionID))
-	// m.Write([]byte(`orders`))
-	// k1 := hex.EncodeToString(m.Sum(nil))
-	// k1 = "." + k1
+	info, _ := GetAliyunCostHistory(key)
 
-	// orderFlag, _ := config.GetLastyearFlag(k1)
+	if info == nil {
+		info = &historyInfo{}
+	} else if info.Statue == 1 {
+		return nil
+	}
 
-	// if orderFlag == 1 {
-	// 	return nil
-	// }
+	if info.Start == "" {
+		now := time.Now().Truncate(time.Minute)
+		start := now.Add(-time.Hour * 8760)
+		info.Start = unixTimeStr(start)
+		info.End = unixTimeStr(now)
+		info.Statue = 0
+		info.PageNum = 0
+	}
 
-	// now := time.Now().Truncate(time.Minute).Add(-b.runningInstance.cfg.OrdertInterval.Duration)
-	// start := now.Add(-time.Hour * 8760).Format(`2006-01-02T15:04:05Z`)
-	// end := now.Format(`2006-01-02T15:04:05Z`)
-	// if err := b.getOrders(ctx, start, end, lmtr, true); err != nil && err != context.Canceled {
-	// 	log.Printf("E! [aliyunboa:order] fail to get orders of last year(%s-%s): %s", start, end, err)
-	// 	return err
-	// }
+	info.key = key
 
-	// config.SetLastyearFlag(k1, 1)
+	if err := co.getOrders(ctx, info.Start, info.End, lmtr, info); err != nil && err != context.Canceled {
+		co.logger.Errorf("fail to get orders of history(%s-%s): %s", info.Start, info.End, err)
+		return err
+	}
 
 	return nil
 }
 
-func (co *CostOrder) getOrders(ctx context.Context, start, end string, lmtr *limiter.RateLimiter, fromLastyear bool) error {
+func (co *CostOrder) getOrders(ctx context.Context, start, end string, lmtr *limiter.RateLimiter, info *historyInfo) error {
 
 	defer func() {
 		recover()
 	}()
 
-	co.logger.Infof("start getting Orders(%s - %s)", start, end)
+	if info != nil {
+		co.logger.Infof("(history)start getting Orders(%s - %s)", start, end)
+	} else {
+		co.logger.Infof("start getting Orders(%s - %s)", start, end)
+	}
 
 	var respOrder *bssopenapi.QueryOrdersResponse
 
@@ -137,10 +141,13 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, lmtr *lim
 	req.CreateTimeStart = start
 	req.CreateTimeEnd = end
 	req.PageSize = requests.NewInteger(300)
+	if info != nil {
+		req.PageNum = requests.NewInteger(info.PageNum)
+	}
 
 	for {
-		if fromLastyear {
-			//co.runningInstance.wait()
+		if info != nil {
+			co.runningInstance.wait()
 		}
 
 		select {
@@ -154,7 +161,11 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, lmtr *lim
 			return fmt.Errorf("fail to get orders from %s to %s: %s", start, end, err)
 		}
 
-		co.logger.Debugf("Order(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
+		if info != nil {
+			co.logger.Debugf("(history)Order(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
+		} else {
+			co.logger.Debugf("Order(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
+		}
 
 		if respOrder == nil {
 			respOrder = resp
@@ -162,14 +173,33 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, lmtr *lim
 			respOrder.Data.OrderList.Order = append(respOrder.Data.OrderList.Order, resp.Data.OrderList.Order...)
 		}
 
+		if info != nil {
+			if err = co.parseOrderResponse(ctx, respOrder); err != nil {
+				return err
+			}
+			respOrder.Data.OrderList.Order = respOrder.Data.OrderList.Order[:0]
+		}
+
 		if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
 			req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
+			if info != nil {
+				info.PageNum = resp.Data.PageNum + 1
+				SetAliyunCostHistory(info.key, info)
+			}
 		} else {
+			if info != nil {
+				info.Statue = 1
+				SetAliyunCostHistory(info.key, info)
+			}
 			break
 		}
 	}
 
-	co.logger.Debugf("finish getting Orders(%s - %s), count=%d", start, end, len(respOrder.Data.OrderList.Order))
+	if info != nil {
+		co.logger.Debugf("(history)finish getting Orders(%s - %s), count=%d", start, end, len(respOrder.Data.OrderList.Order))
+	} else {
+		co.logger.Debugf("finish getting Orders(%s - %s), count=%d", start, end, len(respOrder.Data.OrderList.Order))
+	}
 
 	return co.parseOrderResponse(ctx, respOrder)
 }

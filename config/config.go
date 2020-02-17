@@ -110,9 +110,7 @@ func UserAgent() string {
 	return fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 }
 
-func (c *Config) LoadConfig(ctx context.Context, maincfg string) error {
-
-	//main config
+func (c *Config) LoadMainConfig(ctx context.Context, maincfg string) error {
 	data, err := ioutil.ReadFile(maincfg)
 	if err != nil {
 		return err
@@ -121,6 +119,10 @@ func (c *Config) LoadConfig(ctx context.Context, maincfg string) error {
 	if err := toml.Unmarshal(data, c.MainCfg); err != nil {
 		return fmt.Errorf("Error loading config file %s, %s", maincfg, err)
 	}
+	return nil
+}
+
+func (c *Config) LoadConfig(ctx context.Context) error {
 
 	for name, creator := range inputs.Inputs {
 
