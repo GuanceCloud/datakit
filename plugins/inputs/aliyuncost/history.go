@@ -20,6 +20,7 @@ func SetAliyunCostHistory(key string, info *historyInfo) error {
 	if data, err := json.Marshal(info); err != nil {
 		return err
 	} else {
+		os.MkdirAll(historyCacheDir, 0755)
 		return ioutil.WriteFile(filepath.Join(historyCacheDir, key), data, 0755)
 	}
 }
@@ -31,8 +32,8 @@ func DelAliyunCostHistory(key string) {
 
 func GetAliyunCostHistory(key string) (*historyInfo, error) {
 	path := filepath.Join(historyCacheDir, key)
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, nil
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
 	}
 
 	data, err := ioutil.ReadFile(path)
