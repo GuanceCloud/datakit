@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -160,8 +159,7 @@ func TestQueryOrder(t *testing.T) {
 
 	req := bssopenapi.CreateQueryOrdersRequest()
 	now := time.Now().Truncate(time.Hour)
-	start := now.Add(-time.Hour * 24 * 30).Format(time.RFC3339) // Format(`2006-01-02T15:04:05Z`)
-	start = strings.Replace(start, "+", "Z", -1)
+	start := unixTimeStr(now.Add(-time.Hour * 24 * 30))
 	log.Printf("start=%s", start)
 	req.CreateTimeStart = start
 	//req.CreateTimeEnd = now.Format(`2006-01-02T15:04:05Z`)
