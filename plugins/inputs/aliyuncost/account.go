@@ -44,6 +44,7 @@ func (ca *CostAccount) run(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		time.Sleep(time.Millisecond * 10)
 		ca.getHistoryData(ctx, ca.runningInstance.lmtr)
 	}()
 
