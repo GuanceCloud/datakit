@@ -127,13 +127,13 @@ func (a *Agent) runInputs(
 		go func(input *models.RunningInput) {
 			defer wg.Done()
 
-			// if a.Config.Agent.RoundInterval {
-			// 	err := internal.SleepContext(
-			// 		ctx, internal.AlignDuration(startTime, interval))
-			// 	if err != nil {
-			// 		return
-			// 	}
-			// }
+			if a.Config.MainCfg.RoundInterval {
+				err := internal.SleepContext(
+					ctx, internal.AlignDuration(startTime, interval))
+				if err != nil {
+					return
+				}
+			}
 
 			a.gatherOnInterval(ctx, acc, input, interval, jitter)
 		}(input)
@@ -148,7 +148,7 @@ func (a *Agent) runOutputs(
 	src <-chan telegraf.Metric,
 ) error {
 	interval := a.Config.MainCfg.FlushInterval.Duration
-	jitter := a.Config.MainCfg.FlushJitter.Duration
+	jitter := time.Duration(0) // a.Config.MainCfg.FlushJitter.Duration
 
 	ctx, cancel := context.WithCancel(context.Background())
 

@@ -19,7 +19,7 @@ import (
 
 type (
 	TelegrafSvr struct {
-		MainCfg *config.MainConfig
+		Cfg *config.Config
 	}
 )
 
@@ -27,20 +27,18 @@ var Svr = &TelegrafSvr{}
 
 func (s *TelegrafSvr) Start(ctx context.Context) error {
 
-	if s.MainCfg.CustomAgentConfigFile == "" {
-		telcfg, err := s.GenerateTelegrafConfig()
-		if err == config.ErrNoTelegrafConf {
-			log.Printf("no sub service configuration found")
-			return nil
-		}
+	telcfg, err := s.GenerateTelegrafConfig()
+	if err == config.ErrNoTelegrafConf {
+		log.Printf("no sub service configuration found")
+		return nil
+	}
 
-		if err != nil {
-			return fmt.Errorf("fail to generate sub service config, %s", err)
-		}
+	if err != nil {
+		return fmt.Errorf("fail to generate sub service config, %s", err)
+	}
 
-		if err = ioutil.WriteFile(s.agentConfPath(false), []byte(telcfg), 0664); err != nil {
-			return fmt.Errorf("fail to create file, %s", err.Error())
-		}
+	if err = ioutil.WriteFile(s.agentConfPath(false), []byte(telcfg), 0664); err != nil {
+		return fmt.Errorf("fail to create file, %s", err.Error())
 	}
 
 	log.Printf("starting sub service...")
@@ -182,12 +180,7 @@ func (s *TelegrafSvr) killProcessByPID(npid int) error {
 }
 
 func (s *TelegrafSvr) agentConfPath(quote bool) string {
-	path := ""
-	if s.MainCfg.CustomAgentConfigFile != "" {
-		path = s.MainCfg.CustomAgentConfigFile
-	} else {
-		path = filepath.Join(config.ExecutableDir, "agent.conf")
-	}
+	path := filepath.Join(config.ExecutableDir, "agent.conf")
 
 	if quote {
 		return fmt.Sprintf(`"%s"`, path)

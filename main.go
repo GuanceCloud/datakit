@@ -331,7 +331,7 @@ func loadConfig(ctx context.Context) error {
 }
 
 func runTelegraf(ctx context.Context) error {
-	telegrafwrap.Svr.MainCfg = datakitConfig.MainCfg
+	telegrafwrap.Svr.Cfg = datakitConfig
 	return telegrafwrap.Svr.Start(ctx)
 }
 
