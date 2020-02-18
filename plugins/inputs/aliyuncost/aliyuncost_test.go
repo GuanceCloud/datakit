@@ -99,6 +99,21 @@ func TestAccountTransactions(t *testing.T) {
 	}
 }
 
+func TestQueryBillOverview(t *testing.T) {
+
+	cli := staticClient()
+
+	req := bssopenapi.CreateQueryBillOverviewRequest()
+	req.BillingCycle = fmt.Sprintf("%d-%d", 2020, 2)
+
+	resp, err := cli.QueryBillOverview(req)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	log.Printf("AccountID=%s, AccountName=%s", resp.Data.AccountID, resp.Data.AccountName)
+}
+
 func TestQueryBill(t *testing.T) {
 
 	cli := staticClient()
@@ -170,18 +185,20 @@ func TestQueryOrder(t *testing.T) {
 	now := time.Now().Truncate(time.Hour)
 	start := unixTimeStr(now.Add(-time.Hour * 24 * 30))
 	log.Printf("start=%s", start)
-	req.CreateTimeStart = "2019-02-17T08:34:00Z" // start
-	req.CreateTimeEnd = "2020-02-17T08:34:00Z"
+	req.CreateTimeStart = "2020-02-17T08:00:00Z" // start
+	//req.CreateTimeEnd = "2020-02-17T08:34:00Z"
+	req.PageNum = requests.NewInteger(1)
+	req.PageSize = requests.NewInteger(300)
 
 	resp, err := cli.QueryOrders(req)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	fmt.Printf("TotalCount=%d, PageNum=%d, PageSize=%d\n", resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize)
+	fmt.Printf("TotalCount=%d, PageNum=%d, PageSize=%d, count=%d\n", resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.OrderList.Order))
 
 	for _, item := range resp.Data.OrderList.Order {
-		fmt.Printf("%s - %s, %v, %s\n", item.PaymentTime, item.PaymentStatus, item.PretaxAmount, item.Currency)
+		fmt.Printf("%s - %s, %v, %s\n", item.CreateTime, item.PaymentStatus, item.PretaxAmount, item.Currency)
 	}
 
 }
