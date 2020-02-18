@@ -76,6 +76,22 @@ func ProductToken() string {
 		Version(), strings.TrimPrefix(runtime.Version(), "go"))
 }
 
+// func (d *Duration) MarshalTOML() ([]byte, error) {
+
+// 	str := ""
+// 	if d.Duration/time.Duration(time.Hour) > 0 {
+// 		str = fmt.Sprintf("%vh", d.Duration/time.Duration(time.Hour))
+// 	} else if d.Duration/time.Duration(time.Minute) > 0 {
+// 		str = fmt.Sprintf("%vm", d.Duration/time.Duration(time.Minute))
+// 	} else if d.Duration/time.Duration(time.Second) > 0 {
+// 		str = fmt.Sprintf("%vs", d.Duration/time.Duration(time.Second))
+// 	} else {
+// 		str = fmt.Sprintf("%v", int64(d.Duration))
+// 	}
+
+// 	return []byte(str), nil
+// }
+
 // UnmarshalTOML parses the duration from the TOML config file
 func (d *Duration) UnmarshalTOML(b []byte) error {
 	var err error
