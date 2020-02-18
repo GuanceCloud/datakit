@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -55,6 +56,9 @@ type (
 		cost *AliyunCost
 
 		ctx context.Context
+
+		accountName string
+		accountID   string
 	}
 
 	costModule interface {
@@ -114,10 +118,16 @@ func (ac *AliyunCost) Start(acc telegraf.Accumulator) error {
 			ctx:  ac.ctx,
 		}
 
-		ri.modules = []costModule{
-			NewCostAccount(cfg, ri),
-			NewCostBill(cfg, ri),
-			NewCostOrder(cfg, ri),
+		// if cfg.AccountInterval.Duration > 0 {
+		// 	ri.modules = append(ri.modules, NewCostAccount(cfg, ri))
+		// }
+
+		// if cfg.BiilInterval.Duration > 0 {
+		// 	ri.modules = append(ri.modules, NewCostBill(cfg, ri))
+		// }
+
+		if cfg.OrdertInterval.Duration > 0 {
+			ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
 		}
 
 		ac.runningInst = append(ac.runningInst, ri)
@@ -168,6 +178,20 @@ func (s *RunningInstance) cacheFileKey(subname string) string {
 	return hex.EncodeToString(m.Sum(nil))
 }
 
+func (s *RunningInstance) getAccountInfo() {
+	req := bssopenapi.CreateQueryBillOverviewRequest()
+	req.BillingCycle = fmt.Sprintf("%d-%d", 2020, 1)
+
+	resp, err := s.client.QueryBillOverview(req)
+	if err != nil {
+		log.Printf("E! fail to get account info, %s", err)
+		return
+	}
+
+	s.accountName = resp.Data.AccountName
+	s.accountID = resp.Data.AccountID
+}
+
 func (s *RunningInstance) run() error {
 
 	s.lmtr = limiter.NewRateLimiter(10, time.Minute)
@@ -184,6 +208,8 @@ func (s *RunningInstance) run() error {
 		return context.Canceled
 	default:
 	}
+
+	s.getAccountInfo()
 
 	for _, boaModule := range s.modules {
 		s.wg.Add(1)
