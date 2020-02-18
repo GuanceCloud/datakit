@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/template"
@@ -42,6 +43,11 @@ log='{{.Log}}'
 log_level='{{.LogLevel}}'
 config_dir='{{.ConfigDir}}'
 
+## Override default hostname, if empty use os.Hostname()
+hostname = ""
+## If set to true, do no set the "host" tag.
+omit_hostname = false
+
 ## Global tags can be specified here in key="value" format.
 #[global_tags]
 # name = 'admin'
@@ -49,13 +55,15 @@ config_dir='{{.ConfigDir}}'
 )
 
 type Config struct {
-	MainCfg *MainConfig
-	Inputs  []*models.RunningInput
-	Outputs []*models.RunningOutput
+	MainCfg          *MainConfig
+	TelegrafAgentCfg *TelegrafAgentConfig
+	Inputs           []*models.RunningInput
+	Outputs          []*models.RunningOutput
 }
 
 func NewConfig() *Config {
 	c := &Config{
+		TelegrafAgentCfg: defaultTelegrafAgentCfg(),
 		MainCfg: &MainConfig{
 			FlushInterval: internal.Duration{Duration: 10 * time.Second},
 			Interval:      internal.Duration{Duration: 10 * time.Second},
@@ -79,25 +87,14 @@ type MainConfig struct {
 
 	GlobalTags map[string]string `toml:"global_tags"`
 
-	MetricBatchSize   int
-	MetricBufferLimit int
-
-	Interval internal.Duration
-
+	Interval      internal.Duration `toml:"interval"`
 	RoundInterval bool
-
-	// FlushInterval is the Interval at which to flush data
 	FlushInterval internal.Duration
-
-	// // FlushJitter Jitters the flush interval by a random amount.
-	// // This is primarily to avoid large write spikes for users running a large
-	// // number of telegraf instances.
-	// // ie, a jitter of 5s and interval 10s means flushes will happen every 10-15s
-	FlushJitter internal.Duration
 
 	OutputsFile string `toml:"output_file,omitempty"`
 
-	CustomAgentConfigFile string `toml:"custom_agent_config_file,omitempty"`
+	Hostname     string
+	OmitHostname bool
 }
 
 type ConvertTelegrafConfig interface {
@@ -116,9 +113,73 @@ func (c *Config) LoadMainConfig(ctx context.Context, maincfg string) error {
 		return err
 	}
 
-	if err := toml.Unmarshal(data, c.MainCfg); err != nil {
-		return fmt.Errorf("Error loading config file %s, %s", maincfg, err)
+	if tbl, err := parseConfig(data); err != nil {
+		return err
+	} else {
+
+		//telegraf config
+		bAgentSetLogLevel := false
+		bAgentSetOmitHost := false
+		bAgentSetHostname := false
+		if val, ok := tbl.Fields["agent"]; ok {
+			subTable, ok := val.(*ast.Table)
+			if !ok {
+				return fmt.Errorf("invalid agent configuration")
+			}
+
+			if _, ok := subTable.Fields["debug"]; ok {
+				bAgentSetLogLevel = true
+			}
+
+			if _, ok := subTable.Fields["omit_hostname"]; ok {
+				bAgentSetOmitHost = true
+			}
+
+			if _, ok := subTable.Fields["hostname"]; ok {
+				bAgentSetHostname = true
+			}
+
+			if err = toml.UnmarshalTable(subTable, c.TelegrafAgentCfg); err != nil {
+				return fmt.Errorf("invalid agent configuration, %s", err)
+			}
+
+			delete(tbl.Fields, "agent")
+		}
+
+		if err := toml.UnmarshalTable(tbl, c.MainCfg); err != nil {
+			return err
+		}
+
+		if !c.MainCfg.OmitHostname {
+			if c.MainCfg.Hostname == "" {
+				hostname, err := os.Hostname()
+				if err != nil {
+					return err
+				}
+
+				c.MainCfg.Hostname = hostname
+			}
+
+			c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
+		}
+
+		if c.TelegrafAgentCfg.LogTarget == "file" && c.TelegrafAgentCfg.Logfile == "" {
+			c.TelegrafAgentCfg.Logfile = filepath.Join(ExecutableDir, "agent.log")
+		}
+
+		if !bAgentSetLogLevel {
+			c.TelegrafAgentCfg.Debug = (strings.ToLower(c.MainCfg.LogLevel) == "debug")
+		}
+
+		if !bAgentSetOmitHost {
+			c.TelegrafAgentCfg.OmitHostname = c.MainCfg.OmitHostname
+		}
+
+		if !bAgentSetHostname {
+			c.TelegrafAgentCfg.Hostname = c.MainCfg.Hostname
+		}
 	}
+
 	return nil
 }
 
@@ -358,8 +419,7 @@ func (c *Config) addOutputDirectly(name string, output telegraf.Output) error {
 		return err
 	}
 
-	ro := models.NewRunningOutput(name, output, outputConfig,
-		c.MainCfg.MetricBatchSize, c.MainCfg.MetricBufferLimit)
+	ro := models.NewRunningOutput(name, output, outputConfig, 0, 0)
 	c.Outputs = append(c.Outputs, ro)
 	return nil
 }
@@ -384,8 +444,7 @@ func (c *Config) addOutput(name string, output telegraf.Output, table *ast.Table
 		return err
 	}
 
-	ro := models.NewRunningOutput(name, output, outputConfig,
-		c.MainCfg.MetricBatchSize, c.MainCfg.MetricBufferLimit)
+	ro := models.NewRunningOutput(name, output, outputConfig, 0, 0)
 	c.Outputs = append(c.Outputs, ro)
 	return nil
 }
