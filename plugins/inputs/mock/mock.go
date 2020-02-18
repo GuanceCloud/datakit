@@ -40,9 +40,11 @@ func (m *Mock) makeMetric(value interface{}, name ...string) telegraf.Metric {
 	return pt
 }
 
-func (m *Mock) Gather(acc telegraf.Accumulator) error {
+//var val = 0
 
-	// acc.AddMetric(m.makeMetric(1.0))
+func (m *Mock) Gather(acc telegraf.Accumulator) error {
+	// acc.AddMetric(m.makeMetric(val))
+	// val++
 
 	// fields := map[string]interface{}{
 	// 	"val1": 3.14,
