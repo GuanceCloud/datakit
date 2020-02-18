@@ -153,8 +153,6 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 
 	cb.logger.Infof("start getting Bills of %s", cycle)
 
-	//var respBill *bssopenapi.QueryBillResponse
-
 	req := bssopenapi.CreateQueryBillRequest()
 	req.BillingCycle = cycle
 	req.Scheme = "https"
@@ -180,12 +178,6 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 
 		cb.logger.Debugf("Bills(%s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", cycle, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
 
-		// if respBill == nil {
-		// 	respBill = resp
-		// } else {
-		// 	respBill.Data.Items.Item = append(respBill.Data.Items.Item, resp.Data.Items.Item...)
-		// }
-
 		if err := cb.parseBillResponse(ctx, resp); err != nil {
 			return err
 		}
@@ -197,11 +189,7 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 		}
 	}
 
-	// if info == nil {
-	// 	cb.logger.Infof("finish getting Bill(%s), count=%d", cycle, len(respBill.Data.Items.Item))
-	// }
-
-	return nil //cb.parseBillResponse(ctx, respBill)
+	return nil
 }
 
 func (cb *CostBill) getInstnceBills(ctx context.Context, cycle string, lmtr *limiter.RateLimiter) error {
@@ -253,8 +241,8 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		}
 
 		tags := map[string]string{
-			"AccountID":   resp.Data.AccountID,
-			"AccountName": resp.Data.AccountName,
+			"AccountID":   cb.runningInstance.accountID,
+			"AccountName": cb.runningInstance.accountName,
 			"OwnerID":     item.OwnerID,
 		}
 
@@ -272,7 +260,7 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		fields[`PretaxGrossAmount`] = item.PretaxGrossAmount
 		fields[`DeductedByCoupons`] = item.DeductedByCoupons
 		fields[`InvoiceDiscount`] = item.InvoiceDiscount
-		fields[`RoundDownDiscount`], _ = strconv.ParseFloat(item.RoundDownDiscount, 64)
+		fields[`RoundDownDiscount`], _ = strconv.ParseFloat(internal.NumberFormat(item.RoundDownDiscount), 64)
 		fields[`PretaxAmount`] = item.PretaxAmount
 		fields[`DeductedByCashCoupons`] = item.DeductedByCashCoupons
 		fields[`DeductedByPrepaidCard`] = item.DeductedByPrepaidCard
