@@ -177,16 +177,61 @@ func TestQueryInstBill(t *testing.T) {
 
 }
 
+func TestQueryOrderDetail(t *testing.T) {
+	cli := staticClient()
+
+	req := bssopenapi.CreateGetOrderDetailRequest()
+	req.OrderId = "203219046480001"
+
+	resp, err := cli.GetOrderDetail(req)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	log.Printf("%s", resp.Data.AccountName)
+}
+
 func TestQueryOrder(t *testing.T) {
+
+	// pt := &influxdb.Point{}
+	// _ = pt
+
+	// points, err := influxm.ParsePoints([]byte(`aliyun_cost_order,AccountID=1932186612313289,AccountName=zhuyuncloudcare,Currency=CNY,OrderType=Renew,ProductCode=hbase,ProductType=cluster,SubscriptionType=Subscription,wqc=aaa OrderID="205382106450001",RelatedOrderId="",PretaxGrossAmount=1644,PretaxAmount=1644 1581228428000000000`))
+
+	// if err != nil {
+	// 	log.Fatalf("!!%s", err)
+	// 	return
+	// }
+
+	// for _, pt := range points {
+	// 	//log.Printf("%v", pt.String())
+	// 	//log.Printf("%v", pt.Time())
+
+	// 	fields, _ := pt.Fields()
+	// 	mapTags := map[string]string{}
+	// 	for _, tag := range pt.Tags() {
+	// 		mapTags[string(tag.Key)] = string(tag.Value)
+	// 	}
+
+	// 	pt, _ := influxdb.NewPoint(
+	// 		`aliyun_cost_order`,
+	// 		mapTags,
+	// 		fields,
+	// 		pt.Time(),
+	// 	)
+
+	// 	log.Printf("---%v", pt.Time())
+	// }
+
+	// return
 
 	cli := staticClient()
 
 	req := bssopenapi.CreateQueryOrdersRequest()
-	now := time.Now().Truncate(time.Hour)
-	start := unixTimeStr(now.Add(-time.Hour * 24 * 30))
-	log.Printf("start=%s", start)
-	req.CreateTimeStart = "2020-02-17T08:00:00Z" // start
-	//req.CreateTimeEnd = "2020-02-17T08:34:00Z"
+	// now := time.Now().Truncate(time.Hour)
+	// start := unixTimeStr(now.Add(-time.Hour * 24 * 30))
+	// log.Printf("start=%s", start)
+	req.CreateTimeStart = "2019-02-18T06:26:00Z" // start
+	req.CreateTimeEnd = "2020-02-18T06:26:00Z"
 	req.PageNum = requests.NewInteger(1)
 	req.PageSize = requests.NewInteger(300)
 
@@ -197,9 +242,9 @@ func TestQueryOrder(t *testing.T) {
 
 	fmt.Printf("TotalCount=%d, PageNum=%d, PageSize=%d, count=%d\n", resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.OrderList.Order))
 
-	for _, item := range resp.Data.OrderList.Order {
-		fmt.Printf("%s - %s, %v, %s\n", item.CreateTime, item.PaymentStatus, item.PretaxAmount, item.Currency)
-	}
+	// for _, item := range resp.Data.OrderList.Order {
+	// 	fmt.Printf("%s - %s, %v, %s\n", item.CreateTime, item.PaymentStatus, item.PretaxAmount, item.Currency)
+	// }
 
 }
 
