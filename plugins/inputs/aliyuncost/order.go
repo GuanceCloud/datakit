@@ -43,6 +43,7 @@ func (co *CostOrder) run(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		time.Sleep(time.Millisecond * 10)
 		co.getHistoryData(ctx, co.runningInstance.lmtr)
 	}()
 
@@ -135,15 +136,15 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, lmtr *lim
 		co.logger.Infof("start getting Orders(%s - %s)", start, end)
 	}
 
-	var respOrder *bssopenapi.QueryOrdersResponse
-
 	req := bssopenapi.CreateQueryOrdersRequest()
 	req.Scheme = "https"
 	req.CreateTimeStart = start
 	req.CreateTimeEnd = end
-	req.PageSize = requests.NewInteger(300)
+	req.PageSize = requests.NewInteger(100)
 	if info != nil {
 		req.PageNum = requests.NewInteger(info.PageNum)
+	} else {
+		req.PageNum = requests.NewInteger(1)
 	}
 
 	for {
@@ -159,26 +160,17 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, lmtr *lim
 
 		resp, err := co.runningInstance.client.QueryOrders(req)
 		if err != nil {
-			return fmt.Errorf("fail to get orders from %s to %s: %s", start, end, err)
+			return fmt.Errorf("fail to get Orders(%s - %s), %s", start, end, err)
 		}
 
 		if info != nil {
-			co.logger.Debugf("(history)Order(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
+			co.logger.Debugf("(history)Order(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, Count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.OrderList.Order))
 		} else {
-			co.logger.Debugf("Order(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
+			co.logger.Debugf("Order(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, Count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.OrderList.Order))
 		}
 
-		if respOrder == nil {
-			respOrder = resp
-		} else {
-			respOrder.Data.OrderList.Order = append(respOrder.Data.OrderList.Order, resp.Data.OrderList.Order...)
-		}
-
-		if info != nil {
-			if err = co.parseOrderResponse(ctx, respOrder); err != nil {
-				return err
-			}
-			respOrder.Data.OrderList.Order = respOrder.Data.OrderList.Order[:0]
+		if err = co.parseOrderResponse(ctx, resp); err != nil {
+			return err
 		}
 
 		if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
@@ -188,21 +180,19 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, lmtr *lim
 				SetAliyunCostHistory(info.key, info)
 			}
 		} else {
-			if info != nil {
-				info.Statue = 1
-				SetAliyunCostHistory(info.key, info)
-			}
 			break
 		}
 	}
 
 	if info != nil {
 		co.logger.Debugf("(history)finish getting Orders(%s - %s)", start, end)
+		info.Statue = 1
+		SetAliyunCostHistory(info.key, info)
 	} else {
-		co.logger.Debugf("finish getting Orders(%s - %s), count=%d", start, end, len(respOrder.Data.OrderList.Order))
+		co.logger.Debugf("finish getting Orders(%s - %s)", start, end)
 	}
 
-	return co.parseOrderResponse(ctx, respOrder)
+	return nil
 }
 
 func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.QueryOrdersResponse) error {
@@ -221,6 +211,8 @@ func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			"SubscriptionType": item.SubscriptionType,
 			"OrderType":        item.OrderType,
 			"Currency":         item.Currency,
+			"AccountName":      co.runningInstance.accountName,
+			"AccountID":        co.runningInstance.accountID,
 		}
 
 		fields := map[string]interface{}{
@@ -228,29 +220,26 @@ func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			"RelatedOrderId": item.RelatedOrderId,
 		}
 
-		fields["PretaxGrossAmount"], _ = strconv.ParseFloat(item.PretaxGrossAmount, 64)
-		fields["PretaxAmount"], _ = strconv.ParseFloat(item.PretaxAmount, 64)
+		fields["PretaxGrossAmount"], _ = strconv.ParseFloat(internal.NumberFormat(item.PretaxGrossAmount), 64)
+		fields["PretaxAmount"], _ = strconv.ParseFloat(internal.NumberFormat(item.PretaxAmount), 64)
 
-		t, err := time.Parse(time.RFC3339, item.PaymentTime)
+		reqDetail := bssopenapi.CreateGetOrderDetailRequest()
+		reqDetail.OrderId = item.OrderId
+
+		respDetail, err := co.runningInstance.client.GetOrderDetail(reqDetail)
 		if err != nil {
-			co.logger.Errorf("fail to parse time:%v, error:%s", item.PaymentTime, err)
-		} else {
-			_ = t
-			if co.runningInstance.cost.accumulator != nil {
-				co.runningInstance.cost.accumulator.AddFields(co.getName(), fields, tags)
-			} else {
-				line := co.getName()
-				for k, v := range tags {
-					line += fmt.Sprintf(",%s=%s", k, v)
-				}
-				line += " "
-				for k, v := range fields {
-					line += fmt.Sprintf("%s=%s,", k, v)
-				}
-				fmt.Printf("%s", line)
-			}
+			co.logger.Warnf("fail to get order detail of %s, %s", item.OrderId, err)
 		}
+		_ = respDetail
 
+		t, err := time.Parse(time.RFC3339, item.CreateTime)
+		if err != nil {
+			co.logger.Warnf("fail to parse time:%v, error:%s", item.CreateTime, err)
+			continue
+		}
+		if co.runningInstance.cost.accumulator != nil {
+			co.runningInstance.cost.accumulator.AddFields(co.getName(), fields, tags, t)
+		}
 	}
 
 	return nil
