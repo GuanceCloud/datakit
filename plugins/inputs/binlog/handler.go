@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/siddontang/go-mysql/schema"
 
@@ -278,10 +279,16 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 				}
 			}
 
+			var evtime time.Time
+			if e.Header.Timestamp == 0 {
+				log.Printf("W! event time is zero")
+				evtime = time.Now()
+			} else {
+				evtime = time.Unix(int64(e.Header.Timestamp), 0)
+			}
 			if h.rb.binlog.accumulator != nil {
 				if len(fields) > 0 {
-					log.Printf("output binlog metrics")
-					h.rb.binlog.accumulator.AddFields(measureName, fields, tags)
+					h.rb.binlog.accumulator.AddFields(measureName, fields, tags, evtime)
 				}
 			}
 		}
