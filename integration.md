@@ -29,3 +29,7 @@
 
  `Input`接口适用于固定每隔一段时间上报指标的插件，参考`plugin/inputs/mock`  
  `ServiceInput`接口较灵活，可自行定义上报的行为，参考`plugin/inputs/binlog`    
+
+注:  
+ 集成新的采集器时，注意创建一个新分支。  
+ 目前datakit的依赖包还没有整理出来放到vendor下，需要自己get下。。。
