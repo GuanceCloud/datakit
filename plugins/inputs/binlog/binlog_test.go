@@ -73,5 +73,7 @@ func TestBinlog(t *testing.T) {
 
 	bl.Start(nil)
 
+	time.Sleep(time.Hour)
+
 	//wg.Wait()
 }
