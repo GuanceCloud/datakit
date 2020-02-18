@@ -223,14 +223,16 @@ func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 		fields["PretaxGrossAmount"], _ = strconv.ParseFloat(internal.NumberFormat(item.PretaxGrossAmount), 64)
 		fields["PretaxAmount"], _ = strconv.ParseFloat(internal.NumberFormat(item.PretaxAmount), 64)
 
-		reqDetail := bssopenapi.CreateGetOrderDetailRequest()
-		reqDetail.OrderId = item.OrderId
+		// reqDetail := bssopenapi.CreateGetOrderDetailRequest()
+		// reqDetail.OrderId = item.OrderId
 
-		respDetail, err := co.runningInstance.client.GetOrderDetail(reqDetail)
-		if err != nil {
-			co.logger.Warnf("fail to get order detail of %s, %s", item.OrderId, err)
-		}
-		_ = respDetail
+		// respDetail, err := co.runningInstance.client.GetOrderDetail(reqDetail)
+		// if err != nil {
+		// 	co.logger.Warnf("fail to get order detail of %s, %s", item.OrderId, err)
+		// } else {
+		// 	fields["OutstandingAmount"] = respDetail.Data.OutstandingAmount
+
+		// }
 
 		t, err := time.Parse(time.RFC3339, item.CreateTime)
 		if err != nil {
