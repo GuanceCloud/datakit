@@ -83,9 +83,9 @@ func (_ *AliyunCost) Gather(telegraf.Accumulator) error {
 func (ac *AliyunCost) Init() error {
 
 	for _, cfg := range ac.Costs {
-		// if cfg.AccountInterval.Duration == 0 {
-		// 	cfg.AccountInterval.Duration = 24 * time.Hour
-		// }
+		if cfg.AccountInterval.Duration == 0 {
+			cfg.AccountInterval.Duration = 24 * time.Hour
+		}
 
 		if cfg.BiilInterval.Duration == 0 {
 			cfg.BiilInterval.Duration = time.Hour
