@@ -16,6 +16,7 @@ import (
 
 const (
 	httpOutputTemplate = `
+	
 [[outputs.http]]
   url = "{{.FtGateway}}"
   method = "POST"
