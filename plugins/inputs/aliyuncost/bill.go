@@ -275,6 +275,8 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		if err != nil {
 			cb.logger.Warnf("fail to parse time:%v of product:%s, error: %s", billtime, item.ProductName, err)
 		} else {
+			//返回的不是utc
+			t = t.Add(-8 * time.Hour)
 			if cb.runningInstance.cost.accumulator != nil {
 				cb.runningInstance.cost.accumulator.AddFields(cb.getName(), fields, tags, t)
 			}
