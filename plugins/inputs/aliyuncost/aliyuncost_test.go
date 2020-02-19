@@ -123,20 +123,23 @@ func TestQueryBill(t *testing.T) {
 	req.PageSize = requests.NewInteger(300)
 	req.PageNum = requests.NewInteger(1)
 
-	var respBill *bssopenapi.QueryBillResponse
-
 	for {
 		resp, err := cli.QueryBill(req)
 		if err != nil {
 			log.Fatalln(err)
 		}
 
-		log.Printf("total count: %v", resp.Data.TotalCount)
+		//log.Printf("total count: %v", resp.Data.TotalCount)
 
-		if respBill == nil {
-			respBill = resp
-		} else {
-			respBill.Data.Items.Item = append(respBill.Data.Items.Item, resp.Data.Items.Item...)
+		for _, item := range resp.Data.Items.Item {
+			if item.RecordID == "2020020989169351" {
+
+				fmt.Printf("%s; %v; %s\n", item.ProductName, item.PretaxAmount, item.UsageStartTime)
+
+				t, _ := time.Parse(`2006-01-02 15:04:05`, item.UsageStartTime)
+				t = t.Add(-8 * time.Hour)
+				fmt.Printf("convert_time: %s\n", t)
+			}
 		}
 
 		if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
@@ -144,12 +147,6 @@ func TestQueryBill(t *testing.T) {
 			req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
 		} else {
 			break
-		}
-	}
-
-	for _, item := range respBill.Data.Items.Item {
-		if item.ProductName == "负载均衡" {
-			fmt.Printf("%s; %v; %v\n", item.ProductName, item.PretaxAmount, item.UsageEndTime)
 		}
 	}
 
