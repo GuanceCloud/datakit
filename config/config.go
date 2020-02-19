@@ -150,6 +150,10 @@ func (c *Config) LoadMainConfig(ctx context.Context, maincfg string) error {
 			return err
 		}
 
+		if c.MainCfg.GlobalTags == nil {
+			c.MainCfg.GlobalTags = map[string]string{}
+		}
+
 		if !c.MainCfg.OmitHostname {
 			if c.MainCfg.Hostname == "" {
 				hostname, err := os.Hostname()
