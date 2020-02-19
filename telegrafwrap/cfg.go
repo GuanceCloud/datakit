@@ -46,7 +46,7 @@ func marshalAgentCfg(cfg *config.TelegrafAgentConfig) (string, error) {
 		UTC                        bool          `toml:"utc"`
 		Debug                      bool          `toml:"debug"`
 		Quiet                      bool          `toml:"quiet"`
-		LogTarget                  string        `toml:"logtarget"`
+		LogTarget                  string        `toml:"-"`
 		Logfile                    string        `toml:"logfile"`
 		LogfileRotationInterval    time.Duration `toml:"logfile_rotation_interval"`
 		LogfileRotationMaxSize     int64         `toml:"logfile_rotation_max_size"`
