@@ -44,7 +44,7 @@ func (cb *CostBill) run(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		//b.getLastyearData(ctx, b.runningInstance.lmtr)
+		cb.getLastyearData(ctx, cb.runningInstance.lmtr)
 	}()
 
 	cb.getRealtimeData(ctx)
@@ -85,62 +85,54 @@ func (cb *CostBill) getRealtimeData(ctx context.Context) error {
 
 func (cb *CostBill) getLastyearData(ctx context.Context, lmtr *limiter.RateLimiter) error {
 
+	key := "." + cb.runningInstance.cacheFileKey(`bill`)
+
 	if !cb.runningInstance.cfg.CollectHistoryData {
+		DelAliyunCostHistory(key)
 		return nil
 	}
 
-	// log.Printf("I! [aliyunboa:bill] start get bills of last year")
+	cb.logger.Info("start getting history Bills")
 
-	// m := md5.New()
-	// m.Write([]byte(b.runningInstance.cfg.AccessKeyID))
-	// m.Write([]byte(b.runningInstance.cfg.AccessKeySecret))
-	// m.Write([]byte(b.runningInstance.cfg.RegionID))
-	// m.Write([]byte(`bills`))
-	// k1 := hex.EncodeToString(m.Sum(nil))
-	// k1 = "." + k1
+	info, _ := GetAliyunCostHistory(key)
 
-	// billFlag, _ := config.GetLastyearFlag(k1)
+	if info == nil {
+		info = &historyInfo{}
+	} else if info.Statue == 1 {
+		cb.logger.Infof("already fetched the history data")
+		return nil
+	}
 
-	// m.Reset()
-	// m.Write([]byte(b.runningInstance.cfg.AccessKeyID))
-	// m.Write([]byte(b.runningInstance.cfg.AccessKeySecret))
-	// m.Write([]byte(b.runningInstance.cfg.RegionID))
-	// m.Write([]byte(`bills_instance`))
-	// k2 := hex.EncodeToString(m.Sum(nil))
-	// k2 = "." + k2
+	if info.StartTime.IsZero() {
+		info.Statue = 0
+		info.StartTime = time.Now().Truncate(time.Hour).AddDate(-1, 0, 0)
+		info.EndTime = time.Now().Truncate(time.Hour)
+	}
 
-	// billInstanceFlag, _ := config.GetLastyearFlag(k2)
+	info.key = key
 
-	// if billInstanceFlag == 1 && billFlag == 1 {
-	// 	return nil
-	// }
+	for {
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
+		}
 
-	// now := time.Now().Add(-24 * time.Hour * 30)
-	// for index := 0; index < 11; index++ {
-	// 	select {
-	// 	case <-ctx.Done():
-	// 		return context.Canceled
-	// 	default:
-	// 	}
-	// 	cycle := fmt.Sprintf("%d-%02d", now.Year(), now.Month())
+		if info.StartTime.Unix() >= info.EndTime.Unix() {
+			info.Statue = 1
+			SetAliyunCostHistory(key, info)
+			break
+		}
 
-	// 	if billFlag == 0 {
-	// 		if err := b.getBills(ctx, cycle, lmtr, true); err != nil {
-	// 			log.Printf("E! [aliyunboa:bill] %s", err)
-	// 		}
-	// 	}
+		cycle := fmt.Sprintf("%d-%02d", info.StartTime.Year(), info.StartTime.Month())
 
-	// 	if billInstanceFlag == 0 {
-	// 		if err := b.getInstnceBills(ctx, cycle, lmtr); err != nil {
-	// 			log.Printf("E! [aliyunboa:bill] %s", err)
-	// 		}
-	// 	}
+		if err := cb.getBills(ctx, cycle, lmtr, info); err != nil {
+			cb.logger.Errorf("%s", err)
+		}
 
-	// 	now = now.Add(-24 * time.Hour * 30)
-	// }
-
-	// config.SetLastyearFlag(k1, 1)
-	// config.SetLastyearFlag(k2, 1)
+		info.StartTime = info.StartTime.AddDate(0, 1, 0)
+		SetAliyunCostHistory(key, info)
+	}
 
 	return nil
 }
@@ -151,7 +143,11 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 		recover()
 	}()
 
-	cb.logger.Infof("start getting Bills of %s", cycle)
+	if info != nil {
+		cb.logger.Infof("(history)start getting Bills of %s", cycle)
+	} else {
+		cb.logger.Infof("start getting Bills of %s", cycle)
+	}
 
 	req := bssopenapi.CreateQueryBillRequest()
 	req.BillingCycle = cycle
@@ -176,7 +172,11 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 			return fmt.Errorf("fail to get bill of %s: %s", cycle, err)
 		}
 
-		cb.logger.Debugf("Bills(%s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", cycle, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
+		if info != nil {
+			cb.logger.Debugf("(history)Bills(%s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", cycle, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
+		} else {
+			cb.logger.Debugf("Bills(%s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", cycle, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
+		}
 
 		if err := cb.parseBillResponse(ctx, resp); err != nil {
 			return err

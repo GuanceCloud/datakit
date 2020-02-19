@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type historyInfo struct {
@@ -12,6 +13,10 @@ type historyInfo struct {
 	End     string
 	Statue  int
 	PageNum int
+
+	//for bills
+	StartTime time.Time
+	EndTime   time.Time
 
 	key string
 }
