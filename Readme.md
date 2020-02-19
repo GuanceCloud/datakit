@@ -1,11 +1,15 @@
 # datakit
 
-## Linux 安装:  
+## Linux   
+安装:  
+	DK_FTDATAWAY=http://xxx bash -c "$(curl https://static.dataflux.cn/datakit/install.sh)"
 
-	sudo bash -c "$(curl http://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/test/install.sh)" - --ftdataway xxxx
+
+更新:  
+	DK_UPGRADE=true bash -c "$(curl https://static.dataflux.cn/datakit/install.sh)"
 
 ## windows 安装:
 
-	http://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/windows/test/install.exe
+	https://static.dataflux.cn/datakit/install.exe
 
 	install.exe --ftdataway xxxx
