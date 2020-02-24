@@ -66,7 +66,7 @@ omit_hostname = false
 #  metric_batch_size = 1000
 
 #  ## Maximum number of unwritten metrics per output.
-#  metric_buffer_limit = 10000
+#  metric_buffer_limit = 100000
 
 #  ## Collection jitter is used to jitter the collection by a random amount.
 #  ## Each plugin will sleep for a random time within jitter before collecting.
@@ -89,7 +89,7 @@ omit_hostname = false
 #  ## Precision will NOT be used for service inputs. It is up to each individual
 #  ## service input to set the timestamp at the appropriate precision.
 #  ## Valid time units are "ns", "us" (or "µs"), "ms", "s".
-#  precision = ""
+#  precision = "ns"
 
 #  ## Log at debug level.
 #  debug = true
