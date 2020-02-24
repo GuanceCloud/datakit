@@ -3,6 +3,9 @@
 default: release
 
 # 正式环境
+TEST_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit
+
+# 正式环境
 RELEASE_DOWNLOAD_ADDR = zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit
 
 PUB_DIR = pub
