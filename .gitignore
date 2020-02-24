@@ -31,4 +31,3 @@ ftcollector
 config.d/
 datakit
 test/
-vendor/
