@@ -65,9 +65,9 @@ func (ca *CostAccount) getRealtimeData(ctx context.Context) error {
 		now := time.Now().Truncate(time.Minute)
 		start := now.Add(-ca.interval)
 
-		from := unixTimeStr(start)
-		end := unixTimeStr(now)
-		if err := ca.getTransactions(ctx, from, end, ca.runningInstance.lmtr, nil); err != nil && err != context.Canceled {
+		from := unixTimeStr(start) //需要传unix时间
+		//end := unixTimeStr(now)
+		if err := ca.getTransactions(ctx, from, "", ca.runningInstance.lmtr, nil); err != nil && err != context.Canceled {
 			ca.logger.Errorf("%s", err)
 		}
 
@@ -269,28 +269,31 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 			fields[k] = v
 		}
 
-		tags[`TransactionFlow`] = item.TransactionFlow
-		tags[`TransactionType`] = item.TransactionType
-		tags[`TransactionChannel`] = item.TransactionChannel
-		tags[`FundType`] = item.FundType
+		tags[`TransactionFlow`] = item.TransactionFlow       //收支类型
+		tags[`TransactionType`] = item.TransactionType       //交易类型
+		tags[`TransactionChannel`] = item.TransactionChannel //交易渠道
+		tags[`FundType`] = item.FundType                     //资金形式
 		tags[`TransactionAccount`] = item.TransactionAccount
 		tags[`AccountName`] = accname
 		tags[`AccountID`] = accid
 
-		fields[`TransactionNumber`] = item.TransactionNumber
+		fields[`TransactionNumber`] = item.TransactionNumber //交易编号
 		fields[`TransactionChannelSN`] = item.TransactionChannelSN
-		fields[`RecordID`] = item.RecordID
-		fields[`Remarks`] = item.Remarks
-		fields[`Amount`], _ = strconv.ParseFloat(internal.NumberFormat(item.Amount), 64)
-		fields[`Balance`], _ = strconv.ParseFloat(internal.NumberFormat(item.Balance), 64)
+		fields[`RecordID`] = item.RecordID                                                 //订单号/账单号
+		fields[`Remarks`] = item.Remarks                                                   //交易备注
+		fields[`Amount`], _ = strconv.ParseFloat(internal.NumberFormat(item.Amount), 64)   //账单金额
+		fields[`Balance`], _ = strconv.ParseFloat(internal.NumberFormat(item.Balance), 64) //当前余额
+
 		tm, err := time.Parse("2006-01-02T15:04:05Z", item.TransactionTime)
-		if err == nil {
-			fields[`TransactionTime`] = tm.Unix()
+		if err != nil {
+			ca.logger.Warnf("fail to parse time:%v %s, error: %s", item.TransactionTime, item.RecordID, err)
+		} else {
+			tm = tm.Add(-8 * time.Hour)
+			if ca.runningInstance.cost.accumulator != nil {
+				ca.runningInstance.cost.accumulator.AddFields(ca.getName(), fields, tags, tm)
+			}
 		}
 
-		if ca.runningInstance.cost.accumulator != nil {
-			ca.runningInstance.cost.accumulator.AddFields(ca.getName(), fields, tags)
-		}
 	}
 
 	return nil
