@@ -19,9 +19,8 @@ import (
 	"text/template"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/itos/agent/storage"
-	"gitlab.jiagouyun.com/cloudcare-tools/itos/tunnel"
 )
 
 var (
@@ -259,16 +258,15 @@ func publishAgent() {
 		log.Fatalf("[fatal] oss access key or secret key missing, tag=%s", strings.ToUpper(*flagRelease))
 	}
 
-	storage.DefaultOssOption = &tunnel.OssOption{
-		Host:      ossHost,
-		Bucket:    bucket,
-		AccessKey: ak,
-		SecretKey: sk,
-		Path:      objPath,
+	oc := &cliutils.OssCli{
+		Host:       ossHost,
+		AccessKey:  ak,
+		SecretKey:  sk,
+		BucketName: bucket,
+		WorkDir:    objPath,
 	}
 
-	oc, err := storage.NewOssCli()
-	if err != nil {
+	if err := oc.Init(); err != nil {
 		log.Fatalf("[fatal] %s", err)
 	}
 
