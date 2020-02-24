@@ -288,7 +288,7 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 		if err != nil {
 			ca.logger.Warnf("fail to parse time:%v %s, error: %s", item.TransactionTime, item.RecordID, err)
 		} else {
-			tm = tm.Add(-8 * time.Hour)
+			tm = tm.Add(-8 * time.Hour) //返回的不是unix时间字符串
 			if ca.runningInstance.cost.accumulator != nil {
 				ca.runningInstance.cost.accumulator.AddFields(ca.getName(), fields, tags, tm)
 			}
