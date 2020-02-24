@@ -68,34 +68,33 @@ func TestAccountBalance(t *testing.T) {
 
 func TestAccountTransactions(t *testing.T) {
 
-	tm, err := time.Parse("2006-01-02T15:04:05Z", "2020-02-15T00:21:12Z")
-	if err == nil {
-		log.Printf("tm: %v", tm)
-	} else {
-		log.Fatalf("%s", err)
-	}
-	return
-
 	cli := staticClient()
 
 	req := bssopenapi.CreateQueryAccountTransactionsRequest()
 	req.PageSize = requests.NewInteger(300)
-	now := time.Now().Truncate(time.Minute)
-	start := now.Add(-time.Hour * 24).Format(`2006-01-02T15:04:05Z`)
+	//now := time.Now().Truncate(time.Minute)
+	start := "2020-02-24T12:00:00Z" // now.Add(-time.Hour * 24).Format(`2006-01-02T15:04:05Z`)
 	req.CreateTimeStart = start
-	req.CreateTimeEnd = now.Format(`2006-01-02T15:04:05Z`)
+	//req.CreateTimeEnd = "2020-02-24T00:00:00Z" // now.Format(`2006-01-02T15:04:05Z`)
 
 	resp, err := cli.QueryAccountTransactions(req)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("err: %s", err)
 	}
+
+	log.Printf("total: %v", len(resp.Data.AccountTransactionsList.AccountTransactionsListItem))
 
 	//og.Printf("%s", resp.String())
 
 	//fmt.Printf("TotalCount=%d, PageSize=%d, PageNum=%d\n", resp.Data.TotalCount, resp.Data.PageSize, resp.Data.PageNum)
 
 	for _, at := range resp.Data.AccountTransactionsList.AccountTransactionsListItem {
-		log.Printf("%s - %s - %s, %s", at.TransactionTime, at.TransactionAccount, at.Amount, at.Balance)
+
+		//tm, _ := time.Parse("2006-01-02T15:04:05Z", at.TransactionTime)
+		//tm = tm.Add(-8 * time.Hour)
+		log.Printf("%s, %s", at.RecordID, at.TransactionTime)
+
+		//log.Printf("%s - %s - %s - %s, %s", at.TransactionTime, at.RecordID, at.TransactionChannelSN, at.Amount, at.Balance)
 	}
 }
 
