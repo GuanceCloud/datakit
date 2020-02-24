@@ -76,21 +76,27 @@ func TestInfluxLine(t *testing.T) {
 
 func TestMetricInfo(t *testing.T) {
 
-	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAIlsWpTrg1vUf4", "dy5lQzWpU17RDNHGCj84LBDhoU9LVU")
+	//client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAIlsWpTrg1vUf4", "dy5lQzWpU17RDNHGCj84LBDhoU9LVU")
 
-	namespace := "acs_ecs_dashboard"
-	metricname := "IOPSUsage"
+	client, err := cms.NewClientWithAccessKey("cn-shanghai", "LTAIlsWpTrg1vUf4", "dy5lQzWpU17RDNHGCj84LBDhoU9LVU")
+
+	//namespace := "acs_ecs_dashboard"
+	//metricname := "IOPSUsage"
+
+	namespace := "acs_smartag"
+	metricname := "net.rxPkgs"
+	_ = metricname
 
 	request := cms.CreateDescribeMetricMetaListRequest()
 	request.Scheme = "https"
 
 	request.Namespace = namespace
-	request.MetricName = metricname
-	request.PageSize = requests.NewInteger(100)
+	//request.MetricName = metricname
+	//request.PageSize = requests.NewInteger(100)
 
 	response, err := client.DescribeMetricMetaList(request)
 	if err != nil {
-		fmt.Print(err.Error())
+		fmt.Printf("%s\n", err.Error())
 	}
 
 	if response.Resources.Resource != nil {
@@ -125,21 +131,22 @@ func TestMetricList(t *testing.T) {
 }
 
 func TestGetMetrics(t *testing.T) {
-	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAIlsWpTrg1vUf4", "dy5lQzWpU17RDNHGCj84LBDhoU9LVU")
+	client, err := cms.NewClientWithAccessKey("cn-shanghai", "LTAI4Fh8Xn7Rk9pci3xs4CBV", "fyYCdkD81ZABX5SUY7L9wiWJZmMsqT")
 
 	request := cms.CreateDescribeMetricListRequest()
 	request.Scheme = "https"
 
-	request.MetricName = "CPUUtilization"
-	request.Namespace = "acs_ecs_dashboard"
+	request.MetricName = "net.rxPkgs"
+	request.Namespace = "acs_smartag"
 	request.Period = "60"
-	request.StartTime = "1574921940000"
-	request.EndTime = "1574922000000"
-	request.Dimensions = `[{"instanceId": "i-bp15wj5w33t8vfxi7z3d"}]`
+	request.StartTime = "2020-02-18 00:10:00"
+	request.EndTime = "2020-02-19 00:10:00"
+	//request.Dimensions = `[{"instanceId": "i-bp15wj5w33t8vfxi7z3d"}]`
 
 	response, err := client.DescribeMetricList(request)
 	if err != nil {
-		fmt.Print(err.Error())
+		fmt.Printf("%s\n", err.Error())
+		return
 	}
 
 	var datapoints []map[string]interface{}
