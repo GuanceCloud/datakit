@@ -107,7 +107,7 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 		},
 		RoundInterval:     true,
 		MetricBatchSize:   1000,
-		MetricBufferLimit: 10000,
+		MetricBufferLimit: 100000,
 		CollectionJitter: internal.Duration{
 			Duration: 0,
 		},
