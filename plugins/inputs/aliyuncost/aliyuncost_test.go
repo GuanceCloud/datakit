@@ -73,7 +73,7 @@ func TestAccountTransactions(t *testing.T) {
 	req := bssopenapi.CreateQueryAccountTransactionsRequest()
 	req.PageSize = requests.NewInteger(300)
 	//now := time.Now().Truncate(time.Minute)
-	start := "2020-02-24T09:03:00Z" // now.Add(-time.Hour * 24).Format(`2006-01-02T15:04:05Z`)
+	start := "2020-02-24T04:00:00Z" // now.Add(-time.Hour * 24).Format(`2006-01-02T15:04:05Z`)
 	req.CreateTimeStart = start
 	//req.CreateTimeEnd = "2020-02-24T00:00:00Z" // now.Format(`2006-01-02T15:04:05Z`)
 
