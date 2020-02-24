@@ -73,7 +73,7 @@ func TestAccountTransactions(t *testing.T) {
 	req := bssopenapi.CreateQueryAccountTransactionsRequest()
 	req.PageSize = requests.NewInteger(300)
 	//now := time.Now().Truncate(time.Minute)
-	start := "2020-02-24T04:00:00Z" // now.Add(-time.Hour * 24).Format(`2006-01-02T15:04:05Z`)
+	start := "2020-02-24T12:00:00Z" // now.Add(-time.Hour * 24).Format(`2006-01-02T15:04:05Z`)
 	req.CreateTimeStart = start
 	//req.CreateTimeEnd = "2020-02-24T00:00:00Z" // now.Format(`2006-01-02T15:04:05Z`)
 
@@ -90,9 +90,9 @@ func TestAccountTransactions(t *testing.T) {
 
 	for _, at := range resp.Data.AccountTransactionsList.AccountTransactionsListItem {
 
-		tm, _ := time.Parse("2006-01-02T15:04:05Z", at.TransactionTime)
-		tm = tm.Add(-8 * time.Hour)
-		log.Printf("%s, %s", at.RecordID, tm)
+		//tm, _ := time.Parse("2006-01-02T15:04:05Z", at.TransactionTime)
+		//tm = tm.Add(-8 * time.Hour)
+		log.Printf("%s, %s", at.RecordID, at.TransactionTime)
 
 		//log.Printf("%s - %s - %s - %s, %s", at.TransactionTime, at.RecordID, at.TransactionChannelSN, at.Amount, at.Balance)
 	}
