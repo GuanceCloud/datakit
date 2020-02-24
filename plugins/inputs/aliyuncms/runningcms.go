@@ -122,6 +122,7 @@ func (s *RunningCMS) fetchMetricInfo(namespace, metricname string) (*MetricInfo,
 
 	response, err := s.client.DescribeMetricMetaList(request)
 	if err != nil {
+		s.logger.Warnf("fail to get metric(%s.%s) info: %s", namespace, metricname, err)
 		return nil, fmt.Errorf("fail to get metric(%s.%s) info: %s", namespace, metricname, err)
 	}
 
@@ -153,30 +154,32 @@ func (s *RunningCMS) fetchMetricInfo(namespace, metricname string) (*MetricInfo,
 func (s *RunningCMS) fetchMetric(req *MetricsRequest) error {
 
 	var err error
-	if req.info == nil {
-		if req.info, err = s.fetchMetricInfo(req.q.Namespace, req.q.MetricName); err != nil {
-			return err
-		}
-	}
-
 	if !req.checkPeriod {
-
-		pv, _ := strconv.ParseInt(req.q.Period, 10, 64)
-		bok := false
-		for _, n := range req.info.Periods {
-			if pv == n {
-				bok = true
-				break
+		if req.info == nil {
+			req.info, err = s.fetchMetricInfo(req.q.Namespace, req.q.MetricName)
+			if err != nil {
+				req.info = nil
+				req.checkPeriod = true
 			}
 		}
+		if req.info != nil {
+			pv, _ := strconv.ParseInt(req.q.Period, 10, 64)
+			bok := false
+			for _, n := range req.info.Periods {
+				if pv == n {
+					bok = true
+					break
+				}
+			}
 
-		if !bok {
-			s.logger.Warnf("period of %v for %s.%s not support, avariable periods:%#v", pv, req.q.Namespace, req.q.MetricName, req.info.Periods)
-			//按照监控项默认的最小周期来查询数据
-			req.q.Period = ""
+			if !bok {
+				s.logger.Warnf("period of %v for %s.%s not support, avariable periods:%#v", pv, req.q.Namespace, req.q.MetricName, req.info.Periods)
+				//按照监控项默认的最小周期来查询数据
+				req.q.Period = ""
+			}
+
+			req.checkPeriod = true
 		}
-
-		req.checkPeriod = true
 	}
 
 	// if req.q.Dimensions != "" {
