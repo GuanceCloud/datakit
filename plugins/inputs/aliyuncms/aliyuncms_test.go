@@ -106,11 +106,11 @@ func TestMetricInfo(t *testing.T) {
 	}
 }
 
-func TestMetricList(t *testing.T) {
+func TestGetMetricMeta(t *testing.T) {
 
-	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAIlsWpTrg1vUf4", "dy5lQzWpU17RDNHGCj84LBDhoU9LVU")
+	client, err := cms.NewClientWithAccessKey("cn-shanghai", "LTAI4Fh8Xn7Rk9pci3xs4CBV", "fyYCdkD81ZABX5SUY7L9wiWJZmMsqT")
 
-	namespace := "acs_ecs_dashboard"
+	namespace := "cen-q8g3j8laen0qbt9qsa"
 
 	request := cms.CreateDescribeMetricMetaListRequest()
 	request.Scheme = "https"
@@ -136,8 +136,8 @@ func TestGetMetrics(t *testing.T) {
 	request := cms.CreateDescribeMetricListRequest()
 	request.Scheme = "https"
 
-	request.MetricName = "net.rxPkgs"
-	request.Namespace = "acs_smartag"
+	request.MetricName = "InternetOutRateByConnectionArea"
+	request.Namespace = "cen-q8g3j8laen0qbt9qsa "
 	request.Period = "60"
 	request.StartTime = "2020-02-18 00:10:00"
 	request.EndTime = "2020-02-19 00:10:00"
@@ -145,13 +145,15 @@ func TestGetMetrics(t *testing.T) {
 
 	response, err := client.DescribeMetricList(request)
 	if err != nil {
-		fmt.Printf("%s\n", err.Error())
+		t.Errorf("%s", err)
 		return
 	}
 
+	fmt.Printf("**%s\n", response.String())
+
 	var datapoints []map[string]interface{}
 	if err = json.Unmarshal([]byte(response.Datapoints), &datapoints); err != nil {
-		log.Fatalf("failed to decode response datapoints: %v", err)
+		t.Errorf("failed to decode response datapoints: %v", err)
 	}
 
 	log.Infof("Count: %v", len(datapoints))
