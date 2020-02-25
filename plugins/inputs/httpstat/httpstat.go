@@ -1,6 +1,4 @@
-package ping
-
-// simple.go
+package httpstat
 
 import (
 	"context"
@@ -124,10 +122,10 @@ func (h *Httpstat) exec(acc telegraf.Accumulator) {
 		fields["total"] = trace7.Sub(traceTime.trace0).Microseconds()
 	}
 
-	tags["addr"] = domain     //域名
+	tags["addr"] = h.Url      //域名
 	tags["ipAddr"] = req.Host //ip
 
-	acc.AddFields("filesize", fields, tags)
+	acc.AddFields("httpstat", fields, tags)
 }
 
 func parseURL(uri string) *url.URL {
