@@ -111,15 +111,15 @@ func (h *Httpstat) exec(acc telegraf.Accumulator) {
 		fields["dnsLookup"] = traceTime.trace1.Sub(traceTime.trace0).Microseconds()
 		fields["tcpConnection"] = traceTime.trace2.Sub(traceTime.trace1).Microseconds()
 		fields["tlsHandshake"] = traceTime.trace6.Sub(traceTime.trace5).Microseconds()
-		fields["serverProcessing"] = traceTime.trace4.Sub(traceTime.trace3).Microseconds()
-		fields["contentTransfer"] = trace7.Sub(traceTime.trace4).Microseconds()
-		fields["total"] = trace7.Sub(traceTime.trace0).Microseconds()
+		fields["serverProcessing"] = traceTime.trace4.Sub(traceTime.trace3).Microseconds
+		fields["contentTransfer"] = trace7.Sub(traceTime.trace4).Microseconds
+		fields["total"] = trace7.Sub(traceTime.trace0).Microseconds
 	} else {
-		fields["dnsLookup"] = traceTime.trace1.Sub(traceTime.trace0).Microseconds()
-		fields["tcpConnection"] = traceTime.trace2.Sub(traceTime.trace1).Microseconds()
-		fields["serverProcessing"] = traceTime.trace4.Sub(traceTime.trace3).Microseconds()
-		fields["contentTransfer"] = trace7.Sub(traceTime.trace4).Microseconds()
-		fields["total"] = trace7.Sub(traceTime.trace0).Microseconds()
+		fields["dnsLookup"] = traceTime.trace1.Sub(traceTime.trace0).Microseconds
+		fields["tcpConnection"] = traceTime.trace2.Sub(traceTime.trace1).Microseconds
+		fields["serverProcessing"] = traceTime.trace4.Sub(traceTime.trace3).Microseconds
+		fields["contentTransfer"] = trace7.Sub(traceTime.trace4).Microseconds
+		fields["total"] = trace7.Sub(traceTime.trace0).Microseconds
 	}
 
 	tags["addr"] = h.Url      //域名
