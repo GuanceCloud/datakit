@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"text/template"
 	"time"
 
 	"github.com/influxdata/toml"
 
-	"github.com/alecthomas/template"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
