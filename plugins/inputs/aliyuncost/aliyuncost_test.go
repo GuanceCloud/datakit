@@ -188,38 +188,6 @@ func TestQueryOrderDetail(t *testing.T) {
 
 func TestQueryOrder(t *testing.T) {
 
-	// pt := &influxdb.Point{}
-	// _ = pt
-
-	// points, err := influxm.ParsePoints([]byte(`aliyun_cost_order,AccountID=1932186612313289,AccountName=zhuyuncloudcare,Currency=CNY,OrderType=Renew,ProductCode=hbase,ProductType=cluster,SubscriptionType=Subscription,wqc=aaa OrderID="205382106450001",RelatedOrderId="",PretaxGrossAmount=1644,PretaxAmount=1644 1581228428000000000`))
-
-	// if err != nil {
-	// 	log.Fatalf("!!%s", err)
-	// 	return
-	// }
-
-	// for _, pt := range points {
-	// 	//log.Printf("%v", pt.String())
-	// 	//log.Printf("%v", pt.Time())
-
-	// 	fields, _ := pt.Fields()
-	// 	mapTags := map[string]string{}
-	// 	for _, tag := range pt.Tags() {
-	// 		mapTags[string(tag.Key)] = string(tag.Value)
-	// 	}
-
-	// 	pt, _ := influxdb.NewPoint(
-	// 		`aliyun_cost_order`,
-	// 		mapTags,
-	// 		fields,
-	// 		pt.Time(),
-	// 	)
-
-	// 	log.Printf("---%v", pt.Time())
-	// }
-
-	// return
-
 	cli := staticClient()
 
 	req := bssopenapi.CreateQueryOrdersRequest()
