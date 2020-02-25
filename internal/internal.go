@@ -20,8 +20,7 @@ import (
 	"syscall"
 	"time"
 	"unicode"
-
-	"github.com/alecthomas/units"
+	//"github.com/alecthomas/units"
 )
 
 const alphanum string = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -136,15 +135,15 @@ func (s *Size) UnmarshalTOML(b []byte) error {
 		s.Size = val
 		return nil
 	}
-	uq, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	val, err = units.ParseStrictBytes(uq)
-	if err != nil {
-		return err
-	}
-	s.Size = val
+	// uq, err := strconv.Unquote(string(b))
+	// if err != nil {
+	// 	return err
+	// }
+	// val, err = units.ParseStrictBytes(uq)
+	// if err != nil {
+	// 	return err
+	// }
+	// s.Size = val
 	return nil
 }
 
