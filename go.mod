@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.4
+	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.6+incompatible // indirect
 	github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
