@@ -32,12 +32,17 @@ type TraceTime struct {
 }
 
 const sampleConfig = `
-	# httpstat
+	# get http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
+	# serverProcessing, contentTransfer, and total time
+	# url config set website  domain
 	url = "https://www.dataflux.cn/"
 `
 
+const description = `stat http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
+	serverProcessing, contentTransfer, and total time`
+
 func (h *Httpstat) Description() string {
-	return "http stat"
+	return description
 }
 
 func (h *Httpstat) SampleConfig() string {
@@ -122,8 +127,7 @@ func (h *Httpstat) exec(acc telegraf.Accumulator) {
 		fields["total"] = trace7.Sub(traceTime.trace0).Microseconds()
 	}
 
-	tags["addr"] = h.Url      //域名
-	tags["ipAddr"] = req.Host //ip
+	tags["addr"] = h.Url //域名
 
 	acc.AddFields("httpstat", fields, tags)
 }
