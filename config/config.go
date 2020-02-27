@@ -375,6 +375,7 @@ func CreatePluginConfigs(cfgdir string, upgrade bool) error {
 
 	//datakit定义的插件的配置文件
 	for name, creator := range inputs.Inputs {
+
 		plugindir := ""
 		if name == "apachelog" {
 			plugindir = filepath.Join(cfgdir, "apache")
