@@ -31,3 +31,4 @@ ftcollector
 config.d/
 datakit
 test/
+conf.d/
