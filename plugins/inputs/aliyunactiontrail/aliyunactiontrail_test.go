@@ -28,7 +28,7 @@ func TestConfig(t *testing.T) {
 }
 
 func TestActiontrail(t *testing.T) {
-	cli, err := actiontrail.NewClientWithAccessKey(`cn-hangzhou`, `LTAI4FkR2SokHHESouUMrkxV`, `ht4jybX3IrhQAUgHrUOTJRrkP8dONJ`)
+	cli, err := actiontrail.NewClientWithAccessKey(`cn-hangzhou`, ``, ``)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
