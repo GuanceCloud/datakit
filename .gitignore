@@ -32,3 +32,6 @@ config.d/
 datakit
 test/
 conf.d/
+agent.conf
+agent.pid
+agent_linux
