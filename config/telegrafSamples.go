@@ -53,12 +53,78 @@ var (
 		`syslog`,
 		`varnish`,
 		`nsq_consumer`,
+		`kube_inventory`,
+		`kubernetes`,
 	}
 
 	MetricsEnablesFlags = make([]bool, len(SupportsTelegrafMetraicNames))
 )
 
 func InitTelegrafSamples() {
+
+	telegrafCfgSamples[`kube_inventory`] = `
+[[inputs.kube_inventory]]
+## URL for the Kubernetes API
+url = "https://127.0.0.1"
+
+## Namespace to use. Set to "" to use all namespaces.
+# namespace = "default"
+
+## Use bearer token for authorization. ('bearer_token' takes priority)
+## If both of these are empty, we'll use the default serviceaccount:
+## at: /run/secrets/kubernetes.io/serviceaccount/token
+# bearer_token = "/path/to/bearer/token"
+## OR
+# bearer_token_string = "abc_123"
+
+## Set response_timeout (default 5 seconds)
+# response_timeout = "5s"
+
+## Optional Resources to exclude from gathering
+## Leave them with blank with try to gather everything available.
+## Values can be - "daemonsets", deployments", "endpoints", "ingress", "nodes",
+## "persistentvolumes", "persistentvolumeclaims", "pods", "services", "statefulsets"
+# resource_exclude = [ "deployments", "nodes", "statefulsets" ]
+
+## Optional Resources to include when gathering
+## Overrides resource_exclude if both set.
+# resource_include = [ "deployments", "nodes", "statefulsets" ]
+
+## Optional TLS Config
+# tls_ca = "/path/to/cafile"
+# tls_cert = "/path/to/certfile"
+# tls_key = "/path/to/keyfile"
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = false
+`
+
+	telegrafCfgSamples[`kubernetes`] = `
+[[inputs.kubernetes]]
+## URL for the kubelet
+url = "http://127.0.0.1:10255"
+
+## Use bearer token for authorization. ('bearer_token' takes priority)
+## If both of these are empty, we'll use the default serviceaccount:
+## at: /run/secrets/kubernetes.io/serviceaccount/token
+# bearer_token = "/path/to/bearer/token"
+## OR
+# bearer_token_string = "abc_123"
+
+## Pod labels to be added as tags.  An empty array for both include and
+## exclude will include all labels.
+# label_include = []
+# label_exclude = ["*"]
+
+## Set response_timeout (default 5 seconds)
+# response_timeout = "5s"
+
+## Optional TLS Config
+# tls_ca = /path/to/cafile
+# tls_cert = /path/to/certfile
+# tls_key = /path/to/keyfile
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = false
+`
 
 	telegrafCfgSamples[`nsq_consumer`] = `
 # # Read NSQ topic for metrics.
