@@ -13,8 +13,8 @@ import (
 )
 
 const sampleConfig = `
-	# trace domain
-	addr = "www.dataflux.cn"
+# trace domain
+# addr = "www.dataflux.cn"
 `
 
 type TraceRouter struct {
@@ -26,7 +26,7 @@ func (t *TraceRouter) Description() string {
 }
 
 func (t *TraceRouter) SampleConfig() string {
-	return "trace router ip and ttl"
+	return sampleConfig
 }
 
 func (t *TraceRouter) Init() error {
