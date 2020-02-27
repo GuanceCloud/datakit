@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.4
+	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.6+incompatible // indirect
 	github.com/google/uuid v1.1.1
 	github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
