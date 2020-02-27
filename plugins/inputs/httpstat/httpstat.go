@@ -113,17 +113,17 @@ func (h *Httpstat) exec(acc telegraf.Accumulator) {
 	tags := make(map[string]string)
 
 	if url.Scheme == "https" {
-		fields["dnsLookup"] = traceTime.trace1.Sub(traceTime.trace0).Microseconds()
-		fields["tcpConnection"] = traceTime.trace2.Sub(traceTime.trace1).Microseconds()
-		fields["tlsHandshake"] = traceTime.trace6.Sub(traceTime.trace5).Microseconds()
-		fields["serverProcessing"] = traceTime.trace4.Sub(traceTime.trace3).Microseconds()
-		fields["contentTransfer"] = trace7.Sub(traceTime.trace4).Microseconds()
+		fields["time_dns_lookup"] = traceTime.trace1.Sub(traceTime.trace0).Microseconds()
+		fields["time_tcp_connection"] = traceTime.trace2.Sub(traceTime.trace1).Microseconds()
+		fields["time_tls_handshake"] = traceTime.trace6.Sub(traceTime.trace5).Microseconds()
+		fields["time_server_processing"] = traceTime.trace4.Sub(traceTime.trace3).Microseconds()
+		fields["time_content_transfer"] = trace7.Sub(traceTime.trace4).Microseconds()
 		fields["total"] = trace7.Sub(traceTime.trace0).Microseconds()
 	} else {
-		fields["dnsLookup"] = traceTime.trace1.Sub(traceTime.trace0).Microseconds()
-		fields["tcpConnection"] = traceTime.trace2.Sub(traceTime.trace1).Microseconds()
-		fields["serverProcessing"] = traceTime.trace4.Sub(traceTime.trace3).Microseconds()
-		fields["contentTransfer"] = trace7.Sub(traceTime.trace4).Microseconds()
+		fields["time_dns_lookup"] = traceTime.trace1.Sub(traceTime.trace0).Microseconds()
+		fields["time_tcp_connection"] = traceTime.trace2.Sub(traceTime.trace1).Microseconds()
+		fields["time_server_processing"] = traceTime.trace4.Sub(traceTime.trace3).Microseconds()
+		fields["time_content_transfer"] = trace7.Sub(traceTime.trace4).Microseconds()
 		fields["total"] = trace7.Sub(traceTime.trace0).Microseconds()
 	}
 
