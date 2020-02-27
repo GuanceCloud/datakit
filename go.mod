@@ -18,6 +18,6 @@ require (
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.123+incompatible
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200224092637-fd61dba3717b
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200227072035-1dd4eb09d824
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
 )
