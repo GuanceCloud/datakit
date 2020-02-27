@@ -41,6 +41,7 @@ var (
 		`processes`,
 		`tcp_udp_check`,
 		`http_check`,
+		`httpstat`,
 		`kernel`,
 		`tls`,
 		`nats`,
