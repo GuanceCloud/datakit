@@ -36,7 +36,7 @@ const sampleConfig = `
 	# serverProcessing, contentTransfer, and total time
 	# url config set website  domain
 
-	url = "https://www.dataflux.cn/"
+	# url = "https://www.dataflux.cn/"
 `
 
 const description = `stat http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
