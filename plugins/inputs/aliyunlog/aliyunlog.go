@@ -2,7 +2,6 @@ package aliyunlog
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -49,8 +48,9 @@ type runningProject struct {
 }
 
 type runningStore struct {
-	proj *runningProject
-	cfg  *LogStoreCfg
+	proj       *runningProject
+	cfg        *LogStoreCfg
+	metricName string
 
 	logger *models.Logger
 }
@@ -127,6 +127,10 @@ func (r *runningProject) run(ctx context.Context) error {
 			proj:   r,
 			logger: r.logger,
 		}
+		s.metricName = c.MetricName
+		if s.metricName == "" {
+			s.metricName = `aliyunlog_` + c.Name
+		}
 		r.runningStores = append(r.runningStores, s)
 
 		go s.run(ctx)
@@ -165,7 +169,7 @@ func (r *runningStore) run(ctx context.Context) error {
 }
 
 func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) string {
-	fmt.Println(shardId, logGroupList)
+	r.logger.Debugf("shardId:%d, grouplist:%s", shardId, logGroupList.String())
 	for _, lg := range logGroupList.LogGroups {
 
 		tags := map[string]string{}
@@ -200,7 +204,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 			}
 
 			tm := time.Unix(int64(l.GetTime()), 0)
-			m, err := metric.New("", tags, fields, tm)
+			m, err := metric.New(r.metricName, tags, fields, tm)
 			if err == nil {
 				r.proj.inst.agent.accumulator.AddMetric(m)
 			} else {
