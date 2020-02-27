@@ -12,6 +12,9 @@ const (
 	
 #	 [[consumer.projects.stores]]
 #	   name = 'store-name'
+
+#      ##if empty, use 'aliyunlog_+store-name' 
+#      metric_name = ''
 #	   consumer_group_name = 'consumer-group'
 #	   consumer_name = 'consumer-name'
 `
@@ -24,6 +27,7 @@ type (
 	}
 
 	LogStoreCfg struct {
+		MetricName        string
 		Name              string
 		ConsumerGroupName string
 		ConsumerName      string
