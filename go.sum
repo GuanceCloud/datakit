@@ -509,6 +509,8 @@ github.com/yookoala/realpath v1.0.0/go.mod h1:gJJMA9wuX7AcqLy1+ffPatSCySA1FQ2S8Y
 github.com/yuin/gopher-lua v0.0.0-20180630135845-46796da1b0b4/go.mod h1:aEV29XrmTYFr3CiRxZeGHpkvbwq+prZduBqMaascyCU=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200224092637-fd61dba3717b h1:JSxQ0HEgZwuE1Ix8MUxXM7ZWtd3XORTrQfmSdsviamI=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200224092637-fd61dba3717b/go.mod h1:8F7HcDtqTRaqs8/jb84KdFhFMDmtBFs1+g6qZwJD8Xo=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200227072035-1dd4eb09d824 h1:Mq5cjiUQW/1fdgkMWt+dsCGFP424yWzXwcnWpXrBGCI=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200227072035-1dd4eb09d824/go.mod h1:8F7HcDtqTRaqs8/jb84KdFhFMDmtBFs1+g6qZwJD8Xo=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/etcd v0.5.0-alpha.5.0.20191023171146-3cf2f69b5738/go.mod h1:dnLIgRNXwCJa5e+c6mIZCrds/GIG4ncV9HhK5PX7jPg=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
