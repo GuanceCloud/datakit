@@ -94,3 +94,7 @@ func TestConsumer(t *testing.T) {
 		consumerWorker.StopAndWait()
 	}
 }
+
+func TestService(t *testing.T) {
+
+}
