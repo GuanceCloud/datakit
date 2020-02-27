@@ -2,7 +2,6 @@ package tracerouter
 
 import (
 	"fmt"
-	"net"
 
 	guuid "github.com/google/uuid"
 
@@ -14,7 +13,7 @@ import (
 
 const sampleConfig = `
 	# trace domain
-	addr = "www.dataflux.cn"
+	# addr = "www.dataflux.cn"
 `
 
 type TraceRouter struct {
@@ -26,7 +25,7 @@ func (t *TraceRouter) Description() string {
 }
 
 func (t *TraceRouter) SampleConfig() string {
-	return "trace router ip and ttl"
+	return sampleConfig
 }
 
 func (t *TraceRouter) Init() error {
@@ -51,10 +50,6 @@ func NewUUID() string {
 
 func printHop(domain string, traceId string, hop traceroute.TracerouteHop, acc telegraf.Accumulator) {
 	addr := fmt.Sprintf("%v.%v.%v.%v", hop.Address[0], hop.Address[1], hop.Address[2], hop.Address[3])
-	hostOrAddr := addr
-	if hop.Host != "" {
-		hostOrAddr = hop.Host
-	}
 
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
@@ -65,11 +60,10 @@ func printHop(domain string, traceId string, hop traceroute.TracerouteHop, acc t
 		fields["seq"] = fmt.Sprintf("%d", hop.TTL)
 		fields["addr"] = fmt.Sprintf("\"%s\"", addr)
 		fields["ttl"] = hop.ElapsedTime.Microseconds()
-
-		fmt.Printf("%-3d %v (%v)  %v\n", hop.TTL, hostOrAddr, addr, hop.ElapsedTime)
-	} else {
-		fmt.Printf("%-3d *\n", hop.TTL)
 	}
+	// } else {
+	// 	fmt.Printf("%-3d *\n", hop.TTL)
+	// }
 
 	acc.AddFields("tracerouter", fields, tags)
 }
@@ -84,12 +78,10 @@ func (t *TraceRouter) exec(traceId string, acc telegraf.Accumulator) {
 	options.SetMaxHops(traceroute.DEFAULT_MAX_HOPS + 1)
 	options.SetFirstHop(traceroute.DEFAULT_FIRST_HOP)
 
-	ipAddr, err := net.ResolveIPAddr("ip", host)
-	if err != nil {
-		return
-	}
-
-	fmt.Printf("traceroute to %v (%v), %v hops max, %v byte packets\n", host, ipAddr, options.MaxHops(), options.PacketSize())
+	// ipAddr, err := net.ResolveIPAddr("ip", host)
+	// if err != nil {
+	// 	return
+	// }
 
 	c := make(chan traceroute.TracerouteHop, 0)
 	go func() {
@@ -104,7 +96,7 @@ func (t *TraceRouter) exec(traceId string, acc telegraf.Accumulator) {
 		}
 	}()
 
-	_, err = traceroute.Traceroute(host, &options, c)
+	_, err := traceroute.Traceroute(host, &options, c)
 	if err != nil {
 		fmt.Printf("Error: ", err)
 	}
