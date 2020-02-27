@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/net/http2"
 )
 
@@ -35,6 +35,7 @@ const sampleConfig = `
 	# get http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
 	# serverProcessing, contentTransfer, and total time
 	# url config set website  domain
+
 	url = "https://www.dataflux.cn/"
 `
 

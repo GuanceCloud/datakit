@@ -9,7 +9,7 @@ import (
 	"github.com/aeden/traceroute"
 
 	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const sampleConfig = `
