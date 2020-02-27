@@ -63,9 +63,9 @@ var (
 func InitTelegrafSamples() {
 
 	telegrafCfgSamples[`kube_inventory`] = `
-[[inputs.kube_inventory]]
+#[[inputs.kube_inventory]]
 ## URL for the Kubernetes API
-url = "https://127.0.0.1"
+#url = "https://127.0.0.1"
 
 ## Namespace to use. Set to "" to use all namespaces.
 # namespace = "default"
@@ -99,9 +99,9 @@ url = "https://127.0.0.1"
 `
 
 	telegrafCfgSamples[`kubernetes`] = `
-[[inputs.kubernetes]]
+#[[inputs.kubernetes]]
 ## URL for the kubelet
-url = "http://127.0.0.1:10255"
+#url = "http://127.0.0.1:10255"
 
 ## Use bearer token for authorization. ('bearer_token' takes priority)
 ## If both of these are empty, we'll use the default serviceaccount:
