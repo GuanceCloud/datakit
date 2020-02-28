@@ -30,8 +30,7 @@ var (
 	flagBuildDir = flag.String("build-dir", "build", "output of build files")
 	flagMain     = flag.String(`main`, `main.go`, `binary build entry`)
 	flagCGO      = flag.Bool(`cgo`, false, `enable CGO or not`)
-	flagWindows  = flag.Bool(`windows`, false, `build for windows`)
-	flagMac      = flag.Bool(`mac`, false, `build for mac`)
+	flagTargetOS = flag.String(`os`, `linux`, `linux/mac/windows`)
 
 	flagKodoHost     = flag.String("kodo-host", "", "")
 	flagDownloadAddr = flag.String("download-addr", "", "")
@@ -130,6 +129,7 @@ func compileArch(bin, goos, goarch, dir string) {
 	args := []string{
 		"go", "build",
 		"-o", output,
+		"-ldflags", "-w -s",
 		*flagMain,
 	}
 
@@ -222,9 +222,10 @@ func getCurrentVersionInfo(url string) *versionDesc {
 
 func getPudirByRelease() string {
 	prefix := path.Join(*flagPubDir, *flagRelease)
-	if *flagWindows {
+	switch *flagTargetOS {
+	case "windows":
 		prefix += "_win"
-	} else if *flagMac {
+	case "mac":
 		prefix += "_mac"
 	}
 
@@ -235,12 +236,6 @@ func getPudirByRelease() string {
 func publishAgent() {
 	var ak, sk, bucket, ossHost string
 	objPath := *flagName
-
-	// if *flagWindows {
-	// 	objPath = *flagName + "/windows/" + *flagRelease
-	// } else if *flagMac {
-	// 	objPath = *flagName + "/mac/" + *flagRelease
-	// }
 
 	// 在你本地设置好这些 oss-key 环境变量
 	switch *flagRelease {
@@ -270,39 +265,34 @@ func publishAgent() {
 		log.Fatalf("[fatal] %s", err)
 	}
 
-	// 请求线上版本信息
-	url := fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, *flagName, `version`)
-	if *flagWindows {
-		url = fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, *flagName, `version_win`)
+	versionFile := `version`
+	installObj := "install.sh"
+
+	switch *flagTargetOS {
+	case "windows":
+		versionFile = "version_win"
+		installObj = "install.exe"
+	case "mac":
+		versionFile = "version_mac"
+		installObj = "install-mac.sh"
 	}
-	//  else if *flagMac {
-	// 	url = fmt.Sprintf("http://%s.%s/%s/mac/%s/%s", bucket, ossHost, *flagName, *flagRelease, `version`)
-	// }
+
+	// 请求线上版本信息
+	url := fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, *flagName, versionFile)
 	curVd := getCurrentVersionInfo(url)
 
 	if curVd != nil {
-		// vOld := strings.Split(curVd.Version, `-`)
-		// vCur := strings.Split(git.Version, `-`)
-		// if vOld[0] == vCur[0] &&
-		// 	vOld[1] == vCur[1] &&
-		// 	vOld[2] == vCur[2] &&
-		// 	vOld[3] == vCur[3] {
-		// 	log.Printf("[warn] Current OSS corsair verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
-		// 	os.Exit(0)
-		// }
 		if curVd.Version == git.Version {
 			log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
 			os.Exit(0)
 		}
 
-		installObj := ""
-		installObjOld := ""
-		if *flagWindows {
-			installObj = path.Join(objPath, "install.exe")
+		installObjOld := path.Join(objPath, fmt.Sprintf("install-%s.sh", curVd.Version))
+		switch *flagTargetOS {
+		case "windows":
 			installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.exe", curVd.Version))
-		} else {
-			installObj = path.Join(objPath, "install.sh")
-			installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.sh", curVd.Version))
+		case "mac":
+			installObjOld = path.Join(objPath, fmt.Sprintf("install-mac-%s.sh", curVd.Version))
 		}
 
 		oc.Move(installObj, installObjOld)
@@ -321,10 +311,14 @@ func publishAgent() {
 
 	objs := map[string]string{}
 
-	if *flagWindows {
+	switch *flagTargetOS {
+	case "windows":
 		objs[path.Join(pubdir, `version`)] = path.Join(objPath, `version_win`)
 		objs[path.Join(pubdir, `install.exe`)] = path.Join(objPath, `install.exe`)
-	} else {
+	case "mac":
+		objs[path.Join(pubdir, `version`)] = path.Join(objPath, `version_mac`)
+		objs[path.Join(pubdir, `install.sh`)] = path.Join(objPath, `install-mac.sh`)
+	default:
 		objs[path.Join(pubdir, `version`)] = path.Join(objPath, `version`)
 		objs[path.Join(pubdir, `install.sh`)] = path.Join(objPath, `install.sh`)
 	}
@@ -432,7 +426,25 @@ const (
 	versionInfo, _ := json.Marshal(vd)
 	ioutil.WriteFile(path.Join(outdir, `version`), versionInfo, 0666)
 
-	if !*flagWindows {
+	switch *flagTargetOS {
+	case "windows":
+		archs := []string{}
+		switch *flagArchs {
+		case "all":
+			archs = osarches
+		default:
+			archs = strings.Split(*flagArchs, ",")
+		}
+
+		for _, arch := range archs {
+			parts := strings.Split(arch, "/")
+			if len(parts) != 2 {
+				log.Fatalf("invalid arch %q", parts)
+			}
+
+			buildWindowsInstall(outdir, parts[1])
+		}
+	default:
 		// create install.sh script
 		type Install struct {
 			Name         string
@@ -468,26 +480,6 @@ const (
 		if err = ioutil.WriteFile(path.Join(outdir, `install.sh`), results, os.ModePerm); err != nil {
 			log.Fatal(err)
 		}
-
-	} else {
-
-		archs := []string{}
-		switch *flagArchs {
-		case "all":
-			archs = osarches
-		default:
-			archs = strings.Split(*flagArchs, ",")
-		}
-
-		for _, arch := range archs {
-			parts := strings.Split(arch, "/")
-			if len(parts) != 2 {
-				log.Fatalf("invalid arch %q", parts)
-			}
-
-			buildWindowsInstall(outdir, parts[1])
-		}
-
 	}
 
 	os.RemoveAll(*flagBuildDir)
@@ -533,18 +525,26 @@ func tarFiles(osarch string) {
 		`.`,
 	}
 
-	if *flagWindows {
-		args = []string{
-			`czf`,
-			path.Join(pubdir, fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, osarch, string(curVersion))),
-			`-C`,
-			`windows`,
-			`agent.exe`,
-			`-C`,
-			`../build`,
-			//path.Join(*flagBuildDir, fmt.Sprintf("%s-%s", *flagName, osarch)),
-			`.`,
-		}
+	agentBinaryDir := "agent-binary/linux"
+	agentName := "agent"
+	switch *flagTargetOS {
+	case "windows":
+		agentBinaryDir = "agent-binary/windows"
+		agentName = "agent.exe"
+	case "mac":
+		agentBinaryDir = "agent-binary/mac"
+	}
+
+	args = []string{
+		`czf`,
+		path.Join(pubdir, fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, osarch, string(curVersion))),
+		`-C`,
+		agentBinaryDir,
+		agentName,
+		`-C`,
+		`../build`,
+		//path.Join(*flagBuildDir, fmt.Sprintf("%s-%s", *flagName, osarch)),
+		`.`,
 	}
 
 	cmd := exec.Command("tar", args...)
