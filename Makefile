@@ -29,17 +29,17 @@ define build
 	@mkdir -p git
 	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
 	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
-		 -download-addr $(2) -release $(1) -pub-dir $(PUB_DIR) -archs $(5)
+		 -download-addr $(2) -release $(1) -pub-dir $(PUB_DIR) -archs $(3) -os $(4)
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
 	#@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
 	tree -Csh $(PUB_DIR)
 endef
 
 test:
-	$(call build,test,$(TEST_DOWNLOAD_ADDR),"linux/amd64")
+	$(call build,test,$(TEST_DOWNLOAD_ADDR),"linux/amd64","linux")
 
 release:
-	$(call build,release,$(RELEASE_DOWNLOAD_ADDR),"linux/amd64")
+	$(call build,release,$(RELEASE_DOWNLOAD_ADDR),"linux/amd64","linux")
 
 	# @echo "===== $(BIN) release ===="
 	# @rm -rf $(PUB_DIR)/release
@@ -52,6 +52,18 @@ release:
 	# #@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
 	# tree -Csh $(PUB_DIR)
 
+
+define pub
+	echo "publish $(1) $(NAME) ..."
+	go run make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3) -os $(4)
+endef
+
+
+pub_test:
+	$(call pub,test,$(TEST_DOWNLOAD_ADDR),"linux/amd64","linux")
+
+pub_release:
+	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),"linux/amd64","linux")
 
 test_win:
 	@echo "===== $(BIN) test_win ===="
@@ -91,9 +103,9 @@ test_mac:
 pub_local:
 	$(call pub,local)
 
-pub_test:
-	@echo "publish test ${BIN} ..."
-	@go run make.go -pub -release test -pub-dir $(PUB_DIR) -name $(NAME)
+# pub_test:
+# 	@echo "publish test ${BIN} ..."
+# 	@go run make.go -pub -release test -pub-dir $(PUB_DIR) -name $(NAME)
 
 pub_test_win:
 	@echo "publish test windows ${BIN} ..."
@@ -107,9 +119,9 @@ pub_preprod:
 	@echo "publish preprod ${BIN} ..."
 	@go run make.go -pub -release preprod -pub-dir $(PUB_DIR) -name $(NAME)
 
-pub_release:
-	@echo "publish release ${BIN} ..."
-	@go run make.go -pub -release release -pub-dir $(PUB_DIR) -name $(NAME)
+# pub_release:
+# 	@echo "publish release ${BIN} ..."
+# 	@go run make.go -pub -release release -pub-dir $(PUB_DIR) -name $(NAME)
 
 clean:
 	rm -rf build/*
