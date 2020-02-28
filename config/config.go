@@ -307,6 +307,10 @@ func (c *Config) LoadConfig(ctx context.Context) error {
 			return fmt.Errorf("Error loading config file %s, %s", path, err)
 		}
 
+		if len(tbl.Fields) == 0 && name != "mock" {
+			continue
+		}
+
 		if err := c.addInput(name, input, tbl); err != nil {
 			return err
 		}
