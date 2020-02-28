@@ -38,20 +38,14 @@ endef
 test:
 	$(call build,test,$(TEST_DOWNLOAD_ADDR),"linux/amd64","linux")
 
+test_win:
+	$(call build,test,$(TEST_DOWNLOAD_ADDR),"windows/amd64","windows")
+
 release:
 	$(call build,release,$(RELEASE_DOWNLOAD_ADDR),"linux/amd64","linux")
 
-	# @echo "===== $(BIN) release ===="
-	# @rm -rf $(PUB_DIR)/release
-	# @mkdir -p build $(PUB_DIR)/release
-	# @mkdir -p git
-	# @echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	# @go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
-	# 	 -download-addr $(RELEASE_DOWNLOAD_ADDR) -release release -pub-dir $(PUB_DIR)
-	# #@strip build/$(NAME)-linux-amd64/$(BIN)
-	# #@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
-	# tree -Csh $(PUB_DIR)
-
+release_win:
+	$(call build,release,$(RELEASE_DOWNLOAD_ADDR),"windows/amd64","windows")
 
 define pub
 	echo "publish $(1) $(NAME) ..."
@@ -62,32 +56,12 @@ endef
 pub_test:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),"linux/amd64","linux")
 
+pub_test_win:
+	$(call pub,test,$(TEST_DOWNLOAD_ADDR),"windows/amd64","windows")
+
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),"linux/amd64","linux")
 
-test_win:
-	@echo "===== $(BIN) test_win ===="
-	@rm -rf $(PUB_DIR)/test_win
-	@mkdir -p build $(PUB_DIR)/test_win
-	@mkdir -p git
-	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "windows/amd64" \
-		 -download-addr $(TEST_DOWNLOAD_ADDR_WIN) -release test -pub-dir $(PUB_DIR) -windows
-	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	#@tar czf $(PUB_DIR)/test_win/$(NAME)-$(VERSION).tar.gz -C windows agent.exe -C ../build .
-	tree -Csh $(PUB_DIR)
-
-release_win:
-	@echo "===== $(BIN) release_win ===="
-	@rm -rf $(PUB_DIR)/release_win
-	@mkdir -p build $(PUB_DIR)/release_win
-	@mkdir -p git
-	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "windows/amd64" \
-		 -download-addr $(RELEASE_DOWNLOAD_ADDR) -release release -pub-dir $(PUB_DIR) -windows
-	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	#@tar czf $(PUB_DIR)/test_win/$(NAME)-$(VERSION).tar.gz -C windows agent.exe -C ../build .
-	tree -Csh $(PUB_DIR)
 
 
 test_mac:
@@ -100,28 +74,6 @@ test_mac:
 	@tar czf $(PUB_DIR)/test_mac/$(NAME)-$(VERSION).tar.gz -C mac agent -C ../build .
 	tree -Csh $(PUB_DIR)
 
-pub_local:
-	$(call pub,local)
-
-# pub_test:
-# 	@echo "publish test ${BIN} ..."
-# 	@go run make.go -pub -release test -pub-dir $(PUB_DIR) -name $(NAME)
-
-pub_test_win:
-	@echo "publish test windows ${BIN} ..."
-	@go run make.go -pub -release test -pub-dir $(PUB_DIR) -archs "windows/amd64" -name $(NAME) -windows
-
-pub_release_win:
-	@echo "publish release windows ${BIN} ..."
-	@go run make.go -pub -release release -pub-dir $(PUB_DIR) -archs "windows/amd64" -name $(NAME) -windows
-
-pub_preprod:
-	@echo "publish preprod ${BIN} ..."
-	@go run make.go -pub -release preprod -pub-dir $(PUB_DIR) -name $(NAME)
-
-# pub_release:
-# 	@echo "publish release ${BIN} ..."
-# 	@go run make.go -pub -release release -pub-dir $(PUB_DIR) -name $(NAME)
 
 clean:
 	rm -rf build/*
