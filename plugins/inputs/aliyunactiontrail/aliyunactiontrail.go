@@ -182,9 +182,12 @@ func (r *runningInstance) handleResponse(ctx context.Context, response *actiontr
 			tags["region"] = acsRegion
 		}
 
+		if serviceName, ok := ev["serviceName"].(string); ok {
+			tags["serviceName"] = serviceName
+		}
+
 		fields["eventId"] = ev["eventId"]
 		fields["eventSource"] = ev["eventSource"]
-		fields["serviceName"] = ev["serviceName"]
 		if ev["sourceIpAddress"] != nil {
 			fields["sourceIpAddress"] = ev["sourceIpAddress"]
 		}
@@ -192,15 +195,20 @@ func (r *runningInstance) handleResponse(ctx context.Context, response *actiontr
 		fields["eventVersion"] = ev["eventVersion"]
 
 		if userIdentity, ok := ev["userIdentity"].(map[string]interface{}); ok {
-			//userIdentity:map[accountId:50220571 principalId:50220571 type:root-account userName:root]
-			fields["accountId"] = userIdentity["accountId"]
-			fields["accountType"] = userIdentity["type"]
-			fields["userName"] = userIdentity["userName"]
-			fields["principalId"] = userIdentity["principalId"]
+			fields["userIdentity_accountId"] = userIdentity["accountId"]
+			fields["userIdentity_type"] = userIdentity["type"]
+			fields["userIdentity_principalId"] = userIdentity["principalId"]
+
+			if userName, ok := userIdentity["userName"].(string); ok {
+				tags["userIdentity_userName"] = userName
+			}
+
+			if accessKeyId, ok := userIdentity["accessKeyId"].(string); ok {
+				tags["userIdentity_accessKeyId"] = accessKeyId
+			}
 		}
 
 		if additionalEventData, ok := ev["additionalEventData"].(map[string]interface{}); ok {
-			//additionalEventData:map[isMFAChecked:false loginAccount:13626736491]
 			fields["loginAccount"] = additionalEventData["loginAccount"]
 			fields["isMFAChecked"] = additionalEventData["isMFAChecked"]
 		}
