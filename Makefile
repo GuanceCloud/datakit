@@ -22,29 +22,36 @@ local:
 	$(call build,local,$(LOCAL_KODO_HOST),$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_SSL),$(LOCAL_PORT))
 
 
-release:
-	@echo "===== $(BIN) release ===="
-	@rm -rf $(PUB_DIR)/release
-	@mkdir -p build $(PUB_DIR)/release
+define build
+	@echo "===== $(BIN) $(1) ===="
+	@rm -rf $(PUB_DIR)/$(1)/*
+	@mkdir -p build $(PUB_DIR)/$(1)
 	@mkdir -p git
 	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
-		 -download-addr $(RELEASE_DOWNLOAD_ADDR) -release release -pub-dir $(PUB_DIR)
+	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
+		 -download-addr $(2) -release $(1) -pub-dir $(PUB_DIR) -archs $(5)
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
 	#@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
 	tree -Csh $(PUB_DIR)
+endef
 
 test:
-	@echo "===== $(BIN) test ===="
-	@rm -rf $(PUB_DIR)/test
-	@mkdir -p build $(PUB_DIR)/test
-	@mkdir -p git
-	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
-		 -download-addr $(TEST_DOWNLOAD_ADDR) -release test -pub-dir $(PUB_DIR)
-	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	#@tar czf $(PUB_DIR)/test/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
-	tree -Csh $(PUB_DIR)
+	$(call build,test,$(TEST_DOWNLOAD_ADDR),"linux/amd64")
+
+release:
+	$(call build,release,$(RELEASE_DOWNLOAD_ADDR),"linux/amd64")
+
+	# @echo "===== $(BIN) release ===="
+	# @rm -rf $(PUB_DIR)/release
+	# @mkdir -p build $(PUB_DIR)/release
+	# @mkdir -p git
+	# @echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
+	# @go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
+	# 	 -download-addr $(RELEASE_DOWNLOAD_ADDR) -release release -pub-dir $(PUB_DIR)
+	# #@strip build/$(NAME)-linux-amd64/$(BIN)
+	# #@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
+	# tree -Csh $(PUB_DIR)
+
 
 test_win:
 	@echo "===== $(BIN) test_win ===="

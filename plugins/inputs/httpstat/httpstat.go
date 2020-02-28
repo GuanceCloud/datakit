@@ -13,7 +13,6 @@ import (
 
 	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
 	"golang.org/x/net/http2"
 )
 
@@ -33,10 +32,11 @@ type TraceTime struct {
 }
 
 const sampleConfig = `
-# get http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
-# serverProcessing, contentTransfer, and total time
-# url config set website  domain
-# url = "https://www.dataflux.cn/"
+	# get http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
+	# serverProcessing, contentTransfer, and total time
+	# url config set website  domain
+
+	# url = "https://www.dataflux.cn/"
 `
 
 const description = `stat http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
