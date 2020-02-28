@@ -373,6 +373,10 @@ func main() {
 		log.Fatal("-binary required")
 	}
 
+	if *flagTargetOS != "windows" && *flagTargetOS != "linux" && *flagTargetOS != "mac" {
+		log.Fatal("invalid target os")
+	}
+
 	gitsha1, err := exec.Command("git", []string{`rev-parse`, `--short`, `HEAD`}...).Output()
 	if err != nil {
 		log.Fatal(err)
@@ -542,8 +546,7 @@ func tarFiles(osarch string) {
 		agentBinaryDir,
 		agentName,
 		`-C`,
-		`../build`,
-		//path.Join(*flagBuildDir, fmt.Sprintf("%s-%s", *flagName, osarch)),
+		fmt.Sprintf(`../../%s/%s-%s`, *flagBuildDir, *flagName, osarch),
 		`.`,
 	}
 
