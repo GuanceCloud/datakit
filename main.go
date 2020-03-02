@@ -177,7 +177,7 @@ func serviceCmd() {
 			os.Exit(1)
 			return
 		}
-		exepath := filepath.Join(*fInstallDir, `agent.exe`)
+		exepath := filepath.Join(*fInstallDir, `datakit.exe`)
 		_, err := os.Stat(exepath)
 		if err != nil {
 			log.Printf("executable file not found in %s", *fInstallDir)
@@ -185,7 +185,7 @@ func serviceCmd() {
 			return
 		}
 		svcConfig.Executable = exepath
-		svcConfig.Arguments = []string{"/config", filepath.Join(*fInstallDir, `agent.conf`)}
+		svcConfig.Arguments = []string{"/cfg", filepath.Join(*fInstallDir, `datakit.conf`)}
 	}
 
 	prg := &program{}
