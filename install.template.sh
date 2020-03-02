@@ -12,6 +12,7 @@ SERVICE={{.Name}}
 USRDIR="/usr/local/cloudcare/forethought/${SERVICE}"
 BINARY="$USRDIR/${SERVICE}"
 AGENTBINARY="$USRDIR/agent"
+EMBEDDIR="$USRDIR/embed"
 CONF="$USRDIR/${SERVICE}.conf"
 DOWNLOAD_BASE_ADDR="https://{{.DownloadAddr}}"
 VERSION="{{.Version}}"
@@ -162,12 +163,26 @@ function host_install() {
 
 	# create workdir
 	$sudo_cmd mkdir -p ${USRDIR}
+	$sudo_cmd mkdir -p ${EMBEDDIR}
 
     info "Downloading..."
 	$dl_cmd - "${download_addr}" | $sudo_cmd tar -xz -C ${USRDIR}
 
 	$sudo_cmd chmod +x "$BINARY" 
 	$sudo_cmd chmod +x "$AGENTBINARY" 
+
+	mv "$AGENTBINARY" "${EMBEDDIR}"
+	if [ -f "${USRDIR}/agent.log" ]; then
+		mv "${USRDIR}/agent.log" "${EMBEDDIR}"
+	fi
+	
+	if [ -f "${USRDIR}/agent.pid" ]; then
+		mv "${USRDIR}/agent.pid" "${EMBEDDIR}"
+	fi
+
+	if [ -f "${USRDIR}/agent.conf" ]; then
+		mv "${USRDIR}/agent.conf" "${EMBEDDIR}"
+	fi
 
 	set_config $CONF
 
