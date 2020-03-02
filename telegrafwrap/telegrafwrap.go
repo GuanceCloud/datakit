@@ -23,6 +23,8 @@ type (
 	}
 )
 
+const agentSubDir = "embed"
+
 var Svr = &TelegrafSvr{}
 
 func (s *TelegrafSvr) Start(ctx context.Context) error {
@@ -180,7 +182,8 @@ func (s *TelegrafSvr) killProcessByPID(npid int) error {
 }
 
 func (s *TelegrafSvr) agentConfPath(quote bool) string {
-	path := filepath.Join(config.ExecutableDir, "agent.conf")
+	os.MkdirAll(filepath.Join(config.ExecutableDir, agentSubDir), 0775)
+	path := filepath.Join(config.ExecutableDir, agentSubDir, "agent.conf")
 
 	if quote {
 		return fmt.Sprintf(`"%s"`, path)
@@ -189,12 +192,12 @@ func (s *TelegrafSvr) agentConfPath(quote bool) string {
 }
 
 func agentPidPath() string {
-	return filepath.Join(config.ExecutableDir, "agent.pid")
+	return filepath.Join(config.ExecutableDir, agentSubDir, "agent.pid")
 }
 
 func agentPath(win bool) string {
 	if win {
-		return filepath.Join(config.ExecutableDir, "agent.exe")
+		return filepath.Join(config.ExecutableDir, agentSubDir, "agent.exe")
 	}
-	return filepath.Join(config.ExecutableDir, "agent")
+	return filepath.Join(config.ExecutableDir, agentSubDir, "agent")
 }
