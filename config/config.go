@@ -375,6 +375,21 @@ func InitMainCfg(cfg *MainConfig, path string) error {
 	return nil
 }
 
+func CreateDataDir() error {
+	dataDir := filepath.Join(ExecutableDir, "data")
+	os.MkdirAll(dataDir, 0755)
+	//datakit定义的插件的配置文件
+	for name, _ := range inputs.Inputs {
+		if name == "zabbix" {
+			pluginDataDir := filepath.Join(dataDir, "zabbix")
+			if err := os.MkdirAll(pluginDataDir, 0775); err != nil {
+				return fmt.Errorf("Error create %s, %s", pluginDataDir, err)
+			}
+		}
+	}
+	return nil
+}
+
 func CreatePluginConfigs(cfgdir string, upgrade bool) error {
 
 	//datakit定义的插件的配置文件
