@@ -234,7 +234,7 @@ func (c *Config) LoadMainConfig(ctx context.Context, maincfg string) error {
 		}
 
 		if c.TelegrafAgentCfg.LogTarget == "file" && c.TelegrafAgentCfg.Logfile == "" {
-			c.TelegrafAgentCfg.Logfile = filepath.Join(ExecutableDir, "agent.log")
+			c.TelegrafAgentCfg.Logfile = filepath.Join(ExecutableDir, "embed", "agent.log")
 		}
 
 		if !bAgentSetLogLevel {
