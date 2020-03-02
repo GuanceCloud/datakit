@@ -256,6 +256,7 @@ func initialize() error {
 	}
 
 	config.InitTelegrafSamples()
+	config.CreateDataDir()
 	return config.CreatePluginConfigs(*flagCfgDir, false)
 }
 
