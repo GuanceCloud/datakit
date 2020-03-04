@@ -43,8 +43,8 @@ replace(replace(CASE
 || ',value_avg=' || CAST(tre.value_avg as varchar(32))
 || ',value_max=' || CAST(tre.value_max as varchar(32))
 -- timestamp (in ms)
-|| ' ' || CAST((tre.clock * 1000000000.) as char(14)) as INLINE
-,  CAST((tre.clock * 1000000000.) as char(14)) as clock
+|| ' ' || CAST((tre.clock * 1000000000.) as char(19)) as INLINE
+,  CAST((tre.clock * 1000000000.) as char(19)) as clock
 FROM public.trends tre
 INNER JOIN public.items ite on ite.itemid = tre.itemid
 INNER JOIN public.hosts hos on hos.hostid = ite.hostid
@@ -82,8 +82,8 @@ replace(replace(CASE
 || ',value_avg=' || CAST(tre.value_avg as varchar(32))
 || ',value_max=' || CAST(tre.value_max as varchar(32))
 -- timestamp (in ms)
-|| ' ' || CAST((tre.clock * 1000000000.) as char(14)) as INLINE
-,  CAST((tre.clock * 1000000000.) as char(14)) as clock
+|| ' ' || CAST((tre.clock * 1000000000.) as char(19)) as INLINE
+,  CAST((tre.clock * 1000000000.) as char(19)) as clock
 FROM public.trends_uint tre
 INNER JOIN public.items ite on ite.itemid = tre.itemid
 INNER JOIN public.hosts hos on hos.hostid = ite.hostid
@@ -120,8 +120,8 @@ replace(replace(CASE
     WHERE iap.itemid = ite.itemid), ' ', '\ '), 'N.A.')
 || ' value=' || CAST(his.value as varchar(32))
 -- timestamp (in ms)
-|| ' ' || CAST((his.clock * 1000000000.) + his.ns as char(14)) as INLINE
-,  CAST((his.clock * 1000000000.) as char(14)) as clock
+|| ' ' || CAST((his.clock * 1000000000.) + his.ns as char(19)) as INLINE
+,  CAST((his.clock * 1000000000.) as char(19)) as clock
 FROM public.history his
 INNER JOIN public.items ite on ite.itemid = his.itemid
 INNER JOIN public.hosts hos on hos.hostid = ite.hostid
@@ -158,8 +158,8 @@ replace(replace(CASE
     WHERE iap.itemid = ite.itemid), ' ', '\ '), 'N.A.')
 || ' value=' || CAST(his.value as varchar(32))
 -- timestamp (in ms)
-|| ' ' || CAST((his.clock * 1000000000.) + his.ns as char(14)) as INLINE
-,  CAST((his.clock * 1000000000.) as char(14)) as clock
+|| ' ' || CAST((his.clock * 1000000000.) + his.ns as char(19)) as INLINE
+,  CAST((his.clock * 1000000000.) as char(19)) as clock
 FROM public.history_uint his
 INNER JOIN public.items ite on ite.itemid = his.itemid
 INNER JOIN public.hosts hos on hos.hostid = ite.hostid
