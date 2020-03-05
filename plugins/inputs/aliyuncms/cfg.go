@@ -2,8 +2,10 @@ package aliyuncms
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 )
 
 const (
@@ -22,7 +24,7 @@ const (
 #	name='acs_ecs_dashboard'
 
 #	## Optional instances from which you want to pull metrics, empty means to pull all instances 
-#	#instanceIds=["xxx","yyy"]
+#	#instanceIds=['','']
 
 #	## Metrics to Pull (Required)
 #	## See: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.2.11.6ac47694AjhHt4
@@ -36,6 +38,7 @@ const (
 #	## name is metric name, value is a json string
 #	[[cms.project.metrics.dimensions]]
 #		name = "CPUUtilization"
+#       period = 60
 #		value = '''
 #		[
 #		{"instanceId":"i-bp15wj5w33t8vfxi****"},
@@ -51,8 +54,9 @@ var (
 
 type (
 	Dimension struct {
-		Name  string `toml:"name"`
-		Value string `toml:"value"`
+		Name   string `toml:"name"`
+		Value  string `toml:"value"`
+		Period int    `toml:"period"`
 	}
 
 	Metric struct {
@@ -73,24 +77,28 @@ type (
 		Project         []*Project `toml:"project"`
 	}
 
-	MetricInfo struct {
-		Periods    []int64
-		Statistics []string
-		Dimensions string
+	MetricMeta struct {
+		Periods     []int64
+		Statistics  []string
+		Dimensions  []string
+		Description string
+		Unit        string
 	}
 
 	MetricsRequest struct {
-		q           *cms.DescribeMetricListRequest
-		info        *MetricInfo
-		checkPeriod bool
+		q             *cms.DescribeMetricListRequest
+		meta          *MetricMeta
+		haveGetMeta   bool
+		tunePeriod    bool
+		tuneDimension bool
 	}
 )
 
-func (p *Project) GenDimension(mestric string) (string, error) {
+func (p *Project) genDimension(metric string, logger *models.Logger) (string, error) {
 
 	var dimension *Dimension
 	for _, d := range p.Metrics.Dimensions {
-		if d.Name == mestric {
+		if d.Name == metric {
 			dimension = d
 			break
 		}
@@ -104,19 +112,20 @@ func (p *Project) GenDimension(mestric string) (string, error) {
 
 	if dimension != nil && dimension.Value != "" {
 		if err := json.Unmarshal([]byte(dimension.Value), &vals); err != nil {
+			logger.Errorf("invalid dimension(%s): %s, %s", metric, dimension.Value, err)
 			return "", err
 		}
 	}
 
-	setId := false
+	bHaveSetID := false
 	for _, m := range vals {
 		if _, ok := m["instanceId"]; ok {
-			setId = true
+			bHaveSetID = true
 			break
 		}
 	}
 
-	if !setId && len(p.InstanceIDs) > 0 {
+	if !bHaveSetID && len(p.InstanceIDs) > 0 {
 		for _, id := range p.InstanceIDs {
 			vals = append(vals, map[string]string{
 				"instanceId": id})
@@ -132,7 +141,14 @@ func (p *Project) GenDimension(mestric string) (string, error) {
 
 }
 
-func getPeriod(namespace, metricname string) string {
-	//TODO: 有些指标可能最低周期不是60s
-	return "60"
+func (p *Project) getPeriod(metricname string) string {
+	for _, d := range p.Metrics.Dimensions {
+		if d.Name == metricname {
+			if d.Period >= 60 {
+				return strconv.FormatInt(int64(d.Period), 10)
+			}
+			break
+		}
+	}
+	return "60" //默认60s
 }
