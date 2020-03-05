@@ -14,6 +14,7 @@ require (
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/kardianos/service v1.0.0
 	github.com/lib/pq v1.3.0
+	github.com/masahide/toml v0.1.0
 	github.com/naoina/toml v0.1.1
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
