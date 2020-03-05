@@ -56,12 +56,55 @@ var (
 		`kube_inventory`,
 		`kubernetes`,
 		`kafka_consumer`,
+		`jolokia2_agent`,
 	}
 
 	MetricsEnablesFlags = make([]bool, len(SupportsTelegrafMetraicNames))
 )
 
 func InitTelegrafSamples() {
+
+	telegrafCfgSamples[`jolokia2_agent`] = `
+#[[inputs.jolokia2_agent]]
+#urls = ["http://agent:8080/jolokia"]
+
+#[[inputs.jolokia2_agent.metric]]
+#	name  = "jvm_runtime"
+#	mbean = "java.lang:type=Runtime"
+#	paths = ["Uptime"]
+
+## #Optionally, specify TLS options for communicating with agents:
+
+#[[inputs.jolokia2_agent]]
+#	urls = ["https://agent:8080/jolokia"]
+#	tls_ca   = "/var/private/ca.pem"
+#	tls_cert = "/var/private/client.pem"
+#	tls_key  = "/var/private/client-key.pem"
+#	#insecure_skip_verify = false
+#
+#	[[inputs.jolokia2_agent.metric]]
+#	name  = "jvm_runtime"
+#	mbean = "java.lang:type=Runtime"
+#	paths = ["Uptime"]
+
+## #Jolokia Proxy Configuration
+## #The jolokia2_proxy input plugin reads JMX metrics from one or more targets by interacting with a Jolokia ## ## #proxy REST endpoint.
+
+#[[inputs.jolokia2_proxy]]
+#  url = "http://proxy:8080/jolokia"
+
+#  #default_target_username = ""
+#  #default_target_password = ""
+#  [[inputs.jolokia2_proxy.target]]
+#    url = "service:jmx:rmi:///jndi/rmi://targethost:9999/jmxrmi"
+#    # username = ""
+#    # password = ""
+
+#  [[inputs.jolokia2_proxy.metric]]
+#    name  = "jvm_runtime"
+#    mbean = "java.lang:type=Runtime"
+#    paths = ["Uptime"]
+`
 
 	telegrafCfgSamples[`kafka_consumer`] = `
 #[[inputs.kafka_consumer]]
