@@ -76,6 +76,8 @@ github.com/aliyun/alibaba-cloud-sdk-go v1.61.4 h1:tGAMQb1yLUXnjANE6Od+5rCESXxf8j
 github.com/aliyun/alibaba-cloud-sdk-go v1.61.4/go.mod h1:v8ESoHo4SyHmuB4b1tJqDHxfTGEciD+yhvOU/5s1Rfk=
 github.com/aliyun/aliyun-log-go-sdk v0.1.5 h1:2KgxnbJ6cZI/bOGx7CbbZeQVEwhZpC4KqclGV0SSJ2g=
 github.com/aliyun/aliyun-log-go-sdk v0.1.5/go.mod h1:80fy+GaqvK1wG6Za7dCzxpWFc71RGNX/gT4f8TiIDV4=
+github.com/aliyun/aliyun-oss-go-sdk v2.0.6+incompatible h1:ZDgadcjGIrbHMBLSqQVHkMOdNd/jF6bsSRJd/Ysxlos=
+github.com/aliyun/aliyun-oss-go-sdk v2.0.6+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
 github.com/amir/raidman v0.0.0-20170415203553-1ccc43bfb9c9 h1:FXrPTd8Rdlc94dKccl7KPmdmIbVh/OjelJ8/vgMRzcQ=
 github.com/amir/raidman v0.0.0-20170415203553-1ccc43bfb9c9/go.mod h1:eliMa/PW+RDr2QLWRmLH1R1ZA4RInpmvOzDDXtaIZkc=
 github.com/antihax/optional v0.0.0-20180407024304-ca021399b1a6/go.mod h1:V8iCPQYkqmusNa815XgQio277wI47sdRh1dUOLdyC6Q=
