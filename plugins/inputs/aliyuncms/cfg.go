@@ -66,6 +66,7 @@ type (
 
 	Project struct {
 		Name        string   `toml:"name"`
+		MetricName  string   `toml:"metric_name"`
 		InstanceIDs []string `toml:"instanceIds"`
 		Metrics     *Metric  `toml:"metrics"`
 	}
