@@ -6,7 +6,19 @@ import (
 )
 
 const (
-	sampleConfig = `
+	sampleConfig = `#[[instances]]
+# client_id = ''
+# client_secret = ''
+# tenant_id = ''
+# subscription_id = ''
+# #end_point = 'https://management.chinacloudapi.cn'
+
+#[[instances.resource]]
+#resource_id = ''
+
+#[[instances.resource.metrics]]
+#metric_name = 'Percentage CPU'
+#interval = '1m'
 `
 )
 
