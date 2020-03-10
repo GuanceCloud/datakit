@@ -8,13 +8,74 @@ import (
 	"testing"
 	"time"
 
+	"github.com/influxdata/toml"
+
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 )
 
-func TestConfig(t *testing.T) {
+func TestDumpConfig(t *testing.T) {
+	cfg := &azureMonitorAgent{
+		Instances: []*azureInstance{
+			&azureInstance{
+				ClientID:       "xxx",
+				ClientSecret:   "xxx",
+				TenantID:       "xxx",
+				SubscriptionID: "xxx",
+				EndPoint:       "xxx",
+				Resource: []*azureResource{
+					&azureResource{
+						ResourceID: "xxx",
+						Metrics: []*azureMetric{
+							&azureMetric{
+								MetricName: "xxx",
+								//Interval
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 
+	data, err := toml.Marshal(cfg)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	log.Printf("cfg: %s", string(data))
+}
+
+func TestLoadConfig(t *testing.T) {
+	cfgstr := `
+[[instances]]
+ client_id = 'xxx'
+ client_secret = 'xxx'
+ tenant_id = 'xxx'
+ subscription_id = 'xxx'
+ end_point = 'https://management.chinacloudapi.cn'
+
+[[instances.resource]]
+ resource_id = 'xxx'
+
+[[instances.resource.metrics]]
+ metric_name = 'Percentage CPU'
+ interval = '1m'
+`
+	var cfg azureMonitorAgent
+	if err := toml.Unmarshal([]byte(cfgstr), &cfg); err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	for _, inst := range cfg.Instances {
+		log.Printf("client_id=%s", inst.ClientID)
+		for _, res := range inst.Resource {
+			log.Printf("resource_id=%s", res.ResourceID)
+			for _, m := range res.Metrics {
+				log.Printf("metric_name=%s，interval=%v", m.MetricName, m.Interval)
+			}
+		}
+	}
 }
 
 func TestGetMetricMetas(t *testing.T) {
