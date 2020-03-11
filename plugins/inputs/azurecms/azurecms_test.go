@@ -6,7 +6,6 @@ import (
 	"log"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/influxdata/toml"
 
@@ -172,21 +171,20 @@ func TestGetMetrics(t *testing.T) {
 	}
 
 	resourceID := `subscriptions/7b9b5f30-1590-4e09-b1d0-90547d257b6b/resourceGroups/gp1/providers/Microsoft.Compute/virtualMachines/aaa`
-	timespan := "" // `2020-03-08T06:00:00Z/2020-03-08T06:10:00Z` //默认最近一小时
-	interval := `PT1M`
-	_ = interval
-	metricnames := `Disk Read Bytes` // `Network In Total` // "Percentage CPU"
+	timespan := `2020-03-11T06:38:00Z/2020-03-11T06:39:00Z` //默认最近一小时
+	interval := `PT1H`
+	metricnames := "Percentage CPU" //`Disk Read Bytes` // `Network In Total` //
 	aggregation := ""
 	//var top int32 = 10
 	orderby := ""
 	filter := ""
 	var resultType insights.ResultType = ""
 	//apiVersion := "2018-01-01"
-	metricnamespace := `Microsoft.Compute/virtualMachines`
+	metricnamespace := "" // `Microsoft.Compute/virtualMachines`
 
 	ctx, cancelfun := context.WithCancel(context.Background())
 	_ = cancelfun
-	res, err := cli.List(ctx, resourceID, timespan, nil, metricnames, aggregation, nil, orderby, filter, resultType, metricnamespace)
+	res, err := cli.List(ctx, resourceID, timespan, &interval, metricnames, aggregation, nil, orderby, filter, resultType, metricnamespace)
 
 	if err != nil {
 		log.Fatalf("%s", err)
@@ -245,11 +243,11 @@ func TestGetMetrics(t *testing.T) {
 					if mv.Minimum != nil {
 						line = append(line, fmt.Sprintf("Minimum=%v", *mv.Minimum))
 					}
-					metricTime := time.Now()
+					//metricTime := time.Now()
 					if mv.TimeStamp != nil {
 						line = append(line, fmt.Sprintf("TimeStamp=%v", *mv.TimeStamp))
-						metricTime, _ = time.Parse(`2006-01-02T15:04:05Z`, "2020-03-10T10:30:00Z")
-						log.Printf("time is %v", metricTime)
+						//metricTime, _ = time.Parse(`2006-01-02T15:04:05Z`, "2020-03-10T10:30:00Z")
+						//log.Printf("time is %v", metricTime)
 					}
 					log.Printf("%s\n", line)
 				}
