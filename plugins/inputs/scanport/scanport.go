@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -39,7 +38,7 @@ const sampleConfig = `
 	# scan port,
 	# minPort = 1
 	# maxPort = 1000
-	# target  = "www.baidu.com"
+	# target  = "www.dataflux.com"
 `
 
 const description = `scan network port`
@@ -70,17 +69,16 @@ func (s *Scan) exec(acc telegraf.Accumulator) {
 	fields := make(map[string]interface{})
 	tags := make(map[string]string)
 
-	for idx, p := range openPorts {
-		fieldStr := fmt.Sprintf("port%d", idx+1)
-		fields[fieldStr] = p
+	for _, p := range openPorts {
+		fields["port"] = p.port
+
+		tags["target"] = s.Target       //域名
+		tags["addr"] = s.raddr.String() //ip
+		tags["minPort"] = fmt.Sprintf("%d", s.MinPort)
+		tags["maxPort"] = fmt.Sprintf("%d", s.MaxPort)
+
+		acc.AddFields("scan_port", fields, tags, p.t)
 	}
-
-	tags["target"] = s.Target       //域名
-	tags["addr"] = s.raddr.String() //ip
-	tags["minPort"] = fmt.Sprintf("%d", s.MinPort)
-	tags["maxPort"] = fmt.Sprintf("%d", s.MaxPort)
-
-	acc.AddFields("scan_port", fields, tags)
 }
 
 func init() {
@@ -127,9 +125,9 @@ func (s *Scan) setIP() error {
 }
 
 // Run tries to scan wide range ports (TCP)
-func (s *Scan) Run() []int {
+func (s *Scan) Run() []point {
 	var (
-		openPorts []int
+		openPorts []point
 		err       error
 	)
 
@@ -248,13 +246,13 @@ func (s *Scan) setLocalNet() error {
 	return nil
 }
 
-func (s *Scan) tcpSYNScan() ([]int, error) {
+func (s *Scan) tcpSYNScan() ([]point, error) {
 	var err error
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if err = s.setLocalNet(); err != nil {
-		return []int{}, fmt.Errorf("source IP address not configured")
+		return nil, fmt.Errorf("source IP address not configured")
 	}
 	if err = s.setProto("tcp"); err != nil {
 		println(err.Error())
@@ -270,11 +268,11 @@ func (s *Scan) tcpSYNScan() ([]int, error) {
 	return openPorts, err
 }
 
-func (s *Scan) pCapture(ctx context.Context) ([]int, error) {
+func (s *Scan) pCapture(ctx context.Context) ([]point, error) {
 	var (
 		tcp       *layers.TCP
 		timeout   = 100 * time.Nanosecond
-		openPorts []int
+		openPorts []point
 		ok        bool
 	)
 	handle, err := pcap.OpenLive(s.ifName, 6*1024, false, timeout)
@@ -302,14 +300,20 @@ LOOP:
 				}
 				if tcp.SYN && tcp.ACK {
 					p, _ := strconv.Atoi(fmt.Sprintf("%d", tcp.SrcPort))
-					openPorts = append(openPorts, p)
+
+					pt := point{
+						port: p,
+						t:    time.Now(),
+					}
+
+					// ports = append(ports, pt)
+
+					openPorts = append(openPorts, pt)
 				}
 				continue
 			}
 		}
 	}
-	openPorts = uniqSlice(openPorts)
-	sort.Ints(openPorts)
 	return openPorts, nil
 }
 
@@ -340,11 +344,16 @@ func (s *Scan) sendTCPSYN() error {
 	return nil
 }
 
+type point struct {
+	port int
+	t    time.Time
+}
+
 // tcpConnScan tries to scan a single host
-func (s *Scan) tcpConnScan() []int {
+func (s *Scan) tcpConnScan() []point {
 	var wg sync.WaitGroup
 
-	var ports []int
+	var ports = make([]point, 0)
 	for i := s.MinPort; i <= s.MaxPort; i++ {
 		wg.Add(1)
 		go func(i int) {
@@ -363,13 +372,19 @@ func (s *Scan) tcpConnScan() []int {
 				conn.Close()
 				break
 			}
-			ports = append(ports, i)
+
+			p := point{
+				port: i,
+				t:    time.Now(),
+			}
+
+			ports = append(ports, p)
 			wg.Done()
 		}(i)
 	}
 
 	wg.Wait()
-	sort.Ints(ports)
+	// sort.Ints(ports)
 	return ports
 }
 
