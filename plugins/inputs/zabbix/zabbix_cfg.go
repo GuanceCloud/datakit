@@ -6,7 +6,7 @@ const (
 ### Zabbix DB
 ### Select one provider by commenting [zabbix.postgres] or [zabbix.mysql]
 ###
-[zabbix]
+#[zabbix]
 
   ##[zabbix.postgres]
   ## PostgreSQL:
@@ -17,14 +17,14 @@ const (
   ##
   ##address="postgres://zabbix:zabbix123***@192.168.1.101/zabbix?sslmode=disable"
   
-  [zabbix.mysql]
+#  [zabbix.mysql]
   ## MariaDB/MySQL
   ## specify servers via a url matching:
   ##  [username[:password]@][protocol[(address)]]/dbname[?tls=[true|false|skip-verify]]
   ##  see https://github.com/go-sql-driver/mysql#dsn-data-source-name
   ##  e.g.
   ##    db_user:passwd@tcp(127.0.0.1:3306)/zabbix'
-  address="zabbix:zabbix@tcp(127.0.0.1:3306)/zabbix"
+#  address="zabbix:zabbix@tcp(127.0.0.1:3306)/zabbix"
   
 ###
 ### Zabbix tables 
@@ -40,42 +40,43 @@ const (
 ###   hoursperbatch (int - default 360) is the number of hours to be loaded to InfluxDB 
 ###   interval in seconds (int - default 15) is time before each extraction poll.
 ###
-[tables]
-  [tables.history]
-  name="history"
-  active=false
-  startdate="2020-01-01T00:00:00"
-  hoursperbatch=720
-  interval=15
+#[tables]
+#  [tables.history]
+#  name="history"
+#  active=false
+#  startdate="2020-01-01T00:00:00"
+#  hoursperbatch=720
+#  interval=15
     
-  [tables.history_uint]
-  name="history_uint"
-  active=false
-  startdate="2020-01-01T00:00:00"
-  hoursperbatch=720
-  interval=15
+#  [tables.history_uint]
+#  name="history_uint"
+#  active=false
+#  startdate="2020-01-01T00:00:00"
+#  hoursperbatch=720
+#  interval=15
   
-  [tables.trends]
-  name="trends"
-  active=false
-  startdate="2020-01-01T00:00:00"
-  hoursperbatch=720
-  interval=15
+#  [tables.trends]
+#  name="trends"
+#  active=false
+#  startdate="2020-01-01T00:00:00"
+#  hoursperbatch=720
+#  interval=15
   
-  [tables.trends_uint]
-  name="trends_uint"
-  active=false
-  startdate="2020-01-01T00:00:00"
-  hoursperbatch=720
-  interval=15
+#  [tables.trends_uint]
+#  name="trends_uint"
+#  active=false
+#  startdate="2020-01-01T00:00:00"
+#  hoursperbatch=720
+#  interval=15
    
 ###
 ### Registry file
 ### Name of the registry file. Per default, it is put in the current working directory. 
 ###
-[registry]
+#[registry]
 # File name 
-filename="influxdb-zabbix.json"
+#filename="influxdb-zabbix.json"
 
 ### End
-`)
+`
+)
