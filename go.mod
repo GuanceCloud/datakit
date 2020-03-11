@@ -3,16 +3,23 @@ module gitlab.jiagouyun.com/cloudcare-tools/datakit
 go 1.13
 
 require (
+	github.com/Azure/azure-sdk-for-go v0.0.0-20200305061206-32160a3836db
+	github.com/Azure/go-autorest/autorest v0.10.0
+	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
+	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
+	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.4
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.6+incompatible // indirect
+	github.com/aws/aws-sdk-go v1.19.41
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/google/gopacket v1.1.17
 	github.com/google/uuid v1.1.1
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
+	github.com/jmoiron/sqlx v1.2.0 // indirect
 	github.com/kardianos/service v1.0.0
 	github.com/lib/pq v1.3.0
 	github.com/mehrdadrad/mylg v0.2.6
