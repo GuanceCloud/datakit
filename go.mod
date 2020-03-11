@@ -14,6 +14,7 @@ require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.6+incompatible // indirect
 	github.com/aws/aws-sdk-go v1.19.41
 	github.com/go-sql-driver/mysql v1.4.1
+	github.com/google/gopacket v1.1.17
 	github.com/google/uuid v1.1.1
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
@@ -21,6 +22,9 @@ require (
 	github.com/jmoiron/sqlx v1.2.0 // indirect
 	github.com/kardianos/service v1.0.0
 	github.com/lib/pq v1.3.0
+	github.com/mehrdadrad/mylg v0.2.6
+	github.com/naoina/toml v0.1.1
+	github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
