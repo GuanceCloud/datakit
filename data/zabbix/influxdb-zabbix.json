@@ -1,0 +1,18 @@
+[
+    {
+        "Table": "history",
+        "Startdate": "2020-01-01T00:00:00"
+    },
+    {
+        "Table": "history_uint",
+        "Startdate": "2020-01-01T00:00:00"
+    },
+    {
+        "Table": "trends",
+        "Startdate": "2020-01-01T00:00:00"
+    },
+    {
+        "Table": "trends_uint",
+        "Startdate": "2020-01-01T00:00:00"
+    }
+]
