@@ -84,6 +84,10 @@ func (a *AliyunActiontrail) Start(acc telegraf.Accumulator) error {
 			r.metricName = "aliyun_actiontrail"
 		}
 
+		if r.cfg.Interval.Duration == 0 {
+			r.cfg.Interval.Duration = time.Minute * 10
+		}
+
 		a.runningInstances = append(a.runningInstances, r)
 
 		go r.run(a.ctx)
