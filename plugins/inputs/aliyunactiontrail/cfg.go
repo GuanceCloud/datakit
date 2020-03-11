@@ -6,8 +6,8 @@ const (
 	configSample = `
 #[[actiontrail]]
 #    region = 'cn-hangzhou'
-#    access_key = ''
 #    access_id = ''
+#    access_key = ''
 
 #    ##if empty, use "aliyun_actiontrail"
 #    metric_name = ''
