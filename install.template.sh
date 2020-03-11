@@ -171,7 +171,10 @@ function host_install() {
 	$sudo_cmd chmod +x "$BINARY" 
 	$sudo_cmd chmod +x "$AGENTBINARY" 
 
-	mv "$AGENTBINARY" "${EMBEDDIR}"
+	if [ -f "${AGENTBINARY}" ]; then
+		mv "${AGENTBINARY}" "${EMBEDDIR}"
+	fi
+
 	if [ -f "${USRDIR}/agent.log" ]; then
 		mv "${USRDIR}/agent.log" "${EMBEDDIR}"
 	fi
