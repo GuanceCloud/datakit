@@ -12,22 +12,35 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/providers"
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 )
 
-func (s *RunningCMS) run() error {
+var (
+	errGetMetricMeta = fmt.Errorf("fail to get metric meta")
+)
 
-	if err := s.initializeAliyunCMS(); err != nil {
-		return err
+func (s *runningCMS) run(ctx context.Context) error {
+
+	for {
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
+		}
+
+		if err := s.initializeAliyunCMS(); err != nil {
+			s.logger.Errorf("initialize error, %s", err)
+			internal.SleepContext(ctx, time.Second*15)
+		} else {
+			break
+		}
 	}
 
-	s.logger.Infof("retrieve aliyun credential success")
-
 	select {
-	case <-s.ctx.Done():
+	case <-ctx.Done():
 		return context.Canceled
 	default:
 	}
@@ -41,7 +54,7 @@ func (s *RunningCMS) run() error {
 	for {
 
 		select {
-		case <-s.ctx.Done():
+		case <-ctx.Done():
 			return context.Canceled
 		default:
 		}
@@ -50,7 +63,7 @@ func (s *RunningCMS) run() error {
 		for _, req := range MetricsRequests {
 
 			select {
-			case <-s.ctx.Done():
+			case <-ctx.Done():
 				return context.Canceled
 			default:
 			}
@@ -71,7 +84,7 @@ func (s *RunningCMS) run() error {
 				s.timer.Reset(remain)
 			}
 			select {
-			case <-s.ctx.Done():
+			case <-ctx.Done():
 				if s.timer != nil {
 					s.timer.Stop()
 					s.timer = nil
@@ -83,7 +96,7 @@ func (s *RunningCMS) run() error {
 	}
 }
 
-func (s *RunningCMS) initializeAliyunCMS() error {
+func (s *runningCMS) initializeAliyunCMS() error {
 	if s.cfg.RegionID == "" {
 		return errors.New("region id is not set")
 	}
@@ -99,7 +112,7 @@ func (s *RunningCMS) initializeAliyunCMS() error {
 	}
 	credential, err := providers.NewChainProvider(credentialProviders).Retrieve()
 	if err != nil {
-		return errors.New("failed to retrieve credential")
+		return fmt.Errorf("failed to retrieve credential")
 	}
 	cli, err := cms.NewClientWithOptions(s.cfg.RegionID, sdk.NewConfig(), credential)
 	if err != nil {
@@ -111,23 +124,23 @@ func (s *RunningCMS) initializeAliyunCMS() error {
 	return nil
 }
 
-func (s *RunningCMS) fetchMetricInfo(namespace, metricname string) (*MetricInfo, error) {
+func (s *runningCMS) fetchMetricMeta(namespace, metricname string) (*MetricMeta, error) {
 
 	request := cms.CreateDescribeMetricMetaListRequest()
 	request.Scheme = "https"
 
 	request.Namespace = namespace
 	request.MetricName = metricname
-	request.PageSize = requests.NewInteger(100)
 
 	response, err := s.client.DescribeMetricMetaList(request)
 	if err != nil {
-		s.logger.Warnf("fail to get metric(%s.%s) info: %s", namespace, metricname, err)
-		return nil, fmt.Errorf("fail to get metric(%s.%s) info: %s", namespace, metricname, err)
+		s.logger.Warnf("fail to get metric meta for '%s.%s', %s", namespace, metricname, err)
+		return nil, errGetMetricMeta
 	}
 
 	if len(response.Resources.Resource) == 0 {
-		return nil, fmt.Errorf("metric \"%s\" not support in %s", metricname, namespace)
+		s.logger.Warnf("empty metric meta of '%s.%s'", namespace, metricname)
+		return nil, errGetMetricMeta
 	}
 
 	for _, res := range response.Resources.Resource {
@@ -137,73 +150,95 @@ func (s *RunningCMS) fetchMetricInfo(namespace, metricname string) (*MetricInfo,
 			np, err := strconv.ParseInt(p, 10, 64)
 			if err == nil {
 				periods = append(periods, np)
+			} else {
+				s.logger.Warnf("unknown period '%s', %s", p, err)
 			}
 		}
-		info := &MetricInfo{
-			Periods:    periods,
-			Statistics: strings.Split(res.Statistics, ","),
-			Dimensions: res.Dimensions,
+		meta := &MetricMeta{
+			Periods:     periods,
+			Statistics:  strings.Split(res.Statistics, ","),
+			Dimensions:  strings.Split(res.Dimensions, ","),
+			Description: res.Description,
+			Unit:        res.Unit,
 		}
-		s.logger.Debugf("%s.%s: Periods=%s, Statistics=%s", namespace, metricname, periodStrs, strings.Split(res.Statistics, ","))
-		return info, nil
+		s.logger.Debugf("%s.%s: Periods=%s, Dimensions=%s, Statistics=%s, Unit=%s", namespace, metricname, periodStrs, res.Dimensions, res.Statistics, res.Unit)
+		return meta, nil
 	}
 
 	return nil, nil
 }
 
-func (s *RunningCMS) fetchMetric(req *MetricsRequest) error {
+func (s *runningCMS) fetchMetric(req *MetricsRequest) error {
 
-	var err error
-	if !req.checkPeriod {
-		if req.info == nil {
-			req.info, err = s.fetchMetricInfo(req.q.Namespace, req.q.MetricName)
-			if err != nil {
-				req.info = nil
-				req.checkPeriod = true
-			}
+	if !req.haveGetMeta {
+		if req.meta == nil {
+			req.meta, _ = s.fetchMetricMeta(req.q.Namespace, req.q.MetricName)
 		}
-		if req.info != nil {
+		req.haveGetMeta = true //有些指标阿里云更新不及时，所以拿不到就忽略
+	}
+
+	if req.meta != nil {
+
+		//验证period
+		if !req.tunePeriod {
 			pv, _ := strconv.ParseInt(req.q.Period, 10, 64)
-			bok := false
-			for _, n := range req.info.Periods {
+			bValidPeriod := false
+			for _, n := range req.meta.Periods {
 				if pv == n {
-					bok = true
+					bValidPeriod = true
 					break
 				}
 			}
 
-			if !bok {
-				s.logger.Warnf("period of %v for %s.%s not support, avariable periods:%#v", pv, req.q.Namespace, req.q.MetricName, req.info.Periods)
-				//按照监控项默认的最小周期来查询数据
-				req.q.Period = ""
+			if !bValidPeriod {
+				s.logger.Warnf("period '%v' for %s.%s not support, valid periods: %v", pv, req.q.Namespace, req.q.MetricName, req.meta.Periods)
+				req.q.Period = "" //按照监控项默认的最小周期来查询数据
 			}
 
-			req.checkPeriod = true
+			req.tunePeriod = true
 		}
-	}
 
-	// if req.q.Dimensions != "" {
-	// 	ms := []map[string]string{}
-	// 	if err := json.Unmarshal([]byte(req.q.Dimensions), &ms); err == nil {
-	// 		for _, m := range ms {
-	// 			for k, v := range m {
-	// 				tags[k] = v
-	// 			}
-	// 		}
-	// 	} else {
-	// 		s.logger.Errorf("dimesion err: %s", err)
-	// 	}
-	// }
+		//check dimension
+		if !req.tuneDimension {
+			if req.q.Dimensions != "" && len(req.meta.Dimensions) > 0 {
+				ms := []map[string]string{}
+				if err := json.Unmarshal([]byte(req.q.Dimensions), &ms); err == nil {
+					btuned := false
+					for _, m := range ms {
+						for k := range m {
+							bSupport := false
+							for _, ds := range req.meta.Dimensions {
+								if ds == k {
+									bSupport = true
+									break
+								}
+							}
+							if !bSupport {
+								delete(m, k)
+								btuned = true
+								s.logger.Warnf("%s.%s not support dimension '%s'", req.q.Namespace, req.q.MetricName, k)
+							}
+						}
+					}
+					if btuned {
+						if jd, err := json.Marshal(ms); err == nil {
+							req.q.Dimensions = string(jd)
+						}
+					}
+				}
+			}
+			req.tuneDimension = true
+		}
+
+	}
 
 	nt := time.Now().Truncate(time.Minute)
 	et := nt.Unix() * 1000
-	st := nt.Add(-(5 * time.Minute)).Unix() * 1000 //-6因为是[)
+	st := nt.Add(-(5 * time.Minute)).Unix() * 1000
 
 	req.q.EndTime = strconv.FormatInt(et, 10)
 	req.q.StartTime = strconv.FormatInt(st, 10)
 
-	//req.q.EndTime = `1574918880000`   // strconv.FormatInt(et, 10)
-	//req.q.StartTime = `1574918580000` //strconv.FormatInt(st, 10)
 	req.q.NextToken = ""
 
 	s.logger.Debugf("request: Namespace:%s, MetricName:%s, Period:%s, StartTime:%s, EndTime:%s, Dimensions:%s", req.q.Namespace, req.q.MetricName, req.q.Period, req.q.StartTime, req.q.EndTime, req.q.Dimensions)
@@ -227,14 +262,9 @@ func (s *RunningCMS) fetchMetric(req *MetricsRequest) error {
 
 		for _, datapoint := range datapoints {
 
-			tags := make(map[string]string)
-
-			if s.aliCMS.tags != nil {
-				for k, v := range s.aliCMS.tags {
-					tags[k] = v
-				}
+			tags := map[string]string{
+				"regionId": req.q.RegionId,
 			}
-			tags["regionId"] = req.q.RegionId
 
 			fields := make(map[string]interface{})
 
@@ -261,8 +291,14 @@ func (s *RunningCMS) fetchMetric(req *MetricsRequest) error {
 				}
 			}
 
-			if s.aliCMS.accumulator != nil && len(fields) > 0 {
-				s.aliCMS.accumulator.AddFields(formatMeasurement(req.q.Namespace), fields, tags)
+			tm := time.Now()
+			switch ft := datapoint["timestamp"].(type) {
+			case float64:
+				tm = time.Unix((int64(ft))/1000, 0)
+			}
+
+			if s.agent.accumulator != nil && len(fields) > 0 {
+				s.agent.accumulator.AddFields(formatMeasurement(req.q.Namespace), fields, tags, tm)
 			}
 
 		}
