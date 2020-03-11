@@ -7,7 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/masahide/toml"
+	"github.com/influxdata/toml"
+
 	"github.com/siddontang/go-log/log"
 
 	"github.com/influxdata/telegraf/metric"
@@ -19,7 +20,7 @@ import (
 
 func TestConfig(t *testing.T) {
 
-	var cfg AliCMS
+	var cfg cmsAgent
 
 	data, err := ioutil.ReadFile("./aliyuncms.toml")
 	if err != nil {
@@ -110,7 +111,7 @@ func TestGetMetricMeta(t *testing.T) {
 
 	client, err := cms.NewClientWithAccessKey("cn-shanghai", "LTAI4Fh8Xn7Rk9pci3xs4CBV", "fyYCdkD81ZABX5SUY7L9wiWJZmMsqT")
 
-	namespace := "cen-q8g3j8laen0qbt9qsa"
+	namespace := "acs_ecs_dashboard"
 
 	request := cms.CreateDescribeMetricMetaListRequest()
 	request.Scheme = "https"
@@ -131,17 +132,17 @@ func TestGetMetricMeta(t *testing.T) {
 }
 
 func TestGetMetrics(t *testing.T) {
-	client, err := cms.NewClientWithAccessKey("cn-shanghai", "LTAI4Fh8Xn7Rk9pci3xs4CBV", "fyYCdkD81ZABX5SUY7L9wiWJZmMsqT")
+	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "", "")
 
 	request := cms.CreateDescribeMetricListRequest()
 	request.Scheme = "https"
 
-	request.MetricName = "InternetOutRateByConnectionArea"
-	request.Namespace = "cen-q8g3j8laen0qbt9qsa "
+	request.MetricName = "CPUUtilization"
+	request.Namespace = "acs_ecs_dashboard"
 	request.Period = "60"
-	request.StartTime = "2020-02-18 00:10:00"
-	request.EndTime = "2020-02-19 00:10:00"
-	//request.Dimensions = `[{"instanceId": "i-bp15wj5w33t8vfxi7z3d"}]`
+	request.StartTime = "2020-02-19 00:10:00"
+	request.EndTime = "2020-02-19 00:20:00"
+	request.Dimensions = `[{"instanceId":"i-bp1dsyh39swucxotofde"},{}]`
 
 	response, err := client.DescribeMetricList(request)
 	if err != nil {
@@ -149,7 +150,7 @@ func TestGetMetrics(t *testing.T) {
 		return
 	}
 
-	fmt.Printf("**%s\n", response.String())
+	//fmt.Printf("**%s\n", response.String())
 
 	var datapoints []map[string]interface{}
 	if err = json.Unmarshal([]byte(response.Datapoints), &datapoints); err != nil {
@@ -164,7 +165,7 @@ func TestGetMetrics(t *testing.T) {
 
 func TestSvr(t *testing.T) {
 
-	var cfg AliCMS
+	var cfg cmsAgent
 
 	data, err := ioutil.ReadFile("./aliyuncms.toml")
 	if err != nil {
