@@ -14,4 +14,5 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcms"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tracerouter"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prometheus"
 )

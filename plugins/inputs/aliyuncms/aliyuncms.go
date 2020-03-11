@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	batchInterval = time.Duration(5) * time.Minute
-	metricPeriod  = time.Duration(5 * time.Minute)
-	rateLimit     = 20
+	batchInterval = 5 * time.Minute
+	//metricPeriod  = time.Duration(5 * time.Minute)
+	rateLimit = 20
 
 	dms = []string{
 		"instanceId",
@@ -72,8 +72,9 @@ var (
 )
 
 type (
-	RunningCMS struct {
-		cfg *CMS
+	runningCMS struct {
+		cfg   *CMS
+		agent *cmsAgent
 
 		client *cms.Client
 
@@ -81,30 +82,25 @@ type (
 
 		wg sync.WaitGroup
 
-		aliCMS *AliCMS
-
-		ctx context.Context
-
+		ctx    context.Context
 		logger *models.Logger
 	}
 
-	AliCMS struct {
+	cmsAgent struct {
 		CMSs []*CMS `toml:"cms"`
 
-		runningCms []*RunningCMS
-
-		tags map[string]string
+		runningCms []*runningCMS
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
 
-		accumulator telegraf.Accumulator
-
 		logger *models.Logger
+
+		accumulator telegraf.Accumulator
 	}
 )
 
-func (c *AliCMS) Init() error {
+func (c *cmsAgent) Init() error {
 
 	c.logger = &models.Logger{
 		Errs: selfstat.Register("gather", "errors", nil),
@@ -117,10 +113,10 @@ func (c *AliCMS) Init() error {
 				req := cms.CreateDescribeMetricListRequest()
 				req.Scheme = "https"
 				req.RegionId = item.RegionID
-				req.Period = getPeriod(p.Name, m)
+				req.Period = p.getPeriod(m)
 				req.MetricName = m
 				req.Namespace = p.Name
-				if ds, err := p.GenDimension(m); err == nil {
+				if ds, err := p.genDimension(m, c.logger); err == nil {
 					req.Dimensions = ds
 				}
 				MetricsRequests = append(MetricsRequests, &MetricsRequest{
@@ -133,19 +129,19 @@ func (c *AliCMS) Init() error {
 	return nil
 }
 
-func (_ *AliCMS) SampleConfig() string {
+func (_ *cmsAgent) SampleConfig() string {
 	return aliyuncmsConfigSample
 }
 
-func (_ *AliCMS) Description() string {
+func (_ *cmsAgent) Description() string {
 	return ""
 }
 
-func (_ *AliCMS) Gather(telegraf.Accumulator) error {
+func (_ *cmsAgent) Gather(telegraf.Accumulator) error {
 	return nil
 }
 
-func (ac *AliCMS) Start(acc telegraf.Accumulator) error {
+func (ac *cmsAgent) Start(acc telegraf.Accumulator) error {
 
 	if len(ac.CMSs) == 0 {
 		ac.logger.Warnf("no configuration found")
@@ -157,39 +153,27 @@ func (ac *AliCMS) Start(acc telegraf.Accumulator) error {
 	ac.accumulator = acc
 
 	for _, c := range ac.CMSs {
-		rc := &RunningCMS{
-			aliCMS: ac,
+		rc := &runningCMS{
+			agent:  ac,
 			cfg:    c,
 			ctx:    ac.ctx,
 			logger: ac.logger,
 		}
 		ac.runningCms = append(ac.runningCms, rc)
-	}
 
-	for _, rc := range ac.runningCms {
-
-		go func(r *RunningCMS) {
-
-			if err := r.run(); err != nil && err != context.Canceled {
-				ac.logger.Errorf("%s", err)
-			}
-
-			r.logger.Infof("%s done", r.cfg.AccessKeyID)
-
-		}(rc)
-
+		go rc.run(ac.ctx)
 	}
 
 	return nil
 }
 
-func (ac *AliCMS) Stop() {
-	ac.cancelFun()
+func (a *cmsAgent) Stop() {
+	a.cancelFun()
 }
 
 func init() {
 	inputs.Add("aliyuncms", func() telegraf.Input {
-		ac := &AliCMS{}
+		ac := &cmsAgent{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
 	})
