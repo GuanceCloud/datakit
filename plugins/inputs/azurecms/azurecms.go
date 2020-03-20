@@ -10,6 +10,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	//"github.com/Azure/go-autorest/tracing"
 )
 
@@ -89,4 +90,12 @@ func (ag *azureMonitorAgent) Start(acc telegraf.Accumulator) error {
 
 func (ag *azureMonitorAgent) Stop() {
 	ag.cancelFun()
+}
+
+func init() {
+	inputs.Add("azure_monitor", func() telegraf.Input {
+		ac := &azureMonitorAgent{}
+		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
+		return ac
+	})
 }
