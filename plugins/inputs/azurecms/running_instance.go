@@ -2,9 +2,9 @@ package azurecms
 
 import (
 	"context"
-	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
@@ -14,11 +14,14 @@ import (
 
 var (
 	batchInterval = 5 * time.Minute
-	//metricPeriod  = time.Duration(5 * time.Minute)
-	rateLimit = 20
+	rateLimit     = 10
 )
 
 func (r *runningInstance) run(ctx context.Context) error {
+
+	if r.cfg.EndPoint == "" {
+		r.cfg.EndPoint = `https://management.chinacloudapi.cn`
+	}
 
 	r.metricDefinitionClient = insights.NewMetricDefinitionsClientWithBaseURI(r.cfg.EndPoint, r.cfg.SubscriptionID)
 	r.metricClient = insights.NewMetricsClientWithBaseURI(r.cfg.EndPoint, r.cfg.SubscriptionID)
@@ -47,10 +50,6 @@ func (r *runningInstance) run(ctx context.Context) error {
 	lmtr := limiter.NewRateLimiter(rateLimit, time.Second)
 	defer lmtr.Stop()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	defer wg.Done()
-
 	for {
 
 		select {
@@ -73,32 +72,33 @@ func (r *runningInstance) run(ctx context.Context) error {
 				r.logger.Errorf(`fail to get metric "%s.%s", %s`, req.resourceID, req.metricname)
 			}
 		}
-
 		useage := time.Now().Sub(t)
-		if useage < batchInterval {
-			remain := batchInterval - useage
-
-			if r.timer == nil {
-				r.timer = time.NewTimer(remain)
-			} else {
-				r.timer.Reset(remain)
-			}
-			select {
-			case <-ctx.Done():
-				if r.timer != nil {
-					r.timer.Stop()
-					r.timer = nil
-				}
-				return context.Canceled
-			case <-r.timer.C:
-			}
-		}
+		internal.SleepContext(ctx, 5*time.Minute-useage)
 	}
 }
 
 func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) error {
 
-	res, err := r.metricClient.List(ctx, info.resourceID, info.timespan, &info.interval, info.metricname, info.aggregation, nil, info.orderby, info.filter, info.resultType, info.metricnamespace)
+	now := time.Now().Truncate(time.Minute).Add(-time.Minute)
+	if now.Sub(info.lastFetchTime) < info.intervalTime {
+		return nil
+	}
+
+	start := ""
+	if info.lastFetchTime.IsZero() {
+		if info.intervalTime < time.Minute*5 {
+			start = unixTimeStrISO8601(now.Add(-5 * time.Minute))
+		} else {
+			start = unixTimeStrISO8601(now.Add(-info.intervalTime))
+		}
+	} else {
+		start = unixTimeStrISO8601(info.lastFetchTime)
+	}
+	end := unixTimeStrISO8601(now)
+
+	r.logger.Debugf("query param: resourceID=%s, metric=%s, span=%s, interval=%s", info.resourceID, info.metricname, start+"/"+end, info.interval)
+
+	res, err := r.metricClient.List(ctx, info.resourceID, start+"/"+end, &info.interval, info.metricname, info.aggregation, nil, info.orderby, info.filter, info.resultType, info.metricnamespace)
 
 	if err != nil {
 		return err
@@ -114,10 +114,6 @@ func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) 
 	if res.Namespace != nil {
 		namespace = *res.Namespace
 	}
-
-	// if res.Interval != nil {
-	// 	summary = append(summary, fmt.Sprintf("Interval=%s", *res.Interval))
-	// }
 
 	for _, m := range *res.Value {
 		metricName := *(*m.Name).Value
@@ -175,9 +171,7 @@ func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) 
 				}
 				metricTime := time.Now()
 				if mv.TimeStamp != nil {
-					if tm, err := time.Parse(`2006-01-02T15:04:05Z`, "2020-03-10T10:30:00Z"); err != nil {
-						metricTime = tm
-					}
+					metricTime = (*mv.TimeStamp).Time
 				}
 				if r.agent.accumulator != nil {
 					r.agent.accumulator.AddFields(metricName, fields, tags, metricTime)
@@ -185,6 +179,8 @@ func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) 
 			}
 		}
 	}
+
+	info.lastFetchTime = now
 
 	return nil
 }
