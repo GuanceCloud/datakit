@@ -13,6 +13,7 @@ require (
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.6+incompatible // indirect
 	github.com/aws/aws-sdk-go v1.19.41
+	github.com/fatih/color v1.7.0
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/google/gopacket v1.1.17
 	github.com/google/uuid v1.1.1
