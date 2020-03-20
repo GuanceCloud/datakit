@@ -52,6 +52,7 @@ var (
 		`exec`,
 		`syslog`,
 		`varnish`,
+		`nsq`,
 		`nsq_consumer`,
 		`kube_inventory`,
 		`kubernetes`,
@@ -230,6 +231,18 @@ func InitTelegrafSamples() {
 # tls_ca = /path/to/cafile
 # tls_cert = /path/to/certfile
 # tls_key = /path/to/keyfile
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = false
+`
+	telegrafCfgSamples[`nsq`] = `
+#[[inputs.nsq]]
+## An array of NSQD HTTP API endpoints
+#endpoints  = ["http://localhost:4151"]
+
+## Optional TLS Config
+# tls_ca = "/etc/telegraf/ca.pem"
+# tls_cert = "/etc/telegraf/cert.pem"
+# tls_key = "/etc/telegraf/key.pem"
 ## Use TLS but skip chain & host verification
 # insecure_skip_verify = false
 `
