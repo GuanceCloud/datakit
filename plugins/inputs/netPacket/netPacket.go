@@ -107,7 +107,6 @@ func (p *NetPacket) exec(acc telegraf.Accumulator) {
 		// 构造数据
 		p.ethernetType(acc)
 	}
-
 }
 
 // 解析包
@@ -203,7 +202,7 @@ func (p *NetPacket) tcpData(acc telegraf.Accumulator) {
 	fields["ugr"] = p.TCP.URG
 	fields["ece"] = p.TCP.ECE
 	fields["ns"] = p.TCP.NS
-	fields["playload"] = p.Payload
+	// fields["playload"] = p.Payload
 
 	acc.AddFields("tcpPacket", fields, tags)
 }
@@ -223,7 +222,7 @@ func (p *NetPacket) udpData(acc telegraf.Accumulator) {
 	fields["srcMac"] = fmt.Sprintf("%s", p.Eth.SrcMAC) // mac地址
 
 	fields["len"] = len(p.Payload)
-	fields["playload"] = p.Payload
+	// fields["playload"] = p.Payload
 
 	acc.AddFields("udpPacket", fields, tags)
 }
@@ -248,6 +247,20 @@ func (p *NetPacket) icmpData(acc telegraf.Accumulator) {
 
 	tags["srcIP"] = p.SrcHost // 源ip
 	tags["dstIP"] = p.DstHost // 目标ip
+	tags["protocol"] = "icmp"
+
+	fields["seq"] = p.ICMPv4.Seq
+	fields["type"] = p.ICMPv4.TypeCode.String()
+
+	acc.AddFields("icmpPacket", fields, tags)
+}
+
+func (p *NetPacket) httpStat(acc telegraf.Accumulator) {
+	fields := make(map[string]interface{})
+	tags := make(map[string]string)
+
+	tags["get"] = p.SrcHost  // 源ip
+	tags["post"] = p.DstHost // 目标ip
 	tags["protocol"] = "icmp"
 
 	fields["seq"] = p.ICMPv4.Seq
