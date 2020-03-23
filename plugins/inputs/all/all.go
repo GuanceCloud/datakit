@@ -13,6 +13,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/netPacket"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nginxlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prometheus"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/replication"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/scanport"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcms"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tracerouter"
