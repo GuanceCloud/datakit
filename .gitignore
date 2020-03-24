@@ -36,3 +36,5 @@ agent.conf
 agent.pid
 agent_linux
 datakit.conf
+docker/agent
+docker/datakit
