@@ -68,7 +68,7 @@ func InitTelegrafSamples() {
 
 	telegrafCfgSamples[`socket_listener`] = `
 # Generic socket listener capable of handling multiple socket types.
-[[inputs.socket_listener]]
+#[[inputs.socket_listener]]
 	## URL to listen on
 	# service_address = "tcp://:8094"
 	# service_address = "tcp://127.0.0.1:http"
