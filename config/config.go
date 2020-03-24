@@ -34,6 +34,8 @@ var (
 	ExecutableDir string
 
 	ConvertedCfg []string
+
+	AgentLogFile string
 )
 
 const (
@@ -125,6 +127,8 @@ type Config struct {
 	TelegrafAgentCfg *TelegrafAgentConfig
 	Inputs           []*models.RunningInput
 	Outputs          []*models.RunningOutput
+
+	InputFilters []string
 }
 
 func NewConfig() *Config {
@@ -235,6 +239,10 @@ func (c *Config) LoadMainConfig(ctx context.Context, maincfg string) error {
 
 		if c.TelegrafAgentCfg.LogTarget == "file" && c.TelegrafAgentCfg.Logfile == "" {
 			c.TelegrafAgentCfg.Logfile = filepath.Join(ExecutableDir, "embed", "agent.log")
+		}
+
+		if AgentLogFile != "" {
+			c.TelegrafAgentCfg.Logfile = AgentLogFile
 		}
 
 		if !bAgentSetLogLevel {
@@ -416,7 +424,7 @@ func CreatePluginConfigs(cfgdir string, upgrade bool) error {
 			return fmt.Errorf("Error create %s, %s", plugindir, err)
 		}
 		input := creator()
-		if err := ioutil.WriteFile(cfgpath, []byte(input.SampleConfig()), 0664); err != nil {
+		if err := ioutil.WriteFile(cfgpath, []byte(input.SampleConfig()), 0666); err != nil {
 			return fmt.Errorf("Error create %s, %s", cfgpath, err)
 		}
 	}
@@ -476,7 +484,20 @@ func parseConfig(contents []byte) (*ast.Table, error) {
 	return toml.Parse(contents)
 }
 
+func sliceContains(name string, list []string) bool {
+	for _, b := range list {
+		if b == name {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Config) addInput(name string, input telegraf.Input, table *ast.Table) error {
+
+	if len(c.InputFilters) > 0 && !sliceContains(name, c.InputFilters) {
+		return nil
+	}
 
 	pluginConfig, err := buildInput(name, table)
 	if err != nil {
