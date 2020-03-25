@@ -76,7 +76,7 @@ func (c *ApacheLogConfig) Load(f string) error {
 	}
 
 	if len(c.AccessLogs) == 0 && len(c.ErrorLogs) == 0 {
-		return config.ErrNoTelegrafConf
+		return config.ErrConfigNotFound
 	}
 
 	return nil
