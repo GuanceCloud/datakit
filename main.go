@@ -49,7 +49,7 @@ var (
 	flagCfgFile = flag.String("cfg", ``, `configure file`)
 	flagCfgDir  = flag.String("config-dir", ``, `sub configuration dir`)
 
-	flagCheckCfgDir = flag.String("verify-conf-dir", ``, `verify datakit conf.d`)
+	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d`)
 
 	fRunAsConsole = flag.Bool("console", false, "run as console application (windows only)")
 
@@ -110,6 +110,11 @@ Golang Version: %s
 
 	if *flagAgentLogFile != "" {
 		config.AgentLogFile = *flagAgentLogFile
+	}
+
+	if *flagCheckConfigDir {
+		config.CheckConfd(*flagCfgDir)
+		return
 	}
 
 	if *fInputFilters != "" {
@@ -276,13 +281,15 @@ func initialize(reserveExist bool) error {
 		ConfigDir: *flagCfgDir,
 	}
 
+	config.DKUUID = maincfg.UUID
+
 	if err = config.InitMainCfg(&maincfg, config.MainCfgPath); err != nil {
 		return err
 	}
 
 	config.InitTelegrafSamples()
 	config.CreateDataDir()
-	return config.CreatePluginConfigs(*flagCfgDir, reserveExist)
+	return config.CreatePluginConfigs(maincfg.ConfigDir, reserveExist)
 }
 
 func reloadLoop(stop chan struct{}, inputFilters []string) {
@@ -300,7 +307,7 @@ func reloadLoop(stop chan struct{}, inputFilters []string) {
 			select {
 			case sig := <-signals:
 				if sig == syscall.SIGHUP {
-					log.Printf("I! Reloading Telegraf config")
+					log.Printf("I! Reloading config")
 					<-reload
 					reload <- true
 				}
@@ -311,20 +318,25 @@ func reloadLoop(stop chan struct{}, inputFilters []string) {
 		}()
 
 		err := loadConfig(ctx, inputFilters)
-		if err == nil {
-			err = runTelegraf(ctx)
+		if err != nil {
+			log.Fatalf("E! fail to load config, %s", err)
 		}
-		if err == nil {
-			select {
-			case <-ctx.Done():
-				telegrafwrap.Svr.StopAgent()
-				break
-			default:
-			}
-			err = runAgent(ctx)
+		err = runTelegraf(ctx)
+		if err != nil {
+			log.Fatalf("E! fail to start sub service, %s", err)
 		}
+
+		select {
+		case <-ctx.Done():
+			telegrafwrap.Svr.StopAgent()
+			return
+		default:
+		}
+
+		err = runAgent(ctx)
+
 		if err != nil && err != context.Canceled {
-			log.Fatalf("E! [datakit] %s", err)
+			log.Fatalf("E! datakit abort: %s", err)
 		}
 	}
 }
@@ -357,7 +369,9 @@ func loadConfig(ctx context.Context, inputFilters []string) error {
 
 	datakitConfig = c
 
-	log.Printf("%s v%s", config.ServiceName, git.Version)
+	log.Printf("%s %s", config.ServiceName, git.Version)
+
+	c.DumpInputsOutputs()
 
 	return nil
 }
@@ -368,21 +382,6 @@ func runTelegraf(ctx context.Context) error {
 }
 
 func runAgent(ctx context.Context) error {
-
-	pnames := []string{}
-	for _, ip := range datakitConfig.Inputs {
-		if ip.Config.Name == "mock" {
-			continue
-		}
-		pnames = append(pnames, ip.Config.Name)
-	}
-	log.Printf("[agent] avariable inputs: %s", strings.Join(pnames, ","))
-
-	pnames = pnames[:0]
-	for _, op := range datakitConfig.Outputs {
-		pnames = append(pnames, op.Config.Name)
-	}
-	log.Printf("[agent] avariable outputs: %s", strings.Join(pnames, ","))
 
 	ag, err := run.NewAgent(datakitConfig)
 	if err != nil {
