@@ -3,11 +3,13 @@ package nginxlog
 import (
 	"bytes"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"text/template"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/toml"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -66,6 +68,11 @@ func (c *NginxLogConfig) FilePath(cfgdir string) string {
 }
 
 func (c *NginxLogConfig) Load(f string) error {
+
+	if _, err := os.Stat(f); err != nil && os.IsNotExist(err) {
+		return config.ErrConfigNotFound
+	}
+
 	cfgdata, err := ioutil.ReadFile(f)
 	if err != nil {
 		return err
@@ -76,7 +83,7 @@ func (c *NginxLogConfig) Load(f string) error {
 	}
 
 	if len(c.AccessLogs) == 0 && len(c.ErrorLogs) == 0 {
-		return config.ErrNoTelegrafConf
+		return config.ErrConfigNotFound
 	}
 
 	return nil

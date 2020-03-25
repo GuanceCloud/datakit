@@ -7,26 +7,29 @@ import (
 
 	"github.com/influxdata/telegraf"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
+
+const (
+	sampleConfig = `
+interval = '10s'
+`
 )
 
 type SelfInfo struct {
 	stat *ClientStat
 }
 
-func getinfo() {
-
-	var memStatus runtime.MemStats
-	runtime.ReadMemStats(&memStatus)
-
-	numGo := runtime.NumGoroutine
-	_ = numGo
-
-	//pprof.StartCPUProfile()
+func (s *SelfInfo) Init() error {
+	s.stat.UUID = config.DKUUID
+	s.stat.Version = git.Version
+	return nil
 }
 
 func (_ *SelfInfo) SampleConfig() string {
-	return `Interval = '1m'`
+	return sampleConfig
 }
 
 func (_ *SelfInfo) Description() string {
@@ -50,4 +53,6 @@ func init() {
 			},
 		}
 	})
+
+	inputs.InternalInputsData["self"] = []byte(sampleConfig)
 }
