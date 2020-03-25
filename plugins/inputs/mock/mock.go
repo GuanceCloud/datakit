@@ -7,8 +7,6 @@ import (
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/metric"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type (
@@ -131,9 +129,9 @@ func (m *Mock) Gather(acc telegraf.Accumulator) error {
 	return nil
 }
 
-func init() {
-	rand.Seed(time.Now().Unix())
-	inputs.Add("mock", func() telegraf.Input {
-		return &Mock{}
-	})
-}
+// func init() {
+// 	rand.Seed(time.Now().Unix())
+// 	inputs.Add("mock", func() telegraf.Input {
+// 		return &Mock{}
+// 	})
+// }

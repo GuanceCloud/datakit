@@ -1,22 +1,22 @@
 package config
 
 import (
+	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
+	"log"
 	"path/filepath"
+	"text/template"
 	"time"
 
 	"github.com/influxdata/toml"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 )
 
-var (
-	ErrNoTelegrafConf = errors.New("no telegraf config")
-)
-
+//用于支持在datakit.conf中加入telegraf的agent配置
 type TelegrafAgentConfig struct {
 	// Interval at which to gather information
 	Interval internal.Duration
@@ -129,6 +129,7 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 	return c
 }
 
+//LoadTelegrafConfigs 加载conf.d下telegraf的配置文件
 func LoadTelegrafConfigs(ctx context.Context, cfgdir string) error {
 
 	for index, name := range SupportsTelegrafMetraicNames {
@@ -140,14 +141,17 @@ func LoadTelegrafConfigs(ctx context.Context, cfgdir string) error {
 		}
 
 		cfgpath := filepath.Join(cfgdir, name, fmt.Sprintf(`%s.conf`, name))
-		err := CheckTelegrafCfgFile(cfgpath)
+		err := VerifyToml(cfgpath, true)
 
 		if err == nil {
-			//log.Printf("I! metric '%s' is enabled", name)
 			MetricsEnablesFlags[index] = true
 		} else {
 			MetricsEnablesFlags[index] = false
-			if err != ErrNoTelegrafConf {
+			if err == ErrConfigNotFound {
+				//ignore
+			} else if err == ErrEmptyInput {
+				log.Printf("W! %s", cfgpath, err.Error())
+			} else {
 				return fmt.Errorf("Error loading config file %s, %s", cfgpath, err)
 			}
 		}
@@ -156,31 +160,178 @@ func LoadTelegrafConfigs(ctx context.Context, cfgdir string) error {
 	return nil
 }
 
-func CheckTelegrafCfgFile(f string) error {
+const (
+	fileOutputTemplate = `
+[[outputs.file]]
+## Files to write to, "stdout" is a specially handled file.
+files = ['{{.OutputFiles}}']
+`
 
-	_, err := os.Stat(f)
+	httpOutputTemplate = `
+[[outputs.http]]
+  url = "{{.FtGateway}}"
+  method = "POST"
+  data_format = "influx"
+  content_encoding = "gzip"
 
+  ## Additional HTTP headers
+  [outputs.http.headers]
+    ## Should be set manually to "application/json" for json data_format
+	X-Datakit-UUID = "{{.DKUUID}}"
+	X-Version = "{{.DKVERSION}}"
+	User-Agent = '{{.DKUserAgent}}'
+`
+)
+
+func marshalAgentCfg(cfg *TelegrafAgentConfig) (string, error) {
+
+	type dummyAgentCfg struct {
+		Interval                   time.Duration
+		RoundInterval              bool
+		Precision                  time.Duration
+		CollectionJitter           time.Duration
+		FlushInterval              time.Duration
+		FlushJitter                time.Duration
+		MetricBatchSize            int
+		MetricBufferLimit          int
+		FlushBufferWhenFull        bool
+		UTC                        bool          `toml:"utc"`
+		Debug                      bool          `toml:"debug"`
+		Quiet                      bool          `toml:"quiet"`
+		LogTarget                  string        `toml:"-"`
+		Logfile                    string        `toml:"logfile"`
+		LogfileRotationInterval    time.Duration `toml:"logfile_rotation_interval"`
+		LogfileRotationMaxSize     int64         `toml:"logfile_rotation_max_size"`
+		LogfileRotationMaxArchives int           `toml:"logfile_rotation_max_archives"`
+		Hostname                   string
+		OmitHostname               bool
+	}
+
+	c := &dummyAgentCfg{
+		Interval:                   cfg.Interval.Duration / time.Second,
+		RoundInterval:              cfg.RoundInterval,
+		Precision:                  cfg.Precision.Duration / time.Second,
+		CollectionJitter:           cfg.CollectionJitter.Duration / time.Second,
+		FlushInterval:              cfg.FlushInterval.Duration / time.Second,
+		FlushJitter:                cfg.FlushJitter.Duration / time.Second,
+		MetricBatchSize:            cfg.MetricBatchSize,
+		MetricBufferLimit:          cfg.MetricBufferLimit,
+		FlushBufferWhenFull:        cfg.FlushBufferWhenFull,
+		UTC:                        cfg.UTC,
+		Debug:                      cfg.Debug,
+		Quiet:                      cfg.Quiet,
+		LogTarget:                  cfg.LogTarget,
+		Logfile:                    cfg.Logfile,
+		LogfileRotationInterval:    cfg.LogfileRotationInterval.Duration / time.Second,
+		LogfileRotationMaxSize:     cfg.LogfileRotationMaxSize.Size,
+		LogfileRotationMaxArchives: cfg.LogfileRotationMaxArchives,
+		Hostname:                   cfg.Hostname,
+		OmitHostname:               cfg.OmitHostname,
+	}
+
+	agdata, err := toml.Marshal(c)
 	if err != nil {
-		return ErrNoTelegrafConf
+		return "", err
 	}
+	return string(agdata), nil
+}
 
-	cfgdata, err := ioutil.ReadFile(f)
+func GenerateTelegrafConfig(cfg *Config) (string, error) {
+
+	agentcfg, err := marshalAgentCfg(cfg.TelegrafAgentCfg)
 	if err != nil {
-		return err
+		return "", err
+	}
+	agentcfg = "\n[agent]\n" + agentcfg
+	agentcfg += "\n"
+
+	globalTags := "[global_tags]\n"
+	for k, v := range cfg.MainCfg.GlobalTags {
+		tag := fmt.Sprintf("%s='%s'\n", k, v)
+		globalTags += tag
 	}
 
-	tbl, err := toml.Parse(cfgdata)
-	if err != nil {
-		return err
+	type fileoutCfg struct {
+		OutputFiles string
 	}
 
-	if len(tbl.Fields) == 0 {
-		return ErrNoTelegrafConf
+	type httpoutCfg struct {
+		FtGateway   string
+		DKUUID      string
+		DKVERSION   string
+		DKUserAgent string
 	}
 
-	if _, ok := tbl.Fields[`inputs`]; !ok {
-		return errors.New("no inputs found")
+	fileoutstr := ""
+	httpoutstr := ""
+
+	if cfg.MainCfg.OutputsFile != "" {
+		fileCfg := fileoutCfg{
+			OutputFiles: cfg.MainCfg.OutputsFile,
+		}
+
+		tpl := template.New("")
+		tpl, err = tpl.Parse(fileOutputTemplate)
+		if err != nil {
+			return "", err
+		}
+
+		buf := bytes.NewBuffer([]byte{})
+		if err = tpl.Execute(buf, &fileCfg); err != nil {
+			return "", err
+		}
+		fileoutstr = string(buf.Bytes())
 	}
 
-	return nil
+	if cfg.MainCfg.FtGateway != "" {
+		httpCfg := httpoutCfg{
+			FtGateway:   cfg.MainCfg.FtGateway,
+			DKUUID:      cfg.MainCfg.UUID,
+			DKVERSION:   git.Version,
+			DKUserAgent: UserAgent(),
+		}
+
+		tpl := template.New("")
+		tpl, err = tpl.Parse(httpOutputTemplate)
+		if err != nil {
+			return "", err
+		}
+
+		buf := bytes.NewBuffer([]byte{})
+		if err = tpl.Execute(buf, &httpCfg); err != nil {
+			return "", err
+		}
+
+		httpoutstr = string(buf.Bytes())
+	}
+
+	tlegrafConfig := globalTags + agentcfg + fileoutstr + httpoutstr
+
+	pluginCfgs := ""
+	for index, n := range SupportsTelegrafMetraicNames {
+		if !MetricsEnablesFlags[index] {
+			continue
+		}
+		cfgpath := filepath.Join(cfg.MainCfg.ConfigDir, n, fmt.Sprintf(`%s.conf`, n))
+		d, err := ioutil.ReadFile(cfgpath)
+		if err != nil {
+			return "", err
+		}
+
+		pluginCfgs += string(d) + "\n"
+	}
+
+	if len(ConvertedCfg) > 0 {
+		for _, c := range ConvertedCfg {
+			pluginCfgs += c + "\n"
+		}
+	}
+
+	if pluginCfgs == "" {
+		return "", ErrConfigNotFound
+	}
+
+	tlegrafConfig += pluginCfgs
+
+	return tlegrafConfig, err
 }
