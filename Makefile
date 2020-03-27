@@ -38,7 +38,7 @@ endef
 test:
 	$(call build,test,$(TEST_DOWNLOAD_ADDR),"linux/amd64","linux")
 	@echo "building docker image..."
-	@cd ./docker && ./build.sh
+	#@cd ./docker && ./build.sh
 
 test_win:
 	$(call build,test,$(TEST_DOWNLOAD_ADDR),"windows/amd64","windows")
