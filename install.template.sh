@@ -91,10 +91,11 @@ fi
 # Set the configuration
 function set_config() {
 	if [ -e $1 ] && [ -n "$dk_upgrade" ]; then
+		info "upgrade config"
 		config_cmd="$BINARY --upgrade --cfg $1"
         $sudo_cmd $config_cmd
 	else
-		
+		info "init config"
         #generate config
         config_cmd="$BINARY --init --ftdataway ${dk_ftdataway} --cfg $1"
         $sudo_cmd $config_cmd
@@ -195,6 +196,7 @@ function host_install() {
 	stop_instructions="$sudo_cmd service $SERVICE stop"
 	start_instructions="$sudo_cmd service $SERVICE start"
 
+	info "register service"
 	if command -v systemctl &>/dev/null; then
 		install_type=systemctl
 
