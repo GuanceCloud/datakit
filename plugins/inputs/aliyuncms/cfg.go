@@ -10,7 +10,7 @@ import (
 
 const (
 	aliyuncmsConfigSample = `
-report_stat = false
+#report_stat = false
 #[[cms]]
 # ## Aliyun Credentials (required)
 #access_key_id = ''
