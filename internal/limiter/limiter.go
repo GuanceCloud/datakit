@@ -52,7 +52,7 @@ func (r *RateLimiter) limiter() {
 					return
 				}
 			} else {
-				time.Sleep(time.Second)
+				time.Sleep(10 * time.Millisecond)
 			}
 		}
 	}
