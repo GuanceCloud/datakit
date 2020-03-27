@@ -37,7 +37,7 @@ var (
 
 	AgentLogFile string
 
-	DKUUID = ""
+	DKConfig *Config
 )
 
 const (
@@ -222,8 +222,6 @@ func (c *Config) LoadMainConfig(ctx context.Context, maincfg string) error {
 		if err := toml.UnmarshalTable(tbl, c.MainCfg); err != nil {
 			return err
 		}
-
-		DKUUID = c.MainCfg.UUID
 
 		if !c.MainCfg.OmitHostname {
 			if c.MainCfg.Hostname == "" {
