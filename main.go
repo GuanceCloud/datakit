@@ -63,8 +63,6 @@ var (
 	stop chan struct{}
 
 	inputFilters = []string{}
-
-	datakitConfig *config.Config
 )
 
 func main() {
@@ -281,8 +279,6 @@ func initialize(reserveExist bool) error {
 		ConfigDir: *flagCfgDir,
 	}
 
-	config.DKUUID = maincfg.UUID
-
 	if err = config.InitMainCfg(&maincfg, config.MainCfgPath); err != nil {
 		return err
 	}
@@ -344,6 +340,7 @@ func reloadLoop(stop chan struct{}, inputFilters []string) {
 func loadConfig(ctx context.Context, inputFilters []string) error {
 	c := config.NewConfig()
 	c.InputFilters = inputFilters
+	config.DKConfig = c
 
 	if err := c.LoadMainConfig(ctx, config.MainCfgPath); err != nil {
 		return err
@@ -367,8 +364,6 @@ func loadConfig(ctx context.Context, inputFilters []string) error {
 		return err
 	}
 
-	datakitConfig = c
-
 	log.Printf("%s %s", config.ServiceName, git.Version)
 
 	c.DumpInputsOutputs()
@@ -377,13 +372,13 @@ func loadConfig(ctx context.Context, inputFilters []string) error {
 }
 
 func runTelegraf(ctx context.Context) error {
-	telegrafwrap.Svr.Cfg = datakitConfig
+	telegrafwrap.Svr.Cfg = config.DKConfig
 	return telegrafwrap.Svr.Start(ctx)
 }
 
 func runAgent(ctx context.Context) error {
 
-	ag, err := run.NewAgent(datakitConfig)
+	ag, err := run.NewAgent(config.DKConfig)
 	if err != nil {
 		return err
 	}
