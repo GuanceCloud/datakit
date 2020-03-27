@@ -2,12 +2,14 @@ package aliyuncms
 
 import (
 	"context"
-
 	"sync"
 	"time"
 
 	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/selfstat"
+	"github.com/influxdata/telegraf/metric"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
@@ -15,9 +17,10 @@ import (
 )
 
 var (
+	inputName = `aliyuncms`
+
 	batchInterval = 5 * time.Minute
-	//metricPeriod  = time.Duration(5 * time.Minute)
-	rateLimit = 20
+	rateLimit     = 20
 
 	dms = []string{
 		"instanceId",
@@ -74,20 +77,20 @@ var (
 type (
 	runningCMS struct {
 		cfg   *CMS
-		agent *cmsAgent
+		agent *CmsAgent
 
-		client *cms.Client
+		cmsClient *cms.Client
 
-		timer *time.Timer
+		reqs []*MetricsRequest
 
-		wg sync.WaitGroup
-
-		ctx    context.Context
 		logger *models.Logger
+
+		limiter *limiter.RateLimiter
 	}
 
-	cmsAgent struct {
-		CMSs []*CMS `toml:"cms"`
+	CmsAgent struct {
+		CMSs       []*CMS `toml:"cms"`
+		ReportStat bool   `toml:"report_stat"`
 
 		runningCms []*runningCMS
 
@@ -97,51 +100,46 @@ type (
 		logger *models.Logger
 
 		accumulator telegraf.Accumulator
+
+		wg sync.WaitGroup
+
+		inputStat     internal.InputStat
+		succedRequest int64
+		faildRequest  int64
 	}
 )
 
-func (c *cmsAgent) Init() error {
-
-	c.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
-		Name: `aliyuncms`,
-	}
-
-	for _, item := range c.CMSs {
-		for _, p := range item.Project {
-			for _, m := range p.Metrics.MetricNames {
-				req := cms.CreateDescribeMetricListRequest()
-				req.Scheme = "https"
-				req.RegionId = item.RegionID
-				req.Period = p.getPeriod(m)
-				req.MetricName = m
-				req.Namespace = p.Name
-				if ds, err := p.genDimension(m, c.logger); err == nil {
-					req.Dimensions = ds
-				}
-				MetricsRequests = append(MetricsRequests, &MetricsRequest{
-					q: req,
-				})
-			}
-		}
-	}
-
-	return nil
+func (s *CmsAgent) IsRunning() bool {
+	return s.inputStat.Stat > 0
 }
 
-func (_ *cmsAgent) SampleConfig() string {
+func (s *CmsAgent) StatMetric() telegraf.Metric {
+	if !s.ReportStat {
+		return nil
+	}
+	metricname := "datakit_input_" + inputName
+	tags := map[string]string{}
+	fields := s.inputStat.Fields()
+	fields["failed_request"] = s.faildRequest
+	fields["succeed_request"] = s.succedRequest
+	s.inputStat.ClearErrorID()
+	m, _ := metric.New(metricname, tags, fields, time.Now())
+	return m
+}
+
+func (_ *CmsAgent) SampleConfig() string {
 	return aliyuncmsConfigSample
 }
 
-func (_ *cmsAgent) Description() string {
+func (_ *CmsAgent) Description() string {
 	return ""
 }
 
-func (_ *cmsAgent) Gather(telegraf.Accumulator) error {
+func (_ *CmsAgent) Gather(telegraf.Accumulator) error {
 	return nil
 }
 
-func (ac *cmsAgent) Start(acc telegraf.Accumulator) error {
+func (ac *CmsAgent) Start(acc telegraf.Accumulator) error {
 
 	if len(ac.CMSs) == 0 {
 		ac.logger.Warnf("no configuration found")
@@ -152,29 +150,45 @@ func (ac *cmsAgent) Start(acc telegraf.Accumulator) error {
 
 	ac.accumulator = acc
 
-	for _, c := range ac.CMSs {
+	ac.inputStat.SetStat(len(ac.CMSs))
+
+	for _, cfg := range ac.CMSs {
 		rc := &runningCMS{
 			agent:  ac,
-			cfg:    c,
-			ctx:    ac.ctx,
+			cfg:    cfg,
 			logger: ac.logger,
 		}
 		ac.runningCms = append(ac.runningCms, rc)
 
-		go rc.run(ac.ctx)
+		ac.wg.Add(1)
+		go func() {
+			defer ac.wg.Done()
+			rc.run(ac.ctx)
+		}()
 	}
 
 	return nil
 }
 
-func (a *cmsAgent) Stop() {
+func (a *CmsAgent) Stop() {
 	a.cancelFun()
+	a.wg.Wait()
+}
+
+func NewAgent() *CmsAgent {
+	ac := &CmsAgent{
+		logger: &models.Logger{
+			Name: inputName,
+		},
+	}
+	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
+
+	return ac
 }
 
 func init() {
-	inputs.Add("aliyuncms", func() telegraf.Input {
-		ac := &cmsAgent{}
-		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
+	inputs.Add(inputName, func() telegraf.Input {
+		ac := NewAgent()
 		return ac
 	})
 }
