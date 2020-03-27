@@ -10,6 +10,7 @@ import (
 
 const (
 	aliyuncmsConfigSample = `
+report_stat = false
 #[[cms]]
 # ## Aliyun Credentials (required)
 #access_key_id = ''
@@ -46,10 +47,6 @@ const (
 #		]
 #		'''
 `
-)
-
-var (
-	MetricsRequests = []*MetricsRequest{}
 )
 
 type (
@@ -92,6 +89,8 @@ type (
 		haveGetMeta   bool
 		tunePeriod    bool
 		tuneDimension bool
+
+		//lastTime time.Time
 	}
 )
 
@@ -143,13 +142,39 @@ func (p *Project) genDimension(metric string, logger *models.Logger) (string, er
 }
 
 func (p *Project) getPeriod(metricname string) string {
-	for _, d := range p.Metrics.Dimensions {
-		if d.Name == metricname {
-			if d.Period >= 60 {
-				return strconv.FormatInt(int64(d.Period), 10)
+	for _, dimensinon := range p.Metrics.Dimensions {
+		if dimensinon.Name == metricname {
+			if dimensinon.Period >= 60 {
+				return strconv.FormatInt(int64(dimensinon.Period), 10)
 			}
 			break
 		}
 	}
 	return "60" //默认60s
+}
+
+func errCtxMetricList(req *MetricsRequest) map[string]string {
+
+	return map[string]string{
+		"Scheme":     req.q.Scheme,
+		"MetricName": req.q.MetricName,
+		"Namespace":  req.q.Namespace,
+		"Dimensions": req.q.Dimensions,
+		"Period":     req.q.Period,
+		"StartTime":  req.q.StartTime,
+		"EndTime":    req.q.EndTime,
+		"NextToken":  req.q.NextToken,
+		"RegionId":   req.q.RegionId,
+		"Domain":     req.q.Domain,
+	}
+}
+
+func errCtxMetricMeta(req *cms.DescribeMetricMetaListRequest) map[string]string {
+	return map[string]string{
+		"Scheme":     req.Scheme,
+		"MetricName": req.MetricName,
+		"Namespace":  req.Namespace,
+		"RegionId":   req.RegionId,
+		"Domain":     req.Domain,
+	}
 }
