@@ -79,19 +79,6 @@ Golang Version: %s
 		return
 	}
 
-	if runtime.GOOS == "windows" {
-
-		if *flagInstall != "" {
-			if err := doInstall(*flagInstall); err != nil {
-				os.Exit(-1)
-			}
-			return
-		} else if *fService != "" {
-			serviceCmd()
-			return
-		}
-	}
-
 	exepath, err := os.Executable()
 	if err != nil {
 		log.Fatalln(err)
@@ -119,10 +106,22 @@ Golang Version: %s
 		inputFilters = strings.Split(":"+strings.TrimSpace(*fInputFilters)+":", ":")
 	}
 
-	if len(args) > 0 && args[0] == "input" {
-		//TODO:
+	if *flagInstall != "" {
+		if err := doInstall(*flagInstall); err != nil {
+			os.Exit(-1)
+		}
 		return
 	}
+
+	if *fService != "" && runtime.GOOS == "windows" {
+		serviceCmd()
+		return
+	}
+
+	// if len(args) > 0 && args[0] == "input" {
+	// 	//TODO:
+	// 	return
+	// }
 
 	switch {
 	case *flagInit:
@@ -138,14 +137,14 @@ Golang Version: %s
 			log.Fatalf("%s", err)
 		}
 		return
+	}
 
-	case *flagDocker:
+	if *flagDocker {
 		if _, err := os.Stat(filepath.Join(config.ExecutableDir, fmt.Sprintf("%s.conf", config.ServiceName))); err != nil && os.IsNotExist(err) {
 			if err := initialize(true); err != nil {
 				log.Fatalf("%s", err)
 			}
 		}
-		return
 	}
 
 	if runtime.GOOS == "windows" && windowsRunAsService() {
