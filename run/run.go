@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf"
-
 	teleagent "github.com/influxdata/telegraf/agent"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
