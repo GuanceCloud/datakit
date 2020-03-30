@@ -9,8 +9,8 @@ import (
 
 const (
 	binlogConfigSample = `
-null_int=0
-null_float=0.0
+#null_int=0
+#null_float=0.0
 #[[sources]]
 #  ##host of mysql, include port
 #  addr='localhost:3306'
