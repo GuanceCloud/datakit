@@ -16,13 +16,17 @@ type Logger struct {
 
 // Errorf logs an error message, patterned after log.Printf.
 func (l *Logger) Errorf(format string, args ...interface{}) {
-	l.Errs.Incr(1)
+	if l.Errs != nil {
+		l.Errs.Incr(1)
+	}
 	log.Printf("E! ["+l.Name+"] "+format, args...)
 }
 
 // Error logs an error message, patterned after log.Print.
 func (l *Logger) Error(args ...interface{}) {
-	l.Errs.Incr(1)
+	if l.Errs != nil {
+		l.Errs.Incr(1)
+	}
 	log.Print(append([]interface{}{"E! [" + l.Name + "] "}, args...)...)
 }
 
