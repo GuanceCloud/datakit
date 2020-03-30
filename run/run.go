@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf"
-
 	teleagent "github.com/influxdata/telegraf/agent"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
@@ -39,13 +39,13 @@ func (a *Agent) Run(ctx context.Context) error {
 	default:
 	}
 
-	log.Printf("[agent] Initializing plugins")
+	log.Printf("Initializing plugins")
 	err := a.initPlugins()
 	if err != nil {
 		return err
 	}
 
-	log.Printf("[agent] Connecting outputs")
+	log.Printf("Connecting outputs")
 	err = a.connectOutputs(ctx)
 	if err != nil {
 		return err
@@ -57,7 +57,6 @@ func (a *Agent) Run(ctx context.Context) error {
 
 	startTime := time.Now()
 
-	log.Printf("D! [agent] Starting service inputs")
 	err = a.startServiceInputs(ctx, inputC)
 	if err != nil {
 		return err
@@ -74,14 +73,13 @@ func (a *Agent) Run(ctx context.Context) error {
 
 		err := a.runInputs(ctx, startTime, dst)
 		if err != nil {
-			log.Printf("E! [agent] Error running inputs: %v", err)
+			log.Printf("E! Error running inputs: %v", err)
 		}
 
-		log.Printf("D! [agent] Stopping service inputs")
 		a.stopServiceInputs()
 
 		close(dst)
-		log.Printf("D! [agent] Input channel closed")
+		log.Printf("D! Input channel closed")
 	}(dst)
 
 	src = dst
@@ -92,16 +90,15 @@ func (a *Agent) Run(ctx context.Context) error {
 
 		err := a.runOutputs(startTime, src)
 		if err != nil {
-			log.Printf("E! [agent] Error running outputs: %v", err)
+			log.Printf("E! Error running outputs: %v", err)
 		}
 	}(src)
 
 	wg.Wait()
 
-	log.Printf("D! [agent] Closing outputs")
 	a.closeOutputs()
 
-	log.Printf("D! [agent] Stopped Successfully")
+	log.Printf("datakit stopped successfully")
 	return nil
 }
 
@@ -186,7 +183,7 @@ func (a *Agent) runOutputs(
 		}
 	}
 
-	log.Println("I! [agent] Hang on, flushing any cached metrics before shutdown")
+	log.Println("I! Hang on, flushing any cached metrics before shutdown")
 	cancel()
 	wg.Wait()
 
@@ -206,7 +203,7 @@ func (a *Agent) flush(
 
 	logError := func(err error) {
 		if err != nil {
-			log.Printf("E! [agent] Error writing to %s: %v", output.LogName(), err)
+			log.Printf("E! Error writing to %s: %v", output.LogName(), err)
 		}
 	}
 
@@ -256,7 +253,7 @@ func (a *Agent) flushOnce(
 			output.LogBufferStatus()
 			return err
 		case <-ticker.C:
-			log.Printf("W! [agent] [%q] did not complete within its flush interval",
+			log.Printf("W! [%q] did not complete within its flush interval",
 				output.LogName())
 			output.LogBufferStatus()
 		}
@@ -282,16 +279,17 @@ func (a *Agent) initPlugins() error {
 
 func (a *Agent) closeOutputs() {
 	for _, output := range a.Config.Outputs {
+		log.Printf("D! closing output: %s", output.Config.Name)
 		output.Close()
 	}
 }
 
 func (a *Agent) connectOutputs(ctx context.Context) error {
 	for _, output := range a.Config.Outputs {
-		log.Printf("D! [agent] Attempting connection to [%s]", output.LogName())
+		log.Printf("D! Attempting connection to [%s]", output.LogName())
 		err := output.Output.Connect()
 		if err != nil {
-			log.Printf("E! [agent] Failed to connect to [%s], retrying in 15s, "+
+			log.Printf("E! Failed to connect to [%s], retrying in 15s, "+
 				"error was '%s'", output.LogName(), err)
 
 			err := internal.SleepContext(ctx, 15*time.Second)
@@ -304,7 +302,7 @@ func (a *Agent) connectOutputs(ctx context.Context) error {
 				return err
 			}
 		}
-		log.Printf("D! [agent] Successfully connected to %s", output.LogName())
+		log.Printf("D! Successfully connected to [%s]", output.LogName())
 	}
 	return nil
 }
@@ -321,13 +319,13 @@ func (a *Agent) startServiceInputs(
 			// This only applies to the accumulator passed to Start(), the
 			// Gather() accumulator does apply rounding according to the
 			// precision agent setting.
-			log.Printf("D! start service input %s", input.Config.Name)
+			log.Printf("D! starting service input: %s", input.Config.Name)
 			acc := teleagent.NewAccumulator(input, dst)
 			acc.SetPrecision(time.Nanosecond)
 
 			err := si.Start(acc)
 			if err != nil {
-				log.Printf("E! [agent] Service for [%s] failed to start: %v",
+				log.Printf("E! Service for [%s] failed to start: %v",
 					input.LogName(), err)
 
 				for _, si := range started {
@@ -346,6 +344,7 @@ func (a *Agent) startServiceInputs(
 
 func (a *Agent) stopServiceInputs() {
 	for _, input := range a.Config.Inputs {
+		log.Printf("D! stopping service input: %s", input.Config.Name)
 		if si, ok := input.Input.(telegraf.ServiceInput); ok {
 			si.Stop()
 		}
@@ -438,7 +437,7 @@ func (a *Agent) gatherOnce(
 		case err := <-done:
 			return err
 		case <-ticker.C:
-			log.Printf("W! [agent] [%s] did not complete within its interval",
+			log.Printf("W! [%s] did not complete within its interval",
 				input.LogName())
 		}
 	}
