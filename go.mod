@@ -3,9 +3,9 @@ module gitlab.jiagouyun.com/cloudcare-tools/datakit
 go 1.13
 
 require (
-	github.com/Azure/azure-sdk-for-go v0.0.0-20200305061206-32160a3836db
-	github.com/Azure/go-autorest/autorest v0.10.0
-	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
+	github.com/Azure/azure-sdk-for-go v0.0.0-20200305061206-32160a3836db // indirect
+	github.com/Azure/go-autorest/autorest v0.10.0 // indirect
+	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
@@ -13,7 +13,7 @@ require (
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.6+incompatible // indirect
 	github.com/aws/aws-sdk-go v1.19.41
-	github.com/fatih/color v1.7.0
+	github.com/fatih/color v1.7.0 // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/google/gopacket v1.1.17
 	github.com/google/uuid v1.1.1
@@ -24,10 +24,10 @@ require (
 	github.com/jmoiron/sqlx v1.2.0 // indirect
 	github.com/kardianos/service v1.0.0
 	github.com/lib/pq v1.3.0
-	github.com/mehrdadrad/mylg v0.2.6
-	github.com/naoina/toml v0.1.1
+	github.com/mehrdadrad/mylg v0.2.6 // indirect
+	github.com/naoina/toml v0.1.1 // indirect
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
-	github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5
+	github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5 // indirect
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
