@@ -29,8 +29,8 @@ var Svr = &TelegrafSvr{}
 
 func (s *TelegrafSvr) Start(ctx context.Context) error {
 
-	telcfg, err := s.GenerateTelegrafConfig()
-	if err == config.ErrNoTelegrafConf {
+	telegrafCfg, err := config.GenerateTelegrafConfig(s.Cfg)
+	if err == config.ErrConfigNotFound {
 		log.Printf("no sub service configuration found")
 		return nil
 	}
@@ -39,7 +39,9 @@ func (s *TelegrafSvr) Start(ctx context.Context) error {
 		return fmt.Errorf("fail to generate sub service config, %s", err)
 	}
 
-	if err = ioutil.WriteFile(s.agentConfPath(false), []byte(telcfg), 0664); err != nil {
+	agentCfgFile := s.agentConfPath(false)
+
+	if err = ioutil.WriteFile(agentCfgFile, []byte(telegrafCfg), 0664); err != nil {
 		return fmt.Errorf("fail to create file, %s", err.Error())
 	}
 
@@ -54,6 +56,8 @@ func (s *TelegrafSvr) Start(ctx context.Context) error {
 
 		for {
 
+			internal.SleepContext(ctx, 3*time.Second)
+
 			select {
 			case <-ctx.Done():
 				s.StopAgent()
@@ -63,24 +67,24 @@ func (s *TelegrafSvr) Start(ctx context.Context) error {
 
 			piddata, err := ioutil.ReadFile(agentPidPath())
 			if err != nil {
-				log.Printf("W! read pid file failed, %s", err)
+				log.Printf("W! fail to read sub service pid file, %s", err)
+				continue
 			}
 
 			npid, err := strconv.Atoi(string(piddata))
 			if err != nil || npid <= 2 {
-				log.Printf("W! invalid pid, %s", err)
+				log.Printf("W! invalid sub service pid, %s", err)
+				continue
 			}
 
-			if CheckPid(npid) != nil {
-				log.Printf("W! sub service(%v) was killed", npid)
+			if err := CheckPid(npid); err != nil {
+				log.Printf("W! check sub service(%v) failed, %s", npid, err)
 			} else {
 				_, err := os.FindProcess(npid)
 				if err != nil {
-					log.Printf("W! sub service(%v) not found: %s", npid, err.Error())
+					log.Printf("W! sub service(%v) not found: %s", npid, err)
 				}
 			}
-
-			internal.SleepContext(ctx, 3*time.Second)
 		}
 	}(ctx)
 
@@ -152,7 +156,7 @@ func (s *TelegrafSvr) startAgent(ctx context.Context) error {
 	} else {
 		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", s.agentConfPath(false)}, procAttr)
 		if err != nil {
-			return fmt.Errorf("start agent failed, %s", err)
+			return err
 		}
 	}
 
@@ -160,7 +164,7 @@ func (s *TelegrafSvr) startAgent(ctx context.Context) error {
 		ioutil.WriteFile(agentPidPath(), []byte(fmt.Sprintf("%d", p.Pid)), 0664)
 	}
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 20)
 
 	return nil
 }
@@ -174,7 +178,7 @@ func (s *TelegrafSvr) killProcessByPID(npid int) error {
 			if err = prs.Kill(); err != nil {
 				return err
 			}
-			time.Sleep(time.Millisecond * 100)
+			time.Sleep(time.Millisecond * 20)
 		}
 	}
 
