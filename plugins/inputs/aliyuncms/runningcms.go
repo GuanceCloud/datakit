@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unicode"
+
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/providers"
@@ -16,27 +19,53 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 )
+
+type requestRateTrace struct {
+	lastRequestTime      time.Time
+	lastRequestTimeCount int64
+	requestCount         int64
+}
+
+func (t *requestRateTrace) check(logger *models.Logger) {
+	nowtm := time.Now()
+	if nowtm.Sub(t.lastRequestTime) >= time.Second {
+		logger.Debugf("request rate, %v requests in %v", t.requestCount-t.lastRequestTimeCount, nowtm.Sub(t.lastRequestTime))
+		t.lastRequestTime = nowtm
+		t.lastRequestTimeCount = t.requestCount
+	}
+}
 
 var (
 	errGetMetricMeta = fmt.Errorf("fail to get metric meta")
+
+	reqRateTrace requestRateTrace
+
+	retryCount = 5
 )
 
 func (s *runningCMS) run(ctx context.Context) error {
 
-	for {
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
+	defer func() {
+		if err := recover(); err != nil {
+			//s.agent.inputStat.SetLastErr(fmt.Errorf("%v", err))
 		}
+		atomic.AddInt32(&s.agent.inputStat.Stat, -1)
+	}()
 
-		if err := s.initializeAliyunCMS(); err != nil {
-			s.logger.Errorf("initialize error, %s", err)
-			internal.SleepContext(ctx, time.Second*15)
-		} else {
-			break
-		}
+	if err := s.initializeAliyunCMS(); err != nil {
+		s.logger.Errorf("create cms client failed, %s", err)
+		return err
+	}
+
+	if err := s.genReqs(); err != nil {
+		return err
+	}
+
+	if len(s.reqs) == 0 {
+		s.logger.Warnf("no metric is configed for %s.%s", s.cfg.AccessKeyID, s.cfg.RegionID)
+		return nil
 	}
 
 	select {
@@ -45,11 +74,8 @@ func (s *runningCMS) run(ctx context.Context) error {
 	default:
 	}
 
-	lmtr := limiter.NewRateLimiter(rateLimit, time.Second)
-	defer lmtr.Stop()
-
-	s.wg.Add(1)
-	defer s.wg.Done()
+	s.limiter = limiter.NewRateLimiter(rateLimit, time.Second)
+	defer s.limiter.Stop()
 
 	for {
 
@@ -59,8 +85,11 @@ func (s *runningCMS) run(ctx context.Context) error {
 		default:
 		}
 
-		t := time.Now()
-		for _, req := range MetricsRequests {
+		tm := time.Now()
+
+		metricOK := 0
+		metricFail := 0
+		for _, req := range s.reqs {
 
 			select {
 			case <-ctx.Done():
@@ -68,32 +97,48 @@ func (s *runningCMS) run(ctx context.Context) error {
 			default:
 			}
 
-			<-lmtr.C
-			if err := s.fetchMetric(req); err != nil {
-				s.logger.Errorf(`fail to get metric "%s.%s", %s`, req.q.Namespace, req.q.MetricName, err)
+			<-s.limiter.C
+			if err := s.fetchMetric(ctx, req); err != nil {
+				metricFail++
+				//s.agent.inputStat.SetLastErr(err)
+				//s.logger.Errorf(`fail to get metric "%s.%s", %s`, req.q.Namespace, req.q.MetricName, err)
+			} else {
+				metricOK++
 			}
 		}
 
-		useage := time.Now().Sub(t)
+		useage := time.Now().Sub(tm)
+		s.logger.Debugf(`use %v in this loop, success=%d, fail=%d`, useage, metricOK, metricFail)
 		if useage < batchInterval {
 			remain := batchInterval - useage
-
-			if s.timer == nil {
-				s.timer = time.NewTimer(remain)
-			} else {
-				s.timer.Reset(remain)
-			}
-			select {
-			case <-ctx.Done():
-				if s.timer != nil {
-					s.timer.Stop()
-					s.timer = nil
-				}
-				return context.Canceled
-			case <-s.timer.C:
-			}
+			internal.SleepContext(ctx, remain)
 		}
 	}
+}
+
+func (s *runningCMS) genReqs() error {
+
+	//生成所有请求
+	for _, proj := range s.cfg.Project {
+		for _, metricName := range proj.Metrics.MetricNames {
+
+			req := cms.CreateDescribeMetricListRequest()
+			req.Scheme = "https"
+			req.RegionId = s.cfg.RegionID
+			req.Period = proj.getPeriod(metricName)
+			req.MetricName = metricName
+			req.Namespace = proj.Name
+			if ds, err := proj.genDimension(metricName, s.logger); err == nil {
+				req.Dimensions = ds
+			}
+
+			s.reqs = append(s.reqs, &MetricsRequest{
+				q: req,
+			})
+		}
+	}
+
+	return nil
 }
 
 func (s *runningCMS) initializeAliyunCMS() error {
@@ -119,7 +164,7 @@ func (s *runningCMS) initializeAliyunCMS() error {
 		return fmt.Errorf("failed to create cms client: %v", err)
 	}
 
-	s.client = cli
+	s.cmsClient = cli
 
 	return nil
 }
@@ -132,10 +177,66 @@ func (s *runningCMS) fetchMetricMeta(namespace, metricname string) (*MetricMeta,
 	request.Namespace = namespace
 	request.MetricName = metricname
 
-	response, err := s.client.DescribeMetricMetaList(request)
+	var err error
+	var response *cms.DescribeMetricMetaListResponse
+
+	<-s.limiter.C
+	var tempDelay time.Duration
+	if reqRateTrace.lastRequestTime.IsZero() {
+		reqRateTrace.lastRequestTime = time.Now()
+	}
+
+	reqUid, _ := uuid.NewV4()
+
+	for i := 0; i < retryCount; i++ {
+
+		response, err = s.cmsClient.DescribeMetricMetaList(request)
+		reqRateTrace.requestCount++
+		reqRateTrace.check(s.logger)
+
+		if tempDelay == 0 {
+			tempDelay = time.Millisecond * 50
+		} else {
+			tempDelay *= 2
+		}
+
+		if max := time.Second; tempDelay > max {
+			tempDelay = max
+		}
+
+		if err == nil && response.Code != "200" {
+			err = fmt.Errorf("%s", response.String())
+		}
+
+		if err != nil {
+			s.logger.Warnf("fail to get metric meta for '%s.%s' (%s), %s", namespace, metricname, reqUid.String(), err)
+			time.Sleep(tempDelay)
+		} else {
+			if i != 0 {
+				s.logger.Debugf("retry %s successed, %d", reqUid.String(), i)
+			}
+			break
+		}
+	}
+
 	if err != nil {
-		s.logger.Warnf("fail to get metric meta for '%s.%s', %s", namespace, metricname, err)
+		s.agent.faildRequest++
+
+		ectx := errCtxMetricMeta(request)
+		ectx["RequestId"] = response.RequestId
+		ctxStr, _ := json.Marshal(ectx)
+
+		e := internal.ContextErr{
+			ID:      reqUid.String(),
+			Context: string(ctxStr),
+			Content: err.Error(),
+		}
+		s.logger.Errorf("%s", e.Error())
+
+		s.agent.inputStat.AddErrorID(reqUid.String())
 		return nil, errGetMetricMeta
+	} else {
+		s.agent.succedRequest++
 	}
 
 	if len(response.Resources.Resource) == 0 {
@@ -161,19 +262,17 @@ func (s *runningCMS) fetchMetricMeta(namespace, metricname string) (*MetricMeta,
 			Description: res.Description,
 			Unit:        res.Unit,
 		}
-		s.logger.Debugf("%s.%s: Periods=%s, Dimensions=%s, Statistics=%s, Unit=%s", namespace, metricname, periodStrs, res.Dimensions, res.Statistics, res.Unit)
+		//s.logger.Debugf("%s.%s: Periods=%s, Dimensions=%s, Statistics=%s, Unit=%s", namespace, metricname, periodStrs, res.Dimensions, res.Statistics, res.Unit)
 		return meta, nil
 	}
 
 	return nil, nil
 }
 
-func (s *runningCMS) fetchMetric(req *MetricsRequest) error {
+func (s *runningCMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 
-	if !req.haveGetMeta {
-		if req.meta == nil {
-			req.meta, _ = s.fetchMetricMeta(req.q.Namespace, req.q.MetricName)
-		}
+	if !req.haveGetMeta && req.meta == nil {
+		req.meta, _ = s.fetchMetricMeta(req.q.Namespace, req.q.MetricName)
 		req.haveGetMeta = true //有些指标阿里云更新不及时，所以拿不到就忽略
 	}
 
@@ -183,6 +282,7 @@ func (s *runningCMS) fetchMetric(req *MetricsRequest) error {
 		if !req.tunePeriod {
 			pv, _ := strconv.ParseInt(req.q.Period, 10, 64)
 			bValidPeriod := false
+			//检查设置的period是否被支持
 			for _, n := range req.meta.Periods {
 				if pv == n {
 					bValidPeriod = true
@@ -232,23 +332,82 @@ func (s *runningCMS) fetchMetric(req *MetricsRequest) error {
 
 	}
 
-	nt := time.Now().Truncate(time.Minute)
-	et := nt.Unix() * 1000
-	st := nt.Add(-(5 * time.Minute)).Unix() * 1000
+	nt := time.Now().Truncate(time.Minute) //.Add(-time.Second * 30)
+	endTime := nt.Unix() * 1000
+	var startTime int64
+	//if req.lastTime.IsZero() {
+	startTime = nt.Add(-(10 * time.Minute)).Unix() * 1000
+	//} else {
+	//	startTime = req.lastTime.Unix() * 1000
+	//}
 
-	req.q.EndTime = strconv.FormatInt(et, 10)
-	req.q.StartTime = strconv.FormatInt(st, 10)
+	logEndtime := time.Unix(endTime/int64(1000), 0)
+	logStarttime := time.Unix(startTime/int64(1000), 0)
+
+	req.q.EndTime = strconv.FormatInt(endTime, 10)
+	req.q.StartTime = strconv.FormatInt(startTime, 10)
 
 	req.q.NextToken = ""
 
-	s.logger.Debugf("request: Namespace:%s, MetricName:%s, Period:%s, StartTime:%s, EndTime:%s, Dimensions:%s", req.q.Namespace, req.q.MetricName, req.q.Period, req.q.StartTime, req.q.EndTime, req.q.Dimensions)
-
 	for more := true; more; {
-		resp, err := s.client.DescribeMetricList(req.q)
+		var err error
+		var resp *cms.DescribeMetricListResponse
+		<-s.limiter.C
+		var tempDelay time.Duration
+		if reqRateTrace.lastRequestTime.IsZero() {
+			reqRateTrace.lastRequestTime = time.Now()
+		}
+
+		reqUid, _ := uuid.NewV4()
+
+		for i := 0; i < retryCount; i++ {
+			resp, err = s.cmsClient.DescribeMetricList(req.q)
+			reqRateTrace.requestCount++
+			reqRateTrace.check(s.logger)
+
+			if tempDelay == 0 {
+				tempDelay = time.Millisecond * 50
+			} else {
+				tempDelay *= 2
+			}
+
+			if max := time.Second; tempDelay > max {
+				tempDelay = max
+			}
+
+			if err == nil && resp.Code != "200" {
+				err = fmt.Errorf("%s", resp.String())
+			}
+
+			if err != nil {
+				s.logger.Errorf("fail to query metric list (%s): %s", reqUid.String(), err)
+				time.Sleep(tempDelay)
+			} else {
+				if i != 0 {
+					s.logger.Debugf("retry %s successed, %d", reqUid.String(), i)
+				}
+				break
+			}
+		}
+
 		if err != nil {
-			return fmt.Errorf("failed to query metric list: %v", err)
-		} else if resp.Code != "200" {
-			return fmt.Errorf("failed to query metric list: %v", resp.Message)
+
+			ectx := errCtxMetricList(req)
+			ectx["RequestId"] = resp.RequestId
+			ctxStr, _ := json.Marshal(ectx)
+
+			e := internal.ContextErr{
+				ID:      reqUid.String(),
+				Context: string(ctxStr),
+				Content: err.Error(),
+			}
+			s.logger.Errorf("%s", e.Error())
+
+			s.agent.faildRequest++
+			s.agent.inputStat.AddErrorID(reqUid.String())
+			return err
+		} else {
+			s.agent.succedRequest++
 		}
 
 		if len(resp.Datapoints) == 0 {
@@ -260,6 +419,10 @@ func (s *runningCMS) fetchMetric(req *MetricsRequest) error {
 			return fmt.Errorf("failed to decode response datapoints: %v", err)
 		}
 
+		s.logger.Debugf("get %v datapoints: Namespace=%s, MetricName=%s, Period=%s, StartTime=%s(%s), EndTime=%s(%s), Dimensions=%s, RegionId=%s, NextToken=%s", len(datapoints), req.q.Namespace, req.q.MetricName, req.q.Period, req.q.StartTime, logStarttime, req.q.EndTime, logEndtime, req.q.Dimensions, req.q.RegionId, resp.NextToken)
+
+		metricName := req.q.MetricName
+
 		for _, datapoint := range datapoints {
 
 			tags := map[string]string{
@@ -269,16 +432,22 @@ func (s *runningCMS) fetchMetric(req *MetricsRequest) error {
 			fields := make(map[string]interface{})
 
 			if average, ok := datapoint["Average"]; ok {
-				fields[formatField(req.q.MetricName, "Average")] = average
+				fields[formatField(metricName, "Average")] = average
 			}
 			if minimum, ok := datapoint["Minimum"]; ok {
-				fields[formatField(req.q.MetricName, "Minimum")] = minimum
+				fields[formatField(metricName, "Minimum")] = minimum
 			}
 			if maximum, ok := datapoint["Maximum"]; ok {
-				fields[formatField(req.q.MetricName, "Maximum")] = maximum
+				fields[formatField(metricName, "Maximum")] = maximum
 			}
 			if value, ok := datapoint["Value"]; ok {
-				fields[formatField(req.q.MetricName, "Value")] = value
+				fields[formatField(metricName, "Value")] = value
+			}
+			if value, ok := datapoint["Sum"]; ok {
+				fields[formatField(metricName, "Sum")] = value
+			}
+			if value, ok := datapoint["SumPerMinute"]; ok {
+				fields[formatField(metricName, "SumPerMinute")] = value
 			}
 
 			for _, k := range dms {
@@ -297,15 +466,21 @@ func (s *runningCMS) fetchMetric(req *MetricsRequest) error {
 				tm = time.Unix((int64(ft))/1000, 0)
 			}
 
-			if s.agent.accumulator != nil && len(fields) > 0 {
-				s.agent.accumulator.AddFields(formatMeasurement(req.q.Namespace), fields, tags, tm)
+			if len(fields) == 0 {
+				s.logger.Debugf("skip %s.%s datapoint for no value, %s", req.q.Namespace, metricName, datapoint)
 			}
 
+			if s.agent.accumulator != nil && len(fields) > 0 {
+				s.agent.inputStat.IncrTotal()
+				s.agent.accumulator.AddFields(formatMeasurement(req.q.Namespace), fields, tags, tm)
+			}
 		}
 
 		req.q.NextToken = resp.NextToken
 		more = (req.q.NextToken != "")
 	}
+
+	//req.lastTime = nt.Add(-1 * time.Minute)
 
 	return nil
 }
