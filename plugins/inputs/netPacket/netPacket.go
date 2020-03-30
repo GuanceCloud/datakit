@@ -37,8 +37,9 @@ type NetPacket struct {
 }
 
 const sampleConfig = `
+	## 网卡信息
 	# device  = ""
-	# bpf过滤规则 see: https://biot.com/capstats/bpf.html
+	## bpf过滤规则 see: https://biot.com/capstats/bpf.html
 	# filter = "tcp"
 `
 
