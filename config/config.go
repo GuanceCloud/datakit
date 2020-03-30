@@ -34,6 +34,10 @@ var (
 	ExecutableDir string
 
 	ConvertedCfg []string
+
+	AgentLogFile string
+
+	DKConfig *Config
 )
 
 const (
@@ -125,12 +129,15 @@ type Config struct {
 	TelegrafAgentCfg *TelegrafAgentConfig
 	Inputs           []*models.RunningInput
 	Outputs          []*models.RunningOutput
+
+	InputFilters []string
 }
 
 func NewConfig() *Config {
 	c := &Config{
 		TelegrafAgentCfg: defaultTelegrafAgentCfg(),
 		MainCfg: &MainConfig{
+			GlobalTags:    map[string]string{},
 			FlushInterval: internal.Duration{Duration: 10 * time.Second},
 			Interval:      internal.Duration{Duration: 10 * time.Second},
 			LogLevel:      "info",
@@ -183,7 +190,7 @@ func (c *Config) LoadMainConfig(ctx context.Context, maincfg string) error {
 		return err
 	} else {
 
-		//telegraf config
+		//telegraf的相应配置
 		bAgentSetLogLevel := false
 		bAgentSetOmitHost := false
 		bAgentSetHostname := false
@@ -216,10 +223,6 @@ func (c *Config) LoadMainConfig(ctx context.Context, maincfg string) error {
 			return err
 		}
 
-		if c.MainCfg.GlobalTags == nil {
-			c.MainCfg.GlobalTags = map[string]string{}
-		}
-
 		if !c.MainCfg.OmitHostname {
 			if c.MainCfg.Hostname == "" {
 				hostname, err := os.Hostname()
@@ -237,6 +240,11 @@ func (c *Config) LoadMainConfig(ctx context.Context, maincfg string) error {
 			c.TelegrafAgentCfg.Logfile = filepath.Join(ExecutableDir, "embed", "agent.log")
 		}
 
+		if AgentLogFile != "" {
+			c.TelegrafAgentCfg.Logfile = AgentLogFile
+		}
+
+		//如果telegraf的agent相关配置没有，则默认使用datakit的同名配置
 		if !bAgentSetLogLevel {
 			c.TelegrafAgentCfg.Debug = (strings.ToLower(c.MainCfg.LogLevel) == "debug")
 		}
@@ -253,6 +261,80 @@ func (c *Config) LoadMainConfig(ctx context.Context, maincfg string) error {
 	return nil
 }
 
+func CheckConfd(cfgdir string) error {
+	dir, err := ioutil.ReadDir(cfgdir)
+	if err != nil {
+		return err
+	}
+
+	configed := []string{}
+	invalids := []string{}
+
+	checkSubDir := func(path string) error {
+
+		dir, err := ioutil.ReadDir(path)
+		if err != nil {
+			return err
+		}
+
+		for _, item := range dir {
+			if item.IsDir() {
+				continue
+			}
+
+			filename := item.Name()
+
+			if filename == "." || filename == ".." {
+				continue
+			}
+
+			if filepath.Ext(filename) != ".conf" {
+				continue
+			}
+
+			var data []byte
+			data, err = ioutil.ReadFile(filepath.Join(path, filename))
+			if err != nil {
+				return err
+			}
+
+			if len(data) == 0 {
+				return ErrConfigNotFound
+			}
+
+			if tbl, err := toml.Parse(data); err != nil {
+				invalids = append(invalids, filename)
+				return err
+			} else {
+				if len(tbl.Fields) > 0 {
+					configed = append(configed, filename)
+				}
+			}
+
+		}
+
+		return nil
+	}
+
+	for _, item := range dir {
+		if !item.IsDir() {
+			continue
+		}
+
+		if item.Name() == "." || item.Name() == ".." {
+			continue
+		}
+
+		checkSubDir(filepath.Join(cfgdir, item.Name()))
+	}
+
+	log.Printf("inputs: %s", strings.Join(configed, ","))
+	log.Printf("error configuration: %s", strings.Join(invalids, ","))
+
+	return nil
+}
+
+//LoadConfig 加载conf.d下的所有配置文件
 func (c *Config) LoadConfig(ctx context.Context) error {
 
 	for name, creator := range inputs.Inputs {
@@ -263,40 +345,48 @@ func (c *Config) LoadConfig(ctx context.Context) error {
 		default:
 		}
 
-		if name == "apachelog" || name == "nginxlog" {
-			if theip, ok := creator().(ConvertTelegrafConfig); ok {
-				thepath := theip.FilePath(c.MainCfg.ConfigDir)
-				_, err := os.Stat(thepath)
+		if len(c.InputFilters) > 0 {
+			if !sliceContains(name, c.InputFilters) {
+				continue
+			}
+		}
 
-				if err != nil && os.IsNotExist(err) {
-					continue
-				}
-				if err := theip.Load(thepath); err != nil {
-					if err == ErrNoTelegrafConf {
+		//apachelog和nginxlog和telegraf的nginx和apache共享一个目录
+		//这些采集器将转化为telegraf的采集器
+		if name == "apachelog" || name == "nginxlog" {
+			if p, ok := creator().(ConvertTelegrafConfig); ok {
+				path := p.FilePath(c.MainCfg.ConfigDir)
+				if err := p.Load(path); err != nil {
+					if err == ErrConfigNotFound {
 						continue
 					} else {
-						return fmt.Errorf("fail to load %s, %s", thepath, err)
+						return fmt.Errorf("Error loading config file %s, %s", path, err)
 					}
 				}
-				if telestr, err := theip.ToTelegraf(thepath); err == nil {
-					ConvertedCfg = append(ConvertedCfg, telestr)
+				if telegrafCfg, err := p.ToTelegraf(path); err == nil {
+					ConvertedCfg = append(ConvertedCfg, telegrafCfg)
 				} else {
-					return fmt.Errorf("convert %s to telegraf failed, %s", name, err)
+					return fmt.Errorf("convert %s failed, %s", path, err)
 				}
 			}
 			continue
 		}
 
-		path := filepath.Join(c.MainCfg.ConfigDir, name, fmt.Sprintf("%s.conf", name))
-
-		_, err := os.Stat(path)
-		if err != nil && os.IsNotExist(err) {
-			continue
-		}
-
 		input := creator()
-		data, err := ioutil.ReadFile(path)
-		if err != nil {
+
+		var data []byte
+
+		if internalData, ok := inputs.InternalInputsData[name]; ok {
+			data = internalData
+		} else {
+			path := filepath.Join(c.MainCfg.ConfigDir, name, fmt.Sprintf("%s.conf", name))
+
+			_, err := os.Stat(path)
+			if err != nil && os.IsNotExist(err) {
+				continue
+			}
+
+			data, err = ioutil.ReadFile(path)
 			if err != nil {
 				return fmt.Errorf("Error loading config file %s, %s", path, err)
 			}
@@ -304,10 +394,10 @@ func (c *Config) LoadConfig(ctx context.Context) error {
 
 		tbl, err := parseConfig(data)
 		if err != nil {
-			return fmt.Errorf("Error loading config file %s, %s", path, err)
+			return fmt.Errorf("Error parse config %s, %s", name, err)
 		}
 
-		if len(tbl.Fields) == 0 && name != "mock" {
+		if len(tbl.Fields) == 0 {
 			continue
 		}
 
@@ -355,6 +445,29 @@ func (c *Config) LoadConfig(ctx context.Context) error {
 	return LoadTelegrafConfigs(ctx, c.MainCfg.ConfigDir)
 }
 
+func (c *Config) DumpInputsOutputs() {
+	names := []string{}
+
+	for _, p := range c.Inputs {
+		names = append(names, p.Config.Name)
+	}
+
+	for idx, b := range MetricsEnablesFlags {
+		if b {
+			names = append(names, SupportsTelegrafMetraicNames[idx])
+		}
+	}
+
+	log.Printf("avariable inputs: %s", strings.Join(names, ","))
+
+	names = names[:0]
+	for _, p := range c.Outputs {
+		names = append(names, p.Config.Name)
+	}
+
+	log.Printf("avariable outputs: %s", strings.Join(names, ","))
+}
+
 func InitMainCfg(cfg *MainConfig, path string) error {
 
 	var err error
@@ -395,6 +508,10 @@ func CreatePluginConfigs(cfgdir string, upgrade bool) error {
 	//datakit定义的插件的配置文件
 	for name, creator := range inputs.Inputs {
 
+		if name == "self" {
+			continue
+		}
+
 		plugindir := ""
 		if name == "apachelog" {
 			plugindir = filepath.Join(cfgdir, "apache")
@@ -416,7 +533,7 @@ func CreatePluginConfigs(cfgdir string, upgrade bool) error {
 			return fmt.Errorf("Error create %s, %s", plugindir, err)
 		}
 		input := creator()
-		if err := ioutil.WriteFile(cfgpath, []byte(input.SampleConfig()), 0664); err != nil {
+		if err := ioutil.WriteFile(cfgpath, []byte(input.SampleConfig()), 0666); err != nil {
 			return fmt.Errorf("Error create %s, %s", cfgpath, err)
 		}
 	}
@@ -476,7 +593,20 @@ func parseConfig(contents []byte) (*ast.Table, error) {
 	return toml.Parse(contents)
 }
 
+func sliceContains(name string, list []string) bool {
+	for _, b := range list {
+		if b == name {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Config) addInput(name string, input telegraf.Input, table *ast.Table) error {
+
+	if len(c.InputFilters) > 0 && !sliceContains(name, c.InputFilters) {
+		return nil
+	}
 
 	pluginConfig, err := buildInput(name, table)
 	if err != nil {
