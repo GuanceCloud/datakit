@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/google/gopacket"
@@ -17,7 +18,6 @@ import (
 type NetPacket struct {
 	Device string // interface
 	Filter string
-	Count  int    // count packets (default: 1M)
 	Type   string // filter type
 
 	SrcHost string
@@ -38,8 +38,8 @@ type NetPacket struct {
 
 const sampleConfig = `
 	# device  = ""
-	# count = 1M
-	# filter = tcp
+	# bpf过滤规则 see: https://biot.com/capstats/bpf.html
+	# filter = "tcp"
 `
 
 const description = `netpack dump`
@@ -169,6 +169,7 @@ func (p *NetPacket) ParseData(acc telegraf.Accumulator) {
 	switch {
 	case p.IPv4.Protocol == layers.IPProtocolTCP:
 		p.tcpData(acc)
+		p.httpData(acc)
 	case p.IPv4.Protocol == layers.IPProtocolUDP:
 		p.udpData(acc)
 	case p.IPv4.Protocol == layers.IPProtocolICMPv4:
@@ -233,7 +234,7 @@ func (p *NetPacket) arpData(acc telegraf.Accumulator) {
 	tags := make(map[string]string)
 
 	tags["srcAdd"] = fmt.Sprintf("%s", p.ARP.SourceProtAddress) // 源ip
-	tags["dstIP"] = fmt.Sprintf("%s", p.ARP.DstProtAddress)     // 目标ip
+	tags["dstAdd"] = fmt.Sprintf("%s", p.ARP.DstProtAddress)    // 目标ip
 	tags["protocol"] = fmt.Sprintf("%s", p.ARP.Protocol)
 
 	fields["hardwareAddr"] = string(net.HardwareAddr(p.ARP.SourceHwAddress))
@@ -255,18 +256,28 @@ func (p *NetPacket) icmpData(acc telegraf.Accumulator) {
 	acc.AddFields("icmpPacket", fields, tags)
 }
 
-func (p *NetPacket) httpStat(acc telegraf.Accumulator) {
+func (p *NetPacket) httpData(acc telegraf.Accumulator) {
 	fields := make(map[string]interface{})
 	tags := make(map[string]string)
 
-	tags["get"] = p.SrcHost  // 源ip
-	tags["post"] = p.DstHost // 目标ip
-	tags["protocol"] = "icmp"
+	src := fmt.Sprintf("%s:%s", p.SrcHost, p.TCP.SrcPort)
+	dst := fmt.Sprintf("%s:%s", p.DstHost, p.TCP.DstPort)
 
-	fields["seq"] = p.ICMPv4.Seq
-	fields["type"] = p.ICMPv4.TypeCode.String()
+	if strings.Contains(string(p.Payload), "HTTP") {
+		tags["src"] = src // 源ip
+		tags["dst"] = dst // 目标ip
+		tags["protocol"] = "http"
 
-	acc.AddFields("icmpPacket", fields, tags)
+		if strings.Contains(string(p.Payload), "GET") {
+			fields["method"] = "GET"
+		} else if strings.Contains(string(p.Payload), "POST") {
+			fields["method"] = "POST"
+		} else if strings.Contains(string(p.Payload), "HEAD") {
+			fields["method"] = "HEAD"
+		}
+	}
+
+	acc.AddFields("httpPacket", fields, tags)
 }
 
 func (p *NetPacket) Stop() {
