@@ -29,7 +29,7 @@ var (
 	flagName     = flag.String("name", *flagBinary, "same as -binary")
 	flagBuildDir = flag.String("build-dir", "build", "output of build files")
 	flagMain     = flag.String(`main`, `main.go`, `binary build entry`)
-	flagCGO      = flag.Bool(`cgo`, false, `enable CGO or not`)
+	flagCGO      = flag.Bool(`cgo`, true, `enable CGO or not`)
 	flagTargetOS = flag.String(`os`, `linux`, `linux/mac/windows`)
 
 	flagKodoHost     = flag.String("kodo-host", "", "")
