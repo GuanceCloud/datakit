@@ -20,6 +20,9 @@ import (
 	"syscall"
 	"time"
 	"unicode"
+
+	"github.com/influxdata/telegraf"
+	"github.com/influxdata/telegraf/plugins/serializers/influx"
 	//"github.com/alecthomas/units"
 )
 
@@ -472,4 +475,13 @@ func SizeToName(size int64) string {
 	}
 
 	return fmt.Sprintf("%d%s", size, units[i])
+}
+
+func Metric2InfluxLine(m telegraf.Metric) string {
+	serializer := influx.NewSerializer()
+	data, err := serializer.Serialize(m)
+	if err != nil {
+		panic(fmt.Sprintf("%s", err))
+	}
+	return string(data)
 }
