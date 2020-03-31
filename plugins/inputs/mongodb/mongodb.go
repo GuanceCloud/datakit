@@ -1,4 +1,4 @@
-package replication
+package mongodb
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type Replication struct {
-	Config Config `toml:"replication"`
+type Mongodb struct {
+	Config Config `toml:"mongodb"`
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -22,44 +22,44 @@ type Replication struct {
 
 func init() {
 	inputs.Add(pluginName, func() telegraf.Input {
-		r := &Replication{}
-		r.ctx, r.cancel = context.WithCancel(context.Background())
-		return r
+		m := &Mongodb{}
+		m.ctx, m.cancel = context.WithCancel(context.Background())
+		return m
 	})
 }
 
-func (r *Replication) Start(acc telegraf.Accumulator) error {
+func (m *Mongodb) Start(acc telegraf.Accumulator) error {
 
-	r.acc = acc
-	r.wg = new(sync.WaitGroup)
+	m.acc = acc
+	m.wg = new(sync.WaitGroup)
 
-	for _, sub := range r.Config.Subscribes {
-		r.wg.Add(1)
+	for _, sub := range m.Config.Subscribes {
+		m.wg.Add(1)
 		stream := newStream(&sub)
-		go stream.start(r, r.ctx, r.wg)
+		go stream.start(m.wg)
 	}
 
 	return nil
 }
 
-func (r *Replication) Stop() {
-	r.cancel()
-	r.wg.Wait()
+func (m *Mongodb) Stop() {
+	m.cancel()
+	m.wg.Wait()
 }
 
-func (_ *Replication) SampleConfig() string {
-	return replicationConfigSample
+func (_ *Mongodb) SampleConfig() string {
+	return mongodbConfigSample
 }
 
-func (_ *Replication) Description() string {
+func (_ *Mongodb) Description() string {
 	return "Convert MongoDB Database to Dataway"
 }
 
-func (_ *Replication) Gather(telegraf.Accumulator) error {
+func (_ *Mongodb) Gather(telegraf.Accumulator) error {
 	return nil
 }
 
-func (r *Replication) ProcessPts(pts []*influxdb.Point) error {
+func (r *Mongodb) ProcessPts(pts []*influxdb.Point) error {
 	for _, pt := range pts {
 		fields, err := pt.Fields()
 		if err != nil {
