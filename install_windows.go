@@ -27,6 +27,7 @@ var (
 	serviceName = `datakit`
 
 	flagUpgrade    = flag.Bool("upgrade", false, ``)
+	flagTest       = flag.Bool("test", false, ``)
 	flagFtDataway  = flag.String("ftdataway", "", `address of ftdataway`)
 	flagInstallDir = flag.String("installdir", fmt.Sprintf(`C:\Program Files (x86)\Forethought\%s`, serviceName), `directory to install`)
 
@@ -42,6 +43,10 @@ type VerSt struct {
 func main() {
 
 	flag.Parse()
+
+	if *flagTest {
+		baseDownloadUrl = `https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit`
+	}
 
 	if err := os.MkdirAll(installDir, 0775); err != nil {
 		log.Fatalf("[error] %s", err.Error())
