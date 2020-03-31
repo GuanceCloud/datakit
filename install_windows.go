@@ -167,22 +167,24 @@ func main() {
 	// 	log.Fatalf("[error] unsupport for os=%s and arch=%s", runtime.GOOS, runtime.GOARCH)
 	// }
 
-	agentDir := filepath.Join(instadir, "embed")
-	if err := os.MkdirAll(agentDir); err != nil {
-		log.Fatalf("[error] %s", mverr.Error())
+	destbin := filepath.Join(installDir, "datakit.exe")
+
+	agentDir := filepath.Join(installDir, "embed")
+	if err := os.MkdirAll(agentDir, 0775); err != nil {
+		log.Fatalf("[error] %s", err.Error())
 	}
 
-	agentOldLogFile := filepath.Join(instadir, "agent.log")
+	agentOldLogFile := filepath.Join(installDir, "agent.log")
 	if _, err := os.Stat(agentOldLogFile); err == nil {
 		os.Rename(agentOldLogFile, filepath.Join(agentDir, "agent.log"))
 	}
 
-	agentOldPidFile := filepath.Join(instadir, "agent.pid")
+	agentOldPidFile := filepath.Join(installDir, "agent.pid")
 	if _, err := os.Stat(agentOldPidFile); err == nil {
 		os.Rename(agentOldPidFile, filepath.Join(agentDir, "agent.pid"))
 	}
 
-	agentPath := filepath.Join(instadir, "agent.exe")
+	agentPath := filepath.Join(installDir, "agent.exe")
 	destAgentPath := filepath.Join(agentDir, "agent.exe")
 
 	if _, err := os.Stat(agentPath); err == nil {
