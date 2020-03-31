@@ -503,7 +503,7 @@ func buildWindowsInstall(outdir, goarch string) {
 
 	args := []string{
 		"go", "build",
-		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s`, *flagName),
+		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s -X main.baseDownloadUrl=%s`, *flagName, *flagDownloadAddr),
 		"-o", output,
 		"install_windows.go",
 	}
