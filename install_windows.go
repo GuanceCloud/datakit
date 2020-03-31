@@ -39,6 +39,12 @@ type VerSt struct {
 	Version string `json:"version"`
 }
 
+func testuntar(destpath string, instadir string) {
+	if err := deCompress(destpath, instadir); err != nil {
+		log.Fatalf("%s", err)
+	}
+}
+
 func main() {
 
 	flag.Parse()
@@ -155,19 +161,48 @@ func main() {
 		log.Fatalf("[error] %s", err.Error())
 	}
 
-	platformDir := filepath.Join(installDir, fmt.Sprintf("%s-%s-%s", serviceName, runtime.GOOS, runtime.GOARCH))
-	_, err = os.Stat(platformDir)
-	if err != nil {
-		log.Fatalf("[error] unsupport for os=%s and arch=%s", runtime.GOOS, runtime.GOARCH)
+	// platformDir := filepath.Join(installDir, fmt.Sprintf("%s-%s-%s", serviceName, runtime.GOOS, runtime.GOARCH))
+	// _, err = os.Stat(platformDir)
+	// if err != nil {
+	// 	log.Fatalf("[error] unsupport for os=%s and arch=%s", runtime.GOOS, runtime.GOARCH)
+	// }
+
+	agentDir := filepath.Join(instadir, "embed")
+	if err := os.MkdirAll(agentDir); err != nil {
+		log.Fatalf("[error] %s", mverr.Error())
 	}
 
-	binName := serviceName + ".exe"
-	destbin := filepath.Join(installDir, binName)
-	if err = os.Rename(filepath.Join(platformDir, binName), destbin); err != nil {
+	agentOldLogFile := filepath.Join(instadir, "agent.log")
+	if _, err := os.Stat(agentOldLogFile); err == nil {
+		os.Rename(agentOldLogFile, filepath.Join(agentDir, "agent.log"))
+	}
+
+	agentOldPidFile := filepath.Join(instadir, "agent.pid")
+	if _, err := os.Stat(agentOldPidFile); err == nil {
+		os.Rename(agentOldPidFile, filepath.Join(agentDir, "agent.pid"))
+	}
+
+	agentPath := filepath.Join(instadir, "agent.exe")
+	destAgentPath := filepath.Join(agentDir, "agent.exe")
+
+	if _, err := os.Stat(agentPath); err == nil {
+		var mverr error
+		for i := 0; i < 2; i++ {
+			mverr = os.Rename(agentPath, destAgentPath)
+			if mverr == nil {
+				break
+			}
+			time.Sleep(time.Second)
+		}
+		if mverr != nil {
+			log.Fatalf("[error] %s", mverr.Error())
+		}
+
+	} else {
 		log.Fatalf("[error] %s", err.Error())
 	}
 
-	os.Remove(platformDir)
+	//os.Remove(platformDir)
 
 	if *flagUpgrade {
 		//upgrade
