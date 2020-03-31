@@ -72,7 +72,7 @@ func (s *stream) runloop() {
 				continue
 			}
 			switch p.Operation {
-			case "i", "u", "c":
+			case "i", "u", "d":
 				s.mdata.setTime(p.Timestamp)
 				s.mdata.rematch(p.Object, "/")
 
