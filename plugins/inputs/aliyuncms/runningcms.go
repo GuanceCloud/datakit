@@ -12,13 +12,13 @@ import (
 	"unicode"
 
 	uuid "github.com/satori/go.uuid"
+	"golang.org/x/time/rate"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/providers"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 )
 
@@ -74,8 +74,8 @@ func (s *runningCMS) run(ctx context.Context) error {
 	default:
 	}
 
-	s.limiter = limiter.NewRateLimiter(rateLimit, time.Second)
-	defer s.limiter.Stop()
+	limit := rate.Every(50 * time.Millisecond)
+	s.limiter = rate.NewLimiter(limit, 1)
 
 	for {
 
@@ -97,7 +97,6 @@ func (s *runningCMS) run(ctx context.Context) error {
 			default:
 			}
 
-			<-s.limiter.C
 			if err := s.fetchMetric(ctx, req); err != nil {
 				metricFail++
 				//s.agent.inputStat.SetLastErr(err)
@@ -169,7 +168,7 @@ func (s *runningCMS) initializeAliyunCMS() error {
 	return nil
 }
 
-func (s *runningCMS) fetchMetricMeta(namespace, metricname string) (*MetricMeta, error) {
+func (s *runningCMS) fetchMetricMeta(ctx context.Context, namespace, metricname string) (*MetricMeta, error) {
 
 	request := cms.CreateDescribeMetricMetaListRequest()
 	request.Scheme = "https"
@@ -180,7 +179,7 @@ func (s *runningCMS) fetchMetricMeta(namespace, metricname string) (*MetricMeta,
 	var err error
 	var response *cms.DescribeMetricMetaListResponse
 
-	<-s.limiter.C
+	s.limiter.Wait(ctx)
 	var tempDelay time.Duration
 	if reqRateTrace.lastRequestTime.IsZero() {
 		reqRateTrace.lastRequestTime = time.Now()
@@ -272,7 +271,7 @@ func (s *runningCMS) fetchMetricMeta(namespace, metricname string) (*MetricMeta,
 func (s *runningCMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 
 	if !req.haveGetMeta && req.meta == nil {
-		req.meta, _ = s.fetchMetricMeta(req.q.Namespace, req.q.MetricName)
+		req.meta, _ = s.fetchMetricMeta(ctx, req.q.Namespace, req.q.MetricName)
 		req.haveGetMeta = true //有些指标阿里云更新不及时，所以拿不到就忽略
 	}
 
@@ -352,7 +351,7 @@ func (s *runningCMS) fetchMetric(ctx context.Context, req *MetricsRequest) error
 	for more := true; more; {
 		var err error
 		var resp *cms.DescribeMetricListResponse
-		<-s.limiter.C
+		s.limiter.Wait(ctx)
 		var tempDelay time.Duration
 		if reqRateTrace.lastRequestTime.IsZero() {
 			reqRateTrace.lastRequestTime = time.Now()
