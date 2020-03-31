@@ -10,10 +10,12 @@ import (
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
+	"golang.org/x/time/rate"
 
 	"github.com/influxdata/telegraf"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -26,20 +28,19 @@ var (
 )
 
 type (
-	AliyunCost struct {
+	AliyunCostAgent struct {
 		Costs []*CostCfg `toml:"boa"`
 
-		runningInst []*RunningInstance
-
-		tags map[string]string
+		runningInstances []*runningInstance
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
+		logger    *models.Logger
 
 		accumulator telegraf.Accumulator
 	}
 
-	RunningInstance struct {
+	runningInstance struct {
 		cfg *CostCfg
 
 		wg sync.WaitGroup
@@ -48,12 +49,12 @@ type (
 
 		modules []costModule
 
-		lmtr *limiter.RateLimiter
-
 		wgSuspend sync.WaitGroup
 		mutex     sync.Mutex
 
-		cost *AliyunCost
+		rateLimiter *rate.Limiter
+
+		agent *AliyunCostAgent
 
 		ctx context.Context
 
@@ -68,19 +69,23 @@ type (
 	}
 )
 
-func (_ *AliyunCost) SampleConfig() string {
+func (_ *AliyunCostAgent) SampleConfig() string {
 	return aliyuncostConfigSample
 }
 
-func (_ *AliyunCost) Description() string {
+func (_ *AliyunCostAgent) Description() string {
 	return ""
 }
 
-func (_ *AliyunCost) Gather(telegraf.Accumulator) error {
+func (_ *AliyunCostAgent) Gather(telegraf.Accumulator) error {
 	return nil
 }
 
-func (ac *AliyunCost) Init() error {
+func (ac *AliyunCostAgent) Init() error {
+
+	ac.logger = &models.Logger{
+		Name: `aliyuncost`,
+	}
 
 	for _, cfg := range ac.Costs {
 		if cfg.AccountInterval.Duration == 0 {
@@ -99,24 +104,27 @@ func (ac *AliyunCost) Init() error {
 	return nil
 }
 
-func (ac *AliyunCost) Start(acc telegraf.Accumulator) error {
+func (ac *AliyunCostAgent) Start(acc telegraf.Accumulator) error {
 
 	if len(ac.Costs) == 0 {
-		log.Printf("W! [aliyuncost] no configuration found")
+		ac.logger.Warnf("no configuration found")
 		return nil
 	}
 
-	log.Printf("aliyun cost start")
+	ac.logger.Infof("starting...")
 
 	ac.accumulator = acc
 
 	for _, cfg := range ac.Costs {
 
-		ri := &RunningInstance{
-			cfg:  cfg,
-			cost: ac,
-			ctx:  ac.ctx,
+		ri := &runningInstance{
+			cfg:   cfg,
+			agent: ac,
+			ctx:   ac.ctx,
 		}
+
+		limit := rate.Every(40 * time.Millisecond)
+		ri.rateLimiter = rate.NewLimiter(limit, 1)
 
 		if cfg.AccountInterval.Duration > 0 {
 			ri.modules = append(ri.modules, NewCostAccount(cfg, ri))
@@ -130,46 +138,41 @@ func (ac *AliyunCost) Start(acc telegraf.Accumulator) error {
 			ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
 		}
 
-		ac.runningInst = append(ac.runningInst, ri)
-	}
+		ac.runningInstances = append(ac.runningInstances, ri)
 
-	for _, inst := range ac.runningInst {
+		go func(r *runningInstance) {
 
-		go func(ri *RunningInstance) {
-
-			if err := ri.run(); err != nil && err != context.Canceled {
+			if err := r.run(); err != nil && err != context.Canceled {
 				log.Printf("E! [aliyuncost] %s", err)
 			}
 
-			log.Printf("[aliyuncost] instance done")
-
-		}(inst)
+		}(ri)
 	}
 
 	return nil
 }
 
-func (ac *AliyunCost) Stop() {
+func (ac *AliyunCostAgent) Stop() {
 	ac.cancelFun()
 }
 
-func (s *RunningInstance) suspendHistoryFetch() {
+func (s *runningInstance) suspendHistoryFetch() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.wgSuspend.Add(1)
 }
 
-func (s *RunningInstance) resumeHistoryFetch() {
+func (s *runningInstance) resumeHistoryFetch() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.wgSuspend.Done()
 }
 
-func (s *RunningInstance) wait() {
+func (s *runningInstance) wait() {
 	s.wgSuspend.Wait()
 }
 
-func (s *RunningInstance) cacheFileKey(subname string) string {
+func (s *runningInstance) cacheFileKey(subname string) string {
 	m := md5.New()
 	m.Write([]byte(s.cfg.AccessKeyID))
 	m.Write([]byte(s.cfg.AccessKeySecret))
@@ -178,7 +181,7 @@ func (s *RunningInstance) cacheFileKey(subname string) string {
 	return hex.EncodeToString(m.Sum(nil))
 }
 
-func (s *RunningInstance) getAccountInfo() {
+func (s *runningInstance) getAccountInfo() {
 	req := bssopenapi.CreateQueryBillOverviewRequest()
 	req.BillingCycle = fmt.Sprintf("%d-%d", 2020, 1)
 
@@ -192,10 +195,7 @@ func (s *RunningInstance) getAccountInfo() {
 	s.accountID = resp.Data.AccountID
 }
 
-func (s *RunningInstance) run() error {
-
-	s.lmtr = limiter.NewRateLimiter(10, time.Minute)
-	defer s.lmtr.Stop()
+func (s *runningInstance) run() error {
 
 	var err error
 	s.client, err = bssopenapi.NewClientWithAccessKey(s.cfg.RegionID, s.cfg.AccessKeyID, s.cfg.AccessKeySecret)
@@ -209,6 +209,7 @@ func (s *RunningInstance) run() error {
 	default:
 	}
 
+	//先获取account name
 	s.getAccountInfo()
 
 	for _, boaModule := range s.modules {
@@ -227,9 +228,67 @@ func (s *RunningInstance) run() error {
 	return nil
 }
 
+func (r *runningInstance) QueryAccountTransactionsWrap(ctx context.Context, request *bssopenapi.QueryAccountTransactionsRequest) (response *bssopenapi.QueryAccountTransactionsResponse, err error) {
+	r.rateLimiter.Wait(ctx)
+	response, err = r.client.QueryAccountTransactions(request)
+	return
+}
+
+func (r *runningInstance) QueryAccountBalanceWrap(ctx context.Context, request *bssopenapi.QueryAccountBalanceRequest) (response *bssopenapi.QueryAccountBalanceResponse, err error) {
+	for i := 0; i < 5; i++ {
+		r.rateLimiter.Wait(ctx)
+		response, err = r.client.QueryAccountBalance(request)
+		if err == nil {
+			return
+		}
+		internal.SleepContext(ctx, time.Millisecond*200)
+	}
+
+	return
+}
+
+func (r *runningInstance) QueryBillWrap(ctx context.Context, request *bssopenapi.QueryBillRequest) (response *bssopenapi.QueryBillResponse, err error) {
+	for i := 0; i < 5; i++ {
+		r.rateLimiter.Wait(ctx)
+		response, err = r.client.QueryBill(request)
+		if err == nil {
+			return
+		}
+		internal.SleepContext(ctx, time.Millisecond*200)
+	}
+
+	return
+}
+
+func (r *runningInstance) QueryInstanceBillWrap(ctx context.Context, request *bssopenapi.QueryInstanceBillRequest) (response *bssopenapi.QueryInstanceBillResponse, err error) {
+	for i := 0; i < 5; i++ {
+		r.rateLimiter.Wait(ctx)
+		response, err = r.client.QueryInstanceBill(request)
+		if err == nil {
+			return
+		}
+		internal.SleepContext(ctx, time.Millisecond*200)
+	}
+
+	return
+}
+
+func (r *runningInstance) QueryOrdersWrap(ctx context.Context, request *bssopenapi.QueryOrdersRequest) (response *bssopenapi.QueryOrdersResponse, err error) {
+	for i := 0; i < 5; i++ {
+		r.rateLimiter.Wait(ctx)
+		response, err = r.client.QueryOrders(request)
+		if err == nil {
+			return
+		}
+		internal.SleepContext(ctx, time.Millisecond*200)
+	}
+
+	return
+}
+
 func init() {
 	inputs.Add("aliyuncost", func() telegraf.Input {
-		ac := &AliyunCost{}
+		ac := &AliyunCostAgent{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
 	})
