@@ -551,7 +551,7 @@ func tarFiles(osarch string) {
 	}
 
 	if *flagTargetOS == "linux" {
-		args = append(args, `-C`, `../../`, `deplib`)
+		args = append(args, `-C`, `../../`, `deps`)
 	}
 
 	cmd := exec.Command("tar", args...)
