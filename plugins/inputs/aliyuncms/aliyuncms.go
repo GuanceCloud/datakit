@@ -8,8 +8,9 @@ import (
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/metric"
 
+	"golang.org/x/time/rate"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
@@ -85,7 +86,7 @@ type (
 
 		logger *models.Logger
 
-		limiter *limiter.RateLimiter
+		limiter *rate.Limiter
 	}
 
 	CmsAgent struct {
