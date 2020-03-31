@@ -88,6 +88,14 @@ else
     sudo_cmd='sudo'
 fi
 
+if type yum >/dev/null 2>&1; then
+	yum -y install libpcap-devel 
+fi
+
+if type apt-get >/dev/null 2>&1; then
+	apt-get -y install libpcap-dev 
+fi
+
 # Set the configuration
 function set_config() {
 	if [ -e $1 ] && [ -n "$dk_upgrade" ]; then
