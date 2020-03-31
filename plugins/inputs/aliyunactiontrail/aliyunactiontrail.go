@@ -110,7 +110,6 @@ func (r *runningInstance) getHistory(ctx context.Context) error {
 	}
 
 	endTm := time.Now().Truncate(time.Minute).Add(-r.cfg.Interval.Duration)
-
 	request := actiontrail.CreateLookupEventsRequest()
 	request.Scheme = "https"
 	request.StartTime = r.cfg.From
