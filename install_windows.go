@@ -51,6 +51,10 @@ func main() {
 		log.Printf("start installing %s in %s", serviceName, installDir)
 	}
 
+	if !strings.HasPrefix(baseDownloadUrl, `http://`) || !strings.HasPrefix(baseDownloadUrl, `http://`) {
+		baseDownloadUrl = `https://` + baseDownloadUrl
+	}
+
 	//stop
 	log.Printf("stopping %s", serviceName)
 	cmd := exec.Command(`sc`, `stop`, serviceName)
@@ -60,6 +64,7 @@ func main() {
 
 	//log.Println("check version...")
 	verUrl := baseDownloadUrl + `/version_win`
+
 	verResp, err := http.Get(verUrl)
 	if err != nil {
 		log.Fatalf("[error] %s", err.Error())
@@ -78,9 +83,6 @@ func main() {
 	osarch := fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH)
 
 	tarDownloadUrl = fmt.Sprintf("%s/datakit-%s-%s.tar.gz", baseDownloadUrl, osarch, vt.Version)
-	if !strings.HasPrefix(tarDownloadUrl, `http://`) || !strings.HasPrefix(tarDownloadUrl, `http://`) {
-		tarDownloadUrl = `https://` + tarDownloadUrl
-	}
 
 	//download
 	log.Println("start downloading...")
