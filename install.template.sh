@@ -88,14 +88,6 @@ else
     sudo_cmd='sudo'
 fi
 
-if type yum >/dev/null 2>&1; then
-	yum -y -q install libpcap-devel 
-fi
-
-if type apt-get >/dev/null 2>&1; then
-	apt-get -y install libpcap-dev 
-fi
-
 # Set the configuration
 function set_config() {
 	if [ -e $1 ] && [ -n "$dk_upgrade" ]; then
@@ -179,6 +171,12 @@ function host_install() {
 
 	$sudo_cmd chmod +x "$BINARY" 
 	$sudo_cmd chmod +x "$AGENTBINARY" 
+
+	if type ldconfig; then
+		mkdir -p /etc/ld.so.conf.d
+		echo "${USRDIR}/deps" > /etc/ld.so.conf.d/datakit.conf
+		ldconfig
+	fi
 
 	if [ -f "${AGENTBINARY}" ]; then
 		mv "${AGENTBINARY}" "${EMBEDDIR}"
