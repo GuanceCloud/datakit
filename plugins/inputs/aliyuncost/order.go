@@ -12,18 +12,17 @@ import (
 	"github.com/influxdata/telegraf/selfstat"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 )
 
 type CostOrder struct {
 	interval        time.Duration
 	name            string
-	runningInstance *RunningInstance
+	runningInstance *runningInstance
 	logger          *models.Logger
 }
 
-func NewCostOrder(cfg *CostCfg, ri *RunningInstance) *CostOrder {
+func NewCostOrder(cfg *CostCfg, ri *runningInstance) *CostOrder {
 	c := &CostOrder{
 		name:            "aliyun_cost_order",
 		interval:        cfg.OrdertInterval.Duration,
@@ -44,7 +43,7 @@ func (co *CostOrder) run(ctx context.Context) error {
 	go func() {
 		defer wg.Done()
 		time.Sleep(time.Millisecond * 10)
-		co.getHistoryData(ctx, co.runningInstance.lmtr)
+		co.getHistoryData(ctx)
 	}()
 
 	co.getRealtimeData(ctx)
@@ -66,7 +65,7 @@ func (co *CostOrder) getRealtimeData(ctx context.Context) error {
 		from := unixTimeStr(start)
 		to := unixTimeStr(now)
 
-		if err := co.getOrders(ctx, from, to, co.runningInstance.lmtr, nil); err != nil && err != context.Canceled {
+		if err := co.getOrders(ctx, from, to, nil); err != nil && err != context.Canceled {
 			co.logger.Errorf("%s", err)
 		}
 
@@ -86,7 +85,7 @@ func (co *CostOrder) getRealtimeData(ctx context.Context) error {
 	}
 }
 
-func (co *CostOrder) getHistoryData(ctx context.Context, lmtr *limiter.RateLimiter) error {
+func (co *CostOrder) getHistoryData(ctx context.Context) error {
 
 	key := "." + co.runningInstance.cacheFileKey(`orders`)
 
@@ -116,7 +115,7 @@ func (co *CostOrder) getHistoryData(ctx context.Context, lmtr *limiter.RateLimit
 
 	info.key = key
 
-	if err := co.getOrders(ctx, info.Start, info.End, lmtr, info); err != nil && err != context.Canceled {
+	if err := co.getOrders(ctx, info.Start, info.End, info); err != nil && err != context.Canceled {
 		co.logger.Errorf("fail to get orders of history(%s-%s): %s", info.Start, info.End, err)
 		return err
 	}
@@ -124,7 +123,7 @@ func (co *CostOrder) getHistoryData(ctx context.Context, lmtr *limiter.RateLimit
 	return nil
 }
 
-func (co *CostOrder) getOrders(ctx context.Context, start, end string, lmtr *limiter.RateLimiter, info *historyInfo) error {
+func (co *CostOrder) getOrders(ctx context.Context, start, end string, info *historyInfo) error {
 
 	defer func() {
 		recover()
@@ -155,10 +154,10 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, lmtr *lim
 		select {
 		case <-ctx.Done():
 			return context.Canceled
-		case <-lmtr.C:
+		default:
 		}
 
-		resp, err := co.runningInstance.client.QueryOrders(req)
+		resp, err := co.runningInstance.QueryOrdersWrap(ctx, req)
 		if err != nil {
 			return fmt.Errorf("fail to get Orders(%s - %s), %s", start, end, err)
 		}
@@ -239,8 +238,8 @@ func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			co.logger.Warnf("fail to parse time:%v, error:%s", item.CreateTime, err)
 			continue
 		}
-		if co.runningInstance.cost.accumulator != nil {
-			co.runningInstance.cost.accumulator.AddFields(co.getName(), fields, tags, t)
+		if co.runningInstance.agent.accumulator != nil {
+			co.runningInstance.agent.accumulator.AddFields(co.getName(), fields, tags, t)
 		}
 	}
 

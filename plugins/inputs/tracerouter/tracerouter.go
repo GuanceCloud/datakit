@@ -1,3 +1,5 @@
+//+build !windows
+
 package tracerouter
 
 import (
@@ -10,15 +12,6 @@ import (
 	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
-
-const sampleConfig = `
-	# trace domain
-	# addr = "www.dataflux.cn"
-`
-
-type TraceRouter struct {
-	Addr string
-}
 
 func (t *TraceRouter) Description() string {
 	return "trace router"
