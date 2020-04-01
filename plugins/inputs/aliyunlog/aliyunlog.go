@@ -2,12 +2,10 @@ package aliyunlog
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/metric"
-	"github.com/influxdata/telegraf/selfstat"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
@@ -69,17 +67,16 @@ func (_ *AliyunLog) Gather(telegraf.Accumulator) error {
 
 func (al *AliyunLog) Start(acc telegraf.Accumulator) error {
 
-	if len(al.Consumer) == 0 {
-		log.Printf("W! [aliyunlog] no configuration found")
-		return nil
-	}
-
 	al.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
 		Name: `aliyunlog`,
 	}
 
-	log.Printf("aliyun log start")
+	if len(al.Consumer) == 0 {
+		al.logger.Warnf("no configuration found")
+		return nil
+	}
+
+	al.logger.Info("starting...")
 
 	al.accumulator = acc
 

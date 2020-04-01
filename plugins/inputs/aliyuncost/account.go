@@ -11,27 +11,24 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
-	"github.com/influxdata/telegraf/selfstat"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 )
 
 type CostAccount struct {
 	interval        time.Duration
 	name            string
-	runningInstance *RunningInstance
+	runningInstance *runningInstance
 	logger          *models.Logger
 }
 
-func NewCostAccount(cfg *CostCfg, ri *RunningInstance) *CostAccount {
+func NewCostAccount(cfg *CostCfg, ri *runningInstance) *CostAccount {
 	c := &CostAccount{
 		name:            "aliyun_cost_account",
 		interval:        cfg.AccountInterval.Duration,
 		runningInstance: ri,
 	}
 	c.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
 		Name: `aliyuncost:account`,
 	}
 	return c
@@ -45,7 +42,7 @@ func (ca *CostAccount) run(ctx context.Context) error {
 	go func() {
 		defer wg.Done()
 		time.Sleep(time.Millisecond * 10)
-		ca.getHistoryData(ctx, ca.runningInstance.lmtr)
+		ca.getHistoryData(ctx)
 	}()
 
 	ca.getRealtimeData(ctx)
@@ -67,7 +64,7 @@ func (ca *CostAccount) getRealtimeData(ctx context.Context) error {
 
 		from := unixTimeStr(start) //需要传unix时间
 		//end := unixTimeStr(now)
-		if err := ca.getTransactions(ctx, from, "", ca.runningInstance.lmtr, nil); err != nil && err != context.Canceled {
+		if err := ca.getTransactions(ctx, from, "", nil); err != nil && err != context.Canceled {
 			ca.logger.Errorf("%s", err)
 		}
 
@@ -88,7 +85,7 @@ func (ca *CostAccount) getRealtimeData(ctx context.Context) error {
 	}
 }
 
-func (ca *CostAccount) getHistoryData(ctx context.Context, lmtr *limiter.RateLimiter) error {
+func (ca *CostAccount) getHistoryData(ctx context.Context) error {
 
 	key := "." + ca.runningInstance.cacheFileKey(`account`)
 
@@ -119,7 +116,7 @@ func (ca *CostAccount) getHistoryData(ctx context.Context, lmtr *limiter.RateLim
 
 	info.key = key
 
-	if err := ca.getTransactions(ctx, info.Start, info.End, lmtr, info); err != nil && err != context.Canceled {
+	if err := ca.getTransactions(ctx, info.Start, info.End, info); err != nil && err != context.Canceled {
 		ca.logger.Errorf("fail to get account transactions of history(%s-%s): %s", info.Start, info.End, err)
 		return err
 	}
@@ -129,7 +126,7 @@ func (ca *CostAccount) getHistoryData(ctx context.Context, lmtr *limiter.RateLim
 
 //获取账户流水收支明细查询
 //https://www.alibabacloud.com/help/zh/doc-detail/118472.htm?spm=a2c63.p38356.b99.35.457e524dKiDhkZ
-func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, lmtr *limiter.RateLimiter, info *historyInfo) error {
+func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, info *historyInfo) error {
 
 	defer func() {
 		recover()
@@ -144,7 +141,7 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, l
 	}
 	balanceReq := bssopenapi.CreateQueryAccountBalanceRequest()
 	//balanceReq.Scheme = "https"
-	balanceResp, err := ca.runningInstance.client.QueryAccountBalance(balanceReq)
+	balanceResp, err := ca.runningInstance.QueryAccountBalanceWrap(ctx, balanceReq)
 	if err != nil {
 		ca.logger.Errorf("fail to get balance, %s", err)
 		return err
@@ -180,10 +177,15 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, l
 		select {
 		case <-ctx.Done():
 			return context.Canceled
-		case <-lmtr.C:
+		default:
 		}
 
-		resp, err := ca.runningInstance.client.QueryAccountTransactions(req)
+		resp, err := ca.runningInstance.QueryAccountTransactionsWrap(ctx, req)
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
+		}
 		if err != nil {
 			return fmt.Errorf("fail to get transactions from %s to %s: %s", start, end, err)
 		}
@@ -289,8 +291,8 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 			ca.logger.Warnf("fail to parse time:%v %s, error: %s", item.TransactionTime, item.RecordID, err)
 		} else {
 			tm = tm.Add(-8 * time.Hour) //返回的不是unix时间字符串
-			if ca.runningInstance.cost.accumulator != nil {
-				ca.runningInstance.cost.accumulator.AddFields(ca.getName(), fields, tags, tm)
+			if ca.runningInstance.agent.accumulator != nil {
+				ca.runningInstance.agent.accumulator.AddFields(ca.getName(), fields, tags, tm)
 			}
 		}
 
