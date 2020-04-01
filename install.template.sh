@@ -172,6 +172,12 @@ function host_install() {
 	$sudo_cmd chmod +x "$BINARY" 
 	$sudo_cmd chmod +x "$AGENTBINARY" 
 
+	if type ldconfig; then
+		mkdir -p /etc/ld.so.conf.d
+		echo "${USRDIR}/deps" > /etc/ld.so.conf.d/datakit.conf
+		ldconfig
+	fi
+
 	if [ -f "${AGENTBINARY}" ]; then
 		mv "${AGENTBINARY}" "${EMBEDDIR}"
 	fi
