@@ -503,9 +503,9 @@ func buildWindowsInstall(outdir, goarch string) {
 
 	args := []string{
 		"go", "build",
-		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s`, *flagName),
+		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s -X main.baseDownloadUrl=%s`, *flagName, *flagDownloadAddr),
 		"-o", output,
-		"install.go",
+		"install_windows.go",
 	}
 
 	env := []string{
@@ -548,6 +548,10 @@ func tarFiles(osarch string) {
 		`-C`,
 		fmt.Sprintf(`../../%s/%s-%s`, *flagBuildDir, *flagName, osarch),
 		`.`,
+	}
+
+	if *flagTargetOS == "linux" {
+		args = append(args, `-C`, `../../`, `deps`)
 	}
 
 	cmd := exec.Command("tar", args...)
