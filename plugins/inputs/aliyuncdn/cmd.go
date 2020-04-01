@@ -44,7 +44,6 @@ func (run *RunningProject) DescribeDomainSrcHttpCodeData() {
 			fields := map[string]interface{}{}
 
 			tags["Code"] = point.Code
-			tags["TimeStamp"] = data.TimeStamp
 
 			fields["Proportion"] = point.Proportion
 			fields["Count"] = point.Count
@@ -396,7 +395,6 @@ func (run *RunningProject) DescribeDomainFileSizeProportionData() {
 			tags := map[string]string{}
 			fields := map[string]interface{}{}
 
-			tags["TimeStamp"] = data.TimeStamp
 			tags["DomainName"] = response.DomainName
 
 			fields["FileSize"] = point.FileSize
@@ -431,7 +429,6 @@ func (run *RunningProject) DescribeDomainBpsDataByTimeStamp() {
 		fields := map[string]interface{}{}
 
 		tags["DomainName"] = response.DomainName
-		tags["TimeStamp"] = response.TimeStamp
 		tags["LocationName"] = point.LocationName
 		tags["IspName"] = point.IspName
 
@@ -962,7 +959,6 @@ func (run *RunningProject) DescribeDomainHttpCodeData() {
 			tags := map[string]string{}
 			fields := map[string]interface{}{}
 
-			tags["TimeStamp"] = data.TimeStamp
 			tags["DomainName"] = response.DomainName
 
 			tags["Code"] = point.Code
