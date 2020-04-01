@@ -3,7 +3,6 @@ package self
 import (
 	"os"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/influxdata/telegraf"
@@ -54,7 +53,7 @@ func (s *SelfInfo) Gather(acc telegraf.Accumulator) error {
 		}
 	}
 
-	statMetric.AddField("running_inputs", strings.Join(runnings, ","))
+	//statMetric.AddField("running_inputs", strings.Join(runnings, ","))
 	acc.AddMetric(statMetric)
 	return nil
 }
