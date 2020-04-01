@@ -64,7 +64,8 @@ pub_test_win:
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),"linux/amd64","linux")
 
-
+pub_release_win:
+	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),"windows/amd64","windows")
 
 test_mac:
 	@echo "===== $(BIN) test_mac ===="
