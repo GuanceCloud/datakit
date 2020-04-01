@@ -10,28 +10,25 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
-	"github.com/influxdata/telegraf/selfstat"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 )
 
 type CostBill struct {
 	interval        time.Duration
 	name            string
-	runningInstance *RunningInstance
+	runningInstance *runningInstance
 	logger          *models.Logger
 }
 
-func NewCostBill(cfg *CostCfg, ri *RunningInstance) *CostBill {
+func NewCostBill(cfg *CostCfg, ri *runningInstance) *CostBill {
 	c := &CostBill{
 		name:            "aliyun_cost_bill",
 		interval:        cfg.BiilInterval.Duration,
 		runningInstance: ri,
 	}
 	c.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
 		Name: `aliyuncost:bill`,
 	}
 	return c
@@ -44,7 +41,7 @@ func (cb *CostBill) run(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		cb.getLastyearData(ctx, cb.runningInstance.lmtr)
+		cb.getHistoryData(ctx)
 	}()
 
 	cb.getRealtimeData(ctx)
@@ -60,9 +57,10 @@ func (cb *CostBill) getRealtimeData(ctx context.Context) error {
 
 	for {
 		cb.runningInstance.suspendHistoryFetch()
+		//以月为单位
 		start := time.Now().Truncate(time.Minute)
 		cycle := fmt.Sprintf("%d-%02d", start.Year(), start.Month())
-		if err := cb.getBills(ctx, cycle, cb.runningInstance.lmtr, nil); err != nil && err != context.Canceled {
+		if err := cb.getBills(ctx, cycle, nil); err != nil && err != context.Canceled {
 			cb.logger.Errorf("%s", err)
 		}
 
@@ -83,7 +81,7 @@ func (cb *CostBill) getRealtimeData(ctx context.Context) error {
 
 }
 
-func (cb *CostBill) getLastyearData(ctx context.Context, lmtr *limiter.RateLimiter) error {
+func (cb *CostBill) getHistoryData(ctx context.Context) error {
 
 	key := "." + cb.runningInstance.cacheFileKey(`bill`)
 
@@ -126,7 +124,7 @@ func (cb *CostBill) getLastyearData(ctx context.Context, lmtr *limiter.RateLimit
 
 		cycle := fmt.Sprintf("%d-%02d", info.StartTime.Year(), info.StartTime.Month())
 
-		if err := cb.getBills(ctx, cycle, lmtr, info); err != nil {
+		if err := cb.getBills(ctx, cycle, info); err != nil {
 			cb.logger.Errorf("%s", err)
 		}
 
@@ -137,10 +135,12 @@ func (cb *CostBill) getLastyearData(ctx context.Context, lmtr *limiter.RateLimit
 	return nil
 }
 
-func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.RateLimiter, info *historyInfo) error {
+func (cb *CostBill) getBills(ctx context.Context, cycle string, info *historyInfo) error {
 
 	defer func() {
-		recover()
+		if e := recover(); e != nil {
+			cb.logger.Errorf("panic: %v", e)
+		}
 	}()
 
 	if info != nil {
@@ -163,13 +163,18 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 		select {
 		case <-ctx.Done():
 			return context.Canceled
-		case <-lmtr.C:
-			//
+		default:
 		}
 
-		resp, err := cb.runningInstance.client.QueryBill(req)
+		resp, err := cb.runningInstance.QueryBillWrap(ctx, req)
 		if err != nil {
 			return fmt.Errorf("fail to get bill of %s: %s", cycle, err)
+		}
+
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
 		}
 
 		if info != nil {
@@ -192,7 +197,7 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 	return nil
 }
 
-func (cb *CostBill) getInstnceBills(ctx context.Context, cycle string, lmtr *limiter.RateLimiter) error {
+func (cb *CostBill) getInstnceBills(ctx context.Context, cycle string) error {
 
 	//var respInstill *bssopenapi.QueryInstanceBillResponse
 
@@ -206,10 +211,17 @@ func (cb *CostBill) getInstnceBills(ctx context.Context, cycle string, lmtr *lim
 		select {
 		case <-ctx.Done():
 			return context.Canceled
-		case <-lmtr.C:
+		default:
 		}
 
-		resp, err := cb.runningInstance.client.QueryInstanceBill(req)
+		resp, err := cb.runningInstance.QueryInstanceBillWrap(ctx, req)
+
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
+		}
+
 		if err != nil {
 			return fmt.Errorf("fail to get instance bill of %s: %s", cycle, err)
 		} else {
@@ -277,8 +289,8 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		} else {
 			//返回的不是utc
 			t = t.Add(-8 * time.Hour)
-			if cb.runningInstance.cost.accumulator != nil {
-				cb.runningInstance.cost.accumulator.AddFields(cb.getName(), fields, tags, t)
+			if cb.runningInstance.agent.accumulator != nil {
+				cb.runningInstance.agent.accumulator.AddFields(cb.getName(), fields, tags, t)
 			}
 		}
 	}
@@ -345,8 +357,8 @@ func (cb *CostBill) parseInstanceBillResponse(ctx context.Context, resp *bssopen
 		fields[`PaymentAmount`] = item.PaymentAmount
 		fields[`OutstandingAmount`] = item.OutstandingAmount
 
-		if cb.runningInstance.cost.accumulator != nil {
-			cb.runningInstance.cost.accumulator.AddFields(cb.getName(), fields, tags)
+		if cb.runningInstance.agent.accumulator != nil {
+			cb.runningInstance.agent.accumulator.AddFields(cb.getName(), fields, tags)
 		}
 	}
 	return nil
