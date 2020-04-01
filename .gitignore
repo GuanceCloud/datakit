@@ -4,6 +4,7 @@
 proxy_config.yaml
 pub
 a.out
+*.exe
 bin/
 pkg/
 cmd/
