@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/selfstat"
+	uuid "github.com/satori/go.uuid"
+	"golang.org/x/time/rate"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
 
@@ -38,6 +39,8 @@ type (
 		client *actiontrail.Client
 
 		metricName string
+
+		rateLimiter *rate.Limiter
 	}
 )
 
@@ -60,16 +63,15 @@ func (_ *AliyunActiontrail) Init() error {
 func (a *AliyunActiontrail) Start(acc telegraf.Accumulator) error {
 
 	a.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
 		Name: `aliyunactiontrail`,
 	}
 
 	if len(a.Actiontrail) == 0 {
-		a.logger.Warnf("W! no configuration found")
+		a.logger.Warnf("no configuration found")
 		return nil
 	}
 
-	a.logger.Infof("start")
+	a.logger.Infof("starting...")
 
 	a.accumulator = acc
 
@@ -87,6 +89,9 @@ func (a *AliyunActiontrail) Start(acc telegraf.Accumulator) error {
 		if r.cfg.Interval.Duration == 0 {
 			r.cfg.Interval.Duration = time.Minute * 10
 		}
+
+		limit := rate.Every(40 * time.Millisecond)
+		r.rateLimiter = rate.NewLimiter(limit, 1)
 
 		a.runningInstances = append(a.runningInstances, r)
 
@@ -110,9 +115,9 @@ func (r *runningInstance) getHistory(ctx context.Context) error {
 	request.StartTime = r.cfg.From
 	request.EndTime = unixTimeStrISO8601(endTm)
 
-	response, err := r.client.LookupEvents(request)
+	reqid, response, err := r.lookupEvents(ctx, request, r.client.LookupEvents)
 	if err != nil {
-		r.logger.Errorf("(history)LookupEvents failed, %s", err)
+		r.logger.Errorf("(history)LookupEvents(%s) between %s - %s failed", reqid, request.StartTime, request.EndTime)
 		return err
 	}
 
@@ -121,7 +126,50 @@ func (r *runningInstance) getHistory(ctx context.Context) error {
 	return nil
 }
 
+func (r *runningInstance) lookupEvents(ctx context.Context, request *actiontrail.LookupEventsRequest, originFn func(*actiontrail.LookupEventsRequest) (*actiontrail.LookupEventsResponse, error)) (string, *actiontrail.LookupEventsResponse, error) {
+
+	var response *actiontrail.LookupEventsResponse
+	var err error
+	var tempDelay time.Duration
+
+	reqUid, _ := uuid.NewV4()
+
+	for i := 0; i < 5; i++ {
+		r.rateLimiter.Wait(ctx)
+		response, err = r.client.LookupEvents(request)
+
+		if tempDelay == 0 {
+			tempDelay = time.Millisecond * 50
+		} else {
+			tempDelay *= 2
+		}
+
+		if max := time.Second; tempDelay > max {
+			tempDelay = max
+		}
+
+		if err != nil {
+			r.logger.Warnf("%s", err)
+			time.Sleep(tempDelay)
+		} else {
+			if i != 0 {
+				r.logger.Debugf("retry %s successed, %d", reqUid.String(), i)
+			}
+			break
+		}
+	}
+
+	return reqUid.String(), response, err
+}
+
 func (r *runningInstance) run(ctx context.Context) error {
+
+	defer func() {
+		if e := recover(); e != nil {
+
+		}
+	}()
+
 	cli, err := actiontrail.NewClientWithAccessKey(r.cfg.Region, r.cfg.AccessID, r.cfg.AccessKey)
 	if err != nil {
 		r.logger.Errorf("create client failed, %s", err)
@@ -145,9 +193,10 @@ func (r *runningInstance) run(ctx context.Context) error {
 		request.StartTime = unixTimeStrISO8601(startTm)
 		request.EndTime = unixTimeStrISO8601(startTm.Add(r.cfg.Interval.Duration))
 
-		response, err := r.client.LookupEvents(request)
+		reqid, response, err := r.lookupEvents(ctx, request, r.client.LookupEvents)
+
 		if err != nil {
-			r.logger.Errorf("LookupEvents failed, %s", err)
+			r.logger.Errorf("LookupEvents(%s) between %s - %s failed", reqid, request.StartTime, request.EndTime)
 		}
 
 		r.handleResponse(ctx, response)
