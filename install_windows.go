@@ -39,6 +39,12 @@ type VerSt struct {
 	Version string `json:"version"`
 }
 
+func testuntar(destpath string, instadir string) {
+	if err := deCompress(destpath, instadir); err != nil {
+		log.Fatalf("%s", err)
+	}
+}
+
 func main() {
 
 	flag.Parse()
@@ -51,6 +57,10 @@ func main() {
 		log.Printf("start installing %s in %s", serviceName, installDir)
 	}
 
+	if !strings.HasPrefix(baseDownloadUrl, `http://`) || !strings.HasPrefix(baseDownloadUrl, `http://`) {
+		baseDownloadUrl = `https://` + baseDownloadUrl
+	}
+
 	//stop
 	log.Printf("stopping %s", serviceName)
 	cmd := exec.Command(`sc`, `stop`, serviceName)
@@ -60,6 +70,7 @@ func main() {
 
 	//log.Println("check version...")
 	verUrl := baseDownloadUrl + `/version_win`
+
 	verResp, err := http.Get(verUrl)
 	if err != nil {
 		log.Fatalf("[error] %s", err.Error())
@@ -150,19 +161,50 @@ func main() {
 		log.Fatalf("[error] %s", err.Error())
 	}
 
-	platformDir := filepath.Join(installDir, fmt.Sprintf("%s-%s-%s", serviceName, runtime.GOOS, runtime.GOARCH))
-	_, err = os.Stat(platformDir)
-	if err != nil {
-		log.Fatalf("[error] unsupport for os=%s and arch=%s", runtime.GOOS, runtime.GOARCH)
-	}
+	// platformDir := filepath.Join(installDir, fmt.Sprintf("%s-%s-%s", serviceName, runtime.GOOS, runtime.GOARCH))
+	// _, err = os.Stat(platformDir)
+	// if err != nil {
+	// 	log.Fatalf("[error] unsupport for os=%s and arch=%s", runtime.GOOS, runtime.GOARCH)
+	// }
 
-	binName := serviceName + ".exe"
-	destbin := filepath.Join(installDir, binName)
-	if err = os.Rename(filepath.Join(platformDir, binName), destbin); err != nil {
+	destbin := filepath.Join(installDir, "datakit.exe")
+
+	agentDir := filepath.Join(installDir, "embed")
+	if err := os.MkdirAll(agentDir, 0775); err != nil {
 		log.Fatalf("[error] %s", err.Error())
 	}
 
-	os.Remove(platformDir)
+	agentOldLogFile := filepath.Join(installDir, "agent.log")
+	if _, err := os.Stat(agentOldLogFile); err == nil {
+		os.Rename(agentOldLogFile, filepath.Join(agentDir, "agent.log"))
+	}
+
+	agentOldPidFile := filepath.Join(installDir, "agent.pid")
+	if _, err := os.Stat(agentOldPidFile); err == nil {
+		os.Rename(agentOldPidFile, filepath.Join(agentDir, "agent.pid"))
+	}
+
+	agentPath := filepath.Join(installDir, "agent.exe")
+	destAgentPath := filepath.Join(agentDir, "agent.exe")
+
+	if _, err := os.Stat(agentPath); err == nil {
+		var mverr error
+		for i := 0; i < 2; i++ {
+			mverr = os.Rename(agentPath, destAgentPath)
+			if mverr == nil {
+				break
+			}
+			time.Sleep(time.Second)
+		}
+		if mverr != nil {
+			log.Fatalf("[error] %s", mverr.Error())
+		}
+
+	} else {
+		log.Fatalf("[error] %s", err.Error())
+	}
+
+	//os.Remove(platformDir)
 
 	if *flagUpgrade {
 		//upgrade
