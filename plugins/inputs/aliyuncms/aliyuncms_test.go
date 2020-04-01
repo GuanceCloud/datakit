@@ -1,6 +1,7 @@
 package aliyuncms
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,10 +9,12 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/time/rate"
+
 	"github.com/influxdata/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
+	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 
 	//"github.com/siddontang/go-log/log"
 
@@ -30,6 +33,7 @@ func limitFn(n int) {
 }
 
 func dumpStat(stat selfstat.Stat) {
+
 	name := stat.Name()
 	tags := stat.Tags()
 	fields := map[string]interface{}{
@@ -45,27 +49,20 @@ func dumpStat(stat selfstat.Stat) {
 
 func TestLimit(t *testing.T) {
 
-	totalGatherMetric := selfstat.Register("gather", "total_metric", map[string]string{"input": "aliyuncms"})
-	failSendMetric := selfstat.Register("gather", "fail_send_metric", nil)
-	//droppedMetric := selfstat.Register("gather", "dropped_metric", nil)
+	limit := rate.Every(40 * time.Millisecond)
+	limiter := rate.NewLimiter(limit, 1)
+	_ = limiter
 
-	dumpStat(totalGatherMetric)
-	dumpStat(failSendMetric)
-
-	return
-
-	batchInterval := 5 * time.Minute
-	rateLimit := 20
-
-	lmtr := limiter.NewRateLimiter(rateLimit, time.Second)
-	defer lmtr.Stop()
+	ctx, cancelFun := context.WithCancel(context.Background())
+	_ = cancelFun
+	_ = ctx
 
 	for {
 
 		t := time.Now()
 
 		for i := 0; i < 60; i++ {
-			<-lmtr.C
+			limiter.Wait(ctx)
 			limitFn(i)
 		}
 
@@ -145,7 +142,7 @@ func TestMetricInfo(t *testing.T) {
 	//metricname := "IOPSUsage"
 
 	namespace := "acs_kubernetes"
-	metricname := "group.network.tx_errors_rate"
+	metricname := "group.disk.io_read_bytes"
 	_ = metricname
 
 	request := cms.CreateDescribeMetricMetaListRequest()
@@ -223,7 +220,7 @@ func TestGetMetricList(t *testing.T) {
 	request := cms.CreateDescribeMetricListRequest()
 	request.Scheme = "https"
 	request.RegionId = "cn-hangzhou"
-	request.MetricName = "group.cpu.limit"
+	request.MetricName = "group.disk.io_read_bytes"
 	request.Namespace = "acs_kubernetes"
 	request.Period = "60"
 	request.StartTime = "1585219020000"
