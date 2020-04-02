@@ -74,7 +74,8 @@ test_mac:
 	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "darwin/amd64" \
 		 -download-addr $(TEST_DOWNLOAD_ADDR_WIN) -release test -pub-dir $(PUB_DIR) -mac
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	@tar czf $(PUB_DIR)/test_mac/$(NAME)-$(VERSION).tar.gz -C mac agent -C ../build .
+	# 下面这行会报错tar: could not chdir to 'mac'，所以注释。
+	# @tar czf $(PUB_DIR)/test_mac/$(NAME)-$(VERSION).tar.gz -C mac agent -C ../build .
 	tree -Csh $(PUB_DIR)
 
 
