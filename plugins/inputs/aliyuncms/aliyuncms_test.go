@@ -199,8 +199,8 @@ func TestGetMetricList(t *testing.T) {
 	//client, _ := cms.NewClientWithAccessKey("cn-hangzhou", "LTAI4FwpUNoPEFj7kQScDrDE", "CI8Lzj22RODi3L79jzMmR3gKjMe3YG")
 
 	configuration := &providers.Configuration{
-		AccessKeyID:     "LTAI4FwpUNoPEFj7kQScDrDE",
-		AccessKeySecret: `CI8Lzj22RODi3L79jzMmR3gKjMe3YG`,
+		AccessKeyID:     "LTAIaB2ZMYy4Dej9",
+		AccessKeySecret: `pixGuiJail10JSBZTzuaOJIw8N2pw7`,
 	}
 	credentialProviders := []providers.Provider{
 		providers.NewConfigurationCredentialProvider(configuration),
@@ -220,11 +220,11 @@ func TestGetMetricList(t *testing.T) {
 	request := cms.CreateDescribeMetricListRequest()
 	request.Scheme = "https"
 	request.RegionId = "cn-hangzhou"
-	request.MetricName = "group.disk.io_read_bytes"
-	request.Namespace = "acs_kubernetes"
+	request.MetricName = "TrafficRXNew"
+	request.Namespace = "acs_slb_dashboard"
 	request.Period = "60"
-	request.StartTime = "1585219020000"
-	request.EndTime = "1585220220000"
+	request.StartTime = "1585883160000"
+	request.EndTime = "1585883760000"
 	//request.StartTime = "1585209420000"
 	//request.EndTime = "1585209600000"
 
