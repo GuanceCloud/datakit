@@ -316,7 +316,6 @@ func (cb *CostBill) parseInstanceBillResponse(ctx context.Context, resp *bssopen
 		tags[`NickName`] = item.NickName
 		tags[`InstanceSpec`] = item.InstanceSpec
 		tags[`InternetIP`] = item.InternetIP
-		tags[`IntranetIP`] = item.IntranetIP
 		tags[`Region`] = item.Region
 		tags[`Zone`] = item.Zone
 		tags[`BillingItem`] = item.BillingItem
