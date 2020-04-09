@@ -1,4 +1,4 @@
-package mongodb
+package mongodboplog
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 
 func TestStart(t *testing.T) {
 
-	var m = Mongodb{
+	var m = Mongodboplog{
 		Config: Config{
 			Subscribes: []Subscribe{
 				Subscribe{
