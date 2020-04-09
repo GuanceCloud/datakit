@@ -1,4 +1,4 @@
-package mongodb
+package mongodboplog
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type Mongodb struct {
-	Config Config `toml:"mongodb"`
+type Mongodboplog struct {
+	Config Config `toml:"mongodb_oplog"`
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -22,44 +22,44 @@ type Mongodb struct {
 
 func init() {
 	inputs.Add(pluginName, func() telegraf.Input {
-		m := &Mongodb{}
+		m := &Mongodboplog{}
 		m.ctx, m.cancel = context.WithCancel(context.Background())
 		return m
 	})
 }
 
-func (m *Mongodb) Start(acc telegraf.Accumulator) error {
+func (m *Mongodboplog) Start(acc telegraf.Accumulator) error {
 
 	m.acc = acc
 	m.wg = new(sync.WaitGroup)
 
 	for _, sub := range m.Config.Subscribes {
 		m.wg.Add(1)
-		stream := newStream(&sub)
+		stream := newStream(&sub, m)
 		go stream.start(m.wg)
 	}
 
 	return nil
 }
 
-func (m *Mongodb) Stop() {
+func (m *Mongodboplog) Stop() {
 	m.cancel()
 	m.wg.Wait()
 }
 
-func (_ *Mongodb) SampleConfig() string {
-	return mongodbConfigSample
+func (_ *Mongodboplog) SampleConfig() string {
+	return mongodboplogConfigSample
 }
 
-func (_ *Mongodb) Description() string {
+func (_ *Mongodboplog) Description() string {
 	return "Convert MongoDB Database to Dataway"
 }
 
-func (_ *Mongodb) Gather(telegraf.Accumulator) error {
+func (_ *Mongodboplog) Gather(telegraf.Accumulator) error {
 	return nil
 }
 
-func (r *Mongodb) ProcessPts(pts []*influxdb.Point) error {
+func (m *Mongodboplog) ProcessPts(pts []*influxdb.Point) error {
 	for _, pt := range pts {
 		fields, err := pt.Fields()
 		if err != nil {
@@ -69,7 +69,7 @@ func (r *Mongodb) ProcessPts(pts []*influxdb.Point) error {
 		if err != nil {
 			return err
 		}
-		r.acc.AddMetric(pt_metric)
+		m.acc.AddMetric(pt_metric)
 	}
 	return nil
 }
