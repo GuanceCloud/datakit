@@ -442,7 +442,7 @@ func (c *Config) LoadConfig(ctx context.Context) error {
 		}
 	}
 
-	return LoadTelegrafConfigs(ctx, c.MainCfg.ConfigDir)
+	return LoadTelegrafConfigs(ctx, c.MainCfg.ConfigDir, c.InputFilters)
 }
 
 func (c *Config) DumpInputsOutputs() {
