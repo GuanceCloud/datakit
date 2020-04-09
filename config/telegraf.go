@@ -130,7 +130,7 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 }
 
 //LoadTelegrafConfigs 加载conf.d下telegraf的配置文件
-func LoadTelegrafConfigs(ctx context.Context, cfgdir string) error {
+func LoadTelegrafConfigs(ctx context.Context, cfgdir string, inputFilters []string) error {
 
 	for index, name := range SupportsTelegrafMetraicNames {
 
@@ -138,6 +138,12 @@ func LoadTelegrafConfigs(ctx context.Context, cfgdir string) error {
 		case <-ctx.Done():
 			return context.Canceled
 		default:
+		}
+
+		if len(inputFilters) > 0 {
+			if !sliceContains(name, inputFilters) {
+				continue
+			}
 		}
 
 		cfgpath := filepath.Join(cfgdir, name, fmt.Sprintf(`%s.conf`, name))
@@ -150,7 +156,7 @@ func LoadTelegrafConfigs(ctx context.Context, cfgdir string) error {
 			if err == ErrConfigNotFound {
 				//ignore
 			} else if err == ErrEmptyInput {
-				log.Printf("W! %s", cfgpath, err.Error())
+				log.Printf("W! %s, %s", cfgpath, err.Error())
 			} else {
 				return fmt.Errorf("Error loading config file %s, %s", cfgpath, err)
 			}
