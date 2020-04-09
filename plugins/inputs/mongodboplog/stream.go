@@ -1,4 +1,4 @@
-package mongodb
+package mongodboplog
 
 import (
 	"sync"
@@ -10,7 +10,7 @@ import (
 )
 
 type stream struct {
-	mgo *Mongodb
+	mgo *Mongodboplog
 	//
 	sub *Subscribe
 	// mongodb namespace is 'database.collection'
@@ -25,8 +25,9 @@ type stream struct {
 	points []*influxdb.Point
 }
 
-func newStream(sub *Subscribe) *stream {
+func newStream(sub *Subscribe, mongo *Mongodboplog) *stream {
 	return &stream{
+		mgo:          mongo,
 		sub:          sub,
 		namespace:    sub.Database + "." + sub.Collection,
 		receivedTime: time.Now(),
