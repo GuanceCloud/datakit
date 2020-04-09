@@ -53,9 +53,9 @@ require (
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200227072035-1dd4eb09d824
 	go.starlark.net v0.0.0-20200326215636-e8819e807894 // indirect
 	golang.org/x/arch v0.0.0-20200312215426-ff8b605520f4 // indirect
-	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
-	golang.org/x/tools/gopls v0.3.4 // indirect
+	golang.org/x/tools/gopls v0.4.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
