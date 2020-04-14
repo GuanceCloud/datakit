@@ -74,6 +74,7 @@ func (s *stream) runloop() {
 			}
 			switch p.Operation {
 			case "i", "u", "d":
+				// fmt.Printf("\n%#v\n\n", p)
 				s.mdata.setTime(p.Timestamp)
 				s.mdata.rematch(p.Object, "/")
 
