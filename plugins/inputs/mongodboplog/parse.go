@@ -2,6 +2,7 @@ package mongodboplog
 
 import (
 	"reflect"
+	"strconv"
 	"time"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
@@ -67,37 +68,53 @@ func (md *mgodata) rematch(docelem bson.D, succkey string) {
 	for _, elem := range docelem {
 		completeKey := succkey + elem.Name
 
-		if t, ok := md.pointlist[completeKey]; ok {
-			switch t {
-			case "tags":
-				if vv, ok := elem.Value.(string); ok {
-					md.tags[completeKey] = vv
-				}
-			case "int":
-				if vv, ok := elem.Value.(float64); ok {
-					md.fields[completeKey] = int64(vv)
-				}
-			case "float":
-				if vv, ok := elem.Value.(float64); ok {
-					md.fields[completeKey] = vv
-				}
-			case "bool":
-				if vv, ok := elem.Value.(bool); ok {
-					md.fields[completeKey] = vv
-				}
-			case "string":
-				if vv, ok := elem.Value.(string); ok {
-					md.fields[completeKey] = vv
-				}
-			default:
-				// nil
-			}
-		}
-
 		if reflect.DeepEqual(reflect.TypeOf(elem.Value), reflect.TypeOf(bson.D{})) {
 			md.rematch(elem.Value.(bson.D), completeKey+"/")
 		}
+
+		if array, ok := elem.Value.([]interface{}); ok {
+			for k, v := range array {
+				arraykey := completeKey + "[" + strconv.Itoa(k) + "]"
+
+				if reflect.DeepEqual(reflect.TypeOf(v), reflect.TypeOf(bson.D{})) {
+					md.rematch(v.(bson.D), arraykey+"/")
+				}
+				md.typeAssert(arraykey, v)
+			}
+		}
+
+		md.typeAssert(completeKey, elem.Value)
 	}
+}
+
+func (md *mgodata) typeAssert(completeKey string, value interface{}) {
+	if typee, ok := md.pointlist[completeKey]; ok {
+		switch typee {
+		case "tags":
+			if v, ok := value.(string); ok {
+				md.tags[completeKey] = v
+			}
+		case "int":
+			if v, ok := value.(float64); ok {
+				md.fields[completeKey] = int64(v)
+			}
+		case "float":
+			if v, ok := value.(float64); ok {
+				md.fields[completeKey] = v
+			}
+		case "bool":
+			if v, ok := value.(bool); ok {
+				md.fields[completeKey] = v
+			}
+		case "string":
+			if v, ok := value.(string); ok {
+				md.fields[completeKey] = v
+			}
+		default:
+			// nil
+		}
+	}
+
 }
 
 func (md *mgodata) reset() {
