@@ -38,6 +38,7 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
+	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
 	github.com/prometheus/common v0.4.1
 	github.com/prometheus/node_exporter v0.18.1 // indirect
@@ -53,6 +54,7 @@ require (
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200227072035-1dd4eb09d824
 	go.starlark.net v0.0.0-20200326215636-e8819e807894 // indirect
 	golang.org/x/arch v0.0.0-20200312215426-ff8b605520f4 // indirect
+	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
