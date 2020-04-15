@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"fmt"
 	"context"
 	"errors"
 	"io"
@@ -220,6 +221,7 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 	sshClient, err := ssh.Dial("tcp", p.input.Host, clientCfg)
 	if err == nil {
 		sshRst = "ok"
+		defer sshClient.Close()
 	} else {
 		sshRst = "nok"
 		fields["ssh_err"] = err.Error()
@@ -230,9 +232,14 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 	if p.input.SftpCheck {
 		var sftpRst string
 		if err == nil {
-			_, err := sftp.NewClient(sshClient);
+			sftp_client, err := sftp.NewClient(sshClient);
 			if err == nil {
 				sftpRst = "ok"
+				defer sftp_client.Close()
+				t1 := time.Now()
+				sftp_client.Getwd()
+				fields["sftp_response_time"] = getReadableTimeStr(time.Since(t1))
+
 			} else {
 				sftpRst = "nok"
 				fields["sftp_err"] = err.Error()
@@ -253,6 +260,17 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 	return nil
 }
 
+func getReadableTimeStr(d time.Duration) string {
+	if d < time.Microsecond {
+		return fmt.Sprintf("%dns", d)
+	} else if d < time.Millisecond {
+		return fmt.Sprintf("%fus", float64(d)/float64(time.Microsecond))
+	} else if d < time.Second {
+		return fmt.Sprintf("%fms", float64(d)/float64(time.Millisecond))
+	} else {
+		return fmt.Sprintf("%fs", float64(d)/float64(time.Second))
+	}
+}
 func setupLogger() {
 	loghandler, _ := sshlog.NewStreamHandler(&sshLogWriter{})
 	sshlogger := sshlog.New(loghandler, 0)
