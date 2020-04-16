@@ -52,7 +52,7 @@ var (
 	timeZoneConfigSample = `### metric_name: the name of metric, default is "timezone".
 ### active: whether to monitor timezone changes.
 ### interval: monitor interval second, unit is second. The default value is 60.
-### hostname: If not specified, the UUID will be used.
+### hostname: If not specified, the environment variable will be used.
 
 metric_name="timezone"
 active   = false
