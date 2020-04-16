@@ -56,9 +56,8 @@ const (
 #	## 支持 int float bool string 四种类型	
 # 	[mongodb_oplog.subscribes.fields]
 #		"/a/c/d" = "int"
-#		"/a/c/e" = "float"
-		"/a/c/f\[0\]" = 'int'
-		"/a/c/f[1]/e/f" = 'int'
+#		"/a/c/f\[0\]" = 'int'
+#		"/a/c/f[1]/e/f" = 'int'
 `
 )
 
