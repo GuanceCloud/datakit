@@ -143,6 +143,8 @@ func (h *HTTP) Write(metrics []telegraf.Metric) error {
 func (h *HTTP) write(reqBody []byte) error {
 	var reqBodyBuffer io.Reader = bytes.NewBuffer(reqBody)
 
+	//log.Printf("D! ftdataway: %s", h.URL)
+
 	var err error
 	if h.ContentEncoding == "gzip" {
 		rc, err := internal.CompressWithGzip(reqBodyBuffer)
@@ -167,22 +169,23 @@ func (h *HTTP) write(reqBody []byte) error {
 	if h.ContentEncoding == "gzip" {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
-	// for k, v := range h.Headers {
-	// 	if strings.ToLower(k) == "host" {
-	// 		req.Host = v
-	// 	}
-	// 	req.Header.Set(k, v)
-	// }
+	for k, v := range h.Headers {
+		if strings.ToLower(k) == "host" {
+			req.Host = v
+		}
+		req.Header.Set(k, v)
+	}
 
 	resp, err := h.client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	_, err = ioutil.ReadAll(resp.Body)
+	var body []byte
+	body, err = ioutil.ReadAll(resp.Body)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("when writing to [%s] received status code: %d", h.URL, resp.StatusCode)
+		return fmt.Errorf("when writing to [%s] received status code: %d, body: %s", h.URL, resp.StatusCode, string(body))
 	}
 
 	return nil
