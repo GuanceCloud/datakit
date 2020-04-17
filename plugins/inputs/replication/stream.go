@@ -3,6 +3,7 @@ package replication
 import (
 	"context"
 	"fmt"
+
 	// "log"
 	"sync"
 	"sync/atomic"
@@ -209,11 +210,9 @@ func (s *stream) replicationMsgHandle(msg *pgx.ReplicationMessage) error {
 }
 
 func (s *stream) flush() (err error) {
-	if len(s.points) > 64 {
-		err = s.rep.ProcessPts(s.points)
-		s.points = s.points[:0]
-	}
-	return
+	err = s.rep.ProcessPts(s.points)
+	s.points = nil
+	return err
 }
 
 // 发送心跳
