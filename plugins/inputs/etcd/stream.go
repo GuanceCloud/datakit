@@ -131,16 +131,15 @@ func (s *stream) exec() error {
 	}
 
 	s.points = []*influxdb.Point{pt}
-	s.flush()
-	return nil
+
+	return s.flush()
 }
 
 func (s *stream) flush() (err error) {
 	// fmt.Printf("%v\n", s.points)
 	err = s.etc.ProcessPts(s.points)
 	s.points = nil
-
-	return nil
+	return err
 }
 
 // Parse returns a slice of Metrics from a text representation of a
@@ -301,42 +300,3 @@ func getNameAndValueV2(m *dto.Metric, metricName string) map[string]interface{} 
 	}
 	return fields
 }
-
-// // Get Quantiles from summary metric
-// func makeQuantiles(m *dto.Metric) map[string]interface{} {
-// 	fields := make(map[string]interface{})
-// 	for _, q := range m.GetSummary().Quantile {
-// 		if !math.IsNaN(q.GetValue()) {
-// 			fields[fmt.Sprint(q.GetQuantile())] = float64(q.GetValue())
-// 		}
-// 	}
-// 	return fields
-// }
-//
-// // Get Buckets  from histogram metric
-// func makeBuckets(m *dto.Metric) map[string]interface{} {
-// 	fields := make(map[string]interface{})
-// 	for _, b := range m.GetHistogram().Bucket {
-// 		fields[fmt.Sprint(b.GetUpperBound())] = float64(b.GetCumulativeCount())
-// 	}
-// 	return fields
-// }
-
-// // Get name and value from metric
-// func getNameAndValue(m *dto.Metric) map[string]interface{} {
-// 	fields := make(map[string]interface{})
-// 	if m.Gauge != nil {
-// 		if !math.IsNaN(m.GetGauge().GetValue()) {
-// 			fields["gauge"] = float64(m.GetGauge().GetValue())
-// 		}
-// 	} else if m.Counter != nil {
-// 		if !math.IsNaN(m.GetCounter().GetValue()) {
-// 			fields["counter"] = float64(m.GetCounter().GetValue())
-// 		}
-// 	} else if m.Untyped != nil {
-// 		if !math.IsNaN(m.GetUntyped().GetValue()) {
-// 			fields["value"] = float64(m.GetUntyped().GetValue())
-// 		}
-// 	}
-// 	return fields
-// }
