@@ -16,13 +16,17 @@ const (
 #
 #	## 采集周期，时间单位是秒
 #	collect_cycle = 60
+#
+#       ## measurement，不可重复
+#       measurement = "etcd"
 `
 )
 
 type Subscribe struct {
-	EtcdHost string        `toml:"host"`
-	EtcdPort int           `toml:"port"`
-	Cycle    time.Duration `toml:"collect_cycle"`
+	EtcdHost    string        `toml:"host"`
+	EtcdPort    int           `toml:"port"`
+	Cycle       time.Duration `toml:"collect_cycle"`
+	Measurement string        `toml:"measurement"`
 }
 
 type Config struct {
