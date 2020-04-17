@@ -38,6 +38,8 @@ var (
 	AgentLogFile string
 
 	DKConfig *Config
+
+	MaxLifeCheckInterval time.Duration
 )
 
 const (
@@ -51,6 +53,9 @@ config_dir='{{.ConfigDir}}'
 hostname = ""
 ## If set to true, do no set the "host" tag.
 omit_hostname = false
+
+# ##tell dataway the interval to check datakit alive
+#max_post_interval = '1m'
 
 ## Global tags can be specified here in key="value" format.
 #[global_tags]
@@ -128,9 +133,12 @@ type Config struct {
 	MainCfg          *MainConfig
 	TelegrafAgentCfg *TelegrafAgentConfig
 	Inputs           []*models.RunningInput
-	Outputs          []*models.RunningOutput
+	//Outputs          []*models.RunningOutput
 
 	InputFilters []string
+
+	enableDataclean bool
+	datacleanBind   string
 }
 
 func NewConfig() *Config {
@@ -143,8 +151,8 @@ func NewConfig() *Config {
 			LogLevel:      "info",
 			RoundInterval: false,
 		},
-		Inputs:  make([]*models.RunningInput, 0),
-		Outputs: make([]*models.RunningOutput, 0),
+		Inputs: make([]*models.RunningInput, 0),
+		//Outputs: make([]*models.RunningOutput, 0),
 	}
 	return c
 }
@@ -158,11 +166,17 @@ type MainConfig struct {
 
 	ConfigDir string `toml:"config_dir,omitempty"`
 
+	//验证dk存活
+	MaxPostInterval internal.Duration `toml:"max_post_interval"`
+
+	DataCleanTemplate string
+
 	GlobalTags map[string]string `toml:"global_tags"`
 
 	Interval      internal.Duration `toml:"interval"`
 	RoundInterval bool
 	FlushInterval internal.Duration
+	FlushJitter   internal.Duration
 
 	OutputsFile string `toml:"output_file,omitempty"`
 
@@ -174,6 +188,11 @@ type ConvertTelegrafConfig interface {
 	Load(f string) error
 	ToTelegraf(f string) (string, error)
 	FilePath(cfgdir string) string
+}
+
+type DatacleanConfig interface {
+	CheckRoute(route string) bool
+	Bindaddr() string
 }
 
 func UserAgent() string {
@@ -404,45 +423,119 @@ func (c *Config) LoadConfig(ctx context.Context) error {
 		if err := c.addInput(name, input, tbl); err != nil {
 			return err
 		}
-	}
 
-	// for name, creator := range outputs.Outputs {
-	// 	output := creator()
-	// 	if cfgdata, ok := embbed.EmbeddedOutputsConfs[name]; ok {
-	// 		tbl, err := parseConfig([]byte(cfgdata))
-	// 		if err != nil {
-	// 			return fmt.Errorf("Error loading embbed config %s, %s", name, err)
-	// 		}
-	// 		if err := c.addOutput(name, output, tbl); err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	// }
-
-	if c.MainCfg.OutputsFile != "" {
-		fileOutput := file.NewFileOutput()
-		fileOutput.Files = []string{c.MainCfg.OutputsFile}
-		if err := c.addOutputDirectly("file", fileOutput); err != nil {
-			return err
+		if name == "dataclean" {
+			if p, ok := input.(DatacleanConfig); ok {
+				if p.CheckRoute(c.MainCfg.DataCleanTemplate) {
+					c.enableDataclean = true
+					c.datacleanBind = p.Bindaddr()
+				}
+			}
 		}
 	}
 
-	if c.MainCfg.FtGateway != "" {
+	if c.MainCfg.MaxPostInterval.Duration == 0 {
+		//默认使用最大周期
+		var maxInterval time.Duration
+		bHaveIntervalInput := false
+		for _, ri := range c.Inputs {
+			if _, ok := ri.Input.(telegraf.ServiceInput); ok {
+				continue
+			}
+			bHaveIntervalInput = true
+			if ri.Config.Interval > maxInterval {
+				maxInterval = ri.Config.Interval
+			}
+		}
+
+		if bHaveIntervalInput {
+			if maxInterval == 0 {
+				maxInterval = c.MainCfg.Interval.Duration
+			}
+			maxInterval += 10 * time.Second
+		}
+
+		MaxLifeCheckInterval = maxInterval
+	} else {
+		MaxLifeCheckInterval = c.MainCfg.MaxPostInterval.Duration
+	}
+
+	return LoadTelegrafConfigs(ctx, c.MainCfg.ConfigDir, c.InputFilters)
+}
+
+func (c *Config) LoadOutputs() ([]*models.RunningOutput, error) {
+
+	var outputs []*models.RunningOutput
+
+	if c.enableDataclean {
+
+		log.Printf("enable self data clean")
+
 		httpOutput := http.NewHttpOutput()
 		if httpOutput.Headers == nil {
 			httpOutput.Headers = map[string]string{}
 		}
 		httpOutput.Headers[`X-Datakit-UUID`] = c.MainCfg.UUID
 		httpOutput.Headers[`X-Version`] = git.Version
+		httpOutput.Headers[`X-TraceId`] = `self_` + c.MainCfg.UUID
 		httpOutput.Headers[`User-Agent`] = UserAgent()
+		if MaxLifeCheckInterval > 0 {
+			httpOutput.Headers[`X-Max-POST-Interval`] = internal.IntervalString(MaxLifeCheckInterval)
+		}
 		httpOutput.ContentEncoding = "gzip"
-		httpOutput.URL = c.MainCfg.FtGateway
-		if err := c.addOutputDirectly("http", httpOutput); err != nil {
-			return err
+		// datawayUrl := ""
+		// u, err := url.Parse(c.MainCfg.FtGateway)
+		// if err == nil {
+		// 	u.Scheme = "http"
+		// 	u.Host = c.datacleanBind
+		// 	u.Path = `/v1/write/metrics`
+		// 	datawayUrl = u.String()
+		// } else {
+		// 	datawayUrl = fmt.Sprintf(`http://%s/v1/write/metrics?template=%s`, c.datacleanBind, c.MainCfg.DataCleanTemplate)
+		// }
+		// datawayUrl += fmt.Sprintf("?template=%s", c.MainCfg.DataCleanTemplate)
+		httpOutput.URL = fmt.Sprintf(`http://%s/v1/write/metrics?template=%s`, c.datacleanBind, c.MainCfg.DataCleanTemplate)
+		log.Printf("D! self dataway url: %s", httpOutput.URL)
+		if ro, err := c.newRunningOutputDirectly("dataclean", httpOutput); err != nil {
+			return nil, err
+		} else {
+			outputs = append(outputs, ro)
+		}
+
+	} else {
+		if c.MainCfg.OutputsFile != "" {
+			fileOutput := file.NewFileOutput()
+			fileOutput.Files = []string{c.MainCfg.OutputsFile}
+			if ro, err := c.newRunningOutputDirectly("file", fileOutput); err != nil {
+				return nil, err
+			} else {
+				outputs = append(outputs, ro)
+			}
+		}
+
+		if c.MainCfg.FtGateway != "" {
+			httpOutput := http.NewHttpOutput()
+			if httpOutput.Headers == nil {
+				httpOutput.Headers = map[string]string{}
+			}
+			httpOutput.Headers[`X-Datakit-UUID`] = c.MainCfg.UUID
+			httpOutput.Headers[`X-Version`] = git.Version
+			httpOutput.Headers[`X-Version`] = git.Version
+			httpOutput.Headers[`User-Agent`] = UserAgent()
+			if MaxLifeCheckInterval > 0 {
+				httpOutput.Headers[`X-Max-POST-Interval`] = internal.IntervalString(MaxLifeCheckInterval)
+			}
+			httpOutput.ContentEncoding = "gzip"
+			httpOutput.URL = c.MainCfg.FtGateway
+			if ro, err := c.newRunningOutputDirectly("http", httpOutput); err != nil {
+				return nil, err
+			} else {
+				outputs = append(outputs, ro)
+			}
 		}
 	}
 
-	return LoadTelegrafConfigs(ctx, c.MainCfg.ConfigDir, c.InputFilters)
+	return outputs, nil
 }
 
 func (c *Config) DumpInputsOutputs() {
@@ -460,12 +553,12 @@ func (c *Config) DumpInputsOutputs() {
 
 	log.Printf("avariable inputs: %s", strings.Join(names, ","))
 
-	names = names[:0]
-	for _, p := range c.Outputs {
-		names = append(names, p.Config.Name)
-	}
+	// names = names[:0]
+	// for _, p := range c.Outputs {
+	// 	names = append(names, p.Config.Name)
+	// }
 
-	log.Printf("avariable outputs: %s", strings.Join(names, ","))
+	// log.Printf("avariable outputs: %s", strings.Join(names, ","))
 }
 
 func InitMainCfg(cfg *MainConfig, path string) error {
@@ -623,51 +716,71 @@ func (c *Config) addInput(name string, input telegraf.Input, table *ast.Table) e
 	return nil
 }
 
-func (c *Config) addOutputDirectly(name string, output telegraf.Output) error {
+func (c *Config) newRunningOutputDirectly(name string, output telegraf.Output) (*models.RunningOutput, error) {
 
 	switch t := output.(type) {
 	case serializers.SerializerOutput:
 		serializer, err := buildSerializer(name, nil)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		t.SetSerializer(serializer)
 	}
 
 	outputConfig, err := buildOutput(name, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ro := models.NewRunningOutput(name, output, outputConfig, 0, 0)
-	c.Outputs = append(c.Outputs, ro)
-	return nil
+	return ro, nil
 }
 
-func (c *Config) addOutput(name string, output telegraf.Output, table *ast.Table) error {
+// func (c *Config) addOutputDirectly(name string, output telegraf.Output) error {
 
-	switch t := output.(type) {
-	case serializers.SerializerOutput:
-		serializer, err := buildSerializer(name, table)
-		if err != nil {
-			return err
-		}
-		t.SetSerializer(serializer)
-	}
+// 	switch t := output.(type) {
+// 	case serializers.SerializerOutput:
+// 		serializer, err := buildSerializer(name, nil)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		t.SetSerializer(serializer)
+// 	}
 
-	outputConfig, err := buildOutput(name, table)
-	if err != nil {
-		return err
-	}
+// 	outputConfig, err := buildOutput(name, nil)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if err := toml.UnmarshalTable(table, output); err != nil {
-		return err
-	}
+// 	ro := models.NewRunningOutput(name, output, outputConfig, 0, 0)
+// 	c.Outputs = append(c.Outputs, ro)
+// 	return nil
+// }
 
-	ro := models.NewRunningOutput(name, output, outputConfig, 0, 0)
-	c.Outputs = append(c.Outputs, ro)
-	return nil
-}
+// func (c *Config) addOutput(name string, output telegraf.Output, table *ast.Table) error {
+
+// 	switch t := output.(type) {
+// 	case serializers.SerializerOutput:
+// 		serializer, err := buildSerializer(name, table)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		t.SetSerializer(serializer)
+// 	}
+
+// 	outputConfig, err := buildOutput(name, table)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	if err := toml.UnmarshalTable(table, output); err != nil {
+// 		return err
+// 	}
+
+// 	ro := models.NewRunningOutput(name, output, outputConfig, 0, 0)
+// 	c.Outputs = append(c.Outputs, ro)
+// 	return nil
+// }
 
 func buildSerializer(name string, tbl *ast.Table) (serializers.Serializer, error) {
 	c := &serializers.Config{TimestampUnits: time.Duration(1 * time.Second)}
