@@ -7,6 +7,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyuncost"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunprice"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunrdsslowlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/apachelog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
