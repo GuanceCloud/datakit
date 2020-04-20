@@ -13,7 +13,6 @@ build/
 agent-client/
 builds/
 *.ak
-vendor
 old/
 *.tar.gz
 git/git.go
