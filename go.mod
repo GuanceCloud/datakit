@@ -40,7 +40,7 @@ require (
 	github.com/sirupsen/logrus v1.5.0 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.123+incompatible
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
-	github.com/ucloud/ucloud-sdk-go v0.14.0
+	github.com/ucloud/ucloud-sdk-go v0.15.0
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200413060708-e8285666af70 // indirect
