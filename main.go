@@ -18,13 +18,13 @@ import (
 
 	"github.com/influxdata/telegraf/logger"
 	winsvr "github.com/kardianos/service"
-	uuid "github.com/satori/go.uuid"
 
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	serviceutil "gitlab.jiagouyun.com/cloudcare-tools/cliutils/service"
 )
 
@@ -265,20 +265,17 @@ func initialize(reserveExist bool) error {
 		*flagLogLevel = "info"
 	}
 
-	uid, err := uuid.NewV4()
-	if err != nil {
-		return fmt.Errorf("Error creating uuid, %s", err)
-	}
+	uid := cliutils.XID("dkit_")
 
 	maincfg := config.MainConfig{
-		UUID:      "dkit_" + uid.String(),
+		UUID:      uid,
 		FtGateway: *flagFtDataway,
 		Log:       *flagLogFile,
 		LogLevel:  *flagLogLevel,
 		ConfigDir: *flagCfgDir,
 	}
 
-	if err = config.InitMainCfg(&maincfg, config.MainCfgPath); err != nil {
+	if err := config.InitMainCfg(&maincfg, config.MainCfgPath); err != nil {
 		return err
 	}
 
