@@ -32,7 +32,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/mehrdadrad/mylg v0.2.6 // indirect
-	github.com/naoina/toml v0.1.1 // indirect
+	github.com/naoina/toml v0.1.1
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
 	github.com/peterh/liner v1.2.0 // indirect
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
