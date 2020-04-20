@@ -82,6 +82,8 @@ github.com/aliyun/aliyun-log-go-sdk v0.1.5/go.mod h1:80fy+GaqvK1wG6Za7dCzxpWFc71
 github.com/aliyun/aliyun-oss-go-sdk v2.0.5+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
 github.com/aliyun/aliyun-oss-go-sdk v2.0.6+incompatible h1:ZDgadcjGIrbHMBLSqQVHkMOdNd/jF6bsSRJd/Ysxlos=
 github.com/aliyun/aliyun-oss-go-sdk v2.0.6+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
+github.com/aliyun/aliyun-oss-go-sdk v2.0.8+incompatible h1:WaOAKiuezSaRKAYeSf5IjxuAy/0Gx7ts6qWhKWPZf7s=
+github.com/aliyun/aliyun-oss-go-sdk v2.0.8+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
 github.com/amir/raidman v0.0.0-20170415203553-1ccc43bfb9c9 h1:FXrPTd8Rdlc94dKccl7KPmdmIbVh/OjelJ8/vgMRzcQ=
 github.com/amir/raidman v0.0.0-20170415203553-1ccc43bfb9c9/go.mod h1:eliMa/PW+RDr2QLWRmLH1R1ZA4RInpmvOzDDXtaIZkc=
 github.com/antihax/optional v0.0.0-20180407024304-ca021399b1a6/go.mod h1:V8iCPQYkqmusNa815XgQio277wI47sdRh1dUOLdyC6Q=
@@ -739,6 +741,8 @@ github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFR
 github.com/rogpeppe/go-internal v1.3.2/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=
 github.com/rogpeppe/go-internal v1.4.0 h1:LUa41nrWTQNGhzdsZ5lTnkwbNjj6rXTdazA1cSdjkOY=
 github.com/rogpeppe/go-internal v1.4.0/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=
+github.com/rs/xid v1.2.1 h1:mhH9Nq+C1fY2l1XIpgxIiUOfNpRBYH1kKcr+qfKgjRc=
+github.com/rs/xid v1.2.1/go.mod h1:+uKXf+4Djp6Md1KODXJxgGQPKngRmWyn10oCKFzNHOQ=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/safchain/ethtool v0.0.0-20200218184317-f459e2d13664 h1:gvolwzuDhul9qK6/oHqxCHD5TEYfsWNBGidOeG6kvpk=
 github.com/safchain/ethtool v0.0.0-20200218184317-f459e2d13664/go.mod h1:Z0q5wiBQGYcxhMZ6gUqHn6pYNLypFAvaL3UvgZLR0U4=
@@ -891,6 +895,8 @@ github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb/go.mod h1:gqRgreBU
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200309024203-d32415dca2df/go.mod h1:8F7HcDtqTRaqs8/jb84KdFhFMDmtBFs1+g6qZwJD8Xo=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200324113646-2a55819c700a h1:P/atLsx3+TULTS6pg++x+yiFTAYDmHOaKmzGtMg3qls=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200324113646-2a55819c700a/go.mod h1:8F7HcDtqTRaqs8/jb84KdFhFMDmtBFs1+g6qZwJD8Xo=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb h1:1y9tSpcbqp19unOCSezgtZcw/M8YzZ1G0mPw7hCdfvI=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb/go.mod h1:NN3tmyslrigqU49FjHIOLQgYtCDTs/ikPVC4C0ECMSY=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200309024616-0726d23b55da h1:7XRdlpCod1+ITETYdxfMQvFLzOcW9Glrbf+N+5XoFkM=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200309024616-0726d23b55da/go.mod h1:eoq8Qs0d0XQdK0s7uhvg8+yAO5yP7/12DJMii5hB5xA=
 gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.1 h1:QGEaBlFuMan4HujQZgx4CWe6uqNY1q12kIAw9aTIuQM=
@@ -1037,6 +1043,8 @@ golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 h1:SvFZT6jyqRaOeXpc5h/JSfZe
 golang.org/x/time v0.0.0-20190308202827-9d24e82272b4/go.mod h1:tRJNPiyCQ0inRvYxbN9jk5I+vvW/OXSQhTDSoE431IQ=
 golang.org/x/time v0.0.0-20191024005414-555d28b269f0 h1:/5xXl8Y5W96D+TtHSlonuFqGHIWVuyCkGJLwGh9JJFs=
 golang.org/x/time v0.0.0-20191024005414-555d28b269f0/go.mod h1:tRJNPiyCQ0inRvYxbN9jk5I+vvW/OXSQhTDSoE431IQ=
+golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 h1:NusfzzA6yGQ+ua51ck7E3omNUX/JuqbFSaRGqU8CcLI=
+golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1/go.mod h1:tRJNPiyCQ0inRvYxbN9jk5I+vvW/OXSQhTDSoE431IQ=
 golang.org/x/tools v0.0.0-20180221164845-07fd8470d635/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
 golang.org/x/tools v0.0.0-20180525024113-a5b4c53f6e8b/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
 golang.org/x/tools v0.0.0-20180828015842-6cd1fcedba52/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
