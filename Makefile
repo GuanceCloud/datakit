@@ -25,6 +25,7 @@ local:
 define build
 	@echo "===== $(BIN) $(1) ===="
 	@rm -rf $(PUB_DIR)/$(1)/*
+	@export GO111MODULE=off
 	@mkdir -p build $(PUB_DIR)/$(1)
 	@mkdir -p git
 	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
