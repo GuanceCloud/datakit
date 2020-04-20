@@ -29,7 +29,7 @@ var (
 	flagName     = flag.String("name", *flagBinary, "same as -binary")
 	flagBuildDir = flag.String("build-dir", "build", "output of build files")
 	flagMain     = flag.String(`main`, `main.go`, `binary build entry`)
-	flagCGO      = flag.Bool(`cgo`, false, `enable CGO or not`)
+	flagCGO      = flag.Int(`cgo`, 0, `enable CGO or not`)
 	flagTargetOS = flag.String(`os`, `linux`, `linux/mac/windows`)
 
 	flagKodoHost     = flag.String("kodo-host", "", "")
@@ -110,7 +110,7 @@ func runEnv(args, env []string) {
 	// log.Printf("%s %s", strings.Join(env, " "), strings.Join(args, " "))
 	err := cmd.Run()
 	if err != nil {
-		log.Fatalf("failed to run %v: %v", args, err)
+		log.Fatalf("failed to run %v, envs: %v: %v", args, env, err)
 	}
 }
 
@@ -138,7 +138,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"GOARCH=" + goarch,
 	}
 
-	if *flagCGO {
+	if *flagCGO == 1 {
 		env = append(env, "CGO_ENABLED=1")
 	} else {
 		env = append(env, "CGO_ENABLED=0")
