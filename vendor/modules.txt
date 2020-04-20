@@ -329,7 +329,7 @@ github.com/tidwall/gjson
 github.com/tidwall/match
 # github.com/tidwall/pretty v1.0.0
 github.com/tidwall/pretty
-# github.com/ucloud/ucloud-sdk-go v0.14.0
+# github.com/ucloud/ucloud-sdk-go v0.15.0
 github.com/ucloud/ucloud-sdk-go/private/protocol/http
 github.com/ucloud/ucloud-sdk-go/private/utils
 github.com/ucloud/ucloud-sdk-go/services/uhost
