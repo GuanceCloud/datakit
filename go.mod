@@ -17,7 +17,6 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
 	github.com/ericchiang/k8s v1.2.0
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
-	github.com/gin-gonic/gin v1.6.2
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/google/gopacket v1.1.17
 	github.com/google/uuid v1.1.1
@@ -43,12 +42,12 @@ require (
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/ucloud/ucloud-sdk-go v0.14.0
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200324113646-2a55819c700a
-	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200413060708-e8285666af70
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb
+	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200413060708-e8285666af70 // indirect
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd // indirect
-	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
+	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	golang.org/x/tools/gopls v0.4.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 )
