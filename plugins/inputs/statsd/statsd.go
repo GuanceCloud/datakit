@@ -48,11 +48,11 @@ const statsdConfigSample = `### metric_name: the name of metric, default is "sta
 ### active: whether to monitor statsd.
 ### host: statsd service ip:port, if "127.0.0.1", default port is 8126.
 
-metric_name="statsd"
-[[targets]]
-	interval = 60
-	active   = false
-	host     = "127.0.0.1:8126"
+#metric_name="statsd"
+#[[targets]]
+#	interval = 60
+#	active   = false
+#	host     = "127.0.0.1:8126"
 
 #[[targets]]
 #	interval = 60
@@ -61,10 +61,10 @@ metric_name="statsd"
 `
 
 var (
-	ctx  context.Context
-	cfun context.CancelFunc
+	ctx           context.Context
+	cfun          context.CancelFunc
 	activeTargets = 0
-	stopChan chan bool
+	stopChan      chan bool
 )
 
 const (
@@ -128,7 +128,7 @@ func (t *StatsD) Start(acc telegraf.Accumulator) error {
 }
 
 func (t *StatsD) Stop() {
-	for i:=0; i<activeTargets; i++ {
+	for i := 0; i < activeTargets; i++ {
 		stopChan <- true
 	}
 	cfun()
