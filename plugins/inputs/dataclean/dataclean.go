@@ -14,7 +14,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	ftcfg "gitlab.jiagouyun.com/cloudcare-tools/ftagent/cfg"
 )
 
 const (
@@ -24,7 +23,7 @@ const (
 type DataClean struct {
 	BindAddr        string         `toml:"bind_addr"`
 	GinLog          string         `toml:"gin_log"`
-	GlobalLua       []LuaConfig    `toml:"global_lua"`
+	GlobalLua       []*LuaConfig   `toml:"global_lua"`
 	Routes          []*RouteConfig `toml:"routes_config"`
 	LuaWorker       int            `toml:"lua_worker"`
 	EnableConfigAPI bool           `toml:"enable_config_api"`
@@ -41,6 +40,8 @@ type DataClean struct {
 	httpsrv *http.Server
 
 	write *writerMgr
+
+	luaMachine *luaMachine
 }
 
 func (d *DataClean) CheckRoute(route string) bool {
@@ -71,7 +72,9 @@ func (_ *DataClean) Gather(telegraf.Accumulator) error {
 
 func (d *DataClean) Init() error {
 
-	DWLuaPath = filepath.Join(config.ExecutableDir, "data", "lua")
+	d.luaMachine = NewLuaMachine(filepath.Join(config.ExecutableDir, "data", "lua"), d.LuaWorker)
+	d.luaMachine.routes = d.Routes
+	d.luaMachine.globals = d.GlobalLua
 
 	if d.BindAddr == "" {
 		d.BindAddr = `0.0.0.0:9529`
@@ -86,35 +89,6 @@ func (d *DataClean) Init() error {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	if d.LuaWorker > 0 {
-		ftcfg.Cfg.LuaWorker = d.LuaWorker
-	}
-	ftcfg.DWLuaPath = DWLuaPath
-	ftcfg.Cfg.EnableConfigAPI = d.EnableConfigAPI
-	ftcfg.Cfg.CfgPwd = d.CfgPwd
-
-	for _, l := range d.GlobalLua {
-		ftcfg.Cfg.GlobalLua = append(ftcfg.Cfg.GlobalLua, ftcfg.LuaConfig{
-			Path:   l.Path,
-			Circle: l.Circle,
-		})
-	}
-	d.logger.Debugf("global lua: %s", ftcfg.Cfg.GlobalLua)
-
-	for _, r := range d.Routes {
-		rc := &ftcfg.RouteConfig{
-			Name:             r.Name,
-			DisableLua:       r.DisableLua,
-			DisableTypeCheck: r.DisableTypeCheck,
-		}
-		for _, rl := range r.Lua {
-			rc.Lua = append(rc.Lua, ftcfg.LuaConfig{
-				Path: rl.Path,
-			})
-		}
-		ftcfg.Cfg.Routes = append(ftcfg.Cfg.Routes, rc)
-	}
-
 	return nil
 }
 
@@ -124,8 +98,13 @@ func (d *DataClean) Start(acc telegraf.Accumulator) error {
 
 	d.accumulator = acc
 
-	if err := initLua(); err != nil {
-		d.logger.Errorf("fail to init lua, %s", err)
+	if err := d.luaMachine.StartGlobal(); err != nil {
+		d.logger.Errorf("fail to start global lua, %s", err)
+		return err
+	}
+
+	if err := d.luaMachine.StartRoutes(); err != nil {
+		d.logger.Errorf("fail to start routes lua, %s", err)
 		return err
 	}
 
@@ -154,6 +133,9 @@ func (d *DataClean) Stop() {
 	d.cancelFun()
 	d.stopSvr()
 	d.write.stop()
+	if d.luaMachine != nil {
+		d.luaMachine.Stop()
+	}
 }
 
 func NewAgent() *DataClean {
