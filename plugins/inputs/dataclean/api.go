@@ -262,6 +262,10 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 		return
 	}
 
+	if err == nil {
+		queries.Del("template")
+	}
+
 	switch contentType {
 	case `application/x-protobuf`, `application/json`:
 		contentType = defaultContentType
