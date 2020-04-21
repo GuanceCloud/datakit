@@ -120,7 +120,6 @@ func (md *mgodata) typeAssert(completeKey string, value interface{}) {
 func (md *mgodata) reset() {
 	md.tags = make(map[string]string)
 	md.fields = make(map[string]interface{})
-	// FIXME:
 	// md.time reset ?
 }
 
