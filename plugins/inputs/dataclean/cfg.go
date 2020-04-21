@@ -1,15 +1,13 @@
 package dataclean
 
 var (
-	DWLuaPath string
-
 	sampleConfig = `
 #bind_addr = '0.0.0.0:9528'
 #gin_log = 'gin.log'
 #lua_worker = 4
 
 #[[global_lua]]
-#path = 'a.lua'
+#path = 'global.lua'
 #circle = '*/10 * * * *'
 
 #[[routes_config]]
