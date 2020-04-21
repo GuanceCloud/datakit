@@ -26,7 +26,7 @@ func TestDumpMaincfg(t *testing.T) {
 		CfgPwd:          "111",
 	}
 
-	maincfg.GlobalLua = append(maincfg.GlobalLua, LuaConfig{
+	maincfg.GlobalLua = append(maincfg.GlobalLua, &LuaConfig{
 		Path: "a.lua",
 		//Circle: `*/1 * * * *`,
 	})
