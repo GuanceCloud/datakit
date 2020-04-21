@@ -584,6 +584,7 @@ func InitMainCfg(cfg *MainConfig, path string) error {
 func CreateDataDir() error {
 	dataDir := filepath.Join(ExecutableDir, "data")
 	os.MkdirAll(dataDir, 0755)
+	os.MkdirAll(filepath.Join(dataDir, "lua"), 0755)
 	//datakit定义的插件的配置文件
 	for name, _ := range inputs.Inputs {
 		if name == "zabbix" {
