@@ -27,19 +27,18 @@ func TestDumpMaincfg(t *testing.T) {
 	}
 
 	maincfg.GlobalLua = append(maincfg.GlobalLua, LuaConfig{
-		Path:   "a.lua",
-		Circle: `*/1 * * * *`,
+		Path: "a.lua",
+		//Circle: `*/1 * * * *`,
 	})
 
 	rt := &RouteConfig{
 		Name:             "demo",
 		DisableLua:       false,
 		DisableTypeCheck: false,
-		AkOpen:           false,
 	}
 	rt.Lua = append(rt.Lua, LuaConfig{
-		Path:   "demo.lua",
-		Circle: `*/1 * * * *`,
+		Path: "demo.lua",
+		//Circle: `*/1 * * * *`,
 	})
 
 	maincfg.Routes = append(maincfg.Routes, rt)

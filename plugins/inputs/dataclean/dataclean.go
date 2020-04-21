@@ -14,7 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/cfg"
+	ftcfg "gitlab.jiagouyun.com/cloudcare-tools/ftagent/cfg"
 )
 
 const (
@@ -87,33 +87,32 @@ func (d *DataClean) Init() error {
 	}
 
 	if d.LuaWorker > 0 {
-		cfg.Cfg.LuaWorker = d.LuaWorker
+		ftcfg.Cfg.LuaWorker = d.LuaWorker
 	}
-	cfg.DWLuaPath = DWLuaPath
-	cfg.Cfg.EnableConfigAPI = d.EnableConfigAPI
-	cfg.Cfg.CfgPwd = d.CfgPwd
+	ftcfg.DWLuaPath = DWLuaPath
+	ftcfg.Cfg.EnableConfigAPI = d.EnableConfigAPI
+	ftcfg.Cfg.CfgPwd = d.CfgPwd
 
 	for _, l := range d.GlobalLua {
-		cfg.Cfg.GlobalLua = append(cfg.Cfg.GlobalLua, cfg.LuaConfig{
+		ftcfg.Cfg.GlobalLua = append(ftcfg.Cfg.GlobalLua, ftcfg.LuaConfig{
 			Path:   l.Path,
 			Circle: l.Circle,
 		})
 	}
+	d.logger.Debugf("global lua: %s", ftcfg.Cfg.GlobalLua)
 
 	for _, r := range d.Routes {
-		rc := &cfg.RouteConfig{
+		rc := &ftcfg.RouteConfig{
 			Name:             r.Name,
 			DisableLua:       r.DisableLua,
 			DisableTypeCheck: r.DisableTypeCheck,
-			AkOpen:           r.AkOpen,
 		}
 		for _, rl := range r.Lua {
-			rc.Lua = append(rc.Lua, cfg.LuaConfig{
-				Path:   rl.Path,
-				Circle: rl.Circle,
+			rc.Lua = append(rc.Lua, ftcfg.LuaConfig{
+				Path: rl.Path,
 			})
 		}
-		cfg.Cfg.Routes = append(cfg.Cfg.Routes, rc)
+		ftcfg.Cfg.Routes = append(ftcfg.Cfg.Routes, rc)
 	}
 
 	return nil
