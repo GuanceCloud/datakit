@@ -755,6 +755,7 @@ github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 h1:nn5Wsu0esKSJiIVhscUt
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/sergi/go-diff v1.0.1-0.20180205163309-da645544ed44 h1:tB9NOR21++IjLyVx3/PCPhWMwqGNCMQEH96A6dMZ/gc=
 github.com/sergi/go-diff v1.0.1-0.20180205163309-da645544ed44/go.mod h1:0CfEIISq7TuYL3j771MWULgwwjU+GofnZX9QAmXWZgo=
+github.com/sergi/go-diff v1.1.0/go.mod h1:STckp+ISIX8hZLjrqAeVduY0gWCT9IjLuqbuNXdaHfM=
 github.com/shirou/gopsutil v2.19.10+incompatible/go.mod h1:5b4v6he4MtMOwMlS0TUMTu2PcXUg8+E1lC7eC3UO/RA=
 github.com/shirou/gopsutil v2.20.1+incompatible h1:oIq9Cq4i84Hk8uQAUOG3eNdI/29hBawGrD5YRl6JRDY=
 github.com/shirou/gopsutil v2.20.1+incompatible/go.mod h1:5b4v6he4MtMOwMlS0TUMTu2PcXUg8+E1lC7eC3UO/RA=
@@ -895,6 +896,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200324113646-2a55819c700a
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200324113646-2a55819c700a/go.mod h1:8F7HcDtqTRaqs8/jb84KdFhFMDmtBFs1+g6qZwJD8Xo=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200309024616-0726d23b55da h1:7XRdlpCod1+ITETYdxfMQvFLzOcW9Glrbf+N+5XoFkM=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200309024616-0726d23b55da/go.mod h1:eoq8Qs0d0XQdK0s7uhvg8+yAO5yP7/12DJMii5hB5xA=
+gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.1 h1:QGEaBlFuMan4HujQZgx4CWe6uqNY1q12kIAw9aTIuQM=
 gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200413060708-e8285666af70 h1:HsZYcaPJ7/kivW1YOZ2lmbjL9l27sUU7MqA/FmrDv1o=
 gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200413060708-e8285666af70/go.mod h1:XOQiK3T74QHolZ35sGOks3/AZYWh6o4LIN5EABkeM58=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20200316022949-6fe0fca01e84/go.mod h1:y4wJkwyT87RCGo3w3+Vbc/363u991udhe2EVApTcbOY=
@@ -1068,6 +1070,7 @@ golang.org/x/tools v0.0.0-20200206050830-dd0d5d485177 h1:E2vxBajJgSA3TcJhDGTh/kP
 golang.org/x/tools v0.0.0-20200206050830-dd0d5d485177/go.mod h1:TB2adYChydJhpapKDTa4BR/hXlZSLoq2Wpct/0txZ28=
 golang.org/x/tools v0.0.0-20200407041343-bf15fae40dea h1:DUwLyMDMUauGMd9kSLIlhhYJNELm06HuxeBdkFkeax4=
 golang.org/x/tools v0.0.0-20200407041343-bf15fae40dea/go.mod h1:EkVYQZoAsY45+roYkvgYkIh4xh/qjgUK9TdY2XT94GE=
+golang.org/x/tools/gopls v0.4.0/go.mod h1:fdOZ8zb6nqlePvfek79JCskQXI4W+i2e1xT+xOPKMcY=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 h1:/atklqdjdhuosWIl6AIbOeHJjicWYPqR9bpxqxYG2pA=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
@@ -1177,6 +1180,7 @@ k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8
 k8s.io/klog v0.0.0-20181102134211-b9b56d5dfc92/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
 k8s.io/klog v1.0.0/go.mod h1:4Bi6QPql/J/LkTDqv7R/cd3hPo4k2DG6Ptcz060Ez5I=
 k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a/go.mod h1:1TqjTSzOxsLGIKfj0lK8EeCP7K1iUG65v09OM0/WG5E=
+mvdan.cc/xurls/v2 v2.1.0/go.mod h1:5GrSd9rOnKOpZaji1OZLYL/yeAAtGDlo/cFe+8K5n8E=
 rsc.io/pdf v0.1.1/go.mod h1:n8OzWcQ6Sp37PL01nO98y4iUCRdTGarVfzxY20ICaU4=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=
 sigs.k8s.io/yaml v1.1.0 h1:4A07+ZFc2wgJwo8YNlQpr1rVlgUDlxXHhPJciaPY5gs=
