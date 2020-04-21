@@ -58,63 +58,17 @@ func (d *DataClean) startSvr(addr string) error {
 
 	router.Use(gin.Recovery())
 
-	// if len(cfg.Cfg.WhiteList) > 0 {
-	// 	wl := map[string]bool{}
-	// 	for _, ip := range cfg.Cfg.WhiteList {
-	// 		wl[ip] = true
-	// 	}
-
-	// 	if len(wl) > 0 {
-	// 		router.Use(ipWhiteList(wl))
-	// 	}
-	// }
-
 	router.Use(uhttp.CORSMiddleware)
 	router.Use(uhttp.TraceIDMiddleware)
 	router.Use(uhttp.RequestLoggerMiddleware)
-
-	// router.NoRoute(func(c *gin.Context) {
-	// 	c.Writer.Header().Set(`Content-Type`, `text/html`)
-
-	// 	t := template.New(``)
-	// 	t, err := t.Parse(string(welcomeMsgTemplate))
-	// 	if err != nil {
-	// 		log.Printf("[error] %s", err.Error())
-	// 		uhttp.HttpErr(c, err)
-	// 		return
-	// 	}
-
-	// 	buf := new(bytes.Buffer)
-
-	// 	if err := t.Execute(buf, &cfg.Cfg); err != nil {
-	// 		log.Printf("[error] %s", err.Error())
-	// 		uhttp.HttpErr(c, err)
-	// 		return
-	// 	}
-
-	// 	c.String(404, buf.String())
-	// })
-
-	///////////////////////////////////////
-	// fake influx API request
-	///////////////////////////////////////
-	//influxdb PING操作
-	//router.GET("/ping", func(c *gin.Context) { apiInfluxdbPING(c) })
-	//influxdb POST操作
-	//router.POST("/write", func(c *gin.Context) { apiInfluxdbWrite(c) })
-	//influxdb QUREY操作
-	//router.GET("/query", func(c *gin.Context) { apiInfluxdbQuery(c) })
 
 	v1 := router.Group("/v1")
 
 	v1.POST("/write/metrics", func(c *gin.Context) { d.apiWriteMetrics(c) })
 
-	//v1.POST("/config", func(c *gin.Context) { apiSetConfig(c) })
-	//v1.GET("/config", func(c *gin.Context) { apiGetConfig(c) })
-
-	v1.POST("/lua", func(c *gin.Context) { d.apiUploadLua(c) })
+	//v1.POST("/lua", func(c *gin.Context) { d.apiUploadLua(c) })
 	// v1.DELETE("/lua", func(c *gin.Context) { apiDeleteLuas(c) })
-	v1.GET("/lua/list", func(c *gin.Context) { d.apiListLuas(c) })
+	//v1.GET("/lua/list", func(c *gin.Context) { d.apiListLuas(c) })
 	// v1.GET("/lua", func(c *gin.Context) { apiDownloadLua(c) })
 
 	d.httpsrv = &http.Server{
@@ -236,13 +190,6 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 		return
 	}
 
-	// akopen, err = verify(route, c.Request, body)
-	// if err != nil {
-	// 	log.Printf("E! [%s] invalid AK, %s", tid, err.Error())
-	// 	goto __end
-	// }
-	// _ = akopen
-
 	//log.Printf("D! [%s] HTTP body: %s", tid, *(*string)(unsafe.Pointer(&body)))
 
 	switch contentEncoding {
@@ -256,13 +203,12 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 	default: // pass
 	}
 
-	pts, err = d.LuaClean(contentType, body, route, tid)
+	pts, err = d.luaMachine.LuaClean(contentType, body, route, tid)
 	if err != nil {
 		utils.ErrHTTPReadError.HttpBody(c, fmt.Sprintf("[%s] clean data failed, route=%s, body: %v", tid, route, body))
 		return
-	}
-
-	if err == nil {
+	} else {
+		//TODO: 如果处理了，拿掉template
 		queries.Del("template")
 	}
 
@@ -285,8 +231,6 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 			newMetrics = append(newMetrics, m)
 		}
 	}
-
-	//TODO: 如果处理了，是否拿掉template?
 
 	if len(newMetrics) > 0 {
 		ri := &reqinfo{
