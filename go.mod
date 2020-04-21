@@ -8,6 +8,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
 	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
+	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.4
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
@@ -18,6 +19,7 @@ require (
 	github.com/ericchiang/k8s v1.2.0
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gin-gonic/gin v1.6.2
+	github.com/go-kit/kit v0.9.0
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/google/gopacket v1.1.17
 	github.com/google/uuid v1.1.1
