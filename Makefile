@@ -1,6 +1,6 @@
 .PHONY: default test
 
-default: release
+default: local
 
 # 正式环境
 RELEASE_DOWNLOAD_ADDR = zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit
@@ -17,11 +17,6 @@ VERSION := $(shell git describe --always --tags)
 
 all: test release preprod local
 
-
-local:
-	$(call build,local,$(LOCAL_KODO_HOST),$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_SSL),$(LOCAL_PORT))
-
-
 define build
 	@echo "===== $(BIN) $(1) ===="
 	@rm -rf $(PUB_DIR)/$(1)/*
@@ -30,26 +25,20 @@ define build
 	@mkdir -p git
 	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
 	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
-		 -download-addr $(2) -release $(1) -pub-dir $(PUB_DIR) -archs $(3) -os $(4) -cgo $(5)
+		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -cgo $(3)
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
 	#@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
 	tree -Csh $(PUB_DIR)
 endef
 
-test:
-	$(call build,test,$(TEST_DOWNLOAD_ADDR),"linux/amd64","linux", 0)
+local:
+	$(call build,test, "linux/amd64", 1)
 
-test_win:
-	$(call build,test,$(TEST_DOWNLOAD_ADDR),"windows/amd64","windows", 0)
+test:
+	$(call build,test, "all", 1)
 
 release:
-	$(call build,release,$(RELEASE_DOWNLOAD_ADDR),"linux/amd64","linux", 0)
-
-release_win:
-	$(call build,release,$(RELEASE_DOWNLOAD_ADDR),"windows/amd64","windows", 0)
-
-test_mac:
-	$(call build,test,$(TEST_DOWNLOAD_ADDR),"darwin/amd64","mac", 1)
+	$(call build,release,"all", 0)
 
 define pub
 	echo "publish $(1) $(NAME) ..."
@@ -59,14 +48,8 @@ endef
 pub_test:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),"linux/amd64","linux")
 
-pub_test_win:
-	$(call pub,test,$(TEST_DOWNLOAD_ADDR),"windows/amd64","windows")
-
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),"linux/amd64","linux")
-
-pub_release_win:
-	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),"windows/amd64","windows")
 
 clean:
 	rm -rf build/*
