@@ -41,29 +41,8 @@ var (
 	curVersion []byte
 
 	osarches = []string{
-		//"linux/386",
 		"linux/amd64",
-		//"linux/arm64",
-
-		//"windows/386",
 		"windows/amd64",
-
-		// not support
-		//"darwin/386",
-		//"darwin/amd64",
-
-		//"linux/arm",
-		//"freebsd/386",
-		//"freebsd/amd64",
-		//"freebsd/arm",
-		//"netbsd/386",
-		//"netbsd/amd64",
-		//"netbsd/arm",
-		//"openbsd/386",
-		//"openbsd/amd64",
-		//"solaris/amd64",
-		//"linux/mips",
-		//"linux/mipsle",
 	}
 )
 
@@ -102,7 +81,7 @@ func compileArch(bin, goos, goarch, dir string) {
 	args := []string{
 		"go", "build",
 		"-o", output,
-		//"-ldflags", "-w -s",
+		"-ldflags", "-w -s",
 		*flagMain,
 	}
 
@@ -157,8 +136,6 @@ func compile() {
 		}
 
 		compileTask(*flagBinary, goos, goarch, dir)
-
-		//tarFiles(fmt.Sprintf("%s-%s", goos, goarch))
 	}
 
 	log.Printf("build elapsed %v", time.Since(start))
@@ -205,14 +182,14 @@ func getPudirByRelease() string {
 	//return prefix
 }
 
-func publishAgent() {
+func releaseAgent() {
 	var ak, sk, bucket, ossHost string
 	objPath := *flagName
 
 	// 在你本地设置好这些 oss-key 环境变量
 	switch *flagRelease {
-	case `test`, `local`, `release`, `preprod`, `alpha`:
-		tag := "DK_" + strings.ToUpper(*flagRelease)
+	case `test`, `local`, `release`:
+		tag := strings.ToUpper(*flagRelease)
 		ak = os.Getenv(tag + "_OSS_ACCESS_KEY")
 		sk = os.Getenv(tag + "_OSS_SECRET_KEY")
 		bucket = os.Getenv(tag + "_OSS_BUCKET")
@@ -278,7 +255,7 @@ func publishAgent() {
 	case "all":
 		archs = osarches
 	default:
-		archs = strings.Split(*flagArchs, ",")
+		archs = strings.Split(*flagArchs, "|")
 	}
 
 	objs := map[string]string{}
@@ -302,16 +279,18 @@ func publishAgent() {
 		}
 		goos, goarch := parts[0], parts[1]
 
+		tarFiles(parts[0], parts[1])
+
 		gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, string(curVersion))
 
 		objs[path.Join(pubdir, gzName)] = path.Join(objPath, gzName)
 	}
 
-	for k, v := range objs {
-		if err := oc.Upload(k, v); err != nil {
-			log.Fatal(err)
-		}
-	}
+	//for k, v := range objs {
+	//	if err := oc.Upload(k, v); err != nil {
+	//		log.Fatal(err)
+	//	}
+	//}
 
 	log.Println("Done :)")
 }
@@ -331,7 +310,7 @@ func main() {
 	curVersion = bytes.TrimSpace(curVersion)
 
 	if *flagPub {
-		publishAgent()
+		releaseAgent()
 		return
 	}
 
@@ -476,21 +455,27 @@ func buildWindowsInstall(outdir, goarch string) {
 	runEnv(args, env)
 }
 
-func tarFiles(osarch string) {
+func tarFiles(osname, arch string) {
 
-	pubdir := getPudirByRelease()
+	//pubdir := getPudirByRelease()
+
+	telegrafAgentName := "agent"
+	if osname == "windows" {
+		telegrafAgentName = "agent.exe"
+	}
 
 	args := []string{
 		`czf`,
-		path.Join(pubdir, fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, osarch, string(curVersion))),
-		`agent`,
+		path.Join(*flagPubDir, *flagRelease, fmt.Sprintf("%s-%s-%s-%s.tar.gz",
+			*flagName, osname, arch, string(curVersion))),
+		path.Join("agent-binary", osname, telegrafAgentName),
 		`-C`,
-		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s", *flagName, osarch)),
+		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s-%s", *flagName, osname, arch)),
 		`.`,
 	}
 
-	agentBinaryDir := "agent-binary/linux"
-	agentName := "agent"
+	//agentBinaryDir := "agent-binary/linux"
+	//agentName := "agent"
 	//switch *flagTargetOS {
 	//case "windows":
 	//	agentBinaryDir = "agent-binary/windows"
@@ -499,20 +484,22 @@ func tarFiles(osarch string) {
 	//	agentBinaryDir = "agent-binary/mac"
 	//}
 
-	args = []string{
-		`czf`,
-		path.Join(pubdir, fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, osarch, string(curVersion))),
-		`-C`,
-		agentBinaryDir,
-		agentName,
-		`-C`,
-		fmt.Sprintf(`../../%s/%s-%s`, *flagBuildDir, *flagName, osarch),
-		`.`,
-	}
+	//args = []string{
+	//	`czf`,
+	//	path.Join(pubdir, fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, osarch, string(curVersion))),
+	//	`-C`,
+	//	agentBinaryDir,
+	//	agentName,
+	//	`-C`,
+	//	fmt.Sprintf(`../../%s/%s-%s`, *flagBuildDir, *flagName, osarch),
+	//	`.`,
+	//}
 
 	//if *flagTargetOS == "linux" {
 	//	args = append(args, `-C`, `../../`, `deps`)
 	//}
+
+	log.Printf("[debug] tar args: %+#v", args)
 
 	cmd := exec.Command("tar", args...)
 
