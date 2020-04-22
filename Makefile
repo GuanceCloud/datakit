@@ -8,6 +8,9 @@ RELEASE_DOWNLOAD_ADDR = zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.
 # 测试环境
 TEST_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit
 
+# 本地环境
+LOCAL_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit
+
 PUB_DIR = pub
 BIN = datakit
 NAME = datakit
@@ -28,11 +31,11 @@ define build
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -cgo $(3)
 	#@strip build/$(NAME)-linux-amd64/$(BIN)
 	#@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
-	tree -Csh $(PUB_DIR)
+	tree -Csh build
 endef
 
 local:
-	$(call build,test, "linux/amd64", 1)
+	$(call build,local, "all", 1)
 
 test:
 	$(call build,test, "all", 1)
@@ -42,14 +45,17 @@ release:
 
 define pub
 	echo "publish $(1) $(NAME) ..."
-	go run make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3) -os $(4)
+	go run make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
 endef
 
+pub_local:
+	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),"all")
+
 pub_test:
-	$(call pub,test,$(TEST_DOWNLOAD_ADDR),"linux/amd64","linux")
+	$(call pub,test,$(TEST_DOWNLOAD_ADDR),"all")
 
 pub_release:
-	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),"linux/amd64","linux")
+	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),"all")
 
 clean:
 	rm -rf build/*
