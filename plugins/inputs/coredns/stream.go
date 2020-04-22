@@ -106,7 +106,7 @@ func (s *stream) exec() error {
 }
 
 func (s *stream) flush() (err error) {
-	fmt.Printf("%v\n", s.points)
+	// fmt.Printf("%v\n", s.points)
 	err = s.coredns.ProcessPts(s.points)
 	s.points = nil
 	return err
