@@ -5,11 +5,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os/exec"
 	"runtime"
-	"time"
 	"strings"
-	"log"
+	"time"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/metric"
@@ -20,7 +20,7 @@ import (
 )
 
 type Timezone struct {
-	Metricname string  `toml:"metric_name"`
+	Metricname string `toml:"metric_name"`
 	Active     bool
 	Interval   int
 	Hostname   string
@@ -54,10 +54,10 @@ var (
 ### interval: monitor interval second, unit is second. The default value is 60.
 ### hostname: If not specified, the environment variable will be used.
 
-metric_name="timezone"
-active   = false
-interval = 60
-hostname = ""`
+#metric_name="timezone"
+#active   = false
+#interval = 60
+#hostname = ""`
 )
 
 var (
