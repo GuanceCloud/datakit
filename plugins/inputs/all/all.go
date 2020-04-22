@@ -11,7 +11,7 @@ import (
 
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/baiduIndex"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dataclean"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dataclean"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpstat"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/lighttpd"

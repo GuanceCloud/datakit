@@ -3,29 +3,29 @@ module gitlab.jiagouyun.com/cloudcare-tools/datakit
 go 1.13
 
 require (
-	github.com/Azure/azure-sdk-for-go v0.0.0-20200305061206-32160a3836db
-	github.com/Azure/go-autorest/autorest v0.10.0
+	github.com/Azure/azure-sdk-for-go v37.1.0+incompatible
+	github.com/Azure/go-autorest/autorest v0.9.3
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
 	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.4
-	github.com/aliyun/aliyun-log-go-sdk v0.1.5
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.131
+	github.com/aliyun/aliyun-log-go-sdk v0.1.8
 	github.com/aws/aws-sdk-go v1.19.41
-	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
-	github.com/bitly/go-simplejson v0.5.0 // indirect
-	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
 	github.com/ericchiang/k8s v1.2.0
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
+	github.com/gin-gonic/gin v1.6.2
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/gogo/protobuf v1.3.1
+	github.com/golang/snappy v0.0.1
 	github.com/google/gopacket v1.1.17
 	github.com/google/uuid v1.1.1
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
-	github.com/jackc/pgx v3.6.0+incompatible
+	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/kardianos/service v1.0.0
-	github.com/lib/pq v1.3.0
+	github.com/lib/pq v1.4.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
@@ -34,20 +34,18 @@ require (
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.9.1
+	github.com/prometheus/prometheus v2.5.0+incompatible
+	github.com/robfig/cron v1.2.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
-	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
-	github.com/sirupsen/logrus v1.5.0 // indirect
-	github.com/tencentcloud/tencentcloud-sdk-go v3.0.123+incompatible
-	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
+	github.com/siddontang/go-mysql v0.0.0-20200311002057-7a62847fcdb5
+	github.com/tencentcloud/tencentcloud-sdk-go v3.0.160+incompatible
 	github.com/ucloud/ucloud-sdk-go v0.15.0
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb
-	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200413060708-e8285666af70 // indirect
-	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
-	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
-	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd // indirect
+	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421111424-35ed577a5ec0
+	golang.org/x/crypto v0.0.0-20200420201142-3c4aac89819a
+	golang.org/x/net v0.0.0-20200421231249-e086a090c8fd
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
-	golang.org/x/tools/gopls v0.4.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 )
