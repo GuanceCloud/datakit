@@ -132,8 +132,8 @@ func (r *RunningInstance) getDomain(metricName string) []string {
 		request := cdn.CreateDescribeUserDomainsRequest()
 		request.RegionId = r.cfg.RegionID
 		request.Scheme = "https"
-		request.PageSize = requests.NewInteger(50)
-		request.PageNumber = requests.NewInteger(1)
+		request.PageSize = requests.NewInteger(pageSize)
+		request.PageNumber = requests.NewInteger(pageNumber)
 
 		response, err := r.client.DescribeUserDomains(request)
 		if err != nil {
@@ -173,6 +173,8 @@ func (r *RunningInstance) getDomain(metricName string) []string {
 		if int64(pageNumber*pageSize) >= total {
 			break
 		}
+
+		pageNumber = pageNumber + 1
 	}
 
 	return domains
