@@ -2,15 +2,37 @@ package aliyunrdsslowlog
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
 	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+var regions = []string{
+	"cn-hangzhou",
+	"cn-shanghai",
+	"cn-qingdao",
+	"cn-beijing",
+	"cn-zhangjiakou",
+	"cn-huhehaote",
+	"cn-shenzhen",
+	"cn-heyuan",
+	"cn-chengdu",
+	"cn-hongkong",
+	"ap-southeast-1",
+	"ap-southeast-2",
+	"ap-southeast-3",
+	"ap-southeast-5",
+	"ap-northeast-1",
+	"ap-south-1",
+	"eu-central-1",
+	"eu-west-1",
+	"us-east-1",
+}
 
 type AliyunRDSSlowLog struct {
 	RDSslowlog  []*RDSslowlog
@@ -28,6 +50,15 @@ type runningInstance struct {
 	logger     *models.Logger
 	client     *rds.Client
 	metricName string
+}
+
+type rdsInstance struct {
+	id           string
+	description  string
+	server       string
+	regionId     string
+	engine       string
+	instanceType string
 }
 
 func (_ *AliyunRDSSlowLog) SampleConfig() string {
@@ -75,6 +106,14 @@ func (a *AliyunRDSSlowLog) Start(acc telegraf.Accumulator) error {
 			r.cfg.Interval.Duration = time.Minute * 10
 		}
 
+		cli, err := rds.NewClientWithAccessKey(instCfg.RegionID, instCfg.AccessKeyID, instCfg.AccessKeySecret)
+		if err != nil {
+			r.logger.Errorf("create client failed, %s", err)
+			return err
+		}
+
+		r.client = cli
+
 		a.runningInstances = append(a.runningInstances, r)
 
 		go r.run(a.ctx)
@@ -85,28 +124,6 @@ func (a *AliyunRDSSlowLog) Start(acc telegraf.Accumulator) error {
 func (a *AliyunRDSSlowLog) Stop() {
 	a.cancelFun()
 }
-
-// func (r *runningInstance) getHistory(ctx context.Context) error {
-// 	if r.cfg.From == "" {
-// 		return nil
-// 	}
-
-// 	endTm := time.Now().Truncate(time.Minute).Add(-r.cfg.Interval.Duration)
-// 	request := actiontrail.CreateLookupEventsRequest()
-// 	request.Scheme = "https"
-// 	request.StartTime = r.cfg.From
-// 	request.EndTime = unixTimeStrISO8601(endTm)
-
-// 	reqid, response, err := r.lookupEvents(ctx, request, r.client.LookupEvents)
-// 	if err != nil {
-// 		r.logger.Errorf("(history)LookupEvents(%s) between %s - %s failed", reqid, request.StartTime, request.EndTime)
-// 		return err
-// 	}
-
-// 	r.handleResponse(ctx, response)
-
-// 	return nil
-// }
 
 func (r *runningInstance) run(ctx context.Context) error {
 	defer func() {
@@ -122,8 +139,6 @@ func (r *runningInstance) run(ctx context.Context) error {
 	}
 	r.client = cli
 
-	//
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -132,37 +147,83 @@ func (r *runningInstance) run(ctx context.Context) error {
 		}
 
 		// 实例信息
-		// r.getInstance(ctx)
-
-		response, err := r.command()
-		if err != nil {
-
+		for _, val := range r.cfg.Product {
+			r.exec(val)
 		}
 
-		fmt.Println("======resp", response)
-
-		internal.SleepContext(ctx, r.cfg.Interval.Duration)
+		// internal.SleepContext(ctx, r.cfg.Interval.Duration)
+		internal.SleepContext(ctx, 10*time.Second)
 	}
 }
 
-func (r *runningInstance) command() (*rds.DescribeSlowLogsResponse, error) {
+func (r *runningInstance) exec(engine string) {
+	for _, region := range regions {
+		go r.getInstance(engine, region)
+	}
+}
+
+func (r *runningInstance) getInstance(engine string, regionId string) error {
+	var pageNumber = 1
+	var pageSize = 50
+
+	for {
+		request := rds.CreateDescribeDBInstancesRequest()
+		request.Scheme = "https"
+		request.RegionId = regionId
+		request.Engine = engine
+		request.PageSize = requests.NewInteger(pageSize)
+		request.PageNumber = requests.NewInteger(pageNumber)
+
+		response, err := r.client.DescribeDBInstances(request)
+		if err != nil {
+			r.logger.Error("instance failed")
+			return err
+		}
+
+		for _, item := range response.Items.DBInstance {
+			instanceObj := &rdsInstance{
+				id:           item.DBInstanceId,
+				description:  item.DBInstanceDescription,
+				server:       item.ConnectionMode,
+				regionId:     item.RegionId,
+				engine:       item.Engine,
+				instanceType: item.DBInstanceType,
+			}
+
+			go r.command(engine, instanceObj)
+		}
+
+		total := response.TotalRecordCount
+		if pageNumber*pageSize >= total {
+			break
+		}
+
+		pageNumber = pageNumber + 1
+	}
+	return nil
+}
+
+func (r *runningInstance) command(engine string, instanceObj *rdsInstance) {
+	et := time.Now()
+	st := et.Add(-time.Hour * 24)
+
 	request := rds.CreateDescribeSlowLogsRequest()
 	request.Scheme = "https"
-	// request.StartTime = unixTimeStrISO8601(startTm)
-	// request.EndTime = unixTimeStrISO8601(startTm.Add(r.cfg.Interval.Duration))
+	request.StartTime = unixTimeStrISO8601(st)
+	request.EndTime = unixTimeStrISO8601(et)
 
-	request.DBInstanceId = "xxxxx"
+	request.DBInstanceId = instanceObj.id
 	request.SortKey = "TotalExecutionCounts"
 
 	response, err := r.client.DescribeSlowLogs(request)
 	if err != nil {
-		// r.logger.Errorf("LookupEvents(%s) between %s - %s failed", reqid, request.StartTime, request.EndTime)
+		r.logger.Errorf("DescribeSlowLogs error %v", err)
 	}
 
-	return response, err
+	go r.handleResponse(response, engine, instanceObj)
 }
 
-func (r *runningInstance) handleMysqlResponse(response *rds.DescribeSlowLogsResponse) error {
+func (r *runningInstance) handleResponse(response *rds.DescribeSlowLogsResponse, product string, instanceObj *rdsInstance) error {
 	if response == nil {
 		return nil
 	}
@@ -170,13 +231,11 @@ func (r *runningInstance) handleMysqlResponse(response *rds.DescribeSlowLogsResp
 	for _, point := range response.Items.SQLSlowLog {
 		tags := map[string]string{}
 		fields := map[string]interface{}{}
-		tags["db_server"] = "server"                          // todo
-		tags["instance_id"] = "instance_id"                   //todo
-		tags["instance_description"] = "instance_description" //todo
-		tags["region_id"] = "region_id"                       //todo
-		tags["product"] = "rds"                               //todo
-		tags["engine"] = "engine"                             //todo
-		tags["sql_text"] = "sql_text"                         //todo
+		tags["instance_id"] = instanceObj.id                   //todo
+		tags["instance_description"] = instanceObj.description //todo
+		tags["region_id"] = instanceObj.regionId               //todo
+		tags["product"] = "rds"                                //todo
+		tags["engine"] = product                               //todo
 
 		fields["create_time"] = point.CreateTime
 		fields["db_name"] = point.DBName
@@ -191,40 +250,9 @@ func (r *runningInstance) handleMysqlResponse(response *rds.DescribeSlowLogsResp
 		fields["sql_text"] = point.SQLText
 		fields["total_lock_times"] = point.TotalLockTimes
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
-	}
-
-	return nil
-}
-
-func (r *runningInstance) handleSqlServerResponse(response *rds.DescribeSlowLogsResponse) error {
-	if response == nil {
-		return nil
-	}
-
-	for _, point := range response.Items.SQLSlowLog {
-		tags := map[string]string{}
-		fields := map[string]interface{}{}
-		tags["db_server"] = "server"                          // todo
-		tags["instance_id"] = "instance_id"                   //todo
-		tags["instance_description"] = "instance_description" //todo
-		tags["region_id"] = "region_id"                       //todo
-		tags["product"] = "rds"                               //todo
-		tags["engine"] = "engine"                             //todo
-		tags["sql_text"] = "sql_text"                         //todo
-
-		fields["create_time"] = point.CreateTime
-		fields["db_name"] = point.DBName
-		fields["max_execution_time"] = point.MaxExecutionTime
-		fields["max_lock_time"] = point.MaxLockTime
-		fields["sqlserver_total_execution_counts"] = point.MySQLTotalExecutionCounts
-		fields["sqlserver_total_execution_times"] = point.MySQLTotalExecutionTimes
-		fields["parse_max_row_count"] = point.ParseMaxRowCount
-		fields["parse_total_row_counts"] = point.ParseTotalRowCounts
+		fields["sqlserver_total_execution_counts"] = point.SQLServerTotalExecutionCounts
+		fields["sqlserver_total_execution_times"] = point.SQLServerTotalExecutionTimes
 		fields["return_max_row_count"] = point.ReturnMaxRowCount
-		fields["return_total_row_counts"] = point.ReturnTotalRowCounts
-		fields["sql_text"] = point.SQLText
-		fields["total_lock_times"] = point.TotalLockTimes
 
 		r.agent.accumulator.AddFields(r.metricName, fields, tags)
 	}
@@ -235,7 +263,7 @@ func (r *runningInstance) handleSqlServerResponse(response *rds.DescribeSlowLogs
 func unixTimeStrISO8601(t time.Time) string {
 	_, zoff := t.Zone()
 	nt := t.Add(-(time.Duration(zoff) * time.Second))
-	s := nt.Format(`2006-01-02T15:04:05Z`)
+	s := nt.Format(`2006-01-02Z`)
 	return s
 }
 
