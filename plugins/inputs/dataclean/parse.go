@@ -11,12 +11,11 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
 	influxm "github.com/influxdata/influxdb1-client/models"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
-
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 func getPromb(compressed []byte) (wr *prompb.WriteRequest, err error) {
@@ -93,7 +92,6 @@ func ParsePromToInflux(data []byte, template string) ([]*influxdb.Point, error) 
 				continue
 			}
 
-			//	log.Printf("[debug] pt == %v", pt)
 			pts = append(pts, pt)
 		}
 	}
@@ -137,7 +135,7 @@ func ParseJsonToInflux(data []byte, template string) ([]*influxdb.Point, error) 
 		}
 
 		tags := map[string]string{}
-		for k, v := range tags {
+		for k, v := range metricTags {
 			strK := fmt.Sprintf("%v", k)
 			strV := fmt.Sprintf("%v", v)
 
