@@ -34,7 +34,7 @@ var (
 	flagVersion = flag.Bool("version", false, `show verison info`)
 
 	flagInit         = flag.Bool(`init`, false, `init agent`)
-	flagFtDataway    = flag.String("ftdataway", ``, `address of ftdataway`)
+	flagDataway      = flag.String("dataway", ``, `address of ftdataway`)
 	flagLogFile      = flag.String(`log`, ``, `log file`)
 	flagLogLevel     = flag.String(`log-level`, ``, `log level`)
 	flagAgentLogFile = flag.String(`agent-log`, ``, `agent log file`)
@@ -269,7 +269,7 @@ func initialize(reserveExist bool) error {
 
 	maincfg := config.MainConfig{
 		UUID:      uid,
-		FtGateway: *flagFtDataway,
+		FtGateway: *flagDataway,
 		Log:       *flagLogFile,
 		LogLevel:  *flagLogLevel,
 		ConfigDir: *flagCfgDir,
