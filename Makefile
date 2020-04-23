@@ -28,25 +28,23 @@ define build
 	@mkdir -p git
 	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
 	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
-		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -cgo $(3)
-	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	#@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
-	tree -Csh build
+		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -cgo $(3) -download-addr $(4)
+	tree -Csh build pub
 endef
-
-local:
-	$(call build,local, "all", 1)
-
-test:
-	$(call build,test, "all", 1)
-
-release:
-	$(call build,release,"all", 0)
 
 define pub
 	echo "publish $(1) $(NAME) ..."
 	go run make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
 endef
+
+local:
+	$(call build,local, "all", 1, $(LOCAL_DOWNLOAD_ADDR))
+
+test:
+	$(call build,test, "all", 1, $(TEST_DOWNLOAD_ADDR))
+
+release:
+	$(call build,release,"all", 1, $(RELEASE_DOWNLOAD_ADDR))
 
 pub_local:
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),"all")
