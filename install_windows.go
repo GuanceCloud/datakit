@@ -5,210 +5,131 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/kardianos/service"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
-	serviceName = `datakit`
+	ServiceName = `datakit`
 
-	flagUpgrade    = flag.Bool("upgrade", false, ``)
-	flagFtDataway  = flag.String("ftdataway", "", `address of ftdataway`)
-	flagInstallDir = flag.String("installdir", fmt.Sprintf(`C:\Program Files (x86)\Forethought\%s`, serviceName), `directory to install`)
-
-	baseDownloadUrl = `https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit`
-
-	installDir = fmt.Sprintf(`C:\Program Files (x86)\Forethought\%s`, serviceName)
+	flagUpgrade     = flag.Bool("upgrade", false, ``)
+	flagDataway     = flag.String("dataway", "", `address of dataway`)
+	flagInstallDir  = flag.String("installdir", `C:\Program Files (x86)\Forethought\`+ServiceName, `directory to install`)
+	flagDownloadURL = flag.String("base-download-url", "", "base download path")
+	flagVersion     = flag.Bool("version", false, "show installer version info")
 )
 
-type VerSt struct {
-	Version string `json:"version"`
-}
+func downloadDatakit(url, to string) {
+	log.Println("start downloading...")
 
-func testuntar(destpath string, instadir string) {
-	if err := deCompress(destpath, instadir); err != nil {
-		log.Fatalf("%s", err)
+	client := &http.Client{}
+	resp, err := client.Get(*flagDownloadURL)
+	if err != nil {
+		log.Fatalf("[error] download %s failed: %s", url, err.Error())
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode/100 != 2 {
+		log.Fatalf("[error] download %s failed: %s", url, resp.Status)
+	}
+
+	// the body should be gzip
+	gzr, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		log.Fatalf("[error] %s", err.Error())
+	}
+
+	defer gzr.Close()
+	tr := tar.NewReader(gzr)
+	for {
+	__next:
+		hdr, err := tr.Next()
+		switch {
+		case err == io.EOF:
+			goto __next
+		case err != nil:
+			log.Fatalf("[error] %s", err.Error())
+		case hdr == nil:
+			continue
+		}
+
+		target := filepath.Join(to, hdr.Name)
+		switch hdr.Typeflag {
+		case tar.TypeDir:
+			if _, err := os.Stat(target); err != nil {
+				if err := os.MkdirAll(target, 0755); err != nil {
+					log.Fatalf("[error] %s", err.Error())
+				}
+			}
+
+		case tar.TypeReg:
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
+			if err != nil {
+				log.Fatalf("[error] %s", err.Error())
+			}
+
+			if _, err := io.Copy(f, tr); err != nil {
+				log.Fatalf("[error] %s", err.Error())
+			}
+
+			f.Close()
+		}
 	}
 }
 
 func main() {
 
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	flag.Parse()
 
-	if err := os.MkdirAll(installDir, 0775); err != nil {
+	if *flagVersion {
+		fmt.Printf(`Version:        %s
+Sha1:           %s
+Build At:       %s
+Golang Version: %s
+`, git.Version, git.Sha1, git.BuildAt, git.Golang)
+		return
+	}
+
+	// create install dir if not exists
+	if err := os.MkdirAll(*flagInstallDir, 0775); err != nil {
 		log.Fatalf("[error] %s", err.Error())
 	}
-
-	if !*flagUpgrade {
-		log.Printf("start installing %s in %s", serviceName, installDir)
-	}
-
-	if !strings.HasPrefix(baseDownloadUrl, `http://`) || !strings.HasPrefix(baseDownloadUrl, `http://`) {
-		baseDownloadUrl = `https://` + baseDownloadUrl
-	}
-
-	//stop
-	log.Printf("stopping %s", serviceName)
-	cmd := exec.Command(`sc`, `stop`, serviceName)
-	cmd.CombinedOutput()
-
-	tarDownloadUrl := ""
-
-	//log.Println("check version...")
-	verUrl := baseDownloadUrl + `/version_win`
-
-	verResp, err := http.Get(verUrl)
-	if err != nil {
-		log.Fatalf("[error] %s", err.Error())
-	}
-	defer verResp.Body.Close()
-	js, err := ioutil.ReadAll(verResp.Body)
-	if err != nil {
-		log.Fatalf("[error] %s", err.Error())
-	}
-	var vt VerSt
-	err = json.Unmarshal(js, &vt)
-	if err != nil {
-		log.Fatalf("[error] %s", err.Error())
-	}
-
-	osarch := fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH)
-
-	tarDownloadUrl = fmt.Sprintf("%s/datakit-%s-%s.tar.gz", baseDownloadUrl, osarch, vt.Version)
-
-	//download
-	log.Println("start downloading...")
-
-	client := &http.Client{}
-	resp, err := client.Get(tarDownloadUrl)
-	if err != nil {
-		log.Fatalf("[error] download %s failed:  %s", tarDownloadUrl, err.Error())
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
-		log.Fatalf("[error] download %s failed: %s", tarDownloadUrl, resp.Status)
-	}
-
-	fsize, err := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
-	if err != nil {
-		log.Fatalf("[error] %s", err.Error())
-	}
-
-	destPath := os.TempDir()
-	tmpName := fmt.Sprintf("%s-%v", serviceName, time.Now().Unix())
-	destPath = filepath.Join(destPath, tmpName)
-
-	file, err := os.Create(destPath)
-	if err != nil {
-		log.Fatalf("[error] %s", err.Error())
-	}
-
-	defer func() {
-		file.Close()
-		os.Remove(destPath)
-	}()
-
-	buf := make([]byte, 32*1024)
-	var written int64
-	for {
-		nr, err := resp.Body.Read(buf)
-		if nr > 0 {
-			nw, err := file.Write(buf[:nr])
-			if err != nil {
-				log.Fatalf("[error] %s", err.Error())
-			}
-
-			written += int64(nw)
-
-			percent := int(written * 100 / fsize)
-			pro := Progress(percent)
-			pro.Show(fsize)
-		}
-
-		if err != nil {
-			if err == io.EOF {
-				pro := Progress(100)
-				pro.Show(fsize)
-				break
-			}
-			log.Fatalf("[error] %s", err.Error())
-		}
-	}
-
-	fmt.Printf("\r\n")
-	if !*flagUpgrade {
-		log.Println("installing...")
-	} else {
-		log.Println("upgrading...")
-	}
-
-	if err = deCompress(destPath, installDir); err != nil {
-		log.Fatalf("[error] %s", err.Error())
-	}
-
-	// platformDir := filepath.Join(installDir, fmt.Sprintf("%s-%s-%s", serviceName, runtime.GOOS, runtime.GOARCH))
-	// _, err = os.Stat(platformDir)
-	// if err != nil {
-	// 	log.Fatalf("[error] unsupport for os=%s and arch=%s", runtime.GOOS, runtime.GOARCH)
-	// }
-
-	destbin := filepath.Join(installDir, "datakit.exe")
-
-	agentDir := filepath.Join(installDir, "embed")
-	if err := os.MkdirAll(agentDir, 0775); err != nil {
-		log.Fatalf("[error] %s", err.Error())
-	}
-
-	agentOldLogFile := filepath.Join(installDir, "agent.log")
-	if _, err := os.Stat(agentOldLogFile); err == nil {
-		os.Rename(agentOldLogFile, filepath.Join(agentDir, "agent.log"))
-	}
-
-	agentOldPidFile := filepath.Join(installDir, "agent.pid")
-	if _, err := os.Stat(agentOldPidFile); err == nil {
-		os.Rename(agentOldPidFile, filepath.Join(agentDir, "agent.pid"))
-	}
-
-	agentPath := filepath.Join(installDir, "agent.exe")
-	destAgentPath := filepath.Join(agentDir, "agent.exe")
-
-	if _, err := os.Stat(agentPath); err == nil {
-		var mverr error
-		for i := 0; i < 2; i++ {
-			mverr = os.Rename(agentPath, destAgentPath)
-			if mverr == nil {
-				break
-			}
-			time.Sleep(time.Second)
-		}
-		if mverr != nil {
-			log.Fatalf("[error] %s", mverr.Error())
-		}
-
-	} else {
-		log.Fatalf("[error] %s", err.Error())
-	}
-
-	//os.Remove(platformDir)
 
 	if *flagUpgrade {
-		//upgrade
-		cmd = exec.Command(destbin, "-upgrade")
+		log.Printf("[info] start upgrading %s under %s", ServiceName, *flagInstallDir)
+
+		// stop exist service
+		log.Printf("[info] stopping %s", ServiceName)
+		cmd := exec.Command(`sc`, `stop`, ServiceName)
+		cmd.CombinedOutput()
+	}
+
+	if *flagDownloadURL == "" {
+		log.Fatalf("[error] download URL not set")
+	}
+
+	downloadDatakit(*flagDownloadURL, *flagInstallDir)
+
+	datakitExe := filepath.Join(*flagInstallDir, "datakit.exe")
+	var err error
+
+	if *flagUpgrade {
+		// upgrade new version
+		cmd := exec.Command(datakitExe, "-upgrade")
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
@@ -217,8 +138,8 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		//init
-		cmd = exec.Command(destbin, "-init", "-ftdataway", *flagFtDataway)
+		// install new datakit
+		cmd := exec.Command(datakitExe, "-init", "-dataway", *flagDataway)
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
@@ -227,76 +148,27 @@ func main() {
 			os.Exit(1)
 		}
 
-		cfgpath := filepath.Join(installDir, fmt.Sprintf("%s.conf", serviceName))
+		cfgpath := filepath.Join(*flagInstallDir, fmt.Sprintf("%s.conf", ServiceName))
 
 		deleteSvr()
-		time.Sleep(time.Millisecond * 500)
 
-		err = nil
+		log.Printf("[info] try install service %s", ServiceName)
 		for index := 0; index < 3; index++ {
-			err = regSvr(destbin, cfgpath, false)
+			err = regSvr(datakitExe, cfgpath, false)
 			if err == nil {
 				break
 			} else {
 				time.Sleep(time.Second)
 			}
 		}
+
 		if err != nil {
-			log.Fatalf("[error] fail to register as service: %s", err.Error())
+			log.Fatalf("[error] fail to register service %s: %s", ServiceName, err.Error())
 			return
 		}
 	}
 
 	log.Println(":)Success!")
-
-}
-
-func createFile(name string) (*os.File, error) {
-	err := os.MkdirAll(filepath.Dir(name), 0755)
-	if err != nil {
-		return nil, err
-	}
-	return os.Create(name)
-}
-
-func deCompress(tarFile, dest string) error {
-	srcFile, err := os.Open(tarFile)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
-	gr, err := gzip.NewReader(srcFile)
-	if err != nil {
-		return err
-	}
-	defer gr.Close()
-	tr := tar.NewReader(gr)
-	for {
-		hdr, err := tr.Next()
-
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				return err
-			}
-		}
-
-		filename := filepath.Join(dest, hdr.Name)
-		if !hdr.FileInfo().IsDir() && !strings.HasPrefix(hdr.FileInfo().Name(), ".") {
-			file, err := createFile(filename)
-			if err != nil {
-				return err
-			}
-			if _, err = io.Copy(file, tr); err != nil {
-				file.Close()
-				return err
-			}
-			file.Close()
-		}
-
-	}
-	return nil
 }
 
 type program struct {
@@ -308,7 +180,6 @@ func (p *program) Start(s service.Service) error {
 }
 
 func (p *program) run(s service.Service) {
-
 }
 
 func (p *program) Stop(s service.Service) error {
@@ -329,9 +200,9 @@ func deleteSvr() error {
 
 func regSvr(exepath, cfgpath string, remove bool) error {
 	svcConfig := &service.Config{
-		Name:        serviceName,
-		DisplayName: serviceName,
-		Description: `Collects data and publishes it to ftdataway.`,
+		Name:        ServiceName,
+		DisplayName: ServiceName,
+		Description: `Collects data and publishes it to dataway.`,
 		Arguments:   []string{"/config", cfgpath},
 		Executable:  exepath,
 	}
@@ -348,39 +219,5 @@ func regSvr(exepath, cfgpath string, remove bool) error {
 		return service.Control(s, "uninstall")
 	} else {
 		return service.Control(s, "install")
-	}
-}
-
-type Progress int
-
-func (x Progress) Show(filesize int64) {
-	percent := int(x)
-
-	total := 50
-	middle := int(percent * total / 100.0)
-
-	arr := make([]string, total)
-	for j := 0; j < total; j++ {
-		if j < middle-1 {
-			arr[j] = "-"
-		} else if j == middle-1 {
-			arr[j] = ">"
-		} else {
-			arr[j] = " "
-		}
-	}
-	bar := fmt.Sprintf("%vbytes(%s) [%s]", filesize, convFilesize(filesize), strings.Join(arr, ""))
-	fmt.Printf("\r%s %%%d", bar, percent)
-}
-
-func convFilesize(filesize int64) string {
-	if filesize < 1024 {
-		return fmt.Sprintf("%vB", filesize)
-	} else if filesize < 1024*1024 {
-		return fmt.Sprintf("%vKB", filesize/1024)
-	} else if filesize < 1024*1024*1024 {
-		return fmt.Sprintf("%vMB", filesize/(1024*1024))
-	} else {
-		return fmt.Sprintf("%vGB", filesize/(1024*1024*1024))
 	}
 }
