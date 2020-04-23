@@ -15,7 +15,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	//"text/template"
+	"text/template"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -39,11 +39,12 @@ var (
 	flagPub = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/alpha/release/preprod`)
 
 	curVersion []byte
-
-	osarches = []string{
+	osarches   = []string{
 		"linux/amd64",
 		"windows/amd64",
 	}
+
+	winInstallerExe = ""
 )
 
 type versionDesc struct {
@@ -136,9 +137,61 @@ func compile() {
 		}
 
 		compileTask(*flagBinary, goos, goarch, dir)
+
+		if goos == "windows" { // build windows installer.exe
+			winInstallerExe = fmt.Sprintf("datakit-installer-%s-%s-%s.exe", goos, goarch, string(curVersion))
+			buildWindowsInstall(path.Join(*flagPubDir, *flagRelease), goarch)
+		}
+
+		// generate install scripts & installer to pub-dir
+		buildInstallScript(path.Join(*flagPubDir, *flagRelease), goos, goarch)
 	}
 
 	log.Printf("build elapsed %v", time.Since(start))
+}
+
+type installInfo struct {
+	Name         string
+	DownloadAddr string
+	Version      string
+}
+
+func buildInstallScript(dir, goos, goarch string) {
+	i := &installInfo{
+		Name:         *flagName,
+		DownloadAddr: *flagDownloadAddr,
+		Version:      string(curVersion),
+	}
+
+	templateFile := "install.template.sh"
+	installScript := "install.sh"
+
+	if goos == "windows" {
+		templateFile = "install.template.ps1"
+		installScript = "install.ps1"
+	}
+
+	txt, err := ioutil.ReadFile(templateFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	t := template.New("")
+	t, err = t.Parse(string(txt))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var buf bytes.Buffer
+
+	err = t.Execute(&buf, i)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err = ioutil.WriteFile(path.Join(dir, installScript), buf.Bytes(), os.ModePerm); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func getCurrentVersionInfo(url string) *versionDesc {
@@ -169,19 +222,6 @@ func getCurrentVersionInfo(url string) *versionDesc {
 	return &vd
 }
 
-func getPudirByRelease() string {
-	return ""
-	//prefix := path.Join(*flagPubDir, *flagRelease)
-	//switch *flagTargetOS {
-	//case "windows":
-	//	prefix += "_win"
-	//case "mac":
-	//	prefix += "_mac"
-	//}
-
-	//return prefix
-}
-
 func releaseAgent() {
 	var ak, sk, bucket, ossHost string
 	objPath := *flagName
@@ -204,6 +244,7 @@ func releaseAgent() {
 
 	oc := &cliutils.OssCli{
 		Host:       ossHost,
+		PartSize:   128 * 1024 * 1024,
 		AccessKey:  ak,
 		SecretKey:  sk,
 		BucketName: bucket,
@@ -217,37 +258,9 @@ func releaseAgent() {
 	versionFile := `version`
 	installObj := "install.sh"
 
-	//switch *flagTargetOS {
-	//case "windows":
-	//	versionFile = "version_win"
-	//	installObj = "install.exe"
-	//case "mac":
-	//	versionFile = "version_mac"
-	//	installObj = "install-mac.sh"
-	//}
-
 	// 请求线上版本信息
 	url := fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, *flagName, versionFile)
 	curVd := getCurrentVersionInfo(url)
-
-	if curVd != nil {
-		if curVd.Version == git.Version {
-			log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
-			os.Exit(0)
-		}
-
-		installObjOld := path.Join(objPath, fmt.Sprintf("install-%s.sh", curVd.Version))
-		//switch *flagTargetOS {
-		//case "windows":
-		//	installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.exe", curVd.Version))
-		//case "mac":
-		//	installObjOld = path.Join(objPath, fmt.Sprintf("install-mac-%s.sh", curVd.Version))
-		//}
-
-		oc.Move(installObj, installObjOld)
-	}
-
-	pubdir := getPudirByRelease()
 
 	// upload all build archs
 	archs := []string{}
@@ -258,19 +271,9 @@ func releaseAgent() {
 		archs = strings.Split(*flagArchs, "|")
 	}
 
-	objs := map[string]string{}
-
-	//switch *flagTargetOS {
-	//case "windows":
-	//	objs[path.Join(pubdir, `version`)] = path.Join(objPath, `version_win`)
-	//	objs[path.Join(pubdir, `install.exe`)] = path.Join(objPath, `install.exe`)
-	//case "mac":
-	//	objs[path.Join(pubdir, `version`)] = path.Join(objPath, `version_mac`)
-	//	objs[path.Join(pubdir, `install.sh`)] = path.Join(objPath, `install-mac.sh`)
-	//default:
-	//	objs[path.Join(pubdir, `version`)] = path.Join(objPath, `version`)
-	//	objs[path.Join(pubdir, `install.sh`)] = path.Join(objPath, `install.sh`)
-	//}
+	objs := map[string]string{
+		path.Join(*flagPubDir, *flagRelease, "version"): path.Join(objPath, "version"),
+	}
 
 	for _, arch := range archs {
 		parts := strings.Split(arch, "/")
@@ -283,14 +286,37 @@ func releaseAgent() {
 
 		gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, string(curVersion))
 
-		objs[path.Join(pubdir, gzName)] = path.Join(objPath, gzName)
+		objs[path.Join(*flagPubDir, *flagRelease, gzName)] = path.Join(objPath, gzName)
+
+		if goos == "windows" {
+			objs[path.Join(*flagPubDir, *flagRelease, "install.ps1")] = path.Join(objPath, "install.ps1")
+			winInstallerExe = fmt.Sprintf("datakit-installer-%s-%s-%s.exe", goos, goarch, string(curVersion))
+			objs[path.Join(*flagPubDir, *flagRelease, winInstallerExe)] = path.Join(objPath, winInstallerExe)
+		} else {
+			objs[path.Join(*flagPubDir, *flagRelease, "install.sh")] = path.Join(objPath, "install.sh")
+		}
+
+		if curVd != nil {
+			if curVd.Version == git.Version {
+				log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
+				os.Exit(0)
+			}
+
+			installObjOld := path.Join(objPath, fmt.Sprintf("install-%s.sh", curVd.Version))
+			if goos == "windows" {
+				installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.ps1", curVd.Version))
+			}
+
+			oc.Move(installObj, installObjOld)
+		}
 	}
 
-	//for k, v := range objs {
-	//	if err := oc.Upload(k, v); err != nil {
-	//		log.Fatal(err)
-	//	}
-	//}
+	for k, v := range objs {
+		log.Printf("[debug] upload %s -> %s ...", k, v)
+		if err := oc.Upload(k, v); err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	log.Println("Done :)")
 }
@@ -329,10 +355,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	//lastNCommits, err := exec.Command("git", []string{`log`, `-n`, `8`}...).Output()
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
+	lastNCommits, err := exec.Command("git", []string{`log`, `-n`, `8`}...).Output()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	buildInfo := fmt.Sprintf(`// THIS FILE IS GENERATED BY make.go, DO NOT EDIT IT.
 package git
@@ -356,108 +382,27 @@ const (
 	ioutil.WriteFile(`git/git.go`, []byte(buildInfo), 0666)
 
 	// create version info
-	//verinfo := &versionDesc{
-	//	Version:   string(bytes.TrimSpace(curVersion)),
-	//	Date:      string(bytes.TrimSpace(dateStr)),
-	//	ChangeLog: string(bytes.TrimSpace(lastNCommits)),
-	//}
+	verinfo := &versionDesc{
+		Version:   string(bytes.TrimSpace(curVersion)),
+		Date:      string(bytes.TrimSpace(dateStr)),
+		ChangeLog: string(bytes.TrimSpace(lastNCommits)),
+	}
 
-	//outdir := getPudirByRelease()
+	versionInfo, err := json.Marshal(verinfo)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	//versionInfo, _ := json.Marshal(verinfo)
-	//ioutil.WriteFile(path.Join(outdir, `version`), versionInfo, 0666)
-
-	/*
-		switch *flagTargetOS {
-		case "windows":
-			archs := []string{}
-			switch *flagArchs {
-			case "all":
-				archs = osarches
-			default:
-				archs = strings.Split(*flagArchs, ",")
-			}
-
-			for _, arch := range archs {
-				parts := strings.Split(arch, "/")
-				if len(parts) != 2 {
-					log.Fatalf("invalid arch %q", parts)
-				}
-
-				buildWindowsInstall(outdir, parts[1])
-			}
-
-		default:
-			// create install.sh script
-			type Install struct {
-				Name         string
-				DownloadAddr string
-				Version      string
-			}
-
-			install := &Install{
-				Name:         *flagName,
-				DownloadAddr: *flagDownloadAddr,
-				Version:      string(curVersion),
-			}
-
-			txt, err := ioutil.ReadFile("install.template.sh")
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			t := template.New("")
-			t, err = t.Parse(string(txt))
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			var byts bytes.Buffer
-
-			err = t.Execute(&byts, install)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			results := bytes.Replace(byts.Bytes(), []byte{'\r', '\n'}, []byte{'\n'}, -1)
-			if err = ioutil.WriteFile(path.Join(outdir, `install.sh`), results, os.ModePerm); err != nil {
-				log.Fatal(err)
-			}
-		} */
+	if err := ioutil.WriteFile(path.Join(*flagPubDir, *flagRelease, "version"), versionInfo, 0666); err != nil {
+		log.Fatal(err)
+	}
 
 	os.RemoveAll(*flagBuildDir)
 	_ = os.MkdirAll(*flagBuildDir, os.ModePerm)
 	compile()
 }
 
-func buildWindowsInstall(outdir, goarch string) {
-
-	output := path.Join(outdir, `install.exe`)
-
-	//gzName := fmt.Sprintf("%s-%s.tar.gz", *flagName, string(curVersion))
-
-	//downloadUrl := *flagDownloadAddr + "/" + gzName
-
-	//log.Printf("downloadUrl=%s", downloadUrl)
-
-	args := []string{
-		"go", "build",
-		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s -X main.baseDownloadUrl=%s`, *flagName, *flagDownloadAddr),
-		"-o", output,
-		"install_windows.go",
-	}
-
-	env := []string{
-		"GOOS=windows",
-		"GOARCH=" + goarch,
-	}
-
-	runEnv(args, env)
-}
-
 func tarFiles(osname, arch string) {
-
-	//pubdir := getPudirByRelease()
 
 	telegrafAgentName := "agent"
 	if osname == "windows" {
@@ -470,34 +415,10 @@ func tarFiles(osname, arch string) {
 			*flagName, osname, arch, string(curVersion))),
 		path.Join("agent-binary", osname, telegrafAgentName),
 		`-C`,
-		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s-%s", *flagName, osname, arch)),
-		`.`,
+
+		// the whole build/datakit-<os>-<arch> dir
+		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s-%s", *flagName, osname, arch)), `.`,
 	}
-
-	//agentBinaryDir := "agent-binary/linux"
-	//agentName := "agent"
-	//switch *flagTargetOS {
-	//case "windows":
-	//	agentBinaryDir = "agent-binary/windows"
-	//	agentName = "agent.exe"
-	//case "mac":
-	//	agentBinaryDir = "agent-binary/mac"
-	//}
-
-	//args = []string{
-	//	`czf`,
-	//	path.Join(pubdir, fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, osarch, string(curVersion))),
-	//	`-C`,
-	//	agentBinaryDir,
-	//	agentName,
-	//	`-C`,
-	//	fmt.Sprintf(`../../%s/%s-%s`, *flagBuildDir, *flagName, osarch),
-	//	`.`,
-	//}
-
-	//if *flagTargetOS == "linux" {
-	//	args = append(args, `-C`, `../../`, `deps`)
-	//}
 
 	log.Printf("[debug] tar args: %+#v", args)
 
@@ -510,4 +431,21 @@ func tarFiles(osname, arch string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func buildWindowsInstall(outdir, goarch string) {
+
+	args := []string{
+		"go", "build",
+		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s -X main.baseDownloadUrl=%s`, *flagName, *flagDownloadAddr),
+		"-o", path.Join(outdir, winInstallerExe),
+		"install_windows.go",
+	}
+
+	env := []string{
+		"GOOS=windows",
+		"GOARCH=" + goarch,
+	}
+
+	runEnv(args, env)
 }
