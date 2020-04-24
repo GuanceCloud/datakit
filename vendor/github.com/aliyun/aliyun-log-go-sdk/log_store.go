@@ -3,14 +3,15 @@ package sls
 import (
 	"encoding/json"
 	"fmt"
+
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strconv"
 
+	"github.com/go-kit/kit/log/level"
 	"github.com/gogo/protobuf/proto"
-	"github.com/golang/glog"
 	"github.com/pierrec/lz4"
 )
 
@@ -331,8 +332,8 @@ func (s *LogStore) GetCursor(shardID int, from string) (cursor string, err error
 		if err != nil {
 			err = fmt.Errorf("failed to get cursor")
 			dump, _ := httputil.DumpResponse(r, true)
-			if glog.V(1) {
-				glog.Error(string(dump))
+			if IsDebugLevelMatched(1) {
+				level.Error(Logger).Log("msg", string(dump))
 			}
 			return
 		}
@@ -389,8 +390,8 @@ func (s *LogStore) GetLogsBytes(shardID int, cursor, endCursor string,
 		if err != nil {
 			err = fmt.Errorf("failed to get cursor")
 			dump, _ := httputil.DumpResponse(r, true)
-			if glog.V(1) {
-				glog.Error(string(dump))
+			if IsDebugLevelMatched(1) {
+				level.Error(Logger).Log("msg", string(dump))
 			}
 			return
 		}
@@ -474,8 +475,14 @@ func (s *LogStore) GetHistograms(topic string, from int64, to int64, queryExp st
 		"Accept":            "application/json",
 	}
 
-	uri := fmt.Sprintf("/logstores/%v?type=histogram&topic=%v&from=%v&to=%v&query=%v", s.Name, topic, from, to, queryExp)
+	urlVal := url.Values{}
+	urlVal.Add("type", "histogram")
+	urlVal.Add("from", strconv.Itoa(int(from)))
+	urlVal.Add("to", strconv.Itoa(int(to)))
+	urlVal.Add("topic", topic)
+	urlVal.Add("query", queryExp)
 
+	uri := fmt.Sprintf("/logstores/%s?%s", s.Name, urlVal.Encode())
 	r, err := request(s.project, "GET", uri, h, nil)
 	if err != nil {
 		return nil, NewClientError(err)
@@ -560,14 +567,62 @@ func (s *LogStore) GetLogs(topic string, from int64, to int64, queryExp string,
 			contents = r.Header[GetLogsQueryInfo][0]
 		}
 	}
+	hasSQL := false
+	if sqlHeaderArray, ok := r.Header[HasSQLHeader]; ok && len(sqlHeaderArray) > 0 && sqlHeaderArray[0] == "true" {
+		hasSQL = true
+	}
 	getLogsResponse := GetLogsResponse{
 		Progress: r.Header[ProgressHeader][0],
 		Count:    count,
 		Logs:     logs,
 		Contents: contents,
+		HasSQL:   hasSQL,
 	}
 
 	return &getLogsResponse, nil
+}
+
+// GetContextLogs ...
+func (s *LogStore) GetContextLogs(backLines int32, forwardLines int32,
+	packID string, packMeta string) (*GetContextLogsResponse, error) {
+
+	h := map[string]string{
+		"x-log-bodyrawsize": "0",
+		"Accept":            "application/json",
+	}
+
+	urlVal := url.Values{}
+	urlVal.Add("type", "context_log")
+	urlVal.Add("back_lines", strconv.Itoa(int(backLines)))
+	urlVal.Add("forward_lines", strconv.Itoa(int(forwardLines)))
+	urlVal.Add("pack_id", packID)
+	urlVal.Add("pack_meta", packMeta)
+
+	uri := fmt.Sprintf("/logstores/%s?%s", s.Name, urlVal.Encode())
+	r, err := request(s.project, "GET", uri, h, nil)
+	if err != nil {
+		return nil, NewClientError(err)
+
+	}
+	defer r.Body.Close()
+	body, _ := ioutil.ReadAll(r.Body)
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		if jErr := json.Unmarshal(body, err); jErr != nil {
+			return nil, NewBadResponseError(string(body), r.Header, r.StatusCode)
+
+		}
+		return nil, err
+
+	}
+
+	resp := GetContextLogsResponse{}
+	err = json.Unmarshal(body, &resp)
+	if err != nil {
+		return nil, NewBadResponseError(string(body), r.Header, r.StatusCode)
+
+	}
+	return &resp, nil
 }
 
 // CreateIndex ...
