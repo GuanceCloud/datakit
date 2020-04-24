@@ -139,7 +139,7 @@ func compile() {
 		compileTask(*flagBinary, goos, goarch, dir)
 
 		if goos == "windows" { // build windows installer.exe
-			winInstallerExe = fmt.Sprintf("datakit-installer-%s-%s-%s.exe", goos, goarch, string(curVersion))
+			winInstallerExe = fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, string(curVersion))
 			buildWindowsInstall(path.Join(*flagPubDir, *flagRelease), goarch)
 		}
 
@@ -290,7 +290,7 @@ func releaseAgent() {
 
 		if goos == "windows" {
 			objs[path.Join(*flagPubDir, *flagRelease, "install.ps1")] = path.Join(objPath, "install.ps1")
-			winInstallerExe = fmt.Sprintf("datakit-installer-%s-%s-%s.exe", goos, goarch, string(curVersion))
+			winInstallerExe = fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, string(curVersion))
 			objs[path.Join(*flagPubDir, *flagRelease, winInstallerExe)] = path.Join(objPath, winInstallerExe)
 		} else {
 			objs[path.Join(*flagPubDir, *flagRelease, "install.sh")] = path.Join(objPath, "install.sh")
@@ -439,7 +439,7 @@ func buildWindowsInstall(outdir, goarch string) {
 		"go", "build",
 		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s -X main.baseDownloadUrl=%s`, *flagName, *flagDownloadAddr),
 		"-o", path.Join(outdir, winInstallerExe),
-		"install_windows.go",
+		"win-installer.go",
 	}
 
 	env := []string{
