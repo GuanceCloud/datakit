@@ -901,6 +901,8 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200324113646-2a55819c700a
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200324113646-2a55819c700a/go.mod h1:8F7HcDtqTRaqs8/jb84KdFhFMDmtBFs1+g6qZwJD8Xo=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200419043855-ff6f056c0fd9 h1:KS6QxwuDl4Kd9w2LkimFkYg72b7nlREv8Z6A01rjb8U=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200419043855-ff6f056c0fd9/go.mod h1:NN3tmyslrigqU49FjHIOLQgYtCDTs/ikPVC4C0ECMSY=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb h1:1y9tSpcbqp19unOCSezgtZcw/M8YzZ1G0mPw7hCdfvI=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb/go.mod h1:NN3tmyslrigqU49FjHIOLQgYtCDTs/ikPVC4C0ECMSY=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200309024616-0726d23b55da h1:7XRdlpCod1+ITETYdxfMQvFLzOcW9Glrbf+N+5XoFkM=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200309024616-0726d23b55da/go.mod h1:eoq8Qs0d0XQdK0s7uhvg8+yAO5yP7/12DJMii5hB5xA=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200419044746-6486cbd8ef30 h1:lsnvoDTunweG2D8vMfNyPsRVdpmlvgA0SxgPgflRZ4c=
