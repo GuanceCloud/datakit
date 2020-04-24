@@ -1,8 +1,10 @@
 package sls
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -10,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/go-kit/kit/log/level"
 )
 
 const (
@@ -84,6 +86,13 @@ func (p *LogProject) WithRequestTimeout(timeout time.Duration) *LogProject {
 func (p *LogProject) WithRetryTimeout(timeout time.Duration) *LogProject {
 	p.retryTimeout = timeout
 	return p
+}
+
+// RawRequest send raw http request to LogService and return the raw http response
+// @note you should call http.Response.Body.Close() to close body stream
+func (p *LogProject) RawRequest(method, uri string, headers map[string]string, body []byte) (*http.Response, error) {
+	ctx := context.Background()
+	return realRequest(ctx, p, method, uri, headers, body)
 }
 
 // ListLogStore returns all logstore names of project p.
@@ -539,9 +548,8 @@ func (p *LogProject) GetConfig(name string) (c *LogConfig, err error) {
 
 	c = &LogConfig{}
 	json.Unmarshal(buf, c)
-
-	if glog.V(4) {
-		glog.Info("Get logtail config, result", *c)
+	if IsDebugLevelMatched(4) {
+		level.Info(Logger).Log("msg", "Get logtail config, result", *c)
 	}
 
 	return c, nil
@@ -615,8 +623,8 @@ func (p *LogProject) GetConfigString(name string) (c string, err error) {
 		json.Unmarshal(buf, err)
 		return "", err
 	}
-	if glog.V(4) {
-		glog.Info("Get logtail config, result", c)
+	if IsDebugLevelMatched(4) {
+		level.Info(Logger).Log("msg", "Get logtail config, result", c)
 	}
 	return string(buf), err
 }
@@ -944,6 +952,100 @@ func (p *LogProject) ListEtlMetaName(offset, size int) (total int, count int, et
 	body := &Body{}
 	json.Unmarshal(buf, body)
 	return body.Total, body.Count, body.MetaNameList, nil
+}
+
+func (p *LogProject) CreateLogging(detail *Logging) (err error) {
+	body, err := json.Marshal(detail)
+	if err != nil {
+		return NewClientError(err)
+	}
+
+	h := map[string]string{
+		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
+		"Content-Type":      "application/json",
+		"Accept-Encoding":   "deflate",
+	}
+	r, err := request(p, "POST", fmt.Sprintf("/%v", LoggingURI), h, body)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	body, err = ioutil.ReadAll(r.Body)
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		json.Unmarshal(body, err)
+		return err
+	}
+	return nil
+}
+
+func (p *LogProject) UpdateLogging(detail *Logging) (err error) {
+	body, err := json.Marshal(detail)
+	if err != nil {
+		return NewClientError(err)
+	}
+
+	h := map[string]string{
+		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
+		"Content-Type":      "application/json",
+		"Accept-Encoding":   "deflate",
+	}
+	r, err := request(p, "PUT", fmt.Sprintf("/%v", LoggingURI), h, body)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	body, _ = ioutil.ReadAll(r.Body)
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		json.Unmarshal(body, err)
+		return err
+	}
+	return nil
+}
+
+func (p *LogProject) GetLogging() (c *Logging, err error) {
+	h := map[string]string{
+		"x-log-bodyrawsize": "0",
+	}
+	r, err := request(p, "GET", fmt.Sprintf("/%v", LoggingURI), h, nil)
+	if err != nil {
+		return nil, NewClientError(err)
+	}
+	defer r.Body.Close()
+	buf, _ := ioutil.ReadAll(r.Body)
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		json.Unmarshal(buf, err)
+		return nil, err
+	}
+
+	c = &Logging{}
+	json.Unmarshal(buf, c)
+	if IsDebugLevelMatched(4) {
+		level.Info(Logger).Log("msg", "Get logging, result", *c)
+	}
+
+	return c, nil
+}
+
+func (p *LogProject) DeleteLogging() (err error) {
+	h := map[string]string{
+		"x-log-bodyrawsize": "0",
+	}
+	uri := fmt.Sprintf("/%v", LoggingURI)
+	r, err := request(p, "DELETE", uri, h, nil)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	body, _ := ioutil.ReadAll(r.Body)
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		json.Unmarshal(body, err)
+		return err
+	}
+	return nil
 }
 
 func (p *LogProject) init() {
