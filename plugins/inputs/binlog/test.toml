@@ -3,11 +3,11 @@ null_int=0
 null_float=0.0
 [[sources]]
   ##host of mysql, include port
-  addr="192.168.56.20:3306"
+  addr="rm-bp193z954losrq13e4o.mysql.rds.aliyuncs.com:3306"
 
   ##username and password of mysql
-  user="wyc"
-  password="111"
+  user=''
+  password=''
 
   [[sources.databases]]
     db = "test"
@@ -15,15 +15,15 @@ null_float=0.0
     ##table:customer
     [[sources.databases.tables]]
     ##the name of table
-    name="files"
+    name='shrine'
 
     ##the name of metric, if empty use name as default
-    measurement="name"
+    measurement="shrine_order_flow"
     ##specify the table's columns which will be taken as fields in metric, must be non-empty
-    fields=["filesize",'hash2']
+    fields=["id",'discount_id','payment','pid','team_id','tax_rate','start_date','end_date','financial_no','create_time']
 
     ##specify the table's columns which will be taken as tags in metric, may empty
-    tags=[]
+    tags=['order_item_id','status']
 
     ##exlcude the events of binlog, there are 3 events: "insert","update","delete"
     ##exclude_events=["insert"]
