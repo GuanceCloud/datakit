@@ -32,22 +32,6 @@ func (d *DataClean) stopSvr() {
 	}
 }
 
-func (d *DataClean) checkConfigAPIReq(c *gin.Context) error {
-
-	if !d.EnableConfigAPI {
-		return utils.ErrAPINotEnabled
-	}
-
-	pwd := c.Query("pwd")
-
-	if pwd != d.CfgPwd || d.CfgPwd == "" {
-		d.logger.Warnf("W! %s <> %s", pwd, d.CfgPwd)
-		return utils.ErrInvalidCfgPwd
-	}
-
-	return nil
-}
-
 func (d *DataClean) startSvr(addr string) error {
 	router := gin.New()
 
@@ -64,11 +48,6 @@ func (d *DataClean) startSvr(addr string) error {
 	v1 := router.Group("/v1")
 
 	v1.POST("/write/metrics", func(c *gin.Context) { d.apiWriteMetrics(c) })
-
-	//v1.POST("/lua", func(c *gin.Context) { d.apiUploadLua(c) })
-	// v1.DELETE("/lua", func(c *gin.Context) { apiDeleteLuas(c) })
-	//v1.GET("/lua/list", func(c *gin.Context) { d.apiListLuas(c) })
-	// v1.GET("/lua", func(c *gin.Context) { apiDownloadLua(c) })
 
 	d.httpsrv = &http.Server{
 		Addr:    addr,
@@ -109,8 +88,6 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 	d.logger.Debugf("original url: %s", c.Request.URL.String())
 	d.logger.Debugf("original query: %s", queries)
 	d.logger.Debugf("original header: %s", headers)
-
-	//akopen := false
 
 	tid := c.Request.Header.Get("X-TraceId")
 
@@ -197,9 +174,6 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 	if err != nil {
 		utils.ErrHTTPReadError.HttpBody(c, fmt.Sprintf("[%s] clean data failed, route=%s, body: %v", tid, route, body))
 		return
-	} else {
-		//TODO: 如果处理了，拿掉template
-		queries.Del("template")
 	}
 
 	switch contentType {
