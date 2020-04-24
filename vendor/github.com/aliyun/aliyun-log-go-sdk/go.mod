@@ -11,7 +11,6 @@ require (
 	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v0.0.0-20171213104750-35b81a066e52
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v0.0.0-20170920220647-130e6b02ab05
 	github.com/pierrec/lz4 v2.0.2+incompatible
 	github.com/pierrec/xxHash v0.0.0-20170714082455-a0006b13c722 // indirect
