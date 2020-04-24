@@ -4,6 +4,7 @@ before_script:
   - cp -r ./. /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - export GO111MODULE=off
+  - source ~/.ossenv
 
 variables:
   PROJECT: "datakit"
@@ -20,7 +21,8 @@ build:
     - /^pre(\/|-)?.*$/
     - branch-to-debug-gitlab-CI
   script:
-    - make test
+    - make local
+    - make pub_local
   tags:
     - cloudcare-ft
 
