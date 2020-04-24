@@ -35,7 +35,7 @@ type CreateInstanceRequest struct {
 	// 可用区
 	Zone *string `json:"Zone,omitempty" name:"Zone"`
 
-	// 实例版本（支持"5.6.4"、"6.4.3"）
+	// 实例版本（支持"5.6.4"、"6.4.3"、"6.8.2"、"7.5.1"）
 	EsVersion *string `json:"EsVersion,omitempty" name:"EsVersion"`
 
 	// 私有网络ID
@@ -607,6 +607,18 @@ type KeyValue struct {
 	Value *string `json:"Value,omitempty" name:"Value"`
 }
 
+type LocalDiskInfo struct {
+
+	// 本地盘类型<li>LOCAL_SATA：大数据型</li><li>NVME_SSD：高IO型</li>
+	LocalDiskType *string `json:"LocalDiskType,omitempty" name:"LocalDiskType"`
+
+	// 本地盘单盘大小
+	LocalDiskSize *uint64 `json:"LocalDiskSize,omitempty" name:"LocalDiskSize"`
+
+	// 本地盘块数
+	LocalDiskCount *uint64 `json:"LocalDiskCount,omitempty" name:"LocalDiskCount"`
+}
+
 type MasterNodeInfo struct {
 
 	// 是否启用了专用主节点
@@ -650,6 +662,13 @@ type NodeInfo struct {
 
 	// 节点磁盘容量（单位GB）
 	DiskSize *uint64 `json:"DiskSize,omitempty" name:"DiskSize"`
+
+	// 节点本地盘信息
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	LocalDiskInfo *LocalDiskInfo `json:"LocalDiskInfo,omitempty" name:"LocalDiskInfo"`
+
+	// 节点磁盘块数
+	DiskCount *uint64 `json:"DiskCount,omitempty" name:"DiskCount"`
 }
 
 type Operation struct {
@@ -835,6 +854,9 @@ type UpdateInstanceRequest struct {
 
 	// Kibana内网访问状态
 	KibanaPrivateAccess *string `json:"KibanaPrivateAccess,omitempty" name:"KibanaPrivateAccess"`
+
+	// ES 6.8及以上版本基础版开启或关闭用户认证
+	BasicSecurityType *int64 `json:"BasicSecurityType,omitempty" name:"BasicSecurityType"`
 }
 
 func (r *UpdateInstanceRequest) ToJsonString() string {
@@ -870,7 +892,7 @@ type UpgradeInstanceRequest struct {
 	// 实例ID
 	InstanceId *string `json:"InstanceId,omitempty" name:"InstanceId"`
 
-	// 目标ES版本
+	// 目标ES版本，支持：”6.4.3“, "6.8.2"，"7.5.1"
 	EsVersion *string `json:"EsVersion,omitempty" name:"EsVersion"`
 
 	// 是否只做升级检查，默认值为false
