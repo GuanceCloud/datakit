@@ -3,11 +3,12 @@ package sls
 import (
 	"encoding/json"
 	"fmt"
+
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/golang/glog"
+	"github.com/go-kit/kit/log/level"
 )
 
 // ListLogStore returns all logstore names of project p.
@@ -87,9 +88,9 @@ func (c *Client) ListMachines(project, machineGroupName string) (ms []*Machine, 
 		err = json.Unmarshal(buf, errMsg)
 		if err != nil {
 			err = fmt.Errorf("failed to remove config from machine group")
-			if glog.V(1) {
+			if IsDebugLevelMatched(1) {
 				dump, _ := httputil.DumpResponse(r, true)
-				glog.Error(string(dump))
+				level.Error(Logger).Log("msg", string(dump))
 			}
 			return
 		}
@@ -260,4 +261,24 @@ func (c *Client) ListEtlMetaWithTag(project string, etlMetaName, etlMetaTag stri
 func (c *Client) ListEtlMetaName(project string, offset, size int) (total int, count int, etlMetaNameList []string, err error) {
 	proj := convert(c, project)
 	return proj.ListEtlMetaName(offset, size)
+}
+
+func (c *Client) CreateLogging(project string, detail *Logging) error {
+	proj := convert(c, project)
+	return proj.CreateLogging(detail)
+}
+
+func (c *Client) UpdateLogging(project string, detail *Logging) error {
+	proj := convert(c, project)
+	return proj.UpdateLogging(detail)
+}
+
+func (c *Client) GetLogging(project string) (*Logging, error) {
+	proj := convert(c, project)
+	return proj.GetLogging()
+}
+
+func (c *Client) DeleteLogging(project string) error {
+	proj := convert(c, project)
+	return proj.DeleteLogging()
 }
