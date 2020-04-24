@@ -1,8 +1,4 @@
 before_script:
-  - rm -rf /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - mv .* /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - export GO111MODULE=off
 
 variables:
