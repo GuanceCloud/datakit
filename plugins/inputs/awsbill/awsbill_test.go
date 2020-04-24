@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/influxdata/toml"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -14,7 +16,10 @@ import (
 )
 
 /*
-If necessary, change the Region to US East (N. Virginia). Billing metric data is stored in this Region and represents worldwide charges.
+https://docs.datadoghq.com/integrations/amazon_billing/#service-checks
+https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/monitor_estimated_charges_with_cloudwatch.html#turning_on_billing_metrics
+
+AWS billing metrics are available about once every 4 hours.
 */
 
 var (
@@ -69,6 +74,26 @@ func getCloudwatchClient() *cloudwatch.CloudWatch {
 	return cli
 }
 
+func TestConfig(t *testing.T) {
+	ag := &AwsBillAgent{
+		AwsInstances: []*AwsInstance{
+			&AwsInstance{
+				AccessKey:    "xxx",
+				AccessSecret: "xxx",
+				AccessToken:  "xxx",
+				RegionID:     "xxx",
+				MetricName:   "xxx",
+			},
+		},
+	}
+
+	if data, err := toml.Marshal(ag); err != nil {
+		t.Errorf("%s", err)
+	} else {
+		log.Printf("%s", string(data))
+	}
+}
+
 func TestListMetricsOfNamespce(t *testing.T) {
 
 	//如果你没有使用该产品，则会返回空
@@ -85,8 +110,8 @@ func TestListMetricsOfNamespce(t *testing.T) {
 		// 		Name: aws.String(dimension),
 		// 	},
 		// },
-		NextToken: token,
-		//MetricName: nil,
+		NextToken:  token,
+		MetricName: aws.String(`EstimatedCharges`),
 	}
 
 	result, err := getCloudwatchClient().ListMetrics(params)
@@ -128,7 +153,7 @@ func TestMetricStatics(t *testing.T) {
 				Value: aws.String(`USD`),
 			},
 		},
-		EndTime:   aws.Time(time.Now().UTC().Truncate(time.Minute).Add(-7 * time.Hour)),
+		EndTime:   aws.Time(time.Now().UTC().Truncate(time.Minute).Add(-1 * time.Hour)),
 		StartTime: aws.Time(time.Now().UTC().Truncate(time.Minute).Add(-8 * time.Hour)),
 		Period:    aws.Int64(60),
 		Statistics: []*string{
@@ -160,47 +185,50 @@ func TestGetMetrics(t *testing.T) {
 				MetricName: aws.String(`EstimatedCharges`),
 				Namespace:  aws.String(`AWS/Billing`),
 				Dimensions: []*cloudwatch.Dimension{
-					// &cloudwatch.Dimension{
-					// 	Name:  aws.String(`ServiceName`),
-					// 	Value: aws.String(`AmazonEC2`),
-					// },
+					&cloudwatch.Dimension{
+						Name:  aws.String(`ServiceName`),
+						Value: aws.String(`AmazonEC2`),
+					},
 					&cloudwatch.Dimension{
 						Name:  aws.String(`Currency`),
 						Value: aws.String(`USD`),
 					},
 				},
 			},
-			Period: aws.Int64(60),
+			Period: aws.Int64(60 * 60 * 6),
 			Stat:   aws.String(`Maximum`),
 		},
 		Id:         aws.String("a1"),
 		ReturnData: aws.Bool(true),
 	}
 
-	// query2 := &cloudwatch.MetricDataQuery{
-	// 	MetricStat: &cloudwatch.MetricStat{
-	// 		Metric: &cloudwatch.Metric{
-	// 			MetricName: aws.String(`DiskReadOps`),
-	// 			Namespace:  aws.String(`AWS/EC2`),
-	// 			// Dimensions: []*cloudwatch.Dimension{
-	// 			// 	&cloudwatch.Dimension{
-	// 			// 		Name:  aws.String(``),
-	// 			// 		Value: aws.String(``),
-	// 			// 	},
-	// 			// },
-	// 		},
-	// 		Period: aws.Int64(60),
-	// 		Stat:   aws.String(`Average`),
-	// 	},
-	// 	Id: aws.String("a2"),
-	// 	//ReturnData: aws.Bool(true),
-	// }
-	// _ = query2
+	query2 := &cloudwatch.MetricDataQuery{
+		MetricStat: &cloudwatch.MetricStat{
+			Metric: &cloudwatch.Metric{
+				MetricName: aws.String(`EstimatedCharges`),
+				Namespace:  aws.String(`AWS/Billing`),
+				Dimensions: []*cloudwatch.Dimension{
+					&cloudwatch.Dimension{
+						Name:  aws.String(`ServiceName`),
+						Value: aws.String(`AWSCostExplorer`),
+					},
+					&cloudwatch.Dimension{
+						Name:  aws.String(`Currency`),
+						Value: aws.String(`USD`),
+					},
+				},
+			},
+			Period: aws.Int64(60 * 60 * 6),
+			Stat:   aws.String(`Maximum`),
+		},
+		Id:         aws.String("a2"),
+		ReturnData: aws.Bool(true),
+	}
 
 	params := &cloudwatch.GetMetricDataInput{
 		EndTime:           aws.Time(time.Now().UTC().Truncate(time.Minute)),
-		StartTime:         aws.Time(time.Now().UTC().Truncate(time.Minute).Add(-24 * time.Hour)),
-		MetricDataQueries: []*cloudwatch.MetricDataQuery{query1}, //max 100
+		StartTime:         aws.Time(time.Now().UTC().Truncate(time.Minute).Add(-6 * time.Hour)),
+		MetricDataQueries: []*cloudwatch.MetricDataQuery{query1, query2}, //max 100
 	}
 
 	resp, err := svc.GetMetricData(params)
