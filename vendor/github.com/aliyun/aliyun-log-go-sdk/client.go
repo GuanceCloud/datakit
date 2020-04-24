@@ -18,6 +18,8 @@ var GlobalForceUsingHTTP = false
 // RetryOnServerErrorEnabled if RetryOnServerErrorEnabled is false, then all error requests will not be retried
 var RetryOnServerErrorEnabled = true
 
+var GlobalDebugLevel = 0
+
 // compress type
 const (
 	Compress_LZ4  = iota // 0
@@ -35,6 +37,10 @@ type Error struct {
 	Code      string `json:"errorCode"`
 	Message   string `json:"errorMessage"`
 	RequestID string `json:"requestID"`
+}
+
+func IsDebugLevelMatched(level int) bool {
+	return level <= GlobalDebugLevel
 }
 
 // NewClientError new client error
