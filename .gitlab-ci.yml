@@ -22,7 +22,7 @@ build:
   script:
     - make test
   tags:
-    - cloudcare-tools
+    - cloudcare-ft
 
 buildRTM:
   stage: deploy
@@ -39,7 +39,7 @@ buildRTM:
     - docker tag $REPO:$TAG pubrepo.jiagouyun.com/$REPO:$TAG
     - docker push pubrepo.jiagouyun.com/$REPO:$TAG
   tags:
-    - cloudcare
+    - cloudcare-ft
 
 buildRTMPrev:
   stage: deploy
@@ -55,6 +55,6 @@ buildRTMPrev:
     - docker tag $REPO:$TAG pubrepo.jiagouyun.com/$REPO:$TAG
     - docker push pubrepo.jiagouyun.com/$REPO:$TAG
   tags:
-    - cloudcare
+    - cloudcare-ft
 
 
