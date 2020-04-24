@@ -376,7 +376,7 @@ func NewDeleteBackupResponse() (response *DeleteBackupResponse) {
     return
 }
 
-// 本接口(DeleteBackup)用于删除数据库备份。
+// 本接口(DeleteBackup)用于删除数据库备份。本接口只支持删除手动发起的备份。
 func (c *Client) DeleteBackup(request *DeleteBackupRequest) (response *DeleteBackupResponse, err error) {
     if request == nil {
         request = NewDeleteBackupRequest()
@@ -1117,6 +1117,31 @@ func (c *Client) DescribeDeviceMonitorInfo(request *DescribeDeviceMonitorInfoReq
     return
 }
 
+func NewDescribeErrorLogDataRequest() (request *DescribeErrorLogDataRequest) {
+    request = &DescribeErrorLogDataRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("cdb", APIVersion, "DescribeErrorLogData")
+    return
+}
+
+func NewDescribeErrorLogDataResponse() (response *DescribeErrorLogDataResponse) {
+    response = &DescribeErrorLogDataResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 根据检索条件查询实例错误日志详情。只能查询一个月之内的错误日志。
+func (c *Client) DescribeErrorLogData(request *DescribeErrorLogDataRequest) (response *DescribeErrorLogDataResponse, err error) {
+    if request == nil {
+        request = NewDescribeErrorLogDataRequest()
+    }
+    response = NewDescribeErrorLogDataResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewDescribeInstanceParamRecordsRequest() (request *DescribeInstanceParamRecordsRequest) {
     request = &DescribeInstanceParamRecordsRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -1288,6 +1313,31 @@ func (c *Client) DescribeRollbackRangeTime(request *DescribeRollbackRangeTimeReq
         request = NewDescribeRollbackRangeTimeRequest()
     }
     response = NewDescribeRollbackRangeTimeResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewDescribeSlowLogDataRequest() (request *DescribeSlowLogDataRequest) {
+    request = &DescribeSlowLogDataRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("cdb", APIVersion, "DescribeSlowLogData")
+    return
+}
+
+func NewDescribeSlowLogDataResponse() (response *DescribeSlowLogDataResponse) {
+    response = &DescribeSlowLogDataResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 条件检索实例的慢日志。只允许查看一个月之内的慢日志
+func (c *Client) DescribeSlowLogData(request *DescribeSlowLogDataRequest) (response *DescribeSlowLogDataResponse, err error) {
+    if request == nil {
+        request = NewDescribeSlowLogDataRequest()
+    }
+    response = NewDescribeSlowLogDataResponse()
     err = c.Send(request, response)
     return
 }
@@ -2066,7 +2116,7 @@ func NewRenewDBInstanceResponse() (response *RenewDBInstanceResponse) {
     return
 }
 
-// 本接口(RenewDBInstance)用于续费云数据库实例，仅支持付费模式为包年包月的实例。按量计费实例不需要续费。
+// 本接口(RenewDBInstance)用于续费云数据库实例，支持付费模式为包年包月的实例。按量计费实例可通过该接口续费为包年包月的实例。
 func (c *Client) RenewDBInstance(request *RenewDBInstanceRequest) (response *RenewDBInstanceResponse, err error) {
     if request == nil {
         request = NewRenewDBInstanceRequest()

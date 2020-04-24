@@ -1,3 +1,18 @@
+# 3.6.2 (January 24, 2020)
+
+* Fix Rows.Values() fallback to generic decoder (Matt Jibson)
+
+# 3.6.1 (January 11, 2020)
+
+## Features
+
+* Add PgError.SQLState method
+* Bit supports text format
+
+## Fixes
+
+* Fix multiple replication connections sharing minimalConnInfo
+
 # 3.6.0 (September 14, 2019)
 
 ## Features
