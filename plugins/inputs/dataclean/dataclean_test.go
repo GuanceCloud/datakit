@@ -11,7 +11,6 @@ import (
 	"github.com/influxdata/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/filter"
 )
 
 func TestDumpMaincfg(t *testing.T) {
@@ -84,7 +83,7 @@ func TestSerialize(t *testing.T) {
 
 	log.Printf("%s", string(data))
 
-	pts, err := filter.ParseInflux(data, "n", "11")
+	pts, err := ParsePoints(data, "n")
 	if err != nil {
 		t.Errorf("%s", err)
 	}

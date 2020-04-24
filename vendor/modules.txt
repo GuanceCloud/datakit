@@ -2,13 +2,13 @@
 collectd.org/api
 collectd.org/cdtime
 collectd.org/network
-# github.com/Azure/azure-sdk-for-go v0.0.0-20200305061206-32160a3836db
+# github.com/Azure/azure-sdk-for-go v37.1.0+incompatible
 github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights
 github.com/Azure/azure-sdk-for-go/version
-# github.com/Azure/go-autorest/autorest v0.10.0
+# github.com/Azure/go-autorest/autorest v0.9.3
 github.com/Azure/go-autorest/autorest
 github.com/Azure/go-autorest/autorest/azure
-# github.com/Azure/go-autorest/autorest/adal v0.8.2
+# github.com/Azure/go-autorest/autorest/adal v0.8.1
 github.com/Azure/go-autorest/autorest/adal
 # github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
 github.com/Azure/go-autorest/autorest/azure/auth
@@ -32,7 +32,7 @@ github.com/StackExchange/wmi
 github.com/aeden/traceroute
 # github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
 github.com/alecthomas/units
-# github.com/aliyun/alibaba-cloud-sdk-go v1.61.4
+# github.com/aliyun/alibaba-cloud-sdk-go v1.61.131
 github.com/aliyun/alibaba-cloud-sdk-go/sdk
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials
@@ -49,7 +49,7 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi
 github.com/aliyun/alibaba-cloud-sdk-go/services/cdn
 github.com/aliyun/alibaba-cloud-sdk-go/services/cms
 github.com/aliyun/alibaba-cloud-sdk-go/services/ecs
-# github.com/aliyun/aliyun-log-go-sdk v0.1.5
+# github.com/aliyun/aliyun-log-go-sdk v0.1.8
 github.com/aliyun/aliyun-log-go-sdk
 github.com/aliyun/aliyun-log-go-sdk/consumer
 # github.com/aliyun/aliyun-oss-go-sdk v2.0.8+incompatible
@@ -79,15 +79,19 @@ github.com/aws/aws-sdk-go/internal/sdkrand
 github.com/aws/aws-sdk-go/internal/sdkuri
 github.com/aws/aws-sdk-go/internal/shareddefaults
 github.com/aws/aws-sdk-go/private/protocol
-github.com/aws/aws-sdk-go/private/protocol/ec2query
 github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
+github.com/aws/aws-sdk-go/private/protocol/jsonrpc
 github.com/aws/aws-sdk-go/private/protocol/query
 github.com/aws/aws-sdk-go/private/protocol/query/queryutil
 github.com/aws/aws-sdk-go/private/protocol/rest
 github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/service/cloudwatch
-github.com/aws/aws-sdk-go/service/ec2
+github.com/aws/aws-sdk-go/service/costexplorer
+github.com/aws/aws-sdk-go/service/health
+github.com/aws/aws-sdk-go/service/pricing
 github.com/aws/aws-sdk-go/service/sts
+# github.com/basgys/goxml2json v1.1.0
+github.com/basgys/goxml2json
 # github.com/caio/go-tdigest v2.3.0+incompatible
 github.com/caio/go-tdigest
 # github.com/cenkalti/backoff v2.0.0+incompatible
@@ -96,6 +100,11 @@ github.com/cenkalti/backoff
 github.com/cznic/mathutil
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e
+github.com/denisenkom/go-mssqldb
+github.com/denisenkom/go-mssqldb/internal/cp
+github.com/denisenkom/go-mssqldb/internal/decimal
+github.com/denisenkom/go-mssqldb/internal/querytext
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
 # github.com/dimchansky/utfbom v1.1.0
@@ -112,6 +121,14 @@ github.com/ericchiang/k8s/util/intstr
 github.com/ericchiang/k8s/watch/versioned
 # github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 github.com/ghodss/yaml
+# github.com/gin-contrib/sse v0.1.0
+github.com/gin-contrib/sse
+# github.com/gin-gonic/gin v1.6.2
+github.com/gin-gonic/gin
+github.com/gin-gonic/gin/binding
+github.com/gin-gonic/gin/internal/bytesconv
+github.com/gin-gonic/gin/internal/json
+github.com/gin-gonic/gin/render
 # github.com/go-kit/kit v0.9.0
 github.com/go-kit/kit/log
 github.com/go-kit/kit/log/level
@@ -120,8 +137,25 @@ github.com/go-logfmt/logfmt
 # github.com/go-ole/go-ole v1.2.4
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
+# github.com/go-playground/locales v0.13.0
+github.com/go-playground/locales
+github.com/go-playground/locales/currency
+# github.com/go-playground/universal-translator v0.17.0
+github.com/go-playground/universal-translator
+# github.com/go-playground/validator/v10 v10.2.0
+github.com/go-playground/validator/v10
+# github.com/go-redis/redis v6.15.7+incompatible
+github.com/go-redis/redis
+github.com/go-redis/redis/internal
+github.com/go-redis/redis/internal/consistenthash
+github.com/go-redis/redis/internal/hashtag
+github.com/go-redis/redis/internal/pool
+github.com/go-redis/redis/internal/proto
+github.com/go-redis/redis/internal/util
 # github.com/go-sql-driver/mysql v1.5.0
 github.com/go-sql-driver/mysql
+# github.com/go-stack/stack v1.8.0
+github.com/go-stack/stack
 # github.com/gobwas/glob v0.2.3
 github.com/gobwas/glob
 github.com/gobwas/glob/compiler
@@ -135,20 +169,33 @@ github.com/gobwas/glob/util/strings
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
-# github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-github.com/golang/glog
+github.com/gogo/protobuf/sortkeys
+github.com/gogo/protobuf/types
+# github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
+github.com/golang-sql/civil
 # github.com/golang/protobuf v1.3.4
+github.com/golang/protobuf/descriptor
+github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
+github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
+github.com/golang/protobuf/ptypes/struct
 github.com/golang/protobuf/ptypes/timestamp
+github.com/golang/protobuf/ptypes/wrappers
+# github.com/golang/snappy v0.0.1
+github.com/golang/snappy
 # github.com/google/gopacket v1.1.17
 github.com/google/gopacket
 github.com/google/gopacket/layers
 github.com/google/gopacket/pcap
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
+# github.com/grpc-ecosystem/grpc-gateway v1.12.1
+github.com/grpc-ecosystem/grpc-gateway/internal
+github.com/grpc-ecosystem/grpc-gateway/runtime
+github.com/grpc-ecosystem/grpc-gateway/utilities
 # github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 github.com/influxdata/influxdb1-client/models
 github.com/influxdata/influxdb1-client/pkg/escape
@@ -197,7 +244,7 @@ github.com/influxdata/toml
 github.com/influxdata/toml/ast
 # github.com/influxdata/wlog v0.0.0-20160411224016-7c63b0a71ef8
 github.com/influxdata/wlog
-# github.com/jackc/pgx v3.6.0+incompatible
+# github.com/jackc/pgx v3.6.2+incompatible
 github.com/jackc/pgx
 github.com/jackc/pgx/chunkreader
 github.com/jackc/pgx/internal/sanitize
@@ -208,18 +255,30 @@ github.com/jackc/pgx/pgtype
 github.com/jmespath/go-jmespath
 # github.com/json-iterator/go v1.1.9
 github.com/json-iterator/go
+# github.com/junhsieh/goexamples v0.0.0-20190721045834-1c67ae74caa6
+github.com/junhsieh/goexamples/fieldbinding/fieldbinding
 # github.com/kardianos/service v1.0.0
 github.com/kardianos/service
+# github.com/klauspost/compress v1.9.5
+github.com/klauspost/compress/fse
+github.com/klauspost/compress/huff0
+github.com/klauspost/compress/snappy
+github.com/klauspost/compress/zstd
+github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/kr/fs v0.1.0
 github.com/kr/fs
 # github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515
 github.com/kr/logfmt
-# github.com/lib/pq v1.3.0
+# github.com/leodido/go-urn v1.2.0
+github.com/leodido/go-urn
+# github.com/lib/pq v1.4.0
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
+# github.com/mattn/go-isatty v0.0.12
+github.com/mattn/go-isatty
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mitchellh/go-homedir v1.1.0
@@ -281,8 +340,12 @@ github.com/prometheus/client_model/go
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
+# github.com/prometheus/prometheus v2.5.0+incompatible
+github.com/prometheus/prometheus/prompb
 # github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237
 github.com/remyoudompheng/bigfft
+# github.com/robfig/cron v1.2.0
+github.com/robfig/cron
 # github.com/rs/xid v1.2.1
 github.com/rs/xid
 # github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
@@ -297,20 +360,20 @@ github.com/siddontang/go/hack
 # github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 github.com/siddontang/go-log/log
 github.com/siddontang/go-log/loggers
-# github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
+# github.com/siddontang/go-mysql v0.0.0-20200311002057-7a62847fcdb5
 github.com/siddontang/go-mysql/client
 github.com/siddontang/go-mysql/mysql
 github.com/siddontang/go-mysql/packet
 github.com/siddontang/go-mysql/replication
 github.com/siddontang/go-mysql/schema
-# github.com/sirupsen/logrus v1.5.0
+# github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
 # github.com/stretchr/objx v0.1.1
 github.com/stretchr/objx
 # github.com/stretchr/testify v1.4.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
-# github.com/tencentcloud/tencentcloud-sdk-go v3.0.123+incompatible
+# github.com/tencentcloud/tencentcloud-sdk-go v3.0.160+incompatible
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdb/v20170320
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/errors
@@ -340,6 +403,8 @@ github.com/ucloud/ucloud-sdk-go/ucloud/log
 github.com/ucloud/ucloud-sdk-go/ucloud/request
 github.com/ucloud/ucloud-sdk-go/ucloud/response
 github.com/ucloud/ucloud-sdk-go/ucloud/version
+# github.com/ugorji/go/codec v1.1.7
+github.com/ugorji/go/codec
 # github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 github.com/vinllen/mgo
 github.com/vinllen/mgo/bson
@@ -352,9 +417,54 @@ github.com/vjeantet/grok
 github.com/wavefronthq/wavefront-sdk-go/histogram
 github.com/wavefronthq/wavefront-sdk-go/internal
 github.com/wavefronthq/wavefront-sdk-go/senders
+# github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c
+github.com/xdg/scram
+# github.com/xdg/stringprep v1.0.0
+github.com/xdg/stringprep
+# github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb
+github.com/yuin/gopher-lua
+github.com/yuin/gopher-lua/ast
+github.com/yuin/gopher-lua/parse
+github.com/yuin/gopher-lua/pm
 # gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/service
+# gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421111424-35ed577a5ec0
+gitlab.jiagouyun.com/cloudcare-tools/ftagent/lua
+gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils
+# go.mongodb.org/mongo-driver v1.3.1
+go.mongodb.org/mongo-driver/bson
+go.mongodb.org/mongo-driver/bson/bsoncodec
+go.mongodb.org/mongo-driver/bson/bsonoptions
+go.mongodb.org/mongo-driver/bson/bsonrw
+go.mongodb.org/mongo-driver/bson/bsontype
+go.mongodb.org/mongo-driver/bson/primitive
+go.mongodb.org/mongo-driver/event
+go.mongodb.org/mongo-driver/internal
+go.mongodb.org/mongo-driver/mongo
+go.mongodb.org/mongo-driver/mongo/options
+go.mongodb.org/mongo-driver/mongo/readconcern
+go.mongodb.org/mongo-driver/mongo/readpref
+go.mongodb.org/mongo-driver/mongo/writeconcern
+go.mongodb.org/mongo-driver/tag
+go.mongodb.org/mongo-driver/version
+go.mongodb.org/mongo-driver/x/bsonx
+go.mongodb.org/mongo-driver/x/bsonx/bsoncore
+go.mongodb.org/mongo-driver/x/mongo/driver
+go.mongodb.org/mongo-driver/x/mongo/driver/address
+go.mongodb.org/mongo-driver/x/mongo/driver/auth
+go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi
+go.mongodb.org/mongo-driver/x/mongo/driver/connstring
+go.mongodb.org/mongo-driver/x/mongo/driver/description
+go.mongodb.org/mongo-driver/x/mongo/driver/dns
+go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt
+go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options
+go.mongodb.org/mongo-driver/x/mongo/driver/operation
+go.mongodb.org/mongo-driver/x/mongo/driver/session
+go.mongodb.org/mongo-driver/x/mongo/driver/topology
+go.mongodb.org/mongo-driver/x/mongo/driver/uuid
+go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
 # go.uber.org/atomic v1.6.0
 go.uber.org/atomic
 # go.uber.org/multierr v1.4.0
@@ -368,26 +478,36 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
+# golang.org/x/crypto v0.0.0-20200420201142-3c4aac89819a
+golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/internal/subtle
+golang.org/x/crypto/md4
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/pkcs12
 golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh
+golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 # golang.org/x/lint v0.0.0-20200130185559-910be7a94367
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/net v0.0.0-20200301022130-244492dfa37a
+# golang.org/x/net v0.0.0-20200421231249-e086a090c8fd
 golang.org/x/net/context
+golang.org/x/net/html
+golang.org/x/net/html/atom
+golang.org/x/net/html/charset
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
+golang.org/x/net/internal/timeseries
+golang.org/x/net/trace
+# golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+golang.org/x/sync/semaphore
 # golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
@@ -400,6 +520,7 @@ golang.org/x/sys/windows/svc/mgr
 golang.org/x/text/cases
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
+golang.org/x/text/encoding/htmlindex
 golang.org/x/text/encoding/internal
 golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/japanese
@@ -422,59 +543,90 @@ golang.org/x/text/unicode/norm
 golang.org/x/text/width
 # golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20200407041343-bf15fae40dea
+# golang.org/x/tools v0.0.0-20200206050830-dd0d5d485177
 golang.org/x/tools/go/analysis
 golang.org/x/tools/go/analysis/passes/inspect
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/ast/inspector
 golang.org/x/tools/go/buildutil
 golang.org/x/tools/go/gcexportdata
-golang.org/x/tools/go/internal/cgo
 golang.org/x/tools/go/internal/gcimporter
 golang.org/x/tools/go/internal/packagesdriver
-golang.org/x/tools/go/loader
 golang.org/x/tools/go/packages
 golang.org/x/tools/go/types/objectpath
 golang.org/x/tools/go/types/typeutil
-golang.org/x/tools/internal/analysisinternal
-golang.org/x/tools/internal/gocommand
 golang.org/x/tools/internal/packagesinternal
-# golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
-golang.org/x/xerrors
-golang.org/x/xerrors/internal
+# google.golang.org/genproto v0.0.0-20191230161307-f3c370f40bfb
+google.golang.org/genproto/googleapis/api/annotations
+google.golang.org/genproto/googleapis/api/httpbody
+google.golang.org/genproto/googleapis/rpc/status
+google.golang.org/genproto/protobuf/field_mask
+# google.golang.org/grpc v1.26.0
+google.golang.org/grpc
+google.golang.org/grpc/attributes
+google.golang.org/grpc/backoff
+google.golang.org/grpc/balancer
+google.golang.org/grpc/balancer/base
+google.golang.org/grpc/balancer/roundrobin
+google.golang.org/grpc/binarylog/grpc_binarylog_v1
+google.golang.org/grpc/codes
+google.golang.org/grpc/connectivity
+google.golang.org/grpc/credentials
+google.golang.org/grpc/credentials/internal
+google.golang.org/grpc/encoding
+google.golang.org/grpc/encoding/proto
+google.golang.org/grpc/grpclog
+google.golang.org/grpc/internal
+google.golang.org/grpc/internal/backoff
+google.golang.org/grpc/internal/balancerload
+google.golang.org/grpc/internal/binarylog
+google.golang.org/grpc/internal/buffer
+google.golang.org/grpc/internal/channelz
+google.golang.org/grpc/internal/envconfig
+google.golang.org/grpc/internal/grpcrand
+google.golang.org/grpc/internal/grpcsync
+google.golang.org/grpc/internal/resolver/dns
+google.golang.org/grpc/internal/resolver/passthrough
+google.golang.org/grpc/internal/syscall
+google.golang.org/grpc/internal/transport
+google.golang.org/grpc/keepalive
+google.golang.org/grpc/metadata
+google.golang.org/grpc/naming
+google.golang.org/grpc/peer
+google.golang.org/grpc/resolver
+google.golang.org/grpc/serviceconfig
+google.golang.org/grpc/stats
+google.golang.org/grpc/status
+google.golang.org/grpc/tap
 # gopkg.in/ini.v1 v1.42.0
 gopkg.in/ini.v1
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
-# honnef.co/go/tools v0.0.1-2020.1.3
+# honnef.co/go/tools v0.0.1-2019.2.3
 honnef.co/go/tools/arg
 honnef.co/go/tools/cmd/staticcheck
-honnef.co/go/tools/code
 honnef.co/go/tools/config
 honnef.co/go/tools/deprecated
-honnef.co/go/tools/edit
 honnef.co/go/tools/facts
 honnef.co/go/tools/functions
 honnef.co/go/tools/go/types/typeutil
 honnef.co/go/tools/internal/cache
-honnef.co/go/tools/internal/passes/buildir
+honnef.co/go/tools/internal/passes/buildssa
 honnef.co/go/tools/internal/renameio
-honnef.co/go/tools/internal/robustio
 honnef.co/go/tools/internal/sharedcheck
-honnef.co/go/tools/ir
-honnef.co/go/tools/ir/irutil
 honnef.co/go/tools/lint
 honnef.co/go/tools/lint/lintdsl
 honnef.co/go/tools/lint/lintutil
 honnef.co/go/tools/lint/lintutil/format
 honnef.co/go/tools/loader
-honnef.co/go/tools/pattern
 honnef.co/go/tools/printf
-honnef.co/go/tools/report
 honnef.co/go/tools/simple
+honnef.co/go/tools/ssa
+honnef.co/go/tools/ssautil
 honnef.co/go/tools/staticcheck
+honnef.co/go/tools/staticcheck/vrp
 honnef.co/go/tools/stylecheck
 honnef.co/go/tools/unused
 honnef.co/go/tools/version
