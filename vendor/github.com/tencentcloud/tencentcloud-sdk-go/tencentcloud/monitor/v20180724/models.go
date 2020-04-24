@@ -150,11 +150,14 @@ type CreatePolicyGroupRequest struct {
 	// 策略组中的阈值告警规则
 	Conditions []*CreatePolicyGroupCondition `json:"Conditions,omitempty" name:"Conditions" list`
 
-	// 策略组中的时间告警规则
+	// 策略组中的事件告警规则
 	EventConditions []*CreatePolicyGroupEventCondition `json:"EventConditions,omitempty" name:"EventConditions" list`
 
 	// 是否为后端调用。当且仅当值为1时，后台拉取策略模版中的规则填充入Conditions以及EventConditions字段
 	BackEndCall *int64 `json:"BackEndCall,omitempty" name:"BackEndCall"`
+
+	// 指标告警规则的且或关系，0表示或规则(满足任意规则就告警)，1表示且规则(满足所有规则才告警)
+	IsUnionRule *int64 `json:"IsUnionRule,omitempty" name:"IsUnionRule"`
 }
 
 func (r *CreatePolicyGroupRequest) ToJsonString() string {
@@ -283,10 +286,10 @@ type DescribeAccidentEventListRequest struct {
 	// 结束时间，默认当前时间戳
 	EndTime *int64 `json:"EndTime,omitempty" name:"EndTime"`
 
-	// 每页返回的数量，默认20
+	// 分页参数，每页返回的数量，取值1~100，默认20
 	Limit *int64 `json:"Limit,omitempty" name:"Limit"`
 
-	// 页偏移量，默认0
+	// 分页参数，页偏移量，从0开始计数，默认0
 	Offset *int64 `json:"Offset,omitempty" name:"Offset"`
 
 	// 根据UpdateTime排序的规则，取值asc或desc
@@ -349,10 +352,10 @@ func (r *DescribeAccidentEventListResponse) FromJsonString(s string) error {
 type DescribeBaseMetricsRequest struct {
 	*tchttp.BaseRequest
 
-	// 业务命名空间
+	// 业务命名空间，各个云产品的业务命名空间不同。如需获取业务命名空间，请前往各产品监控接口文档，例如云服务器的命名空间，可参见 [云服务器监控接口](https://cloud.tencent.com/document/api/248/30385)
 	Namespace *string `json:"Namespace,omitempty" name:"Namespace"`
 
-	// 指标名
+	// 指标名，各个云产品的指标名不同。如需获取指标名，请前往各产品监控接口文档，例如云服务器的指标名，可参见 [云服务器监控接口](https://cloud.tencent.com/document/api/248/30385)
 	MetricName *string `json:"MetricName,omitempty" name:"MetricName"`
 }
 
@@ -488,10 +491,10 @@ type DescribeBasicAlarmListRequest struct {
 	// 结束时间，默认当前时间戳
 	EndTime *int64 `json:"EndTime,omitempty" name:"EndTime"`
 
-	// 每页返回的数量，默认20
+	// 分页参数，每页返回的数量，取值1~100，默认20
 	Limit *int64 `json:"Limit,omitempty" name:"Limit"`
 
-	// 页偏移量，默认0
+	// 分页参数，页偏移量，从0开始计数，默认0
 	Offset *int64 `json:"Offset,omitempty" name:"Offset"`
 
 	// 根据发生时间排序，取值ASC或DESC
@@ -548,6 +551,21 @@ func (r *DescribeBasicAlarmListResponse) FromJsonString(s string) error {
     return json.Unmarshal([]byte(s), &r)
 }
 
+type DescribeBindingPolicyObjectListDimension struct {
+
+	// 地域id
+	RegionId *int64 `json:"RegionId,omitempty" name:"RegionId"`
+
+	// 地域简称
+	Region *string `json:"Region,omitempty" name:"Region"`
+
+	// 维度组合json字符串
+	Dimensions *string `json:"Dimensions,omitempty" name:"Dimensions"`
+
+	// 事件维度组合json字符串
+	EventDimensions *string `json:"EventDimensions,omitempty" name:"EventDimensions"`
+}
+
 type DescribeBindingPolicyObjectListInstance struct {
 
 	// 对象唯一id
@@ -563,6 +581,34 @@ type DescribeBindingPolicyObjectListInstance struct {
 	Region *string `json:"Region,omitempty" name:"Region"`
 }
 
+type DescribeBindingPolicyObjectListInstanceGroup struct {
+
+	// 实例分组id
+	InstanceGroupId *int64 `json:"InstanceGroupId,omitempty" name:"InstanceGroupId"`
+
+	// 告警策略类型名称
+	ViewName *string `json:"ViewName,omitempty" name:"ViewName"`
+
+	// 最后编辑uin
+	LastEditUin *string `json:"LastEditUin,omitempty" name:"LastEditUin"`
+
+	// 实例分组名称
+	GroupName *string `json:"GroupName,omitempty" name:"GroupName"`
+
+	// 实例数量
+	InstanceSum *int64 `json:"InstanceSum,omitempty" name:"InstanceSum"`
+
+	// 更新时间
+	UpdateTime *int64 `json:"UpdateTime,omitempty" name:"UpdateTime"`
+
+	// 创建时间
+	InsertTime *int64 `json:"InsertTime,omitempty" name:"InsertTime"`
+
+	// 实例所在的地域集合
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	Regions []*string `json:"Regions,omitempty" name:"Regions" list`
+}
+
 type DescribeBindingPolicyObjectListRequest struct {
 	*tchttp.BaseRequest
 
@@ -571,6 +617,15 @@ type DescribeBindingPolicyObjectListRequest struct {
 
 	// 策略组id
 	GroupId *int64 `json:"GroupId,omitempty" name:"GroupId"`
+
+	// 分页参数，每页返回的数量，取值1~100，默认20
+	Limit *int64 `json:"Limit,omitempty" name:"Limit"`
+
+	// 分页参数，页偏移量，从0开始计数，默认0
+	Offset *int64 `json:"Offset,omitempty" name:"Offset"`
+
+	// 筛选对象的维度信息
+	Dimensions []*DescribeBindingPolicyObjectListDimension `json:"Dimensions,omitempty" name:"Dimensions" list`
 }
 
 func (r *DescribeBindingPolicyObjectListRequest) ToJsonString() string {
@@ -595,6 +650,10 @@ type DescribeBindingPolicyObjectListResponse struct {
 
 		// 未屏蔽的对象实例数
 		NoShieldedSum *int64 `json:"NoShieldedSum,omitempty" name:"NoShieldedSum"`
+
+		// 绑定的实例分组信息，没有绑定实例分组则为空
+	// 注意：此字段可能返回 null，表示取不到有效值。
+		InstanceGroup *DescribeBindingPolicyObjectListInstanceGroup `json:"InstanceGroup,omitempty" name:"InstanceGroup"`
 
 		// 唯一请求 ID，每次请求都会返回。定位问题时需要提供该次请求的 RequestId。
 		RequestId *string `json:"RequestId,omitempty" name:"RequestId"`
@@ -643,18 +702,23 @@ type DescribePolicyConditionListCondition struct {
 type DescribePolicyConditionListConfigManual struct {
 
 	// 检测方式
+	// 注意：此字段可能返回 null，表示取不到有效值。
 	CalcType *DescribePolicyConditionListConfigManualCalcType `json:"CalcType,omitempty" name:"CalcType"`
 
 	// 检测阈值
+	// 注意：此字段可能返回 null，表示取不到有效值。
 	CalcValue *DescribePolicyConditionListConfigManualCalcValue `json:"CalcValue,omitempty" name:"CalcValue"`
 
 	// 持续时间
+	// 注意：此字段可能返回 null，表示取不到有效值。
 	ContinueTime *DescribePolicyConditionListConfigManualContinueTime `json:"ContinueTime,omitempty" name:"ContinueTime"`
 
 	// 数据周期
+	// 注意：此字段可能返回 null，表示取不到有效值。
 	Period *DescribePolicyConditionListConfigManualPeriod `json:"Period,omitempty" name:"Period"`
 
 	// 持续周期个数
+	// 注意：此字段可能返回 null，表示取不到有效值。
 	PeriodNum *DescribePolicyConditionListConfigManualPeriodNum `json:"PeriodNum,omitempty" name:"PeriodNum"`
 
 	// 聚合方式
@@ -789,6 +853,7 @@ type DescribePolicyConditionListEventMetric struct {
 type DescribePolicyConditionListMetric struct {
 
 	// 指标配置
+	// 注意：此字段可能返回 null，表示取不到有效值。
 	ConfigManual *DescribePolicyConditionListConfigManual `json:"ConfigManual,omitempty" name:"ConfigManual"`
 
 	// 指标id
@@ -874,12 +939,15 @@ type DescribePolicyGroupInfoCondition struct {
 	AlarmNotifyPeriod *int64 `json:"AlarmNotifyPeriod,omitempty" name:"AlarmNotifyPeriod"`
 
 	// 比较类型，1表示大于，2表示大于等于，3表示小于，4表示小于等于，5表示相等，6表示不相等，7表示日同比上涨，8表示日同比下降，9表示周同比上涨，10表示周同比下降，11表示周期环比上涨，12表示周期环比下降
+	// 注意：此字段可能返回 null，表示取不到有效值。
 	CalcType *int64 `json:"CalcType,omitempty" name:"CalcType"`
 
 	// 检测阈值
+	// 注意：此字段可能返回 null，表示取不到有效值。
 	CalcValue *string `json:"CalcValue,omitempty" name:"CalcValue"`
 
 	// 持续多长时间触发规则会告警(单位秒)
+	// 注意：此字段可能返回 null，表示取不到有效值。
 	ContinueTime *int64 `json:"ContinueTime,omitempty" name:"ContinueTime"`
 }
 
@@ -899,6 +967,18 @@ type DescribePolicyGroupInfoConditionTpl struct {
 
 	// 最后编辑的用户uin
 	LastEditUin *string `json:"LastEditUin,omitempty" name:"LastEditUin"`
+
+	// 更新时间
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	UpdateTime *int64 `json:"UpdateTime,omitempty" name:"UpdateTime"`
+
+	// 创建时间
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	InsertTime *int64 `json:"InsertTime,omitempty" name:"InsertTime"`
+
+	// 是否且规则
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	IsUnionRule *int64 `json:"IsUnionRule,omitempty" name:"IsUnionRule"`
 }
 
 type DescribePolicyGroupInfoEventCondition struct {
@@ -960,6 +1040,10 @@ type DescribePolicyGroupInfoReceiverInfo struct {
 
 	// 恢复通知方式。可选"SMS"
 	RecoverNotify []*string `json:"RecoverNotify,omitempty" name:"RecoverNotify" list`
+
+	// 告警发送语言
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	ReceiveLanguage *string `json:"ReceiveLanguage,omitempty" name:"ReceiveLanguage"`
 }
 
 type DescribePolicyGroupInfoRequest struct {
@@ -1038,6 +1122,10 @@ type DescribePolicyGroupInfoResponse struct {
 		// 是否可以设置成默认策略
 		CanSetDefault *bool `json:"CanSetDefault,omitempty" name:"CanSetDefault"`
 
+		// 是否且规则
+	// 注意：此字段可能返回 null，表示取不到有效值。
+		IsUnionRule *int64 `json:"IsUnionRule,omitempty" name:"IsUnionRule"`
+
 		// 唯一请求 ID，每次请求都会返回。定位问题时需要提供该次请求的 RequestId。
 		RequestId *string `json:"RequestId,omitempty" name:"RequestId"`
 	} `json:"Response"`
@@ -1115,6 +1203,10 @@ type DescribePolicyGroupListGroup struct {
 	// 策略组绑定的实例组信息
 	// 注意：此字段可能返回 null，表示取不到有效值。
 	InstanceGroup *DescribePolicyGroupListGroupInstanceGroup `json:"InstanceGroup,omitempty" name:"InstanceGroup"`
+
+	// 且或规则标识, 0表示或规则(任意一条规则满足阈值条件就告警), 1表示且规则(所有规则都满足阈值条件才告警)
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	IsUnionRule *int64 `json:"IsUnionRule,omitempty" name:"IsUnionRule"`
 }
 
 type DescribePolicyGroupListGroupInstanceGroup struct {
@@ -1147,11 +1239,44 @@ type DescribePolicyGroupListRequest struct {
 	// 固定值，为"monitor"
 	Module *string `json:"Module,omitempty" name:"Module"`
 
-	// 分页参数，最大返回个数
+	// 分页参数，每页返回的数量，取值1~100
 	Limit *int64 `json:"Limit,omitempty" name:"Limit"`
 
-	// 分页参数，起始位置
+	// 分页参数，页偏移量，从0开始计数
 	Offset *int64 `json:"Offset,omitempty" name:"Offset"`
+
+	// 按策略名搜索
+	Like *string `json:"Like,omitempty" name:"Like"`
+
+	// 实例分组id
+	InstanceGroupId *int64 `json:"InstanceGroupId,omitempty" name:"InstanceGroupId"`
+
+	// 按更新时间排序, asc 或者 desc
+	UpdateTimeOrder *string `json:"UpdateTimeOrder,omitempty" name:"UpdateTimeOrder"`
+
+	// 项目id列表
+	ProjectIds []*int64 `json:"ProjectIds,omitempty" name:"ProjectIds" list`
+
+	// 告警策略类型列表
+	ViewNames []*string `json:"ViewNames,omitempty" name:"ViewNames" list`
+
+	// 是否过滤无接收人策略组, 1表示过滤, 0表示不过滤
+	FilterUnuseReceiver *int64 `json:"FilterUnuseReceiver,omitempty" name:"FilterUnuseReceiver"`
+
+	// 过滤条件, 接收组列表
+	Receivers []*string `json:"Receivers,omitempty" name:"Receivers" list`
+
+	// 过滤条件, 接收人列表
+	ReceiverUserList []*string `json:"ReceiverUserList,omitempty" name:"ReceiverUserList" list`
+
+	// 维度组合字段(json字符串), 例如[[{"name":"unInstanceId","value":"ins-6e4b2aaa"}]]
+	Dimensions *string `json:"Dimensions,omitempty" name:"Dimensions"`
+
+	// 模板策略组id, 多个id用逗号分隔
+	ConditionTempGroupId *string `json:"ConditionTempGroupId,omitempty" name:"ConditionTempGroupId"`
+
+	// 过滤条件, 接收人或者接收组, user表示接收人, group表示接收组
+	ReceiverType *string `json:"ReceiverType,omitempty" name:"ReceiverType"`
 }
 
 func (r *DescribePolicyGroupListRequest) ToJsonString() string {
@@ -1688,6 +1813,49 @@ type ReceiverInfo struct {
 
 	// 接收人列表。通过平台接口查询到的接收人id列表
 	ReceiverUserList []*int64 `json:"ReceiverUserList,omitempty" name:"ReceiverUserList" list`
+
+	// 告警接收语言，枚举值（zh-CN，en-US）
+	ReceiveLanguage *string `json:"ReceiveLanguage,omitempty" name:"ReceiveLanguage"`
+}
+
+type SendCustomAlarmMsgRequest struct {
+	*tchttp.BaseRequest
+
+	// 接口模块名，当前取值monitor
+	Module *string `json:"Module,omitempty" name:"Module"`
+
+	// 消息策略ID，在云监控自定义消息页面配置
+	PolicyId *string `json:"PolicyId,omitempty" name:"PolicyId"`
+
+	// 用户想要发送的自定义消息内容
+	Msg *string `json:"Msg,omitempty" name:"Msg"`
+}
+
+func (r *SendCustomAlarmMsgRequest) ToJsonString() string {
+    b, _ := json.Marshal(r)
+    return string(b)
+}
+
+func (r *SendCustomAlarmMsgRequest) FromJsonString(s string) error {
+    return json.Unmarshal([]byte(s), &r)
+}
+
+type SendCustomAlarmMsgResponse struct {
+	*tchttp.BaseResponse
+	Response *struct {
+
+		// 唯一请求 ID，每次请求都会返回。定位问题时需要提供该次请求的 RequestId。
+		RequestId *string `json:"RequestId,omitempty" name:"RequestId"`
+	} `json:"Response"`
+}
+
+func (r *SendCustomAlarmMsgResponse) ToJsonString() string {
+    b, _ := json.Marshal(r)
+    return string(b)
+}
+
+func (r *SendCustomAlarmMsgResponse) FromJsonString(s string) error {
+    return json.Unmarshal([]byte(s), &r)
 }
 
 type UnBindingAllPolicyObjectRequest struct {
@@ -1738,6 +1906,9 @@ type UnBindingPolicyObjectRequest struct {
 
 	// 待删除对象实例的唯一id列表
 	UniqueId []*string `json:"UniqueId,omitempty" name:"UniqueId" list`
+
+	// 实例分组id, 如果按实例分组删除的话UniqueId参数是无效的
+	InstanceGroupId *int64 `json:"InstanceGroupId,omitempty" name:"InstanceGroupId"`
 }
 
 func (r *UnBindingPolicyObjectRequest) ToJsonString() string {
