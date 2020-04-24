@@ -103,7 +103,7 @@ func (a *AliyunRDSSlowLog) Start(acc telegraf.Accumulator) error {
 		}
 
 		if r.cfg.Interval.Duration == 0 {
-			r.cfg.Interval.Duration = time.Minute * 10
+			r.cfg.Interval.Duration = time.Hour * 24
 		}
 
 		cli, err := rds.NewClientWithAccessKey(instCfg.RegionID, instCfg.AccessKeyID, instCfg.AccessKeySecret)
@@ -151,8 +151,8 @@ func (r *runningInstance) run(ctx context.Context) error {
 			r.exec(val)
 		}
 
-		// internal.SleepContext(ctx, r.cfg.Interval.Duration)
-		internal.SleepContext(ctx, 10*time.Second)
+		internal.SleepContext(ctx, r.cfg.Interval.Duration)
+		// internal.SleepContext(ctx, 10*time.Second)
 	}
 }
 
