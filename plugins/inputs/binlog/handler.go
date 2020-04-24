@@ -2,8 +2,8 @@ package binlog
 
 import (
 	"fmt"
-	"log"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -56,13 +56,113 @@ type MainEventHandler struct {
 	rb *RunningBinloger
 }
 
+func (rb *RunningBinloger) convertValue(v interface{}, col *schema.TableColumn, forTag bool) interface{} {
+	switch col.Type {
+	case schema.TYPE_STRING:
+		if v == nil {
+			return ""
+		} else {
+			return fmt.Sprintf("%v", v)
+		}
+	case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
+		if v == nil {
+			rb.binlog.logger.Warnf("null value of field %s, use default", col.Name)
+			if forTag {
+				return fmt.Sprintf("%v", rb.binlog.NullFloat)
+			}
+			return rb.binlog.NullFloat
+		}
+		vs := fmt.Sprintf("%v", v)
+		if forTag {
+			return vs
+		}
+		fv, err := strconv.ParseFloat(vs, 64)
+		if err == nil {
+			return fv
+		} else {
+			rb.binlog.logger.Errorf("convert to float64 failed, %s", err)
+		}
+	case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT:
+		if v == nil {
+			rb.binlog.logger.Warnf("null value of field %s, use default", col.Name)
+			if forTag {
+				return fmt.Sprintf("%v", rb.binlog.NullInt)
+			}
+			return int64(rb.binlog.NullInt)
+		}
+		vs := fmt.Sprintf("%v", v)
+		if forTag {
+			return vs
+		}
+		nv, err := strconv.ParseInt(vs, 10, 64)
+		if err == nil {
+			return nv
+		} else {
+			rb.binlog.logger.Errorf("convert to integer failed, %s", err)
+		}
+		// if strings.HasPrefix(strings.ToLower(col.col.RawType), "bool") {
+		// 	if bv, err := strconv.Atoi(fmt.Sprintf("%v", row[col.index])); err == nil {
+		// 		if bv > 0 {
+		// 			v = "true"
+		// 		} else {
+		// 			v = "false"
+		// 		}
+		// 	}
+		// }
+	case schema.TYPE_ENUM:
+		if v == nil {
+			return ""
+		}
+		vs := fmt.Sprintf("%v", v)
+		idx, err := strconv.ParseInt(vs, 10, 32)
+		if err == nil && idx > 0 && (idx-1) < int64(len(col.EnumValues)) {
+			return col.EnumValues[idx-1]
+		} else {
+			return vs
+		}
+	case schema.TYPE_SET:
+		if v == nil {
+			return ""
+		}
+		vs := fmt.Sprintf("%v", v)
+		idx, err := strconv.ParseInt(vs, 10, 32)
+		if err == nil && idx > 0 && (idx-1) < int64(len(col.SetValues)) {
+			return col.SetValues[idx-1]
+		} else {
+			return vs
+		}
+	case schema.TYPE_DATE, schema.TYPE_DATETIME, schema.TYPE_TIMESTAMP:
+		if v == nil {
+			return ""
+		}
+		return fmt.Sprintf("%v", v)
+	case schema.TYPE_JSON:
+		if v == nil {
+			return ""
+		}
+		if jv, ok := v.([]byte); ok {
+			return string(jv)
+		} else {
+			if forTag {
+				return ""
+			}
+		}
+	default:
+	}
+
+	if forTag {
+		return fmt.Sprintf("%v", v)
+	}
+	return v
+}
+
 func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 
-	log.Printf("D! [binlog] eventAction: %s, eventType: %v", e.Action, e.Header.EventType)
+	h.rb.binlog.logger.Debugf("eventAction: %s, eventType: %v", e.Action, e.Header.EventType)
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("panic %s", err)
+			h.rb.binlog.logger.Errorf("panic %v", err)
 		}
 	}()
 
@@ -87,13 +187,13 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 		}
 
 		if targetTable == nil {
-			log.Printf("D! [binlog] no match table of %s", e.Table.Name)
+			h.rb.binlog.logger.Debugf("no match table of %s", e.Table.Name)
 			return nil
 		}
 
 		for _, le := range targetTable.ExcludeListenEvents {
 			if le == e.Action {
-				log.Printf("D! [binlog] action [%s] is excluded", e.Action)
+				h.rb.binlog.logger.Debugf("action [%s] is excluded", e.Action)
 				return nil
 			}
 		}
@@ -118,43 +218,53 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 		}
 
 		type TableColumWrap struct {
-			col   schema.TableColumn
+			col   *schema.TableColumn
 			index int
 		}
 
-		var tagCols []*TableColumWrap
-		var fieldCols []*TableColumWrap
+		var tagCols []*TableColumWrap   //表中被配置为tag的列
+		var fieldCols []*TableColumWrap //表中被配置为field的列
 
 		if len(targetTable.Fields) == 0 {
 			//没有指定field, 则默认所有字段为fields
 			for i, c := range e.Table.Columns {
 				fieldCols = append(fieldCols, &TableColumWrap{
-					col:   c,
+					col:   &c,
 					index: i,
 				})
 			}
 		} else {
 			for _, f := range targetTable.Fields {
+				bhave := false
 				for i, c := range e.Table.Columns {
 					if f == c.Name {
 						fieldCols = append(fieldCols, &TableColumWrap{
-							col:   c,
+							col:   &c,
 							index: i,
 						})
+						bhave = true
 						break
 					}
+				}
+				if !bhave {
+					h.rb.binlog.logger.Warnf("field %s not exist in table %s.%s", f, e.Table.Schema, e.Table.Name)
 				}
 			}
 
 			for _, t := range targetTable.Tags {
+				bhave := false
 				for i, c := range e.Table.Columns {
 					if t == c.Name {
 						tagCols = append(tagCols, &TableColumWrap{
-							col:   c,
+							col:   &c,
 							index: i,
 						})
+						bhave = true
 						break
 					}
+				}
+				if !bhave {
+					h.rb.binlog.logger.Warnf("tag %s not exist in table %s.%s", t, e.Table.Schema, e.Table.Name)
 				}
 			}
 		}
@@ -170,49 +280,22 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 			rows = e.Rows
 		}
 
-		defvalForEmptyTag := ""
-
 		for _, row := range rows {
 
 			for _, col := range tagCols {
-				if col.index >= len(row) || e.checkIgnoreColumn(&col.col) {
+
+				if col.index >= len(row) {
+					h.rb.binlog.logger.Warnf("index of %s is %d, but row length=%d", col.col.Name, col.index, len(row))
+					continue
+				}
+				if e.checkIgnoreColumn(col.col) {
 					continue
 				}
 				k := col.col.Name
-				v := ""
-				if row[col.index] == nil {
-					v = defvalForEmptyTag
-				} else {
-
-					switch col.col.Type {
-					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL, schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT, schema.TYPE_SET:
-						v = fmt.Sprintf("%v", row[col.index])
-					case schema.TYPE_ENUM:
-						enumindex := 0
-						if iv, ok := (row[col.index]).(int64); ok {
-							enumindex = int(iv)
-						} else {
-							if iv, ok := (row[col.index]).(int32); ok {
-								enumindex = int(iv)
-							} else {
-								if iv, ok := (row[col.index]).(int); ok {
-									enumindex = iv
-								}
-							}
-						}
-
-						if enumindex > 0 && (enumindex-1) < len(col.col.EnumValues) {
-							v = col.col.EnumValues[enumindex-1]
-						} else {
-							v = defvalForEmptyTag
-						}
-
-					default:
-						v = fmt.Sprintf("%s", row[col.index])
-					}
+				v := h.rb.convertValue(row[col.index], col.col, true)
+				if vs, ok := v.(string); ok {
+					tags[k] = vs
 				}
-
-				tags[k] = v
 			}
 
 			if h.rb.binlog.tags != nil {
@@ -222,66 +305,30 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 			}
 
 			for _, col := range fieldCols {
-				if col.index >= len(row) || e.checkIgnoreColumn(&col.col) {
+				if e.checkIgnoreColumn(col.col) {
+					continue
+				}
+
+				if col.index >= len(row) {
+					h.rb.binlog.logger.Warnf("index of field:%s is %d, but row length=%d", col.col.Name, col.index, len(row))
 					continue
 				}
 				k := col.col.Name
-				var v interface{}
-				if row[col.index] == nil {
-					//v = ""
-					switch col.col.Type {
-					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
-						v = h.rb.binlog.NullFloat
-					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT:
-						v = h.rb.binlog.NullInt
-					}
-				} else {
-					switch col.col.Type {
-					case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
-						v = row[col.index] // fmt.Sprintf("%v", row[col.index])
-					case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT, schema.TYPE_SET:
-						v = row[col.index] // fmt.Sprintf("%vi", row[col.index])
-						if strings.HasPrefix(strings.ToLower(col.col.RawType), "bool") {
-							if bv, err := strconv.Atoi(fmt.Sprintf("%v", row[col.index])); err == nil {
-								if bv > 0 {
-									v = "true"
-								} else {
-									v = "false"
-								}
-							}
-						}
-					case schema.TYPE_ENUM:
-						enumindex := 0
-						if iv, ok := (row[col.index]).(int64); ok {
-							enumindex = int(iv)
-						} else {
-							if iv, ok := (row[col.index]).(int32); ok {
-								enumindex = int(iv)
-							} else {
-								if iv, ok := (row[col.index]).(int); ok {
-									enumindex = iv
-								}
-							}
-						}
-
-						if enumindex > 0 && (enumindex-1) < len(col.col.EnumValues) {
-							v = col.col.EnumValues[enumindex-1]
-						} else {
-							//v = `""`
-						}
-
-					default:
-						v = row[col.index]
-					}
-				}
+				v := h.rb.convertValue(row[col.index], col.col, false)
 				if v != nil {
 					fields[k] = v
 				}
 			}
 
+			finalFields := []string{}
+			for fn, fv := range fields {
+				finalFields = append(finalFields, fmt.Sprintf("%s=%v(%s)", fn, fv, reflect.TypeOf(fv)))
+			}
+			h.rb.binlog.logger.Debugf("finalFields: %s", strings.Join(finalFields, ","))
+
 			var evtime time.Time
 			if e.Header.Timestamp == 0 {
-				log.Printf("W! event time is zero")
+				h.rb.binlog.logger.Warnf("event time is zero")
 				evtime = time.Now()
 			} else {
 				evtime = time.Unix(int64(e.Header.Timestamp), 0)
