@@ -14,7 +14,6 @@ import (
 	"github.com/influxdata/telegraf/metric"
 
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	ftcfg "gitlab.jiagouyun.com/cloudcare-tools/ftagent/cfg"
 	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
 )
 
@@ -85,15 +84,6 @@ func (d *DataClean) startSvr(addr string) error {
 	}()
 
 	return nil
-}
-
-func (d *DataClean) checkRoute(route string) bool {
-	for _, rt := range ftcfg.Cfg.Routes {
-		if route == rt.Name && len(rt.Lua) > 0 && !rt.DisableLua {
-			return true
-		}
-	}
-	return false
 }
 
 func (d *DataClean) apiWriteMetrics(c *gin.Context) {
