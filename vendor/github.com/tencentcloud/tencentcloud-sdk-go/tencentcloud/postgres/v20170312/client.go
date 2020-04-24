@@ -68,6 +68,31 @@ func (c *Client) CloseDBExtranetAccess(request *CloseDBExtranetAccessRequest) (r
     return
 }
 
+func NewCloseServerlessDBExtranetAccessRequest() (request *CloseServerlessDBExtranetAccessRequest) {
+    request = &CloseServerlessDBExtranetAccessRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("postgres", APIVersion, "CloseServerlessDBExtranetAccess")
+    return
+}
+
+func NewCloseServerlessDBExtranetAccessResponse() (response *CloseServerlessDBExtranetAccessResponse) {
+    response = &CloseServerlessDBExtranetAccessResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 关闭serverlessDB实例外网
+func (c *Client) CloseServerlessDBExtranetAccess(request *CloseServerlessDBExtranetAccessRequest) (response *CloseServerlessDBExtranetAccessResponse, err error) {
+    if request == nil {
+        request = NewCloseServerlessDBExtranetAccessRequest()
+    }
+    response = NewCloseServerlessDBExtranetAccessResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewCreateDBInstancesRequest() (request *CreateDBInstancesRequest) {
     request = &CreateDBInstancesRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -89,6 +114,56 @@ func (c *Client) CreateDBInstances(request *CreateDBInstancesRequest) (response 
         request = NewCreateDBInstancesRequest()
     }
     response = NewCreateDBInstancesResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewCreateServerlessDBInstanceRequest() (request *CreateServerlessDBInstanceRequest) {
+    request = &CreateServerlessDBInstanceRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("postgres", APIVersion, "CreateServerlessDBInstance")
+    return
+}
+
+func NewCreateServerlessDBInstanceResponse() (response *CreateServerlessDBInstanceResponse) {
+    response = &CreateServerlessDBInstanceResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口 (CreateServerlessDBInstance) 用于创建一个ServerlessDB实例，创建成功返回实例ID。
+func (c *Client) CreateServerlessDBInstance(request *CreateServerlessDBInstanceRequest) (response *CreateServerlessDBInstanceResponse, err error) {
+    if request == nil {
+        request = NewCreateServerlessDBInstanceRequest()
+    }
+    response = NewCreateServerlessDBInstanceResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewDeleteServerlessDBInstanceRequest() (request *DeleteServerlessDBInstanceRequest) {
+    request = &DeleteServerlessDBInstanceRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("postgres", APIVersion, "DeleteServerlessDBInstance")
+    return
+}
+
+func NewDeleteServerlessDBInstanceResponse() (response *DeleteServerlessDBInstanceResponse) {
+    response = &DeleteServerlessDBInstanceResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口 (DeleteServerlessDBInstance) 用于删除一个ServerlessDB实例。
+func (c *Client) DeleteServerlessDBInstance(request *DeleteServerlessDBInstanceRequest) (response *DeleteServerlessDBInstanceResponse, err error) {
+    if request == nil {
+        request = NewDeleteServerlessDBInstanceRequest()
+    }
+    response = NewDeleteServerlessDBInstanceResponse()
     err = c.Send(request, response)
     return
 }
@@ -268,6 +343,31 @@ func (c *Client) DescribeDBXlogs(request *DescribeDBXlogsRequest) (response *Des
     return
 }
 
+func NewDescribeDatabasesRequest() (request *DescribeDatabasesRequest) {
+    request = &DescribeDatabasesRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("postgres", APIVersion, "DescribeDatabases")
+    return
+}
+
+func NewDescribeDatabasesResponse() (response *DescribeDatabasesResponse) {
+    response = &DescribeDatabasesResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 接口（DescribeDatabases）用来拉取数据库列表
+func (c *Client) DescribeDatabases(request *DescribeDatabasesRequest) (response *DescribeDatabasesResponse, err error) {
+    if request == nil {
+        request = NewDescribeDatabasesRequest()
+    }
+    response = NewDescribeDatabasesResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewDescribeOrdersRequest() (request *DescribeOrdersRequest) {
     request = &DescribeOrdersRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -343,6 +443,31 @@ func (c *Client) DescribeRegions(request *DescribeRegionsRequest) (response *Des
     return
 }
 
+func NewDescribeServerlessDBInstancesRequest() (request *DescribeServerlessDBInstancesRequest) {
+    request = &DescribeServerlessDBInstancesRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("postgres", APIVersion, "DescribeServerlessDBInstances")
+    return
+}
+
+func NewDescribeServerlessDBInstancesResponse() (response *DescribeServerlessDBInstancesResponse) {
+    response = &DescribeServerlessDBInstancesResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 用于查询一个或多个serverlessDB实例的详细信息
+func (c *Client) DescribeServerlessDBInstances(request *DescribeServerlessDBInstancesRequest) (response *DescribeServerlessDBInstancesResponse, err error) {
+    if request == nil {
+        request = NewDescribeServerlessDBInstancesRequest()
+    }
+    response = NewDescribeServerlessDBInstancesResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewDescribeZonesRequest() (request *DescribeZonesRequest) {
     request = &DescribeZonesRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -364,6 +489,31 @@ func (c *Client) DescribeZones(request *DescribeZonesRequest) (response *Describ
         request = NewDescribeZonesRequest()
     }
     response = NewDescribeZonesResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewDestroyDBInstanceRequest() (request *DestroyDBInstanceRequest) {
+    request = &DestroyDBInstanceRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("postgres", APIVersion, "DestroyDBInstance")
+    return
+}
+
+func NewDestroyDBInstanceResponse() (response *DestroyDBInstanceResponse) {
+    response = &DestroyDBInstanceResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口 (DestroyDBInstance) 用于销毁指定DBInstanceId对应的实例。
+func (c *Client) DestroyDBInstance(request *DestroyDBInstanceRequest) (response *DestroyDBInstanceResponse, err error) {
+    if request == nil {
+        request = NewDestroyDBInstanceRequest()
+    }
+    response = NewDestroyDBInstanceResponse()
     err = c.Send(request, response)
     return
 }
@@ -564,6 +714,31 @@ func (c *Client) OpenDBExtranetAccess(request *OpenDBExtranetAccessRequest) (res
         request = NewOpenDBExtranetAccessRequest()
     }
     response = NewOpenDBExtranetAccessResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewOpenServerlessDBExtranetAccessRequest() (request *OpenServerlessDBExtranetAccessRequest) {
+    request = &OpenServerlessDBExtranetAccessRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("postgres", APIVersion, "OpenServerlessDBExtranetAccess")
+    return
+}
+
+func NewOpenServerlessDBExtranetAccessResponse() (response *OpenServerlessDBExtranetAccessResponse) {
+    response = &OpenServerlessDBExtranetAccessResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 开通serverlessDB实例外网
+func (c *Client) OpenServerlessDBExtranetAccess(request *OpenServerlessDBExtranetAccessRequest) (response *OpenServerlessDBExtranetAccessResponse, err error) {
+    if request == nil {
+        request = NewOpenServerlessDBExtranetAccessRequest()
+    }
+    response = NewOpenServerlessDBExtranetAccessResponse()
     err = c.Send(request, response)
     return
 }
