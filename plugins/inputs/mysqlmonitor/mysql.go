@@ -10,6 +10,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/influxdata/telegraf"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -77,10 +78,10 @@ func (o *MysqlMonitor) Start(acc telegraf.Accumulator) error {
 			r.cfg.Interval.Duration = time.Minute * 5
 		}
 
-		connStr := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", instCfg.Username, instCfg.Password, instCfg.Host, instCfg.Port, instCfg.Database)
-		db, err := sql.Open("godror", connStr)
+		connStr := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", instCfg.Username, instCfg.Password, instCfg.Host, instCfg.Port, instCfg.Database)
+		db, err := sql.Open("mysql", connStr)
 		if err != nil {
-			r.logger.Errorf("oracle connect faild %v", err)
+			r.logger.Errorf("mysql connect faild %v", err)
 		}
 		r.db = db
 
@@ -120,10 +121,8 @@ func (r *runningInstance) command() {
 	for key, item := range metricMap {
 		resMap, err := r.Query(item)
 		if err != nil {
-			r.logger.Errorf("mysql connect faild %v", err)
+			r.logger.Errorf("mysql query faild %v", err)
 		}
-
-		fmt.Println("=======key", key)
 
 		r.handleResponse(key, resMap)
 	}
