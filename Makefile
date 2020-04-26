@@ -26,7 +26,7 @@ define build
 	@export GO111MODULE=off
 	@mkdir -p build $(PUB_DIR)/$(1)
 	@mkdir -p git
-	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
+	@echo 'package git; const (BuildAt string=""; Version string=""; Golang string="")' > git/git.go
 	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -cgo $(3) -download-addr $(4)
 	tree -Csh build pub
