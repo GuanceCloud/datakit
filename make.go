@@ -422,7 +422,7 @@ func tarFiles(osname, arch string) {
 		`czf`,
 		path.Join(*flagPubDir, *flagRelease, fmt.Sprintf("%s-%s-%s-%s.tar.gz",
 			*flagName, osname, arch, string(curVersion))),
-		path.Join("agent-binary", osname, telegrafAgentName),
+		path.Join("embed", telegrafAgentName),
 		`-C`,
 
 		// the whole build/datakit-<os>-<arch> dir
