@@ -62,6 +62,7 @@ var (
 		`amqp`,
 		`amqp_consumer`,
 		`github`,
+		`uwsgi`,
 	}
 
 	MetricsEnablesFlags = make([]bool, len(SupportsTelegrafMetraicNames))
@@ -2222,4 +2223,15 @@ func InitTelegrafSamples() {
 #   ## Use only ipv6 addresses when resolving hostnames.
 #   # ipv6 = false
 `
+	telegrafCfgSamples[`uwsgi`] = `
+# #[[inputs.uwsgi]]
+  ## List with urls of uWSGI Stats servers. Url must match pattern:
+  ## scheme://address[:port]
+  ##
+  ## For example:
+  ## servers = ["tcp://localhost:5050", "http://localhost:1717", "unix:///tmp/statsock"]
+  ## servers = ["tcp://127.0.0.1:1717"]
+
+  ## General connection timout
+  # timeout = "5s"`
 }
