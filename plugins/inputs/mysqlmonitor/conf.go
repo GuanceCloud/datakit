@@ -11,7 +11,7 @@ const (
 #  instanceId = ''
 #  instanceDesc = ''
 #  host = '10.200.6.53'
-#  port = '40022'
+#  port = '3306'
 #  username = 'root'
 #  password = 'root'
 #  database = ''
