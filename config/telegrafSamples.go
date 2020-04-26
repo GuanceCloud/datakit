@@ -62,6 +62,7 @@ var (
 		`amqp`,
 		`amqp_consumer`,
 		`github`,
+		`solr`,
 	}
 
 	MetricsEnablesFlags = make([]bool, len(SupportsTelegrafMetraicNames))
@@ -2221,5 +2222,19 @@ func InitTelegrafSamples() {
 #
 #   ## Use only ipv6 addresses when resolving hostnames.
 #   # ipv6 = false
+`
+
+	telegrafCfgSamples[`solr`] = `
+# # Read stats from one or more Solr servers or cores
+# [[inputs.solr]]
+#   ## specify a list of one or more Solr servers
+#   servers = ["http://localhost:8983"]
+#
+#   ## specify a list of one or more Solr cores (default - all)
+#   # cores = ["main"]
+#
+#   ## Optional HTTP Basic Auth Credentials
+#   # username = "username"
+#   # password = "pa$$word"
 `
 }
