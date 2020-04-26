@@ -26,27 +26,13 @@ var (
 	flagUpgrade     = flag.Bool("upgrade", false, ``)
 	flagDataway     = flag.String("dataway", "", `address of dataway`)
 	flagInstallDir  = flag.String("installdir", `C:\Program Files (x86)\Forethought\`+ServiceName, `directory to install`)
-	flagDownloadURL = flag.String("base-download-url", "", "base download path")
+	flagDownloadURL = flag.String("downloadurl", "", "base download path")
+	flagGZPath      = flag.String("gzpath", "", "datakit gzip path")
 	flagVersion     = flag.Bool("version", false, "show installer version info")
 )
 
-func downloadDatakit(url, to string) {
-	log.Println("start downloading...")
-
-	client := &http.Client{}
-	resp, err := client.Get(*flagDownloadURL)
-	if err != nil {
-		log.Fatalf("[error] download %s failed: %s", url, err.Error())
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode/100 != 2 {
-		log.Fatalf("[error] download %s failed: %s", url, resp.Status)
-	}
-
-	// the body should be gzip
-	gzr, err := gzip.NewReader(resp.Body)
+func doExtract(r io.Reader, to string) {
+	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		log.Fatalf("[error] %s", err.Error())
 	}
@@ -54,11 +40,10 @@ func downloadDatakit(url, to string) {
 	defer gzr.Close()
 	tr := tar.NewReader(gzr)
 	for {
-	__next:
 		hdr, err := tr.Next()
 		switch {
 		case err == io.EOF:
-			goto __next
+			return
 		case err != nil:
 			log.Fatalf("[error] %s", err.Error())
 		case hdr == nil:
@@ -75,6 +60,12 @@ func downloadDatakit(url, to string) {
 			}
 
 		case tar.TypeReg:
+
+			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+				log.Fatalf("[error] %s", err.Error())
+			}
+
+			log.Printf("[debug] create %s ok, extract file %s", filepath.Dir(target), target)
 			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
 			if err != nil {
 				log.Fatalf("[error] %s", err.Error())
@@ -85,8 +76,38 @@ func downloadDatakit(url, to string) {
 			}
 
 			f.Close()
+			log.Printf("[debug] extract file %s ok", target)
 		}
 	}
+}
+
+func extractDatakit(gz, to string) {
+	data, err := os.Open(gz)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer data.Close()
+
+	doExtract(data, to)
+}
+
+func downloadDatakit(url, to string) {
+	log.Println("start downloading...")
+
+	client := &http.Client{}
+	resp, err := client.Get(*flagDownloadURL)
+	if err != nil {
+		log.Fatalf("[error] download %s failed: %s", url, err.Error())
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode/100 != 2 {
+		log.Fatalf("[error] download %s failed: %s", url, resp.Status)
+	}
+
+	doExtract(resp.Body, to)
 }
 
 func main() {
@@ -97,10 +118,9 @@ func main() {
 
 	if *flagVersion {
 		fmt.Printf(`Version:        %s
-Sha1:           %s
 Build At:       %s
 Golang Version: %s
-`, git.Version, git.Sha1, git.BuildAt, git.Golang)
+`, git.Version, git.BuildAt, git.Golang)
 		return
 	}
 
@@ -118,22 +138,28 @@ Golang Version: %s
 		cmd.CombinedOutput()
 	}
 
-	if *flagDownloadURL == "" {
-		log.Fatalf("[error] download URL not set")
-	}
+	//if *flagDownloadURL == "" {
+	//	log.Fatalf("[error] download URL not set")
+	//}
 
-	downloadDatakit(*flagDownloadURL, *flagInstallDir)
+	//downloadDatakit(*flagDownloadURL, *flagInstallDir)
+	extractDatakit(*flagGZPath, *flagInstallDir)
 
 	datakitExe := filepath.Join(*flagInstallDir, "datakit.exe")
 	var err error
 
+	deleteSvr()
 	if *flagUpgrade {
+
+		log.Printf("[debug] stop and delete old datakit service...")
+
 		// upgrade new version
 		cmd := exec.Command(datakitExe, "-upgrade")
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
 
+		log.Printf("[debug] upgrading...")
 		if err = cmd.Run(); err != nil {
 			os.Exit(1)
 		}
@@ -144,13 +170,12 @@ Golang Version: %s
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
 
+		log.Printf("[debug] initing datakit...")
 		if err = cmd.Run(); err != nil {
 			os.Exit(1)
 		}
 
 		cfgpath := filepath.Join(*flagInstallDir, fmt.Sprintf("%s.conf", ServiceName))
-
-		deleteSvr()
 
 		log.Printf("[info] try install service %s", ServiceName)
 		for index := 0; index < 3; index++ {
@@ -167,6 +192,8 @@ Golang Version: %s
 			return
 		}
 	}
+
+	log.Printf("[debug] install service ok")
 
 	log.Println(":)Success!")
 }
