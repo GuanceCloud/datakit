@@ -4,7 +4,6 @@
 proxy_config.yaml
 pub
 a.out
-*.exe
 test.go
 build/
 builds/
