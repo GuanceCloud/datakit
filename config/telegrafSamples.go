@@ -63,6 +63,7 @@ var (
 		`amqp_consumer`,
 		`github`,
 		`uwsgi`,
+		`solr`,
 	}
 
 	MetricsEnablesFlags = make([]bool, len(SupportsTelegrafMetraicNames))
@@ -2234,4 +2235,18 @@ func InitTelegrafSamples() {
 
   ## General connection timout
   # timeout = "5s"`
+
+	telegrafCfgSamples[`solr`] = `
+# # Read stats from one or more Solr servers or cores
+# [[inputs.solr]]
+#   ## specify a list of one or more Solr servers
+#   servers = ["http://localhost:8983"]
+#
+#   ## specify a list of one or more Solr cores (default - all)
+#   # cores = ["main"]
+#
+#   ## Optional HTTP Basic Auth Credentials
+#   # username = "username"
+#   # password = "pa$$word"
+`
 }
