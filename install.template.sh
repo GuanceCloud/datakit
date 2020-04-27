@@ -97,7 +97,7 @@ function set_config() {
 	else
 		info "init config"
         #generate config
-        config_cmd="$BINARY --init --ftdataway ${dk_ftdataway} --cfg $1"
+        config_cmd="$BINARY --init --dataway ${dk_ftdataway} --cfg $1"
         $sudo_cmd $config_cmd
 
 		# set permission on $1
@@ -172,9 +172,9 @@ function host_install() {
 	$sudo_cmd chmod +x "$AGENTBINARY"
 
 	if type ldconfig; then
-		mkdir -p /etc/ld.so.conf.d
-		echo "${USRDIR}/deps" > /etc/ld.so.conf.d/datakit.conf
-		ldconfig
+		$sudo_cmd mkdir -p /etc/ld.so.conf.d
+		$sudo_cmd echo "${USRDIR}/deps" > /etc/ld.so.conf.d/datakit.conf
+		$sudo_cmd ldconfig
 	fi
 
 	if [ -f "${USRDIR}/agent.log" ]; then
