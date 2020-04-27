@@ -78,7 +78,7 @@ func (o *OracleMonitor) Start(acc telegraf.Accumulator) error {
 			r.cfg.Interval.Duration = time.Minute * 5
 		}
 
-		connStr := fmt.Sprintf("%s/%s@%s/%s", instCfg.Username, instCfg.Password, instCfg.Server, instCfg.Name)
+		connStr := fmt.Sprintf("%s/%s@%s/%s", instCfg.Username, instCfg.Password, instCfg.Host, instCfg.Name)
 		db, err := sql.Open("godror", connStr)
 		if err != nil {
 			r.logger.Errorf("oracle connect faild %v", err)
@@ -124,8 +124,6 @@ func (r *runningInstance) command() {
 			r.logger.Errorf("oracle connect faild %v", err)
 		}
 
-		fmt.Println("=======key", key)
-
 		r.handleResponse(key, resMap)
 	}
 }
@@ -134,13 +132,21 @@ func (r *runningInstance) handleResponse(m string, response []map[string]interfa
 	for _, item := range response {
 		tags := map[string]string{}
 
-		tags["oracle_sid"] = r.cfg.Sid
-		tags["oracle_server"] = r.cfg.Name
+		// tags["oracle_sid"] = r.cfg.Sid
+		tags["oracle_server"] = r.cfg.Server
 		tags["oracle_port"] = r.cfg.Port
-		tags["instanceId"] = r.cfg.InstanceId
+		tags["instance_id"] = r.cfg.InstanceId
 		tags["product"] = "oracle"
-		tags["host"] = r.cfg.Server
+		tags["host"] = r.cfg.Host
 		tags["type"] = m
+
+		for key, val := range item {
+			if v, ok := tagsMap[key]; ok {
+				for _, tagKey := range v {
+					tags[tagKey] = val.(string)
+				}
+			}
+		}
 
 		r.agent.accumulator.AddFields(r.metricName, item, tags)
 	}
@@ -151,7 +157,6 @@ func (r *runningInstance) handleResponse(m string, response []map[string]interfa
 func (r *runningInstance) Query(sql string) ([]map[string]interface{}, error) {
 	rows, err := r.db.Query(sql)
 	if err != nil {
-		fmt.Println("======aaaaa", err)
 		return nil, err
 	}
 	defer rows.Close()
