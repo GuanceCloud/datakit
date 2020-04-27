@@ -424,12 +424,9 @@ func tarFiles(osname, arch string) {
 			*flagName, osname, arch, string(curVersion))),
 		path.Join("embed", telegrafAgentName),
 		`-C`,
-
 		// the whole build/datakit-<os>-<arch> dir
 		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s-%s", *flagName, osname, arch)), `.`,
 	}
-
-	log.Printf("[debug] tar args: %+#v", args)
 
 	cmd := exec.Command("tar", args...)
 
