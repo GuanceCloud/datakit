@@ -152,7 +152,6 @@ func (r *runningInstance) run(ctx context.Context) error {
 		}
 
 		internal.SleepContext(ctx, r.cfg.Interval.Duration)
-		// internal.SleepContext(ctx, 10*time.Second)
 	}
 }
 
