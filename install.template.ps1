@@ -23,13 +23,17 @@ if ($dw -eq $null) {
 Write-Host $("* Downloading installer-windows-amd64-{0:C}..." -f $version) -ForegroundColor Green
 Invoke-WebRequest -Uri $download_installer_from -OutFile "dk-installer.exe"
 
-Write-Host $("* Downloading datakit-windows-amd64-{0:C}..." -f $version) -ForegroundColor Green
-Invoke-WebRequest -Uri $download_datakit_from -OutFile "datakit.tar.gz"
+if (Test-Path datakit.tar.gz) {
+	Write-Hosta '* Skip download datakit.tar.gz' -ForegroundColor Green
+} else {
+	Write-Host $("* Downloading datakit-windows-amd64-{0:C}..." -f $version) -ForegroundColor Green
+	Invoke-WebRequest -Uri $download_datakit_from -OutFile "datakit.tar.gz"
+}
 
-$args = @("-dataway", $dw, "-installdir", $install_dir, "-gzpath", "datakit.tar.gz")
+$args = @("-dataway", $dw, "-install-dir", $install_dir, "-gzpath", "datakit.tar.gz", "-install-log", "dk-install.log")
 if ($upgrade -eq 1) {
 	Write-Host $("* Upgrading to datakit-windows-amd64-{0:C}..." -f $version) -ForegroundColor Green
-	$args = @("-gzpath", "datakit.tar.gz", "-upgrade")
+	$args = @("-gzpath", "datakit.tar.gz", "-upgrade", "-install-log", "dk-install.log")
 } else {
 	Write-Host $("* Installing datakit-windows-amd64-{0:C}..." -f $version) -ForegroundColor Green
 }
