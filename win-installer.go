@@ -23,7 +23,7 @@ var (
 	ServiceName = `datakit`
 
 	flagUpgrade    = flag.Bool("upgrade", false, ``)
-	flagDataway    = flag.String("dataway", "", `address of dataway`)
+	flagDataway    = flag.String("dataway", "", `address of dataway(ip:port)`)
 	flagInstallDir = flag.String("install-dir", `C:\Program Files (x86)\Forethought\`+ServiceName, `directory to install`)
 	flagInstallLog = flag.String("install-log", ``, `install log`)
 	flagGZPath     = flag.String("gzpath", "", "datakit gzip path")
@@ -149,7 +149,7 @@ Golang Version: %s
 			log.Fatal("[error] upgrade datakit failed: %s", err.Error())
 		}
 	} else { // install new datakit
-		if err := initDatakit(datakitExe, *flagDataway); err != nil {
+		if err := initDatakit(datakitExe, fmt.Sprintf("http://%s/v1/write/metrics", *flagDataway)); err != nil {
 			log.Fatal("[error] init datakit failed: %s", err.Error())
 		}
 
