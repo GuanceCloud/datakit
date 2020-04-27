@@ -7,15 +7,25 @@ const (
 #[[oracle]]
 #  ## 采集的频度，最小粒度5m
 #  interval = '10s'
+#  ## 指标集名称，默认值oracle_monitor
 #  metricName = ''
+#  ## 实例ID(非必要属性)
 #  instanceId = ''
+#  ## # 实例描述(非必要属性)
 #  instanceDesc = ''
-#  server = '10.200.6.53'
-#  port = '40022'
-#  username = 'root'
-#  password = 'root'
+#  ## oracle实例地址(ip)
+#  host = ''
+#  ## oracle监听端口
+#  port = ''
+#  ## 帐号
+#  username = ''
+#  ## 密码
+#  password = ''
+#  ## oracle的服务名
+#  server = ''
+#  ## 该种认证方式暂不支持
 #  sid = ''
-#  name = ''
+#  ## 实例类型 例如 单实例、DG、RAC 等，非必要属性
 #  type= 'singleInstance'
 #  
 `
@@ -28,9 +38,9 @@ type Oracle struct {
 	Username     string            `toml:"username"`
 	Password     string            `toml:"password"`
 	InstanceDesc string            `toml:"instanceDesc"`
-	Server       string            `toml:"server"`
+	Host         string            `toml:"host"`
 	Port         string            `toml:"port"`
 	Sid          string            `toml:"sid"`
-	Name         string            `toml:"name"`
+	Server       string            `toml:"server"`
 	TType        string            `toml:"type"`
 }
