@@ -69,6 +69,7 @@ func (o *OracleMonitor) Start(acc telegraf.Accumulator) error {
 			agent:  o,
 			logger: o.logger,
 		}
+
 		r.metricName = instCfg.MetricName
 		if r.metricName == "" {
 			r.metricName = "oracle_monitor"
@@ -78,7 +79,7 @@ func (o *OracleMonitor) Start(acc telegraf.Accumulator) error {
 			r.cfg.Interval.Duration = time.Minute * 5
 		}
 
-		connStr := fmt.Sprintf("%s/%s@%s/%s", instCfg.Username, instCfg.Password, instCfg.Host, instCfg.Name)
+		connStr := fmt.Sprintf("%s/%s@%s/%s", instCfg.Username, instCfg.Password, instCfg.Host, instCfg.Server)
 		db, err := sql.Open("godror", connStr)
 		if err != nil {
 			r.logger.Errorf("oracle connect faild %v", err)
@@ -112,8 +113,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 
 		go r.command()
 
-		// internal.SleepContext(ctx, r.cfg.Interval.Duration)
-		internal.SleepContext(ctx, 10*time.Second)
+		internal.SleepContext(ctx, r.cfg.Interval.Duration)
 	}
 }
 
