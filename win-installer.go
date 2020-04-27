@@ -9,26 +9,25 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 
 	"github.com/kardianos/service"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logio"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
 	ServiceName = `datakit`
 
-	flagUpgrade     = flag.Bool("upgrade", false, ``)
-	flagDataway     = flag.String("dataway", "", `address of dataway`)
-	flagInstallDir  = flag.String("installdir", `C:\Program Files (x86)\Forethought\`+ServiceName, `directory to install`)
-	flagDownloadURL = flag.String("downloadurl", "", "base download path")
-	flagGZPath      = flag.String("gzpath", "", "datakit gzip path")
-	flagVersion     = flag.Bool("version", false, "show installer version info")
+	flagUpgrade    = flag.Bool("upgrade", false, ``)
+	flagDataway    = flag.String("dataway", "", `address of dataway`)
+	flagInstallDir = flag.String("install-dir", `C:\Program Files (x86)\Forethought\`+ServiceName, `directory to install`)
+	flagInstallLog = flag.String("install-log", ``, `install log`)
+	flagGZPath     = flag.String("gzpath", "", "datakit gzip path")
+	flagVersion    = flag.Bool("version", false, "show installer version info")
 )
 
 func doExtract(r io.Reader, to string) {
@@ -92,27 +91,21 @@ func extractDatakit(gz, to string) {
 	doExtract(data, to)
 }
 
-func downloadDatakit(url, to string) {
-	log.Println("start downloading...")
-
-	client := &http.Client{}
-	resp, err := client.Get(*flagDownloadURL)
-	if err != nil {
-		log.Fatalf("[error] download %s failed: %s", url, err.Error())
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode/100 != 2 {
-		log.Fatalf("[error] download %s failed: %s", url, resp.Status)
-	}
-
-	doExtract(resp.Body, to)
-}
-
 func main() {
 
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	if *flagInstallLog == "" {
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+	} else {
+		o := &logio.Option{
+			Path:  *flagInstallLog,
+			Level: "DEBUG",
+			Flags: log.LstdFlags | log.Lshortfile,
+		}
+
+		if err := o.SetLog(); err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	flag.Parse()
 
@@ -129,122 +122,99 @@ Golang Version: %s
 		log.Fatalf("[error] %s", err.Error())
 	}
 
-	if *flagUpgrade {
-		log.Printf("[info] start upgrading %s under %s", ServiceName, *flagInstallDir)
+	datakitExe := filepath.Join(*flagInstallDir, "datakit.exe")
 
-		// stop exist service
-		log.Printf("[info] stopping %s", ServiceName)
-		cmd := exec.Command(`sc`, `stop`, ServiceName)
-		cmd.CombinedOutput()
+	prog := &program{}
+	cfgpath := filepath.Join(*flagInstallDir, fmt.Sprintf("%s.conf", ServiceName))
+	dkservice, err := service.New(prog, &service.Config{
+		Name:        ServiceName,
+		DisplayName: ServiceName,
+		Description: `Collects data and upload it to DataFlux.`,
+		Arguments:   []string{"/config", cfgpath},
+		Executable:  datakitExe,
+	})
+
+	if err != nil {
+		log.Fatal("[error] new service failed: %s", err.Error())
 	}
 
-	//if *flagDownloadURL == "" {
-	//	log.Fatalf("[error] download URL not set")
-	//}
+	if err := deleteDataKitService(dkservice); err != nil {
+		// ignore
+	}
 
-	//downloadDatakit(*flagDownloadURL, *flagInstallDir)
 	extractDatakit(*flagGZPath, *flagInstallDir)
 
-	datakitExe := filepath.Join(*flagInstallDir, "datakit.exe")
-	var err error
-
-	deleteSvr()
-	if *flagUpgrade {
-
-		log.Printf("[debug] stop and delete old datakit service...")
-
-		// upgrade new version
-		cmd := exec.Command(datakitExe, "-upgrade")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-
-		log.Printf("[debug] upgrading...")
-		if err = cmd.Run(); err != nil {
-			os.Exit(1)
+	if *flagUpgrade { // upgrade new version
+		if err := upgradeDatakit(datakitExe); err != nil {
+			log.Fatal("[error] upgrade datakit failed: %s", err.Error())
 		}
-	} else {
-		// install new datakit
-		cmd := exec.Command(datakitExe, "-init", "-dataway", *flagDataway)
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-
-		log.Printf("[debug] initing datakit...")
-		if err = cmd.Run(); err != nil {
-			os.Exit(1)
+	} else { // install new datakit
+		if err := initDatakit(datakitExe, *flagDataway); err != nil {
+			log.Fatal("[error] init datakit failed: %s", err.Error())
 		}
-
-		cfgpath := filepath.Join(*flagInstallDir, fmt.Sprintf("%s.conf", ServiceName))
 
 		log.Printf("[info] try install service %s", ServiceName)
-		for index := 0; index < 3; index++ {
-			err = regSvr(datakitExe, cfgpath, false)
-			if err == nil {
-				break
-			} else {
-				time.Sleep(time.Second)
-			}
+		if err := installDatakitService(dkservice); err != nil {
+			log.Fatalf("[error] fail to register service %s: %s", ServiceName, err.Error())
 		}
 
-		if err != nil {
+		log.Printf("[info] try start service %s", ServiceName)
+		if err := startDatakitService(dkservice); err != nil {
 			log.Fatalf("[error] fail to register service %s: %s", ServiceName, err.Error())
-			return
 		}
 	}
-
-	log.Printf("[debug] install service ok")
 
 	log.Println(":)Success!")
 }
 
-type program struct {
-}
+type program struct{}
 
-func (p *program) Start(s service.Service) error {
-	go p.run(s)
-	return nil
-}
+func (p *program) Start(s service.Service) error { go p.run(s); return nil }
+func (p *program) run(s service.Service)         {}
+func (p *program) Stop(s service.Service) error  { return nil }
 
-func (p *program) run(s service.Service) {
-}
+func deleteDataKitService(s service.Service) error {
 
-func (p *program) Stop(s service.Service) error {
-	return nil
-}
-
-func deleteSvr() error {
-	cmd := exec.Command(`sc`, "stop", `datakit`)
-	cmd.CombinedOutput()
-
-	time.Sleep(time.Millisecond * 200)
-
-	cmd = exec.Command(`sc`, "delete", `datakit`)
-	cmd.CombinedOutput()
-
-	return nil
-}
-
-func regSvr(exepath, cfgpath string, remove bool) error {
-	svcConfig := &service.Config{
-		Name:        ServiceName,
-		DisplayName: ServiceName,
-		Description: `Collects data and publishes it to dataway.`,
-		Arguments:   []string{"/config", cfgpath},
-		Executable:  exepath,
+	if err := service.Control(s, "stop"); err != nil {
+		log.Printf("[warn] stop service datakit failed: %s, ignored", err.Error())
 	}
 
-	prg := &program{}
-	s, err := service.New(prg, svcConfig)
-	if err != nil {
+	if err := service.Control(s, "uninstall"); err != nil {
+		log.Printf("[warn] uninstall service datakit failed: %s, ignored", err.Error())
+	}
+
+	return nil
+}
+
+func installDatakitService(s service.Service) error {
+	return service.Control(s, "install")
+}
+
+func startDatakitService(s service.Service) error {
+	return service.Control(s, "start")
+}
+
+func initDatakit(exe, dw string) error {
+
+	cmd := exec.Command(exe, "-init", "-dataway", dw)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+
+	log.Printf("[debug] initing datakit...")
+	if err := cmd.Run(); err != nil {
 		return err
 	}
 
-	if remove {
-		service.Control(s, "stop")
-		time.Sleep(time.Millisecond * 100)
-		return service.Control(s, "uninstall")
-	} else {
-		return service.Control(s, "install")
-	}
+	return nil
+}
+
+func upgradeDatakit(exe string) error {
+	cmd := exec.Command(exe, "-upgrade")
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+
+	log.Printf("[debug] datakit upgrading...")
+	return cmd.Run()
 }
