@@ -434,3 +434,27 @@ var metricMap = map[string]string{
 	"oracle_cdb_backup_job_info": oracle_cdb_backup_job_info_sql,
 	"oracle_snap_info":           oracle_snap_info_sql,
 }
+
+var tagsMap = map[string][]string{
+	"oracle_pdb_backup_set_info": []string{"bs_key"},
+	"oracle_cdb_backup_job_info": []string{"bs_key"},
+	"oracle_hostinfo":            []string{"stat_name"},
+	"oracle_dbinfo":              []string{"ora_db_id"},
+	"oracle_key_params":          []string{"name"},
+	"oracle_blocking_sessions":   []string{"serial"},
+	"oracle_redo_info":           []string{"group_no", "sequence_no"},
+	"oracle_standby_log":         []string{"message_num"},
+	"oracle_standby_process":     []string{"process_seq"},
+	"oracle_asm_diskgroups":      []string{"group_number", "group_name"},
+	"oracle_flash_area_info":     []string{"name"},
+	"oracle_tbs_free_space":      []string{"tablespace_name"},
+	"oracle_tbs_space":           []string{"tablespace_name"},
+	"oracle_tbs_meta_info":       []string{"tablespace_name"},
+	"oracle_temp_segment_usage":  []string{"tablespace_name"},
+	"oracle_pgastat":             []string{"name"},
+	"oracle_accounts":            []string{"username", "user_id"},
+	"oracle_locks":               []string{"session_id"},
+	"oracle_session_ratio":       []string{"parameter"},
+	"oracle_sessions":            []string{"serial", "username"},
+	"oracle_snap_info":           []string{"dbid", "snap_id"},
+}
