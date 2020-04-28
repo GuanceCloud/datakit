@@ -15,7 +15,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/lua"
 	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
 )
@@ -451,18 +450,18 @@ func (l *luaMachine) LuaClean(contentType string, body []byte, route string, tid
 
 	switch contentType {
 	case `application/x-protobuf`:
-		pts, err = filter.ParsePromToInflux(body, route)
+		pts, err = ParsePromToInflux(body, route)
 		if err != nil {
 			l.logger.Errorf("[%s] %s", tid, err.Error())
 			err = utils.ErrParsePromPointFailed
 		}
 	case `application/json`:
-		pts, err = filter.ParseJsonInflux(body, route)
+		pts, err = ParseJsonInflux(body, route)
 		if err != nil {
 			l.logger.Errorf("[%s] %s", tid, err.Error())
 		}
 	default:
-		pts, err = filter.ParseInflux(body, "n", route)
+		pts, err = ParsePoints(body, "n")
 		if err != nil {
 			l.logger.Errorf("[%s] %s", tid, err.Error())
 			err = utils.ErrParseInfluxPointFailed
