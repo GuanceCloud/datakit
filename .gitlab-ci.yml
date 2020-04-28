@@ -1,0 +1,36 @@
+before_script:
+  - rm -rf /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+  - mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+  - cp -r ./. /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+  - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+  - export GO111MODULE=off
+  - source ~/.ossenv
+
+variables:
+  PROJECT: "datakit"
+
+stages:
+  - deploy
+
+build-dev:
+  stage: deploy
+  only:
+    - CI # for test
+    - dev
+  script:
+    - make local
+    - make pub_local
+    #- make test
+    #- make pub_test
+  tags:
+    - cloudcare-ft
+
+build-release:
+  stage: deploy
+  only:
+    - release
+  script:
+    - make release
+    - make pub_release
+  tags:
+    - cloudcare-ft
