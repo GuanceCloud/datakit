@@ -25,7 +25,7 @@ const (
 #  server = ''
 #  ## 实例类型 例如 单实例、DG、RAC 等，非必要属性
 #  type= 'singleInstance'
-#  
+#
 `
 )
 
