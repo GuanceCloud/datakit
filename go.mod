@@ -50,6 +50,7 @@ require (
 	github.com/sirupsen/logrus v1.5.0 // indirect
 	github.com/spf13/cobra v0.0.6 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.123+incompatible
+	github.com/tidwall/gjson v1.3.0
 	github.com/ucloud/ucloud-sdk-go v0.14.0
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200227072035-1dd4eb09d824
