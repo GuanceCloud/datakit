@@ -40,35 +40,32 @@ var (
 
 	curVersion string
 	osarches   = []string{
-		//"aix/ppc64",
-		//"linux/amd64",
-		//"windows/amd64",
+		`windows/amd64`,
+		`freebsd/amd64`,
 
 		//`android/amd64`,
 		//`android/arm64`,
 		//`darwin/arm64`,
 		`dragonfly/amd64`,
-		`freebsd/amd64`,
 		`illumos/amd64`,
-		`js/wasm`,
+		//`js/wasm`,
 		`linux/amd64`,
 		`linux/arm64`,
 		`linux/mips64`,
 		`linux/mips64le`,
-		`linux/mipsle`,
+		//`linux/mipsle`,
 		`linux/ppc64`,
 		`linux/ppc64le`,
-		`linux/s390x`,
-		`nacl/amd64p32`,
-		`nacl/arm`,
+		//`linux/s390x`,
+		//`nacl/amd64p32`,
+		//`nacl/arm`,
 		`netbsd/amd64`,
 		`netbsd/arm64`,
 		`openbsd/amd64`,
-		`openbsd/arm64`,
-		`plan9/amd64`,
+		//`openbsd/arm64`,
+		//`plan9/amd64`,
 		`solaris/amd64`,
-		`windows/amd64`,
-		`windows/arm`,
+		//`windows/arm`,
 
 		`aix/ppc64`,
 		`darwin/amd64`,
@@ -103,7 +100,7 @@ func runEnv(args, env []string) {
 	// log.Printf("%s %s", strings.Join(env, " "), strings.Join(args, " "))
 	err := cmd.Run()
 	if err != nil {
-		log.Fatalf("failed to run %v, envs: %v: %v", args, env, err)
+		log.Printf("[error] failed to run %v, envs: %v: %v", args, env, err)
 	}
 }
 
@@ -128,6 +125,7 @@ func compileArch(bin, goos, goarch, dir string) {
 	env := []string{
 		"GOOS=" + goos,
 		"GOARCH=" + goarch,
+		`GO111MODULE=off`,
 	}
 
 	//if goos == "windows" {
@@ -478,7 +476,7 @@ func buildWindowsInstall(outdir, goarch string) {
 
 	args := []string{
 		"go", "build",
-		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s -X main.baseDownloadUrl=%s`, *flagName, *flagDownloadAddr),
+		"-ldflags", "-w -s",
 		"-o", path.Join(outdir, winInstallerExe),
 		"win-installer.go",
 	}
