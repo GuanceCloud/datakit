@@ -62,9 +62,7 @@ const traefikConfigSample = `### metric_name: the name of metric, default is "tr
 ### You need to configure an [[targets]] for each traefik to be monitored.
 ### interval: monitor interval second, unit is second. The default value is 60.
 ### active: whether to monitor traefik.
-### host: traefik service ip.
-### port: traefik service port.
-### path: traefik WebUi path.
+### url: traefik service WebUI url.
 
 #metric_name="traefik"
 #[[targets]]
