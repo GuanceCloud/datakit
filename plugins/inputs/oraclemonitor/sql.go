@@ -440,7 +440,7 @@ var tagsMap = map[string][]string{
 	"oracle_cdb_backup_job_info": []string{"bs_key"},
 	"oracle_hostinfo":            []string{"stat_name"},
 	"oracle_dbinfo":              []string{"ora_db_id"},
-	"oracle_key_params":          []string{"name"},
+	"oracle_psu":                 []string{"name"},
 	"oracle_blocking_sessions":   []string{"serial"},
 	"oracle_redo_info":           []string{"group_no", "sequence_no"},
 	"oracle_standby_log":         []string{"message_num"},
