@@ -11,13 +11,13 @@ import (
 	"time"
 	"unicode"
 
-	uuid "github.com/satori/go.uuid"
 	"golang.org/x/time/rate"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/providers"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 )
@@ -185,7 +185,7 @@ func (s *runningCMS) fetchMetricMeta(ctx context.Context, namespace, metricname 
 		reqRateTrace.lastRequestTime = time.Now()
 	}
 
-	reqUid, _ := uuid.NewV4()
+	reqUid := cliutils.XID("req_")
 
 	for i := 0; i < retryCount; i++ {
 
@@ -208,11 +208,11 @@ func (s *runningCMS) fetchMetricMeta(ctx context.Context, namespace, metricname 
 		}
 
 		if err != nil {
-			s.logger.Warnf("fail to get metric meta for '%s.%s' (%s), %s", namespace, metricname, reqUid.String(), err)
+			s.logger.Warnf("fail to get metric meta for '%s.%s' (%s), %s", namespace, metricname, reqUid, err)
 			time.Sleep(tempDelay)
 		} else {
 			if i != 0 {
-				s.logger.Debugf("retry %s successed, %d", reqUid.String(), i)
+				s.logger.Debugf("retry %s successed, %d", reqUid, i)
 			}
 			break
 		}
@@ -226,13 +226,13 @@ func (s *runningCMS) fetchMetricMeta(ctx context.Context, namespace, metricname 
 		ctxStr, _ := json.Marshal(ectx)
 
 		e := internal.ContextErr{
-			ID:      reqUid.String(),
+			ID:      reqUid,
 			Context: string(ctxStr),
 			Content: err.Error(),
 		}
 		s.logger.Errorf("%s", e.Error())
 
-		s.agent.inputStat.AddErrorID(reqUid.String())
+		s.agent.inputStat.AddErrorID(reqUid)
 		return nil, errGetMetricMeta
 	} else {
 		s.agent.succedRequest++
@@ -357,7 +357,7 @@ func (s *runningCMS) fetchMetric(ctx context.Context, req *MetricsRequest) error
 			reqRateTrace.lastRequestTime = time.Now()
 		}
 
-		reqUid, _ := uuid.NewV4()
+		reqUid := cliutils.XID("req_")
 
 		for i := 0; i < retryCount; i++ {
 			resp, err = s.cmsClient.DescribeMetricList(req.q)
@@ -379,11 +379,11 @@ func (s *runningCMS) fetchMetric(ctx context.Context, req *MetricsRequest) error
 			}
 
 			if err != nil {
-				s.logger.Errorf("fail to query metric list (%s): %s", reqUid.String(), err)
+				s.logger.Errorf("fail to query metric list (%s): %s", reqUid, err)
 				time.Sleep(tempDelay)
 			} else {
 				if i != 0 {
-					s.logger.Debugf("retry %s successed, %d", reqUid.String(), i)
+					s.logger.Debugf("retry %s successed, %d", reqUid, i)
 				}
 				break
 			}
@@ -396,14 +396,14 @@ func (s *runningCMS) fetchMetric(ctx context.Context, req *MetricsRequest) error
 			ctxStr, _ := json.Marshal(ectx)
 
 			e := internal.ContextErr{
-				ID:      reqUid.String(),
+				ID:      reqUid,
 				Context: string(ctxStr),
 				Content: err.Error(),
 			}
 			s.logger.Errorf("%s", e.Error())
 
 			s.agent.faildRequest++
-			s.agent.inputStat.AddErrorID(reqUid.String())
+			s.agent.inputStat.AddErrorID(reqUid)
 			return err
 		} else {
 			s.agent.succedRequest++
