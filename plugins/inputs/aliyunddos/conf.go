@@ -1,21 +1,21 @@
-package aliyunsecurity
+package aliyunddos
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 
 const (
 	configSample = `
-#[[security]]
+#[[ddos]]
 #  accessKeyId = ''
 #  accessKeySecret = ''
 #  region = "cn-hangzhou"
-#  ## 采集的频度，最小粒度24小时
+#  ## 采集的频度，最小粒度5分钟，5m
 #  interval = "24h"
-#  ## 指标名称，默认值(aliyun_security)
+#  ## 指标名称，默认值(aliyun_ddos)
 #  metricName = ""
 `
 )
 
-type Security struct {
+type DDoS struct {
 	RegionID        string            `toml:"region"`
 	AccessKeyID     string            `toml:"accessKeyId"`
 	AccessKeySecret string            `toml:"accessKeySecret"`
