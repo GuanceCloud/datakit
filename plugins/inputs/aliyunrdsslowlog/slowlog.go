@@ -152,7 +152,6 @@ func (r *runningInstance) run(ctx context.Context) error {
 		}
 
 		internal.SleepContext(ctx, r.cfg.Interval.Duration)
-		// internal.SleepContext(ctx, 10*time.Second)
 	}
 }
 
@@ -162,14 +161,14 @@ func (r *runningInstance) exec(engine string) {
 	}
 }
 
-func (r *runningInstance) getInstance(engine string, regionId string) error {
+func (r *runningInstance) getInstance(engine string, regionID string) error {
 	var pageNumber = 1
 	var pageSize = 50
 
 	for {
 		request := rds.CreateDescribeDBInstancesRequest()
 		request.Scheme = "https"
-		request.RegionId = regionId
+		request.RegionId = regionID
 		request.Engine = engine
 		request.PageSize = requests.NewInteger(pageSize)
 		request.PageNumber = requests.NewInteger(pageNumber)
@@ -231,11 +230,11 @@ func (r *runningInstance) handleResponse(response *rds.DescribeSlowLogsResponse,
 	for _, point := range response.Items.SQLSlowLog {
 		tags := map[string]string{}
 		fields := map[string]interface{}{}
-		tags["instance_id"] = instanceObj.id                   //todo
-		tags["instance_description"] = instanceObj.description //todo
-		tags["region_id"] = instanceObj.regionId               //todo
-		tags["product"] = "rds"                                //todo
-		tags["engine"] = product                               //todo
+		tags["instance_id"] = instanceObj.id
+		tags["instance_description"] = instanceObj.description
+		tags["region_id"] = instanceObj.regionId
+		tags["product"] = "rds"
+		tags["engine"] = product
 
 		fields["create_time"] = point.CreateTime
 		fields["db_name"] = point.DBName
