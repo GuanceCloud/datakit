@@ -23,8 +23,6 @@ const (
 #  password = ''
 #  ## oracle的服务名
 #  server = ''
-#  ## 该种认证方式暂不支持
-#  sid = ''
 #  ## 实例类型 例如 单实例、DG、RAC 等，非必要属性
 #  type= 'singleInstance'
 #  
@@ -40,7 +38,6 @@ type Oracle struct {
 	InstanceDesc string            `toml:"instanceDesc"`
 	Host         string            `toml:"host"`
 	Port         string            `toml:"port"`
-	Sid          string            `toml:"sid"`
 	Server       string            `toml:"server"`
 	TType        string            `toml:"type"`
 }
