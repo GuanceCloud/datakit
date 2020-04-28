@@ -68,12 +68,12 @@ const traefikConfigSample = `### metric_name: the name of metric, default is "tr
 #[[targets]]
 #	interval = 60
 #	active   = true
-#	url     = "http://127.0.0.1/health"
+#	url     = "http://127.0.0.1:8080/health"
 
 #[[targets]]
 #	interval = 60
 #	active   = true
-#	url     = "http://127.0.0.1/health"
+#	url     = "http://127.0.0.1:8080/health"
 `
 
 var (
@@ -165,7 +165,7 @@ func (p *TraefikParam) getMetrics() error {
 	tags["url"] = p.input.Url
 
 	resp, err := http.Get(p.input.Url)
-	if err != nil {
+	if err != nil || resp.StatusCode != 200 {
 		fields["can_connect"] = false
 		p.output.acc.AddFields(p.input.MetricName, fields, tags)
 		return err
@@ -179,6 +179,7 @@ func (p *TraefikParam) getMetrics() error {
 	tags["pid"] = fmt.Sprintf("%d", s.Pid)
 	tags["hostname"] = s.Hostname
 
+	fields["can_connect"] = true
 	fields["uptime"] = s.Uptime
 	fields["total_count"] = s.TotalCount
 	fields["total_time"] = s.TotalRepTime
