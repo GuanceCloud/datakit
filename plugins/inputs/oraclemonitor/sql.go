@@ -17,7 +17,7 @@ FROM v$database
 const oracle_instinfo_sql = `
 SELECT instance_number, instance_name AS ora_sid, host_name, version
 	, to_char(startup_time, 'yyyy-mm-dd hh24:mi:ss') AS startup_time, status
-	, CASE 
+	, CASE
 		WHEN parallel = 'YES' THEN 1
 		ELSE 0
 	END AS is_rac
@@ -261,7 +261,7 @@ select name,value,unit from v$pgastat
 `
 
 var oracle_accounts_sql = `
-select 
+select
 username
 ,user_id
 ,password
@@ -301,24 +301,24 @@ ORDER BY 1, 2, 3, 4
 `
 
 const oracle_session_ratio_sql = `
-SELECT 'session_cached_cursors' parameter,  
-         LPAD(VALUE, 5) value,  
-         DECODE(VALUE, 0, ' n/a', TO_CHAR(100 * USED / VALUE, '990') ) usage  
-   FROM (SELECT MAX(S.VALUE) USED  
-            FROM V$STATNAME N, V$SESSTAT S  
-           WHERE N.NAME = 'session cursor cache count'  
-             AND S.STATISTIC# = N.STATISTIC#),  
-         (SELECT VALUE FROM V$PARAMETER WHERE NAME = 'session_cached_cursors')  
-  UNION ALL  
-SELECT 'open_cursors' parameter,  
-         LPAD(VALUE, 5) value,  
+SELECT 'session_cached_cursors' parameter,
+         LPAD(VALUE, 5) value,
+         DECODE(VALUE, 0, ' n/a', TO_CHAR(100 * USED / VALUE, '990') ) usage
+   FROM (SELECT MAX(S.VALUE) USED
+            FROM V$STATNAME N, V$SESSTAT S
+           WHERE N.NAME = 'session cursor cache count'
+             AND S.STATISTIC# = N.STATISTIC#),
+         (SELECT VALUE FROM V$PARAMETER WHERE NAME = 'session_cached_cursors')
+  UNION ALL
+SELECT 'open_cursors' parameter,
+         LPAD(VALUE, 5) value,
          TO_CHAR(100 * USED / VALUE, '990')   usage
-   FROM (SELECT MAX(SUM(S.VALUE)) USED  
-            FROM V$STATNAME N, V$SESSTAT S  
-           WHERE N.NAME IN  
-                 ('opened cursors current', 'session cursor cache count')  
-             AND S.STATISTIC# = N.STATISTIC#  
-           GROUP BY S.SID),  
+   FROM (SELECT MAX(SUM(S.VALUE)) USED
+            FROM V$STATNAME N, V$SESSTAT S
+           WHERE N.NAME IN
+                 ('opened cursors current', 'session cursor cache count')
+             AND S.STATISTIC# = N.STATISTIC#
+           GROUP BY S.SID),
          (SELECT VALUE FROM V$PARAMETER WHERE NAME = 'open_cursors')
 `
 
