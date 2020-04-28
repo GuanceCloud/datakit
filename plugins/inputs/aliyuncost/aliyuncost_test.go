@@ -19,7 +19,7 @@ import (
 
 func staticClient() *bssopenapi.Client {
 	//client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAI4Fc72xGdZKKr6cTBV72S`, `QXZ4FFCq3yhN5TCGC9rj1kBNZNJksc`)
-	client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAIlsWpTrg1vUf4`, `dy5lQzWpU17RDNHGCj84LBDhoU9LVU`)
+	client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAI4G7oxhYKY5n845WuieVg`, `GhLfPOACip4hB5mDp8C0fzO4GXNvXw`)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -117,10 +117,12 @@ func TestQueryBill(t *testing.T) {
 
 	cli := staticClient()
 
+	//计费项 + 明细
 	req := bssopenapi.CreateQueryBillRequest()
-	req.BillingCycle = fmt.Sprintf("%d-%d", 2020, 2)
+	req.BillingCycle = fmt.Sprintf("%d-%d", 2020, 3)
 	req.PageSize = requests.NewInteger(300)
 	req.PageNum = requests.NewInteger(1)
+	req.IsHideZeroCharge = requests.NewBoolean(true)
 
 	for {
 		resp, err := cli.QueryBill(req)
@@ -128,7 +130,8 @@ func TestQueryBill(t *testing.T) {
 			log.Fatalln(err)
 		}
 
-		//log.Printf("total count: %v", resp.Data.TotalCount)
+		log.Printf("total count: %v", resp.Data.TotalCount)
+		break
 
 		for _, item := range resp.Data.Items.Item {
 			if item.RecordID == "2020020989169351" {
@@ -155,21 +158,28 @@ func TestQueryInstBill(t *testing.T) {
 
 	cli := staticClient()
 
+	//计费项 + 账期
 	req := bssopenapi.CreateQueryInstanceBillRequest()
 	//today := time.Now()
 	req.PageSize = requests.NewInteger(300)
-	req.BillingCycle = "2019-10" // fmt.Sprintf("%d-%d", today.Year(), today.Month()) // `2019-10-01`
+	req.BillingCycle = "2020-03" // fmt.Sprintf("%d-%d", today.Year(), today.Month()) // `2019-10-01`
+	//req.BillingDate = "2020-04-08"
+	//req.Granularity = "DAILY"
+	req.IsBillingItem = requests.NewBoolean(true)
 
 	resp, err := cli.QueryInstanceBill(req)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	for _, item := range resp.Data.Items.Item {
-		if item.PaymentTime != "" {
-			fmt.Printf("%s - %s, %v, %s\n", item.PaymentTime, item.ProductName, item.PretaxAmount, item.Tag)
-		}
-	}
+	log.Printf("count=%d", len(resp.Data.Items.Item))
+
+	_ = resp
+	// for _, item := range resp.Data.Items.Item {
+	// 	//if item.PaymentTime != "" {
+	// 	fmt.Printf("%s - %s, %v, %s\n", item.BillingDate, item.ProductName, item.PretaxAmount, item.Tag)
+	// 	//}
+	// }
 
 }
 
