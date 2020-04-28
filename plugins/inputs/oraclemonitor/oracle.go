@@ -134,7 +134,6 @@ func (r *runningInstance) handleResponse(m string, response []map[string]interfa
 	for _, item := range response {
 		tags := map[string]string{}
 
-		tags["oracle_sid"] = r.cfg.Sid
 		tags["oracle_server"] = r.cfg.Name
 		tags["oracle_port"] = r.cfg.Port
 		tags["instanceId"] = r.cfg.InstanceId
