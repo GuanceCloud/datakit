@@ -135,6 +135,7 @@ func (r *runningInstance) handleResponse(m string, response []map[string]interfa
 		tags["oracle_server"] = r.cfg.Server
 		tags["oracle_port"] = r.cfg.Port
 		tags["instance_id"] = r.cfg.InstanceId
+		tags["instance_desc"] = r.cfg.InstanceDesc
 		tags["product"] = "oracle"
 		tags["host"] = r.cfg.Host
 		tags["type"] = m
