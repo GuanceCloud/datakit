@@ -172,7 +172,7 @@ function host_install() {
 	$sudo_cmd chmod +x "$BINARY" 
 	$sudo_cmd chmod +x "$AGENTBINARY" 
 
-	if type ldconfig; then
+	if type ldconfig > /dev/null; then
 		mkdir -p /etc/ld.so.conf.d
 		echo "${USRDIR}/deps" > /etc/ld.so.conf.d/datakit.conf
 		ldconfig
