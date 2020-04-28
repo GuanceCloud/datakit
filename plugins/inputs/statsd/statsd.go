@@ -51,12 +51,12 @@ const statsdConfigSample = `### metric_name: the name of metric, default is "sta
 #metric_name="statsd"
 #[[targets]]
 #	interval = 60
-#	active   = false
+#	active   = true
 #	host     = "127.0.0.1:8126"
 
 #[[targets]]
 #	interval = 60
-#	active   = false
+#	active   = true
 #	host     = "127.0.0.1:8126"
 `
 
