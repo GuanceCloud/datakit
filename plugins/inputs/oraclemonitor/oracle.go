@@ -148,6 +148,8 @@ func (r *runningInstance) handleResponse(m string, response []map[string]interfa
 			}
 		}
 
+		fmt.Println("aaa=========", tags)
+
 		r.agent.accumulator.AddFields(r.metricName, item, tags)
 	}
 
