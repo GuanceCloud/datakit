@@ -55,7 +55,7 @@ var (
 ### hostname: If not specified, the environment variable will be used.
 
 #metric_name="timezone"
-#active   = false
+#active   = true
 #interval = 60
 #hostname = ""`
 )
@@ -64,7 +64,6 @@ var (
 	ctx          context.Context
 	cfun         context.CancelFunc
 	stopChan     chan bool
-	prevTimezone string
 )
 
 func (t *Timezone) SampleConfig() string {
@@ -137,10 +136,6 @@ func (p *TzParams) getMetrics() error {
 	if err != nil {
 		return err
 	}
-	if timezone == prevTimezone {
-		return nil
-	}
-	prevTimezone = timezone
 
 	if p.input.Hostname != "" {
 		tags["host"] = p.input.Hostname
