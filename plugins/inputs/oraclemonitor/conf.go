@@ -14,7 +14,6 @@ const (
 #  port = '40022'
 #  username = 'root'
 #  password = 'root'
-#  sid = ''
 #  name = ''
 #  type= 'singleInstance'
 #  
@@ -30,7 +29,6 @@ type Oracle struct {
 	InstanceDesc string            `toml:"instanceDesc"`
 	Server       string            `toml:"server"`
 	Port         string            `toml:"port"`
-	Sid          string            `toml:"sid"`
 	Name         string            `toml:"name"`
 	TType        string            `toml:"type"`
 }
