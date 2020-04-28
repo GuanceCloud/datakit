@@ -32,15 +32,6 @@ type runningInstance struct {
 	metricName string
 }
 
-type rdsInstance struct {
-	id           string
-	description  string
-	server       string
-	regionId     string
-	engine       string
-	instanceType string
-}
-
 func (_ *AliyunSecurity) SampleConfig() string {
 	return configSample
 }
@@ -79,11 +70,11 @@ func (a *AliyunSecurity) Start(acc telegraf.Accumulator) error {
 		}
 		r.metricName = instCfg.MetricName
 		if r.metricName == "" {
-			r.metricName = "aliyun_rds_slow_log"
+			r.metricName = "aliyun_security"
 		}
 
 		if r.cfg.Interval.Duration == 0 {
-			r.cfg.Interval.Duration = time.Hour * 24
+			r.cfg.Interval.Duration = time.Minute * 10
 		}
 
 		cli, err := sas.NewClientWithAccessKey(instCfg.RegionID, instCfg.AccessKeyID, instCfg.AccessKeySecret)
@@ -170,7 +161,6 @@ func (r *runningInstance) describeSummaryInfo() {
 }
 
 func (r *runningInstance) describeSecurityStatInfo() {
-	// TrafficData
 	request := aegis.CreateDescribeSecurityStatInfoRequest()
 	request.Scheme = "https"
 
