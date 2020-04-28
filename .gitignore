@@ -4,21 +4,14 @@
 proxy_config.yaml
 pub
 a.out
-*.exe
-bin/
-pkg/
-cmd/
 test.go
 build/
-agent-client/
 builds/
 *.ak
-vendor
 old/
 *.tar.gz
 git/git.go
 oss/*
-version
 install.sh
 *.log
 config.d/
@@ -31,4 +24,3 @@ agent_linux
 datakit.conf
 docker/agent
 docker/datakit
-
