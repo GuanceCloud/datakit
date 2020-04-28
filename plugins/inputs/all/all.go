@@ -7,6 +7,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyuncost"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunprice"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunrdsslowlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/apachelog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/awsbill"
 
@@ -19,8 +20,10 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/lighttpd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mock"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodboplog"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysqlmonitor"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/netPacket"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nginxlog"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prometheus"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/replication"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/scanport"
@@ -32,4 +35,5 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tracerouter"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ucmon"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traefik"
 )
