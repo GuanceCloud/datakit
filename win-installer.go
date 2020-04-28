@@ -1,5 +1,3 @@
-//+build ignore
-
 package main
 
 import (
@@ -15,7 +13,6 @@ import (
 
 	"github.com/kardianos/service"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logio"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -25,7 +22,6 @@ var (
 	flagUpgrade    = flag.Bool("upgrade", false, ``)
 	flagDataway    = flag.String("dataway", "", `address of dataway(ip:port)`)
 	flagInstallDir = flag.String("install-dir", `C:\Program Files (x86)\Forethought\`+ServiceName, `directory to install`)
-	flagInstallLog = flag.String("install-log", ``, `install log`)
 	flagGZPath     = flag.String("gzpath", "", "datakit gzip path")
 	flagVersion    = flag.Bool("version", false, "show installer version info")
 )
@@ -93,19 +89,7 @@ func extractDatakit(gz, to string) {
 
 func main() {
 
-	if *flagInstallLog == "" {
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-	} else {
-		o := &logio.Option{
-			Path:  *flagInstallLog,
-			Level: "DEBUG",
-			Flags: log.LstdFlags | log.Lshortfile,
-		}
-
-		if err := o.SetLog(); err != nil {
-			log.Fatal(err)
-		}
-	}
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	flag.Parse()
 
