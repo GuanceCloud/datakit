@@ -3,19 +3,17 @@ module gitlab.jiagouyun.com/cloudcare-tools/datakit
 go 1.13
 
 require (
-	github.com/Azure/azure-sdk-for-go v0.0.0-20200305061206-32160a3836db
-	github.com/Azure/go-autorest/autorest v0.10.0
+	github.com/Azure/azure-sdk-for-go v37.1.0+incompatible
+	github.com/Azure/go-autorest/autorest v0.9.3
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
 	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
-	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.4
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/aws/aws-sdk-go v1.27.0
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
-	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
 	github.com/cosiner/argv v0.0.1 // indirect
 	github.com/ericchiang/k8s v1.2.0
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
@@ -31,14 +29,12 @@ require (
 	github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/jackc/pgx v3.6.0+incompatible
-	github.com/jmoiron/sqlx v1.2.0
 	github.com/kardianos/service v1.0.0
-	github.com/lib/pq v1.3.0
+	github.com/lib/pq v1.4.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/mehrdadrad/mylg v0.2.6 // indirect
 	github.com/naoina/toml v0.1.1
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
-	github.com/pelletier/go-toml v1.4.0
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
@@ -51,11 +47,9 @@ require (
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
-	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
-	github.com/sirupsen/logrus v1.5.0 // indirect
-	github.com/tencentcloud/tencentcloud-sdk-go v3.0.123+incompatible
-	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
-	github.com/ucloud/ucloud-sdk-go v0.14.0
+	github.com/siddontang/go-mysql v0.0.0-20200311002057-7a62847fcdb5
+	github.com/tencentcloud/tencentcloud-sdk-go v3.0.160+incompatible
+	github.com/ucloud/ucloud-sdk-go v0.15.0
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
@@ -63,6 +57,6 @@ require (
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd // indirect
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
-	golang.org/x/tools/gopls v0.4.0 // indirect
+	gopkg.in/rana/ora.v4 v4.1.15 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 )
