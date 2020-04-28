@@ -8,27 +8,33 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
 	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
-	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.4
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
-	github.com/aws/aws-sdk-go v1.19.41
+	github.com/aws/aws-sdk-go v1.27.0
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
-	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
+	github.com/cosiner/argv v0.0.1 // indirect
 	github.com/ericchiang/k8s v1.2.0
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gin-gonic/gin v1.6.2
+	github.com/go-delve/delve v1.4.0 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/godror/godror v0.14.0
+	github.com/gogo/protobuf v1.3.1
+	github.com/golang/snappy v0.0.1
 	github.com/google/gopacket v1.1.17
 	github.com/google/uuid v1.1.1
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/jackc/pgx v3.6.0+incompatible
+	github.com/jmoiron/sqlx v1.2.0
 	github.com/kardianos/service v1.0.0
 	github.com/lib/pq v1.3.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
+	github.com/mehrdadrad/mylg v0.2.6 // indirect
+	github.com/naoina/toml v0.1.1
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
 	github.com/pelletier/go-toml v1.4.0
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
@@ -37,6 +43,8 @@ require (
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.9.1
+	github.com/prometheus/node_exporter v0.18.1 // indirect
+	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/robfig/cron v1.2.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
@@ -47,7 +55,7 @@ require (
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/ucloud/ucloud-sdk-go v0.14.0
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200419043855-ff6f056c0fd9
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
