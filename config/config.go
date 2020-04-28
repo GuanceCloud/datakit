@@ -202,7 +202,7 @@ func UserAgent() string {
 func (c *Config) LoadMainConfig(ctx context.Context, maincfg string) error {
 	data, err := ioutil.ReadFile(maincfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("main config error, %s", err.Error())
 	}
 
 	if tbl, err := parseConfig(data); err != nil {
