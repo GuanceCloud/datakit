@@ -68,7 +68,7 @@ const sshConfigSample = `### metricName: the name of metric, default is "ssh"
 #metricName="ssh"
 #[[targets]]
 #	interval = 60
-#	active   = false
+#	active   = true
 #	host     = "127.0.0.1:22"
 #	username = "xxx"
 #	password = "xxx"
@@ -77,7 +77,7 @@ const sshConfigSample = `### metricName: the name of metric, default is "ssh"
 
 #[[targets]]
 #	interval = 60
-#	active   = false
+#	active   = true
 #	host     = "127.0.0.1:22"
 #	username = "xxx"
 #	password = "xxx"
@@ -223,7 +223,7 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 		sshRst = "ok"
 		defer sshClient.Close()
 	} else {
-		sshRst = "nok"
+		sshRst = "lost"
 		fields["ssh_err"] = err.Error()
 	}
 	fields["ssh_check"] = sshRst
@@ -241,11 +241,11 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 				fields["sftp_response_time"] = getReadableTimeStr(time.Since(t1))
 
 			} else {
-				sftpRst = "nok"
+				sftpRst = "lost"
 				fields["sftp_err"] = err.Error()
 			}
 		} else {
-			sftpRst = "nok"
+			sftpRst = "lost"
 			fields["sftp_err"] = err.Error()
 		}
 		fields["sftp_check"] = sftpRst
