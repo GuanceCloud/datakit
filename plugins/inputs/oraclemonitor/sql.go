@@ -1,3 +1,5 @@
+// +build !windows
+
 package oraclemonitor
 
 const oracle_hostinfo_sql = `

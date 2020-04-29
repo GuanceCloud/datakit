@@ -159,6 +159,7 @@ func (s *Scan) packetDataTCP(rport int) (error, []byte) {
 	}
 	return nil, buf.Bytes()
 }
+
 func (s *Scan) setProto(proto string) error {
 	var netProto = fmt.Sprintf("%s:%s", s.network, proto)
 	switch netProto {
@@ -189,6 +190,7 @@ func (s *Scan) setProto(proto string) error {
 	}
 	return nil
 }
+
 func (s *Scan) setLocalNet() error {
 	conn, err := net.Dial("udp", net.JoinHostPort(s.raddr.String(), "80"))
 	if err != nil {
