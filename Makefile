@@ -38,7 +38,7 @@ define pub
 endef
 
 local:
-	$(call build,local, "all", 0, $(LOCAL_DOWNLOAD_ADDR))
+	$(call build,local, "all", 1, $(LOCAL_DOWNLOAD_ADDR))
 
 test:
 	$(call build,test, "all", 1, $(TEST_DOWNLOAD_ADDR))
