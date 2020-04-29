@@ -6,7 +6,8 @@ const (
 	configSample = `
 #[[mysql]]
 #  ## 采集的频度，最小粒度5m
-#  interval = '10s'
+#  interval = '5m'
+#  ## 指标集名称，默认值(mysql_monitor)
 #  metricName = ''
 #  instanceId = ''
 #  instanceDesc = ''
