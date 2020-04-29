@@ -1,3 +1,5 @@
+// +build !windows
+
 package oraclemonitor
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
