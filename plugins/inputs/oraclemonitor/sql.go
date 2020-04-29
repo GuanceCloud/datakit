@@ -27,8 +27,9 @@ FROM v$instance
 `
 
 const oracle_psu_sql = `
-select  nvl(max(id),0) max_id from  Dba_Registry_History""",
-    "oracle_key_params": """SELECT
+select  nvl(max(id),0) max_id from  Dba_Registry_History
+`
+const oracle_key_params = `SELECT
     name,
     value
 FROM
@@ -409,6 +410,14 @@ where s.end_interval_time >= sysdate - interval '2' hour
 and s.INSTANCE_NUMBER = b.INSTANCE_NUMBER
 `
 
+const oracle_tablespace_free_pct_sql = `select a.tablespace_name,round(a.curr_mb,0) curr_mb,round(a.max_mb,0) max_mb,round(nvl(b.free_mb,0),0) free_mb,round(nvl(b.free_mb,0)/a.curr_mb,4)*100||'%' free_pct
+from
+(select TABLESPACE_NAME,sum(BLOCKS)/128 curr_mb,sum(MAXBLOCKS)/128 max_mb from dba_data_files group by TABLESPACE_NAME) a,
+(select TABLESPACE_NAME,sum(BLOCKS)/128 free_mb from dba_free_space group by TABLESPACE_NAME) b
+where a.TABLESPACE_NAME=b.TABLESPACE_NAME(+)
+order by 4
+`
+
 var metricMap = map[string]string{
 	"oracle_hostinfo":            oracle_hostinfo_sql,
 	"oracle_dbinfo":              oracle_dbinfo_sql,
@@ -435,6 +444,7 @@ var metricMap = map[string]string{
 	"oracle_pdb_backup_set_info": oracle_pdb_backup_set_info_sql,
 	"oracle_cdb_backup_job_info": oracle_cdb_backup_job_info_sql,
 	"oracle_snap_info":           oracle_snap_info_sql,
+	"oracle_tablespace_free_pct": oracle_tablespace_free_pct_sql,
 }
 
 var tagsMap = map[string][]string{
@@ -442,7 +452,7 @@ var tagsMap = map[string][]string{
 	"oracle_cdb_backup_job_info": []string{"bs_key"},
 	"oracle_hostinfo":            []string{"stat_name"},
 	"oracle_dbinfo":              []string{"ora_db_id"},
-	"oracle_psu":                 []string{"name"},
+	"oracle_key_params":          []string{"name"},
 	"oracle_blocking_sessions":   []string{"serial"},
 	"oracle_redo_info":           []string{"group_no", "sequence_no"},
 	"oracle_standby_log":         []string{"message_num"},
@@ -459,4 +469,5 @@ var tagsMap = map[string][]string{
 	"oracle_session_ratio":       []string{"parameter"},
 	"oracle_sessions":            []string{"serial", "username"},
 	"oracle_snap_info":           []string{"dbid", "snap_id"},
+	"oracle_tablespace_free_pct": []string{"tablespace_name"},
 }
