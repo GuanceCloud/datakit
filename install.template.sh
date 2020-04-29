@@ -171,10 +171,14 @@ function host_install() {
 	$sudo_cmd chmod +x "$BINARY"
 	$sudo_cmd chmod +x "$AGENTBINARY"
 
-	if type ldconfig; then
-		$sudo_cmd mkdir -p /etc/ld.so.conf.d
-		$sudo_cmd echo "${USRDIR}/deps" > /etc/ld.so.conf.d/datakit.conf
-		$sudo_cmd ldconfig
+	if type ldconfig > /dev/null; then
+		mkdir -p /etc/ld.so.conf.d
+		echo "${USRDIR}/deps" > /etc/ld.so.conf.d/datakit.conf
+		ldconfig
+	fi
+
+	if [ -f "${AGENTBINARY}" ]; then
+		mv "${AGENTBINARY}" "${EMBEDDIR}"
 	fi
 
 	if [ -f "${USRDIR}/agent.log" ]; then
