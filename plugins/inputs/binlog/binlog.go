@@ -1,3 +1,5 @@
+// +build !386
+
 package binlog
 
 import (
