@@ -39,41 +39,78 @@ var (
 	flagPub = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/alpha/release/preprod`)
 
 	curVersion string
-	osarchesDeprecated   = []string{
-		`windows/amd64`,
-		`freebsd/amd64`,
 
-		//`android/amd64`,
-		//`android/arm64`,
-		//`darwin/arm64`,
-		`dragonfly/amd64`,
-		`illumos/amd64`,
-		//`js/wasm`,
-		`linux/amd64`,
-		`linux/arm64`,
-		`linux/mips64`,
-		`linux/mips64le`,
-		//`linux/mipsle`,
-		`linux/ppc64`,
-		`linux/ppc64le`,
-		//`linux/s390x`,
-		//`nacl/amd64p32`,
-		//`nacl/arm`,
-		`netbsd/amd64`,
-		`netbsd/arm64`,
-		`openbsd/amd64`,
-		//`openbsd/arm64`,
-		//`plan9/amd64`,
-		`solaris/amd64`,
-		//`windows/arm`,
+	/* Use:
+			go tool dist list
+		to get your current os/arch list
 
-		`aix/ppc64`,
-		`darwin/amd64`,
-	}
+	aix/ppc64
+
+	android/386
+	android/amd64
+	android/arm
+	android/arm64
+
+	darwin/386
+	darwin/amd64
+	darwin/arm
+	darwin/arm64
+
+	dragonfly/amd64
+
+	freebsd/386
+	freebsd/amd64
+	freebsd/arm
+
+	illumos/amd64
+
+	js/wasm
+
+	linux/386
+	linux/amd64
+	linux/arm
+	linux/arm64
+	linux/mips
+	linux/mips64
+	linux/mips64le
+	linux/mipsle
+	linux/ppc64
+	linux/ppc64le
+	linux/s390x
+
+	nacl/386
+	nacl/amd64p32
+	nacl/arm
+
+	netbsd/386
+	netbsd/amd64
+	netbsd/arm
+	netbsd/arm64
+
+	openbsd/386
+	openbsd/amd64
+	openbsd/arm
+	openbsd/arm64
+
+	plan9/386
+	plan9/amd64
+	plan9/arm
+
+	solaris/amd64
+
+	windows/386
+	windows/amd64
+	windows/arm */
 
 	osarches = []string {
-		`windows/amd64`,
+		`linux/386`,
 		`linux/amd64`,
+
+		`darwin/amd64`,
+		`darwin/386`,
+
+		`windows/amd64`,
+		`windows/386`,
 	}
 
 	winInstallerExe = ""
@@ -133,12 +170,21 @@ func compileArch(bin, goos, goarch, dir string) {
 		`GO111MODULE=off`,
 	}
 
-	if *flagCGO == 1 && goos != "aix" {
-		env = append(env, "CGO_ENABLED=1")
-	} else {
-		env = append(env, "CGO_ENABLED=0")
+	if *flagCGO == 1 {
+		switch goarch{
+			case "386": // disable CGO under 32-bit
+			env = append(env, "CGO_ENABLED=0")
+		default:
+			switch goos {
+			case "linux":
+				env = append(env, "CGO_ENABLED=1")
+			default:
+				env = append(env, "CGO_ENABLED=0") // disable CGO under 64-bit except linux
+			}
+		}
 	}
 
+	log.Printf("[debug] building % 16s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
 	runEnv(args, env)
 }
 
@@ -146,7 +192,6 @@ func compile() {
 	start := time.Now()
 
 	compileTask := func(bin, goos, goarch, dir string) {
-		log.Printf("[debug] building %s/%s...", goos, goarch)
 		compileArch(bin, goos, goarch, dir)
 	}
 
