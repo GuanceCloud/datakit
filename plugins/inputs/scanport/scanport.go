@@ -1,3 +1,5 @@
+// +build !windows,!darwin,!386
+
 package scanport
 
 import (
