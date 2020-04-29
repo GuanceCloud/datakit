@@ -20,7 +20,7 @@ const (
 #  ## optional, if empty, use 'aliyun_price'
 #metric_name = ''
 ##description = ''
-#interval = '1d'
+##interval = '1d'
 #pay_as_you_go = false
 #region = "cn-hangzhou-dg-a01"
 #instance_type = 'ecs.g5.xlarge'
