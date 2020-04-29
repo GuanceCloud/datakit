@@ -1,3 +1,5 @@
+// +build !darwin,!386
+
 package netPacket
 
 import (
