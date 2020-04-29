@@ -79,7 +79,7 @@ func doExtract(r io.Reader, to string) {
 func extractDatakit(gz, to string) {
 	data, err := os.Open(gz)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[error] open file %s failed: %s", gz, err)
 	}
 
 	defer data.Close()
