@@ -3,6 +3,8 @@ $install_dir="C:\Program Files (x86)\Forethought\datakit"
 $download_installer_from=$("https://{{.DownloadAddr}}/installer-windows-amd64-{0:C}.exe" -f $version)
 $download_datakit_from=$("https://{{.DownloadAddr}}/datakit-windows-amd64-{0:C}.tar.gz" -f $version)
 
+Write-Host $("* Installing DataKit(version {0:C})..." -f $version) -ForegroundColor green
+
 $download_datakit_to=$("datakit-windows-amd64-{0:C}.tar.gz" -f $version) # default 64bit
 # test 32/64 bit
 if ([Environment]::Is64BitProcess -ne [Environment]::Is64BitOperatingSystem) {
@@ -10,18 +12,7 @@ if ([Environment]::Is64BitProcess -ne [Environment]::Is64BitOperatingSystem) {
 	$download_installer_from=$("https://{{.DownloadAddr}}/installer-windows-386-{0:C}.exe" -f $version)
 }
 
-# Get dataway host from command line env, makes it possible for batching installing
-$dw=$env:dw
 $download_only=$env:download_only
-
-if ($dw -eq $null) {
-	Write-Host -NoNewline "* Please set DataWay IP:Port > " -ForegroundColor green
-	$dw=Read-Host # Wait dataway settings
-} else {
-	Write-Host $("* Get DataWay settings {0:C} from ENV" -f $dw) -ForegroundColor green
-}
-
-Write-Host $("* DataWay set to http://{0:c}/v1/write/metrics" -f $dw) -ForegroundColor Green
 
 $upgrade=$env:upgrade
 
@@ -44,6 +35,18 @@ if ($upgrade -eq 1) {
 	Write-Host $("* Upgrading to datakit-windows-amd64-{0:C}..." -f $version) -ForegroundColor Green
 	.\dk-installer.exe -gzpath $download_datakit_to -install-dir $install_dir -upgrade 
 } else {
+
+	# Get dataway host from command line env, makes it possible for batching installing
+	$dw=$env:dw
+	if ($dw -eq $null) {
+		Write-Host -NoNewline "* Please set DataWay IP:Port > " -ForegroundColor green
+		$dw=Read-Host # Wait dataway settings
+	} else {
+		Write-Host $("* Get DataWay settings {0:C} from ENV" -f $dw) -ForegroundColor green
+	}
+
+	Write-Host $("* DataWay set to http://{0:c}/v1/write/metrics" -f $dw) -ForegroundColor Green
+
 	Write-Host $("* Installing datakit-windows-amd64-{0:C}..." -f $version) -ForegroundColor Green
 	.\dk-installer.exe -dataway $dw -install-dir $install_dir -gzpath $download_datakit_to
 }
