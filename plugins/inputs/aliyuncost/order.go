@@ -46,7 +46,7 @@ func (co *CostOrder) run(ctx context.Context) error {
 		co.getHistoryData(ctx)
 	}()
 
-	co.getRealtimeData(ctx)
+	co.getNormalData(ctx)
 
 	wg.Wait()
 
@@ -55,7 +55,7 @@ func (co *CostOrder) run(ctx context.Context) error {
 	return nil
 }
 
-func (co *CostOrder) getRealtimeData(ctx context.Context) error {
+func (co *CostOrder) getNormalData(ctx context.Context) error {
 
 	for {
 		co.runningInstance.suspendHistoryFetch()
