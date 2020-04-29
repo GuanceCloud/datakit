@@ -122,7 +122,7 @@ Golang Version: %s
 		log.Fatal("[error] new service failed: %s", err.Error())
 	}
 
-	if err := deleteDataKitService(dkservice); err != nil {
+	if err := stopDataKitService(dkservice); err != nil {
 		// ignore
 	}
 
@@ -141,11 +141,11 @@ Golang Version: %s
 		if err := installDatakitService(dkservice); err != nil {
 			log.Fatalf("[error] fail to register service %s: %s", ServiceName, err.Error())
 		}
+	}
 
-		log.Printf("[info] try start service %s", ServiceName)
-		if err := startDatakitService(dkservice); err != nil {
-			log.Fatalf("[error] fail to register service %s: %s", ServiceName, err.Error())
-		}
+	log.Printf("[info] try start service %s", ServiceName)
+	if err := startDatakitService(dkservice); err != nil {
+		log.Fatalf("[error] fail to register service %s: %s", ServiceName, err.Error())
 	}
 
 	log.Println(":)Success!")
@@ -157,14 +157,10 @@ func (p *program) Start(s service.Service) error { go p.run(s); return nil }
 func (p *program) run(s service.Service)         {}
 func (p *program) Stop(s service.Service) error  { return nil }
 
-func deleteDataKitService(s service.Service) error {
+func stopDataKitService(s service.Service) error {
 
 	if err := service.Control(s, "stop"); err != nil {
 		log.Printf("[warn] stop service datakit failed: %s, ignored", err.Error())
-	}
-
-	if err := service.Control(s, "uninstall"); err != nil {
-		log.Printf("[warn] uninstall service datakit failed: %s, ignored", err.Error())
 	}
 
 	return nil

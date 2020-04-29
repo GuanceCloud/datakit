@@ -200,7 +200,7 @@ func compile() {
 	if *flagArchs == "all" {
 		archs = osarches
 	} else {
-		archs = strings.Split(*flagArchs, ",")
+		archs = strings.Split(*flagArchs, "|")
 	}
 
 	for _, arch := range archs {
@@ -350,6 +350,30 @@ func releaseAgent() {
 	url := fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, *flagName, versionFile)
 	curVd := getCurrentVersionInfo(url)
 
+	if curVd != nil {
+		if curVd.Version == git.Version {
+			log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
+			os.Exit(0)
+		}
+
+		installObjOld := path.Join(objPath, fmt.Sprintf("install-%s.sh", curVd.withoutGitCommit()))
+		installObj = path.Join(objPath, "install.sh")
+
+		// backup install script online, make it possible to install old version if required
+		log.Printf("[debug] backup %s -> %s", installObj, installObjOld)
+		if err := oc.Move(installObj, installObjOld); err != nil {
+			log.Fatal(err)
+		}
+
+		// backup windows install.ps1
+		installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.ps1", curVd.withoutGitCommit()))
+		installObj = path.Join(objPath, "install.ps1")
+		log.Printf("[debug] backup %s -> %s", installObj, installObjOld)
+		if err := oc.Move(installObj, installObjOld); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	// upload all build archs
 	archs := []string{}
 	switch *flagArchs {
@@ -384,26 +408,6 @@ func releaseAgent() {
 			objs[path.Join(*flagPubDir, *flagRelease, "install.sh")] = path.Join(objPath, "install.sh")
 		}
 
-		if curVd != nil {
-			if curVd.Version == git.Version {
-				log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
-				os.Exit(0)
-			}
-
-			installObjOld := path.Join(objPath, fmt.Sprintf("install-%s.sh", curVd.withoutGitCommit()))
-			if goos == "windows" {
-				installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.ps1", curVd.withoutGitCommit()))
-				installObj = path.Join(objPath, "install.ps1")
-			} else {
-				installObj = path.Join(objPath, "install.sh")
-			}
-
-			// rename install script online, make it possible to install old version if required
-			log.Printf("[debug] rename %s -> %s", installObj, installObjOld)
-			if err := oc.Move(installObj, installObjOld); err != nil {
-				log.Fatal(err)
-			}
-		}
 	}
 
 	for k, v := range objs {
