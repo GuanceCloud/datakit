@@ -20,12 +20,12 @@ type TraefikServStats struct {
 	Pid      int    `json:"pid"`
 	Hostname string `json:"hostname"`
 
-	Uptime       string `json:"uptime"`
-	TotalCount   int    `json:"total_count"`
-	TotalRepTime string `json:"total_response_time"`
-	TotalRepSize int    `json:"total_response_size"`
-	AvergRepTime string `json:"average_response_time"`
-	AvergRepSize int    `json:"average_response_size"`
+	Uptime       float64 `json:"uptime_sec"`
+	TotalCount   int64    `json:"total_count"`
+	TotalRepTime float64 `json:"total_response_time_sec"`
+	TotalRepSize int64    `json:"total_response_size"`
+	AvergRepTime float64 `json:"average_response_time_sec"`
+	AvergRepSize int64    `json:"average_response_size"`
 	TotalStatCodeCnt  map[string]int `json:"total_status_code_count"`
 }
 type TraefikTarget struct {
