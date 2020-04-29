@@ -20,6 +20,7 @@ import (
 	winsvr "github.com/kardianos/service"
 
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -57,6 +58,8 @@ var (
 	fInstallDir = flag.String("installdir", `C:\Program Files (x86)\Forethought\DataFlux EBA Agent`, "install directory")
 
 	fInputFilters = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
+
+	flagListCollectors = flag.Bool("list-collectors", false, `list vailable collectors`)
 )
 
 var (
@@ -76,6 +79,13 @@ Sha1:           %s
 Build At:       %s
 Golang Version: %s
 `, git.Version, git.Sha1, git.BuildAt, git.Golang)
+		return
+	}
+
+	if *flagListCollectors {
+		for k, _ :=range inputs.Inputs {
+			fmt.Println(k)
+		}
 		return
 	}
 

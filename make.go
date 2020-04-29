@@ -39,7 +39,7 @@ var (
 	flagPub = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/alpha/release/preprod`)
 
 	curVersion string
-	osarches   = []string{
+	osarchesDeprecated   = []string{
 		`windows/amd64`,
 		`freebsd/amd64`,
 
@@ -69,6 +69,11 @@ var (
 
 		`aix/ppc64`,
 		`darwin/amd64`,
+	}
+
+	osarches = []string {
+		`windows/amd64`,
+		`linux/amd64`,
 	}
 
 	winInstallerExe = ""
@@ -127,10 +132,6 @@ func compileArch(bin, goos, goarch, dir string) {
 		"GOARCH=" + goarch,
 		`GO111MODULE=off`,
 	}
-
-	//if goos == "windows" {
-	//	env = append(env, []string{"CXX=g++-mingw-w64-x86-64", "CC=x86_64-w64-mingw32-gcc"}...)
-	//}
 
 	if *flagCGO == 1 && goos != "aix" {
 		env = append(env, "CGO_ENABLED=1")
