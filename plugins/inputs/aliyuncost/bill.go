@@ -44,7 +44,7 @@ func (cb *CostBill) run(ctx context.Context) error {
 		cb.getHistoryData(ctx)
 	}()
 
-	cb.getRealtimeData(ctx)
+	cb.getNormalData(ctx)
 
 	wg.Wait()
 
@@ -53,7 +53,7 @@ func (cb *CostBill) run(ctx context.Context) error {
 	return nil
 }
 
-func (cb *CostBill) getRealtimeData(ctx context.Context) error {
+func (cb *CostBill) getNormalData(ctx context.Context) error {
 
 	for {
 		cb.runningInstance.suspendHistoryFetch()
@@ -69,6 +69,11 @@ func (cb *CostBill) getRealtimeData(ctx context.Context) error {
 			return context.Canceled
 		default:
 		}
+
+		if err := cb.getInstnceBills(ctx, cycle); err != nil && err != context.Canceled {
+			cb.logger.Errorf("%s", err)
+		}
+
 		cb.runningInstance.resumeHistoryFetch()
 		internal.SleepContext(ctx, cb.interval)
 
@@ -204,6 +209,7 @@ func (cb *CostBill) getInstnceBills(ctx context.Context, cycle string) error {
 	req := bssopenapi.CreateQueryInstanceBillRequest()
 	req.BillingCycle = cycle
 	req.Scheme = "https"
+	req.IsBillingItem = requests.NewBoolean(false)
 	req.PageSize = requests.NewInteger(300)
 
 	for {

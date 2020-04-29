@@ -39,8 +39,11 @@ func loadClient(kubeconfigPath string) (*k8s.Client, error) {
 }
 
 func (p *Prometheus) start(ctx context.Context) error {
+	log.Printf("[prometheus] start...")
+
 	client, err := k8s.NewInClusterClient()
 	if err != nil {
+		log.Printf("[prometheus] NewInClusterClient failed, %s", err)
 		u, err := user.Current()
 		if err != nil {
 			return fmt.Errorf("Failed to get current user - %v", err)
