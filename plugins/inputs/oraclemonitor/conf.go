@@ -1,4 +1,4 @@
-// +build !windows
+// +build !windows,!darwin,!386
 
 package oraclemonitor
 
