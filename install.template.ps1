@@ -1,54 +1,55 @@
 $version="{{.Version}}"
-$install_dir="C:\\Program Files (x86)\\Forethought\\datakit"
+$install_dir="C:\Program Files (x86)\Forethought\datakit"
 $download_installer_from=$("https://{{.DownloadAddr}}/installer-windows-amd64-{0:C}.exe" -f $version)
 $download_datakit_from=$("https://{{.DownloadAddr}}/datakit-windows-amd64-{0:C}.tar.gz" -f $version)
 
+$download_datakit_to=$("datakit-windows-amd64-{0:C}.tar.gz" -f $version) # default 64bit
 # test 32/64 bit
 if ([Environment]::Is64BitProcess -ne [Environment]::Is64BitOperatingSystem) {
-	Write-Host "* Datakit not support 32bit Windows" -ForegroundColor Red
-	exit -1
+	$download_datakit_to=$("datakit-windows-386-{0:C}.tar.gz" -f $version)
+	$download_installer_from=$("https://{{.DownloadAddr}}/installer-windows-386-{0:C}.exe" -f $version)
 }
 
-# get dataway host from command line env
+# Get dataway host from command line env, makes it possible for batching installing
 $dw=$env:dw
+$download_only=$env:download_only
 
 if ($dw -eq $null) {
 	Write-Host -NoNewline "* Please set DataWay IP:Port > " -ForegroundColor green
-	$dw=Read-Host
-} 
+	$dw=Read-Host # Wait dataway settings
+} else {
+	Write-Host $("* Get DataWay settings {0:C} from ENV" -f $dw) -ForegroundColor green
+}
 
 Write-Host $("* DataWay set to http://{0:c}/v1/write/metrics" -f $dw) -ForegroundColor Green
 
 $upgrade=$env:upgrade
 
-Write-Host $("* Downloading installer-windows-amd64-{0:C}..." -f $version) -ForegroundColor Green
+Write-Host "* Downloading installer-windows.exe..." -ForegroundColor Green
 Invoke-WebRequest -Uri $download_installer_from -OutFile "dk-installer.exe"
 
-if (Test-Path datakit.tar.gz) {
-	Write-Host '* Skip download datakit.tar.gz' -ForegroundColor Green
+if (Test-Path $download_datakit_to) {
+	Write-Host $('* Skip download {0:C}, file exists.' -f $download_datakit_to) -ForegroundColor Green
 } else {
-	Write-Host $("* Downloading datakit-windows-amd64-{0:C}..." -f $version) -ForegroundColor Green
-	Invoke-WebRequest -Uri $download_datakit_from -OutFile "datakit.tar.gz"
+	Write-Host $("* Downloading {0:C}..." -f $download_datakit_to) -ForegroundColor Green
+	Invoke-WebRequest -Uri $download_datakit_from -OutFile $download_datakit_to
 }
 
-# stop agent if exists (BUG: sometimes the agent process will not terminate after service stopped)
-$agent=Get-Process agent -ErrorAction SilentlyContinue
-if ($agent) {
-	Write-Host $("* Terminate agent ..." -f $version) -ForegroundColor Yellow
-	$agent | Stop-Process -Force # terminate it
+if ($download_only -eq 1) {
+	Write-Host $("* Download ok" -f $download_datakit_to) -ForegroundColor Green
+	exit
 }
-Remove-Variable $agent
 
 if ($upgrade -eq 1) {
 	Write-Host $("* Upgrading to datakit-windows-amd64-{0:C}..." -f $version) -ForegroundColor Green
-	.\dk-installer.exe -gzpath datakit.tar.gz -upgrade
+	.\dk-installer.exe -gzpath $download_datakit_to -install-dir $install_dir -upgrade 
 } else {
 	Write-Host $("* Installing datakit-windows-amd64-{0:C}..." -f $version) -ForegroundColor Green
-	.\dk-installer.exe -dataway $dw -install-dir $install_dir -gzpath datakit.tar.gz
+	.\dk-installer.exe -dataway $dw -install-dir $install_dir -gzpath $download_datakit_to
 }
 
 Remove-Item -Force "dk-installer.exe" -ErrorAction Ignore
-Remove-Item -Force "datakit.tar.gz" -ErrorAction Ignore
+#Remove-Item -Force $download_datakit_to -ErrorAction Ignore
 
 # install script:
 # $env:dw="http://<dataway-ip:port>/v1/write/metrics"; powershell -exec bypass -c "(New-Object Net.WebClient).Proxy.Credentials=[Net.CredentialCache]::DefaultNetworkCredentials;iwr('https://{{.DownloadAddr}}/install.ps1')|iex"
