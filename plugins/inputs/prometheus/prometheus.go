@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -25,6 +26,8 @@ var promAgent *Prometheus
 type Prometheus struct {
 	// An array of urls to scrape metrics from.
 	URLs []string `toml:"urls"`
+
+	Interval internal.Duration
 
 	MetricNameMap map[string]string `toml:"metric_name_map"`
 
@@ -61,6 +64,9 @@ type Prometheus struct {
 	kubernetesPods map[string]URLAndAddress
 	cancel         context.CancelFunc
 	wg             sync.WaitGroup
+
+	stopCtx       context.Context
+	stopCancelFun context.CancelFunc
 }
 
 var sampleConfig = `
@@ -120,6 +126,9 @@ func (p *Prometheus) Description() string {
 }
 
 func (p *Prometheus) Init() error {
+	if p.Interval.Duration == 0 {
+		p.Interval.Duration = time.Second * 10
+	}
 	// if p.MetricVersion != 2 {
 	// 	p.Log.Warnf("Use of deprecated configuration: 'metric_version = 1'; please update to 'metric_version = 2'")
 	// }
@@ -198,9 +207,13 @@ func (p *Prometheus) GetAllURLs() (map[string]URLAndAddress, error) {
 // Reads stats from all configured servers accumulates stats.
 // Returns one of the errors encountered while gather stats (if any).
 func (p *Prometheus) Gather(acc telegraf.Accumulator) error {
+
+	log.Printf("[prometheus] gather start")
+
 	if p.client == nil {
 		client, err := p.createHTTPClient()
 		if err != nil {
+			log.Printf("E! [prometheus] fail to createHTTPClient, %s", err)
 			return err
 		}
 		p.client = client
@@ -210,6 +223,7 @@ func (p *Prometheus) Gather(acc telegraf.Accumulator) error {
 
 	allURLs, err := p.GetAllURLs()
 	if err != nil {
+		log.Printf("E! [prometheus] fail to GetAllURLs, %s", err)
 		return err
 	}
 	for _, URL := range allURLs {
@@ -295,6 +309,7 @@ func (p *Prometheus) gatherURL(u URLAndAddress, acc telegraf.Accumulator) error 
 		resp, err = uClient.Do(req)
 	}
 	if err != nil {
+		log.Printf("E! [prometheus] get failed, %s", err)
 		return fmt.Errorf("error making HTTP request to %s: %s", u.URL, err)
 	}
 	defer resp.Body.Close()
@@ -350,8 +365,24 @@ func (p *Prometheus) gatherURL(u URLAndAddress, acc telegraf.Accumulator) error 
 	return nil
 }
 
-// Start will start the Kubernetes scraping if enabled in the configuration
+//Start will start the Kubernetes scraping if enabled in the configuration
 func (p *Prometheus) Start(a telegraf.Accumulator) error {
+
+	go func() {
+		for {
+
+			select {
+			case <-p.stopCtx.Done():
+				return
+			default:
+			}
+
+			p.Gather(a)
+
+			internal.SleepContext(p.stopCtx, p.Interval.Duration)
+		}
+	}()
+
 	if p.MonitorPods {
 		var ctx context.Context
 		ctx, p.cancel = context.WithCancel(context.Background())
@@ -361,6 +392,7 @@ func (p *Prometheus) Start(a telegraf.Accumulator) error {
 }
 
 func (p *Prometheus) Stop() {
+	p.stopCancelFun()
 	if p.MonitorPods {
 		p.cancel()
 	}
@@ -375,6 +407,7 @@ func init() {
 			URLTag:          "url",
 			MetricVersion:   1,
 		}
+		promAgent.stopCtx, promAgent.stopCancelFun = context.WithCancel(context.Background())
 		return promAgent
 	})
 }
