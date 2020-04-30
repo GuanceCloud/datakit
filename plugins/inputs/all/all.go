@@ -33,7 +33,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcms"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/timezone"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tracerouter"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traefik"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ucmon"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traefik"
 )
