@@ -2,15 +2,17 @@ package aliyunprice
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"sort"
 	"testing"
-
-	"github.com/influxdata/toml"
+	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+
+	"github.com/influxdata/toml"
 )
 
 func apiClient() *bssopenapi.Client {
@@ -21,18 +23,19 @@ func apiClient() *bssopenapi.Client {
 	return client
 }
 
-func TestConfig(t *testing.T) {
-	ecs1 := &Ecs{
-		MetricName: "11",
-		PayAsYouGo: false,
+func TestEcs(t *testing.T) {
+
+	ecs := &Ecs{
+		//MetricName: "11",
+		PayAsYouGo: true,
 		//Interval:   "1h",
-		Region:                  "cn-hangzhou-dg-a01",
-		InstanceType:            "",
-		InstanceTypeFamily:      "",
+		Region:                  "cn-hangzhou",
+		InstanceType:            "ecs.g5.xlarge",
+		InstanceTypeFamily:      "ecs.g5",
 		ImageOs:                 "linux",
 		SystemDiskCategory:      "cloud_ssd",
 		SystemDiskSize:          20,
-		PayByTraffic:            false,
+		PayByTraffic:            true,
 		InternetMaxBandwidthOut: 1024,
 		DataDisks: []*DataDisk{
 			&DataDisk{
@@ -45,34 +48,213 @@ func TestConfig(t *testing.T) {
 		Quantity:              1,
 	}
 
-	cfg := AliyunPriceAgent{
-		EcsCfg: []*Ecs{ecs1},
+	req, _ := ecs.toRequest()
+
+	if req.payAsYouGo {
+		resp, err := apiClient().GetPayAsYouGoPrice(req.payasyougoReq)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+		log.Printf("%s", resp)
+	} else {
+		resp, err := apiClient().GetSubscriptionPrice(req.subscriptionReq)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+		log.Printf("%s", resp)
+	}
+}
+
+func TestRds(t *testing.T) {
+
+	rds := &Rds{
+		MetricName: "rds_price",
+
+		PayAsYouGo:            true,
+		Region:                "cn-hangzhou",
+		Engine:                "mssql",
+		EngineVersion:         "2017_ent",
+		Series:                "AlwaysOn",
+		DBInstanceClass:       "mssql.x4.medium.e2",
+		DBInstanceStorageType: "cloud_essd",
+		DBInstanceStorage:     20,
+		DBNetworkType:         1,
+
+		ServicePeriodQuantity: 1,
+		ServicePeriodUnit:     "Year",
+		Quantity:              1,
 	}
 
-	if data, err := toml.Marshal(&cfg); err != nil {
-		t.Errorf("%s", err)
+	// cfgdata, err := toml.Marshal(rds)
+	// if err != nil {
+	// 	t.Errorf("%s", err)
+	// }
+	// log.Printf("%s", string(cfgdata))
+
+	req, _ := rds.toRequest()
+
+	if req.payAsYouGo {
+		resp, err := apiClient().GetPayAsYouGoPrice(req.payasyougoReq)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+		log.Printf("%s", resp)
 	} else {
-		log.Printf("%s", string(data))
+		resp, err := apiClient().GetSubscriptionPrice(req.subscriptionReq)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+		log.Printf("%s", resp)
 	}
+
+}
+
+func TestEip(t *testing.T) {
+
+	rds := &Eip{
+		MetricName: "eip_price",
+
+		PayAsYouGo: true,
+		Region:     "cn-hangzhou",
+
+		Bandwidth:          1,
+		ISP:                "BGP",
+		InternetChargeType: 1,
+
+		ServicePeriodQuantity: 1,
+		ServicePeriodUnit:     "Year",
+		Quantity:              1,
+	}
+
+	// cfgdata, err := toml.Marshal(rds)
+	// if err != nil {
+	// 	t.Errorf("%s", err)
+	// }
+	// log.Printf("%s", string(cfgdata))
+
+	req, _ := rds.toRequest()
+
+	if req.payAsYouGo {
+		resp, err := apiClient().GetPayAsYouGoPrice(req.payasyougoReq)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+		log.Printf("%s", resp)
+	} else {
+		resp, err := apiClient().GetSubscriptionPrice(req.subscriptionReq)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+		log.Printf("%s", resp)
+	}
+
+}
+
+func TestNat(t *testing.T) {
+
+	rds := &Nat{
+		MetricName:  "nat_price",
+		Description: "xxx",
+
+		PayAsYouGo: true,
+		Region:     "cn-hangzhou",
+
+		Spec: "Small",
+
+		ServicePeriodQuantity: 1,
+		ServicePeriodUnit:     "Year",
+		Quantity:              1,
+	}
+
+	// cfgdata, err := toml.Marshal(rds)
+	// if err != nil {
+	// 	t.Errorf("%s", err)
+	// }
+	// log.Printf("%s", string(cfgdata))
+
+	req, _ := rds.toRequest()
+
+	if req.payAsYouGo {
+		resp, err := apiClient().GetPayAsYouGoPrice(req.payasyougoReq)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+		log.Printf("%s", resp)
+	} else {
+		resp, err := apiClient().GetSubscriptionPrice(req.subscriptionReq)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+		log.Printf("%s", resp)
+	}
+
+}
+
+func TestSlb(t *testing.T) {
+
+	rds := &Slb{
+		MetricName: "slb_price",
+
+		PayAsYouGo: true,
+		Region:     "cn-hangzhou",
+
+		LoadBalancerSpec:   "slb.s1.small",
+		Bandwidth:          6,
+		InternetTrafficOut: 0,
+		PrivateNet:         false,
+
+		ServicePeriodQuantity: 1,
+		ServicePeriodUnit:     "Year",
+		Quantity:              1,
+	}
+
+	cfgdata, err := toml.Marshal(rds)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	log.Printf("%s", string(cfgdata))
+
+	return
+
+	req, _ := rds.toRequest()
+
+	if req.payAsYouGo {
+		resp, err := apiClient().GetPayAsYouGoPrice(req.payasyougoReq)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+		log.Printf("%s", resp)
+	} else {
+		resp, err := apiClient().GetSubscriptionPrice(req.subscriptionReq)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+		log.Printf("%s", resp)
+	}
+
 }
 
 //TestProductPriceModule 某个产品的对应付费模块信息 https://help.aliyun.com/document_detail/96469.html?spm=a2c4g.11186623.2.13.5a21634fRfjUAL
 func TestProductPriceModule(t *testing.T) {
 
-	//regionID := ""
-	productCode := "ecs"
+	regionID := "cn-hangzhou"
+	productCode := "EIP"
 	subscriptionType := "PayAsYouGo"
+	productType := ""
 
 	req := bssopenapi.CreateDescribePricingModuleRequest()
 	req.Scheme = `https`
-	//req.RegionId = regionID
+	req.RegionId = regionID
 	req.ProductCode = productCode
+	req.ProductType = productType
 	req.SubscriptionType = subscriptionType
 
 	resp, err := apiClient().DescribePricingModule(req)
 	if err != nil {
-		log.Fatalf("DescribePricingModule failed: %s", err)
+		t.Errorf("DescribePricingModule failed: %s", err)
 	}
+
+	log.Printf("%s", resp.String())
 
 	// for _, attr := range resp.Data.AttributeList.Attribute {
 	// 	//attr.Values.AttributeValue //属性的值的取值范围
@@ -127,11 +309,11 @@ func TestGetEcsSubscriptionPrice(t *testing.T) {
 	req.ServicePeriodUnit = `Year`
 
 	mods := []bssopenapi.GetSubscriptionPriceModuleList{
-		bssopenapi.GetSubscriptionPriceModuleList{
+		{
 			ModuleCode: "InstanceType",
 			Config:     `InstanceType:ecs.g5.xlarge,IoOptimized:IoOptimized,ImageOs:linux,InstanceTypeFamily:ecs.g5`,
 		},
-		bssopenapi.GetSubscriptionPriceModuleList{
+		{
 			ModuleCode: "SystemDisk",
 			Config:     `SystemDisk.Category:cloud_efficiency,SystemDisk.Size:20`,
 		},
@@ -139,11 +321,11 @@ func TestGetEcsSubscriptionPrice(t *testing.T) {
 		// 	ModuleCode: "ImageOs",
 		// 	Config:     `Linux:linux`,
 		// },
-		bssopenapi.GetSubscriptionPriceModuleList{
+		{
 			ModuleCode: "InternetMaxBandwidthOut",
 			Config:     `InternetMaxBandwidthOut:1024,InternetMaxBandwidthOut.IsFlowType:5,NetworkType:1`,
 		},
-		bssopenapi.GetSubscriptionPriceModuleList{
+		{
 			ModuleCode: "Region",
 			Config:     `Region:ap-southeast-os30-a01`,
 		},
@@ -174,22 +356,22 @@ func TestGetEcsPayAsYouGoPrice(t *testing.T) {
 	req.SubscriptionType = `PayAsYouGo`
 
 	mods := []bssopenapi.GetPayAsYouGoPriceModuleList{
-		bssopenapi.GetPayAsYouGoPriceModuleList{
+		{
 			ModuleCode: "InstanceType",
 			Config:     `InstanceType:ecs.s6-c1m1.small,IoOptimized:IoOptimized,ImageOs:linux,InstanceTypeFamily:ecs.s6`,
 			PriceType:  "Hour",
 		},
-		bssopenapi.GetPayAsYouGoPriceModuleList{
+		{
 			ModuleCode: "SystemDisk",
 			Config:     `SystemDisk.Category:cloud_efficiency,SystemDisk.Size:20`,
 			PriceType:  "Hour",
 		},
-		bssopenapi.GetPayAsYouGoPriceModuleList{
+		{
 			ModuleCode: "InternetMaxBandwidthOut",
 			Config:     `InternetMaxBandwidthOut:1024,InternetMaxBandwidthOut.IsFlowType:1`,
 			PriceType:  "Hour",
 		},
-		bssopenapi.GetPayAsYouGoPriceModuleList{
+		{
 			ModuleCode: "Region",
 			Config:     `Region:cn-hangzhou-dg-a01`,
 			PriceType:  "Hour",
@@ -252,4 +434,23 @@ func TestEIPPrice(t *testing.T) {
 		log.Fatalf("%s", err)
 	}
 	log.Printf("resp: %s", resp.String())
+}
+
+func TestSvr(t *testing.T) {
+
+	ag := NewAgent()
+
+	data, err := ioutil.ReadFile("./test.conf")
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	err = toml.Unmarshal(data, ag)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	ag.Start(nil)
+
+	time.Sleep(time.Hour)
 }

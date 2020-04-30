@@ -13,9 +13,10 @@ func TestStart(t *testing.T) {
 		Config: Config{
 			Subscribes: []Subscribe{
 				Subscribe{
-					EtcdHost: "10.100.64.106",
-					EtcdPort: 32379,
-					Cycle:    3,
+					EtcdHost:    "10.100.64.106",
+					EtcdPort:    32379,
+					Cycle:       3,
+					Measurement: "etcd_measurement",
 				},
 			},
 		},
