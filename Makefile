@@ -38,7 +38,7 @@ define pub
 endef
 
 local:
-	$(call build,local, "linux/amd64|windows/amd64", 1, $(LOCAL_DOWNLOAD_ADDR))
+	$(call build,local, "windows/amd64|linux/amd64", 1, $(LOCAL_DOWNLOAD_ADDR))
 
 test:
 	$(call build,test, "all", 1, $(TEST_DOWNLOAD_ADDR))
