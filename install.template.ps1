@@ -12,12 +12,13 @@ if ([Environment]::Is64BitProcess -ne [Environment]::Is64BitOperatingSystem) {
 	$download_installer_from=$("https://{{.DownloadAddr}}/installer-windows-386-{0:C}.exe" -f $version)
 }
 
-$download_only=$env:download_only
-
 $upgrade=$env:upgrade
 
 Write-Host "* Downloading installer-windows.exe..." -ForegroundColor Green
-Invoke-WebRequest -Uri $download_installer_from -OutFile "dk-installer.exe"
+
+Import-Module bitstransfer
+start-bitstransfer -source $download_datakit_from -destination $download_datakit_to
+start-bitstransfer -source $download_installer_from -destination dk-installer.exe
 
 if (Test-Path $download_datakit_to) {
 	Write-Host $('* Skip download {0:C}, file exists.' -f $download_datakit_to) -ForegroundColor Green
