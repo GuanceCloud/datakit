@@ -146,6 +146,10 @@ func (r *runningInstance) describeSummaryInfo() {
 		r.logger.Errorf("[sas] action DescribeSummaryInfo failed, %s", err.Error())
 	}
 
+	// if response.BaseResponse.GetHttpStatus() != 200 {
+	// 	r.logger.Errorf("[sas] action DescribeSummaryInfo failed, %v", response)
+	// }
+
 	tags := map[string]string{}
 	fields := map[string]interface{}{}
 
