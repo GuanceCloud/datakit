@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf"
+	"github.com/influxdata/telegraf/metric"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
@@ -25,20 +26,37 @@ type (
 		subscriptionReq *bssopenapi.GetSubscriptionPriceRequest
 		payasyougoReq   *bssopenapi.GetPayAsYouGoPriceRequest
 		payAsYouGo      bool
-		region          string
-		metricName      string
-		interval        time.Duration
+
+		//有时拿module信息和拿price的不一样，比如eip
+		productCodeForPriceModulesSubscript string
+		productTypeForPriceModulesSubscript string
+
+		productCodeForPriceModulesPayasugo string
+		productTypeForPriceModulesPayasugo string
+
+		region     string
+		metricName string
+		interval   time.Duration
 
 		lastTime time.Time
+
+		m priceMod
+
+		//产品的计价模块信息，分为Subscription(预付费)和PayAsYouGo(后付费)
+		priceModuleInfos map[string]*bssopenapi.ModuleList
+		//如果产品的计价模块信息获取失败了，记录下来，隔一段时间再做尝试
+		fetchModulePriceHistory map[string]time.Time
 	}
 
 	AliyunPriceAgent struct {
-		AccessID     string `toml:"access_id"`
+		AccessID     string `toml:"access_key_id"`
+		AccessSecret string `toml:"access_key_secret"`
 		RegionID     string `toml:"region_id"`
-		AccessSecret string `toml:"access_key"`
 
 		EcsCfg []*Ecs `toml:"ecs"`
 		RDSCfg []*Rds `toml:"rds"`
+		EipCfg []*Eip `toml:"eip"`
+		SlbCfg []*Slb `toml:"slb"`
 
 		reqs []*priceReq
 
@@ -60,11 +78,11 @@ func (r *priceReq) String() string {
 }
 
 func (_ *AliyunPriceAgent) SampleConfig() string {
-	return sampleConfig
+	return globalConfig + ecsSampleConfig + rdsSampleConfig + eipSampleConfig + slbSampleConfig
 }
 
 func (_ *AliyunPriceAgent) Description() string {
-	return ""
+	return `Collect price of aliyun products.`
 }
 
 func (_ *AliyunPriceAgent) Gather(telegraf.Accumulator) error {
@@ -87,7 +105,31 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 	for _, item := range a.EcsCfg {
 		q, err := item.toRequest()
 		if err != nil {
-			a.logger.Warnf("invalid config, %s", err)
+			a.logger.Warnf("invalid ecs config, %s", err)
+		}
+		a.reqs = append(a.reqs, q)
+	}
+
+	for _, item := range a.RDSCfg {
+		q, err := item.toRequest()
+		if err != nil {
+			a.logger.Warnf("invalid rds config, %s", err)
+		}
+		a.reqs = append(a.reqs, q)
+	}
+
+	for _, item := range a.EipCfg {
+		q, err := item.toRequest()
+		if err != nil {
+			a.logger.Warnf("invalid eip config, %s", err)
+		}
+		a.reqs = append(a.reqs, q)
+	}
+
+	for _, item := range a.SlbCfg {
+		q, err := item.toRequest()
+		if err != nil {
+			a.logger.Warnf("invalid slb config, %s", err)
 		}
 		a.reqs = append(a.reqs, q)
 	}
@@ -96,6 +138,12 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 
 	go func() {
 		defer a.wg.Done()
+
+		// defer func() {
+		// 	if e := recover(); e != nil {
+		// 		a.logger.Errorf("panic %v", e)
+		// 	}
+		// }()
 
 		for {
 
@@ -121,76 +169,51 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 				var err error
 				var tempDelay time.Duration
 
-				if req.payAsYouGo {
+				var respPayasyougo *bssopenapi.GetPayAsYouGoPriceResponse
+				var respSubscript *bssopenapi.GetSubscriptionPriceResponse
 
-					var resp *bssopenapi.GetPayAsYouGoPriceResponse
-					for i := 0; i < 5; i++ {
+				for i := 0; i < 5; i++ {
 
-						resp, err = a.client.GetPayAsYouGoPrice(req.payasyougoReq)
-
-						if tempDelay == 0 {
-							tempDelay = time.Millisecond * 50
-						} else {
-							tempDelay *= 2
+					if req.payAsYouGo {
+						respPayasyougo, err = a.client.GetPayAsYouGoPrice(req.payasyougoReq)
+						if err == nil && respPayasyougo != nil && !respPayasyougo.Success {
+							err = fmt.Errorf("%s", respPayasyougo.String())
 						}
-
-						if max := time.Second; tempDelay > max {
-							tempDelay = max
+					} else {
+						respSubscript, err = a.client.GetSubscriptionPrice(req.subscriptionReq)
+						if err == nil && respSubscript != nil && !respSubscript.Success {
+							err = fmt.Errorf("%s", respSubscript.String())
 						}
+					}
 
-						if err != nil {
-							a.logger.Warnf("GetPayAsYouGoPrice failed: %s", err)
-							time.Sleep(tempDelay)
-						} else {
-							if i != 0 {
-								a.logger.Debugf("retry successed, %d", i)
-							}
-							break
-						}
+					if tempDelay == 0 {
+						tempDelay = time.Millisecond * 50
+					} else {
+						tempDelay *= 2
+					}
+
+					if max := time.Second; tempDelay > max {
+						tempDelay = max
 					}
 
 					if err != nil {
-						a.logger.Errorf("GetPayAsYouGoPrice for %s failed, %s", req.String(), err)
+						a.logger.Warnf("get price failed")
+						time.Sleep(tempDelay)
 					} else {
-						a.handlePayasyougoResp(resp, req)
+						if i != 0 {
+							a.logger.Debugf("retry successed, %d", i)
+						}
+						break
 					}
+				}
 
+				if err != nil {
+					a.logger.Errorf("get price failed, %s", err)
 				} else {
-					var resp *bssopenapi.GetSubscriptionPriceResponse
-
-					for i := 0; i < 5; i++ {
-
-						resp, err = a.client.GetSubscriptionPrice(req.subscriptionReq)
-
-						if tempDelay == 0 {
-							tempDelay = time.Millisecond * 50
-						} else {
-							tempDelay *= 2
-						}
-
-						if max := time.Second; tempDelay > max {
-							tempDelay = max
-						}
-
-						if err != nil {
-							a.logger.Warnf("%s", err)
-							time.Sleep(tempDelay)
-						} else {
-							if i != 0 {
-								a.logger.Debugf("retry successed, %d", i)
-							}
-							break
-						}
-					}
-
-					if err != nil {
-						a.logger.Errorf("GetSubscriptionPrice for %s failed, %s", req.String(), err)
+					if req.payAsYouGo {
+						a.handleResponse(&respPayasyougo.Data, req)
 					} else {
-						if !resp.Success {
-							a.logger.Errorf("GetSubscriptionPrice failed, %s", resp.String())
-						} else {
-							a.handleSubscriptionResp(resp, req)
-						}
+						a.handleResponse(&respSubscript.Data, req)
 					}
 				}
 
@@ -203,7 +226,7 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 				}
 			}
 
-			internal.SleepContext(a.ctx, time.Second*10)
+			internal.SleepContext(a.ctx, time.Second*5)
 		}
 
 	}()
@@ -216,38 +239,104 @@ func (a *AliyunPriceAgent) Stop() {
 	a.wg.Wait()
 }
 
-func (a *AliyunPriceAgent) handleSubscriptionResp(resp *bssopenapi.GetSubscriptionPriceResponse, req *priceReq) {
+func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceReq) {
 	tags := map[string]string{}
-	tags["ProductCode"] = req.subscriptionReq.ProductCode
-	tags["SubscriptionType"] = "Subscription"
-	tags["Currency"] = resp.Data.Currency
+
+	productCode := ""
+	productType := ""
+	subscriptionType := ""
+	if req.payAsYouGo {
+		subscriptionType = req.payasyougoReq.SubscriptionType
+		productCode = req.payasyougoReq.ProductCode
+		productType = req.payasyougoReq.ProductType
+	} else {
+		subscriptionType = req.subscriptionReq.SubscriptionType
+		productCode = req.subscriptionReq.ProductCode
+		productType = req.subscriptionReq.ProductType
+	}
+	tags["ProductCode"] = productCode
+	tags["ProductType"] = productType
+	tags["SubscriptionType"] = subscriptionType
+	tags["Currency"] = respData.Currency
 	tags["Region"] = req.region
 
 	fields := map[string]interface{}{}
 
-	for _, mod := range resp.Data.ModuleDetails.ModuleDetail {
+	for _, mod := range respData.ModuleDetails.ModuleDetail {
 		if mod.OriginalCost > 0 {
-			//fields[mod.ModuleCode+"_OriginalCost"] = mod.OriginalCost
-			fields[mod.ModuleCode+"_CostAfterDiscount"] = mod.CostAfterDiscount
-			//fields[mod.ModuleCode+"_InvoiceDiscount"] = mod.InvoiceDiscount
-			//fields[mod.ModuleCode+"_UnitPrice"] = mod.UnitPrice
+			//每个计费模块的信息
+			fields["Module_"+mod.ModuleCode+"_OriginalCost"] = mod.OriginalCost           //原价
+			fields["Module_"+mod.ModuleCode+"_CostAfterDiscount"] = mod.CostAfterDiscount //折后价
+			fields["Module_"+mod.ModuleCode+"_InvoiceDiscount"] = mod.InvoiceDiscount     //打折减去的价钱
+			if mod.UnitPrice > 0 {
+				fields["Module_"+mod.ModuleCode+"_UnitPrice"] = mod.UnitPrice //单价
+			}
+		}
+
+		//获取计费模块的信息
+		modinfo := req.getModInfo(mod.ModuleCode, req.payAsYouGo)
+
+		if modinfo == nil {
+
+			skip := true
+			if ht, ok := req.fetchModulePriceHistory[subscriptionType]; ok {
+				if time.Now().Sub(ht) > time.Minute*30 {
+					skip = false
+				}
+			} else {
+				skip = false
+			}
+
+			if !skip {
+				pcode := ""
+				ptype := ""
+				if req.payAsYouGo {
+					pcode = req.productCodeForPriceModulesPayasugo
+					ptype = req.productTypeForPriceModulesPayasugo
+				} else {
+					pcode = req.productCodeForPriceModulesSubscript
+					ptype = req.productTypeForPriceModulesSubscript
+				}
+				modlist, err := a.fetchProductPriceModule(req.region, pcode, ptype, subscriptionType)
+				if err != nil {
+					a.logger.Errorf("fail to get price modules, ProductCode=%s, ProductType=%s, SubscriptionType=%s, %s", pcode, ptype, subscriptionType, err)
+					req.fetchModulePriceHistory[subscriptionType] = time.Now()
+				} else {
+					req.priceModuleInfos[subscriptionType] = modlist
+					modinfo = req.getModInfo(mod.ModuleCode, true)
+				}
+			}
+		}
+
+		//eg., 按月付
+		if modinfo != nil && modinfo.PriceType != "" {
+			fields["Module_"+mod.ModuleCode+"_PriceType"] = modinfo.PriceType
 		}
 	}
-	// for _, prom := range resp.Data.PromotionDetails.PromotionDetail {
-	// 	if prom.PromotionName != "" {
-	// 		k := fmt.Sprintf("Promotion_%v", prom.PromotionId)
-	// 		promj, _ := json.Marshal(&prom)
-	// 		fields[k] = promj
-	// 	}
-	// }
-	if resp.Data.TradePrice > 0 {
-		fields["TradePrice"] = resp.Data.TradePrice
+
+	//优惠活动
+	if len(respData.PromotionDetails.PromotionDetail) > 0 {
+		prominfo, err := json.Marshal(respData.PromotionDetails)
+		if err != nil {
+			a.logger.Warnf("fail to marshal PromotionDetails, %s", err)
+		} else {
+			fields["Promotion"] = string(prominfo)
+		}
 	}
-	if resp.Data.OriginalPrice > 0 {
-		fields["OriginalPrice"] = resp.Data.OriginalPrice
+
+	if respData.TradePrice > 0 {
+		fields["TradePrice"] = respData.TradePrice
 	}
-	if resp.Data.DiscountPrice > 0 {
-		fields["DiscountPrice"] = resp.Data.DiscountPrice
+	if respData.OriginalPrice > 0 {
+		fields["OriginalPrice"] = respData.OriginalPrice
+	}
+	if respData.DiscountPrice > 0 {
+		fields["DiscountPrice"] = respData.DiscountPrice
+	}
+
+	if req.m != nil {
+		tags = req.m.handleTags(tags)
+		fields = req.m.handleFields(fields)
 	}
 
 	if len(fields) > 0 {
@@ -255,41 +344,63 @@ func (a *AliyunPriceAgent) handleSubscriptionResp(resp *bssopenapi.GetSubscripti
 		if metricName == "" {
 			metricName = "aliyun_price"
 		}
-		a.accumulator.AddFields(metricName, fields, tags, time.Now().UTC())
+		if a.accumulator != nil {
+			a.accumulator.AddFields(metricName, fields, tags, time.Now().UTC())
+		} else {
+			ms, _ := metric.New(metricName, tags, fields, time.Now().UTC())
+			fmt.Printf("%s", internal.Metric2InfluxLine(ms))
+		}
 	}
 }
 
-func (a *AliyunPriceAgent) handlePayasyougoResp(resp *bssopenapi.GetPayAsYouGoPriceResponse, req *priceReq) {
-	tags := map[string]string{}
-	tags["ProductCode"] = req.payasyougoReq.ProductCode
-	tags["SubscriptionType"] = "PayAsYouGo"
-	tags["Currency"] = resp.Data.Currency
-	tags["Region"] = req.region
+func (req *priceReq) getModInfo(code string, payasyoug bool) *bssopenapi.Module {
 
-	fields := map[string]interface{}{}
+	subscripType := `Subscription`
+	if payasyoug {
+		subscripType = `PayAsYouGo`
+	}
+	if l, ok := req.priceModuleInfos[subscripType]; ok {
+		for _, m := range l.Module {
+			if m.ModuleCode == code {
+				return &m
+			}
+		}
+	}
+	return nil
+}
 
-	for _, mod := range resp.Data.ModuleDetails.ModuleDetail {
-		if mod.OriginalCost > 0 {
-			fields[mod.ModuleCode+"_OriginalCost"] = mod.OriginalCost
-			fields[mod.ModuleCode+"_CostAfterDiscount"] = mod.CostAfterDiscount
-			fields[mod.ModuleCode+"_InvoiceDiscount"] = mod.InvoiceDiscount
-			fields[mod.ModuleCode+"_UnitPrice"] = mod.UnitPrice
-		}
+func (a *AliyunPriceAgent) fetchProductPriceModule(region, productCode, productType, subscriptionType string) (*bssopenapi.ModuleList, error) {
+
+	req := bssopenapi.CreateDescribePricingModuleRequest()
+	req.Scheme = `https`
+	req.RegionId = region
+	req.ProductCode = productCode
+	req.ProductType = productType
+	req.SubscriptionType = subscriptionType
+
+	resp, err := a.client.DescribePricingModule(req)
+	if err == nil && resp != nil && !resp.Success {
+		err = fmt.Errorf("%s", resp.String())
 	}
-	for _, prom := range resp.Data.PromotionDetails.PromotionDetail {
-		if prom.PromotionName != "" {
-			k := fmt.Sprintf("Promotion_%v", prom.PromotionId)
-			promj, _ := json.Marshal(&prom)
-			fields[k] = promj
-		}
+
+	if err != nil {
+		return nil, err
 	}
-	if len(fields) > 0 {
-		metricName := req.metricName
-		if metricName == "" {
-			metricName = "aliyun_price"
-		}
-		a.accumulator.AddFields(metricName, fields, tags, time.Now().UTC())
-	}
+
+	// for _, attr := range resp.Data.AttributeList.Attribute {
+	// 	//attr.Values.AttributeValue //属性的值的取值范围
+	// 	if attr.Code == "InstanceType" {
+	// 		for _, v := range attr.Values.AttributeValue {
+	// 			fmt.Printf("%s : %s - %s\n", v.Name, v.Value, v.Remark)
+	// 		}
+	// 	}
+	// }
+
+	// for _, mod := range resp.Data.ModuleList.Module {
+	// 	_ = mod
+	// }
+
+	return &resp.Data.ModuleList, nil
 }
 
 func NewAgent() *AliyunPriceAgent {
