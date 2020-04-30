@@ -7,22 +7,25 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
+	"github.com/dustin/go-humanize"
 	"github.com/kardianos/service"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
-	ServiceName = `datakit`
+	ServiceName    = `datakit`
+	DataKitGzipUrl = ""
 
 	flagUpgrade    = flag.Bool("upgrade", false, ``)
 	flagDataway    = flag.String("dataway", "", `address of dataway(ip:port)`)
 	flagInstallDir = flag.String("install-dir", `C:\Program Files (x86)\Forethought\`+ServiceName, `directory to install`)
-	flagGZPath     = flag.String("gzpath", "", "datakit gzip path")
 	flagVersion    = flag.Bool("version", false, "show installer version info")
 )
 
@@ -60,7 +63,6 @@ func doExtract(r io.Reader, to string) {
 				log.Fatalf("[error] %s", err.Error())
 			}
 
-			log.Printf("[debug] create %s ok, extract file %s", filepath.Dir(target), target)
 			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
 			if err != nil {
 				log.Fatalf("[error] %s", err.Error())
@@ -71,7 +73,6 @@ func doExtract(r io.Reader, to string) {
 			}
 
 			f.Close()
-			log.Printf("[debug] extract file %s ok", target)
 		}
 	}
 }
@@ -87,17 +88,59 @@ func extractDatakit(gz, to string) {
 	doExtract(data, to)
 }
 
+type WriteCounter struct {
+	total   uint64
+	current uint64
+	last    float64
+}
+
+func (wc *WriteCounter) Write(p []byte) (int, error) {
+	n := len(p)
+	wc.current += uint64(n)
+	wc.last += float64(n)
+	wc.PrintProgress()
+	return n, nil
+}
+
+func downloadDatakit(from, to string) {
+	resp, err := http.Get(from)
+	if err != nil {
+		log.Fatalf("failed to download %s: %s", from, err)
+	}
+
+	defer resp.Body.Close()
+	cnt := &WriteCounter{
+		total: uint64(resp.ContentLength),
+	}
+
+	doExtract(io.TeeReader(resp.Body, cnt), to)
+	fmt.Printf("\n")
+}
+
+func (wc *WriteCounter) PrintProgress() {
+	// Clear the line by using a character return to go back to the start and remove
+	// the remaining characters by filling it with spaces
+
+	if wc.last > float64(wc.total)*0.01 {
+		fmt.Printf("\r%s", strings.Repeat(" ", 35))
+		fmt.Printf("\rDownloading... %s/%s", humanize.Bytes(wc.current), humanize.Bytes(wc.total))
+		wc.last = 0.0
+	}
+}
+
 func main() {
 
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	//log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	flag.Parse()
 
 	if *flagVersion {
-		fmt.Printf(`Version:        %s
-Build At:       %s
+		fmt.Printf(`
+       Version: %s
+      Build At: %s
 Golang Version: %s
-`, git.Version, git.BuildAt, git.Golang)
+   DataKitGzip: %s
+`, git.Version, git.BuildAt, git.Golang, DataKitGzipUrl)
 		return
 	}
 
@@ -126,29 +169,32 @@ Golang Version: %s
 		// ignore
 	}
 
-	extractDatakit(*flagGZPath, *flagInstallDir)
+	downloadDatakit(DataKitGzipUrl, *flagInstallDir)
 
 	if *flagUpgrade { // upgrade new version
 		if err := upgradeDatakit(datakitExe); err != nil {
 			log.Fatal("[error] upgrade datakit failed: %s", err.Error())
 		}
 	} else { // install new datakit
+
+		uninstallDataKitService(dkservice)
+
 		if err := initDatakit(datakitExe, fmt.Sprintf("http://%s/v1/write/metrics", *flagDataway)); err != nil {
 			log.Fatal("[error] init datakit failed: %s", err.Error())
 		}
 
-		log.Printf("[info] try install service %s", ServiceName)
+		log.Printf("install service %s...", ServiceName)
 		if err := installDatakitService(dkservice); err != nil {
 			log.Fatalf("[error] fail to register service %s: %s", ServiceName, err.Error())
 		}
 	}
 
-	log.Printf("[info] try start service %s", ServiceName)
+	log.Printf("starting service %s...", ServiceName)
 	if err := startDatakitService(dkservice); err != nil {
 		log.Fatalf("[error] fail to register service %s: %s", ServiceName, err.Error())
 	}
 
-	log.Println(":)Success!")
+	log.Println(":) Success!")
 }
 
 type program struct{}
@@ -160,6 +206,14 @@ func (p *program) Stop(s service.Service) error  { return nil }
 func stopDataKitService(s service.Service) error {
 
 	if err := service.Control(s, "stop"); err != nil {
+		log.Printf("[warn] stop service datakit failed: %s, ignored", err.Error())
+	}
+
+	return nil
+}
+
+func uninstallDataKitService(s service.Service) error {
+	if err := service.Control(s, "uninstall"); err != nil {
 		log.Printf("[warn] stop service datakit failed: %s, ignored", err.Error())
 	}
 
