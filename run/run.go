@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,12 +18,14 @@ import (
 )
 
 type Agent struct {
-	Config *config.Config
+	Config     *config.Config
+	outputsMgr *OutputsMgr
 }
 
 func NewAgent(config *config.Config) (*Agent, error) {
 	a := &Agent{
-		Config: config,
+		Config:     config,
+		outputsMgr: &OutputsMgr{},
 	}
 	return a, nil
 }
@@ -45,8 +48,23 @@ func (a *Agent) Run(ctx context.Context) error {
 		return err
 	}
 
+	a.outputsMgr.Outputs, err = a.Config.LoadOutputs()
+	if err != nil {
+		return err
+	}
+
+	var outputsNames []string
+	for _, p := range a.outputsMgr.Outputs {
+		outputsNames = append(outputsNames, p.Config.Name)
+	}
+	log.Printf("avariable outputs: %s", strings.Join(outputsNames, ","))
+
 	log.Printf("Connecting outputs")
-	err = a.connectOutputs(ctx)
+	err = a.outputsMgr.Init()
+	if err != nil {
+		return err
+	}
+	err = a.outputsMgr.ConnectOutputs(ctx)
 	if err != nil {
 		return err
 	}
@@ -56,6 +74,8 @@ func (a *Agent) Run(ctx context.Context) error {
 	//outputC := make(chan telegraf.Metric, 100)
 
 	startTime := time.Now()
+
+	ncInput := len(a.Config.Inputs)
 
 	err = a.startServiceInputs(ctx, inputC)
 	if err != nil {
@@ -76,27 +96,40 @@ func (a *Agent) Run(ctx context.Context) error {
 			log.Printf("E! Error running inputs: %v", err)
 		}
 
-		a.stopServiceInputs()
-
-		close(dst)
-		log.Printf("D! Input channel closed")
+		log.Printf("D! Interval Inputs done")
 	}(dst)
 
-	src = dst
+	if ncInput > 0 {
 
-	wg.Add(1)
-	go func(src chan telegraf.Metric) {
-		defer wg.Done()
+		go func() {
+			select {
+			case <-ctx.Done():
+				a.stopServiceInputs()
+				close(dst)
+			}
+		}()
 
-		err := a.runOutputs(startTime, src)
-		if err != nil {
-			log.Printf("E! Error running outputs: %v", err)
-		}
-	}(src)
+		src = dst
 
-	wg.Wait()
+		wg.Add(1)
+		go func(src chan telegraf.Metric) {
+			defer wg.Done()
 
-	a.closeOutputs()
+			err := a.outputsMgr.Start(src, startTime, a.Config.MainCfg.FlushInterval.Duration, a.Config.MainCfg.FlushJitter.Duration, a.Config.MainCfg.RoundInterval)
+			if err != nil {
+				log.Printf("E! Error running outputs: %v", err)
+			}
+
+			a.stopDatacleanService() //dataclean后面停
+		}(src)
+
+		wg.Wait()
+
+		a.outputsMgr.Close()
+	} else {
+		//no input no output
+		<-ctx.Done()
+	}
 
 	log.Printf("datakit stopped successfully")
 	return nil
@@ -109,6 +142,9 @@ func (a *Agent) runInputs(
 ) error {
 	var wg sync.WaitGroup
 	for _, input := range a.Config.Inputs {
+		if _, ok := input.Input.(telegraf.ServiceInput); ok {
+			continue
+		}
 		interval := a.Config.MainCfg.Interval.Duration
 		jitter := time.Duration(0) //a.Config.Agent.CollectionJitter.Duration
 
@@ -140,127 +176,6 @@ func (a *Agent) runInputs(
 	return nil
 }
 
-func (a *Agent) runOutputs(
-	startTime time.Time,
-	src <-chan telegraf.Metric,
-) error {
-	interval := a.Config.MainCfg.FlushInterval.Duration
-	jitter := time.Duration(0) // a.Config.MainCfg.FlushJitter.Duration
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	var wg sync.WaitGroup
-	for _, output := range a.Config.Outputs {
-		interval := interval
-		// Overwrite agent flush_interval if this plugin has its own.
-		if output.Config.FlushInterval != 0 {
-			interval = output.Config.FlushInterval
-		}
-
-		wg.Add(1)
-		go func(output *models.RunningOutput) {
-			defer wg.Done()
-
-			if a.Config.MainCfg.RoundInterval {
-				err := internal.SleepContext(
-					ctx, internal.AlignDuration(startTime, interval))
-				if err != nil {
-					return
-				}
-			}
-
-			a.flush(ctx, output, interval, jitter)
-		}(output)
-	}
-
-	for metric := range src {
-		for i, output := range a.Config.Outputs {
-			if i == len(a.Config.Outputs)-1 {
-				output.AddMetric(metric)
-			} else {
-				output.AddMetric(metric.Copy())
-			}
-		}
-	}
-
-	log.Println("I! Hang on, flushing any cached metrics before shutdown")
-	cancel()
-	wg.Wait()
-
-	return nil
-}
-
-func (a *Agent) flush(
-	ctx context.Context,
-	output *models.RunningOutput,
-	interval time.Duration,
-	jitter time.Duration,
-) {
-	// since we are watching two channels we need a ticker with the jitter
-	// integrated.
-	ticker := NewTicker(interval, jitter)
-	defer ticker.Stop()
-
-	logError := func(err error) {
-		if err != nil {
-			log.Printf("E! Error writing to %s: %v", output.LogName(), err)
-		}
-	}
-
-	for {
-		// Favor shutdown over other methods.
-		select {
-		case <-ctx.Done():
-			logError(a.flushOnce(output, interval, output.Write))
-			return
-		default:
-		}
-
-		select {
-		case <-ticker.C:
-			logError(a.flushOnce(output, interval, output.Write))
-		case <-output.BatchReady:
-			// Favor the ticker over batch ready
-			select {
-			case <-ticker.C:
-				logError(a.flushOnce(output, interval, output.Write))
-			default:
-				logError(a.flushOnce(output, interval, output.WriteBatch))
-			}
-		case <-ctx.Done():
-			logError(a.flushOnce(output, interval, output.Write))
-			return
-		}
-	}
-}
-
-func (a *Agent) flushOnce(
-	output *models.RunningOutput,
-	timeout time.Duration,
-	writeFunc func() error,
-) error {
-	ticker := time.NewTicker(timeout)
-	defer ticker.Stop()
-
-	done := make(chan error)
-	go func() {
-		done <- writeFunc()
-	}()
-
-	for {
-		select {
-		case err := <-done:
-			output.LogBufferStatus()
-			return err
-		case <-ticker.C:
-			log.Printf("W! [%q] did not complete within its flush interval",
-				output.LogName())
-			output.LogBufferStatus()
-		}
-	}
-
-}
-
 func (a *Agent) initPlugins() error {
 	for _, input := range a.Config.Inputs {
 		err := input.Init()
@@ -268,42 +183,12 @@ func (a *Agent) initPlugins() error {
 			return fmt.Errorf("could not initialize input %s: %v", input.LogName(), err)
 		}
 	}
-	for _, output := range a.Config.Outputs {
-		err := output.Init()
-		if err != nil {
-			return fmt.Errorf("could not initialize output %s: %v", output.Config.Name, err)
-		}
-	}
-	return nil
-}
-
-func (a *Agent) closeOutputs() {
-	for _, output := range a.Config.Outputs {
-		log.Printf("D! closing output: %s", output.Config.Name)
-		output.Close()
-	}
-}
-
-func (a *Agent) connectOutputs(ctx context.Context) error {
-	for _, output := range a.Config.Outputs {
-		log.Printf("D! Attempting connection to [%s]", output.LogName())
-		err := output.Output.Connect()
-		if err != nil {
-			log.Printf("E! Failed to connect to [%s], retrying in 15s, "+
-				"error was '%s'", output.LogName(), err)
-
-			err := internal.SleepContext(ctx, 15*time.Second)
-			if err != nil {
-				return err
-			}
-
-			err = output.Output.Connect()
-			if err != nil {
-				return err
-			}
-		}
-		log.Printf("D! Successfully connected to [%s]", output.LogName())
-	}
+	// for _, output := range a.Config.Outputs {
+	// 	err := output.Init()
+	// 	if err != nil {
+	// 		return fmt.Errorf("could not initialize output %s: %v", output.Config.Name, err)
+	// 	}
+	// }
 	return nil
 }
 
@@ -344,6 +229,27 @@ func (a *Agent) startServiceInputs(
 
 func (a *Agent) stopServiceInputs() {
 	for _, input := range a.Config.Inputs {
+		if _, ok := input.Input.(telegraf.ServiceInput); !ok {
+			continue
+		}
+		if input.Config.Name == "dataclean" {
+			continue
+		}
+		log.Printf("D! stopping service input: %s", input.Config.Name)
+		if si, ok := input.Input.(telegraf.ServiceInput); ok {
+			si.Stop()
+		}
+	}
+}
+
+func (a *Agent) stopDatacleanService() {
+	for _, input := range a.Config.Inputs {
+		if _, ok := input.Input.(telegraf.ServiceInput); !ok {
+			continue
+		}
+		if input.Config.Name != "dataclean" {
+			continue
+		}
 		log.Printf("D! stopping service input: %s", input.Config.Name)
 		if si, ok := input.Input.(telegraf.ServiceInput); ok {
 			si.Stop()
