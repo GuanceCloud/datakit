@@ -123,20 +123,20 @@ func (ac *AliyunCostAgent) Start(acc telegraf.Accumulator) error {
 			ctx:   ac.ctx,
 		}
 
-		limit := rate.Every(40 * time.Millisecond)
+		limit := rate.Every(60 * time.Millisecond)
 		ri.rateLimiter = rate.NewLimiter(limit, 1)
 
-		if cfg.AccountInterval.Duration > 0 {
-			ri.modules = append(ri.modules, NewCostAccount(cfg, ri))
-		}
+		// if cfg.AccountInterval.Duration > 0 {
+		// 	ri.modules = append(ri.modules, NewCostAccount(cfg, ri))
+		// }
 
 		if cfg.BiilInterval.Duration > 0 {
 			ri.modules = append(ri.modules, NewCostBill(cfg, ri))
 		}
 
-		if cfg.OrdertInterval.Duration > 0 {
-			ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
-		}
+		// if cfg.OrdertInterval.Duration > 0 {
+		// 	ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
+		// }
 
 		ac.runningInstances = append(ac.runningInstances, ri)
 

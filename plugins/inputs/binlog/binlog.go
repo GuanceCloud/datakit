@@ -10,6 +10,7 @@ import (
 
 	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -26,6 +27,8 @@ type Binlog struct {
 	cancelfun context.CancelFunc
 
 	accumulator telegraf.Accumulator
+
+	logger *models.Logger
 }
 
 func (_ *Binlog) SampleConfig() string {
@@ -60,7 +63,7 @@ func setupLogger() {
 func (b *Binlog) Start(acc telegraf.Accumulator) error {
 
 	if len(b.Instances) == 0 {
-		log.Printf("W! [binlog] no config found")
+		b.logger.Warnf("no config found")
 		return nil
 	}
 
@@ -68,7 +71,7 @@ func (b *Binlog) Start(acc telegraf.Accumulator) error {
 
 	b.accumulator = acc
 
-	log.Printf("I! Binlog start")
+	b.logger.Infof("start")
 
 	for _, inst := range b.Instances {
 
@@ -83,14 +86,14 @@ func (b *Binlog) Start(acc telegraf.Accumulator) error {
 
 			for {
 				if err := rb.run(b.ctx); err != nil && err != context.Canceled {
-					log.Printf("E! %s", err.Error())
+					b.logger.Errorf("%s", err.Error())
 					internal.SleepContext(b.ctx, time.Second*3)
 				} else if err == context.Canceled {
 					break
 				}
 			}
 
-			log.Printf("I! Binlog done")
+			b.logger.Infof("done")
 
 		}(bl)
 
@@ -108,7 +111,11 @@ func (b *Binlog) Stop() {
 
 func init() {
 	inputs.Add("binlog", func() telegraf.Input {
-		b := &Binlog{}
+		b := &Binlog{
+			logger: &models.Logger{
+				Name: `binlog`,
+			},
+		}
 		b.ctx, b.cancelfun = context.WithCancel(context.Background())
 		return b
 	})
