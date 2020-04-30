@@ -42,19 +42,39 @@ WHERE
 
 const oracle_blocking_sessions_sql = `
 WITH sessions AS (
-	SELECT sid, serial# AS serial, logon_time, status, event
-		, p1, p2, p3, username, terminal
-		, program, sql_id, prev_sql_id, last_call_et, blocking_session
-		, blocking_instance, row_wait_obj# AS row_wait_obj
-	FROM v$session
+    SELECT
+        sid,
+        serial#         serial,
+        to_char(logon_time, 'yyyy-mm-dd hh24:mi:ss') logon_time,
+        status,
+        event,
+        p1,
+        p2,
+        p3,
+        username,
+        terminal,
+        program,
+        sql_id,
+        prev_sql_id,
+        last_call_et,
+        blocking_session,
+        blocking_instance,
+        row_wait_obj#   row_wait_obj
+    FROM
+        v$session
 )
-SELECT *
-FROM sessions
-WHERE sid IN (
-	SELECT blocking_session
-	FROM sessions
-)
-OR blocking_session IS NOT NULL
+SELECT
+    *
+FROM
+    sessions
+WHERE
+    sid IN (
+        SELECT
+            blocking_session
+        FROM
+            sessions
+    )
+    OR blocking_session IS NOT NULL;
 `
 
 const oracle_undo_stat_sql = `
@@ -77,12 +97,12 @@ SELECT
     group#      group_no,
     thread#     thread_no,
     sequence#   sequence_no,
-    bytes,
+    bytes  AS size_bytes,
     members,
     archived,
     status
 FROM
-    v$log
+    v$log;
 `
 
 const oracle_standby_log_sql = `
@@ -155,16 +175,6 @@ SELECT
     number_of_files
 FROM
     v$recovery_file_dest
-`
-
-var oracle_tbs_free_space_sql = `
-SELECT
-    tablespace_name,
-    SUM(bytes) as space_free
-FROM
-    dba_free_space
-GROUP BY
-    tablespace_name
 `
 
 const oracle_tbs_space_sql = `
@@ -323,89 +333,59 @@ SELECT 'open_cursors' parameter,
          (SELECT VALUE FROM V$PARAMETER WHERE NAME = 'open_cursors')
 `
 
-const oracle_sessions_sql = `
-SELECT
-        sid,
-        serial#         serial,
-        to_char(logon_time, 'yyyy-mm-dd hh24:mi:ss') logon_time,
-        status,
-        event,
-        p1,
-        p2,
-        p3,
-        username,
-        terminal,
-        program,
-        sql_id,
-        prev_sql_id,
-        last_call_et,
-        blocking_session,
-        blocking_instance,
-        row_wait_obj#   row_wait_obj
-    FROM
-        v$session
-`
-
-const oracle_pdb_backup_set_info_sql = `
-SELECT
-    bs_key,
-    recid,
-    stamp,
-    to_char(start_time, 'yyyy-mm-dd hh24:mi:ss') start_time,
-    to_char(completion_time, 'yyyy-mm-dd hh24:mi:ss') completion_time,
-    elapsed_seconds,
-    output_bytes,
-    CASE
-        WHEN backup_type = 'D' THEN
-            'DB FULL'
-        WHEN backup_type = 'L' THEN
-            'ARCHIVELOG'
-        WHEN backup_type = 'I' THEN
-            'DB INCR'
-        ELSE
-            backup_type
-    END AS backup_type,
-    'SUCCESS' AS status
-FROM
-    v$backup_set_details
-WHERE
-    completion_time >= sysdate - 1 / 2
-`
-
-const oracle_cdb_backup_job_info_sql = `
-SELECT
-    session_key,
-    session_recid,
-    session_stamp,
-    to_char(start_time, 'yyyy-mm-dd hh24:mi:ss') start_time,
-    to_char(end_time, 'yyyy-mm-dd hh24:mi:ss') end_time,
-    elapsed_seconds,
-    output_bytes,
-    input_type,
-    CASE
-        WHEN status LIKE 'COMPLETED%' THEN
-            'SUCCESS'
-        ELSE
-            'FAILED'
-    END AS status
-FROM
-    v$rman_backup_job_details
-WHERE
-    end_time >= sysdate - 1 / 2
-    AND status NOT LIKE 'RUNNING%'
-`
-
 const oracle_snap_info_sql = `
 SELECT dbid,
 to_char(sys_extract_utc(s.startup_time), 'yyyy-mm-dd hh24:mi:ss') snap_startup_time,
 to_char(sys_extract_utc(s.begin_interval_time),
-   'yyyy-mm-dd hh24:mi:ss') begin_interval_time,
+       'yyyy-mm-dd hh24:mi:ss') begin_interval_time,
 to_char(sys_extract_utc(s.end_interval_time), 'yyyy-mm-dd hh24:mi:ss') end_interval_time,
 s.snap_id, s.instance_number,
-(cast(s.end_interval_time as date) - cast(s.begin_interval_time as date))*86400 as span_in_second
+(cast(s.end_interval_time as date) - cast(s.begin_interval_time as date))*86400 as snap_in_second
 from dba_hist_snapshot  s, v$instance b
 where s.end_interval_time >= sysdate - interval '2' hour
-and s.INSTANCE_NUMBER = b.INSTANCE_NUMBER
+and s.INSTANCE_NUMBER = b.INSTANCE_NUMBER;
+`
+
+const oralce_backup_set_info_sql = `
+select backup_types,count(backup_recid) backup_recid, 
+to_char(max(backup_start_time),'yyyy-mm-dd hh24:mi:ss') max_backup_start_time,
+to_char(min(backup_start_time),'yyyy-mm-dd hh24:mi:ss') min_backup_start_time
+from (select a.recid backup_recid,
+        decode (b.incremental_level,
+                '', decode (backup_type, 'L', 'ARCHIVELOG', 'FULL'),
+                1, 'INCR-LV1',
+                0, 'INCR-LV0',
+                b.incremental_level)
+           backup_types,
+        decode (a.status,
+                'A', 'AVAILABLE',
+                'D', 'DELETED',
+                'X', 'EXPIRED',
+                'ERROR')
+           backup_status,
+        a.start_time backup_start_time,
+        a.completion_time backup_completion_time,
+        a.elapsed_seconds backup_est_seconds,
+        a.bytes backup_size_bytes,
+        a.compressed backup_compressed
+   from gv$backup_piece a, gv$backup_set b
+  where a.set_stamp = b.set_stamp and a.deleted = 'NO' AND A.STATUS='A'
+) group by backup_types;
+`
+
+const oracle_tablespace_free_pct_sql = `
+select a.tablespace_name tablespace_name,
+      a.bytes  t_size,
+      (a.bytes - b.bytes) t_use,
+      b.bytes t_free,
+      round(((a.bytes - b.bytes) / a.bytes) * 100, 2) t_percent
+ from (select tablespace_name, sum(bytes) bytes
+         from dba_data_files
+        group by tablespace_name) a,
+      (select tablespace_name, sum(bytes) bytes, max(bytes) largest
+         from dba_free_space
+        group by tablespace_name) b
+where a.tablespace_name = b.tablespace_name;
 `
 
 var metricMap = map[string]string{
@@ -420,7 +400,6 @@ var metricMap = map[string]string{
 	"oracle_standby_process":     oracle_standby_process_sql,
 	"oracle_asm_diskgroups":      oracle_asm_diskgroups_sql,
 	"oracle_flash_area_info":     oracle_flash_area_info_sql,
-	"oracle_tbs_free_space":      oracle_tbs_free_space_sql,
 	"oracle_tbs_space":           oracle_tbs_space_sql,
 	"oracle_tbs_meta_info":       oracle_tbs_meta_info_sql,
 	"oracle_temp_segment_usage":  oracle_temp_segment_usage_sql,
@@ -430,25 +409,21 @@ var metricMap = map[string]string{
 	"oracle_accounts":            oracle_accounts_sql,
 	"oracle_locks":               oracle_locks_sql,
 	"oracle_session_ratio":       oracle_session_ratio_sql,
-	"oracle_sessions":            oracle_sessions_sql,
-	"oracle_pdb_backup_set_info": oracle_pdb_backup_set_info_sql,
-	"oracle_cdb_backup_job_info": oracle_cdb_backup_job_info_sql,
 	"oracle_snap_info":           oracle_snap_info_sql,
+	"oralce_backup_set_info":     oralce_backup_set_info_sql,
+	"oracle_tablespace_free_pct": oracle_tablespace_free_pct_sql,
 }
 
 var tagsMap = map[string][]string{
-	"oracle_pdb_backup_set_info": []string{"bs_key"},
-	"oracle_cdb_backup_job_info": []string{"bs_key"},
 	"oracle_hostinfo":            []string{"stat_name"},
 	"oracle_dbinfo":              []string{"ora_db_id"},
 	"oracle_key_params":          []string{"name"},
-	"oracle_blocking_sessions":   []string{"serial"},
+	"oracle_blocking_sessions":   []string{"sid", "serial", "username"},
 	"oracle_redo_info":           []string{"group_no", "sequence_no"},
 	"oracle_standby_log":         []string{"message_num"},
 	"oracle_standby_process":     []string{"process_seq"},
 	"oracle_asm_diskgroups":      []string{"group_number", "group_name"},
 	"oracle_flash_area_info":     []string{"name"},
-	"oracle_tbs_free_space":      []string{"tablespace_name"},
 	"oracle_tbs_space":           []string{"tablespace_name"},
 	"oracle_tbs_meta_info":       []string{"tablespace_name"},
 	"oracle_temp_segment_usage":  []string{"tablespace_name"},
@@ -456,6 +431,7 @@ var tagsMap = map[string][]string{
 	"oracle_accounts":            []string{"username", "user_id"},
 	"oracle_locks":               []string{"session_id"},
 	"oracle_session_ratio":       []string{"parameter"},
-	"oracle_sessions":            []string{"serial", "username"},
 	"oracle_snap_info":           []string{"dbid", "snap_id"},
+	"oralce_backup_set_info":     []string{"backup_types"},
+	"oracle_tablespace_free_pct": []string{"tablesapce_name"},
 }
