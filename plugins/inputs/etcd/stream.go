@@ -15,7 +15,7 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
-const _ETCD_MEASUREMENT = "etcd"
+const _PROMETHEUS_TO_METRIC_MEASUREMENT = "tmp"
 
 var _ETCD_ACTION_LIST = map[string]byte{
 	"create":       '0',
@@ -47,6 +47,10 @@ func newStream(sub *Subscribe, etc *Etcd) *stream {
 
 func (s *stream) start(wg *sync.WaitGroup) error {
 	defer wg.Done()
+
+	if s.sub.Measurement == "" {
+		return fmt.Errorf("invalid measurement")
+	}
 
 	ticker := time.NewTicker(time.Second * s.sub.Cycle)
 	defer ticker.Stop()
@@ -121,23 +125,21 @@ func (s *stream) exec() error {
 	END_ACTION:
 	}
 
-	pt, err := influxdb.NewPoint(_ETCD_MEASUREMENT, tags, fields, metrics[0].Time())
+	pt, err := influxdb.NewPoint(s.sub.Measurement, tags, fields, metrics[0].Time())
 	if err != nil {
 		return err
 	}
 
 	s.points = []*influxdb.Point{pt}
 
-	s.flush()
-	return nil
+	return s.flush()
 }
 
 func (s *stream) flush() (err error) {
 	// fmt.Printf("%v\n", s.points)
 	err = s.etc.ProcessPts(s.points)
 	s.points = nil
-
-	return nil
+	return err
 }
 
 // Parse returns a slice of Metrics from a text representation of a
@@ -180,7 +182,7 @@ func ParseV2(prodata io.Reader) ([]telegraf.Metric, error) {
 					} else {
 						t = now
 					}
-					metric, err := metric.New(_ETCD_MEASUREMENT, tags, fields, t, valueType(mf.GetType()))
+					metric, err := metric.New(_PROMETHEUS_TO_METRIC_MEASUREMENT, tags, fields, t, valueType(mf.GetType()))
 					if err == nil {
 						metrics = append(metrics, metric)
 					}
@@ -204,7 +206,7 @@ func makeQuantilesV2(m *dto.Metric, tags map[string]string, metricName string, m
 	}
 	fields[metricName+"_count"] = float64(m.GetSummary().GetSampleCount())
 	fields[metricName+"_sum"] = float64(m.GetSummary().GetSampleSum())
-	met, err := metric.New(_ETCD_MEASUREMENT, tags, fields, t, valueType(metricType))
+	met, err := metric.New(_PROMETHEUS_TO_METRIC_MEASUREMENT, tags, fields, t, valueType(metricType))
 	if err == nil {
 		metrics = append(metrics, met)
 	}
@@ -216,7 +218,7 @@ func makeQuantilesV2(m *dto.Metric, tags map[string]string, metricName string, m
 		newTags["quantile"] = fmt.Sprint(q.GetQuantile())
 		fields[metricName] = float64(q.GetValue())
 
-		quantileMetric, err := metric.New(_ETCD_MEASUREMENT, newTags, fields, t, valueType(metricType))
+		quantileMetric, err := metric.New(_PROMETHEUS_TO_METRIC_MEASUREMENT, newTags, fields, t, valueType(metricType))
 		if err == nil {
 			metrics = append(metrics, quantileMetric)
 		}
@@ -237,7 +239,7 @@ func makeBucketsV2(m *dto.Metric, tags map[string]string, metricName string, met
 	fields[metricName+"_count"] = float64(m.GetHistogram().GetSampleCount())
 	fields[metricName+"_sum"] = float64(m.GetHistogram().GetSampleSum())
 
-	met, err := metric.New(_ETCD_MEASUREMENT, tags, fields, t, valueType(metricType))
+	met, err := metric.New(_PROMETHEUS_TO_METRIC_MEASUREMENT, tags, fields, t, valueType(metricType))
 	if err == nil {
 		metrics = append(metrics, met)
 	}
@@ -248,7 +250,7 @@ func makeBucketsV2(m *dto.Metric, tags map[string]string, metricName string, met
 		newTags["le"] = fmt.Sprint(b.GetUpperBound())
 		fields[metricName+"_bucket"] = float64(b.GetCumulativeCount())
 
-		histogramMetric, err := metric.New(_ETCD_MEASUREMENT, newTags, fields, t, valueType(metricType))
+		histogramMetric, err := metric.New(_PROMETHEUS_TO_METRIC_MEASUREMENT, newTags, fields, t, valueType(metricType))
 		if err == nil {
 			metrics = append(metrics, histogramMetric)
 		}
@@ -298,42 +300,3 @@ func getNameAndValueV2(m *dto.Metric, metricName string) map[string]interface{} 
 	}
 	return fields
 }
-
-// // Get Quantiles from summary metric
-// func makeQuantiles(m *dto.Metric) map[string]interface{} {
-// 	fields := make(map[string]interface{})
-// 	for _, q := range m.GetSummary().Quantile {
-// 		if !math.IsNaN(q.GetValue()) {
-// 			fields[fmt.Sprint(q.GetQuantile())] = float64(q.GetValue())
-// 		}
-// 	}
-// 	return fields
-// }
-//
-// // Get Buckets  from histogram metric
-// func makeBuckets(m *dto.Metric) map[string]interface{} {
-// 	fields := make(map[string]interface{})
-// 	for _, b := range m.GetHistogram().Bucket {
-// 		fields[fmt.Sprint(b.GetUpperBound())] = float64(b.GetCumulativeCount())
-// 	}
-// 	return fields
-// }
-
-// // Get name and value from metric
-// func getNameAndValue(m *dto.Metric) map[string]interface{} {
-// 	fields := make(map[string]interface{})
-// 	if m.Gauge != nil {
-// 		if !math.IsNaN(m.GetGauge().GetValue()) {
-// 			fields["gauge"] = float64(m.GetGauge().GetValue())
-// 		}
-// 	} else if m.Counter != nil {
-// 		if !math.IsNaN(m.GetCounter().GetValue()) {
-// 			fields["counter"] = float64(m.GetCounter().GetValue())
-// 		}
-// 	} else if m.Untyped != nil {
-// 		if !math.IsNaN(m.GetUntyped().GetValue()) {
-// 			fields["value"] = float64(m.GetUntyped().GetValue())
-// 		}
-// 	}
-// 	return fields
-// }
