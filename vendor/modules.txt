@@ -113,6 +113,8 @@ github.com/denisenkom/go-mssqldb/internal/querytext
 github.com/dgrijalva/jwt-go
 # github.com/dimchansky/utfbom v1.1.0
 github.com/dimchansky/utfbom
+# github.com/dustin/go-humanize v1.0.0
+github.com/dustin/go-humanize
 # github.com/ericchiang/k8s v1.2.0
 github.com/ericchiang/k8s
 github.com/ericchiang/k8s/apis/apiextensions/v1beta1
