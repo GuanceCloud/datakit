@@ -81,20 +81,16 @@ func (s *stream) runloop() {
 				if p, err := s.mdata.point(); err == nil {
 					s.points = append(s.points, p)
 				}
-				s.mdata.reset()
 				s.flush()
+				s.mdata.reset()
 			}
 		}
 	}
 }
 
 func (s *stream) flush() (err error) {
-	// FIXME: update cache ?
-	// if len(s.points) > 64 {
-	// }
 	// fmt.Println(s.points)
 	err = s.mgo.ProcessPts(s.points)
 	s.points = nil
-
-	return nil
+	return err
 }
