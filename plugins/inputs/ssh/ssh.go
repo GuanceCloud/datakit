@@ -1,9 +1,9 @@
 package ssh
 
 import (
-	"fmt"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -65,19 +65,19 @@ const sshConfigSample = `### metricName: the name of metric, default is "ssh"
 ### sftpCheck: whether to monitor sftp.
 ### privateKeyFile: rsa file path
 
-metricName="ssh"
-[[targets]]
-	interval = 60
-	active   = false
-	host     = "127.0.0.1:22"
-	username = "xxx"
-	password = "xxx"
-	sftpCheck      = false
-	privateKeyFile = ""
+#metricName="ssh"
+#[[targets]]
+#	interval = 60
+#	active   = true
+#	host     = "127.0.0.1:22"
+#	username = "xxx"
+#	password = "xxx"
+#	sftpCheck      = false
+#	privateKeyFile = ""
 
 #[[targets]]
 #	interval = 60
-#	active   = false
+#	active   = true
 #	host     = "127.0.0.1:22"
 #	username = "xxx"
 #	password = "xxx"
@@ -199,7 +199,7 @@ func (p *SshParam) gather(ctx context.Context) {
 		default:
 		}
 
-		err :=p.getMetrics(clientCfg)
+		err := p.getMetrics(clientCfg)
 		if err != nil {
 			log.Printf("W! [Ssh] %s", err.Error())
 		}
@@ -223,7 +223,7 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 		sshRst = "ok"
 		defer sshClient.Close()
 	} else {
-		sshRst = "nok"
+		sshRst = "lost"
 		fields["ssh_err"] = err.Error()
 	}
 	fields["ssh_check"] = sshRst
@@ -232,7 +232,7 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 	if p.input.SftpCheck {
 		var sftpRst string
 		if err == nil {
-			sftp_client, err := sftp.NewClient(sshClient);
+			sftp_client, err := sftp.NewClient(sshClient)
 			if err == nil {
 				sftpRst = "ok"
 				defer sftp_client.Close()
@@ -241,11 +241,11 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 				fields["sftp_response_time"] = getReadableTimeStr(time.Since(t1))
 
 			} else {
-				sftpRst = "nok"
+				sftpRst = "lost"
 				fields["sftp_err"] = err.Error()
 			}
 		} else {
-			sftpRst = "nok"
+			sftpRst = "lost"
 			fields["sftp_err"] = err.Error()
 		}
 		fields["sftp_check"] = sftpRst
