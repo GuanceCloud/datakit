@@ -102,7 +102,7 @@ var (
 	windows/amd64
 	windows/arm */
 
-	osarches = []string {
+	osarches = []string{
 		`linux/386`,
 		`linux/amd64`,
 
@@ -171,8 +171,8 @@ func compileArch(bin, goos, goarch, dir string) {
 	}
 
 	if *flagCGO == 1 {
-		switch goarch{
-			case "386": // disable CGO under 32-bit
+		switch goarch {
+		case "386": // disable CGO under 32-bit
 			env = append(env, "CGO_ENABLED=0")
 		default:
 			switch goos {
@@ -184,7 +184,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		}
 	}
 
-	log.Printf("[debug] building % 16s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
+	log.Printf("[debug] building % 12s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
 	runEnv(args, env)
 }
 
@@ -227,7 +227,7 @@ func compile() {
 		compileTask(*flagBinary, goos, goarch, dir)
 
 		if goos == "windows" { // build windows installer.exe
-			winInstallerExe = fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, curVersion)
+			winInstallerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
 			buildWindowsInstall(path.Join(*flagPubDir, *flagRelease), goarch)
 		}
 
@@ -253,11 +253,6 @@ func buildInstallScript(dir, goos, goarch string) {
 
 	templateFile := "install.template.sh"
 	installScript := "install.sh"
-
-	if goos == "windows" {
-		templateFile = "install.template.ps1"
-		installScript = "install.ps1"
-	}
 
 	txt, err := ioutil.ReadFile(templateFile)
 	if err != nil {
@@ -364,14 +359,6 @@ func releaseAgent() {
 		if err := oc.Move(installObj, installObjOld); err != nil {
 			log.Fatal(err)
 		}
-
-		// backup windows install.ps1
-		installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.ps1", curVd.withoutGitCommit()))
-		installObj = path.Join(objPath, "install.ps1")
-		log.Printf("[debug] backup %s -> %s", installObj, installObjOld)
-		if err := oc.Move(installObj, installObjOld); err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	// upload all build archs
@@ -399,15 +386,12 @@ func releaseAgent() {
 		gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, curVersion)
 
 		objs[path.Join(*flagPubDir, *flagRelease, gzName)] = path.Join(objPath, gzName)
+		objs[path.Join(*flagPubDir, *flagRelease, "install.sh")] = path.Join(objPath, "install.sh")
 
 		if goos == "windows" {
-			objs[path.Join(*flagPubDir, *flagRelease, "install.ps1")] = path.Join(objPath, "install.ps1")
-			winInstallerExe = fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, curVersion)
+			winInstallerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
 			objs[path.Join(*flagPubDir, *flagRelease, winInstallerExe)] = path.Join(objPath, winInstallerExe)
-		} else {
-			objs[path.Join(*flagPubDir, *flagRelease, "install.sh")] = path.Join(objPath, "install.sh")
 		}
-
 	}
 
 	for k, v := range objs {
@@ -524,11 +508,13 @@ func tarFiles(osname, arch string) {
 
 func buildWindowsInstall(outdir, goarch string) {
 
+	gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, "windows-"+goarch, curVersion)
+
 	args := []string{
 		"go", "build",
-		"-ldflags", "-w -s",
+		"-ldflags", fmt.Sprintf("-w -s -X main.DataKitGzipUrl=https://%s/%s", *flagDownloadAddr, gzName),
 		"-o", path.Join(outdir, winInstallerExe),
-		"win-installer.go",
+		"installer.go",
 	}
 
 	env := []string{
