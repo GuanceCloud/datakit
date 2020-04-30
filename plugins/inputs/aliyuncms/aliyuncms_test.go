@@ -206,7 +206,7 @@ func TestSvr(t *testing.T) {
 
 	ag := NewAgent()
 
-	data, err := ioutil.ReadFile("./aliyuncms.toml")
+	data, err := ioutil.ReadFile("./test.conf")
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
