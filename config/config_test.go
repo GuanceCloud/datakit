@@ -1,14 +1,22 @@
 package config
 
 import (
+	"context"
 	"log"
 	"testing"
 
 	uuid "github.com/satori/go.uuid"
-
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
 )
+
+func TestLoadMainCfg(t *testing.T) {
+
+	c := NewConfig()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := c.LoadMainConfig(ctx, `test.conf`); err != nil {
+		t.Errorf("%s", err)
+	}
+}
 
 func TestInitCfg(t *testing.T) {
 
@@ -34,13 +42,4 @@ func TestInitCfg(t *testing.T) {
 	if err = CreatePluginConfigs("./testconf.d", false); err != nil {
 		log.Fatalf("%s", err)
 	}
-}
-
-func TestLoadCfg(t *testing.T) {
-	// c := NewConfig()
-	// if err := c.LoadConfig(`test.conf`, `testconf.d`); err != nil {
-	// 	log.Fatalf("%s", err)
-	// }
-
-	// log.Printf("ok: %#v", *c)
 }

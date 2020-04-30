@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"math/big"
 	"os"
@@ -22,8 +23,12 @@ import (
 	"unicode"
 
 	"github.com/influxdata/telegraf"
+	"github.com/influxdata/telegraf/metric"
 	"github.com/influxdata/telegraf/plugins/serializers/influx"
+
 	//"github.com/alecthomas/units"
+
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 const alphanum string = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -127,6 +132,22 @@ func (d *Duration) UnmarshalTOML(b []byte) error {
 	}
 
 	return nil
+}
+
+func IntervalString(d time.Duration) string {
+	if d == 0 {
+		return "0s"
+	}
+
+	if d < time.Minute {
+		return fmt.Sprintf("%ds", d/time.Second)
+	} else if d < time.Hour {
+		return fmt.Sprintf("%dm", d/time.Minute)
+	} else if d < time.Hour*24 {
+		return fmt.Sprintf("%dh", d/time.Hour)
+	} else {
+		return fmt.Sprintf("%dd", d/(time.Hour*24))
+	}
 }
 
 func (s *Size) UnmarshalTOML(b []byte) error {
@@ -483,5 +504,26 @@ func Metric2InfluxLine(m telegraf.Metric) string {
 	if err != nil {
 		panic(fmt.Sprintf("%s", err))
 	}
+
 	return string(data)
+}
+
+func Points2Metrics(pts []*influxdb.Point) ([]telegraf.Metric, error) {
+
+	var ms []telegraf.Metric
+	for _, pt := range pts {
+		fields, err := pt.Fields()
+		if err != nil {
+			log.Printf("E! invalid fields %s", err)
+			continue
+		}
+		m, err := metric.New(pt.Name(), pt.Tags(), fields, pt.Time())
+		if err != nil {
+			log.Printf("E! fail to get metric from point: %v", pt)
+			return nil, err
+		}
+		ms = append(ms, m)
+	}
+
+	return ms, nil
 }
