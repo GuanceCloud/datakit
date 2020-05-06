@@ -8,7 +8,8 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunprice"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunrdsslowlog"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/apachelog"
+
+	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/apachelog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/awsbill"
 
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/baiduIndex"
@@ -28,6 +29,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/replication"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/scanport"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/squid"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ssh"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcms"
@@ -36,5 +38,4 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traefik"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ucmon"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/squid"
 )
