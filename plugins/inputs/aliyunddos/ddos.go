@@ -68,7 +68,6 @@ func (_ *AliyunDDoS) Init() error {
 }
 
 func (a *AliyunDDoS) Start(acc telegraf.Accumulator) error {
-	fmt.Println("======ddos采集 start")
 	a.logger = &models.Logger{
 		Name: `aliyunddos`,
 	}
@@ -136,8 +135,6 @@ func (r *runningInstance) run(ctx context.Context) error {
 		default:
 		}
 
-		fmt.Println("======ddos采集")
-
 		r.command()
 
 		internal.SleepContext(ctx, r.cfg.Interval.Duration)
@@ -146,7 +143,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 
 func (r *runningInstance) getInstance(region string) error {
 	var pageNumber = 1
-	var pageSize = 50
+	var pageSize = 10
 
 	for {
 		request := requests.NewCommonRequest()
@@ -162,11 +159,12 @@ func (r *runningInstance) getInstance(region string) error {
 
 		response, err := r.client.ProcessCommonRequest(request)
 		if err != nil {
-			r.logger.Error("instance failed")
+			r.logger.Error("getInstance failed", err)
 			return err
 		}
 
 		data := response.GetHttpContentString()
+
 		instanceArr := gjson.Parse(data).Get("InstanceIds").Array()
 
 		for _, item := range instanceArr {
@@ -183,6 +181,7 @@ func (r *runningInstance) getInstance(region string) error {
 
 			go r.describeInstanceDetails(item.Get("InstanceId").String(), region)
 			go r.describeInstanceStatistics(item.Get("InstanceId").String(), region)
+			go r.describeNetworkRules(item.Get("InstanceId").String(), region)
 		}
 
 		total := gjson.Parse(data).Get("TotalCount").Int()
@@ -202,7 +201,6 @@ func (r *runningInstance) command() {
 
 	for _, region := range regions2 {
 		go r.describeWebRules(region)
-		go r.describeNetworkRules(region)
 	}
 
 	for _, region := range regions3 {
@@ -223,7 +221,7 @@ func (r *runningInstance) describeInstanceDetails(instanceID, region string) err
 
 	response, err := r.client.ProcessCommonRequest(request)
 	if err != nil {
-		r.logger.Error("instance detail failed")
+		r.logger.Error("describeInstanceDetails failed", err)
 		return err
 	}
 
@@ -269,7 +267,7 @@ func (r *runningInstance) describeInstanceStatistics(instanceID, region string) 
 
 	response, err := r.client.ProcessCommonRequest(request)
 	if err != nil {
-		r.logger.Error("instance detail failed")
+		r.logger.Error("describeInstanceStatistics failed", err)
 		return err
 	}
 
@@ -298,7 +296,7 @@ func (r *runningInstance) describeInstanceStatistics(instanceID, region string) 
 
 func (r *runningInstance) describeWebRules(region string) error {
 	var pageNumber = 1
-	var pageSize = 50
+	var pageSize = 10
 
 	for {
 		request := requests.NewCommonRequest()
@@ -314,7 +312,7 @@ func (r *runningInstance) describeWebRules(region string) error {
 
 		response, err := r.client.ProcessCommonRequest(request)
 		if err != nil {
-			r.logger.Error("instance failed")
+			r.logger.Error("describeWebRules failed", err)
 			return err
 		}
 
@@ -362,9 +360,9 @@ func (r *runningInstance) describeWebRules(region string) error {
 	return nil
 }
 
-func (r *runningInstance) describeNetworkRules(region string) error {
+func (r *runningInstance) describeNetworkRules(instanceID, region string) error {
 	var pageNumber = 1
-	var pageSize = 50
+	var pageSize = 10
 
 	for {
 		request := requests.NewCommonRequest()
@@ -377,10 +375,11 @@ func (r *runningInstance) describeNetworkRules(region string) error {
 		request.QueryParams["RegionId"] = region
 		request.QueryParams["PageSize"] = fmt.Sprintf("%d", pageSize)
 		request.QueryParams["PageNumber"] = fmt.Sprintf("%d", pageNumber)
+		request.QueryParams["InstanceId"] = instanceID
 
 		response, err := r.client.ProcessCommonRequest(request)
 		if err != nil {
-			r.logger.Error("instance failed")
+			r.logger.Error("describeNetworkRules failed", err)
 			return err
 		}
 
@@ -431,11 +430,11 @@ func (r *runningInstance) describePayInfo(region string) error {
 	request.Version = "2018-01-17"
 	request.ApiName = "DescribePayInfo"
 
-	request.QueryParams["RegionId"] = "cn-hangzhou"
+	request.QueryParams["RegionId"] = region
 
 	response, err := r.client.ProcessCommonRequest(request)
 	if err != nil {
-		r.logger.Error("instance detail failed")
+		r.logger.Error("describePayInfo failed", err)
 		return err
 	}
 
