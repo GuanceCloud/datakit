@@ -9,7 +9,7 @@ const (
 #  accessKeySecret = ''
 #  region = "cn-hangzhou"
 #  ## 采集的频度，最小粒度5分钟，5m
-#  interval = "24h"
+#  interval = "5m"
 #  ## 指标名称，默认值(aliyun_ddos)
 #  metricName = ""
 `

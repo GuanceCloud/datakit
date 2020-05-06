@@ -13,6 +13,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var regions = []string{
+	"cn-hangzhou",
+	"ap-southeast-3",
+}
+
 type AliyunSecurity struct {
 	Security    []*Security
 	ctx         context.Context
@@ -132,30 +137,29 @@ func (r *runningInstance) run(ctx context.Context) error {
 }
 
 func (r *runningInstance) command() {
-	go r.describeSummaryInfo()
-	go r.describeSecurityStatInfo()
-	go r.describeRiskCheckSummary()
+	for _, region := range regions {
+		go r.describeSummaryInfo(region)
+		go r.describeSecurityStatInfo(region)
+		go r.describeRiskCheckSummary(region)
+	}
 }
 
-func (r *runningInstance) describeSummaryInfo() {
+func (r *runningInstance) describeSummaryInfo(region string) {
 	request := aegis.CreateDescribeSummaryInfoRequest()
 	request.Scheme = "https"
+	request.RegionId = region
 
 	response, err := r.aclient.DescribeSummaryInfo(request)
 	if err != nil {
 		r.logger.Errorf("[sas] action DescribeSummaryInfo failed, %s", err.Error())
 	}
 
-	// if response.BaseResponse.GetHttpStatus() != 200 {
-	// 	r.logger.Errorf("[sas] action DescribeSummaryInfo failed, %v", response)
-	// }
-
 	tags := map[string]string{}
 	fields := map[string]interface{}{}
 
 	tags["product"] = "sas"
 	tags["type"] = "describeSummaryInfo"
-	tags["region"] = "cn-hangzhou"
+	tags["region"] = region
 
 	fields["aegis_client_online_count"] = response.AegisClientOnlineCount
 	fields["aegis_client_offline_count"] = response.AegisClientOfflineCount
@@ -164,9 +168,10 @@ func (r *runningInstance) describeSummaryInfo() {
 	r.agent.accumulator.AddFields(r.metricName, fields, tags)
 }
 
-func (r *runningInstance) describeSecurityStatInfo() {
+func (r *runningInstance) describeSecurityStatInfo(region string) {
 	request := aegis.CreateDescribeSecurityStatInfoRequest()
 	request.Scheme = "https"
+	request.RegionId = region
 
 	response, err := r.aclient.DescribeSecurityStatInfo(request)
 	if err != nil {
@@ -178,7 +183,7 @@ func (r *runningInstance) describeSecurityStatInfo() {
 
 	tags["product"] = "sas"
 	tags["type"] = "describeSecurityStatInfo"
-	tags["region"] = "cn-hangzhou"
+	tags["region"] = region
 
 	fields["security_event_total_count"] = response.SecurityEvent.TotalCount
 	fields["security_event_serious_count"] = response.SecurityEvent.SeriousCount
@@ -200,10 +205,11 @@ func (r *runningInstance) describeSecurityStatInfo() {
 	r.agent.accumulator.AddFields(r.metricName, fields, tags)
 }
 
-func (r *runningInstance) describeRiskCheckSummary() {
+func (r *runningInstance) describeRiskCheckSummary(region string) {
 	// TrafficData
 	request := sas.CreateDescribeRiskCheckSummaryRequest()
 	request.Scheme = "https"
+	request.RegionId = region
 
 	response, err := r.client.DescribeRiskCheckSummary(request)
 	if err != nil {
@@ -215,7 +221,7 @@ func (r *runningInstance) describeRiskCheckSummary() {
 
 	tags["product"] = "sas"
 	tags["type"] = "describeRiskCheckSummary"
-	tags["region"] = "cn-hangzhou"
+	tags["region"] = region
 
 	fields["risk_check_summary_risk_count"] = response.RiskCheckSummary.RiskCount
 
