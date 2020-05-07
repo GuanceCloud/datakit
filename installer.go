@@ -25,7 +25,7 @@ var (
 
 	flagUpgrade    = flag.Bool("upgrade", false, ``)
 	flagDataway    = flag.String("dataway", "", `address of dataway(ip:port)`)
-	flagInstallDir = flag.String("install-dir", `C:\Program Files (x86)\Forethought\`+ServiceName, `directory to install`)
+	flagInstallDir = flag.String("install-dir", `C:\Program Files (x86)\DataFlux\`+ServiceName, `directory to install`)
 	flagVersion    = flag.Bool("version", false, "show installer version info")
 )
 
