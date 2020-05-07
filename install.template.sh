@@ -9,7 +9,7 @@ set -e
 logfile="install.log"
 
 SERVICE={{.Name}}
-USRDIR="/usr/local/cloudcare/forethought/${SERVICE}"
+USRDIR="/usr/local/cloudcare/dataflux/${SERVICE}"
 BINARY="$USRDIR/${SERVICE}"
 AGENTBINARY="$USRDIR/embed/agent"
 EMBEDDIR="$USRDIR/embed"
