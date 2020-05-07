@@ -16,6 +16,7 @@ const (
 #  username = 'root'
 #  password = 'root'
 #  database = ''
+#  product = ''
 #  
 `
 )
@@ -30,4 +31,5 @@ type Mysql struct {
 	Host         string            `toml:"host"`
 	Port         string            `toml:"port"`
 	Database     string            `toml:"database"`
+	Product      string            `toml:"product"`
 }
