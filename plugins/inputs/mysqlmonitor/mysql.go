@@ -132,11 +132,12 @@ func (r *runningInstance) handleResponse(m string, response []map[string]interfa
 	for _, item := range response {
 		tags := map[string]string{}
 
-		tags["db"] = r.cfg.Database
+		tags["dbName"] = r.cfg.Database
 		tags["instanceId"] = r.cfg.InstanceId
-		tags["host"] = r.cfg.Host
+		tags["instanceDesc"] = r.cfg.InstanceDesc
+		tags["server"] = r.cfg.Host
 		tags["port"] = r.cfg.Port
-		tags["product"] = "mysql"
+		tags["product"] = r.cfg.Product
 		tags["type"] = m
 
 		r.agent.accumulator.AddFields(r.metricName, item, tags)
