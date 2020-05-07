@@ -2,7 +2,6 @@ package aliyuncdn
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -103,13 +102,15 @@ func (r *RunningInstance) run(ctx context.Context) error {
 
 		r.client = cli
 
-		fmt.Println("域名采集=========>", r.domains)
 		if len(r.domains) == 0 {
-			r.domains = r.getDomain(r.cfg.Summary.MetricName)
+			r.domains = r.getDomain(r.cfg.Summary.MetricName, "")
+		} else {
+			for _, domain := range r.domains {
+				r.getDomain(r.cfg.Summary.MetricName, domain)
+			}
 		}
 
 		for _, action := range r.cfg.Metric.Actions {
-			fmt.Println("action =====> action", action)
 			go r.exec(ctx, action)
 		}
 
@@ -119,7 +120,7 @@ func (r *RunningInstance) run(ctx context.Context) error {
 	return nil
 }
 
-func (r *RunningInstance) getDomain(metricName string) []string {
+func (r *RunningInstance) getDomain(metricName string, domain string) []string {
 	var pageNumber = 1
 	var pageSize = 50
 	var domains = []string{}
@@ -134,6 +135,9 @@ func (r *RunningInstance) getDomain(metricName string) []string {
 		request.Scheme = "https"
 		request.PageSize = requests.NewInteger(pageSize)
 		request.PageNumber = requests.NewInteger(pageNumber)
+		if domain != "" {
+			request.DomainName = domain
+		}
 
 		response, err := r.client.DescribeUserDomains(request)
 		if err != nil {
@@ -142,7 +146,7 @@ func (r *RunningInstance) getDomain(metricName string) []string {
 
 		for _, item := range response.Domains.PageData {
 			if item.DomainStatus == "online" {
-				domains = append(domains, item.Cname)
+				domains = append(domains, item.DomainName)
 			}
 
 			for _, point := range item.Sources.Source {
@@ -181,7 +185,6 @@ func (r *RunningInstance) getDomain(metricName string) []string {
 }
 
 func (r *RunningInstance) exec(ctx context.Context, action string) error {
-	fmt.Println("开始执行", r.domains)
 	et := time.Now()
 	st := et.Add(-time.Minute * 10)
 
@@ -190,7 +193,7 @@ func (r *RunningInstance) exec(ctx context.Context, action string) error {
 		cfg:         r.cfg.Metric,
 		client:      r.client,
 		logger:      r.logger,
-		domain:      r.cfg.DomainName,
+		domain:      r.domains,
 		startTime:   unixTimeStrISO8601(st),
 		endTime:     unixTimeStrISO8601(et),
 	}
