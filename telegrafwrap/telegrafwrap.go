@@ -20,7 +20,6 @@ import (
 type (
 	TelegrafSvr struct {
 		Cfg *config.Config
-		Pid int
 	}
 )
 
@@ -28,7 +27,7 @@ const agentSubDir = "embed"
 
 var Svr = &TelegrafSvr{}
 
-func (s *TelegrafSvr) Start() error {
+func (s *TelegrafSvr) Start(ctx context.Context) error {
 
 	telegrafCfg, err := config.GenerateTelegrafConfig(s.Cfg)
 	if err == config.ErrConfigNotFound {
@@ -48,19 +47,53 @@ func (s *TelegrafSvr) Start() error {
 
 	log.Printf("starting sub service...")
 
-	if err := s.startAgent(); err != nil {
+	if err := s.startAgent(ctx); err != nil {
 		return err
 	}
+
+	//检查telegraf是否被kill掉
+	go func(ctx context.Context) {
+
+		for {
+
+			internal.SleepContext(ctx, 3*time.Second)
+
+			select {
+			case <-ctx.Done():
+				s.StopAgent()
+				return
+			default:
+			}
+
+			piddata, err := ioutil.ReadFile(agentPidPath())
+			if err != nil {
+				log.Printf("W! fail to read sub service pid file, %s", err)
+				continue
+			}
+
+			npid, err := strconv.Atoi(string(piddata))
+			if err != nil || npid <= 2 {
+				log.Printf("W! invalid sub service pid, %s", err)
+				continue
+			}
+
+			if err := CheckPid(npid); err != nil {
+				log.Printf("W! check sub service(%v) failed, %s", npid, err)
+			} else {
+				_, err := os.FindProcess(npid)
+				if err != nil {
+					log.Printf("W! sub service(%v) not found: %s", npid, err)
+				}
+			}
+		}
+	}(ctx)
 
 	return nil
 }
 
 func (s *TelegrafSvr) StopAgent() error {
 
-	pidpath := agentPidPath()
-
-	log.Printf("[debug] read telegraf PID from %s", pidpath)
-	piddata, err := ioutil.ReadFile(pidpath)
+	piddata, err := ioutil.ReadFile(agentPidPath())
 	if err != nil {
 		return err
 	}
@@ -72,34 +105,66 @@ func (s *TelegrafSvr) StopAgent() error {
 		return err
 	}
 
-	log.Printf("[debug] telegraf PID: %d", npid)
 	if npid > 0 {
 		return s.killProcessByPID(npid)
 	}
-
 	return nil
 }
 
 func (s *TelegrafSvr) startAgent(ctx context.Context) error {
 
-	args := []string{}
-	envs := []string{}
+	s.StopAgent()
+
+	env := os.Environ()
+	if runtime.GOOS == "windows" {
+		env = append(env, fmt.Sprintf(`TELEGRAF_CONFIG_PATH=%s`, s.agentConfPath(false)))
+	}
+	procAttr := &os.ProcAttr{
+		Env: env,
+		Files: []*os.File{
+			os.Stdin,
+			os.Stdout,
+			os.Stderr,
+		},
+	}
+
+	var p *os.Process
+	var err error
 
 	if runtime.GOOS == "windows" {
-		envs = []string{fmt.Sprintf(`TELEGRAF_CONFIG_PATH=%s`, s.agentConfPath(false))}
-		args = []string{"-console"}
+
+		// pg := filepath.Join(config.ExecutableDir, "agent_debug.log")
+
+		// f, _ := os.Create(pg)
+		// procAttr.Files = []*os.File{
+		// 	nil,
+		// 	f,
+		// 	f,
+		// }
+
+		cmd := exec.Command(agentPath(true), "-console")
+		//cmd := exec.CommandContext(ctx, agentPath(true), "-console")
+		cmd.Env = env
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		if err := cmd.Start(); err != nil {
+			return err
+		}
+		p = cmd.Process
+
+	} else {
+		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", s.agentConfPath(false)}, procAttr)
+		if err != nil {
+			return err
+		}
 	}
 
-	cmd := exec.Command(agentPath(), args...)
-	cmd.Env = envs
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Start(); err != nil {
-		return err
+	if p != nil {
+		ioutil.WriteFile(agentPidPath(), []byte(fmt.Sprintf("%d", p.Pid)), 0664)
 	}
 
-	s.Pid = cmd.Process.Pid
+	time.Sleep(time.Millisecond * 20)
 
 	return nil
 }
@@ -111,7 +176,6 @@ func (s *TelegrafSvr) killProcessByPID(npid int) error {
 		if err == nil && prs != nil {
 
 			if err = prs.Kill(); err != nil {
-				log.Printf("[error] kill telegraf failed: %s", err.Error())
 				return err
 			}
 			time.Sleep(time.Millisecond * 20)
@@ -136,10 +200,8 @@ func agentPidPath() string {
 }
 
 func agentPath(win bool) string {
-
-	if runtime.GOOS == "windows" {
+	if win {
 		return filepath.Join(config.ExecutableDir, agentSubDir, "agent.exe")
-	} else {
-		return filepath.Join(config.ExecutableDir, agentSubDir, "agent")
 	}
+	return filepath.Join(config.ExecutableDir, agentSubDir, "agent")
 }
