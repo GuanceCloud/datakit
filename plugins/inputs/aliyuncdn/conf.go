@@ -20,13 +20,14 @@ const (
 #     ## metric name
 #     actions = ["DescribeDomainBpsData"]
 #     metricName = "aliyun_cdn_metrics"
+#     在describeDomainBpsData action下可以配置该参数，根据业务场景选择
 #     ispNameEn = ""
+#     在describeDomainBpsData action下可以配置该参数，根据业务场景选择
 #     locationNameEn = ""
 #     sortBy = ""
 #     layer = ""
 #     merge = ""
 #     field = ""
-#     limit = ""
 #     domainType=""
 #     ispNames= ""
 #     percent=""
