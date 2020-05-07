@@ -97,7 +97,9 @@ func (e *Nat) handleTags(tags map[string]string) map[string]string {
 
 	tags["Description"] = e.Description
 	tags["Spec"] = e.Spec
-	tags["Quantity"] = fmt.Sprintf("%d x %d%s", e.Quantity, e.ServicePeriodQuantity, e.ServicePeriodUnit)
+	tags["Quantity"] = fmt.Sprintf("%d", e.Quantity)
+	tags["ServicePeriodQuantity"] = fmt.Sprintf("%d", e.ServicePeriodQuantity)
+	tags["ServicePeriodUnit"] = e.ServicePeriodUnit
 
 	return tags
 }
