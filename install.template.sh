@@ -39,7 +39,7 @@ It looks like you hit an issue when trying to install Datakit.
 
 Troubleshooting and basic usage information for Datakit are available at:
 
-             \e[4mhttps://cloudcare.com/datakit/faq/[TODO]\e[24m
+             \e[4mhttps://help.dataflux.cn/doc/c5be2ccceda7a09589d50e99aed3140a47d6ea78\e[24m
 "
 }
 
