@@ -62,7 +62,7 @@ func (run *RunningProject) describeDomainBpsData(domain string) {
 
 		fields["value"] = ConvertToFloat(point.Value)                           // bps数据值，单位：bit/second。
 		fields["domesticValue"] = ConvertToFloat(point.DomesticValue)           // 中国内地带宽bps
-		fields["tttpsDomesticValue"] = ConvertToFloat(point.HttpsDomesticValue) // L1节点https中国内地带宽
+		fields["httpsDomesticValue"] = ConvertToFloat(point.HttpsDomesticValue) // L1节点https中国内地带宽
 		fields["httpsOverseasValue"] = ConvertToFloat(point.HttpsOverseasValue) // L1节点全球（不包含中国内地）https带宽
 		fields["httpsValue"] = ConvertToFloat(point.HttpsValue)                 // L1节点https的带宽数据值，单位：bit/second
 		fields["overseasValue"] = ConvertToFloat(point.OverseasValue)           // 全球（不包含中国内地）带宽bps
