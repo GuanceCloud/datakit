@@ -64,6 +64,7 @@ var (
 		`github`,
 		`uwsgi`,
 		`solr`,
+		`systemd_units`,
 	}
 
 	MetricsEnablesFlags = make([]bool, len(SupportsTelegrafMetraicNames))
@@ -2248,5 +2249,16 @@ func InitTelegrafSamples() {
 #   ## Optional HTTP Basic Auth Credentials
 #   # username = "username"
 #   # password = "pa$$word"
+`
+
+	telegrafCfgSamples[`systemd_units`] = `
+#[[inputs.systemd_units]]
+#  ## Set timeout for systemctl execution
+#  # timeout = "1s"
+#  #
+#  ## Filter for a specific unit type, default is "service", other possible
+#  ## values are "socket", "target", "device", "mount", "automount", "swap",
+#  ## "timer", "path", "slice" and "scope ":
+#  # unittype = "service"
 `
 }
