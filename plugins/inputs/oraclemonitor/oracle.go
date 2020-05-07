@@ -174,6 +174,8 @@ func (r *runningInstance) Query(sql string) ([]map[string]interface{}, error) {
 		for i, data := range cache {
 			key := strings.ToLower(columns[i])
 			item[key] = *data.(*interface{})
+			// item[key] = data
+
 		}
 		list = append(list, item)
 	}
