@@ -30,7 +30,17 @@ func NewAgent(config *config.Config) (*Agent, error) {
 	return a, nil
 }
 
-func (a *Agent) Run() error {
+func (a *Agent) Run(ctx context.Context) error {
+
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	default:
+	}
 
 	log.Printf("Initializing plugins")
 	err := a.initPlugins()
@@ -47,21 +57,21 @@ func (a *Agent) Run() error {
 	for _, p := range a.outputsMgr.Outputs {
 		outputsNames = append(outputsNames, p.Config.Name)
 	}
-
-	log.Printf("available outputs: %s", strings.Join(outputsNames, ","))
+	log.Printf("avariable outputs: %s", strings.Join(outputsNames, ","))
 
 	log.Printf("Connecting outputs")
 	err = a.outputsMgr.Init()
 	if err != nil {
 		return err
 	}
-
 	err = a.outputsMgr.ConnectOutputs(ctx)
 	if err != nil {
 		return err
 	}
 
 	inputC := make(chan telegraf.Metric, 100)
+	//procC := make(chan telegraf.Metric, 100)
+	//outputC := make(chan telegraf.Metric, 100)
 
 	startTime := time.Now()
 
@@ -105,11 +115,8 @@ func (a *Agent) Run() error {
 		go func(src chan telegraf.Metric) {
 			defer wg.Done()
 
-			if err := a.outputsMgr.Start(src,
-				startTime,
-				a.Config.MainCfg.FlushInterval.Duration,
-				a.Config.MainCfg.FlushJitter.Duration,
-				a.Config.MainCfg.RoundInterval); err != nil {
+			err := a.outputsMgr.Start(src, startTime, a.Config.MainCfg.FlushInterval.Duration, a.Config.MainCfg.FlushJitter.Duration, a.Config.MainCfg.RoundInterval)
+			if err != nil {
 				log.Printf("E! Error running outputs: %v", err)
 			}
 
