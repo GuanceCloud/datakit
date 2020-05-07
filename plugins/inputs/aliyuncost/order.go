@@ -9,7 +9,6 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
-	"github.com/influxdata/telegraf/selfstat"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
@@ -29,7 +28,6 @@ func NewCostOrder(cfg *CostCfg, ri *runningInstance) *CostOrder {
 		runningInstance: ri,
 	}
 	c.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
 		Name: `aliyuncost:order`,
 	}
 	return c
@@ -60,7 +58,8 @@ func (co *CostOrder) getNormalData(ctx context.Context) error {
 	for {
 		co.runningInstance.suspendHistoryFetch()
 		now := time.Now().Truncate(time.Minute)
-		start := now.Add(-co.interval)
+		//start := now.Add(-co.interval)
+		start := now.Add(-time.Hour * 24 * 30)
 
 		from := unixTimeStr(start)
 		to := unixTimeStr(now)
@@ -129,11 +128,12 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, info *his
 		recover()
 	}()
 
+	logPrefix := ""
 	if info != nil {
-		co.logger.Infof("(history)start getting Orders(%s - %s)", start, end)
-	} else {
-		co.logger.Infof("start getting Orders(%s - %s)", start, end)
+		logPrefix = "(history) "
 	}
+
+	co.logger.Infof("%sstart getting Orders(%s - %s)", logPrefix, start, end)
 
 	req := bssopenapi.CreateQueryOrdersRequest()
 	req.Scheme = "https"
@@ -159,14 +159,10 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, info *his
 
 		resp, err := co.runningInstance.QueryOrdersWrap(ctx, req)
 		if err != nil {
-			return fmt.Errorf("fail to get Orders(%s - %s), %s", start, end, err)
+			return fmt.Errorf("%sfail to get Orders(%s - %s), %s", logPrefix, start, end, err)
 		}
 
-		if info != nil {
-			co.logger.Debugf("(history)Order(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, Count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.OrderList.Order))
-		} else {
-			co.logger.Debugf("Order(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, Count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.OrderList.Order))
-		}
+		co.logger.Debugf("%sOrder(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, Count=%d", logPrefix, start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.OrderList.Order))
 
 		if err = co.parseOrderResponse(ctx, resp); err != nil {
 			return err
@@ -183,12 +179,11 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, info *his
 		}
 	}
 
+	co.logger.Debugf("%sfinish getting Orders(%s - %s)", logPrefix, start, end)
+
 	if info != nil {
-		co.logger.Debugf("(history)finish getting Orders(%s - %s)", start, end)
 		info.Statue = 1
 		SetAliyunCostHistory(info.key, info)
-	} else {
-		co.logger.Debugf("finish getting Orders(%s - %s)", start, end)
 	}
 
 	return nil
