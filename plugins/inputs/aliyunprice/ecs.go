@@ -12,41 +12,60 @@ import (
 
 const (
 	ecsSampleConfig = `
-#region_id = ''
-#access_id = ''
-#access_key = ''
-
+# ##云服务器ECS
 #[[ecs]]
-#  ## optional, if empty, use 'aliyun_price'
+
+# ##(optional) 自定义指标集名称，默认使用 aliyun_price
 #metric_name = ''
-##description = ''
-##interval = '1d'
+
+# ##(optional) 采集间隔，默认一天
+#interval = '1d'
+
+# ##(required) 是否采集后付费价格, 默认false(即采集预付费价格)
 #pay_as_you_go = false
+
+# ##(required) ecs实例所在区域
 #region = "cn-hangzhou-dg-a01"
+
+# ##(required) ecs实例规格
+# ##可参考阿里云官方文档查询实例规格: https://help.aliyun.com/document_detail/25378.html?spm=a2c4g.11186623.6.587.46526770BzM840
 #instance_type = 'ecs.g5.xlarge'
+
+# ##(required) ecs实例规格族
 #instance_type_family = 'ecs.g5'
-#  ## windows or linux
+
+# ##(required) ecs实例操作系统类别
 #image_os = "linux"
-#  ## cloud_ssd=SSD 云盘; cloud_efficiency=高效云盘; cloud=普通云盘; ephemeral_ssd=本地SSD盘
-#  ## see: https://help.aliyun.com/document_detail/25382.html?spm=5176.ecsbuyv3.storage.2.4d0e3675s1tQjx
+
+# ##(required) 系统盘类别
+# ## cloud_ssd=SSD 云盘; cloud_efficiency=高效云盘; cloud=普通云盘; ephemeral_ssd=本地SSD盘
+# ## 各个类型的云盘可参考阿里云官方文档: https://help.aliyun.com/document_detail/25382.html?spm=5176.ecsbuyv3.storage.2.4d0e3675s1tQjx
 #system_disk_category = 'cloud_ssd'
-#  ##unit:GB, range:20-500
+
+# ##(required) 系统盘大小, 单位:GB, range:20-500
 #system_disk_size = 20
-#  ## Bandwidth is billed based on the amount of data used in GB by hour
+
+# ##(required) 带宽是否按使用流量(每GB)计费
 #pay_by_traffic = false
-#  ##unit: kbps
+
+# ##(required) 按固定带宽时, 设置带宽值; 按使用流量时, 设置带宽峰值. 单位: kbps
 #internet_max_bandwidth_out = 1024
 
-# ##购买时长
+# ##(optional)购买时长, 默认为1, 如果单位为Year, 则表示1年
 #service_period_quantity = 1
-# ##购买时长单位: Month，Year
+
+# ##(optional)购买时长单位: Month，Year, 默认为 Year
 #service_period_unit = "Year"
-# ##购买数量
+
+# ##(optional)购买份数, 默认1份
 #quantity = 1
 
+# ##(optional)数据盘配置(如果需要), 可配置多块
 #[[ecs.data_disks]]
+# ##数据盘类型
 #data_disk_category = 'cloud_ssd'
-# ##unit:GB
+
+# ##数据盘大小, 单位GB
 #data_disk_size = 40
 `
 )
@@ -57,10 +76,9 @@ type DataDisk struct {
 }
 
 type Ecs struct {
-	MetricName  string
-	Description string
-	PayAsYouGo  bool
-	Interval    internal.Duration
+	MetricName string
+	PayAsYouGo bool
+	Interval   internal.Duration
 
 	Region string
 
@@ -104,6 +122,7 @@ func (e *Ecs) toRequest() (*priceReq, error) {
 	}
 
 	p := &priceReq{
+		m:                                   e,
 		fetchModulePriceHistory:             make(map[string]time.Time),
 		priceModuleInfos:                    make(map[string]*bssopenapi.ModuleList),
 		productCodeForPriceModulesSubscript: "ecs",
@@ -211,7 +230,6 @@ func (e *Ecs) toRequest() (*priceReq, error) {
 }
 
 func (e *Ecs) handleTags(tags map[string]string) map[string]string {
-	tags["Description"] = e.Description
 	tags["InstanceType"] = e.InstanceType
 	tags["InstanceTypeFamily"] = e.InstanceTypeFamily
 	tags["ImageOs"] = e.ImageOs
@@ -221,13 +239,15 @@ func (e *Ecs) handleTags(tags map[string]string) map[string]string {
 	} else {
 		tags["PayByTraffic"] = "0"
 	}
-	tags["Quantity"] = fmt.Sprintf("%d x %d%s", e.Quantity, e.ServicePeriodQuantity, e.ServicePeriodUnit)
+	tags["InternetMaxBandwidthOut"] = fmt.Sprintf("%d", e.InternetMaxBandwidthOut)
+	tags["SystemDiskSize"] = fmt.Sprintf("%d", e.SystemDiskSize)
+	tags["Quantity"] = fmt.Sprintf("%d", e.Quantity)
+	tags["ServicePeriodQuantity"] = fmt.Sprintf("%d", e.ServicePeriodQuantity)
+	tags["ServicePeriodUnit"] = e.ServicePeriodUnit
 
 	return tags
 }
 
 func (e *Ecs) handleFields(fields map[string]interface{}) map[string]interface{} {
-	fields["InternetMaxBandwidthOut"] = e.InternetMaxBandwidthOut
-	fields["SystemDiskSize"] = e.SystemDiskSize
 	return fields
 }
