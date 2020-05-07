@@ -225,6 +225,20 @@ func (run *RunningProject) commond(action string) {
 		run.DescribeDomainSrcTrafficData()
 	case "describeDomainUvData":
 		run.DescribeDomainUvData()
+	case "describeDomainPvData":
+		run.DescribeDomainPvData()
+	case "describeDomainTopClientIpVisit":
+		run.DescribeDomainTopClientIpVisit()
+	case "describeDomainISPData":
+		run.DescribeDomainISPData()
+	case "describeDomainTopUrlVisit":
+		run.DescribeDomainTopUrlVisit()
+	case "describeDomainSrcTopUrlVisit":
+		run.DescribeDomainSrcTopUrlVisit()
+	case "describeTopDomainsByFlow":
+		run.DescribeTopDomainsByFlow()
+	case "describeDomainTopReferVisit":
+		run.DescribeDomainTopReferVisit()
 	}
 }
 
