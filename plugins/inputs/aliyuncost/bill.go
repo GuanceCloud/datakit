@@ -41,7 +41,7 @@ func (cb *CostBill) run(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		cb.getHistoryData(ctx)
+		//cb.getHistoryData(ctx)
 	}()
 
 	cb.getNormalData(ctx)
@@ -57,8 +57,8 @@ func (cb *CostBill) getNormalData(ctx context.Context) error {
 
 	for {
 		cb.runningInstance.suspendHistoryFetch()
-		//以月为单位
-		start := time.Now().Truncate(time.Minute)
+		//计费项 + 明细
+		start := time.Now().Truncate(time.Hour)
 		cycle := fmt.Sprintf("%d-%02d", start.Year(), start.Month())
 		if err := cb.getBills(ctx, cycle, nil); err != nil && err != context.Canceled {
 			cb.logger.Errorf("%s", err)
@@ -70,7 +70,8 @@ func (cb *CostBill) getNormalData(ctx context.Context) error {
 		default:
 		}
 
-		if err := cb.getInstnceBills(ctx, cycle); err != nil && err != context.Canceled {
+		//实例账单: 实例 + 按天
+		if err := cb.getInstnceBills(ctx, start.Year(), int(start.Month())); err != nil && err != context.Canceled {
 			cb.logger.Errorf("%s", err)
 		}
 
@@ -158,6 +159,7 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, info *historyInf
 	req.BillingCycle = cycle
 	req.Scheme = "https"
 	req.PageSize = requests.NewInteger(300)
+	req.IsHideZeroCharge = requests.NewBoolean(true) //过滤掉原价为0
 
 	for {
 
@@ -173,7 +175,7 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, info *historyInf
 
 		resp, err := cb.runningInstance.QueryBillWrap(ctx, req)
 		if err != nil {
-			return fmt.Errorf("fail to get bill of %s: %s", cycle, err)
+			return fmt.Errorf("fail to get bill of %s, %s", cycle, err)
 		}
 
 		select {
@@ -202,50 +204,55 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, info *historyInf
 	return nil
 }
 
-func (cb *CostBill) getInstnceBills(ctx context.Context, cycle string) error {
+func (cb *CostBill) getInstnceBills(ctx context.Context, year, month int) error {
 
-	//var respInstill *bssopenapi.QueryInstanceBillResponse
+	start := time.Now().Truncate(time.Hour)
 
-	req := bssopenapi.CreateQueryInstanceBillRequest()
-	req.BillingCycle = cycle
-	req.Scheme = "https"
-	req.IsBillingItem = requests.NewBoolean(false)
-	req.PageSize = requests.NewInteger(300)
+	for d := 1; d <= start.Day(); d++ {
 
-	for {
+		req := bssopenapi.CreateQueryInstanceBillRequest()
+		req.BillingCycle = fmt.Sprintf("%d-%02d", year, month)
+		req.Scheme = "https"
+		req.Granularity = "DAILY"
+		req.IsBillingItem = requests.NewBoolean(false) //按实例
+		req.PageSize = requests.NewInteger(300)
+		req.BillingDate = fmt.Sprintf("%d-%02d-%02d", year, month, d)
 
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
-		}
+		for {
 
-		resp, err := cb.runningInstance.QueryInstanceBillWrap(ctx, req)
-
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
-		}
-
-		if err != nil {
-			return fmt.Errorf("fail to get instance bill of %s: %s", cycle, err)
-		} else {
-			cb.logger.Debugf("InstnceBills(%s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", cycle, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
-
-			if err := cb.parseInstanceBillResponse(ctx, resp); err != nil {
-				return err
+			select {
+			case <-ctx.Done():
+				return context.Canceled
+			default:
 			}
 
-			if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
-				req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
+			resp, err := cb.runningInstance.QueryInstanceBillWrap(ctx, req)
+
+			select {
+			case <-ctx.Done():
+				return context.Canceled
+			default:
+			}
+
+			if err != nil {
+				return fmt.Errorf("fail to get instance bill of %s: %s", req.BillingDate, err)
 			} else {
-				break
+				cb.logger.Debugf("InstnceBills(%s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", req.BillingDate, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
+
+				if err := cb.parseInstanceBillResponse(ctx, resp); err != nil {
+					return err
+				}
+
+				if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
+					req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
+				} else {
+					break
+				}
 			}
 		}
 	}
 
-	return nil // cb.parseInstanceBillResponse(ctx, respInstill)
+	return nil
 }
 
 func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.QueryBillResponse) error {
@@ -259,9 +266,10 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		}
 
 		tags := map[string]string{
-			"AccountID":   cb.runningInstance.accountID,
-			"AccountName": cb.runningInstance.accountName,
-			"OwnerID":     item.OwnerID,
+			"AccountID":    resp.Data.AccountID,
+			"AccountName":  resp.Data.AccountName,
+			"OwnerID":      item.OwnerID,
+			"BillingCycle": resp.Data.BillingCycle,
 		}
 
 		tags["Item"] = item.Item
@@ -271,6 +279,7 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		tags["SubscriptionType"] = item.SubscriptionType
 		tags["Status"] = item.Status
 		tags[`Currency`] = item.Currency
+		tags[`CostUnit`] = item.CostUnit
 
 		fields := map[string]interface{}{}
 
@@ -307,11 +316,12 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 func (cb *CostBill) parseInstanceBillResponse(ctx context.Context, resp *bssopenapi.QueryInstanceBillResponse) error {
 	for _, item := range resp.Data.Items.Item {
 		tags := map[string]string{
-			"AccountID":   resp.Data.AccountID,
-			"AccountName": resp.Data.AccountName,
+			"AccountID":    resp.Data.AccountID,
+			"AccountName":  resp.Data.AccountName,
+			"OwnerID":      item.OwnerID,
+			"BillingCycle": resp.Data.BillingCycle,
 		}
 
-		tags[`OwnerID`] = item.OwnerID
 		tags[`CostUnit`] = item.CostUnit
 		tags[`SubscriptionType`] = item.SubscriptionType
 		tags[`Item`] = item.Item
@@ -361,6 +371,7 @@ func (cb *CostBill) parseInstanceBillResponse(ctx context.Context, resp *bssopen
 		fields[`DeductedByPrepaidCard`] = item.DeductedByPrepaidCard
 		fields[`PaymentAmount`] = item.PaymentAmount
 		fields[`OutstandingAmount`] = item.OutstandingAmount
+		fields[`BillingDate`] = item.BillingDate
 
 		if cb.runningInstance.agent.accumulator != nil {
 			cb.runningInstance.agent.accumulator.AddFields(cb.getName(), fields, tags)
