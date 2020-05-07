@@ -18,8 +18,12 @@ import (
 )
 
 func staticClient() *bssopenapi.Client {
-	//client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAI4Fc72xGdZKKr6cTBV72S`, `QXZ4FFCq3yhN5TCGC9rj1kBNZNJksc`)
-	client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAI4G7oxhYKY5n845WuieVg`, `GhLfPOACip4hB5mDp8C0fzO4GXNvXw`)
+
+	//client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAIaB2ZMYy4Dej9`, `pixGuiJail10JSBZTzuaOJIw8N2pw7`)
+	//client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAI4G7oxhYKY5n845WuieVg`, `GhLfPOACip4hB5mDp8C0fzO4GXNvXw`)
+	client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAI4G4wZv87CS4EkjMEY6N8`, `qI1TO1H7wEnchMlU2aUf4JwtITMHE4`)
+	//client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAIu5wzrLOGHdq1`, `dK8YkBkQDRL8yqD0MVUBx1TzKZml9h`)
+
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -72,17 +76,27 @@ func TestAccountTransactions(t *testing.T) {
 
 	req := bssopenapi.CreateQueryAccountTransactionsRequest()
 	req.PageSize = requests.NewInteger(300)
+
+	now := time.Now().Truncate(time.Minute)
+	start := now.Add(-time.Hour * 24)
+	from := unixTimeStr(start) //需要传unix时间
+	end := unixTimeStr(now)
+
+	log.Printf("from=%s, end=%s", from, end)
+
 	//now := time.Now().Truncate(time.Minute)
-	start := "2020-02-24T12:00:00Z" // now.Add(-time.Hour * 24).Format(`2006-01-02T15:04:05Z`)
-	req.CreateTimeStart = start
-	//req.CreateTimeEnd = "2020-02-24T00:00:00Z" // now.Format(`2006-01-02T15:04:05Z`)
+	//start := "2020-04-10T00:00:00Z" // now.Add(-time.Hour * 24).Format(`2006-01-02T15:04:05Z`)
+	req.CreateTimeStart = from
+	//req.CreateTimeStart = ""
+	req.CreateTimeEnd = end // now.Format(`2006-01-02T15:04:05Z`)
+	req.CreateTimeEnd = ""
 
 	resp, err := cli.QueryAccountTransactions(req)
 	if err != nil {
 		log.Fatalf("err: %s", err)
 	}
 
-	log.Printf("total: %v", len(resp.Data.AccountTransactionsList.AccountTransactionsListItem))
+	log.Printf("total: %v, accountid=%s, accountname=%s", len(resp.Data.AccountTransactionsList.AccountTransactionsListItem), resp.Data.AccountID, resp.Data.AccountName)
 
 	//og.Printf("%s", resp.String())
 
@@ -118,11 +132,12 @@ func TestQueryBill(t *testing.T) {
 	cli := staticClient()
 
 	//计费项 + 明细
+	//包含了计费项的结账时间， 每个计费项的结账时间单位可能不同
 	req := bssopenapi.CreateQueryBillRequest()
 	req.BillingCycle = fmt.Sprintf("%d-%d", 2020, 3)
 	req.PageSize = requests.NewInteger(300)
 	req.PageNum = requests.NewInteger(1)
-	req.IsHideZeroCharge = requests.NewBoolean(true)
+	req.IsHideZeroCharge = requests.NewBoolean(true) //过滤掉原价为0
 
 	for {
 		resp, err := cli.QueryBill(req)
@@ -130,7 +145,7 @@ func TestQueryBill(t *testing.T) {
 			log.Fatalln(err)
 		}
 
-		log.Printf("total count: %v", resp.Data.TotalCount)
+		log.Printf("total count: %v, accountid=%s, accountname=%s", resp.Data.TotalCount, resp.Data.AccountID, resp.Data.AccountName)
 		break
 
 		for _, item := range resp.Data.Items.Item {
@@ -162,8 +177,8 @@ func TestQueryInstBill(t *testing.T) {
 	req := bssopenapi.CreateQueryInstanceBillRequest()
 	//today := time.Now()
 	req.PageSize = requests.NewInteger(300)
-	req.BillingCycle = "2020-03" // fmt.Sprintf("%d-%d", today.Year(), today.Month()) // `2019-10-01`
-	//req.BillingDate = "2020-04-08"
+	req.BillingCycle = "2020-04" // fmt.Sprintf("%d-%d", today.Year(), today.Month()) // `2019-10-01`
+	//req.BillingDate = "2020-05-32"
 	//req.Granularity = "DAILY"
 	req.IsBillingItem = requests.NewBoolean(true)
 
@@ -175,11 +190,11 @@ func TestQueryInstBill(t *testing.T) {
 	log.Printf("count=%d", len(resp.Data.Items.Item))
 
 	_ = resp
-	// for _, item := range resp.Data.Items.Item {
-	// 	//if item.PaymentTime != "" {
-	// 	fmt.Printf("%s - %s, %v, %s\n", item.BillingDate, item.ProductName, item.PretaxAmount, item.Tag)
-	// 	//}
-	// }
+	for _, item := range resp.Data.Items.Item {
+		//if item.PaymentTime != "" {
+		fmt.Printf("%s - %s(%s), %v, %s\n", item.BillingDate, item.ProductName, item.InstanceID, item.PretaxAmount, item.BillingItem)
+		//}
+	}
 
 }
 
@@ -196,7 +211,7 @@ func TestQueryOrderDetail(t *testing.T) {
 	log.Printf("%s", resp.Data.AccountName)
 }
 
-func TestQueryOrder(t *testing.T) {
+func TestQueryOrders(t *testing.T) {
 
 	cli := staticClient()
 
@@ -204,8 +219,8 @@ func TestQueryOrder(t *testing.T) {
 	// now := time.Now().Truncate(time.Hour)
 	// start := unixTimeStr(now.Add(-time.Hour * 24 * 30))
 	// log.Printf("start=%s", start)
-	req.CreateTimeStart = "2019-02-18T06:26:00Z" // start
-	req.CreateTimeEnd = "2020-02-18T06:26:00Z"
+	req.CreateTimeStart = "2020-02-18T06:26:00Z" // start
+	req.CreateTimeEnd = "2020-03-18T06:26:00Z"
 	req.PageNum = requests.NewInteger(1)
 	req.PageSize = requests.NewInteger(300)
 
@@ -216,9 +231,9 @@ func TestQueryOrder(t *testing.T) {
 
 	fmt.Printf("TotalCount=%d, PageNum=%d, PageSize=%d, count=%d\n", resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.OrderList.Order))
 
-	// for _, item := range resp.Data.OrderList.Order {
-	// 	fmt.Printf("%s - %s, %v, %s\n", item.CreateTime, item.PaymentStatus, item.PretaxAmount, item.Currency)
-	// }
+	for _, item := range resp.Data.OrderList.Order {
+		fmt.Printf("%s - %s, %v, %s\n", item.CreateTime, item.PaymentStatus, item.PretaxAmount, item.Currency)
+	}
 
 }
 
