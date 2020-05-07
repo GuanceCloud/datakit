@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"syscall"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
@@ -20,14 +19,13 @@ import (
 	"github.com/influxdata/telegraf/logger"
 	winsvr "github.com/kardianos/service"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	cutils "gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	serviceutil "gitlab.jiagouyun.com/cloudcare-tools/cliutils/service"
 )
 
@@ -65,9 +63,9 @@ var (
 )
 
 var (
+	stop chan struct{}
+
 	inputFilters = []string{}
-	wg           sync.WaitGroup
-	sem          = cutils.NewSem()
 )
 
 func main() {
@@ -85,7 +83,7 @@ Golang Version: %s
 	}
 
 	if *flagListCollectors {
-		for k, _ := range inputs.Inputs {
+		for k, _ :=range inputs.Inputs {
 			fmt.Println(k)
 		}
 		return
@@ -129,6 +127,11 @@ Golang Version: %s
 		serviceCmd()
 		return
 	}
+
+	// if len(args) > 0 && args[0] == "input" {
+	// 	//TODO:
+	// 	return
+	// }
 
 	switch {
 	case *flagInit:
@@ -174,7 +177,8 @@ Golang Version: %s
 		}
 
 	} else {
-		reloadLoop(inputFilters)
+		stop = make(chan struct{})
+		reloadLoop(stop, inputFilters)
 	}
 }
 
@@ -187,11 +191,12 @@ func (p *program) Start(s winsvr.Service) error {
 }
 
 func (p *program) run(s winsvr.Service) {
-	reloadLoop(inputFilters)
+	stop = make(chan struct{})
+	reloadLoop(stop, inputFilters)
 }
 
 func (p *program) Stop(s winsvr.Service) error {
-	sem.Close()
+	close(stop)
 	return nil
 }
 
@@ -289,29 +294,52 @@ func initialize(reserveExist bool) error {
 	return config.CreatePluginConfigs(maincfg.ConfigDir, reserveExist)
 }
 
-func reloadLoop(inputFilters []string) {
+func reloadLoop(stop chan struct{}, inputFilters []string) {
+	reload := make(chan bool, 1)
+	reload <- true
+	for <-reload {
+		reload <- false
 
-	//signals := make(chan os.Signal)
-	//signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
+		ctx, cancel := context.WithCancel(context.Background())
 
-	err := loadConfig(ctx, inputFilters)
-	if err != nil {
-		log.Fatalf("E! fail to load config, %s", err)
-	}
+		signals := make(chan os.Signal)
+		signal.Notify(signals, os.Interrupt, syscall.SIGHUP,
+			syscall.SIGTERM, syscall.SIGINT)
+		go func() {
+			select {
+			case sig := <-signals:
+				if sig == syscall.SIGHUP {
+					log.Printf("I! Reloading config")
+					<-reload
+					reload <- true
+				}
+				cancel()
+			case <-stop:
+				cancel()
+			}
+		}()
 
-	if err := runTelegraf(ctx); err != nil {
-		log.Fatalf("E! fail to start sub service, %s", err)
-	}
+		err := loadConfig(ctx, inputFilters)
+		if err != nil {
+			log.Fatalf("E! fail to load config, %s", err)
+		}
+		err = runTelegraf(ctx)
+		if err != nil {
+			log.Fatalf("E! fail to start sub service, %s", err)
+		}
 
-	if err := runAgent(); err != nil {
-		log.Fatalf("E! fail to start datakit: %s", err)
-	}
+		select {
+		case <-ctx.Done():
+			telegrafwrap.Svr.StopAgent()
+			return
+		default:
+		}
 
-	select {
-	case <-sem.Wait():
-		log.Printf("[debug] try to stop telegraf...")
-		telegrafwrap.Svr.StopAgent()
-		return
+		err = runAgent(ctx)
+
+		if err != nil && err != context.Canceled {
+			log.Fatalf("E! datakit abort: %s", err)
+		}
 	}
 }
 
@@ -349,19 +377,19 @@ func loadConfig(ctx context.Context, inputFilters []string) error {
 	return nil
 }
 
-func runTelegraf() error {
+func runTelegraf(ctx context.Context) error {
 	telegrafwrap.Svr.Cfg = config.DKConfig
-	return telegrafwrap.Svr.Start()
+	return telegrafwrap.Svr.Start(ctx)
 }
 
-func runAgent() error {
+func runAgent(ctx context.Context) error {
 
 	ag, err := run.NewAgent(config.DKConfig)
 	if err != nil {
 		return err
 	}
 
-	return ag.Run()
+	return ag.Run(ctx)
 }
 
 func windowsRunAsService() bool {
