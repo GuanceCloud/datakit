@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/kardianos/service"
@@ -24,8 +27,8 @@ var (
 	DataKitGzipUrl = ""
 
 	flagUpgrade    = flag.Bool("upgrade", false, ``)
-	flagDataway    = flag.String("dataway", "", `address of dataway(ip:port)`)
-	flagInstallDir = flag.String("install-dir", `C:\Program Files (x86)\DataFlux\`+ServiceName, `directory to install`)
+	flagDataway    = flag.String("dataway", "", `address of dataway(ip:port), port default 9528`)
+	flagInstallDir = flag.String("install-dir", "", `directory to install`)
 	flagVersion    = flag.Bool("version", false, "show installer version info")
 )
 
@@ -118,10 +121,7 @@ func downloadDatakit(from, to string) {
 }
 
 func (wc *WriteCounter) PrintProgress() {
-	// Clear the line by using a character return to go back to the start and remove
-	// the remaining characters by filling it with spaces
-
-	if wc.last > float64(wc.total)*0.01 {
+	if wc.last > float64(wc.total)*0.01 { // update progress-bar each 1%
 		fmt.Printf("\r%s", strings.Repeat(" ", 35))
 		fmt.Printf("\rDownloading... %s/%s", humanize.Bytes(wc.current), humanize.Bytes(wc.total))
 		wc.last = 0.0
@@ -129,8 +129,6 @@ func (wc *WriteCounter) PrintProgress() {
 }
 
 func main() {
-
-	//log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	flag.Parse()
 
@@ -142,6 +140,25 @@ Golang Version: %s
    DataKitGzip: %s
 `, git.Version, git.BuildAt, git.Golang, DataKitGzipUrl)
 		return
+	}
+
+	if *flagInstallDir == "" {
+		switch runtime.GOOS + "/" + runtime.GOARCH {
+
+		case "windows/amd64":
+			*flagInstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
+
+		case "windows/386":
+			*flagInstallDir = `C:\Program Files\DataFlux\` + ServiceName
+
+		case "linux/amd64", "linux/386", "linux/arm", "linux/arm64":
+			*flagInstallDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
+
+		case "darwin/amd64", "darwin/386":
+			// TODO
+		case "freebsd/amd64", "freebsd/386":
+			// TODO
+		}
 	}
 
 	// create install dir if not exists
@@ -162,7 +179,7 @@ Golang Version: %s
 	})
 
 	if err != nil {
-		log.Fatal("[error] new service failed: %s", err.Error())
+		log.Fatal("New %s service failed: %s", runtime.GOOS, err.Error())
 	}
 
 	if err := stopDataKitService(dkservice); err != nil {
@@ -173,7 +190,7 @@ Golang Version: %s
 
 	if *flagUpgrade { // upgrade new version
 		if err := upgradeDatakit(datakitExe); err != nil {
-			log.Fatal("[error] upgrade datakit failed: %s", err.Error())
+			log.Fatal("Upgrade datakit failed: %s", err.Error())
 		}
 	} else { // install new datakit
 
@@ -181,21 +198,33 @@ Golang Version: %s
 			log.Fatal("DataWay IP:Port required")
 		}
 
+		// parse dataway IP:Port
+		if _, _, err := net.SplitHostPort(*flagDataway); err != nil {
+			log.Fatal("Invalid DataWay host: %s", err.Error())
+		}
+
+		log.Printf("Testing DataWay(%s)...", *flagDataway)
+		conn, err := net.DialTimeout("tcp", *flagDataway, time.Second*30)
+		if err != nil {
+			log.Fatal("Testing DataWay (timeout 30s) failed: %s", err.Error())
+		}
+		conn.Close() // XXX: not used connection
+
 		uninstallDataKitService(dkservice)
 
 		if err := initDatakit(datakitExe, fmt.Sprintf("http://%s/v1/write/metrics", *flagDataway)); err != nil {
-			log.Fatal("[error] init datakit failed: %s", err.Error())
+			log.Fatal("Init datakit failed: %s", err.Error())
 		}
 
 		log.Printf("install service %s...", ServiceName)
 		if err := installDatakitService(dkservice); err != nil {
-			log.Fatalf("[error] fail to register service %s: %s", ServiceName, err.Error())
+			log.Fatalf("Fail to register service %s: %s", ServiceName, err.Error())
 		}
 	}
 
 	log.Printf("starting service %s...", ServiceName)
 	if err := startDatakitService(dkservice); err != nil {
-		log.Fatalf("[error] fail to register service %s: %s", ServiceName, err.Error())
+		log.Fatalf("Fail to register service %s: %s", ServiceName, err.Error())
 	}
 
 	log.Println(":) Success!")
@@ -210,7 +239,7 @@ func (p *program) Stop(s service.Service) error  { return nil }
 func stopDataKitService(s service.Service) error {
 
 	if err := service.Control(s, "stop"); err != nil {
-		log.Printf("[warn] stop service datakit failed: %s, ignored", err.Error())
+		log.Printf("Stop service datakit failed: %s, ignored", err.Error())
 	}
 
 	return nil
@@ -218,7 +247,7 @@ func stopDataKitService(s service.Service) error {
 
 func uninstallDataKitService(s service.Service) error {
 	if err := service.Control(s, "uninstall"); err != nil {
-		log.Printf("[warn] stop service datakit failed: %s, ignored", err.Error())
+		log.Printf("Stop service datakit failed: %s, ignored", err.Error())
 	}
 
 	return nil
@@ -239,7 +268,7 @@ func initDatakit(exe, dw string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 
-	log.Printf("[debug] initing datakit...")
+	log.Printf("Initing datakit...")
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -253,6 +282,6 @@ func upgradeDatakit(exe string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 
-	log.Printf("[debug] datakit upgrading...")
+	log.Printf("Datakit upgrading...")
 	return cmd.Run()
 }
