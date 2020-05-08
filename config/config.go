@@ -702,7 +702,7 @@ func (c *Config) addInput(name string, input telegraf.Input, table *ast.Table) e
 		return nil
 	}
 
-	pluginConfig, err := buildInput(name, table)
+	pluginConfig, err := buildInput(name, table, input)
 	if err != nil {
 		return err
 	}
@@ -897,68 +897,72 @@ func buildOutput(name string, tbl *ast.Table) (*models.OutputConfig, error) {
 	return oc, nil
 }
 
-func buildInput(name string, tbl *ast.Table) (*models.InputConfig, error) {
+func buildInput(name string, tbl *ast.Table, input telegraf.Input) (*models.InputConfig, error) {
 	cp := &models.InputConfig{Name: name}
-	if node, ok := tbl.Fields["interval"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-				dur, err := time.ParseDuration(str.Value)
-				if err != nil {
-					return nil, err
+
+	if _, bsvrInput := input.(telegraf.ServiceInput); !bsvrInput {
+		if node, ok := tbl.Fields["interval"]; ok {
+			if kv, ok := node.(*ast.KeyValue); ok {
+				if str, ok := kv.Value.(*ast.String); ok {
+					dur, err := time.ParseDuration(str.Value)
+					if err != nil {
+						return nil, err
+					}
+
+					cp.Interval = dur
 				}
-
-				cp.Interval = dur
 			}
 		}
-	}
 
-	if node, ok := tbl.Fields["name_prefix"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-				cp.MeasurementPrefix = str.Value
+		if node, ok := tbl.Fields["name_prefix"]; ok {
+			if kv, ok := node.(*ast.KeyValue); ok {
+				if str, ok := kv.Value.(*ast.String); ok {
+					cp.MeasurementPrefix = str.Value
+				}
 			}
 		}
-	}
 
-	if node, ok := tbl.Fields["name_suffix"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-				cp.MeasurementSuffix = str.Value
+		if node, ok := tbl.Fields["name_suffix"]; ok {
+			if kv, ok := node.(*ast.KeyValue); ok {
+				if str, ok := kv.Value.(*ast.String); ok {
+					cp.MeasurementSuffix = str.Value
+				}
 			}
 		}
-	}
 
-	if node, ok := tbl.Fields["name_override"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-				cp.NameOverride = str.Value
+		if node, ok := tbl.Fields["name_override"]; ok {
+			if kv, ok := node.(*ast.KeyValue); ok {
+				if str, ok := kv.Value.(*ast.String); ok {
+					cp.NameOverride = str.Value
+				}
 			}
 		}
-	}
 
-	if node, ok := tbl.Fields["alias"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-				cp.Alias = str.Value
+		if node, ok := tbl.Fields["alias"]; ok {
+			if kv, ok := node.(*ast.KeyValue); ok {
+				if str, ok := kv.Value.(*ast.String); ok {
+					cp.Alias = str.Value
+				}
 			}
 		}
-	}
 
-	cp.Tags = make(map[string]string)
-	if node, ok := tbl.Fields["tags"]; ok {
-		if subtbl, ok := node.(*ast.Table); ok {
-			if err := toml.UnmarshalTable(subtbl, cp.Tags); err != nil {
-				log.Printf("E! Could not parse tags for input %s\n", name)
+		cp.Tags = make(map[string]string)
+		if node, ok := tbl.Fields["tags"]; ok {
+			if subtbl, ok := node.(*ast.Table); ok {
+				if err := toml.UnmarshalTable(subtbl, cp.Tags); err != nil {
+					log.Printf("E! Could not parse tags for input %s\n", name)
+				}
 			}
 		}
+
+		delete(tbl.Fields, "name_prefix")
+		delete(tbl.Fields, "name_suffix")
+		delete(tbl.Fields, "name_override")
+		delete(tbl.Fields, "alias")
+		delete(tbl.Fields, "interval")
+		delete(tbl.Fields, "tags")
 	}
 
-	delete(tbl.Fields, "name_prefix")
-	delete(tbl.Fields, "name_suffix")
-	delete(tbl.Fields, "name_override")
-	delete(tbl.Fields, "alias")
-	delete(tbl.Fields, "interval")
-	delete(tbl.Fields, "tags")
 	var err error
 	cp.Filter, err = buildFilter(tbl)
 	if err != nil {
