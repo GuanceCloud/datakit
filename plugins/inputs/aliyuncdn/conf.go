@@ -10,7 +10,7 @@ const (
 #  region = "cn-hangzhou"
 #  ## 采集的频度，分钟值
 #  interval = "5m"
-#  domains = [""]
+#  domains = []
 
 #  [cdn.summary]
 #     ## metric name
@@ -22,11 +22,11 @@ const (
 #     ## describeDomainTopClientIpVisit, describeDomainISPData, describeDomainTopUrlVisit, describeDomainSrcTopUrlVisit, describeTopDomainsByFlow, describeDomainTopReferVisit
 #     actions = ["describeDomainBpsData"]
 #     metricName = "aliyun_cdn_metrics"
-#     在describeDomainBpsData、describeDomainTrafficData action下可以配置该参数，根据业务场景选择(非必须参数)
+#     ## 在describeDomainBpsData、describeDomainTrafficData action下可以配置该参数，根据业务场景选择(非必须参数)
 #     ispNameEn = ""
-#     在describeDomainBpsData、describeDomainTrafficData、describeDomainTopClientIpVisit action下可以配置该参数，根据业务场景选择(非必须参数)
+#     ## 在describeDomainBpsData、describeDomainTrafficData、describeDomainTopClientIpVisit action下可以配置该参数，根据业务场景选择(非必须参数)
 #     locationNameEn = ""
-#     在describeDomainTopClientIpVisit action下可以配置该参数，根据业务场景选择(非必须参数)
+#     ## 在describeDomainTopClientIpVisit action下可以配置该参数，根据业务场景选择(非必须参数)
 #     sortBy = ""
 `
 )
