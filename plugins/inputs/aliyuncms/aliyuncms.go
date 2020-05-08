@@ -6,11 +6,9 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
 
 	"golang.org/x/time/rate"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
@@ -20,63 +18,90 @@ import (
 var (
 	inputName = `aliyuncms`
 
-	batchInterval = 5 * time.Minute
-	rateLimit     = 20
-
-	dms = []string{
+	//理论上每个指标应该使用DescribeMetricMetaList接口返回的对应dimension，但有时该接口更新不及时，返回的并不是最新的，所以在这里将所有支持的dimension列出，并保持更新
+	supportedDimensions = []string{
 		"instanceId",
+		"device",
+		"state",
+		"port",
+		"vip",
+		"nodeId",
+		"queue",
+		"region",
 		"userId",
-		"consumerGroup",
+		"clusterId",
+		"dbInstanceId",
+		"tableSchema",
+		"workerId",
+		"role",
+		"serviceName",
+		"functionName",
+		"groupId",
+		"jobId",
+		"taskId",
+		"project",
+		"logstore",
+		"serviceId",
+		"VpnConnectionId",
+		"cenId",
+		"geographicSpanId",
+		"localRegionId",
+		"oppositeRegionId",
+		"src_region_id",
+		"dst_region_id",
+		"vbrInstanceId",
+		"sourceRegion",
+		"regionId",
+		"appName",
+		"appId",
+		"domain_name",
+		"isp",
+		"loc",
+		"productKey",
+		"nodeIP",
+		"projectName",
+		"jobName",
+		"database",
+		"vhostQueue",
+		"vhostName",
 		"topic",
+		"dspId",
+		"sspId",
+		"domain",
+		"schema",
+		"pipelineId",
+		"groupName",
+		"DedicatedHostId",
+		"eniId",
+		"gatewayId",
+		"serverId",
+		"host",
+		"consumerGroup",
 		"BucketName",
 		"storageType",
 		"Host",
-		"tableSchema",
 		"Status",
-		"workerId",
 		"apiUid",
-		"projectName",
-		"jobName",
 		"ip",
-		"port",
 		"protocol",
-		"vip",
-		"groupId",
-		"clusterId",
-		"nodeIP",
-		"vbrInstanceId",
-		"cenId",
-		"serviceId",
 		"diskname",
 		"mountpoint",
-		"state",
 		"processName",
 		"period",
-		"device",
 		"gpuId",
-		"role",
 		"appId",
 		"direction",
-		"pipelineId",
-		"domain",
 		"appName",
-		"serviceName",
-		"functionName",
 		"podId",
 		"subinstanceId",
-		"dspId",
-		"sspId",
-		"logstore",
-		"project",
 		"alarm_type",
-		"queue",
 		"regionName",
 		"SubscriptionName",
 	}
 )
 
 type (
-	runningCMS struct {
+	runningInstance struct {
 		cfg   *CMS
 		agent *CmsAgent
 
@@ -93,7 +118,7 @@ type (
 		CMSs       []*CMS `toml:"cms"`
 		ReportStat bool   `toml:"report_stat"`
 
-		runningCms []*runningCMS
+		runningInstances []*runningInstance
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
@@ -104,36 +129,17 @@ type (
 
 		wg sync.WaitGroup
 
-		inputStat     internal.InputStat
 		succedRequest int64
 		faildRequest  int64
 	}
 )
-
-func (s *CmsAgent) IsRunning() bool {
-	return s.inputStat.Stat > 0
-}
-
-func (s *CmsAgent) StatMetric() telegraf.Metric {
-	if !s.ReportStat {
-		return nil
-	}
-	metricname := "datakit_input_" + inputName
-	tags := map[string]string{}
-	fields := s.inputStat.Fields()
-	fields["failed_request"] = s.faildRequest
-	fields["succeed_request"] = s.succedRequest
-	s.inputStat.ClearErrorID()
-	m, _ := metric.New(metricname, tags, fields, time.Now())
-	return m
-}
 
 func (_ *CmsAgent) SampleConfig() string {
 	return aliyuncmsConfigSample
 }
 
 func (_ *CmsAgent) Description() string {
-	return ""
+	return `Collect metrics from alibaba Cloud Monitor Service.`
 }
 
 func (_ *CmsAgent) Gather(telegraf.Accumulator) error {
@@ -147,19 +153,24 @@ func (ac *CmsAgent) Start(acc telegraf.Accumulator) error {
 		return nil
 	}
 
-	ac.logger.Info("starting...")
+	ac.logger.Info("start")
 
 	ac.accumulator = acc
 
-	ac.inputStat.SetStat(len(ac.CMSs))
-
 	for _, cfg := range ac.CMSs {
-		rc := &runningCMS{
+		rc := &runningInstance{
 			agent:  ac,
 			cfg:    cfg,
 			logger: ac.logger,
 		}
-		ac.runningCms = append(ac.runningCms, rc)
+		if cfg.Delay.Duration == 0 {
+			cfg.Delay.Duration = time.Minute * 5
+		}
+
+		if rc.cfg.Interval.Duration == 0 {
+			rc.cfg.Interval.Duration = time.Minute * 5
+		}
+		ac.runningInstances = append(ac.runningInstances, rc)
 
 		ac.wg.Add(1)
 		go func() {
@@ -174,6 +185,7 @@ func (ac *CmsAgent) Start(acc telegraf.Accumulator) error {
 func (a *CmsAgent) Stop() {
 	a.cancelFun()
 	a.wg.Wait()
+	a.logger.Info("done")
 }
 
 func NewAgent() *CmsAgent {
@@ -189,7 +201,6 @@ func NewAgent() *CmsAgent {
 
 func init() {
 	inputs.Add(inputName, func() telegraf.Input {
-		ac := NewAgent()
-		return ac
+		return NewAgent()
 	})
 }
