@@ -14,11 +14,14 @@ const (
 #       ## etcd 端口
 #	port = 2379
 #
+#       ## 如果 etcd 接口需要使用 HTTPS 访问，需要配置以下3个路径
+#       ## 路径为空则不使用 HTTPS
+#
 #       ## CA 证书路径（例如：ca.crt）
-#       # tls_cacert_file = ""
+#       tls_cacert_file = ""
 #
 #       ## 客户端证书文件路径（例如：peer.crt）
-#	# tls_cert_file = ""
+#	tls_cert_file = ""
 #
 #	## 私钥文件路径（例如：peer.key）
 #	tls_key_file = ""
