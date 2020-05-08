@@ -19,8 +19,8 @@ import (
 	"github.com/influxdata/telegraf/logger"
 	winsvr "github.com/kardianos/service"
 
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -30,7 +30,7 @@ import (
 )
 
 var (
-	workdir = "/usr/local/cloudcare/forethought/datakit/"
+	workdir = "/usr/local/cloudcare/dataflux/datakit/"
 
 	flagVersion = flag.Bool("version", false, `show verison info`)
 
@@ -55,7 +55,7 @@ var (
 	fRunAsConsole = flag.Bool("console", false, "run as console application (windows only)")
 
 	fService    = flag.String("service", "", "operate on the service (windows only)")
-	fInstallDir = flag.String("installdir", `C:\Program Files (x86)\Forethought\DataFlux EBA Agent`, "install directory")
+	fInstallDir = flag.String("installdir", `C:\Program Files (x86)\DataFlux\DataKit`, "install directory")
 
 	fInputFilters = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
 
@@ -63,7 +63,8 @@ var (
 )
 
 var (
-	stop chan struct{}
+	winStopCh     chan struct{}
+	winStopFalgCh chan struct{}
 
 	inputFilters = []string{}
 )
@@ -83,7 +84,7 @@ Golang Version: %s
 	}
 
 	if *flagListCollectors {
-		for k, _ :=range inputs.Inputs {
+		for k, _ := range inputs.Inputs {
 			fmt.Println(k)
 		}
 		return
@@ -127,11 +128,6 @@ Golang Version: %s
 		serviceCmd()
 		return
 	}
-
-	// if len(args) > 0 && args[0] == "input" {
-	// 	//TODO:
-	// 	return
-	// }
 
 	switch {
 	case *flagInit:
@@ -177,8 +173,9 @@ Golang Version: %s
 		}
 
 	} else {
-		stop = make(chan struct{})
-		reloadLoop(stop, inputFilters)
+		winStopCh = make(chan struct{})
+		winStopFalgCh = make(chan struct{})
+		reloadLoop(winStopCh, inputFilters)
 	}
 }
 
@@ -191,12 +188,14 @@ func (p *program) Start(s winsvr.Service) error {
 }
 
 func (p *program) run(s winsvr.Service) {
-	stop = make(chan struct{})
-	reloadLoop(stop, inputFilters)
+	winStopCh = make(chan struct{})
+	winStopFalgCh = make(chan struct{})
+	reloadLoop(winStopCh, inputFilters)
 }
 
 func (p *program) Stop(s winsvr.Service) error {
-	close(stop)
+	close(winStopCh)
+	<-winStopFalgCh //等待完整退出
 	return nil
 }
 
@@ -309,12 +308,14 @@ func reloadLoop(stop chan struct{}, inputFilters []string) {
 			select {
 			case sig := <-signals:
 				if sig == syscall.SIGHUP {
-					log.Printf("I! Reloading config")
+					log.Printf("Reloading config")
 					<-reload
 					reload <- true
 				}
+				log.Printf("signal notify: %v", sig)
 				cancel()
 			case <-stop:
+				log.Printf("service stopped")
 				cancel()
 			}
 		}()
@@ -328,18 +329,15 @@ func reloadLoop(stop chan struct{}, inputFilters []string) {
 			log.Fatalf("E! fail to start sub service, %s", err)
 		}
 
-		select {
-		case <-ctx.Done():
-			telegrafwrap.Svr.StopAgent()
-			return
-		default:
-		}
-
 		err = runAgent(ctx)
+
+		telegrafwrap.Svr.StopAgent()
 
 		if err != nil && err != context.Canceled {
 			log.Fatalf("E! datakit abort: %s", err)
 		}
+
+		close(winStopFalgCh)
 	}
 }
 
@@ -405,7 +403,7 @@ func doInstall(serviceType string) error {
 	svr := &serviceutil.Service{
 		Name:        config.ServiceName,
 		InstallDir:  workdir,
-		Description: `Forethought Datakit`,
+		Description: `Dataflux Datakit`,
 		StartCMD:    fmt.Sprintf("%s -cfg=%s", filepath.Join(workdir, `datakit`), *flagCfgFile),
 		Type:        serviceType,
 	}
