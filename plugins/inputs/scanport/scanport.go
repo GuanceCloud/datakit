@@ -1,4 +1,4 @@
-// +build !windows,!darwin,!386,!freebsd
+// +build linux,amd64
 
 package scanport
 

@@ -21,7 +21,9 @@ type (
 	}
 )
 
-const agentSubDir = "embed"
+const (
+	agentSubDir = "embed"
+)
 
 var (
 	Svr = &TelegrafSvr{}
@@ -114,7 +116,7 @@ func (s *TelegrafSvr) startAgent(ctx context.Context) error {
 
 	if runtime.GOOS == "windows" {
 
-		cmd := exec.Command(agentPath(true), "-console")
+		cmd := exec.Command(agentPath(), "-console")
 		cmd.Env = env
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -125,7 +127,7 @@ func (s *TelegrafSvr) startAgent(ctx context.Context) error {
 		p = cmd.Process
 
 	} else {
-		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", s.agentConfPath(false)}, procAttr)
+		p, err = os.StartProcess(agentPath(), []string{"agent", "-config", s.agentConfPath(false)}, procAttr)
 		if err != nil {
 			return err
 		}
@@ -151,9 +153,11 @@ func (s *TelegrafSvr) agentConfPath(quote bool) string {
 	return path
 }
 
-func agentPath(win bool) string {
-	if win {
-		return filepath.Join(config.ExecutableDir, agentSubDir, "agent.exe")
+func agentPath() string {
+	fpath := filepath.Join(config.ExecutableDir, agentSubDir, runtime.GOOS+"-"+runtime.GOARCH, "agent")
+	if runtime.GOOS == "windows" {
+		fpath = fpath + ".exe"
 	}
-	return filepath.Join(config.ExecutableDir, agentSubDir, "agent")
+
+	return fpath
 }
