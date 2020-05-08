@@ -13,8 +13,11 @@ func TestStart(t *testing.T) {
 		Config: Config{
 			Subscribes: []Subscribe{
 				Subscribe{
-					EtcdHost:    "10.100.64.106",
-					EtcdPort:    32379,
+					EtcdHost:    "172.16.0.43",
+					EtcdPort:    2379,
+					CacertFile:  "/Users/liguozhuang/etcdTLS/ca.crt",
+					CertFile:    "/Users/liguozhuang/etcdTLS/peer.crt",
+					KeyFile:     "/Users/liguozhuang/etcdTLS/peer.key",
 					Cycle:       3,
 					Measurement: "etcd_measurement",
 				},
