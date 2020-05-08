@@ -177,6 +177,10 @@ Golang Version: %s
 		}
 	} else { // install new datakit
 
+		if *flagDataway == "" {
+			log.Fatal("DataWay IP:Port required")
+		}
+
 		uninstallDataKitService(dkservice)
 
 		if err := initDatakit(datakitExe, fmt.Sprintf("http://%s/v1/write/metrics", *flagDataway)); err != nil {

@@ -1,4 +1,4 @@
-// +build !windows,!darwin,!386
+// +build !windows,!darwin,!386,!freebsd
 
 package oraclemonitor
 
