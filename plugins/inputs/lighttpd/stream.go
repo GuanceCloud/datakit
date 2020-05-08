@@ -1,7 +1,9 @@
 package lighttpd
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -50,16 +52,21 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 	defer wg.Done()
 
 	if s.sub.Measurement == "" {
-		return fmt.Errorf("invalid measurement")
+		err := errors.New("invalid measurement")
+		log.Printf("E! [Lighttpd] subscribe %s, err: %s\n", s.sub.LighttpdURL, err.Error())
+		return err
 	}
 
 	ticker := time.NewTicker(time.Second * s.sub.Cycle)
 	defer ticker.Stop()
 
+	log.Printf("I! [Lighttpd] subscribe %s start\n", s.sub.LighttpdURL)
 	for {
 		select {
 		case <-ticker.C:
-			s.exec()
+			if err := s.exec(); err != nil {
+				log.Printf("E! [Lighttpd] subscribe %s, exec err: %s\n", s.sub.LighttpdURL, err.Error())
+			}
 		default:
 			// nil
 		}
