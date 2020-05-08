@@ -1,6 +1,7 @@
 .idea/
 .vscode/
 .DS_Store
+.orig
 proxy_config.yaml
 pub
 a.out
@@ -21,6 +22,7 @@ conf.d/
 agent.conf
 agent.pid
 agent_linux
+test.conf
 datakit.conf
 docker/agent
 docker/datakit
