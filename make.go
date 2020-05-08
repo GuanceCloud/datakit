@@ -1,5 +1,3 @@
-// +build ignore
-
 package main
 
 import (
@@ -27,7 +25,6 @@ var (
 	flagName     = flag.String("name", *flagBinary, "same as -binary")
 	flagBuildDir = flag.String("build-dir", "build", "output of build files")
 	flagMain     = flag.String(`main`, `main.go`, `binary build entry`)
-	flagCGO      = flag.Int(`cgo`, 0, `enable CGO or not`)
 
 	flagDownloadAddr = flag.String("download-addr", "", "")
 	flagPubDir       = flag.String("pub-dir", "pub", "")
@@ -38,7 +35,8 @@ var (
 
 	flagPub = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/alpha/release/preprod`)
 
-	curVersion string
+	curVersion   string
+	installerExe string
 
 	/* Use:
 			go tool dist list
@@ -112,19 +110,15 @@ var (
 		`linux/arm64`,
 
 		`darwin/amd64`,
-		`darwin/386`,
 
 		`windows/amd64`,
 		`windows/386`,
 	}
-
-	winInstallerExe = ""
 )
 
 type versionDesc struct {
-	Version   string `json:"version"`
-	Date      string `json:"date"`
-	ChangeLog string `json:"changeLog"` // TODO: add release note
+	Version string `json:"version"`
+	Date    string `json:"date"`
 }
 
 func (vd *versionDesc) withoutGitCommit() string {
@@ -144,9 +138,7 @@ func runEnv(args, env []string) {
 		cmd.Env = append(os.Environ(), env...)
 	}
 
-	// log.Printf("%s %s", strings.Join(env, " "), strings.Join(args, " "))
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		log.Printf("[error] failed to run %v, envs: %v: %v", args, env, err)
 	}
 }
@@ -175,21 +167,14 @@ func compileArch(bin, goos, goarch, dir string) {
 		`GO111MODULE=off`,
 	}
 
-	if *flagCGO == 1 {
-		switch goarch {
-		case "386": // disable CGO under 32-bit
-			env = append(env, "CGO_ENABLED=0")
-		default:
-			switch goos {
-			case "linux":
-				env = append(env, "CGO_ENABLED=1")
-			default:
-				env = append(env, "CGO_ENABLED=0") // disable CGO under 64-bit except linux
-			}
-		}
+	switch goos + "/" + goarch {
+	case `linux/amd64`:
+		env = append(env, "CGO_ENABLED=1")
+	default:
+		env = append(env, "CGO_ENABLED=0")
 	}
 
-	log.Printf("[debug] building % 12s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
+	log.Printf("[debug] building % 13s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
 	runEnv(args, env)
 }
 
@@ -231,10 +216,12 @@ func compile() {
 
 		compileTask(*flagBinary, goos, goarch, dir)
 
-		if goos == "windows" { // build windows installer.exe
-			winInstallerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
-			buildWindowsInstall(path.Join(*flagPubDir, *flagRelease), goarch)
+		if goos == "windows" {
+			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
+		} else {
+			installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
 		}
+		buildInstaller(path.Join(*flagPubDir, *flagRelease), goos, goarch)
 
 		// generate install scripts & installer to pub-dir
 		buildInstallScript(path.Join(*flagPubDir, *flagRelease), goos, goarch)
@@ -394,9 +381,12 @@ func releaseAgent() {
 		objs[path.Join(*flagPubDir, *flagRelease, "install.sh")] = path.Join(objPath, "install.sh")
 
 		if goos == "windows" {
-			winInstallerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
-			objs[path.Join(*flagPubDir, *flagRelease, winInstallerExe)] = path.Join(objPath, winInstallerExe)
+			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
+		} else {
+			installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
 		}
+
+		objs[path.Join(*flagPubDir, *flagRelease, installerExe)] = path.Join(objPath, installerExe)
 	}
 
 	for k, v := range objs {
@@ -483,21 +473,31 @@ const (
 	compile()
 }
 
-func tarFiles(osname, arch string) {
+func tarFiles(goos, goarch string) {
 
-	telegrafAgentName := "agent"
-	if osname == "windows" {
-		telegrafAgentName = "agent.exe"
+	var telegrafPath string
+
+	suffix := goos + "-" + goarch
+
+	switch suffix {
+	case `freebsd-386`, `freebsd-amd64`,
+		`linux-386`, `linux-amd64`,
+		`linux-arm`, `linux-arm64`,
+		`darwin-amd64`:
+		telegrafPath = path.Join("embed", suffix, "agent")
+
+	case `windows-amd64`, `windows-386`:
+		telegrafPath = path.Join("embed", suffix, "agent.exe")
 	}
 
 	args := []string{
 		`czf`,
 		path.Join(*flagPubDir, *flagRelease, fmt.Sprintf("%s-%s-%s-%s.tar.gz",
-			*flagName, osname, arch, string(curVersion))),
-		path.Join("embed", telegrafAgentName),
+			*flagName, goos, goarch, string(curVersion))),
+		telegrafPath,
 		`-C`,
-		// the whole build/datakit-<os>-<arch> dir
-		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s-%s", *flagName, osname, arch)), `.`,
+		// the whole build/datakit-<goos>-<goarch> dir
+		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s-%s", *flagName, goos, goarch)), `.`,
 	}
 
 	cmd := exec.Command("tar", args...)
@@ -511,19 +511,19 @@ func tarFiles(osname, arch string) {
 	}
 }
 
-func buildWindowsInstall(outdir, goarch string) {
+func buildInstaller(outdir, goos, goarch string) {
 
-	gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, "windows-"+goarch, curVersion)
+	gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, curVersion)
 
 	args := []string{
 		"go", "build",
 		"-ldflags", fmt.Sprintf("-w -s -X main.DataKitGzipUrl=https://%s/%s", *flagDownloadAddr, gzName),
-		"-o", path.Join(outdir, winInstallerExe),
+		"-o", path.Join(outdir, installerExe),
 		"installer.go",
 	}
 
 	env := []string{
-		"GOOS=windows",
+		"GOOS=" + goos,
 		"GOARCH=" + goarch,
 	}
 
