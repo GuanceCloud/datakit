@@ -350,7 +350,7 @@ func releaseAgent() {
 	}
 
 	renameOssFiles := map[string]string{}
-	verId := curVd.withoutGitCommit()
+	var verId string
 
 	if curVd != nil && curVd.Version == git.Version {
 		log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
@@ -359,6 +359,7 @@ func releaseAgent() {
 
 	// rename installer
 	if curVd != nil {
+		verId = curVd.withoutGitCommit()
 		renameOssFiles[path.Join(objPath, "install.sh")] = path.Join(objPath, fmt.Sprintf("install-%s.sh", verId))
 	}
 
