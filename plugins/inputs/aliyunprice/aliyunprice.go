@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf"
+	"github.com/influxdata/telegraf/metric"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
@@ -26,7 +27,7 @@ type (
 		payasyougoReq   *bssopenapi.GetPayAsYouGoPriceRequest
 		payAsYouGo      bool
 
-		//有时和拿的price的不一样，比如eip
+		//有时拿module信息和拿price的不一样，比如eip
 		productCodeForPriceModulesSubscript string
 		productTypeForPriceModulesSubscript string
 
@@ -48,9 +49,9 @@ type (
 	}
 
 	AliyunPriceAgent struct {
-		AccessID     string `toml:"access_id"`
+		AccessID     string `toml:"access_key_id"`
+		AccessSecret string `toml:"access_key_secret"`
 		RegionID     string `toml:"region_id"`
-		AccessSecret string `toml:"access_key"`
 
 		EcsCfg []*Ecs `toml:"ecs"`
 		RDSCfg []*Rds `toml:"rds"`
@@ -77,11 +78,11 @@ func (r *priceReq) String() string {
 }
 
 func (_ *AliyunPriceAgent) SampleConfig() string {
-	return ecsSampleConfig + rdsSampleConfig + eipSampleConfig + slbSampleConfig
+	return globalConfig + ecsSampleConfig + rdsSampleConfig + eipSampleConfig + slbSampleConfig
 }
 
 func (_ *AliyunPriceAgent) Description() string {
-	return ""
+	return `Collect price of aliyun products.`
 }
 
 func (_ *AliyunPriceAgent) Gather(telegraf.Accumulator) error {
@@ -138,11 +139,11 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 	go func() {
 		defer a.wg.Done()
 
-		defer func() {
-			if e := recover(); e != nil {
-				a.logger.Errorf("panic %v", e)
-			}
-		}()
+		// defer func() {
+		// 	if e := recover(); e != nil {
+		// 		a.logger.Errorf("panic %v", e)
+		// 	}
+		// }()
 
 		for {
 
@@ -272,6 +273,7 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 			}
 		}
 
+		//获取计费模块的信息
 		modinfo := req.getModInfo(mod.ModuleCode, req.payAsYouGo)
 
 		if modinfo == nil {
@@ -306,10 +308,9 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 			}
 		}
 
-		if modinfo != nil {
-			if modinfo.PriceType != "" {
-				fields["Module_"+mod.ModuleCode+"_PriceType"] = modinfo.PriceType
-			}
+		//eg., 按月付
+		if modinfo != nil && modinfo.PriceType != "" {
+			fields["Module_"+mod.ModuleCode+"_PriceType"] = modinfo.PriceType
 		}
 	}
 
@@ -343,7 +344,12 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 		if metricName == "" {
 			metricName = "aliyun_price"
 		}
-		a.accumulator.AddFields(metricName, fields, tags, time.Now().UTC())
+		if a.accumulator != nil {
+			a.accumulator.AddFields(metricName, fields, tags, time.Now().UTC())
+		} else {
+			ms, _ := metric.New(metricName, tags, fields, time.Now().UTC())
+			fmt.Printf("%s", internal.Metric2InfluxLine(ms))
+		}
 	}
 }
 

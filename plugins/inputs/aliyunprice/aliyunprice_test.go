@@ -2,9 +2,11 @@ package aliyunprice
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
@@ -66,8 +68,7 @@ func TestEcs(t *testing.T) {
 func TestRds(t *testing.T) {
 
 	rds := &Rds{
-		MetricName:  "rds_price",
-		Description: "xxx",
+		MetricName: "rds_price",
 
 		PayAsYouGo:            true,
 		Region:                "cn-hangzhou",
@@ -111,8 +112,7 @@ func TestRds(t *testing.T) {
 func TestEip(t *testing.T) {
 
 	rds := &Eip{
-		MetricName:  "eip_price",
-		Description: "xxx",
+		MetricName: "eip_price",
 
 		PayAsYouGo: true,
 		Region:     "cn-hangzhou",
@@ -193,8 +193,7 @@ func TestNat(t *testing.T) {
 func TestSlb(t *testing.T) {
 
 	rds := &Slb{
-		MetricName:  "slb_price",
-		Description: "xxx",
+		MetricName: "slb_price",
 
 		PayAsYouGo: true,
 		Region:     "cn-hangzhou",
@@ -435,4 +434,23 @@ func TestEIPPrice(t *testing.T) {
 		log.Fatalf("%s", err)
 	}
 	log.Printf("resp: %s", resp.String())
+}
+
+func TestSvr(t *testing.T) {
+
+	ag := NewAgent()
+
+	data, err := ioutil.ReadFile("./test.conf")
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	err = toml.Unmarshal(data, ag)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	ag.Start(nil)
+
+	time.Sleep(time.Hour)
 }
