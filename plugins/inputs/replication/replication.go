@@ -2,6 +2,7 @@ package replication
 
 import (
 	"context"
+	"log"
 	"sync"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
@@ -33,9 +34,13 @@ func (r *Replication) Start(acc telegraf.Accumulator) error {
 	r.acc = acc
 	r.wg = new(sync.WaitGroup)
 
+	log.Printf("I! [Replication] start\n")
+	log.Printf("I! [Replication] load subscribes count: %d\n", len(r.Config.Subscribes))
+
 	for _, sub := range r.Config.Subscribes {
 		r.wg.Add(1)
-		stream := newStream(&sub)
+		s := sub
+		stream := newStream(&s)
 		go stream.start(r, r.ctx, r.wg)
 	}
 
@@ -45,6 +50,7 @@ func (r *Replication) Start(acc telegraf.Accumulator) error {
 func (r *Replication) Stop() {
 	r.cancel()
 	r.wg.Wait()
+	log.Printf("I! [Replication] stop\n")
 }
 
 func (_ *Replication) SampleConfig() string {
@@ -52,7 +58,7 @@ func (_ *Replication) SampleConfig() string {
 }
 
 func (_ *Replication) Description() string {
-	return "Convert MongoDB Database to Dataway"
+	return "Convert replication to Dataway"
 }
 
 func (_ *Replication) Gather(telegraf.Accumulator) error {
@@ -69,6 +75,7 @@ func (r *Replication) ProcessPts(pts []*influxdb.Point) error {
 		if err != nil {
 			return err
 		}
+		log.Printf("D! [Replication] metric: %v\n", pt_metric)
 		r.acc.AddMetric(pt_metric)
 	}
 	return nil
