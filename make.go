@@ -331,27 +331,10 @@ func releaseAgent() {
 	}
 
 	versionFile := `version`
-	installObj := "install.sh"
 
 	// 请求线上版本信息
 	url := fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, *flagName, versionFile)
 	curVd := getCurrentVersionInfo(url)
-
-	if curVd != nil {
-		if curVd.Version == git.Version {
-			log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
-			os.Exit(0)
-		}
-
-		installObjOld := path.Join(objPath, fmt.Sprintf("install-%s.sh", curVd.withoutGitCommit()))
-		installObj = path.Join(objPath, "install.sh")
-
-		// backup install script online, make it possible to install old version if required
-		log.Printf("[debug] backup %s -> %s", installObj, installObjOld)
-		if err := oc.Move(installObj, installObjOld); err != nil {
-			log.Fatal(err)
-		}
-	}
 
 	// upload all build archs
 	archs := []string{}
@@ -362,10 +345,24 @@ func releaseAgent() {
 		archs = strings.Split(*flagArchs, "|")
 	}
 
-	objs := map[string]string{
+	ossfiles := map[string]string{
 		path.Join(*flagPubDir, *flagRelease, "version"): path.Join(objPath, "version"),
 	}
 
+	renameOssFiles := map[string]string{}
+	verId := curVd.withoutGitCommit()
+
+	if curVd != nil && curVd.Version == git.Version {
+		log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
+		os.Exit(0)
+	}
+
+	// rename installer
+	if curVd != nil {
+		renameOssFiles[path.Join(objPath, "install.sh")] = path.Join(objPath, fmt.Sprintf("install-%s.sh", verId))
+	}
+
+	// tar files and collect OSS upload/backup info
 	for _, arch := range archs {
 		parts := strings.Split(arch, "/")
 		if len(parts) != 2 {
@@ -377,19 +374,39 @@ func releaseAgent() {
 
 		gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, curVersion)
 
-		objs[path.Join(*flagPubDir, *flagRelease, gzName)] = path.Join(objPath, gzName)
-		objs[path.Join(*flagPubDir, *flagRelease, "install.sh")] = path.Join(objPath, "install.sh")
+		ossfiles[path.Join(*flagPubDir, *flagRelease, gzName)] = path.Join(objPath, gzName)
+		ossfiles[path.Join(*flagPubDir, *flagRelease, "install.sh")] = path.Join(objPath, "install.sh")
 
 		if goos == "windows" {
 			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
+
+			if curVd != nil {
+				renameOssFiles[path.Join(objPath, installerExe)] =
+					path.Join(objPath, fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, verId))
+			}
+
 		} else {
 			installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
+
+			if curVd != nil {
+				renameOssFiles[path.Join(objPath, installerExe)] =
+					path.Join(objPath, fmt.Sprintf("installer-%s-%s-%s", goos, goarch, verId))
+			}
 		}
 
-		objs[path.Join(*flagPubDir, *flagRelease, installerExe)] = path.Join(objPath, installerExe)
+		ossfiles[path.Join(*flagPubDir, *flagRelease, installerExe)] = path.Join(objPath, installerExe)
 	}
 
-	for k, v := range objs {
+	// backup old installer script online, make it possible to install old version if required
+	for k, v := range renameOssFiles {
+		if err := oc.Move(k, v); err != nil {
+			log.Fatalf("[debug] backup %s -> %s failed: %s", k, v, err.Error())
+		}
+
+		log.Printf("[debug] backup %s -> %s ok", k, v)
+	}
+
+	for k, v := range ossfiles {
 		log.Printf("[debug] upload %s -> %s ...", k, v)
 		if err := oc.Upload(k, v); err != nil {
 			log.Fatal(err)
