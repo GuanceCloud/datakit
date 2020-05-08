@@ -103,8 +103,13 @@ var (
 	windows/arm */
 
 	osarches = []string{
+		`freebsd/386`,
+		`freebsd/amd64`,
+
 		`linux/386`,
 		`linux/amd64`,
+		`linux/arm`,
+		`linux/arm64`,
 
 		`darwin/amd64`,
 		`darwin/386`,
