@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"context"
+	"log"
 	"sync"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
@@ -29,10 +30,11 @@ func init() {
 }
 
 func (e *Etcd) Start(acc telegraf.Accumulator) error {
-
 	e.acc = acc
 	e.wg = new(sync.WaitGroup)
 
+	log.Printf("I! [Etcd] start\n")
+	log.Printf("I! [Etcd] load subscribes count: %d\n", len(e.Config.Subscribes))
 	for _, sub := range e.Config.Subscribes {
 		e.wg.Add(1)
 		stream := newStream(&sub, e)
@@ -43,6 +45,7 @@ func (e *Etcd) Start(acc telegraf.Accumulator) error {
 }
 
 func (e *Etcd) Stop() {
+	log.Printf("I! [Etcd] stop\n")
 	e.cancel()
 	e.wg.Wait()
 }
@@ -69,6 +72,7 @@ func (e *Etcd) ProcessPts(pts []*influxdb.Point) error {
 		if err != nil {
 			return err
 		}
+		log.Printf("D! [Etcd] metric: %v\n", pt_metric)
 		e.acc.AddMetric(pt_metric)
 	}
 	return nil
