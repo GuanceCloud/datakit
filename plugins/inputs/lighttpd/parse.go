@@ -2,7 +2,7 @@ package lighttpd
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -69,11 +69,11 @@ type StatusV2 struct {
 func LighttpdStatusParse(url string, v Version, measurement string) (*influxdb.Point, error) {
 
 	if url == "" {
-		return nil, fmt.Errorf("invalid lighttpd status url")
+		return nil, errors.New("invalid lighttpd status url")
 	}
 
 	if measurement == "" {
-		return nil, fmt.Errorf("invalid measurement")
+		return nil, errors.New("invalid measurement")
 	}
 
 	resp, err := http.Get(url)
@@ -108,7 +108,7 @@ func LighttpdStatusParse(url string, v Version, measurement string) (*influxdb.P
 		value = reflect.ValueOf(status)
 
 	default:
-		return nil, fmt.Errorf("invalid lighttpd version")
+		return nil, errors.New("invalid lighttpd version")
 	}
 
 	var fields = make(map[string]interface{}, value.NumField())
