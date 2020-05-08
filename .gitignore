@@ -26,3 +26,4 @@ test.conf
 datakit.conf
 docker/agent
 docker/datakit
+embed/*
