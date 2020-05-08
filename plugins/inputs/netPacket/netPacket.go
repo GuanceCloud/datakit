@@ -1,4 +1,4 @@
-// +build !darwin,!386,!freebsd
+// +build linux,amd64
 
 package netPacket
 
