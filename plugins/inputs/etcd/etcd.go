@@ -37,7 +37,8 @@ func (e *Etcd) Start(acc telegraf.Accumulator) error {
 	log.Printf("I! [Etcd] load subscribes count: %d\n", len(e.Config.Subscribes))
 	for _, sub := range e.Config.Subscribes {
 		e.wg.Add(1)
-		stream := newStream(&sub, e)
+		s := sub
+		stream := newStream(&s, e)
 		go stream.start(e.wg)
 	}
 
