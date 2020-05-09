@@ -47,7 +47,7 @@ var (
 	flagInstallOnly = flag.Bool(`install-only`, false, `not run after installing`)
 
 	flagCfgFile = flag.String("cfg", ``, `configure file`)
-	flagCfgDir  = flag.String("config-dir", ``, `sub configuration dir`)
+	flagCfgDir  = flag.String("config-dir", `conf.d`, `sub configuration dir`)
 
 	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d`)
 
@@ -263,7 +263,7 @@ func serviceCmd() {
 
 func initialize(reserveExist bool) error {
 	if *flagLogFile == "" {
-		*flagLogFile = filepath.Join(config.ExecutableDir, "datakit.log")
+		*flagLogFile = "datakit.log"
 	}
 
 	if *flagLogLevel == "" {
@@ -350,9 +350,18 @@ func loadConfig(ctx context.Context, inputFilters []string) error {
 		return err
 	}
 
+	if _, err := os.Stat(c.MainCfg.ConfigDir); err != nil {
+		c.MainCfg.ConfigDir = filepath.Join(config.ExecutableDir, `conf.d`)
+	}
+
 	logfile := c.MainCfg.Log
 	if *flagLogFile != "" {
 		logfile = *flagLogFile
+	}
+
+	if _, err := os.Stat(logfile); err != nil {
+		logfile = filepath.Join(config.ExecutableDir, `datakit.log`)
+		c.MainCfg.Log = logfile
 	}
 
 	logConfig := logger.LogConfig{
