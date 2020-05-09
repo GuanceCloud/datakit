@@ -100,6 +100,8 @@ func (s *stream) start(r *Replication, ctx context.Context, wg *sync.WaitGroup) 
 		return err
 	}
 
+	log.Printf("E! [Replication] subscribe %s:%d run\n", s.sub.Host, s.sub.Port)
+
 	return s.runloop(ctx)
 }
 
