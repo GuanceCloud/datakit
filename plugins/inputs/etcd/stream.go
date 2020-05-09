@@ -25,8 +25,6 @@ type stream struct {
 	sub *Subscribe
 	// http://host:port/metrics
 	address string
-	//
-	startTime time.Time
 	// mate data
 	points []*influxdb.Point
 	// HTTPS TLS
@@ -38,13 +36,11 @@ func newStream(sub *Subscribe, etc *Etcd) *stream {
 		etc: etc,
 		sub: sub,
 		address: func() string {
-			// usage HTTPS
-			if sub.CacertFile != "" && sub.CertFile != "" && sub.KeyFile != "" {
+			if sub.TLSOpen {
 				return fmt.Sprintf("https://%s:%d/metrics", sub.EtcdHost, sub.EtcdPort)
 			}
 			return fmt.Sprintf("http://%s:%d/metrics", sub.EtcdHost, sub.EtcdPort)
 		}(),
-		startTime: time.Now(),
 	}
 }
 
@@ -58,7 +54,7 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 	}
 
 	// usage HTTPS
-	if s.sub.CacertFile != "" && s.sub.CertFile != "" && s.sub.KeyFile != "" {
+	if s.sub.TLSOpen {
 
 		tc, err := TLSConfig(s.sub.CacertFile, s.sub.CertFile, s.sub.KeyFile)
 		if err != nil {
