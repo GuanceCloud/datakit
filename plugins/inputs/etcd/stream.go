@@ -91,10 +91,12 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 func (s *stream) exec() error {
 
 	client := &http.Client{}
+	client.Timeout = time.Second * 5
 
 	if s.tlsConfig != nil {
-		transport := &http.Transport{TLSClientConfig: s.tlsConfig}
-		client.Transport = transport
+		client.Transport = &http.Transport{
+			TLSClientConfig: s.tlsConfig,
+		}
 	}
 
 	resp, err := client.Get(s.address)
