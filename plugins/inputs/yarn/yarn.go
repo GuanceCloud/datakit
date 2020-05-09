@@ -120,10 +120,10 @@ type YarnParam struct {
 }
 
 const (
-	yarnConfigSample = `### metric_name: the prefix name of metric, default is "yarn"
-### You need to configure an [[targets]] for each traefik to be monitored.
+	yarnConfigSample = `### metric_name: the name of metric, default is "yarn"
+### You need to configure an [[targets]] for each yarn to be monitored.
 ### interval: monitor interval second, unit is second. The default value is 60.
-### active: whether to monitor traefik.
+### active: whether to monitor yarn.
 ### host: yarn service WebUI host, such as http://ip:port.
 
 #metric_name="yarn"
