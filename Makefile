@@ -49,7 +49,7 @@ define pub
 endef
 
 local:
-	$(call build,local, "windows/amd64|linux/amd64", $(LOCAL_DOWNLOAD_ADDR))
+	$(call build,local, "linux/amd64", $(LOCAL_DOWNLOAD_ADDR))
 
 test:
 	$(call build,test, "all", $(TEST_DOWNLOAD_ADDR))
@@ -58,7 +58,7 @@ release:
 	$(call build,release,"all", $(RELEASE_DOWNLOAD_ADDR))
 
 pub_local:
-	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),"linux/amd64|windows/amd64")
+	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),"all")
 
 pub_test:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),"all")
@@ -69,6 +69,8 @@ pub_release:
 define build_agent
 	@echo "==== build telegraf... ===="
 	cd telegraf && go mod download
+	cd telegraf && GOOS=linux   GOARCH=arm   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm/agent         ./cmd/telegraf  
+	cd telegraf && GOOS=linux   GOARCH=arm64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm64/agent       ./cmd/telegraf  
 	cd telegraf && GOOS=darwin  GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/darwin-amd64/agent      ./cmd/telegraf
 	cd telegraf && GOOS=linux   GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-amd64/agent       ./cmd/telegraf  
 	cd telegraf && GOOS=linux   GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-386/agent         ./cmd/telegraf  
