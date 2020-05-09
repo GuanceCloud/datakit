@@ -128,6 +128,18 @@ func (h *HTTP) SampleConfig() string {
 }
 
 func (h *HTTP) Write(metrics []telegraf.Metric) error {
+
+	for _, metric := range metrics {
+		tags := metric.Tags()
+		for k, v := range tags {
+			if v != "" && v[len(v)-1] == '\\' {
+				v += " "
+				metric.RemoveTag(k)
+				metric.AddTag(k, v)
+			}
+		}
+	}
+
 	reqBody, err := h.serializer.SerializeBatch(metrics)
 	if err != nil {
 		return err
