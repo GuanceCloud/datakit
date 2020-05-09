@@ -151,11 +151,9 @@ Golang Version: %s
 		case "windows/386":
 			*flagInstallDir = `C:\Program Files\DataFlux\` + ServiceName
 
-		case "linux/amd64", "linux/386", "linux/arm", "linux/arm64":
+		case "linux/amd64", "linux/386", "linux/arm", "linux/arm64", "darwin/amd64", "darwin/386":
 			*flagInstallDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
 
-		case "darwin/amd64", "darwin/386":
-			// TODO
 		case "freebsd/amd64", "freebsd/386":
 			// TODO
 		}
@@ -166,7 +164,10 @@ Golang Version: %s
 		log.Fatalf("[error] %s", err.Error())
 	}
 
-	datakitExe := filepath.Join(*flagInstallDir, "datakit.exe")
+	datakitExe := filepath.Join(*flagInstallDir, "datakit")
+	if runtime.GOOS == "windows" {
+		datakitExe += ".exe"
+	}
 
 	prog := &program{}
 	cfgpath := filepath.Join(*flagInstallDir, fmt.Sprintf("%s.conf", ServiceName))
@@ -174,7 +175,6 @@ Golang Version: %s
 		Name:        ServiceName,
 		DisplayName: ServiceName,
 		Description: `Collects data and upload it to DataFlux.`,
-		Arguments:   []string{"/config", cfgpath},
 		Executable:  datakitExe,
 	})
 
@@ -213,7 +213,7 @@ Golang Version: %s
 		uninstallDataKitService(dkservice)
 
 		if err := initDatakit(datakitExe, fmt.Sprintf("http://%s/v1/write/metrics", *flagDataway)); err != nil {
-			log.Fatal("Init datakit failed: %s", err.Error())
+			log.Fatalf("Init datakit failed: %s", err.Error())
 		}
 
 		log.Printf("install service %s...", ServiceName)
