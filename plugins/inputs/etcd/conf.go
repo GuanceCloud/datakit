@@ -14,17 +14,17 @@ const (
 #       ## etcd 端口
 #	port = 2379
 #
-#       ## 如果 etcd 接口需要使用 HTTPS 访问，需要配置以下3个路径
-#       ## 路径为空则不使用 HTTPS
+#       ## 是否开启 HTTPS TLS，如果开启则需要同时配置下面的3个路径
+#       tls_open = false
 #
-#       ## CA 证书路径（例如：ca.crt）
-#       tls_cacert_file = ""
+#       ## CA 证书路径
+#       tls_cacert_file = "ca.crt"
 #
-#       ## 客户端证书文件路径（例如：peer.crt）
-#	tls_cert_file = ""
+#       ## 客户端证书文件路径
+#	tls_cert_file = "peer.crt"
 #
-#	## 私钥文件路径（例如：peer.key）
-#	tls_key_file = ""
+#	## 私钥文件路径
+#	tls_key_file = "peer.key"
 #
 #	## 采集周期，时间单位是秒
 #	collect_cycle = 60
@@ -37,6 +37,7 @@ const (
 type Subscribe struct {
 	EtcdHost    string        `toml:"host"`
 	EtcdPort    int           `toml:"port"`
+	TLSOpen     bool          `toml:"tls_open"`
 	CacertFile  string        `toml:"tls_cacert_file"`
 	CertFile    string        `toml:"tls_cert_file"`
 	KeyFile     string        `toml:"tls_key_file"`
