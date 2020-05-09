@@ -47,7 +47,7 @@ var (
 	flagInstallOnly = flag.Bool(`install-only`, false, `not run after installing`)
 
 	flagCfgFile = flag.String("cfg", ``, `configure file`)
-	flagCfgDir  = flag.String("config-dir", `conf.d`, `sub configuration dir`)
+	flagCfgDir  = flag.String("config-dir", ``, `sub configuration dir`)
 
 	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d`)
 
