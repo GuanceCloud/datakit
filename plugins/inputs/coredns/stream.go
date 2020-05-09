@@ -19,18 +19,15 @@ type stream struct {
 	sub *Subscribe
 	// http://host:port/metrics
 	address string
-	//
-	startTime time.Time
 	// mate data
 	points []*influxdb.Point
 }
 
 func newStream(sub *Subscribe, coredns *Coredns) *stream {
 	return &stream{
-		coredns:   coredns,
-		sub:       sub,
-		address:   fmt.Sprintf("http://%s:%d/metrics", sub.CorednsHost, sub.CorednsPort),
-		startTime: time.Now(),
+		coredns: coredns,
+		sub:     sub,
+		address: fmt.Sprintf("http://%s:%d/metrics", sub.CorednsHost, sub.CorednsPort),
 	}
 }
 
