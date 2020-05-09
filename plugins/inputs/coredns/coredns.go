@@ -2,6 +2,7 @@ package coredns
 
 import (
 	"context"
+	"log"
 	"sync"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
@@ -33,9 +34,12 @@ func (e *Coredns) Start(acc telegraf.Accumulator) error {
 	e.acc = acc
 	e.wg = new(sync.WaitGroup)
 
+	log.Printf("I! [CoreDNS] start\n")
+	log.Printf("I! [CoreDNS] load subscribes count: %d\n", len(e.Config.Subscribes))
 	for _, sub := range e.Config.Subscribes {
 		e.wg.Add(1)
-		stream := newStream(&sub, e)
+		s := sub
+		stream := newStream(&s, e)
 		go stream.start(e.wg)
 	}
 
@@ -43,6 +47,7 @@ func (e *Coredns) Start(acc telegraf.Accumulator) error {
 }
 
 func (e *Coredns) Stop() {
+	log.Printf("I! [CoreDNS] stop\n")
 	e.cancel()
 	e.wg.Wait()
 }
@@ -69,6 +74,7 @@ func (e *Coredns) ProcessPts(pts []*influxdb.Point) error {
 		if err != nil {
 			return err
 		}
+		log.Printf("D! [CoreDNS] metric: %v\n", pt_metric)
 		e.acc.AddMetric(pt_metric)
 	}
 	return nil
