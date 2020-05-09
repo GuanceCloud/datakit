@@ -25,8 +25,6 @@ type stream struct {
 	sub *Subscribe
 	// http://host:port/metrics
 	address string
-	//
-	startTime time.Time
 	// mate data
 	points []*influxdb.Point
 	// HTTPS TLS
@@ -35,10 +33,14 @@ type stream struct {
 
 func newStream(sub *Subscribe, etc *Etcd) *stream {
 	return &stream{
-		etc:       etc,
-		sub:       sub,
-		address:   fmt.Sprintf("https://%s:%d/metrics", sub.EtcdHost, sub.EtcdPort),
-		startTime: time.Now(),
+		etc: etc,
+		sub: sub,
+		address: func() string {
+			if sub.TLSOpen {
+				return fmt.Sprintf("https://%s:%d/metrics", sub.EtcdHost, sub.EtcdPort)
+			}
+			return fmt.Sprintf("http://%s:%d/metrics", sub.EtcdHost, sub.EtcdPort)
+		}(),
 	}
 }
 
@@ -51,8 +53,8 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 		return err
 	}
 
-	// usage HTTPS tls
-	if s.sub.CacertFile != "" && s.sub.CertFile != "" && s.sub.KeyFile != "" {
+	// usage HTTPS
+	if s.sub.TLSOpen {
 
 		tc, err := TLSConfig(s.sub.CacertFile, s.sub.CertFile, s.sub.KeyFile)
 		if err != nil {
@@ -64,7 +66,7 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 		log.Printf("I! [Etcd] subscribe %s:%d, build TLSConfig success\n", s.sub.EtcdHost, s.sub.EtcdPort)
 
 	} else {
-		log.Printf("I! [Etcd] subscribe %s:%d, default usage HTTP connection\n", s.sub.EtcdHost, s.sub.EtcdPort)
+		log.Printf("I! [Etcd] subscribe %s:%d, usage HTTP connection\n", s.sub.EtcdHost, s.sub.EtcdPort)
 	}
 
 	ticker := time.NewTicker(time.Second * s.sub.Cycle)
@@ -85,10 +87,12 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 func (s *stream) exec() error {
 
 	client := &http.Client{}
+	client.Timeout = time.Second * 5
 
 	if s.tlsConfig != nil {
-		transport := &http.Transport{TLSClientConfig: s.tlsConfig}
-		client.Transport = transport
+		client.Transport = &http.Transport{
+			TLSClientConfig: s.tlsConfig,
+		}
 	}
 
 	resp, err := client.Get(s.address)
