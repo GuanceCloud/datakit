@@ -1,6 +1,7 @@
 package mongodboplog
 
 import (
+	"log"
 	"sync"
 	"time"
 
@@ -41,6 +42,7 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 
 	session, err := mgo.Dial(s.sub.MongodbURL)
 	if err != nil {
+		log.Printf("E! [MongodbOplog] subscribe %s, error: %s\n", s.sub.MongodbURL, err.Error())
 		return err
 	}
 
@@ -56,18 +58,20 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 	query["ts"] = bson.M{"$gt": bson.MongoTimestamp(s.receivedTime.Unix() << 32)}
 
 	s.iter = session.DB("local").C("oplog.rs").Find(query).LogReplay().Tail(-1)
+
+	log.Printf("I! [MongodbOplog] subscribe %s start\n", s.sub.MongodbURL)
 	s.runloop()
 	return nil
 }
 
 func (s *stream) runloop() {
-	var log *bson.Raw
+	var lograw *bson.Raw
 
 	for {
-		log = new(bson.Raw)
-		if s.iter.Next(log) {
+		lograw = new(bson.Raw)
+		if s.iter.Next(lograw) {
 			p := new(PartialLog)
-			bson.Unmarshal(log.Data, p)
+			bson.Unmarshal(lograw.Data, p)
 
 			if p.Namespace != s.namespace {
 				continue
@@ -78,10 +82,12 @@ func (s *stream) runloop() {
 				s.mdata.setTime(p.Timestamp)
 				s.mdata.rematch(p.Object, "/")
 
-				if p, err := s.mdata.point(); err == nil {
+				if p, err := s.mdata.point(); err != nil {
+					log.Printf("E! [MongodbOplog] subscribe %s, build point err: %s\n", s.sub.MongodbURL, err.Error())
+				} else {
 					s.points = append(s.points, p)
+					s.flush()
 				}
-				s.flush()
 				s.mdata.reset()
 			}
 		}
