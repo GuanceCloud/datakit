@@ -18,8 +18,6 @@ type stream struct {
 	statusURL string
 	// v1 or v2
 	statusVersion Version
-	//
-	startTime time.Time
 	// mate data
 	points []*influxdb.Point
 }
@@ -44,7 +42,6 @@ func newStream(sub *Subscribe, lt *Lighttpd) *stream {
 		sub:           sub,
 		statusURL:     url,
 		statusVersion: v,
-		startTime:     time.Now(),
 	}
 }
 
