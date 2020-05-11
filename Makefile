@@ -1,4 +1,4 @@
-.PHONY: default test
+.PHONY: default test local
 
 default: local
 
@@ -15,6 +15,10 @@ PUB_DIR = pub
 BIN = datakit
 NAME = datakit
 ENTRY = main.go
+
+LOCAL_ARCHS = "windows/amd64"
+#LOCAL_ARCHS = "all"
+DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
 
@@ -49,35 +53,46 @@ define pub
 endef
 
 local:
-	$(call build,local, "linux/amd64", $(LOCAL_DOWNLOAD_ADDR))
+	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
 test:
-	$(call build,test, "all", $(TEST_DOWNLOAD_ADDR))
+	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
 release:
-	$(call build,release,"all", $(RELEASE_DOWNLOAD_ADDR))
+	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
 pub_local:
-	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),"all")
+	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
 pub_test:
-	$(call pub,test,$(TEST_DOWNLOAD_ADDR),"all")
+	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
 pub_release:
-	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),"all")
+	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
 define build_agent
 	@echo "==== build telegraf... ===="
 	cd telegraf && go mod download
-	cd telegraf && GOOS=linux   GOARCH=arm   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm/agent         ./cmd/telegraf  
-	cd telegraf && GOOS=linux   GOARCH=arm64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm64/agent       ./cmd/telegraf  
+
+	# Linux
+	cd telegraf && GOOS=linux   GOARCH=amd64   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-amd64/agent     ./cmd/telegraf
+	cd telegraf && GOOS=linux   GOARCH=386     GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-386/agent       ./cmd/telegraf
+	#cd telegraf && GOOS=linux   GOARCH=s390x   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-s390x/agent    ./cmd/telegraf
+	#cd telegraf && GOOS=linux   GOARCH=ppc64le GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-ppc64le/agent  ./cmd/telegraf
+	#cd telegraf && GOOS=linux   GOARCH=arm     GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm/agent      ./cmd/telegraf
+	#cd telegraf && GOOS=linux   GOARCH=arm64   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm64/agent    ./cmd/telegraf
+
+	# Mac
 	cd telegraf && GOOS=darwin  GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/darwin-amd64/agent      ./cmd/telegraf
-	cd telegraf && GOOS=linux   GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-amd64/agent       ./cmd/telegraf  
-	cd telegraf && GOOS=linux   GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-386/agent         ./cmd/telegraf  
-	cd telegraf && GOOS=freebsd GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-386/agent       ./cmd/telegraf  
-	cd telegraf && GOOS=freebsd GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-amd64/agent     ./cmd/telegraf  
-	cd telegraf && GOOS=windows GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/windows-386/agent.exe   ./cmd/telegraf  
-	cd telegraf && GOOS=windows GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/windows-amd64/agent.exe ./cmd/telegraf  
+
+	# FreeBSD
+	#cd telegraf && GOOS=freebsd GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-386/agent      ./cmd/telegraf
+	#cd telegraf && GOOS=freebsd GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-amd64/agent    ./cmd/telegraf
+
+	# Windows
+	cd telegraf && GOOS=windows GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/windows-386/agent.exe   ./cmd/telegraf
+	cd telegraf && GOOS=windows GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/windows-amd64/agent.exe ./cmd/telegraf
+
 	tree -Csh embed
 endef
 
