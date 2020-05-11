@@ -101,13 +101,15 @@ var (
 	windows/arm */
 
 	osarches = []string{
-		`freebsd/386`,
-		`freebsd/amd64`,
+		//`freebsd/386`,
+		//`freebsd/amd64`,
 
 		`linux/386`,
 		`linux/amd64`,
-		`linux/arm`,
-		`linux/arm64`,
+		//`linux/arm`,
+		//`linux/arm64`,
+		//`linux/s390x`,
+		//`linux/ppc64le`,
 
 		`darwin/amd64`,
 
@@ -407,6 +409,13 @@ func releaseAgent() {
 		log.Printf("[debug] backup %s -> %s ok", k, v)
 	}
 
+	// test if all file ok before uploading
+	for k, _ := range ossfiles {
+		if _, err := os.Stat(k); err != nil {
+			log.Fatalf("[error] %s", err.Error())
+		}
+	}
+
 	for k, v := range ossfiles {
 		log.Printf("[debug] upload %s -> %s ...", k, v)
 		if err := oc.Upload(k, v); err != nil {
@@ -508,10 +517,11 @@ func tarFiles(goos, goarch string) {
 		telegrafPath = path.Join("embed", suffix, "agent.exe")
 	}
 
+	gz := path.Join(*flagPubDir, *flagRelease, fmt.Sprintf("%s-%s-%s-%s.tar.gz",
+		*flagName, goos, goarch, string(curVersion)))
 	args := []string{
 		`czf`,
-		path.Join(*flagPubDir, *flagRelease, fmt.Sprintf("%s-%s-%s-%s.tar.gz",
-			*flagName, goos, goarch, string(curVersion))),
+		gz,
 		telegrafPath,
 		`-C`,
 		// the whole build/datakit-<goos>-<goarch> dir
@@ -527,9 +537,12 @@ func tarFiles(goos, goarch string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("[debug] tar %s ok", gz)
 }
 
 func buildInstaller(outdir, goos, goarch string) {
+
+	log.Printf("[debug] build %s/%s installer to %s...", goos, goarch, outdir)
 
 	gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, curVersion)
 
