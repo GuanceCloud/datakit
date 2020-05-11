@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
 	"flag"
 	"fmt"
@@ -26,11 +27,23 @@ var (
 	ServiceName    = `datakit`
 	DataKitGzipUrl = ""
 
-	flagUpgrade    = flag.Bool("upgrade", false, ``)
-	flagDataway    = flag.String("dataway", "", `address of dataway(ip:port), port default 9528`)
-	flagInstallDir = flag.String("install-dir", "", `directory to install`)
-	flagVersion    = flag.Bool("version", false, "show installer version info")
+	flagUpgrade         = flag.Bool("upgrade", false, ``)
+	flagDataway         = flag.String("dataway", "", `address of dataway(ip:port), port default 9528`)
+	flagInstallDir      = flag.String("install-dir", "", `directory to install`)
+	flagVersion         = flag.Bool("version", false, "show installer version info")
+	flagDataKitGzipFile = flag.String("datakit-gzip", ``, `local path of datakit install files`)
 )
+
+func readInput(prompt string) string {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print(prompt)
+	txt, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return strings.TrimSpace(txt)
+}
 
 func doExtract(r io.Reader, to string) {
 	gzr, err := gzip.NewReader(r)
@@ -128,6 +141,25 @@ func (wc *WriteCounter) PrintProgress() {
 	}
 }
 
+func testDataway(dw string) error {
+
+	// parse dataway IP:Port
+	if _, _, err := net.SplitHostPort(dw); err != nil {
+		//log.Printf("Invalid DataWay host: %s", err.Error())
+		return err
+	}
+
+	log.Printf("Testing DataWay(%s)...", dw)
+	conn, err := net.DialTimeout("tcp", dw, time.Second*30)
+	if err != nil {
+		//log.Fatal("Testing DataWay (timeout 30s) failed: %s", err.Error())
+		return err
+	}
+	conn.Close() // XXX: not used connection
+
+	return nil
+}
+
 func main() {
 
 	flag.Parse()
@@ -151,10 +183,12 @@ Golang Version: %s
 		case "windows/386":
 			*flagInstallDir = `C:\Program Files\DataFlux\` + ServiceName
 
-		case "linux/amd64", "linux/386", "linux/arm", "linux/arm64", "darwin/amd64", "darwin/386":
+		case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
+			"darwin/amd64", "darwin/386",
+			"freebsd/amd64", "freebsd/386":
 			*flagInstallDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
 
-		case "freebsd/amd64", "freebsd/386":
+		default:
 			// TODO
 		}
 	}
@@ -170,12 +204,12 @@ Golang Version: %s
 	}
 
 	prog := &program{}
-	cfgpath := filepath.Join(*flagInstallDir, fmt.Sprintf("%s.conf", ServiceName))
 	dkservice, err := service.New(prog, &service.Config{
 		Name:        ServiceName,
 		DisplayName: ServiceName,
 		Description: `Collects data and upload it to DataFlux.`,
 		Executable:  datakitExe,
+		Arguments:   nil, // no args need here
 	})
 
 	if err != nil {
@@ -186,7 +220,11 @@ Golang Version: %s
 		// ignore
 	}
 
-	downloadDatakit(DataKitGzipUrl, *flagInstallDir)
+	if *flagDataKitGzipFile != "" {
+		extractDatakit(*flagDataKitGzipFile, *flagInstallDir)
+	} else {
+		downloadDatakit(DataKitGzipUrl, *flagInstallDir)
+	}
 
 	if *flagUpgrade { // upgrade new version
 		if err := upgradeDatakit(datakitExe); err != nil {
@@ -195,20 +233,20 @@ Golang Version: %s
 	} else { // install new datakit
 
 		if *flagDataway == "" {
-			log.Fatal("DataWay IP:Port required")
+			for {
+				dw := readInput("Please set DataWay(ip:port) > ")
+				if err := testDataway(dw); err != nil {
+					fmt.Printf("%s\n", err.Error())
+				} else {
+					*flagDataway = dw
+					break
+				}
+			}
+		} else {
+			if err := testDataway(*flagDataway); err != nil {
+				log.Fatalf("%s", err.Error())
+			}
 		}
-
-		// parse dataway IP:Port
-		if _, _, err := net.SplitHostPort(*flagDataway); err != nil {
-			log.Fatal("Invalid DataWay host: %s", err.Error())
-		}
-
-		log.Printf("Testing DataWay(%s)...", *flagDataway)
-		conn, err := net.DialTimeout("tcp", *flagDataway, time.Second*30)
-		if err != nil {
-			log.Fatal("Testing DataWay (timeout 30s) failed: %s", err.Error())
-		}
-		conn.Close() // XXX: not used connection
 
 		uninstallDataKitService(dkservice)
 
