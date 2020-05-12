@@ -2,16 +2,22 @@
 
 ## 安装手册
 
-### 安装/升级(Linux/Mac/Windows):
+- 对 32 位操作系统，只需将 `installer-<linux/darwin/windows>-amd64` 替换成 `installer-<linux/darwin/windows>-386` 即可。
+- DataWay 设置支持在安装过程中指定，安装程序会有输入提示。如果批量安装，支持传入参数，如：
 
-安装
+```
+sudo -- sh -c 'curl https://oss-host/datakit/installer-linux-amd64 -o dk-installer && \
+		chmod +x ./dk-installer && \
+		./dk-installer -dataway ip:port && \
+		rm -rf ./dk-installer'
+```
 
-- Linux/x86-64bit
+#### Linux
 
 安装：
 
 ```
-sudo -- sh -c 'curl https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/installer-linux-amd64 -o dk-installer && \
+sudo -- sh -c 'curl https://oss-host/datakit/installer-linux-amd64 -o dk-installer && \
 		chmod +x ./dk-installer && \
 		./dk-installer && \
 		rm -rf ./dk-installer'
@@ -20,18 +26,18 @@ sudo -- sh -c 'curl https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/
 升级：
 
 ```
-sudo -- sh -c 'curl https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/installer-linux-amd64 -o dk-installer && \
+sudo -- sh -c 'curl https://oss-host/datakit/installer-linux-amd64 -o dk-installer && \
 		chmod +x ./dk-installer && \
 		./dk-installer -upgrade && \
 		rm -rf ./dk-installer'
 ```
 
-- Linux/x86-32bit
+#### Mac
 
 安装：
 
 ```
-sudo -- sh -c 'curl https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/installer-linux-386 -o dk-installer && \
+sudo -- sh -c 'curl https://oss-host/datakit/installer-darwin-amd64 -o dk-installer && \
 		chmod +x ./dk-installer && \
 		./dk-installer && \
 		rm -rf ./dk-installer'
@@ -40,27 +46,7 @@ sudo -- sh -c 'curl https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/
 升级：
 
 ```
-sudo -- sh -c 'curl https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/installer-linux-386 -o dk-installer && \
-		chmod +x ./dk-installer && \
-		./dk-installer -upgrade && \
-		rm -rf ./dk-installer'
-```
-
-- Mac/x86-64bit
-
-安装：
-
-```
-sudo -- sh -c 'curl https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/installer-darwin-amd64 -o dk-installer && \
-		chmod +x ./dk-installer && \
-		./dk-installer && \
-		rm -rf ./dk-installer'
-```
-
-升级：
-
-```
-sudo -- sh -c 'curl https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/installer-darwin-amd64 -o dk-installer && \
+sudo -- sh -c 'curl https://oss-host/datakit/installer-darwin-amd64 -o dk-installer && \
 		chmod +x ./dk-installer && \
 		./dk-installer -upgrade && \
 		rm -rf ./dk-installer'
@@ -89,36 +75,29 @@ sudo -- sh -c 'curl https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/
 </plist>    
 ```
 
-- Windows/x86-64bit:
+另外，Mac 32 位尚不支持
+
+#### Windows
 
 > 注意：Windows 安装需在 Powershell 命令行安装，且必须以管理员身份运行 Powershell
 
 安装：
 
 ```
-Import-Module bitstransfer; start-bitstransfer -source https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/installer-windows-amd64.exe -destination installer.exe; .\installer.exe; rm installer.exe
+Import-Module bitstransfer; `
+start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
+-destination installer.exe; `
+.\installer.exe; `
+rm .\installer.exe
 ```
 
 升级：
 
 ```
-Import-Module bitstransfer; start-bitstransfer -source https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/installer-windows-amd64.exe -destination installer.exe; .\installer.exe -upgrade; rm installer.exe
-```
-
-- Windows/x86-32bit:
-
-> 注意：Windows 安装需在 Powershell 命令行安装，且必须以管理员身份运行 Powershell
-
-安装：
-
-```
-Import-Module bitstransfer; start-bitstransfer -source https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/installer-windows-386.exe -destination installer.exe; .\installer.exe; rm installer.exe
-```
-
-升级：
-
-```
-Import-Module bitstransfer; start-bitstransfer -source https://cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit/installer-windows-386.exe -destination installer.exe; .\installer.exe -upgrade; rm installer.exe
+Import-Module bitstransfer; `
+start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
+-destination installer.exe; .\installer.exe -upgrade; `
+rm installer.exe
 ```
 
 ## 日常操作
