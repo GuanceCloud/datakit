@@ -2,14 +2,38 @@
 
 ## 安装手册
 
-- 对 32 位操作系统，只需将 `installer-<linux/darwin/windows>-amd64` 替换成 `installer-<linux/darwin/windows>-386` 即可。
-- DataWay 设置支持在安装过程中指定，安装程序会有输入提示。如果批量安装，支持传入参数，如：
+- 对 32 位操作系统，只需将 `installer-<linux/windows>-amd64` 替换成 `installer-<linux/darwin/windows>-386` 即可。
+- DataWay 设置支持在安装过程中指定，安装程序会有输入提示，如：
 
 ```
-sudo -- sh -c 'curl https://oss-host/datakit/installer-linux-amd64 -o dk-installer && \
-		chmod +x ./dk-installer && \
-		./dk-installer -dataway ip:port && \
-		rm -rf ./dk-installer'
+PS C:\Users\Satan\Desktop> Import-Module bitstransfer; `
+>> start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
+>> -destination .\dk-installer.exe; `
+>> .\dk-installer.exe; `
+>> rm .\dk-installer.exe
+Downloading... 39 MB/39 MB
+Please set DataWay(ip:port) > 1.2.3.3:9528          # 此处有输入提示，输入完成后，安装程序会测试该 DataWay 是否可连接
+2020/05/12 11:16:30 Testing DataWay(1.2.3.4:9528)...
+2020/05/12 11:16:30 Initing datakit...
+2020/05/12 11:16:30 install service datakit...
+2020/05/12 11:16:30 starting service datakit...
+2020/05/12 11:16:30 :) Success!
+```
+
+如果批量安装，支持传入参数，如：
+
+```
+PS C:\Users\Satan\Desktop> Import-Module bitstransfer; `
+>> start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
+>> -destination .\dk-installer.exe; `
+>> .\dk-installer.exe -dataway 1.2.3.4:9528; `
+>> rm .\dk-installer.exe
+Downloading... 39 MB/39 MB
+2020/05/12 11:27:16 Testing DataWay(1.2.3.4:9528)...
+2020/05/12 11:27:16 Initing datakit...
+2020/05/12 11:27:17 install service datakit...
+2020/05/12 11:27:17 starting service datakit...
+2020/05/12 11:27:17 :) Success!
 ```
 
 #### Linux
@@ -86,9 +110,9 @@ sudo -- sh -c 'curl https://oss-host/datakit/installer-darwin-amd64 -o dk-instal
 ```
 Import-Module bitstransfer; `
 start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
--destination installer.exe; `
-.\installer.exe; `
-rm .\installer.exe
+-destination .\dk-installer.exe; `
+.\dk-installer.exe; `
+rm .\dk-installer.exe
 ```
 
 升级：
@@ -96,8 +120,8 @@ rm .\installer.exe
 ```
 Import-Module bitstransfer; `
 start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
--destination installer.exe; .\installer.exe -upgrade; `
-rm installer.exe
+-destination .\dk-installer.exe; .\dk-installer.exe -upgrade; `
+rm dk-installer.exe
 ```
 
 ## 日常操作
