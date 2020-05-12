@@ -2,7 +2,7 @@
 
 ## 安装手册
 
-- 对 32 位操作系统，只需将 `installer-<linux/windows>-amd64` 替换成 `installer-<linux/darwin/windows>-386` 即可。
+- 对 32 位操作系统，只需将 `installer-<linux/windows>-amd64` 替换成 `installer-<linux/windows>-386` 即可。
 - DataWay 设置支持在安装过程中指定，安装程序会有输入提示，如：
 
 ```
@@ -12,7 +12,7 @@ PS C:\Users\Satan\Desktop> Import-Module bitstransfer; `
 >> .\dk-installer.exe; `
 >> rm .\dk-installer.exe
 Downloading... 39 MB/39 MB
-Please set DataWay(ip:port) > 1.2.3.3:9528          # 此处有输入提示，输入完成后，安装程序会测试该 DataWay 是否可连接
+Please set DataWay(ip:port) > 1.2.3.4:9528          # 此处有输入提示，输入完成后，安装程序会测试该 DataWay 是否可连接
 2020/05/12 11:16:30 Testing DataWay(1.2.3.4:9528)...
 2020/05/12 11:16:30 Initing datakit...
 2020/05/12 11:16:30 install service datakit...
@@ -20,7 +20,7 @@ Please set DataWay(ip:port) > 1.2.3.3:9528          # 此处有输入提示，�
 2020/05/12 11:16:30 :) Success!
 ```
 
-如果批量安装，支持传入参数，如：
+如果批量安装，支持传入 `-dataway` 参数，如：
 
 ```
 PS C:\Users\Satan\Desktop> Import-Module bitstransfer; `
