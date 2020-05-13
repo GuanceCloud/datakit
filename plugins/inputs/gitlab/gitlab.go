@@ -4,9 +4,11 @@ import (
 	"context"
 	"log"
 	"strings"
+	"path/filepath"
 
 	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 type GitlabTarget struct {
@@ -73,6 +75,8 @@ const (
 #	hours_batch = 720
 `
 	defaultInterval = 60
+	defaultStartDate = "2005-12-15T00:00:00"
+
 )
 
 var (
@@ -103,15 +107,25 @@ func (g *Gitlab) Start(ac telegraf.Accumulator) error {
 		metricName = g.MetricName
 	}
 
+	jsonFileName := filepath.Join(config.ExecutableDir, "data", "gitlab", "gitlab-run.json")
+	loadPBT(jsonFileName)
+
 	for _, target := range g.Targets {
 		if target.Active && target.Host != "" {
 			if target.Interval == 0 {
 				target.Interval = defaultInterval
 			}
+
+			if target.StartDate == "" {
+				target.StartDate = defaultStartDate
+			}
+
 			target.Host = strings.Trim(target.Host, " ")
 			go target.active()
 		}
 	}
+
+	go flushPBT(jsonFileName)
 	return nil
 }
 
