@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -9,26 +10,41 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 )
 
-func (t *GitlabTarget) active() error {
-	pbm, err := t.getProjectAndBranch()
-	if err != nil {
-		return err
-	}
-	for k, v := range pbm {
-		for _, b := range v {
-			input := GitlabInput{
-				GitlabTarget: *t,
-				MetricName:   metricName,
-			}
-			input.Project = k
-			input.Branch  = b
-
-			output := GitlabOutput{acc}
-			p := GitlabParam{input, output}
-			go p.gather()
+func (t *GitlabTarget) active() {
+	foundPBM := make(map[string]bool)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
+
+		pB, err := t.getProjectAndBranch()
+		if err != nil {
+			log.Printf("W! [gitlab] %s", err.Error())
+			continue
+		}
+
+		for p, bs := range pB {
+			for _, b := range bs {
+				key := genPBkey(t.Host, p, b)
+				if _, ok := foundPBM[key]; !ok {
+					foundPBM[key] = true
+					input := GitlabInput{
+						GitlabTarget: *t,
+						MetricName:   metricName,
+					}
+					input.Project = p
+					input.Branch = b
+
+					output := GitlabOutput{acc}
+					p := GitlabParam{input, output}
+					go p.gather()
+				}
+			}
+		}
+		internal.SleepContext(ctx, time.Duration(5)*time.Minute)
 	}
-	return nil
 }
 
 func (t *GitlabTarget) getProjectAndBranch() (map[interface{}][]string, error) {
@@ -70,9 +86,11 @@ func (t *GitlabTarget) getProjectAndBranch() (map[interface{}][]string, error) {
 			pBM[p] = append(pBM[p], t.Branch)
 		}
 	}
+
 	return pBM, nil
 
 }
+
 func (t *GitlabTarget) getBranchsByProject(client *gitlab.Client, project interface{}) ([]string, error) {
 	bs := make([]string, 0)
 	nextPage := 1
@@ -99,15 +117,11 @@ func (t *GitlabTarget) getBranchsByProject(client *gitlab.Client, project interf
 }
 
 func (p *GitlabParam) gather() {
-	var stopTime  time.Time
+	var stopTime time.Time
 	var startTime time.Time
 
-	startTime, err := getCommitStartDate(p.input.StartDate)
-	if err != nil {
-		log.Printf("W! [gitlab] %s", err.Error())
-		return
-	}
-
+	startTime = p.getCommitStartDate()
+	key := genPBkey(p.input.Host, p.input.Project, p.input.Branch)
 	client, err := gitlab.NewClient(p.input.Token, gitlab.WithBaseURL(p.input.Host))
 	if err != nil {
 		log.Printf("W! [gitlab] %s", err.Error())
@@ -133,9 +147,10 @@ func (p *GitlabParam) gather() {
 			if err != nil {
 				log.Printf("W! [gitlab] %s", err.Error())
 			}
+		} else {
+			updatePBT(key, stopTime)
+			startTime = stopTime
 		}
-
-		startTime = stopTime
 
 		err = internal.SleepContext(ctx, time.Duration(p.input.Interval)*time.Second)
 		if err != nil {
@@ -189,25 +204,32 @@ func (p *GitlabParam) getCommitMetrics(client *gitlab.Client, pjName string, sta
 	return nil
 }
 
-func getCommitStartDate(timeStr string) (time.Time, error) {
-	var startTime time.Time
-	var err error
+func (p *GitlabParam) getCommitStartDate() time.Time {
+	key := genPBkey(p.input.Host, p.input.Project, p.input.Branch)
 
-	startTime, err = time.Parse("2006-01-02T15:04:05", timeStr)
-	if err != nil {
-		startTime, err = time.Parse(time.RFC3339, timeStr)
-		if err != nil {
-			return startTime, err
-		}
+	t, err := getPBT(key)
+	if err == nil {
+		return t
 	}
-	return startTime, nil
+
+	t, err = parseTimeStr(p.input.StartDate)
+	if err == nil {
+		return t
+	}
+
+	t, _ = parseTimeStr(defaultStartDate)
+	return t
+}
+
+func genPBkey(host string, project interface{}, branch string) string {
+	return fmt.Sprintf("%v_%v_%v", host, project, branch)
 }
 
 func getCommitStopDate(s time.Time, hoursBatch int) time.Time {
 	var stopTime time.Time
 	now := time.Now()
 
-	stopTime = s.Add(time.Duration(hoursBatch)*time.Hour)
+	stopTime = s.Add(time.Duration(hoursBatch) * time.Hour)
 	if stopTime.After(now) {
 		return now
 	}
