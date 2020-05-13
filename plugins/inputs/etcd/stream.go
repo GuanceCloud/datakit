@@ -88,6 +88,7 @@ func (s *stream) exec() error {
 
 	client := &http.Client{}
 	client.Timeout = time.Second * 5
+	defer client.CloseIdleConnections()
 
 	if s.tlsConfig != nil {
 		client.Transport = &http.Transport{
