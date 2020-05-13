@@ -31,6 +31,7 @@ var (
 	flagDataway         = flag.String("dataway", "", `address of dataway(ip:port), port default 9528`)
 	flagInstallDir      = flag.String("install-dir", "", `directory to install`)
 	flagVersion         = flag.Bool("version", false, "show installer version info")
+	flagDownloadOnly    = flag.Bool("download-only", false, `download datakit only, not install`)
 	flagDataKitGzipFile = flag.String("datakit-gzip", ``, `local path of datakit install files`)
 )
 
@@ -43,6 +44,20 @@ func readInput(prompt string) string {
 	}
 
 	return strings.TrimSpace(txt)
+}
+
+func doDownload(r io.Reader, to string) {
+
+	f, err := os.OpenFile(to, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		log.Fatalf("[error] %s", err.Error())
+	}
+
+	if _, err := io.Copy(f, r); err != nil {
+		log.Fatalf("[error] %s", err.Error())
+	}
+
+	f.Close()
 }
 
 func doExtract(r io.Reader, to string) {
@@ -129,7 +144,12 @@ func downloadDatakit(from, to string) {
 		total: uint64(resp.ContentLength),
 	}
 
-	doExtract(io.TeeReader(resp.Body, cnt), to)
+	if *flagDownloadOnly {
+		log.Printf("Downloading %s(%d) to %s", from, cnt, to)
+		doDownload(io.TeeReader(resp.Body, cnt), to)
+	} else {
+		doExtract(io.TeeReader(resp.Body, cnt), to)
+	}
 	fmt.Printf("\n")
 }
 
@@ -150,9 +170,9 @@ func testDataway(dw string) error {
 	}
 
 	log.Printf("Testing DataWay(%s)...", dw)
-	conn, err := net.DialTimeout("tcp", dw, time.Second*30)
+	conn, err := net.DialTimeout("tcp", dw, time.Second*5)
 	if err != nil {
-		//log.Fatal("Testing DataWay (timeout 30s) failed: %s", err.Error())
+		//log.Fatal("Testing DataWay (timeout 5s) failed: %s", err.Error())
 		return err
 	}
 	conn.Close() // XXX: not used connection
@@ -171,6 +191,11 @@ func main() {
 Golang Version: %s
    DataKitGzip: %s
 `, git.Version, git.BuildAt, git.Golang, DataKitGzipUrl)
+		return
+	}
+
+	if *flagDownloadOnly {
+		downloadDatakit(DataKitGzipUrl, "datakit.tar.gz")
 		return
 	}
 
