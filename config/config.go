@@ -587,8 +587,8 @@ func CreateDataDir() error {
 	os.MkdirAll(filepath.Join(dataDir, "lua"), 0755)
 	//datakit定义的插件的配置文件
 	for name, _ := range inputs.Inputs {
-		if name == "zabbix" {
-			pluginDataDir := filepath.Join(dataDir, "zabbix")
+		if name == "zabbix" || name == "gitlab" {
+			pluginDataDir := filepath.Join(dataDir, name)
 			if err := os.MkdirAll(pluginDataDir, 0775); err != nil {
 				return fmt.Errorf("Error create %s, %s", pluginDataDir, err)
 			}
