@@ -124,6 +124,26 @@ start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe 
 rm dk-installer.exe
 ```
 
+### 离线安装
+
+对某些没有公网访问能力的目标机器而言，可以先在某个有公网能力的机器上，将安装程序以及安装包下载下来，然后通过 SCP 等方式，将安装程序和安装包上传上去，进行本地安装。以 Windows 64 位为例
+
+- 下载安装程序，此时会将安装程序 `dk-installer.exe` 以及安装包 `datakit.tar.gz` 都下载到当前目录。
+
+```
+PS C:\Users\Satan\Desktop> Import-Module bitstransfer; `
+>> start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
+>> -destination .\dk-installer.exe; `
+>> .\dk-installer.exe -download-only; `   # 以 -download-only 参数来下载安装包
+```
+
+- 通过 `scp` 或其它文件传输工具，将安装程序 `dk-installer.exe` 以及安装包 `datakit.tar.gz` 上传到目标机器
+- 离线安装
+
+```
+PS C:\Users\Satan\Desktop> .\dk-installer.exe -datakit-gzip .\datakit.tar.gz` -dataway 1.2.3.4:9528
+```
+
 ## 日常操作
 
 ### 重启服务
