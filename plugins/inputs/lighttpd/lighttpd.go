@@ -2,6 +2,7 @@ package lighttpd
 
 import (
 	"context"
+	"log"
 	"sync"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
@@ -33,9 +34,12 @@ func (lt *Lighttpd) Start(acc telegraf.Accumulator) error {
 	lt.acc = acc
 	lt.wg = new(sync.WaitGroup)
 
+	log.Printf("I! [Lighttpd] start\n")
+	log.Printf("I! [Lighttpd] load subscribes count: %d\n", len(lt.Config.Subscribes))
 	for _, sub := range lt.Config.Subscribes {
 		lt.wg.Add(1)
-		stream := newStream(&sub, lt)
+		s := sub
+		stream := newStream(&s, lt)
 		go stream.start(lt.wg)
 	}
 
@@ -43,6 +47,7 @@ func (lt *Lighttpd) Start(acc telegraf.Accumulator) error {
 }
 
 func (lt *Lighttpd) Stop() {
+	log.Printf("I! [Lighttpd] stop\n")
 	lt.cancel()
 	lt.wg.Wait()
 }
@@ -69,6 +74,7 @@ func (lt *Lighttpd) ProcessPts(pts []*influxdb.Point) error {
 		if err != nil {
 			return err
 		}
+		log.Printf("D! [Lighttpd] metric: %v\n", pt_metric)
 		lt.acc.AddMetric(pt_metric)
 	}
 	return nil
