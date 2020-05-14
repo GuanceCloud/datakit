@@ -134,7 +134,7 @@ rm dk-installer.exe
 Import-Module bitstransfer; `
 start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
 -destination .\dk-installer.exe; `
-.\dk-installer.exe -download-only; `
+.\dk-installer.exe -download-only;
 ```
 
 - 通过 `scp` 或其它文件传输工具，将安装程序 `dk-installer.exe` 以及安装包 `datakit.tar.gz` 上传到目标机器
