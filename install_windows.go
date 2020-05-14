@@ -28,11 +28,11 @@ var (
 
 	flagUpgrade    = flag.Bool("upgrade", false, ``)
 	flagFtDataway  = flag.String("ftdataway", "", `address of ftdataway`)
-	flagInstallDir = flag.String("installdir", fmt.Sprintf(`C:\Program Files (x86)\Forethought\%s`, serviceName), `directory to install`)
+	flagInstallDir = flag.String("installdir", fmt.Sprintf(`C:\Program Files (x86)\DataFlux\%s`, serviceName), `directory to install`)
 
 	baseDownloadUrl = `https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit`
 
-	installDir = fmt.Sprintf(`C:\Program Files (x86)\Forethought\%s`, serviceName)
+	installDir = fmt.Sprintf(`C:\Program Files (x86)\DataFlux\%s`, serviceName)
 )
 
 type VerSt struct {
