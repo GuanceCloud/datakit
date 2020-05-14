@@ -18,12 +18,15 @@ import (
 )
 
 func staticClient() *bssopenapi.Client {
-	//client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAI4Fc72xGdZKKr6cTBV72S`, `QXZ4FFCq3yhN5TCGC9rj1kBNZNJksc`)
-	client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAI4G7oxhYKY5n845WuieVg`, `GhLfPOACip4hB5mDp8C0fzO4GXNvXw`)
+	//client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAIaB2ZMYy4Dej9`, `pixGuiJail10JSBZTzuaOJIw8N2pw7`)
+	//client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAI4G7oxhYKY5n845WuieVg`, `GhLfPOACip4hB5mDp8C0fzO4GXNvXw`)
+	client, err := bssopenapi.NewClientWithAccessKey(`cn-hangzhou`, `LTAI4G4wZv87CS4EkjMEY6N8`, `qI1TO1H7wEnchMlU2aUf4JwtITMHE4`)
+
 	if err != nil {
 		log.Fatalln(err)
 	}
 	return client
+
 }
 
 //https://help.aliyun.com/document_detail/87997.html?spm=a2c4g.11186623.6.621.a5f8392dHi0imZ
@@ -72,17 +75,26 @@ func TestAccountTransactions(t *testing.T) {
 
 	req := bssopenapi.CreateQueryAccountTransactionsRequest()
 	req.PageSize = requests.NewInteger(300)
-	//now := time.Now().Truncate(time.Minute)
-	start := "2020-02-24T12:00:00Z" // now.Add(-time.Hour * 24).Format(`2006-01-02T15:04:05Z`)
-	req.CreateTimeStart = start
-	//req.CreateTimeEnd = "2020-02-24T00:00:00Z" // now.Format(`2006-01-02T15:04:05Z`)
+
+	now := time.Now().Truncate(time.Minute)
+	start := now.Add(-time.Hour * 24)
+	from := unixTimeStr(start) //需要传unix时间
+	end := unixTimeStr(now)
+
+	log.Printf("from=%s, end=%s", from, end)
+
+	//start := "2020-04-10T00:00:00Z" // now.Add(-time.Hour * 24).Format(`2006-01-02T15:04:05Z`)
+	req.CreateTimeStart = from
+	//req.CreateTimeStart = ""
+	req.CreateTimeEnd = end // now.Format(`2006-01-02T15:04:05Z`)
+	req.CreateTimeEnd = ""
 
 	resp, err := cli.QueryAccountTransactions(req)
 	if err != nil {
 		log.Fatalf("err: %s", err)
 	}
 
-	log.Printf("total: %v", len(resp.Data.AccountTransactionsList.AccountTransactionsListItem))
+	log.Printf("total: %v, accountid=%s, accountname=%s", len(resp.Data.AccountTransactionsList.AccountTransactionsListItem), resp.Data.AccountID, resp.Data.AccountName)
 
 	//og.Printf("%s", resp.String())
 
@@ -118,11 +130,12 @@ func TestQueryBill(t *testing.T) {
 	cli := staticClient()
 
 	//计费项 + 明细
+	//包含了计费项的结账时间， 每个计费项的结账时间单位可能不同
 	req := bssopenapi.CreateQueryBillRequest()
 	req.BillingCycle = fmt.Sprintf("%d-%d", 2020, 3)
 	req.PageSize = requests.NewInteger(300)
 	req.PageNum = requests.NewInteger(1)
-	req.IsHideZeroCharge = requests.NewBoolean(true)
+	req.IsHideZeroCharge = requests.NewBoolean(true) //过滤掉原价为0
 
 	for {
 		resp, err := cli.QueryBill(req)
@@ -130,7 +143,7 @@ func TestQueryBill(t *testing.T) {
 			log.Fatalln(err)
 		}
 
-		log.Printf("total count: %v", resp.Data.TotalCount)
+		log.Printf("total count: %v, accountid=%s, accountname=%s", resp.Data.TotalCount, resp.Data.AccountID, resp.Data.AccountName)
 		break
 
 		for _, item := range resp.Data.Items.Item {
