@@ -9,7 +9,9 @@ set -e
 logfile="install.log"
 
 SERVICE={{.Name}}
-USRDIR="/usr/local/cloudcare/forethought/${SERVICE}"
+InstallDir="/usr/local/cloudcare/dataflux"
+USRDIR="${InstallDir}/${SERVICE}"
+USRDIR_OLD="/usr/local/cloudcare/forethought/${SERVICE}"
 BINARY="$USRDIR/${SERVICE}"
 AGENTBINARY="$USRDIR/agent"
 EMBEDDIR="$USRDIR/embed"
@@ -223,6 +225,14 @@ function host_install() {
 	install_cmd="$BINARY -install $install_type -cfg $CONF -install-only"
 	$sudo_cmd $install_cmd
 }
+
+if [ -n "$dk_upgrade" ]; then
+	if [ -f "$USRDIR_OLD/${SERVICE}" ] && ! [ -f ${BINARY} ];then
+		$sudo_cmd mkdir -p "${USRDIR}"
+		$sudo_cmd mv "${USRDIR_OLD}" "${InstallDir}"
+	fi
+fi
+
 
 #if [ $dk_docker ]; then # install within docker
 #	docker_install

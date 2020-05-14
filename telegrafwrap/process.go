@@ -4,6 +4,6 @@ package telegrafwrap
 
 import "syscall"
 
-func CheckPid(pid int) error {
+func KillProcess(pid int) error {
 	return syscall.Kill(pid, 0)
 }
