@@ -15,6 +15,9 @@ func TestStart(t *testing.T) {
 				Subscribe{
 					EtcdHost:    "10.100.64.106",
 					EtcdPort:    32379,
+					CacertFile:  "",
+					CertFile:    "",
+					KeyFile:     "",
 					Cycle:       3,
 					Measurement: "etcd_measurement",
 				},
@@ -26,11 +29,11 @@ func TestStart(t *testing.T) {
 
 	for _, sub := range e.Config.Subscribes {
 		e.wg.Add(1)
-		fmt.Printf("%#v\n", sub)
-		stream := newStream(&sub, nil)
-		panic(stream.start(e.wg))
+		s := sub
+		stream := newStream(&s, nil)
+		fmt.Println(s)
+		go stream.start(e.wg)
 	}
 
 	time.Sleep(10 * time.Second)
-
 }
