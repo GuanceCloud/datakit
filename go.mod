@@ -11,6 +11,7 @@ require (
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.4
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
+	github.com/antchfx/jsonquery v1.1.4
 	github.com/aws/aws-sdk-go v1.27.0
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
@@ -52,10 +53,11 @@ require (
 	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
 	github.com/sirupsen/logrus v1.5.0 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.123+incompatible
-	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/tidwall/gjson v1.3.0
+	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/ucloud/ucloud-sdk-go v0.14.0
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
+	github.com/xanzy/go-gitlab v0.31.0
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
