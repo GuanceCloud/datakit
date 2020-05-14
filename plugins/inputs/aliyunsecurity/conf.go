@@ -8,8 +8,8 @@ const (
 #  accessKeyId = ''
 #  accessKeySecret = ''
 #  region = "cn-hangzhou"
-#  ## 采集的频度，最小粒度24小时
-#  interval = "24h"
+#  ## 采集的频度
+#  interval = "10m"
 #  ## 指标名称，默认值(aliyun_security)
 #  metricName = ""
 `
