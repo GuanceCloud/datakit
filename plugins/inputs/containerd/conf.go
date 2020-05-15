@@ -10,13 +10,15 @@ const (
 	containerdConfigSample = `
 # [containerd]
 # [[containerd.subscribes]]
-#       ## host path
+#       ## containerd 在本机的 sock 地址，一般使用默认即可
 #       host_path = "/run/containerd/containerd.sock"
 #
-#       ## namespace
+#       ## 需要采集的 containerd namespace
+#       ## 可以使 'ps -ef | grep containerd | grep containerd-shim' 查看详情
 #       namespace = "moby"
 #
-#       ## collection ID list
+#       ## 需要采集的 containerd ID 列表，ID 是一串长度为 64 的字符串
+#       ## 如果该值是 "*" ，会默认采集所有
 #       ID_list = ["*"]
 #
 #	## 采集周期，时间单位是秒
