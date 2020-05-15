@@ -49,6 +49,10 @@ type ApacheLogConfig struct {
 	ErrorLogs  []*ApacheErrorLog  `toml:"error_log"`
 }
 
+func (_ *ApacheLogConfig) Catalog() string {
+	return "apache"
+}
+
 func (_ *ApacheLogConfig) SampleConfig() string {
 	return apacheLogSample
 }
@@ -120,7 +124,7 @@ func (c *ApacheLogConfig) ToTelegraf(f string) (string, error) {
 }
 
 func init() {
-	inputs.Add("apachelog", func() telegraf.Input {
+	inputs.Add("apachelog", func() inputs.Input {
 		return &ApacheLogConfig{}
 	})
 }
