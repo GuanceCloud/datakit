@@ -4,18 +4,19 @@ import (
 	"github.com/influxdata/telegraf"
 )
 
-type DataKitInput interface {
+type Input interface {
 	telegraf.Input
 
-	CollectionName() string
-	Status() string
+	Catalog() string
+	//Status() string
 
 	/* TotalBytes() int64 */
 
 	// add more...
 }
 
-type Creator func() telegraf.Input
+//type Creator func() telegraf.Input
+type Creator func() Input
 
 var Inputs = map[string]Creator{}
 
