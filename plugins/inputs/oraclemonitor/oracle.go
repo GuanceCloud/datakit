@@ -3,6 +3,8 @@ package oraclemonitor
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -119,6 +121,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 
 func (r *runningInstance) command() {
 	for key, item := range metricMap {
+		fmt.Println("key ===========>", key)
 		resMap, err := r.Query(item)
 		if err != nil {
 			r.logger.Errorf("oracle connect faild %v", err)
@@ -142,7 +145,8 @@ func (r *runningInstance) handleResponse(m string, response []map[string]interfa
 
 		if tagKeys, ok := tagsMap[m]; ok {
 			for _, tagKey := range tagKeys {
-				tags[tagKey] = item[tagKey].(string)
+
+				tags[tagKey] = String(item[tagKey])
 			}
 		}
 
@@ -173,10 +177,31 @@ func (r *runningInstance) Query(sql string) ([]map[string]interface{}, error) {
 		item := make(map[string]interface{})
 		for i, data := range cache {
 			key := strings.ToLower(columns[i])
-			item[key] = *data.(*interface{})
-			// item[key] = data
+			val := *data.(*interface{})
 
+			if val != nil {
+				vType := reflect.TypeOf(val)
+
+				switch vType.String() {
+				case "int64":
+					item[key] = val.(int64)
+				case "string":
+					var data interface{}
+					data, err := strconv.ParseFloat(val.(string), 64)
+					if err != nil {
+						data = val
+					}
+					item[key] = data
+				case "time.Time":
+					item[key] = val.(time.Time)
+				case "[]uint8":
+					item[key] = string(val.([]uint8))
+				default:
+					return nil, fmt.Errorf("unsupport data type '%s' now\n", vType)
+				}
+			}
 		}
+
 		list = append(list, item)
 	}
 	return list, nil
