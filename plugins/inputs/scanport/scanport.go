@@ -47,13 +47,20 @@ const description = `scan network port`
 func (s *Scan) Description() string {
 	return description
 }
+
+func (s *Scan) Catalog() string {
+	return "network"
+}
+
 func (s *Scan) SampleConfig() string {
 	return sampleConfig
 }
+
 func (s *Scan) Gather(acc telegraf.Accumulator) error {
 	s.exec(acc)
 	return nil
 }
+
 func (s *Scan) exec(acc telegraf.Accumulator) {
 	if s.IsCIDR() {
 		fmt.Errorf("it doesn't support CIDR")
@@ -72,8 +79,9 @@ func (s *Scan) exec(acc telegraf.Accumulator) {
 		acc.AddFields("scan_port", fields, tags, p.t)
 	}
 }
+
 func init() {
-	inputs.Add("scanport", func() telegraf.Input { return &Scan{} })
+	inputs.Add("scanport", func() inputs.Input { return &Scan{} })
 }
 
 // IsCIDR checks the target if it's CIDR
@@ -84,15 +92,18 @@ func (s *Scan) IsCIDR() bool {
 	}
 	return true
 }
+
 func isIPv4(ip net.IP) bool {
 	return len(ip.To4()) == net.IPv4len
 }
+
 func isIPv6(ip net.IP) bool {
 	if r := strings.Index(ip.String(), ":"); r != -1 {
 		return true
 	}
 	return false
 }
+
 func (s *Scan) setIP() error {
 	ips, err := net.LookupIP(s.Target)
 	if err != nil {
@@ -142,6 +153,7 @@ func (s *Scan) Run() []point {
 	}
 	return openPorts
 }
+
 func (s *Scan) packetDataTCP(rport int) (error, []byte) {
 	tcp := &layers.TCP{
 		SrcPort: layers.TCPPort(s.lport),
@@ -218,6 +230,7 @@ func (s *Scan) setLocalNet() error {
 	}
 	return nil
 }
+
 func (s *Scan) tcpSYNScan() ([]point, error) {
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
@@ -236,6 +249,7 @@ func (s *Scan) tcpSYNScan() ([]point, error) {
 	openPorts, err := s.pCapture(ctx)
 	return openPorts, err
 }
+
 func (s *Scan) pCapture(ctx context.Context) ([]point, error) {
 	var (
 		tcp       *layers.TCP
@@ -279,6 +293,7 @@ LOOP:
 	}
 	return openPorts, nil
 }
+
 func (s *Scan) sendTCPSYN() error {
 	var (
 		buf  []byte
@@ -345,6 +360,7 @@ func (s *Scan) tcpConnScan() []point {
 	// sort.Ints(ports)
 	return ports
 }
+
 func uniqSlice(s []int) []int {
 	m := map[int]bool{}
 	r := []int{}
