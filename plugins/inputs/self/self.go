@@ -26,6 +26,10 @@ func (s *SelfInfo) Init() error {
 	return nil
 }
 
+func (_ *SelfInfo) Catalog() string {
+	return "self"
+}
+
 func (_ *SelfInfo) SampleConfig() string {
 	return sampleConfig
 }
@@ -60,7 +64,7 @@ func (s *SelfInfo) Gather(acc telegraf.Accumulator) error {
 
 func init() {
 	StartTime = time.Now()
-	inputs.Add("self", func() telegraf.Input {
+	inputs.Add("self", func() inputs.Input {
 		return &SelfInfo{
 			stat: &ClientStat{
 				OS:   runtime.GOOS,
