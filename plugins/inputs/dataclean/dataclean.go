@@ -66,6 +66,10 @@ func (_ *DataClean) Description() string {
 	return ""
 }
 
+func (_ *DataClean) Catalog() string {
+	return ""
+}
+
 func (_ *DataClean) Gather(telegraf.Accumulator) error {
 	return nil
 }
@@ -150,7 +154,7 @@ func NewAgent() *DataClean {
 }
 
 func init() {
-	inputs.Add(inputName, func() telegraf.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		ac := NewAgent()
 		return ac
 	})
