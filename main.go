@@ -38,9 +38,6 @@ var (
 
 	flagInstallOnly = flag.Bool(`install-only`, false, `not run after installing`)
 
-	flagCfgFile = flag.String("cfg", ``, `configure file`)
-	flagCfgDir  = flag.String("config-dir", ``, `sub configuration dir`)
-
 	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d, list configired and mis-configured collectors`)
 
 	fInstallDir = flag.String("installdir", `C:\Program Files (x86)\DataFlux\DataKit`, "install directory")
@@ -79,11 +76,12 @@ Golang Version: %s
 	}
 
 	if *flagCheckConfigDir {
-		config.CheckConfd(*flagCfgDir)
+		config.CheckConfd()
 		return
 	}
 
 	applyFlags()
+	// TODO: checking all configures
 
 	svcConfig := &winsvr.Config{
 		Name: config.ServiceName,
@@ -102,24 +100,6 @@ Golang Version: %s
 }
 
 func applyFlags() {
-	//exepath, err := os.Executable()
-	//if err != nil {
-	//	log.Fatalln(err)
-	//}
-	//config.ExecutableDir = filepath.Dir(exepath)
-
-	//if *flagCfgFile == "" {
-	//	*flagCfgFile = filepath.Join(config.ExecutableDir, fmt.Sprintf("%s.conf", config.ServiceName))
-	//}
-
-	//if *flagCfgDir == "" {
-	//	*flagCfgDir = filepath.Join(config.ExecutableDir, "conf.d")
-	//}
-	//config.MainCfgPath = *flagCfgFile
-
-	//if *flagAgentLogFile != "" {
-	//	config.AgentLogFile = *flagAgentLogFile
-	//}
 
 	if *fInputFilters != "" {
 		inputFilters = strings.Split(":"+strings.TrimSpace(*fInputFilters)+":", ":")
@@ -136,8 +116,7 @@ func applyFlags() {
 		} */
 }
 
-type program struct {
-}
+type program struct{}
 
 func (p *program) Start(s winsvr.Service) error {
 	go p.run(s)
