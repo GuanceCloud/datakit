@@ -74,6 +74,10 @@ type (
 	}
 )
 
+func (_ *TencentCms) Catalog() string {
+	return `tencentcloud`
+}
+
 func (_ *TencentCms) SampleConfig() string {
 	return cmsConfigSample
 }
@@ -488,7 +492,7 @@ func (m MetricsPeriodInfo) String() string {
 }
 
 func init() {
-	inputs.Add("tencentcms", func() telegraf.Input {
+	inputs.Add("tencentcms", func() inputs.Input {
 		ac := &TencentCms{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac

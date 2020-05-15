@@ -58,6 +58,10 @@ type Zabbix struct {
 	acc  telegraf.Accumulator
 }
 
+func (z *Zabbix) Catalog() string {
+	return `zabbix`
+}
+
 func (z *Zabbix) SampleConfig() string {
 	return zabbixConfigSample
 }
@@ -127,7 +131,7 @@ func setupLogger() {
 }
 
 func init() {
-	inputs.Add(pluginName, func() telegraf.Input {
+	inputs.Add(pluginName, func() inputs.Input {
 		z := &Zabbix{}
 		z.ctx, z.cfun = context.WithCancel(context.Background())
 		return z
