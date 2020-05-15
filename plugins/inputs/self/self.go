@@ -40,14 +40,14 @@ func (s *SelfInfo) Gather(acc telegraf.Accumulator) error {
 
 	runnings := []string{}
 
-	for _, input := range config.DKConfig.Inputs {
+	for _, input := range config.Cfg.Inputs {
 		if st, ok := input.Input.(internal.PluginStat); ok {
 			if st.IsRunning() {
 				runnings = append(runnings, input.Config.Name)
 			}
 			m := st.StatMetric()
 			if m != nil {
-				m.AddTag("datakit", config.DKConfig.MainCfg.UUID)
+				m.AddTag("datakit", config.Cfg.MainCfg.UUID)
 				acc.AddMetric(m)
 			}
 		}
