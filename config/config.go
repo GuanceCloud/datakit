@@ -42,6 +42,7 @@ var (
 	TelegrafDir = ""
 	DataDir     = ""
 	LuaDir      = ""
+	ConfdDir    = ""
 )
 
 type Config struct {
@@ -84,11 +85,14 @@ func init() {
 	TelegrafDir = filepath.Join(InstallDir, "embed")
 	DataDir = filepath.Join(InstallDir, "data")
 	LuaDir = filepath.Join(InstallDir, "lua")
-	for _, dir := range []string{TelegrafDir, DataDir, LuaDir} {
+	ConfdDir = filepath.Join(InstallDir, "conf.d")
+	for _, dir := range []string{TelegrafDir, DataDir, LuaDir, ConfdDir} {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			log.Fatalf("create %s failed: %s", dir, err)
 		}
 	}
+
+	initTelegrafSamples()
 }
 
 func newDefaultCfg() *Config {
@@ -113,6 +117,8 @@ func LoadCfg(ctx context.Context) error {
 	if err := Cfg.LoadMainConfig(); err != nil {
 		return err
 	}
+
+	createPluginCfgsIfNotExists()
 
 	if err := Cfg.LoadConfig(ctx); err != nil {
 		return err
@@ -244,8 +250,8 @@ func (c *Config) LoadMainConfig() error {
 	return nil
 }
 
-func CheckConfd(cfgdir string) error {
-	dir, err := ioutil.ReadDir(cfgdir)
+func CheckConfd() error {
+	dir, err := ioutil.ReadDir(ConfdDir)
 	if err != nil {
 		return err
 	}
@@ -308,7 +314,7 @@ func CheckConfd(cfgdir string) error {
 			continue
 		}
 
-		checkSubDir(filepath.Join(cfgdir, item.Name()))
+		checkSubDir(filepath.Join(ConfdDir, item.Name()))
 	}
 
 	log.Printf("inputs: %s", strings.Join(configed, ","))
@@ -498,9 +504,9 @@ func (c *Config) DumpInputsOutputs() {
 		names = append(names, p.Config.Name)
 	}
 
-	for idx, b := range MetricsEnablesFlags {
-		if b {
-			names = append(names, SupportsTelegrafMetraicNames[idx])
+	for k, i := range supportsTelegrafMetraicNames {
+		if i.enabled {
+			names = append(names, k)
 		}
 	}
 
@@ -527,101 +533,53 @@ func InitMainCfg(cfg *MainConfig, path string) error {
 	return nil
 }
 
-func CreateDataDir() error {
-	dataDir := filepath.Join(InstallDir, "data")
-	os.MkdirAll(dataDir, 0755)
-	os.MkdirAll(filepath.Join(dataDir, "lua"), 0755)
-	//datakit定义的插件的配置文件
-	return nil
-}
-
-func CreatePluginConfigs(cfgdir string, upgrade bool) error {
-
-	//datakit定义的插件的配置文件
-	for name, creator := range inputs.Inputs {
-
+func createPluginCfgsIfNotExists() {
+	// creata datakit input plugin's configures
+	for name, create := range inputs.Inputs {
 		if name == "self" {
 			continue
 		}
 
-		plugindir := ""
-		if name == "apachelog" {
-			plugindir = filepath.Join(cfgdir, "apache")
-		} else if name == "nginxlog" {
-			plugindir = filepath.Join(cfgdir, "nginx")
-		} else {
-			plugindir = filepath.Join(cfgdir, name)
-		}
-		cfgpath := filepath.Join(plugindir, fmt.Sprintf(`%s.conf`, name))
+		input := create()
+		catalog := input.Catalog()
+		cfgpath := filepath.Join(ConfdDir, catalog, name+".conf")
 
-		if upgrade {
-			//更新时，不动它
-			_, err := os.Stat(cfgpath)
-			if err == nil {
-				continue
+		if err := os.MkdirAll(filepath.Join(ConfdDir, catalog), os.ModePerm); err != nil {
+			log.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
+		}
+
+		if _, err := os.Stat(cfgpath); err != nil { // file not exists
+			sample := input.SampleConfig()
+			if sample == "" {
+				log.Fatalf("no sample available on collector %s", name)
 			}
-		}
-		if err := os.MkdirAll(plugindir, 0775); err != nil {
-			return fmt.Errorf("Error create %s, %s", plugindir, err)
-		}
-		input := creator()
-		if err := ioutil.WriteFile(cfgpath, []byte(input.SampleConfig()), 0666); err != nil {
-			return fmt.Errorf("Error create %s, %s", cfgpath, err)
-		}
-	}
 
-	//创建各个telegraf插件的配置文件
-	for _, name := range SupportsTelegrafMetraicNames {
-
-		plugindir := filepath.Join(cfgdir, name)
-		cfgpath := filepath.Join(plugindir, fmt.Sprintf(`%s.conf`, name))
-		if upgrade {
-			//更新时，不动它
-			_, err := os.Stat(cfgpath)
-			if err == nil {
-				continue
-			}
-		}
-
-		if err := os.MkdirAll(plugindir, 0775); err != nil {
-			return fmt.Errorf("Error create %s, %s", plugindir, err)
-		}
-		if samp, ok := telegrafCfgSamples[name]; ok {
-
-			if err := ioutil.WriteFile(cfgpath, []byte(samp), 0664); err != nil {
-				return fmt.Errorf("Error create %s, %s", cfgpath, err)
+			if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
+				log.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 			}
 		}
 	}
 
-	return nil
+	// create telegraf input plugin's configures
+	for name, input := range supportsTelegrafMetraicNames {
+
+		cfgpath := filepath.Join(ConfdDir, input.catalog, name+".conf")
+
+		if err := os.MkdirAll(filepath.Join(ConfdDir, input.catalog), os.ModePerm); err != nil {
+			log.Fatalf("create catalog dir %s failed: %s", input.catalog, err.Error())
+		}
+
+		if _, err := os.Stat(cfgpath); err != nil {
+			if sample, ok := telegrafCfgSamples[name]; ok {
+				if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
+					log.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
+				}
+			}
+		}
+	}
 }
 
 func parseConfig(contents []byte) (*ast.Table, error) {
-	// contents = trimBOM(contents)
-
-	// parameters := envVarRe.FindAllSubmatch(contents, -1)
-	// for _, parameter := range parameters {
-	// 	if len(parameter) != 3 {
-	// 		continue
-	// 	}
-
-	// 	var env_var []byte
-	// 	if parameter[1] != nil {
-	// 		env_var = parameter[1]
-	// 	} else if parameter[2] != nil {
-	// 		env_var = parameter[2]
-	// 	} else {
-	// 		continue
-	// 	}
-
-	// 	env_val, ok := os.LookupEnv(strings.TrimPrefix(string(env_var), "$"))
-	// 	if ok {
-	// 		env_val = escapeEnv(env_val)
-	// 		contents = bytes.Replace(contents, parameter[0], []byte(env_val), 1)
-	// 	}
-	// }
-
 	return toml.Parse(contents)
 }
 
