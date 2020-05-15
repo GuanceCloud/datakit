@@ -36,6 +36,10 @@ type runningInstance struct {
 	metricName string
 }
 
+func (_ *OracleMonitor) Catalog() string {
+	return "oracle"
+}
+
 func (_ *OracleMonitor) SampleConfig() string {
 	return configSample
 }
@@ -184,7 +188,7 @@ func (r *runningInstance) Query(sql string) ([]map[string]interface{}, error) {
 }
 
 func init() {
-	inputs.Add("oraclemonitor", func() telegraf.Input {
+	inputs.Add("oraclemonitor", func() inputs.Input {
 		ac := &OracleMonitor{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
