@@ -21,7 +21,7 @@ type Mongodboplog struct {
 }
 
 func init() {
-	inputs.Add(pluginName, func() telegraf.Input {
+	inputs.Add(pluginName, func() inputs.Input {
 		m := &Mongodboplog{}
 		m.ctx, m.cancel = context.WithCancel(context.Background())
 		return m
@@ -45,6 +45,10 @@ func (m *Mongodboplog) Start(acc telegraf.Accumulator) error {
 func (m *Mongodboplog) Stop() {
 	m.cancel()
 	m.wg.Wait()
+}
+
+func (_ *Mongodboplog) Catalog() string {
+	return "mongodb"
 }
 
 func (_ *Mongodboplog) SampleConfig() string {
