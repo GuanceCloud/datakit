@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
-	// "time"
+	"time"
 )
 
 func TestStart(t *testing.T) {
@@ -17,8 +17,8 @@ func TestStart(t *testing.T) {
 				Subscribe{
 					HostPath:    "/run/containerd/containerd.sock",
 					Namespace:   "moby",
-					IDList:      []string{"*"},
-					Cycle:       5,
+					IDList:      []string{"05da29442b461c6c97dca2838486a92a35ee6b1739240570b59c09504a300bb7"},
+					Cycle:       3,
 					Measurement: "measurement_111",
 				},
 			},
@@ -35,10 +35,8 @@ func TestStart(t *testing.T) {
 		if err := stream.processMetrics(); err != nil {
 			panic(err)
 		}
-
-		fmt.Println(stream.points)
-		stream.points = nil
+		go stream.start(e.wg)
 	}
 
-	// time.Sleep(10 * time.Second)
+	time.Sleep(10 * time.Second)
 }
