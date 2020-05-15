@@ -4,7 +4,8 @@ package containerd
 
 import (
 	"errors"
-	"fmt"
+	// "fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -44,8 +45,14 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 
 	if s.sub.Measurement == "" {
 		err := errors.New("invalid measurement")
-		// log.Printf("E! [Ccontainerd] subscribe %s:%d, error: %s\n", s.sub.EtcdHost, s.sub.EtcdPort, err.Error())
+		log.Printf("E! [Ccontainerd] subscribe namespace: %s, error: %s\n", s.sub.Namespace, err.Error())
 		return err
+	}
+
+	if s.isAll {
+		log.Printf("I! [Ccontainerd] subscribe namespace: %s, collect all id\n", s.sub.Namespace)
+	} else {
+		log.Printf("I! [Ccontainerd] subscribe namespace: %s, collect len %d id\n", s.sub.Namespace, len(s.ids))
 	}
 
 	ticker := time.NewTicker(time.Second * s.sub.Cycle)
@@ -55,7 +62,7 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 		select {
 		case <-ticker.C:
 			if err := s.exec(); err != nil {
-				// log.Printf("E! [Etcd] subscribe %s:%d, exec failed: %s\n", s.sub.EtcdHost, s.sub.EtcdPort, err.Error())
+				log.Printf("E! [Ccontainerd] subscribe namespace: %s, error: %s\n", s.sub.Namespace, err.Error())
 			}
 		default:
 			// nil
@@ -64,12 +71,17 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 }
 
 func (s *stream) exec() error {
-	return s.processMetrics()
+	err := s.processMetrics()
+	if err != nil {
+		s.points = nil
+		return err
+	}
+	return s.flush()
 }
 
 func (s *stream) flush() (err error) {
-	fmt.Printf("%v\n", s.points)
-	// err = s.cont.ProcessPts(s.points)
+	// fmt.Printf("%v\n", s.points)
+	err = s.cont.ProcessPts(s.points)
 	s.points = nil
 	return err
 }
