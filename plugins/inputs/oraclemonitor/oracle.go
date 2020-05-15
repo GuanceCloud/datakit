@@ -146,6 +146,7 @@ func (r *runningInstance) handleResponse(m string, response []map[string]interfa
 			for _, tagKey := range tagKeys {
 
 				tags[tagKey] = String(item[tagKey])
+				delete(item, tagKey)
 			}
 		}
 
