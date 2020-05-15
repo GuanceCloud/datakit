@@ -46,6 +46,10 @@ func (h *Httpstat) Description() string {
 	return description
 }
 
+func (h *Httpstat) Catalog() string {
+	return "network"
+}
+
 func (h *Httpstat) SampleConfig() string {
 	return sampleConfig
 }
@@ -188,5 +192,5 @@ func tracer(r *TraceTime) *httptrace.ClientTrace {
 }
 
 func init() {
-	inputs.Add("httpstat", func() telegraf.Input { return &Httpstat{} })
+	inputs.Add("httpstat", func() inputs.Input { return &Httpstat{} })
 }

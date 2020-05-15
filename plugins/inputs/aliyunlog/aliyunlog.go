@@ -53,6 +53,10 @@ type runningStore struct {
 	logger *models.Logger
 }
 
+func (_ *AliyunLog) Catalog() string {
+	return "aliyun"
+}
+
 func (_ *AliyunLog) SampleConfig() string {
 	return aliyunlogConfigSample
 }
@@ -213,7 +217,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 }
 
 func init() {
-	inputs.Add("aliyunlog", func() telegraf.Input {
+	inputs.Add("aliyunlog", func() inputs.Input {
 		ac := &AliyunLog{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
