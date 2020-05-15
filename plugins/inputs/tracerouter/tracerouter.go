@@ -21,6 +21,10 @@ func (t *TraceRouter) SampleConfig() string {
 	return sampleConfig
 }
 
+func (t *TraceRouter) Catalog() string {
+	return "network"
+}
+
 func (t *TraceRouter) Init() error {
 	return nil
 }
@@ -87,5 +91,5 @@ func (t *TraceRouter) exec(traceId string, acc telegraf.Accumulator) {
 }
 
 func init() {
-	inputs.Add("tracerouter", func() telegraf.Input { return &TraceRouter{} })
+	inputs.Add("tracerouter", func() inputs.Input { return &TraceRouter{} })
 }
