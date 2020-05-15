@@ -105,6 +105,7 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 		Interval: internal.Duration{
 			Duration: time.Second * 10,
 		},
+
 		RoundInterval:     true,
 		MetricBatchSize:   1000,
 		MetricBufferLimit: 100000,
@@ -123,6 +124,7 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 		Debug:                      false,
 		Quiet:                      false,
 		LogTarget:                  "file",
+		Logfile:                    filepath.Join(TelegrafDir, "agent.log"),
 		LogfileRotationMaxArchives: 5,
 		OmitHostname:               false,
 	}
@@ -294,7 +296,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 			FtGateway:   cfg.MainCfg.FtGateway,
 			DKUUID:      cfg.MainCfg.UUID,
 			DKVERSION:   git.Version,
-			DKUserAgent: UserAgent(),
+			DKUserAgent: userAgent,
 		}
 
 		tpl := template.New("")
