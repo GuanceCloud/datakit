@@ -77,6 +77,10 @@ func (r *priceReq) String() string {
 	return ``
 }
 
+func (_ *AliyunPriceAgent) Catalog() string {
+	return "aliyun"
+}
+
 func (_ *AliyunPriceAgent) SampleConfig() string {
 	return globalConfig + ecsSampleConfig + rdsSampleConfig + eipSampleConfig + slbSampleConfig
 }
@@ -415,7 +419,7 @@ func NewAgent() *AliyunPriceAgent {
 }
 
 func init() {
-	inputs.Add(inputName, func() telegraf.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		ac := NewAgent()
 		return ac
 	})
