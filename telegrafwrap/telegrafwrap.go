@@ -144,8 +144,8 @@ func (s *TelegrafSvr) startAgent(ctx context.Context) error {
 }
 
 func (s *TelegrafSvr) agentConfPath(quote bool) string {
-	os.MkdirAll(filepath.Join(config.ExecutableDir, agentSubDir), 0775)
-	path := filepath.Join(config.ExecutableDir, agentSubDir, "agent.conf")
+	os.MkdirAll(filepath.Join(config.InstallDir, agentSubDir), 0775)
+	path := filepath.Join(config.InstallDir, agentSubDir, "agent.conf")
 
 	if quote {
 		return fmt.Sprintf(`"%s"`, path)
@@ -154,7 +154,7 @@ func (s *TelegrafSvr) agentConfPath(quote bool) string {
 }
 
 func agentPath() string {
-	fpath := filepath.Join(config.ExecutableDir, agentSubDir, runtime.GOOS+"-"+runtime.GOARCH, "agent")
+	fpath := filepath.Join(config.InstallDir, agentSubDir, runtime.GOOS+"-"+runtime.GOARCH, "agent")
 	if runtime.GOOS == "windows" {
 		fpath = fpath + ".exe"
 	}
