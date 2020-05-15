@@ -49,7 +49,7 @@ func (s *ClientStat) ToMetric() telegraf.Metric {
 	measurement := "datakit"
 
 	tags := map[string]string{
-		"uuid":    config.DKConfig.MainCfg.UUID,
+		"uuid":    config.Cfg.MainCfg.UUID,
 		"vserion": git.Version,
 		"os":      s.OS,
 		"arch":    s.Arch,
