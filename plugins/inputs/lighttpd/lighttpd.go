@@ -21,7 +21,7 @@ type Lighttpd struct {
 }
 
 func init() {
-	inputs.Add(pluginName, func() telegraf.Input {
+	inputs.Add(pluginName, func() inputs.Input {
 		lt := &Lighttpd{}
 		lt.ctx, lt.cancel = context.WithCancel(context.Background())
 		return lt
@@ -49,6 +49,10 @@ func (lt *Lighttpd) Stop() {
 
 func (_ *Lighttpd) SampleConfig() string {
 	return lighttpdConfigSample
+}
+
+func (_ *Lighttpd) Catalog() string {
+	return "lighttpd"
 }
 
 func (_ *Lighttpd) Description() string {
