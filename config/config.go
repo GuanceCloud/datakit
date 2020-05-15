@@ -15,7 +15,6 @@ import (
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/serializers"
-
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
@@ -28,105 +27,21 @@ import (
 )
 
 var (
+	userAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
+
 	ServiceName = "datakit"
 
-	MainCfgPath   string
-	ExecutableDir string
-
+	MainCfgPath  string
 	ConvertedCfg []string
-
 	AgentLogFile string
 
-	DKConfig *Config
-
 	MaxLifeCheckInterval time.Duration
-)
 
-const (
-	mainConfigTemplate = `uuid='{{.UUID}}'
-ftdataway='{{.FtGateway}}'
-log='{{.Log}}'
-log_level='{{.LogLevel}}'
-config_dir='{{.ConfigDir}}'
-
-## Override default hostname, if empty use os.Hostname()
-hostname = ""
-## If set to true, do no set the "host" tag.
-omit_hostname = false
-
-# ##tell dataway the interval to check datakit alive
-#max_post_interval = '1m'
-
-## Global tags can be specified here in key="value" format.
-#[global_tags]
-# name = 'admin'
-
-# Configuration for agent
-#[agent]
-#  ## Default data collection interval for all inputs
-#  interval = "10s"
-#  ## Rounds collection interval to 'interval'
-#  ## ie, if interval="10s" then always collect on :00, :10, :20, etc.
-#  round_interval = true
-
-#  ## Telegraf will send metrics to outputs in batches of at most
-#  ## metric_batch_size metrics.
-#  ## This controls the size of writes that Telegraf sends to output plugins.
-#  metric_batch_size = 1000
-
-#  ## Maximum number of unwritten metrics per output.
-#  metric_buffer_limit = 100000
-
-#  ## Collection jitter is used to jitter the collection by a random amount.
-#  ## Each plugin will sleep for a random time within jitter before collecting.
-#  ## This can be used to avoid many plugins querying things like sysfs at the
-#  ## same time, which can have a measurable effect on the system.
-#  collection_jitter = "0s"
-
-#  ## Default flushing interval for all outputs. Maximum flush_interval will be
-#  ## flush_interval + flush_jitter
-#  flush_interval = "10s"
-#  ## Jitter the flush interval by a random amount. This is primarily to avoid
-#  ## large write spikes for users running a large number of telegraf instances.
-#  ## ie, a jitter of 5s and interval 10s means flushes will happen every 10-15s
-#  flush_jitter = "0s"
-
-#  ## By default or when set to "0s", precision will be set to the same
-#  ## timestamp order as the collection interval, with the maximum being 1s.
-#  ##   ie, when interval = "10s", precision will be "1s"
-#  ##       when interval = "250ms", precision will be "1ms"
-#  ## Precision will NOT be used for service inputs. It is up to each individual
-#  ## service input to set the timestamp at the appropriate precision.
-#  ## Valid time units are "ns", "us" (or "µs"), "ms", "s".
-#  precision = "ns"
-
-#  ## Log at debug level.
-#  debug = true
-#  ## Log only error level messages.
-#  # quiet = false
-
-#  ## Log file name, the empty string means to log to stderr.
-#  logfile = "/var/log/telegraf/telegraf.log"
-
-#  ## The logfile will be rotated after the time interval specified.  When set
-#  ## to 0 no time based rotation is performed.  Logs are rotated only when
-#  ## written to, if there is no log activity rotation may be delayed.
-#  # logfile_rotation_interval = "0d"
-
-#  ## The logfile will be rotated when it becomes larger than the specified
-#  ## size.  When set to 0 no size based rotation is performed.
-#  # logfile_rotation_max_size = "0MB"
-
-#  ## Maximum number of rotated archives to keep, any older logs are deleted.
-#  ## If set to -1, no archives are removed.
-#  # logfile_rotation_max_archives = 5
-
-#  ## Override default hostname, if empty use os.Hostname()
-#  hostname = ""
-#  ## If set to true, do no set the "host" tag in the telegraf agent.
-#  omit_hostname = false
-
-`
+	Cfg         = newDefaultCfg()
+	InstallDir  = ""
+	TelegrafDir = ""
+	DataDir     = ""
+	LuaDir      = ""
 )
 
 type Config struct {
@@ -141,24 +56,76 @@ type Config struct {
 	datacleanBind   string
 }
 
-func NewConfig() *Config {
-	c := &Config{
+func init() {
+	osarch := runtime.GOOS + "/" + runtime.GOARCH
+
+	switch osarch {
+	case "windows/amd64":
+		InstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
+
+	case "windows/386":
+		InstallDir = `C:\Program Files\DataFlux\` + ServiceName
+
+	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
+		"darwin/amd64", "darwin/386",
+		"freebsd/amd64", "freebsd/386":
+		InstallDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
+	default:
+		log.Fatal("[fatal] invalid os/arch: %s", osarch)
+	}
+
+	if err := os.MkdirAll(filepath.Join(InstallDir, "embed"), os.ModePerm); err != nil {
+		log.Fatalf("[error] mkdir embed  failed: %s", err)
+	}
+
+	MainCfgPath = filepath.Join(InstallDir, "datakit.conf")
+	AgentLogFile = filepath.Join(InstallDir, "embed", "agent.log")
+
+	TelegrafDir = filepath.Join(InstallDir, "embed")
+	DataDir = filepath.Join(InstallDir, "data")
+	LuaDir = filepath.Join(InstallDir, "lua")
+	for _, dir := range []string{TelegrafDir, DataDir, LuaDir} {
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			log.Fatalf("create %s failed: %s", dir, err)
+		}
+	}
+}
+
+func newDefaultCfg() *Config {
+
+	return &Config{
 		TelegrafAgentCfg: defaultTelegrafAgentCfg(),
 		MainCfg: &MainConfig{
 			GlobalTags:    map[string]string{},
 			FlushInterval: internal.Duration{Duration: 10 * time.Second},
 			Interval:      internal.Duration{Duration: 10 * time.Second},
-			LogLevel:      "info",
+
+			LogLevel: "info",
+			Log:      filepath.Join(InstallDir, "datakit.log"),
+
 			RoundInterval: false,
 		},
-		Inputs: make([]*models.RunningInput, 0),
-		//Outputs: make([]*models.RunningOutput, 0),
+		Inputs: []*models.RunningInput{},
 	}
-	return c
+}
+
+func LoadCfg(ctx context.Context) error {
+	if err := Cfg.LoadMainConfig(); err != nil {
+		return err
+	}
+
+	if err := Cfg.LoadConfig(ctx); err != nil {
+		return err
+	}
+
+	Cfg.DumpInputsOutputs()
+
+	return nil
 }
 
 type MainConfig struct {
-	UUID      string `toml:"uuid"`
+	UUID string `toml:"uuid"`
+
 	FtGateway string `toml:"ftdataway"`
 
 	Log      string `toml:"log"`
@@ -195,86 +162,83 @@ type DatacleanConfig interface {
 	Bindaddr() string
 }
 
-func UserAgent() string {
-	return fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
-}
-
-func (c *Config) LoadMainConfig(ctx context.Context, maincfg string) error {
-	data, err := ioutil.ReadFile(maincfg)
+func (c *Config) LoadMainConfig() error {
+	data, err := ioutil.ReadFile(MainCfgPath)
 	if err != nil {
 		return fmt.Errorf("main config error, %s", err.Error())
 	}
 
-	if tbl, err := parseConfig(data); err != nil {
+	tbl, err := parseConfig(data)
+	if err != nil {
 		return err
-	} else {
+	}
 
-		//telegraf的相应配置
-		bAgentSetLogLevel := false
-		bAgentSetOmitHost := false
-		bAgentSetHostname := false
-		if val, ok := tbl.Fields["agent"]; ok {
-			subTable, ok := val.(*ast.Table)
-			if !ok {
-				return fmt.Errorf("invalid agent configuration")
+	//telegraf的相应配置
+	bAgentSetLogLevel := false
+	bAgentSetOmitHost := false
+	bAgentSetHostname := false
+
+	if val, ok := tbl.Fields["agent"]; ok {
+		subTable, ok := val.(*ast.Table)
+		if !ok {
+			return fmt.Errorf("invalid agent configuration")
+		}
+
+		if _, ok := subTable.Fields["debug"]; ok {
+			bAgentSetLogLevel = true
+		}
+
+		if _, ok := subTable.Fields["omit_hostname"]; ok {
+			bAgentSetOmitHost = true
+		}
+
+		if _, ok := subTable.Fields["hostname"]; ok {
+			bAgentSetHostname = true
+		}
+
+		if err = toml.UnmarshalTable(subTable, c.TelegrafAgentCfg); err != nil {
+			return fmt.Errorf("invalid agent configuration, %s", err)
+		}
+
+		delete(tbl.Fields, "agent")
+	}
+
+	if err := toml.UnmarshalTable(tbl, c.MainCfg); err != nil {
+		return err
+	}
+
+	if !c.MainCfg.OmitHostname {
+		if c.MainCfg.Hostname == "" {
+			hostname, err := os.Hostname()
+			if err != nil {
+				return err
 			}
 
-			if _, ok := subTable.Fields["debug"]; ok {
-				bAgentSetLogLevel = true
-			}
-
-			if _, ok := subTable.Fields["omit_hostname"]; ok {
-				bAgentSetOmitHost = true
-			}
-
-			if _, ok := subTable.Fields["hostname"]; ok {
-				bAgentSetHostname = true
-			}
-
-			if err = toml.UnmarshalTable(subTable, c.TelegrafAgentCfg); err != nil {
-				return fmt.Errorf("invalid agent configuration, %s", err)
-			}
-
-			delete(tbl.Fields, "agent")
+			c.MainCfg.Hostname = hostname
 		}
 
-		if err := toml.UnmarshalTable(tbl, c.MainCfg); err != nil {
-			return err
-		}
+		c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
+	}
 
-		if !c.MainCfg.OmitHostname {
-			if c.MainCfg.Hostname == "" {
-				hostname, err := os.Hostname()
-				if err != nil {
-					return err
-				}
+	if c.TelegrafAgentCfg.LogTarget == "file" && c.TelegrafAgentCfg.Logfile == "" {
+		c.TelegrafAgentCfg.Logfile = filepath.Join(InstallDir, "embed", "agent.log")
+	}
 
-				c.MainCfg.Hostname = hostname
-			}
+	if AgentLogFile != "" {
+		c.TelegrafAgentCfg.Logfile = AgentLogFile
+	}
 
-			c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
-		}
+	//如果telegraf的agent相关配置没有，则默认使用datakit的同名配置
+	if !bAgentSetLogLevel {
+		c.TelegrafAgentCfg.Debug = (strings.ToLower(c.MainCfg.LogLevel) == "debug")
+	}
 
-		if c.TelegrafAgentCfg.LogTarget == "file" && c.TelegrafAgentCfg.Logfile == "" {
-			c.TelegrafAgentCfg.Logfile = filepath.Join(ExecutableDir, "embed", "agent.log")
-		}
+	if !bAgentSetOmitHost {
+		c.TelegrafAgentCfg.OmitHostname = c.MainCfg.OmitHostname
+	}
 
-		if AgentLogFile != "" {
-			c.TelegrafAgentCfg.Logfile = AgentLogFile
-		}
-
-		//如果telegraf的agent相关配置没有，则默认使用datakit的同名配置
-		if !bAgentSetLogLevel {
-			c.TelegrafAgentCfg.Debug = (strings.ToLower(c.MainCfg.LogLevel) == "debug")
-		}
-
-		if !bAgentSetOmitHost {
-			c.TelegrafAgentCfg.OmitHostname = c.MainCfg.OmitHostname
-		}
-
-		if !bAgentSetHostname {
-			c.TelegrafAgentCfg.Hostname = c.MainCfg.Hostname
-		}
+	if !bAgentSetHostname {
+		c.TelegrafAgentCfg.Hostname = c.MainCfg.Hostname
 	}
 
 	return nil
@@ -478,22 +442,11 @@ func (c *Config) LoadOutputs() ([]*models.RunningOutput, error) {
 		httpOutput.Headers[`X-Datakit-UUID`] = c.MainCfg.UUID
 		httpOutput.Headers[`X-Version`] = git.Version
 		httpOutput.Headers[`X-TraceId`] = `self_` + c.MainCfg.UUID
-		httpOutput.Headers[`User-Agent`] = UserAgent()
+		httpOutput.Headers[`User-Agent`] = userAgent
 		if MaxLifeCheckInterval > 0 {
 			httpOutput.Headers[`X-Max-POST-Interval`] = internal.IntervalString(MaxLifeCheckInterval)
 		}
 		httpOutput.ContentEncoding = "gzip"
-		// datawayUrl := ""
-		// u, err := url.Parse(c.MainCfg.FtGateway)
-		// if err == nil {
-		// 	u.Scheme = "http"
-		// 	u.Host = c.datacleanBind
-		// 	u.Path = `/v1/write/metrics`
-		// 	datawayUrl = u.String()
-		// } else {
-		// 	datawayUrl = fmt.Sprintf(`http://%s/v1/write/metrics?template=%s`, c.datacleanBind, c.MainCfg.DataCleanTemplate)
-		// }
-		// datawayUrl += fmt.Sprintf("?template=%s", c.MainCfg.DataCleanTemplate)
 		httpOutput.URL = fmt.Sprintf(`http://%s/v1/write/metrics?template=%s`, c.datacleanBind, c.MainCfg.DataCleanTemplate)
 		log.Printf("D! self dataway url: %s", httpOutput.URL)
 		if ro, err := c.newRunningOutputDirectly("dataclean", httpOutput); err != nil {
@@ -521,7 +474,7 @@ func (c *Config) LoadOutputs() ([]*models.RunningOutput, error) {
 			httpOutput.Headers[`X-Datakit-UUID`] = c.MainCfg.UUID
 			httpOutput.Headers[`X-Version`] = git.Version
 			httpOutput.Headers[`X-Version`] = git.Version
-			httpOutput.Headers[`User-Agent`] = UserAgent()
+			httpOutput.Headers[`User-Agent`] = userAgent
 			if MaxLifeCheckInterval > 0 {
 				httpOutput.Headers[`X-Max-POST-Interval`] = internal.IntervalString(MaxLifeCheckInterval)
 			}
@@ -552,13 +505,6 @@ func (c *Config) DumpInputsOutputs() {
 	}
 
 	log.Printf("avariable inputs: %s", strings.Join(names, ","))
-
-	// names = names[:0]
-	// for _, p := range c.Outputs {
-	// 	names = append(names, p.Config.Name)
-	// }
-
-	// log.Printf("avariable outputs: %s", strings.Join(names, ","))
 }
 
 func InitMainCfg(cfg *MainConfig, path string) error {
@@ -582,18 +528,10 @@ func InitMainCfg(cfg *MainConfig, path string) error {
 }
 
 func CreateDataDir() error {
-	dataDir := filepath.Join(ExecutableDir, "data")
+	dataDir := filepath.Join(InstallDir, "data")
 	os.MkdirAll(dataDir, 0755)
 	os.MkdirAll(filepath.Join(dataDir, "lua"), 0755)
 	//datakit定义的插件的配置文件
-	for name, _ := range inputs.Inputs {
-		if name == "zabbix" {
-			pluginDataDir := filepath.Join(dataDir, "zabbix")
-			if err := os.MkdirAll(pluginDataDir, 0775); err != nil {
-				return fmt.Errorf("Error create %s, %s", pluginDataDir, err)
-			}
-		}
-	}
 	return nil
 }
 
