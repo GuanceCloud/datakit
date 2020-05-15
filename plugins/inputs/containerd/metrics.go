@@ -73,18 +73,14 @@ func (s *stream) processMetrics() error {
 	return nil
 }
 
-func parseMetrics(mensurement, namespaces, id string, mt *v1.Metrics) (*influxdb.Point, error) {
+func parseMetrics(mensurement, namespace, id string, mt *v1.Metrics) (*influxdb.Point, error) {
 	var fields = make(map[string]interface{})
 
 	rematch(mt, "", fields)
-	// rematch(mt.Pids, "", fields)
-	// rematch(mt.CPU, "", fields)
-	// rematch(mt.Memory, "", fields)
-	// rematch(mt.Blkio, "", fields)
 
 	return influxdb.NewPoint(
 		mensurement,
-		map[string]string{"namespaces": namespaces, "id": id},
+		map[string]string{"namespace": namespace, "id": id},
 		fields,
 		time.Now(),
 	)
@@ -103,7 +99,7 @@ func rematch(data interface{}, succkey string, m map[string]interface{}) {
 
 		key := t.Field(i).Name
 
-		// example:
+		// filter 'XXX_', example:
 		//   type PidsStat struct {
 		//       Current              uint64
 		//       Limit                uint64
