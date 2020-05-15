@@ -69,6 +69,10 @@ type (
 	}
 )
 
+func (_ *AliyunCostAgent) Catalog() string {
+	return "aliyun"
+}
+
 func (_ *AliyunCostAgent) SampleConfig() string {
 	return aliyuncostConfigSample
 }
@@ -293,7 +297,7 @@ func (r *runningInstance) QueryOrdersWrap(ctx context.Context, request *bssopena
 }
 
 func init() {
-	inputs.Add("aliyuncost", func() telegraf.Input {
+	inputs.Add("aliyuncost", func() inputs.Input {
 		ac := &AliyunCostAgent{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
