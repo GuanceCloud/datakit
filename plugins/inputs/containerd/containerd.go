@@ -58,7 +58,7 @@ func (_ *Containerd) SampleConfig() string {
 }
 
 func (_ *Containerd) Description() string {
-	return "Convert Containerd collection data to Dataway"
+	return "Convert Containerd collection metrics to Dataway"
 }
 
 func (_ *Containerd) Gather(telegraf.Accumulator) error {
