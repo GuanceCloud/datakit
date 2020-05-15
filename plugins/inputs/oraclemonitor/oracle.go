@@ -121,7 +121,6 @@ func (r *runningInstance) run(ctx context.Context) error {
 
 func (r *runningInstance) command() {
 	for key, item := range metricMap {
-		fmt.Println("key ===========>", key)
 		resMap, err := r.Query(item)
 		if err != nil {
 			r.logger.Errorf("oracle connect faild %v", err)
