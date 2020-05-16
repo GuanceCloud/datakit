@@ -2,10 +2,12 @@ package aliyunlog
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
 	"testing"
+	"time"
 
 	"github.com/influxdata/toml"
 
@@ -17,14 +19,17 @@ func TestConfig(t *testing.T) {
 	var cfg AliyunLog
 	cfg.Consumer = []*ConsumerInstance{
 		&ConsumerInstance{
-			Endpoint:  "1cn-hangzhou.log.aliyuncs.com",
-			AccessKey: "xxx",
-			AccessID:  "xxx",
+			Endpoint:        "1cn-hangzhou.log.aliyuncs.com",
+			AccessKeyID:     "xxx",
+			AccessKeySecret: "xxx",
 			Projects: []*LogProject{
 				&LogProject{
 					Name: "project1",
 					Stores: []*LogStoreCfg{
 						&LogStoreCfg{
+							MetricName:        "aliyunala_slb",
+							Tags:              []string{"aa"},
+							Fields:            []string{"int:dd,ee", "float:ff,gg"},
 							Name:              "store1",
 							ConsumerGroupName: "cgroup",
 							ConsumerName:      "cname",
@@ -39,6 +44,25 @@ func TestConfig(t *testing.T) {
 		t.Errorf("%s", err)
 	} else {
 		log.Printf("%s", string(data))
+	}
+}
+
+func TestLoadConfig(t *testing.T) {
+	var cfg AliyunLog
+
+	var data []byte
+
+	var err error
+	data, err = ioutil.ReadFile("test.conf")
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+
+	err = toml.Unmarshal(data, &cfg)
+	if err != nil {
+		t.Errorf("%s", err)
+	} else {
+		log.Printf("ok")
 	}
 }
 
@@ -74,8 +98,8 @@ func TestConsumer(t *testing.T) {
 
 	option := consumerLibrary.LogHubConfig{
 		Endpoint:          "1cn-hangzhou.log.aliyuncs.com",
-		AccessKeyID:       "LTAI4FkR2SokHHESouUMrkxV",
-		AccessKeySecret:   "ht4jybX3IrhQAUgHrUOTJRrkP8dONJ",
+		AccessKeyID:       "",
+		AccessKeySecret:   "",
 		Project:           "wqc-demo1",
 		Logstore:          "test",
 		ConsumerGroupName: "grp-1",
@@ -96,5 +120,19 @@ func TestConsumer(t *testing.T) {
 }
 
 func TestService(t *testing.T) {
+	ag := NewAgent()
 
+	data, err := ioutil.ReadFile("./test.conf")
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	err = toml.Unmarshal(data, ag)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	ag.Start(nil)
+
+	time.Sleep(time.Hour)
 }
