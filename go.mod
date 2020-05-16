@@ -8,6 +8,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
 	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
+	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.4
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
@@ -15,8 +16,7 @@ require (
 	github.com/aws/aws-sdk-go v1.27.0
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
-	github.com/containerd/cgroups v0.0.0-20190919134610-bf292b21730f
-	github.com/containerd/containerd v1.3.1-0.20200509005653-83084c932880
+	github.com/containerd/containerd v1.3.2
 	github.com/containerd/continuity v0.0.0-20200413184840-d3ef23f19fbb // indirect
 	github.com/containerd/fifo v0.0.0-20200410184934-f15a3290365b // indirect
 	github.com/containerd/ttrpc v1.0.1 // indirect
@@ -35,11 +35,11 @@ require (
 	github.com/golang/snappy v0.0.1
 	github.com/google/gopacket v1.1.17
 	github.com/google/uuid v1.1.1
+	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/jackc/pgx v3.6.0+incompatible
-	github.com/jmoiron/sqlx v1.2.0
 	github.com/kardianos/service v1.0.0
 	github.com/lib/pq v1.3.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -49,12 +49,10 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/selinux v1.5.1 // indirect
-	github.com/pelletier/go-toml v1.4.0
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
 	github.com/pkg/sftp v1.11.0
-	github.com/prometheus/client_golang v1.3.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.9.1
 	github.com/prometheus/node_exporter v0.18.1 // indirect
@@ -80,4 +78,5 @@ require (
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	golang.org/x/tools/gopls v0.4.1 // indirect
 	gopkg.in/yaml.v2 v2.2.8
+	gotest.tools/v3 v3.0.2 // indirect
 )
