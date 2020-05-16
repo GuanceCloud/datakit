@@ -2,21 +2,34 @@ package aliyunlog
 
 const (
 	aliyunlogConfigSample = `
-#[[consumer]]
-#  endpoint = 'cn-hangzhou.log.aliyuncs.com'
-#  access_key = ''
-#  access_id = ''
+[[consumer]]
+# ##(required)
+endpoint = ''
+access_key_id = ''
+access_key_secret = ''
 	
-#  [[consumer.projects]]
-#    name = 'project-name'
+[[consumer.projects]]
+# ##(required) 项目名称 
+name = ''
 	
-#	 [[consumer.projects.stores]]
-#	   name = 'store-name'
-
-#      ##if empty, use 'aliyunlog_+store-name' 
-#      metric_name = ''
-#	   consumer_group_name = 'consumer-group'
-#	   consumer_name = 'consumer-name'
+[[consumer.projects.stores]]
+# ##(required) 日志库名称
+name = ''
+	
+# ##(optional) 指标集名称, 默认使用 'aliyunlog_+store-name' 
+#metric_name = ''
+	
+# ##(required) 指定当前日志库的消费组名称以及消费数据客户端名称
+#consumer_group_name = ''
+#consumer_name = ''
+	
+# # ##(optional) 指定哪些key作为tag, 默认都为field
+# # ##例: tags=["status_code","protocol"]
+#tags = []
+	
+# # ##(optional) 指定fields的类型, 默认为string, 可指定为int或float
+# # ##例: fields = ["int:status,request_length", "float:cpuUsage"]
+#fields = []	
 `
 )
 
