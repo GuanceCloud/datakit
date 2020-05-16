@@ -29,14 +29,16 @@ type (
 	LogStoreCfg struct {
 		MetricName        string
 		Name              string
+		Tags              []string `toml:"tags,omitempty"`   //指定哪些作为tag(默认所有都作为field)
+		Fields            []string `toml:"fields,omitempty"` //指定某些field的数据类型(默认都为字符串)
 		ConsumerGroupName string
 		ConsumerName      string
 	}
 
 	ConsumerInstance struct {
-		Endpoint  string
-		AccessKey string
-		AccessID  string
-		Projects  []*LogProject
+		Endpoint        string
+		AccessKeyID     string
+		AccessKeySecret string
+		Projects        []*LogProject
 	}
 )
