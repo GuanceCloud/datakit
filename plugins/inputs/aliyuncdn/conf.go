@@ -10,27 +10,24 @@ const (
 #  region = "cn-hangzhou"
 #  ## 采集的频度，分钟值
 #  interval = "5m"
-#  domains = [""]
+#  domains = []
 
 #  [cdn.summary]
 #     ## metric name
 #     metricName = "aliyun_cdn_summary"
 
 #  [cdn.metric]
-#     ## metric name
-#     actions = ["DescribeDomainBpsData"]
+#     ## 该参数为阿里云api action, 支持以下action
+#     ## describeDomainBpsData,describeDomainTrafficData,describeDomainHitRateData,describeDomainReqHitRateData,describeDomainSrcBpsData,describeDomainSrcTrafficData,describeDomainUvData,describeDomainPvData,
+#     ## describeDomainTopClientIpVisit, describeDomainISPData, describeDomainTopUrlVisit, describeDomainSrcTopUrlVisit, describeTopDomainsByFlow, describeDomainTopReferVisit
+#     actions = ["describeDomainBpsData"]
 #     metricName = "aliyun_cdn_metrics"
-#     在describeDomainBpsData action下可以配置该参数，根据业务场景选择
+#     ## 在describeDomainBpsData、describeDomainTrafficData action下可以配置该参数，根据业务场景选择(非必须参数)
 #     ispNameEn = ""
-#     在describeDomainBpsData action下可以配置该参数，根据业务场景选择
+#     ## 在describeDomainBpsData、describeDomainTrafficData、describeDomainTopClientIpVisit action下可以配置该参数，根据业务场景选择(非必须参数)
 #     locationNameEn = ""
+#     ## 在describeDomainTopClientIpVisit action下可以配置该参数，根据业务场景选择(非必须参数)
 #     sortBy = ""
-#     layer = ""
-#     merge = ""
-#     field = ""
-#     domainType=""
-#     ispNames= ""
-#     percent=""
 `
 )
 
@@ -39,13 +36,6 @@ type Metric struct {
 	MetricName     string   `toml:"metricName"`
 	IspNameEn      string   `toml:"ispNameEn"`
 	LocationNameEn string   `toml:"locationNameEn"`
-	Layer          string   `toml:"layer"`
-	Merge          string   `toml:"merge"`
-	Field          string   `toml:"field"`
-	DomainType     string   `toml:"domainType"`
-	IspNames       string   `toml:"ispNames"`
-	LocationNames  string   `toml:"locationNames"`
-	Percent        string   `toml:"percent"`
 	SortBy         string   `toml:"sortBy"`
 }
 
