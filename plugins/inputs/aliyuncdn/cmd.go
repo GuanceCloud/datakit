@@ -90,14 +90,11 @@ func (run *RunningProject) describeDomainTrafficData(domain string) {
 
 	trafficParams.IspNameEn = run.cfg.IspNameEn
 	trafficParams.LocationNameEn = run.cfg.LocationNameEn
-	fmt.Println("trafficParams=======>", trafficParams)
 
 	trafficRes, err := run.client.DescribeDomainTrafficData(trafficParams)
 	if err != nil {
 		run.logger.Errorf("[cdn] action DescribeDomainTrafficData failed, %s", err.Error())
 	}
-
-	fmt.Println("trafficRes=======>", trafficRes)
 
 	// 指标收集
 	for _, point := range trafficRes.TrafficDataPerInterval.DataModule {
@@ -118,9 +115,6 @@ func (run *RunningProject) describeDomainTrafficData(domain string) {
 		fields["httpsDomesticValue"] = ConvertToFloat(point.HttpsDomesticValue) // L1节点https中国内地流量
 		fields["httpsOverseasValue"] = ConvertToFloat(point.HttpsOverseasValue) // L1节点https全球（不包含中国内地）流量
 
-		fmt.Println("metricName=======>", run.metricName)
-		fmt.Println("fields=======>", fields)
-		fmt.Println("tags=======>", tags)
 		run.accumulator.AddFields(run.metricName, fields, tags, tm)
 	}
 }
@@ -377,6 +371,7 @@ func (run *RunningProject) describeDomainTopClientIpVisit(domain string) {
 	if err != nil {
 		run.logger.Warnf("action:DescribeDomainTopClientIpVisit, error: %s", err.Error())
 	}
+
 	for _, point := range clientIpVisitRes.ClientIpList {
 		tags := map[string]string{}
 		fields := map[string]interface{}{}
@@ -385,7 +380,7 @@ func (run *RunningProject) describeDomainTopClientIpVisit(domain string) {
 		tags["action"] = "describeDomainTopClientIpVisit"
 		tags["locationNameEn"] = run.cfg.LocationNameEn
 
-		fields["ClientIp"] = point.ClientIp
+		fields["clientIp"] = point.ClientIp
 		fields["rank"] = point.Rank
 		fields["traffic"] = point.Traffic
 		fields["acc"] = point.Acc
@@ -421,15 +416,15 @@ func (run *RunningProject) describeDomainISPData(domain string) {
 		tags["domain"] = domain
 		tags["action"] = "describeDomainISPData"
 
-		fields["Proportion"] = ConvertToFloat(point.Proportion)
-		fields["AvgObjectSize"] = ConvertToFloat(point.AvgObjectSize)
-		fields["AvgResponseTime"] = ConvertToFloat(point.AvgResponseTime)
-		fields["Bps"] = ConvertToFloat(point.Bps)
-		fields["Qps"] = ConvertToFloat(point.Qps)
-		fields["AvgResponseRate"] = ConvertToFloat(point.AvgResponseRate)
-		fields["TotalBytes"] = ConvertToFloat(point.TotalBytes)
-		fields["BytesProportion"] = ConvertToFloat(point.BytesProportion)
-		fields["TotalQuery"] = ConvertToFloat(point.TotalQuery)
+		fields["proportion"] = ConvertToFloat(point.Proportion)
+		fields["avgObjectSize"] = ConvertToFloat(point.AvgObjectSize)
+		fields["avgResponseTime"] = ConvertToFloat(point.AvgResponseTime)
+		fields["bps"] = ConvertToFloat(point.Bps)
+		fields["qps"] = ConvertToFloat(point.Qps)
+		fields["avgResponseRate"] = ConvertToFloat(point.AvgResponseRate)
+		fields["totalBytes"] = ConvertToFloat(point.TotalBytes)
+		fields["bytesProportion"] = ConvertToFloat(point.BytesProportion)
+		fields["totalQuery"] = ConvertToFloat(point.TotalQuery)
 
 		run.accumulator.AddFields(run.metricName, fields, tags)
 	}
@@ -462,12 +457,85 @@ func (run *RunningProject) describeDomainTopUrlVisit(domain string) {
 		tags["product"] = "cdn"
 		tags["domain"] = domain
 		tags["action"] = "describeDomainTopUrlVisit"
+		tags["code"] = "all"
 
-		fields["Flow"] = ConvertToFloat(point.Flow)
-		fields["VisitProportion"] = point.VisitProportion
-		fields["VisitData"] = ConvertToFloat(point.VisitData)
-		fields["UrlDetail"] = ConvertToFloat(point.UrlDetail)
-		fields["FlowProportion"] = point.FlowProportion
+		fields["flow"] = ConvertToFloat(point.Flow)
+		fields["visitProportion"] = point.VisitProportion
+		fields["visitData"] = ConvertToFloat(point.VisitData)
+		fields["urlDetail"] = ConvertToFloat(point.UrlDetail)
+		fields["flowProportion"] = point.FlowProportion
+
+		run.accumulator.AddFields(run.metricName, fields, tags)
+	}
+
+	for _, point := range response.Url200List.UrlList {
+		tags := map[string]string{}
+		fields := map[string]interface{}{}
+
+		tags["product"] = "cdn"
+		tags["domain"] = domain
+		tags["action"] = "describeDomainSrcTopUrlVisit"
+		tags["code"] = "200"
+
+		fields["visitData"] = ConvertToFloat(point.VisitData)
+		fields["urlDetail"] = point.UrlDetail
+		fields["visitProportion"] = point.VisitProportion
+		fields["flow"] = ConvertToFloat(point.Flow)
+		fields["flowProportion"] = point.FlowProportion
+
+		run.accumulator.AddFields(run.metricName, fields, tags)
+	}
+
+	for _, point := range response.Url300List.UrlList {
+		tags := map[string]string{}
+		fields := map[string]interface{}{}
+
+		tags["product"] = "cdn"
+		tags["domain"] = domain
+		tags["action"] = "describeDomainSrcTopUrlVisit"
+		tags["code"] = "300"
+
+		fields["visitData"] = ConvertToFloat(point.VisitData)
+		fields["urlDetail"] = point.UrlDetail
+		fields["visitProportion"] = point.VisitProportion
+		fields["flow"] = ConvertToFloat(point.Flow)
+		fields["flowProportion"] = point.FlowProportion
+
+		run.accumulator.AddFields(run.metricName, fields, tags)
+	}
+
+	for _, point := range response.Url400List.UrlList {
+		tags := map[string]string{}
+		fields := map[string]interface{}{}
+
+		tags["product"] = "cdn"
+		tags["domain"] = domain
+		tags["action"] = "describeDomainSrcTopUrlVisit"
+		tags["code"] = "400"
+
+		fields["visitData"] = ConvertToFloat(point.VisitData)
+		fields["urlDetail"] = point.UrlDetail
+		fields["visitProportion"] = point.VisitProportion
+		fields["flow"] = ConvertToFloat(point.Flow)
+		fields["flowProportion"] = point.FlowProportion
+
+		run.accumulator.AddFields(run.metricName, fields, tags)
+	}
+
+	for _, point := range response.Url500List.UrlList {
+		tags := map[string]string{}
+		fields := map[string]interface{}{}
+
+		tags["product"] = "cdn"
+		tags["domain"] = domain
+		tags["action"] = "describeDomainSrcTopUrlVisit"
+		tags["code"] = "500"
+
+		fields["visitData"] = ConvertToFloat(point.VisitData)
+		fields["urlDetail"] = point.UrlDetail
+		fields["visitProportion"] = point.VisitProportion
+		fields["flow"] = ConvertToFloat(point.Flow)
+		fields["flowProportion"] = point.FlowProportion
 
 		run.accumulator.AddFields(run.metricName, fields, tags)
 	}
@@ -646,11 +714,11 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 		fields["domain"] = domain
 		tags["action"] = "describeDomainTopReferVisit"
 
-		fields["Flow"] = ConvertToFloat(point.Flow)
-		fields["VisitProportion"] = point.VisitProportion
-		fields["VisitData"] = ConvertToFloat(point.VisitData)
-		fields["ReferDetail"] = point.ReferDetail
-		fields["FlowProportion"] = point.FlowProportion
+		fields["flow"] = ConvertToFloat(point.Flow)
+		fields["visitProportion"] = point.VisitProportion
+		fields["visitData"] = ConvertToFloat(point.VisitData)
+		fields["referDetail"] = point.ReferDetail
+		fields["flowProportion"] = point.FlowProportion
 
 		run.accumulator.AddFields(run.metricName, fields, tags)
 	}
