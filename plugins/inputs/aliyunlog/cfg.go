@@ -25,6 +25,8 @@ name = ''
 	
 # # ##(optional) 指定哪些key作为tag, 默认都为field
 # # ##例: tags=["status_code","protocol"]
+# # ##默认作为tag的key不再作为field，可以指定同时作为tag和field: tags=["status_code:*"]
+# # ##可指定作为tag时的别名, 例: tags=["status_code::status"]
 #tags = []
 	
 # # ##(optional) 指定fields的类型, 默认为string, 可指定为int或float
