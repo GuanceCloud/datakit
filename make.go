@@ -403,7 +403,8 @@ func releaseAgent() {
 	// backup old installer script online, make it possible to install old version if required
 	for k, v := range renameOssFiles {
 		if err := oc.Move(k, v); err != nil {
-			log.Fatalf("[debug] backup %s -> %s failed: %s", k, v, err.Error())
+			log.Printf("[debug] backup %s -> %s failed: %s, ignored", k, v, err.Error())
+			continue
 		}
 
 		log.Printf("[debug] backup %s -> %s ok", k, v)
