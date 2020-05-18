@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -121,6 +120,7 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 		Precision: internal.Duration{
 			Duration: time.Nanosecond,
 		},
+
 		Debug:                      false,
 		Quiet:                      false,
 		LogTarget:                  "file",
@@ -132,15 +132,9 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 }
 
 //LoadTelegrafConfigs 加载conf.d下telegraf的配置文件
-func LoadTelegrafConfigs(ctx context.Context, cfgdir string, inputFilters []string) error {
+func LoadTelegrafConfigs(cfgdir string, inputFilters []string) error {
 
 	for _, input := range supportsTelegrafMetraicNames {
-
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
-		}
 
 		if len(inputFilters) > 0 {
 			if !sliceContains(input.name, inputFilters) {
