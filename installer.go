@@ -20,6 +20,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/kardianos/service"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -252,9 +253,7 @@ Golang Version: %s
 	}
 
 	if *flagUpgrade { // upgrade new version
-		if err := upgradeDatakit(datakitExe); err != nil {
-			log.Fatal("Upgrade datakit failed: %s", err.Error())
-		}
+		// do nothing
 	} else { // install new datakit
 
 		if *flagDataway == "" {
@@ -275,8 +274,8 @@ Golang Version: %s
 
 		uninstallDataKitService(dkservice)
 
-		if err := initDatakit(datakitExe, fmt.Sprintf("http://%s/v1/write/metrics", *flagDataway)); err != nil {
-			log.Fatalf("Init datakit failed: %s", err.Error())
+		if err := config.InitMainCfg(*flagDataway); err != nil {
+			log.Fatalf("Failed to init datakit main config: %s", err.Error())
 		}
 
 		log.Printf("install service %s...", ServiceName)
@@ -337,14 +336,4 @@ func initDatakit(exe, dw string) error {
 	}
 
 	return nil
-}
-
-func upgradeDatakit(exe string) error {
-	cmd := exec.Command(exe, "-upgrade")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-
-	log.Printf("Datakit upgrading...")
-	return cmd.Run()
 }
