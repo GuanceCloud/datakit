@@ -35,7 +35,7 @@ func (lt *Lighttpd) Start(acc telegraf.Accumulator) error {
 	lt.wg = new(sync.WaitGroup)
 
 	log.Printf("I! [Lighttpd] start\n")
-	log.Printf("I! [Lighttpd] load subscribes count: %d\n", len(lt.Config.Subscribes))
+	log.Printf("I! [Lighttpd] load subscribes count %d\n", len(lt.Config.Subscribes))
 	for _, sub := range lt.Config.Subscribes {
 		lt.wg.Add(1)
 		s := sub
@@ -47,9 +47,9 @@ func (lt *Lighttpd) Start(acc telegraf.Accumulator) error {
 }
 
 func (lt *Lighttpd) Stop() {
-	log.Printf("I! [Lighttpd] stop\n")
 	lt.cancel()
 	lt.wg.Wait()
+	log.Printf("I! [Lighttpd] stop\n")
 }
 
 func (_ *Lighttpd) SampleConfig() string {
