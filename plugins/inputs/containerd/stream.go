@@ -4,7 +4,6 @@ package containerd
 
 import (
 	"errors"
-	// "fmt"
 	"log"
 	"sync"
 	"time"
@@ -45,14 +44,14 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 
 	if s.sub.Measurement == "" {
 		err := errors.New("invalid measurement")
-		log.Printf("E! [Ccontainerd] subscribe namespace: %s, error: %s\n", s.sub.Namespace, err.Error())
+		log.Printf("E! [Containerd] subscribe namespace '%s', error: %s\n", s.sub.Namespace, err.Error())
 		return err
 	}
 
 	if s.isAll {
-		log.Printf("I! [Ccontainerd] subscribe namespace: %s, collect all id\n", s.sub.Namespace)
+		log.Printf("I! [Containerd] subscribe namespace '%s' start, collect all id\n", s.sub.Namespace)
 	} else {
-		log.Printf("I! [Ccontainerd] subscribe namespace: %s, collect len %d id\n", s.sub.Namespace, len(s.ids))
+		log.Printf("I! [Containerd] subscribe namespace '%s' start, collect len %d id\n", s.sub.Namespace, len(s.ids))
 	}
 
 	ticker := time.NewTicker(time.Second * s.sub.Cycle)
@@ -60,9 +59,13 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 
 	for {
 		select {
+		case <-s.cont.ctx.Done():
+			log.Printf("I! [Containerd] subscribe namespace '%s' stop\n", s.sub.Namespace)
+			return nil
+
 		case <-ticker.C:
 			if err := s.exec(); err != nil {
-				log.Printf("E! [Ccontainerd] subscribe namespace: %s, error: %s\n", s.sub.Namespace, err.Error())
+				log.Printf("E! [Containerd] subscribe namespace '%s', error: %s\n", s.sub.Namespace, err.Error())
 			}
 		default:
 			// nil
