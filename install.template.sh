@@ -197,37 +197,41 @@ function host_install() {
 	fi
 
 	set_config $CONF
-
-	# Use /usr/sbin/service by default.
-	# Some distros usually include compatibility scripts with Upstart or Systemd. Check with: `command -v service | xargs grep -E "(upstart|systemd)"`
-	restart_cmd="$sudo_cmd service $SERVICE restart"
-	stop_instructions="$sudo_cmd service $SERVICE stop"
-	start_instructions="$sudo_cmd service $SERVICE start"
-
+	
 	info "register service"
-	if command -v systemctl &>/dev/null; then
-		install_type=systemctl
-
-		# Use systemd if systemctl binary exists
-		restart_cmd="$sudo_cmd systemctl restart $SERVICE.service"
-		stop_instructions="$sudo_cmd systemctl stop $SERVICE"
-		start_instructions="$sudo_cmd systemctl start $SERVICE"
-	elif /sbin/init --version 2>&1 | grep -q upstart &>/dev/null; then
-		install_type=upstart
-
-		# Try to detect Upstart, this works most of the times but still a best effort
-		restart_cmd="$sudo_cmd stop $SERVICE &>/dev/null || true ; sleep 2s ; $sudo_cmd start $SERVICE"
-		stop_instructions="$sudo_cmd stop $SERVICE"
-		start_instructions="$sudo_cmd start $SERVICE"
-	fi
 
 	# install service only
 	install_cmd="$BINARY -install $install_type -cfg $CONF -install-only"
 	$sudo_cmd $install_cmd
 }
 
+
+# Use /usr/sbin/service by default.
+	# Some distros usually include compatibility scripts with Upstart or Systemd. Check with: `command -v service | xargs grep -E "(upstart|systemd)"`
+restart_cmd="$sudo_cmd service $SERVICE restart"
+stop_instructions="$sudo_cmd service $SERVICE stop"
+start_instructions="$sudo_cmd service $SERVICE start"
+
+if command -v systemctl &>/dev/null; then
+	install_type=systemctl
+
+	# Use systemd if systemctl binary exists
+	restart_cmd="$sudo_cmd systemctl restart $SERVICE.service"
+	stop_instructions="$sudo_cmd systemctl stop $SERVICE"
+	start_instructions="$sudo_cmd systemctl start $SERVICE"
+elif /sbin/init --version 2>&1 | grep -q upstart &>/dev/null; then
+	install_type=upstart
+
+		# Try to detect Upstart, this works most of the times but still a best effort
+	restart_cmd="$sudo_cmd stop $SERVICE &>/dev/null || true ; sleep 2s ; $sudo_cmd start $SERVICE"
+	stop_instructions="$sudo_cmd stop $SERVICE"
+	start_instructions="$sudo_cmd start $SERVICE"
+fi
+
+
 if [ -n "$dk_upgrade" ]; then
 	if [ -f "$USRDIR_OLD/${SERVICE}" ] && ! [ -f ${BINARY} ];then
+		${stop_instructions} &>/dev/null
 		$sudo_cmd mkdir -p "${USRDIR}"
 		$sudo_cmd mv "${USRDIR_OLD}" "${InstallDir}"
 	fi
