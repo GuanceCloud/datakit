@@ -35,7 +35,7 @@ func (r *Replication) Start(acc telegraf.Accumulator) error {
 	r.wg = new(sync.WaitGroup)
 
 	log.Printf("I! [Replication] start\n")
-	log.Printf("I! [Replication] load subscribes count: %d\n", len(r.Config.Subscribes))
+	log.Printf("I! [Replication] load subscribes count %d\n", len(r.Config.Subscribes))
 
 	for _, sub := range r.Config.Subscribes {
 		r.wg.Add(1)
