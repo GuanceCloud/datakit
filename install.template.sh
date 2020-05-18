@@ -107,6 +107,18 @@ function set_config() {
 	fi
 }
 
+function kill_agent() {
+	agentPid=$(pgrep agent)
+	if [ -n "${agentPid}" ]; then
+		if [ -f "/proc/${agentPid}/cmdline" ];then
+			if grep "datakit/embed" "/proc/${agentPid}/cmdline" &>/dev/null;then
+				kill $(pgrep datakit) &>/dev/null
+				kill "${agentPid}" &>/dev/null
+			fi
+		fi
+	fi
+}
+
 
 function host_install() {
 	# OS/Distro Detection
@@ -255,7 +267,10 @@ fi
 
 
 info "* Starting Datakit...";
-eval $restart_cmd
+${stop_instructions} &>/dev/null
+kill_agent
+${start_instructions}
+#eval $restart_cmd
 
 info "Your Datakit is running and functioning properly. It will continue to run in the
 background and submit metrics to FtDataway.
