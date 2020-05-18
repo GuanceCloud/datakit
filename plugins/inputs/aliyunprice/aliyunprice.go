@@ -139,11 +139,11 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 	go func() {
 		defer a.wg.Done()
 
-		// defer func() {
-		// 	if e := recover(); e != nil {
-		// 		a.logger.Errorf("panic %v", e)
-		// 	}
-		// }()
+		defer func() {
+			if e := recover(); e != nil {
+				a.logger.Errorf("panic %v", e)
+			}
+		}()
 
 		for {
 
