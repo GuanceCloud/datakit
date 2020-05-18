@@ -50,19 +50,23 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 
 	if s.sub.Measurement == "" {
 		err := errors.New("invalid measurement")
-		log.Printf("E! [Lighttpd] subscribe %s, err: %s\n", s.sub.LighttpdURL, err.Error())
+		log.Printf("E! [Lighttpd] subscribe '%s', err: %s\n", s.sub.LighttpdURL, err.Error())
 		return err
 	}
 
 	ticker := time.NewTicker(time.Second * s.sub.Cycle)
 	defer ticker.Stop()
 
-	log.Printf("I! [Lighttpd] subscribe %s start\n", s.sub.LighttpdURL)
+	log.Printf("I! [Lighttpd] subscribe '%s' start\n", s.sub.LighttpdURL)
+
 	for {
 		select {
+		case <-s.lighttpd.ctx.Done():
+			log.Printf("I! [Lighttpd] subscribe '%s' stop\n", s.sub.LighttpdURL)
+			return nil
 		case <-ticker.C:
 			if err := s.exec(); err != nil {
-				log.Printf("E! [Lighttpd] subscribe %s, exec err: %s\n", s.sub.LighttpdURL, err.Error())
+				log.Printf("E! [Lighttpd] subscribe '%s', exec err: %s\n", s.sub.LighttpdURL, err.Error())
 			}
 		default:
 			// nil
