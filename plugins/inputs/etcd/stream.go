@@ -63,10 +63,10 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 		}
 
 		s.tlsConfig = tc
-		log.Printf("I! [Etcd] subscribe %s:%d, build TLSConfig success\n", s.sub.EtcdHost, s.sub.EtcdPort)
+		log.Printf("I! [Etcd] subscribe %s:%d start, build TLSConfig success\n", s.sub.EtcdHost, s.sub.EtcdPort)
 
 	} else {
-		log.Printf("I! [Etcd] subscribe %s:%d, usage HTTP connection\n", s.sub.EtcdHost, s.sub.EtcdPort)
+		log.Printf("I! [Etcd] subscribe %s:%d start, usage HTTP connection\n", s.sub.EtcdHost, s.sub.EtcdPort)
 	}
 
 	ticker := time.NewTicker(time.Second * s.sub.Cycle)
@@ -74,6 +74,10 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 
 	for {
 		select {
+		case <-s.etc.ctx.Done():
+			log.Printf("I! [Etcd] subscribe %s:%d stop\n", s.sub.EtcdHost, s.sub.EtcdPort)
+			return nil
+
 		case <-ticker.C:
 			if err := s.exec(); err != nil {
 				log.Printf("E! [Etcd] subscribe %s:%d, exec failed: %s\n", s.sub.EtcdHost, s.sub.EtcdPort, err.Error())
