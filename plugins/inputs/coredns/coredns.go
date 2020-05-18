@@ -35,7 +35,7 @@ func (e *Coredns) Start(acc telegraf.Accumulator) error {
 	e.wg = new(sync.WaitGroup)
 
 	log.Printf("I! [CoreDNS] start\n")
-	log.Printf("I! [CoreDNS] load subscribes count: %d\n", len(e.Config.Subscribes))
+	log.Printf("I! [CoreDNS] load subscribes count %d\n", len(e.Config.Subscribes))
 	for _, sub := range e.Config.Subscribes {
 		e.wg.Add(1)
 		s := sub
@@ -47,9 +47,9 @@ func (e *Coredns) Start(acc telegraf.Accumulator) error {
 }
 
 func (e *Coredns) Stop() {
-	log.Printf("I! [CoreDNS] stop\n")
 	e.cancel()
 	e.wg.Wait()
+	log.Printf("I! [CoreDNS] stop\n")
 }
 
 func (_ *Coredns) SampleConfig() string {
