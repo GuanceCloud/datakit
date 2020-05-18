@@ -16,6 +16,7 @@ import (
 )
 
 func TestConfig(t *testing.T) {
+
 	var cfg AliyunLog
 	cfg.Consumer = []*ConsumerInstance{
 		&ConsumerInstance{
