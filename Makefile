@@ -16,8 +16,8 @@ BIN = datakit
 NAME = datakit
 ENTRY = main.go
 
-LOCAL_ARCHS = "linux/amd64"
-#LOCAL_ARCHS = "all"
+#LOCAL_ARCHS = "linux/amd64"
+LOCAL_ARCHS = "all"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -62,8 +62,8 @@ release:
 	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
 pub_local:
-	@sudo docker build --tag registry.jiagouyun.com/datakit/datakit:$(VERSION) -f internal-dk.Dockerfile .
-	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
+	#@sudo docker build --tag registry.jiagouyun.com/datakit/datakit:$(VERSION) -f internal-dk.Dockerfile .
+	#@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
 pub_test:
