@@ -48,9 +48,9 @@ func (e *Containerd) Start(acc telegraf.Accumulator) error {
 }
 
 func (e *Containerd) Stop() {
-	log.Printf("I! [Containerd] stop\n")
 	e.cancel()
 	e.wg.Wait()
+	log.Printf("I! [Containerd] stop\n")
 }
 
 func (_ *Containerd) SampleConfig() string {
