@@ -40,11 +40,17 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 		return err
 	}
 
+	log.Printf("I! [CoreDNS] subscribe %s:%d start\n", s.sub.CorednsHost, s.sub.CorednsPort)
+
 	ticker := time.NewTicker(time.Second * s.sub.Cycle)
 	defer ticker.Stop()
 
 	for {
 		select {
+		case <-s.coredns.ctx.Done():
+			log.Printf("I! [CoreDNS] subscribe %s:%d stop\n", s.sub.CorednsHost, s.sub.CorednsPort)
+			return nil
+
 		case <-ticker.C:
 			if err := s.exec(); err != nil {
 				log.Printf("E! [CoreDNS] subscribe %s:%d, error: %s\n", s.sub.CorednsHost, s.sub.CorednsPort, err.Error())
