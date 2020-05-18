@@ -3,6 +3,7 @@
 package telegrafwrap
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -17,6 +18,8 @@ func KillProcess(pid int) error {
 		if err = prs.Kill(); err != nil {
 			return err
 		}
+	} else {
+		return fmt.Errorf("cannot find process %d", pid)
 	}
 
 	return nil
