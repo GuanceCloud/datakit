@@ -108,7 +108,10 @@ function set_config() {
 }
 
 function kill_agent() {
-	agentPid=$(pgrep agent)
+	agentPid=""
+	if pgrep agent &>/dev/null; then
+		agentPid=`pgrep agent`
+	fi
 	if [ -n "${agentPid}" ]; then
 		if [ -f "/proc/${agentPid}/cmdline" ];then
 			if grep "datakit/embed" "/proc/${agentPid}/cmdline" &>/dev/null;then
