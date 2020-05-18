@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,10 +13,12 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf"
+	"github.com/influxdata/telegraf/logger"
 	"github.com/influxdata/telegraf/plugins/serializers"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
@@ -31,18 +32,17 @@ var (
 
 	ServiceName = "datakit"
 
-	MainCfgPath  string
 	ConvertedCfg []string
 	AgentLogFile string
 
 	MaxLifeCheckInterval time.Duration
 
-	Cfg         = newDefaultCfg()
-	InstallDir  = ""
-	TelegrafDir = ""
-	DataDir     = ""
-	LuaDir      = ""
-	ConfdDir    = ""
+	Cfg         *Config = nil
+	InstallDir          = ""
+	TelegrafDir         = ""
+	DataDir             = ""
+	LuaDir              = ""
+	ConfdDir            = ""
 )
 
 type Config struct {
@@ -79,7 +79,6 @@ func init() {
 		log.Fatalf("[error] mkdir embed  failed: %s", err)
 	}
 
-	MainCfgPath = filepath.Join(InstallDir, "datakit.conf")
 	AgentLogFile = filepath.Join(InstallDir, "embed", "agent.log")
 
 	TelegrafDir = filepath.Join(InstallDir, "embed")
@@ -91,6 +90,8 @@ func init() {
 			log.Fatalf("create %s failed: %s", dir, err)
 		}
 	}
+
+	Cfg = newDefaultCfg()
 
 	initTelegrafSamples()
 }
@@ -108,19 +109,32 @@ func newDefaultCfg() *Config {
 			Log:      filepath.Join(InstallDir, "datakit.log"),
 
 			RoundInterval: false,
+			cfgPath:       filepath.Join(InstallDir, "datakit.conf"),
 		},
 		Inputs: []*models.RunningInput{},
 	}
 }
 
-func LoadCfg(ctx context.Context) error {
+func LoadCfg() error {
 	if err := Cfg.LoadMainConfig(); err != nil {
 		return err
 	}
 
+	logConfig := logger.LogConfig{
+		Debug:     (strings.ToLower(Cfg.MainCfg.LogLevel) == "debug"),
+		Quiet:     false,
+		LogTarget: logger.LogTargetFile,
+		Logfile:   Cfg.MainCfg.Log,
+	}
+
+	logConfig.RotationMaxSize.Size = (20 << 10 << 10)
+	logger.SetupLogging(logConfig)
+
+	log.Printf("D! set log to %s", logConfig.Logfile)
+
 	createPluginCfgsIfNotExists()
 
-	if err := Cfg.LoadConfig(ctx); err != nil {
+	if err := Cfg.LoadConfig(); err != nil {
 		return err
 	}
 
@@ -155,6 +169,8 @@ type MainConfig struct {
 
 	Hostname     string
 	OmitHostname bool
+
+	cfgPath string
 }
 
 type ConvertTelegrafConfig interface {
@@ -169,7 +185,8 @@ type DatacleanConfig interface {
 }
 
 func (c *Config) LoadMainConfig() error {
-	data, err := ioutil.ReadFile(MainCfgPath)
+
+	data, err := ioutil.ReadFile(c.MainCfg.cfgPath)
 	if err != nil {
 		return fmt.Errorf("main config error, %s", err.Error())
 	}
@@ -324,15 +341,9 @@ func CheckConfd() error {
 }
 
 //LoadConfig 加载conf.d下的所有配置文件
-func (c *Config) LoadConfig(ctx context.Context) error {
+func (c *Config) LoadConfig() error {
 
 	for name, creator := range inputs.Inputs {
-
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
-		}
 
 		if len(c.InputFilters) > 0 {
 			if !sliceContains(name, c.InputFilters) {
@@ -342,24 +353,25 @@ func (c *Config) LoadConfig(ctx context.Context) error {
 
 		//apachelog和nginxlog和telegraf的nginx和apache共享一个目录
 		//这些采集器将转化为telegraf的采集器
-		if name == "apachelog" || name == "nginxlog" {
-			if p, ok := creator().(ConvertTelegrafConfig); ok {
-				path := p.FilePath(c.MainCfg.ConfigDir)
-				if err := p.Load(path); err != nil {
-					if err == ErrConfigNotFound {
-						continue
+		/*
+			if name == "apachelog" || name == "nginxlog" {
+				if p, ok := creator().(ConvertTelegrafConfig); ok {
+					path := p.FilePath(c.MainCfg.ConfigDir)
+					if err := p.Load(path); err != nil {
+						if err == ErrConfigNotFound {
+							continue
+						} else {
+							return fmt.Errorf("Error loading config file %s, %s", path, err)
+						}
+					}
+					if telegrafCfg, err := p.ToTelegraf(path); err == nil {
+						ConvertedCfg = append(ConvertedCfg, telegrafCfg)
 					} else {
-						return fmt.Errorf("Error loading config file %s, %s", path, err)
+						return fmt.Errorf("convert %s failed, %s", path, err)
 					}
 				}
-				if telegrafCfg, err := p.ToTelegraf(path); err == nil {
-					ConvertedCfg = append(ConvertedCfg, telegrafCfg)
-				} else {
-					return fmt.Errorf("convert %s failed, %s", path, err)
-				}
-			}
-			continue
-		}
+				continue
+			} */
 
 		input := creator()
 
@@ -430,7 +442,7 @@ func (c *Config) LoadConfig(ctx context.Context) error {
 		MaxLifeCheckInterval = c.MainCfg.MaxPostInterval.Duration
 	}
 
-	return LoadTelegrafConfigs(ctx, c.MainCfg.ConfigDir, c.InputFilters)
+	return LoadTelegrafConfigs(c.MainCfg.ConfigDir, c.InputFilters)
 }
 
 func (c *Config) LoadOutputs() ([]*models.RunningOutput, error) {
@@ -513,23 +525,28 @@ func (c *Config) DumpInputsOutputs() {
 	log.Printf("avariable inputs: %s", strings.Join(names, ","))
 }
 
-func InitMainCfg(cfg *MainConfig, path string) error {
+func InitMainCfg(dw string) error {
+
+	Cfg.MainCfg.UUID = cliutils.XID("dkid_")
+	Cfg.MainCfg.ConfigDir = ConfdDir
+	Cfg.MainCfg.FtGateway = fmt.Sprintf("http://%s/v1/write/metrics", dw)
 
 	var err error
 	tm := template.New("")
 	tm, err = tm.Parse(mainConfigTemplate)
 	if err != nil {
-		return fmt.Errorf("Error creating %s, %s", path, err)
+		return fmt.Errorf("Error creating %s: %s", Cfg.MainCfg.cfgPath, err)
 	}
 
 	buf := bytes.NewBuffer([]byte{})
-	if err = tm.Execute(buf, cfg); err != nil {
-		return fmt.Errorf("Error creating %s, %s", path, err)
+	if err = tm.Execute(buf, Cfg.MainCfg); err != nil {
+		return fmt.Errorf("Error creating %s: %s", Cfg.MainCfg.cfgPath, err)
 	}
 
-	if err := ioutil.WriteFile(path, []byte(buf.Bytes()), 0664); err != nil {
-		return fmt.Errorf("Error creating %s, %s", path, err)
+	if err := ioutil.WriteFile(Cfg.MainCfg.cfgPath, []byte(buf.Bytes()), 0664); err != nil {
+		return fmt.Errorf("Error creating %s: %s", Cfg.MainCfg.cfgPath, err)
 	}
+
 	return nil
 }
 
@@ -542,13 +559,32 @@ func createPluginCfgsIfNotExists() {
 
 		input := create()
 		catalog := input.Catalog()
+
+		// migrate old config to new catalog path
+		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
 		cfgpath := filepath.Join(ConfdDir, catalog, name+".conf")
 
-		if err := os.MkdirAll(filepath.Join(ConfdDir, catalog), os.ModePerm); err != nil {
-			log.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
+		log.Printf("check telegraf input conf %s...", name)
+
+		if _, err := os.Stat(oldCfgPath); err == nil {
+			if oldCfgPath == cfgpath {
+				continue // do nothing
+			}
+
+			os.Rename(oldCfgPath, cfgpath)
+			os.RemoveAll(filepath.Dir(oldCfgPath))
+			continue
 		}
 
 		if _, err := os.Stat(cfgpath); err != nil { // file not exists
+
+			log.Printf("D! %s not exists, create it...", cfgpath)
+
+			log.Printf("D! create datakit conf path %s", filepath.Join(ConfdDir, catalog))
+			if err := os.MkdirAll(filepath.Join(ConfdDir, catalog), os.ModePerm); err != nil {
+				log.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
+			}
+
 			sample := input.SampleConfig()
 			if sample == "" {
 				log.Fatalf("no sample available on collector %s", name)
@@ -564,12 +600,32 @@ func createPluginCfgsIfNotExists() {
 	for name, input := range supportsTelegrafMetraicNames {
 
 		cfgpath := filepath.Join(ConfdDir, input.catalog, name+".conf")
+		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
 
-		if err := os.MkdirAll(filepath.Join(ConfdDir, input.catalog), os.ModePerm); err != nil {
-			log.Fatalf("create catalog dir %s failed: %s", input.catalog, err.Error())
+		log.Printf("check telegraf input conf %s...", name)
+
+		if _, err := os.Stat(oldCfgPath); err == nil {
+
+			if oldCfgPath == cfgpath {
+				log.Printf("D! %s exists, skip", oldCfgPath)
+				continue // do nothing
+			}
+
+			log.Printf("D! %s exists, migrate to %s", oldCfgPath, cfgpath)
+			os.Rename(oldCfgPath, cfgpath)
+			os.RemoveAll(filepath.Dir(oldCfgPath))
+			continue
 		}
 
 		if _, err := os.Stat(cfgpath); err != nil {
+
+			log.Printf("D! %s not exists, create it...", cfgpath)
+
+			log.Printf("D! create telegraf conf path %s", filepath.Join(ConfdDir, input.catalog))
+			if err := os.MkdirAll(filepath.Join(ConfdDir, input.catalog), os.ModePerm); err != nil {
+				log.Fatalf("create catalog dir %s failed: %s", input.catalog, err.Error())
+			}
+
 			if sample, ok := telegrafCfgSamples[name]; ok {
 				if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
 					log.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
@@ -632,52 +688,6 @@ func (c *Config) newRunningOutputDirectly(name string, output telegraf.Output) (
 	ro := models.NewRunningOutput(name, output, outputConfig, 0, 0)
 	return ro, nil
 }
-
-// func (c *Config) addOutputDirectly(name string, output telegraf.Output) error {
-
-// 	switch t := output.(type) {
-// 	case serializers.SerializerOutput:
-// 		serializer, err := buildSerializer(name, nil)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		t.SetSerializer(serializer)
-// 	}
-
-// 	outputConfig, err := buildOutput(name, nil)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	ro := models.NewRunningOutput(name, output, outputConfig, 0, 0)
-// 	c.Outputs = append(c.Outputs, ro)
-// 	return nil
-// }
-
-// func (c *Config) addOutput(name string, output telegraf.Output, table *ast.Table) error {
-
-// 	switch t := output.(type) {
-// 	case serializers.SerializerOutput:
-// 		serializer, err := buildSerializer(name, table)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		t.SetSerializer(serializer)
-// 	}
-
-// 	outputConfig, err := buildOutput(name, table)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if err := toml.UnmarshalTable(table, output); err != nil {
-// 		return err
-// 	}
-
-// 	ro := models.NewRunningOutput(name, output, outputConfig, 0, 0)
-// 	c.Outputs = append(c.Outputs, ro)
-// 	return nil
-// }
 
 func buildSerializer(name string, tbl *ast.Table) (serializers.Serializer, error) {
 	c := &serializers.Config{TimestampUnits: time.Duration(1 * time.Second)}
