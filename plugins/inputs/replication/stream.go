@@ -76,7 +76,7 @@ func (s *stream) start(r *Replication, ctx context.Context, wg *sync.WaitGroup) 
 
 	conn, err := pgx.ReplicationConnect(config)
 	if err != nil {
-		log.Printf("E! [Replication] subscribe %s:%d, create replication connection err: %s\n", s.sub.Host, s.sub.Port, err.Error())
+		log.Printf("E! [Replication] subscribe %s:%d, create replication connect failed: %s\n", s.sub.Host, s.sub.Port, err.Error())
 		return err
 	}
 
@@ -100,13 +100,14 @@ func (s *stream) start(r *Replication, ctx context.Context, wg *sync.WaitGroup) 
 		return err
 	}
 
-	log.Printf("E! [Replication] subscribe %s:%d run\n", s.sub.Host, s.sub.Port)
+	log.Printf("I! [Replication] subscribe %s:%d start\n", s.sub.Host, s.sub.Port)
 
 	return s.runloop(ctx)
 }
 
 func (s *stream) stop() error {
 	s.cancel()
+	log.Printf("I! [Replication] subscribe %s:%d stop\n", s.sub.Host, s.sub.Port)
 	return s.replicationConn.Close()
 }
 
@@ -119,13 +120,20 @@ func (s *stream) runloop(ctx context.Context) error {
 			select {
 			case <-ticker.C:
 				_ = s.sendStatus()
-			case <-ctx.Done():
-				return
+			default:
+				// nil
 			}
 		}
 	}()
 
 	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			// nil
+		}
+
 		msg, err := s.replicationConn.WaitForReplicationMessage(ctx)
 		if err != nil {
 			if err == ctx.Err() {
