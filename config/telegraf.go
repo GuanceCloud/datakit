@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -105,6 +104,7 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 		Interval: internal.Duration{
 			Duration: time.Second * 10,
 		},
+
 		RoundInterval:     true,
 		MetricBatchSize:   1000,
 		MetricBufferLimit: 100000,
@@ -120,9 +120,11 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 		Precision: internal.Duration{
 			Duration: time.Nanosecond,
 		},
+
 		Debug:                      false,
 		Quiet:                      false,
 		LogTarget:                  "file",
+		Logfile:                    filepath.Join(TelegrafDir, "agent.log"),
 		LogfileRotationMaxArchives: 5,
 		OmitHostname:               false,
 	}
@@ -130,29 +132,22 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 }
 
 //LoadTelegrafConfigs 加载conf.d下telegraf的配置文件
-func LoadTelegrafConfigs(ctx context.Context, cfgdir string, inputFilters []string) error {
+func LoadTelegrafConfigs(cfgdir string, inputFilters []string) error {
 
-	for index, name := range SupportsTelegrafMetraicNames {
-
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
-		}
+	for _, input := range supportsTelegrafMetraicNames {
 
 		if len(inputFilters) > 0 {
-			if !sliceContains(name, inputFilters) {
+			if !sliceContains(input.name, inputFilters) {
 				continue
 			}
 		}
 
-		cfgpath := filepath.Join(cfgdir, name, fmt.Sprintf(`%s.conf`, name))
+		cfgpath := filepath.Join(cfgdir, input.name, fmt.Sprintf(`%s.conf`, input.name))
 		err := VerifyToml(cfgpath, true)
 
 		if err == nil {
-			MetricsEnablesFlags[index] = true
+			input.enabled = true
 		} else {
-			MetricsEnablesFlags[index] = false
 			if err == ErrConfigNotFound {
 				//ignore
 			} else if err == ErrEmptyInput {
@@ -161,8 +156,8 @@ func LoadTelegrafConfigs(ctx context.Context, cfgdir string, inputFilters []stri
 				return fmt.Errorf("Error loading config file %s, %s", cfgpath, err)
 			}
 		}
-
 	}
+
 	return nil
 }
 
@@ -294,7 +289,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 			FtGateway:   cfg.MainCfg.FtGateway,
 			DKUUID:      cfg.MainCfg.UUID,
 			DKVERSION:   git.Version,
-			DKUserAgent: UserAgent(),
+			DKUserAgent: userAgent,
 		}
 
 		tpl := template.New("")
@@ -314,11 +309,13 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 	tlegrafConfig := globalTags + agentcfg + fileoutstr + httpoutstr
 
 	pluginCfgs := ""
-	for index, n := range SupportsTelegrafMetraicNames {
-		if !MetricsEnablesFlags[index] {
+
+	for _, input := range supportsTelegrafMetraicNames {
+		if !input.enabled {
 			continue
 		}
-		cfgpath := filepath.Join(cfg.MainCfg.ConfigDir, n, fmt.Sprintf(`%s.conf`, n))
+
+		cfgpath := filepath.Join(cfg.MainCfg.ConfigDir, input.catalog, input.name+".conf")
 		d, err := ioutil.ReadFile(cfgpath)
 		if err != nil {
 			return "", err
