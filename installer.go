@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -35,6 +36,126 @@ var (
 	flagDownloadOnly    = flag.Bool("download-only", false, `download datakit only, not install`)
 	flagDataKitGzipFile = flag.String("datakit-gzip", ``, `local path of datakit install files`)
 )
+
+func main() {
+
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	flag.Parse()
+
+	applyFlags()
+
+	// create install dir if not exists
+	if err := os.MkdirAll(*flagInstallDir, 0775); err != nil {
+		log.Fatalf("[error] %s", err.Error())
+	}
+
+	datakitExe := filepath.Join(*flagInstallDir, "datakit")
+	if runtime.GOOS == "windows" {
+		datakitExe += ".exe"
+	}
+
+	prog := &program{}
+	dkservice, err := service.New(prog, &service.Config{
+		Name:        ServiceName,
+		DisplayName: ServiceName,
+		Description: `Collects data and upload it to DataFlux.`,
+		Executable:  datakitExe,
+		Arguments:   nil, // no args need here
+	})
+
+	if err != nil {
+		log.Fatal("New %s service failed: %s", runtime.GOOS, err.Error())
+	}
+
+	if err := stopDataKitService(dkservice); err != nil {
+		// ignore
+	}
+
+	if *flagDataKitGzipFile != "" {
+		extractDatakit(*flagDataKitGzipFile, *flagInstallDir)
+	} else {
+		downloadDatakit(DataKitGzipUrl, *flagInstallDir)
+	}
+
+	if *flagUpgrade { // upgrade new version
+		// do nothing
+	} else { // install new datakit
+
+		if *flagDataway == "" {
+			for {
+				dw := readInput("Please set DataWay(IP:Port or OpenWay link) > ")
+				*flagDataway, err = parseDataway(dw)
+				if err == nil {
+					break
+				}
+
+				fmt.Printf("%s\n", err.Error())
+				continue
+			}
+		} else {
+			*flagDataway, err = parseDataway(*flagDataway)
+			if err != nil {
+				log.Printf("%s", err.Error())
+			}
+		}
+
+		uninstallDataKitService(dkservice)
+
+		if err := config.InitMainCfg(*flagDataway); err != nil {
+			log.Fatalf("Failed to init datakit main config: %s", err.Error())
+		}
+
+		log.Printf("install service %s...", ServiceName)
+		if err := installDatakitService(dkservice); err != nil {
+			log.Fatalf("Fail to register service %s: %s", ServiceName, err.Error())
+		}
+	}
+
+	log.Printf("starting service %s...", ServiceName)
+	if err := startDatakitService(dkservice); err != nil {
+		log.Fatalf("Fail to register service %s: %s", ServiceName, err.Error())
+	}
+
+	log.Println(":) Success!")
+}
+
+func applyFlags() {
+
+	if *flagVersion {
+		fmt.Printf(`
+       Version: %s
+      Build At: %s
+Golang Version: %s
+   DataKitGzip: %s
+`, git.Version, git.BuildAt, git.Golang, DataKitGzipUrl)
+		os.Exit(0)
+	}
+
+	if *flagDownloadOnly {
+		downloadDatakit(DataKitGzipUrl, "datakit.tar.gz")
+		os.Exit(0)
+	}
+
+	if *flagInstallDir == "" {
+		switch runtime.GOOS + "/" + runtime.GOARCH {
+
+		case "windows/amd64":
+			*flagInstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
+
+		case "windows/386":
+			*flagInstallDir = `C:\Program Files\DataFlux\` + ServiceName
+
+		case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
+			"darwin/amd64", "darwin/386",
+			"freebsd/amd64", "freebsd/386":
+			*flagInstallDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
+
+		default:
+			// TODO
+		}
+	}
+}
 
 func readInput(prompt string) string {
 	reader := bufio.NewReader(os.Stdin)
@@ -162,134 +283,40 @@ func (wc *WriteCounter) PrintProgress() {
 	}
 }
 
-func testDataway(dw string) error {
+func parseDataway(dw string) (string, error) {
 
-	// parse dataway IP:Port
-	if _, _, err := net.SplitHostPort(dw); err != nil {
-		//log.Printf("Invalid DataWay host: %s", err.Error())
-		return err
-	}
+	tkn := ""
+	host := ""
+	scheme := "http"
 
-	log.Printf("Testing DataWay(%s)...", dw)
-	conn, err := net.DialTimeout("tcp", dw, time.Second*5)
-	if err != nil {
-		//log.Fatal("Testing DataWay (timeout 5s) failed: %s", err.Error())
-		return err
-	}
-	conn.Close() // XXX: not used connection
+	if u, err := url.Parse(dw); err == nil {
+		scheme = u.Scheme
+		tkn = u.Query().Get("token")
+		host = u.Host
 
-	return nil
-}
-
-func main() {
-
-	flag.Parse()
-
-	if *flagVersion {
-		fmt.Printf(`
-       Version: %s
-      Build At: %s
-Golang Version: %s
-   DataKitGzip: %s
-`, git.Version, git.BuildAt, git.Golang, DataKitGzipUrl)
-		return
-	}
-
-	if *flagDownloadOnly {
-		downloadDatakit(DataKitGzipUrl, "datakit.tar.gz")
-		return
-	}
-
-	if *flagInstallDir == "" {
-		switch runtime.GOOS + "/" + runtime.GOARCH {
-
-		case "windows/amd64":
-			*flagInstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
-
-		case "windows/386":
-			*flagInstallDir = `C:\Program Files\DataFlux\` + ServiceName
-
-		case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
-			"darwin/amd64", "darwin/386",
-			"freebsd/amd64", "freebsd/386":
-			*flagInstallDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
-
-		default:
-			// TODO
+		if scheme == "https" {
+			host = u.Host + ":443"
 		}
-	}
-
-	// create install dir if not exists
-	if err := os.MkdirAll(*flagInstallDir, 0775); err != nil {
-		log.Fatalf("[error] %s", err.Error())
-	}
-
-	datakitExe := filepath.Join(*flagInstallDir, "datakit")
-	if runtime.GOOS == "windows" {
-		datakitExe += ".exe"
-	}
-
-	prog := &program{}
-	dkservice, err := service.New(prog, &service.Config{
-		Name:        ServiceName,
-		DisplayName: ServiceName,
-		Description: `Collects data and upload it to DataFlux.`,
-		Executable:  datakitExe,
-		Arguments:   nil, // no args need here
-	})
-
-	if err != nil {
-		log.Fatal("New %s service failed: %s", runtime.GOOS, err.Error())
-	}
-
-	if err := stopDataKitService(dkservice); err != nil {
-		// ignore
-	}
-
-	if *flagDataKitGzipFile != "" {
-		extractDatakit(*flagDataKitGzipFile, *flagInstallDir)
 	} else {
-		downloadDatakit(DataKitGzipUrl, *flagInstallDir)
-	}
-
-	if *flagUpgrade { // upgrade new version
-		// do nothing
-	} else { // install new datakit
-
-		if *flagDataway == "" {
-			for {
-				dw := readInput("Please set DataWay(ip:port) > ")
-				if err := testDataway(dw); err != nil {
-					fmt.Printf("%s\n", err.Error())
-				} else {
-					*flagDataway = dw
-					break
-				}
-			}
-		} else {
-			if err := testDataway(*flagDataway); err != nil {
-				log.Fatalf("%s", err.Error())
-			}
+		if _, _, err := net.SplitHostPort(dw); err != nil { // parse dataway IP:Port
+			return "", err
 		}
 
-		uninstallDataKitService(dkservice)
-
-		if err := config.InitMainCfg(*flagDataway); err != nil {
-			log.Fatalf("Failed to init datakit main config: %s", err.Error())
-		}
-
-		log.Printf("install service %s...", ServiceName)
-		if err := installDatakitService(dkservice); err != nil {
-			log.Fatalf("Fail to register service %s: %s", ServiceName, err.Error())
-		}
+		host = dw
 	}
 
-	log.Printf("starting service %s...", ServiceName)
-	if err := startDatakitService(dkservice); err != nil {
-		log.Fatalf("Fail to register service %s: %s", ServiceName, err.Error())
+	log.Printf("Testing DataWay(%s)...", host)
+	conn, err := net.DialTimeout("tcp", host, time.Second*5)
+	if err != nil {
+		return "", err
 	}
+	conn.Close()
 
-	log.Println(":) Success!")
+	if tkn == "" {
+		return fmt.Sprintf("%s://%s/v1/write/metrics", scheme, host), nil
+	} else {
+		return fmt.Sprintf("%s://%s/v1/write/metrics?token=%s", scheme, host, tkn), nil
+	}
 }
 
 type program struct{}
