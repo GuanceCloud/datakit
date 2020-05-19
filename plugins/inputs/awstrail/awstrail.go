@@ -50,6 +50,10 @@ type (
 	}
 )
 
+func (_ *AwsTrailAgent) Catalog() string {
+	return "aws"
+}
+
 func (_ *AwsTrailAgent) SampleConfig() string {
 	return sampleConfig
 }
@@ -272,7 +276,7 @@ func (a *AwsTrailAgent) Stop() {
 }
 
 func init() {
-	inputs.Add(inputName, func() telegraf.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		ac := &AwsTrailAgent{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac

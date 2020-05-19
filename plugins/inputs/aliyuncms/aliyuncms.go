@@ -142,6 +142,10 @@ func (_ *CmsAgent) Description() string {
 	return `Collect metrics from alibaba Cloud Monitor Service.`
 }
 
+func (_ *CmsAgent) Catalog() string {
+	return `aliyun`
+}
+
 func (_ *CmsAgent) Gather(telegraf.Accumulator) error {
 	return nil
 }
@@ -200,7 +204,7 @@ func NewAgent() *CmsAgent {
 }
 
 func init() {
-	inputs.Add(inputName, func() telegraf.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return NewAgent()
 	})
 }
