@@ -46,7 +46,7 @@ func (ag *ucMonitorAgent) Init() error {
 
 	ag.logger = &models.Logger{
 		Errs: selfstat.Register("gather", "errors", nil),
-		Name: `azurecms`,
+		Name: `ucmon`,
 	}
 
 	return nil
@@ -54,6 +54,10 @@ func (ag *ucMonitorAgent) Init() error {
 
 func (_ *ucMonitorAgent) SampleConfig() string {
 	return sampleConfig
+}
+
+func (_ *ucMonitorAgent) Catalog() string {
+	return "ucloud"
 }
 
 func (_ *ucMonitorAgent) Description() string {
@@ -98,7 +102,7 @@ func (ag *ucMonitorAgent) Stop() {
 }
 
 func init() {
-	inputs.Add("ucloud_monitor", func() telegraf.Input {
+	inputs.Add("ucloud_monitor", func() inputs.Input {
 		ac := &ucMonitorAgent{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac

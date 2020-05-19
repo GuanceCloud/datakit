@@ -1,3 +1,5 @@
+// +build linux,amd64
+
 package oraclemonitor
 
 const oracle_hostinfo_sql = `
