@@ -22,7 +22,7 @@ type Etcd struct {
 }
 
 func init() {
-	inputs.Add(pluginName, func() telegraf.Input {
+	inputs.Add(pluginName, func() inputs.Input {
 		e := &Etcd{}
 		e.ctx, e.cancel = context.WithCancel(context.Background())
 		return e
@@ -53,6 +53,10 @@ func (e *Etcd) Stop() {
 
 func (_ *Etcd) SampleConfig() string {
 	return etcdConfigSample
+}
+
+func (_ *Etcd) Catalog() string {
+	return "etcd"
 }
 
 func (_ *Etcd) Description() string {
