@@ -1,6 +1,7 @@
 .idea/
 .vscode/
 .DS_Store
+.orig
 proxy_config.yaml
 pub
 a.out
