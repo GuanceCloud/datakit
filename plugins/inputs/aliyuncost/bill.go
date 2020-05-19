@@ -41,7 +41,7 @@ func (cb *CostBill) run(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		cb.getHistoryData(ctx)
+		//cb.getHistoryData(ctx)
 	}()
 
 	cb.getNormalData(ctx)
@@ -254,7 +254,6 @@ func (cb *CostBill) getInstnceBills(ctx context.Context, year, month int) error 
 	}
 
 	return nil
-
 }
 
 func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.QueryBillResponse) error {
@@ -324,7 +323,6 @@ func (cb *CostBill) parseInstanceBillResponse(ctx context.Context, resp *bssopen
 			"BillingCycle": resp.Data.BillingCycle,
 		}
 
-		tags[`OwnerID`] = item.OwnerID
 		tags[`CostUnit`] = item.CostUnit
 		tags[`SubscriptionType`] = item.SubscriptionType
 		tags[`Item`] = item.Item
