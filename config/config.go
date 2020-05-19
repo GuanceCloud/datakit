@@ -483,17 +483,6 @@ func (c *Config) LoadOutputs() ([]*models.RunningOutput, error) {
 			httpOutput.Headers[`X-Max-POST-Interval`] = internal.IntervalString(MaxLifeCheckInterval)
 		}
 		httpOutput.ContentEncoding = "gzip"
-		// datawayUrl := ""
-		// u, err := url.Parse(c.MainCfg.FtGateway)
-		// if err == nil {
-		// 	u.Scheme = "http"
-		// 	u.Host = c.datacleanBind
-		// 	u.Path = `/v1/write/metrics`
-		// 	datawayUrl = u.String()
-		// } else {
-		// 	datawayUrl = fmt.Sprintf(`http://%s/v1/write/metrics?template=%s`, c.datacleanBind, c.MainCfg.DataCleanTemplate)
-		// }
-		// datawayUrl += fmt.Sprintf("?template=%s", c.MainCfg.DataCleanTemplate)
 		httpOutput.URL = fmt.Sprintf(`http://%s/v1/write/metrics?template=%s`, c.datacleanBind, c.MainCfg.DataCleanTemplate)
 		log.Printf("D! self dataway url: %s", httpOutput.URL)
 		if ro, err := c.newRunningOutputDirectly("dataclean", httpOutput); err != nil {
