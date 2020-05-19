@@ -51,6 +51,10 @@ type (
 	}
 )
 
+func (_ *AwsBillAgent) Catalog() string {
+	return "aws"
+}
+
 func (_ *AwsBillAgent) SampleConfig() string {
 	return sampleConfig
 }
@@ -289,7 +293,7 @@ func (a *AwsBillAgent) Stop() {
 }
 
 func init() {
-	inputs.Add(inputName, func() telegraf.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		ac := &AwsBillAgent{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
