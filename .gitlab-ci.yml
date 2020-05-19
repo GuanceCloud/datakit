@@ -15,7 +15,7 @@ stages:
 build-dev:
   stage: deploy
   only:
-    #- dev
+    - CI
   script:
     - make test
     - make pub_test
