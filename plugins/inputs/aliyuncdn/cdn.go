@@ -32,6 +32,10 @@ type RunningInstance struct {
 	domains         []string
 }
 
+func (_ *AliyunCDN) Catalog() string {
+	return "aliyun"
+}
+
 func (_ *AliyunCDN) SampleConfig() string {
 	return aliyunCDNConfigSample
 }
@@ -243,7 +247,7 @@ func (run *RunningProject) commond(action string) {
 }
 
 func init() {
-	inputs.Add("aliyuncdn", func() telegraf.Input {
+	inputs.Add("aliyuncdn", func() inputs.Input {
 		ac := &AliyunCDN{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
