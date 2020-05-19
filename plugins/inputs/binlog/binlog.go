@@ -1,3 +1,5 @@
+// +build !386,!arm
+
 package binlog
 
 import (
@@ -29,6 +31,10 @@ type Binlog struct {
 	accumulator telegraf.Accumulator
 
 	logger *models.Logger
+}
+
+func (_ *Binlog) Catalog() string {
+	return "mysql"
 }
 
 func (_ *Binlog) SampleConfig() string {
@@ -110,7 +116,7 @@ func (b *Binlog) Stop() {
 }
 
 func init() {
-	inputs.Add("binlog", func() telegraf.Input {
+	inputs.Add("binlog", func() inputs.Input {
 		b := &Binlog{
 			logger: &models.Logger{
 				Name: `binlog`,
