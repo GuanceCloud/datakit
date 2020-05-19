@@ -13,7 +13,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"text/template"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -327,7 +326,6 @@ func releaseAgent() {
 	// rename installer
 	if curVd != nil {
 		verId = curVd.withoutGitCommit()
-		renameOssFiles[path.Join(objPath, "install.sh")] = path.Join(objPath, fmt.Sprintf("install-%s.sh", verId))
 	}
 
 	// tar files and collect OSS upload/backup info
@@ -343,7 +341,6 @@ func releaseAgent() {
 		gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, curVersion)
 
 		ossfiles[path.Join(*flagPubDir, *flagRelease, gzName)] = path.Join(objPath, gzName)
-		ossfiles[path.Join(*flagPubDir, *flagRelease, "install.sh")] = path.Join(objPath, "install.sh")
 
 		if goos == "windows" {
 			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
