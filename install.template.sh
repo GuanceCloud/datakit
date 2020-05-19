@@ -13,7 +13,7 @@ InstallDir="/usr/local/cloudcare/dataflux"
 USRDIR="${InstallDir}/${SERVICE}"
 USRDIR_OLD="/usr/local/cloudcare/forethought/${SERVICE}"
 BINARY="$USRDIR/${SERVICE}"
-AGENTBINARY="$USRDIR/agent"
+AGENTBINARY="$USRDIR/embed/agent"
 EMBEDDIR="$USRDIR/embed"
 CONF="$USRDIR/${SERVICE}.conf"
 DOWNLOAD_BASE_ADDR="https://{{.DownloadAddr}}"
@@ -99,7 +99,7 @@ function set_config() {
 	else
 		info "init config"
         #generate config
-        config_cmd="$BINARY --init --ftdataway ${dk_ftdataway} --cfg $1"
+        config_cmd="$BINARY --init --dataway ${dk_ftdataway} --cfg $1"
         $sudo_cmd $config_cmd
 
 		# set permission on $1
@@ -181,13 +181,12 @@ function host_install() {
 
 	# create workdir
 	$sudo_cmd mkdir -p ${USRDIR}
-	$sudo_cmd mkdir -p ${EMBEDDIR}
 
     info "Downloading..."
 	$dl_cmd - "${download_addr}" | $sudo_cmd tar -xz -C ${USRDIR}
 
-	$sudo_cmd chmod +x "$BINARY" 
-	$sudo_cmd chmod +x "$AGENTBINARY" 
+	$sudo_cmd chmod +x "$BINARY"
+	$sudo_cmd chmod +x "$AGENTBINARY"
 
 	if type ldconfig > /dev/null; then
 		mkdir -p /etc/ld.so.conf.d
@@ -202,7 +201,7 @@ function host_install() {
 	if [ -f "${USRDIR}/agent.log" ]; then
 		mv "${USRDIR}/agent.log" "${EMBEDDIR}"
 	fi
-	
+
 	if [ -f "${USRDIR}/agent.pid" ]; then
 		mv "${USRDIR}/agent.pid" "${EMBEDDIR}"
 	fi
@@ -212,7 +211,7 @@ function host_install() {
 	fi
 
 	set_config $CONF
-	
+
 	info "register service"
 
 	# install service only
