@@ -1,3 +1,5 @@
+// +build linux,amd64
+
 package oraclemonitor
 
 import (
@@ -15,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	//_ "gopkg.in/rana/ora.v4"
 )
 
 type OracleMonitor struct {
@@ -33,6 +36,10 @@ type runningInstance struct {
 	logger     *models.Logger
 	db         *sql.DB
 	metricName string
+}
+
+func (_ *OracleMonitor) Catalog() string {
+	return "oracle"
 }
 
 func (_ *OracleMonitor) SampleConfig() string {
@@ -208,7 +215,7 @@ func (r *runningInstance) Query(sql string) ([]map[string]interface{}, error) {
 }
 
 func init() {
-	inputs.Add("oraclemonitor", func() telegraf.Input {
+	inputs.Add("oraclemonitor", func() inputs.Input {
 		ac := &OracleMonitor{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
