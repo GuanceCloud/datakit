@@ -270,10 +270,8 @@ fi
 
 
 info "* Starting Datakit...";
-${stop_instructions} &>/dev/null
 kill_agent
-${start_instructions}
-#eval $restart_cmd
+eval $restart_cmd
 
 info "Your Datakit is running and functioning properly. It will continue to run in the
 background and submit metrics to FtDataway.
