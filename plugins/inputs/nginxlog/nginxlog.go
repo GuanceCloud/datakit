@@ -51,6 +51,10 @@ type NginxLogConfig struct {
 	ErrorLogs  []*NginxErrorLog  `toml:"error_log"`
 }
 
+func (_ *NginxLogConfig) Catalog() string {
+	return "nginx"
+}
+
 func (_ *NginxLogConfig) SampleConfig() string {
 	return nginxLogSample
 }
@@ -127,7 +131,7 @@ func (c *NginxLogConfig) ToTelegraf(f string) (string, error) {
 }
 
 func init() {
-	inputs.Add("nginxlog", func() telegraf.Input {
+	inputs.Add("nginxlog", func() inputs.Input {
 		return &NginxLogConfig{}
 	})
 }
