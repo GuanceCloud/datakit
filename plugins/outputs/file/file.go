@@ -100,6 +100,16 @@ func (f *File) Write(metrics []telegraf.Metric) error {
 	var writeErr error
 
 	for _, metric := range metrics {
+
+		tags := metric.Tags()
+		for k, v := range tags {
+			if v != "" && v[len(v)-1] == '\\' {
+				v += " "
+				metric.RemoveTag(k)
+				metric.AddTag(k, v)
+			}
+		}
+
 		b, err := f.serializer.Serialize(metric)
 		if err != nil {
 			log.Printf("D! [outputs.file] Could not serialize metric: %v", err)
