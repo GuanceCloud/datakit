@@ -94,6 +94,10 @@ var (
 	sshCfgErr         = errors.New("both password and privateKeyFile missed")
 )
 
+func (s *Ssh) Catalog() string {
+	return "ssh"
+}
+
 func (s *Ssh) SampleConfig() string {
 	return sshConfigSample
 }
@@ -271,7 +275,7 @@ func setupLogger() {
 }
 
 func init() {
-	inputs.Add("ssh", func() telegraf.Input {
+	inputs.Add("ssh", func() inputs.Input {
 		p := &Ssh{}
 		return p
 	})
