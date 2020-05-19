@@ -22,7 +22,7 @@ type Coredns struct {
 }
 
 func init() {
-	inputs.Add(pluginName, func() telegraf.Input {
+	inputs.Add(pluginName, func() inputs.Input {
 		e := &Coredns{}
 		e.ctx, e.cancel = context.WithCancel(context.Background())
 		return e
@@ -54,6 +54,10 @@ func (e *Coredns) Stop() {
 
 func (_ *Coredns) SampleConfig() string {
 	return corednsConfigSample
+}
+
+func (_ *Coredns) Catalog() string {
+	return "network"
 }
 
 func (_ *Coredns) Description() string {

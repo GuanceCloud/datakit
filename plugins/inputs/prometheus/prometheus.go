@@ -19,9 +19,61 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-const acceptHeader = `application/vnd.google.protobuf;proto=io.prometheus.client.MetricFamily;encoding=delimited;q=0.7,text/plain;version=0.0.4;q=0.3,*/*;q=0.1`
+const (
+	acceptHeader = `application/vnd.google.protobuf;proto=io.prometheus.client.MetricFamily;encoding=delimited;q=0.7,text/plain;version=0.0.4;q=0.3,*/*;q=0.1`
+)
 
-var promAgent *Prometheus
+var (
+	promAgent *Prometheus
+
+	sampleConfig = `
+  ## An array of urls to scrape metrics from.
+  #urls = ["http://localhost:9100/metrics"]
+
+  ## Url tag name (tag containing scrapped url. optional, default is "url")
+  # url_tag = "scrapeUrl"
+
+  #[metric_name_map]
+  #node_cpu_seconds_total = 'node_cpu'
+
+  ## An array of Kubernetes services to scrape metrics from.
+  # kubernetes_services = ["http://my-service-dns.my-namespace:9100/metrics"]
+
+  ## Kubernetes config file to create client from.
+  # kube_config = "/path/to/kubernetes.config"
+
+  ## Scrape Kubernetes pods for the following prometheus annotations:
+  ## - prometheus.io/scrape: Enable scraping for this pod
+  ## - prometheus.io/scheme: If the metrics endpoint is secured then you will need to
+  ##     set this to 'https' & most likely set the tls config.
+  ## - prometheus.io/path: If the metrics path is not /metrics, define it with this annotation.
+  ## - prometheus.io/port: If port is not 9102 use this annotation
+  # monitor_kubernetes_pods = true
+  ## Restricts Kubernetes monitoring to a single namespace
+  ##   ex: monitor_kubernetes_pods_namespace = "default"
+  # monitor_kubernetes_pods_namespace = ""
+
+  ## Use bearer token for authorization. ('bearer_token' takes priority)
+  # bearer_token = "/path/to/bearer/token"
+  ## OR
+  # bearer_token_string = "abc_123"
+
+  ## HTTP Basic Authentication username and password. ('bearer_token' and
+  ## 'bearer_token_string' take priority)
+  # username = ""
+  # password = ""
+
+  ## Specify timeout duration for slower prometheus clients (default is 3s)
+  # response_timeout = "3s"
+
+  ## Optional TLS Config
+  # tls_ca = /path/to/cafile
+  # tls_cert = /path/to/certfile
+  # tls_key = /path/to/keyfile
+  ## Use TLS but skip chain & host verification
+  # insecure_skip_verify = false
+`
+)
 
 type Prometheus struct {
 	// An array of urls to scrape metrics from.
@@ -69,53 +121,9 @@ type Prometheus struct {
 	stopCancelFun context.CancelFunc
 }
 
-var sampleConfig = `
-  ## An array of urls to scrape metrics from.
-  #urls = ["http://localhost:9100/metrics"]
-
-  ## Url tag name (tag containing scrapped url. optional, default is "url")
-  # url_tag = "scrapeUrl"
-
-  #[metric_name_map]
-  #node_cpu_seconds_total = 'node_cpu'
-
-  ## An array of Kubernetes services to scrape metrics from.
-  # kubernetes_services = ["http://my-service-dns.my-namespace:9100/metrics"]
-
-  ## Kubernetes config file to create client from.
-  # kube_config = "/path/to/kubernetes.config"
-
-  ## Scrape Kubernetes pods for the following prometheus annotations:
-  ## - prometheus.io/scrape: Enable scraping for this pod
-  ## - prometheus.io/scheme: If the metrics endpoint is secured then you will need to
-  ##     set this to 'https' & most likely set the tls config.
-  ## - prometheus.io/path: If the metrics path is not /metrics, define it with this annotation.
-  ## - prometheus.io/port: If port is not 9102 use this annotation
-  # monitor_kubernetes_pods = true
-  ## Restricts Kubernetes monitoring to a single namespace
-  ##   ex: monitor_kubernetes_pods_namespace = "default"
-  # monitor_kubernetes_pods_namespace = ""
-
-  ## Use bearer token for authorization. ('bearer_token' takes priority)
-  # bearer_token = "/path/to/bearer/token"
-  ## OR
-  # bearer_token_string = "abc_123"
-
-  ## HTTP Basic Authentication username and password. ('bearer_token' and
-  ## 'bearer_token_string' take priority)
-  # username = ""
-  # password = ""
-
-  ## Specify timeout duration for slower prometheus clients (default is 3s)
-  # response_timeout = "3s"
-
-  ## Optional TLS Config
-  # tls_ca = /path/to/cafile
-  # tls_cert = /path/to/certfile
-  # tls_key = /path/to/keyfile
-  ## Use TLS but skip chain & host verification
-  # insecure_skip_verify = false
-`
+func (p *Prometheus) Catalog() string {
+	return `prometheus`
+}
 
 func (p *Prometheus) SampleConfig() string {
 	return sampleConfig
@@ -400,7 +408,7 @@ func (p *Prometheus) Stop() {
 }
 
 func init() {
-	inputs.Add("prometheus", func() telegraf.Input {
+	inputs.Add("prometheus", func() inputs.Input {
 		promAgent = &Prometheus{
 			ResponseTimeout: internal.Duration{Duration: time.Second * 3},
 			kubernetesPods:  map[string]URLAndAddress{},
