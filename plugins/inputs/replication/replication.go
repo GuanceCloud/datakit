@@ -22,7 +22,7 @@ type Replication struct {
 }
 
 func init() {
-	inputs.Add(pluginName, func() telegraf.Input {
+	inputs.Add(pluginName, func() inputs.Input {
 		r := &Replication{}
 		r.ctx, r.cancel = context.WithCancel(context.Background())
 		return r
@@ -51,6 +51,10 @@ func (r *Replication) Stop() {
 	r.cancel()
 	r.wg.Wait()
 	log.Printf("I! [Replication] stop\n")
+}
+
+func (_ *Replication) Catalog() string {
+	return "mongodb"
 }
 
 func (_ *Replication) SampleConfig() string {
