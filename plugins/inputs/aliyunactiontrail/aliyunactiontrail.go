@@ -44,6 +44,10 @@ type (
 	}
 )
 
+func (_ *AliyunActiontrail) Catalog() string {
+	return "aliyun"
+}
+
 func (_ *AliyunActiontrail) SampleConfig() string {
 	return configSample
 }
@@ -286,7 +290,7 @@ func unixTimeStrISO8601(t time.Time) string {
 }
 
 func init() {
-	inputs.Add("aliyunactiontrail", func() telegraf.Input {
+	inputs.Add("aliyunactiontrail", func() inputs.Input {
 		ac := &AliyunActiontrail{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
