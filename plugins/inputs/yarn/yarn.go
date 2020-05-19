@@ -1,13 +1,13 @@
 package yarn
 
 import (
-	"fmt"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/antchfx/jsonquery"
@@ -150,6 +150,7 @@ const (
 )
 
 type VAL_TYPE = int
+
 const (
 	INT VAL_TYPE = iota
 	FLOAT
@@ -160,6 +161,10 @@ var (
 	ctx  context.Context
 	cfun context.CancelFunc
 )
+
+func (y *Yarn) Catalog() string {
+	return "yarn"
+}
 
 func (y *Yarn) SampleConfig() string {
 	return yarnConfigSample
@@ -393,7 +398,7 @@ func (p *YarnParam) gatherQueueSection() error {
 		fields = make(map[string]interface{})
 		tags[host] = p.input.Host
 
-		if val, err := getQueueNodeVal(node,"type", STRING); err == nil {
+		if val, err := getQueueNodeVal(node, "type", STRING); err == nil {
 			switch val.(type) {
 			case string:
 				if val.(string) != "capacitySchedulerLeafQueueInfo" {
@@ -404,100 +409,98 @@ func (p *YarnParam) gatherQueueSection() error {
 			}
 		}
 
-		if val, err := getQueueNodeVal(node,"queueName", STRING); err == nil {
+		if val, err := getQueueNodeVal(node, "queueName", STRING); err == nil {
 			switch val.(type) {
 			case string:
 				tags[section] = sectionQueue + val.(string)
 			}
 		}
 
-		if val, err := getQueueNodeVal(node,"numPendingApplications", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "numPendingApplications", INT); err == nil {
 			fields["num_pending_applications"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"userAMResourceLimit/memory", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "userAMResourceLimit/memory", INT); err == nil {
 			fields["user_am_resource_limit_memory"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"userAMResourceLimit/vCores", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "userAMResourceLimit/vCores", INT); err == nil {
 			fields["user_am_resource_limit_vcores"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"absoluteCapacity", FLOAT); err == nil {
+		if val, err := getQueueNodeVal(node, "absoluteCapacity", FLOAT); err == nil {
 			fields["absolute_capacity"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"userLimitFactor", FLOAT); err == nil {
+		if val, err := getQueueNodeVal(node, "userLimitFactor", FLOAT); err == nil {
 			fields["user_limit_factor"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"userLimit", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "userLimit", INT); err == nil {
 			fields["user_limit"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"numApplications", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "numApplications", INT); err == nil {
 			fields["num_applications"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"usedAMResource/memory", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "usedAMResource/memory", INT); err == nil {
 			fields["used_am_resource_memory"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"usedAMResource/vCores", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "usedAMResource/vCores", INT); err == nil {
 			fields["used_am_resource_vcores"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"absoluteUsedCapacity", FLOAT); err == nil {
+		if val, err := getQueueNodeVal(node, "absoluteUsedCapacity", FLOAT); err == nil {
 			fields["absolute_used_capacity"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"resourcesUsed/memory", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "resourcesUsed/memory", INT); err == nil {
 			fields["resources_used_memory"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"resourcesUsed/vCores", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "resourcesUsed/vCores", INT); err == nil {
 			fields["resources_used_vcores"] = val
 		}
 
-
-		if val, err := getQueueNodeVal(node,"AMResourceLimit/memory", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "AMResourceLimit/memory", INT); err == nil {
 			fields["am_resource_limit_vcores"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"AMResourceLimit/vCores", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "AMResourceLimit/vCores", INT); err == nil {
 			fields["am_resource_limit_memory"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"capacity", FLOAT); err == nil {
+		if val, err := getQueueNodeVal(node, "capacity", FLOAT); err == nil {
 			fields["capacity"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"numActiveApplications", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "numActiveApplications", INT); err == nil {
 			fields["num_active_applications"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"absoluteMaxCapacity", FLOAT); err == nil {
+		if val, err := getQueueNodeVal(node, "absoluteMaxCapacity", FLOAT); err == nil {
 			fields["absolute_max_capacity"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"usedCapacity", FLOAT); err == nil {
+		if val, err := getQueueNodeVal(node, "usedCapacity", FLOAT); err == nil {
 			fields["used_capacity"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"numContainers", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "numContainers", INT); err == nil {
 			fields["num_containers"] = val
 		}
 
-
-		if val, err := getQueueNodeVal(node,"maxCapacity", FLOAT); err == nil {
+		if val, err := getQueueNodeVal(node, "maxCapacity", FLOAT); err == nil {
 			fields["max_capacity"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"maxApplications", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "maxApplications", INT); err == nil {
 			fields["max_applications"] = val
 		}
 
-		if val, err := getQueueNodeVal(node,"maxApplicationsPerUser", INT); err == nil {
+		if val, err := getQueueNodeVal(node, "maxApplicationsPerUser", INT); err == nil {
 			fields["max_applications_per_user"] = val
 		}
 
@@ -507,7 +510,7 @@ func (p *YarnParam) gatherQueueSection() error {
 }
 
 func getQueueNodeVal(top *jsonquery.Node, expr string, valType VAL_TYPE) (i interface{}, err error) {
-	defer func () {
+	defer func() {
 		if r := recover(); r != nil {
 			switch x := r.(type) {
 			case string:
@@ -535,7 +538,7 @@ func getQueueNodeVal(top *jsonquery.Node, expr string, valType VAL_TYPE) (i inte
 }
 
 func init() {
-	inputs.Add("yarn", func() telegraf.Input {
+	inputs.Add("yarn", func() inputs.Input {
 		p := &Yarn{}
 		return p
 	})

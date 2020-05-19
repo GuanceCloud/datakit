@@ -67,6 +67,10 @@ type runningStore struct {
 	logger *models.Logger
 }
 
+func (_ *AliyunLog) Catalog() string {
+	return "aliyun"
+}
+
 func (_ *AliyunLog) SampleConfig() string {
 	return aliyunlogConfigSample
 }
@@ -359,7 +363,7 @@ func NewAgent() *AliyunLog {
 }
 
 func init() {
-	inputs.Add("aliyunlog", func() telegraf.Input {
+	inputs.Add("aliyunlog", func() inputs.Input {
 		return NewAgent()
 	})
 }
