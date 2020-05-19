@@ -204,7 +204,7 @@ func (r *runningInstance) getInstance(engine string, regionID string) error {
 
 func (r *runningInstance) command(engine string, instanceObj *rdsInstance) {
 	et := time.Now()
-	st := et.Add(-time.Hour * 24)
+	st := et.Add(-r.cfg.Interval.Duration)
 
 	request := rds.CreateDescribeSlowLogsRequest()
 	request.Scheme = "https"
