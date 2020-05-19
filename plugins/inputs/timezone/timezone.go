@@ -61,12 +61,16 @@ var (
 )
 
 var (
-	ctx          context.Context
-	cfun         context.CancelFunc
+	ctx  context.Context
+	cfun context.CancelFunc
 )
 
 func (t *Timezone) SampleConfig() string {
 	return timeZoneConfigSample
+}
+
+func (t *Timezone) Catalog() string {
+	return "timezone"
 }
 
 func (t *Timezone) Description() string {
@@ -176,7 +180,7 @@ func setupLogger() {
 }
 
 func init() {
-	inputs.Add("timezone", func() telegraf.Input {
+	inputs.Add("timezone", func() inputs.Input {
 		tz := &Timezone{}
 		return tz
 	})
