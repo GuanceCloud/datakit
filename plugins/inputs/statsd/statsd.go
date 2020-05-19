@@ -72,6 +72,10 @@ const (
 	defaultInterval   = 60
 )
 
+func (t *StatsD) Catalog() string {
+	return "statsd"
+}
+
 func (t *StatsD) SampleConfig() string {
 	return statsdConfigSample
 }
@@ -142,7 +146,7 @@ func setupLogger() {
 }
 
 func init() {
-	inputs.Add("statsd", func() telegraf.Input {
+	inputs.Add("statsd", func() inputs.Input {
 		p := &StatsD{}
 		return p
 	})
