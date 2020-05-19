@@ -1,3 +1,5 @@
+// +build linux,amd64
+
 package oraclemonitor
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
