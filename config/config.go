@@ -529,7 +529,8 @@ func InitMainCfg(dw string) error {
 
 	Cfg.MainCfg.UUID = cliutils.XID("dkid_")
 	Cfg.MainCfg.ConfigDir = ConfdDir
-	Cfg.MainCfg.FtGateway = fmt.Sprintf("http://%s/v1/write/metrics", dw)
+	//Cfg.MainCfg.FtGateway = fmt.Sprintf("http://%s/v1/write/metrics", dw)
+	Cfg.MainCfg.FtGateway = dw
 
 	var err error
 	tm := template.New("")
