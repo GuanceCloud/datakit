@@ -21,7 +21,9 @@ type (
 	}
 )
 
-const agentSubDir = "embed"
+const (
+	agentSubDir = "embed"
+)
 
 var (
 	Svr = &TelegrafSvr{}
@@ -70,7 +72,6 @@ func (s *TelegrafSvr) Start(ctx context.Context) error {
 			if err != nil || ps == nil {
 				log.Printf("W! sub service(%v) not found: %s", agentPID, err)
 			}
-
 		}
 	}(ctx)
 
@@ -115,7 +116,7 @@ func (s *TelegrafSvr) startAgent(ctx context.Context) error {
 
 	if runtime.GOOS == "windows" {
 
-		cmd := exec.Command(agentPath(true), "-console")
+		cmd := exec.Command(agentPath(), "-console")
 		cmd.Env = env
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -126,7 +127,7 @@ func (s *TelegrafSvr) startAgent(ctx context.Context) error {
 		p = cmd.Process
 
 	} else {
-		p, err = os.StartProcess(agentPath(false), []string{"agent", "-config", s.agentConfPath(false)}, procAttr)
+		p, err = os.StartProcess(agentPath(), []string{"agent", "-config", s.agentConfPath(false)}, procAttr)
 		if err != nil {
 			return err
 		}
@@ -143,8 +144,8 @@ func (s *TelegrafSvr) startAgent(ctx context.Context) error {
 }
 
 func (s *TelegrafSvr) agentConfPath(quote bool) string {
-	os.MkdirAll(filepath.Join(config.ExecutableDir, agentSubDir), 0775)
-	path := filepath.Join(config.ExecutableDir, agentSubDir, "agent.conf")
+	os.MkdirAll(filepath.Join(config.InstallDir, agentSubDir), 0775)
+	path := filepath.Join(config.InstallDir, agentSubDir, "agent.conf")
 
 	if quote {
 		return fmt.Sprintf(`"%s"`, path)
@@ -152,9 +153,11 @@ func (s *TelegrafSvr) agentConfPath(quote bool) string {
 	return path
 }
 
-func agentPath(win bool) string {
-	if win {
-		return filepath.Join(config.ExecutableDir, agentSubDir, "agent.exe")
+func agentPath() string {
+	fpath := filepath.Join(config.InstallDir, agentSubDir, runtime.GOOS+"-"+runtime.GOARCH, "agent")
+	if runtime.GOOS == "windows" {
+		fpath = fpath + ".exe"
 	}
-	return filepath.Join(config.ExecutableDir, agentSubDir, "agent")
+
+	return fpath
 }
