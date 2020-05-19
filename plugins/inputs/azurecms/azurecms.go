@@ -51,6 +51,10 @@ func (ag *azureMonitorAgent) Init() error {
 	return nil
 }
 
+func (_ *azureMonitorAgent) Catalog() string {
+	return "azure"
+}
+
 func (_ *azureMonitorAgent) SampleConfig() string {
 	return sampleConfig
 }
@@ -93,7 +97,7 @@ func (ag *azureMonitorAgent) Stop() {
 }
 
 func init() {
-	inputs.Add("azure_monitor", func() telegraf.Input {
+	inputs.Add("azure_monitor", func() inputs.Input {
 		ac := &azureMonitorAgent{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
