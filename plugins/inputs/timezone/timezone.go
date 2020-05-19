@@ -63,7 +63,6 @@ var (
 var (
 	ctx          context.Context
 	cfun         context.CancelFunc
-	stopChan     chan bool
 )
 
 func (t *Timezone) SampleConfig() string {
@@ -85,6 +84,9 @@ func (t *Timezone) Start(acc telegraf.Accumulator) error {
 	ctx, cfun = context.WithCancel(context.Background())
 
 	input := TzInput{*t}
+	if input.Active == false {
+		return nil
+	}
 	if input.Interval <= 0 {
 		input.Interval = defaultInterval
 	}
@@ -97,20 +99,16 @@ func (t *Timezone) Start(acc telegraf.Accumulator) error {
 	p := TzParams{input, output}
 	go p.gather(ctx)
 
-	stopChan = make(chan bool, 1)
 	return nil
 }
 
 func (t *Timezone) Stop() {
-	stopChan <- true
 	cfun()
 }
 
 func (p *TzParams) gather(ctx context.Context) {
 	for {
 		select {
-		case <-stopChan:
-			return
 		case <-ctx.Done():
 			return
 		default:
