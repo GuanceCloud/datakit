@@ -3,14 +3,14 @@ module gitlab.jiagouyun.com/cloudcare-tools/datakit
 go 1.13
 
 require (
-	github.com/Azure/azure-sdk-for-go v0.0.0-20200305061206-32160a3836db
-	github.com/Azure/go-autorest/autorest v0.10.0
+	github.com/Azure/azure-sdk-for-go v37.1.0+incompatible
+	github.com/Azure/go-autorest/autorest v0.9.3
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
 	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.4
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/aws/aws-sdk-go v1.27.0
@@ -24,6 +24,7 @@ require (
 	github.com/cosiner/argv v0.0.1 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
+	github.com/dustin/go-humanize v1.0.0
 	github.com/ericchiang/k8s v1.2.0
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gin-gonic/gin v1.6.2
@@ -42,7 +43,7 @@ require (
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/jackc/pgx v3.6.0+incompatible
 	github.com/kardianos/service v1.0.0
-	github.com/lib/pq v1.3.0
+	github.com/lib/pq v1.4.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/mehrdadrad/mylg v0.2.6 // indirect
 	github.com/naoina/toml v0.1.1
