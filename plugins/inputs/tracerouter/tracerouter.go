@@ -1,4 +1,4 @@
-//+build !windows
+// +build !windows,!darwin,!386
 
 package tracerouter
 
@@ -19,6 +19,10 @@ func (t *TraceRouter) Description() string {
 
 func (t *TraceRouter) SampleConfig() string {
 	return sampleConfig
+}
+
+func (t *TraceRouter) Catalog() string {
+	return "network"
 }
 
 func (t *TraceRouter) Init() error {
@@ -46,7 +50,6 @@ func printHop(domain string, traceId string, hop traceroute.TracerouteHop, acc t
 
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
-	// traceId := NewUUID()
 	if hop.Success {
 		tags["distAddr"] = domain
 		tags["traceId"] = traceId
@@ -54,9 +57,6 @@ func printHop(domain string, traceId string, hop traceroute.TracerouteHop, acc t
 		fields["addr"] = fmt.Sprintf("\"%s\"", addr)
 		fields["ttl"] = hop.ElapsedTime.Microseconds()
 	}
-	// } else {
-	// 	fmt.Printf("%-3d *\n", hop.TTL)
-	// }
 
 	acc.AddFields("tracerouter", fields, tags)
 }
@@ -70,11 +70,6 @@ func (t *TraceRouter) exec(traceId string, acc telegraf.Accumulator) {
 	options := traceroute.TracerouteOptions{}
 	options.SetMaxHops(traceroute.DEFAULT_MAX_HOPS + 1)
 	options.SetFirstHop(traceroute.DEFAULT_FIRST_HOP)
-
-	// ipAddr, err := net.ResolveIPAddr("ip", host)
-	// if err != nil {
-	// 	return
-	// }
 
 	c := make(chan traceroute.TracerouteHop, 0)
 	go func() {
@@ -96,5 +91,5 @@ func (t *TraceRouter) exec(traceId string, acc telegraf.Accumulator) {
 }
 
 func init() {
-	inputs.Add("tracerouter", func() telegraf.Input { return &TraceRouter{} })
+	inputs.Add("tracerouter", func() inputs.Input { return &TraceRouter{} })
 }
