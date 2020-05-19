@@ -1,3 +1,5 @@
+// +build linux,amd64
+
 package oraclemonitor
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
@@ -25,7 +27,7 @@ const (
 #  server = ''
 #  ## 实例类型 例如 单实例、DG、RAC 等，非必要属性
 #  type= 'singleInstance'
-#  
+#
 `
 )
 
