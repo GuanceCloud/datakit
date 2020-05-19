@@ -3,6 +3,7 @@ package replication
 import (
 	"context"
 	"fmt"
+	"log"
 
 	// "log"
 	"sync"
@@ -75,7 +76,7 @@ func (s *stream) start(r *Replication, ctx context.Context, wg *sync.WaitGroup) 
 
 	conn, err := pgx.ReplicationConnect(config)
 	if err != nil {
-		// log.Printf("create replication connection err: %v\n", err)
+		log.Printf("E! [Replication] subscribe %s:%d, create replication connect failed: %s\n", s.sub.Host, s.sub.Port, err.Error())
 		return err
 	}
 
@@ -87,23 +88,26 @@ func (s *stream) start(r *Replication, ctx context.Context, wg *sync.WaitGroup) 
 	if err != nil {
 		// 42710 means replication slot already exists
 		if pgerr, ok := err.(pgx.PgError); !ok || pgerr.Code != "42710" {
-			// log.Printf("create replication slot err: %v\n", err)
-			return fmt.Errorf("failed to create replication slot: %s", err)
+			log.Printf("E! [Replication] subscribe %s:%d, create replication slot err: %s\n", s.sub.Host, s.sub.Port, err.Error())
+			return err
 		}
 	}
 
 	_ = s.sendStatus()
 
 	if err := conn.StartReplication(slotname, 0, -1); err != nil {
-		// log.Printf("start replication err: %v\n", err)
+		log.Printf("E! [Replication] subscribe %s:%d, start connection err: %s\n", s.sub.Host, s.sub.Port, err.Error())
 		return err
 	}
+
+	log.Printf("I! [Replication] subscribe %s:%d start\n", s.sub.Host, s.sub.Port)
 
 	return s.runloop(ctx)
 }
 
 func (s *stream) stop() error {
 	s.cancel()
+	log.Printf("I! [Replication] subscribe %s:%d stop\n", s.sub.Host, s.sub.Port)
 	return s.replicationConn.Close()
 }
 
@@ -116,30 +120,39 @@ func (s *stream) runloop(ctx context.Context) error {
 			select {
 			case <-ticker.C:
 				_ = s.sendStatus()
-			case <-ctx.Done():
-				return
+			default:
+				// nil
 			}
 		}
 	}()
 
 	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			// nil
+		}
+
 		msg, err := s.replicationConn.WaitForReplicationMessage(ctx)
 		if err != nil {
 			if err == ctx.Err() {
+				log.Printf("W! [Replication] subscribe %s:%d, wait message err: %s\n", s.sub.Host, s.sub.Port, err.Error())
 				return err
 			}
 			if err := s.checkAndResetConn(); err != nil {
-				// log.Printf("reset replication connection err: %v\n", err)
+				log.Printf("W! [Replication] subscribe %s:%d, reset replication connection err: %s\n", s.sub.Host, s.sub.Port, err.Error())
 			}
 			continue
 		}
 
 		if msg == nil {
+			log.Printf("W! [Replication] subscribe %s:%d, handle replication msg is empty\n", s.sub.Host, s.sub.Port)
 			continue
 		}
 
 		if err := s.replicationMsgHandle(msg); err != nil {
-			// log.Printf("handle replication msg err: %v\n", err)
+			log.Printf("E! [Replication] subscribe %s:%d, handle replication msg err: %s\n", s.sub.Host, s.sub.Port, err.Error())
 			continue
 		}
 	}
