@@ -1,5 +1,3 @@
-// +build ignore
-
 package main
 
 import (
@@ -27,7 +25,6 @@ var (
 	flagName     = flag.String("name", *flagBinary, "same as -binary")
 	flagBuildDir = flag.String("build-dir", "build", "output of build files")
 	flagMain     = flag.String(`main`, `main.go`, `binary build entry`)
-	flagCGO      = flag.Int(`cgo`, 0, `enable CGO or not`)
 
 	flagDownloadAddr = flag.String("download-addr", "", "")
 	flagPubDir       = flag.String("pub-dir", "pub", "")
@@ -38,49 +35,92 @@ var (
 
 	flagPub = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/alpha/release/preprod`)
 
-	curVersion string
-	osarches   = []string{
-		//"aix/ppc64",
-		//"linux/amd64",
-		//"windows/amd64",
+	curVersion   string
+	installerExe string
 
-		//`android/amd64`,
-		//`android/arm64`,
-		//`darwin/arm64`,
-		`dragonfly/amd64`,
-		`freebsd/amd64`,
-		`illumos/amd64`,
-		`js/wasm`,
+	/* Use:
+			go tool dist list
+		to get your current os/arch list
+
+	aix/ppc64
+
+	android/386
+	android/amd64
+	android/arm
+	android/arm64
+
+	darwin/386
+	darwin/amd64
+	darwin/arm
+	darwin/arm64
+
+	dragonfly/amd64
+
+	freebsd/386
+	freebsd/amd64
+	freebsd/arm
+
+	illumos/amd64
+
+	js/wasm
+
+	linux/386
+	linux/amd64
+	linux/arm
+	linux/arm64
+	linux/mips
+	linux/mips64
+	linux/mips64le
+	linux/mipsle
+	linux/ppc64
+	linux/ppc64le
+	linux/s390x
+
+	nacl/386
+	nacl/amd64p32
+	nacl/arm
+
+	netbsd/386
+	netbsd/amd64
+	netbsd/arm
+	netbsd/arm64
+
+	openbsd/386
+	openbsd/amd64
+	openbsd/arm
+	openbsd/arm64
+
+	plan9/386
+	plan9/amd64
+	plan9/arm
+
+	solaris/amd64
+
+	windows/386
+	windows/amd64
+	windows/arm */
+
+	osarches = []string{
+		//`freebsd/386`,
+		//`freebsd/amd64`,
+
+		`linux/386`,
 		`linux/amd64`,
+		`linux/arm`,
 		`linux/arm64`,
-		`linux/mips64`,
-		`linux/mips64le`,
-		`linux/mipsle`,
-		`linux/ppc64`,
-		`linux/ppc64le`,
-		`linux/s390x`,
-		`nacl/amd64p32`,
-		`nacl/arm`,
-		`netbsd/amd64`,
-		`netbsd/arm64`,
-		`openbsd/amd64`,
-		`openbsd/arm64`,
-		`plan9/amd64`,
-		`solaris/amd64`,
-		`windows/amd64`,
-		`windows/arm`,
+		//`linux/s390x`,
+		//`linux/ppc64le`,
 
-		`aix/ppc64`,
 		`darwin/amd64`,
-	}
 
-	winInstallerExe = ""
+		`windows/amd64`,
+		`windows/386`,
+	}
 )
 
 type versionDesc struct {
-	Version   string `json:"version"`
-	Date      string `json:"date"`
-	ChangeLog string `json:"changeLog"` // TODO: add release note
+	Version string `json:"version"`
+	Date    string `json:"date"`
 }
 
 func (vd *versionDesc) withoutGitCommit() string {
@@ -100,10 +140,8 @@ func runEnv(args, env []string) {
 		cmd.Env = append(os.Environ(), env...)
 	}
 
-	// log.Printf("%s %s", strings.Join(env, " "), strings.Join(args, " "))
-	err := cmd.Run()
-	if err != nil {
-		log.Fatalf("failed to run %v, envs: %v: %v", args, env, err)
+	if err := cmd.Run(); err != nil {
+		log.Printf("[error] failed to run %v, envs: %v: %v", args, env, err)
 	}
 }
 
@@ -128,18 +166,17 @@ func compileArch(bin, goos, goarch, dir string) {
 	env := []string{
 		"GOOS=" + goos,
 		"GOARCH=" + goarch,
+		`GO111MODULE=off`,
 	}
 
-	//if goos == "windows" {
-	//	env = append(env, []string{"CXX=g++-mingw-w64-x86-64", "CC=x86_64-w64-mingw32-gcc"}...)
-	//}
-
-	if *flagCGO == 1 && goos != "aix" {
+	switch goos + "/" + goarch {
+	case `linux/amd64`:
 		env = append(env, "CGO_ENABLED=1")
-	} else {
+	default:
 		env = append(env, "CGO_ENABLED=0")
 	}
 
+	log.Printf("[debug] building % 13s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
 	runEnv(args, env)
 }
 
@@ -147,7 +184,6 @@ func compile() {
 	start := time.Now()
 
 	compileTask := func(bin, goos, goarch, dir string) {
-		log.Printf("[debug] building %s/%s...", goos, goarch)
 		compileArch(bin, goos, goarch, dir)
 	}
 
@@ -156,7 +192,7 @@ func compile() {
 	if *flagArchs == "all" {
 		archs = osarches
 	} else {
-		archs = strings.Split(*flagArchs, ",")
+		archs = strings.Split(*flagArchs, "|")
 	}
 
 	for _, arch := range archs {
@@ -182,10 +218,12 @@ func compile() {
 
 		compileTask(*flagBinary, goos, goarch, dir)
 
-		if goos == "windows" { // build windows installer.exe
-			winInstallerExe = fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, curVersion)
-			buildWindowsInstall(path.Join(*flagPubDir, *flagRelease), goarch)
+		if goos == "windows" {
+			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
+		} else {
+			installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
 		}
+		buildInstaller(path.Join(*flagPubDir, *flagRelease), goos, goarch)
 
 		// generate install scripts & installer to pub-dir
 		buildInstallScript(path.Join(*flagPubDir, *flagRelease), goos, goarch)
@@ -209,11 +247,6 @@ func buildInstallScript(dir, goos, goarch string) {
 
 	templateFile := "install.template.sh"
 	installScript := "install.sh"
-
-	if goos == "windows" {
-		templateFile = "install.template.ps1"
-		installScript = "install.ps1"
-	}
 
 	txt, err := ioutil.ReadFile(templateFile)
 	if err != nil {
@@ -300,7 +333,6 @@ func releaseAgent() {
 	}
 
 	versionFile := `version`
-	installObj := "install.sh"
 
 	// 请求线上版本信息
 	url := fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, *flagName, versionFile)
@@ -315,10 +347,25 @@ func releaseAgent() {
 		archs = strings.Split(*flagArchs, "|")
 	}
 
-	objs := map[string]string{
+	ossfiles := map[string]string{
 		path.Join(*flagPubDir, *flagRelease, "version"): path.Join(objPath, "version"),
 	}
 
+	renameOssFiles := map[string]string{}
+	var verId string
+
+	if curVd != nil && curVd.Version == git.Version {
+		log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
+		os.Exit(0)
+	}
+
+	// rename installer
+	if curVd != nil {
+		verId = curVd.withoutGitCommit()
+		renameOssFiles[path.Join(objPath, "install.sh")] = path.Join(objPath, fmt.Sprintf("install-%s.sh", verId))
+	}
+
+	// tar files and collect OSS upload/backup info
 	for _, arch := range archs {
 		parts := strings.Split(arch, "/")
 		if len(parts) != 2 {
@@ -330,39 +377,47 @@ func releaseAgent() {
 
 		gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, curVersion)
 
-		objs[path.Join(*flagPubDir, *flagRelease, gzName)] = path.Join(objPath, gzName)
+		ossfiles[path.Join(*flagPubDir, *flagRelease, gzName)] = path.Join(objPath, gzName)
+		ossfiles[path.Join(*flagPubDir, *flagRelease, "install.sh")] = path.Join(objPath, "install.sh")
 
 		if goos == "windows" {
-			objs[path.Join(*flagPubDir, *flagRelease, "install.ps1")] = path.Join(objPath, "install.ps1")
-			winInstallerExe = fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, curVersion)
-			objs[path.Join(*flagPubDir, *flagRelease, winInstallerExe)] = path.Join(objPath, winInstallerExe)
+			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
+
+			if curVd != nil {
+				renameOssFiles[path.Join(objPath, installerExe)] =
+					path.Join(objPath, fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, verId))
+			}
+
 		} else {
-			objs[path.Join(*flagPubDir, *flagRelease, "install.sh")] = path.Join(objPath, "install.sh")
+			installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
+
+			if curVd != nil {
+				renameOssFiles[path.Join(objPath, installerExe)] =
+					path.Join(objPath, fmt.Sprintf("installer-%s-%s-%s", goos, goarch, verId))
+			}
 		}
 
-		if curVd != nil {
-			if curVd.Version == git.Version {
-				log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
-				os.Exit(0)
-			}
+		ossfiles[path.Join(*flagPubDir, *flagRelease, installerExe)] = path.Join(objPath, installerExe)
+	}
 
-			installObjOld := path.Join(objPath, fmt.Sprintf("install-%s.sh", curVd.withoutGitCommit()))
-			if goos == "windows" {
-				installObjOld = path.Join(objPath, fmt.Sprintf("install-%s.ps1", curVd.withoutGitCommit()))
-				installObj = path.Join(objPath, "install.ps1")
-			} else {
-				installObj = path.Join(objPath, "install.sh")
-			}
+	// backup old installer script online, make it possible to install old version if required
+	for k, v := range renameOssFiles {
+		if err := oc.Move(k, v); err != nil {
+			log.Printf("[debug] backup %s -> %s failed: %s, ignored", k, v, err.Error())
+			continue
+		}
 
-			// rename install script online, make it possible to install old version if required
-			log.Printf("[debug] rename %s -> %s", installObj, installObjOld)
-			if err := oc.Move(installObj, installObjOld); err != nil {
-				log.Fatal(err)
-			}
+		log.Printf("[debug] backup %s -> %s ok", k, v)
+	}
+
+	// test if all file ok before uploading
+	for k, _ := range ossfiles {
+		if _, err := os.Stat(k); err != nil {
+			log.Fatalf("[error] %s", err.Error())
 		}
 	}
 
-	for k, v := range objs {
+	for k, v := range ossfiles {
 		log.Printf("[debug] upload %s -> %s ...", k, v)
 		if err := oc.Upload(k, v); err != nil {
 			log.Fatal(err)
@@ -446,21 +501,32 @@ const (
 	compile()
 }
 
-func tarFiles(osname, arch string) {
+func tarFiles(goos, goarch string) {
 
-	telegrafAgentName := "agent"
-	if osname == "windows" {
-		telegrafAgentName = "agent.exe"
+	var telegrafPath string
+
+	suffix := goos + "-" + goarch
+
+	switch suffix {
+	case `freebsd-386`, `freebsd-amd64`,
+		`linux-386`, `linux-amd64`,
+		`linux-arm`, `linux-arm64`,
+		`darwin-amd64`:
+		telegrafPath = path.Join("embed", suffix, "agent")
+
+	case `windows-amd64`, `windows-386`:
+		telegrafPath = path.Join("embed", suffix, "agent.exe")
 	}
 
+	gz := path.Join(*flagPubDir, *flagRelease, fmt.Sprintf("%s-%s-%s-%s.tar.gz",
+		*flagName, goos, goarch, string(curVersion)))
 	args := []string{
 		`czf`,
-		path.Join(*flagPubDir, *flagRelease, fmt.Sprintf("%s-%s-%s-%s.tar.gz",
-			*flagName, osname, arch, string(curVersion))),
-		path.Join("embed", telegrafAgentName),
+		gz,
+		telegrafPath,
 		`-C`,
-		// the whole build/datakit-<os>-<arch> dir
-		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s-%s", *flagName, osname, arch)), `.`,
+		// the whole build/datakit-<goos>-<goarch> dir
+		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s-%s", *flagName, goos, goarch)), `.`,
 	}
 
 	cmd := exec.Command("tar", args...)
@@ -472,19 +538,24 @@ func tarFiles(osname, arch string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("[debug] tar %s ok", gz)
 }
 
-func buildWindowsInstall(outdir, goarch string) {
+func buildInstaller(outdir, goos, goarch string) {
+
+	log.Printf("[debug] build %s/%s installer to %s...", goos, goarch, outdir)
+
+	gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, curVersion)
 
 	args := []string{
 		"go", "build",
-		"-ldflags", fmt.Sprintf(`-s -w -X main.serviceName=%s -X main.baseDownloadUrl=%s`, *flagName, *flagDownloadAddr),
-		"-o", path.Join(outdir, winInstallerExe),
-		"win-installer.go",
+		"-ldflags", fmt.Sprintf("-w -s -X main.DataKitGzipUrl=https://%s/%s", *flagDownloadAddr, gzName),
+		"-o", path.Join(outdir, installerExe),
+		"installer.go",
 	}
 
 	env := []string{
-		"GOOS=windows",
+		"GOOS=" + goos,
 		"GOARCH=" + goarch,
 	}
 

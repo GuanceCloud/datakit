@@ -7,61 +7,31 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/run"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/telegrafwrap"
-
-	"github.com/influxdata/telegraf/logger"
-	winsvr "github.com/kardianos/service"
-
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
+	"github.com/kardianos/service"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	serviceutil "gitlab.jiagouyun.com/cloudcare-tools/cliutils/service"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/run"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/telegrafwrap"
 )
 
 var (
-	workdir = "/usr/local/cloudcare/dataflux/datakit/"
-
-	flagVersion = flag.Bool("version", false, `show verison info`)
-
-	flagInit         = flag.Bool(`init`, false, `init agent`)
-	flagDataway      = flag.String("dataway", ``, `address of ftdataway`)
-	flagLogFile      = flag.String(`log`, ``, `log file`)
-	flagLogLevel     = flag.String(`log-level`, ``, `log level`)
-	flagAgentLogFile = flag.String(`agent-log`, ``, `agent log file`)
-
-	flagDocker = flag.Bool(`docker`, false, `run in docker`)
-
-	flagUpgrade = flag.Bool(`upgrade`, false, `upgrade agent`)
-
-	flagInstall     = flag.String(`install`, ``, `install datakit with systemctl or upstart`)
-	flagInstallOnly = flag.Bool(`install-only`, false, `not run after installing`)
-
-	flagCfgFile = flag.String("cfg", ``, `configure file`)
-	flagCfgDir  = flag.String("config-dir", ``, `sub configuration dir`)
-
-	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d`)
-
-	fRunAsConsole = flag.Bool("console", false, "run as console application (windows only)")
-
-	fService    = flag.String("service", "", "operate on the service (windows only)")
-	fInstallDir = flag.String("installdir", `C:\Program Files (x86)\DataFlux\DataKit`, "install directory")
-
-	fInputFilters = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
+	flagVersion        = flag.Bool("version", false, `show verison info`)
+	flagDataWay        = flag.String("dataway", ``, `dataway IP:Port`)
+	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d, list configired and mis-configured collectors`)
+	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
+	flagListCollectors = flag.Bool("list-collectors", false, `list vailable collectors`)
 )
 
 var (
-	winStopCh     chan struct{}
-	winStopFalgCh chan struct{}
+	stopCh     chan struct{}
+	stopFalgCh chan struct{}
 
 	inputFilters = []string{}
 )
@@ -69,227 +39,76 @@ var (
 func main() {
 
 	flag.Parse()
-	args := flag.Args()
 
-	if *flagVersion || (len(args) > 0 && args[0] == "version") {
+	applyFlags()
+
+	loadConfig()
+
+	svcConfig := &service.Config{
+		Name: config.ServiceName,
+	}
+
+	prg := &program{}
+	s, err := service.New(prg, svcConfig)
+	if err != nil {
+		log.Fatal("E! " + err.Error())
+		return
+	}
+
+	log.Printf("I! starting datakit service")
+	if err = s.Run(); err != nil {
+		log.Fatalln(err.Error())
+	}
+}
+
+func applyFlags() {
+
+	if *flagVersion {
 		fmt.Printf(`Version:        %s
 Sha1:           %s
 Build At:       %s
 Golang Version: %s
 `, git.Version, git.Sha1, git.BuildAt, git.Golang)
-		return
+		os.Exit(0)
 	}
 
-	exepath, err := os.Executable()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	config.ExecutableDir = filepath.Dir(exepath)
-
-	if *flagCfgFile == "" {
-		*flagCfgFile = filepath.Join(config.ExecutableDir, fmt.Sprintf("%s.conf", config.ServiceName))
-	}
-	if *flagCfgDir == "" {
-		*flagCfgDir = filepath.Join(config.ExecutableDir, "conf.d")
-	}
-	config.MainCfgPath = *flagCfgFile
-
-	if *flagAgentLogFile != "" {
-		config.AgentLogFile = *flagAgentLogFile
+	if *flagListCollectors {
+		for k, _ := range inputs.Inputs {
+			fmt.Println(k)
+		}
+		os.Exit(0)
 	}
 
 	if *flagCheckConfigDir {
-		config.CheckConfd(*flagCfgDir)
-		return
+		config.CheckConfd()
+		os.Exit(0)
 	}
 
-	if *fInputFilters != "" {
-		inputFilters = strings.Split(":"+strings.TrimSpace(*fInputFilters)+":", ":")
-	}
-
-	if *flagInstall != "" {
-		if err := doInstall(*flagInstall); err != nil {
-			os.Exit(-1)
-		}
-		return
-	}
-
-	if *fService != "" && runtime.GOOS == "windows" {
-		serviceCmd()
-		return
-	}
-
-	// if len(args) > 0 && args[0] == "input" {
-	// 	//TODO:
-	// 	return
-	// }
-
-	switch {
-	case *flagInit:
-		if err := initialize(false); err != nil {
-			log.Fatalf("%s", err)
-		}
-		return
-
-	case *flagUpgrade:
-		config.InitTelegrafSamples()
-
-		if err = config.CreatePluginConfigs(*flagCfgDir, true); err != nil {
-			log.Fatalf("%s", err)
-		}
-		return
-	}
-
-	if *flagDocker {
-		if _, err := os.Stat(filepath.Join(config.ExecutableDir, fmt.Sprintf("%s.conf", config.ServiceName))); err != nil && os.IsNotExist(err) {
-			if err := initialize(true); err != nil {
-				log.Fatalf("%s", err)
-			}
-		}
-	}
-
-	if runtime.GOOS == "windows" && windowsRunAsService() {
-
-		svcConfig := &winsvr.Config{
-			Name: config.ServiceName,
-		}
-
-		prg := &program{}
-		s, err := winsvr.New(prg, svcConfig)
-		if err != nil {
-			log.Fatal("E! " + err.Error())
-			return
-		}
-
-		err = s.Run()
-
-		if err != nil {
-			log.Fatalln(err.Error())
-		}
-
-	} else {
-		winStopCh = make(chan struct{})
-		winStopFalgCh = make(chan struct{})
-		reloadLoop(winStopCh, inputFilters)
+	if *flagInputFilters != "" {
+		inputFilters = strings.Split(":"+strings.TrimSpace(*flagInputFilters)+":", ":")
 	}
 }
 
-type program struct {
-}
+type program struct{}
 
-func (p *program) Start(s winsvr.Service) error {
+func (p *program) Start(s service.Service) error {
 	go p.run(s)
 	return nil
 }
 
-func (p *program) run(s winsvr.Service) {
-	winStopCh = make(chan struct{})
-	winStopFalgCh = make(chan struct{})
-	reloadLoop(winStopCh, inputFilters)
-
+func (p *program) run(s service.Service) {
+	stopCh = make(chan struct{})
+	stopFalgCh = make(chan struct{})
+	reloadLoop(stopCh)
 }
 
-func (p *program) Stop(s winsvr.Service) error {
-	close(winStopCh)
-	<-winStopFalgCh
+func (p *program) Stop(s service.Service) error {
+	close(stopCh)
+	<-stopFalgCh //等待完整退出
 	return nil
 }
 
-func serviceCmd() {
-
-	if runtime.GOOS != "windows" {
-		return
-	}
-
-	svcConfig := &winsvr.Config{
-		Name:        config.ServiceName,
-		DisplayName: config.ServiceName,
-		Description: "Collects data and publishes it to ftdataway.",
-	}
-
-	if *fService == "install" {
-		if *fInstallDir == "" {
-			log.Printf("installdir must not be empty")
-			os.Exit(1)
-			return
-		}
-		exepath := filepath.Join(*fInstallDir, `datakit.exe`)
-		_, err := os.Stat(exepath)
-		if err != nil {
-			log.Printf("executable file not found in %s", *fInstallDir)
-			os.Exit(1)
-			return
-		}
-		svcConfig.Executable = exepath
-		svcConfig.Arguments = []string{"/cfg", filepath.Join(*fInstallDir, `datakit.conf`)}
-	}
-
-	prg := &program{}
-	s, err := winsvr.New(prg, svcConfig)
-	if err != nil {
-		log.Printf("Error starting service, %s ", err)
-		os.Exit(1)
-		return
-	}
-
-	if *fService == "status" {
-		_, err := s.Status()
-		if err != nil {
-			log.Printf("Error get service status, %s", err)
-			os.Exit(1)
-			return
-		}
-		os.Exit(0)
-		return
-	}
-
-	if *fService == "stop" || *fService == "uninstall" {
-		_, err := s.Status()
-		if err == winsvr.ErrNotInstalled {
-			log.Printf("ok(service not found)")
-			os.Exit(0)
-			return
-		}
-	}
-
-	err = winsvr.Control(s, *fService)
-	if err != nil {
-		log.Printf("E! %s", err.Error())
-		os.Exit(1)
-	}
-	log.Println("Success!")
-	os.Exit(0)
-}
-
-func initialize(reserveExist bool) error {
-	if *flagLogFile == "" {
-		*flagLogFile = "datakit.log"
-	}
-
-	if *flagLogLevel == "" {
-		*flagLogLevel = "info"
-	}
-
-	uid := cliutils.XID("dkit_")
-
-	maincfg := config.MainConfig{
-		UUID:      uid,
-		FtGateway: *flagDataway,
-		Log:       *flagLogFile,
-		LogLevel:  *flagLogLevel,
-		ConfigDir: *flagCfgDir,
-	}
-
-	if err := config.InitMainCfg(&maincfg, config.MainCfgPath); err != nil {
-		return err
-	}
-
-	config.InitTelegrafSamples()
-	config.CreateDataDir()
-	return config.CreatePluginConfigs(maincfg.ConfigDir, reserveExist)
-}
-
-func reloadLoop(stop chan struct{}, inputFilters []string) {
+func reloadLoop(stop chan struct{}) {
 	reload := make(chan bool, 1)
 	reload <- true
 	for <-reload {
@@ -316,107 +135,41 @@ func reloadLoop(stop chan struct{}, inputFilters []string) {
 			}
 		}()
 
-		err := loadConfig(ctx, inputFilters)
-		if err != nil {
-			log.Fatalf("E! fail to load config, %s", err)
-		}
-		err = runTelegraf(ctx)
-		if err != nil {
+		if err := runTelegraf(ctx); err != nil {
 			log.Fatalf("E! fail to start sub service, %s", err)
 		}
 
-		err = runAgent(ctx)
-
-		telegrafwrap.Svr.StopAgent()
-
-		if err != nil && err != context.Canceled {
+		if err := runDatakit(ctx); err != nil && err != context.Canceled {
 			log.Fatalf("E! datakit abort: %s", err)
 		}
 
-		close(winStopFalgCh)
+		telegrafwrap.Svr.StopAgent()
 
+		close(stopFalgCh)
 	}
 }
 
-func loadConfig(ctx context.Context, inputFilters []string) error {
-	c := config.NewConfig()
-	c.InputFilters = inputFilters
-	config.DKConfig = c
+func loadConfig() {
 
-	if err := c.LoadMainConfig(ctx, config.MainCfgPath); err != nil {
-		return err
+	if err := config.LoadCfg(); err != nil {
+		log.Fatalf("[error] load config failed: %s", err)
 	}
 
-	if _, err := os.Stat(c.MainCfg.ConfigDir); err != nil {
-		c.MainCfg.ConfigDir = filepath.Join(config.ExecutableDir, `conf.d`)
-	}
-
-	logfile := c.MainCfg.Log
-	if *flagLogFile != "" {
-		logfile = *flagLogFile
-	}
-
-	if _, err := os.Stat(logfile); err != nil {
-		logfile = filepath.Join(config.ExecutableDir, `datakit.log`)
-		c.MainCfg.Log = logfile
-	}
-
-	logConfig := logger.LogConfig{
-		Debug:     (strings.ToLower(c.MainCfg.LogLevel) == "debug"),
-		Quiet:     false,
-		LogTarget: logger.LogTargetFile,
-		Logfile:   logfile,
-	}
-	logConfig.RotationMaxSize.Size = (20 << 10 << 10)
-	logger.SetupLogging(logConfig)
-
-	if err := c.LoadConfig(ctx); err != nil {
-		return err
-	}
-
-	log.Printf("%s %s", config.ServiceName, git.Version)
-
-	c.DumpInputsOutputs()
-
-	return nil
+	config.Cfg.InputFilters = inputFilters
+	log.Printf("I! input fileters %v", inputFilters)
 }
 
 func runTelegraf(ctx context.Context) error {
-	telegrafwrap.Svr.Cfg = config.DKConfig
+	telegrafwrap.Svr.Cfg = config.Cfg
 	return telegrafwrap.Svr.Start(ctx)
 }
 
-func runAgent(ctx context.Context) error {
+func runDatakit(ctx context.Context) error {
 
-	ag, err := run.NewAgent(config.DKConfig)
+	ag, err := run.NewAgent(config.Cfg)
 	if err != nil {
 		return err
 	}
 
 	return ag.Run(ctx)
-}
-
-func windowsRunAsService() bool {
-	if *fRunAsConsole {
-		return false
-	}
-
-	return !winsvr.Interactive()
-}
-
-func doInstall(serviceType string) error {
-
-	svr := &serviceutil.Service{
-		Name:        config.ServiceName,
-		InstallDir:  workdir,
-		Description: `DataFlux DataKit`,
-		StartCMD:    fmt.Sprintf("%s -cfg=%s", filepath.Join(workdir, `datakit`), *flagCfgFile),
-		Type:        serviceType,
-	}
-
-	if *flagInstallOnly {
-		svr.InstallOnly = true
-	}
-
-	return svr.Install()
 }
