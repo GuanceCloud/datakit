@@ -1,9 +1,9 @@
 package zabbix
 
 import (
-	"log"
-	"io"
 	"context"
+	"io"
+	"log"
 	"path/filepath"
 	"reflect"
 
@@ -21,7 +21,6 @@ var (
 	zabbix       *Zabbix
 	stopChan     chan bool
 )
-
 
 type zabbixLogWriter struct {
 	io.Writer
@@ -42,6 +41,7 @@ type Table struct {
 type RegistryName struct {
 	FileName string
 }
+
 //type Polling struct {
 //	Interval        int `toml:"interval"`
 //	IntervalIfError int `toml:"intervaliferror"`
@@ -56,6 +56,10 @@ type Zabbix struct {
 	ctx  context.Context
 	cfun context.CancelFunc
 	acc  telegraf.Accumulator
+}
+
+func (z *Zabbix) Catalog() string {
+	return `zabbix`
 }
 
 func (z *Zabbix) SampleConfig() string {
@@ -73,7 +77,7 @@ func (z *Zabbix) Gather(telegraf.Accumulator) error {
 func (z *Zabbix) globalInit() {
 	zabbix = z
 	stopChan = make(chan bool, len(z.Tables))
-	registryPath = filepath.Join(config.ExecutableDir, "data", pluginName, z.Registry.FileName)
+	registryPath = filepath.Join(config.InstallDir, "data", pluginName, z.Registry.FileName)
 
 	ReadRegistry(registryPath, &mapTables)
 }
@@ -127,7 +131,7 @@ func setupLogger() {
 }
 
 func init() {
-	inputs.Add(pluginName, func() telegraf.Input {
+	inputs.Add(pluginName, func() inputs.Input {
 		z := &Zabbix{}
 		z.ctx, z.cfun = context.WithCancel(context.Background())
 		return z
