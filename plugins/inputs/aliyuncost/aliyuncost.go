@@ -123,7 +123,7 @@ func (ac *AliyunCostAgent) Start(acc telegraf.Accumulator) error {
 			ctx:   ac.ctx,
 		}
 
-		limit := rate.Every(40 * time.Millisecond)
+		limit := rate.Every(60 * time.Millisecond)
 		ri.rateLimiter = rate.NewLimiter(limit, 1)
 
 		if cfg.AccountInterval.Duration > 0 {
@@ -183,7 +183,7 @@ func (s *runningInstance) cacheFileKey(subname string) string {
 
 func (s *runningInstance) getAccountInfo() {
 	req := bssopenapi.CreateQueryBillOverviewRequest()
-	req.BillingCycle = fmt.Sprintf("%d-%d", 2020, 1)
+	req.BillingCycle = fmt.Sprintf("%d-%d", time.Now().Year(), 1)
 
 	resp, err := s.client.QueryBillOverview(req)
 	if err != nil {
@@ -229,8 +229,15 @@ func (s *runningInstance) run() error {
 }
 
 func (r *runningInstance) QueryAccountTransactionsWrap(ctx context.Context, request *bssopenapi.QueryAccountTransactionsRequest) (response *bssopenapi.QueryAccountTransactionsResponse, err error) {
-	r.rateLimiter.Wait(ctx)
-	response, err = r.client.QueryAccountTransactions(request)
+	for i := 0; i < 5; i++ {
+		r.rateLimiter.Wait(ctx)
+		response, err = r.client.QueryAccountTransactions(request)
+		if err == nil {
+			return
+		}
+		internal.SleepContext(ctx, time.Millisecond*200)
+	}
+
 	return
 }
 
