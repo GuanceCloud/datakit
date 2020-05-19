@@ -35,7 +35,7 @@ func (p *StatsdParams) gather(ctx context.Context) {
 		}
 
 		if connectFail {
-			conn, err = net.Dial("tcp", "127.0.0.1:8126")
+			conn, err = net.Dial("tcp", p.input.Host)
 			if err != nil {
 				connectFail = true
 			} else {
