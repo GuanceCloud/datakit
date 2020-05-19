@@ -3,7 +3,6 @@ package ssh
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -217,35 +216,35 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 
 	tags["host"] = p.input.Host
 	//ssh检查
-	var sshRst string
+	var sshRst bool
 	sshClient, err := ssh.Dial("tcp", p.input.Host, clientCfg)
 	if err == nil {
-		sshRst = "ok"
+		sshRst = true
 		defer sshClient.Close()
 	} else {
-		sshRst = "lost"
+		sshRst = false
 		fields["ssh_err"] = err.Error()
 	}
 	fields["ssh_check"] = sshRst
 
 	//sftp检查
 	if p.input.SftpCheck {
-		var sftpRst string
+		var sftpRst bool
 		if err == nil {
 			sftp_client, err := sftp.NewClient(sshClient)
 			if err == nil {
-				sftpRst = "ok"
+				sftpRst = true
 				defer sftp_client.Close()
 				t1 := time.Now()
 				sftp_client.Getwd()
-				fields["sftp_response_time"] = getReadableTimeStr(time.Since(t1))
+				fields["sftp_response_time"] = getMsInterval(time.Since(t1))
 
 			} else {
-				sftpRst = "lost"
+				sftpRst = false
 				fields["sftp_err"] = err.Error()
 			}
 		} else {
-			sftpRst = "lost"
+			sftpRst = false
 			fields["sftp_err"] = err.Error()
 		}
 		fields["sftp_check"] = sftpRst
@@ -260,16 +259,9 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 	return nil
 }
 
-func getReadableTimeStr(d time.Duration) string {
-	if d < time.Microsecond {
-		return fmt.Sprintf("%dns", d)
-	} else if d < time.Millisecond {
-		return fmt.Sprintf("%fus", float64(d)/float64(time.Microsecond))
-	} else if d < time.Second {
-		return fmt.Sprintf("%fms", float64(d)/float64(time.Millisecond))
-	} else {
-		return fmt.Sprintf("%fs", float64(d)/float64(time.Second))
-	}
+func getMsInterval(d time.Duration) float64 {
+	ns := d.Nanoseconds()
+	return float64(ns)/float64(time.Millisecond)
 }
 func setupLogger() {
 	loghandler, _ := sshlog.NewStreamHandler(&sshLogWriter{})

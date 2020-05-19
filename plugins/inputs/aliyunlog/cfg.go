@@ -2,21 +2,37 @@ package aliyunlog
 
 const (
 	aliyunlogConfigSample = `
-#[[consumer]]
-#  endpoint = 'cn-hangzhou.log.aliyuncs.com'
-#  access_key = ''
-#  access_id = ''
+[[consumer]]
+# ##(required)
+endpoint = ''
+access_key_id = ''
+access_key_secret = ''
 	
-#  [[consumer.projects]]
-#    name = 'project-name'
+[[consumer.projects]]
+# ##(required) 项目名称 
+name = ''
 	
-#	 [[consumer.projects.stores]]
-#	   name = 'store-name'
-
-#      ##if empty, use 'aliyunlog_+store-name' 
-#      metric_name = ''
-#	   consumer_group_name = 'consumer-group'
-#	   consumer_name = 'consumer-name'
+[[consumer.projects.stores]]
+# ##(required) 日志库名称
+name = ''
+	
+# ##(optional) 指标集名称, 默认使用 'aliyunlog_+store-name' 
+#metric_name = ''
+	
+# ##(required) 指定当前日志库的消费组名称以及消费数据客户端名称
+#consumer_group_name = ''
+#consumer_name = ''
+	
+# ##(optional) 指定哪些key作为tag, 默认都为field
+# ##例: tags=["status_code","protocol"]
+# ##默认作为tag的key不再作为field，可以指定同时作为tag和field: tags=["status_code:*"]
+# ##可指定作为tag时的别名, 例: tags=["status_code::status"]
+# ##同时作为tag和field，同时设置tag别名: tags=["status_code:*:status"]
+#tags = []
+	
+# # ##(optional) 指定fields的类型, 默认为string, 可指定为int或float
+# # ##例: fields = ["int:status,request_length", "float:cpuUsage"]
+#fields = []	
 `
 )
 
@@ -29,14 +45,16 @@ type (
 	LogStoreCfg struct {
 		MetricName        string
 		Name              string
+		Tags              []string `toml:"tags,omitempty"`   //指定哪些作为tag(默认所有都作为field)
+		Fields            []string `toml:"fields,omitempty"` //指定某些field的数据类型(默认都为字符串)
 		ConsumerGroupName string
 		ConsumerName      string
 	}
 
 	ConsumerInstance struct {
-		Endpoint  string
-		AccessKey string
-		AccessID  string
-		Projects  []*LogProject
+		Endpoint        string
+		AccessKeyID     string
+		AccessKeySecret string
+		Projects        []*LogProject
 	}
 )
