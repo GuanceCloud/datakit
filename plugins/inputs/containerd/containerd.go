@@ -24,7 +24,7 @@ type Containerd struct {
 }
 
 func init() {
-	inputs.Add(pluginName, func() telegraf.Input {
+	inputs.Add(pluginName, func() inputs.Input {
 		e := &Containerd{}
 		e.ctx, e.cancel = context.WithCancel(context.Background())
 		return e
@@ -51,6 +51,10 @@ func (e *Containerd) Stop() {
 	e.cancel()
 	e.wg.Wait()
 	log.Printf("I! [Containerd] stop\n")
+}
+
+func (_ *Containerd) Catalog() string {
+	return "containerd"
 }
 
 func (_ *Containerd) SampleConfig() string {

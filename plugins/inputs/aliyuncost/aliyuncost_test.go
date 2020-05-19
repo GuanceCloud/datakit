@@ -175,8 +175,8 @@ func TestQueryInstBill(t *testing.T) {
 	req := bssopenapi.CreateQueryInstanceBillRequest()
 	//today := time.Now()
 	req.PageSize = requests.NewInteger(300)
-	req.BillingCycle = "2020-03" // fmt.Sprintf("%d-%d", today.Year(), today.Month()) // `2019-10-01`
-	//req.BillingDate = "2020-04-08"
+	req.BillingCycle = "2020-04" // fmt.Sprintf("%d-%d", today.Year(), today.Month()) // `2019-10-01`
+	//req.BillingDate = "2020-05-32"
 	//req.Granularity = "DAILY"
 	req.IsBillingItem = requests.NewBoolean(true)
 
@@ -188,11 +188,11 @@ func TestQueryInstBill(t *testing.T) {
 	log.Printf("count=%d", len(resp.Data.Items.Item))
 
 	_ = resp
-	// for _, item := range resp.Data.Items.Item {
-	// 	//if item.PaymentTime != "" {
-	// 	fmt.Printf("%s - %s, %v, %s\n", item.BillingDate, item.ProductName, item.PretaxAmount, item.Tag)
-	// 	//}
-	// }
+	for _, item := range resp.Data.Items.Item {
+		//if item.PaymentTime != "" {
+		fmt.Printf("%s - %s(%s), %v, %s\n", item.BillingDate, item.ProductName, item.InstanceID, item.PretaxAmount, item.BillingItem)
+		//}
+	}
 
 }
 
@@ -209,7 +209,7 @@ func TestQueryOrderDetail(t *testing.T) {
 	log.Printf("%s", resp.Data.AccountName)
 }
 
-func TestQueryOrder(t *testing.T) {
+func TestQueryOrders(t *testing.T) {
 
 	cli := staticClient()
 
@@ -217,8 +217,8 @@ func TestQueryOrder(t *testing.T) {
 	// now := time.Now().Truncate(time.Hour)
 	// start := unixTimeStr(now.Add(-time.Hour * 24 * 30))
 	// log.Printf("start=%s", start)
-	req.CreateTimeStart = "2019-02-18T06:26:00Z" // start
-	req.CreateTimeEnd = "2020-02-18T06:26:00Z"
+	req.CreateTimeStart = "2020-02-18T06:26:00Z" // start
+	req.CreateTimeEnd = "2020-03-18T06:26:00Z"
 	req.PageNum = requests.NewInteger(1)
 	req.PageSize = requests.NewInteger(300)
 
@@ -229,9 +229,9 @@ func TestQueryOrder(t *testing.T) {
 
 	fmt.Printf("TotalCount=%d, PageNum=%d, PageSize=%d, count=%d\n", resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.OrderList.Order))
 
-	// for _, item := range resp.Data.OrderList.Order {
-	// 	fmt.Printf("%s - %s, %v, %s\n", item.CreateTime, item.PaymentStatus, item.PretaxAmount, item.Currency)
-	// }
+	for _, item := range resp.Data.OrderList.Order {
+		fmt.Printf("%s - %s, %v, %s\n", item.CreateTime, item.PaymentStatus, item.PretaxAmount, item.Currency)
+	}
 
 }
 
