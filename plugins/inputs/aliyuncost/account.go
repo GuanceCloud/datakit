@@ -269,7 +269,8 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 			fields[k] = v
 		}
 
-		tags[`TransactionFlow`] = item.TransactionFlow       //收支类型
+		tags[`TransactionFlow`] = item.TransactionFlow //收支类型
+		tags[`BillingCycle`] = item.BillingCycle
 		tags[`TransactionType`] = item.TransactionType       //交易类型
 		tags[`TransactionChannel`] = item.TransactionChannel //交易渠道
 		tags[`FundType`] = item.FundType                     //资金形式

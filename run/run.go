@@ -64,17 +64,14 @@ func (a *Agent) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	err = a.outputsMgr.ConnectOutputs(ctx)
 	if err != nil {
 		return err
 	}
 
 	inputC := make(chan telegraf.Metric, 100)
-	//procC := make(chan telegraf.Metric, 100)
-	//outputC := make(chan telegraf.Metric, 100)
-
 	startTime := time.Now()
-
 	ncInput := len(a.Config.Inputs)
 
 	err = a.startServiceInputs(ctx, inputC)
@@ -83,9 +80,6 @@ func (a *Agent) Run(ctx context.Context) error {
 	}
 
 	var wg sync.WaitGroup
-
-	src := inputC
-	dst := inputC
 
 	wg.Add(1)
 	go func(dst chan telegraf.Metric) {
@@ -97,31 +91,32 @@ func (a *Agent) Run(ctx context.Context) error {
 		}
 
 		log.Printf("D! Interval Inputs done")
-	}(dst)
+	}(inputC)
 
 	if ncInput > 0 {
-
 		go func() {
 			select {
 			case <-ctx.Done():
 				a.stopServiceInputs()
-				close(dst)
+				close(inputC)
 			}
 		}()
-
-		src = dst
 
 		wg.Add(1)
 		go func(src chan telegraf.Metric) {
 			defer wg.Done()
 
-			err := a.outputsMgr.Start(src, startTime, a.Config.MainCfg.FlushInterval.Duration, a.Config.MainCfg.FlushJitter.Duration, a.Config.MainCfg.RoundInterval)
+			err := a.outputsMgr.Start(src,
+				startTime,
+				a.Config.MainCfg.FlushInterval.Duration,
+				a.Config.MainCfg.FlushJitter.Duration,
+				a.Config.MainCfg.RoundInterval)
 			if err != nil {
 				log.Printf("E! Error running outputs: %v", err)
 			}
 
 			a.stopDatacleanService() //dataclean后面停
-		}(src)
+		}(inputC)
 
 		wg.Wait()
 
@@ -183,12 +178,6 @@ func (a *Agent) initPlugins() error {
 			return fmt.Errorf("could not initialize input %s: %v", input.LogName(), err)
 		}
 	}
-	// for _, output := range a.Config.Outputs {
-	// 	err := output.Init()
-	// 	if err != nil {
-	// 		return fmt.Errorf("could not initialize output %s: %v", output.Config.Name, err)
-	// 	}
-	// }
 	return nil
 }
 
