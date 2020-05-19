@@ -60,11 +60,11 @@ func (ca *CostAccount) getRealtimeData(ctx context.Context) error {
 		//暂停历史数据抓取
 		ca.runningInstance.suspendHistoryFetch()
 		now := time.Now().Truncate(time.Minute)
-		start := now.Add(-ca.interval)
-
+		start := now.Add(-time.Hour * 24)
 		from := unixTimeStr(start) //需要传unix时间
-		//end := unixTimeStr(now)
-		if err := ca.getTransactions(ctx, from, "", nil); err != nil && err != context.Canceled {
+
+		end := unixTimeStr(now)
+		if err := ca.getTransactions(ctx, from, end, nil); err != nil && err != context.Canceled {
 			ca.logger.Errorf("%s", err)
 		}
 
@@ -129,21 +129,25 @@ func (ca *CostAccount) getHistoryData(ctx context.Context) error {
 func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, info *historyInfo) error {
 
 	defer func() {
-		recover()
+		if e := recover(); e != nil {
+			ca.logger.Errorf("panic, %v", e)
+		}
 	}()
+
+	logPrefix := ""
+	if info != nil {
+		logPrefix = "(history) "
+	}
 
 	//账户余额查询接口
 	//https://www.alibabacloud.com/help/zh/doc-detail/87997.htm?spm=a2c63.p38356.b99.34.717125earDjnGX
-	if info != nil {
-		ca.logger.Info("(history) start getting Balance")
-	} else {
-		ca.logger.Info("start getting Balance")
-	}
+	ca.logger.Infof("%sstart getting Balance", logPrefix)
+
 	balanceReq := bssopenapi.CreateQueryAccountBalanceRequest()
-	//balanceReq.Scheme = "https"
+	balanceReq.Scheme = "https"
 	balanceResp, err := ca.runningInstance.QueryAccountBalanceWrap(ctx, balanceReq)
 	if err != nil {
-		ca.logger.Errorf("fail to get balance, %s", err)
+		ca.logger.Errorf("%sfail to get balance, %s", logPrefix, err)
 		return err
 	}
 
@@ -153,11 +157,7 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, i
 	default:
 	}
 
-	if info != nil {
-		ca.logger.Infof("(history)start getting Transactions(%s - %s)", start, end)
-	} else {
-		ca.logger.Infof("start getting Transactions(%s - %s)", start, end)
-	}
+	ca.logger.Infof("%sstart getting Transactions(%s - %s)", logPrefix, start, end)
 
 	req := bssopenapi.CreateQueryAccountTransactionsRequest()
 	req.CreateTimeStart = start
@@ -187,14 +187,10 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, i
 		default:
 		}
 		if err != nil {
-			return fmt.Errorf("fail to get transactions from %s to %s: %s", start, end, err)
+			return fmt.Errorf("%sfail to get transactions from %s to %s: %s", logPrefix, start, end, err)
 		}
-		if info != nil {
-			ca.logger.Debugf("(history)Transactions(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.AccountTransactionsList.AccountTransactionsListItem))
-		} else {
-			ca.logger.Debugf("Transactions(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.AccountTransactionsList.AccountTransactionsListItem))
 
-		}
+		ca.logger.Debugf("%sTransactions(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", logPrefix, start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.AccountTransactionsList.AccountTransactionsListItem))
 
 		if err := ca.parseTransactionsResponse(ctx, balanceResp, resp); err != nil {
 			return err
@@ -214,16 +210,11 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, i
 
 	}
 
-	if info != nil {
-
-	}
+	ca.logger.Debugf("%sfinish getting Transactions(%s - %s)", logPrefix, start, end)
 
 	if info != nil {
-		ca.logger.Debugf("(history)finish getting Transactions(%s - %s)", start, end)
 		info.Statue = 1
 		SetAliyunCostHistory(info.key, info)
-	} else {
-		ca.logger.Debugf("finish getting Transactions(%s - %s)", start, end)
 	}
 
 	return nil
@@ -253,6 +244,13 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 
 	accname := resp.Data.AccountName
 	accid := resp.Data.AccountID
+	if accid == "" {
+		accid = ca.runningInstance.accountID
+	}
+	if accname == "" {
+		accname = ca.runningInstance.accountName
+	}
+
 	for _, item := range resp.Data.AccountTransactionsList.AccountTransactionsListItem {
 
 		select {
@@ -283,8 +281,8 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 		fields[`TransactionChannelSN`] = item.TransactionChannelSN
 		fields[`RecordID`] = item.RecordID                                                 //订单号/账单号
 		fields[`Remarks`] = item.Remarks                                                   //交易备注
-		fields[`Amount`], _ = strconv.ParseFloat(internal.NumberFormat(item.Amount), 64)   //账单金额
-		fields[`Balance`], _ = strconv.ParseFloat(internal.NumberFormat(item.Balance), 64) //当前余额
+		fields[`Amount`], _ = strconv.ParseFloat(internal.NumberFormat(item.Amount), 64)   //交易金额
+		fields[`Balance`], _ = strconv.ParseFloat(internal.NumberFormat(item.Balance), 64) //交易发生前当前余额
 
 		tm, err := time.Parse("2006-01-02T15:04:05Z", item.TransactionTime)
 		if err != nil {
@@ -295,7 +293,6 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 				ca.runningInstance.agent.accumulator.AddFields(ca.getName(), fields, tags, tm)
 			}
 		}
-
 	}
 
 	return nil
