@@ -7,7 +7,7 @@ SELECT
     a1.HOST,
     a1.DB,
     a1.COMMAND,
-    a1.TIME,
+    a1.TIME AS conn_time,
     a1.STATE,
     IFNULL(a1.INFO, '') INFO,
     a3.trx_id,
