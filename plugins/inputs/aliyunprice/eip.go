@@ -13,25 +13,45 @@ const (
 	eipSampleConfig = `
 # ##弹性公网IP
 #[[eip]]
-##metric_name = ''
-##description = ''
+
+# ##(optional) 自定义指标集名称，默认使用 aliyun_price
+#metric_name = ''
+
+# ##(optional) 采集间隔，默认一天
 #interval = '1d'
+
+# ##(required) 是否采集后付费价格, 默认false(即采集预付费价格)
 #pay_as_you_go = false
+
+# ##(required) 地域
 #region = 'cn-hangzhou'
-#bandwidth = 1 #unit is MB，在pay_as_you_go下，如果internet_charge_type=1，则忽略该值
-#internet_charge_type = 1 #only for pay_as_you_go，0:按固定带宽, 1:按使用流量,此时忽略bandwidth
-#isp = 'BGP' #only for pay_as_you_go
-##service_period_quantity = 1
-##service_period_unit = "Year"
-##quantity = 1
+
+# ##(required) 带宽,单位MB
+# ## 在pay_as_you_go下，如果 internet_charge_type=1，则忽略该值
+#bandwidth = 1
+
+# ##(required) 流量类型, 只在 pay_as_you_go=true 时需要设置
+# ## 0:按固定带宽, 1:按使用流量,此时忽略 bandwidth
+#internet_charge_type = 0
+
+# ##(optional) 线路类型, 当 pay_as_you_go=true 时有效, 默认 BGP
+#isp = 'BGP' 
+
+# ##(optional)购买时长, 默认为1, 如果单位为Year, 则表示1年
+#service_period_quantity = 1
+
+# ##(optional)购买时长单位: Month，Year, 默认为 Year
+#service_period_unit = "Year"
+
+# ##(optional)购买份数, 默认1份
+#quantity = 1
 `
 )
 
 type Eip struct {
-	MetricName  string
-	Description string
-	PayAsYouGo  bool
-	Interval    internal.Duration
+	MetricName string
+	PayAsYouGo bool
+	Interval   internal.Duration
 
 	Region string
 
@@ -58,19 +78,19 @@ func (e *Eip) toRequest() (*priceReq, error) {
 	}
 
 	p := &priceReq{
+		m:                                   e,
+		payAsYouGo:                          e.PayAsYouGo,
+		metricName:                          e.MetricName,
+		region:                              e.Region,
 		fetchModulePriceHistory:             make(map[string]time.Time),
 		priceModuleInfos:                    make(map[string]*bssopenapi.ModuleList),
 		productCodeForPriceModulesSubscript: "EIP",
 		productCodeForPriceModulesPayasugo:  "EIP",
 	}
-	p.m = e
-	p.payAsYouGo = e.PayAsYouGo
-	p.metricName = e.MetricName
 	p.interval = e.Interval.Duration
 	if p.interval == 0 {
 		p.interval = defaultInterval
 	}
-	p.region = e.Region
 
 	bw := e.Bandwidth
 	if p.payAsYouGo {
@@ -145,11 +165,12 @@ func (e *Eip) toRequest() (*priceReq, error) {
 
 func (e *Eip) handleTags(tags map[string]string) map[string]string {
 
-	tags["Description"] = e.Description
 	tags["Bandwidth"] = fmt.Sprintf("%d", e.Bandwidth)
 	tags["InternetChargeType"] = fmt.Sprintf("%d", e.InternetChargeType)
 	tags["ISP"] = e.ISP
-	tags["Quantity"] = fmt.Sprintf("%d x %d%s", e.Quantity, e.ServicePeriodQuantity, e.ServicePeriodUnit)
+	tags["Quantity"] = fmt.Sprintf("%d", e.Quantity)
+	tags["ServicePeriodQuantity"] = fmt.Sprintf("%d", e.ServicePeriodQuantity)
+	tags["ServicePeriodUnit"] = e.ServicePeriodUnit
 
 	return tags
 }
