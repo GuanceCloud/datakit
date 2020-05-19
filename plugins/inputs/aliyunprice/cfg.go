@@ -4,6 +4,12 @@ import "time"
 
 const (
 	defaultInterval = 5 * time.Minute
+
+	globalConfig = `
+#access_key_id = ''
+#access_key_secret = ''
+#region_id = ''
+`
 )
 
 type (

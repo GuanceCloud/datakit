@@ -504,6 +504,7 @@ func Metric2InfluxLine(m telegraf.Metric) string {
 	if err != nil {
 		panic(fmt.Sprintf("%s", err))
 	}
+
 	return string(data)
 }
 

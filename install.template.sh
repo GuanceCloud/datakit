@@ -9,7 +9,9 @@ set -e
 logfile="install.log"
 
 SERVICE={{.Name}}
-USRDIR="/usr/local/cloudcare/forethought/${SERVICE}"
+InstallDir="/usr/local/cloudcare/dataflux"
+USRDIR="${InstallDir}/${SERVICE}"
+USRDIR_OLD="/usr/local/cloudcare/forethought/${SERVICE}"
 BINARY="$USRDIR/${SERVICE}"
 AGENTBINARY="$USRDIR/embed/agent"
 EMBEDDIR="$USRDIR/embed"
@@ -39,7 +41,7 @@ It looks like you hit an issue when trying to install Datakit.
 
 Troubleshooting and basic usage information for Datakit are available at:
 
-             \e[4mhttps://cloudcare.com/datakit/faq/[TODO]\e[24m
+             \e[4mhttps://help.dataflux.cn/doc/c5be2ccceda7a09589d50e99aed3140a47d6ea78\e[24m
 "
 }
 
@@ -102,6 +104,21 @@ function set_config() {
 
 		# set permission on $1
 		$sudo_cmd chmod 640 $1
+	fi
+}
+
+function kill_agent() {
+	agentPid=""
+	if pgrep agent &>/dev/null; then
+		agentPid=`pgrep agent`
+	fi
+	if [ -n "${agentPid}" ]; then
+		if [ -f "/proc/${agentPid}/cmdline" ];then
+			if grep "datakit/embed" "/proc/${agentPid}/cmdline" &>/dev/null;then
+				kill $(pgrep datakit) &>/dev/null
+				kill "${agentPid}" &>/dev/null
+			fi
+		fi
 	fi
 }
 
@@ -171,10 +188,14 @@ function host_install() {
 	$sudo_cmd chmod +x "$BINARY"
 	$sudo_cmd chmod +x "$AGENTBINARY"
 
-	if type ldconfig; then
-		$sudo_cmd mkdir -p /etc/ld.so.conf.d
-		$sudo_cmd echo "${USRDIR}/deps" > /etc/ld.so.conf.d/datakit.conf
-		$sudo_cmd ldconfig
+	if type ldconfig > /dev/null; then
+		mkdir -p /etc/ld.so.conf.d
+		echo "${USRDIR}/deps" > /etc/ld.so.conf.d/datakit.conf
+		ldconfig
+	fi
+
+	if [ -f "${AGENTBINARY}" ]; then
+		mv "${AGENTBINARY}" "${EMBEDDIR}"
 	fi
 
 	if [ -f "${USRDIR}/agent.log" ]; then
@@ -191,33 +212,45 @@ function host_install() {
 
 	set_config $CONF
 
-	# Use /usr/sbin/service by default.
-	# Some distros usually include compatibility scripts with Upstart or Systemd. Check with: `command -v service | xargs grep -E "(upstart|systemd)"`
-	restart_cmd="$sudo_cmd service $SERVICE restart"
-	stop_instructions="$sudo_cmd service $SERVICE stop"
-	start_instructions="$sudo_cmd service $SERVICE start"
-
 	info "register service"
-	if command -v systemctl &>/dev/null; then
-		install_type=systemctl
-
-		# Use systemd if systemctl binary exists
-		restart_cmd="$sudo_cmd systemctl restart $SERVICE.service"
-		stop_instructions="$sudo_cmd systemctl stop $SERVICE"
-		start_instructions="$sudo_cmd systemctl start $SERVICE"
-	elif /sbin/init --version 2>&1 | grep -q upstart &>/dev/null; then
-		install_type=upstart
-
-		# Try to detect Upstart, this works most of the times but still a best effort
-		restart_cmd="$sudo_cmd stop $SERVICE &>/dev/null || true ; sleep 2s ; $sudo_cmd start $SERVICE"
-		stop_instructions="$sudo_cmd stop $SERVICE"
-		start_instructions="$sudo_cmd start $SERVICE"
-	fi
 
 	# install service only
 	install_cmd="$BINARY -install $install_type -cfg $CONF -install-only"
 	$sudo_cmd $install_cmd
 }
+
+
+# Use /usr/sbin/service by default.
+	# Some distros usually include compatibility scripts with Upstart or Systemd. Check with: `command -v service | xargs grep -E "(upstart|systemd)"`
+restart_cmd="$sudo_cmd service $SERVICE restart"
+stop_instructions="$sudo_cmd service $SERVICE stop"
+start_instructions="$sudo_cmd service $SERVICE start"
+
+if command -v systemctl &>/dev/null; then
+	install_type=systemctl
+
+	# Use systemd if systemctl binary exists
+	restart_cmd="$sudo_cmd systemctl restart $SERVICE.service"
+	stop_instructions="$sudo_cmd systemctl stop $SERVICE"
+	start_instructions="$sudo_cmd systemctl start $SERVICE"
+elif /sbin/init --version 2>&1 | grep -q upstart &>/dev/null; then
+	install_type=upstart
+
+		# Try to detect Upstart, this works most of the times but still a best effort
+	restart_cmd="$sudo_cmd stop $SERVICE &>/dev/null || true ; sleep 2s ; $sudo_cmd start $SERVICE"
+	stop_instructions="$sudo_cmd stop $SERVICE"
+	start_instructions="$sudo_cmd start $SERVICE"
+fi
+
+
+if [ -n "$dk_upgrade" ]; then
+	if [ -f "$USRDIR_OLD/${SERVICE}" ] && ! [ -f ${BINARY} ];then
+		${stop_instructions} &>/dev/null
+		$sudo_cmd mkdir -p "${USRDIR}"
+		$sudo_cmd mv "${USRDIR_OLD}" "${InstallDir}"
+	fi
+fi
+
 
 #if [ $dk_docker ]; then # install within docker
 #	docker_install
@@ -236,6 +269,7 @@ fi
 
 
 info "* Starting Datakit...";
+kill_agent
 eval $restart_cmd
 
 info "Your Datakit is running and functioning properly. It will continue to run in the
