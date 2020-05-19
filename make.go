@@ -223,10 +223,8 @@ func compile() {
 		} else {
 			installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
 		}
-		buildInstaller(path.Join(*flagPubDir, *flagRelease), goos, goarch)
 
-		// generate install scripts & installer to pub-dir
-		buildInstallScript(path.Join(*flagPubDir, *flagRelease), goos, goarch)
+		buildInstaller(path.Join(*flagPubDir, *flagRelease), goos, goarch)
 	}
 
 	log.Printf("build elapsed %v", time.Since(start))
@@ -236,39 +234,6 @@ type installInfo struct {
 	Name         string
 	DownloadAddr string
 	Version      string
-}
-
-func buildInstallScript(dir, goos, goarch string) {
-	i := &installInfo{
-		Name:         *flagName,
-		DownloadAddr: *flagDownloadAddr,
-		Version:      curVersion,
-	}
-
-	templateFile := "install.template.sh"
-	installScript := "install.sh"
-
-	txt, err := ioutil.ReadFile(templateFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	t := template.New("")
-	t, err = t.Parse(string(txt))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var buf bytes.Buffer
-
-	err = t.Execute(&buf, i)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err = ioutil.WriteFile(path.Join(dir, installScript), buf.Bytes(), os.ModePerm); err != nil {
-		log.Fatal(err)
-	}
 }
 
 func getCurrentVersionInfo(url string) *versionDesc {
