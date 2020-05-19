@@ -3,12 +3,12 @@ package gitlab
 import (
 	"context"
 	"log"
-	"strings"
 	"path/filepath"
+	"strings"
 
 	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type GitlabTarget struct {
@@ -19,7 +19,7 @@ type GitlabTarget struct {
 	Project    interface{}
 	Branch     string
 	StartDate  string `toml:"start_date"`
-	HoursBatch int `toml:"hours_batch"`
+	HoursBatch int    `toml:"hours_batch"`
 }
 
 type Gitlab struct {
@@ -74,9 +74,8 @@ const (
 #	start_date  = "2019-01-01T00:00:00"
 #	hours_batch = 720
 `
-	defaultInterval = 60
+	defaultInterval  = 60
 	defaultStartDate = "2005-12-15T00:00:00"
-
 )
 
 var (
@@ -85,6 +84,10 @@ var (
 	acc        telegraf.Accumulator
 	metricName = "gitlab"
 )
+
+func (g *Gitlab) Catalog() string {
+	return "gitlab"
+}
 
 func (g *Gitlab) SampleConfig() string {
 	return gitlabConfigSample
@@ -107,7 +110,7 @@ func (g *Gitlab) Start(ac telegraf.Accumulator) error {
 		metricName = g.MetricName
 	}
 
-	jsonFileName := filepath.Join(config.ExecutableDir, "data", "gitlab", "gitlab-run.json")
+	jsonFileName := filepath.Join(config.InstallDir, "data", "gitlab", "gitlab-run.json")
 	loadPBT(jsonFileName)
 
 	for _, target := range g.Targets {
@@ -134,7 +137,7 @@ func (g *Gitlab) Stop() {
 }
 
 func init() {
-	inputs.Add("gitlab", func() telegraf.Input {
+	inputs.Add("gitlab", func() inputs.Input {
 		git := &Gitlab{}
 		return git
 	})
