@@ -4,7 +4,19 @@ import (
 	"github.com/influxdata/telegraf"
 )
 
-type Creator func() telegraf.Input
+type Input interface {
+	telegraf.Input
+
+	Catalog() string
+	//Status() string
+
+	/* TotalBytes() int64 */
+
+	// add more...
+}
+
+//type Creator func() telegraf.Input
+type Creator func() Input
 
 var Inputs = map[string]Creator{}
 
