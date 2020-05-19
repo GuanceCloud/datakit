@@ -68,7 +68,7 @@ func (c *ApacheLogConfig) FilePath(cfgdir string) string {
 func (c *ApacheLogConfig) Load(f string) error {
 	cfgdata, err := ioutil.ReadFile(f)
 	if err != nil {
-		return err
+		return config.ErrConfigNotFound
 	}
 
 	if err = toml.Unmarshal(cfgdata, c); err != nil {
