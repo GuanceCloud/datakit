@@ -37,6 +37,10 @@ type runningInstance struct {
 	metricName string
 }
 
+func (_ *AliyunSecurity) Catalog() string {
+	return "aliyun"
+}
+
 func (_ *AliyunSecurity) SampleConfig() string {
 	return configSample
 }
@@ -239,7 +243,7 @@ func (r *runningInstance) describeRiskCheckSummary(region string) {
 }
 
 func init() {
-	inputs.Add("aliyunsecurity", func() telegraf.Input {
+	inputs.Add("aliyunsecurity", func() inputs.Input {
 		ac := &AliyunSecurity{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac

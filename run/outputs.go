@@ -23,7 +23,6 @@ func (r *OutputsMgr) Init() error {
 			if err != nil {
 				return err
 			}
-
 		}
 	}
 
@@ -53,7 +52,11 @@ func (ro *OutputsMgr) ConnectOutputs(ctx context.Context) error {
 	return nil
 }
 
-func (ro *OutputsMgr) Start(src chan telegraf.Metric, startTime time.Time, interval time.Duration, jitter time.Duration, roundInterval bool) error {
+func (ro *OutputsMgr) Start(src chan telegraf.Metric,
+	startTime time.Time,
+	interval time.Duration,
+	jitter time.Duration,
+	roundInterval bool) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
