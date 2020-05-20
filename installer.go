@@ -96,7 +96,7 @@ func main() {
 		} else {
 			*flagDataway, err = parseDataway(*flagDataway)
 			if err != nil {
-				log.Printf("%s", err.Error())
+				log.Fatal("%s", err.Error())
 			}
 		}
 
@@ -141,10 +141,10 @@ Golang Version: %s
 		switch runtime.GOOS + "/" + runtime.GOARCH {
 
 		case "windows/amd64":
-			*flagInstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
+			*flagInstallDir = `C:\Program Files\DataFlux\` + ServiceName
 
 		case "windows/386":
-			*flagInstallDir = `C:\Program Files\DataFlux\` + ServiceName
+			*flagInstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
 
 		case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
 			"darwin/amd64", "darwin/386",
@@ -267,7 +267,6 @@ func downloadDatakit(from, to string) {
 	}
 
 	if *flagDownloadOnly {
-		log.Printf("Downloading %s(%d) to %s", from, cnt, to)
 		doDownload(io.TeeReader(resp.Body, cnt), to)
 	} else {
 		doExtract(io.TeeReader(resp.Body, cnt), to)
