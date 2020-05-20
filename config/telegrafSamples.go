@@ -6,7 +6,7 @@ type telegrafInputs struct {
 }
 
 var (
-	supportsTelegrafMetraicNames = map[string]*telegrafInputs{ // Name: Catalog
+	SupportsTelegrafMetraicNames = map[string]*telegrafInputs{ // Name: Catalog
 		"nginx":             &telegrafInputs{name: "nginx", catalog: "nginx"},
 		"apache":            &telegrafInputs{name: "apache", catalog: "apache"},
 		"disk":              &telegrafInputs{name: "disk", catalog: "disk"},
