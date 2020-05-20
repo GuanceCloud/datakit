@@ -102,7 +102,7 @@ func main() {
 
 		uninstallDataKitService(dkservice)
 
-		if err := config.InitMainCfg(*flagDataway); err != nil {
+		if err := config.InitCfg(*flagDataway); err != nil {
 			log.Fatalf("Failed to init datakit main config: %s", err.Error())
 		}
 
@@ -276,7 +276,7 @@ func downloadDatakit(from, to string) {
 }
 
 func (wc *WriteCounter) PrintProgress() {
-	if wc.last > float64(wc.total)*0.01 { // update progress-bar each 1%
+	if wc.last > float64(wc.total)*0.01 || wc.current == wc.total { // update progress-bar each 1%
 		fmt.Printf("\r%s", strings.Repeat(" ", 35))
 		fmt.Printf("\rDownloading... %s/%s", humanize.Bytes(wc.current), humanize.Bytes(wc.total))
 		wc.last = 0.0
