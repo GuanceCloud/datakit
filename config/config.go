@@ -530,8 +530,10 @@ func InitCfg(dw string) error {
 		return err
 	}
 
-	// clean all old plugin configs
+	// clean all old dirs
 	os.RemoveAll(ConfdDir)
+	os.RemoveAll(DataDir)
+	os.RemoveAll(LuaDir)
 	return nil
 }
 
