@@ -76,6 +76,13 @@ Golang Version: %s
 		for k, _ := range inputs.Inputs {
 			fmt.Println(k)
 		}
+
+		fmt.Println("=========================")
+
+		for k, _ := range config.SupportsTelegrafMetraicNames {
+			fmt.Println(k)
+		}
+
 		os.Exit(0)
 	}
 
