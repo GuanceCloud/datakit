@@ -134,7 +134,7 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 //LoadTelegrafConfigs 加载conf.d下telegraf的配置文件
 func LoadTelegrafConfigs(cfgdir string, inputFilters []string) error {
 
-	for _, input := range supportsTelegrafMetraicNames {
+	for _, input := range SupportsTelegrafMetraicNames {
 
 		if len(inputFilters) > 0 {
 			if !sliceContains(input.name, inputFilters) {
@@ -310,7 +310,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 
 	pluginCfgs := ""
 
-	for _, input := range supportsTelegrafMetraicNames {
+	for _, input := range SupportsTelegrafMetraicNames {
 		if !input.enabled {
 			continue
 		}
