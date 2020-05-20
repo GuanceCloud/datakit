@@ -15,11 +15,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 )
 
-type (
-	TelegrafSvr struct {
-		Cfg *config.Config
-	}
-)
+type TelegrafSvr struct {
+	Cfg *config.Config
+}
 
 const (
 	agentSubDir = "embed"
