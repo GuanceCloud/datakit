@@ -513,11 +513,13 @@ func (c *Config) DumpInputsOutputs() {
 	names := []string{}
 
 	for _, p := range c.Inputs {
+		log.Printf("input %s enabled", p.Config.Name)
 		names = append(names, p.Config.Name)
 	}
 
 	for k, i := range SupportsTelegrafMetraicNames {
 		if i.enabled {
+			log.Printf("telegraf input %s enabled", k)
 			names = append(names, k)
 		}
 	}
