@@ -516,7 +516,7 @@ func (c *Config) DumpInputsOutputs() {
 		names = append(names, p.Config.Name)
 	}
 
-	for k, i := range supportsTelegrafMetraicNames {
+	for k, i := range SupportsTelegrafMetraicNames {
 		if i.enabled {
 			names = append(names, k)
 		}
@@ -525,11 +525,20 @@ func (c *Config) DumpInputsOutputs() {
 	log.Printf("avariable inputs: %s", strings.Join(names, ","))
 }
 
-func InitMainCfg(dw string) error {
+func InitCfg(dw string) error {
+	if err := initMainCfg(dw); err != nil {
+		return err
+	}
+
+	// clean all old plugin configs
+	os.RemoveAll(ConfdDir)
+	return nil
+}
+
+func initMainCfg(dw string) error {
 
 	Cfg.MainCfg.UUID = cliutils.XID("dkid_")
 	Cfg.MainCfg.ConfigDir = ConfdDir
-	//Cfg.MainCfg.FtGateway = fmt.Sprintf("http://%s/v1/write/metrics", dw)
 	Cfg.MainCfg.FtGateway = dw
 
 	var err error
@@ -565,7 +574,7 @@ func createPluginCfgsIfNotExists() {
 		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
 		cfgpath := filepath.Join(ConfdDir, catalog, name+".conf")
 
-		log.Printf("check telegraf input conf %s...", name)
+		log.Printf("check datakit input conf %s...", name)
 
 		if _, err := os.Stat(oldCfgPath); err == nil {
 			if oldCfgPath == cfgpath {
@@ -598,7 +607,7 @@ func createPluginCfgsIfNotExists() {
 	}
 
 	// create telegraf input plugin's configures
-	for name, input := range supportsTelegrafMetraicNames {
+	for name, input := range SupportsTelegrafMetraicNames {
 
 		cfgpath := filepath.Join(ConfdDir, input.catalog, name+".conf")
 		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
