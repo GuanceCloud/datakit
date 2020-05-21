@@ -62,10 +62,10 @@ func init() {
 
 	switch osarch {
 	case "windows/amd64":
-		InstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
+		InstallDir = `C:\Program Files\DataFlux\` + ServiceName
 
 	case "windows/386":
-		InstallDir = `C:\Program Files\DataFlux\` + ServiceName
+		InstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
 
 	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
 		"darwin/amd64", "darwin/386",
@@ -513,11 +513,13 @@ func (c *Config) DumpInputsOutputs() {
 	names := []string{}
 
 	for _, p := range c.Inputs {
+		log.Printf("input %s enabled", p.Config.Name)
 		names = append(names, p.Config.Name)
 	}
 
-	for k, i := range supportsTelegrafMetraicNames {
+	for k, i := range SupportsTelegrafMetraicNames {
 		if i.enabled {
+			log.Printf("telegraf input %s enabled", k)
 			names = append(names, k)
 		}
 	}
@@ -525,11 +527,22 @@ func (c *Config) DumpInputsOutputs() {
 	log.Printf("avariable inputs: %s", strings.Join(names, ","))
 }
 
-func InitMainCfg(dw string) error {
+func InitCfg(dw string) error {
+	if err := initMainCfg(dw); err != nil {
+		return err
+	}
+
+	// clean all old dirs
+	os.RemoveAll(ConfdDir)
+	os.RemoveAll(DataDir)
+	os.RemoveAll(LuaDir)
+	return nil
+}
+
+func initMainCfg(dw string) error {
 
 	Cfg.MainCfg.UUID = cliutils.XID("dkid_")
 	Cfg.MainCfg.ConfigDir = ConfdDir
-	//Cfg.MainCfg.FtGateway = fmt.Sprintf("http://%s/v1/write/metrics", dw)
 	Cfg.MainCfg.FtGateway = dw
 
 	var err error
@@ -565,7 +578,7 @@ func createPluginCfgsIfNotExists() {
 		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
 		cfgpath := filepath.Join(ConfdDir, catalog, name+".conf")
 
-		log.Printf("check telegraf input conf %s...", name)
+		log.Printf("check datakit input conf %s...", name)
 
 		if _, err := os.Stat(oldCfgPath); err == nil {
 			if oldCfgPath == cfgpath {
@@ -598,7 +611,7 @@ func createPluginCfgsIfNotExists() {
 	}
 
 	// create telegraf input plugin's configures
-	for name, input := range supportsTelegrafMetraicNames {
+	for name, input := range SupportsTelegrafMetraicNames {
 
 		cfgpath := filepath.Join(ConfdDir, input.catalog, name+".conf")
 		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
