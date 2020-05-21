@@ -7,7 +7,7 @@
 
 ```
 PS C:\Users\Satan\Desktop> Import-Module bitstransfer; `
->> start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
+>> start-bitstransfer -source https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit/installer-windows-amd64.exe `
 >> -destination .\dk-installer.exe; `
 >> .\dk-installer.exe; `
 >> rm .\dk-installer.exe
@@ -24,7 +24,7 @@ Please set DataWay(ip:port) > 1.2.3.4:9528          # 此处有输入提示，�
 
 ```
 PS C:\Users\Satan\Desktop> Import-Module bitstransfer; `
->> start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
+>> start-bitstransfer -source https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit/installer-windows-amd64.exe `
 >> -destination .\dk-installer.exe; `
 >> .\dk-installer.exe -dataway 1.2.3.4:9528; `
 >> rm .\dk-installer.exe
@@ -41,7 +41,7 @@ Downloading... 39 MB/39 MB
 安装：
 
 ```
-sudo -- sh -c 'curl https://oss-host/datakit/installer-linux-amd64 -o dk-installer && \
+sudo -- sh -c 'curl https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit/installer-linux-amd64 -o dk-installer && \
 		chmod +x ./dk-installer && \
 		./dk-installer && \
 		rm -rf ./dk-installer'
@@ -50,7 +50,7 @@ sudo -- sh -c 'curl https://oss-host/datakit/installer-linux-amd64 -o dk-install
 升级：
 
 ```
-sudo -- sh -c 'curl https://oss-host/datakit/installer-linux-amd64 -o dk-installer && \
+sudo -- sh -c 'curl https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit/installer-linux-amd64 -o dk-installer && \
 		chmod +x ./dk-installer && \
 		./dk-installer -upgrade && \
 		rm -rf ./dk-installer'
@@ -61,7 +61,7 @@ sudo -- sh -c 'curl https://oss-host/datakit/installer-linux-amd64 -o dk-install
 安装：
 
 ```
-sudo -- sh -c 'curl https://oss-host/datakit/installer-darwin-amd64 -o dk-installer && \
+sudo -- sh -c 'curl https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit/installer-darwin-amd64 -o dk-installer && \
 		chmod +x ./dk-installer && \
 		./dk-installer && \
 		rm -rf ./dk-installer'
@@ -70,7 +70,7 @@ sudo -- sh -c 'curl https://oss-host/datakit/installer-darwin-amd64 -o dk-instal
 升级：
 
 ```
-sudo -- sh -c 'curl https://oss-host/datakit/installer-darwin-amd64 -o dk-installer && \
+sudo -- sh -c 'curl https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit/installer-darwin-amd64 -o dk-installer && \
 		chmod +x ./dk-installer && \
 		./dk-installer -upgrade && \
 		rm -rf ./dk-installer'
@@ -109,7 +109,7 @@ sudo -- sh -c 'curl https://oss-host/datakit/installer-darwin-amd64 -o dk-instal
 
 ```
 Import-Module bitstransfer; `
-start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
+start-bitstransfer -source https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit/installer-windows-amd64.exe `
 -destination .\dk-installer.exe; `
 .\dk-installer.exe; `
 rm .\dk-installer.exe
@@ -119,7 +119,7 @@ rm .\dk-installer.exe
 
 ```
 Import-Module bitstransfer; `
-start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
+start-bitstransfer -source https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit/installer-windows-amd64.exe `
 -destination .\dk-installer.exe; .\dk-installer.exe -upgrade; `
 rm dk-installer.exe
 ```
@@ -132,7 +132,7 @@ rm dk-installer.exe
 
 ```
 Import-Module bitstransfer; `
-start-bitstransfer -source https://oss-host/datakit/installer-windows-amd64.exe `
+start-bitstransfer -source https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit/installer-windows-amd64.exe `
 -destination .\dk-installer.exe; `
 .\dk-installer.exe -download-only;
 ```
