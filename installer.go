@@ -96,13 +96,13 @@ func main() {
 		} else {
 			*flagDataway, err = parseDataway(*flagDataway)
 			if err != nil {
-				log.Printf("%s", err.Error())
+				log.Fatal("%s", err.Error())
 			}
 		}
 
 		uninstallDataKitService(dkservice)
 
-		if err := config.InitMainCfg(*flagDataway); err != nil {
+		if err := config.InitCfg(*flagDataway); err != nil {
 			log.Fatalf("Failed to init datakit main config: %s", err.Error())
 		}
 
@@ -141,10 +141,10 @@ Golang Version: %s
 		switch runtime.GOOS + "/" + runtime.GOARCH {
 
 		case "windows/amd64":
-			*flagInstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
+			*flagInstallDir = `C:\Program Files\DataFlux\` + ServiceName
 
 		case "windows/386":
-			*flagInstallDir = `C:\Program Files\DataFlux\` + ServiceName
+			*flagInstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
 
 		case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
 			"darwin/amd64", "darwin/386",
@@ -267,7 +267,6 @@ func downloadDatakit(from, to string) {
 	}
 
 	if *flagDownloadOnly {
-		log.Printf("Downloading %s(%d) to %s", from, cnt, to)
 		doDownload(io.TeeReader(resp.Body, cnt), to)
 	} else {
 		doExtract(io.TeeReader(resp.Body, cnt), to)
@@ -276,7 +275,7 @@ func downloadDatakit(from, to string) {
 }
 
 func (wc *WriteCounter) PrintProgress() {
-	if wc.last > float64(wc.total)*0.01 { // update progress-bar each 1%
+	if wc.last > float64(wc.total)*0.01 || wc.current == wc.total { // update progress-bar each 1%
 		fmt.Printf("\r%s", strings.Repeat(" ", 35))
 		fmt.Printf("\rDownloading... %s/%s", humanize.Bytes(wc.current), humanize.Bytes(wc.total))
 		wc.last = 0.0
