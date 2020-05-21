@@ -62,10 +62,10 @@ func init() {
 
 	switch osarch {
 	case "windows/amd64":
-		InstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
+		InstallDir = `C:\Program Files\DataFlux\` + ServiceName
 
 	case "windows/386":
-		InstallDir = `C:\Program Files\DataFlux\` + ServiceName
+		InstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
 
 	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
 		"darwin/amd64", "darwin/386",
