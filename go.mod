@@ -9,9 +9,10 @@ require (
 	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
-	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
+	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
+	github.com/andygrunwald/go-jira v1.12.0
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/aws/aws-sdk-go v1.27.0
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
@@ -30,13 +31,13 @@ require (
 	github.com/gin-gonic/gin v1.6.2
 	github.com/go-delve/delve v1.4.0 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/godror/godror v0.14.0
+	github.com/godror/godror v0.14.0 // indirect
 	github.com/gofrs/uuid v2.1.0+incompatible
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/snappy v0.0.1
-	github.com/google/gopacket v1.1.17
-	github.com/google/uuid v1.1.1
+	github.com/google/gopacket v1.1.17 // indirect
+	github.com/google/uuid v1.1.1 // indirect
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
