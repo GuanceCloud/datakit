@@ -14,7 +14,7 @@ LOCAL_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit
 PUB_DIR = pub
 BIN = datakit
 NAME = datakit
-ENTRY = main.go
+ENTRY = cmd/datakit/main.go
 
 LOCAL_ARCHS = "linux/amd64"
 #LOCAL_ARCHS = "all"
