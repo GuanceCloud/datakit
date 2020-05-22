@@ -39,9 +39,11 @@ import (
 	// 32bit disabled, only 64 bit available
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
 
+	// depends on
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
+
 	// with dll/so dependencies, and also 32bit disabled
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/netPacket"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/scanport"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tracerouter"
 )
