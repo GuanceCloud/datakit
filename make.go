@@ -169,8 +169,8 @@ func compileArch(bin, goos, goarch, dir string) {
 	}
 
 	switch goos + "/" + goarch {
-	case `linux/amd64`:
-		env = append(env, "CGO_ENABLED=1")
+	//case `linux/amd64`:
+	//	env = append(env, "CGO_ENABLED=1")
 	default:
 		env = append(env, "CGO_ENABLED=0")
 	}
