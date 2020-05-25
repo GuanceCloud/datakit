@@ -106,7 +106,7 @@ func (c *ApacheLogConfig) ToTelegraf(f string) (string, error) {
 		if err = t.Execute(buf, l); err != nil {
 			return "", err
 		}
-		cfg += string(buf.Bytes())
+		cfg += buf.String()
 		buf.Reset()
 	}
 
@@ -116,7 +116,7 @@ func (c *ApacheLogConfig) ToTelegraf(f string) (string, error) {
 		if err = t.Execute(buf, l); err != nil {
 			return "", err
 		}
-		cfg += string(buf.Bytes())
+		cfg += buf.String()
 		buf.Reset()
 	}
 
