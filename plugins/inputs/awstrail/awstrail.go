@@ -216,7 +216,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 
 		r.lastTime = end_time
 
-		used := time.Now().Sub(useage)
+		used := time.Since(useage)
 
 		for _, res := range response {
 			for _, ev := range res.Events {
