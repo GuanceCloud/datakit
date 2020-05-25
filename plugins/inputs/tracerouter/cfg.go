@@ -1,3 +1,4 @@
+// +build ignore
 // +build !windows,!darwin,!386
 
 package tracerouter
