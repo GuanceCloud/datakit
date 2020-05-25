@@ -72,7 +72,7 @@ func init() {
 		"freebsd/amd64", "freebsd/386":
 		InstallDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
 	default:
-		log.Fatal("[fatal] invalid os/arch: %s", osarch)
+		log.Fatalf("[fatal] invalid os/arch: %s", osarch)
 	}
 
 	if err := os.MkdirAll(filepath.Join(InstallDir, "embed"), os.ModePerm); err != nil {
