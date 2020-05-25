@@ -14,13 +14,16 @@ LOCAL_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit
 PUB_DIR = pub
 BIN = datakit
 NAME = datakit
-ENTRY = main.go
+ENTRY = cmd/datakit/main.go
 
 LOCAL_ARCHS = "linux/amd64"
 #LOCAL_ARCHS = "all"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
+DATE := $(shell date +'%Y-%m-%d %H:%M:%S')
+GOVERSION := $(shell go version)
+COMMIT := $(shell git rev-parse --short HEAD)
 
 ###################################
 # Detect telegraf update info
@@ -40,16 +43,20 @@ define build
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p build $(PUB_DIR)/$(1)
 	@mkdir -p git
-	@echo 'package git; const (BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
+	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Sha1 string="$(COMMIT)")' > git/git.go
+	@go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
 	tree -Csh build pub
 endef
 
 define pub
 	echo "publish $(1) $(NAME) ..."
-	go run make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
+	go run cmd/make/make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
 endef
+
+check:
+	@golangci-lint run --timeout 1h # https://golangci-lint.run/usage/install/#local-installation
+	@go vet ./...
 
 local:
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
