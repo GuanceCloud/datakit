@@ -72,7 +72,7 @@ func (c *ApacheLogConfig) FilePath(cfgdir string) string {
 func (c *ApacheLogConfig) Load(f string) error {
 	cfgdata, err := ioutil.ReadFile(f)
 	if err != nil {
-		return err
+		return config.ErrConfigNotFound
 	}
 
 	if err = toml.Unmarshal(cfgdata, c); err != nil {
@@ -106,7 +106,7 @@ func (c *ApacheLogConfig) ToTelegraf(f string) (string, error) {
 		if err = t.Execute(buf, l); err != nil {
 			return "", err
 		}
-		cfg += string(buf.Bytes())
+		cfg += buf.String()
 		buf.Reset()
 	}
 
@@ -116,7 +116,7 @@ func (c *ApacheLogConfig) ToTelegraf(f string) (string, error) {
 		if err = t.Execute(buf, l); err != nil {
 			return "", err
 		}
-		cfg += string(buf.Bytes())
+		cfg += buf.String()
 		buf.Reset()
 	}
 
