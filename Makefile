@@ -21,6 +21,9 @@ LOCAL_ARCHS = "linux/amd64"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
+DATE := $(shell date +'%Y-%m-%d %H:%M:%S')
+GOVERSION := $(shell go version)
+COMMIT := $(shell git rev-parse --short HEAD)
 
 ###################################
 # Detect telegraf update info
@@ -40,15 +43,17 @@ define build
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p build $(PUB_DIR)/$(1)
 	@mkdir -p git
-	@echo 'package git; const (BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
+	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Sha1 string="$(COMMIT)")' > git/git.go
+	#golangci-lint run --timeout 1h
+	#go vet ./...
+	@go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
 	tree -Csh build pub
 endef
 
 define pub
 	echo "publish $(1) $(NAME) ..."
-	go run make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
+	go run cmd/make/make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
 endef
 
 local:
