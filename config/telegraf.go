@@ -294,7 +294,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 			FtGateway:   cfg.MainCfg.FtGateway,
 			DKUUID:      cfg.MainCfg.UUID,
 			DKVERSION:   git.Version,
-			DKUserAgent: userAgent,
+			DKUserAgent: DKUserAgent,
 		}
 
 		tpl := template.New("")
