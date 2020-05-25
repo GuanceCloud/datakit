@@ -1,15 +1,15 @@
 package zabbix
 
 import (
-	"fmt"
-	"log"
-	"time"
 	"context"
-	"strconv"
-	"strings"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"fmt"
 	influxm "github.com/influxdata/influxdb1-client/models"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"log"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type ZabbixInput struct {
@@ -49,7 +49,6 @@ func (p *ZabbixParam) gather() error {
 			return err
 		}
 	}
-	return nil
 }
 
 func (p *ZabbixParam) gatherData() error {
