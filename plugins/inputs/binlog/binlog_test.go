@@ -103,6 +103,7 @@ func TestGetTableInfo(t *testing.T) {
 	log.Printf("fv=%v(%s)", fv, reflect.TypeOf(fv))
 	return
 
+	/* unreachable code
 	dbName := `shrine`
 	tableName := `order_flow`
 
@@ -155,6 +156,7 @@ func TestGetTableInfo(t *testing.T) {
 		currentIndex.AddColumn(colName, cardinality)
 	}
 
+	*/
 }
 
 func TestBinlog(t *testing.T) {
