@@ -16,7 +16,6 @@ oss/*
 install.sh
 *.log
 config.d/
-datakit
 test/
 conf.d/
 agent.conf
