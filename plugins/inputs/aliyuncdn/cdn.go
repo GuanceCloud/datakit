@@ -120,8 +120,6 @@ func (r *RunningInstance) run(ctx context.Context) error {
 
 		internal.SleepContext(ctx, 10*time.Second)
 	}
-
-	return nil
 }
 
 func (r *RunningInstance) getDomain(metricName string, domain string) []string {
