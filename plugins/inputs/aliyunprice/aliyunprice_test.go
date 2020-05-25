@@ -216,6 +216,7 @@ func TestSlb(t *testing.T) {
 
 	return
 
+	/* unreachable code
 	req, _ := rds.toRequest()
 
 	if req.payAsYouGo {
@@ -231,7 +232,7 @@ func TestSlb(t *testing.T) {
 		}
 		log.Printf("%s", resp)
 	}
-
+	*/
 }
 
 //TestProductPriceModule 某个产品的对应付费模块信息 https://help.aliyun.com/document_detail/96469.html?spm=a2c4g.11186623.2.13.5a21634fRfjUAL
