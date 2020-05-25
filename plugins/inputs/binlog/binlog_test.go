@@ -17,7 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 
 	"github.com/siddontang/go-mysql/client"
-	"github.com/siddontang/go-mysql/schema"
+	//"github.com/siddontang/go-mysql/schema"
 )
 
 func TestConnMysql(t *testing.T) {
