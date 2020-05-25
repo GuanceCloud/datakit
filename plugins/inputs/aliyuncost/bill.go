@@ -41,7 +41,7 @@ func (cb *CostBill) run(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		//cb.getHistoryData(ctx)
+		cb.getHistoryData(ctx)
 	}()
 
 	cb.getNormalData(ctx)
