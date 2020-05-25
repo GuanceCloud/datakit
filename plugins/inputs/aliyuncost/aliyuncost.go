@@ -20,9 +20,9 @@ import (
 )
 
 var (
-	batchInterval = time.Duration(5) * time.Minute
-	metricPeriod  = time.Duration(5 * time.Minute)
-	rateLimit     = 20
+	//batchInterval = time.Duration(5) * time.Minute
+	//metricPeriod  = time.Duration(5 * time.Minute)
+	//rateLimit     = 20
 
 	historyCacheDir = `/etc/datakit/aliyuncost`
 )
