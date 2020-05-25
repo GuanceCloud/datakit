@@ -3,6 +3,7 @@ package aliyunlog
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -225,10 +226,8 @@ func (r *runningStore) run(ctx context.Context) error {
 	consumerWorker := consumerLibrary.InitConsumerWorker(option, r.logProcess)
 	consumerWorker.Start()
 
-	select {
-	case <-ctx.Done():
-		consumerWorker.StopAndWait()
-	}
+	<-ctx.Done()
+	consumerWorker.StopAndWait()
 
 	r.logger.Infof("%s done", r.cfg.Name)
 
@@ -320,7 +319,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 						nval, err := strconv.ParseInt(strval, 10, 64)
 						if err != nil {
 							if fval, err := strconv.ParseFloat(strval, 64); err == nil {
-								nval = int64(fval)
+								nval = int64(math.Floor(fval))
 							} else {
 								//r.logger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
 							}
