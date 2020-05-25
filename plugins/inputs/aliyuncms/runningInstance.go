@@ -183,6 +183,12 @@ func (s *runningInstance) fetchMetricMeta(ctx context.Context, namespace, metric
 
 	for i := 0; i < retryCount; i++ {
 
+		select {
+		case <-ctx.Done():
+			return nil, context.Canceled
+		default:
+		}
+
 		s.limiter.Wait(ctx)
 		response, err = s.cmsClient.DescribeMetricMetaList(request)
 
@@ -202,7 +208,7 @@ func (s *runningInstance) fetchMetricMeta(ctx context.Context, namespace, metric
 
 		if err != nil {
 			s.logger.Warnf("%s", err)
-			time.Sleep(tempDelay)
+			internal.SleepContext(ctx, tempDelay)
 		} else {
 			if i != 0 {
 				s.logger.Debugf("retry successed, %d", i)
@@ -260,6 +266,12 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 			req.meta = metas[req.q.MetricName]
 		}
 		req.tryGetMeta-- //有时接口 DescribeMetricMetaList 更新不及时，所以重试几次后拿不到就忽略
+	}
+
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	default:
 	}
 
 	if req.meta != nil {
@@ -347,6 +359,13 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 		var tempDelay time.Duration
 
 		for i := 0; i < retryCount; i++ {
+
+			select {
+			case <-ctx.Done():
+				return context.Canceled
+			default:
+			}
+
 			s.limiter.Wait(ctx)
 			resp, err = s.cmsClient.DescribeMetricList(req.q)
 
@@ -365,7 +384,7 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 			}
 
 			if err != nil {
-				s.logger.Warnf("%s", err)
+				s.logger.Warnf("DescribeMetricList: %s", err)
 				time.Sleep(tempDelay)
 			} else {
 				if i != 0 {
@@ -415,6 +434,12 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 	}
 
 	for _, datapoint := range datapoints {
+
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
+		}
 
 		tags := map[string]string{
 			"regionId": req.q.RegionId,
