@@ -47,11 +47,11 @@ type (
 	}
 
 	metricMeta struct {
-		unit string
+		//unit string
 	}
 
 	queryListInfo struct {
-		meta *metricMeta
+		//meta *metricMeta
 
 		intervalTime time.Duration
 
