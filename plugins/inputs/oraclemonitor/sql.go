@@ -1,3 +1,4 @@
+// +build ignore
 // +build linux,amd64
 
 package oraclemonitor
