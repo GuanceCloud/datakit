@@ -3,7 +3,6 @@ package ucmon
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/selfstat"
@@ -21,7 +20,7 @@ type (
 
 		queryInfos []*queryListInfo
 
-		timer *time.Timer
+		//timer *time.Timer
 
 		ucCli *ucloud.Client
 
