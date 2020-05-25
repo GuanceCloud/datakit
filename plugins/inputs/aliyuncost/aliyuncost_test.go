@@ -144,8 +144,8 @@ func TestQueryBill(t *testing.T) {
 		}
 
 		log.Printf("total count: %v, accountid=%s, accountname=%s", resp.Data.TotalCount, resp.Data.AccountID, resp.Data.AccountName)
-		break
 
+		/* unreachable code
 		for _, item := range resp.Data.Items.Item {
 			if item.RecordID == "2020020989169351" {
 
@@ -162,7 +162,7 @@ func TestQueryBill(t *testing.T) {
 			req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
 		} else {
 			break
-		}
+		} */
 	}
 
 }
