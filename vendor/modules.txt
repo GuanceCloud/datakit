@@ -51,8 +51,6 @@ github.com/Microsoft/hcsshim/internal/wclayer
 github.com/Microsoft/hcsshim/osversion
 # github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d
 github.com/StackExchange/wmi
-# github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
-github.com/aeden/traceroute
 # github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
 github.com/alecthomas/units
 # github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
@@ -80,6 +78,8 @@ github.com/aliyun/aliyun-log-go-sdk
 github.com/aliyun/aliyun-log-go-sdk/consumer
 # github.com/aliyun/aliyun-oss-go-sdk v2.0.8+incompatible
 github.com/aliyun/aliyun-oss-go-sdk/oss
+# github.com/andygrunwald/go-jira v1.12.0
+github.com/andygrunwald/go-jira
 # github.com/antchfx/jsonquery v1.1.4
 github.com/antchfx/jsonquery
 # github.com/antchfx/xpath v1.1.7
@@ -222,6 +222,8 @@ github.com/ericchiang/k8s/runtime
 github.com/ericchiang/k8s/runtime/schema
 github.com/ericchiang/k8s/util/intstr
 github.com/ericchiang/k8s/watch/versioned
+# github.com/fatih/structs v1.0.0
+github.com/fatih/structs
 # github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 github.com/ghodss/yaml
 # github.com/gin-contrib/sse v0.1.0
@@ -268,11 +270,6 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
-# github.com/godror/godror v0.14.0
-github.com/godror/godror
-github.com/godror/godror/odpi/embed
-github.com/godror/godror/odpi/include
-github.com/godror/godror/odpi/src
 # github.com/gofrs/uuid v2.1.0+incompatible
 github.com/gofrs/uuid
 # github.com/gogo/googleapis v1.4.0
@@ -304,10 +301,6 @@ github.com/golang/protobuf/ptypes/wrappers
 github.com/golang/snappy
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
-# github.com/google/gopacket v1.1.17
-github.com/google/gopacket
-github.com/google/gopacket/layers
-github.com/google/gopacket/pcap
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
 # github.com/grpc-ecosystem/grpc-gateway v1.12.1
@@ -531,6 +524,9 @@ github.com/tidwall/gjson
 github.com/tidwall/match
 # github.com/tidwall/pretty v1.0.0
 github.com/tidwall/pretty
+# github.com/trivago/tgo v1.0.1
+github.com/trivago/tgo/tcontainer
+github.com/trivago/tgo/treflect
 # github.com/ucloud/ucloud-sdk-go v0.14.0
 github.com/ucloud/ucloud-sdk-go/private/protocol/http
 github.com/ucloud/ucloud-sdk-go/private/utils
