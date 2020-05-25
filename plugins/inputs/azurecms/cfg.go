@@ -52,18 +52,18 @@ type (
 	}
 
 	queryListInfo struct {
-		meta *metricMeta
+		//meta *metricMeta
 
-		resourceID   string
-		timespan     string
+		resourceID string
+		//timespan     string
 		intervalTime time.Duration
 		interval     string
 		metricname   string
 		aggregation  string
-		top          int32
-		orderby      string
-		filter       string
-		resultType   insights.ResultType
+		//top          int32
+		orderby    string
+		filter     string
+		resultType insights.ResultType
 		//apiVersion  string // "2018-01-01"
 		metricnamespace string // `Microsoft.Compute/virtualMachines`
 
