@@ -106,7 +106,11 @@ func (al *AliyunLog) Start(acc telegraf.Accumulator) error {
 		}
 		al.runningInstances = append(al.runningInstances, r)
 
-		go r.run(al.ctx)
+		go func(ctx context.Context) {
+			if err := r.run(al.ctx); err != nil && err != context.Canceled {
+				al.logger.Errorf("%s", err)
+			}
+		}(al.ctx)
 	}
 
 	return nil
@@ -127,7 +131,11 @@ func (r *runningInstance) run(ctx context.Context) error {
 		}
 		r.runningProjects = append(r.runningProjects, p)
 
-		go p.run(ctx)
+		go func(ctx context.Context) {
+			if err := p.run(ctx); err != nil && err != context.Canceled {
+				r.logger.Errorf("%s", err)
+			}
+		}(ctx)
 	}
 
 	return nil
@@ -150,7 +158,11 @@ func (r *runningProject) run(ctx context.Context) error {
 		}
 		r.runningStores = append(r.runningStores, s)
 
-		go s.run(ctx)
+		go func(ctx context.Context) {
+			if err := s.run(ctx); err != nil && err != context.Canceled {
+				r.logger.Errorf("%s", err)
+			}
+		}(ctx)
 	}
 
 	return nil
