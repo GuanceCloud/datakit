@@ -2,19 +2,19 @@ package aliyunlog
 
 const (
 	aliyunlogConfigSample = `
-[[consumer]]
+#[[consumer]]
 # ##(required)
-endpoint = ''
-access_key_id = ''
-access_key_secret = ''
+#endpoint = ''
+#access_key_id = ''
+#access_key_secret = ''
 	
-[[consumer.projects]]
+#[[consumer.projects]]
 # ##(required) 项目名称 
-name = ''
+#name = ''
 	
-[[consumer.projects.stores]]
+#[[consumer.projects.stores]]
 # ##(required) 日志库名称
-name = ''
+#name = ''
 	
 # ##(optional) 指标集名称, 默认使用 'aliyunlog_+store-name' 
 #metric_name = ''
