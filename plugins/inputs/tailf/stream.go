@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hpcloud/tail"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"github.com/influxdata/tail"
 )
 
 const defaultWatchMethod = "inotify"
@@ -75,30 +75,14 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 		return err
 	}
 
-	for {
-		select {
-		case <-s.tailf.ctx.Done():
-			if !s.sub.Pipe && !s.sub.FormBeginning {
-				offset, err := tailer.Tell()
-				if err == nil {
-					log.Printf("I! [Tailf] subscribe file: %s, recording offset %d\n", s.sub.File, offset)
-				} else {
-					log.Printf("I! [Tailf] subscribe file: %s, recording offset %s\n", s.sub.File, err.Error())
-				}
-				s.offset = offset
-			}
-			err := tailer.Stop()
-			if err != nil {
-				log.Printf("I! [Tailf] subscribe file: %s stop\n", s.sub.File)
-			}
+	go s.catchStop(tailer)
 
-			return nil
-		default:
-			if err := s.exec(tailer); err != nil {
-				log.Printf("E! [Tailf] subscribe file: %s, exec failed: %s\n", s.sub.File, err.Error())
-			}
-		}
+	if err := s.exec(tailer); err != nil {
+		log.Printf("E! [Tailf] subscribe file: %s, exec failed: %s\n", s.sub.File, err.Error())
+		return err
 	}
+
+	return nil
 }
 
 func (s *stream) exec(tailer *tail.Tail) error {
@@ -128,13 +112,38 @@ func (s *stream) exec(tailer *tail.Tail) error {
 
 	}
 
-	log.Printf("I! [Tailf] subscribe file: %s, tail removed file\n", s.sub.File)
+	log.Printf("I! [Tailf] subscribe file: %s, tailf stop\n", s.sub.File)
 	if err := tailer.Err(); err != nil {
 		log.Printf("E! [Tailf] subscribe file: %s, tailing error: %s\n", s.sub.File, err.Error())
 		return err
 	}
 
 	return nil
+}
+
+func (s *stream) catchStop(tailer *tail.Tail) {
+
+	for {
+		select {
+		case <-s.tailf.ctx.Done():
+			if !s.sub.Pipe && !s.sub.FormBeginning {
+				offset, err := tailer.Tell()
+				if err == nil {
+					log.Printf("I! [Tailf] subscribe file: %s, recording offset %d\n", s.sub.File, offset)
+				} else {
+					log.Printf("I! [Tailf] subscribe file: %s, recording offset %s\n", s.sub.File, err.Error())
+				}
+				s.offset = offset
+			}
+			err := tailer.Stop()
+			if err != nil {
+				log.Printf("I! [Tailf] subscribe file: %s stop\n", s.sub.File)
+			}
+
+		default:
+			// nil
+		}
+	}
 
 }
 
