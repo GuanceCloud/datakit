@@ -37,7 +37,6 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/snappy v0.0.1
 	github.com/google/gopacket v1.1.17 // indirect
-	github.com/google/uuid v1.1.1 // indirect
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
