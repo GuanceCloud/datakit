@@ -18,6 +18,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpstat"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jira"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/lighttpd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mock"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodboplog"
@@ -29,13 +30,13 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/squid"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ssh"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcms"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/timezone"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traefik"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ucmon"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/yarn"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jira"
 
 	// 32bit disabled, only 64 bit available
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
