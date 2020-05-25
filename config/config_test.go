@@ -1,7 +1,6 @@
 package config
 
 import (
-	"context"
 	"log"
 	"testing"
 
@@ -10,10 +9,8 @@ import (
 
 func TestLoadMainCfg(t *testing.T) {
 
-	c := NewConfig()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	if err := c.LoadMainConfig(ctx, `test.conf`); err != nil {
+	c := newDefaultCfg()
+	if err := c.LoadMainConfig(); err != nil {
 		t.Errorf("%s", err)
 	}
 }
@@ -32,14 +29,10 @@ func TestInitCfg(t *testing.T) {
 		ConfigDir: "conf.d",
 	}
 
-	err = InitMainCfg(maincfg, `test.conf`)
+	err = initMainCfg(maincfg, `test.conf`)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
 
-	InitTelegrafSamples()
-
-	if err = CreatePluginConfigs("./testconf.d", false); err != nil {
-		log.Fatalf("%s", err)
-	}
+	initTelegrafSamples()
 }
