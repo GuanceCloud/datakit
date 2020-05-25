@@ -12,6 +12,7 @@ require (
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
+	github.com/andygrunwald/go-jira v1.12.0
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/aws/aws-sdk-go v1.27.0
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
@@ -39,6 +40,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
+	github.com/influxdata/tail v1.0.1-0.20180327235535-c43482518d41
 	github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/jackc/pgx v3.6.0+incompatible
