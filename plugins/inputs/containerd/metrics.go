@@ -22,14 +22,15 @@ var attach = func(*cio.FIFOSet) (cio.IO, error) { return cio.NullIO("") }
 
 func (s *stream) processMetrics() error {
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ctx = namespaces.WithNamespace(ctx, s.sub.Namespace)
+
 	client, err := containerd.New(s.sub.HostPath)
 	if err != nil {
 		return err
 	}
 	defer client.Close()
-
-	ctx, _ := context.WithCancel(context.Background())
-	ctx = namespaces.WithNamespace(ctx, s.sub.Namespace)
 
 	cs, err := client.Containers(ctx)
 	if err != nil {
