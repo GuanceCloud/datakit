@@ -3,6 +3,7 @@ package aliyunlog
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -106,7 +107,11 @@ func (al *AliyunLog) Start(acc telegraf.Accumulator) error {
 		}
 		al.runningInstances = append(al.runningInstances, r)
 
-		go r.run(al.ctx)
+		go func(ctx context.Context) {
+			if err := r.run(al.ctx); err != nil && err != context.Canceled {
+				al.logger.Errorf("%s", err)
+			}
+		}(al.ctx)
 	}
 
 	return nil
@@ -127,7 +132,11 @@ func (r *runningInstance) run(ctx context.Context) error {
 		}
 		r.runningProjects = append(r.runningProjects, p)
 
-		go p.run(ctx)
+		go func(ctx context.Context) {
+			if err := p.run(ctx); err != nil && err != context.Canceled {
+				r.logger.Errorf("%s", err)
+			}
+		}(ctx)
 	}
 
 	return nil
@@ -150,7 +159,11 @@ func (r *runningProject) run(ctx context.Context) error {
 		}
 		r.runningStores = append(r.runningStores, s)
 
-		go s.run(ctx)
+		go func(ctx context.Context) {
+			if err := s.run(ctx); err != nil && err != context.Canceled {
+				r.logger.Errorf("%s", err)
+			}
+		}(ctx)
 	}
 
 	return nil
@@ -213,10 +226,8 @@ func (r *runningStore) run(ctx context.Context) error {
 	consumerWorker := consumerLibrary.InitConsumerWorker(option, r.logProcess)
 	consumerWorker.Start()
 
-	select {
-	case <-ctx.Done():
-		consumerWorker.StopAndWait()
-	}
+	<-ctx.Done()
+	consumerWorker.StopAndWait()
 
 	r.logger.Infof("%s done", r.cfg.Name)
 
@@ -308,9 +319,9 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 						nval, err := strconv.ParseInt(strval, 10, 64)
 						if err != nil {
 							if fval, err := strconv.ParseFloat(strval, 64); err == nil {
-								nval = int64(fval)
+								nval = int64(math.Floor(fval))
 							} else {
-								r.logger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
+								//r.logger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
 							}
 						} else {
 							fields[k] = nval
@@ -318,7 +329,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 					case "float":
 						fval, err := strconv.ParseFloat(strval, 64)
 						if err != nil {
-							r.logger.Warnf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
+							//r.logger.Warnf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
 						} else {
 							fields[k] = fval
 						}
