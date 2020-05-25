@@ -2,7 +2,6 @@ package azurecms
 
 import (
 	"context"
-	"time"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/selfstat"
@@ -20,8 +19,6 @@ type (
 		agent *azureMonitorAgent
 
 		queryInfos []*queryListInfo
-
-		timer *time.Timer
 
 		metricDefinitionClient insights.MetricDefinitionsClient
 		metricClient           insights.MetricsClient

@@ -101,7 +101,6 @@ func TestGetTableInfo(t *testing.T) {
 	ds := fmt.Sprintf("%v", d)
 	fv, _ := strconv.ParseFloat(ds, 64)
 	log.Printf("fv=%v(%s)", fv, reflect.TypeOf(fv))
-	return
 
 	/* unreachable code
 	dbName := `shrine`
