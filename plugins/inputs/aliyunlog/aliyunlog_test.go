@@ -4,15 +4,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
-	"os/signal"
 	"testing"
 	"time"
 
 	"github.com/influxdata/toml"
 
 	sls "github.com/aliyun/aliyun-log-go-sdk"
-	consumerLibrary "github.com/aliyun/aliyun-log-go-sdk/consumer"
 )
 
 func TestConfig(t *testing.T) {
@@ -97,7 +94,7 @@ func TestProject(t *testing.T) {
 
 func TestConsumer(t *testing.T) {
 
-	option := consumerLibrary.LogHubConfig{
+	/*option := consumerLibrary.LogHubConfig{
 		Endpoint:          "1cn-hangzhou.log.aliyuncs.com",
 		AccessKeyID:       "",
 		AccessKeySecret:   "",
@@ -117,7 +114,7 @@ func TestConsumer(t *testing.T) {
 	if _, ok := <-ch; ok {
 		fmt.Println("msg", "get stop signal, start to stop consumer worker", "consumer worker name")
 		consumerWorker.StopAndWait()
-	}
+	}*/
 }
 
 func TestService(t *testing.T) {
