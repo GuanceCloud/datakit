@@ -65,7 +65,7 @@ func main() {
 	})
 
 	if err != nil {
-		log.Fatal("New %s service failed: %s", runtime.GOOS, err.Error())
+		log.Fatalf("New %s service failed: %s", runtime.GOOS, err.Error())
 	}
 
 	if err := stopDataKitService(dkservice); err != nil {
@@ -96,7 +96,7 @@ func main() {
 		} else {
 			*flagDataway, err = parseDataway(*flagDataway)
 			if err != nil {
-				log.Fatal("%s", err.Error())
+				log.Fatalf("%s", err.Error())
 			}
 		}
 
