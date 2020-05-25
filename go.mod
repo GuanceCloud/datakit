@@ -17,6 +17,7 @@ require (
 	github.com/aws/aws-sdk-go v1.27.0
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
+	github.com/containerd/cgroups v0.0.0-20190919134610-bf292b21730f
 	github.com/containerd/containerd v1.4.0-beta.0
 	github.com/containerd/continuity v0.0.0-20200413184840-d3ef23f19fbb // indirect
 	github.com/containerd/fifo v0.0.0-20200410184934-f15a3290365b // indirect
