@@ -20,9 +20,9 @@ import (
 )
 
 var (
-	batchInterval = time.Duration(5) * time.Minute
-	metricPeriod  = time.Duration(5 * time.Minute)
-	rateLimit     = 20
+	//batchInterval = time.Duration(5) * time.Minute
+	//metricPeriod  = time.Duration(5 * time.Minute)
+	//rateLimit     = 20
 
 	historyCacheDir = `/etc/datakit/aliyuncost`
 )
@@ -68,6 +68,10 @@ type (
 		run(context.Context) error
 	}
 )
+
+func (_ *AliyunCostAgent) Catalog() string {
+	return "aliyun"
+}
 
 func (_ *AliyunCostAgent) SampleConfig() string {
 	return aliyuncostConfigSample
@@ -132,6 +136,10 @@ func (ac *AliyunCostAgent) Start(acc telegraf.Accumulator) error {
 
 		if cfg.BiilInterval.Duration > 0 {
 			ri.modules = append(ri.modules, NewCostBill(cfg, ri))
+		}
+
+		if cfg.OrdertInterval.Duration > 0 {
+			ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
 		}
 
 		if cfg.OrdertInterval.Duration > 0 {
@@ -294,7 +302,7 @@ func (r *runningInstance) QueryOrdersWrap(ctx context.Context, request *bssopena
 }
 
 func init() {
-	inputs.Add("aliyuncost", func() telegraf.Input {
+	inputs.Add("aliyuncost", func() inputs.Input {
 		ac := &AliyunCostAgent{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
