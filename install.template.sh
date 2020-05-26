@@ -13,7 +13,7 @@ InstallDir="/usr/local/cloudcare/dataflux"
 USRDIR="${InstallDir}/${SERVICE}"
 USRDIR_OLD="/usr/local/cloudcare/forethought/${SERVICE}"
 BINARY="$USRDIR/${SERVICE}"
-AGENTBINARY="$USRDIR/agent"
+AGENTBINARY="$USRDIR/embed/agent"
 EMBEDDIR="$USRDIR/embed"
 CONF="$USRDIR/${SERVICE}.conf"
 DOWNLOAD_BASE_ADDR="https://{{.DownloadAddr}}"
@@ -99,11 +99,26 @@ function set_config() {
 	else
 		info "init config"
         #generate config
-        config_cmd="$BINARY --init --ftdataway ${dk_ftdataway} --cfg $1"
+        config_cmd="$BINARY --init --dataway ${dk_ftdataway} --cfg $1"
         $sudo_cmd $config_cmd
 
 		# set permission on $1
 		$sudo_cmd chmod 640 $1
+	fi
+}
+
+function kill_agent() {
+	agentPid=""
+	if pgrep agent &>/dev/null; then
+		agentPid=`pgrep agent`
+	fi
+	if [ -n "${agentPid}" ]; then
+		if [ -f "/proc/${agentPid}/cmdline" ];then
+			if grep "datakit/embed" "/proc/${agentPid}/cmdline" &>/dev/null;then
+				kill $(pgrep datakit) &>/dev/null
+				kill "${agentPid}" &>/dev/null
+			fi
+		fi
 	fi
 }
 
@@ -166,13 +181,12 @@ function host_install() {
 
 	# create workdir
 	$sudo_cmd mkdir -p ${USRDIR}
-	$sudo_cmd mkdir -p ${EMBEDDIR}
 
     info "Downloading..."
 	$dl_cmd - "${download_addr}" | $sudo_cmd tar -xz -C ${USRDIR}
 
-	$sudo_cmd chmod +x "$BINARY" 
-	$sudo_cmd chmod +x "$AGENTBINARY" 
+	$sudo_cmd chmod +x "$BINARY"
+	$sudo_cmd chmod +x "$AGENTBINARY"
 
 	if type ldconfig > /dev/null; then
 		mkdir -p /etc/ld.so.conf.d
@@ -187,7 +201,7 @@ function host_install() {
 	if [ -f "${USRDIR}/agent.log" ]; then
 		mv "${USRDIR}/agent.log" "${EMBEDDIR}"
 	fi
-	
+
 	if [ -f "${USRDIR}/agent.pid" ]; then
 		mv "${USRDIR}/agent.pid" "${EMBEDDIR}"
 	fi
@@ -198,36 +212,40 @@ function host_install() {
 
 	set_config $CONF
 
-	# Use /usr/sbin/service by default.
-	# Some distros usually include compatibility scripts with Upstart or Systemd. Check with: `command -v service | xargs grep -E "(upstart|systemd)"`
-	restart_cmd="$sudo_cmd service $SERVICE restart"
-	stop_instructions="$sudo_cmd service $SERVICE stop"
-	start_instructions="$sudo_cmd service $SERVICE start"
-
 	info "register service"
-	if command -v systemctl &>/dev/null; then
-		install_type=systemctl
-
-		# Use systemd if systemctl binary exists
-		restart_cmd="$sudo_cmd systemctl restart $SERVICE.service"
-		stop_instructions="$sudo_cmd systemctl stop $SERVICE"
-		start_instructions="$sudo_cmd systemctl start $SERVICE"
-	elif /sbin/init --version 2>&1 | grep -q upstart &>/dev/null; then
-		install_type=upstart
-
-		# Try to detect Upstart, this works most of the times but still a best effort
-		restart_cmd="$sudo_cmd stop $SERVICE &>/dev/null || true ; sleep 2s ; $sudo_cmd start $SERVICE"
-		stop_instructions="$sudo_cmd stop $SERVICE"
-		start_instructions="$sudo_cmd start $SERVICE"
-	fi
 
 	# install service only
 	install_cmd="$BINARY -install $install_type -cfg $CONF -install-only"
 	$sudo_cmd $install_cmd
 }
 
+
+# Use /usr/sbin/service by default.
+	# Some distros usually include compatibility scripts with Upstart or Systemd. Check with: `command -v service | xargs grep -E "(upstart|systemd)"`
+restart_cmd="$sudo_cmd service $SERVICE restart"
+stop_instructions="$sudo_cmd service $SERVICE stop"
+start_instructions="$sudo_cmd service $SERVICE start"
+
+if command -v systemctl &>/dev/null; then
+	install_type=systemctl
+
+	# Use systemd if systemctl binary exists
+	restart_cmd="$sudo_cmd systemctl restart $SERVICE.service"
+	stop_instructions="$sudo_cmd systemctl stop $SERVICE"
+	start_instructions="$sudo_cmd systemctl start $SERVICE"
+elif /sbin/init --version 2>&1 | grep -q upstart &>/dev/null; then
+	install_type=upstart
+
+		# Try to detect Upstart, this works most of the times but still a best effort
+	restart_cmd="$sudo_cmd stop $SERVICE &>/dev/null || true ; sleep 2s ; $sudo_cmd start $SERVICE"
+	stop_instructions="$sudo_cmd stop $SERVICE"
+	start_instructions="$sudo_cmd start $SERVICE"
+fi
+
+
 if [ -n "$dk_upgrade" ]; then
 	if [ -f "$USRDIR_OLD/${SERVICE}" ] && ! [ -f ${BINARY} ];then
+		${stop_instructions} &>/dev/null
 		$sudo_cmd mkdir -p "${USRDIR}"
 		$sudo_cmd mv "${USRDIR_OLD}" "${InstallDir}"
 	fi
@@ -251,6 +269,7 @@ fi
 
 
 info "* Starting Datakit...";
+kill_agent
 eval $restart_cmd
 
 info "Your Datakit is running and functioning properly. It will continue to run in the
