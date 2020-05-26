@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/influxdata/toml"
+	//"github.com/influxdata/toml"
 
 	"github.com/ucloud/ucloud-sdk-go/services/uhost"
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
@@ -50,11 +50,12 @@ func TestConfig(t *testing.T) {
 		},
 	}
 
-	data, err := toml.Marshal(cfg)
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-	log.Printf("cfg: %s", string(data))
+	/*
+		data, err := toml.Marshal(cfg)
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
+		log.Printf("cfg: %s", string(data)) */
 }
 
 func TestRegion(t *testing.T) {
