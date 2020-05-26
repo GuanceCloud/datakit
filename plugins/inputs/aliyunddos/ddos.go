@@ -55,6 +55,10 @@ func (_ *AliyunDDoS) SampleConfig() string {
 	return configSample
 }
 
+func (_ *AliyunDDoS) Catalog() string {
+	return "aliyun"
+}
+
 func (_ *AliyunDDoS) Description() string {
 	return ""
 }
@@ -466,7 +470,7 @@ func (r *runningInstance) describePayInfo(region string) error {
 }
 
 func init() {
-	inputs.Add("aliyunddos", func() telegraf.Input {
+	inputs.Add("aliyunddos", func() inputs.Input {
 		ac := &AliyunDDoS{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
