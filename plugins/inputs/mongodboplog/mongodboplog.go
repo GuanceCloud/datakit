@@ -22,7 +22,7 @@ type Mongodboplog struct {
 }
 
 func init() {
-	inputs.Add(pluginName, func() telegraf.Input {
+	inputs.Add(pluginName, func() inputs.Input {
 		m := &Mongodboplog{}
 		m.ctx, m.cancel = context.WithCancel(context.Background())
 		return m
@@ -35,7 +35,7 @@ func (m *Mongodboplog) Start(acc telegraf.Accumulator) error {
 	m.wg = new(sync.WaitGroup)
 
 	log.Printf("I! [MongodbOplog] start\n")
-	log.Printf("I! [MongodbOplog] load subscribes count: %d\n", len(m.Config.Subscribes))
+	log.Printf("I! [MongodbOplog] load subscribes count %d\n", len(m.Config.Subscribes))
 	for _, sub := range m.Config.Subscribes {
 		m.wg.Add(1)
 		s := sub
@@ -47,9 +47,13 @@ func (m *Mongodboplog) Start(acc telegraf.Accumulator) error {
 }
 
 func (m *Mongodboplog) Stop() {
-	log.Printf("I! [MongodbOplog] stop\n")
 	m.cancel()
 	m.wg.Wait()
+	log.Printf("I! [MongodbOplog] stop\n")
+}
+
+func (_ *Mongodboplog) Catalog() string {
+	return "mongodb"
 }
 
 func (_ *Mongodboplog) SampleConfig() string {

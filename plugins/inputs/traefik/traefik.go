@@ -2,12 +2,12 @@ package traefik
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"time"
-	"encoding/json"
 
 	traefikLog "github.com/siddontang/go-log/log"
 
@@ -20,13 +20,13 @@ type TraefikServStats struct {
 	Pid      int    `json:"pid"`
 	Hostname string `json:"hostname"`
 
-	Uptime       float64 `json:"uptime_sec"`
-	TotalCount   int64    `json:"total_count"`
-	TotalRepTime float64 `json:"total_response_time_sec"`
-	TotalRepSize int64    `json:"total_response_size"`
-	AvergRepTime float64 `json:"average_response_time_sec"`
-	AvergRepSize int64    `json:"average_response_size"`
-	TotalStatCodeCnt  map[string]int `json:"total_status_code_count"`
+	Uptime           float64        `json:"uptime_sec"`
+	TotalCount       int64          `json:"total_count"`
+	TotalRepTime     float64        `json:"total_response_time_sec"`
+	TotalRepSize     int64          `json:"total_response_size"`
+	AvergRepTime     float64        `json:"average_response_time_sec"`
+	AvergRepSize     int64          `json:"average_response_size"`
+	TotalStatCodeCnt map[string]int `json:"total_status_code_count"`
 }
 type TraefikTarget struct {
 	Interval int
@@ -87,6 +87,10 @@ var (
 
 func (t *Traefik) SampleConfig() string {
 	return traefikConfigSample
+}
+
+func (t *Traefik) Catalog() string {
+	return "traefik"
 }
 
 func (t *Traefik) Description() string {
@@ -187,8 +191,8 @@ func (p *TraefikParam) getMetrics() error {
 	fields["average_time"] = s.AvergRepTime
 	fields["average_size"] = s.AvergRepSize
 
-	for k,v := range s.TotalStatCodeCnt {
-		fields["http_" + k + "_count"] = v
+	for k, v := range s.TotalStatCodeCnt {
+		fields["http_"+k+"_count"] = v
 	}
 	p.output.acc.AddFields(p.input.MetricName, fields, tags)
 	return nil
@@ -213,7 +217,7 @@ func setupLogger() {
 }
 
 func init() {
-	inputs.Add("traefik", func() telegraf.Input {
+	inputs.Add("traefik", func() inputs.Input {
 		p := &Traefik{}
 		return p
 	})
