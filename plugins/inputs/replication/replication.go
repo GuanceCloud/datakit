@@ -22,7 +22,7 @@ type Replication struct {
 }
 
 func init() {
-	inputs.Add(pluginName, func() telegraf.Input {
+	inputs.Add(pluginName, func() inputs.Input {
 		r := &Replication{}
 		r.ctx, r.cancel = context.WithCancel(context.Background())
 		return r
@@ -35,7 +35,7 @@ func (r *Replication) Start(acc telegraf.Accumulator) error {
 	r.wg = new(sync.WaitGroup)
 
 	log.Printf("I! [Replication] start\n")
-	log.Printf("I! [Replication] load subscribes count: %d\n", len(r.Config.Subscribes))
+	log.Printf("I! [Replication] load subscribes count %d\n", len(r.Config.Subscribes))
 
 	for _, sub := range r.Config.Subscribes {
 		r.wg.Add(1)
@@ -51,6 +51,10 @@ func (r *Replication) Stop() {
 	r.cancel()
 	r.wg.Wait()
 	log.Printf("I! [Replication] stop\n")
+}
+
+func (_ *Replication) Catalog() string {
+	return "mongodb"
 }
 
 func (_ *Replication) SampleConfig() string {
