@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf"
-	uuid "github.com/satori/go.uuid"
 	"golang.org/x/time/rate"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -43,6 +43,10 @@ type (
 		rateLimiter *rate.Limiter
 	}
 )
+
+func (_ *AliyunActiontrail) Catalog() string {
+	return "aliyun"
+}
 
 func (_ *AliyunActiontrail) SampleConfig() string {
 	return configSample
@@ -126,13 +130,15 @@ func (r *runningInstance) getHistory(ctx context.Context) error {
 	return nil
 }
 
-func (r *runningInstance) lookupEvents(ctx context.Context, request *actiontrail.LookupEventsRequest, originFn func(*actiontrail.LookupEventsRequest) (*actiontrail.LookupEventsResponse, error)) (string, *actiontrail.LookupEventsResponse, error) {
+func (r *runningInstance) lookupEvents(ctx context.Context,
+	request *actiontrail.LookupEventsRequest,
+	originFn func(*actiontrail.LookupEventsRequest) (*actiontrail.LookupEventsResponse, error)) (string, *actiontrail.LookupEventsResponse, error) {
 
 	var response *actiontrail.LookupEventsResponse
 	var err error
 	var tempDelay time.Duration
 
-	reqUid, _ := uuid.NewV4()
+	reqUid := cliutils.XID("req_")
 
 	for i := 0; i < 5; i++ {
 		r.rateLimiter.Wait(ctx)
@@ -153,13 +159,13 @@ func (r *runningInstance) lookupEvents(ctx context.Context, request *actiontrail
 			time.Sleep(tempDelay)
 		} else {
 			if i != 0 {
-				r.logger.Debugf("retry %s successed, %d", reqUid.String(), i)
+				r.logger.Debugf("retry %s successed, %d", reqUid, i)
 			}
 			break
 		}
 	}
 
-	return reqUid.String(), response, err
+	return reqUid, response, err
 }
 
 func (r *runningInstance) run(ctx context.Context) error {
@@ -284,7 +290,7 @@ func unixTimeStrISO8601(t time.Time) string {
 }
 
 func init() {
-	inputs.Add("aliyunactiontrail", func() telegraf.Input {
+	inputs.Add("aliyunactiontrail", func() inputs.Input {
 		ac := &AliyunActiontrail{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac

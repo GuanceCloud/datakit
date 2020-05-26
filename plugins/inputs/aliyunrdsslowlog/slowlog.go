@@ -61,6 +61,10 @@ type rdsInstance struct {
 	instanceType string
 }
 
+func (_ *AliyunRDSSlowLog) Catalog() string {
+	return "aliyun"
+}
+
 func (_ *AliyunRDSSlowLog) SampleConfig() string {
 	return configSample
 }
@@ -267,7 +271,7 @@ func unixTimeStrISO8601(t time.Time) string {
 }
 
 func init() {
-	inputs.Add("aliyunrdsslowLog", func() telegraf.Input {
+	inputs.Add("aliyunrdsslowLog", func() inputs.Input {
 		ac := &AliyunRDSSlowLog{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac

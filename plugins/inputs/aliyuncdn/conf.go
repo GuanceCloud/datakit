@@ -32,7 +32,7 @@ const (
 )
 
 type Metric struct {
-	Actions        []string `toml:"actions`
+	Actions        []string `toml:"actions"`
 	MetricName     string   `toml:"metricName"`
 	IspNameEn      string   `toml:"ispNameEn"`
 	LocationNameEn string   `toml:"locationNameEn"`
