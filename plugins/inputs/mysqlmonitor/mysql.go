@@ -35,6 +35,10 @@ type runningInstance struct {
 	metricName string
 }
 
+func (_ *MysqlMonitor) Catalog() string {
+	return "mysql"
+}
+
 func (_ *MysqlMonitor) SampleConfig() string {
 	return configSample
 }
@@ -251,7 +255,7 @@ func (r *runningInstance) Query(sql string) ([]map[string]interface{}, error) {
 // }
 
 func init() {
-	inputs.Add("mysqlmonitor", func() telegraf.Input {
+	inputs.Add("mysqlmonitor", func() inputs.Input {
 		ac := &MysqlMonitor{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
