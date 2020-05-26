@@ -144,7 +144,6 @@ func (r *runningInstance) handleResponse(m string, response []map[string]interfa
 
 		if tagKeys, ok := tagsMap[m]; ok {
 			for _, tagKey := range tagKeys {
-
 				tags[tagKey] = String(item[tagKey])
 				delete(item, tagKey)
 			}
@@ -187,7 +186,8 @@ func (r *runningInstance) Query(sql string) ([]map[string]interface{}, error) {
 					item[key] = val.(int64)
 				case "string":
 					var data interface{}
-					data, err := strconv.ParseFloat(val.(string), 64)
+					str := strings.TrimSpace(val.(string))
+					data, err := strconv.ParseFloat(str, 64)
 					if err != nil {
 						data = val
 					}
