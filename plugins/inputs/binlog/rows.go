@@ -1,3 +1,5 @@
+// +build !386,!arm
+
 package binlog
 
 import (
@@ -81,10 +83,7 @@ func (r *RowsEvent) handleUnsigned() {
 
 func (r *RowsEvent) checkIgnoreColumn(c *schema.TableColumn) bool {
 	rtype := strings.ToLower(c.RawType)
-	if strings.HasPrefix(rtype, "blob") {
-		return true
-	}
-	return false
+	return strings.HasPrefix(rtype, "blob")
 }
 
 // String implements fmt.Stringer interface.

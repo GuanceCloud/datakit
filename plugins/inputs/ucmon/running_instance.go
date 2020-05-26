@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	batchInterval = 5 * time.Minute
-	rateLimit     = 10
+	//batchInterval = 5 * time.Minute
+	rateLimit = 10
 )
 
 func (r *runningInstance) run(ctx context.Context) error {
