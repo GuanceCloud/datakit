@@ -42,7 +42,7 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 
 	session, err := mgo.Dial(s.sub.MongodbURL)
 	if err != nil {
-		log.Printf("E! [MongodbOplog] subscribe %s, error: %s\n", s.sub.MongodbURL, err.Error())
+		log.Printf("E! [MongodbOplog] subscribe '%s', connect failed: %s\n", s.sub.MongodbURL, err.Error())
 		return err
 	}
 
@@ -59,7 +59,7 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 
 	s.iter = session.DB("local").C("oplog.rs").Find(query).LogReplay().Tail(-1)
 
-	log.Printf("I! [MongodbOplog] subscribe %s start\n", s.sub.MongodbURL)
+	log.Printf("I! [MongodbOplog] subscribe '%s' start\n", s.sub.MongodbURL)
 	s.runloop()
 	return nil
 }
@@ -68,6 +68,14 @@ func (s *stream) runloop() {
 	var lograw *bson.Raw
 
 	for {
+		select {
+		case <-s.mgo.ctx.Done():
+			log.Printf("I! [MongodbOplog] subscribe '%s' stop\n", s.sub.MongodbURL)
+			return
+		default:
+			// nil
+		}
+
 		lograw = new(bson.Raw)
 		if s.iter.Next(lograw) {
 			p := new(PartialLog)
@@ -83,7 +91,7 @@ func (s *stream) runloop() {
 				s.mdata.rematch(p.Object, "/")
 
 				if p, err := s.mdata.point(); err != nil {
-					log.Printf("E! [MongodbOplog] subscribe %s, build point err: %s\n", s.sub.MongodbURL, err.Error())
+					log.Printf("E! [MongodbOplog] subscribe '%s', build point err: %s\n", s.sub.MongodbURL, err.Error())
 				} else {
 					s.points = append(s.points, p)
 					s.flush()

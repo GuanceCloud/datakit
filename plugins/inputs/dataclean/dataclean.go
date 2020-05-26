@@ -66,13 +66,17 @@ func (_ *DataClean) Description() string {
 	return ""
 }
 
+func (_ *DataClean) Catalog() string {
+	return ""
+}
+
 func (_ *DataClean) Gather(telegraf.Accumulator) error {
 	return nil
 }
 
 func (d *DataClean) Init() error {
 
-	d.luaMachine = NewLuaMachine(filepath.Join(config.ExecutableDir, "data", "lua"), d.LuaWorker)
+	d.luaMachine = NewLuaMachine(filepath.Join(config.InstallDir, "data", "lua"), d.LuaWorker)
 	d.luaMachine.routes = d.Routes
 	d.luaMachine.globals = d.GlobalLua
 
@@ -110,12 +114,12 @@ func (d *DataClean) Start(acc telegraf.Accumulator) error {
 
 	d.write = newWritMgr()
 
-	if config.DKConfig.MainCfg.FtGateway != "" {
-		d.write.addHttpWriter(config.DKConfig.MainCfg.FtGateway)
+	if config.Cfg.MainCfg.FtGateway != "" {
+		d.write.addHttpWriter(config.Cfg.MainCfg.FtGateway)
 	}
 
-	if config.DKConfig.MainCfg.OutputsFile != "" {
-		d.write.addFileWriter(config.DKConfig.MainCfg.OutputsFile)
+	if config.Cfg.MainCfg.OutputsFile != "" {
+		d.write.addFileWriter(config.Cfg.MainCfg.OutputsFile)
 	}
 
 	d.write.run()
@@ -150,7 +154,7 @@ func NewAgent() *DataClean {
 }
 
 func init() {
-	inputs.Add(inputName, func() telegraf.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		ac := NewAgent()
 		return ac
 	})
