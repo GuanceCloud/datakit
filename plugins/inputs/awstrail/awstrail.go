@@ -50,6 +50,10 @@ type (
 	}
 )
 
+func (_ *AwsTrailAgent) Catalog() string {
+	return "aws"
+}
+
 func (_ *AwsTrailAgent) SampleConfig() string {
 	return sampleConfig
 }
@@ -212,7 +216,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 
 		r.lastTime = end_time
 
-		used := time.Now().Sub(useage)
+		used := time.Since(useage)
 
 		for _, res := range response {
 			for _, ev := range res.Events {
@@ -272,7 +276,7 @@ func (a *AwsTrailAgent) Stop() {
 }
 
 func init() {
-	inputs.Add(inputName, func() telegraf.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		ac := &AwsTrailAgent{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
