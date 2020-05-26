@@ -1,3 +1,5 @@
+// +build !386,!arm
+
 package binlog
 
 import (
@@ -45,7 +47,7 @@ func NewRunningBinloger(cfg *InstanceConfig) *RunningBinloger {
 }
 
 type RunningBinloger struct {
-	m sync.Mutex
+	//m sync.Mutex
 
 	binlog *Binlog
 
@@ -68,7 +70,7 @@ type RunningBinloger struct {
 
 	delay *uint32
 
-	ctx context.Context
+	//ctx context.Context
 }
 
 func (rb *RunningBinloger) run(ctx context.Context) error {
