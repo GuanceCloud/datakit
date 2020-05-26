@@ -1,76 +1,79 @@
 package config
 
-var (
-	telegrafCfgSamples = make(map[string]string)
+type telegrafInputs struct {
+	name, catalog string
+	enabled       bool
+}
 
-	SupportsTelegrafMetraicNames = []string{
-		`nginx`,
-		`apache`,
-		`disk`,
-		`cpu`,
-		`diskio`,
-		`mysql`,
-		`mongodb`,
-		`redis`,
-		`elasticsearch`,
-		`openldap`,
-		`sqlserver`,
-		`phpfpm`,
-		`memory`,
-		`activemq`,
-		`zookeeper`,
-		`ceph`,
-		`dns_query`,
-		`docker`,
-		`docker_log`,
-		`fluentd`,
-		`haproxy`,
-		`memcached`,
-		`iptables`,
-		`jenkins`,
-		`kapacitor`,
-		`ntpq`,
-		`openntpd`,
-		`ping_check`,
-		`postgresql`,
-		`rabbitmq`,
-		`swap`,
-		`system`,
-		`tengine`,
-		`network`,
-		`processes`,
-		`tcp_udp_check`,
-		`http_check`,
-		`kernel`,
-		`tls`,
-		`nats`,
-		`win_services`,
-		`awscloudwatch`,
-		`vmware`,
-		`win_perf_counters`,
-		`snmp`,
-		`exec`,
-		`syslog`,
-		`varnish`,
-		`nsq`,
-		`nsq_consumer`,
-		`kube_inventory`,
-		`kubernetes`,
-		`kafka_consumer`,
-		`jolokia2_agent`,
-		`socket_listener`,
-		`amqp`,
-		`amqp_consumer`,
-		`github`,
-		`uwsgi`,
-		`solr`,
-		`systemd_units`,
+var (
+	SupportsTelegrafMetraicNames = map[string]*telegrafInputs{ // Name: Catalog
+		"nginx":             &telegrafInputs{name: "nginx", catalog: "nginx"},
+		"apache":            &telegrafInputs{name: "apache", catalog: "apache"},
+		"disk":              &telegrafInputs{name: "disk", catalog: "disk"},
+		"cpu":               &telegrafInputs{name: "cpu", catalog: "cpu"},
+		"diskio":            &telegrafInputs{name: "diskio", catalog: "diskio"},
+		"mysql":             &telegrafInputs{name: "mysql", catalog: "mysql"},
+		"mongodb":           &telegrafInputs{name: "mongodb", catalog: "mongodb"},
+		"redis":             &telegrafInputs{name: "redis", catalog: "redis"},
+		"elasticsearch":     &telegrafInputs{name: "elasticsearch", catalog: "elasticsearch"},
+		"openldap":          &telegrafInputs{name: "openldap", catalog: "openldap"},
+		"sqlserver":         &telegrafInputs{name: "sqlserver", catalog: "sqlserver"},
+		"phpfpm":            &telegrafInputs{name: "phpfpm", catalog: "phpfpm"},
+		"memory":            &telegrafInputs{name: "memory", catalog: "memory"},
+		"activemq":          &telegrafInputs{name: "activemq", catalog: "activemq"},
+		"zookeeper":         &telegrafInputs{name: "zookeeper", catalog: "zookeeper"},
+		"ceph":              &telegrafInputs{name: "ceph", catalog: "ceph"},
+		"dns_query":         &telegrafInputs{name: "dns_query", catalog: "dns_query"},
+		"docker":            &telegrafInputs{name: "docker", catalog: "docker"},
+		"docker_log":        &telegrafInputs{name: "docker_log", catalog: "docker"},
+		"fluentd":           &telegrafInputs{name: "fluentd", catalog: "fluentd"},
+		"haproxy":           &telegrafInputs{name: "haproxy", catalog: "haproxy"},
+		"memcached":         &telegrafInputs{name: "memcached", catalog: "memcached"},
+		"iptables":          &telegrafInputs{name: "iptables", catalog: "network"},
+		"jenkins":           &telegrafInputs{name: "jenkins", catalog: "jenkins"},
+		"kapacitor":         &telegrafInputs{name: "kapacitor", catalog: "kapacitor"},
+		"ntpq":              &telegrafInputs{name: "ntpq", catalog: "ntpq"},
+		"openntpd":          &telegrafInputs{name: "openntpd", catalog: "openntpd"},
+		"ping_check":        &telegrafInputs{name: "ping_check", catalog: "network"},
+		"postgresql":        &telegrafInputs{name: "postgresql", catalog: "postgresql"},
+		"rabbitmq":          &telegrafInputs{name: "rabbitmq", catalog: "rabbitmq"},
+		"swap":              &telegrafInputs{name: "swap", catalog: "swap"},
+		"system":            &telegrafInputs{name: "system", catalog: "system"},
+		"tengine":           &telegrafInputs{name: "tengine", catalog: "tengine"},
+		"network":           &telegrafInputs{name: "network", catalog: "network"},
+		"processes":         &telegrafInputs{name: "processes", catalog: "processes"},
+		"tcp_udp_check":     &telegrafInputs{name: "tcp_udp_check", catalog: "network"},
+		"http_check":        &telegrafInputs{name: "http_check", catalog: "http_check"},
+		"kernel":            &telegrafInputs{name: "kernel", catalog: "kernel"},
+		"tls":               &telegrafInputs{name: "tls", catalog: "tls"},
+		"nats":              &telegrafInputs{name: "nats", catalog: "network"},
+		"win_services":      &telegrafInputs{name: "win_services", catalog: "win_services"},
+		"awscloudwatch":     &telegrafInputs{name: "awscloudwatch", catalog: "aws"},
+		"vmware":            &telegrafInputs{name: "vmware", catalog: "vmware"},
+		"win_perf_counters": &telegrafInputs{name: "win_perf_counters", catalog: "win_perf_counters"},
+		"snmp":              &telegrafInputs{name: "snmp", catalog: "snmp"},
+		"exec":              &telegrafInputs{name: "exec", catalog: "exec"},
+		"syslog":            &telegrafInputs{name: "syslog", catalog: "syslog"},
+		"varnish":           &telegrafInputs{name: "varnish", catalog: "varnish"},
+		"nsq":               &telegrafInputs{name: "nsq", catalog: "nsq"},
+		"nsq_consumer":      &telegrafInputs{name: "nsq_consumer", catalog: "nsq"},
+		"kube_inventory":    &telegrafInputs{name: "kube_inventory", catalog: "k8s"},
+		"kubernetes":        &telegrafInputs{name: "kubernetes", catalog: "k8s"},
+		"kafka_consumer":    &telegrafInputs{name: "kafka_consumer", catalog: "kafka"},
+		"jolokia2_agent":    &telegrafInputs{name: "jolokia2_agent", catalog: "jolokia2_agent"},
+		"socket_listener":   &telegrafInputs{name: "socket_listener", catalog: "network"},
+		"amqp":              &telegrafInputs{name: "amqp", catalog: "amqp"},
+		"amqp_consumer":     &telegrafInputs{name: "amqp_consumer", catalog: "amqp"},
+		"github":            &telegrafInputs{name: "github", catalog: "github"},
+		"uwsgi":             &telegrafInputs{name: "uwsgi", catalog: "uwsgi"},
+		"solr":              &telegrafInputs{name: "solr", catalog: "solr"},
+		`systemd_units`:     &telegrafInputs{name: "systemd_units", catalog: "systemd_units"},
 	}
 
-	MetricsEnablesFlags = make([]bool, len(SupportsTelegrafMetraicNames))
+	telegrafCfgSamples = map[string]string{}
 )
 
-func InitTelegrafSamples() {
+func initTelegrafSamples() {
 
 	telegrafCfgSamples[`amqp_consumer`] = `
 #[[inputs.amqp_consumer]]
@@ -253,6 +256,26 @@ func InitTelegrafSamples() {
 	telegrafCfgSamples[`socket_listener`] = `
 # Generic socket listener capable of handling multiple socket types.
 #[[inputs.socket_listener]]
+	## collectd
+	service_address = "udp://:25826"
+        data_format = "collectd"
+
+        ## Authentication file for cryptographic security levels
+        collectd_auth_file = "/etc/collectd/auth_file"
+
+        ## One of none (default), sign, or encrypt
+        collectd_security_level = "encrypt"
+
+        ## Path of to TypesDB specifications
+        collectd_typesdb = ["/usr/share/collectd/types.db"]
+
+        ## Multi-value plugins can be handled two ways.
+        ## "split" will parse and store the multi-value plugin data into separate measurements
+        ## "join" will parse and store the multi-value plugin as a single multi-value measurement.
+        ## "split" is the default behavior for backward compatability with previous versions of influxdb.
+        collectd_parse_multivalue = "split"
+
+	## ----
 	## URL to listen on
 	# service_address = "tcp://:8094"
 	# service_address = "tcp://127.0.0.1:http"
@@ -544,7 +567,7 @@ func InitTelegrafSamples() {
 #   # instance_name = instanceName
 #
 #   ## Timeout for varnishstat command
-#   # timeout = "1s"	
+#   # timeout = "1s"
 `
 
 	telegrafCfgSamples[`syslog`] = `
@@ -618,7 +641,7 @@ func InitTelegrafSamples() {
 #   ## Each data format has its own unique set of configuration options, read
 #   ## more about them here:
 #   ## https://github.com/influxdata/telegraf/blob/master/docs/DATA_FORMATS_INPUT.md
-#   data_format = "influx"	
+#   data_format = "influx"
 `
 
 	telegrafCfgSamples[`snmp`] = `
@@ -678,7 +701,7 @@ func InitTelegrafSamples() {
 #
 #   [[inputs.snmp.table]]
 #     ## auto populate table's fields using the MIB
-#     oid = "HOST-RESOURCES-MIB::hrNetworkTable"		
+#     oid = "HOST-RESOURCES-MIB::hrNetworkTable"
 `
 
 	telegrafCfgSamples[`win_perf_counters`] = `
@@ -751,7 +774,7 @@ func InitTelegrafSamples() {
 #	]
 	## Collect IP addresses? Valid values are "ipv4" and "ipv6"
 	# ip_addresses = ["ipv6", "ipv4" ]
-	
+
 	# host_metric_exclude = [] ## Nothing excluded by default
 	# host_instances = true ## true by default
 
@@ -808,15 +831,15 @@ func InitTelegrafSamples() {
 	## the plugin. Setting this flag to "false" will send values as floats to
 	## preserve the full precision when averaging takes place.
 	# use_int_samples = true
-	
+
 	## Custom attributes from vCenter can be very useful for queries in order to slice the
 	## metrics along different dimension and for forming ad-hoc relationships. They are disabled
 	## by default, since they can add a considerable amount of tags to the resulting metrics. To
 	## enable, simply set custom_attribute_exlude to [] (empty set) and use custom_attribute_include
-	## to select the attributes you want to include. 
+	## to select the attributes you want to include.
 	# by default, since they can add a considerable amount of tags to the resulting metrics. To
 	# enable, simply set custom_attribute_exlude to [] (empty set) and use custom_attribute_include
-	# to select the attributes you want to include. 
+	# to select the attributes you want to include.
 	# custom_attribute_include = []
 	# custom_attribute_exclude = ["*"] # Default is to exclude everything
 
@@ -825,7 +848,7 @@ func InitTelegrafSamples() {
 	# ssl_cert = "/path/to/certfile"
 	# ssl_key = "/path/to/keyfile"
 	## Use SSL but skip chain & host verification
-	# insecure_skip_verify = false	
+	# insecure_skip_verify = false
 `
 
 	telegrafCfgSamples["awscloudwatch"] = `
@@ -906,7 +929,7 @@ func InitTelegrafSamples() {
 #  ## must be specified in order to retrieve the metric statistics.
 #  [[inputs.cloudwatch.metrics.dimensions]]
 #    name = "LoadBalancerName"
-#    value = "p-example"	
+#    value = "p-example"
 `
 
 	telegrafCfgSamples["win_services"] = `
@@ -1344,7 +1367,7 @@ func InitTelegrafSamples() {
 #   # port = 53
 #
 #   ## Query timeout in seconds.
-#   # timeout = 2	
+#   # timeout = 2
 `
 
 	telegrafCfgSamples[`docker`] = `

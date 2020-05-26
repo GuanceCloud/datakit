@@ -77,6 +77,10 @@ func (r *priceReq) String() string {
 	return ``
 }
 
+func (_ *AliyunPriceAgent) Catalog() string {
+	return "aliyun"
+}
+
 func (_ *AliyunPriceAgent) SampleConfig() string {
 	return globalConfig + ecsSampleConfig + rdsSampleConfig + eipSampleConfig + slbSampleConfig
 }
@@ -139,11 +143,11 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 	go func() {
 		defer a.wg.Done()
 
-		// defer func() {
-		// 	if e := recover(); e != nil {
-		// 		a.logger.Errorf("panic %v", e)
-		// 	}
-		// }()
+		defer func() {
+			if e := recover(); e != nil {
+				a.logger.Errorf("panic %v", e)
+			}
+		}()
 
 		for {
 
@@ -415,7 +419,7 @@ func NewAgent() *AliyunPriceAgent {
 }
 
 func init() {
-	inputs.Add(inputName, func() telegraf.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		ac := NewAgent()
 		return ac
 	})

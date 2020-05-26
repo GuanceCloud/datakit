@@ -22,7 +22,7 @@ type Etcd struct {
 }
 
 func init() {
-	inputs.Add(pluginName, func() telegraf.Input {
+	inputs.Add(pluginName, func() inputs.Input {
 		e := &Etcd{}
 		e.ctx, e.cancel = context.WithCancel(context.Background())
 		return e
@@ -34,7 +34,7 @@ func (e *Etcd) Start(acc telegraf.Accumulator) error {
 	e.wg = new(sync.WaitGroup)
 
 	log.Printf("I! [Etcd] start\n")
-	log.Printf("I! [Etcd] load subscribes count: %d\n", len(e.Config.Subscribes))
+	log.Printf("I! [Etcd] load subscribes count %d\n", len(e.Config.Subscribes))
 	for _, sub := range e.Config.Subscribes {
 		e.wg.Add(1)
 		s := sub
@@ -46,13 +46,17 @@ func (e *Etcd) Start(acc telegraf.Accumulator) error {
 }
 
 func (e *Etcd) Stop() {
-	log.Printf("I! [Etcd] stop\n")
 	e.cancel()
 	e.wg.Wait()
+	log.Printf("I! [Etcd] stop\n")
 }
 
 func (_ *Etcd) SampleConfig() string {
 	return etcdConfigSample
+}
+
+func (_ *Etcd) Catalog() string {
+	return "etcd"
 }
 
 func (_ *Etcd) Description() string {
