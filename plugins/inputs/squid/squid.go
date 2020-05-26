@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os/exec"
@@ -11,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"fmt"
 
 	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
@@ -59,6 +59,10 @@ var (
 	defaultInterval   = 60
 	defaultPort       = 3218
 )
+
+func (s *Squid) Catalog() string {
+	return "squid"
+}
 
 func (s *Squid) SampleConfig() string {
 	return squidConfigSample
@@ -128,7 +132,7 @@ func (p *SquidParam) getMetrics() error {
 
 	reg := regexp.MustCompile(" = \\d{1,}\\.{0,1}\\d{0,}$")
 	portStr := fmt.Sprintf("%d", p.input.Port)
-	cmd := exec.Command("squidclient", "-p", portStr,"mgr:counters")
+	cmd := exec.Command("squidclient", "-p", portStr, "mgr:counters")
 	cmd.Stdout = &outInfo
 	err := cmd.Run()
 	if err != nil {
@@ -165,7 +169,7 @@ func (p *SquidParam) getMetrics() error {
 }
 
 func init() {
-	inputs.Add("squid", func() telegraf.Input {
+	inputs.Add("squid", func() inputs.Input {
 		s := &Squid{}
 		return s
 	})
