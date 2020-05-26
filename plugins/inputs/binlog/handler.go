@@ -1,3 +1,5 @@
+// +build !386,!arm
+
 package binlog
 
 import (
@@ -204,12 +206,11 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 			measureName = targetTable.Measurement
 		}
 
-		tags := map[string]string{}
 		fields := map[string]interface{}{}
 
 		hostname, _ := os.Hostname()
 
-		tags = map[string]string{
+		tags := map[string]string{
 			"_host":            h.rb.cfg.Addr,
 			"_collector_host_": hostname,
 			"_db":              e.Table.Schema,
