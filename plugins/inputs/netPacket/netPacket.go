@@ -1,3 +1,7 @@
+// +build ignore
+
+// +build linux,amd64
+
 package netPacket
 
 import (
@@ -49,6 +53,10 @@ func (p *NetPacket) Description() string {
 	return description
 }
 
+func (p *NetPacket) Catalog() string {
+	return "network"
+}
+
 func (p *NetPacket) SampleConfig() string {
 	return sampleConfig
 }
@@ -58,7 +66,7 @@ func (p *NetPacket) Gather(acc telegraf.Accumulator) error {
 }
 
 func init() {
-	inputs.Add("netPacket", func() telegraf.Input { return &NetPacket{} })
+	inputs.Add("netPacket", func() inputs.Input { return &NetPacket{} })
 }
 
 func (p *NetPacket) Start(acc telegraf.Accumulator) error {
