@@ -1,7 +1,8 @@
-package harbor
+package baiduIndex
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -12,8 +13,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type HarborMonitor struct {
-	Harbor           []*HarborCfg
+type Baidu struct {
+	BaiduIndex       []*BaiduIndexCfg
 	runningInstances []*runningInstance
 	ctx              context.Context
 	cancelFun        context.CancelFunc
@@ -22,44 +23,44 @@ type HarborMonitor struct {
 }
 
 type runningInstance struct {
-	cfg        *HarborCfg
-	agent      *HarborMonitor
+	cfg        *BaiduIndexCfg
+	agent      *Baidu
 	logger     *models.Logger
 	metricName string
 }
 
-func (_ *HarborMonitor) SampleConfig() string {
+func (_ *Baidu) SampleConfig() string {
 	return baiduIndexConfigSample
 }
 
-func (_ *HarborMonitor) Description() string {
+func (_ *Baidu) Description() string {
 	return ""
 }
 
-func (_ *HarborMonitor) Gather(telegraf.Accumulator) error {
+func (_ *Baidu) Gather(telegraf.Accumulator) error {
 	return nil
 }
 
-func (h *HarborMonitor) Start(acc telegraf.Accumulator) error {
-	if len(b.Harbor) == 0 {
-		log.Printf("W! [HarborMonitor] no configuration found")
+func (b *Baidu) Start(acc telegraf.Accumulator) error {
+	if len(b.BaiduIndex) == 0 {
+		log.Printf("W! [baiduIndex] no configuration found")
 		return nil
 	}
 
-	h.logger = &models.Logger{
+	b.logger = &models.Logger{
 		Errs: selfstat.Register("gather", "errors", nil),
-		Name: `HarborMonitor`,
+		Name: `baiduIndex`,
 	}
 
-	log.Printf("HarborMonitor cdn start")
+	log.Printf("baiduIndex cdn start")
 
-	h.accumulator = acc
+	b.accumulator = acc
 
-	for _, instCfg := range h.Harbor {
+	for _, instCfg := range b.BaiduIndex {
 		r := &runningInstance{
 			cfg:    instCfg,
-			agent:  h,
-			logger: h.logger,
+			agent:  b,
+			logger: b.logger,
 		}
 
 		r.metricName = instCfg.MetricName
@@ -71,16 +72,16 @@ func (h *HarborMonitor) Start(acc telegraf.Accumulator) error {
 			r.cfg.Interval.Duration = time.Minute * 10
 		}
 
-		h.runningInstances = append(h.runningInstances, r)
+		b.runningInstances = append(b.runningInstances, r)
 
-		go r.run(h.ctx)
+		go r.run(b.ctx)
 	}
 
 	return nil
 }
 
-func (h *HarborMonitor) Stop() {
-	h.cancelFun()
+func (b *Baidu) Stop() {
+	b.cancelFun()
 }
 
 func (r *runningInstance) run(ctx context.Context) error {
@@ -90,6 +91,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 		}
 	}()
 
+	// go r.getHistory(ctx)
 	for {
 		select {
 		case <-ctx.Done():
@@ -97,6 +99,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 		default:
 		}
 
+		fmt.Println("开始采集百度指数数据。。。")
 		internal.SleepContext(ctx, r.cfg.Interval.Duration)
 	}
 
@@ -104,8 +107,8 @@ func (r *runningInstance) run(ctx context.Context) error {
 }
 
 func init() {
-	inputs.Add("harborMonitor", func() telegraf.Input {
-		ac := &HarborMonitor{}
+	inputs.Add("baiduIndex", func() telegraf.Input {
+		ac := &Baidu{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
 	})
