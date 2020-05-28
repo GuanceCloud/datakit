@@ -139,9 +139,6 @@ func (s *stream) catchStop(tailer *tail.Tail) {
 			if err != nil {
 				log.Printf("I! [Tailf] subscribe file: %s stop\n", s.sub.File)
 			}
-
-		default:
-			// nil
 		}
 	}
 
