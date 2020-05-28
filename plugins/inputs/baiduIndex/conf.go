@@ -1,20 +1,20 @@
-package harbor
+package baiduIndex
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 
 const (
 	baiduIndexConfigSample = `
-#[[harbor]]
-#  metricName = 'harbor'
+#[[baiduIndex]]
+#  metricName = 'baiduIndex'
 #  interval = '10s'
-#  username = ''
-#  password = ''
+#  cookie = ''
+#  keywords = ''
 `
 )
 
-type HarborCfg struct {
+type BaiduIndexCfg struct {
 	MetricName string
-	Username   string
-	Password   string
+	Cookie     string
+	Keywords   string
 	Interval   internal.Duration `toml:"interval"`
 }
