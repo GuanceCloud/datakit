@@ -144,7 +144,6 @@ func TestQueryBill(t *testing.T) {
 		}
 
 		log.Printf("total count: %v, accountid=%s, accountname=%s", resp.Data.TotalCount, resp.Data.AccountID, resp.Data.AccountName)
-		break
 
 		/* unreachable code
 		for _, item := range resp.Data.Items.Item {
