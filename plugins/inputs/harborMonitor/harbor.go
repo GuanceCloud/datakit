@@ -143,12 +143,15 @@ func (r *runningInstance) getVolumes(baseUrl string) string {
 	path := fmt.Sprintf("%s/systeminfo/volumes", baseUrl)
 	_, resp := Get(path)
 
+	fmt.Println("data ========>", resp)
+
 	return resp
 }
 
 func (r *runningInstance) getStatistics(baseUrl string) string {
 	path := fmt.Sprintf("%s/statistics", baseUrl)
 	_, resp := Get(path)
+	fmt.Println("data ========>", resp)
 
 	return resp
 }
@@ -156,6 +159,7 @@ func (r *runningInstance) getStatistics(baseUrl string) string {
 func (r *runningInstance) getHealth(baseUrl string) string {
 	path := fmt.Sprintf("%s/health", baseUrl)
 	_, resp := Get(path)
+	fmt.Println("data ========>", resp)
 
 	return resp
 }
