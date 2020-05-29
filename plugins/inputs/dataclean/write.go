@@ -22,7 +22,6 @@ import (
 const (
 	defaultClientTimeout = 5 * time.Second
 	defaultContentType   = `text/plain; charset=utf-8`
-	defaultMethod        = http.MethodPost
 	defaultQueueCap      = 10000
 )
 
@@ -62,8 +61,8 @@ type writerMgr struct {
 	writers    []writer
 	queues     []chan *reqinfo
 
-	total     int64
-	sendTotal int64
+	total int64
+	//sendTotal int64
 
 	running int32
 	done    chan struct{}
