@@ -56,6 +56,7 @@ func main() {
 	}
 
 	log.Printf("I! starting datakit service")
+
 	if err = s.Run(); err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -164,6 +165,7 @@ func loadConfig() {
 
 	config.Cfg.InputFilters = inputFilters
 	log.Printf("I! input fileters %v", inputFilters)
+
 }
 
 func runTelegraf(ctx context.Context) error {
