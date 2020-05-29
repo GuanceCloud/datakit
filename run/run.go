@@ -19,13 +19,15 @@ import (
 
 type Agent struct {
 	Config     *config.Config
-	outputsMgr *OutputsMgr
+	outputsMgr *outputsMgr
 }
 
 func NewAgent(config *config.Config) (*Agent, error) {
 	a := &Agent{
-		Config:     config,
-		outputsMgr: &OutputsMgr{},
+		Config: config,
+		outputsMgr: &outputsMgr{
+			outputChannels: make(map[string]*outputChannel),
+		},
 	}
 	return a, nil
 }
@@ -42,186 +44,171 @@ func (a *Agent) Run(ctx context.Context) error {
 	default:
 	}
 
-	log.Printf("Initializing plugins")
-	err := a.initPlugins()
-	if err != nil {
+	log.Printf("Loading outputs")
+	if err := a.outputsMgr.LoadOutputs(a.Config); err != nil {
 		return err
 	}
 
-	a.outputsMgr.Outputs, err = a.Config.LoadOutputs()
-	if err != nil {
+	if err := a.outputsMgr.ConnectOutputs(ctx); err != nil {
 		return err
 	}
 
 	var outputsNames []string
-	for _, p := range a.outputsMgr.Outputs {
-		outputsNames = append(outputsNames, p.Config.Name)
+	for _, oc := range a.outputsMgr.outputChannels {
+		for _, op := range oc.outputs {
+			outputsNames = append(outputsNames, op.Config.Name)
+		}
 	}
 	log.Printf("avariable outputs: %s", strings.Join(outputsNames, ","))
 
-	log.Printf("Connecting outputs")
-	err = a.outputsMgr.Init()
-	if err != nil {
-		return err
-	}
-
-	err = a.outputsMgr.ConnectOutputs(ctx)
-	if err != nil {
-		return err
-	}
-
-	inputC := make(chan telegraf.Metric, 100)
 	startTime := time.Now()
-	ncInput := len(a.Config.Inputs)
-
-	err = a.startServiceInputs(ctx, inputC)
-	if err != nil {
-		return err
-	}
 
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-	go func(dst chan telegraf.Metric) {
+	go func() {
 		defer wg.Done()
 
-		err := a.runInputs(ctx, startTime, dst)
-		if err != nil {
+		log.Printf("Starting inputs")
+		err := a.runInputs(ctx, startTime)
+		if err != nil && err != context.Canceled {
 			log.Printf("E! Error running inputs: %v", err)
 		}
 
-		log.Printf("D! Interval Inputs done")
-	}(inputC)
+		log.Printf("Inputs done")
+	}()
 
-	if ncInput > 0 {
-		go func() {
-			select {
-			case <-ctx.Done():
-				a.stopServiceInputs()
-				close(inputC)
-			}
-		}()
+	go func() {
+		select {
+		case <-ctx.Done():
+			a.stopInputs()
+			a.outputsMgr.Stop()
+		}
+	}()
 
-		wg.Add(1)
-		go func(src chan telegraf.Metric) {
-			defer wg.Done()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 
-			err := a.outputsMgr.Start(src,
-				startTime,
-				a.Config.MainCfg.FlushInterval.Duration,
-				a.Config.MainCfg.FlushJitter.Duration,
-				a.Config.MainCfg.RoundInterval)
-			if err != nil {
-				log.Printf("E! Error running outputs: %v", err)
-			}
+		err := a.outputsMgr.Start(startTime,
+			a.Config.MainCfg.FlushInterval.Duration,
+			a.Config.MainCfg.FlushJitter.Duration,
+			a.Config.MainCfg.RoundInterval)
 
-			a.stopDatacleanService() //dataclean后面停
-		}(inputC)
+		if err != nil && err != context.Canceled {
+			log.Printf("E! Error starting outputs: %v", err)
+		}
 
-		wg.Wait()
+	}()
 
-		a.outputsMgr.Close()
-	} else {
-		//no input no output
-		<-ctx.Done()
-	}
+	wg.Wait()
+	a.outputsMgr.Close()
 
 	log.Printf("datakit stopped successfully")
 	return nil
 }
 
-func (a *Agent) runInputs(
+func (a *Agent) runIntervalInput(
 	ctx context.Context,
+	input *models.RunningInput,
 	startTime time.Time,
 	dst chan<- telegraf.Metric,
+	wg *sync.WaitGroup,
 ) error {
+
+	if _, ok := input.Input.(telegraf.ServiceInput); ok {
+		return nil
+	}
+	interval := a.Config.MainCfg.Interval.Duration
+	jitter := time.Duration(0) //a.Config.Agent.CollectionJitter.Duration
+
+	// Overwrite agent interval if this plugin has its own.
+	if input.Config.Interval != 0 {
+		interval = input.Config.Interval
+	}
+
+	acc := teleagent.NewAccumulator(input, dst)
+	acc.SetPrecision(time.Nanosecond)
+
+	wg.Add(1)
+	go func(input *models.RunningInput) {
+		defer wg.Done()
+
+		if a.Config.MainCfg.RoundInterval {
+			err := internal.SleepContext(ctx, internal.AlignDuration(startTime, interval))
+			if err != nil {
+				return
+			}
+		}
+
+		a.gatherOnInterval(ctx, acc, input, interval, jitter)
+	}(input)
+
+	return nil
+}
+
+func (a *Agent) runServiceInput(ctx context.Context, input *models.RunningInput, dst chan<- telegraf.Metric) error {
+
+	if si, ok := input.Input.(telegraf.ServiceInput); ok {
+
+		// Service input plugins are not subject to timestamp rounding.
+		// This only applies to the accumulator passed to Start(), the
+		// Gather() accumulator does apply rounding according to the
+		// precision agent setting.
+		log.Printf("D! starting service input: %s", input.Config.Name)
+		acc := teleagent.NewAccumulator(input, dst)
+		acc.SetPrecision(time.Nanosecond)
+
+		err := si.Start(acc)
+		if err != nil {
+			log.Printf("E! Service for [%s] failed to start: %v", input.LogName(), err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (a *Agent) runInputs(ctx context.Context, startTime time.Time) error {
+
 	var wg sync.WaitGroup
+
 	for _, input := range a.Config.Inputs {
-		if _, ok := input.Input.(telegraf.ServiceInput); ok {
+
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
+		}
+
+		err := input.Init()
+		if err != nil {
+			return fmt.Errorf("could not initialize input %s: %v", input.LogName(), err)
+		}
+
+		dst := a.outputsMgr.findMetricChannel(input.Config.Name)
+		if dst == nil {
 			continue
 		}
-		interval := a.Config.MainCfg.Interval.Duration
-		jitter := time.Duration(0) //a.Config.Agent.CollectionJitter.Duration
-
-		// Overwrite agent interval if this plugin has its own.
-		if input.Config.Interval != 0 {
-			interval = input.Config.Interval
-		}
-
-		acc := teleagent.NewAccumulator(input, dst)
-		acc.SetPrecision(a.Precision())
-
-		wg.Add(1)
-		go func(input *models.RunningInput) {
-			defer wg.Done()
-
-			if a.Config.MainCfg.RoundInterval {
-				err := internal.SleepContext(
-					ctx, internal.AlignDuration(startTime, interval))
-				if err != nil {
-					return
-				}
+		if _, ok := input.Input.(telegraf.ServiceInput); ok {
+			if err := a.runServiceInput(ctx, input, dst.ch); err != nil {
+				return err
 			}
-
-			a.gatherOnInterval(ctx, acc, input, interval, jitter)
-		}(input)
+		} else {
+			if err := a.runIntervalInput(ctx, input, startTime, dst.ch, &wg); err != nil {
+				return err
+			}
+		}
 	}
+
 	wg.Wait()
 
 	return nil
 }
 
-func (a *Agent) initPlugins() error {
-	for _, input := range a.Config.Inputs {
-		err := input.Init()
-		if err != nil {
-			return fmt.Errorf("could not initialize input %s: %v", input.LogName(), err)
-		}
-	}
-	return nil
-}
-
-func (a *Agent) startServiceInputs(
-	ctx context.Context,
-	dst chan<- telegraf.Metric,
-) error {
-	started := []telegraf.ServiceInput{}
-
-	for _, input := range a.Config.Inputs {
-		if si, ok := input.Input.(telegraf.ServiceInput); ok {
-			// Service input plugins are not subject to timestamp rounding.
-			// This only applies to the accumulator passed to Start(), the
-			// Gather() accumulator does apply rounding according to the
-			// precision agent setting.
-			log.Printf("D! starting service input: %s", input.Config.Name)
-			acc := teleagent.NewAccumulator(input, dst)
-			acc.SetPrecision(time.Nanosecond)
-
-			err := si.Start(acc)
-			if err != nil {
-				log.Printf("E! Service for [%s] failed to start: %v",
-					input.LogName(), err)
-
-				for _, si := range started {
-					si.Stop()
-				}
-
-				return err
-			}
-
-			started = append(started, si)
-		}
-	}
-
-	return nil
-}
-
-func (a *Agent) stopServiceInputs() {
+func (a *Agent) stopInputs() {
 	for _, input := range a.Config.Inputs {
 		if _, ok := input.Input.(telegraf.ServiceInput); !ok {
-			continue
-		}
-		if input.Config.Name == "dataclean" {
 			continue
 		}
 		log.Printf("D! stopping service input: %s", input.Config.Name)
@@ -229,44 +216,6 @@ func (a *Agent) stopServiceInputs() {
 			si.Stop()
 		}
 	}
-}
-
-func (a *Agent) stopDatacleanService() {
-	for _, input := range a.Config.Inputs {
-		if _, ok := input.Input.(telegraf.ServiceInput); !ok {
-			continue
-		}
-		if input.Config.Name != "dataclean" {
-			continue
-		}
-		log.Printf("D! stopping service input: %s", input.Config.Name)
-		if si, ok := input.Input.(telegraf.ServiceInput); ok {
-			si.Stop()
-		}
-	}
-}
-
-func (a *Agent) Precision() time.Duration {
-	// precision := a.Config.Agent.Precision.Duration
-	// interval := a.Config.Agent.Interval.Duration
-
-	// if precision > 0 {
-	// 	return precision
-	// }
-
-	// switch {
-	// case interval >= time.Second:
-	// 	return time.Second
-	// case interval >= time.Millisecond:
-	// 	return time.Millisecond
-	// case interval >= time.Microsecond:
-	// 	return time.Microsecond
-	// default:
-	// 	return time.Nanosecond
-	// }
-
-	return time.Nanosecond
-
 }
 
 // panicRecover displays an error if an input panics.
