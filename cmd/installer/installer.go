@@ -37,6 +37,10 @@ var (
 	flagDataKitGzipFile = flag.String("datakit-gzip", ``, `local path of datakit install files`)
 )
 
+const (
+	lagacyInstallDir = "/usr/local/cloudcare/forethought/datakit"
+)
+
 func main() {
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -72,15 +76,38 @@ func main() {
 		// ignore
 	}
 
-	if *flagDataKitGzipFile != "" {
-		extractDatakit(*flagDataKitGzipFile, *flagInstallDir)
-	} else {
-		downloadDatakit(DataKitGzipUrl, *flagInstallDir)
-	}
-
 	if *flagUpgrade { // upgrade new version
-		// do nothing
+
+		// migrate lagacy datakit
+		if _, err := os.Stat(lagacyInstallDir); err == nil {
+			if err := os.RemoveAll(*flagInstallDir); err != nil {
+				log.Fatalf("remove %s failed: %s", *flagInstallDir, err.Error())
+			}
+
+			if err := os.Rename(lagacyInstallDir, *flagInstallDir); err != nil {
+				log.Fatalf("remove %s failed: %s", *flagInstallDir, err.Error())
+			}
+
+			for _, dir := range []string{config.TelegrafDir, config.DataDir, config.LuaDir, config.ConfdDir} {
+				if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+					log.Fatalf("create %s failed: %s", dir, err)
+				}
+			}
+		}
+
+		if *flagDataKitGzipFile != "" {
+			extractDatakit(*flagDataKitGzipFile, *flagInstallDir)
+		} else {
+			downloadDatakit(DataKitGzipUrl, *flagInstallDir)
+		}
+
 	} else { // install new datakit
+
+		if *flagDataKitGzipFile != "" {
+			extractDatakit(*flagDataKitGzipFile, *flagInstallDir)
+		} else {
+			downloadDatakit(DataKitGzipUrl, *flagInstallDir)
+		}
 
 		if *flagDataway == "" {
 			for {
@@ -117,7 +144,11 @@ func main() {
 		log.Fatalf("Fail to register service %s: %s", ServiceName, err.Error())
 	}
 
-	log.Println(":) Success!")
+	if *flagUpgrade { // upgrade new version
+		log.Println(":) Upgrade Success!")
+	} else {
+		log.Println(":) Install Success!")
+	}
 }
 
 func applyFlags() {
