@@ -76,7 +76,7 @@ func init() {
 	}
 
 	if err := os.MkdirAll(filepath.Join(InstallDir, "embed"), os.ModePerm); err != nil {
-		log.Fatalf("[error] mkdir embed  failed: %s", err)
+		log.Fatalf("[error] mkdir embed failed: %s", err)
 	}
 
 	AgentLogFile = filepath.Join(InstallDir, "embed", "agent.log")
