@@ -14,7 +14,6 @@ import (
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/logger"
-	"github.com/influxdata/telegraf/plugins/serializers"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
@@ -23,12 +22,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/file"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/http"
 )
 
 var (
-	userAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
+	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 
 	ServiceName = "datakit"
 
@@ -52,9 +49,6 @@ type Config struct {
 	//Outputs          []*models.RunningOutput
 
 	InputFilters []string
-
-	enableDataclean bool
-	datacleanBind   string
 }
 
 func init() {
@@ -156,7 +150,7 @@ type MainConfig struct {
 	//验证dk存活
 	MaxPostInterval internal.Duration `toml:"max_post_interval"`
 
-	DataCleanTemplate string
+	//DataCleanTemplate string
 
 	GlobalTags map[string]string `toml:"global_tags"`
 
@@ -380,11 +374,15 @@ func (c *Config) LoadConfig() error {
 		if internalData, ok := inputs.InternalInputsData[name]; ok {
 			data = internalData
 		} else {
-			path := filepath.Join(c.MainCfg.ConfigDir, name, fmt.Sprintf("%s.conf", name))
+			oldPath := filepath.Join(c.MainCfg.ConfigDir, name, fmt.Sprintf("%s.conf", name))
+			newPath := filepath.Join(c.MainCfg.ConfigDir, input.Catalog(), fmt.Sprintf("%s.conf", name))
 
+			path := newPath
 			_, err := os.Stat(path)
 			if err != nil && os.IsNotExist(err) {
-				continue
+				if _, err = os.Stat(oldPath); err == nil {
+					path = oldPath
+				}
 			}
 
 			data, err = ioutil.ReadFile(path)
@@ -404,15 +402,6 @@ func (c *Config) LoadConfig() error {
 
 		if err := c.addInput(name, input, tbl); err != nil {
 			return err
-		}
-
-		if name == "dataclean" {
-			if p, ok := input.(DatacleanConfig); ok {
-				if p.CheckRoute(c.MainCfg.DataCleanTemplate) {
-					c.enableDataclean = true
-					c.datacleanBind = p.Bindaddr()
-				}
-			}
 		}
 	}
 
@@ -443,70 +432,6 @@ func (c *Config) LoadConfig() error {
 	}
 
 	return LoadTelegrafConfigs(c.MainCfg.ConfigDir, c.InputFilters)
-}
-
-func (c *Config) LoadOutputs() ([]*models.RunningOutput, error) {
-
-	var outputs []*models.RunningOutput
-
-	if c.enableDataclean {
-
-		log.Printf("enable self data clean")
-
-		httpOutput := http.NewHttpOutput()
-		if httpOutput.Headers == nil {
-			httpOutput.Headers = map[string]string{}
-		}
-		httpOutput.Headers[`X-Datakit-UUID`] = c.MainCfg.UUID
-		httpOutput.Headers[`X-Version`] = git.Version
-		httpOutput.Headers[`X-TraceId`] = `self_` + c.MainCfg.UUID
-		httpOutput.Headers[`User-Agent`] = userAgent
-		if MaxLifeCheckInterval > 0 {
-			httpOutput.Headers[`X-Max-POST-Interval`] = internal.IntervalString(MaxLifeCheckInterval)
-		}
-		httpOutput.ContentEncoding = "gzip"
-		httpOutput.URL = fmt.Sprintf(`http://%s/v1/write/metrics?template=%s`, c.datacleanBind, c.MainCfg.DataCleanTemplate)
-		log.Printf("D! self dataway url: %s", httpOutput.URL)
-		if ro, err := c.newRunningOutputDirectly("dataclean", httpOutput); err != nil {
-			return nil, err
-		} else {
-			outputs = append(outputs, ro)
-		}
-
-	} else {
-		if c.MainCfg.OutputsFile != "" {
-			fileOutput := file.NewFileOutput()
-			fileOutput.Files = []string{c.MainCfg.OutputsFile}
-			if ro, err := c.newRunningOutputDirectly("file", fileOutput); err != nil {
-				return nil, err
-			} else {
-				outputs = append(outputs, ro)
-			}
-		}
-
-		if c.MainCfg.FtGateway != "" {
-			httpOutput := http.NewHttpOutput()
-			if httpOutput.Headers == nil {
-				httpOutput.Headers = map[string]string{}
-			}
-			httpOutput.Headers[`X-Datakit-UUID`] = c.MainCfg.UUID
-			httpOutput.Headers[`X-Version`] = git.Version
-			httpOutput.Headers[`X-Version`] = git.Version
-			httpOutput.Headers[`User-Agent`] = userAgent
-			if MaxLifeCheckInterval > 0 {
-				httpOutput.Headers[`X-Max-POST-Interval`] = internal.IntervalString(MaxLifeCheckInterval)
-			}
-			httpOutput.ContentEncoding = "gzip"
-			httpOutput.URL = c.MainCfg.FtGateway
-			if ro, err := c.newRunningOutputDirectly("http", httpOutput); err != nil {
-				return nil, err
-			} else {
-				outputs = append(outputs, ro)
-			}
-		}
-	}
-
-	return outputs, nil
 }
 
 func (c *Config) DumpInputsOutputs() {
@@ -683,140 +608,6 @@ func (c *Config) addInput(name string, input telegraf.Input, table *ast.Table) e
 	return nil
 }
 
-func (c *Config) newRunningOutputDirectly(name string, output telegraf.Output) (*models.RunningOutput, error) {
-
-	switch t := output.(type) {
-	case serializers.SerializerOutput:
-		serializer, err := buildSerializer(name, nil)
-		if err != nil {
-			return nil, err
-		}
-		t.SetSerializer(serializer)
-	}
-
-	outputConfig, err := buildOutput(name, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	ro := models.NewRunningOutput(name, output, outputConfig, 0, 0)
-	return ro, nil
-}
-
-func buildSerializer(name string, tbl *ast.Table) (serializers.Serializer, error) {
-	c := &serializers.Config{TimestampUnits: time.Duration(1 * time.Second)}
-
-	if tbl != nil {
-		if node, ok := tbl.Fields["data_format"]; ok {
-			if kv, ok := node.(*ast.KeyValue); ok {
-				if str, ok := kv.Value.(*ast.String); ok {
-					c.DataFormat = str.Value
-				}
-			}
-		}
-	}
-
-	if c.DataFormat == "" {
-		c.DataFormat = "influx"
-	}
-
-	if tbl != nil {
-		delete(tbl.Fields, "influx_max_line_bytes")
-		delete(tbl.Fields, "influx_sort_fields")
-		delete(tbl.Fields, "influx_uint_support")
-		delete(tbl.Fields, "graphite_tag_support")
-		delete(tbl.Fields, "data_format")
-		delete(tbl.Fields, "prefix")
-		delete(tbl.Fields, "template")
-		delete(tbl.Fields, "json_timestamp_units")
-		delete(tbl.Fields, "splunkmetric_hec_routing")
-		delete(tbl.Fields, "wavefront_source_override")
-		delete(tbl.Fields, "wavefront_use_strict")
-	}
-
-	return serializers.NewSerializer(c)
-}
-
-func buildOutput(name string, tbl *ast.Table) (*models.OutputConfig, error) {
-	var filter models.Filter
-	var err error
-
-	if tbl != nil {
-		filter, err = buildFilter(tbl)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	oc := &models.OutputConfig{
-		Name:   name,
-		Filter: filter,
-	}
-
-	// TODO
-	// Outputs don't support FieldDrop/FieldPass, so set to NameDrop/NamePass
-	if len(oc.Filter.FieldDrop) > 0 {
-		oc.Filter.NameDrop = oc.Filter.FieldDrop
-	}
-	if len(oc.Filter.FieldPass) > 0 {
-		oc.Filter.NamePass = oc.Filter.FieldPass
-	}
-
-	if tbl != nil {
-		if node, ok := tbl.Fields["flush_interval"]; ok {
-			if kv, ok := node.(*ast.KeyValue); ok {
-				if str, ok := kv.Value.(*ast.String); ok {
-					dur, err := time.ParseDuration(str.Value)
-					if err != nil {
-						return nil, err
-					}
-
-					oc.FlushInterval = dur
-				}
-			}
-		}
-
-		if node, ok := tbl.Fields["metric_buffer_limit"]; ok {
-			if kv, ok := node.(*ast.KeyValue); ok {
-				if integer, ok := kv.Value.(*ast.Integer); ok {
-					v, err := integer.Int()
-					if err != nil {
-						return nil, err
-					}
-					oc.MetricBufferLimit = int(v)
-				}
-			}
-		}
-
-		if node, ok := tbl.Fields["metric_batch_size"]; ok {
-			if kv, ok := node.(*ast.KeyValue); ok {
-				if integer, ok := kv.Value.(*ast.Integer); ok {
-					v, err := integer.Int()
-					if err != nil {
-						return nil, err
-					}
-					oc.MetricBatchSize = int(v)
-				}
-			}
-		}
-
-		if node, ok := tbl.Fields["alias"]; ok {
-			if kv, ok := node.(*ast.KeyValue); ok {
-				if str, ok := kv.Value.(*ast.String); ok {
-					oc.Alias = str.Value
-				}
-			}
-		}
-
-		delete(tbl.Fields, "flush_interval")
-		delete(tbl.Fields, "metric_buffer_limit")
-		delete(tbl.Fields, "metric_batch_size")
-		delete(tbl.Fields, "alias")
-	}
-
-	return oc, nil
-}
-
 func buildInput(name string, tbl *ast.Table, input telegraf.Input) (*models.InputConfig, error) {
 	cp := &models.InputConfig{Name: name}
 
@@ -832,194 +623,37 @@ func buildInput(name string, tbl *ast.Table, input telegraf.Input) (*models.Inpu
 					cp.Interval = dur
 				}
 			}
+			delete(tbl.Fields, "interval")
 		}
-
-		if node, ok := tbl.Fields["name_prefix"]; ok {
-			if kv, ok := node.(*ast.KeyValue); ok {
-				if str, ok := kv.Value.(*ast.String); ok {
-					cp.MeasurementPrefix = str.Value
-				}
-			}
-		}
-
-		if node, ok := tbl.Fields["name_suffix"]; ok {
-			if kv, ok := node.(*ast.KeyValue); ok {
-				if str, ok := kv.Value.(*ast.String); ok {
-					cp.MeasurementSuffix = str.Value
-				}
-			}
-		}
-
-		if node, ok := tbl.Fields["name_override"]; ok {
-			if kv, ok := node.(*ast.KeyValue); ok {
-				if str, ok := kv.Value.(*ast.String); ok {
-					cp.NameOverride = str.Value
-				}
-			}
-		}
-
-		if node, ok := tbl.Fields["alias"]; ok {
-			if kv, ok := node.(*ast.KeyValue); ok {
-				if str, ok := kv.Value.(*ast.String); ok {
-					cp.Alias = str.Value
-				}
-			}
-		}
-
-		cp.Tags = make(map[string]string)
-		if node, ok := tbl.Fields["tags"]; ok {
-			if subtbl, ok := node.(*ast.Table); ok {
-				if err := toml.UnmarshalTable(subtbl, cp.Tags); err != nil {
-					log.Printf("E! Could not parse tags for input %s\n", name)
-				}
-			}
-		}
-
-		delete(tbl.Fields, "name_prefix")
-		delete(tbl.Fields, "name_suffix")
-		delete(tbl.Fields, "name_override")
-		delete(tbl.Fields, "alias")
-		delete(tbl.Fields, "interval")
-		delete(tbl.Fields, "tags")
 	}
 
-	var err error
-	cp.Filter, err = buildFilter(tbl)
-	if err != nil {
-		return cp, err
+	if node, ok := tbl.Fields["ftdataway"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if str, ok := kv.Value.(*ast.String); ok {
+				cp.FtDataway = str.Value
+			}
+		}
 	}
+
+	if node, ok := tbl.Fields["output_file"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if str, ok := kv.Value.(*ast.String); ok {
+				cp.OutputFile = str.Value
+			}
+		}
+	}
+
+	cp.Tags = make(map[string]string)
+	if node, ok := tbl.Fields["tags"]; ok {
+		if subtbl, ok := node.(*ast.Table); ok {
+			if err := toml.UnmarshalTable(subtbl, cp.Tags); err != nil {
+				log.Printf("E! Could not parse tags for input %s\n", name)
+			}
+		}
+	}
+
+	delete(tbl.Fields, "ftdataway")
+	delete(tbl.Fields, "output_file")
+	delete(tbl.Fields, "tags")
 	return cp, nil
-}
-
-func buildFilter(tbl *ast.Table) (models.Filter, error) {
-	f := models.Filter{}
-
-	if node, ok := tbl.Fields["namepass"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if ary, ok := kv.Value.(*ast.Array); ok {
-				for _, elem := range ary.Value {
-					if str, ok := elem.(*ast.String); ok {
-						f.NamePass = append(f.NamePass, str.Value)
-					}
-				}
-			}
-		}
-	}
-
-	if node, ok := tbl.Fields["namedrop"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if ary, ok := kv.Value.(*ast.Array); ok {
-				for _, elem := range ary.Value {
-					if str, ok := elem.(*ast.String); ok {
-						f.NameDrop = append(f.NameDrop, str.Value)
-					}
-				}
-			}
-		}
-	}
-
-	fields := []string{"pass", "fieldpass"}
-	for _, field := range fields {
-		if node, ok := tbl.Fields[field]; ok {
-			if kv, ok := node.(*ast.KeyValue); ok {
-				if ary, ok := kv.Value.(*ast.Array); ok {
-					for _, elem := range ary.Value {
-						if str, ok := elem.(*ast.String); ok {
-							f.FieldPass = append(f.FieldPass, str.Value)
-						}
-					}
-				}
-			}
-		}
-	}
-
-	fields = []string{"drop", "fielddrop"}
-	for _, field := range fields {
-		if node, ok := tbl.Fields[field]; ok {
-			if kv, ok := node.(*ast.KeyValue); ok {
-				if ary, ok := kv.Value.(*ast.Array); ok {
-					for _, elem := range ary.Value {
-						if str, ok := elem.(*ast.String); ok {
-							f.FieldDrop = append(f.FieldDrop, str.Value)
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if node, ok := tbl.Fields["tagpass"]; ok {
-		if subtbl, ok := node.(*ast.Table); ok {
-			for name, val := range subtbl.Fields {
-				if kv, ok := val.(*ast.KeyValue); ok {
-					tagfilter := &models.TagFilter{Name: name}
-					if ary, ok := kv.Value.(*ast.Array); ok {
-						for _, elem := range ary.Value {
-							if str, ok := elem.(*ast.String); ok {
-								tagfilter.Filter = append(tagfilter.Filter, str.Value)
-							}
-						}
-					}
-					f.TagPass = append(f.TagPass, *tagfilter)
-				}
-			}
-		}
-	}
-
-	if node, ok := tbl.Fields["tagdrop"]; ok {
-		if subtbl, ok := node.(*ast.Table); ok {
-			for name, val := range subtbl.Fields {
-				if kv, ok := val.(*ast.KeyValue); ok {
-					tagfilter := &models.TagFilter{Name: name}
-					if ary, ok := kv.Value.(*ast.Array); ok {
-						for _, elem := range ary.Value {
-							if str, ok := elem.(*ast.String); ok {
-								tagfilter.Filter = append(tagfilter.Filter, str.Value)
-							}
-						}
-					}
-					f.TagDrop = append(f.TagDrop, *tagfilter)
-				}
-			}
-		}
-	}
-
-	if node, ok := tbl.Fields["tagexclude"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if ary, ok := kv.Value.(*ast.Array); ok {
-				for _, elem := range ary.Value {
-					if str, ok := elem.(*ast.String); ok {
-						f.TagExclude = append(f.TagExclude, str.Value)
-					}
-				}
-			}
-		}
-	}
-
-	if node, ok := tbl.Fields["taginclude"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if ary, ok := kv.Value.(*ast.Array); ok {
-				for _, elem := range ary.Value {
-					if str, ok := elem.(*ast.String); ok {
-						f.TagInclude = append(f.TagInclude, str.Value)
-					}
-				}
-			}
-		}
-	}
-	if err := f.Compile(); err != nil {
-		return f, err
-	}
-
-	delete(tbl.Fields, "namedrop")
-	delete(tbl.Fields, "namepass")
-	delete(tbl.Fields, "fielddrop")
-	delete(tbl.Fields, "fieldpass")
-	delete(tbl.Fields, "drop")
-	delete(tbl.Fields, "pass")
-	delete(tbl.Fields, "tagdrop")
-	delete(tbl.Fields, "tagpass")
-	delete(tbl.Fields, "tagexclude")
-	delete(tbl.Fields, "taginclude")
-	return f, nil
 }

@@ -14,12 +14,12 @@ import (
 
 	"github.com/influxdata/telegraf/metric"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
 
 func apiClient() *cms.Client {
 	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAI4FwpUNoPEFj7kQScDrDE", "CI8Lzj22RODi3L79jzMmR3gKjMe3YG")
+	//client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAIqo2UBnC4q78J", "t43b4XdKq9Bv50pzSy1yIYiIlwTtvd")
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
@@ -95,15 +95,19 @@ func TestLoadConfig(t *testing.T) {
 //查询对应产品可以获取哪些监控项
 func TestGetMetricMeta(t *testing.T) {
 
+	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAI4FwpUNoPEFj7kQScDrDE", "CI8Lzj22RODi3L79jzMmR3gKjMe3YG")
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
 	request := cms.CreateDescribeMetricMetaListRequest()
 	request.Scheme = "https"
-	request.Namespace = `acs_kvstore`
-	//request.MetricName = `LatencyByConnectionRegion`
-	request.PageSize = requests.NewInteger(200)
+	request.Namespace = `acs_ecs_dashboard`
+	request.MetricName = `CPUUtilization`
 
-	response, err := apiClient().DescribeMetricMetaList(request)
+	response, err := client.DescribeMetricMetaList(request)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("error: %s", err)
 	}
 
 	log.Printf("count=%d", len(response.Resources.Resource))
