@@ -23,6 +23,8 @@ type File struct {
 	writer     io.Writer
 	closers    []io.Closer
 	serializer serializers.Serializer
+
+	Catalog string
 }
 
 var sampleConfig = `
@@ -110,9 +112,17 @@ func (f *File) Write(metrics []telegraf.Metric) error {
 			}
 		}
 
-		b, err := f.serializer.Serialize(metric)
-		if err != nil {
-			log.Printf("D! [outputs.file] Could not serialize metric: %v", err)
+		var b []byte
+		var err error
+		if f.Catalog == "object" {
+			if jdata, ok := metric.Fields()["object"].(string); ok {
+				b = []byte(jdata)
+			}
+		} else {
+			b, err = f.serializer.Serialize(metric)
+			if err != nil {
+				log.Printf("D! [outputs.file] Could not serialize metric: %v", err)
+			}
 		}
 
 		_, err = f.writer.Write(b)
