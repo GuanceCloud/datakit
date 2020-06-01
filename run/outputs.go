@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/file"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/http"
 )
@@ -38,8 +39,9 @@ func (om *outputsMgr) findMetricChannel(name string) *outputChannel {
 	return om.outputChannels["*"]
 }
 
-func newHttpOutput(name string, c *config.Config, ftdataway string, maxPostInterval time.Duration) (*models.RunningOutput, error) {
+func newHttpOutput(name string, catalog string, c *config.Config, ftdataway string, maxPostInterval time.Duration) (*models.RunningOutput, error) {
 	httpOutput := http.NewHttpOutput()
+	httpOutput.Catalog = catalog
 	if httpOutput.Headers == nil {
 		httpOutput.Headers = map[string]string{}
 	}
@@ -51,13 +53,14 @@ func newHttpOutput(name string, c *config.Config, ftdataway string, maxPostInter
 	}
 	httpOutput.ContentEncoding = "gzip"
 	httpOutput.URL = ftdataway
-	return newRunningOutput(name, httpOutput)
+	return newRunningOutput(name, catalog, httpOutput)
 }
 
-func newFileOutput(name string, outputFile string) (*models.RunningOutput, error) {
+func newFileOutput(name string, catalog string, outputFile string) (*models.RunningOutput, error) {
 	fileOutput := file.NewFileOutput()
+	fileOutput.Catalog = catalog
 	fileOutput.Files = []string{outputFile}
-	return newRunningOutput(name, fileOutput)
+	return newRunningOutput(name, catalog, fileOutput)
 }
 
 func (om *outputsMgr) LoadOutputs(cfg *config.Config) error {
@@ -68,7 +71,7 @@ func (om *outputsMgr) LoadOutputs(cfg *config.Config) error {
 	}
 
 	if cfg.MainCfg.OutputsFile != "" {
-		if ro, err := newFileOutput("file", cfg.MainCfg.OutputsFile); err != nil {
+		if ro, err := newFileOutput("file", "", cfg.MainCfg.OutputsFile); err != nil {
 			return err
 		} else {
 			globalChannel.outputs = append(globalChannel.outputs, ro)
@@ -76,7 +79,7 @@ func (om *outputsMgr) LoadOutputs(cfg *config.Config) error {
 	}
 
 	if cfg.MainCfg.FtGateway != "" {
-		if ro, err := newHttpOutput("http", cfg, cfg.MainCfg.FtGateway, config.MaxLifeCheckInterval); err != nil {
+		if ro, err := newHttpOutput("http", "", cfg, cfg.MainCfg.FtGateway, config.MaxLifeCheckInterval); err != nil {
 			return err
 		} else {
 			globalChannel.outputs = append(globalChannel.outputs, ro)
@@ -88,9 +91,14 @@ func (om *outputsMgr) LoadOutputs(cfg *config.Config) error {
 
 		var oc *outputChannel
 
+		catalog := ""
+		if cip, ok := input.Input.(inputs.Input); ok {
+			catalog = cip.Catalog()
+		}
+
 		if input.Config.FtDataway != "" {
 
-			if ro, err := newHttpOutput(input.Config.Name, cfg, input.Config.FtDataway, 0); err != nil {
+			if ro, err := newHttpOutput(input.Config.Name, catalog, cfg, input.Config.FtDataway, 0); err != nil {
 				return err
 			} else {
 				oc = &outputChannel{
@@ -103,7 +111,7 @@ func (om *outputsMgr) LoadOutputs(cfg *config.Config) error {
 
 		if input.Config.OutputFile != "" {
 
-			if ro, err := newFileOutput(input.Config.Name, input.Config.OutputFile); err != nil {
+			if ro, err := newFileOutput(input.Config.Name, catalog, input.Config.OutputFile); err != nil {
 				return err
 			} else {
 				if oc != nil {
@@ -293,13 +301,16 @@ func (ro *outputsMgr) flushOnce(
 
 }
 
-func newRunningOutput(name string, output telegraf.Output) (*models.RunningOutput, error) {
+func newRunningOutput(name string, catalog string, output telegraf.Output) (*models.RunningOutput, error) {
 
 	switch t := output.(type) {
 	case serializers.SerializerOutput:
-		c := &serializers.Config{
-			//TimestampUnits: time.Duration(1 * time.Second),
-			DataFormat: "influx",
+		c := &serializers.Config{}
+
+		if catalog == "object" {
+			c.DataFormat = "json"
+		} else {
+			c.DataFormat = "influx"
 		}
 
 		serializer, err := serializers.NewSerializer(c)
