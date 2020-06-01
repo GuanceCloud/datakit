@@ -306,12 +306,7 @@ func newRunningOutput(name string, catalog string, output telegraf.Output) (*mod
 	switch t := output.(type) {
 	case serializers.SerializerOutput:
 		c := &serializers.Config{}
-
-		if catalog == "object" {
-			c.DataFormat = "json"
-		} else {
-			c.DataFormat = "influx"
-		}
+		c.DataFormat = "influx"
 
 		serializer, err := serializers.NewSerializer(c)
 		if err != nil {
