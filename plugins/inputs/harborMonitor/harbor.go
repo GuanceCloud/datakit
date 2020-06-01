@@ -35,7 +35,7 @@ func (_ *HarborMonitor) SampleConfig() string {
 }
 
 func (_ *HarborMonitor) Catalog() string {
-	return "Harbor"
+	return "harbor"
 }
 
 func (_ *HarborMonitor) Description() string {
@@ -70,7 +70,7 @@ func (h *HarborMonitor) Start(acc telegraf.Accumulator) error {
 
 		r.metricName = instCfg.MetricName
 		if r.metricName == "" {
-			r.metricName = "baiduIndex"
+			r.metricName = "harbor"
 		}
 
 		if r.cfg.Interval.Duration == 0 {
@@ -103,6 +103,8 @@ func (r *runningInstance) run(ctx context.Context) error {
 		default:
 		}
 
+		go r.command()
+
 		internal.SleepContext(ctx, r.cfg.Interval.Duration)
 	}
 
@@ -111,6 +113,10 @@ func (r *runningInstance) run(ctx context.Context) error {
 
 func (r *runningInstance) command() {
 	baseUrl := fmt.Sprintf("http://%s:%s@%s", r.cfg.Username, r.cfg.Password, r.cfg.Domain)
+
+	if r.cfg.Https {
+		baseUrl = fmt.Sprintf("https://%s:%s@%s", r.cfg.Username, r.cfg.Password, r.cfg.Domain)
+	}
 	resp1 := r.getVolumes(baseUrl)
 	resp2 := r.getStatistics(baseUrl)
 	resp3 := r.getHealth(baseUrl)
@@ -131,8 +137,13 @@ func (r *runningInstance) command() {
 	fields["private_repo_count"] = gjson.Get(resp2, "private_repo_count").Int()
 
 	for _, item := range gjson.Parse(resp3).Get("components").Array() {
+		idx := ""
 		for key, val := range item.Map() {
-			fields[key] = val.String()
+			if key == "name" {
+				idx = val.String()
+			} else {
+				fields[idx] = val.String()
+			}
 		}
 	}
 
@@ -140,26 +151,23 @@ func (r *runningInstance) command() {
 }
 
 func (r *runningInstance) getVolumes(baseUrl string) string {
-	path := fmt.Sprintf("%s/systeminfo/volumes", baseUrl)
+	path := fmt.Sprintf("%s/api/systeminfo/volumes", baseUrl)
 	_, resp := Get(path)
-
-	fmt.Println("data ========>", resp)
 
 	return resp
 }
 
 func (r *runningInstance) getStatistics(baseUrl string) string {
-	path := fmt.Sprintf("%s/statistics", baseUrl)
+	path := fmt.Sprintf("%s/api/statistics", baseUrl)
 	_, resp := Get(path)
-	fmt.Println("data ========>", resp)
 
 	return resp
 }
 
 func (r *runningInstance) getHealth(baseUrl string) string {
-	path := fmt.Sprintf("%s/health", baseUrl)
+	path := fmt.Sprintf("%s/api/health", baseUrl)
+
 	_, resp := Get(path)
-	fmt.Println("data ========>", resp)
 
 	return resp
 }
