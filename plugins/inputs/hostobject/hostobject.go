@@ -77,6 +77,7 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 }
 
 func (c *Collector) Init() error {
+
 	if c.Class == "" {
 		c.Class = "Servers"
 	}
