@@ -26,3 +26,4 @@ datakit.conf
 docker/agent
 docker/datakit
 replace.sh
+run_mac.sh
