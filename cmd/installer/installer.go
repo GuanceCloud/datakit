@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -347,19 +346,4 @@ func installDatakitService(s service.Service) error {
 
 func startDatakitService(s service.Service) error {
 	return service.Control(s, "start")
-}
-
-func initDatakit(exe, dw string) error {
-
-	cmd := exec.Command(exe, "-init", "-dataway", dw)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-
-	log.Printf("Initing datakit...")
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-
-	return nil
 }
