@@ -77,7 +77,7 @@ WHERE
         FROM
             sessions
     )
-    OR blocking_session IS NOT NULL;
+    OR blocking_session IS NOT NULL
 `
 
 const oracle_undo_stat_sql = `
@@ -105,7 +105,7 @@ SELECT
     archived,
     status
 FROM
-    v$log;
+    v$log
 `
 
 const oracle_standby_log_sql = `
@@ -346,7 +346,7 @@ s.snap_id, s.instance_number,
 (cast(s.end_interval_time as date) - cast(s.begin_interval_time as date))*86400 as snap_in_second
 from dba_hist_snapshot  s, v$instance b
 where s.end_interval_time >= sysdate - interval '2' hour
-and s.INSTANCE_NUMBER = b.INSTANCE_NUMBER;
+and s.INSTANCE_NUMBER = b.INSTANCE_NUMBER
 `
 
 const oralce_backup_set_info_sql = `
@@ -373,7 +373,7 @@ from (select a.recid backup_recid,
         a.compressed backup_compressed
    from gv$backup_piece a, gv$backup_set b
   where a.set_stamp = b.set_stamp and a.deleted = 'NO' AND A.STATUS='A'
-) group by backup_types;
+) group by backup_types
 `
 
 const oracle_tablespace_free_pct_sql = `
@@ -388,7 +388,7 @@ select a.tablespace_name tablespace_name,
       (select tablespace_name, sum(bytes) bytes, max(bytes) largest
          from dba_free_space
         group by tablespace_name) b
-where a.tablespace_name = b.tablespace_name;
+where a.tablespace_name = b.tablespace_name
 `
 
 var metricMap = map[string]string{
