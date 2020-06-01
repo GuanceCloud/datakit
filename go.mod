@@ -82,6 +82,7 @@ require (
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd // indirect
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	golang.org/x/tools/gopls v0.4.1 // indirect
+	gopkg.in/fsnotify/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	gotest.tools/v3 v3.0.2 // indirect
 )

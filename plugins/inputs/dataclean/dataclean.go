@@ -67,7 +67,7 @@ func (_ *DataClean) Description() string {
 }
 
 func (_ *DataClean) Catalog() string {
-	return ""
+	return "dataclean"
 }
 
 func (_ *DataClean) Gather(telegraf.Accumulator) error {
