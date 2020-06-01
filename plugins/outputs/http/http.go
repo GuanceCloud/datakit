@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ var sampleConfig = `
 const (
 	defaultClientTimeout = 5 * time.Second
 	defaultContentType   = `text/plain; charset=utf-8`
+	jsonContentType      = `text/json; charset=utf-8`
 	defaultMethod        = http.MethodPost
 )
 
@@ -140,15 +142,33 @@ func (h *HTTP) Write(metrics []telegraf.Metric) error {
 				metric.AddTag(k, v)
 			}
 		}
+
+		if h.Catalog == "object" {
+
+			var reqBody []byte
+
+			if jdata, ok := metric.Fields()["object"].(string); ok {
+				reqBody = []byte(jdata)
+			}
+
+			if reqBody != nil {
+				if err := h.write(reqBody); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
-	reqBody, err := h.serializer.SerializeBatch(metrics)
-	if err != nil {
-		return err
-	}
+	if h.Catalog != "object" {
+		reqBody, err := h.serializer.SerializeBatch(metrics)
+		if err != nil {
+			log.Printf("D! [outputs.file] Could not serialize metric: %v", err)
+			return err
+		}
 
-	if err := h.write(reqBody); err != nil {
-		return err
+		if err = h.write(reqBody); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -174,12 +194,12 @@ func (h *HTTP) write(reqBody []byte) error {
 		return err
 	}
 
-	// if h.Username != "" || h.Password != "" {
-	// 	req.SetBasicAuth(h.Username, h.Password)
-	// }
-
 	//req.Header.Set("User-Agent", "Telegraf/"+internal.Version())
-	req.Header.Set("Content-Type", defaultContentType)
+	if h.Catalog == "object" {
+		req.Header.Set("Content-Type", jsonContentType)
+	} else {
+		req.Header.Set("Content-Type", defaultContentType)
+	}
 	if h.ContentEncoding == "gzip" {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
