@@ -217,12 +217,14 @@ func (p *Project) genMetricReq(metric string, region string) (*MetricsRequest, e
 		if p.globalMetricProperty == nil {
 			for _, prop := range p.Metrics.Property {
 				if prop.Name == "*" {
-					checkDimensions := []map[string]string{}
-					if err := json.Unmarshal([]byte(prop.Dimensions), &checkDimensions); err != nil {
-						return nil, fmt.Errorf("invalid dimension(%s): %s, %s", metric, prop.Dimensions, err)
+					if prop.Dimensions != "" {
+						checkDimensions := []map[string]string{}
+						if err := json.Unmarshal([]byte(prop.Dimensions), &checkDimensions); err != nil {
+							return nil, fmt.Errorf("invalid dimension(%s): %s, %s", metric, prop.Dimensions, err)
+						}
+						p.globalMetricProperty.Dimensions = strings.Trim(prop.Dimensions, " \t\r\n")
 					}
 					p.globalMetricProperty = prop
-					p.globalMetricProperty.Dimensions = strings.Trim(prop.Dimensions, " \t\r\n")
 					break
 				}
 			}

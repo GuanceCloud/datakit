@@ -57,6 +57,8 @@ type HTTP struct {
 
 	client     *http.Client
 	serializer serializers.Serializer
+
+	Catalog string
 }
 
 func (h *HTTP) SetSerializer(serializer serializers.Serializer) {
