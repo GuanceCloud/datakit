@@ -39,7 +39,7 @@ var sampleConfig = `
 const (
 	defaultClientTimeout = 5 * time.Second
 	defaultContentType   = `text/plain; charset=utf-8`
-	jsonContentType      = `text/json; charset=utf-8`
+	jsonContentType      = `application/json; charset=utf-8`
 	defaultMethod        = http.MethodPost
 )
 

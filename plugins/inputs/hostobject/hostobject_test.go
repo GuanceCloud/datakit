@@ -6,6 +6,13 @@ import (
 	"testing"
 )
 
+func TestOSDetail(t *testing.T) {
+
+	oi := getOSInfo()
+	log.Printf("%s", oi.Release)
+
+}
+
 func TestGetIP(t *testing.T) {
 	conn, err := net.Dial("udp", "114.114.114.114:80")
 	if err != nil {
