@@ -8,7 +8,10 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/shirou/gopsutil/mem"
+
 	"github.com/influxdata/telegraf"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -17,7 +20,12 @@ type (
 		Name  string
 		Class string
 		Desc  string `toml:"description"`
-		Tags  map[string]string
+	}
+
+	osInfo struct {
+		Arch    string
+		OSType  string
+		Release string
 	}
 )
 
@@ -41,7 +49,9 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 		"$description": c.Desc,
 	}
 
-	tags := map[string]string{}
+	tags := map[string]string{
+		"uuid": config.Cfg.MainCfg.UUID,
+	}
 
 	hostname, err := os.Hostname()
 	if err == nil {
@@ -53,14 +63,36 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 		tags["mac"] = mac
 	}
 	tags["ip"] = ipval
-	tags["os_type"] = runtime.GOOS
+
+	oi := getOSInfo()
+	tags["os_type"] = oi.OSType
+	tags["os"] = oi.Release
 	tags["cpu_total"] = fmt.Sprintf("%d", runtime.NumCPU())
 
-	for k, v := range c.Tags {
-		tags[k] = v
+	meminfo, _ := mem.VirtualMemory()
+	tags["memory_total"] = fmt.Sprintf("%v", meminfo.Total/uint64(1024*1024*1024))
+
+	for _, input := range config.Cfg.Inputs {
+		if input.Config.Name == inputName {
+			for k, v := range input.Config.Tags {
+				tags[k] = v
+			}
+			break
+		}
 	}
 
 	obj["$tags"] = tags
+
+	switch c.Name {
+	case "$mac":
+		obj["$name"] = tags["mac"]
+	case "$ip":
+		obj["$name"] = tags["ip"]
+	case "$uuid":
+		obj["$name"] = tags["uuid"]
+	case "$host":
+		obj["$name"] = tags["host"]
+	}
 
 	data, err := json.Marshal(&obj)
 	if err != nil {
