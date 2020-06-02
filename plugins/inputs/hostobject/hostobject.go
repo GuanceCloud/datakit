@@ -27,6 +27,17 @@ type (
 		OSType  string
 		Release string
 	}
+
+	ObjectItem struct {
+		Name        string            `json:"$name"`
+		Class       string            `json:"$class"`
+		Description string            `json:"$description"`
+		Tags        map[string]string `json:"$tags"`
+	}
+
+	ObjectBatch struct {
+		Objects []*ObjectItem `json:"object"`
+	}
 )
 
 func (_ *Collector) Catalog() string {
@@ -43,10 +54,12 @@ func (_ *Collector) Description() string {
 
 func (c *Collector) Gather(acc telegraf.Accumulator) error {
 
-	obj := map[string]interface{}{
-		"$name":        c.Name,
-		"$class":       c.Class,
-		"$description": c.Desc,
+	objs := &ObjectBatch{}
+
+	obj := &ObjectItem{
+		Name:        c.Name,
+		Class:       c.Class,
+		Description: c.Desc,
 	}
 
 	tags := map[string]string{
@@ -81,20 +94,22 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 		}
 	}
 
-	obj["$tags"] = tags
+	obj.Tags = tags
 
 	switch c.Name {
 	case "$mac":
-		obj["$name"] = tags["mac"]
+		obj.Name = tags["mac"]
 	case "$ip":
-		obj["$name"] = tags["ip"]
+		obj.Name = tags["ip"]
 	case "$uuid":
-		obj["$name"] = tags["uuid"]
+		obj.Name = tags["uuid"]
 	case "$host":
-		obj["$name"] = tags["host"]
+		obj.Name = tags["host"]
 	}
 
-	data, err := json.Marshal(&obj)
+	objs.Objects = append(objs.Objects, obj)
+
+	data, err := json.Marshal(&objs)
 	if err != nil {
 		return err
 	}
