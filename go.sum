@@ -45,6 +45,8 @@ github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3
 github.com/Djarvur/go-err113 v0.0.0-20200410182137-af658d038157 h1:hY39LwQHh+1kaovmIjOrlqnXNX6tygSRfLkkK33IkZU=
 github.com/Djarvur/go-err113 v0.0.0-20200410182137-af658d038157/go.mod h1:4UJr5HIiMZrwgkSPdsjy2uOQExX/WEILpIrO9UPGuXs=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
+github.com/Masterminds/semver v1.5.0 h1:H65muMkzWKEuNDnfl9d70GUjFniHKHRbFPGBuZ3QEww=
+github.com/Masterminds/semver v1.5.0/go.mod h1:MB6lktGJrhw8PrUyiEoblNEGEQ+RzHPF078ddwwvV3Y=
 github.com/Mellanox/rdmamap v0.0.0-20191106181932-7c3c4763a6ee/go.mod h1:jDA6v0TUYrFEIAE5uGJ29LQOeONIgMdP4Rkqb8HUnPM=
 github.com/Microsoft/ApplicationInsights-Go v0.4.2 h1:HIZoGXMiKNwAtMAgCSSX35j9mP+DjGF9ezfBvxMDLLg=
 github.com/Microsoft/ApplicationInsights-Go v0.4.2/go.mod h1:CukZ/G66zxXtI+h/VcVn3eVVDGDHfXM2zVILF7bMmsg=
@@ -1180,6 +1182,8 @@ github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/gopher-lua v0.0.0-20180630135845-46796da1b0b4/go.mod h1:aEV29XrmTYFr3CiRxZeGHpkvbwq+prZduBqMaascyCU=
 github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb h1:ZkM6LRnq40pR1Ox0hTHlnpkcOTuFIDQpZ1IN8rKKhX0=
 github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb/go.mod h1:gqRgreBUhTSL0GeU64rtZ3Uq3wtjOa/TB2YfrtkCbVQ=
+github.com/zcalusic/sysinfo v0.0.0-20200228145645-a159d7cc708b h1:P22UCgZoo9xZHYw33Cceo6wEr68Xodth9t+QFbNuNgk=
+github.com/zcalusic/sysinfo v0.0.0-20200228145645-a159d7cc708b/go.mod h1:WGLNaWsjKQ2gXmAHh+MQztgu3FLFAnOFJjFzhpgShCY=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200309024203-d32415dca2df/go.mod h1:8F7HcDtqTRaqs8/jb84KdFhFMDmtBFs1+g6qZwJD8Xo=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200419043855-ff6f056c0fd9/go.mod h1:NN3tmyslrigqU49FjHIOLQgYtCDTs/ikPVC4C0ECMSY=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb h1:1y9tSpcbqp19unOCSezgtZcw/M8YzZ1G0mPw7hCdfvI=
