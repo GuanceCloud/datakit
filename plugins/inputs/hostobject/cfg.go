@@ -5,7 +5,7 @@ const (
 
 	sampleConfig = `
 # ##(required) dataway的地址
-ftdataway='http://localhost:32758/v1/write/object'
+#ftdataway='http://localhost:32758/v1/write/object'
 
 # ##(optional) 默认使用host name
 #name = ''
