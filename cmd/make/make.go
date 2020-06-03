@@ -112,8 +112,9 @@ var (
 )
 
 type versionDesc struct {
-	Version string `json:"version"`
-	Date    string `json:"date"`
+	Version  string `json:"version"`
+	Date     string `json:"date"`
+	Uploader string `json:"uploader"`
 }
 
 func (vd *versionDesc) withoutGitCommit() string {
@@ -160,13 +161,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"GOOS=" + goos,
 		"GOARCH=" + goarch,
 		`GO111MODULE=off`,
-	}
-
-	switch goos + "/" + goarch {
-	//case `linux/amd64`:
-	//	env = append(env, "CGO_ENABLED=1")
-	default:
-		env = append(env, "CGO_ENABLED=0")
+		"CGO_ENABLED=0",
 	}
 
 	log.Printf("[debug] building % 13s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
@@ -397,8 +392,9 @@ func main() {
 
 	// create version info
 	vd := &versionDesc{
-		Version: strings.TrimSpace(git.Version),
-		Date:    git.BuildAt,
+		Version:  strings.TrimSpace(git.Version),
+		Date:     git.BuildAt,
+		Uploader: git.Uploader,
 	}
 
 	versionInfo, err := json.Marshal(vd)
