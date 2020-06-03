@@ -34,9 +34,9 @@ type (
 		Tags        map[string]string `json:"$tags"`
 	}
 
-	ObjectBatch struct {
-		Objects []*ObjectItem `json:"object"`
-	}
+	// ObjectBatch struct {
+	// 	Objects []*ObjectItem `json:"object"`
+	// }
 )
 
 func (_ *Collector) Catalog() string {
@@ -53,7 +53,7 @@ func (_ *Collector) Description() string {
 
 func (c *Collector) Gather(acc telegraf.Accumulator) error {
 
-	objs := &ObjectBatch{}
+	objs := []*ObjectItem{}
 
 	obj := &ObjectItem{
 		Name:        c.Name,
@@ -110,7 +110,7 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 		obj.Name = tags["os_type"]
 	}
 
-	objs.Objects = append(objs.Objects, obj)
+	objs = append(objs, obj)
 
 	data, err := json.Marshal(&objs)
 	if err != nil {
