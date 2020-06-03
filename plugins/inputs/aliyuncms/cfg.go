@@ -218,6 +218,7 @@ func (p *Project) genMetricReq(metric string, region string) (*MetricsRequest, e
 		if p.globalMetricProperty == nil {
 			for _, prop := range p.Metrics.Property {
 				if prop.Name == "*" {
+					p.globalMetricProperty = prop
 					if prop.Dimensions != "" {
 						checkDimensions := []map[string]string{}
 						if err := json.Unmarshal([]byte(prop.Dimensions), &checkDimensions); err != nil {
@@ -225,7 +226,6 @@ func (p *Project) genMetricReq(metric string, region string) (*MetricsRequest, e
 						}
 						p.globalMetricProperty.Dimensions = strings.Trim(prop.Dimensions, " \t\r\n")
 					}
-					p.globalMetricProperty = prop
 					break
 				}
 			}
