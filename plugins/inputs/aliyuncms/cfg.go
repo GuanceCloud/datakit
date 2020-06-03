@@ -111,6 +111,7 @@ type (
 		RegionID        string            `toml:"region_id"`
 		AccessKeyID     string            `toml:"access_key_id"`
 		AccessKeySecret string            `toml:"access_key_secret"`
+		SecurityToken   string            `toml:"security_token"`
 		Interval        internal.Duration `toml:"interval"`
 		Delay           internal.Duration `toml:"delay"`
 		Project         []*Project        `toml:"project"`
