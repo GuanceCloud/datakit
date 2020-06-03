@@ -114,6 +114,12 @@ func LoadCfg() error {
 		return err
 	}
 
+	// some old log file under:
+	//  /usr/local/cloudcare/forethought/...
+	// we force set to
+	//  /usr/local/cloudcare/DataFlux/...
+	Cfg.MainCfg.Log = filepath.Join(InstallDir, "datakit.log")
+
 	logConfig := logger.LogConfig{
 		Debug:     (strings.ToLower(Cfg.MainCfg.LogLevel) == "debug"),
 		Quiet:     false,
@@ -142,10 +148,10 @@ type MainConfig struct {
 
 	FtGateway string `toml:"ftdataway"`
 
-	Log      string `toml:"-"`
+	Log      string `toml:"log"`
 	LogLevel string `toml:"log_level"`
 
-	ConfigDir string `toml:"-"`
+	ConfigDir string `toml:"config_dir"` // not used: to compatible parsing with forethought datakit.conf
 
 	//验证dk存活
 	MaxPostInterval internal.Duration `toml:"max_post_interval"`
@@ -352,8 +358,8 @@ func (c *Config) LoadConfig() error {
 		if internalData, ok := inputs.InternalInputsData[name]; ok {
 			data = internalData
 		} else {
-			oldPath := filepath.Join(c.MainCfg.ConfigDir, name, fmt.Sprintf("%s.conf", name))
-			newPath := filepath.Join(c.MainCfg.ConfigDir, input.Catalog(), fmt.Sprintf("%s.conf", name))
+			oldPath := filepath.Join(ConfdDir, name, fmt.Sprintf("%s.conf", name))
+			newPath := filepath.Join(ConfdDir, input.Catalog(), fmt.Sprintf("%s.conf", name))
 
 			path := newPath
 			_, err := os.Stat(path)
@@ -409,7 +415,7 @@ func (c *Config) LoadConfig() error {
 		MaxLifeCheckInterval = c.MainCfg.MaxPostInterval.Duration
 	}
 
-	return LoadTelegrafConfigs(c.MainCfg.ConfigDir, c.InputFilters)
+	return LoadTelegrafConfigs(ConfdDir, c.InputFilters)
 }
 
 func (c *Config) DumpInputsOutputs() {
@@ -445,7 +451,6 @@ func InitCfg(dw string) error {
 func initMainCfg(dw string) error {
 
 	Cfg.MainCfg.UUID = cliutils.XID("dkid_")
-	Cfg.MainCfg.ConfigDir = ConfdDir
 	Cfg.MainCfg.FtGateway = dw
 
 	var err error
