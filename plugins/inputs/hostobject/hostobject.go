@@ -30,7 +30,6 @@ type (
 
 	ObjectItem struct {
 		Name        string            `json:"$name"`
-		Class       string            `json:"$class"`
 		Description string            `json:"$description"`
 		Tags        map[string]string `json:"$tags"`
 	}
@@ -58,12 +57,12 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 
 	obj := &ObjectItem{
 		Name:        c.Name,
-		Class:       c.Class,
 		Description: c.Desc,
 	}
 
 	tags := map[string]string{
-		"uuid": config.Cfg.MainCfg.UUID,
+		"uuid":   config.Cfg.MainCfg.UUID,
+		"$class": c.Class,
 	}
 
 	hostname, err := os.Hostname()
@@ -105,6 +104,10 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 		obj.Name = tags["uuid"]
 	case "$host":
 		obj.Name = tags["host"]
+	case "$os":
+		obj.Name = tags["os"]
+	case "$os_type":
+		obj.Name = tags["os_type"]
 	}
 
 	objs.Objects = append(objs.Objects, obj)
