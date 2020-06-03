@@ -325,7 +325,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 			continue
 		}
 
-		cfgpath := filepath.Join(cfg.MainCfg.ConfigDir, input.catalog, input.name+".conf")
+		cfgpath := filepath.Join(ConfdDir, input.catalog, input.name+".conf")
 		d, err := ioutil.ReadFile(cfgpath)
 		if err != nil {
 			log.Printf("E! %s", err.Error())
