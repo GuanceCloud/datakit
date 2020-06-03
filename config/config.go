@@ -142,10 +142,10 @@ type MainConfig struct {
 
 	FtGateway string `toml:"ftdataway"`
 
-	Log      string `toml:"log"`
+	Log      string `toml:"-"`
 	LogLevel string `toml:"log_level"`
 
-	ConfigDir string `toml:"config_dir,omitempty"`
+	ConfigDir string `toml:"-"`
 
 	//验证dk存活
 	MaxPostInterval internal.Duration `toml:"max_post_interval"`
@@ -344,28 +344,6 @@ func (c *Config) LoadConfig() error {
 				continue
 			}
 		}
-
-		//apachelog和nginxlog和telegraf的nginx和apache共享一个目录
-		//这些采集器将转化为telegraf的采集器
-		/*
-			if name == "apachelog" || name == "nginxlog" {
-				if p, ok := creator().(ConvertTelegrafConfig); ok {
-					path := p.FilePath(c.MainCfg.ConfigDir)
-					if err := p.Load(path); err != nil {
-						if err == ErrConfigNotFound {
-							continue
-						} else {
-							return fmt.Errorf("Error loading config file %s, %s", path, err)
-						}
-					}
-					if telegrafCfg, err := p.ToTelegraf(path); err == nil {
-						ConvertedCfg = append(ConvertedCfg, telegrafCfg)
-					} else {
-						return fmt.Errorf("convert %s failed, %s", path, err)
-					}
-				}
-				continue
-			} */
 
 		input := creator()
 
