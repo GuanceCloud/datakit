@@ -655,5 +655,6 @@ func buildInput(name string, tbl *ast.Table, input telegraf.Input) (*models.Inpu
 	delete(tbl.Fields, "ftdataway")
 	delete(tbl.Fields, "output_file")
 	delete(tbl.Fields, "tags")
+
 	return cp, nil
 }

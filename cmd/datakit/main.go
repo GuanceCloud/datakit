@@ -69,7 +69,8 @@ func applyFlags() {
 Sha1:           %s
 Build At:       %s
 Golang Version: %s
-`, git.Version, git.Sha1, git.BuildAt, git.Golang)
+Uploader:         %s
+`, git.Version, git.Sha1, git.BuildAt, git.Golang, git.Uploader)
 		os.Exit(0)
 	}
 
