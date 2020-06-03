@@ -140,7 +140,7 @@ func main() {
 
 	log.Printf("starting service %s...", ServiceName)
 	if err := startDatakitService(dkservice); err != nil {
-		log.Fatalf("Fail to register service %s: %s", ServiceName, err.Error())
+		log.Fatalf("Fail to star service %s: %s", ServiceName, err.Error())
 	}
 
 	if *flagUpgrade { // upgrade new version
