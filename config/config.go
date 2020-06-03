@@ -371,7 +371,7 @@ func (c *Config) LoadConfig() error {
 
 			data, err = ioutil.ReadFile(path)
 			if err != nil {
-				return fmt.Errorf("Error loading config file %s, %s", path, err)
+				return fmt.Errorf("loading config file %s failed, %s", path, err)
 			}
 		}
 
