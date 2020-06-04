@@ -134,7 +134,7 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 //LoadTelegrafConfigs 加载conf.d下telegraf的配置文件
 func LoadTelegrafConfigs(cfgdir string, inputFilters []string) error {
 
-	for _, input := range SupportsTelegrafMetraicNames {
+	for _, input := range SupportsTelegrafMetricNames {
 
 		if len(inputFilters) > 0 {
 			if !sliceContains(input.name, inputFilters) {
@@ -142,7 +142,7 @@ func LoadTelegrafConfigs(cfgdir string, inputFilters []string) error {
 			}
 		}
 
-		cfgpath := filepath.Join(cfgdir, input.catalog, fmt.Sprintf(`%s.conf`, input.name))
+		cfgpath := filepath.Join(cfgdir, input.Catalog, fmt.Sprintf(`%s.conf`, input.name))
 		err := VerifyToml(cfgpath, true)
 
 		if err == nil {
@@ -317,7 +317,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 
 	pluginCfgs := ""
 
-	for _, input := range SupportsTelegrafMetraicNames {
+	for _, input := range SupportsTelegrafMetricNames {
 
 		log.Printf("D! adding %+#v...", input)
 
@@ -325,7 +325,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 			continue
 		}
 
-		cfgpath := filepath.Join(ConfdDir, input.catalog, input.name+".conf")
+		cfgpath := filepath.Join(ConfdDir, input.Catalog, input.name+".conf")
 		d, err := ioutil.ReadFile(cfgpath)
 		if err != nil {
 			log.Printf("E! %s", err.Error())
@@ -333,7 +333,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 		}
 
 		pluginCfgs += string(d) + "\n"
-		log.Printf("D! add %s/%s config...", input.catalog, input.name)
+		log.Printf("D! add %s/%s config...", input.Catalog, input.name)
 	}
 
 	if len(ConvertedCfg) > 0 {
