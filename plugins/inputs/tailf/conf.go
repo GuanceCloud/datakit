@@ -8,6 +8,9 @@ const (
 	tailfConfigSample = `
 # [tailf]
 # [[tailf.subscribes]]
+#       ## ftdataway 地址
+#       # ftdataway = "http://localhost:32758/v1/write/logging"
+#
 #       ## 文件路径名
 #	filename = ""
 #
