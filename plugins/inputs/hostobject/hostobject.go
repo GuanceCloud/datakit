@@ -29,14 +29,10 @@ type (
 	}
 
 	ObjectItem struct {
-		Name        string            `json:"$name"`
-		Description string            `json:"$description"`
-		Tags        map[string]string `json:"$tags"`
+		Name        string            `json:"__name"`
+		Description string            `json:"__description"`
+		Tags        map[string]string `json:"__tags"`
 	}
-
-	// ObjectBatch struct {
-	// 	Objects []*ObjectItem `json:"object"`
-	// }
 )
 
 func (_ *Collector) Catalog() string {
@@ -61,8 +57,8 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 	}
 
 	tags := map[string]string{
-		"uuid":   config.Cfg.MainCfg.UUID,
-		"$class": c.Class,
+		"uuid":    config.Cfg.MainCfg.UUID,
+		"__class": c.Class,
 	}
 
 	hostname, err := os.Hostname()
@@ -96,17 +92,17 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 	obj.Tags = tags
 
 	switch c.Name {
-	case "$mac":
+	case "__mac":
 		obj.Name = tags["mac"]
-	case "$ip":
+	case "__ip":
 		obj.Name = tags["ip"]
-	case "$uuid":
+	case "__uuid":
 		obj.Name = tags["uuid"]
-	case "$host":
+	case "__host":
 		obj.Name = tags["host"]
-	case "$os":
+	case "__os":
 		obj.Name = tags["os"]
-	case "$os_type":
+	case "__os_type":
 		obj.Name = tags["os_type"]
 	}
 
