@@ -31,3 +31,4 @@ cmd/installer/bin/
 embed/*
 deps/*
 *.err
+*.test
