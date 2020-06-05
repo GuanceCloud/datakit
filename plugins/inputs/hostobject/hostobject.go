@@ -2,13 +2,9 @@ package hostobject
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"os"
-	"runtime"
 	"time"
-
-	"github.com/shirou/gopsutil/mem"
 
 	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -75,10 +71,11 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 	oi := getOSInfo()
 	tags["os_type"] = oi.OSType
 	tags["os"] = oi.Release
-	tags["cpu_total"] = fmt.Sprintf("%d", runtime.NumCPU())
 
-	meminfo, _ := mem.VirtualMemory()
-	tags["memory_total"] = fmt.Sprintf("%v", meminfo.Total/uint64(1024*1024*1024))
+	//tags["cpu_total"] = fmt.Sprintf("%d", runtime.NumCPU())
+
+	//meminfo, _ := mem.VirtualMemory()
+	//tags["memory_total"] = fmt.Sprintf("%v", meminfo.Total/uint64(1024*1024*1024))
 
 	for _, input := range config.Cfg.Inputs {
 		if input.Config.Name == inputName {
