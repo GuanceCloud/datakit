@@ -3,7 +3,6 @@ package aliyuncms
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -141,9 +140,9 @@ func (s *runningInstance) genReqs(ctx context.Context) error {
 }
 
 func (s *runningInstance) initializeAliyunCMS() error {
-	if s.cfg.RegionID == "" {
-		return errors.New("region id is not set")
-	}
+	// if s.cfg.RegionID == "" {
+	// 	return errors.New("region id is not set")
+	// }
 
 	configuration := &providers.Configuration{
 		AccessKeyID:     s.cfg.AccessKeyID,
@@ -175,6 +174,13 @@ func (s *runningInstance) fetchMetricMeta(ctx context.Context, namespace, metric
 	request.Namespace = namespace
 	request.MetricName = metricname
 	request.PageSize = requests.NewInteger(100)
+
+	if s.cfg.SecurityToken != "" {
+		//fmt.Printf("token: %s\n", s.cfg.SecurityToken)
+		request.QueryParams["SecurityToken"] = s.cfg.SecurityToken
+		request.FormParams["SecurityToken"] = s.cfg.SecurityToken
+
+	}
 
 	var err error
 	var response *cms.DescribeMetricMetaListResponse
@@ -351,6 +357,13 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 	req.q.StartTime = strconv.FormatInt(startTime, 10)
 	req.q.NextToken = ""
 
+	if s.cfg.SecurityToken != "" {
+		//fmt.Printf("token: %s\n", s.cfg.SecurityToken)
+		req.q.QueryParams["SecurityToken"] = s.cfg.SecurityToken
+		req.q.FormParams["SecurityToken"] = s.cfg.SecurityToken
+
+	}
+
 	datapoints := []map[string]interface{}{}
 
 	for more := true; more; {
@@ -367,6 +380,7 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 			}
 
 			s.limiter.Wait(ctx)
+			//fmt.Printf("querys: %s", req.q.GetQueryParams())
 			resp, err = s.cmsClient.DescribeMetricList(req.q)
 
 			if tempDelay == 0 {
@@ -441,8 +455,18 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 		default:
 		}
 
-		tags := map[string]string{
-			"regionId": req.q.RegionId,
+		tags := map[string]string{}
+
+		if req.tags != nil {
+			for k, v := range req.tags {
+				tags[k] = v
+			}
+		} else {
+			if s.cfg.Tags != nil {
+				for k, v := range s.cfg.Tags {
+					tags[k] = v
+				}
+			}
 		}
 
 		fields := make(map[string]interface{})
