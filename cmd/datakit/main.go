@@ -26,7 +26,7 @@ var (
 	flagDataWay        = flag.String("dataway", ``, `dataway IP:Port`)
 	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d, list configired and mis-configured collectors`)
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
-	flagListCollectors = flag.Bool("list-collectors", false, `list vailable collectors`)
+	flagListCollectors = flag.Bool("tree", false, `list vailable collectors`)
 )
 
 var (
@@ -75,14 +75,33 @@ Uploader:         %s
 	}
 
 	if *flagListCollectors {
-		for k, _ := range inputs.Inputs {
-			fmt.Println(k)
+		collectors := map[string][]string{}
+
+		for k, v := range inputs.Inputs {
+			cat := v().Catalog()
+			collectors[cat] = append(collectors[cat], k)
 		}
 
-		fmt.Println("=========================")
-
-		for k, _ := range config.SupportsTelegrafMetraicNames {
+		fmt.Println("=========== datakit collectors ==============")
+		for k, vs := range collectors {
 			fmt.Println(k)
+			for _, v := range vs {
+				//fmt.Printf("  └── %s\n", v)
+				fmt.Printf("  |-- %s\n", v)
+			}
+		}
+
+		collectors = map[string][]string{}
+		for k, v := range config.SupportsTelegrafMetricNames {
+			collectors[v.Catalog] = append(collectors[v.Catalog], k)
+		}
+
+		fmt.Println("=========== telegraf collectors ==============")
+		for k, vs := range collectors {
+			fmt.Println(k)
+			for _, v := range vs {
+				fmt.Printf("  |-- %s\n", v)
+			}
 		}
 
 		os.Exit(0)
