@@ -118,7 +118,7 @@ func LoadCfg() error {
 	//  /usr/local/cloudcare/forethought/...
 	// we force set to
 	//  /usr/local/cloudcare/DataFlux/...
-	Cfg.MainCfg.Log = filepath.Join(InstallDir, "datakit.log")
+	//Cfg.MainCfg.Log = filepath.Join(InstallDir, "datakit.log")
 
 	logConfig := logger.LogConfig{
 		Debug:     (strings.ToLower(Cfg.MainCfg.LogLevel) == "debug"),
@@ -371,13 +371,15 @@ func (c *Config) LoadConfig() error {
 
 			data, err = ioutil.ReadFile(path)
 			if err != nil {
-				return fmt.Errorf("loading config file %s failed, %s", path, err)
+				log.Printf("[error] load %s failed: %s", path, err)
+				return err
 			}
 		}
 
 		tbl, err := parseConfig(data)
 		if err != nil {
-			return fmt.Errorf("Error parse config %s, %s", name, err)
+			log.Printf("[error] parse failed: %s", err)
+			return err
 		}
 
 		if len(tbl.Fields) == 0 {
@@ -426,7 +428,7 @@ func (c *Config) DumpInputsOutputs() {
 		names = append(names, p.Config.Name)
 	}
 
-	for k, i := range SupportsTelegrafMetraicNames {
+	for k, i := range SupportsTelegrafMetricNames {
 		if i.enabled {
 			log.Printf("telegraf input %s enabled", k)
 			names = append(names, k)
@@ -486,14 +488,23 @@ func createPluginCfgsIfNotExists() {
 		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
 		cfgpath := filepath.Join(ConfdDir, catalog, name+".conf")
 
-		log.Printf("check datakit input conf %s...", name)
+		log.Printf("I! check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
 
 		if _, err := os.Stat(oldCfgPath); err == nil {
 			if oldCfgPath == cfgpath {
 				continue // do nothing
 			}
 
-			os.Rename(oldCfgPath, cfgpath)
+			log.Printf("I! migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
+
+			if err := os.MkdirAll(filepath.Dir(cfgpath), os.ModePerm); err != nil {
+				log.Fatalf("E! create dir %s failed: %s", filepath.Dir(cfgpath), err.Error())
+			}
+
+			if err := os.Rename(oldCfgPath, cfgpath); err != nil {
+				log.Fatalf("E! move %s -> %s failed: %s", oldCfgPath, cfgpath, err.Error())
+			}
+
 			os.RemoveAll(filepath.Dir(oldCfgPath))
 			continue
 		}
@@ -519,9 +530,9 @@ func createPluginCfgsIfNotExists() {
 	}
 
 	// create telegraf input plugin's configures
-	for name, input := range SupportsTelegrafMetraicNames {
+	for name, input := range SupportsTelegrafMetricNames {
 
-		cfgpath := filepath.Join(ConfdDir, input.catalog, name+".conf")
+		cfgpath := filepath.Join(ConfdDir, input.Catalog, name+".conf")
 		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
 
 		log.Printf("check telegraf input conf %s...", name)
@@ -543,9 +554,9 @@ func createPluginCfgsIfNotExists() {
 
 			log.Printf("D! %s not exists, create it...", cfgpath)
 
-			log.Printf("D! create telegraf conf path %s", filepath.Join(ConfdDir, input.catalog))
-			if err := os.MkdirAll(filepath.Join(ConfdDir, input.catalog), os.ModePerm); err != nil {
-				log.Fatalf("create catalog dir %s failed: %s", input.catalog, err.Error())
+			log.Printf("D! create telegraf conf path %s", filepath.Join(ConfdDir, input.Catalog))
+			if err := os.MkdirAll(filepath.Join(ConfdDir, input.Catalog), os.ModePerm); err != nil {
+				log.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
 			}
 
 			if sample, ok := telegrafCfgSamples[name]; ok {
