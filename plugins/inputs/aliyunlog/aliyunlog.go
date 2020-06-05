@@ -2,6 +2,7 @@ package aliyunlog
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -296,11 +297,15 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 			// 	tags["__category__"] = lg.GetCategory()
 			// }
 
+			contentMap := map[string]string{}
+
 			for _, lc := range l.Contents {
 				k := lc.GetKey()
 				if k == "" {
 					continue
 				}
+
+				contentMap[k] = lc.GetValue()
 
 				tagInfo := r.checkAsTag(k)
 				if tagInfo != nil {
@@ -349,6 +354,13 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 				}
 			} else {
 				fields[uuidKey] = uid.String()
+			}
+
+			contentStr, err := json.Marshal(&contentMap)
+			if err == nil {
+				fields["__content"] = string(contentStr)
+			} else {
+				r.logger.Warnf("fail to marshal content, %s", err)
 			}
 
 			tm := time.Unix(int64(l.GetTime()), 0)
