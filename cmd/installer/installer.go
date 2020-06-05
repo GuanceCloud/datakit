@@ -3,7 +3,6 @@ package main
 import (
 	"archive/tar"
 	"bufio"
-	"bytes"
 	"compress/gzip"
 	"flag"
 	"fmt"
@@ -18,9 +17,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/influxdata/toml"
 	"github.com/kardianos/service"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -30,6 +31,7 @@ import (
 var (
 	ServiceName    = `datakit`
 	DataKitGzipUrl = ""
+	installDir     = ""
 
 	osarch           = runtime.GOOS + "/" + runtime.GOARCH
 	dkservice        service.Service
@@ -37,107 +39,10 @@ var (
 
 	flagUpgrade         = flag.Bool("upgrade", false, ``)
 	flagDataway         = flag.String("dataway", "", `address of dataway(ip:port), port default 9528`)
-	flagInstallDir      = flag.String("install-dir", "", `directory to install`)
 	flagVersion         = flag.Bool("version", false, "show installer version info")
 	flagDownloadOnly    = flag.Bool("download-only", false, `download datakit only, not install`)
 	flagDataKitGzipFile = flag.String("datakit-gzip", ``, `local path of datakit install files`)
 )
-
-func stopLagacyDatakit() {
-	switch osarch {
-	case "windows/amd64", "windows/386":
-		stopDataKitService(dkservice)
-	default:
-		cmd := exec.Command(`stop`, []string{ServiceName}...)
-		if _, err := cmd.Output(); err != nil {
-			log.Printf("D! upstart stop datakit failed, try systemctl...")
-		} else {
-			return
-		}
-
-		cmd = exec.Command("systemctl", []string{"stop", ServiceName}...)
-		if _, err := cmd.Output(); err != nil {
-			log.Printf("D! systemctl stop datakit failed, ignored")
-		}
-	}
-}
-
-func updateLagacyConfig(dir string) {
-	// replace `F|forethought` as `DataFlux`
-	cfgdata, err := ioutil.ReadFile(filepath.Join(dir, "datakit.conf"))
-	if err != nil {
-		log.Fatalf("E! read lagacy datakit.conf failed: %s", err.Error())
-	}
-
-	if osarch == "windows/amd64" { // for 64bit windows, lagacy installed under wrong palce :(
-		cfgdata = bytes.ReplaceAll(cfgdata, []byte(`Program Files (x86)`), []byte(`Program Files`))
-	}
-
-	// remove conf.d config: we use static conf.d dir, *not* configurable
-	confdCfg := fmt.Sprintf(`config_dir='%s'`, filepath.Join(dir, "conf.d"))
-	cfgdata = bytes.ReplaceAll(cfgdata, []byte(confdCfg), []byte(``))
-	log.Printf("D! clear %s", confdCfg)
-
-	cfgdata = bytes.ReplaceAll(cfgdata, []byte(`forethought`), []byte(`DataFlux`))
-	cfgdata = bytes.ReplaceAll(cfgdata, []byte(`Forethought`), []byte(`DataFlux`))
-
-	if err := ioutil.WriteFile(filepath.Join(dir, "datakit.conf"), cfgdata, os.ModePerm); err != nil {
-		log.Fatalf("E! update lagacy datakit.conf failed: %s", err.Error())
-	}
-}
-
-func migrateLagacyDatakit() {
-
-	var lagacyServiceFiles []string = nil
-
-	switch osarch {
-
-	case "windows/amd64", "windows/386":
-		lagacyInstallDir = `C:\Program Files\Forethought\` + ServiceName
-		if _, err := os.Stat(lagacyInstallDir); err != nil {
-			lagacyInstallDir = `C:\Program Files (x86)\Forethought\` + ServiceName
-		}
-
-	case "linux/amd64", "linux/386",
-		"linux/arm", "linux/arm64",
-		"darwin/amd64", "darwin/386":
-		lagacyInstallDir = `/usr/local/cloudcare/forethought/` + ServiceName
-		lagacyServiceFiles = []string{"/lib/systemd/system/datakit.service", "/etc/systemd/system/datakit.service"}
-	default:
-		log.Fatalf("E! %s not support", osarch)
-	}
-
-	if _, err := os.Stat(lagacyInstallDir); err != nil {
-		log.Printf("D! no lagacy datakit installed")
-		return
-	}
-
-	stopLagacyDatakit()
-	updateLagacyConfig(lagacyInstallDir)
-
-	// uninstall service, remove old datakit.service file(for UNIX OS)
-	uninstallDataKitService(dkservice)
-	for _, sf := range lagacyServiceFiles {
-		if _, err := os.Stat(sf); err == nil {
-			if err := os.Remove(sf); err != nil {
-				log.Fatalf("E! remove %s failed: %s", sf, err.Error())
-			}
-		}
-	}
-
-	os.RemoveAll(*flagInstallDir) // clean new install dir if exists
-
-	// move all lagacy datakit files to new install dir
-	if err := os.Rename(lagacyInstallDir, *flagInstallDir); err != nil {
-		log.Fatalf("E! remove %s failed: %s", *flagInstallDir, err.Error())
-	}
-
-	for _, dir := range []string{config.TelegrafDir, config.DataDir, config.LuaDir, config.ConfdDir} {
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			log.Fatalf("E! create %s failed: %s", dir, err)
-		}
-	}
-}
 
 func main() {
 
@@ -145,14 +50,16 @@ func main() {
 
 	flag.Parse()
 
+	config.InitDirs()
+
 	applyFlags()
 
 	// create install dir if not exists
-	if err := os.MkdirAll(*flagInstallDir, 0775); err != nil {
+	if err := os.MkdirAll(installDir, 0775); err != nil {
 		log.Fatalf("E! %s", err.Error())
 	}
 
-	datakitExe := filepath.Join(*flagInstallDir, "datakit")
+	datakitExe := filepath.Join(installDir, "datakit")
 	if runtime.GOOS == "windows" {
 		datakitExe += ".exe"
 	}
@@ -176,23 +83,26 @@ func main() {
 		migrateLagacyDatakit()
 
 		if *flagDataKitGzipFile != "" {
-			extractDatakit(*flagDataKitGzipFile, *flagInstallDir)
+			extractDatakit(*flagDataKitGzipFile, installDir)
 		} else {
-			downloadDatakit(DataKitGzipUrl, *flagInstallDir)
+			downloadDatakit(DataKitGzipUrl, installDir)
 		}
 
 	} else { // install new datakit
 
+		stopDataKitService(dkservice) // stop service if installed before
+
 		if *flagDataKitGzipFile != "" {
-			extractDatakit(*flagDataKitGzipFile, *flagInstallDir)
+			extractDatakit(*flagDataKitGzipFile, installDir)
 		} else {
-			downloadDatakit(DataKitGzipUrl, *flagInstallDir)
+			downloadDatakit(DataKitGzipUrl, installDir)
 		}
 
+		var dwcfg *config.DataWayCfg
 		if *flagDataway == "" {
 			for {
 				dw := readInput("Please set DataWay(IP:Port or OpenWay link) > ")
-				*flagDataway, err = parseDataway(dw)
+				dwcfg, err = parseDataway(dw)
 				if err == nil {
 					break
 				}
@@ -201,16 +111,16 @@ func main() {
 				continue
 			}
 		} else {
-			*flagDataway, err = parseDataway(*flagDataway)
+			dwcfg, err = parseDataway(*flagDataway)
+
 			if err != nil {
 				log.Fatalf("E! %s", err.Error())
 			}
 		}
 
-		stopDataKitService(dkservice)      // stop service if installed before
 		uninstallDataKitService(dkservice) // uninstall service if installed before
 
-		if err := config.InitCfg(*flagDataway); err != nil {
+		if err := config.InitCfg(dwcfg); err != nil {
 			log.Fatalf("E! failed to init datakit main config: %s", err.Error())
 		}
 	}
@@ -249,22 +159,20 @@ Golang Version: %s
 		os.Exit(0)
 	}
 
-	if *flagInstallDir == "" {
-		switch osarch {
+	switch osarch {
 
-		case "windows/amd64":
-			*flagInstallDir = `C:\Program Files\DataFlux\` + ServiceName
+	case "windows/amd64":
+		installDir = `C:\Program Files\DataFlux\` + ServiceName
 
-		case "windows/386":
-			*flagInstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
+	case "windows/386":
+		installDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
 
-		case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
-			"darwin/amd64", "darwin/386":
-			*flagInstallDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
+	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
+		"darwin/amd64", "darwin/386":
+		installDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
 
-		default:
-			// TODO
-		}
+	default:
+		// TODO
 	}
 }
 
@@ -352,13 +260,13 @@ func extractDatakit(gz, to string) {
 	doExtract(data, to)
 }
 
-type WriteCounter struct {
+type writeCounter struct {
 	total   uint64
 	current uint64
 	last    float64
 }
 
-func (wc *WriteCounter) Write(p []byte) (int, error) {
+func (wc *writeCounter) Write(p []byte) (int, error) {
 	n := len(p)
 	wc.current += uint64(n)
 	wc.last += float64(n)
@@ -373,7 +281,7 @@ func downloadDatakit(from, to string) {
 	}
 
 	defer resp.Body.Close()
-	cnt := &WriteCounter{
+	cnt := &writeCounter{
 		total: uint64(resp.ContentLength),
 	}
 
@@ -385,7 +293,7 @@ func downloadDatakit(from, to string) {
 	fmt.Printf("\n")
 }
 
-func (wc *WriteCounter) PrintProgress() {
+func (wc *writeCounter) PrintProgress() {
 	if wc.last > float64(wc.total)*0.01 || wc.current == wc.total { // update progress-bar each 1%
 		fmt.Printf("\r%s", strings.Repeat(" ", 35))
 		fmt.Printf("\rDownloading... %s/%s", humanize.Bytes(wc.current), humanize.Bytes(wc.total))
@@ -393,40 +301,36 @@ func (wc *WriteCounter) PrintProgress() {
 	}
 }
 
-func parseDataway(dw string) (string, error) {
+func parseDataway(dw string) (*config.DataWayCfg, error) {
 
-	tkn := ""
-	host := ""
-	scheme := "http"
+	dwcfg := &config.DataWayCfg{}
 
 	if u, err := url.Parse(dw); err == nil {
-		scheme = u.Scheme
-		tkn = u.Query().Get("token")
-		host = u.Host
+		dwcfg.Scheme = u.Scheme
+		dwcfg.Token = u.Query().Get("token")
+		dwcfg.Host = u.Host
+		dwcfg.DefaultPath = u.Path
 
-		if scheme == "https" {
-			host = u.Host + ":443"
+		if dwcfg.Scheme == "https" {
+			dwcfg.Host = dwcfg.Host + ":443"
 		}
 	} else {
-		if _, _, err := net.SplitHostPort(dw); err != nil { // parse dataway IP:Port
-			return "", err
-		}
-
-		host = dw
+		log.Printf("E! invalid dataway %s: %s", dw, err.Error())
+		return nil, err
 	}
 
-	log.Printf("D! Testing DataWay(%s)...", host)
-	conn, err := net.DialTimeout("tcp", host, time.Second*5)
+	log.Printf("D! Testing DataWay(%s)...", dwcfg.Host)
+	conn, err := net.DialTimeout("tcp", dwcfg.Host, time.Second*5)
 	if err != nil {
-		return "", err
+		log.Printf("E! connect dataway %s failed: %s", dwcfg.Host, err.Error())
+		return nil, err
 	}
-	conn.Close()
 
-	if tkn == "" {
-		return fmt.Sprintf("%s://%s/v1/write/metrics", scheme, host), nil
-	} else {
-		return fmt.Sprintf("%s://%s/v1/write/metrics?token=%s", scheme, host, tkn), nil
+	if err := conn.Close(); err != nil {
+		log.Printf("E! close dataway %s failed: %s, ignored", dwcfg.Host, err.Error())
 	}
+
+	return dwcfg, nil
 }
 
 type program struct{}
@@ -446,7 +350,7 @@ func stopDataKitService(s service.Service) error {
 
 func uninstallDataKitService(s service.Service) error {
 	if err := service.Control(s, "uninstall"); err != nil {
-		log.Printf("I! Stop service datakit failed: %s, ignored", err.Error())
+		log.Printf("W! Stop service datakit failed: %s, ignored", err.Error())
 	}
 
 	return nil
@@ -458,4 +362,116 @@ func installDatakitService(s service.Service) error {
 
 func startDatakitService(s service.Service) error {
 	return service.Control(s, "start")
+}
+
+func stopLagacyDatakit() {
+	switch osarch {
+	case "windows/amd64", "windows/386":
+		stopDataKitService(dkservice)
+	default:
+		cmd := exec.Command(`stop`, []string{ServiceName}...)
+		if _, err := cmd.Output(); err != nil {
+			log.Printf("D! upstart stop datakit failed, try systemctl...")
+		} else {
+			return
+		}
+
+		cmd = exec.Command("systemctl", []string{"stop", ServiceName}...)
+		if _, err := cmd.Output(); err != nil {
+			log.Printf("D! systemctl stop datakit failed, ignored")
+		}
+	}
+}
+
+func updateLagacyConfig(dir string) {
+	cfgdata, err := ioutil.ReadFile(filepath.Join(dir, "datakit.conf"))
+	if err != nil {
+		log.Fatalf("E! read lagacy datakit.conf failed: %s", err.Error())
+	}
+
+	var maincfg config.MainConfig
+	if err := toml.Unmarshal(cfgdata, &maincfg); err != nil {
+		log.Fatalf("E! TOML unmarshal failed: %s", err.Error())
+	}
+
+	maincfg.Log = filepath.Join(installDir, "datakit.log") // reset log path
+	maincfg.ConfigDir = ""                                 // remove conf.d config: we use static conf.d dir, *not* configurable
+
+	// split orgin ftdataway into dataway object
+	dwcfg, err := parseDataway(maincfg.FtGateway)
+	if err != nil {
+		log.Fatalf("E! %s", err.Error())
+	}
+
+	maincfg.FtGateway = "" // deprecated
+	maincfg.DataWay = dwcfg
+
+	fd, err := os.OpenFile(filepath.Join(dir, "datakit.conf"), os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
+	if err != nil {
+		log.Fatalf("E! %s", err.Error())
+	}
+
+	defer fd.Close()
+
+	tmp := template.New("")
+	tmp, err = tmp.Parse(config.MainConfigTemplate)
+	if err != nil {
+		log.Fatalf("E! %s", err.Error())
+	}
+	if err := tmp.Execute(fd, maincfg); err != nil {
+		log.Fatalf("E! %s", err.Error())
+	}
+}
+
+func migrateLagacyDatakit() {
+
+	var lagacyServiceFiles []string = nil
+
+	switch osarch {
+
+	case "windows/amd64", "windows/386":
+		lagacyInstallDir = `C:\Program Files\Forethought\` + ServiceName
+		if _, err := os.Stat(lagacyInstallDir); err != nil {
+			lagacyInstallDir = `C:\Program Files (x86)\Forethought\` + ServiceName
+		}
+
+	case "linux/amd64", "linux/386",
+		"linux/arm", "linux/arm64",
+		"darwin/amd64", "darwin/386":
+		lagacyInstallDir = `/usr/local/cloudcare/forethought/` + ServiceName
+		lagacyServiceFiles = []string{"/lib/systemd/system/datakit.service", "/etc/systemd/system/datakit.service"}
+	default:
+		log.Fatalf("E! %s not support", osarch)
+	}
+
+	if _, err := os.Stat(lagacyInstallDir); err != nil {
+		log.Printf("D! no lagacy datakit installed")
+		return
+	}
+
+	stopLagacyDatakit()
+	updateLagacyConfig(lagacyInstallDir)
+
+	// uninstall service, remove old datakit.service file(for UNIX OS)
+	uninstallDataKitService(dkservice)
+	for _, sf := range lagacyServiceFiles {
+		if _, err := os.Stat(sf); err == nil {
+			if err := os.Remove(sf); err != nil {
+				log.Fatalf("E! remove %s failed: %s", sf, err.Error())
+			}
+		}
+	}
+
+	os.RemoveAll(installDir) // clean new install dir if exists
+
+	// move all lagacy datakit files to new install dir
+	if err := os.Rename(lagacyInstallDir, installDir); err != nil {
+		log.Fatalf("E! remove %s failed: %s", installDir, err.Error())
+	}
+
+	for _, dir := range []string{config.TelegrafDir, config.DataDir, config.LuaDir, config.ConfdDir} {
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			log.Fatalf("E! create %s failed: %s", dir, err)
+		}
+	}
 }
