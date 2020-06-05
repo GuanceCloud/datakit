@@ -134,6 +134,8 @@ func LoadCfg() error {
 	logConfig.RotationMaxSize.Size = (20 << 10 << 10)
 	logger.SetupLogging(logConfig)
 
+	log.SetFlags(log.Llongfile)
+
 	log.Printf("D! set log to %s", logConfig.Logfile)
 
 	createPluginCfgsIfNotExists()
@@ -641,8 +643,11 @@ func buildInput(name string, tbl *ast.Table, input telegraf.Input) (*models.Inpu
 	if node, ok := tbl.Fields["dataway_path"]; ok {
 		if kv, ok := node.(*ast.KeyValue); ok {
 			if str, ok := kv.Value.(*ast.String); ok {
+
+				log.Printf("D! dataway_path: %s", str.Value)
+
 				cp.DataWayRequestURL = fmt.Sprintf("%s://%s%s?token=%s",
-					Cfg.MainCfg.DataWay.Scheme, Cfg.MainCfg.DataWay.Host, str, Cfg.MainCfg.DataWay.Token)
+					Cfg.MainCfg.DataWay.Scheme, Cfg.MainCfg.DataWay.Host, str.Value, Cfg.MainCfg.DataWay.Token)
 			}
 		}
 	}
