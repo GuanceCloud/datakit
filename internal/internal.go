@@ -33,6 +33,12 @@ import (
 
 const alphanum string = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
+type ObjectData struct {
+	Name        string            `json:"__name"`
+	Description string            `json:"__description"`
+	Tags        map[string]string `json:"__tags"`
+}
+
 var (
 	TimeoutErr = errors.New("Command timed out.")
 
