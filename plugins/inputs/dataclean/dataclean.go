@@ -114,8 +114,8 @@ func (d *DataClean) Start(acc telegraf.Accumulator) error {
 
 	d.write = newWritMgr()
 
-	if config.Cfg.MainCfg.FtGateway != "" {
-		d.write.addHttpWriter(config.Cfg.MainCfg.FtGateway)
+	if config.Cfg.MainCfg.DataWay != nil {
+		d.write.addHttpWriter(config.Cfg.MainCfg.DataWayRequestURL)
 	}
 
 	if config.Cfg.MainCfg.OutputsFile != "" {
