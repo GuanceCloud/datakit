@@ -61,8 +61,8 @@ type InputConfig struct {
 	Tags              map[string]string
 	Filter            Filter
 
-	FtDataway  string
-	OutputFile string
+	DataWayRequestURL string
+	OutputFile        string
 }
 
 func (r *RunningInput) metricFiltered(metric telegraf.Metric) {
