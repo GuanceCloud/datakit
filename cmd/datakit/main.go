@@ -82,12 +82,11 @@ Uploader:         %s
 			collectors[cat] = append(collectors[cat], k)
 		}
 
-		fmt.Println("=========== datakit collectors ==============")
 		for k, vs := range collectors {
 			fmt.Println(k)
 			for _, v := range vs {
 				//fmt.Printf("  └── %s\n", v)
-				fmt.Printf("  |-- %s\n", v)
+				fmt.Printf("  |--[d] %s\n", v)
 			}
 		}
 
@@ -96,11 +95,10 @@ Uploader:         %s
 			collectors[v.Catalog] = append(collectors[v.Catalog], k)
 		}
 
-		fmt.Println("=========== telegraf collectors ==============")
 		for k, vs := range collectors {
 			fmt.Println(k)
 			for _, v := range vs {
-				fmt.Printf("  |-- %s\n", v)
+				fmt.Printf("  |--[t] %s\n", v)
 			}
 		}
 
