@@ -69,21 +69,12 @@ func init() {
 		log.Fatalf("[fatal] invalid os/arch: %s", osarch)
 	}
 
-	if err := os.MkdirAll(filepath.Join(InstallDir, "embed"), os.ModePerm); err != nil {
-		log.Fatalf("[error] mkdir embed failed: %s", err)
-	}
-
 	AgentLogFile = filepath.Join(InstallDir, "embed", "agent.log")
 
 	TelegrafDir = filepath.Join(InstallDir, "embed")
 	DataDir = filepath.Join(InstallDir, "data")
 	LuaDir = filepath.Join(InstallDir, "lua")
 	ConfdDir = filepath.Join(InstallDir, "conf.d")
-	for _, dir := range []string{TelegrafDir, DataDir, LuaDir, ConfdDir} {
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			log.Fatalf("create %s failed: %s", dir, err)
-		}
-	}
 
 	Cfg = newDefaultCfg()
 
@@ -109,7 +100,20 @@ func newDefaultCfg() *Config {
 	}
 }
 
+func InitDirs() {
+	if err := os.MkdirAll(filepath.Join(InstallDir, "embed"), os.ModePerm); err != nil {
+		log.Fatalf("[error] mkdir embed failed: %s", err)
+	}
+
+	for _, dir := range []string{TelegrafDir, DataDir, LuaDir, ConfdDir} {
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			log.Fatalf("create %s failed: %s", dir, err)
+		}
+	}
+}
+
 func LoadCfg() error {
+
 	if err := Cfg.LoadMainConfig(); err != nil {
 		return err
 	}
@@ -130,6 +134,8 @@ func LoadCfg() error {
 	logConfig.RotationMaxSize.Size = (20 << 10 << 10)
 	logger.SetupLogging(logConfig)
 
+	log.SetFlags(log.Llongfile)
+
 	log.Printf("D! set log to %s", logConfig.Logfile)
 
 	createPluginCfgsIfNotExists()
@@ -143,10 +149,20 @@ func LoadCfg() error {
 	return nil
 }
 
+type DataWayCfg struct {
+	Host        string `toml:"host"`
+	Scheme      string `toml:"scheme"`
+	Token       string `toml:"token"`
+	DefaultPath string `toml:"default_path"`
+}
+
 type MainConfig struct {
 	UUID string `toml:"uuid"`
 
-	FtGateway string `toml:"ftdataway"`
+	DataWay           *DataWayCfg `toml:"dataway"`
+	DataWayRequestURL string      `toml:"-"`
+
+	FtGateway string `toml:"ftdataway"` // deprecated
 
 	Log      string `toml:"log"`
 	LogLevel string `toml:"log_level"`
@@ -263,6 +279,9 @@ func (c *Config) LoadMainConfig() error {
 	if !bAgentSetHostname {
 		c.TelegrafAgentCfg.Hostname = c.MainCfg.Hostname
 	}
+
+	c.MainCfg.DataWayRequestURL = fmt.Sprintf("%s://%s%s?token=%s",
+		c.MainCfg.DataWay.Scheme, c.MainCfg.DataWay.Host, c.MainCfg.DataWay.DefaultPath, c.MainCfg.DataWay.Token)
 
 	return nil
 }
@@ -438,8 +457,8 @@ func (c *Config) DumpInputsOutputs() {
 	log.Printf("avariable inputs: %s", strings.Join(names, ","))
 }
 
-func InitCfg(dw string) error {
-	if err := initMainCfg(dw); err != nil {
+func InitCfg(dwcfg *DataWayCfg) error {
+	if err := initMainCfg(dwcfg); err != nil {
 		return err
 	}
 
@@ -450,14 +469,14 @@ func InitCfg(dw string) error {
 	return nil
 }
 
-func initMainCfg(dw string) error {
+func initMainCfg(dwcfg *DataWayCfg) error {
 
 	Cfg.MainCfg.UUID = cliutils.XID("dkid_")
-	Cfg.MainCfg.FtGateway = dw
+	Cfg.MainCfg.DataWay = dwcfg
 
 	var err error
 	tm := template.New("")
-	tm, err = tm.Parse(mainConfigTemplate)
+	tm, err = tm.Parse(MainConfigTemplate)
 	if err != nil {
 		return fmt.Errorf("Error creating %s: %s", Cfg.MainCfg.cfgPath, err)
 	}
@@ -621,10 +640,14 @@ func buildInput(name string, tbl *ast.Table, input telegraf.Input) (*models.Inpu
 		}
 	}
 
-	if node, ok := tbl.Fields["ftdataway"]; ok {
+	if node, ok := tbl.Fields["dataway_path"]; ok {
 		if kv, ok := node.(*ast.KeyValue); ok {
 			if str, ok := kv.Value.(*ast.String); ok {
-				cp.FtDataway = str.Value
+
+				log.Printf("D! dataway_path: %s", str.Value)
+
+				cp.DataWayRequestURL = fmt.Sprintf("%s://%s%s?token=%s",
+					Cfg.MainCfg.DataWay.Scheme, Cfg.MainCfg.DataWay.Host, str.Value, Cfg.MainCfg.DataWay.Token)
 			}
 		}
 	}
@@ -646,7 +669,7 @@ func buildInput(name string, tbl *ast.Table, input telegraf.Input) (*models.Inpu
 		}
 	}
 
-	delete(tbl.Fields, "ftdataway")
+	delete(tbl.Fields, "dataway_path")
 	delete(tbl.Fields, "output_file")
 	delete(tbl.Fields, "tags")
 
