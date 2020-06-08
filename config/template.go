@@ -1,8 +1,8 @@
 package config
 
 const (
-	mainConfigTemplate = `uuid='{{.UUID}}'
-ftdataway='{{.FtGateway}}'
+	MainConfigTemplate = `uuid='{{.UUID}}'
+ftdataway='{{.FtGateway}}' # deprecated
 log='{{.Log}}'
 log_level='{{.LogLevel}}'
 config_dir='{{.ConfigDir}}'
@@ -18,6 +18,12 @@ omit_hostname = false
 ## Global tags can be specified here in key="value" format.
 #[global_tags]
 # name = 'admin'
+
+[dataway]
+	host = "{{.DataWay.Host}}"
+	scheme = "{{.DataWay.Scheme}}"
+	token = "{{.DataWay.Token}}"
+	default_path = "{{.DataWay.DefaultPath}}"
 
 # Configuration for agent
 #[agent]
