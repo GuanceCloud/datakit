@@ -101,7 +101,7 @@ func main() {
 		var dwcfg *config.DataWayCfg
 		if *flagDataway == "" {
 			for {
-				dw := readInput("Please set DataWay(IP:Port or OpenWay link) > ")
+				dw := readInput("Please set DataWay request URL(http://IP:Port/v1/write/metrics) > ")
 				dwcfg, err = parseDataway(dw)
 				if err == nil {
 					break
