@@ -1,6 +1,7 @@
 package file
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -98,7 +99,39 @@ func (f *File) Description() string {
 	return "Send telegraf metrics to file(s)"
 }
 
-func (f *File) Write(metrics []telegraf.Metric) error {
+func (f *File) writeObjects(metrics []telegraf.Metric) error {
+
+	var objs []*internal.ObjectData
+
+	for _, metric := range metrics {
+
+		var obj internal.ObjectData
+
+		if jsonStr, ok := metric.Fields()["object"].(string); ok {
+			if err := json.Unmarshal([]byte(jsonStr), &obj); err == nil {
+				objs = append(objs, &obj)
+			} else {
+				log.Printf("W! [output.http] %s", err)
+			}
+		}
+	}
+
+	reqBody, err := json.Marshal(&objs)
+	if err != nil {
+		return err
+	}
+
+	if reqBody != nil {
+		_, err = f.writer.Write(reqBody)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (f *File) writeMetrics(metrics []telegraf.Metric) error {
 	var writeErr error
 
 	for _, metric := range metrics {
@@ -114,15 +147,9 @@ func (f *File) Write(metrics []telegraf.Metric) error {
 
 		var b []byte
 		var err error
-		if f.Catalog == "object" {
-			if jdata, ok := metric.Fields()["object"].(string); ok {
-				b = []byte(jdata)
-			}
-		} else {
-			b, err = f.serializer.Serialize(metric)
-			if err != nil {
-				log.Printf("D! [outputs.file] Could not serialize metric: %v", err)
-			}
+		b, err = f.serializer.Serialize(metric)
+		if err != nil {
+			log.Printf("D! [outputs.file] Could not serialize metric: %v", err)
 		}
 
 		_, err = f.writer.Write(b)
@@ -132,6 +159,14 @@ func (f *File) Write(metrics []telegraf.Metric) error {
 	}
 
 	return writeErr
+}
+
+func (f *File) Write(metrics []telegraf.Metric) error {
+	if f.Catalog == "object" {
+		return f.writeObjects(metrics)
+	} else {
+		return f.writeMetrics(metrics)
+	}
 }
 
 func NewFileOutput() *File {
