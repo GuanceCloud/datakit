@@ -54,7 +54,7 @@ func (r *Replication) Stop() {
 }
 
 func (_ *Replication) Catalog() string {
-	return "mongodb"
+	return "postgresql"
 }
 
 func (_ *Replication) SampleConfig() string {
