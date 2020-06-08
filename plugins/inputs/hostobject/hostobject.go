@@ -8,6 +8,7 @@ import (
 
 	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -22,12 +23,6 @@ type (
 		Arch    string
 		OSType  string
 		Release string
-	}
-
-	ObjectItem struct {
-		Name        string            `json:"__name"`
-		Description string            `json:"__description"`
-		Tags        map[string]string `json:"__tags"`
 	}
 )
 
@@ -45,9 +40,7 @@ func (_ *Collector) Description() string {
 
 func (c *Collector) Gather(acc telegraf.Accumulator) error {
 
-	objs := []*ObjectItem{}
-
-	obj := &ObjectItem{
+	obj := &internal.ObjectData{
 		Name:        c.Name,
 		Description: c.Desc,
 	}
@@ -103,9 +96,7 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 		obj.Name = tags["os_type"]
 	}
 
-	objs = append(objs, obj)
-
-	data, err := json.Marshal(&objs)
+	data, err := json.Marshal(&obj)
 	if err != nil {
 		return err
 	}
