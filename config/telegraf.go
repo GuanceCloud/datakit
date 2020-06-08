@@ -171,7 +171,7 @@ files = ['{{.OutputFiles}}']
 
 	httpOutputTemplate = `
 [[outputs.http]]
-  url = "{{.FtGateway}}"
+	url = "{{.DataWay}}"
   method = "POST"
   data_format = "influx"
   content_encoding = "gzip"
@@ -260,7 +260,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 	}
 
 	type httpoutCfg struct {
-		FtGateway   string
+		DataWay     string
 		DKUUID      string
 		DKVERSION   string
 		DKUserAgent string
@@ -289,9 +289,9 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 		fileoutstr = string(buf.Bytes())
 	}
 
-	if cfg.MainCfg.FtGateway != "" {
+	if cfg.MainCfg.DataWay != nil {
 		httpCfg := httpoutCfg{
-			FtGateway:   cfg.MainCfg.FtGateway,
+			DataWay:     cfg.MainCfg.DataWayRequestURL,
 			DKUUID:      cfg.MainCfg.UUID,
 			DKVERSION:   git.Version,
 			DKUserAgent: DKUserAgent,
