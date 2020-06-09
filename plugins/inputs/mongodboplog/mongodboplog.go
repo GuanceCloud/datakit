@@ -24,13 +24,13 @@ type Mongodboplog struct {
 func init() {
 	inputs.Add(pluginName, func() inputs.Input {
 		m := &Mongodboplog{}
-		m.ctx, m.cancel = context.WithCancel(context.Background())
 		return m
 	})
 }
 
 func (m *Mongodboplog) Start(acc telegraf.Accumulator) error {
 
+	m.ctx, m.cancel = context.WithCancel(context.Background())
 	m.acc = acc
 	m.wg = new(sync.WaitGroup)
 
