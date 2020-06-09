@@ -24,12 +24,13 @@ type Etcd struct {
 func init() {
 	inputs.Add(pluginName, func() inputs.Input {
 		e := &Etcd{}
-		e.ctx, e.cancel = context.WithCancel(context.Background())
 		return e
 	})
 }
 
 func (e *Etcd) Start(acc telegraf.Accumulator) error {
+
+	e.ctx, e.cancel = context.WithCancel(context.Background())
 	e.acc = acc
 	e.wg = new(sync.WaitGroup)
 
