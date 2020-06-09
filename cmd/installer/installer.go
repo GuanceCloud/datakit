@@ -78,6 +78,8 @@ func main() {
 		log.Fatalf("E! new %s service failed: %s", runtime.GOOS, err.Error())
 	}
 
+	stopDataKitService(dkservice) // stop service if installed before
+
 	if *flagUpgrade { // upgrade new version
 
 		migrateLagacyDatakit()
@@ -89,8 +91,6 @@ func main() {
 		}
 
 	} else { // install new datakit
-
-		stopDataKitService(dkservice) // stop service if installed before
 
 		if *flagDataKitGzipFile != "" {
 			extractDatakit(*flagDataKitGzipFile, installDir)
