@@ -3,7 +3,6 @@
 package tailf
 
 import (
-	"errors"
 	"log"
 	"strings"
 	"sync"
@@ -13,7 +12,7 @@ import (
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
-const defaultWatchMethod = "inotify"
+// const defaultWatchMethod = "inotify"
 
 type stream struct {
 	tailf  *Tailf
@@ -31,13 +30,12 @@ func newStream(sub *Subscribe, tailf *Tailf) *stream {
 	}
 }
 
-func (s *stream) start(wg *sync.WaitGroup) error {
+func (s *stream) start(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	if s.sub.Measurement == "" {
-		err := errors.New("invalid measurement")
-		log.Printf("E! [Tailf] subscribe file: %s, error: %s\n", s.sub.File, err.Error())
-		return err
+		log.Printf("E! [Tailf] subscribe file: %s, error: invalid measurement\n", s.sub.File)
+		return
 	}
 
 	var poll bool
@@ -72,17 +70,16 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 		})
 	if err != nil {
 		log.Printf("E! [Tailf] subscribe file: %s, failed to open file: %s\n", s.sub.File, err.Error())
-		return err
+		return
 	}
 
 	go s.catchStop(tailer)
 
 	if err := s.exec(tailer); err != nil {
 		log.Printf("E! [Tailf] subscribe file: %s, exec failed: %s\n", s.sub.File, err.Error())
-		return err
+		return
 	}
 
-	return nil
 }
 
 func (s *stream) exec(tailer *tail.Tail) error {
@@ -123,24 +120,21 @@ func (s *stream) exec(tailer *tail.Tail) error {
 
 func (s *stream) catchStop(tailer *tail.Tail) {
 
-	for {
-		select {
-		case <-s.tailf.ctx.Done():
-			if !s.sub.Pipe && !s.sub.FormBeginning {
-				offset, err := tailer.Tell()
-				if err == nil {
-					log.Printf("I! [Tailf] subscribe file: %s, recording offset %d\n", s.sub.File, offset)
-				} else {
-					log.Printf("I! [Tailf] subscribe file: %s, recording offset %s\n", s.sub.File, err.Error())
-				}
-				s.offset = offset
+	if _, ok := <-s.tailf.ctx.Done(); ok {
+		if !s.sub.Pipe && !s.sub.FormBeginning {
+			offset, err := tailer.Tell()
+			if err == nil {
+				log.Printf("I! [Tailf] subscribe file: %s, recording offset %d\n", s.sub.File, offset)
+			} else {
+				log.Printf("I! [Tailf] subscribe file: %s, recording offset %s\n", s.sub.File, err.Error())
 			}
-			err := tailer.Stop()
-			if err != nil {
-				log.Printf("I! [Tailf] subscribe file: %s stop\n", s.sub.File)
-			}
-			return
+			s.offset = offset
 		}
+		err := tailer.Stop()
+		if err != nil {
+			log.Printf("I! [Tailf] subscribe file: %s stop\n", s.sub.File)
+		}
+		return
 	}
 
 }

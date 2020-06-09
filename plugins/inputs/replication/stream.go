@@ -43,10 +43,6 @@ func (s *stream) getFlushWal() uint64 {
 	return atomic.LoadUint64(&s.flushWal)
 }
 
-func (s *stream) setFlushWal(val uint64) {
-	atomic.StoreUint64(&s.flushWal, val)
-}
-
 func (s *stream) getStatus() (*pgx.StandbyStatus, error) {
 	return pgx.NewStandbyStatus(s.getReceivedWal(), s.getFlushWal(), s.getFlushWal())
 }
@@ -112,16 +108,16 @@ func (s *stream) stop() error {
 }
 
 func (s *stream) runloop(ctx context.Context) error {
-	defer s.stop()
+	defer func() {
+		if err := s.stop(); err != nil {
+			log.Printf("I! [Replication] subscribe %s:%d connection close failed: %s\n", s.sub.Host, s.sub.Port, err.Error())
+		}
+	}()
 
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
 		for {
-			select {
-			case <-ticker.C:
+			if _, ok := <-time.After(5 * time.Second); ok {
 				_ = s.sendStatus()
-			default:
-				// nil
 			}
 		}
 	}()
