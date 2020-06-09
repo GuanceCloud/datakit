@@ -24,13 +24,13 @@ type Lighttpd struct {
 func init() {
 	inputs.Add(pluginName, func() inputs.Input {
 		lt := &Lighttpd{}
-		lt.ctx, lt.cancel = context.WithCancel(context.Background())
 		return lt
 	})
 }
 
 func (lt *Lighttpd) Start(acc telegraf.Accumulator) error {
 
+	lt.ctx, lt.cancel = context.WithCancel(context.Background())
 	lt.acc = acc
 	lt.wg = new(sync.WaitGroup)
 
