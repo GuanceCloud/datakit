@@ -55,8 +55,6 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 			if err := s.exec(); err != nil {
 				log.Printf("E! [CoreDNS] subscribe %s:%d, error: %s\n", s.sub.CorednsHost, s.sub.CorednsPort, err.Error())
 			}
-		default:
-			// nil
 		}
 	}
 }
