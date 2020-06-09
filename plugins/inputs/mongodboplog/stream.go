@@ -79,7 +79,10 @@ func (s *stream) runloop() {
 		lograw = new(bson.Raw)
 		if s.iter.Next(lograw) {
 			p := new(PartialLog)
-			bson.Unmarshal(lograw.Data, p)
+			if err := bson.Unmarshal(lograw.Data, p); err != nil {
+				log.Printf("E! [MongodbOplog] subscribe '%s', unmarshal data failed: %s\n", s.sub.MongodbURL, err.Error())
+				continue
+			}
 
 			if p.Namespace != s.namespace {
 				continue
