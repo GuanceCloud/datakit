@@ -44,8 +44,7 @@ func ParseV2(prodata io.Reader) ([]telegraf.Metric, error) {
 			} else {
 				// standard metric
 				// reading fields
-				fields := make(map[string]interface{})
-				fields = getNameAndValueV2(m, metricName)
+				fields := getNameAndValueV2(m, metricName)
 				// converting to telegraf metric
 				if len(fields) > 0 {
 					var t time.Time
