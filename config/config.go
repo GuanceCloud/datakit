@@ -69,21 +69,12 @@ func init() {
 		log.Fatalf("[fatal] invalid os/arch: %s", osarch)
 	}
 
-	if err := os.MkdirAll(filepath.Join(InstallDir, "embed"), os.ModePerm); err != nil {
-		log.Fatalf("[error] mkdir embed  failed: %s", err)
-	}
-
 	AgentLogFile = filepath.Join(InstallDir, "embed", "agent.log")
 
 	TelegrafDir = filepath.Join(InstallDir, "embed")
 	DataDir = filepath.Join(InstallDir, "data")
 	LuaDir = filepath.Join(InstallDir, "lua")
 	ConfdDir = filepath.Join(InstallDir, "conf.d")
-	for _, dir := range []string{TelegrafDir, DataDir, LuaDir, ConfdDir} {
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			log.Fatalf("create %s failed: %s", dir, err)
-		}
-	}
 
 	Cfg = newDefaultCfg()
 
@@ -109,10 +100,29 @@ func newDefaultCfg() *Config {
 	}
 }
 
+func InitDirs() {
+	if err := os.MkdirAll(filepath.Join(InstallDir, "embed"), os.ModePerm); err != nil {
+		log.Fatalf("[error] mkdir embed failed: %s", err)
+	}
+
+	for _, dir := range []string{TelegrafDir, DataDir, LuaDir, ConfdDir} {
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			log.Fatalf("create %s failed: %s", dir, err)
+		}
+	}
+}
+
 func LoadCfg() error {
+
 	if err := Cfg.LoadMainConfig(); err != nil {
 		return err
 	}
+
+	// some old log file under:
+	//  /usr/local/cloudcare/forethought/...
+	// we force set to
+	//  /usr/local/cloudcare/DataFlux/...
+	//Cfg.MainCfg.Log = filepath.Join(InstallDir, "datakit.log")
 
 	logConfig := logger.LogConfig{
 		Debug:     (strings.ToLower(Cfg.MainCfg.LogLevel) == "debug"),
@@ -123,6 +133,8 @@ func LoadCfg() error {
 
 	logConfig.RotationMaxSize.Size = (20 << 10 << 10)
 	logger.SetupLogging(logConfig)
+
+	log.SetFlags(log.Llongfile)
 
 	log.Printf("D! set log to %s", logConfig.Logfile)
 
@@ -137,15 +149,25 @@ func LoadCfg() error {
 	return nil
 }
 
+type DataWayCfg struct {
+	Host        string `toml:"host"`
+	Scheme      string `toml:"scheme"`
+	Token       string `toml:"token"`
+	DefaultPath string `toml:"default_path"`
+}
+
 type MainConfig struct {
 	UUID string `toml:"uuid"`
 
-	FtGateway string `toml:"ftdataway"`
+	DataWay           *DataWayCfg `toml:"dataway"`
+	DataWayRequestURL string      `toml:"-"`
+
+	FtGateway string `toml:"ftdataway"` // deprecated
 
 	Log      string `toml:"log"`
 	LogLevel string `toml:"log_level"`
 
-	ConfigDir string `toml:"config_dir,omitempty"`
+	ConfigDir string `toml:"config_dir"` // not used: to compatible parsing with forethought datakit.conf
 
 	//验证dk存活
 	MaxPostInterval internal.Duration `toml:"max_post_interval"`
@@ -258,6 +280,9 @@ func (c *Config) LoadMainConfig() error {
 		c.TelegrafAgentCfg.Hostname = c.MainCfg.Hostname
 	}
 
+	c.MainCfg.DataWayRequestURL = fmt.Sprintf("%s://%s%s?token=%s",
+		c.MainCfg.DataWay.Scheme, c.MainCfg.DataWay.Host, c.MainCfg.DataWay.DefaultPath, c.MainCfg.DataWay.Token)
+
 	return nil
 }
 
@@ -345,28 +370,6 @@ func (c *Config) LoadConfig() error {
 			}
 		}
 
-		//apachelog和nginxlog和telegraf的nginx和apache共享一个目录
-		//这些采集器将转化为telegraf的采集器
-		/*
-			if name == "apachelog" || name == "nginxlog" {
-				if p, ok := creator().(ConvertTelegrafConfig); ok {
-					path := p.FilePath(c.MainCfg.ConfigDir)
-					if err := p.Load(path); err != nil {
-						if err == ErrConfigNotFound {
-							continue
-						} else {
-							return fmt.Errorf("Error loading config file %s, %s", path, err)
-						}
-					}
-					if telegrafCfg, err := p.ToTelegraf(path); err == nil {
-						ConvertedCfg = append(ConvertedCfg, telegrafCfg)
-					} else {
-						return fmt.Errorf("convert %s failed, %s", path, err)
-					}
-				}
-				continue
-			} */
-
 		input := creator()
 
 		var data []byte
@@ -374,8 +377,8 @@ func (c *Config) LoadConfig() error {
 		if internalData, ok := inputs.InternalInputsData[name]; ok {
 			data = internalData
 		} else {
-			oldPath := filepath.Join(c.MainCfg.ConfigDir, name, fmt.Sprintf("%s.conf", name))
-			newPath := filepath.Join(c.MainCfg.ConfigDir, input.Catalog(), fmt.Sprintf("%s.conf", name))
+			oldPath := filepath.Join(ConfdDir, name, fmt.Sprintf("%s.conf", name))
+			newPath := filepath.Join(ConfdDir, input.Catalog(), fmt.Sprintf("%s.conf", name))
 
 			path := newPath
 			_, err := os.Stat(path)
@@ -387,13 +390,15 @@ func (c *Config) LoadConfig() error {
 
 			data, err = ioutil.ReadFile(path)
 			if err != nil {
-				return fmt.Errorf("Error loading config file %s, %s", path, err)
+				log.Printf("[error] load %s failed: %s", path, err)
+				return err
 			}
 		}
 
 		tbl, err := parseConfig(data)
 		if err != nil {
-			return fmt.Errorf("Error parse config %s, %s", name, err)
+			log.Printf("[error] parse failed: %s", err)
+			return err
 		}
 
 		if len(tbl.Fields) == 0 {
@@ -431,7 +436,7 @@ func (c *Config) LoadConfig() error {
 		MaxLifeCheckInterval = c.MainCfg.MaxPostInterval.Duration
 	}
 
-	return LoadTelegrafConfigs(c.MainCfg.ConfigDir, c.InputFilters)
+	return LoadTelegrafConfigs(ConfdDir, c.InputFilters)
 }
 
 func (c *Config) DumpInputsOutputs() {
@@ -442,7 +447,7 @@ func (c *Config) DumpInputsOutputs() {
 		names = append(names, p.Config.Name)
 	}
 
-	for k, i := range SupportsTelegrafMetraicNames {
+	for k, i := range SupportsTelegrafMetricNames {
 		if i.enabled {
 			log.Printf("telegraf input %s enabled", k)
 			names = append(names, k)
@@ -452,8 +457,8 @@ func (c *Config) DumpInputsOutputs() {
 	log.Printf("avariable inputs: %s", strings.Join(names, ","))
 }
 
-func InitCfg(dw string) error {
-	if err := initMainCfg(dw); err != nil {
+func InitCfg(dwcfg *DataWayCfg) error {
+	if err := initMainCfg(dwcfg); err != nil {
 		return err
 	}
 
@@ -464,15 +469,14 @@ func InitCfg(dw string) error {
 	return nil
 }
 
-func initMainCfg(dw string) error {
+func initMainCfg(dwcfg *DataWayCfg) error {
 
 	Cfg.MainCfg.UUID = cliutils.XID("dkid_")
-	Cfg.MainCfg.ConfigDir = ConfdDir
-	Cfg.MainCfg.FtGateway = dw
+	Cfg.MainCfg.DataWay = dwcfg
 
 	var err error
 	tm := template.New("")
-	tm, err = tm.Parse(mainConfigTemplate)
+	tm, err = tm.Parse(MainConfigTemplate)
 	if err != nil {
 		return fmt.Errorf("Error creating %s: %s", Cfg.MainCfg.cfgPath, err)
 	}
@@ -503,14 +507,23 @@ func createPluginCfgsIfNotExists() {
 		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
 		cfgpath := filepath.Join(ConfdDir, catalog, name+".conf")
 
-		log.Printf("check datakit input conf %s...", name)
+		log.Printf("I! check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
 
 		if _, err := os.Stat(oldCfgPath); err == nil {
 			if oldCfgPath == cfgpath {
 				continue // do nothing
 			}
 
-			os.Rename(oldCfgPath, cfgpath)
+			log.Printf("I! migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
+
+			if err := os.MkdirAll(filepath.Dir(cfgpath), os.ModePerm); err != nil {
+				log.Fatalf("E! create dir %s failed: %s", filepath.Dir(cfgpath), err.Error())
+			}
+
+			if err := os.Rename(oldCfgPath, cfgpath); err != nil {
+				log.Fatalf("E! move %s -> %s failed: %s", oldCfgPath, cfgpath, err.Error())
+			}
+
 			os.RemoveAll(filepath.Dir(oldCfgPath))
 			continue
 		}
@@ -536,9 +549,9 @@ func createPluginCfgsIfNotExists() {
 	}
 
 	// create telegraf input plugin's configures
-	for name, input := range SupportsTelegrafMetraicNames {
+	for name, input := range SupportsTelegrafMetricNames {
 
-		cfgpath := filepath.Join(ConfdDir, input.catalog, name+".conf")
+		cfgpath := filepath.Join(ConfdDir, input.Catalog, name+".conf")
 		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
 
 		log.Printf("check telegraf input conf %s...", name)
@@ -560,9 +573,9 @@ func createPluginCfgsIfNotExists() {
 
 			log.Printf("D! %s not exists, create it...", cfgpath)
 
-			log.Printf("D! create telegraf conf path %s", filepath.Join(ConfdDir, input.catalog))
-			if err := os.MkdirAll(filepath.Join(ConfdDir, input.catalog), os.ModePerm); err != nil {
-				log.Fatalf("create catalog dir %s failed: %s", input.catalog, err.Error())
+			log.Printf("D! create telegraf conf path %s", filepath.Join(ConfdDir, input.Catalog))
+			if err := os.MkdirAll(filepath.Join(ConfdDir, input.Catalog), os.ModePerm); err != nil {
+				log.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
 			}
 
 			if sample, ok := telegrafCfgSamples[name]; ok {
@@ -627,10 +640,14 @@ func buildInput(name string, tbl *ast.Table, input telegraf.Input) (*models.Inpu
 		}
 	}
 
-	if node, ok := tbl.Fields["ftdataway"]; ok {
+	if node, ok := tbl.Fields["dataway_path"]; ok {
 		if kv, ok := node.(*ast.KeyValue); ok {
 			if str, ok := kv.Value.(*ast.String); ok {
-				cp.FtDataway = str.Value
+
+				log.Printf("D! dataway_path: %s", str.Value)
+
+				cp.DataWayRequestURL = fmt.Sprintf("%s://%s%s?token=%s",
+					Cfg.MainCfg.DataWay.Scheme, Cfg.MainCfg.DataWay.Host, str.Value, Cfg.MainCfg.DataWay.Token)
 			}
 		}
 	}
@@ -652,8 +669,9 @@ func buildInput(name string, tbl *ast.Table, input telegraf.Input) (*models.Inpu
 		}
 	}
 
-	delete(tbl.Fields, "ftdataway")
+	delete(tbl.Fields, "dataway_path")
 	delete(tbl.Fields, "output_file")
 	delete(tbl.Fields, "tags")
+
 	return cp, nil
 }
