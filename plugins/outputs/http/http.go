@@ -3,9 +3,11 @@ package http
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -38,6 +40,7 @@ var sampleConfig = `
 const (
 	defaultClientTimeout = 5 * time.Second
 	defaultContentType   = `text/plain; charset=utf-8`
+	jsonContentType      = `application/json; charset=utf-8`
 	defaultMethod        = http.MethodPost
 )
 
@@ -129,7 +132,7 @@ func (h *HTTP) SampleConfig() string {
 	return sampleConfig
 }
 
-func (h *HTTP) Write(metrics []telegraf.Metric) error {
+func (h *HTTP) writeMetrics(metrics []telegraf.Metric) error {
 
 	for _, metric := range metrics {
 		tags := metric.Tags()
@@ -144,17 +147,56 @@ func (h *HTTP) Write(metrics []telegraf.Metric) error {
 
 	reqBody, err := h.serializer.SerializeBatch(metrics)
 	if err != nil {
+		log.Printf("D! [outputs.file] Could not serialize metric: %v", err)
 		return err
 	}
 
-	if err := h.write(reqBody); err != nil {
+	if err = h.write(reqBody, defaultContentType); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (h *HTTP) write(reqBody []byte) error {
+func (h *HTTP) writeObjects(metrics []telegraf.Metric) error {
+
+	var objs []*internal.ObjectData
+
+	for _, metric := range metrics {
+
+		var obj internal.ObjectData
+
+		if jsonStr, ok := metric.Fields()["object"].(string); ok {
+			if err := json.Unmarshal([]byte(jsonStr), &obj); err == nil {
+				objs = append(objs, &obj)
+			} else {
+				log.Printf("W! [output.http] %s", err)
+			}
+		}
+	}
+
+	reqBody, err := json.Marshal(&objs)
+	if err != nil {
+		return err
+	}
+
+	if reqBody != nil {
+		return h.write(reqBody, jsonContentType)
+	}
+
+	return nil
+}
+
+func (h *HTTP) Write(metrics []telegraf.Metric) error {
+
+	if h.Catalog == "object" {
+		return h.writeObjects(metrics)
+	} else {
+		return h.writeMetrics(metrics)
+	}
+}
+
+func (h *HTTP) write(reqBody []byte, contentType string) error {
 	var reqBodyBuffer io.Reader = bytes.NewBuffer(reqBody)
 
 	//log.Printf("D! ftdataway: %s", h.URL)
@@ -174,12 +216,8 @@ func (h *HTTP) write(reqBody []byte) error {
 		return err
 	}
 
-	// if h.Username != "" || h.Password != "" {
-	// 	req.SetBasicAuth(h.Username, h.Password)
-	// }
-
 	//req.Header.Set("User-Agent", "Telegraf/"+internal.Version())
-	req.Header.Set("Content-Type", defaultContentType)
+	req.Header.Set("Content-Type", contentType)
 	if h.ContentEncoding == "gzip" {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
