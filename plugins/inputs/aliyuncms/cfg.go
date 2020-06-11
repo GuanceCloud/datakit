@@ -22,12 +22,19 @@ const (
  #access_key_secret = ''
  #region_id = 'cn-hangzhou'
 
+ # ##(optional) 阿里云临时安全令牌（Security Token Service，STS）
+ #security_token = ''
+
  # ##(optional) 全局的采集间隔，每个指标可以单独配置，默认5分钟.
  #interval = '5m'
 
  # ##(optional) 阿里云监控项数据可能在当前采集时间点之后才可用，配置此项用于获取该延迟时间段的数据，如果设置为0可能导致数据不完整.  
  # ## 不同的指标可能有不同的延迟时间, 默认为5分钟, 你可以根据使用中的实际采集情况调整该值.
  #delay = '5m'
+
+ #[cms.tags]
+ #key1 = "val1"
+ #key2 = "val2"
 
  # ##(required) [[cms.project]] 块可以有多个，每个代表一个云产品.
  #[[cms.project]]
@@ -68,7 +75,12 @@ const (
     #  [
     #	{"instanceId":"i-bp15wj5w33t8vf******"}
     #	]
-    #	'''
+	#	'''
+	
+	# ##(optional) 可对每个指标自定义tag，比如用于标识用户信息。
+	#[cms.project.metrics.property.tags]
+	#key1 = "val1"
+	#key2 = "val2"
 `
 )
 
@@ -84,6 +96,8 @@ type (
 		Period     int               `toml:"period"`
 		Interval   internal.Duration `toml:"interval"`
 		Dimensions string            `toml:"dimensions"`
+
+		Tags map[string]string `toml:"tags,omitempty"`
 	}
 
 	Metric struct {
@@ -111,9 +125,11 @@ type (
 		RegionID        string            `toml:"region_id"`
 		AccessKeyID     string            `toml:"access_key_id"`
 		AccessKeySecret string            `toml:"access_key_secret"`
+		SecurityToken   string            `toml:"security_token"`
 		Interval        internal.Duration `toml:"interval"`
 		Delay           internal.Duration `toml:"delay"`
 		Project         []*Project        `toml:"project"`
+		Tags            map[string]string `toml:"tags,omitempty"`
 	}
 
 	MetricMeta struct {
@@ -136,7 +152,10 @@ type (
 	}
 
 	MetricsRequest struct {
-		q    *cms.DescribeMetricListRequest
+		q *cms.DescribeMetricListRequest
+
+		tags map[string]string
+
 		meta *MetricMeta
 
 		metricSetName string
@@ -165,6 +184,8 @@ func (p *Project) genMetricReq(metric string, region string) (*MetricsRequest, e
 	req.Namespace = p.Name
 
 	var interval time.Duration
+
+	var metricTags map[string]string
 
 	if p.Metrics.Dimensions != nil || len(p.InstanceIDs) > 0 { //兼容老的配置
 
@@ -217,6 +238,7 @@ func (p *Project) genMetricReq(metric string, region string) (*MetricsRequest, e
 		if p.globalMetricProperty == nil {
 			for _, prop := range p.Metrics.Property {
 				if prop.Name == "*" {
+					p.globalMetricProperty = prop
 					if prop.Dimensions != "" {
 						checkDimensions := []map[string]string{}
 						if err := json.Unmarshal([]byte(prop.Dimensions), &checkDimensions); err != nil {
@@ -224,7 +246,6 @@ func (p *Project) genMetricReq(metric string, region string) (*MetricsRequest, e
 						}
 						p.globalMetricProperty.Dimensions = strings.Trim(prop.Dimensions, " \t\r\n")
 					}
-					p.globalMetricProperty = prop
 					break
 				}
 			}
@@ -244,6 +265,7 @@ func (p *Project) genMetricReq(metric string, region string) (*MetricsRequest, e
 				if prop.Interval.Duration != 0 {
 					interval = prop.Interval.Duration
 				}
+				metricTags = property.Tags
 				break
 			}
 		}
@@ -253,6 +275,7 @@ func (p *Project) genMetricReq(metric string, region string) (*MetricsRequest, e
 				req.Period = strconv.FormatInt(int64(p.globalMetricProperty.Period), 10)
 			}
 			interval = p.globalMetricProperty.Interval.Duration
+			metricTags = p.globalMetricProperty.Tags
 		}
 
 		if property != nil && property.Dimensions != "" {
@@ -271,6 +294,7 @@ func (p *Project) genMetricReq(metric string, region string) (*MetricsRequest, e
 
 	reqWrap := &MetricsRequest{
 		q:             req,
+		tags:          metricTags,
 		interval:      interval,
 		tryGetMeta:    5,
 		metricSetName: p.MetricName,
