@@ -27,3 +27,8 @@ docker/agent
 docker/datakit
 replace.sh
 run_mac.sh
+cmd/installer/bin/
+embed/*
+deps/*
+*.err
+*.test
