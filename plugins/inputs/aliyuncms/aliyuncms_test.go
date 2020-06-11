@@ -26,6 +26,76 @@ func apiClient() *cms.Client {
 	return client
 }
 
+func TestDumpConfig(t *testing.T) {
+	var ag CmsAgent
+	ag.CMSs = []*CMS{
+		&CMS{
+			Tags: map[string]string{
+				"k1": "v1",
+				"k2": "v2",
+			},
+		},
+	}
+	ag.CMSs[0].Project = []*Project{
+		&Project{
+			Name: "ecs",
+			Metrics: &Metric{
+				MetricNames: []string{"cpu", "mem"},
+				Property: []*Property{
+					&Property{
+						Name:       "*",
+						Period:     60,
+						Dimensions: "dddd",
+						Tags: map[string]string{
+							"key1": "val1",
+							"key2": "val2",
+						},
+					},
+					&Property{
+						Name:       "p1",
+						Period:     60,
+						Dimensions: "dddd111",
+						Tags: map[string]string{
+							"key1": "val1",
+						},
+					},
+				},
+			},
+		},
+		&Project{
+			Name: "rds",
+			Metrics: &Metric{
+				MetricNames: []string{"cpu", "mem"},
+				Property: []*Property{
+					&Property{
+						Name:       "*",
+						Period:     60,
+						Dimensions: "dddd",
+						Tags: map[string]string{
+							"key1": "val1",
+							"key2": "val2",
+						},
+					},
+					&Property{
+						Name:       "p1",
+						Period:     60,
+						Dimensions: "dddd111",
+						Tags: map[string]string{
+							"key1": "val1",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	data, err := toml.Marshal(&ag)
+	if err != nil {
+		t.Error(err)
+	}
+	log.Printf("%s", string(data))
+}
+
 func TestLoadConfig(t *testing.T) {
 
 	cfgData, err := ioutil.ReadFile("test.conf")

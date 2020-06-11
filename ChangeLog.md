@@ -1,4 +1,6 @@
-# Mon May 18 03:34:44 UTC 2020
+# Thu Jun  4 09:57:50 UTC 2020
+
+-  采集器配置文件目录调整
 
 如下采集器的配置目录做了调整：
 
@@ -14,3 +16,62 @@
 |`kubernetes`| `conf.d/kubernetes/kubernetes.conf` | `conf.d/k8s/kubernetes.conf`
 |`kafka_consumer`| `conf.d/kafka_consumer/kafka_consumer.conf` | `conf.d/kafka/kafka_consumer.conf` |
 |`amqp_consumer`| `conf.d/amqp_consumer/amqp_consumer.conf` | `conf.d/amqp/amqp_consumer.conf` |
+
+- 安装目录变更
+	- Windows 64bit 默认安装位置从原 `C:\Program Files (x86)\Forethougt\datakit` 改成  `C:\Program Files\DataFlux\datakit`
+	- Windows 32bit 默认安装位置从原 `C:\Program Files (x86)\Forethougt\datakit` 改成  `C:\Program Files (x86)\DataFlux\datakit`
+	- Linux 默认安装目录从 `/usr/local/cloudcare/forethougt/datakit` 改成 `/usr/local/cloudcare/DataFlux/datakit`
+
+- 暂时移除了以下采集器支持（因动态库依赖不便于多平台同时发布）
+	- `oracle_monitor`：依赖一个连接 Oracle C 语言动态库
+	- 以下三个依赖 libpcap 动态库：
+		- `netPacket`
+		- `scanport`
+		- `tracerouter`
+
+- `conf.d` 目录不再支持可配置，只能固定在`<datakit安装目录/conf.d>`，如 `/usr/local/cloudcare/DataFlux/datakit/conf.d`
+- 通过 `./datakit -tree` 可查看支持的采集器列表，各个平台可能有所不同：
+
+```
+=========== datakit collectors ==============
+lighttpd
+  |-- lighttpd
+object
+  |-- host
+	...
+mongodb
+  |-- replication
+  |-- mongodb_oplog
+prometheus
+  |-- prometheus
+aliyun
+  |-- aliyunlog
+  |-- aliyunsecurity
+  |-- aliyunrdsslowLog
+  |-- aliyunactiontrail
+  |-- aliyuncost
+  |-- aliyunddos
+  |-- aliyuncdn
+  |-- aliyunprice
+  |-- aliyuncms
+network
+  |-- httpstat
+  |-- coredns
+	...
+=========== telegraf collectors ==============
+snmp
+  |-- snmp
+network
+  |-- socket_listener
+  |-- tcp_udp_check
+  |-- iptables
+  |-- nats
+  |-- ping_check
+  |-- network
+rabbitmq
+  |-- rabbitmq
+amqp
+  |-- amqp
+  |-- amqp_consumer
+	...
+```
