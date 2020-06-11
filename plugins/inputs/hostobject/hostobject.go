@@ -2,13 +2,13 @@ package hostobject
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/influxdata/telegraf"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -17,7 +17,12 @@ type (
 		Name  string
 		Class string
 		Desc  string `toml:"description"`
-		Tags  map[string]string
+	}
+
+	osInfo struct {
+		Arch    string
+		OSType  string
+		Release string
 	}
 )
 
@@ -35,13 +40,15 @@ func (_ *Collector) Description() string {
 
 func (c *Collector) Gather(acc telegraf.Accumulator) error {
 
-	obj := map[string]interface{}{
-		"$name":        c.Name,
-		"$class":       c.Class,
-		"$description": c.Desc,
+	obj := &internal.ObjectData{
+		Name:        c.Name,
+		Description: c.Desc,
 	}
 
-	tags := map[string]string{}
+	tags := map[string]string{
+		"uuid":    config.Cfg.MainCfg.UUID,
+		"__class": c.Class,
+	}
 
 	hostname, err := os.Hostname()
 	if err == nil {
@@ -53,14 +60,41 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 		tags["mac"] = mac
 	}
 	tags["ip"] = ipval
-	tags["os_type"] = runtime.GOOS
-	tags["cpu_total"] = fmt.Sprintf("%d", runtime.NumCPU())
 
-	for k, v := range c.Tags {
-		tags[k] = v
+	oi := getOSInfo()
+	tags["os_type"] = oi.OSType
+	tags["os"] = oi.Release
+
+	//tags["cpu_total"] = fmt.Sprintf("%d", runtime.NumCPU())
+
+	//meminfo, _ := mem.VirtualMemory()
+	//tags["memory_total"] = fmt.Sprintf("%v", meminfo.Total/uint64(1024*1024*1024))
+
+	for _, input := range config.Cfg.Inputs {
+		if input.Config.Name == inputName {
+			for k, v := range input.Config.Tags {
+				tags[k] = v
+			}
+			break
+		}
 	}
 
-	obj["$tags"] = tags
+	obj.Tags = tags
+
+	switch c.Name {
+	case "__mac":
+		obj.Name = tags["mac"]
+	case "__ip":
+		obj.Name = tags["ip"]
+	case "__uuid":
+		obj.Name = tags["uuid"]
+	case "__host":
+		obj.Name = tags["host"]
+	case "__os":
+		obj.Name = tags["os"]
+	case "__os_type":
+		obj.Name = tags["os_type"]
+	}
 
 	data, err := json.Marshal(&obj)
 	if err != nil {
@@ -77,6 +111,7 @@ func (c *Collector) Gather(acc telegraf.Accumulator) error {
 }
 
 func (c *Collector) Init() error {
+
 	if c.Class == "" {
 		c.Class = "Servers"
 	}
