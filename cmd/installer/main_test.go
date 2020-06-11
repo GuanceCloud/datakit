@@ -1,11 +1,27 @@
-package config
+package main
 
-const (
-	MainConfigTemplate = `uuid='{{.UUID}}'
-ftdataway='{{.FtGateway}}' # deprecated
-log='{{.Log}}'
-log_level='{{.LogLevel}}'
-config_dir='{{.ConfigDir}}'
+import (
+	//"os"
+	"bytes"
+	"log"
+	"path/filepath"
+	"runtime"
+	"testing"
+	"text/template"
+
+	"github.com/influxdata/toml"
+	"github.com/kardianos/service"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+)
+
+func TestUnmarshal(t *testing.T) {
+	x := []byte(`
+uuid='dkit_a429ef4c-184d-4ed0-9bfc-72fa119ef02b'
+ftdataway='http://10.100.64.117:49527/v1/write/metrics?token=tkn_6cb6e15edd9a40629673ee7ecd5b9f6e&from=online-dk'
+log='/usr/local/cloudcare/forethought/datakit/datakit.log'
+log_level='info'
+config_dir='/usr/local/cloudcare/forethought/datakit/conf.d'
 
 ## Override default hostname, if empty use os.Hostname()
 hostname = ""
@@ -18,12 +34,6 @@ omit_hostname = false
 ## Global tags can be specified here in key="value" format.
 #[global_tags]
 # name = 'admin'
-
-[dataway]
-	host = "{{.DataWay.Host}}"
-	scheme = "{{.DataWay.Scheme}}"
-	token = "{{.DataWay.Token}}"
-	default_path = "{{.DataWay.DefaultPath}}"
 
 # Configuration for agent
 #[agent]
@@ -89,6 +99,94 @@ omit_hostname = false
 #  hostname = ""
 #  ## If set to true, do no set the "host" tag in the telegraf agent.
 #  omit_hostname = false
+`)
 
-`
-)
+	var err error
+	var maincfg config.MainConfig
+	if err := toml.Unmarshal(x, &maincfg); err != nil {
+		t.Fatalf("E! TOML unmarshal failed: %s", err.Error())
+	}
+
+	t.Logf("%+#v", maincfg)
+
+	dwcfg, err := parseDataway(maincfg.FtGateway)
+	if err != nil {
+		t.Fatalf("E! %s", err.Error())
+	}
+
+	maincfg.FtGateway = ""
+	maincfg.DataWay = dwcfg
+
+	tmp := template.New("")
+	tmp, err = tmp.Parse(config.MainConfigTemplate)
+	if err != nil {
+		t.Fatalf("E! %s", err.Error())
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	if err := tmp.Execute(buf, maincfg); err != nil {
+		t.Fatalf("E! %s", err.Error())
+	}
+
+	t.Log(buf.String())
+}
+
+func TestUpdateLagacyConfig(t *testing.T) {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	updateLagacyConfig("/usr/local/cloudcare/forethought/datakit")
+}
+
+func TestServiceInstall(t *testing.T) {
+
+	installDir := ""
+
+	switch runtime.GOOS + "/" + runtime.GOARCH {
+	case "windows/amd64":
+		installDir = `C:\Program Files\DataFlux\` + ServiceName
+	case "windows/386":
+		installDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
+	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
+		"darwin/amd64", "darwin/386",
+		"freebsd/amd64", "freebsd/386":
+		installDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
+
+	default:
+		// TODO
+	}
+
+	datakitExe := filepath.Join(installDir, "datakit")
+	if runtime.GOOS == "windows" {
+		datakitExe += ".exe"
+	}
+
+	prog := &program{}
+	dkservice, err := service.New(prog, &service.Config{
+		Name:        ServiceName,
+		DisplayName: ServiceName,
+		Description: `Collects data and upload it to DataFlux.`,
+		Executable:  datakitExe,
+		Arguments:   nil, // no args need here
+	})
+
+	if err != nil {
+		t.Fatalf("New %s service failed: %s", runtime.GOOS, err.Error())
+	}
+
+	//if err := installDatakitService(dkservice); err != nil {
+	//	t.Errorf("Fail to register service %s: %s", ServiceName, err.Error())
+	//}
+
+	//serviceFile := "/etc/systemd/system/datakit.service"
+	//if _, err := os.Stat(serviceFile); err == nil {
+	//	t.Logf("file %s exits", serviceFile)
+	//} else {
+	//	t.Errorf("file %s missing", serviceFile)
+	//}
+
+	uninstallDataKitService(dkservice)
+	//if _, err := os.Stat(serviceFile); err == nil {
+	//	t.Errorf("file %s still exist", serviceFile)
+	//} else {
+	//	t.Logf("file %s cleaned ok", serviceFile)
+	//}
+}

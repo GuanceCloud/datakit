@@ -78,8 +78,8 @@ func (om *outputsMgr) LoadOutputs(cfg *config.Config) error {
 		}
 	}
 
-	if cfg.MainCfg.FtGateway != "" {
-		if ro, err := newHttpOutput("http", "", cfg, cfg.MainCfg.FtGateway, config.MaxLifeCheckInterval); err != nil {
+	if cfg.MainCfg.DataWay != nil {
+		if ro, err := newHttpOutput("http", "", cfg, cfg.MainCfg.DataWayRequestURL, config.MaxLifeCheckInterval); err != nil {
 			return err
 		} else {
 			globalChannel.outputs = append(globalChannel.outputs, ro)
@@ -96,9 +96,9 @@ func (om *outputsMgr) LoadOutputs(cfg *config.Config) error {
 			catalog = cip.Catalog()
 		}
 
-		if input.Config.FtDataway != "" {
+		if input.Config.DataWayRequestURL != "" {
 
-			if ro, err := newHttpOutput(input.Config.Name, catalog, cfg, input.Config.FtDataway, 0); err != nil {
+			if ro, err := newHttpOutput(input.Config.Name, catalog, cfg, input.Config.DataWayRequestURL, 0); err != nil {
 				return err
 			} else {
 				oc = &outputChannel{
@@ -306,12 +306,7 @@ func newRunningOutput(name string, catalog string, output telegraf.Output) (*mod
 	switch t := output.(type) {
 	case serializers.SerializerOutput:
 		c := &serializers.Config{}
-
-		if catalog == "object" {
-			c.DataFormat = "json"
-		} else {
-			c.DataFormat = "influx"
-		}
+		c.DataFormat = "influx"
 
 		serializer, err := serializers.NewSerializer(c)
 		if err != nil {
