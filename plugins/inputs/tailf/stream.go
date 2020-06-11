@@ -96,7 +96,7 @@ func (s *stream) exec(tailer *tail.Tail) error {
 		}
 
 		text := strings.TrimRight(line.Text, "\r")
-		fields["content"] = text
+		fields["__content"] = text
 
 		pt, err := influxdb.NewPoint(s.sub.Measurement, nil, fields, time.Now())
 		if err != nil {
