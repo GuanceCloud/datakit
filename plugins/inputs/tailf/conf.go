@@ -6,8 +6,12 @@ const (
 	pluginName = "tailf"
 
 	tailfConfigSample = `
+# ## (required) dataway的地址
+# ## dataway_path='/v1/write/logging'
+#
 # [tailf]
 # [[tailf.subscribes]]
+#
 #       ## 文件路径名
 #	filename = ""
 #
