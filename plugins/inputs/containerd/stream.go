@@ -3,7 +3,6 @@
 package containerd
 
 import (
-	"errors"
 	"log"
 	"sync"
 	"time"
@@ -39,13 +38,12 @@ func newStream(sub *Subscribe, cont *Containerd) *stream {
 
 }
 
-func (s *stream) start(wg *sync.WaitGroup) error {
+func (s *stream) start(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	if s.sub.Measurement == "" {
-		err := errors.New("invalid measurement")
-		log.Printf("E! [Containerd] subscribe namespace '%s', error: %s\n", s.sub.Namespace, err.Error())
-		return err
+		log.Printf("E! [Containerd] subscribe namespace '%s', error: invalid measurement\n", s.sub.Namespace)
+		return
 	}
 
 	if s.isAll {
@@ -61,14 +59,11 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 		select {
 		case <-s.cont.ctx.Done():
 			log.Printf("I! [Containerd] subscribe namespace '%s' stop\n", s.sub.Namespace)
-			return nil
 
 		case <-ticker.C:
 			if err := s.exec(); err != nil {
 				log.Printf("E! [Containerd] subscribe namespace '%s', error: %s\n", s.sub.Namespace, err.Error())
 			}
-		default:
-			// nil
 		}
 	}
 }
