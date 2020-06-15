@@ -68,8 +68,6 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 			if err := s.exec(); err != nil {
 				log.Printf("E! [Lighttpd] subscribe '%s', exec err: %s\n", s.sub.LighttpdURL, err.Error())
 			}
-		default:
-			// nil
 		}
 	}
 }
