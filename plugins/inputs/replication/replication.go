@@ -24,13 +24,13 @@ type Replication struct {
 func init() {
 	inputs.Add(pluginName, func() inputs.Input {
 		r := &Replication{}
-		r.ctx, r.cancel = context.WithCancel(context.Background())
 		return r
 	})
 }
 
 func (r *Replication) Start(acc telegraf.Accumulator) error {
 
+	r.ctx, r.cancel = context.WithCancel(context.Background())
 	r.acc = acc
 	r.wg = new(sync.WaitGroup)
 
