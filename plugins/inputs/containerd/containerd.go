@@ -26,12 +26,13 @@ type Containerd struct {
 func init() {
 	inputs.Add(pluginName, func() inputs.Input {
 		e := &Containerd{}
-		e.ctx, e.cancel = context.WithCancel(context.Background())
 		return e
 	})
 }
 
 func (e *Containerd) Start(acc telegraf.Accumulator) error {
+
+	e.ctx, e.cancel = context.WithCancel(context.Background())
 	e.acc = acc
 	e.wg = new(sync.WaitGroup)
 
