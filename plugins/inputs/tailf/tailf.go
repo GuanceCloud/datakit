@@ -26,12 +26,13 @@ type Tailf struct {
 func init() {
 	inputs.Add(pluginName, func() inputs.Input {
 		t := &Tailf{}
-		t.ctx, t.cancel = context.WithCancel(context.Background())
 		return t
 	})
 }
 
 func (t *Tailf) Start(acc telegraf.Accumulator) error {
+
+	t.ctx, t.cancel = context.WithCancel(context.Background())
 	t.acc = acc
 	t.wg = new(sync.WaitGroup)
 
