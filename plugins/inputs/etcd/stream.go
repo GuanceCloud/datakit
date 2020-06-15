@@ -82,8 +82,6 @@ func (s *stream) start(wg *sync.WaitGroup) error {
 			if err := s.exec(); err != nil {
 				log.Printf("E! [Etcd] subscribe %s:%d, exec failed: %s\n", s.sub.EtcdHost, s.sub.EtcdPort, err.Error())
 			}
-		default:
-			// nil
 		}
 	}
 }
