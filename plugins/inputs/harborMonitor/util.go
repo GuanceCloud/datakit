@@ -36,6 +36,8 @@ func Run(method, path, body string, headers map[string]string) (int, string) {
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		log.Printf("E! http request error: %v", err)
+		return -1, ""
+
 	}
 
 	defer resp.Body.Close()
