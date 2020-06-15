@@ -24,13 +24,13 @@ type Coredns struct {
 func init() {
 	inputs.Add(pluginName, func() inputs.Input {
 		e := &Coredns{}
-		e.ctx, e.cancel = context.WithCancel(context.Background())
 		return e
 	})
 }
 
 func (e *Coredns) Start(acc telegraf.Accumulator) error {
 
+	e.ctx, e.cancel = context.WithCancel(context.Background())
 	e.acc = acc
 	e.wg = new(sync.WaitGroup)
 
