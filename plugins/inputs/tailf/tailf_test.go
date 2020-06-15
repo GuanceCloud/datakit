@@ -29,7 +29,7 @@ func TestStart(t *testing.T) {
 			case <-stopch:
 				return
 			default:
-				tmpfile.Write([]byte(fmt.Sprintf("this is logger %d\n", i)))
+				_, _ = tmpfile.Write([]byte(fmt.Sprintf("this is logger %d\n", i)))
 				time.Sleep(200 * time.Millisecond)
 			}
 		}
