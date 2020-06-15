@@ -3,194 +3,332 @@ package httpstat
 import (
 	"context"
 	"crypto/tls"
-	"log"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
+	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/influxdata/telegraf"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"golang.org/x/net/http2"
 )
 
 // httpstat
 type Httpstat struct {
-	Url string
+	Config           []*HttpstatCfg `toml:"httpstat"`
+	runningInstances []*runningInstance
+	ctx              context.Context
+	cancelFun        context.CancelFunc
+	acc              telegraf.Accumulator
+	wg               *sync.WaitGroup
+	logger           *models.Logger
 }
 
-type TraceTime struct {
-	trace0 time.Time
-	trace1 time.Time
-	trace2 time.Time
-	trace3 time.Time
-	trace4 time.Time
-	trace5 time.Time
-	trace6 time.Time
+type runningInstance struct {
+	metricName string
+	cfg        *HttpstatCfg `toml:"httpstat"`
+	agent      *Httpstat
+	httpPing   []*httpPing
+	logger     *models.Logger
 }
 
-const sampleConfig = `
-	# get http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
-	# serverProcessing, contentTransfer, and total time
-	# url config set website  domain
+// project
+type httpPing struct {
+	inst          *runningInstance
+	cfg           *Action
+	logger        *models.Logger
+	metricName    string
+	url           string
+	host          string
+	timeout       time.Duration
+	method        string
+	uAgent        string
+	buf           string
+	transport     *http.Transport
+	rAddr         net.Addr
+	nsTime        time.Duration
+	kAlive        bool
+	compress      bool
+	tlsSkipVerify bool
+}
 
-	# url = "https://www.dataflux.cn/"
-`
+// Result holds Ping result
+type Result struct {
+	Trace Trace
+}
 
-const description = `stat http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
-	serverProcessing, contentTransfer, and total time`
+// Trace holds trace results
+type Trace struct {
+	dnsLookupTime    time.Duration
+	connectionTime   time.Duration
+	toFirstByteTime  time.Duration
+	tlsHandshakeTime time.Duration
+	totalTime        time.Duration
+}
 
 func (h *Httpstat) Description() string {
 	return description
 }
 
-func (h *Httpstat) Catalog() string {
-	return "network"
-}
-
 func (h *Httpstat) SampleConfig() string {
-	return sampleConfig
+	return httpstatConfigSample
 }
 
-func (h *Httpstat) Gather(acc telegraf.Accumulator) error {
-	h.exec(acc)
+func (_ *Httpstat) Catalog() string {
+	return "httpStat"
+}
+
+func (h *Httpstat) Stop() {
+	h.cancelFun()
+}
+
+func (_ *Httpstat) Gather(acc telegraf.Accumulator) error {
 	return nil
 }
 
-func (h *Httpstat) exec(acc telegraf.Accumulator) {
+func (h *Httpstat) Start(acc telegraf.Accumulator) error {
+	h.logger = &models.Logger{
+		Name: `httpstat`,
+	}
+
+	if len(h.Config) == 0 {
+		h.logger.Warnf("no configuration found")
+		return nil
+	}
+
+	h.logger.Info("starting...")
+
+	h.acc = acc
+
+	for _, instCfg := range h.Config {
+		r := &runningInstance{
+			cfg:    instCfg,
+			agent:  h,
+			logger: h.logger,
+		}
+
+		r.metricName = instCfg.MetricName
+		if r.metricName == "" {
+			r.metricName = "http_stat"
+		}
+
+		if r.cfg.Interval.Duration == 0 {
+			r.cfg.Interval.Duration = time.Minute * 10
+		}
+
+		h.runningInstances = append(h.runningInstances, r)
+
+		go r.run(h.ctx)
+	}
+
+	return nil
+}
+
+func (r *runningInstance) run(ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
+		}
+
+		for _, c := range r.cfg.Actions {
+			p := &httpPing{
+				inst:       r,
+				cfg:        c,
+				metricName: r.metricName,
+				logger:     r.logger,
+			}
+			r.httpPing = append(r.httpPing, p)
+			go p.run(ctx)
+		}
+		internal.SleepContext(ctx, r.cfg.Interval.Duration)
+	}
+}
+
+func (h *httpPing) run(ctx context.Context) error {
+	// 参数校验
+	h.paramCheck()
+
+	// 数据初始化
+	h.parse()
+
+	// 执行
+	_, err := h.ping()
+	if err != nil {
+		h.logger.Errorf("Error: '%s'\n", err)
+	}
+
+	return nil
+}
+
+// 参数check
+func (h *httpPing) paramCheck() {
+	// 请求方法校验
+	if strings.ToUpper(h.cfg.Method) != "GET" && strings.ToUpper(h.cfg.Method) != "POST" && strings.ToUpper(h.cfg.Method) != "HEAD" {
+		h.logger.Errorf("Error: Method '%s' not recognized.\n", h.method)
+		return
+	}
+
+	// url 校验
+	URL := Normalize(h.cfg.Url)
+	u, err := url.Parse(URL)
+	if err != nil {
+		h.logger.Errorf("Error: url '%s' not right.\n", h.cfg.Url)
+		return
+	}
+
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		host = u.Host
+	}
+
+	ipAddr, err := net.ResolveIPAddr("ip", host)
+	if err != nil {
+		h.logger.Errorf("Error: cannot resolve %s: Unknown host. \n", host)
+		return
+	}
+
+	h.method = h.cfg.Method
+	h.method = strings.ToUpper(h.method)
+	h.rAddr = ipAddr
+	h.url = h.cfg.Url
+	h.host = u.Host
+}
+
+func (h *httpPing) parse() {
+	h.buf = h.cfg.Playload
+	h.kAlive = h.cfg.KAlive
+	h.tlsSkipVerify = h.cfg.TLSSkipVerify
+	h.compress = h.cfg.Compress
+
+	h.setTransport()
+}
+
+func (h *httpPing) ping() (Result, error) {
 	var (
-		traceTime = new(TraceTime)
+		r    Result
+		resp *http.Response
+		req  *http.Request
+		err  error
 	)
 
-	// 解析url
-	url := parseURL(h.Url)
-
-	req := newRequest(url)
-
-	req = req.WithContext(httptrace.WithClientTrace(context.Background(), tracer(traceTime)))
-
-	tr := &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}
-
-	switch url.Scheme {
-	case "https":
-		host, _, err := net.SplitHostPort(req.Host)
-		if err != nil {
-			host = req.Host
-		}
-
-		tr.TLSClientConfig = &tls.Config{
-			ServerName: host,
-		}
-
-		err = http2.ConfigureTransport(tr)
-		if err != nil {
-			log.Fatalf("failed to prepare transport for HTTP/2: %v", err)
-		}
-	}
-
 	client := &http.Client{
-		Transport: tr,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
+		// Timeout:   "2s",
+		Transport: h.transport,
 	}
 
-	// 执行请求
-	_, err := client.Do(req)
+	if h.method == "POST" {
+		reader := strings.NewReader(h.buf)
+		req, err = http.NewRequest(h.method, h.url, reader)
+	} else {
+		req, err = http.NewRequest(h.method, h.url, nil)
+	}
+
 	if err != nil {
-		log.Fatalf("failed to read response: %v", err)
+		return r, err
 	}
 
-	trace7 := time.Now()
-	if traceTime.trace0.IsZero() {
-		traceTime.trace0 = traceTime.trace1
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), tracer(&r)))
+	begin := time.Now()
+	resp, err = client.Do(req)
+	r.Trace.totalTime = time.Since(begin)
+	if err != nil {
+		return r, err
 	}
 
+	defer resp.Body.Close()
+
+	h.uploadData(r)
+	return r, nil
+}
+
+func (h *httpPing) uploadData(resData Result) {
 	fields := make(map[string]interface{})
 	tags := make(map[string]string)
 
-	if url.Scheme == "https" {
-		fields["time_dns_lookup"] = traceTime.trace1.Sub(traceTime.trace0).Microseconds()
-		fields["time_tcp_connection"] = traceTime.trace2.Sub(traceTime.trace1).Microseconds()
-		fields["time_tls_handshake"] = traceTime.trace6.Sub(traceTime.trace5).Microseconds()
-		fields["time_server_processing"] = traceTime.trace4.Sub(traceTime.trace3).Microseconds()
-		fields["time_content_transfer"] = trace7.Sub(traceTime.trace4).Microseconds()
-		fields["total"] = trace7.Sub(traceTime.trace0).Microseconds()
-	} else {
-		fields["time_dns_lookup"] = traceTime.trace1.Sub(traceTime.trace0).Microseconds()
-		fields["time_tcp_connection"] = traceTime.trace2.Sub(traceTime.trace1).Microseconds()
-		fields["time_server_processing"] = traceTime.trace4.Sub(traceTime.trace3).Microseconds()
-		fields["time_content_transfer"] = trace7.Sub(traceTime.trace4).Microseconds()
-		fields["total"] = trace7.Sub(traceTime.trace0).Microseconds()
-	}
+	tags["host"] = h.host
+	tags["url"] = h.url
+	tags["addr"] = fmt.Sprintf("%v", h.rAddr)
+	fields["dnsLookupTime"] = resData.Trace.dnsLookupTime.Microseconds()
+	fields["connectionTime"] = resData.Trace.connectionTime.Microseconds()
+	fields["tlsHandshakeTime"] = resData.Trace.tlsHandshakeTime.Microseconds()
+	fields["toFirstByteTime"] = resData.Trace.toFirstByteTime.Microseconds()
+	fields["totalTime"] = resData.Trace.totalTime.Microseconds()
 
-	tags["addr"] = h.Url //域名
-
-	acc.AddFields("httpstat", fields, tags)
+	h.inst.agent.acc.AddFields(h.metricName, fields, tags)
 }
 
-func parseURL(uri string) *url.URL {
-	if !strings.Contains(uri, "://") && !strings.HasPrefix(uri, "//") {
-		uri = "//" + uri
-	}
+func tracer(r *Result) *httptrace.ClientTrace {
+	var (
+		begin             = time.Now()
+		dnsStart          time.Time
+		connectStart      time.Time
+		tlsHandshakeStart time.Time
+	)
 
-	url, err := url.Parse(uri)
-	if err != nil {
-		log.Fatalf("could not parse url %q: %v", uri, err)
-	}
-
-	if url.Scheme == "" {
-		url.Scheme = "http"
-		if !strings.HasSuffix(url.Host, ":80") {
-			url.Scheme += "s"
-		}
-	}
-	return url
-}
-
-func isRedirect(resp *http.Response) bool {
-	return resp.StatusCode > 299 && resp.StatusCode < 400
-}
-
-func newRequest(url *url.URL) *http.Request {
-	req, err := http.NewRequest("GET", url.String(), nil)
-	if err != nil {
-		log.Fatalf("unable to create request: %v", err)
-	}
-
-	return req
-}
-
-func tracer(r *TraceTime) *httptrace.ClientTrace {
 	return &httptrace.ClientTrace{
-		DNSStart: func(_ httptrace.DNSStartInfo) { r.trace0 = time.Now() },
-		DNSDone:  func(_ httptrace.DNSDoneInfo) { r.trace1 = time.Now() },
-		ConnectStart: func(_, _ string) {
-			if r.trace1.IsZero() {
-				r.trace1 = time.Now()
-			}
+		DNSStart: func(info httptrace.DNSStartInfo) {
+			dnsStart = time.Now()
 		},
-		ConnectDone: func(net, addr string, err error) {
-			if err != nil {
-				log.Fatalf("unable to connect to host %v: %v", addr, err)
-			}
-			r.trace2 = time.Now()
+		DNSDone: func(info httptrace.DNSDoneInfo) {
+			r.Trace.dnsLookupTime = time.Since(dnsStart)
 		},
-		GotConn:              func(_ httptrace.GotConnInfo) { r.trace3 = time.Now() },
-		GotFirstResponseByte: func() { r.trace4 = time.Now() },
-		TLSHandshakeStart:    func() { r.trace5 = time.Now() },
-		TLSHandshakeDone:     func(_ tls.ConnectionState, _ error) { r.trace6 = time.Now() },
+		ConnectStart: func(x, y string) {
+			connectStart = time.Now()
+		},
+		ConnectDone: func(network, addr string, err error) {
+			r.Trace.connectionTime = time.Since(connectStart)
+		},
+		TLSHandshakeStart: func() {
+			tlsHandshakeStart = time.Now()
+		},
+		TLSHandshakeDone: func(_ tls.ConnectionState, _ error) {
+			r.Trace.tlsHandshakeTime = time.Since(tlsHandshakeStart)
+		},
+		GotConn: func(_ httptrace.GotConnInfo) {
+			begin = time.Now()
+		},
+		GotFirstResponseByte: func() {
+			r.Trace.toFirstByteTime = time.Since(begin)
+		},
 	}
+}
+
+// setTransport set transport
+func (h *httpPing) setTransport() {
+	h.transport = &http.Transport{
+		DisableKeepAlives:  !h.kAlive,
+		DisableCompression: h.compress,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: h.tlsSkipVerify,
+		},
+		Proxy: http.ProxyFromEnvironment,
+	}
+}
+
+// Normalize fixes scheme
+func Normalize(URL string) string {
+	re := regexp.MustCompile(`(?i)https{0,1}://`)
+	if !re.MatchString(URL) {
+		URL = fmt.Sprintf("http://%s", URL)
+	}
+	return URL
 }
 
 func init() {
-	inputs.Add("httpstat", func() inputs.Input { return &Httpstat{} })
+	inputs.Add(pluginName, func() inputs.Input {
+		m := &Httpstat{}
+		m.ctx, m.cancelFun = context.WithCancel(context.Background())
+		return m
+	})
 }
