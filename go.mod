@@ -15,6 +15,7 @@ require (
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/andygrunwald/go-jira v1.12.0
 	github.com/antchfx/jsonquery v1.1.4
+	github.com/apache/thrift v0.13.0
 	github.com/aws/aws-sdk-go v1.27.0
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
@@ -36,6 +37,7 @@ require (
 	github.com/gofrs/uuid v2.1.0+incompatible
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/gogo/protobuf v1.3.1
+	github.com/golang/protobuf v1.3.4
 	github.com/golang/snappy v0.0.1
 	github.com/golangci/golangci-lint v1.27.0 // indirect
 	github.com/google/gopacket v1.1.17 // indirect
@@ -54,8 +56,8 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/selinux v1.5.1 // indirect
+	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
-	github.com/pingcap/log v0.0.0-20200117041106-d28c14d3b1cd
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
 	github.com/pkg/sftp v1.11.0
@@ -72,6 +74,7 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.123+incompatible
 	github.com/tidwall/gjson v1.3.0
+	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/ucloud/ucloud-sdk-go v0.14.0
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/xanzy/go-gitlab v0.31.0
@@ -79,7 +82,6 @@ require (
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
-	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	golang.org/x/tools/gopls v0.4.1 // indirect
