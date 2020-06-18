@@ -3,10 +3,9 @@ package harborMonitor
 import (
 	"crypto/tls"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
-
-	"github.com/pingcap/log"
 )
 
 func Run(method, path, body string, headers map[string]string) (int, string) {
@@ -17,7 +16,7 @@ func Run(method, path, body string, headers map[string]string) (int, string) {
 
 	method = strings.ToUpper(method)
 	if method != "GET" && method != "POST" && method != "PUT" && method != "DELETE" {
-		log.Info("Unsupported HTTP Method: " + method)
+		log.Printf("E! Unsupported HTTP Method: %s", method)
 	}
 
 	tr := &http.Transport{
@@ -27,7 +26,7 @@ func Run(method, path, body string, headers map[string]string) (int, string) {
 
 	req, err := http.NewRequest(method, path, strings.NewReader(body))
 	if err != nil {
-		log.Info(err)
+		log.Printf("E! http request error: %v", err)
 	}
 
 	for k, v := range headers {
@@ -36,14 +35,16 @@ func Run(method, path, body string, headers map[string]string) (int, string) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		log.Info(err)
+		log.Printf("E! http request error: %v", err)
+		return -1, ""
+
 	}
 
 	defer resp.Body.Close()
 
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Info(err)
+		log.Printf("E! http read body error: %v", err)
 	}
 
 	respStatusCode := resp.StatusCode
