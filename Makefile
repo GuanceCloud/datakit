@@ -82,7 +82,8 @@ pub_image:
 	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
 
 define build_agent
-	-git submodule add -f https://github.com/influxdata/telegraf.git
+	rm -rf telegraf
+	git submodule add -f https://github.com/influxdata/telegraf.git
 
 	@echo "==== build telegraf... ===="
 	cd telegraf && go mod download
