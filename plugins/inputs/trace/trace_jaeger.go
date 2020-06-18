@@ -42,8 +42,15 @@ func (z *JaegerTracer) parseJaegerThrift(octets []byte) error {
 		tAdpter.class         = "tracing"
 		tAdpter.serviceName   = batch.Process.ServiceName
 		tAdpter.operationName = s.OperationName
-		tAdpter.parentID      = fmt.Sprintf("%d", s.ParentSpanId)
-		tAdpter.traceID       = fmt.Sprintf("%d%d", s.TraceIdHigh, s.TraceIdLow)
+		if s.ParentSpanId != 0 {
+			tAdpter.parentID      = fmt.Sprintf("%d", s.ParentSpanId)
+		}
+
+		traceHigh := ""
+		if s.TraceIdHigh != 0 {
+			traceHigh = fmt.Sprintf("%d", s.TraceIdHigh)
+		}
+		tAdpter.traceID       = fmt.Sprintf("%s%d", traceHigh, s.TraceIdLow)
 		tAdpter.spanID        = fmt.Sprintf("%d", s.SpanId)
 
 		for _, tag := range s.Tags {
