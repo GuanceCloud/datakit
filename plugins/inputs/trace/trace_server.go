@@ -73,10 +73,11 @@ func (tAdpt *TraceAdapter) mkLineProto() {
 	fields["__duration"]    = tAdpt.duration
 	fields["__content"]     = tAdpt.content
 
-	ts := time.Unix(tAdpt.timestampUs/US_PER_SECOND, tAdpt.timestampUs%US_PER_SECOND)
+	ts := time.Unix(tAdpt.timestampUs/US_PER_SECOND, (tAdpt.timestampUs%US_PER_SECOND)*1000)
 	pointMetric, err := metric.New(tAdpt.source, tags, fields, ts)
 	if err != nil {
 		log.Printf("W! [trace] build metric %s", err)
+		return
 	}
 	acc.AddMetric(pointMetric)
 }
@@ -167,7 +168,7 @@ func handleTrace(c *gin.Context) error {
 			return err
 		}
 	}
-
+	
 	tInfo := TraceReqInfo{source, version, contentType,}
 	err = tInfo.Decode(body)
 	if err != nil {
