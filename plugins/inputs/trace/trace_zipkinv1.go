@@ -129,7 +129,7 @@ func zipkinConvThrift2Json(z *zipkincore.Span) *zipkincore.SpanJsonApater {
 			ep.Port = ano.Host.Port
 			ep.Ipv6 = append(ep.Ipv6, ano.Host.Ipv6...)
 			ptr := uintptr(unsafe.Pointer(&ano.Host.Ipv4))
-			for i:= 0; i < 4; i++ {
+			for i:= 3; i >=0; i-- {
 				p := ptr + uintptr(i)
 				ep.Ipv4 = append(ep.Ipv4, *((*byte)(unsafe.Pointer(p))))
 			}
@@ -149,7 +149,7 @@ func zipkinConvThrift2Json(z *zipkincore.Span) *zipkincore.SpanJsonApater {
 			ep.Port = bno.Host.Port
 			ep.Ipv6 = append(ep.Ipv6, bno.Host.Ipv6...)
 			ptr := uintptr(unsafe.Pointer(&bno.Host.Ipv4))
-			for i:= 0; i < 4; i++ {
+			for i:= 3; i >= 0; i-- {
 				p := ptr + uintptr(i)
 				ep.Ipv4 = append(ep.Ipv4, *((*byte)(unsafe.Pointer(p))))
 			}
@@ -184,8 +184,16 @@ func (z *ZipkinTracer) parseZipkinThriftV1(octets []byte) error{
 		tAdpter := TraceAdapter{}
 		tAdpter.source = "zipkin"
 
-		tAdpter.duration = *zs.Duration
-		tAdpter.timestampUs = *zs.Timestamp
+		if zs.Duration != nil {
+			tAdpter.duration = *zs.Duration
+		}
+
+		if zs.Timestamp != nil {
+			tAdpter.timestampUs = *zs.Timestamp
+		} else {
+			tAdpter.timestampUs = time.Now().UnixNano()/1000
+		}
+
 
 		js, err := json.Marshal(z)
 		if err != nil {
