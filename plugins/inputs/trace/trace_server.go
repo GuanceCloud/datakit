@@ -63,7 +63,10 @@ func (tAdpt *TraceAdapter) mkLineProto() {
 	tags["__class"]         = tAdpt.class
 	tags["__operationName"] = tAdpt.operationName
 	tags["__serviceName"]   = tAdpt.serviceName
-	tags["__parentID"]      = tAdpt.parentID
+	if tAdpt.parentID != "" {
+		tags["__parentID"]      = tAdpt.parentID
+	}
+
 	tags["__traceID"]       = tAdpt.traceID
 	tags["__spanID"]        = tAdpt.spanID
 	if tAdpt.isError == "true" {
