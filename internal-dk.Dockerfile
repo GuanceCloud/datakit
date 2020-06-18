@@ -6,4 +6,4 @@ from ubuntu:latest
 RUN mkdir -p /usr/local/cloudcare/DataFlux/datakit/embed/linux-amd64
 ADD build/datakit-linux-amd64/datakit /usr/local/cloudcare/DataFlux/datakit
 ADD embed/linux-amd64/agent           /usr/local/cloudcare/DataFlux/datakit/embed/linux-amd64
-CMD /usr/local/cloudcare/DataFlux/datakit/datakit --cfg /usr/local/cloudcare/DataFlux/datakit/datakit.conf
+CMD /usr/local/cloudcare/DataFlux/datakit/datakit
