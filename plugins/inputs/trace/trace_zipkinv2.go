@@ -43,7 +43,7 @@ func (z *ZipkinTracer) parseZipkinJsonV2(octets []byte) error {
 		tAdpter.traceID       = fmt.Sprintf("%d%d", zs.TraceID.High, zs.TraceID.Low)
 		tAdpter.spanID        = fmt.Sprintf("%d", zs.ID)
 
-		for _, tag := range zs.Tags {
+		for tag, _ := range zs.Tags {
 			if tag == "error" {
 				tAdpter.isError = "true"
 				break
@@ -84,7 +84,7 @@ func (z *ZipkinTracer) parseZipkinProtobufV2(octets []byte) error {
 		tAdpter.traceID       = fmt.Sprintf("%d%d", zs.TraceID.High, zs.TraceID.Low)
 		tAdpter.spanID        = fmt.Sprintf("%d", zs.ID)
 
-		for _, tag := range zs.Tags {
+		for tag, _ := range zs.Tags {
 			if tag == "error" {
 				tAdpter.isError = "true"
 				break
