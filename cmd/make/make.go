@@ -128,14 +128,13 @@ func (vd *versionDesc) withoutGitCommit() string {
 
 func runEnv(args, env []string) {
 	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	if env != nil {
 		cmd.Env = append(os.Environ(), env...)
 	}
 
-	if err := cmd.Run(); err != nil {
-		log.Printf("[error] failed to run %v, envs: %v: %v", args, env, err)
+	msg, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Printf("[error] failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 	}
 }
 
@@ -213,6 +212,7 @@ func compile() {
 		}
 
 		buildInstaller(path.Join(*flagPubDir, *flagRelease), goos, goarch)
+		buildExtras(path.Join(*flagPubDir, *flagRelease), goos, goarch)
 	}
 
 	log.Printf("build elapsed %v", time.Since(start))
@@ -451,6 +451,59 @@ func tarFiles(goos, goarch string) {
 	log.Printf("[debug] tar %s ok", gz)
 }
 
+type dkextra struct {
+	name      string
+	isGolang  bool
+	entry     string
+	buildArgs []string
+	archos    []string
+	envs      []string
+}
+
+var (
+	exMonitors = []*dkextra{
+		&dkextra{
+			name:     "oraclemonitor",
+			isGolang: true,
+			entry:    "main.go",
+
+			buildArgs: nil,
+			envs: []string{
+				"CGO_ENABLED=1",
+			},
+		},
+
+		// others...
+	}
+)
+
+func buildExtras(outdir, goos, goarch string) {
+	for _, ex := range exMonitors {
+		log.Printf("[debug] build %s/%s %s to %s...", goos, goarch, ex.name, outdir)
+
+		out := ex.name
+
+		switch goos + "/" + goarch {
+		case "windows/amd64", "windows/386":
+			out = out + ".exe"
+		default: // pass
+		}
+
+		if ex.isGolang {
+			args := []string{
+				"go", "build",
+				"-o", filepath.Join(outdir, out),
+				"-ldflags", "-w -s",
+				filepath.Join("plugins/extra", ex.name, ex.entry)}
+			envs := append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
+
+			runEnv(args, envs)
+		} else {
+			// TODO: for non-golang extras...
+		}
+	}
+}
+
 func buildInstaller(outdir, goos, goarch string) {
 
 	log.Printf("[debug] build %s/%s installer to %s...", goos, goarch, outdir)
@@ -459,8 +512,8 @@ func buildInstaller(outdir, goos, goarch string) {
 
 	args := []string{
 		"go", "build",
+		"-o", filepath.Join(outdir, installerExe),
 		"-ldflags", fmt.Sprintf("-w -s -X main.DataKitGzipUrl=https://%s/%s", *flagDownloadAddr, gzName),
-		"-o", path.Join(outdir, installerExe),
 		"cmd/installer/installer.go",
 	}
 
