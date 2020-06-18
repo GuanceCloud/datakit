@@ -16,8 +16,8 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-#LOCAL_ARCHS = "linux/amd64"
-LOCAL_ARCHS = "all"
+LOCAL_ARCHS = "linux/amd64"
+#LOCAL_ARCHS = "all"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -81,7 +81,7 @@ pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
 define build_agent
-	-git submodule add https://github.com/influxdata/telegraf.git
+	-git submodule add -f https://github.com/influxdata/telegraf.git
 
 	@echo "==== build telegraf... ===="
 	cd telegraf && go mod download
@@ -95,7 +95,7 @@ define build_agent
 	cd telegraf && GOOS=linux   GOARCH=arm64   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm64/agent    ./cmd/telegraf
 
 	# Mac
-	cd telegraf && GOOS=darwin  GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/darwin-amd64/agent      ./cmd/telegraf
+	cd telegraf && GOOS=darwin  GOARCH=amd64 GO111MODULE=on CGO_ENABLED=1 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/darwin-amd64/agent      ./cmd/telegraf
 
 	# FreeBSD
 	#cd telegraf && GOOS=freebsd GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-386/agent      ./cmd/telegraf
