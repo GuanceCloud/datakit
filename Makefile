@@ -74,8 +74,8 @@ pub_local:
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
 pub_test:
-	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
-	# @sudo docker build --tag registry.jiagouyun.com/datakit/datakit:$(VERSION) -f internal-dk.Dockerfile .
+	#$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+	@sudo docker build --tag registry.jiagouyun.com/datakit/datakit:$(VERSION) -f internal-dk.Dockerfile .
 
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
