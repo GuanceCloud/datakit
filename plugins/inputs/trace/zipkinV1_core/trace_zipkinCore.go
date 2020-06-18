@@ -6,6 +6,7 @@ package zipkinV1_core
 
 
 import (
+	"net"
 	"bytes"
 	"context"
 	"reflect"
@@ -132,11 +133,9 @@ func NewEndpoint() *Endpoint {
 	return &Endpoint{}
 }
 
-
 func (p *Endpoint) GetIpv4() int32 {
 	return p.Ipv4
 }
-
 func (p *Endpoint) GetPort() int16 {
 	return p.Port
 }
@@ -336,7 +335,7 @@ func (p *Endpoint) String() string {
 type Annotation struct {
 	Timestamp int64 `thrift:"timestamp,1" db:"timestamp" json:"timestamp"`
 	Value string `thrift:"value,2" db:"value" json:"value"`
-	Host *Endpoint `thrift:"host,3" db:"host" json:"host,omitempty"`
+	Host *Endpoint `thrift:"host,3" db:"host" json:"endpoint,omitempty"`
 }
 
 func NewAnnotation() *Annotation {
@@ -532,7 +531,7 @@ type BinaryAnnotation struct {
 	Key string `thrift:"key,1" db:"key" json:"key"`
 	Value []byte `thrift:"value,2" db:"value" json:"value"`
 	AnnotationType AnnotationType `thrift:"annotation_type,3" db:"annotation_type" json:"annotation_type"`
-	Host *Endpoint `thrift:"host,4" db:"host" json:"host,omitempty"`
+	Host *Endpoint `thrift:"host,4" db:"host" json:"endpoint,omitempty"`
 }
 
 func NewBinaryAnnotation() *BinaryAnnotation {
@@ -797,18 +796,18 @@ func (p *BinaryAnnotation) String() string {
 //  - TraceIDHigh: Optional unique 8-byte additional identifier for a trace. If non zero, this
 // means the trace uses 128 bit traceIds instead of 64 bit.
 type Span struct {
-	TraceID int64 `thrift:"trace_id,1" db:"trace_id" json:"trace_id"`
+	TraceID int64 `thrift:"trace_id,1" db:"trace_id" json:"traceId"`
 	// unused field # 2
 	Name string `thrift:"name,3" db:"name" json:"name"`
 	ID int64 `thrift:"id,4" db:"id" json:"id"`
-	ParentID *int64 `thrift:"parent_id,5" db:"parent_id" json:"parent_id,omitempty"`
+	ParentID *int64 `thrift:"parent_id,5" db:"parent_id" json:"parentId,omitempty"`
 	Annotations []*Annotation `thrift:"annotations,6" db:"annotations" json:"annotations"`
 	// unused field # 7
-	BinaryAnnotations []*BinaryAnnotation `thrift:"binary_annotations,8" db:"binary_annotations" json:"binary_annotations"`
+	BinaryAnnotations []*BinaryAnnotation `thrift:"binaryAnnotations,8" db:"binaryAnnotations" json:"binaryAnnotations"`
 	Debug bool `thrift:"debug,9" db:"debug" json:"debug,omitempty"`
 	Timestamp *int64 `thrift:"timestamp,10" db:"timestamp" json:"timestamp,omitempty"`
 	Duration *int64 `thrift:"duration,11" db:"duration" json:"duration,omitempty"`
-	TraceIDHigh *int64 `thrift:"trace_id_high,12" db:"trace_id_high" json:"trace_id_high,omitempty"`
+	TraceIDHigh *int64 `thrift:"trace_id_high,12" db:"trace_id_high" json:"traceIdHigh,omitempty"`
 }
 
 func NewSpan() *Span {
@@ -1284,4 +1283,39 @@ func (p *Span) String() string {
 	}
 	return fmt.Sprintf("Span(%+v)", *p)
 }
+
+type EndpointJsonApater struct {
+	Ipv4 net.IP `json:"ipv4"`
+	Port int16 `json:"port"`
+	ServiceName string `json:"service_name"`
+	Ipv6 net.IP `json:"ipv6,omitempty"`
+}
+
+type AnnotationJsonApater struct {
+	Timestamp uint64 `json:"timestamp"`
+	Value string `json:"value"`
+	Host *EndpointJsonApater `json:"endpoint,omitempty"`
+}
+
+type BinaryAnnotationJsonApater struct {
+	Key string `json:"key"`
+	Value []byte `json:"value"`
+	AnnotationType AnnotationType `json:"annotation_type"`
+	Host *EndpointJsonApater `json:"endpoint,omitempty"`
+}
+
+type SpanJsonApater struct {
+	TraceID uint64 `json:"traceId"`
+	Name string `json:"name"`
+	ID uint64 `json:"id"`
+	ParentID uint64 `json:"parentId,omitempty"`
+	Annotations []AnnotationJsonApater `json:"annotations"`
+	BinaryAnnotations []BinaryAnnotationJsonApater `json:"binaryAnnotations"`
+	Debug bool `json:"debug,omitempty"`
+	Timestamp uint64 `json:"timestamp,omitempty"`
+	Duration uint64 `json:"duration,omitempty"`
+	TraceIDHigh uint64 `json:"traceIdHigh,omitempty"`
+}
+
+
 
