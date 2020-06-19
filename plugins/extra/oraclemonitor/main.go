@@ -4,95 +4,314 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
-	"database/sql"
-
 	_ "github.com/godror/godror"
 	"github.com/influxdata/telegraf"
+	"go.uber.org/zap"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 )
 
+type oracle struct {
+	Interval string            `json:"interval"`
+	interval internal.Duration `json:"-"`
+
+	MetricName   string `json:"metricName"`
+	InstanceId   string `json:"instanceId"`
+	Username     string `json:"username"`
+	Password     string `json:"password"`
+	InstanceDesc string `json:"instanceDesc"`
+	Host         string `json:"host"`
+	Port         string `json:"port"`
+	Server       string `json:"server"`
+	TType        string `json:"type"`
+}
+
+type config struct {
+	Log      string    `json:"log"`
+	LogLevel string    `json:"log_level"`
+	Oracles  []*oracle `json:"oracles"`
+
+	ctx         context.Context
+	cancelFun   context.CancelFunc
+	accumulator telegraf.Accumulator
+	logger      *models.Logger
+
+	runningInstances []*runningInstance
+}
+
+type runningInstance struct {
+	cfg        *oracle
+	agent      *config
+	logger     *models.Logger
+	db         *sql.DB
+	metricName string
+}
+
 var (
-	metricMap = map[string]string{
-		"oracle_hostinfo":            oracle_hostinfo_sql,
-		"oracle_dbinfo":              oracle_dbinfo_sql,
-		"oracle_instinfo":            oracle_instinfo_sql,
-		"oracle_psu":                 oracle_psu_sql,
-		"oracle_blocking_sessions":   oracle_blocking_sessions_sql,
-		"oracle_undo_stat":           oracle_undo_stat_sql,
-		"oracle_redo_info":           oracle_redo_info_sql,
-		"oracle_standby_log":         oracle_standby_log_sql,
-		"oracle_standby_process":     oracle_standby_process_sql,
-		"oracle_asm_diskgroups":      oracle_asm_diskgroups_sql,
-		"oracle_flash_area_info":     oracle_flash_area_info_sql,
-		"oracle_tbs_space":           oracle_tbs_space_sql,
-		"oracle_tbs_meta_info":       oracle_tbs_meta_info_sql,
-		"oracle_temp_segment_usage":  oracle_temp_segment_usage_sql,
-		"oracle_trans":               oracle_trans_sql,
-		"oracle_archived_log":        oracle_archived_log_sql,
-		"oracle_pgastat":             oracle_pgastat_sql,
-		"oracle_accounts":            oracle_accounts_sql,
-		"oracle_locks":               oracle_locks_sql,
-		"oracle_session_ratio":       oracle_session_ratio_sql,
-		"oracle_snap_info":           oracle_snap_info_sql,
-		"oralce_backup_set_info":     oralce_backup_set_info_sql,
-		"oracle_tablespace_free_pct": oracle_tablespace_free_pct_sql,
+	flagCfg = flag.String("cfg", "", "config file")
+	l       *zap.SugaredLogger
+)
+
+func loadCfg(data []byte) *config {
+
+	var cfg config
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		panic(err)
 	}
 
-	tagsMap = map[string][]string{
-		"oracle_hostinfo":            []string{"stat_name"},
-		"oracle_dbinfo":              []string{"ora_db_id"},
-		"oracle_key_params":          []string{"name"},
-		"oracle_blocking_sessions":   []string{"sid", "serial", "username"},
-		"oracle_redo_info":           []string{"group_no", "sequence_no"},
-		"oracle_standby_log":         []string{"message_num"},
-		"oracle_standby_process":     []string{"process_seq"},
-		"oracle_asm_diskgroups":      []string{"group_number", "group_name"},
-		"oracle_flash_area_info":     []string{"name"},
-		"oracle_tbs_space":           []string{"tablespace_name"},
-		"oracle_tbs_meta_info":       []string{"tablespace_name"},
-		"oracle_temp_segment_usage":  []string{"tablespace_name"},
-		"oracle_pgastat":             []string{"name"},
-		"oracle_accounts":            []string{"username", "user_id"},
-		"oracle_locks":               []string{"session_id"},
-		"oracle_session_ratio":       []string{"parameter"},
-		"oracle_snap_info":           []string{"dbid", "snap_id"},
-		"oralce_backup_set_info":     []string{"backup_types"},
-		"oracle_tablespace_free_pct": []string{"tablesapce_name"},
+	du, err := time.ParseTime()
+	cfg.interval =
+	return &cfg
+}
+
+func main() {
+	flag.Parse()
+	data, err := ioutil.ReadFile(*flagCfg)
+	if err != nil {
+		panic(err)
 	}
-)
+
+	cfg := loadCfg(data)
+
+	logger.SetGlobalRootLogger(cfg.Log, cfg.LogLevel, logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+	l = logger.SLogger("oraclemonitor")
+
+	ac := &config{}
+	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
+	ac.Start()
+}
+
+func (o *config) Start() error {
+	o.logger = &models.Logger{
+		Name: `oraclemonitor`,
+	}
+
+	if len(o.Oracles) == 0 {
+		o.logger.Warnf("no configuration found")
+		return nil
+	}
+
+	o.logger.Infof("starting...")
+
+	for _, instCfg := range o.Oracles {
+		r := &runningInstance{
+			cfg:    instCfg,
+			agent:  o,
+			logger: o.logger,
+		}
+
+		r.metricName = instCfg.MetricName
+		if r.metricName == "" {
+			r.metricName = "oracle_monitor"
+		}
+
+		if r.cfg.interval.Duration == 0 {
+			r.cfg.interval.Duration = time.Minute * 5
+		}
+
+		connStr := fmt.Sprintf("%s/%s@%s/%s", instCfg.Username, instCfg.Password, instCfg.Host, instCfg.Server)
+		db, err := sql.Open("godror", connStr)
+		if err != nil {
+			l.Errorf("oracle connect faild %v", err)
+		}
+		r.db = db
+
+		o.runningInstances = append(o.runningInstances, r)
+
+		go r.run(o.ctx)
+	}
+	return nil
+}
+
+func (o *config) Stop() {
+	o.cancelFun()
+}
+
+func (r *runningInstance) run(ctx context.Context) error {
+	defer func() {
+		if e := recover(); e != nil {
+			// TODO
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
+		}
+
+		go r.command()
+
+		internal.SleepContext(ctx, r.cfg.interval.Duration)
+	}
+}
+
+func (r *runningInstance) command() {
+	for key, item := range metricMap {
+		resMap, err := r.Query(item)
+		if err != nil {
+			l.Errorf("oracle connect faild %v", err)
+		}
+
+		r.handleResponse(key, resMap)
+	}
+}
+
+func (r *runningInstance) handleResponse(m string, response []map[string]interface{}) error {
+	for _, item := range response {
+		tags := map[string]string{}
+
+		tags["oracle_server"] = r.cfg.Server
+		tags["oracle_port"] = r.cfg.Port
+		tags["instance_id"] = r.cfg.InstanceId
+		tags["instance_desc"] = r.cfg.InstanceDesc
+		tags["product"] = "oracle"
+		tags["host"] = r.cfg.Host
+		tags["type"] = m
+
+		if tagKeys, ok := tagsMap[m]; ok {
+			for _, tagKey := range tagKeys {
+				tags[tagKey] = String(item[tagKey])
+				delete(item, tagKey)
+			}
+		}
+
+		r.agent.accumulator.AddFields(r.metricName, item, tags)
+	}
+
+	return nil
+}
+
+func (r *runningInstance) Query(sql string) ([]map[string]interface{}, error) {
+	rows, err := r.db.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	columns, _ := rows.Columns()
+	columnLength := len(columns)
+	cache := make([]interface{}, columnLength)
+	for idx, _ := range cache {
+		var a interface{}
+		cache[idx] = &a
+	}
+	var list []map[string]interface{}
+	for rows.Next() {
+		_ = rows.Scan(cache...)
+
+		item := make(map[string]interface{})
+		for i, data := range cache {
+			key := strings.ToLower(columns[i])
+			val := *data.(*interface{})
+
+			if val != nil {
+				vType := reflect.TypeOf(val)
+
+				switch vType.String() {
+				case "int64":
+					item[key] = val.(int64)
+				case "string":
+					var data interface{}
+					str := strings.TrimSpace(val.(string))
+					data, err := strconv.ParseFloat(str, 64)
+					if err != nil {
+						data = val
+					}
+					item[key] = data
+				case "time.Time":
+					item[key] = val.(time.Time)
+				case "[]uint8":
+					item[key] = string(val.([]uint8))
+				default:
+					return nil, fmt.Errorf("unsupport data type '%s' now\n", vType)
+				}
+			}
+		}
+
+		list = append(list, item)
+	}
+	return list, nil
+}
+
+// String converts <i> to string.
+func String(i interface{}) string {
+	if i == nil {
+		return ""
+	}
+	switch value := i.(type) {
+	case int:
+		return strconv.FormatInt(int64(value), 10)
+	case int8:
+		return strconv.Itoa(int(value))
+	case int16:
+		return strconv.Itoa(int(value))
+	case int32:
+		return strconv.Itoa(int(value))
+	case int64:
+		return strconv.FormatInt(int64(value), 10)
+	case uint:
+		return strconv.FormatUint(uint64(value), 10)
+	case uint8:
+		return strconv.FormatUint(uint64(value), 10)
+	case uint16:
+		return strconv.FormatUint(uint64(value), 10)
+	case uint32:
+		return strconv.FormatUint(uint64(value), 10)
+	case uint64:
+		return strconv.FormatUint(uint64(value), 10)
+	case float32:
+		return strconv.FormatFloat(float64(value), 'f', -1, 32)
+	case float64:
+		return strconv.FormatFloat(value, 'f', -1, 64)
+	case bool:
+		return strconv.FormatBool(value)
+	case string:
+		return value
+	case []byte:
+		return string(value)
+	case []rune:
+		return string(value)
+	default:
+		// Finally we use json.Marshal to convert.
+		jsonContent, _ := json.Marshal(value)
+		return string(jsonContent)
+	}
+}
 
 const (
 	configSample = `
-#[[oracle]]
-#  ## 采集的频度，最小粒度5m
-#  interval = '10s'
-#  ## 指标集名称，默认值oracle_monitor
-#  metricName = ''
-#  ## 实例ID(非必要属性)
-#  instanceId = ''
-#  ## # 实例描述(非必要属性)
-#  instanceDesc = ''
-#  ## oracle实例地址(ip)
-#  host = ''
-#  ## oracle监听端口
-#  port = ''
-#  ## 帐号
-#  username = ''
-#  ## 密码
-#  password = ''
-#  ## oracle的服务名
-#  server = ''
-#  ## 实例类型 例如 单实例、DG、RAC 等，非必要属性
-#  type= 'singleInstance'
-# `
+{
+	"log":       "/usr/local/cloudcare/DataFlux/datakit/oraclemonitor.log",
+  "log_level": "info",
+	"oracles" : [
+		{
+			"interval" : "10s",
+			"metricName" : "",
+			"instanceId" : "",
+			"instanceDesc" : "",
+			"host" : "",
+			"port" : "",
+			"username" : "",
+			"password" : "",
+			"server" : "",
+			"type": "singleInstance"
+		}
+	]
+}`
 
 	oracle_hostinfo_sql = `
 SELECT stat_name, value
@@ -482,246 +701,52 @@ select a.tablespace_name tablespace_name,
 where a.tablespace_name = b.tablespace_name`
 )
 
-type Oracle struct {
-	Interval     internal.Duration `toml:"interval"`
-	MetricName   string            `toml:"metricName"`
-	InstanceId   string            `toml:"instanceId"`
-	Username     string            `toml:"username"`
-	Password     string            `toml:"password"`
-	InstanceDesc string            `toml:"instanceDesc"`
-	Host         string            `toml:"host"`
-	Port         string            `toml:"port"`
-	Server       string            `toml:"server"`
-	TType        string            `toml:"type"`
-}
-
-type OracleMonitor struct {
-	Oracle      []*Oracle
-	ctx         context.Context
-	cancelFun   context.CancelFunc
-	accumulator telegraf.Accumulator
-	logger      *models.Logger
-
-	runningInstances []*runningInstance
-}
-
-type runningInstance struct {
-	cfg        *Oracle
-	agent      *OracleMonitor
-	logger     *models.Logger
-	db         *sql.DB
-	metricName string
-}
-
-func (_ *OracleMonitor) Catalog() string {
-	return "oracle"
-}
-
-func (_ *OracleMonitor) SampleConfig() string {
-	return configSample
-}
-
-func (o *OracleMonitor) Start(acc telegraf.Accumulator) error {
-	o.logger = &models.Logger{
-		Name: `oraclemonitor`,
+var (
+	metricMap = map[string]string{
+		"oracle_hostinfo":            oracle_hostinfo_sql,
+		"oracle_dbinfo":              oracle_dbinfo_sql,
+		"oracle_instinfo":            oracle_instinfo_sql,
+		"oracle_psu":                 oracle_psu_sql,
+		"oracle_blocking_sessions":   oracle_blocking_sessions_sql,
+		"oracle_undo_stat":           oracle_undo_stat_sql,
+		"oracle_redo_info":           oracle_redo_info_sql,
+		"oracle_standby_log":         oracle_standby_log_sql,
+		"oracle_standby_process":     oracle_standby_process_sql,
+		"oracle_asm_diskgroups":      oracle_asm_diskgroups_sql,
+		"oracle_flash_area_info":     oracle_flash_area_info_sql,
+		"oracle_tbs_space":           oracle_tbs_space_sql,
+		"oracle_tbs_meta_info":       oracle_tbs_meta_info_sql,
+		"oracle_temp_segment_usage":  oracle_temp_segment_usage_sql,
+		"oracle_trans":               oracle_trans_sql,
+		"oracle_archived_log":        oracle_archived_log_sql,
+		"oracle_pgastat":             oracle_pgastat_sql,
+		"oracle_accounts":            oracle_accounts_sql,
+		"oracle_locks":               oracle_locks_sql,
+		"oracle_session_ratio":       oracle_session_ratio_sql,
+		"oracle_snap_info":           oracle_snap_info_sql,
+		"oralce_backup_set_info":     oralce_backup_set_info_sql,
+		"oracle_tablespace_free_pct": oracle_tablespace_free_pct_sql,
 	}
 
-	if len(o.Oracle) == 0 {
-		o.logger.Warnf("no configuration found")
-		return nil
+	tagsMap = map[string][]string{
+		"oracle_hostinfo":            []string{"stat_name"},
+		"oracle_dbinfo":              []string{"ora_db_id"},
+		"oracle_key_params":          []string{"name"},
+		"oracle_blocking_sessions":   []string{"sid", "serial", "username"},
+		"oracle_redo_info":           []string{"group_no", "sequence_no"},
+		"oracle_standby_log":         []string{"message_num"},
+		"oracle_standby_process":     []string{"process_seq"},
+		"oracle_asm_diskgroups":      []string{"group_number", "group_name"},
+		"oracle_flash_area_info":     []string{"name"},
+		"oracle_tbs_space":           []string{"tablespace_name"},
+		"oracle_tbs_meta_info":       []string{"tablespace_name"},
+		"oracle_temp_segment_usage":  []string{"tablespace_name"},
+		"oracle_pgastat":             []string{"name"},
+		"oracle_accounts":            []string{"username", "user_id"},
+		"oracle_locks":               []string{"session_id"},
+		"oracle_session_ratio":       []string{"parameter"},
+		"oracle_snap_info":           []string{"dbid", "snap_id"},
+		"oralce_backup_set_info":     []string{"backup_types"},
+		"oracle_tablespace_free_pct": []string{"tablesapce_name"},
 	}
-
-	o.logger.Infof("starting...")
-
-	o.accumulator = acc
-
-	for _, instCfg := range o.Oracle {
-		r := &runningInstance{
-			cfg:    instCfg,
-			agent:  o,
-			logger: o.logger,
-		}
-
-		r.metricName = instCfg.MetricName
-		if r.metricName == "" {
-			r.metricName = "oracle_monitor"
-		}
-
-		if r.cfg.Interval.Duration == 0 {
-			r.cfg.Interval.Duration = time.Minute * 5
-		}
-
-		connStr := fmt.Sprintf("%s/%s@%s/%s", instCfg.Username, instCfg.Password, instCfg.Host, instCfg.Server)
-		db, err := sql.Open("godror", connStr)
-		if err != nil {
-			r.logger.Errorf("oracle connect faild %v", err)
-		}
-		r.db = db
-
-		o.runningInstances = append(o.runningInstances, r)
-
-		go r.run(o.ctx)
-	}
-	return nil
-}
-
-func (o *OracleMonitor) Stop() {
-	o.cancelFun()
-}
-
-func (r *runningInstance) run(ctx context.Context) error {
-	defer func() {
-		if e := recover(); e != nil {
-
-		}
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
-		}
-
-		go r.command()
-
-		internal.SleepContext(ctx, r.cfg.Interval.Duration)
-	}
-}
-
-func (r *runningInstance) command() {
-	for key, item := range metricMap {
-		resMap, err := r.Query(item)
-		if err != nil {
-			r.logger.Errorf("oracle connect faild %v", err)
-		}
-
-		r.handleResponse(key, resMap)
-	}
-}
-
-func (r *runningInstance) handleResponse(m string, response []map[string]interface{}) error {
-	for _, item := range response {
-		tags := map[string]string{}
-
-		tags["oracle_server"] = r.cfg.Server
-		tags["oracle_port"] = r.cfg.Port
-		tags["instance_id"] = r.cfg.InstanceId
-		tags["instance_desc"] = r.cfg.InstanceDesc
-		tags["product"] = "oracle"
-		tags["host"] = r.cfg.Host
-		tags["type"] = m
-
-		if tagKeys, ok := tagsMap[m]; ok {
-			for _, tagKey := range tagKeys {
-				tags[tagKey] = String(item[tagKey])
-				delete(item, tagKey)
-			}
-		}
-
-		r.agent.accumulator.AddFields(r.metricName, item, tags)
-	}
-
-	return nil
-}
-
-func (r *runningInstance) Query(sql string) ([]map[string]interface{}, error) {
-	rows, err := r.db.Query(sql)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	columns, _ := rows.Columns()
-	columnLength := len(columns)
-	cache := make([]interface{}, columnLength)
-	for idx, _ := range cache {
-		var a interface{}
-		cache[idx] = &a
-	}
-	var list []map[string]interface{}
-	for rows.Next() {
-		_ = rows.Scan(cache...)
-
-		item := make(map[string]interface{})
-		for i, data := range cache {
-			key := strings.ToLower(columns[i])
-			val := *data.(*interface{})
-
-			if val != nil {
-				vType := reflect.TypeOf(val)
-
-				switch vType.String() {
-				case "int64":
-					item[key] = val.(int64)
-				case "string":
-					var data interface{}
-					str := strings.TrimSpace(val.(string))
-					data, err := strconv.ParseFloat(str, 64)
-					if err != nil {
-						data = val
-					}
-					item[key] = data
-				case "time.Time":
-					item[key] = val.(time.Time)
-				case "[]uint8":
-					item[key] = string(val.([]uint8))
-				default:
-					return nil, fmt.Errorf("unsupport data type '%s' now\n", vType)
-				}
-			}
-		}
-
-		list = append(list, item)
-	}
-	return list, nil
-}
-
-// String converts <i> to string.
-func String(i interface{}) string {
-	if i == nil {
-		return ""
-	}
-	switch value := i.(type) {
-	case int:
-		return strconv.FormatInt(int64(value), 10)
-	case int8:
-		return strconv.Itoa(int(value))
-	case int16:
-		return strconv.Itoa(int(value))
-	case int32:
-		return strconv.Itoa(int(value))
-	case int64:
-		return strconv.FormatInt(int64(value), 10)
-	case uint:
-		return strconv.FormatUint(uint64(value), 10)
-	case uint8:
-		return strconv.FormatUint(uint64(value), 10)
-	case uint16:
-		return strconv.FormatUint(uint64(value), 10)
-	case uint32:
-		return strconv.FormatUint(uint64(value), 10)
-	case uint64:
-		return strconv.FormatUint(uint64(value), 10)
-	case float32:
-		return strconv.FormatFloat(float64(value), 'f', -1, 32)
-	case float64:
-		return strconv.FormatFloat(value, 'f', -1, 64)
-	case bool:
-		return strconv.FormatBool(value)
-	case string:
-		return value
-	case []byte:
-		return string(value)
-	case []rune:
-		return string(value)
-	default:
-		// Finally we use json.Marshal to convert.
-		jsonContent, _ := json.Marshal(value)
-		return string(jsonContent)
-	}
-}
-
-func init() {}
-
-func main() {}
+)
