@@ -12,174 +12,135 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	_ "github.com/godror/godror"
-	"github.com/influxdata/telegraf"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+	//"github.com/influxdata/telegraf"
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 )
 
-type oracle struct {
-	Interval string            `json:"interval"`
-	interval internal.Duration `json:"-"`
+type instance struct {
+	Metric   string `json:"metric"`
+	Interval string `json:"interval"`
 
-	MetricName   string `json:"metricName"`
-	InstanceId   string `json:"instanceId"`
-	Username     string `json:"username"`
-	Password     string `json:"password"`
-	InstanceDesc string `json:"instanceDesc"`
-	Host         string `json:"host"`
-	Port         string `json:"port"`
-	Server       string `json:"server"`
-	TType        string `json:"type"`
+	InstanceId string `json:"instance_id"`
+	User       string `json:"user"`
+	Password   string `json:"password"`
+	Desc       string `json:"description"`
+	Host       string `json:"host"`
+	Port       string `json:"port"`
+	Server     string `json:"server"`
+	Type       string `json:"type"`
+
+	db               *sql.DB       `json:"-"`
+	intervalDuration time.Duration `json:"-"`
 }
 
-type config struct {
-	Log      string    `json:"log"`
-	LogLevel string    `json:"log_level"`
-	Oracles  []*oracle `json:"oracles"`
+func (i *instance) run() {
+	for {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		for key, stmt := range metricMap {
+			res, err := query(i.db, stmt)
+			if err != nil {
+				l.Errorf("oracle connect faild %v", err)
+				continue
+			}
 
-	ctx         context.Context
-	cancelFun   context.CancelFunc
-	accumulator telegraf.Accumulator
-	logger      *models.Logger
+			i.handleResponse(key, res)
+		}
 
-	runningInstances []*runningInstance
+		internal.SleepContext(ctx, i.intervalDuration)
+	}
 }
 
-type runningInstance struct {
-	cfg        *oracle
-	agent      *config
-	logger     *models.Logger
-	db         *sql.DB
-	metricName string
+type cfg struct {
+	Log       string      `json:"log"`
+	LogLevel  string      `json:"log_level"`
+	Instances []*instance `json:"instances"`
 }
 
 var (
-	flagCfg = flag.String("cfg", "", "config file")
-	l       *zap.SugaredLogger
+	flagCfg    = flag.String("cfg", "", "toml config path")
+	flagGetCfg = flag.String("get-cfg", "", "get config sample, default write to ./instances.json")
+
+	l *zap.SugaredLogger
+	C cfg
 )
-
-func loadCfg(data []byte) *config {
-
-	var cfg config
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		panic(err)
-	}
-
-	du, err := time.ParseTime()
-	cfg.interval =
-	return &cfg
-}
 
 func main() {
 	flag.Parse()
+
+	if *flagGetCfg != "" {
+		// TODO
+		panic("TODO")
+	}
+
 	data, err := ioutil.ReadFile(*flagCfg)
 	if err != nil {
 		panic(err)
 	}
 
-	cfg := loadCfg(data)
+	if err := json.Unmarshal(data, &C); err != nil {
+		panic(err)
+	}
 
-	logger.SetGlobalRootLogger(cfg.Log, cfg.LogLevel, logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+	logger.SetGlobalRootLogger(C.Log, C.LogLevel, logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
 	l = logger.SLogger("oraclemonitor")
 
-	ac := &config{}
-	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-	ac.Start()
+	Start()
 }
 
-func (o *config) Start() error {
-	o.logger = &models.Logger{
-		Name: `oraclemonitor`,
-	}
+func Start() {
 
-	if len(o.Oracles) == 0 {
-		o.logger.Warnf("no configuration found")
-		return nil
-	}
+	l.Info("starting...")
 
-	o.logger.Infof("starting...")
+	wg := sync.WaitGroup{}
 
-	for _, instCfg := range o.Oracles {
-		r := &runningInstance{
-			cfg:    instCfg,
-			agent:  o,
-			logger: o.logger,
-		}
-
-		r.metricName = instCfg.MetricName
-		if r.metricName == "" {
-			r.metricName = "oracle_monitor"
-		}
-
-		if r.cfg.interval.Duration == 0 {
-			r.cfg.interval.Duration = time.Minute * 5
-		}
-
-		connStr := fmt.Sprintf("%s/%s@%s/%s", instCfg.Username, instCfg.Password, instCfg.Host, instCfg.Server)
+	for _, inst := range C.Instances {
+		connStr := fmt.Sprintf("%s/%s@%s/%s", inst.User, inst.Password, inst.Host, inst.Server)
 		db, err := sql.Open("godror", connStr)
 		if err != nil {
 			l.Errorf("oracle connect faild %v", err)
-		}
-		r.db = db
-
-		o.runningInstances = append(o.runningInstances, r)
-
-		go r.run(o.ctx)
-	}
-	return nil
-}
-
-func (o *config) Stop() {
-	o.cancelFun()
-}
-
-func (r *runningInstance) run(ctx context.Context) error {
-	defer func() {
-		if e := recover(); e != nil {
-			// TODO
-		}
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
+			continue
 		}
 
-		go r.command()
-
-		internal.SleepContext(ctx, r.cfg.interval.Duration)
-	}
-}
-
-func (r *runningInstance) command() {
-	for key, item := range metricMap {
-		resMap, err := r.Query(item)
+		du, err := time.ParseDuration(inst.Interval)
 		if err != nil {
-			l.Errorf("oracle connect faild %v", err)
+			l.Error(err)
+			continue
 		}
 
-		r.handleResponse(key, resMap)
+		inst.db = db
+		inst.intervalDuration = du
+		go func() {
+			defer wg.Done()
+			inst.run()
+		}()
 	}
+
+	wg.Wait()
 }
 
-func (r *runningInstance) handleResponse(m string, response []map[string]interface{}) error {
+func (i *instance) handleResponse(m string, response []map[string]interface{}) error {
+
+	lines := []string{}
+
 	for _, item := range response {
 		tags := map[string]string{}
 
-		tags["oracle_server"] = r.cfg.Server
-		tags["oracle_port"] = r.cfg.Port
-		tags["instance_id"] = r.cfg.InstanceId
-		tags["instance_desc"] = r.cfg.InstanceDesc
+		tags["oracle_server"] = i.Server
+		tags["oracle_port"] = i.Port
+		tags["instance_id"] = i.InstanceId
+		tags["instance_desc"] = i.Desc
 		tags["product"] = "oracle"
-		tags["host"] = r.cfg.Host
+		tags["host"] = i.Host
 		tags["type"] = m
 
 		if tagKeys, ok := tagsMap[m]; ok {
@@ -189,14 +150,21 @@ func (r *runningInstance) handleResponse(m string, response []map[string]interfa
 			}
 		}
 
-		r.agent.accumulator.AddFields(r.metricName, item, tags)
+		pt, err := influxdb.NewPoint(i.Metric, tags, item, time.Now())
+		if err != nil {
+			l.Errorf("new point failed: %s", err.Error())
+			return err
+		}
+		lines = append(lines, pt.String())
 	}
+
+	// TODO: RPC post to datakit
 
 	return nil
 }
 
-func (r *runningInstance) Query(sql string) ([]map[string]interface{}, error) {
-	rows, err := r.db.Query(sql)
+func query(db *sql.DB, sql string) ([]map[string]interface{}, error) {
+	rows, err := db.Query(sql)
 	if err != nil {
 		return nil, err
 	}
