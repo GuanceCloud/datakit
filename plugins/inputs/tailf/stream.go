@@ -10,6 +10,7 @@ import (
 
 	"github.com/hpcloud/tail"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 // const defaultWatchMethod = "inotify"
@@ -32,6 +33,12 @@ func newStream(sub *Subscribe, tailf *Tailf) *stream {
 
 func (s *stream) start(wg *sync.WaitGroup) {
 	defer wg.Done()
+
+	if s.sub.File == config.Cfg.MainCfg.Log {
+		log.Printf("E! [Tailf] subscribe file: %s, error: cannot collect datakit log !\n", s.sub.File)
+		return
+
+	}
 
 	if s.sub.Measurement == "" {
 		log.Printf("E! [Tailf] subscribe file: %s, error: invalid measurement\n", s.sub.File)
