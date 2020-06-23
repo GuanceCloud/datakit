@@ -12,7 +12,7 @@ const (
 # [tailf]
 # [[tailf.subscribes]]
 #
-#       ## 文件路径名
+#       ## 文件路径名。不能设置为 datakit 日志文件。
 #	filename = ""
 #
 #       ## 是否从文件首部读取
