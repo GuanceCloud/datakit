@@ -34,12 +34,13 @@ var (
 
 	MaxLifeCheckInterval time.Duration
 
-	Cfg         *Config = nil
-	InstallDir          = ""
-	TelegrafDir         = ""
-	DataDir             = ""
-	LuaDir              = ""
-	ConfdDir            = ""
+	Cfg            *Config = nil
+	InstallDir             = ""
+	TelegrafDir            = ""
+	DataDir                = ""
+	LuaDir                 = ""
+	ConfdDir               = ""
+	GRPCDomainSock         = ""
 )
 
 type Config struct {
@@ -75,6 +76,7 @@ func init() {
 	DataDir = filepath.Join(InstallDir, "data")
 	LuaDir = filepath.Join(InstallDir, "lua")
 	ConfdDir = filepath.Join(InstallDir, "conf.d")
+	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 
 	Cfg = newDefaultCfg()
 
