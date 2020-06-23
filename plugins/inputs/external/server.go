@@ -1,0 +1,106 @@
+package external
+
+import (
+	"context"
+	"errors"
+	"log"
+	"net"
+	"os"
+	"time"
+
+	"github.com/influxdata/telegraf"
+	//"github.com/influxdata/telegraf/metric"
+	influxm "github.com/influxdata/influxdb1-client/models"
+	"google.golang.org/grpc"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
+
+const (
+	pluginName           = "external"
+	externalConfigSample = `
+# [external]
+# [[external.servers]]
+# listen = "/usr/local/cloudcare/DataFlux/datakit/datakit.sock" # domain socket path`
+)
+
+var (
+	ErrInfluxParsePointFailed = errors.New("parse influx points failed")
+)
+
+type Config struct {
+	Servers []*Server `toml:"Servers"`
+}
+
+type Server struct {
+	DataKitServer
+	acc       telegraf.Accumulator
+	Listen    string
+	rpcServer *grpc.Server
+}
+
+func init() {
+	inputs.Add(pluginName, func() inputs.Input {
+		x := &Server{}
+		return x
+	})
+}
+
+func (s *Server) Feed(ctx context.Context, req *Request) (*Response, error) {
+
+	pts, err := influxm.ParsePointsWithPrecision(req.Lines, time.Now().UTC(), req.Precision)
+	if err != nil {
+		return &Response{Err: err.Error()}, nil
+	}
+
+	log.Printf("[S] received %d points", len(pts))
+
+	return &Response{Points: int64(len(pts))}, nil
+}
+
+// inputs methods
+func (s *Server) Catalog() string {
+	return pluginName // XXX: use plugin name as the catalog
+}
+
+func (s *Server) SampleConfig() string {
+	return externalConfigSample
+}
+
+func (s *Server) Description() string {
+	return "Accept external line protocol from socket."
+}
+
+func (s *Server) Gather(telegraf.Accumulator) error { return nil }
+
+var (
+	rpcListener net.Listener
+)
+
+func (s *Server) Start(acc telegraf.Accumulator) {
+
+	s.acc = acc
+
+	if _, err := os.Stat(s.Listen); err == nil {
+		if err := os.Remove(s.Listen); err != nil {
+			panic(err)
+		}
+	}
+
+	var err error
+
+	rpcListener, err = net.Listen("unix", s.Listen)
+	if err != nil {
+		panic(err)
+	}
+
+	s.rpcServer = grpc.NewServer()
+	RegisterDataKitServer(s.rpcServer, s)
+	if err := s.rpcServer.Serve(rpcListener); err != nil {
+		panic(err)
+	}
+}
+
+func (s *Server) Stop() {
+	s.rpcServer.Stop()
+}
