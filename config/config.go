@@ -25,6 +25,8 @@ import (
 )
 
 var (
+	Exit *cliutils.Sem
+
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 
 	ServiceName = "datakit"
@@ -77,6 +79,8 @@ func init() {
 	LuaDir = filepath.Join(InstallDir, "lua")
 	ConfdDir = filepath.Join(InstallDir, "conf.d")
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
+
+	Exit = cliutils.NewSem()
 
 	Cfg = newDefaultCfg()
 
