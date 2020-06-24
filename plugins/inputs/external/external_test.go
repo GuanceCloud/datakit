@@ -12,6 +12,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+func TestRCPServer(t *testing.T) {
+	s := &Server{
+		Listen: "/tmp/dk.sock",
+	}
+
+	s.Start(nil)
+}
+
 func TestRPC(t *testing.T) {
 	wg := sync.WaitGroup{}
 
