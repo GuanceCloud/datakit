@@ -8,11 +8,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	//"github.com/influxdata/telegraf/metric"
 	influxm "github.com/influxdata/influxdb1-client/models"
+	"github.com/influxdata/telegraf"
 	"google.golang.org/grpc"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -34,7 +34,6 @@ type Config struct {
 
 type Server struct {
 	DataKitServer
-	acc       telegraf.Accumulator
 	Listen    string
 	rpcServer *grpc.Server
 }
@@ -48,14 +47,25 @@ func init() {
 
 func (s *Server) Feed(ctx context.Context, req *Request) (*Response, error) {
 
-	pts, err := influxm.ParsePointsWithPrecision(req.Lines, time.Now().UTC(), req.Precision)
-	if err != nil {
-		return &Response{Err: err.Error()}, nil
+	resp := &Response{}
+
+	if req.Lines != nil {
+		pts, err := influxm.ParsePointsWithPrecision(req.Lines, time.Now().UTC(), req.Precision)
+		if err != nil {
+			return &Response{Err: err.Error()}, nil
+		}
+
+		log.Printf("[S] received %d points", len(pts))
+		io.Feed(req.Lines, io.Metric)
+		resp.Points = int64(len(pts))
 	}
 
-	log.Printf("[S] received %d points", len(pts))
+	if req.Objects != nil {
+		// TODO
+		// XXX: check if valid objects
+	}
 
-	return &Response{Points: int64(len(pts))}, nil
+	return resp, nil
 }
 
 // inputs methods
@@ -77,9 +87,7 @@ var (
 	rpcListener net.Listener
 )
 
-func (s *Server) Start(acc telegraf.Accumulator) {
-
-	s.acc = acc
+func (s *Server) Start() {
 
 	if _, err := os.Stat(s.Listen); err == nil {
 		if err := os.Remove(s.Listen); err != nil {
