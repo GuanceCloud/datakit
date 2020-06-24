@@ -32,3 +32,10 @@ embed/*
 deps/*
 *.err
 *.test
+*.zip
+*.rpm
+log
+run.sh
+cfg.json
+config.json
+test.json
