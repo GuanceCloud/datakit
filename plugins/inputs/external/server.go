@@ -3,15 +3,16 @@ package external
 import (
 	"context"
 	"errors"
-	"log"
 	"net"
 	"os"
 	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
 	"github.com/influxdata/telegraf"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -20,21 +21,24 @@ const (
 	pluginName           = "external"
 	externalConfigSample = `
 # [external]
-# [[external.servers]]
 # listen = "/usr/local/cloudcare/DataFlux/datakit/datakit.sock" # domain socket path`
 )
 
 var (
 	ErrInfluxParsePointFailed = errors.New("parse influx points failed")
+
+	l *zap.SugaredLogger
 )
 
-type Config struct {
-	Servers []*Server `toml:"Servers"`
+type external struct {
+	Listen string `toml:"listen"`
 }
 
 type Server struct {
 	DataKitServer
-	Listen    string
+
+	External *external `toml:"external"`
+
 	rpcServer *grpc.Server
 }
 
@@ -55,7 +59,7 @@ func (s *Server) Feed(ctx context.Context, req *Request) (*Response, error) {
 			return &Response{Err: err.Error()}, nil
 		}
 
-		log.Printf("[S] received %d points", len(pts))
+		l.Debugf("received %d points", len(pts))
 		io.Feed(req.Lines, io.Metric)
 		resp.Points = int64(len(pts))
 	}
@@ -87,25 +91,29 @@ var (
 	rpcListener net.Listener
 )
 
-func (s *Server) Start() {
+func (s *Server) Run() {
 
-	if _, err := os.Stat(s.Listen); err == nil {
-		if err := os.Remove(s.Listen); err != nil {
+	if _, err := os.Stat(s.External.Listen); err == nil {
+		if err := os.Remove(s.External.Listen); err != nil {
 			panic(err)
 		}
 	}
 
+	l = logger.SLogger("external")
 	var err error
 
-	rpcListener, err = net.Listen("unix", s.Listen)
+	rpcListener, err = net.Listen("unix", s.External.Listen)
 	if err != nil {
-		panic(err)
+		l.Errorf("start gRPC server failed: %s", err)
+		return
 	}
+
+	l.Infof("start gRPC server on %s ok", s.External.Listen)
 
 	s.rpcServer = grpc.NewServer()
 	RegisterDataKitServer(s.rpcServer, s)
 	if err := s.rpcServer.Serve(rpcListener); err != nil {
-		panic(err)
+		l.Error(err)
 	}
 }
 
