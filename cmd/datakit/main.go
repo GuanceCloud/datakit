@@ -87,7 +87,6 @@ Uploader:         %s
 		for k, vs := range collectors {
 			fmt.Println(k)
 			for _, v := range vs {
-				//fmt.Printf("  └── %s\n", v)
 				fmt.Printf("  |--[d] %s\n", v)
 			}
 		}
@@ -139,44 +138,47 @@ func (p *program) Stop(s service.Service) error {
 func reloadLoop(stop chan struct{}) {
 	reload := make(chan bool, 1)
 	reload <- true
-	for <-reload {
-		reload <- false
 
-		ctx, cancel := context.WithCancel(context.Background())
+	signals := make(chan os.Signal)
+	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		for s := range signals {
+			switch s {
+			case syscall.SIGHUP:
+				// TODO: reload configures
 
-		signals := make(chan os.Signal)
-		signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
-
-		go func() {
-			select {
-			case sig := <-signals:
-				if sig == syscall.SIGHUP {
-					l.Debug("Reloading config")
-					<-reload
-					reload <- true
-				}
-				l.Infof("signal notify: %v", sig)
-				cancel()
-			case <-stop:
-				l.Info("service stopped")
-				cancel()
+			default:
+				l.Infof("get signal %v, wait & exit", s)
+				config.Exit.Close()
+				config.WG.Wait()
+				os.Exit(0)
 			}
-		}()
+		}
+	}()
 
-		if err := runTelegraf(ctx); err != nil {
+	config.WG.Add(1)
+	go func() {
+		defer config.WG.Done()
+		if err := runTelegraf(); err != nil {
 			l.Fatalf("fail to start sub service: %s", err)
 		}
+	}()
 
+	config.WG.Add(1)
+	go func() {
+		defer config.WG.Done()
 		go io.Start()
+	}()
 
-		if err := runDatakit(ctx); err != nil && err != context.Canceled {
+	config.WG.Add(1)
+	go func() {
+		defer config.WG.Done()
+		if err := runDatakit(); err != nil && err != context.Canceled {
 			l.Fatalf("datakit abort: %s", err)
 		}
+	}()
 
-		telegrafwrap.Svr.StopAgent()
-
-		close(stopFalgCh)
-	}
+	config.WG.Wait()
 }
 
 func loadConfig() {
@@ -191,17 +193,17 @@ func loadConfig() {
 	l.Infof("input fileters %v", inputFilters)
 }
 
-func runTelegraf(ctx context.Context) error {
+func runTelegraf() error {
 	telegrafwrap.Svr.Cfg = config.Cfg
-	return telegrafwrap.Svr.Start(ctx)
+	return telegrafwrap.Svr.Start()
 }
 
-func runDatakit(ctx context.Context) error {
+func runDatakit() error {
 
 	ag, err := run.NewAgent(config.Cfg)
 	if err != nil {
 		return err
 	}
 
-	return ag.Run(ctx)
+	return ag.Run()
 }
