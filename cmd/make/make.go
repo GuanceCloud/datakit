@@ -134,7 +134,7 @@ func runEnv(args, env []string) {
 
 	msg, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Printf("[error] failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+		log.Fatalf("[error] failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 	}
 }
 
