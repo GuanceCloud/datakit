@@ -3,7 +3,6 @@ package run
 import (
 	"context"
 	"fmt"
-	"log"
 	"runtime"
 	"strings"
 	"sync"
@@ -11,10 +10,17 @@ import (
 
 	"github.com/influxdata/telegraf"
 	teleagent "github.com/influxdata/telegraf/agent"
+	"go.uber.org/zap"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+)
+
+var (
+	l *zap.SugaredLogger
 )
 
 type Agent struct {
@@ -34,6 +40,8 @@ func NewAgent(config *config.Config) (*Agent, error) {
 
 func (a *Agent) Run(ctx context.Context) error {
 
+	l = logger.SLogger("run")
+
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -44,7 +52,7 @@ func (a *Agent) Run(ctx context.Context) error {
 	default:
 	}
 
-	log.Printf("Loading outputs")
+	l.Info("Loading outputs")
 	if err := a.outputsMgr.LoadOutputs(a.Config); err != nil {
 		return err
 	}
@@ -59,7 +67,7 @@ func (a *Agent) Run(ctx context.Context) error {
 			outputsNames = append(outputsNames, op.Config.Name)
 		}
 	}
-	log.Printf("avariable outputs: %s", strings.Join(outputsNames, ","))
+	l.Infof("avariable outputs: %s", strings.Join(outputsNames, ","))
 
 	startTime := time.Now()
 
@@ -69,13 +77,13 @@ func (a *Agent) Run(ctx context.Context) error {
 	go func() {
 		defer wg.Done()
 
-		log.Printf("Starting inputs")
+		l.Info("Starting inputs")
 		err := a.runInputs(ctx, startTime)
 		if err != nil && err != context.Canceled {
-			log.Printf("E! Error running inputs: %v", err)
+			l.Error("error running inputs: %v", err)
 		}
 
-		log.Printf("Inputs done")
+		l.Info("inputs done")
 	}()
 
 	go func() {
@@ -96,7 +104,7 @@ func (a *Agent) Run(ctx context.Context) error {
 			a.Config.MainCfg.RoundInterval)
 
 		if err != nil && err != context.Canceled {
-			log.Printf("E! Error starting outputs: %v", err)
+			l.Error("error starting outputs: %v", err)
 		}
 
 	}()
@@ -104,7 +112,7 @@ func (a *Agent) Run(ctx context.Context) error {
 	wg.Wait()
 	a.outputsMgr.Close()
 
-	log.Printf("datakit stopped successfully")
+	l.Info("datakit stopped successfully")
 	return nil
 }
 
@@ -155,13 +163,13 @@ func (a *Agent) runServiceInput(ctx context.Context, input *models.RunningInput,
 		// This only applies to the accumulator passed to Start(), the
 		// Gather() accumulator does apply rounding according to the
 		// precision agent setting.
-		log.Printf("D! starting service input: %s", input.Config.Name)
+		l.Debugf("starting service input: %s", input.Config.Name)
 		acc := teleagent.NewAccumulator(input, dst)
 		acc.SetPrecision(time.Nanosecond)
 
 		err := si.Start(acc)
 		if err != nil {
-			log.Printf("E! Service for [%s] failed to start: %v", input.LogName(), err)
+			l.Debugf("service for [%s] failed to start: %v", input.LogName(), err)
 			return err
 		}
 	}
@@ -190,11 +198,25 @@ func (a *Agent) runInputs(ctx context.Context, startTime time.Time) error {
 		if dst == nil {
 			continue
 		}
-		if _, ok := input.Input.(telegraf.ServiceInput); ok {
+
+		switch input.Input.(type) {
+
+		case telegraf.ServiceInput:
+			l.Info("starting service input ...")
 			if err := a.runServiceInput(ctx, input, dst.ch); err != nil {
 				return err
 			}
-		} else {
+
+		case io.Input:
+			l.Info("starting ioinput ...")
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				input.Input.(io.Input).Run()
+			}()
+
+		default:
+			l.Info("starting interval input ...")
 			if err := a.runIntervalInput(ctx, input, startTime, dst.ch, &wg); err != nil {
 				return err
 			}
@@ -211,7 +233,7 @@ func (a *Agent) stopInputs() {
 		if _, ok := input.Input.(telegraf.ServiceInput); !ok {
 			continue
 		}
-		log.Printf("D! stopping service input: %s", input.Config.Name)
+		l.Debugf("stopping service input: %s", input.Config.Name)
 		if si, ok := input.Input.(telegraf.ServiceInput); ok {
 			si.Stop()
 		}
@@ -223,9 +245,9 @@ func panicRecover(input *models.RunningInput) {
 	if err := recover(); err != nil {
 		trace := make([]byte, 2048)
 		runtime.Stack(trace, true)
-		log.Printf("E! FATAL: [%s] panicked: %s, Stack:\n%s",
+		l.Errorf("FATAL: [%s] panicked: %s, Stack:\n%s",
 			input.LogName(), err, trace)
-		log.Println("E! PLEASE REPORT THIS PANIC ON GITHUB with " +
+		l.Error("PLEASE REPORT THIS PANIC ON GITHUB with " +
 			"stack trace, configuration, and OS information: " +
 			"https://github.com/influxdata/telegraf/issues/new/choose")
 	}
@@ -281,7 +303,7 @@ func (a *Agent) gatherOnce(
 		case err := <-done:
 			return err
 		case <-ticker.C:
-			log.Printf("W! [%s] did not complete within its interval",
+			l.Warnf("[%s] did not complete within its interval",
 				input.LogName())
 		}
 	}
