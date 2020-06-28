@@ -1,5 +1,3 @@
-// +build linux,amd64
-
 package main
 
 import (
