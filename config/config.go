@@ -13,11 +13,12 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/logger"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
+	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
@@ -35,6 +36,8 @@ var (
 	AgentLogFile string
 
 	MaxLifeCheckInterval time.Duration
+
+	l *zap.SugaredLogger
 
 	Cfg            *Config = nil
 	InstallDir             = ""
@@ -124,29 +127,17 @@ func LoadCfg() error {
 		return err
 	}
 
-	// some old log file under:
-	//  /usr/local/cloudcare/forethought/...
-	// we force set to
-	//  /usr/local/cloudcare/DataFlux/...
-	//Cfg.MainCfg.Log = filepath.Join(InstallDir, "datakit.log")
+	logger.SetGlobalRootLogger(Cfg.MainCfg.Log,
+		Cfg.MainCfg.LogLevel,
+		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+	l = logger.SLogger("config")
 
-	logConfig := logger.LogConfig{
-		Debug:     (strings.ToLower(Cfg.MainCfg.LogLevel) == "debug"),
-		Quiet:     false,
-		LogTarget: logger.LogTargetFile,
-		Logfile:   Cfg.MainCfg.Log,
-	}
-
-	logConfig.RotationMaxSize.Size = (20 << 10 << 10)
-	logger.SetupLogging(logConfig)
-
-	log.SetFlags(log.Llongfile)
-
-	log.Printf("D! set log to %s", logConfig.Logfile)
+	l.Debugf("set log to %s", Cfg.MainCfg.Log)
 
 	createPluginCfgsIfNotExists()
 
 	if err := Cfg.LoadConfig(); err != nil {
+		l.Error(err)
 		return err
 	}
 
@@ -513,21 +504,21 @@ func createPluginCfgsIfNotExists() {
 		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
 		cfgpath := filepath.Join(ConfdDir, catalog, name+".conf")
 
-		log.Printf("I! check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
+		l.Infof("check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
 
 		if _, err := os.Stat(oldCfgPath); err == nil {
 			if oldCfgPath == cfgpath {
 				continue // do nothing
 			}
 
-			log.Printf("I! migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
+			l.Infof("migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
 
 			if err := os.MkdirAll(filepath.Dir(cfgpath), os.ModePerm); err != nil {
-				log.Fatalf("E! create dir %s failed: %s", filepath.Dir(cfgpath), err.Error())
+				l.Fatalf("create dir %s failed: %s", filepath.Dir(cfgpath), err.Error())
 			}
 
 			if err := os.Rename(oldCfgPath, cfgpath); err != nil {
-				log.Fatalf("E! move %s -> %s failed: %s", oldCfgPath, cfgpath, err.Error())
+				l.Fatalf("move %s -> %s failed: %s", oldCfgPath, cfgpath, err.Error())
 			}
 
 			os.RemoveAll(filepath.Dir(oldCfgPath))
@@ -536,20 +527,20 @@ func createPluginCfgsIfNotExists() {
 
 		if _, err := os.Stat(cfgpath); err != nil { // file not exists
 
-			log.Printf("D! %s not exists, create it...", cfgpath)
+			l.Debugf("%s not exists, create it...", cfgpath)
 
-			log.Printf("D! create datakit conf path %s", filepath.Join(ConfdDir, catalog))
+			l.Debugf("create datakit conf path %s", filepath.Join(ConfdDir, catalog))
 			if err := os.MkdirAll(filepath.Join(ConfdDir, catalog), os.ModePerm); err != nil {
-				log.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
+				l.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
 			}
 
 			sample := input.SampleConfig()
 			if sample == "" {
-				log.Fatalf("no sample available on collector %s", name)
+				l.Fatalf("no sample available on collector %s", name)
 			}
 
 			if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
-				log.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
+				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 			}
 		}
 	}
@@ -560,16 +551,16 @@ func createPluginCfgsIfNotExists() {
 		cfgpath := filepath.Join(ConfdDir, input.Catalog, name+".conf")
 		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
 
-		log.Printf("check telegraf input conf %s...", name)
+		l.Debugf("check telegraf input conf %s...", name)
 
 		if _, err := os.Stat(oldCfgPath); err == nil {
 
 			if oldCfgPath == cfgpath {
-				log.Printf("D! %s exists, skip", oldCfgPath)
+				l.Debugf("%s exists, skip", oldCfgPath)
 				continue // do nothing
 			}
 
-			log.Printf("D! %s exists, migrate to %s", oldCfgPath, cfgpath)
+			l.Debugf("%s exists, migrate to %s", oldCfgPath, cfgpath)
 			os.Rename(oldCfgPath, cfgpath)
 			os.RemoveAll(filepath.Dir(oldCfgPath))
 			continue
@@ -577,16 +568,16 @@ func createPluginCfgsIfNotExists() {
 
 		if _, err := os.Stat(cfgpath); err != nil {
 
-			log.Printf("D! %s not exists, create it...", cfgpath)
+			l.Debugf("%s not exists, create it...", cfgpath)
 
-			log.Printf("D! create telegraf conf path %s", filepath.Join(ConfdDir, input.Catalog))
+			l.Debugf("create telegraf conf path %s", filepath.Join(ConfdDir, input.Catalog))
 			if err := os.MkdirAll(filepath.Join(ConfdDir, input.Catalog), os.ModePerm); err != nil {
-				log.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
+				l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
 			}
 
 			if sample, ok := telegrafCfgSamples[name]; ok {
 				if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
-					log.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
+					l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 				}
 			}
 		}
@@ -650,7 +641,7 @@ func buildInput(name string, tbl *ast.Table, input telegraf.Input) (*models.Inpu
 		if kv, ok := node.(*ast.KeyValue); ok {
 			if str, ok := kv.Value.(*ast.String); ok {
 
-				log.Printf("D! dataway_path: %s", str.Value)
+				l.Debugf("dataway_path: %s", str.Value)
 
 				cp.DataWayRequestURL = fmt.Sprintf("%s://%s%s?token=%s",
 					Cfg.MainCfg.DataWay.Scheme, Cfg.MainCfg.DataWay.Host, str.Value, Cfg.MainCfg.DataWay.Token)
@@ -670,7 +661,7 @@ func buildInput(name string, tbl *ast.Table, input telegraf.Input) (*models.Inpu
 	if node, ok := tbl.Fields["tags"]; ok {
 		if subtbl, ok := node.(*ast.Table); ok {
 			if err := toml.UnmarshalTable(subtbl, cp.Tags); err != nil {
-				log.Printf("E! Could not parse tags for input %s\n", name)
+				l.Errorf("could not parse tags for input %s", name)
 			}
 		}
 	}

@@ -4,16 +4,18 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 
 	"github.com/kardianos/service"
+	"go.uber.org/zap"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
@@ -30,10 +32,10 @@ var (
 )
 
 var (
-	stopCh     chan struct{}
-	stopFalgCh chan struct{}
-
+	stopCh       chan struct{}
+	stopFalgCh   chan struct{}
 	inputFilters = []string{}
+	l            *zap.SugaredLogger
 )
 
 func main() {
@@ -51,14 +53,14 @@ func main() {
 	prg := &program{}
 	s, err := service.New(prg, svcConfig)
 	if err != nil {
-		log.Fatal("E! " + err.Error())
+		l.Fatal(err)
 		return
 	}
 
-	log.Printf("I! starting datakit service")
+	l.Info("starting datakit service")
 
 	if err = s.Run(); err != nil {
-		log.Fatalln(err.Error())
+		l.Fatal(err)
 	}
 }
 
@@ -143,30 +145,32 @@ func reloadLoop(stop chan struct{}) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		signals := make(chan os.Signal)
-		signal.Notify(signals, os.Interrupt, syscall.SIGHUP,
-			syscall.SIGTERM, syscall.SIGINT)
+		signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
+
 		go func() {
 			select {
 			case sig := <-signals:
 				if sig == syscall.SIGHUP {
-					log.Printf("Reloading config")
+					l.Debug("Reloading config")
 					<-reload
 					reload <- true
 				}
-				log.Printf("signal notify: %v", sig)
+				l.Infof("signal notify: %v", sig)
 				cancel()
 			case <-stop:
-				log.Printf("service stopped")
+				l.Info("service stopped")
 				cancel()
 			}
 		}()
 
 		if err := runTelegraf(ctx); err != nil {
-			log.Fatalf("E! fail to start sub service, %s", err)
+			l.Fatalf("fail to start sub service: %s", err)
 		}
 
+		go io.Start()
+
 		if err := runDatakit(ctx); err != nil && err != context.Canceled {
-			log.Fatalf("E! datakit abort: %s", err)
+			l.Fatalf("datakit abort: %s", err)
 		}
 
 		telegrafwrap.Svr.StopAgent()
@@ -178,12 +182,13 @@ func reloadLoop(stop chan struct{}) {
 func loadConfig() {
 
 	if err := config.LoadCfg(); err != nil {
-		log.Fatalf("[error] load config failed: %s", err)
+		panic(fmt.Sprintf("load config failed: %s", err))
 	}
 
-	config.Cfg.InputFilters = inputFilters
-	log.Printf("I! input fileters %v", inputFilters)
+	l = logger.SLogger("main")
 
+	config.Cfg.InputFilters = inputFilters
+	l.Infof("input fileters %v", inputFilters)
 }
 
 func runTelegraf(ctx context.Context) error {
