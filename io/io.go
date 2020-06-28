@@ -116,7 +116,8 @@ func Start() {
 				flush(cache)
 
 			case <-config.Exit.Wait():
-				l.Info("io exit.")
+				l.Info("exit")
+				return
 			}
 		}
 	}
