@@ -204,6 +204,7 @@ func compile() {
 		}
 
 		compileTask(*flagBinary, goos, goarch, dir)
+		buildExternals(dir, goos, goarch)
 
 		if goos == "windows" {
 			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
@@ -211,8 +212,7 @@ func compile() {
 			installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
 		}
 
-		buildInstaller(path.Join(*flagPubDir, *flagRelease), goos, goarch)
-		buildExtras(path.Join(*flagPubDir, *flagRelease), goos, goarch)
+		buildInstaller(filepath.Join(*flagPubDir, *flagRelease), goos, goarch)
 	}
 
 	log.Printf("build elapsed %v", time.Since(start))
@@ -451,21 +451,25 @@ func tarFiles(goos, goarch string) {
 	log.Printf("[debug] tar %s ok", gz)
 }
 
-type dkextra struct {
+type dkexternal struct {
 	name      string
 	isGolang  bool
 	entry     string
 	buildArgs []string
-	archos    []string
+	osarchs   map[string]bool
 	envs      []string
 }
 
 var (
-	exMonitors = []*dkextra{
-		&dkextra{
+	exMonitors = []*dkexternal{
+		&dkexternal{
 			name:     "oraclemonitor",
 			isGolang: true,
 			entry:    "main.go",
+			osarchs: map[string]bool{
+				"linux/amd64": true,
+				//"linux/386":   true,
+			},
 
 			buildArgs: nil,
 			envs: []string{
@@ -477,24 +481,30 @@ var (
 	}
 )
 
-func buildExtras(outdir, goos, goarch string) {
+func buildExternals(outdir, goos, goarch string) {
 	for _, ex := range exMonitors {
 		log.Printf("[debug] build %s/%s %s to %s...", goos, goarch, ex.name, outdir)
 
 		out := ex.name
+		osarch := goos + "/" + goarch
 
-		switch goos + "/" + goarch {
+		switch osarch {
 		case "windows/amd64", "windows/386":
 			out = out + ".exe"
 		default: // pass
+
+			if _, ok := ex.osarchs[osarch]; !ok {
+				log.Printf("skip build %s under %s", ex.name, osarch)
+				return
+			}
 		}
 
 		if ex.isGolang {
 			args := []string{
 				"go", "build",
-				"-o", filepath.Join(outdir, out),
+				"-o", filepath.Join(outdir, "external", out),
 				"-ldflags", "-w -s",
-				filepath.Join("plugins/extra", ex.name, ex.entry)}
+				filepath.Join("plugins/external", ex.name, ex.entry)}
 			envs := append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
 
 			runEnv(args, envs)
