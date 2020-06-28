@@ -1,56 +1,100 @@
 package mock
 
 import (
+	"os"
 	"time"
 
+	"github.com/Pallinder/go-randomdata"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
+	"go.uber.org/zap"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type (
-	Mock struct {
-		Value string
-	}
+var (
+	l *zap.SugaredLogger
+
+	inputName = "mock"
+
+	sampleCfg = `
+# [mock]
+# interval = '3s'
+# metric = 'mock-testing'
+	`
 )
+
+type cfg struct {
+	Interval string `toml:"interval"`
+	Metric   string `toml:"metric"`
+}
+
+type Mock struct {
+	C *cfg `toml:"mock"`
+}
 
 func (m *Mock) SampleConfig() string {
-	return ""
+	return sampleCfg
 }
 
 func (m *Mock) Description() string {
-	return ""
+	return "mock testing data"
 }
 
-func (m *Mock) makeMetric(value interface{}, name ...string) telegraf.Metric {
-	if value == nil {
-		panic("Cannot use a nil value")
-	}
-	measurement := "test1"
-	if len(name) > 0 {
-		measurement = name[0]
-	}
-	tags := map[string]string{
-		"device": `E:\`,
-		"size":   "1",
-	}
-	pt, _ := metric.New(
-		measurement,
-		tags,
-		map[string]interface{}{"value": value},
-		time.Now(),
-	)
-	return pt
+func (m *Mock) Catalog() string {
+	return "mock"
 }
 
 func (m *Mock) Gather(acc telegraf.Accumulator) error {
-
-	acc.AddMetric(m.makeMetric(1.0))
-
 	return nil
 }
 
-// func init() {
-// 	inputs.Add("mock", func() telegraf.Input {
-// 		return &Mock{}
-// 	})
-// }
+func (m *Mock) Run() {
+
+	l = logger.SLogger("mock")
+	host, err := os.Hostname()
+	if err != nil {
+		host = randomdata.SillyName()
+		l.Warnf("get hostname failed: %s, use random silly name(%s) instead", err, host)
+	}
+
+	l.Info("mock input starting...")
+
+	interval, err := time.ParseDuration(m.C.Interval)
+	if err != nil {
+		l.Error(err)
+	}
+
+	for {
+		pt, err := influxdb.NewPoint(m.C.Metric,
+			map[string]string{
+				"from": host,
+			},
+			map[string]interface{}{
+				"f1": randomdata.Number(0, 100),
+				"f2": randomdata.Decimal(0, 100),
+				"f3": randomdata.SillyName(),
+				"f4": randomdata.Boolean()},
+			time.Now())
+		if err != nil {
+			l.Error(err)
+			return
+		}
+
+		data := []byte(pt.String())
+		l.Debugf("feed %d bytes to io", len(data))
+		if err := io.Feed(data, io.Metric); err != nil {
+			l.Error(err)
+		}
+
+		time.Sleep(interval)
+	}
+}
+
+func init() {
+	inputs.Add("mock", func() inputs.Input {
+		return &Mock{}
+	})
+}
