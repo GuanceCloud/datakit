@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 
 var (
 	Exit *cliutils.Sem
+	WG   sync.WaitGroup = sync.WaitGroup{}
 
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 
