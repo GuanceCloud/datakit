@@ -38,19 +38,13 @@ func NewAgent(config *config.Config) (*Agent, error) {
 	return a, nil
 }
 
-func (a *Agent) Run(ctx context.Context) error {
+func (a *Agent) Run() error {
 
 	l = logger.SLogger("run")
 
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
+	ctx, cancel := context.WithCancel(context.Background())
 
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	default:
-	}
+	defer cancel()
 
 	l.Info("Loading outputs")
 	if err := a.outputsMgr.LoadOutputs(a.Config); err != nil {
@@ -90,27 +84,26 @@ func (a *Agent) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			a.stopInputs()
-			a.outputsMgr.Stop()
+			//a.outputsMgr.Stop()
 		}
 	}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	//wg.Add(1)
+	//go func() {
+	//	defer wg.Done()
 
-		err := a.outputsMgr.Start(startTime,
-			a.Config.MainCfg.FlushInterval.Duration,
-			a.Config.MainCfg.FlushJitter.Duration,
-			a.Config.MainCfg.RoundInterval)
+	//	err := a.outputsMgr.Start(startTime,
+	//		a.Config.MainCfg.FlushInterval.Duration,
+	//		a.Config.MainCfg.FlushJitter.Duration,
+	//		a.Config.MainCfg.RoundInterval)
 
-		if err != nil && err != context.Canceled {
-			l.Error("error starting outputs: %v", err)
-		}
-
-	}()
+	//	if err != nil && err != context.Canceled {
+	//		l.Error("error starting outputs: %v", err)
+	//	}
+	//}()
 
 	wg.Wait()
-	a.outputsMgr.Close()
+	//a.outputsMgr.Close()
 
 	l.Info("datakit stopped successfully")
 	return nil
@@ -155,7 +148,7 @@ func (a *Agent) runIntervalInput(
 	return nil
 }
 
-func (a *Agent) runServiceInput(ctx context.Context, input *models.RunningInput, dst chan<- telegraf.Metric) error {
+func (a *Agent) runServiceInput(input *models.RunningInput, dst chan<- telegraf.Metric) error {
 
 	if si, ok := input.Input.(telegraf.ServiceInput); ok {
 
@@ -203,7 +196,7 @@ func (a *Agent) runInputs(ctx context.Context, startTime time.Time) error {
 
 		case telegraf.ServiceInput:
 			l.Info("starting service input ...")
-			if err := a.runServiceInput(ctx, input, dst.ch); err != nil {
+			if err := a.runServiceInput(input, dst.ch); err != nil {
 				return err
 			}
 
@@ -233,6 +226,7 @@ func (a *Agent) stopInputs() {
 		if _, ok := input.Input.(telegraf.ServiceInput); !ok {
 			continue
 		}
+
 		l.Debugf("stopping service input: %s", input.Config.Name)
 		if si, ok := input.Input.(telegraf.ServiceInput); ok {
 			si.Stop()
