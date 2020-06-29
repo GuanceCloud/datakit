@@ -468,7 +468,7 @@ var (
 			entry:    "main.go",
 			osarchs: map[string]bool{
 				"linux/amd64": true,
-				//"linux/386":   true,
+				"linux/386":   true,
 			},
 
 			buildArgs: nil,
@@ -485,18 +485,17 @@ func buildExternals(outdir, goos, goarch string) {
 	for _, ex := range exMonitors {
 		log.Printf("[debug] build %s/%s %s to %s...", goos, goarch, ex.name, outdir)
 
-		out := ex.name
 		osarch := goos + "/" + goarch
+		if _, ok := ex.osarchs[osarch]; !ok {
+			log.Printf("skip build %s under %s", ex.name, osarch)
+			return
+		}
 
+		out := ex.name
 		switch osarch {
 		case "windows/amd64", "windows/386":
 			out = out + ".exe"
 		default: // pass
-
-			if _, ok := ex.osarchs[osarch]; !ok {
-				log.Printf("skip build %s under %s", ex.name, osarch)
-				return
-			}
 		}
 
 		if ex.isGolang {
