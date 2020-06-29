@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -77,6 +78,10 @@ func (s *Server) Catalog() string {
 	return pluginName // XXX: use plugin name as the catalog
 }
 
+func (s *Server) Interval() time.Duration {
+	return time.Duration(0)
+}
+
 func (s *Server) SampleConfig() string {
 	return externalConfigSample
 }
@@ -92,6 +97,8 @@ var (
 )
 
 func (s *Server) Run() {
+	l = logger.SLogger("external")
+	l.Infof("gRPC external started...")
 
 	if _, err := os.Stat(s.External.Listen); err == nil {
 		if err := os.Remove(s.External.Listen); err != nil {
@@ -99,7 +106,6 @@ func (s *Server) Run() {
 		}
 	}
 
-	l = logger.SLogger("external")
 	var err error
 
 	rpcListener, err = net.Listen("unix", s.External.Listen)
@@ -112,11 +118,19 @@ func (s *Server) Run() {
 
 	s.rpcServer = grpc.NewServer()
 	RegisterDataKitServer(s.rpcServer, s)
-	if err := s.rpcServer.Serve(rpcListener); err != nil {
-		l.Error(err)
-	}
-}
 
-func (s *Server) Stop() {
+	go func() {
+		if err := s.rpcServer.Serve(rpcListener); err != nil {
+			l.Error(err)
+		}
+
+		l.Info("gRPC server exit")
+	}()
+
+	<-config.Exit.Wait()
+	l.Info("stopping gRPC server...")
 	s.rpcServer.Stop()
+
+	l.Info("exit")
+	return
 }
