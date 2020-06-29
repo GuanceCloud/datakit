@@ -15,7 +15,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
@@ -150,7 +149,10 @@ func reloadLoop(stop chan struct{}) {
 			default:
 				l.Infof("get signal %v, wait & exit", s)
 				config.Exit.Close()
+
+				l.Info("wait all goroutines exit...")
 				config.WG.Wait()
+
 				os.Exit(0)
 			}
 		}
@@ -162,12 +164,6 @@ func reloadLoop(stop chan struct{}) {
 		if err := runTelegraf(); err != nil {
 			l.Fatalf("fail to start sub service: %s", err)
 		}
-	}()
-
-	config.WG.Add(1)
-	go func() {
-		defer config.WG.Done()
-		go io.Start()
 	}()
 
 	config.WG.Add(1)
@@ -200,7 +196,7 @@ func runTelegraf() error {
 
 func runDatakit() error {
 
-	ag, err := run.NewAgent(config.Cfg)
+	ag, err := run.NewAgent()
 	if err != nil {
 		return err
 	}
