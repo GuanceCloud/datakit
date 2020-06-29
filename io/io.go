@@ -32,10 +32,6 @@ const ( // categories
 	Logging          = "/v1/write/logging"
 )
 
-type Input interface {
-	Run()
-}
-
 type iodata struct {
 	category string
 	data     []byte // line-protocol or json or others
