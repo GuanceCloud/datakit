@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -18,6 +16,7 @@ import (
 
 	_ "github.com/godror/godror"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"github.com/influxdata/toml"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
@@ -25,97 +24,81 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 )
-
-type instance struct {
-	Metric   string `json:"metric"`
-	Interval string `json:"interval"`
-
-	InstanceId string `json:"instance_id"`
-	User       string `json:"user"`
-	Password   string `json:"password"`
-	Desc       string `json:"description"`
-	Host       string `json:"host"`
-	Port       string `json:"port"`
-	Server     string `json:"server"`
-	Type       string `json:"type"`
-
-	db               *sql.DB       `json:"-"`
-	intervalDuration time.Duration `json:"-"`
-}
-
-type cfg struct {
-	Log       string      `json:"log"`
-	LogLevel  string      `json:"log_level"`
-	Instances []*instance `json:"instances"`
-	RPCServer string      `json:"rpc_server,omitempty"`
-
-	rpcCli external.DataKitClient
-}
 
 var (
-	flagCfg    = flag.String("cfg", "", "json config file path")
-	flagGetCfg = flag.String("get-cfg", "", "get config sample, default write to ./instances.json")
+	flagCfg    = flag.String("cfg", "", "toml config file path")
+	flagGetCfg = flag.String("get-cfg", "", "get config sample, default write to ./instances.toml")
 
-	flagJson = flag.String("json", "", "json config string")
+	flagRPCServer = flag.String("rpc-server", "unix://"+config.GRPCDomainSock, "gRPC server")
+	flagLog       = flag.String("log", filepath.Join(config.InstallDir, "external", "oraclemonitor.log"), "log file")
+	flagLogLevel  = flag.String("log-level", "info", "log file")
 
-	l *zap.SugaredLogger
-	C cfg
+	l         *zap.SugaredLogger
+	instances []*oraclemonitor.Instance
+	rpcCli    external.DataKitClient
 )
+
+type impl struct {
+	LibPath   string                    `toml:"libPath"` // no used
+	Instances []*oraclemonitor.Instance `toml:"instances"`
+}
 
 func main() {
 	flag.Parse()
 
 	if *flagGetCfg != "" {
 		// TODO
-		if err := os.MkdirAll(filepath.Dir(*flagGetCfg), os.ModePerm); err != nil {
-			panic(err)
-		}
-		cfgExample(*flagGetCfg)
+		panic("no implemented")
+	}
+
+	if *flagCfg == "" {
+		panic("toml config missing")
+	}
+
+	logger.SetGlobalRootLogger(*flagLog, *flagLogLevel, logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+	l = logger.SLogger("oraclemonitor")
+
+	data, err := ioutil.ReadFile(*flagCfg)
+	if err != nil {
+		l.Fatal(err)
 		return
 	}
 
-	if *flagCfg != "" {
-		data, err := ioutil.ReadFile(*flagCfg)
-		if err != nil {
-			panic(err)
-		}
-
-		*flagJson = string(data)
+	tbl, err := toml.Parse(data)
+	if err != nil {
+		l.Fatal(err)
+		return
 	}
 
-	if err := json.Unmarshal([]byte(*flagJson), &C); err != nil {
-		panic(err)
+	var i impl
+	if err := toml.UnmarshalTable(tbl, &i); err != nil {
+		l.Error(err)
+		return
 	}
 
-	if C.RPCServer == "" {
-		C.RPCServer = "unix://" + config.GRPCDomainSock
-	}
-
-	logger.SetGlobalRootLogger(C.Log, C.LogLevel, logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
-	l = logger.SLogger("oraclemonitor")
-
-	l.Infof("gRPC dial %s...", C.RPCServer)
-	conn, err := grpc.Dial(C.RPCServer, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Second*5))
+	l.Infof("gRPC dial %s...", *flagRPCServer)
+	conn, err := grpc.Dial(*flagRPCServer, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Second*5))
 	if err != nil {
 		l.Fatalf("connect RCP failed: %s", err)
 	}
 
-	l.Infof("gRPC connect %s ok", C.RPCServer)
+	l.Infof("gRPC connect %s ok", *flagRPCServer)
 	defer conn.Close()
 
-	C.rpcCli = external.NewDataKitClient(conn)
+	rpcCli = external.NewDataKitClient(conn)
 
-	Start()
+	i.Start()
 }
 
-func Start() {
+func (i *impl) Start() {
 
-	l.Infof("start monit %d oracle instances...", len(C.Instances))
+	l.Infof("start monit %d oracle instances...", len(i.Instances))
 
 	wg := sync.WaitGroup{}
 
-	for _, inst := range C.Instances {
+	for _, inst := range i.Instances {
 		connStr := fmt.Sprintf("%s/%s@%s/%s", inst.User, inst.Password, inst.Host, inst.Server)
 		db, err := sql.Open("godror", connStr)
 		if err != nil {
@@ -129,72 +112,39 @@ func Start() {
 			continue
 		}
 
-		inst.db = db
-		inst.intervalDuration = du
+		inst.DB = db
+		inst.IntervalDuration = du
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			inst.run()
+			run(inst)
 		}()
 	}
 
 	wg.Wait()
 }
 
-func cfgExample(to string) {
-	c := cfg{
-		Log:      "log",
-		LogLevel: "info",
-		Instances: []*instance{
-			&instance{
-				Metric:     "oracle_monitor",
-				Interval:   "1m",
-				InstanceId: "your-oracle-instance-id",
-				User:       "your-oracle-user-name",
-				Password:   "your-oracle-user-password",
-				Desc:       "your-oracle-description, optional",
-				Host:       "1.2.3.4",
-				Port:       "1521",
-				Server:     "your-oracle-server-name",
-				Type:       "instance-type, DG,RAC,. etc, optional",
-			},
-		},
-	}
-
-	data, err := json.MarshalIndent(c, "", "    ")
-	if err != nil {
-		panic(err)
-	}
-
-	var buf bytes.Buffer
-	json.HTMLEscape(&buf, data)
-
-	if err := ioutil.WriteFile(to, buf.Bytes(), os.ModePerm); err != nil {
-		panic(err)
-	}
-}
-
-func (i *instance) run() {
+func run(i *oraclemonitor.Instance) {
 	for {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		for key, stmt := range metricMap {
 
 			l.Debugf("sql: %s", key)
-			res, err := query(i.db, stmt)
+			res, err := query(i.DB, stmt)
 			if err != nil {
 				l.Errorf("oracle connect faild %v", err)
 				continue
 			}
 
-			i.handleResponse(key, res)
+			handleResponse(i, key, res)
 		}
 
-		internal.SleepContext(ctx, i.intervalDuration)
+		internal.SleepContext(ctx, i.IntervalDuration)
 	}
 }
 
-func (i *instance) handleResponse(m string, response []map[string]interface{}) error {
+func handleResponse(i *oraclemonitor.Instance, m string, response []map[string]interface{}) error {
 
 	lines := []string{}
 
@@ -233,7 +183,7 @@ func (i *instance) handleResponse(m string, response []map[string]interface{}) e
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := C.rpcCli.Feed(ctx, &external.Request{
+	r, err := rpcCli.Feed(ctx, &external.Request{
 		Lines:     []byte(strings.Join(lines, "\n")),
 		Precision: "ns",
 		Name:      "oraclemonitor",
