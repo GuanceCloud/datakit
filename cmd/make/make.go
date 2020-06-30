@@ -126,20 +126,13 @@ func (vd *versionDesc) withoutGitCommit() string {
 	return strings.Join(parts[:2], "-")
 }
 
-func runEnv(args, env []string) {
+func runEnv(args, env []string) ([]byte, error) {
 	cmd := exec.Command(args[0], args[1:]...)
 	if env != nil {
 		cmd.Env = append(os.Environ(), env...)
 	}
 
-	msg, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Fatalf("[error] failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
-	}
-}
-
-func run(args ...string) {
-	runEnv(args, nil)
+	return cmd.CombinedOutput()
 }
 
 func compileArch(bin, goos, goarch, dir string) {
@@ -152,7 +145,8 @@ func compileArch(bin, goos, goarch, dir string) {
 	args := []string{
 		"go", "build",
 		"-o", output,
-		"-ldflags", "-w -s",
+		"-ldflags",
+		"-w -s",
 		*flagMain,
 	}
 
@@ -164,7 +158,10 @@ func compileArch(bin, goos, goarch, dir string) {
 	}
 
 	log.Printf("[debug] building % 13s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
-	runEnv(args, env)
+	msg, err := runEnv(args, env)
+	if err != nil {
+		log.Fatalf("[error] failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+	}
 }
 
 func compile() {
@@ -502,11 +499,16 @@ func buildExternals(outdir, goos, goarch string) {
 			args := []string{
 				"go", "build",
 				"-o", filepath.Join(outdir, "external", out),
-				"-ldflags", "-w -s",
+				"-ldflags",
+				"-w -s",
 				filepath.Join("plugins/external", ex.name, ex.entry)}
-			envs := append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
+			env := append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
 
-			runEnv(args, envs)
+			msg, err := runEnv(args, env)
+			if err != nil {
+				log.Fatalf("[error] failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+			}
+
 		} else {
 			// TODO: for non-golang extras...
 		}
@@ -522,7 +524,8 @@ func buildInstaller(outdir, goos, goarch string) {
 	args := []string{
 		"go", "build",
 		"-o", filepath.Join(outdir, installerExe),
-		"-ldflags", fmt.Sprintf("-w -s -X main.DataKitGzipUrl=https://%s/%s", *flagDownloadAddr, gzName),
+		"-ldflags",
+		fmt.Sprintf("-w -s -X main.DataKitGzipUrl=https://%s/%s", *flagDownloadAddr, gzName),
 		"cmd/installer/installer.go",
 	}
 
@@ -531,5 +534,8 @@ func buildInstaller(outdir, goos, goarch string) {
 		"GOARCH=" + goarch,
 	}
 
-	runEnv(args, env)
+	msg, err := runEnv(args, env)
+	if err != nil {
+		log.Fatalf("[error] failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+	}
 }
