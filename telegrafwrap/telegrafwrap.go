@@ -65,8 +65,14 @@ func (s *TelegrafSvr) Start() error {
 				continue
 			}
 
-			if err := p.Signal(syscall.Signal(0)); err != nil {
-				l.Errorf("signal 0 to telegraf failed: %s", err)
+			switch runtime.GOOS {
+			case "windows":
+				// on windows, if os.FindProcess() ok, means the process is running
+				l.Debugf("telegraf on PID %d ok", proc.Pid)
+			default:
+				if err := p.Signal(syscall.Signal(0)); err != nil {
+					l.Errorf("signal 0 to telegraf failed: %s", err)
+				}
 			}
 
 		case <-config.Exit.Wait():
@@ -75,7 +81,7 @@ func (s *TelegrafSvr) Start() error {
 				l.Warnf("killing telegraf failed: %s, ignored", err)
 			}
 
-			l.Infof("killing telegraf (pid: %d) ok", proc.Pid)
+			l.Infof("killing telegraf (PID: %d) ok", proc.Pid)
 			return nil
 		}
 	}
