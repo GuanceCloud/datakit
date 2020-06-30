@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -16,7 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -32,6 +34,8 @@ var (
 	flagPub          = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/alpha/release/preprod`)
 
 	installerExe string
+
+	l *zap.SugaredLogger
 
 	/* Use:
 			go tool dist list
@@ -96,9 +100,6 @@ var (
 	windows/arm */
 
 	osarches = []string{
-		//`freebsd/386`,
-		//`freebsd/amd64`,
-
 		`linux/386`,
 		`linux/amd64`,
 		`linux/arm`,
@@ -120,7 +121,7 @@ type versionDesc struct {
 func (vd *versionDesc) withoutGitCommit() string {
 	parts := strings.Split(vd.Version, "-")
 	if len(parts) != 3 {
-		log.Fatalf("version info not in v<x.x>-<n>-g<commit-id> format: %s", vd.Version)
+		l.Fatalf("version info not in v<x.x>-<n>-g<commit-id> format: %s", vd.Version)
 	}
 
 	return strings.Join(parts[:2], "-")
@@ -157,10 +158,10 @@ func compileArch(bin, goos, goarch, dir string) {
 		"CGO_ENABLED=0",
 	}
 
-	log.Printf("[debug] building % 13s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
+	l.Debugf("building % 13s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
 	msg, err := runEnv(args, env)
 	if err != nil {
-		log.Fatalf("[error] failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+		l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 	}
 }
 
@@ -183,7 +184,7 @@ func compile() {
 
 		parts := strings.Split(arch, "/")
 		if len(parts) != 2 {
-			log.Fatalf("invalid arch %q", parts)
+			l.Fatalf("invalid arch %q", parts)
 		}
 
 		goos, goarch := parts[0], parts[1]
@@ -192,12 +193,12 @@ func compile() {
 
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
-			log.Fatalf("failed to mkdir: %v", err)
+			l.Fatalf("failed to mkdir: %v", err)
 		}
 
 		dir, err = filepath.Abs(dir)
 		if err != nil {
-			log.Fatal("[fatal] %v", err)
+			l.Fatal(err)
 		}
 
 		compileTask(*flagBinary, goos, goarch, dir)
@@ -212,7 +213,7 @@ func compile() {
 		buildInstaller(filepath.Join(*flagPubDir, *flagRelease), goos, goarch)
 	}
 
-	log.Printf("build elapsed %v", time.Since(start))
+	l.Infof("build elapsed %v", time.Since(start))
 }
 
 type installInfo struct {
@@ -223,28 +224,28 @@ type installInfo struct {
 
 func getCurrentVersionInfo(url string) *versionDesc {
 
-	log.Printf("get current online version: %s", url)
+	l.Infof("get current online version: %s", url)
 
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatalf("[fatal] %s", err.Error())
+		l.Fatal(err)
 	}
 
 	if resp.StatusCode != 200 {
-		log.Printf("[warn] get current online version failed, ignored")
+		l.Warn("get current online version failed, ignored")
 		return nil
 	}
 
 	defer resp.Body.Close()
 	info, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 
-	log.Printf("current online version: %s", string(info))
+	l.Infof("current online version: %s", string(info))
 	var vd versionDesc
 	if err := json.Unmarshal(info, &vd); err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 	return &vd
 }
@@ -262,11 +263,11 @@ func releaseAgent() {
 		bucket = os.Getenv(tag + "_OSS_BUCKET")
 		ossHost = os.Getenv(tag + "_OSS_HOST")
 	default:
-		log.Fatalf("unknown release type: %s", *flagRelease)
+		l.Fatalf("unknown release type: %s", *flagRelease)
 	}
 
 	if ak == "" || sk == "" {
-		log.Fatalf("[fatal] oss access key or secret key missing, tag=%s", strings.ToUpper(*flagRelease))
+		l.Fatalf("oss access key or secret key missing, tag=%s", strings.ToUpper(*flagRelease))
 	}
 
 	oc := &cliutils.OssCli{
@@ -279,7 +280,7 @@ func releaseAgent() {
 	}
 
 	if err := oc.Init(); err != nil {
-		log.Fatalf("[fatal] %s", err)
+		l.Fatal(err)
 	}
 
 	versionFile := `version`
@@ -305,7 +306,7 @@ func releaseAgent() {
 	var verId string
 
 	if curVd != nil && curVd.Version == git.Version {
-		log.Printf("[warn] Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
+		l.Warnf("Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
 		os.Exit(0)
 	}
 
@@ -318,7 +319,7 @@ func releaseAgent() {
 	for _, arch := range archs {
 		parts := strings.Split(arch, "/")
 		if len(parts) != 2 {
-			log.Fatalf("invalid arch %q", parts)
+			l.Fatalf("invalid arch %q", parts)
 		}
 		goos, goarch := parts[0], parts[1]
 
@@ -351,36 +352,41 @@ func releaseAgent() {
 	// backup old installer script online, make it possible to install old version if required
 	for k, v := range renameOssFiles {
 		if err := oc.Move(k, v); err != nil {
-			log.Printf("[debug] backup %s -> %s failed: %s, ignored", k, v, err.Error())
+			l.Debugf("backup %s -> %s failed: %s, ignored", k, v, err.Error())
 			continue
 		}
 
-		log.Printf("[debug] backup %s -> %s ok", k, v)
+		l.Debugf("backup %s -> %s ok", k, v)
 	}
 
 	// test if all file ok before uploading
 	for k, _ := range ossfiles {
 		if _, err := os.Stat(k); err != nil {
-			log.Fatalf("[error] %s", err.Error())
+			l.Fatal(err)
 		}
 	}
 
 	for k, v := range ossfiles {
-		log.Printf("[debug] upload %s -> %s ...", k, v)
+		l.Debugf("upload %s -> %s ...", k, v)
 		if err := oc.Upload(k, v); err != nil {
-			log.Fatal(err)
+			l.Fatal(err)
 		}
 	}
 
-	log.Println("Done :)")
+	l.Info("Done :)")
 }
 
 func main() {
 
 	var err error
 
+	logger.SetGlobalRootLogger("",
+		logger.DEBUG,
+		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+
+	l = logger.SLogger("make")
+
 	flag.Parse()
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
 
 	if *flagPub {
 		releaseAgent()
@@ -396,11 +402,11 @@ func main() {
 
 	versionInfo, err := json.Marshal(vd)
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 
 	if err := ioutil.WriteFile(path.Join(*flagPubDir, *flagRelease, "version"), versionInfo, 0666); err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 
 	os.RemoveAll(*flagBuildDir)
@@ -443,9 +449,9 @@ func tarFiles(goos, goarch string) {
 
 	err := cmd.Run()
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
-	log.Printf("[debug] tar %s ok", gz)
+	l.Debugf("tar %s ok", gz)
 }
 
 type dkexternal struct {
@@ -480,11 +486,11 @@ var (
 
 func buildExternals(outdir, goos, goarch string) {
 	for _, ex := range exMonitors {
-		log.Printf("[debug] build %s/%s %s to %s...", goos, goarch, ex.name, outdir)
+		l.Debugf("build %s/%s %s to %s...", goos, goarch, ex.name, outdir)
 
 		osarch := goos + "/" + goarch
 		if _, ok := ex.osarchs[osarch]; !ok {
-			log.Printf("skip build %s under %s", ex.name, osarch)
+			l.Debugf("skip build %s under %s", ex.name, osarch)
 			return
 		}
 
@@ -506,7 +512,7 @@ func buildExternals(outdir, goos, goarch string) {
 
 			msg, err := runEnv(args, env)
 			if err != nil {
-				log.Fatalf("[error] failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+				l.Errorf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 			}
 
 		} else {
@@ -517,7 +523,7 @@ func buildExternals(outdir, goos, goarch string) {
 
 func buildInstaller(outdir, goos, goarch string) {
 
-	log.Printf("[debug] build %s/%s installer to %s...", goos, goarch, outdir)
+	l.Debugf("build %s/%s installer to %s...", goos, goarch, outdir)
 
 	gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, git.Version)
 
@@ -536,6 +542,6 @@ func buildInstaller(outdir, goos, goarch string) {
 
 	msg, err := runEnv(args, env)
 	if err != nil {
-		log.Fatalf("[error] failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+		l.Errorf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 	}
 }
