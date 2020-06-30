@@ -1,12 +1,12 @@
 syntax = "proto3";
 
 //option go_package = ".;external";
-option go_package = "external";
+option go_package = "io";
 
-package external;
+package io;
 
 service DataKit {
-	rpc Feed(Request) returns (Response) {}
+	rpc Send(Request) returns (Response) {}
 }
 
 message Response {
