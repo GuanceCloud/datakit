@@ -2,6 +2,9 @@ package logger
 
 import (
 	"fmt"
+	"net/url"
+	"os"
+	"runtime"
 	"strings"
 
 	"go.uber.org/zap"
@@ -11,7 +14,8 @@ import (
 const (
 	OPT_ENC_CONSOLE  = 1 // non-json
 	OPT_SHORT_CALLER = 2
-	OPT_SHUGAR       = 4
+	OPT_STDOUT       = 4
+	OPT_SHUGAR       = 8
 
 	DEBUG = "debug"
 	INFO  = "info"
@@ -21,7 +25,7 @@ var (
 	defaultRootLogger *zap.Logger
 )
 
-func SetGlobalRootLogger(fpath, level string, options int) {
+func SetGlobalRootLogger(fpath, level string, options int) error {
 	if defaultRootLogger != nil {
 		panic(fmt.Sprintf("global root logger has been initialized: %+#v", defaultRootLogger))
 	}
@@ -31,13 +35,26 @@ func SetGlobalRootLogger(fpath, level string, options int) {
 	if err != nil {
 		panic(err)
 	}
+
+	return nil
 }
 
+const (
+	rootNotInitialized = "you should call SetGlobalRootLogger to initialize the global root logger"
+)
+
 func Logger(name string) *zap.Logger {
+	if defaultRootLogger == nil {
+		panic(rootNotInitialized)
+	}
 	return GetLogger(defaultRootLogger, name)
 }
 
 func SLogger(name string) *zap.SugaredLogger {
+	if defaultRootLogger == nil {
+		panic(rootNotInitialized)
+	}
+
 	return GetSugarLogger(defaultRootLogger, name)
 }
 
@@ -49,11 +66,14 @@ func GetSugarLogger(root *zap.Logger, name string) *zap.SugaredLogger {
 	return root.Sugar().Named(name)
 }
 
+func newWinFileSink(u *url.URL) (zap.Sink, error) {
+	return os.OpenFile(u.Path[1:], os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+}
+
 func NewRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 
 	cfg := &zap.Config{
-		Encoding:    `json`,
-		OutputPaths: []string{fpath},
+		Encoding: `json`,
 		EncoderConfig: zapcore.EncoderConfig{
 			NameKey:    "MOD",
 			MessageKey: "MSG",
@@ -67,6 +87,17 @@ func NewRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 			CallerKey:    "POS",
 			EncodeCaller: zapcore.FullCallerEncoder,
 		},
+	}
+
+	if fpath != "" {
+		cfg.OutputPaths = []string{fpath}
+
+		if runtime.GOOS == "windows" { // See: https://github.com/uber-go/zap/issues/621
+			zap.RegisterSink("winfile", newWinFileSink)
+			cfg.OutputPaths = []string{
+				"winfile:///" + fpath,
+			}
+		}
 	}
 
 	switch strings.ToLower(level) {
@@ -84,6 +115,10 @@ func NewRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 
 	if options&OPT_SHORT_CALLER != 0 {
 		cfg.EncoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+	}
+
+	if options&OPT_STDOUT != 0 || fpath == "" { // if no log file path set, default set to stdout
+		cfg.OutputPaths = append(cfg.OutputPaths, "stdout")
 	}
 
 	l, err := cfg.Build()

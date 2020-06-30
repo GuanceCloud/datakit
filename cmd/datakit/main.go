@@ -31,8 +31,9 @@ var (
 )
 
 var (
-	stopCh       chan struct{}
-	stopFalgCh   chan struct{}
+	stopCh     chan struct{}
+	waitExitCh chan struct{}
+
 	inputFilters = []string{}
 	l            *zap.SugaredLogger
 )
@@ -124,39 +125,32 @@ func (p *program) Start(s service.Service) error {
 
 func (p *program) run(s service.Service) {
 	stopCh = make(chan struct{})
-	stopFalgCh = make(chan struct{})
-	reloadLoop(stopCh)
+	waitExitCh = make(chan struct{})
+	__run()
 }
 
 func (p *program) Stop(s service.Service) error {
 	close(stopCh)
-	<-stopFalgCh //等待完整退出
+
+	// We must wait here:
+	// On windows, we stop datakit in services.msc, if datakit process do not
+	// echo to here, services.msc will complain the datakit process has been
+	// exit unexpected
+	<-waitExitCh
+
 	return nil
 }
 
-func reloadLoop(stop chan struct{}) {
-	reload := make(chan bool, 1)
-	reload <- true
+func exitDatakit() {
+	config.Exit.Close()
 
-	signals := make(chan os.Signal)
-	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
-	go func() {
-		for s := range signals {
-			switch s {
-			case syscall.SIGHUP:
-				// TODO: reload configures
+	l.Info("wait all goroutines exit...")
+	config.WG.Wait()
 
-			default:
-				l.Infof("get signal %v, wait & exit", s)
-				config.Exit.Close()
+	close(waitExitCh)
+}
 
-				l.Info("wait all goroutines exit...")
-				config.WG.Wait()
-
-				os.Exit(0)
-			}
-		}
-	}()
+func __run() {
 
 	config.WG.Add(1)
 	go func() {
@@ -164,17 +158,37 @@ func reloadLoop(stop chan struct{}) {
 		if err := runTelegraf(); err != nil {
 			l.Fatalf("fail to start sub service: %s", err)
 		}
+
+		l.Info("telegraf process exit ok")
 	}()
 
-	config.WG.Add(1)
-	go func() {
-		defer config.WG.Done()
-		if err := runDatakit(); err != nil && err != context.Canceled {
-			l.Fatalf("datakit abort: %s", err)
+	if err := runDatakit(); err != nil && err != context.Canceled {
+		l.Fatalf("datakit abort: %s", err)
+	}
+
+	l.Info("datakit start ok. Wait signal or service stop...")
+
+	// NOTE:
+	// Actually, the datakit process been managed by system service, no matter on
+	// windows/UNIX, datakit should exit via `service-stop' operation, so the signal
+	// branch should not reached, but for daily debugging(ctrl-c), we kept the signal
+	// exit option.
+	signals := make(chan os.Signal)
+	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
+	select {
+	case sig := <-signals:
+		if sig == syscall.SIGHUP {
+			// TODO: reload configures
+		} else {
+			l.Infof("get signal %v, wait & exit", sig)
+			exitDatakit()
 		}
-	}()
+	case <-stopCh:
+		l.Infof("service stopping")
+		exitDatakit()
+	}
 
-	config.WG.Wait()
+	l.Info("datakit exit.")
 }
 
 func loadConfig() {
