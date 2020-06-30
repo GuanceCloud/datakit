@@ -71,6 +71,8 @@ func (tAdpt *TraceAdapter) mkLineProto() {
 	tags["__spanID"]        = tAdpt.spanID
 	if tAdpt.isError == "true" {
 		tags["__isError"] = "true"
+	} else {
+		tags["__isError"] = "false"
 	}
 
 	fields["__duration"]    = tAdpt.duration
