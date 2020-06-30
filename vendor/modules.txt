@@ -1,7 +1,3 @@
-# collectd.org v0.3.0
-collectd.org/api
-collectd.org/cdtime
-collectd.org/network
 # github.com/Azure/azure-sdk-for-go v37.1.0+incompatible
 github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights
 github.com/Azure/azure-sdk-for-go/version
@@ -51,8 +47,6 @@ github.com/Microsoft/hcsshim/osversion
 github.com/Pallinder/go-randomdata
 # github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d
 github.com/StackExchange/wmi
-# github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
-github.com/alecthomas/units
 # github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
 github.com/aliyun/alibaba-cloud-sdk-go/sdk
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth
@@ -199,8 +193,6 @@ github.com/containerd/ttrpc
 github.com/containerd/typeurl
 # github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 github.com/cznic/mathutil
-# github.com/davecgh/go-spew v1.1.1
-github.com/davecgh/go-spew/spew
 # github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
@@ -329,33 +321,10 @@ github.com/influxdata/influxdb1-client/pkg/escape
 github.com/influxdata/influxdb1-client/v2
 # github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
 github.com/influxdata/telegraf
-github.com/influxdata/telegraf/agent
 github.com/influxdata/telegraf/filter
-github.com/influxdata/telegraf/internal
-github.com/influxdata/telegraf/internal/config
-github.com/influxdata/telegraf/internal/models
-github.com/influxdata/telegraf/internal/rotate
-github.com/influxdata/telegraf/internal/templating
-github.com/influxdata/telegraf/logger
 github.com/influxdata/telegraf/metric
-github.com/influxdata/telegraf/plugins/aggregators
-github.com/influxdata/telegraf/plugins/inputs
 github.com/influxdata/telegraf/plugins/outputs
 github.com/influxdata/telegraf/plugins/outputs/wavefront
-github.com/influxdata/telegraf/plugins/parsers
-github.com/influxdata/telegraf/plugins/parsers/collectd
-github.com/influxdata/telegraf/plugins/parsers/csv
-github.com/influxdata/telegraf/plugins/parsers/dropwizard
-github.com/influxdata/telegraf/plugins/parsers/form_urlencoded
-github.com/influxdata/telegraf/plugins/parsers/graphite
-github.com/influxdata/telegraf/plugins/parsers/grok
-github.com/influxdata/telegraf/plugins/parsers/influx
-github.com/influxdata/telegraf/plugins/parsers/json
-github.com/influxdata/telegraf/plugins/parsers/logfmt
-github.com/influxdata/telegraf/plugins/parsers/nagios
-github.com/influxdata/telegraf/plugins/parsers/value
-github.com/influxdata/telegraf/plugins/parsers/wavefront
-github.com/influxdata/telegraf/plugins/processors
 github.com/influxdata/telegraf/plugins/serializers
 github.com/influxdata/telegraf/plugins/serializers/carbon2
 github.com/influxdata/telegraf/plugins/serializers/graphite
@@ -369,8 +338,6 @@ github.com/influxdata/telegraf/selfstat
 # github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 github.com/influxdata/toml
 github.com/influxdata/toml/ast
-# github.com/influxdata/wlog v0.0.0-20160411224016-7c63b0a71ef8
-github.com/influxdata/wlog
 # github.com/jackc/pgx v3.6.0+incompatible
 github.com/jackc/pgx
 github.com/jackc/pgx/chunkreader
@@ -477,8 +444,6 @@ github.com/pingcap/tipb/sharedbytes
 github.com/pkg/errors
 # github.com/pkg/sftp v1.11.0
 github.com/pkg/sftp
-# github.com/pmezard/go-difflib v1.0.0
-github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
 # github.com/prometheus/common v0.9.1
@@ -513,11 +478,6 @@ github.com/siddontang/go-mysql/replication
 github.com/siddontang/go-mysql/schema
 # github.com/sirupsen/logrus v1.5.0
 github.com/sirupsen/logrus
-# github.com/stretchr/objx v0.1.1
-github.com/stretchr/objx
-# github.com/stretchr/testify v1.5.1
-github.com/stretchr/testify/assert
-github.com/stretchr/testify/mock
 # github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 github.com/syndtr/gocapability/capability
 # github.com/tencentcloud/tencentcloud-sdk-go v3.0.123+incompatible
@@ -564,8 +524,6 @@ github.com/vinllen/mgo/bson
 github.com/vinllen/mgo/internal/json
 github.com/vinllen/mgo/internal/sasl
 github.com/vinllen/mgo/internal/scram
-# github.com/vjeantet/grok v1.0.0
-github.com/vjeantet/grok
 # github.com/wavefronthq/wavefront-sdk-go v0.9.2
 github.com/wavefronthq/wavefront-sdk-go/histogram
 github.com/wavefronthq/wavefront-sdk-go/internal
@@ -581,7 +539,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200619025526-f2b7aec88054
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200630070400-b23b83b0b65d
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -23,7 +22,9 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/influxdata/toml"
 	"github.com/kardianos/service"
+	"go.uber.org/zap"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
@@ -37,6 +38,8 @@ var (
 	dkservice        service.Service
 	lagacyInstallDir = ""
 
+	l *zap.SugaredLogger
+
 	flagUpgrade         = flag.Bool("upgrade", false, ``)
 	flagDataway         = flag.String("dataway", "", `address of dataway(ip:port), port default 9528`)
 	flagVersion         = flag.Bool("version", false, "show installer version info")
@@ -46,7 +49,8 @@ var (
 
 func main() {
 
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+	l = logger.SLogger("installer")
 
 	flag.Parse()
 
@@ -56,7 +60,7 @@ func main() {
 
 	// create install dir if not exists
 	if err := os.MkdirAll(installDir, 0775); err != nil {
-		log.Fatalf("E! %s", err.Error())
+		l.Fatal(err)
 	}
 
 	datakitExe := filepath.Join(installDir, "datakit")
@@ -75,12 +79,14 @@ func main() {
 	})
 
 	if err != nil {
-		log.Fatalf("E! new %s service failed: %s", runtime.GOOS, err.Error())
+		l.Fatalf("new %s service failed: %s", runtime.GOOS, err.Error())
 	}
 
 	stopDataKitService(dkservice) // stop service if installed before
 
 	if *flagUpgrade { // upgrade new version
+
+		l.Info("Upgrading...")
 
 		migrateLagacyDatakit()
 
@@ -114,31 +120,31 @@ func main() {
 			dwcfg, err = parseDataway(*flagDataway)
 
 			if err != nil {
-				log.Fatalf("E! %s", err.Error())
+				l.Fatal(err)
 			}
 		}
 
 		uninstallDataKitService(dkservice) // uninstall service if installed before
 
 		if err := config.InitCfg(dwcfg); err != nil {
-			log.Fatalf("E! failed to init datakit main config: %s", err.Error())
+			l.Fatalf("failed to init datakit main config: %s", err.Error())
 		}
 	}
 
-	log.Printf("I! install service %s...", ServiceName)
+	l.Infof("install service %s...", ServiceName)
 	if err := installDatakitService(dkservice); err != nil {
-		log.Printf("I! fail to register service %s: %s, ignored", ServiceName, err.Error())
+		l.Warnf("fail to register service %s: %s, ignored", ServiceName, err.Error())
 	}
 
-	log.Printf("I! starting service %s...", ServiceName)
+	l.Infof("starting service %s...", ServiceName)
 	if err := startDatakitService(dkservice); err != nil {
-		log.Fatalf("E! fail to star service %s: %s", ServiceName, err.Error())
+		l.Fatalf("fail to star service %s: %s", ServiceName, err.Error())
 	}
 
 	if *flagUpgrade { // upgrade new version
-		log.Println("I! :) Upgrade Success!")
+		l.Info(":) Upgrade Success!")
 	} else {
-		log.Println("I! :) Install Success!")
+		l.Info(":) Install Success!")
 	}
 }
 
@@ -181,7 +187,7 @@ func readInput(prompt string) string {
 	fmt.Print(prompt)
 	txt, err := reader.ReadString('\n')
 	if err != nil {
-		log.Fatalf("E! %s", err.Error())
+		l.Fatal(err)
 	}
 
 	return strings.TrimSpace(txt)
@@ -191,11 +197,11 @@ func doDownload(r io.Reader, to string) {
 
 	f, err := os.OpenFile(to, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
-		log.Fatalf("E! %s", err.Error())
+		l.Fatal(err)
 	}
 
 	if _, err := io.Copy(f, r); err != nil {
-		log.Fatalf("E! %s", err.Error())
+		l.Fatal(err)
 	}
 
 	f.Close()
@@ -204,7 +210,7 @@ func doDownload(r io.Reader, to string) {
 func doExtract(r io.Reader, to string) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
-		log.Fatalf("E! %s", err.Error())
+		l.Fatal(err)
 	}
 
 	defer gzr.Close()
@@ -215,7 +221,7 @@ func doExtract(r io.Reader, to string) {
 		case err == io.EOF:
 			return
 		case err != nil:
-			log.Fatalf("E! %s", err.Error())
+			l.Fatal(err)
 		case hdr == nil:
 			continue
 		}
@@ -225,23 +231,23 @@ func doExtract(r io.Reader, to string) {
 		case tar.TypeDir:
 			if _, err := os.Stat(target); err != nil {
 				if err := os.MkdirAll(target, 0755); err != nil {
-					log.Fatalf("E! %s", err.Error())
+					l.Fatal(err)
 				}
 			}
 
 		case tar.TypeReg:
 
 			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
-				log.Fatalf("E! %s", err.Error())
+				l.Fatal(err)
 			}
 
 			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
 			if err != nil {
-				log.Fatalf("E! %s", err.Error())
+				l.Fatal(err)
 			}
 
 			if _, err := io.Copy(f, tr); err != nil {
-				log.Fatalf("E! %s", err.Error())
+				l.Fatal(err)
 			}
 
 			f.Close()
@@ -252,7 +258,7 @@ func doExtract(r io.Reader, to string) {
 func extractDatakit(gz, to string) {
 	data, err := os.Open(gz)
 	if err != nil {
-		log.Fatalf("E! open file %s failed: %s", gz, err)
+		l.Fatalf("open file %s failed: %s", gz, err)
 	}
 
 	defer data.Close()
@@ -277,7 +283,7 @@ func (wc *writeCounter) Write(p []byte) (int, error) {
 func downloadDatakit(from, to string) {
 	resp, err := http.Get(from)
 	if err != nil {
-		log.Fatalf("E! failed to download %s: %s", from, err)
+		l.Fatalf("failed to download %s: %s", from, err)
 	}
 
 	defer resp.Body.Close()
@@ -315,19 +321,19 @@ func parseDataway(dw string) (*config.DataWayCfg, error) {
 			dwcfg.Host = dwcfg.Host + ":443"
 		}
 	} else {
-		log.Printf("E! invalid dataway %s: %s", dw, err.Error())
+		l.Errorf("invalid dataway %s: %s", dw, err.Error())
 		return nil, err
 	}
 
-	log.Printf("D! Testing DataWay(%s)...", dwcfg.Host)
+	l.Debugf("Testing DataWay(%s)...", dwcfg.Host)
 	conn, err := net.DialTimeout("tcp", dwcfg.Host, time.Second*5)
 	if err != nil {
-		log.Printf("E! connect dataway %s failed: %s", dwcfg.Host, err.Error())
+		l.Errorf("E! connect dataway %s failed: %s", dwcfg.Host, err.Error())
 		return nil, err
 	}
 
 	if err := conn.Close(); err != nil {
-		log.Printf("E! close dataway %s failed: %s, ignored", dwcfg.Host, err.Error())
+		l.Errorf("E! close dataway %s failed: %s, ignored", dwcfg.Host, err.Error())
 	}
 
 	return dwcfg, nil
@@ -342,7 +348,7 @@ func (p *program) Stop(s service.Service) error  { return nil }
 func stopDataKitService(s service.Service) error {
 
 	if err := service.Control(s, "stop"); err != nil {
-		log.Printf("I! stop service datakit failed: %s, ignored", err.Error())
+		l.Warnf("stop service datakit failed: %s, ignored", err.Error())
 	}
 
 	return nil
@@ -350,7 +356,7 @@ func stopDataKitService(s service.Service) error {
 
 func uninstallDataKitService(s service.Service) error {
 	if err := service.Control(s, "uninstall"); err != nil {
-		log.Printf("W! Stop service datakit failed: %s, ignored", err.Error())
+		l.Warnf("stop service datakit failed: %s, ignored", err.Error())
 	}
 
 	return nil
@@ -371,14 +377,14 @@ func stopLagacyDatakit() {
 	default:
 		cmd := exec.Command(`stop`, []string{ServiceName}...)
 		if _, err := cmd.Output(); err != nil {
-			log.Printf("D! upstart stop datakit failed, try systemctl...")
+			l.Debugf("upstart stop datakit failed, try systemctl...")
 		} else {
 			return
 		}
 
 		cmd = exec.Command("systemctl", []string{"stop", ServiceName}...)
 		if _, err := cmd.Output(); err != nil {
-			log.Printf("D! systemctl stop datakit failed, ignored")
+			l.Debugf("systemctl stop datakit failed, ignored")
 		}
 	}
 }
@@ -386,29 +392,33 @@ func stopLagacyDatakit() {
 func updateLagacyConfig(dir string) {
 	cfgdata, err := ioutil.ReadFile(filepath.Join(dir, "datakit.conf"))
 	if err != nil {
-		log.Fatalf("E! read lagacy datakit.conf failed: %s", err.Error())
+		l.Fatalf("read lagacy datakit.conf failed: %s", err.Error())
 	}
 
 	var maincfg config.MainConfig
 	if err := toml.Unmarshal(cfgdata, &maincfg); err != nil {
-		log.Fatalf("E! TOML unmarshal failed: %s", err.Error())
+		l.Fatalf("toml unmarshal failed: %s", err.Error())
 	}
 
 	maincfg.Log = filepath.Join(installDir, "datakit.log") // reset log path
 	maincfg.ConfigDir = ""                                 // remove conf.d config: we use static conf.d dir, *not* configurable
 
-	// split orgin ftdataway into dataway object
-	dwcfg, err := parseDataway(maincfg.FtGateway)
-	if err != nil {
-		log.Fatalf("E! %s", err.Error())
-	}
+	l.Debugf("maincfg: %+#v", maincfg)
 
-	maincfg.FtGateway = "" // deprecated
-	maincfg.DataWay = dwcfg
+	// split orgin ftdataway into dataway object
+	if maincfg.FtGateway != "" {
+		dwcfg, err := parseDataway(maincfg.FtGateway)
+		if err != nil {
+			l.Fatal(err)
+		}
+
+		maincfg.FtGateway = "" // deprecated
+		maincfg.DataWay = dwcfg
+	}
 
 	fd, err := os.OpenFile(filepath.Join(dir, "datakit.conf"), os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
 	if err != nil {
-		log.Fatalf("E! %s", err.Error())
+		l.Fatal(err)
 	}
 
 	defer fd.Close()
@@ -416,10 +426,10 @@ func updateLagacyConfig(dir string) {
 	tmp := template.New("")
 	tmp, err = tmp.Parse(config.MainConfigTemplate)
 	if err != nil {
-		log.Fatalf("E! %s", err.Error())
+		l.Fatal(err)
 	}
 	if err := tmp.Execute(fd, maincfg); err != nil {
-		log.Fatalf("E! %s", err.Error())
+		l.Fatal(err)
 	}
 }
 
@@ -441,11 +451,11 @@ func migrateLagacyDatakit() {
 		lagacyInstallDir = `/usr/local/cloudcare/forethought/` + ServiceName
 		lagacyServiceFiles = []string{"/lib/systemd/system/datakit.service", "/etc/systemd/system/datakit.service"}
 	default:
-		log.Fatalf("E! %s not support", osarch)
+		l.Fatalf("%s not support", osarch)
 	}
 
 	if _, err := os.Stat(lagacyInstallDir); err != nil {
-		log.Printf("D! no lagacy datakit installed")
+		l.Debug("no lagacy datakit installed")
 		return
 	}
 
@@ -457,7 +467,7 @@ func migrateLagacyDatakit() {
 	for _, sf := range lagacyServiceFiles {
 		if _, err := os.Stat(sf); err == nil {
 			if err := os.Remove(sf); err != nil {
-				log.Fatalf("E! remove %s failed: %s", sf, err.Error())
+				l.Fatalf("remove %s failed: %s", sf, err.Error())
 			}
 		}
 	}
@@ -466,12 +476,12 @@ func migrateLagacyDatakit() {
 
 	// move all lagacy datakit files to new install dir
 	if err := os.Rename(lagacyInstallDir, installDir); err != nil {
-		log.Fatalf("E! remove %s failed: %s", installDir, err.Error())
+		l.Fatalf("remove %s failed: %s", installDir, err.Error())
 	}
 
 	for _, dir := range []string{config.TelegrafDir, config.DataDir, config.LuaDir, config.ConfdDir} {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			log.Fatalf("E! create %s failed: %s", dir, err)
+			l.Fatalf("create %s failed: %s", dir, err)
 		}
 	}
 }
