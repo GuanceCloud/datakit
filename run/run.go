@@ -25,10 +25,18 @@ func (a *Agent) Run() error {
 
 	l = logger.SLogger("run")
 
+	io.Init()
+
 	config.WG.Add(1)
 	go func() {
 		defer config.WG.Done()
 		go io.Start()
+	}()
+
+	config.WG.Add(1)
+	go func() {
+		defer config.WG.Done()
+		go io.GRPCServer()
 	}()
 
 	if err := a.runInputs(); err != nil {
