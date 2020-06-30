@@ -23,7 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 )
 
@@ -37,7 +37,7 @@ var (
 
 	l         *zap.SugaredLogger
 	instances []*oraclemonitor.Instance
-	rpcCli    external.DataKitClient
+	rpcCli    io.DataKitClient
 )
 
 type impl struct {
@@ -87,7 +87,7 @@ func main() {
 	l.Infof("gRPC connect %s ok", *flagRPCServer)
 	defer conn.Close()
 
-	rpcCli = external.NewDataKitClient(conn)
+	rpcCli = io.NewDataKitClient(conn)
 
 	i.Start()
 }
@@ -183,7 +183,7 @@ func handleResponse(i *oraclemonitor.Instance, m string, response []map[string]i
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := rpcCli.Feed(ctx, &external.Request{
+	r, err := rpcCli.Send(ctx, &io.Request{
 		Lines:     []byte(strings.Join(lines, "\n")),
 		Precision: "ns",
 		Name:      "oraclemonitor",
