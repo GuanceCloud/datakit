@@ -22,6 +22,8 @@ var (
 
 	httpCli      *http.Client
 	categoryURLs map[string]string
+
+	inited = false
 )
 
 const ( // categories
@@ -30,6 +32,8 @@ const ( // categories
 	KeyEvent         = "/v1/write/keyevent"
 	Object           = "/v1/write/object"
 	Logging          = "/v1/write/logging"
+
+	initErr = "you should call io.Init() before starting any services under io"
 )
 
 type iodata struct {
@@ -57,8 +61,17 @@ func Feed(data []byte, category string) error {
 	return nil
 }
 
-func Start() {
+// there is more than 1 service under io module, we should init some data before these services starting
+func Init() {
 	l = logger.SLogger("io")
+	inited = true
+}
+
+func Start() {
+
+	if !inited {
+		panic(initErr)
+	}
 
 	baseURL = "http://" + config.Cfg.MainCfg.DataWay.Host
 	if config.Cfg.MainCfg.DataWay.Scheme == "https" {
