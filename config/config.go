@@ -190,7 +190,7 @@ func (c *Config) LoadMainConfig() error {
 
 	data, err := ioutil.ReadFile(c.MainCfg.cfgPath)
 	if err != nil {
-		return fmt.Errorf("main config error, %s", err.Error())
+		return fmt.Errorf("read main config %s error, %s", c.MainCfg.cfgPath, err.Error())
 	}
 
 	tbl, err := parseConfig(data)
@@ -382,7 +382,7 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 
 	tbl, err := parseConfig(data)
 	if err != nil {
-		l.Errorf("[error] parse conf failed on %s: %s", name, err)
+		l.Errorf("[error] parse conf failed on [%s]: %s", name, err)
 		return err
 	}
 
