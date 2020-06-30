@@ -18,7 +18,6 @@ import (
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/coredns"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dataclean"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/harborMonitor"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
@@ -47,7 +46,7 @@ import (
 	// 32bit disabled, only 64 bit available
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
 
-	// depends on
+	// external inputs wrap
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 	// with dll/so dependencies, and also 32bit disabled
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/netPacket"
