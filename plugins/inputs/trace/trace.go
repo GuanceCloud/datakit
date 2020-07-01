@@ -3,9 +3,9 @@ package trace
 import (
 	"go.uber.org/zap"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var (
@@ -40,8 +40,8 @@ func (t *Trace) Run() {
 		return
 	}
 
-	log = logger.SLogger("mock")
-	log.Info("mock trace started...")
+	log = logger.SLogger("trace")
+	log.Info("trace input started...")
 
 	io.RegisterRoute(t.Path, writeTracing)
 }
