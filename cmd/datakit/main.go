@@ -31,8 +31,8 @@ var (
 )
 
 var (
-	stopCh     chan struct{}
-	waitExitCh chan struct{}
+	stopCh     chan struct{} = make(chan struct{})
+	waitExitCh chan struct{} = make(chan struct{})
 
 	inputFilters = []string{}
 	l            *zap.SugaredLogger
@@ -124,8 +124,6 @@ func (p *program) Start(s service.Service) error {
 }
 
 func (p *program) run(s service.Service) {
-	stopCh = make(chan struct{})
-	waitExitCh = make(chan struct{})
 	__run()
 }
 
@@ -147,6 +145,7 @@ func exitDatakit() {
 	l.Info("wait all goroutines exit...")
 	config.WG.Wait()
 
+	l.Info("closing waitExitCh...")
 	close(waitExitCh)
 }
 
