@@ -35,7 +35,7 @@ func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
 			return &Response{Err: err.Error()}, nil
 		}
 
-		l.Debugf("received %d points", len(pts))
+		l.Debugf("received %d points from %s", len(pts), req.Name)
 		Feed(req.Lines, Metric)
 		resp.Points = int64(len(pts))
 	}
