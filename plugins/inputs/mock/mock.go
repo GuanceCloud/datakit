@@ -90,13 +90,14 @@ func (m *Mock) Run() {
 			}
 
 			data := []byte(pt.String())
-			l.Debugf("feed %d bytes to io", len(data))
 			if err := io.Feed(data, io.Metric); err != nil {
 				l.Error(err)
+			} else {
+				l.Debugf("feed %d bytes to io ok", len(data))
 			}
 
 		case <-config.Exit.Wait():
-			l.Info("input mock exit")
+			l.Info("exit")
 			return
 		}
 	}
