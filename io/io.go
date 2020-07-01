@@ -43,7 +43,9 @@ type iodata struct {
 
 func init() {
 	input = make(chan *iodata, 128)
-	httpCli = &http.Client{}
+	httpCli = &http.Client{
+		Timeout: time.Second,
+	}
 }
 
 func Feed(data []byte, category string) error {
@@ -122,7 +124,9 @@ func Start() {
 				}
 
 			case <-tick.C:
+				l.Debugf("flushing...")
 				flush(cache)
+				l.Debugf("flush done")
 
 			case <-config.Exit.Wait():
 				l.Info("exit")
@@ -136,6 +140,9 @@ func Start() {
 }
 
 func flush(cache map[string][][]byte) {
+
+	defer httpCli.CloseIdleConnections()
+
 	if err := doFlush(cache[Metric], Metric); err == nil {
 		cache[Metric] = nil
 	}
@@ -156,6 +163,7 @@ func flush(cache map[string][][]byte) {
 func doFlush(bodies [][]byte, url string) error {
 
 	if bodies == nil {
+		l.Debugf("no data, skip %s", url)
 		return nil
 	}
 
@@ -188,12 +196,15 @@ func doFlush(bodies [][]byte, url string) error {
 		req.Header.Set("X-Max-POST-Interval", fmt.Sprintf("%v", config.MaxLifeCheckInterval))
 	}
 
+	l.Debugf("post to %s...", categoryURLs[url])
+
 	resp, err := httpCli.Do(req)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
 
+	l.Debugf("get resp from %s...", categoryURLs[url])
 	defer resp.Body.Close()
 	respbody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
