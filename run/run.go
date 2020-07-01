@@ -30,13 +30,15 @@ func (a *Agent) Run() error {
 	config.WG.Add(1)
 	go func() {
 		defer config.WG.Done()
-		go io.Start()
+		io.Start()
+		l.Info("io goroutine exit")
 	}()
 
 	config.WG.Add(1)
 	go func() {
 		defer config.WG.Done()
-		go io.GRPCServer()
+		io.GRPCServer()
+		l.Info("gRPC goroutine exit")
 	}()
 
 	if err := a.runInputs(); err != nil {
