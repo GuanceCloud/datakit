@@ -82,7 +82,7 @@ func (tAdpt *TraceAdapter) mkLineProto() {
 		log.Errorf("build metric err: %s", err)
 		return
 	}
-
+	
 	if err := io.Feed([]byte(pt.String()), io.Logging); err != nil {
 		log.Errorf("io feed err: %s", err)
 	}
@@ -104,44 +104,6 @@ func (t *TraceReqInfo) Decode(octets []byte) error {
 	return decoder.Decode(octets)
 }
 
-//func (t *Trace) Serve() {
-//	initLog()
-//
-//	path := strings.TrimSpace(t.Path)
-//	if !strings.HasPrefix(path, "/") {
-//		path = "/" + path
-//	}
-//
-//	router := gin.Default()
-//	router.POST(path, writeTracing)
-//	err := router.Run(t.Host)
-//	if err != nil {
-//		log.Printf("W! [trace] start server %s", err)
-//	}
-//}
-
-//func initLog() {
-//	gin.DisableConsoleColor()
-//
-//	ginLogDir := filepath.Join(config.InstallDir, "data", "trace")
-//	if _, err := os.Stat(ginLogDir); err != nil {
-//		if os.IsNotExist(err) {
-//			err := os.MkdirAll(ginLogDir, os.ModePerm)
-//			if err != nil {
-//				log.Printf("W! [trace] create gin log dir %s", err)
-//				return
-//			}
-//		}
-//	}
-//
-//	ginLogFile := filepath.Join(ginLogDir, "gin.log")
-//	if f, err := os.Create(ginLogFile); err != nil {
-//		return
-//	} else {
-//		gin.DefaultWriter = io.MultiWriter(f)
-//	}
-//}
-
 func writeTracing(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -154,10 +116,11 @@ func writeTracing(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("%v", err)
 	}
 }
+
 func handleTrace(w http.ResponseWriter, r *http.Request) error {
-	source := r.Header.Get("source")
-	version := r.Header.Get("version")
-	contentType := r.Header.Get("Content-Type")
+	source  := r.URL.Query().Get("source")
+	version := r.URL.Query().Get("version")
+	contentType     := r.Header.Get("Content-Type")
 	contentEncoding := r.Header.Get("Content-Encoding")
 
 	body, err := ioutil.ReadAll(r.Body)
