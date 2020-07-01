@@ -152,20 +152,14 @@ func exitDatakit() {
 
 func __run() {
 
-	config.WG.Add(1)
-	go func() {
-		defer config.WG.Done()
-		if err := runTelegraf(); err != nil {
-			l.Fatalf("fail to start sub service: %s", err)
-		}
-
-		l.Info("telegraf process exit ok")
-	}()
+	if err := runTelegraf(); err != nil {
+		l.Fatalf("fail to start sub service: %s", err)
+	}
+	l.Info("telegraf process exit ok")
 
 	if err := runDatakit(); err != nil && err != context.Canceled {
 		l.Fatalf("datakit abort: %s", err)
 	}
-
 	l.Info("datakit start ok. Wait signal or service stop...")
 
 	// NOTE:
