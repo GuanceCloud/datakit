@@ -3,23 +3,23 @@ package trace
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"time"
-	"runtime/debug"
-	"log"
+	"encoding/json"
 
-	"github.com/gin-gonic/gin"
-	"github.com/influxdata/telegraf/metric"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
 )
 
+type Reply struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+}
 type TraceDecoder interface {
 	Decode(octets []byte) error
 }
@@ -54,32 +54,38 @@ type TraceAdapter struct {
 	isError       string
 }
 
-const US_PER_SECOND int64= 1000000
+const US_PER_SECOND int64 = 1000000
 
 func (tAdpt *TraceAdapter) mkLineProto() {
-	tags   := make(map[string]string)
+	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
-	tags["__class"]         = tAdpt.class
+	tags["__class"] = tAdpt.class
 	tags["__operationName"] = tAdpt.operationName
-	tags["__serviceName"]   = tAdpt.serviceName
-	tags["__parentID"]      = tAdpt.parentID
-	tags["__traceID"]       = tAdpt.traceID
-	tags["__spanID"]        = tAdpt.spanID
+	tags["__serviceName"] = tAdpt.serviceName
+	tags["__parentID"] = tAdpt.parentID
+	tags["__traceID"] = tAdpt.traceID
+	tags["__spanID"] = tAdpt.spanID
 	if tAdpt.isError == "true" {
 		tags["__isError"] = "true"
+	} else {
+		tags["__isError"] = "false"
 	}
 
-	fields["__duration"]    = tAdpt.duration
-	fields["__content"]     = tAdpt.content
+	fields["__duration"] = tAdpt.duration
+	fields["__content"] = tAdpt.content
 
 	ts := time.Unix(tAdpt.timestampUs/US_PER_SECOND, (tAdpt.timestampUs%US_PER_SECOND)*1000)
-	pointMetric, err := metric.New(tAdpt.source, tags, fields, ts)
+
+	pt, err := influxdb.NewPoint(tAdpt.source, tags, fields, ts)
 	if err != nil {
-		log.Printf("W! [trace] build metric %s", err)
+		log.Errorf("build metric err: %s", err)
 		return
 	}
-	acc.AddMetric(pointMetric)
+
+	if err := io.Feed([]byte(pt.String()), io.Logging); err != nil {
+		log.Errorf("io feed err: %s", err)
+	}
 }
 
 func (t *TraceReqInfo) Decode(octets []byte) error {
@@ -98,92 +104,97 @@ func (t *TraceReqInfo) Decode(octets []byte) error {
 	return decoder.Decode(octets)
 }
 
-func (t *Trace) Serve() {
-	initLog()
+//func (t *Trace) Serve() {
+//	initLog()
+//
+//	path := strings.TrimSpace(t.Path)
+//	if !strings.HasPrefix(path, "/") {
+//		path = "/" + path
+//	}
+//
+//	router := gin.Default()
+//	router.POST(path, writeTracing)
+//	err := router.Run(t.Host)
+//	if err != nil {
+//		log.Printf("W! [trace] start server %s", err)
+//	}
+//}
 
-	path := strings.TrimSpace(t.Path)
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+//func initLog() {
+//	gin.DisableConsoleColor()
+//
+//	ginLogDir := filepath.Join(config.InstallDir, "data", "trace")
+//	if _, err := os.Stat(ginLogDir); err != nil {
+//		if os.IsNotExist(err) {
+//			err := os.MkdirAll(ginLogDir, os.ModePerm)
+//			if err != nil {
+//				log.Printf("W! [trace] create gin log dir %s", err)
+//				return
+//			}
+//		}
+//	}
+//
+//	ginLogFile := filepath.Join(ginLogDir, "gin.log")
+//	if f, err := os.Create(ginLogFile); err != nil {
+//		return
+//	} else {
+//		gin.DefaultWriter = io.MultiWriter(f)
+//	}
+//}
 
-	router := gin.Default()
-	router.POST(path, writeTracing)
-	err := router.Run(t.Host)
-	if err != nil {
-		log.Printf("W! [trace] start server %s", err)
-	}
-}
-
-func initLog() {
-	gin.DisableConsoleColor()
-
-	ginLogDir := filepath.Join(config.InstallDir, "data", "trace")
-	if _, err := os.Stat(ginLogDir); err != nil {
-		if os.IsNotExist(err) {
-			err := os.MkdirAll(ginLogDir, os.ModePerm)
-			if err != nil {
-				log.Printf("W! [trace] create gin log dir %s", err)
-				return
-			}
-		}
-	}
-
-	ginLogFile := filepath.Join(ginLogDir, "gin.log")
-	if f, err := os.Create(ginLogFile); err != nil {
-		return
-	} else {
-		gin.DefaultWriter = io.MultiWriter(f)
-	}
-}
-
-func writeTracing(c *gin.Context) {
-	defer func(){
+func writeTracing(w http.ResponseWriter, r *http.Request) {
+	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("W! [trace] %v", r)
-			log.Printf("W! [trace] %s", string(debug.Stack()))
+			log.Errorf("Stack crash: %v", r)
+			log.Errorf("Stack info :%s", string(debug.Stack()))
 		}
 	}()
 
-	if err := handleTrace(c); err != nil {
-		log.Printf("W! [trace] %v", err)
+	if err := handleTrace(w, r); err != nil {
+		log.Errorf("%v", err)
 	}
 }
-func handleTrace(c *gin.Context) error {
-	source := c.Query("source")
-	version := c.Query("version")
-	contentType := c.Request.Header.Get("Content-Type")
-	contentEncoding := c.Request.Header.Get("Content-Encoding")
+func handleTrace(w http.ResponseWriter, r *http.Request) error {
+	source := r.Header.Get("source")
+	version := r.Header.Get("version")
+	contentType := r.Header.Get("Content-Type")
+	contentEncoding := r.Header.Get("Content-Encoding")
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		JsonReply(c, http.StatusBadRequest, "Read body err: %s", err)
+		JsonReply(w, http.StatusBadRequest, "Read body err: %s", err)
 		return err
 	}
-	defer c.Request.Body.Close()
+	defer r.Body.Close()
 
 	if contentEncoding == "gzip" {
 		body, err = utils.ReadCompressed(bytes.NewReader(body), true)
 		if err != nil {
-			JsonReply(c, http.StatusBadRequest, "Uncompress body err: %s", err)
+			JsonReply(w, http.StatusBadRequest, "Uncompress body err: %s", err)
 			return err
 		}
 	}
-	
-	tInfo := TraceReqInfo{source, version, contentType,}
+
+	tInfo := TraceReqInfo{source, version, contentType}
 	err = tInfo.Decode(body)
 	if err != nil {
-		JsonReply(c, http.StatusBadRequest, "Parse trace err: %s", err)
+		JsonReply(w, http.StatusBadRequest, "Parse trace err: %s", err)
 		return err
 	}
 
-	JsonReply(c, http.StatusOK, "ok")
+	JsonReply(w, http.StatusOK, "ok")
 	return nil
 }
 
-func JsonReply(c *gin.Context, code int, strfmt string, args ...interface{}) {
+func JsonReply(w http.ResponseWriter, code int, strfmt string, args ...interface{}) {
 	msg := fmt.Sprintf(strfmt, args...)
-	c.JSON(code, gin.H{
-		"code":    code,
-		"message": msg,
+	w.WriteHeader(code)
+
+	r, err := json.Marshal(Reply{
+		Code: code,
+		Msg:  msg,
 	})
+	if err == nil {
+		w.Write(r)
+	}
 }
