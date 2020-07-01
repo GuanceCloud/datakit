@@ -9,18 +9,19 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
+type handler func(http.ResponseWriter, *http.Request)
 var (
 	routeList = struct {
-		*sync.Mutex
+		mut sync.Mutex
 		// map["/path"] = handle
-		m map[string]func(http.ResponseWriter, *http.Request)
-	}{}
+		m map[string]handler
+	}{mut: sync.Mutex{}, m: make(map[string]handler)}
 )
 
 func RegisterRoute(path string, handle func(http.ResponseWriter, *http.Request)) {
-	routeList.Lock()
+	routeList.mut.Lock()
 	routeList.m[path] = handle
-	routeList.Unlock()
+	routeList.mut.Unlock()
 }
 
 func HTTPServer() {
@@ -38,7 +39,7 @@ func HTTPServer() {
 		WriteTimeout: 10 * time.Second,
 	}
 
-	l.Info("start http server on %s ok", config.Cfg.MainCfg.HTTPServerAddr)
+	l.Infof("start http server on %s ok", config.Cfg.MainCfg.HTTPServerAddr)
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
