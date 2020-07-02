@@ -16,8 +16,7 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-#LOCAL_ARCHS = "linux/amd64|linux/386"
-LOCAL_ARCHS = "linux/amd64"
+LOCAL_ARCHS = "linux/amd64|linux/386|windows/amd64"
 #LOCAL_ARCHS = "all"
 DEFAULT_ARCHS = "all"
 
