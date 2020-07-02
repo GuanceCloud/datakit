@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os/user"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/ericchiang/k8s"
@@ -39,7 +38,6 @@ func loadClient(kubeconfigPath string) (*k8s.Client, error) {
 }
 
 func (p *Prometheus) start(ctx context.Context) error {
-	log.Printf("[prometheus] start...")
 
 	client, err := k8s.NewInClusterClient()
 	if err != nil {
@@ -59,8 +57,6 @@ func (p *Prometheus) start(ctx context.Context) error {
 		}
 	}
 
-	p.wg = sync.WaitGroup{}
-
 	p.wg.Add(1)
 	go func() {
 		defer p.wg.Done()
@@ -71,7 +67,7 @@ func (p *Prometheus) start(ctx context.Context) error {
 			case <-time.After(time.Second):
 				err := p.watch(ctx, client)
 				if err != nil {
-					p.Log.Errorf("Unable to watch resources: %s", err.Error())
+					log.Printf("E! Unable to watch resources: %s", err.Error())
 				}
 			}
 		}

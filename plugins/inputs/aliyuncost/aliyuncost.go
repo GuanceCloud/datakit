@@ -12,8 +12,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 	"golang.org/x/time/rate"
 
-	"github.com/influxdata/telegraf"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -31,13 +30,11 @@ type (
 	AliyunCostAgent struct {
 		Costs []*CostCfg `toml:"boa"`
 
-		runningInstances []*runningInstance
+		wg sync.WaitGroup
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
 		logger    *models.Logger
-
-		accumulator telegraf.Accumulator
 	}
 
 	runningInstance struct {
@@ -77,91 +74,75 @@ func (_ *AliyunCostAgent) SampleConfig() string {
 	return aliyuncostConfigSample
 }
 
-func (_ *AliyunCostAgent) Description() string {
-	return ""
-}
+// func (_ *AliyunCostAgent) Description() string {
+// 	return ""
+// }
 
-func (_ *AliyunCostAgent) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (ac *AliyunCostAgent) Init() error {
+func (ac *AliyunCostAgent) Run() {
 
 	ac.logger = &models.Logger{
 		Name: `aliyuncost`,
 	}
 
-	for _, cfg := range ac.Costs {
-		if cfg.AccountInterval.Duration == 0 {
-			cfg.AccountInterval.Duration = 24 * time.Hour
-		}
-
-		if cfg.BiilInterval.Duration == 0 {
-			cfg.BiilInterval.Duration = time.Hour
-		}
-
-		if cfg.OrdertInterval.Duration == 0 {
-			cfg.OrdertInterval.Duration = time.Hour
-		}
-	}
-
-	return nil
-}
-
-func (ac *AliyunCostAgent) Start(acc telegraf.Accumulator) error {
-
 	if len(ac.Costs) == 0 {
 		ac.logger.Warnf("no configuration found")
-		return nil
+		return
 	}
 
-	ac.logger.Infof("starting...")
-
-	ac.accumulator = acc
+	go func() {
+		<-config.Exit.Wait()
+		ac.cancelFun()
+	}()
 
 	for _, cfg := range ac.Costs {
+		ac.wg.Add(1)
 
-		ri := &runningInstance{
-			cfg:   cfg,
-			agent: ac,
-			ctx:   ac.ctx,
-		}
+		go func(cfg *CostCfg) {
+			defer ac.wg.Done()
 
-		limit := rate.Every(60 * time.Millisecond)
-		ri.rateLimiter = rate.NewLimiter(limit, 1)
-
-		if cfg.AccountInterval.Duration > 0 {
-			ri.modules = append(ri.modules, NewCostAccount(cfg, ri))
-		}
-
-		if cfg.BiilInterval.Duration > 0 {
-			ri.modules = append(ri.modules, NewCostBill(cfg, ri))
-		}
-
-		if cfg.OrdertInterval.Duration > 0 {
-			ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
-		}
-
-		if cfg.OrdertInterval.Duration > 0 {
-			ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
-		}
-
-		ac.runningInstances = append(ac.runningInstances, ri)
-
-		go func(r *runningInstance) {
-
-			if err := r.run(); err != nil && err != context.Canceled {
-				log.Printf("E! [aliyuncost] %s", err)
+			if cfg.AccountInterval.Duration == 0 {
+				cfg.AccountInterval.Duration = 24 * time.Hour
 			}
 
-		}(ri)
+			if cfg.BiilInterval.Duration == 0 {
+				cfg.BiilInterval.Duration = time.Hour
+			}
+
+			if cfg.OrdertInterval.Duration == 0 {
+				cfg.OrdertInterval.Duration = time.Hour
+			}
+
+			ri := &runningInstance{
+				cfg:   cfg,
+				agent: ac,
+				ctx:   ac.ctx,
+			}
+
+			limit := rate.Every(60 * time.Millisecond)
+			ri.rateLimiter = rate.NewLimiter(limit, 1)
+
+			if cfg.AccountInterval.Duration > 0 {
+				ri.modules = append(ri.modules, NewCostAccount(cfg, ri))
+			}
+
+			if cfg.BiilInterval.Duration > 0 {
+				ri.modules = append(ri.modules, NewCostBill(cfg, ri))
+			}
+
+			if cfg.OrdertInterval.Duration > 0 {
+				ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
+			}
+
+			if cfg.OrdertInterval.Duration > 0 {
+				ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
+			}
+
+			ri.run()
+
+		}(cfg)
 	}
 
-	return nil
-}
-
-func (ac *AliyunCostAgent) Stop() {
-	ac.cancelFun()
+	ac.wg.Wait()
 }
 
 func (s *runningInstance) suspendHistoryFetch() {
