@@ -12,10 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/influxdata/telegraf"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tls"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -105,8 +107,6 @@ type Prometheus struct {
 
 	tls.ClientConfig
 
-	Log telegraf.Logger
-
 	client *http.Client
 
 	// Should we scrape Kubernetes services for prometheus annotations
@@ -129,19 +129,9 @@ func (p *Prometheus) SampleConfig() string {
 	return sampleConfig
 }
 
-func (p *Prometheus) Description() string {
-	return "Read metrics from one or many prometheus clients"
-}
-
-func (p *Prometheus) Init() error {
-	if p.Interval.Duration == 0 {
-		p.Interval.Duration = time.Second * 10
-	}
-	// if p.MetricVersion != 2 {
-	// 	p.Log.Warnf("Use of deprecated configuration: 'metric_version = 1'; please update to 'metric_version = 2'")
-	// }
-	return nil
-}
+// func (p *Prometheus) Description() string {
+// 	return "Read metrics from one or many prometheus clients"
+// }
 
 var ErrProtocolError = errors.New("prometheus protocol error")
 
@@ -176,7 +166,7 @@ func (p *Prometheus) GetAllURLs() (map[string]URLAndAddress, error) {
 	for _, u := range p.URLs {
 		URL, err := url.Parse(u)
 		if err != nil {
-			p.Log.Errorf("Could not parse %q, skipping it. Error: %s", u, err.Error())
+			log.Printf("E! Could not parse %q, skipping it. Error: %s", u, err.Error())
 			continue
 		}
 		allURLs[URL.String()] = URLAndAddress{URL: URL, OriginalURL: URL}
@@ -197,7 +187,7 @@ func (p *Prometheus) GetAllURLs() (map[string]URLAndAddress, error) {
 
 		resolvedAddresses, err := net.LookupHost(URL.Hostname())
 		if err != nil {
-			p.Log.Errorf("Could not resolve %q, skipping it. Error: %s", URL.Host, err.Error())
+			log.Printf("E! Could not resolve %q, skipping it. Error: %s", URL.Host, err.Error())
 			continue
 		}
 		for _, resolved := range resolvedAddresses {
@@ -214,7 +204,7 @@ func (p *Prometheus) GetAllURLs() (map[string]URLAndAddress, error) {
 
 // Reads stats from all configured servers accumulates stats.
 // Returns one of the errors encountered while gather stats (if any).
-func (p *Prometheus) Gather(acc telegraf.Accumulator) error {
+func (p *Prometheus) gather() error {
 
 	log.Printf("[prometheus] gather start")
 
@@ -227,22 +217,24 @@ func (p *Prometheus) Gather(acc telegraf.Accumulator) error {
 		p.client = client
 	}
 
-	var wg sync.WaitGroup
-
 	allURLs, err := p.GetAllURLs()
 	if err != nil {
 		log.Printf("E! [prometheus] fail to GetAllURLs, %s", err)
 		return err
 	}
-	for _, URL := range allURLs {
-		wg.Add(1)
-		go func(serviceURL URLAndAddress) {
-			defer wg.Done()
-			acc.AddError(p.gatherURL(serviceURL, acc))
-		}(URL)
-	}
 
-	wg.Wait()
+	for _, URL := range allURLs {
+
+		select {
+		case <-p.stopCtx.Done():
+			return nil
+		default:
+			break
+		}
+
+		p.gatherURL(URL)
+
+	}
 
 	return nil
 }
@@ -264,11 +256,11 @@ func (p *Prometheus) createHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (p *Prometheus) gatherURL(u URLAndAddress, acc telegraf.Accumulator) error {
+func (p *Prometheus) gatherURL(u URLAndAddress) error {
 	var req *http.Request
 	var err error
 	var uClient *http.Client
-	var metrics []telegraf.Metric
+	var metrics []*influxdb.Point
 	if u.URL.Scheme == "unix" {
 		path := u.URL.Query().Get("path")
 		if path == "" {
@@ -356,27 +348,51 @@ func (p *Prometheus) gatherURL(u URLAndAddress, acc telegraf.Accumulator) error 
 			tags[k] = v
 		}
 
-		switch metric.Type() {
-		case telegraf.Counter:
-			acc.AddCounter(metric.Name(), metric.Fields(), tags, metric.Time())
-		case telegraf.Gauge:
-			acc.AddGauge(metric.Name(), metric.Fields(), tags, metric.Time())
-		case telegraf.Summary:
-			acc.AddSummary(metric.Name(), metric.Fields(), tags, metric.Time())
-		case telegraf.Histogram:
-			acc.AddHistogram(metric.Name(), metric.Fields(), tags, metric.Time())
-		default:
-			acc.AddFields(metric.Name(), metric.Fields(), tags, metric.Time())
+		fields, _ := metric.Fields()
+
+		pt, err := influxdb.NewPoint(metric.Name(), tags, fields, metric.Time())
+		if err == nil {
+			io.Feed([]byte(pt.String()), io.Metric)
 		}
+
+		// switch metric.Type() {
+		// case telegraf.Counter:
+		// 	acc.AddCounter(metric.Name(), metric.Fields(), tags, metric.Time())
+		// case telegraf.Gauge:
+		// 	acc.AddGauge(metric.Name(), metric.Fields(), tags, metric.Time())
+		// case telegraf.Summary:
+		// 	acc.AddSummary(metric.Name(), metric.Fields(), tags, metric.Time())
+		// case telegraf.Histogram:
+		// 	acc.AddHistogram(metric.Name(), metric.Fields(), tags, metric.Time())
+		// default:
+		// 	acc.AddFields(metric.Name(), metric.Fields(), tags, metric.Time())
+		// }
 	}
 
 	return nil
 }
 
 //Start will start the Kubernetes scraping if enabled in the configuration
-func (p *Prometheus) Start(a telegraf.Accumulator) error {
+func (p *Prometheus) Run() {
+
+	if p.Interval.Duration == 0 {
+		p.Interval.Duration = time.Second * 10
+	}
+	// if p.MetricVersion != 2 {
+	// 	p.Log.Warnf("Use of deprecated configuration: 'metric_version = 1'; please update to 'metric_version = 2'")
+	// }
 
 	go func() {
+		<-config.Exit.Wait()
+		p.stopCancelFun()
+		if p.MonitorPods {
+			p.cancel()
+		}
+	}()
+
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
 		for {
 
 			select {
@@ -385,7 +401,7 @@ func (p *Prometheus) Start(a telegraf.Accumulator) error {
 			default:
 			}
 
-			p.Gather(a)
+			p.gather()
 
 			internal.SleepContext(p.stopCtx, p.Interval.Duration)
 		}
@@ -394,16 +410,9 @@ func (p *Prometheus) Start(a telegraf.Accumulator) error {
 	if p.MonitorPods {
 		var ctx context.Context
 		ctx, p.cancel = context.WithCancel(context.Background())
-		return p.start(ctx)
+		p.start(ctx)
 	}
-	return nil
-}
 
-func (p *Prometheus) Stop() {
-	p.stopCancelFun()
-	if p.MonitorPods {
-		p.cancel()
-	}
 	p.wg.Wait()
 }
 

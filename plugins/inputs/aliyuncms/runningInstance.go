@@ -9,7 +9,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/influxdata/telegraf/metric"
 	"golang.org/x/time/rate"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
@@ -18,6 +17,9 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 var (
@@ -511,11 +513,11 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 		}
 
 		if len(fields) > 0 {
-			if s.agent.accumulator != nil {
-				s.agent.accumulator.AddFields(metricSetName, fields, tags, tm)
+			pt, err := influxdb.NewPoint(metricSetName, tags, fields, tm)
+			if err == nil {
+				io.Feed([]byte(pt.String()), io.Metric)
 			} else {
-				ms, _ := metric.New(metricSetName, tags, fields, tm)
-				fmt.Printf("%s", internal.Metric2InfluxLine(ms))
+				s.logger.Warnf("make point failed, %s", err)
 			}
 		}
 	}
