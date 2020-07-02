@@ -3,10 +3,9 @@ package awstrail
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	uuid "github.com/satori/go.uuid"
 	"golang.org/x/time/rate"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,9 +13,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 type (
@@ -26,11 +29,9 @@ type (
 		ctx       context.Context
 		cancelFun context.CancelFunc
 
-		accumulator telegraf.Accumulator
+		wg sync.WaitGroup
 
 		logger *models.Logger
-
-		runningInstances []*runningInstance
 	}
 
 	runningInstance struct {
@@ -58,61 +59,57 @@ func (_ *AwsTrailAgent) SampleConfig() string {
 	return sampleConfig
 }
 
-func (_ *AwsTrailAgent) Description() string {
-	return ""
-}
+// func (_ *AwsTrailAgent) Description() string {
+// 	return ""
+// }
 
-func (_ *AwsTrailAgent) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (_ *AwsTrailAgent) Init() error {
-	return nil
-}
-
-func (a *AwsTrailAgent) Start(acc telegraf.Accumulator) error {
+func (a *AwsTrailAgent) Run() {
 	a.logger = &models.Logger{
 		Name: inputName,
 	}
 
 	if len(a.AwsTrailInstance) == 0 {
 		a.logger.Warnf("no configuration found")
-		return nil
+		return
 	}
 
-	a.logger.Infof("starting...")
-
-	a.accumulator = acc
+	go func() {
+		<-config.Exit.Wait()
+		a.cancelFun()
+	}()
 
 	for _, instCfg := range a.AwsTrailInstance {
-		r := &runningInstance{
-			cfg:    instCfg,
-			agent:  a,
-			logger: a.logger,
-		}
-		r.metricName = instCfg.MetricName
-		if r.metricName == "" {
-			r.metricName = `aws_cloudtrail`
-		}
+		a.wg.Add(1)
+		go func(instCfg *AwsTrailInstance) {
+			defer a.wg.Done()
 
-		if r.cfg.Interval.Duration == 0 {
-			r.cfg.Interval.Duration = time.Minute
-		}
+			r := &runningInstance{
+				cfg:    instCfg,
+				agent:  a,
+				logger: a.logger,
+			}
+			r.metricName = instCfg.MetricName
+			if r.metricName == "" {
+				r.metricName = `aws_cloudtrail`
+			}
 
-		limit := rate.Every(600 * time.Millisecond)
-		r.rateLimiter = rate.NewLimiter(limit, 1)
+			if r.cfg.Interval.Duration == 0 {
+				r.cfg.Interval.Duration = time.Minute
+			}
 
-		a.runningInstances = append(a.runningInstances, r)
+			limit := rate.Every(600 * time.Millisecond)
+			r.rateLimiter = rate.NewLimiter(limit, 1)
 
-		go r.run(a.ctx)
+			r.run(a.ctx)
+
+		}(instCfg)
+
 	}
 
-	return nil
+	a.wg.Wait()
 }
 
 func (r *runningInstance) fetchOnce(ctx context.Context, params *cloudtrail.LookupEventsInput, token string) (*cloudtrail.LookupEventsOutput, error) {
-
-	reqUid, _ := uuid.NewV4()
 
 	var tempDelay time.Duration
 	var response *cloudtrail.LookupEventsOutput
@@ -136,7 +133,7 @@ func (r *runningInstance) fetchOnce(ctx context.Context, params *cloudtrail.Look
 			time.Sleep(tempDelay)
 		} else {
 			if i != 0 {
-				r.logger.Debugf("retry %s successed, %d", reqUid.String(), i)
+				r.logger.Debugf("retry successed, %d", i)
 			}
 			break
 		}
@@ -241,7 +238,12 @@ func (r *runningInstance) run(ctx context.Context) error {
 					fields["Resource"] = resStr
 				}
 
-				r.agent.accumulator.AddFields(r.metricName, fields, tags, *ev.EventTime)
+				pt, err := influxdb.NewPoint(r.metricName, tags, fields, *ev.EventTime)
+				if err == nil {
+					io.Feed([]byte(pt.String()), io.Metric)
+				} else {
+					r.logger.Warnf("make point failed, %s", err)
+				}
 			}
 		}
 
@@ -269,10 +271,6 @@ func (r *runningInstance) initClient() error {
 	r.apiClient = cloudtrail.New(sess)
 
 	return nil
-}
-
-func (a *AwsTrailAgent) Stop() {
-	a.cancelFun()
 }
 
 func init() {
