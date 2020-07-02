@@ -1,31 +1,26 @@
 package trace
 
 import (
-	"log"
+	"go.uber.org/zap"
 
-	"github.com/influxdata/telegraf"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-const traceConfigSample = `### active: whether to collect trace data.
-### host: http server host.
+var (
+	traceConfigSample = `### active: whether to collect trace data.
 ### path: url path to recieve data.
 
 #active = true
-#host   = "127.0.0.1:54133"
 #path   = "/trace"
-#dataway_path="/v1/write/logging"
 `
-
-var (
-	acc telegraf.Accumulator
+	log *zap.SugaredLogger
 )
 
 type Trace struct {
 	Active bool
-	Host   string
 	Path   string
-	Ftdataway string   `toml:"dataway_path"`
 }
 
 func (_ *Trace) Catalog() string {
@@ -40,24 +35,15 @@ func (_ *Trace) Description() string {
 	return "Collect Trace Data"
 }
 
-func (_ *Trace) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (t *Trace) Start(accumulator telegraf.Accumulator) error {
+func (t *Trace) Run() {
 	if !t.Active {
-		return nil
+		return
 	}
 
-	log.Printf("I! [trace] start")
-	acc = accumulator
+	log = logger.SLogger("trace")
+	log.Info("trace input started...")
 
-	go t.Serve()
-
-	return nil
-}
-
-func (_ *Trace) Stop() {
+	io.RegisterRoute(t.Path, writeTracing)
 }
 
 func init() {

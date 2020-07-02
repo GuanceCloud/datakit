@@ -7,13 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -68,8 +69,6 @@ type (
 		wg sync.WaitGroup
 
 		logger *models.Logger
-
-		accumulator telegraf.Accumulator
 	}
 )
 
@@ -85,23 +84,20 @@ func (_ *AliyunPriceAgent) SampleConfig() string {
 	return globalConfig + ecsSampleConfig + rdsSampleConfig + eipSampleConfig + slbSampleConfig
 }
 
-func (_ *AliyunPriceAgent) Description() string {
-	return `Collect price of aliyun products.`
-}
+// func (_ *AliyunPriceAgent) Description() string {
+// 	return `Collect price of aliyun products.`
+// }
 
-func (_ *AliyunPriceAgent) Gather(telegraf.Accumulator) error {
-	return nil
-}
+func (a *AliyunPriceAgent) Run() {
 
-func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
-
-	a.logger.Info("starting...")
-
-	a.accumulator = acc
+	go func() {
+		<-config.Exit.Wait()
+		a.cancelFun()
+	}()
 
 	if cli, err := bssopenapi.NewClientWithAccessKey(a.RegionID, a.AccessID, a.AccessSecret); err != nil {
 		a.logger.Errorf("fail to create client, %s", err)
-		return err
+		return
 	} else {
 		a.client = cli
 	}
@@ -152,14 +148,14 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 		for {
 
 			select {
-			case <-a.ctx.Done():
+			case <-config.Exit.Wait():
 				return
 			default:
 			}
 
 			for _, req := range a.reqs {
 				select {
-				case <-a.ctx.Done():
+				case <-config.Exit.Wait():
 					return
 				default:
 				}
@@ -224,7 +220,7 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 				req.lastTime = time.Now()
 
 				select {
-				case <-a.ctx.Done():
+				case <-config.Exit.Wait():
 					return
 				default:
 				}
@@ -235,12 +231,6 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 
 	}()
 
-	return nil
-}
-
-func (a *AliyunPriceAgent) Stop() {
-	a.cancelFun()
-	a.wg.Wait()
 }
 
 func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceReq) {
@@ -348,11 +338,12 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 		if metricName == "" {
 			metricName = "aliyun_price"
 		}
-		if a.accumulator != nil {
-			a.accumulator.AddFields(metricName, fields, tags, time.Now().UTC())
+
+		pt, err := influxdb.NewPoint(metricName, tags, fields, time.Now().UTC())
+		if err == nil {
+			io.Feed([]byte(pt.String()), io.Metric)
 		} else {
-			ms, _ := metric.New(metricName, tags, fields, time.Now().UTC())
-			fmt.Printf("%s", internal.Metric2InfluxLine(ms))
+			a.logger.Warnf("make point failed, %s", err)
 		}
 	}
 }
