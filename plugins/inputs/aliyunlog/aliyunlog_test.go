@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"testing"
-	"time"
 
 	"github.com/influxdata/toml"
 
@@ -130,7 +129,6 @@ func TestService(t *testing.T) {
 		log.Fatalf("%s", err)
 	}
 
-	ag.Start(nil)
+	ag.Run()
 
-	time.Sleep(time.Hour)
 }

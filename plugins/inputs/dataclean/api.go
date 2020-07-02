@@ -54,15 +54,13 @@ func (d *DataClean) startSvr(addr string) error {
 		Handler: router,
 	}
 
-	go func() {
-		d.logger.Infof("starting server on %s", addr)
-		err := d.httpsrv.ListenAndServe()
-		if err != nil && err != http.ErrServerClosed {
-			d.logger.Errorf("server error, %s", err.Error())
-		}
-	}()
+	d.logger.Infof("starting server on %s", addr)
+	err := d.httpsrv.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		d.logger.Errorf("server error, %s", err.Error())
+	}
 
-	return nil
+	return err
 }
 
 func (d *DataClean) apiWriteMetrics(c *gin.Context) {
