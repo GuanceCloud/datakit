@@ -1,10 +1,15 @@
 package csv
 
 import (
+	"io/ioutil"
+	"os"
+
 	"go.uber.org/zap"
+	yaml "gopkg.in/yaml.v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -28,6 +33,7 @@ type rule struct {
 }
 
 type csv struct {
+	PathEnv   string   `toml:"path_env" yaml:"-"`
 	StartRows int      `toml:"start_rows" yaml:"start_rows"`
 	Files     []string `toml:"files" yaml:"files"`
 	Rules     []*rule  `toml:"rules" yaml:"rules"`
@@ -51,7 +57,34 @@ func (x *csv) Run() {
 	l.Info("csvkit started")
 
 	l.Info("starting external csvkit...")
-	// TODO
+
+	csvConf := filepath.Join(config.InstallDir, "external", "csv", "config.yaml")
+	b, err = yaml.Marshal(x)
+	if err := ioutil.WriteFile(csvConf, b, os.ModePerm); err != nil {
+		l.Errorf("create csv config %s failed: %s", csvConf, err.Error())
+	}
+
+	args := []string{
+		filepath.Join(config.InstallDir, "external", "csv", "main.py"),
+		"-y", csvConf,
+	}
+	cmd := exec.Command("python", args...)
+	if x.PathEnv != "" {
+		cmd.Env = []string{
+			fmt.Sprintf("PATH=%s:$PATH"),
+		}
+
+		l.Infof("set PATH to %s", cmd.Env[0])
+	}
+
+	if err := cmd.Start(); err != nil {
+		l.Errorf("start csv failed: %s", err.Error())
+		return
+	}
+
+	proc := cmd.Process
+	l.Infof("csv PID: %d", cmd.Process.Pid)
+	datakit.MonitProc(cmd.Process, "csv")
 }
 
 func init() {
