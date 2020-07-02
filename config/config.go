@@ -70,6 +70,7 @@ type MainConfig struct {
 	DataWayRequestURL string      `toml:"-"`
 
 	HTTPServerAddr string `toml:"http_server_addr"`
+	HTTPServerLog  string `toml:"http_server_log"`
 
 	FtGateway string `toml:"ftdataway"` // XXX: deprecated
 
@@ -141,6 +142,7 @@ func newDefaultCfg() *Config {
 			Interval:      internal.Duration{Duration: 10 * time.Second},
 
 			HTTPServerAddr: "0.0.0.0:9529",
+			HTTPServerLog:  filepath.Join(InstallDir, "datakit_httpserver.log"),
 
 			LogLevel: "info",
 			Log:      filepath.Join(InstallDir, "datakit.log"),
