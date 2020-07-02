@@ -14,8 +14,9 @@ import (
 	"strings"
 	"time"
 
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+
 	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
 	"github.com/matttproud/golang_protobuf_extensions/pbutil"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -53,8 +54,8 @@ func convertName(mf *dto.MetricFamily) (metricname string, valuename string) {
 
 // Parse returns a slice of Metrics from a text representation of a
 // metrics
-func ParseV2(buf []byte, header http.Header) ([]telegraf.Metric, error) {
-	var metrics []telegraf.Metric
+func ParseV2(buf []byte, header http.Header) ([]*influxdb.Point, error) {
+	var metrics []*influxdb.Point
 	var parser expfmt.TextParser
 	// parse even if the buffer begins with a newline
 	buf = bytes.TrimPrefix(buf, []byte("\n"))
@@ -113,10 +114,12 @@ func ParseV2(buf []byte, header http.Header) ([]telegraf.Metric, error) {
 					} else {
 						t = time.Now()
 					}
-					metric, err := metric.New("prometheus", tags, fields, t, valueType(mf.GetType()))
+
+					pt, err := influxdb.NewPoint(`prometheus`, tags, fields, t)
 					if err == nil {
-						metrics = append(metrics, metric)
+						metrics = append(metrics, pt)
 					}
+
 				}
 			}
 		}
@@ -126,8 +129,8 @@ func ParseV2(buf []byte, header http.Header) ([]telegraf.Metric, error) {
 }
 
 // Get Quantiles for summary metric & Buckets for histogram
-func makeQuantilesV2(m *dto.Metric, tags map[string]string, metricName string, metricType dto.MetricType) []telegraf.Metric {
-	var metrics []telegraf.Metric
+func makeQuantilesV2(m *dto.Metric, tags map[string]string, metricName string, metricType dto.MetricType) []*influxdb.Point {
+	var metrics []*influxdb.Point
 	fields := make(map[string]interface{})
 	var t time.Time
 	if m.TimestampMs != nil && *m.TimestampMs > 0 {
@@ -137,9 +140,10 @@ func makeQuantilesV2(m *dto.Metric, tags map[string]string, metricName string, m
 	}
 	fields[metricName+"_count"] = float64(m.GetSummary().GetSampleCount())
 	fields[metricName+"_sum"] = float64(m.GetSummary().GetSampleSum())
-	met, err := metric.New("prometheus", tags, fields, t, valueType(metricType))
+	//met, err := metric.New("prometheus", tags, fields, t, valueType(metricType))
+	pt, err := influxdb.NewPoint(`prometheus`, tags, fields, t)
 	if err == nil {
-		metrics = append(metrics, met)
+		metrics = append(metrics, pt)
 	}
 
 	for _, q := range m.GetSummary().Quantile {
@@ -149,17 +153,18 @@ func makeQuantilesV2(m *dto.Metric, tags map[string]string, metricName string, m
 		newTags["quantile"] = fmt.Sprint(q.GetQuantile())
 		fields[metricName] = float64(q.GetValue())
 
-		quantileMetric, err := metric.New("prometheus", newTags, fields, t, valueType(metricType))
+		//quantileMetric, err := metric.New("prometheus", newTags, fields, t, valueType(metricType))
+		pt, err := influxdb.NewPoint(`prometheus`, newTags, fields, t)
 		if err == nil {
-			metrics = append(metrics, quantileMetric)
+			metrics = append(metrics, pt)
 		}
 	}
 	return metrics
 }
 
 // Get Buckets  from histogram metric
-func makeBucketsV2(m *dto.Metric, tags map[string]string, metricName string, metricType dto.MetricType) []telegraf.Metric {
-	var metrics []telegraf.Metric
+func makeBucketsV2(m *dto.Metric, tags map[string]string, metricName string, metricType dto.MetricType) []*influxdb.Point {
+	var metrics []*influxdb.Point
 	fields := make(map[string]interface{})
 	var t time.Time
 	if m.TimestampMs != nil && *m.TimestampMs > 0 {
@@ -170,9 +175,10 @@ func makeBucketsV2(m *dto.Metric, tags map[string]string, metricName string, met
 	fields[metricName+"_count"] = float64(m.GetHistogram().GetSampleCount())
 	fields[metricName+"_sum"] = float64(m.GetHistogram().GetSampleSum())
 
-	met, err := metric.New("prometheus", tags, fields, t, valueType(metricType))
+	//met, err := metric.New("prometheus", tags, fields, t, valueType(metricType))
+	pt, err := influxdb.NewPoint(`prometheus`, tags, fields, t)
 	if err == nil {
-		metrics = append(metrics, met)
+		metrics = append(metrics, pt)
 	}
 
 	for _, b := range m.GetHistogram().Bucket {
@@ -181,9 +187,10 @@ func makeBucketsV2(m *dto.Metric, tags map[string]string, metricName string, met
 		newTags["le"] = fmt.Sprint(b.GetUpperBound())
 		fields[metricName+"_bucket"] = float64(b.GetCumulativeCount())
 
-		histogramMetric, err := metric.New("prometheus", newTags, fields, t, valueType(metricType))
+		//histogramMetric, err := metric.New("prometheus", newTags, fields, t, valueType(metricType))
+		pt, err := influxdb.NewPoint(`prometheus`, newTags, fields, t)
 		if err == nil {
-			metrics = append(metrics, histogramMetric)
+			metrics = append(metrics, pt)
 		}
 	}
 	return metrics
@@ -191,8 +198,8 @@ func makeBucketsV2(m *dto.Metric, tags map[string]string, metricName string, met
 
 // Parse returns a slice of Metrics from a text representation of a
 // metrics
-func Parse(buf []byte, header http.Header) ([]telegraf.Metric, error) {
-	var metrics []telegraf.Metric
+func Parse(buf []byte, header http.Header) ([]*influxdb.Point, error) {
+	var metrics []*influxdb.Point
 	var parser expfmt.TextParser
 	// parse even if the buffer begins with a newline
 	buf = bytes.TrimPrefix(buf, []byte("\n"))
@@ -256,9 +263,10 @@ func Parse(buf []byte, header http.Header) ([]telegraf.Metric, error) {
 				} else {
 					t = time.Now()
 				}
-				metric, err := metric.New(finalMetricName, tags, fields, t, valueType(mf.GetType()))
+				//metric, err := metric.New(finalMetricName, tags, fields, t, valueType(mf.GetType()))
+				pt, err := influxdb.NewPoint(finalMetricName, tags, fields, t)
 				if err == nil {
-					metrics = append(metrics, metric)
+					metrics = append(metrics, pt)
 				}
 			}
 		}

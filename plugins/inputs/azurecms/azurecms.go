@@ -2,12 +2,13 @@ package azurecms
 
 import (
 	"context"
+	"sync"
 
-	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/selfstat"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	//"github.com/Azure/go-autorest/tracing"
@@ -29,12 +30,11 @@ type (
 	azureMonitorAgent struct {
 		Instances []*azureInstance
 
-		runningInstances []*runningInstance
+		wg sync.WaitGroup
 
-		ctx         context.Context
-		cancelFun   context.CancelFunc
-		logger      *models.Logger
-		accumulator telegraf.Accumulator
+		ctx       context.Context
+		cancelFun context.CancelFunc
+		logger    *models.Logger
 	}
 )
 
@@ -56,41 +56,44 @@ func (_ *azureMonitorAgent) SampleConfig() string {
 	return sampleConfig
 }
 
-func (_ *azureMonitorAgent) Description() string {
-	return ""
-}
+// func (_ *azureMonitorAgent) Description() string {
+// 	return ""
+// }
 
-func (_ *azureMonitorAgent) Gather(telegraf.Accumulator) error {
-	return nil
-}
+func (ag *azureMonitorAgent) Run() {
 
-func (ag *azureMonitorAgent) Start(acc telegraf.Accumulator) error {
+	ag.logger = &models.Logger{
+		Name: `azurecms`,
+	}
 
 	if len(ag.Instances) == 0 {
 		ag.logger.Warnf("no configuration found")
-		return nil
+		return
 	}
 
-	ag.logger.Info("starting...")
-
-	ag.accumulator = acc
+	go func() {
+		<-config.Exit.Wait()
+		ag.cancelFun()
+	}()
 
 	for _, c := range ag.Instances {
-		rc := &runningInstance{
-			agent:  ag,
-			cfg:    c,
-			logger: ag.logger,
-		}
-		ag.runningInstances = append(ag.runningInstances, rc)
+		ag.wg.Add(1)
 
-		go rc.run(ag.ctx)
+		go func(c *azureInstance) {
+			defer ag.wg.Done()
+
+			rc := &runningInstance{
+				agent:  ag,
+				cfg:    c,
+				logger: ag.logger,
+			}
+
+			rc.run(ag.ctx)
+		}(c)
+
 	}
 
-	return nil
-}
-
-func (ag *azureMonitorAgent) Stop() {
-	ag.cancelFun()
+	ag.wg.Wait()
 }
 
 func init() {
