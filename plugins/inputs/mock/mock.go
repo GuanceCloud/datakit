@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -60,36 +61,44 @@ func (m *Mock) Run() {
 		l.Warnf("get hostname failed: %s, use random silly name(%s) instead", err, host)
 	}
 
-	l.Info("mock input starting...")
+	l.Info("mock input started...")
 
 	interval, err := time.ParseDuration(m.C.Interval)
 	if err != nil {
 		l.Error(err)
 	}
 
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
+
 	for {
-		pt, err := influxdb.NewPoint(m.C.Metric,
-			map[string]string{
-				"from": host,
-			},
-			map[string]interface{}{
-				"f1": randomdata.Number(0, 100),
-				"f2": randomdata.Decimal(0, 100),
-				"f3": randomdata.SillyName(),
-				"f4": randomdata.Boolean()},
-			time.Now())
-		if err != nil {
-			l.Error(err)
+		select {
+		case <-tick.C:
+			pt, err := influxdb.NewPoint(m.C.Metric,
+				map[string]string{
+					"from": host,
+				},
+				map[string]interface{}{
+					"f1": randomdata.Number(0, 100),
+					"f2": randomdata.Decimal(0, 100),
+					"f3": randomdata.SillyName(),
+					"f4": randomdata.Boolean()},
+				time.Now())
+			if err != nil {
+				l.Error(err)
+				return
+			}
+
+			data := []byte(pt.String())
+			l.Debugf("feed %d bytes to io", len(data))
+			if err := io.Feed(data, io.Metric); err != nil {
+				l.Error(err)
+			}
+
+		case <-config.Exit.Wait():
+			l.Info("input mock exit")
 			return
 		}
-
-		data := []byte(pt.String())
-		l.Debugf("feed %d bytes to io", len(data))
-		if err := io.Feed(data, io.Metric); err != nil {
-			l.Error(err)
-		}
-
-		time.Sleep(interval)
 	}
 }
 
