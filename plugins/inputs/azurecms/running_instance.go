@@ -4,8 +4,11 @@ import (
 	"context"
 	"time"
 
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
 	"github.com/Azure/go-autorest/autorest/azure"
@@ -173,9 +176,14 @@ func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) 
 				if mv.TimeStamp != nil {
 					metricTime = (*mv.TimeStamp).Time
 				}
-				if r.agent.accumulator != nil {
-					r.agent.accumulator.AddFields(metricName, fields, tags, metricTime)
+
+				pt, err := influxdb.NewPoint(metricName, tags, fields, metricTime)
+				if err == nil {
+					io.Feed([]byte(pt.String()), io.Metric)
+				} else {
+					r.logger.Warnf("make point failed, %s", err)
 				}
+
 			}
 		}
 	}
