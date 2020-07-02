@@ -177,12 +177,11 @@ func TestBinlog(t *testing.T) {
 
 	go func() {
 		time.Sleep(time.Second * 3330)
-		bl.Stop()
 	}()
 
-	bl.Start(nil)
+	bl.Run()
 
-	time.Sleep(time.Hour)
+	//time.Sleep(time.Hour)
 
 	//wg.Wait()
 }
