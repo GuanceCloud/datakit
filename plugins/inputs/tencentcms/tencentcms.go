@@ -8,12 +8,13 @@ import (
 	"sync"
 	"time"
 
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/selfstat"
 
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
@@ -44,12 +45,12 @@ type (
 
 		runningCms []*RunningCMS
 
+		wg sync.WaitGroup
+
 		tags map[string]string
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
-
-		accumulator telegraf.Accumulator
 
 		logger *models.Logger
 	}
@@ -82,22 +83,13 @@ func (_ *TencentCms) SampleConfig() string {
 	return cmsConfigSample
 }
 
-func (_ *TencentCms) Description() string {
-	return ""
-}
+// func (_ *TencentCms) Description() string {
+// 	return ""
+// }
 
-func (tc *TencentCms) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (tc *TencentCms) Stop() {
-	tc.cancelFun()
-}
-
-func (c *TencentCms) Init() error {
+func (c *TencentCms) initialize() error {
 
 	c.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
 		Name: `tencentcms`,
 	}
 
@@ -123,15 +115,21 @@ func (c *TencentCms) Init() error {
 	return nil
 }
 
-func (tc *TencentCms) Start(acc telegraf.Accumulator) error {
+func (tc *TencentCms) Run() {
+
+	if err := tc.initialize(); err != nil {
+		return
+	}
 
 	if len(tc.CMSs) == 0 {
 		tc.logger.Warnf("no configuration found")
-		return nil
+		return
 	}
 
-	tc.logger.Infof("starting...")
-	tc.accumulator = acc
+	go func() {
+		<-config.Exit.Wait()
+		tc.cancelFun()
+	}()
 
 	for _, c := range tc.CMSs {
 		a := &RunningCMS{
@@ -142,20 +140,16 @@ func (tc *TencentCms) Start(acc telegraf.Accumulator) error {
 			logger:       tc.logger,
 		}
 		tc.runningCms = append(tc.runningCms, a)
-	}
 
-	for _, c := range tc.runningCms {
+		tc.wg.Add(1)
 		go func(ac *RunningCMS) {
+			defer tc.wg.Done()
+			ac.run()
+		}(a)
 
-			if err := ac.run(); err != nil && err != context.Canceled {
-				ac.logger.Errorf("%s", err)
-			}
-		}(c)
-
-		c.logger.Infof("%s done", c.cfg.AccessKeyID)
 	}
+	tc.wg.Wait()
 
-	return nil
 }
 
 func (s *RunningCMS) run() error {
@@ -331,9 +325,13 @@ func (c *RunningCMS) fetchMetrics(req *MetricsRequest) error {
 			fields := map[string]interface{}{}
 			fields[*req.q.MetricName] = *val
 
-			if c.tc.accumulator != nil {
-				c.tc.accumulator.AddFields(foramtNamespaceName(*req.q.Namespace), fields, tags)
+			pt, err := influxdb.NewPoint(foramtNamespaceName(*req.q.Namespace), tags, fields, time.Now().UTC())
+			if err == nil {
+				io.Feed([]byte(pt.String()), io.Metric)
+			} else {
+				c.logger.Warnf("make point failed, %s", err)
 			}
+
 		}
 	}
 

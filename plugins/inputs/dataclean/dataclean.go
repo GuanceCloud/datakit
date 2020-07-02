@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
-	"github.com/influxdata/telegraf"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
@@ -32,8 +31,6 @@ type DataClean struct {
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
-
-	accumulator telegraf.Accumulator
 
 	logger *models.Logger
 
@@ -62,16 +59,12 @@ func (_ *DataClean) SampleConfig() string {
 	return sampleConfig
 }
 
-func (_ *DataClean) Description() string {
-	return ""
-}
+// func (_ *DataClean) Description() string {
+// 	return ""
+// }
 
 func (_ *DataClean) Catalog() string {
 	return "dataclean"
-}
-
-func (_ *DataClean) Gather(telegraf.Accumulator) error {
-	return nil
 }
 
 func (d *DataClean) Init() error {
@@ -96,20 +89,20 @@ func (d *DataClean) Init() error {
 	return nil
 }
 
-func (d *DataClean) Start(acc telegraf.Accumulator) error {
+func (d *DataClean) Run() {
 
-	d.logger.Info("starting...")
-
-	d.accumulator = acc
+	if err := d.Init(); err != nil {
+		return
+	}
 
 	if err := d.luaMachine.StartGlobal(); err != nil {
 		d.logger.Errorf("fail to start global lua, %s", err)
-		return err
+		return
 	}
 
 	if err := d.luaMachine.StartRoutes(); err != nil {
 		d.logger.Errorf("fail to start routes lua, %s", err)
-		return err
+		return
 	}
 
 	d.write = newWritMgr()
@@ -122,24 +115,23 @@ func (d *DataClean) Start(acc telegraf.Accumulator) error {
 		d.write.addFileWriter(config.Cfg.MainCfg.OutputsFile)
 	}
 
+	go func() {
+		<-config.Exit.Wait()
+		d.cancelFun()
+		d.stopSvr()
+		d.write.stop()
+		if d.luaMachine != nil {
+			d.luaMachine.Stop()
+		}
+	}()
+
 	d.write.run()
 
 	d.startSvr(d.BindAddr)
-
-	return nil
 }
 
 func (d *DataClean) FakeDataway() string {
 	return fmt.Sprintf("http://%s/v1/write/metrics", d.BindAddr)
-}
-
-func (d *DataClean) Stop() {
-	d.cancelFun()
-	d.stopSvr()
-	d.write.stop()
-	if d.luaMachine != nil {
-		d.luaMachine.Stop()
-	}
 }
 
 func NewAgent() *DataClean {
