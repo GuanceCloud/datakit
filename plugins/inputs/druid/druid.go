@@ -12,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 // druid config
@@ -22,25 +23,17 @@ import (
 // druid.emitter.http.flushMillis=10000
 // druid.emitter.http.recipientBaseUrl=http://ADDR_TO_THIS_SERVICE:8424
 
+func init() {
+	inputs.Add("druid", func() inputs.Input {
+		return &Druid{}
+	})
+}
+
 const configSample = `
 # [druid]
 # 	path = "/druid"
+#       measurement = "druid"
 `
-
-type (
-	MetricType uint8
-
-	Druid struct {
-		Config Config `toml:"druid"`
-	}
-
-	Config struct {
-		Path string `toml:"path"`
-		// Measurement string `toml:"measurement"`
-	}
-)
-
-var l *zap.SugaredLogger
 
 const (
 	Normal MetricType = iota
@@ -48,16 +41,25 @@ const (
 	ConvertRange
 )
 
-func init() {
-	l = logger.SLogger("druid")
-	io.RegisterRoute("druid", handle)
+var l *zap.SugaredLogger
+
+type MetricType uint8
+
+type Config struct {
+	Path        string `toml:"path"`
+	Measurement string `toml:"measurement"`
+}
+
+type Druid struct {
+	Config Config `toml:"druid"`
 }
 
 func (d *Druid) Run() {
-	io.CallRoute("druid", d.Config.Path)
+	l = logger.SLogger("druid")
+	io.RegisterRoute(d.Config.Path, d.handle)
 }
 
-func handle(w http.ResponseWriter, r *http.Request) {
+func (d *Druid) handle(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -67,7 +69,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := extract(body); err != nil {
+	if err := extract(body, d.Config.Measurement); err != nil {
 		l.Error("failed of extracted metrics err: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -76,7 +78,15 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func extract(body []byte) error {
+func (d *Druid) SampleConfig() string {
+	return configSample
+}
+
+func (d *Druid) Catalog() string {
+	return "druid"
+}
+
+func extract(body []byte, measurement string) error {
 
 	metrics := gjson.GetBytes(body, "#").Array()
 	if len(metrics) == 0 {
@@ -126,7 +136,7 @@ func extract(body []byte) error {
 
 	}
 
-	pt, err := influxdb.NewPoint("druid", nil, fields, time.Now())
+	pt, err := influxdb.NewPoint(measurement, nil, fields, time.Now())
 	if err != nil {
 		return err
 	}
