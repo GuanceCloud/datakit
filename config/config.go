@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"text/template"
 	"time"
 
@@ -18,33 +17,16 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
-	Exit *cliutils.Sem
-	WG   sync.WaitGroup = sync.WaitGroup{}
-
-	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
-
-	ServiceName = "datakit"
-
 	ConvertedCfg []string
-	AgentLogFile string
 
-	MaxLifeCheckInterval time.Duration
-
-	l *zap.SugaredLogger
-
-	Cfg            *Config = nil
-	InstallDir             = ""
-	TelegrafDir            = ""
-	DataDir                = ""
-	LuaDir                 = ""
-	ConfdDir               = ""
-	GRPCDomainSock         = ""
+	l   *zap.SugaredLogger
+	Cfg *Config = nil
 )
 
 type Config struct {
@@ -101,29 +83,28 @@ func init() {
 
 	switch osarch {
 	case "windows/amd64":
-		InstallDir = `C:\Program Files\DataFlux\` + ServiceName
+		datakit.InstallDir = `C:\Program Files\DataFlux\` + datakit.ServiceName
 
 	case "windows/386":
-		InstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
+		datakit.InstallDir = `C:\Program Files (x86)\DataFlux\` + datakit.ServiceName
 
 	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
 		"darwin/amd64", "darwin/386",
 		"freebsd/amd64", "freebsd/386":
-		InstallDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
+		datakit.InstallDir = `/usr/local/cloudcare/DataFlux/` + datakit.ServiceName
 	default:
 		panic("unsupported os/arch: %s" + osarch)
 	}
 
-	AgentLogFile = filepath.Join(InstallDir, "embed", "agent.log")
+	datakit.AgentLogFile = filepath.Join(datakit.InstallDir, "embed", "agent.log")
 
-	TelegrafDir = filepath.Join(InstallDir, "embed")
-	DataDir = filepath.Join(InstallDir, "data")
-	LuaDir = filepath.Join(InstallDir, "lua")
-	ConfdDir = filepath.Join(InstallDir, "conf.d")
-	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
+	datakit.TelegrafDir = filepath.Join(datakit.InstallDir, "embed")
+	datakit.DataDir = filepath.Join(datakit.InstallDir, "data")
+	datakit.LuaDir = filepath.Join(datakit.InstallDir, "lua")
+	datakit.ConfdDir = filepath.Join(datakit.InstallDir, "conf.d")
+	datakit.GRPCDomainSock = filepath.Join(datakit.InstallDir, "datakit.sock")
 
-	Exit = cliutils.NewSem()
-
+	datakit.Exit = cliutils.NewSem()
 	Cfg = newDefaultCfg()
 
 	initTelegrafSamples()
@@ -139,21 +120,21 @@ func newDefaultCfg() *Config {
 			Interval:      internal.Duration{Duration: 10 * time.Second},
 
 			LogLevel: "info",
-			Log:      filepath.Join(InstallDir, "datakit.log"),
+			Log:      filepath.Join(datakit.InstallDir, "datakit.log"),
 
 			RoundInterval: false,
-			cfgPath:       filepath.Join(InstallDir, "datakit.conf"),
+			cfgPath:       filepath.Join(datakit.InstallDir, "datakit.conf"),
 		},
 		Inputs: []*inputs.RunningInput{},
 	}
 }
 
 func InitDirs() {
-	if err := os.MkdirAll(filepath.Join(InstallDir, "embed"), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Join(datakit.InstallDir, "embed"), os.ModePerm); err != nil {
 		panic("[error] mkdir embed failed: " + err.Error())
 	}
 
-	for _, dir := range []string{TelegrafDir, DataDir, LuaDir, ConfdDir} {
+	for _, dir := range []string{datakit.TelegrafDir, datakit.DataDir, datakit.LuaDir, datakit.ConfdDir} {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			panic(fmt.Sprintf("create %s failed: %s", dir, err))
 		}
@@ -173,6 +154,8 @@ func LoadCfg() error {
 	l = logger.SLogger("config")
 
 	l.Debugf("set log to %s", Cfg.MainCfg.Log)
+
+	datakit.Init()
 
 	initPluginCfgs()
 
@@ -247,11 +230,11 @@ func (c *Config) LoadMainConfig() error {
 	}
 
 	if c.TelegrafAgentCfg.LogTarget == "file" && c.TelegrafAgentCfg.Logfile == "" {
-		c.TelegrafAgentCfg.Logfile = filepath.Join(InstallDir, "embed", "agent.log")
+		c.TelegrafAgentCfg.Logfile = filepath.Join(datakit.InstallDir, "embed", "agent.log")
 	}
 
-	if AgentLogFile != "" {
-		c.TelegrafAgentCfg.Logfile = AgentLogFile
+	if datakit.AgentLogFile != "" {
+		c.TelegrafAgentCfg.Logfile = datakit.AgentLogFile
 	}
 
 	//如果telegraf的agent相关配置没有，则默认使用datakit的同名配置
@@ -274,7 +257,7 @@ func (c *Config) LoadMainConfig() error {
 }
 
 func CheckConfd() error {
-	dir, err := ioutil.ReadDir(ConfdDir)
+	dir, err := ioutil.ReadDir(datakit.ConfdDir)
 	if err != nil {
 		return err
 	}
@@ -337,7 +320,7 @@ func CheckConfd() error {
 			continue
 		}
 
-		checkSubDir(filepath.Join(ConfdDir, item.Name()))
+		checkSubDir(filepath.Join(datakit.ConfdDir, item.Name()))
 	}
 
 	l.Infof("inputs: %s", strings.Join(configed, ","))
@@ -361,8 +344,8 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 		data = internalData
 	} else {
 		// migrate old configures into new place
-		oldPath := filepath.Join(ConfdDir, name, fmt.Sprintf("%s.conf", name))
-		newPath := filepath.Join(ConfdDir, input.Catalog(), fmt.Sprintf("%s.conf", name))
+		oldPath := filepath.Join(datakit.ConfdDir, name, fmt.Sprintf("%s.conf", name))
+		newPath := filepath.Join(datakit.ConfdDir, input.Catalog(), fmt.Sprintf("%s.conf", name))
 
 		path := newPath
 		_, err := os.Stat(path)
@@ -402,18 +385,18 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 }
 
 func (c *Config) setMaxPostInterval() {
-	MaxLifeCheckInterval = c.MainCfg.MaxPostInterval.Duration
-	if MaxLifeCheckInterval != 0 {
+	datakit.MaxLifeCheckInterval = c.MainCfg.MaxPostInterval.Duration
+	if datakit.MaxLifeCheckInterval != 0 {
 		return
 	}
 
 	for _, ri := range c.Inputs { // find the max interval
-		if ri.Config.Interval > MaxLifeCheckInterval {
-			MaxLifeCheckInterval = ri.Config.Interval
+		if ri.Config.Interval > datakit.MaxLifeCheckInterval {
+			datakit.MaxLifeCheckInterval = ri.Config.Interval
 		}
 	}
 
-	MaxLifeCheckInterval += time.Second * 10 // add extra 10 seconds
+	datakit.MaxLifeCheckInterval += time.Second * 10 // add extra 10 seconds
 }
 
 // load all inputs under @InstallDir/conf.d
@@ -427,7 +410,7 @@ func (c *Config) LoadConfig() error {
 
 	c.setMaxPostInterval()
 
-	return LoadTelegrafConfigs(ConfdDir, c.InputFilters)
+	return LoadTelegrafConfigs(datakit.ConfdDir, c.InputFilters)
 }
 
 func DumpInputsOutputs() {
@@ -454,9 +437,9 @@ func InitCfg(dwcfg *DataWayCfg) error {
 	}
 
 	// clean all old dirs
-	os.RemoveAll(ConfdDir)
-	os.RemoveAll(DataDir)
-	os.RemoveAll(LuaDir)
+	os.RemoveAll(datakit.ConfdDir)
+	os.RemoveAll(datakit.DataDir)
+	os.RemoveAll(datakit.LuaDir)
 	return nil
 }
 
@@ -495,8 +478,8 @@ func initPluginCfgs() {
 		catalog := input.Catalog()
 
 		// migrate old config to new catalog path
-		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
-		cfgpath := filepath.Join(ConfdDir, catalog, name+".conf")
+		oldCfgPath := filepath.Join(datakit.ConfdDir, name, name+".conf")
+		cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf")
 
 		l.Infof("check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
 
@@ -523,8 +506,8 @@ func initPluginCfgs() {
 
 			l.Debugf("%s not exists, create it...", cfgpath)
 
-			l.Debugf("create datakit conf path %s", filepath.Join(ConfdDir, catalog))
-			if err := os.MkdirAll(filepath.Join(ConfdDir, catalog), os.ModePerm); err != nil {
+			l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
+			if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
 				l.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
 			}
 
@@ -542,8 +525,8 @@ func initPluginCfgs() {
 	// create telegraf input plugin's configures
 	for name, input := range SupportsTelegrafMetricNames {
 
-		cfgpath := filepath.Join(ConfdDir, input.Catalog, name+".conf")
-		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
+		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf")
+		oldCfgPath := filepath.Join(datakit.ConfdDir, name, name+".conf")
 
 		l.Debugf("check telegraf input conf %s...", name)
 
@@ -564,8 +547,8 @@ func initPluginCfgs() {
 
 			l.Debugf("%s not exists, create it...", cfgpath)
 
-			l.Debugf("create telegraf conf path %s", filepath.Join(ConfdDir, input.Catalog))
-			if err := os.MkdirAll(filepath.Join(ConfdDir, input.Catalog), os.ModePerm); err != nil {
+			l.Debugf("create telegraf conf path %s", filepath.Join(datakit.ConfdDir, input.Catalog))
+			if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, input.Catalog), os.ModePerm); err != nil {
 				l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
 			}
 
