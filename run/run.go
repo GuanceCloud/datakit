@@ -1,6 +1,8 @@
 package run
 
 import (
+	"time"
+
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -36,12 +38,15 @@ func (a *Agent) Run() error {
 	config.WG.Add(1)
 	go func() {
 		defer config.WG.Done()
-		go io.GRPCServer()
+		io.GRPCServer()
 	}()
 
 	if err := a.runInputs(); err != nil {
 		l.Error("error running inputs: %v", err)
 	}
+
+	time.Sleep(time.Second * 2)
+	io.HTTPServer()
 
 	return nil
 }
