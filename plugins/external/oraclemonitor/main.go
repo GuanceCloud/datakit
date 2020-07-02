@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
@@ -31,8 +31,8 @@ var (
 	flagCfg    = flag.String("cfg", "", "toml config file path")
 	flagGetCfg = flag.String("get-cfg", "", "get config sample, default write to ./instances.toml")
 
-	flagRPCServer = flag.String("rpc-server", "unix://"+config.GRPCDomainSock, "gRPC server")
-	flagLog       = flag.String("log", filepath.Join(config.InstallDir, "external", "oraclemonitor.log"), "log file")
+	flagRPCServer = flag.String("rpc-server", "unix://"+datakit.GRPCDomainSock, "gRPC server")
+	flagLog       = flag.String("log", filepath.Join(datakit.InstallDir, "external", "oraclemonitor.log"), "log file")
 	flagLogLevel  = flag.String("log-level", "info", "log file")
 
 	l         *zap.SugaredLogger
