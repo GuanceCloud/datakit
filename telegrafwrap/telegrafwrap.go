@@ -85,8 +85,6 @@ func (s *TelegrafSvr) Start() error {
 			return nil
 		}
 	}
-
-	return nil
 }
 
 func (s *TelegrafSvr) startAgent() (*os.Process, error) {
