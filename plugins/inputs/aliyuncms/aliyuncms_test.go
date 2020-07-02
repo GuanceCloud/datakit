@@ -241,7 +241,6 @@ func TestSvr(t *testing.T) {
 		log.Fatalf("%s", err)
 	}
 
-	ag.Start(nil)
+	ag.Run()
 
-	time.Sleep(time.Hour)
 }
