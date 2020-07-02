@@ -2,7 +2,10 @@ package io
 
 import (
 	"context"
+	"log"
 	"net/http"
+	"os"
+	"reflect"
 	"sync"
 	"time"
 
@@ -10,56 +13,49 @@ import (
 )
 
 var (
-	registeredRoutes = make(map[string]func(http.ResponseWriter, *http.Request))
+	routeList = struct {
+		mut sync.Mutex
+		// map["/path"] = handle
+		m map[string]http.HandlerFunc
+	}{mut: sync.Mutex{}, m: make(map[string]http.HandlerFunc)}
 
-	callRoutes = struct {
-		*sync.Mutex
-		// map["name"] = "/path"
-		m map[string]string
-	}{}
+	logout *log.Logger
 )
 
-// RegisterRoute 采集器使用 init() 注册路由
-func RegisterRoute(name string, handle func(http.ResponseWriter, *http.Request)) {
-	registeredRoutes[name] = handle
+// RegiRegisterRoute
+// type HandlerFunc func(http.ResponseWriter, *http.Request)
+func RegisterRoute(path string, h http.HandlerFunc) {
+	routeList.mut.Lock()
+	routeList.m[path] = h
+	routeList.mut.Unlock()
 }
 
-// CallRoute 采集器被调用时，通知 server 启动自己的路由
-func CallRoute(name, path string) {
-	callRoutes.Lock()
-	callRoutes.m[name] = path
-	callRoutes.Unlock()
-}
+func HTTPServer() {
 
-type httpSrv struct {
-	srv *http.Server
-}
-
-func (s *httpSrv) Start() {
+	var err error
+	logFile, err := os.OpenFile(config.Cfg.MainCfg.HTTPServerLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		l.Fatalf("failed to open the httpserver log file, err: %s", err.Error())
+	}
+	logout = log.New(logFile, "", 0)
 
 	mux := http.NewServeMux()
 
-	for name, path := range callRoutes.m {
-		handle, ok := registeredRoutes[name]
-		if !ok {
-			l.Error("not found handler of http route %s", name)
-			continue
-		}
-
+	for path, handle := range routeList.m {
 		mux.HandleFunc(path, handle)
 	}
 
-	s.srv = &http.Server{
+	srv := &http.Server{
 		Addr:         config.Cfg.MainCfg.HTTPServerAddr,
 		Handler:      mux,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
-	l.Info("start http server on %s ok", config.Cfg.MainCfg.HTTPServerAddr)
+	l.Infof("start http server on %s ok", config.Cfg.MainCfg.HTTPServerAddr)
 
 	go func() {
-		if err := s.srv.ListenAndServe(); err != nil {
+		if err := srv.ListenAndServe(); err != nil {
 			l.Error(err)
 		}
 
@@ -68,14 +64,56 @@ func (s *httpSrv) Start() {
 
 	<-config.Exit.Wait()
 	l.Info("stopping http server...")
-	s.Stop()
-}
 
-func (s *httpSrv) Stop() {
-	if err := s.srv.Shutdown(context.Background()); err != nil {
+	if err := srv.Shutdown(context.Background()); err != nil {
 		l.Errorf("Failed of http server shutdown, err: %s", err.Error())
 
 	} else {
 		l.Info("http server shutdown ok")
 	}
+
+	return
+}
+
+type logFormatterParams struct {
+	timeStamp  time.Time
+	statusCode int
+	latency    time.Duration
+	clientIP   string
+	method     string
+	path       string
+}
+
+func requestLogger(targetMux http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var param logFormatterParams
+
+		start := time.Now()
+		path := r.URL.Path
+		raw := r.URL.RawQuery
+
+		targetMux.ServeHTTP(w, r)
+
+		param.timeStamp = time.Now()
+		param.latency = param.timeStamp.Sub(start)
+
+		param.clientIP = r.RemoteAddr
+		param.method = r.Method
+		// "Status: 200 OK"
+		param.statusCode = int(reflect.ValueOf(w).Elem().FieldByName("status").Int())
+
+		if raw != "" {
+			path = path + "?" + raw
+		}
+		param.path = path
+
+		logout.Printf("[DataKit-HTTPServer] %v | %3d | %13v | %15s | %-7s  %#v\n",
+			param.timeStamp.Format("2006/01/02 - 15:04:05"),
+			param.statusCode,
+			param.latency,
+			param.clientIP,
+			param.method,
+			param.path,
+		)
+	})
 }
