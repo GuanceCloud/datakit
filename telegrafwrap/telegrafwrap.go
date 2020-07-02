@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
@@ -30,7 +31,7 @@ func (s *TelegrafSvr) Start() error {
 
 	l = logger.SLogger("telegrafwrap")
 
-	telegrafConf = filepath.Join(config.TelegrafDir, "agent.conf")
+	telegrafConf = filepath.Join(datakit.TelegrafDir, "agent.conf")
 
 	conf, err := config.GenerateTelegrafConfig(s.Cfg)
 	switch err {
@@ -75,7 +76,7 @@ func (s *TelegrafSvr) Start() error {
 				}
 			}
 
-		case <-config.Exit.Wait():
+		case <-datakit.Exit.Wait():
 			l.Info("exit, killing telegraf...")
 			if err := proc.Kill(); err != nil { // XXX: should we wait here?
 				l.Warnf("killing telegraf failed: %s, ignored", err)
@@ -132,7 +133,7 @@ func (s *TelegrafSvr) startAgent() (*os.Process, error) {
 }
 
 func agentPath() string {
-	fpath := filepath.Join(config.TelegrafDir, runtime.GOOS+"-"+runtime.GOARCH, "agent")
+	fpath := filepath.Join(datakit.TelegrafDir, runtime.GOOS+"-"+runtime.GOARCH, "agent")
 	if runtime.GOOS == "windows" {
 		fpath = fpath + ".exe"
 	}
