@@ -4,11 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/selfstat"
-
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -32,19 +30,17 @@ type (
 
 		runningInstances []*runningInstance
 
-		ctx         context.Context
-		cancelFun   context.CancelFunc
-		logger      *models.Logger
-		accumulator telegraf.Accumulator
+		ctx       context.Context
+		cancelFun context.CancelFunc
+		logger    *models.Logger
 
-		once sync.Once
+		wg sync.WaitGroup
 	}
 )
 
-func (ag *ucMonitorAgent) Init() error {
+func (ag *ucMonitorAgent) initialize() error {
 
 	ag.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
 		Name: `ucmon`,
 	}
 
@@ -59,45 +55,44 @@ func (_ *ucMonitorAgent) Catalog() string {
 	return "ucloud"
 }
 
-func (_ *ucMonitorAgent) Description() string {
-	return ""
-}
+// func (_ *ucMonitorAgent) Description() string {
+// 	return ""
+// }
 
-func (_ *ucMonitorAgent) Gather(telegraf.Accumulator) error {
-	return nil
-}
+func (ag *ucMonitorAgent) Run() {
 
-func (ag *ucMonitorAgent) Start(acc telegraf.Accumulator) error {
+	ag.initialize()
 
 	if len(ag.Instances) == 0 {
 		ag.logger.Warnf("no configuration found")
-		return nil
+		return
 	}
 
-	ag.logger.Info("starting...")
-
-	ag.accumulator = acc
+	go func() {
+		<-config.Exit.Wait()
+		ag.cancelFun()
+	}()
 
 	for _, c := range ag.Instances {
-		rc := &runningInstance{
-			agent:  ag,
-			cfg:    c,
-			logger: ag.logger,
-		}
-		ag.runningInstances = append(ag.runningInstances, rc)
 
-		go rc.run(ag.ctx)
+		ag.wg.Add(1)
+		go func(c *ucInstance) {
+			defer ag.wg.Done()
+
+			rc := &runningInstance{
+				agent:  ag,
+				cfg:    c,
+				logger: ag.logger,
+			}
+			ag.runningInstances = append(ag.runningInstances, rc)
+
+			rc.run(ag.ctx)
+		}(c)
+
 	}
 
-	return nil
-}
+	ag.wg.Done()
 
-func (ag *ucMonitorAgent) stop() {
-	ag.cancelFun()
-}
-
-func (ag *ucMonitorAgent) Stop() {
-	ag.once.Do(ag.stop)
 }
 
 func init() {
