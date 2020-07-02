@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -96,7 +96,7 @@ func (m *Mock) Run() {
 				l.Debugf("feed %d bytes to io ok", len(data))
 			}
 
-		case <-config.Exit.Wait():
+		case <-datakit.Exit.Wait():
 			l.Info("exit")
 			return
 		}
