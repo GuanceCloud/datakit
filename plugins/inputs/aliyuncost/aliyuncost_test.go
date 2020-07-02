@@ -257,7 +257,7 @@ func TestSvr(t *testing.T) {
 
 	alicost.ctx, alicost.cancelFun = context.WithCancel(context.Background())
 
-	alicost.Start(nil)
+	alicost.Run()
 
 	time.Sleep(time.Hour)
 
