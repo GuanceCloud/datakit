@@ -284,7 +284,9 @@ class Worker:
             t.join()
 
     def work_task(self, file_url, file_path):
-        uploader = Uploder(self.yaml)
+        #uploader = Uploder(self.yaml)
+        sender = Sender(rpc_server=self.yaml)
+
         with xlrd.open_workbook(file_path) as wbook:
             for name in wbook.sheet_names():
                 sheet = wbook.sheet_by_name(name)
