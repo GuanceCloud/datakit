@@ -11,6 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
@@ -128,7 +129,7 @@ func Start() {
 				flush(cache)
 				l.Debugf("flush done")
 
-			case <-config.Exit.Wait():
+			case <-datakit.Exit.Wait():
 				l.Info("exit")
 				return
 			}
@@ -181,7 +182,7 @@ func doFlush(bodies [][]byte, url string) error {
 
 	req.Header.Set("X-Datakit-UUID", config.Cfg.MainCfg.UUID)
 	req.Header.Set("X-Version", git.Version)
-	req.Header.Set("X-Version", config.DKUserAgent)
+	req.Header.Set("X-Version", datakit.DKUserAgent)
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
@@ -192,8 +193,8 @@ func doFlush(bodies [][]byte, url string) error {
 	default: // others are line-protocol
 	}
 
-	if config.MaxLifeCheckInterval > 0 {
-		req.Header.Set("X-Max-POST-Interval", fmt.Sprintf("%v", config.MaxLifeCheckInterval))
+	if datakit.MaxLifeCheckInterval > 0 {
+		req.Header.Set("X-Max-POST-Interval", fmt.Sprintf("%v", datakit.MaxLifeCheckInterval))
 	}
 
 	l.Debugf("post to %s...", categoryURLs[url])

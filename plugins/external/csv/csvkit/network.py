@@ -47,6 +47,20 @@ class Downloder:
         with open(file_path, "wb") as f:
             f.write(r.content)
 
+class Sender:
+
+    def __init__(self, rpc_server=''):
+        self.rpc_server = rpc_server
+        chan = grpc.insecure_channel(self.rpc_server)
+        self.stub = rpc.dk_pb2_grpc.DataKitStub(chan)
+
+    def send(self, data):
+        req = rpc.dk_pb2.Request(Lines=data, Name='csvkit')
+        try:
+            resp = self.stub.Send(req, None)
+        except Exception as ex:
+            pass # TODO
+
 
 class Uploder:
     content_type = "text/plain"
