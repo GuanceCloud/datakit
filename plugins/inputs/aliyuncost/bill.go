@@ -13,6 +13,9 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 type CostBill struct {
@@ -305,8 +308,11 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		} else {
 			//返回的不是utc
 			t = t.Add(-8 * time.Hour)
-			if cb.runningInstance.agent.accumulator != nil {
-				cb.runningInstance.agent.accumulator.AddFields(cb.getName(), fields, tags, t)
+			pt, err := influxdb.NewPoint(cb.getName(), tags, fields, t)
+			if err == nil {
+				io.Feed([]byte(pt.String()), io.Metric)
+			} else {
+				cb.logger.Warnf("make point failed, %s", err)
 			}
 		}
 	}
@@ -374,8 +380,11 @@ func (cb *CostBill) parseInstanceBillResponse(ctx context.Context, resp *bssopen
 		fields[`OutstandingAmount`] = item.OutstandingAmount
 		fields[`BillingDate`] = item.BillingDate
 
-		if cb.runningInstance.agent.accumulator != nil {
-			cb.runningInstance.agent.accumulator.AddFields(cb.getName(), fields, tags)
+		pt, err := influxdb.NewPoint(cb.getName(), tags, fields, time.Now().UTC())
+		if err == nil {
+			io.Feed([]byte(pt.String()), io.Metric)
+		} else {
+			cb.logger.Warnf("make point failed, %s", err)
 		}
 	}
 	return nil
