@@ -10,10 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/siddontang/go-mysql/schema"
-
 	"github.com/siddontang/go-mysql/mysql"
 	"github.com/siddontang/go-mysql/replication"
+	"github.com/siddontang/go-mysql/schema"
+
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 type EventHandler interface {
@@ -334,10 +337,12 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 			} else {
 				evtime = time.Unix(int64(e.Header.Timestamp), 0)
 			}
-			if h.rb.binlog.accumulator != nil {
-				if len(fields) > 0 {
-					h.rb.binlog.accumulator.AddFields(measureName, fields, tags, evtime)
-				}
+
+			pt, err := influxdb.NewPoint(measureName, tags, fields, evtime)
+			if err == nil {
+				io.Feed([]byte(pt.String()), io.Metric)
+			} else {
+				h.rb.binlog.logger.Warnf("make point failed, %s", err)
 			}
 		}
 
