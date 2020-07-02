@@ -6,11 +6,12 @@ import (
 	"context"
 	"io"
 	"log"
+	"sync"
 	"time"
 
 	blog "github.com/siddontang/go-log/log"
 
-	"github.com/influxdata/telegraf"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -23,12 +24,12 @@ type Binlog struct {
 
 	runningBinlogs []*RunningBinloger
 
+	wg sync.WaitGroup
+
 	tags map[string]string
 
 	ctx       context.Context
 	cancelfun context.CancelFunc
-
-	accumulator telegraf.Accumulator
 
 	logger *models.Logger
 }
@@ -41,13 +42,9 @@ func (_ *Binlog) SampleConfig() string {
 	return binlogConfigSample
 }
 
-func (_ *Binlog) Description() string {
-	return ""
-}
-
-func (b *Binlog) Gather(telegraf.Accumulator) error {
-	return nil
-}
+// func (_ *Binlog) Description() string {
+// 	return ""
+// }
 
 type adapterLogWriter struct {
 	io.Writer
@@ -66,32 +63,39 @@ func setupLogger() {
 	blog.SetDefaultLogger(blogger)
 }
 
-func (b *Binlog) Start(acc telegraf.Accumulator) error {
+func (b *Binlog) Run() {
 
 	if len(b.Instances) == 0 {
 		b.logger.Warnf("no config found")
-		return nil
+		return
 	}
 
 	setupLogger()
 
-	b.accumulator = acc
-
-	b.logger.Infof("start")
+	go func() {
+		<-config.Exit.Wait()
+		b.cancelfun()
+		for _, rb := range b.runningBinlogs {
+			rb.stop()
+		}
+	}()
 
 	for _, inst := range b.Instances {
 
-		inst.applyDefault()
+		b.wg.Add(1)
 
-		bl := NewRunningBinloger(inst)
-		bl.binlog = b
+		go func(inst *InstanceConfig) {
+			defer b.wg.Done()
 
-		b.runningBinlogs = append(b.runningBinlogs, bl)
+			inst.applyDefault()
 
-		go func(rb *RunningBinloger) {
+			bl := NewRunningBinloger(inst)
+			bl.binlog = b
+
+			b.runningBinlogs = append(b.runningBinlogs, bl)
 
 			for {
-				if err := rb.run(b.ctx); err != nil && err != context.Canceled {
+				if err := bl.run(b.ctx); err != nil && err != context.Canceled {
 					b.logger.Errorf("%s", err.Error())
 					internal.SleepContext(b.ctx, time.Second*3)
 				} else if err == context.Canceled {
@@ -101,18 +105,10 @@ func (b *Binlog) Start(acc telegraf.Accumulator) error {
 
 			b.logger.Infof("done")
 
-		}(bl)
-
+		}(inst)
 	}
 
-	return nil
-}
-
-func (b *Binlog) Stop() {
-	b.cancelfun()
-	for _, rb := range b.runningBinlogs {
-		rb.stop()
-	}
+	b.wg.Wait()
 }
 
 func init() {
