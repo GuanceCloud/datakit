@@ -3,6 +3,7 @@ package awsbill
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -12,26 +13,27 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 
-	"github.com/influxdata/telegraf"
 	uuid "github.com/satori/go.uuid"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 type (
 	AwsBillAgent struct {
 		AwsInstances []*AwsInstance `toml:"aws_billing"`
 
+		wg sync.WaitGroup
+
 		ctx       context.Context
 		cancelFun context.CancelFunc
 
-		accumulator telegraf.Accumulator
-
 		logger *models.Logger
-
-		runningInstances []*runningInstance
 	}
 
 	runningInstance struct {
@@ -59,19 +61,11 @@ func (_ *AwsBillAgent) SampleConfig() string {
 	return sampleConfig
 }
 
-func (_ *AwsBillAgent) Description() string {
-	return ""
-}
+// func (_ *AwsBillAgent) Description() string {
+// 	return ""
+// }
 
-func (_ *AwsBillAgent) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (_ *AwsBillAgent) Init() error {
-	return nil
-}
-
-func (a *AwsBillAgent) Start(acc telegraf.Accumulator) error {
+func (a *AwsBillAgent) Run() {
 
 	a.logger = &models.Logger{
 		Name: inputName,
@@ -79,38 +73,44 @@ func (a *AwsBillAgent) Start(acc telegraf.Accumulator) error {
 
 	if len(a.AwsInstances) == 0 {
 		a.logger.Warnf("no configuration found")
-		return nil
+		return
 	}
 
-	a.logger.Infof("starting...")
-
-	a.accumulator = acc
+	go func() {
+		<-config.Exit.Wait()
+		a.cancelFun()
+	}()
 
 	for _, instCfg := range a.AwsInstances {
-		r := &runningInstance{
-			cfg:            instCfg,
-			agent:          a,
-			logger:         a.logger,
-			billingMetrics: make(map[string]*cloudwatch.Metric),
-		}
-		r.metricName = instCfg.MetricName
-		if r.metricName == "" {
-			r.metricName = "aws_billing"
-		}
+		a.wg.Add(1)
 
-		if r.cfg.Interval.Duration == 0 {
-			r.cfg.Interval.Duration = time.Hour * 6
-		}
+		go func(instCfg *AwsInstance) {
+			defer a.wg.Done()
 
-		limit := rate.Every(50 * time.Millisecond)
-		r.rateLimiter = rate.NewLimiter(limit, 1)
+			r := &runningInstance{
+				cfg:            instCfg,
+				agent:          a,
+				logger:         a.logger,
+				billingMetrics: make(map[string]*cloudwatch.Metric),
+			}
+			r.metricName = instCfg.MetricName
+			if r.metricName == "" {
+				r.metricName = "aws_billing"
+			}
 
-		a.runningInstances = append(a.runningInstances, r)
+			if r.cfg.Interval.Duration == 0 {
+				r.cfg.Interval.Duration = time.Hour * 6
+			}
 
-		go r.run(a.ctx)
+			limit := rate.Every(50 * time.Millisecond)
+			r.rateLimiter = rate.NewLimiter(limit, 1)
+
+			r.run(a.ctx)
+
+		}(instCfg)
 	}
 
-	return nil
+	a.wg.Wait()
 }
 
 func (r *runningInstance) initClient() error {
@@ -276,7 +276,13 @@ func (r *runningInstance) run(ctx context.Context) error {
 						for _, dm := range ms.Dimensions {
 							tags[*dm.Name] = *dm.Value
 						}
-						r.agent.accumulator.AddFields(metricName, fields, tags, *tm)
+
+						pt, err := influxdb.NewPoint(metricName, tags, fields, *tm)
+						if err == nil {
+							io.Feed([]byte(pt.String()), io.Metric)
+						} else {
+							r.logger.Warnf("make point failed, %s", err)
+						}
 					}
 				}
 			}
@@ -286,10 +292,6 @@ func (r *runningInstance) run(ctx context.Context) error {
 		internal.SleepContext(ctx, r.cfg.Interval.Duration)
 	}
 
-}
-
-func (a *AwsBillAgent) Stop() {
-	a.cancelFun()
 }
 
 func init() {
