@@ -5,10 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/influxdata/telegraf"
-
 	"golang.org/x/time/rate"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
@@ -115,17 +114,12 @@ type (
 	}
 
 	CmsAgent struct {
-		CMSs       []*CMS `toml:"cms"`
-		ReportStat bool   `toml:"report_stat"`
-
-		runningInstances []*runningInstance
+		CMSs []*CMS `toml:"cms"`
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
 
 		logger *models.Logger
-
-		accumulator telegraf.Accumulator
 
 		wg sync.WaitGroup
 
@@ -138,58 +132,51 @@ func (_ *CmsAgent) SampleConfig() string {
 	return aliyuncmsConfigSample
 }
 
-func (_ *CmsAgent) Description() string {
-	return `Collect metrics from alibaba Cloud Monitor Service.`
-}
+// func (_ *CmsAgent) Description() string {
+// 	return `Collect metrics from alibaba Cloud Monitor Service.`
+// }
 
 func (_ *CmsAgent) Catalog() string {
 	return `aliyun`
 }
 
-func (_ *CmsAgent) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (ac *CmsAgent) Start(acc telegraf.Accumulator) error {
+func (ac *CmsAgent) Run() {
 
 	if len(ac.CMSs) == 0 {
 		ac.logger.Warnf("no configuration found")
-		return nil
+		return
 	}
 
-	ac.logger.Info("start")
-
-	ac.accumulator = acc
+	go func() {
+		<-config.Exit.Wait()
+		ac.cancelFun()
+	}()
 
 	for _, cfg := range ac.CMSs {
-		rc := &runningInstance{
-			agent:  ac,
-			cfg:    cfg,
-			logger: ac.logger,
-		}
-		if cfg.Delay.Duration == 0 {
-			cfg.Delay.Duration = time.Minute * 5
-		}
-
-		if rc.cfg.Interval.Duration == 0 {
-			rc.cfg.Interval.Duration = time.Minute * 5
-		}
-		ac.runningInstances = append(ac.runningInstances, rc)
-
 		ac.wg.Add(1)
-		go func() {
+		go func(cfg *CMS) {
 			defer ac.wg.Done()
+
+			rc := &runningInstance{
+				agent:  ac,
+				cfg:    cfg,
+				logger: ac.logger,
+			}
+			if cfg.Delay.Duration == 0 {
+				cfg.Delay.Duration = time.Minute * 5
+			}
+
+			if rc.cfg.Interval.Duration == 0 {
+				rc.cfg.Interval.Duration = time.Minute * 5
+			}
+
 			rc.run(ac.ctx)
-		}()
+
+		}(cfg)
+
 	}
 
-	return nil
-}
-
-func (a *CmsAgent) Stop() {
-	a.cancelFun()
-	a.wg.Wait()
-	a.logger.Info("done")
+	ac.wg.Wait()
 }
 
 func NewAgent() *CmsAgent {
