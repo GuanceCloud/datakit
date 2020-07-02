@@ -569,6 +569,7 @@ github.com/influxdata/tail v1.0.1-0.20180327235535-c43482518d41 h1:HxQo1NpNXQDpv
 github.com/influxdata/tail v1.0.1-0.20180327235535-c43482518d41/go.mod h1:xTFF2SILpIYc5N+Srb0d5qpx7d+f733nBrbasb13DtQ=
 github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26 h1:uULgvix4B565n7JelZ/5P5bKWm3EWuIi5p3J6psZbOs=
 github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26/go.mod h1:OsySxSO+blhQKzmudSdJplhQtnkfGIKA4tYhURrWakM=
+github.com/influxdata/toml v0.0.0-20180607005434-2a2e3012f7cf h1:SDlFXYATjEbWThjvSTGdLmHyPozB8QsUFQs/LQ/bOcE=
 github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65 h1:vvyMtD5LTJc1W9sQKjDkAWdcg0478CszSdzlHtiAXCY=
 github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65/go.mod h1:zApaNFpP/bTpQItGZNNUMISDMDAnTXu9UqJ4yT3ocz8=
 github.com/influxdata/wlog v0.0.0-20160411224016-7c63b0a71ef8 h1:W2IgzRCb0L9VzMujq/QuTaZUKcH8096jWwP519mHN6Q=
@@ -616,6 +617,8 @@ github.com/karrick/godirwalk v1.12.0 h1:nkS4xxsjiZMvVlazd0mFyiwD4BR9f3m6LXGhM2TU
 github.com/karrick/godirwalk v1.12.0/go.mod h1:H5KPZjojv4lE+QYImBI8xVtrBRgYrIVsaRPx4tDPEn4=
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 h1:Z9n2FFNUXsshfwJMBgNA0RU6/i7WVaAegv3PtuIHPMs=
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51/go.mod h1:CzGEWj7cYgsdH8dAjBGEr58BoE7ScuLd+fwFZ44+/x8=
+github.com/keegancsmith/rpc v1.1.0 h1:bXVRk3EzbtrEegTGKxNTc+St1lR7t/Z1PAO8misBnCc=
+github.com/keegancsmith/rpc v1.1.0/go.mod h1:Xow74TKX34OPPiPCdz6x1o9c0SCxRqGxDuKGk7ZOo8s=
 github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvWXihfKN4Q=
 github.com/kisielk/errcheck v1.2.0/go.mod h1:/BMXB+zMLi60iA8Vv6Ksmxu/1UDYcXs4uQLJ+jE2L00=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
@@ -1012,6 +1015,8 @@ github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=
 github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
 github.com/spf13/viper v1.6.1/go.mod h1:t3iDnF5Jlj76alVNuyFBk5oUMCvsrkbvZK0WQdfDi5k=
+github.com/stamblerre/gocode v1.0.0 h1:5aTRgkRTOS8mELHoKatkwhfX44OdEV3iwu3FCXyvLzk=
+github.com/stamblerre/gocode v1.0.0/go.mod h1:ONyGamdxpnxaG2+XLyGkNuuoYISmz0QFVHScxvsXsqM=
 github.com/streadway/amqp v0.0.0-20180528204448-e5adc2ada8b8/go.mod h1:1WNBiOZtZQLpVAyu0iTduoJL9hEsMloAK5XWrtW0xdY=
 github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94/go.mod h1:AZpEONHx3DKn8O/DFsRAY58/XVQiIPMTMB1SddzLXVw=
 github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271 h1:WhxRHzgeVGETMlmVfqhRn8RIeeNoPr2Czh33I4Zdccw=
@@ -1128,6 +1133,10 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200619025526-f2b7aec88054
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200619025526-f2b7aec88054/go.mod h1:a85TCM12w0OdFyPzVb8ZYwLrhT9UNE+V2QiAaWA/nf0=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200624084216-86e24a297ba1 h1:CYBASSJZGq90L5iuo9KAthSIoklX6Ne5/OYEB3VvzK8=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200624084216-86e24a297ba1/go.mod h1:a85TCM12w0OdFyPzVb8ZYwLrhT9UNE+V2QiAaWA/nf0=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200630031600-765dfaac402c h1:Cybm3xwkI5bBWewiYeu1+zUbGCKx0NK9CfvcEn1sHUY=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200630031600-765dfaac402c/go.mod h1:a85TCM12w0OdFyPzVb8ZYwLrhT9UNE+V2QiAaWA/nf0=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200630070400-b23b83b0b65d h1:2yuwqauM5jORmRLrFmRCg1UtwO3bPmFkp8ruEG1DF+s=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200630070400-b23b83b0b65d/go.mod h1:a85TCM12w0OdFyPzVb8ZYwLrhT9UNE+V2QiAaWA/nf0=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200419044746-6486cbd8ef30/go.mod h1:AxpWMT3J4jwRv2RiIKJd/4+5B4TiVkdFlGSawSnC3q8=
 gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54 h1:iIEZQbYNRwRyNvLfxY4+QyDVSPf1ZHdv3zGNsISbdKY=
 gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54/go.mod h1:ry4kzbcxpuif0tNtwZS3wixv5PrbsizlYD0+XhhJR30=
@@ -1201,6 +1210,8 @@ golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3/go.mod h1:6SW0HCj/g11FgYtHl
 golang.org/x/lint v0.0.0-20190930215403-16217165b5de/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
 golang.org/x/lint v0.0.0-20200130185559-910be7a94367 h1:0IiAsCRByjO2QjX7ZPkw5oU9x+n1YqRL802rjC0c3Aw=
 golang.org/x/lint v0.0.0-20200130185559-910be7a94367/go.mod h1:3xt1FjdF8hUf6vQPIChWIBhFzV8gjjsPE/fR3IyQdNY=
+golang.org/x/lint v0.0.0-20200302205851-738671d3881b h1:Wh+f8QHJXR411sJR8/vRBTZ7YapZaRvUcLFFJhusH0k=
+golang.org/x/lint v0.0.0-20200302205851-738671d3881b/go.mod h1:3xt1FjdF8hUf6vQPIChWIBhFzV8gjjsPE/fR3IyQdNY=
 golang.org/x/mod v0.0.0-20190513183733-4bf6d317e70e/go.mod h1:mXi4GBBbnImb6dmsKGUJ2LatrhH/nqhxcFungHvyanc=
 golang.org/x/mod v0.1.1-0.20191105210325-c90efee705ee/go.mod h1:QqPTAvyqsEbceGzBzNggFXnrqF1CaUcvgkdR5Ot7KZg=
 golang.org/x/mod v0.2.0 h1:KU7oHjnv3XNWfa5COkzUifxZmxp1TyI7ImMXqFxLwvQ=
@@ -1328,6 +1339,7 @@ golang.org/x/tools v0.0.0-20190910044552-dd2b5c81c578/go.mod h1:b+2E5dAYhXwXZwtn
 golang.org/x/tools v0.0.0-20191004055002-72853e10c5a3/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20191029041327-9cc4af7d6b2c/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20191029190741-b9c20aec41a5/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
+golang.org/x/tools v0.0.0-20191030062658-86caa796c7ab/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20191107010934-f79515f33823/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20191108193012-7d206e10da11/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20191119224855-298f0cb1881e/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
