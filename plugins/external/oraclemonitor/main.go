@@ -110,7 +110,6 @@ func main() {
 }
 
 func Start() {
-
 	l.Infof("start monit %d oracle instances...", len(C.Instances))
 
 	wg := sync.WaitGroup{}
@@ -195,7 +194,6 @@ func (i *instance) run() {
 }
 
 func (i *instance) handleResponse(m string, response []map[string]interface{}) error {
-
 	lines := []string{}
 
 	for _, item := range response {
@@ -346,9 +344,9 @@ func String(i interface{}) string {
 }
 
 const (
-	configSample = `
-{
-	"log":       "/usr/local/cloudcare/DataFlux/datakit/oraclemonitor.log",
+  configSample = `
+  {
+  "log":       "/usr/local/cloudcare/DataFlux/datakit/oraclemonitor.log",
   "log_level": "info",
 	"oracles" : [
 		{
@@ -752,7 +750,72 @@ select a.tablespace_name tablespace_name,
          from dba_free_space
         group by tablespace_name) b
 where a.tablespace_name = b.tablespace_name`
+
+    // Data Guard 快速启动故障转移观察程序
+    oracle_dg_fsfo_info_sql = `
+    select fs_failover_status from v$database;
+    ` 
+    
+	// Data Guard 性能
+    oracle_dg_performance_info_sql = `
+    select  round(avg(value),2) redo_generation_rate from gv$sysmetric where  metric_name ='Redo Generated Per Sec';
+    `
+    
+	// Data Guard 故障转移
+    oracle_dg_failover_sql = `
+    select  dest_id,end_of_redo_type,count(*) switch_counts from v$ARCHIVED_LOG where end_of_redo_type is not null group by dest_id,end_of_redo_type;
+    `
+	
+	// Data Guard 延迟信息
+    oracle_dg_delay_info_sql = `
+    select name dl_name,value dl_value,time_computed dl_flash_time from   V$DATAGUARD_STATS;
+    `
+	
+	// Data Guard 重做应用速率
+    oracle_dg_apply_rate_sql = `
+    select sofar redo_apply_rate from V$RECOVERY_PROGRESS where item='Active Apply Rate';
+    `
+	
+	// Data Guard 目录错误信息
+    oracle_dg_dest_error_sql = `
+    select DEST_NAME,STATUS,NAME_SPACE,TARGET,ARCHIVER,ERROR,APPLIED_SCN from v$archive_dest where target='STANDBY';
+    `
+	
+	// Data Guard 进程信息
+    oracle_dg_proc_info_sql = `
+    select process, status from v$managed_standby;
+    `
+	
+	// 采集容器数据库基础信息
+	oracle_cdb_db_info_sql = `
+    select name as pdb_name,open_mode from v$pdbs;
+    `
+    
+	// 采集容器资源基础信息
+	oracle_cdb_resource_info_sql = `
+    select r.con_id, p.pdb_name, r.cpu_utilization_limit, r.avg_cpu_utilization,r.cpu_wait_time, r.num_cpus,r.running_sessions_limit, r.avg_running_sessions, r.avg_waiting_sessions,r.avg_active_parallel_stmts, r.avg_queued_parallel_stmts,
+    r.avg_active_parallel_servers, r.avg_queued_parallel_servers, r.parallel_servers_limit,r.iops,r.iombps,r.sga_bytes, r.pga_bytes, r.buffer_cache_bytes, r.shared_pool_bytes
+    from v$rsrcpdbmetric r, cdb_pdbs p
+    `
+
+	// 采集ASM磁盘组状态
+	oracle_asm_group_info_sql = `
+    select GROUP_NUMBER,NAME AS GROUP_NAME,STATE,TYPE,TOTAL_MB,FREE_MB,REQUIRED_MIRROR_FREE_MB,USABLE_FILE_MB,OFFLINE_DISKS,VOTING_FILES from v$asm_diskgroup;
+    `
+
+	// 采集ASM磁盘组状态
+	oracle_asm_disk_info_sql = `
+    select 
+    group_number,group_name,disk_number,name as disk_name,mount_status,
+    mode_status,state,os_mb,total_mb,free_mb,path,create_date,mount_date,
+    repair_timer,reads,writes,read_errs,write_errs,read_time,write_time,
+    bytes_read,bytes_written,voting_file from v$asm_disk d,
+    (select group_number as g_number,name as group_name from v$asm_diskgroup) g
+    where d.group_number=g.g_number;
+    `
 )
+    
+  
 
 var (
 	metricMap = map[string]string{
@@ -779,6 +842,17 @@ var (
 		"oracle_snap_info":           oracle_snap_info_sql,
 		"oralce_backup_set_info":     oralce_backup_set_info_sql,
 		"oracle_tablespace_free_pct": oracle_tablespace_free_pct_sql,
+		"oracle_dg_fsfo_info":        oracle_dg_fsfo_info_sql,
+		"oracle_dg_performance_info": oracle_dg_performance_info_sql,
+		"oracle_dg_failover":         oracle_dg_failover_sql,
+		"oracle_dg_delay_info":       oracle_dg_delay_info_sql,
+		"oracle_dg_apply_rate":       oracle_dg_apply_rate_sql,
+		"oracle_dg_dest_error":       oracle_dg_dest_error_sql,
+		"oracle_dg_proc_info":        oracle_dg_proc_info_sql,
+		"oracle_cdb_db_info":         oracoracle_cdb_db_info_sql,
+		"oracle_cdb_resource_info":   oracle_cdb_resource_info_sql,
+		"oracle_asm_group_info":      oracle_asm_group_info_sql,
+		"oracle_asm_disk_info":       oracle_asm_disk_info_sql;
 	}
 
 	tagsMap = map[string][]string{
