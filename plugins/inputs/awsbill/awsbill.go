@@ -15,13 +15,10 @@ import (
 
 	uuid "github.com/satori/go.uuid"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 type (
@@ -77,7 +74,7 @@ func (a *AwsBillAgent) Run() {
 	}
 
 	go func() {
-		<-config.Exit.Wait()
+		<-datakit.Exit.Wait()
 		a.cancelFun()
 	}()
 
@@ -277,12 +274,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 							tags[*dm.Name] = *dm.Value
 						}
 
-						pt, err := influxdb.NewPoint(metricName, tags, fields, *tm)
-						if err == nil {
-							io.Feed([]byte(pt.String()), io.Metric)
-						} else {
-							r.logger.Warnf("make point failed, %s", err)
-						}
+						io.FeedEx(io.Metric, metricName, tags, fields, *tm)
 					}
 				}
 			}

@@ -8,8 +8,6 @@ import (
 	"sync"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
@@ -325,12 +323,7 @@ func (c *RunningCMS) fetchMetrics(req *MetricsRequest) error {
 			fields := map[string]interface{}{}
 			fields[*req.q.MetricName] = *val
 
-			pt, err := influxdb.NewPoint(foramtNamespaceName(*req.q.Namespace), tags, fields, time.Now().UTC())
-			if err == nil {
-				io.Feed([]byte(pt.String()), io.Metric)
-			} else {
-				c.logger.Warnf("make point failed, %s", err)
-			}
+			io.FeedEx(io.Metric, foramtNamespaceName(*req.q.Namespace), tags, fields)
 
 		}
 	}
