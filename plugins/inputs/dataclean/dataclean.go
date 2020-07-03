@@ -132,7 +132,7 @@ func (d *DataClean) Run() {
 }
 
 func (d *DataClean) FakeDataway() string {
-	return fmt.Sprintf("http://%s/v1/write/metrics", d.BindAddr)
+	return fmt.Sprintf("http://%s/v1/write/metric", d.BindAddr)
 }
 
 func NewAgent() *DataClean {
