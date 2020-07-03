@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -69,7 +70,7 @@ func (_ *DataClean) Catalog() string {
 
 func (d *DataClean) Init() error {
 
-	d.luaMachine = NewLuaMachine(filepath.Join(config.InstallDir, "data", "lua"), d.LuaWorker)
+	d.luaMachine = NewLuaMachine(filepath.Join(datakit.InstallDir, "data", "lua"), d.LuaWorker)
 	d.luaMachine.routes = d.Routes
 	d.luaMachine.globals = d.GlobalLua
 
