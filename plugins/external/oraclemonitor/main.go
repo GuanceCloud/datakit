@@ -294,26 +294,6 @@ func String(i interface{}) string {
 }
 
 const (
-	configSample = `
-  {
-  "log":       "/usr/local/cloudcare/DataFlux/datakit/oraclemonitor.log",
-  "log_level": "info",
-	"oracles" : [
-		{
-			"interval" : "10s",
-			"metricName" : "",
-			"instanceId" : "",
-			"instanceDesc" : "",
-			"host" : "",
-			"port" : "",
-			"username" : "",
-			"password" : "",
-			"server" : "",
-			"type": "singleInstance"
-		}
-	]
-}`
-
 	oracle_hostinfo_sql = `
 SELECT stat_name, value
 FROM v$osstat

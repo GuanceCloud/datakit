@@ -169,14 +169,14 @@ Golang Version: %s
 	switch osarch {
 
 	case "windows/amd64":
-		installDir = `C:\Program Files\DataFlux\` + ServiceName
+		installDir = `C:\Program Files\dataflux\` + ServiceName
 
 	case "windows/386":
-		installDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
+		installDir = `C:\Program Files (x86)\dataflux\` + ServiceName
 
 	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
 		"darwin/amd64", "darwin/386":
-		installDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
+		installDir = `/usr/local/cloudcare/dataflux/` + ServiceName
 
 	default:
 		// TODO
