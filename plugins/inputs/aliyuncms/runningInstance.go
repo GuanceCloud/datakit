@@ -442,10 +442,10 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 
 	metricName := req.q.MetricName
 
-	metricSetName := req.metricSetName
-	if req.metricSetName == "" {
-		metricSetName = formatMeasurement(req.q.Namespace)
-	}
+	// metricSetName := req.metricSetName
+	// if req.metricSetName == "" {
+	// 	metricSetName = formatMeasurement(req.q.Namespace)
+	// }
 
 	for _, datapoint := range datapoints {
 
