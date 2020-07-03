@@ -46,6 +46,7 @@ const (
 )
 
 var (
+	tzlog *zap.SugaredLogger
 	timeZoneConfigSample = `### metric_name: the name of metric, default is "timezone".
 ### active: whether to monitor timezone changes.
 ### interval: monitor interval second, unit is second. The default value is 60.
@@ -55,10 +56,6 @@ var (
 #active   = true
 #interval = 60
 #hostname = ""`
-)
-
-var (
-	tzlog *zap.SugaredLogger
 )
 
 func (t *Timezone) SampleConfig() string {
@@ -103,7 +100,7 @@ func (p *TzParams) gather() {
 		case <-tick.C:
 			err := p.getMetrics()
 			if err != nil {
-				tzlog.Infof("getMetrics err: %s", err.Error())
+				tzlog.Errorf("getMetrics err: %s", err.Error())
 			}
 
 		case <-config.Exit.Wait():
