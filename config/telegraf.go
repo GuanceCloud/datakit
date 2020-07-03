@@ -269,9 +269,9 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 	fileoutstr := ""
 	httpoutstr := ""
 
-	if cfg.MainCfg.OutputsFile != "" {
+	if cfg.MainCfg.OutputFile != "" {
 		fileCfg := fileoutCfg{
-			OutputFiles: cfg.MainCfg.OutputsFile,
+			OutputFiles: cfg.MainCfg.OutputFile,
 		}
 
 		tpl := template.New("")
