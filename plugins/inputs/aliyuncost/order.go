@@ -13,8 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 type CostOrder struct {
@@ -236,12 +234,7 @@ func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			co.logger.Warnf("fail to parse time:%v, error:%s", item.CreateTime, err)
 			continue
 		}
-		pt, err := influxdb.NewPoint(co.getName(), tags, fields, t)
-		if err == nil {
-			io.Feed([]byte(pt.String()), io.Metric)
-		} else {
-			co.logger.Warnf("make point failed, %s", err)
-		}
+		io.FeedEx(io.Metric, co.getName(), tags, fields, t)
 	}
 
 	return nil
