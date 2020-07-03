@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
@@ -479,7 +480,7 @@ func migrateLagacyDatakit() {
 		l.Fatalf("remove %s failed: %s", installDir, err.Error())
 	}
 
-	for _, dir := range []string{config.TelegrafDir, config.DataDir, config.LuaDir, config.ConfdDir} {
+	for _, dir := range []string{datakit.TelegrafDir, datakit.DataDir, datakit.LuaDir, datakit.ConfdDir} {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
 		}
