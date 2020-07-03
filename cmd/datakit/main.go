@@ -162,9 +162,11 @@ func __run() {
 		l.Info("telegraf process exit ok")
 	}()
 
+	l.Info("datakit start...")
 	if err := runDatakit(); err != nil && err != context.Canceled {
 		l.Fatalf("datakit abort: %s", err)
 	}
+
 	l.Info("datakit start ok. Wait signal or service stop...")
 
 	// NOTE:
