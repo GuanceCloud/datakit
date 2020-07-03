@@ -9,6 +9,7 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
