@@ -46,7 +46,7 @@ var (
 		"http_check":        &telegrafInputs{name: "http_check", Catalog: "http_check"},
 		"kernel":            &telegrafInputs{name: "kernel", Catalog: "kernel"},
 		"tls":               &telegrafInputs{name: "tls", Catalog: "tls"},
-		"nats":              &telegrafInputs{name: "nats", Catalog: "network"},
+		"nats":              &telegrafInputs{name: "nats", Catalog: "nats"},
 		"win_services":      &telegrafInputs{name: "win_services", Catalog: "win_services"},
 		"awscloudwatch":     &telegrafInputs{name: "awscloudwatch", Catalog: "aws"},
 		"vmware":            &telegrafInputs{name: "vmware", Catalog: "vmware"},
