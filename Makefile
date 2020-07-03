@@ -47,7 +47,7 @@ define build
 	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Sha1 string="$(COMMIT)"; Uploader string="$(UPLOADER)");' > git/git.go
 	@go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
-	tree -Csh build pub
+	tree -Csh -L 4 build pub
 endef
 
 define pub
