@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
@@ -62,7 +63,7 @@ func HTTPServer() {
 		l.Info("http server exit")
 	}()
 
-	<-config.Exit.Wait()
+	<-datakit.Exit.Wait()
 	l.Info("stopping http server...")
 
 	if err := srv.Shutdown(context.Background()); err != nil {
