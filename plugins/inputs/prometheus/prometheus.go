@@ -14,7 +14,7 @@ import (
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -383,7 +383,7 @@ func (p *Prometheus) Run() {
 	// }
 
 	go func() {
-		<-config.Exit.Wait()
+		<-datakit.Exit.Wait()
 		p.stopCancelFun()
 		if p.MonitorPods {
 			p.cancel()
