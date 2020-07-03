@@ -332,8 +332,8 @@ func CheckConfd() error {
 		checkSubDir(filepath.Join(datakit.ConfdDir, item.Name()))
 	}
 
-	l.Infof("inputs: %s", strings.Join(configed, ","))
-	l.Infof("error configuration: %s", strings.Join(invalids, ","))
+	fmt.Printf("inputs: %s\n", strings.Join(configed, ","))
+	fmt.Printf("error configuration: %s\n", strings.Join(invalids, ","))
 
 	return nil
 }
@@ -602,7 +602,6 @@ func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) err
 	l.Debugf("configured input: %+#v", input)
 
 	ri := inputs.NewRunningInput(input, pluginConfig)
-	ri.SetDefaultTags(c.MainCfg.GlobalTags)
 
 	c.Inputs = append(c.Inputs, ri)
 	return nil
@@ -622,7 +621,6 @@ func buildInput(name string, tbl *ast.Table, input inputs.Input) (*inputs.InputC
 				ic.Interval = dur
 			}
 		}
-		delete(tbl.Fields, "interval")
 	}
 
 	ic.Tags = make(map[string]string)
@@ -634,8 +632,6 @@ func buildInput(name string, tbl *ast.Table, input inputs.Input) (*inputs.InputC
 		}
 	}
 
-	delete(tbl.Fields, "dataway_path")
-	delete(tbl.Fields, "output_file")
 	delete(tbl.Fields, "tags")
 
 	return ic, nil
