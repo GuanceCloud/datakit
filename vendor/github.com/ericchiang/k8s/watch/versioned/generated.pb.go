@@ -67,7 +67,7 @@ func (m *Event) GetObject() *k8s_io_kubernetes_pkg_runtime.RawExtension {
 }
 
 func init() {
-	proto.RegisterType((*Event)(nil), "github.com/ericchiang.k8s.watch.versioned.Event")
+	proto.RegisterType((*Event)(nil), "k8s.io.kubernetes.pkg.watch.versioned.Event")
 }
 func (m *Event) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
