@@ -10,7 +10,7 @@ import (
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -127,7 +127,7 @@ func (tc *TencentCms) Run() {
 	}
 
 	go func() {
-		<-config.Exit.Wait()
+		<-datakit.Exit.Wait()
 		tc.cancelFun()
 	}()
 
