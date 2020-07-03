@@ -9,8 +9,6 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
@@ -339,12 +337,7 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 			metricName = "aliyun_price"
 		}
 
-		pt, err := influxdb.NewPoint(metricName, tags, fields, time.Now().UTC())
-		if err == nil {
-			io.Feed([]byte(pt.String()), io.Metric)
-		} else {
-			a.logger.Warnf("make point failed, %s", err)
-		}
+		io.FeedEx(io.Metric, metricName, tags, fields)
 	}
 }
 

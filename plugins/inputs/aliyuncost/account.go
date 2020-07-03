@@ -13,8 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 type CostAccount struct {
@@ -292,12 +290,7 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 			ca.logger.Warnf("fail to parse time:%v %s, error: %s", item.TransactionTime, item.RecordID, err)
 		} else {
 			tm = tm.Add(-8 * time.Hour) //返回的不是unix时间字符串
-			pt, err := influxdb.NewPoint(ca.getName(), tags, fields, tm)
-			if err == nil {
-				io.Feed([]byte(pt.String()), io.Metric)
-			} else {
-				ca.logger.Warnf("make point failed, %s", err)
-			}
+			io.FeedEx(io.Metric, ca.getName(), tags, fields, tm)
 		}
 	}
 
