@@ -1,0 +1,173 @@
+# Global configuartions
+StartRow: 0   #有效数据开始行编号，编号从0开始
+BatchSize: 1  #多行CSV数据打包成一个HTTP请求发送到dataway
+
+
+# Dataway configuartions
+DatawayUrl: "http://10.100.64.106:19528/v1/write/metrics"   #dataway URL地址
+DatawayUuid: xx-yy-zz                    #dataway UUID
+DatawayAuth: True                        #dataway是否开启认证功能
+Ak: qDuSI8Yrb1zZF7xe                           #dataway开启认证后必须配置公钥
+Sk: 0C9qaNvynxFQgbr8DVt3jT5KG7EIHULp           #dataway开启认证后必须配置私钥
+
+# file list
+Files:   #支持并行多文件，并且本地路径与网络路径都可以
+  - "./1.csv"
+
+Rules:
+  # 若一行数据需要转成influxdb中多个points，需定义多个转换规则rule，每个rule需包含Measurement,Tags,Fields,Timestamp
+  # Influxdb configuartions
+  - Measurement: MeTest
+  #  PrimaryKey: 0
+    Tags:                    #tags配置
+      - ColumnIndex: 0               #CSV文件列索引，从0开始
+        Name: tag1                   #写入influxdb行协议tag名
+        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+
+      - ColumnIndex: 1               #CSV文件列索引，从0开始
+        Name: tag2                   #写入influxdb行协议tag名
+        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+    Fields:                 #Fields配置
+      - ColumnIndex: 2               #CSV文件列索引，从0开始
+        Name: class                  #写入influxdb行协议tag名，若Name未配置，Header必须设为True，此时使用CSV文件Header行为field名
+        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+        Type: int                  #字段类型，默认为str；支持：str，int，float，bool；类型转换失败丢弃此行
+
+      - ColumnIndex: 3               #CSV文件列索引，从0开始
+        Name: score                  #写入influxdb行协议tag名，若Name未配置，Header必须设为True，此时使用CSV文件Header行为field名
+        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+        Type: float                  #字段类型，默认为str；支持：str，int，float，bool；类型转换失败丢弃此行
+
+      - ColumnIndex: 4               #CSV文件列索引，从0开始
+        Name: super                 #写入influxdb行协议tag名，若Name未配置，Header必须设为True，此时使用CSV文件Header行为field名
+        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+        Type: bool                   #字段类型，默认为str；支持：str，int，float，bool；类型转换失败丢弃此行
+
+      - ColumnIndex: 5               #CSV文件列索引，从0开始
+        Name: desp                   #写入influxdb行协议tag名，若Name未配置，Header必须设为True，此时使用CSV文件Header行为field名
+        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+        Type: str                   #字段类型，默认为str；支持：str，int，float，bool；类型转换失败丢弃此行
+
+#    Timestamp:
+#      ColumnIndex: 6                 #CSV文件列索引，从0开始
+#      # 优先使用TimeUnit，失败再使用TimeFormat进行时间戳转换
+#      TimeUnit: s                    #时间戳单位，秒：s；毫秒：ms；微秒：us；纳秒：ns 15/08/27 10:20:06
+#      TimeFormat: "%Y-%m-%d %H:%M:%S" # TimeFormat自定义格式化时间戳
+#  - Measurement: MdTest
+#    Tags:                    #tags配置
+#      - ColumnIndex: 0               #CSV文件列索引，从0开始
+#        Name: year                   #写入influxdb行协议tag名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#
+#      - ColumnIndex: 1               #CSV文件列索引，从0开始
+#        Name: group                   #写入influxdb行协议tag名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#    Fields:                 #Fields配置
+#      - ColumnIndex: 2               #CSV文件列索引，从0开始
+#        Name: class                  #写入influxdb行协议tag名，若Name未配置，Header必须设为True，此时使用CSV文件Header行为field名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#        Type: str                  #字段类型，默认为str；支持：str，int，float，bool；类型转换失败丢弃此行
+#
+#      - ColumnIndex: 3               #CSV文件列索引，从0开始
+#        Name: minclass                  #写入influxdb行协议tag名，若Name未配置，Header必须设为True，此时使用CSV文件Header行为field名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#        Type: int                  #字段类型，默认为str；支持：str，int，float，bool；类型转换失败丢弃此行
+#
+#      - ColumnIndex: 4               #CSV文件列索引，从0开始
+#        Name: score                 #写入influxdb行协议tag名，若Name未配置，Header必须设为True，此时使用CSV文件Header行为field名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#        Type: float                   #字段类型，默认为str；支持：str，int，float，bool；类型转换失败丢弃此行
+#
+#      - ColumnIndex: 5               #CSV文件列索引，从0开始
+#        Name: super                   #写入influxdb行协议tag名，若Name未配置，Header必须设为True，此时使用CSV文件Header行为field名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#        Type: bool                   #字段类型，默认为str；支持：str，int，float，bool；类型转换失败丢弃此行
+#
+#    Timestamp:
+#      ColumnIndex: 8                 #CSV文件列索引，从0开始
+#      # 优先使用TimeUnit，失败再使用TimeFormat进行时间戳转换
+#      TimeUnit: s                    #时间戳单位，秒：s；毫秒：ms；微秒：us；纳秒：ns 15/08/27 10:20:06
+#      TimeFormat: "%Y-%m-%d %H:%M:%S" # TimeFormat自定义格式化时间戳
+
+#  - Measurement: MeTest
+#    Tags:                    #tags配置
+#      - ColumnIndex: 0               #CSV文件列索引，从0开始
+#        Name: year                   #写入influxdb行协议tag名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#
+#      - Cell: (0,2)               #CSV文件列索引，从0开始
+#        Name: group1                   #写入influxdb行协议tag名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#    Fields:                 #Fields配置
+#      - ColumnIndex: 2               #CSV文件列索引，从0开始
+#        Name: class                  #写入influxdb行协议tag名，若Name未配置，Header必须设为True，此时使用CSV文件Header行为field名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#        Type: str                  #字段类型，默认为str；支持：str，int，float，bool；类型转换失败丢弃此行
+#
+#      - ColumnIndex: 3               #CSV文件列索引，从0开始
+#        Name: minclass                  #写入influxdb行协议tag名，若Name未配置，Header必须设为True，此时使用CSV文件Header行为field名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#        Type: int                  #字段类型，默认为str；支持：str，int，float，bool；类型转换失败丢弃此行
+#
+#      - ColumnIndex: 4               #CSV文件列索引，从0开始
+#        Name: score                 #写入influxdb行协议tag名，若Name未配置，Header必须设为True，此时使用CSV文件Header行为field名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#        Type: float                   #字段类型，默认为str；支持：str，int，float，bool；类型转换失败丢弃此行
+#
+#      - ColumnIndex: 5               #CSV文件列索引，从0开始
+#        Name: super                   #写入influxdb行协议tag名，若Name未配置，Header必须设为True，此时使用CSV文件Header行为field名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#        Type: bool                   #字段类型，默认为str；支持：str，int，float，bool；类型转换失败丢弃此行
+#
+#      - Cell: (1,2)               #CSV文件列索引，从0开始
+#        Name: group2                   #写入influxdb行协议tag名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#
+#      - Cell: (2,2)               #CSV文件列索引，从0开始
+#        Name: group3                   #写入influxdb行协议tag名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#
+#      - Cell: (1,5)               #CSV文件列索引，从0开始
+#        Name: group22                   #写入influxdb行协议tag名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#
+#      - Cell: (2,5)               #CSV文件列索引，从0开始
+#        Name: group23                   #写入influxdb行协议tag名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#      - Cell: (0,5)               #CSV文件列索引，从0开始
+#        Name: group24                   #写入influxdb行协议tag名
+#        NaAction: ignore             #字段无值时动作，ignore：忽略此字段；drop：丢弃此行；abort：程序终止运行
+#
+#    Timestamp:
+#      ColumnIndex: 8                 #CSV文件列索引，从0开始
+#      # 优先使用TimeUnit，失败再使用TimeFormat进行时间戳转换
+#      TimeUnit: s                    #时间戳单位，秒：s；毫秒：ms；微秒：us；纳秒：ns 15/08/27 10:20:06
+#      TimeFormat: "%Y-%m-%d %H:%M:%S" # TimeFormat自定义格式化时间戳
+
+
+
+#TimeFormat支持的格式如下
+ #%a	本地星期名称的简写（如星期四为Thu）
+ #%A	本地星期名称的全称（如星期四为Thursday）
+ #%b	本地月份名称的简写（如八月份为agu）
+ #%B	本地月份名称的全称（如八月份为august）
+ #%c	本地相应的日期和时间的字符串表示（如：15/08/27 10:20:06）
+ #%d	一个月中的第几天（01 - 31）
+ #%f	微秒（范围0.999999）
+ #%H	一天中的第几个小时（24小时制，00 - 23）
+ #%I	第几个小时（12小时制，0 - 11）
+ #%j	一年中的第几天（001 - 366）
+ #%m	月份（01 - 12）
+ #%M	分钟数（00 - 59）
+ #%p	本地am或者pm的标识符
+ #%S	秒（00 - 61）
+ #%U	一年中的星期数。（00 - 53星期天是一个星期的开始。）第一个星期天之 前的所有天数都放在第0周。
+ #%w	一个星期中的第几天（0 - 6，0是星期天）
+ #%W	和%U基本相同，不同的是%W以星期一为一个星期的开始。
+ #%x	本地相应日期字符串（如15/08/01）
+ #%X	本地相应时间字符串（如08:08:10）
+ #%y	去掉世纪的年份（00 - 99）两个数字表示的年份
+ #%Y	完整的年份（4个数字表示年份）
+ #%z	与UTC时间的间隔（如果是本地时间，返回空字符串）
+ #%Z	时区的名字（如果是本地时间，返回空字符串）
+ #%%    ‘%’字符
