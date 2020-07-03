@@ -14,8 +14,6 @@ import (
 	"github.com/siddontang/go-mysql/replication"
 	"github.com/siddontang/go-mysql/schema"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -338,12 +336,7 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 				evtime = time.Unix(int64(e.Header.Timestamp), 0)
 			}
 
-			pt, err := influxdb.NewPoint(measureName, tags, fields, evtime)
-			if err == nil {
-				io.Feed([]byte(pt.String()), io.Metric)
-			} else {
-				h.rb.binlog.logger.Warnf("make point failed, %s", err)
-			}
+			io.FeedEx(io.Metric, measureName, tags, fields, evtime)
 		}
 
 	}

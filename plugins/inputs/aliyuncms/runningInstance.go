@@ -18,8 +18,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 var (
@@ -513,12 +511,7 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 		}
 
 		if len(fields) > 0 {
-			pt, err := influxdb.NewPoint(metricSetName, tags, fields, tm)
-			if err == nil {
-				io.Feed([]byte(pt.String()), io.Metric)
-			} else {
-				s.logger.Warnf("make point failed, %s", err)
-			}
+			io.FeedEx(io.Metric, metricName, tags, fields, tm)
 		}
 	}
 
