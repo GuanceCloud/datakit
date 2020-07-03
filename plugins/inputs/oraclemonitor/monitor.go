@@ -9,12 +9,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"syscall"
 	"time"
 
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -86,7 +86,7 @@ func (o *oraclemonitor) Run() {
 
 	l.Info("starting external oraclemonitor...")
 
-	bin := filepath.Join(config.InstallDir, "external", "oraclemonitor")
+	bin := filepath.Join(datakit.InstallDir, "external", "oraclemonitor")
 	if runtime.GOOS == "windows" {
 		bin += ".exe"
 	}
@@ -97,7 +97,7 @@ func (o *oraclemonitor) Run() {
 	}
 
 	args := []string{
-		"-cfg", filepath.Join(config.ConfdDir, o.Catalog(), "oraclemonintor.conf"),
+		"-cfg", filepath.Join(datakit.ConfdDir, o.Catalog(), "oraclemonintor.conf"),
 		"-log-level", config.Cfg.MainCfg.LogLevel,
 	}
 
@@ -112,36 +112,8 @@ func (o *oraclemonitor) Run() {
 		return
 	}
 
-	proc := cmd.Process
-
 	l.Infof("oraclemonintor PID: %d", cmd.Process.Pid)
-
-	tick := time.NewTicker(time.Second)
-	defer tick.Stop()
-
-	for {
-		select {
-		case <-tick.C:
-			p, err := os.FindProcess(proc.Pid)
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-
-			if err := p.Signal(syscall.Signal(0)); err != nil {
-				l.Errorf("signal 0 to oraclemonintor failed: %s", err)
-			}
-
-		case <-config.Exit.Wait():
-			l.Info("exit, killing oraclemonintor...")
-			if err := proc.Kill(); err != nil { // XXX: should we wait here?
-				l.Warnf("killing oraclemonintor  failed: %s, ignored", err)
-			}
-
-			l.Infof("killing oraclemonintor (pid: %d) ok", proc.Pid)
-			return
-		}
-	}
+	datakit.MonitProc(cmd.Process, "oraclemonintor") // blocking
 }
 
 func init() {
