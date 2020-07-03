@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -177,12 +175,7 @@ func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) 
 					metricTime = (*mv.TimeStamp).Time
 				}
 
-				pt, err := influxdb.NewPoint(metricName, tags, fields, metricTime)
-				if err == nil {
-					io.Feed([]byte(pt.String()), io.Metric)
-				} else {
-					r.logger.Warnf("make point failed, %s", err)
-				}
+				io.FeedEx(io.Metric, metricName, tags, fields, metricTime)
 
 			}
 		}
