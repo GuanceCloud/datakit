@@ -99,7 +99,7 @@ var (
 	windows/amd64
 	windows/arm */
 
-	osarches = []string{
+	OSArches = []string{
 		`linux/386`,
 		`linux/amd64`,
 		`linux/arm`,
@@ -175,7 +175,7 @@ func compile() {
 	var archs []string
 
 	if *flagArchs == "all" {
-		archs = osarches
+		archs = OSArches
 	} else {
 		archs = strings.Split(*flagArchs, "|")
 	}
@@ -293,7 +293,7 @@ func releaseAgent() {
 	archs := []string{}
 	switch *flagArchs {
 	case "all":
-		archs = osarches
+		archs = OSArches
 	default:
 		archs = strings.Split(*flagArchs, "|")
 	}
@@ -455,20 +455,26 @@ func tarFiles(goos, goarch string) {
 }
 
 type dkexternal struct {
-	name      string
-	isGolang  bool
+	name string
+
+	lang string // go/python/java
+
 	entry     string
 	buildArgs []string
-	osarchs   map[string]bool
-	envs      []string
+
+	osarchs map[string]bool
+	envs    []string
+
+	buildCmd string
 }
 
 var (
-	exMonitors = []*dkexternal{
+	externals = []*dkexternal{
 		&dkexternal{
-			name:     "oraclemonitor",
-			isGolang: true,
-			entry:    "main.go",
+			name: "oraclemonitor",
+			lang: "go",
+
+			entry: "main.go",
 			osarchs: map[string]bool{
 				"linux/amd64": true,
 				"linux/386":   true,
@@ -480,12 +486,28 @@ var (
 			},
 		},
 
+		&dkexternal{
+			name: "csv",
+			lang: "python",
+			osarchs: map[string]bool{
+				`linux/386`:     true,
+				`linux/amd64`:   true,
+				`linux/arm`:     true,
+				`linux/arm64`:   true,
+				`darwin/amd64`:  true,
+				`windows/amd64`: true,
+				`windows/386`:   true,
+			},
+			buildArgs: []string{"plugins/external/csv/build.sh"},
+			buildCmd:  "bash",
+		},
+
 		// others...
 	}
 )
 
 func buildExternals(outdir, goos, goarch string) {
-	for _, ex := range exMonitors {
+	for _, ex := range externals {
 		l.Debugf("build %s/%s %s to %s...", goos, goarch, ex.name, outdir)
 
 		osarch := goos + "/" + goarch
@@ -495,28 +517,48 @@ func buildExternals(outdir, goos, goarch string) {
 		}
 
 		out := ex.name
-		switch osarch {
-		case "windows/amd64", "windows/386":
-			out = out + ".exe"
-		default: // pass
-		}
 
-		if ex.isGolang {
+		switch strings.ToLower(ex.lang) {
+		case "go", "golang":
+
+			switch osarch {
+			case "windows/amd64", "windows/386":
+				out = out + ".exe"
+			default: // pass
+			}
+
 			args := []string{
 				"go", "build",
 				"-o", filepath.Join(outdir, "external", out),
 				"-ldflags",
 				"-w -s",
-				filepath.Join("plugins/external", ex.name, ex.entry)}
+				filepath.Join("plugins/external", ex.name, ex.entry),
+			}
+
 			env := append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
 
 			msg, err := runEnv(args, env)
 			if err != nil {
-				l.Errorf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 			}
 
-		} else {
-			// TODO: for non-golang extras...
+		case "python", "py": // for python, just copy source code into build dir
+			args := append(ex.buildArgs, filepath.Join(outdir, "external"))
+			cmd := exec.Command(ex.buildCmd, args...)
+			if ex.envs != nil {
+				cmd.Env = append(os.Environ(), ex.envs...)
+			}
+
+			res, err := cmd.CombinedOutput()
+			if err != nil {
+				l.Fatalf("failed to build python(%s %s): %s, err: %s", ex.buildCmd, strings.Join(args, " "), res, err.Error())
+			}
+
+		case "java":
+			// TODO
+
+		default:
+			l.Fatalf("unknown external lang type: %s", ex.lang)
 		}
 	}
 }

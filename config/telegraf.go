@@ -10,6 +10,7 @@ import (
 
 	"github.com/influxdata/toml"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 )
@@ -123,7 +124,7 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 		Debug:                      false,
 		Quiet:                      false,
 		LogTarget:                  "file",
-		Logfile:                    filepath.Join(TelegrafDir, "agent.log"),
+		Logfile:                    filepath.Join(datakit.TelegrafDir, "agent.log"),
 		LogfileRotationMaxArchives: 5,
 		OmitHostname:               false,
 	}
@@ -293,7 +294,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 			DataWay:     cfg.MainCfg.DataWayRequestURL,
 			DKUUID:      cfg.MainCfg.UUID,
 			DKVERSION:   git.Version,
-			DKUserAgent: DKUserAgent,
+			DKUserAgent: datakit.DKUserAgent,
 		}
 
 		tpl := template.New("")
@@ -324,7 +325,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 			continue
 		}
 
-		cfgpath := filepath.Join(ConfdDir, input.Catalog, input.name+".conf")
+		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, input.name+".conf")
 		d, err := ioutil.ReadFile(cfgpath)
 		if err != nil {
 			l.Errorf("%s", err.Error())
