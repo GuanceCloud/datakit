@@ -10,7 +10,7 @@ import (
 	influxm "github.com/influxdata/influxdb1-client/models"
 	"google.golang.org/grpc"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var (
@@ -35,7 +35,7 @@ func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
 			return &Response{Err: err.Error()}, nil
 		}
 
-		l.Debugf("received %d points", len(pts))
+		l.Debugf("received %d points from %s", len(pts), req.Name)
 		Feed(req.Lines, Metric)
 		resp.Points = int64(len(pts))
 	}
@@ -58,21 +58,21 @@ func GRPCServer() {
 
 	l.Infof("gRPC starting...")
 
-	if _, err := os.Stat(config.GRPCDomainSock); err == nil {
-		if err := os.Remove(config.GRPCDomainSock); err != nil {
+	if _, err := os.Stat(datakit.GRPCDomainSock); err == nil {
+		if err := os.Remove(datakit.GRPCDomainSock); err != nil {
 			panic(err)
 		}
 	}
 
 	var err error
 
-	rpcListener, err = net.Listen("unix", config.GRPCDomainSock)
+	rpcListener, err = net.Listen("unix", datakit.GRPCDomainSock)
 	if err != nil {
 		l.Errorf("start gRPC server failed: %s", err)
 		return
 	}
 
-	l.Infof("start gRPC server on %s ok", config.GRPCDomainSock)
+	l.Infof("start gRPC server on %s ok", datakit.GRPCDomainSock)
 
 	s.rpcServer = grpc.NewServer()
 	RegisterDataKitServer(s.rpcServer, s)
@@ -85,7 +85,7 @@ func GRPCServer() {
 		l.Info("gRPC server exit")
 	}()
 
-	<-config.Exit.Wait()
+	<-datakit.Exit.Wait()
 	l.Info("stopping gRPC server...")
 	s.rpcServer.Stop()
 

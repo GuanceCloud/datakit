@@ -6,7 +6,7 @@ import (
 
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -69,7 +69,7 @@ func (ag *ucMonitorAgent) Run() {
 	}
 
 	go func() {
-		<-config.Exit.Wait()
+		<-datakit.Exit.Wait()
 		ag.cancelFun()
 	}()
 
