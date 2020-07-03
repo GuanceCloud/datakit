@@ -5,8 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
@@ -42,7 +41,7 @@ func (s *ClientStat) Update() {
 	s.HeapObjects = memStatus.HeapObjects
 }
 
-func (s *ClientStat) ToMetric() telegraf.Metric {
+func (s *ClientStat) ToMetric() *influxdb.Point {
 
 	s.Uptime = int64(time.Now().Sub(StartTime) / time.Second)
 
@@ -66,12 +65,7 @@ func (s *ClientStat) ToMetric() telegraf.Metric {
 		"heap_objects":   s.HeapObjects,
 	}
 
-	m, _ := metric.New(
-		measurement,
-		tags,
-		fields,
-		time.Now(),
-	)
+	m, _ := influxdb.NewPoint(measurement, tags, fields, time.Now().UTC())
 
 	return m
 }
