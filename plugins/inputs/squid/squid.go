@@ -3,20 +3,23 @@ package squid
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
-	"io"
-	"log"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"go.uber.org/zap"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+type IoFeed  func (data []byte, category string) error
 
 type Squid struct {
 	MetricName string `toml:"metric_name"`
@@ -30,7 +33,7 @@ type SquidInput struct {
 }
 
 type SquidOutput struct {
-	acc telegraf.Accumulator
+	IoFeed
 }
 
 type SquidParam struct {
@@ -38,26 +41,19 @@ type SquidParam struct {
 	output SquidOutput
 }
 
-type SquidLogWriter struct {
-	io.Writer
-}
-
-const squidConfigSample = `### metric_name: the name of metric, default is "squid"
+var (
+	defaultMetricName = "squid"
+	defaultInterval   = 60
+	defaultPort       = 3218
+	sqlog *zap.SugaredLogger
+	squidConfigSample = `### metric_name: the name of metric, default is "squid"
 ### interval: monitor interval second, unit is second. The default value is 60.
 ### active: whether to monitor squid.
 
 #metric_name = "squid"
 #active   = true
 #interval = 60
-#port     = 3128
-`
-
-var (
-	ctx               context.Context
-	cfun              context.CancelFunc
-	defaultMetricName = "squid"
-	defaultInterval   = 60
-	defaultPort       = 3218
+#port     = 3128`
 )
 
 func (s *Squid) Catalog() string {
@@ -72,17 +68,11 @@ func (s *Squid) Description() string {
 	return "Monitor Squid Service Status"
 }
 
-func (s *Squid) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (s *Squid) Start(acc telegraf.Accumulator) error {
-	log.Printf("I! [squid] start")
-	ctx, cfun = context.WithCancel(context.Background())
-
+func (s *Squid) Run() {
+	sqlog = logger.SLogger("squid")
 	input := SquidInput{*s}
 	if input.Active == false {
-		return nil
+		return
 	}
 	if input.MetricName == "" {
 		input.MetricName = defaultMetricName
@@ -93,54 +83,51 @@ func (s *Squid) Start(acc telegraf.Accumulator) error {
 	if input.Port == 0 {
 		input.Port = defaultPort
 	}
-	output := SquidOutput{acc}
+	output := SquidOutput{io.Feed}
 	p := &SquidParam{input, output}
-	go p.gather(ctx)
 
-	return nil
+	sqlog.Info("squid input started...")
+	p.gather()
 }
 
-func (s *Squid) Stop() {
-	cfun()
-}
+func (p *SquidParam) gather() {
+	tick := time.NewTicker(time.Duration(p.input.Interval)*time.Second)
+	defer tick.Stop()
 
-func (p *SquidParam) gather(ctx context.Context) {
 	for {
 		select {
-		case <-ctx.Done():
+		case <-tick.C:
+			err := p.getMetrics()
+			if err != nil {
+				sqlog.Errorf("getMetrics err: %s", err.Error())
+			}
+		case <-config.Exit.Wait():
+			sqlog.Info("input squid exit")
 			return
-		default:
-		}
-
-		err := p.getMetrics()
-		if err != nil {
-			log.Printf("W! [squid] %s", err.Error())
-		}
-
-		err = internal.SleepContext(ctx, time.Duration(p.input.Interval)*time.Second)
-		if err != nil {
-			log.Printf("W! [squid] %s", err.Error())
 		}
 	}
 }
 
-func (p *SquidParam) getMetrics() error {
+func (p *SquidParam) getMetrics() (err error) {
 	var outInfo bytes.Buffer
-	tags := make(map[string]string)
+
+	tags   := make(map[string]string)
 	fields := make(map[string]interface{})
 	fields["can_connect"] = true
 
 	reg := regexp.MustCompile(" = \\d{1,}\\.{0,1}\\d{0,}$")
 	portStr := fmt.Sprintf("%d", p.input.Port)
+
 	cmd := exec.Command("squidclient", "-p", portStr, "mgr:counters")
 	cmd.Stdout = &outInfo
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		fields["can_connect"] = false
-		fmt.Printf("Err: %s\n", err.Error())
-		p.output.acc.AddFields(p.input.MetricName, fields, tags)
-		return err
+		pt, _ := influxdb.NewPoint(p.input.Squid.MetricName, tags, fields, time.Now())
+		p.output.IoFeed([]byte(pt.String()), io.Metric)
+		return
 	}
+
 	s := bufio.NewScanner(strings.NewReader(outInfo.String()))
 	for s.Scan() {
 		str := s.Text()
@@ -164,8 +151,13 @@ func (p *SquidParam) getMetrics() error {
 		}
 	}
 
-	p.output.acc.AddFields(p.input.MetricName, fields, tags)
-	return nil
+	pt, err := influxdb.NewPoint(p.input.Squid.MetricName, tags, fields, time.Now())
+	if err != nil {
+		return
+	}
+
+	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+	return
 }
 
 func init() {
