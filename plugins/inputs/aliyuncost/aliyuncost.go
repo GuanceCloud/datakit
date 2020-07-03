@@ -74,10 +74,6 @@ func (_ *AliyunCostAgent) SampleConfig() string {
 	return aliyuncostConfigSample
 }
 
-// func (_ *AliyunCostAgent) Description() string {
-// 	return ""
-// }
-
 func (ac *AliyunCostAgent) Run() {
 
 	ac.logger = &models.Logger{
@@ -90,7 +86,7 @@ func (ac *AliyunCostAgent) Run() {
 	}
 
 	go func() {
-		<-config.Exit.Wait()
+		<-datakit.Exit.Wait()
 		ac.cancelFun()
 	}()
 
