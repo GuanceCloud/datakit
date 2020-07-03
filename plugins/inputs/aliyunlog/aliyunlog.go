@@ -10,9 +10,6 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -215,7 +212,7 @@ func (r *runningStore) run() error {
 	consumerWorker := consumerLibrary.InitConsumerWorker(option, r.logProcess)
 	consumerWorker.Start()
 
-	<-config.Exit.Wait()
+	<-datakit.Exit.Wait()
 	consumerWorker.StopAndWait()
 
 	return nil
@@ -350,12 +347,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 			}
 
 			tm := time.Unix(int64(l.GetTime()), 0)
-			pt, err := influxdb.NewPoint(r.metricName, tags, fields, tm)
-			if err == nil {
-				io.Feed([]byte(pt.String()), io.Metric)
-			} else {
-				r.logger.Warnf("make point failed, %s", err)
-			}
+			io.FeedEx(io.Logging, r.metricName, tags, fields, tm)
 		}
 	}
 	return ""
