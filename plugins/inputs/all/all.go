@@ -32,7 +32,7 @@ import (
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prometheus"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/replication"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/squid"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/squid"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ssh"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
