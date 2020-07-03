@@ -7,8 +7,6 @@ import (
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
 	"github.com/ucloud/ucloud-sdk-go/ucloud/auth"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -128,12 +126,7 @@ func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) 
 							delete(fields, "Timestamp")
 						}
 
-						pt, err := influxdb.NewPoint(metricName, tags, fields, metricTime)
-						if err == nil {
-							io.Feed([]byte(pt.String()), io.Metric)
-						} else {
-							r.logger.Warnf("make point failed, %s", err)
-						}
+						io.FeedEx(io.Metric, metricName, tags, fields, metricTime)
 
 					}
 				}
