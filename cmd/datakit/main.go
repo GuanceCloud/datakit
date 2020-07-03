@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -31,8 +32,8 @@ var (
 )
 
 var (
-	stopCh     chan struct{}
-	waitExitCh chan struct{}
+	stopCh     chan struct{} = make(chan struct{})
+	waitExitCh chan struct{} = make(chan struct{})
 
 	inputFilters = []string{}
 	l            *zap.SugaredLogger
@@ -47,7 +48,7 @@ func main() {
 	loadConfig()
 
 	svcConfig := &service.Config{
-		Name: config.ServiceName,
+		Name: datakit.ServiceName,
 	}
 
 	prg := &program{}
@@ -124,8 +125,6 @@ func (p *program) Start(s service.Service) error {
 }
 
 func (p *program) run(s service.Service) {
-	stopCh = make(chan struct{})
-	waitExitCh = make(chan struct{})
 	__run()
 }
 
@@ -142,19 +141,20 @@ func (p *program) Stop(s service.Service) error {
 }
 
 func exitDatakit() {
-	config.Exit.Close()
+	datakit.Exit.Close()
 
 	l.Info("wait all goroutines exit...")
-	config.WG.Wait()
+	datakit.WG.Wait()
 
+	l.Info("closing waitExitCh...")
 	close(waitExitCh)
 }
 
 func __run() {
 
-	config.WG.Add(1)
+	datakit.WG.Add(1)
 	go func() {
-		defer config.WG.Done()
+		defer datakit.WG.Done()
 		if err := runTelegraf(); err != nil {
 			l.Fatalf("fail to start sub service: %s", err)
 		}
