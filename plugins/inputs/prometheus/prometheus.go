@@ -349,11 +349,7 @@ func (p *Prometheus) gatherURL(u URLAndAddress) error {
 		}
 
 		fields, _ := metric.Fields()
-
-		pt, err := influxdb.NewPoint(metric.Name(), tags, fields, metric.Time())
-		if err == nil {
-			io.Feed([]byte(pt.String()), io.Metric)
-		}
+		io.FeedEx(io.Metric, metric.Name(), tags, fields, metric.Time())
 
 		// switch metric.Type() {
 		// case telegraf.Counter:
@@ -393,17 +389,18 @@ func (p *Prometheus) Run() {
 	p.wg.Add(1)
 	go func() {
 		defer p.wg.Done()
+
+		tick := time.NewTicker(p.Interval.Duration)
+		defer tick.Stop()
+
 		for {
 
 			select {
-			case <-p.stopCtx.Done():
+			case <-datakit.Exit.Wait():
 				return
-			default:
+			case <-tick.C:
+				p.gather()
 			}
-
-			p.gather()
-
-			internal.SleepContext(p.stopCtx, p.Interval.Duration)
 		}
 	}()
 
