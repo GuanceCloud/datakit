@@ -35,7 +35,13 @@ deps/*
 *.zip
 *.rpm
 log
-run.sh
+run.s
 cfg.json
 config.json
-test.json
+test.jso
+plugins/external/csv/venv
+plugins/external/csv/__tmp
+run.sh
+*.yaml
+*.csv
+*.pyc
