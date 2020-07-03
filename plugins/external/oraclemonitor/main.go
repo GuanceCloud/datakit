@@ -144,7 +144,6 @@ func run(i *oraclemonitor.Instance) {
 }
 
 func handleResponse(i *oraclemonitor.Instance, m string, response []map[string]interface{}) error {
-
 	lines := []string{}
 
 	for _, item := range response {
@@ -798,10 +797,10 @@ var (
 		"oracle_dg_apply_rate":       oracle_dg_apply_rate_sql,
 		"oracle_dg_dest_error":       oracle_dg_dest_error_sql,
 		"oracle_dg_proc_info":        oracle_dg_proc_info_sql,
-		//"oracle_cdb_db_info":         oracoracle_cdb_db_info_sql,
-		"oracle_cdb_resource_info": oracle_cdb_resource_info_sql,
-		"oracle_asm_group_info":    oracle_asm_group_info_sql,
-		"oracle_asm_disk_info":     oracle_asm_disk_info_sql,
+		"oracle_cdb_db_info":         oracle_cdb_db_info_sql,
+		"oracle_cdb_resource_info":   oracle_cdb_resource_info_sql,
+		"oracle_asm_group_info":      oracle_asm_group_info_sql,
+		"oracle_asm_disk_info":       oracle_asm_disk_info_sql,
 	}
 
 	tagsMap = map[string][]string{
