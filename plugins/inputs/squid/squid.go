@@ -10,16 +10,16 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"go.uber.org/zap"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type IoFeed  func (data []byte, category string) error
+type IoFeed func(data []byte, category string) error
 
 type Squid struct {
 	MetricName string `toml:"metric_name"`
@@ -45,7 +45,7 @@ var (
 	defaultMetricName = "squid"
 	defaultInterval   = 60
 	defaultPort       = 3218
-	sqlog *zap.SugaredLogger
+	sqlog             *zap.SugaredLogger
 	squidConfigSample = `### metric_name: the name of metric, default is "squid"
 ### interval: monitor interval second, unit is second. The default value is 60.
 ### active: whether to monitor squid.
@@ -91,7 +91,7 @@ func (s *Squid) Run() {
 }
 
 func (p *SquidParam) gather() {
-	tick := time.NewTicker(time.Duration(p.input.Interval)*time.Second)
+	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
 	defer tick.Stop()
 
 	for {
@@ -101,7 +101,7 @@ func (p *SquidParam) gather() {
 			if err != nil {
 				sqlog.Errorf("getMetrics err: %s", err.Error())
 			}
-		case <-config.Exit.Wait():
+		case <-datakit.Exit.Wait():
 			sqlog.Info("input squid exit")
 			return
 		}
@@ -111,7 +111,7 @@ func (p *SquidParam) gather() {
 func (p *SquidParam) getMetrics() (err error) {
 	var outInfo bytes.Buffer
 
-	tags   := make(map[string]string)
+	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 	fields["can_connect"] = true
 
