@@ -11,6 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
@@ -43,7 +44,9 @@ type iodata struct {
 
 func init() {
 	input = make(chan *iodata, 128)
-	httpCli = &http.Client{}
+	httpCli = &http.Client{
+		Timeout: time.Second,
+	}
 }
 
 func Feed(data []byte, category string) error {
@@ -122,9 +125,11 @@ func Start() {
 				}
 
 			case <-tick.C:
+				l.Debugf("flushing...")
 				flush(cache)
+				l.Debugf("flush done")
 
-			case <-config.Exit.Wait():
+			case <-datakit.Exit.Wait():
 				l.Info("exit")
 				return
 			}
@@ -136,6 +141,9 @@ func Start() {
 }
 
 func flush(cache map[string][][]byte) {
+
+	defer httpCli.CloseIdleConnections()
+
 	if err := doFlush(cache[Metric], Metric); err == nil {
 		cache[Metric] = nil
 	}
@@ -156,6 +164,7 @@ func flush(cache map[string][][]byte) {
 func doFlush(bodies [][]byte, url string) error {
 
 	if bodies == nil {
+		l.Debugf("no data, skip %s", url)
 		return nil
 	}
 
@@ -173,7 +182,7 @@ func doFlush(bodies [][]byte, url string) error {
 
 	req.Header.Set("X-Datakit-UUID", config.Cfg.MainCfg.UUID)
 	req.Header.Set("X-Version", git.Version)
-	req.Header.Set("X-Version", config.DKUserAgent)
+	req.Header.Set("X-Version", datakit.DKUserAgent)
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
@@ -184,9 +193,11 @@ func doFlush(bodies [][]byte, url string) error {
 	default: // others are line-protocol
 	}
 
-	if config.MaxLifeCheckInterval > 0 {
-		req.Header.Set("X-Max-POST-Interval", fmt.Sprintf("%v", config.MaxLifeCheckInterval))
+	if datakit.MaxLifeCheckInterval > 0 {
+		req.Header.Set("X-Max-POST-Interval", fmt.Sprintf("%v", datakit.MaxLifeCheckInterval))
 	}
+
+	l.Debugf("post to %s...", categoryURLs[url])
 
 	resp, err := httpCli.Do(req)
 	if err != nil {
@@ -194,6 +205,7 @@ func doFlush(bodies [][]byte, url string) error {
 		return err
 	}
 
+	l.Debugf("get resp from %s...", categoryURLs[url])
 	defer resp.Body.Close()
 	respbody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
