@@ -11,7 +11,7 @@ import (
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -91,7 +91,7 @@ func (_ *AliyunPriceAgent) SampleConfig() string {
 func (a *AliyunPriceAgent) Run() {
 
 	go func() {
-		<-config.Exit.Wait()
+		<-datakit.Exit.Wait()
 		a.cancelFun()
 	}()
 
@@ -148,14 +148,14 @@ func (a *AliyunPriceAgent) Run() {
 		for {
 
 			select {
-			case <-config.Exit.Wait():
+			case <-datakit.Exit.Wait():
 				return
 			default:
 			}
 
 			for _, req := range a.reqs {
 				select {
-				case <-config.Exit.Wait():
+				case <-datakit.Exit.Wait():
 					return
 				default:
 				}
@@ -220,7 +220,7 @@ func (a *AliyunPriceAgent) Run() {
 				req.lastTime = time.Now()
 
 				select {
-				case <-config.Exit.Wait():
+				case <-datakit.Exit.Wait():
 					return
 				default:
 				}
