@@ -91,8 +91,14 @@ func MakeMetricData(name string, tags map[string]string, fields map[string]inter
 	} else {
 		tm = time.Now().UTC()
 	}
-	for k, v := range config.Cfg.MainCfg.GlobalTags {
-		tags[k] = v
+
+	if len(config.Cfg.MainCfg.GlobalTags) > 0 {
+		if tags == nil {
+			tags = map[string]string{}
+		}
+		for k, v := range config.Cfg.MainCfg.GlobalTags {
+			tags[k] = v
+		}
 	}
 
 	pt, err := ifxcli.NewPoint(name, tags, fields, tm)

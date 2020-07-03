@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -17,6 +18,8 @@ interval = '10s'
 )
 
 type SelfInfo struct {
+	Interval internal.Duration
+
 	stat *ClientStat
 }
 
@@ -38,7 +41,11 @@ func (_ *SelfInfo) SampleConfig() string {
 
 func (s *SelfInfo) Run() {
 
-	tick := time.NewTicker(time.Second * 10)
+	if s.Interval.Duration == 0 {
+		s.Interval.Duration = time.Second * 10
+	}
+
+	tick := time.NewTicker(s.Interval.Duration)
 	defer tick.Stop()
 
 	for {
