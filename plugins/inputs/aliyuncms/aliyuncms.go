@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
@@ -148,7 +148,7 @@ func (ac *CmsAgent) Run() {
 	}
 
 	go func() {
-		<-config.Exit.Wait()
+		<-datakit.Exit.Wait()
 		ac.cancelFun()
 	}()
 
