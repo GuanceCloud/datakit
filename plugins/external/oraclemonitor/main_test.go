@@ -9,7 +9,7 @@ func TestCfg(t *testing.T) {
 
 	data := `
 {
-	"log":       "/usr/local/cloudcare/DataFlux/datakit/oraclemonitor.log",
+	"log":       "/usr/local/cloudcare/dataflux/datakit/oraclemonitor.log",
   "log_level": "info",
 	"oracles" : [
 		{
