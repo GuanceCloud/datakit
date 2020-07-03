@@ -116,7 +116,7 @@ func (d *DataClean) Run() {
 	}
 
 	go func() {
-		<-config.Exit.Wait()
+		<-datakit.Exit.Wait()
 		d.cancelFun()
 		d.stopSvr()
 		d.write.stop()
