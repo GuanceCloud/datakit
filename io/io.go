@@ -9,6 +9,8 @@ import (
 
 	"go.uber.org/zap"
 
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -62,6 +64,32 @@ func Feed(data []byte, category string) error {
 	} // XXX: blocking
 
 	return nil
+}
+
+func FeedEx(catagory string, name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+	data, err := MakeMetricData(name, tags, fields, t...)
+	if err != nil {
+		return err
+	}
+	return Feed(data, catagory)
+}
+
+func MakeMetricData(name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) ([]byte, error) {
+	var tm time.Time
+	if len(t) > 0 {
+		tm = t[0]
+	} else {
+		tm = time.Now().UTC()
+	}
+	for k, v := range config.Cfg.MainCfg.GlobalTags {
+		tags[k] = v
+	}
+
+	pt, err := ifxcli.NewPoint(name, tags, fields, tm)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(pt.String()), nil
 }
 
 // there is more than 1 service under io module, we should init some data before these services starting
