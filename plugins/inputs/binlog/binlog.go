@@ -11,7 +11,7 @@ import (
 
 	blog "github.com/siddontang/go-log/log"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -73,7 +73,7 @@ func (b *Binlog) Run() {
 	setupLogger()
 
 	go func() {
-		<-config.Exit.Wait()
+		<-datakit.Exit.Wait()
 		b.cancelfun()
 		for _, rb := range b.runningBinlogs {
 			rb.stop()

@@ -8,16 +8,16 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"go.uber.org/zap"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type TimeIoFeed  func (data []byte, category string) error
+type TimeIoFeed func(data []byte, category string) error
 
 type Timezone struct {
 	Metricname string `toml:"metric_name"`
@@ -39,14 +39,13 @@ type TzParams struct {
 	output TzOutput
 }
 
-
 const (
 	defaultMetricName = "timezone"
 	defaultInterval   = 60
 )
 
 var (
-	tzlog *zap.SugaredLogger
+	tzlog                *zap.SugaredLogger
 	timeZoneConfigSample = `### metric_name: the name of metric, default is "timezone".
 ### active: whether to monitor timezone changes.
 ### interval: monitor interval second, unit is second. The default value is 60.
@@ -70,7 +69,7 @@ func (t *Timezone) Description() string {
 	return "Monitor timezone changes"
 }
 
-func (t *Timezone) Run()  {
+func (t *Timezone) Run() {
 	tzlog = logger.SLogger("timezone")
 
 	input := TzInput{*t}
@@ -92,7 +91,7 @@ func (t *Timezone) Run()  {
 }
 
 func (p *TzParams) gather() {
-	tick := time.NewTicker(time.Duration(p.input.Interval)*time.Second)
+	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
 	defer tick.Stop()
 
 	for {
@@ -103,7 +102,7 @@ func (p *TzParams) gather() {
 				tzlog.Errorf("getMetrics err: %s", err.Error())
 			}
 
-		case <-config.Exit.Wait():
+		case <-datakit.Exit.Wait():
 			tzlog.Info("input timezone exit")
 			return
 		}
