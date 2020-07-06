@@ -48,8 +48,14 @@ func (a *Agent) Run() error {
 		l.Error("error running inputs: %v", err)
 	}
 
-	time.Sleep(time.Second * 2)
-	io.HTTPServer()
+	// wait all plugin start
+	time.Sleep(time.Second * 3)
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		io.HTTPServer()
+		l.Info("HTTPServer goroutine exit")
+	}()
 
 	return nil
 }

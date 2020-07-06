@@ -60,6 +60,7 @@ func (p *Prometheus) start(ctx context.Context) error {
 	p.wg.Add(1)
 	go func() {
 		defer p.wg.Done()
+
 		for {
 			select {
 			case <-ctx.Done():
