@@ -16,6 +16,8 @@ import (
 )
 
 // druid config
+// bin: datakit_test/druid/apache-druid-0.18.1/bin/start-micro-quickstart
+// config file: druid/apache-druid-0.18.1/conf/druid/single-server/micro-quickstart/_common/common.runtime.properties
 //
 // druid.monitoring.emissionPeriod=PT10s
 // druid.monitoring.monitors=["com.metamx.metrics.JvmMonitor"]
@@ -23,30 +25,22 @@ import (
 // druid.emitter.http.flushMillis=10000
 // druid.emitter.http.recipientBaseUrl=http://ADDR_TO_THIS_SERVICE:8424
 
+const configSample = `
+# [[druid]]
+#       path = "/druid"
+#       measurement = "druid"
+`
+
+var l *zap.SugaredLogger
+
 func init() {
 	inputs.Add("druid", func() inputs.Input {
 		return &Druid{}
 	})
 }
 
-const configSample = `
-# [druid]
-#       path = "/druid"
-#       measurement = "druid"
-`
-
-const (
-	Normal MetricType = iota
-	Count
-	ConvertRange
-)
-
-var l *zap.SugaredLogger
-
-type MetricType uint8
-
 type Druid struct {
-	Config struct {
+	Config []struct {
 		Path        string `toml:"path"`
 		Measurement string `toml:"measurement"`
 	} `toml:"druid"`
@@ -54,7 +48,21 @@ type Druid struct {
 
 func (d *Druid) Run() {
 	l = logger.SLogger("druid")
+
+	if d.Config.Measurement == "" {
+		l.Error("invalid measurement")
+		return
+	}
+
 	io.RegisterRoute(d.Config.Path, d.handle)
+}
+
+func (d *Druid) SampleConfig() string {
+	return configSample
+}
+
+func (d *Druid) Catalog() string {
+	return "druid"
 }
 
 func (d *Druid) handle(w http.ResponseWriter, r *http.Request) {
@@ -87,14 +95,6 @@ func (d *Druid) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
-
-func (d *Druid) SampleConfig() string {
-	return configSample
-}
-
-func (d *Druid) Catalog() string {
-	return "druid"
 }
 
 type druidMetric []struct {
@@ -143,6 +143,14 @@ func extract(body []byte) map[string]interface{} {
 
 	return fields
 }
+
+type MetricType uint8
+
+const (
+	Normal MetricType = iota
+	Count
+	ConvertRange
+)
 
 var metricsTemplate = map[string]MetricType{
 	"query/time":       Normal,
