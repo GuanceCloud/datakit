@@ -5,7 +5,6 @@ package containerd
 import (
 	"context"
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"time"
@@ -20,58 +19,59 @@ import (
 
 var attach = func(*cio.FIFOSet) (cio.IO, error) { return cio.NullIO("") }
 
-func (s *stream) processMetrics() error {
+func (i *Impl) collectContainerd() ([]*influxdb.Point, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	ctx = namespaces.WithNamespace(ctx, s.sub.Namespace)
+	ctx = namespaces.WithNamespace(ctx, i.Namespace)
 
-	client, err := containerd.New(s.sub.HostPath)
+	client, err := containerd.New(i.HostPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer client.Close()
 
 	cs, err := client.Containers(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	var pts []*influxdb.Point
+
 	for _, c := range cs {
-		fmt.Println(c.ID())
-		if _, ok := s.ids[c.ID()]; !s.isAll && !ok {
+		if _, ok := i.ids[c.ID()]; !i.isAll && !ok {
 			continue
 		}
 
 		task, err := c.Task(ctx, attach)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		mt, err := task.Metrics(ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		data, err := typeurl.UnmarshalAny(mt.Data)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		meta, ok := data.(*v1.Metrics)
 		if !ok {
-			return errors.New("invalid metrics data")
+			return nil, errors.New("invalid metrics data")
 		}
 
-		point, err := parseMetrics(s.sub.Measurement, s.sub.Namespace, c.ID(), meta)
+		pt, err := parseMetrics(inputName, i.Namespace, c.ID(), meta)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		s.points = append(s.points, point)
+		pts = append(pts, pt)
 
 	}
-	return nil
+	return pts, nil
 }
 
 func parseMetrics(mensurement, namespace, id string, mt *v1.Metrics) (*influxdb.Point, error) {
