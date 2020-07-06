@@ -8,27 +8,27 @@ import (
 
 	"github.com/tidwall/gjson"
 
-	"github.com/influxdata/telegraf"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type BaiduIndex struct {
-	Baidu       []*Baidu
-	ctx         context.Context
-	cancelFun   context.CancelFunc
-	accumulator telegraf.Accumulator
-	logger      *models.Logger
+	Baidu     []*Baidu
+	ctx       context.Context
+	cancelFun context.CancelFunc
+	logger    *models.Logger
 
 	runningInstances []*runningInstance
 }
 
 type runningInstance struct {
-	cfg    *Baidu
-	agent  *BaiduIndex
-	logger *models.Logger
-	// client     *rds.Client
+	cfg        *Baidu
+	agent      *BaiduIndex
+	logger     *models.Logger
 	metricName string
 }
 
@@ -44,7 +44,7 @@ func (_ *BaiduIndex) Description() string {
 	return ""
 }
 
-func (_ *BaiduIndex) Gather(telegraf.Accumulator) error {
+func (_ *BaiduIndex) Gather() error {
 	return nil
 }
 
@@ -52,19 +52,16 @@ func (_ *BaiduIndex) Init() error {
 	return nil
 }
 
-func (a *BaiduIndex) Start(acc telegraf.Accumulator) error {
+func (a *BaiduIndex) Run() {
 	a.logger = &models.Logger{
 		Name: `baiduIndex`,
 	}
 
 	if len(a.Baidu) == 0 {
 		a.logger.Warnf("no configuration found")
-		return nil
 	}
 
 	a.logger.Infof("starting...")
-
-	a.accumulator = acc
 
 	for _, instCfg := range a.Baidu {
 		r := &runningInstance{
@@ -85,7 +82,6 @@ func (a *BaiduIndex) Start(acc telegraf.Accumulator) error {
 
 		go r.run(a.ctx)
 	}
-	return nil
 }
 
 func (a *BaiduIndex) Stop() {
@@ -165,21 +161,29 @@ func (r *runningInstance) getSearchIndex() {
 
 		word := item.Get("word.0").Get("name").String()
 
-		tags := map[string]string{}
-		fields := map[string]interface{}{}
+		tagsSearch := map[string]string{}
+		fieldsSearch := map[string]interface{}{}
 
-		tags["keyword"] = word
-		tags["type"] = "search"
-		tags["device"] = "all"
+		tagsSearch["keyword"] = word
+		tagsSearch["type"] = "search"
+		tagsSearch["device"] = "all"
 
-		fields["index"] = ConvertToFloat(allIndex)
-		fields["avg"] = allAvg
-		fields["yoy"] = allYoy
-		fields["qoq"] = allQoq
+		fieldsSearch["index"] = ConvertToFloat(allIndex)
+		fieldsSearch["avg"] = allAvg
+		fieldsSearch["yoy"] = allYoy
+		fieldsSearch["qoq"] = allQoq
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(r.metricName, tagsSearch, fieldsSearch, time.Now())
+		if err != nil {
+			return
+		}
 
-		tags["device"] = "pc"
+		err = io.Feed([]byte(pt.String()), io.Metric)
+
+		tagsPc := map[string]string{}
+		fieldsPc := map[string]interface{}{}
+
+		tagsPc["device"] = "pc"
 
 		pc := item.Get("pc").Get("data").String()
 		pcAvgKey := fmt.Sprintf("data.generalRatio.%d.pc.avg", idx)
@@ -192,14 +196,22 @@ func (r *runningInstance) getSearchIndex() {
 		pcYoy := gjson.Get(resp, pcYoyKey).Int()
 		pcQoq := gjson.Get(resp, pcQoqKey).Int()
 
-		fields["index"] = ConvertToFloat(pcIndex)
-		fields["avg"] = pcAvg
-		fields["yoy"] = pcYoy
-		fields["qoq"] = pcQoq
+		fieldsPc["index"] = ConvertToFloat(pcIndex)
+		fieldsPc["avg"] = pcAvg
+		fieldsPc["yoy"] = pcYoy
+		fieldsPc["qoq"] = pcQoq
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		pt2, err := influxdb.NewPoint(r.metricName, tagsPc, fieldsPc, time.Now())
+		if err != nil {
+			return
+		}
 
-		tags["device"] = "wise"
+		err = io.Feed([]byte(pt2.String()), io.Metric)
+
+		tagsWise := map[string]string{}
+		fieldsWise := map[string]interface{}{}
+
+		tagsWise["device"] = "wise"
 
 		wise := item.Get("wise").Get("data").String()
 		wiseIndex := decrypt(key, wise)
@@ -212,11 +224,17 @@ func (r *runningInstance) getSearchIndex() {
 		wiseYoy := gjson.Get(resp, wiseYoyKey).Int()
 		wiseQoq := gjson.Get(resp, wiseQoqKey).Int()
 
-		fields["index"] = ConvertToFloat(wiseIndex)
-		fields["avg"] = wiseAvg
-		fields["yoy"] = wiseYoy
-		fields["qoq"] = wiseQoq
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		fieldsWise["index"] = ConvertToFloat(wiseIndex)
+		fieldsWise["avg"] = wiseAvg
+		fieldsWise["yoy"] = wiseYoy
+		fieldsWise["qoq"] = wiseQoq
+
+		pt3, err := influxdb.NewPoint(r.metricName, tagsWise, fieldsWise, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt3.String()), io.Metric)
 	}
 }
 
@@ -273,7 +291,12 @@ func (r *runningInstance) getExtendedIndex(tt string) {
 		fields["yoy"] = yoy
 		fields["qoq"] = qoq
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
