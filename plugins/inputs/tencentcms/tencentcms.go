@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"golang.org/x/time/rate"
 
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
@@ -170,8 +170,8 @@ func (s *RunningCMS) run() error {
 	default:
 	}
 
-	lmtr := limiter.NewRateLimiter(rateLimit, time.Second)
-	defer lmtr.Stop()
+	limit := rate.Every(50 * time.Millisecond)
+	rateLimiter := rate.NewLimiter(limit, 1)
 
 	s.wg.Add(1)
 	defer s.wg.Done()
@@ -195,7 +195,7 @@ func (s *RunningCMS) run() error {
 			default:
 			}
 
-			<-lmtr.C
+			rateLimiter.Wait(s.ctx)
 			_ = req
 			if err = s.fetchMetrics(req); err != nil {
 				s.logger.Errorf(`get tencent metric "%s.%s" failed: %s`, *req.q.Namespace, *req.q.MetricName, err)
