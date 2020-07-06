@@ -6,11 +6,9 @@ import (
 
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
 	"github.com/ucloud/ucloud-sdk-go/ucloud/auth"
-
-	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"golang.org/x/time/rate"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -35,8 +33,8 @@ func (r *runningInstance) run(ctx context.Context) error {
 	default:
 	}
 
-	lmtr := limiter.NewRateLimiter(rateLimit, time.Second)
-	defer lmtr.Stop()
+	limit := rate.Every(50 * time.Millisecond)
+	rateLimiter := rate.NewLimiter(limit, 1)
 
 	for {
 
@@ -55,7 +53,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 			default:
 			}
 
-			<-lmtr.C
+			rateLimiter.Wait(ctx)
 			if err := r.fetchMetric(ctx, req); err != nil {
 				r.logger.Errorf(`fail to get metric "%s.%s", %s`, req.resourceID, req.metricname, err)
 			}
@@ -128,12 +126,7 @@ func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) 
 							delete(fields, "Timestamp")
 						}
 
-						pt, err := influxdb.NewPoint(metricName, tags, fields, metricTime)
-						if err == nil {
-							io.Feed([]byte(pt.String()), io.Metric)
-						} else {
-							r.logger.Warnf("make point failed, %s", err)
-						}
+						io.FeedEx(io.Metric, metricName, tags, fields, metricTime)
 
 					}
 				}
