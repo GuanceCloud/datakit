@@ -18,7 +18,7 @@ class ServerImpl(dk_pb2_grpc.DataKitServicer):
 
 listen = '[::]:4321'
 listen = '/tmp/x.sock'
-listen = 'unix:///usr/local/cloudcare/DataFlux/datakit/datakit.sock'
+listen = 'unix:///usr/local/cloudcare/dataflux/datakit/datakit.sock'
 
 def serve():
   server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

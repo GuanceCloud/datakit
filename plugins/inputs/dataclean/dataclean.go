@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -69,7 +70,7 @@ func (_ *DataClean) Catalog() string {
 
 func (d *DataClean) Init() error {
 
-	d.luaMachine = NewLuaMachine(filepath.Join(config.InstallDir, "data", "lua"), d.LuaWorker)
+	d.luaMachine = NewLuaMachine(filepath.Join(datakit.InstallDir, "data", "lua"), d.LuaWorker)
 	d.luaMachine.routes = d.Routes
 	d.luaMachine.globals = d.GlobalLua
 
@@ -111,12 +112,12 @@ func (d *DataClean) Run() {
 		d.write.addHttpWriter(config.Cfg.MainCfg.DataWayRequestURL)
 	}
 
-	if config.Cfg.MainCfg.OutputsFile != "" {
-		d.write.addFileWriter(config.Cfg.MainCfg.OutputsFile)
+	if config.Cfg.MainCfg.OutputFile != "" {
+		d.write.addFileWriter(config.Cfg.MainCfg.OutputFile)
 	}
 
 	go func() {
-		<-config.Exit.Wait()
+		<-datakit.Exit.Wait()
 		d.cancelFun()
 		d.stopSvr()
 		d.write.stop()
@@ -131,7 +132,7 @@ func (d *DataClean) Run() {
 }
 
 func (d *DataClean) FakeDataway() string {
-	return fmt.Sprintf("http://%s/v1/write/metrics", d.BindAddr)
+	return fmt.Sprintf("http://%s/v1/write/metric", d.BindAddr)
 }
 
 func NewAgent() *DataClean {
