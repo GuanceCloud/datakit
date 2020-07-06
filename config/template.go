@@ -12,6 +12,8 @@ hostname = ""
 ## If set to true, do no set the "host" tag.
 omit_hostname = false
 
+output_file = ""
+
 # ##tell dataway the interval to check datakit alive
 #max_post_interval = '1m'
 
