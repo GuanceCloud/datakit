@@ -2,9 +2,7 @@ package io
 
 import (
 	"context"
-	"log"
 	"net/http"
-	"os"
 	"reflect"
 	"sync"
 	"time"
@@ -13,15 +11,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
-var (
-	routeList = struct {
-		mut sync.Mutex
-		// map["/path"] = handle
-		m map[string]http.HandlerFunc
-	}{mut: sync.Mutex{}, m: make(map[string]http.HandlerFunc)}
-
-	logout *log.Logger
-)
+var routeList = struct {
+	mut sync.Mutex
+	// map["/path"] = handle
+	m map[string]http.HandlerFunc
+}{mut: sync.Mutex{}, m: make(map[string]http.HandlerFunc)}
 
 // RegiRegisterRoute
 // type HandlerFunc func(http.ResponseWriter, *http.Request)
@@ -33,22 +27,15 @@ func RegisterRoute(path string, h http.HandlerFunc) {
 
 func HTTPServer() {
 
-	var err error
-	logFile, err := os.OpenFile(config.Cfg.MainCfg.HTTPServerLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		l.Fatalf("failed to open the httpserver log file, err: %s", err.Error())
-	}
-	logout = log.New(logFile, "", 0)
-
 	mux := http.NewServeMux()
-
 	for path, handle := range routeList.m {
 		mux.HandleFunc(path, handle)
+		l.Infof("http server register route path: %s", path)
 	}
 
 	srv := &http.Server{
 		Addr:         config.Cfg.MainCfg.HTTPServerAddr,
-		Handler:      mux,
+		Handler:      requestLogger(mux),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
@@ -108,8 +95,7 @@ func requestLogger(targetMux http.Handler) http.Handler {
 		}
 		param.path = path
 
-		logout.Printf("[DataKit-HTTPServer] %v | %3d | %13v | %15s | %-7s  %#v\n",
-			param.timeStamp.Format("2006/01/02 - 15:04:05"),
+		l.Debugf("[HTTP] %3d | %13v | %15s | %-7s  %#v\n",
 			param.statusCode,
 			param.latency,
 			param.clientIP,
