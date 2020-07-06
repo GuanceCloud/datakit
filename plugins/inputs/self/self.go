@@ -5,10 +5,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/influxdata/telegraf"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -19,6 +18,8 @@ interval = '10s'
 )
 
 type SelfInfo struct {
+	Interval internal.Duration
+
 	stat *ClientStat
 }
 
@@ -31,35 +32,34 @@ func (_ *SelfInfo) Catalog() string {
 }
 
 func (_ *SelfInfo) SampleConfig() string {
-	return sampleConfig
+	return ``
 }
 
-func (_ *SelfInfo) Description() string {
-	return ""
-}
+// func (_ *SelfInfo) Description() string {
+// 	return ""
+// }
 
-func (s *SelfInfo) Gather(acc telegraf.Accumulator) error {
-	s.stat.Update()
-	statMetric := s.stat.ToMetric()
+func (s *SelfInfo) Run() {
 
-	runnings := []string{}
-
-	for _, input := range config.Cfg.Inputs {
-		if st, ok := input.Input.(internal.PluginStat); ok {
-			if st.IsRunning() {
-				runnings = append(runnings, input.Config.Name)
-			}
-			m := st.StatMetric()
-			if m != nil {
-				m.AddTag("datakit", config.Cfg.MainCfg.UUID)
-				acc.AddMetric(m)
-			}
-		}
+	if s.Interval.Duration == 0 {
+		s.Interval.Duration = time.Second * 10
 	}
 
-	//statMetric.AddField("running_inputs", strings.Join(runnings, ","))
-	acc.AddMetric(statMetric)
-	return nil
+	tick := time.NewTicker(s.Interval.Duration)
+	defer tick.Stop()
+
+	for {
+
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		case <-tick.C:
+			s.stat.Update()
+			statMetric := s.stat.ToMetric()
+
+			io.Feed([]byte(statMetric.String()), io.Metric)
+		}
+	}
 }
 
 func init() {

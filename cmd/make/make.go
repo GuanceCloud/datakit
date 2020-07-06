@@ -508,7 +508,7 @@ var (
 
 func buildExternals(outdir, goos, goarch string) {
 	for _, ex := range externals {
-		l.Debugf("build %s/%s %s to %s...", goos, goarch, ex.name, outdir)
+		l.Debugf("building %s/%s/%s to %s...", goos, goarch, ex.name, outdir)
 
 		osarch := goos + "/" + goarch
 		if _, ok := ex.osarchs[osarch]; !ok {
@@ -525,6 +525,9 @@ func buildExternals(outdir, goos, goarch string) {
 			case "windows/amd64", "windows/386":
 				out = out + ".exe"
 			default: // pass
+				if _, ok := ex.osarchs[osarch]; !ok {
+					return
+				}
 			}
 
 			args := []string{
