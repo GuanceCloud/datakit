@@ -3,85 +3,115 @@
 package containerd
 
 import (
-	"context"
-	"log"
-	"sync"
+	"bytes"
+	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
+	"go.uber.org/zap"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type Containerd struct {
-	Config Config `toml:"containerd"`
+const (
+	inputName = "containerd"
 
-	ctx    context.Context
-	cancel context.CancelFunc
-	acc    telegraf.Accumulator
-	wg     *sync.WaitGroup
-}
+	configSample = `
+# [[containerd]]
+#       ## containerd 在本机的 sock 地址，一般使用默认即可
+#       host_path = "/run/containerd/containerd.sock"
+#
+#       ## 需要采集的 containerd namespace
+#       ## 可以使 'ps -ef | grep containerd | grep containerd-shim' 查看详情
+#       namespace = "moby"
+#
+#       ## 需要采集的 containerd ID 列表，ID 是一串长度为 64 的字符串
+#       ## 如果该值是 "*" ，会默认采集所有
+#       ID_list = ["*"]
+#
+#	## 采集周期，时间单位秒
+#	collect_cycle = 60
+`
+)
+
+var l *zap.SugaredLogger
+
+type (
+	Containerd struct {
+		C []Impl `toml:"containerd"`
+	}
+
+	Impl struct {
+		HostPath  string        `toml:"host_path"`
+		Namespace string        `toml:"namespace"`
+		IDList    []string      `toml:"ID_list"`
+		Cycle     time.Duration `toml:"collect_cycle"`
+		// get all ids metrics
+		isAll bool
+		// id cache
+		ids map[string]byte
+	}
+)
 
 func init() {
-	inputs.Add(pluginName, func() inputs.Input {
-		e := &Containerd{}
-		return e
+	inputs.Add(inputName, func() inputs.Input {
+		return &Containerd{}
 	})
 }
 
-func (e *Containerd) Start(acc telegraf.Accumulator) error {
-
-	e.ctx, e.cancel = context.WithCancel(context.Background())
-	e.acc = acc
-	e.wg = new(sync.WaitGroup)
-
-	log.Printf("I! [Containerd] start\n")
-	log.Printf("I! [Containerd] load subscribes count: %d\n", len(e.Config.Subscribes))
-	for _, sub := range e.Config.Subscribes {
-		e.wg.Add(1)
-		s := sub
-		stream := newStream(&s, e)
-		go stream.start(e.wg)
-	}
-
-	return nil
-}
-
-func (e *Containerd) Stop() {
-	e.cancel()
-	e.wg.Wait()
-	log.Printf("I! [Containerd] stop\n")
-}
-
 func (_ *Containerd) Catalog() string {
-	return "containerd"
+	return inputName
 }
 
 func (_ *Containerd) SampleConfig() string {
-	return containerdConfigSample
+	return configSample
 }
 
-func (_ *Containerd) Description() string {
-	return "Convert Containerd collection metrics to Dataway"
-}
+func (c *Containerd) Run() {
+	l = logger.SLogger(inputName)
 
-func (_ *Containerd) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (e *Containerd) ProcessPts(pts []*influxdb.Point) error {
-	for _, pt := range pts {
-		fields, err := pt.Fields()
-		if err != nil {
-			return err
-		}
-		pt_metric, err := metric.New(pt.Name(), pt.Tags(), fields, pt.Time())
-		if err != nil {
-			return err
-		}
-		log.Printf("D! [Containerd] metric: %v\n", pt_metric)
-		e.acc.AddMetric(pt_metric)
+	for _, i := range c.C {
+		go i.start()
 	}
-	return nil
+}
+
+func (i *Impl) start() {
+	i.isAll = len(i.IDList) == 1 && i.IDList[0] == "*"
+	i.ids = func() map[string]byte {
+		m := make(map[string]byte)
+		for _, v := range i.IDList {
+			m[v] = '0'
+		}
+		return m
+	}()
+
+	ticker := time.NewTicker(time.Second * i.Cycle)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+
+		case <-ticker.C:
+			pts, err := i.collectContainerd()
+			if err != nil {
+				l.Error(err)
+				continue
+			}
+
+			var data bytes.Buffer
+
+			for _, pt := range pts {
+				if _, err := data.WriteString(pt.String()); err != nil {
+					l.Error(err)
+					continue
+				}
+				data.WriteString("\n")
+			}
+
+			io.Feed(data.Bytes(), io.Metric)
+		}
+	}
 }
