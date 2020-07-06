@@ -18,7 +18,7 @@ import (
 func TestUnmarshal(t *testing.T) {
 	x := []byte(`
 uuid='dkit_a429ef4c-184d-4ed0-9bfc-72fa119ef02b'
-ftdataway='http://10.100.64.117:49527/v1/write/metrics?token=tkn_6cb6e15edd9a40629673ee7ecd5b9f6e&from=online-dk'
+ftdataway='http://10.100.64.117:49527/v1/write/metric?token=tkn_6cb6e15edd9a40629673ee7ecd5b9f6e&from=online-dk'
 log='/usr/local/cloudcare/forethought/datakit/datakit.log'
 log_level='info'
 config_dir='/usr/local/cloudcare/forethought/datakit/conf.d'
