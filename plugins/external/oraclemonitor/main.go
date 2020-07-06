@@ -703,37 +703,37 @@ where a.tablespace_name = b.tablespace_name`
 
 	// Data Guard 快速启动故障转移观察程序
 	oracle_dg_fsfo_info_sql = `
-    select fs_failover_status from v$database;
+    select fs_failover_status from v$database
     `
 
 	// Data Guard 性能
 	oracle_dg_performance_info_sql = `
-    select  round(avg(value),2) redo_generation_rate from gv$sysmetric where  metric_name ='Redo Generated Per Sec';
+    select  round(avg(value),2) redo_generation_rate from gv$sysmetric where  metric_name ='Redo Generated Per Sec'
     `
 
 	// Data Guard 故障转移
 	oracle_dg_failover_sql = `
-    select  dest_id,end_of_redo_type,count(*) switch_counts from v$ARCHIVED_LOG where end_of_redo_type is not null group by dest_id,end_of_redo_type;
+    select  dest_id,end_of_redo_type,count(*) switch_counts from v$ARCHIVED_LOG where end_of_redo_type is not null group by dest_id,end_of_redo_type
     `
 
 	// Data Guard 延迟信息
 	oracle_dg_delay_info_sql = `
-    select name dl_name,value dl_value,time_computed dl_flash_time from   V$DATAGUARD_STATS;
+    select name dl_name,value dl_value,time_computed dl_flash_time from   V$DATAGUARD_STATS
     `
 
 	// Data Guard 重做应用速率
 	oracle_dg_apply_rate_sql = `
-    select sofar redo_apply_rate from V$RECOVERY_PROGRESS where item='Active Apply Rate';
+    select sofar redo_apply_rate from V$RECOVERY_PROGRESS where item='Active Apply Rate'
     `
 
 	// Data Guard 目录错误信息
 	oracle_dg_dest_error_sql = `
-    select DEST_NAME,STATUS,NAME_SPACE,TARGET,ARCHIVER,ERROR,APPLIED_SCN from v$archive_dest where target='STANDBY';
+    select DEST_NAME,STATUS,NAME_SPACE,TARGET,ARCHIVER,ERROR,APPLIED_SCN from v$archive_dest where target='STANDBY'
     `
 
 	// Data Guard 进程信息
 	oracle_dg_proc_info_sql = `
-    select process, status from v$managed_standby;
+    select process, status from v$managed_standby
     `
 
 	// 采集容器数据库基础信息
@@ -750,7 +750,7 @@ where a.tablespace_name = b.tablespace_name`
 
 	// 采集ASM磁盘组状态
 	oracle_asm_group_info_sql = `
-    select GROUP_NUMBER,NAME AS GROUP_NAME,STATE,TYPE,TOTAL_MB,FREE_MB,REQUIRED_MIRROR_FREE_MB,USABLE_FILE_MB,OFFLINE_DISKS,VOTING_FILES from v$asm_diskgroup;
+    select GROUP_NUMBER,NAME AS GROUP_NAME,STATE,TYPE,TOTAL_MB,FREE_MB,REQUIRED_MIRROR_FREE_MB,USABLE_FILE_MB,OFFLINE_DISKS,VOTING_FILES from v$asm_diskgroup
     `
 
 	// 采集ASM磁盘组状态
@@ -761,7 +761,7 @@ where a.tablespace_name = b.tablespace_name`
     repair_timer,reads,writes,read_errs,write_errs,read_time,write_time,
     bytes_read,bytes_written,voting_file from v$asm_disk d,
     (select group_number as g_number,name as group_name from v$asm_diskgroup) g
-    where d.group_number=g.g_number;
+    where d.group_number=g.g_number
     `
 )
 
