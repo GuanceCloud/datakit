@@ -9,9 +9,10 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/aegis"
-	"github.com/tidwall/gjson"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
-	"github.com/influxdata/telegraf"
+	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -33,11 +34,10 @@ var regions3 = []string{
 }
 
 type AliyunDDoS struct {
-	DDoS        []*DDoS
-	ctx         context.Context
-	cancelFun   context.CancelFunc
-	accumulator telegraf.Accumulator
-	logger      *models.Logger
+	DDoS      []*DDoS
+	ctx       context.Context
+	cancelFun context.CancelFunc
+	logger    *models.Logger
 
 	runningInstances []*runningInstance
 }
@@ -63,7 +63,7 @@ func (_ *AliyunDDoS) Description() string {
 	return ""
 }
 
-func (_ *AliyunDDoS) Gather(telegraf.Accumulator) error {
+func (_ *AliyunDDoS) Gather() error {
 	return nil
 }
 
@@ -71,19 +71,16 @@ func (_ *AliyunDDoS) Init() error {
 	return nil
 }
 
-func (a *AliyunDDoS) Start(acc telegraf.Accumulator) error {
+func (a *AliyunDDoS) Run() {
 	a.logger = &models.Logger{
 		Name: `aliyunddos`,
 	}
 
 	if len(a.DDoS) == 0 {
 		a.logger.Warnf("no configuration found")
-		return nil
 	}
 
 	a.logger.Infof("starting...")
-
-	a.accumulator = acc
 
 	for _, instCfg := range a.DDoS {
 		r := &runningInstance{
@@ -103,7 +100,6 @@ func (a *AliyunDDoS) Start(acc telegraf.Accumulator) error {
 		cli, err := sdk.NewClientWithAccessKey(instCfg.RegionID, instCfg.AccessKeyID, instCfg.AccessKeySecret)
 		if err != nil {
 			r.logger.Errorf("create client failed, %s", err)
-			return err
 		}
 
 		r.client = cli
@@ -111,7 +107,6 @@ func (a *AliyunDDoS) Start(acc telegraf.Accumulator) error {
 
 		go r.run(a.ctx)
 	}
-	return nil
 }
 
 func (a *AliyunDDoS) Stop() {
@@ -183,6 +178,13 @@ func (r *runningInstance) getInstance(region string) error {
 			fields["instanceId"] = item.Get("InstanceId").String()
 			fields["remark"] = item.Get("Remark").String()
 
+			pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+			if err != nil {
+				return err
+			}
+
+			err = io.Feed([]byte(pt.String()), io.Metric)
+
 			go r.describeInstanceDetails(item.Get("InstanceId").String(), region)
 			go r.describeInstanceStatistics(item.Get("InstanceId").String(), region)
 			go r.describeNetworkRules(item.Get("InstanceId").String(), region)
@@ -252,7 +254,13 @@ func (r *runningInstance) describeInstanceDetails(instanceID, region string) err
 		fields["eip"] = strings.Join(eip, "\\")
 		fields["line"] = item.Get("line").String()
 		fields["instanceId"] = item.Get("InstanceId").String()
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+
+		pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+		if err != nil {
+			return err
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 
 	return nil
@@ -292,7 +300,12 @@ func (r *runningInstance) describeInstanceStatistics(instanceID, region string) 
 		fields["portUsage"] = item.Get("PortUsage").Int()
 		fields["siteUsage"] = item.Get("SiteUsage").Int()
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+		if err != nil {
+			return err
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 
 	return nil
@@ -351,7 +364,12 @@ func (r *runningInstance) describeWebRules(region string) error {
 				fields[key] = obj.Get("RealServer").String()
 			}
 
-			r.agent.accumulator.AddFields(r.metricName, fields, tags)
+			pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+			if err != nil {
+				return err
+			}
+
+			err = io.Feed([]byte(pt.String()), io.Metric)
 		}
 
 		total := gjson.Parse(data).Get("TotalCount").Int()
@@ -412,7 +430,12 @@ func (r *runningInstance) describeNetworkRules(instanceID, region string) error 
 			}
 			fields["realServer"] = strings.Join(realServer, "\\")
 
-			r.agent.accumulator.AddFields(r.metricName, fields, tags)
+			pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+			if err != nil {
+				return err
+			}
+
+			err = io.Feed([]byte(pt.String()), io.Metric)
 		}
 
 		total := gjson.Parse(data).Get("TotalCount").Int()
@@ -463,7 +486,12 @@ func (r *runningInstance) describePayInfo(region string) error {
 		fields["remainDay"] = item.Get("RemainDay").Int()
 		fields["status"] = item.Get("Status").Int()
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+		if err != nil {
+			return err
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 
 	return nil
