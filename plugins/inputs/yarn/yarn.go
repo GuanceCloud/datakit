@@ -1,20 +1,25 @@
 package yarn
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+	"sync"
 
 	"github.com/antchfx/jsonquery"
-	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"go.uber.org/zap"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+type IoFeed func(data []byte, category string) error
 
 type Metrcis struct {
 	ClusterMetrics ClusterMetrics `json:"clusterMetrics"`
@@ -111,7 +116,7 @@ type YarnInput struct {
 }
 
 type YarnOutput struct {
-	acc telegraf.Accumulator
+	IoFeed
 }
 
 type YarnParam struct {
@@ -157,10 +162,7 @@ const (
 	STRING
 )
 
-var (
-	ctx  context.Context
-	cfun context.CancelFunc
-)
+var ylog *zap.SugaredLogger
 
 func (y *Yarn) Catalog() string {
 	return "yarn"
@@ -170,17 +172,10 @@ func (y *Yarn) SampleConfig() string {
 	return yarnConfigSample
 }
 
-func (y *Yarn) Description() string {
-	return "Monitor Hadoop/Yarn Status"
-}
-
-func (y *Yarn) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (y *Yarn) Start(acc telegraf.Accumulator) error {
-	log.Printf("I! [yarn] start")
-	ctx, cfun = context.WithCancel(context.Background())
+func (y *Yarn) Run()  {
+	ylog = logger.SLogger("yarn")
+	isActive := false
+	wg := sync.WaitGroup{}
 
 	metricName := defaultMetricName
 	if y.MetricName != "" {
@@ -189,40 +184,41 @@ func (y *Yarn) Start(acc telegraf.Accumulator) error {
 
 	for _, target := range y.Targets {
 		if target.Active && target.Host != "" {
+			if !isActive {
+				ylog.Info("yarn input started...")
+				isActive = true
+			}
 			if target.Interval == 0 {
 				target.Interval = defaultInterval
 			}
 			target.hostPath = strings.TrimRight(target.Host, "/") + urlPrefix
 
 			input := YarnInput{target, metricName}
-			output := YarnOutput{acc}
+			output := YarnOutput{io.Feed}
 			p := &YarnParam{input, output}
-			go p.gather(ctx)
+
+			wg.Add(1)
+			go p.gather(&wg)
 		}
 	}
-	return nil
+	wg.Wait()
 }
 
-func (y *Yarn) Stop() {
-	cfun()
-}
 
-func (p *YarnParam) gather(ctx context.Context) {
+func (p *YarnParam) gather(wg *sync.WaitGroup) {
+	tick := time.NewTicker(time.Duration(p.input.Interval)*time.Second)
+	defer tick.Stop()
 	for {
 		select {
-		case <-ctx.Done():
+		case <-tick.C:
+			err := p.getMetrics()
+			if err != nil {
+				ylog.Errorf("getMetrics err: %s", err.Error())
+			}
+		case <-datakit.Exit.Wait():
+			ylog.Info("input yarn exit")
+			wg.Done()
 			return
-		default:
-		}
-
-		err := p.getMetrics()
-		if err != nil {
-			log.Printf("W! [traefik] %s", err.Error())
-		}
-
-		err = internal.SleepContext(ctx, time.Duration(p.input.Interval)*time.Second)
-		if err != nil {
-			log.Printf("W! [traefik] %s", err.Error())
 		}
 	}
 }
@@ -231,28 +227,28 @@ func (p *YarnParam) getMetrics() error {
 	var err error
 	err = p.gatherMainSection()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = p.gatherAppSection()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = p.gatherNodeSection()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = p.gatherQueueSection()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return nil
 }
 
-func (p *YarnParam) gatherMainSection() error {
+func (p *YarnParam) gatherMainSection() (err error) {
 	var metric Metrcis
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
@@ -264,8 +260,9 @@ func (p *YarnParam) gatherMainSection() error {
 	resp, err := http.Get(p.input.hostPath + "metrics")
 	if err != nil || resp.StatusCode != 200 {
 		fields[canConect] = false
-		p.output.acc.AddFields(p.input.MetricName, fields, tags)
-		return err
+		pt, _ := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+		p.output.IoFeed([]byte(pt.String()), io.Metric)
+		return
 	}
 	defer resp.Body.Close()
 
@@ -301,8 +298,12 @@ func (p *YarnParam) gatherMainSection() error {
 	fields["rebooted_nodes"] = metric.ClusterMetrics.RebootedNodes
 	fields["shutdown_nodes"] = metric.ClusterMetrics.ShutdownNodes
 
-	p.output.acc.AddFields(p.input.MetricName, fields, tags)
-	return nil
+	pt, err := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+	if err != nil {
+		return
+	}
+	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+	return
 }
 
 func (p *YarnParam) gatherAppSection() error {
@@ -336,7 +337,14 @@ func (p *YarnParam) gatherAppSection() error {
 		fields["memory_seconds"] = ap.MemorySeconds
 		fields["vcore_seconds"] = ap.VcoreSeconds
 
-		p.output.acc.AddFields(p.input.MetricName, fields, tags)
+		pt, err := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+		if err != nil {
+			return err
+		}
+		err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -371,7 +379,14 @@ func (p *YarnParam) gatherNodeSection() error {
 		fields["available_virtual_cores"] = node.AvailableVirtualCores
 		fields["num_containers"] = node.NumContainers
 
-		p.output.acc.AddFields(p.input.MetricName, fields, tags)
+		pt, err := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+		if err != nil {
+			return err
+		}
+		err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -504,7 +519,14 @@ func (p *YarnParam) gatherQueueSection() error {
 			fields["max_applications_per_user"] = val
 		}
 
-		p.output.acc.AddFields(p.input.MetricName, fields, tags)
+		pt, err := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+		if err != nil {
+			return err
+		}
+		err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
