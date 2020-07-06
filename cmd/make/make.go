@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -507,8 +508,15 @@ var (
 )
 
 func buildExternals(outdir, goos, goarch string) {
+	curOSArch := runtime.GOOS + "/" + runtime.GOARCH
+
 	for _, ex := range externals {
 		l.Debugf("building %s/%s/%s to %s...", goos, goarch, ex.name, outdir)
+
+		if _, ok := ex.osarchs[curOSArch]; !ok {
+			l.Debugf("skip build %s under %s", ex.name, curOSArch)
+			return
+		}
 
 		osarch := goos + "/" + goarch
 		if _, ok := ex.osarchs[osarch]; !ok {
@@ -525,9 +533,6 @@ func buildExternals(outdir, goos, goarch string) {
 			case "windows/amd64", "windows/386":
 				out = out + ".exe"
 			default: // pass
-				if _, ok := ex.osarchs[osarch]; !ok {
-					return
-				}
 			}
 
 			args := []string{
