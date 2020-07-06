@@ -37,6 +37,7 @@ import (
 
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ssh"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
+
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcms"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/timezone"
@@ -54,9 +55,6 @@ import (
 	// external inputs wrap
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 	// with dll/so dependencies, and also 32bit disabled
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/netPacket"
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/scanport"
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tracerouter"
 
 	// only windows
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/wmi"
