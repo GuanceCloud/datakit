@@ -4,9 +4,11 @@ import (
 	"context"
 	"time"
 
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
-	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/selfstat"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
@@ -18,7 +20,6 @@ type AliyunCDN struct {
 	runningInstances []*RunningInstance
 	ctx              context.Context
 	cancelFun        context.CancelFunc
-	accumulator      telegraf.Accumulator
 	logger           *models.Logger
 }
 
@@ -44,14 +45,13 @@ func (_ *AliyunCDN) Description() string {
 	return ""
 }
 
-func (_ *AliyunCDN) Gather(telegraf.Accumulator) error {
+func (_ *AliyunCDN) Gather() error {
 	return nil
 }
 
-func (c *AliyunCDN) Start(acc telegraf.Accumulator) error {
+func (c *AliyunCDN) Run() {
 	if len(c.CDN) == 0 {
 		c.logger.Warnf("no configuration found")
-		return nil
 	}
 
 	c.logger = &models.Logger{
@@ -60,8 +60,6 @@ func (c *AliyunCDN) Start(acc telegraf.Accumulator) error {
 	}
 
 	c.logger.Infof("aliyun cdn start...")
-
-	c.accumulator = acc
 
 	for _, instCfg := range c.CDN {
 		r := &RunningInstance{
@@ -74,26 +72,23 @@ func (c *AliyunCDN) Start(acc telegraf.Accumulator) error {
 
 		go r.run(c.ctx)
 	}
-
-	return nil
 }
 
 func (cdn *AliyunCDN) Stop() {
 	cdn.cancelFun()
 }
 
-func (r *RunningInstance) run(ctx context.Context) error {
+func (r *RunningInstance) run(ctx context.Context) {
 	for {
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
-		}
+		// select {
+		// case <-ctx.Done():
+		// 	context.Canceled
+		// default:
+		// }
 
 		// check 配置
 		if err := CheckCfg(r.cfg); err != nil {
 			r.logger.Errorf("config error %v", err)
-			return nil
 		}
 
 		// 域名采集
@@ -101,7 +96,6 @@ func (r *RunningInstance) run(ctx context.Context) error {
 		cli, err := cdn.NewClientWithAccessKey(r.cfg.RegionID, r.cfg.AccessKeyID, r.cfg.AccessKeySecret)
 		if err != nil {
 			r.logger.Errorf("create client failed, %s", err)
-			return err
 		}
 
 		r.client = cli
@@ -171,7 +165,12 @@ func (r *RunningInstance) getDomain(metricName string, domain string) []string {
 				fields["type"] = point.Type
 				fields["weight"] = ConvertToNum(point.Weight)
 
-				r.agent.accumulator.AddFields(metricName, fields, tags)
+				pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+				if err != nil {
+					r.logger.Errorf("[influxdb convert point] failed, %v", err.Error())
+				}
+
+				err = io.Feed([]byte(pt.String()), io.Metric)
 			}
 		}
 
@@ -191,13 +190,12 @@ func (r *RunningInstance) exec(ctx context.Context, action string) error {
 	st := et.Add(-time.Minute * 10)
 
 	p := &RunningProject{
-		accumulator: r.agent.accumulator,
-		cfg:         r.cfg.Metric,
-		client:      r.client,
-		logger:      r.logger,
-		domain:      r.domains,
-		startTime:   unixTimeStrISO8601(st),
-		endTime:     unixTimeStrISO8601(et),
+		cfg:       r.cfg.Metric,
+		client:    r.client,
+		logger:    r.logger,
+		domain:    r.domains,
+		startTime: unixTimeStrISO8601(st),
+		endTime:   unixTimeStrISO8601(et),
 	}
 
 	// metricname
