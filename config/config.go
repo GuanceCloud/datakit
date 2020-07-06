@@ -388,33 +388,37 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 
 	for name, val := range tbl.Fields {
 
-		subTable, ok := val.(*ast.Table)
-		if !ok {
-			err = fmt.Errorf("invalid configuration, error parsing field %q as table", name)
-			l.Errorf("%s", err)
-			return err
-		}
-		switch name {
-		case "inputs":
-			for pluginName, pluginVal := range subTable.Fields {
-				switch pluginSubTable := pluginVal.(type) {
-				// legacy [inputs.cpu] support
-				case *ast.Table:
-					input := creator()
-					if interval, err := c.addInput(pluginName, input, pluginSubTable); err != nil {
-						err = fmt.Errorf("Error parsing %s, %s", pluginName, err)
-						l.Errorf("%s", err)
-						return err
-					} else {
-						if interval > maxInterval {
-							maxInterval = interval
-						}
-					}
+		if subTables, ok := val.([]*ast.Table); ok {
 
-				case []*ast.Table:
-					for _, t := range pluginSubTable {
+			for _, t := range subTables {
+				input := creator()
+				if interval, err := c.addInput(name, input, t); err != nil {
+					err = fmt.Errorf("Error parsing %s, %s", name, err)
+					l.Errorf("%s", err)
+					return err
+				} else {
+					if interval > maxInterval {
+						maxInterval = interval
+					}
+				}
+			}
+
+		} else {
+
+			subTable, ok := val.(*ast.Table)
+			if !ok {
+				err = fmt.Errorf("invalid configuration, error parsing field %q as table", name)
+				l.Errorf("%s", err)
+				return err
+			}
+			switch name {
+			case "inputs":
+				for pluginName, pluginVal := range subTable.Fields {
+					switch pluginSubTable := pluginVal.(type) {
+					// legacy [inputs.cpu] support
+					case *ast.Table:
 						input := creator()
-						if interval, err := c.addInput(pluginName, input, t); err != nil {
+						if interval, err := c.addInput(pluginName, input, pluginSubTable); err != nil {
 							err = fmt.Errorf("Error parsing %s, %s", pluginName, err)
 							l.Errorf("%s", err)
 							return err
@@ -423,17 +427,36 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 								maxInterval = interval
 							}
 						}
+
+					case []*ast.Table:
+						for _, t := range pluginSubTable {
+							input := creator()
+							if interval, err := c.addInput(pluginName, input, t); err != nil {
+								err = fmt.Errorf("Error parsing %s, %s", pluginName, err)
+								l.Errorf("%s", err)
+								return err
+							} else {
+								if interval > maxInterval {
+									maxInterval = interval
+								}
+							}
+						}
+					default:
+						err = fmt.Errorf("Unsupported config format: %s",
+							pluginName)
+						l.Errorf("%s", err)
+						return err
 					}
-				default:
-					err = fmt.Errorf("Unsupported config format: %s",
-						pluginName)
-					l.Errorf("%s", err)
-					return err
 				}
+			default:
+				err = fmt.Errorf("Unsupported config format: %s",
+					name)
+				l.Errorf("%s", err)
+				return err
 			}
-		default:
-			//try
+
 		}
+
 	}
 
 	if c.MainCfg.MaxPostInterval.Duration != 0 {
