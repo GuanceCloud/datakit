@@ -35,6 +35,8 @@ var (
 	LuaDir         = ""
 	ConfdDir       = ""
 	GRPCDomainSock = ""
+
+	OutputFile = ""
 )
 
 func Init() {
