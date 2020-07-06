@@ -6,8 +6,10 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 // project
@@ -67,7 +69,12 @@ func (run *RunningProject) describeDomainBpsData(domain string) {
 		fields["httpsValue"] = ConvertToFloat(point.HttpsValue)                 // L1节点https的带宽数据值，单位：bit/second
 		fields["overseasValue"] = ConvertToFloat(point.OverseasValue)           // 全球（不包含中国内地）带宽bps
 
-		run.accumulator.AddFields(run.metricName, fields, tags, tm)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, tm)
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -115,7 +122,12 @@ func (run *RunningProject) describeDomainTrafficData(domain string) {
 		fields["httpsDomesticValue"] = ConvertToFloat(point.HttpsDomesticValue) // L1节点https中国内地流量
 		fields["httpsOverseasValue"] = ConvertToFloat(point.HttpsOverseasValue) // L1节点https全球（不包含中国内地）流量
 
-		run.accumulator.AddFields(run.metricName, fields, tags, tm)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, tm)
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -153,7 +165,12 @@ func (run *RunningProject) describeDomainHitRateData(domain string) {
 		fields["value"] = ConvertToFloat(point.Value)
 		fields["httpsValue"] = ConvertToFloat(point.HttpsValue)
 
-		run.accumulator.AddFields(run.metricName, fields, tags, tm)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, tm)
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -192,7 +209,12 @@ func (run *RunningProject) describeDomainReqHitRateData(domain string) {
 		fields["value"] = ConvertToFloat(point.Value)
 		fields["httpsValue"] = ConvertToFloat(point.HttpsValue)
 
-		run.accumulator.AddFields(run.metricName, fields, tags, tm)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, tm)
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -231,7 +253,12 @@ func (run *RunningProject) describeDomainSrcBpsData(domain string) {
 		fields["Value"] = ConvertToFloat(point.Value)
 		fields["HttpsValue"] = ConvertToFloat(point.HttpsValue)
 
-		run.accumulator.AddFields(run.metricName, fields, tags, tm)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, tm)
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -270,7 +297,12 @@ func (run *RunningProject) describeDomainSrcTrafficData(domain string) {
 		fields["value"] = ConvertToFloat(point.Value)
 		fields["httpsValue"] = ConvertToFloat(point.HttpsValue)
 
-		run.accumulator.AddFields(run.metricName, fields, tags, tm)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, tm)
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -306,7 +338,13 @@ func (run *RunningProject) describeDomainUvData(domain string) {
 		tags["action"] = "describeDomainUvData"
 
 		fields["Value"] = point.Value
-		run.accumulator.AddFields(run.metricName, fields, tags, tm)
+
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, tm)
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -344,7 +382,12 @@ func (run *RunningProject) describeDomainPvData(domain string) {
 
 		fields["Value"] = point.Value
 
-		run.accumulator.AddFields(run.metricName, fields, tags, tm)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, tm)
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -385,7 +428,12 @@ func (run *RunningProject) describeDomainTopClientIpVisit(domain string) {
 		fields["traffic"] = point.Traffic
 		fields["acc"] = point.Acc
 
-		run.accumulator.AddFields(run.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -426,7 +474,12 @@ func (run *RunningProject) describeDomainISPData(domain string) {
 		fields["bytesProportion"] = ConvertToFloat(point.BytesProportion)
 		fields["totalQuery"] = ConvertToFloat(point.TotalQuery)
 
-		run.accumulator.AddFields(run.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -465,7 +518,12 @@ func (run *RunningProject) describeDomainTopUrlVisit(domain string) {
 		fields["urlDetail"] = ConvertToFloat(point.UrlDetail)
 		fields["flowProportion"] = point.FlowProportion
 
-		run.accumulator.AddFields(run.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 
 	for _, point := range response.Url200List.UrlList {
@@ -483,7 +541,12 @@ func (run *RunningProject) describeDomainTopUrlVisit(domain string) {
 		fields["flow"] = ConvertToFloat(point.Flow)
 		fields["flowProportion"] = point.FlowProportion
 
-		run.accumulator.AddFields(run.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 
 	for _, point := range response.Url300List.UrlList {
@@ -537,7 +600,12 @@ func (run *RunningProject) describeDomainTopUrlVisit(domain string) {
 		fields["flow"] = ConvertToFloat(point.Flow)
 		fields["flowProportion"] = point.FlowProportion
 
-		run.accumulator.AddFields(run.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -577,7 +645,12 @@ func (run *RunningProject) describeDomainSrcTopUrlVisit(domain string) {
 		fields["flow"] = ConvertToFloat(point.Flow)
 		fields["flowProportion"] = point.FlowProportion
 
-		run.accumulator.AddFields(run.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 
 	for _, point := range response.Url200List.UrlList {
@@ -595,7 +668,12 @@ func (run *RunningProject) describeDomainSrcTopUrlVisit(domain string) {
 		fields["flow"] = ConvertToFloat(point.Flow)
 		fields["flowProportion"] = point.FlowProportion
 
-		run.accumulator.AddFields(run.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 
 	for _, point := range response.Url300List.UrlList {
@@ -613,7 +691,12 @@ func (run *RunningProject) describeDomainSrcTopUrlVisit(domain string) {
 		fields["flow"] = ConvertToFloat(point.Flow)
 		fields["flowProportion"] = point.FlowProportion
 
-		run.accumulator.AddFields(run.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 
 	for _, point := range response.Url400List.UrlList {
@@ -631,7 +714,12 @@ func (run *RunningProject) describeDomainSrcTopUrlVisit(domain string) {
 		fields["flow"] = ConvertToFloat(point.Flow)
 		fields["flowProportion"] = point.FlowProportion
 
-		run.accumulator.AddFields(run.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 
 	for _, point := range response.Url500List.UrlList {
@@ -649,7 +737,12 @@ func (run *RunningProject) describeDomainSrcTopUrlVisit(domain string) {
 		fields["flow"] = ConvertToFloat(point.Flow)
 		fields["flowProportion"] = point.FlowProportion
 
-		run.accumulator.AddFields(run.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -681,7 +774,12 @@ func (run *RunningProject) DescribeTopDomainsByFlow() {
 		fields["totalAccess"] = point.TotalAccess
 		fields["maxBpsTime"] = RFC3339(point.MaxBpsTime)
 
-		run.accumulator.AddFields(run.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
@@ -720,7 +818,12 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 		fields["referDetail"] = point.ReferDetail
 		fields["flowProportion"] = point.FlowProportion
 
-		run.accumulator.AddFields(run.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(run.metricName, tags, fields, time.Now())
+		if err != nil {
+			return
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 }
 
