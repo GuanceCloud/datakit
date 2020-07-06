@@ -31,7 +31,7 @@ import (
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysqlmonitor"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prometheus"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/replication"
-	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/squid"
 
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ssh"
@@ -39,10 +39,12 @@ import (
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcms"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/timezone"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traefik"
+	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
+
+	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traefik"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ucmon"
+
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/yarn"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
 
@@ -50,7 +52,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
 
 	// external inputs wrap
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
+	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 	// with dll/so dependencies, and also 32bit disabled
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/netPacket"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/scanport"
