@@ -3,11 +3,9 @@
 package tailf
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"sync"
 	"testing"
 	"time"
 )
@@ -36,32 +34,16 @@ func TestStart(t *testing.T) {
 
 	}()
 
-	var tf = Tailf{
-		Config: Config{
-			Subscribes: []Subscribe{
-				Subscribe{
-					File:          tmpfile.Name(),
-					FormBeginning: true,
-					Pipe:          false,
-					WatchMethod:   "inotify",
-					Measurement:   "tailf_measurement",
-				},
-			},
-		},
+	var tailer = Tailf{
+		Config: struct {
+			File          string `toml:"filename"`
+			FormBeginning bool   `toml:"from_beginning"`
+			Pipe          bool   `toml:"pipe"`
+			WatchMethod   string `toml:"watch_method"`
+			Measurement   string `toml:"source"`
+		}{tmpfile.Name(), true, false, "inotify", "tailf_measurement"},
+		offset: 0,
 	}
 
-	tf.ctx, tf.cancel = context.WithCancel(context.Background())
-	tf.wg = new(sync.WaitGroup)
-
-	for _, sub := range tf.Config.Subscribes {
-		tf.wg.Add(1)
-		s := sub
-		stream := newStream(&s, &tf)
-		fmt.Println(s)
-		go stream.start(tf.wg)
-	}
-
-	time.Sleep(10 * time.Second)
-	stopch <- struct{}{}
-	tf.Stop()
+	tailer.Run()
 }
