@@ -37,6 +37,7 @@ import (
 
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ssh"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
+
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcms"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/timezone"
@@ -45,13 +46,8 @@ import (
 
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traefik"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ucmon"
-<<<<<<< HEAD
-
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/yarn"
-=======
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/yarn"
 
->>>>>>> 1eca05179980939ab054e7a2e7f70d47a6b916ec
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
 
 	// 32bit disabled, only 64 bit available
