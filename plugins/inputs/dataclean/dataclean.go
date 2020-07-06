@@ -112,8 +112,8 @@ func (d *DataClean) Run() {
 		d.write.addHttpWriter(config.Cfg.MainCfg.DataWayRequestURL)
 	}
 
-	if config.Cfg.MainCfg.OutputsFile != "" {
-		d.write.addFileWriter(config.Cfg.MainCfg.OutputsFile)
+	if config.Cfg.MainCfg.OutputFile != "" {
+		d.write.addFileWriter(config.Cfg.MainCfg.OutputFile)
 	}
 
 	go func() {
@@ -132,7 +132,7 @@ func (d *DataClean) Run() {
 }
 
 func (d *DataClean) FakeDataway() string {
-	return fmt.Sprintf("http://%s/v1/write/metrics", d.BindAddr)
+	return fmt.Sprintf("http://%s/v1/write/metric", d.BindAddr)
 }
 
 func NewAgent() *DataClean {
