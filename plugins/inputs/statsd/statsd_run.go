@@ -57,7 +57,7 @@ func (p *StatsdParams) gather(wg *sync.WaitGroup) {
 
 		case <-datakit.Exit.Wait():
 			wg.Done()
-			sqlog.Info("input statsd exit")
+			Log.Info("input statsd exit")
 			return
 		}
 	}
