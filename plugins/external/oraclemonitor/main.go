@@ -294,26 +294,6 @@ func String(i interface{}) string {
 }
 
 const (
-	configSample = `
-  {
-  "log":       "/usr/local/cloudcare/DataFlux/datakit/oraclemonitor.log",
-  "log_level": "info",
-	"oracles" : [
-		{
-			"interval" : "10s",
-			"metricName" : "",
-			"instanceId" : "",
-			"instanceDesc" : "",
-			"host" : "",
-			"port" : "",
-			"username" : "",
-			"password" : "",
-			"server" : "",
-			"type": "singleInstance"
-		}
-	]
-}`
-
 	oracle_hostinfo_sql = `
 SELECT stat_name, value
 FROM v$osstat
@@ -738,7 +718,7 @@ where a.tablespace_name = b.tablespace_name`
 
 	// 采集容器数据库基础信息
 	oracle_cdb_db_info_sql = `
-    select name as pdb_name,open_mode from v$pdbs;
+    select name as pdb_name,open_mode from v$pdbs
     `
 
 	// 采集容器资源基础信息
