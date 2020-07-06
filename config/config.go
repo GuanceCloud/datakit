@@ -418,8 +418,8 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 					// legacy [inputs.cpu] support
 					case *ast.Table:
 						input := creator()
-						if interval, err := c.addInput(pluginName, input, pluginSubTable); err != nil {
-							err = fmt.Errorf("Error parsing %s, %s", pluginName, err)
+						if interval, err := c.addInput(name, input, pluginSubTable); err != nil {
+							err = fmt.Errorf("Error parsing %s, %s", name, err)
 							l.Errorf("%s", err)
 							return err
 						} else {
@@ -431,8 +431,8 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 					case []*ast.Table:
 						for _, t := range pluginSubTable {
 							input := creator()
-							if interval, err := c.addInput(pluginName, input, t); err != nil {
-								err = fmt.Errorf("Error parsing %s, %s", pluginName, err)
+							if interval, err := c.addInput(name, input, t); err != nil {
+								err = fmt.Errorf("Error parsing %s, %s", name, err)
 								l.Errorf("%s", err)
 								return err
 							} else {
