@@ -36,8 +36,7 @@ const (
 # ## 若要取得 info course 字段的数据，需要配置的路径为 '/info/score[0]/cource'
 # ## 若要取得 info score 字段的数据（例如'hello'），需要配置的路径为 '/info/score[2]'
 #
-# [mongodb_oplog]
-# [[mongodb_oplog.subscribes]]
+# [[mongodb_oplog]]
 #       ## MongoDB URL: mongodb://user:password@host:port/database
 #       mongodb_url="mongodb://127.0.0.1:27017"
 #	## MongoDB database
