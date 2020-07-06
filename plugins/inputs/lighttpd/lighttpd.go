@@ -1,85 +1,106 @@
 package lighttpd
 
 import (
-	"context"
-	"log"
-	"sync"
+	"fmt"
+	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
+	"go.uber.org/zap"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type Lighttpd struct {
-	Config Config `toml:"lighttpd"`
+const (
+	inputName = "lighttpd"
 
-	ctx    context.Context
-	cancel context.CancelFunc
-	acc    telegraf.Accumulator
-	wg     *sync.WaitGroup
-}
+	defaultMeasurement = "lighttpd"
+
+	configSample = `
+# [[inputs.lighttpd]]
+#       ## lighttpd status url
+#	url = "http://127.0.0.1:8080/server-status"
+#
+#       ## 指定 lighttpd 版本为 "v1" 或 "v2"
+#       version = "v1"
+#
+#	## 采集周期，时间单位是秒
+#	collect_cycle = 60
+
+	mea
+`
+)
+
+var l *zap.SugaredLogger
+
+type (
+	Lighttpd struct {
+		C []Impl `toml:"lighttpd"`
+	}
+
+	Impl struct {
+		URL           string        `toml:"url"`
+		Version       string        `toml:"version"`
+		Cycle         time.Duration `toml:"collect_cycle"`
+		statusURL     string
+		statusVersion Version
+	}
+)
 
 func init() {
-	inputs.Add(pluginName, func() inputs.Input {
-		lt := &Lighttpd{}
-		return lt
+	inputs.Add(inputName, func() inputs.Input {
+		return &Impl{}
 	})
 }
 
-func (lt *Lighttpd) Start(acc telegraf.Accumulator) error {
-
-	lt.ctx, lt.cancel = context.WithCancel(context.Background())
-	lt.acc = acc
-	lt.wg = new(sync.WaitGroup)
-
-	log.Printf("I! [Lighttpd] start\n")
-	log.Printf("I! [Lighttpd] load subscribes count %d\n", len(lt.Config.Subscribes))
-	for _, sub := range lt.Config.Subscribes {
-		lt.wg.Add(1)
-		s := sub
-		stream := newStream(&s, lt)
-		go stream.start(lt.wg)
-	}
-
-	return nil
-}
-
-func (lt *Lighttpd) Stop() {
-	lt.cancel()
-	lt.wg.Wait()
-	log.Printf("I! [Lighttpd] stop\n")
-}
-
 func (_ *Lighttpd) SampleConfig() string {
-	return lighttpdConfigSample
+	return configSample
 }
 
 func (_ *Lighttpd) Catalog() string {
-	return "lighttpd"
+	return inputName
 }
 
-func (_ *Lighttpd) Description() string {
-	return "Convert Lighttpd collection data to Dataway"
-}
+func (h *Lighttpd) Run() {
+	l = logger.SLogger(inputName)
 
-func (_ *Lighttpd) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (lt *Lighttpd) ProcessPts(pts []*influxdb.Point) error {
-	for _, pt := range pts {
-		fields, err := pt.Fields()
-		if err != nil {
-			return err
-		}
-		pt_metric, err := metric.New(pt.Name(), pt.Tags(), fields, pt.Time())
-		if err != nil {
-			return err
-		}
-		log.Printf("D! [Lighttpd] metric: %v\n", pt_metric)
-		lt.acc.AddMetric(pt_metric)
+	for _, c := range h.C {
+		go c.start()
 	}
-	return nil
+}
+
+func (i *Impl) start() {
+
+	switch i.Version {
+	case "v1":
+		i.statusURL = fmt.Sprintf("%s?json", i.URL)
+		i.statusVersion = v1
+	case "v2":
+		i.statusURL = fmt.Sprintf("%s?format=plain", i.URL)
+		i.statusVersion = v2
+	default:
+		l.Error("invalid lighttpd version")
+		return
+	}
+
+	ticker := time.NewTicker(time.Second * i.Cycle)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+
+		case <-ticker.C:
+			pt, err := LighttpdStatusParse(i.statusURL, i.statusVersion, inputName)
+			if err != nil {
+				l.Error(err)
+				continue
+			}
+
+			io.Feed([]byte(pt.String()), io.Metric)
+		}
+	}
 }
