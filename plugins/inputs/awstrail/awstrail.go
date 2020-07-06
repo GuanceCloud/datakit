@@ -13,13 +13,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 type (
@@ -74,7 +72,7 @@ func (a *AwsTrailAgent) Run() {
 	}
 
 	go func() {
-		<-config.Exit.Wait()
+		<-datakit.Exit.Wait()
 		a.cancelFun()
 	}()
 
@@ -238,12 +236,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 					fields["Resource"] = resStr
 				}
 
-				pt, err := influxdb.NewPoint(r.metricName, tags, fields, *ev.EventTime)
-				if err == nil {
-					io.Feed([]byte(pt.String()), io.Metric)
-				} else {
-					r.logger.Warnf("make point failed, %s", err)
-				}
+				io.FeedEx(io.Metric, r.metricName, tags, fields, *ev.EventTime)
 			}
 		}
 
