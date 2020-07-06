@@ -12,7 +12,6 @@ import (
 	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -47,10 +46,9 @@ func (_ *HarborMonitor) Gather() error {
 	return nil
 }
 
-func (h *HarborMonitor) Run() error {
+func (h *HarborMonitor) Run() {
 	if len(h.Harbor) == 0 {
 		log.Printf("W! [HarborMonitor] no configuration found")
-		return nil
 	}
 
 	log.Printf("HarborMonitor cdn start")
@@ -75,8 +73,6 @@ func (h *HarborMonitor) Run() error {
 
 		go r.run(h.ctx)
 	}
-
-	return nil
 }
 
 func (r *runningInstance) run(ctx context.Context) error {
