@@ -2,45 +2,22 @@ package aliyunactiontrail
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"golang.org/x/time/rate"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type (
-	AliyunActiontrail struct {
-		Actiontrail []*ActiontrailInstance
-
-		ctx       context.Context
-		cancelFun context.CancelFunc
-
-		wg sync.WaitGroup
-
-		logger *models.Logger
-	}
-
-	runningInstance struct {
-		cfg *ActiontrailInstance
-
-		agent *AliyunActiontrail
-
-		logger *models.Logger
-
-		client *actiontrail.Client
-
-		metricName string
-
-		rateLimiter *rate.Limiter
-	}
+const (
+	inputName = `aliyunactiontrail`
 )
 
 func (_ *AliyunActiontrail) Catalog() string {
@@ -53,74 +30,50 @@ func (_ *AliyunActiontrail) SampleConfig() string {
 
 func (a *AliyunActiontrail) Run() {
 
-	a.logger = &models.Logger{
-		Name: `aliyunactiontrail`,
-	}
-
-	if len(a.Actiontrail) == 0 {
-		a.logger.Warnf("no configuration found")
-		return
-	}
+	a.logger = logger.SLogger(inputName)
 
 	go func() {
 		<-datakit.Exit.Wait()
 		a.cancelFun()
 	}()
 
-	for _, instCfg := range a.Actiontrail {
-		a.wg.Add(1)
-		go func(instCfg *ActiontrailInstance) {
-			defer a.wg.Done()
+	limit := rate.Every(40 * time.Millisecond)
+	a.rateLimiter = rate.NewLimiter(limit, 1)
 
-			r := &runningInstance{
-				cfg:    instCfg,
-				agent:  a,
-				logger: a.logger,
-			}
-			r.metricName = instCfg.MetricName
-			if r.metricName == "" {
-				r.metricName = "aliyun_actiontrail"
-			}
-
-			if r.cfg.Interval.Duration == 0 {
-				r.cfg.Interval.Duration = time.Minute * 10
-			}
-
-			limit := rate.Every(40 * time.Millisecond)
-			r.rateLimiter = rate.NewLimiter(limit, 1)
-
-			r.run()
-
-		}(instCfg)
-
+	if a.metricName == "" {
+		a.metricName = "aliyun_actiontrail"
 	}
 
-	a.wg.Wait()
+	if a.Interval.Duration == 0 {
+		a.Interval.Duration = time.Minute * 10
+	}
+
+	a.run()
 }
 
-func (r *runningInstance) getHistory() error {
-	if r.cfg.From == "" {
+func (a *AliyunActiontrail) getHistory() error {
+	if a.From == "" {
 		return nil
 	}
 
-	endTm := time.Now().Truncate(time.Minute).Add(-r.cfg.Interval.Duration)
+	endTm := time.Now().Truncate(time.Minute).Add(-a.Interval.Duration)
 	request := actiontrail.CreateLookupEventsRequest()
 	request.Scheme = "https"
-	request.StartTime = r.cfg.From
+	request.StartTime = a.From
 	request.EndTime = unixTimeStrISO8601(endTm)
 
-	response, err := r.lookupEvents(request, r.client.LookupEvents)
+	response, err := a.lookupEvents(request, a.client.LookupEvents)
 	if err != nil {
-		r.logger.Errorf("(history)LookupEvents between %s - %s failed", request.StartTime, request.EndTime)
+		a.logger.Errorf("(history)LookupEvents between %s - %s failed", request.StartTime, request.EndTime)
 		return err
 	}
 
-	r.handleResponse(response)
+	a.handleResponse(response)
 
 	return nil
 }
 
-func (r *runningInstance) lookupEvents(request *actiontrail.LookupEventsRequest,
+func (a *AliyunActiontrail) lookupEvents(request *actiontrail.LookupEventsRequest,
 	originFn func(*actiontrail.LookupEventsRequest) (*actiontrail.LookupEventsResponse, error)) (*actiontrail.LookupEventsResponse, error) {
 
 	var response *actiontrail.LookupEventsResponse
@@ -128,8 +81,8 @@ func (r *runningInstance) lookupEvents(request *actiontrail.LookupEventsRequest,
 	var tempDelay time.Duration
 
 	for i := 0; i < 5; i++ {
-		r.rateLimiter.Wait(r.agent.ctx)
-		response, err = r.client.LookupEvents(request)
+		a.rateLimiter.Wait(a.ctx)
+		response, err = a.client.LookupEvents(request)
 
 		if tempDelay == 0 {
 			tempDelay = time.Millisecond * 50
@@ -142,11 +95,11 @@ func (r *runningInstance) lookupEvents(request *actiontrail.LookupEventsRequest,
 		}
 
 		if err != nil {
-			r.logger.Warnf("%s", err)
+			a.logger.Warnf("%s", err)
 			time.Sleep(tempDelay)
 		} else {
 			if i != 0 {
-				r.logger.Debugf("retry successed, %d", i)
+				a.logger.Debugf("retry successed, %d", i)
 			}
 			break
 		}
@@ -155,15 +108,15 @@ func (r *runningInstance) lookupEvents(request *actiontrail.LookupEventsRequest,
 	return response, err
 }
 
-func (r *runningInstance) run() error {
+func (r *AliyunActiontrail) run() error {
 
 	defer func() {
 		if e := recover(); e != nil {
-
+			r.logger.Errorf("panic error, %v", e)
 		}
 	}()
 
-	cli, err := actiontrail.NewClientWithAccessKey(r.cfg.Region, r.cfg.AccessID, r.cfg.AccessKey)
+	cli, err := actiontrail.NewClientWithAccessKey(r.Region, r.AccessID, r.AccessKey)
 	if err != nil {
 		r.logger.Errorf("create client failed, %s", err)
 		return err
@@ -172,7 +125,7 @@ func (r *runningInstance) run() error {
 
 	go r.getHistory()
 
-	startTm := time.Now().Truncate(time.Minute).Add(-r.cfg.Interval.Duration)
+	startTm := time.Now().Truncate(time.Minute).Add(-r.Interval.Duration)
 
 	for {
 		select {
@@ -184,7 +137,7 @@ func (r *runningInstance) run() error {
 		request := actiontrail.CreateLookupEventsRequest()
 		request.Scheme = "https"
 		request.StartTime = unixTimeStrISO8601(startTm)
-		request.EndTime = unixTimeStrISO8601(startTm.Add(r.cfg.Interval.Duration))
+		request.EndTime = unixTimeStrISO8601(startTm.Add(r.Interval.Duration))
 
 		response, err := r.lookupEvents(request, r.client.LookupEvents)
 
@@ -194,12 +147,12 @@ func (r *runningInstance) run() error {
 
 		r.handleResponse(response)
 
-		internal.SleepContext(r.agent.ctx, r.cfg.Interval.Duration)
-		startTm = startTm.Add(r.cfg.Interval.Duration)
+		internal.SleepContext(r.ctx, r.Interval.Duration)
+		startTm = startTm.Add(r.Interval.Duration)
 	}
 }
 
-func (r *runningInstance) handleResponse(response *actiontrail.LookupEventsResponse) error {
+func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsResponse) error {
 
 	if response == nil {
 		return nil
@@ -277,7 +230,7 @@ func unixTimeStrISO8601(t time.Time) string {
 }
 
 func init() {
-	inputs.Add("aliyunactiontrail", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		ip := &AliyunActiontrail{}
 		ip.ctx, ip.cancelFun = context.WithCancel(context.Background())
 		return ip
