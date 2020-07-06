@@ -62,33 +62,37 @@ func (a *Agent) Run() error {
 
 func (a *Agent) runInputs() error {
 
-	for _, input := range config.Cfg.Inputs {
+	for name, ips := range config.Cfg.Inputs {
 
-		switch input.Input.(type) {
+		for _, input := range ips {
 
-		//case telegraf.ServiceInput:
-		//	l.Info("ignore service input ...")
-		//	l.Info("starting service input ...")
-		//	if err := a.runServiceInput(input, dst.ch); err != nil {
-		//		return err
-		//	}
+			switch input.(type) {
 
-		case inputs.Input:
-			l.Infof("starting input %s ...", input.Config.Name)
-			datakit.WG.Add(1)
-			go func(i inputs.Input, name string) {
-				defer datakit.WG.Done()
-				i.Run()
-				l.Infof("input %s exited", name)
-			}(input.Input.(inputs.Input), input.Config.Name)
+			//case telegraf.ServiceInput:
+			//	l.Info("ignore service input ...")
+			//	l.Info("starting service input ...")
+			//	if err := a.runServiceInput(input, dst.ch); err != nil {
+			//		return err
+			//	}
 
-		default:
-			l.Info("ignore interval input %s", input.Config.Name)
-			//l.Info("starting interval input ...")
-			//if err := a.runIntervalInput(ctx, input, startTime, dst.ch, &wg); err != nil {
-			//	return err
-			//}
+			case inputs.Input:
+				l.Infof("starting input %s ...", name)
+				datakit.WG.Add(1)
+				go func(i inputs.Input, name string) {
+					defer datakit.WG.Done()
+					i.Run()
+					l.Infof("input %s exited", name)
+				}(input, name)
+
+			default:
+				l.Info("ignore interval input %s", name)
+				//l.Info("starting interval input ...")
+				//if err := a.runIntervalInput(ctx, input, startTime, dst.ch, &wg); err != nil {
+				//	return err
+				//}
+			}
 		}
+
 	}
 
 	return nil
