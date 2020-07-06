@@ -19,10 +19,10 @@ const (
 #	##(required) the name of the WMI class. see: https://docs.microsoft.com/en-us/previous-versions//aa394084(v=vs.85)?redirectedfrom=MSDN
 #	class = 'Win32_LogicalDisk'
 
-#	##(optional) 采集频率，默认一分钟
+#	##(optional) collect rate，default is one miniute
 #	interval='1m'
 
-#	##(required) 指定wmi class中的属性名(即指标)，可以指定指标别名.
+#	##(required) property names of wmi class, you can optinally specify alias as field name.
 #	metrics = [
 #		['DeviceID'], 
 #		['FileSystem', 'disk_filesystem']
