@@ -525,6 +525,9 @@ func buildExternals(outdir, goos, goarch string) {
 			case "windows/amd64", "windows/386":
 				out = out + ".exe"
 			default: // pass
+				if _, ok := ex.osarchs[osarch]; !ok {
+					return
+				}
 			}
 
 			args := []string{
