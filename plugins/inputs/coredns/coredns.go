@@ -1,85 +1,142 @@
 package coredns
 
 import (
-	"context"
-	"log"
-	"sync"
+	"errors"
+	"fmt"
+	"net/http"
+	"time"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
+	"go.uber.org/zap"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type Coredns struct {
-	Config Config `toml:"coredns"`
+const (
+	inputName = "coredns"
 
-	ctx    context.Context
-	cancel context.CancelFunc
-	acc    telegraf.Accumulator
-	wg     *sync.WaitGroup
-}
+	configSample = `
+# [[coredns]]
+#       ## coredns 地址
+#	host = "127.0.0.1"
+#
+#       ## coredns prometheus 监控端口
+#	port = "9153"
+#
+#	## 采集周期，时间单位是秒
+#	collect_cycle = 60
+#
+#       ## measurement，不可重复
+#       measurement = "coredns"
+`
+)
+
+var l *zap.SugaredLogger
 
 func init() {
-	inputs.Add(pluginName, func() inputs.Input {
-		e := &Coredns{}
-		return e
+	inputs.Add(inputName, func() inputs.Input {
+		return &Coredns{}
 	})
 }
 
-func (e *Coredns) Start(acc telegraf.Accumulator) error {
-
-	e.ctx, e.cancel = context.WithCancel(context.Background())
-	e.acc = acc
-	e.wg = new(sync.WaitGroup)
-
-	log.Printf("I! [CoreDNS] start\n")
-	log.Printf("I! [CoreDNS] load subscribes count %d\n", len(e.Config.Subscribes))
-	for _, sub := range e.Config.Subscribes {
-		e.wg.Add(1)
-		s := sub
-		stream := newStream(&s, e)
-		go stream.start(e.wg)
+type (
+	Coredns struct {
+		C []Impl `toml:"coredns"`
 	}
 
-	return nil
-}
-
-func (e *Coredns) Stop() {
-	e.cancel()
-	e.wg.Wait()
-	log.Printf("I! [CoreDNS] stop\n")
-}
+	Impl struct {
+		Host        string        `toml:"host"`
+		Port        int           `toml:"port"`
+		Cycle       time.Duration `toml:"collect_cycle"`
+		Measurement string        `toml:"measurement"`
+		address     string
+	}
+)
 
 func (_ *Coredns) SampleConfig() string {
-	return corednsConfigSample
+	return configSample
 }
 
 func (_ *Coredns) Catalog() string {
 	return "network"
 }
 
-func (_ *Coredns) Description() string {
-	return "Convert Coredns collection data to Dataway"
-}
+func (c *Coredns) Run() {
+	l = logger.SLogger(inputName)
 
-func (_ *Coredns) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (e *Coredns) ProcessPts(pts []*influxdb.Point) error {
-	for _, pt := range pts {
-		fields, err := pt.Fields()
-		if err != nil {
-			return err
-		}
-		pt_metric, err := metric.New(pt.Name(), pt.Tags(), fields, pt.Time())
-		if err != nil {
-			return err
-		}
-		log.Printf("D! [CoreDNS] metric: %v\n", pt_metric)
-		e.acc.AddMetric(pt_metric)
+	for _, i := range c.C {
+		go i.start()
 	}
-	return nil
+}
+
+var tagsWhiteList = map[string]byte{"version": '0'}
+
+func (i *Impl) start() {
+	i.address = fmt.Sprintf("http://%s:%d/metrics", i.Host, i.Port)
+
+	if i.Measurement == "" {
+		l.Error("invalid measurement")
+		return
+	}
+
+	ticker := time.NewTicker(time.Second * i.Cycle)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+
+		case <-ticker.C:
+			pt, err := i.getMetrics()
+			if err != nil {
+				l.Error(err)
+				continue
+			}
+
+			io.Feed([]byte(pt.String()), io.Metric)
+		}
+	}
+}
+
+func (i *Impl) getMetrics() (*influxdb.Point, error) {
+
+	resp, err := http.Get(i.address)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	metrics, err := ParseV2(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(metrics) == 0 {
+		return nil, errors.New("the metrics is empty")
+	}
+
+	var tags = make(map[string]string)
+	var fields = make(map[string]interface{}, len(metrics))
+
+	// prometheus to point
+	for _, metric := range metrics {
+
+		for k, v := range metric.Tags() {
+			if _, ok := tagsWhiteList[k]; ok {
+				tags[k] = v
+			}
+		}
+
+		for k, v := range metric.Fields() {
+			fields[k] = v
+		}
+
+	}
+
+	return influxdb.NewPoint(i.Measurement, tags, fields, metrics[0].Time())
 }
