@@ -6,11 +6,13 @@ import (
 	"log"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/selfstat"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+
 	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -19,7 +21,6 @@ type HarborMonitor struct {
 	runningInstances []*runningInstance
 	ctx              context.Context
 	cancelFun        context.CancelFunc
-	accumulator      telegraf.Accumulator
 	logger           *models.Logger
 }
 
@@ -42,24 +43,17 @@ func (_ *HarborMonitor) Description() string {
 	return ""
 }
 
-func (_ *HarborMonitor) Gather(telegraf.Accumulator) error {
+func (_ *HarborMonitor) Gather() error {
 	return nil
 }
 
-func (h *HarborMonitor) Start(acc telegraf.Accumulator) error {
+func (h *HarborMonitor) Run() error {
 	if len(h.Harbor) == 0 {
 		log.Printf("W! [HarborMonitor] no configuration found")
 		return nil
 	}
 
-	h.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
-		Name: `HarborMonitor`,
-	}
-
 	log.Printf("HarborMonitor cdn start")
-
-	h.accumulator = acc
 
 	for _, instCfg := range h.Harbor {
 		r := &runningInstance{
@@ -83,10 +77,6 @@ func (h *HarborMonitor) Start(acc telegraf.Accumulator) error {
 	}
 
 	return nil
-}
-
-func (h *HarborMonitor) Stop() {
-	h.cancelFun()
 }
 
 func (r *runningInstance) run(ctx context.Context) error {
@@ -147,7 +137,12 @@ func (r *runningInstance) command() {
 		}
 	}
 
-	r.agent.accumulator.AddFields(r.metricName, fields, tags)
+	pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+	if err != nil {
+		return
+	}
+
+	err = io.Feed([]byte(pt.String()), io.Metric)
 }
 
 func (r *runningInstance) getVolumes(baseUrl string) string {
