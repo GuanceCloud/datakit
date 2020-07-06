@@ -1,13 +1,13 @@
 package druid
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"github.com/tidwall/gjson"
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -31,7 +31,7 @@ func init() {
 
 const configSample = `
 # [druid]
-# 	path = "/druid"
+#       path = "/druid"
 #       measurement = "druid"
 `
 
@@ -45,13 +45,11 @@ var l *zap.SugaredLogger
 
 type MetricType uint8
 
-type Config struct {
-	Path        string `toml:"path"`
-	Measurement string `toml:"measurement"`
-}
-
 type Druid struct {
-	Config Config `toml:"druid"`
+	Config struct {
+		Path        string `toml:"path"`
+		Measurement string `toml:"measurement"`
+	} `toml:"druid"`
 }
 
 func (d *Druid) Run() {
@@ -63,15 +61,28 @@ func (d *Druid) handle(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		l.Error("failed of read body, err: %s", err.Error())
+		l.Errorf("failed of read body, err: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 
-	if err := extract(body, d.Config.Measurement); err != nil {
-		l.Error("failed of extracted metrics err: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
+	fields := extract(body)
+	if fields == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	pt, err := influxdb.NewPoint(d.Config.Measurement, nil, fields, time.Now())
+	if err != nil {
+		l.Errorf("build point err, %s", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := io.Feed([]byte(pt.PrecisionString("ns")), io.Metric); err != nil {
+		l.Errorf("failed of io send, err: %s", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -86,181 +97,167 @@ func (d *Druid) Catalog() string {
 	return "druid"
 }
 
-func extract(body []byte, measurement string) error {
+type druidMetric []struct {
+	Service string  `json:"service"`
+	Metric  string  `json:"metric"`
+	Value   float64 `json:"value"`
+	// discard others..
+}
 
-	metrics := gjson.GetBytes(body, "#").Array()
-	if len(metrics) == 0 {
+func extract(body []byte) map[string]interface{} {
+
+	var metrics druidMetric
+	if err := json.Unmarshal(body, &metrics); err != nil {
+		l.Errorf("failed of paras data, err: %s", err.Error())
 		return nil
 	}
 
-	template := metricsTemplate()
-
-	var (
-		serviceName  string
-		metricName   string
-		metricKey    string
-		serviceValue float64
-
-		fields = make(map[string]interface{})
-	)
+	var fields = make(map[string]interface{}, len(metricsTemplate))
 
 	for _, metric := range metrics {
 
-		serviceName = metric.Get("service").String()
-
-		metricType, ok := template[serviceName]
+		metricType, ok := metricsTemplate[metric.Metric]
 		if !ok {
 			continue
 		}
 
-		metricName = metric.Get("metricName").String()
-		if serviceName == "druid/peon" {
+		if metric.Service == "druid/peon" {
 			// Skipping all metrics from peon. These are task specific and need some
 			// thinking before sending to DataDog.
 			continue
 		}
-		metricKey = strings.Replace(serviceName+"."+metricName, "/", ".", -1)
 
-		serviceValue = metric.Get("value").Float()
+		metricKey := strings.Replace(metric.Service+"."+metric.Metric, "/", ".", -1)
 
 		switch metricType {
 		case Normal:
-			fields[metricKey] = serviceValue
+			fields[metricKey] = metric.Value
 		case Count:
-			fields[metricKey] = int64(serviceValue)
+			fields[metricKey] = int64(metric.Value)
 		case ConvertRange:
-			fields[metricKey] = serviceValue * 100
+			fields[metricKey] = metric.Value * 100
 		default:
 			l.Info("Unknown metric type ", metricType)
 		}
-
 	}
 
-	pt, err := influxdb.NewPoint(measurement, nil, fields, time.Now())
-	if err != nil {
-		return err
-	}
-
-	return io.Feed([]byte(pt.PrecisionString("ns")), io.Metric)
+	return fields
 }
 
-func metricsTemplate() map[string]MetricType {
+var metricsTemplate = map[string]MetricType{
+	"query/time":       Normal,
+	"query/bytes":      Count,
+	"query/node/bytes": Count,
 
-	return map[string]MetricType{
-		"query/time":       Normal,
-		"query/bytes":      Count,
-		"query/node/bytes": Count,
+	"query/success/Count":     Count,
+	"query/interrupted/Count": Count,
+	"query/failed/Count":      Count,
 
-		"query/success/Count":     Count,
-		"query/interrupted/Count": Count,
-		"query/failed/Count":      Count,
+	"query/node/time":          Normal,
+	"query/node/ttfb":          Normal,
+	"query/intervalChunk/time": Normal,
 
-		"query/node/time":          Normal,
-		"query/node/ttfb":          Normal,
-		"query/intervalChunk/time": Normal,
+	"query/segment/time":         Normal,
+	"query/wait/time":            Normal,
+	"segment/scan/pending":       Normal,
+	"query/segmentAndCache/time": Normal,
+	"query/cpu/time":             Normal,
 
-		"query/segment/time":         Normal,
-		"query/wait/time":            Normal,
-		"segment/scan/pending":       Normal,
-		"query/segmentAndCache/time": Normal,
-		"query/cpu/time":             Normal,
+	"query/cache/delta/numEntries":   Count,
+	"query/cache/delta/sizeBytes":    Count,
+	"query/cache/delta/hits":         Count,
+	"query/cache/delta/misses":       Count,
+	"query/cache/delta/evictions":    Count,
+	"query/cache/delta/hitRate":      ConvertRange,
+	"query/cache/delta/averageBytes": Count,
+	"query/cache/delta/timeouts":     Count,
+	"query/cache/delta/errors":       Count,
 
-		"query/cache/delta/numEntries":   Count,
-		"query/cache/delta/sizeBytes":    Count,
-		"query/cache/delta/hits":         Count,
-		"query/cache/delta/misses":       Count,
-		"query/cache/delta/evictions":    Count,
-		"query/cache/delta/hitRate":      ConvertRange,
-		"query/cache/delta/averageBytes": Count,
-		"query/cache/delta/timeouts":     Count,
-		"query/cache/delta/errors":       Count,
+	"query/cache/total/numEntries":   Normal,
+	"query/cache/total/sizeBytes":    Normal,
+	"query/cache/total/hits":         Normal,
+	"query/cache/total/misses":       Normal,
+	"query/cache/total/evictions":    Normal,
+	"query/cache/total/hitRate":      ConvertRange,
+	"query/cache/total/averageBytes": Normal,
+	"query/cache/total/timeouts":     Normal,
+	"query/cache/total/errors":       Normal,
 
-		"query/cache/total/numEntries":   Normal,
-		"query/cache/total/sizeBytes":    Normal,
-		"query/cache/total/hits":         Normal,
-		"query/cache/total/misses":       Normal,
-		"query/cache/total/evictions":    Normal,
-		"query/cache/total/hitRate":      ConvertRange,
-		"query/cache/total/averageBytes": Normal,
-		"query/cache/total/timeouts":     Normal,
-		"query/cache/total/errors":       Normal,
+	"ingest/events/thrownAway":    Count,
+	"ingest/events/unparseable":   Count,
+	"ingest/events/processed":     Count,
+	"ingest/rows/output":          Count,
+	"ingest/persist/Count":        Count,
+	"ingest/persist/time":         Normal,
+	"ingest/persist/cpu":          Normal,
+	"ingest/persist/backPressure": Normal,
+	"ingest/persist/failed":       Count,
+	"ingest/handoff/failed":       Count,
+	"ingest/merge/time":           Normal,
+	"ingest/merge/cpu":            Normal,
 
-		"ingest/events/thrownAway":    Count,
-		"ingest/events/unparseable":   Count,
-		"ingest/events/processed":     Count,
-		"ingest/rows/output":          Count,
-		"ingest/persist/Count":        Count,
-		"ingest/persist/time":         Normal,
-		"ingest/persist/cpu":          Normal,
-		"ingest/persist/backPressure": Normal,
-		"ingest/persist/failed":       Count,
-		"ingest/handoff/failed":       Count,
-		"ingest/merge/time":           Normal,
-		"ingest/merge/cpu":            Normal,
+	"task/run/time":       Normal,
+	"segment/added/bytes": Count,
+	"segment/moved/bytes": Count,
+	"segment/nuked/bytes": Count,
 
-		"task/run/time":       Normal,
-		"segment/added/bytes": Count,
-		"segment/moved/bytes": Count,
-		"segment/nuked/bytes": Count,
+	"segment/assigned/Count":        Count,
+	"segment/moved/Count":           Count,
+	"segment/dropped/Count":         Count,
+	"segment/deleted/Count":         Count,
+	"segment/unneeded/Count":        Count,
+	"segment/cost/raw":              Count,
+	"segment/cost/normalization":    Count,
+	"segment/cost/normalized":       Count,
+	"segment/loadQueue/size":        Normal,
+	"segment/loadQueue/failed":      Normal,
+	"segment/loadQueue/Count":       Normal,
+	"segment/dropQueue/Count":       Normal,
+	"segment/size":                  Normal,
+	"segment/overShadowed/Count":    Normal,
+	"segment/underReplicated/Count": Normal,
+	"segment/Count":                 Normal,
+	"segment/unavailable/Count":     Normal,
 
-		"segment/assigned/Count":        Count,
-		"segment/moved/Count":           Count,
-		"segment/dropped/Count":         Count,
-		"segment/deleted/Count":         Count,
-		"segment/unneeded/Count":        Count,
-		"segment/cost/raw":              Count,
-		"segment/cost/normalization":    Count,
-		"segment/cost/normalized":       Count,
-		"segment/loadQueue/size":        Normal,
-		"segment/loadQueue/failed":      Normal,
-		"segment/loadQueue/Count":       Normal,
-		"segment/dropQueue/Count":       Normal,
-		"segment/size":                  Normal,
-		"segment/overShadowed/Count":    Normal,
-		"segment/underReplicated/Count": Normal,
-		"segment/Count":                 Normal,
-		"segment/unavailable/Count":     Normal,
+	"segment/max":         Normal,
+	"segment/used":        Normal,
+	"segment/usedPercent": ConvertRange,
 
-		"segment/max":         Normal,
-		"segment/used":        Normal,
-		"segment/usedPercent": ConvertRange,
+	"jvm/pool/committed":      Normal,
+	"jvm/pool/init":           Normal,
+	"jvm/pool/max":            Normal,
+	"jvm/pool/used":           Normal,
+	"jvm/bufferpool/Count":    Normal,
+	"jvm/bufferpool/used":     Normal,
+	"jvm/bufferpool/capacity": Normal,
+	"jvm/mem/init":            Normal,
+	"jvm/mem/max":             Normal,
+	"jvm/mem/used":            Normal,
+	"jvm/mem/committed":       Normal,
+	"jvm/gc/Count":            Count,
+	"jvm/gc/time":             Normal,
 
-		"jvm/pool/committed":      Normal,
-		"jvm/pool/init":           Normal,
-		"jvm/pool/max":            Normal,
-		"jvm/pool/used":           Normal,
-		"jvm/bufferpool/Count":    Normal,
-		"jvm/bufferpool/used":     Normal,
-		"jvm/bufferpool/capacity": Normal,
-		"jvm/mem/init":            Normal,
-		"jvm/mem/max":             Normal,
-		"jvm/mem/used":            Normal,
-		"jvm/mem/committed":       Normal,
-		"jvm/gc/Count":            Count,
-		"jvm/gc/time":             Normal,
+	"ingest/events/buffered": Normal,
 
-		"ingest/events/buffered": Normal,
+	"sys/swap/free":        Normal,
+	"sys/swap/max":         Normal,
+	"sys/swap/pageIn":      Normal,
+	"sys/swap/pageOut":     Normal,
+	"sys/disk/write/Count": Count,
+	"sys/disk/read/Count":  Count,
+	"sys/disk/write/size":  Count,
+	"sys/disk/read/size":   Count,
+	"sys/net/write/size":   Count,
+	"sys/net/read/size":    Count,
+	"sys/fs/used":          Normal,
+	"sys/fs/max":           Normal,
+	"sys/mem/used":         Normal,
+	"sys/mem/max":          Normal,
+	"sys/storage/used":     Normal,
+	"sys/cpu":              Normal,
 
-		"sys/swap/free":        Normal,
-		"sys/swap/max":         Normal,
-		"sys/swap/pageIn":      Normal,
-		"sys/swap/pageOut":     Normal,
-		"sys/disk/write/Count": Count,
-		"sys/disk/read/Count":  Count,
-		"sys/disk/write/size":  Count,
-		"sys/disk/read/size":   Count,
-		"sys/net/write/size":   Count,
-		"sys/net/read/size":    Count,
-		"sys/fs/used":          Normal,
-		"sys/fs/max":           Normal,
-		"sys/mem/used":         Normal,
-		"sys/mem/max":          Normal,
-		"sys/storage/used":     Normal,
-		"sys/cpu":              Normal,
+	"coordinator-segment/Count": Normal,
+	"historical-segment/Count":  Normal,
 
-		"coordinator-segment/Count": Normal,
-		"historical-segment/Count":  Normal,
-
-		"jetty/numopenconnections": Normal,
-	}
+	"jetty/numopenconnections": Normal,
 }
