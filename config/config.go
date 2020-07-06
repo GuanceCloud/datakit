@@ -51,8 +51,9 @@ type MainConfig struct {
 	DataWay           *DataWayCfg `toml:"dataway"`
 	DataWayRequestURL string      `toml:"-"`
 
-	HTTPServerAddr string `toml:"http_server_addr"`
-	HTTPServerLog  string `toml:"http_server_log"`
+	HTTPServerAddr    string `toml:"http_server_addr"`
+	HTTPServerLog     string `toml:"http_server_log"`
+	HTTPServerOpenLog bool   `toml:"http_server_open_log"`
 
 	FtGateway string `toml:"ftdataway"` // XXX: deprecated
 
@@ -73,7 +74,7 @@ type MainConfig struct {
 	FlushInterval internal.Duration
 	FlushJitter   internal.Duration
 
-	OutputsFile string `toml:"output_file,omitempty"`
+	OutputFile string `toml:"output_file,omitempty"`
 
 	Hostname     string
 	OmitHostname bool
@@ -86,15 +87,15 @@ func init() {
 
 	switch osarch {
 	case "windows/amd64":
-		datakit.InstallDir = `C:\Program Files\DataFlux\` + datakit.ServiceName
+		datakit.InstallDir = `C:\Program Files\dataflux\` + datakit.ServiceName
 
 	case "windows/386":
-		datakit.InstallDir = `C:\Program Files (x86)\DataFlux\` + datakit.ServiceName
+		datakit.InstallDir = `C:\Program Files (x86)\dataflux\` + datakit.ServiceName
 
 	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
 		"darwin/amd64", "darwin/386",
 		"freebsd/amd64", "freebsd/386":
-		datakit.InstallDir = `/usr/local/cloudcare/DataFlux/` + datakit.ServiceName
+		datakit.InstallDir = `/usr/local/cloudcare/dataflux/` + datakit.ServiceName
 	default:
 		panic("unsupported os/arch: %s" + osarch)
 	}
@@ -123,7 +124,6 @@ func newDefaultCfg() *Config {
 			Interval:      internal.Duration{Duration: 10 * time.Second},
 
 			HTTPServerAddr: "0.0.0.0:9529",
-			HTTPServerLog:  filepath.Join(datakit.InstallDir, "gin.log"),
 
 			LogLevel: "info",
 			Log:      filepath.Join(datakit.InstallDir, "datakit.log"),
@@ -218,8 +218,7 @@ func (c *Config) LoadMainConfig() error {
 	}
 
 	if err := toml.UnmarshalTable(tbl, c.MainCfg); err != nil {
-		l.Error("UnmarshalTable failed: %s", err)
-		return err
+		panic("UnmarshalTable failed: " + err.Error())
 	}
 
 	if !c.MainCfg.OmitHostname { // get default host-name
@@ -241,6 +240,10 @@ func (c *Config) LoadMainConfig() error {
 
 	if datakit.AgentLogFile != "" {
 		c.TelegrafAgentCfg.Logfile = datakit.AgentLogFile
+	}
+
+	if c.MainCfg.OutputFile != "" {
+		datakit.OutputFile = c.MainCfg.OutputFile
 	}
 
 	//如果telegraf的agent相关配置没有，则默认使用datakit的同名配置
