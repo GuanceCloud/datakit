@@ -6,7 +6,7 @@ const (
 	inputName = "aws_cloudtrail"
 
 	sampleConfig = `
-#[[aws_cloudtrail]]
+#[[inputs.aws_cloudtrail]]
 #access_key = ''
 #access_secret = ''
 #access_token = ''
