@@ -2,8 +2,6 @@ package statsd
 
 import (
 	"regexp"
-	"sync"
-
 
 	"go.uber.org/zap"
 
@@ -14,21 +12,16 @@ import (
 
 type IoFeed func(data []byte, category string) error
 
-type Target struct {
-	Interval int
-	Active   bool
-	Host     string
-}
-
 type StatsD struct {
-	MetricName string `toml:"metric_name"`
-	Targets    []Target
+	Interval    int
+	Active      bool
+	Host        string
+	MetricsName string
+	Tags        map[string]string
 }
 
 type StatsdInput struct {
-	MetricName string
-	Interval   int
-	Host       string
+	StatsD
 }
 
 type StatsdOutput struct {
@@ -38,31 +31,39 @@ type StatsdOutput struct {
 type StatsdParams struct {
 	input  StatsdInput
 	output StatsdOutput
+	log    *zap.SugaredLogger
 }
 
 var (
-	statsdConfigSample = `### metric_name: the name of metric, default is "statsd".
-### You need to configure an [[targets]] for each statsd service to be monitored.
-### interval: monitor interval second, unit is second. The default value is 60.
+	statsdConfigSample = `### You need to configure an [[inputs.statsd]] for each statsd service to be monitored.
 ### active: whether to monitor statsd.
+### interval: monitor interval second, unit is second. The default value is 60.
 ### host: statsd service ip:port, if "127.0.0.1", default port is 8126.
+### metricsName: the name of metric, default is "statsd"
 
-#metric_name="statsd"
-#[[targets]]
-#	interval = 60
-#	active   = true
-#	host     = "127.0.0.1:8126"
+#[[inputs.statsd]]
+#	active      = true
+#	interval    = 60
+#	host        = "127.0.0.1:8126"
+#	metricsName = "statsd"
+#	[inputs.statsd.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 
-#[[targets]]
-#	interval = 60
-#	active   = true
-#	host     = "127.0.0.1:8126"
+#[[inputs.statsd]]
+#	active      = true
+#	interval    = 60
+#	host        = "127.0.0.1:8126"
+#	metricsName = "statsd"
+#	[inputs.statsd.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 `
 	defaultMetricName = "statsd"
 	defaultInterval   = 60
-	Log *zap.SugaredLogger
 )
-
 
 func (t *StatsD) Catalog() string {
 	return "statsd"
@@ -73,47 +74,29 @@ func (t *StatsD) SampleConfig() string {
 }
 
 func (t *StatsD) Run() {
-	isActive := false
-	wg := sync.WaitGroup{}
-	Log = logger.SLogger("statsd")
+	if !t.Active || t.Host == "" {
+		return
+	}
+
 	reg, _ := regexp.Compile(`:\d{1,5}$`)
 
-
-	if t.MetricName == "" {
-		t.MetricName = defaultMetricName
+	if t.MetricsName == "" {
+		t.MetricsName = defaultMetricName
 	}
 
-	for _, target := range t.Targets {
-		if target.Active == false || target.Host == "" {
-			continue
-		}
-
-		if !isActive {
-			Log.Info("statsd input started...")
-			isActive = true
-		}
-
-		input := StatsdInput{
-			t.MetricName,
-			target.Interval,
-			target.Host,
-		}
-
-		if input.Interval <= 0 {
-			input.Interval = defaultInterval
-		}
-
-		if !reg.MatchString(target.Host) {
-			target.Host += ":8126"
-		}
-
-		output := StatsdOutput{io.Feed}
-
-		p := StatsdParams{input, output}
-		wg.Add(1)
-		go p.gather(&wg)
+	if t.Interval <= 0 {
+		t.Interval = defaultInterval
 	}
-	wg.Wait()
+
+	if !reg.MatchString(t.Host) {
+		t.Host += ":8126"
+	}
+
+	input := StatsdInput{*t}
+	output := StatsdOutput{io.Feed}
+	p := StatsdParams{input, output, logger.SLogger("statsd")}
+	p.log.Info("statsd input started...")
+	p.gather()
 }
 
 func init() {
