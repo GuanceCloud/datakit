@@ -1209,6 +1209,8 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200630031600-765dfaac402c
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200630031600-765dfaac402c/go.mod h1:a85TCM12w0OdFyPzVb8ZYwLrhT9UNE+V2QiAaWA/nf0=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200630070400-b23b83b0b65d h1:2yuwqauM5jORmRLrFmRCg1UtwO3bPmFkp8ruEG1DF+s=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200630070400-b23b83b0b65d/go.mod h1:a85TCM12w0OdFyPzVb8ZYwLrhT9UNE+V2QiAaWA/nf0=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200707075213-8f938cdacc60 h1:28izDOD7HfevAwLNlXMajhlM81LXZ92BDqAViVf5DUQ=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200707075213-8f938cdacc60/go.mod h1:a85TCM12w0OdFyPzVb8ZYwLrhT9UNE+V2QiAaWA/nf0=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200419044746-6486cbd8ef30/go.mod h1:AxpWMT3J4jwRv2RiIKJd/4+5B4TiVkdFlGSawSnC3q8=
 gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54 h1:iIEZQbYNRwRyNvLfxY4+QyDVSPf1ZHdv3zGNsISbdKY=
 gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54/go.mod h1:ry4kzbcxpuif0tNtwZS3wixv5PrbsizlYD0+XhhJR30=
@@ -1499,6 +1501,7 @@ google.golang.org/appengine v1.4.0 h1:/wp5JvzpHIxhs/dumFmF7BXTf3Z+dd4uXta4kVyO50
 google.golang.org/appengine v1.4.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
 google.golang.org/appengine v1.5.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
 google.golang.org/appengine v1.6.1/go.mod h1:i06prIuMbXzDqacNJfV5OdTW448YApPu5ww/cMBSeb0=
+google.golang.org/appengine v1.6.5 h1:tycE03LOZYQNhDpS27tcQdAzLCVMaj7QT2SXxebnpCM=
 google.golang.org/appengine v1.6.5/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCIDZVag1xfc=
 google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8/go.mod h1:JiN7NxoALGmiZfu7CAH4rXhgtRTLTxftemlI0sWmxmc=
 google.golang.org/genproto v0.0.0-20181004005441-af9cb2a35e7f/go.mod h1:JiN7NxoALGmiZfu7CAH4rXhgtRTLTxftemlI0sWmxmc=
