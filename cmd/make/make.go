@@ -159,7 +159,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"CGO_ENABLED=0",
 	}
 
-	l.Debugf("building % 13s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
+	l.Debugf("building %s, envs: %v", fmt.Sprintf("%s-%s/%s", goos, goarch, bin), env)
 	msg, err := runEnv(args, env)
 	if err != nil {
 		l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
@@ -511,7 +511,7 @@ func buildExternals(outdir, goos, goarch string) {
 	curOSArch := runtime.GOOS + "/" + runtime.GOARCH
 
 	for _, ex := range externals {
-		l.Debugf("building %s/%s/%s to %s...", goos, goarch, ex.name, outdir)
+		l.Debugf("building %s/%s/%s", goos, goarch, ex.name)
 
 		if _, ok := ex.osarchs[curOSArch]; !ok {
 			l.Debugf("skip build %s under %s", ex.name, curOSArch)
@@ -573,7 +573,7 @@ func buildExternals(outdir, goos, goarch string) {
 
 func buildInstaller(outdir, goos, goarch string) {
 
-	l.Debugf("build %s/%s installer to %s...", goos, goarch, outdir)
+	l.Debugf("building %s/%s installer...", goos, goarch)
 
 	gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, git.Version)
 
