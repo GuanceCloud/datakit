@@ -1,6 +1,13 @@
 package aliyunactiontrail
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+import (
+	"context"
+
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"go.uber.org/zap"
+	"golang.org/x/time/rate"
+)
 
 const (
 	configSample = `
@@ -23,12 +30,23 @@ const (
 )
 
 type (
-	ActiontrailInstance struct {
+	AliyunActiontrail struct {
 		Region     string
 		AccessKey  string
 		AccessID   string
 		MetricName string
 		From       string
 		Interval   internal.Duration //至少10分钟
+
+		logger *zap.SugaredLogger
+
+		client *actiontrail.Client
+
+		metricName string
+
+		rateLimiter *rate.Limiter
+
+		ctx       context.Context
+		cancelFun context.CancelFunc
 	}
 )
