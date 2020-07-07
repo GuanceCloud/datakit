@@ -86,7 +86,7 @@ func (o *OracleMonitor) Run() {
 
 	l.Info("starting external oraclemonitor...")
 
-	bin := filepath.Join(datakit.InstallDir, "external", "oraclemonitor")
+	bin := filepath.Join(datakit.InstallDir, "externals", "oraclemonitor")
 	if runtime.GOOS == "windows" {
 		bin += ".exe"
 	}
@@ -108,7 +108,7 @@ func (o *OracleMonitor) Run() {
 		"-cfg", b64cfg,
 		"-rpc-server", "unix://" + datakit.GRPCDomainSock,
 		"-desc", o.Desc,
-		"-log", filepath.Join(datakit.InstallDir, "external", "oraclemonitor.log"),
+		"-log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"),
 		"-log-level", config.Cfg.MainCfg.LogLevel,
 	}
 
