@@ -24,9 +24,9 @@ type ClientStat struct {
 	Arch   string
 
 	NumGoroutines int
-	HeapAlloc     uint64
-	HeapSys       uint64
-	HeapObjects   uint64
+	HeapAlloc     int64
+	HeapSys       int64
+	HeapObjects   int64
 }
 
 func (s *ClientStat) Update() {
@@ -35,10 +35,10 @@ func (s *ClientStat) Update() {
 	var memStatus runtime.MemStats
 	runtime.ReadMemStats(&memStatus)
 
-	s.NumGoroutines = runtime.NumGoroutine()
-	s.HeapAlloc = memStatus.HeapAlloc
-	s.HeapSys = memStatus.HeapSys
-	s.HeapObjects = memStatus.HeapObjects
+	s.NumGoroutines = int(runtime.NumGoroutine())
+	s.HeapAlloc = int64(memStatus.HeapAlloc)
+	s.HeapSys = int64(memStatus.HeapSys)
+	s.HeapObjects = int64(memStatus.HeapObjects)
 }
 
 func (s *ClientStat) ToMetric() *influxdb.Point {
