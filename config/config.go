@@ -159,7 +159,7 @@ func LoadCfg() error {
 		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
 	l = logger.SLogger("config")
 
-	l.Debugf("set log to %s", Cfg.MainCfg.Log)
+	//l.Debugf("set log to %s", Cfg.MainCfg.Log)
 
 	datakit.Init()
 
@@ -354,17 +354,11 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 
 	var data []byte
 
-	// migrate old configures into new place
-	oldPath := filepath.Join(datakit.ConfdDir, name, fmt.Sprintf("%s.conf", name))
-	newPath := filepath.Join(datakit.ConfdDir, dummyInput.Catalog(), fmt.Sprintf("%s.conf", name))
+	path := filepath.Join(datakit.ConfdDir, dummyInput.Catalog(), fmt.Sprintf("%s.conf", name))
 
-	path := newPath
 	_, err := os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
-		if _, err = os.Stat(oldPath); err == nil {
-			l.Infof("migrate %s to %s", oldPath, path)
-			path = oldPath
-		}
+		return nil
 	}
 
 	data, err = ioutil.ReadFile(path)
@@ -380,13 +374,13 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 	}
 
 	if len(tbl.Fields) == 0 {
-		l.Debugf("no conf available on %s", name)
+		//l.Debugf("no conf available on %s", name)
 		return nil
 	}
 
 	var maxInterval time.Duration
 
-	for name, val := range tbl.Fields {
+	for fieldName, val := range tbl.Fields {
 
 		if subTables, ok := val.([]*ast.Table); ok {
 
@@ -411,7 +405,7 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 				l.Errorf("%s", err)
 				return err
 			}
-			switch name {
+			switch fieldName {
 			case "inputs":
 				for pluginName, pluginVal := range subTable.Fields {
 					switch pluginSubTable := pluginVal.(type) {
@@ -450,7 +444,7 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 				}
 			default:
 				err = fmt.Errorf("Unsupported config format: %s",
-					name)
+					fieldName)
 				l.Errorf("%s", err)
 				return err
 			}
@@ -494,13 +488,13 @@ func DumpInputsOutputs() {
 	names := []string{}
 
 	for name := range Cfg.Inputs {
-		l.Debugf("input %s enabled", name)
+		//l.Debugf("input %s enabled", name)
 		names = append(names, name)
 	}
 
 	for k, i := range SupportsTelegrafMetricNames {
 		if i.enabled {
-			l.Debugf("telegraf input %s enabled", k)
+			//l.Debugf("telegraf input %s enabled", k)
 			names = append(names, k)
 		}
 	}
@@ -558,14 +552,20 @@ func initPluginCfgs() {
 		oldCfgPath := filepath.Join(datakit.ConfdDir, name, name+".conf")
 		cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf")
 
-		l.Infof("check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
+		//l.Infof("check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
 
 		if _, err := os.Stat(oldCfgPath); err == nil {
 			if oldCfgPath == cfgpath {
 				continue // do nothing
 			}
 
-			l.Infof("migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
+			if runtime.GOOS == "windows" {
+				if strings.ToLower(oldCfgPath) == strings.ToLower(cfgpath) {
+					continue
+				}
+			}
+
+			l.Debugf("migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
 
 			if err := os.MkdirAll(filepath.Dir(cfgpath), os.ModePerm); err != nil {
 				l.Fatalf("create dir %s failed: %s", filepath.Dir(cfgpath), err.Error())
@@ -605,12 +605,12 @@ func initPluginCfgs() {
 		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf")
 		oldCfgPath := filepath.Join(datakit.ConfdDir, name, name+".conf")
 
-		l.Debugf("check telegraf input conf %s...", name)
+		//l.Debugf("check telegraf input conf %s...", name)
 
 		if _, err := os.Stat(oldCfgPath); err == nil {
 
 			if oldCfgPath == cfgpath {
-				l.Debugf("%s exists, skip", oldCfgPath)
+				//l.Debugf("%s exists, skip", oldCfgPath)
 				continue // do nothing
 			}
 
@@ -677,7 +677,6 @@ func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) (ti
 		return dur, err
 	}
 
-	l.Debugf("configured input: %s", name)
 	c.Inputs[name] = append(c.Inputs[name], input)
 	return dur, nil
 }
