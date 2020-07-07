@@ -10,9 +10,10 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
+	"go.uber.org/zap"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -20,7 +21,7 @@ type CostBill struct {
 	interval        time.Duration
 	name            string
 	runningInstance *runningInstance
-	logger          *models.Logger
+	logger          *zap.SugaredLogger
 }
 
 func NewCostBill(cfg *CostCfg, ri *runningInstance) *CostBill {
@@ -28,9 +29,7 @@ func NewCostBill(cfg *CostCfg, ri *runningInstance) *CostBill {
 		name:            "aliyun_cost_bill",
 		interval:        cfg.BiilInterval.Duration,
 		runningInstance: ri,
-	}
-	c.logger = &models.Logger{
-		Name: `aliyuncost:bill`,
+		logger:          logger.SLogger(`aliyuncost:bill`),
 	}
 	return c
 }
