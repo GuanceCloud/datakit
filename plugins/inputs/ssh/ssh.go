@@ -28,6 +28,7 @@ type Ssh struct {
 	SftpCheck      bool
 	PrivateKeyFile string
 	MetricsName    string
+	Tags           map[string]string
 }
 
 type SshInput struct {
@@ -63,6 +64,10 @@ const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ss
 #	sftpCheck      = false
 #	privateKeyFile = ""
 #	metricsName    ="ssh"
+#	[inputs.ssh.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 
 #[[inputs.ssh]]
 #	interval = 60
@@ -73,6 +78,10 @@ const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ss
 #	sftpCheck      = false
 #	privateKeyFile = ""
 #	metricsName    ="ssh"
+#	[inputs.ssh.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 `
 
 var (
@@ -178,6 +187,9 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 	fields := make(map[string]interface{})
 
 	tags["host"] = p.input.Host
+	for tag, tagV := range p.input.Tags {
+		tags[tag] = tagV
+	}
 	//ssh检查
 	var sshRst bool
 	sshClient, err := ssh.Dial("tcp", p.input.Host, clientCfg)
@@ -217,7 +229,7 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 	if err != nil {
 		return err
 	}
-	p.log.Info(pt.String())
+	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
 	return err
 }
 
