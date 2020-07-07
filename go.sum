@@ -1211,6 +1211,8 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200630070400-b23b83b0b65d
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200630070400-b23b83b0b65d/go.mod h1:a85TCM12w0OdFyPzVb8ZYwLrhT9UNE+V2QiAaWA/nf0=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200707075213-8f938cdacc60 h1:28izDOD7HfevAwLNlXMajhlM81LXZ92BDqAViVf5DUQ=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200707075213-8f938cdacc60/go.mod h1:a85TCM12w0OdFyPzVb8ZYwLrhT9UNE+V2QiAaWA/nf0=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200707103424-40998e0da843 h1:/ctVF1AoLL0fObVPsrjavtSTijHdlNlGZ65+BMkfPQE=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200707103424-40998e0da843/go.mod h1:Z9QmTIGFFSmcNlUuJaFjTQDWdgKdtwDqGaGTLl9jrWc=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200419044746-6486cbd8ef30/go.mod h1:AxpWMT3J4jwRv2RiIKJd/4+5B4TiVkdFlGSawSnC3q8=
 gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54 h1:iIEZQbYNRwRyNvLfxY4+QyDVSPf1ZHdv3zGNsISbdKY=
 gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54/go.mod h1:ry4kzbcxpuif0tNtwZS3wixv5PrbsizlYD0+XhhJR30=
