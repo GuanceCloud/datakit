@@ -58,14 +58,14 @@ func (x *csv) Run() {
 
 	l.Info("starting external csvkit...")
 
-	csvConf := filepath.Join(config.InstallDir, "external", "csv", "config.yaml")
+	csvConf := filepath.Join(config.InstallDir, "externals", "csv", "config.yaml")
 	b, err = yaml.Marshal(x)
 	if err := ioutil.WriteFile(csvConf, b, os.ModePerm); err != nil {
 		l.Errorf("create csv config %s failed: %s", csvConf, err.Error())
 	}
 
 	args := []string{
-		filepath.Join(config.InstallDir, "external", "csv", "main.py"),
+		filepath.Join(config.InstallDir, "externals", "csv", "main.py"),
 		"-y", csvConf,
 	}
 	cmd := exec.Command("python", args...)
