@@ -6,25 +6,12 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-const (
-	sampleConfig = `
-interval = '10s'
-`
-)
-
 type SelfInfo struct {
-	Interval internal.Duration
-
 	stat *ClientStat
-}
-
-func (s *SelfInfo) Init() error {
-	return nil
 }
 
 func (_ *SelfInfo) Catalog() string {
@@ -41,11 +28,7 @@ func (_ *SelfInfo) SampleConfig() string {
 
 func (s *SelfInfo) Run() {
 
-	if s.Interval.Duration == 0 {
-		s.Interval.Duration = time.Second * 10
-	}
-
-	tick := time.NewTicker(s.Interval.Duration)
+	tick := time.NewTicker(time.Second * 10)
 	defer tick.Stop()
 
 	for {
@@ -73,6 +56,4 @@ func init() {
 			},
 		}
 	})
-
-	inputs.InternalInputsData["self"] = []byte(sampleConfig)
 }
