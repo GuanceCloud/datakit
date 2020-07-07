@@ -98,7 +98,7 @@ func (h *HarborMonitor) command() {
 
 	pt, _ := io.MakeMetric(h.MetricName, tags, fields, time.Now())
 
-	_ = io.Feed([]byte(pt.String()), io.Metric)
+	_ = io.Feed([]byte(pt), io.Metric)
 }
 
 func (r *HarborMonitor) getVolumes(baseUrl string) string {
