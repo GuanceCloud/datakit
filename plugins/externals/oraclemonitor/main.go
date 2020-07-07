@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/base64"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	_ "github.com/godror/godror"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
@@ -29,7 +29,7 @@ var (
 	flagDesc   = flag.String("desc", "", "description of the process, for debugging")
 
 	flagRPCServer = flag.String("rpc-server", "unix://"+datakit.GRPCDomainSock, "gRPC server")
-	flagLog       = flag.String("log", filepath.Join(datakit.InstallDir, "external", "oraclemonitor.log"), "log file")
+	flagLog       = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log file")
 	flagLogLevel  = flag.String("log-level", "info", "log file")
 
 	l      *zap.SugaredLogger
@@ -130,15 +130,11 @@ func (m *monitor) run() {
 }
 
 func handleResponse(m *monitor, k string, response []map[string]interface{}) error {
-	lines := []string{}
+	lines := [][]byte{}
 
 	for _, item := range response {
 
 		tags := map[string]string{}
-
-		for k, v := range m.Tags {
-			tags[k] = v
-		}
 
 		tags["oracle_server"] = m.Server
 		tags["oracle_port"] = m.Port
@@ -155,14 +151,20 @@ func handleResponse(m *monitor, k string, response []map[string]interface{}) err
 			}
 		}
 
-		pt, err := influxdb.NewPoint(m.Metric, tags, item, time.Now())
+		// add user-added tags
+		// XXX: this may overwrite tags within @tags
+		for k, v := range m.Tags {
+			tags[k] = v
+		}
+
+		ptline, err := io.MakeMetric(m.Metric, tags, item, time.Now())
 		if err != nil {
 			l.Errorf("new point failed: %s", err.Error())
 			return err
 		}
 
-		lines = append(lines, pt.String())
-		l.Debugf("add point %+#v", string(lines[len(lines)-1]))
+		lines = append(lines, ptline)
+		l.Debugf("add point %+#v", string(ptline))
 	}
 
 	if len(lines) == 0 {
@@ -173,7 +175,7 @@ func handleResponse(m *monitor, k string, response []map[string]interface{}) err
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	r, err := rpcCli.Send(ctx, &io.Request{
-		Lines:     []byte(strings.Join(lines, "\n")),
+		Lines:     bytes.Join(lines, []byte("\n")),
 		Precision: "ns",
 		Name:      "oraclemonitor",
 	})
