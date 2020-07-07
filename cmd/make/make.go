@@ -383,7 +383,7 @@ func main() {
 
 	logger.SetGlobalRootLogger("",
 		logger.DEBUG,
-		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER|logger.OPT_COLOR)
 
 	l = logger.SLogger("make")
 
@@ -514,13 +514,13 @@ func buildExternals(outdir, goos, goarch string) {
 		l.Debugf("building %s-%s/%s", goos, goarch, ex.name)
 
 		if _, ok := ex.osarchs[curOSArch]; !ok {
-			l.Debugf("skip build %s under %s", ex.name, curOSArch)
+			l.Warnf("skip build %s under %s", ex.name, curOSArch)
 			return
 		}
 
 		osarch := goos + "/" + goarch
 		if _, ok := ex.osarchs[osarch]; !ok {
-			l.Debugf("skip build %s under %s", ex.name, osarch)
+			l.Warnf("skip build %s under %s", ex.name, osarch)
 			return
 		}
 
