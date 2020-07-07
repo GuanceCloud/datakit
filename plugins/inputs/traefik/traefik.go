@@ -35,6 +35,7 @@ type Traefik struct {
 	Active      bool
 	Url         string
 	MetricsName string
+	Tags        map[string]string
 }
 
 type TraefikInput struct {
@@ -66,12 +67,20 @@ var (
 #	active      = true
 #	url         = "http://127.0.0.1:8080/health"
 #	metricsName = "traefik"
+#	[inputs.traefik.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 
 #[[inputs.traefik]]
 #	interval    = 60
 #	active      = true
 #	url         = "http://127.0.0.1:8080/health"
 #	metricsName = "traefik"
+#	[inputs.traefik.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 `
 )
 
@@ -128,6 +137,10 @@ func (p *TraefikParam) getMetrics() (err error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 	tags["url"] = p.input.Url
+	for tag, tagV := range p.input.Tags {
+		tags[tag] = tagV
+	}
+
 	resp, err := http.Get(p.input.Url)
 	if err != nil || resp.StatusCode != 200 {
 		fields["can_connect"] = false
