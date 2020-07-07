@@ -4,39 +4,21 @@ package wmi
 
 import (
 	"context"
-	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"go.uber.org/zap"
 )
 
-type (
-	runningInstance struct {
-		cfg   *Instance
-		agent *WmiAgent
-
-		logger *models.Logger
-	}
-
-	WmiAgent struct {
-		Instances []*Instance `toml:"instances"`
-
-		runningInstances []*runningInstance
-
-		ctx       context.Context
-		cancelFun context.CancelFunc
-
-		logger *models.Logger
-
-		wg sync.WaitGroup
-	}
+var (
+	moduleLogger *zap.SugaredLogger
 )
 
-func (_ *WmiAgent) SampleConfig() string {
+func (_ *Instance) SampleConfig() string {
 	return sampleConfig
 }
 
@@ -44,49 +26,31 @@ func (_ *WmiAgent) SampleConfig() string {
 // 	return `Collect metrics from Windows WMI.`
 // }
 
-func (_ *WmiAgent) Catalog() string {
+func (_ *Instance) Catalog() string {
 	return `wmi`
 }
 
-func (ag *WmiAgent) Run() {
+func (ag *Instance) Run() {
 
-	if len(ag.Instances) == 0 {
-		ag.logger.Warnf("no configuration found")
-		return
-	}
+	moduleLogger = logger.SLogger(inputName)
 
 	go func() {
 		<-datakit.Exit.Wait()
 		ag.cancelFun()
 	}()
 
-	for _, inst := range ag.Instances {
-		if inst.MetricName == "" {
-			inst.MetricName = "WMI"
-		}
-
-		rc := &runningInstance{
-			agent:  ag,
-			cfg:    inst,
-			logger: ag.logger,
-		}
-
-		if rc.cfg.Interval.Duration == 0 {
-			rc.cfg.Interval.Duration = time.Minute * 5
-		}
-		ag.runningInstances = append(ag.runningInstances, rc)
-
-		ag.wg.Add(1)
-		go func() {
-			defer ag.wg.Done()
-			rc.run(ag.ctx)
-		}()
+	if ag.MetricName == "" {
+		ag.MetricName = "WMI"
 	}
 
-	ag.wg.Wait()
+	if ag.Interval.Duration == 0 {
+		ag.Interval.Duration = time.Minute * 5
+	}
+
+	ag.run(ag.ctx)
 }
 
-func (r *runningInstance) run(ctx context.Context) error {
+func (r *Instance) run(ctx context.Context) error {
 
 	for {
 
@@ -96,7 +60,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 		default:
 		}
 
-		for _, query := range r.cfg.Queries {
+		for _, query := range r.Queries {
 
 			select {
 			case <-ctx.Done():
@@ -114,7 +78,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 
 			sql, err := query.ToSql()
 			if err != nil {
-				r.logger.Warnf("%s", err)
+				moduleLogger.Warnf("%s", err)
 				continue
 			}
 
@@ -126,13 +90,13 @@ func (r *runningInstance) run(ctx context.Context) error {
 
 			fieldsArr, err := DefaultClient.QueryEx(sql, props)
 			if err != nil {
-				r.logger.Errorf("query failed, %s", err)
+				moduleLogger.Errorf("query failed, %s", err)
 				continue
 
 			}
 
 			for _, fields := range fieldsArr {
-				io.FeedEx(io.Metric, r.cfg.MetricName, nil, fields)
+				io.FeedEx(io.Metric, r.MetricName, nil, fields)
 			}
 
 			query.lastTime = time.Now()
@@ -142,14 +106,9 @@ func (r *runningInstance) run(ctx context.Context) error {
 	}
 }
 
-func NewAgent() *WmiAgent {
-	ac := &WmiAgent{
-		logger: &models.Logger{
-			Name: inputName,
-		},
-	}
+func NewAgent() *Instance {
+	ac := &Instance{}
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-
 	return ac
 }
 
