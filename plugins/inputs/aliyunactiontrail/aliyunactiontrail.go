@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
@@ -16,8 +17,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-const (
-	inputName = `aliyunactiontrail`
+var (
+	inputName    = `aliyunactiontrail`
+	moduleLogger *zap.SugaredLogger
 )
 
 func (_ *AliyunActiontrail) Catalog() string {
@@ -30,7 +32,7 @@ func (_ *AliyunActiontrail) SampleConfig() string {
 
 func (a *AliyunActiontrail) Run() {
 
-	a.logger = logger.SLogger(inputName)
+	moduleLogger = logger.SLogger(inputName)
 
 	go func() {
 		<-datakit.Exit.Wait()
@@ -64,7 +66,7 @@ func (a *AliyunActiontrail) getHistory() error {
 
 	response, err := a.lookupEvents(request, a.client.LookupEvents)
 	if err != nil {
-		a.logger.Errorf("(history)LookupEvents between %s - %s failed", request.StartTime, request.EndTime)
+		moduleLogger.Errorf("(history)LookupEvents between %s - %s failed", request.StartTime, request.EndTime)
 		return err
 	}
 
@@ -95,11 +97,11 @@ func (a *AliyunActiontrail) lookupEvents(request *actiontrail.LookupEventsReques
 		}
 
 		if err != nil {
-			a.logger.Warnf("%s", err)
+			moduleLogger.Warnf("%s", err)
 			time.Sleep(tempDelay)
 		} else {
 			if i != 0 {
-				a.logger.Debugf("retry successed, %d", i)
+				moduleLogger.Debugf("retry successed, %d", i)
 			}
 			break
 		}
@@ -112,13 +114,13 @@ func (r *AliyunActiontrail) run() error {
 
 	defer func() {
 		if e := recover(); e != nil {
-			r.logger.Errorf("panic error, %v", e)
+			moduleLogger.Errorf("panic error, %v", e)
 		}
 	}()
 
 	cli, err := actiontrail.NewClientWithAccessKey(r.Region, r.AccessID, r.AccessKey)
 	if err != nil {
-		r.logger.Errorf("create client failed, %s", err)
+		moduleLogger.Errorf("create client failed, %s", err)
 		return err
 	}
 	r.client = cli
@@ -142,7 +144,7 @@ func (r *AliyunActiontrail) run() error {
 		response, err := r.lookupEvents(request, r.client.LookupEvents)
 
 		if err != nil {
-			r.logger.Errorf("LookupEvents between %s - %s failed", request.StartTime, request.EndTime)
+			moduleLogger.Errorf("LookupEvents between %s - %s failed", request.StartTime, request.EndTime)
 		}
 
 		r.handleResponse(response)
@@ -158,7 +160,7 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 		return nil
 	}
 
-	r.logger.Debugf("%s-%s, count=%d", response.StartTime, response.EndTime, len(response.Events))
+	moduleLogger.Debugf("%s-%s, count=%d", response.StartTime, response.EndTime, len(response.Events))
 
 	for _, ev := range response.Events {
 
@@ -213,7 +215,7 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 		eventTime := ev["eventTime"].(string) //utc
 		evtm, err := time.Parse(`2006-01-02T15:04:05Z`, eventTime)
 		if err != nil {
-			r.logger.Warnf("%s", err)
+			moduleLogger.Warnf("%s", err)
 		}
 
 		io.FeedEx(io.Metric, r.metricName, tags, fields, evtm)

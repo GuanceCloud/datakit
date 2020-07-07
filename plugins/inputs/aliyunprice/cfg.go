@@ -6,6 +6,7 @@ const (
 	defaultInterval = 5 * time.Minute
 
 	globalConfig = `
+#[inputs.aliyunprice]
 #access_key_id = ''
 #access_key_secret = ''
 #region_id = ''
