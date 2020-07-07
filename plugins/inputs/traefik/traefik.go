@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"sync"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"go.uber.org/zap"
@@ -16,7 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type IoFeed  func (data []byte, category string) error
+type IoFeed func(data []byte, category string) error
 
 type TraefikServStats struct {
 	Pid      int    `json:"pid"`
@@ -30,20 +29,17 @@ type TraefikServStats struct {
 	AvergRepSize     int64          `json:"average_response_size"`
 	TotalStatCodeCnt map[string]int `json:"total_status_code_count"`
 }
-type TraefikTarget struct {
-	Interval int
-	Active   bool
-	Url      string
-}
 
 type Traefik struct {
-	MetricName string `toml:"metric_name"`
-	Targets    []TraefikTarget
+	Interval    int
+	Active      bool
+	Url         string
+	MetricsName string
+	Tags        map[string]string
 }
 
 type TraefikInput struct {
-	TraefikTarget
-	MetricName string
+	Traefik
 }
 
 type TraefikOutput struct {
@@ -53,28 +49,38 @@ type TraefikOutput struct {
 type TraefikParam struct {
 	input  TraefikInput
 	output TraefikOutput
+	log    *zap.SugaredLogger
 }
 
 var (
-	defaultMetricName = "traefik"
-	defaultInterval   = 60
-	tlog *zap.SugaredLogger
-	traefikConfigSample = `### metric_name: the name of metric, default is "traefik"
-### You need to configure an [[targets]] for each traefik to be monitored.
+	defaultMetricName   = "traefik"
+	defaultInterval     = 60
+	traefikConfigSample = `
+### You need to configure an [[inputs.traefik]] for each traefik to be monitored.
 ### interval: monitor interval second, unit is second. The default value is 60.
 ### active: whether to monitor traefik.
 ### url: traefik service WebUI url.
+### metricsName: the name of metric, default is "traefik"
 
-#metric_name="traefik"
-#[[targets]]
-#	interval = 60
-#	active   = true
-#	url     = "http://127.0.0.1:8080/health"
+#[[inputs.traefik]]
+#	interval    = 60
+#	active      = true
+#	url         = "http://127.0.0.1:8080/health"
+#	metricsName = "traefik"
+#	[inputs.traefik.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 
-#[[targets]]
-#	interval = 60
-#	active   = true
-#	url     = "http://127.0.0.1:8080/health"
+#[[inputs.traefik]]
+#	interval    = 60
+#	active      = true
+#	url         = "http://127.0.0.1:8080/health"
+#	metricsName = "traefik"
+#	[inputs.traefik.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 `
 )
 
@@ -87,51 +93,38 @@ func (t *Traefik) Catalog() string {
 }
 
 func (t *Traefik) Run() {
-	tlog = logger.SLogger("traefik")
-	isActive := false
-
-	wg := sync.WaitGroup{}
-
-	metricName := defaultMetricName
-	if t.MetricName != "" {
-		metricName = t.MetricName
+	if !t.Active || t.Url == "" {
+		return
 	}
 
-	for _, target := range t.Targets {
-		if target.Active && target.Url != "" {
-			if !isActive {
-				tlog.Info("traefik input started...")
-				isActive = true
-			}
-
-			if target.Interval == 0 {
-				target.Interval = defaultInterval
-			}
-
-			input := TraefikInput{target, metricName}
-			output := TraefikOutput{io.Feed}
-
-			p := &TraefikParam{input, output}
-			wg.Add(1)
-			go p.gather(&wg)
-		}
+	if t.MetricsName == "" {
+		t.MetricsName = defaultMetricName
 	}
-	wg.Wait()
+
+	if t.Interval == 0 {
+		t.Interval = defaultInterval
+	}
+
+	input := TraefikInput{*t}
+	output := TraefikOutput{io.Feed}
+
+	p := &TraefikParam{input, output, logger.SLogger("traefik")}
+	p.log.Infof("traefik input started...")
+	p.gather()
 }
 
-func (p *TraefikParam) gather(wg *sync.WaitGroup) {
-	tick := time.NewTicker(time.Duration(p.input.Interval)*time.Second)
+func (p *TraefikParam) gather() {
+	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
 			err := p.getMetrics()
 			if err != nil {
-				tlog.Errorf("getMetrics err: %s", err.Error())
+				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
 		case <-datakit.Exit.Wait():
-			tlog.Info("input traefik exit")
-			wg.Done()
+			p.log.Info("input traefik exit")
 			return
 		}
 	}
@@ -144,10 +137,14 @@ func (p *TraefikParam) getMetrics() (err error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 	tags["url"] = p.input.Url
+	for tag, tagV := range p.input.Tags {
+		tags[tag] = tagV
+	}
+
 	resp, err := http.Get(p.input.Url)
 	if err != nil || resp.StatusCode != 200 {
 		fields["can_connect"] = false
-		pt, _ := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+		pt, _ := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
 		p.output.IoFeed([]byte(pt.String()), io.Metric)
 		return
 	}
@@ -172,7 +169,7 @@ func (p *TraefikParam) getMetrics() (err error) {
 		fields["http_"+k+"_count"] = v
 	}
 
-	pt, err := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+	pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return
 	}
