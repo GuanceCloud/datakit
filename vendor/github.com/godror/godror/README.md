@@ -38,7 +38,25 @@ TL;DR; the short form is `username@[//]host[:port][/service_name][:server][/inst
 `(DESCRIPTION= (ADDRESS=(PROTOCOL=tcp)(HOST=host)(PORT=port)) (CONNECT_DATA= (SERVICE_NAME=service_name) (SERVER=server) (INSTANCE_NAME=instance_name)))`.
 
 To use heterogeneous pools, set `heterogeneousPool=1` and provide the username/password through
-`godror.ContextWithUserPassw`.
+`godror.ContextWithUserPassw` or `godror.ContextWithParams`.
+
+### Warnings
+#### ContextWithParams
+**WARNING** to provide connection params through `context.Context` (with `godror.ContextWithParams`),
+you should set `DB.SetMaxIdleConns(0)`, to force the Go `*sql.DB` connection pool to acquire a
+new connection, using the params in the Context!
+
+Without this, you may get a previously acquired and now idle connection!
+
+#### Oracle Session Pooling
+**WARNING WARNING** also, you *MUST* disable Go connection pooling if you're using Oracle Session pooling
+(`standaloneConnection=0`), that's why the default is `standaloneConnection=1`.
+
+Either use `standaloneConnection=1` connection parameter, or disable Go connection pooling with
+
+    db.SetMaxIdleConns(0)
+	db.SetMaxOpenConns(0)
+	db.SetConnMaxLifetime(0)
 
 ## Rationale
 
@@ -48,8 +66,6 @@ with OUT parameters, or sending/retrieving PL/SQL array types - just give a
 `godror.PlSQLArrays` Option within the parameters of `Exec`!
 
 The array size of the returned PL/SQL arrays can be set with `godror.ArraySize(2000)` (default value is 1024).
-
-Connections are pooled by default (except `AS SYSOPER` or `AS SYSDBA`).
 
 ## Speed
 
@@ -167,7 +183,7 @@ A workaround is converting to string:
 time.Now().Format("2-Jan-06 3:04:05.000000 PM")
 ```
 
-See #121.
+See [#121 under the old project](https://github.com/go-goracle/goracle/issues/121).
 
 # Install
 
