@@ -1,16 +1,18 @@
 package statsd
 
 import (
-	"context"
-	"io"
-	"log"
 	"regexp"
+	"sync"
 
-	"github.com/influxdata/telegraf"
-	sdlog "github.com/siddontang/go-log/log"
 
+	"go.uber.org/zap"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+type IoFeed func(data []byte, category string) error
 
 type Target struct {
 	Interval int
@@ -30,7 +32,7 @@ type StatsdInput struct {
 }
 
 type StatsdOutput struct {
-	acc telegraf.Accumulator
+	IoFeed
 }
 
 type StatsdParams struct {
@@ -38,11 +40,8 @@ type StatsdParams struct {
 	output StatsdOutput
 }
 
-type sdLogWriter struct {
-	io.Writer
-}
-
-const statsdConfigSample = `### metric_name: the name of metric, default is "statsd".
+var (
+	statsdConfigSample = `### metric_name: the name of metric, default is "statsd".
 ### You need to configure an [[targets]] for each statsd service to be monitored.
 ### interval: monitor interval second, unit is second. The default value is 60.
 ### active: whether to monitor statsd.
@@ -59,18 +58,11 @@ const statsdConfigSample = `### metric_name: the name of metric, default is "sta
 #	active   = true
 #	host     = "127.0.0.1:8126"
 `
-
-var (
-	ctx           context.Context
-	cfun          context.CancelFunc
-	activeTargets = 0
-	stopChan      chan bool
-)
-
-const (
 	defaultMetricName = "statsd"
 	defaultInterval   = 60
+	Log *zap.SugaredLogger
 )
+
 
 func (t *StatsD) Catalog() string {
 	return "statsd"
@@ -80,28 +72,25 @@ func (t *StatsD) SampleConfig() string {
 	return statsdConfigSample
 }
 
-func (t *StatsD) Description() string {
-	return "Monitor StatsD Service"
-}
-
-func (t *StatsD) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (t *StatsD) Start(acc telegraf.Accumulator) error {
-	setupLogger()
+func (t *StatsD) Run() {
+	isActive := false
+	wg := sync.WaitGroup{}
+	Log = logger.SLogger("statsd")
 	reg, _ := regexp.Compile(`:\d{1,5}$`)
-	log.Printf("I! [statsd] start")
-	ctx, cfun = context.WithCancel(context.Background())
+
 
 	if t.MetricName == "" {
 		t.MetricName = defaultMetricName
 	}
 
-	activeCnt := 0
 	for _, target := range t.Targets {
 		if target.Active == false || target.Host == "" {
 			continue
+		}
+
+		if !isActive {
+			Log.Info("statsd input started...")
+			isActive = true
 		}
 
 		input := StatsdInput{
@@ -118,31 +107,13 @@ func (t *StatsD) Start(acc telegraf.Accumulator) error {
 			target.Host += ":8126"
 		}
 
-		output := StatsdOutput{acc}
+		output := StatsdOutput{io.Feed}
 
 		p := StatsdParams{input, output}
-		go p.gather(ctx)
-
-		activeCnt += 1
+		wg.Add(1)
+		go p.gather(&wg)
 	}
-
-	activeTargets = activeCnt
-	stopChan = make(chan bool, activeTargets)
-	return nil
-}
-
-func (t *StatsD) Stop() {
-	for i := 0; i < activeTargets; i++ {
-		stopChan <- true
-	}
-	cfun()
-}
-
-func setupLogger() {
-	loghandler, _ := sdlog.NewStreamHandler(&sdLogWriter{})
-	sdlogger := sdlog.New(loghandler, 0)
-	sdlog.SetLevel(sdlog.LevelDebug)
-	sdlog.SetDefaultLogger(sdlogger)
+	wg.Wait()
 }
 
 func init() {
