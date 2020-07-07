@@ -1,25 +1,27 @@
 package ucmon
 
 import (
+	"context"
 	"time"
 
+	"github.com/ucloud/ucloud-sdk-go/ucloud"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 )
 
 const (
 	sampleConfig = `
-#[[instances]]
+#[[inputs.ucloud_monitor]]
 #public_key = ''
 #private_key = ''
 #region = ''
 #zone = ''
 #project_id = ''
 
-#[[instances.resource]]
+#[[inputs.ucloud_monitor.resource]]
 #resource_type = ''
 #resource_id = ''
 
-#[[instances.resource.metrics]]
+#[[inputs.ucloud_monitor.resource.metrics]]
 #metric_name = ''
 # #interval = '5m' #default 5 minitues
 `
@@ -44,6 +46,13 @@ type (
 		Zone       string
 		ProjectID  string
 		Resource   []*ucResource
+
+		queryInfos []*queryListInfo
+
+		ucCli *ucloud.Client
+
+		ctx       context.Context
+		cancelFun context.CancelFunc
 	}
 
 	metricMeta struct {
