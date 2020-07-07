@@ -17,15 +17,15 @@ var (
 	rateLimit = 10
 )
 
-func (r *runningInstance) run(ctx context.Context) error {
+func (r *ucInstance) run(ctx context.Context) error {
 
 	uccfg := ucloud.NewConfig()
 	credential := auth.NewCredential()
-	credential.PrivateKey = r.cfg.PrivateKey
-	credential.PublicKey = r.cfg.PublicKey
+	credential.PrivateKey = r.PrivateKey
+	credential.PublicKey = r.PublicKey
 	r.ucCli = ucloud.NewClient(&uccfg, &credential)
 
-	r.queryInfos = r.cfg.genQueryInfo()
+	r.queryInfos = r.genQueryInfo()
 
 	select {
 	case <-ctx.Done():
@@ -55,7 +55,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 
 			rateLimiter.Wait(ctx)
 			if err := r.fetchMetric(ctx, req); err != nil {
-				r.logger.Errorf(`fail to get metric "%s.%s", %s`, req.resourceID, req.metricname, err)
+				moduleLogger.Errorf(`fail to get metric "%s.%s", %s`, req.resourceID, req.metricname, err)
 			}
 		}
 		useage := time.Now().Sub(t)
@@ -65,7 +65,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 	}
 }
 
-func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) error {
+func (r *ucInstance) fetchMetric(ctx context.Context, info *queryListInfo) error {
 
 	now := time.Now().Truncate(time.Minute).Add(-time.Minute)
 	if now.Sub(info.lastFetchTime) < info.intervalTime {
@@ -84,13 +84,13 @@ func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) 
 	}
 	end = now.Unix()
 
-	r.logger.Debugf("query param: resourceID=%s, metric=%s, range=%v-%v, interval=%s", info.resourceID, info.metricname, begin, end, info.intervalTime)
+	moduleLogger.Debugf("query param: resourceID=%s, metric=%s, range=%v-%v, interval=%s", info.resourceID, info.metricname, begin, end, info.intervalTime)
 
 	req := r.ucCli.NewGenericRequest()
 	req.SetAction("GetMetric")
-	req.SetRegion(r.cfg.Region)
-	req.SetZone(r.cfg.Zone)
-	req.SetProjectId(r.cfg.ProjectID)
+	req.SetRegion(r.Region)
+	req.SetZone(r.Zone)
+	req.SetProjectId(r.ProjectID)
 	reqPayload := map[string]interface{}{}
 	reqPayload["ResourceType"] = info.resourceType
 	reqPayload["ResourceId"] = info.resourceID
@@ -113,9 +113,9 @@ func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) 
 
 						metricName := "ucmon_" + info.metricname
 						tags := map[string]string{
-							"Region":       r.cfg.Region,
-							"Zone":         r.cfg.Zone,
-							"ProjectID":    r.cfg.ProjectID,
+							"Region":       r.Region,
+							"Zone":         r.Zone,
+							"ProjectID":    r.ProjectID,
 							"ResourceID":   info.resourceID,
 							"ResourceType": info.resourceType,
 						}
