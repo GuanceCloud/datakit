@@ -45,3 +45,4 @@ run.sh
 *.yaml
 *.csv
 *.pyc
+plugins/externals/csv/venv
