@@ -13,24 +13,21 @@ import (
 
 func TestConfig(t *testing.T) {
 
-	var cfg AliyunLog
-	cfg.Consumer = []*ConsumerInstance{
-		&ConsumerInstance{
-			Endpoint:        "1cn-hangzhou.log.aliyuncs.com",
-			AccessKeyID:     "xxx",
-			AccessKeySecret: "xxx",
-			Projects: []*LogProject{
-				&LogProject{
-					Name: "project1",
-					Stores: []*LogStoreCfg{
-						&LogStoreCfg{
-							MetricName:        "aliyunala_slb",
-							Tags:              []string{"aa"},
-							Fields:            []string{"int:dd,ee", "float:ff,gg"},
-							Name:              "store1",
-							ConsumerGroupName: "cgroup",
-							ConsumerName:      "cname",
-						},
+	cfg := &ConsumerInstance{
+		Endpoint:        "1cn-hangzhou.log.aliyuncs.com",
+		AccessKeyID:     "xxx",
+		AccessKeySecret: "xxx",
+		Projects: []*LogProject{
+			&LogProject{
+				Name: "project1",
+				Stores: []*LogStoreCfg{
+					&LogStoreCfg{
+						MetricName:        "aliyunala_slb",
+						Tags:              []string{"aa"},
+						Fields:            []string{"int:dd,ee", "float:ff,gg"},
+						Name:              "store1",
+						ConsumerGroupName: "cgroup",
+						ConsumerName:      "cname",
 					},
 				},
 			},
@@ -45,7 +42,7 @@ func TestConfig(t *testing.T) {
 }
 
 func TestLoadConfig(t *testing.T) {
-	var cfg AliyunLog
+	var cfg ConsumerInstance
 
 	var data []byte
 
