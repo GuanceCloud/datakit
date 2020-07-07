@@ -1,24 +1,27 @@
 package azurecms
 
 import (
+	"context"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"golang.org/x/time/rate"
 )
 
 const (
-	sampleConfig = `#[[instances]]
+	sampleConfig = `
+#[[inputs.azure_monitor]]
 # client_id = ''
 # client_secret = ''
 # tenant_id = ''
 # subscription_id = ''
 # #end_point = 'https://management.chinacloudapi.cn'
 
-#[[instances.resource]]
+#[[inputs.azure_monitor.resource]]
 #resource_id = ''
 
-#[[instances.resource.metrics]]
+#[[inputs.azure_monitor.resource.metrics]]
 #metric_name = 'Percentage CPU'
 # #interval = '1m'
 `
@@ -43,6 +46,16 @@ type (
 		EndPoint       string //https://management.chinacloudapi.cn
 
 		Resource []*azureResource
+
+		queryInfos []*queryListInfo
+
+		metricDefinitionClient insights.MetricDefinitionsClient
+		metricClient           insights.MetricsClient
+
+		ctx       context.Context
+		cancelFun context.CancelFunc
+
+		rateLimiter *rate.Limiter
 	}
 
 	metricMeta struct {
