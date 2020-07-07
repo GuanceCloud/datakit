@@ -3,6 +3,7 @@
 package wmi
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -14,8 +15,8 @@ const (
 	inputName = `wmi`
 
 	sampleConfig = `
-#[[instances]]
-#[[instances.query]]
+#[[inputs.wmi]]
+#[[inputs.wmi.query]]
 #	##(required) the name of the WMI class. see: https://docs.microsoft.com/en-us/previous-versions//aa394084(v=vs.85)?redirectedfrom=MSDN
 #	class = 'Win32_LogicalDisk'
 
@@ -28,7 +29,7 @@ const (
 #		['FileSystem', 'disk_filesystem']
 #	]
 	
-#[[instances.query]]
+#[[inputs.wmi.query]]
 #	class = 'Win32_OperatingSystem'
 #	metrics = [
 #		['NumberOfProcesses', 'system_proc_count'], 
@@ -50,6 +51,9 @@ type (
 		MetricName string
 		Interval   internal.Duration
 		Queries    []*ClassQuery `toml:"query"`
+
+		ctx       context.Context
+		cancelFun context.CancelFunc
 	}
 )
 
