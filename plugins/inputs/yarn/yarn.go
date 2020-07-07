@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"sync"
 
 	"github.com/antchfx/jsonquery"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
@@ -98,21 +97,16 @@ type NodeItem struct {
 	NumContainers         int `json:"numContainers"`
 }
 
-type YarnTarget struct {
+type Yarn struct {
 	Interval int
 	Active   bool
 	Host     string
+	MetricsName string
 	hostPath string
 }
 
-type Yarn struct {
-	MetricName string `toml:"metric_name"`
-	Targets    []YarnTarget
-}
-
 type YarnInput struct {
-	YarnTarget
-	MetricName string
+	Yarn
 }
 
 type YarnOutput struct {
@@ -122,25 +116,27 @@ type YarnOutput struct {
 type YarnParam struct {
 	input  YarnInput
 	output YarnOutput
+	log *zap.SugaredLogger
 }
 
 const (
-	yarnConfigSample = `### metric_name: the name of metric, default is "yarn"
-### You need to configure an [[targets]] for each yarn to be monitored.
+	yarnConfigSample = `### You need to configure an [[inputs.yarn]] for each yarn to be monitored.
 ### interval: monitor interval second, unit is second. The default value is 60.
 ### active: whether to monitor yarn.
 ### host: yarn service WebUI host, such as http://ip:port.
+### metricsName: the name of metric, default is "yarn"
 
-#metric_name="yarn"
-#[[targets]]
-#	interval = 60
-#	active   = true
-#	host     = "http://127.0.0.1:8088"
+#[[inputs.yarn]]
+#	interval    = 60
+#	active      = true
+#	host        = "http://127.0.0.1:8088"
+#	metricsName = "yarn"
 
-#[[targets]]
-#	interval = 60
-#	active   = true
-#	host     = "http://127.0.0.1:8088"
+#[[inputs.yarn]]
+#	interval    = 60
+#	active      = true
+#	host        = "http://127.0.0.1:8088"
+#	metricsName = "yarn"
 `
 	defaultMetricName = "yarn"
 	defaultInterval   = 60
@@ -162,8 +158,6 @@ const (
 	STRING
 )
 
-var ylog *zap.SugaredLogger
-
 func (y *Yarn) Catalog() string {
 	return "yarn"
 }
@@ -173,39 +167,28 @@ func (y *Yarn) SampleConfig() string {
 }
 
 func (y *Yarn) Run()  {
-	ylog = logger.SLogger("yarn")
-	isActive := false
-	wg := sync.WaitGroup{}
-
-	metricName := defaultMetricName
-	if y.MetricName != "" {
-		metricName = y.MetricName
+	if !y.Active || y.Host == "" {
+		return
 	}
 
-	for _, target := range y.Targets {
-		if target.Active && target.Host != "" {
-			if !isActive {
-				ylog.Info("yarn input started...")
-				isActive = true
-			}
-			if target.Interval == 0 {
-				target.Interval = defaultInterval
-			}
-			target.hostPath = strings.TrimRight(target.Host, "/") + urlPrefix
-
-			input := YarnInput{target, metricName}
-			output := YarnOutput{io.Feed}
-			p := &YarnParam{input, output}
-
-			wg.Add(1)
-			go p.gather(&wg)
-		}
+	if y.MetricsName != "" {
+		y.MetricsName = defaultMetricName
 	}
-	wg.Wait()
+
+	if y.Interval == 0 {
+		y.Interval = defaultInterval
+	}
+	y.hostPath = strings.TrimRight(y.Host, "/") + urlPrefix
+
+	input := YarnInput{*y}
+	output := YarnOutput{io.Feed}
+	p := &YarnParam{input, output, logger.SLogger("yarn")}
+	p.log.Infof("yarn input started...")
+	p.gather()
 }
 
 
-func (p *YarnParam) gather(wg *sync.WaitGroup) {
+func (p *YarnParam) gather() {
 	tick := time.NewTicker(time.Duration(p.input.Interval)*time.Second)
 	defer tick.Stop()
 	for {
@@ -213,11 +196,10 @@ func (p *YarnParam) gather(wg *sync.WaitGroup) {
 		case <-tick.C:
 			err := p.getMetrics()
 			if err != nil {
-				ylog.Errorf("getMetrics err: %s", err.Error())
+				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
 		case <-datakit.Exit.Wait():
-			ylog.Info("input yarn exit")
-			wg.Done()
+			p.log.Info("input yarn exit")
 			return
 		}
 	}
@@ -260,7 +242,7 @@ func (p *YarnParam) gatherMainSection() (err error) {
 	resp, err := http.Get(p.input.hostPath + "metrics")
 	if err != nil || resp.StatusCode != 200 {
 		fields[canConect] = false
-		pt, _ := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+		pt, _ := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
 		p.output.IoFeed([]byte(pt.String()), io.Metric)
 		return
 	}
@@ -298,7 +280,7 @@ func (p *YarnParam) gatherMainSection() (err error) {
 	fields["rebooted_nodes"] = metric.ClusterMetrics.RebootedNodes
 	fields["shutdown_nodes"] = metric.ClusterMetrics.ShutdownNodes
 
-	pt, err := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+	pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return
 	}
@@ -337,7 +319,7 @@ func (p *YarnParam) gatherAppSection() error {
 		fields["memory_seconds"] = ap.MemorySeconds
 		fields["vcore_seconds"] = ap.VcoreSeconds
 
-		pt, err := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+		pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
 		if err != nil {
 			return err
 		}
@@ -379,7 +361,7 @@ func (p *YarnParam) gatherNodeSection() error {
 		fields["available_virtual_cores"] = node.AvailableVirtualCores
 		fields["num_containers"] = node.NumContainers
 
-		pt, err := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+		pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
 		if err != nil {
 			return err
 		}
@@ -519,7 +501,7 @@ func (p *YarnParam) gatherQueueSection() error {
 			fields["max_applications_per_user"] = val
 		}
 
-		pt, err := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+		pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
 		if err != nil {
 			return err
 		}
