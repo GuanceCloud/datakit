@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+// Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
 // This program is free software: you can modify it and/or redistribute it
 // under the terms of:
 //
@@ -44,6 +44,7 @@ int dpiStmt__allocate(dpiConn *conn, int scrollable, dpiStmt **stmt,
     dpiGen__setRefCount(conn, error, 1);
     tempStmt->conn = conn;
     tempStmt->fetchArraySize = DPI_DEFAULT_FETCH_ARRAY_SIZE;
+    tempStmt->prefetchRows = DPI_DEFAULT_PREFETCH_ROWS;
     tempStmt->scrollable = scrollable;
     *stmt = tempStmt;
     return DPI_SUCCESS;
@@ -554,7 +555,8 @@ static int dpiStmt__define(dpiStmt *stmt, uint32_t pos, dpiVar *var,
 static int dpiStmt__execute(dpiStmt *stmt, uint32_t numIters,
         uint32_t mode, int reExecute, dpiError *error)
 {
-    uint32_t prefetchSize, i, j;
+    uint16_t tempOffset;
+    uint32_t i, j, temp;
     dpiData *data;
     dpiVar *var;
 
@@ -576,15 +578,14 @@ static int dpiStmt__execute(dpiStmt *stmt, uint32_t numIters,
             var->error = error;
     }
 
-    // for queries, set the OCI prefetch to a fixed value; this prevents an
+    // for queries, set the OCI prefetch; the default value prevents an
     // additional round trip for single row fetches while avoiding the overhead
     // of copying from the OCI prefetch buffer to our own buffers for larger
     // fetches
     if (stmt->statementType == DPI_STMT_TYPE_SELECT) {
-        prefetchSize = DPI_PREFETCH_ROWS_DEFAULT;
-        if (dpiOci__attrSet(stmt->handle, DPI_OCI_HTYPE_STMT, &prefetchSize,
-                sizeof(prefetchSize), DPI_OCI_ATTR_PREFETCH_ROWS,
-                "set prefetch rows", error) < 0)
+        if (dpiOci__attrSet(stmt->handle, DPI_OCI_HTYPE_STMT,
+                &stmt->prefetchRows, sizeof(stmt->prefetchRows),
+                DPI_OCI_ATTR_PREFETCH_ROWS, "set prefetch rows", error) < 0)
             return DPI_FAILURE;
     }
 
@@ -600,9 +601,9 @@ static int dpiStmt__execute(dpiStmt *stmt, uint32_t numIters,
     // drop statement from cache for all errors (except those which are due to
     // invalid data which may be fixed in subsequent execution)
     if (dpiOci__stmtExecute(stmt, numIters, mode, error) < 0) {
-        dpiOci__attrGet(stmt->handle, DPI_OCI_HTYPE_STMT,
-                &error->buffer->offset, 0, DPI_OCI_ATTR_PARSE_ERROR_OFFSET,
-                "set parse offset", error);
+        dpiOci__attrGet(stmt->handle, DPI_OCI_HTYPE_STMT, &tempOffset, 0,
+                DPI_OCI_ATTR_PARSE_ERROR_OFFSET, "set parse offset", error);
+        error->buffer->offset = tempOffset;
         switch (error->buffer->code) {
             case 1007:
                 if (reExecute)
@@ -622,6 +623,16 @@ static int dpiStmt__execute(dpiStmt *stmt, uint32_t numIters,
                 stmt->deleteFromCache = 1;
         }
         return DPI_FAILURE;
+    }
+
+    // for queries, disable prefetch for subsequent fetches in order to avoid
+    // the overhead of copying from prefetch buffers to our own buffers
+    if (stmt->statementType == DPI_STMT_TYPE_SELECT) {
+        temp = 0;
+        if (dpiOci__attrSet(stmt->handle, DPI_OCI_HTYPE_STMT, &temp,
+                sizeof(temp), DPI_OCI_ATTR_PREFETCH_ROWS,
+                "reset prefetch rows", error) < 0)
+            return DPI_FAILURE;
     }
 
     // for all bound variables, transfer data from Oracle buffer structures to
@@ -779,7 +790,7 @@ static int dpiStmt__getBatchErrors(dpiStmt *stmt, dpiError *error)
             break;
         }
         localError.buffer->fnName = error->buffer->fnName;
-        localError.buffer->offset = (uint16_t) rowOffset;
+        localError.buffer->offset = (uint32_t) rowOffset;
 
     }
 
@@ -1588,6 +1599,7 @@ int dpiStmt_getInfo(dpiStmt *stmt, dpiStmtInfo *info)
 int dpiStmt_getLastRowid(dpiStmt *stmt, dpiRowid **rowid)
 {
     uint64_t rowCount;
+    uint32_t tempSize;
     dpiError error;
 
     if (dpiStmt__check(stmt, __func__, &error) < 0)
@@ -1608,10 +1620,11 @@ int dpiStmt_getLastRowid(dpiStmt *stmt, dpiRowid **rowid)
             if (dpiRowid__allocate(stmt->conn, &stmt->lastRowid, &error) < 0)
                 return dpiGen__endPublicFn(stmt, DPI_FAILURE, &error);
             if (dpiOci__attrGet(stmt->handle, DPI_OCI_HTYPE_STMT,
-                    stmt->lastRowid->handle, 0, DPI_OCI_ATTR_ROWID,
+                    stmt->lastRowid->handle, &tempSize, DPI_OCI_ATTR_ROWID,
                     "get last rowid", &error) < 0)
                 return dpiGen__endPublicFn(stmt, DPI_FAILURE, &error);
-            *rowid = stmt->lastRowid;
+            if (tempSize)
+                *rowid = stmt->lastRowid;
         }
     }
 
@@ -1636,6 +1649,23 @@ int dpiStmt_getNumQueryColumns(dpiStmt *stmt, uint32_t *numQueryColumns)
             dpiStmt__createQueryVars(stmt, &error) < 0)
         return dpiGen__endPublicFn(stmt, DPI_FAILURE, &error);
     *numQueryColumns = stmt->numQueryVars;
+    return dpiGen__endPublicFn(stmt, DPI_SUCCESS, &error);
+}
+
+
+//-----------------------------------------------------------------------------
+// dpiStmt_getPrefetchRows() [PUBLIC]
+//   Returns the number of rows that will be prefetched when a query is
+// executed.
+//-----------------------------------------------------------------------------
+int dpiStmt_getPrefetchRows(dpiStmt *stmt, uint32_t *numRows)
+{
+    dpiError error;
+
+    if (dpiStmt__check(stmt, __func__, &error) < 0)
+        return dpiGen__endPublicFn(stmt, DPI_FAILURE, &error);
+    DPI_CHECK_PTR_NOT_NULL(stmt, numRows)
+    *numRows = stmt->prefetchRows;
     return dpiGen__endPublicFn(stmt, DPI_SUCCESS, &error);
 }
 
@@ -1894,5 +1924,20 @@ int dpiStmt_setFetchArraySize(dpiStmt *stmt, uint32_t arraySize)
         }
     }
     stmt->fetchArraySize = arraySize;
+    return dpiGen__endPublicFn(stmt, DPI_SUCCESS, &error);
+}
+
+
+//-----------------------------------------------------------------------------
+// dpiStmt_setPrefetchRows() [PUBLIC]
+//   Set the number of rows to prefetch when a query is executed.
+//-----------------------------------------------------------------------------
+int dpiStmt_setPrefetchRows(dpiStmt *stmt, uint32_t numRows)
+{
+    dpiError error;
+
+    if (dpiStmt__check(stmt, __func__, &error) < 0)
+        return dpiGen__endPublicFn(stmt, DPI_FAILURE, &error);
+    stmt->prefetchRows = numRows;
     return dpiGen__endPublicFn(stmt, DPI_SUCCESS, &error);
 }
