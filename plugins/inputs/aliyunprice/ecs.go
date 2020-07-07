@@ -13,7 +13,7 @@ import (
 const (
 	ecsSampleConfig = `
 # ##云服务器ECS
-#[[ecs]]
+#[[inputs.aliyunprice.ecs]]
 
 # ##(optional) 自定义指标集名称，默认使用 aliyun_price
 #metric_name = ''
@@ -61,7 +61,7 @@ const (
 #quantity = 1
 
 # ##(optional)数据盘配置(如果需要), 可配置多块
-#[[ecs.data_disks]]
+#[[inputs.aliyunprice.ecs.data_disks]]
 # ##数据盘类型
 #data_disk_category = 'cloud_ssd'
 
