@@ -13,9 +13,12 @@ import (
 	"sync"
 	"time"
 
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+
 	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -92,19 +95,16 @@ func (_ *Httpstat) Gather(acc telegraf.Accumulator) error {
 	return nil
 }
 
-func (h *Httpstat) Start(acc telegraf.Accumulator) error {
+func (h *Httpstat) Run() {
 	h.logger = &models.Logger{
 		Name: `httpstat`,
 	}
 
 	if len(h.Config) == 0 {
 		h.logger.Warnf("no configuration found")
-		return nil
 	}
 
 	h.logger.Info("starting...")
-
-	h.acc = acc
 
 	for _, instCfg := range h.Config {
 		r := &runningInstance{
@@ -126,8 +126,6 @@ func (h *Httpstat) Start(acc telegraf.Accumulator) error {
 
 		go r.run(h.ctx)
 	}
-
-	return nil
 }
 
 func (r *runningInstance) run(ctx context.Context) error {
@@ -265,7 +263,9 @@ func (h *httpPing) uploadData(resData Result) {
 	fields["toFirstByteTime"] = resData.Trace.toFirstByteTime.Microseconds()
 	fields["totalTime"] = resData.Trace.totalTime.Microseconds()
 
-	h.inst.agent.acc.AddFields(h.metricName, fields, tags)
+	pt, _ := influxdb.NewPoint(h.metricName, tags, fields, time.Now())
+
+	io.Feed([]byte(pt.String()), io.Metric)
 }
 
 func tracer(r *Result) *httptrace.ClientTrace {
