@@ -9,9 +9,10 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
+	"go.uber.org/zap"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
@@ -19,31 +20,15 @@ import (
 	consumerLibrary "github.com/aliyun/aliyun-log-go-sdk/consumer"
 )
 
-type AliyunLog struct {
-	Consumer []*ConsumerInstance
+const inputName = `aliyunlog`
 
-	wg sync.WaitGroup
-
-	logger *models.Logger
-}
-
-type runningInstance struct {
-	cfg *ConsumerInstance
-
-	wg sync.WaitGroup
-
-	agent *AliyunLog
-
-	logger *models.Logger
-}
+var moduleLogger *zap.SugaredLogger
 
 type runningProject struct {
-	inst *runningInstance
+	inst *ConsumerInstance
 	cfg  *LogProject
 
 	wg sync.WaitGroup
-
-	logger *models.Logger
 }
 
 type tagReplace struct {
@@ -59,15 +44,13 @@ type runningStore struct {
 	fieldsInfo map[string]string
 
 	tagsInfo map[string]*tagReplace
-
-	logger *models.Logger
 }
 
-func (_ *AliyunLog) Catalog() string {
+func (_ *ConsumerInstance) Catalog() string {
 	return "aliyun"
 }
 
-func (_ *AliyunLog) SampleConfig() string {
+func (_ *ConsumerInstance) SampleConfig() string {
 	return aliyunlogConfigSample
 }
 
@@ -75,57 +58,26 @@ func (_ *AliyunLog) SampleConfig() string {
 // 	return "Collect logs from aliyun SLS"
 // }
 
-func (al *AliyunLog) Run() {
+func (al *ConsumerInstance) Run() {
 
-	al.logger = &models.Logger{
-		Name: `aliyunlog`,
-	}
+	moduleLogger = logger.SLogger(inputName)
 
-	if len(al.Consumer) == 0 {
-		al.logger.Warnf("no configuration found")
-		return
-	}
-
-	for _, instCfg := range al.Consumer {
+	for _, c := range al.Projects {
 		al.wg.Add(1)
 
-		go func(instCfg *ConsumerInstance) {
+		go func(lp *LogProject) {
 			defer al.wg.Done()
 
-			r := &runningInstance{
-				cfg:    instCfg,
-				agent:  al,
-				logger: al.logger,
-			}
-
-			r.run()
-
-		}(instCfg)
-
-	}
-
-	al.wg.Wait()
-
-}
-
-func (r *runningInstance) run() {
-
-	for _, c := range r.cfg.Projects {
-		r.wg.Add(1)
-
-		go func(lp *LogProject) {
-			defer r.wg.Done()
-
 			p := &runningProject{
-				cfg:    lp,
-				inst:   r,
-				logger: r.logger,
+				cfg:  lp,
+				inst: al,
 			}
 			p.run()
 		}(c)
 	}
 
-	r.wg.Wait()
+	al.wg.Wait()
+
 }
 
 func (r *runningProject) run() {
@@ -139,7 +91,6 @@ func (r *runningProject) run() {
 			s := &runningStore{
 				cfg:        ls,
 				proj:       r,
-				logger:     r.logger,
 				tagsInfo:   map[string]*tagReplace{},
 				fieldsInfo: map[string]string{},
 			}
@@ -187,7 +138,7 @@ func (r *runningStore) run() error {
 	for _, fitem := range r.cfg.Fields {
 		parts := strings.Split(fitem, ":")
 		if len(parts) != 2 {
-			r.logger.Warnf("invalid field type specification")
+			moduleLogger.Warnf("invalid field type specification")
 			continue
 		}
 		fieldType := parts[0]
@@ -198,9 +149,9 @@ func (r *runningStore) run() error {
 	}
 
 	option := consumerLibrary.LogHubConfig{
-		Endpoint:          r.proj.inst.cfg.Endpoint,
-		AccessKeyID:       r.proj.inst.cfg.AccessKeyID,
-		AccessKeySecret:   r.proj.inst.cfg.AccessKeySecret,
+		Endpoint:          r.proj.inst.Endpoint,
+		AccessKeyID:       r.proj.inst.AccessKeyID,
+		AccessKeySecret:   r.proj.inst.AccessKeySecret,
 		Project:           r.proj.cfg.Name,
 		Logstore:          r.cfg.Name,
 		ConsumerGroupName: r.cfg.ConsumerGroupName,
@@ -344,7 +295,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 			if err == nil {
 				fields["__content"] = string(contentStr)
 			} else {
-				r.logger.Warnf("fail to marshal content, %s", err)
+				moduleLogger.Warnf("fail to marshal content, %s", err)
 			}
 
 			tm := time.Unix(int64(l.GetTime()), 0)
@@ -354,13 +305,13 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 	return ""
 }
 
-func NewAgent() *AliyunLog {
-	ac := &AliyunLog{}
+func NewAgent() *ConsumerInstance {
+	ac := &ConsumerInstance{}
 	return ac
 }
 
 func init() {
-	inputs.Add("aliyunlog", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return NewAgent()
 	})
 }
