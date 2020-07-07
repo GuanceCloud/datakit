@@ -9,9 +9,10 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
+	"go.uber.org/zap"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -19,7 +20,7 @@ type CostOrder struct {
 	interval        time.Duration
 	name            string
 	runningInstance *runningInstance
-	logger          *models.Logger
+	logger          *zap.SugaredLogger
 }
 
 func NewCostOrder(cfg *CostCfg, ri *runningInstance) *CostOrder {
@@ -27,9 +28,7 @@ func NewCostOrder(cfg *CostCfg, ri *runningInstance) *CostOrder {
 		name:            "aliyun_cost_order",
 		interval:        cfg.OrdertInterval.Duration,
 		runningInstance: ri,
-	}
-	c.logger = &models.Logger{
-		Name: `aliyuncost:order`,
+		logger:          logger.SLogger(`aliyuncost:order`),
 	}
 	return c
 }
