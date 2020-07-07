@@ -22,10 +22,11 @@ import (
 type IoFeed func(data []byte, category string) error
 
 type Squid struct {
-	MetricName string `toml:"metric_name"`
-	Active     bool
-	Interval   int
-	Port       int
+	Active      bool
+	Interval    int
+	Port        int
+	MetricsName string
+	Tags        map[string]string
 }
 
 type SquidInput struct {
@@ -39,21 +40,27 @@ type SquidOutput struct {
 type SquidParam struct {
 	input  SquidInput
 	output SquidOutput
+	log    *zap.SugaredLogger
 }
 
 var (
 	defaultMetricName = "squid"
 	defaultInterval   = 60
 	defaultPort       = 3218
-	sqlog             *zap.SugaredLogger
-	squidConfigSample = `### metric_name: the name of metric, default is "squid"
-### interval: monitor interval second, unit is second. The default value is 60.
+	squidConfigSample = `### interval: monitor interval second, unit is second. The default value is 60.
 ### active: whether to monitor squid.
+### metricsName: the name of metric, default is "squid"
 
-#metric_name = "squid"
-#active   = true
-#interval = 60
-#port     = 3128`
+#[inputs.squid]
+#	active   = true
+#	interval = 60
+#	port     = 3128
+#	metricsName = "squid"
+#	[inputs.squid.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
+`
 )
 
 func (s *Squid) Catalog() string {
@@ -69,24 +76,24 @@ func (s *Squid) Description() string {
 }
 
 func (s *Squid) Run() {
-	sqlog = logger.SLogger("squid")
-	input := SquidInput{*s}
-	if input.Active == false {
+	if !s.Active {
 		return
 	}
-	if input.MetricName == "" {
-		input.MetricName = defaultMetricName
+	if s.MetricsName == "" {
+		s.MetricsName = defaultMetricName
 	}
-	if input.Interval == 0 {
-		input.Interval = defaultInterval
+	if s.Interval == 0 {
+		s.Interval = defaultInterval
 	}
-	if input.Port == 0 {
-		input.Port = defaultPort
+	if s.Port == 0 {
+		s.Port = defaultPort
 	}
-	output := SquidOutput{io.Feed}
-	p := &SquidParam{input, output}
 
-	sqlog.Info("squid input started...")
+	input := SquidInput{*s}
+	output := SquidOutput{io.Feed}
+	p := &SquidParam{input, output, logger.SLogger("squid")}
+
+	p.log.Info("squid input started...")
 	p.gather()
 }
 
@@ -99,10 +106,10 @@ func (p *SquidParam) gather() {
 		case <-tick.C:
 			err := p.getMetrics()
 			if err != nil {
-				sqlog.Errorf("getMetrics err: %s", err.Error())
+				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
 		case <-datakit.Exit.Wait():
-			sqlog.Info("input squid exit")
+			p.log.Info("input squid exit")
 			return
 		}
 	}
@@ -112,6 +119,10 @@ func (p *SquidParam) getMetrics() (err error) {
 	var outInfo bytes.Buffer
 
 	tags := make(map[string]string)
+	for tag, tagV := range p.input.Tags {
+		tags[tag] = tagV
+	}
+
 	fields := make(map[string]interface{})
 	fields["can_connect"] = true
 
@@ -123,7 +134,7 @@ func (p *SquidParam) getMetrics() (err error) {
 	err = cmd.Run()
 	if err != nil {
 		fields["can_connect"] = false
-		pt, _ := influxdb.NewPoint(p.input.Squid.MetricName, tags, fields, time.Now())
+		pt, _ := influxdb.NewPoint(p.input.Squid.MetricsName, tags, fields, time.Now())
 		p.output.IoFeed([]byte(pt.String()), io.Metric)
 		return
 	}
@@ -151,7 +162,7 @@ func (p *SquidParam) getMetrics() (err error) {
 		}
 	}
 
-	pt, err := influxdb.NewPoint(p.input.Squid.MetricName, tags, fields, time.Now())
+	pt, err := influxdb.NewPoint(p.input.Squid.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return
 	}
