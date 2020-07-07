@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"regexp"
 	"time"
-	"sync"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -20,7 +19,7 @@ import (
 
 type IoFeed func(data []byte, category string) error
 
-type SshTarget struct {
+type Ssh struct {
 	Interval       int
 	Active         bool
 	Host           string
@@ -29,15 +28,11 @@ type SshTarget struct {
 	SftpCheck      bool
 	PrivateKeyFile string
 	MetricsName    string
-}
-
-type Ssh struct {
-	MetricName string
-	Targets    []SshTarget
+	Tags           map[string]string
 }
 
 type SshInput struct {
-	SshTarget
+	Ssh
 }
 
 type SshOutput struct {
@@ -47,20 +42,20 @@ type SshOutput struct {
 type SshParam struct {
 	input  SshInput
 	output SshOutput
+	log *zap.SugaredLogger
 }
 
-const sshConfigSample = `### metricName: the name of metric, default is "ssh"
-### You need to configure an [[targets]] for each ssh/sftp to be monitored.
+const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ssh/sftp to be monitored.
 ### host: ssh/sftp service ip:port, if "127.0.0.1", default port is 22.
 ### interval: monitor interval second, unit is second. The default value is 60.
 ### active: whether to monitor ssh/sftp.
 ### username: the user name of ssh/sftp.
 ### password: the password of ssh/sftp. optional
 ### sftpCheck: whether to monitor sftp.
-### privateKeyFile: rsa file path
+### privateKeyFile: rsa file path.
+### metricsName: the name of metric, default is "ssh"
 
-#metricName="ssh"
-#[[targets]]
+#[[inputs.ssh]]
 #	interval = 60
 #	active   = true
 #	host     = "127.0.0.1:22"
@@ -68,8 +63,13 @@ const sshConfigSample = `### metricName: the name of metric, default is "ssh"
 #	password = "xxx"
 #	sftpCheck      = false
 #	privateKeyFile = ""
+#	metricsName    ="ssh"
+#	[inputs.ssh.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 
-#[[targets]]
+#[[inputs.ssh]]
 #	interval = 60
 #	active   = true
 #	host     = "127.0.0.1:22"
@@ -77,13 +77,17 @@ const sshConfigSample = `### metricName: the name of metric, default is "ssh"
 #	password = "xxx"
 #	sftpCheck      = false
 #	privateKeyFile = ""
+#	metricsName    ="ssh"
+#	[inputs.ssh.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 `
 
 var (
 	defaultMetricName = "Ssh"
 	defaultInterval   = 60
 	sshCfgErr         = errors.New("both password and privateKeyFile missed")
-	Log *zap.SugaredLogger
 )
 
 func (s *Ssh) Catalog() string {
@@ -95,43 +99,30 @@ func (s *Ssh) SampleConfig() string {
 }
 
 func (s *Ssh) Run() {
-	isActive := false
-	wg := sync.WaitGroup{}
-	Log = logger.SLogger("ssh")
+	if !s.Active || s.Host == "" {
+		return
+	}
+
 	reg, _ := regexp.Compile(`:\d{1,5}$`)
 
-
-	metricName := defaultMetricName
-	if s.MetricName != "" {
-		metricName = s.MetricName
+	if s.MetricsName == "" {
+		s.MetricsName = defaultMetricName
 	}
 
-	for _, target := range s.Targets {
-		if !target.Active || target.Host == "" {
-			continue
-		}
-
-		if !isActive {
-			Log.Info("ssh input started...")
-			isActive = true
-		}
-
-		if target.Interval == 0 {
-			target.Interval = defaultInterval
-		}
-		if !reg.MatchString(target.Host) {
-			target.Host += ":22"
-		}
-		target.MetricsName = metricName
-
-		input := SshInput{target}
-		output := SshOutput{io.Feed}
-
-		p := &SshParam{input, output}
-		wg.Add(1)
-		go p.gather(&wg)
+	if s.Interval == 0 {
+		s.Interval = defaultInterval
 	}
-	wg.Wait()
+
+	if !reg.MatchString(s.Host) {
+		s.Host += ":22"
+	}
+
+	input := SshInput{*s}
+	output := SshOutput{io.Feed}
+
+	p := &SshParam{input, output, logger.SLogger("ssh")}
+	p.log.Infof("ssh input started...")
+	p.gather()
 }
 
 func (p *SshParam) getSshClientConfig() (*ssh.ClientConfig, error) {
@@ -167,11 +158,10 @@ func (p *SshParam) getSshClientConfig() (*ssh.ClientConfig, error) {
 	}, nil
 }
 
-func (p *SshParam) gather(wg *sync.WaitGroup) {
+func (p *SshParam) gather() {
 	clientCfg, err := p.getSshClientConfig()
 	if err != nil {
-		Log.Errorf("SshClientConfig err: %s", err.Error())
-		wg.Done()
+		p.log.Errorf("SshClientConfig err: %s", err.Error())
 		return
 	}
 
@@ -182,12 +172,11 @@ func (p *SshParam) gather(wg *sync.WaitGroup) {
 		case <-tick.C:
 			err := p.getMetrics(clientCfg)
 			if err != nil {
-				Log.Errorf("getMetrics err: %s", err.Error())
+				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
 
 		case <-datakit.Exit.Wait():
-			wg.Done()
-			Log.Info("input statsd exit")
+			p.log.Info("input statsd exit")
 			return
 		}
 	}
@@ -198,6 +187,9 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 	fields := make(map[string]interface{})
 
 	tags["host"] = p.input.Host
+	for tag, tagV := range p.input.Tags {
+		tags[tag] = tagV
+	}
 	//ssh检查
 	var sshRst bool
 	sshClient, err := ssh.Dial("tcp", p.input.Host, clientCfg)
