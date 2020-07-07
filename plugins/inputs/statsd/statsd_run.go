@@ -1,7 +1,6 @@
 package statsd
 
 import (
-	"sync"
 	"bufio"
 	"errors"
 	"net"
@@ -19,7 +18,7 @@ var (
 	ConnectionReset = errors.New("ConnectionReset")
 )
 
-func (p *StatsdParams) gather(wg *sync.WaitGroup) {
+func (p *StatsdParams) gather() {
 	var connectFail bool = true
 	var conn net.Conn
 	var err  error
@@ -41,7 +40,7 @@ func (p *StatsdParams) gather(wg *sync.WaitGroup) {
 			if connectFail == false && conn != nil {
 				err = p.getMetrics(conn)
 				if err != nil && err != ConnectionReset {
-					Log.Errorf("getMetrics err: %s", err.Error())
+					p.log.Errorf("getMetrics err: %s", err.Error())
 				}
 
 				if err == ConnectionReset {
@@ -51,13 +50,12 @@ func (p *StatsdParams) gather(wg *sync.WaitGroup) {
 			} else {
 				err = p.reportNotUp()
 				if err != nil {
-					Log.Errorf("reportNotUp err: %s", err.Error())
+					p.log.Errorf("reportNotUp err: %s", err.Error())
 				}
 			}
 
 		case <-datakit.Exit.Wait():
-			wg.Done()
-			Log.Info("input statsd exit")
+			p.log.Info("input statsd exit")
 			return
 		}
 	}
@@ -71,6 +69,9 @@ func (p *StatsdParams) getMetrics(conn net.Conn) error {
 	fields := make(map[string]interface{})
 
 	tags["host"] = p.input.Host
+	for tag, tagV := range p.input.Tags {
+		tags[tag] = tagV
+	}
 	fields["is_up"] = true
 
 	err = getMetric(conn, "counters", fields)
@@ -89,20 +90,17 @@ func (p *StatsdParams) getMetrics(conn net.Conn) error {
 	}
 
 	fields["can_connect"] = true
-	pt, err = influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+	pt, err = influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return err
 	}
 	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
-	if err != nil {
-		return err
-	}
+	return err
 
 ERR:
 	fields["can_connect"] = false
-	pt, _ = influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+	pt, _ = influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
 	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
-
 	return ConnectionReset
 }
 
@@ -136,10 +134,13 @@ func (p *StatsdParams) reportNotUp() error {
 	fields := make(map[string]interface{})
 
 	tags["host"] = p.input.Host
+	for tag, tagV := range p.input.Tags {
+		tags[tag] = tagV
+	}
 	fields["is_up"] = false
 	fields["can_connect"] = false
 
-	pt, err := influxdb.NewPoint(p.input.MetricName, tags, fields, time.Now())
+	pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return err
 	}
