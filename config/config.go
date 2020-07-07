@@ -33,7 +33,7 @@ type Config struct {
 	MainCfg          *MainConfig
 	TelegrafAgentCfg *TelegrafAgentConfig
 
-	Inputs []*inputs.RunningInput
+	Inputs map[string][]inputs.Input
 
 	InputFilters []string
 }
@@ -131,7 +131,7 @@ func newDefaultCfg() *Config {
 			RoundInterval: false,
 			cfgPath:       filepath.Join(datakit.InstallDir, "datakit.conf"),
 		},
-		Inputs: []*inputs.RunningInput{},
+		Inputs: map[string][]inputs.Input{},
 	}
 }
 
@@ -345,31 +345,32 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 		}
 	}
 
-	input := creator()
+	if name == "self" {
+		c.Inputs[name] = append(c.Inputs[name], creator())
+		return nil
+	}
+
+	dummyInput := creator()
 
 	var data []byte
 
-	if internalData, ok := inputs.InternalInputsData[name]; ok {
-		data = internalData
-	} else {
-		// migrate old configures into new place
-		oldPath := filepath.Join(datakit.ConfdDir, name, fmt.Sprintf("%s.conf", name))
-		newPath := filepath.Join(datakit.ConfdDir, input.Catalog(), fmt.Sprintf("%s.conf", name))
+	// migrate old configures into new place
+	oldPath := filepath.Join(datakit.ConfdDir, name, fmt.Sprintf("%s.conf", name))
+	newPath := filepath.Join(datakit.ConfdDir, dummyInput.Catalog(), fmt.Sprintf("%s.conf", name))
 
-		path := newPath
-		_, err := os.Stat(path)
-		if err != nil && os.IsNotExist(err) {
-			if _, err = os.Stat(oldPath); err == nil {
-				l.Infof("migrate %s to %s", oldPath, path)
-				path = oldPath
-			}
+	path := newPath
+	_, err := os.Stat(path)
+	if err != nil && os.IsNotExist(err) {
+		if _, err = os.Stat(oldPath); err == nil {
+			l.Infof("migrate %s to %s", oldPath, path)
+			path = oldPath
 		}
+	}
 
-		data, err = ioutil.ReadFile(path)
-		if err != nil {
-			l.Errorf("load %s failed: %s", path, err)
-			return err
-		}
+	data, err = ioutil.ReadFile(path)
+	if err != nil {
+		l.Errorf("load %s failed: %s", path, err)
+		return err
 	}
 
 	tbl, err := parseConfig(data)
@@ -383,29 +384,96 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 		return nil
 	}
 
-	if err := c.addInput(name, input, tbl); err != nil {
-		l.Errorf("add input %s failed: %s", name, err.Error())
-		return err
+	var maxInterval time.Duration
+
+	for name, val := range tbl.Fields {
+
+		if subTables, ok := val.([]*ast.Table); ok {
+
+			for _, t := range subTables {
+				input := creator()
+				if interval, err := c.addInput(name, input, t); err != nil {
+					err = fmt.Errorf("Error parsing %s, %s", name, err)
+					l.Errorf("%s", err)
+					return err
+				} else {
+					if interval > maxInterval {
+						maxInterval = interval
+					}
+				}
+			}
+
+		} else {
+
+			subTable, ok := val.(*ast.Table)
+			if !ok {
+				err = fmt.Errorf("invalid configuration, error parsing field %q as table", name)
+				l.Errorf("%s", err)
+				return err
+			}
+			switch name {
+			case "inputs":
+				for pluginName, pluginVal := range subTable.Fields {
+					switch pluginSubTable := pluginVal.(type) {
+					// legacy [inputs.cpu] support
+					case *ast.Table:
+						input := creator()
+						if interval, err := c.addInput(name, input, pluginSubTable); err != nil {
+							err = fmt.Errorf("Error parsing %s, %s", name, err)
+							l.Errorf("%s", err)
+							return err
+						} else {
+							if interval > maxInterval {
+								maxInterval = interval
+							}
+						}
+
+					case []*ast.Table:
+						for _, t := range pluginSubTable {
+							input := creator()
+							if interval, err := c.addInput(name, input, t); err != nil {
+								err = fmt.Errorf("Error parsing %s, %s", name, err)
+								l.Errorf("%s", err)
+								return err
+							} else {
+								if interval > maxInterval {
+									maxInterval = interval
+								}
+							}
+						}
+					default:
+						err = fmt.Errorf("Unsupported config format: %s",
+							pluginName)
+						l.Errorf("%s", err)
+						return err
+					}
+				}
+			default:
+				err = fmt.Errorf("Unsupported config format: %s",
+					name)
+				l.Errorf("%s", err)
+				return err
+			}
+
+		}
+
 	}
 
-	l.Debugf("add input %s ok", name)
+	if c.MainCfg.MaxPostInterval.Duration != 0 {
+		datakit.MaxLifeCheckInterval = maxInterval
+	}
 
 	return nil
 }
 
 func (c *Config) setMaxPostInterval() {
-	datakit.MaxLifeCheckInterval = c.MainCfg.MaxPostInterval.Duration
-	if datakit.MaxLifeCheckInterval != 0 {
-		return
-	}
-
-	for _, ri := range c.Inputs { // find the max interval
-		if ri.Config.Interval > datakit.MaxLifeCheckInterval {
-			datakit.MaxLifeCheckInterval = ri.Config.Interval
+	if c.MainCfg.MaxPostInterval.Duration != 0 {
+		datakit.MaxLifeCheckInterval = c.MainCfg.MaxPostInterval.Duration
+	} else {
+		if datakit.MaxLifeCheckInterval != 0 {
+			datakit.MaxLifeCheckInterval += time.Second * 10 // add extra 10 seconds
 		}
 	}
-
-	datakit.MaxLifeCheckInterval += time.Second * 10 // add extra 10 seconds
 }
 
 // load all inputs under @InstallDir/conf.d
@@ -425,9 +493,9 @@ func (c *Config) LoadConfig() error {
 func DumpInputsOutputs() {
 	names := []string{}
 
-	for _, p := range Cfg.Inputs {
-		l.Debugf("input %s enabled", p.Config.Name)
-		names = append(names, p.Config.Name)
+	for name := range Cfg.Inputs {
+		l.Debugf("input %s enabled", name)
+		names = append(names, name)
 	}
 
 	for k, i := range SupportsTelegrafMetricNames {
@@ -583,56 +651,27 @@ func sliceContains(name string, list []string) bool {
 	return false
 }
 
-func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) error {
+func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) (time.Duration, error) {
 
-	if len(c.InputFilters) > 0 && !sliceContains(name, c.InputFilters) {
-		return nil
-	}
-
-	pluginConfig, err := buildInput(name, table, input)
-	if err != nil {
-		return err
+	var dur time.Duration
+	var err error
+	if node, ok := table.Fields["interval"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if str, ok := kv.Value.(*ast.String); ok {
+				dur, err = time.ParseDuration(str.Value)
+				if err != nil {
+					return dur, err
+				}
+			}
+		}
 	}
 
 	if err := toml.UnmarshalTable(table, input); err != nil {
 		l.Errorf("toml UnmarshalTable failed on %s: %s", name, err.Error())
-		return err
+		return dur, err
 	}
 
-	l.Debugf("configured input: %+#v", input)
-
-	ri := inputs.NewRunningInput(input, pluginConfig)
-
-	c.Inputs = append(c.Inputs, ri)
-	return nil
-}
-
-func buildInput(name string, tbl *ast.Table, input inputs.Input) (*inputs.InputConfig, error) {
-	ic := &inputs.InputConfig{Name: name}
-
-	if node, ok := tbl.Fields["interval"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-				dur, err := time.ParseDuration(str.Value)
-				if err != nil {
-					return nil, err
-				}
-
-				ic.Interval = dur
-			}
-		}
-	}
-
-	ic.Tags = make(map[string]string)
-	if node, ok := tbl.Fields["tags"]; ok {
-		if subtbl, ok := node.(*ast.Table); ok {
-			if err := toml.UnmarshalTable(subtbl, ic.Tags); err != nil {
-				l.Errorf("could not parse tags for input %s", name)
-			}
-		}
-	}
-
-	delete(tbl.Fields, "tags")
-
-	return ic, nil
+	l.Debugf("configured input: %s", name)
+	c.Inputs[name] = append(c.Inputs[name], input)
+	return dur, nil
 }
