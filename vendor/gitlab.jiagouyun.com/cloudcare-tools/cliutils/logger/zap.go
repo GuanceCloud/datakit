@@ -16,6 +16,7 @@ const (
 	OPT_SHORT_CALLER = 2
 	OPT_STDOUT       = 4
 	OPT_SHUGAR       = 8
+	OPT_COLOR        = 16
 
 	DEBUG = "debug"
 	INFO  = "info"
@@ -107,6 +108,10 @@ func NewRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 		cfg.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
 	default:
 		cfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	}
+
+	if options&OPT_COLOR != 0 {
+		cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	}
 
 	if options&OPT_ENC_CONSOLE != 0 {
