@@ -11,9 +11,10 @@ import (
 
 const (
 	binlogConfigSample = `
+[[inputs.binlog]]
 #null_int=0
 #null_float=0.0
-#[[sources]]
+#[[inputs.binlog.sources]]
 #  ##host of mysql, include port
 #  addr='localhost:3306'
 
@@ -21,9 +22,9 @@ const (
 #  user="admin"
 #  password=""
 
-#  [[sources.databases]]
+#  [[inputs.binlog.sources.databases]]
 #    db = 'test'
-#	[[sources.databases.tables]]
+#	[[inputs.binlog.sources.databases.tables]]
 #     ##the name of table
 #	  name='user'
 
