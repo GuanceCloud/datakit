@@ -43,7 +43,7 @@ type rows struct {
 	nextRs         *C.dpiStmt
 	bufferRowIndex C.uint32_t
 	fetched        C.uint32_t
-	finished       bool
+	fromData       bool
 }
 
 // Columns returns the names of the columns. The number of
@@ -63,27 +63,30 @@ func (r *rows) Close() error {
 	if r == nil {
 		return nil
 	}
-	vars, st := r.vars, r.statement
+	vars, st, nextRs := r.vars, r.statement, r.nextRs
 	r.columns, r.vars, r.data, r.statement, r.nextRs = nil, nil, nil, nil, nil
+	fromData := r.fromData
+	r.fromData = false
 	for _, v := range vars[:cap(vars)] {
 		if v != nil {
 			C.dpiVar_release(v)
 		}
 	}
+	if nextRs != nil {
+		if Log != nil {
+			Log("msg", "rows Close", "nextRs", fmt.Sprintf("%p", nextRs))
+		}
+		C.dpiStmt_release(nextRs)
+	}
 	if st == nil {
 		return nil
 	}
 
-	st.Lock()
-	defer st.Unlock()
-	if st.dpiStmt == nil {
-		return nil
+	if fromData || st.dpiStmt.refCount < 2 {
+		return st.Close()
 	}
-	var err error
-	if C.dpiStmt_release(st.dpiStmt) == C.DPI_FAILURE {
-		err = errors.Errorf("rows/dpiStmt_release: %w", r.getError())
-	}
-	return err
+	C.dpiStmt_release(st.dpiStmt)
+	return nil
 }
 
 // ColumnTypeLength return the length of the column type if the column is a variable length type.
@@ -251,6 +254,8 @@ func (r *rows) ColumnTypeScanType(index int) reflect.Type {
 	}
 }
 
+const debugRowsNext = false
+
 // Next is called to populate the next row of data into
 // the provided slice. The provided slice will be the same
 // size as the Columns() are wide.
@@ -262,33 +267,40 @@ func (r *rows) Next(dest []driver.Value) error {
 	if r.err != nil {
 		return r.err
 	}
-	if r.finished {
-		_ = r.Close()
-		r.err = io.EOF
-		return r.err
-	}
 	if len(dest) != len(r.columns) {
 		return errors.Errorf("column count mismatch: we have %d columns, but given %d destination", len(r.columns), len(dest))
 	}
 	if r.fetched == 0 {
 		var moreRows C.int
-		maxRows := C.uint32_t(r.statement.FetchRowCount())
+		var start time.Time
+		maxRows := C.uint32_t(r.statement.FetchArraySize())
 		r.statement.Lock()
+		if debugRowsNext {
+			fmt.Printf("fetching max=%d\n", maxRows)
+			start = time.Now()
+		}
 		failed := C.dpiStmt_fetchRows(r.dpiStmt, maxRows, &r.bufferRowIndex, &r.fetched, &moreRows) == C.DPI_FAILURE
+		if debugRowsNext {
+			fmt.Printf("failed=%t bri=%d fetched=%d more=%d data=%d cols=%d dur=%s\n", failed, r.bufferRowIndex, r.fetched, moreRows, len(r.data), len(r.columns), time.Since(start))
+		}
 		r.statement.Unlock()
 		if failed {
 			err := r.getError()
-			if strings.Contains(err.Error(), "DPI-1039: statement was already closed") {
-				_ = r.Close()
-				r.err = io.EOF
-				return r.err
+			if Log != nil {
+				Log("msg", "fetch", "error", err)
 			}
-			return errors.Errorf("Next: %w", err)
+			_ = r.Close()
+			if strings.Contains(err.Error(), "DPI-1039: statement was already closed") {
+				r.err = io.EOF
+			} else {
+				r.err = errors.Errorf("Next: %w", err)
+			}
+			return r.err
 		}
 		if Log != nil {
 			Log("msg", "fetched", "bri", r.bufferRowIndex, "fetched", r.fetched, "moreRows", moreRows, "len(data)", len(r.data), "cols", len(r.columns))
 		}
-		if r.finished = r.fetched == 0; r.finished {
+		if r.fetched == 0 {
 			_ = r.Close()
 			r.err = io.EOF
 			return r.err
@@ -308,6 +320,8 @@ func (r *rows) Next(dest []driver.Value) error {
 
 	}
 	//fmt.Printf("data=%#v\n", r.data)
+
+	nullTime := r.statement.NullDate()
 
 	//fmt.Printf("bri=%d fetched=%d\n", r.bufferRowIndex, r.fetched)
 	//fmt.Printf("data=%#v\n", r.data[0][r.bufferRowIndex])
@@ -357,11 +371,11 @@ func (r *rows) Next(dest []driver.Value) error {
 				b := C.dpiData_getBytes(d)
 				s := C.GoStringN(b.ptr, C.int(b.length))
 				dest[i] = s
-				if Log != nil {
+				if false && Log != nil {
 					Log("msg", "b", "i", i, "ptr", b.ptr, "length", b.length, "typ", col.NativeType, "int64", C.dpiData_getInt64(d), "dest", dest[i])
 				}
 			}
-			if Log != nil {
+			if false && Log != nil {
 				Log("msg", "num", "t", col.NativeType, "i", i, "dest", fmt.Sprintf("%T %+v", dest[i], dest[i]))
 			}
 
@@ -406,13 +420,13 @@ func (r *rows) Next(dest []driver.Value) error {
 			C.DPI_NATIVE_TYPE_TIMESTAMP,
 			C.DPI_ORACLE_TYPE_DATE:
 			if isNull {
-				dest[i] = nil
+				dest[i] = nullTime
 				continue
 			}
 			ts := C.dpiData_getTimestamp(d)
-			tz := r.conn.timeZone
+			tz := r.conn.params.Timezone
 			if col.OracleType == C.DPI_ORACLE_TYPE_TIMESTAMP_TZ || col.OracleType == C.DPI_ORACLE_TYPE_TIMESTAMP_LTZ {
-				tz = timeZoneFor(ts.tzHourOffset, ts.tzMinuteOffset)
+				tz = timeZoneFor(ts.tzHourOffset, ts.tzMinuteOffset, tz)
 			}
 			dest[i] = time.Date(int(ts.year), time.Month(ts.month), int(ts.day), int(ts.hour), int(ts.minute), int(ts.second), int(ts.fsecond), tz)
 		case C.DPI_ORACLE_TYPE_INTERVAL_DS, C.DPI_NATIVE_TYPE_INTERVAL_DS:
@@ -469,14 +483,25 @@ func (r *rows) Next(dest []driver.Value) error {
 			}
 			var colCount C.uint32_t
 			if C.dpiStmt_getNumQueryColumns(st.dpiStmt, &colCount) == C.DPI_FAILURE {
-				return errors.Errorf("getNumQueryColumns: %w", r.getError())
+				err := r.getError()
+				if Log != nil {
+					Log("msg", "Next.getNumQueryColumns", "st", fmt.Sprintf("%p", st.dpiStmt), "error", err)
+				}
+				//C.dpiStmt_release(st.dpiStmt)
+				return errors.Errorf("getNumQueryColumns: %w", err)
 			}
 			st.Lock()
 			r2, err := st.openRows(int(colCount))
 			st.Unlock()
 			if err != nil {
+				if Log != nil {
+					Log("msg", "Next.openRows", "st", fmt.Sprintf("%p", st.dpiStmt), "error", err)
+				}
+				st.Close()
 				return err
 			}
+			r2.fromData = true
+			stmtSetFinalizer(st, "Next")
 			dest[i] = r2
 
 		case C.DPI_ORACLE_TYPE_BOOLEAN, C.DPI_NATIVE_TYPE_BOOLEAN:
@@ -506,6 +531,9 @@ func (r *rows) Next(dest []driver.Value) error {
 	r.bufferRowIndex++
 	r.fetched--
 
+	if debugRowsNext && r.fetched < 2 {
+		fmt.Printf("bri=%d fetched=%d\n", r.bufferRowIndex, r.fetched)
+	}
 	if Log != nil {
 		Log("msg", "scanned", "row", r.bufferRowIndex, "dest", dest)
 	}
@@ -571,6 +599,7 @@ func (r *rows) getImplicitResult() {
 	if C.dpiStmt_getImplicitResult(st.dpiStmt, &r.nextRs) == C.DPI_FAILURE {
 		r.nextRsErr = errors.Errorf("getImplicitResult: %w", r.getError())
 	}
+	C.dpiStmt_addRef(r.nextRs)
 }
 func (r *rows) HasNextResultSet() bool {
 	if r == nil || r.statement == nil || r.conn == nil {
@@ -579,34 +608,46 @@ func (r *rows) HasNextResultSet() bool {
 	if r.nextRs != nil {
 		return true
 	}
-	if !((r.conn.Client.Version > 12 || r.conn.Client.Version == 12 && r.conn.Client.Release >= 1) &&
-		(r.conn.Server.Version > 12 || r.conn.Server.Version == 12 && r.conn.Server.Release >= 1)) {
+	if cv := r.conn.drv.clientVersion; !(cv.Version > 12 || cv.Version == 12 && cv.Release >= 1) {
+		return false
+	}
+	if sv, err := r.conn.ServerVersion(); !(err == nil &&
+		(sv.Version > 12 || sv.Version == 12 && sv.Release >= 1)) {
 		return false
 	}
 	r.getImplicitResult()
 	return r.nextRs != nil
 }
 func (r *rows) NextResultSet() error {
-	if r.nextRs == nil {
-		r.getImplicitResult()
+	if !r.HasNextResultSet() {
 		if r.nextRsErr != nil {
 			return r.nextRsErr
 		}
-		if r.nextRs == nil {
-			return errors.Errorf("getImplicitResult: %w", io.EOF)
-		}
+		return errors.Errorf("getImplicitResult: %w", io.EOF)
 	}
 	st := &statement{conn: r.conn, dpiStmt: r.nextRs}
 
 	var n C.uint32_t
 	if C.dpiStmt_getNumQueryColumns(st.dpiStmt, &n) == C.DPI_FAILURE {
-		return errors.Errorf("getNumQueryColumns: %w: %w", r.getError(), io.EOF)
-	}
-	// keep the originam statement for the succeeding NextResultSet calls.
-	nr, err := st.openRows(int(n))
-	if err != nil {
+		err := errors.Errorf("getNumQueryColumns: %w: %w", r.getError(), io.EOF)
+		if Log != nil {
+			Log("msg", "NextResultSet.getNumQueryColumns", "st", fmt.Sprintf("%p", st.dpiStmt), "error", err)
+		}
+		//C.dpiStmt_release(st.dpiStmt)
 		return err
 	}
+	// keep the originam statement for the succeeding NextResultSet calls.
+	st.Lock()
+	nr, err := st.openRows(int(n))
+	st.Unlock()
+	if err != nil {
+		if Log != nil {
+			Log("msg", "NextResultSet.openRows", "st", fmt.Sprintf("%p", st.dpiStmt), "error", err)
+		}
+		st.Close()
+		return err
+	}
+	stmtSetFinalizer(st, "NextResultSet")
 	nr.origSt = r.origSt
 	if nr.origSt == nil {
 		nr.origSt = r.statement
