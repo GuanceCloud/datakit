@@ -3,78 +3,68 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	_ "github.com/godror/godror"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"github.com/influxdata/toml"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 )
 
 var (
-	flagCfg    = flag.String("cfg", "", "toml config file path")
-	flagGetCfg = flag.String("get-cfg", "", "get config sample, default write to ./instances.toml")
+	flagCfgStr = flag.String("cfg", "", "json config string")
+	flagDesc   = flag.String("desc", "", "description of the process, for debugging")
 
 	flagRPCServer = flag.String("rpc-server", "unix://"+datakit.GRPCDomainSock, "gRPC server")
 	flagLog       = flag.String("log", filepath.Join(datakit.InstallDir, "external", "oraclemonitor.log"), "log file")
 	flagLogLevel  = flag.String("log-level", "info", "log file")
 
-	l         *zap.SugaredLogger
-	instances []*oraclemonitor.Instance
-	rpcCli    io.DataKitClient
+	l      *zap.SugaredLogger
+	rpcCli io.DataKitClient
 )
 
-type impl struct {
-	LibPath   string                    `toml:"libPath"` // no used
-	Instances []*oraclemonitor.Instance `toml:"instances"`
-}
+type monitor oraclemonitor.OracleMonitor
 
 func main() {
 	flag.Parse()
 
-	if *flagGetCfg != "" {
-		// TODO
-		panic("no implemented")
+	if *flagCfgStr == "" {
+		panic("config(json string) missing")
 	}
 
-	if *flagCfg == "" {
-		panic("toml config missing")
+	logger.SetGlobalRootLogger(*flagLog,
+		*flagLogLevel,
+		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+
+	if *flagDesc != "" {
+		l = logger.SLogger("oraclemonitor-" + *flagDesc)
+	} else {
+		l = logger.SLogger("oraclemonitor")
 	}
 
-	logger.SetGlobalRootLogger(*flagLog, *flagLogLevel, logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
-	l = logger.SLogger("oraclemonitor")
+	l.Infof("log level: %s", *flagLogLevel)
 
-	data, err := ioutil.ReadFile(*flagCfg)
+	var m monitor
+	cfg, err := base64.StdEncoding.DecodeString(*flagCfgStr)
 	if err != nil {
-		l.Fatal(err)
-		return
+		panic(err)
 	}
 
-	tbl, err := toml.Parse(data)
-	if err != nil {
-		l.Fatal(err)
-		return
-	}
-
-	var i impl
-	if err := toml.UnmarshalTable(tbl, &i); err != nil {
-		l.Error(err)
+	if err := json.Unmarshal(cfg, &m); err != nil {
+		l.Errorf("failed to parse json `%s': %s", *flagCfgStr, err)
 		return
 	}
 
@@ -89,95 +79,96 @@ func main() {
 
 	rpcCli = io.NewDataKitClient(conn)
 
-	i.Start()
+	m.run()
 }
 
-func (i *impl) Start() {
-	l.Infof("start monit %d oracle instances...", len(i.Instances))
+func (m *monitor) run() {
 
-	wg := sync.WaitGroup{}
+	l.Info("start monit oracle...")
 
-	for _, inst := range i.Instances {
-		connStr := fmt.Sprintf("%s/%s@%s/%s", inst.User, inst.Password, inst.Host, inst.Server)
-		db, err := sql.Open("godror", connStr)
+	m.IntervalDuration = 10 * time.Second
+
+	if m.Interval != "" {
+		du, err := time.ParseDuration(m.Interval)
 		if err != nil {
-			l.Errorf("oracle connect faild %v", err)
-			continue
+			l.Errorf("bad interval %s: %s, use default: 10s", m.Interval, err.Error())
+		} else {
+			m.IntervalDuration = du
 		}
-
-		du, err := time.ParseDuration(inst.Interval)
-		if err != nil {
-			l.Error(err)
-			continue
-		}
-
-		inst.DB = db
-		inst.IntervalDuration = du
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			run(inst)
-		}()
 	}
 
-	wg.Wait()
-}
+	tick := time.NewTicker(m.IntervalDuration)
+	defer tick.Stop()
 
-func run(i *oraclemonitor.Instance) {
+	connStr := fmt.Sprintf("%s/%s@%s/%s", m.User, m.Password, m.Host, m.Server)
+	db, err := sql.Open("godror", connStr)
+	if err != nil {
+		l.Errorf("oracle connect faild %v", err)
+		return
+	}
+	m.DB = db
+	defer m.DB.Close()
+
+	// XXX: should we add signal handling here?
 	for {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		for key, stmt := range metricMap {
+		select {
+		case <-tick.C:
+			for key, stmt := range metricMap {
 
-			l.Debugf("sql: %s", key)
-			res, err := query(i.DB, stmt)
-			if err != nil {
-				l.Errorf("oracle connect faild %v", err)
-				continue
+				l.Debugf("sql: %s", stmt)
+
+				res, err := query(m.DB, stmt)
+				if err != nil {
+					l.Errorf("oracle query `%s' faild: %v, ignored", stmt, err)
+					continue
+				}
+
+				handleResponse(m, key, res)
 			}
-
-			handleResponse(i, key, res)
 		}
-
-		internal.SleepContext(ctx, i.IntervalDuration)
 	}
 }
 
-func handleResponse(i *oraclemonitor.Instance, m string, response []map[string]interface{}) error {
+func handleResponse(m *monitor, k string, response []map[string]interface{}) error {
 	lines := []string{}
 
 	for _, item := range response {
+
 		tags := map[string]string{}
 
-		tags["oracle_server"] = i.Server
-		tags["oracle_port"] = i.Port
-		tags["instance_id"] = i.InstanceId
-		tags["instance_desc"] = i.Desc
-		tags["product"] = "oracle"
-		tags["host"] = i.Host
-		tags["type"] = m
+		for k, v := range m.Tags {
+			tags[k] = v
+		}
 
-		if tagKeys, ok := tagsMap[m]; ok {
+		tags["oracle_server"] = m.Server
+		tags["oracle_port"] = m.Port
+		tags["instance_id"] = m.InstanceId
+		tags["instance_desc"] = m.Desc
+		tags["product"] = "oracle"
+		tags["host"] = m.Host
+		tags["type"] = k
+
+		if tagKeys, ok := tagsMap[k]; ok {
 			for _, tagKey := range tagKeys {
 				tags[tagKey] = String(item[tagKey])
 				delete(item, tagKey)
 			}
 		}
 
-		pt, err := influxdb.NewPoint(i.Metric, tags, item, time.Now())
+		pt, err := influxdb.NewPoint(m.Metric, tags, item, time.Now())
 		if err != nil {
 			l.Errorf("new point failed: %s", err.Error())
 			return err
 		}
+
 		lines = append(lines, pt.String())
+		l.Debugf("add point %+#v", string(lines[len(lines)-1]))
 	}
 
 	if len(lines) == 0 {
-		l.Debugf("no metric collected on %s", m)
+		l.Debugf("no metric collected on %s", k)
 		return nil
 	}
-
-	// TODO: RPC post to datakit
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
