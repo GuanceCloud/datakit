@@ -639,7 +639,13 @@ func initPluginCfgs() {
 }
 
 func parseConfig(contents []byte) (*ast.Table, error) {
-	return toml.Parse(contents)
+	tbl, err := toml.Parse(contents)
+	if err != nil {
+		l.Errorf("toml parse %s failed: %s", string(contents), err.Error())
+		return nil, err
+	}
+
+	return tbl, nil
 }
 
 func sliceContains(name string, list []string) bool {
