@@ -499,7 +499,7 @@ var (
 				`windows/amd64`: true,
 				`windows/386`:   true,
 			},
-			buildArgs: []string{"plugins/external/csv/build.sh"},
+			buildArgs: []string{"plugins/externals/csv/build.sh"},
 			buildCmd:  "bash",
 		},
 
@@ -511,7 +511,7 @@ func buildExternals(outdir, goos, goarch string) {
 	curOSArch := runtime.GOOS + "/" + runtime.GOARCH
 
 	for _, ex := range externals {
-		l.Debugf("building %s/%s/%s", goos, goarch, ex.name)
+		l.Debugf("building %s-%s/%s", goos, goarch, ex.name)
 
 		if _, ok := ex.osarchs[curOSArch]; !ok {
 			l.Debugf("skip build %s under %s", ex.name, curOSArch)
@@ -537,10 +537,10 @@ func buildExternals(outdir, goos, goarch string) {
 
 			args := []string{
 				"go", "build",
-				"-o", filepath.Join(outdir, "external", out),
+				"-o", filepath.Join(outdir, "externals", out),
 				"-ldflags",
 				"-w -s",
-				filepath.Join("plugins/external", ex.name, ex.entry),
+				filepath.Join("plugins/externals", ex.name, ex.entry),
 			}
 
 			env := append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
@@ -551,7 +551,7 @@ func buildExternals(outdir, goos, goarch string) {
 			}
 
 		case "python", "py": // for python, just copy source code into build dir
-			args := append(ex.buildArgs, filepath.Join(outdir, "external"))
+			args := append(ex.buildArgs, filepath.Join(outdir, "externals"))
 			cmd := exec.Command(ex.buildCmd, args...)
 			if ex.envs != nil {
 				cmd.Env = append(os.Environ(), ex.envs...)
@@ -566,14 +566,14 @@ func buildExternals(outdir, goos, goarch string) {
 			// TODO
 
 		default:
-			l.Fatalf("unknown external lang type: %s", ex.lang)
+			l.Fatalf("unknown external language type: %s", ex.lang)
 		}
 	}
 }
 
 func buildInstaller(outdir, goos, goarch string) {
 
-	l.Debugf("building %s/%s installer...", goos, goarch)
+	l.Debugf("building %s-%s/installer...", goos, goarch)
 
 	gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, git.Version)
 
