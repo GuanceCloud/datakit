@@ -19,8 +19,9 @@ import (
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/harborMonitor"
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpstat"
+
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jira"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/lighttpd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
@@ -56,7 +57,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
 
 	// external inputs wrap
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
+	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 	// with dll/so dependencies, and also 32bit disabled
 
 	// only windows
