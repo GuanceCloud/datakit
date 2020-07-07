@@ -194,14 +194,14 @@ func __run() {
 
 func loadConfig() {
 
+	config.Cfg.InputFilters = inputFilters
+
 	if err := config.LoadCfg(); err != nil {
 		panic(fmt.Sprintf("load config failed: %s", err))
 	}
 
 	l = logger.SLogger("main")
-
-	config.Cfg.InputFilters = inputFilters
-	l.Infof("input fileters %v", inputFilters)
+	//l.Infof("input fileters %v", inputFilters)
 }
 
 func runTelegraf() error {
