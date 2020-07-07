@@ -14,8 +14,7 @@ type Input interface {
 type Creator func() Input
 
 var (
-	Inputs             = map[string]Creator{}
-	InternalInputsData = map[string][]byte{}
+	Inputs = map[string]Creator{}
 )
 
 func Add(name string, creator Creator) {
