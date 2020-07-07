@@ -5,42 +5,37 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"golang.org/x/time/rate"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 )
 
-var (
-	batchInterval = 5 * time.Minute
-	rateLimit     = 10
-)
+func (r *azureInstance) run(ctx context.Context) error {
 
-func (r *runningInstance) run(ctx context.Context) error {
-
-	if r.cfg.EndPoint == "" {
-		r.cfg.EndPoint = `https://management.chinacloudapi.cn`
+	if r.EndPoint == "" {
+		r.EndPoint = `https://management.chinacloudapi.cn`
 	}
 
-	r.metricDefinitionClient = insights.NewMetricDefinitionsClientWithBaseURI(r.cfg.EndPoint, r.cfg.SubscriptionID)
-	r.metricClient = insights.NewMetricsClientWithBaseURI(r.cfg.EndPoint, r.cfg.SubscriptionID)
+	r.metricDefinitionClient = insights.NewMetricDefinitionsClientWithBaseURI(r.EndPoint, r.SubscriptionID)
+	r.metricClient = insights.NewMetricsClientWithBaseURI(r.EndPoint, r.SubscriptionID)
 
 	settings := auth.EnvironmentSettings{
 		Values: map[string]string{},
 	}
-	settings.Values[auth.SubscriptionID] = r.cfg.SubscriptionID
-	settings.Values[auth.TenantID] = r.cfg.TenantID
-	settings.Values[auth.ClientID] = r.cfg.ClientID
-	settings.Values[auth.ClientSecret] = r.cfg.ClientSecret
+	settings.Values[auth.SubscriptionID] = r.SubscriptionID
+	settings.Values[auth.TenantID] = r.TenantID
+	settings.Values[auth.ClientID] = r.ClientID
+	settings.Values[auth.ClientSecret] = r.ClientSecret
 	settings.Environment = azure.ChinaCloud
 	settings.Values[auth.Resource] = settings.Environment.ResourceManagerEndpoint
 
 	r.metricDefinitionClient.Authorizer, _ = settings.GetAuthorizer()
 	r.metricClient.Authorizer, _ = settings.GetAuthorizer()
 
-	r.queryInfos = r.cfg.genQueryInfo()
+	r.queryInfos = r.genQueryInfo()
 
 	select {
 	case <-ctx.Done():
@@ -48,8 +43,8 @@ func (r *runningInstance) run(ctx context.Context) error {
 	default:
 	}
 
-	lmtr := limiter.NewRateLimiter(rateLimit, time.Second)
-	defer lmtr.Stop()
+	limit := rate.Every(50 * time.Millisecond)
+	r.rateLimiter = rate.NewLimiter(limit, 1)
 
 	for {
 
@@ -68,9 +63,9 @@ func (r *runningInstance) run(ctx context.Context) error {
 			default:
 			}
 
-			<-lmtr.C
+			r.rateLimiter.Wait(ctx)
 			if err := r.fetchMetric(ctx, req); err != nil {
-				r.logger.Errorf(`fail to get metric "%s.%s", %s`, req.resourceID, req.metricname)
+				moduleLogger.Errorf(`fail to get metric "%s.%s", %s`, req.resourceID, req.metricname)
 			}
 		}
 		useage := time.Now().Sub(t)
@@ -78,7 +73,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 	}
 }
 
-func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) error {
+func (r *azureInstance) fetchMetric(ctx context.Context, info *queryListInfo) error {
 
 	now := time.Now().Truncate(time.Minute).Add(-time.Minute)
 	if now.Sub(info.lastFetchTime) < info.intervalTime {
@@ -97,7 +92,7 @@ func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) 
 	}
 	end := unixTimeStrISO8601(now)
 
-	r.logger.Debugf("query param: resourceID=%s, metric=%s, span=%s, interval=%s", info.resourceID, info.metricname, start+"/"+end, info.interval)
+	moduleLogger.Debugf("query param: resourceID=%s, metric=%s, span=%s, interval=%s", info.resourceID, info.metricname, start+"/"+end, info.interval)
 
 	res, err := r.metricClient.List(ctx, info.resourceID, start+"/"+end, &info.interval, info.metricname, info.aggregation, nil, info.orderby, info.filter, info.resultType, info.metricnamespace)
 
@@ -122,7 +117,7 @@ func (r *runningInstance) fetchMetric(ctx context.Context, info *queryListInfo) 
 
 		tms := *m.Timeseries
 
-		r.logger.Debugf("Timeseries(%s) length: %v", metricName, len(tms))
+		moduleLogger.Debugf("Timeseries(%s) length: %v", metricName, len(tms))
 
 		for _, tm := range tms {
 
