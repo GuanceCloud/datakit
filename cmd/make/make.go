@@ -214,7 +214,7 @@ func compile() {
 		buildInstaller(filepath.Join(*flagPubDir, *flagRelease), goos, goarch)
 	}
 
-	l.Infof("build elapsed %v", time.Since(start))
+	l.Infof("Done!(elapsed %v)", time.Since(start))
 }
 
 type installInfo struct {
@@ -252,6 +252,7 @@ func getCurrentVersionInfo(url string) *versionDesc {
 }
 
 func releaseAgent() {
+	start := time.Now()
 	var ak, sk, bucket, ossHost string
 	objPath := *flagName
 
@@ -374,7 +375,7 @@ func releaseAgent() {
 		}
 	}
 
-	l.Info("Done :)")
+	l.Infof("Done!(elapsed: %v)", time.Since(start))
 }
 
 func main() {
