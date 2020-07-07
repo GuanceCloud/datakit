@@ -6,9 +6,11 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 const (
@@ -23,7 +25,14 @@ const (
 )
 
 var (
-	defaultRootLogger *zap.Logger
+	defaultRootLogger   *zap.Logger
+	__l                 *zap.SugaredLogger
+	reservedSLoggerName string = "__reserved__"
+	slogs               *sync.Map
+
+	MaxSize    = 32 // megabytes
+	MaxBackups = 5
+	MaxAge     = 28 // day
 )
 
 func SetGlobalRootLogger(fpath, level string, options int) error {
@@ -37,6 +46,13 @@ func SetGlobalRootLogger(fpath, level string, options int) error {
 		panic(err)
 	}
 
+	slogs = &sync.Map{}
+
+	__l = GetSugarLogger(defaultRootLogger, reservedSLoggerName)
+	slogs.Store(reservedSLoggerName, __l)
+
+	__l.Info("root logger init ok")
+
 	return nil
 }
 
@@ -48,6 +64,7 @@ func Logger(name string) *zap.Logger {
 	if defaultRootLogger == nil {
 		panic(rootNotInitialized)
 	}
+
 	return GetLogger(defaultRootLogger, name)
 }
 
@@ -56,7 +73,16 @@ func SLogger(name string) *zap.SugaredLogger {
 		panic(rootNotInitialized)
 	}
 
-	return GetSugarLogger(defaultRootLogger, name)
+	newlog := GetSugarLogger(defaultRootLogger, name)
+
+	l, ok := slogs.LoadOrStore(name, newlog)
+	if ok {
+		__l.Debugf("add new sloger `%s'", name)
+	} else {
+		__l.Debugf("reused exist sloger `%s'", name)
+	}
+
+	return l.(*zap.SugaredLogger)
 }
 
 func GetLogger(root *zap.Logger, name string) *zap.Logger {
@@ -69,6 +95,35 @@ func GetSugarLogger(root *zap.Logger, name string) *zap.SugaredLogger {
 
 func newWinFileSink(u *url.URL) (zap.Sink, error) {
 	return os.OpenFile(u.Path[1:], os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+}
+
+func _NewRotateRootLogger(fpath, level string, options int) (*zap.Logger, error) {
+	w := zapcore.AddSync(&lumberjack.Logger{
+		Filename:   fpath,
+		MaxSize:    MaxSize,
+		MaxBackups: MaxBackups,
+		MaxAge:     MaxAge,
+	})
+
+	encodeCfg := zapcore.EncoderConfig{
+		NameKey:    "MOD",
+		MessageKey: "MSG",
+
+		LevelKey:    "LEV",
+		EncodeLevel: zapcore.CapitalLevelEncoder,
+
+		TimeKey:    "TS",
+		EncodeTime: zapcore.ISO8601TimeEncoder,
+
+		CallerKey:    "POS",
+		EncodeCaller: zapcore.FullCallerEncoder,
+	}
+
+	encoder := zapcore.NewConsoleEncoder(encodeCfg)
+
+	core := zapcore.NewCore(encoder, w, zap.InfoLevel)
+	l := zap.New(core)
+	return l, nil
 }
 
 func NewRootLogger(fpath, level string, options int) (*zap.Logger, error) {
@@ -99,6 +154,7 @@ func NewRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 				"winfile:///" + fpath,
 			}
 		}
+
 	}
 
 	switch strings.ToLower(level) {
