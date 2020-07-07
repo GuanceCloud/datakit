@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
+	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
