@@ -10,19 +10,20 @@ import (
 
 	"database/sql"
 
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type MysqlMonitor struct {
-	Mysql       []*Mysql
-	ctx         context.Context
-	cancelFun   context.CancelFunc
-	accumulator telegraf.Accumulator
-	logger      *models.Logger
+	Mysql     []*Mysql
+	ctx       context.Context
+	cancelFun context.CancelFunc
+	logger    *models.Logger
 
 	runningInstances []*runningInstance
 }
@@ -47,7 +48,7 @@ func (_ *MysqlMonitor) Description() string {
 	return ""
 }
 
-func (_ *MysqlMonitor) Gather(telegraf.Accumulator) error {
+func (_ *MysqlMonitor) Gather() error {
 	return nil
 }
 
@@ -55,19 +56,16 @@ func (_ *MysqlMonitor) Init() error {
 	return nil
 }
 
-func (o *MysqlMonitor) Start(acc telegraf.Accumulator) error {
+func (o *MysqlMonitor) Run() {
 	o.logger = &models.Logger{
 		Name: `mysqlmonitor`,
 	}
 
 	if len(o.Mysql) == 0 {
 		o.logger.Warnf("no configuration found")
-		return nil
 	}
 
 	o.logger.Infof("starting...")
-
-	o.accumulator = acc
 
 	for _, instCfg := range o.Mysql {
 		r := &runningInstance{
@@ -95,7 +93,6 @@ func (o *MysqlMonitor) Start(acc telegraf.Accumulator) error {
 
 		go r.run(o.ctx)
 	}
-	return nil
 }
 
 func (o *MysqlMonitor) Stop() {
@@ -146,7 +143,12 @@ func (r *runningInstance) handleResponse(m string, response []map[string]interfa
 		tags["product"] = r.cfg.Product
 		tags["type"] = m
 
-		r.agent.accumulator.AddFields(r.metricName, item, tags)
+		pt, err := influxdb.NewPoint(r.metricName, tags, item, time.Now())
+		if err != nil {
+			return err
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 
 	return nil
