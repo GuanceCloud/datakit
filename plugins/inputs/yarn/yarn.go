@@ -98,11 +98,12 @@ type NodeItem struct {
 }
 
 type Yarn struct {
-	Interval int
-	Active   bool
-	Host     string
+	Interval    int
+	Active      bool
+	Host        string
 	MetricsName string
-	hostPath string
+	Tags        map[string]string
+	hostPath    string
 }
 
 type YarnInput struct {
@@ -116,7 +117,7 @@ type YarnOutput struct {
 type YarnParam struct {
 	input  YarnInput
 	output YarnOutput
-	log *zap.SugaredLogger
+	log    *zap.SugaredLogger
 }
 
 const (
@@ -131,12 +132,20 @@ const (
 #	active      = true
 #	host        = "http://127.0.0.1:8088"
 #	metricsName = "yarn"
+#	[inputs.yarn.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tagn = "tagn"
 
 #[[inputs.yarn]]
 #	interval    = 60
 #	active      = true
 #	host        = "http://127.0.0.1:8088"
 #	metricsName = "yarn"
+#	[inputs.yarn.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tagn = "tagn"
 `
 	defaultMetricName = "yarn"
 	defaultInterval   = 60
@@ -166,7 +175,7 @@ func (y *Yarn) SampleConfig() string {
 	return yarnConfigSample
 }
 
-func (y *Yarn) Run()  {
+func (y *Yarn) Run() {
 	if !y.Active || y.Host == "" {
 		return
 	}
@@ -187,9 +196,8 @@ func (y *Yarn) Run()  {
 	p.gather()
 }
 
-
 func (p *YarnParam) gather() {
-	tick := time.NewTicker(time.Duration(p.input.Interval)*time.Second)
+	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
 	defer tick.Stop()
 	for {
 		select {
@@ -237,6 +245,9 @@ func (p *YarnParam) gatherMainSection() (err error) {
 
 	tags[section] = sectionMain
 	tags[host] = p.input.Host
+	for tag, tagV := range p.input.Tags {
+		tags[tag] = tagV
+	}
 	fields[canConect] = true
 
 	resp, err := http.Get(p.input.hostPath + "metrics")
@@ -284,6 +295,7 @@ func (p *YarnParam) gatherMainSection() (err error) {
 	if err != nil {
 		return
 	}
+
 	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
 	return
 }
@@ -308,6 +320,9 @@ func (p *YarnParam) gatherAppSection() error {
 		fields = make(map[string]interface{})
 		tags[section] = sectionAPP + ap.Id
 		tags[host] = p.input.Host
+		for tag, tagV := range p.input.Tags {
+			tags[tag] = tagV
+		}
 
 		fields["progress"] = ap.Progress
 		fields["started_time"] = ap.StartedTime
@@ -352,6 +367,9 @@ func (p *YarnParam) gatherNodeSection() error {
 		fields = make(map[string]interface{})
 		tags[section] = sectionNode + node.Id
 		tags[host] = p.input.Host
+		for tag, tagV := range p.input.Tags {
+			tags[tag] = tagV
+		}
 
 		fields["last_health_update"] = node.LastHealthUpdate
 		fields["used_memory"] = node.UsedMemoryMB
@@ -394,6 +412,9 @@ func (p *YarnParam) gatherQueueSection() error {
 		tags = make(map[string]string)
 		fields = make(map[string]interface{})
 		tags[host] = p.input.Host
+		for tag, tagV := range p.input.Tags {
+			tags[tag] = tagV
+		}
 
 		if val, err := getQueueNodeVal(node, "type", STRING); err == nil {
 			switch val.(type) {
