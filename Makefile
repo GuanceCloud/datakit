@@ -28,9 +28,9 @@ ENTRY = cmd/datakit/main.go
 # Solution:
 # > apt-get install gcc-multilib
 # 
-LOCAL_ARCHS = "linux/amd64"
+#LOCAL_ARCHS = "linux/amd64"
 #LOCAL_ARCHS = "linux/amd64|linux/386|windows/amd64"
-#LOCAL_ARCHS = "all"
+LOCAL_ARCHS = "all"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
