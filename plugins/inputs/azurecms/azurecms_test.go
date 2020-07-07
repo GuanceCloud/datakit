@@ -15,23 +15,19 @@ import (
 )
 
 func TestDumpConfig(t *testing.T) {
-	cfg := &azureMonitorAgent{
-		Instances: []*azureInstance{
-			&azureInstance{
-				ClientID:       "xxx",
-				ClientSecret:   "xxx",
-				TenantID:       "xxx",
-				SubscriptionID: "xxx",
-				EndPoint:       "xxx",
-				Resource: []*azureResource{
-					&azureResource{
-						ResourceID: "xxx",
-						Metrics: []*azureMetric{
-							&azureMetric{
-								MetricName: "xxx",
-								//Interval
-							},
-						},
+	cfg := &azureInstance{
+		ClientID:       "xxx",
+		ClientSecret:   "xxx",
+		TenantID:       "xxx",
+		SubscriptionID: "xxx",
+		EndPoint:       "xxx",
+		Resource: []*azureResource{
+			&azureResource{
+				ResourceID: "xxx",
+				Metrics: []*azureMetric{
+					&azureMetric{
+						MetricName: "xxx",
+						//Interval
 					},
 				},
 			},
@@ -61,20 +57,20 @@ func TestLoadConfig(t *testing.T) {
  metric_name = 'Percentage CPU'
  interval = '1m'
 `
-	var cfg azureMonitorAgent
+	var cfg azureInstance
 	if err := toml.Unmarshal([]byte(cfgstr), &cfg); err != nil {
 		log.Fatalf("%s", err)
 	}
 
-	for _, inst := range cfg.Instances {
-		log.Printf("client_id=%s", inst.ClientID)
-		for _, res := range inst.Resource {
-			log.Printf("resource_id=%s", res.ResourceID)
-			for _, m := range res.Metrics {
-				log.Printf("metric_name=%s，interval=%v", m.MetricName, m.Interval)
-			}
-		}
-	}
+	// for _, inst := range cfg.Instances {
+	// 	log.Printf("client_id=%s", inst.ClientID)
+	// 	for _, res := range inst.Resource {
+	// 		log.Printf("resource_id=%s", res.ResourceID)
+	// 		for _, m := range res.Metrics {
+	// 			log.Printf("metric_name=%s，interval=%v", m.MetricName, m.Interval)
+	// 		}
+	// 	}
+	// }
 }
 
 func TestGetMetricMetas(t *testing.T) {
