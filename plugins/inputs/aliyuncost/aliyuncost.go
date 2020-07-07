@@ -5,38 +5,28 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
+	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
-	//batchInterval = time.Duration(5) * time.Minute
-	//metricPeriod  = time.Duration(5 * time.Minute)
-	//rateLimit     = 20
+	moduleLogger *zap.SugaredLogger
 
 	historyCacheDir = `/etc/datakit/aliyuncost`
+
+	inputName = `aliyuncost`
 )
 
 type (
-	AliyunCostAgent struct {
-		Costs []*CostCfg `toml:"boa"`
-
-		wg sync.WaitGroup
-
-		ctx       context.Context
-		cancelFun context.CancelFunc
-		logger    *models.Logger
-	}
-
 	runningInstance struct {
 		cfg *CostCfg
 
@@ -51,8 +41,6 @@ type (
 
 		rateLimiter *rate.Limiter
 
-		agent *AliyunCostAgent
-
 		ctx context.Context
 
 		accountName string
@@ -66,79 +54,60 @@ type (
 	}
 )
 
-func (_ *AliyunCostAgent) Catalog() string {
+func (_ *CostCfg) Catalog() string {
 	return "aliyun"
 }
 
-func (_ *AliyunCostAgent) SampleConfig() string {
+func (_ *CostCfg) SampleConfig() string {
 	return aliyuncostConfigSample
 }
 
-func (ac *AliyunCostAgent) Run() {
+func (ac *CostCfg) Run() {
 
-	ac.logger = &models.Logger{
-		Name: `aliyuncost`,
-	}
-
-	if len(ac.Costs) == 0 {
-		ac.logger.Warnf("no configuration found")
-		return
-	}
+	moduleLogger = logger.SLogger(inputName)
 
 	go func() {
 		<-datakit.Exit.Wait()
 		ac.cancelFun()
 	}()
 
-	for _, cfg := range ac.Costs {
-		ac.wg.Add(1)
-
-		go func(cfg *CostCfg) {
-			defer ac.wg.Done()
-
-			if cfg.AccountInterval.Duration == 0 {
-				cfg.AccountInterval.Duration = 24 * time.Hour
-			}
-
-			if cfg.BiilInterval.Duration == 0 {
-				cfg.BiilInterval.Duration = time.Hour
-			}
-
-			if cfg.OrdertInterval.Duration == 0 {
-				cfg.OrdertInterval.Duration = time.Hour
-			}
-
-			ri := &runningInstance{
-				cfg:   cfg,
-				agent: ac,
-				ctx:   ac.ctx,
-			}
-
-			limit := rate.Every(60 * time.Millisecond)
-			ri.rateLimiter = rate.NewLimiter(limit, 1)
-
-			if cfg.AccountInterval.Duration > 0 {
-				ri.modules = append(ri.modules, NewCostAccount(cfg, ri))
-			}
-
-			if cfg.BiilInterval.Duration > 0 {
-				ri.modules = append(ri.modules, NewCostBill(cfg, ri))
-			}
-
-			if cfg.OrdertInterval.Duration > 0 {
-				ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
-			}
-
-			if cfg.OrdertInterval.Duration > 0 {
-				ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
-			}
-
-			ri.run()
-
-		}(cfg)
+	if ac.AccountInterval.Duration == 0 {
+		ac.AccountInterval.Duration = 24 * time.Hour
 	}
 
-	ac.wg.Wait()
+	if ac.BiilInterval.Duration == 0 {
+		ac.BiilInterval.Duration = time.Hour
+	}
+
+	if ac.OrdertInterval.Duration == 0 {
+		ac.OrdertInterval.Duration = time.Hour
+	}
+
+	ri := &runningInstance{
+		cfg: ac,
+		ctx: ac.ctx,
+	}
+
+	limit := rate.Every(60 * time.Millisecond)
+	ri.rateLimiter = rate.NewLimiter(limit, 1)
+
+	if ac.AccountInterval.Duration > 0 {
+		ri.modules = append(ri.modules, NewCostAccount(ac, ri))
+	}
+
+	if ac.BiilInterval.Duration > 0 {
+		ri.modules = append(ri.modules, NewCostBill(ac, ri))
+	}
+
+	if ac.OrdertInterval.Duration > 0 {
+		ri.modules = append(ri.modules, NewCostOrder(ac, ri))
+	}
+
+	if ac.OrdertInterval.Duration > 0 {
+		ri.modules = append(ri.modules, NewCostOrder(ac, ri))
+	}
+
+	ri.run()
 }
 
 func (s *runningInstance) suspendHistoryFetch() {
@@ -172,7 +141,7 @@ func (s *runningInstance) getAccountInfo() {
 
 	resp, err := s.client.QueryBillOverview(req)
 	if err != nil {
-		log.Printf("E! fail to get account info, %s", err)
+		moduleLogger.Errorf("fail to get account info, %s", err)
 		return
 	}
 
@@ -279,8 +248,8 @@ func (r *runningInstance) QueryOrdersWrap(ctx context.Context, request *bssopena
 }
 
 func init() {
-	inputs.Add("aliyuncost", func() inputs.Input {
-		ac := &AliyunCostAgent{}
+	inputs.Add(inputName, func() inputs.Input {
+		ac := &CostCfg{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
 	})
