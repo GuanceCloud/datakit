@@ -354,17 +354,11 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 
 	var data []byte
 
-	// migrate old configures into new place
-	oldPath := filepath.Join(datakit.ConfdDir, name, fmt.Sprintf("%s.conf", name))
-	newPath := filepath.Join(datakit.ConfdDir, dummyInput.Catalog(), fmt.Sprintf("%s.conf", name))
+	path := filepath.Join(datakit.ConfdDir, dummyInput.Catalog(), fmt.Sprintf("%s.conf", name))
 
-	path := newPath
 	_, err := os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
-		if _, err = os.Stat(oldPath); err == nil {
-			l.Infof("migrate %s to %s", oldPath, path)
-			path = oldPath
-		}
+		return nil
 	}
 
 	data, err = ioutil.ReadFile(path)
@@ -380,7 +374,7 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 	}
 
 	if len(tbl.Fields) == 0 {
-		l.Debugf("no conf available on %s", name)
+		//l.Debugf("no conf available on %s", name)
 		return nil
 	}
 
@@ -563,6 +557,12 @@ func initPluginCfgs() {
 		if _, err := os.Stat(oldCfgPath); err == nil {
 			if oldCfgPath == cfgpath {
 				continue // do nothing
+			}
+
+			if runtime.GOOS == "windows" {
+				if strings.ToLower(oldCfgPath) == strings.ToLower(cfgpath) {
+					continue
+				}
 			}
 
 			l.Debugf("migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
