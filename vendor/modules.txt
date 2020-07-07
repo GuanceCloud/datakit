@@ -539,7 +539,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200707075213-8f938cdacc60
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200707103424-40998e0da843
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
