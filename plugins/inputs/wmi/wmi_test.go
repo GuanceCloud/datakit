@@ -11,7 +11,7 @@ import (
 )
 
 func TestGenConfig(t *testing.T) {
-	var cfg WmiAgent
+	var cfg Instance
 
 	q1 := &ClassQuery{
 		Class: "Win32_LogicalDisk",
@@ -28,13 +28,9 @@ func TestGenConfig(t *testing.T) {
 		},
 	}
 
-	inst := &Instance{
-		Queries: []*ClassQuery{
-			q1, q2,
-		},
+	cfg.Queries = []*ClassQuery{
+		q1, q2,
 	}
-
-	cfg.Instances = append(cfg.Instances, inst)
 
 	data, err := toml.Marshal(&cfg)
 	if err != nil {
@@ -44,7 +40,7 @@ func TestGenConfig(t *testing.T) {
 }
 
 func TestLoadCfg(t *testing.T) {
-	var cfg WmiAgent
+	var cfg Instance
 	err := toml.Unmarshal([]byte(sampleConfig), &cfg)
 	if err != nil {
 		t.Error(err)
