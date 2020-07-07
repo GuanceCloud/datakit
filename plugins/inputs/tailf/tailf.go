@@ -3,16 +3,15 @@
 package tailf
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/hpcloud/tail"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"go.uber.org/zap"
+	// "go.uber.org/zap"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	// "gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	// "gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -20,44 +19,39 @@ import (
 const (
 	inputName = "tailf"
 
+	defaultMeasurement = "tailf"
+
 	sampleCfg = `
-# [[tailf]]
-#	## 文件路径名。不能设置为 datakit 日志文件。
-#	filename = ""
+#[[inputs.tailf]]
+#	# Cannot be set to datakit.log
+#	# Directory and file paths
+#	paths = [""]
 #
-#       ## 是否从文件首部读取
+#	# auto update the directory files
+#	update_files = false
+#
+#	# Read the file from to beginning
 #	from_beginning = false
-#
-#       ## 是否是一个pipe
-#	pipe = false
-#
-#	## 通知方式，默认是 inotify 即由操作系统进行变动通知
-#       ## 可以设为 poll 改为轮询文件的方式
-#	watch_method = "inotify"
-#
-#       ## 数据源名字，不可为空
-#       source = ""
+#	
+#       # [inputs.tailf.tags]
+#       # tags1 = "tags1"
+
 `
 )
 
-var (
-	l *zap.SugaredLogger
-)
+// var l *zap.SugaredLogger
 
-type (
-	Tailf struct {
-		C []Impl `toml:"tailf"`
-	}
+type Tailf struct {
+	Paths         []string          `toml:"paths"`
+	UpdateFiles   bool              `toml:"update_files"`
+	FormBeginning bool              `toml:"from_beginning"`
+	Tags          map[string]string `toml:"tags"`
 
-	Impl struct {
-		File          string `toml:"filename"`
-		FormBeginning bool   `toml:"from_beginning"`
-		Pipe          bool   `toml:"pipe"`
-		WatchMethod   string `toml:"watch_method"`
-		Measurement   string `toml:"source"`
-		offset        int64
-	}
-)
+	seek *tail.SeekInfo
+
+	fileList []string
+	tailers  map[string]*tail.Tail
+}
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -74,111 +68,97 @@ func (_ *Tailf) SampleConfig() string {
 }
 
 func (t *Tailf) Run() {
-	l = logger.SLogger(inputName)
+	// l = logger.SLogger(inputName)
+	t.tailers = make(map[string]*tail.Tail)
 
-	for _, i := range t.C {
-		go i.start()
-	}
-}
-
-func (i *Impl) start() {
-
-	if i.File == config.Cfg.MainCfg.Log {
-		l.Error("cannot collect datakit log!")
-		return
-	}
-
-	if i.Measurement == "" {
-		l.Error("invalid measurement")
-		return
-	}
-
-	var poll bool
-	// const defaultWatchMethod = "inotify"
-	if i.WatchMethod == "poll" {
-		poll = true
-	}
-
-	var seek *tail.SeekInfo
-
-	if !i.Pipe && !i.FormBeginning {
-		seek = &tail.SeekInfo{
+	if t.FormBeginning {
+		t.seek = &tail.SeekInfo{
 			Whence: 0,
-			Offset: i.offset,
+			Offset: 0,
 		}
-		l.Infof("using offset %d", i.offset)
 	} else {
-		seek = &tail.SeekInfo{
+		t.seek = &tail.SeekInfo{
 			Whence: 2,
 			Offset: 0,
 		}
 	}
 
-	tailer, err := tail.TailFile(i.File,
-		tail.Config{
-			ReOpen:    true,
-			Follow:    true,
-			Location:  seek,
-			MustExist: true,
-			Poll:      poll,
-			Pipe:      i.Pipe,
-			Logger:    tail.DiscardingLogger,
-		})
-	if err != nil {
-		l.Errorf("failed to open file, err: %s", err.Error())
-		return
-	}
+	t.fileList = filterPath(t.Paths)
 
-	go i.foreachLines(tailer)
+	t.updateTailers()
 
-	<-datakit.Exit.Wait()
+	t.foreachLines()
+}
 
-	if !i.Pipe && !i.FormBeginning {
-		offset, err := tailer.Tell()
-		if err == nil {
-			l.Infof("recording offset %d", offset)
-		} else {
-			l.Errorf("recording offset err:%s", err.Error())
+func (t *Tailf) updateTailers() {
+
+	for _, file := range t.fileList {
+		tailer, err := tail.TailFile(file,
+			tail.Config{
+				ReOpen:    true,
+				Follow:    true,
+				Location:  t.seek,
+				MustExist: true,
+				// defaultWatchMethod is "inotify"
+				Poll:   false,
+				Pipe:   false,
+				Logger: tail.DiscardingLogger,
+			})
+		if err != nil {
+			continue
 		}
-		i.offset = offset
-	}
-
-	if err := tailer.Stop(); err != nil {
-		l.Errorf("stop err: %s", err.Error())
-	} else {
-		l.Info("exit")
+		t.tailers[file] = tailer
 	}
 }
 
-func (i *Impl) foreachLines(tailer *tail.Tail) {
+func (t *Tailf) foreachLines() {
 
-	var fields = make(map[string]interface{})
+	count := 0
+	for {
+		// time.Sleep(10 * time.Millisecond)
+		fmt.Printf("count %d\n", count)
+		time.Sleep(time.Second)
+	__out:
+		for key, tailer := range t.tailers {
+			for {
+				select {
+				case line := <-tailer.Lines:
+					t.impl(line)
+				// case <-datakit.Exit.Wait():
+				// 	return
 
-	for line := range tailer.Lines {
-		if line.Err != nil {
-			l.Errorf("tailing error: %s", line.Err.Error())
-			continue
+				default:
+					fmt.Printf("key %s\n", key)
+					goto __out
+				}
+			}
 		}
+		t.updateTailers()
+		count++
+	}
+}
 
-		text := strings.TrimRight(line.Text, "\r")
-		fields["__content"] = text
+func (t *Tailf) impl(line *tail.Line) {
+	// only '__content' kv
+	var fields = make(map[string]interface{}, 1)
 
-		pt, err := influxdb.NewPoint(i.Measurement, nil, fields, time.Now())
-		if err != nil {
-			l.Error(err)
-			continue
-		}
-
-		data := []byte(pt.String())
-		if err := io.Feed(data, io.Logging); err != nil {
-			l.Error(err)
-		} else {
-			l.Debugf("feed %d bytes to io ok", len(data))
-		}
+	if line.Err != nil {
+		return
 	}
 
-	l.Info("tailer stop")
-	if err := tailer.Err(); err != nil {
-		l.Errorf("tailing error: %s", err.Error())
+	text := strings.TrimRight(line.Text, "\r")
+	fields["__content"] = text
+
+	data, err := io.MakeMetricData(defaultMeasurement, t.Tags, fields, time.Now())
+	if err != nil {
+		return
 	}
+
+	fmt.Println(string(data))
+	//if err := io.Feed(data, io.Logging); err != nil {
+	//	l.Error(err)
+	//} else {
+	//	l.Debugf("feed %d bytes to io ok", len(data))
+	//}
+
 }
