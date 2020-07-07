@@ -3,47 +3,68 @@
 package tailf
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
 )
 
-func TestStart(t *testing.T) {
-
-	tmpfile, err := ioutil.TempFile("", "")
-	if err != nil {
-		panic(err)
-	}
-	defer os.Remove(tmpfile.Name())
-	fmt.Println(tmpfile.Name())
-
-	var stopch = make(chan struct{})
-	go func() {
-		defer tmpfile.Close()
-		for i := 0; i < 10000; i++ {
-			select {
-			case <-stopch:
-				return
-			default:
-				_, _ = tmpfile.Write([]byte(fmt.Sprintf("this is logger %d\n", i)))
-				time.Sleep(200 * time.Millisecond)
-			}
-		}
-
+func TestWrite(t *testing.T) {
+	defer func() {
+		os.RemoveAll("/tmp/tailf_test")
 	}()
 
-	var tailer = Tailf{
-		Config: struct {
-			File          string `toml:"filename"`
-			FormBeginning bool   `toml:"from_beginning"`
-			Pipe          bool   `toml:"pipe"`
-			WatchMethod   string `toml:"watch_method"`
-			Measurement   string `toml:"source"`
-		}{tmpfile.Name(), true, false, "inotify", "tailf_measurement"},
-		offset: 0,
+	if err := os.MkdirAll("/tmp/tailf_test/1/2", os.ModePerm); err != nil {
+		panic(err)
 	}
 
-	tailer.Run()
+	var paths = []string{"/tmp/tailf_test/zero.txt", "/tmp/tailf_test/1/one.txt", "/tmp/tailf_test/1/2/two.txt"}
+	// var paths = []string{"/tmp/tailf_test/zero.txt"}
+
+	var files []*os.File
+	for _, path := range paths {
+		f, err := os.Create(path)
+		if err != nil {
+			panic(err)
+		}
+		files = append(files, f)
+	}
+	defer func() {
+		for _, f := range files {
+			f.Close()
+		}
+	}()
+
+	for {
+		// for _, f := range files {
+		files[0].WriteString(time.Now().Format(time.RFC3339Nano) + " -- 1111111111\n")
+		files[1].WriteString(time.Now().Format(time.RFC3339Nano) + " -- 2222222222\n")
+		files[2].WriteString(time.Now().Format(time.RFC3339Nano) + " -- 3333333333\n")
+		// }
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+func TestStart(t *testing.T) {
+	var paths = []string{"/tmp/tailf_test/zero.txt", "/tmp/tailf_test/1/one.txt", "/tmp/tailf_test/1/2/two.txt"}
+	// var paths = []string{"/tmp/tailf_test/zero.txt"}
+
+	var tailer = Tailf{
+		Paths:         paths,
+		FormBeginning: false,
+	}
+
+	time.Sleep(2 * time.Second)
+	go tailer.Run()
+
+	time.Sleep(100 * time.Second)
+	time.Sleep(2 * time.Second)
+}
+
+func TestCheckPaths(t *testing.T) {
+	paths := []string{"/tmp/tailf_test"}
+	t.Logf("%v\n", paths)
+
+	for _, p := range filterPath(paths) {
+		t.Logf("%s\n", p)
+	}
 }
