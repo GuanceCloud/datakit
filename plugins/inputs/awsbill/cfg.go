@@ -1,12 +1,16 @@
 package awsbill
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+import (
+	"context"
+
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"golang.org/x/time/rate"
+)
 
 const (
-	inputName = "aws_billing"
-
 	sampleConfig = `
-#[[aws_billing]]
+#[[inputs.aws_billing]]
 #access_key = ''
 #access_secret = ''
 #access_token = ''
@@ -23,4 +27,13 @@ type AwsInstance struct {
 	RegionID     string
 	MetricName   string
 	Interval     internal.Duration
+
+	ctx       context.Context
+	cancelFun context.CancelFunc
+
+	cloudwatchClient *cloudwatch.CloudWatch
+
+	rateLimiter *rate.Limiter
+
+	billingMetrics map[string]*cloudwatch.Metric
 }
