@@ -10,8 +10,8 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunprice"
 
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunrdsslowlog"
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunsecurity"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunrdsslowlog"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunsecurity"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/awsbill"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/baiduIndex"
 
@@ -56,9 +56,6 @@ import (
 	// external inputs wrap
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 	// with dll/so dependencies, and also 32bit disabled
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/netPacket"
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/scanport"
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tracerouter"
 
 	// only windows
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/wmi"
