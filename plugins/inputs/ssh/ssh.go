@@ -44,7 +44,7 @@ type SshParam struct {
 	log *zap.SugaredLogger
 }
 
-const sshConfigSample = `### You need to configure an [[targets]] for each ssh/sftp to be monitored.
+const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ssh/sftp to be monitored.
 ### host: ssh/sftp service ip:port, if "127.0.0.1", default port is 22.
 ### interval: monitor interval second, unit is second. The default value is 60.
 ### active: whether to monitor ssh/sftp.
