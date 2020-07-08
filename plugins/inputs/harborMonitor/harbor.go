@@ -7,14 +7,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"go.uber.org/zap"
 
 	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
-	l *zap.SugaredLogger
+	l *logger.Logger
 )
 
 func (_ *HarborMonitor) SampleConfig() string {
