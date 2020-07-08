@@ -12,7 +12,7 @@ import (
 const (
 	rdsSampleConfig = `
 # ##云数据库 RDS
-#[[rds]]
+#[[inputs.aliyunprice.rds]]
 
 # ##(optional) 自定义指标集名称，默认使用 aliyun_price
 #metric_name = ''
