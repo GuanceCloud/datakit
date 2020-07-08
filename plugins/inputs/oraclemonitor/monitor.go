@@ -13,8 +13,6 @@ import (
 	"runtime"
 	"time"
 
-	"go.uber.org/zap"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -49,7 +47,7 @@ const (
 )
 
 var (
-	l *zap.SugaredLogger
+	l *logger.Logger
 )
 
 type OracleMonitor struct {
