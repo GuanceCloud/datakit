@@ -86,14 +86,14 @@ require (
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/xanzy/go-gitlab v0.31.0
 	github.com/zcalusic/sysinfo v0.0.0-20200228145645-a159d7cc708b // indirect
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200707103424-40998e0da843
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200708034554-4979d23ed25d
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
-	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
+	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	golang.org/x/tools/gopls v0.4.1 // indirect
 	google.golang.org/grpc v1.27.0
 	google.golang.org/protobuf v1.24.0 // indirect
