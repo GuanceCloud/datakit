@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/tidwall/gjson"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -15,7 +14,7 @@ import (
 )
 
 var (
-	l *zap.SugaredLogger
+	l *logger.Logger
 )
 
 func (_ *BaiduIndex) Catalog() string {
