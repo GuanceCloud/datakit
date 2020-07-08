@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -22,7 +21,7 @@ import (
 
 var (
 	inputName    = "aws_billing"
-	moduleLogger *zap.SugaredLogger
+	moduleLogger *logger.Logger
 )
 
 func (_ *AwsInstance) Catalog() string {
