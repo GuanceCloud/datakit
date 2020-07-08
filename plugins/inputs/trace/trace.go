@@ -12,6 +12,7 @@ var (
 	traceConfigSample = `### active: whether to collect trace data.
 ### path: url path to recieve data.
 
+#[inputs.trace]
 #active = true
 #path   = "/trace"
 `
@@ -31,17 +32,13 @@ func (_ *Trace) SampleConfig() string {
 	return traceConfigSample
 }
 
-func (_ *Trace) Description() string {
-	return "Collect Trace Data"
-}
-
 func (t *Trace) Run() {
 	if !t.Active {
 		return
 	}
 
 	log = logger.SLogger("trace")
-	log.Info("trace input started...")
+	log.Infof("trace input started...")
 
 	io.RegisterRoute(t.Path, writeTracing)
 }
