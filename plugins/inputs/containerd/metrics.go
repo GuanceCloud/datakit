@@ -3,6 +3,7 @@
 package containerd
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"reflect"
@@ -14,18 +15,19 @@ import (
 	v1 "github.com/containerd/containerd/metrics/types/v1"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/typeurl"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 var attach = func(*cio.FIFOSet) (cio.IO, error) { return cio.NullIO("") }
 
-func (i *Impl) collectContainerd() ([]*influxdb.Point, error) {
+func (con *Containerd) collectContainerd() ([]byte, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	ctx = namespaces.WithNamespace(ctx, i.Namespace)
+	ctx = namespaces.WithNamespace(ctx, con.Namespace)
 
-	client, err := containerd.New(i.HostPath)
+	client, err := containerd.New(con.HostPath)
 	if err != nil {
 		return nil, err
 	}
@@ -36,10 +38,14 @@ func (i *Impl) collectContainerd() ([]*influxdb.Point, error) {
 		return nil, err
 	}
 
-	var pts []*influxdb.Point
+	var tags = make(map[string]string)
+	tags["namespace"] = con.Namespace
+	var pts bytes.Buffer
 
 	for _, c := range cs {
-		if _, ok := i.ids[c.ID()]; !i.isAll && !ok {
+		// IS UGLY !!
+
+		if _, ok := con.ids[c.ID()]; !con.isAll && !ok {
 			continue
 		}
 
@@ -63,28 +69,34 @@ func (i *Impl) collectContainerd() ([]*influxdb.Point, error) {
 			return nil, errors.New("invalid metrics data")
 		}
 
-		pt, err := parseMetrics(inputName, i.Namespace, c.ID(), meta)
+		tags["id"] = c.ID()
+		for k, v := range con.Tags {
+			tags[k] = v
+		}
+
+		pt, err := parseMetrics(defaultMeasurement, tags, meta)
 		if err != nil {
 			return nil, err
 		}
 
-		pts = append(pts, pt)
+		if _, err := pts.Write(pt); err != nil {
+			return nil, err
+		}
 
+		if _, err := pts.WriteString("\n"); err != nil {
+			return nil, err
+		}
 	}
-	return pts, nil
+
+	return pts.Bytes(), nil
 }
 
-func parseMetrics(mensurement, namespace, id string, mt *v1.Metrics) (*influxdb.Point, error) {
+func parseMetrics(mensurement string, tags map[string]string, mt *v1.Metrics) ([]byte, error) {
 	var fields = make(map[string]interface{})
 
 	rematch(mt, "", fields)
 
-	return influxdb.NewPoint(
-		mensurement,
-		map[string]string{"namespace": namespace, "id": id},
-		fields,
-		time.Now(),
-	)
+	return io.MakeMetric(defaultMeasurement, tags, fields, time.Now())
 }
 
 func rematch(data interface{}, succkey string, m map[string]interface{}) {
