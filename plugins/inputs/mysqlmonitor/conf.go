@@ -2,7 +2,7 @@ package mysqlmonitor
 
 const (
 	configSample = `
-#[[mysql]]
+#[[inputs.mysql]]
 #  ## 采集的频度，最小粒度5m
 #  interval = '5m'
 #  ## 指标集名称，默认值(mysql_monitor)
