@@ -6,8 +6,9 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/aegis"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sas"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
-	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -19,11 +20,10 @@ var regions = []string{
 }
 
 type AliyunSecurity struct {
-	Security    []*Security
-	ctx         context.Context
-	cancelFun   context.CancelFunc
-	accumulator telegraf.Accumulator
-	logger      *models.Logger
+	Security  []*Security
+	ctx       context.Context
+	cancelFun context.CancelFunc
+	logger    *models.Logger
 
 	runningInstances []*runningInstance
 }
@@ -49,7 +49,7 @@ func (_ *AliyunSecurity) Description() string {
 	return ""
 }
 
-func (_ *AliyunSecurity) Gather(telegraf.Accumulator) error {
+func (_ *AliyunSecurity) Gather() error {
 	return nil
 }
 
@@ -57,19 +57,16 @@ func (_ *AliyunSecurity) Init() error {
 	return nil
 }
 
-func (a *AliyunSecurity) Start(acc telegraf.Accumulator) error {
+func (a *AliyunSecurity) Run() {
 	a.logger = &models.Logger{
 		Name: `aliyunsecurity`,
 	}
 
 	if len(a.Security) == 0 {
 		a.logger.Warnf("no configuration found")
-		return nil
 	}
 
 	a.logger.Infof("starting...")
-
-	a.accumulator = acc
 
 	for _, instCfg := range a.Security {
 		r := &runningInstance{
@@ -89,13 +86,11 @@ func (a *AliyunSecurity) Start(acc telegraf.Accumulator) error {
 		cli, err := sas.NewClientWithAccessKey(instCfg.RegionID, instCfg.AccessKeyID, instCfg.AccessKeySecret)
 		if err != nil {
 			r.logger.Errorf("create client failed, %s", err)
-			return err
 		}
 
 		cli2, err := aegis.NewClientWithAccessKey(instCfg.RegionID, instCfg.AccessKeyID, instCfg.AccessKeySecret)
 		if err != nil {
 			r.logger.Errorf("create client failed, %s", err)
-			return err
 		}
 
 		r.client = cli
@@ -106,7 +101,6 @@ func (a *AliyunSecurity) Start(acc telegraf.Accumulator) error {
 
 		go r.run(a.ctx)
 	}
-	return nil
 }
 
 func (a *AliyunSecurity) Stop() {
@@ -169,7 +163,12 @@ func (r *runningInstance) describeSummaryInfo(region string) {
 	fields["aegis_client_offline_count"] = response.AegisClientOfflineCount
 	fields["security_score"] = response.SecurityScore
 
-	r.agent.accumulator.AddFields(r.metricName, fields, tags)
+	pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+	if err != nil {
+		return
+	}
+
+	err = io.Feed([]byte(pt.String()), io.Metric)
 }
 
 func (r *runningInstance) describeSecurityStatInfo(region string) {
@@ -206,7 +205,12 @@ func (r *runningInstance) describeSecurityStatInfo(region string) {
 	fields["vulnerability_asap_count"] = response.Vulnerability.AsapCount
 	fields["vulnerability_total_count"] = response.Vulnerability.TotalCount
 
-	r.agent.accumulator.AddFields(r.metricName, fields, tags)
+	pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+	if err != nil {
+		return
+	}
+
+	err = io.Feed([]byte(pt.String()), io.Metric)
 }
 
 func (r *runningInstance) describeRiskCheckSummary(region string) {
@@ -239,7 +243,12 @@ func (r *runningInstance) describeRiskCheckSummary(region string) {
 		}
 	}
 
-	r.agent.accumulator.AddFields(r.metricName, fields, tags)
+	pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+	if err != nil {
+		return
+	}
+
+	err = io.Feed([]byte(pt.String()), io.Metric)
 }
 
 func init() {
