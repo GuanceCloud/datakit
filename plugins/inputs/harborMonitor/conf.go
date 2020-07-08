@@ -2,7 +2,7 @@ package harborMonitor
 
 const (
 	harborConfigSample = `
-#[[harbor]]
+#[[inputs.harbor]]
 #  ## 指标集名称
 #  metricName = 'harbor'
 #  ## 镜像仓库域名

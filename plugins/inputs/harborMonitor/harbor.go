@@ -15,8 +15,6 @@ import (
 
 var (
 	l *zap.SugaredLogger
-
-	inputName = "harborMonitor"
 )
 
 func (_ *HarborMonitor) SampleConfig() string {
@@ -52,6 +50,7 @@ func (h *HarborMonitor) Run() {
 		select {
 		case <-tick.C:
 			// handle
+			h.command()
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
 			return
@@ -96,9 +95,15 @@ func (h *HarborMonitor) command() {
 		}
 	}
 
-	pt, _ := io.MakeMetric(h.MetricName, tags, fields, time.Now())
+	pt, err := io.MakeMetric(h.MetricName, tags, fields, time.Now())
+	if err != nil {
+		l.Errorf("make metric point error %v", err)
+	}
 
-	_ = io.Feed([]byte(pt), io.Metric)
+	err = io.Feed([]byte(pt), io.Metric)
+	if err != nil {
+		l.Errorf("push metric point error %v", err)
+	}
 }
 
 func (r *HarborMonitor) getVolumes(baseUrl string) string {
