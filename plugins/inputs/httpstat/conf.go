@@ -8,7 +8,7 @@ const (
 	description = `stat http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
 	serverProcessing, contentTransfer, and total time`
 	httpstatConfigSample = `
-#    [[httpstat]]
+#    [[inputs.httpstat]]
 #    ##if empty, use "httpstat"
 #    metricName = ''
 #    timeout = ''
