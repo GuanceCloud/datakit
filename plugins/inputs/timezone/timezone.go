@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -36,7 +34,7 @@ type TzOutput struct {
 type TzParams struct {
 	input  TzInput
 	output TzOutput
-	log    *zap.SugaredLogger
+	log    *logger.Logger
 }
 
 const (
@@ -45,7 +43,7 @@ const (
 )
 
 var (
-	timeZoneConfigSample = `### active     : whether to monitor timezone changes. 
+	timeZoneConfigSample = `### active     : whether to monitor timezone changes.
 ### interval   : monitor interval second, unit is second. The default value is 60.
 ### metricsName: the name of metric, default is "timezone"
 

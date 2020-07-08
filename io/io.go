@@ -9,8 +9,6 @@ import (
 	"os"
 	"time"
 
-	"go.uber.org/zap"
-
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -22,7 +20,7 @@ import (
 
 var (
 	input   chan *iodata
-	l       *zap.SugaredLogger
+	l       *logger.Logger
 	baseURL string
 
 	httpCli      *http.Client
