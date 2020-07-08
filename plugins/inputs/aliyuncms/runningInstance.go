@@ -31,12 +31,12 @@ func (s *runningInstance) run(ctx context.Context) error {
 
 	defer func() {
 		if err := recover(); err != nil {
-			s.logger.Errorf("panic, %v", err)
+			moduleLogger.Errorf("panic, %v", err)
 		}
 	}()
 
 	if err := s.initializeAliyunCMS(); err != nil {
-		s.logger.Errorf("initialize failed, %s", err)
+		moduleLogger.Errorf("initialize failed, %s", err)
 		return err
 	}
 
@@ -49,7 +49,7 @@ func (s *runningInstance) run(ctx context.Context) error {
 	}
 
 	if len(s.reqs) == 0 {
-		s.logger.Warnf("no metric found")
+		moduleLogger.Warnf("no metric found")
 		return nil
 	}
 
@@ -120,7 +120,7 @@ func (s *runningInstance) genReqs(ctx context.Context) error {
 
 			req, err := proj.genMetricReq(metricName, s.cfg.RegionID)
 			if err != nil {
-				s.logger.Errorf("%s", err)
+				moduleLogger.Errorf("%s", err)
 				return err
 			}
 
@@ -213,26 +213,23 @@ func (s *runningInstance) fetchMetricMeta(ctx context.Context, namespace, metric
 		}
 
 		if err != nil {
-			s.logger.Warnf("%s", err)
+			moduleLogger.Warnf("%s", err)
 			internal.SleepContext(ctx, tempDelay)
 		} else {
 			if i != 0 {
-				s.logger.Debugf("retry successed, %d", i)
+				moduleLogger.Debugf("retry successed, %d", i)
 			}
 			break
 		}
 	}
 
 	if err != nil {
-		s.agent.faildRequest++
-		s.logger.Errorf("fail to get metric meta for '%s.%s', %s", namespace, metricname, err)
+		moduleLogger.Errorf("fail to get metric meta for '%s.%s', %s", namespace, metricname, err)
 		return nil, errGetMetricMeta
-	} else {
-		s.agent.succedRequest++
 	}
 
 	if len(response.Resources.Resource) == 0 {
-		s.logger.Warnf("empty metric meta of '%s.%s'", namespace, metricname)
+		moduleLogger.Warnf("empty metric meta of '%s.%s'", namespace, metricname)
 		return nil, errGetMetricMeta
 	}
 
@@ -246,7 +243,7 @@ func (s *runningInstance) fetchMetricMeta(ctx context.Context, namespace, metric
 			if err == nil {
 				periods = append(periods, np)
 			} else {
-				s.logger.Warnf("%s.%s: unknown period '%s', %s", namespace, res.MetricName, p, err)
+				moduleLogger.Warnf("%s.%s: unknown period '%s', %s", namespace, res.MetricName, p, err)
 			}
 		}
 		meta := &MetricMeta{
@@ -257,7 +254,7 @@ func (s *runningInstance) fetchMetricMeta(ctx context.Context, namespace, metric
 			Unit:        res.Unit,
 			metricName:  res.MetricName,
 		}
-		s.logger.Debugf("%s.%s: Periods=%s, Dimensions=%s, Statistics=%s, Unit=%s", namespace, res.MetricName, periodStrs, res.Dimensions, res.Statistics, res.Unit)
+		moduleLogger.Debugf("%s.%s: Periods=%s, Dimensions=%s, Statistics=%s, Unit=%s", namespace, res.MetricName, periodStrs, res.Dimensions, res.Statistics, res.Unit)
 		metas[res.MetricName] = meta
 	}
 
@@ -295,7 +292,7 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 			}
 
 			if !bValidPeriod {
-				s.logger.Warnf("period '%v' for %s.%s not support, valid periods: %v", pv, req.q.Namespace, req.q.MetricName, req.meta.Periods)
+				moduleLogger.Warnf("period '%v' for %s.%s not support, valid periods: %v", pv, req.q.Namespace, req.q.MetricName, req.meta.Periods)
 				req.q.Period = "" //不传，按照监控项默认的最小周期来查询数据
 			}
 
@@ -321,13 +318,13 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 							if !bSupport {
 								delete(m, k)
 								btuned = true
-								s.logger.Warnf("%s.%s not support dimension '%s'", req.q.Namespace, req.q.MetricName, k)
+								moduleLogger.Warnf("%s.%s not support dimension '%s'", req.q.Namespace, req.q.MetricName, k)
 							}
 						}
 					}
 					if btuned {
 						if jd, err := json.Marshal(ms); err == nil {
-							s.logger.Debugf("dimension after tuned: %s", string(jd))
+							moduleLogger.Debugf("dimension after tuned: %s", string(jd))
 							req.q.Dimensions = string(jd)
 						}
 					}
@@ -398,25 +395,23 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 			}
 
 			if err != nil {
-				s.logger.Warnf("DescribeMetricList: %s", err)
+				moduleLogger.Warnf("DescribeMetricList: %s", err)
 				time.Sleep(tempDelay)
 			} else {
 				if i != 0 {
-					s.logger.Debugf("retry successed, %d", i)
+					moduleLogger.Debugf("retry successed, %d", i)
 				}
 				break
 			}
 		}
 
 		if err != nil {
-			s.logger.Errorf("fail to get %s.%s, %s", req.q.Namespace, req.q.MetricName, err)
-			s.agent.faildRequest++
+			moduleLogger.Errorf("fail to get %s.%s, %s", req.q.Namespace, req.q.MetricName, err)
 			return err
-		} else {
-			req.q.NextToken = resp.NextToken
-			more = (req.q.NextToken != "")
-			s.agent.succedRequest++
 		}
+
+		req.q.NextToken = resp.NextToken
+		more = (req.q.NextToken != "")
 
 		// if len(resp.Datapoints) == 0 {
 		// 	break
@@ -425,11 +420,11 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 		dps := []map[string]interface{}{}
 		if resp.Datapoints != "" {
 			if err = json.Unmarshal([]byte(resp.Datapoints), &dps); err != nil {
-				s.logger.Errorf("%s.%s failed to decode response datapoints:%s, err:%s", req.q.Namespace, req.q.MetricName, resp.Datapoints, err)
+				moduleLogger.Errorf("%s.%s failed to decode response datapoints:%s, err:%s", req.q.Namespace, req.q.MetricName, resp.Datapoints, err)
 			}
 		}
 
-		s.logger.Debugf("get %v datapoints: Namespace=%s, MetricName=%s, Period=%s, StartTime=%s(%s), EndTime=%s(%s), Dimensions=%s, RegionId=%s, NextToken=%s", len(dps), req.q.Namespace, req.q.MetricName, req.q.Period, req.q.StartTime, logStarttime, req.q.EndTime, logEndtime, req.q.Dimensions, req.q.RegionId, resp.NextToken)
+		moduleLogger.Debugf("get %v datapoints: Namespace=%s, MetricName=%s, Period=%s, StartTime=%s(%s), EndTime=%s(%s), Dimensions=%s, RegionId=%s, NextToken=%s", len(dps), req.q.Namespace, req.q.MetricName, req.q.Period, req.q.StartTime, logStarttime, req.q.EndTime, logEndtime, req.q.Dimensions, req.q.RegionId, resp.NextToken)
 
 		if err != nil {
 			break
@@ -507,7 +502,7 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 		}
 
 		if len(fields) == 0 {
-			s.logger.Warnf("skip %s.%s datapoint for no value, %s", req.q.Namespace, metricName, datapoint)
+			moduleLogger.Warnf("skip %s.%s datapoint for no value, %s", req.q.Namespace, metricName, datapoint)
 		}
 
 		if len(fields) > 0 {

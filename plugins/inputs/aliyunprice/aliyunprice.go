@@ -8,16 +8,19 @@ import (
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
+	"go.uber.org/zap"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
 	inputName = `aliyunprice`
+
+	moduleLogger *zap.SugaredLogger
 )
 
 type (
@@ -65,8 +68,6 @@ type (
 		cancelFun context.CancelFunc
 
 		wg sync.WaitGroup
-
-		logger *models.Logger
 	}
 )
 
@@ -88,13 +89,15 @@ func (_ *AliyunPriceAgent) SampleConfig() string {
 
 func (a *AliyunPriceAgent) Run() {
 
+	moduleLogger = logger.SLogger(inputName)
+
 	go func() {
 		<-datakit.Exit.Wait()
 		a.cancelFun()
 	}()
 
 	if cli, err := bssopenapi.NewClientWithAccessKey(a.RegionID, a.AccessID, a.AccessSecret); err != nil {
-		a.logger.Errorf("fail to create client, %s", err)
+		moduleLogger.Errorf("fail to create client, %s", err)
 		return
 	} else {
 		a.client = cli
@@ -103,7 +106,7 @@ func (a *AliyunPriceAgent) Run() {
 	for _, item := range a.EcsCfg {
 		q, err := item.toRequest()
 		if err != nil {
-			a.logger.Warnf("invalid ecs config, %s", err)
+			moduleLogger.Warnf("invalid ecs config, %s", err)
 		}
 		a.reqs = append(a.reqs, q)
 	}
@@ -111,7 +114,7 @@ func (a *AliyunPriceAgent) Run() {
 	for _, item := range a.RDSCfg {
 		q, err := item.toRequest()
 		if err != nil {
-			a.logger.Warnf("invalid rds config, %s", err)
+			moduleLogger.Warnf("invalid rds config, %s", err)
 		}
 		a.reqs = append(a.reqs, q)
 	}
@@ -119,7 +122,7 @@ func (a *AliyunPriceAgent) Run() {
 	for _, item := range a.EipCfg {
 		q, err := item.toRequest()
 		if err != nil {
-			a.logger.Warnf("invalid eip config, %s", err)
+			moduleLogger.Warnf("invalid eip config, %s", err)
 		}
 		a.reqs = append(a.reqs, q)
 	}
@@ -127,7 +130,7 @@ func (a *AliyunPriceAgent) Run() {
 	for _, item := range a.SlbCfg {
 		q, err := item.toRequest()
 		if err != nil {
-			a.logger.Warnf("invalid slb config, %s", err)
+			moduleLogger.Warnf("invalid slb config, %s", err)
 		}
 		a.reqs = append(a.reqs, q)
 	}
@@ -139,7 +142,7 @@ func (a *AliyunPriceAgent) Run() {
 
 		defer func() {
 			if e := recover(); e != nil {
-				a.logger.Errorf("panic %v", e)
+				moduleLogger.Errorf("panic %v", e)
 			}
 		}()
 
@@ -195,18 +198,18 @@ func (a *AliyunPriceAgent) Run() {
 					}
 
 					if err != nil {
-						a.logger.Warnf("get price failed")
+						moduleLogger.Warnf("get price failed")
 						time.Sleep(tempDelay)
 					} else {
 						if i != 0 {
-							a.logger.Debugf("retry successed, %d", i)
+							moduleLogger.Debugf("retry successed, %d", i)
 						}
 						break
 					}
 				}
 
 				if err != nil {
-					a.logger.Errorf("get price failed, %s", err)
+					moduleLogger.Errorf("get price failed, %s", err)
 				} else {
 					if req.payAsYouGo {
 						a.handleResponse(&respPayasyougo.Data, req)
@@ -291,7 +294,7 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 				}
 				modlist, err := a.fetchProductPriceModule(req.region, pcode, ptype, subscriptionType)
 				if err != nil {
-					a.logger.Errorf("fail to get price modules, ProductCode=%s, ProductType=%s, SubscriptionType=%s, %s", pcode, ptype, subscriptionType, err)
+					moduleLogger.Errorf("fail to get price modules, ProductCode=%s, ProductType=%s, SubscriptionType=%s, %s", pcode, ptype, subscriptionType, err)
 					req.fetchModulePriceHistory[subscriptionType] = time.Now()
 				} else {
 					req.priceModuleInfos[subscriptionType] = modlist
@@ -310,7 +313,7 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 	if len(respData.PromotionDetails.PromotionDetail) > 0 {
 		prominfo, err := json.Marshal(respData.PromotionDetails)
 		if err != nil {
-			a.logger.Warnf("fail to marshal PromotionDetails, %s", err)
+			moduleLogger.Warnf("fail to marshal PromotionDetails, %s", err)
 		} else {
 			fields["Promotion"] = string(prominfo)
 		}
@@ -392,11 +395,7 @@ func (a *AliyunPriceAgent) fetchProductPriceModule(region, productCode, productT
 }
 
 func NewAgent() *AliyunPriceAgent {
-	ac := &AliyunPriceAgent{
-		logger: &models.Logger{
-			Name: inputName,
-		},
-	}
+	ac := &AliyunPriceAgent{}
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 
 	return ac
