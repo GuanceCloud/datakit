@@ -17,13 +17,13 @@ import (
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/coredns"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dataclean"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/harborMonitor"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpstat"
 
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jira"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jira"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/lighttpd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mock"
@@ -33,7 +33,7 @@ import (
 
 	// BUG: within vendor/github.com/ericchiang/k8s/watch/versioned/generated.pb.go, we should replace
 	// github.com/ericchiang.k8s.watch.versioned.Event -> k8s.io.kubernetes.pkg.watch.versioned.Event
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prometheus"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prometheus"
 
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/replication"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
