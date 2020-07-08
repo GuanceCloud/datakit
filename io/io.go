@@ -77,14 +77,14 @@ func Feed(data []byte, category string) error {
 }
 
 func FeedEx(catagory string, name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
-	data, err := MakeMetricData(name, tags, fields, t...)
+	data, err := MakeMetric(name, tags, fields, t...)
 	if err != nil {
 		return err
 	}
 	return Feed(data, catagory)
 }
 
-func MakeMetricData(name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) ([]byte, error) {
+func MakeMetric(name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) ([]byte, error) {
 	var tm time.Time
 	if len(t) > 0 {
 		tm = t[0]
@@ -96,8 +96,11 @@ func MakeMetricData(name string, tags map[string]string, fields map[string]inter
 		if tags == nil {
 			tags = map[string]string{}
 		}
+
 		for k, v := range config.Cfg.MainCfg.GlobalTags {
-			tags[k] = v
+			if _, ok := tags[k]; !ok { // do not overwrite exists tags
+				tags[k] = v
+			}
 		}
 	}
 
