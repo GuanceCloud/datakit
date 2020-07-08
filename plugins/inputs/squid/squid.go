@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -39,7 +37,7 @@ type SquidOutput struct {
 type SquidParam struct {
 	input  SquidInput
 	output SquidOutput
-	log    *zap.SugaredLogger
+	log    *logger.Logger
 }
 
 var (
