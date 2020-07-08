@@ -22,7 +22,6 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/influxdata/toml"
 	"github.com/kardianos/service"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -39,7 +38,7 @@ var (
 	dkservice        service.Service
 	lagacyInstallDir = ""
 
-	l *zap.SugaredLogger
+	l *logger.Logger
 
 	flagUpgrade         = flag.Bool("upgrade", false, ``)
 	flagDataway         = flag.String("dataway", "", `address of dataway(ip:port), port default 9528`)

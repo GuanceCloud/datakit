@@ -10,7 +10,6 @@ import (
 	"syscall"
 
 	"github.com/kardianos/service"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -36,7 +35,7 @@ var (
 	waitExitCh chan struct{} = make(chan struct{})
 
 	inputFilters = []string{}
-	l            *zap.SugaredLogger
+	l            *logger.Logger
 )
 
 func main() {
