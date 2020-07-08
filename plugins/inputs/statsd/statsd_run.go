@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -62,7 +60,7 @@ func (p *StatsdParams) gather() {
 }
 
 func (p *StatsdParams) getMetrics(conn net.Conn) error {
-	var pt *influxdb.Point
+	var pt []byte
 	var err error
 
 	tags := make(map[string]string)
@@ -90,17 +88,17 @@ func (p *StatsdParams) getMetrics(conn net.Conn) error {
 	}
 
 	fields["can_connect"] = true
-	pt, err = influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
+	pt, err = io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return err
 	}
-	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+	err = p.output.IoFeed(pt, io.Metric)
 	return err
 
 ERR:
 	fields["can_connect"] = false
-	pt, _ = influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
-	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+	pt, _ = io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
+	err = p.output.IoFeed(pt, io.Metric)
 	return ConnectionReset
 }
 
@@ -140,10 +138,10 @@ func (p *StatsdParams) reportNotUp() error {
 	fields["is_up"] = false
 	fields["can_connect"] = false
 
-	pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
+	pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return err
 	}
-	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+	err = p.output.IoFeed(pt, io.Metric)
 	return err
 }
