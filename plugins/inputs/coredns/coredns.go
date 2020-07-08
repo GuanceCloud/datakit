@@ -1,12 +1,10 @@
 package coredns
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -18,19 +16,21 @@ import (
 const (
 	inputName = "coredns"
 
-	configSample = `
+	defaultMeasurement = "coredns"
+
+	sampleCfg = `
 # [[coredns]]
-#       ## coredns 地址
-#	host = "127.0.0.1"
-#
-#       ## coredns prometheus 监控端口
-#	port = "9153"
-#
-#	## 采集周期，时间单位是秒
-#	collect_cycle = 60
-#
-#       ## measurement，不可重复
-#       measurement = "coredns"
+# 	# coredns host
+# 	host = "127.0.0.1"
+# 	
+# 	# coredns prometheus port
+# 	port = "9153"
+# 	
+# 	# second
+# 	collect_cycle = 60
+# 	
+# 	# [inputs.tailf.tags]
+# 	# tags1 = "tags1"
 `
 )
 
@@ -42,22 +42,16 @@ func init() {
 	})
 }
 
-type (
-	Coredns struct {
-		C []Impl `toml:"coredns"`
-	}
-
-	Impl struct {
-		Host        string        `toml:"host"`
-		Port        int           `toml:"port"`
-		Cycle       time.Duration `toml:"collect_cycle"`
-		Measurement string        `toml:"measurement"`
-		address     string
-	}
-)
+type Coredns struct {
+	Host    string            `toml:"host"`
+	Port    int               `toml:"port"`
+	Cycle   time.Duration     `toml:"collect_cycle"`
+	Tags    map[string]string `toml:"tags"`
+	address string
+}
 
 func (_ *Coredns) SampleConfig() string {
-	return configSample
+	return sampleCfg
 }
 
 func (_ *Coredns) Catalog() string {
@@ -67,22 +61,13 @@ func (_ *Coredns) Catalog() string {
 func (c *Coredns) Run() {
 	l = logger.SLogger(inputName)
 
-	for _, i := range c.C {
-		go i.start()
-	}
-}
-
-var tagsWhiteList = map[string]byte{"version": '0'}
-
-func (i *Impl) start() {
-	i.address = fmt.Sprintf("http://%s:%d/metrics", i.Host, i.Port)
-
-	if i.Measurement == "" {
-		l.Error("invalid measurement")
-		return
+	if _, ok := c.Tags["address"]; !ok {
+		c.Tags["address"] = fmt.Sprintf("%s:%d", c.Host, c.Port)
 	}
 
-	ticker := time.NewTicker(time.Second * i.Cycle)
+	c.address = fmt.Sprintf("http://%s:%d/metrics", c.Host, c.Port)
+
+	ticker := time.NewTicker(time.Second * c.Cycle)
 	defer ticker.Stop()
 
 	for {
@@ -92,20 +77,23 @@ func (i *Impl) start() {
 			return
 
 		case <-ticker.C:
-			pt, err := i.getMetrics()
+			data, err := c.getMetrics()
 			if err != nil {
 				l.Error(err)
 				continue
 			}
-
-			io.Feed([]byte(pt.String()), io.Metric)
+			if err := io.Feed(data, io.Metric); err != nil {
+				l.Error(err)
+				continue
+			}
+			l.Debugf("feed %d bytes to io ok", len(data))
 		}
 	}
 }
 
-func (i *Impl) getMetrics() (*influxdb.Point, error) {
+func (c *Coredns) getMetrics() ([]byte, error) {
 
-	resp, err := http.Get(i.address)
+	resp, err := http.Get(c.address)
 	if err != nil {
 		return nil, err
 	}
@@ -117,26 +105,17 @@ func (i *Impl) getMetrics() (*influxdb.Point, error) {
 	}
 
 	if len(metrics) == 0 {
-		return nil, errors.New("the metrics is empty")
+		return nil, fmt.Errorf("the metrics is empty")
 	}
 
-	var tags = make(map[string]string)
 	var fields = make(map[string]interface{}, len(metrics))
 
 	// prometheus to point
 	for _, metric := range metrics {
-
-		for k, v := range metric.Tags() {
-			if _, ok := tagsWhiteList[k]; ok {
-				tags[k] = v
-			}
-		}
-
 		for k, v := range metric.Fields() {
 			fields[k] = v
 		}
-
 	}
 
-	return influxdb.NewPoint(i.Measurement, tags, fields, metrics[0].Time())
+	return io.MakeMetric(defaultMeasurement, c.Tags, fields, time.Now())
 }
