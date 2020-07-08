@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -22,7 +21,7 @@ import (
 
 const inputName = `aliyunlog`
 
-var moduleLogger *zap.SugaredLogger
+var moduleLogger *logger.Logger
 
 type runningProject struct {
 	inst *ConsumerInstance

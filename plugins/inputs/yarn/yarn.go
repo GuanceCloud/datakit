@@ -10,7 +10,6 @@ import (
 
 	"github.com/antchfx/jsonquery"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -117,7 +116,7 @@ type YarnOutput struct {
 type YarnParam struct {
 	input  YarnInput
 	output YarnOutput
-	log    *zap.SugaredLogger
+	log    *logger.Logger
 }
 
 const (

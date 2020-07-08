@@ -7,7 +7,6 @@ import (
 	"time"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -49,7 +48,7 @@ type TraefikOutput struct {
 type TraefikParam struct {
 	input  TraefikInput
 	output TraefikOutput
-	log    *zap.SugaredLogger
+	log    *logger.Logger
 }
 
 var (
