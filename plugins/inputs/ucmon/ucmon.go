@@ -3,8 +3,6 @@ package ucmon
 import (
 	"context"
 
-	"go.uber.org/zap"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -12,7 +10,7 @@ import (
 
 var (
 	inputName    = `ucloud_monitor`
-	moduleLogger *zap.SugaredLogger
+	moduleLogger *logger.Logger
 )
 
 func (_ *ucInstance) SampleConfig() string {

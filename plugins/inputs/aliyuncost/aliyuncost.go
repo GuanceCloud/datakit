@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
-	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -19,7 +18,7 @@ import (
 )
 
 var (
-	moduleLogger *zap.SugaredLogger
+	moduleLogger *logger.Logger
 
 	historyCacheDir = `/etc/datakit/aliyuncost`
 
