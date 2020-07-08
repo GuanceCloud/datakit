@@ -1,6 +1,7 @@
 package aliyuncms
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -14,8 +15,7 @@ import (
 
 const (
 	aliyuncmsConfigSample = `
-# ## [[cms]] 块可以有多个， 每个 [[cms]] 块代表一个账号.
-#[[cms]]
+#[[inputs.cms]]
 
  # ##(required) 阿里云API访问 access key及区域， 至少拥有 "只读访问云监控（CloudMonitor）"的权限.
  #access_key_id = ''
@@ -32,12 +32,12 @@ const (
  # ## 不同的指标可能有不同的延迟时间, 默认为5分钟, 你可以根据使用中的实际采集情况调整该值.
  #delay = '5m'
 
- #[cms.tags]
+ #[inputs.cms.tags]
  #key1 = "val1"
  #key2 = "val2"
 
  # ##(required) [[cms.project]] 块可以有多个，每个代表一个云产品.
- #[[cms.project]]
+ #[[inputs.cms.project]]
   #	##(required) 云产品命名空间，可参考: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.6.690.9dbe5679uFUe3w
   #name='acs_ecs_dashboard'
 
@@ -45,7 +45,7 @@ const (
   #metric_name=''
 
   # ##(required) 配置采集指标
-  #[cms.project.metrics]
+  #[inputs.cms.project.metrics]
 
    # ##(required) 指定采集当前产品下的哪些指标
    # ## 每个产品支持的指标可参考: See: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.2.11.6ac47694AjhHt4
@@ -54,7 +54,7 @@ const (
    #]
 
    # ##(optional) 定义每个指标的采集行为
-   #[[cms.project.metrics.property]]
+   #[[inputs.cms.project.metrics.property]]
 
 	# ##(required) 指定设置哪个指标的属性, 必须在上面配置的指标名列表中, 否则忽略.
 	# ## 可以使用 * 来配置当前project下所有指标的采集行为.
@@ -78,7 +78,7 @@ const (
 	#	'''
 	
 	# ##(optional) 可对每个指标自定义tag，比如用于标识用户信息。
-	#[cms.project.metrics.property.tags]
+	#[inputs.cms.project.metrics.property.tags]
 	#key1 = "val1"
 	#key2 = "val2"
 `
@@ -130,6 +130,9 @@ type (
 		Delay           internal.Duration `toml:"delay"`
 		Project         []*Project        `toml:"project"`
 		Tags            map[string]string `toml:"tags,omitempty"`
+
+		ctx       context.Context
+		cancelFun context.CancelFunc
 	}
 
 	MetricMeta struct {
