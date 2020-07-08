@@ -1,17 +1,22 @@
 package hostobject
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"os"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"go.uber.org/zap"
 )
+
+var moduleLogger *zap.SugaredLogger
 
 type (
 	Collector struct {
@@ -19,6 +24,7 @@ type (
 		Class    string
 		Desc     string `toml:"description"`
 		Interval internal.Duration
+		Tags     map[string]string `toml:"tags,omitempty"`
 	}
 
 	osInfo struct {
@@ -29,7 +35,7 @@ type (
 )
 
 func (_ *Collector) Catalog() string {
-	return "object"
+	return "hostobject"
 }
 
 func (_ *Collector) SampleConfig() string {
@@ -42,84 +48,92 @@ func (_ *Collector) SampleConfig() string {
 
 func (c *Collector) Run() {
 
+	moduleLogger = logger.SLogger(inputName)
+
+	defer func() {
+		if e := recover(); e != nil {
+			moduleLogger.Errorf("panic error, %v", e)
+		}
+	}()
+
 	if err := c.initialize(); err != nil {
 		return
 	}
 
-	tick := time.NewTicker(c.Interval.Duration)
-	defer tick.Stop()
+	ctx, cancelFun := context.WithCancel(context.Background())
+
+	go func() {
+		<-datakit.Exit.Wait()
+		cancelFun()
+	}()
 
 	for {
 
 		select {
-		case <-datakit.Exit.Wait():
+		case <-ctx.Done():
 			return
-		case <-tick.C:
-			obj := &internal.ObjectData{
-				Name:        c.Name,
-				Description: c.Desc,
-			}
-
-			tags := map[string]string{
-				"uuid":    config.Cfg.MainCfg.UUID,
-				"__class": c.Class,
-			}
-
-			hostname, err := os.Hostname()
-			if err == nil {
-				tags["host"] = hostname
-			}
-
-			ipval := getIP()
-			if mac, err := getMacAddr(ipval); err == nil && mac != "" {
-				tags["mac"] = mac
-			}
-			tags["ip"] = ipval
-
-			oi := getOSInfo()
-			tags["os_type"] = oi.OSType
-			tags["os"] = oi.Release
-
-			//tags["cpu_total"] = fmt.Sprintf("%d", runtime.NumCPU())
-
-			//meminfo, _ := mem.VirtualMemory()
-			//tags["memory_total"] = fmt.Sprintf("%v", meminfo.Total/uint64(1024*1024*1024))
-
-			for _, input := range config.Cfg.Inputs {
-				if input.Config.Name == inputName {
-					for k, v := range input.Config.Tags {
-						tags[k] = v
-					}
-					break
-				}
-			}
-
-			obj.Tags = tags
-
-			switch c.Name {
-			case "__mac":
-				obj.Name = tags["mac"]
-			case "__ip":
-				obj.Name = tags["ip"]
-			case "__uuid":
-				obj.Name = tags["uuid"]
-			case "__host":
-				obj.Name = tags["host"]
-			case "__os":
-				obj.Name = tags["os"]
-			case "__os_type":
-				obj.Name = tags["os_type"]
-			}
-
-			data, err := json.Marshal(&obj)
-			if err == nil {
-				fields := map[string]interface{}{
-					"object": string(data),
-				}
-
-				io.FeedEx(io.Object, inputName, tags, fields)
-			}
+		default:
 		}
+
+		var objs []*internal.ObjectData
+
+		obj := &internal.ObjectData{
+			Name:        c.Name,
+			Description: c.Desc,
+		}
+
+		tags := map[string]string{
+			"uuid":    config.Cfg.MainCfg.UUID,
+			"__class": c.Class,
+		}
+
+		hostname, err := os.Hostname()
+		if err == nil {
+			tags["host"] = hostname
+		}
+
+		ipval := getIP()
+		if mac, err := getMacAddr(ipval); err == nil && mac != "" {
+			tags["mac"] = mac
+		}
+		tags["ip"] = ipval
+
+		oi := getOSInfo()
+		tags["os_type"] = oi.OSType
+		tags["os"] = oi.Release
+
+		//tags["cpu_total"] = fmt.Sprintf("%d", runtime.NumCPU())
+
+		//meminfo, _ := mem.VirtualMemory()
+		//tags["memory_total"] = fmt.Sprintf("%v", meminfo.Total/uint64(1024*1024*1024))
+
+		obj.Tags = tags
+
+		switch c.Name {
+		case "__mac":
+			obj.Name = tags["mac"]
+		case "__ip":
+			obj.Name = tags["ip"]
+		case "__uuid":
+			obj.Name = tags["uuid"]
+		case "__host":
+			obj.Name = tags["host"]
+		case "__os":
+			obj.Name = tags["os"]
+		case "__os_type":
+			obj.Name = tags["os_type"]
+		}
+
+		objs = append(objs, obj)
+
+		data, err := json.Marshal(&objs)
+		if err == nil {
+			io.Feed(data, io.Object)
+		} else {
+			moduleLogger.Errorf("%s", err)
+		}
+
+		internal.SleepContext(ctx, c.Interval.Duration)
 	}
 
 }
