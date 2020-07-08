@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -119,12 +118,12 @@ func (p *TzParams) getMetrics() error {
 
 	fields["tz"] = timezone
 
-	pt, err := influxdb.NewPoint(p.input.MetricsName, p.input.Tags, fields, time.Now())
+	pt, err := io.MakeMetric(p.input.MetricsName, p.input.Tags, fields, time.Now())
 	if err != nil {
 		return err
 	}
 
-	if err := p.output.ioFeed([]byte(pt.String()), io.Metric); err != nil {
+	if err := p.output.ioFeed(pt, io.Metric); err != nil {
 		return err
 	}
 	return nil
