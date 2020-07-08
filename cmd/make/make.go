@@ -159,7 +159,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"CGO_ENABLED=0",
 	}
 
-	l.Debugf("building % 13s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
+	l.Debugf("building %s, envs: %v", fmt.Sprintf("%s-%s/%s", goos, goarch, bin), env)
 	msg, err := runEnv(args, env)
 	if err != nil {
 		l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
@@ -214,7 +214,7 @@ func compile() {
 		buildInstaller(filepath.Join(*flagPubDir, *flagRelease), goos, goarch)
 	}
 
-	l.Infof("build elapsed %v", time.Since(start))
+	l.Infof("Done!(elapsed %v)", time.Since(start))
 }
 
 type installInfo struct {
@@ -252,6 +252,7 @@ func getCurrentVersionInfo(url string) *versionDesc {
 }
 
 func releaseAgent() {
+	start := time.Now()
 	var ak, sk, bucket, ossHost string
 	objPath := *flagName
 
@@ -374,7 +375,7 @@ func releaseAgent() {
 		}
 	}
 
-	l.Info("Done :)")
+	l.Infof("Done!(elapsed: %v)", time.Since(start))
 }
 
 func main() {
@@ -383,7 +384,7 @@ func main() {
 
 	logger.SetGlobalRootLogger("",
 		logger.DEBUG,
-		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER|logger.OPT_COLOR)
 
 	l = logger.SLogger("make")
 
@@ -499,7 +500,7 @@ var (
 				`windows/amd64`: true,
 				`windows/386`:   true,
 			},
-			buildArgs: []string{"plugins/external/csv/build.sh"},
+			buildArgs: []string{"plugins/externals/csv/build.sh"},
 			buildCmd:  "bash",
 		},
 
@@ -511,16 +512,16 @@ func buildExternals(outdir, goos, goarch string) {
 	curOSArch := runtime.GOOS + "/" + runtime.GOARCH
 
 	for _, ex := range externals {
-		l.Debugf("building %s/%s/%s to %s...", goos, goarch, ex.name, outdir)
+		l.Debugf("building %s-%s/%s", goos, goarch, ex.name)
 
 		if _, ok := ex.osarchs[curOSArch]; !ok {
-			l.Debugf("skip build %s under %s", ex.name, curOSArch)
+			l.Warnf("skip build %s under %s", ex.name, curOSArch)
 			return
 		}
 
 		osarch := goos + "/" + goarch
 		if _, ok := ex.osarchs[osarch]; !ok {
-			l.Debugf("skip build %s under %s", ex.name, osarch)
+			l.Warnf("skip build %s under %s", ex.name, osarch)
 			return
 		}
 
@@ -537,10 +538,10 @@ func buildExternals(outdir, goos, goarch string) {
 
 			args := []string{
 				"go", "build",
-				"-o", filepath.Join(outdir, "external", out),
+				"-o", filepath.Join(outdir, "externals", out),
 				"-ldflags",
 				"-w -s",
-				filepath.Join("plugins/external", ex.name, ex.entry),
+				filepath.Join("plugins/externals", ex.name, ex.entry),
 			}
 
 			env := append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
@@ -551,7 +552,7 @@ func buildExternals(outdir, goos, goarch string) {
 			}
 
 		case "python", "py": // for python, just copy source code into build dir
-			args := append(ex.buildArgs, filepath.Join(outdir, "external"))
+			args := append(ex.buildArgs, filepath.Join(outdir, "externals"))
 			cmd := exec.Command(ex.buildCmd, args...)
 			if ex.envs != nil {
 				cmd.Env = append(os.Environ(), ex.envs...)
@@ -566,14 +567,14 @@ func buildExternals(outdir, goos, goarch string) {
 			// TODO
 
 		default:
-			l.Fatalf("unknown external lang type: %s", ex.lang)
+			l.Fatalf("unknown external language type: %s", ex.lang)
 		}
 	}
 }
 
 func buildInstaller(outdir, goos, goarch string) {
 
-	l.Debugf("build %s/%s installer to %s...", goos, goarch, outdir)
+	l.Debugf("building %s-%s/installer...", goos, goarch)
 
 	gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, git.Version)
 
