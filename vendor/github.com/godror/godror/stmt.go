@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -38,13 +39,15 @@ import (
 )
 
 type stmtOptions struct {
-	boolString    boolString
-	fetchRowCount int
-	arraySize     int
-	callTimeout   time.Duration
-	execMode      C.dpiExecMode
-	plSQLArrays   bool
-	lobAsReader   bool
+	boolString         boolString
+	fetchArraySize     int
+	prefetchCount      int
+	arraySize          int
+	callTimeout        time.Duration
+	execMode           C.dpiExecMode
+	plSQLArrays        bool
+	lobAsReader        bool
+	nullDateAsZeroTime bool
 }
 
 type boolString struct {
@@ -86,16 +89,28 @@ func (o stmtOptions) ArraySize() int {
 	}
 	return o.arraySize
 }
-func (o stmtOptions) FetchRowCount() int {
-	if o.fetchRowCount <= 0 {
-		return DefaultFetchRowCount
+func (o stmtOptions) PrefetchCount() int {
+	if o.prefetchCount <= 0 {
+		return DefaultPrefetchCount
 	}
-	return o.fetchRowCount
+	return o.prefetchCount
+}
+func (o stmtOptions) FetchArraySize() int {
+	if o.fetchArraySize <= 0 {
+		return DefaultFetchArraySize
+	}
+	return o.fetchArraySize
 }
 func (o stmtOptions) PlSQLArrays() bool { return o.plSQLArrays }
 
 func (o stmtOptions) ClobAsString() bool { return !o.lobAsReader }
 func (o stmtOptions) LobAsReader() bool  { return o.lobAsReader }
+func (o stmtOptions) NullDate() interface{} {
+	if o.nullDateAsZeroTime {
+		return time.Time{}
+	}
+	return nullTime
+}
 
 // Option holds statement options.
 type Option func(*stmtOptions)
@@ -128,12 +143,25 @@ func BoolToString(trueVal, falseVal string) Option {
 // be left as is - the default is to treat them as arguments for ExecMany.
 var PlSQLArrays Option = func(o *stmtOptions) { o.plSQLArrays = true }
 
-// FetchRowCount returns an option to set the rows to be fetched, overriding DefaultFetchRowCount.
-func FetchRowCount(rowCount int) Option {
+// FetchRowCount is DEPRECATED, use FetchArraySize.
+//
+// It returns an option to set the rows to be fetched, overriding DefaultFetchRowCount.
+func FetchRowCount(rowCount int) Option { return FetchArraySize(rowCount) }
+
+// FetchArraySize returns an option to set the rows to be fetched, overriding DefaultFetchRowCount.
+func FetchArraySize(rowCount int) Option {
 	if rowCount <= 0 {
 		return nil
 	}
-	return func(o *stmtOptions) { o.fetchRowCount = rowCount }
+	return func(o *stmtOptions) { o.fetchArraySize = rowCount }
+}
+
+// PrefetchCount returns an option to set the rows to be fetched, overriding DefaultPrefetchCount.
+func PrefetchCount(rowCount int) Option {
+	if rowCount <= 0 {
+		return nil
+	}
+	return func(o *stmtOptions) { o.prefetchCount = rowCount }
 }
 
 // ArraySize returns an option to set the array size to be used, overriding DefaultArraySize.
@@ -185,12 +213,16 @@ func CallTimeout(d time.Duration) Option {
 	return func(o *stmtOptions) { o.callTimeout = d }
 }
 
+// NullDateAsZeroTime is an option to return NULL DATE columns as time.Time{} instead of nil.
+// If you must Scan into time.Time (cannot use sql.NullTime), this may help.
+func NullDateAsZeroTime() Option { return func(o *stmtOptions) { o.nullDateAsZeroTime = true } }
+
 const minChunkSize = 1 << 16
 
-var _ = driver.Stmt((*statement)(nil))
-var _ = driver.StmtQueryContext((*statement)(nil))
-var _ = driver.StmtExecContext((*statement)(nil))
-var _ = driver.NamedValueChecker((*statement)(nil))
+var _ driver.Stmt = (*statement)(nil)
+var _ driver.StmtQueryContext = (*statement)(nil)
+var _ driver.StmtExecContext = (*statement)(nil)
+var _ driver.NamedValueChecker = (*statement)(nil)
 
 type statement struct {
 	stmtOptions
@@ -221,18 +253,18 @@ func (st *statement) Close() error {
 	st.Lock()
 	defer st.Unlock()
 
-	return st.close(false)
+	return st.closeNotLocking()
 }
-func (st *statement) close(keepDpiStmt bool) error {
-	if st == nil {
+func (st *statement) closeNotLocking() error {
+	if st == nil || st.dpiStmt == nil {
 		return nil
 	}
 
 	c, dpiStmt, vars := st.conn, st.dpiStmt, st.vars
+	st.vars = nil
 	st.isSlice = nil
 	st.query = ""
 	st.data = nil
-	st.vars = nil
 	st.varInfos = nil
 	st.gets = nil
 	st.dests = nil
@@ -241,25 +273,17 @@ func (st *statement) close(keepDpiStmt bool) error {
 	st.conn = nil
 	st.dpiStmtInfo = C.dpiStmtInfo{}
 
+	if Log != nil {
+		Log("msg", "statement.closeNotLocking", "st", fmt.Sprintf("%p", st), "refCount", dpiStmt.refCount)
+	}
 	for _, v := range vars[:cap(vars)] {
 		if v != nil {
 			C.dpiVar_release(v)
 		}
 	}
-
-	if !keepDpiStmt {
-		var si C.dpiStmtInfo
-		if dpiStmt != nil &&
-			C.dpiStmt_getInfo(dpiStmt, &si) != C.DPI_FAILURE && // this is just to check the validity of dpiStmt, to avoid SIGSEGV
-			C.dpiStmt_release(dpiStmt) != C.DPI_FAILURE {
-			return nil
-		}
-	}
+	C.dpiStmt_release(dpiStmt)
 	if c == nil {
 		return driver.ErrBadConn
-	}
-	if err := c.getError(); err != nil {
-		return errors.Errorf("statement/dpiStmt_release: %w", err)
 	}
 	return nil
 }
@@ -295,25 +319,18 @@ func (st *statement) Query(args []driver.Value) (driver.Rows, error) {
 // ExecContext must honor the context timeout and return when it is canceled.
 //
 // Cancelation/timeout is honored, execution is broken, but you may have to disable out-of-bound execution - see https://github.com/oracle/odpi/issues/116 for details.
-func (st *statement) ExecContext(ctx context.Context, args []driver.NamedValue) (res driver.Result, err error) {
-	if err = ctx.Err(); err != nil {
+func (st *statement) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	Log := ctxGetLog(ctx)
 
-	closeIfBadConn := func(err error) error {
-		if err != nil && err == driver.ErrBadConn {
-			if Log != nil {
-				Log("error", err)
-			}
-			st.close(false)
-			st.conn.close(true)
-		}
-		return err
-	}
-
 	st.Lock()
 	defer st.Unlock()
+	if st.conn == nil {
+		return nil, driver.ErrBadConn
+	}
+
 	if st.dpiStmt == nil && st.query == getConnection {
 		*(args[0].Value.(sql.Out).Dest.(*interface{})) = st.conn
 		return driver.ResultNoRows, nil
@@ -322,8 +339,17 @@ func (st *statement) ExecContext(ctx context.Context, args []driver.NamedValue) 
 	st.conn.mu.RLock()
 	defer st.conn.mu.RUnlock()
 
+	closeIfBadConn := func(err error) error {
+		if err == nil {
+			return nil
+		}
+		c := st.conn
+		st.closeNotLocking()
+		return maybeBadConn(err, c)
+	}
+
 	// bind variables
-	if err = st.bindVars(args, Log); err != nil {
+	if err := st.bindVars(args, Log); err != nil {
 		return nil, closeIfBadConn(err)
 	}
 
@@ -332,90 +358,69 @@ func (st *statement) ExecContext(ctx context.Context, args []driver.NamedValue) 
 	if !st.inTransaction {
 		mode |= C.DPI_MODE_EXEC_COMMIT_ON_SUCCESS
 	}
-	st.setCallTimeout(ctx)
 
 	done := make(chan error, 1)
 	// execute
+	c, dpiStmt, arrLen, many := st.conn, st.dpiStmt, st.arrLen, !st.PlSQLArrays() && st.arrLen > 0
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				done <- r.(error)
+			}
+		}()
 		defer close(done)
 		var err error
-	Loop:
 		for i := 0; i < 3; i++ {
-			if err = ctx.Err(); err != nil {
-				done <- err
-				return
+			if Log != nil {
+				Log("C", "dpiStmt_execute", "st", fmt.Sprintf("%p", dpiStmt), "many", many, "mode", mode, "len", arrLen)
 			}
-			if !st.PlSQLArrays() && st.arrLen > 0 {
-				if Log != nil {
-					Log("C", "dpiStmt_executeMany", "mode", mode, "len", st.arrLen)
-				}
-				if C.dpiStmt_executeMany(st.dpiStmt, mode, C.uint32_t(st.arrLen)) == C.DPI_FAILURE {
-					if err = ctx.Err(); err == nil {
-						err = st.getError()
-					}
-				}
+			var ok bool
+			if many {
+				ok = C.dpiStmt_executeMany(dpiStmt, mode, C.uint32_t(arrLen)) != C.DPI_FAILURE
 			} else {
-				var colCount C.uint32_t
-				if Log != nil {
-					Log("C", "dpiStmt_execute", "mode", mode, "colCount", colCount)
+				ok = C.dpiStmt_execute(dpiStmt, mode, nil) != C.DPI_FAILURE
+			}
+			err = nil
+			if !ok {
+				if err = ctx.Err(); err != nil {
+					done <- err
+					return
 				}
-				if C.dpiStmt_execute(st.dpiStmt, mode, &colCount) == C.DPI_FAILURE {
-					if err = ctx.Err(); err == nil {
-						err = st.getError()
-					}
-				}
+				err = c.getError()
 			}
 			if Log != nil {
 				Log("msg", "st.Execute", "error", err)
 			}
-			if err == nil {
+			if err == nil || !isInvalidErr(err) {
 				break
 			}
-			var cdr interface{ Code() int }
-			if !errors.As(err, &cdr) {
-				break
-			}
-			switch code := cdr.Code(); code {
-			// ORA-04068: "existing state of packages has been discarded"
-			case 4061, 4065, 4068:
-				if Log != nil {
-					Log("msg", "retry", "ora", code)
-				}
-				continue Loop
-			}
-			break
 		}
-		if err == nil {
-			done <- nil
-			return
+		if err != nil {
+			err = errors.Errorf("dpiStmt_execute(mode=%d arrLen=%d): %w", mode, arrLen, err)
 		}
-		done <- maybeBadConn(errors.Errorf("dpiStmt_execute(mode=%d arrLen=%d): %w", mode, st.arrLen, err), nil)
+		done <- err
 	}()
 
 	select {
-	case err = <-done:
+	case err := <-done:
 		if err != nil {
 			return nil, closeIfBadConn(err)
 		}
 	case <-ctx.Done():
 		// select again to avoid race condition if both are done
 		select {
-		case err = <-done:
+		case err := <-done:
 			if err != nil {
 				return nil, closeIfBadConn(err)
 			}
 		case <-ctx.Done():
+			err := ctx.Err()
 			if Log != nil {
-				Log("msg", "BREAK statement")
+				Log("msg", "BREAK statement", "error", err)
 			}
 			_ = st.Break()
-			// For some reasons this SIGSEGVs if not not keepDpiStmt (try to close it),
-			st.close(true)
-			// so we hope that the following conn.Close closes the dpiStmt, too.
-			if err := st.conn.Close(); err != nil {
-				return nil, err
-			}
-			return nil, ctx.Err()
+			st.closeNotLocking()
+			return nil, err
 		}
 	}
 
@@ -430,7 +435,7 @@ func (st *statement) ExecContext(ctx context.Context, args []driver.NamedValue) 
 			var n C.uint32_t
 			data := &st.data[i][0]
 			if C.dpiVar_getReturnedData(st.vars[i], 0, &n, &data) == C.DPI_FAILURE {
-				err = st.getError()
+				err := st.getError()
 				return nil, errors.Errorf("%d.getReturnedData: %w", i, closeIfBadConn(err))
 			}
 			if n == 0 {
@@ -441,7 +446,7 @@ func (st *statement) ExecContext(ctx context.Context, args []driver.NamedValue) 
 		}
 		dest := st.dests[i]
 		if !st.isSlice[i] {
-			if err = get(dest, st.data[i]); err != nil {
+			if err := get(dest, st.data[i]); err != nil {
 				if Log != nil {
 					Log("get", i, "error", err)
 				}
@@ -451,14 +456,14 @@ func (st *statement) ExecContext(ctx context.Context, args []driver.NamedValue) 
 		}
 		var n C.uint32_t = 1
 		if C.dpiVar_getNumElementsInArray(st.vars[i], &n) == C.DPI_FAILURE {
-			err = st.getError()
+			err := st.getError()
 			if Log != nil {
 				Log("msg", "getNumElementsInArray", "i", i, "error", err)
 			}
 			return nil, errors.Errorf("%d.getNumElementsInArray: %w", i, closeIfBadConn(err))
 		}
 		//fmt.Printf("i=%d dest=%T %#v\n", i, dest, dest)
-		if err = get(dest, st.data[i][:n]); err != nil {
+		if err := get(dest, st.data[i][:n]); err != nil {
 			if Log != nil {
 				Log("msg", "get", "i", i, "n", n, "error", err)
 			}
@@ -483,19 +488,11 @@ func (st *statement) QueryContext(ctx context.Context, args []driver.NamedValue)
 	}
 	Log := ctxGetLog(ctx)
 
-	closeIfBadConn := func(err error) error {
-		if err != nil && err == driver.ErrBadConn {
-			if Log != nil {
-				Log("error", err)
-			}
-			st.close(false)
-			st.conn.close(true)
-		}
-		return err
-	}
-
 	st.Lock()
 	defer st.Unlock()
+	if st.conn == nil {
+		return nil, driver.ErrBadConn
+	}
 	st.conn.mu.RLock()
 	defer st.conn.mu.RUnlock()
 
@@ -513,6 +510,15 @@ func (st *statement) QueryContext(ctx context.Context, args []driver.NamedValue)
 		return args[0].Value.(driver.Rows), nil
 	}
 
+	closeIfBadConn := func(err error) error {
+		if err == nil {
+			return nil
+		}
+		c := st.conn
+		st.closeNotLocking()
+		return maybeBadConn(err, c)
+	}
+
 	//fmt.Printf("QueryContext(%+v)\n", args)
 	// bind variables
 	if err := st.bindVars(args, Log); err != nil {
@@ -528,30 +534,32 @@ func (st *statement) QueryContext(ctx context.Context, args []driver.NamedValue)
 	// execute
 	var colCount C.uint32_t
 	done := make(chan error, 1)
+	c, dpiStmt := st.conn, st.dpiStmt
 	go func() {
-		var err error
+		defer func() {
+			if r := recover(); r != nil {
+				done <- r.(error)
+			}
+		}()
 		defer close(done)
+		var err error
 		for i := 0; i < 3; i++ {
+			if C.dpiStmt_execute(dpiStmt, mode, &colCount) != C.DPI_FAILURE {
+				err = nil
+				break
+			}
 			if err = ctx.Err(); err != nil {
 				done <- err
 				return
 			}
-			st.setCallTimeout(ctx)
-			if C.dpiStmt_execute(st.dpiStmt, mode, &colCount) != C.DPI_FAILURE {
+			if err = c.getError(); !isInvalidErr(err) {
 				break
 			}
-			if err = ctx.Err(); err == nil {
-				err = st.getError()
-				if c, ok := err.(interface{ Code() int }); ok && c.Code() != 4068 {
-					break
-				}
-			}
 		}
-		if err == nil {
-			done <- nil
-			return
+		if err != nil {
+			err = errors.Errorf("dpiStmt_execute: %w", err)
 		}
-		done <- maybeBadConn(errors.Errorf("dpiStmt_execute: %w", err), nil)
+		done <- err
 	}()
 
 	select {
@@ -566,17 +574,13 @@ func (st *statement) QueryContext(ctx context.Context, args []driver.NamedValue)
 				return nil, closeIfBadConn(err)
 			}
 		case <-ctx.Done():
+			err := ctx.Err()
 			if Log != nil {
-				Log("msg", "BREAK query")
+				Log("msg", "BREAK query", "error", err)
 			}
 			_ = st.Break()
-			// For some reasons this SIGSEGVs if not not keepDpiStmt (try to close it),
-			st.close(true)
-			// so we hope that the following conn.Close closes the dpiStmt, too.
-			if err := st.conn.Close(); err != nil {
-				return nil, err
-			}
-			return nil, ctx.Err()
+			st.closeNotLocking()
+			return nil, err
 		}
 	}
 	rows, err := st.openRows(int(colCount))
@@ -609,7 +613,10 @@ func (st *statement) NumInput() int {
 	var cnt C.uint32_t
 	//defer func() { fmt.Printf("%p.NumInput=%d (%q)\n", st, cnt, st.query) }()
 	if C.dpiStmt_getBindCount(st.dpiStmt, &cnt) == C.DPI_FAILURE {
-		return -1
+		if st.conn == nil {
+			panic(driver.ErrBadConn)
+		}
+		panic(st.conn.getError())
 	}
 	if cnt < 2 { // 1 can't decrease...
 		return int(cnt)
@@ -617,7 +624,10 @@ func (st *statement) NumInput() int {
 	names := make([]*C.char, int(cnt))
 	lengths := make([]C.uint32_t, int(cnt))
 	if C.dpiStmt_getBindNames(st.dpiStmt, &cnt, &names[0], &lengths[0]) == C.DPI_FAILURE {
-		return -1
+		if st.conn == nil {
+			panic(driver.ErrBadConn)
+		}
+		panic(st.conn.getError())
 	}
 	//fmt.Printf("%p.NumInput=%d\n", st, cnt)
 
@@ -625,6 +635,13 @@ func (st *statement) NumInput() int {
 	return int(cnt)
 }
 
+/*
+// setCallTimeout measures only the round-trips,
+// may close the underlying statement,
+// and may leave the connection in an unusable state.
+// So don't use it.
+//
+// See the ODPI-C documentation.
 func (st *statement) setCallTimeout(ctx context.Context) {
 	if st.callTimeout != 0 {
 		var cancel context.CancelFunc
@@ -633,6 +650,7 @@ func (st *statement) setCallTimeout(ctx context.Context) {
 	}
 	st.conn.setCallTimeout(ctx)
 }
+*/
 
 type argInfo struct {
 	objType     *C.dpiObjectType
@@ -646,7 +664,7 @@ type argInfo struct {
 // bindVars binds the given args into new variables.
 func (st *statement) bindVars(args []driver.NamedValue, Log logFunc) error {
 	if Log != nil {
-		Log("enter", "bindVars", "args", args)
+		Log("enter", "bindVars", st, fmt.Sprintf("%p", st), "args", args)
 	}
 	for i, v := range st.vars[:cap(st.vars)] {
 		if v != nil {
@@ -741,7 +759,7 @@ func (st *statement) bindVars(args []driver.NamedValue, Log logFunc) error {
 		}
 
 		if Log != nil {
-			Log("msg", "bindVars", "i", i, "in", info.isIn, "out", info.isOut, "value", fmt.Sprintf("%T %#v", st.dests[i], st.dests[i]))
+			Log("msg", "bindVars", "i", i, "in", info.isIn, "out", info.isOut, "value", fmt.Sprintf("%[1]p %[1]T %#[1]v", st.dests[i]))
 		}
 	}
 
@@ -1218,14 +1236,10 @@ func (c *conn) dataGetTimeC(t *time.Time, data *C.dpiData) {
 		return
 	}
 	ts := C.dpiData_getTimestamp(data)
-	tz := c.timeZone
-	if ts.tzHourOffset != 0 || ts.tzMinuteOffset != 0 {
-		tz = timeZoneFor(ts.tzHourOffset, ts.tzMinuteOffset)
-	}
 	*t = time.Date(
 		int(ts.year), time.Month(ts.month), int(ts.day),
 		int(ts.hour), int(ts.minute), int(ts.second), int(ts.fsecond),
-		tz,
+		timeZoneFor(ts.tzHourOffset, ts.tzMinuteOffset, c.params.Timezone),
 	)
 }
 
@@ -1272,7 +1286,7 @@ func (c *conn) dataSetTime(dv *C.dpiVar, data []C.dpiData, vv interface{}) error
 		if data[i].isNull == 1 {
 			continue
 		}
-		t = t.In(c.timeZone)
+		t = t.In(c.params.Timezone)
 		Y, M, D := t.Date()
 		h, m, s := t.Clock()
 		C.dpiData_setTimestamp(&data[i],
@@ -1895,13 +1909,13 @@ func (st *statement) dataSetBoolBytes(dv *C.dpiVar, data []C.dpiData, vv interfa
 	return nil
 }
 
-func (c *conn) dataGetStmt(v interface{}, data []C.dpiData) error {
+func (st *statement) dataGetStmt(v interface{}, data []C.dpiData) error {
 	if row, ok := v.(*driver.Rows); ok {
 		if len(data) == 0 || data[0].isNull == 1 {
 			*row = nil
 			return nil
 		}
-		return c.dataGetStmtC(row, &data[0])
+		return st.dataGetStmtC(row, &data[0])
 	}
 	rows := v.(*[]driver.Rows)
 	if cap(*rows) >= len(data) {
@@ -1911,30 +1925,43 @@ func (c *conn) dataGetStmt(v interface{}, data []C.dpiData) error {
 	}
 	var firstErr error
 	for i := range data {
-		if err := c.dataGetStmtC(&((*rows)[i]), &data[i]); err != nil && firstErr == nil {
+		if err := st.dataGetStmtC(&((*rows)[i]), &data[i]); err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}
 	return firstErr
 }
 
-func (c *conn) dataGetStmtC(row *driver.Rows, data *C.dpiData) error {
+func (st *statement) dataGetStmtC(row *driver.Rows, data *C.dpiData) error {
 	if data.isNull == 1 {
 		*row = nil
 		return nil
 	}
-	st := &statement{conn: c, dpiStmt: C.dpiData_getStmt(data)}
+	st2 := &statement{conn: st.conn, dpiStmt: C.dpiData_getStmt(data),
+		stmtOptions: st.stmtOptions, // inherit parent statement's options
+	}
 
 	var n C.uint32_t
-	if C.dpiStmt_getNumQueryColumns(st.dpiStmt, &n) == C.DPI_FAILURE {
-		*row = &rows{
-			err: errors.Errorf("getNumQueryColumns: %w: %w", c.getError(), io.EOF),
+	if C.dpiStmt_getNumQueryColumns(st2.dpiStmt, &n) == C.DPI_FAILURE {
+		err := errors.Errorf("dataGetStmtC.getNumQueryColumns: %w: %w", st.getError(), io.EOF)
+		*row = &rows{err: err}
+		if Log != nil {
+			Log("msg", "dataGetStmtC", "st", fmt.Sprintf("%p", st2.dpiStmt), "error", err)
 		}
 		return nil
 	}
-	var err error
-	*row, err = st.openRows(int(n))
-	return err
+	r2, err := st2.openRows(int(n))
+	if err != nil {
+		if Log != nil {
+			Log("msg", "dataGetStmtC.openRows", "st", fmt.Sprintf("%p", st2.dpiStmt), "error", err)
+		}
+		st2.Close()
+		return err
+	}
+	stmtSetFinalizer(st2, "dataGetStmtC")
+	r2.fromData = true
+	*row = r2
+	return nil
 }
 
 func (c *conn) dataGetLOB(v interface{}, data []C.dpiData) error {
@@ -2108,13 +2135,22 @@ func (c *conn) dataGetObject(v interface{}, data []C.dpiData) error {
 			ObjectType: out.ObjectType,
 			dpiData:    data[0],
 		}
+		if Log != nil {
+			Log("msg", "dataGetObject", "v", fmt.Sprintf("%T", v), "d", d)
+		}
 		*out = *d.GetObject()
 	case ObjectScanner:
 		d := Data{
 			ObjectType: out.ObjectRef().ObjectType,
 			dpiData:    data[0],
 		}
-		return out.Scan(d.GetObject())
+		if Log != nil {
+			Log("msg", "dataGetObjectScanner", "v", fmt.Sprintf("%T", v), "d", d, "obj", d.GetObject())
+		}
+		obj := d.GetObject()
+		err := out.Scan(obj)
+		obj.Close()
+		return err
 	default:
 
 		return fmt.Errorf("dataGetObject not implemented for type %T (maybe you need to implement the Scan method)", v)
@@ -2170,8 +2206,9 @@ func (st *statement) ColumnConverter(idx int) driver.ValueConverter {
 }
 
 func (st *statement) openRows(colCount int) (*rows, error) {
-	sliceLen := st.FetchRowCount()
+	sliceLen := st.FetchArraySize()
 	C.dpiStmt_setFetchArraySize(st.dpiStmt, C.uint32_t(sliceLen))
+	C.dpiStmt_setPrefetchRows(st.dpiStmt, C.uint32_t(st.PrefetchCount()))
 
 	r := rows{
 		statement: st,
@@ -2280,6 +2317,16 @@ func (sb *stringBuilderPool) Put(b *strings.Builder) {
 	sb.p.Put(b)
 }
 
+func isInvalidErr(err error) bool {
+	var cdr interface{ Code() int }
+	if !errors.As(err, &cdr) {
+		return false
+	}
+	code := cdr.Code()
+	// ORA-04068: "existing state of packages has been discarded"
+	return code == 4061 || code == 4065 || code == 4068
+}
+
 /*
 // ResetSession is called while a connection is in the connection
 // pool. No queries will run on this connection until this method returns.
@@ -2297,3 +2344,14 @@ func (c *conn) ResetSession(ctx context.Context) error {
 	return c.Ping(ctx)
 }
 */
+
+func stmtSetFinalizer(st *statement, tag string) {
+	var a [4096]byte
+	stack := a[:runtime.Stack(a[:], false)]
+	runtime.SetFinalizer(st, func(st *statement) {
+		if st != nil && st.dpiStmt != nil {
+			fmt.Printf("ERROR: statement %p of %s is not closed!\n%s\n", st, tag, stack)
+			st.closeNotLocking()
+		}
+	})
+}

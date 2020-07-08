@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -20,10 +19,10 @@ import (
 type TimeIoFeed func(data []byte, category string) error
 
 type Timezone struct {
-	Metricname string `toml:"metric_name"`
-	Active     bool
-	Interval   int
-	Hostname   string
+	Active      bool
+	Interval    int
+	MetricsName string
+	Tags        map[string]string
 }
 
 type TzInput struct {
@@ -37,6 +36,7 @@ type TzOutput struct {
 type TzParams struct {
 	input  TzInput
 	output TzOutput
+	log    *zap.SugaredLogger
 }
 
 const (
@@ -45,16 +45,19 @@ const (
 )
 
 var (
-	tzlog                *zap.SugaredLogger
-	timeZoneConfigSample = `### metric_name: the name of metric, default is "timezone".
-### active: whether to monitor timezone changes.
-### interval: monitor interval second, unit is second. The default value is 60.
-### hostname: If not specified, the environment variable will be used.
+	timeZoneConfigSample = `### active     : whether to monitor timezone changes. 
+### interval   : monitor interval second, unit is second. The default value is 60.
+### metricsName: the name of metric, default is "timezone"
 
-#metric_name="timezone"
-#active   = true
-#interval = 60
-#hostname = ""`
+#[inputs.timezone]
+#  active      = true
+#  interval    = 60
+#  metricsName = "timezone"
+#  [inputs.timezone.tags]
+#    tag1 = "tag1"
+#    tag2 = "tag2"
+#    tagn = "tagn"
+`
 )
 
 func (t *Timezone) SampleConfig() string {
@@ -65,28 +68,24 @@ func (t *Timezone) Catalog() string {
 	return "timezone"
 }
 
-func (t *Timezone) Description() string {
-	return "Monitor timezone changes"
-}
-
 func (t *Timezone) Run() {
-	tzlog = logger.SLogger("timezone")
-
-	input := TzInput{*t}
-	if input.Active == false {
+	if t.Active == false {
 		return
 	}
-	if input.Interval <= 0 {
-		input.Interval = defaultInterval
-	}
-	if input.Metricname == "" {
-		input.Metricname = defaultMetricName
+
+	if t.Interval <= 0 {
+		t.Interval = defaultInterval
 	}
 
+	if t.MetricsName == "" {
+		t.MetricsName = defaultMetricName
+	}
+
+	input := TzInput{*t}
 	output := TzOutput{io.Feed}
-	p := TzParams{input, output}
+	p := TzParams{input, output, logger.SLogger("timezone")}
 
-	tzlog.Info("timezone input started...")
+	p.log.Info("timezone input started...")
 	p.gather()
 }
 
@@ -99,18 +98,17 @@ func (p *TzParams) gather() {
 		case <-tick.C:
 			err := p.getMetrics()
 			if err != nil {
-				tzlog.Errorf("getMetrics err: %s", err.Error())
+				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
 
 		case <-datakit.Exit.Wait():
-			tzlog.Info("input timezone exit")
+			p.log.Info("input timezone exit")
 			return
 		}
 	}
 }
 
 func (p *TzParams) getMetrics() error {
-	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
 	timezone, err := getOsTimezone()
@@ -118,20 +116,16 @@ func (p *TzParams) getMetrics() error {
 		return err
 	}
 
-	if p.input.Hostname != "" {
-		tags["host"] = p.input.Hostname
-	}
 	fields["tz"] = timezone
 
-	pt, err := influxdb.NewPoint(p.input.Metricname, tags, fields, time.Now())
+	pt, err := io.MakeMetric(p.input.MetricsName, p.input.Tags, fields, time.Now())
 	if err != nil {
 		return err
 	}
 
-	if err := p.output.ioFeed([]byte(pt.String()), io.Metric); err != nil {
+	if err := p.output.ioFeed(pt, io.Metric); err != nil {
 		return err
 	}
-
 	return nil
 }
 
