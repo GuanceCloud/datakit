@@ -1,7 +1,5 @@
 package mysqlmonitor
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-
 const (
 	configSample = `
 #[[mysql]]
@@ -22,14 +20,14 @@ const (
 )
 
 type Mysql struct {
-	Interval     internal.Duration `toml:"interval"`
-	MetricName   string            `toml:"metricName"`
-	InstanceId   string            `toml:"instanceId"`
-	Username     string            `toml:"username"`
-	Password     string            `toml:"password"`
-	InstanceDesc string            `toml:"instanceDesc"`
-	Host         string            `toml:"host"`
-	Port         string            `toml:"port"`
-	Database     string            `toml:"database"`
-	Product      string            `toml:"product"`
+	Interval     string `toml:"interval"`
+	MetricName   string `toml:"metricName"`
+	InstanceId   string `toml:"instanceId"`
+	Username     string `toml:"username"`
+	Password     string `toml:"password"`
+	InstanceDesc string `toml:"instanceDesc"`
+	Host         string `toml:"host"`
+	Port         string `toml:"port"`
+	Database     string `toml:"database"`
+	Product      string `toml:"product"`
 }
