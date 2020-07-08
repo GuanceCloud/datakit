@@ -7,7 +7,6 @@ import (
 	"github.com/Pallinder/go-randomdata"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"github.com/influxdata/telegraf"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -16,7 +15,7 @@ import (
 )
 
 var (
-	l *zap.SugaredLogger
+	l *logger.Logger
 
 	inputName = "mock"
 

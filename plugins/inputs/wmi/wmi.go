@@ -11,11 +11,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"go.uber.org/zap"
 )
 
 var (
-	moduleLogger *zap.SugaredLogger
+	moduleLogger *logger.Logger
 )
 
 func (_ *Instance) SampleConfig() string {
