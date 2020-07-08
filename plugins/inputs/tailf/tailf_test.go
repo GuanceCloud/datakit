@@ -3,22 +3,32 @@
 package tailf
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
 )
 
+var (
+	root = "/tmp/tailf_test"
+
+	dir = "/tmp/tailf_test/1/2"
+
+	paths = []string{
+		"/tmp/tailf_test/zero.txt",
+		"/tmp/tailf_test/1/one.txt",
+		"/tmp/tailf_test/1/2/two.txt",
+	}
+)
+
 func TestWrite(t *testing.T) {
 	defer func() {
-		os.RemoveAll("/tmp/tailf_test")
+		os.RemoveAll(root)
 	}()
 
-	if err := os.MkdirAll("/tmp/tailf_test/1/2", os.ModePerm); err != nil {
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		panic(err)
 	}
-
-	var paths = []string{"/tmp/tailf_test/zero.txt", "/tmp/tailf_test/1/one.txt", "/tmp/tailf_test/1/2/two.txt"}
-	// var paths = []string{"/tmp/tailf_test/zero.txt"}
 
 	var files []*os.File
 	for _, path := range paths {
@@ -34,37 +44,31 @@ func TestWrite(t *testing.T) {
 		}
 	}()
 
+	count := 0
 	for {
-		// for _, f := range files {
-		files[0].WriteString(time.Now().Format(time.RFC3339Nano) + " -- 1111111111\n")
-		files[1].WriteString(time.Now().Format(time.RFC3339Nano) + " -- 2222222222\n")
-		files[2].WriteString(time.Now().Format(time.RFC3339Nano) + " -- 3333333333\n")
-		// }
-		time.Sleep(100 * time.Millisecond)
+		if count > 1000 {
+			return
+		}
+		for index, file := range files {
+			file.WriteString(time.Now().Format(time.RFC3339Nano) +
+				fmt.Sprintf(" -- index: %d -- count: %d\n", index, count))
+			time.Sleep(100 * time.Millisecond)
+		}
+		count++
 	}
 }
 
-func TestStart(t *testing.T) {
-	var paths = []string{"/tmp/tailf_test/zero.txt", "/tmp/tailf_test/1/one.txt", "/tmp/tailf_test/1/2/two.txt"}
-	// var paths = []string{"/tmp/tailf_test/zero.txt"}
-
+func TestMain(t *testing.T) {
 	var tailer = Tailf{
 		Paths:         paths,
 		FormBeginning: false,
 	}
 
-	time.Sleep(2 * time.Second)
 	go tailer.Run()
 
-	time.Sleep(100 * time.Second)
-	time.Sleep(2 * time.Second)
+	time.Sleep(60 * time.Second)
 }
 
-func TestCheckPaths(t *testing.T) {
-	paths := []string{"/tmp/tailf_test"}
-	t.Logf("%v\n", paths)
-
-	for _, p := range filterPath(paths) {
-		t.Logf("%s\n", p)
-	}
+func TestFilterPath(t *testing.T) {
+	t.Logf("%s\n", filterPath([]string{root}))
 }
