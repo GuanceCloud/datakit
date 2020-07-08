@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
@@ -19,7 +18,7 @@ import (
 
 var (
 	inputName    = `aliyunactiontrail`
-	moduleLogger *zap.SugaredLogger
+	moduleLogger *logger.Logger
 )
 
 func (_ *AliyunActiontrail) Catalog() string {

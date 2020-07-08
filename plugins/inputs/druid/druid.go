@@ -8,7 +8,6 @@ import (
 	"time"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -25,13 +24,18 @@ import (
 // druid.emitter.http.flushMillis=10000
 // druid.emitter.http.recipientBaseUrl=http://ADDR_TO_THIS_SERVICE:8424
 
-const configSample = `
+const (
+	inputName = "druid"
+
+	defaultMeasurement = "druid"
+
+	configSample = `
 # [[druid]]
 #       path = "/druid"
-#       measurement = "druid"
 `
+)
 
-var l *zap.SugaredLogger
+var l *logger.Logger
 
 func init() {
 	inputs.Add("druid", func() inputs.Input {
@@ -40,21 +44,13 @@ func init() {
 }
 
 type Druid struct {
-	Config []struct {
-		Path        string `toml:"path"`
-		Measurement string `toml:"measurement"`
-	} `toml:"druid"`
+	Path string `toml:"path"`
 }
 
 func (d *Druid) Run() {
-	l = logger.SLogger("druid")
+	l = logger.SLogger(inputName)
 
-	if d.Config.Measurement == "" {
-		l.Error("invalid measurement")
-		return
-	}
-
-	io.RegisterRoute(d.Config.Path, d.handle)
+	io.RegisterRoute(d.Path, d.handle)
 }
 
 func (d *Druid) SampleConfig() string {
@@ -62,7 +58,7 @@ func (d *Druid) SampleConfig() string {
 }
 
 func (d *Druid) Catalog() string {
-	return "druid"
+	return inputName
 }
 
 func (d *Druid) handle(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +77,7 @@ func (d *Druid) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pt, err := influxdb.NewPoint(d.Config.Measurement, nil, fields, time.Now())
+	pt, err := influxdb.NewPoint(defaultMeasurement, nil, fields, time.Now())
 	if err != nil {
 		l.Errorf("build point err, %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
