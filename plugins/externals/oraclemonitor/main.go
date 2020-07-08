@@ -15,7 +15,6 @@ import (
 	"time"
 
 	_ "github.com/godror/godror"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -32,7 +31,7 @@ var (
 	flagLog       = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log file")
 	flagLogLevel  = flag.String("log-level", "info", "log file")
 
-	l      *zap.SugaredLogger
+	l      *logger.Logger
 	rpcCli io.DataKitClient
 )
 
