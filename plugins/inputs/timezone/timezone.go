@@ -8,9 +8,6 @@ import (
 	"strings"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"go.uber.org/zap"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -37,7 +34,7 @@ type TzOutput struct {
 type TzParams struct {
 	input  TzInput
 	output TzOutput
-	log    *zap.SugaredLogger
+	log    *logger.Logger
 }
 
 const (
@@ -46,7 +43,7 @@ const (
 )
 
 var (
-	timeZoneConfigSample = `### active     : whether to monitor timezone changes. 
+	timeZoneConfigSample = `### active     : whether to monitor timezone changes.
 ### interval   : monitor interval second, unit is second. The default value is 60.
 ### metricsName: the name of metric, default is "timezone"
 
@@ -119,12 +116,12 @@ func (p *TzParams) getMetrics() error {
 
 	fields["tz"] = timezone
 
-	pt, err := influxdb.NewPoint(p.input.MetricsName, p.input.Tags, fields, time.Now())
+	pt, err := io.MakeMetric(p.input.MetricsName, p.input.Tags, fields, time.Now())
 	if err != nil {
 		return err
 	}
 
-	if err := p.output.ioFeed([]byte(pt.String()), io.Metric); err != nil {
+	if err := p.output.ioFeed(pt, io.Metric); err != nil {
 		return err
 	}
 	return nil
