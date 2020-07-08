@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -110,7 +110,7 @@ func (g *Gitlab) Start(ac telegraf.Accumulator) error {
 		metricName = g.MetricName
 	}
 
-	jsonFileName := filepath.Join(config.InstallDir, "data", "gitlab", "gitlab-run.json")
+	jsonFileName := filepath.Join(datakit.InstallDir, "data", "gitlab", "gitlab-run.json")
 	loadPBT(jsonFileName)
 
 	for _, target := range g.Targets {
