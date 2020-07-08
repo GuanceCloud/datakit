@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
@@ -24,13 +23,7 @@ import (
 
 // httpstat
 type Httpstat struct {
-	Config           []*HttpstatCfg `toml:"httpstat"`
-	runningInstances []*runningInstance
-	ctx              context.Context
-	cancelFun        context.CancelFunc
-	acc              telegraf.Accumulator
-	wg               *sync.WaitGroup
-	logger           *models.Logger
+	Config []*HttpstatCfg `toml:"httpstat"`
 }
 
 type runningInstance struct {
@@ -327,8 +320,6 @@ func Normalize(URL string) string {
 
 func init() {
 	inputs.Add(pluginName, func() inputs.Input {
-		m := &Httpstat{}
-		m.ctx, m.cancelFun = context.WithCancel(context.Background())
-		return m
+		return &Httpstat{}
 	})
 }
