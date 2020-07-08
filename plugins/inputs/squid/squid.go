@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -134,8 +133,8 @@ func (p *SquidParam) getMetrics() (err error) {
 	err = cmd.Run()
 	if err != nil {
 		fields["can_connect"] = false
-		pt, _ := influxdb.NewPoint(p.input.Squid.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed([]byte(pt.String()), io.Metric)
+		pt, _ := io.MakeMetric(p.input.Squid.MetricsName, tags, fields, time.Now())
+		p.output.IoFeed(pt, io.Metric)
 		return
 	}
 
@@ -162,12 +161,12 @@ func (p *SquidParam) getMetrics() (err error) {
 		}
 	}
 
-	pt, err := influxdb.NewPoint(p.input.Squid.MetricsName, tags, fields, time.Now())
+	pt, err := io.MakeMetric(p.input.Squid.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return
 	}
 
-	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+	err = p.output.IoFeed(pt, io.Metric)
 	return
 }
 
