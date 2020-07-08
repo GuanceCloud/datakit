@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -99,7 +98,7 @@ var (
 	}
 )
 
-var moduleLogger *zap.SugaredLogger
+var moduleLogger *logger.Logger
 
 type (
 	runningInstance struct {
