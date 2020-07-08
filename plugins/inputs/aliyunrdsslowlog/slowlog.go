@@ -3,8 +3,6 @@ package aliyunrdsslowlog
 import (
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -36,7 +34,7 @@ var regions = []string{
 }
 
 var (
-	l *zap.SugaredLogger
+	l *logger.Logger
 )
 
 type AliyunRDSSlowLog struct {
