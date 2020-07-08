@@ -24,31 +24,30 @@ func loadConfig() (*ucloud.Config, *auth.Credential) {
 }
 
 func TestConfig(t *testing.T) {
-	var cfg ucMonitorAgent
 
-	cfg.Instances = []*ucInstance{
-		&ucInstance{
-			PublicKey:  "xxx",
-			PrivateKey: "xxx",
-			Region:     "xxx",
-			Zone:       "xxx",
-			ProjectID:  "xxx",
-			Resource: []*ucResource{
-				&ucResource{
-					ResourceID:   "xxx",
-					ResourceType: "xxx",
-					Metrics: []*ucMetric{
-						&ucMetric{
-							MetricName: "xxx",
-						},
-						&ucMetric{
-							MetricName: "yyy",
-						},
+	cfg := &ucInstance{
+		PublicKey:  "xxx",
+		PrivateKey: "xxx",
+		Region:     "xxx",
+		Zone:       "xxx",
+		ProjectID:  "xxx",
+		Resource: []*ucResource{
+			&ucResource{
+				ResourceID:   "xxx",
+				ResourceType: "xxx",
+				Metrics: []*ucMetric{
+					&ucMetric{
+						MetricName: "xxx",
+					},
+					&ucMetric{
+						MetricName: "yyy",
 					},
 				},
 			},
 		},
 	}
+
+	_ = cfg
 
 	/*
 		data, err := toml.Marshal(cfg)
