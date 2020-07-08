@@ -2,12 +2,10 @@ package etcd
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -21,28 +19,31 @@ const (
 
 	defaultMeasurement = "etcd"
 
-	configSample = `
+	sampleCfg = `
 # [[etcd]]
-#       ## etcd 地址
-#	host = "127.0.0.1"
-#
-#       ## etcd 端口
-#	port = 2379
-#
-#       ## 是否开启 HTTPS TLS，如果开启则需要同时配置下面的3个路径
-#       tls_open = false
-#
-#       ## CA 证书路径
-#       tls_cacert_file = "ca.crt"
-#
-#       ## 客户端证书文件路径
-#	tls_cert_file = "peer.crt"
-#
-#	## 私钥文件路径
-#	tls_key_file = "peer.key"
-#
-#	## 采集周期，时间单位是秒
-#	collect_cycle = 60
+# 	# etcd host ip
+# 	host = "127.0.0.1"
+# 	
+# 	# etcd port
+# 	port = 2379
+# 	
+# 	# use HTTPS TLS
+# 	tls_open = false
+# 	
+# 	# CA 
+# 	tls_cacert_file = "ca.crt"
+# 	
+# 	# client
+# 	tls_cert_file = "peer.crt"
+# 	
+# 	# key
+# 	tls_key_file = "peer.key"
+# 	
+# 	# second
+# 	collect_cycle = 60
+# 	
+# 	# [inputs.tailf.tags]
+# 	# tags1 = "value1"
 `
 )
 
@@ -54,26 +55,23 @@ func init() {
 	})
 }
 
-type (
-	Etcd struct {
-		C []Impl `toml:"etcd"`
-	}
-	Impl struct {
-		Host       string        `toml:"host"`
-		Port       int           `toml:"port"`
-		TLSOpen    bool          `toml:"tls_open"`
-		CacertFile string        `toml:"tls_cacert_file"`
-		CertFile   string        `toml:"tls_cert_file"`
-		KeyFile    string        `toml:"tls_key_file"`
-		Cycle      time.Duration `toml:"collect_cycle"`
-		address    string
-		// HTTPS TLS
-		tlsConfig *tls.Config
-	}
-)
+type Etcd struct {
+	Host       string            `toml:"host"`
+	Port       int               `toml:"port"`
+	TLSOpen    bool              `toml:"tls_open"`
+	CacertFile string            `toml:"tls_cacert_file"`
+	CertFile   string            `toml:"tls_cert_file"`
+	KeyFile    string            `toml:"tls_key_file"`
+	Cycle      time.Duration     `toml:"collect_cycle"`
+	Tags       map[string]string `toml:"tags"`
+
+	address string
+	// HTTPS TLS
+	tlsConfig *tls.Config
+}
 
 func (_ *Etcd) SampleConfig() string {
-	return configSample
+	return sampleCfg
 }
 
 func (_ *Etcd) Catalog() string {
@@ -83,27 +81,24 @@ func (_ *Etcd) Catalog() string {
 func (e *Etcd) Run() {
 	l = logger.SLogger(inputName)
 
-	for _, c := range e.C {
-		c.start()
+	if _, ok := e.Tags["address"]; !ok {
+		e.Tags["address"] = fmt.Sprintf("%s:%d", e.Host, e.Port)
 	}
-}
 
-func (i *Impl) start() {
 	// "https" or "http"
-	if i.TLSOpen {
-		i.address = fmt.Sprintf("https://%s:%d/metrics", i.Host, i.Port)
-		tc, err := TLSConfig(i.CacertFile, i.CertFile, i.KeyFile)
+	if e.TLSOpen {
+		e.address = fmt.Sprintf("https://%s:%d/metrics", e.Host, e.Port)
+		tc, err := TLSConfig(e.CacertFile, e.CertFile, e.KeyFile)
 		if err != nil {
 			l.Error(err)
 			return
 		}
-		i.tlsConfig = tc
-
+		e.tlsConfig = tc
 	} else {
-		i.address = fmt.Sprintf("http://%s:%d/metrics", i.Host, i.Port)
+		e.address = fmt.Sprintf("http://%s:%d/metrics", e.Host, e.Port)
 	}
 
-	ticker := time.NewTicker(time.Second * i.Cycle)
+	ticker := time.NewTicker(time.Second * e.Cycle)
 	defer ticker.Stop()
 
 	for {
@@ -113,29 +108,33 @@ func (i *Impl) start() {
 			return
 
 		case <-ticker.C:
-			pt, err := i.getMetrics()
+			data, err := e.getMetrics()
 			if err != nil {
 				l.Error(err)
 				continue
 			}
-			io.Feed([]byte(pt.String()), io.Metric)
+			if err := io.Feed(data, io.Metric); err != nil {
+				l.Error(err)
+				continue
+			}
+			l.Debugf("feed %d bytes to io ok", len(data))
 		}
 	}
 }
 
-func (i *Impl) getMetrics() (*influxdb.Point, error) {
+func (e *Etcd) getMetrics() ([]byte, error) {
 
 	client := &http.Client{}
 	client.Timeout = time.Second * 5
 	defer client.CloseIdleConnections()
 
-	if i.tlsConfig != nil {
+	if e.tlsConfig != nil {
 		client.Transport = &http.Transport{
-			TLSClientConfig: i.tlsConfig,
+			TLSClientConfig: e.tlsConfig,
 		}
 	}
 
-	resp, err := client.Get(i.address)
+	resp, err := client.Get(e.address)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +146,7 @@ func (i *Impl) getMetrics() (*influxdb.Point, error) {
 	}
 
 	if len(metrics) == 0 {
-		return nil, errors.New("metrics is empty")
+		return nil, fmt.Errorf("metrics is empty")
 	}
 
 	var tags = make(map[string]string)
@@ -192,5 +191,9 @@ func (i *Impl) getMetrics() (*influxdb.Point, error) {
 	END_ACTION:
 	}
 
-	return influxdb.NewPoint(defaultMeasurement, tags, fields, time.Now())
+	for k, v := range e.Tags {
+		tags[k] = v
+	}
+
+	return io.MakeMetric(defaultMeasurement, tags, fields, time.Now())
 }
