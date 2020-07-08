@@ -1,8 +1,6 @@
 package trace
 
 import (
-	"go.uber.org/zap"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -16,7 +14,7 @@ var (
 #active = true
 #path   = "/trace"
 `
-	log *zap.SugaredLogger
+	log *logger.Logger
 )
 
 type Trace struct {
