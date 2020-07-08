@@ -1,10 +1,8 @@
 package baiduIndex
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-
 const (
 	configSample = `
-#[[baidu]]
+#[[inputs.baidu]]
 #  ## 认证cookie
 #  cookie = ''
 #  keywords = ["测试"]
@@ -17,10 +15,10 @@ const (
 `
 )
 
-type Baidu struct {
-	Cookie     string            `toml:"cookie"`
-	Keywords   []string          `toml:"keywords"`
-	Kind       string            `toml:"kind"`
-	Interval   internal.Duration `toml:"interval"`
-	MetricName string            `toml:"metricName"`
+type BaiduIndex struct {
+	Cookie     string   `toml:"cookie"`
+	Keywords   []string `toml:"keywords"`
+	Kind       string   `toml:"kind"`
+	Interval   string   `toml:"interval"`
+	MetricName string   `toml:"metricName"`
 }
