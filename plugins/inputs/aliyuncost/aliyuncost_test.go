@@ -245,7 +245,7 @@ func TestConfig(t *testing.T) {
 
 func TestSvr(t *testing.T) {
 
-	var alicost AliyunCostAgent
+	var alicost CostCfg
 
 	if data, err := ioutil.ReadFile("./demo.toml"); err != nil {
 		log.Fatalf("%s", err)
