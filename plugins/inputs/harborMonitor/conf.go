@@ -1,10 +1,8 @@
 package harborMonitor
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-
 const (
-	baiduIndexConfigSample = `
-#[[harbor]]
+	harborConfigSample = `
+#[[inputs.harbor]]
 #  ## 指标集名称
 #  metricName = 'harbor'
 #  ## 镜像仓库域名
@@ -20,11 +18,11 @@ const (
 `
 )
 
-type HarborCfg struct {
+type HarborMonitor struct {
 	MetricName string
 	Domain     string
 	Https      bool
 	Username   string
 	Password   string
-	Interval   internal.Duration `toml:"interval"`
+	Interval   string
 }
