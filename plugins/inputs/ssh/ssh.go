@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
@@ -224,11 +223,11 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 		fields["sftp_check"] = sftpRst
 	}
 
-	pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
+	pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return err
 	}
-	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+	err = p.output.IoFeed(pt, io.Metric)
 	return err
 }
 
