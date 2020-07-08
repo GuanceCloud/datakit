@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"go.uber.org/zap"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -225,11 +224,11 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 		fields["sftp_check"] = sftpRst
 	}
 
-	pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
+	pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return err
 	}
-	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+	err = p.output.IoFeed(pt, io.Metric)
 	return err
 }
 

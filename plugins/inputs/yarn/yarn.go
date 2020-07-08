@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/antchfx/jsonquery"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -253,8 +252,8 @@ func (p *YarnParam) gatherMainSection() (err error) {
 	resp, err := http.Get(p.input.hostPath + "metrics")
 	if err != nil || resp.StatusCode != 200 {
 		fields[canConect] = false
-		pt, _ := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed([]byte(pt.String()), io.Metric)
+		pt, _ := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
+		p.output.IoFeed(pt, io.Metric)
 		return
 	}
 	defer resp.Body.Close()
@@ -291,12 +290,12 @@ func (p *YarnParam) gatherMainSection() (err error) {
 	fields["rebooted_nodes"] = metric.ClusterMetrics.RebootedNodes
 	fields["shutdown_nodes"] = metric.ClusterMetrics.ShutdownNodes
 
-	pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
+	pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return
 	}
 
-	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+	err = p.output.IoFeed(pt, io.Metric)
 	return
 }
 
@@ -334,11 +333,11 @@ func (p *YarnParam) gatherAppSection() error {
 		fields["memory_seconds"] = ap.MemorySeconds
 		fields["vcore_seconds"] = ap.VcoreSeconds
 
-		pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
+		pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+		err = p.output.IoFeed(pt, io.Metric)
 		if err != nil {
 			return err
 		}
@@ -379,11 +378,11 @@ func (p *YarnParam) gatherNodeSection() error {
 		fields["available_virtual_cores"] = node.AvailableVirtualCores
 		fields["num_containers"] = node.NumContainers
 
-		pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
+		pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+		err = p.output.IoFeed(pt, io.Metric)
 		if err != nil {
 			return err
 		}
@@ -522,11 +521,11 @@ func (p *YarnParam) gatherQueueSection() error {
 			fields["max_applications_per_user"] = val
 		}
 
-		pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
+		pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+		err = p.output.IoFeed(pt, io.Metric)
 		if err != nil {
 			return err
 		}
