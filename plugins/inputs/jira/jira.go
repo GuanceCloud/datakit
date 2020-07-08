@@ -1,46 +1,43 @@
 package jira
 
 import (
-	"context"
-	"log"
 	"strings"
 
-	"github.com/influxdata/telegraf"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type JiraTarget struct {
-	Interval int
-	Active   bool
-	Host     string
-	Username string
-	Password string
-	Project  string
-	Issue    string
-}
+type IoFeed func(data []byte, category string) error
 
 type Jira struct {
-	MetricName string `toml:"metric_name"`
-	Targets    []JiraTarget
+	Interval    int
+	Active      bool
+	Host        string
+	Username    string
+	Password    string
+	Project     string
+	Issue       string
+	MetricsName string
+	Tags        map[string]string
 }
 
 type JiraInput struct {
-	JiraTarget
-	MetricName string
+	Jira
 }
 
 type JiraOutput struct {
-	acc telegraf.Accumulator
+	IoFeed
 }
 
 type JiraParam struct {
 	input  JiraInput
 	output JiraOutput
+	log    *logger.Logger
 }
 
 const (
-	jiraConfigSample = `### metric_name: the name of metric, default is "jira"
-### You need to configure an [[targets]] for each jira to be monitored.
+	jiraConfigSample = `### You need to configure an [[inputs.jira]] for each jira to be monitored.
 ### active     : whether to gather jira data.
 ### host       : jira service url.
 ### project    : project id. If no configuration, get all projects.
@@ -48,9 +45,9 @@ const (
 ### username   : the username to access jira.
 ### password   : the password to access jira.
 ### interval   : batch interval, unit is second. The default value is 60.
+### metricsName: the name of metric, default is "jira"
 
-#metric_name="jira"
-#[[targets]]
+#[[inputs.jira]]
 #	active      = true
 #	host        = "https://jira.jiagouyun.com/"
 #	project     = "11902"
@@ -58,9 +55,13 @@ const (
 #	username    = "user"
 #	password    = "password"
 #	interval    = 60
+#	metricsName = "jira"
+#	[inputs.jira.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 
-
-#[[targets]]
+#[[inputs.jira]]
 #	active      = true
 #	host        = "https://jira.jiagouyun.com/"
 #	project     = "11902"
@@ -68,16 +69,15 @@ const (
 #	username    = "user"
 #	password    = "password"
 #	interval    = 60
+#	metricsName = "jira"
+#	[inputs.jira.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 `
-	defaultInterval  = 60
+	defaultInterval   = 60
+	defaultMetricName = "jira"
 	maxIssuesPerQueue = 1000
-)
-
-var (
-	ctx        context.Context
-	cfun       context.CancelFunc
-	acc        telegraf.Accumulator
-	metricName = "jira"
 )
 
 func (g *Jira) Catalog() string {
@@ -88,39 +88,25 @@ func (j *Jira) SampleConfig() string {
 	return jiraConfigSample
 }
 
-func (j *Jira) Description() string {
-	return "Collect Jira Data"
-}
-
-func (j *Jira) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (j *Jira) Start(ac telegraf.Accumulator) error {
-	log.Printf("I! [jira] start")
-	ctx, cfun = context.WithCancel(context.Background())
-
-	acc = ac
-	if j.MetricName != "" {
-		metricName = j.MetricName
+func (j *Jira) Run() {
+	if !j.Active && j.Host == "" {
+		return
 	}
-
-	for _, target := range j.Targets {
-		if target.Active && target.Host != "" {
-			if target.Interval == 0 {
-				target.Interval = defaultInterval
-			}
-
-			target.Host = strings.Trim(target.Host, " ")
-			go target.active()
-		}
+	if j.MetricsName == "" {
+		j.MetricsName = defaultMetricName
 	}
+	if j.Interval == 0 {
+		j.Interval = defaultInterval
+	}
+	j.Host = strings.Trim(j.Host, " ")
 
-	return nil
-}
+	input := JiraInput{*j}
+	output := JiraOutput{io.Feed}
+	log := logger.SLogger("jira")
 
-func (j *Jira) Stop() {
-	cfun()
+	p := JiraParam{input, output, log}
+	p.log.Info("jira input started...")
+	p.active()
 }
 
 func init() {
