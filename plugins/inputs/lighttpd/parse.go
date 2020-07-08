@@ -8,8 +8,9 @@ import (
 	"reflect"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	yaml "gopkg.in/yaml.v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 type Version int
@@ -66,14 +67,10 @@ type StatusV2 struct {
 	Status5xx int `yaml:"status_5xx"`
 }
 
-func LighttpdStatusParse(url string, v Version, measurement string) (*influxdb.Point, error) {
+func LighttpdStatusParse(url string, v Version, tags map[string]string) ([]byte, error) {
 
 	if url == "" {
 		return nil, errors.New("invalid lighttpd status url")
-	}
-
-	if measurement == "" {
-		return nil, errors.New("invalid measurement")
 	}
 
 	resp, err := http.Get(url)
@@ -88,11 +85,9 @@ func LighttpdStatusParse(url string, v Version, measurement string) (*influxdb.P
 	}
 
 	var value reflect.Value
-	var tags = make(map[string]string)
 
 	switch v {
 	case v1:
-		tags["StatusVersion"] = "v1"
 		status := StatusV1{}
 		if err := json.Unmarshal(body, &status); err != nil {
 			return nil, err
@@ -100,7 +95,6 @@ func LighttpdStatusParse(url string, v Version, measurement string) (*influxdb.P
 		value = reflect.ValueOf(status)
 
 	case v2:
-		tags["StatusVersion"] = "v2"
 		status := StatusV2{}
 		if err := yaml.Unmarshal(body, &status); err != nil {
 			return nil, err
@@ -116,10 +110,5 @@ func LighttpdStatusParse(url string, v Version, measurement string) (*influxdb.P
 		fields[value.Type().Field(i).Name] = value.Field(i).Int()
 	}
 
-	pt, err := influxdb.NewPoint(measurement, tags, fields, time.Now())
-	if err != nil {
-		return nil, err
-	}
-
-	return pt, nil
+	return io.MakeMetric(defaultMeasurement, tags, fields, time.Now())
 }
