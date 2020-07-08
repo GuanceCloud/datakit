@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"fmt"
 	"net/url"
 	"os"
 	"runtime"
@@ -14,11 +13,12 @@ import (
 )
 
 const (
-	OPT_ENC_CONSOLE  = 1 // non-json
-	OPT_SHORT_CALLER = 2
-	OPT_STDOUT       = 4
-	OPT_SHUGAR       = 8
-	OPT_COLOR        = 16
+	OPT_ENC_CONSOLE     = 1 // non-json
+	OPT_SHORT_CALLER    = 2
+	OPT_STDOUT          = 4
+	OPT_COLOR           = 8
+	OPT_RESERVED_LOGGER = 16
+	OPT_DEFAULT         = OPT_ENC_CONSOLE | OPT_SHORT_CALLER
 
 	DEBUG = "debug"
 	INFO  = "info"
@@ -35,61 +35,74 @@ var (
 	MaxAge     = 28 // day
 )
 
-func SetGlobalRootLogger(fpath, level string, options int) error {
+type Logger struct {
+	*zap.SugaredLogger
+}
+
+func SetGlobalRootLogger(fpath, level string, options int) {
 	if defaultRootLogger != nil {
-		panic(fmt.Sprintf("global root logger has been initialized: %+#v", defaultRootLogger))
+		if __l != nil {
+			__l.Warnf("global root logger has been initialized %+#v", defaultRootLogger)
+		}
+		return
 	}
 
 	var err error
-	defaultRootLogger, err = NewRootLogger(fpath, level, options)
+	defaultRootLogger, err = newRootLogger(fpath, level, options)
 	if err != nil {
 		panic(err)
 	}
 
 	slogs = &sync.Map{}
 
-	__l = GetSugarLogger(defaultRootLogger, reservedSLoggerName)
-	slogs.Store(reservedSLoggerName, __l)
+	if options&OPT_RESERVED_LOGGER != 0 {
+		__l = getSugarLogger(defaultRootLogger, reservedSLoggerName)
+		slogs.Store(reservedSLoggerName, __l)
 
-	__l.Info("root logger init ok")
-
-	return nil
+		__l.Info("root logger init ok")
+	}
 }
 
 const (
 	rootNotInitialized = "you should call SetGlobalRootLogger to initialize the global root logger"
 )
 
-func Logger(name string) *zap.Logger {
-	if defaultRootLogger == nil {
-		panic(rootNotInitialized)
-	}
-
-	return GetLogger(defaultRootLogger, name)
+func SLogger(name string) *Logger {
+	return &Logger{SugaredLogger: slogger(name)}
 }
 
-func SLogger(name string) *zap.SugaredLogger {
+func slogger(name string) *zap.SugaredLogger {
 	if defaultRootLogger == nil {
 		panic(rootNotInitialized)
 	}
 
-	newlog := GetSugarLogger(defaultRootLogger, name)
+	newlog := getSugarLogger(defaultRootLogger, name)
 
 	l, ok := slogs.LoadOrStore(name, newlog)
-	if ok {
-		__l.Debugf("add new sloger `%s'", name)
-	} else {
-		__l.Debugf("reused exist sloger `%s'", name)
+	if __l != nil {
+		if ok {
+			__l.Debugf("add new sloger `%s'", name)
+		} else {
+			__l.Debugf("reused exist sloger `%s'", name)
+		}
 	}
 
 	return l.(*zap.SugaredLogger)
 }
 
-func GetLogger(root *zap.Logger, name string) *zap.Logger {
+func _XLogger(name string) *zap.Logger {
+	if defaultRootLogger == nil {
+		panic(rootNotInitialized)
+	}
+
+	return getLogger(defaultRootLogger, name)
+}
+
+func getLogger(root *zap.Logger, name string) *zap.Logger {
 	return root.Named(name)
 }
 
-func GetSugarLogger(root *zap.Logger, name string) *zap.SugaredLogger {
+func getSugarLogger(root *zap.Logger, name string) *zap.SugaredLogger {
 	return root.Sugar().Named(name)
 }
 
@@ -126,7 +139,7 @@ func _NewRotateRootLogger(fpath, level string, options int) (*zap.Logger, error)
 	return l, nil
 }
 
-func NewRootLogger(fpath, level string, options int) (*zap.Logger, error) {
+func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 
 	cfg := &zap.Config{
 		Encoding: `json`,
