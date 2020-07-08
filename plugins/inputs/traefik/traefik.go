@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -144,8 +143,8 @@ func (p *TraefikParam) getMetrics() (err error) {
 	resp, err := http.Get(p.input.Url)
 	if err != nil || resp.StatusCode != 200 {
 		fields["can_connect"] = false
-		pt, _ := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed([]byte(pt.String()), io.Metric)
+		pt, _ := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
+		p.output.IoFeed(pt, io.Metric)
 		return
 	}
 	defer resp.Body.Close()
@@ -169,11 +168,11 @@ func (p *TraefikParam) getMetrics() (err error) {
 		fields["http_"+k+"_count"] = v
 	}
 
-	pt, err := influxdb.NewPoint(p.input.MetricsName, tags, fields, time.Now())
+	pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return
 	}
-	err = p.output.IoFeed([]byte(pt.String()), io.Metric)
+	err = p.output.IoFeed(pt, io.Metric)
 	return
 }
 
