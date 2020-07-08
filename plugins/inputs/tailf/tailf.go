@@ -3,15 +3,14 @@
 package tailf
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/hpcloud/tail"
-	// "go.uber.org/zap"
+	"go.uber.org/zap"
 
-	// "gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	// "gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -39,7 +38,7 @@ const (
 `
 )
 
-// var l *zap.SugaredLogger
+var l *zap.SugaredLogger
 
 type Tailf struct {
 	Paths         []string          `toml:"paths"`
@@ -68,7 +67,7 @@ func (_ *Tailf) SampleConfig() string {
 }
 
 func (t *Tailf) Run() {
-	// l = logger.SLogger(inputName)
+	l = logger.SLogger(inputName)
 	t.tailers = make(map[string]*tail.Tail)
 
 	if t.FormBeginning {
@@ -83,14 +82,14 @@ func (t *Tailf) Run() {
 		}
 	}
 
-	t.fileList = filterPath(t.Paths)
-
 	t.updateTailers()
 
 	t.foreachLines()
 }
 
 func (t *Tailf) updateTailers() {
+
+	t.fileList = filterPath(t.Paths)
 
 	for _, file := range t.fileList {
 		tailer, err := tail.TailFile(file,
@@ -115,25 +114,27 @@ func (t *Tailf) foreachLines() {
 
 	count := 0
 	for {
-		// time.Sleep(10 * time.Millisecond)
-		fmt.Printf("count %d\n", count)
 		time.Sleep(time.Second)
 	__out:
-		for key, tailer := range t.tailers {
+		for _, tailer := range t.tailers {
 			for {
 				select {
 				case line := <-tailer.Lines:
 					t.impl(line)
-				// case <-datakit.Exit.Wait():
-				// 	return
+
+				case <-datakit.Exit.Wait():
+					return
 
 				default:
-					fmt.Printf("key %s\n", key)
 					goto __out
 				}
 			}
 		}
-		t.updateTailers()
+		// update
+		if count == 64 {
+			t.updateTailers()
+			count = 0
+		}
 		count++
 	}
 }
@@ -154,11 +155,9 @@ func (t *Tailf) impl(line *tail.Line) {
 		return
 	}
 
-	fmt.Println(string(data))
-	//if err := io.Feed(data, io.Logging); err != nil {
-	//	l.Error(err)
-	//} else {
-	//	l.Debugf("feed %d bytes to io ok", len(data))
-	//}
-
+	if err := io.Feed(data, io.Logging); err != nil {
+		l.Error(err)
+	} else {
+		l.Debugf("feed %d bytes to io ok", len(data))
+	}
 }
