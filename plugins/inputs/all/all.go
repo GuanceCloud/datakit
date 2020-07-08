@@ -32,7 +32,7 @@ import (
 
 	// BUG: within vendor/github.com/ericchiang/k8s/watch/versioned/generated.pb.go, we should replace
 	// github.com/ericchiang.k8s.watch.versioned.Event -> k8s.io.kubernetes.pkg.watch.versioned.Event
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prometheus"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prometheus"
 
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/replication"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
