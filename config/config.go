@@ -13,7 +13,6 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -25,7 +24,7 @@ import (
 var (
 	ConvertedCfg []string
 
-	l   *zap.SugaredLogger
+	l   *logger.Logger
 	Cfg *Config = nil
 )
 
@@ -148,6 +147,8 @@ func InitDirs() {
 }
 
 func LoadCfg() error {
+
+	InitDirs()
 
 	if err := Cfg.LoadMainConfig(); err != nil {
 		return err
