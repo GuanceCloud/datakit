@@ -4,11 +4,14 @@ import (
 	"context"
 	"time"
 
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
 	"github.com/influxdata/telegraf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -81,19 +84,16 @@ func (_ *AliyunRDSSlowLog) Init() error {
 	return nil
 }
 
-func (a *AliyunRDSSlowLog) Start(acc telegraf.Accumulator) error {
+func (a *AliyunRDSSlowLog) Run() {
 	a.logger = &models.Logger{
 		Name: `aliyunrdsslowlog`,
 	}
 
 	if len(a.RDSslowlog) == 0 {
 		a.logger.Warnf("no configuration found")
-		return nil
 	}
 
 	a.logger.Infof("starting...")
-
-	a.accumulator = acc
 
 	for _, instCfg := range a.RDSslowlog {
 		r := &runningInstance{
@@ -113,7 +113,6 @@ func (a *AliyunRDSSlowLog) Start(acc telegraf.Accumulator) error {
 		cli, err := rds.NewClientWithAccessKey(instCfg.RegionID, instCfg.AccessKeyID, instCfg.AccessKeySecret)
 		if err != nil {
 			r.logger.Errorf("create client failed, %s", err)
-			return err
 		}
 
 		r.client = cli
@@ -122,7 +121,6 @@ func (a *AliyunRDSSlowLog) Start(acc telegraf.Accumulator) error {
 
 		go r.run(a.ctx)
 	}
-	return nil
 }
 
 func (a *AliyunRDSSlowLog) Stop() {
@@ -257,7 +255,12 @@ func (r *runningInstance) handleResponse(response *rds.DescribeSlowLogsResponse,
 		fields["sqlserver_total_execution_times"] = point.SQLServerTotalExecutionTimes
 		fields["return_max_row_count"] = point.ReturnMaxRowCount
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+		if err != nil {
+			return err
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 
 	return nil
