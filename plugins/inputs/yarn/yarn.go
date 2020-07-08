@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/antchfx/jsonquery"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -116,7 +115,7 @@ type YarnOutput struct {
 type YarnParam struct {
 	input  YarnInput
 	output YarnOutput
-	log    *zap.SugaredLogger
+	log    *logger.Logger
 }
 
 const (
