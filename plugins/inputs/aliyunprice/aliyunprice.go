@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -20,7 +19,7 @@ import (
 var (
 	inputName = `aliyunprice`
 
-	moduleLogger *zap.SugaredLogger
+	moduleLogger *logger.Logger
 )
 
 type (
