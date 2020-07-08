@@ -10,8 +10,6 @@ import (
 	"time"
 	"encoding/json"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
 )
@@ -77,13 +75,13 @@ func (tAdpt *TraceAdapter) mkLineProto() {
 
 	ts := time.Unix(tAdpt.timestampUs/US_PER_SECOND, (tAdpt.timestampUs%US_PER_SECOND)*1000)
 
-	pt, err := influxdb.NewPoint(tAdpt.source, tags, fields, ts)
+	pt, err := io.MakeMetric(tAdpt.source, tags, fields, ts)
 	if err != nil {
 		log.Errorf("build metric err: %s", err)
 		return
 	}
 	
-	if err := io.Feed([]byte(pt.String()), io.Logging); err != nil {
+	if err := io.Feed(pt, io.Logging); err != nil {
 		log.Errorf("io feed err: %s", err)
 	}
 }
