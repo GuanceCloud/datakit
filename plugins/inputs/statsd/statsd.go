@@ -3,8 +3,6 @@ package statsd
 import (
 	"regexp"
 
-	"go.uber.org/zap"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -31,7 +29,7 @@ type StatsdOutput struct {
 type StatsdParams struct {
 	input  StatsdInput
 	output StatsdOutput
-	log    *zap.SugaredLogger
+	log    *logger.Logger
 }
 
 var (
