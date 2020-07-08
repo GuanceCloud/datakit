@@ -7,7 +7,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"go.uber.org/zap"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
@@ -15,7 +14,7 @@ import (
 )
 
 var (
-	l *zap.SugaredLogger
+	l *logger.Logger
 )
 
 type AliyunCDN struct {
