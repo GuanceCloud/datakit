@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/hpcloud/tail"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -21,24 +20,24 @@ const (
 	defaultMeasurement = "tailf"
 
 	sampleCfg = `
-#[[inputs.tailf]]
-#	# Cannot be set to datakit.log
-#	# Directory and file paths
-#	paths = [""]
-#
-#	# auto update the directory files
-#	update_files = false
-#
-#	# Read the file from to beginning
-#	from_beginning = false
-#	
-#       # [inputs.tailf.tags]
-#       # tags1 = "tags1"
-
+# [inputs.tailf]]
+# 	# Cannot be set to datakit.log
+# 	# Directory and file paths
+# 	paths = [""]
+# 	
+# 	# auto update the directory files
+# 	update_files = false
+# 	
+# 	# Read the file from to beginning
+# 	from_beginning = false
+# 	
+# 	# [inputs.tailf.tags]
+# 	# tags1 = "tags1"
+# 
 `
 )
 
-var l *zap.SugaredLogger
+var l *logger.Logger
 
 type Tailf struct {
 	Paths         []string          `toml:"paths"`
@@ -88,8 +87,8 @@ func (t *Tailf) Run() {
 }
 
 func (t *Tailf) updateTailers() {
-
 	t.fileList = filterPath(t.Paths)
+	l.Debugf("update file list: %v", t.fileList)
 
 	for _, file := range t.fileList {
 		tailer, err := tail.TailFile(file,
@@ -114,15 +113,25 @@ func (t *Tailf) foreachLines() {
 
 	count := 0
 	for {
-		time.Sleep(time.Second)
+		time.Sleep(500 * time.Millisecond)
 	__out:
 		for _, tailer := range t.tailers {
 			for {
 				select {
 				case line := <-tailer.Lines:
-					t.impl(line)
+					data, err := t.parse(line)
+					if err != nil {
+						l.Error(err)
+						continue
+					}
+					if err := io.Feed(data, io.Logging); err != nil {
+						l.Error(err)
+						continue
+					}
+					l.Debugf("feed %d bytes to io ok", len(data))
 
 				case <-datakit.Exit.Wait():
+					l.Info("exit")
 					return
 
 				default:
@@ -139,25 +148,16 @@ func (t *Tailf) foreachLines() {
 	}
 }
 
-func (t *Tailf) impl(line *tail.Line) {
+func (t *Tailf) parse(line *tail.Line) ([]byte, error) {
 	// only '__content' kv
 	var fields = make(map[string]interface{}, 1)
 
 	if line.Err != nil {
-		return
+		return nil, line.Err
 	}
 
 	text := strings.TrimRight(line.Text, "\r")
 	fields["__content"] = text
 
-	data, err := io.MakeMetricData(defaultMeasurement, t.Tags, fields, time.Now())
-	if err != nil {
-		return
-	}
-
-	if err := io.Feed(data, io.Logging); err != nil {
-		l.Error(err)
-	} else {
-		l.Debugf("feed %d bytes to io ok", len(data))
-	}
+	return io.MakeMetric(defaultMeasurement, t.Tags, fields, time.Now())
 }

@@ -17,45 +17,42 @@ const (
 
 	defaultMeasurement = "lighttpd"
 
-	configSample = `
+	sampleCfg = `
 # [[inputs.lighttpd]]
-#       ## lighttpd status url
-#	url = "http://127.0.0.1:8080/server-status"
-#
-#       ## 指定 lighttpd 版本为 "v1" 或 "v2"
-#       version = "v1"
-#
-#	## 采集周期，时间单位是秒
-#	collect_cycle = 60
-
-	mea
+# 	# lighttpd status url
+# 	url = "http://127.0.0.1:8080/server-status"
+# 	
+# 	# lighttpd version is "v1" or "v2"
+# 	version = "v1"
+# 	
+# 	# second
+# 	collect_cycle = 60
+# 	
+# 	# [inputs.tailf.tags]
+# 	# tags1 = "tags1"
 `
 )
 
 var l *zap.SugaredLogger
 
-type (
-	Lighttpd struct {
-		C []Impl `toml:"lighttpd"`
-	}
-
-	Impl struct {
-		URL           string        `toml:"url"`
-		Version       string        `toml:"version"`
-		Cycle         time.Duration `toml:"collect_cycle"`
-		statusURL     string
-		statusVersion Version
-	}
-)
-
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Impl{}
+		return &Lighttpd{}
 	})
 }
 
+type Lighttpd struct {
+	URL     string            `toml:"url"`
+	Version string            `toml:"version"`
+	Cycle   time.Duration     `toml:"collect_cycle"`
+	Tags    map[string]string `toml:"tags"`
+
+	statusURL     string
+	statusVersion Version
+}
+
 func (_ *Lighttpd) SampleConfig() string {
-	return configSample
+	return sampleCfg
 }
 
 func (_ *Lighttpd) Catalog() string {
@@ -65,26 +62,26 @@ func (_ *Lighttpd) Catalog() string {
 func (h *Lighttpd) Run() {
 	l = logger.SLogger(inputName)
 
-	for _, c := range h.C {
-		go c.start()
+	if _, ok := h.Tags["url"]; !ok {
+		h.Tags["url"] = h.URL
 	}
-}
+	if _, ok := h.Tags["version"]; !ok {
+		h.Tags["version"] = h.Version
+	}
 
-func (i *Impl) start() {
-
-	switch i.Version {
+	switch h.Version {
 	case "v1":
-		i.statusURL = fmt.Sprintf("%s?json", i.URL)
-		i.statusVersion = v1
+		h.statusURL = fmt.Sprintf("%s?json", h.URL)
+		h.statusVersion = v1
 	case "v2":
-		i.statusURL = fmt.Sprintf("%s?format=plain", i.URL)
-		i.statusVersion = v2
+		h.statusURL = fmt.Sprintf("%s?format=plain", h.URL)
+		h.statusVersion = v2
 	default:
 		l.Error("invalid lighttpd version")
 		return
 	}
 
-	ticker := time.NewTicker(time.Second * i.Cycle)
+	ticker := time.NewTicker(time.Second * h.Cycle)
 	defer ticker.Stop()
 
 	for {
@@ -94,13 +91,16 @@ func (i *Impl) start() {
 			return
 
 		case <-ticker.C:
-			pt, err := LighttpdStatusParse(i.statusURL, i.statusVersion, inputName)
+			data, err := LighttpdStatusParse(h.statusURL, h.statusVersion, h.Tags)
 			if err != nil {
 				l.Error(err)
 				continue
 			}
-
-			io.Feed([]byte(pt.String()), io.Metric)
+			if err := io.Feed(data, io.Metric); err != nil {
+				l.Error(err)
+				continue
+			}
+			l.Debugf("feed %d bytes to io ok", len(data))
 		}
 	}
 }
