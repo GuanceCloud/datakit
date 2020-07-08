@@ -16,8 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
@@ -36,7 +34,7 @@ var (
 
 	installerExe string
 
-	l *zap.SugaredLogger
+	l *logger.Logger
 
 	/* Use:
 			go tool dist list
@@ -214,7 +212,7 @@ func compile() {
 		buildInstaller(filepath.Join(*flagPubDir, *flagRelease), goos, goarch)
 	}
 
-	l.Infof("build elapsed %v", time.Since(start))
+	l.Infof("Done!(elapsed %v)", time.Since(start))
 }
 
 type installInfo struct {
@@ -252,6 +250,7 @@ func getCurrentVersionInfo(url string) *versionDesc {
 }
 
 func releaseAgent() {
+	start := time.Now()
 	var ak, sk, bucket, ossHost string
 	objPath := *flagName
 
@@ -374,45 +373,7 @@ func releaseAgent() {
 		}
 	}
 
-	l.Info("Done :)")
-}
-
-func main() {
-
-	var err error
-
-	logger.SetGlobalRootLogger("",
-		logger.DEBUG,
-		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER|logger.OPT_COLOR)
-
-	l = logger.SLogger("make")
-
-	flag.Parse()
-
-	if *flagPub {
-		releaseAgent()
-		return
-	}
-
-	// create version info
-	vd := &versionDesc{
-		Version:  strings.TrimSpace(git.Version),
-		Date:     git.BuildAt,
-		Uploader: git.Uploader,
-	}
-
-	versionInfo, err := json.Marshal(vd)
-	if err != nil {
-		l.Fatal(err)
-	}
-
-	if err := ioutil.WriteFile(path.Join(*flagPubDir, *flagRelease, "version"), versionInfo, 0666); err != nil {
-		l.Fatal(err)
-	}
-
-	os.RemoveAll(*flagBuildDir)
-	_ = os.MkdirAll(*flagBuildDir, os.ModePerm)
-	compile()
+	l.Infof("Done!(elapsed: %v)", time.Since(start))
 }
 
 func tarFiles(goos, goarch string) {
@@ -594,4 +555,42 @@ func buildInstaller(outdir, goos, goarch string) {
 	if err != nil {
 		l.Errorf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 	}
+}
+
+func main() {
+
+	var err error
+
+	logger.SetGlobalRootLogger("",
+		logger.DEBUG,
+		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER|logger.OPT_COLOR)
+
+	l = logger.SLogger("make")
+
+	flag.Parse()
+
+	if *flagPub {
+		releaseAgent()
+		return
+	}
+
+	// create version info
+	vd := &versionDesc{
+		Version:  strings.TrimSpace(git.Version),
+		Date:     git.BuildAt,
+		Uploader: git.Uploader,
+	}
+
+	versionInfo, err := json.Marshal(vd)
+	if err != nil {
+		l.Fatal(err)
+	}
+
+	if err := ioutil.WriteFile(path.Join(*flagPubDir, *flagRelease, "version"), versionInfo, 0666); err != nil {
+		l.Fatal(err)
+	}
+
+	os.RemoveAll(*flagBuildDir)
+	_ = os.MkdirAll(*flagBuildDir, os.ModePerm)
+	compile()
 }
