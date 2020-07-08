@@ -7,7 +7,6 @@ import (
 
 	"github.com/vinllen/mgo"
 	"github.com/vinllen/mgo/bson"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -32,7 +31,7 @@ const (
 # 	collection="testdb"
 # 	
 # 	# tags path，is may be null
-# 	tags=[
+# 	tagList=[
 # 		"/path",
 # 		"/a/b/c/e"
 # 	]
@@ -40,14 +39,17 @@ const (
 # 	# fields path, cannot empty
 # 	# type in [int, float, bool, string]
 # 	# example:
-# 	[inputs.mongodboplog.fields]
+# 	[inputs.mongodboplog.fieldList]
 # 		"/a/c/d" = "int"
 # 		"/a/c/f\[0\]" = 'int'
 # 		"/a/c/f[1]/e/f" = 'int'
+# 	
+# 	# [inputs.tailf.tags]
+# 	# tags1 = "tags1"
 `
 )
 
-var l *zap.SugaredLogger
+var l *logger.Logger
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -60,8 +62,9 @@ type Mongodboplog struct {
 	Database    string            `toml:"database"`
 	Collection  string            `toml:"collection"`
 	Measurement string            `toml:"measurement"`
-	Tags        []string          `toml:"tags"`
-	Fields      map[string]string `toml:"fields"`
+	TagList     []string          `toml:"tagList"`
+	FieldList   map[string]string `toml:"fieldList"`
+	Tags        map[string]string `toml:"tags"`
 
 	// mongodb namespace is 'database.collection'
 	namespace string
@@ -84,10 +87,10 @@ func (m *Mongodboplog) Run() {
 
 	m.namespace = m.Database + "." + m.Collection
 
-	for _, v := range m.Tags {
+	for _, v := range m.TagList {
 		m.pointlist[v] = "tags"
 	}
-	for k, v := range m.Fields {
+	for k, v := range m.FieldList {
 		m.pointlist[k] = v
 	}
 
@@ -144,7 +147,7 @@ func (m *Mongodboplog) runloop() {
 					mdata.setTime(p.Timestamp)
 					mdata.parse(p.Object, "/")
 
-					data, err := mdata.makeMetric()
+					data, err := mdata.makeMetric(m.Tags)
 					if err != nil {
 						l.Error(err)
 						continue
@@ -180,7 +183,10 @@ func newMgodata(pointlist map[string]string) *mgodata {
 	}
 }
 
-func (md *mgodata) makeMetric() ([]byte, error) {
+func (md *mgodata) makeMetric(tags map[string]string) ([]byte, error) {
+	for k, v := range tags {
+		md.tags[k] = v
+	}
 	return io.MakeMetric(defaultMeasurement, md.tags, md.fields, md.time)
 }
 
