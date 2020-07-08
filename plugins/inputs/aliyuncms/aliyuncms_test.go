@@ -27,16 +27,9 @@ func apiClient() *cms.Client {
 }
 
 func TestDumpConfig(t *testing.T) {
-	var ag CmsAgent
-	ag.CMSs = []*CMS{
-		&CMS{
-			Tags: map[string]string{
-				"k1": "v1",
-				"k2": "v2",
-			},
-		},
-	}
-	ag.CMSs[0].Project = []*Project{
+	var ag CMS
+
+	ag.Project = []*Project{
 		&Project{
 			Name: "ecs",
 			Metrics: &Metric{
@@ -103,7 +96,7 @@ func TestLoadConfig(t *testing.T) {
 		t.Error(err)
 	}
 
-	var cfg CmsAgent
+	var cfg CMS
 
 	err = toml.Unmarshal([]byte(cfgData), &cfg)
 	if err != nil {
