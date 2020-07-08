@@ -1,16 +1,14 @@
 package aliyunrdsslowlog
 
 import (
-	"context"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"go.uber.org/zap"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
-	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -37,22 +35,13 @@ var regions = []string{
 	"us-east-1",
 }
 
+var (
+	l *zap.SugaredLogger
+)
+
 type AliyunRDSSlowLog struct {
-	RDSslowlog  []*RDSslowlog
-	ctx         context.Context
-	cancelFun   context.CancelFunc
-	accumulator telegraf.Accumulator
-	logger      *models.Logger
-
-	runningInstances []*runningInstance
-}
-
-type runningInstance struct {
-	cfg        *RDSslowlog
-	agent      *AliyunRDSSlowLog
-	logger     *models.Logger
-	client     *rds.Client
-	metricName string
+	cfg    AliyunRDS
+	client *rds.Client
 }
 
 type rdsInstance struct {
@@ -65,7 +54,7 @@ type rdsInstance struct {
 }
 
 func (_ *AliyunRDSSlowLog) Catalog() string {
-	return "aliyun"
+	return "aliyunRDSSlowlog"
 }
 
 func (_ *AliyunRDSSlowLog) SampleConfig() string {
@@ -76,94 +65,52 @@ func (_ *AliyunRDSSlowLog) Description() string {
 	return ""
 }
 
-func (_ *AliyunRDSSlowLog) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (_ *AliyunRDSSlowLog) Init() error {
+func (_ *AliyunRDSSlowLog) Gather() error {
 	return nil
 }
 
 func (a *AliyunRDSSlowLog) Run() {
-	a.logger = &models.Logger{
-		Name: `aliyunrdsslowlog`,
-	}
+	l = logger.SLogger("aliyunRDSSlowlog")
 
-	if len(a.RDSslowlog) == 0 {
-		a.logger.Warnf("no configuration found")
-	}
+	l.Info("aliyunRDSSlowlog input started...")
 
-	a.logger.Infof("starting...")
-
-	for _, instCfg := range a.RDSslowlog {
-		r := &runningInstance{
-			cfg:    instCfg,
-			agent:  a,
-			logger: a.logger,
-		}
-		r.metricName = instCfg.MetricName
-		if r.metricName == "" {
-			r.metricName = "aliyun_rds_slow_log"
-		}
-
-		if r.cfg.Interval.Duration == 0 {
-			r.cfg.Interval.Duration = time.Hour * 24
-		}
-
-		cli, err := rds.NewClientWithAccessKey(instCfg.RegionID, instCfg.AccessKeyID, instCfg.AccessKeySecret)
-		if err != nil {
-			r.logger.Errorf("create client failed, %s", err)
-		}
-
-		r.client = cli
-
-		a.runningInstances = append(a.runningInstances, r)
-
-		go r.run(a.ctx)
-	}
-}
-
-func (a *AliyunRDSSlowLog) Stop() {
-	a.cancelFun()
-}
-
-func (r *runningInstance) run(ctx context.Context) error {
-	defer func() {
-		if e := recover(); e != nil {
-
-		}
-	}()
-
-	cli, err := rds.NewClientWithAccessKey(r.cfg.RegionID, r.cfg.AccessKeyID, r.cfg.AccessKeySecret)
+	cli, err := rds.NewClientWithAccessKey(a.cfg.RegionID, a.cfg.AccessKeyID, a.cfg.AccessKeySecret)
 	if err != nil {
-		r.logger.Errorf("create client failed, %s", err)
-		return err
+		l.Errorf("create client failed, %s", err)
 	}
-	r.client = cli
+
+	a.client = cli
+
+	interval, err := time.ParseDuration(a.cfg.Interval)
+	if err != nil {
+		l.Error(err)
+	}
+
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
 
 	for {
 		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
+		case <-tick.C:
+			// handle
+			// 实例信息
+			for _, val := range a.cfg.Product {
+				a.exec(val)
+			}
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
 		}
-
-		// 实例信息
-		for _, val := range r.cfg.Product {
-			r.exec(val)
-		}
-
-		internal.SleepContext(ctx, r.cfg.Interval.Duration)
 	}
 }
 
-func (r *runningInstance) exec(engine string) {
+func (r *AliyunRDSSlowLog) exec(engine string) {
 	for _, region := range regions {
 		go r.getInstance(engine, region)
 	}
 }
 
-func (r *runningInstance) getInstance(engine string, regionID string) error {
+func (r *AliyunRDSSlowLog) getInstance(engine string, regionID string) error {
 	var pageNumber = 1
 	var pageSize = 50
 
@@ -177,7 +124,7 @@ func (r *runningInstance) getInstance(engine string, regionID string) error {
 
 		response, err := r.client.DescribeDBInstances(request)
 		if err != nil {
-			r.logger.Error("instance failed")
+			l.Error("instance failed")
 			return err
 		}
 
@@ -204,9 +151,14 @@ func (r *runningInstance) getInstance(engine string, regionID string) error {
 	return nil
 }
 
-func (r *runningInstance) command(engine string, instanceObj *rdsInstance) {
+func (r *AliyunRDSSlowLog) command(engine string, instanceObj *rdsInstance) {
+	interval, err := time.ParseDuration(r.cfg.Interval)
+	if err != nil {
+		l.Error(err)
+	}
+
 	et := time.Now()
-	st := et.Add(-r.cfg.Interval.Duration)
+	st := et.Add(-interval)
 
 	request := rds.CreateDescribeSlowLogsRequest()
 	request.Scheme = "https"
@@ -218,13 +170,13 @@ func (r *runningInstance) command(engine string, instanceObj *rdsInstance) {
 
 	response, err := r.client.DescribeSlowLogs(request)
 	if err != nil {
-		r.logger.Errorf("DescribeSlowLogs error %v", err)
+		l.Errorf("DescribeSlowLogs error %v", err)
 	}
 
 	go r.handleResponse(response, engine, instanceObj)
 }
 
-func (r *runningInstance) handleResponse(response *rds.DescribeSlowLogsResponse, product string, instanceObj *rdsInstance) error {
+func (r *AliyunRDSSlowLog) handleResponse(response *rds.DescribeSlowLogsResponse, product string, instanceObj *rdsInstance) error {
 	if response == nil {
 		return nil
 	}
@@ -255,12 +207,12 @@ func (r *runningInstance) handleResponse(response *rds.DescribeSlowLogsResponse,
 		fields["sqlserver_total_execution_times"] = point.SQLServerTotalExecutionTimes
 		fields["return_max_row_count"] = point.ReturnMaxRowCount
 
-		pt, err := influxdb.NewPoint(r.metricName, tags, fields, time.Now())
+		pt, err := io.MakeMetric(r.cfg.MetricName, tags, fields, time.Now())
 		if err != nil {
-			return err
+			l.Errorf("make metric point error %v", err)
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.Feed([]byte(pt), io.Metric)
 	}
 
 	return nil
@@ -275,8 +227,6 @@ func unixTimeStrISO8601(t time.Time) string {
 
 func init() {
 	inputs.Add("aliyunrdsslowLog", func() inputs.Input {
-		ac := &AliyunRDSSlowLog{}
-		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-		return ac
+		return &AliyunRDSSlowLog{}
 	})
 }
