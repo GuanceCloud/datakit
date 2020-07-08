@@ -8,12 +8,11 @@ import (
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 type IoFeed func(data []byte, category string) error
@@ -41,7 +40,7 @@ type SshOutput struct {
 type SshParam struct {
 	input  SshInput
 	output SshOutput
-	log *zap.SugaredLogger
+	log    *logger.Logger
 }
 
 const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ssh/sftp to be monitored.
@@ -164,7 +163,7 @@ func (p *SshParam) gather() {
 		return
 	}
 
-	tick := time.NewTicker(time.Duration(p.input.Interval)*time.Second)
+	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
 	defer tick.Stop()
 	for {
 		select {
@@ -234,7 +233,7 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 
 func getMsInterval(d time.Duration) float64 {
 	ns := d.Nanoseconds()
-	return float64(ns)/float64(time.Millisecond)
+	return float64(ns) / float64(time.Millisecond)
 }
 
 func init() {
