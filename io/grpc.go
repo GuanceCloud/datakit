@@ -22,6 +22,7 @@ var (
 type Server struct {
 	DataKitServer
 
+	uds       string
 	rpcServer *grpc.Server
 }
 
@@ -48,31 +49,29 @@ func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
 	return resp, nil
 }
 
-func GRPCServer() {
-
-	if !inited {
-		panic(initErr)
-	}
-
-	s := &Server{}
+func GRPCServer(uds string) {
 
 	l.Infof("gRPC starting...")
 
-	if _, err := os.Stat(datakit.GRPCDomainSock); err == nil {
-		if err := os.Remove(datakit.GRPCDomainSock); err != nil {
+	if _, err := os.Stat(uds); err == nil {
+		if err := os.Remove(uds); err != nil {
 			panic(err)
 		}
 	}
 
+	s := &Server{
+		uds: uds,
+	}
+
 	var err error
 
-	rpcListener, err = net.Listen("unix", datakit.GRPCDomainSock)
+	rpcListener, err = net.Listen("unix", s.uds)
 	if err != nil {
 		l.Errorf("start gRPC server failed: %s", err)
 		return
 	}
 
-	l.Infof("start gRPC server on %s ok", datakit.GRPCDomainSock)
+	l.Infof("start gRPC server on %s ok", s.uds)
 
 	s.rpcServer = grpc.NewServer()
 	RegisterDataKitServer(s.rpcServer, s)
