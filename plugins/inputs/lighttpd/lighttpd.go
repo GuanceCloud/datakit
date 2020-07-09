@@ -67,16 +67,27 @@ func (h *Lighttpd) Run() {
 		h.Tags["version"] = h.Version
 	}
 
-	switch h.Version {
-	case "v1":
-		h.statusURL = fmt.Sprintf("%s?json", h.URL)
-		h.statusVersion = v1
-	case "v2":
-		h.statusURL = fmt.Sprintf("%s?format=plain", h.URL)
-		h.statusVersion = v2
-	default:
-		l.Error("invalid lighttpd version")
-		return
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+		default:
+			// nil
+		}
+
+		if h.Version == "v1" {
+			h.statusURL = fmt.Sprintf("%s?json", h.URL)
+			h.statusVersion = v1
+			break
+		} else if h.Version == "v2" {
+			h.statusURL = fmt.Sprintf("%s?format=plain", h.URL)
+			h.statusVersion = v2
+			break
+		} else {
+			l.Error("invalid lighttpd version")
+			time.Sleep(time.Second)
+		}
 	}
 
 	ticker := time.NewTicker(time.Second * h.Cycle)
