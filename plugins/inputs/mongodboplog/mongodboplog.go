@@ -86,6 +86,7 @@ func (m *Mongodboplog) Run() {
 	l = logger.SLogger(inputName)
 
 	m.namespace = m.Database + "." + m.Collection
+	m.pointlist = make(map[string]string)
 
 	for _, v := range m.TagList {
 		m.pointlist[v] = "tags"
