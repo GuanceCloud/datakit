@@ -1,5 +1,10 @@
 package aliyunsecurity
 
+import (
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/aegis"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/sas"
+)
+
 const (
 	configSample = `
 #[[security]]
@@ -19,4 +24,6 @@ type Security struct {
 	AccessKeySecret string `toml:"accessKeySecret"`
 	Interval        string `toml:"interval"`
 	MetricName      string `toml:"metricName"`
+	client          *sas.Client
+	aclient         *aegis.Client
 }
