@@ -95,6 +95,13 @@ func (b *Binlog) Run() {
 			b.runningBinlogs = append(b.runningBinlogs, bl)
 
 			for {
+
+				select {
+				case <-datakit.Exit.Wait():
+					return
+				default:
+				}
+
 				if err := bl.run(b.ctx); err != nil && err != context.Canceled {
 					b.logger.Errorf("%s", err.Error())
 					internal.SleepContext(b.ctx, time.Second*3)
@@ -102,8 +109,6 @@ func (b *Binlog) Run() {
 					break
 				}
 			}
-
-			b.logger.Infof("done")
 
 		}(inst)
 	}
