@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"text/template"
@@ -158,7 +159,7 @@ func LoadCfg() error {
 		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
 	l = logger.SLogger("config")
 
-	//l.Debugf("set log to %s", Cfg.MainCfg.Log)
+	l.Infof("set log to %s", Cfg.MainCfg.Log)
 
 	datakit.Init()
 
@@ -368,105 +369,139 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 
 	tbl, err := parseConfig(data)
 	if err != nil {
-		l.Errorf("[error] parse conf failed on [%s]: %s", name, err)
+		l.Errorf("[error] parse conf %s failed on [%s]: %s", path, name, err)
 		return err
 	}
 
 	if len(tbl.Fields) == 0 {
-		//l.Debugf("no conf available on %s", name)
+		l.Debugf("no conf available on %s", name)
 		return nil
 	}
 
-	var maxInterval time.Duration
-
-	for fieldName, val := range tbl.Fields {
-
-		if subTables, ok := val.([]*ast.Table); ok {
-
-			for _, t := range subTables {
-				input := creator()
-				if interval, err := c.addInput(name, input, t); err != nil {
-					err = fmt.Errorf("Error parsing %s, %s", name, err)
-					l.Errorf("%s", err)
+	for f, val := range tbl.Fields {
+		switch f {
+		case "inputs":
+			tbl_ := val.(*ast.Table)
+			for _, v := range tbl_.Fields {
+				if err := c.tryUnmarshal(v, name, creator); err != nil {
+					l.Error(err)
 					return err
-				} else {
-					if interval > maxInterval {
-						maxInterval = interval
-					}
 				}
 			}
 
-		} else {
-
-			subTable, ok := val.(*ast.Table)
-			if !ok {
-				err = fmt.Errorf("invalid configuration, error parsing field %q as table", name)
-				l.Errorf("%s", err)
+		default:
+			if err := c.tryUnmarshal(val, name, creator); err != nil {
+				l.Error(err)
 				return err
 			}
-			switch fieldName {
-			case "inputs":
-				for pluginName, pluginVal := range subTable.Fields {
-					switch pluginSubTable := pluginVal.(type) {
-					// legacy [inputs.cpu] support
-					case *ast.Table:
-						input := creator()
-						if interval, err := c.addInput(name, input, pluginSubTable); err != nil {
-							err = fmt.Errorf("Error parsing %s, %s", name, err)
-							l.Errorf("%s", err)
-							return err
-						} else {
-							if interval > maxInterval {
-								maxInterval = interval
-							}
-						}
-
-					case []*ast.Table:
-						for _, t := range pluginSubTable {
-							input := creator()
-							if interval, err := c.addInput(name, input, t); err != nil {
-								err = fmt.Errorf("Error parsing %s, %s", name, err)
-								l.Errorf("%s", err)
-								return err
-							} else {
-								if interval > maxInterval {
-									maxInterval = interval
-								}
-							}
-						}
-					default:
-						err = fmt.Errorf("Unsupported config format: %s",
-							pluginName)
-						l.Errorf("%s", err)
-						return err
-					}
-				}
-			default:
-				err = fmt.Errorf("Unsupported config format: %s",
-					fieldName)
-				l.Errorf("%s", err)
-				return err
-			}
-
 		}
-
-	}
-
-	if c.MainCfg.MaxPostInterval.Duration != 0 {
-		datakit.MaxLifeCheckInterval = maxInterval
 	}
 
 	return nil
+
+	//for fieldName, val := range tbl.Fields {
+
+	//	if subTables, ok := val.([]*ast.Table); ok {
+
+	//		for _, t := range subTables {
+	//			input := creator()
+	//			if interval, err := c.addInput(name, input, t); err != nil {
+	//				err = fmt.Errorf("Error parsing %s, %s", name, err)
+	//				l.Errorf("%s", err)
+	//				return err
+	//			} else {
+	//				if interval > maxInterval {
+	//					maxInterval = interval
+	//				}
+	//			}
+	//		}
+
+	//	} else {
+
+	//		subTable, ok := val.(*ast.Table)
+	//		if !ok {
+	//			err = fmt.Errorf("invalid configuration, error parsing field %q as table", name)
+	//			l.Errorf("%s", err)
+	//			return err
+	//		}
+
+	//		switch fieldName {
+	//		case "inputs":
+
+	//			for pluginName, pluginVal := range subTable.Fields {
+	//				switch pluginSubTable := pluginVal.(type) {
+	//				// legacy [inputs.cpu] support
+	//				case *ast.Table:
+	//					input := creator()
+	//					if interval, err := c.addInput(name, input, pluginSubTable); err != nil {
+	//						err = fmt.Errorf("Error parsing %s, %s", name, err)
+	//						l.Errorf("%s", err)
+	//						return err
+	//					} else {
+	//						if interval > maxInterval {
+	//							maxInterval = interval
+	//						}
+	//					}
+
+	//				case []*ast.Table:
+	//					for _, t := range pluginSubTable {
+	//						input := creator()
+	//						if interval, err := c.addInput(name, input, t); err != nil {
+	//							err = fmt.Errorf("Error parsing %s, %s", name, err)
+	//							l.Errorf("%s", err)
+	//							return err
+	//						} else {
+	//							if interval > maxInterval {
+	//								maxInterval = interval
+	//							}
+	//						}
+	//					}
+
+	//				default:
+	//					l.Error("not support config type: %v", pluginSubTable)
+	//					return fmt.Errorf("Unsupported config format: %s", pluginName)
+	//				}
+	//			}
+
+	//		default:
+	//			err = fmt.Errorf("Unsupported config format: %s", fieldName)
+	//			l.Errorf("%s", err)
+	//			return err
+	//		}
+
+	//	}
+
+	//}
 }
 
-func (c *Config) setMaxPostInterval() {
-	if c.MainCfg.MaxPostInterval.Duration != 0 {
-		datakit.MaxLifeCheckInterval = c.MainCfg.MaxPostInterval.Duration
-	} else {
-		if datakit.MaxLifeCheckInterval != 0 {
-			datakit.MaxLifeCheckInterval += time.Second * 10 // add extra 10 seconds
+func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) error {
+
+	tbls := []*ast.Table{}
+
+	switch tbl.(type) {
+	case []*ast.Table:
+		tbls = tbl.([]*ast.Table)
+	case *ast.Table:
+		tbls = append(tbls, tbl.(*ast.Table))
+	default:
+		return fmt.Errorf("invalid toml format: %v", reflect.TypeOf(tbl))
+	}
+
+	for _, t := range tbls {
+		input := creator()
+
+		if err := toml.UnmarshalTable(t, input); err != nil {
+			l.Error("toml unmarshal to %s failed: %v", err)
+			return err
+		}
+
+		if err := c.addInput(name, input, t); err != nil {
+			l.Error("toml unmarshal to %s failed: %v", name, err)
+			return err
 		}
 	}
+
+	return nil
 }
 
 // load all inputs under @InstallDir/conf.d
@@ -474,11 +509,9 @@ func (c *Config) LoadConfig() error {
 
 	for name, creator := range inputs.Inputs {
 		if err := c.doLoadInputConf(name, creator); err != nil {
-			return err
+			l.Error("load %s config failed: %v, ignored", name, err)
 		}
 	}
-
-	c.setMaxPostInterval()
 
 	return LoadTelegrafConfigs(datakit.ConfdDir, c.InputFilters)
 }
@@ -487,13 +520,11 @@ func DumpInputsOutputs() {
 	names := []string{}
 
 	for name := range Cfg.Inputs {
-		//l.Debugf("input %s enabled", name)
 		names = append(names, name)
 	}
 
 	for k, i := range SupportsTelegrafMetricNames {
 		if i.enabled {
-			//l.Debugf("telegraf input %s enabled", k)
 			names = append(names, k)
 		}
 	}
@@ -640,7 +671,6 @@ func initPluginCfgs() {
 func parseConfig(contents []byte) (*ast.Table, error) {
 	tbl, err := toml.Parse(contents)
 	if err != nil {
-		l.Errorf("toml parse %s failed: %s", string(contents), err.Error())
 		return nil, err
 	}
 
@@ -656,7 +686,7 @@ func sliceContains(name string, list []string) bool {
 	return false
 }
 
-func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) (time.Duration, error) {
+func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) error {
 
 	var dur time.Duration
 	var err error
@@ -665,17 +695,17 @@ func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) (ti
 			if str, ok := kv.Value.(*ast.String); ok {
 				dur, err = time.ParseDuration(str.Value)
 				if err != nil {
-					return dur, err
+					return err
 				}
 			}
 		}
 	}
 
-	if err := toml.UnmarshalTable(table, input); err != nil {
-		l.Errorf("toml UnmarshalTable failed on %s: %s", name, err.Error())
-		return dur, err
+	if c.MainCfg.MaxPostInterval.Duration != 0 && datakit.MaxLifeCheckInterval < dur {
+		datakit.MaxLifeCheckInterval = dur
 	}
 
 	c.Inputs[name] = append(c.Inputs[name], input)
-	return dur, nil
+
+	return nil
 }
