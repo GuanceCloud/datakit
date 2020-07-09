@@ -49,11 +49,11 @@ func (p *JiraParam) active() {
 		case <-ticker.C:
 			task()
 		case <-datakit.Exit.Wait():
-			break
+			wg.Wait()
+			p.log.Info("input jira exit")
+			return
 		}
 	}
-
-	wg.Wait()
 }
 
 func (p *JiraParam) gather(queue chan string, wg *sync.WaitGroup) {
