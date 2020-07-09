@@ -15,6 +15,12 @@ import (
 
 func (r *azureInstance) run(ctx context.Context) error {
 
+	defer func() {
+		if e := recover(); e != nil {
+			moduleLogger.Errorf("%v", e)
+		}
+	}()
+
 	if r.EndPoint == "" {
 		r.EndPoint = `https://management.chinacloudapi.cn`
 	}
