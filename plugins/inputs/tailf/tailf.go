@@ -37,7 +37,11 @@ const (
 `
 )
 
-var l *logger.Logger
+var (
+	l *logger.Logger
+
+	testAssert = false
+)
 
 type Tailf struct {
 	Paths         []string          `toml:"paths"`
