@@ -16,6 +16,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -35,9 +36,20 @@ func (s *runningInstance) run(ctx context.Context) error {
 		}
 	}()
 
-	if err := s.initializeAliyunCMS(); err != nil {
-		moduleLogger.Errorf("initialize failed, %s", err)
-		return err
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return nil
+		default:
+		}
+
+		if err := s.initializeAliyunCMS(); err != nil {
+			moduleLogger.Errorf("initialize failed, %s", err)
+		} else {
+			break
+		}
+
+		time.Sleep(time.Second)
 	}
 
 	//每秒最多20个请求
