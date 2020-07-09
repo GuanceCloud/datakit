@@ -76,8 +76,19 @@ func (tc *CMS) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
 
-	if err := tc.initialize(); err != nil {
-		return
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		default:
+		}
+
+		if err := tc.initialize(); err != nil {
+			moduleLogger.Errorf("%s", err)
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
 	}
 
 	go func() {
