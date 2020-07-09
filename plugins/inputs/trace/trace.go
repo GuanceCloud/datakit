@@ -6,9 +6,7 @@ import (
 )
 
 var (
-	traceConfigSample = `### active: whether to collect trace data.
-### path: url path to recieve data.
-
+	traceConfigSample = `
 #[inputs.trace]
 #	[inputs.trace.tags]
 #		tag1 = "tag1"
