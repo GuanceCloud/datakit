@@ -21,12 +21,11 @@ func (z *ZipkinTracer) Decode(octets []byte) error {
 func (z *ZipkinTracer) parseZipkinProtobuf(octets []byte) error {
 	version := strings.ToUpper(z.Version)
 	switch version {
-	case "V2","":
+	case "V2", "":
 		return z.parseZipkinProtobufV2(octets)
 	default:
 		return fmt.Errorf("Zipkin content-type: application/x-protobuf unsuportted version: %s", z.Version)
 	}
-	return nil
 }
 
 func (z *ZipkinTracer) parseZipkinJson(octets []byte) error {
