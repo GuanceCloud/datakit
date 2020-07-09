@@ -2,24 +2,24 @@ package trace
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
-	traceConfigSample = `### active: whether to collect trace data.
-### path: url path to recieve data.
-
+	traceConfigSample = `
 #[inputs.trace]
-#active = true
-#path   = "/trace"
+#	[inputs.trace.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 `
 	log *logger.Logger
 )
 
+var gTags map[string]string
+
 type Trace struct {
-	Active bool
-	Path   string
+	Tags map[string]string
 }
 
 func (_ *Trace) Catalog() string {
@@ -31,14 +31,9 @@ func (_ *Trace) SampleConfig() string {
 }
 
 func (t *Trace) Run() {
-	if !t.Active {
-		return
-	}
-
 	log = logger.SLogger("trace")
 	log.Infof("trace input started...")
-
-	io.RegisterRoute(t.Path, writeTracing)
+	gTags = t.Tags
 }
 
 func init() {
