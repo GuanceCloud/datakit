@@ -50,9 +50,7 @@ type MainConfig struct {
 	DataWay           *DataWayCfg `toml:"dataway"`
 	DataWayRequestURL string      `toml:"-"`
 
-	HTTPServerAddr    string `toml:"http_server_addr"`
-	HTTPServerLog     string `toml:"http_server_log"`
-	HTTPServerOpenLog bool   `toml:"http_server_open_log"`
+	HTTPServerAddr string `toml:"http_server_addr"`
 
 	FtGateway string `toml:"ftdataway"` // XXX: deprecated
 
