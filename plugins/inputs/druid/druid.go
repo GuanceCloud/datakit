@@ -30,12 +30,17 @@ const (
 	defaultMeasurement = "druid"
 
 	configSample = `
-# [[druid]]
-#       path = "/druid"
+# [inputs.druid]
+# 	[inputs.druid.tags]
+#       tags1 = "tags1"
 `
 )
 
-var l *logger.Logger
+var (
+	l *logger.Logger
+
+	tags map[string]string
+)
 
 func init() {
 	inputs.Add("druid", func() inputs.Input {
@@ -44,13 +49,12 @@ func init() {
 }
 
 type Druid struct {
-	Path string `toml:"path"`
+	Path string            `toml:"path"`
+	Tags map[string]string `toml:"tags"`
 }
 
 func (d *Druid) Run() {
 	l = logger.SLogger(inputName)
-
-	io.RegisterRoute(d.Path, d.handle)
 }
 
 func (d *Druid) SampleConfig() string {
@@ -61,7 +65,7 @@ func (d *Druid) Catalog() string {
 	return inputName
 }
 
-func (d *Druid) handle(w http.ResponseWriter, r *http.Request) {
+func Handle(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
