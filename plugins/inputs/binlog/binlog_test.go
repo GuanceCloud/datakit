@@ -14,7 +14,6 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/shopspring/decimal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 
 	"github.com/siddontang/go-mysql/client"
 	//"github.com/siddontang/go-mysql/schema"
@@ -160,11 +159,7 @@ func TestGetTableInfo(t *testing.T) {
 
 func TestBinlog(t *testing.T) {
 
-	bl := &Binlog{
-		logger: &models.Logger{
-			Name: `binlog`,
-		},
-	}
+	bl := &Binlog{}
 	bl.ctx, bl.cancelfun = context.WithCancel(context.Background())
 
 	data, err := ioutil.ReadFile("./test.toml")
