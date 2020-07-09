@@ -64,6 +64,10 @@ func (tAdpt *TraceAdapter) mkLineProto() {
 	tags["__parentID"] = tAdpt.parentID
 	tags["__traceID"] = tAdpt.traceID
 	tags["__spanID"] = tAdpt.spanID
+
+	for tag, tagV := range gTags {
+		tags[tag] = tagV
+	}
 	if tAdpt.isError == "true" {
 		tags["__isError"] = "true"
 	} else {
@@ -102,7 +106,7 @@ func (t *TraceReqInfo) Decode(octets []byte) error {
 	return decoder.Decode(octets)
 }
 
-func writeTracing(w http.ResponseWriter, r *http.Request) {
+func Handle(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Errorf("Stack crash: %v", r)
