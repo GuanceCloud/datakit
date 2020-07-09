@@ -6,13 +6,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"go.uber.org/zap"
 	//"github.com/Azure/go-autorest/tracing"
 )
 
 var (
 	inputName    = `azure_monitor`
-	moduleLogger *zap.SugaredLogger
+	moduleLogger *logger.Logger
 )
 
 func (_ *azureInstance) Catalog() string {
