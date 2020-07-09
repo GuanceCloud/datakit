@@ -177,12 +177,7 @@ func LoadCfg() error {
 
 func (c *Config) LoadMainConfig() error {
 
-	data, err := ioutil.ReadFile(c.MainCfg.cfgPath)
-	if err != nil {
-		return fmt.Errorf("read main config %s error, %s", c.MainCfg.cfgPath, err.Error())
-	}
-
-	tbl, err := parseConfig(data)
+	tbl, err := parseCfgFile(c.MainCfg.cfgPath)
 	if err != nil {
 		return err
 	}
@@ -351,23 +346,8 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 	}
 
 	dummyInput := creator()
-
-	var data []byte
-
 	path := filepath.Join(datakit.ConfdDir, dummyInput.Catalog(), fmt.Sprintf("%s.conf", name))
-
-	_, err := os.Stat(path)
-	if err != nil && os.IsNotExist(err) {
-		return nil
-	}
-
-	data, err = ioutil.ReadFile(path)
-	if err != nil {
-		l.Errorf("load %s failed: %s", path, err)
-		return err
-	}
-
-	tbl, err := parseConfig(data)
+	tbl, err := parseCfgFile(path)
 	if err != nil {
 		l.Errorf("[error] parse conf %s failed on [%s]: %s", path, name, err)
 		return err
@@ -484,19 +464,19 @@ func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creat
 	case *ast.Table:
 		tbls = append(tbls, tbl.(*ast.Table))
 	default:
-		return fmt.Errorf("invalid toml format: %v", reflect.TypeOf(tbl))
+		return fmt.Errorf("invalid toml format on %s: %v", name, reflect.TypeOf(tbl))
 	}
 
 	for _, t := range tbls {
 		input := creator()
 
 		if err := toml.UnmarshalTable(t, input); err != nil {
-			l.Error("toml unmarshal to %s failed: %v", err)
+			l.Errorf("toml unmarshal %s failed: %v", name, err)
 			return err
 		}
 
 		if err := c.addInput(name, input, t); err != nil {
-			l.Error("toml unmarshal to %s failed: %v", name, err)
+			l.Error("add %s failed: %v", name, err)
 			return err
 		}
 	}
@@ -509,7 +489,8 @@ func (c *Config) LoadConfig() error {
 
 	for name, creator := range inputs.Inputs {
 		if err := c.doLoadInputConf(name, creator); err != nil {
-			l.Error("load %s config failed: %v, ignored", name, err)
+			l.Errorf("load %s config failed: %v, ignored", name, err)
+			return err
 		}
 	}
 
@@ -668,8 +649,13 @@ func initPluginCfgs() {
 	}
 }
 
-func parseConfig(contents []byte) (*ast.Table, error) {
-	tbl, err := toml.Parse(contents)
+func parseCfgFile(f string) (*ast.Table, error) {
+	data, err := ioutil.ReadFile(f)
+	if err != nil {
+		return nil, fmt.Errorf("read config %s failed: %s", f, err.Error())
+	}
+
+	tbl, err := toml.Parse(data)
 	if err != nil {
 		return nil, err
 	}
