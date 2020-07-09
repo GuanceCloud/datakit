@@ -50,6 +50,7 @@ func (p *JiraParam) active() {
 			task()
 		case <-datakit.Exit.Wait():
 			wg.Wait()
+			p.log.Info("input jira exit")
 			return
 		}
 	}
