@@ -22,39 +22,33 @@ var regions = []string{
 	"ap-southeast-3",
 }
 
-type AliyunSecurity struct {
-	cfg     *Security
-	client  *sas.Client
-	aclient *aegis.Client
-}
-
-func (_ *AliyunSecurity) Catalog() string {
+func (_ *Security) Catalog() string {
 	return "aliyun"
 }
 
-func (_ *AliyunSecurity) SampleConfig() string {
+func (_ *Security) SampleConfig() string {
 	return configSample
 }
 
-func (_ *AliyunSecurity) Description() string {
+func (_ *Security) Description() string {
 	return ""
 }
 
-func (_ *AliyunSecurity) Gather() error {
+func (_ *Security) Gather() error {
 	return nil
 }
 
-func (a *AliyunSecurity) Run() {
+func (a *Security) Run() {
 	l = logger.SLogger("aliyunSecurity")
 
 	l.Info("aliyunSecurity input started...")
 
-	cli, err := sas.NewClientWithAccessKey(a.cfg.RegionID, a.cfg.AccessKeyID, a.cfg.AccessKeySecret)
+	cli, err := sas.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
 	if err != nil {
 		l.Errorf("create client failed, %s", err)
 	}
 
-	cli2, err := aegis.NewClientWithAccessKey(a.cfg.RegionID, a.cfg.AccessKeyID, a.cfg.AccessKeySecret)
+	cli2, err := aegis.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
 	if err != nil {
 		l.Errorf("create client failed, %s", err)
 	}
@@ -63,7 +57,7 @@ func (a *AliyunSecurity) Run() {
 
 	a.aclient = cli2
 
-	interval, err := time.ParseDuration(a.cfg.Interval)
+	interval, err := time.ParseDuration(a.Interval)
 	if err != nil {
 		l.Error(err)
 	}
@@ -83,7 +77,7 @@ func (a *AliyunSecurity) Run() {
 	}
 }
 
-func (r *AliyunSecurity) command() {
+func (r *Security) command() {
 	for _, region := range regions {
 		go r.describeSummaryInfo(region)
 		go r.describeSecurityStatInfo(region)
@@ -91,7 +85,7 @@ func (r *AliyunSecurity) command() {
 	}
 }
 
-func (r *AliyunSecurity) describeSummaryInfo(region string) {
+func (r *Security) describeSummaryInfo(region string) {
 	request := aegis.CreateDescribeSummaryInfoRequest()
 	request.Scheme = "https"
 	request.RegionId = region
@@ -112,7 +106,7 @@ func (r *AliyunSecurity) describeSummaryInfo(region string) {
 	fields["aegis_client_offline_count"] = response.AegisClientOfflineCount
 	fields["security_score"] = response.SecurityScore
 
-	pt, err := influxdb.NewPoint(r.cfg.MetricName, tags, fields, time.Now())
+	pt, err := influxdb.NewPoint(r.MetricName, tags, fields, time.Now())
 	if err != nil {
 		return
 	}
@@ -120,7 +114,7 @@ func (r *AliyunSecurity) describeSummaryInfo(region string) {
 	err = io.Feed([]byte(pt.String()), io.Metric)
 }
 
-func (r *AliyunSecurity) describeSecurityStatInfo(region string) {
+func (r *Security) describeSecurityStatInfo(region string) {
 	request := aegis.CreateDescribeSecurityStatInfoRequest()
 	request.Scheme = "https"
 	request.RegionId = region
@@ -154,7 +148,7 @@ func (r *AliyunSecurity) describeSecurityStatInfo(region string) {
 	fields["vulnerability_asap_count"] = response.Vulnerability.AsapCount
 	fields["vulnerability_total_count"] = response.Vulnerability.TotalCount
 
-	pt, err := io.MakeMetric(r.cfg.MetricName, tags, fields, time.Now())
+	pt, err := io.MakeMetric(r.MetricName, tags, fields, time.Now())
 	if err != nil {
 		l.Errorf("make metric point error %v", err)
 	}
@@ -165,7 +159,7 @@ func (r *AliyunSecurity) describeSecurityStatInfo(region string) {
 	}
 }
 
-func (r *AliyunSecurity) describeRiskCheckSummary(region string) {
+func (r *Security) describeRiskCheckSummary(region string) {
 	// TrafficData
 	request := sas.CreateDescribeRiskCheckSummaryRequest()
 	request.Scheme = "https"
@@ -195,7 +189,7 @@ func (r *AliyunSecurity) describeRiskCheckSummary(region string) {
 		}
 	}
 
-	pt, err := io.MakeMetric(r.cfg.MetricName, tags, fields, time.Now())
+	pt, err := io.MakeMetric(r.MetricName, tags, fields, time.Now())
 	if err != nil {
 		l.Errorf("make metric point error %v", err)
 	}
@@ -208,6 +202,6 @@ func (r *AliyunSecurity) describeRiskCheckSummary(region string) {
 
 func init() {
 	inputs.Add("aliyunsecurity", func() inputs.Input {
-		return &AliyunSecurity{}
+		return &Security{}
 	})
 }

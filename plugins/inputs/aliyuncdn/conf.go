@@ -1,5 +1,7 @@
 package aliyuncdn
 
+import "github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
+
 const (
 	aliyunCDNConfigSample = `
 #[[cdn]]
@@ -49,4 +51,5 @@ type CDN struct {
 	Metric          *Metric  `toml:"metric"`
 	Summary         *Summary `toml:"summary"`
 	Interval        string   `toml:"interval"`
+	client          *cdn.Client
 }
