@@ -21,28 +21,23 @@ var (
 	l *logger.Logger
 )
 
-type MysqlMonitor struct {
-	cfg *Mysql
-	db  *sql.DB
-}
-
-func (_ *MysqlMonitor) Catalog() string {
+func (_ *Mysql) Catalog() string {
 	return "mysql"
 }
 
-func (_ *MysqlMonitor) SampleConfig() string {
+func (_ *Mysql) SampleConfig() string {
 	return configSample
 }
 
-func (_ *MysqlMonitor) Description() string {
+func (_ *Mysql) Description() string {
 	return ""
 }
 
-func (mysql *MysqlMonitor) Run() {
-	l = logger.SLogger("harborMonitor")
-	l.Info("harborMonitor input started...")
+func (mysql *Mysql) Run() {
+	l = logger.SLogger("mysqlMonitor")
+	l.Info("mysqlMonitor input started...")
 
-	connStr := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", mysql.cfg.Username, mysql.cfg.Password, mysql.cfg.Host, mysql.cfg.Port, mysql.cfg.Database)
+	connStr := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", mysql.Username, mysql.Password, mysql.Host, mysql.Port, mysql.Database)
 	db, err := sql.Open("mysql", connStr)
 	if err != nil {
 		l.Errorf("mysql connect faild %v", err)
@@ -50,7 +45,7 @@ func (mysql *MysqlMonitor) Run() {
 
 	mysql.db = db
 
-	interval, err := time.ParseDuration(mysql.cfg.Interval)
+	interval, err := time.ParseDuration(mysql.Interval)
 	if err != nil {
 		l.Error(err)
 	}
@@ -70,7 +65,7 @@ func (mysql *MysqlMonitor) Run() {
 	}
 }
 
-func (mysql *MysqlMonitor) command() {
+func (mysql *Mysql) command() {
 	for key, item := range metricMap {
 		resMap, err := mysql.Query(item)
 		if err != nil {
@@ -81,19 +76,19 @@ func (mysql *MysqlMonitor) command() {
 	}
 }
 
-func (mysql *MysqlMonitor) handleResponse(m string, response []map[string]interface{}) error {
+func (mysql *Mysql) handleResponse(m string, response []map[string]interface{}) error {
 	for _, item := range response {
 		tags := map[string]string{}
 
-		tags["dbName"] = mysql.cfg.Database
-		tags["instanceId"] = mysql.cfg.InstanceId
-		tags["instanceDesc"] = mysql.cfg.InstanceDesc
-		tags["server"] = mysql.cfg.Host
-		tags["port"] = mysql.cfg.Port
-		tags["product"] = mysql.cfg.Product
+		tags["dbName"] = mysql.Database
+		tags["instanceId"] = mysql.InstanceId
+		tags["instanceDesc"] = mysql.InstanceDesc
+		tags["server"] = mysql.Host
+		tags["port"] = mysql.Port
+		tags["product"] = mysql.Product
 		tags["type"] = m
 
-		pt, err := io.MakeMetric(mysql.cfg.MetricName, tags, item, time.Now())
+		pt, err := io.MakeMetric(mysql.MetricName, tags, item, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
@@ -107,7 +102,7 @@ func (mysql *MysqlMonitor) handleResponse(m string, response []map[string]interf
 	return nil
 }
 
-func (r *MysqlMonitor) Query(sql string) ([]map[string]interface{}, error) {
+func (r *Mysql) Query(sql string) ([]map[string]interface{}, error) {
 	rows, err := r.db.Query(sql)
 	if err != nil {
 		return nil, err
@@ -159,7 +154,7 @@ func (r *MysqlMonitor) Query(sql string) ([]map[string]interface{}, error) {
 }
 
 func init() {
-	inputs.Add("mysqlmonitor", func() inputs.Input {
-		return &MysqlMonitor{}
+	inputs.Add("mysqlMonitor", func() inputs.Input {
+		return &Mysql{}
 	})
 }
