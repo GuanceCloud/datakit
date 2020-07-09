@@ -197,24 +197,6 @@ func Start() {
 		GRPCServer(datakit.GRPCDomainSock)
 		l.Info("gRPC goroutine exit")
 	}()
-
-	var httpStartList = map[string]byte{
-		"trace": 0,
-		"druid": 0,
-	}
-
-	for name := range config.Cfg.Inputs {
-
-		if _, ok := httpStartList[name]; ok {
-
-			datakit.WG.Add(1)
-			go func() {
-				defer datakit.WG.Done()
-				HTTPServer()
-				l.Info("HTTPServer goroutine exit")
-			}()
-		}
-	}
 }
 
 func flush(cache map[string][][]byte) {
