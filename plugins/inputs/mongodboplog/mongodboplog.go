@@ -20,7 +20,7 @@ const (
 	defaultMeasurement = "mongodb_oplog"
 
 	sampleCfg = `
-# [[inputs.mongodb_oplog]]
+# [inputs.mongodb_oplog]
 # 	# MongoDB URL: mongodb://user:password@host:port/database
 # 	mongodb_url="mongodb://127.0.0.1:27017"
 # 	
@@ -39,12 +39,12 @@ const (
 # 	# fields path, cannot empty
 # 	# type in [int, float, bool, string]
 # 	# example:
-# 	[inputs.mongodboplog.fieldList]
+# 	[inputs.mongodb_oplog.fieldList]
 # 		"/a/c/d" = "int"
-# 		"/a/c/f\[0\]" = 'int'
-# 		"/a/c/f[1]/e/f" = 'int'
+# 		"/a/c/f[1]/e/f" = "int"
+# 		# "/a/c/f\\[0\\]" = "int"
 # 	
-# 	# [inputs.tailf.tags]
+# 	# [inputs.mongodb_oplog.tags]
 # 	# tags1 = "tags1"
 `
 )
@@ -87,6 +87,9 @@ func (m *Mongodboplog) Run() {
 
 	m.namespace = m.Database + "." + m.Collection
 	m.pointlist = make(map[string]string)
+	if m.Tags == nil {
+		m.Tags = make(map[string]string)
+	}
 
 	for _, v := range m.TagList {
 		m.pointlist[v] = "tags"
