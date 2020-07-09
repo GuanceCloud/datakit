@@ -1,13 +1,12 @@
 package run
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/run/httpserver"
 )
 
 var (
@@ -26,34 +25,25 @@ func (a *Agent) Run() error {
 
 	l = logger.SLogger("run")
 
-	io.Init()
+	io.Start()
 
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		io.Start()
-		l.Info("io goroutine exit")
-	}()
+	for name := range config.Cfg.Inputs {
+		for _, n := range httpserver.OwnerList {
+			if name == n {
 
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		io.GRPCServer()
-		l.Info("gRPC goroutine exit")
-	}()
+				datakit.WG.Add(1)
+				go func() {
+					defer datakit.WG.Done()
+					httpserver.Start(config.Cfg.MainCfg.HTTPServerAddr)
+					l.Info("HTTPServer goroutine exit")
+				}()
+			}
+		}
+	}
 
 	if err := a.runInputs(); err != nil {
 		l.Error("error running inputs: %v", err)
 	}
-
-	// wait all plugin start
-	time.Sleep(time.Second * 3)
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		io.HTTPServer()
-		l.Info("HTTPServer goroutine exit")
-	}()
 
 	return nil
 }
@@ -66,13 +56,6 @@ func (a *Agent) runInputs() error {
 
 			switch input.(type) {
 
-			//case telegraf.ServiceInput:
-			//	l.Info("ignore service input ...")
-			//	l.Info("starting service input ...")
-			//	if err := a.runServiceInput(input, dst.ch); err != nil {
-			//		return err
-			//	}
-
 			case inputs.Input:
 				l.Infof("starting input %s ...", name)
 				datakit.WG.Add(1)
@@ -83,11 +66,7 @@ func (a *Agent) runInputs() error {
 				}(input, name)
 
 			default:
-				l.Info("ignore interval input %s", name)
-				//l.Info("starting interval input ...")
-				//if err := a.runIntervalInput(ctx, input, startTime, dst.ch, &wg); err != nil {
-				//	return err
-				//}
+				l.Warn("ignore input %s", name)
 			}
 		}
 
