@@ -83,17 +83,30 @@ func (e *Etcd) Run() {
 		e.Tags["address"] = fmt.Sprintf("%s:%d", e.Host, e.Port)
 	}
 
-	// "https" or "http"
-	if e.TLSOpen {
-		e.address = fmt.Sprintf("https://%s:%d/metrics", e.Host, e.Port)
-		tc, err := TLSConfig(e.CacertFile, e.CertFile, e.KeyFile)
-		if err != nil {
-			l.Error(err)
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
 			return
+		default:
+			// nil
 		}
-		e.tlsConfig = tc
-	} else {
-		e.address = fmt.Sprintf("http://%s:%d/metrics", e.Host, e.Port)
+
+		// "https" or "http"
+		if e.TLSOpen {
+			e.address = fmt.Sprintf("https://%s:%d/metrics", e.Host, e.Port)
+			tc, err := TLSConfig(e.CacertFile, e.CertFile, e.KeyFile)
+			if err != nil {
+				l.Errorf("failed to TLS, err: %s", err.Error())
+				time.Sleep(time.Second)
+			} else {
+				e.tlsConfig = tc
+				break
+			}
+		} else {
+			e.address = fmt.Sprintf("http://%s:%d/metrics", e.Host, e.Port)
+			break
+		}
 	}
 
 	ticker := time.NewTicker(time.Second * e.Cycle)
