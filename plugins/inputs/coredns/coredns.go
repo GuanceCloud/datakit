@@ -17,12 +17,12 @@ const (
 	defaultMeasurement = "coredns"
 
 	sampleCfg = `
-# [[coredns]]
+# [[inputs.coredns]]
 # 	# coredns host
 # 	host = "127.0.0.1"
 # 	
 # 	# coredns prometheus port
-# 	port = "9153"
+# 	port = 9153
 # 	
 # 	# second
 # 	collect_cycle = 60
@@ -58,6 +58,10 @@ func (_ *Coredns) Catalog() string {
 
 func (c *Coredns) Run() {
 	l = logger.SLogger(inputName)
+
+	if c.Tags == nil {
+		c.Tags = make(map[string]string)
+	}
 
 	if _, ok := c.Tags["address"]; !ok {
 		c.Tags["address"] = fmt.Sprintf("%s:%d", c.Host, c.Port)
