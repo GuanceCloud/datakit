@@ -1,5 +1,7 @@
 package mysqlmonitor
 
+import "database/sql"
+
 const (
 	configSample = `
 #[[inputs.mysql]]
@@ -30,4 +32,5 @@ type Mysql struct {
 	Port         string `toml:"port"`
 	Database     string `toml:"database"`
 	Product      string `toml:"product"`
+	db           *sql.DB
 }
