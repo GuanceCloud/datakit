@@ -38,7 +38,7 @@ var (
 )
 
 func Init() {
-	l = logger.SLogger("utils")
+	l = logger.SLogger("datakit")
 }
 
 func MonitProc(proc *os.Process, name string) {
