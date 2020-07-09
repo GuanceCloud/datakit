@@ -1,8 +1,6 @@
 package run
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -31,15 +29,6 @@ func (a *Agent) Run() error {
 	if err := a.runInputs(); err != nil {
 		l.Error("error running inputs: %v", err)
 	}
-
-	// wait all plugin start
-	time.Sleep(time.Second * 3)
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		io.HTTPServer()
-		l.Info("HTTPServer goroutine exit")
-	}()
 
 	return nil
 }
