@@ -4,34 +4,17 @@ import (
 	"context"
 	"net/http"
 	"reflect"
-	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
 )
-
-var routeList = struct {
-	mut sync.Mutex
-	// map["/path"] = handle
-	m map[string]http.HandlerFunc
-}{mut: sync.Mutex{}, m: make(map[string]http.HandlerFunc)}
-
-// RegiRegisterRoute
-// type HandlerFunc func(http.ResponseWriter, *http.Request)
-func RegisterRoute(path string, h http.HandlerFunc) {
-	routeList.mut.Lock()
-	routeList.m[path] = h
-	routeList.mut.Unlock()
-}
 
 func HTTPServer() {
 
 	mux := http.NewServeMux()
-	for path, handle := range routeList.m {
-		mux.HandleFunc(path, handle)
-		l.Infof("http server register route path: %s", path)
-	}
+	// mux.HandleFunc("/druid", druid.Handle)
 
 	srv := &http.Server{
 		Addr:         config.Cfg.MainCfg.HTTPServerAddr,
