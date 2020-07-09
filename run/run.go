@@ -6,6 +6,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/run/httpserver"
 )
 
 var (
@@ -25,6 +26,20 @@ func (a *Agent) Run() error {
 	l = logger.SLogger("run")
 
 	io.Start()
+
+	for name := range config.Cfg.Inputs {
+		for _, n := range httpserver.OwnerList {
+			if name == n {
+
+				datakit.WG.Add(1)
+				go func() {
+					defer datakit.WG.Done()
+					httpserver.Start(config.Cfg.MainCfg.HTTPServerAddr)
+					l.Info("HTTPServer goroutine exit")
+				}()
+			}
+		}
+	}
 
 	if err := a.runInputs(); err != nil {
 		l.Error("error running inputs: %v", err)
