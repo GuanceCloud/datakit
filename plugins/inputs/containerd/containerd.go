@@ -3,6 +3,7 @@
 package containerd
 
 import (
+	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -37,7 +38,11 @@ const (
 `
 )
 
-var l *logger.Logger
+var (
+	l *logger.Logger
+
+	testAssert = false
+)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -85,11 +90,16 @@ func (c *Containerd) Run() {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
+			return
 
 		case <-ticker.C:
 			data, err := c.collectContainerd()
 			if err != nil {
 				l.Error(err)
+				continue
+			}
+			if testAssert {
+				fmt.Printf("containerd data: %s", string(data))
 				continue
 			}
 			if err := io.Feed(data, io.Metric); err != nil {
