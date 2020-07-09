@@ -24,7 +24,7 @@ const (
 	defaultMeasurement = "replication"
 
 	sampleCfg = `
-# [replication]
+# [inputs.replication]
 # 	# postgres host
 # 	host="127.0.0.1"
 # 	
@@ -58,7 +58,7 @@ const (
 `
 )
 
-var l logger.Logger
+var l *logger.Logger
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -104,6 +104,11 @@ func (_ *Replication) SampleConfig() string {
 }
 
 func (r *Replication) Run() {
+	l = logger.SLogger(inputName)
+
+	if r.Tags == nil {
+		r.Tags = make(map[string]string)
+	}
 	r.updateParamList()
 
 	r.pgConfig = pgx.ConnConfig{
