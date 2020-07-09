@@ -20,7 +20,7 @@ const (
 	defaultMeasurement = "tailf"
 
 	sampleCfg = `
-# [inputs.tailf]]
+# [inputs.tailf]
 # 	# Cannot be set to datakit.log
 # 	# Directory and file paths
 # 	paths = [""]
@@ -71,6 +71,10 @@ func (_ *Tailf) SampleConfig() string {
 
 func (t *Tailf) Run() {
 	l = logger.SLogger(inputName)
+
+	if t.Tags == nil {
+		t.Tags = make(map[string]string)
+	}
 	t.tailers = make(map[string]*tail.Tail)
 
 	if t.FormBeginning {
@@ -117,7 +121,7 @@ func (t *Tailf) foreachLines() {
 
 	count := 0
 	for {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(time.Second)
 	__out:
 		for _, tailer := range t.tailers {
 			for {
@@ -143,6 +147,15 @@ func (t *Tailf) foreachLines() {
 				}
 			}
 		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+		default:
+			// nil
+		}
+
 		// update
 		if count == 64 {
 			t.updateTailers()
