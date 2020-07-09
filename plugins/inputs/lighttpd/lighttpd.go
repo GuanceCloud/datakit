@@ -26,7 +26,7 @@ const (
 # 	# second
 # 	collect_cycle = 60
 # 	
-# 	# [inputs.tailf.tags]
+# 	# [inputs.lighttpd.tags]
 # 	# tags1 = "tags1"
 `
 )
@@ -59,6 +59,10 @@ func (_ *Lighttpd) Catalog() string {
 
 func (h *Lighttpd) Run() {
 	l = logger.SLogger(inputName)
+
+	if h.Tags == nil {
+		h.Tags = make(map[string]string)
+	}
 
 	if _, ok := h.Tags["url"]; !ok {
 		h.Tags["url"] = h.URL
