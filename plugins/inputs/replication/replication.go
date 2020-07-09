@@ -114,9 +114,21 @@ func (r *Replication) Run() {
 		Password: r.Password,
 	}
 
-	if err := r.checkAndResetConn(); err != nil {
-		l.Error(err)
-		return
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+		default:
+			// nil
+		}
+
+		if err := r.checkAndResetConn(); err != nil {
+			l.Errorf("failed to connect, err: %s", err.Error())
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
 	}
 
 	_ = r.sendStatus()
@@ -146,7 +158,7 @@ func (r *Replication) runloop() {
 				l.Error(err)
 				if err := r.checkAndResetConn(); err != nil {
 					l.Error(err)
-					return
+					time.Sleep(time.Second)
 				}
 				continue
 			}
