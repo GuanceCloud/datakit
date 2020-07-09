@@ -17,33 +17,28 @@ var (
 	l *logger.Logger
 )
 
-type AliyunCDN struct {
-	cfg    *CDN
-	client *cdn.Client
-}
-
-func (_ *AliyunCDN) Catalog() string {
+func (_ *CDN) Catalog() string {
 	return "aliyun"
 }
 
-func (_ *AliyunCDN) SampleConfig() string {
+func (_ *CDN) SampleConfig() string {
 	return aliyunCDNConfigSample
 }
 
-func (_ *AliyunCDN) Description() string {
+func (_ *CDN) Description() string {
 	return ""
 }
 
-func (_ *AliyunCDN) Gather() error {
+func (_ *CDN) Gather() error {
 	return nil
 }
 
-func (c *AliyunCDN) Run() {
+func (c *CDN) Run() {
 	l = logger.SLogger("aliyunCDN")
 
 	l.Info("aliyunCDN input started...")
 
-	interval, err := time.ParseDuration(c.cfg.Interval)
+	interval, err := time.ParseDuration(c.Interval)
 	if err != nil {
 		l.Error(err)
 	}
@@ -63,34 +58,34 @@ func (c *AliyunCDN) Run() {
 	}
 }
 
-func (r *AliyunCDN) run() {
+func (r *CDN) run() {
 	// check 配置
-	if err := CheckCfg(r.cfg); err != nil {
+	if err := CheckCfg(r); err != nil {
 		l.Errorf("config error %v", err)
 	}
 
 	// 域名采集
-	cli, err := cdn.NewClientWithAccessKey(r.cfg.RegionID, r.cfg.AccessKeyID, r.cfg.AccessKeySecret)
+	cli, err := cdn.NewClientWithAccessKey(r.RegionID, r.AccessKeyID, r.AccessKeySecret)
 	if err != nil {
 		l.Errorf("create client failed, %s", err)
 	}
 
 	r.client = cli
 
-	if len(r.cfg.DomainName) == 0 {
-		r.cfg.DomainName = r.getDomain(r.cfg.Summary.MetricName, "")
+	if len(r.DomainName) == 0 {
+		r.DomainName = r.getDomain(r.Summary.MetricName, "")
 	} else {
-		for _, domain := range r.cfg.DomainName {
-			r.getDomain(r.cfg.Summary.MetricName, domain)
+		for _, domain := range r.DomainName {
+			r.getDomain(r.Summary.MetricName, domain)
 		}
 	}
 
-	for _, action := range r.cfg.Metric.Actions {
+	for _, action := range r.Metric.Actions {
 		go r.exec(action)
 	}
 }
 
-func (r *AliyunCDN) getDomain(metricName string, domain string) []string {
+func (r *CDN) getDomain(metricName string, domain string) []string {
 	var pageNumber = 1
 	var pageSize = 50
 	var domains = []string{}
@@ -101,7 +96,7 @@ func (r *AliyunCDN) getDomain(metricName string, domain string) []string {
 
 	for {
 		request := cdn.CreateDescribeUserDomainsRequest()
-		request.RegionId = r.cfg.RegionID
+		request.RegionId = r.RegionID
 		request.Scheme = "https"
 		request.PageSize = requests.NewInteger(pageSize)
 		request.PageNumber = requests.NewInteger(pageNumber)
@@ -139,7 +134,7 @@ func (r *AliyunCDN) getDomain(metricName string, domain string) []string {
 				fields["type"] = point.Type
 				fields["weight"] = ConvertToNum(point.Weight)
 
-				pt, err := influxdb.NewPoint(r.cfg.Summary.MetricName, tags, fields, time.Now())
+				pt, err := influxdb.NewPoint(r.Summary.MetricName, tags, fields, time.Now())
 				if err != nil {
 					l.Errorf("[influxdb convert point] failed, %v", err.Error())
 				}
@@ -159,20 +154,20 @@ func (r *AliyunCDN) getDomain(metricName string, domain string) []string {
 	return domains
 }
 
-func (r *AliyunCDN) exec(action string) error {
+func (r *CDN) exec(action string) error {
 	et := time.Now()
 	st := et.Add(-time.Minute * 10)
 
 	p := &RunningProject{
-		cfg:       r.cfg.Metric,
+		cfg:       r.Metric,
 		client:    r.client,
-		domain:    r.cfg.DomainName,
+		domain:    r.DomainName,
 		startTime: unixTimeStrISO8601(st),
 		endTime:   unixTimeStrISO8601(et),
 	}
 
 	// metricname
-	p.metricName = r.cfg.Metric.MetricName
+	p.metricName = r.Metric.MetricName
 	if p.metricName == "" {
 		p.metricName = "aliyun_cdn_metrics"
 	}
@@ -217,6 +212,6 @@ func (run *RunningProject) commond(action string) {
 
 func init() {
 	inputs.Add("aliyuncdn", func() inputs.Input {
-		return &AliyunCDN{}
+		return &CDN{}
 	})
 }
