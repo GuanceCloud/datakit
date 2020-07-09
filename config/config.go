@@ -369,7 +369,7 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 
 	tbl, err := parseConfig(data)
 	if err != nil {
-		l.Errorf("[error] parse conf failed on [%s]: %s", name, err)
+		l.Errorf("[error] parse conf %s failed on [%s]: %s", path, name, err)
 		return err
 	}
 
@@ -671,7 +671,6 @@ func initPluginCfgs() {
 func parseConfig(contents []byte) (*ast.Table, error) {
 	tbl, err := toml.Parse(contents)
 	if err != nil {
-		l.Errorf("toml parse %s failed: %s", string(contents), err.Error())
 		return nil, err
 	}
 
