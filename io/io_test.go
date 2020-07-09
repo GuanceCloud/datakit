@@ -13,29 +13,24 @@ import (
 )
 
 func TestRCPServer(t *testing.T) {
-	s := &Server{
-		Listen: "/tmp/dk.sock",
-	}
-
-	s.Start(nil)
+	uds := "/tmp/dk.sock"
+	GRPCServer(uds)
 }
 
 func TestRPC(t *testing.T) {
 	wg := sync.WaitGroup{}
 
-	s := &Server{
-		Listen: "/tmp/dk.sock",
-	}
+	uds := "/tmp/test.sock"
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		s.Start(nil)
+		GRPCServer(uds)
 	}()
 
 	time.Sleep(time.Second)
 
-	conn, err := grpc.Dial("unix://"+s.Listen, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial("unix://"+uds, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		panic(err)
 	}
@@ -45,7 +40,7 @@ func TestRPC(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := c.Feed(ctx, &Request{
+	r, err := c.Send(ctx, &Request{
 		Lines: []byte(strings.Join([]string{
 			`test_a,tag1=val1,tag2=val2 f1=1i,f2=3,f3="abc",f4=T ` + fmt.Sprintf("%d", time.Now().UnixNano()),
 			`test_b,tag1=val1,tag2=val2 f1=1i,f2=3,f3="abc",f4=T ` + fmt.Sprintf("%d", time.Now().UnixNano()),
@@ -58,7 +53,7 @@ func TestRPC(t *testing.T) {
 
 	log.Printf("[C] sending %d points ok, err: %s", r.GetPoints(), r.GetErr())
 
-	r, err = c.Feed(ctx, &Request{
+	r, err = c.Send(ctx, &Request{
 		Lines: []byte(strings.Join([]string{ // bad body
 			`test_a tag1=val1,tag2=val2 f1=1i,f2=3,f3="abc",f4=T ` + fmt.Sprintf("%d", time.Now().UnixNano()),
 			`test_b tag1=val1,tag2=val2 f1=1i,f2=3,f3="abc",f4=T ` + fmt.Sprintf("%d", time.Now().UnixNano()),
@@ -72,7 +67,6 @@ func TestRPC(t *testing.T) {
 	log.Printf("[C] sending points: %d, err: %s", r.GetPoints(), r.GetErr())
 
 	log.Printf("stopping server...")
-	s.Stop()
 
 	wg.Wait()
 }
