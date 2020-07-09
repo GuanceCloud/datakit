@@ -1,5 +1,7 @@
 package aliyunrdsslowlog
 
+import "github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
+
 const (
 	configSample = `
 #[[rdsslowlog]]
@@ -24,4 +26,5 @@ type AliyunRDS struct {
 	Product         []string `toml:"product"`
 	Interval        string   `toml:"interval"`
 	MetricName      string   `toml:"metricName"`
+	client          *rds.Client
 }
