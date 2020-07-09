@@ -95,11 +95,20 @@ func (a *AliyunPriceAgent) Run() {
 		a.cancelFun()
 	}()
 
-	if cli, err := bssopenapi.NewClientWithAccessKey(a.RegionID, a.AccessID, a.AccessSecret); err != nil {
-		moduleLogger.Errorf("fail to create client, %s", err)
-		return
-	} else {
-		a.client = cli
+	for {
+		select {
+		case <-a.ctx.Done():
+			return
+		default:
+		}
+
+		if cli, err := bssopenapi.NewClientWithAccessKey(a.RegionID, a.AccessID, a.AccessSecret); err != nil {
+			moduleLogger.Errorf("fail to create client, %s", err)
+			time.Sleep(time.Second)
+		} else {
+			a.client = cli
+			break
+		}
 	}
 
 	for _, item := range a.EcsCfg {
