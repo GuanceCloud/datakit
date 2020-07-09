@@ -1,7 +1,6 @@
 package httpstat
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -14,31 +13,18 @@ import (
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 
-	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-// httpstat
-type Httpstat struct {
-	Config []*HttpstatCfg `toml:"httpstat"`
-}
-
-type runningInstance struct {
-	metricName string
-	cfg        *HttpstatCfg `toml:"httpstat"`
-	agent      *Httpstat
-	httpPing   []*httpPing
-	logger     *models.Logger
-}
+var (
+	l *logger.Logger
+)
 
 // project
 type httpPing struct {
-	inst          *runningInstance
 	cfg           *Action
-	logger        *models.Logger
 	metricName    string
 	url           string
 	host          string
@@ -80,70 +66,20 @@ func (_ *Httpstat) Catalog() string {
 	return "httpStat"
 }
 
-func (h *Httpstat) Stop() {
-	h.cancelFun()
-}
-
-func (_ *Httpstat) Gather(acc telegraf.Accumulator) error {
-	return nil
-}
-
 func (h *Httpstat) Run() {
-	h.logger = &models.Logger{
-		Name: `httpstat`,
-	}
+}
 
-	if len(h.Config) == 0 {
-		h.logger.Warnf("no configuration found")
-	}
-
-	h.logger.Info("starting...")
-
-	for _, instCfg := range h.Config {
-		r := &runningInstance{
-			cfg:    instCfg,
-			agent:  h,
-			logger: h.logger,
+func (h *Httpstat) run() error {
+	for _, c := range h.Actions {
+		p := &httpPing{
+			cfg:        c,
+			metricName: h.MetricName,
 		}
-
-		r.metricName = instCfg.MetricName
-		if r.metricName == "" {
-			r.metricName = "http_stat"
-		}
-
-		if r.cfg.Interval.Duration == 0 {
-			r.cfg.Interval.Duration = time.Minute * 10
-		}
-
-		h.runningInstances = append(h.runningInstances, r)
-
-		go r.run(h.ctx)
+		go p.run()
 	}
 }
 
-func (r *runningInstance) run(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
-		}
-
-		for _, c := range r.cfg.Actions {
-			p := &httpPing{
-				inst:       r,
-				cfg:        c,
-				metricName: r.metricName,
-				logger:     r.logger,
-			}
-			r.httpPing = append(r.httpPing, p)
-			go p.run(ctx)
-		}
-		internal.SleepContext(ctx, r.cfg.Interval.Duration)
-	}
-}
-
-func (h *httpPing) run(ctx context.Context) error {
+func (h *httpPing) run() error {
 	// 参数校验
 	h.paramCheck()
 
@@ -319,7 +255,7 @@ func Normalize(URL string) string {
 }
 
 func init() {
-	inputs.Add(pluginName, func() inputs.Input {
+	inputs.Add("httpstat", func() inputs.Input {
 		return &Httpstat{}
 	})
 }
