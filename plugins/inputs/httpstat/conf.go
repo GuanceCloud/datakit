@@ -24,11 +24,12 @@ const (
 `
 )
 
-type HttpstatCfg struct {
+type Httpstat struct {
 	MetricName string            `toml:"metricName"`
 	Timeout    string            `toml:"timeout"`
 	Interval   internal.Duration `toml:"interval"`
 	Actions    []*Action         `toml:"action"`
+	httpPing   []*httpPing
 }
 
 type Action struct {
