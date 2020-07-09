@@ -150,7 +150,7 @@ func LoadTelegrafConfigs(cfgdir string, inputFilters []string) error {
 		} else {
 			if err != ErrConfigNotFound && err != ErrEmptyInput {
 				l.Errorf("error loading telefraf conf %s: %v, ignored", cfgpath, err)
-				// XXX: should we return error here?
+				return err
 			}
 		}
 	}
