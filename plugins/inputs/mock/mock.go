@@ -20,19 +20,15 @@ var (
 	inputName = "mock"
 
 	sampleCfg = `
-# [mock]
+# [inputs.mock]
 # interval = '3s'
 # metric = 'mock-testing'
 	`
 )
 
-type cfg struct {
+type Mock struct {
 	Interval string `toml:"interval"`
 	Metric   string `toml:"metric"`
-}
-
-type Mock struct {
-	C *cfg `toml:"mock"`
 }
 
 func (m *Mock) SampleConfig() string {
@@ -62,7 +58,7 @@ func (m *Mock) Run() {
 
 	l.Info("mock input started...")
 
-	interval, err := time.ParseDuration(m.C.Interval)
+	interval, err := time.ParseDuration(m.Interval)
 	if err != nil {
 		l.Error(err)
 	}
@@ -73,7 +69,7 @@ func (m *Mock) Run() {
 	for {
 		select {
 		case <-tick.C:
-			pt, err := influxdb.NewPoint(m.C.Metric,
+			pt, err := influxdb.NewPoint(m.Metric,
 				map[string]string{
 					"from": host,
 				},
