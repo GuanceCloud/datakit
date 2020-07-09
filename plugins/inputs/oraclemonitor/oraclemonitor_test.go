@@ -37,7 +37,7 @@ func TestLoadConf(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	om := &oraclemonitor{}
+	om := &OracleMonitor{}
 	if err := toml.UnmarshalTable(tree, om); err != nil {
 		t.Fatal(err)
 	}
