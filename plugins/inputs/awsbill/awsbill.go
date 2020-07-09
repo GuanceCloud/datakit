@@ -177,9 +177,20 @@ func (r *AwsInstance) run(ctx context.Context) error {
 		}
 	}()
 
-	if err := r.initClient(); err != nil {
-		moduleLogger.Errorf("fail to init client, %s", err)
-		return err
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return nil
+		default:
+		}
+
+		if err := r.initClient(); err != nil {
+			moduleLogger.Errorf("fail to init client, %s", err)
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
+
 	}
 
 	if err := r.getSupportMetrics(); err != nil {
