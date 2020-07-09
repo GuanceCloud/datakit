@@ -18,7 +18,7 @@ const (
 	defaultMeasurement = "containerd"
 
 	sampleCfg = `
-# [[containerd]]
+# [inputs.containerd]
 # 	# containerd sock file, use default
 # 	host_path = "/run/containerd/containerd.sock"
 # 	
@@ -33,7 +33,7 @@ const (
 # 	# second
 # 	collect_cycle = 60
 # 	
-# 	# [inputs.tailf.tags]
+# 	# [inputs.containerd.tags]
 # 	# tags1 = "tags1"
 `
 )
@@ -72,6 +72,10 @@ func (_ *Containerd) SampleConfig() string {
 
 func (c *Containerd) Run() {
 	l = logger.SLogger(inputName)
+
+	if c.Tags == nil {
+		c.Tags = make(map[string]string)
+	}
 
 	c.isAll = len(c.IDList) == 1 && c.IDList[0] == "*"
 
