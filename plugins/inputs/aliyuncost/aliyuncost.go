@@ -151,9 +151,21 @@ func (s *runningInstance) getAccountInfo() {
 func (s *runningInstance) run() error {
 
 	var err error
-	s.client, err = bssopenapi.NewClientWithAccessKey(s.cfg.RegionID, s.cfg.AccessKeyID, s.cfg.AccessKeySecret)
-	if err != nil {
-		return err
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return nil
+		default:
+		}
+
+		s.client, err = bssopenapi.NewClientWithAccessKey(s.cfg.RegionID, s.cfg.AccessKeyID, s.cfg.AccessKeySecret)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
 	}
 
 	select {
