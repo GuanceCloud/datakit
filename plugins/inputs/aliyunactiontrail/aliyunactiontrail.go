@@ -117,12 +117,24 @@ func (r *AliyunActiontrail) run() error {
 		}
 	}()
 
-	cli, err := actiontrail.NewClientWithAccessKey(r.Region, r.AccessID, r.AccessKey)
-	if err != nil {
-		moduleLogger.Errorf("create client failed, %s", err)
-		return err
+	for {
+
+		select {
+		case <-datakit.Exit.Wait():
+			return nil
+		default:
+		}
+
+		cli, err := actiontrail.NewClientWithAccessKey(r.Region, r.AccessID, r.AccessKey)
+		if err != nil {
+			moduleLogger.Errorf("create client failed, %s", err)
+			time.Sleep(time.Second)
+		} else {
+			r.client = cli
+			break
+		}
+
 	}
-	r.client = cli
 
 	go r.getHistory()
 
