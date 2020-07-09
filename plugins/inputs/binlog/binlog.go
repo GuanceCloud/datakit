@@ -5,16 +5,20 @@ package binlog
 import (
 	"context"
 	"io"
-	"log"
 	"sync"
 	"time"
 
 	blog "github.com/siddontang/go-log/log"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
+
+var (
+	moduleLogger *logger.Logger
+	inputName    = `binlog`
 )
 
 type Binlog struct {
@@ -30,8 +34,6 @@ type Binlog struct {
 
 	ctx       context.Context
 	cancelfun context.CancelFunc
-
-	logger *models.Logger
 }
 
 func (_ *Binlog) Catalog() string {
@@ -51,7 +53,7 @@ type adapterLogWriter struct {
 }
 
 func (al *adapterLogWriter) Write(p []byte) (n int, err error) {
-	log.Printf("D! [binlog] %s", string(p))
+	moduleLogger.Debugf("%s", string(p))
 	return len(p), nil
 }
 
@@ -65,8 +67,10 @@ func setupLogger() {
 
 func (b *Binlog) Run() {
 
+	moduleLogger = logger.SLogger(inputName)
+
 	if len(b.Instances) == 0 {
-		b.logger.Warnf("no config found")
+		moduleLogger.Warnf("no config found")
 		return
 	}
 
@@ -103,7 +107,7 @@ func (b *Binlog) Run() {
 				}
 
 				if err := bl.run(b.ctx); err != nil && err != context.Canceled {
-					b.logger.Errorf("%s", err.Error())
+					moduleLogger.Errorf("%s", err.Error())
 					internal.SleepContext(b.ctx, time.Second*3)
 				} else if err == context.Canceled {
 					break
@@ -117,12 +121,8 @@ func (b *Binlog) Run() {
 }
 
 func init() {
-	inputs.Add("binlog", func() inputs.Input {
-		b := &Binlog{
-			logger: &models.Logger{
-				Name: `binlog`,
-			},
-		}
+	inputs.Add(inputName, func() inputs.Input {
+		b := &Binlog{}
 		b.ctx, b.cancelfun = context.WithCancel(context.Background())
 		return b
 	})
