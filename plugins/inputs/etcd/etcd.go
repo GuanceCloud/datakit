@@ -18,7 +18,7 @@ const (
 	defaultMeasurement = "etcd"
 
 	sampleCfg = `
-# [[etcd]]
+# [[inputs.etcd]]
 # 	# etcd host ip
 # 	host = "127.0.0.1"
 # 	
@@ -40,7 +40,7 @@ const (
 # 	# second
 # 	collect_cycle = 60
 # 	
-# 	# [inputs.tailf.tags]
+# 	# [inputs.etcd.tags]
 # 	# tags1 = "value1"
 `
 )
@@ -78,6 +78,10 @@ func (_ *Etcd) Catalog() string {
 
 func (e *Etcd) Run() {
 	l = logger.SLogger(inputName)
+
+	if e.Tags == nil {
+		e.Tags = make(map[string]string)
+	}
 
 	if _, ok := e.Tags["address"]; !ok {
 		e.Tags["address"] = fmt.Sprintf("%s:%d", e.Host, e.Port)
