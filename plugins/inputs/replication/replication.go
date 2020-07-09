@@ -24,7 +24,7 @@ const (
 	defaultMeasurement = "replication"
 
 	sampleCfg = `
-# [[replication]]
+# [replication]
 # 	# postgres host
 # 	host="127.0.0.1"
 # 	
@@ -38,7 +38,7 @@ const (
 # 	
 # 	database="testdb"
 # 	
-# 	table="testtable"
+# 	table="testable"
 # 	
 # 	# replication slot name, only
 # 	slotname="slot_for_datakit"
@@ -55,7 +55,6 @@ const (
 #
 # 	# [inputs.replication.tags]
 # 	# tags1 = "tags1"
-# 
 `
 )
 
@@ -105,7 +104,7 @@ func (_ *Replication) SampleConfig() string {
 }
 
 func (r *Replication) Run() {
-	r.paramCache()
+	r.updateParamList()
 
 	r.pgConfig = pgx.ConnConfig{
 		Host:     r.Host,
@@ -165,7 +164,11 @@ func (r *Replication) runloop() {
 	}
 }
 
-func (r *Replication) paramCache() {
+func (r *Replication) updateParamList() {
+	r.eventsOperation = make(map[string]byte)
+	r.tagKeys = make(map[string]byte)
+	r.fieldKeys = make(map[string]byte)
+
 	for _, event := range r.Events {
 		r.eventsOperation[event] = 0
 	}
