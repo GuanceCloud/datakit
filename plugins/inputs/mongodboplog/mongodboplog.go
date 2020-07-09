@@ -86,6 +86,7 @@ func (m *Mongodboplog) Run() {
 	l = logger.SLogger(inputName)
 
 	m.namespace = m.Database + "." + m.Collection
+	m.pointlist = make(map[string]string)
 
 	for _, v := range m.TagList {
 		m.pointlist[v] = "tags"
@@ -94,10 +95,25 @@ func (m *Mongodboplog) Run() {
 		m.pointlist[k] = v
 	}
 
-	session, err := mgo.Dial(m.MongodbURL)
-	if err != nil {
-		l.Errorf("failed to connect, err: %s", err.Error())
-		return
+	var session *mgo.Session
+	var err error
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+		default:
+			// nil
+		}
+
+		session, err = mgo.Dial(m.MongodbURL)
+		if err != nil {
+			l.Errorf("failed to connect, err: %s", err.Error())
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
 	}
 
 	session.SetPoolLimit(2)
