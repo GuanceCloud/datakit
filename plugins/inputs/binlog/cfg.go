@@ -11,7 +11,7 @@ import (
 
 const (
 	binlogConfigSample = `
-[[inputs.binlog]]
+#[[inputs.binlog]]
 #null_int=0
 #null_float=0.0
 #[[inputs.binlog.sources]]
