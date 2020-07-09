@@ -55,8 +55,19 @@ func (c *Collector) Run() {
 		}
 	}()
 
-	if err := c.initialize(); err != nil {
-		return
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		default:
+		}
+
+		if err := c.initialize(); err == nil {
+			break
+		} else {
+			moduleLogger.Errorf("%s", err)
+			time.Sleep(time.Second)
+		}
 	}
 
 	ctx, cancelFun := context.WithCancel(context.Background())
