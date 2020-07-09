@@ -28,8 +28,6 @@ var (
 
 	outputFile     *os.File
 	outputFileSize int64
-
-	inited = false
 )
 
 const ( // categories
@@ -109,13 +107,7 @@ func MakeMetric(name string, tags map[string]string, fields map[string]interface
 	return []byte(pt.String()), nil
 }
 
-// there is more than 1 service under io module, we should init some data before these services starting
-func Init() {
-	l = logger.SLogger("io")
-	inited = true
-}
-
-func Stop() {
+func ioStop() {
 	if outputFile != nil {
 		if err := outputFile.Close(); err != nil {
 			l.Error(err)
@@ -123,12 +115,7 @@ func Stop() {
 	}
 }
 
-func Start() {
-
-	if !inited {
-		panic(initErr)
-	}
-
+func startIO() {
 	baseURL = "http://" + config.Cfg.MainCfg.DataWay.Host
 	if config.Cfg.MainCfg.DataWay.Scheme == "https" {
 		baseURL = "https://" + config.Cfg.MainCfg.DataWay.Host
@@ -153,7 +140,7 @@ func Start() {
 		Logging:          nil,
 	}
 
-	defer Stop()
+	defer ioStop()
 
 	var f rtpanic.RecoverCallback
 
@@ -191,6 +178,25 @@ func Start() {
 
 	l.Info("starting...")
 	f(nil, nil)
+}
+
+func Start() {
+
+	l = logger.SLogger("io")
+
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		startIO()
+		l.Info("io goroutine exit")
+	}()
+
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		GRPCServer(datakit.GRPCDomainSock)
+		l.Info("gRPC goroutine exit")
+	}()
 }
 
 func flush(cache map[string][][]byte) {

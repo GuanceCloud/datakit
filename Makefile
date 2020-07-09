@@ -69,8 +69,8 @@ define pub
 endef
 
 check:
-	@golangci-lint run --timeout 1h # https://golangci-lint.run/usage/install/#local-installation
 	@go vet ./...
+	#@golangci-lint run --timeout 1h # https://golangci-lint.run/usage/install/#local-installation
 
 local:
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
