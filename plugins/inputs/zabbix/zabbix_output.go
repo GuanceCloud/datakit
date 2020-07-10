@@ -1,29 +1,38 @@
 package zabbix
 
 import (
-	"context"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
+type IoFeed func(data []byte, category string) error
+
 type ZabbixOutput struct {
-	ctx  context.Context
-	cfun context.CancelFunc
-	acc  telegraf.Accumulator
+	IoFeed
 }
 
-func (o *ZabbixOutput) ProcessPts(pts []*influxdb.Point) error {
+func (z *ZabbixParam) ProcessPts(pts []*influxdb.Point) error {
 	for _, pt := range pts {
 		fields, err := pt.Fields()
 		if err != nil {
 			return err
 		}
-		pt_metric, err := metric.New(pt.Name(), pt.Tags(), fields, pt.Time())
+
+		tags := pt.Tags()
+		for tag, tagv := range z.input.Tags {
+			tags[tag] = tagv
+		}
+
+		ps, err := io.MakeMetric(pt.Name(), tags, fields, pt.Time())
 		if err != nil {
 			return err
 		}
-		o.acc.AddMetric(pt_metric)
+		z.log.Debug(string(ps))
+		err = z.output.IoFeed(ps, io.Metric)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
