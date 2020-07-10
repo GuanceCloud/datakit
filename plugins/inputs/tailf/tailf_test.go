@@ -7,6 +7,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var (
@@ -20,6 +22,11 @@ var (
 		"/tmp/tailf_test/1/2/two.txt",
 	}
 )
+
+func __init() {
+	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_DEFAULT)
+	l = logger.SLogger(inputName)
+}
 
 func TestWrite(t *testing.T) {
 	defer func() {
