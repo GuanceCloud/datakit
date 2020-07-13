@@ -59,7 +59,7 @@ type Containerd struct {
 	// get all ids metrics
 	isAll bool
 	// id cache
-	ids map[string]byte
+	ids map[string]interface{}
 }
 
 func (_ *Containerd) Catalog() string {
@@ -79,10 +79,10 @@ func (c *Containerd) Run() {
 
 	c.isAll = len(c.IDList) == 1 && c.IDList[0] == "*"
 
-	c.ids = func() map[string]byte {
-		m := make(map[string]byte)
+	c.ids = func() map[string]interface{} {
+		m := make(map[string]interface{})
 		for _, v := range c.IDList {
-			m[v] = 0
+			m[v] = nil
 		}
 		return m
 	}()
