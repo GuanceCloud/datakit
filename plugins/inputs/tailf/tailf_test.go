@@ -66,6 +66,9 @@ func TestWrite(t *testing.T) {
 }
 
 func TestMain(t *testing.T) {
+	__init()
+	testAssert = true
+
 	var tailer = Tailf{
 		Paths:         paths,
 		FormBeginning: false,
