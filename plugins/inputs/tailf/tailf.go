@@ -3,6 +3,7 @@
 package tailf
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -121,30 +122,10 @@ func (t *Tailf) foreachLines() {
 
 	count := 0
 	for {
-		time.Sleep(time.Second)
-	__out:
+		time.Sleep(500 * time.Millisecond)
 		for _, tailer := range t.tailers {
-			for {
-				select {
-				case line := <-tailer.Lines:
-					data, err := t.parse(line)
-					if err != nil {
-						l.Error(err)
-						continue
-					}
-					if err := io.Feed(data, io.Logging); err != nil {
-						l.Error(err)
-						continue
-					}
-					l.Debugf("feed %d bytes to io ok", len(data))
-
-				case <-datakit.Exit.Wait():
-					l.Info("exit")
-					return
-
-				default:
-					goto __out
-				}
+			if t.loopTailer(tailer) {
+				return
 			}
 		}
 
@@ -157,7 +138,7 @@ func (t *Tailf) foreachLines() {
 		}
 
 		// update
-		if count == 64 {
+		if t.UpdateFiles && count == 64 {
 			t.updateTailers()
 			count = 0
 		}
@@ -165,16 +146,52 @@ func (t *Tailf) foreachLines() {
 	}
 }
 
-func (t *Tailf) parse(line *tail.Line) ([]byte, error) {
+// loopTailer return bool of is "exit"
+func (t *Tailf) loopTailer(tailer *tail.Tail) bool {
+	for {
+		select {
+		case line := <-tailer.Lines:
+			data, err := t.parseLine(line, tailer.Filename)
+			if err != nil {
+				l.Error(err)
+				continue
+			}
+			if testAssert {
+				fmt.Printf("io.Feed data: %s\n", string(data))
+				continue
+			}
+			if err := io.Feed(data, io.Logging); err != nil {
+				l.Error(err)
+				continue
+			}
+			l.Debugf("feed %d bytes to io ok", len(data))
+
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return true
+
+		default:
+			return false
+		}
+	}
+}
+
+func (t *Tailf) parseLine(line *tail.Line, filename string) ([]byte, error) {
 	// only '__content' kv
-	var fields = make(map[string]interface{}, 1)
 
 	if line.Err != nil {
 		return nil, line.Err
 	}
 
+	var tags = make(map[string]string)
+	var fields = make(map[string]interface{}, 1)
+	for k, v := range t.Tags {
+		tags[k] = v
+	}
+	tags["filename"] = filename
+
 	text := strings.TrimRight(line.Text, "\r")
 	fields["__content"] = text
 
-	return io.MakeMetric(defaultMeasurement, t.Tags, fields, time.Now())
+	return io.MakeMetric(defaultMeasurement, tags, fields, time.Now())
 }
