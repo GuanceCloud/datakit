@@ -8,9 +8,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
-var typeWhiteList = map[string]byte{
-	"text/plain; charset=utf-8": 0,
-	// "application/octet-stream":  0,
+var typeWhiteList = map[string]interface{}{
+	"text/plain; charset=utf-8": nil,
+	// "application/octet-stream":  nil,
 }
 
 func filterPath(paths []string) (list []string) {
