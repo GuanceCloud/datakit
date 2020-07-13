@@ -80,9 +80,9 @@ type Replication struct {
 	Tags      map[string]string `toml:"tags"`
 
 	// slice to map cache
-	eventsOperation map[string]byte
-	tagKeys         map[string]byte
-	fieldKeys       map[string]byte
+	eventsOperation map[string]interface{}
+	tagKeys         map[string]interface{}
+	fieldKeys       map[string]interface{}
 
 	// 当前 wal 位置
 	receivedWal uint64
@@ -182,18 +182,18 @@ func (r *Replication) runloop() {
 }
 
 func (r *Replication) updateParamList() {
-	r.eventsOperation = make(map[string]byte)
-	r.tagKeys = make(map[string]byte)
-	r.fieldKeys = make(map[string]byte)
+	r.eventsOperation = make(map[string]interface{})
+	r.tagKeys = make(map[string]interface{})
+	r.fieldKeys = make(map[string]interface{})
 
 	for _, event := range r.Events {
-		r.eventsOperation[event] = 0
+		r.eventsOperation[event] = nil
 	}
 	for _, tag := range r.TagList {
-		r.tagKeys[tag] = 0
+		r.tagKeys[tag] = nil
 	}
 	for _, field := range r.FieldList {
-		r.fieldKeys[field] = 0
+		r.fieldKeys[field] = nil
 	}
 }
 
