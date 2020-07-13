@@ -6,6 +6,7 @@ ftdataway='{{.FtGateway}}' # deprecated
 log='{{.Log}}'
 log_level='{{.LogLevel}}'
 config_dir='{{.ConfigDir}}'
+http_server_dir='{{.HTTPServerAddr}}'
 
 ## Override default hostname, if empty use os.Hostname()
 hostname = ""
