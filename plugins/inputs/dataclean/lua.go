@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
-	"log"
+	"os"
 	"path"
 	"path/filepath"
 	"sync"
@@ -12,8 +12,6 @@ import (
 	"github.com/robfig/cron"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/lua"
 	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
@@ -41,8 +39,6 @@ type luaMachine struct {
 
 	ctx      context.Context
 	cancelFn context.CancelFunc
-
-	logger *models.Logger
 }
 
 // log only `int' fields
@@ -69,10 +65,8 @@ func NewLuaMachine(dir string, nw int) *luaMachine {
 		pointsChan: make(chan *luaOpReq, nw*2),
 		luaCache:   lua.NewCache(),
 		luaDir:     dir,
-		logger: &models.Logger{
-			Name: `lua_machine`,
-		},
 	}
+	os.MkdirAll(dir, 0666)
 	l.ctx, l.cancelFn = context.WithCancel(context.Background())
 	return l
 }
@@ -85,18 +79,18 @@ func (l *luaMachine) StartGlobal() error {
 	for _, lr := range l.globals {
 		sched, err := specParser.Parse(lr.Circle)
 		if err != nil {
-			l.logger.Errorf("invalid cicle: %s", lr.Circle)
+			moduleLogger.Errorf("invalid cicle: %s", lr.Circle)
 			continue
 		}
 
 		code, err := ioutil.ReadFile(filepath.Join(l.luaDir, lr.Path))
 		if err != nil {
-			l.logger.Errorf("global lua read file %s failed: %s", lr.Path, err.Error())
+			moduleLogger.Errorf("global lua read file %s failed: %s", lr.Path, err.Error())
 			continue
 		}
 
 		if err := lua.CheckSyntaxToBytes(code); err != nil {
-			l.logger.Errorf("parse global lua %s failed: %s", lr.Path, err.Error())
+			moduleLogger.Errorf("parse global lua %s failed: %s", lr.Path, err.Error())
 			continue
 		}
 
@@ -107,7 +101,7 @@ func (l *luaMachine) StartGlobal() error {
 		nc++
 		gl.Schedule(sched, cron.FuncJob(func() {
 			if err := lmode.DoString(string(code)); err != nil {
-				log.Printf("E! should not been here: %s", err.Error())
+				moduleLogger.Debugf("should not been here: %s", err.Error())
 			}
 		}))
 	}
@@ -116,7 +110,7 @@ func (l *luaMachine) StartGlobal() error {
 
 	gl.Start()
 
-	l.logger.Infof("global lua start worker jobs: %d", nc)
+	moduleLogger.Infof("global lua start worker jobs: %d", nc)
 
 	return nil
 }
@@ -131,7 +125,7 @@ func (l *luaMachine) CheckRouteLua() int {
 
 		for _, lf := range route.Lua {
 			if err := lua.CheckSyntaxToFile(filepath.Join(l.luaDir, lf.Path)); err != nil {
-				l.logger.Errorf("load %s failed under router %s: %s, route's lua disabled",
+				moduleLogger.Errorf("load %s failed under router %s: %s, route's lua disabled",
 					lf.Path, route.Name, err.Error())
 
 				route.DisableLua = true
@@ -139,7 +133,7 @@ func (l *luaMachine) CheckRouteLua() int {
 				continue
 			} else {
 				n++
-				l.logger.Infof("%s seems ok", lf.Path)
+				moduleLogger.Infof("%s seems ok", lf.Path)
 			}
 		}
 	}
@@ -151,7 +145,7 @@ func (l *luaMachine) StartRoutes() error {
 
 	nlua := l.CheckRouteLua()
 	if nlua == 0 { // no lua, no worker
-		l.logger.Infof("no lua route")
+		moduleLogger.Warnf("no lua route")
 		return nil
 	}
 
@@ -172,7 +166,7 @@ func (l *luaMachine) StartRoutes() error {
 		go wkr.start(l.ctx)
 	}
 
-	l.logger.Infof("route lua module start..")
+	moduleLogger.Infof("route lua module start..")
 	return nil
 }
 
@@ -182,7 +176,7 @@ func (l *luaMachine) Stop() {
 	}
 	l.cancelFn()
 	l.wg.Wait()
-	log.Printf("D! [lua_machine] done")
+	moduleLogger.Debugf("lua_machine done")
 }
 
 func (l *luaMachine) doSend(pts []*influxdb.Point, route string) ([]*influxdb.Point, error) {
@@ -193,12 +187,12 @@ func (l *luaMachine) doSend(pts []*influxdb.Point, route string) ([]*influxdb.Po
 		ch:     make(chan interface{}),
 	}
 
-	l.logger.Debugf("send to lua worker...")
+	moduleLogger.Debugf("send to lua worker...")
 	l.pointsChan <- r
 
 	defer close(r.ch)
 
-	l.logger.Debugf("wait points from lua worker...")
+	moduleLogger.Debugf("wait points from lua worker...")
 	select {
 	case res := <-r.ch:
 		switch res.(type) {
@@ -220,12 +214,12 @@ func (l *luaMachine) Send(pts []*influxdb.Point, route string) ([]*influxdb.Poin
 		}
 	}
 
-	l.logger.Debugf("no lua enabled under %s, skipped", route)
+	moduleLogger.Debugf("no lua enabled under %s, skipped", route)
 	return pts, nil
 
 __goon:
 	if l.pointsChan == nil { // FIXME: is it ok?
-		l.logger.Debugf("[debug] no lua enabled and skipped")
+		moduleLogger.Debugf("[debug] no lua enabled and skipped")
 		return pts, nil
 	}
 
@@ -248,7 +242,7 @@ func (w *worker) logType(pts []*influxdb.Point) map[string]fieldType {
 func (w *worker) start(ctx context.Context) {
 	defer func() {
 		if e := recover(); e != nil {
-			w.lm.logger.Errorf("panic, %v", e)
+			moduleLogger.Errorf("worker panic, %v", e)
 		}
 	}()
 	defer w.lm.wg.Done()
@@ -266,7 +260,7 @@ func (w *worker) start(ctx context.Context) {
 			w.jobs++
 
 			if w.jobs%8 == 0 {
-				w.lm.logger.Debugf("[%d] lua worker jobs: %d, failed: %d", w.idx, w.jobs, w.failed)
+				moduleLogger.Debugf("[%d] lua worker jobs: %d, failed: %d", w.idx, w.jobs, w.failed)
 			}
 
 			pts := pd.points
@@ -274,7 +268,7 @@ func (w *worker) start(ctx context.Context) {
 			ls, ok := w.ls[pd.route]
 			if !ok {
 				w.failed++
-				w.lm.logger.Errorf("router %s not exists", pd.route)
+				moduleLogger.Errorf("router %s not exists", pd.route)
 
 				pd.ch <- utils.ErrLuaRouteNotFound
 				break __goOn
@@ -288,12 +282,12 @@ func (w *worker) start(ctx context.Context) {
 			// XXX: the successive lua handler will overwrite previous @pts
 			for idx, l := range ls {
 
-				w.lm.logger.Debugf("send %d pts to %s...",
+				moduleLogger.Debugf("send %d pts to %s...",
 					len(pts), w.luaFiles[pd.route][idx])
 
 				pts, err = l.PointsOnHandle(pts)
 				if err != nil {
-					w.lm.logger.Errorf("route %s handle PTS failed within %s: %s",
+					moduleLogger.Errorf("route %s handle PTS failed within %s: %s",
 						pd.route, w.luaFiles[pd.route][idx], err.Error())
 
 					w.failed++
@@ -303,7 +297,7 @@ func (w *worker) start(ctx context.Context) {
 			}
 
 			if w.typeCheck[pd.route] { // recover type info
-				w.lm.logger.Debugf("recover type info under %s", pd.route)
+				moduleLogger.Debugf("recover type info under %s", pd.route)
 				pts, err = w.typeRecove(pts, typelog)
 				if err != nil {
 					w.failed++
@@ -315,7 +309,7 @@ func (w *worker) start(ctx context.Context) {
 			pd.ch <- pts
 
 		case <-ctx.Done():
-			w.lm.logger.Debugf("lua worker [%d] exit", w.idx)
+			moduleLogger.Debugf("lua worker [%d] exit", w.idx)
 			return
 		}
 	}
@@ -341,7 +335,7 @@ func (w *worker) loadLuas() {
 		for _, rl := range r.Lua {
 			l := lua.NewLuaMode()
 			if err := l.DoFile(path.Join(w.lm.luaDir, rl.Path)); err != nil {
-				w.lm.logger.Errorf("loadLuas error happen, %s", err.Error())
+				moduleLogger.Errorf("loadLuas error happen, %s", err.Error())
 			}
 
 			l.RegisterFuncs()
@@ -374,7 +368,7 @@ func (w *worker) recoverIntFields(p *influxdb.Point, ft fieldType) (*influxdb.Po
 
 	fs, err := p.Fields()
 	if err != nil {
-		w.lm.logger.Errorf("recover int fields error, %s", err.Error())
+		moduleLogger.Errorf("recover int fields error, %s", err.Error())
 		return nil, utils.ErrLuaInvalidPoints
 	}
 
@@ -391,7 +385,7 @@ func (w *worker) recoverIntFields(p *influxdb.Point, ft fieldType) (*influxdb.Po
 	for _, k := range ft {
 
 		if fs[k] == nil {
-			w.lm.logger.Debugf("ignore missing filed %s.%s", pn, k)
+			moduleLogger.Debugf("ignore missing filed %s.%s", pn, k)
 			continue
 		}
 
@@ -403,7 +397,7 @@ func (w *worker) recoverIntFields(p *influxdb.Point, ft fieldType) (*influxdb.Po
 			fs[k] = int64(fs[k].(float64))
 			n++
 		default:
-			w.lm.logger.Warnf("overwrite int field(%s.%s) with conflict type: int > %v, point: %s, ft: %v",
+			moduleLogger.Warnf("overwrite int field(%s.%s) with conflict type: int > %v, point: %s, ft: %v",
 				pn, k, fs[k], p.String(), ft)
 		}
 	}
@@ -412,11 +406,11 @@ func (w *worker) recoverIntFields(p *influxdb.Point, ft fieldType) (*influxdb.Po
 		return p, nil
 	} else {
 
-		w.lm.logger.Debugf("%d points type recovered", n)
+		moduleLogger.Debugf("%d points type recovered", n)
 
 		pt, err := influxdb.NewPoint(pn, p.Tags(), fs, p.Time())
 		if err != nil {
-			w.lm.logger.Errorf("invlaid point, %s", err.Error())
+			moduleLogger.Errorf("invlaid point, %s", err.Error())
 			return nil, err
 		}
 
@@ -428,7 +422,7 @@ func (w *worker) filterIntFields(pt *influxdb.Point) fieldType {
 	ft := fieldType{}
 	fs, err := pt.Fields()
 	if err != nil {
-		w.lm.logger.Errorf("filter int fields error, %s", err.Error())
+		moduleLogger.Errorf("filter int fields error, %s", err.Error())
 		return nil
 	}
 
@@ -452,18 +446,18 @@ func (l *luaMachine) LuaClean(contentType string, body []byte, route string, tid
 	case `application/x-protobuf`:
 		pts, err = ParsePromToInflux(body, route)
 		if err != nil {
-			l.logger.Errorf("[%s] %s", tid, err.Error())
+			moduleLogger.Errorf("[%s] %s", tid, err.Error())
 			err = utils.ErrParsePromPointFailed
 		}
 	case `application/json`:
 		pts, err = ParseJsonInflux(body, route)
 		if err != nil {
-			l.logger.Errorf("[%s] %s", tid, err.Error())
+			moduleLogger.Errorf("[%s] %s", tid, err.Error())
 		}
 	default:
 		pts, err = ParsePoints(body, "n")
 		if err != nil {
-			l.logger.Errorf("[%s] %s", tid, err.Error())
+			moduleLogger.Errorf("[%s] %s", tid, err.Error())
 			err = utils.ErrParseInfluxPointFailed
 		}
 	}
@@ -473,19 +467,19 @@ func (l *luaMachine) LuaClean(contentType string, body []byte, route string, tid
 	}
 
 	if len(pts) == 0 {
-		l.logger.Errorf("has no valid points")
+		moduleLogger.Errorf("has no valid points")
 		err = utils.ErrEmptyBody
 		return nil, err
 	}
 
-	l.logger.Debugf("send %d points to lua...", len(pts))
+	moduleLogger.Debugf("send %d points to lua...", len(pts))
 	pts, err = l.Send(pts, route)
 	if err != nil {
-		l.logger.Errorf("error from lua, %s", err.Error())
+		moduleLogger.Errorf("error from lua, %s", err.Error())
 		return nil, err
 	}
 
-	l.logger.Debugf("recv %d points from lua", len(pts))
+	moduleLogger.Debugf("recv %d points from lua", len(pts))
 
 	return pts, nil
 }
