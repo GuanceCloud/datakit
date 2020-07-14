@@ -70,15 +70,23 @@ func TestMain(t *testing.T) {
 	testAssert = true
 
 	var tailer = Tailf{
-		Paths:         paths,
-		FormBeginning: false,
+		Regexs:           []string{".txt"},
+		Paths:            []string{root},
+		Source:           "NAXXRAMAS",
+		FormBeginning:    false,
+		UpdateFiles:      true,
+		UpdateFilesCycle: 3 * time.Second,
 	}
 
 	go tailer.Run()
 
-	time.Sleep(60 * time.Second)
+	time.Sleep(90 * time.Second)
 }
 
-func TestFilterPath(t *testing.T) {
-	t.Logf("%s\n", filterPath([]string{root}))
+func TestFileList(t *testing.T) {
+
+	for {
+		fmt.Println(getFileList([]string{root}))
+		time.Sleep(500 * time.Millisecond)
+	}
 }
