@@ -103,6 +103,8 @@ func (tAdpt *TraceAdapter) mkLineProto() {
 		return
 	}
 
+	log.Debugf(string(pt))
+
 	if err := io.Feed(pt, io.Logging); err != nil {
 		log.Errorf("io feed err: %s", err)
 	}
@@ -131,7 +133,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 			log.Errorf("Stack info :%s", string(debug.Stack()))
 		}
 	}()
-
+	
 	if err := handleTrace(w, r); err != nil {
 		log.Errorf("%v", err)
 	}
