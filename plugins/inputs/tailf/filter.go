@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 var typeWhiteList = map[string]interface{}{
@@ -13,26 +11,9 @@ var typeWhiteList = map[string]interface{}{
 	// "application/octet-stream":  nil,
 }
 
-func filterPath(paths []string) (list []string) {
-	var fileList = getFileList(paths)
-
-	// if errror not nil, absLog == ""
-	absLog, _ := filepath.Abs(config.Cfg.MainCfg.Log)
-
-	for _, f := range fileList {
-		if f == absLog {
-			continue
-		}
-		if whiteFile(f) {
-			list = append(list, f)
-		}
-	}
-
-	return
-}
-
-// getFileList Traverse all files in the paths
-func getFileList(paths []string) (list []string) {
+// getFileList abs filename in the paths
+func getFileList(paths []string) []string {
+	var list []string
 
 	for _, path := range paths {
 		_ = filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
@@ -49,24 +30,7 @@ func getFileList(paths []string) (list []string) {
 		})
 	}
 
-	return
-}
-
-func whiteFile(fn string) bool {
-	if !isNotDirectory(fn) {
-		return false
-	}
-
-	contentType, err := getFileContentType(fn)
-	if err != nil {
-		return false
-	}
-
-	if _, ok := typeWhiteList[contentType]; !ok {
-		return false
-	}
-
-	return true
+	return list
 }
 
 func isNotDirectory(fn string) bool {
@@ -88,7 +52,7 @@ func getFileContentType(fn string) (string, error) {
 	}
 	defer f.Close()
 
-	buffer := make([]byte, 512)
+	buffer := make([]byte, 25)
 
 	_, err = f.Read(buffer)
 	if err != nil {
