@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 
@@ -76,7 +75,7 @@ func (d *DataClean) Init() error {
 		d.LuaWorker = 4
 	}
 
-	d.luaMachine = NewLuaMachine(filepath.Join(datakit.InstallDir, "data", "lua"), d.LuaWorker)
+	d.luaMachine = NewLuaMachine(datakit.LuaDir, d.LuaWorker)
 	d.luaMachine.routes = d.Routes
 	d.luaMachine.globals = d.GlobalLua
 
