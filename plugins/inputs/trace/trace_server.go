@@ -2,13 +2,13 @@ package trace
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"runtime/debug"
 	"strings"
 	"time"
-	"encoding/json"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
@@ -50,9 +50,15 @@ type TraceAdapter struct {
 	traceID       string
 	spanID        string
 	isError       string
+	spanType      string
+	endPoint      string
 }
 
-const US_PER_SECOND int64 = 1000000
+const (
+	US_PER_SECOND int64 = 1000000
+	SPAN_TYPE_ENTRY = "entry"
+	SPAN_TYPE_LOCAL = "local"
+)
 
 func (tAdpt *TraceAdapter) mkLineProto() {
 	tags := make(map[string]string)
@@ -74,6 +80,18 @@ func (tAdpt *TraceAdapter) mkLineProto() {
 		tags["__isError"] = "false"
 	}
 
+	if tAdpt.endPoint != "" {
+		tags["__endpoint"] = tAdpt.endPoint
+	} else {
+		tags["__endpoint"] = "null"
+	}
+
+	if tAdpt.spanType != "" {
+		tags["__spanType"] = tAdpt.spanType
+	} else {
+		tags["__spanType"] = SPAN_TYPE_ENTRY
+	}
+
 	fields["__duration"] = tAdpt.duration
 	fields["__content"] = tAdpt.content
 
@@ -84,7 +102,7 @@ func (tAdpt *TraceAdapter) mkLineProto() {
 		log.Errorf("build metric err: %s", err)
 		return
 	}
-	
+
 	if err := io.Feed(pt, io.Logging); err != nil {
 		log.Errorf("io feed err: %s", err)
 	}
@@ -120,9 +138,9 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleTrace(w http.ResponseWriter, r *http.Request) error {
-	source  := r.URL.Query().Get("source")
+	source := r.URL.Query().Get("source")
 	version := r.URL.Query().Get("version")
-	contentType     := r.Header.Get("Content-Type")
+	contentType := r.Header.Get("Content-Type")
 	contentEncoding := r.Header.Get("Content-Encoding")
 
 	body, err := ioutil.ReadAll(r.Body)
