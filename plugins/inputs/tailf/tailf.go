@@ -3,7 +3,9 @@
 package tailf
 
 import (
-	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -21,14 +24,24 @@ const (
 	defaultMeasurement = "tailf"
 
 	sampleCfg = `
-# [inputs.tailf]
+# [[inputs.tailf]]
+#	# use leftmost-first matching is the same semantics that Perl, Python
+#	# hit basename
+#       # require
+# 	regexs = ["*.log"]
+#
 # 	# Cannot be set to datakit.log
 # 	# Directory and file paths
-# 	paths = [""]
+# 	paths = ["/tmp/tmux-1000"]
+#
+#       # require
+#	source = "tailf"
 # 	
 # 	# auto update the directory files
 # 	update_files = false
 # 	
+# 	update_files_cycle = 10s
+#
 # 	# Read the file from to beginning
 # 	from_beginning = false
 # 	
@@ -45,14 +58,20 @@ var (
 )
 
 type Tailf struct {
-	Paths         []string          `toml:"paths"`
-	UpdateFiles   bool              `toml:"update_files"`
-	FormBeginning bool              `toml:"from_beginning"`
-	Tags          map[string]string `toml:"tags"`
+	Regexs           []string          `toml:"regexs"`
+	Paths            []string          `toml:"paths"`
+	Source           string            `toml:"source"`
+	UpdateFiles      bool              `toml:"update_files"`
+	UpdateFilesCycle time.Duration     `toml:"update_files_cycle"`
+	FormBeginning    bool              `toml:"from_beginning"`
+	Tags             map[string]string `toml:"tags"`
 
-	seek *tail.SeekInfo
+	seek       *tail.SeekInfo
+	updateTick *time.Ticker
 
-	fileList []string
+	regexList []*regexp.Regexp
+
+	fileList map[string]interface{}
 	tailers  map[string]*tail.Tail
 }
 
@@ -73,9 +92,43 @@ func (_ *Tailf) SampleConfig() string {
 func (t *Tailf) Run() {
 	l = logger.SLogger(inputName)
 
+	t.initcfg()
+
+	t.buildRegexp()
+
+	t.updateTailers()
+
+	t.foreachLines()
+}
+
+func (t *Tailf) initcfg() {
+	for {
+		if t.Source == "" {
+			l.Errorf("invalid source")
+			time.Sleep(time.Second)
+		} else {
+			break
+
+		}
+
+	}
+
+	if t.UpdateFiles {
+		for {
+			if t.UpdateFilesCycle > 0 {
+				t.updateTick = time.NewTicker(t.UpdateFilesCycle)
+				break
+			} else {
+				l.Errorf("invalid cycle duration")
+				time.Sleep(time.Second)
+			}
+		}
+	}
+
 	if t.Tags == nil {
 		t.Tags = make(map[string]string)
 	}
+
 	t.tailers = make(map[string]*tail.Tail)
 
 	if t.FormBeginning {
@@ -89,60 +142,128 @@ func (t *Tailf) Run() {
 			Offset: 0,
 		}
 	}
-
-	t.updateTailers()
-
-	t.foreachLines()
 }
 
-func (t *Tailf) updateTailers() {
-	t.fileList = filterPath(t.Paths)
-	l.Debugf("update file list: %v", t.fileList)
+func (t *Tailf) buildRegexp() {
 
-	for _, file := range t.fileList {
-		tailer, err := tail.TailFile(file,
-			tail.Config{
-				ReOpen:    true,
-				Follow:    true,
-				Location:  t.seek,
-				MustExist: true,
-				// defaultWatchMethod is "inotify"
-				Poll:   false,
-				Pipe:   false,
-				Logger: tail.DiscardingLogger,
-			})
+	for _, regexStr := range t.Regexs {
+		for {
+			select {
+			case <-datakit.Exit.Wait():
+				l.Info("exit")
+				return
+			default:
+				// nil
+			}
+
+			if re, err := regexp.Compile(regexStr); err == nil {
+				t.regexList = append(t.regexList, re)
+				break
+			} else {
+				l.Errorf("invalid regex, err: %s", err.Error())
+				time.Sleep(time.Second)
+			}
+		}
+	}
+}
+
+func (t *Tailf) filterPath() {
+	var fileList = getFileList(t.Paths)
+	t.fileList = make(map[string]interface{})
+
+	if testAssert {
+		l.Debugf("file list: %v", fileList)
+	}
+
+	// if error not nil, datakitlog is ""
+	datakitlog, _ := filepath.Abs(config.Cfg.MainCfg.Log)
+
+	for _, fn := range fileList {
+		if fn == datakitlog {
+			continue
+		}
+
+		if info, err := os.Stat(fn); err != nil || info.IsDir() {
+			continue
+		}
+
+		for _, re := range t.regexList {
+			if re.MatchString(filepath.Base(fn)) {
+				t.fileList[fn] = nil
+				break
+			}
+		}
+	}
+
+	for fn := range t.fileList {
+		contentType, err := getFileContentType(fn)
 		if err != nil {
 			continue
 		}
-		t.tailers[file] = tailer
+
+		if _, ok := typeWhiteList[contentType]; !ok {
+			l.Warnf("%s is not text file", fn)
+		}
+	}
+}
+
+func (t *Tailf) updateTailers() {
+	t.filterPath()
+
+	if testAssert {
+		for fn := range t.fileList {
+			l.Debugf("file list: %s", fn)
+		}
+	}
+
+	for fn := range t.fileList {
+
+		if _, ok := t.tailers[fn]; !ok {
+
+			tailer, err := tail.TailFile(fn,
+				tail.Config{
+					ReOpen:    true,
+					Follow:    true,
+					Location:  t.seek,
+					MustExist: true,
+					// defaultWatchMethod is "inotify"
+					Poll:   false,
+					Pipe:   false,
+					Logger: tail.DiscardingLogger,
+				})
+			if err != nil {
+				continue
+			}
+
+			t.tailers[fn] = tailer
+		}
 	}
 }
 
 func (t *Tailf) foreachLines() {
 
-	count := 0
-	for {
-		time.Sleep(500 * time.Millisecond)
-		for _, tailer := range t.tailers {
-			if t.loopTailer(tailer) {
-				return
-			}
-		}
+	loopTick := time.NewTicker(100 * time.Millisecond)
 
+	for {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
 			return
-		default:
-			// nil
-		}
+
+		case <-loopTick.C:
+			for _, tailer := range t.tailers {
+				// return true is 'exit'
+				if t.loopTailer(tailer) {
+					return
+				}
+			}
 
 		// update
-		if t.UpdateFiles && count == 64 {
-			t.updateTailers()
-			count = 0
+		case <-t.updateTick.C:
+			if t.UpdateFiles {
+				t.updateTailers()
+			}
 		}
-		count++
 	}
 }
 
@@ -157,7 +278,7 @@ func (t *Tailf) loopTailer(tailer *tail.Tail) bool {
 				continue
 			}
 			if testAssert {
-				fmt.Printf("io.Feed data: %s\n", string(data))
+				l.Debugf("io.Feed data: %s\n", string(data))
 				continue
 			}
 			if err := io.Feed(data, io.Logging); err != nil {
@@ -171,6 +292,11 @@ func (t *Tailf) loopTailer(tailer *tail.Tail) bool {
 			return true
 
 		default:
+			// clean
+			if _, ok := t.fileList[tailer.Filename]; !ok {
+				tailer.Cleanup()
+				delete(t.tailers, tailer.Filename)
+			}
 			return false
 		}
 	}
@@ -188,6 +314,7 @@ func (t *Tailf) parseLine(line *tail.Line, filename string) ([]byte, error) {
 	for k, v := range t.Tags {
 		tags[k] = v
 	}
+	tags["__source"] = t.Source
 	tags["filename"] = filename
 
 	text := strings.TrimRight(line.Text, "\r")
