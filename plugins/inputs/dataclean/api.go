@@ -26,9 +26,9 @@ func (d *DataClean) stopSvr() {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if err := d.httpsrv.Shutdown(ctx); err != nil {
-		d.logger.Errorf("stop http server failed: %s, ignored", err.Error())
+		moduleLogger.Errorf("stop http server failed: %s, ignored", err.Error())
 	} else {
-		d.logger.Debugf("server done")
+		moduleLogger.Debugf("server done")
 	}
 }
 
@@ -54,10 +54,10 @@ func (d *DataClean) startSvr(addr string) error {
 		Handler: router,
 	}
 
-	d.logger.Infof("starting server on %s", addr)
+	moduleLogger.Infof("starting server on %s", addr)
 	err := d.httpsrv.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
-		d.logger.Errorf("server error, %s", err.Error())
+		moduleLogger.Errorf("server error, %s", err.Error())
 	}
 
 	return err
@@ -67,7 +67,7 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 
 	defer func() {
 		if e := recover(); e != nil {
-			d.logger.Errorf("panic %v", e)
+			moduleLogger.Errorf("panic %v", e)
 		}
 	}()
 
@@ -83,9 +83,9 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 	headers := c.Request.Header.Clone()
 	origUrl := c.Request.URL
 
-	d.logger.Debugf("original url: %s", c.Request.URL.String())
-	d.logger.Debugf("original query: %s", queries)
-	d.logger.Debugf("original header: %s", headers)
+	moduleLogger.Debugf("original url: %s", c.Request.URL.String())
+	moduleLogger.Debugf("original query: %s", queries)
+	moduleLogger.Debugf("original header: %s", headers)
 
 	tid := c.Request.Header.Get("X-TraceId")
 
@@ -135,14 +135,14 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 	case `u`, `ms`, `s`, `m`, `h`:
 	default:
 
-		d.logger.Errorf("[%s] invalid precision: %s", tid, precision)
+		moduleLogger.Errorf("[%s] invalid precision: %s", tid, precision)
 		utils.ErrInvalidPrecision.HttpBody(c, fmt.Sprintf("invalid precision %s", precision))
 		return
 	}
 
 	body, err = ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		d.logger.Errorf("[%s] read http content failed, %s", tid, err.Error())
+		moduleLogger.Errorf("[%s] read http content failed, %s", tid, err.Error())
 		utils.ErrHTTPReadError.HttpResp(c)
 		return
 	}
@@ -150,7 +150,7 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 	defer c.Request.Body.Close()
 
 	if len(body) == 0 {
-		d.logger.Warnf("[%s] empty HTTP body", tid)
+		moduleLogger.Warnf("[%s] empty HTTP body", tid)
 		utils.ErrEmptyBody.HttpResp(c)
 		return
 	}
@@ -161,7 +161,7 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 	case `gzip`:
 		body, err = utils.ReadCompressed(bytes.NewReader(body), true)
 		if err != nil {
-			d.logger.Errorf("[%s] err: %s", tid, err.Error())
+			moduleLogger.Errorf("[%s] err: %s", tid, err.Error())
 			utils.ErrHTTPReadError.HttpBody(c, "uncompress failed")
 			return
 		}
@@ -183,12 +183,12 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 	for _, pt := range pts {
 		fields, err := pt.Fields()
 		if err != nil {
-			d.logger.Errorf("invalid fields %s", err)
+			moduleLogger.Errorf("invalid fields %s", err)
 			continue
 		}
 		m, err := metric.New(pt.Name(), pt.Tags(), fields, pt.Time())
 		if err != nil {
-			d.logger.Errorf("fail to get metric from point: %v", pt)
+			moduleLogger.Errorf("fail to get metric from point: %v", pt)
 		} else {
 			newMetrics = append(newMetrics, m)
 		}
@@ -204,7 +204,7 @@ func (d *DataClean) apiWriteMetrics(c *gin.Context) {
 		d.write.add(ri)
 	}
 
-	d.logger.Debugf("[%s] dk: %s, version: %s, ip: %s, user-agent: %s, tkn: %s, body-size: %d, pts: %d",
+	moduleLogger.Debugf("[%s] dk: %s, version: %s, ip: %s, user-agent: %s, tkn: %s, body-size: %d, pts: %d",
 		tid, dkID, dkVersion, cliIP, dkUserAgnt, tkn, len(body), len(pts))
 
 	utils.ErrOK.HttpTraceIdResp(c, tid)
