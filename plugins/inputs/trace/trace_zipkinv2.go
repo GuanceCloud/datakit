@@ -50,6 +50,27 @@ func (z *ZipkinTracer) parseZipkinJsonV2(octets []byte) error {
 			}
 		}
 
+		if zs.RemoteEndpoint != nil {
+			if len(zs.RemoteEndpoint.IPv4) != 0 {
+				tAdpter.endPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv4)
+			}
+
+			if len(zs.RemoteEndpoint.IPv6) != 0 {
+				tAdpter.endPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv6)
+			}
+		}
+
+		tAdpter.spanType = SPAN_TYPE_ENTRY
+		if zs.RemoteEndpoint == nil {
+			if zs.LocalEndpoint == nil {
+				tAdpter.spanType = SPAN_TYPE_LOCAL
+			} else {
+				if len(zs.LocalEndpoint.IPv4) == 0 && len(zs.LocalEndpoint.IPv6) == 0 {
+					tAdpter.spanType = SPAN_TYPE_LOCAL
+				}
+			}
+		}
+
 		tAdpter.mkLineProto()
 	}
 	return nil
@@ -88,6 +109,27 @@ func (z *ZipkinTracer) parseZipkinProtobufV2(octets []byte) error {
 			if tag == "error" {
 				tAdpter.isError = "true"
 				break
+			}
+		}
+
+		if zs.RemoteEndpoint != nil {
+			if len(zs.RemoteEndpoint.IPv4) != 0 {
+				tAdpter.endPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv4)
+			}
+
+			if len(zs.RemoteEndpoint.IPv6) != 0 {
+				tAdpter.endPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv6)
+			}
+		}
+
+		tAdpter.spanType = SPAN_TYPE_ENTRY
+		if zs.RemoteEndpoint == nil {
+			if zs.LocalEndpoint == nil {
+				tAdpter.spanType = SPAN_TYPE_LOCAL
+			} else {
+				if len(zs.LocalEndpoint.IPv4) == 0 && len(zs.LocalEndpoint.IPv6) == 0 {
+					tAdpter.spanType = SPAN_TYPE_LOCAL
+				}
 			}
 		}
 
