@@ -10,15 +10,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
 	inputName = `dataclean`
 )
+
+var moduleLogger *logger.Logger
 
 type DataClean struct {
 	BindAddr        string         `toml:"bind_addr"`
@@ -32,8 +34,6 @@ type DataClean struct {
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
-
-	logger *models.Logger
 
 	httpsrv *http.Server
 
@@ -70,6 +70,12 @@ func (_ *DataClean) Catalog() string {
 
 func (d *DataClean) Init() error {
 
+	moduleLogger = logger.SLogger(inputName)
+
+	if d.LuaWorker == 0 {
+		d.LuaWorker = 4
+	}
+
 	d.luaMachine = NewLuaMachine(filepath.Join(datakit.InstallDir, "data", "lua"), d.LuaWorker)
 	d.luaMachine.routes = d.Routes
 	d.luaMachine.globals = d.GlobalLua
@@ -80,7 +86,7 @@ func (d *DataClean) Init() error {
 
 	gin.DisableConsoleColor()
 	if d.GinLog != "" {
-		d.logger.Debugf("set gin log to %s", d.GinLog)
+		moduleLogger.Debugf("set gin log to %s", d.GinLog)
 		f, _ := os.Create(d.GinLog)
 		gin.DefaultWriter = io.MultiWriter(f)
 	} else {
@@ -97,12 +103,12 @@ func (d *DataClean) Run() {
 	}
 
 	if err := d.luaMachine.StartGlobal(); err != nil {
-		d.logger.Errorf("fail to start global lua, %s", err)
+		moduleLogger.Errorf("fail to start global lua, %s", err)
 		return
 	}
 
 	if err := d.luaMachine.StartRoutes(); err != nil {
-		d.logger.Errorf("fail to start routes lua, %s", err)
+		moduleLogger.Errorf("fail to start routes lua, %s", err)
 		return
 	}
 
@@ -136,13 +142,8 @@ func (d *DataClean) FakeDataway() string {
 }
 
 func NewAgent() *DataClean {
-	ac := &DataClean{
-		logger: &models.Logger{
-			Name: inputName,
-		},
-	}
+	ac := &DataClean{}
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-
 	return ac
 }
 
