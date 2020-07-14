@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -89,7 +88,7 @@ func newWritMgr() *writerMgr {
 func (wm *writerMgr) addHttpWriter(remote string) {
 	u, err := url.Parse(remote)
 	if err != nil {
-		log.Printf("E! [dataclean] invaid url=%s, err:%s", remote, err)
+		moduleLogger.Errorf("invaid url=%s, err:%s", remote, err)
 		return
 	}
 	w := newhttpWriter(u.Scheme, u.Host, u.Path, u.Query())
@@ -137,7 +136,7 @@ func newFileWritfer(files []string) (writer, error) {
 		} else {
 			of, err := rotate.NewFileWriter(file, f.RotationInterval, f.RotationMaxSize, f.RotationMaxArchives)
 			if err != nil {
-				log.Printf("E! [dataclean] open file %s failed, %s", file, err)
+				moduleLogger.Errorf("open file %s failed, %s", file, err)
 				return nil, err
 			}
 
@@ -161,13 +160,13 @@ func (wm *writerMgr) add(req *reqinfo) {
 	case wm.queues[idx] <- req:
 		wm.total++
 	case <-time.After(time.Second * 5):
-		log.Printf("W! [dataclean] queue too busy, total=%v", wm.total)
+		moduleLogger.Warnf("queue too busy, total=%v", wm.total)
 	}
 }
 
 func (wm *writerMgr) run() {
 
-	log.Printf("[dataclean] write queue run")
+	moduleLogger.Debugf("write queue run")
 	for i := 0; i < len(wm.queues); i++ {
 		go wm.runQueue(wm.ctx, i, wm.queues[i])
 	}
@@ -183,14 +182,14 @@ func (wm *writerMgr) stop() {
 	select {
 	case <-wm.done:
 	case <-time.After(time.Second * 5):
-		log.Printf("E! [dataclean] close queue time out")
+		moduleLogger.Errorf("close queue time out")
 	}
 
 	for _, w := range wm.writers {
 		w.close()
 	}
 
-	log.Printf("[dataclean] write done")
+	moduleLogger.Debugf("write done")
 }
 
 func (wm *writerMgr) runQueue(ctx context.Context, index int, queue chan *reqinfo) {
@@ -200,7 +199,7 @@ func (wm *writerMgr) runQueue(ctx context.Context, index int, queue chan *reqinf
 		//log.Printf("D! [dataclean] write queue %d quit", index)
 
 		if e := recover(); e != nil {
-			log.Printf("E! [dataclean] write queue panic, %v", e)
+			moduleLogger.Errorf("write queue panic, %v", e)
 		}
 
 		if atomic.AddInt32(&wm.running, -1) == 0 {
@@ -217,16 +216,16 @@ func (wm *writerMgr) runQueue(ctx context.Context, index int, queue chan *reqinf
 				return
 			}
 
-			log.Printf("D! [dataclean.write] Buffer fullness: %d / %d metrics", len(req.metrics), defaultQueueCap)
+			moduleLogger.Debugf("Buffer fullness: %d / %d metrics", len(req.metrics), defaultQueueCap)
 
 			body, err := wm.serializer.SerializeBatch(req.metrics)
 			if err != nil {
-				log.Printf("E! [dataclean] serialize metrics failed, %s", err)
+				moduleLogger.Errorf("serialize metrics failed, %s", err)
 				continue
 			}
 			for _, w := range wm.writers {
 				if err := w.write(body, req); err != nil {
-					log.Printf("E! [dataclean] write failed, %s", err)
+					moduleLogger.Errorf("write failed, %s", err)
 				}
 			}
 
@@ -295,8 +294,8 @@ func (w *httpWriter) write(data []byte, ri *reqinfo) error {
 	// 	req.Header.Set(k, v)
 	// }
 
-	log.Printf("D! [dataclean] final url: %s", u)
-	log.Printf("D! [dataclean] final header: %s", req.Header)
+	moduleLogger.Debugf("final url: %s", u)
+	moduleLogger.Debugf("final header: %s", req.Header)
 
 	resp, err := w.client.Do(req)
 	if err != nil {
