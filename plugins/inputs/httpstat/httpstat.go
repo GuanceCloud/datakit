@@ -14,6 +14,7 @@ import (
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -67,9 +68,31 @@ func (_ *Httpstat) Catalog() string {
 }
 
 func (h *Httpstat) Run() {
+	l = logger.SLogger("baiduIndex")
+
+	l.Info("baiduIndex input started...")
+
+	interval, err := time.ParseDuration(h.Interval)
+	if err != nil {
+		l.Error(err)
+	}
+
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
+
+	for {
+		select {
+		case <-tick.C:
+			// handle
+			h.run()
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+		}
+	}
 }
 
-func (h *Httpstat) run() error {
+func (h *Httpstat) run() {
 	for _, c := range h.Actions {
 		p := &httpPing{
 			cfg:        c,
@@ -89,7 +112,7 @@ func (h *httpPing) run() error {
 	// 执行
 	_, err := h.ping()
 	if err != nil {
-		h.logger.Errorf("Error: '%s'\n", err)
+		l.Errorf("Error: '%s'\n", err)
 	}
 
 	return nil
@@ -99,7 +122,7 @@ func (h *httpPing) run() error {
 func (h *httpPing) paramCheck() {
 	// 请求方法校验
 	if strings.ToUpper(h.cfg.Method) != "GET" && strings.ToUpper(h.cfg.Method) != "POST" && strings.ToUpper(h.cfg.Method) != "HEAD" {
-		h.logger.Errorf("Error: Method '%s' not recognized.\n", h.method)
+		l.Errorf("Error: Method '%s' not recognized.\n", h.method)
 		return
 	}
 
@@ -107,7 +130,7 @@ func (h *httpPing) paramCheck() {
 	URL := Normalize(h.cfg.Url)
 	u, err := url.Parse(URL)
 	if err != nil {
-		h.logger.Errorf("Error: url '%s' not right.\n", h.cfg.Url)
+		l.Errorf("Error: url '%s' not right.\n", h.cfg.Url)
 		return
 	}
 
@@ -118,7 +141,7 @@ func (h *httpPing) paramCheck() {
 
 	ipAddr, err := net.ResolveIPAddr("ip", host)
 	if err != nil {
-		h.logger.Errorf("Error: cannot resolve %s: Unknown host. \n", host)
+		l.Errorf("Error: cannot resolve %s: Unknown host. \n", host)
 		return
 	}
 
