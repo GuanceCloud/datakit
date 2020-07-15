@@ -24,8 +24,8 @@ const (
 # 	# coredns prometheus port
 # 	port = 9153
 # 	
-# 	# second
-# 	collect_cycle = 60
+# 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+# 	collect_cycle = "60s"
 # 	
 # 	# [inputs.tailf.tags]
 # 	# tags1 = "tags1"
@@ -41,11 +41,11 @@ func init() {
 }
 
 type Coredns struct {
-	Host    string            `toml:"host"`
-	Port    int               `toml:"port"`
-	Cycle   time.Duration     `toml:"collect_cycle"`
-	Tags    map[string]string `toml:"tags"`
-	address string
+	Host         string            `toml:"host"`
+	Port         int               `toml:"port"`
+	CollectCycle string            `toml:"collect_cycle"`
+	Tags         map[string]string `toml:"tags"`
+	address      string
 }
 
 func (_ *Coredns) SampleConfig() string {
@@ -59,18 +59,15 @@ func (_ *Coredns) Catalog() string {
 func (c *Coredns) Run() {
 	l = logger.SLogger(inputName)
 
-	if c.Tags == nil {
-		c.Tags = make(map[string]string)
+	d, err := time.ParseDuration(c.CollectCycle)
+	if err != nil || d <= 0 {
+		l.Errorf("invalid duration of collect_cycle")
+		return
 	}
-
-	if _, ok := c.Tags["address"]; !ok {
-		c.Tags["address"] = fmt.Sprintf("%s:%d", c.Host, c.Port)
-	}
-
-	c.address = fmt.Sprintf("http://%s:%d/metrics", c.Host, c.Port)
-
-	ticker := time.NewTicker(time.Second * c.Cycle)
+	ticker := time.NewTicker(d)
 	defer ticker.Stop()
+
+	c.initcfg()
 
 	for {
 		select {
@@ -91,6 +88,18 @@ func (c *Coredns) Run() {
 			l.Debugf("feed %d bytes to io ok", len(data))
 		}
 	}
+}
+
+func (c *Coredns) initcfg() {
+	if c.Tags == nil {
+		c.Tags = make(map[string]string)
+	}
+
+	if _, ok := c.Tags["address"]; !ok {
+		c.Tags["address"] = fmt.Sprintf("%s:%d", c.Host, c.Port)
+	}
+
+	c.address = fmt.Sprintf("http://%s:%d/metrics", c.Host, c.Port)
 }
 
 func (c *Coredns) getMetrics() ([]byte, error) {

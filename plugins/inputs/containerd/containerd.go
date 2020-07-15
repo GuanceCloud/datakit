@@ -30,8 +30,8 @@ const (
 # 	# if value is "*", collect all ID
 # 	ID_list = ["*"]
 # 	
-# 	# second
-# 	collect_cycle = 60
+# 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+# 	collect_cycle = "60s"
 # 	
 # 	# [inputs.containerd.tags]
 # 	# tags1 = "tags1"
@@ -51,15 +51,15 @@ func init() {
 }
 
 type Containerd struct {
-	HostPath  string            `toml:"host_path"`
-	Namespace string            `toml:"namespace"`
-	IDList    []string          `toml:"ID_list"`
-	Cycle     time.Duration     `toml:"collect_cycle"`
-	Tags      map[string]string `toml:"tags"`
+	HostPath     string            `toml:"host_path"`
+	Namespace    string            `toml:"namespace"`
+	IDList       []string          `toml:"ID_list"`
+	CollectCycle string            `toml:"collect_cycle"`
+	Tags         map[string]string `toml:"tags"`
 	// get all ids metrics
 	isAll bool
 	// id cache
-	ids map[string]byte
+	ids map[string]interface{}
 }
 
 func (_ *Containerd) Catalog() string {
@@ -73,22 +73,15 @@ func (_ *Containerd) SampleConfig() string {
 func (c *Containerd) Run() {
 	l = logger.SLogger(inputName)
 
-	if c.Tags == nil {
-		c.Tags = make(map[string]string)
+	d, err := time.ParseDuration(c.CollectCycle)
+	if err != nil || d <= 0 {
+		l.Errorf("invalid duration of collect_cycle")
+		return
 	}
-
-	c.isAll = len(c.IDList) == 1 && c.IDList[0] == "*"
-
-	c.ids = func() map[string]byte {
-		m := make(map[string]byte)
-		for _, v := range c.IDList {
-			m[v] = 0
-		}
-		return m
-	}()
-
-	ticker := time.NewTicker(time.Second * c.Cycle)
+	ticker := time.NewTicker(d)
 	defer ticker.Stop()
+
+	c.initcfg()
 
 	for {
 		select {
@@ -113,4 +106,21 @@ func (c *Containerd) Run() {
 			l.Debugf("feed %d bytes to io ok", len(data))
 		}
 	}
+}
+
+func (c *Containerd) initcfg() {
+	if c.Tags == nil {
+		c.Tags = make(map[string]string)
+	}
+
+	c.isAll = len(c.IDList) == 1 && c.IDList[0] == "*"
+
+	c.ids = func() map[string]interface{} {
+		m := make(map[string]interface{})
+		for _, v := range c.IDList {
+			m[v] = nil
+		}
+		return m
+	}()
+
 }
