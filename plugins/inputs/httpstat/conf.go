@@ -1,7 +1,5 @@
 package httpstat
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-
 const (
 	pluginName = "httpstat"
 
@@ -25,10 +23,10 @@ const (
 )
 
 type Httpstat struct {
-	MetricName string            `toml:"metricName"`
-	Timeout    string            `toml:"timeout"`
-	Interval   internal.Duration `toml:"interval"`
-	Actions    []*Action         `toml:"action"`
+	MetricName string    `toml:"metricName"`
+	Timeout    string    `toml:"timeout"`
+	Interval   string    `toml:"interval"`
+	Actions    []*Action `toml:"action"`
 	httpPing   []*httpPing
 }
 
