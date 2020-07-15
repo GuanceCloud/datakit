@@ -27,27 +27,24 @@ const (
 # [[inputs.tailf]]
 #	# use leftmost-first matching is the same semantics that Perl, Python
 #	# hit basename
-#       # require
-# 	regexs = ["*.log"]
-#
-# 	# Cannot be set to datakit.log
-# 	# Directory and file paths
-# 	paths = ["/tmp/tmux-1000"]
-#
-#       # require
+#	# require
+#	regexs = [".log"]
+#	
+#	# Cannot be set to datakit.log
+#	# Directory and file paths
+#	paths = ["/tmp/tailf_test"]
+#	
+#	# require
 #	source = "tailf"
-# 	
-# 	# auto update the directory files
-# 	update_files = false
-# 	
-# 	update_files_cycle = 10s
-#
-# 	# Read the file from to beginning
-# 	from_beginning = false
-# 	
-# 	# [inputs.tailf.tags]
-# 	# tags1 = "tags1"
-# 
+#	
+#	# auto update the directory files
+#	update_files = false
+#	
+#	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+#	update_files_cycle = "10s"
+#	
+#	# [inputs.tailf.tags]
+#	# tags1 = "tags1"
 `
 )
 
@@ -62,8 +59,7 @@ type Tailf struct {
 	Paths            []string          `toml:"paths"`
 	Source           string            `toml:"source"`
 	UpdateFiles      bool              `toml:"update_files"`
-	UpdateFilesCycle time.Duration     `toml:"update_files_cycle"`
-	FormBeginning    bool              `toml:"from_beginning"`
+	UpdateFilesCycle string            `toml:"update_files_cycle"`
 	Tags             map[string]string `toml:"tags"`
 
 	seek       *tail.SeekInfo
@@ -92,17 +88,35 @@ func (_ *Tailf) SampleConfig() string {
 func (t *Tailf) Run() {
 	l = logger.SLogger(inputName)
 
-	t.initcfg()
+	d, err := time.ParseDuration(t.UpdateFilesCycle)
+	if err != nil || d <= 0 {
+		l.Errorf("invalid duration of update_files_cycle")
+		return
+	}
+	if t.UpdateFiles {
+		t.updateTick = time.NewTicker(d)
+	}
 
-	t.buildRegexp()
+	if t.initcfg() {
+		return
+	}
 
 	t.updateTailers()
 
 	t.foreachLines()
 }
 
-func (t *Tailf) initcfg() {
+func (t *Tailf) initcfg() bool {
+	// check source
 	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return true
+		default:
+			// nil
+		}
+
 		if t.Source == "" {
 			l.Errorf("invalid source")
 			time.Sleep(time.Second)
@@ -110,48 +124,15 @@ func (t *Tailf) initcfg() {
 			break
 
 		}
-
 	}
 
-	if t.UpdateFiles {
-		for {
-			if t.UpdateFilesCycle > 0 {
-				t.updateTick = time.NewTicker(t.UpdateFilesCycle)
-				break
-			} else {
-				l.Errorf("invalid cycle duration")
-				time.Sleep(time.Second)
-			}
-		}
-	}
-
-	if t.Tags == nil {
-		t.Tags = make(map[string]string)
-	}
-
-	t.tailers = make(map[string]*tail.Tail)
-
-	if t.FormBeginning {
-		t.seek = &tail.SeekInfo{
-			Whence: 0,
-			Offset: 0,
-		}
-	} else {
-		t.seek = &tail.SeekInfo{
-			Whence: 2,
-			Offset: 0,
-		}
-	}
-}
-
-func (t *Tailf) buildRegexp() {
-
+	// build regexp
 	for _, regexStr := range t.Regexs {
 		for {
 			select {
 			case <-datakit.Exit.Wait():
 				l.Info("exit")
-				return
+				return true
 			default:
 				// nil
 			}
@@ -165,6 +146,19 @@ func (t *Tailf) buildRegexp() {
 			}
 		}
 	}
+
+	if t.Tags == nil {
+		t.Tags = make(map[string]string)
+	}
+
+	t.tailers = make(map[string]*tail.Tail)
+
+	t.seek = &tail.SeekInfo{
+		Whence: 2,
+		Offset: 0,
+	}
+
+	return false
 }
 
 func (t *Tailf) filterPath() {
@@ -314,11 +308,10 @@ func (t *Tailf) parseLine(line *tail.Line, filename string) ([]byte, error) {
 	for k, v := range t.Tags {
 		tags[k] = v
 	}
-	tags["__source"] = t.Source
 	tags["filename"] = filename
 
 	text := strings.TrimRight(line.Text, "\r")
 	fields["__content"] = text
 
-	return io.MakeMetric(defaultMeasurement, tags, fields, time.Now())
+	return io.MakeMetric(t.Source, tags, fields, time.Now())
 }
