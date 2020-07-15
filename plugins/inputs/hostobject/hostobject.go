@@ -117,6 +117,10 @@ func (c *Collector) Run() {
 		//meminfo, _ := mem.VirtualMemory()
 		//tags["memory_total"] = fmt.Sprintf("%v", meminfo.Total/uint64(1024*1024*1024))
 
+		for k, v := range c.Tags {
+			tags[k] = v
+		}
+
 		obj.Tags = tags
 
 		switch c.Name {
