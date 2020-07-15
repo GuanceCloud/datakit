@@ -46,7 +46,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/csv"
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpstat"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpstat"
 	// 32bit disabled, only 64 bit available
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
 	// external inputs wrap
