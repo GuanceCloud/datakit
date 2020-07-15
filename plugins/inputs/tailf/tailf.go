@@ -62,9 +62,7 @@ type Tailf struct {
 	UpdateFilesCycle string            `toml:"update_files_cycle"`
 	Tags             map[string]string `toml:"tags"`
 
-	seek       *tail.SeekInfo
-	updateTick *time.Ticker
-
+	seek      *tail.SeekInfo
 	regexList []*regexp.Regexp
 
 	fileList map[string]interface{}
@@ -88,22 +86,21 @@ func (_ *Tailf) SampleConfig() string {
 func (t *Tailf) Run() {
 	l = logger.SLogger(inputName)
 
-	d, err := time.ParseDuration(t.UpdateFilesCycle)
-	if err != nil || d <= 0 {
-		l.Errorf("invalid duration of update_files_cycle")
-		return
-	}
-	if t.UpdateFiles {
-		t.updateTick = time.NewTicker(d)
-	}
-
 	if t.initcfg() {
 		return
 	}
 
-	t.updateTailers()
+	if t.UpdateFiles {
+		d, err := time.ParseDuration(t.UpdateFilesCycle)
+		if err != nil || d <= 0 {
+			l.Errorf("invalid duration of update_files_cycle")
+			return
+		}
+		t.getLinesUpdate(d)
+	} else {
+		t.getLines()
+	}
 
-	t.foreachLines()
 }
 
 func (t *Tailf) initcfg() bool {
@@ -204,10 +201,8 @@ func (t *Tailf) filterPath() {
 func (t *Tailf) updateTailers() {
 	t.filterPath()
 
-	if testAssert {
-		for fn := range t.fileList {
-			l.Debugf("file list: %s", fn)
-		}
+	for fn := range t.fileList {
+		l.Debugf("update new file list: %s", fn)
 	}
 
 	for fn := range t.fileList {
@@ -234,7 +229,36 @@ func (t *Tailf) updateTailers() {
 	}
 }
 
-func (t *Tailf) foreachLines() {
+func (t *Tailf) getLinesUpdate(d time.Duration) {
+	t.updateTailers()
+
+	loopTick := time.NewTicker(100 * time.Millisecond)
+	updateTick := time.NewTicker(d)
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+
+		case <-loopTick.C:
+			for _, tailer := range t.tailers {
+				// return true is 'exit'
+				if t.loopTailer(tailer) {
+					return
+				}
+			}
+		// update
+		case <-updateTick.C:
+			if t.UpdateFiles {
+				t.updateTailers()
+			}
+		}
+	}
+}
+
+func (t *Tailf) getLines() {
+	t.updateTailers()
 
 	loopTick := time.NewTicker(100 * time.Millisecond)
 
@@ -250,12 +274,6 @@ func (t *Tailf) foreachLines() {
 				if t.loopTailer(tailer) {
 					return
 				}
-			}
-
-		// update
-		case <-t.updateTick.C:
-			if t.UpdateFiles {
-				t.updateTailers()
 			}
 		}
 	}
