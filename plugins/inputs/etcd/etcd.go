@@ -37,8 +37,8 @@ const (
 # 	# key
 # 	tls_key_file = "peer.key"
 # 	
-# 	# second
-# 	collect_cycle = 60
+# 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+# 	collect_cycle = "60s"
 # 	
 # 	# [inputs.etcd.tags]
 # 	# tags1 = "value1"
@@ -54,14 +54,14 @@ func init() {
 }
 
 type Etcd struct {
-	Host       string            `toml:"host"`
-	Port       int               `toml:"port"`
-	TLSOpen    bool              `toml:"tls_open"`
-	CacertFile string            `toml:"tls_cacert_file"`
-	CertFile   string            `toml:"tls_cert_file"`
-	KeyFile    string            `toml:"tls_key_file"`
-	Cycle      time.Duration     `toml:"collect_cycle"`
-	Tags       map[string]string `toml:"tags"`
+	Host         string            `toml:"host"`
+	Port         int               `toml:"port"`
+	TLSOpen      bool              `toml:"tls_open"`
+	CacertFile   string            `toml:"tls_cacert_file"`
+	CertFile     string            `toml:"tls_cert_file"`
+	KeyFile      string            `toml:"tls_key_file"`
+	CollectCycle string            `toml:"collect_cycle"`
+	Tags         map[string]string `toml:"tags"`
 
 	address string
 	// HTTPS TLS
@@ -79,6 +79,40 @@ func (_ *Etcd) Catalog() string {
 func (e *Etcd) Run() {
 	l = logger.SLogger(inputName)
 
+	d, err := time.ParseDuration(e.CollectCycle)
+	if err != nil || d <= 0 {
+		l.Errorf("invalid duration of collect_cycle")
+		return
+	}
+	ticker := time.NewTicker(d)
+	defer ticker.Stop()
+
+	if e.initcfg() {
+		return
+	}
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+
+		case <-ticker.C:
+			data, err := e.getMetrics()
+			if err != nil {
+				l.Error(err)
+				continue
+			}
+			if err := io.Feed(data, io.Metric); err != nil {
+				l.Error(err)
+				continue
+			}
+			l.Debugf("feed %d bytes to io ok", len(data))
+		}
+	}
+}
+
+func (e *Etcd) initcfg() bool {
 	if e.Tags == nil {
 		e.Tags = make(map[string]string)
 	}
@@ -91,7 +125,7 @@ func (e *Etcd) Run() {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
-			return
+			return true
 		default:
 			// nil
 		}
@@ -113,28 +147,7 @@ func (e *Etcd) Run() {
 		}
 	}
 
-	ticker := time.NewTicker(time.Second * e.Cycle)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return
-
-		case <-ticker.C:
-			data, err := e.getMetrics()
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-			if err := io.Feed(data, io.Metric); err != nil {
-				l.Error(err)
-				continue
-			}
-			l.Debugf("feed %d bytes to io ok", len(data))
-		}
-	}
+	return false
 }
 
 func (e *Etcd) getMetrics() ([]byte, error) {
