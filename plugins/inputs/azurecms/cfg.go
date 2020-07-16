@@ -12,18 +12,23 @@ import (
 const (
 	sampleConfig = `
 #[[inputs.azure_monitor]]
+# ##(required)
 # client_id = ''
 # client_secret = ''
 # tenant_id = ''
 # subscription_id = ''
-# #end_point = 'https://management.chinacloudapi.cn'
 
+# ##(optional) default is for china
+# end_point = 'https://management.chinacloudapi.cn'
+
+# ##(required)
 #[[inputs.azure_monitor.resource]]
 #resource_id = ''
 
+# ##(required)
 #[[inputs.azure_monitor.resource.metrics]]
-#metric_name = 'Percentage CPU'
-# #interval = '1m'
+# metric_name = 'Percentage CPU'
+# interval = '1m'
 `
 )
 
