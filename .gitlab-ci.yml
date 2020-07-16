@@ -17,6 +17,7 @@ build-dev:
   only:
     - dev
   script:
+    - make agent
     - make test
     - make pub_test
     - make preprod
