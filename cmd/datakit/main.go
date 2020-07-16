@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -12,6 +11,8 @@ import (
 
 	"github.com/kardianos/service"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -30,10 +31,11 @@ var (
 )
 
 var (
-	stopCh     chan struct{}
-	stopFalgCh chan struct{}
+	stopCh     chan struct{} = make(chan struct{})
+	waitExitCh chan struct{} = make(chan struct{})
 
 	inputFilters = []string{}
+	l            *logger.Logger
 )
 
 func main() {
@@ -45,20 +47,20 @@ func main() {
 	loadConfig()
 
 	svcConfig := &service.Config{
-		Name: config.ServiceName,
+		Name: datakit.ServiceName,
 	}
 
 	prg := &program{}
 	s, err := service.New(prg, svcConfig)
 	if err != nil {
-		log.Fatal("E! " + err.Error())
+		l.Fatal(err)
 		return
 	}
 
-	log.Printf("I! starting datakit service")
+	l.Info("starting datakit service")
 
 	if err = s.Run(); err != nil {
-		log.Fatalln(err.Error())
+		l.Fatal(err)
 	}
 }
 
@@ -85,7 +87,6 @@ Uploader:         %s
 		for k, vs := range collectors {
 			fmt.Println(k)
 			for _, v := range vs {
-				//fmt.Printf("  └── %s\n", v)
 				fmt.Printf("  |--[d] %s\n", v)
 			}
 		}
@@ -123,80 +124,96 @@ func (p *program) Start(s service.Service) error {
 }
 
 func (p *program) run(s service.Service) {
-	stopCh = make(chan struct{})
-	stopFalgCh = make(chan struct{})
-	reloadLoop(stopCh)
+	__run()
 }
 
 func (p *program) Stop(s service.Service) error {
 	close(stopCh)
-	<-stopFalgCh //等待完整退出
+
+	// We must wait here:
+	// On windows, we stop datakit in services.msc, if datakit process do not
+	// echo to here, services.msc will complain the datakit process has been
+	// exit unexpected
+	<-waitExitCh
+
 	return nil
 }
 
-func reloadLoop(stop chan struct{}) {
-	reload := make(chan bool, 1)
-	reload <- true
-	for <-reload {
-		reload <- false
+func exitDatakit() {
+	datakit.Exit.Close()
 
-		ctx, cancel := context.WithCancel(context.Background())
+	l.Info("wait all goroutines exit...")
+	datakit.WG.Wait()
 
-		signals := make(chan os.Signal)
-		signal.Notify(signals, os.Interrupt, syscall.SIGHUP,
-			syscall.SIGTERM, syscall.SIGINT)
-		go func() {
-			select {
-			case sig := <-signals:
-				if sig == syscall.SIGHUP {
-					log.Printf("Reloading config")
-					<-reload
-					reload <- true
-				}
-				log.Printf("signal notify: %v", sig)
-				cancel()
-			case <-stop:
-				log.Printf("service stopped")
-				cancel()
-			}
-		}()
+	l.Info("closing waitExitCh...")
+	close(waitExitCh)
+}
 
-		if err := runTelegraf(ctx); err != nil {
-			log.Fatalf("E! fail to start sub service, %s", err)
+func __run() {
+
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		if err := runTelegraf(); err != nil {
+			l.Fatalf("fail to start sub service: %s", err)
 		}
 
-		if err := runDatakit(ctx); err != nil && err != context.Canceled {
-			log.Fatalf("E! datakit abort: %s", err)
-		}
+		l.Info("telegraf process exit ok")
+	}()
 
-		telegrafwrap.Svr.StopAgent()
-
-		close(stopFalgCh)
+	l.Info("datakit start...")
+	if err := runDatakit(); err != nil && err != context.Canceled {
+		l.Fatalf("datakit abort: %s", err)
 	}
+
+	l.Info("datakit start ok. Wait signal or service stop...")
+
+	// NOTE:
+	// Actually, the datakit process been managed by system service, no matter on
+	// windows/UNIX, datakit should exit via `service-stop' operation, so the signal
+	// branch should not reached, but for daily debugging(ctrl-c), we kept the signal
+	// exit option.
+	signals := make(chan os.Signal)
+	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
+	select {
+	case sig := <-signals:
+		if sig == syscall.SIGHUP {
+			// TODO: reload configures
+		} else {
+			l.Infof("get signal %v, wait & exit", sig)
+			exitDatakit()
+		}
+	case <-stopCh:
+		l.Infof("service stopping")
+		exitDatakit()
+	}
+
+	l.Info("datakit exit.")
 }
 
 func loadConfig() {
 
+	config.Cfg.InputFilters = inputFilters
+
 	if err := config.LoadCfg(); err != nil {
-		log.Fatalf("[error] load config failed: %s", err)
+		panic(fmt.Sprintf("load config failed: %s", err))
 	}
 
-	config.Cfg.InputFilters = inputFilters
-	log.Printf("I! input fileters %v", inputFilters)
-
+	l = logger.SLogger("main")
+	//l.Infof("input fileters %v", inputFilters)
 }
 
-func runTelegraf(ctx context.Context) error {
+func runTelegraf() error {
 	telegrafwrap.Svr.Cfg = config.Cfg
-	return telegrafwrap.Svr.Start(ctx)
+	return telegrafwrap.Svr.Start()
 }
 
-func runDatakit(ctx context.Context) error {
+func runDatakit() error {
 
-	ag, err := run.NewAgent(config.Cfg)
+	ag, err := run.NewAgent()
 	if err != nil {
 		return err
 	}
 
-	return ag.Run(ctx)
+	return ag.Run()
 }
