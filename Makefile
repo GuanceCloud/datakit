@@ -106,7 +106,7 @@ pub_image:
 
 define build_agent
 	rm -rf telegraf
-	git submodule add -f https://github.com/influxdata/telegraf.git
+	- git submodule add -f https://github.com/influxdata/telegraf.git
 
 	@echo "==== build telegraf... ===="
 	cd telegraf && go mod download
