@@ -13,14 +13,20 @@ import (
 func TestConfig(t *testing.T) {
 
 	var cfg AliyunActiontrail
-	cfg.Actiontrail = []*ActiontrailInstance{
-		&ActiontrailInstance{
-			Region:     "",
-			AccessID:   "",
-			AccessKey:  "",
-			MetricName: "aliac",
-		},
-	}
+	// cfg.Actiontrail = []*ActiontrailInstance{
+	// 	&ActiontrailInstance{
+	// 		Region:     "",
+	// 		AccessID:   "",
+	// 		AccessKey:  "",
+	// 		MetricName: "aliac",
+	// 	},
+	// 	&ActiontrailInstance{
+	// 		Region:     "11",
+	// 		AccessID:   "22",
+	// 		AccessKey:  "",
+	// 		MetricName: "aliac2",
+	// 	},
+	// }
 	if data, err := toml.Marshal(&cfg); err != nil {
 		t.Errorf("%s", err)
 	} else {
