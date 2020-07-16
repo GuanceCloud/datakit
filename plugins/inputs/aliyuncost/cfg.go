@@ -22,7 +22,7 @@ const (
 #  bill_interval = "1h"
 #  order_interval = "1h"
 
-#  ##是否采集账单最近1年历史数据
+#  ##history data for last year
 #  collect_history_data = false
 `
 )
