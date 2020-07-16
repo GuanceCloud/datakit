@@ -5,8 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
@@ -25,9 +24,9 @@ type ClientStat struct {
 	Arch   string
 
 	NumGoroutines int
-	HeapAlloc     uint64
-	HeapSys       uint64
-	HeapObjects   uint64
+	HeapAlloc     int64
+	HeapSys       int64
+	HeapObjects   int64
 }
 
 func (s *ClientStat) Update() {
@@ -36,13 +35,13 @@ func (s *ClientStat) Update() {
 	var memStatus runtime.MemStats
 	runtime.ReadMemStats(&memStatus)
 
-	s.NumGoroutines = runtime.NumGoroutine()
-	s.HeapAlloc = memStatus.HeapAlloc
-	s.HeapSys = memStatus.HeapSys
-	s.HeapObjects = memStatus.HeapObjects
+	s.NumGoroutines = int(runtime.NumGoroutine())
+	s.HeapAlloc = int64(memStatus.HeapAlloc)
+	s.HeapSys = int64(memStatus.HeapSys)
+	s.HeapObjects = int64(memStatus.HeapObjects)
 }
 
-func (s *ClientStat) ToMetric() telegraf.Metric {
+func (s *ClientStat) ToMetric() *influxdb.Point {
 
 	s.Uptime = int64(time.Now().Sub(StartTime) / time.Second)
 
@@ -66,12 +65,7 @@ func (s *ClientStat) ToMetric() telegraf.Metric {
 		"heap_objects":   s.HeapObjects,
 	}
 
-	m, _ := metric.New(
-		measurement,
-		tags,
-		fields,
-		time.Now(),
-	)
+	m, _ := influxdb.NewPoint(measurement, tags, fields, time.Now().UTC())
 
 	return m
 }
