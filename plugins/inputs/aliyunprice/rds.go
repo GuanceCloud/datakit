@@ -11,58 +11,57 @@ import (
 
 const (
 	rdsSampleConfig = `
-# ##云数据库 RDS
 #[[inputs.aliyunprice.rds]]
 
-# ##(optional) 自定义指标集名称，默认使用 aliyun_price
+# ##(optional) custom metric name, default is aliyun_price
 #metric_name = ''
 
-# ##(optional) 采集间隔，默认一天
+# ##(optional) collect interval, default is one day
 #interval = '1d'
 
-# ##(required) 是否采集后付费价格, 默认false(即采集预付费价格)
+# ##(required) cllect PayAsYouGo price, default is false
 #pay_as_you_go = false
 
-# ##(required) 实例所在区域
+# ##(required) instance region
 #region = "cn-hangzhou"
 
-# ##(required) 数据库类型, 支持 mysql, mssql, PostgreSQL, PPAS, MariaDB
+# ##(required) database, eg., mysql, mssql, PostgreSQL, PPAS, MariaDB
 #engine = 'mysql'
 
-# ##(required) 数据库版本, 根据数据库类型设置
+# ##(required) database version
 #engine_version = '8.0'
 
-# ##(required) 数据库系列
-# ## AlwaysOn #-集群版
-# ## HighAvailability #-高可用版
-# ## Finance #-三节点企业版
-# ## Basic #-基础版
+# ##(required) database series
+# ## AlwaysOn
+# ## HighAvailability
+# ## Finance
+# ## Basic
 #series = 'Basic'
 
-# ##(required) 存储类型
-# ## local_ssd #-本地SSD盘
-# ## cloud_essd #-ESSD云盘
-# ## cloud_ssd #-SSD云盘
-# ## cloud_essd2 #-ESSD PL2云盘
-# ## cloud_essd3 #-ESSD PL3云盘
+# ##(required) storage type
+# ## local_ssd
+# ## cloud_essd
+# ## cloud_ssd
+# ## cloud_essd2
+# ## cloud_essd3
 #db_instance_storage_type = 'cloud_ssd'
 
-# ##(required) 存储大小, 单位GB
+# ##(required) storage size, unit is GB
 #db_instance_storage = 20
 
-# ##(required) 实例规格, 可参考: https://help.aliyun.com/document_detail/26312.html?spm=a2c4g.11186623.2.14.37cc2c6crjKV5k
+# ##(required) instance
 #db_instance_class = 'mysql.n2.medium.1'
 
-# ##(optional) 网络类型, 0:经典网络, 1:专用网络
+# ##(optional) network type, 0:classic, 1:dedicated
 #db_network_type = 0
 
-# ##(optional)购买时长, 默认为1, 如果单位为Year, 则表示1年
+# ##(optional)Purchase duration, default is 1, so if unit is Year, then is one year
 #service_period_quantity = 1
 
-# ##(optional)购买时长单位: Month，Year, 默认为 Year
+# ##(optional)unit of purchase duration: Month，Year, defalut is Year
 #service_period_unit = "Year"
 
-# ##(optional)购买份数, 默认1份
+# ##(optional)Purchase quantity, default is 1
 #quantity = 1
 `
 )
