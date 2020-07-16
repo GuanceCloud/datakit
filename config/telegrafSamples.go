@@ -46,7 +46,7 @@ var (
 		"http_check":        &telegrafInputs{name: "http_check", Catalog: "http_check"},
 		"kernel":            &telegrafInputs{name: "kernel", Catalog: "kernel"},
 		"tls":               &telegrafInputs{name: "tls", Catalog: "tls"},
-		"nats":              &telegrafInputs{name: "nats", Catalog: "network"},
+		"nats":              &telegrafInputs{name: "nats", Catalog: "nats"},
 		"win_services":      &telegrafInputs{name: "win_services", Catalog: "win_services"},
 		"awscloudwatch":     &telegrafInputs{name: "awscloudwatch", Catalog: "aws"},
 		"vmware":            &telegrafInputs{name: "vmware", Catalog: "vmware"},
@@ -1246,7 +1246,7 @@ func initTelegrafSamples() {
 `
 
 	telegrafCfgSamples[`kernel`] = `
-# Get kernel statistics from /proc/stat
+## Get kernel statistics from /proc/stat
 #[[inputs.kernel]]
   # no configuration
 
@@ -1262,11 +1262,11 @@ func initTelegrafSamples() {
 `
 
 	telegrafCfgSamples[`processes`] = `
-# Get the number of processes and group them by status
+## Get the number of processes and group them by status
 #[[inputs.processes]]
   # no configuration
 
-# Monitor process cpu and memory usage
+## Monitor process cpu and memory usage
 #[[inputs.procstat]]
 ## PID file to monitor process
 #pid_file = "/var/run/nginx.pid"
@@ -1313,7 +1313,7 @@ func initTelegrafSamples() {
 `
 
 	telegrafCfgSamples[`system`] = `
-# Read metrics about system load & uptime
+## Read metrics about system load & uptime
 [[inputs.system]]
   ## Uncomment to remove deprecated metrics.
   fielddrop = ["uptime_format"]

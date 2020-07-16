@@ -1,85 +1,132 @@
 package coredns
 
 import (
-	"context"
-	"log"
-	"sync"
+	"fmt"
+	"net/http"
+	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type Coredns struct {
-	Config Config `toml:"coredns"`
+const (
+	inputName = "coredns"
 
-	ctx    context.Context
-	cancel context.CancelFunc
-	acc    telegraf.Accumulator
-	wg     *sync.WaitGroup
-}
+	defaultMeasurement = "coredns"
+
+	sampleCfg = `
+# [[inputs.coredns]]
+# 	# coredns host
+# 	host = "127.0.0.1"
+# 	
+# 	# coredns prometheus port
+# 	port = 9153
+# 	
+# 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+# 	collect_cycle = "60s"
+# 	
+# 	# [inputs.tailf.tags]
+# 	# tags1 = "tags1"
+`
+)
+
+var l *logger.Logger
 
 func init() {
-	inputs.Add(pluginName, func() inputs.Input {
-		e := &Coredns{}
-		return e
+	inputs.Add(inputName, func() inputs.Input {
+		return &Coredns{}
 	})
 }
 
-func (e *Coredns) Start(acc telegraf.Accumulator) error {
-
-	e.ctx, e.cancel = context.WithCancel(context.Background())
-	e.acc = acc
-	e.wg = new(sync.WaitGroup)
-
-	log.Printf("I! [CoreDNS] start\n")
-	log.Printf("I! [CoreDNS] load subscribes count %d\n", len(e.Config.Subscribes))
-	for _, sub := range e.Config.Subscribes {
-		e.wg.Add(1)
-		s := sub
-		stream := newStream(&s, e)
-		go stream.start(e.wg)
-	}
-
-	return nil
-}
-
-func (e *Coredns) Stop() {
-	e.cancel()
-	e.wg.Wait()
-	log.Printf("I! [CoreDNS] stop\n")
+type Coredns struct {
+	Host         string            `toml:"host"`
+	Port         int               `toml:"port"`
+	CollectCycle string            `toml:"collect_cycle"`
+	Tags         map[string]string `toml:"tags"`
+	address      string
 }
 
 func (_ *Coredns) SampleConfig() string {
-	return corednsConfigSample
+	return sampleCfg
 }
 
 func (_ *Coredns) Catalog() string {
 	return "network"
 }
 
-func (_ *Coredns) Description() string {
-	return "Convert Coredns collection data to Dataway"
-}
+func (c *Coredns) Run() {
+	l = logger.SLogger(inputName)
 
-func (_ *Coredns) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (e *Coredns) ProcessPts(pts []*influxdb.Point) error {
-	for _, pt := range pts {
-		fields, err := pt.Fields()
-		if err != nil {
-			return err
-		}
-		pt_metric, err := metric.New(pt.Name(), pt.Tags(), fields, pt.Time())
-		if err != nil {
-			return err
-		}
-		log.Printf("D! [CoreDNS] metric: %v\n", pt_metric)
-		e.acc.AddMetric(pt_metric)
+	d, err := time.ParseDuration(c.CollectCycle)
+	if err != nil || d <= 0 {
+		l.Errorf("invalid duration of collect_cycle")
+		return
 	}
-	return nil
+	ticker := time.NewTicker(d)
+	defer ticker.Stop()
+
+	c.initcfg()
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+
+		case <-ticker.C:
+			data, err := c.getMetrics()
+			if err != nil {
+				l.Error(err)
+				continue
+			}
+			if err := io.Feed(data, io.Metric); err != nil {
+				l.Error(err)
+				continue
+			}
+			l.Debugf("feed %d bytes to io ok", len(data))
+		}
+	}
+}
+
+func (c *Coredns) initcfg() {
+	if c.Tags == nil {
+		c.Tags = make(map[string]string)
+	}
+
+	if _, ok := c.Tags["address"]; !ok {
+		c.Tags["address"] = fmt.Sprintf("%s:%d", c.Host, c.Port)
+	}
+
+	c.address = fmt.Sprintf("http://%s:%d/metrics", c.Host, c.Port)
+}
+
+func (c *Coredns) getMetrics() ([]byte, error) {
+
+	resp, err := http.Get(c.address)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	metrics, err := ParseV2(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(metrics) == 0 {
+		return nil, fmt.Errorf("the metrics is empty")
+	}
+
+	var fields = make(map[string]interface{}, len(metrics))
+
+	// prometheus to point
+	for _, metric := range metrics {
+		for k, v := range metric.Fields() {
+			fields[k] = v
+		}
+	}
+
+	return io.MakeMetric(defaultMeasurement, c.Tags, fields, time.Now())
 }
