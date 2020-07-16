@@ -31,10 +31,8 @@ ENTRY = cmd/datakit/main.go
 # Solution:
 # > apt-get install gcc-multilib
 # 
-# LOCAL_ARCHS = "darwin/amd64"
-LOCAL_ARCHS = "linux/amd64" 
-#LOCAL_ARCHS = "linux/amd64|linux/386|windows/amd64"
-#LOCAL_ARCHS = "all"
+#LOCAL_ARCHS = "linux/amd64" 
+LOCAL_ARCHS = "all"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -93,6 +91,12 @@ pub_local:
 
 pub_test:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+
+pub_agent:
+	@go run cmd/make/make.go -pub-agent -release local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
+	@go run cmd/make/make.go -pub-agent -release test -pub-dir embed -download-addr $(TEST_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
+	@go run cmd/make/make.go -pub-agent -release preprod -pub-dir embed -download-addr $(PRE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
+	@go run cmd/make/make.go -pub-agent -release release -pub-dir embed -download-addr $(RELEASE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
 
 pub_preprod:
 	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
