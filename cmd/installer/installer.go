@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -31,8 +32,18 @@ import (
 
 var (
 	ServiceName    = `datakit`
-	DataKitGzipUrl = ""
+	DataKitBaseUrl = ""
+	DataKitVersion = ""
 	installDir     = ""
+
+	datakitUrl = "https://" + path.Join(DataKitBaseUrl,
+		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion))
+
+	telegrafUrl = "https://" + path.Join(DataKitBaseUrl,
+		"telegraf",
+		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
+
+	curDownloading = ""
 
 	osarch           = runtime.GOOS + "/" + runtime.GOARCH
 	dkservice        service.Service
@@ -40,16 +51,20 @@ var (
 
 	l *logger.Logger
 
-	flagUpgrade         = flag.Bool("upgrade", false, ``)
-	flagDataway         = flag.String("dataway", "", `address of dataway(ip:port), port default 9528`)
-	flagVersion         = flag.Bool("version", false, "show installer version info")
-	flagDownloadOnly    = flag.Bool("download-only", false, `download datakit only, not install`)
-	flagDataKitGzipFile = flag.String("datakit-gzip", ``, `local path of datakit install files`)
+	flagUpgrade      = flag.Bool("upgrade", false, ``)
+	flagDataway      = flag.String("dataway", "", `address of dataway(http://IP:Port/v1/write/metric), port default 9528`)
+	flagInfo         = flag.Bool("info", false, "show installer info")
+	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
+
+	flagOffline = flag.Bool("offline", false, "offline install mode")
+	flagSrcs    = flag.String("srcs", fmt.Sprintf("datakit-%s-%s-%s.tar.gz,agent-%s-%s.tar.gz",
+		runtime.GOOS, runtime.GOOS, DataKitVersion, runtime.GOOS, runtime.GOOS),
+		`local path of datakit and agent install files`)
 )
 
 func main() {
 
-	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_DEFAULT|logger.OPT_COLOR)
 	l = logger.SLogger("installer")
 
 	flag.Parse()
@@ -82,27 +97,26 @@ func main() {
 		l.Fatalf("new %s service failed: %s", runtime.GOOS, err.Error())
 	}
 
+	l.Info("stoping datakit...")
 	stopDataKitService(dkservice) // stop service if installed before
+
+	if *flagOffline && *flagSrcs != "" {
+		for _, f := range strings.Split(*flagSrcs, ",") {
+			extractDatakit(f, installDir)
+		}
+	} else {
+		curDownloading = "datakit"
+		doDownload(datakitUrl, installDir)
+		curDownloading = "agent"
+		doDownload(telegrafUrl, installDir)
+	}
 
 	if *flagUpgrade { // upgrade new version
 
 		l.Info("Upgrading...")
-
 		migrateLagacyDatakit()
 
-		if *flagDataKitGzipFile != "" {
-			extractDatakit(*flagDataKitGzipFile, installDir)
-		} else {
-			downloadDatakit(DataKitGzipUrl, installDir)
-		}
-
 	} else { // install new datakit
-
-		if *flagDataKitGzipFile != "" {
-			extractDatakit(*flagDataKitGzipFile, installDir)
-		} else {
-			downloadDatakit(DataKitGzipUrl, installDir)
-		}
 
 		var dwcfg *config.DataWayCfg
 		if *flagDataway == "" {
@@ -129,11 +143,11 @@ func main() {
 		if err := config.InitCfg(dwcfg); err != nil {
 			l.Fatalf("failed to init datakit main config: %s", err.Error())
 		}
-	}
 
-	l.Infof("install service %s...", ServiceName)
-	if err := installDatakitService(dkservice); err != nil {
-		l.Warnf("fail to register service %s: %s, ignored", ServiceName, err.Error())
+		l.Infof("installing service %s...", ServiceName)
+		if err := installDatakitService(dkservice); err != nil {
+			l.Warnf("fail to register service %s: %s, ignored", ServiceName, err.Error())
+		}
 	}
 
 	l.Infof("starting service %s...", ServiceName)
@@ -150,18 +164,26 @@ func main() {
 
 func applyFlags() {
 
-	if *flagVersion {
+	if *flagInfo {
 		fmt.Printf(`
        Version: %s
       Build At: %s
 Golang Version: %s
-   DataKitGzip: %s
-`, git.Version, git.BuildAt, git.Golang, DataKitGzipUrl)
+       BaseUrl: %s
+       DataKit: %s
+      Telegraf: %s
+`, git.Version, git.BuildAt, git.Golang, DataKitBaseUrl, datakitUrl, telegrafUrl)
 		os.Exit(0)
 	}
 
 	if *flagDownloadOnly {
-		downloadDatakit(DataKitGzipUrl, "datakit.tar.gz")
+		curDownloading = "datakit"
+		doDownload(datakitUrl, fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
+			runtime.GOOS, runtime.GOOS, DataKitVersion))
+
+		curDownloading = "agent"
+		doDownload(telegrafUrl, fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOOS))
+
 		os.Exit(0)
 	}
 
@@ -193,7 +215,7 @@ func readInput(prompt string) string {
 	return strings.TrimSpace(txt)
 }
 
-func doDownload(r io.Reader, to string) {
+func _doDownload(r io.Reader, to string) {
 
 	f, err := os.OpenFile(to, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
@@ -280,7 +302,7 @@ func (wc *writeCounter) Write(p []byte) (int, error) {
 	return n, nil
 }
 
-func downloadDatakit(from, to string) {
+func doDownload(from, to string) {
 	resp, err := http.Get(from)
 	if err != nil {
 		l.Fatalf("failed to download %s: %s", from, err)
@@ -292,7 +314,7 @@ func downloadDatakit(from, to string) {
 	}
 
 	if *flagDownloadOnly {
-		doDownload(io.TeeReader(resp.Body, cnt), to)
+		_doDownload(io.TeeReader(resp.Body, cnt), to)
 	} else {
 		doExtract(io.TeeReader(resp.Body, cnt), to)
 	}
@@ -302,7 +324,7 @@ func downloadDatakit(from, to string) {
 func (wc *writeCounter) PrintProgress() {
 	if wc.last > float64(wc.total)*0.01 || wc.current == wc.total { // update progress-bar each 1%
 		fmt.Printf("\r%s", strings.Repeat(" ", 35))
-		fmt.Printf("\rDownloading... %s/%s", humanize.Bytes(wc.current), humanize.Bytes(wc.total))
+		fmt.Printf("\rDownloading(%s)... %s/%s", curDownloading, humanize.Bytes(wc.current), humanize.Bytes(wc.total))
 		wc.last = 0.0
 	}
 }
@@ -403,8 +425,6 @@ func updateLagacyConfig(dir string) {
 	maincfg.Log = filepath.Join(installDir, "datakit.log") // reset log path
 	maincfg.ConfigDir = ""                                 // remove conf.d config: we use static conf.d dir, *not* configurable
 
-	l.Debugf("maincfg: %+#v", maincfg)
-
 	// split orgin ftdataway into dataway object
 	if maincfg.FtGateway != "" {
 		dwcfg, err := parseDataway(maincfg.FtGateway)
@@ -483,5 +503,10 @@ func migrateLagacyDatakit() {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
 		}
+	}
+
+	l.Infof("installing service %s...", ServiceName)
+	if err := installDatakitService(dkservice); err != nil {
+		l.Warnf("fail to register service %s: %s, ignored", ServiceName, err.Error())
 	}
 }
