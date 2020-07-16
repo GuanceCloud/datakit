@@ -4,44 +4,21 @@ import (
 	"context"
 	"time"
 
-	"github.com/influxdata/telegraf"
 	"golang.org/x/time/rate"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type (
-	AliyunActiontrail struct {
-		Actiontrail []*ActiontrailInstance
-
-		ctx       context.Context
-		cancelFun context.CancelFunc
-
-		accumulator telegraf.Accumulator
-
-		logger *models.Logger
-
-		runningInstances []*runningInstance
-	}
-
-	runningInstance struct {
-		cfg *ActiontrailInstance
-
-		agent *AliyunActiontrail
-
-		logger *models.Logger
-
-		client *actiontrail.Client
-
-		metricName string
-
-		rateLimiter *rate.Limiter
-	}
+var (
+	inputName    = `aliyunactiontrail`
+	moduleLogger *logger.Logger
 )
 
 func (_ *AliyunActiontrail) Catalog() string {
@@ -52,97 +29,61 @@ func (_ *AliyunActiontrail) SampleConfig() string {
 	return configSample
 }
 
-func (_ *AliyunActiontrail) Description() string {
-	return ""
-}
+func (a *AliyunActiontrail) Run() {
 
-func (_ *AliyunActiontrail) Gather(telegraf.Accumulator) error {
-	return nil
-}
+	moduleLogger = logger.SLogger(inputName)
 
-func (_ *AliyunActiontrail) Init() error {
-	return nil
-}
+	go func() {
+		<-datakit.Exit.Wait()
+		a.cancelFun()
+	}()
 
-func (a *AliyunActiontrail) Start(acc telegraf.Accumulator) error {
+	limit := rate.Every(40 * time.Millisecond)
+	a.rateLimiter = rate.NewLimiter(limit, 1)
 
-	a.logger = &models.Logger{
-		Name: `aliyunactiontrail`,
+	if a.metricName == "" {
+		a.metricName = "aliyun_actiontrail"
 	}
 
-	if len(a.Actiontrail) == 0 {
-		a.logger.Warnf("no configuration found")
+	if a.Interval.Duration == 0 {
+		a.Interval.Duration = time.Minute * 10
+	}
+
+	a.run()
+}
+
+func (a *AliyunActiontrail) getHistory() error {
+	if a.From == "" {
 		return nil
 	}
 
-	a.logger.Infof("starting...")
-
-	a.accumulator = acc
-
-	for _, instCfg := range a.Actiontrail {
-		r := &runningInstance{
-			cfg:    instCfg,
-			agent:  a,
-			logger: a.logger,
-		}
-		r.metricName = instCfg.MetricName
-		if r.metricName == "" {
-			r.metricName = "aliyun_actiontrail"
-		}
-
-		if r.cfg.Interval.Duration == 0 {
-			r.cfg.Interval.Duration = time.Minute * 10
-		}
-
-		limit := rate.Every(40 * time.Millisecond)
-		r.rateLimiter = rate.NewLimiter(limit, 1)
-
-		a.runningInstances = append(a.runningInstances, r)
-
-		go r.run(a.ctx)
-	}
-	return nil
-}
-
-func (a *AliyunActiontrail) Stop() {
-	a.cancelFun()
-}
-
-func (r *runningInstance) getHistory(ctx context.Context) error {
-	if r.cfg.From == "" {
-		return nil
-	}
-
-	endTm := time.Now().Truncate(time.Minute).Add(-r.cfg.Interval.Duration)
+	endTm := time.Now().Truncate(time.Minute).Add(-a.Interval.Duration)
 	request := actiontrail.CreateLookupEventsRequest()
 	request.Scheme = "https"
-	request.StartTime = r.cfg.From
+	request.StartTime = a.From
 	request.EndTime = unixTimeStrISO8601(endTm)
 
-	reqid, response, err := r.lookupEvents(ctx, request, r.client.LookupEvents)
+	response, err := a.lookupEvents(request, a.client.LookupEvents)
 	if err != nil {
-		r.logger.Errorf("(history)LookupEvents(%s) between %s - %s failed", reqid, request.StartTime, request.EndTime)
+		moduleLogger.Errorf("(history)LookupEvents between %s - %s failed", request.StartTime, request.EndTime)
 		return err
 	}
 
-	r.handleResponse(ctx, response)
+	a.handleResponse(response)
 
 	return nil
 }
 
-func (r *runningInstance) lookupEvents(ctx context.Context,
-	request *actiontrail.LookupEventsRequest,
-	originFn func(*actiontrail.LookupEventsRequest) (*actiontrail.LookupEventsResponse, error)) (string, *actiontrail.LookupEventsResponse, error) {
+func (a *AliyunActiontrail) lookupEvents(request *actiontrail.LookupEventsRequest,
+	originFn func(*actiontrail.LookupEventsRequest) (*actiontrail.LookupEventsResponse, error)) (*actiontrail.LookupEventsResponse, error) {
 
 	var response *actiontrail.LookupEventsResponse
 	var err error
 	var tempDelay time.Duration
 
-	reqUid := cliutils.XID("req_")
-
 	for i := 0; i < 5; i++ {
-		r.rateLimiter.Wait(ctx)
-		response, err = r.client.LookupEvents(request)
+		a.rateLimiter.Wait(a.ctx)
+		response, err = a.client.LookupEvents(request)
 
 		if tempDelay == 0 {
 			tempDelay = time.Millisecond * 50
@@ -155,75 +96,87 @@ func (r *runningInstance) lookupEvents(ctx context.Context,
 		}
 
 		if err != nil {
-			r.logger.Warnf("%s", err)
+			moduleLogger.Warnf("%s", err)
 			time.Sleep(tempDelay)
 		} else {
 			if i != 0 {
-				r.logger.Debugf("retry %s successed, %d", reqUid, i)
+				moduleLogger.Debugf("retry successed, %d", i)
 			}
 			break
 		}
 	}
 
-	return reqUid, response, err
+	return response, err
 }
 
-func (r *runningInstance) run(ctx context.Context) error {
+func (r *AliyunActiontrail) run() error {
 
 	defer func() {
 		if e := recover(); e != nil {
-
+			moduleLogger.Errorf("panic error, %v", e)
 		}
 	}()
 
-	cli, err := actiontrail.NewClientWithAccessKey(r.cfg.Region, r.cfg.AccessID, r.cfg.AccessKey)
-	if err != nil {
-		r.logger.Errorf("create client failed, %s", err)
-		return err
+	for {
+
+		select {
+		case <-datakit.Exit.Wait():
+			return nil
+		default:
+		}
+
+		cli, err := actiontrail.NewClientWithAccessKey(r.Region, r.AccessID, r.AccessKey)
+		if err != nil {
+			moduleLogger.Errorf("create client failed, %s", err)
+			time.Sleep(time.Second)
+		} else {
+			r.client = cli
+			break
+		}
+
 	}
-	r.client = cli
 
-	go r.getHistory(ctx)
+	go r.getHistory()
 
-	startTm := time.Now().Truncate(time.Minute).Add(-r.cfg.Interval.Duration)
+	startTm := time.Now().Truncate(time.Minute).Add(-r.Interval.Duration)
 
 	for {
 		select {
-		case <-ctx.Done():
-			return context.Canceled
+		case <-datakit.Exit.Wait():
+			return nil
 		default:
 		}
 
 		request := actiontrail.CreateLookupEventsRequest()
 		request.Scheme = "https"
 		request.StartTime = unixTimeStrISO8601(startTm)
-		request.EndTime = unixTimeStrISO8601(startTm.Add(r.cfg.Interval.Duration))
+		request.EndTime = unixTimeStrISO8601(startTm.Add(r.Interval.Duration))
 
-		reqid, response, err := r.lookupEvents(ctx, request, r.client.LookupEvents)
+		response, err := r.lookupEvents(request, r.client.LookupEvents)
 
 		if err != nil {
-			r.logger.Errorf("LookupEvents(%s) between %s - %s failed", reqid, request.StartTime, request.EndTime)
+			moduleLogger.Errorf("LookupEvents between %s - %s failed", request.StartTime, request.EndTime)
 		}
 
-		r.handleResponse(ctx, response)
+		r.handleResponse(response)
 
-		internal.SleepContext(ctx, r.cfg.Interval.Duration)
-		startTm = startTm.Add(r.cfg.Interval.Duration)
+		internal.SleepContext(r.ctx, r.Interval.Duration)
+		startTm = startTm.Add(r.Interval.Duration)
 	}
 }
 
-func (r *runningInstance) handleResponse(ctx context.Context, response *actiontrail.LookupEventsResponse) error {
+func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsResponse) error {
 
 	if response == nil {
 		return nil
 	}
 
-	r.logger.Debugf("%s-%s, count=%d", response.StartTime, response.EndTime, len(response.Events))
+	moduleLogger.Debugf("%s-%s, count=%d", response.StartTime, response.EndTime, len(response.Events))
 
 	for _, ev := range response.Events {
 
 		select {
-		case <-ctx.Done():
+		case <-datakit.Exit.Wait():
 			return nil
 		default:
 		}
@@ -260,8 +213,8 @@ func (r *runningInstance) handleResponse(ctx context.Context, response *actiontr
 				tags["userIdentity_userName"] = userName
 			}
 
-			if accessKeyId, ok := userIdentity["accessKeyId"].(string); ok {
-				tags["userIdentity_accessKeyId"] = accessKeyId
+			if accessKeyID, ok := userIdentity["accessKeyId"].(string); ok {
+				tags["userIdentity_accessKeyId"] = accessKeyID
 			}
 		}
 
@@ -273,10 +226,10 @@ func (r *runningInstance) handleResponse(ctx context.Context, response *actiontr
 		eventTime := ev["eventTime"].(string) //utc
 		evtm, err := time.Parse(`2006-01-02T15:04:05Z`, eventTime)
 		if err != nil {
-			r.logger.Warnf("%s", err)
+			moduleLogger.Warnf("%s", err)
 		}
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags, evtm)
+		io.FeedEx(io.Metric, r.metricName, tags, fields, evtm)
 	}
 
 	return nil
@@ -290,9 +243,9 @@ func unixTimeStrISO8601(t time.Time) string {
 }
 
 func init() {
-	inputs.Add("aliyunactiontrail", func() inputs.Input {
-		ac := &AliyunActiontrail{}
-		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-		return ac
+	inputs.Add(inputName, func() inputs.Input {
+		ip := &AliyunActiontrail{}
+		ip.ctx, ip.cancelFun = context.WithCancel(context.Background())
+		return ip
 	})
 }
