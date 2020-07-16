@@ -1,10 +1,16 @@
 package aliyunactiontrail
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+import (
+	"context"
+
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"golang.org/x/time/rate"
+)
 
 const (
 	configSample = `
-#[[actiontrail]]
+#[[inputs.actiontrail]]
 #    region = 'cn-hangzhou'
 #    access_id = ''
 #    access_key = ''
@@ -23,12 +29,21 @@ const (
 )
 
 type (
-	ActiontrailInstance struct {
+	AliyunActiontrail struct {
 		Region     string
 		AccessKey  string
 		AccessID   string
 		MetricName string
 		From       string
 		Interval   internal.Duration //至少10分钟
+
+		client *actiontrail.Client
+
+		metricName string
+
+		rateLimiter *rate.Limiter
+
+		ctx       context.Context
+		cancelFun context.CancelFunc
 	}
 )
