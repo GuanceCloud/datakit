@@ -245,7 +245,7 @@ func TestConfig(t *testing.T) {
 
 func TestSvr(t *testing.T) {
 
-	var alicost AliyunCostAgent
+	var alicost CostCfg
 
 	if data, err := ioutil.ReadFile("./demo.toml"); err != nil {
 		log.Fatalf("%s", err)
@@ -257,7 +257,7 @@ func TestSvr(t *testing.T) {
 
 	alicost.ctx, alicost.cancelFun = context.WithCancel(context.Background())
 
-	alicost.Start(nil)
+	alicost.Run()
 
 	time.Sleep(time.Hour)
 
