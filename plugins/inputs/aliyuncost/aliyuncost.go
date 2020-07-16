@@ -5,41 +5,27 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 	"golang.org/x/time/rate"
 
-	"github.com/influxdata/telegraf"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
-	//batchInterval = time.Duration(5) * time.Minute
-	//metricPeriod  = time.Duration(5 * time.Minute)
-	//rateLimit     = 20
+	moduleLogger *logger.Logger
 
 	historyCacheDir = `/etc/datakit/aliyuncost`
+
+	inputName = `aliyuncost`
 )
 
 type (
-	AliyunCostAgent struct {
-		Costs []*CostCfg `toml:"boa"`
-
-		runningInstances []*runningInstance
-
-		ctx       context.Context
-		cancelFun context.CancelFunc
-		logger    *models.Logger
-
-		accumulator telegraf.Accumulator
-	}
-
 	runningInstance struct {
 		cfg *CostCfg
 
@@ -54,8 +40,6 @@ type (
 
 		rateLimiter *rate.Limiter
 
-		agent *AliyunCostAgent
-
 		ctx context.Context
 
 		accountName string
@@ -69,99 +53,60 @@ type (
 	}
 )
 
-func (_ *AliyunCostAgent) Catalog() string {
+func (_ *CostCfg) Catalog() string {
 	return "aliyun"
 }
 
-func (_ *AliyunCostAgent) SampleConfig() string {
+func (_ *CostCfg) SampleConfig() string {
 	return aliyuncostConfigSample
 }
 
-func (_ *AliyunCostAgent) Description() string {
-	return ""
-}
+func (ac *CostCfg) Run() {
 
-func (_ *AliyunCostAgent) Gather(telegraf.Accumulator) error {
-	return nil
-}
+	moduleLogger = logger.SLogger(inputName)
 
-func (ac *AliyunCostAgent) Init() error {
+	go func() {
+		<-datakit.Exit.Wait()
+		ac.cancelFun()
+	}()
 
-	ac.logger = &models.Logger{
-		Name: `aliyuncost`,
+	if ac.AccountInterval.Duration == 0 {
+		ac.AccountInterval.Duration = 24 * time.Hour
 	}
 
-	for _, cfg := range ac.Costs {
-		if cfg.AccountInterval.Duration == 0 {
-			cfg.AccountInterval.Duration = 24 * time.Hour
-		}
-
-		if cfg.BiilInterval.Duration == 0 {
-			cfg.BiilInterval.Duration = time.Hour
-		}
-
-		if cfg.OrdertInterval.Duration == 0 {
-			cfg.OrdertInterval.Duration = time.Hour
-		}
+	if ac.BiilInterval.Duration == 0 {
+		ac.BiilInterval.Duration = time.Hour
 	}
 
-	return nil
-}
-
-func (ac *AliyunCostAgent) Start(acc telegraf.Accumulator) error {
-
-	if len(ac.Costs) == 0 {
-		ac.logger.Warnf("no configuration found")
-		return nil
+	if ac.OrdertInterval.Duration == 0 {
+		ac.OrdertInterval.Duration = time.Hour
 	}
 
-	ac.logger.Infof("starting...")
-
-	ac.accumulator = acc
-
-	for _, cfg := range ac.Costs {
-
-		ri := &runningInstance{
-			cfg:   cfg,
-			agent: ac,
-			ctx:   ac.ctx,
-		}
-
-		limit := rate.Every(60 * time.Millisecond)
-		ri.rateLimiter = rate.NewLimiter(limit, 1)
-
-		if cfg.AccountInterval.Duration > 0 {
-			ri.modules = append(ri.modules, NewCostAccount(cfg, ri))
-		}
-
-		if cfg.BiilInterval.Duration > 0 {
-			ri.modules = append(ri.modules, NewCostBill(cfg, ri))
-		}
-
-		if cfg.OrdertInterval.Duration > 0 {
-			ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
-		}
-
-		if cfg.OrdertInterval.Duration > 0 {
-			ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
-		}
-
-		ac.runningInstances = append(ac.runningInstances, ri)
-
-		go func(r *runningInstance) {
-
-			if err := r.run(); err != nil && err != context.Canceled {
-				log.Printf("E! [aliyuncost] %s", err)
-			}
-
-		}(ri)
+	ri := &runningInstance{
+		cfg: ac,
+		ctx: ac.ctx,
 	}
 
-	return nil
-}
+	limit := rate.Every(60 * time.Millisecond)
+	ri.rateLimiter = rate.NewLimiter(limit, 1)
 
-func (ac *AliyunCostAgent) Stop() {
-	ac.cancelFun()
+	if ac.AccountInterval.Duration > 0 {
+		ri.modules = append(ri.modules, NewCostAccount(ac, ri))
+	}
+
+	if ac.BiilInterval.Duration > 0 {
+		ri.modules = append(ri.modules, NewCostBill(ac, ri))
+	}
+
+	if ac.OrdertInterval.Duration > 0 {
+		ri.modules = append(ri.modules, NewCostOrder(ac, ri))
+	}
+
+	if ac.OrdertInterval.Duration > 0 {
+		ri.modules = append(ri.modules, NewCostOrder(ac, ri))
+	}
+
+	ri.run()
 }
 
 func (s *runningInstance) suspendHistoryFetch() {
@@ -195,7 +140,7 @@ func (s *runningInstance) getAccountInfo() {
 
 	resp, err := s.client.QueryBillOverview(req)
 	if err != nil {
-		log.Printf("E! fail to get account info, %s", err)
+		moduleLogger.Errorf("fail to get account info, %s", err)
 		return
 	}
 
@@ -206,9 +151,21 @@ func (s *runningInstance) getAccountInfo() {
 func (s *runningInstance) run() error {
 
 	var err error
-	s.client, err = bssopenapi.NewClientWithAccessKey(s.cfg.RegionID, s.cfg.AccessKeyID, s.cfg.AccessKeySecret)
-	if err != nil {
-		return err
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return nil
+		default:
+		}
+
+		s.client, err = bssopenapi.NewClientWithAccessKey(s.cfg.RegionID, s.cfg.AccessKeyID, s.cfg.AccessKeySecret)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
 	}
 
 	select {
@@ -302,8 +259,8 @@ func (r *runningInstance) QueryOrdersWrap(ctx context.Context, request *bssopena
 }
 
 func init() {
-	inputs.Add("aliyuncost", func() inputs.Input {
-		ac := &AliyunCostAgent{}
+	inputs.Add(inputName, func() inputs.Input {
+		ac := &CostCfg{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
 	})
