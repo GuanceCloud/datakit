@@ -29,8 +29,8 @@ var (
 	flagDownloadAddr = flag.String("download-addr", "", "")
 	flagPubDir       = flag.String("pub-dir", "pub", "")
 	flagArchs        = flag.String("archs", "linux/amd64", "os archs")
-	flagRelease      = flag.String(`release`, ``, `build for local/test/alpha/preprod/release`)
-	flagPub          = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/alpha/release/preprod`)
+	flagRelease      = flag.String(`release`, ``, `build for local/test/preprod/release`)
+	flagPub          = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/release/preprod`)
 
 	installerExe string
 
@@ -256,7 +256,7 @@ func releaseAgent() {
 
 	// 在你本地设置好这些 oss-key 环境变量
 	switch *flagRelease {
-	case `test`, `local`, `release`:
+	case `test`, `local`, `release`, `preprod`:
 		tag := strings.ToUpper(*flagRelease)
 		ak = os.Getenv(tag + "_OSS_ACCESS_KEY")
 		sk = os.Getenv(tag + "_OSS_SECRET_KEY")
