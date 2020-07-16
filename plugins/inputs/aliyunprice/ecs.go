@@ -12,60 +12,56 @@ import (
 
 const (
 	ecsSampleConfig = `
-# ##云服务器ECS
 #[[inputs.aliyunprice.ecs]]
 
-# ##(optional) 自定义指标集名称，默认使用 aliyun_price
+# ##(optional) custom metric name，default is 'aliyun_price'
 #metric_name = ''
 
-# ##(optional) 采集间隔，默认一天
+# ##(optional) collect interval，default is one day
 #interval = '1d'
 
-# ##(required) 是否采集后付费价格, 默认false(即采集预付费价格)
+# ##(required) cllect PayAsYouGo price, default is false
 #pay_as_you_go = false
 
-# ##(required) ecs实例所在区域
+# ##(required) ecs instance region
 #region = "cn-hangzhou-dg-a01"
 
-# ##(required) ecs实例规格
-# ##可参考阿里云官方文档查询实例规格: https://help.aliyun.com/document_detail/25378.html?spm=a2c4g.11186623.6.587.46526770BzM840
+# ##(required) ecs instance
 #instance_type = 'ecs.g5.xlarge'
 
-# ##(required) ecs实例规格族
+# ##(required) ecs instance catalog
 #instance_type_family = 'ecs.g5'
 
-# ##(required) ecs实例操作系统类别
+# ##(required) ecs instance os
 #image_os = "linux"
 
-# ##(required) 系统盘类别
-# ## cloud_ssd=SSD 云盘; cloud_efficiency=高效云盘; cloud=普通云盘; ephemeral_ssd=本地SSD盘
-# ## 各个类型的云盘可参考阿里云官方文档: https://help.aliyun.com/document_detail/25382.html?spm=5176.ecsbuyv3.storage.2.4d0e3675s1tQjx
+# ##(required) system disk category
 #system_disk_category = 'cloud_ssd'
 
-# ##(required) 系统盘大小, 单位:GB, range:20-500
+# ##(required) system disk size, unit is GB, range:20-500
 #system_disk_size = 20
 
-# ##(required) 带宽是否按使用流量(每GB)计费
+# ##(required) whether bandwidth pay by traffic
 #pay_by_traffic = false
 
-# ##(required) 按固定带宽时, 设置带宽值; 按使用流量时, 设置带宽峰值. 单位: kbps
+# ##(required) for fixed bandwidth, is the vale; for pay by traffic, is the max value. unit is kbps
 #internet_max_bandwidth_out = 1024
 
-# ##(optional)购买时长, 默认为1, 如果单位为Year, 则表示1年
+# ##(optional)Purchase duration, default is 1, so if unit is Year, then is one year
 #service_period_quantity = 1
 
-# ##(optional)购买时长单位: Month，Year, 默认为 Year
+# ##(optional)unit of purchase duration: Month，Year, defalut is Year
 #service_period_unit = "Year"
 
-# ##(optional)购买份数, 默认1份
+# ##(optional)Purchase quantity, default is 1
 #quantity = 1
 
-# ##(optional)数据盘配置(如果需要), 可配置多块
+# ##(optional)data disk configuration
 #[[inputs.aliyunprice.ecs.data_disks]]
-# ##数据盘类型
+# ##data disk category
 #data_disk_category = 'cloud_ssd'
 
-# ##数据盘大小, 单位GB
+# ##data disk size, unit is GB
 #data_disk_size = 40
 `
 )
