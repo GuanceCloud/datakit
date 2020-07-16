@@ -2,20 +2,21 @@ package dataclean
 
 var (
 	sampleConfig = `
+#[inputs.dataclean]
 #bind_addr = '0.0.0.0:9528'
 #gin_log = 'gin.log'
 #lua_worker = 4
 
-#[[global_lua]]
+#[[inputs.dataclean.global_lua]]
 #path = 'global.lua'
 #circle = '*/10 * * * *'
 
-#[[routes_config]]
+#[[inputs.dataclean.routes_config]]
 #name = 'demo'
 #disable_type_check = false
 #disable_lua = false
 
-# [[routes_config.lua]]
+# [[inputs.dataclean.routes_config.lua]]
 #  path = 'demo.lua'
 `
 )

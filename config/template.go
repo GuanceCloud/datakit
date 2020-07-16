@@ -6,11 +6,14 @@ ftdataway='{{.FtGateway}}' # deprecated
 log='{{.Log}}'
 log_level='{{.LogLevel}}'
 config_dir='{{.ConfigDir}}'
+http_server_addr='{{.HTTPServerAddr}}'
 
 ## Override default hostname, if empty use os.Hostname()
 hostname = ""
 ## If set to true, do no set the "host" tag.
 omit_hostname = false
+
+output_file = ""
 
 # ##tell dataway the interval to check datakit alive
 #max_post_interval = '1m'
