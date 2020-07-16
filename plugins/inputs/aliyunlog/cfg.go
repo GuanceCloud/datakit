@@ -21,19 +21,19 @@ const (
 # ##(optional) metric name, default is 'aliyunlog_+store-name' 
 #metric_name = ''
 	
-# ##(required) 指定当前日志库的消费组名称以及消费数据客户端名称
+# ##(required) consumer group and consumer name for this log store
 #consumer_group_name = ''
 #consumer_name = ''
 	
-# ##(optional) 指定哪些key作为tag, 默认都为field
+# ##(optional) specify which are tags and which are fields
 # ##eg., tags=["status_code","protocol"]
 # ##By default, the key used as tag cannot be field，you can still specify a key both be tag and field: tags=["status_code:*"]
-# ##可指定作为tag时的别名, 例: tags=["status_code::status"]
-# ##同时作为tag和field，同时设置tag别名: tags=["status_code:*:status"]
+# ##specify tag alias, eg., tags=["status_code::status"]
+# ##both as tag and field，and specify tag alias: tags=["status_code:*:status"]
 #tags = []
 	
-# # ##(optional) 指定fields的类型, 默认为string, 可指定为int或float
-# # ##例: fields = ["int:status,request_length", "float:cpuUsage"]
+# # ##(optional) the data type of fields, default is string, can be int or float
+# # ##eg., fields = ["int:status,request_length", "float:cpuUsage"]
 #fields = []	
 `
 )
