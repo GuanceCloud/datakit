@@ -1,14 +1,12 @@
 package httpstat
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-
 const (
 	pluginName = "httpstat"
 
 	description = `stat http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
 	serverProcessing, contentTransfer, and total time`
 	httpstatConfigSample = `
-#    [[httpstat]]
+#    [[inputs.httpstat]]
 #    ##if empty, use "httpstat"
 #    metricName = ''
 #    timeout = ''
@@ -24,11 +22,12 @@ const (
 `
 )
 
-type HttpstatCfg struct {
-	MetricName string            `toml:"metricName"`
-	Timeout    string            `toml:"timeout"`
-	Interval   internal.Duration `toml:"interval"`
-	Actions    []*Action         `toml:"action"`
+type Httpstat struct {
+	MetricName string    `toml:"metricName"`
+	Timeout    string    `toml:"timeout"`
+	Interval   string    `toml:"interval"`
+	Actions    []*Action `toml:"action"`
+	httpPing   []*httpPing
 }
 
 type Action struct {
