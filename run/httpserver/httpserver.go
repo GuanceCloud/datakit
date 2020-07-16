@@ -7,6 +7,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
@@ -21,6 +22,7 @@ func Start(addr string) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/trace", trace.Handle)
+	mux.HandleFunc("/druid", druid.Handle)
 
 	srv := &http.Server{
 		Addr:         addr,
