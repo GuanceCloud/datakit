@@ -11,39 +11,38 @@ import (
 
 const (
 	eipSampleConfig = `
-# ##弹性公网IP
 #[[inputs.aliyunprice.eip]]
 
-# ##(optional) 自定义指标集名称，默认使用 aliyun_price
+# ##(optional) custom metric name, default is aliyun_price
 #metric_name = ''
 
-# ##(optional) 采集间隔，默认一天
+# ##(optional) collect interval, default is one day
 #interval = '1d'
 
-# ##(required) 是否采集后付费价格, 默认false(即采集预付费价格)
+# ##(required) cllect PayAsYouGo price, default is false
 #pay_as_you_go = false
 
-# ##(required) 地域
+# ##(required) region
 #region = 'cn-hangzhou'
 
-# ##(required) 带宽,单位MB
-# ## 在pay_as_you_go下，如果 internet_charge_type=1，则忽略该值
+# ##(required) bandwidth, unit is MB
+# ## for pay_as_you_go, ignored when internet_charge_type=1
 #bandwidth = 1
 
-# ##(required) 流量类型, 只在 pay_as_you_go=true 时需要设置
-# ## 0:按固定带宽, 1:按使用流量,此时忽略 bandwidth
+# ##(required) traffic type, only for pay_as_you_go=true
+# ## 0:fixed bandwidth, 1:by used traffix, if true ignore bandwidth
 #internet_charge_type = 0
 
-# ##(optional) 线路类型, 当 pay_as_you_go=true 时有效, 默认 BGP
+# ##(optional) only for pay_as_you_go=true, default is BGP
 #isp = 'BGP' 
 
-# ##(optional)购买时长, 默认为1, 如果单位为Year, 则表示1年
+# ##(optional)Purchase duration, default is 1, so if unit is Year, then is one year
 #service_period_quantity = 1
 
-# ##(optional)购买时长单位: Month，Year, 默认为 Year
+# ##(optional)unit of purchase duration: Month，Year, defalut is Year
 #service_period_unit = "Year"
 
-# ##(optional)购买份数, 默认1份
+# ##(optional)Purchase quantity, default is 1
 #quantity = 1
 `
 )
