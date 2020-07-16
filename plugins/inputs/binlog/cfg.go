@@ -12,32 +12,39 @@ import (
 const (
 	binlogConfigSample = `
 #[[inputs.binlog]]
+
+# ##(optional)
 #null_int=0
 #null_float=0.0
+
+# ##(required)
 #[[inputs.binlog.sources]]
-#  ##host of mysql, include port
+
+#  ##(required) host of mysql, include port
 #  addr='localhost:3306'
 
-#  ##username and password of mysql
+#  ##(required) username and password of mysql
 #  user="admin"
 #  password=""
 
+#  ##(required)
 #  [[inputs.binlog.sources.databases]]
+#    ##(required) database name
 #    db = 'test'
 #	[[inputs.binlog.sources.databases.tables]]
-#     ##the name of table
+#     ##(required) the name of table
 #	  name='user'
 
-#	  ##the name of metric, if empty use name as default
+#	  ##(optional) the name of metric, if empty use name as default
 #	  measurement=""
 
-#	  ##specify the table's columns which will be taken as fields in metric, must be non-empty
+#	  ##(required) specify the table's columns which will be taken as fields in metric, must be non-empty
 #	  fields=['column0']
 
-#	  ##specify the table's columns which will be taken as tags in metric, may empty
+#	  ##(optional) specify the table's columns which will be taken as tags in metric, may empty
 #	  tags=['column1']
 
-#	  ##exlcude the events of binlog, there are 3 events: "insert","update","delete"
+#	  ##(optional)exlcude the events of binlog, there are 3 events: "insert","update","delete"
 #      exclude_events=[]
 `
 )
