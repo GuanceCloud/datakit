@@ -1,6 +1,7 @@
 package aliyuncost
 
 import (
+	"context"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
@@ -8,7 +9,7 @@ import (
 
 const (
 	aliyuncostConfigSample = `
-#[[boa]]
+#[[inputs.boa]]
 #  ## Aliyun Region (required)
 #  ## See: https://www.alibabacloud.com/help/zh/doc-detail/40654.htm
 #  region_id = 'cn-hangzhou'
@@ -39,6 +40,9 @@ type (
 		BiilInterval       internal.Duration `toml:"bill_interval"`
 		OrdertInterval     internal.Duration `toml:"order_interval"`
 		CollectHistoryData bool              `toml:"collect_history_data "`
+
+		ctx       context.Context
+		cancelFun context.CancelFunc
 	}
 )
 

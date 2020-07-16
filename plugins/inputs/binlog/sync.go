@@ -29,7 +29,7 @@ func (rb *RunningBinloger) startSyncer() (*replication.BinlogStreamer, error) {
 		if err != nil {
 			return nil, fmt.Errorf("start sync replication at binlog %v error %v", pos, err)
 		}
-		rb.binlog.logger.Infof("start binlog from %v", pos)
+		moduleLogger.Infof("start binlog from %v", pos)
 		return s, nil
 	} else {
 		gsetClone := gset.Clone()
@@ -37,7 +37,7 @@ func (rb *RunningBinloger) startSyncer() (*replication.BinlogStreamer, error) {
 		if err != nil {
 			return nil, errors.Errorf("start sync replication at GTID set %v error %v", gset, err)
 		}
-		rb.binlog.logger.Infof("start sync binlog at GTID set %v", gsetClone)
+		moduleLogger.Infof("start sync binlog at GTID set %v", gsetClone)
 		return s, nil
 	}
 }
@@ -46,7 +46,7 @@ func (rb *RunningBinloger) doSync(ctx context.Context) error {
 
 	s, err := rb.startSyncer()
 	if err != nil {
-		rb.binlog.logger.Errorf("start sync failed, %s", err)
+		moduleLogger.Errorf("start sync failed, %s", err)
 		return err
 	}
 
@@ -67,7 +67,7 @@ func (rb *RunningBinloger) doSync(ctx context.Context) error {
 	for {
 		ev, err := s.GetEvent(ctx)
 		if err != nil {
-			rb.binlog.logger.Errorf("GetEvent failed, %s", err)
+			moduleLogger.Errorf("GetEvent failed, %s", err)
 			return err
 		}
 
@@ -88,7 +88,7 @@ func (rb *RunningBinloger) doSync(ctx context.Context) error {
 			switch e := ev.Event.(type) {
 			case *replication.RotateEvent:
 				fakeRotateLogName = string(e.NextLogName)
-				rb.binlog.logger.Debugf("received fake rotate event, next log name is %s", e.NextLogName)
+				moduleLogger.Debugf("received fake rotate event, next log name is %s", e.NextLogName)
 			}
 
 			continue
@@ -115,7 +115,7 @@ func (rb *RunningBinloger) doSync(ctx context.Context) error {
 		case *replication.RotateEvent:
 			pos.Name = string(e.NextLogName)
 			pos.Pos = uint32(e.Position)
-			rb.binlog.logger.Debugf("rotate binlog to %v", pos)
+			moduleLogger.Debugf("rotate binlog to %v", pos)
 			savePos = true
 			force = true
 			if err = rb.eventHandler.OnRotate(e); err != nil {
@@ -130,10 +130,10 @@ func (rb *RunningBinloger) doSync(ctx context.Context) error {
 				if e != ErrExcludedTable &&
 					e != schema.ErrTableNotExist &&
 					e != schema.ErrMissingTableMeta {
-					rb.binlog.logger.Errorf("handle rows event at (%s, %d) error %v", pos.Name, curPos, err)
+					moduleLogger.Errorf("handle rows event at (%s, %d) error %v", pos.Name, curPos, err)
 					return err
 				} else {
-					rb.binlog.logger.Errorf("handleRowsEvent failed, %s", err)
+					moduleLogger.Errorf("handleRowsEvent failed, %s", err)
 				}
 			}
 			continue
@@ -168,7 +168,7 @@ func (rb *RunningBinloger) doSync(ctx context.Context) error {
 			//log.Printf("D! [binlog] query event come: %s", string(e.Query))
 			stmts, _, err := rb.parser.Parse(string(e.Query), "", "")
 			if err != nil {
-				rb.binlog.logger.Errorf("parse query(%s) err %v, will skip this event", e.Query, err)
+				moduleLogger.Errorf("parse query(%s) err %v, will skip this event", e.Query, err)
 				continue
 			}
 			for _, stmt := range stmts {
@@ -264,7 +264,7 @@ func parseStmt(stmt ast.StmtNode) (ns []*node) {
 
 func (rb *RunningBinloger) updateTable(db, table string) (err error) {
 	rb.clearTableCache([]byte(db), []byte(table))
-	rb.binlog.logger.Warnf("table structure changed, clear table cache: %s.%s\n", db, table)
+	moduleLogger.Warnf("table structure changed, clear table cache: %s.%s\n", db, table)
 	if err = rb.eventHandler.OnTableChanged(db, table); err != nil && errors.Cause(err) != schema.ErrTableNotExist {
 		return err
 	}
@@ -294,7 +294,7 @@ func (b *RunningBinloger) handleRowsEvent(e *replication.BinlogEvent) error {
 		return err
 	}
 
-	b.binlog.logger.Debugf("get table info ok, %s.%s", schema, table)
+	moduleLogger.Debugf("get table info ok, %s.%s", schema, table)
 
 	var action string
 	switch e.Header.EventType {
@@ -332,7 +332,7 @@ func (rb *RunningBinloger) WaitUntilPos(pos mysql.Position, timeout time.Duratio
 			if curPos.Compare(pos) >= 0 {
 				return nil
 			} else {
-				rb.binlog.logger.Debugf("master pos is %v, wait catching %v", curPos, pos)
+				moduleLogger.Debugf("master pos is %v, wait catching %v", curPos, pos)
 				time.Sleep(100 * time.Millisecond)
 			}
 		}

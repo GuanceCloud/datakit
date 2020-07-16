@@ -10,15 +10,16 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 type CostOrder struct {
 	interval        time.Duration
 	name            string
 	runningInstance *runningInstance
-	logger          *models.Logger
+	logger          *logger.Logger
 }
 
 func NewCostOrder(cfg *CostCfg, ri *runningInstance) *CostOrder {
@@ -26,9 +27,7 @@ func NewCostOrder(cfg *CostCfg, ri *runningInstance) *CostOrder {
 		name:            "aliyun_cost_order",
 		interval:        cfg.OrdertInterval.Duration,
 		runningInstance: ri,
-	}
-	c.logger = &models.Logger{
-		Name: `aliyuncost:order`,
+		logger:          logger.SLogger(`aliyuncost:order`),
 	}
 	return c
 }
@@ -233,9 +232,7 @@ func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			co.logger.Warnf("fail to parse time:%v, error:%s", item.CreateTime, err)
 			continue
 		}
-		if co.runningInstance.agent.accumulator != nil {
-			co.runningInstance.agent.accumulator.AddFields(co.getName(), fields, tags, t)
-		}
+		io.FeedEx(io.Metric, co.getName(), tags, fields, t)
 	}
 
 	return nil
