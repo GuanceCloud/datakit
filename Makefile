@@ -16,7 +16,21 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-LOCAL_ARCHS = "linux/amd64"
+# Failed to build oraclemonitor:
+# 
+# > # runtime/cgo
+# > In file included from _cgo_export.c:3:0:
+# > /usr/include/stdlib.h:25:10: fatal error: bits/libc-header-start.h: No such file or directory
+# > #include <bits/libc-header-start.h>
+# >         ^~~~~~~~~~~~~~~~~~~~~~~~~~
+# > compilation terminated.
+#
+# Solution:
+# > apt-get install gcc-multilib
+# 
+# LOCAL_ARCHS = "darwin/amd64"
+LOCAL_ARCHS = "linux/amd64" 
+#LOCAL_ARCHS = "linux/amd64|linux/386|windows/amd64"
 #LOCAL_ARCHS = "all"
 DEFAULT_ARCHS = "all"
 
@@ -47,7 +61,7 @@ define build
 	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Sha1 string="$(COMMIT)"; Uploader string="$(UPLOADER)");' > git/git.go
 	@go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
-	tree -Csh build pub
+	tree -Csh -L 4 build pub
 endef
 
 define pub
@@ -56,8 +70,8 @@ define pub
 endef
 
 check:
-	@golangci-lint run --timeout 1h # https://golangci-lint.run/usage/install/#local-installation
 	@go vet ./...
+	#@golangci-lint run --timeout 1h # https://golangci-lint.run/usage/install/#local-installation
 
 local:
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
