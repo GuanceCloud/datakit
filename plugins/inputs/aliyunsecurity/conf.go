@@ -1,6 +1,9 @@
 package aliyunsecurity
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+import (
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/aegis"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/sas"
+)
 
 const (
 	configSample = `
@@ -16,9 +19,11 @@ const (
 )
 
 type Security struct {
-	RegionID        string            `toml:"region"`
-	AccessKeyID     string            `toml:"accessKeyId"`
-	AccessKeySecret string            `toml:"accessKeySecret"`
-	Interval        internal.Duration `toml:"interval"`
-	MetricName      string            `toml:"metricName"`
+	RegionID        string `toml:"region"`
+	AccessKeyID     string `toml:"accessKeyId"`
+	AccessKeySecret string `toml:"accessKeySecret"`
+	Interval        string `toml:"interval"`
+	MetricName      string `toml:"metricName"`
+	client          *sas.Client
+	aclient         *aegis.Client
 }

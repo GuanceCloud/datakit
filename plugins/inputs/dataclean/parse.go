@@ -3,7 +3,6 @@ package dataclean
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"strings"
 	"time"
@@ -22,7 +21,7 @@ func getPromb(compressed []byte) (wr *prompb.WriteRequest, err error) {
 
 	reqBuf, err := snappy.Decode(nil, compressed)
 	if err != nil {
-		log.Printf("[error] snappy decode failed, %s", err.Error())
+		moduleLogger.Errorf("snappy decode failed, %s", err.Error())
 		err = utils.ErrSnappyDecodeFailed
 		return
 	}
@@ -31,7 +30,7 @@ func getPromb(compressed []byte) (wr *prompb.WriteRequest, err error) {
 
 	err = proto.Unmarshal(reqBuf, wr)
 	if err != nil {
-		log.Printf("[error] proto unmarshal failed, %s", err.Error())
+		moduleLogger.Errorf("[error] proto unmarshal failed, %s", err.Error())
 		err = utils.ErrProtobufDecodeFailed
 		return
 	}
@@ -68,7 +67,7 @@ func ParsePromToInflux(data []byte, template string) ([]*influxdb.Point, error) 
 
 		for _, s := range ts.Samples {
 			if s.Value >= math.MaxInt64 {
-				log.Printf("[warn] invalid data type, value %v", s.Value)
+				moduleLogger.Warnf("invalid data type, value %v", s.Value)
 				continue
 			}
 
@@ -88,7 +87,7 @@ func ParsePromToInflux(data []byte, template string) ([]*influxdb.Point, error) 
 			)
 
 			if err != nil {
-				log.Printf("[warn] assembly influx failed,  %s", err.Error())
+				moduleLogger.Warnf("assembly influx failed,  %s", err.Error())
 				continue
 			}
 
@@ -96,7 +95,7 @@ func ParsePromToInflux(data []byte, template string) ([]*influxdb.Point, error) 
 		}
 	}
 
-	log.Printf("[debug]: prom points %d", len(pts))
+	moduleLogger.Debugf("prom points %d", len(pts))
 	return pts, nil
 }
 
@@ -104,13 +103,13 @@ func ParsePromToInflux(data []byte, template string) ([]*influxdb.Point, error) 
 func ParseJsonToInflux(data []byte, template string) ([]*influxdb.Point, error) {
 	m := make(map[string][]interface{})
 	if err := json.Unmarshal(data, &m); err != nil {
-		log.Printf("[warn] data unmarshal failed,  %s ", string(data))
+		moduleLogger.Warnf("data unmarshal failed,  %s ", string(data))
 		return nil, err
 	}
 
 	ms := m["metrics"]
 	if ms == nil {
-		log.Printf("[warn] no any metrics")
+		moduleLogger.Warnf("no any metrics")
 		return nil, utils.ErrNoMetricAvailable
 	}
 
@@ -154,7 +153,7 @@ func ParseJsonToInflux(data []byte, template string) ([]*influxdb.Point, error) 
 
 		n, err := utils.FormatTimeStamps(timestamp)
 		if err != nil {
-			log.Printf("[warn] timestamp format failed, %s", err.Error())
+			moduleLogger.Warnf("timestamp format failed, %s", err.Error())
 			return nil, err
 		}
 
@@ -166,7 +165,7 @@ func ParseJsonToInflux(data []byte, template string) ([]*influxdb.Point, error) 
 		)
 
 		if err != nil {
-			log.Printf("[error]: %s", err.Error())
+			moduleLogger.Errorf("%s", err.Error())
 			return nil, err
 		}
 
@@ -179,7 +178,7 @@ func ParseJsonToInflux(data []byte, template string) ([]*influxdb.Point, error) 
 func ParsePoints(data []byte, prec string) ([]*influxdb.Point, error) {
 	points, err := influxm.ParsePointsWithPrecision(data, time.Now().UTC(), prec)
 	if err != nil {
-		log.Printf("[error] : %s", err.Error())
+		moduleLogger.Errorf("%s", err.Error())
 		return nil, err
 	}
 
@@ -201,7 +200,7 @@ func ParsePoints(data []byte, prec string) ([]*influxdb.Point, error) {
 		)
 
 		if err != nil {
-			log.Printf("[error] assembly influx failed,  %s", err.Error())
+			moduleLogger.Errorf("assembly influx failed,  %s", err.Error())
 			return nil, err
 		}
 
