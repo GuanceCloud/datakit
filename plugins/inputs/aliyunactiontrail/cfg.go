@@ -11,20 +11,22 @@ import (
 const (
 	configSample = `
 #[[inputs.actiontrail]]
-#    region = 'cn-hangzhou'
-#    access_id = ''
-#    access_key = ''
 
-#    ##if empty, use "aliyun_actiontrail"
-#    metric_name = ''
+# ##(required)
+#region = 'cn-hangzhou'
+#access_id = ''
+#access_key = ''
 
-#    ## ISO8601 unix time format: 2020-02-01T06:00:00Z 
-#    ## the earliest is 90 days from now.
-#    ## if empty, from now on. 
-#    from = ''
+# ##(optional) if empty, use "aliyun_actiontrail"
+#metric_name = ''
 
-#    ## default is 10m, must not be less than 10m
-#    interval = '10m'
+# ##(optional) ISO8601 unix time format: 2020-02-01T06:00:00Z 
+# ## the earliest is 90 days from now.
+# ## if empty, from now on. 
+#from = ''
+
+# ##(optional) default is 10m, must not be less than 10m
+#interval = '10m'
 `
 )
 
