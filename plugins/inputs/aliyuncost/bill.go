@@ -11,15 +11,16 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 type CostBill struct {
 	interval        time.Duration
 	name            string
 	runningInstance *runningInstance
-	logger          *models.Logger
+	logger          *logger.Logger
 }
 
 func NewCostBill(cfg *CostCfg, ri *runningInstance) *CostBill {
@@ -27,9 +28,7 @@ func NewCostBill(cfg *CostCfg, ri *runningInstance) *CostBill {
 		name:            "aliyun_cost_bill",
 		interval:        cfg.BiilInterval.Duration,
 		runningInstance: ri,
-	}
-	c.logger = &models.Logger{
-		Name: `aliyuncost:bill`,
+		logger:          logger.SLogger(`aliyuncost:bill`),
 	}
 	return c
 }
@@ -305,9 +304,7 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		} else {
 			//返回的不是utc
 			t = t.Add(-8 * time.Hour)
-			if cb.runningInstance.agent.accumulator != nil {
-				cb.runningInstance.agent.accumulator.AddFields(cb.getName(), fields, tags, t)
-			}
+			io.FeedEx(io.Metric, cb.getName(), tags, fields, t)
 		}
 	}
 
@@ -374,9 +371,7 @@ func (cb *CostBill) parseInstanceBillResponse(ctx context.Context, resp *bssopen
 		fields[`OutstandingAmount`] = item.OutstandingAmount
 		fields[`BillingDate`] = item.BillingDate
 
-		if cb.runningInstance.agent.accumulator != nil {
-			cb.runningInstance.agent.accumulator.AddFields(cb.getName(), fields, tags)
-		}
+		io.FeedEx(io.Metric, cb.getName(), tags, fields)
 	}
 	return nil
 }
