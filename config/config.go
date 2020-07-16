@@ -4,149 +4,38 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"text/template"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/logger"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
-	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
-
-	ServiceName = "datakit"
-
 	ConvertedCfg []string
-	AgentLogFile string
 
-	MaxLifeCheckInterval time.Duration
-
-	Cfg         *Config = nil
-	InstallDir          = ""
-	TelegrafDir         = ""
-	DataDir             = ""
-	LuaDir              = ""
-	ConfdDir            = ""
+	l   *logger.Logger
+	Cfg *Config = nil
 )
 
 type Config struct {
 	MainCfg          *MainConfig
 	TelegrafAgentCfg *TelegrafAgentConfig
-	Inputs           []*models.RunningInput
-	//Outputs          []*models.RunningOutput
+
+	Inputs map[string][]inputs.Input
 
 	InputFilters []string
-}
-
-func init() {
-	osarch := runtime.GOOS + "/" + runtime.GOARCH
-
-	switch osarch {
-	case "windows/amd64":
-		InstallDir = `C:\Program Files\DataFlux\` + ServiceName
-
-	case "windows/386":
-		InstallDir = `C:\Program Files (x86)\DataFlux\` + ServiceName
-
-	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
-		"darwin/amd64", "darwin/386",
-		"freebsd/amd64", "freebsd/386":
-		InstallDir = `/usr/local/cloudcare/DataFlux/` + ServiceName
-	default:
-		log.Fatalf("[fatal] invalid os/arch: %s", osarch)
-	}
-
-	AgentLogFile = filepath.Join(InstallDir, "embed", "agent.log")
-
-	TelegrafDir = filepath.Join(InstallDir, "embed")
-	DataDir = filepath.Join(InstallDir, "data")
-	LuaDir = filepath.Join(InstallDir, "lua")
-	ConfdDir = filepath.Join(InstallDir, "conf.d")
-
-	Cfg = newDefaultCfg()
-
-	initTelegrafSamples()
-}
-
-func newDefaultCfg() *Config {
-
-	return &Config{
-		TelegrafAgentCfg: defaultTelegrafAgentCfg(),
-		MainCfg: &MainConfig{
-			GlobalTags:    map[string]string{},
-			FlushInterval: internal.Duration{Duration: 10 * time.Second},
-			Interval:      internal.Duration{Duration: 10 * time.Second},
-
-			LogLevel: "info",
-			Log:      filepath.Join(InstallDir, "datakit.log"),
-
-			RoundInterval: false,
-			cfgPath:       filepath.Join(InstallDir, "datakit.conf"),
-		},
-		Inputs: []*models.RunningInput{},
-	}
-}
-
-func InitDirs() {
-	if err := os.MkdirAll(filepath.Join(InstallDir, "embed"), os.ModePerm); err != nil {
-		log.Fatalf("[error] mkdir embed failed: %s", err)
-	}
-
-	for _, dir := range []string{TelegrafDir, DataDir, LuaDir, ConfdDir} {
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			log.Fatalf("create %s failed: %s", dir, err)
-		}
-	}
-}
-
-func LoadCfg() error {
-
-	if err := Cfg.LoadMainConfig(); err != nil {
-		return err
-	}
-
-	// some old log file under:
-	//  /usr/local/cloudcare/forethought/...
-	// we force set to
-	//  /usr/local/cloudcare/DataFlux/...
-	//Cfg.MainCfg.Log = filepath.Join(InstallDir, "datakit.log")
-
-	logConfig := logger.LogConfig{
-		Debug:     (strings.ToLower(Cfg.MainCfg.LogLevel) == "debug"),
-		Quiet:     false,
-		LogTarget: logger.LogTargetFile,
-		Logfile:   Cfg.MainCfg.Log,
-	}
-
-	logConfig.RotationMaxSize.Size = (20 << 10 << 10)
-	logger.SetupLogging(logConfig)
-
-	log.SetFlags(log.Llongfile)
-
-	log.Printf("D! set log to %s", logConfig.Logfile)
-
-	createPluginCfgsIfNotExists()
-
-	if err := Cfg.LoadConfig(); err != nil {
-		return err
-	}
-
-	Cfg.DumpInputsOutputs()
-
-	return nil
 }
 
 type DataWayCfg struct {
@@ -162,12 +51,14 @@ type MainConfig struct {
 	DataWay           *DataWayCfg `toml:"dataway"`
 	DataWayRequestURL string      `toml:"-"`
 
-	FtGateway string `toml:"ftdataway"` // deprecated
+	HTTPServerAddr string `toml:"http_server_addr"`
+
+	FtGateway string `toml:"ftdataway"` // XXX: deprecated
 
 	Log      string `toml:"log"`
 	LogLevel string `toml:"log_level"`
 
-	ConfigDir string `toml:"config_dir"` // not used: to compatible parsing with forethought datakit.conf
+	ConfigDir string `toml:"config_dir"` // XXX: not used: to compatible parsing with forethought datakit.conf
 
 	//验证dk存活
 	MaxPostInterval internal.Duration `toml:"max_post_interval"`
@@ -181,7 +72,7 @@ type MainConfig struct {
 	FlushInterval internal.Duration
 	FlushJitter   internal.Duration
 
-	OutputsFile string `toml:"output_file,omitempty"`
+	OutputFile string `toml:"output_file,omitempty"`
 
 	Hostname     string
 	OmitHostname bool
@@ -189,25 +80,104 @@ type MainConfig struct {
 	cfgPath string
 }
 
-type ConvertTelegrafConfig interface {
-	Load(f string) error
-	ToTelegraf(f string) (string, error)
-	FilePath(cfgdir string) string
+func init() {
+	osarch := runtime.GOOS + "/" + runtime.GOARCH
+
+	switch osarch {
+	case "windows/amd64":
+		datakit.InstallDir = `C:\Program Files\dataflux\` + datakit.ServiceName
+
+	case "windows/386":
+		datakit.InstallDir = `C:\Program Files (x86)\dataflux\` + datakit.ServiceName
+
+	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
+		"darwin/amd64", "darwin/386",
+		"freebsd/amd64", "freebsd/386":
+		datakit.InstallDir = `/usr/local/cloudcare/dataflux/` + datakit.ServiceName
+	default:
+		panic("unsupported os/arch: %s" + osarch)
+	}
+
+	datakit.AgentLogFile = filepath.Join(datakit.InstallDir, "embed", "agent.log")
+
+	datakit.TelegrafDir = filepath.Join(datakit.InstallDir, "embed")
+	datakit.DataDir = filepath.Join(datakit.InstallDir, "data")
+	datakit.LuaDir = filepath.Join(datakit.InstallDir, "lua")
+	datakit.ConfdDir = filepath.Join(datakit.InstallDir, "conf.d")
+	datakit.GRPCDomainSock = filepath.Join(datakit.InstallDir, "datakit.sock")
+
+	datakit.Exit = cliutils.NewSem()
+	Cfg = newDefaultCfg()
+
+	initTelegrafSamples()
 }
 
-type DatacleanConfig interface {
-	CheckRoute(route string) bool
-	Bindaddr() string
+func newDefaultCfg() *Config {
+
+	return &Config{
+		TelegrafAgentCfg: defaultTelegrafAgentCfg(),
+		MainCfg: &MainConfig{
+			GlobalTags:    map[string]string{},
+			FlushInterval: internal.Duration{Duration: 10 * time.Second},
+			Interval:      internal.Duration{Duration: 10 * time.Second},
+
+			HTTPServerAddr: "0.0.0.0:9529",
+
+			LogLevel: "info",
+			Log:      filepath.Join(datakit.InstallDir, "datakit.log"),
+
+			RoundInterval: false,
+			cfgPath:       filepath.Join(datakit.InstallDir, "datakit.conf"),
+		},
+		Inputs: map[string][]inputs.Input{},
+	}
+}
+
+func InitDirs() {
+	if err := os.MkdirAll(filepath.Join(datakit.InstallDir, "embed"), os.ModePerm); err != nil {
+		panic("[error] mkdir embed failed: " + err.Error())
+	}
+
+	for _, dir := range []string{datakit.TelegrafDir, datakit.DataDir, datakit.LuaDir, datakit.ConfdDir} {
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			panic(fmt.Sprintf("create %s failed: %s", dir, err))
+		}
+	}
+}
+
+func LoadCfg() error {
+
+	InitDirs()
+
+	if err := Cfg.LoadMainConfig(); err != nil {
+		return err
+	}
+
+	// set global log root
+	logger.SetGlobalRootLogger(Cfg.MainCfg.Log,
+		Cfg.MainCfg.LogLevel,
+		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+	l = logger.SLogger("config")
+
+	l.Infof("set log to %s", Cfg.MainCfg.Log)
+
+	datakit.Init()
+
+	initPluginCfgs()
+
+	if err := Cfg.LoadConfig(); err != nil {
+		l.Error(err)
+		return err
+	}
+
+	DumpInputsOutputs()
+
+	return nil
 }
 
 func (c *Config) LoadMainConfig() error {
 
-	data, err := ioutil.ReadFile(c.MainCfg.cfgPath)
-	if err != nil {
-		return fmt.Errorf("main config error, %s", err.Error())
-	}
-
-	tbl, err := parseConfig(data)
+	tbl, err := parseCfgFile(c.MainCfg.cfgPath)
 	if err != nil {
 		return err
 	}
@@ -236,17 +206,17 @@ func (c *Config) LoadMainConfig() error {
 		}
 
 		if err = toml.UnmarshalTable(subTable, c.TelegrafAgentCfg); err != nil {
-			return fmt.Errorf("invalid agent configuration, %s", err)
+			return fmt.Errorf("invalid telegraf configuration, %s", err)
 		}
 
 		delete(tbl.Fields, "agent")
 	}
 
 	if err := toml.UnmarshalTable(tbl, c.MainCfg); err != nil {
-		return err
+		panic("UnmarshalTable failed: " + err.Error())
 	}
 
-	if !c.MainCfg.OmitHostname {
+	if !c.MainCfg.OmitHostname { // get default host-name
 		if c.MainCfg.Hostname == "" {
 			hostname, err := os.Hostname()
 			if err != nil {
@@ -260,11 +230,15 @@ func (c *Config) LoadMainConfig() error {
 	}
 
 	if c.TelegrafAgentCfg.LogTarget == "file" && c.TelegrafAgentCfg.Logfile == "" {
-		c.TelegrafAgentCfg.Logfile = filepath.Join(InstallDir, "embed", "agent.log")
+		c.TelegrafAgentCfg.Logfile = filepath.Join(datakit.InstallDir, "embed", "agent.log")
 	}
 
-	if AgentLogFile != "" {
-		c.TelegrafAgentCfg.Logfile = AgentLogFile
+	if datakit.AgentLogFile != "" {
+		c.TelegrafAgentCfg.Logfile = datakit.AgentLogFile
+	}
+
+	if c.MainCfg.OutputFile != "" {
+		datakit.OutputFile = c.MainCfg.OutputFile
 	}
 
 	//如果telegraf的agent相关配置没有，则默认使用datakit的同名配置
@@ -287,7 +261,7 @@ func (c *Config) LoadMainConfig() error {
 }
 
 func CheckConfd() error {
-	dir, err := ioutil.ReadDir(ConfdDir)
+	dir, err := ioutil.ReadDir(datakit.ConfdDir)
 	if err != nil {
 		return err
 	}
@@ -350,111 +324,193 @@ func CheckConfd() error {
 			continue
 		}
 
-		checkSubDir(filepath.Join(ConfdDir, item.Name()))
+		checkSubDir(filepath.Join(datakit.ConfdDir, item.Name()))
 	}
 
-	log.Printf("inputs: %s", strings.Join(configed, ","))
-	log.Printf("error configuration: %s", strings.Join(invalids, ","))
+	fmt.Printf("inputs: %s\n", strings.Join(configed, ","))
+	fmt.Printf("error configuration: %s\n", strings.Join(invalids, ","))
 
 	return nil
 }
 
-//LoadConfig 加载conf.d下的所有配置文件
-func (c *Config) LoadConfig() error {
-
-	for name, creator := range inputs.Inputs {
-
-		if len(c.InputFilters) > 0 {
-			if !sliceContains(name, c.InputFilters) {
-				continue
-			}
+func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
+	if len(c.InputFilters) > 0 {
+		if !sliceContains(name, c.InputFilters) {
+			return nil
 		}
+	}
 
-		input := creator()
+	if name == "self" {
+		c.Inputs[name] = append(c.Inputs[name], creator())
+		return nil
+	}
 
-		var data []byte
+	dummyInput := creator()
+	path := filepath.Join(datakit.ConfdDir, dummyInput.Catalog(), fmt.Sprintf("%s.conf", name))
+	tbl, err := parseCfgFile(path)
+	if err != nil {
+		l.Errorf("[error] parse conf %s failed on [%s]: %s", path, name, err)
+		return err
+	}
 
-		if internalData, ok := inputs.InternalInputsData[name]; ok {
-			data = internalData
-		} else {
-			oldPath := filepath.Join(ConfdDir, name, fmt.Sprintf("%s.conf", name))
-			newPath := filepath.Join(ConfdDir, input.Catalog(), fmt.Sprintf("%s.conf", name))
+	if len(tbl.Fields) == 0 {
+		l.Debugf("no conf available on %s", name)
+		return nil
+	}
 
-			path := newPath
-			_, err := os.Stat(path)
-			if err != nil && os.IsNotExist(err) {
-				if _, err = os.Stat(oldPath); err == nil {
-					path = oldPath
+	for f, val := range tbl.Fields {
+		switch f {
+		case "inputs":
+			tbl_ := val.(*ast.Table)
+			for _, v := range tbl_.Fields {
+				if err := c.tryUnmarshal(v, name, creator); err != nil {
+					l.Error(err)
+					return err
 				}
 			}
 
-			data, err = ioutil.ReadFile(path)
-			if err != nil {
-				log.Printf("[error] load %s failed: %s", path, err)
+		default:
+			if err := c.tryUnmarshal(val, name, creator); err != nil {
+				l.Error(err)
 				return err
 			}
 		}
-
-		tbl, err := parseConfig(data)
-		if err != nil {
-			log.Printf("[error] parse failed: %s", err)
-			return err
-		}
-
-		if len(tbl.Fields) == 0 {
-			continue
-		}
-
-		if err := c.addInput(name, input, tbl); err != nil {
-			return err
-		}
 	}
 
-	if c.MainCfg.MaxPostInterval.Duration == 0 {
-		//默认使用最大周期
-		var maxInterval time.Duration
-		bHaveIntervalInput := false
-		for _, ri := range c.Inputs {
-			if _, ok := ri.Input.(telegraf.ServiceInput); ok {
-				continue
-			}
-			bHaveIntervalInput = true
-			if ri.Config.Interval > maxInterval {
-				maxInterval = ri.Config.Interval
-			}
-		}
+	return nil
 
-		if bHaveIntervalInput {
-			if maxInterval == 0 {
-				maxInterval = c.MainCfg.Interval.Duration
-			}
-			maxInterval += 10 * time.Second
-		}
+	//for fieldName, val := range tbl.Fields {
 
-		MaxLifeCheckInterval = maxInterval
-	} else {
-		MaxLifeCheckInterval = c.MainCfg.MaxPostInterval.Duration
-	}
+	//	if subTables, ok := val.([]*ast.Table); ok {
 
-	return LoadTelegrafConfigs(ConfdDir, c.InputFilters)
+	//		for _, t := range subTables {
+	//			input := creator()
+	//			if interval, err := c.addInput(name, input, t); err != nil {
+	//				err = fmt.Errorf("Error parsing %s, %s", name, err)
+	//				l.Errorf("%s", err)
+	//				return err
+	//			} else {
+	//				if interval > maxInterval {
+	//					maxInterval = interval
+	//				}
+	//			}
+	//		}
+
+	//	} else {
+
+	//		subTable, ok := val.(*ast.Table)
+	//		if !ok {
+	//			err = fmt.Errorf("invalid configuration, error parsing field %q as table", name)
+	//			l.Errorf("%s", err)
+	//			return err
+	//		}
+
+	//		switch fieldName {
+	//		case "inputs":
+
+	//			for pluginName, pluginVal := range subTable.Fields {
+	//				switch pluginSubTable := pluginVal.(type) {
+	//				// legacy [inputs.cpu] support
+	//				case *ast.Table:
+	//					input := creator()
+	//					if interval, err := c.addInput(name, input, pluginSubTable); err != nil {
+	//						err = fmt.Errorf("Error parsing %s, %s", name, err)
+	//						l.Errorf("%s", err)
+	//						return err
+	//					} else {
+	//						if interval > maxInterval {
+	//							maxInterval = interval
+	//						}
+	//					}
+
+	//				case []*ast.Table:
+	//					for _, t := range pluginSubTable {
+	//						input := creator()
+	//						if interval, err := c.addInput(name, input, t); err != nil {
+	//							err = fmt.Errorf("Error parsing %s, %s", name, err)
+	//							l.Errorf("%s", err)
+	//							return err
+	//						} else {
+	//							if interval > maxInterval {
+	//								maxInterval = interval
+	//							}
+	//						}
+	//					}
+
+	//				default:
+	//					l.Error("not support config type: %v", pluginSubTable)
+	//					return fmt.Errorf("Unsupported config format: %s", pluginName)
+	//				}
+	//			}
+
+	//		default:
+	//			err = fmt.Errorf("Unsupported config format: %s", fieldName)
+	//			l.Errorf("%s", err)
+	//			return err
+	//		}
+
+	//	}
+
+	//}
 }
 
-func (c *Config) DumpInputsOutputs() {
+func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) error {
+
+	tbls := []*ast.Table{}
+
+	switch tbl.(type) {
+	case []*ast.Table:
+		tbls = tbl.([]*ast.Table)
+	case *ast.Table:
+		tbls = append(tbls, tbl.(*ast.Table))
+	default:
+		return fmt.Errorf("invalid toml format on %s: %v", name, reflect.TypeOf(tbl))
+	}
+
+	for _, t := range tbls {
+		input := creator()
+
+		if err := toml.UnmarshalTable(t, input); err != nil {
+			l.Errorf("toml unmarshal %s failed: %v", name, err)
+			return err
+		}
+
+		if err := c.addInput(name, input, t); err != nil {
+			l.Error("add %s failed: %v", name, err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+// load all inputs under @InstallDir/conf.d
+func (c *Config) LoadConfig() error {
+
+	for name, creator := range inputs.Inputs {
+		if err := c.doLoadInputConf(name, creator); err != nil {
+			l.Errorf("load %s config failed: %v, ignored", name, err)
+			return err
+		}
+	}
+
+	return LoadTelegrafConfigs(datakit.ConfdDir, c.InputFilters)
+}
+
+func DumpInputsOutputs() {
 	names := []string{}
 
-	for _, p := range c.Inputs {
-		log.Printf("input %s enabled", p.Config.Name)
-		names = append(names, p.Config.Name)
+	for name := range Cfg.Inputs {
+		names = append(names, name)
 	}
 
 	for k, i := range SupportsTelegrafMetricNames {
 		if i.enabled {
-			log.Printf("telegraf input %s enabled", k)
 			names = append(names, k)
 		}
 	}
 
-	log.Printf("avariable inputs: %s", strings.Join(names, ","))
+	l.Infof("avariable inputs: %s", strings.Join(names, ","))
 }
 
 func InitCfg(dwcfg *DataWayCfg) error {
@@ -463,9 +519,9 @@ func InitCfg(dwcfg *DataWayCfg) error {
 	}
 
 	// clean all old dirs
-	os.RemoveAll(ConfdDir)
-	os.RemoveAll(DataDir)
-	os.RemoveAll(LuaDir)
+	os.RemoveAll(datakit.ConfdDir)
+	os.RemoveAll(datakit.DataDir)
+	os.RemoveAll(datakit.LuaDir)
 	return nil
 }
 
@@ -493,8 +549,8 @@ func initMainCfg(dwcfg *DataWayCfg) error {
 	return nil
 }
 
-func createPluginCfgsIfNotExists() {
-	// creata datakit input plugin's configures
+// Creata datakit input plugin's configures if not exists
+func initPluginCfgs() {
 	for name, create := range inputs.Inputs {
 		if name == "self" {
 			continue
@@ -504,24 +560,30 @@ func createPluginCfgsIfNotExists() {
 		catalog := input.Catalog()
 
 		// migrate old config to new catalog path
-		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
-		cfgpath := filepath.Join(ConfdDir, catalog, name+".conf")
+		oldCfgPath := filepath.Join(datakit.ConfdDir, name, name+".conf")
+		cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf")
 
-		log.Printf("I! check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
+		//l.Infof("check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
 
 		if _, err := os.Stat(oldCfgPath); err == nil {
 			if oldCfgPath == cfgpath {
 				continue // do nothing
 			}
 
-			log.Printf("I! migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
+			if runtime.GOOS == "windows" {
+				if strings.ToLower(oldCfgPath) == strings.ToLower(cfgpath) {
+					continue
+				}
+			}
+
+			l.Debugf("migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
 
 			if err := os.MkdirAll(filepath.Dir(cfgpath), os.ModePerm); err != nil {
-				log.Fatalf("E! create dir %s failed: %s", filepath.Dir(cfgpath), err.Error())
+				l.Fatalf("create dir %s failed: %s", filepath.Dir(cfgpath), err.Error())
 			}
 
 			if err := os.Rename(oldCfgPath, cfgpath); err != nil {
-				log.Fatalf("E! move %s -> %s failed: %s", oldCfgPath, cfgpath, err.Error())
+				l.Fatalf("move %s -> %s failed: %s", oldCfgPath, cfgpath, err.Error())
 			}
 
 			os.RemoveAll(filepath.Dir(oldCfgPath))
@@ -530,20 +592,20 @@ func createPluginCfgsIfNotExists() {
 
 		if _, err := os.Stat(cfgpath); err != nil { // file not exists
 
-			log.Printf("D! %s not exists, create it...", cfgpath)
+			l.Debugf("%s not exists, create it...", cfgpath)
 
-			log.Printf("D! create datakit conf path %s", filepath.Join(ConfdDir, catalog))
-			if err := os.MkdirAll(filepath.Join(ConfdDir, catalog), os.ModePerm); err != nil {
-				log.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
+			l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
+			if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
+				l.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
 			}
 
 			sample := input.SampleConfig()
 			if sample == "" {
-				log.Fatalf("no sample available on collector %s", name)
+				l.Fatalf("no sample available on collector %s", name)
 			}
 
 			if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
-				log.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
+				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 			}
 		}
 	}
@@ -551,19 +613,19 @@ func createPluginCfgsIfNotExists() {
 	// create telegraf input plugin's configures
 	for name, input := range SupportsTelegrafMetricNames {
 
-		cfgpath := filepath.Join(ConfdDir, input.Catalog, name+".conf")
-		oldCfgPath := filepath.Join(ConfdDir, name, name+".conf")
+		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf")
+		oldCfgPath := filepath.Join(datakit.ConfdDir, name, name+".conf")
 
-		log.Printf("check telegraf input conf %s...", name)
+		//l.Debugf("check telegraf input conf %s...", name)
 
 		if _, err := os.Stat(oldCfgPath); err == nil {
 
 			if oldCfgPath == cfgpath {
-				log.Printf("D! %s exists, skip", oldCfgPath)
+				//l.Debugf("%s exists, skip", oldCfgPath)
 				continue // do nothing
 			}
 
-			log.Printf("D! %s exists, migrate to %s", oldCfgPath, cfgpath)
+			l.Debugf("%s exists, migrate to %s", oldCfgPath, cfgpath)
 			os.Rename(oldCfgPath, cfgpath)
 			os.RemoveAll(filepath.Dir(oldCfgPath))
 			continue
@@ -571,24 +633,34 @@ func createPluginCfgsIfNotExists() {
 
 		if _, err := os.Stat(cfgpath); err != nil {
 
-			log.Printf("D! %s not exists, create it...", cfgpath)
+			l.Debugf("%s not exists, create it...", cfgpath)
 
-			log.Printf("D! create telegraf conf path %s", filepath.Join(ConfdDir, input.Catalog))
-			if err := os.MkdirAll(filepath.Join(ConfdDir, input.Catalog), os.ModePerm); err != nil {
-				log.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
+			l.Debugf("create telegraf conf path %s", filepath.Join(datakit.ConfdDir, input.Catalog))
+			if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, input.Catalog), os.ModePerm); err != nil {
+				l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
 			}
 
 			if sample, ok := telegrafCfgSamples[name]; ok {
 				if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
-					log.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
+					l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 				}
 			}
 		}
 	}
 }
 
-func parseConfig(contents []byte) (*ast.Table, error) {
-	return toml.Parse(contents)
+func parseCfgFile(f string) (*ast.Table, error) {
+	data, err := ioutil.ReadFile(f)
+	if err != nil {
+		return nil, fmt.Errorf("read config %s failed: %s", f, err.Error())
+	}
+
+	tbl, err := toml.Parse(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return tbl, nil
 }
 
 func sliceContains(name string, list []string) bool {
@@ -600,78 +672,26 @@ func sliceContains(name string, list []string) bool {
 	return false
 }
 
-func (c *Config) addInput(name string, input telegraf.Input, table *ast.Table) error {
+func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) error {
 
-	if len(c.InputFilters) > 0 && !sliceContains(name, c.InputFilters) {
-		return nil
-	}
-
-	pluginConfig, err := buildInput(name, table, input)
-	if err != nil {
-		return err
-	}
-
-	if err := toml.UnmarshalTable(table, input); err != nil {
-		return err
-	}
-
-	rp := models.NewRunningInput(input, pluginConfig)
-	rp.SetDefaultTags(c.MainCfg.GlobalTags)
-	c.Inputs = append(c.Inputs, rp)
-	return nil
-}
-
-func buildInput(name string, tbl *ast.Table, input telegraf.Input) (*models.InputConfig, error) {
-	cp := &models.InputConfig{Name: name}
-
-	if _, bsvrInput := input.(telegraf.ServiceInput); !bsvrInput {
-		if node, ok := tbl.Fields["interval"]; ok {
-			if kv, ok := node.(*ast.KeyValue); ok {
-				if str, ok := kv.Value.(*ast.String); ok {
-					dur, err := time.ParseDuration(str.Value)
-					if err != nil {
-						return nil, err
-					}
-
-					cp.Interval = dur
+	var dur time.Duration
+	var err error
+	if node, ok := table.Fields["interval"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if str, ok := kv.Value.(*ast.String); ok {
+				dur, err = time.ParseDuration(str.Value)
+				if err != nil {
+					return err
 				}
 			}
-			delete(tbl.Fields, "interval")
 		}
 	}
 
-	if node, ok := tbl.Fields["dataway_path"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-
-				log.Printf("D! dataway_path: %s", str.Value)
-
-				cp.DataWayRequestURL = fmt.Sprintf("%s://%s%s?token=%s",
-					Cfg.MainCfg.DataWay.Scheme, Cfg.MainCfg.DataWay.Host, str.Value, Cfg.MainCfg.DataWay.Token)
-			}
-		}
+	if c.MainCfg.MaxPostInterval.Duration != 0 && datakit.MaxLifeCheckInterval < dur {
+		datakit.MaxLifeCheckInterval = dur
 	}
 
-	if node, ok := tbl.Fields["output_file"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-				cp.OutputFile = str.Value
-			}
-		}
-	}
+	c.Inputs[name] = append(c.Inputs[name], input)
 
-	cp.Tags = make(map[string]string)
-	if node, ok := tbl.Fields["tags"]; ok {
-		if subtbl, ok := node.(*ast.Table); ok {
-			if err := toml.UnmarshalTable(subtbl, cp.Tags); err != nil {
-				log.Printf("E! Could not parse tags for input %s\n", name)
-			}
-		}
-	}
-
-	delete(tbl.Fields, "dataway_path")
-	delete(tbl.Fields, "output_file")
-	delete(tbl.Fields, "tags")
-
-	return cp, nil
+	return nil
 }

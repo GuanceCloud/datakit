@@ -2,107 +2,45 @@ package ucmon
 
 import (
 	"context"
-	"sync"
 
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/selfstat"
-
-	"github.com/ucloud/ucloud-sdk-go/ucloud"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type (
-	runningInstance struct {
-		cfg   *ucInstance
-		agent *ucMonitorAgent
-
-		queryInfos []*queryListInfo
-
-		//timer *time.Timer
-
-		ucCli *ucloud.Client
-
-		logger *models.Logger
-	}
-
-	ucMonitorAgent struct {
-		Instances []*ucInstance
-
-		runningInstances []*runningInstance
-
-		ctx         context.Context
-		cancelFun   context.CancelFunc
-		logger      *models.Logger
-		accumulator telegraf.Accumulator
-
-		once sync.Once
-	}
+var (
+	inputName    = `ucloud_monitor`
+	moduleLogger *logger.Logger
 )
 
-func (ag *ucMonitorAgent) Init() error {
-
-	ag.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
-		Name: `ucmon`,
-	}
-
-	return nil
-}
-
-func (_ *ucMonitorAgent) SampleConfig() string {
+func (_ *ucInstance) SampleConfig() string {
 	return sampleConfig
 }
 
-func (_ *ucMonitorAgent) Catalog() string {
+func (_ *ucInstance) Catalog() string {
 	return "ucloud"
 }
 
-func (_ *ucMonitorAgent) Description() string {
-	return ""
-}
+// func (_ *ucMonitorAgent) Description() string {
+// 	return ""
+// }
 
-func (_ *ucMonitorAgent) Gather(telegraf.Accumulator) error {
-	return nil
-}
+func (ag *ucInstance) Run() {
 
-func (ag *ucMonitorAgent) Start(acc telegraf.Accumulator) error {
+	moduleLogger = logger.SLogger(inputName)
 
-	if len(ag.Instances) == 0 {
-		ag.logger.Warnf("no configuration found")
-		return nil
-	}
+	go func() {
+		<-datakit.Exit.Wait()
+		ag.cancelFun()
+	}()
 
-	ag.logger.Info("starting...")
+	ag.run(ag.ctx)
 
-	ag.accumulator = acc
-
-	for _, c := range ag.Instances {
-		rc := &runningInstance{
-			agent:  ag,
-			cfg:    c,
-			logger: ag.logger,
-		}
-		ag.runningInstances = append(ag.runningInstances, rc)
-
-		go rc.run(ag.ctx)
-	}
-
-	return nil
-}
-
-func (ag *ucMonitorAgent) stop() {
-	ag.cancelFun()
-}
-
-func (ag *ucMonitorAgent) Stop() {
-	ag.once.Do(ag.stop)
 }
 
 func init() {
-	inputs.Add("ucloud_monitor", func() inputs.Input {
-		ac := &ucMonitorAgent{}
+	inputs.Add(inputName, func() inputs.Input {
+		ac := &ucInstance{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
 	})
