@@ -3,26 +3,27 @@ package squid
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
-	"io"
-	"log"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+type IoFeed func(data []byte, category string) error
+
 type Squid struct {
-	MetricName string `toml:"metric_name"`
-	Active     bool
-	Interval   int
-	Port       int
+	Active      bool
+	Interval    int
+	Port        int
+	MetricsName string
+	Tags        map[string]string
 }
 
 type SquidInput struct {
@@ -30,34 +31,33 @@ type SquidInput struct {
 }
 
 type SquidOutput struct {
-	acc telegraf.Accumulator
+	IoFeed
 }
 
 type SquidParam struct {
 	input  SquidInput
 	output SquidOutput
+	log    *logger.Logger
 }
-
-type SquidLogWriter struct {
-	io.Writer
-}
-
-const squidConfigSample = `### metric_name: the name of metric, default is "squid"
-### interval: monitor interval second, unit is second. The default value is 60.
-### active: whether to monitor squid.
-
-#metric_name = "squid"
-#active   = true
-#interval = 60
-#port     = 3128
-`
 
 var (
-	ctx               context.Context
-	cfun              context.CancelFunc
 	defaultMetricName = "squid"
 	defaultInterval   = 60
 	defaultPort       = 3218
+	squidConfigSample = `### interval: monitor interval second, unit is second. The default value is 60.
+### active: whether to monitor squid.
+### metricsName: the name of metric, default is "squid"
+
+#[inputs.squid]
+#	active   = true
+#	interval = 60
+#	port     = 3128
+#	metricsName = "squid"
+#	[inputs.squid.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
+`
 )
 
 func (s *Squid) Catalog() string {
@@ -72,75 +72,70 @@ func (s *Squid) Description() string {
 	return "Monitor Squid Service Status"
 }
 
-func (s *Squid) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (s *Squid) Start(acc telegraf.Accumulator) error {
-	log.Printf("I! [squid] start")
-	ctx, cfun = context.WithCancel(context.Background())
+func (s *Squid) Run() {
+	if !s.Active {
+		return
+	}
+	if s.MetricsName == "" {
+		s.MetricsName = defaultMetricName
+	}
+	if s.Interval == 0 {
+		s.Interval = defaultInterval
+	}
+	if s.Port == 0 {
+		s.Port = defaultPort
+	}
 
 	input := SquidInput{*s}
-	if input.Active == false {
-		return nil
-	}
-	if input.MetricName == "" {
-		input.MetricName = defaultMetricName
-	}
-	if input.Interval == 0 {
-		input.Interval = defaultInterval
-	}
-	if input.Port == 0 {
-		input.Port = defaultPort
-	}
-	output := SquidOutput{acc}
-	p := &SquidParam{input, output}
-	go p.gather(ctx)
+	output := SquidOutput{io.Feed}
+	p := &SquidParam{input, output, logger.SLogger("squid")}
 
-	return nil
+	p.log.Info("squid input started...")
+	p.gather()
 }
 
-func (s *Squid) Stop() {
-	cfun()
-}
+func (p *SquidParam) gather() {
+	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
+	defer tick.Stop()
 
-func (p *SquidParam) gather(ctx context.Context) {
 	for {
 		select {
-		case <-ctx.Done():
+		case <-tick.C:
+			err := p.getMetrics()
+			if err != nil {
+				p.log.Errorf("getMetrics err: %s", err.Error())
+			}
+		case <-datakit.Exit.Wait():
+			p.log.Info("input squid exit")
 			return
-		default:
-		}
-
-		err := p.getMetrics()
-		if err != nil {
-			log.Printf("W! [squid] %s", err.Error())
-		}
-
-		err = internal.SleepContext(ctx, time.Duration(p.input.Interval)*time.Second)
-		if err != nil {
-			log.Printf("W! [squid] %s", err.Error())
 		}
 	}
 }
 
-func (p *SquidParam) getMetrics() error {
+func (p *SquidParam) getMetrics() (err error) {
 	var outInfo bytes.Buffer
+
 	tags := make(map[string]string)
+	for tag, tagV := range p.input.Tags {
+		tags[tag] = tagV
+	}
+
 	fields := make(map[string]interface{})
 	fields["can_connect"] = true
 
 	reg := regexp.MustCompile(" = \\d{1,}\\.{0,1}\\d{0,}$")
 	portStr := fmt.Sprintf("%d", p.input.Port)
+
 	cmd := exec.Command("squidclient", "-p", portStr, "mgr:counters")
 	cmd.Stdout = &outInfo
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		fields["can_connect"] = false
-		fmt.Printf("Err: %s\n", err.Error())
-		p.output.acc.AddFields(p.input.MetricName, fields, tags)
-		return err
+		pt, _ := io.MakeMetric(p.input.Squid.MetricsName, tags, fields, time.Now())
+		p.output.IoFeed(pt, io.Metric)
+		return
 	}
+
 	s := bufio.NewScanner(strings.NewReader(outInfo.String()))
 	for s.Scan() {
 		str := s.Text()
@@ -164,8 +159,13 @@ func (p *SquidParam) getMetrics() error {
 		}
 	}
 
-	p.output.acc.AddFields(p.input.MetricName, fields, tags)
-	return nil
+	pt, err := io.MakeMetric(p.input.Squid.MetricsName, tags, fields, time.Now())
+	if err != nil {
+		return
+	}
+
+	err = p.output.IoFeed(pt, io.Metric)
+	return
 }
 
 func init() {

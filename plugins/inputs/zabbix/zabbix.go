@@ -1,61 +1,48 @@
 package zabbix
 
 import (
-	"context"
-	"io"
-	"log"
+	"os"
+	"sync"
 	"path/filepath"
-	"reflect"
 
-	"github.com/influxdata/telegraf"
-	zlog "github.com/siddontang/go-log/log"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	zabbixConfigSample = `
+#[[inputs.zabbix]]
+#  active        = false
+#  dbType        = "mysql"
+#  dbAddress     = "zabbix:zabbix@tcp(127.0.0.1:3306)/zabbix"
+#  startdate     = "2020-01-01T00:00:00"
+#  hoursperbatch = 720
+#  interval      = 15
+#  registry      = "influxdb-zabbix"
+#  [inputs.zabbix.tags]
+#    tag1 = "tag1"
+#    tag2 = "tag2"
+#    tag3 = "tag3"
+`)
+
 var (
-	pluginName   = "zabbix"
-	registryPath string
-	mapTables    = make(MapTable)
-	zabbix       *Zabbix
-	stopChan     chan bool
+	defaultDataDir   = "data"
+	defaultZabbixDir = "zabbix"
+	defaultStartDate = "2019-12-02T00:00:00"
+	locker sync.Mutex
 )
 
-type zabbixLogWriter struct {
-	io.Writer
-}
-
-type Zabix struct {
-	Address string
-}
-
-type Table struct {
-	Name               string
-	Active             bool
-	Interval           int
-	Startdate          string
-	Hoursperbatch      int
-	Outputrowsperbatch int
-}
-type RegistryName struct {
-	FileName string
-}
-
-//type Polling struct {
-//	Interval        int `toml:"interval"`
-//	IntervalIfError int `toml:"intervaliferror"`
-//}
-
 type Zabbix struct {
-	//Polling  Polling           `toml:"polling"`
-	Zabbix   map[string]*Zabix `toml:"zabbix"`
-	Tables   map[string]*Table `toml:"tables"`
-	Registry RegistryName
-
-	ctx  context.Context
-	cfun context.CancelFunc
-	acc  telegraf.Accumulator
+	Active        bool
+	DbType        string
+	DbAddress     string
+	Startdate     string
+	Hoursperbatch int
+	Interval      int
+	Registry      string
+	Tags          map[string]string
 }
 
 func (z *Zabbix) Catalog() string {
@@ -66,74 +53,62 @@ func (z *Zabbix) SampleConfig() string {
 	return zabbixConfigSample
 }
 
-func (z *Zabbix) Description() string {
-	return "Convert Zabbix Database to Dataway"
-}
-
-func (z *Zabbix) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (z *Zabbix) globalInit() {
-	zabbix = z
-	stopChan = make(chan bool, len(z.Tables))
-	registryPath = filepath.Join(config.InstallDir, "data", pluginName, z.Registry.FileName)
-
-	ReadRegistry(registryPath, &mapTables)
-}
-
-func (z *Zabbix) Start(acc telegraf.Accumulator) error {
-	z.globalInit()
-	setupLogger()
-
-	var provider string = (reflect.ValueOf(zabbix.Zabbix).MapKeys())[0].String()
-	var address string = zabbix.Zabbix[provider].Address
-
-	if provider == "mysql" {
-		address += "?sql_mode='PIPES_AS_CONCAT'"
+func (z *Zabbix) Run() {
+	if !z.Active {
+		return
 	}
 
-	log.Printf("I! [Zabbix] start")
+	regPath := filepath.Join(datakit.InstallDir, defaultDataDir, defaultZabbixDir, z.Registry)
+	z.Registry = regPath
 
-	for _, table := range zabbix.Tables {
-		if table.Active {
-			input := ZabbixInput{
-				provider,
-				address,
-				table.Name,
-				table.Interval,
-				table.Hoursperbatch}
-
-			output := ZabbixOutput{
-				z.ctx,
-				z.cfun,
-				acc}
-
-			p := &ZabbixParam{input, output}
-			go p.gather()
-		}
+	if z.DbType == "mysql" {
+		z.DbAddress += "?sql_mode='PIPES_AS_CONCAT'"
 	}
 
-	return nil
+	input := ZabbixInput{*z}
+	output := ZabbixOutput{io.Feed}
+	p := &ZabbixParam{input, output, logger.SLogger("zabbix")}
+	p.log.Info("yarn zabbix started...")
+	p.mkZabbixDataDir()
+	go p.gather()
 }
 
-func (z *Zabbix) Stop() {
-	for range z.Tables {
-		stopChan <- true
+func (p *ZabbixParam) mkZabbixDataDir() {
+	dataDir := filepath.Join(datakit.InstallDir, defaultDataDir)
+	zabbixDir := filepath.Join(dataDir, defaultZabbixDir)
+
+	if !PathExists(dataDir) {
+		return
+	}
+	if PathExists(zabbixDir) {
+		return
+	}
+
+	locker.Lock()
+	defer locker.Unlock()
+	if PathExists(zabbixDir) {
+		return
+	}
+
+	err := os.MkdirAll(zabbixDir, 0666)
+	if err != nil {
+		p.log.Error("Mkdir zabbix err: %s", err.Error())
 	}
 }
-
-func setupLogger() {
-	loghandler, _ := zlog.NewStreamHandler(&zabbixLogWriter{})
-	zlogger := zlog.New(loghandler, 0)
-	zlog.SetLevel(zlog.LevelDebug)
-	zlog.SetDefaultLogger(zlogger)
+func PathExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return false
 }
 
 func init() {
-	inputs.Add(pluginName, func() inputs.Input {
+	inputs.Add("zabbix", func() inputs.Input {
 		z := &Zabbix{}
-		z.ctx, z.cfun = context.WithCancel(context.Background())
 		return z
 	})
 }
