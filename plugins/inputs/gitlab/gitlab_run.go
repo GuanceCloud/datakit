@@ -1,60 +1,70 @@
 package gitlab
 
 import (
-	"fmt"
-	"log"
+	"io/ioutil"
 	"time"
 
 	"github.com/xanzy/go-gitlab"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-func (t *GitlabTarget) active() {
-	foundPBM := make(map[string]bool)
+func (g *GitlabParam) gather() {
+	var start, stop time.Time
+	client, err := gitlab.NewClient(g.input.Token, gitlab.WithBaseURL(g.input.Host))
+	if err != nil {
+		g.log.Errorf("NewClient err: %s", err.Error())
+		return
+	}
+
+	foundPBM := make(map[interface{}]map[string]bool)
+	ticker := time.NewTicker(time.Duration(g.input.Interval) * time.Second)
+	defer ticker.Stop()
+
+	ticker1 := time.NewTicker(time.Duration(10) * time.Minute)
+	defer ticker1.Stop()
+
+	err = g.input.getProjectAndBranch(client, foundPBM)
+	if err != nil {
+		g.log.Errorf("getProjectAndBranch err: %s", err.Error())
+	}
+
+	start = g.getStartDate()
+
 	for {
 		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
+		case <-ticker1.C:
+			err := g.input.getProjectAndBranch(client, foundPBM)
+			if err != nil {
+				g.log.Errorf("getProjectAndBranch err: %s", err.Error())
+			}
 
-		pB, err := t.getProjectAndBranch()
-		if err != nil {
-			log.Printf("W! [gitlab] %s", err.Error())
-			continue
-		}
-
-		for p, bs := range pB {
-			for _, b := range bs {
-				key := genPBkey(t.Host, p, b)
-				if _, ok := foundPBM[key]; !ok {
-					foundPBM[key] = true
-					input := GitlabInput{
-						GitlabTarget: *t,
-						MetricName:   metricName,
+		case <-ticker.C:
+			stop = g.getStopDate(start)
+			g.log.Debugf("| %v -> %v | %v", start.Format(time.RFC3339), stop.Format(time.RFC3339), foundPBM)
+			for p, pj := range foundPBM {
+				for b, _ := range pj {
+					param := *g
+					param.input.Project = p
+					param.input.Branch = b
+					err = param.getCommitMetrics(client, start, stop)
+					if err != nil {
+						g.log.Errorf("getCommitMetrics err: %s", err.Error())
 					}
-					input.Project = p
-					input.Branch = b
-
-					output := GitlabOutput{acc}
-					p := GitlabParam{input, output}
-					go p.gather()
 				}
 			}
+			start = stop
+			g.updateTimeFile(stop)
+
+		case <-datakit.Exit.Wait():
+			g.log.Info("input gitlab exit")
+			return
 		}
-		internal.SleepContext(ctx, time.Duration(5)*time.Minute)
 	}
 }
 
-func (t *GitlabTarget) getProjectAndBranch() (map[interface{}][]string, error) {
-	pBM := make(map[interface{}][]string)
-
-	client, err := gitlab.NewClient(t.Token, gitlab.WithBaseURL(t.Host))
-	if err != nil {
-		return nil, err
-	}
-
+func (t *GitlabInput) getProjectAndBranch(client *gitlab.Client, pBM map[interface{}]map[string]bool) error {
 	if t.Project == nil {
 		listOps := gitlab.ListProjectsOptions{}
 		nextPage := 1
@@ -64,7 +74,7 @@ func (t *GitlabTarget) getProjectAndBranch() (map[interface{}][]string, error) {
 			listOps.Page = nextPage
 			ps, resp, _ := client.Projects.ListProjects(&listOps)
 			for _, p := range ps {
-				pBM[p.ID] = make([]string, 0)
+				pBM[p.ID] = make(map[string]bool)
 			}
 			nextPage = resp.NextPage
 			if nextPage == 0 {
@@ -72,7 +82,7 @@ func (t *GitlabTarget) getProjectAndBranch() (map[interface{}][]string, error) {
 			}
 		}
 	} else {
-		pBM[t.Project] = make([]string, 0)
+		pBM[t.Project] = make(map[string]bool)
 	}
 
 	for p, _ := range pBM {
@@ -81,17 +91,18 @@ func (t *GitlabTarget) getProjectAndBranch() (map[interface{}][]string, error) {
 			if err != nil {
 				continue
 			}
-			pBM[p] = append(pBM[p], bs...)
+			for _, b := range bs {
+				pBM[p][b] = true
+			}
 		} else {
-			pBM[p] = append(pBM[p], t.Branch)
+			pBM[p][t.Branch] = true
 		}
 	}
 
-	return pBM, nil
-
+	return nil
 }
 
-func (t *GitlabTarget) getBranchsByProject(client *gitlab.Client, project interface{}) ([]string, error) {
+func (t *GitlabInput) getBranchsByProject(client *gitlab.Client, project interface{}) ([]string, error) {
 	bs := make([]string, 0)
 	nextPage := 1
 
@@ -113,56 +124,18 @@ func (t *GitlabTarget) getBranchsByProject(client *gitlab.Client, project interf
 			break
 		}
 	}
+
 	return bs, nil
 }
 
-func (p *GitlabParam) gather() {
-	var stopTime time.Time
-	var startTime time.Time
-
-	startTime = p.getCommitStartDate()
-	key := genPBkey(p.input.Host, p.input.Project, p.input.Branch)
-	client, err := gitlab.NewClient(p.input.Token, gitlab.WithBaseURL(p.input.Host))
-	if err != nil {
-		log.Printf("W! [gitlab] %s", err.Error())
-		return
-	}
+func (p *GitlabParam) getCommitMetrics(client *gitlab.Client, start time.Time, stop time.Time) error {
+	var tags map[string]string
+	var fields map[string]interface{}
 
 	pj, _, err := client.Projects.GetProject(p.input.Project, &gitlab.GetProjectOptions{})
 	if err != nil {
-		log.Printf("W! [gitlab] %s", err.Error())
-		return
+		return err
 	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		stopTime = getCommitStopDate(startTime, p.input.HoursBatch)
-		err := p.getCommitMetrics(client, pj.Name, startTime, stopTime)
-		if err != nil {
-			if err != nil {
-				log.Printf("W! [gitlab] %s", err.Error())
-			}
-		} else {
-			updatePBT(key, stopTime)
-			startTime = stopTime
-		}
-
-		err = internal.SleepContext(ctx, time.Duration(p.input.Interval)*time.Second)
-		if err != nil {
-			log.Printf("W! [gitlab] %s", err.Error())
-		}
-
-	}
-}
-
-func (p *GitlabParam) getCommitMetrics(client *gitlab.Client, pjName string, start time.Time, stop time.Time) error {
-	var tags map[string]string
-	var fields map[string]interface{}
 
 	nextPage := 1
 	listOps := gitlab.ListCommitsOptions{}
@@ -179,11 +152,14 @@ func (p *GitlabParam) getCommitMetrics(client *gitlab.Client, pjName string, sta
 		}
 		for _, commit := range commits {
 			tags = make(map[string]string)
+			for tag, tagV := range p.input.Tags {
+				tags[tag] = tagV
+			}
 			fields = make(map[string]interface{})
 
 			tags["host"] = p.input.Host
 			tags["branch"] = p.input.Branch
-			tags["project_name"] = pjName
+			tags["project_name"] = pj.Name
 			tags["author_name"] = commit.AuthorName
 			tags["author_email"] = commit.AuthorEmail
 			tags["comitter_name"] = commit.CommitterName
@@ -193,8 +169,16 @@ func (p *GitlabParam) getCommitMetrics(client *gitlab.Client, pjName string, sta
 			fields["title"] = commit.Title
 			fields["message"] = commit.Message
 
-			p.output.acc.AddFields(p.input.MetricName, fields, tags, *commit.CreatedAt)
+			pts, err := io.MakeMetric(p.input.MetricsName, tags, fields, *commit.CreatedAt)
+			if err != nil {
+				return err
+			}
 
+			err = p.output.IoFeed(pts, io.Metric)
+			p.log.Debugf(string(pts))
+			if err != nil {
+				return err
+			}
 		}
 		nextPage = resp.NextPage
 		if nextPage == 0 {
@@ -204,12 +188,16 @@ func (p *GitlabParam) getCommitMetrics(client *gitlab.Client, pjName string, sta
 	return nil
 }
 
-func (p *GitlabParam) getCommitStartDate() time.Time {
-	key := genPBkey(p.input.Host, p.input.Project, p.input.Branch)
+func (p *GitlabParam) getStartDate() time.Time {
+	var err error
+	var t time.Time
 
-	t, err := getPBT(key)
-	if err == nil {
-		return t
+	content, err := ioutil.ReadFile(p.input.jsFile)
+	if err != nil {
+		t, err = parseTimeStr(string(content))
+		if err == nil {
+			return t
+		}
 	}
 
 	t, err = parseTimeStr(p.input.StartDate)
@@ -221,17 +209,29 @@ func (p *GitlabParam) getCommitStartDate() time.Time {
 	return t
 }
 
-func genPBkey(host string, project interface{}, branch string) string {
-	return fmt.Sprintf("%v_%v_%v", host, project, branch)
-}
-
-func getCommitStopDate(s time.Time, hoursBatch int) time.Time {
+func (p *GitlabParam) getStopDate(s time.Time) time.Time {
 	var stopTime time.Time
 	now := time.Now()
 
-	stopTime = s.Add(time.Duration(hoursBatch) * time.Hour)
+	stopTime = s.Add(time.Duration(p.input.HoursBatch) * time.Hour)
 	if stopTime.After(now) {
 		return now
 	}
 	return stopTime
+}
+
+func parseTimeStr(timeStr string) (time.Time, error) {
+	startTime, err := time.Parse("2006-01-02T15:04:05", timeStr)
+	if err != nil {
+		startTime, err = time.Parse(time.RFC3339, timeStr)
+		if err != nil {
+			return startTime, err
+		}
+	}
+	return startTime, nil
+}
+
+func (p *GitlabParam) updateTimeFile(stop time.Time) {
+	tStr := stop.Format("2006-01-02T15:04:05")
+	ioutil.WriteFile(p.input.jsFile, []byte(tStr), 0x666)
 }
