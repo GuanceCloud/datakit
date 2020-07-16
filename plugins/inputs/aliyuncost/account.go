@@ -7,19 +7,19 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 type CostAccount struct {
 	interval        time.Duration
 	name            string
 	runningInstance *runningInstance
-	logger          *models.Logger
+	logger          *logger.Logger
 }
 
 func NewCostAccount(cfg *CostCfg, ri *runningInstance) *CostAccount {
@@ -28,9 +28,7 @@ func NewCostAccount(cfg *CostCfg, ri *runningInstance) *CostAccount {
 		interval:        cfg.AccountInterval.Duration,
 		runningInstance: ri,
 	}
-	c.logger = &models.Logger{
-		Name: `aliyuncost:account`,
-	}
+	c.logger = logger.SLogger(`aliyuncost:account`)
 	return c
 }
 
@@ -290,9 +288,7 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 			ca.logger.Warnf("fail to parse time:%v %s, error: %s", item.TransactionTime, item.RecordID, err)
 		} else {
 			tm = tm.Add(-8 * time.Hour) //返回的不是unix时间字符串
-			if ca.runningInstance.agent.accumulator != nil {
-				ca.runningInstance.agent.accumulator.AddFields(ca.getName(), fields, tags, tm)
-			}
+			io.FeedEx(io.Metric, ca.getName(), tags, fields, tm)
 		}
 	}
 
