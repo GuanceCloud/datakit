@@ -1,12 +1,10 @@
 package hostobject
 
 const (
-	inputName = "host"
+	inputName = "hostobject"
 
 	sampleConfig = `
-# ##(required) dataway的地址
-#dataway_path='/v1/write/object'
-
+#[inputs.hostobject]
 # ##(optional) 默认使用host name
 #name = ''
 
@@ -17,7 +15,7 @@ const (
 #interval = '3m'
 
 # ##(optional) 自定义tags
-#[tags]
+#[inputs.hostobject.tags]
 # key1 = 'val1'
 `
 )
