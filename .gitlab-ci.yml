@@ -15,17 +15,19 @@ stages:
 build-dev:
   stage: deploy
   only:
-    - CI
+    - dev
   script:
     - make test
     - make pub_test
+    - make preprod
+    - make pub_preprod
   tags:
     - cloudcare-ft
 
 build-release:
   stage: deploy
   only:
-    - release
+    - master
   script:
     - make release
     - make pub_release
