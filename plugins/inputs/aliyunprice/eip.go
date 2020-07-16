@@ -12,7 +12,7 @@ import (
 const (
 	eipSampleConfig = `
 # ##弹性公网IP
-#[[eip]]
+#[[inputs.aliyunprice.eip]]
 
 # ##(optional) 自定义指标集名称，默认使用 aliyun_price
 #metric_name = ''
