@@ -1,73 +1,64 @@
 package statsd
 
 import (
-	"context"
-	"io"
-	"log"
 	"regexp"
 
-	"github.com/influxdata/telegraf"
-	sdlog "github.com/siddontang/go-log/log"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type Target struct {
-	Interval int
-	Active   bool
-	Host     string
-}
+type IoFeed func(data []byte, category string) error
 
 type StatsD struct {
-	MetricName string `toml:"metric_name"`
-	Targets    []Target
+	Interval    int
+	Active      bool
+	Host        string
+	MetricsName string
+	Tags        map[string]string
 }
 
 type StatsdInput struct {
-	MetricName string
-	Interval   int
-	Host       string
+	StatsD
 }
 
 type StatsdOutput struct {
-	acc telegraf.Accumulator
+	IoFeed
 }
 
 type StatsdParams struct {
 	input  StatsdInput
 	output StatsdOutput
+	log    *logger.Logger
 }
-
-type sdLogWriter struct {
-	io.Writer
-}
-
-const statsdConfigSample = `### metric_name: the name of metric, default is "statsd".
-### You need to configure an [[targets]] for each statsd service to be monitored.
-### interval: monitor interval second, unit is second. The default value is 60.
-### active: whether to monitor statsd.
-### host: statsd service ip:port, if "127.0.0.1", default port is 8126.
-
-#metric_name="statsd"
-#[[targets]]
-#	interval = 60
-#	active   = true
-#	host     = "127.0.0.1:8126"
-
-#[[targets]]
-#	interval = 60
-#	active   = true
-#	host     = "127.0.0.1:8126"
-`
 
 var (
-	ctx           context.Context
-	cfun          context.CancelFunc
-	activeTargets = 0
-	stopChan      chan bool
-)
+	statsdConfigSample = `### You need to configure an [[inputs.statsd]] for each statsd service to be monitored.
+### active: whether to monitor statsd.
+### interval: monitor interval second, unit is second. The default value is 60.
+### host: statsd service ip:port, if "127.0.0.1", default port is 8126.
+### metricsName: the name of metric, default is "statsd"
 
-const (
+#[[inputs.statsd]]
+#	active      = true
+#	interval    = 60
+#	host        = "127.0.0.1:8126"
+#	metricsName = "statsd"
+#	[inputs.statsd.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
+
+#[[inputs.statsd]]
+#	active      = true
+#	interval    = 60
+#	host        = "127.0.0.1:8126"
+#	metricsName = "statsd"
+#	[inputs.statsd.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
+`
 	defaultMetricName = "statsd"
 	defaultInterval   = 60
 )
@@ -80,69 +71,30 @@ func (t *StatsD) SampleConfig() string {
 	return statsdConfigSample
 }
 
-func (t *StatsD) Description() string {
-	return "Monitor StatsD Service"
-}
+func (t *StatsD) Run() {
+	if !t.Active || t.Host == "" {
+		return
+	}
 
-func (t *StatsD) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (t *StatsD) Start(acc telegraf.Accumulator) error {
-	setupLogger()
 	reg, _ := regexp.Compile(`:\d{1,5}$`)
-	log.Printf("I! [statsd] start")
-	ctx, cfun = context.WithCancel(context.Background())
 
-	if t.MetricName == "" {
-		t.MetricName = defaultMetricName
+	if t.MetricsName == "" {
+		t.MetricsName = defaultMetricName
 	}
 
-	activeCnt := 0
-	for _, target := range t.Targets {
-		if target.Active == false || target.Host == "" {
-			continue
-		}
-
-		input := StatsdInput{
-			t.MetricName,
-			target.Interval,
-			target.Host,
-		}
-
-		if input.Interval <= 0 {
-			input.Interval = defaultInterval
-		}
-
-		if !reg.MatchString(target.Host) {
-			target.Host += ":8126"
-		}
-
-		output := StatsdOutput{acc}
-
-		p := StatsdParams{input, output}
-		go p.gather(ctx)
-
-		activeCnt += 1
+	if t.Interval <= 0 {
+		t.Interval = defaultInterval
 	}
 
-	activeTargets = activeCnt
-	stopChan = make(chan bool, activeTargets)
-	return nil
-}
-
-func (t *StatsD) Stop() {
-	for i := 0; i < activeTargets; i++ {
-		stopChan <- true
+	if !reg.MatchString(t.Host) {
+		t.Host += ":8126"
 	}
-	cfun()
-}
 
-func setupLogger() {
-	loghandler, _ := sdlog.NewStreamHandler(&sdLogWriter{})
-	sdlogger := sdlog.New(loghandler, 0)
-	sdlog.SetLevel(sdlog.LevelDebug)
-	sdlog.SetDefaultLogger(sdlogger)
+	input := StatsdInput{*t}
+	output := StatsdOutput{io.Feed}
+	p := StatsdParams{input, output, logger.SLogger("statsd")}
+	p.log.Info("statsd input started...")
+	p.gather()
 }
 
 func init() {

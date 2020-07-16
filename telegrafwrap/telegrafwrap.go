@@ -1,104 +1,96 @@
 package telegrafwrap
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"syscall"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 )
 
 type TelegrafSvr struct {
 	Cfg *config.Config
 }
 
-const (
-	agentSubDir = "embed"
-)
-
 var (
-	Svr = &TelegrafSvr{}
-
-	agentPID int = -1
+	Svr          = &TelegrafSvr{}
+	l            *logger.Logger
+	telegrafConf string
 )
 
-func (s *TelegrafSvr) Start(ctx context.Context) error {
+func (s *TelegrafSvr) Start() error {
 
-	telegrafCfg, err := config.GenerateTelegrafConfig(s.Cfg)
-	if err == config.ErrConfigNotFound {
-		log.Printf("no need to start sub service")
+	l = logger.SLogger("telegrafwrap")
+
+	telegrafConf = filepath.Join(datakit.TelegrafDir, "agent.conf")
+
+	conf, err := config.GenerateTelegrafConfig(s.Cfg)
+	switch err {
+	case nil:
+	case config.ErrConfigNotFound:
+		l.Info("no need to start sub service")
 		return nil
-	}
-
-	if err != nil {
+	default:
 		return fmt.Errorf("fail to generate sub service config, %s", err)
 	}
 
-	agentCfgFile := s.agentConfPath(false)
-
-	if err = ioutil.WriteFile(agentCfgFile, []byte(telegrafCfg), 0664); err != nil {
+	if err = ioutil.WriteFile(telegrafConf, []byte(conf), 0664); err != nil {
 		return fmt.Errorf("fail to create file, %s", err.Error())
 	}
 
-	log.Printf("starting sub service...")
+	l.Info("starting telegraf...")
 
-	if err := s.startAgent(ctx); err != nil {
+	proc, err := s.startAgent()
+	if err != nil {
+		l.Error(err)
 		return err
 	}
 
-	//检查telegraf是否被kill掉或崩溃
-	go func(ctx context.Context) {
+	tick := time.NewTicker(time.Second)
+	defer tick.Stop()
+	for {
+		select {
+		case <-tick.C:
+			p, err := os.FindProcess(proc.Pid)
+			if err != nil {
+				l.Error(err)
+				continue
+			}
 
-		for {
-
-			internal.SleepContext(ctx, 3*time.Second)
-
-			select {
-			case <-ctx.Done():
-				return
+			switch runtime.GOOS {
+			case "windows":
+				// on windows, if os.FindProcess() ok, means the process is running
+				l.Debugf("telegraf on PID %d ok", proc.Pid)
 			default:
+				if err := p.Signal(syscall.Signal(0)); err != nil {
+					l.Errorf("signal 0 to telegraf failed: %s", err)
+				}
 			}
 
-			ps, err := os.FindProcess(agentPID)
-			if err != nil || ps == nil {
-				log.Printf("W! sub service(%v) not found: %s", agentPID, err)
+		case <-datakit.Exit.Wait():
+			l.Info("exit, killing telegraf...")
+			if err := proc.Kill(); err != nil { // XXX: should we wait here?
+				l.Warnf("killing telegraf failed: %s, ignored", err)
 			}
+
+			l.Infof("killing telegraf (PID: %d) ok", proc.Pid)
+			return nil
 		}
-	}(ctx)
-
-	return nil
+	}
 }
 
-func (s *TelegrafSvr) StopAgent() error {
-
-	if agentPID <= 0 {
-		return nil
-	}
-
-	log.Printf("stopping sub service %v...", agentPID)
-
-	if err := KillProcess(agentPID); err != nil {
-		log.Printf("E! fail to stop sub service, %s", err)
-		return err
-	} else {
-		log.Printf("sub service stopped successfully")
-	}
-
-	return nil
-}
-
-func (s *TelegrafSvr) startAgent(ctx context.Context) error {
+func (s *TelegrafSvr) startAgent() (*os.Process, error) {
 
 	env := os.Environ()
 	if runtime.GOOS == "windows" {
-		env = append(env, fmt.Sprintf(`TELEGRAF_CONFIG_PATH=%s`, s.agentConfPath(false)))
+		env = append(env, fmt.Sprintf(`TELEGRAF_CONFIG_PATH=%s`, telegrafConf))
 	}
 	procAttr := &os.ProcAttr{
 		Env: env,
@@ -120,39 +112,24 @@ func (s *TelegrafSvr) startAgent(ctx context.Context) error {
 		cmd.Stderr = os.Stderr
 
 		if err := cmd.Start(); err != nil {
-			return err
+			return nil, err
 		}
 		p = cmd.Process
 
 	} else {
-		p, err = os.StartProcess(agentPath(), []string{"agent", "-config", s.agentConfPath(false)}, procAttr)
+		p, err = os.StartProcess(agentPath(), []string{"agent", "-config", telegrafConf}, procAttr)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	if p != nil {
-		agentPID = p.Pid
-		log.Printf("agent start on %d", agentPID)
-	}
-
+	l.Infof("telegraf PID: %d", p.Pid)
 	time.Sleep(time.Millisecond * 20)
-
-	return nil
-}
-
-func (s *TelegrafSvr) agentConfPath(quote bool) string {
-	os.MkdirAll(filepath.Join(config.InstallDir, agentSubDir), 0775)
-	path := filepath.Join(config.InstallDir, agentSubDir, "agent.conf")
-
-	if quote {
-		return fmt.Sprintf(`"%s"`, path)
-	}
-	return path
+	return p, nil
 }
 
 func agentPath() string {
-	fpath := filepath.Join(config.InstallDir, agentSubDir, runtime.GOOS+"-"+runtime.GOARCH, "agent")
+	fpath := filepath.Join(datakit.TelegrafDir, runtime.GOOS+"-"+runtime.GOARCH, "agent")
 	if runtime.GOOS == "windows" {
 		fpath = fpath + ".exe"
 	}
