@@ -266,7 +266,7 @@ func doFlush(bodies [][]byte, url string) error {
 
 	req.Header.Set("X-Datakit-UUID", config.Cfg.MainCfg.UUID)
 	req.Header.Set("X-Version", git.Version)
-	req.Header.Set("X-Version", datakit.DKUserAgent)
+	req.Header.Set("User-Agent", datakit.DKUserAgent)
 	if gzOn {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
