@@ -12,7 +12,7 @@ import (
 const (
 	slbSampleConfig = `
 # ##负载均衡
-#[[slb]]
+#[[inputs.aliyunprice.slb]]
 
 # ##(optional) 自定义指标集名称，默认使用 aliyun_price
 #metric_name = ''

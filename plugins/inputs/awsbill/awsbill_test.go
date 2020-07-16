@@ -75,16 +75,12 @@ func getCloudwatchClient() *cloudwatch.CloudWatch {
 }
 
 func TestConfig(t *testing.T) {
-	ag := &AwsBillAgent{
-		AwsInstances: []*AwsInstance{
-			&AwsInstance{
-				AccessKey:    "xxx",
-				AccessSecret: "xxx",
-				AccessToken:  "xxx",
-				RegionID:     "xxx",
-				MetricName:   "xxx",
-			},
-		},
+	ag := &AwsInstance{
+		AccessKey:    "xxx",
+		AccessSecret: "xxx",
+		AccessToken:  "xxx",
+		RegionID:     "xxx",
+		MetricName:   "xxx",
 	}
 
 	if data, err := toml.Marshal(ag); err != nil {
