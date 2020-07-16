@@ -84,13 +84,16 @@ Uploader:         %s
 			collectors[cat] = append(collectors[cat], k)
 		}
 
+		ndatakit := 0
 		for k, vs := range collectors {
 			fmt.Println(k)
 			for _, v := range vs {
 				fmt.Printf("  |--[d] %s\n", v)
+				ndatakit++
 			}
 		}
 
+		nagent := 0
 		collectors = map[string][]string{}
 		for k, v := range config.SupportsTelegrafMetricNames {
 			collectors[v.Catalog] = append(collectors[v.Catalog], k)
@@ -100,8 +103,12 @@ Uploader:         %s
 			fmt.Println(k)
 			for _, v := range vs {
 				fmt.Printf("  |--[t] %s\n", v)
+				nagent++
 			}
 		}
+
+		fmt.Println("===================================")
+		fmt.Printf("total: %d, datakit: %d, agent: %d\n", ndatakit+nagent, ndatakit, nagent)
 
 		os.Exit(0)
 	}
