@@ -31,15 +31,16 @@ ENTRY = cmd/datakit/main.go
 # Solution:
 # > apt-get install gcc-multilib
 # 
-#LOCAL_ARCHS = "linux/amd64" 
-LOCAL_ARCHS = "all"
+LOCAL_ARCHS = "linux/amd64" 
+#LOCAL_ARCHS = "all"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
-DATE := $(shell date +'%Y-%m-%d %H:%M:%S')
+DATE := $(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION := $(shell go version)
 COMMIT := $(shell git rev-parse --short HEAD)
-UPLOADER:= ${USER}
+BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+UPLOADER:= $(shell hostname)/${USER}
 
 ###################################
 # Detect telegraf update info
@@ -59,7 +60,7 @@ define build
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p build $(PUB_DIR)/$(1)
 	@mkdir -p git
-	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Sha1 string="$(COMMIT)"; Uploader string="$(UPLOADER)");' > git/git.go
+	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Commit string="$(COMMIT)"; Branch string="$(BRANCH)"; Uploader string="$(UPLOADER)");' > git/git.go
 	GO111MODULE=off go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
 	tree -Csh -L 4 build pub
