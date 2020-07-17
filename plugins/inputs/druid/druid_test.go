@@ -2,7 +2,7 @@ package druid
 
 import "testing"
 
-func TestStart(t *testing.T) {
+func TestExtract(t *testing.T) {
 
 	const data = `
 [
@@ -49,6 +49,7 @@ func TestStart(t *testing.T) {
 ]
 `
 
+	testAssert = true
 	t.Logf("%v\n", extract([]byte(data)))
 
 }
