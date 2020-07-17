@@ -67,12 +67,14 @@ func main() {
 func applyFlags() {
 
 	if *flagVersion {
-		fmt.Printf(`Version:        %s
-Sha1:           %s
-Build At:       %s
+		fmt.Printf(`
+       Version: %s
+        Commit: %s
+        Branch: %s
+ Build At(UTC): %s
 Golang Version: %s
-Uploader:         %s
-`, git.Version, git.Sha1, git.BuildAt, git.Golang, git.Uploader)
+      Uploader: %s
+`, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader)
 		os.Exit(0)
 	}
 
