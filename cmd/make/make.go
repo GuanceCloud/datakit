@@ -114,8 +114,11 @@ var (
 
 type versionDesc struct {
 	Version  string `json:"version"`
-	Date     string `json:"date"`
+	Date     string `json:"date_utc"`
 	Uploader string `json:"uploader"`
+	Branch   string `json:"branch"`
+	Commit   string `json:"commit"`
+	Go       string `json:"go"`
 }
 
 func (vd *versionDesc) withoutGitCommit() string {
@@ -650,9 +653,12 @@ func main() {
 		Version:  strings.TrimSpace(git.Version),
 		Date:     git.BuildAt,
 		Uploader: git.Uploader,
+		Branch:   git.Branch,
+		Commit:   git.Commit,
+		Go:       git.Golang,
 	}
 
-	versionInfo, err := json.Marshal(vd)
+	versionInfo, err := json.MarshalIndent(vd, "", "    ")
 	if err != nil {
 		l.Fatal(err)
 	}
