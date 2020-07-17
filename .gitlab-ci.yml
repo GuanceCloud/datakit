@@ -13,10 +13,12 @@ stages:
 build-dev:
   stage: deploy
   only:
-    - CI
+    - dev
   script:
-    - make local
-    - make pub_local
+    - make test
+    - make pub_test
+    - make preprod
+    - make pub_preprod
   tags:
     - cloudcare-ft
 
