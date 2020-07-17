@@ -8,7 +8,7 @@ import time
 
 listen = '[::]:4321'
 listen = 'unix:///tmp/x.sock'
-listen = 'unix:///usr/local/cloudcare/DataFlux/datakit/datakit.sock'
+listen = 'unix:///usr/local/cloudcare/dataflux/datakit/datakit.sock'
 
 def simpleRPC():
     chan = grpc.insecure_channel(listen)
