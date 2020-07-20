@@ -76,7 +76,7 @@ type RunningBinloger struct {
 func (rb *RunningBinloger) run(ctx context.Context) error {
 
 	if err := recover(); err != nil {
-		rb.binlog.logger.Errorf("panic, %s", err)
+		moduleLogger.Errorf("panic, %s", err)
 	}
 
 	rb.tables = make(map[string]*schema.Table)
@@ -87,7 +87,7 @@ func (rb *RunningBinloger) run(ctx context.Context) error {
 	var err error
 
 	if err = rb.prepareSyncer(); err != nil {
-		rb.binlog.logger.Errorf("prepareSyncer error, %s", err)
+		moduleLogger.Errorf("prepareSyncer error, %s", err)
 		return err
 	}
 
@@ -117,15 +117,15 @@ func (rb *RunningBinloger) run(ctx context.Context) error {
 
 	rb.master.UpdateTimestamp(uint32(time.Now().Unix()))
 	if err = rb.getMasterStatus(rb.master); err != nil {
-		rb.binlog.logger.Errorf("check if mysql binlog enabled?")
+		moduleLogger.Errorf("check if mysql binlog enabled?")
 		return err
 	}
 
-	rb.binlog.logger.Infof("check requirments ok")
+	moduleLogger.Infof("check requirments ok")
 
 	if err := rb.doSync(ctx); err != nil {
 		if err != context.Canceled && errors.Cause(err) != context.Canceled {
-			rb.binlog.logger.Errorf("sync err: %s", err)
+			moduleLogger.Errorf("sync err: %s", err)
 			return err
 		}
 	}
@@ -211,7 +211,7 @@ func (rb *RunningBinloger) checkBinlogRowImage(image string) error {
 	// now only log
 	if rb.cfg.Flavor == mysql.MySQLFlavor {
 		if res, err := rb.Execute(`SHOW GLOBAL VARIABLES LIKE "binlog_row_image"`); err != nil {
-			rb.binlog.logger.Errorf("fail to get binlog_row_image, %s", err)
+			moduleLogger.Errorf("fail to get binlog_row_image, %s", err)
 			return err
 		} else {
 			// MySQL has binlog row image from 5.6, so older will return empty
@@ -236,10 +236,10 @@ func (rb *RunningBinloger) checkBinlogRowFormat() error {
 		return err
 	}
 
-	rb.binlog.logger.Debugf("row format: %s", rowFormat)
+	moduleLogger.Debugf("row format: %s", rowFormat)
 
 	if rowFormat != "ROW" {
-		rb.binlog.logger.Errorf("binlog_row_format should be ROW")
+		moduleLogger.Errorf("binlog_row_format should be ROW")
 		return fmt.Errorf("binlog_row_format should be ROW")
 	}
 
@@ -261,12 +261,12 @@ func (rb *RunningBinloger) GetMasterPos() (mysql.Position, error) {
 func (rb *RunningBinloger) checkMysqlVersion() error {
 	es, err := rb.Execute(`SELECT version();`)
 	if err != nil {
-		rb.binlog.logger.Errorf("fail to execute 'SELECT version();', %s", err)
+		moduleLogger.Errorf("fail to execute 'SELECT version();', %s", err)
 		return err
 	}
 
 	ver, _ := es.GetString(0, 0)
-	rb.binlog.logger.Debugf("mysql server version: %s", ver)
+	moduleLogger.Debugf("mysql server version: %s", ver)
 	if strings.Contains(strings.ToLower(ver), "maria") {
 		rb.cfg.Flavor = "mariadb"
 	}
@@ -387,7 +387,7 @@ func (rb *RunningBinloger) getTable(db string, table string) (*schema.Table, *Da
 	if err != nil {
 		// check table not exists
 		if ok, err1 := schema.IsTableExist(rb, db, table); err1 == nil && !ok {
-			rb.binlog.logger.Errorf("table %s.%s not exists, %s", db, table, err1)
+			moduleLogger.Errorf("table %s.%s not exists, %s", db, table, err1)
 			return nil, nil, schema.ErrTableNotExist
 		}
 		// work around : RDS HAHeartBeat
@@ -418,14 +418,14 @@ func (rb *RunningBinloger) getTable(db string, table string) (*schema.Table, *Da
 			// log error and return ErrMissingTableMeta
 			return nil, nil, schema.ErrMissingTableMeta
 		}
-		rb.binlog.logger.Errorf("get table meta failed: %s", err)
+		moduleLogger.Errorf("get table meta failed: %s", err)
 		return nil, nil, err
 	} else {
 		cols := []string{}
 		for _, cl := range t.Columns {
 			cols = append(cols, fmt.Sprintf("%s(%s)", cl.Name, cl.RawType))
 		}
-		rb.binlog.logger.Debugf("table info %s.%s: %s", db, table, strings.Join(cols, " - "))
+		moduleLogger.Debugf("table info %s.%s: %s", db, table, strings.Join(cols, " - "))
 	}
 
 	rb.tableLock.Lock()

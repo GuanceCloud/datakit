@@ -12,10 +12,9 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
-
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -30,12 +29,13 @@ var (
 	flagDownloadAddr = flag.String("download-addr", "", "")
 	flagPubDir       = flag.String("pub-dir", "pub", "")
 	flagArchs        = flag.String("archs", "linux/amd64", "os archs")
-	flagRelease      = flag.String(`release`, ``, `build for local/test/alpha/preprod/release`)
-	flagPub          = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/alpha/release/preprod`)
+	flagRelease      = flag.String(`release`, ``, `build for local/test/preprod/release`)
+	flagPub          = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/release/preprod`)
+	flagPubAgent     = flag.Bool("pub-agent", false, `publish telegraf`)
 
 	installerExe string
 
-	l *zap.SugaredLogger
+	l *logger.Logger
 
 	/* Use:
 			go tool dist list
@@ -114,8 +114,11 @@ var (
 
 type versionDesc struct {
 	Version  string `json:"version"`
-	Date     string `json:"date"`
+	Date     string `json:"date_utc"`
 	Uploader string `json:"uploader"`
+	Branch   string `json:"branch"`
+	Commit   string `json:"commit"`
+	Go       string `json:"go"`
 }
 
 func (vd *versionDesc) withoutGitCommit() string {
@@ -158,7 +161,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"CGO_ENABLED=0",
 	}
 
-	l.Debugf("building % 13s, envs: %v.", fmt.Sprintf("%s-%s", goos, goarch), env)
+	l.Debugf("building %s, envs: %v", fmt.Sprintf("%s-%s/%s", goos, goarch, bin), env)
 	msg, err := runEnv(args, env)
 	if err != nil {
 		l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
@@ -213,7 +216,7 @@ func compile() {
 		buildInstaller(filepath.Join(*flagPubDir, *flagRelease), goos, goarch)
 	}
 
-	l.Infof("build elapsed %v", time.Since(start))
+	l.Infof("Done!(elapsed %v)", time.Since(start))
 }
 
 type installInfo struct {
@@ -251,12 +254,13 @@ func getCurrentVersionInfo(url string) *versionDesc {
 }
 
 func releaseAgent() {
+	start := time.Now()
 	var ak, sk, bucket, ossHost string
 	objPath := *flagName
 
 	// 在你本地设置好这些 oss-key 环境变量
 	switch *flagRelease {
-	case `test`, `local`, `release`:
+	case `test`, `local`, `release`, `preprod`:
 		tag := strings.ToUpper(*flagRelease)
 		ak = os.Getenv(tag + "_OSS_ACCESS_KEY")
 		sk = os.Getenv(tag + "_OSS_SECRET_KEY")
@@ -373,70 +377,16 @@ func releaseAgent() {
 		}
 	}
 
-	l.Info("Done :)")
-}
-
-func main() {
-
-	var err error
-
-	logger.SetGlobalRootLogger("",
-		logger.DEBUG,
-		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
-
-	l = logger.SLogger("make")
-
-	flag.Parse()
-
-	if *flagPub {
-		releaseAgent()
-		return
-	}
-
-	// create version info
-	vd := &versionDesc{
-		Version:  strings.TrimSpace(git.Version),
-		Date:     git.BuildAt,
-		Uploader: git.Uploader,
-	}
-
-	versionInfo, err := json.Marshal(vd)
-	if err != nil {
-		l.Fatal(err)
-	}
-
-	if err := ioutil.WriteFile(path.Join(*flagPubDir, *flagRelease, "version"), versionInfo, 0666); err != nil {
-		l.Fatal(err)
-	}
-
-	os.RemoveAll(*flagBuildDir)
-	_ = os.MkdirAll(*flagBuildDir, os.ModePerm)
-	compile()
+	l.Infof("Done!(elapsed: %v)", time.Since(start))
 }
 
 func tarFiles(goos, goarch string) {
-
-	var telegrafPath string
-
-	suffix := goos + "-" + goarch
-
-	switch suffix {
-	case `freebsd-386`, `freebsd-amd64`,
-		`linux-386`, `linux-amd64`,
-		`linux-arm`, `linux-arm64`,
-		`darwin-amd64`:
-		telegrafPath = path.Join("embed", suffix, "agent")
-
-	case `windows-amd64`, `windows-386`:
-		telegrafPath = path.Join("embed", suffix, "agent.exe")
-	}
 
 	gz := path.Join(*flagPubDir, *flagRelease, fmt.Sprintf("%s-%s-%s-%s.tar.gz",
 		*flagName, goos, goarch, git.Version))
 	args := []string{
 		`czf`,
 		gz,
-		telegrafPath,
 		`-C`,
 		// the whole build/datakit-<goos>-<goarch> dir
 		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s-%s", *flagName, goos, goarch)), `.`,
@@ -498,7 +448,7 @@ var (
 				`windows/amd64`: true,
 				`windows/386`:   true,
 			},
-			buildArgs: []string{"plugins/external/csv/build.sh"},
+			buildArgs: []string{"plugins/externals/csv/build.sh"},
 			buildCmd:  "bash",
 		},
 
@@ -507,12 +457,19 @@ var (
 )
 
 func buildExternals(outdir, goos, goarch string) {
+	curOSArch := runtime.GOOS + "/" + runtime.GOARCH
+
 	for _, ex := range externals {
-		l.Debugf("build %s/%s %s to %s...", goos, goarch, ex.name, outdir)
+		l.Debugf("building %s-%s/%s", goos, goarch, ex.name)
+
+		if _, ok := ex.osarchs[curOSArch]; !ok {
+			l.Warnf("skip build %s under %s", ex.name, curOSArch)
+			return
+		}
 
 		osarch := goos + "/" + goarch
 		if _, ok := ex.osarchs[osarch]; !ok {
-			l.Debugf("skip build %s under %s", ex.name, osarch)
+			l.Warnf("skip build %s under %s", ex.name, osarch)
 			return
 		}
 
@@ -529,21 +486,21 @@ func buildExternals(outdir, goos, goarch string) {
 
 			args := []string{
 				"go", "build",
-				"-o", filepath.Join(outdir, "external", out),
+				"-o", filepath.Join(outdir, "externals", out),
 				"-ldflags",
 				"-w -s",
-				filepath.Join("plugins/external", ex.name, ex.entry),
+				filepath.Join("plugins/externals", ex.name, ex.entry),
 			}
 
 			env := append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
 
 			msg, err := runEnv(args, env)
 			if err != nil {
-				l.Errorf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 			}
 
 		case "python", "py": // for python, just copy source code into build dir
-			args := append(ex.buildArgs, filepath.Join(outdir, "external"))
+			args := append(ex.buildArgs, filepath.Join(outdir, "externals"))
 			cmd := exec.Command(ex.buildCmd, args...)
 			if ex.envs != nil {
 				cmd.Env = append(os.Environ(), ex.envs...)
@@ -558,22 +515,20 @@ func buildExternals(outdir, goos, goarch string) {
 			// TODO
 
 		default:
-			l.Fatalf("unknown external lang type: %s", ex.lang)
+			l.Fatalf("unknown external language type: %s", ex.lang)
 		}
 	}
 }
 
 func buildInstaller(outdir, goos, goarch string) {
 
-	l.Debugf("build %s/%s installer to %s...", goos, goarch, outdir)
-
-	gzName := fmt.Sprintf("%s-%s-%s.tar.gz", *flagName, goos+"-"+goarch, git.Version)
+	l.Debugf("building %s-%s/installer...", goos, goarch)
 
 	args := []string{
 		"go", "build",
 		"-o", filepath.Join(outdir, installerExe),
 		"-ldflags",
-		fmt.Sprintf("-w -s -X main.DataKitGzipUrl=https://%s/%s", *flagDownloadAddr, gzName),
+		fmt.Sprintf("-w -s -X main.DataKitBaseUrl=%s -X main.DataKitVersion=%s", *flagDownloadAddr, git.Version),
 		"cmd/installer/installer.go",
 	}
 
@@ -586,4 +541,133 @@ func buildInstaller(outdir, goos, goarch string) {
 	if err != nil {
 		l.Errorf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 	}
+}
+
+func pubAgent() {
+
+	var archs []string
+	if *flagArchs == "all" {
+		archs = OSArches
+	} else {
+		archs = strings.Split(*flagArchs, "|")
+	}
+
+	start := time.Now()
+	var ak, sk, bucket, ossHost string
+	objPath := "datakit/telegraf"
+
+	// 在你本地设置好这些 oss-key 环境变量
+	switch *flagRelease {
+	case `test`, `local`, `release`, `preprod`:
+		tag := strings.ToUpper(*flagRelease)
+		ak = os.Getenv(tag + "_OSS_ACCESS_KEY")
+		sk = os.Getenv(tag + "_OSS_SECRET_KEY")
+		bucket = os.Getenv(tag + "_OSS_BUCKET")
+		ossHost = os.Getenv(tag + "_OSS_HOST")
+	default:
+		l.Fatalf("unknown release type: %s", *flagRelease)
+	}
+
+	if ak == "" || sk == "" {
+		l.Fatalf("oss access key or secret key missing, tag=%s", strings.ToUpper(*flagRelease))
+	}
+
+	oc := &cliutils.OssCli{
+		Host:       ossHost,
+		PartSize:   128 * 1024 * 1024,
+		AccessKey:  ak,
+		SecretKey:  sk,
+		BucketName: bucket,
+		WorkDir:    objPath,
+	}
+
+	if err := oc.Init(); err != nil {
+		l.Fatal(err)
+	}
+
+	ossfiles := map[string]string{}
+	for _, arch := range archs {
+		parts := strings.Split(arch, "/")
+		relPath := fmt.Sprintf("%s-%s/agent", parts[0], parts[1])
+
+		switch parts[0] {
+		case "windows":
+			relPath += ".exe"
+		default: // pass
+		}
+
+		gz := fmt.Sprintf("agent-%s-%s.tar.gz", parts[0], parts[1])
+
+		cmd := exec.Command("tar", []string{"czf",
+			path.Join(*flagPubDir, gz),
+			path.Join(*flagPubDir, relPath)}...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			l.Fatal(err)
+		}
+
+		ossfiles[path.Join(*flagPubDir, gz)] = path.Join(objPath, gz)
+	}
+
+	for k, _ := range ossfiles {
+		if _, err := os.Stat(k); err != nil {
+			l.Fatal(err)
+		}
+	}
+
+	for k, v := range ossfiles {
+		l.Debugf("upload %s -> %s.%s...", k, bucket, path.Join(ossHost, v))
+		if err := oc.Upload(k, v); err != nil {
+			l.Fatal(err)
+		}
+	}
+
+	l.Infof("Done!(elapsed: %v)", time.Since(start))
+}
+
+func main() {
+
+	var err error
+
+	logger.SetGlobalRootLogger("",
+		logger.DEBUG,
+		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER|logger.OPT_COLOR)
+
+	l = logger.SLogger("make")
+
+	flag.Parse()
+
+	if *flagPubAgent {
+		pubAgent()
+		return
+	}
+
+	if *flagPub {
+		releaseAgent()
+		return
+	}
+
+	// create version info
+	vd := &versionDesc{
+		Version:  strings.TrimSpace(git.Version),
+		Date:     git.BuildAt,
+		Uploader: git.Uploader,
+		Branch:   git.Branch,
+		Commit:   git.Commit,
+		Go:       git.Golang,
+	}
+
+	versionInfo, err := json.MarshalIndent(vd, "", "    ")
+	if err != nil {
+		l.Fatal(err)
+	}
+
+	if err := ioutil.WriteFile(path.Join(*flagPubDir, *flagRelease, "version"), versionInfo, 0666); err != nil {
+		l.Fatal(err)
+	}
+
+	os.RemoveAll(*flagBuildDir)
+	_ = os.MkdirAll(*flagBuildDir, os.ModePerm)
+	compile()
 }

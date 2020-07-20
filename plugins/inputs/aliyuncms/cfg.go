@@ -1,6 +1,7 @@
 package aliyuncms
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -14,71 +15,64 @@ import (
 
 const (
 	aliyuncmsConfigSample = `
-# ## [[cms]] 块可以有多个， 每个 [[cms]] 块代表一个账号.
-#[[cms]]
+#[[inputs.cms]]
 
- # ##(required) 阿里云API访问 access key及区域， 至少拥有 "只读访问云监控（CloudMonitor）"的权限.
+ # ##(required)
  #access_key_id = ''
  #access_key_secret = ''
  #region_id = 'cn-hangzhou'
 
- # ##(optional) 阿里云临时安全令牌（Security Token Service，STS）
+ # ##(optional)（Security Token Service，STS）
  #security_token = ''
 
- # ##(optional) 全局的采集间隔，每个指标可以单独配置，默认5分钟.
+ # ##(optional) global collect interval, default is 5min.
  #interval = '5m'
 
- # ##(optional) 阿里云监控项数据可能在当前采集时间点之后才可用，配置此项用于获取该延迟时间段的数据，如果设置为0可能导致数据不完整.  
- # ## 不同的指标可能有不同的延迟时间, 默认为5分钟, 你可以根据使用中的实际采集情况调整该值.
+ # ##(optional) delay collect duration
  #delay = '5m'
 
- #[cms.tags]
+ #[inputs.cms.tags]
  #key1 = "val1"
  #key2 = "val2"
 
- # ##(required) [[cms.project]] 块可以有多个，每个代表一个云产品.
- #[[cms.project]]
-  #	##(required) 云产品命名空间，可参考: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.6.690.9dbe5679uFUe3w
+ # ##(required)
+ #[[inputs.cms.project]]
+  #	##(required) product namespace
   #name='acs_ecs_dashboard'
 
-  # ##(optional) 可设置指标集名称，默认使用"aliyuncms_<name>"
+  # ##(optional) custom metric name，default is "aliyuncms_<name>"
   #metric_name=''
 
-  # ##(required) 配置采集指标
-  #[cms.project.metrics]
+  # ##(required)
+  #[inputs.cms.project.metrics]
 
-   # ##(required) 指定采集当前产品下的哪些指标
-   # ## 每个产品支持的指标可参考: See: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.2.11.6ac47694AjhHt4
+   # ##(required)
+   # ## names of metrics
    #names = [
    #	'CPUUtilization',
    #]
 
-   # ##(optional) 定义每个指标的采集行为
-   #[[cms.project.metrics.property]]
+   # ##(optional)
+   #[[inputs.cms.project.metrics.property]]
 
-	# ##(required) 指定设置哪个指标的属性, 必须在上面配置的指标名列表中, 否则忽略.
-	# ## 可以使用 * 来配置当前project下所有指标的采集行为.
+	# ##(required) you can use * to apply to all metrics of this project
 	#name = "CPUUtilization"
 	
-	# ##(optional) 指标采样周期, 单位为秒.
-	# ## 指标项的Period可参考: See: https://help.aliyun.com/document_detail/28619.html?spm=a2c4g.11186623.2.11.6ac47694AjhHt4
-	# ## 如果没有配置或配置了不支持的period，默认会使用该监控项支持的最低采样周期(一般为60s).
+	# ##(optional) you may specify period of this metric
 	#period = 60
 
-	# ##(optional) 可单独配置指标的采集间隔, 没有则使用全局配置
+	# ##(optional) collect interval of thie metric
 	#interval = '5m'
 
-	# ##(optional) 配置采集维度, 是一个key-value列表的json字符串.
-	# ##维度map，用于查询指定资源的监控数据. 格式为key-value键值对形式的集合，常用的key-value集合为instanceId：XXXXXX.key和value的长度为1~64个字节，超过64个字节时截取前64字节.
-	# ##如果某个维度不在指标的支持范围内, 则被忽略.
+	# ##(optional) collect filter, a json string
 	#dimensions = '''
     #  [
     #	{"instanceId":"i-bp15wj5w33t8vf******"}
     #	]
 	#	'''
 	
-	# ##(optional) 可对每个指标自定义tag，比如用于标识用户信息。
-	#[cms.project.metrics.property.tags]
+	# ##(optional) custom tags
+	#[inputs.cms.project.metrics.property.tags]
 	#key1 = "val1"
 	#key2 = "val2"
 `
@@ -130,6 +124,9 @@ type (
 		Delay           internal.Duration `toml:"delay"`
 		Project         []*Project        `toml:"project"`
 		Tags            map[string]string `toml:"tags,omitempty"`
+
+		ctx       context.Context
+		cancelFun context.CancelFunc
 	}
 
 	MetricMeta struct {
