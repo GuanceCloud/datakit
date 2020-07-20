@@ -23,6 +23,7 @@ import (
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/harborMonitor"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpstat"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jira"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/lighttpd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mock"
@@ -49,7 +50,6 @@ import (
 	// 32bit disabled, only 64 bit available
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/csv"
-	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpstat"
 	// 32bit disabled, only 64 bit available
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
