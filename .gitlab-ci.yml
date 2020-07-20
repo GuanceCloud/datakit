@@ -3,7 +3,6 @@ before_script:
   - mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - cp -r ./. /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - export GO111MODULE=off
   - source ~/.ossenv
 
 variables:
@@ -15,17 +14,19 @@ stages:
 build-dev:
   stage: deploy
   only:
-    - CI
+    - dev
   script:
     - make test
     - make pub_test
+    - make preprod
+    - make pub_preprod
   tags:
     - cloudcare-ft
 
 build-release:
   stage: deploy
   only:
-    - release
+    - master
   script:
     - make release
     - make pub_release
