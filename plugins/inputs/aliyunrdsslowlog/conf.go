@@ -1,6 +1,6 @@
 package aliyunrdsslowlog
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+import "github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
 
 const (
 	configSample = `
@@ -19,11 +19,12 @@ const (
 `
 )
 
-type RDSslowlog struct {
-	RegionID        string            `toml:"region"`
-	AccessKeyID     string            `toml:"accessKeyId"`
-	AccessKeySecret string            `toml:"accessKeySecret"`
-	Product         []string          `toml:"product"`
-	Interval        internal.Duration `toml:"interval"`
-	MetricName      string            `toml:"metricName"`
+type AliyunRDS struct {
+	RegionID        string   `toml:"region"`
+	AccessKeyID     string   `toml:"accessKeyId"`
+	AccessKeySecret string   `toml:"accessKeySecret"`
+	Product         []string `toml:"product"`
+	Interval        string   `toml:"interval"`
+	MetricName      string   `toml:"metricName"`
+	client          *rds.Client
 }

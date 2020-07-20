@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/siddontang/go-mysql/schema"
-
 	"github.com/siddontang/go-mysql/mysql"
 	"github.com/siddontang/go-mysql/replication"
+	"github.com/siddontang/go-mysql/schema"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 type EventHandler interface {
@@ -68,7 +69,7 @@ func (rb *RunningBinloger) convertValue(v interface{}, col *schema.TableColumn, 
 		}
 	case schema.TYPE_FLOAT, schema.TYPE_DECIMAL:
 		if v == nil {
-			rb.binlog.logger.Warnf("null value of field %s, use default", col.Name)
+			moduleLogger.Warnf("null value of field %s, use default", col.Name)
 			if forTag {
 				return fmt.Sprintf("%v", rb.binlog.NullFloat)
 			}
@@ -82,11 +83,11 @@ func (rb *RunningBinloger) convertValue(v interface{}, col *schema.TableColumn, 
 		if err == nil {
 			return fv
 		} else {
-			rb.binlog.logger.Errorf("convert to float64 failed, %s", err)
+			moduleLogger.Errorf("convert to float64 failed, %s", err)
 		}
 	case schema.TYPE_NUMBER, schema.TYPE_MEDIUM_INT, schema.TYPE_BIT:
 		if v == nil {
-			rb.binlog.logger.Warnf("null value of field %s, use default", col.Name)
+			moduleLogger.Warnf("null value of field %s, use default", col.Name)
 			if forTag {
 				return fmt.Sprintf("%v", rb.binlog.NullInt)
 			}
@@ -100,7 +101,7 @@ func (rb *RunningBinloger) convertValue(v interface{}, col *schema.TableColumn, 
 		if err == nil {
 			return nv
 		} else {
-			rb.binlog.logger.Errorf("convert to integer failed, %s", err)
+			moduleLogger.Errorf("convert to integer failed, %s", err)
 		}
 		// if strings.HasPrefix(strings.ToLower(col.col.RawType), "bool") {
 		// 	if bv, err := strconv.Atoi(fmt.Sprintf("%v", row[col.index])); err == nil {
@@ -160,11 +161,11 @@ func (rb *RunningBinloger) convertValue(v interface{}, col *schema.TableColumn, 
 
 func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 
-	h.rb.binlog.logger.Debugf("eventAction: %s, eventType: %v", e.Action, e.Header.EventType)
+	moduleLogger.Debugf("eventAction: %s, eventType: %v", e.Action, e.Header.EventType)
 
 	defer func() {
 		if err := recover(); err != nil {
-			h.rb.binlog.logger.Errorf("panic %v", err)
+			moduleLogger.Errorf("panic %v", err)
 		}
 	}()
 
@@ -189,13 +190,13 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 		}
 
 		if targetTable == nil {
-			h.rb.binlog.logger.Debugf("no match table of %s", e.Table.Name)
+			moduleLogger.Debugf("no match table of %s", e.Table.Name)
 			return nil
 		}
 
 		for _, le := range targetTable.ExcludeListenEvents {
 			if le == e.Action {
-				h.rb.binlog.logger.Debugf("action [%s] is excluded", e.Action)
+				moduleLogger.Debugf("action [%s] is excluded", e.Action)
 				return nil
 			}
 		}
@@ -248,7 +249,7 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 					}
 				}
 				if !bhave {
-					h.rb.binlog.logger.Warnf("field %s not exist in table %s.%s", f, e.Table.Schema, e.Table.Name)
+					moduleLogger.Warnf("field %s not exist in table %s.%s", f, e.Table.Schema, e.Table.Name)
 				}
 			}
 
@@ -265,7 +266,7 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 					}
 				}
 				if !bhave {
-					h.rb.binlog.logger.Warnf("tag %s not exist in table %s.%s", t, e.Table.Schema, e.Table.Name)
+					moduleLogger.Warnf("tag %s not exist in table %s.%s", t, e.Table.Schema, e.Table.Name)
 				}
 			}
 		}
@@ -286,7 +287,7 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 			for _, col := range tagCols {
 
 				if col.index >= len(row) {
-					h.rb.binlog.logger.Warnf("index of %s is %d, but row length=%d", col.col.Name, col.index, len(row))
+					moduleLogger.Warnf("index of %s is %d, but row length=%d", col.col.Name, col.index, len(row))
 					continue
 				}
 				if e.checkIgnoreColumn(col.col) {
@@ -311,7 +312,7 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 				}
 
 				if col.index >= len(row) {
-					h.rb.binlog.logger.Warnf("index of field:%s is %d, but row length=%d", col.col.Name, col.index, len(row))
+					moduleLogger.Warnf("index of field:%s is %d, but row length=%d", col.col.Name, col.index, len(row))
 					continue
 				}
 				k := col.col.Name
@@ -325,20 +326,17 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 			for fn, fv := range fields {
 				finalFields = append(finalFields, fmt.Sprintf("%s=%v(%s)", fn, fv, reflect.TypeOf(fv)))
 			}
-			h.rb.binlog.logger.Debugf("finalFields: %s", strings.Join(finalFields, ","))
+			moduleLogger.Debugf("finalFields: %s", strings.Join(finalFields, ","))
 
 			var evtime time.Time
 			if e.Header.Timestamp == 0 {
-				h.rb.binlog.logger.Warnf("event time is zero")
+				moduleLogger.Warnf("event time is zero")
 				evtime = time.Now()
 			} else {
 				evtime = time.Unix(int64(e.Header.Timestamp), 0)
 			}
-			if h.rb.binlog.accumulator != nil {
-				if len(fields) > 0 {
-					h.rb.binlog.accumulator.AddFields(measureName, fields, tags, evtime)
-				}
-			}
+
+			io.FeedEx(io.Metric, measureName, tags, fields, evtime)
 		}
 
 	}
