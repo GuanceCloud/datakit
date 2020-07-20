@@ -8,6 +8,9 @@ RELEASE_DOWNLOAD_ADDR = zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.
 # 测试环境
 TEST_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit
 
+# 预发环境
+PRE_DOWNLOAD_ADDR = zhuyun-static-files-preprod.oss-cn-hangzhou.aliyuncs.com/datakit
+
 # 本地环境
 LOCAL_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit
 
@@ -16,15 +19,28 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-LOCAL_ARCHS = "linux/amd64|linux/386|windows/amd64"
+# Failed to build oraclemonitor:
+# 
+# > # runtime/cgo
+# > In file included from _cgo_export.c:3:0:
+# > /usr/include/stdlib.h:25:10: fatal error: bits/libc-header-start.h: No such file or directory
+# > #include <bits/libc-header-start.h>
+# >         ^~~~~~~~~~~~~~~~~~~~~~~~~~
+# > compilation terminated.
+#
+# Solution:
+# > apt-get install gcc-multilib
+# 
+LOCAL_ARCHS = "linux/amd64" 
 #LOCAL_ARCHS = "all"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
-DATE := $(shell date +'%Y-%m-%d %H:%M:%S')
+DATE := $(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION := $(shell go version)
 COMMIT := $(shell git rev-parse --short HEAD)
-UPLOADER:= ${USER}
+BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+UPLOADER:= $(shell hostname)/${USER}
 
 ###################################
 # Detect telegraf update info
@@ -44,26 +60,29 @@ define build
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p build $(PUB_DIR)/$(1)
 	@mkdir -p git
-	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Sha1 string="$(COMMIT)"; Uploader string="$(UPLOADER)");' > git/git.go
-	@go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
+	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Commit string="$(COMMIT)"; Branch string="$(BRANCH)"; Uploader string="$(UPLOADER)");' > git/git.go
+	GO111MODULE=off go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
 	tree -Csh -L 4 build pub
 endef
 
 define pub
 	echo "publish $(1) $(NAME) ..."
-	go run cmd/make/make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
+	GO111MODULE=off go run cmd/make/make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
 endef
 
 check:
-	@golangci-lint run --timeout 1h # https://golangci-lint.run/usage/install/#local-installation
 	@go vet ./...
+	#@golangci-lint run --timeout 1h # https://golangci-lint.run/usage/install/#local-installation
 
 local:
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
 test:
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
+
+preprod:
+	$(call build,preprod, $(DEFAULT_ARCHS), $(PRE_DOWNLOAD_ADDR))
 
 release:
 	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
@@ -74,6 +93,15 @@ pub_local:
 pub_test:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
+pub_agent:
+	@go run cmd/make/make.go -pub-agent -release local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
+	@go run cmd/make/make.go -pub-agent -release test -pub-dir embed -download-addr $(TEST_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
+	@go run cmd/make/make.go -pub-agent -release preprod -pub-dir embed -download-addr $(PRE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
+	@go run cmd/make/make.go -pub-agent -release release -pub-dir embed -download-addr $(RELEASE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
+
+pub_preprod:
+	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
@@ -82,15 +110,15 @@ pub_image:
 	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
 
 define build_agent
-	rm -rf telegraf
-	git submodule add -f https://github.com/influxdata/telegraf.git
+	git rm -rf telegraf
+	- git submodule add -f https://github.com/influxdata/telegraf.git
 
 	@echo "==== build telegraf... ===="
 	cd telegraf && go mod download
 
 	# Linux
-	cd telegraf && GOOS=linux   GOARCH=amd64   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-amd64/agent     ./cmd/telegraf
-	cd telegraf && GOOS=linux   GOARCH=386     GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-386/agent       ./cmd/telegraf
+	cd telegraf && GOOS=linux   GOARCH=amd64   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-amd64/agent    ./cmd/telegraf
+	cd telegraf && GOOS=linux   GOARCH=386     GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-386/agent      ./cmd/telegraf
 	#cd telegraf && GOOS=linux  GOARCH=s390x   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-s390x/agent    ./cmd/telegraf
 	#cd telegraf && GOOS=linux  GOARCH=ppc64le GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-ppc64le/agent  ./cmd/telegraf
 	cd telegraf && GOOS=linux   GOARCH=arm     GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm/agent      ./cmd/telegraf
