@@ -6,7 +6,6 @@ import (
 	"log"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
@@ -451,7 +450,6 @@ func TestSvr(t *testing.T) {
 		log.Fatalf("%s", err)
 	}
 
-	ag.Start(nil)
+	ag.Run()
 
-	time.Sleep(time.Hour)
 }

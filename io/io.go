@@ -2,12 +2,14 @@ package io
 
 import (
 	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
-	"go.uber.org/zap"
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
@@ -18,13 +20,14 @@ import (
 
 var (
 	input   chan *iodata
-	l       *zap.SugaredLogger
+	l       *logger.Logger
 	baseURL string
 
 	httpCli      *http.Client
 	categoryURLs map[string]string
 
-	inited = false
+	outputFile     *os.File
+	outputFileSize int64
 )
 
 const ( // categories
@@ -56,26 +59,63 @@ func Feed(data []byte, category string) error {
 		return fmt.Errorf("invalid category %s", category)
 	}
 
-	input <- &iodata{
+	select {
+	case input <- &iodata{
 		category: category,
 		data:     data,
-	} // XXX: blocking
+	}: // XXX: blocking
+
+	case <-datakit.Exit.Wait():
+		l.Warn("feed skipped on global exit")
+	}
 
 	return nil
 }
 
-// there is more than 1 service under io module, we should init some data before these services starting
-func Init() {
-	l = logger.SLogger("io")
-	inited = true
+func FeedEx(catagory string, name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+	data, err := MakeMetric(name, tags, fields, t...)
+	if err != nil {
+		return err
+	}
+	return Feed(data, catagory)
 }
 
-func Start() {
-
-	if !inited {
-		panic(initErr)
+func MakeMetric(name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) ([]byte, error) {
+	var tm time.Time
+	if len(t) > 0 {
+		tm = t[0]
+	} else {
+		tm = time.Now().UTC()
 	}
 
+	if len(config.Cfg.MainCfg.GlobalTags) > 0 {
+		if tags == nil {
+			tags = map[string]string{}
+		}
+
+		for k, v := range config.Cfg.MainCfg.GlobalTags {
+			if _, ok := tags[k]; !ok { // do not overwrite exists tags
+				tags[k] = v
+			}
+		}
+	}
+
+	pt, err := ifxcli.NewPoint(name, tags, fields, tm)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(pt.String()), nil
+}
+
+func ioStop() {
+	if outputFile != nil {
+		if err := outputFile.Close(); err != nil {
+			l.Error(err)
+		}
+	}
+}
+
+func startIO() {
 	baseURL = "http://" + config.Cfg.MainCfg.DataWay.Host
 	if config.Cfg.MainCfg.DataWay.Scheme == "https" {
 		baseURL = "https://" + config.Cfg.MainCfg.DataWay.Host
@@ -99,6 +139,8 @@ func Start() {
 		Object:           nil,
 		Logging:          nil,
 	}
+
+	defer ioStop()
 
 	var f rtpanic.RecoverCallback
 
@@ -125,9 +167,7 @@ func Start() {
 				}
 
 			case <-tick.C:
-				l.Debugf("flushing...")
 				flush(cache)
-				l.Debugf("flush done")
 
 			case <-datakit.Exit.Wait():
 				l.Info("exit")
@@ -138,6 +178,25 @@ func Start() {
 
 	l.Info("starting...")
 	f(nil, nil)
+}
+
+func Start() {
+
+	l = logger.SLogger("io")
+
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		startIO()
+		l.Info("io goroutine exit")
+	}()
+
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		GRPCServer(datakit.GRPCDomainSock)
+		l.Info("gRPC goroutine exit")
+	}()
 }
 
 func flush(cache map[string][][]byte) {
@@ -161,17 +220,42 @@ func flush(cache map[string][][]byte) {
 	}
 }
 
+func gz(data []byte) ([]byte, error) {
+	var z bytes.Buffer
+	zw := gzip.NewWriter(&z)
+	if _, err := zw.Write(data); err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	zw.Flush()
+	zw.Close()
+	return z.Bytes(), nil
+}
+
 func doFlush(bodies [][]byte, url string) error {
 
 	if bodies == nil {
-		l.Debugf("no data, skip %s", url)
 		return nil
 	}
 
 	body := bytes.Join(bodies, []byte("\n"))
 
-	gz := false
-	if len(body) > 1024 { // Gzip ?
+	if datakit.OutputFile != "" {
+		return fileOutput(body)
+	}
+
+	gzOn := false
+	if len(body) > 1024 {
+		gzbody, err := gz(body)
+		if err != nil {
+			return err
+		}
+
+		l.Debugf("gzip %d->%d", len(body), len(gzbody))
+
+		gzOn = true
+		body = gzbody
 	}
 
 	req, err := http.NewRequest("POST", categoryURLs[url], bytes.NewBuffer(body))
@@ -182,8 +266,8 @@ func doFlush(bodies [][]byte, url string) error {
 
 	req.Header.Set("X-Datakit-UUID", config.Cfg.MainCfg.UUID)
 	req.Header.Set("X-Version", git.Version)
-	req.Header.Set("X-Version", datakit.DKUserAgent)
-	if gz {
+	req.Header.Set("User-Agent", datakit.DKUserAgent)
+	if gzOn {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
 
@@ -221,6 +305,35 @@ func doFlush(bodies [][]byte, url string) error {
 	case 5:
 		l.Warnf("post to %s failed(HTTP: %d): %s", url, resp.StatusCode, string(respbody))
 		return fmt.Errorf("dataway internal error")
+	}
+
+	return nil
+}
+
+func fileOutput(body []byte) error {
+
+	if outputFile == nil {
+		f, err := os.OpenFile(datakit.OutputFile, os.O_WRONLY|os.O_APPEND, 0644)
+		if err != nil {
+			l.Error(err)
+			return err
+		}
+
+		outputFile = f
+	}
+
+	if _, err := outputFile.Write(append(body, '\n')); err != nil {
+		l.Error(err)
+		return err
+	}
+
+	outputFileSize += int64(len(body))
+	if outputFileSize > 4*1024*1024 {
+		if err := outputFile.Truncate(0); err != nil {
+			l.Error(err)
+			return err
+		}
+		outputFileSize = 0
 	}
 
 	return nil
