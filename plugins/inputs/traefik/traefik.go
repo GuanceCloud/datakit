@@ -1,20 +1,18 @@
 package traefik
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"time"
 
-	traefikLog "github.com/siddontang/go-log/log"
-
-	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+type IoFeed func(data []byte, category string) error
 
 type TraefikServStats struct {
 	Pid      int    `json:"pid"`
@@ -28,61 +26,59 @@ type TraefikServStats struct {
 	AvergRepSize     int64          `json:"average_response_size"`
 	TotalStatCodeCnt map[string]int `json:"total_status_code_count"`
 }
-type TraefikTarget struct {
-	Interval int
-	Active   bool
-	Url      string
-}
 
 type Traefik struct {
-	MetricName string `toml:"metric_name"`
-	Targets    []TraefikTarget
-	acc        telegraf.Accumulator
+	Interval    int
+	Active      bool
+	Url         string
+	MetricsName string
+	Tags        map[string]string
 }
 
 type TraefikInput struct {
-	TraefikTarget
-	MetricName string
+	Traefik
 }
 
 type TraefikOutput struct {
-	acc telegraf.Accumulator
+	IoFeed
 }
 
 type TraefikParam struct {
 	input  TraefikInput
 	output TraefikOutput
+	log    *logger.Logger
 }
 
-type TraefikLogWriter struct {
-	io.Writer
-}
-
-const traefikConfigSample = `### metric_name: the name of metric, default is "traefik"
-### You need to configure an [[targets]] for each traefik to be monitored.
+var (
+	defaultMetricName   = "traefik"
+	defaultInterval     = 60
+	traefikConfigSample = `
+### You need to configure an [[inputs.traefik]] for each traefik to be monitored.
 ### interval: monitor interval second, unit is second. The default value is 60.
 ### active: whether to monitor traefik.
 ### url: traefik service WebUI url.
+### metricsName: the name of metric, default is "traefik"
 
-#metric_name="traefik"
-#[[targets]]
-#	interval = 60
-#	active   = true
-#	url     = "http://127.0.0.1:8080/health"
+#[[inputs.traefik]]
+#	interval    = 60
+#	active      = true
+#	url         = "http://127.0.0.1:8080/health"
+#	metricsName = "traefik"
+#	[inputs.traefik.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 
-#[[targets]]
-#	interval = 60
-#	active   = true
-#	url     = "http://127.0.0.1:8080/health"
+#[[inputs.traefik]]
+#	interval    = 60
+#	active      = true
+#	url         = "http://127.0.0.1:8080/health"
+#	metricsName = "traefik"
+#	[inputs.traefik.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 `
-
-var (
-	activeTargets     = 0
-	stopChan          chan bool
-	ctx               context.Context
-	cfun              context.CancelFunc
-	defaultMetricName = "traefik"
-	defaultInterval   = 60
 )
 
 func (t *Traefik) SampleConfig() string {
@@ -93,86 +89,61 @@ func (t *Traefik) Catalog() string {
 	return "traefik"
 }
 
-func (t *Traefik) Description() string {
-	return "Monitor Traefik Service Status"
-}
-
-func (t *Traefik) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (t *Traefik) Start(acc telegraf.Accumulator) error {
-	log.Printf("I! [traefik] start")
-	ctx, cfun = context.WithCancel(context.Background())
-	setupLogger()
-
-	metricName := defaultMetricName
-	if t.MetricName != "" {
-		metricName = t.MetricName
+func (t *Traefik) Run() {
+	if !t.Active || t.Url == "" {
+		return
 	}
 
-	targetCnt := 0
-	for _, target := range t.Targets {
-		if target.Active && target.Url != "" {
-			if target.Interval == 0 {
-				target.Interval = defaultInterval
-			}
-
-			input := TraefikInput{target, metricName}
-			output := TraefikOutput{acc}
-
-			p := &TraefikParam{input, output}
-			go p.gather(ctx)
-			targetCnt += 1
-		}
+	if t.MetricsName == "" {
+		t.MetricsName = defaultMetricName
 	}
-	activeTargets = targetCnt
-	stopChan = make(chan bool, targetCnt)
-	return nil
+
+	if t.Interval == 0 {
+		t.Interval = defaultInterval
+	}
+
+	input := TraefikInput{*t}
+	output := TraefikOutput{io.Feed}
+
+	p := &TraefikParam{input, output, logger.SLogger("traefik")}
+	p.log.Infof("traefik input started...")
+	p.gather()
 }
 
-func (p *Traefik) Stop() {
-	for i := 0; i < activeTargets; i++ {
-		stopChan <- true
-	}
-	cfun()
-}
-
-func (p *TraefikParam) gather(ctx context.Context) {
+func (p *TraefikParam) gather() {
+	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
+	defer tick.Stop()
 	for {
 		select {
-		case <-stopChan:
+		case <-tick.C:
+			err := p.getMetrics()
+			if err != nil {
+				p.log.Errorf("getMetrics err: %s", err.Error())
+			}
+		case <-datakit.Exit.Wait():
+			p.log.Info("input traefik exit")
 			return
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		err := p.getMetrics()
-		if err != nil {
-			log.Printf("W! [traefik] %s", err.Error())
-		}
-
-		err = internal.SleepContext(ctx, time.Duration(p.input.Interval)*time.Second)
-		if err != nil {
-			log.Printf("W! [traefik] %s", err.Error())
 		}
 	}
 }
 
-func (p *TraefikParam) getMetrics() error {
+func (p *TraefikParam) getMetrics() (err error) {
 	var s TraefikServStats
 	s.TotalStatCodeCnt = make(map[string]int)
 
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 	tags["url"] = p.input.Url
+	for tag, tagV := range p.input.Tags {
+		tags[tag] = tagV
+	}
 
 	resp, err := http.Get(p.input.Url)
 	if err != nil || resp.StatusCode != 200 {
 		fields["can_connect"] = false
-		p.output.acc.AddFields(p.input.MetricName, fields, tags)
-		return err
+		pt, _ := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
+		p.output.IoFeed(pt, io.Metric)
+		return
 	}
 	defer resp.Body.Close()
 
@@ -194,8 +165,13 @@ func (p *TraefikParam) getMetrics() error {
 	for k, v := range s.TotalStatCodeCnt {
 		fields["http_"+k+"_count"] = v
 	}
-	p.output.acc.AddFields(p.input.MetricName, fields, tags)
-	return nil
+
+	pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
+	if err != nil {
+		return
+	}
+	err = p.output.IoFeed(pt, io.Metric)
+	return
 }
 
 func getReadableTimeStr(d time.Duration) string {
@@ -208,12 +184,6 @@ func getReadableTimeStr(d time.Duration) string {
 	} else {
 		return fmt.Sprintf("%fs", float64(d)/float64(time.Second))
 	}
-}
-func setupLogger() {
-	loghandler, _ := traefikLog.NewStreamHandler(&TraefikLogWriter{})
-	traefikLogger := traefikLog.New(loghandler, 0)
-	traefikLog.SetLevel(traefikLog.LevelDebug)
-	traefikLog.SetDefaultLogger(traefikLogger)
 }
 
 func init() {
