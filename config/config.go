@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"text/template"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -25,7 +25,7 @@ import (
 var (
 	ConvertedCfg []string
 
-	l   *zap.SugaredLogger
+	l   *logger.Logger
 	Cfg *Config = nil
 )
 
@@ -33,7 +33,7 @@ type Config struct {
 	MainCfg          *MainConfig
 	TelegrafAgentCfg *TelegrafAgentConfig
 
-	Inputs []*inputs.RunningInput
+	Inputs map[string][]inputs.Input
 
 	InputFilters []string
 }
@@ -50,6 +50,8 @@ type MainConfig struct {
 
 	DataWay           *DataWayCfg `toml:"dataway"`
 	DataWayRequestURL string      `toml:"-"`
+
+	HTTPServerAddr string `toml:"http_server_addr"`
 
 	FtGateway string `toml:"ftdataway"` // XXX: deprecated
 
@@ -70,7 +72,7 @@ type MainConfig struct {
 	FlushInterval internal.Duration
 	FlushJitter   internal.Duration
 
-	OutputsFile string `toml:"output_file,omitempty"`
+	OutputFile string `toml:"output_file,omitempty"`
 
 	Hostname     string
 	OmitHostname bool
@@ -83,15 +85,15 @@ func init() {
 
 	switch osarch {
 	case "windows/amd64":
-		datakit.InstallDir = `C:\Program Files\DataFlux\` + datakit.ServiceName
+		datakit.InstallDir = `C:\Program Files\dataflux\` + datakit.ServiceName
 
 	case "windows/386":
-		datakit.InstallDir = `C:\Program Files (x86)\DataFlux\` + datakit.ServiceName
+		datakit.InstallDir = `C:\Program Files (x86)\dataflux\` + datakit.ServiceName
 
 	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
 		"darwin/amd64", "darwin/386",
 		"freebsd/amd64", "freebsd/386":
-		datakit.InstallDir = `/usr/local/cloudcare/DataFlux/` + datakit.ServiceName
+		datakit.InstallDir = `/usr/local/cloudcare/dataflux/` + datakit.ServiceName
 	default:
 		panic("unsupported os/arch: %s" + osarch)
 	}
@@ -119,13 +121,15 @@ func newDefaultCfg() *Config {
 			FlushInterval: internal.Duration{Duration: 10 * time.Second},
 			Interval:      internal.Duration{Duration: 10 * time.Second},
 
+			HTTPServerAddr: "0.0.0.0:9529",
+
 			LogLevel: "info",
 			Log:      filepath.Join(datakit.InstallDir, "datakit.log"),
 
 			RoundInterval: false,
 			cfgPath:       filepath.Join(datakit.InstallDir, "datakit.conf"),
 		},
-		Inputs: []*inputs.RunningInput{},
+		Inputs: map[string][]inputs.Input{},
 	}
 }
 
@@ -143,6 +147,8 @@ func InitDirs() {
 
 func LoadCfg() error {
 
+	InitDirs()
+
 	if err := Cfg.LoadMainConfig(); err != nil {
 		return err
 	}
@@ -153,7 +159,7 @@ func LoadCfg() error {
 		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
 	l = logger.SLogger("config")
 
-	l.Debugf("set log to %s", Cfg.MainCfg.Log)
+	l.Infof("set log to %s", Cfg.MainCfg.Log)
 
 	datakit.Init()
 
@@ -171,12 +177,7 @@ func LoadCfg() error {
 
 func (c *Config) LoadMainConfig() error {
 
-	data, err := ioutil.ReadFile(c.MainCfg.cfgPath)
-	if err != nil {
-		return fmt.Errorf("read main config %s error, %s", c.MainCfg.cfgPath, err.Error())
-	}
-
-	tbl, err := parseConfig(data)
+	tbl, err := parseCfgFile(c.MainCfg.cfgPath)
 	if err != nil {
 		return err
 	}
@@ -212,8 +213,7 @@ func (c *Config) LoadMainConfig() error {
 	}
 
 	if err := toml.UnmarshalTable(tbl, c.MainCfg); err != nil {
-		l.Error("UnmarshalTable failed: %s", err)
-		return err
+		panic("UnmarshalTable failed: " + err.Error())
 	}
 
 	if !c.MainCfg.OmitHostname { // get default host-name
@@ -235,6 +235,10 @@ func (c *Config) LoadMainConfig() error {
 
 	if datakit.AgentLogFile != "" {
 		c.TelegrafAgentCfg.Logfile = datakit.AgentLogFile
+	}
+
+	if c.MainCfg.OutputFile != "" {
+		datakit.OutputFile = c.MainCfg.OutputFile
 	}
 
 	//如果telegraf的agent相关配置没有，则默认使用datakit的同名配置
@@ -323,8 +327,8 @@ func CheckConfd() error {
 		checkSubDir(filepath.Join(datakit.ConfdDir, item.Name()))
 	}
 
-	l.Infof("inputs: %s", strings.Join(configed, ","))
-	l.Infof("error configuration: %s", strings.Join(invalids, ","))
+	fmt.Printf("inputs: %s\n", strings.Join(configed, ","))
+	fmt.Printf("error configuration: %s\n", strings.Join(invalids, ","))
 
 	return nil
 }
@@ -336,36 +340,16 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 		}
 	}
 
-	input := creator()
-
-	var data []byte
-
-	if internalData, ok := inputs.InternalInputsData[name]; ok {
-		data = internalData
-	} else {
-		// migrate old configures into new place
-		oldPath := filepath.Join(datakit.ConfdDir, name, fmt.Sprintf("%s.conf", name))
-		newPath := filepath.Join(datakit.ConfdDir, input.Catalog(), fmt.Sprintf("%s.conf", name))
-
-		path := newPath
-		_, err := os.Stat(path)
-		if err != nil && os.IsNotExist(err) {
-			if _, err = os.Stat(oldPath); err == nil {
-				l.Infof("migrate %s to %s", oldPath, path)
-				path = oldPath
-			}
-		}
-
-		data, err = ioutil.ReadFile(path)
-		if err != nil {
-			l.Errorf("load %s failed: %s", path, err)
-			return err
-		}
+	if name == "self" {
+		c.Inputs[name] = append(c.Inputs[name], creator())
+		return nil
 	}
 
-	tbl, err := parseConfig(data)
+	dummyInput := creator()
+	path := filepath.Join(datakit.ConfdDir, dummyInput.Catalog(), fmt.Sprintf("%s.conf", name))
+	tbl, err := parseCfgFile(path)
 	if err != nil {
-		l.Errorf("[error] parse conf failed on [%s]: %s", name, err)
+		l.Errorf("[error] parse conf %s failed on [%s]: %s", path, name, err)
 		return err
 	}
 
@@ -374,29 +358,130 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 		return nil
 	}
 
-	if err := c.addInput(name, input, tbl); err != nil {
-		l.Errorf("add input %s failed: %s", name, err.Error())
-		return err
-	}
+	for f, val := range tbl.Fields {
+		switch f {
+		case "inputs":
+			tbl_ := val.(*ast.Table)
+			for _, v := range tbl_.Fields {
+				if err := c.tryUnmarshal(v, name, creator); err != nil {
+					l.Error(err)
+					return err
+				}
+			}
 
-	l.Debugf("add input %s ok", name)
-
-	return nil
-}
-
-func (c *Config) setMaxPostInterval() {
-	datakit.MaxLifeCheckInterval = c.MainCfg.MaxPostInterval.Duration
-	if datakit.MaxLifeCheckInterval != 0 {
-		return
-	}
-
-	for _, ri := range c.Inputs { // find the max interval
-		if ri.Config.Interval > datakit.MaxLifeCheckInterval {
-			datakit.MaxLifeCheckInterval = ri.Config.Interval
+		default:
+			if err := c.tryUnmarshal(val, name, creator); err != nil {
+				l.Error(err)
+				return err
+			}
 		}
 	}
 
-	datakit.MaxLifeCheckInterval += time.Second * 10 // add extra 10 seconds
+	return nil
+
+	//for fieldName, val := range tbl.Fields {
+
+	//	if subTables, ok := val.([]*ast.Table); ok {
+
+	//		for _, t := range subTables {
+	//			input := creator()
+	//			if interval, err := c.addInput(name, input, t); err != nil {
+	//				err = fmt.Errorf("Error parsing %s, %s", name, err)
+	//				l.Errorf("%s", err)
+	//				return err
+	//			} else {
+	//				if interval > maxInterval {
+	//					maxInterval = interval
+	//				}
+	//			}
+	//		}
+
+	//	} else {
+
+	//		subTable, ok := val.(*ast.Table)
+	//		if !ok {
+	//			err = fmt.Errorf("invalid configuration, error parsing field %q as table", name)
+	//			l.Errorf("%s", err)
+	//			return err
+	//		}
+
+	//		switch fieldName {
+	//		case "inputs":
+
+	//			for pluginName, pluginVal := range subTable.Fields {
+	//				switch pluginSubTable := pluginVal.(type) {
+	//				// legacy [inputs.cpu] support
+	//				case *ast.Table:
+	//					input := creator()
+	//					if interval, err := c.addInput(name, input, pluginSubTable); err != nil {
+	//						err = fmt.Errorf("Error parsing %s, %s", name, err)
+	//						l.Errorf("%s", err)
+	//						return err
+	//					} else {
+	//						if interval > maxInterval {
+	//							maxInterval = interval
+	//						}
+	//					}
+
+	//				case []*ast.Table:
+	//					for _, t := range pluginSubTable {
+	//						input := creator()
+	//						if interval, err := c.addInput(name, input, t); err != nil {
+	//							err = fmt.Errorf("Error parsing %s, %s", name, err)
+	//							l.Errorf("%s", err)
+	//							return err
+	//						} else {
+	//							if interval > maxInterval {
+	//								maxInterval = interval
+	//							}
+	//						}
+	//					}
+
+	//				default:
+	//					l.Error("not support config type: %v", pluginSubTable)
+	//					return fmt.Errorf("Unsupported config format: %s", pluginName)
+	//				}
+	//			}
+
+	//		default:
+	//			err = fmt.Errorf("Unsupported config format: %s", fieldName)
+	//			l.Errorf("%s", err)
+	//			return err
+	//		}
+
+	//	}
+
+	//}
+}
+
+func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) error {
+
+	tbls := []*ast.Table{}
+
+	switch tbl.(type) {
+	case []*ast.Table:
+		tbls = tbl.([]*ast.Table)
+	case *ast.Table:
+		tbls = append(tbls, tbl.(*ast.Table))
+	default:
+		return fmt.Errorf("invalid toml format on %s: %v", name, reflect.TypeOf(tbl))
+	}
+
+	for _, t := range tbls {
+		input := creator()
+
+		if err := toml.UnmarshalTable(t, input); err != nil {
+			l.Errorf("toml unmarshal %s failed: %v", name, err)
+			return err
+		}
+
+		if err := c.addInput(name, input, t); err != nil {
+			l.Error("add %s failed: %v", name, err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 // load all inputs under @InstallDir/conf.d
@@ -404,11 +489,10 @@ func (c *Config) LoadConfig() error {
 
 	for name, creator := range inputs.Inputs {
 		if err := c.doLoadInputConf(name, creator); err != nil {
+			l.Errorf("load %s config failed: %v, ignored", name, err)
 			return err
 		}
 	}
-
-	c.setMaxPostInterval()
 
 	return LoadTelegrafConfigs(datakit.ConfdDir, c.InputFilters)
 }
@@ -416,14 +500,12 @@ func (c *Config) LoadConfig() error {
 func DumpInputsOutputs() {
 	names := []string{}
 
-	for _, p := range Cfg.Inputs {
-		l.Debugf("input %s enabled", p.Config.Name)
-		names = append(names, p.Config.Name)
+	for name := range Cfg.Inputs {
+		names = append(names, name)
 	}
 
 	for k, i := range SupportsTelegrafMetricNames {
 		if i.enabled {
-			l.Debugf("telegraf input %s enabled", k)
 			names = append(names, k)
 		}
 	}
@@ -481,14 +563,20 @@ func initPluginCfgs() {
 		oldCfgPath := filepath.Join(datakit.ConfdDir, name, name+".conf")
 		cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf")
 
-		l.Infof("check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
+		//l.Infof("check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
 
 		if _, err := os.Stat(oldCfgPath); err == nil {
 			if oldCfgPath == cfgpath {
 				continue // do nothing
 			}
 
-			l.Infof("migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
+			if runtime.GOOS == "windows" {
+				if strings.ToLower(oldCfgPath) == strings.ToLower(cfgpath) {
+					continue
+				}
+			}
+
+			l.Debugf("migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
 
 			if err := os.MkdirAll(filepath.Dir(cfgpath), os.ModePerm); err != nil {
 				l.Fatalf("create dir %s failed: %s", filepath.Dir(cfgpath), err.Error())
@@ -528,12 +616,12 @@ func initPluginCfgs() {
 		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf")
 		oldCfgPath := filepath.Join(datakit.ConfdDir, name, name+".conf")
 
-		l.Debugf("check telegraf input conf %s...", name)
+		//l.Debugf("check telegraf input conf %s...", name)
 
 		if _, err := os.Stat(oldCfgPath); err == nil {
 
 			if oldCfgPath == cfgpath {
-				l.Debugf("%s exists, skip", oldCfgPath)
+				//l.Debugf("%s exists, skip", oldCfgPath)
 				continue // do nothing
 			}
 
@@ -552,7 +640,7 @@ func initPluginCfgs() {
 				l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
 			}
 
-			if sample, ok := telegrafCfgSamples[name]; ok {
+			if sample, ok := TelegrafCfgSamples[name]; ok {
 				if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
 					l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 				}
@@ -561,8 +649,18 @@ func initPluginCfgs() {
 	}
 }
 
-func parseConfig(contents []byte) (*ast.Table, error) {
-	return toml.Parse(contents)
+func parseCfgFile(f string) (*ast.Table, error) {
+	data, err := ioutil.ReadFile(f)
+	if err != nil {
+		return nil, fmt.Errorf("read config %s failed: %s", f, err.Error())
+	}
+
+	tbl, err := toml.Parse(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return tbl, nil
 }
 
 func sliceContains(name string, list []string) bool {
@@ -576,66 +674,24 @@ func sliceContains(name string, list []string) bool {
 
 func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) error {
 
-	if len(c.InputFilters) > 0 && !sliceContains(name, c.InputFilters) {
-		return nil
-	}
-
-	pluginConfig, err := buildInput(name, table, input)
-	if err != nil {
-		return err
-	}
-
-	if err := toml.UnmarshalTable(table, input); err != nil {
-		l.Errorf("toml UnmarshalTable failed on %s: %s", name, err.Error())
-		return err
-	}
-
-	l.Debugf("configured input: %+#v", input)
-
-	ri := inputs.NewRunningInput(input, pluginConfig)
-	ri.SetDefaultTags(c.MainCfg.GlobalTags)
-
-	c.Inputs = append(c.Inputs, ri)
-	return nil
-}
-
-func buildInput(name string, tbl *ast.Table, input inputs.Input) (*inputs.InputConfig, error) {
-	ic := &inputs.InputConfig{Name: name}
-
-	if node, ok := tbl.Fields["interval"]; ok {
+	var dur time.Duration
+	var err error
+	if node, ok := table.Fields["interval"]; ok {
 		if kv, ok := node.(*ast.KeyValue); ok {
 			if str, ok := kv.Value.(*ast.String); ok {
-				dur, err := time.ParseDuration(str.Value)
+				dur, err = time.ParseDuration(str.Value)
 				if err != nil {
-					return nil, err
+					return err
 				}
-
-				ic.Interval = dur
-			}
-		}
-		delete(tbl.Fields, "interval")
-	}
-
-	if node, ok := tbl.Fields["output_file"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-				ic.OutputFile = str.Value
 			}
 		}
 	}
 
-	ic.Tags = make(map[string]string)
-	if node, ok := tbl.Fields["tags"]; ok {
-		if subtbl, ok := node.(*ast.Table); ok {
-			if err := toml.UnmarshalTable(subtbl, ic.Tags); err != nil {
-				l.Errorf("could not parse tags for input %s", name)
-			}
-		}
+	if c.MainCfg.MaxPostInterval.Duration != 0 && datakit.MaxLifeCheckInterval < dur {
+		datakit.MaxLifeCheckInterval = dur
 	}
 
-	delete(tbl.Fields, "dataway_path")
-	delete(tbl.Fields, "output_file")
-	delete(tbl.Fields, "tags")
+	c.Inputs[name] = append(c.Inputs[name], input)
 
-	return ic, nil
+	return nil
 }
