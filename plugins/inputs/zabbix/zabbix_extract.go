@@ -4,9 +4,15 @@ import (
 	"database/sql"
 	"strings"
 	"time"
+	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
+)
+
+const (
+	nanosPerSecond     = int64(time.Second / time.Nanosecond)
+	nanosPerMillisecond = int64(time.Millisecond / time.Nanosecond)
 )
 
 type Extracter struct {
@@ -93,3 +99,13 @@ func (e *Extracter) Extract() error {
 
 	return nil
 }
+
+func NsToTime(ns string) (time.Time, error) {
+	nsInt, err := strconv.ParseInt(ns, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Unix(nsInt/nanosPerSecond,
+		nsInt%nanosPerSecond), nil
+}
+
