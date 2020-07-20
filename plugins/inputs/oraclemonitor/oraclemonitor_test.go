@@ -8,9 +8,9 @@ import (
 
 func TestLoadConf(t *testing.T) {
 	x := `
-libPath = "a/b/c"
-[[instances]]
+[[inputs.instances]]
   ## 采集的频度，最小粒度5m
+	libPath = "a/b/c"
   interval = '10s'
   ## 指标集名称，默认值oracle_monitor
   metricName = ''
@@ -37,7 +37,7 @@ libPath = "a/b/c"
 		t.Fatal(err)
 	}
 
-	om := &oraclemonitor{}
+	om := &OracleMonitor{}
 	if err := toml.UnmarshalTable(tree, om); err != nil {
 		t.Fatal(err)
 	}

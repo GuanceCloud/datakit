@@ -1,15 +1,17 @@
 package csv
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"time"
 
-	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -44,7 +46,7 @@ func (x *csv) Catalog() string {
 }
 
 var (
-	l *zap.SugaredLogger
+	l *logger.Logger
 )
 
 func (x *csv) SampleConfig() string {
@@ -58,20 +60,32 @@ func (x *csv) Run() {
 
 	l.Info("starting external csvkit...")
 
-	csvConf := filepath.Join(config.InstallDir, "external", "csv", "config.yaml")
-	b, err = yaml.Marshal(x)
-	if err := ioutil.WriteFile(csvConf, b, os.ModePerm); err != nil {
-		l.Errorf("create csv config %s failed: %s", csvConf, err.Error())
+	csvConf := filepath.Join(datakit.InstallDir, "externals", "csv", "config.yaml")
+	for {
+		b, err := yaml.Marshal(x)
+		if err != nil {
+			l.Error(err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		if err := ioutil.WriteFile(csvConf, b, os.ModePerm); err != nil {
+			l.Errorf("create csv config %s failed: %s", csvConf, err.Error())
+			time.Sleep(time.Second)
+			continue
+		}
+
+		break
 	}
 
 	args := []string{
-		filepath.Join(config.InstallDir, "external", "csv", "main.py"),
+		filepath.Join(datakit.InstallDir, "externals", "csv", "main.py"),
 		"-y", csvConf,
 	}
 	cmd := exec.Command("python", args...)
 	if x.PathEnv != "" {
 		cmd.Env = []string{
-			fmt.Sprintf("PATH=%s:$PATH"),
+			fmt.Sprintf("PATH=%s:$PATH", x.PathEnv),
 		}
 
 		l.Infof("set PATH to %s", cmd.Env[0])
@@ -82,7 +96,6 @@ func (x *csv) Run() {
 		return
 	}
 
-	proc := cmd.Process
 	l.Infof("csv PID: %d", cmd.Process.Pid)
 	datakit.MonitProc(cmd.Process, "csv")
 }
