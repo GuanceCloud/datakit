@@ -1,37 +1,39 @@
 package aliyunlog
 
+import "sync"
+
 const (
 	aliyunlogConfigSample = `
-#[[consumer]]
+#[[inputs.consumer]]
 # ##(required)
 #endpoint = ''
 #access_key_id = ''
 #access_key_secret = ''
 	
-#[[consumer.projects]]
-# ##(required) 项目名称 
+#[[inputs.consumer.projects]]
+# ##(required) project name 
 #name = ''
 	
-#[[consumer.projects.stores]]
-# ##(required) 日志库名称
+#[[inputs.consumer.projects.stores]]
+# ##(required) name of log store
 #name = ''
 	
-# ##(optional) 指标集名称, 默认使用 'aliyunlog_+store-name' 
+# ##(optional) metric name, default is 'aliyunlog_+store-name' 
 #metric_name = ''
 	
-# ##(required) 指定当前日志库的消费组名称以及消费数据客户端名称
+# ##(required) consumer group and consumer name for this log store
 #consumer_group_name = ''
 #consumer_name = ''
 	
-# ##(optional) 指定哪些key作为tag, 默认都为field
-# ##例: tags=["status_code","protocol"]
-# ##默认作为tag的key不再作为field，可以指定同时作为tag和field: tags=["status_code:*"]
-# ##可指定作为tag时的别名, 例: tags=["status_code::status"]
-# ##同时作为tag和field，同时设置tag别名: tags=["status_code:*:status"]
+# ##(optional) specify which are tags and which are fields
+# ##eg., tags=["status_code","protocol"]
+# ##By default, the key used as tag cannot be field，you can still specify a key both be tag and field: tags=["status_code:*"]
+# ##specify tag alias, eg., tags=["status_code::status"]
+# ##both as tag and field，and specify tag alias: tags=["status_code:*:status"]
 #tags = []
 	
-# # ##(optional) 指定fields的类型, 默认为string, 可指定为int或float
-# # ##例: fields = ["int:status,request_length", "float:cpuUsage"]
+# # ##(optional) the data type of fields, default is string, can be int or float
+# # ##eg., fields = ["int:status,request_length", "float:cpuUsage"]
 #fields = []	
 `
 )
@@ -56,5 +58,7 @@ type (
 		AccessKeyID     string
 		AccessKeySecret string
 		Projects        []*LogProject
+
+		wg sync.WaitGroup
 	}
 )

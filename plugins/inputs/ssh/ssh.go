@@ -1,26 +1,23 @@
 package ssh
 
 import (
-	"context"
 	"errors"
-	"io"
 	"io/ioutil"
-	"log"
 	"regexp"
 	"time"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
-	sshlog "github.com/siddontang/go-log/log"
-
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type SshTarget struct {
+type IoFeed func(data []byte, category string) error
+
+type Ssh struct {
 	Interval       int
 	Active         bool
 	Host           string
@@ -29,43 +26,34 @@ type SshTarget struct {
 	SftpCheck      bool
 	PrivateKeyFile string
 	MetricsName    string
-}
-
-type Ssh struct {
-	MetricName string
-	Targets    []SshTarget
-	acc        telegraf.Accumulator
+	Tags           map[string]string
 }
 
 type SshInput struct {
-	SshTarget
+	Ssh
 }
 
 type SshOutput struct {
-	acc telegraf.Accumulator
+	IoFeed
 }
 
 type SshParam struct {
 	input  SshInput
 	output SshOutput
+	log    *logger.Logger
 }
 
-type sshLogWriter struct {
-	io.Writer
-}
-
-const sshConfigSample = `### metricName: the name of metric, default is "ssh"
-### You need to configure an [[targets]] for each ssh/sftp to be monitored.
+const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ssh/sftp to be monitored.
 ### host: ssh/sftp service ip:port, if "127.0.0.1", default port is 22.
 ### interval: monitor interval second, unit is second. The default value is 60.
 ### active: whether to monitor ssh/sftp.
 ### username: the user name of ssh/sftp.
 ### password: the password of ssh/sftp. optional
 ### sftpCheck: whether to monitor sftp.
-### privateKeyFile: rsa file path
+### privateKeyFile: rsa file path.
+### metricsName: the name of metric, default is "ssh"
 
-#metricName="ssh"
-#[[targets]]
+#[[inputs.ssh]]
 #	interval = 60
 #	active   = true
 #	host     = "127.0.0.1:22"
@@ -73,8 +61,13 @@ const sshConfigSample = `### metricName: the name of metric, default is "ssh"
 #	password = "xxx"
 #	sftpCheck      = false
 #	privateKeyFile = ""
+#	metricsName    ="ssh"
+#	[inputs.ssh.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 
-#[[targets]]
+#[[inputs.ssh]]
 #	interval = 60
 #	active   = true
 #	host     = "127.0.0.1:22"
@@ -82,13 +75,14 @@ const sshConfigSample = `### metricName: the name of metric, default is "ssh"
 #	password = "xxx"
 #	sftpCheck      = false
 #	privateKeyFile = ""
+#	metricsName    ="ssh"
+#	[inputs.ssh.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 `
 
 var (
-	activeTargets     = 0
-	stopChan          chan bool
-	ctx               context.Context
-	cfun              context.CancelFunc
 	defaultMetricName = "Ssh"
 	defaultInterval   = 60
 	sshCfgErr         = errors.New("both password and privateKeyFile missed")
@@ -102,55 +96,31 @@ func (s *Ssh) SampleConfig() string {
 	return sshConfigSample
 }
 
-func (s *Ssh) Description() string {
-	return "Monitor SSH/SFTP connectivity to remote hosts"
-}
+func (s *Ssh) Run() {
+	if !s.Active || s.Host == "" {
+		return
+	}
 
-func (s *Ssh) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (s *Ssh) Start(acc telegraf.Accumulator) error {
-	log.Printf("I! [ssh] start")
 	reg, _ := regexp.Compile(`:\d{1,5}$`)
-	ctx, cfun = context.WithCancel(context.Background())
 
-	setupLogger()
-
-	metricName := defaultMetricName
-	if s.MetricName != "" {
-		metricName = s.MetricName
+	if s.MetricsName == "" {
+		s.MetricsName = defaultMetricName
 	}
 
-	targetCnt := 0
-	for _, target := range s.Targets {
-		if target.Active && target.Host != "" {
-			if target.Interval == 0 {
-				target.Interval = defaultInterval
-			}
-			if !reg.MatchString(target.Host) {
-				target.Host += ":22"
-			}
-			target.MetricsName = metricName
-
-			input := SshInput{target}
-			output := SshOutput{acc}
-
-			p := &SshParam{input, output}
-			go p.gather(ctx)
-			targetCnt += 1
-		}
+	if s.Interval == 0 {
+		s.Interval = defaultInterval
 	}
-	activeTargets = targetCnt
-	stopChan = make(chan bool, targetCnt)
-	return nil
-}
 
-func (p *Ssh) Stop() {
-	for i := 0; i < activeTargets; i++ {
-		stopChan <- true
+	if !reg.MatchString(s.Host) {
+		s.Host += ":22"
 	}
-	cfun()
+
+	input := SshInput{*s}
+	output := SshOutput{io.Feed}
+
+	p := &SshParam{input, output, logger.SLogger("ssh")}
+	p.log.Infof("ssh input started...")
+	p.gather()
 }
 
 func (p *SshParam) getSshClientConfig() (*ssh.ClientConfig, error) {
@@ -186,30 +156,26 @@ func (p *SshParam) getSshClientConfig() (*ssh.ClientConfig, error) {
 	}, nil
 }
 
-func (p *SshParam) gather(ctx context.Context) {
+func (p *SshParam) gather() {
 	clientCfg, err := p.getSshClientConfig()
 	if err != nil {
-		log.Printf("W! [Ssh] %s", err.Error())
+		p.log.Errorf("SshClientConfig err: %s", err.Error())
 		return
 	}
 
+	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
+	defer tick.Stop()
 	for {
 		select {
-		case <-stopChan:
-			return
-		case <-ctx.Done():
-			return
-		default:
-		}
+		case <-tick.C:
+			err := p.getMetrics(clientCfg)
+			if err != nil {
+				p.log.Errorf("getMetrics err: %s", err.Error())
+			}
 
-		err := p.getMetrics(clientCfg)
-		if err != nil {
-			log.Printf("W! [Ssh] %s", err.Error())
-		}
-
-		err = internal.SleepContext(ctx, time.Duration(p.input.Interval)*time.Second)
-		if err != nil {
-			log.Printf("W! [Ssh] %s", err.Error())
+		case <-datakit.Exit.Wait():
+			p.log.Info("input statsd exit")
+			return
 		}
 	}
 }
@@ -219,6 +185,9 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 	fields := make(map[string]interface{})
 
 	tags["host"] = p.input.Host
+	for tag, tagV := range p.input.Tags {
+		tags[tag] = tagV
+	}
 	//ssh检查
 	var sshRst bool
 	sshClient, err := ssh.Dial("tcp", p.input.Host, clientCfg)
@@ -254,24 +223,17 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 		fields["sftp_check"] = sftpRst
 	}
 
-	pointMetric, err := metric.New(p.input.MetricsName, tags, fields, time.Now())
+	pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
 		return err
 	}
-
-	p.output.acc.AddMetric(pointMetric)
-	return nil
+	err = p.output.IoFeed(pt, io.Metric)
+	return err
 }
 
 func getMsInterval(d time.Duration) float64 {
 	ns := d.Nanoseconds()
-	return float64(ns)/float64(time.Millisecond)
-}
-func setupLogger() {
-	loghandler, _ := sshlog.NewStreamHandler(&sshLogWriter{})
-	sshlogger := sshlog.New(loghandler, 0)
-	sshlog.SetLevel(sshlog.LevelDebug)
-	sshlog.SetDefaultLogger(sshlogger)
+	return float64(ns) / float64(time.Millisecond)
 }
 
 func init() {
