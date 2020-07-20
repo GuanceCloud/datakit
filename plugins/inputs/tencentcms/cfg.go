@@ -1,9 +1,12 @@
 package tencentcms
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
+	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
+	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	monitor "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/monitor/v20180724"
 )
 
@@ -28,6 +31,17 @@ type (
 		AccessKeySecret string       `toml:"access_key_secret"`
 		RegionID        string       `toml:"region_id"`
 		Namespace       []*Namespace `toml:"namespace"`
+
+		tags map[string]string
+
+		ctx       context.Context
+		cancelFun context.CancelFunc
+
+		credential *common.Credential
+		cpf        *profile.ClientProfile
+		client     *monitor.Client
+
+		periodsInfos map[string]MetricsPeriodInfo
 	}
 
 	MetricsRequest struct {
@@ -43,7 +57,7 @@ var (
 
 const (
 	cmsConfigSample = `
-#[[cms]]
+#[[inputs.tencentcms]]
 #access_key_id = ""
 #access_key_secret = ""
 
@@ -51,11 +65,11 @@ const (
 #region_id = 'ap-shanghai'
 
 
-#[[cms.namespace]]
+#[[inputs.tencentcms.namespace]]
 #	name='QCE/CVM'
 
 #   ## Metrics to Pull (Required), See: https://cloud.tencent.com/document/api/248/30384
-#	[cms.namespace.metrics]
+#	[inputs.tencentcms.namespace.metrics]
 #	names = [
 #		"CPUUsage",
 #	]
@@ -63,7 +77,7 @@ const (
 #     ## dimensions can be used to query the specified resource, which is a collection of key-value forms. 
 #     ## each metric may have its own dimensions, See: https://cloud.tencent.com/document/api/248/30384
 #     ## name is metric name, value is json
-#	[[cms.namespace.metrics.dimensions]]
+#	[[inputs.tencentcms.namespace.metrics.dimensions]]
 #		name = "CPUUsage"
 #		value = '''
 #		[
