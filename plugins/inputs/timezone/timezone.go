@@ -2,28 +2,25 @@ package timezone
 
 import (
 	"bytes"
-	"context"
 	"fmt"
-	"io"
-	"log"
 	"os/exec"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
-	tzlog "github.com/siddontang/go-log/log"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+type TimeIoFeed func(data []byte, category string) error
+
 type Timezone struct {
-	Metricname string `toml:"metric_name"`
-	Active     bool
-	Interval   int
-	Hostname   string
+	Active      bool
+	Interval    int
+	MetricsName string
+	Tags        map[string]string
 }
 
 type TzInput struct {
@@ -31,16 +28,13 @@ type TzInput struct {
 }
 
 type TzOutput struct {
-	acc telegraf.Accumulator
+	ioFeed TimeIoFeed
 }
 
 type TzParams struct {
 	input  TzInput
 	output TzOutput
-}
-
-type TzLogWriter struct {
-	io.Writer
+	log    *logger.Logger
 }
 
 const (
@@ -49,20 +43,19 @@ const (
 )
 
 var (
-	timeZoneConfigSample = `### metric_name: the name of metric, default is "timezone".
-### active: whether to monitor timezone changes.
-### interval: monitor interval second, unit is second. The default value is 60.
-### hostname: If not specified, the environment variable will be used.
+	timeZoneConfigSample = `### active     : whether to monitor timezone changes.
+### interval   : monitor interval second, unit is second. The default value is 60.
+### metricsName: the name of metric, default is "timezone"
 
-#metric_name="timezone"
-#active   = true
-#interval = 60
-#hostname = ""`
-)
-
-var (
-	ctx  context.Context
-	cfun context.CancelFunc
+#[inputs.timezone]
+#  active      = true
+#  interval    = 60
+#  metricsName = "timezone"
+#  [inputs.timezone.tags]
+#    tag1 = "tag1"
+#    tag2 = "tag2"
+#    tagn = "tagn"
+`
 )
 
 func (t *Timezone) SampleConfig() string {
@@ -73,65 +66,47 @@ func (t *Timezone) Catalog() string {
 	return "timezone"
 }
 
-func (t *Timezone) Description() string {
-	return "Monitor timezone changes"
-}
+func (t *Timezone) Run() {
+	if t.Active == false {
+		return
+	}
 
-func (t *Timezone) Gather(telegraf.Accumulator) error {
-	return nil
-}
+	if t.Interval <= 0 {
+		t.Interval = defaultInterval
+	}
 
-func (t *Timezone) Start(acc telegraf.Accumulator) error {
-	setupLogger()
-
-	log.Printf("I! [timezone] start")
-	ctx, cfun = context.WithCancel(context.Background())
+	if t.MetricsName == "" {
+		t.MetricsName = defaultMetricName
+	}
 
 	input := TzInput{*t}
-	if input.Active == false {
-		return nil
-	}
-	if input.Interval <= 0 {
-		input.Interval = defaultInterval
-	}
-	if input.Metricname == "" {
-		input.Metricname = defaultMetricName
-	}
+	output := TzOutput{io.Feed}
+	p := TzParams{input, output, logger.SLogger("timezone")}
 
-	output := TzOutput{acc}
-
-	p := TzParams{input, output}
-	go p.gather(ctx)
-
-	return nil
+	p.log.Info("timezone input started...")
+	p.gather()
 }
 
-func (t *Timezone) Stop() {
-	cfun()
-}
+func (p *TzParams) gather() {
+	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
+	defer tick.Stop()
 
-func (p *TzParams) gather(ctx context.Context) {
 	for {
 		select {
-		case <-ctx.Done():
+		case <-tick.C:
+			err := p.getMetrics()
+			if err != nil {
+				p.log.Errorf("getMetrics err: %s", err.Error())
+			}
+
+		case <-datakit.Exit.Wait():
+			p.log.Info("input timezone exit")
 			return
-		default:
-		}
-
-		err := p.getMetrics()
-		if err != nil {
-			log.Printf("W! [timezone] %s", err.Error())
-		}
-
-		err = internal.SleepContext(ctx, time.Duration(p.input.Interval)*time.Second)
-		if err != nil {
-			log.Printf("W! [timezone] %s", err.Error())
 		}
 	}
 }
 
 func (p *TzParams) getMetrics() error {
-	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
 	timezone, err := getOsTimezone()
@@ -139,17 +114,16 @@ func (p *TzParams) getMetrics() error {
 		return err
 	}
 
-	if p.input.Hostname != "" {
-		tags["host"] = p.input.Hostname
-	}
 	fields["tz"] = timezone
 
-	pointMetric, err := metric.New(p.input.Metricname, tags, fields, time.Now())
+	pt, err := io.MakeMetric(p.input.MetricsName, p.input.Tags, fields, time.Now())
 	if err != nil {
 		return err
 	}
 
-	p.output.acc.AddMetric(pointMetric)
+	if err := p.output.ioFeed(pt, io.Metric); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -170,13 +144,6 @@ func getOsTimezone() (string, error) {
 	} else {
 		return "", fmt.Errorf("Os: %s unsuport get timezone", os)
 	}
-}
-
-func setupLogger() {
-	loghandler, _ := tzlog.NewStreamHandler(&TzLogWriter{})
-	logger := tzlog.New(loghandler, 0)
-	tzlog.SetLevel(tzlog.LevelDebug)
-	tzlog.SetDefaultLogger(logger)
 }
 
 func init() {
