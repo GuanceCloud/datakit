@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"text/template"
 	"time"
 
 	"github.com/influxdata/toml"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 )
@@ -124,7 +124,7 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 		Debug:                      false,
 		Quiet:                      false,
 		LogTarget:                  "file",
-		Logfile:                    filepath.Join(TelegrafDir, "agent.log"),
+		Logfile:                    filepath.Join(datakit.TelegrafDir, "agent.log"),
 		LogfileRotationMaxArchives: 5,
 		OmitHostname:               false,
 	}
@@ -149,10 +149,10 @@ func LoadTelegrafConfigs(cfgdir string, inputFilters []string) error {
 			input.enabled = true
 		} else {
 			if err == ErrConfigNotFound {
-				log.Printf("W! input %s config %s not found: %s", input.name, cfgpath, err.Error())
+				l.Warnf("input %s config %s not found: %s", input.name, cfgpath, err.Error())
 				//ignore
 			} else if err == ErrEmptyInput {
-				log.Printf("W! %s, %s", cfgpath, err.Error())
+				l.Warnf("%s, %s", cfgpath, err.Error())
 			} else {
 				return fmt.Errorf("Error loading config file %s, %s", cfgpath, err)
 			}
@@ -242,7 +242,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 
 	agentcfg, err := marshalAgentCfg(cfg.TelegrafAgentCfg)
 	if err != nil {
-		log.Printf("E! %s", err.Error())
+		l.Errorf("%s", err.Error())
 		return "", err
 	}
 
@@ -277,13 +277,13 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 		tpl := template.New("")
 		tpl, err = tpl.Parse(fileOutputTemplate)
 		if err != nil {
-			log.Printf("E! %s", err.Error())
+			l.Errorf("%s", err.Error())
 			return "", err
 		}
 
 		buf := bytes.NewBuffer([]byte{})
 		if err = tpl.Execute(buf, &fileCfg); err != nil {
-			log.Printf("E! %s", err.Error())
+			l.Errorf("%s", err.Error())
 			return "", err
 		}
 		fileoutstr = string(buf.Bytes())
@@ -294,19 +294,19 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 			DataWay:     cfg.MainCfg.DataWayRequestURL,
 			DKUUID:      cfg.MainCfg.UUID,
 			DKVERSION:   git.Version,
-			DKUserAgent: DKUserAgent,
+			DKUserAgent: datakit.DKUserAgent,
 		}
 
 		tpl := template.New("")
 		tpl, err = tpl.Parse(httpOutputTemplate)
 		if err != nil {
-			log.Printf("E! %s", err.Error())
+			l.Errorf("%s", err.Error())
 			return "", err
 		}
 
 		buf := bytes.NewBuffer([]byte{})
 		if err = tpl.Execute(buf, &httpCfg); err != nil {
-			log.Printf("E! %s", err.Error())
+			l.Errorf("%s", err.Error())
 			return "", err
 		}
 
@@ -319,21 +319,21 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 
 	for _, input := range SupportsTelegrafMetricNames {
 
-		log.Printf("D! adding %+#v...", input)
+		l.Debugf("adding %+#v...", input)
 
 		if !input.enabled {
 			continue
 		}
 
-		cfgpath := filepath.Join(ConfdDir, input.Catalog, input.name+".conf")
+		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, input.name+".conf")
 		d, err := ioutil.ReadFile(cfgpath)
 		if err != nil {
-			log.Printf("E! %s", err.Error())
+			l.Errorf("%s", err.Error())
 			return "", err
 		}
 
 		pluginCfgs += string(d) + "\n"
-		log.Printf("D! add %s/%s config...", input.Catalog, input.name)
+		l.Debugf("add %s/%s config...", input.Catalog, input.name)
 	}
 
 	if len(ConvertedCfg) > 0 {
