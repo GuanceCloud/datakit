@@ -1,128 +1,91 @@
 package aliyuncdn
 
 import (
-	"context"
 	"time"
+
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/selfstat"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type AliyunCDN struct {
-	CDN              []*CDN `toml:"cdn"`
-	runningInstances []*RunningInstance
-	ctx              context.Context
-	cancelFun        context.CancelFunc
-	accumulator      telegraf.Accumulator
-	logger           *models.Logger
-}
+var (
+	l *logger.Logger
+)
 
-type RunningInstance struct {
-	cfg             *CDN
-	agent           *AliyunCDN
-	logger          *models.Logger
-	runningProjects []*RunningProject
-	metricName      string
-	client          *cdn.Client
-	domains         []string
-}
-
-func (_ *AliyunCDN) Catalog() string {
+func (_ *CDN) Catalog() string {
 	return "aliyun"
 }
 
-func (_ *AliyunCDN) SampleConfig() string {
+func (_ *CDN) SampleConfig() string {
 	return aliyunCDNConfigSample
 }
 
-func (_ *AliyunCDN) Description() string {
+func (_ *CDN) Description() string {
 	return ""
 }
 
-func (_ *AliyunCDN) Gather(telegraf.Accumulator) error {
+func (_ *CDN) Gather() error {
 	return nil
 }
 
-func (c *AliyunCDN) Start(acc telegraf.Accumulator) error {
-	if len(c.CDN) == 0 {
-		c.logger.Warnf("no configuration found")
-		return nil
+func (c *CDN) Run() {
+	l = logger.SLogger("aliyunCDN")
+
+	l.Info("aliyunCDN input started...")
+
+	interval, err := time.ParseDuration(c.Interval)
+	if err != nil {
+		l.Error(err)
 	}
 
-	c.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
-		Name: `aliyuncdn`,
-	}
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
 
-	c.logger.Infof("aliyun cdn start...")
-
-	c.accumulator = acc
-
-	for _, instCfg := range c.CDN {
-		r := &RunningInstance{
-			cfg:    instCfg,
-			agent:  c,
-			logger: c.logger,
-		}
-
-		c.runningInstances = append(c.runningInstances, r)
-
-		go r.run(c.ctx)
-	}
-
-	return nil
-}
-
-func (cdn *AliyunCDN) Stop() {
-	cdn.cancelFun()
-}
-
-func (r *RunningInstance) run(ctx context.Context) error {
 	for {
 		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
+		case <-tick.C:
+			// handle
+			c.run()
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
 		}
-
-		// check 配置
-		if err := CheckCfg(r.cfg); err != nil {
-			r.logger.Errorf("config error %v", err)
-			return nil
-		}
-
-		// 域名采集
-		r.domains = r.cfg.DomainName
-		cli, err := cdn.NewClientWithAccessKey(r.cfg.RegionID, r.cfg.AccessKeyID, r.cfg.AccessKeySecret)
-		if err != nil {
-			r.logger.Errorf("create client failed, %s", err)
-			return err
-		}
-
-		r.client = cli
-
-		if len(r.domains) == 0 {
-			r.domains = r.getDomain(r.cfg.Summary.MetricName, "")
-		} else {
-			for _, domain := range r.domains {
-				r.getDomain(r.cfg.Summary.MetricName, domain)
-			}
-		}
-
-		for _, action := range r.cfg.Metric.Actions {
-			go r.exec(ctx, action)
-		}
-
-		internal.SleepContext(ctx, 10*time.Second)
 	}
 }
 
-func (r *RunningInstance) getDomain(metricName string, domain string) []string {
+func (r *CDN) run() {
+	// check 配置
+	if err := CheckCfg(r); err != nil {
+		l.Errorf("config error %v", err)
+	}
+
+	// 域名采集
+	cli, err := cdn.NewClientWithAccessKey(r.RegionID, r.AccessKeyID, r.AccessKeySecret)
+	if err != nil {
+		l.Errorf("create client failed, %s", err)
+	}
+
+	r.client = cli
+
+	if len(r.DomainName) == 0 {
+		r.DomainName = r.getDomain(r.Summary.MetricName, "")
+	} else {
+		for _, domain := range r.DomainName {
+			r.getDomain(r.Summary.MetricName, domain)
+		}
+	}
+
+	for _, action := range r.Metric.Actions {
+		go r.exec(action)
+	}
+}
+
+func (r *CDN) getDomain(metricName string, domain string) []string {
 	var pageNumber = 1
 	var pageSize = 50
 	var domains = []string{}
@@ -133,7 +96,7 @@ func (r *RunningInstance) getDomain(metricName string, domain string) []string {
 
 	for {
 		request := cdn.CreateDescribeUserDomainsRequest()
-		request.RegionId = r.cfg.RegionID
+		request.RegionId = r.RegionID
 		request.Scheme = "https"
 		request.PageSize = requests.NewInteger(pageSize)
 		request.PageNumber = requests.NewInteger(pageNumber)
@@ -143,7 +106,7 @@ func (r *RunningInstance) getDomain(metricName string, domain string) []string {
 
 		response, err := r.client.DescribeUserDomains(request)
 		if err != nil {
-			r.logger.Errorf("[DescribeUserDomainsRequest] failed, %v", err.Error())
+			l.Errorf("[DescribeUserDomainsRequest] failed, %v", err.Error())
 		}
 
 		for _, item := range response.Domains.PageData {
@@ -171,7 +134,12 @@ func (r *RunningInstance) getDomain(metricName string, domain string) []string {
 				fields["type"] = point.Type
 				fields["weight"] = ConvertToNum(point.Weight)
 
-				r.agent.accumulator.AddFields(metricName, fields, tags)
+				pt, err := influxdb.NewPoint(r.Summary.MetricName, tags, fields, time.Now())
+				if err != nil {
+					l.Errorf("[influxdb convert point] failed, %v", err.Error())
+				}
+
+				err = io.Feed([]byte(pt.String()), io.Metric)
 			}
 		}
 
@@ -186,22 +154,20 @@ func (r *RunningInstance) getDomain(metricName string, domain string) []string {
 	return domains
 }
 
-func (r *RunningInstance) exec(ctx context.Context, action string) error {
+func (r *CDN) exec(action string) error {
 	et := time.Now()
 	st := et.Add(-time.Minute * 10)
 
 	p := &RunningProject{
-		accumulator: r.agent.accumulator,
-		cfg:         r.cfg.Metric,
-		client:      r.client,
-		logger:      r.logger,
-		domain:      r.domains,
-		startTime:   unixTimeStrISO8601(st),
-		endTime:     unixTimeStrISO8601(et),
+		cfg:       r.Metric,
+		client:    r.client,
+		domain:    r.DomainName,
+		startTime: unixTimeStrISO8601(st),
+		endTime:   unixTimeStrISO8601(et),
 	}
 
 	// metricname
-	p.metricName = r.cfg.Metric.MetricName
+	p.metricName = r.Metric.MetricName
 	if p.metricName == "" {
 		p.metricName = "aliyun_cdn_metrics"
 	}
@@ -246,8 +212,6 @@ func (run *RunningProject) commond(action string) {
 
 func init() {
 	inputs.Add("aliyuncdn", func() inputs.Input {
-		ac := &AliyunCDN{}
-		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-		return ac
+		return &CDN{}
 	})
 }
