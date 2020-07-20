@@ -1,16 +1,20 @@
 package aliyunsecurity
 
 import (
-	"context"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/aegis"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sas"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
-	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
+
+var (
+	l *logger.Logger
 )
 
 var regions = []string{
@@ -18,129 +22,62 @@ var regions = []string{
 	"ap-southeast-3",
 }
 
-type AliyunSecurity struct {
-	Security    []*Security
-	ctx         context.Context
-	cancelFun   context.CancelFunc
-	accumulator telegraf.Accumulator
-	logger      *models.Logger
-
-	runningInstances []*runningInstance
-}
-
-type runningInstance struct {
-	cfg        *Security
-	agent      *AliyunSecurity
-	logger     *models.Logger
-	client     *sas.Client
-	aclient    *aegis.Client
-	metricName string
-}
-
-func (_ *AliyunSecurity) Catalog() string {
+func (_ *Security) Catalog() string {
 	return "aliyun"
 }
 
-func (_ *AliyunSecurity) SampleConfig() string {
+func (_ *Security) SampleConfig() string {
 	return configSample
 }
 
-func (_ *AliyunSecurity) Description() string {
+func (_ *Security) Description() string {
 	return ""
 }
 
-func (_ *AliyunSecurity) Gather(telegraf.Accumulator) error {
+func (_ *Security) Gather() error {
 	return nil
 }
 
-func (_ *AliyunSecurity) Init() error {
-	return nil
-}
+func (a *Security) Run() {
+	l = logger.SLogger("aliyunSecurity")
 
-func (a *AliyunSecurity) Start(acc telegraf.Accumulator) error {
-	a.logger = &models.Logger{
-		Name: `aliyunsecurity`,
-	}
+	l.Info("aliyunSecurity input started...")
 
-	if len(a.Security) == 0 {
-		a.logger.Warnf("no configuration found")
-		return nil
-	}
-
-	a.logger.Infof("starting...")
-
-	a.accumulator = acc
-
-	for _, instCfg := range a.Security {
-		r := &runningInstance{
-			cfg:    instCfg,
-			agent:  a,
-			logger: a.logger,
-		}
-		r.metricName = instCfg.MetricName
-		if r.metricName == "" {
-			r.metricName = "aliyun_security"
-		}
-
-		if r.cfg.Interval.Duration == 0 {
-			r.cfg.Interval.Duration = time.Minute * 10
-		}
-
-		cli, err := sas.NewClientWithAccessKey(instCfg.RegionID, instCfg.AccessKeyID, instCfg.AccessKeySecret)
-		if err != nil {
-			r.logger.Errorf("create client failed, %s", err)
-			return err
-		}
-
-		cli2, err := aegis.NewClientWithAccessKey(instCfg.RegionID, instCfg.AccessKeyID, instCfg.AccessKeySecret)
-		if err != nil {
-			r.logger.Errorf("create client failed, %s", err)
-			return err
-		}
-
-		r.client = cli
-
-		r.aclient = cli2
-
-		a.runningInstances = append(a.runningInstances, r)
-
-		go r.run(a.ctx)
-	}
-	return nil
-}
-
-func (a *AliyunSecurity) Stop() {
-	a.cancelFun()
-}
-
-func (r *runningInstance) run(ctx context.Context) error {
-	defer func() {
-		if e := recover(); e != nil {
-
-		}
-	}()
-
-	cli, err := sas.NewClientWithAccessKey(r.cfg.RegionID, r.cfg.AccessKeyID, r.cfg.AccessKeySecret)
+	cli, err := sas.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
 	if err != nil {
-		r.logger.Errorf("create client failed, %s", err)
-		return err
+		l.Errorf("create client failed, %s", err)
 	}
-	r.client = cli
+
+	cli2, err := aegis.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
+	if err != nil {
+		l.Errorf("create client failed, %s", err)
+	}
+
+	a.client = cli
+
+	a.aclient = cli2
+
+	interval, err := time.ParseDuration(a.Interval)
+	if err != nil {
+		l.Error(err)
+	}
+
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
 
 	for {
 		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
+		case <-tick.C:
+			// handle
+			a.command()
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
 		}
-
-		r.command()
-
-		internal.SleepContext(ctx, r.cfg.Interval.Duration)
 	}
 }
 
-func (r *runningInstance) command() {
+func (r *Security) command() {
 	for _, region := range regions {
 		go r.describeSummaryInfo(region)
 		go r.describeSecurityStatInfo(region)
@@ -148,14 +85,14 @@ func (r *runningInstance) command() {
 	}
 }
 
-func (r *runningInstance) describeSummaryInfo(region string) {
+func (r *Security) describeSummaryInfo(region string) {
 	request := aegis.CreateDescribeSummaryInfoRequest()
 	request.Scheme = "https"
 	request.RegionId = region
 
 	response, err := r.aclient.DescribeSummaryInfo(request)
 	if err != nil {
-		r.logger.Errorf("[sas] action DescribeSummaryInfo failed, %s", err.Error())
+		l.Errorf("[sas] action DescribeSummaryInfo failed, %s", err.Error())
 	}
 
 	tags := map[string]string{}
@@ -169,17 +106,22 @@ func (r *runningInstance) describeSummaryInfo(region string) {
 	fields["aegis_client_offline_count"] = response.AegisClientOfflineCount
 	fields["security_score"] = response.SecurityScore
 
-	r.agent.accumulator.AddFields(r.metricName, fields, tags)
+	pt, err := influxdb.NewPoint(r.MetricName, tags, fields, time.Now())
+	if err != nil {
+		return
+	}
+
+	err = io.Feed([]byte(pt.String()), io.Metric)
 }
 
-func (r *runningInstance) describeSecurityStatInfo(region string) {
+func (r *Security) describeSecurityStatInfo(region string) {
 	request := aegis.CreateDescribeSecurityStatInfoRequest()
 	request.Scheme = "https"
 	request.RegionId = region
 
 	response, err := r.aclient.DescribeSecurityStatInfo(request)
 	if err != nil {
-		r.logger.Errorf("[sas] action DescribeSecurityStatInfo failed, %s", err.Error())
+		l.Errorf("[sas] action DescribeSecurityStatInfo failed, %s", err.Error())
 	}
 
 	tags := map[string]string{}
@@ -206,10 +148,18 @@ func (r *runningInstance) describeSecurityStatInfo(region string) {
 	fields["vulnerability_asap_count"] = response.Vulnerability.AsapCount
 	fields["vulnerability_total_count"] = response.Vulnerability.TotalCount
 
-	r.agent.accumulator.AddFields(r.metricName, fields, tags)
+	pt, err := io.MakeMetric(r.MetricName, tags, fields, time.Now())
+	if err != nil {
+		l.Errorf("make metric point error %v", err)
+	}
+
+	err = io.Feed([]byte(pt), io.Metric)
+	if err != nil {
+		l.Errorf("push metric point error %v", err)
+	}
 }
 
-func (r *runningInstance) describeRiskCheckSummary(region string) {
+func (r *Security) describeRiskCheckSummary(region string) {
 	// TrafficData
 	request := sas.CreateDescribeRiskCheckSummaryRequest()
 	request.Scheme = "https"
@@ -217,7 +167,7 @@ func (r *runningInstance) describeRiskCheckSummary(region string) {
 
 	response, err := r.client.DescribeRiskCheckSummary(request)
 	if err != nil {
-		r.logger.Errorf("[sas] action DescribeRiskCheckSummary failed, %s", err.Error())
+		l.Errorf("[sas] action DescribeRiskCheckSummary failed, %s", err.Error())
 	}
 
 	tags := map[string]string{}
@@ -239,13 +189,19 @@ func (r *runningInstance) describeRiskCheckSummary(region string) {
 		}
 	}
 
-	r.agent.accumulator.AddFields(r.metricName, fields, tags)
+	pt, err := io.MakeMetric(r.MetricName, tags, fields, time.Now())
+	if err != nil {
+		l.Errorf("make metric point error %v", err)
+	}
+
+	err = io.Feed([]byte(pt), io.Metric)
+	if err != nil {
+		l.Errorf("push metric point error %v", err)
+	}
 }
 
 func init() {
 	inputs.Add("aliyunsecurity", func() inputs.Input {
-		ac := &AliyunSecurity{}
-		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-		return ac
+		return &Security{}
 	})
 }

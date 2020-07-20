@@ -1,7 +1,6 @@
 package httpstat
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -10,39 +9,23 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-// httpstat
-type Httpstat struct {
-	Config           []*HttpstatCfg `toml:"httpstat"`
-	runningInstances []*runningInstance
-	ctx              context.Context
-	cancelFun        context.CancelFunc
-	acc              telegraf.Accumulator
-	wg               *sync.WaitGroup
-	logger           *models.Logger
-}
-
-type runningInstance struct {
-	metricName string
-	cfg        *HttpstatCfg `toml:"httpstat"`
-	agent      *Httpstat
-	httpPing   []*httpPing
-	logger     *models.Logger
-}
+var (
+	l *logger.Logger
+)
 
 // project
 type httpPing struct {
-	inst          *runningInstance
 	cfg           *Action
-	logger        *models.Logger
 	metricName    string
 	url           string
 	host          string
@@ -84,75 +67,42 @@ func (_ *Httpstat) Catalog() string {
 	return "httpStat"
 }
 
-func (h *Httpstat) Stop() {
-	h.cancelFun()
-}
+func (h *Httpstat) Run() {
+	l = logger.SLogger("baiduIndex")
 
-func (_ *Httpstat) Gather(acc telegraf.Accumulator) error {
-	return nil
-}
+	l.Info("baiduIndex input started...")
 
-func (h *Httpstat) Start(acc telegraf.Accumulator) error {
-	h.logger = &models.Logger{
-		Name: `httpstat`,
+	interval, err := time.ParseDuration(h.Interval)
+	if err != nil {
+		l.Error(err)
 	}
 
-	if len(h.Config) == 0 {
-		h.logger.Warnf("no configuration found")
-		return nil
-	}
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
 
-	h.logger.Info("starting...")
-
-	h.acc = acc
-
-	for _, instCfg := range h.Config {
-		r := &runningInstance{
-			cfg:    instCfg,
-			agent:  h,
-			logger: h.logger,
-		}
-
-		r.metricName = instCfg.MetricName
-		if r.metricName == "" {
-			r.metricName = "http_stat"
-		}
-
-		if r.cfg.Interval.Duration == 0 {
-			r.cfg.Interval.Duration = time.Minute * 10
-		}
-
-		h.runningInstances = append(h.runningInstances, r)
-
-		go r.run(h.ctx)
-	}
-
-	return nil
-}
-
-func (r *runningInstance) run(ctx context.Context) error {
 	for {
 		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
+		case <-tick.C:
+			// handle
+			h.run()
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
 		}
-
-		for _, c := range r.cfg.Actions {
-			p := &httpPing{
-				inst:       r,
-				cfg:        c,
-				metricName: r.metricName,
-				logger:     r.logger,
-			}
-			r.httpPing = append(r.httpPing, p)
-			go p.run(ctx)
-		}
-		internal.SleepContext(ctx, r.cfg.Interval.Duration)
 	}
 }
 
-func (h *httpPing) run(ctx context.Context) error {
+func (h *Httpstat) run() {
+	for _, c := range h.Actions {
+		p := &httpPing{
+			cfg:        c,
+			metricName: h.MetricName,
+		}
+		go p.run()
+	}
+}
+
+func (h *httpPing) run() error {
 	// 参数校验
 	h.paramCheck()
 
@@ -162,7 +112,7 @@ func (h *httpPing) run(ctx context.Context) error {
 	// 执行
 	_, err := h.ping()
 	if err != nil {
-		h.logger.Errorf("Error: '%s'\n", err)
+		l.Errorf("Error: '%s'\n", err)
 	}
 
 	return nil
@@ -172,7 +122,7 @@ func (h *httpPing) run(ctx context.Context) error {
 func (h *httpPing) paramCheck() {
 	// 请求方法校验
 	if strings.ToUpper(h.cfg.Method) != "GET" && strings.ToUpper(h.cfg.Method) != "POST" && strings.ToUpper(h.cfg.Method) != "HEAD" {
-		h.logger.Errorf("Error: Method '%s' not recognized.\n", h.method)
+		l.Errorf("Error: Method '%s' not recognized.\n", h.method)
 		return
 	}
 
@@ -180,7 +130,7 @@ func (h *httpPing) paramCheck() {
 	URL := Normalize(h.cfg.Url)
 	u, err := url.Parse(URL)
 	if err != nil {
-		h.logger.Errorf("Error: url '%s' not right.\n", h.cfg.Url)
+		l.Errorf("Error: url '%s' not right.\n", h.cfg.Url)
 		return
 	}
 
@@ -191,7 +141,7 @@ func (h *httpPing) paramCheck() {
 
 	ipAddr, err := net.ResolveIPAddr("ip", host)
 	if err != nil {
-		h.logger.Errorf("Error: cannot resolve %s: Unknown host. \n", host)
+		l.Errorf("Error: cannot resolve %s: Unknown host. \n", host)
 		return
 	}
 
@@ -265,7 +215,9 @@ func (h *httpPing) uploadData(resData Result) {
 	fields["toFirstByteTime"] = resData.Trace.toFirstByteTime.Microseconds()
 	fields["totalTime"] = resData.Trace.totalTime.Microseconds()
 
-	h.inst.agent.acc.AddFields(h.metricName, fields, tags)
+	pt, _ := influxdb.NewPoint(h.metricName, tags, fields, time.Now())
+
+	io.Feed([]byte(pt.String()), io.Metric)
 }
 
 func tracer(r *Result) *httptrace.ClientTrace {
@@ -326,9 +278,7 @@ func Normalize(URL string) string {
 }
 
 func init() {
-	inputs.Add(pluginName, func() inputs.Input {
-		m := &Httpstat{}
-		m.ctx, m.cancelFun = context.WithCancel(context.Background())
-		return m
+	inputs.Add("httpstat", func() inputs.Input {
+		return &Httpstat{}
 	})
 }
