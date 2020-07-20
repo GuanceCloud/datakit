@@ -1,36 +1,21 @@
 package baiduIndex
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/tidwall/gjson"
 
-	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type BaiduIndex struct {
-	Baidu       []*Baidu
-	ctx         context.Context
-	cancelFun   context.CancelFunc
-	accumulator telegraf.Accumulator
-	logger      *models.Logger
-
-	runningInstances []*runningInstance
-}
-
-type runningInstance struct {
-	cfg    *Baidu
-	agent  *BaiduIndex
-	logger *models.Logger
-	// client     *rds.Client
-	metricName string
-}
+var (
+	l *logger.Logger
+)
 
 func (_ *BaiduIndex) Catalog() string {
 	return "baidu"
@@ -44,7 +29,7 @@ func (_ *BaiduIndex) Description() string {
 	return ""
 }
 
-func (_ *BaiduIndex) Gather(telegraf.Accumulator) error {
+func (_ *BaiduIndex) Gather() error {
 	return nil
 }
 
@@ -52,63 +37,28 @@ func (_ *BaiduIndex) Init() error {
 	return nil
 }
 
-func (a *BaiduIndex) Start(acc telegraf.Accumulator) error {
-	a.logger = &models.Logger{
-		Name: `baiduIndex`,
+func (b *BaiduIndex) Run() {
+	l = logger.SLogger("baiduIndex")
+
+	l.Info("baiduIndex input started...")
+
+	interval, err := time.ParseDuration(b.Interval)
+	if err != nil {
+		l.Error(err)
 	}
 
-	if len(a.Baidu) == 0 {
-		a.logger.Warnf("no configuration found")
-		return nil
-	}
-
-	a.logger.Infof("starting...")
-
-	a.accumulator = acc
-
-	for _, instCfg := range a.Baidu {
-		r := &runningInstance{
-			cfg:    instCfg,
-			agent:  a,
-			logger: a.logger,
-		}
-		r.metricName = instCfg.MetricName
-		if r.metricName == "" {
-			r.metricName = "baiduIndex"
-		}
-
-		if r.cfg.Interval.Duration == 0 {
-			r.cfg.Interval.Duration = time.Minute * 10
-		}
-
-		a.runningInstances = append(a.runningInstances, r)
-
-		go r.run(a.ctx)
-	}
-	return nil
-}
-
-func (a *BaiduIndex) Stop() {
-	a.cancelFun()
-}
-
-func (r *runningInstance) run(ctx context.Context) error {
-	defer func() {
-		if e := recover(); e != nil {
-
-		}
-	}()
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
 
 	for {
 		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
+		case <-tick.C:
+			// handle
+			b.command()
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
 		}
-
-		r.command()
-
-		internal.SleepContext(ctx, r.cfg.Interval.Duration)
 	}
 }
 
@@ -117,20 +67,20 @@ type searchWord struct {
 	WordType int    `json:"wordType"`
 }
 
-func (r *runningInstance) command() {
-	go r.getSearchIndex()
-	go r.getExtendedIndex("feed")
-	go r.getExtendedIndex("news")
+func (b *BaiduIndex) command() {
+	go b.getSearchIndex()
+	go b.getExtendedIndex("feed")
+	go b.getExtendedIndex("news")
 }
 
-func (r *runningInstance) getSearchIndex() {
+func (b *BaiduIndex) getSearchIndex() {
 	var keywords = [][]*searchWord{}
 	var et = time.Now()
 	var st = et.Add(-time.Duration(24 * time.Hour))
 	var startDate = st.Format(`2006-01-02`)
 	var endDate = et.Format(`2006-01-02`)
 
-	for _, word := range r.cfg.Keywords {
+	for _, word := range b.Keywords {
 		st := &searchWord{
 			Name:     word,
 			WordType: 1,
@@ -146,10 +96,10 @@ func (r *runningInstance) getSearchIndex() {
 
 	path := fmt.Sprintf("http://index.baidu.com/api/SearchApi/index?area=0&word=%s&startDate=%v&endDate=%v", keywordStr, startDate, endDate)
 
-	_, resp := Get(path, r.cfg.Cookie)
+	_, resp := Get(path, b.Cookie)
 
 	uniqid := gjson.Parse(resp).Get("data").Get("uniqid").String()
-	key := getKey(uniqid, r.cfg.Cookie)
+	key := getKey(uniqid, b.Cookie)
 
 	for idx, item := range gjson.Parse(resp).Get("data").Get("userIndexes").Array() {
 		all := item.Get("all").Get("data").String()
@@ -165,21 +115,32 @@ func (r *runningInstance) getSearchIndex() {
 
 		word := item.Get("word.0").Get("name").String()
 
-		tags := map[string]string{}
-		fields := map[string]interface{}{}
+		tagsSearch := map[string]string{}
+		fieldsSearch := map[string]interface{}{}
 
-		tags["keyword"] = word
-		tags["type"] = "search"
-		tags["device"] = "all"
+		tagsSearch["keyword"] = word
+		tagsSearch["type"] = "search"
+		tagsSearch["device"] = "all"
 
-		fields["index"] = ConvertToFloat(allIndex)
-		fields["avg"] = allAvg
-		fields["yoy"] = allYoy
-		fields["qoq"] = allQoq
+		fieldsSearch["index"] = ConvertToFloat(allIndex)
+		fieldsSearch["avg"] = allAvg
+		fieldsSearch["yoy"] = allYoy
+		fieldsSearch["qoq"] = allQoq
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		pt, err := io.MakeMetric(b.MetricName, tagsSearch, fieldsSearch, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %s", err)
+		}
 
-		tags["device"] = "pc"
+		err = io.Feed([]byte(pt), io.Metric)
+		if err != nil {
+			l.Errorf("push metric point error %s", err)
+		}
+
+		tagsPc := map[string]string{}
+		fieldsPc := map[string]interface{}{}
+
+		tagsPc["device"] = "pc"
 
 		pc := item.Get("pc").Get("data").String()
 		pcAvgKey := fmt.Sprintf("data.generalRatio.%d.pc.avg", idx)
@@ -192,14 +153,25 @@ func (r *runningInstance) getSearchIndex() {
 		pcYoy := gjson.Get(resp, pcYoyKey).Int()
 		pcQoq := gjson.Get(resp, pcQoqKey).Int()
 
-		fields["index"] = ConvertToFloat(pcIndex)
-		fields["avg"] = pcAvg
-		fields["yoy"] = pcYoy
-		fields["qoq"] = pcQoq
+		fieldsPc["index"] = ConvertToFloat(pcIndex)
+		fieldsPc["avg"] = pcAvg
+		fieldsPc["yoy"] = pcYoy
+		fieldsPc["qoq"] = pcQoq
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		pt2, err := io.MakeMetric(b.MetricName, tagsPc, fieldsPc, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %s", err)
+		}
 
-		tags["device"] = "wise"
+		err = io.Feed([]byte(pt2), io.Metric)
+		if err != nil {
+			l.Errorf("push metric point error %s", err)
+		}
+
+		tagsWise := map[string]string{}
+		fieldsWise := map[string]interface{}{}
+
+		tagsWise["device"] = "wise"
 
 		wise := item.Get("wise").Get("data").String()
 		wiseIndex := decrypt(key, wise)
@@ -212,15 +184,24 @@ func (r *runningInstance) getSearchIndex() {
 		wiseYoy := gjson.Get(resp, wiseYoyKey).Int()
 		wiseQoq := gjson.Get(resp, wiseQoqKey).Int()
 
-		fields["index"] = ConvertToFloat(wiseIndex)
-		fields["avg"] = wiseAvg
-		fields["yoy"] = wiseYoy
-		fields["qoq"] = wiseQoq
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		fieldsWise["index"] = ConvertToFloat(wiseIndex)
+		fieldsWise["avg"] = wiseAvg
+		fieldsWise["yoy"] = wiseYoy
+		fieldsWise["qoq"] = wiseQoq
+
+		pt3, err := io.MakeMetric(b.MetricName, tagsWise, fieldsWise, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %s", err)
+		}
+
+		err = io.Feed([]byte(pt3), io.Metric)
+		if err != nil {
+			l.Errorf("push metric point error %s", err)
+		}
 	}
 }
 
-func (r *runningInstance) getExtendedIndex(tt string) {
+func (b *BaiduIndex) getExtendedIndex(tt string) {
 	var path = ""
 	var keywords = [][]*searchWord{}
 	var et = time.Now()
@@ -228,7 +209,7 @@ func (r *runningInstance) getExtendedIndex(tt string) {
 	var startDate = st.Format(`2006-01-02`)
 	var endDate = et.Format(`2006-01-02`)
 
-	for _, word := range r.cfg.Keywords {
+	for _, word := range b.Keywords {
 		st := &searchWord{
 			Name:     word,
 			WordType: 1,
@@ -248,10 +229,10 @@ func (r *runningInstance) getExtendedIndex(tt string) {
 		path = fmt.Sprintf("http://index.baidu.com/api/NewsApi/getNewsIndex?area=0&word=%s&startDate=%v&endDate=%v", keywordStr, startDate, endDate)
 	}
 
-	_, resp := Get(path, r.cfg.Cookie)
+	_, resp := Get(path, b.Cookie)
 
 	uniqid := gjson.Parse(resp).Get("data").Get("uniqid").String()
-	key := getKey(uniqid, r.cfg.Cookie)
+	key := getKey(uniqid, b.Cookie)
 
 	for _, item := range gjson.Parse(resp).Get("data").Get("index").Array() {
 		data := item.Get("data").String()
@@ -273,14 +254,20 @@ func (r *runningInstance) getExtendedIndex(tt string) {
 		fields["yoy"] = yoy
 		fields["qoq"] = qoq
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		pt, err := io.MakeMetric(b.MetricName, tags, fields, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %s", err)
+		}
+
+		err = io.Feed([]byte(pt), io.Metric)
+		if err != nil {
+			l.Errorf("push metric point error %s", err)
+		}
 	}
 }
 
 func init() {
 	inputs.Add("baiduIndex", func() inputs.Input {
-		ac := &BaiduIndex{}
-		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-		return ac
+		return &BaiduIndex{}
 	})
 }

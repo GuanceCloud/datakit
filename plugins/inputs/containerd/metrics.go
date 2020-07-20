@@ -3,11 +3,9 @@
 package containerd
 
 import (
+	"bytes"
 	"context"
 	"errors"
-	"fmt"
-	"reflect"
-	"strings"
 	"time"
 
 	"github.com/containerd/containerd"
@@ -15,116 +13,179 @@ import (
 	v1 "github.com/containerd/containerd/metrics/types/v1"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/typeurl"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 var attach = func(*cio.FIFOSet) (cio.IO, error) { return cio.NullIO("") }
 
-func (s *stream) processMetrics() error {
+func (con *Containerd) collectContainerd() ([]byte, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	ctx = namespaces.WithNamespace(ctx, s.sub.Namespace)
+	ctx = namespaces.WithNamespace(ctx, con.Namespace)
 
-	client, err := containerd.New(s.sub.HostPath)
+	client, err := containerd.New(con.HostPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer client.Close()
 
-	cs, err := client.Containers(ctx)
+	containers, err := client.Containers(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, c := range cs {
-		fmt.Println(c.ID())
-		if _, ok := s.ids[c.ID()]; !s.isAll && !ok {
+	var pts bytes.Buffer
+	var tags = make(map[string]string)
+	tags["namespace"] = con.Namespace
+
+	for _, container := range containers {
+
+		if _, ok := con.ids[container.ID()]; !con.isAll && !ok {
 			continue
 		}
 
-		task, err := c.Task(ctx, attach)
+		metrics, err := getMetrics(ctx, container)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		mt, err := task.Metrics(ctx)
+		tags["id"] = container.ID()
+		for k, v := range con.Tags {
+			tags[k] = v
+		}
+		fields := parseMetrics(metrics)
+		pt, err := io.MakeMetric(defaultMeasurement, tags, fields, time.Now())
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		data, err := typeurl.UnmarshalAny(mt.Data)
-		if err != nil {
-			return err
+		if err := appendData(&pts, pt); err != nil {
+			return nil, err
 		}
+	}
 
-		meta, ok := data.(*v1.Metrics)
-		if !ok {
-			return errors.New("invalid metrics data")
-		}
+	return pts.Bytes(), nil
+}
 
-		point, err := parseMetrics(s.sub.Measurement, s.sub.Namespace, c.ID(), meta)
-		if err != nil {
-			return err
-		}
-
-		s.points = append(s.points, point)
-
+func appendData(pts *bytes.Buffer, pt []byte) error {
+	if _, err := pts.Write(pt); err != nil {
+		return err
+	}
+	if _, err := pts.WriteString("\n"); err != nil {
+		return err
 	}
 	return nil
 }
 
-func parseMetrics(mensurement, namespace, id string, mt *v1.Metrics) (*influxdb.Point, error) {
-	var fields = make(map[string]interface{})
+func getMetrics(ctx context.Context, c containerd.Container) (*v1.Metrics, error) {
+	task, err := c.Task(ctx, attach)
+	if err != nil {
+		return nil, err
+	}
 
-	rematch(mt, "", fields)
+	mt, err := task.Metrics(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	return influxdb.NewPoint(
-		mensurement,
-		map[string]string{"namespace": namespace, "id": id},
-		fields,
-		time.Now(),
-	)
+	data, err := typeurl.UnmarshalAny(mt.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	meta, ok := data.(*v1.Metrics)
+	if !ok {
+		return nil, errors.New("invalid metrics data")
+	}
+	return meta, nil
 }
 
-func rematch(data interface{}, succkey string, m map[string]interface{}) {
+func parseMetrics(mt *v1.Metrics) map[string]interface{} {
+	var fields = make(map[string]interface{})
 
-	if reflect.ValueOf(data).IsNil() {
-		return
+	if mt.Pids != nil {
+		fields["pids_limit"] = int64(mt.Pids.Limit)
+		fields["pids_current"] = int64(mt.Pids.Current)
 	}
 
-	t := reflect.TypeOf(data).Elem()
-	v := reflect.ValueOf(data).Elem()
-
-	for i := 0; i < v.NumField(); i++ {
-
-		key := t.Field(i).Name
-
-		// filter 'XXX_', example:
-		//   type PidsStat struct {
-		//       Current              uint64
-		//       Limit                uint64
-		//       XXX_NoUnkeyedLiteral struct{}
-		//       XXX_unrecognized     []byte
-		//       XXX_sizecache        int32
-		//   }
-
-		if strings.HasPrefix(key, "XXX_") {
-			continue
+	if mt.CPU != nil {
+		if mt.CPU.Usage != nil {
+			fields["cpu_usage_total"] = int64(mt.CPU.Usage.Total)
+			fields["cpu_usage_kernal"] = int64(mt.CPU.Usage.Kernel)
+			fields["cpu_usage_user"] = int64(mt.CPU.Usage.User)
 		}
 
-		switch v.Field(i).Kind() {
-
-		case reflect.Ptr:
-			rematch(v.Field(i).Interface(), succkey+key+"_", m)
-
-		case reflect.Uint64:
-			// integer
-			m[succkey+key] = int64(v.Field(i).Uint())
-
-		default:
-			// nil
-
+		if mt.CPU.Throttling != nil {
+			fields["cpu_thorttling_periods"] = int64(mt.CPU.Throttling.Periods)
+			fields["cpu_thorttling_throttled_eriods"] = int64(mt.CPU.Throttling.ThrottledPeriods)
+			fields["cpu_thorttling_throttled_ime"] = int64(mt.CPU.Throttling.ThrottledTime)
 		}
 	}
+
+	if mt.Memory != nil {
+		fields["memory_cache"] = int64(mt.Memory.Cache)
+		fields["memory_rss"] = int64(mt.Memory.RSS)
+		fields["memory_rss_huge"] = int64(mt.Memory.RSSHuge)
+		fields["memory_mapped_file"] = int64(mt.Memory.MappedFile)
+		fields["memory_dirty"] = int64(mt.Memory.Dirty)
+		fields["memory_writeback"] = int64(mt.Memory.Writeback)
+		fields["memory_pg_pg_in"] = int64(mt.Memory.PgPgIn)
+		fields["memory_pg_pg_out"] = int64(mt.Memory.PgPgOut)
+		fields["memory_pg_fault"] = int64(mt.Memory.PgFault)
+		fields["memory_pg_maj_fault"] = int64(mt.Memory.PgMajFault)
+		fields["memory_inactive_anon"] = int64(mt.Memory.InactiveAnon)
+		fields["memory_active_anon"] = int64(mt.Memory.ActiveAnon)
+		fields["memory_inactive_file"] = int64(mt.Memory.InactiveFile)
+		fields["memory_active_file"] = int64(mt.Memory.ActiveFile)
+		fields["memory_unevictable"] = int64(mt.Memory.Unevictable)
+		fields["memory_hierarchical_memory_limit"] = int64(mt.Memory.HierarchicalMemoryLimit)
+		fields["memory_hierarchical_swap_limit"] = int64(mt.Memory.HierarchicalSwapLimit)
+		fields["memory_total_cache"] = int64(mt.Memory.TotalCache)
+		fields["memory_total_rss"] = int64(mt.Memory.TotalRSS)
+		fields["memory_total_rss_huge"] = int64(mt.Memory.TotalRSSHuge)
+		fields["memory_total_mapped_file"] = int64(mt.Memory.TotalMappedFile)
+		fields["memory_total_dirty"] = int64(mt.Memory.TotalDirty)
+		fields["memory_total_writeback"] = int64(mt.Memory.TotalWriteback)
+		fields["memory_total_pg_pg_in"] = int64(mt.Memory.TotalPgPgIn)
+		fields["memory_total_pg_pg_out"] = int64(mt.Memory.TotalPgPgOut)
+		fields["memory_total_pg_fault"] = int64(mt.Memory.TotalPgFault)
+		fields["memory_total_pg_maj_fault"] = int64(mt.Memory.TotalPgMajFault)
+		fields["memory_total_inactive_anon"] = int64(mt.Memory.TotalInactiveAnon)
+		fields["memory_total_active_anon"] = int64(mt.Memory.TotalActiveAnon)
+		fields["memory_total_inactive_file"] = int64(mt.Memory.TotalInactiveFile)
+		fields["memory_total_active_file"] = int64(mt.Memory.TotalActiveFile)
+		fields["memory_total_unevictable"] = int64(mt.Memory.TotalUnevictable)
+
+		if mt.Memory.Usage != nil {
+			fields["memory_usage_limit"] = int64(mt.Memory.Usage.Limit)
+			fields["memory_usage_usage"] = int64(mt.Memory.Usage.Usage)
+			fields["memory_usage_max"] = int64(mt.Memory.Usage.Max)
+			fields["memory_usage_failcnt"] = int64(mt.Memory.Usage.Failcnt)
+		}
+
+		if mt.Memory.Swap != nil {
+			fields["memory_swap_limit"] = int64(mt.Memory.Swap.Limit)
+			fields["memory_swap_usage"] = int64(mt.Memory.Swap.Usage)
+			fields["memory_swap_max"] = int64(mt.Memory.Swap.Max)
+			fields["memory_swap_failcnt"] = int64(mt.Memory.Swap.Failcnt)
+		}
+
+		if mt.Memory.Kernel != nil {
+			fields["memory_kernel_limit"] = int64(mt.Memory.Kernel.Limit)
+			fields["memory_kernel_usage"] = int64(mt.Memory.Kernel.Usage)
+			fields["memory_kernel_max"] = int64(mt.Memory.Kernel.Max)
+			fields["memory_kernel_failcnt"] = int64(mt.Memory.Kernel.Failcnt)
+		}
+		if mt.Memory.KernelTCP != nil {
+
+			fields["memory_kernel_tcp_limit"] = int64(mt.Memory.KernelTCP.Limit)
+			fields["memory_kernel_tcp_usage"] = int64(mt.Memory.KernelTCP.Usage)
+			fields["memory_kernel_tcp_max"] = int64(mt.Memory.KernelTCP.Max)
+			fields["memory_kernel_tcp_failcnt"] = int64(mt.Memory.KernelTCP.Failcnt)
+		}
+	}
+
+	return fields
 }
