@@ -1,31 +1,25 @@
 package trace
 
 import (
-	"log"
-
-	"github.com/influxdata/telegraf"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-const traceConfigSample = `### active: whether to collect trace data.
-### host: http server host.
-### path: url path to recieve data.
-
-#active = true
-#host   = "127.0.0.1:54133"
-#path   = "/trace"
-#dataway_path="/v1/write/logging"
-`
-
 var (
-	acc telegraf.Accumulator
+	traceConfigSample = `
+#[inputs.trace]
+#	[inputs.trace.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
+`
+	log *logger.Logger
 )
 
+var gTags map[string]string
+
 type Trace struct {
-	Active bool
-	Host   string
-	Path   string
-	Ftdataway string   `toml:"dataway_path"`
+	Tags map[string]string
 }
 
 func (_ *Trace) Catalog() string {
@@ -36,28 +30,10 @@ func (_ *Trace) SampleConfig() string {
 	return traceConfigSample
 }
 
-func (_ *Trace) Description() string {
-	return "Collect Trace Data"
-}
-
-func (_ *Trace) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (t *Trace) Start(accumulator telegraf.Accumulator) error {
-	if !t.Active {
-		return nil
-	}
-
-	log.Printf("I! [trace] start")
-	acc = accumulator
-
-	go t.Serve()
-
-	return nil
-}
-
-func (_ *Trace) Stop() {
+func (t *Trace) Run() {
+	log = logger.SLogger("trace")
+	log.Infof("trace input started...")
+	gTags = t.Tags
 }
 
 func init() {
