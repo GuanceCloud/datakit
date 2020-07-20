@@ -27,7 +27,9 @@ var (
 	flagDataWay        = flag.String("dataway", ``, `dataway IP:Port`)
 	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d, list configired and mis-configured collectors`)
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
-	flagListCollectors = flag.Bool("tree", false, `list vailable collectors`)
+
+	flagListCollectors    = flag.Bool("tree", false, `list vailable collectors`)
+	flagListConfigSamples = flag.Bool("config-samples", false, `list all config samples`)
 )
 
 var (
@@ -67,42 +69,24 @@ func main() {
 func applyFlags() {
 
 	if *flagVersion {
-		fmt.Printf(`Version:        %s
-Sha1:           %s
-Build At:       %s
+		fmt.Printf(`
+       Version: %s
+        Commit: %s
+        Branch: %s
+ Build At(UTC): %s
 Golang Version: %s
-Uploader:         %s
-`, git.Version, git.Sha1, git.BuildAt, git.Golang, git.Uploader)
+      Uploader: %s
+`, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader)
 		os.Exit(0)
 	}
 
 	if *flagListCollectors {
-		collectors := map[string][]string{}
+		showAllCollectors()
+		os.Exit(0)
+	}
 
-		for k, v := range inputs.Inputs {
-			cat := v().Catalog()
-			collectors[cat] = append(collectors[cat], k)
-		}
-
-		for k, vs := range collectors {
-			fmt.Println(k)
-			for _, v := range vs {
-				fmt.Printf("  |--[d] %s\n", v)
-			}
-		}
-
-		collectors = map[string][]string{}
-		for k, v := range config.SupportsTelegrafMetricNames {
-			collectors[v.Catalog] = append(collectors[v.Catalog], k)
-		}
-
-		for k, vs := range collectors {
-			fmt.Println(k)
-			for _, v := range vs {
-				fmt.Printf("  |--[t] %s\n", v)
-			}
-		}
-
+	if *flagListConfigSamples {
+		showAllConfigSamples()
 		os.Exit(0)
 	}
 
@@ -113,6 +97,52 @@ Uploader:         %s
 
 	if *flagInputFilters != "" {
 		inputFilters = strings.Split(":"+strings.TrimSpace(*flagInputFilters)+":", ":")
+	}
+}
+
+func showAllCollectors() {
+	collectors := map[string][]string{}
+
+	for k, v := range inputs.Inputs {
+		cat := v().Catalog()
+		collectors[cat] = append(collectors[cat], k)
+	}
+
+	ndatakit := 0
+	for k, vs := range collectors {
+		fmt.Println(k)
+		for _, v := range vs {
+			fmt.Printf("  |--[d] %s\n", v)
+			ndatakit++
+		}
+	}
+
+	nagent := 0
+	collectors = map[string][]string{}
+	for k, v := range config.SupportsTelegrafMetricNames {
+		collectors[v.Catalog] = append(collectors[v.Catalog], k)
+	}
+
+	for k, vs := range collectors {
+		fmt.Println(k)
+		for _, v := range vs {
+			fmt.Printf("  |--[t] %s\n", v)
+			nagent++
+		}
+	}
+
+	fmt.Println("===================================")
+	fmt.Printf("total: %d, datakit: %d, agent: %d\n", ndatakit+nagent, ndatakit, nagent)
+}
+
+func showAllConfigSamples() {
+	for k, v := range inputs.Inputs {
+		sample := v().SampleConfig()
+		fmt.Printf("%s\n========= [D] ==========\n%s\n", k, sample)
+	}
+
+	for k, v := range config.TelegrafCfgSamples {
+		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v)
 	}
 }
 
