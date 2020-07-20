@@ -10,14 +10,15 @@ require (
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
+	github.com/Pallinder/go-randomdata v1.2.0
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
+	github.com/aliyun/aliyun-oss-go-sdk v2.1.2+incompatible // indirect
 	github.com/andygrunwald/go-jira v1.12.0
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/apache/thrift v0.13.0
 	github.com/aws/aws-sdk-go v1.27.0
-	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
 	github.com/containerd/containerd v1.4.0-beta.0
 	github.com/containerd/continuity v0.0.0-20200413184840-d3ef23f19fbb // indirect
@@ -33,11 +34,11 @@ require (
 	github.com/gin-gonic/gin v1.6.2
 	github.com/go-delve/delve v1.4.0 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/godror/godror v0.14.0 // indirect
+	github.com/godror/godror v0.14.0
 	github.com/gofrs/uuid v2.1.0+incompatible
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/protobuf v1.3.4
+	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.1
 	github.com/golangci/golangci-lint v1.27.0 // indirect
 	github.com/google/gopacket v1.1.17 // indirect
@@ -49,6 +50,8 @@ require (
 	github.com/jackc/pgx v3.6.0+incompatible
 	github.com/kardianos/service v1.0.0
 	github.com/lib/pq v1.4.0
+	github.com/logrusorgru/gopb3any v0.0.0-20181002194712-b78f3858fa1f // indirect
+	github.com/logrusorgru/lifo v0.0.0-20181002195007-26900045159d // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/mehrdadrad/mylg v0.2.6 // indirect
 	github.com/naoina/toml v0.1.1
@@ -79,12 +82,16 @@ require (
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/xanzy/go-gitlab v0.31.0
 	github.com/zcalusic/sysinfo v0.0.0-20200228145645-a159d7cc708b // indirect
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200420090054-d71410dd73eb
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200630070400-b23b83b0b65d
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
+	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
+	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	golang.org/x/tools/gopls v0.4.1 // indirect
+	google.golang.org/grpc v1.27.0
+	google.golang.org/protobuf v1.24.0 // indirect
 	gopkg.in/fsnotify/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	gotest.tools/v3 v3.0.2 // indirect
