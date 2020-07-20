@@ -1,19 +1,18 @@
 package aliyunddos
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/aegis"
-	"github.com/tidwall/gjson"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
-	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -32,120 +31,58 @@ var regions3 = []string{
 	"cn-hongkong",
 }
 
-type AliyunDDoS struct {
-	DDoS        []*DDoS
-	ctx         context.Context
-	cancelFun   context.CancelFunc
-	accumulator telegraf.Accumulator
-	logger      *models.Logger
+var (
+	l *logger.Logger
+)
 
-	runningInstances []*runningInstance
-}
-
-type runningInstance struct {
-	cfg        *DDoS
-	agent      *AliyunDDoS
-	logger     *models.Logger
-	client     *sdk.Client
-	aclient    *aegis.Client
-	metricName string
-}
-
-func (_ *AliyunDDoS) SampleConfig() string {
+func (_ *DDoS) SampleConfig() string {
 	return configSample
 }
 
-func (_ *AliyunDDoS) Catalog() string {
+func (_ *DDoS) Catalog() string {
 	return "aliyun"
 }
 
-func (_ *AliyunDDoS) Description() string {
+func (_ *DDoS) Description() string {
 	return ""
 }
 
-func (_ *AliyunDDoS) Gather(telegraf.Accumulator) error {
+func (_ *DDoS) Gather() error {
 	return nil
 }
 
-func (_ *AliyunDDoS) Init() error {
-	return nil
-}
+func (a *DDoS) Run() {
+	l = logger.SLogger("aliyunDDOS")
+	l.Info("aliyunDDOS input started...")
 
-func (a *AliyunDDoS) Start(acc telegraf.Accumulator) error {
-	a.logger = &models.Logger{
-		Name: `aliyunddos`,
-	}
-
-	if len(a.DDoS) == 0 {
-		a.logger.Warnf("no configuration found")
-		return nil
-	}
-
-	a.logger.Infof("starting...")
-
-	a.accumulator = acc
-
-	for _, instCfg := range a.DDoS {
-		r := &runningInstance{
-			cfg:    instCfg,
-			agent:  a,
-			logger: a.logger,
-		}
-		r.metricName = instCfg.MetricName
-		if r.metricName == "" {
-			r.metricName = "aliyun_ddos"
-		}
-
-		if r.cfg.Interval.Duration == 0 {
-			r.cfg.Interval.Duration = time.Minute * 10
-		}
-
-		cli, err := sdk.NewClientWithAccessKey(instCfg.RegionID, instCfg.AccessKeyID, instCfg.AccessKeySecret)
-		if err != nil {
-			r.logger.Errorf("create client failed, %s", err)
-			return err
-		}
-
-		r.client = cli
-		a.runningInstances = append(a.runningInstances, r)
-
-		go r.run(a.ctx)
-	}
-	return nil
-}
-
-func (a *AliyunDDoS) Stop() {
-	a.cancelFun()
-}
-
-func (r *runningInstance) run(ctx context.Context) error {
-	defer func() {
-		if e := recover(); e != nil {
-
-		}
-	}()
-
-	cli, err := sdk.NewClientWithAccessKey(r.cfg.RegionID, r.cfg.AccessKeyID, r.cfg.AccessKeySecret)
+	cli, err := sdk.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
 	if err != nil {
-		r.logger.Errorf("create client failed, %s", err)
-		return err
+		l.Errorf("create client failed, %s", err)
 	}
-	r.client = cli
+
+	a.client = cli
+
+	interval, err := time.ParseDuration(a.Interval)
+	if err != nil {
+		l.Error(err)
+	}
+
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
 
 	for {
 		select {
-		case <-ctx.Done():
-			return context.Canceled
-		default:
+		case <-tick.C:
+			// handle
+			a.command()
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
 		}
-
-		r.command()
-
-		internal.SleepContext(ctx, r.cfg.Interval.Duration)
 	}
 }
 
-func (r *runningInstance) getInstance(region string) error {
+func (r *DDoS) getInstance(region string) error {
 	var pageNumber = 1
 	var pageSize = 10
 
@@ -163,7 +100,7 @@ func (r *runningInstance) getInstance(region string) error {
 
 		response, err := r.client.ProcessCommonRequest(request)
 		if err != nil {
-			r.logger.Error("getInstance failed", err)
+			l.Error("getInstance failed", err)
 			return err
 		}
 
@@ -182,6 +119,15 @@ func (r *runningInstance) getInstance(region string) error {
 
 			fields["instanceId"] = item.Get("InstanceId").String()
 			fields["remark"] = item.Get("Remark").String()
+			pt, err := io.MakeMetric(r.MetricName, tags, fields, time.Now())
+			if err != nil {
+				l.Errorf("make metric point error %v", err)
+			}
+
+			err = io.Feed([]byte(pt), io.Metric)
+			if err != nil {
+				l.Errorf("push metric point error %v", err)
+			}
 
 			go r.describeInstanceDetails(item.Get("InstanceId").String(), region)
 			go r.describeInstanceStatistics(item.Get("InstanceId").String(), region)
@@ -198,7 +144,7 @@ func (r *runningInstance) getInstance(region string) error {
 	return nil
 }
 
-func (r *runningInstance) command() {
+func (r *DDoS) command() {
 	for _, region := range regions {
 		go r.getInstance(region)
 	}
@@ -212,7 +158,7 @@ func (r *runningInstance) command() {
 	}
 }
 
-func (r *runningInstance) describeInstanceDetails(instanceID, region string) error {
+func (r *DDoS) describeInstanceDetails(instanceID, region string) error {
 	request := requests.NewCommonRequest()
 	request.Method = "POST"
 	request.Scheme = "https"
@@ -225,7 +171,7 @@ func (r *runningInstance) describeInstanceDetails(instanceID, region string) err
 
 	response, err := r.client.ProcessCommonRequest(request)
 	if err != nil {
-		r.logger.Error("describeInstanceDetails failed", err)
+		l.Error("describeInstanceDetails failed", err)
 		return err
 	}
 
@@ -252,13 +198,22 @@ func (r *runningInstance) describeInstanceDetails(instanceID, region string) err
 		fields["eip"] = strings.Join(eip, "\\")
 		fields["line"] = item.Get("line").String()
 		fields["instanceId"] = item.Get("InstanceId").String()
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+
+		pt, err := io.MakeMetric(r.MetricName, tags, fields, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %v", err)
+		}
+
+		err = io.Feed([]byte(pt), io.Metric)
+		if err != nil {
+			l.Errorf("push metric point error %v", err)
+		}
 	}
 
 	return nil
 }
 
-func (r *runningInstance) describeInstanceStatistics(instanceID, region string) error {
+func (r *DDoS) describeInstanceStatistics(instanceID, region string) error {
 	request := requests.NewCommonRequest()
 	request.Method = "POST"
 	request.Scheme = "https" // https | http
@@ -271,7 +226,7 @@ func (r *runningInstance) describeInstanceStatistics(instanceID, region string) 
 
 	response, err := r.client.ProcessCommonRequest(request)
 	if err != nil {
-		r.logger.Error("describeInstanceStatistics failed", err)
+		l.Error("describeInstanceStatistics failed", err)
 		return err
 	}
 
@@ -292,13 +247,21 @@ func (r *runningInstance) describeInstanceStatistics(instanceID, region string) 
 		fields["portUsage"] = item.Get("PortUsage").Int()
 		fields["siteUsage"] = item.Get("SiteUsage").Int()
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		pt, err := io.MakeMetric(r.MetricName, tags, fields, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %v", err)
+		}
+
+		err = io.Feed([]byte(pt), io.Metric)
+		if err != nil {
+			l.Errorf("push metric point error %v", err)
+		}
 	}
 
 	return nil
 }
 
-func (r *runningInstance) describeWebRules(region string) error {
+func (r *DDoS) describeWebRules(region string) error {
 	var pageNumber = 1
 	var pageSize = 10
 
@@ -316,7 +279,7 @@ func (r *runningInstance) describeWebRules(region string) error {
 
 		response, err := r.client.ProcessCommonRequest(request)
 		if err != nil {
-			r.logger.Error("describeWebRules failed", err)
+			l.Error("describeWebRules failed", err)
 			return err
 		}
 
@@ -351,7 +314,15 @@ func (r *runningInstance) describeWebRules(region string) error {
 				fields[key] = obj.Get("RealServer").String()
 			}
 
-			r.agent.accumulator.AddFields(r.metricName, fields, tags)
+			pt, err := io.MakeMetric(r.MetricName, tags, fields, time.Now())
+			if err != nil {
+				l.Errorf("make metric point error %v", err)
+			}
+
+			err = io.Feed([]byte(pt), io.Metric)
+			if err != nil {
+				l.Errorf("push metric point error %v", err)
+			}
 		}
 
 		total := gjson.Parse(data).Get("TotalCount").Int()
@@ -364,7 +335,7 @@ func (r *runningInstance) describeWebRules(region string) error {
 	return nil
 }
 
-func (r *runningInstance) describeNetworkRules(instanceID, region string) error {
+func (r *DDoS) describeNetworkRules(instanceID, region string) error {
 	var pageNumber = 1
 	var pageSize = 10
 
@@ -383,7 +354,7 @@ func (r *runningInstance) describeNetworkRules(instanceID, region string) error 
 
 		response, err := r.client.ProcessCommonRequest(request)
 		if err != nil {
-			r.logger.Error("describeNetworkRules failed", err)
+			l.Error("describeNetworkRules failed", err)
 			return err
 		}
 
@@ -412,7 +383,12 @@ func (r *runningInstance) describeNetworkRules(instanceID, region string) error 
 			}
 			fields["realServer"] = strings.Join(realServer, "\\")
 
-			r.agent.accumulator.AddFields(r.metricName, fields, tags)
+			pt, err := influxdb.NewPoint(r.MetricName, tags, fields, time.Now())
+			if err != nil {
+				return err
+			}
+
+			err = io.Feed([]byte(pt.String()), io.Metric)
 		}
 
 		total := gjson.Parse(data).Get("TotalCount").Int()
@@ -426,7 +402,7 @@ func (r *runningInstance) describeNetworkRules(instanceID, region string) error 
 	return nil
 }
 
-func (r *runningInstance) describePayInfo(region string) error {
+func (r *DDoS) describePayInfo(region string) error {
 	request := requests.NewCommonRequest()
 	request.Method = "POST"
 	request.Scheme = "https" // https | http
@@ -438,7 +414,7 @@ func (r *runningInstance) describePayInfo(region string) error {
 
 	response, err := r.client.ProcessCommonRequest(request)
 	if err != nil {
-		r.logger.Error("describePayInfo failed", err)
+		l.Error("describePayInfo failed", err)
 		return err
 	}
 
@@ -463,7 +439,12 @@ func (r *runningInstance) describePayInfo(region string) error {
 		fields["remainDay"] = item.Get("RemainDay").Int()
 		fields["status"] = item.Get("Status").Int()
 
-		r.agent.accumulator.AddFields(r.metricName, fields, tags)
+		pt, err := influxdb.NewPoint(r.MetricName, tags, fields, time.Now())
+		if err != nil {
+			return err
+		}
+
+		err = io.Feed([]byte(pt.String()), io.Metric)
 	}
 
 	return nil
@@ -471,8 +452,6 @@ func (r *runningInstance) describePayInfo(region string) error {
 
 func init() {
 	inputs.Add("aliyunddos", func() inputs.Input {
-		ac := &AliyunDDoS{}
-		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-		return ac
+		return &DDoS{}
 	})
 }

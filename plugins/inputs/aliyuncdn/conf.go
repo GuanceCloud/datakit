@@ -1,6 +1,6 @@
 package aliyuncdn
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+import "github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
 
 const (
 	aliyunCDNConfigSample = `
@@ -44,11 +44,12 @@ type Summary struct {
 }
 
 type CDN struct {
-	RegionID        string            `toml:"region"`
-	AccessKeyID     string            `toml:"accessKeyId"`
-	AccessKeySecret string            `toml:"accessKeySecret"`
-	DomainName      []string          `toml:"domains"`
-	Metric          *Metric           `toml:"metric"`
-	Summary         *Summary          `toml:"summary"`
-	Interval        internal.Duration `toml:"interval"`
+	RegionID        string   `toml:"region"`
+	AccessKeyID     string   `toml:"accessKeyId"`
+	AccessKeySecret string   `toml:"accessKeySecret"`
+	DomainName      []string `toml:"domains"`
+	Metric          *Metric  `toml:"metric"`
+	Summary         *Summary `toml:"summary"`
+	Interval        string   `toml:"interval"`
+	client          *cdn.Client
 }
