@@ -4,14 +4,14 @@ package oraclemonitor
 
 import (
 	"database/sql"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"time"
-
-	"go.uber.org/zap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -21,10 +21,10 @@ import (
 
 const (
 	configSample = `
-#libPath = ''
-#[[instances]]
+#[[inputs.oraclemonitor]]
 #  ## 采集的频度，最小粒度5m
 #  interval = '10s'
+#  libPath = ''
 #  ## 指标集名称，默认值oracle_monitor
 #  metricName = ''
 #  ## 实例ID(非必要属性)
@@ -47,10 +47,11 @@ const (
 )
 
 var (
-	l *zap.SugaredLogger
+	l *logger.Logger
 )
 
-type Instance struct {
+type OracleMonitor struct {
+	LibPath  string `json:"libPath" toml:"libPath"`
 	Metric   string `json:"metricName" toml:"metricName"`
 	Interval string `json:"interval" toml:"interval"`
 
@@ -63,30 +64,27 @@ type Instance struct {
 	Server     string `json:"server" toml:"server"`
 	Type       string `json:"type" toml:"type"`
 
-	DB               *sql.DB       `json:"-"`
-	IntervalDuration time.Duration `json:"-"`
+	Tags map[string]string `json:"tags" toml:"tags"`
+
+	DB               *sql.DB       `json:"-" json:"-"`
+	IntervalDuration time.Duration `json:"-" json:"-"`
 }
 
-type oraclemonitor struct {
-	LibPath   string      `toml:"libPath"`
-	Instances []*Instance `toml:"instances"`
-}
-
-func (_ *oraclemonitor) Catalog() string {
+func (_ *OracleMonitor) Catalog() string {
 	return "oracle"
 }
 
-func (_ *oraclemonitor) SampleConfig() string {
+func (_ *OracleMonitor) SampleConfig() string {
 	return configSample
 }
 
-func (o *oraclemonitor) Run() {
+func (o *OracleMonitor) Run() {
 	l = logger.SLogger("oraclemonitor")
 	l.Info("oraclemonitor started")
 
 	l.Info("starting external oraclemonitor...")
 
-	bin := filepath.Join(datakit.InstallDir, "external", "oraclemonitor")
+	bin := filepath.Join(datakit.InstallDir, "externals", "oraclemonitor")
 	if runtime.GOOS == "windows" {
 		bin += ".exe"
 	}
@@ -96,8 +94,19 @@ func (o *oraclemonitor) Run() {
 		return
 	}
 
+	cfg, err := json.Marshal(o)
+	if err != nil {
+		l.Errorf("toml marshal failed: %v", err)
+		return
+	}
+
+	b64cfg := base64.StdEncoding.EncodeToString(cfg)
+
 	args := []string{
-		"-cfg", filepath.Join(datakit.ConfdDir, o.Catalog(), "oraclemonintor.conf"),
+		"-cfg", b64cfg,
+		"-rpc-server", "unix://" + datakit.GRPCDomainSock,
+		"-desc", o.Desc,
+		"-log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"),
 		"-log-level", config.Cfg.MainCfg.LogLevel,
 	}
 
@@ -108,7 +117,7 @@ func (o *oraclemonitor) Run() {
 
 	l.Infof("starting process %+#v", cmd)
 	if err := cmd.Start(); err != nil {
-		l.Errorf("starting oraclemonintor failed: %s", err.Error())
+		l.Error(err)
 		return
 	}
 
@@ -118,6 +127,6 @@ func (o *oraclemonitor) Run() {
 
 func init() {
 	inputs.Add("oraclemonintor", func() inputs.Input {
-		return &oraclemonitor{}
+		return &OracleMonitor{}
 	})
 }
