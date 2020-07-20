@@ -1,55 +1,33 @@
 package aliyunlog
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofrs/uuid"
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	sls "github.com/aliyun/aliyun-log-go-sdk"
 	consumerLibrary "github.com/aliyun/aliyun-log-go-sdk/consumer"
 )
 
-type AliyunLog struct {
-	Consumer []*ConsumerInstance
+const inputName = `aliyunlog`
 
-	runningInstances []*runningInstance
-
-	ctx       context.Context
-	cancelFun context.CancelFunc
-
-	accumulator telegraf.Accumulator
-
-	logger *models.Logger
-}
-
-type runningInstance struct {
-	cfg *ConsumerInstance
-
-	agent *AliyunLog
-
-	logger *models.Logger
-
-	runningProjects []*runningProject
-}
+var moduleLogger *logger.Logger
 
 type runningProject struct {
-	inst *runningInstance
+	inst *ConsumerInstance
 	cfg  *LogProject
 
-	logger *models.Logger
-
-	runningStores []*runningStore
+	wg sync.WaitGroup
 }
 
 type tagReplace struct {
@@ -65,112 +43,70 @@ type runningStore struct {
 	fieldsInfo map[string]string
 
 	tagsInfo map[string]*tagReplace
-
-	logger *models.Logger
 }
 
-func (_ *AliyunLog) Catalog() string {
+func (_ *ConsumerInstance) Catalog() string {
 	return "aliyun"
 }
 
-func (_ *AliyunLog) SampleConfig() string {
+func (_ *ConsumerInstance) SampleConfig() string {
 	return aliyunlogConfigSample
 }
 
-func (_ *AliyunLog) Description() string {
-	return "Collect logs from aliyun SLS"
-}
+// func (_ *AliyunLog) Description() string {
+// 	return "Collect logs from aliyun SLS"
+// }
 
-func (_ *AliyunLog) Gather(telegraf.Accumulator) error {
-	return nil
-}
+func (al *ConsumerInstance) Run() {
 
-func (al *AliyunLog) Start(acc telegraf.Accumulator) error {
+	moduleLogger = logger.SLogger(inputName)
 
-	al.logger = &models.Logger{
-		Name: `aliyunlog`,
-	}
+	for _, c := range al.Projects {
+		al.wg.Add(1)
 
-	if len(al.Consumer) == 0 {
-		al.logger.Warnf("no configuration found")
-		return nil
-	}
+		go func(lp *LogProject) {
+			defer al.wg.Done()
 
-	al.logger.Info("starting...")
-
-	al.accumulator = acc
-
-	for _, instCfg := range al.Consumer {
-		r := &runningInstance{
-			cfg:    instCfg,
-			agent:  al,
-			logger: al.logger,
-		}
-		al.runningInstances = append(al.runningInstances, r)
-
-		go func(ctx context.Context) {
-			if err := r.run(al.ctx); err != nil && err != context.Canceled {
-				al.logger.Errorf("%s", err)
+			p := &runningProject{
+				cfg:  lp,
+				inst: al,
 			}
-		}(al.ctx)
+			p.run()
+		}(c)
 	}
 
-	return nil
+	al.wg.Wait()
+
 }
 
-func (al *AliyunLog) Stop() {
-	al.cancelFun()
-}
-
-func (r *runningInstance) run(ctx context.Context) error {
-
-	for _, c := range r.cfg.Projects {
-
-		p := &runningProject{
-			cfg:    c,
-			inst:   r,
-			logger: r.logger,
-		}
-		r.runningProjects = append(r.runningProjects, p)
-
-		go func(ctx context.Context) {
-			if err := p.run(ctx); err != nil && err != context.Canceled {
-				r.logger.Errorf("%s", err)
-			}
-		}(ctx)
-	}
-
-	return nil
-}
-
-func (r *runningProject) run(ctx context.Context) error {
+func (r *runningProject) run() {
 
 	for _, c := range r.cfg.Stores {
+		r.wg.Add(1)
 
-		s := &runningStore{
-			cfg:        c,
-			proj:       r,
-			logger:     r.logger,
-			tagsInfo:   map[string]*tagReplace{},
-			fieldsInfo: map[string]string{},
-		}
-		s.metricName = c.MetricName
-		if s.metricName == "" {
-			s.metricName = `aliyunlog_` + c.Name
-		}
-		r.runningStores = append(r.runningStores, s)
+		go func(ls *LogStoreCfg) {
+			defer r.wg.Done()
 
-		go func(ctx context.Context) {
-			if err := s.run(ctx); err != nil && err != context.Canceled {
-				r.logger.Errorf("%s", err)
+			s := &runningStore{
+				cfg:        ls,
+				proj:       r,
+				tagsInfo:   map[string]*tagReplace{},
+				fieldsInfo: map[string]string{},
 			}
-		}(ctx)
+			s.metricName = ls.MetricName
+			if s.metricName == "" {
+				s.metricName = `aliyunlog_` + ls.Name
+			}
+
+			s.run()
+		}(c)
+
 	}
 
-	return nil
+	r.wg.Wait()
 }
 
-func (r *runningStore) run(ctx context.Context) error {
+func (r *runningStore) run() error {
 
 	for _, titem := range r.cfg.Tags {
 		parts := strings.Split(titem, ":")
@@ -201,7 +137,7 @@ func (r *runningStore) run(ctx context.Context) error {
 	for _, fitem := range r.cfg.Fields {
 		parts := strings.Split(fitem, ":")
 		if len(parts) != 2 {
-			r.logger.Warnf("invalid field type specification")
+			moduleLogger.Warnf("invalid field type specification")
 			continue
 		}
 		fieldType := parts[0]
@@ -212,9 +148,9 @@ func (r *runningStore) run(ctx context.Context) error {
 	}
 
 	option := consumerLibrary.LogHubConfig{
-		Endpoint:          r.proj.inst.cfg.Endpoint,
-		AccessKeyID:       r.proj.inst.cfg.AccessKeyID,
-		AccessKeySecret:   r.proj.inst.cfg.AccessKeySecret,
+		Endpoint:          r.proj.inst.Endpoint,
+		AccessKeyID:       r.proj.inst.AccessKeyID,
+		AccessKeySecret:   r.proj.inst.AccessKeySecret,
 		Project:           r.proj.cfg.Name,
 		Logstore:          r.cfg.Name,
 		ConsumerGroupName: r.cfg.ConsumerGroupName,
@@ -227,10 +163,8 @@ func (r *runningStore) run(ctx context.Context) error {
 	consumerWorker := consumerLibrary.InitConsumerWorker(option, r.logProcess)
 	consumerWorker.Start()
 
-	<-ctx.Done()
+	<-datakit.Exit.Wait()
 	consumerWorker.StopAndWait()
-
-	r.logger.Infof("%s done", r.cfg.Name)
 
 	return nil
 
@@ -360,33 +294,23 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 			if err == nil {
 				fields["__content"] = string(contentStr)
 			} else {
-				r.logger.Warnf("fail to marshal content, %s", err)
+				moduleLogger.Warnf("fail to marshal content, %s", err)
 			}
 
 			tm := time.Unix(int64(l.GetTime()), 0)
-			m, err := metric.New(r.metricName, tags, fields, tm)
-			if err == nil {
-				if r.proj.inst.agent.accumulator != nil {
-					r.proj.inst.agent.accumulator.AddMetric(m)
-				} else {
-					fmt.Printf("%s", internal.Metric2InfluxLine(m))
-				}
-			} else {
-				r.logger.Warnf("fail to generate metric, %s", err)
-			}
+			io.FeedEx(io.Logging, r.metricName, tags, fields, tm)
 		}
 	}
 	return ""
 }
 
-func NewAgent() *AliyunLog {
-	ac := &AliyunLog{}
-	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
+func NewAgent() *ConsumerInstance {
+	ac := &ConsumerInstance{}
 	return ac
 }
 
 func init() {
-	inputs.Add("aliyunlog", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return NewAgent()
 	})
 }
