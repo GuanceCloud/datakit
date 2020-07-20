@@ -3,85 +3,124 @@
 package containerd
 
 import (
-	"context"
-	"log"
-	"sync"
+	"fmt"
+	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type Containerd struct {
-	Config Config `toml:"containerd"`
+const (
+	inputName = "containerd"
 
-	ctx    context.Context
-	cancel context.CancelFunc
-	acc    telegraf.Accumulator
-	wg     *sync.WaitGroup
-}
+	defaultMeasurement = "containerd"
+
+	sampleCfg = `
+# [inputs.containerd]
+# 	# containerd sock file, use default
+# 	host_path = "/run/containerd/containerd.sock"
+# 	
+# 	# containerd namespace
+# 	# 'ps -ef | grep containerd | grep containerd-shim' print detail
+# 	namespace = "moby"
+# 	
+# 	# containerd ID list，ID is string and length 64.
+# 	# if value is "*", collect all ID
+# 	ID_list = ["*"]
+# 	
+# 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+# 	collect_cycle = "60s"
+# 	
+# 	# [inputs.containerd.tags]
+# 	# tags1 = "tags1"
+`
+)
+
+var (
+	l *logger.Logger
+
+	testAssert = false
+)
 
 func init() {
-	inputs.Add(pluginName, func() inputs.Input {
-		e := &Containerd{}
-		return e
+	inputs.Add(inputName, func() inputs.Input {
+		return &Containerd{}
 	})
 }
 
-func (e *Containerd) Start(acc telegraf.Accumulator) error {
-
-	e.ctx, e.cancel = context.WithCancel(context.Background())
-	e.acc = acc
-	e.wg = new(sync.WaitGroup)
-
-	log.Printf("I! [Containerd] start\n")
-	log.Printf("I! [Containerd] load subscribes count: %d\n", len(e.Config.Subscribes))
-	for _, sub := range e.Config.Subscribes {
-		e.wg.Add(1)
-		s := sub
-		stream := newStream(&s, e)
-		go stream.start(e.wg)
-	}
-
-	return nil
-}
-
-func (e *Containerd) Stop() {
-	e.cancel()
-	e.wg.Wait()
-	log.Printf("I! [Containerd] stop\n")
+type Containerd struct {
+	HostPath     string            `toml:"host_path"`
+	Namespace    string            `toml:"namespace"`
+	IDList       []string          `toml:"ID_list"`
+	CollectCycle string            `toml:"collect_cycle"`
+	Tags         map[string]string `toml:"tags"`
+	// get all ids metrics
+	isAll bool
+	// id cache
+	ids map[string]interface{}
 }
 
 func (_ *Containerd) Catalog() string {
-	return "containerd"
+	return inputName
 }
 
 func (_ *Containerd) SampleConfig() string {
-	return containerdConfigSample
+	return sampleCfg
 }
 
-func (_ *Containerd) Description() string {
-	return "Convert Containerd collection metrics to Dataway"
-}
+func (c *Containerd) Run() {
+	l = logger.SLogger(inputName)
 
-func (_ *Containerd) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (e *Containerd) ProcessPts(pts []*influxdb.Point) error {
-	for _, pt := range pts {
-		fields, err := pt.Fields()
-		if err != nil {
-			return err
-		}
-		pt_metric, err := metric.New(pt.Name(), pt.Tags(), fields, pt.Time())
-		if err != nil {
-			return err
-		}
-		log.Printf("D! [Containerd] metric: %v\n", pt_metric)
-		e.acc.AddMetric(pt_metric)
+	d, err := time.ParseDuration(c.CollectCycle)
+	if err != nil || d <= 0 {
+		l.Errorf("invalid duration of collect_cycle")
+		return
 	}
-	return nil
+	ticker := time.NewTicker(d)
+	defer ticker.Stop()
+
+	c.initcfg()
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+
+		case <-ticker.C:
+			data, err := c.collectContainerd()
+			if err != nil {
+				l.Error(err)
+				continue
+			}
+			if testAssert {
+				fmt.Printf("containerd data: %s", string(data))
+				continue
+			}
+			if err := io.Feed(data, io.Metric); err != nil {
+				l.Error(err)
+				continue
+			}
+			l.Debugf("feed %d bytes to io ok", len(data))
+		}
+	}
+}
+
+func (c *Containerd) initcfg() {
+	if c.Tags == nil {
+		c.Tags = make(map[string]string)
+	}
+
+	c.isAll = len(c.IDList) == 1 && c.IDList[0] == "*"
+
+	c.ids = func() map[string]interface{} {
+		m := make(map[string]interface{})
+		for _, v := range c.IDList {
+			m[v] = nil
+		}
+		return m
+	}()
+
 }

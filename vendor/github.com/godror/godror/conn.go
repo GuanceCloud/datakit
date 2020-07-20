@@ -31,31 +31,31 @@ const wrapResultset = "--WRAP_RESULTSET--"
 
 // The maximum capacity is limited to (2^32 / sizeof(dpiData))-1 to remain compatible
 // with 32-bit platforms. The size of a `C.dpiData` is 32 Byte on a 64-bit system, `C.dpiSubscrMessageTable` is 40 bytes.
-// So this is 2^25.
-// See https://github.com/go-godror/godror/issues/73#issuecomment-401281714
 const maxArraySize = (1<<30)/C.sizeof_dpiSubscrMessageTable - 1
 
-var _ = driver.Conn((*conn)(nil))
-var _ = driver.ConnBeginTx((*conn)(nil))
-var _ = driver.ConnPrepareContext((*conn)(nil))
-var _ = driver.Pinger((*conn)(nil))
+var _ driver.Conn = (*conn)(nil)
+var _ driver.ConnBeginTx = (*conn)(nil)
+var _ driver.ConnPrepareContext = (*conn)(nil)
+var _ driver.Pinger = (*conn)(nil)
 
-//var _ = driver.ExecerContext((*conn)(nil))
+//
+//var _ driver.ExecerContext = (*conn)(nil)
+//var _ driver.QueryerContext = (*conn)(nil)
+//var _ driver.NamedValueChecker = (*conn)(nil)
 
 type conn struct {
-	currentTT      TraceTag
-	connParams     ConnectionParams
-	Client, Server VersionInfo
-	tranParams     tranParams
-	mu             sync.RWMutex
-	currentUser    string
-	drv            *drv
-	dpiConn        *C.dpiConn
-	timeZone       *time.Location
-	objTypes       map[string]ObjectType
-	tzOffSecs      int
-	inTransaction  bool
-	newSession     bool
+	currentTT     TraceTag
+	params        ConnectionParams
+	Server        VersionInfo
+	tranParams    tranParams
+	mu            sync.RWMutex
+	poolKey       string
+	drv           *drv
+	dpiConn       *C.dpiConn
+	tzOffSecs     int
+	inTransaction bool
+	newSession    bool
+	released      bool
 }
 
 func (c *conn) getError() error {
@@ -89,15 +89,19 @@ func (c *conn) Ping(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if err := c.ensureContextUser(ctx); err != nil {
-		return err
-	}
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	done := make(chan error, 1)
 	go func() {
 		defer close(done)
+		dl, ok := ctx.Deadline()
+		if ok {
+			c.setCallTimeout(time.Until(dl))
+		}
 		failure := C.dpiConn_ping(c.dpiConn) == C.DPI_FAILURE
+		if ok {
+			c.setCallTimeout(0)
+		}
 		if failure {
 			done <- maybeBadConn(errors.Errorf("Ping: %w", c.getError()), c)
 			return
@@ -115,7 +119,7 @@ func (c *conn) Ping(ctx context.Context) error {
 			return err
 		default:
 			_ = c.Break()
-			c.close(true)
+			c.closeNotLocking()
 			return driver.ErrBadConn
 		}
 	}
@@ -124,6 +128,13 @@ func (c *conn) Ping(ctx context.Context) error {
 // Prepare returns a prepared statement, bound to this connection.
 func (c *conn) Prepare(query string) (driver.Stmt, error) {
 	return c.PrepareContext(context.Background(), query)
+}
+
+// CheckNamedValue is called before passing arguments to the driver
+// and is called in place of any ColumnConverter. CheckNamedValue must do type
+// validation and conversion as appropriate for the driver.
+func (c *conn) CheckNamedValueX(nv *driver.NamedValue) error {
+	return driver.ErrSkip
 }
 
 // Close invalidates and potentially stops any current
@@ -140,48 +151,25 @@ func (c *conn) Close() error {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.close(true)
+	return c.closeNotLocking()
 }
 
-func (c *conn) close(doNotReuse bool) error {
+func (c *conn) closeNotLocking() error {
 	if c == nil {
 		return nil
 	}
-	c.setTraceTag(TraceTag{})
-	dpiConn, objTypes := c.dpiConn, c.objTypes
-	c.dpiConn, c.objTypes = nil, nil
+	c.currentTT = TraceTag{}
+	dpiConn := c.dpiConn
+	c.dpiConn = nil
 	if dpiConn == nil {
 		return nil
 	}
-	defer C.dpiConn_release(dpiConn)
 
-	seen := make(map[string]struct{}, len(objTypes))
-	for _, o := range objTypes {
-		nm := o.FullName()
-		if _, seen := seen[nm]; seen {
-			continue
-		}
-		seen[nm] = struct{}{}
-		o.close(doNotReuse)
-	}
-	if !doNotReuse {
-		return nil
-	}
-
-	// Just to be sure, break anything in progress.
-	done := make(chan struct{})
-	go func() {
-		select {
-		case <-done:
-		case <-time.After(10 * time.Second):
-			if Log != nil {
-				Log("msg", "TIMEOUT releasing connection")
-			}
-			C.dpiConn_breakExecution(dpiConn)
-		}
-	}()
-	C.dpiConn_close(dpiConn, C.DPI_MODE_CONN_CLOSE_DROP, nil, 0)
-	close(done)
+	// dpiConn_release decrements dpiConn's reference counting,
+	// and closes it when it reaches zero.
+	//
+	// To track reference counting, use DPI_DEBUG_LEVEL=2
+	C.dpiConn_release(dpiConn)
 	return nil
 }
 
@@ -279,10 +267,10 @@ type tranParams struct {
 // context is for the preparation of the statement,
 // it must not store the context within the statement itself.
 func (c *conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
+	return c.prepareContext(ctx, query)
+}
+func (c *conn) prepareContext(ctx context.Context, query string) (driver.Stmt, error) {
 	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	if err := c.ensureContextUser(ctx); err != nil {
 		return nil, err
 	}
 	if tt, ok := ctx.Value(traceTagCtxKey).(TraceTag); ok {
@@ -290,6 +278,7 @@ func (c *conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, e
 		c.setTraceTag(tt)
 		c.mu.Unlock()
 	}
+	// TODO: get rid of this hack
 	if query == getConnection {
 		if Log != nil {
 			Log("msg", "PrepareContext", "shortcut", query)
@@ -303,18 +292,18 @@ func (c *conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, e
 	}()
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	var dpiStmt *C.dpiStmt
+	st := statement{conn: c, query: query}
 	if C.dpiConn_prepareStmt(c.dpiConn, 0, cSQL, C.uint32_t(len(query)), nil, 0,
-		(**C.dpiStmt)(unsafe.Pointer(&dpiStmt)),
+		(**C.dpiStmt)(unsafe.Pointer(&st.dpiStmt)),
 	) == C.DPI_FAILURE {
 		return nil, maybeBadConn(errors.Errorf("Prepare: %s: %w", query, c.getError()), c)
 	}
-	st := statement{conn: c, dpiStmt: dpiStmt, query: query}
-	if C.dpiStmt_getInfo(dpiStmt, &st.dpiStmtInfo) == C.DPI_FAILURE {
+	if C.dpiStmt_getInfo(st.dpiStmt, &st.dpiStmtInfo) == C.DPI_FAILURE {
 		err := maybeBadConn(errors.Errorf("getStmtInfo: %w", c.getError()), c)
-		C.dpiStmt_release(dpiStmt)
+		st.Close()
 		return nil, err
 	}
+	stmtSetFinalizer(&st, "prepareContext")
 	return &st, nil
 }
 func (c *conn) Commit() error {
@@ -390,69 +379,46 @@ func (c *conn) newVar(vi varInfo) (*C.dpiVar, []C.dpiData, error) {
 var _ = driver.Tx((*conn)(nil))
 
 func (c *conn) ServerVersion() (VersionInfo, error) {
+	if c.Server.Version != 0 {
+		return c.Server, nil
+	}
+	var v C.dpiVersionInfo
+	var release *C.char
+	var releaseLen C.uint32_t
+	if C.dpiConn_getServerVersion(c.dpiConn, &release, &releaseLen, &v) == C.DPI_FAILURE {
+		if c.params.IsPrelim {
+			return c.Server, nil
+		}
+		return c.Server, errors.Errorf("getServerVersion: %w", c.getError())
+	}
+	c.Server.set(&v)
+	c.Server.ServerRelease = string(bytes.Replace(
+		((*[maxArraySize]byte)(unsafe.Pointer(release)))[:releaseLen:releaseLen],
+		[]byte{'\n'}, []byte{';', ' '}, -1))
+
 	return c.Server, nil
 }
 
-func (c *conn) init(onInit []string) error {
-	if c.Client.Version == 0 {
-		var err error
-		if c.Client, err = c.drv.ClientVersion(); err != nil {
-			return err
-		}
+func (c *conn) init(onInit func(conn driver.Conn) error) error {
+	c.released = false
+	if Log != nil {
+		Log("msg", "init connection", "conn", c, "onInit", onInit)
 	}
 
-	if err := c.initVersionTZ(); err != nil || len(onInit) == 0 || !c.newSession {
+	if err := c.initTZ(); err != nil || onInit == nil || !c.newSession {
 		return err
 	}
-	if Log != nil {
-		Log("newSession", c.newSession, "onInit", onInit)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Duration(len(onInit))*time.Second)
-	defer cancel()
-	if Log != nil {
-		Log("doOnInit", len(onInit))
-	}
-	for _, qry := range onInit {
-		if Log != nil {
-			Log("onInit", qry)
-		}
-		st, err := c.PrepareContext(ctx, qry)
-		if err != nil {
-			return errors.Errorf("%s: %w", qry, err)
-		}
-		_, err = st.Exec(nil) //lint:ignore SA1019 - it's hard to use ExecContext here
-		st.Close()
-		if err != nil {
-			return errors.Errorf("%s: %w", qry, err)
-		}
-	}
-	return nil
+	return onInit(c)
 }
 
-func (c *conn) initVersionTZ() error {
-	if c.Server.Version == 0 {
-		var v C.dpiVersionInfo
-		var release *C.char
-		var releaseLen C.uint32_t
-		if C.dpiConn_getServerVersion(c.dpiConn, &release, &releaseLen, &v) == C.DPI_FAILURE {
-			if c.connParams.IsPrelim {
-				return nil
-			}
-			return errors.Errorf("getServerVersion: %w", c.getError())
-		}
-		c.Server.set(&v)
-		c.Server.ServerRelease = string(bytes.Replace(
-			((*[maxArraySize]byte)(unsafe.Pointer(release)))[:releaseLen:releaseLen],
-			[]byte{'\n'}, []byte{';', ' '}, -1))
-	}
-
-	if c.timeZone != nil && (c.timeZone != time.Local || c.tzOffSecs != 0) {
+func (c *conn) initTZ() error {
+	if c.params.Timezone != nil && (c.params.Timezone != time.Local || c.tzOffSecs != 0) {
 		return nil
 	}
-	c.timeZone = time.Local
-	_, c.tzOffSecs = time.Now().In(c.timeZone).Zone()
+	c.params.Timezone = time.Local
+	_, c.tzOffSecs = time.Now().In(c.params.Timezone).Zone()
 	if Log != nil {
-		Log("tz", c.timeZone, "offSecs", c.tzOffSecs)
+		Log("tz", c.params.Timezone, "offSecs", c.tzOffSecs)
 	}
 
 	// DBTIMEZONE is useless, false, and misdirecting!
@@ -488,7 +454,7 @@ func (c *conn) initVersionTZ() error {
 	if err != nil || tz == nil {
 		return err
 	}
-	c.timeZone, c.tzOffSecs = tz, off
+	c.params.Timezone, c.tzOffSecs = tz, off
 
 	return nil
 }
@@ -503,6 +469,7 @@ func calculateTZ(dbTZ, timezone string) (*time.Location, int, error) {
 	off := localOff
 	var ok bool
 	var err error
+	// If it's a name, try to use it.
 	if dbTZ != "" && strings.Contains(dbTZ, "/") {
 		tz, err = time.LoadLocation(dbTZ)
 		if ok = err == nil; ok {
@@ -514,6 +481,7 @@ func calculateTZ(dbTZ, timezone string) (*time.Location, int, error) {
 			Log("LoadLocation", dbTZ, "error", err)
 		}
 	}
+	// If not, use the numbers.
 	if !ok {
 		if timezone != "" {
 			if off, err = parseTZ(timezone); err != nil {
@@ -525,8 +493,15 @@ func calculateTZ(dbTZ, timezone string) (*time.Location, int, error) {
 	}
 	// This is dangerous, but I just cannot get whether the DB time zone
 	// setting has DST or not - DBTIMEZONE returns just a fixed offset.
+	//
+	// So if the given offset is the same as with the Local time zone,
+	// then keep the local.
 	if off != localOff && tz == nil {
-		tz = time.FixedZone(timezone, off)
+		if off == 0 {
+			tz = time.UTC
+		} else {
+			tz = time.FixedZone(timezone, off)
+		}
 	}
 	return tz, off, nil
 }
@@ -541,11 +516,11 @@ func parseTZ(s string) (int, error) {
 	var tz int
 	var ok bool
 	if i := strings.IndexByte(s, ':'); i >= 0 {
-		if i64, err := strconv.ParseInt(s[i+1:], 10, 6); err != nil {
+		i64, err := strconv.ParseInt(s[i+1:], 10, 6)
+		if err != nil {
 			return tz, errors.Errorf("%s: %w", s, err)
-		} else {
-			tz = int(i64 * 60)
 		}
+		tz = int(i64 * 60)
 		s = s[:i]
 		ok = true
 	}
@@ -562,33 +537,31 @@ func parseTZ(s string) (int, error) {
 			return tz, nil
 		}
 	}
-	if i64, err := strconv.ParseInt(s, 10, 5); err != nil {
+	i64, err := strconv.ParseInt(s, 10, 5)
+	if err != nil {
 		return tz, errors.Errorf("%s: %w", s, err)
-	} else {
-		if i64 < 0 {
-			tz = -tz
-		}
-		tz += int(i64 * 3600)
 	}
+	if i64 < 0 {
+		tz = -tz
+	}
+	tz += int(i64 * 3600)
 	return tz, nil
 }
 
-func (c *conn) setCallTimeout(ctx context.Context) {
-	if c.Client.Version < 18 {
+func (c *conn) setCallTimeout(dur time.Duration) {
+	if c.drv.clientVersion.Version < 18 {
 		return
 	}
-	var ms C.uint32_t
-	if dl, ok := ctx.Deadline(); ok {
-		ms = C.uint32_t(time.Until(dl) / time.Millisecond)
+	ms := C.uint32_t(dur / time.Millisecond)
+	if Log != nil {
+		Log("msg", "setCallTimeout", "ms", ms)
 	}
-	// force it to be 0 (disabled)
 	C.dpiConn_setCallTimeout(c.dpiConn, ms)
 }
 
-// maybeBadConn checks whether the error is because of a bad connection, and returns driver.ErrBadConn,
+// maybeBadConn checks whether the error is because of a bad connection,
+// CLOSES the connection and returns driver.ErrBadConn,
 // as database/sql requires.
-//
-// Also in this case, iff c != nil, closes it.
 func maybeBadConn(err error, c *conn) error {
 	if err == nil {
 		return nil
@@ -599,7 +572,7 @@ func maybeBadConn(err error, c *conn) error {
 			if Log != nil {
 				Log("msg", "maybeBadConn close", "conn", c)
 			}
-			c.close(true)
+			c.closeNotLocking()
 		}
 	}
 	if errors.Is(err, driver.ErrBadConn) {
@@ -620,8 +593,7 @@ func maybeBadConn(err error, c *conn) error {
 			// ORA-12528: TNS:listener: all appropriate instances are blocking new connections
 			// ORA-12545: Connect failed because target host or object does not exist
 			// ORA-24315: illegal attribute type
-			// ORA-28547: connection to server failed, probable Oracle Net admin error
-		case 12170, 12528, 12545, 24315, 28547:
+		case 12170, 12528, 12545, 24315:
 
 			//cases from https://github.com/oracle/odpi/blob/master/src/dpiError.c#L61-L94
 		case 22, // invalid session ID; access denied
@@ -650,6 +622,7 @@ func maybeBadConn(err error, c *conn) error {
 			12583, // TNS:no reader
 			27146, // post/wait initialization failed
 			28511, // lost RPC connection
+			28547, // connection to server failed, probable Oracle Net admin error
 			56600: // an illegal OCI function call was issued
 			cl()
 			return driver.ErrBadConn
@@ -700,6 +673,25 @@ func (c *conn) setTraceTag(tt TraceTag) error {
 	c.currentTT = tt
 	return nil
 }
+func (c *conn) GetPoolStats() (stats PoolStats, err error) {
+	if c == nil {
+		return stats, nil
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.poolKey == "" {
+		// not pooled connection
+		return stats, nil
+	}
+
+	c.drv.mu.Lock()
+	pool := c.drv.pools[c.poolKey]
+	c.drv.mu.Unlock()
+	if pool == nil {
+		return stats, nil
+	}
+	return c.drv.getPoolStats(pool)
+}
 
 const traceTagCtxKey = ctxKey("tracetag")
 
@@ -724,33 +716,30 @@ type TraceTag struct {
 	Action string
 }
 
-const userpwCtxKey = ctxKey("userPw")
+const paramsCtxKey = ctxKey("params")
+
+// ContextWithParams returns a context with the specified parameters. These parameters are used
+// to modify the session acquired from the pool.
+//
+// If a standalone connection is being used this will have no effect.
+//
+// Also, you should disable the Go connection pool with DB.SetMaxIdleConns(0).
+func ContextWithParams(ctx context.Context, commonParams CommonParams, connParams ConnParams) context.Context {
+	return context.WithValue(ctx, paramsCtxKey,
+		commonAndConnParams{CommonParams: commonParams, ConnParams: connParams})
+}
 
 // ContextWithUserPassw returns a context with the specified user and password,
 // to be used with heterogeneous pools.
+//
+// If a standalone connection is being used this will have no effect.
+//
+// Also, you should disable the Go connection pool with DB.SetMaxIdleConns(0).
 func ContextWithUserPassw(ctx context.Context, user, password, connClass string) context.Context {
-	return context.WithValue(ctx, userpwCtxKey, [3]string{user, password, connClass})
-}
-
-func (c *conn) ensureContextUser(ctx context.Context) error {
-	if !(c.connParams.HeterogeneousPool || c.connParams.StandaloneConnection) {
-		return nil
-	}
-	up, ok := ctx.Value(userpwCtxKey).([3]string)
-	if !ok || up[0] == c.currentUser {
-		return nil
-	}
-
-	if c.dpiConn != nil {
-		if err := c.close(false); err != nil {
-			if Log != nil {
-				Log("msg", "close connection", "error", err)
-			}
-			return driver.ErrBadConn
-		}
-	}
-
-	return c.acquireConn(up[0], up[1], up[2])
+	return ContextWithParams(ctx,
+		CommonParams{Username: user, Password: password},
+		ConnParams{ConnClass: connClass},
+	)
 }
 
 // StartupMode for the database.
@@ -807,5 +796,111 @@ func (c *conn) Shutdown(mode ShutdownMode) error {
 
 // Timezone returns the connection's timezone.
 func (c *conn) Timezone() *time.Location {
-	return c.timeZone
+	return c.params.Timezone
+}
+
+var _ = driver.SessionResetter((*conn)(nil))
+
+// ResetSession is called prior to executing a query on the connection
+// if the connection has been used before. If the driver returns driver.ErrBadConn
+// the connection is discarded.
+//
+// This implementation does nothing if the connection is not pooled,
+// but reacquires a new session if it is pooled.
+//
+// This ensures that the session is not stale.
+func (c *conn) ResetSession(ctx context.Context) error {
+	if c == nil {
+		return driver.ErrBadConn
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.poolKey == "" {
+		// not pooled connection
+		if c.dpiConn == nil {
+			return driver.ErrBadConn
+		}
+		return nil
+	}
+	// FIXME(tgulacsi): Prepared statements hold the previous session,
+	// so sometimes sessions are not released, resulting in
+	//
+	//     ORA-24459: OCISessionGet()
+	//
+	// See https://github.com/godror/godror/issues/57 for example.
+
+	c.drv.mu.Lock()
+	pool := c.drv.pools[c.poolKey]
+	c.drv.mu.Unlock()
+	if pool == nil {
+		if c.dpiConn == nil {
+			return driver.ErrBadConn
+		}
+		return nil
+	}
+	P := commonAndConnParams{CommonParams: c.params.CommonParams, ConnParams: c.params.ConnParams}
+	var paramsFromCtx bool
+	if ctxValue := ctx.Value(paramsCtxKey); ctxValue != nil {
+		if P, paramsFromCtx = ctxValue.(commonAndConnParams); paramsFromCtx {
+			// ContextWithUserPassw does not fill ConnParam.DSN
+			if P.DSN == "" {
+				P.DSN = c.params.DSN
+			}
+			if Log != nil {
+				Log("msg", "paramsFromContext", "params", P)
+			}
+		}
+	}
+	if Log != nil {
+		Log("msg", "ResetSession re-acquire session", "pool", pool.key)
+	}
+	tz, tzOffSecs := c.params.Timezone, c.tzOffSecs
+	// Close and then reacquire a fresh dpiConn
+	if c.dpiConn != nil {
+		// Just release
+		c.closeNotLocking()
+	}
+	var err error
+	var newSession bool
+	if c.dpiConn, newSession, err = c.drv.acquireConn(pool, P); err != nil {
+		return errors.Errorf("%v: %w", err, driver.ErrBadConn)
+	}
+
+	c.params.Timezone, c.tzOffSecs = tz, tzOffSecs
+	if paramsFromCtx || newSession {
+		c.init(P.OnInit)
+	}
+	return nil
+}
+
+// Validator may be implemented by Conn to allow drivers to
+// signal if a connection is valid or if it should be discarded.
+//
+// If implemented, drivers may return the underlying error from queries,
+// even if the connection should be discarded by the connection pool.
+//
+// This implementation returns the underlying session to the OCI session pool,
+// iff this is a pooled connection. ResetSession will reacquire it.
+func (c *conn) IsValid() bool {
+	if c == nil {
+		return false
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.dpiConn == nil {
+		return c.released
+	}
+	if c.poolKey == "" {
+		// not pooled connection
+		return c.dpiConn != nil
+	}
+	// FIXME(tgulacsi): Prepared statements hold the previous session,
+	// so sometimes sessions are not released, resulting in
+	//
+	//     ORA-24459: OCISessionGet()
+	//
+	// See https://github.com/godror/godror/issues/57 for example.
+	c.closeNotLocking()
+	c.released = true
+	return true
 }

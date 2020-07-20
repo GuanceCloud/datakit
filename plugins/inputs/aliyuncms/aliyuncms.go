@@ -2,14 +2,12 @@ package aliyuncms
 
 import (
 	"context"
-	"sync"
 	"time"
-
-	"github.com/influxdata/telegraf"
 
 	"golang.org/x/time/rate"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
@@ -100,106 +98,59 @@ var (
 	}
 )
 
+var moduleLogger *logger.Logger
+
 type (
 	runningInstance struct {
-		cfg   *CMS
-		agent *CmsAgent
+		cfg *CMS
 
 		cmsClient *cms.Client
 
 		reqs []*MetricsRequest
 
-		logger *models.Logger
-
 		limiter *rate.Limiter
-	}
-
-	CmsAgent struct {
-		CMSs       []*CMS `toml:"cms"`
-		ReportStat bool   `toml:"report_stat"`
-
-		runningInstances []*runningInstance
-
-		ctx       context.Context
-		cancelFun context.CancelFunc
-
-		logger *models.Logger
-
-		accumulator telegraf.Accumulator
-
-		wg sync.WaitGroup
-
-		succedRequest int64
-		faildRequest  int64
 	}
 )
 
-func (_ *CmsAgent) SampleConfig() string {
+func (_ *CMS) SampleConfig() string {
 	return aliyuncmsConfigSample
 }
 
-func (_ *CmsAgent) Description() string {
-	return `Collect metrics from alibaba Cloud Monitor Service.`
-}
+// func (_ *CmsAgent) Description() string {
+// 	return `Collect metrics from alibaba Cloud Monitor Service.`
+// }
 
-func (_ *CmsAgent) Catalog() string {
+func (_ *CMS) Catalog() string {
 	return `aliyun`
 }
 
-func (_ *CmsAgent) Gather(telegraf.Accumulator) error {
-	return nil
-}
+func (ac *CMS) Run() {
 
-func (ac *CmsAgent) Start(acc telegraf.Accumulator) error {
+	moduleLogger = logger.SLogger(inputName)
 
-	if len(ac.CMSs) == 0 {
-		ac.logger.Warnf("no configuration found")
-		return nil
+	go func() {
+		<-datakit.Exit.Wait()
+		ac.cancelFun()
+	}()
+
+	if ac.Delay.Duration == 0 {
+		ac.Delay.Duration = time.Minute * 5
 	}
 
-	ac.logger.Info("start")
-
-	ac.accumulator = acc
-
-	for _, cfg := range ac.CMSs {
-		rc := &runningInstance{
-			agent:  ac,
-			cfg:    cfg,
-			logger: ac.logger,
-		}
-		if cfg.Delay.Duration == 0 {
-			cfg.Delay.Duration = time.Minute * 5
-		}
-
-		if rc.cfg.Interval.Duration == 0 {
-			rc.cfg.Interval.Duration = time.Minute * 5
-		}
-		ac.runningInstances = append(ac.runningInstances, rc)
-
-		ac.wg.Add(1)
-		go func() {
-			defer ac.wg.Done()
-			rc.run(ac.ctx)
-		}()
+	if ac.Interval.Duration == 0 {
+		ac.Interval.Duration = time.Minute * 5
 	}
 
-	return nil
-}
-
-func (a *CmsAgent) Stop() {
-	a.cancelFun()
-	a.wg.Wait()
-	a.logger.Info("done")
-}
-
-func NewAgent() *CmsAgent {
-	ac := &CmsAgent{
-		logger: &models.Logger{
-			Name: inputName,
-		},
+	rc := &runningInstance{
+		cfg: ac,
 	}
+
+	rc.run(ac.ctx)
+}
+
+func NewAgent() *CMS {
+	ac := &CMS{}
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-
 	return ac
 }
 
