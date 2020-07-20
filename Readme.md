@@ -84,7 +84,7 @@ total: 95, datakit: 33, agent: 62
 #key1 = "val1"
 #key2 = 123
 #key3 = false
-#someOtherKey = "key-value"   # 建议用小驼峰来命名字段
+#someOtherKey = "key-value"   # 建议用小驼峰或下划线分割（some_other_key）的方式来命名字段
 #...
 #
 #[inputs.xxx.tags] # 以此类推，此处也可以是 [[inputs.xxx.tags]]
@@ -105,7 +105,7 @@ total: 95, datakit: 33, agent: 62
 
 #[inputs.xxx.tags]
 #	some_filed = "xxx"  # 老的配置字段
-#	someFiled = "xxx"       # 为了兼容老的配置字段，在代码中，应该定义多个同义字段，不能直接删除老的字段，这会导致老的配置解析出错
+#	someFiled = "xxx"   # 为了兼容老的配置字段，在代码中，应该定义多个同义字段，不能直接删除老的字段，这会导致老的配置解析出错
 ######## 示例 #########
 // 原有对象定义
 type Obj struct {
