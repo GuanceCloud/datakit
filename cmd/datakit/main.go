@@ -27,9 +27,9 @@ var (
 	flagDataWay        = flag.String("dataway", ``, `dataway IP:Port`)
 	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d, list configired and mis-configured collectors`)
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
-	flagListCollectors = flag.Bool("tree", false, `list vailable collectors`)
 
-	flagListConfigSamples = flag.String("config-samples", "", `list all config samples`)
+	flagListCollectors    = flag.Bool("tree", false, `list vailable collectors`)
+	flagListConfigSamples = flag.Bool("config-samples", false, `list all config samples`)
 )
 
 var (
