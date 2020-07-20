@@ -6,6 +6,38 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.17.0]
+### Added 
+- PrefetchCount statement option to set prefetch row count.
+
+### Changed
+- Use ODPI-C v4.0.0
+- Deprecate FetchRowCount in favor of FetchArraySize.
+
+## [0.16.1]
+### Changed
+- Add Finalizer for conn, statement and rows, prints ugly stack trace on forgotten Close()s.
+
+## [0.16.0]
+### Added
+- Add NullDateAsZeroTime option.
+- Add GetPoolStats to Conn to get the pool statistics.
+
+### Changed
+- Make standaloneConnection the default - pools have problems.
+
+## [0.15.0]
+### Changed
+- Innards of ConnectionParams has been split to ConnParams and PoolParams,
+- NewConnector needs ConnParams and PoolParams instead of the connection URL.
+- ConnectionParams.SID has been renamed to DSN.
+- Simplified pool usage and coding, just depend on the underlying ODPI-C library's reference counting.
+
+### Added
+- Support connection sharding (thanks to Anthony Tuininga)
+- Implement SessionResetter and Validator, releasing session back to the Oracle session pool ASAP,
+  acquiring a fresh connection in ResetSession, helping failover.
+
 ## [0.14.0]
 ### Changed
 - Make NumberAsString() the default.
