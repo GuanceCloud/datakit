@@ -449,10 +449,10 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 
 	metricName := req.q.MetricName
 
-	// metricSetName := req.metricSetName
-	// if req.metricSetName == "" {
-	// 	metricSetName = formatMeasurement(req.q.Namespace)
-	// }
+	metricSetName := req.metricSetName
+	if metricSetName == "" {
+		metricSetName = formatMeasurement(req.q.Namespace)
+	}
 
 	for _, datapoint := range datapoints {
 
@@ -518,7 +518,7 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 		}
 
 		if len(fields) > 0 {
-			io.FeedEx(io.Metric, metricName, tags, fields, tm)
+			io.FeedEx(io.Metric, metricSetName, tags, fields, tm)
 		}
 	}
 
