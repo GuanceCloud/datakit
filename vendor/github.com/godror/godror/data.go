@@ -225,8 +225,13 @@ func (d *Data) SetStmt(s *statement) {
 	C.dpiData_setStmt(&d.dpiData, s.dpiStmt)
 }
 
-// GetTime gets Time from data.
+// GetTime gets Time from data, in the local time zone.
 func (d *Data) GetTime() time.Time {
+	return d.GetTimeIn(time.Local)
+}
+
+// GetTimeIn gets Time from data using the given Location (use the server's for correct value).
+func (d *Data) GetTimeIn(serverTZ *time.Location) time.Time {
 	if d.IsNull() {
 		return time.Time{}
 	}
@@ -234,7 +239,7 @@ func (d *Data) GetTime() time.Time {
 	return time.Date(
 		int(ts.year), time.Month(ts.month), int(ts.day),
 		int(ts.hour), int(ts.minute), int(ts.second), int(ts.fsecond),
-		timeZoneFor(ts.tzHourOffset, ts.tzMinuteOffset),
+		timeZoneFor(ts.tzHourOffset, ts.tzMinuteOffset, serverTZ),
 	)
 }
 
