@@ -7,18 +7,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
 	inputName = `aliyunprice`
+
+	moduleLogger *logger.Logger
 )
 
 type (
@@ -66,10 +67,6 @@ type (
 		cancelFun context.CancelFunc
 
 		wg sync.WaitGroup
-
-		logger *models.Logger
-
-		accumulator telegraf.Accumulator
 	}
 )
 
@@ -85,31 +82,39 @@ func (_ *AliyunPriceAgent) SampleConfig() string {
 	return globalConfig + ecsSampleConfig + rdsSampleConfig + eipSampleConfig + slbSampleConfig
 }
 
-func (_ *AliyunPriceAgent) Description() string {
-	return `Collect price of aliyun products.`
-}
+// func (_ *AliyunPriceAgent) Description() string {
+// 	return `Collect price of aliyun products.`
+// }
 
-func (_ *AliyunPriceAgent) Gather(telegraf.Accumulator) error {
-	return nil
-}
+func (a *AliyunPriceAgent) Run() {
 
-func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
+	moduleLogger = logger.SLogger(inputName)
 
-	a.logger.Info("starting...")
+	go func() {
+		<-datakit.Exit.Wait()
+		a.cancelFun()
+	}()
 
-	a.accumulator = acc
+	for {
+		select {
+		case <-a.ctx.Done():
+			return
+		default:
+		}
 
-	if cli, err := bssopenapi.NewClientWithAccessKey(a.RegionID, a.AccessID, a.AccessSecret); err != nil {
-		a.logger.Errorf("fail to create client, %s", err)
-		return err
-	} else {
-		a.client = cli
+		if cli, err := bssopenapi.NewClientWithAccessKey(a.RegionID, a.AccessID, a.AccessSecret); err != nil {
+			moduleLogger.Errorf("fail to create client, %s", err)
+			time.Sleep(time.Second)
+		} else {
+			a.client = cli
+			break
+		}
 	}
 
 	for _, item := range a.EcsCfg {
 		q, err := item.toRequest()
 		if err != nil {
-			a.logger.Warnf("invalid ecs config, %s", err)
+			moduleLogger.Warnf("invalid ecs config, %s", err)
 		}
 		a.reqs = append(a.reqs, q)
 	}
@@ -117,7 +122,7 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 	for _, item := range a.RDSCfg {
 		q, err := item.toRequest()
 		if err != nil {
-			a.logger.Warnf("invalid rds config, %s", err)
+			moduleLogger.Warnf("invalid rds config, %s", err)
 		}
 		a.reqs = append(a.reqs, q)
 	}
@@ -125,7 +130,7 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 	for _, item := range a.EipCfg {
 		q, err := item.toRequest()
 		if err != nil {
-			a.logger.Warnf("invalid eip config, %s", err)
+			moduleLogger.Warnf("invalid eip config, %s", err)
 		}
 		a.reqs = append(a.reqs, q)
 	}
@@ -133,7 +138,7 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 	for _, item := range a.SlbCfg {
 		q, err := item.toRequest()
 		if err != nil {
-			a.logger.Warnf("invalid slb config, %s", err)
+			moduleLogger.Warnf("invalid slb config, %s", err)
 		}
 		a.reqs = append(a.reqs, q)
 	}
@@ -145,21 +150,21 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 
 		defer func() {
 			if e := recover(); e != nil {
-				a.logger.Errorf("panic %v", e)
+				moduleLogger.Errorf("panic %v", e)
 			}
 		}()
 
 		for {
 
 			select {
-			case <-a.ctx.Done():
+			case <-datakit.Exit.Wait():
 				return
 			default:
 			}
 
 			for _, req := range a.reqs {
 				select {
-				case <-a.ctx.Done():
+				case <-datakit.Exit.Wait():
 					return
 				default:
 				}
@@ -201,18 +206,18 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 					}
 
 					if err != nil {
-						a.logger.Warnf("get price failed")
+						moduleLogger.Warnf("get price failed")
 						time.Sleep(tempDelay)
 					} else {
 						if i != 0 {
-							a.logger.Debugf("retry successed, %d", i)
+							moduleLogger.Debugf("retry successed, %d", i)
 						}
 						break
 					}
 				}
 
 				if err != nil {
-					a.logger.Errorf("get price failed, %s", err)
+					moduleLogger.Errorf("get price failed, %s", err)
 				} else {
 					if req.payAsYouGo {
 						a.handleResponse(&respPayasyougo.Data, req)
@@ -224,7 +229,7 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 				req.lastTime = time.Now()
 
 				select {
-				case <-a.ctx.Done():
+				case <-datakit.Exit.Wait():
 					return
 				default:
 				}
@@ -235,12 +240,6 @@ func (a *AliyunPriceAgent) Start(acc telegraf.Accumulator) error {
 
 	}()
 
-	return nil
-}
-
-func (a *AliyunPriceAgent) Stop() {
-	a.cancelFun()
-	a.wg.Wait()
 }
 
 func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceReq) {
@@ -303,7 +302,7 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 				}
 				modlist, err := a.fetchProductPriceModule(req.region, pcode, ptype, subscriptionType)
 				if err != nil {
-					a.logger.Errorf("fail to get price modules, ProductCode=%s, ProductType=%s, SubscriptionType=%s, %s", pcode, ptype, subscriptionType, err)
+					moduleLogger.Errorf("fail to get price modules, ProductCode=%s, ProductType=%s, SubscriptionType=%s, %s", pcode, ptype, subscriptionType, err)
 					req.fetchModulePriceHistory[subscriptionType] = time.Now()
 				} else {
 					req.priceModuleInfos[subscriptionType] = modlist
@@ -322,7 +321,7 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 	if len(respData.PromotionDetails.PromotionDetail) > 0 {
 		prominfo, err := json.Marshal(respData.PromotionDetails)
 		if err != nil {
-			a.logger.Warnf("fail to marshal PromotionDetails, %s", err)
+			moduleLogger.Warnf("fail to marshal PromotionDetails, %s", err)
 		} else {
 			fields["Promotion"] = string(prominfo)
 		}
@@ -348,12 +347,8 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 		if metricName == "" {
 			metricName = "aliyun_price"
 		}
-		if a.accumulator != nil {
-			a.accumulator.AddFields(metricName, fields, tags, time.Now().UTC())
-		} else {
-			ms, _ := metric.New(metricName, tags, fields, time.Now().UTC())
-			fmt.Printf("%s", internal.Metric2InfluxLine(ms))
-		}
+
+		io.FeedEx(io.Metric, metricName, tags, fields)
 	}
 }
 
@@ -408,11 +403,7 @@ func (a *AliyunPriceAgent) fetchProductPriceModule(region, productCode, productT
 }
 
 func NewAgent() *AliyunPriceAgent {
-	ac := &AliyunPriceAgent{
-		logger: &models.Logger{
-			Name: inputName,
-		},
-	}
+	ac := &AliyunPriceAgent{}
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 
 	return ac
