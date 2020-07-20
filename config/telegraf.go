@@ -148,13 +148,9 @@ func LoadTelegrafConfigs(cfgdir string, inputFilters []string) error {
 		if err == nil {
 			input.enabled = true
 		} else {
-			if err == ErrConfigNotFound {
-				l.Warnf("input %s config %s not found: %s", input.name, cfgpath, err.Error())
-				//ignore
-			} else if err == ErrEmptyInput {
-				l.Warnf("%s, %s", cfgpath, err.Error())
-			} else {
-				return fmt.Errorf("Error loading config file %s, %s", cfgpath, err)
+			if err != ErrConfigNotFound && err != ErrEmptyInput {
+				l.Errorf("error loading telefraf conf %s: %v, ignored", cfgpath, err)
+				return err
 			}
 		}
 	}
@@ -269,9 +265,9 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 	fileoutstr := ""
 	httpoutstr := ""
 
-	if cfg.MainCfg.OutputsFile != "" {
+	if cfg.MainCfg.OutputFile != "" {
 		fileCfg := fileoutCfg{
-			OutputFiles: cfg.MainCfg.OutputsFile,
+			OutputFiles: cfg.MainCfg.OutputFile,
 		}
 
 		tpl := template.New("")
@@ -319,11 +315,11 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 
 	for _, input := range SupportsTelegrafMetricNames {
 
-		l.Debugf("adding %+#v...", input)
-
 		if !input.enabled {
 			continue
 		}
+
+		//l.Debugf("adding %+#v...", input)
 
 		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, input.name+".conf")
 		d, err := ioutil.ReadFile(cfgpath)
