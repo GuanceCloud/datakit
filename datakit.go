@@ -8,15 +8,13 @@ import (
 	"syscall"
 	"time"
 
-	"go.uber.org/zap"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
-	l *zap.SugaredLogger
+	l *logger.Logger
 
 	Exit *cliutils.Sem
 	WG   sync.WaitGroup = sync.WaitGroup{}
@@ -35,10 +33,12 @@ var (
 	LuaDir         = ""
 	ConfdDir       = ""
 	GRPCDomainSock = ""
+
+	OutputFile = ""
 )
 
 func Init() {
-	l = logger.SLogger("utils")
+	l = logger.SLogger("datakit")
 }
 
 func MonitProc(proc *os.Process, name string) {
