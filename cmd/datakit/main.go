@@ -28,6 +28,8 @@ var (
 	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d, list configired and mis-configured collectors`)
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
 	flagListCollectors = flag.Bool("tree", false, `list vailable collectors`)
+
+	flagListConfigSamples = flag.String("config-samples", "", `list all config samples`)
 )
 
 var (
@@ -79,39 +81,12 @@ Golang Version: %s
 	}
 
 	if *flagListCollectors {
-		collectors := map[string][]string{}
+		showAllCollectors()
+		os.Exit(0)
+	}
 
-		for k, v := range inputs.Inputs {
-			cat := v().Catalog()
-			collectors[cat] = append(collectors[cat], k)
-		}
-
-		ndatakit := 0
-		for k, vs := range collectors {
-			fmt.Println(k)
-			for _, v := range vs {
-				fmt.Printf("  |--[d] %s\n", v)
-				ndatakit++
-			}
-		}
-
-		nagent := 0
-		collectors = map[string][]string{}
-		for k, v := range config.SupportsTelegrafMetricNames {
-			collectors[v.Catalog] = append(collectors[v.Catalog], k)
-		}
-
-		for k, vs := range collectors {
-			fmt.Println(k)
-			for _, v := range vs {
-				fmt.Printf("  |--[t] %s\n", v)
-				nagent++
-			}
-		}
-
-		fmt.Println("===================================")
-		fmt.Printf("total: %d, datakit: %d, agent: %d\n", ndatakit+nagent, ndatakit, nagent)
-
+	if *flagListConfigSamples {
+		showAllConfigSamples()
 		os.Exit(0)
 	}
 
@@ -122,6 +97,52 @@ Golang Version: %s
 
 	if *flagInputFilters != "" {
 		inputFilters = strings.Split(":"+strings.TrimSpace(*flagInputFilters)+":", ":")
+	}
+}
+
+func showAllCollectors() {
+	collectors := map[string][]string{}
+
+	for k, v := range inputs.Inputs {
+		cat := v().Catalog()
+		collectors[cat] = append(collectors[cat], k)
+	}
+
+	ndatakit := 0
+	for k, vs := range collectors {
+		fmt.Println(k)
+		for _, v := range vs {
+			fmt.Printf("  |--[d] %s\n", v)
+			ndatakit++
+		}
+	}
+
+	nagent := 0
+	collectors = map[string][]string{}
+	for k, v := range config.SupportsTelegrafMetricNames {
+		collectors[v.Catalog] = append(collectors[v.Catalog], k)
+	}
+
+	for k, vs := range collectors {
+		fmt.Println(k)
+		for _, v := range vs {
+			fmt.Printf("  |--[t] %s\n", v)
+			nagent++
+		}
+	}
+
+	fmt.Println("===================================")
+	fmt.Printf("total: %d, datakit: %d, agent: %d\n", ndatakit+nagent, ndatakit, nagent)
+}
+
+func showAllConfigSamples() {
+	for k, v := range inputs.Inputs {
+		sample := v().SampleConfig()
+		fmt.Printf("%s\n========= [D] ==========\n%s\n", k, sample)
+	}
+
+	for k, v := range config.TelegrafCfgSamples {
+		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v)
 	}
 }
 
