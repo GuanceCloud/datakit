@@ -46,7 +46,7 @@ var (
 		"http_check":        &telegrafInputs{name: "http_check", Catalog: "http_check"},
 		"kernel":            &telegrafInputs{name: "kernel", Catalog: "kernel"},
 		"tls":               &telegrafInputs{name: "tls", Catalog: "tls"},
-		"nats":              &telegrafInputs{name: "nats", Catalog: "network"},
+		"nats":              &telegrafInputs{name: "nats", Catalog: "nats"},
 		"win_services":      &telegrafInputs{name: "win_services", Catalog: "win_services"},
 		"awscloudwatch":     &telegrafInputs{name: "awscloudwatch", Catalog: "aws"},
 		"vmware":            &telegrafInputs{name: "vmware", Catalog: "vmware"},
@@ -71,12 +71,12 @@ var (
 		`influxdb`:          &telegrafInputs{name: "influxdb", Catalog: "influxdb"},
 	}
 
-	telegrafCfgSamples = map[string]string{}
+	TelegrafCfgSamples = map[string]string{}
 )
 
 func initTelegrafSamples() {
 
-	telegrafCfgSamples[`amqp_consumer`] = `
+	TelegrafCfgSamples[`amqp_consumer`] = `
 #[[inputs.amqp_consumer]]
 ## Broker to consume from.
 ##   deprecated in 1.7; use the brokers option
@@ -156,7 +156,7 @@ func initTelegrafSamples() {
 # data_format = "influx"
 `
 
-	telegrafCfgSamples[`github`] = `
+	TelegrafCfgSamples[`github`] = `
 #[[inputs.github]]
 ## List of repositories to monitor
 #repositories = [
@@ -174,7 +174,7 @@ func initTelegrafSamples() {
 # http_timeout = "5s"
 `
 
-	telegrafCfgSamples[`amqp`] = `
+	TelegrafCfgSamples[`amqp`] = `
 #[[inputs.amqp_consumer]]
 ## Broker to consume from.
 ##   deprecated in 1.7; use the brokers option
@@ -254,7 +254,7 @@ func initTelegrafSamples() {
 # data_format = "influx"
 `
 
-	telegrafCfgSamples[`socket_listener`] = `
+	TelegrafCfgSamples[`socket_listener`] = `
 # Generic socket listener capable of handling multiple socket types.
 #[[inputs.socket_listener]]
 	## collectd
@@ -336,7 +336,7 @@ func initTelegrafSamples() {
 	# content_encoding = "identity"
 `
 
-	telegrafCfgSamples[`jolokia2_agent`] = `
+	TelegrafCfgSamples[`jolokia2_agent`] = `
 #[[inputs.jolokia2_agent]]
 #urls = ["http://agent:8080/jolokia"]
 
@@ -378,7 +378,7 @@ func initTelegrafSamples() {
 #    paths = ["Uptime"]
 `
 
-	telegrafCfgSamples[`kafka_consumer`] = `
+	TelegrafCfgSamples[`kafka_consumer`] = `
 #[[inputs.kafka_consumer]]
 ## Kafka brokers.
 # brokers = ["localhost:9092"]
@@ -442,7 +442,7 @@ func initTelegrafSamples() {
 # data_format = "influx"
 `
 
-	telegrafCfgSamples[`kube_inventory`] = `
+	TelegrafCfgSamples[`kube_inventory`] = `
 #[[inputs.kube_inventory]]
 ## URL for the Kubernetes API
 #url = "https://127.0.0.1"
@@ -478,7 +478,7 @@ func initTelegrafSamples() {
 # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`kubernetes`] = `
+	TelegrafCfgSamples[`kubernetes`] = `
 #[[inputs.kubernetes]]
 ## URL for the kubelet
 #url = "http://127.0.0.1:10255"
@@ -505,7 +505,7 @@ func initTelegrafSamples() {
 ## Use TLS but skip chain & host verification
 # insecure_skip_verify = false
 `
-	telegrafCfgSamples[`nsq`] = `
+	TelegrafCfgSamples[`nsq`] = `
 #[[inputs.nsq]]
 ## An array of NSQD HTTP API endpoints
 #endpoints  = ["http://localhost:4151"]
@@ -518,7 +518,7 @@ func initTelegrafSamples() {
 # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`nsq_consumer`] = `
+	TelegrafCfgSamples[`nsq_consumer`] = `
 # # Read NSQ topic for metrics.
 # [[inputs.nsq_consumer]]
 #   ## Server option still works but is deprecated, we just prepend it to the nsqd array.
@@ -548,7 +548,7 @@ func initTelegrafSamples() {
 #   data_format = "influx"
 `
 
-	telegrafCfgSamples[`varnish`] = `
+	TelegrafCfgSamples[`varnish`] = `
 # # A plugin to collect stats from Varnish HTTP Cache
 # [[inputs.varnish]]
 #   ## If running as a restricted user you can prepend sudo for additional access:
@@ -571,7 +571,7 @@ func initTelegrafSamples() {
 #   # timeout = "1s"
 `
 
-	telegrafCfgSamples[`syslog`] = `
+	TelegrafCfgSamples[`syslog`] = `
 # # Accepts syslog messages following RFC5424 format with transports as per RFC5426, RFC5425, or RFC6587
 # [[inputs.syslog]]
 #   ## Specify an ip or hostname with port - eg., tcp://localhost:6514, tcp://10.0.0.1:6514
@@ -622,7 +622,7 @@ func initTelegrafSamples() {
 #   # sdparam_separator = "_"
 `
 
-	telegrafCfgSamples[`exec`] = `
+	TelegrafCfgSamples[`exec`] = `
 # # Read metrics from one or more commands that can output to stdout
 # [[inputs.exec]]
 #   ## Commands array
@@ -645,7 +645,7 @@ func initTelegrafSamples() {
 #   data_format = "influx"
 `
 
-	telegrafCfgSamples[`snmp`] = `
+	TelegrafCfgSamples[`snmp`] = `
 # # Retrieves SNMP values from remote agents
 # [[inputs.snmp]]
 #   agents = [ "127.0.0.1:161" ]
@@ -705,7 +705,7 @@ func initTelegrafSamples() {
 #     oid = "HOST-RESOURCES-MIB::hrNetworkTable"
 `
 
-	telegrafCfgSamples[`win_perf_counters`] = `
+	TelegrafCfgSamples[`win_perf_counters`] = `
 #[[inputs.win_perf_counters]]
 #[[inputs.win_perf_counters.object]]
 # ##Processor usage, alternative to native, reports on a per core.
@@ -748,7 +748,7 @@ func initTelegrafSamples() {
 #IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
 `
 
-	telegrafCfgSamples[`vmware`] = `
+	TelegrafCfgSamples[`vmware`] = `
 # Read metrics from one or many vCenters
 # See: https://github.com/influxdata/telegraf/tree/master/plugins/inputs/vsphere
 #[[inputs.vsphere]]
@@ -852,7 +852,7 @@ func initTelegrafSamples() {
 	# insecure_skip_verify = false
 `
 
-	telegrafCfgSamples["awscloudwatch"] = `
+	TelegrafCfgSamples["awscloudwatch"] = `
 #[[inputs.cloudwatch]]
 ## Amazon Region
 #region = "us-east-1"
@@ -933,7 +933,7 @@ func initTelegrafSamples() {
 #    value = "p-example"
 `
 
-	telegrafCfgSamples["win_services"] = `
+	TelegrafCfgSamples["win_services"] = `
 #[[inputs.win_services]]
 ## Reports information about Windows service status.
 ## Monitoring some services may require running Telegraf with administrator privileges.
@@ -944,7 +944,7 @@ func initTelegrafSamples() {
 #]
 `
 
-	telegrafCfgSamples["tls"] = `
+	TelegrafCfgSamples["tls"] = `
 # # Reads metrics from a SSL certificate
 # [[inputs.x509_cert]]
 #   ## List certificate sources
@@ -959,7 +959,7 @@ func initTelegrafSamples() {
 #   # tls_key = "/etc/telegraf/key.pem"
 `
 
-	telegrafCfgSamples["tengine"] = `
+	TelegrafCfgSamples["tengine"] = `
 # # Read Tengine's basic status information (ngx_http_reqstat_module)
 # [[inputs.tengine]]
 #   # An array of Tengine reqstat module URI to gather stats.
@@ -975,7 +975,7 @@ func initTelegrafSamples() {
 #   ## Use TLS but skip chain & host verification
 #   # insecure_skip_verify = false
 `
-	telegrafCfgSamples["rabbitmq"] = `
+	TelegrafCfgSamples["rabbitmq"] = `
 # # Reads metrics from RabbitMQ servers via the Management Plugin
 # [[inputs.rabbitmq]]
 #   ## Management Plugin url. (default: http://localhost:15672)
@@ -1021,7 +1021,7 @@ func initTelegrafSamples() {
 #   queue_name_exclude = []
 `
 
-	telegrafCfgSamples["openntpd"] = `
+	TelegrafCfgSamples["openntpd"] = `
 # # Get standard NTP query metrics from OpenNTPD.
 # [[inputs.openntpd]]
 #   ## Run ntpctl binary with sudo.
@@ -1034,13 +1034,13 @@ func initTelegrafSamples() {
 #   # timeout = "5ms"
 `
 
-	telegrafCfgSamples["ntpq"] = `
+	TelegrafCfgSamples["ntpq"] = `
 # # Get standard NTP query metrics, requires ntpq executable.
 # [[inputs.ntpq]]
 #   ## If false, set the -n ntpq flag. Can reduce metric gather time.
 #   dns_lookup = true
 `
-	telegrafCfgSamples["jenkins"] = `
+	TelegrafCfgSamples["jenkins"] = `
 # # Read jobs and cluster metrics from Jenkins instances
 # [[inputs.jenkins]]
 #   ## The Jenkins URL
@@ -1085,7 +1085,7 @@ func initTelegrafSamples() {
 #   # max_connections = 5
 `
 
-	telegrafCfgSamples["ceph"] = `
+	TelegrafCfgSamples["ceph"] = `
 # # Collects performance metrics from the MON and OSD nodes in a Ceph storage cluster.
 # [[inputs.ceph]]
 #   ## This is the recommended interval to poll.  Too frequent and you will lose
@@ -1120,7 +1120,7 @@ func initTelegrafSamples() {
 #   gather_cluster_stats = false
 `
 
-	telegrafCfgSamples["zookeeper"] = `
+	TelegrafCfgSamples["zookeeper"] = `
 # # Reads 'mntr' stats from one or many zookeeper servers
 # [[inputs.zookeeper]]
 #   ## An array of address to gather stats about. Specify an ip or hostname
@@ -1142,7 +1142,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = true
 `
 
-	telegrafCfgSamples["haproxy"] = `
+	TelegrafCfgSamples["haproxy"] = `
 # # Read metrics of haproxy, via socket or csv stats page
 # [[inputs.haproxy]]
 #   ## An array of address to gather stats about. Specify an ip on hostname
@@ -1175,7 +1175,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples["fluentd"] = `
+	TelegrafCfgSamples["fluentd"] = `
 # # Read metrics exposed by fluentd in_monitor plugin
 # [[inputs.fluentd]]
 #   ## This plugin reads information exposed by fluentd (using /api/plugins.json endpoint).
@@ -1192,7 +1192,7 @@ func initTelegrafSamples() {
 #   ]
 `
 
-	telegrafCfgSamples["cpu"] = `
+	TelegrafCfgSamples["cpu"] = `
 #[[inputs.cpu]]
 #  ## Whether to report per-cpu stats or not
 #  percpu = true
@@ -1204,7 +1204,7 @@ func initTelegrafSamples() {
 #  report_active = false
 `
 
-	telegrafCfgSamples[`disk`] = `
+	TelegrafCfgSamples[`disk`] = `
 # Read metrics about disk usage by mount point
 #[[inputs.disk]]
   ## By default stats will be gathered for all mount points.
@@ -1215,7 +1215,7 @@ func initTelegrafSamples() {
 #  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
 `
 
-	telegrafCfgSamples[`diskio`] = `
+	TelegrafCfgSamples[`diskio`] = `
 # Read metrics about disk IO by device
 #[[inputs.diskio]]
   ## By default, telegraf will gather stats for all devices including
@@ -1245,8 +1245,8 @@ func initTelegrafSamples() {
   # name_templates = ["$ID_FS_LABEL","$DM_VG_NAME/$DM_LV_NAME"]
 `
 
-	telegrafCfgSamples[`kernel`] = `
-# Get kernel statistics from /proc/stat
+	TelegrafCfgSamples[`kernel`] = `
+## Get kernel statistics from /proc/stat
 #[[inputs.kernel]]
   # no configuration
 
@@ -1255,18 +1255,18 @@ func initTelegrafSamples() {
 #   # no configuration
 `
 
-	telegrafCfgSamples[`memory`] = `
+	TelegrafCfgSamples[`memory`] = `
 # Read metrics about memory usage
 #[[inputs.mem]]
   # no configuration
 `
 
-	telegrafCfgSamples[`processes`] = `
-# Get the number of processes and group them by status
+	TelegrafCfgSamples[`processes`] = `
+## Get the number of processes and group them by status
 #[[inputs.processes]]
   # no configuration
 
-# Monitor process cpu and memory usage
+## Monitor process cpu and memory usage
 #[[inputs.procstat]]
 ## PID file to monitor process
 #pid_file = "/var/run/nginx.pid"
@@ -1306,20 +1306,20 @@ func initTelegrafSamples() {
 # pid_finder = "pgrep"
 `
 
-	telegrafCfgSamples[`swap`] = `
+	TelegrafCfgSamples[`swap`] = `
 # Read metrics about swap memory usage
 #[[inputs.swap]]
   # no configuration
 `
 
-	telegrafCfgSamples[`system`] = `
-# Read metrics about system load & uptime
+	TelegrafCfgSamples[`system`] = `
+## Read metrics about system load & uptime
 [[inputs.system]]
   ## Uncomment to remove deprecated metrics.
   fielddrop = ["uptime_format"]
 `
 
-	telegrafCfgSamples[`activemq`] = `
+	TelegrafCfgSamples[`activemq`] = `
 # # Gather ActiveMQ metrics
 # [[inputs.activemq]]
 #   ## ActiveMQ WebConsole URL
@@ -1348,7 +1348,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`dns_query`] = `
+	TelegrafCfgSamples[`dns_query`] = `
 # # Query given DNS server and gives statistics
 # [[inputs.dns_query]]
 #   ## servers to query
@@ -1371,7 +1371,7 @@ func initTelegrafSamples() {
 #   # timeout = 2
 `
 
-	telegrafCfgSamples[`docker`] = `
+	TelegrafCfgSamples[`docker`] = `
 # # Read metrics about docker containers
 # [[inputs.docker]]
 #   ## Docker Endpoint
@@ -1421,7 +1421,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`docker_log`] = `
+	TelegrafCfgSamples[`docker_log`] = `
 # # Read logging output from the Docker engine
 # [[inputs.docker_log]]
 #   ## Docker Endpoint
@@ -1459,7 +1459,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`elasticsearch`] = `
+	TelegrafCfgSamples[`elasticsearch`] = `
 # # Read stats from one or more Elasticsearch servers or clusters
 # [[inputs.elasticsearch]]
 #   ## specify a list of one or more Elasticsearch servers
@@ -1513,7 +1513,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`http_check`] = `
+	TelegrafCfgSamples[`http_check`] = `
 # # Read formatted metrics from one or more HTTP endpoints
 # [[inputs.http]]
 #   ## One or more URLs from which to read formatted metrics
@@ -1649,7 +1649,7 @@ func initTelegrafSamples() {
 #   #   apiVersion = "v1"
 `
 
-	telegrafCfgSamples[`iptables`] = `
+	TelegrafCfgSamples[`iptables`] = `
 # # Gather packets and bytes throughput from iptables
 # [[inputs.iptables]]
 #   ## iptables require root access on most systems.
@@ -1670,7 +1670,7 @@ func initTelegrafSamples() {
 #   chains = [ "INPUT" ]
 `
 
-	telegrafCfgSamples[`redis`] = `
+	TelegrafCfgSamples[`redis`] = `
 # # Read metrics from one or many redis servers
 # [[inputs.redis]]
 #   ## specify servers via a url matching:
@@ -1695,7 +1695,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = true
 `
 
-	telegrafCfgSamples[`mongodb`] = `
+	TelegrafCfgSamples[`mongodb`] = `
 # # Read metrics from one or many MongoDB servers
 # [[inputs.mongodb]]
 #   ## An array of URLs of the form:
@@ -1721,7 +1721,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`mysql`] = `
+	TelegrafCfgSamples[`mysql`] = `
 # # Read metrics from one or many mysql servers
 # [[inputs.mysql]]
 #   ## specify servers via a url matching:
@@ -1805,7 +1805,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`nats`] = `
+	TelegrafCfgSamples[`nats`] = `
 # # Provides metrics about the state of a NATS server
 # [[inputs.nats]]
 #   ## The address of the monitoring endpoint of the NATS server
@@ -1815,7 +1815,7 @@ func initTelegrafSamples() {
 #   # response_timeout = "5s"
 `
 
-	telegrafCfgSamples[`network`] = `
+	TelegrafCfgSamples[`network`] = `
 # # Read metrics about network interface usage
 # [[inputs.net]]
 #   ## By default, telegraf gathers stats from any up interface (excluding loopback)
@@ -1831,7 +1831,7 @@ func initTelegrafSamples() {
 #   ##
 `
 
-	telegrafCfgSamples[`tcp_udp_check`] = `
+	TelegrafCfgSamples[`tcp_udp_check`] = `
 # # Collect response time of a TCP or UDP connection
 # [[inputs.net_response]]
 #   ## Protocol, must be "tcp" or "udp"
@@ -1864,7 +1864,7 @@ func initTelegrafSamples() {
 #   # no configuration
 `
 
-	telegrafCfgSamples[`apache`] = `
+	TelegrafCfgSamples[`apache`] = `
 # # Read Apache status information (mod_status)
 # [[inputs.apache]]
 #   ## An array of URLs to gather from, must be directed at the machine
@@ -1887,7 +1887,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`nginx`] = `
+	TelegrafCfgSamples[`nginx`] = `
 # # Read Nginx's basic status information (ngx_http_stub_status_module)
 # [[inputs.nginx]]
 #   # An array of Nginx stub_status URI to gather stats.
@@ -1985,7 +1985,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`postgresql`] = `
+	TelegrafCfgSamples[`postgresql`] = `
 # # Read metrics from one or many postgresql servers
 # [[inputs.postgresql]]
 #   ## specify address via a url matching:
@@ -2085,7 +2085,7 @@ func initTelegrafSamples() {
 #     tagvalue="postgresql.stats"
 `
 
-	telegrafCfgSamples[`openldap`] = `
+	TelegrafCfgSamples[`openldap`] = `
 # # OpenLDAP cn=Monitor plugin
 # [[inputs.openldap]]
 #   host = "localhost"
@@ -2111,7 +2111,7 @@ func initTelegrafSamples() {
 #   reverse_metric_names = true
 `
 
-	telegrafCfgSamples[`kapacitor`] = `
+	TelegrafCfgSamples[`kapacitor`] = `
 # # Read Kapacitor-formatted JSON metrics from one or more HTTP endpoints
 # [[inputs.kapacitor]]
 #   ## Multiple URLs from which to read Kapacitor-formatted JSON
@@ -2131,7 +2131,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`phpfpm`] = `
+	TelegrafCfgSamples[`phpfpm`] = `
 # # Read metrics of phpfpm, via HTTP status page or socket
 # [[inputs.phpfpm]]
 #   ## An array of addresses to gather stats about. Specify an ip or hostname
@@ -2166,7 +2166,7 @@ func initTelegrafSamples() {
 #   # insecure_skip_verify = false
 `
 
-	telegrafCfgSamples[`sqlserver`] = `
+	TelegrafCfgSamples[`sqlserver`] = `
 # # Read metrics from Microsoft SQL Server
 # [[inputs.sqlserver]]
 #   ## Specify instances to monitor with a list of connection strings.
@@ -2206,7 +2206,7 @@ func initTelegrafSamples() {
 #   exclude_query = [ 'Schedulers' ]
 `
 
-	telegrafCfgSamples[`memcached`] = `
+	TelegrafCfgSamples[`memcached`] = `
 # # Read metrics from one or many memcached servers
 # [[inputs.memcached]]
 #   ## An array of address to gather stats about. Specify an ip on hostname
@@ -2215,7 +2215,7 @@ func initTelegrafSamples() {
 #   # unix_sockets = ["/var/run/memcached.sock"]
 `
 
-	telegrafCfgSamples[`ping_check`] = `
+	TelegrafCfgSamples[`ping_check`] = `
 # # Ping given url(s) and return statistics
 # [[inputs.ping]]
 #   ## List of urls to ping
@@ -2249,7 +2249,7 @@ func initTelegrafSamples() {
 #   ## Use only ipv6 addresses when resolving hostnames.
 #   # ipv6 = false
 `
-	telegrafCfgSamples[`uwsgi`] = `
+	TelegrafCfgSamples[`uwsgi`] = `
 # #[[inputs.uwsgi]]
   ## List with urls of uWSGI Stats servers. Url must match pattern:
   ## scheme://address[:port]
@@ -2261,7 +2261,7 @@ func initTelegrafSamples() {
   ## General connection timout
   # timeout = "5s"`
 
-	telegrafCfgSamples[`solr`] = `
+	TelegrafCfgSamples[`solr`] = `
 # # Read stats from one or more Solr servers or cores
 # [[inputs.solr]]
 #   ## specify a list of one or more Solr servers
@@ -2275,7 +2275,7 @@ func initTelegrafSamples() {
 #   # password = "pa$$word"
 `
 
-	telegrafCfgSamples[`systemd_units`] = `
+	TelegrafCfgSamples[`systemd_units`] = `
 #[[inputs.systemd_units]]
 #  ## Set timeout for systemctl execution
 #  # timeout = "1s"
@@ -2286,7 +2286,7 @@ func initTelegrafSamples() {
 #  # unittype = "service"
 `
 
-	telegrafCfgSamples[`influxdb`] = `
+	TelegrafCfgSamples[`influxdb`] = `
 # Read InfluxDB-formatted JSON metrics from one or more HTTP endpoints
 #[[inputs.influxdb]]
 	## Works with InfluxDB debug endpoints out of the box,
