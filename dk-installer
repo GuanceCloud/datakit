@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<Error>
-  <Code>NoSuchKey</Code>
-  <Message>The specified key does not exist.</Message>
-  <RequestId>5F0D68F8F807D83632C519CF</RequestId>
-  <HostId>zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com</HostId>
-  <Key>datakit/installer-linux-amd64</Key>
-</Error>
