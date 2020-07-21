@@ -91,6 +91,8 @@ func (e *Etcd) Run() {
 		return
 	}
 
+	l.Infof("etcd input started...")
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
