@@ -1,31 +1,29 @@
 # -*- encoding: utf8 -*-
-START = "StartRow"
-BATCH = "BatchSize"
+START = "start_rows"
 
-UUID  = "DatawayUuid"
-AUTH  = "DatawayAuth"
-URL   = "DatawayUrl"
-PK    = "Ak"
-SK    = "Sk"
 
-FILES = "Files"
+FILE = "file"
 
 RULES = "Rules"
 
 PRMK  = "PrimaryKey"
 
-MEMENT = "Measurement"
+MEMENT = "metric"
 TAG    = "Tags"
+AS_TAG = "as_tag"
+AS_FIELD = "as_field"
+AS_TIME  = "as_time"
 FIELD  = "Fields"
 TS     = "Timestamp"
 
-COLUMN  = "ColumnIndex"
+COLUMN  = "columns"
+INDEX  = "index"
 CELL    = "Cell"
-TYPE    = "Type"
-NAME    = "Name"
-NACTION = "NaAction"
-TUNIT   = "TimeUnit"
-TIME_FORMAT = "TimeFormat"
+TYPE    = "type"
+NAME    = "name"
+NACTION = "na_action"
+TUNIT   = "time_precision"
+TIME_FORMAT = "time_format"
 
 
 
