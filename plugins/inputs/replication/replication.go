@@ -138,6 +138,8 @@ func (r *Replication) Run() {
 
 	_ = r.sendStatus()
 
+	l.Infof("postgresql replication input started...")
+
 	r.runloop()
 }
 
