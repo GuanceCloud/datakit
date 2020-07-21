@@ -31,6 +31,7 @@ require (
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/ericchiang/k8s v1.2.0
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gin-gonic/gin v1.6.2
 	github.com/go-delve/delve v1.4.0 // indirect
