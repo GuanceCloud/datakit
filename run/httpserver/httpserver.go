@@ -14,7 +14,10 @@ import (
 var (
 	l *logger.Logger
 
-	OwnerList = []string{"trace", "druid"}
+	OwnerList = map[string]interface{}{
+		"trace": nil,
+		"druid": nil,
+	}
 )
 
 func Start(addr string) {
