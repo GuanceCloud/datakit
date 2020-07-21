@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import dk_pb2 as dk__pb2
+from rpc import dk_pb2 as dk__pb2
 
 
 class DataKitStub(object):
