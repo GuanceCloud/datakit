@@ -49,7 +49,7 @@ import (
 
 	// 32bit disabled, only 64 bit available
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/csv"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/csv"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpstat"
 	// 32bit disabled, only 64 bit available
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
