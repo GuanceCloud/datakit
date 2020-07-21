@@ -28,16 +28,14 @@ func (a *Agent) Run() error {
 	io.Start()
 
 	for name := range config.Cfg.Inputs {
-		for _, n := range httpserver.OwnerList {
-			if name == n {
-
-				datakit.WG.Add(1)
-				go func() {
-					defer datakit.WG.Done()
-					httpserver.Start(config.Cfg.MainCfg.HTTPServerAddr)
-					l.Info("HTTPServer goroutine exit")
-				}()
-			}
+		if _, ok := httpserver.OwnerList[name]; ok {
+			datakit.WG.Add(1)
+			go func() {
+				defer datakit.WG.Done()
+				httpserver.Start(config.Cfg.MainCfg.HTTPServerAddr)
+				l.Info("HTTPServer goroutine exit")
+			}()
+			break
 		}
 	}
 
