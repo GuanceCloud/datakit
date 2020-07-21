@@ -230,6 +230,7 @@ func (t *Tailf) updateTailers() {
 }
 
 func (t *Tailf) getLinesUpdate(d time.Duration) {
+	l.Infof("tailf input started...")
 	t.updateTailers()
 
 	loopTick := time.NewTicker(100 * time.Millisecond)
@@ -258,8 +259,8 @@ func (t *Tailf) getLinesUpdate(d time.Duration) {
 }
 
 func (t *Tailf) getLines() {
+	l.Infof("tailf input started...")
 	t.updateTailers()
-
 	loopTick := time.NewTicker(100 * time.Millisecond)
 
 	for {
