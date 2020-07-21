@@ -179,10 +179,10 @@ Golang Version: %s
 	if *flagDownloadOnly {
 		curDownloading = "datakit"
 		doDownload(datakitUrl, fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
-			runtime.GOOS, runtime.GOOS, DataKitVersion))
+			runtime.GOOS, runtime.GOARCH, DataKitVersion))
 
 		curDownloading = "agent"
-		doDownload(telegrafUrl, fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOOS))
+		doDownload(telegrafUrl, fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
 
 		os.Exit(0)
 	}
