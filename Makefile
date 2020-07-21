@@ -31,8 +31,8 @@ ENTRY = cmd/datakit/main.go
 # Solution:
 # > apt-get install gcc-multilib
 # 
-#LOCAL_ARCHS = "linux/amd64" 
-LOCAL_ARCHS = "all"
+LOCAL_ARCHS = "linux/amd64" 
+#LOCAL_ARCHS = "all"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -41,6 +41,8 @@ GOVERSION := $(shell go version)
 COMMIT := $(shell git rev-parse --short HEAD)
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 UPLOADER:= $(shell hostname)/${USER}
+NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(VERSION))"}}')
+NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(VERSION))"}}')
 
 ###################################
 # Detect telegraf update info
@@ -108,6 +110,18 @@ pub_release:
 pub_image:
 	@sudo docker build --tag registry.jiagouyun.com/datakit/datakit:$(VERSION) -f internal-dk.Dockerfile .
 	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
+
+test_notify:
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87' \
+		-H 'Content-Type: application/json' \
+		-d '$(NOTIFY_MSG_TEST)'
+
+release_notify:
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=5109b365f7be669c45c5677418a1c2fe7d5251485a09f514131177b203ed785f' \
+		-H 'Content-Type: application/json' \
+		-d '$(NOTIFY_MSG_RELEASE)'
 
 define build_agent
 	git rm -rf telegraf
