@@ -218,6 +218,8 @@ github.com/ericchiang/k8s/util/intstr
 github.com/ericchiang/k8s/watch/versioned
 # github.com/fatih/structs v1.0.0
 github.com/fatih/structs
+# github.com/fsnotify/fsnotify v1.4.7
+github.com/fsnotify/fsnotify
 # github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 github.com/ghodss/yaml
 # github.com/gin-contrib/sse v0.1.0
