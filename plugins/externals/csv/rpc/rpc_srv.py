@@ -4,8 +4,8 @@ from concurrent import futures
 
 import grpc
 
-import dk_pb2_grpc
-import dk_pb2
+from rpc import dk_pb2_grpc
+from rpc import dk_pb2
 
 class ServerImpl(dk_pb2_grpc.DataKitServicer):
     def __init__(self):
