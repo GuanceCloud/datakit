@@ -1,7 +1,7 @@
 # -*- encoding: utf8 -*-
 
-import dk_pb2_grpc
-import dk_pb2
+from rpc import dk_pb2_grpc
+from rpc import dk_pb2
 
 import grpc
 import time
