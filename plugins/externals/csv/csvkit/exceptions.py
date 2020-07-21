@@ -1,9 +1,3 @@
-class ConfException(Exception):
-    pass
-
-class IndexException(Exception):
-    pass
-
 class AbortException(Exception):
     pass
 
