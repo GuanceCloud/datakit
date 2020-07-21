@@ -12,7 +12,6 @@ require (
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/Pallinder/go-randomdata v1.2.0
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f // indirect
-	github.com/aerospike/aerospike-client-go v1.27.0
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.2+incompatible // indirect
@@ -90,7 +89,6 @@ require (
 	github.com/zcalusic/sysinfo v0.0.0-20200228145645-a159d7cc708b // indirect
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200708034554-4979d23ed25d
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
-	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
