@@ -30,17 +30,16 @@ type column struct {
 	TimePrecision string `toml:"time_precision,omitempty" yaml:"time_precision,omitempty"` // h/m/s/ms/us/ns
 }
 
-type rule struct {
+type Rule struct {
 }
 
-type csv struct {
-	PathEnv   string   `toml:"path_env" yaml:"-"`
-	StartRows int      `toml:"start_rows" yaml:"start_rows"`
+type CSV struct {
+	PathEnv   string    `toml:"path_env" yaml:"-"`
+	StartRows int       `toml:"start_rows" yaml:"start_rows"`
 	File      string    `toml:"file" yaml:"file"`
 	Metric    string    `toml:"metric" yaml:"metric"`
 	Columns   []*column `toml:"columns" yaml:"columns"`
 }
-
 
 var (
 	l *logger.Logger
@@ -49,24 +48,22 @@ var (
 func (x *CSV) Catalog() string {
 	return "csv"
 }
-func (x *csv) SampleConfig() string {
+
+func (x *CSV) SampleConfig() string {
 	return configSample
 }
 
-func (x *csv) Run() {
-
+func (x *CSV) Run() {
 	l = logger.SLogger("csv")
 	l.Info("csv started")
 
-
-		b, err := yaml.Marshal(x)
-		if err != nil {
-			l.Error(err)
+	b, err := yaml.Marshal(x)
+	if err != nil {
+		l.Error(err)
 		return
-		}
+	}
 
 	encodeStr := base64.StdEncoding.EncodeToString(b)
-
 	args := []string{
 		filepath.Join(datakit.InstallDir, "externals", "csv", "main.py"),
 		"-y", encodeStr,
@@ -85,8 +82,8 @@ func (x *csv) Run() {
 	ch := make(chan interface{})
 	go func() {
 		if err := cmd.Run(); err != nil {
-		l.Errorf("start csv failed: %s", err.Error())
-	}
+			l.Errorf("start csv failed: %s", err.Error())
+		}
 		close(ch)
 	}()
 
@@ -94,6 +91,7 @@ func (x *csv) Run() {
 	l.Infof("csv PID: %d", cmd.Process.Pid)
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
+
 	for {
 		select {
 		case <-tick.C:
@@ -102,15 +100,18 @@ func (x *csv) Run() {
 				l.Error(err)
 				continue
 			}
+
 			if err := p.Signal(syscall.Signal(0)); err != nil {
 				l.Errorf("signal 0 to %s failed: %s", "csv", err)
 			}
+
 		case <-datakit.Exit.Wait():
 			if err := cmd.Process.Kill(); err != nil {
 				l.Warnf("killing %s failed: %s, ignored", "csv", err)
 			}
 			l.Infof("killing %s (pid: %d) ok", "csv", cmd.Process.Pid)
 			return
+
 		case <-ch:
 			l.Info("csvkit exit")
 			return
@@ -120,6 +121,6 @@ func (x *csv) Run() {
 
 func init() {
 	inputs.Add("csv", func() inputs.Input {
-		return &csv{}
+		return &CSV{}
 	})
 }
