@@ -30,5 +30,6 @@ build-release:
   script:
     - make release
     - make pub_release
+    - make notify
   tags:
     - cloudcare-ft
