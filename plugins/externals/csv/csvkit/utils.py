@@ -1,7 +1,6 @@
 # -*- encoding: utf8 -*-
 
 import sys
-from csvkit.log import log_flush
 
 def is_http_url(url_path):
     if not isinstance(url_path, str):
@@ -14,5 +13,4 @@ def is_http_url(url_path):
     return False
 
 def exit(code):
-    log_flush()
     sys.exit(code)
