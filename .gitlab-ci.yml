@@ -23,15 +23,6 @@ build-dev:
   tags:
     - cloudcare-ft
 
-build-hotfix:
-  stage: deploy
-  only:
-    - hotfix
-  script:
-    - make release # build only, no publish
-  tags:
-    - cloudcare-ft
-
 build-release:
   stage: deploy
   only:
