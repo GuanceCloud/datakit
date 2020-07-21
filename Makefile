@@ -111,7 +111,8 @@ pub_image:
 	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
 
 notify:
-	@curl 'https://oapi.dingtalk.com/robot/send?access_token=028832ee145b24c111b6c00fa891f1996420d329ec1f83da35501e04d182e835' \
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=5109b365f7be669c45c5677418a1c2fe7d5251485a09f514131177b203ed785f' \
 		-H 'Content-Type: application/json' \
 		-d '$(NOTIFY_MSG)'
 
