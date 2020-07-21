@@ -73,9 +73,8 @@ func TestMain(t *testing.T) {
 		Regexs:           []string{".txt"},
 		Paths:            []string{root},
 		Source:           "NAXXRAMAS",
-		FormBeginning:    false,
 		UpdateFiles:      true,
-		UpdateFilesCycle: 3 * time.Second,
+		UpdateFilesCycle: "10s",
 	}
 
 	go tailer.Run()
