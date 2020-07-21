@@ -1,6 +1,6 @@
 // +build ignore
 
-// +build linux,amd64
+// +build linux
 
 package scanport
 
