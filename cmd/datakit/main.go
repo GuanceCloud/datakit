@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
@@ -293,8 +294,15 @@ func httpStart(addr string) {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/trace", trace.Handle)
-	mux.HandleFunc("/druid", druid.Handle)
+	if _, ok := config.Cfg.Inputs["trace"]; ok {
+		mux.HandleFunc("/trace", trace.Handle)
+	}
+
+	if _, ok := config.Cfg.Inputs["druid"]; ok {
+		mux.HandleFunc("/druid", druid.Handle)
+	}
+
+	mux.HandleFunc("/stats", getInputsStats)
 
 	srv := &http.Server{
 		Addr:         addr,
@@ -326,6 +334,27 @@ func httpStart(addr string) {
 	return
 }
 
+func getInputsStats(w http.ResponseWriter, r *http.Request) {
+	res, err := io.GetStats("") // get all inputs stats
+	if err != nil {
+		l.Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	body, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
+	return
+}
+
 func requestLogger(targetMux http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -339,6 +368,6 @@ func requestLogger(targetMux http.Handler) http.Handler {
 			path = path + "?" + raw
 		}
 
-		l.Debugf(" %15s | %#v\n", clientIP, path)
+		l.Infof(" %15s | %#v\n", clientIP, path)
 	})
 }
