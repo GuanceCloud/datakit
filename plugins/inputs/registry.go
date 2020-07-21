@@ -1,5 +1,9 @@
 package inputs
 
+import (
+	"fmt"
+)
+
 type Input interface {
 	Catalog() string
 	Run()
@@ -18,5 +22,9 @@ var (
 )
 
 func Add(name string, creator Creator) {
+	if _, ok := Inputs[name]; ok {
+		panic(fmt.Sprintf("inputs %s exist", name))
+	}
+
 	Inputs[name] = creator
 }
