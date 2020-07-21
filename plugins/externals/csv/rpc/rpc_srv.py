@@ -4,15 +4,14 @@ from concurrent import futures
 
 import grpc
 
-import dk_pb2_grpc
-import dk_pb2
+from rpc import dk_pb2_grpc
+from rpc import dk_pb2
 
 class ServerImpl(dk_pb2_grpc.DataKitServicer):
     def __init__(self):
         pass
 
-    def Send(self, request, ctx):
-        print(request)
+    def Send(self, request, ctx = None):
         return dk_pb2.Response(err="", points=1, objects=0)
 
 
