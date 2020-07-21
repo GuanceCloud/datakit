@@ -1,11 +1,12 @@
 package csv
 
 import (
+	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	yaml "gopkg.in/yaml.v2"
@@ -30,25 +31,24 @@ type column struct {
 }
 
 type rule struct {
-	Metric  string    `toml:"metric" yaml:"metric"`
-	Columns []*column `toml:"columns" yaml:"columns"`
 }
 
 type csv struct {
 	PathEnv   string   `toml:"path_env" yaml:"-"`
 	StartRows int      `toml:"start_rows" yaml:"start_rows"`
-	Files     []string `toml:"files" yaml:"files"`
-	Rules     []*rule  `toml:"rules" yaml:"rules"`
+	File      string    `toml:"file" yaml:"file"`
+	Metric    string    `toml:"metric" yaml:"metric"`
+	Columns   []*column `toml:"columns" yaml:"columns"`
 }
 
-func (x *csv) Catalog() string {
-	return "csv"
-}
 
 var (
 	l *logger.Logger
 )
 
+func (x *CSV) Catalog() string {
+	return "csv"
+}
 func (x *csv) SampleConfig() string {
 	return configSample
 }
@@ -56,31 +56,20 @@ func (x *csv) SampleConfig() string {
 func (x *csv) Run() {
 
 	l = logger.SLogger("csv")
-	l.Info("csvkit started")
+	l.Info("csv started")
 
-	l.Info("starting external csvkit...")
 
-	csvConf := filepath.Join(datakit.InstallDir, "externals", "csv", "config.yaml")
-	for {
 		b, err := yaml.Marshal(x)
 		if err != nil {
 			l.Error(err)
-			time.Sleep(time.Second)
-			continue
+		return
 		}
 
-		if err := ioutil.WriteFile(csvConf, b, os.ModePerm); err != nil {
-			l.Errorf("create csv config %s failed: %s", csvConf, err.Error())
-			time.Sleep(time.Second)
-			continue
-		}
-
-		break
-	}
+	encodeStr := base64.StdEncoding.EncodeToString(b)
 
 	args := []string{
 		filepath.Join(datakit.InstallDir, "externals", "csv", "main.py"),
-		"-y", csvConf,
+		"-y", encodeStr,
 	}
 	cmd := exec.Command("python", args...)
 	if x.PathEnv != "" {
@@ -90,14 +79,43 @@ func (x *csv) Run() {
 
 		l.Infof("set PATH to %s", cmd.Env[0])
 	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-	if err := cmd.Start(); err != nil {
+	ch := make(chan interface{})
+	go func() {
+		if err := cmd.Run(); err != nil {
 		l.Errorf("start csv failed: %s", err.Error())
-		return
 	}
+		close(ch)
+	}()
 
+	time.Sleep(time.Duration(2)*time.Second)
 	l.Infof("csv PID: %d", cmd.Process.Pid)
-	datakit.MonitProc(cmd.Process, "csv")
+	tick := time.NewTicker(time.Second)
+	defer tick.Stop()
+	for {
+		select {
+		case <-tick.C:
+			p, err := os.FindProcess(cmd.Process.Pid)
+			if err != nil {
+				l.Error(err)
+				continue
+			}
+			if err := p.Signal(syscall.Signal(0)); err != nil {
+				l.Errorf("signal 0 to %s failed: %s", "csv", err)
+			}
+		case <-datakit.Exit.Wait():
+			if err := cmd.Process.Kill(); err != nil {
+				l.Warnf("killing %s failed: %s, ignored", "csv", err)
+			}
+			l.Infof("killing %s (pid: %d) ok", "csv", cmd.Process.Pid)
+			return
+		case <-ch:
+			l.Info("csvkit exit")
+			return
+		}
+	}
 }
 
 func init() {
