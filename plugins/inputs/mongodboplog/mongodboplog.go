@@ -133,7 +133,7 @@ func (m *Mongodboplog) Run() {
 	m.iter = session.DB("local").C("oplog.rs").Find(query).LogReplay().Tail(-1)
 	defer m.iter.Close()
 
-	l.Info("connect success")
+	l.Infof("mongodb_oplog input started...")
 
 	m.runloop()
 }
