@@ -83,6 +83,8 @@ func (c *Containerd) Run() {
 
 	c.initcfg()
 
+	l.Infof("containerd input started...")
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
