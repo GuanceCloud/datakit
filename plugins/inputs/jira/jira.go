@@ -8,7 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type IoFeed func(data []byte, category string) error
+type IoFeed func(data []byte, category, name string) error
 
 type Jira struct {
 	Interval    int
@@ -78,6 +78,7 @@ const (
 	defaultInterval   = 60
 	defaultMetricName = "jira"
 	maxIssuesPerQueue = 1000
+	name              = "jira"
 )
 
 func (g *Jira) Catalog() string {
@@ -101,7 +102,7 @@ func (j *Jira) Run() {
 	j.Host = strings.Trim(j.Host, " ")
 
 	input := JiraInput{*j}
-	output := JiraOutput{io.Feed}
+	output := JiraOutput{io.NamedFeed}
 	log := logger.SLogger("jira")
 
 	p := JiraParam{input, output, log}
@@ -110,7 +111,7 @@ func (j *Jira) Run() {
 }
 
 func init() {
-	inputs.Add("jira", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		jira := &Jira{}
 		return jira
 	})

@@ -21,25 +21,25 @@ const (
 # [[inputs.etcd]]
 # 	# etcd host ip
 # 	host = "127.0.0.1"
-# 	
+#
 # 	# etcd port
 # 	port = 2379
-# 	
+#
 # 	# use HTTPS TLS
 # 	tls_open = false
-# 	
-# 	# CA 
+#
+# 	# CA
 # 	tls_cacert_file = "ca.crt"
-# 	
+#
 # 	# client
 # 	tls_cert_file = "peer.crt"
-# 	
+#
 # 	# key
 # 	tls_key_file = "peer.key"
-# 	
+#
 # 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
 # 	collect_cycle = "60s"
-# 	
+#
 # 	# [inputs.etcd.tags]
 # 	# tags1 = "value1"
 `
@@ -103,7 +103,7 @@ func (e *Etcd) Run() {
 				l.Error(err)
 				continue
 			}
-			if err := io.Feed(data, io.Metric); err != nil {
+			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
 				l.Error(err)
 				continue
 			}
