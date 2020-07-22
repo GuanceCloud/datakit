@@ -336,7 +336,7 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 				evtime = time.Unix(int64(e.Header.Timestamp), 0)
 			}
 
-			io.FeedEx(io.Metric, measureName, tags, fields, evtime)
+			io.NamedFeedEx(inputName, io.Metric, measureName, tags, fields, evtime)
 		}
 
 	}
