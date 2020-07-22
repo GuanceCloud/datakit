@@ -94,7 +94,7 @@ func doFeed(data []byte, category, name string) error {
 	return nil
 }
 
-func NamingFeed(data []byte, catagory, name string) error {
+func NamedFeed(data []byte, catagory, name string) error {
 	return doFeed(data, catagory, name)
 }
 
@@ -102,7 +102,7 @@ func FeedEx(catagory string, metric string, tags map[string]string, fields map[s
 	return doFeedEx("", catagory, metric, tags, fields, t...)
 }
 
-func NamingFeedEx(name, catagory string, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+func NamedFeedEx(name, catagory string, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
 	return doFeedEx(name, catagory, metric, tags, fields, t...)
 }
 
