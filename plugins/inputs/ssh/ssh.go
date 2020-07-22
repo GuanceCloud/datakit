@@ -18,7 +18,7 @@ import (
 type IoFeed func(data []byte, category, name string) error
 
 type Ssh struct {
-	Interval       int
+	Interval       interface{}
 	Active         bool
 	Host           string
 	UserName       string
@@ -45,7 +45,7 @@ type SshParam struct {
 
 const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ssh/sftp to be monitored.
 ### host: ssh/sftp service ip:port, if "127.0.0.1", default port is 22.
-### interval: monitor interval second, unit is second. The default value is 60.
+### interval: monitor interval, the default value is "60s".
 ### active: whether to monitor ssh/sftp.
 ### username: the user name of ssh/sftp.
 ### password: the password of ssh/sftp. optional
@@ -54,7 +54,7 @@ const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ss
 ### metricsName: the name of metric, default is "ssh"
 
 #[[inputs.ssh]]
-#	interval = 60
+#	interval = "60s"
 #	active   = true
 #	host     = "127.0.0.1:22"
 #	username = "xxx"
@@ -68,7 +68,7 @@ const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ss
 #		tag3 = "tag3"
 
 #[[inputs.ssh]]
-#	interval = 60
+#	interval = "60s"
 #	active   = true
 #	host     = "127.0.0.1:22"
 #	username = "xxx"
@@ -85,7 +85,7 @@ const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ss
 var (
 	name              = "Ssh"
 	defaultMetricName = name
-	defaultInterval   = 60
+	defaultInterval   = "60s"
 	sshCfgErr         = errors.New("both password and privateKeyFile missed")
 )
 
@@ -108,7 +108,7 @@ func (s *Ssh) Run() {
 		s.MetricsName = defaultMetricName
 	}
 
-	if s.Interval == 0 {
+	if s.Interval == nil {
 		s.Interval = defaultInterval
 	}
 
@@ -158,13 +158,30 @@ func (p *SshParam) getSshClientConfig() (*ssh.ClientConfig, error) {
 }
 
 func (p *SshParam) gather() {
+	var d time.Duration
+	var err error
+
+	switch p.input.Interval.(type) {
+	case int64:
+		d = time.Duration(p.input.Interval.(int64))*time.Second
+	case string:
+		d, err = time.ParseDuration(p.input.Interval.(string))
+		if err != nil {
+			p.log.Errorf("parse interval err: %s", err.Error())
+			return
+		}
+	default:
+		p.log.Errorf("interval type unsupported")
+		return
+	}
+
 	clientCfg, err := p.getSshClientConfig()
 	if err != nil {
 		p.log.Errorf("SshClientConfig err: %s", err.Error())
 		return
 	}
 
-	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
+	tick := time.NewTicker(d)
 	defer tick.Stop()
 	for {
 		select {
