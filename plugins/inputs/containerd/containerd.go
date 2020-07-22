@@ -21,18 +21,18 @@ const (
 # [inputs.containerd]
 # 	# containerd sock file, use default
 # 	host_path = "/run/containerd/containerd.sock"
-# 	
+#
 # 	# containerd namespace
 # 	# 'ps -ef | grep containerd | grep containerd-shim' print detail
 # 	namespace = "moby"
-# 	
+#
 # 	# containerd ID list，ID is string and length 64.
 # 	# if value is "*", collect all ID
 # 	ID_list = ["*"]
-# 	
+#
 # 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
 # 	collect_cycle = "60s"
-# 	
+#
 # 	# [inputs.containerd.tags]
 # 	# tags1 = "tags1"
 `
@@ -99,7 +99,7 @@ func (c *Containerd) Run() {
 				fmt.Printf("containerd data: %s", string(data))
 				continue
 			}
-			if err := io.Feed(data, io.Metric); err != nil {
+			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
 				l.Error(err)
 				continue
 			}
