@@ -333,6 +333,66 @@ func CheckConfd() error {
 	return nil
 }
 
+func (c *Config) searchInput(files []os.FileInfo, name, dir string, creator inputs.Creator) error {
+	for _, f := range files {
+		fname := filepath.Join(dir, f.Name())
+		if f.IsDir() {
+			l.Debugf("ignore dir %s", fname)
+			continue
+		}
+
+		if strings.HasSuffix(f.Name(), ".sample") {
+			l.Debugf("ignore sample %s", fname)
+			continue
+		}
+
+		// parse any text files
+		tbl, err := parseCfgFile(fname)
+		if err != nil {
+			l.Warnf("[error] parse conf %s failed on [%s]: %s, ignored", fname, name, err)
+		}
+
+		if len(tbl.Fields) == 0 {
+			l.Debugf("no conf available on %s", name)
+			continue
+		}
+
+		for f, val := range tbl.Fields {
+			switch f {
+			case "inputs":
+				tbl_, ok := val.(*ast.Table)
+				if !ok {
+					l.Warnf("ignore bad toml node")
+				} else {
+					for inputName, v := range tbl_.Fields {
+						if inputName != name {
+							l.Debugf("input %s ignore input %s", name, inputName)
+							continue
+						}
+
+						if err := c.tryUnmarshal(v, name, creator); err != nil {
+							l.Error(err)
+							return err
+						}
+
+						l.Infof("load input %s from %s ok", name, fname)
+					}
+				}
+
+			default:
+				if err := c.tryUnmarshal(val, name, creator); err != nil {
+					l.Errorf("unmarshal %s failed: %s", fname, err)
+					return err
+				}
+				l.Infof("load input %s from %s ok", name, fname)
+			}
+		}
+	}
+
+	return nil
+}
+
+// search all inputs.@name under catalog dir
 func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 	if len(c.InputFilters) > 0 {
 		if !sliceContains(name, c.InputFilters) {
@@ -346,112 +406,18 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
 	}
 
 	dummyInput := creator()
-	path := filepath.Join(datakit.ConfdDir, dummyInput.Catalog(), fmt.Sprintf("%s.conf", name))
-	tbl, err := parseCfgFile(path)
+	catalogdir := filepath.Join(datakit.ConfdDir, dummyInput.Catalog())
+	allcfgs, err := ioutil.ReadDir(catalogdir)
 	if err != nil {
-		l.Errorf("[error] parse conf %s failed on [%s]: %s", path, name, err)
+		l.Errorf("ReadDir(%s) failed: %s", name, err.Error())
 		return err
 	}
 
-	if len(tbl.Fields) == 0 {
-		l.Debugf("no conf available on %s", name)
-		return nil
-	}
-
-	for f, val := range tbl.Fields {
-		switch f {
-		case "inputs":
-			tbl_ := val.(*ast.Table)
-			for _, v := range tbl_.Fields {
-				if err := c.tryUnmarshal(v, name, creator); err != nil {
-					l.Error(err)
-					return err
-				}
-			}
-
-		default:
-			if err := c.tryUnmarshal(val, name, creator); err != nil {
-				l.Error(err)
-				return err
-			}
-		}
+	if err := c.searchInput(allcfgs, name, catalogdir, creator); err != nil {
+		return err
 	}
 
 	return nil
-
-	//for fieldName, val := range tbl.Fields {
-
-	//	if subTables, ok := val.([]*ast.Table); ok {
-
-	//		for _, t := range subTables {
-	//			input := creator()
-	//			if interval, err := c.addInput(name, input, t); err != nil {
-	//				err = fmt.Errorf("Error parsing %s, %s", name, err)
-	//				l.Errorf("%s", err)
-	//				return err
-	//			} else {
-	//				if interval > maxInterval {
-	//					maxInterval = interval
-	//				}
-	//			}
-	//		}
-
-	//	} else {
-
-	//		subTable, ok := val.(*ast.Table)
-	//		if !ok {
-	//			err = fmt.Errorf("invalid configuration, error parsing field %q as table", name)
-	//			l.Errorf("%s", err)
-	//			return err
-	//		}
-
-	//		switch fieldName {
-	//		case "inputs":
-
-	//			for pluginName, pluginVal := range subTable.Fields {
-	//				switch pluginSubTable := pluginVal.(type) {
-	//				// legacy [inputs.cpu] support
-	//				case *ast.Table:
-	//					input := creator()
-	//					if interval, err := c.addInput(name, input, pluginSubTable); err != nil {
-	//						err = fmt.Errorf("Error parsing %s, %s", name, err)
-	//						l.Errorf("%s", err)
-	//						return err
-	//					} else {
-	//						if interval > maxInterval {
-	//							maxInterval = interval
-	//						}
-	//					}
-
-	//				case []*ast.Table:
-	//					for _, t := range pluginSubTable {
-	//						input := creator()
-	//						if interval, err := c.addInput(name, input, t); err != nil {
-	//							err = fmt.Errorf("Error parsing %s, %s", name, err)
-	//							l.Errorf("%s", err)
-	//							return err
-	//						} else {
-	//							if interval > maxInterval {
-	//								maxInterval = interval
-	//							}
-	//						}
-	//					}
-
-	//				default:
-	//					l.Error("not support config type: %v", pluginSubTable)
-	//					return fmt.Errorf("Unsupported config format: %s", pluginName)
-	//				}
-	//			}
-
-	//		default:
-	//			err = fmt.Errorf("Unsupported config format: %s", fieldName)
-	//			l.Errorf("%s", err)
-	//			return err
-	//		}
-
-	//	}
-
-	//}
 }
 
 func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) error {
@@ -559,91 +525,62 @@ func initPluginCfgs() {
 		input := create()
 		catalog := input.Catalog()
 
-		// migrate old config to new catalog path
-		oldCfgPath := filepath.Join(datakit.ConfdDir, name, name+".conf")
-		cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf")
+		cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf.sample")
+		old := filepath.Join(datakit.ConfdDir, catalog, name+".conf")
 
-		//l.Infof("check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
-
-		if _, err := os.Stat(oldCfgPath); err == nil {
-			if oldCfgPath == cfgpath {
-				continue // do nothing
-			}
-
-			if runtime.GOOS == "windows" {
-				if strings.ToLower(oldCfgPath) == strings.ToLower(cfgpath) {
-					continue
+		if _, err := os.Stat(old); err == nil {
+			tbl, err := parseCfgFile(old)
+			if err != nil {
+				l.Warnf("[error] parse conf %s failed on [%s]: %s, ignored", old, name, err)
+			} else {
+				if len(tbl.Fields) == 0 { // old config not used
+					os.Remove(old)
 				}
 			}
-
-			l.Debugf("migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
-
-			if err := os.MkdirAll(filepath.Dir(cfgpath), os.ModePerm); err != nil {
-				l.Fatalf("create dir %s failed: %s", filepath.Dir(cfgpath), err.Error())
-			}
-
-			if err := os.Rename(oldCfgPath, cfgpath); err != nil {
-				l.Fatalf("move %s -> %s failed: %s", oldCfgPath, cfgpath, err.Error())
-			}
-
-			os.RemoveAll(filepath.Dir(oldCfgPath))
-			continue
 		}
 
-		if _, err := os.Stat(cfgpath); err != nil { // file not exists
+		// overwrite old config sample
+		l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
+		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
+			l.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
+		}
 
-			l.Debugf("%s not exists, create it...", cfgpath)
+		sample := input.SampleConfig()
+		if sample == "" {
+			l.Fatalf("no sample available on collector %s", name)
+		}
 
-			l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
-			if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
-				l.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
-			}
-
-			sample := input.SampleConfig()
-			if sample == "" {
-				l.Fatalf("no sample available on collector %s", name)
-			}
-
-			if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
-				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
-			}
+		if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
+			l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 		}
 	}
 
 	// create telegraf input plugin's configures
 	for name, input := range SupportsTelegrafMetricNames {
 
-		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf")
-		oldCfgPath := filepath.Join(datakit.ConfdDir, name, name+".conf")
+		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf.sample")
+		old := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf")
 
-		//l.Debugf("check telegraf input conf %s...", name)
-
-		if _, err := os.Stat(oldCfgPath); err == nil {
-
-			if oldCfgPath == cfgpath {
-				//l.Debugf("%s exists, skip", oldCfgPath)
-				continue // do nothing
+		if _, err := os.Stat(old); err == nil {
+			tbl, err := parseCfgFile(old)
+			if err != nil {
+				l.Warnf("[error] parse conf %s failed on [%s]: %s, ignored", old, name, err)
+			} else {
+				if len(tbl.Fields) == 0 { // old config not used
+					os.Remove(old)
+				}
 			}
-
-			l.Debugf("%s exists, migrate to %s", oldCfgPath, cfgpath)
-			os.Rename(oldCfgPath, cfgpath)
-			os.RemoveAll(filepath.Dir(oldCfgPath))
-			continue
 		}
 
-		if _, err := os.Stat(cfgpath); err != nil {
+		// overwrite old telegraf config sample
+		l.Debugf("create telegraf conf path %s", filepath.Join(datakit.ConfdDir, input.Catalog))
+		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, input.Catalog), os.ModePerm); err != nil {
+			l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
+		}
 
-			l.Debugf("%s not exists, create it...", cfgpath)
-
-			l.Debugf("create telegraf conf path %s", filepath.Join(datakit.ConfdDir, input.Catalog))
-			if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, input.Catalog), os.ModePerm); err != nil {
-				l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
-			}
-
-			if sample, ok := TelegrafCfgSamples[name]; ok {
-				if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
-					l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
-				}
+		if sample, ok := TelegrafCfgSamples[name]; ok {
+			if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
+				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 			}
 		}
 	}
