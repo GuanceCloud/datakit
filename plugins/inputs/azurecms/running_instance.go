@@ -176,7 +176,7 @@ func (r *azureInstance) fetchMetric(ctx context.Context, info *queryListInfo) er
 					metricTime = (*mv.TimeStamp).Time
 				}
 
-				io.FeedEx(io.Metric, metricName, tags, fields, metricTime)
+				io.NameingFeedEx(inputName, io.Metric, metricName, tags, fields, metricTime)
 
 			}
 		}

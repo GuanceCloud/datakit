@@ -126,7 +126,7 @@ func (r *ucInstance) fetchMetric(ctx context.Context, info *queryListInfo) error
 							delete(fields, "Timestamp")
 						}
 
-						io.FeedEx(io.Metric, metricName, tags, fields, metricTime)
+						io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields, metricTime)
 
 					}
 				}

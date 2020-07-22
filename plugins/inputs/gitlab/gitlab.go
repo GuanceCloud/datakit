@@ -12,7 +12,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type IoFeed func(data []byte, category string) error
+type IoFeed func(data []byte, category, name string) error
 
 type Gitlab struct {
 	Interval    int
@@ -43,6 +43,7 @@ type GitlabParam struct {
 }
 
 const (
+	name               = "gitlab"
 	gitlabConfigSample = `### You need to configure an [[inputs.gitlab]] for each gitlab to be monitored.
 ### active     : whether to gather gitlab data.
 ### host       : gitlab service url.
@@ -122,7 +123,7 @@ func (g *Gitlab) Run() {
 	g.jsFile = jsonFileName
 
 	input := GitlabInput{*g}
-	output := GitlabOutput{io.Feed}
+	output := GitlabOutput{io.NamedFeed}
 
 	p := GitlabParam{input, output, logger.SLogger("gitlab")}
 
@@ -166,7 +167,7 @@ func PathExists(path string) bool {
 }
 
 func init() {
-	inputs.Add("gitlab", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		git := &Gitlab{}
 		return git
 	})
