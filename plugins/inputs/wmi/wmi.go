@@ -95,7 +95,7 @@ func (r *Instance) run(ctx context.Context) error {
 			}
 
 			for _, fields := range fieldsArr {
-				io.FeedEx(io.Metric, r.MetricName, nil, fields)
+				io.NamedFeedEx(inputName, io.Metric, r.MetricName, nil, fields)
 			}
 
 			query.lastTime = time.Now()
