@@ -20,7 +20,8 @@ import (
 )
 
 var (
-	l *logger.Logger
+	l    *logger.Logger
+	name = "httpstat"
 )
 
 // project
@@ -217,7 +218,7 @@ func (h *httpPing) uploadData(resData Result) {
 
 	pt, _ := influxdb.NewPoint(h.metricName, tags, fields, time.Now())
 
-	io.Feed([]byte(pt.String()), io.Metric)
+	io.NamedFeed([]byte(pt.String()), io.Metric, name)
 }
 
 func tracer(r *Result) *httptrace.ClientTrace {
@@ -278,7 +279,7 @@ func Normalize(URL string) string {
 }
 
 func init() {
-	inputs.Add("httpstat", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		return &Httpstat{}
 	})
 }
