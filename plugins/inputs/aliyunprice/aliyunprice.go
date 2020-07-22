@@ -348,7 +348,7 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 			metricName = "aliyun_price"
 		}
 
-		io.FeedEx(io.Metric, metricName, tags, fields)
+		io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields)
 	}
 }
 

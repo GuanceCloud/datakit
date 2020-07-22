@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	l *logger.Logger
+	l    *logger.Logger
+	name = "aliyunsecurity"
 )
 
 var regions = []string{
@@ -111,7 +112,7 @@ func (r *Security) describeSummaryInfo(region string) {
 		return
 	}
 
-	err = io.Feed([]byte(pt.String()), io.Metric)
+	err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 }
 
 func (r *Security) describeSecurityStatInfo(region string) {
@@ -153,7 +154,7 @@ func (r *Security) describeSecurityStatInfo(region string) {
 		l.Errorf("make metric point error %v", err)
 	}
 
-	err = io.Feed([]byte(pt), io.Metric)
+	err = io.NamedFeed([]byte(pt), io.Metric, name)
 	if err != nil {
 		l.Errorf("push metric point error %v", err)
 	}
@@ -194,14 +195,14 @@ func (r *Security) describeRiskCheckSummary(region string) {
 		l.Errorf("make metric point error %v", err)
 	}
 
-	err = io.Feed([]byte(pt), io.Metric)
+	err = io.NamedFeed([]byte(pt), io.Metric, name)
 	if err != nil {
 		l.Errorf("push metric point error %v", err)
 	}
 }
 
 func init() {
-	inputs.Add("aliyunsecurity", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		return &Security{}
 	})
 }
