@@ -295,13 +295,16 @@ func httpStart(addr string) {
 	mux := http.NewServeMux()
 
 	if _, ok := config.Cfg.Inputs["trace"]; ok {
+		l.Info("open route for trace")
 		mux.HandleFunc("/trace", trace.Handle)
 	}
 
 	if _, ok := config.Cfg.Inputs["druid"]; ok {
+		l.Info("open route for druid")
 		mux.HandleFunc("/druid", druid.Handle)
 	}
 
+	// internal datakit stats API
 	mux.HandleFunc("/stats", getInputsStats)
 
 	srv := &http.Server{
