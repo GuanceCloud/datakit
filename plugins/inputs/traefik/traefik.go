@@ -12,7 +12,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type IoFeed func(data []byte, category string) error
+type IoFeed func(data []byte, category, name string) error
 
 type TraefikServStats struct {
 	Pid      int    `json:"pid"`
@@ -50,7 +50,9 @@ type TraefikParam struct {
 }
 
 var (
-	defaultMetricName   = "traefik"
+	name = "traefik"
+
+	defaultMetricName   = name
 	defaultInterval     = 60
 	traefikConfigSample = `
 ### You need to configure an [[inputs.traefik]] for each traefik to be monitored.
@@ -103,7 +105,7 @@ func (t *Traefik) Run() {
 	}
 
 	input := TraefikInput{*t}
-	output := TraefikOutput{io.Feed}
+	output := TraefikOutput{io.NamedFeed}
 
 	p := &TraefikParam{input, output, logger.SLogger("traefik")}
 	p.log.Infof("traefik input started...")
@@ -142,7 +144,7 @@ func (p *TraefikParam) getMetrics() (err error) {
 	if err != nil || resp.StatusCode != 200 {
 		fields["can_connect"] = false
 		pt, _ := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed(pt, io.Metric)
+		p.output.IoFeed(pt, io.Metric, name)
 		return
 	}
 	defer resp.Body.Close()
@@ -170,7 +172,7 @@ func (p *TraefikParam) getMetrics() (err error) {
 	if err != nil {
 		return
 	}
-	err = p.output.IoFeed(pt, io.Metric)
+	err = p.output.IoFeed(pt, io.Metric, name)
 	return
 }
 
