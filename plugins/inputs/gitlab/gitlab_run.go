@@ -174,7 +174,7 @@ func (p *GitlabParam) getCommitMetrics(client *gitlab.Client, start time.Time, s
 				return err
 			}
 
-			err = p.output.IoFeed(pts, io.Metric)
+			err = p.output.IoFeed(pts, io.Metric, name)
 			p.log.Debugf(string(pts))
 			if err != nil {
 				return err

@@ -8,7 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type IoFeed func(data []byte, category string) error
+type IoFeed func(data []byte, category, name string) error
 
 type StatsD struct {
 	Interval    int
@@ -33,6 +33,7 @@ type StatsdParams struct {
 }
 
 var (
+	name               = "statsd"
 	statsdConfigSample = `### You need to configure an [[inputs.statsd]] for each statsd service to be monitored.
 ### active: whether to monitor statsd.
 ### interval: monitor interval second, unit is second. The default value is 60.
@@ -59,7 +60,7 @@ var (
 #		tag2 = "tag2"
 #		tag3 = "tag3"
 `
-	defaultMetricName = "statsd"
+	defaultMetricName = name
 	defaultInterval   = 60
 )
 
@@ -91,14 +92,14 @@ func (t *StatsD) Run() {
 	}
 
 	input := StatsdInput{*t}
-	output := StatsdOutput{io.Feed}
+	output := StatsdOutput{io.NamedFeed}
 	p := StatsdParams{input, output, logger.SLogger("statsd")}
 	p.log.Info("statsd input started...")
 	p.gather()
 }
 
 func init() {
-	inputs.Add("statsd", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		p := &StatsD{}
 		return p
 	})
