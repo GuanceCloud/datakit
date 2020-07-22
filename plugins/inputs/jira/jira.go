@@ -11,7 +11,7 @@ import (
 type IoFeed func(data []byte, category, name string) error
 
 type Jira struct {
-	Interval    int
+	Interval    interface{}
 	Active      bool
 	Host        string
 	Username    string
@@ -44,7 +44,7 @@ const (
 ### issue      : issue id.  If no configuration, get all issues.
 ### username   : the username to access jira.
 ### password   : the password to access jira.
-### interval   : batch interval, unit is second. The default value is 60.
+### interval   : monitor interval, the default value is "60s".
 ### metricsName: the name of metric, default is "jira"
 
 #[[inputs.jira]]
@@ -54,7 +54,7 @@ const (
 #	issue       = "52922"
 #	username    = "user"
 #	password    = "password"
-#	interval    = 60
+#	interval    = "60s"
 #	metricsName = "jira"
 #	[inputs.jira.tags]
 #		tag1 = "tag1"
@@ -68,14 +68,14 @@ const (
 #	issue       = "52922"
 #	username    = "user"
 #	password    = "password"
-#	interval    = 60
+#	interval    = "60s"
 #	metricsName = "jira"
 #	[inputs.jira.tags]
 #		tag1 = "tag1"
 #		tag2 = "tag2"
 #		tag3 = "tag3"
 `
-	defaultInterval   = 60
+	defaultInterval   = "60s"
 	defaultMetricName = "jira"
 	maxIssuesPerQueue = 1000
 	name              = "jira"
@@ -96,7 +96,7 @@ func (j *Jira) Run() {
 	if j.MetricsName == "" {
 		j.MetricsName = defaultMetricName
 	}
-	if j.Interval == 0 {
+	if j.Interval == nil {
 		j.Interval = defaultInterval
 	}
 	j.Host = strings.Trim(j.Host, " ")
