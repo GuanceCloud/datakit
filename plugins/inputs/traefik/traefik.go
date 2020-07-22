@@ -28,7 +28,7 @@ type TraefikServStats struct {
 }
 
 type Traefik struct {
-	Interval    int
+	Interval    interface{}
 	Active      bool
 	Url         string
 	MetricsName string
@@ -53,16 +53,16 @@ var (
 	name = "traefik"
 
 	defaultMetricName   = name
-	defaultInterval     = 60
+	defaultInterval     = "60s"
 	traefikConfigSample = `
 ### You need to configure an [[inputs.traefik]] for each traefik to be monitored.
-### interval: monitor interval second, unit is second. The default value is 60.
+### interval: monitor interval, the default value is "60s".
 ### active: whether to monitor traefik.
 ### url: traefik service WebUI url.
 ### metricsName: the name of metric, default is "traefik"
 
 #[[inputs.traefik]]
-#	interval    = 60
+#	interval    = "60s"
 #	active      = true
 #	url         = "http://127.0.0.1:8080/health"
 #	metricsName = "traefik"
@@ -72,7 +72,7 @@ var (
 #		tag3 = "tag3"
 
 #[[inputs.traefik]]
-#	interval    = 60
+#	interval    = "60s"
 #	active      = true
 #	url         = "http://127.0.0.1:8080/health"
 #	metricsName = "traefik"
@@ -100,7 +100,7 @@ func (t *Traefik) Run() {
 		t.MetricsName = defaultMetricName
 	}
 
-	if t.Interval == 0 {
+	if t.Interval == nil {
 		t.Interval = defaultInterval
 	}
 
@@ -113,12 +113,29 @@ func (t *Traefik) Run() {
 }
 
 func (p *TraefikParam) gather() {
-	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
+	var d time.Duration
+	var err error
+
+	switch p.input.Interval.(type) {
+	case int64:
+		d = time.Duration(p.input.Interval.(int64))*time.Second
+	case string:
+		d, err = time.ParseDuration(p.input.Interval.(string))
+		if err != nil {
+			p.log.Errorf("parse interval err: %s", err.Error())
+			return
+		}
+	default:
+		p.log.Errorf("interval type unsupported")
+		return
+	}
+
+	tick := time.NewTicker(d)
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
-			err := p.getMetrics()
+			err = p.getMetrics()
 			if err != nil {
 				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
