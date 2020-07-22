@@ -142,7 +142,7 @@ func (c *Collector) Run() {
 
 		data, err := json.Marshal(&objs)
 		if err == nil {
-			io.Feed(data, io.Object)
+			io.NamedFeed(data, io.Object, inputName)
 		} else {
 			moduleLogger.Errorf("%s", err)
 		}

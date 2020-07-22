@@ -19,7 +19,9 @@ import (
 )
 
 var (
-	input   chan *iodata
+	input    chan *iodata
+	qstatsCh chan *qstats
+
 	l       *logger.Logger
 	baseURL string
 
@@ -31,28 +33,47 @@ var (
 )
 
 const ( // categories
-	MetricDeprecated = "/v1/write/metrics"
-	Metric           = "/v1/write/metric"
-	KeyEvent         = "/v1/write/keyevent"
-	Object           = "/v1/write/object"
-	Logging          = "/v1/write/logging"
-
-	initErr = "you should call io.Init() before starting any services under io"
+	__MetricDeprecated = "/v1/write/metrics"
+	Metric             = "/v1/write/metric"
+	KeyEvent           = "/v1/write/keyevent"
+	Object             = "/v1/write/object"
+	Logging            = "/v1/write/logging"
 )
 
 type iodata struct {
-	category string
-	data     []byte // line-protocol or json or others
+	category, name string
+	data           []byte // line-protocol or json or others
+}
+
+type InputsStat struct {
+	Name     string    `json:"name"`
+	Category string    `json:"category"`
+	Total    int64     `json:"total"`
+	Count    int64     `json:"count"`
+	First    time.Time `json:"first"`
+	Last     time.Time `json:"last"`
+}
+
+type qstats struct {
+	name string
+	ch   chan []*InputsStat
 }
 
 func init() {
 	input = make(chan *iodata, 128)
+	qstatsCh = make(chan *qstats)
+
 	httpCli = &http.Client{
 		Timeout: time.Second,
 	}
 }
 
+// Deprecated
 func Feed(data []byte, category string) error {
+	return doFeed(data, category, "")
+}
+
+func doFeed(data []byte, category, name string) error {
 	switch category {
 	case Metric, KeyEvent, Object, Logging:
 	default:
@@ -63,6 +84,7 @@ func Feed(data []byte, category string) error {
 	case input <- &iodata{
 		category: category,
 		data:     data,
+		name:     name,
 	}: // XXX: blocking
 
 	case <-datakit.Exit.Wait():
@@ -72,12 +94,25 @@ func Feed(data []byte, category string) error {
 	return nil
 }
 
-func FeedEx(catagory string, name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
-	data, err := MakeMetric(name, tags, fields, t...)
+func NamedFeed(data []byte, catagory, name string) error {
+	return doFeed(data, catagory, name)
+}
+
+// Deprecated
+func FeedEx(catagory string, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+	return doFeedEx("", catagory, metric, tags, fields, t...)
+}
+
+func NamedFeedEx(name, catagory string, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+	return doFeedEx(name, catagory, metric, tags, fields, t...)
+}
+
+func doFeedEx(name, catagory string, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+	data, err := MakeMetric(metric, tags, fields, t...)
 	if err != nil {
 		return err
 	}
-	return Feed(data, catagory)
+	return doFeed(data, catagory, name)
 }
 
 func MakeMetric(name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) ([]byte, error) {
@@ -123,22 +158,24 @@ func startIO() {
 
 	categoryURLs = map[string]string{
 
-		MetricDeprecated: baseURL + MetricDeprecated + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Metric:           baseURL + Metric + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		KeyEvent:         baseURL + KeyEvent + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Object:           baseURL + Object + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Logging:          baseURL + Logging + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		__MetricDeprecated: baseURL + __MetricDeprecated + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		Metric:             baseURL + Metric + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		KeyEvent:           baseURL + KeyEvent + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		Object:             baseURL + Object + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		Logging:            baseURL + Logging + "?token=" + config.Cfg.MainCfg.DataWay.Token,
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
 
 	cache := map[string][][]byte{
-		MetricDeprecated: nil,
-		Metric:           nil,
-		KeyEvent:         nil,
-		Object:           nil,
-		Logging:          nil,
+		__MetricDeprecated: nil,
+		Metric:             nil,
+		KeyEvent:           nil,
+		Object:             nil,
+		Logging:            nil,
 	}
+
+	stats := map[string]*InputsStat{}
 
 	defer ioStop()
 
@@ -162,8 +199,45 @@ func startIO() {
 					l.Warn("get empty data, ignored")
 				} else {
 
+					now := time.Now()
+
 					l.Debugf("get iodata(%d bytes) from %s", len(d.data), d.category)
 					cache[d.category] = append(cache[d.category], d.data)
+
+					if istat, ok := stats[d.name]; !ok {
+						stats[d.name] = &InputsStat{
+							Name:     d.name,
+							Category: d.category,
+							Total:    int64(len(d.data)),
+							First:    now,
+							Count:    1,
+							Last:     now,
+						}
+					} else {
+						istat.Total += int64(len(d.data))
+						istat.Count++
+						istat.Last = now
+					}
+				}
+
+			case q := <-qstatsCh:
+				statRes := []*InputsStat{}
+				if q.name == "" {
+					for _, v := range stats {
+						statRes = append(statRes, v)
+					}
+				} else {
+					stat := stats[q.name]
+					if stat != nil {
+						statRes = append(statRes, stat)
+					}
+				}
+
+				select {
+				case q.ch <- statRes: // maybe blocking(i.e., client canceled)
+				default:
+					l.Warn("client canceled")
+					// pass
 				}
 
 			case <-tick.C:
@@ -337,4 +411,27 @@ func fileOutput(body []byte) error {
 	}
 
 	return nil
+}
+
+func GetStats(iname string) ([]*InputsStat, error) {
+	q := &qstats{
+		name: iname,
+		ch:   make(chan []*InputsStat),
+	}
+
+	tick := time.NewTicker(time.Second * 3)
+	defer tick.Stop()
+
+	select {
+	case qstatsCh <- q:
+	case <-tick.C:
+		return nil, fmt.Errorf("send stats request timeout")
+	}
+
+	select {
+	case res := <-q.ch:
+		return res, nil
+	case <-tick.C:
+		return nil, fmt.Errorf("get stats timeout")
+	}
 }

@@ -20,13 +20,13 @@ const (
 # [[inputs.coredns]]
 # 	# coredns host
 # 	host = "127.0.0.1"
-# 	
+#
 # 	# coredns prometheus port
 # 	port = 9153
-# 	
+#
 # 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
 # 	collect_cycle = "60s"
-# 	
+#
 # 	# [inputs.tailf.tags]
 # 	# tags1 = "tags1"
 `
@@ -83,7 +83,7 @@ func (c *Coredns) Run() {
 				l.Error(err)
 				continue
 			}
-			if err := io.Feed(data, io.Metric); err != nil {
+			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
 				l.Error(err)
 				continue
 			}
