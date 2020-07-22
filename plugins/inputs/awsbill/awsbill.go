@@ -234,7 +234,7 @@ func (r *AwsInstance) run(ctx context.Context) error {
 							tags[*dm.Name] = *dm.Value
 						}
 
-						io.FeedEx(io.Metric, metricName, tags, fields, *tm)
+						io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields, *tm)
 					}
 				}
 			}
