@@ -236,7 +236,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 					fields["Resource"] = resStr
 				}
 
-				io.FeedEx(io.Metric, r.metricName, tags, fields, *ev.EventTime)
+				io.NamedFeedEx(inputName, io.Metric, r.metricName, tags, fields, *ev.EventTime)
 			}
 		}
 
