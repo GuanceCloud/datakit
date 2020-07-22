@@ -257,24 +257,24 @@ func initTelegrafSamples() {
 	TelegrafCfgSamples[`socket_listener`] = `
 # Generic socket listener capable of handling multiple socket types.
 #[[inputs.socket_listener]]
-	## collectd
-	service_address = "udp://:25826"
-        data_format = "collectd"
-
-        ## Authentication file for cryptographic security levels
-        collectd_auth_file = "/etc/collectd/auth_file"
-
-        ## One of none (default), sign, or encrypt
-        collectd_security_level = "encrypt"
-
-        ## Path of to TypesDB specifications
-        collectd_typesdb = ["/usr/share/collectd/types.db"]
-
-        ## Multi-value plugins can be handled two ways.
-        ## "split" will parse and store the multi-value plugin data into separate measurements
-        ## "join" will parse and store the multi-value plugin as a single multi-value measurement.
-        ## "split" is the default behavior for backward compatability with previous versions of influxdb.
-        collectd_parse_multivalue = "split"
+#	## collectd
+#	service_address = "udp://:25826"
+#        data_format = "collectd"
+#
+#        ## Authentication file for cryptographic security levels
+#        collectd_auth_file = "/etc/collectd/auth_file"
+#
+#        ## One of none (default), sign, or encrypt
+#        collectd_security_level = "encrypt"
+#
+#        ## Path of to TypesDB specifications
+#        collectd_typesdb = ["/usr/share/collectd/types.db"]
+#
+#        ## Multi-value plugins can be handled two ways.
+#        ## "split" will parse and store the multi-value plugin data into separate measurements
+#        ## "join" will parse and store the multi-value plugin as a single multi-value measurement.
+#        ## "split" is the default behavior for backward compatability with previous versions of influxdb.
+#        collectd_parse_multivalue = "split"
 
 	## ----
 	## URL to listen on
