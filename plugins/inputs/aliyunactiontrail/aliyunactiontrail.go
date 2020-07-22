@@ -229,7 +229,7 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 			moduleLogger.Warnf("%s", err)
 		}
 
-		io.FeedEx(io.Metric, r.metricName, tags, fields, evtm)
+		io.NamedFeedEx(inputName, io.Metric, r.metricName, tags, fields, evtm)
 	}
 
 	return nil
