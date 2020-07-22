@@ -15,7 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type IoFeed func(data []byte, category string) error
+type IoFeed func(data []byte, category, name string) error
 
 type Ssh struct {
 	Interval       int
@@ -83,7 +83,8 @@ const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ss
 `
 
 var (
-	defaultMetricName = "Ssh"
+	name              = "Ssh"
+	defaultMetricName = name
 	defaultInterval   = 60
 	sshCfgErr         = errors.New("both password and privateKeyFile missed")
 )
@@ -116,7 +117,7 @@ func (s *Ssh) Run() {
 	}
 
 	input := SshInput{*s}
-	output := SshOutput{io.Feed}
+	output := SshOutput{io.NamedFeed}
 
 	p := &SshParam{input, output, logger.SLogger("ssh")}
 	p.log.Infof("ssh input started...")
@@ -227,7 +228,7 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 	if err != nil {
 		return err
 	}
-	err = p.output.IoFeed(pt, io.Metric)
+	err = p.output.IoFeed(pt, io.Metric, name)
 	return err
 }
 
