@@ -32,7 +32,8 @@ var regions3 = []string{
 }
 
 var (
-	l *logger.Logger
+	l    *logger.Logger
+	name = "aliyunddos"
 )
 
 func (_ *DDoS) SampleConfig() string {
@@ -124,7 +125,7 @@ func (r *DDoS) getInstance(region string) error {
 				l.Errorf("make metric point error %v", err)
 			}
 
-			err = io.Feed([]byte(pt), io.Metric)
+			err = io.NamedFeed([]byte(pt), io.Metric, name)
 			if err != nil {
 				l.Errorf("push metric point error %v", err)
 			}
@@ -204,7 +205,7 @@ func (r *DDoS) describeInstanceDetails(instanceID, region string) error {
 			l.Errorf("make metric point error %v", err)
 		}
 
-		err = io.Feed([]byte(pt), io.Metric)
+		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
 		}
@@ -252,7 +253,7 @@ func (r *DDoS) describeInstanceStatistics(instanceID, region string) error {
 			l.Errorf("make metric point error %v", err)
 		}
 
-		err = io.Feed([]byte(pt), io.Metric)
+		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
 		}
@@ -319,7 +320,7 @@ func (r *DDoS) describeWebRules(region string) error {
 				l.Errorf("make metric point error %v", err)
 			}
 
-			err = io.Feed([]byte(pt), io.Metric)
+			err = io.NamedFeed([]byte(pt), io.Metric, name)
 			if err != nil {
 				l.Errorf("push metric point error %v", err)
 			}
@@ -388,7 +389,7 @@ func (r *DDoS) describeNetworkRules(instanceID, region string) error {
 				return err
 			}
 
-			err = io.Feed([]byte(pt.String()), io.Metric)
+			err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 		}
 
 		total := gjson.Parse(data).Get("TotalCount").Int()
@@ -444,14 +445,14 @@ func (r *DDoS) describePayInfo(region string) error {
 			return err
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 
 	return nil
 }
 
 func init() {
-	inputs.Add("aliyunddos", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		return &DDoS{}
 	})
 }
