@@ -57,8 +57,8 @@ var (
 	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
-	flagSrcs    = flag.String("srcs", fmt.Sprintf("datakit-%s-%s-%s.tar.gz,agent-%s-%s.tar.gz",
-		runtime.GOOS, runtime.GOOS, DataKitVersion, runtime.GOOS, runtime.GOOS),
+	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./agent-%s-%s.tar.gz",
+		runtime.GOOS, runtime.GOARCH, DataKitVersion, runtime.GOOS, runtime.GOARCH),
 		`local path of datakit and agent install files`)
 )
 
@@ -179,10 +179,10 @@ Golang Version: %s
 	if *flagDownloadOnly {
 		curDownloading = "datakit"
 		doDownload(datakitUrl, fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
-			runtime.GOOS, runtime.GOOS, DataKitVersion))
+			runtime.GOOS, runtime.GOARCH, DataKitVersion))
 
 		curDownloading = "agent"
-		doDownload(telegrafUrl, fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOOS))
+		doDownload(telegrafUrl, fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
 
 		os.Exit(0)
 	}
