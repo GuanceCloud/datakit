@@ -6,7 +6,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-type IoFeed func(data []byte, category string) error
+type IoFeed func(data []byte, category, name string) error
 
 type ZabbixOutput struct {
 	IoFeed
@@ -29,7 +29,7 @@ func (z *ZabbixParam) ProcessPts(pts []*influxdb.Point) error {
 			return err
 		}
 		z.log.Debug(string(ps))
-		err = z.output.IoFeed(ps, io.Metric)
+		err = z.output.IoFeed(ps, io.Metric, name)
 		if err != nil {
 			return err
 		}
