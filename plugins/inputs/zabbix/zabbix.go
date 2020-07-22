@@ -70,7 +70,7 @@ func (z *Zabbix) Run() {
 	p := &ZabbixParam{input, output, logger.SLogger("zabbix")}
 	p.log.Info("yarn zabbix started...")
 	p.mkZabbixDataDir()
-	go p.gather()
+	p.gather()
 }
 
 func (p *ZabbixParam) mkZabbixDataDir() {
