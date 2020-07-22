@@ -15,7 +15,7 @@ import (
 type IoFeed func(data []byte, category, name string) error
 
 type Gitlab struct {
-	Interval    int
+	Interval    interface{}
 	Active      bool
 	Host        string
 	Token       string
@@ -50,7 +50,7 @@ const (
 ### project    : project name or project id. If no configuration, get all projects.
 ### branch     : branch name.  If no configuration, get all branches.
 ### token      : the token of access gitlab web.
-### interval   : batch interval, unit is second. The default value is 60.
+### interval   : monitor interval, the default value is "60s".
 ### startDate  : gather data from this start time.
 ### hoursBatch : time range for gather data per batch.
 ### metricsName: the name of metric, default is "gitlab"
@@ -61,7 +61,7 @@ const (
 #	project     = "493"
 #	branch      = "dev"
 #	token       = "KovnP_TmLX_VTmPcSzYqPx8"
-#	interval    = 60
+#	interval    = "60s"
 #	startDate   = "2019-01-01T00:00:00"
 #	hoursBatch  = 720
 #	metricsName = "gitlab"
@@ -76,7 +76,7 @@ const (
 #	project     = "493"
 #	branch      = "dev"
 #	token       = "KovnP_TmLX_VTmPcSzYqPx8"
-#	interval    = 60
+#	interval    = "60s"
 #	startDate   = "2019-01-01T00:00:00"
 #	hoursBatch  = 720
 #	metricsName = "gitlab"
@@ -85,7 +85,7 @@ const (
 #		tag2 = "tag2"
 #		tag3 = "tag3"
 `
-	defaultInterval   = 60
+	defaultInterval   = "60s"
 	defaultStartDate  = "2005-12-15T00:00:00"
 	defaultMetricName = "gitlab"
 	defaultDataDir    = "data"
@@ -107,7 +107,7 @@ func (g *Gitlab) Run() {
 		return
 	}
 
-	if g.Interval == 0 {
+	if g.Interval == nil {
 		g.Interval = defaultInterval
 	}
 
