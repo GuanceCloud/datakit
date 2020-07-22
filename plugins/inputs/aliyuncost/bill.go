@@ -304,7 +304,7 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		} else {
 			//返回的不是utc
 			t = t.Add(-8 * time.Hour)
-			io.FeedEx(io.Metric, cb.getName(), tags, fields, t)
+			io.NamedFeedEx(inputName, io.Metric, cb.getName(), tags, fields, t)
 		}
 	}
 
@@ -371,7 +371,7 @@ func (cb *CostBill) parseInstanceBillResponse(ctx context.Context, resp *bssopen
 		fields[`OutstandingAmount`] = item.OutstandingAmount
 		fields[`BillingDate`] = item.BillingDate
 
-		io.FeedEx(io.Metric, cb.getName(), tags, fields)
+		io.NamedFeedEx(inputName, io.Metric, cb.getName(), tags, fields)
 	}
 	return nil
 }

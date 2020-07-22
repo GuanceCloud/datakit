@@ -19,7 +19,7 @@ var (
 func (p *StatsdParams) gather() {
 	var connectFail bool = true
 	var conn net.Conn
-	var err  error
+	var err error
 	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
 	defer tick.Stop()
 
@@ -92,13 +92,13 @@ func (p *StatsdParams) getMetrics(conn net.Conn) error {
 	if err != nil {
 		return err
 	}
-	err = p.output.IoFeed(pt, io.Metric)
+	err = p.output.IoFeed(pt, io.Metric, name)
 	return err
 
 ERR:
 	fields["can_connect"] = false
 	pt, _ = io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
-	err = p.output.IoFeed(pt, io.Metric)
+	err = p.output.IoFeed(pt, io.Metric, name)
 	return ConnectionReset
 }
 
@@ -115,7 +115,7 @@ func getMetric(conn net.Conn, msg string, fields map[string]interface{}) error {
 	}
 
 	exp := `(?s:\{(.*)\})`
-	r:= regexp.MustCompile(exp)
+	r := regexp.MustCompile(exp)
 	matchs := r.FindStringSubmatch(s)
 	if len(matchs) < 2 {
 		return nil
@@ -142,6 +142,6 @@ func (p *StatsdParams) reportNotUp() error {
 	if err != nil {
 		return err
 	}
-	err = p.output.IoFeed(pt, io.Metric)
+	err = p.output.IoFeed(pt, io.Metric, name)
 	return err
 }
