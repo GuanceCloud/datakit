@@ -12,7 +12,6 @@ require (
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/Pallinder/go-randomdata v1.2.0
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f // indirect
-	github.com/aerospike/aerospike-client-go v1.27.0
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.2+incompatible // indirect
@@ -31,6 +30,7 @@ require (
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/ericchiang/k8s v1.2.0
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/gin-gonic/gin v1.6.2
 	github.com/go-delve/delve v1.4.0 // indirect
@@ -44,7 +44,7 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.1
 	github.com/golangci/golangci-lint v1.27.0 // indirect
-	github.com/google/gopacket v1.1.17 // indirect
+	github.com/google/gopacket v1.1.17
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb v1.8.0 // indirect
@@ -89,7 +89,6 @@ require (
 	github.com/zcalusic/sysinfo v0.0.0-20200228145645-a159d7cc708b // indirect
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200708034554-4979d23ed25d
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
-	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
