@@ -232,7 +232,7 @@ func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			co.logger.Warnf("fail to parse time:%v, error:%s", item.CreateTime, err)
 			continue
 		}
-		io.FeedEx(io.Metric, co.getName(), tags, fields, t)
+		io.NamedFeedEx(inputName, io.Metric, co.getName(), tags, fields, t)
 	}
 
 	return nil
