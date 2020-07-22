@@ -20,7 +20,22 @@ func (p *StatsdParams) gather() {
 	var connectFail bool = true
 	var conn net.Conn
 	var err error
-	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
+	var d time.Duration
+
+	switch p.input.Interval.(type) {
+	case int64:
+		d = time.Duration(p.input.Interval.(int64))*time.Second
+	case string:
+		d, err = time.ParseDuration(p.input.Interval.(string))
+		if err != nil {
+			p.log.Errorf("parse interval err: %s", err.Error())
+			return
+		}
+	default:
+		p.log.Errorf("interval type unsupported")
+		return
+	}
+	tick := time.NewTicker(d)
 	defer tick.Stop()
 
 	for {
