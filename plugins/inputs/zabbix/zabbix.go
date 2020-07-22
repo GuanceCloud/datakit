@@ -19,7 +19,7 @@ const (
 #  dbAddress     = "zabbix:zabbix@tcp(127.0.0.1:3306)/zabbix"
 #  startdate     = "2020-01-01T00:00:00"
 #  hoursperbatch = 720
-#  interval      = 15
+#  interval      = "60s"
 #  registry      = "influxdb-zabbix"
 #  [inputs.zabbix.tags]
 #    tag1 = "tag1"
@@ -30,6 +30,7 @@ const (
 
 var (
 	defaultDataDir   = "data"
+	defaultInterval  = "60s"
 	defaultZabbixDir = name
 	defaultStartDate = "2019-12-02T00:00:00"
 	locker           sync.Mutex
@@ -42,7 +43,7 @@ type Zabbix struct {
 	DbAddress     string
 	Startdate     string
 	Hoursperbatch int
-	Interval      int
+	Interval      interface{}
 	Registry      string
 	Tags          map[string]string
 }
@@ -65,6 +66,10 @@ func (z *Zabbix) Run() {
 
 	if z.DbType == "mysql" {
 		z.DbAddress += "?sql_mode='PIPES_AS_CONCAT'"
+	}
+
+	if z.Interval == nil {
+		z.Interval = defaultInterval
 	}
 
 	input := ZabbixInput{*z}
