@@ -11,7 +11,7 @@ import (
 type IoFeed func(data []byte, category, name string) error
 
 type StatsD struct {
-	Interval    int
+	Interval    interface{}
 	Active      bool
 	Host        string
 	MetricsName string
@@ -36,13 +36,13 @@ var (
 	name               = "statsd"
 	statsdConfigSample = `### You need to configure an [[inputs.statsd]] for each statsd service to be monitored.
 ### active: whether to monitor statsd.
-### interval: monitor interval second, unit is second. The default value is 60.
+### interval: monitor interval, the default value is "60s".
 ### host: statsd service ip:port, if "127.0.0.1", default port is 8126.
 ### metricsName: the name of metric, default is "statsd"
 
 #[[inputs.statsd]]
 #	active      = true
-#	interval    = 60
+#	interval    = "60s"
 #	host        = "127.0.0.1:8126"
 #	metricsName = "statsd"
 #	[inputs.statsd.tags]
@@ -52,7 +52,7 @@ var (
 
 #[[inputs.statsd]]
 #	active      = true
-#	interval    = 60
+#	interval    = "60s"
 #	host        = "127.0.0.1:8126"
 #	metricsName = "statsd"
 #	[inputs.statsd.tags]
@@ -61,7 +61,7 @@ var (
 #		tag3 = "tag3"
 `
 	defaultMetricName = name
-	defaultInterval   = 60
+	defaultInterval   = "60s"
 )
 
 func (t *StatsD) Catalog() string {
@@ -83,7 +83,7 @@ func (t *StatsD) Run() {
 		t.MetricsName = defaultMetricName
 	}
 
-	if t.Interval <= 0 {
+	if t.Interval == nil {
 		t.Interval = defaultInterval
 	}
 
