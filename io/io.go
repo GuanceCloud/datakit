@@ -68,6 +68,7 @@ func init() {
 	}
 }
 
+// Deprecated
 func Feed(data []byte, category string) error {
 	return doFeed(data, category, "")
 }
@@ -97,6 +98,7 @@ func NamedFeed(data []byte, catagory, name string) error {
 	return doFeed(data, catagory, name)
 }
 
+// Deprecated
 func FeedEx(catagory string, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
 	return doFeedEx("", catagory, metric, tags, fields, t...)
 }
