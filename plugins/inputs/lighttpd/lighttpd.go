@@ -19,13 +19,13 @@ const (
 # [[inputs.lighttpd]]
 # 	# lighttpd status url
 # 	url = "http://127.0.0.1:8080/server-status"
-# 	
+#
 # 	# lighttpd version is "v1" or "v2"
 # 	version = "v1"
-# 	
+#
 # 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
 # 	collect_cycle = "60s"
-# 	
+#
 # 	# [inputs.lighttpd.tags]
 # 	# tags1 = "tags1"
 `
@@ -86,7 +86,7 @@ func (h *Lighttpd) Run() {
 				l.Error(err)
 				continue
 			}
-			if err := io.Feed(data, io.Metric); err != nil {
+			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
 				l.Error(err)
 				continue
 			}

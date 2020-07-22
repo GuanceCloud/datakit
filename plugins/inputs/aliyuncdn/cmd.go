@@ -74,7 +74,7 @@ func (run *RunningProject) describeDomainBpsData(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -127,7 +127,7 @@ func (run *RunningProject) describeDomainTrafficData(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -170,7 +170,7 @@ func (run *RunningProject) describeDomainHitRateData(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -214,7 +214,7 @@ func (run *RunningProject) describeDomainReqHitRateData(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -258,7 +258,7 @@ func (run *RunningProject) describeDomainSrcBpsData(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -302,7 +302,7 @@ func (run *RunningProject) describeDomainSrcTrafficData(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -344,7 +344,7 @@ func (run *RunningProject) describeDomainUvData(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -387,7 +387,7 @@ func (run *RunningProject) describeDomainPvData(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -433,7 +433,7 @@ func (run *RunningProject) describeDomainTopClientIpVisit(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -479,7 +479,7 @@ func (run *RunningProject) describeDomainISPData(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -523,7 +523,7 @@ func (run *RunningProject) describeDomainTopUrlVisit(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 
 	for _, point := range response.Url200List.UrlList {
@@ -546,7 +546,7 @@ func (run *RunningProject) describeDomainTopUrlVisit(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 
 	for _, point := range response.Url300List.UrlList {
@@ -605,7 +605,7 @@ func (run *RunningProject) describeDomainTopUrlVisit(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -650,7 +650,7 @@ func (run *RunningProject) describeDomainSrcTopUrlVisit(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 
 	for _, point := range response.Url200List.UrlList {
@@ -673,7 +673,7 @@ func (run *RunningProject) describeDomainSrcTopUrlVisit(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 
 	for _, point := range response.Url300List.UrlList {
@@ -696,7 +696,7 @@ func (run *RunningProject) describeDomainSrcTopUrlVisit(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 
 	for _, point := range response.Url400List.UrlList {
@@ -719,7 +719,7 @@ func (run *RunningProject) describeDomainSrcTopUrlVisit(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 
 	for _, point := range response.Url500List.UrlList {
@@ -742,7 +742,7 @@ func (run *RunningProject) describeDomainSrcTopUrlVisit(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -779,7 +779,7 @@ func (run *RunningProject) DescribeTopDomainsByFlow() {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
@@ -823,7 +823,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 			return
 		}
 
-		err = io.Feed([]byte(pt.String()), io.Metric)
+		err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 	}
 }
 
