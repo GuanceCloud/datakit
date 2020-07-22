@@ -298,7 +298,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 			}
 
 			tm := time.Unix(int64(l.GetTime()), 0)
-			io.FeedEx(io.Logging, r.metricName, tags, fields, tm)
+			io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, tm)
 		}
 	}
 	return ""

@@ -27,29 +27,29 @@ const (
 # [inputs.replication]
 # 	# postgres host
 # 	host="127.0.0.1"
-# 	
+#
 # 	# postgres port
 # 	port=25432
-# 	
+#
 # 	# postgres user (need replication privilege)
 # 	user="testuser"
-# 	
+#
 # 	password="pwd"
-# 	
+#
 # 	database="testdb"
-# 	
+#
 # 	table="testable"
-# 	
+#
 # 	# replication slot name, only
 # 	slotname="slot_for_datakit"
-# 	
+#
 # 	# exlcude the events of postgres
 # 	# there are 3 events: "insert","update","delete"
 # 	events=['insert']
-# 	
-# 	# tags 
+#
+# 	# tags
 # 	tagList=['colunm1']
-# 	
+#
 # 	# fields
 # 	fieldList=['colunm0']
 #
@@ -261,7 +261,7 @@ func (r *Replication) replicationMsgHandle(msg *pgx.ReplicationMessage) error {
 		if err != nil {
 			return fmt.Errorf("invalid pgoutput msg: %s", err)
 		}
-		return io.Feed(data, io.Metric)
+		return io.NamedFeed(data, io.Metric, inputName)
 	}
 
 	return nil
