@@ -169,7 +169,7 @@ func extract(body []byte) error {
 			fmt.Println(string(data))
 		}
 
-		if err := io.Feed(data, io.Metric); err != nil {
+		if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
 			l.Errorf("failed to io Feed, err: %s", err.Error())
 			flag = true
 			continue

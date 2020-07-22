@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	l *logger.Logger
+	l    *logger.Logger
+	name = "harborMonitor"
 )
 
 func (_ *HarborMonitor) SampleConfig() string {
@@ -99,7 +100,7 @@ func (h *HarborMonitor) command() {
 		l.Errorf("make metric point error %v", err)
 	}
 
-	err = io.Feed([]byte(pt), io.Metric)
+	err = io.NamedFeed([]byte(pt), io.Metric, name)
 	if err != nil {
 		l.Errorf("push metric point error %v", err)
 	}
@@ -128,7 +129,7 @@ func (r *HarborMonitor) getHealth(baseUrl string) string {
 }
 
 func init() {
-	inputs.Add("harborMonitor", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		return &HarborMonitor{}
 	})
 }
