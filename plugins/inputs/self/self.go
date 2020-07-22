@@ -10,6 +10,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var (
+	name = "self"
+)
+
 type SelfInfo struct {
 	stat *ClientStat
 }
@@ -40,14 +44,14 @@ func (s *SelfInfo) Run() {
 			s.stat.Update()
 			statMetric := s.stat.ToMetric()
 
-			io.Feed([]byte(statMetric.String()), io.Metric)
+			io.NamedFeed([]byte(statMetric.String()), io.Metric, name)
 		}
 	}
 }
 
 func init() {
 	StartTime = time.Now()
-	inputs.Add("self", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		return &SelfInfo{
 			stat: &ClientStat{
 				OS:   runtime.GOOS,
