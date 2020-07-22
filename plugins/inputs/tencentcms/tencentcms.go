@@ -250,7 +250,7 @@ func (c *CMS) fetchMetrics(req *MetricsRequest) error {
 			fields := map[string]interface{}{}
 			fields[*req.q.MetricName] = *val
 
-			io.FeedEx(io.Metric, foramtNamespaceName(*req.q.Namespace), tags, fields)
+			io.NamedFeedEx(inputName, io.Metric, foramtNamespaceName(*req.q.Namespace), tags, fields)
 
 		}
 	}
