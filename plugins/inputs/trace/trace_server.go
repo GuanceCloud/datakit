@@ -105,7 +105,7 @@ func (tAdpt *TraceAdapter) mkLineProto() {
 
 	log.Debugf(string(pt))
 
-	if err := io.Feed(pt, io.Logging); err != nil {
+	if err := io.NamedFeed(pt, io.Logging, "tracing"); err != nil {
 		log.Errorf("io feed err: %s", err)
 	}
 }

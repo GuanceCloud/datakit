@@ -29,20 +29,20 @@ const (
 #	# hit basename
 #	# require
 #	regexs = [".log"]
-#	
+#
 #	# Cannot be set to datakit.log
 #	# Directory and file paths
 #	paths = ["/tmp/tailf_test"]
-#	
+#
 #	# require
 #	source = "tailf"
-#	
+#
 #	# auto update the directory files
 #	update_files = false
-#	
+#
 #	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
 #	update_files_cycle = "10s"
-#	
+#
 #	# [inputs.tailf.tags]
 #	# tags1 = "tags1"
 `
@@ -293,7 +293,7 @@ func (t *Tailf) loopTailer(tailer *tail.Tail) bool {
 				l.Debugf("io.Feed data: %s\n", string(data))
 				continue
 			}
-			if err := io.Feed(data, io.Logging); err != nil {
+			if err := io.NamedFeed(data, io.Logging, inputName); err != nil {
 				l.Error(err)
 				continue
 			}
