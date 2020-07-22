@@ -2,8 +2,8 @@ package zabbix
 
 import (
 	"os"
-	"sync"
 	"path/filepath"
+	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -25,13 +25,15 @@ const (
 #    tag1 = "tag1"
 #    tag2 = "tag2"
 #    tag3 = "tag3"
-`)
+`
+)
 
 var (
 	defaultDataDir   = "data"
-	defaultZabbixDir = "zabbix"
+	defaultZabbixDir = name
 	defaultStartDate = "2019-12-02T00:00:00"
-	locker sync.Mutex
+	locker           sync.Mutex
+	name             = "zabbix"
 )
 
 type Zabbix struct {
@@ -66,7 +68,7 @@ func (z *Zabbix) Run() {
 	}
 
 	input := ZabbixInput{*z}
-	output := ZabbixOutput{io.Feed}
+	output := ZabbixOutput{io.NamedFeed}
 	p := &ZabbixParam{input, output, logger.SLogger("zabbix")}
 	p.log.Info("yarn zabbix started...")
 	p.mkZabbixDataDir()
@@ -107,7 +109,7 @@ func PathExists(path string) bool {
 }
 
 func init() {
-	inputs.Add("zabbix", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		z := &Zabbix{}
 		return z
 	})
