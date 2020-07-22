@@ -518,7 +518,7 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 		}
 
 		if len(fields) > 0 {
-			io.FeedEx(io.Metric, metricSetName, tags, fields, tm)
+			io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
 		}
 	}
 
