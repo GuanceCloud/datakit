@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	l *logger.Logger
+	l    *logger.Logger
+	name = "baiduIndex"
 )
 
 func (_ *BaiduIndex) Catalog() string {
@@ -132,7 +133,7 @@ func (b *BaiduIndex) getSearchIndex() {
 			l.Errorf("make metric point error %s", err)
 		}
 
-		err = io.Feed([]byte(pt), io.Metric)
+		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %s", err)
 		}
@@ -163,7 +164,7 @@ func (b *BaiduIndex) getSearchIndex() {
 			l.Errorf("make metric point error %s", err)
 		}
 
-		err = io.Feed([]byte(pt2), io.Metric)
+		err = io.NamedFeed([]byte(pt2), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %s", err)
 		}
@@ -194,7 +195,7 @@ func (b *BaiduIndex) getSearchIndex() {
 			l.Errorf("make metric point error %s", err)
 		}
 
-		err = io.Feed([]byte(pt3), io.Metric)
+		err = io.NamedFeed([]byte(pt3), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %s", err)
 		}
@@ -259,7 +260,7 @@ func (b *BaiduIndex) getExtendedIndex(tt string) {
 			l.Errorf("make metric point error %s", err)
 		}
 
-		err = io.Feed([]byte(pt), io.Metric)
+		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %s", err)
 		}
@@ -267,7 +268,7 @@ func (b *BaiduIndex) getExtendedIndex(tt string) {
 }
 
 func init() {
-	inputs.Add("baiduIndex", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		return &BaiduIndex{}
 	})
 }
