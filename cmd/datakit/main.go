@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/kardianos/service"
 
@@ -15,10 +18,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/run"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/telegrafwrap"
 )
 
@@ -230,7 +235,6 @@ func loadConfig() {
 	}
 
 	l = logger.SLogger("main")
-	//l.Infof("input fileters %v", inputFilters)
 }
 
 func runTelegraf() error {
@@ -240,10 +244,130 @@ func runTelegraf() error {
 
 func runDatakit() error {
 
-	ag, err := run.NewAgent()
-	if err != nil {
-		return err
+	l = logger.SLogger("datakit")
+
+	io.Start()
+
+	// start HTTP server
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		httpStart(config.Cfg.MainCfg.HTTPServerAddr)
+		l.Info("HTTPServer goroutine exit")
+	}()
+
+	if err := runInputs(); err != nil {
+		l.Error("error running inputs: %v", err)
 	}
 
-	return ag.Run()
+	return nil
+}
+
+func runInputs() error {
+
+	for name, ips := range config.Cfg.Inputs {
+
+		for _, input := range ips {
+
+			switch input.(type) {
+
+			case inputs.Input:
+				l.Infof("starting input %s ...", name)
+				datakit.WG.Add(1)
+				go func(i inputs.Input, name string) {
+					defer datakit.WG.Done()
+					i.Run()
+					l.Infof("input %s exited", name)
+				}(input, name)
+
+			default:
+				l.Warn("ignore input %s", name)
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func httpStart(addr string) {
+
+	mux := http.NewServeMux()
+
+	if _, ok := config.Cfg.Inputs["trace"]; ok {
+		mux.HandleFunc("/trace", trace.Handle)
+	}
+
+	if _, ok := config.Cfg.Inputs["druid"]; ok {
+		mux.HandleFunc("/druid", druid.Handle)
+	}
+
+	mux.HandleFunc("/stats", getInputsStats)
+
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      requestLogger(mux),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	l.Infof("start http server on %s ok", addr)
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			l.Error(err)
+		}
+
+		l.Info("http server exit")
+	}()
+
+	<-datakit.Exit.Wait()
+	l.Info("stopping http server...")
+
+	if err := srv.Shutdown(context.Background()); err != nil {
+		l.Errorf("Failed of http server shutdown, err: %s", err.Error())
+
+	} else {
+		l.Info("http server shutdown ok")
+	}
+
+	return
+}
+
+func getInputsStats(w http.ResponseWriter, r *http.Request) {
+	res, err := io.GetStats("") // get all inputs stats
+	if err != nil {
+		l.Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	body, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
+	return
+}
+
+func requestLogger(targetMux http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		path := r.URL.Path
+		raw := r.URL.RawQuery
+		clientIP := r.RemoteAddr
+
+		targetMux.ServeHTTP(w, r)
+
+		if raw != "" {
+			path = path + "?" + raw
+		}
+
+		l.Infof(" %15s | %#v\n", clientIP, path)
+	})
 }
