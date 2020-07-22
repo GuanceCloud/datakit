@@ -23,19 +23,19 @@ const (
 # [inputs.mongodb_oplog]
 # 	# MongoDB URL: mongodb://user:password@host:port/database
 # 	mongodb_url="mongodb://127.0.0.1:27017"
-# 	
+#
 # 	# database
 # 	database="testdb"
-# 	
+#
 # 	# collection
 # 	collection="testdb"
-# 	
+#
 # 	# tags path，is may be null
 # 	tagList=[
 # 		"/path",
 # 		"/a/b/c/e"
 # 	]
-# 	
+#
 # 	# fields path, cannot empty
 # 	# type in [int, float, bool, string]
 # 	# example:
@@ -43,7 +43,7 @@ const (
 # 		"/a/c/d" = "int"
 # 		"/a/c/f[1]/e/f" = "int"
 # 		# "/a/c/f\\[0\\]" = "int"
-# 	
+#
 # 	# [inputs.mongodb_oplog.tags]
 # 	# tags1 = "tags1"
 `
@@ -171,7 +171,7 @@ func (m *Mongodboplog) runloop() {
 						l.Error(err)
 						continue
 					}
-					if err := io.Feed(data, io.Metric); err != nil {
+					if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
 						l.Error(err)
 						continue
 					}
