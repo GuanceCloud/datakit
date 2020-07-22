@@ -72,6 +72,8 @@ func (h *Lighttpd) Run() {
 		return
 	}
 
+	l.Infof("lighttpd input started...")
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
