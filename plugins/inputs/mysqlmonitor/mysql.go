@@ -18,7 +18,8 @@ import (
 )
 
 var (
-	l *logger.Logger
+	l    *logger.Logger
+	name = "mysqlMonitor"
 )
 
 func (_ *Mysql) Catalog() string {
@@ -93,7 +94,7 @@ func (mysql *Mysql) handleResponse(m string, response []map[string]interface{}) 
 			l.Errorf("make metric point error %v", err)
 		}
 
-		err = io.Feed([]byte(pt), io.Metric)
+		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
 		}
@@ -154,7 +155,7 @@ func (r *Mysql) Query(sql string) ([]map[string]interface{}, error) {
 }
 
 func init() {
-	inputs.Add("mysqlMonitor", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		return &Mysql{}
 	})
 }
