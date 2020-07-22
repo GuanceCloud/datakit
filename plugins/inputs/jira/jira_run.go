@@ -57,8 +57,25 @@ func (p *JiraParam) active() {
 }
 
 func (p *JiraParam) gather(queue chan string, wg *sync.WaitGroup) {
+	var d time.Duration
+	var err error
+
+	switch p.input.Interval.(type) {
+	case int64:
+		d = time.Duration(p.input.Interval.(int64))*time.Second
+	case string:
+		d, err = time.ParseDuration(p.input.Interval.(string))
+		if err != nil {
+			p.log.Errorf("parse interval err: %s", err.Error())
+			return
+		}
+	default:
+		p.log.Errorf("interval type unsupported")
+		return
+	}
+
 	issueL := make([]string, 0)
-	ticker := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
+	ticker := time.NewTicker(d)
 	defer ticker.Stop()
 
 	c, err := p.makeJiraClient()
