@@ -69,6 +69,8 @@ func (c *Coredns) Run() {
 
 	c.initcfg()
 
+	l.Infof("coredns input started...")
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
