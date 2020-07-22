@@ -2,8 +2,8 @@ package jira
 
 import (
 	"fmt"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/andygrunwald/go-jira"
 
@@ -21,7 +21,7 @@ func (p *JiraParam) active() {
 	ticker := time.NewTicker(time.Duration(20) * time.Minute)
 	defer ticker.Stop()
 
-	task := func () {
+	task := func() {
 		issues, err := p.findIssues()
 		if err != nil {
 			p.log.Errorf("findIssues err: %s", err.Error())
@@ -141,7 +141,7 @@ func (p *JiraParam) getMetrics(c *jira.Client) error {
 	}
 	p.log.Debug(string(pts))
 
-	err = p.output.IoFeed(pts, io.Metric)
+	err = p.output.IoFeed(pts, io.Metric, name)
 	return err
 }
 
