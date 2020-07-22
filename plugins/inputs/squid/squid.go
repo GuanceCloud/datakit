@@ -16,7 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type IoFeed func(data []byte, category string) error
+type IoFeed func(data []byte, category, name string) error
 
 type Squid struct {
 	Active      bool
@@ -41,7 +41,8 @@ type SquidParam struct {
 }
 
 var (
-	defaultMetricName = "squid"
+	name              = "squid"
+	defaultMetricName = name
 	defaultInterval   = 60
 	defaultPort       = 3218
 	squidConfigSample = `### interval: monitor interval second, unit is second. The default value is 60.
@@ -87,7 +88,7 @@ func (s *Squid) Run() {
 	}
 
 	input := SquidInput{*s}
-	output := SquidOutput{io.Feed}
+	output := SquidOutput{io.NamedFeed}
 	p := &SquidParam{input, output, logger.SLogger("squid")}
 
 	p.log.Info("squid input started...")
@@ -132,7 +133,7 @@ func (p *SquidParam) getMetrics() (err error) {
 	if err != nil {
 		fields["can_connect"] = false
 		pt, _ := io.MakeMetric(p.input.Squid.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed(pt, io.Metric)
+		p.output.IoFeed(pt, io.Metric, name)
 		return
 	}
 
@@ -164,12 +165,12 @@ func (p *SquidParam) getMetrics() (err error) {
 		return
 	}
 
-	err = p.output.IoFeed(pt, io.Metric)
+	err = p.output.IoFeed(pt, io.Metric, name)
 	return
 }
 
 func init() {
-	inputs.Add("squid", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		s := &Squid{}
 		return s
 	})
