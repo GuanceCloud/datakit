@@ -15,6 +15,8 @@ import (
 
 var (
 	l *logger.Logger
+
+	name = "aliyuncdn"
 )
 
 func (_ *CDN) Catalog() string {
@@ -34,7 +36,7 @@ func (_ *CDN) Gather() error {
 }
 
 func (c *CDN) Run() {
-	l = logger.SLogger("aliyunCDN")
+	l = logger.SLogger(name)
 
 	l.Info("aliyunCDN input started...")
 
@@ -139,7 +141,7 @@ func (r *CDN) getDomain(metricName string, domain string) []string {
 					l.Errorf("[influxdb convert point] failed, %v", err.Error())
 				}
 
-				err = io.Feed([]byte(pt.String()), io.Metric)
+				err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
 			}
 		}
 
@@ -211,7 +213,7 @@ func (run *RunningProject) commond(action string) {
 }
 
 func init() {
-	inputs.Add("aliyuncdn", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		return &CDN{}
 	})
 }
