@@ -33,13 +33,11 @@ var (
 )
 
 const ( // categories
-	MetricDeprecated = "/v1/write/metrics"
-	Metric           = "/v1/write/metric"
-	KeyEvent         = "/v1/write/keyevent"
-	Object           = "/v1/write/object"
-	Logging          = "/v1/write/logging"
-
-	initErr = "you should call io.Init() before starting any services under io"
+	__MetricDeprecated = "/v1/write/metrics"
+	Metric             = "/v1/write/metric"
+	KeyEvent           = "/v1/write/keyevent"
+	Object             = "/v1/write/object"
+	Logging            = "/v1/write/logging"
 )
 
 type iodata struct {
@@ -48,11 +46,12 @@ type iodata struct {
 }
 
 type InputsStat struct {
-	Name        string
-	Category    string
-	Total       int64
-	Count       int64
-	First, Last time.Time
+	Name     string    `json:"name"`
+	Category string    `json:"category"`
+	Total    int64     `json:"total"`
+	Count    int64     `json:"count"`
+	First    time.Time `json:"first"`
+	Last     time.Time `json:"last"`
 }
 
 type qstats struct {
@@ -157,21 +156,21 @@ func startIO() {
 
 	categoryURLs = map[string]string{
 
-		MetricDeprecated: baseURL + MetricDeprecated + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Metric:           baseURL + Metric + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		KeyEvent:         baseURL + KeyEvent + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Object:           baseURL + Object + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Logging:          baseURL + Logging + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		__MetricDeprecated: baseURL + __MetricDeprecated + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		Metric:             baseURL + Metric + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		KeyEvent:           baseURL + KeyEvent + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		Object:             baseURL + Object + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		Logging:            baseURL + Logging + "?token=" + config.Cfg.MainCfg.DataWay.Token,
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
 
 	cache := map[string][][]byte{
-		MetricDeprecated: nil,
-		Metric:           nil,
-		KeyEvent:         nil,
-		Object:           nil,
-		Logging:          nil,
+		__MetricDeprecated: nil,
+		Metric:             nil,
+		KeyEvent:           nil,
+		Object:             nil,
+		Logging:            nil,
 	}
 
 	stats := map[string]*InputsStat{}
