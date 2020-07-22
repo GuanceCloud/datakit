@@ -16,7 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type IoFeed func(data []byte, category string) error
+type IoFeed func(data []byte, category, name string) error
 
 type Metrcis struct {
 	ClusterMetrics ClusterMetrics `json:"clusterMetrics"`
@@ -145,7 +145,9 @@ const (
 #		tag2 = "tag2"
 #		tagn = "tagn"
 `
-	defaultMetricName = "yarn"
+
+	name              = "yarn"
+	defaultMetricName = name
 	defaultInterval   = 60
 	urlPrefix         = "/ws/v1/cluster/"
 	host              = "host"
@@ -188,7 +190,7 @@ func (y *Yarn) Run() {
 	y.hostPath = strings.TrimRight(y.Host, "/") + urlPrefix
 
 	input := YarnInput{*y}
-	output := YarnOutput{io.Feed}
+	output := YarnOutput{io.NamedFeed}
 	p := &YarnParam{input, output, logger.SLogger("yarn")}
 	p.log.Infof("yarn input started...")
 	p.gather()
@@ -252,7 +254,7 @@ func (p *YarnParam) gatherMainSection() (err error) {
 	if err != nil || resp.StatusCode != 200 {
 		fields[canConect] = false
 		pt, _ := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed(pt, io.Metric)
+		p.output.IoFeed(pt, io.Metric, name)
 		return
 	}
 	defer resp.Body.Close()
@@ -294,7 +296,7 @@ func (p *YarnParam) gatherMainSection() (err error) {
 		return
 	}
 
-	err = p.output.IoFeed(pt, io.Metric)
+	err = p.output.IoFeed(pt, io.Metric, name)
 	return
 }
 
@@ -336,7 +338,7 @@ func (p *YarnParam) gatherAppSection() error {
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed(pt, io.Metric)
+		err = p.output.IoFeed(pt, io.Metric, name)
 		if err != nil {
 			return err
 		}
@@ -381,7 +383,7 @@ func (p *YarnParam) gatherNodeSection() error {
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed(pt, io.Metric)
+		err = p.output.IoFeed(pt, io.Metric, name)
 		if err != nil {
 			return err
 		}
@@ -524,7 +526,7 @@ func (p *YarnParam) gatherQueueSection() error {
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed(pt, io.Metric)
+		err = p.output.IoFeed(pt, io.Metric, name)
 		if err != nil {
 			return err
 		}
@@ -561,7 +563,7 @@ func getQueueNodeVal(top *jsonquery.Node, expr string, valType VAL_TYPE) (i inte
 }
 
 func init() {
-	inputs.Add("yarn", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		p := &Yarn{}
 		return p
 	})
