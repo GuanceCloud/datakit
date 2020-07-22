@@ -14,7 +14,7 @@ import (
 const (
 	zabbixConfigSample = `
 #[[inputs.zabbix]]
-#  active        = false
+#  active        = true
 #  dbType        = "mysql"
 #  dbAddress     = "zabbix:zabbix@tcp(127.0.0.1:3306)/zabbix"
 #  startdate     = "2020-01-01T00:00:00"
