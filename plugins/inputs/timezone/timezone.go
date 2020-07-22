@@ -14,7 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type TimeIoFeed func(data []byte, category string) error
+type TimeIoFeed func(data []byte, category, name string) error
 
 type Timezone struct {
 	Active      bool
@@ -43,6 +43,7 @@ const (
 )
 
 var (
+	name                 = "timezone"
 	timeZoneConfigSample = `### active     : whether to monitor timezone changes.
 ### interval   : monitor interval second, unit is second. The default value is 60.
 ### metricsName: the name of metric, default is "timezone"
@@ -80,7 +81,7 @@ func (t *Timezone) Run() {
 	}
 
 	input := TzInput{*t}
-	output := TzOutput{io.Feed}
+	output := TzOutput{io.NamedFeed}
 	p := TzParams{input, output, logger.SLogger("timezone")}
 
 	p.log.Info("timezone input started...")
@@ -121,7 +122,7 @@ func (p *TzParams) getMetrics() error {
 		return err
 	}
 
-	if err := p.output.ioFeed(pt, io.Metric); err != nil {
+	if err := p.output.ioFeed(pt, io.Metric, name); err != nil {
 		return err
 	}
 	return nil
@@ -147,7 +148,7 @@ func getOsTimezone() (string, error) {
 }
 
 func init() {
-	inputs.Add("timezone", func() inputs.Input {
+	inputs.Add(name, func() inputs.Input {
 		tz := &Timezone{}
 		return tz
 	})
