@@ -124,7 +124,7 @@ func showAllCollectors() {
 
 	nagent := 0
 	collectors = map[string][]string{}
-	for k, v := range config.SupportsTelegrafMetricNames {
+	for k, v := range config.TelegrafInputs {
 		collectors[v.Catalog] = append(collectors[v.Catalog], k)
 	}
 
@@ -238,8 +238,8 @@ func loadConfig() {
 }
 
 func runTelegraf() error {
-	telegrafwrap.Svr.Cfg = config.Cfg
-	return telegrafwrap.Svr.Start()
+	telegrafwrap.Svr.Start()
+	return nil
 }
 
 func runDatakit() error {
