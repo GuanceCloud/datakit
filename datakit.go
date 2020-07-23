@@ -54,8 +54,14 @@ func MonitProc(proc *os.Process, name string) {
 				continue
 			}
 
-			if err := p.Signal(syscall.Signal(0)); err != nil {
-				l.Errorf("signal 0 to %s failed: %s", name, err)
+			switch runtime.GOOS {
+			case "windows":
+				l.Debugf("%s on PID %d ok", name, proc.Pid)
+
+			default:
+				if err := p.Signal(syscall.Signal(0)); err != nil {
+					l.Errorf("signal 0 to %s failed: %s", name, err)
+				}
 			}
 
 		case <-Exit.Wait():
@@ -64,7 +70,7 @@ func MonitProc(proc *os.Process, name string) {
 				l.Warnf("killing %s failed: %s, ignored", name, err)
 			}
 
-			l.Infof("killing %s (pid: %d) ok", name, proc.Pid)
+			l.Infof("killing %s (PID: %d) ok", name, proc.Pid)
 			return
 		}
 	}
