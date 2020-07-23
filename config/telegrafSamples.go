@@ -69,12 +69,147 @@ var (
 		"solr":              &telegrafInputs{name: "solr", Catalog: "solr"},
 		`systemd_units`:     &telegrafInputs{name: "systemd_units", Catalog: "systemd_units"},
 		`influxdb`:          &telegrafInputs{name: "influxdb", Catalog: "influxdb"},
+		`consul`:            &telegrafInputs{name: "consul", Catalog: "consul"},
+		`kibana`:            &telegrafInputs{name: "kibana", Catalog: "kibana"},
+		`modbus`:            &telegrafInputs{name: "modbus", Catalog: "modbus"},
 	}
 
 	TelegrafCfgSamples = map[string]string{}
 )
 
 func initTelegrafSamples() {
+
+	TelegrafCfgSamples[`modbus`] = `
+#[[inputs.modbus]]
+## Connection Configuration
+##
+## The module supports connections to PLCs via MODBUS/TCP or
+## via serial line communication in binary (RTU) or readable (ASCII) encoding
+##
+## Device name
+#name = "Device"
+
+## Slave ID - addresses a MODBUS device on the bus
+## Range: 0 - 255 [0 = broadcast; 248 - 255 = reserved]
+#slave_id = 1
+
+## Timeout for each request
+#timeout = "1s"
+
+## Maximum number of retries and the time to wait between retries
+## when a slave-device is busy.
+# busy_retries = 0
+# busy_retries_wait = "100ms"
+
+# TCP - connect via Modbus/TCP
+#controller = "tcp://localhost:502"
+
+## Serial (RS485; RS232)
+# controller = "file:///dev/ttyUSB0"
+# baud_rate = 9600
+# data_bits = 8
+# parity = "N"
+# stop_bits = 1
+# transmission_mode = "RTU"
+
+
+## Measurements
+##
+
+## Digital Variables, Discrete Inputs and Coils
+## name    - the variable name
+## address - variable address
+
+#discrete_inputs = [
+#	{ name = "Start",          address = [0]},
+#	{ name = "Stop",           address = [1]},
+#	{ name = "Reset",          address = [2]},
+#	{ name = "EmergencyStop",  address = [3]},
+#]
+#coils = [
+#	{ name = "Motor1-Run",     address = [0]},
+#	{ name = "Motor1-Jog",     address = [1]},
+#	{ name = "Motor1-Stop",    address = [2]},
+#]
+
+## Analog Variables, Input Registers and Holding Registers
+## measurement - the (optional) measurement name, defaults to "modbus"
+## name       - the variable name
+## byte_order - the ordering of bytes
+##  |---AB, ABCD   - Big Endian
+##  |---BA, DCBA   - Little Endian
+##  |---BADC       - Mid-Big Endian
+##  |---CDAB       - Mid-Little Endian
+## data_type  - INT16, UINT16, INT32, UINT32, INT64, UINT64, FLOAT32, FLOAT32-IEEE (the IEEE 754 binary representation)
+## scale      - the final numeric variable representation
+## address    - variable address
+
+#holding_registers = [
+#	{ name = "PowerFactor", byte_order = "AB",   data_type = "FLOAT32", scale=0.01,  address = [8]},
+#	{ name = "Voltage",     byte_order = "AB",   data_type = "FLOAT32", scale=0.1,   address = [0]},
+#	{ name = "Energy",      byte_order = "ABCD", data_type = "FLOAT32", scale=0.001, address = [5,6]},
+#	{ name = "Current",     byte_order = "ABCD", data_type = "FLOAT32", scale=0.001, address = [1,2]},
+#	{ name = "Frequency",   byte_order = "AB",   data_type = "FLOAT32", scale=0.1,   address = [7]},
+#	{ name = "Power",       byte_order = "ABCD", data_type = "FLOAT32", scale=0.1,   address = [3,4]},
+#]
+#input_registers = [
+#	{ name = "TankLevel",   byte_order = "AB",   data_type = "INT16",   scale=1.0,     address = [0]},
+#	{ name = "TankPH",      byte_order = "AB",   data_type = "INT16",   scale=1.0,     address = [1]},
+#	{ name = "Pump1-Speed", byte_order = "ABCD", data_type = "INT32",   scale=1.0,     address = [3,4]},
+#]
+`
+
+	TelegrafCfgSamples[`kibana`] = `
+#[[inputs.kibana]]
+## Specify a list of one or more Kibana servers
+#servers = ["http://localhost:5601"]
+
+## Timeout for HTTP requests
+#timeout = "5s"
+
+## HTTP Basic Auth credentials
+# username = "username"
+# password = "pa$$word"
+
+## Optional TLS Config
+# tls_ca = "/etc/telegraf/ca.pem"
+# tls_cert = "/etc/telegraf/cert.pem"
+# tls_key = "/etc/telegraf/key.pem"
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = false
+`
+
+	TelegrafCfgSamples[`consul`] = `
+# Gather health check statuses from services registered in Consul
+#[[inputs.consul]]
+	## Consul server address
+	# address = "localhost:8500"
+
+	## URI scheme for the Consul server, one of "http", "https"
+	# scheme = "http"
+
+	## ACL token used in every request
+	# token = ""
+
+	## HTTP Basic Authentication username and password.
+	# username = ""
+	# password = ""
+
+	## Data center to query the health checks from
+	# datacenter = ""
+
+	## Optional TLS Config
+	# tls_ca = "/etc/telegraf/ca.pem"
+	# tls_cert = "/etc/telegraf/cert.pem"
+	# tls_key = "/etc/telegraf/key.pem"
+	## Use TLS but skip chain & host verification
+	# insecure_skip_verify = true
+
+	## Consul checks' tag splitting
+	# When tags are formatted like "key:value" with ":" as a delimiter then
+	# they will be splitted and reported as proper key:value in Telegraf
+	# tag_delimiter = ":"
+`
 
 	TelegrafCfgSamples[`amqp_consumer`] = `
 #[[inputs.amqp_consumer]]
@@ -1514,47 +1649,6 @@ func initTelegrafSamples() {
 `
 
 	TelegrafCfgSamples[`http_check`] = `
-# # Read formatted metrics from one or more HTTP endpoints
-# [[inputs.http]]
-#   ## One or more URLs from which to read formatted metrics
-#   urls = [
-#     "http://localhost/metrics"
-#   ]
-#
-#   ## HTTP method
-#   # method = "GET"
-#
-#   ## Optional HTTP headers
-#   # headers = {"X-Special-Header" = "Special-Value"}
-#
-#   ## Optional HTTP Basic Auth Credentials
-#   # username = "username"
-#   # password = "pa$$word"
-#
-#   ## HTTP entity-body to send with POST/PUT requests.
-#   # body = ""
-#
-#   ## HTTP Content-Encoding for write request body, can be set to "gzip" to
-#   ## compress body or "identity" to apply no encoding.
-#   # content_encoding = "identity"
-#
-#   ## Optional TLS Config
-#   # tls_ca = "/etc/telegraf/ca.pem"
-#   # tls_cert = "/etc/telegraf/cert.pem"
-#   # tls_key = "/etc/telegraf/key.pem"
-#   ## Use TLS but skip chain & host verification
-#   # insecure_skip_verify = false
-#
-#   ## Amount of time allowed to complete the HTTP request
-#   # timeout = "5s"
-#
-#   ## Data format to consume.
-#   ## Each data format has its own unique set of configuration options, read
-#   ## more about them here:
-#   ## https://github.com/influxdata/telegraf/blob/master/docs/DATA_FORMATS_INPUT.md
-#   # data_format = "influx"
-
-
 # # HTTP/HTTPS request given an address a method and a timeout
 # [[inputs.http_response]]
 #   ## Deprecated in 1.12, use 'urls'
@@ -1599,54 +1693,6 @@ func initTelegrafSamples() {
 #
 #   ## Interface to use when dialing an address
 #   # interface = "eth0"
-
-
-# # Read flattened metrics from one or more JSON HTTP endpoints
-# [[inputs.httpjson]]
-#   ## NOTE This plugin only reads numerical measurements, strings and booleans
-#   ## will be ignored.
-#
-#   ## Name for the service being polled.  Will be appended to the name of the
-#   ## measurement e.g. httpjson_webserver_stats
-#   ##
-#   ## Deprecated (1.3.0): Use name_override, name_suffix, name_prefix instead.
-#   name = "webserver_stats"
-#
-#   ## URL of each server in the service's cluster
-#   servers = [
-#     "http://localhost:9999/stats/",
-#     "http://localhost:9998/stats/",
-#   ]
-#   ## Set response_timeout (default 5 seconds)
-#   response_timeout = "5s"
-#
-#   ## HTTP method to use: GET or POST (case-sensitive)
-#   method = "GET"
-#
-#   ## List of tag names to extract from top-level of JSON server response
-#   # tag_keys = [
-#   #   "my_tag_1",
-#   #   "my_tag_2"
-#   # ]
-#
-#   ## Optional TLS Config
-#   # tls_ca = "/etc/telegraf/ca.pem"
-#   # tls_cert = "/etc/telegraf/cert.pem"
-#   # tls_key = "/etc/telegraf/key.pem"
-#   ## Use TLS but skip chain & host verification
-#   # insecure_skip_verify = false
-#
-#   ## HTTP parameters (all values must be strings).  For "GET" requests, data
-#   ## will be included in the query.  For "POST" requests, data will be included
-#   ## in the request body as "x-www-form-urlencoded".
-#   # [inputs.httpjson.parameters]
-#   #   event_type = "cpu_spike"
-#   #   threshold = "0.75"
-#
-#   ## HTTP Headers (all values must be strings)
-#   # [inputs.httpjson.headers]
-#   #   X-Auth-Token = "my-xauth-token"
-#   #   apiVersion = "v1"
 `
 
 	TelegrafCfgSamples[`iptables`] = `
@@ -1857,11 +1903,6 @@ func initTelegrafSamples() {
 #
 #   ## Uncomment to remove deprecated fields
 #   # fielddrop = ["result_type", "string_found"]
-
-
-# # Read TCP metrics such as established, time wait and sockets counts.
-# [[inputs.netstat]]
-#   # no configuration
 `
 
 	TelegrafCfgSamples[`apache`] = `
