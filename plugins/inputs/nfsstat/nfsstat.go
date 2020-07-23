@@ -167,7 +167,7 @@ func buildPoint(fn string, tags map[string]string) ([]byte, error) {
 	return io.MakeMetric(defaultMeasurement, tags, fields)
 }
 
-func deepHit(data interface{}, succkey string, m map[string]interface{}) {
+func deepHit(data interface{}, prefix string, m map[string]interface{}) {
 	t := reflect.TypeOf(data)
 	v := reflect.ValueOf(data)
 
@@ -178,10 +178,10 @@ func deepHit(data interface{}, succkey string, m map[string]interface{}) {
 			switch v.Field(i).Kind() {
 
 			case reflect.Struct:
-				deepHit(v.Field(i).Interface(), succkey+key+"_", m)
+				deepHit(v.Field(i).Interface(), prefix+key+"_", m)
 
 			case reflect.Uint64:
-				m[succkey+key] = int64(v.Field(i).Uint())
+				m[prefix+key] = int64(v.Field(i).Uint())
 
 			default:
 				// nil
