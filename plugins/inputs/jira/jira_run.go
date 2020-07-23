@@ -30,6 +30,7 @@ func (p *JiraParam) active() {
 			if _, ok := issueHasFound[issue]; ok {
 				continue
 			}
+			p.log.Debugf("New issue %s", issue)
 			issueHasFound[issue] = true
 			cnt += 1
 			if cnt/maxIssuesPerQueue != lastQueueId {
@@ -62,7 +63,7 @@ func (p *JiraParam) gather(queue chan string, wg *sync.WaitGroup) {
 
 	switch p.input.Interval.(type) {
 	case int64:
-		d = time.Duration(p.input.Interval.(int64))*time.Second
+		d = time.Duration(p.input.Interval.(int64)) * time.Second
 	case string:
 		d, err = time.ParseDuration(p.input.Interval.(string))
 		if err != nil {
@@ -91,6 +92,12 @@ func (p *JiraParam) gather(queue chan string, wg *sync.WaitGroup) {
 
 		case <-ticker.C:
 			for _, issue := range issueL {
+				select {
+				case <-datakit.Exit.Wait():
+					wg.Done()
+					return
+				default:
+				}
 				params := *p
 				p.input.Issue = issue
 				err := params.getMetrics(c)
@@ -116,23 +123,20 @@ func (p *JiraParam) getMetrics(c *jira.Client) error {
 	}
 	resp.Body.Close()
 
+	p.log.Debugf("get issue %v", p.input.Issue)
+
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
-
-	tags["host"] = p.input.Host
-	tags["project_key"] = i.Fields.Project.Key
-	tags["project_id"] = i.Fields.Project.ID
-	tags["project_name"] = i.Fields.Project.Name
-
-	for tag, tagV := range p.input.Tags {
-		tags[tag] = tagV
-	}
 
 	fields["id"] = i.ID
 	fields["key"] = i.Key
 	fields["url"] = i.Self
 
 	if i.Fields != nil {
+		tags["project_key"] = i.Fields.Project.Key
+		tags["project_id"] = i.Fields.Project.ID
+		tags["project_name"] = i.Fields.Project.Name
+
 		fields["type"] = i.Fields.Type.Name
 		fields["summary"] = i.Fields.Summary
 		if i.Fields.Creator != nil {
@@ -150,6 +154,11 @@ func (p *JiraParam) getMetrics(c *jira.Client) error {
 		if i.Fields.Status != nil {
 			fields["status"] = i.Fields.Status.Name
 		}
+	}
+
+	tags["host"] = p.input.Host
+	for tag, tagV := range p.input.Tags {
+		tags[tag] = tagV
 	}
 
 	pts, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Time(i.Fields.Updated))
@@ -215,7 +224,7 @@ func (t *JiraParam) findAllIssue() ([]string, error) {
 			cnt += 1
 			issueL = append(issueL, i.ID)
 		}
-		if cnt != ops.MaxResults {
+		if cnt < ops.MaxResults || cnt == 0 {
 			break
 		}
 		ops.StartAt += ops.MaxResults
@@ -225,25 +234,27 @@ func (t *JiraParam) findAllIssue() ([]string, error) {
 
 func (t *JiraParam) findIssuesByProject() ([]string, error) {
 	issueL := make([]string, 0)
-
+	t.log.Debugf("findIssuesByProject")
 	c, err := t.makeJiraClient()
 	if err != nil {
 		return issueL, err
 	}
 
 	p, resp, err := c.Project.Get(t.input.Project)
-	resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return issueL, nil
-	}
 	if err != nil {
 		return issueL, err
 	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return issueL, fmt.Errorf("get project %v with response code %v",
+			t.input.Project, resp.StatusCode)
+	}
+	t.log.Debugf("project key:%v name:%v id:%v", p.Key, p.Name, p.ID)
 	ops := jira.SearchOptions{}
 	ops.StartAt = 0
 	ops.MaxResults = 300
-	sql := fmt.Sprintf("project=%s", p.Key)
-
+	sql := fmt.Sprintf("project=%s", p.ID)
+	t.log.Debugf("sql=%v", sql)
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -252,12 +263,12 @@ func (t *JiraParam) findIssuesByProject() ([]string, error) {
 		}
 
 		issues, _, _ := c.Issue.Search(sql, &ops)
-		resp.Body.Close()
-		if resp.StatusCode != 200 {
-			return issueL, nil
-		}
 		if err != nil {
 			return issueL, err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			return issueL, fmt.Errorf("search issue with response code %v", resp.StatusCode)
 		}
 
 		cnt := 0
@@ -265,8 +276,8 @@ func (t *JiraParam) findIssuesByProject() ([]string, error) {
 			cnt += 1
 			issueL = append(issueL, i.ID)
 		}
-
-		if cnt != ops.MaxResults {
+		t.log.Debugf("cnt = %d StartAt = %d, MaxResults = %d Total = %d", cnt, resp.StartAt, resp.MaxResults, resp.Total)
+		if cnt == resp.Total {
 			break
 		}
 		ops.StartAt += ops.MaxResults
