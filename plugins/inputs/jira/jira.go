@@ -90,7 +90,7 @@ func (j *Jira) SampleConfig() string {
 }
 
 func (j *Jira) Run() {
-	if !j.Active && j.Host == "" {
+	if !j.Active || j.Host == "" {
 		return
 	}
 	if j.MetricsName == "" {
