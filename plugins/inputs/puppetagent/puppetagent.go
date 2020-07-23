@@ -25,11 +25,13 @@ const (
 	sampleCfg = `
 # [inputs.puppetagent]
 # 	# puppetagent location of lastrunfile
+#	# default "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
 # 	location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
 # 	
 # 	# [inputs.puppetagent.tags]
 # 	# tags1 = "tags1"
 `
+	lastrunfileLocation = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
 )
 
 var (
@@ -71,6 +73,11 @@ func (pa *PuppetAgent) Run() {
 
 func (pa *PuppetAgent) initcfg() bool {
 	var err error
+
+	if pa.Location == "" {
+		pa.Location = lastrunfileLocation
+		l.Infof("location is empty, use default location %s", lastrunfileLocation)
+	}
 
 	for {
 		select {
@@ -197,7 +204,7 @@ type timer struct {
 }
 
 func buildPoint(fn string, tags map[string]string) ([]byte, error) {
-	fh, err := ioutil.ReadFile(fn)
+	data, err := ioutil.ReadFile(fn)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +215,7 @@ func buildPoint(fn string, tags map[string]string) ([]byte, error) {
 
 	var puppetState State
 
-	err = yaml.Unmarshal(fh, &puppetState)
+	err = yaml.Unmarshal(data, &puppetState)
 	if err != nil {
 		return nil, err
 	}
