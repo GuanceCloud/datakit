@@ -146,8 +146,8 @@ func showAllConfigSamples() {
 		fmt.Printf("%s\n========= [D] ==========\n%s\n", k, sample)
 	}
 
-	for k, v := range config.TelegrafCfgSamples {
-		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v)
+	for k, v := range config.TelegrafInputs {
+		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v.Sample)
 	}
 }
 
