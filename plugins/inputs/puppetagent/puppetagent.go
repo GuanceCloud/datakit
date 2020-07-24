@@ -26,10 +26,11 @@ const (
 # [inputs.puppetagent]
 # 	# puppetagent location of lastrunfile
 #	# default "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
+#	# required
 # 	location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
 # 	
 # 	# [inputs.puppetagent.tags]
-# 	# tags1 = "tags1"
+# 	# tags1 = "value1"
 `
 	lastrunfileLocation = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
 )
@@ -63,15 +64,41 @@ func (_ *PuppetAgent) Catalog() string {
 func (pa *PuppetAgent) Run() {
 	l = logger.SLogger(inputName)
 
-	if pa.initcfg() {
+	if pa.loadcfg() {
 		return
 	}
 
+	var err error
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+		default:
+			// nil
+		}
+
+		pa.watcher, err = fsnotify.NewWatcher()
+		if err != nil {
+			l.Error(err)
+			time.Sleep(time.Second)
+			continue
+		}
+		err = pa.watcher.Add(pa.Location)
+		if err != nil {
+			pa.watcher.Close()
+			l.Error(err)
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
 	defer pa.watcher.Close()
+
 	pa.do()
 }
 
-func (pa *PuppetAgent) initcfg() bool {
+func (pa *PuppetAgent) loadcfg() bool {
 	var err error
 
 	if pa.Location == "" {
@@ -89,23 +116,15 @@ func (pa *PuppetAgent) initcfg() bool {
 		}
 
 		if _, err = os.Stat(pa.Location); err != nil {
-			goto _NEXT
+			time.Sleep(time.Second)
+			continue
 		}
-		pa.watcher, err = fsnotify.NewWatcher()
-		if err != nil {
-			goto _NEXT
-		}
-		err = pa.watcher.Add(pa.Location)
-		if err != nil {
-			goto _NEXT
-		}
-
 		break
-	_NEXT:
-		l.Error(err)
-		time.Sleep(time.Second)
 	}
 
+	if pa.Tags == nil {
+		pa.Tags = make(map[string]string)
+	}
 	pa.Tags["location"] = pa.Location
 
 	return false
