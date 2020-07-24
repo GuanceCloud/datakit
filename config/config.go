@@ -154,9 +154,7 @@ func LoadCfg() error {
 	}
 
 	// set global log root
-	logger.SetGlobalRootLogger(Cfg.MainCfg.Log,
-		Cfg.MainCfg.LogLevel,
-		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+	logger.SetGlobalRootLogger(Cfg.MainCfg.Log, Cfg.MainCfg.LogLevel, logger.OPT_DEFAULT)
 	l = logger.SLogger("config")
 
 	l.Infof("set log to %s", Cfg.MainCfg.Log)
