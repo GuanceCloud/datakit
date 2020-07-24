@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -36,6 +38,8 @@ type Config struct {
 	Inputs map[string][]inputs.Input
 
 	InputFilters []string
+
+	withinDocker bool
 }
 
 type DataWayCfg struct {
@@ -149,6 +153,13 @@ func LoadCfg() error {
 
 	InitDirs()
 
+	l = logger.SLogger("config")
+
+	if err := Cfg.loadEnvs(); err != nil {
+		return err
+	}
+
+	// loading from
 	if err := Cfg.LoadMainConfig(); err != nil {
 		return err
 	}
@@ -387,11 +398,13 @@ func initMainCfg(dwcfg *DataWayCfg) error {
 func parseCfgFile(f string) (*ast.Table, error) {
 	data, err := ioutil.ReadFile(f)
 	if err != nil {
+		l.Error(err)
 		return nil, fmt.Errorf("read config %s failed: %s", f, err.Error())
 	}
 
 	tbl, err := toml.Parse(data)
 	if err != nil {
+		l.Errorf("parse toml %s failed", string(data))
 		return nil, err
 	}
 
@@ -429,4 +442,38 @@ func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) err
 	c.Inputs[name] = append(c.Inputs[name], input)
 
 	return nil
+}
+
+func ParseDataway(dw string) (*DataWayCfg, error) {
+
+	dwcfg := &DataWayCfg{}
+
+	if u, err := url.Parse(dw); err == nil {
+		dwcfg.Scheme = u.Scheme
+		dwcfg.Token = u.Query().Get("token")
+		dwcfg.Host = u.Host
+		dwcfg.DefaultPath = u.Path
+
+		if dwcfg.Scheme == "https" {
+			dwcfg.Host = dwcfg.Host + ":443"
+		}
+
+		l.Debugf("dataway: %+#v", dwcfg)
+	} else {
+		l.Error(err)
+		return nil, err
+	}
+
+	conn, err := net.DialTimeout("tcp", dwcfg.Host, time.Second*5)
+	if err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	if err := conn.Close(); err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	return dwcfg, nil
 }
