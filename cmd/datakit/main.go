@@ -47,6 +47,9 @@ var (
 
 func main() {
 
+	logger.SetStdoutRootLogger(logger.DEBUG, logger.OPT_DEFAULT)
+	l = logger.SLogger("main")
+
 	flag.Parse()
 
 	applyFlags()
@@ -230,8 +233,13 @@ func loadConfig() {
 
 	config.Cfg.InputFilters = inputFilters
 
-	if err := config.LoadCfg(); err != nil {
-		panic(fmt.Sprintf("load config failed: %s", err))
+	for {
+		if err := config.LoadCfg(); err != nil {
+			l.Errorf("load config failed: %s", err)
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
 	}
 
 	l = logger.SLogger("main")
