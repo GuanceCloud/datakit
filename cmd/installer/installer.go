@@ -122,7 +122,7 @@ func main() {
 		if *flagDataway == "" {
 			for {
 				dw := readInput("Please set DataWay request URL(http://IP:Port/v1/write/metric) > ")
-				dwcfg, err = parseDataway(dw)
+				dwcfg, err = config.ParseDataway(dw)
 				if err == nil {
 					break
 				}
@@ -131,7 +131,7 @@ func main() {
 				continue
 			}
 		} else {
-			dwcfg, err = parseDataway(*flagDataway)
+			dwcfg, err = config.ParseDataway(*flagDataway)
 
 			if err != nil {
 				l.Fatal(err)
@@ -329,38 +329,6 @@ func (wc *writeCounter) PrintProgress() {
 	}
 }
 
-func parseDataway(dw string) (*config.DataWayCfg, error) {
-
-	dwcfg := &config.DataWayCfg{}
-
-	if u, err := url.Parse(dw); err == nil {
-		dwcfg.Scheme = u.Scheme
-		dwcfg.Token = u.Query().Get("token")
-		dwcfg.Host = u.Host
-		dwcfg.DefaultPath = u.Path
-
-		if dwcfg.Scheme == "https" {
-			dwcfg.Host = dwcfg.Host + ":443"
-		}
-	} else {
-		l.Errorf("invalid dataway %s: %s", dw, err.Error())
-		return nil, err
-	}
-
-	l.Debugf("Testing DataWay(%s)...", dwcfg.Host)
-	conn, err := net.DialTimeout("tcp", dwcfg.Host, time.Second*5)
-	if err != nil {
-		l.Errorf("E! connect dataway %s failed: %s", dwcfg.Host, err.Error())
-		return nil, err
-	}
-
-	if err := conn.Close(); err != nil {
-		l.Errorf("E! close dataway %s failed: %s, ignored", dwcfg.Host, err.Error())
-	}
-
-	return dwcfg, nil
-}
-
 type program struct{}
 
 func (p *program) Start(s service.Service) error { go p.run(s); return nil }
@@ -427,7 +395,7 @@ func updateLagacyConfig(dir string) {
 
 	// split orgin ftdataway into dataway object
 	if maincfg.FtGateway != "" {
-		dwcfg, err := parseDataway(maincfg.FtGateway)
+		dwcfg, err := config.ParseDataway(maincfg.FtGateway)
 		if err != nil {
 			l.Fatal(err)
 		}
