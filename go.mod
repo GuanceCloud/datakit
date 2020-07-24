@@ -8,7 +8,6 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
 	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
-	github.com/BurntSushi/toml v0.3.1
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/Pallinder/go-randomdata v1.2.0
@@ -45,7 +44,7 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.1
 	github.com/golangci/golangci-lint v1.27.0 // indirect
-	github.com/google/gopacket v1.1.17
+	github.com/google/gopacket v1.1.17 // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb v1.8.0 // indirect
@@ -88,7 +87,7 @@ require (
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/xanzy/go-gitlab v0.31.0
 	github.com/zcalusic/sysinfo v0.0.0-20200228145645-a159d7cc708b // indirect
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200708034554-4979d23ed25d
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200724094927-05a50c73056f
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
