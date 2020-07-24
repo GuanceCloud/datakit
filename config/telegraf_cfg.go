@@ -147,6 +147,7 @@ func (c *Config) loadTelegrafConfigs(inputcfgs map[string]*ast.Table, filters []
 					l.Warnf("ignore bad toml node within %s", fp)
 				} else {
 					for inputName, _ := range tbl_.Fields {
+						l.Debugf("telegraf input name: %s", inputName)
 
 						if _, ok := TelegrafInputs[inputName]; ok {
 							TelegrafInputs[inputName].enabled = true
@@ -156,6 +157,7 @@ func (c *Config) loadTelegrafConfigs(inputcfgs map[string]*ast.Table, filters []
 					}
 				}
 			default:
+				l.Warnf("ignore bad toml node within %s", fp)
 				// pass: all telegraf input should be the format: inputs.xxx
 			}
 		}
@@ -360,9 +362,9 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 					// NOTE: if telegraf found any unknown inputs, telegraf will exit,
 					// so if any xxx.conf with datakit input and telegraf input mixed, telegraf will exit
 					if _, ok := inputs.Inputs[inputName]; ok {
-						l.Errorf("found datakit input %s within merged telegraf conf: %s", inputName, tbl.Source())
-						l.Warnf("disable all telegraf input %s", k)
-						for k, v := range TelegrafInputs {
+						l.Errorf("found datakit input `%s' within merged telegraf conf:\n%s", inputName, tbl.Source())
+						l.Warnf("disable all telegraf inputs")
+						for _, v := range TelegrafInputs {
 							v.enabled = false
 						}
 						return "", fmt.Errorf("invalid datakit config")
