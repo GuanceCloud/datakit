@@ -29,7 +29,7 @@ const (
 # 	location = "/proc/net/rpc/nfsd"
 #
 # 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-# 	interval = "60s"
+# 	interval = "10s"
 #
 # 	# [inputs.nfsstat.tags]
 # 	# tags1 = "value1"
