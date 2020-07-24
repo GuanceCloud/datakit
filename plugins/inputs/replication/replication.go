@@ -24,37 +24,43 @@ const (
 	defaultMeasurement = "replication"
 
 	sampleCfg = `
-# [inputs.replication]
-# 	# postgres host
+# [[inputs.replication]]
+#	# required
 # 	host="127.0.0.1"
 #
-# 	# postgres port
+#	# required
 # 	port=25432
 #
 # 	# postgres user (need replication privilege)
+#	# required
 # 	user="testuser"
 #
+#	# required
 # 	password="pwd"
 #
+#	# required
 # 	database="testdb"
 #
+#	# required
 # 	table="testable"
 #
 # 	# replication slot name, only
+#	# required
 # 	slotname="slot_for_datakit"
 #
 # 	# exlcude the events of postgres
 # 	# there are 3 events: "insert","update","delete"
+#	# required
 # 	events=['insert']
 #
 # 	# tags
 # 	tagList=['colunm1']
 #
-# 	# fields
+# 	# fields. required
 # 	fieldList=['colunm0']
 #
 # 	# [inputs.replication.tags]
-# 	# tags1 = "tags1"
+# 	# tags1 = "value1"
 `
 )
 
@@ -138,7 +144,7 @@ func (r *Replication) Run() {
 
 	_ = r.sendStatus()
 
-	l.Infof("postgresql replication input started...")
+	l.Infof("postgresql replication input started.")
 
 	r.runloop()
 }
