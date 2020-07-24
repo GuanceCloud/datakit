@@ -19,7 +19,7 @@ import (
 func (c *Config) LoadConfig() error {
 
 	// detect same-name input name between datakit and telegraf
-	for k, _ := range TelegrafCfgSamples {
+	for k, _ := range TelegrafInputs {
 		if _, ok := inputs.Inputs[k]; ok {
 			panic(fmt.Sprintf("same name input %s within datakit and telegraf", k))
 		}
@@ -229,8 +229,8 @@ func initPluginCfgs() {
 			l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
 		}
 
-		if sample, ok := TelegrafCfgSamples[name]; ok {
-			if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
+		if input, ok := TelegrafInputs[name]; ok {
+			if err := ioutil.WriteFile(cfgpath, []byte(input.Sample), 0644); err != nil {
 				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 			}
 		}
