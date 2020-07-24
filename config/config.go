@@ -565,29 +565,31 @@ func initPluginCfgs() {
 
 		//l.Infof("check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
 
-		if _, err := os.Stat(oldCfgPath); err == nil {
-			if oldCfgPath == cfgpath {
-				continue // do nothing
-			}
-
-			if runtime.GOOS == "windows" {
-				if strings.ToLower(oldCfgPath) == strings.ToLower(cfgpath) {
-					continue
+		if _, err := os.Stat(cfgpath); err != nil {
+			if _, err := os.Stat(oldCfgPath); err == nil {
+				if oldCfgPath == cfgpath {
+					continue // do nothing
 				}
+
+				if runtime.GOOS == "windows" {
+					if strings.ToLower(oldCfgPath) == strings.ToLower(cfgpath) {
+						continue
+					}
+				}
+
+				l.Debugf("migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
+
+				if err := os.MkdirAll(filepath.Dir(cfgpath), os.ModePerm); err != nil {
+					l.Fatalf("create dir %s failed: %s", filepath.Dir(cfgpath), err.Error())
+				}
+
+				if err := os.Rename(oldCfgPath, cfgpath); err != nil {
+					l.Fatalf("move %s -> %s failed: %s", oldCfgPath, cfgpath, err.Error())
+				}
+
+				os.RemoveAll(filepath.Dir(oldCfgPath))
+				continue
 			}
-
-			l.Debugf("migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
-
-			if err := os.MkdirAll(filepath.Dir(cfgpath), os.ModePerm); err != nil {
-				l.Fatalf("create dir %s failed: %s", filepath.Dir(cfgpath), err.Error())
-			}
-
-			if err := os.Rename(oldCfgPath, cfgpath); err != nil {
-				l.Fatalf("move %s -> %s failed: %s", oldCfgPath, cfgpath, err.Error())
-			}
-
-			os.RemoveAll(filepath.Dir(oldCfgPath))
-			continue
 		}
 
 		if _, err := os.Stat(cfgpath); err != nil { // file not exists
