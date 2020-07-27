@@ -20,32 +20,32 @@ const (
 	defaultMeasurement = "mongodb_oplog"
 
 	sampleCfg = `
-# [inputs.mongodb_oplog]
+# [[inputs.mongodb_oplog]]
 # 	# MongoDB URL: mongodb://user:password@host:port/database
+#	# required
 # 	mongodb_url="mongodb://127.0.0.1:27017"
 #
-# 	# database
+# 	# required
 # 	database="testdb"
 #
-# 	# collection
-# 	collection="testdb"
+# 	# required
+# 	collection="testcollection"
 #
-# 	# tags path，is may be null
+# 	# tags path
 # 	tagList=[
 # 		"/path",
 # 		"/a/b/c/e"
 # 	]
 #
-# 	# fields path, cannot empty
+# 	# fields path. required
 # 	# type in [int, float, bool, string]
-# 	# example:
 # 	[inputs.mongodb_oplog.fieldList]
 # 		"/a/c/d" = "int"
 # 		"/a/c/f[1]/e/f" = "int"
 # 		# "/a/c/f\\[0\\]" = "int"
 #
 # 	# [inputs.mongodb_oplog.tags]
-# 	# tags1 = "tags1"
+# 	# tags1 = "value1"
 `
 )
 
@@ -133,7 +133,7 @@ func (m *Mongodboplog) Run() {
 	m.iter = session.DB("local").C("oplog.rs").Find(query).LogReplay().Tail(-1)
 	defer m.iter.Close()
 
-	l.Infof("mongodb_oplog input started...")
+	l.Infof("mongodb_oplog input started.")
 
 	m.runloop()
 }
