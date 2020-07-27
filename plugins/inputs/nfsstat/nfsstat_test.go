@@ -1,6 +1,6 @@
 // +build linux
 
-package containerd
+package nfsstat
 
 import (
 	"testing"
@@ -17,12 +17,9 @@ func TestMain(t *testing.T) {
 	__init()
 	testAssert = true
 
-	var con = Containerd{
-		HostPath:  "/run/containerd/containerd.sock",
-		Namespace: "moby",
-		IDList:    []string{"*"},
-		Interval:  "5s",
+	var nfs = NFSstat{
+		Interval: "3s",
 	}
 
-	con.Run()
+	nfs.Run()
 }
