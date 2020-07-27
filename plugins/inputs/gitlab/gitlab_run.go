@@ -12,6 +12,22 @@ import (
 
 func (g *GitlabParam) gather() {
 	var start, stop time.Time
+	var d time.Duration
+	var err error
+
+	switch g.input.Interval.(type) {
+	case int64:
+		d = time.Duration(g.input.Interval.(int64))*time.Second
+	case string:
+		d, err = time.ParseDuration(g.input.Interval.(string))
+		if err != nil {
+			g.log.Errorf("parse interval err: %s", err.Error())
+			return
+		}
+	default:
+		g.log.Errorf("interval type unsupported")
+		return
+	}
 	client, err := gitlab.NewClient(g.input.Token, gitlab.WithBaseURL(g.input.Host))
 	if err != nil {
 		g.log.Errorf("NewClient err: %s", err.Error())
@@ -19,7 +35,7 @@ func (g *GitlabParam) gather() {
 	}
 
 	foundPBM := make(map[interface{}]map[string]bool)
-	ticker := time.NewTicker(time.Duration(g.input.Interval) * time.Second)
+	ticker := time.NewTicker(d)
 	defer ticker.Stop()
 
 	ticker1 := time.NewTicker(time.Duration(10) * time.Minute)
