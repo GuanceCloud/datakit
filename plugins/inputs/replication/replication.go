@@ -24,43 +24,44 @@ const (
 	defaultMeasurement = "replication"
 
 	sampleCfg = `
-# [[inputs.replication]]
-#	# required
-# 	host="127.0.0.1"
-#
-#	# required
-# 	port=25432
-#
-# 	# postgres user (need replication privilege)
-#	# required
-# 	user="testuser"
-#
-#	# required
-# 	password="pwd"
-#
-#	# required
-# 	database="testdb"
-#
-#	# required
-# 	table="testable"
-#
-# 	# replication slot name, only
-#	# required
-# 	slotname="slot_for_datakit"
-#
-# 	# exlcude the events of postgres
-# 	# there are 3 events: "insert","update","delete"
-#	# required
-# 	events=['insert']
-#
-# 	# tags
-# 	tagList=['colunm1']
-#
-# 	# fields. required
-# 	fieldList=['colunm0']
-#
-# 	# [inputs.replication.tags]
-# 	# tags1 = "value1"
+[[inputs.replication]]
+	# required
+	host="127.0.0.1
+
+	# required
+	port=25432
+
+	# postgres user (need replication privilege)
+	# required
+	user="testuser"
+
+	# required
+	password="pwd"
+
+	# required
+	database="testdb"
+
+	# required
+	table="testable"
+
+	# replication slot name, only
+	# required
+	slotname="slot_for_datakit"
+
+	# exlcude the events of postgres
+	# there are 3 events: "insert","update","delete"
+	# required
+	events=['insert']
+
+	# tags
+	tagList=['colunm1']
+
+	# fields. required
+	# required
+	fieldList=['colunm0']
+
+	# [inputs.replication.tags]
+	# tags1 = "value1"
 `
 )
 
