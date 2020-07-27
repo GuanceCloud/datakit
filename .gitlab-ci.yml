@@ -21,6 +21,7 @@ build-dev:
     - make preprod
     - make pub_preprod
     - make test_notify
+    - make pub_testing_img
   tags:
     - cloudcare-ft
 
@@ -32,5 +33,6 @@ build-release:
     - make release
     - make pub_release
     - make release_notify
+    - make pub_release_img
   tags:
     - cloudcare-ft
