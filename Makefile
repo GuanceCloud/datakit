@@ -95,6 +95,10 @@ pub_local:
 pub_test:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
+pub_img:
+	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(VERSION) .
+	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
+
 pub_agent:
 	@go run cmd/make/make.go -pub-agent -release local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
 	@go run cmd/make/make.go -pub-agent -release test -pub-dir embed -download-addr $(TEST_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
@@ -106,10 +110,6 @@ pub_preprod:
 
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
-
-pub_image:
-	@sudo docker build --tag registry.jiagouyun.com/datakit/datakit:$(VERSION) -f internal-dk.Dockerfile .
-	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
 
 test_notify:
 	@curl \
