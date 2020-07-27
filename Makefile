@@ -95,9 +95,14 @@ pub_local:
 pub_test:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
-pub_img:
+pub_testing_img:
 	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(VERSION) .
 	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
+
+pub_release_img:
+	# release to pub hub
+	@sudo docker build -t pubrepo.jiagouyun.com/dataflux/datakit:$(VERSION) .
+	@sudo docker push pubrepo.jiagouyun.com/dataflux/datakit:$(VERSION)
 
 pub_agent:
 	@go run cmd/make/make.go -pub-agent -release local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
