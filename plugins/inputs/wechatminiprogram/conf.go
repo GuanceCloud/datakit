@@ -15,11 +15,11 @@ const (
 
 var (
 	l         *logger.Logger
-	inputName = "wechat"
+	inputName = "wechatminiprogram"
 	sampleCfg = `
 # [inputs.wechat]
-## The wechat  official can only pull yesterday's data, set 24h is a better way
-# interval = '24h'
+## WeChat everyday run time
+# runtime = '18:10'
 ## Small program unique unique credentials   AppID
 # appid = ""
 ## Small program unique credential key   AppSecret
