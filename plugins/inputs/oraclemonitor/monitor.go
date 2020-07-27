@@ -121,8 +121,8 @@ func (o *OracleMonitor) Run() {
 		return
 	}
 
-	l.Infof("oraclemonintor PID: %d", cmd.Process.Pid)
-	datakit.MonitProc(cmd.Process, "oraclemonintor") // blocking
+	l.Infof("oraclemonitor PID: %d", cmd.Process.Pid)
+	datakit.MonitProc(cmd.Process, "oraclemonitor") // blocking
 }
 
 func init() {

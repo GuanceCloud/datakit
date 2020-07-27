@@ -96,7 +96,7 @@ type NodeItem struct {
 }
 
 type Yarn struct {
-	Interval    int
+	Interval    interface{}
 	Active      bool
 	Host        string
 	MetricsName string
@@ -120,13 +120,13 @@ type YarnParam struct {
 
 const (
 	yarnConfigSample = `### You need to configure an [[inputs.yarn]] for each yarn to be monitored.
-### interval: monitor interval second, unit is second. The default value is 60.
+### interval: monitor interval, the default value is "60s".
 ### active: whether to monitor yarn.
 ### host: yarn service WebUI host, such as http://ip:port.
 ### metricsName: the name of metric, default is "yarn"
 
 #[[inputs.yarn]]
-#	interval    = 60
+#	interval    = "60s"
 #	active      = true
 #	host        = "http://127.0.0.1:8088"
 #	metricsName = "yarn"
@@ -136,7 +136,7 @@ const (
 #		tagn = "tagn"
 
 #[[inputs.yarn]]
-#	interval    = 60
+#	interval    = "60s"
 #	active      = true
 #	host        = "http://127.0.0.1:8088"
 #	metricsName = "yarn"
@@ -148,7 +148,7 @@ const (
 
 	name              = "yarn"
 	defaultMetricName = name
-	defaultInterval   = 60
+	defaultInterval   = "60s"
 	urlPrefix         = "/ws/v1/cluster/"
 	host              = "host"
 	canConect         = "can_connect"
@@ -184,7 +184,7 @@ func (y *Yarn) Run() {
 		y.MetricsName = defaultMetricName
 	}
 
-	if y.Interval == 0 {
+	if y.Interval == nil {
 		y.Interval = defaultInterval
 	}
 	y.hostPath = strings.TrimRight(y.Host, "/") + urlPrefix
@@ -197,14 +197,31 @@ func (y *Yarn) Run() {
 }
 
 func (p *YarnParam) gather() {
-	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
+	var d time.Duration
+	var err error
+
+	switch p.input.Interval.(type) {
+	case int64:
+		d = time.Duration(p.input.Interval.(int64))*time.Second
+	case string:
+		d, err = time.ParseDuration(p.input.Interval.(string))
+		if err != nil {
+			p.log.Errorf("parse interval err: %s", err.Error())
+			return
+		}
+	default:
+		p.log.Errorf("interval type unsupported")
+		return
+	}
+
+	tick := time.NewTicker(d)
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
-			err := p.getMetrics()
+			err = p.getMetrics()
 			if err != nil {
-				p.log.Errorf("getMetrics err: %s", err.Error())
+				p.log.Errorf("%s", err.Error())
 			}
 		case <-datakit.Exit.Wait():
 			p.log.Info("input yarn exit")
