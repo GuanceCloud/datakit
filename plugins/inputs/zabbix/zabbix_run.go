@@ -24,9 +24,25 @@ type ZabbixParam struct {
 
 func (z *ZabbixParam) gather() {
 	var start, stop time.Time
+	var d time.Duration
+	var err error
 	tbls := []string{"history", "history_uint", "trends", "trends_uint"}
 
-	ticker := time.NewTicker(time.Duration(z.input.Interval) * time.Second)
+	switch z.input.Interval.(type) {
+	case int64:
+		d = time.Duration(z.input.Interval.(int64))*time.Second
+	case string:
+		d, err = time.ParseDuration(z.input.Interval.(string))
+		if err != nil {
+			z.log.Errorf("parse interval err: %s", err.Error())
+			return
+		}
+	default:
+		z.log.Errorf("interval type unsupported")
+		return
+	}
+
+	ticker := time.NewTicker(d)
 	defer ticker.Stop()
 
 	start = z.getStartDate()
