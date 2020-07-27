@@ -53,6 +53,8 @@ func (c *Config) LoadConfig() error {
 			return nil
 		}
 
+		l.Debugf("parse %s ok", fp)
+
 		availableInputCfgs[fp] = tbl
 		return nil
 	}); err != nil {
@@ -112,7 +114,6 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 				} else {
 					for inputName, v := range tbl_.Fields {
 						if inputName != name {
-							l.Debugf("input %s ignore input %s", name, inputName)
 							continue
 						}
 
@@ -161,6 +162,8 @@ func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creat
 			l.Error("add %s failed: %v", name, err)
 			return err
 		}
+
+		l.Infof("add input %s ok", name)
 	}
 
 	return nil
