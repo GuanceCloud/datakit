@@ -201,7 +201,7 @@ func startIO() {
 
 					now := time.Now()
 
-					l.Debugf("get iodata(%d bytes) from %s", len(d.data), d.category)
+					l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
 					cache[d.category] = append(cache[d.category], d.data)
 
 					if istat, ok := stats[d.name]; !ok {
