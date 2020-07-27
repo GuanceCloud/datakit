@@ -18,7 +18,7 @@ import (
 type WxClient struct {
 	Appid    string `toml:"appid"`
 	Secret   string `toml:"secret"`
-	Interval string `toml:"interval"`
+	RunTime string `toml:"runtime"`
 }
 
 func (wx *WxClient) SampleConfig() string {
@@ -42,16 +42,18 @@ func (wx *WxClient) Run() {
 
 	l = logger.SLogger("wechat")
 	l.Info("wechat input started...")
-	interval, err := time.ParseDuration(wx.Interval)
+	interval, err := time.ParseDuration("24h")
 	if err != nil {
 		l.Error(err)
 	}
+	sleepTime := wx.formatRuntime()
+	time.Sleep(time.Duration(sleepTime)*time.Second)
 	tick := time.NewTicker(interval)
 	defer tick.Stop()
 	for {
+		wx.run()
 		select {
 		case <-tick.C:
-			wx.run()
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
 			return
@@ -94,7 +96,6 @@ func (wx *WxClient) GetDailyVisitTrend(accessToken string) {
 func (wx *WxClient) GetVisitDistribution(accessToken string) () {
 	body, timeObj := wx.API(accessToken, VisitDistributionURL)
 	tags := map[string]string{}
-	fmt.Println(string(body))
 	fields := map[string]interface{}{}
 	for _, v := range gjson.Get(string(body), "list").Array() {
 		index := v.Get("index").String()
@@ -116,7 +117,6 @@ func (wx *WxClient) GetUserPortrait(accessToken string) {
 
 func (wx *WxClient) GetVisitPage(accessToken string) () {
 	body, timeObj := wx.API(accessToken, VisitPageURL)
-	fmt.Println(body)
 	tags := map[string]string{}
 	fields := map[string]interface{}{}
 	for _, v := range gjson.Get(string(body), "list").Array() {
@@ -180,6 +180,7 @@ func (wx *WxClient) GetAccessToken() (token string) {
 	if code >= 40000 {
 		fmt.Printf("error:%s",string(body))
 		l.Errorf("config error: %s", gjson.Get(string(body), "errmsg").String())
+		return wx.GetAccessToken()
 	}
 	return gjson.Get(string(body), "access_token").String()
 }
@@ -196,6 +197,9 @@ func (wx *WxClient) FormatUserPortraitData(body string, dataType string, timeObj
 	}
 }
 
+
+
+
 func (wx *WxClient) API(accessToken string, apiUrl string) ([]byte, time.Time) {
 	queries := requestQueries{
 		"access_token": accessToken,
@@ -204,7 +208,7 @@ func (wx *WxClient) API(accessToken string, apiUrl string) ([]byte, time.Time) {
 	var cstZone = time.FixedZone("CST", 8*3600)
 	d, _ := time.ParseDuration("-24h")
 	date := time.Now().Add(d).In(cstZone).Format("20060102")
-	timeObj, err := time.ParseInLocation("20060102", date, cstZone)
+	timeObj, err := time.ParseInLocation("20060102 15:04:05", date + " 23:59:59", cstZone)
 	if err != nil {
 		l.Errorf("API time format err: %s",err)
 	}
@@ -232,6 +236,25 @@ func (wx *WxClient) API(accessToken string, apiUrl string) ([]byte, time.Time) {
 		l.Errorf("api error: %s %s", apiUrl, gjson.Get(string(body), "errmsg").String())
 	}
 	return body, timeObj
+}
+
+func (wx *WxClient)formatRuntime() int64{
+	var cstZone = time.FixedZone("CST", 8*3600)
+	now := time.Now().In(cstZone)
+	format := fmt.Sprintf("%s %s:00",now.Format("20060102"),wx.RunTime)
+	runTime,err := time.ParseInLocation("20060102 15:04:05",format,cstZone)
+	if err != nil {
+		return wx.formatRuntime()
+	}
+	var sleepTime float64
+	if now.Unix() > runTime.Unix() {
+		sleepTime = 24 * 3600 - now.Sub(runTime).Seconds()
+
+	}else {
+		sleepTime = runTime.Sub(now).Seconds()
+
+	}
+	return int64(sleepTime)
 }
 
 func EncodingUrl(api string, params requestQueries) string {
