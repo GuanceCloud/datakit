@@ -109,7 +109,7 @@ omit_hostname = false
 
 	t.Logf("%+#v", maincfg)
 
-	dwcfg, err := parseDataway(maincfg.FtGateway)
+	dwcfg, err := config.ParseDataway(maincfg.FtGateway)
 	if err != nil {
 		t.Fatalf("E! %s", err.Error())
 	}
