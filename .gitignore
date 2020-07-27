@@ -32,7 +32,6 @@ embed/*
 deps/*
 *.err
 *.test
-*.zip
 *.rpm
 log
 run.s
