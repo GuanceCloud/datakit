@@ -18,16 +18,19 @@ const (
 	sampleCfg = `
 # [[inputs.lighttpd]]
 # 	# lighttpd status url
+#	# required
 # 	url = "http://127.0.0.1:8080/server-status"
 #
 # 	# lighttpd version is "v1" or "v2"
+#	# required
 # 	version = "v1"
 #
 # 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-# 	collect_cycle = "60s"
+#	# required
+# 	interval = "10s"
 #
 # 	# [inputs.lighttpd.tags]
-# 	# tags1 = "tags1"
+# 	# tags1 = "value1"
 `
 )
 
@@ -40,13 +43,18 @@ func init() {
 }
 
 type Lighttpd struct {
-	URL          string            `toml:"url"`
-	Version      string            `toml:"version"`
-	CollectCycle string            `toml:"collect_cycle"`
-	Tags         map[string]string `toml:"tags"`
+	URL      string            `toml:"url"`
+	Version  string            `toml:"version"`
+	Interval string            `toml:"interval"`
+	Tags     map[string]string `toml:"tags"`
+
+	// forward compatibility
+	CollectCycle string `toml:"collect_cycle"`
 
 	statusURL     string
 	statusVersion Version
+
+	duration time.Duration
 }
 
 func (_ *Lighttpd) SampleConfig() string {
@@ -60,19 +68,13 @@ func (_ *Lighttpd) Catalog() string {
 func (h *Lighttpd) Run() {
 	l = logger.SLogger(inputName)
 
-	d, err := time.ParseDuration(h.CollectCycle)
-	if err != nil || d <= 0 {
-		l.Errorf("invalid duration of collect_cycle")
+	if h.loadcfg() {
 		return
 	}
-	ticker := time.NewTicker(d)
+	ticker := time.NewTicker(h.duration)
 	defer ticker.Stop()
 
-	if h.initcfg() {
-		return
-	}
-
-	l.Infof("lighttpd input started...")
+	l.Infof("lighttpd input started.")
 
 	for {
 		select {
@@ -95,15 +97,10 @@ func (h *Lighttpd) Run() {
 	}
 }
 
-func (h *Lighttpd) initcfg() bool {
-	if h.Tags == nil {
-		h.Tags = make(map[string]string)
-	}
-	if _, ok := h.Tags["url"]; !ok {
-		h.Tags["url"] = h.URL
-	}
-	if _, ok := h.Tags["version"]; !ok {
-		h.Tags["version"] = h.Version
+func (h *Lighttpd) loadcfg() bool {
+
+	if h.Interval == "" && h.CollectCycle != "" {
+		h.Interval = h.CollectCycle
 	}
 
 	for {
@@ -114,6 +111,14 @@ func (h *Lighttpd) initcfg() bool {
 		default:
 			// nil
 		}
+
+		d, err := time.ParseDuration(h.CollectCycle)
+		if err != nil || d <= 0 {
+			l.Errorf("invalid interval, %s", err.Error())
+			time.Sleep(time.Second)
+			continue
+		}
+		h.duration = d
 
 		if h.Version == "v1" {
 			h.statusURL = fmt.Sprintf("%s?json", h.URL)
@@ -127,6 +132,16 @@ func (h *Lighttpd) initcfg() bool {
 			l.Error("invalid lighttpd version")
 			time.Sleep(time.Second)
 		}
+	}
+
+	if h.Tags == nil {
+		h.Tags = make(map[string]string)
+	}
+	if _, ok := h.Tags["url"]; !ok {
+		h.Tags["url"] = h.URL
+	}
+	if _, ok := h.Tags["version"]; !ok {
+		h.Tags["version"] = h.Version
 	}
 
 	return false
