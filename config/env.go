@@ -11,8 +11,13 @@ import (
 
 func (c *Config) loadEnvs() error {
 
-	c.MainCfg.UUID = os.Getenv("ENV_UUID")
+	dkid := os.Getenv("ENV_UUID")
 	dwcfg := os.Getenv("ENV_DATAWAY")
+
+	loglvl := os.Getenv("ENV_LOG_LEVEL")
+	if loglvl != "" {
+		c.MainCfg.LogLevel = loglvl
+	}
 
 	if dwcfg != "" {
 		dw, err := ParseDataway(dwcfg)
@@ -33,7 +38,8 @@ func (c *Config) loadEnvs() error {
 
 			l.Debugf("generating datakit.conf...")
 
-			if c.MainCfg.UUID == "" {
+			c.MainCfg.UUID = dkid
+			if dkid == "" {
 				c.MainCfg.UUID = cliutils.XID("dkid_")
 			}
 
