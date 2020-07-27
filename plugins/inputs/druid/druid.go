@@ -29,9 +29,9 @@ const (
 	defaultMeasurement = "druid"
 
 	sampleCfg = `
-# [inputs.druid]
-# 	# [inputs.druid.tags]
-# 	# tags1 = "tags1"
+[inputs.druid]
+	# [inputs.druid.tags]
+	# tags1 = "tags1"
 `
 )
 
