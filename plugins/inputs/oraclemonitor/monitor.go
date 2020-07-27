@@ -126,7 +126,7 @@ func (o *OracleMonitor) Run() {
 }
 
 func init() {
-	inputs.Add("oraclemonintor", func() inputs.Input {
+	inputs.Add("oraclemonitor", func() inputs.Input {
 		return &OracleMonitor{}
 	})
 }
