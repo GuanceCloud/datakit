@@ -20,7 +20,7 @@ type IoFeed func(data []byte, category, name string) error
 
 type Squid struct {
 	Active      bool
-	Interval    int
+	Interval    interface{}
 	Port        int
 	MetricsName string
 	Tags        map[string]string
@@ -43,15 +43,15 @@ type SquidParam struct {
 var (
 	name              = "squid"
 	defaultMetricName = name
-	defaultInterval   = 60
+	defaultInterval   = "60s"
 	defaultPort       = 3218
-	squidConfigSample = `### interval: monitor interval second, unit is second. The default value is 60.
+	squidConfigSample = `### interval: monitor interval, the default value is "60s".
 ### active: whether to monitor squid.
 ### metricsName: the name of metric, default is "squid"
 
 #[inputs.squid]
 #	active   = true
-#	interval = 60
+#	interval = "60s"
 #	port     = 3128
 #	metricsName = "squid"
 #	[inputs.squid.tags]
@@ -80,7 +80,7 @@ func (s *Squid) Run() {
 	if s.MetricsName == "" {
 		s.MetricsName = defaultMetricName
 	}
-	if s.Interval == 0 {
+	if s.Interval == nil {
 		s.Interval = defaultInterval
 	}
 	if s.Port == 0 {
@@ -96,13 +96,30 @@ func (s *Squid) Run() {
 }
 
 func (p *SquidParam) gather() {
-	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
+	var d time.Duration
+	var err error
+
+	switch p.input.Interval.(type) {
+	case int64:
+		d = time.Duration(p.input.Interval.(int64))*time.Second
+	case string:
+		d, err = time.ParseDuration(p.input.Interval.(string))
+		if err != nil {
+			p.log.Errorf("parse interval err: %s", err.Error())
+			return
+		}
+	default:
+		p.log.Errorf("interval type unsupported")
+		return
+	}
+
+	tick := time.NewTicker(d)
 	defer tick.Stop()
 
 	for {
 		select {
 		case <-tick.C:
-			err := p.getMetrics()
+			err = p.getMetrics()
 			if err != nil {
 				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
