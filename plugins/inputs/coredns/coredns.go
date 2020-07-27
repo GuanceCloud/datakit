@@ -17,21 +17,21 @@ const (
 	defaultMeasurement = "coredns"
 
 	sampleCfg = `
-# [[inputs.coredns]]
-# 	# coredns host
-#	# required
-# 	host = "127.0.0.1"
-#
-# 	# coredns prometheus port
-#	# required
-# 	port = 9153
-#
-# 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-#	# required
-# 	interval = "10s"
-#
-# 	# [inputs.coredns.tags]
-# 	# tags1 = "value1"
+[[inputs.coredns]]
+	# coredns host
+	# required
+	host = "127.0.0.1"
+
+	# coredns prometheus port
+	# required
+	port = 9153
+
+	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+	# required
+	interval = "10s"
+
+	# [inputs.coredns.tags]
+	# tags1 = "value1"
 `
 )
 
