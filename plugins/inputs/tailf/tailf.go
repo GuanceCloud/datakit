@@ -23,18 +23,18 @@ const (
 	defaultMeasurement = "tailf"
 
 	sampleCfg = `
-# [[inputs.tailf]]
-#       # required
-#	logfiles = ["/tmp/tailf_test/*.log"]
-#
-#	# glob filteer
-#	ignore = ["*.gz"]
-#
-#	# required
-#	source = "tailf"
-#
-#	# [inputs.tailf.tags]
-#	# tags1 = "value1"
+[[inputs.tailf]]
+	# required
+	logfiles = ["/tmp/tailf_test/*.log"]
+	
+	# glob filteer
+	ignore = ["*.gz"]
+	
+	# required
+	source = "tailf"
+	
+	# [inputs.tailf.tags]
+	# tags1 = "value1"
 `
 )
 
