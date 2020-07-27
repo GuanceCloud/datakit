@@ -356,7 +356,7 @@ func DumpInputsOutputs() {
 		}
 	}
 
-	l.Infof("avariable inputs: %s", strings.Join(names, ","))
+	l.Infof("available inputs: %s", strings.Join(names, ","))
 }
 
 func InitCfg(dwcfg *DataWayCfg) error {
