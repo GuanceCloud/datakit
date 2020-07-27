@@ -19,11 +19,15 @@ const (
 
 	sampleCfg = `
 # [[inputs.etcd]]
-# 	# etcd host ip
+#	# required
 # 	host = "127.0.0.1"
 #
-# 	# etcd port
+#	# required
 # 	port = 2379
+#
+# 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+#	# required
+# 	interval = "10s"
 #
 # 	# use HTTPS TLS
 # 	tls_open = false
@@ -36,9 +40,6 @@ const (
 #
 # 	# key
 # 	tls_key_file = "peer.key"
-#
-# 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-# 	collect_cycle = "60s"
 #
 # 	# [inputs.etcd.tags]
 # 	# tags1 = "value1"
@@ -54,17 +55,22 @@ func init() {
 }
 
 type Etcd struct {
-	Host         string            `toml:"host"`
-	Port         int               `toml:"port"`
-	TLSOpen      bool              `toml:"tls_open"`
-	CacertFile   string            `toml:"tls_cacert_file"`
-	CertFile     string            `toml:"tls_cert_file"`
-	KeyFile      string            `toml:"tls_key_file"`
-	CollectCycle string            `toml:"collect_cycle"`
-	Tags         map[string]string `toml:"tags"`
+	Host       string            `toml:"host"`
+	Port       int               `toml:"port"`
+	Interval   string            `toml:"interval"`
+	TLSOpen    bool              `toml:"tls_open"`
+	CacertFile string            `toml:"tls_cacert_file"`
+	CertFile   string            `toml:"tls_cert_file"`
+	KeyFile    string            `toml:"tls_key_file"`
+	Tags       map[string]string `toml:"tags"`
 
-	address string
-	// HTTPS TLS
+	// forward compatibility
+	CollectCycle string `toml:"collect_cycle"`
+
+	address  string
+	duration time.Duration
+
+	// HTTPS TLS config
 	tlsConfig *tls.Config
 }
 
@@ -79,19 +85,13 @@ func (_ *Etcd) Catalog() string {
 func (e *Etcd) Run() {
 	l = logger.SLogger(inputName)
 
-	d, err := time.ParseDuration(e.CollectCycle)
-	if err != nil || d <= 0 {
-		l.Errorf("invalid duration of collect_cycle")
+	if e.loadcfg() {
 		return
 	}
-	ticker := time.NewTicker(d)
+	ticker := time.NewTicker(e.duration)
 	defer ticker.Stop()
 
-	if e.initcfg() {
-		return
-	}
-
-	l.Infof("etcd input started...")
+	l.Infof("etcd input started.")
 
 	for {
 		select {
@@ -114,13 +114,10 @@ func (e *Etcd) Run() {
 	}
 }
 
-func (e *Etcd) initcfg() bool {
-	if e.Tags == nil {
-		e.Tags = make(map[string]string)
-	}
+func (e *Etcd) loadcfg() bool {
 
-	if _, ok := e.Tags["address"]; !ok {
-		e.Tags["address"] = fmt.Sprintf("%s:%d", e.Host, e.Port)
+	if e.Interval == "" && e.CollectCycle != "" {
+		e.Interval = e.CollectCycle
 	}
 
 	for {
@@ -131,6 +128,14 @@ func (e *Etcd) initcfg() bool {
 		default:
 			// nil
 		}
+
+		d, err := time.ParseDuration(e.Interval)
+		if err != nil || d <= 0 {
+			l.Errorf("invalid interval, err %s", err.Error())
+			time.Sleep(time.Second)
+			continue
+		}
+		e.duration = d
 
 		// "https" or "http"
 		if e.TLSOpen {
@@ -147,6 +152,14 @@ func (e *Etcd) initcfg() bool {
 			e.address = fmt.Sprintf("http://%s:%d/metrics", e.Host, e.Port)
 			break
 		}
+	}
+
+	if e.Tags == nil {
+		e.Tags = make(map[string]string)
+	}
+
+	if _, ok := e.Tags["address"]; !ok {
+		e.Tags["address"] = fmt.Sprintf("%s:%d", e.Host, e.Port)
 	}
 
 	return false
