@@ -10,7 +10,7 @@ import (
 const (
 	sampleConfig = `
 #[[ECSObject]]
-# ## @param - aliyun authorization information - string - required
+# ## @param - aliyun authorization informations - string - required
 # region_id = ''
 # access_key_id = ''
 # access_key_secret = ''
@@ -25,11 +25,13 @@ const (
 )
 
 type AliyunCfg struct {
-	RegionID        string            `toml:"region_id"`
-	AccessKeyID     string            `toml:"access_key_id"`
-	AccessKeySecret string            `toml:"access_key_secret"`
-	Interval        internal.Duration `toml:"interval"`
-	Tags            map[string]string `toml:"tags"`
+	RegionID           string            `toml:"region_id"`
+	AccessKeyID        string            `toml:"access_key_id"`
+	AccessKeySecret    string            `toml:"access_key_secret"`
+	Interval           internal.Duration `toml:"interval"`
+	InstancesIDs       []string          `toml:"instanceids,omitempty"`
+	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	Tags               map[string]string `toml:"tags,omitempty"`
 }
 
 type objectAgent struct {
