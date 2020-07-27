@@ -26,6 +26,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mock"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodboplog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysqlmonitor"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nfsstat"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/puppetagent"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/replication"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
@@ -38,6 +39,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traefik"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ucmon"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/wechatminiprogram"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/yarn"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
 
