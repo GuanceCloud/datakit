@@ -18,27 +18,27 @@ const (
 	defaultMeasurement = "containerd"
 
 	sampleCfg = `
-# [inputs.containerd]
-# 	# containerd sock file, default "/run/containerd/containerd.sock"
-#	# required
-# 	location = "/run/containerd/containerd.sock"
-#
-# 	# containerd namespace
-# 	# 'ps -ef | grep containerd | grep containerd-shim' print detail
-#	# required
-# 	namespace = "moby"
-#
-# 	# containerd ID list，ID is string and length 64.
-# 	# if value is "*", collect all ID
-#	# required
-# 	ID_list = ["*"]
-#
-# 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-#	# required
-# 	interval = "10s"
-#
-# 	# [inputs.containerd.tags]
-# 	# tags1 = "value1"
+[inputs.containerd]
+	# containerd sock file, default "/run/containerd/containerd.sock"
+	# required
+	location = "/run/containerd/containerd.sock"
+
+	# containerd namespace
+	# 'ps -ef | grep containerd | grep containerd-shim' print detail
+	# required
+	namespace = "moby"
+
+	# containerd ID list，ID is string and length 64.
+	# if value is "*", collect all ID
+	# required
+	ID_list = ["*"]
+
+	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+	# required
+	interval = "10s"
+
+	# [inputs.containerd.tags]
+	# tags1 = "value1"
 `
 	containerdSock = "/run/containerd/containerd.sock"
 )
