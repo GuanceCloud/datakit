@@ -146,7 +146,12 @@ func (pa *PuppetAgent) do() {
 				continue
 			}
 
-			if event.Op&fsnotify.Write == fsnotify.Write {
+			if testAssert {
+				fmt.Printf("get event: %v\n", event)
+			}
+
+			if event.Op&fsnotify.Write == fsnotify.Write ||
+				event.Op&fsnotify.Chmod == fsnotify.Chmod {
 
 				data, err := buildPoint(pa.Location, pa.Tags)
 				if err != nil {
