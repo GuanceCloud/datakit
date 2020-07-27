@@ -37,6 +37,7 @@ require (
 	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/go-ole/go-ole v1.2.4
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/gobuffalo/logger v1.0.1
 	github.com/godror/godror v0.17.0
 	github.com/gofrs/uuid v2.1.0+incompatible
 	github.com/gogo/googleapis v1.4.0 // indirect
@@ -71,6 +72,7 @@ require (
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.9.1
 	github.com/prometheus/node_exporter v0.18.1 // indirect
+	github.com/prometheus/procfs v0.0.8
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/robfig/cron v1.2.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
