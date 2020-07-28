@@ -272,7 +272,7 @@ repositories = [
  data_format = "influx"`
 
 	TelegrafInputs[`socket_listener`].Sample = `
- Generic socket listener capable of handling multiple socket types.
+# Generic socket listener capable of handling multiple socket types.
 [[inputs.socket_listener]]
 	## collectd
 	service_address = "udp://:25826"
@@ -1198,7 +1198,7 @@ service_names = [
   report_active = false`
 
 	TelegrafInputs[`disk`].Sample = `
- Read metrics about disk usage by mount point
+#Read metrics about disk usage by mount point
 [[inputs.disk]]
  ## By default stats will be gathered for all mount points.
  ## Set mount_points will restrict the stats to only the specified mount points.
@@ -2274,510 +2274,510 @@ pid_file = "/var/run/nginx.pid"
 
 	TelegrafInputs[`consul`].Sample = `
 	# Gather health check statuses from services registered in Consul
-	#[[inputs.consul]]
-		## Consul server address
-		# address = "localhost:8500"
+	[[inputs.consul]]
+		# Consul server address
+		 address = "localhost:8500"
 
-		## URI scheme for the Consul server, one of "http", "https"
-		# scheme = "http"
+		# URI scheme for the Consul server, one of "http", "https"
+		 scheme = "http"
 
-		## ACL token used in every request
-		# token = ""
+		# ACL token used in every request
+		 token = ""
 
-		## HTTP Basic Authentication username and password.
-		# username = ""
-		# password = ""
+		# HTTP Basic Authentication username and password.
+		 username = ""
+		 password = ""
 
-		## Data center to query the health checks from
-		# datacenter = ""
+		# Data center to query the health checks from
+		 datacenter = ""
 
-		## Optional TLS Config
-		# tls_ca = "/etc/telegraf/ca.pem"
-		# tls_cert = "/etc/telegraf/cert.pem"
-		# tls_key = "/etc/telegraf/key.pem"
-		## Use TLS but skip chain & host verification
-		# insecure_skip_verify = true
+		# Optional TLS Config
+		 tls_ca = "/etc/telegraf/ca.pem"
+		 tls_cert = "/etc/telegraf/cert.pem"
+		 tls_key = "/etc/telegraf/key.pem"
+		# Use TLS but skip chain & host verification
+		 insecure_skip_verify = true
 
-		## Consul checks' tag splitting
-		# When tags are formatted like "key:value" with ":" as a delimiter then
-		# they will be splitted and reported as proper key:value in Telegraf
-		# tag_delimiter = ":"
+		# Consul checks' tag splitting
+		 When tags are formatted like "key:value" with ":" as a delimiter then
+		 they will be splitted and reported as proper key:value in Telegraf
+		 tag_delimiter = ":"
 		`
 
 	TelegrafInputs[`kibana`].Sample = `
-		#[[inputs.kibana]]
-		## Specify a list of one or more Kibana servers
-		#servers = ["http://localhost:5601"]
+		[[inputs.kibana]]
+		# Specify a list of one or more Kibana servers
+		servers = ["http://localhost:5601"]
 
-		## Timeout for HTTP requests
-		#timeout = "5s"
+		# Timeout for HTTP requests
+		timeout = "5s"
 
-		## HTTP Basic Auth credentials
-		# username = "username"
-		# password = "pa$$word"
+		# HTTP Basic Auth credentials
+		 username = "username"
+		 password = "pa$$word"
 
-		## Optional TLS Config
-		# tls_ca = "/etc/telegraf/ca.pem"
-		# tls_cert = "/etc/telegraf/cert.pem"
-		# tls_key = "/etc/telegraf/key.pem"
-		## Use TLS but skip chain & host verification
-		# insecure_skip_verify = false
+		# Optional TLS Config
+		 tls_ca = "/etc/telegraf/ca.pem"
+		 tls_cert = "/etc/telegraf/cert.pem"
+		 tls_key = "/etc/telegraf/key.pem"
+		# Use TLS but skip chain & host verification
+		 insecure_skip_verify = false
 		`
 
 	TelegrafInputs[`modbus`].Sample = `
-		#[[inputs.modbus]]
-		## Connection Configuration
-		##
-		## The module supports connections to PLCs via MODBUS/TCP or
-		## via serial line communication in binary (RTU) or readable (ASCII) encoding
-		##
-		## Device name
-		#name = "Device"
+		[[inputs.modbus]]
+		# Connection Configuration
+		#
+		# The module supports connections to PLCs via MODBUS/TCP or
+		# via serial line communication in binary (RTU) or readable (ASCII) encoding
+		#
+		# Device name
+		name = "Device"
 
-		## Slave ID - addresses a MODBUS device on the bus
-		## Range: 0 - 255 [0 = broadcast; 248 - 255 = reserved]
-		#slave_id = 1
+		# Slave ID - addresses a MODBUS device on the bus
+		# Range: 0 - 255 [0 = broadcast; 248 - 255 = reserved]
+		slave_id = 1
 
-		## Timeout for each request
-		#timeout = "1s"
+		# Timeout for each request
+		timeout = "1s"
 
-		## Maximum number of retries and the time to wait between retries
-		## when a slave-device is busy.
-		# busy_retries = 0
-		# busy_retries_wait = "100ms"
+		# Maximum number of retries and the time to wait between retries
+		# when a slave-device is busy.
+		 busy_retries = 0
+		 busy_retries_wait = "100ms"
 
-		# TCP - connect via Modbus/TCP
-		#controller = "tcp://localhost:502"
+		 TCP - connect via Modbus/TCP
+		controller = "tcp://localhost:502"
 
-		## Serial (RS485; RS232)
-		# controller = "file:///dev/ttyUSB0"
-		# baud_rate = 9600
-		# data_bits = 8
-		# parity = "N"
-		# stop_bits = 1
-		# transmission_mode = "RTU"
+		# Serial (RS485; RS232)
+		 controller = "file:///dev/ttyUSB0"
+		 baud_rate = 9600
+		 data_bits = 8
+		 parity = "N"
+		 stop_bits = 1
+		 transmission_mode = "RTU"
 
 
-		## Measurements
-		##
+		# Measurements
+		#
 
-		## Digital Variables, Discrete Inputs and Coils
-		## name    - the variable name
-		## address - variable address
+		# Digital Variables, Discrete Inputs and Coils
+		# name    - the variable name
+		# address - variable address
 
-		#discrete_inputs = [
-		#	{ name = "Start",          address = [0]},
-		#	{ name = "Stop",           address = [1]},
-		#	{ name = "Reset",          address = [2]},
-		#	{ name = "EmergencyStop",  address = [3]},
-		#]
-		#coils = [
-		#	{ name = "Motor1-Run",     address = [0]},
-		#	{ name = "Motor1-Jog",     address = [1]},
-		#	{ name = "Motor1-Stop",    address = [2]},
-		#]
+		discrete_inputs = [
+			{ name = "Start",          address = [0]},
+			{ name = "Stop",           address = [1]},
+			{ name = "Reset",          address = [2]},
+			{ name = "EmergencyStop",  address = [3]},
+		]
+		coils = [
+			{ name = "Motor1-Run",     address = [0]},
+			{ name = "Motor1-Jog",     address = [1]},
+			{ name = "Motor1-Stop",    address = [2]},
+		]
 
-		## Analog Variables, Input Registers and Holding Registers
-		## measurement - the (optional) measurement name, defaults to "modbus"
-		## name       - the variable name
-		## byte_order - the ordering of bytes
-		##  |---AB, ABCD   - Big Endian
-		##  |---BA, DCBA   - Little Endian
-		##  |---BADC       - Mid-Big Endian
-		##  |---CDAB       - Mid-Little Endian
-		## data_type  - INT16, UINT16, INT32, UINT32, INT64, UINT64, FLOAT32, FLOAT32-IEEE (the IEEE 754 binary representation)
-		## scale      - the final numeric variable representation
-		## address    - variable address
+		# Analog Variables, Input Registers and Holding Registers
+		# measurement - the (optional) measurement name, defaults to "modbus"
+		# name       - the variable name
+		# byte_order - the ordering of bytes
+		#  |---AB, ABCD   - Big Endian
+		#  |---BA, DCBA   - Little Endian
+		#  |---BADC       - Mid-Big Endian
+		#  |---CDAB       - Mid-Little Endian
+		# data_type  - INT16, UINT16, INT32, UINT32, INT64, UINT64, FLOAT32, FLOAT32-IEEE (the IEEE 754 binary representation)
+		# scale      - the final numeric variable representation
+		# address    - variable address
 
-		#holding_registers = [
-		#	{ name = "PowerFactor", byte_order = "AB",   data_type = "FLOAT32", scale=0.01,  address = [8]},
-		#	{ name = "Voltage",     byte_order = "AB",   data_type = "FLOAT32", scale=0.1,   address = [0]},
-		#	{ name = "Energy",      byte_order = "ABCD", data_type = "FLOAT32", scale=0.001, address = [5,6]},
-		#	{ name = "Current",     byte_order = "ABCD", data_type = "FLOAT32", scale=0.001, address = [1,2]},
-		#	{ name = "Frequency",   byte_order = "AB",   data_type = "FLOAT32", scale=0.1,   address = [7]},
-		#	{ name = "Power",       byte_order = "ABCD", data_type = "FLOAT32", scale=0.1,   address = [3,4]},
-		#]
-		#input_registers = [
-		#	{ name = "TankLevel",   byte_order = "AB",   data_type = "INT16",   scale=1.0,     address = [0]},
-		#	{ name = "TankPH",      byte_order = "AB",   data_type = "INT16",   scale=1.0,     address = [1]},
-		#	{ name = "Pump1-Speed", byte_order = "ABCD", data_type = "INT32",   scale=1.0,     address = [3,4]},
-		#]
+		holding_registers = [
+			{ name = "PowerFactor", byte_order = "AB",   data_type = "FLOAT32", scale=0.01,  address = [8]},
+			{ name = "Voltage",     byte_order = "AB",   data_type = "FLOAT32", scale=0.1,   address = [0]},
+			{ name = "Energy",      byte_order = "ABCD", data_type = "FLOAT32", scale=0.001, address = [5,6]},
+			{ name = "Current",     byte_order = "ABCD", data_type = "FLOAT32", scale=0.001, address = [1,2]},
+			{ name = "Frequency",   byte_order = "AB",   data_type = "FLOAT32", scale=0.1,   address = [7]},
+			{ name = "Power",       byte_order = "ABCD", data_type = "FLOAT32", scale=0.1,   address = [3,4]},
+		]
+		input_registers = [
+			{ name = "TankLevel",   byte_order = "AB",   data_type = "INT16",   scale=1.0,     address = [0]},
+			{ name = "TankPH",      byte_order = "AB",   data_type = "INT16",   scale=1.0,     address = [1]},
+			{ name = "Pump1-Speed", byte_order = "ABCD", data_type = "INT32",   scale=1.0,     address = [3,4]},
+		]
 		`
 
 	TelegrafInputs[`dotnetclr`].Sample = `
-		#[[inputs.win_perf_counters]]
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = ".NET CLR Exceptions"
+		[[inputs.win_perf_counters]]
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = ".NET CLR Exceptions"
 
-			# ##(required)
-			#Counters = ["# of Exceps Thrown / sec"]
+			 ##(required)
+			Counters = ["# of Exceps Thrown / sec"]
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'dotnetclr'
+			 ##(required) all object should use the same name
+			Measurement = 'dotnetclr'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = ".NET CLR Jit"
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = ".NET CLR Jit"
 
-			# ##(required)
-			#Counters = ["% Time in Jit","IL Bytes Jitted / sec"]
+			 ##(required)
+			Counters = ["% Time in Jit","IL Bytes Jitted / sec"]
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'dotnetclr'
+			 ##(required) all object should use the same name
+			Measurement = 'dotnetclr'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = ".NET CLR Loading"
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = ".NET CLR Loading"
 
-			# ##(required)
-			#Counters = ["% Time Loading"]
+			 ##(required)
+			Counters = ["% Time Loading"]
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'dotnetclr'
+			 ##(required) all object should use the same name
+			Measurement = 'dotnetclr'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = ".NET CLR LocksAndThreads"
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = ".NET CLR LocksAndThreads"
 
-			# ##(required)
-			#Counters = ["# of current logical Threads","# of current physical Threads","# of current recognized threads","# of total recognized threads","Queue Length / sec","Total # of Contentions","Current Queue Length"]
+			 ##(required)
+			Counters = ["# of current logical Threads","# of current physical Threads","# of current recognized threads","# of total recognized threads","Queue Length / sec","Total # of Contentions","Current Queue Length"]
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'dotnetclr'
+			 ##(required) all object should use the same name
+			Measurement = 'dotnetclr'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = ".NET CLR Memory"
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = ".NET CLR Memory"
 
-			# ##(required)
-			#Counters = ["% Time in GC","# Bytes in all Heaps","# Gen 0 Collections","# Gen 1 Collections","# Gen 2 Collections","# Induced GC" "Allocated Bytes/sec","Finalization Survivors","Gen 0 heap size","Gen 1 heap size","Gen 2 heap size","Large Object Heap size","# of Pinned Objects"]
+			 ##(required)
+			Counters = ["% Time in GC","# Bytes in all Heaps","# Gen 0 Collections","# Gen 1 Collections","# Gen 2 Collections","# Induced GC" "Allocated Bytes/sec","Finalization Survivors","Gen 0 heap size","Gen 1 heap size","Gen 2 heap size","Large Object Heap size","# of Pinned Objects"]
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'dotnetclr'
+			 ##(required) all object should use the same name
+			Measurement = 'dotnetclr'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = ".NET CLR Security"
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = ".NET CLR Security"
 
-			# ##(required)
-			#Counters = ["% Time in RT checks","Stack Walk Depth","Total Runtime Checks"]
+			 ##(required)
+			Counters = ["% Time in RT checks","Stack Walk Depth","Total Runtime Checks"]
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'dotnetclr'
+			 ##(required) all object should use the same name
+			Measurement = 'dotnetclr'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 		`
 
 	TelegrafInputs[`aspdotnet`].Sample = `
-		#[[inputs.win_perf_counters]]
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'ASP.NET'
+		[[inputs.win_perf_counters]]
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'ASP.NET'
 
-			# ##(required)
-			#Counters = ['Application Restarts', 'Worker Process Restarts', 'Request Wait Time']
+			 ##(required)
+			Counters = ['Application Restarts', 'Worker Process Restarts', 'Request Wait Time']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'aspdotnet'
+			 ##(required) all object should use the same name
+			Measurement = 'aspdotnet'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'ASP.NET Applications'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'ASP.NET Applications'
 
-			# ##(required)
-			#Counters = ['Requests In Application Queue', 'Requests Executing', 'Requests/Sec', 'Forms Authentication Failure', 'Forms Authentication Success']
+			 ##(required)
+			Counters = ['Requests In Application Queue', 'Requests Executing', 'Requests/Sec', 'Forms Authentication Failure', 'Forms Authentication Success']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'aspdotnet'
+			 ##(required) all object should use the same name
+			Measurement = 'aspdotnet'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 		`
 
 	TelegrafInputs[`msexchange`].Sample = `
-		#[[inputs.win_perf_counters]]
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'MSExchange ADAccess Domain Controllers'
+		[[inputs.win_perf_counters]]
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'MSExchange ADAccess Domain Controllers'
 
-			# ##(required)
-			#Counters = ['LDAP Read Time', 'LDAP Search Time']
+			 ##(required)
+			Counters = ['LDAP Read Time', 'LDAP Search Time']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'MSExchange ADAccess Processes'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'MSExchange ADAccess Processes'
 
-			# ##(required)
-			#Counters = ['LDAP Read Time', 'LDAP Search Time']
+			 ##(required)
+			Counters = ['LDAP Read Time', 'LDAP Search Time']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'Processor'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'Processor'
 
-			# ##(required)
-			#Counters = ['% Processor Time', '% User Time', '% Privileged Time']
+			 ##(required)
+			Counters = ['% Processor Time', '% User Time', '% Privileged Time']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['_Total']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['_Total']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=true
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=true
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'System'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'System'
 
-			# ##(required)
-			#Counters = ['Processor Queue Length']
+			 ##(required)
+			Counters = ['Processor Queue Length']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'Memory'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'Memory'
 
-			# ##(required)
-			#Counters = ['Available MBytes', '% Committed Bytes In Use']
+			 ##(required)
+			Counters = ['Available MBytes', '% Committed Bytes In Use']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'Network Interface'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'Network Interface'
 
-			# ##(required)
-			#Counters = ['Packets Outbound Errors']
+			 ##(required)
+			Counters = ['Packets Outbound Errors']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'TCPv6'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'TCPv6'
 
-			# ##(required)
-			#Counters = ['Connection Failures', 'Connections Reset']
+			 ##(required)
+			Counters = ['Connection Failures', 'Connections Reset']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'TCPv4'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'TCPv4'
 
-			# ##(required)
-			#Counters = ['Connections Reset']
+			 ##(required)
+			Counters = ['Connections Reset']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'Netlogon'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'Netlogon'
 
-			# ##(required)
-			#Counters = ['Semaphore Waiters', 'Semaphore Holders', 'Semaphore Acquires', 'Semaphore Timeouts', 'Average Semaphore Hold Time']
+			 ##(required)
+			Counters = ['Semaphore Waiters', 'Semaphore Holders', 'Semaphore Acquires', 'Semaphore Timeouts', 'Average Semaphore Hold Time']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'MSExchange Database ==> Instances'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'MSExchange Database ==> Instances'
 
-			# ##(required)
-			#Counters = ['I/O Database Reads (Attached) Average Latency', 'I/O Database Writes (Attached) Average Latency', 'I/O Log Writes Average Latency', 'I/O Database Reads (Recovery) Average Latency', 'I/O Database Writes (Recovery) Average Latency', 'I/O Database Reads (Attached)/sec', 'I/O Database Writes (Attached)/sec', 'I/O Log Writes/sec']
+			 ##(required)
+			Counters = ['I/O Database Reads (Attached) Average Latency', 'I/O Database Writes (Attached) Average Latency', 'I/O Log Writes Average Latency', 'I/O Database Reads (Recovery) Average Latency', 'I/O Database Writes (Recovery) Average Latency', 'I/O Database Reads (Attached)/sec', 'I/O Database Writes (Attached)/sec', 'I/O Log Writes/sec']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'MSExchange RpcClientAccess'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'MSExchange RpcClientAccess'
 
-			# ##(required)
-			#Counters = ['RPC Averaged Latency', 'RPC Requests', 'Active User Count', 'Connection Count', 'RPC Operations/sec', 'User Count']
+			 ##(required)
+			Counters = ['RPC Averaged Latency', 'RPC Requests', 'Active User Count', 'Connection Count', 'RPC Operations/sec', 'User Count']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'MSExchange HttpProxy'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'MSExchange HttpProxy'
 
-			# ##(required)
-			#Counters = ['MailboxServerLocator Average Latency', 'Average ClientAccess Server Processing Latency', 'Mailbox Server Proxy Failure Rate', 'Outstanding Proxy Requests', 'Proxy Requests/Sec', 'Requests/Sec']
+			 ##(required)
+			Counters = ['MailboxServerLocator Average Latency', 'Average ClientAccess Server Processing Latency', 'Mailbox Server Proxy Failure Rate', 'Outstanding Proxy Requests', 'Proxy Requests/Sec', 'Requests/Sec']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'MSExchange ActiveSync'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'MSExchange ActiveSync'
 
-			# ##(required)
-			#Counters = ['Requests/sec', 'Ping Commands Pending', 'Sync Commands/sec']
+			 ##(required)
+			Counters = ['Requests/sec', 'Ping Commands Pending', 'Sync Commands/sec']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'Web Service'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'Web Service'
 
-			# ##(required)
-			#Counters = ['Current Connections', 'Connection Attempts/sec', 'Other Request Methods/sec']
+			 ##(required)
+			Counters = ['Current Connections', 'Connection Attempts/sec', 'Other Request Methods/sec']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=true
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=true
 
-		#[[inputs.win_perf_counters.object]]
-			# ##(required)
-			#ObjectName = 'MSExchange WorkloadManagement Workloads'
+		[[inputs.win_perf_counters.object]]
+			 ##(required)
+			ObjectName = 'MSExchange WorkloadManagement Workloads'
 
-			# ##(required)
-			#Counters = ['ActiveTasks', 'CompletedTasks', 'QueuedTasks']
+			 ##(required)
+			Counters = ['ActiveTasks', 'CompletedTasks', 'QueuedTasks']
 
-			# ##(required) specify the .net clr instances, use '*' to apply all
-			#Instances = ['*']
+			 ##(required) specify the .net clr instances, use '*' to apply all
+			Instances = ['*']
 
-			# ##(required) all object should use the same name
-			#Measurement = 'msexchange'
+			 ##(required) all object should use the same name
+			Measurement = 'msexchange'
 
-			# ##(optional)Set to true to include _Total instance when querying for all (*).
-			#IncludeTotal=false
+			 ##(optional)Set to true to include _Total instance when querying for all (*).
+			IncludeTotal=false
 		`
 }
