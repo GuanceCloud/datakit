@@ -13,12 +13,12 @@ import (
 
 var (
 	logFiles = []string{
-		"/tmp/tailf_test/a*/b*/*.log",
-		"/tmp/tailf_test/a*/b*/*.txt",
+		"/tmp/tailf_test/**/*.log",
+		// "/tmp/tailf_test/a*/b*/*.txt",
 	}
 
 	ignore = []string{
-		"/tmp/tailf_test/a*/b*/12345.log",
+		"",
 	}
 
 	deepDir = "/tmp/tailf_test/a123/b123/"
@@ -84,6 +84,5 @@ func TestMain(t *testing.T) {
 }
 
 func TestFileList(t *testing.T) {
-
 	t.Log(getFileList(logFiles, ignore))
 }
