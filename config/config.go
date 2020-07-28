@@ -458,20 +458,16 @@ func ParseDataway(dw string) (*DataWayCfg, error) {
 			dwcfg.Host = dwcfg.Host + ":443"
 		}
 
-		l.Debugf("dataway: %+#v", dwcfg)
 	} else {
-		l.Error(err)
 		return nil, err
 	}
 
 	conn, err := net.DialTimeout("tcp", dwcfg.Host, time.Second*5)
 	if err != nil {
-		l.Error(err)
 		return nil, err
 	}
 
 	if err := conn.Close(); err != nil {
-		l.Error(err)
 		return nil, err
 	}
 
