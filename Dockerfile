@@ -17,7 +17,7 @@ RUN unzip /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basic-li
 ARG within_docker=1
 ARG dataway=""
 ARG uuid=""
-arg loglevel=""
+ARG loglevel=""
 
 env ENV_UUID=$uuid
 env ENV_DATAWAY=$dataway
