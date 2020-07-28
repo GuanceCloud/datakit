@@ -373,6 +373,9 @@ github.com/lib/pq/oid
 github.com/lib/pq/scram
 # github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
+# github.com/mattn/go-zglob v0.0.3
+github.com/mattn/go-zglob
+github.com/mattn/go-zglob/fastwalk
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mitchellh/go-homedir v1.1.0
