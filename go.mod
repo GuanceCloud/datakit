@@ -57,6 +57,7 @@ require (
 	github.com/lib/pq v1.4.0
 	github.com/logrusorgru/gopb3any v0.0.0-20181002194712-b78f3858fa1f // indirect
 	github.com/logrusorgru/lifo v0.0.0-20181002195007-26900045159d // indirect
+	github.com/mattn/go-zglob v0.0.3
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/mehrdadrad/mylg v0.2.6 // indirect
 	github.com/naoina/toml v0.1.1
