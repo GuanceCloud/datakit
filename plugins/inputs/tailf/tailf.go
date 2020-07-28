@@ -4,12 +4,12 @@ package tailf
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/gobwas/glob"
 	"github.com/hpcloud/tail"
+	"github.com/mattn/go-zglob"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -122,6 +122,8 @@ func (t *Tailf) updateTailers() error {
 	if err != nil {
 		return err
 	}
+
+	l.Debugf("update file list: %v", fileList)
 
 	// set false
 	for _, tailer := range t.tailers {
@@ -251,12 +253,14 @@ func getFileList(filesGlob []string, ignoreGlob []string) ([]string, error) {
 	var matches, passlist []string
 
 	for _, f := range filesGlob {
-		matche, err := filepath.Glob(f)
+		matche, err := zglob.Glob(f)
 		if err != nil {
 			return nil, err
 		}
 		matches = append(matches, matche...)
 	}
+
+	fmt.Println(matches)
 
 	for _, ig := range ignoreGlob {
 		g, err := glob.Compile(ig)
