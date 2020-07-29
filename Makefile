@@ -31,7 +31,7 @@ ENTRY = cmd/datakit/main.go
 # Solution:
 # > apt-get install gcc-multilib
 # 
-LOCAL_ARCHS = "linux/amd64" 
+LOCAL_ARCHS = "darwin/amd64"
 #LOCAL_ARCHS = "all"
 DEFAULT_ARCHS = "all"
 
@@ -95,6 +95,19 @@ pub_local:
 pub_test:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
+pub_testing_img:
+	@mkdir -p embed/linux-amd64
+	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/telegraf/agent-linux-amd64.tar.gz" | tar -xz -C .
+	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(VERSION) .
+	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
+
+pub_release_img:
+	# release to pub hub
+	@mkdir -p embed/linux-amd64
+	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/telegraf/agent-linux-amd64.tar.gz" | tar -xz -C .
+	@sudo docker build -t pubrepo.jiagouyun.com/dataflux/datakit:$(VERSION) .
+	@sudo docker push pubrepo.jiagouyun.com/dataflux/datakit:$(VERSION)
+
 pub_agent:
 	@go run cmd/make/make.go -pub-agent -release local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
 	@go run cmd/make/make.go -pub-agent -release test -pub-dir embed -download-addr $(TEST_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
@@ -106,10 +119,6 @@ pub_preprod:
 
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
-
-pub_image:
-	@sudo docker build --tag registry.jiagouyun.com/datakit/datakit:$(VERSION) -f internal-dk.Dockerfile .
-	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
 
 test_notify:
 	@curl \
