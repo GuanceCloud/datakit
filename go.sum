@@ -110,6 +110,8 @@ github.com/aliyun/aliyun-oss-go-sdk v2.0.8+incompatible h1:WaOAKiuezSaRKAYeSf5Ij
 github.com/aliyun/aliyun-oss-go-sdk v2.0.8+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
 github.com/aliyun/aliyun-oss-go-sdk v2.1.2+incompatible h1:kB3yKV/bBZLX5Rm8aOaFsM6M7ZmyOiUgAElhfn/R27c=
 github.com/aliyun/aliyun-oss-go-sdk v2.1.2+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
+github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible h1:6t4QUhWVCcnilQy+d3aO0zsaO7wH6N3geMo4wgbC4MY=
+github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
 github.com/amir/raidman v0.0.0-20170415203553-1ccc43bfb9c9 h1:FXrPTd8Rdlc94dKccl7KPmdmIbVh/OjelJ8/vgMRzcQ=
 github.com/amir/raidman v0.0.0-20170415203553-1ccc43bfb9c9/go.mod h1:eliMa/PW+RDr2QLWRmLH1R1ZA4RInpmvOzDDXtaIZkc=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
@@ -1224,6 +1226,8 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200708034554-4979d23ed25d
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200708034554-4979d23ed25d/go.mod h1:Z9QmTIGFFSmcNlUuJaFjTQDWdgKdtwDqGaGTLl9jrWc=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200724094927-05a50c73056f h1:NmgLAOaQ16rbs459lXcEzOgKhskTYuUzut6ULFulHPc=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200724094927-05a50c73056f/go.mod h1:Z9QmTIGFFSmcNlUuJaFjTQDWdgKdtwDqGaGTLl9jrWc=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200729035319-59638165b038 h1:iMcxRtnIdCsTWAMoD8MvmH3Yhv2phNwDw7fqxwgbMbs=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200729035319-59638165b038/go.mod h1:Z9QmTIGFFSmcNlUuJaFjTQDWdgKdtwDqGaGTLl9jrWc=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200419044746-6486cbd8ef30/go.mod h1:AxpWMT3J4jwRv2RiIKJd/4+5B4TiVkdFlGSawSnC3q8=
 gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54 h1:iIEZQbYNRwRyNvLfxY4+QyDVSPf1ZHdv3zGNsISbdKY=
 gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54/go.mod h1:ry4kzbcxpuif0tNtwZS3wixv5PrbsizlYD0+XhhJR30=
