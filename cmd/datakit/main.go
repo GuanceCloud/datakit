@@ -47,6 +47,9 @@ var (
 
 func main() {
 
+	logger.SetStdoutRootLogger(logger.DEBUG, logger.OPT_DEFAULT)
+	l = logger.SLogger("main")
+
 	flag.Parse()
 
 	applyFlags()
@@ -124,7 +127,7 @@ func showAllCollectors() {
 
 	nagent := 0
 	collectors = map[string][]string{}
-	for k, v := range config.SupportsTelegrafMetricNames {
+	for k, v := range config.TelegrafInputs {
 		collectors[v.Catalog] = append(collectors[v.Catalog], k)
 	}
 
@@ -146,8 +149,8 @@ func showAllConfigSamples() {
 		fmt.Printf("%s\n========= [D] ==========\n%s\n", k, sample)
 	}
 
-	for k, v := range config.TelegrafCfgSamples {
-		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v)
+	for k, v := range config.TelegrafInputs {
+		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v.Sample)
 	}
 }
 
@@ -230,16 +233,21 @@ func loadConfig() {
 
 	config.Cfg.InputFilters = inputFilters
 
-	if err := config.LoadCfg(); err != nil {
-		panic(fmt.Sprintf("load config failed: %s", err))
+	for {
+		if err := config.LoadCfg(); err != nil {
+			l.Errorf("load config failed: %s", err)
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
 	}
 
 	l = logger.SLogger("main")
 }
 
 func runTelegraf() error {
-	telegrafwrap.Svr.Cfg = config.Cfg
-	return telegrafwrap.Svr.Start()
+	telegrafwrap.Svr.Start()
+	return nil
 }
 
 func runDatakit() error {
@@ -297,6 +305,10 @@ func httpStart(addr string) {
 	if _, ok := config.Cfg.Inputs["trace"]; ok {
 		l.Info("open route for trace")
 		mux.HandleFunc("/trace", trace.Handle)
+		mux.HandleFunc("/v3/segment", trace.Handle)
+		mux.HandleFunc("/v3/segments", trace.Handle)
+		mux.HandleFunc("/v3/management/reportProperties", trace.Handle)
+		mux.HandleFunc("/v3/management/keepAlive", trace.Handle)
 	}
 
 	if _, ok := config.Cfg.Inputs["druid"]; ok {
