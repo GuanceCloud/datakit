@@ -26,7 +26,7 @@ import (
 var (
 	ConvertedCfg []string
 
-	l                     *logger.Logger
+	l                             = logger.DefaultSLogger("config")
 	Cfg                   *Config = nil
 	EnabledTelegrafInputs         = map[string]interface{}{}
 )
@@ -153,8 +153,6 @@ func LoadCfg() error {
 
 	InitDirs()
 
-	l = logger.SLogger("config")
-
 	if err := Cfg.loadEnvs(); err != nil {
 		return err
 	}
@@ -222,13 +220,15 @@ func (c *Config) LoadMainConfig() error {
 	}
 
 	if err := toml.UnmarshalTable(tbl, c.MainCfg); err != nil {
-		panic("UnmarshalTable failed: " + err.Error())
+		l.Errorf("UnmarshalTable failed: " + err.Error())
+		return err
 	}
 
 	if !c.MainCfg.OmitHostname { // get default host-name
 		if c.MainCfg.Hostname == "" {
 			hostname, err := os.Hostname()
 			if err != nil {
+				l.Errorf("get hostname failed: %s", err.Error())
 				return err
 			}
 
@@ -458,16 +458,21 @@ func ParseDataway(dw string) (*DataWayCfg, error) {
 			dwcfg.Host = dwcfg.Host + ":443"
 		}
 
+		l.Debugf("dataway: %+#v", dwcfg)
+
 	} else {
+		l.Errorf("parse url %s failed: %s", dw, err.Error())
 		return nil, err
 	}
 
 	conn, err := net.DialTimeout("tcp", dwcfg.Host, time.Second*5)
 	if err != nil {
+		l.Errorf("TCP dial host `%s' failed: %s", dwcfg.Host, err.Error())
 		return nil, err
 	}
 
 	if err := conn.Close(); err != nil {
+		l.Errorf("close failed: %s", err.Error())
 		return nil, err
 	}
 
