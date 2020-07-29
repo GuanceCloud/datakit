@@ -37,7 +37,7 @@ require (
 	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/go-ole/go-ole v1.2.4
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/gobuffalo/logger v1.0.1
+	github.com/gobwas/glob v0.2.3
 	github.com/godror/godror v0.17.0
 	github.com/gofrs/uuid v2.1.0+incompatible
 	github.com/gogo/googleapis v1.4.0 // indirect
@@ -57,6 +57,7 @@ require (
 	github.com/lib/pq v1.4.0
 	github.com/logrusorgru/gopb3any v0.0.0-20181002194712-b78f3858fa1f // indirect
 	github.com/logrusorgru/lifo v0.0.0-20181002195007-26900045159d // indirect
+	github.com/mattn/go-zglob v0.0.3
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/mehrdadrad/mylg v0.2.6 // indirect
 	github.com/naoina/toml v0.1.1
@@ -89,7 +90,7 @@ require (
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/xanzy/go-gitlab v0.31.0
 	github.com/zcalusic/sysinfo v0.0.0-20200228145645-a159d7cc708b // indirect
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200708034554-4979d23ed25d
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200724094927-05a50c73056f
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
