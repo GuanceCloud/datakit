@@ -1,4 +1,4 @@
-package aliyunobjectecs
+package aliyunobject
 
 import (
 	"io/ioutil"
@@ -45,27 +45,19 @@ func TestApiDescribeInstances(t *testing.T) {
 func TestConfig(t *testing.T) {
 
 	var ag objectAgent
+	ag.RegionID = `cn-hangzhou`
+	ag.AccessKeyID = `xxx`
+	ag.AccessKeySecret = `yyy`
+	ag.Tags = map[string]string{
+		"key1": "val1",
+	}
 
-	load := true
+	load := false
 
 	if !load {
-		ag.ECSObject = []*AliyunCfg{
-			{
-				RegionID:        "cn-hangzhou",
-				AccessKeyID:     "xxx",
-				AccessKeySecret: "xxx",
-				Tags: map[string]string{
-					"key1": "val1",
-				},
-			},
-			{
-				RegionID:        "cn-hangzhou",
-				AccessKeyID:     "yyy",
-				AccessKeySecret: "yyy",
-				Tags: map[string]string{
-					"key1": "val1",
-				},
-			},
+		ag.Ecs = &Ecs{
+			InstancesIDs:       []string{"id1", "id2"},
+			ExcludeInstanceIDs: []string{"exid1", "exid2"},
 		}
 
 		data, err := toml.Marshal(&ag)
@@ -88,10 +80,11 @@ func TestConfig(t *testing.T) {
 }
 
 func TestInput(t *testing.T) {
+
 	logger.SetGlobalRootLogger("", "debug", logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
 
 	datakit.InstallDir = "."
-	//datakit.OutputFile = "metrics.txt"
+	datakit.OutputFile = "metrics.txt"
 	datakit.GRPCDomainSock = filepath.Join(datakit.InstallDir, "datakit.sock")
 	datakit.Exit = cliutils.NewSem()
 
