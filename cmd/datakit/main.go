@@ -305,6 +305,10 @@ func httpStart(addr string) {
 	if _, ok := config.Cfg.Inputs["trace"]; ok {
 		l.Info("open route for trace")
 		mux.HandleFunc("/trace", trace.Handle)
+		mux.HandleFunc("/v3/segment", trace.Handle)
+		mux.HandleFunc("/v3/segments", trace.Handle)
+		mux.HandleFunc("/v3/management/reportProperties", trace.Handle)
+		mux.HandleFunc("/v3/management/keepAlive", trace.Handle)
 	}
 
 	if _, ok := config.Cfg.Inputs["druid"]; ok {
