@@ -46,12 +46,8 @@ func (z *JaegerTracer) parseJaegerThrift(octets []byte) error {
 			tAdpter.parentID      = fmt.Sprintf("%d", s.ParentSpanId)
 		}
 
-		traceHigh := ""
-		if s.TraceIdHigh != 0 {
-			traceHigh = fmt.Sprintf("%d", s.TraceIdHigh)
-		}
-		tAdpter.traceID       = fmt.Sprintf("%s%d", traceHigh, s.TraceIdLow)
-		tAdpter.spanID        = fmt.Sprintf("%d", s.SpanId)
+		tAdpter.traceID = fmt.Sprintf("%x%x", uint64(s.TraceIdHigh), uint64(s.TraceIdLow))
+		tAdpter.spanID  = fmt.Sprintf("%d", s.SpanId)
 
 		for _, tag := range s.Tags {
 			if tag.Key == "error" {
