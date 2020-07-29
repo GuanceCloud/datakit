@@ -123,8 +123,6 @@ func (t *Tailf) updateTailers() error {
 		return err
 	}
 
-	l.Debugf("update file list: %v", fileList)
-
 	// set false
 	for _, tailer := range t.tailers {
 		tailer.exist = false
@@ -157,12 +155,6 @@ func (t *Tailf) updateTailers() error {
 		if !tailer.exist {
 			tailer.tl.Cleanup()
 			delete(t.tailers, key)
-		}
-	}
-
-	if testAssert {
-		for key := range t.tailers {
-			fmt.Printf("tailers list: %s\n", key)
 		}
 	}
 
@@ -251,8 +243,8 @@ func (t *Tailf) parseLine(line *tail.Line, filename string) ([]byte, error) {
 func getFileList(filesGlob []string, ignoreGlob []string) ([]string, error) {
 
 	var matches, passlist []string
-
 	for _, f := range filesGlob {
+		fmt.Println(f)
 		matche, err := zglob.Glob(f)
 		if err != nil {
 			return nil, err
@@ -260,19 +252,24 @@ func getFileList(filesGlob []string, ignoreGlob []string) ([]string, error) {
 		matches = append(matches, matche...)
 	}
 
-	fmt.Println(matches)
-
+	var globs []glob.Glob
 	for _, ig := range ignoreGlob {
 		g, err := glob.Compile(ig)
 		if err != nil {
 			return nil, err
 		}
+		globs = append(globs, g)
+	}
 
-		for _, match := range matches {
-			if !g.Match(match) {
-				passlist = append(passlist, match)
+	for _, match := range matches {
+		fmt.Println(match)
+		for _, g := range globs {
+			if g.Match(match) {
+				goto __NEXT
 			}
 		}
+		passlist = append(passlist, match)
+	__NEXT:
 	}
 
 	return passlist, nil
