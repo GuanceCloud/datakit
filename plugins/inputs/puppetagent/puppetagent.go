@@ -23,14 +23,14 @@ const (
 	defaultMeasurement = "puppetagent"
 
 	sampleCfg = `
-# [inputs.puppetagent]
-# 	# puppetagent location of lastrunfile
-#	# default "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
-#	# required
-# 	location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
-# 	
-# 	# [inputs.puppetagent.tags]
-# 	# tags1 = "value1"
+[inputs.puppetagent]
+	# puppetagent location of lastrunfile
+	# default "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
+	# required
+	location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
+	
+	# [inputs.puppetagent.tags]
+	# tags1 = "value1"
 `
 	lastrunfileLocation = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
 )
