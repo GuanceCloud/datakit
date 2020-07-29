@@ -12,14 +12,20 @@ import (
 )
 
 var (
-	root = "/tmp/tailf_test"
+	logFiles = []string{
+		"/tmp/tailf_test/**/*.log",
+		// "/tmp/tailf_test/a*/b*/*.txt",
+	}
 
-	dir = "/tmp/tailf_test/1/2"
+	ignore = []string{
+		"",
+	}
+
+	deepDir = "/tmp/tailf_test/a123/b123/"
 
 	paths = []string{
-		"/tmp/tailf_test/zero.txt",
-		"/tmp/tailf_test/1/one.txt",
-		"/tmp/tailf_test/1/2/two.txt",
+		"/tmp/tailf_test/a123/b123/1234.log",
+		"/tmp/tailf_test/a123/b123/5678.txt",
 	}
 )
 
@@ -29,11 +35,8 @@ func __init() {
 }
 
 func TestWrite(t *testing.T) {
-	defer func() {
-		os.RemoveAll(root)
-	}()
 
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(deepDir, os.ModePerm); err != nil {
 		panic(err)
 	}
 
@@ -59,7 +62,7 @@ func TestWrite(t *testing.T) {
 		for index, file := range files {
 			file.WriteString(time.Now().Format(time.RFC3339Nano) +
 				fmt.Sprintf(" -- index: %d -- count: %d\n", index, count))
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(200 * time.Millisecond)
 		}
 		count++
 	}
@@ -70,11 +73,9 @@ func TestMain(t *testing.T) {
 	testAssert = true
 
 	var tailer = Tailf{
-		Regexs:           []string{".txt"},
-		Paths:            []string{root},
-		Source:           "NAXXRAMAS",
-		UpdateFiles:      true,
-		UpdateFilesCycle: "10s",
+		LogFiles: logFiles,
+		Ignore:   ignore,
+		Source:   "NAXXRAMAS",
 	}
 
 	go tailer.Run()
@@ -83,9 +84,5 @@ func TestMain(t *testing.T) {
 }
 
 func TestFileList(t *testing.T) {
-
-	for {
-		fmt.Println(getFileList([]string{root}))
-		time.Sleep(500 * time.Millisecond)
-	}
+	t.Log(getFileList(logFiles, ignore))
 }
