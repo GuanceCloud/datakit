@@ -8,7 +8,7 @@ import (
 
 type SkyWalkTag struct {
 	Key   string
-	Value string
+	Value interface{}
 }
 
 type SkyWalkSpan struct {
