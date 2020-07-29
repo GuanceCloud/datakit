@@ -11,7 +11,8 @@ COPY embed/linux-amd64/agent /usr/local/cloudcare/dataflux/datakit/embed/linux-a
 COPY plugins/externals/oraclemonitor/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip
 
 RUN apt-get update
-RUN apt-get install -y libaio-dev libaio1 unzip vim
+#RUN apt-get install -y libaio-dev libaio1 unzip vim
+RUN apt-get install -y libaio-dev libaio1 unzip
 RUN unzip /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip -d /opt/oracle
 
 ARG within_docker=1
