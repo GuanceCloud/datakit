@@ -2,12 +2,10 @@ package telegrafwrap
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"syscall"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -15,9 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
-type TelegrafSvr struct {
-	Cfg *config.Config
-}
+type TelegrafSvr struct{}
 
 var (
 	Svr          = &TelegrafSvr{}
@@ -25,65 +21,26 @@ var (
 	telegrafConf string
 )
 
-func (s *TelegrafSvr) Start() error {
+func (s *TelegrafSvr) Start() {
 
 	l = logger.SLogger("telegrafwrap")
 
+	if len(config.EnabledTelegrafInputs) == 0 {
+		l.Info("no telegraf inputs enabled")
+		return
+	}
+
 	telegrafConf = filepath.Join(datakit.TelegrafDir, "agent.conf")
-
-	conf, err := config.GenerateTelegrafConfig(s.Cfg)
-	switch err {
-	case nil:
-	case config.ErrConfigNotFound:
-		l.Info("no need to start sub service")
-		return nil
-	default:
-		return fmt.Errorf("fail to generate sub service config, %s", err)
-	}
-
-	if err = ioutil.WriteFile(telegrafConf, []byte(conf), 0664); err != nil {
-		return fmt.Errorf("fail to create file, %s", err.Error())
-	}
 
 	l.Info("starting telegraf...")
 
 	proc, err := s.startAgent()
 	if err != nil {
 		l.Error(err)
-		return err
+		return
 	}
 
-	tick := time.NewTicker(time.Second)
-	defer tick.Stop()
-	for {
-		select {
-		case <-tick.C:
-			p, err := os.FindProcess(proc.Pid)
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-
-			switch runtime.GOOS {
-			case "windows":
-				// on windows, if os.FindProcess() ok, means the process is running
-				l.Debugf("telegraf on PID %d ok", proc.Pid)
-			default:
-				if err := p.Signal(syscall.Signal(0)); err != nil {
-					l.Errorf("signal 0 to telegraf failed: %s", err)
-				}
-			}
-
-		case <-datakit.Exit.Wait():
-			l.Info("exit, killing telegraf...")
-			if err := proc.Kill(); err != nil { // XXX: should we wait here?
-				l.Warnf("killing telegraf failed: %s, ignored", err)
-			}
-
-			l.Infof("killing telegraf (PID: %d) ok", proc.Pid)
-			return nil
-		}
-	}
+	datakit.MonitProc(proc, "telegraf")
 }
 
 func (s *TelegrafSvr) startAgent() (*os.Process, error) {
