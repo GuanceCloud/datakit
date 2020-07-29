@@ -7,22 +7,22 @@ import (
 )
 
 type SkyWalkTag struct {
-	Key   string
-	Value interface{}
+	Key   string                `json:"key,omitempty"`
+	Value interface{}           `json:"value,omitempty"`
 }
 
 type SkyWalkSpan struct {
-	OperationName string       `json:"operationName,omitempty"`
-	StartTime     int64		   `json:"startTime,omitempty"`
-	EndTime       int64        `json:"endTime,omitempty"`
+	OperationName string        `json:"operationName,omitempty"`
+	StartTime     int64		    `json:"startTime,omitempty"`
+	EndTime       int64         `json:"endTime,omitempty"`
 	Tags          []*SkyWalkTag `json:"tags,omitempty"`
-	SpanType      string        `spanType:"tags,omitempty"`
-	SpanId        uint64        `spanId:"tags,omitempty"`
-	IsError       bool          `isError:"tags,omitempty"`
-	ParentSpanId  int64         `parentSpanId:"tags,omitempty"`
-	ComponentId   uint64        `componentId:"tags,omitempty"`
-	Peer          string        `peer:"tags,omitempty"`
-	SpanLayer     string        `spanLayer:"tags,omitempty"`
+	SpanType      string        `json:"spanType,omitempty"`
+	SpanId        uint64        `json:"spanId,omitempty"`
+	IsError       bool          `json:"isError,omitempty"`
+	ParentSpanId  int64         `json:"parentSpanId,omitempty"`
+	ComponentId   uint64        `json:"componentId,omitempty"`
+	Peer          string        `json:"peer,omitempty"`
+	SpanLayer     string        `json:"spanLayer,omitempty"`
 }
 
 type SkyWalkSegment struct {
@@ -80,7 +80,11 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 		if span.IsError {
 			t.isError   = "true"
 		}
-		t.spanType      = span.SpanType
+		if span.SpanType == "Entry" {
+			t.spanType  = SPAN_TYPE_ENTRY
+		} else if span.SpanType == "Local" {
+			t.spanType  = SPAN_TYPE_LOCAL
+		}
 		t.endPoint      = span.Peer
 
 		t.mkLineProto()
