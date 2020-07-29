@@ -32,6 +32,8 @@ var (
 	reservedSLoggerName string = "__reserved__"
 	slogs               *sync.Map
 
+	mtx = &sync.Mutex{}
+
 	MaxSize    = 32 // megabytes
 	MaxBackups = 5
 	MaxAge     = 28 // day
@@ -43,6 +45,13 @@ type Logger struct {
 
 func SetStdoutRootLogger(level string, options int) {
 
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	if stdoutRootLogger != nil {
+		return
+	}
+
 	var err error
 	stdoutRootLogger, err = newRootLogger("", level, options)
 	if err != nil {
@@ -51,6 +60,8 @@ func SetStdoutRootLogger(level string, options int) {
 }
 
 func SetGlobalRootLogger(fpath, level string, options int) {
+	mtx.Lock()
+	defer mtx.Unlock()
 
 	if defaultRootLogger != nil {
 		if __l != nil {
@@ -81,6 +92,14 @@ const (
 )
 
 func SLogger(name string) *Logger {
+	if defaultRootLogger == nil && stdoutRootLogger == nil {
+		panic(rootNotInitialized)
+	}
+
+	return &Logger{SugaredLogger: slogger(name)}
+}
+
+func DefaultSLogger(name string) *Logger {
 	return &Logger{SugaredLogger: slogger(name)}
 }
 
@@ -92,7 +111,8 @@ func slogger(name string) *zap.SugaredLogger {
 	}
 
 	if root == nil {
-		panic(rootNotInitialized)
+		SetStdoutRootLogger(DEBUG, OPT_DEFAULT)
+		root = stdoutRootLogger
 	}
 
 	newlog := getSugarLogger(root, name)
