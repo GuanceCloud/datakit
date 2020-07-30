@@ -37,7 +37,7 @@ type Binlog struct {
 }
 
 func (_ *Binlog) Catalog() string {
-	return "mysql"
+	return "db"
 }
 
 func (_ *Binlog) SampleConfig() string {
