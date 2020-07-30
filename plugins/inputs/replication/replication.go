@@ -9,7 +9,9 @@ import (
 	"time"
 	"unsafe"
 
+	"database/sql"
 	"github.com/jackc/pgx"
+	_ "github.com/lib/pq"
 	"github.com/nickelser/parselogical"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -41,13 +43,6 @@ const (
 #	# required
 # 	database="testdb"
 #
-#	# required
-# 	table="testable"
-#
-# 	# replication slot name, only
-#	# required
-# 	slotname="slot_for_datakit"
-#
 # 	# exlcude the events of postgres
 # 	# there are 3 events: "insert","update","delete"
 #	# required
@@ -64,7 +59,11 @@ const (
 `
 )
 
-var l *logger.Logger
+var (
+	l *logger.Logger
+
+	testAssert bool
+)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -78,8 +77,6 @@ type Replication struct {
 	Database  string            `toml:"database"`
 	User      string            `toml:"user"`
 	Password  string            `toml:"password"`
-	Table     string            `toml:"table"`
-	SlotName  string            `toml:"slotname"`
 	Events    []string          `toml:"events"`
 	TagList   []string          `toml:"tagList"`
 	FieldList []string          `toml:"fieldList"`
@@ -90,6 +87,7 @@ type Replication struct {
 	tagKeys         map[string]interface{}
 	fieldKeys       map[string]interface{}
 
+	slotName string
 	// 当前 wal 位置
 	receivedWal uint64
 	flushWal    uint64
@@ -117,6 +115,7 @@ func (r *Replication) Run() {
 	}
 	r.updateParamList()
 
+	r.slotName = fmt.Sprintf("datakit_slot_%d", time.Now().UnixNano())
 	r.pgConfig = pgx.ConnConfig{
 		Host:     r.Host,
 		Port:     r.Port,
@@ -157,7 +156,10 @@ func (r *Replication) runloop() {
 		select {
 		case <-datakit.Exit.Wait():
 			if err := r.replicationConn.Close(); err != nil {
-				l.Error(err)
+				l.Errorf("replication connection close err: %s", err.Error())
+			}
+			if err := r.deleteSelfSlot(); err != nil {
+				l.Errorf("delete self slot err: %s", err.Error())
 			}
 			l.Info("exit")
 			return
@@ -176,14 +178,8 @@ func (r *Replication) runloop() {
 				continue
 			}
 
-			if msg == nil {
-				l.Error(err)
-				continue
-			}
-
 			if err := r.replicationMsgHandle(msg); err != nil {
 				l.Error(err)
-				continue
 			}
 		}
 	}
@@ -216,13 +212,11 @@ func (r *Replication) checkAndResetConn() error {
 		return err
 	}
 
-	if _, _, err := conn.CreateReplicationSlotEx(r.SlotName, "test_decoding"); err != nil {
-		if pgerr, ok := err.(pgx.PgError); !ok || pgerr.Code != "42710" {
-			return fmt.Errorf("failed to create replication slot: %s", err)
-		}
+	if _, _, err := conn.CreateReplicationSlotEx(r.slotName, "test_decoding"); err != nil {
+		return fmt.Errorf("failed to create replication slot: %s", err)
 	}
 
-	if err := conn.StartReplication(r.SlotName, 0, -1); err != nil {
+	if err := conn.StartReplication(r.slotName, 0, -1); err != nil {
 		_ = conn.Close()
 		return err
 	}
@@ -249,6 +243,9 @@ func (r *Replication) getStatus() (*pgx.StandbyStatus, error) {
 
 // ReplicationMsgHandle handle replication msg
 func (r *Replication) replicationMsgHandle(msg *pgx.ReplicationMessage) error {
+	if msg == nil {
+		return fmt.Errorf("msg is empty")
+	}
 
 	// 回复心跳
 	if msg.ServerHeartbeat != nil {
@@ -262,10 +259,15 @@ func (r *Replication) replicationMsgHandle(msg *pgx.ReplicationMessage) error {
 	}
 
 	if msg.WalMessage != nil {
-
 		data, err := r.parseMsg(msg.WalMessage)
 		if err != nil {
 			return fmt.Errorf("invalid pgoutput msg: %s", err)
+		}
+
+		// filter other events
+		if testAssert && len(data) > 0 {
+			l.Debugf("Data: %s", string(data))
+			return nil
 		}
 		return io.NamedFeed(data, io.Metric, inputName)
 	}
@@ -305,7 +307,6 @@ func (r *Replication) parseMsg(msg *pgx.WalMessage) ([]byte, error) {
 		if _, ok := r.tagKeys[key]; ok {
 			tags[key] = column.Value
 		}
-
 		if _, ok := r.fieldKeys[key]; ok {
 			fields[key] = typeAssert(column.Type, column.Value)
 		}
@@ -314,6 +315,7 @@ func (r *Replication) parseMsg(msg *pgx.WalMessage) ([]byte, error) {
 	for k, v := range r.Tags {
 		tags[k] = v
 	}
+	tags["relation"] = result.Relation
 
 	return io.MakeMetric(defaultMeasurement, tags, fields, time.Now())
 }
@@ -336,6 +338,24 @@ func typeAssert(typer, value string) interface{} {
 		}
 	default:
 		return value
+	}
+
+	return nil
+}
+
+func (r *Replication) deleteSelfSlot() error {
+
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s", r.User, r.Password, r.Host, r.Port, r.Database)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	sqlstr := fmt.Sprintf("SELECT pg_drop_replication_slot('%s')", r.slotName)
+	_, err = db.Exec(sqlstr)
+	if err != nil {
+		return err
 	}
 
 	return nil
