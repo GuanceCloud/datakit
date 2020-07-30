@@ -6,19 +6,24 @@ const (
 	description = `stat http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
 	serverProcessing, contentTransfer, and total time`
 	httpstatConfigSample = `
-#    [[inputs.httpstat]]
-#    ##if empty, use "httpstat"
-#    metricName = ''
-#    timeout = ''
-#    ## default is 10s
-#    interval = '10s'
-#    [[httpstat.action]]
-#    url = ""
-#    method = ""
-#    playload = ""
-#    kAlive = true
-#    tlsSkipVerify = true 
-#    compress = true
+[[inputs.httpstat]]
+##if empty, use "httpstat"
+metricName = ''
+timeout = ''
+
+## default is 10s
+interval = '10s'
+
+[[inputs.httpstat.action]]
+	url = ""
+	method = ""    # options: GET/POST/HEAD
+	playload = ""
+	kAlive = true
+	tlsSkipVerify = true
+	compress = true
+
+#[[inputs.httpstat.tags]]
+#  tag1 = "val1"
 `
 )
 
