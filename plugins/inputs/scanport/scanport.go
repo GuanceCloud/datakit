@@ -25,7 +25,7 @@ var (
 )
 
 func (_ *Scanport) Catalog() string {
-	return "scanport"
+	return "network"
 }
 
 func (_ *Scanport) SampleConfig() string {
@@ -49,12 +49,9 @@ func (s *Scanport) Run() {
 
 	l.Info("scanport input started...")
 
-	interval, err := time.ParseDuration(s.Interval)
-	if err != nil {
-		l.Error(err)
-	}
+	s.checkCfg()
 
-	tick := time.NewTicker(interval)
+	tick := time.NewTicker(s.IntervalDuration)
 	defer tick.Stop()
 
 	for {
@@ -125,6 +122,7 @@ func (s *Scanport) handle() error {
 	wg.Wait()
 	close(retCh)
 	for ret := range retCh {
+
 		lines = append(lines, ret)
 	}
 
