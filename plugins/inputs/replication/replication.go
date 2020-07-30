@@ -100,7 +100,7 @@ type Replication struct {
 }
 
 func (_ *Replication) Catalog() string {
-	return "postgresql"
+	return "db"
 }
 
 func (_ *Replication) SampleConfig() string {
