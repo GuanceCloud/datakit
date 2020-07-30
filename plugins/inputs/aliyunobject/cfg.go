@@ -46,8 +46,5 @@ type objectAgent struct {
 }
 
 func (ag *objectAgent) addModule(m subModule) {
-	if m == nil {
-		return
-	}
 	ag.subModules = append(ag.subModules, m)
 }
