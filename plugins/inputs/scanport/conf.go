@@ -6,7 +6,7 @@ import (
 
 const (
 	configSample = `
-#[[inputs.scanport]]
+#[inputs.scanport]
 #  ## 采集的频度，最小粒度10m
 #  interval = '10m'
 #  ## 指标集名称，默认值scanport
