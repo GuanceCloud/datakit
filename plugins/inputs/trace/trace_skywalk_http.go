@@ -17,7 +17,7 @@ type SkyWalkLogData struct {
 }
 
 type SkyWalkLog struct {
-	Time int64
+	Time float64
 	Data []*SkyWalkLogData      `json:"data,omitempty"`
 }
 
