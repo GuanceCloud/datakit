@@ -41,10 +41,18 @@ func (ag *objectAgent) Run() {
 		ag.Interval.Duration = time.Minute * 5
 	}
 
-	ag.addModule(ag.Ecs)
-	ag.addModule(ag.Slb)
-	ag.addModule(ag.Oss)
-	ag.addModule(ag.Rds)
+	if ag.Ecs != nil {
+		ag.addModule(ag.Ecs)
+	}
+	if ag.Slb != nil {
+		ag.addModule(ag.Slb)
+	}
+	if ag.Oss != nil {
+		ag.addModule(ag.Oss)
+	}
+	if ag.Rds != nil {
+		ag.addModule(ag.Rds)
+	}
 
 	for _, s := range ag.subModules {
 		ag.wg.Add(1)
