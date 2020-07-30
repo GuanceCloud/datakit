@@ -13,17 +13,17 @@ import (
 
 const (
 	rdsSampleConfig = `
-	#[inputs.aliyunobject.rds]
+#[inputs.aliyunobject.rds]
 
-	# ## @param - custom tags for rds object - [list of key:value element] - optional
-	#[inputs.aliyunobject.rds.tags]
-	# key1 = 'val1'
-	
-	# ## @param - custom tags - [list of rds instanceid] - optional
-	#db_instanceids = ['']
-	
-	# ## @param - custom tags - [list of excluded rds instanceid] - optional
-	#exclude_db_instanceids = ['']
+# ## @param - custom tags for rds object - [list of key:value element] - optional
+#[inputs.aliyunobject.rds.tags]
+# key1 = 'val1'
+
+# ## @param - custom tags - [list of rds instanceid] - optional
+#db_instanceids = ['']
+
+# ## @param - custom tags - [list of excluded rds instanceid] - optional
+#exclude_db_instanceids = ['']
 `
 )
 
