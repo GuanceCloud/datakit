@@ -23,13 +23,16 @@ const (
 	defaultMeasurement = "puppetagent"
 
 	sampleCfg = `
-# [inputs.puppetagent]
-# 	# puppetagent location of lastrunfile
-# 	location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
-# 	
-# 	# [inputs.puppetagent.tags]
-# 	# tags1 = "tags1"
+[inputs.puppetagent]
+	# puppetagent location of lastrunfile
+	# default "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
+	# required
+	location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
+	
+	# [inputs.puppetagent.tags]
+	# tags1 = "value1"
 `
+	lastrunfileLocation = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
 )
 
 var (
@@ -61,16 +64,47 @@ func (_ *PuppetAgent) Catalog() string {
 func (pa *PuppetAgent) Run() {
 	l = logger.SLogger(inputName)
 
-	if pa.initcfg() {
+	if pa.loadcfg() {
 		return
 	}
 
+	var err error
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+		default:
+			// nil
+		}
+
+		pa.watcher, err = fsnotify.NewWatcher()
+		if err != nil {
+			l.Error(err)
+			time.Sleep(time.Second)
+			continue
+		}
+		err = pa.watcher.Add(pa.Location)
+		if err != nil {
+			pa.watcher.Close()
+			l.Error(err)
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
 	defer pa.watcher.Close()
+
 	pa.do()
 }
 
-func (pa *PuppetAgent) initcfg() bool {
+func (pa *PuppetAgent) loadcfg() bool {
 	var err error
+
+	if pa.Location == "" {
+		pa.Location = lastrunfileLocation
+		l.Infof("location is empty, use default location %s", lastrunfileLocation)
+	}
 
 	for {
 		select {
@@ -82,23 +116,15 @@ func (pa *PuppetAgent) initcfg() bool {
 		}
 
 		if _, err = os.Stat(pa.Location); err != nil {
-			goto _NEXT
+			time.Sleep(time.Second)
+			continue
 		}
-		pa.watcher, err = fsnotify.NewWatcher()
-		if err != nil {
-			goto _NEXT
-		}
-		err = pa.watcher.Add(pa.Location)
-		if err != nil {
-			goto _NEXT
-		}
-
 		break
-	_NEXT:
-		l.Error(err)
-		time.Sleep(time.Second)
 	}
 
+	if pa.Tags == nil {
+		pa.Tags = make(map[string]string)
+	}
 	pa.Tags["location"] = pa.Location
 
 	return false
@@ -120,7 +146,12 @@ func (pa *PuppetAgent) do() {
 				continue
 			}
 
-			if event.Op&fsnotify.Write == fsnotify.Write {
+			if testAssert {
+				fmt.Printf("get event: %v\n", event)
+			}
+
+			if event.Op&fsnotify.Write == fsnotify.Write ||
+				event.Op&fsnotify.Chmod == fsnotify.Chmod {
 
 				data, err := buildPoint(pa.Location, pa.Tags)
 				if err != nil {
@@ -197,7 +228,7 @@ type timer struct {
 }
 
 func buildPoint(fn string, tags map[string]string) ([]byte, error) {
-	fh, err := ioutil.ReadFile(fn)
+	data, err := ioutil.ReadFile(fn)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +239,7 @@ func buildPoint(fn string, tags map[string]string) ([]byte, error) {
 
 	var puppetState State
 
-	err = yaml.Unmarshal(fh, &puppetState)
+	err = yaml.Unmarshal(data, &puppetState)
 	if err != nil {
 		return nil, err
 	}
