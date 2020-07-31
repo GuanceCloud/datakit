@@ -11,8 +11,7 @@ class ServerImpl(dk_pb2_grpc.DataKitServicer):
     def __init__(self):
         pass
 
-    def Send(self, request, ctx):
-        print(request)
+    def Send(self, request, ctx = None):
         return dk_pb2.Response(err="", points=1, objects=0)
 
 
