@@ -75,7 +75,7 @@ type Mongodboplog struct {
 }
 
 func (_ *Mongodboplog) Catalog() string {
-	return "mongodb"
+	return "db"
 }
 
 func (_ *Mongodboplog) SampleConfig() string {
