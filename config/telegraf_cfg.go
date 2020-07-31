@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/influxdata/toml"
+	"github.com/influxdata/toml/ast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 //用于支持在datakit.conf中加入telegraf的agent配置
@@ -131,31 +133,38 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 	return c
 }
 
-//LoadTelegrafConfigs 加载conf.d下telegraf的配置文件
-func LoadTelegrafConfigs(cfgdir string, inputFilters []string) error {
+func (c *Config) loadTelegrafConfigs(inputcfgs map[string]*ast.Table, filters []string) (string, error) {
 
-	for _, input := range SupportsTelegrafMetricNames {
+	telegrafCfgFiles := map[string]interface{}{}
 
-		if len(inputFilters) > 0 {
-			if !sliceContains(input.name, inputFilters) {
-				continue
-			}
-		}
+	for fp, tbl := range inputcfgs {
 
-		cfgpath := filepath.Join(cfgdir, input.Catalog, fmt.Sprintf(`%s.conf`, input.name))
-		err := VerifyToml(cfgpath, true)
+		for field, node := range tbl.Fields {
+			switch field {
+			case "inputs":
+				tbl_, ok := node.(*ast.Table)
+				if !ok {
+					l.Warnf("ignore bad toml node within %s", fp)
+				} else {
+					for inputName, _ := range tbl_.Fields {
+						l.Debugf("telegraf input name: %s", inputName)
 
-		if err == nil {
-			input.enabled = true
-		} else {
-			if err != ErrConfigNotFound && err != ErrEmptyInput {
-				l.Errorf("error loading telefraf conf %s: %v, ignored", cfgpath, err)
-				return err
+						if _, ok := TelegrafInputs[inputName]; ok {
+							TelegrafInputs[inputName].enabled = true
+							l.Infof("enable telegraf input %s, config: %s", inputName, fp)
+							telegrafCfgFiles[fp] = nil
+						}
+					}
+				}
+			default:
+				l.Warnf("ignore bad toml node within %s", fp)
+				// pass: all telegraf input should be the format: inputs.xxx
 			}
 		}
 	}
 
-	return nil
+	l.Info("generating telegraf conf...")
+	return c.generateTelegrafConfig(telegrafCfgFiles)
 }
 
 const (
@@ -234,9 +243,9 @@ func marshalAgentCfg(cfg *TelegrafAgentConfig) (string, error) {
 	return string(agdata), nil
 }
 
-func GenerateTelegrafConfig(cfg *Config) (string, error) {
+func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, error) {
 
-	agentcfg, err := marshalAgentCfg(cfg.TelegrafAgentCfg)
+	agentcfg, err := marshalAgentCfg(c.TelegrafAgentCfg)
 	if err != nil {
 		l.Errorf("%s", err.Error())
 		return "", err
@@ -246,7 +255,7 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 	agentcfg += "\n"
 
 	globalTags := "[global_tags]\n"
-	for k, v := range cfg.MainCfg.GlobalTags {
+	for k, v := range c.MainCfg.GlobalTags {
 		tag := fmt.Sprintf("%s='%s'\n", k, v)
 		globalTags += tag
 	}
@@ -265,9 +274,9 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 	fileoutstr := ""
 	httpoutstr := ""
 
-	if cfg.MainCfg.OutputFile != "" {
+	if c.MainCfg.OutputFile != "" {
 		fileCfg := fileoutCfg{
-			OutputFiles: cfg.MainCfg.OutputFile,
+			OutputFiles: c.MainCfg.OutputFile,
 		}
 
 		tpl := template.New("")
@@ -285,10 +294,10 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 		fileoutstr = string(buf.Bytes())
 	}
 
-	if cfg.MainCfg.DataWay != nil {
+	if c.MainCfg.DataWay != nil {
 		httpCfg := httpoutCfg{
-			DataWay:     cfg.MainCfg.DataWayRequestURL,
-			DKUUID:      cfg.MainCfg.UUID,
+			DataWay:     c.MainCfg.DataWayRequestURL,
+			DKUUID:      c.MainCfg.UUID,
 			DKVERSION:   git.Version,
 			DKUserAgent: datakit.DKUserAgent,
 		}
@@ -313,23 +322,15 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 
 	pluginCfgs := ""
 
-	for _, input := range SupportsTelegrafMetricNames {
-
-		if !input.enabled {
-			continue
-		}
-
-		//l.Debugf("adding %+#v...", input)
-
-		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, input.name+".conf")
-		d, err := ioutil.ReadFile(cfgpath)
+	for f, _ := range files {
+		d, err := ioutil.ReadFile(f)
 		if err != nil {
 			l.Errorf("%s", err.Error())
 			return "", err
 		}
 
+		l.Infof("merge %s as telegraf config", f)
 		pluginCfgs += string(d) + "\n"
-		l.Debugf("add %s/%s config...", input.Catalog, input.name)
 	}
 
 	if len(ConvertedCfg) > 0 {
@@ -339,7 +340,40 @@ func GenerateTelegrafConfig(cfg *Config) (string, error) {
 	}
 
 	if pluginCfgs == "" {
-		return "", ErrConfigNotFound
+		return "", nil
+	}
+
+	// check if @pluginCfgs include any datakit input
+	tbl, err := toml.Parse([]byte(pluginCfgs))
+	if err != nil {
+		l.Error(err)
+		return "", err
+	}
+
+	for field, node := range tbl.Fields {
+		switch field {
+		case "inputs":
+			tbl_, ok := node.(*ast.Table)
+			if !ok {
+				l.Warnf("ignore bad toml node: %s", tbl.Source())
+			} else {
+				for inputName, _ := range tbl_.Fields {
+
+					// NOTE: if telegraf found any unknown inputs, telegraf will exit,
+					// so if any xxx.conf with datakit input and telegraf input mixed, telegraf will exit
+					if _, ok := inputs.Inputs[inputName]; ok {
+						l.Errorf("found datakit input `%s' within merged telegraf conf:\n%s", inputName, tbl.Source())
+						l.Warnf("disable all telegraf inputs")
+						for _, v := range TelegrafInputs {
+							v.enabled = false
+						}
+						return "", fmt.Errorf("invalid datakit config")
+					}
+				}
+			}
+		default:
+			l.Warn("invalid inputs format, ignored")
+		}
 	}
 
 	tlegrafConfig += pluginCfgs
