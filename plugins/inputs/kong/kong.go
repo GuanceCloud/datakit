@@ -36,20 +36,13 @@ func (_ *Kong) Init() error {
 }
 
 func (k *Kong) Run() {
-	l = logger.SLogger("baiduIndex")
+	l = logger.SLogger("kong")
 
-	l.Info("baiduIndex input started...")
+	l.Info("kong input started...")
 
-	if k.initcfg() {
-		return
-	}
+	k.checkCfg()
 
-	interval, err := time.ParseDuration(k.Interval)
-	if err != nil {
-		l.Error(err)
-	}
-
-	tick := time.NewTicker(interval)
+	tick := time.NewTicker(k.IntervalDuration)
 	defer tick.Stop()
 
 	for {
@@ -64,16 +57,23 @@ func (k *Kong) Run() {
 	}
 }
 
-func (k *Kong) initcfg() bool {
-	if k.Tags == nil {
-		k.Tags = make(map[string]string)
+func (k *Kong) checkCfg() {
+	// 采集频度
+	k.IntervalDuration = 10 * time.Second
+
+	if k.Interval != "" {
+		du, err := time.ParseDuration(k.Interval)
+		if err != nil {
+			l.Errorf("bad interval %s: %s, use default: 10s", k.Interval, err.Error())
+		} else {
+			k.IntervalDuration = du
+		}
 	}
 
-	if k.MetricName == "" {
-		k.MetricName = "kong"
+	// 指标集名称
+	if k.Metric == "" {
+		k.Metric = "kong"
 	}
-
-	return false
 }
 
 func (kong *Kong) handle() {
@@ -117,7 +117,7 @@ func (kong *Kong) handle() {
 		tags[k] = v
 	}
 
-	pt, err := io.MakeMetric(kong.MetricName, tags, fields, time.Now())
+	pt, err := io.MakeMetric(kong.Metric, tags, fields, time.Now())
 	if err != nil {
 		l.Errorf("make metric point error %s", err)
 	}
