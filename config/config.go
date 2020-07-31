@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"text/template"
@@ -25,8 +26,9 @@ import (
 var (
 	ConvertedCfg []string
 
-	l   *logger.Logger
-	Cfg *Config = nil
+	l                             = logger.DefaultSLogger("config")
+	Cfg                   *Config = nil
+	EnabledTelegrafInputs         = map[string]interface{}{}
 )
 
 type Config struct {
@@ -36,6 +38,8 @@ type Config struct {
 	Inputs map[string][]inputs.Input
 
 	InputFilters []string
+
+	withinDocker bool
 }
 
 type DataWayCfg struct {
@@ -149,14 +153,17 @@ func LoadCfg() error {
 
 	InitDirs()
 
+	if err := Cfg.loadEnvs(); err != nil {
+		return err
+	}
+
+	// loading from
 	if err := Cfg.LoadMainConfig(); err != nil {
 		return err
 	}
 
 	// set global log root
-	logger.SetGlobalRootLogger(Cfg.MainCfg.Log,
-		Cfg.MainCfg.LogLevel,
-		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+	logger.SetGlobalRootLogger(Cfg.MainCfg.Log, Cfg.MainCfg.LogLevel, logger.OPT_DEFAULT)
 	l = logger.SLogger("config")
 
 	l.Infof("set log to %s", Cfg.MainCfg.Log)
@@ -213,13 +220,15 @@ func (c *Config) LoadMainConfig() error {
 	}
 
 	if err := toml.UnmarshalTable(tbl, c.MainCfg); err != nil {
-		panic("UnmarshalTable failed: " + err.Error())
+		l.Errorf("UnmarshalTable failed: " + err.Error())
+		return err
 	}
 
 	if !c.MainCfg.OmitHostname { // get default host-name
 		if c.MainCfg.Hostname == "" {
 			hostname, err := os.Hostname()
 			if err != nil {
+				l.Errorf("get hostname failed: %s", err.Error())
 				return err
 			}
 
@@ -298,7 +307,7 @@ func CheckConfd() error {
 			}
 
 			if len(data) == 0 {
-				return ErrConfigNotFound
+				return fmt.Errorf("no input configured")
 			}
 
 			if tbl, err := toml.Parse(data); err != nil {
@@ -333,170 +342,6 @@ func CheckConfd() error {
 	return nil
 }
 
-func (c *Config) doLoadInputConf(name string, creator inputs.Creator) error {
-	if len(c.InputFilters) > 0 {
-		if !sliceContains(name, c.InputFilters) {
-			return nil
-		}
-	}
-
-	if name == "self" {
-		c.Inputs[name] = append(c.Inputs[name], creator())
-		return nil
-	}
-
-	dummyInput := creator()
-	path := filepath.Join(datakit.ConfdDir, dummyInput.Catalog(), fmt.Sprintf("%s.conf", name))
-	tbl, err := parseCfgFile(path)
-	if err != nil {
-		l.Errorf("[error] parse conf %s failed on [%s]: %s", path, name, err)
-		return err
-	}
-
-	if len(tbl.Fields) == 0 {
-		l.Debugf("no conf available on %s", name)
-		return nil
-	}
-
-	for f, val := range tbl.Fields {
-		switch f {
-		case "inputs":
-			tbl_ := val.(*ast.Table)
-			for _, v := range tbl_.Fields {
-				if err := c.tryUnmarshal(v, name, creator); err != nil {
-					l.Error(err)
-					return err
-				}
-			}
-
-		default:
-			if err := c.tryUnmarshal(val, name, creator); err != nil {
-				l.Error(err)
-				return err
-			}
-		}
-	}
-
-	return nil
-
-	//for fieldName, val := range tbl.Fields {
-
-	//	if subTables, ok := val.([]*ast.Table); ok {
-
-	//		for _, t := range subTables {
-	//			input := creator()
-	//			if interval, err := c.addInput(name, input, t); err != nil {
-	//				err = fmt.Errorf("Error parsing %s, %s", name, err)
-	//				l.Errorf("%s", err)
-	//				return err
-	//			} else {
-	//				if interval > maxInterval {
-	//					maxInterval = interval
-	//				}
-	//			}
-	//		}
-
-	//	} else {
-
-	//		subTable, ok := val.(*ast.Table)
-	//		if !ok {
-	//			err = fmt.Errorf("invalid configuration, error parsing field %q as table", name)
-	//			l.Errorf("%s", err)
-	//			return err
-	//		}
-
-	//		switch fieldName {
-	//		case "inputs":
-
-	//			for pluginName, pluginVal := range subTable.Fields {
-	//				switch pluginSubTable := pluginVal.(type) {
-	//				// legacy [inputs.cpu] support
-	//				case *ast.Table:
-	//					input := creator()
-	//					if interval, err := c.addInput(name, input, pluginSubTable); err != nil {
-	//						err = fmt.Errorf("Error parsing %s, %s", name, err)
-	//						l.Errorf("%s", err)
-	//						return err
-	//					} else {
-	//						if interval > maxInterval {
-	//							maxInterval = interval
-	//						}
-	//					}
-
-	//				case []*ast.Table:
-	//					for _, t := range pluginSubTable {
-	//						input := creator()
-	//						if interval, err := c.addInput(name, input, t); err != nil {
-	//							err = fmt.Errorf("Error parsing %s, %s", name, err)
-	//							l.Errorf("%s", err)
-	//							return err
-	//						} else {
-	//							if interval > maxInterval {
-	//								maxInterval = interval
-	//							}
-	//						}
-	//					}
-
-	//				default:
-	//					l.Error("not support config type: %v", pluginSubTable)
-	//					return fmt.Errorf("Unsupported config format: %s", pluginName)
-	//				}
-	//			}
-
-	//		default:
-	//			err = fmt.Errorf("Unsupported config format: %s", fieldName)
-	//			l.Errorf("%s", err)
-	//			return err
-	//		}
-
-	//	}
-
-	//}
-}
-
-func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) error {
-
-	tbls := []*ast.Table{}
-
-	switch tbl.(type) {
-	case []*ast.Table:
-		tbls = tbl.([]*ast.Table)
-	case *ast.Table:
-		tbls = append(tbls, tbl.(*ast.Table))
-	default:
-		return fmt.Errorf("invalid toml format on %s: %v", name, reflect.TypeOf(tbl))
-	}
-
-	for _, t := range tbls {
-		input := creator()
-
-		if err := toml.UnmarshalTable(t, input); err != nil {
-			l.Errorf("toml unmarshal %s failed: %v", name, err)
-			return err
-		}
-
-		if err := c.addInput(name, input, t); err != nil {
-			l.Error("add %s failed: %v", name, err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-// load all inputs under @InstallDir/conf.d
-func (c *Config) LoadConfig() error {
-
-	for name, creator := range inputs.Inputs {
-		if err := c.doLoadInputConf(name, creator); err != nil {
-			l.Errorf("load %s config failed: %v, ignored", name, err)
-			return err
-		}
-	}
-
-	return LoadTelegrafConfigs(datakit.ConfdDir, c.InputFilters)
-}
-
 func DumpInputsOutputs() {
 	names := []string{}
 
@@ -504,13 +349,14 @@ func DumpInputsOutputs() {
 		names = append(names, name)
 	}
 
-	for k, i := range SupportsTelegrafMetricNames {
+	for k, i := range TelegrafInputs {
 		if i.enabled {
 			names = append(names, k)
+			EnabledTelegrafInputs[k] = nil
 		}
 	}
 
-	l.Infof("avariable inputs: %s", strings.Join(names, ","))
+	l.Infof("available inputs: %s", strings.Join(names, ","))
 }
 
 func InitCfg(dwcfg *DataWayCfg) error {
@@ -543,120 +389,22 @@ func initMainCfg(dwcfg *DataWayCfg) error {
 	}
 
 	if err := ioutil.WriteFile(Cfg.MainCfg.cfgPath, []byte(buf.Bytes()), 0664); err != nil {
-		return fmt.Errorf("Error creating %s: %s", Cfg.MainCfg.cfgPath, err)
+		return fmt.Errorf("error creating %s: %s", Cfg.MainCfg.cfgPath, err)
 	}
 
 	return nil
 }
 
-// Creata datakit input plugin's configures if not exists
-func initPluginCfgs() {
-	for name, create := range inputs.Inputs {
-		if name == "self" {
-			continue
-		}
-
-		input := create()
-		catalog := input.Catalog()
-
-		// migrate old config to new catalog path
-		oldCfgPath := filepath.Join(datakit.ConfdDir, name, name+".conf")
-		cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf")
-
-		//l.Infof("check datakit input conf %s: %s, %s", name, oldCfgPath, cfgpath)
-
-		if _, err := os.Stat(oldCfgPath); err == nil {
-			if oldCfgPath == cfgpath {
-				continue // do nothing
-			}
-
-			if runtime.GOOS == "windows" {
-				if strings.ToLower(oldCfgPath) == strings.ToLower(cfgpath) {
-					continue
-				}
-			}
-
-			l.Debugf("migrate %s: %s -> %s", name, oldCfgPath, cfgpath)
-
-			if err := os.MkdirAll(filepath.Dir(cfgpath), os.ModePerm); err != nil {
-				l.Fatalf("create dir %s failed: %s", filepath.Dir(cfgpath), err.Error())
-			}
-
-			if err := os.Rename(oldCfgPath, cfgpath); err != nil {
-				l.Fatalf("move %s -> %s failed: %s", oldCfgPath, cfgpath, err.Error())
-			}
-
-			os.RemoveAll(filepath.Dir(oldCfgPath))
-			continue
-		}
-
-		if _, err := os.Stat(cfgpath); err != nil { // file not exists
-
-			l.Debugf("%s not exists, create it...", cfgpath)
-
-			l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
-			if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
-				l.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
-			}
-
-			sample := input.SampleConfig()
-			if sample == "" {
-				l.Fatalf("no sample available on collector %s", name)
-			}
-
-			if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
-				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
-			}
-		}
-	}
-
-	// create telegraf input plugin's configures
-	for name, input := range SupportsTelegrafMetricNames {
-
-		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf")
-		oldCfgPath := filepath.Join(datakit.ConfdDir, name, name+".conf")
-
-		//l.Debugf("check telegraf input conf %s...", name)
-
-		if _, err := os.Stat(oldCfgPath); err == nil {
-
-			if oldCfgPath == cfgpath {
-				//l.Debugf("%s exists, skip", oldCfgPath)
-				continue // do nothing
-			}
-
-			l.Debugf("%s exists, migrate to %s", oldCfgPath, cfgpath)
-			os.Rename(oldCfgPath, cfgpath)
-			os.RemoveAll(filepath.Dir(oldCfgPath))
-			continue
-		}
-
-		if _, err := os.Stat(cfgpath); err != nil {
-
-			l.Debugf("%s not exists, create it...", cfgpath)
-
-			l.Debugf("create telegraf conf path %s", filepath.Join(datakit.ConfdDir, input.Catalog))
-			if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, input.Catalog), os.ModePerm); err != nil {
-				l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
-			}
-
-			if sample, ok := TelegrafCfgSamples[name]; ok {
-				if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
-					l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
-				}
-			}
-		}
-	}
-}
-
 func parseCfgFile(f string) (*ast.Table, error) {
 	data, err := ioutil.ReadFile(f)
 	if err != nil {
+		l.Error(err)
 		return nil, fmt.Errorf("read config %s failed: %s", f, err.Error())
 	}
 
 	tbl, err := toml.Parse(data)
 	if err != nil {
+		l.Errorf("parse toml %s failed", string(data))
 		return nil, err
 	}
 
@@ -694,4 +442,39 @@ func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) err
 	c.Inputs[name] = append(c.Inputs[name], input)
 
 	return nil
+}
+
+func ParseDataway(dw string) (*DataWayCfg, error) {
+
+	dwcfg := &DataWayCfg{}
+
+	if u, err := url.Parse(dw); err == nil {
+		dwcfg.Scheme = u.Scheme
+		dwcfg.Token = u.Query().Get("token")
+		dwcfg.Host = u.Host
+		dwcfg.DefaultPath = u.Path
+
+		if dwcfg.Scheme == "https" {
+			dwcfg.Host = dwcfg.Host + ":443"
+		}
+
+		l.Debugf("dataway: %+#v", dwcfg)
+
+	} else {
+		l.Errorf("parse url %s failed: %s", dw, err.Error())
+		return nil, err
+	}
+
+	conn, err := net.DialTimeout("tcp", dwcfg.Host, time.Second*5)
+	if err != nil {
+		l.Errorf("TCP dial host `%s' failed: %s", dwcfg.Host, err.Error())
+		return nil, err
+	}
+
+	if err := conn.Close(); err != nil {
+		l.Errorf("close failed: %s", err.Error())
+		return nil, err
+	}
+
+	return dwcfg, nil
 }
