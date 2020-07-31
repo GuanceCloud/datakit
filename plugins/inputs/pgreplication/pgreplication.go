@@ -80,7 +80,7 @@ type Replication struct {
 	User      string            `toml:"user"`
 	Password  string            `toml:"password"`
 	Database  string            `toml:"database"`
-	Table     string            `toml:"Table"`
+	Table     string            `toml:"table"`
 	Events    []string          `toml:"events"`
 	TagList   []string          `toml:"tag_colunms"`
 	FieldList []string          `toml:"field_colunms"`
