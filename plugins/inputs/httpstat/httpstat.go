@@ -64,7 +64,7 @@ func (h *Httpstat) SampleConfig() string {
 }
 
 func (_ *Httpstat) Catalog() string {
-	return "httpStat"
+	return "network"
 }
 
 func (h *Httpstat) Run() {
