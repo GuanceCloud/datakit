@@ -1,11 +1,7 @@
 # -*- encoding: utf8 -*-
 START = "start_rows"
-
-
 FILE = "file"
-
 RULES = "Rules"
-
 PRMK  = "PrimaryKey"
 
 MEMENT = "metric"
@@ -38,4 +34,3 @@ BOOL  = "bool"
 FLOAT = "float"
 FieldType =  [INT, STR, BOOL, FLOAT]
 TsUnit = ["s", "ms", "us", "ns"]
-
