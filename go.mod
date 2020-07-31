@@ -14,7 +14,7 @@ require (
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
-	github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible // indirect
+	github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible
 	github.com/andygrunwald/go-jira v1.12.0
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/apache/thrift v0.13.0
