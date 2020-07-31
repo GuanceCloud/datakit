@@ -14,7 +14,7 @@ require (
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
-	github.com/aliyun/aliyun-oss-go-sdk v2.1.2+incompatible // indirect
+	github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible
 	github.com/andygrunwald/go-jira v1.12.0
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/apache/thrift v0.13.0
@@ -37,6 +37,7 @@ require (
 	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/go-ole/go-ole v1.2.4
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/gobwas/glob v0.2.3
 	github.com/godror/godror v0.17.0
 	github.com/gofrs/uuid v2.1.0+incompatible
 	github.com/gogo/googleapis v1.4.0 // indirect
@@ -44,7 +45,8 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.1
 	github.com/golangci/golangci-lint v1.27.0 // indirect
-	github.com/google/gopacket v1.1.17
+	github.com/google/gopacket v1.1.17 // indirect
+	github.com/hasura/pgdeltastream v0.1.7 // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb v1.8.0 // indirect
@@ -56,6 +58,7 @@ require (
 	github.com/lib/pq v1.4.0
 	github.com/logrusorgru/gopb3any v0.0.0-20181002194712-b78f3858fa1f // indirect
 	github.com/logrusorgru/lifo v0.0.0-20181002195007-26900045159d // indirect
+	github.com/mattn/go-zglob v0.0.3
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/mehrdadrad/mylg v0.2.6 // indirect
 	github.com/naoina/toml v0.1.1
@@ -71,6 +74,7 @@ require (
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.9.1
 	github.com/prometheus/node_exporter v0.18.1 // indirect
+	github.com/prometheus/procfs v0.0.8
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/robfig/cron v1.2.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
@@ -87,7 +91,7 @@ require (
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/xanzy/go-gitlab v0.31.0
 	github.com/zcalusic/sysinfo v0.0.0-20200228145645-a159d7cc708b // indirect
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200708034554-4979d23ed25d
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200729035319-59638165b038
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
