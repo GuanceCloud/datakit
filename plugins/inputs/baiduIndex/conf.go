@@ -9,8 +9,7 @@ const (
 #  kind = 'new'
 #  ## 采集的频度，最小粒度24小时
 #  interval = "24h"
-#  ## 指标名，默认值(baiduIndex)
-#  metricName = ""
+#  ## 指标名，baiduIndex
 #  
 `
 )
