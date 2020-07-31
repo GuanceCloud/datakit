@@ -48,7 +48,7 @@ type rdsInstance struct {
 }
 
 func (_ *AliyunRDS) Catalog() string {
-	return "aliyunRDSSlowlog"
+	return "aliyun"
 }
 
 func (_ *AliyunRDS) SampleConfig() string {
