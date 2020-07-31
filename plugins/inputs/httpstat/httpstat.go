@@ -21,7 +21,7 @@ import (
 
 var (
 	l    *logger.Logger
-	name = "httpstat"
+	name = "httpStat"
 )
 
 // project
@@ -30,7 +30,6 @@ type httpPing struct {
 	metricName    string
 	url           string
 	host          string
-	timeout       time.Duration
 	method        string
 	uAgent        string
 	buf           string
@@ -69,16 +68,25 @@ func (_ *Httpstat) Catalog() string {
 }
 
 func (h *Httpstat) Run() {
-	l = logger.SLogger("baiduIndex")
+	l = logger.SLogger("httpStat")
 
-	l.Info("baiduIndex input started...")
+	l.Info("httpStat input started...")
 
-	interval, err := time.ParseDuration(h.Interval)
-	if err != nil {
-		l.Error(err)
+	if h.Interval != "" {
+		du, err := time.ParseDuration(h.Interval)
+		if err != nil {
+			l.Errorf("bad interval %s: %s, use default: 10s", h.Interval, err.Error())
+			return
+		} else {
+			h.IntervalDuration = du
+		}
 	}
 
-	tick := time.NewTicker(interval)
+	if h.MetricName == "" {
+		h.MetricName = "httpStat"
+	}
+
+	tick := time.NewTicker(h.IntervalDuration)
 	defer tick.Stop()
 
 	for {

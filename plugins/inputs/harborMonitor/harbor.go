@@ -38,6 +38,10 @@ func (h *HarborMonitor) Run() {
 
 	l.Info("harborMonitor input started...")
 
+	if h.MetricName == "" {
+		h.MetricName = "harborMonitor"
+	}
+
 	interval, err := time.ParseDuration(h.Interval)
 	if err != nil {
 		l.Error(err)
