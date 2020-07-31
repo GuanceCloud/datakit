@@ -16,7 +16,7 @@ const (
 #    method = ""
 #    playload = ""
 #    kAlive = true
-#    tlsSkipVerify = true 
+#    tlsSkipVerify = true
 #    compress = true
 `
 )
