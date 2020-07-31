@@ -14,7 +14,7 @@ require (
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
-	github.com/aliyun/aliyun-oss-go-sdk v2.1.2+incompatible // indirect
+	github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible
 	github.com/andygrunwald/go-jira v1.12.0
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/apache/thrift v0.13.0
@@ -46,6 +46,7 @@ require (
 	github.com/golang/snappy v0.0.1
 	github.com/golangci/golangci-lint v1.27.0 // indirect
 	github.com/google/gopacket v1.1.17 // indirect
+	github.com/hasura/pgdeltastream v0.1.7 // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb v1.8.0 // indirect
@@ -90,7 +91,7 @@ require (
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/xanzy/go-gitlab v0.31.0
 	github.com/zcalusic/sysinfo v0.0.0-20200228145645-a159d7cc708b // indirect
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200724094927-05a50c73056f
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200729035319-59638165b038
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
