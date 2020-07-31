@@ -60,6 +60,13 @@ const (
 	SPAN_TYPE_LOCAL       = "local"
 )
 
+var SkyWalkTraceUrl  = map[string]bool{
+	SKYWALK_SEGMENT: true,
+	SKYWALK_PROPERTIES: true,
+	SKYWALK_KEEPALIVE: true,
+	SKYWALK_SEGMENTS: true,
+}
+
 func (tAdpt *TraceAdapter) mkLineProto() {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
@@ -127,6 +134,7 @@ func (t *TraceReqInfo) Decode(octets []byte) error {
 }
 
 func Handle(w http.ResponseWriter, r *http.Request) {
+	log.Debugf("trace handle with path: %s", r.URL.Path)
 	defer func() {
 		if r := recover(); r != nil {
 			log.Errorf("Stack crash: %v", r)
@@ -160,15 +168,19 @@ func handleTrace(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	tInfo := TraceReqInfo{source, version, contentType}
-	err = tInfo.Decode(body)
-	if err != nil {
-		JsonReply(w, http.StatusBadRequest, "Parse trace err: %s", err)
-		return err
-	}
+	if _, ok := SkyWalkTraceUrl[r.URL.Path]; ok {
+		return handleSkyWalking(w, r, r.URL.Path, body)
+	} else {
+		tInfo := TraceReqInfo{source, version, contentType}
+		err = tInfo.Decode(body)
+		if err != nil {
+			JsonReply(w, http.StatusBadRequest, "Parse trace err: %s", err)
+			return err
+		}
 
-	JsonReply(w, http.StatusOK, "ok")
-	return nil
+		JsonReply(w, http.StatusOK, "ok")
+		return nil
+	}
 }
 
 func JsonReply(w http.ResponseWriter, code int, strfmt string, args ...interface{}) {

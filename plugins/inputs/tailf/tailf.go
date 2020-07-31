@@ -3,17 +3,16 @@
 package tailf
 
 import (
-	"os"
-	"path/filepath"
-	"regexp"
+	"fmt"
 	"strings"
 	"time"
 
+	"github.com/gobwas/glob"
 	"github.com/hpcloud/tail"
+	"github.com/mattn/go-zglob"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -24,27 +23,18 @@ const (
 	defaultMeasurement = "tailf"
 
 	sampleCfg = `
-# [[inputs.tailf]]
-#	# use leftmost-first matching is the same semantics that Perl, Python
-#	# hit basename
-#	# require
-#	regexs = [".log"]
-#
-#	# Cannot be set to datakit.log
-#	# Directory and file paths
-#	paths = ["/tmp/tailf_test"]
-#
-#	# require
-#	source = "tailf"
-#
-#	# auto update the directory files
-#	update_files = false
-#
-#	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-#	update_files_cycle = "10s"
-#
-#	# [inputs.tailf.tags]
-#	# tags1 = "tags1"
+[[inputs.tailf]]
+	# required
+	logfiles = ["/tmp/tailf_test/**/*.log"]
+	
+	# glob filteer
+	ignore = [""]
+	
+	# required
+	source = "tailf"
+	
+	# [inputs.tailf.tags]
+	# tags1 = "value1"
 `
 )
 
@@ -55,18 +45,18 @@ var (
 )
 
 type Tailf struct {
-	Regexs           []string          `toml:"regexs"`
-	Paths            []string          `toml:"paths"`
-	Source           string            `toml:"source"`
-	UpdateFiles      bool              `toml:"update_files"`
-	UpdateFilesCycle string            `toml:"update_files_cycle"`
-	Tags             map[string]string `toml:"tags"`
+	LogFiles []string          `toml:"logfiles"`
+	Ignore   []string          `toml:"ignore"`
+	Source   string            `toml:"source"`
+	Tags     map[string]string `toml:"tags"`
 
-	seek      *tail.SeekInfo
-	regexList []*regexp.Regexp
+	seek    *tail.SeekInfo
+	tailers map[string]*tailer
+}
 
-	fileList map[string]interface{}
-	tailers  map[string]*tail.Tail
+type tailer struct {
+	tl    *tail.Tail
+	exist bool
 }
 
 func init() {
@@ -90,17 +80,7 @@ func (t *Tailf) Run() {
 		return
 	}
 
-	if t.UpdateFiles {
-		d, err := time.ParseDuration(t.UpdateFilesCycle)
-		if err != nil || d <= 0 {
-			l.Errorf("invalid duration of update_files_cycle")
-			return
-		}
-		t.getLinesUpdate(d)
-	} else {
-		t.getLines()
-	}
-
+	t.getLines()
 }
 
 func (t *Tailf) initcfg() bool {
@@ -119,28 +99,6 @@ func (t *Tailf) initcfg() bool {
 			time.Sleep(time.Second)
 		} else {
 			break
-
-		}
-	}
-
-	// build regexp
-	for _, regexStr := range t.Regexs {
-		for {
-			select {
-			case <-datakit.Exit.Wait():
-				l.Info("exit")
-				return true
-			default:
-				// nil
-			}
-
-			if re, err := regexp.Compile(regexStr); err == nil {
-				t.regexList = append(t.regexList, re)
-				break
-			} else {
-				l.Errorf("invalid regex, err: %s", err.Error())
-				time.Sleep(time.Second)
-			}
 		}
 	}
 
@@ -148,7 +106,7 @@ func (t *Tailf) initcfg() bool {
 		t.Tags = make(map[string]string)
 	}
 
-	t.tailers = make(map[string]*tail.Tail)
+	t.tailers = make(map[string]*tailer)
 
 	t.seek = &tail.SeekInfo{
 		Whence: 2,
@@ -158,58 +116,21 @@ func (t *Tailf) initcfg() bool {
 	return false
 }
 
-func (t *Tailf) filterPath() {
-	var fileList = getFileList(t.Paths)
-	t.fileList = make(map[string]interface{})
+func (t *Tailf) updateTailers() error {
 
-	if testAssert {
-		l.Debugf("file list: %v", fileList)
+	fileList, err := getFileList(t.LogFiles, t.Ignore)
+	if err != nil {
+		return err
 	}
 
-	// if error not nil, datakitlog is ""
-	datakitlog, _ := filepath.Abs(config.Cfg.MainCfg.Log)
+	// set false
+	for _, tailer := range t.tailers {
+		tailer.exist = false
+	}
 
 	for _, fn := range fileList {
-		if fn == datakitlog {
-			continue
-		}
-
-		if info, err := os.Stat(fn); err != nil || info.IsDir() {
-			continue
-		}
-
-		for _, re := range t.regexList {
-			if re.MatchString(filepath.Base(fn)) {
-				t.fileList[fn] = nil
-				break
-			}
-		}
-	}
-
-	for fn := range t.fileList {
-		contentType, err := getFileContentType(fn)
-		if err != nil {
-			continue
-		}
-
-		if _, ok := typeWhiteList[contentType]; !ok {
-			l.Warnf("%s is not text file", fn)
-		}
-	}
-}
-
-func (t *Tailf) updateTailers() {
-	t.filterPath()
-
-	for fn := range t.fileList {
-		l.Debugf("update new file list: %s", fn)
-	}
-
-	for fn := range t.fileList {
-
 		if _, ok := t.tailers[fn]; !ok {
-
-			tailer, err := tail.TailFile(fn,
+			tl, err := tail.TailFile(fn,
 				tail.Config{
 					ReOpen:    true,
 					Follow:    true,
@@ -224,44 +145,29 @@ func (t *Tailf) updateTailers() {
 				continue
 			}
 
-			t.tailers[fn] = tailer
+			t.tailers[fn] = &tailer{tl: tl}
+		}
+		t.tailers[fn].exist = true
+	}
+
+	// filter the not exist file
+	for key, tailer := range t.tailers {
+		if !tailer.exist {
+			tailer.tl.Cleanup()
+			delete(t.tailers, key)
 		}
 	}
-}
 
-func (t *Tailf) getLinesUpdate(d time.Duration) {
-	l.Infof("tailf input started...")
-	t.updateTailers()
-
-	loopTick := time.NewTicker(100 * time.Millisecond)
-	updateTick := time.NewTicker(d)
-
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return
-
-		case <-loopTick.C:
-			for _, tailer := range t.tailers {
-				// return true is 'exit'
-				if t.loopTailer(tailer) {
-					return
-				}
-			}
-		// update
-		case <-updateTick.C:
-			if t.UpdateFiles {
-				t.updateTailers()
-			}
-		}
-	}
+	return nil
 }
 
 func (t *Tailf) getLines() {
-	l.Infof("tailf input started...")
-	t.updateTailers()
+	l.Infof("tailf input started.")
+
 	loopTick := time.NewTicker(100 * time.Millisecond)
+	defer loopTick.Stop()
+	updateTick := time.NewTicker(time.Second)
+	defer updateTick.Stop()
 
 	for {
 		select {
@@ -272,20 +178,25 @@ func (t *Tailf) getLines() {
 		case <-loopTick.C:
 			for _, tailer := range t.tailers {
 				// return true is 'exit'
-				if t.loopTailer(tailer) {
+				if t.loopTailer(tailer.tl) {
 					return
 				}
+			}
+
+		case <-updateTick.C:
+			if err := t.updateTailers(); err != nil {
+				l.Error("update file list error: %s", err.Error())
 			}
 		}
 	}
 }
 
 // loopTailer return bool of is "exit"
-func (t *Tailf) loopTailer(tailer *tail.Tail) bool {
+func (t *Tailf) loopTailer(tl *tail.Tail) bool {
 	for {
 		select {
-		case line := <-tailer.Lines:
-			data, err := t.parseLine(line, tailer.Filename)
+		case line := <-tl.Lines:
+			data, err := t.parseLine(line, tl.Filename)
 			if err != nil {
 				l.Error(err)
 				continue
@@ -303,13 +214,7 @@ func (t *Tailf) loopTailer(tailer *tail.Tail) bool {
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
 			return true
-
 		default:
-			// clean
-			if _, ok := t.fileList[tailer.Filename]; !ok {
-				tailer.Cleanup()
-				delete(t.tailers, tailer.Filename)
-			}
 			return false
 		}
 	}
@@ -333,4 +238,39 @@ func (t *Tailf) parseLine(line *tail.Line, filename string) ([]byte, error) {
 	fields["__content"] = text
 
 	return io.MakeMetric(t.Source, tags, fields, time.Now())
+}
+
+func getFileList(filesGlob []string, ignoreGlob []string) ([]string, error) {
+
+	var matches, passlist []string
+	for _, f := range filesGlob {
+		fmt.Println(f)
+		matche, err := zglob.Glob(f)
+		if err != nil {
+			return nil, err
+		}
+		matches = append(matches, matche...)
+	}
+
+	var globs []glob.Glob
+	for _, ig := range ignoreGlob {
+		g, err := glob.Compile(ig)
+		if err != nil {
+			return nil, err
+		}
+		globs = append(globs, g)
+	}
+
+	for _, match := range matches {
+		fmt.Println(match)
+		for _, g := range globs {
+			if g.Match(match) {
+				goto __NEXT
+			}
+		}
+		passlist = append(passlist, match)
+	__NEXT:
+	}
+
+	return passlist, nil
 }
