@@ -4,16 +4,24 @@ package containerd
 
 import (
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
-func TestMain(t *testing.T) {
+func __init() {
+	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_DEFAULT)
+	l = logger.SLogger(inputName)
+}
 
-	con := Containerd{
+func TestMain(t *testing.T) {
+	__init()
+	testAssert = true
+
+	var con = Containerd{
 		HostPath:  "/run/containerd/containerd.sock",
 		Namespace: "moby",
 		IDList:    []string{"*"},
-		Cycle:     60,
-		Tags:      make(map[string]string),
+		Interval:  "5s",
 	}
 
 	con.Run()
