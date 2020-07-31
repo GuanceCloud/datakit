@@ -47,6 +47,8 @@ github.com/Microsoft/hcsshim/osversion
 github.com/Pallinder/go-randomdata
 # github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d
 github.com/StackExchange/wmi
+# github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
+github.com/aeden/traceroute
 # github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
 github.com/aliyun/alibaba-cloud-sdk-go/sdk
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth
