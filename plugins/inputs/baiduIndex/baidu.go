@@ -43,6 +43,10 @@ func (b *BaiduIndex) Run() {
 
 	l.Info("baiduIndex input started...")
 
+	if b.initcfg() {
+		return
+	}
+
 	interval, err := time.ParseDuration(b.Interval)
 	if err != nil {
 		l.Error(err)
@@ -61,6 +65,18 @@ func (b *BaiduIndex) Run() {
 			return
 		}
 	}
+}
+
+func (b *BaiduIndex) initcfg() bool {
+	if b.MetricName == "" {
+		b.MetricName = "baiduIndex"
+	}
+
+	if b.Cookie == "" {
+		l.Error("cookie is required")
+	}
+
+	return false
 }
 
 type searchWord struct {

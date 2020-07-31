@@ -1,17 +1,21 @@
-// +build ignore
-// +build !windows,!darwin,!386
-
 package tracerouter
 
 import (
+	"bytes"
 	"fmt"
-
-	guuid "github.com/google/uuid"
+	"time"
 
 	"github.com/aeden/traceroute"
 
-	"github.com/influxdata/telegraf"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
+
+var (
+	l    *logger.Logger
+	name = "tracerouter"
 )
 
 func (t *TraceRouter) Description() string {
@@ -19,7 +23,7 @@ func (t *TraceRouter) Description() string {
 }
 
 func (t *TraceRouter) SampleConfig() string {
-	return sampleConfig
+	return configSample
 }
 
 func (t *TraceRouter) Catalog() string {
@@ -30,67 +34,100 @@ func (t *TraceRouter) Init() error {
 	return nil
 }
 
-func (t *TraceRouter) Gather(acc telegraf.Accumulator) error {
-	traceId := NewUUID()
-
-	t.exec(traceId, acc)
+func (t *TraceRouter) Gather() error {
 	return nil
 }
 
-// NewUUID 创建UUID
-func NewUUID() string {
-	v, err := guuid.NewRandom()
-	if err != nil {
-		panic(err)
+func (t *TraceRouter) Run() {
+	l = logger.SLogger("tracerouter")
+
+	l.Info("tracerouter input started...")
+
+	t.checkCfg()
+
+	tick := time.NewTicker(t.IntervalDuration)
+	defer tick.Stop()
+
+	for {
+		select {
+		case <-tick.C:
+			t.handle()
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+		}
 	}
-	return v.String()
 }
 
-func printHop(domain string, traceId string, hop traceroute.TracerouteHop, acc telegraf.Accumulator) {
-	addr := fmt.Sprintf("%v.%v.%v.%v", hop.Address[0], hop.Address[1], hop.Address[2], hop.Address[3])
+func (t *TraceRouter) checkCfg() {
+	// 采集频度
+	t.IntervalDuration = 10 * time.Minute
 
-	tags := make(map[string]string)
-	fields := make(map[string]interface{})
-	if hop.Success {
-		tags["distAddr"] = domain
-		tags["traceId"] = traceId
-		fields["seq"] = fmt.Sprintf("%d", hop.TTL)
-		fields["addr"] = fmt.Sprintf("\"%s\"", addr)
-		fields["ttl"] = hop.ElapsedTime.Microseconds()
+	if t.Interval != "" {
+		du, err := time.ParseDuration(t.Interval)
+		if err != nil {
+			l.Errorf("bad interval %s: %s, use default: 10m", t.Interval, err.Error())
+		} else {
+			t.IntervalDuration = du
+		}
 	}
 
-	acc.AddFields("tracerouter", fields, tags)
+	// 指标集名称
+	if t.Metric != "" {
+		t.Metric = "tracerouter"
+	}
 }
 
-func address(address [4]byte) string {
-	return fmt.Sprintf("%v.%v.%v.%v", address[0], address[1], address[2], address[3])
-}
-
-func (t *TraceRouter) exec(traceId string, acc telegraf.Accumulator) {
+func (t *TraceRouter) handle() {
 	host := t.Addr
 	options := traceroute.TracerouteOptions{}
 	options.SetMaxHops(traceroute.DEFAULT_MAX_HOPS + 1)
 	options.SetFirstHop(traceroute.DEFAULT_FIRST_HOP)
 
-	c := make(chan traceroute.TracerouteHop, 0)
-	go func() {
-		for {
-			hop, ok := <-c
-			if !ok {
-				fmt.Println()
-				return
+	resHop, err := traceroute.Traceroute(host, &options)
+	if err != nil {
+		l.Errorf("tracerouter error %v", err)
+	}
+
+	t.parseHopData(resHop)
+}
+
+func (t *TraceRouter) parseHopData(resultHop traceroute.TracerouteResult) {
+	tags := make(map[string]string)
+	fields := make(map[string]interface{})
+	lines := [][]byte{}
+	tm := time.Now()
+
+	for _, hop := range resultHop.Hops {
+		if hop.Success {
+			addr := fmt.Sprintf("%v.%v.%v.%v", hop.Address[0], hop.Address[1], hop.Address[2], hop.Address[3])
+
+			tags["dist_addr"] = t.Addr
+			fields["hop_num"] = fmt.Sprintf("%d", hop.TTL)
+			fields["hop_addr"] = addr
+			fields["resp_time"] = hop.ElapsedTime.Microseconds()
+
+			pt, err := io.MakeMetric(t.Metric, tags, fields, tm)
+			if err != nil {
+				l.Errorf("make metric point error %v", err)
 			}
 
-			printHop(t.Addr, traceId, hop, acc)
-		}
-	}()
+			fmt.Println("======>", pt)
 
-	_, err := traceroute.Traceroute(host, &options, c)
+			lines = append(lines, pt)
+		}
+	}
+
+	pushLines := bytes.Join(lines, []byte("\n"))
+
+	err := io.NamedFeed(pushLines, io.Metric, name)
 	if err != nil {
-		fmt.Printf("Error: ", err)
+		l.Errorf("push metric point error %v", err)
 	}
 }
 
 func init() {
-	inputs.Add("tracerouter", func() inputs.Input { return &TraceRouter{} })
+	inputs.Add(name, func() inputs.Input {
+		return &TraceRouter{}
+	})
 }
