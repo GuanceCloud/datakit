@@ -25,10 +25,10 @@ const (
 	sampleCfg = `
 [[inputs.tailf]]
 	# required
-	logfiles = ["/tmp/tailf_test/*.log"]
+	logfiles = ["/tmp/tailf_test/**/*.log"]
 	
 	# glob filteer
-	ignore = ["*.gz"]
+	ignore = [""]
 	
 	# required
 	source = "tailf"
