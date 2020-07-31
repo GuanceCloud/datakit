@@ -12,14 +12,15 @@ const (
 #  ## 指标集名称，默认值scanport
 #  metricName = ''
 #  ## 网络cidr
-#  cidr = ''
-#  ## ip集合
-#  ips = []
+#  ## ip或域名，或cidr网络192.168.1.1/30, (default "127.0.0.1")
+#  targets = []
 #  ## 协议
-#  protocol = ["tcp", "udp"]
-#  ## 端口范围
-#  portStart = 1
-#  portEnd = 65535
+#  ## 端口范围, 如，80,81,88-1000（default '80'）
+#  port = ''
+#  ## 超时时长(毫秒) (default 200)
+#  timeout = 200
+#  ## 协称数 (default 100)
+#  process = 100
 #  desc = ''
 #`
 )
@@ -27,13 +28,11 @@ const (
 type Scanport struct {
 	Metric           string            `json:"metricName" toml:"metricName"`
 	Interval         string            `json:"interval" toml:"interval"`
-	Cidr             string            `json:"cidr" toml:"cidr"`
-	Ips              []string          `json:"ips" toml:"ips"`
-	Protocol         []string          `json:"protocol" toml:"protocol"`
-	PortStart        int               `json:"portStart" toml:"portStart"`
-	PortEnd          int               `json:"portEnd" toml:"portEnd"`
+	Targets          []string          `json:"targets" toml:"targets"`
+	Port             string            `json:"port" toml:"port"`
 	Desc             string            `json:"desc" toml:"desc"`
 	Tags             map[string]string `json:"tags" toml:"tags"`
-	Timeout          time.Duration     `json:"-" toml:"-"`
+	Timeout          int               `json:"timeout" toml:"timeout"`
+	Process          int               `json:"process" toml:"process"`
 	IntervalDuration time.Duration     `json:"-" toml:"-"`
 }
