@@ -1,376 +1,347 @@
-// +build ignore
-
-// +build linux
-
 package scanport
 
 import (
-	"context"
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"math/rand"
+	"math"
 	"net"
+	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcap"
-	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-// scan
-type Scan struct {
-	MinPort  int
-	MaxPort  int
-	Target   string
-	lport    int
-	rport    int
-	laddr    net.IP
-	raddr    net.IP
-	ifName   string
-	network  string
-	forceV4  bool
-	forceV6  bool
-	connScan bool
-	ip       gopacket.NetworkLayer
-}
+const (
+	DNSName string = `^([a-zA-Z0-9_]{1}[a-zA-Z0-9_-]{0,62}){1}(\.[a-zA-Z0-9_]{1}[a-zA-Z0-9_-]{0,62})*[\._]?$`
+)
 
-const sampleConfig = `
-# scan port,
-# minPort = 1
-# maxPort = 1000
-# target  = "www.dataflux.com"
- `
-const description = `scan network port`
+var (
+	l         *logger.Logger
+	name      = "scanport"
+	rxDNSName = regexp.MustCompile(DNSName)
+)
 
-func (s *Scan) Description() string {
-	return description
-}
-
-func (s *Scan) Catalog() string {
+func (_ *Scanport) Catalog() string {
 	return "network"
 }
 
-func (s *Scan) SampleConfig() string {
-	return sampleConfig
+func (_ *Scanport) SampleConfig() string {
+	return configSample
 }
 
-func (s *Scan) Gather(acc telegraf.Accumulator) error {
-	s.exec(acc)
+func (_ *Scanport) Description() string {
+	return ""
+}
+
+func (_ *Scanport) Gather() error {
 	return nil
 }
 
-func (s *Scan) exec(acc telegraf.Accumulator) {
-	if s.IsCIDR() {
-		fmt.Errorf("it doesn't support CIDR")
+func (_ *Scanport) Init() error {
+	return nil
+}
+
+func (s *Scanport) Run() {
+	l = logger.SLogger("scanport")
+
+	l.Info("scanport input started...")
+
+	s.checkCfg()
+
+	tick := time.NewTicker(s.IntervalDuration)
+	defer tick.Stop()
+
+	for {
+		select {
+		case <-tick.C:
+			// handle
+			s.handle()
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+		}
+	}
+}
+
+func (s *Scanport) checkCfg() {
+	// 采集频度
+	s.IntervalDuration = 10 * time.Minute
+
+	if s.Interval != "" {
+		du, err := time.ParseDuration(s.Interval)
+		if err != nil {
+			l.Errorf("bad interval %s: %s, use default: 10m", s.Interval, err.Error())
+		} else {
+			s.IntervalDuration = du
+		}
+	}
+
+	// 指标集名称
+	if s.Metric != "" {
+		s.Metric = "scanport"
+	}
+}
+
+// handle
+func (s *Scanport) handle() {
+	fmt.Println("start ----->")
+	ips, err := s.GetAllIp()
+	if err != nil {
+		l.Errorf("convert config ip fail error %v", err.Error())
 		return
 	}
-	s.setIP()
-	openPorts := s.Run()
-	fields := make(map[string]interface{})
-	tags := make(map[string]string)
-	for _, p := range openPorts {
-		fields["port"] = p.port
-		tags["target"] = s.Target       //域名
-		tags["addr"] = s.raddr.String() //ip
-		tags["minPort"] = fmt.Sprintf("%d", s.MinPort)
-		tags["maxPort"] = fmt.Sprintf("%d", s.MaxPort)
-		acc.AddFields("scan_port", fields, tags, p.t)
+
+	lines := [][]byte{}
+
+	fmt.Println("ips =======>", ips)
+
+	//扫所有的ip
+	for i := 0; i < len(ips); i++ {
+		tags := make(map[string]string)
+		fields := make(map[string]interface{})
+		tm := time.Now()
+
+		ports := s.GetIpOpenPort(ips[i])
+		fmt.Println("ports =======>", ports)
+
+		if len(ports) > 0 {
+			b, err := json.Marshal(ports)
+			if err != nil {
+				l.Errorf("get all open port error %v", err)
+			}
+
+			var resStr = string(b)
+
+			tags["ip"] = ips[i]
+			fields["openPort"] = resStr
+
+			pt, err := io.MakeMetric(s.Metric, tags, fields, tm)
+			if err != nil {
+				l.Errorf("make metric point error %v", err)
+			}
+
+			lines = append(lines, pt)
+		}
+	}
+
+	pushLines := bytes.Join(lines, []byte("\n"))
+
+	err = io.NamedFeed(pushLines, io.Metric, name)
+	if err != nil {
+		l.Errorf("push metric point error %v", err)
 	}
 }
 
-func init() {
-	inputs.Add("scanport", func() inputs.Input { return &Scan{} })
+//获取所有ip
+func (s *Scanport) GetAllIp() ([]string, error) {
+	var (
+		ips []string
+	)
+
+	for _, target := range s.Targets {
+		if isIP(target) {
+			ips = append(ips, target)
+		} else if isDNSName(target) {
+			// 添加ip
+			ip, _ := parseDNS(target)
+			ips = append(ips, ip)
+		} else if isCIDR(target) {
+			// crdr解析
+			cidrIp, _ := parseCIDR(target)
+			ips = append(ips, cidrIp...)
+		} else {
+			return ips, errors.New("config target not right")
+		}
+	}
+
+	return ips, nil
 }
 
-// IsCIDR checks the target if it's CIDR
-func (s *Scan) IsCIDR() bool {
-	_, _, err := net.ParseCIDR(s.Target)
+//获取所有端口
+func (s *Scanport) getAllPort() ([]int, error) {
+	var ports []int
+	//处理 ","号 如 80,81,88 或 80,88-100
+	portArr := strings.Split(strings.Trim(s.Port, ","), ",")
+	for _, v := range portArr {
+		portArr2 := strings.Split(strings.Trim(v, "-"), "-")
+		startPort, err := filterPort(portArr2[0])
+		if err != nil {
+			continue
+		}
+		//第一个端口先添加
+		ports = append(ports, startPort)
+		if len(portArr2) > 1 {
+			//添加第一个后面的所有端口
+			endPort, _ := filterPort(portArr2[1])
+			if endPort > startPort {
+				for i := 1; i <= endPort-startPort; i++ {
+					ports = append(ports, startPort+i)
+				}
+			}
+		}
+	}
+	//去重复
+	ports = arrayUnique(ports)
+
+	return ports, nil
+}
+
+//查看端口号是否打开
+func (s *Scanport) isOpen(ip string, port int) bool {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", ip, port), time.Millisecond*time.Duration(s.Timeout))
 	if err != nil {
+		if strings.Contains(err.Error(), "too many open files") {
+			l.Errorf("too many open files" + err.Error())
+			os.Exit(1)
+		}
 		return false
 	}
+	_ = conn.Close()
 	return true
 }
 
-func isIPv4(ip net.IP) bool {
-	return len(ip.To4()) == net.IPv4len
-}
-
-func isIPv6(ip net.IP) bool {
-	if r := strings.Index(ip.String(), ":"); r != -1 {
-		return true
-	}
-	return false
-}
-
-func (s *Scan) setIP() error {
-	ips, err := net.LookupIP(s.Target)
+//端口合法性过滤
+func filterPort(str string) (int, error) {
+	port, err := strconv.Atoi(str)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	for _, ip := range ips {
-		if isIPv4(ip) && !s.forceV6 {
-			s.raddr = ip
-			s.network = "ip4"
-			break
-		} else if isIPv6(ip) && !s.forceV4 {
-			s.raddr = ip
-			s.network = "ip6"
-			break
+	if port < 1 || port > 65535 {
+		return 0, errors.New("port out of range")
+	}
+	return port, nil
+}
+
+//数组去重
+func arrayUnique(arr []int) []int {
+	var newArr []int
+	for i := 0; i < len(arr); i++ {
+		repeat := false
+		for j := i + 1; j < len(arr); j++ {
+			if arr[i] == arr[j] {
+				repeat = true
+				break
+			}
+		}
+		if !repeat {
+			newArr = append(newArr, arr[i])
 		}
 	}
-	return nil
+	return newArr
 }
 
-// Run tries to scan wide range ports (TCP)
-func (s *Scan) Run() []point {
+//获取开放端口号
+func (s *Scanport) GetIpOpenPort(ip string) []int {
 	var (
-		openPorts []point
-		err       error
+		total     int
+		pageCount int
+		num       int
+		openPorts []int
+		mutex     sync.Mutex
 	)
-	if s.MinPort != s.MaxPort {
-		fmt.Printf("Scan %s (%s) TCP ports %d-%d\n", s.Target, s.raddr, s.MinPort, s.MaxPort)
+	ports, _ := s.getAllPort()
+	total = len(ports)
+	if total < s.Process {
+		pageCount = total
 	} else {
-		fmt.Printf("Scan %s (%s) TCP port %d\n", s.Target, s.raddr, s.MinPort)
+		pageCount = s.Process
 	}
-	tStart := time.Now()
-	if s.connScan {
-		openPorts = s.tcpConnScan()
-	} else {
-		openPorts, err = s.tcpSYNScan()
+	num = int(math.Ceil(float64(total) / float64(pageCount)))
+
+	l.Info(fmt.Sprintf("%v 【%v】需要扫描端口总数:%v 个，总协程:%v 个，每个协程处理:%v 个，超时时间:%v毫秒", time.Now().Format("2006-01-02 15:04:05"), ip, total, pageCount, num, s.Timeout))
+	start := time.Now()
+	all := map[int][]int{}
+	for i := 1; i <= pageCount; i++ {
+		for j := 0; j < num; j++ {
+			tmp := (i-1)*num + j
+			if tmp < total {
+				all[i] = append(all[i], ports[tmp])
+			}
+		}
 	}
-	if err != nil {
-		println(err.Error())
-		return nil
+
+	wg := sync.WaitGroup{}
+	for k, v := range all {
+		wg.Add(1)
+		go func(value []int, key int) {
+			defer wg.Done()
+			var tmpPorts []int
+			for i := 0; i < len(value); i++ {
+				opened := s.isOpen(ip, value[i])
+				if opened {
+					tmpPorts = append(tmpPorts, value[i])
+				}
+			}
+			mutex.Lock()
+			openPorts = append(openPorts, tmpPorts...)
+			mutex.Unlock()
+			if len(tmpPorts) > 0 {
+				l.Info(fmt.Sprintf("%v 【%v】协程%v 执行完成，时长： %.3fs，开放端口： %v", time.Now().Format("2006-01-02 15:04:05"), ip, key, time.Since(start).Seconds(), tmpPorts))
+			}
+		}(v, k)
 	}
-	if len(openPorts) == 0 {
-		println("there isn't any opened port")
-	} else {
-		println("")
-		elapsed := fmt.Sprintf("%.3f seconds", time.Since(tStart).Seconds())
-		println("Scan done:", len(openPorts), "opened port(s) found in", elapsed)
-	}
+	wg.Wait()
+	l.Info(fmt.Sprintf("%v 【%v】扫描结束，执行时长%.3fs , 所有开放的端口:%v", time.Now().Format("2006-01-02 15:04:05"), ip, time.Since(start).Seconds(), openPorts))
 	return openPorts
 }
 
-func (s *Scan) packetDataTCP(rport int) (error, []byte) {
-	tcp := &layers.TCP{
-		SrcPort: layers.TCPPort(s.lport),
-		DstPort: layers.TCPPort(rport),
-		Seq:     1,
-		SYN:     true,
-		Window:  15000,
-	}
-	tcp.SetNetworkLayerForChecksum(s.ip)
-	buf := gopacket.NewSerializeBuffer()
-	opts := gopacket.SerializeOptions{
-		ComputeChecksums: true,
-		FixLengths:       true,
-	}
-	if err := gopacket.SerializeLayers(buf, opts, tcp); err != nil {
-		return err, []byte{}
-	}
-	return nil, buf.Bytes()
+// IsCIDR check if the string is an valid CIDR notiation (IPV4 & IPV6)
+func isCIDR(str string) bool {
+	_, _, err := net.ParseCIDR(str)
+	return err == nil
 }
 
-func (s *Scan) setProto(proto string) error {
-	var netProto = fmt.Sprintf("%s:%s", s.network, proto)
-	switch netProto {
-	case "ip4:tcp":
-		s.ip = &layers.IPv4{
-			SrcIP:    s.laddr,
-			DstIP:    s.raddr,
-			Protocol: layers.IPProtocolTCP,
-		}
-	case "ip4:udp":
-		s.ip = &layers.IPv4{
-			SrcIP:    s.laddr,
-			DstIP:    s.raddr,
-			Protocol: layers.IPProtocolUDP,
-		}
-	case "ip6:tcp":
-		s.ip = &layers.IPv6{
-			SrcIP:      s.laddr,
-			DstIP:      s.raddr,
-			NextHeader: layers.IPProtocolTCP,
-		}
-	case "ip6:udp":
-		s.ip = &layers.IPv6{
-			SrcIP:      s.laddr,
-			DstIP:      s.raddr,
-			NextHeader: layers.IPProtocolUDP,
-		}
-	}
-	return nil
+// IsIP checks if a string is either IP version 4 or 6. Alias for `net.ParseIP`
+func isIP(str string) bool {
+	return net.ParseIP(str) != nil
 }
 
-func (s *Scan) setLocalNet() error {
-	conn, err := net.Dial("udp", net.JoinHostPort(s.raddr.String(), "80"))
+// IsDNSName will validate the given string as a DNS name
+func isDNSName(str string) bool {
+	if str == "" || len(strings.Replace(str, ".", "", -1)) > 255 {
+		// constraints already violated
+		return false
+	}
+	return !isIP(str) && rxDNSName.MatchString(str)
+}
+
+func parseDNS(domain string) (string, error) {
+	addr, err := net.ResolveIPAddr("ip", name)
 	if err != nil {
-		return err
+		return "", err
 	}
-	defer conn.Close()
-	if lAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
-		s.laddr = lAddr.IP
-		s.lport = lAddr.Port
-	} else {
-		return fmt.Errorf("can not find local address/port")
-	}
-	ifs, _ := net.Interfaces()
-	for _, i := range ifs {
-		addrs, _ := i.Addrs()
-		for _, addr := range addrs {
-			ip, _, _ := net.ParseCIDR(addr.String())
-			if ip.String() == s.laddr.String() {
-				s.ifName = i.Name
-				break
-			}
-		}
-	}
-	return nil
+
+	return addr.String(), nil
 }
 
-func (s *Scan) tcpSYNScan() ([]point, error) {
-	var err error
-	ctx, cancel := context.WithCancel(context.Background())
-	if err = s.setLocalNet(); err != nil {
-		return nil, fmt.Errorf("source IP address not configured")
-	}
-	if err = s.setProto("tcp"); err != nil {
-		println(err.Error())
-	}
-	go func() {
-		if err := s.sendTCPSYN(); err != nil {
-			println(err.Error())
-		}
-		cancel()
-	}()
-	openPorts, err := s.pCapture(ctx)
-	return openPorts, err
-}
-
-func (s *Scan) pCapture(ctx context.Context) ([]point, error) {
-	var (
-		tcp       *layers.TCP
-		timeout   = 100 * time.Nanosecond
-		openPorts []point
-		ok        bool
-	)
-	handle, err := pcap.OpenLive(s.ifName, 6*1024, false, timeout)
+// cidr解析
+func parseCIDR(cidr string) ([]string, error) {
+	ip, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return nil, err
 	}
-	defer handle.Close()
-	filter := "tcp and src host " + s.raddr.String()
-	if err := handle.SetBPFFilter(filter); err != nil {
-		return nil, err
+
+	var ips []string
+	for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
+		ips = append(ips, ip.String())
 	}
-	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-LOOP:
-	for {
-		select {
-		case <-ctx.Done():
-			break LOOP
-		case packet := <-packetSource.Packets():
-			tcpLayer := packet.Layer(layers.LayerTypeTCP)
-			if tcpLayer != nil {
-				if tcp, ok = tcpLayer.(*layers.TCP); !ok {
-					continue
-				}
-				if tcp.SYN && tcp.ACK {
-					p, _ := strconv.Atoi(fmt.Sprintf("%d", tcp.SrcPort))
-					pt := point{
-						port: p,
-						t:    time.Now(),
-					}
-					// ports = append(ports, pt)
-					openPorts = append(openPorts, pt)
-				}
-				continue
-			}
-		}
-	}
-	return openPorts, nil
+	// remove network address and broadcast address
+	return ips[1 : len(ips)-1], nil
 }
 
-func (s *Scan) sendTCPSYN() error {
-	var (
-		buf  []byte
-		err  error
-		conn net.PacketConn
-	)
-	if s.network != "ip6" {
-		conn, err = net.ListenPacket(s.network+":tcp", "0.0.0.0")
-	} else {
-		conn, err = net.ListenPacket(s.network+":tcp", "::")
-	}
-	if err != nil {
-		return err
-	}
-	for i := s.MinPort; i <= s.MaxPort; i++ {
-		if err, buf = s.packetDataTCP(i); err != nil {
-			return err
-		}
-		if _, err := conn.WriteTo(buf, &net.IPAddr{IP: s.raddr}); err != nil {
-			println(err.Error())
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-	time.Sleep(1 * time.Second)
-	return nil
-}
-
-type point struct {
-	port int
-	t    time.Time
-}
-
-// tcpConnScan tries to scan a single host
-func (s *Scan) tcpConnScan() []point {
-	var wg sync.WaitGroup
-	var ports = make([]point, 0)
-	for i := s.MinPort; i <= s.MaxPort; i++ {
-		wg.Add(1)
-		go func(i int) {
-			for {
-				host := net.JoinHostPort(s.raddr.String(), fmt.Sprintf("%d", i))
-				conn, err := net.DialTimeout("tcp", host, 2*time.Second)
-				if err != nil {
-					if strings.Contains(err.Error(), "too many open files") {
-						// random back-off
-						time.Sleep(time.Duration(10+rand.Int31n(30)) * time.Millisecond)
-						continue
-					}
-					wg.Done()
-					return
-				}
-				conn.Close()
-				break
-			}
-			p := point{
-				port: i,
-				t:    time.Now(),
-			}
-			ports = append(ports, p)
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-	// sort.Ints(ports)
-	return ports
-}
-
-func uniqSlice(s []int) []int {
-	m := map[int]bool{}
-	r := []int{}
-	for _, v := range s {
-		if _, ok := m[v]; !ok {
-			m[v] = true
-			r = append(r, v)
+func inc(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
 		}
 	}
-	return r
 }
