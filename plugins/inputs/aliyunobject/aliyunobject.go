@@ -2,7 +2,6 @@ package aliyunobject
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -45,20 +44,15 @@ func (ag *objectAgent) Run() {
 	if ag.Ecs != nil {
 		ag.addModule(ag.Ecs)
 	}
-
 	if ag.Slb != nil {
 		ag.addModule(ag.Slb)
 	}
-
 	if ag.Oss != nil {
 		ag.addModule(ag.Oss)
 	}
-
 	if ag.Rds != nil {
 		ag.addModule(ag.Rds)
 	}
-
-	fmt.Printf("%v\n", ag.subModules)
 
 	for _, s := range ag.subModules {
 		ag.wg.Add(1)
