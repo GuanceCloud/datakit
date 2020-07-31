@@ -2,9 +2,14 @@ package scanport
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
 	"net"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -12,16 +17,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
-	pattern = "^(?:(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\/([1-9]|[1-2]\\d|3[0-1])$"
+	DNSName string = `^([a-zA-Z0-9_]{1}[a-zA-Z0-9_-]{0,62}){1}(\.[a-zA-Z0-9_]{1}[a-zA-Z0-9_-]{0,62})*[\._]?$`
 )
 
 var (
-	l    *logger.Logger
-	name = "scanport"
+	l         *logger.Logger
+	name      = "scanport"
+	rxDNSName = regexp.MustCompile(DNSName)
 )
 
 func (_ *Scanport) Catalog() string {
@@ -83,85 +88,243 @@ func (s *Scanport) checkCfg() {
 	if s.Metric != "" {
 		s.Metric = "scanport"
 	}
-
-	// cidr
-	if s.Cidr != "" {
-		matched, err := regexp.MatchString(pattern, s.Cidr)
-		if err != nil {
-			l.Errorf("incorrect input cidr config `%s': %s", s.Cidr, err)
-		}
-
-		if !matched {
-			l.Errorf("incorrect input cidr config `%s': %s", s.Cidr, err)
-		}
-	}
-
-	if len(s.Ips) == 0 {
-		ipList, err := s.walkCIDR()
-		if err != nil {
-			l.Errorf("incorrect input cidr config `%s': %s", s.Cidr, err)
-		}
-
-		s.Ips = append(s.Ips, ipList...)
-	}
-
-	s.Timeout = time.Millisecond
 }
 
 // handle
-func (s *Scanport) handle() error {
+func (s *Scanport) handle() {
+	fmt.Println("start ----->")
+	ips, err := s.GetAllIp()
+	if err != nil {
+		l.Errorf("convert config ip fail error %v", err.Error())
+		return
+	}
+
 	lines := [][]byte{}
 
-	jobCh := s.genJob()
-	retCh := make(chan []byte, 200)
+	fmt.Println("ips =======>", ips)
 
-	wg := new(sync.WaitGroup)
+	//扫所有的ip
+	for i := 0; i < len(ips); i++ {
+		tags := make(map[string]string)
+		fields := make(map[string]interface{})
+		tm := time.Now()
 
-	workPool(50, jobCh, retCh, wg)
+		ports := s.GetIpOpenPort(ips[i])
+		fmt.Println("ports =======>", ports)
 
-	wg.Wait()
-	close(retCh)
-	for ret := range retCh {
+		if len(ports) > 0 {
+			b, err := json.Marshal(ports)
+			if err != nil {
+				l.Errorf("get all open port error %v", err)
+			}
 
-		lines = append(lines, ret)
+			var resStr = string(b)
+
+			tags["ip"] = ips[i]
+			fields["openPort"] = resStr
+
+			pt, err := io.MakeMetric(s.Metric, tags, fields, tm)
+			if err != nil {
+				l.Errorf("make metric point error %v", err)
+			}
+
+			lines = append(lines, pt)
+		}
 	}
 
 	pushLines := bytes.Join(lines, []byte("\n"))
-	err := io.NamedFeed(pushLines, io.Metric, name)
+
+	err = io.NamedFeed(pushLines, io.Metric, name)
 	if err != nil {
-		l.Errorf("push metric point error %s", err)
+		l.Errorf("push metric point error %v", err)
 	}
-	return nil
 }
 
-func (s *Scanport) genJob() <-chan task {
-	jobCh := make(chan task, 200)
+//获取所有ip
+func (s *Scanport) GetAllIp() ([]string, error) {
+	var (
+		ips []string
+	)
 
-	go func() {
-		for _, proto := range s.Protocol {
-			for _, ip := range s.Ips {
-				for port := s.PortStart; port <= s.PortEnd; port++ {
-					t := task{
-						proto:   proto,
-						metric:  s.Metric,
-						ip:      ip,
-						port:    port,
-						timeout: s.Timeout,
-					}
+	for _, target := range s.Targets {
+		if isIP(target) {
+			ips = append(ips, target)
+		} else if isDNSName(target) {
+			// 添加ip
+			ip, _ := parseDNS(target)
+			ips = append(ips, ip)
+		} else if isCIDR(target) {
+			// crdr解析
+			cidrIp, _ := parseCIDR(target)
+			ips = append(ips, cidrIp...)
+		} else {
+			return ips, errors.New("config target not right")
+		}
+	}
 
-					jobCh <- t
+	return ips, nil
+}
+
+//获取所有端口
+func (s *Scanport) getAllPort() ([]int, error) {
+	var ports []int
+	//处理 ","号 如 80,81,88 或 80,88-100
+	portArr := strings.Split(strings.Trim(s.Port, ","), ",")
+	for _, v := range portArr {
+		portArr2 := strings.Split(strings.Trim(v, "-"), "-")
+		startPort, err := filterPort(portArr2[0])
+		if err != nil {
+			continue
+		}
+		//第一个端口先添加
+		ports = append(ports, startPort)
+		if len(portArr2) > 1 {
+			//添加第一个后面的所有端口
+			endPort, _ := filterPort(portArr2[1])
+			if endPort > startPort {
+				for i := 1; i <= endPort-startPort; i++ {
+					ports = append(ports, startPort+i)
 				}
 			}
 		}
-		close(jobCh)
-	}()
+	}
+	//去重复
+	ports = arrayUnique(ports)
 
-	return jobCh
+	return ports, nil
+}
+
+//查看端口号是否打开
+func (s *Scanport) isOpen(ip string, port int) bool {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", ip, port), time.Millisecond*time.Duration(s.Timeout))
+	if err != nil {
+		if strings.Contains(err.Error(), "too many open files") {
+			l.Errorf("too many open files" + err.Error())
+			os.Exit(1)
+		}
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
+//端口合法性过滤
+func filterPort(str string) (int, error) {
+	port, err := strconv.Atoi(str)
+	if err != nil {
+		return 0, err
+	}
+	if port < 1 || port > 65535 {
+		return 0, errors.New("port out of range")
+	}
+	return port, nil
+}
+
+//数组去重
+func arrayUnique(arr []int) []int {
+	var newArr []int
+	for i := 0; i < len(arr); i++ {
+		repeat := false
+		for j := i + 1; j < len(arr); j++ {
+			if arr[i] == arr[j] {
+				repeat = true
+				break
+			}
+		}
+		if !repeat {
+			newArr = append(newArr, arr[i])
+		}
+	}
+	return newArr
+}
+
+//获取开放端口号
+func (s *Scanport) GetIpOpenPort(ip string) []int {
+	var (
+		total     int
+		pageCount int
+		num       int
+		openPorts []int
+		mutex     sync.Mutex
+	)
+	ports, _ := s.getAllPort()
+	total = len(ports)
+	if total < s.Process {
+		pageCount = total
+	} else {
+		pageCount = s.Process
+	}
+	num = int(math.Ceil(float64(total) / float64(pageCount)))
+
+	l.Info(fmt.Sprintf("%v 【%v】需要扫描端口总数:%v 个，总协程:%v 个，每个协程处理:%v 个，超时时间:%v毫秒", time.Now().Format("2006-01-02 15:04:05"), ip, total, pageCount, num, s.Timeout))
+	start := time.Now()
+	all := map[int][]int{}
+	for i := 1; i <= pageCount; i++ {
+		for j := 0; j < num; j++ {
+			tmp := (i-1)*num + j
+			if tmp < total {
+				all[i] = append(all[i], ports[tmp])
+			}
+		}
+	}
+
+	wg := sync.WaitGroup{}
+	for k, v := range all {
+		wg.Add(1)
+		go func(value []int, key int) {
+			defer wg.Done()
+			var tmpPorts []int
+			for i := 0; i < len(value); i++ {
+				opened := s.isOpen(ip, value[i])
+				if opened {
+					tmpPorts = append(tmpPorts, value[i])
+				}
+			}
+			mutex.Lock()
+			openPorts = append(openPorts, tmpPorts...)
+			mutex.Unlock()
+			if len(tmpPorts) > 0 {
+				l.Info(fmt.Sprintf("%v 【%v】协程%v 执行完成，时长： %.3fs，开放端口： %v", time.Now().Format("2006-01-02 15:04:05"), ip, key, time.Since(start).Seconds(), tmpPorts))
+			}
+		}(v, k)
+	}
+	wg.Wait()
+	l.Info(fmt.Sprintf("%v 【%v】扫描结束，执行时长%.3fs , 所有开放的端口:%v", time.Now().Format("2006-01-02 15:04:05"), ip, time.Since(start).Seconds(), openPorts))
+	return openPorts
+}
+
+// IsCIDR check if the string is an valid CIDR notiation (IPV4 & IPV6)
+func isCIDR(str string) bool {
+	_, _, err := net.ParseCIDR(str)
+	return err == nil
+}
+
+// IsIP checks if a string is either IP version 4 or 6. Alias for `net.ParseIP`
+func isIP(str string) bool {
+	return net.ParseIP(str) != nil
+}
+
+// IsDNSName will validate the given string as a DNS name
+func isDNSName(str string) bool {
+	if str == "" || len(strings.Replace(str, ".", "", -1)) > 255 {
+		// constraints already violated
+		return false
+	}
+	return !isIP(str) && rxDNSName.MatchString(str)
+}
+
+func parseDNS(domain string) (string, error) {
+	addr, err := net.ResolveIPAddr("ip", name)
+	if err != nil {
+		return "", err
+	}
+
+	return addr.String(), nil
 }
 
 // cidr解析
-func (s *Scanport) walkCIDR() ([]string, error) {
-	ip, ipnet, err := net.ParseCIDR(s.Cidr)
+func parseCIDR(cidr string) ([]string, error) {
+	ip, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return nil, err
 	}
@@ -181,64 +344,4 @@ func inc(ip net.IP) {
 			break
 		}
 	}
-}
-
-// dial
-func dial(protocol string, ip string, port int, timeout time.Duration) bool {
-	conn, err := net.DialTimeout(protocol, fmt.Sprintf("%s:%d", ip, port), timeout)
-	if err != nil {
-		if strings.Contains(err.Error(), "too many open files") {
-			l.Errorf("too many open files %v", err.Error())
-		}
-		return false
-	}
-
-	if conn != nil {
-		defer conn.Close()
-	}
-
-	return true
-}
-
-// workpool
-func workPool(n int, jobCh <-chan task, retCh chan<- []byte, wg *sync.WaitGroup) {
-	for i := 0; i < n; i++ {
-		wg.Add(1)
-		go work(i, jobCh, retCh, wg)
-	}
-}
-
-type task struct {
-	metric  string
-	proto   string
-	ip      string
-	port    int
-	timeout time.Duration
-}
-
-func work(id int, jobCh <-chan task, retCh chan<- []byte, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for job := range jobCh {
-		if dial(job.proto, job.ip, job.port, job.timeout) {
-			fields := make(map[string]interface{})
-			tags := make(map[string]string)
-
-			tags["protocol"] = job.proto
-			fields["port"] = job.port
-			fields["ip"] = job.ip
-
-			ptline, err := io.MakeMetric(job.metric, tags, fields, time.Now())
-			if err != nil {
-				l.Errorf("new point failed: %s", err.Error())
-			}
-
-			retCh <- ptline
-		}
-	}
-}
-
-func init() {
-	inputs.Add(name, func() inputs.Input {
-		return &Scanport{}
-	})
 }
