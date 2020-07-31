@@ -11,7 +11,7 @@ require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/Pallinder/go-randomdata v1.2.0
-	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f // indirect
+	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.2+incompatible // indirect
