@@ -7,30 +7,53 @@ import (
 )
 
 type SkyWalkTag struct {
-	Key   string
-	Value string
+	Key   string                `json:"key,omitempty"`
+	Value interface{}           `json:"value,omitempty"`
+}
+
+type SkyWalkLogData struct {
+	Key   string                `json:"key,omitempty"`
+	Value interface{}           `json:"value,omitempty"`
+}
+
+type SkyWalkLog struct {
+	Time float64
+	Data []*SkyWalkLogData      `json:"data,omitempty"`
+}
+
+type SkyWalkRef struct {
+	RefType                  int
+	TraceId                  string
+	ParentTraceSegmentId     string
+	ParentSpanId             int
+	ParentService            string
+	ParentServiceInstance    string
+	ParentEndpoint           string
+	NetworkAddressUsedAtPeer string
 }
 
 type SkyWalkSpan struct {
-	OperationName string       `json:"operationName,omitempty"`
-	StartTime     int64		   `json:"startTime,omitempty"`
-	EndTime       int64        `json:"endTime,omitempty"`
+	SpanId        uint64        `json:"spanId"`
+	ParentSpanId  int64         `json:"parentSpanId"`
+	StartTime     int64		    `json:"startTime"`
+	EndTime       int64         `json:"endTime"`
+	OperationName string        `json:"operationName"`
+	Peer          string        `json:"peer"`
+	SpanType      string        `json:"spanType"`
+	SpanLayer     string        `json:"spanLayer"`
+	ComponentId   uint64        `json:"componentId"`
+	IsError       bool          `json:"isError"`
+	Logs		  []*SkyWalkLog `json:"logs,omitempty"`
 	Tags          []*SkyWalkTag `json:"tags,omitempty"`
-	SpanType      string        `spanType:"tags,omitempty"`
-	SpanId        uint64        `spanId:"tags,omitempty"`
-	IsError       bool          `isError:"tags,omitempty"`
-	ParentSpanId  int64         `parentSpanId:"tags,omitempty"`
-	ComponentId   uint64        `componentId:"tags,omitempty"`
-	Peer          string        `peer:"tags,omitempty"`
-	SpanLayer     string        `spanLayer:"tags,omitempty"`
+	Refs		  []*SkyWalkRef `json:"Refs,omitempty"`
 }
 
 type SkyWalkSegment struct {
 	TraceId         string
+	TraceSegmentId  string
+	Service         string
 	ServiceInstance string
 	Spans           []*SkyWalkSpan
-	Service         string
-	TraceSegmentId  string
 }
 
 const (
@@ -74,13 +97,25 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 		t.class         = "tracing"
 		t.serviceName   = sg.Service
 		t.operationName = span.OperationName
-		t.parentID      = fmt.Sprintf("%x", span.ParentSpanId)
+		if span.SpanType == "Entry" {
+			if len(span.Refs) > 0 {
+				t.parentID      = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
+					span.Refs[0].ParentSpanId)
+			}
+		} else {
+			t.parentID      = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.ParentSpanId)
+		}
+
 		t.traceID       = sg.TraceId
-		t.spanID        = fmt.Sprintf("%x", span.SpanId)
+		t.spanID        = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.SpanId)
 		if span.IsError {
 			t.isError   = "true"
 		}
-		t.spanType      = span.SpanType
+		if span.SpanType == "Entry" {
+			t.spanType  = SPAN_TYPE_ENTRY
+		} else {
+			t.spanType  = SPAN_TYPE_LOCAL
+		}
 		t.endPoint      = span.Peer
 
 		t.mkLineProto()
