@@ -37,11 +37,18 @@ func (z *ZipkinTracer) parseZipkinJsonV2(octets []byte) error {
 		}
 
 		tAdpter.operationName = zs.Name
+
 		if zs.ParentID != nil {
-			tAdpter.parentID      = fmt.Sprintf("%d", *zs.ParentID)
+			tAdpter.parentID      = fmt.Sprintf("%x", *zs.ParentID)
 		}
-		tAdpter.traceID       = fmt.Sprintf("%d%d", zs.TraceID.High, zs.TraceID.Low)
-		tAdpter.spanID        = fmt.Sprintf("%d", zs.ID)
+
+		if zs.TraceID.High != 0 {
+			tAdpter.traceID = fmt.Sprintf("%x%x", zs.TraceID.High, zs.TraceID.Low)
+		} else {
+			tAdpter.traceID = fmt.Sprintf("%x", zs.TraceID.Low)
+		}
+
+		tAdpter.spanID        = fmt.Sprintf("%x", zs.ID)
 
 		for tag, _ := range zs.Tags {
 			if tag == "error" {
@@ -99,10 +106,17 @@ func (z *ZipkinTracer) parseZipkinProtobufV2(octets []byte) error {
 			tAdpter.serviceName   = zs.LocalEndpoint.ServiceName
 		}
 		tAdpter.operationName = zs.Name
+
 		if zs.ParentID != nil {
 			tAdpter.parentID      = fmt.Sprintf("%d", *zs.ParentID)
 		}
-		tAdpter.traceID       = fmt.Sprintf("%d%d", zs.TraceID.High, zs.TraceID.Low)
+
+		if zs.TraceID.High != 0 {
+			tAdpter.traceID = fmt.Sprintf("%d%d", zs.TraceID.High, zs.TraceID.Low)
+		} else {
+			tAdpter.traceID = fmt.Sprintf("%d", zs.TraceID.Low)
+		}
+
 		tAdpter.spanID        = fmt.Sprintf("%d", zs.ID)
 
 		for tag, _ := range zs.Tags {
