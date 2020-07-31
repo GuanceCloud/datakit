@@ -3,6 +3,7 @@ package io
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -201,7 +202,7 @@ func startIO() {
 
 					now := time.Now()
 
-					l.Debugf("get iodata(%d bytes) from %s", len(d.data), d.category)
+					l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
 					cache[d.category] = append(cache[d.category], d.data)
 
 					if istat, ok := stats[d.name]; !ok {
@@ -309,11 +310,35 @@ func gz(data []byte) ([]byte, error) {
 
 func doFlush(bodies [][]byte, url string) error {
 
+	var err error
+
 	if bodies == nil {
 		return nil
 	}
 
 	body := bytes.Join(bodies, []byte("\n"))
+	switch url {
+	case Object: // object is json
+		all_objs := []map[string]interface{}{}
+
+		for _, data := range bodies {
+
+			var objs []map[string]interface{}
+			err := json.Unmarshal(data, &objs)
+			if err != nil {
+				l.Error(err)
+				return err
+			}
+			all_objs = append(all_objs, objs...)
+		}
+
+		body, err = json.Marshal(all_objs)
+		if err != nil {
+			l.Error(err)
+			return err
+		}
+	default: // others are line-protocol
+	}
 
 	if datakit.OutputFile != "" {
 		return fileOutput(body)
