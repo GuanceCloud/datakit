@@ -18,7 +18,7 @@ type TimeIoFeed func(data []byte, category, name string) error
 
 type Timezone struct {
 	Active      bool
-	Interval    int
+	Interval    interface{}
 	MetricsName string
 	Tags        map[string]string
 }
@@ -39,18 +39,18 @@ type TzParams struct {
 
 const (
 	defaultMetricName = "timezone"
-	defaultInterval   = 60
+	defaultInterval   = "60s"
 )
 
 var (
 	name                 = "timezone"
 	timeZoneConfigSample = `### active     : whether to monitor timezone changes.
-### interval   : monitor interval second, unit is second. The default value is 60.
+### interval   : monitor interval, the default value is "60s".
 ### metricsName: the name of metric, default is "timezone"
 
 #[inputs.timezone]
 #  active      = true
-#  interval    = 60
+#  interval    = "60s"
 #  metricsName = "timezone"
 #  [inputs.timezone.tags]
 #    tag1 = "tag1"
@@ -72,7 +72,7 @@ func (t *Timezone) Run() {
 		return
 	}
 
-	if t.Interval <= 0 {
+	if t.Interval == nil {
 		t.Interval = defaultInterval
 	}
 
@@ -89,13 +89,30 @@ func (t *Timezone) Run() {
 }
 
 func (p *TzParams) gather() {
-	tick := time.NewTicker(time.Duration(p.input.Interval) * time.Second)
+	var d time.Duration
+	var err error
+
+	switch p.input.Interval.(type) {
+	case int64:
+		d = time.Duration(p.input.Interval.(int64))*time.Second
+	case string:
+		d, err = time.ParseDuration(p.input.Interval.(string))
+		if err != nil {
+			p.log.Errorf("parse interval err: %s", err.Error())
+			return
+		}
+	default:
+		p.log.Errorf("interval type unsupported")
+		return
+	}
+
+	tick := time.NewTicker(d)
 	defer tick.Stop()
 
 	for {
 		select {
 		case <-tick.C:
-			err := p.getMetrics()
+			err = p.getMetrics()
 			if err != nil {
 				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
