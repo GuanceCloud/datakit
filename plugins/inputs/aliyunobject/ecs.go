@@ -202,6 +202,10 @@ func (e *Ecs) handleResponse(resp *ecs.DescribeInstancesResponse, ag *objectAgen
 		objs = append(objs, obj)
 	}
 
+	if len(objs) <= 0 {
+		return
+	}
+
 	data, err := json.Marshal(&objs)
 	if err == nil {
 		io.NamedFeed(data, io.Object, inputName)
