@@ -183,7 +183,7 @@ func handleResponse(m *monitor, k string, response []map[string]interface{}) err
 		return err
 	}
 
-	l.Debugf("feed %d points, error: %s", r.GetPoints(), r.GetErr())
+	l.Debugf("feed %d points, error: `%s'", r.GetPoints(), r.GetErr())
 
 	return nil
 }
