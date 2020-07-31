@@ -23,15 +23,11 @@ var (
 )
 
 func (_ *Mysql) Catalog() string {
-	return "mysql"
+	return "db"
 }
 
 func (_ *Mysql) SampleConfig() string {
 	return configSample
-}
-
-func (_ *Mysql) Description() string {
-	return ""
 }
 
 func (mysql *Mysql) Run() {
