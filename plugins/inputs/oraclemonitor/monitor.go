@@ -21,33 +21,34 @@ import (
 
 const (
 	configSample = `
-#[[inputs.oraclemonitor]]
-#  ## 采集的频度，最小粒度5m
-#  interval = '10s'
-#  libPath = ''
-#  ## 指标集名称，默认值oracle_monitor
-#  metricName = ''
-#  ## 实例ID(非必要属性)
-#  instanceId = ''
-#  ## # 实例描述(非必要属性)
-#  instanceDesc = ''
-#  ## oracle实例地址(ip)
-#  host = ''
-#  ## oracle监听端口
-#  port = ''
-#  ## 帐号
-#  username = ''
-#  ## 密码
-#  password = ''
-#  ## oracle的服务名
-#  server = ''
-#  ## 实例类型 例如 单实例、DG、RAC 等，非必要属性
-#  type= 'singleInstance'
-#`
+[[inputs.oraclemonitor]]
+  ## 采集的频度，最小粒度5m
+  interval = '10s'
+  libPath = ''
+  ## 指标集名称，默认值oracle_monitor
+  metricName = ''
+  ## 实例ID(非必要属性)
+  instanceId = ''
+  ## # 实例描述(非必要属性)
+  instanceDesc = ''
+  ## oracle实例地址(ip)
+  host = ''
+  ## oracle监听端口
+  port = ''
+  ## 帐号
+  username = ''
+  ## 密码
+  password = ''
+  ## oracle的服务名
+  server = ''
+  ## 实例类型 例如 单实例、DG、RAC 等，非必要属性
+  type= 'singleInstance'
+`
 )
 
 var (
-	l *logger.Logger
+	inputName = "oraclemonitor"
+	l         = logger.DefaultSLogger(inputName)
 )
 
 type OracleMonitor struct {
@@ -79,7 +80,7 @@ func (_ *OracleMonitor) SampleConfig() string {
 }
 
 func (o *OracleMonitor) Run() {
-	l = logger.SLogger("oraclemonitor")
+	l = logger.SLogger(inputName)
 	l.Info("oraclemonitor started")
 
 	l.Info("starting external oraclemonitor...")
@@ -121,12 +122,12 @@ func (o *OracleMonitor) Run() {
 		return
 	}
 
-	l.Infof("oraclemonintor PID: %d", cmd.Process.Pid)
-	datakit.MonitProc(cmd.Process, "oraclemonintor") // blocking
+	l.Infof("oraclemonitor PID: %d", cmd.Process.Pid)
+	datakit.MonitProc(cmd.Process, inputName) // blocking
 }
 
 func init() {
-	inputs.Add("oraclemonintor", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &OracleMonitor{}
 	})
 }
