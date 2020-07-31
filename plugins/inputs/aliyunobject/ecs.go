@@ -103,7 +103,7 @@ func (e *Ecs) run(ag *objectAgent) {
 
 func (e *Ecs) handleResponse(resp *ecs.DescribeInstancesResponse, ag *objectAgent) {
 
-	moduleLogger.Debugf("TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
+	moduleLogger.Debugf("ECS TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 
 	var objs []map[string]interface{}
 
