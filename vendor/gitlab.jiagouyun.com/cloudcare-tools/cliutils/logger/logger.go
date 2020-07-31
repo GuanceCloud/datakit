@@ -25,10 +25,14 @@ const (
 )
 
 var (
-	defaultRootLogger   *zap.Logger
+	defaultRootLogger *zap.Logger
+	stdoutRootLogger  *zap.Logger
+
 	__l                 *zap.SugaredLogger
 	reservedSLoggerName string = "__reserved__"
 	slogs               *sync.Map
+
+	mtx = &sync.Mutex{}
 
 	MaxSize    = 32 // megabytes
 	MaxBackups = 5
@@ -39,11 +43,31 @@ type Logger struct {
 	*zap.SugaredLogger
 }
 
+func SetStdoutRootLogger(level string, options int) {
+
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	if stdoutRootLogger != nil {
+		return
+	}
+
+	var err error
+	stdoutRootLogger, err = newRootLogger("", level, options)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func SetGlobalRootLogger(fpath, level string, options int) {
+	mtx.Lock()
+	defer mtx.Unlock()
+
 	if defaultRootLogger != nil {
 		if __l != nil {
 			__l.Warnf("global root logger has been initialized %+#v", defaultRootLogger)
 		}
+
 		return
 	}
 
@@ -64,38 +88,49 @@ func SetGlobalRootLogger(fpath, level string, options int) {
 }
 
 const (
-	rootNotInitialized = "you should call SetGlobalRootLogger to initialize the global root logger"
+	rootNotInitialized = "you should init a root logger via SetGlobalRootLogger or SetStdoutRootLogger"
 )
 
 func SLogger(name string) *Logger {
+	if defaultRootLogger == nil && stdoutRootLogger == nil {
+		panic(rootNotInitialized)
+	}
+
+	return &Logger{SugaredLogger: slogger(name)}
+}
+
+func DefaultSLogger(name string) *Logger {
 	return &Logger{SugaredLogger: slogger(name)}
 }
 
 func slogger(name string) *zap.SugaredLogger {
-	if defaultRootLogger == nil {
-		panic(rootNotInitialized)
+
+	root := defaultRootLogger // prefer defaultRootLogger
+	if root == nil {
+		root = stdoutRootLogger
 	}
 
-	newlog := getSugarLogger(defaultRootLogger, name)
+	if root == nil {
+		SetStdoutRootLogger(DEBUG, OPT_DEFAULT)
+		root = stdoutRootLogger
+	}
 
-	l, ok := slogs.LoadOrStore(name, newlog)
-	if __l != nil {
-		if ok {
-			__l.Debugf("add new sloger `%s'", name)
-		} else {
-			__l.Debugf("reused exist sloger `%s'", name)
+	newlog := getSugarLogger(root, name)
+
+	if defaultRootLogger != nil {
+		l, ok := slogs.LoadOrStore(name, newlog)
+		if __l != nil {
+			if ok {
+				__l.Debugf("add new sloger `%s'", name)
+			} else {
+				__l.Debugf("reused exist sloger `%s'", name)
+			}
 		}
+
+		return l.(*zap.SugaredLogger)
+	} else {
+		return newlog
 	}
-
-	return l.(*zap.SugaredLogger)
-}
-
-func _XLogger(name string) *zap.Logger {
-	if defaultRootLogger == nil {
-		panic(rootNotInitialized)
-	}
-
-	return getLogger(defaultRootLogger, name)
 }
 
 func getLogger(root *zap.Logger, name string) *zap.Logger {
