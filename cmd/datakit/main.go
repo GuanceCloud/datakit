@@ -118,9 +118,10 @@ func showAllCollectors() {
 
 	ndatakit := 0
 	for k, vs := range collectors {
-		fmt.Println(k)
+		//fmt.Println(k)
 		for _, v := range vs {
-			fmt.Printf("  |--[d] %s\n", v)
+			//fmt.Printf("  |--[d][% 12s] %s\n", k, v)
+			fmt.Printf("[d][% 12s] %s\n", k, v)
 			ndatakit++
 		}
 	}
@@ -132,9 +133,10 @@ func showAllCollectors() {
 	}
 
 	for k, vs := range collectors {
-		fmt.Println(k)
+		//fmt.Println(k)
 		for _, v := range vs {
-			fmt.Printf("  |--[t] %s\n", v)
+			//fmt.Printf("  |--[t] %s\n", v)
+			fmt.Printf("[t][% 12s] %s\n", k, v)
 			nagent++
 		}
 	}
