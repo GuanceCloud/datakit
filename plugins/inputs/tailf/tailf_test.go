@@ -13,12 +13,15 @@ import (
 
 var (
 	logFiles = []string{
-		"/tmp/tailf_test/**/*.log",
-		// "/tmp/tailf_test/a*/b*/*.txt",
+		//		"/tmp/tailf_test/**/*.log",
+		//		"/tmp/tailf_test/a123/c*/*.log",
+		"/root/**/*.log",
+		"/home/jiangyd/mj.txt",
 	}
 
 	ignore = []string{
-		"",
+		// "/tmp/tailf_test/333.log",
+		"/root/fb.log", "/root/fc.log", "/root/wdf/*.log",
 	}
 
 	deepDir = "/tmp/tailf_test/a123/b123/"
@@ -85,4 +88,5 @@ func TestMain(t *testing.T) {
 
 func TestFileList(t *testing.T) {
 	t.Log(getFileList(logFiles, ignore))
+	//	fmt.Println("hello,world")
 }
