@@ -61,10 +61,10 @@ const (
 )
 
 var SkyWalkTraceUrl  = map[string]bool{
-	SKYWALK_SEGMENT: true,
-	SKYWALK_PROPERTIES: true,
-	SKYWALK_KEEPALIVE: true,
-	SKYWALK_SEGMENTS: true,
+	SKYWALK_SEGMENT    : true,
+	SKYWALK_PROPERTIES : true,
+	SKYWALK_KEEPALIVE  : true,
+	SKYWALK_SEGMENTS   : true,
 }
 
 func (tAdpt *TraceAdapter) mkLineProto() {
