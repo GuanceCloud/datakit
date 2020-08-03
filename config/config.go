@@ -24,9 +24,8 @@ import (
 
 var (
 	ConvertedCfg []string
-
-	l   *logger.Logger
-	Cfg *Config = nil
+	l            *logger.Logger
+	Cfg          *Config = nil
 )
 
 type Config struct {
@@ -120,7 +119,7 @@ func newDefaultCfg() *Config {
 			GlobalTags:      map[string]string{},
 			FlushInterval:   internal.Duration{Duration: 10 * time.Second},
 			Interval:        internal.Duration{Duration: 10 * time.Second},
-			MaxPostInterval: internal.Duration{Duration: 10 * time.Second},
+			MaxPostInterval: internal.Duration{Duration: (10 + 5) * time.Second}, // add 5s plus for network latency
 
 			HTTPServerAddr: "0.0.0.0:9529",
 
@@ -620,7 +619,7 @@ func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) err
 	}
 
 	l.Debugf("try set MaxLifeCheckInterval to %v from %s...", dur, name)
-	if datakit.MaxLifeCheckInterval < dur {
+	if datakit.MaxLifeCheckInterval+5*time.Second < dur { // use the max interval from all inputs
 		datakit.MaxLifeCheckInterval = dur
 		l.Debugf("set MaxLifeCheckInterval to %v from %s", dur, name)
 	}
