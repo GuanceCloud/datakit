@@ -31,6 +31,7 @@ var (
 
 	outputFile     *os.File
 	outputFileSize int64
+	cookies        string
 )
 
 const ( // categories
@@ -316,6 +317,21 @@ func doFlush(bodies [][]byte, url string) error {
 		return nil
 	}
 
+	if config.Cfg.MainCfg.Name == "" {
+		config.Cfg.MainCfg.Name = config.Cfg.MainCfg
+	}
+
+	if cookies == "" {
+		cookies = fmt.Sprintf("uuid=%s;name=%s;hostname=%s;max_post_interval=%s,version=%s,os=%s,arch=%s",
+			config.Cfg.MainCfg.UUID,
+			config.Cfg.MainCfg.Name,
+			datakit.Hostname,
+			datakit.MaxLifeCheckInterval,
+			git.Version,
+			runtime.GOOS,
+			runtime.GOARCH)
+	}
+
 	body := bytes.Join(bodies, []byte("\n"))
 	switch url {
 	case Object: // object is json
@@ -363,9 +379,7 @@ func doFlush(bodies [][]byte, url string) error {
 		return err
 	}
 
-	req.Header.Set("X-Datakit-UUID", config.Cfg.MainCfg.UUID)
-	req.Header.Set("X-Version", git.Version)
-	req.Header.Set("User-Agent", datakit.DKUserAgent)
+	req.Header.Set("Cookie", cookies)
 	if gzOn {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
@@ -374,10 +388,6 @@ func doFlush(bodies [][]byte, url string) error {
 	case Object: // object is json
 		req.Header.Set("Content-Type", "application/json")
 	default: // others are line-protocol
-	}
-
-	if datakit.MaxLifeCheckInterval > 0 {
-		req.Header.Set("X-Max-POST-Interval", fmt.Sprintf("%v", datakit.MaxLifeCheckInterval))
 	}
 
 	l.Debugf("post to %s...", categoryURLs[url])
