@@ -58,6 +58,7 @@ const (
 	US_PER_SECOND   int64 = 1000000
 	SPAN_TYPE_ENTRY       = "entry"
 	SPAN_TYPE_LOCAL       = "local"
+	SPAN_TYPE_EXIT        = "exit"
 )
 
 var SkyWalkTraceUrl  = map[string]bool{
