@@ -9,8 +9,6 @@ const (
 #[inputs.scanport]
 #  ## 采集的频度，最小粒度10m
 #  interval = '10m'
-#  ## 指标集名称，默认值scanport
-#  metricName = ''
 #  ## 网络cidr
 #  ## ip或域名，或cidr网络192.168.1.1/30, (default "127.0.0.1")
 #  targets = []
