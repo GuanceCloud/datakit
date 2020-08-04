@@ -58,7 +58,7 @@ class CallbackModule(CallbackBase):
 
     def make_line_protocol(self, measurement, tags, fields, time_stamp=None):
         if not time_stamp:
-            time_stamp = datetime.datetime.now()
+            time_stamp = datetime.datetime.utcnow()
         return make_line(measurement, tags, fields, time_stamp)
 
     def send_task_event(self, host, res):
