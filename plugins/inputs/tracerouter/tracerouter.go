@@ -96,23 +96,20 @@ func (t *TraceRouter) handle() {
 func (t *TraceRouter) parseHopData(resultHop traceroute.TracerouteResult) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
-	tm := time.Now()
 
 	for _, hop := range resultHop.Hops {
 		if hop.Success {
 			addr := fmt.Sprintf("%v.%v.%v.%v", hop.Address[0], hop.Address[1], hop.Address[2], hop.Address[3])
 
 			tags["dist_addr"] = t.Addr
-			fields["hop_num"] = fmt.Sprintf("%d", hop.TTL)
+			fields["hop_num"] = hop.TTL
 			fields["hop_addr"] = addr
 			fields["resp_time"] = hop.ElapsedTime.Microseconds()
 
-			pt, err := io.MakeMetric(t.Metric, tags, fields, tm)
+			pt, err := io.MakeMetric(t.Metric, tags, fields)
 			if err != nil {
 				l.Errorf("make metric point error %v", err)
 			}
-
-			fmt.Println("======>", string(pt))
 
 			err = io.NamedFeed([]byte(pt), io.Metric, name)
 			if err != nil {
