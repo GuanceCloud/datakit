@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -44,8 +45,10 @@ func (_ *Scanport) Gather() error {
 	return nil
 }
 
-func (_ *Scanport) Init() error {
-	return nil
+func init() {
+	inputs.Add(name, func() inputs.Input {
+		return &Scanport{}
+	})
 }
 
 func (s *Scanport) Run() {
@@ -108,12 +111,14 @@ func (s *Scanport) handle() {
 
 			var resStr = string(b)
 			tags["ip"] = ips[i]
-			fields["openPort"] = resStr
+			fields["openPort"] = resStr[1 : len(resStr)-1]
 
 			pt, err := io.MakeMetric("scanport", tags, fields, tm)
 			if err != nil {
 				l.Errorf("make metric point error %v", err)
 			}
+
+			fmt.Println("point ======>", string(pt))
 
 			err = io.NamedFeed([]byte(pt), io.Metric, name)
 			if err != nil {
@@ -128,6 +133,10 @@ func (s *Scanport) GetAllIp() ([]string, error) {
 	var (
 		ips []string
 	)
+
+	if len(s.Targets) == 0 {
+		s.Targets = []string{"127.0.0.1"}
+	}
 
 	for _, target := range s.Targets {
 		if isIP(target) {
