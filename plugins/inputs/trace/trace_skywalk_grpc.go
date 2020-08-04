@@ -92,8 +92,10 @@ func skywalkGrpcToLineProto(sg *swV3.SegmentObject) error {
 		}
 		if span.SpanType == swV3.SpanType_Entry {
 			t.spanType  = SPAN_TYPE_ENTRY
-		} else {
+		} else if span.SpanType == swV3.SpanType_Local {
 			t.spanType  = SPAN_TYPE_LOCAL
+		} else {
+			t.spanType  = SPAN_TYPE_EXIT
 		}
 		t.endPoint      = span.Peer
 
