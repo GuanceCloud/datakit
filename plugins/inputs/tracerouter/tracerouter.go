@@ -3,7 +3,6 @@
 package tracerouter
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
@@ -75,7 +74,7 @@ func (t *TraceRouter) checkCfg() {
 	}
 
 	// 指标集名称
-	if t.Metric != "" {
+	if t.Metric == "" {
 		t.Metric = "tracerouter"
 	}
 }
@@ -97,7 +96,6 @@ func (t *TraceRouter) handle() {
 func (t *TraceRouter) parseHopData(resultHop traceroute.TracerouteResult) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
-	lines := [][]byte{}
 	tm := time.Now()
 
 	for _, hop := range resultHop.Hops {
@@ -114,18 +112,15 @@ func (t *TraceRouter) parseHopData(resultHop traceroute.TracerouteResult) {
 				l.Errorf("make metric point error %v", err)
 			}
 
-			fmt.Println("======>", pt)
+			fmt.Println("======>", string(pt))
 
-			lines = append(lines, pt)
+			err = io.NamedFeed([]byte(pt), io.Metric, name)
+			if err != nil {
+				l.Errorf("push metric point error %v", err)
+			}
 		}
 	}
 
-	pushLines := bytes.Join(lines, []byte("\n"))
-
-	err := io.NamedFeed(pushLines, io.Metric, name)
-	if err != nil {
-		l.Errorf("push metric point error %v", err)
-	}
 }
 
 func init() {
