@@ -1,7 +1,6 @@
 package scanport
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -83,25 +82,15 @@ func (s *Scanport) checkCfg() {
 			s.IntervalDuration = du
 		}
 	}
-
-	// 指标集名称
-	if s.Metric != "" {
-		s.Metric = "scanport"
-	}
 }
 
 // handle
 func (s *Scanport) handle() {
-	fmt.Println("start ----->")
 	ips, err := s.GetAllIp()
 	if err != nil {
 		l.Errorf("convert config ip fail error %v", err.Error())
 		return
 	}
-
-	lines := [][]byte{}
-
-	fmt.Println("ips =======>", ips)
 
 	//扫所有的ip
 	for i := 0; i < len(ips); i++ {
@@ -110,7 +99,6 @@ func (s *Scanport) handle() {
 		tm := time.Now()
 
 		ports := s.GetIpOpenPort(ips[i])
-		fmt.Println("ports =======>", ports)
 
 		if len(ports) > 0 {
 			b, err := json.Marshal(ports)
@@ -119,24 +107,19 @@ func (s *Scanport) handle() {
 			}
 
 			var resStr = string(b)
-
 			tags["ip"] = ips[i]
 			fields["openPort"] = resStr
 
-			pt, err := io.MakeMetric(s.Metric, tags, fields, tm)
+			pt, err := io.MakeMetric("scanport", tags, fields, tm)
 			if err != nil {
 				l.Errorf("make metric point error %v", err)
 			}
 
-			lines = append(lines, pt)
+			err = io.NamedFeed([]byte(pt), io.Metric, name)
+			if err != nil {
+				l.Errorf("push metric point error %v", err)
+			}
 		}
-	}
-
-	pushLines := bytes.Join(lines, []byte("\n"))
-
-	err = io.NamedFeed(pushLines, io.Metric, name)
-	if err != nil {
-		l.Errorf("push metric point error %v", err)
 	}
 }
 
