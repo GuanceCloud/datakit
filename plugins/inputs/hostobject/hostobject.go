@@ -89,7 +89,6 @@ func (c *Collector) Run() {
 
 		obj := map[string]interface{}{
 			`__name`: c.Name,
-			//Description: c.Desc,
 		}
 		if c.Desc != "" {
 			obj[`__description`] = c.Desc
@@ -124,7 +123,7 @@ func (c *Collector) Run() {
 			tags[k] = v
 		}
 
-		obj[`tags`] = tags
+		obj[`__tags`] = tags
 
 		switch c.Name {
 		case "__mac":
