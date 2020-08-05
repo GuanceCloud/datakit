@@ -21,7 +21,7 @@ type (
 	Collector struct {
 		Name     string
 		Class    string
-		Desc     string `toml:"description"`
+		Desc     string `toml:"description,omitempty"`
 		Interval internal.Duration
 		Tags     map[string]string `toml:"tags,omitempty"`
 	}
@@ -85,11 +85,14 @@ func (c *Collector) Run() {
 		default:
 		}
 
-		var objs []*internal.ObjectData
+		var objs []map[string]interface{}
 
-		obj := &internal.ObjectData{
-			Name:        c.Name,
-			Description: c.Desc,
+		obj := map[string]interface{}{
+			`__name`: c.Name,
+			//Description: c.Desc,
+		}
+		if c.Desc != "" {
+			obj[`__description`] = c.Desc
 		}
 
 		tags := map[string]string{
@@ -121,21 +124,21 @@ func (c *Collector) Run() {
 			tags[k] = v
 		}
 
-		obj.Tags = tags
+		obj[`tags`] = tags
 
 		switch c.Name {
 		case "__mac":
-			obj.Name = tags["mac"]
+			obj[`__name`] = tags["mac"]
 		case "__ip":
-			obj.Name = tags["ip"]
+			obj[`__name`] = tags["ip"]
 		case "__uuid":
-			obj.Name = tags["uuid"]
+			obj[`__name`] = tags["uuid"]
 		case "__host":
-			obj.Name = tags["host"]
+			obj[`__name`] = tags["host"]
 		case "__os":
-			obj.Name = tags["os"]
+			obj[`__name`] = tags["os"]
 		case "__os_type":
-			obj.Name = tags["os_type"]
+			obj[`__name`] = tags["os_type"]
 		}
 
 		objs = append(objs, obj)
