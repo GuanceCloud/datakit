@@ -134,3 +134,50 @@ type Obj struct {
 假定数据源中没有 `host` 这个 tag，用户也没在采集器上配置 `host`，那么行协议中的 `host` 值为 `xyz`。
 
 - 对于有动态库依赖的采集器，或者其它语言开发的采集器，应该将代码放在 `plugins/externals` 目录下，并且在 `cmd/make/make.go` 中确定对应的编译/打包设定。
+
+### 外部采集器开发
+
+所谓外部采集器，即运行在 DataKit 主进程之外的其它采集器，它们一般用其它语言开发，或者有某些运行时依赖（动态库等）。目前的外部采集器有两种接入方式，以 Python 为例，假定现有一段 `cpu.py` 代码：
+
+- 集成式：即将外部采集器和 DataKit 的发布包打包在一起
+
+	- 将 `cpu.py` 放到源码目录 `plugins/externals/cpu/cpu.py` 目录下。
+	- 编写一个 `plugins/inputs/cpu/cpu.go` 的包装程序，它负责衔接 `cpu.py` 和 DataKit 主程序。在该 `cpu.go` 程序中，需遵循现有 DataKit go 插件的接口约束。
+
+- 离散式：外部采集器可以是一段脚本代码，也可以是一个可执行程序，它们可以不随 DataKit 包发布
+
+	- 在 DataKit 中，目前有一个 `external` 采集器，专门用来启动这些离散的外部采集器，它类似于 Telegraf 中的 `exec` 采集器，`external` 采集器的配置示例如下：
+
+```
+[[inputs.external]]
+
+	# 外部采集器名称
+	name = 'some-external-inputs'  # required
+
+	# 是否以后台方式运行外部采集器
+	daemon = false
+
+	# 如果以非 daemon 方式运行外部采集器，则以该间隔多次运行外部采集器。否则该配置无效
+	#interval = '10s'
+
+	# 运行外部采集器所需的环境变量
+	#envs = ['LD_LIBRARY_PATH=/path/to/lib:$LD_LIBRARY_PATH',]
+
+	# 外部采集器运行命令（任何命令均可，不可使用组合命令，如 'ps -ef && echo ok | print'）
+	cmd = "python your-python-script.py -cfg your-config.conf" # required
+
+	# 本采集器不支持自定义 tag，所有自定义 tag 追加应该在外部采集器中自行追加
+```
+
+不管是离散式，还是集成式，本质上 DataKit 只是负责启动一个程序。该程序可以选择后台运行（即单次运行），也可以间歇式运行（由 DataKit 负责间歇式启动）。被启动的程序有两种方式来上传锁采集到的数据：
+
+- 直接将数据发送到指定的 DataWay（需在该程序中有配置 DataWay 的入口）
+- DataKit 安装完后，有一个 gRPC 服务器（Linux 一般位于`<datakit安装目录>/datakit.sock`），可以往该 gRPC 服务直接传行协议数据
+
+#### 外部采集器的打包
+
+实际上，集成式和离散式的采集器，都可以和 DataKit 打包一起发布。在某种程度上，离散式的开发门槛更低（无需开发一层 Go 包装），也更便于调试。
+
+在代码树 `cmd/make/make.go` 中，通过扩展 `buildExternals()` 函数，即可将外部采集器（可能是编译好的二进制，也可能是 python 等脚本代码）集成进来。
+
+本质上打包的过程就是将二进制程序或脚本拷贝到 `build` 目录，然后由统一的 `tar` 工具打包并发布到 OSS。可参考现有的 `csv/ansible/oraclemonitor` 等采集器。
