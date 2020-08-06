@@ -49,7 +49,7 @@ github.com/Pallinder/go-randomdata
 github.com/StackExchange/wmi
 # github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 github.com/aeden/traceroute
-# github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
+# github.com/aliyun/alibaba-cloud-sdk-go v1.61.370
 github.com/aliyun/alibaba-cloud-sdk-go/sdk
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials
@@ -69,6 +69,7 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/cms
 github.com/aliyun/alibaba-cloud-sdk-go/services/ecs
 github.com/aliyun/alibaba-cloud-sdk-go/services/rds
 github.com/aliyun/alibaba-cloud-sdk-go/services/sas
+github.com/aliyun/alibaba-cloud-sdk-go/services/slb
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
 github.com/aliyun/aliyun-log-go-sdk/consumer
