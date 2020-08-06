@@ -143,7 +143,6 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 
 		obj := &map[string]interface{}{
 			"__name":                       fmt.Sprintf(`%s_%s`, db.DBInstanceDescription, db.DBInstanceId),
-			"__description":                ``,
 			"__tags":                       tags,
 			"InsId":                        db.InsId,
 			"PayType":                      db.PayType,
