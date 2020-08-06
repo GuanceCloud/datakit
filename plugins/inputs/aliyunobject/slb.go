@@ -123,8 +123,7 @@ func (s *Slb) handleResponse(resp *slb.DescribeLoadBalancersResponse, ag *object
 		}
 
 		obj := map[string]interface{}{
-			`__name`:        fmt.Sprintf(`%s(%s)`, inst.LoadBalancerName, inst.LoadBalancerId),
-			`__description`: ``,
+			`__name`: fmt.Sprintf(`%s(%s)`, inst.LoadBalancerName, inst.LoadBalancerId),
 		}
 
 		obj[`NetworkType`] = inst.NetworkType
