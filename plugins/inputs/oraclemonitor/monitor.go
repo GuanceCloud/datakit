@@ -81,7 +81,6 @@ func (_ *OracleMonitor) SampleConfig() string {
 
 func (o *OracleMonitor) Run() {
 	l = logger.SLogger(inputName)
-	l.Info("oraclemonitor started")
 
 	l.Info("starting external oraclemonitor...")
 
