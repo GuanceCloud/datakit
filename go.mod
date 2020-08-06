@@ -12,7 +12,7 @@ require (
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/Pallinder/go-randomdata v1.2.0
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.205
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.370
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible
 	github.com/andygrunwald/go-jira v1.12.0
@@ -100,7 +100,7 @@ require (
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	golang.org/x/tools/gopls v0.4.1 // indirect
 	google.golang.org/grpc v1.27.0
-	google.golang.org/protobuf v1.24.0 // indirect
+	google.golang.org/protobuf v1.24.0
 	gopkg.in/fsnotify/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	gotest.tools/v3 v3.0.2 // indirect
