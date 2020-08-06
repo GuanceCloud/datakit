@@ -1,7 +1,6 @@
 package scanport
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -45,8 +45,10 @@ func (_ *Scanport) Gather() error {
 	return nil
 }
 
-func (_ *Scanport) Init() error {
-	return nil
+func init() {
+	inputs.Add(name, func() inputs.Input {
+		return &Scanport{}
+	})
 }
 
 func (s *Scanport) Run() {
@@ -83,25 +85,15 @@ func (s *Scanport) checkCfg() {
 			s.IntervalDuration = du
 		}
 	}
-
-	// 指标集名称
-	if s.Metric != "" {
-		s.Metric = "scanport"
-	}
 }
 
 // handle
 func (s *Scanport) handle() {
-	fmt.Println("start ----->")
 	ips, err := s.GetAllIp()
 	if err != nil {
 		l.Errorf("convert config ip fail error %v", err.Error())
 		return
 	}
-
-	lines := [][]byte{}
-
-	fmt.Println("ips =======>", ips)
 
 	//扫所有的ip
 	for i := 0; i < len(ips); i++ {
@@ -110,7 +102,6 @@ func (s *Scanport) handle() {
 		tm := time.Now()
 
 		ports := s.GetIpOpenPort(ips[i])
-		fmt.Println("ports =======>", ports)
 
 		if len(ports) > 0 {
 			b, err := json.Marshal(ports)
@@ -119,24 +110,21 @@ func (s *Scanport) handle() {
 			}
 
 			var resStr = string(b)
-
 			tags["ip"] = ips[i]
-			fields["openPort"] = resStr
+			fields["openPort"] = resStr[1 : len(resStr)-1]
 
-			pt, err := io.MakeMetric(s.Metric, tags, fields, tm)
+			pt, err := io.MakeMetric("scanport", tags, fields, tm)
 			if err != nil {
 				l.Errorf("make metric point error %v", err)
 			}
 
-			lines = append(lines, pt)
+			fmt.Println("point ======>", string(pt))
+
+			err = io.NamedFeed([]byte(pt), io.Metric, name)
+			if err != nil {
+				l.Errorf("push metric point error %v", err)
+			}
 		}
-	}
-
-	pushLines := bytes.Join(lines, []byte("\n"))
-
-	err = io.NamedFeed(pushLines, io.Metric, name)
-	if err != nil {
-		l.Errorf("push metric point error %v", err)
 	}
 }
 
@@ -145,6 +133,10 @@ func (s *Scanport) GetAllIp() ([]string, error) {
 	var (
 		ips []string
 	)
+
+	if len(s.Targets) == 0 {
+		s.Targets = []string{"127.0.0.1"}
+	}
 
 	for _, target := range s.Targets {
 		if isIP(target) {
