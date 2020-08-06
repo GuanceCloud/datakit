@@ -2,6 +2,7 @@ package aliyunactiontrail
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -229,7 +230,10 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 			moduleLogger.Warnf("%s", err)
 		}
 
-		io.NamedFeedEx(inputName, io.Metric, r.metricName, tags, fields, evtm)
+		evdata, _ := json.Marshal(&ev)
+		fields["__content"] = string(evdata)
+
+		io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, evtm)
 	}
 
 	return nil
