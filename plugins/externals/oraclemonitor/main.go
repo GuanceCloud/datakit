@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -24,8 +25,9 @@ import (
 )
 
 var (
-	flagCfgStr = flag.String("cfg", "", "json config string")
-	flagDesc   = flag.String("desc", "", "description of the process, for debugging")
+	flagCfgStr  = flag.String("cfg", "", "json config string")
+	flagCfgFile = flag.String("cfg-file", "", "json config file")
+	flagDesc    = flag.String("desc", "", "description of the process, for debugging")
 
 	flagRPCServer = flag.String("rpc-server", "unix://"+datakit.GRPCDomainSock, "gRPC server")
 	flagLog       = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log file")
@@ -39,9 +41,24 @@ type monitor oraclemonitor.OracleMonitor
 
 func main() {
 	flag.Parse()
+	var err error
+
+	var cfgdata []byte
 
 	if *flagCfgStr == "" {
-		panic("config(json string) missing")
+		if *flagCfgFile == "" {
+			panic("config missing")
+		}
+
+		cfgdata, err = ioutil.ReadFile(*flagCfgFile)
+		if err != nil {
+			panic(fmt.Sprintf("read config file %s failed: %s", *flagCfgFile, err.Error()))
+		}
+	} else {
+		cfgdata, err = base64.StdEncoding.DecodeString(*flagCfgStr)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	logger.SetGlobalRootLogger(*flagLog,
@@ -57,12 +74,7 @@ func main() {
 	l.Infof("log level: %s", *flagLogLevel)
 
 	var m monitor
-	cfg, err := base64.StdEncoding.DecodeString(*flagCfgStr)
-	if err != nil {
-		panic(err)
-	}
-
-	if err := json.Unmarshal(cfg, &m); err != nil {
+	if err := json.Unmarshal(cfgdata, &m); err != nil {
 		l.Errorf("failed to parse json `%s': %s", *flagCfgStr, err)
 		return
 	}
