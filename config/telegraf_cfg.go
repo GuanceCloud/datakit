@@ -147,7 +147,7 @@ func (c *Config) loadTelegrafConfigs(inputcfgs map[string]*ast.Table, filters []
 					l.Warnf("ignore bad toml node within %s", fp)
 				} else {
 					for inputName, _ := range tbl_.Fields {
-						l.Debugf("telegraf input name: %s", inputName)
+						l.Debugf("check if telegraf input name(%s)?", inputName)
 
 						if _, ok := TelegrafInputs[inputName]; ok {
 							TelegrafInputs[inputName].enabled = true
