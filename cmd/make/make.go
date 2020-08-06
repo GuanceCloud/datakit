@@ -451,6 +451,21 @@ var (
 			buildArgs: []string{"plugins/externals/csv/build.sh"},
 			buildCmd:  "bash",
 		},
+		&dkexternal{
+			name: "ansible",
+			lang: "python",
+			osarchs: map[string]bool{
+				`linux/386`:     true,
+				`linux/amd64`:   true,
+				`linux/arm`:     true,
+				`linux/arm64`:   true,
+				`darwin/amd64`:  true,
+				`windows/amd64`: true,
+				`windows/386`:   true,
+			},
+			buildArgs: []string{"plugins/externals/ansible/build.sh"},
+			buildCmd:  "bash",
+		},
 
 		// others...
 	}
@@ -464,13 +479,13 @@ func buildExternals(outdir, goos, goarch string) {
 
 		if _, ok := ex.osarchs[curOSArch]; !ok {
 			l.Warnf("skip build %s under %s", ex.name, curOSArch)
-			return
+			continue
 		}
 
 		osarch := goos + "/" + goarch
 		if _, ok := ex.osarchs[osarch]; !ok {
 			l.Warnf("skip build %s under %s", ex.name, osarch)
-			return
+			continue
 		}
 
 		out := ex.name
