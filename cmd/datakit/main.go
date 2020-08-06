@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -320,6 +321,8 @@ func httpStart(addr string) {
 
 	// internal datakit stats API
 	mux.HandleFunc("/stats", getInputsStats)
+	// ansible api
+	mux.HandleFunc("/ansible", AnsibleHander)
 
 	srv := &http.Server{
 		Addr:         addr,
@@ -350,6 +353,41 @@ func httpStart(addr string) {
 
 	return
 }
+
+func AnsibleHander(w http.ResponseWriter, r *http.Request) {
+	dataType := r.URL.Query().Get("type")
+	body, err := ioutil.ReadAll(r.Body)
+	l.Infof("ansible body {}",string(body))
+	defer r.Body.Close()
+
+	if err!= nil {
+		l.Errorf("failed of http parsen body in ansible err:%s",err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	switch dataType {
+	case "keyevent":
+		if err := io.NamedFeed(body, io.KeyEvent, "ansible"); err != nil {
+			l.Errorf("failed to io Feed, err: %s", err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+
+	case "metric":
+		if err := io.NamedFeed(body, io.Metric, "ansible"); err != nil {
+			l.Errorf("failed to io Feed, err: %s", err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+}
+
+
 
 func getInputsStats(w http.ResponseWriter, r *http.Request) {
 	res, err := io.GetStats("") // get all inputs stats
