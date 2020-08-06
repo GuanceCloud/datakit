@@ -17,7 +17,16 @@ var (
 	l         *logger.Logger
 	inputName = "wechatminiprogram"
 	sampleCfg = `
-# [inputs.wechat]
+# [[inputs.wechatminiprogram]]
+## WeChat everyday run time
+# runtime = '18:10'
+## Small program unique unique credentials   AppID
+# appid = ""
+## Small program unique credential key   AppSecret
+# secret = ""
+
+
+# [[inputs.wechatminiprogram]]
 ## WeChat everyday run time
 # runtime = '18:10'
 ## Small program unique unique credentials   AppID
