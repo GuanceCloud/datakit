@@ -2,7 +2,7 @@ package baiduIndex
 
 const (
 	configSample = `
-#[[inputs.baidu]]
+#[[inputs.baiduIndex]]
 #  ## 认证cookie，必填
 #  cookie = ''
 #  keywords = ["测试"]

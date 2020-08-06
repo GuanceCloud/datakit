@@ -103,7 +103,7 @@ func (e *Ecs) run(ag *objectAgent) {
 
 func (e *Ecs) handleResponse(resp *ecs.DescribeInstancesResponse, ag *objectAgent) {
 
-	moduleLogger.Debugf("TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
+	moduleLogger.Debugf("ECS TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 
 	var objs []map[string]interface{}
 
@@ -123,8 +123,7 @@ func (e *Ecs) handleResponse(resp *ecs.DescribeInstancesResponse, ag *objectAgen
 		}
 
 		obj := map[string]interface{}{
-			`__name`:        fmt.Sprintf(`%s(%s)`, inst.InstanceName, inst.InstanceId),
-			`__description`: ``,
+			`__name`: fmt.Sprintf(`%s(%s)`, inst.InstanceName, inst.InstanceId),
 		}
 
 		obj[`Cpu`] = inst.Cpu
