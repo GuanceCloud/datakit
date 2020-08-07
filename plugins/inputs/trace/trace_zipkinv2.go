@@ -39,7 +39,7 @@ func (z *ZipkinTracer) parseZipkinJsonV2(octets []byte) error {
 		tAdpter.operationName = zs.Name
 
 		if zs.ParentID != nil {
-			tAdpter.parentID      = fmt.Sprintf("%x", *zs.ParentID)
+			tAdpter.parentID      = fmt.Sprintf("%x", uint64(*zs.ParentID))
 		}
 
 		if zs.TraceID.High != 0 {
@@ -48,7 +48,7 @@ func (z *ZipkinTracer) parseZipkinJsonV2(octets []byte) error {
 			tAdpter.traceID = fmt.Sprintf("%x", zs.TraceID.Low)
 		}
 
-		tAdpter.spanID        = fmt.Sprintf("%x", zs.ID)
+		tAdpter.spanID        = fmt.Sprintf("%x", uint64(zs.ID))
 
 		for tag, _ := range zs.Tags {
 			if tag == "error" {
