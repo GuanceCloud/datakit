@@ -1,13 +1,14 @@
-package replication
+package pgreplication
 
 import (
 	"context"
 	"fmt"
+	ioeof "io"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-	"unsafe"
 
 	"database/sql"
 	"github.com/jackc/pgx"
@@ -21,12 +22,12 @@ import (
 )
 
 const (
-	inputName = "replication"
+	inputName = "postgresql_replication"
 
-	defaultMeasurement = "replication"
+	defaultMeasurement = "postgresql_replication"
 
 	sampleCfg = `
-# [[inputs.replication]]
+# [[inputs.postgresql_replication]]
 #	# required
 # 	host="127.0.0.1"
 #
@@ -43,18 +44,20 @@ const (
 #	# required
 # 	database="testdb"
 #
+#	table="test_table"
+#
 # 	# exlcude the events of postgres
 # 	# there are 3 events: "INSERT","UPDATE","DELETE"
 #	# required
 # 	events=["INSERT"]
 #
 # 	# tags
-# 	tagList=[]
+# 	tag_colunms=[]
 #
 # 	# fields. required
-# 	fieldList=["fieldName"]
+# 	field_colunms=["fieldName"]
 #
-# 	# [inputs.replication.tags]
+# 	# [inputs.postgresql_replication.tags]
 # 	# tags1 = "value1"
 `
 )
@@ -74,12 +77,13 @@ func init() {
 type Replication struct {
 	Host      string            `toml:"host"`
 	Port      uint16            `toml:"port"`
-	Database  string            `toml:"database"`
 	User      string            `toml:"user"`
 	Password  string            `toml:"password"`
+	Database  string            `toml:"database"`
+	Table     string            `toml:"table"`
 	Events    []string          `toml:"events"`
-	TagList   []string          `toml:"tagList"`
-	FieldList []string          `toml:"fieldList"`
+	TagList   []string          `toml:"tag_colunms"`
+	FieldList []string          `toml:"field_colunms"`
 	Tags      map[string]string `toml:"tags"`
 
 	// slice to map cache
@@ -90,7 +94,6 @@ type Replication struct {
 	slotName string
 	// 当前 wal 位置
 	receivedWal uint64
-	flushWal    uint64
 	// 复制连接
 	replicationConn *pgx.ReplicationConn
 	// pgConfig
@@ -115,7 +118,6 @@ func (r *Replication) Run() {
 	}
 	r.updateParamList()
 
-	r.slotName = fmt.Sprintf("datakit_slot_%d", time.Now().UnixNano())
 	r.pgConfig = pgx.ConnConfig{
 		Host:     r.Host,
 		Port:     r.Port,
@@ -141,16 +143,16 @@ func (r *Replication) Run() {
 		}
 	}
 
-	_ = r.sendStatus()
-
 	l.Infof("postgresql replication input started.")
 
 	r.runloop()
 }
 
+const sendHeartbeatInterval = 5
+
 func (r *Replication) runloop() {
 
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(time.Second * sendHeartbeatInterval)
 
 	for {
 		select {
@@ -165,22 +167,27 @@ func (r *Replication) runloop() {
 			return
 
 		case <-tick.C:
-			_ = r.sendStatus()
+			if err := r.sendStatus(); err != nil {
+				l.Error(err)
+			}
 
 		default:
 			msg, err := r.replicationConn.WaitForReplicationMessage(context.Background())
 			if err != nil {
-				l.Error(err)
+				// filter useless log info
+				if err != ioeof.EOF {
+					l.Errorf("get replication msg err: %s", err.Error())
+				}
+
 				if err := r.checkAndResetConn(); err != nil {
-					l.Error(err)
+					l.Errorf("reset connection: %s", err.Error())
 					time.Sleep(time.Second)
+				} else {
+					l.Info("reconnect success")
 				}
 				continue
 			}
-
-			if err := r.replicationMsgHandle(msg); err != nil {
-				l.Error(err)
-			}
+			r.replicationMsgHandle(msg)
 		}
 	}
 }
@@ -207,6 +214,13 @@ func (r *Replication) checkAndResetConn() error {
 		return nil
 	}
 
+	if r.slotName != "" {
+		if err := r.deleteSelfSlot(); err != nil {
+			l.Errorf("delete self slot err: %s", err.Error())
+		}
+	}
+
+	r.slotName = fmt.Sprintf("datakit_slot_%d", time.Now().UnixNano())
 	conn, err := pgx.ReplicationConnect(r.pgConfig)
 	if err != nil {
 		return err
@@ -233,74 +247,87 @@ func (r *Replication) setReceivedWal(val uint64) {
 	atomic.StoreUint64(&r.receivedWal, val)
 }
 
-func (r *Replication) getFlushWal() uint64 {
-	return atomic.LoadUint64(&r.flushWal)
-}
-
 func (r *Replication) getStatus() (*pgx.StandbyStatus, error) {
-	return pgx.NewStandbyStatus(r.getReceivedWal(), r.getFlushWal(), r.getFlushWal())
+	return pgx.NewStandbyStatus(r.getReceivedWal())
 }
 
 // ReplicationMsgHandle handle replication msg
-func (r *Replication) replicationMsgHandle(msg *pgx.ReplicationMessage) error {
+func (r *Replication) replicationMsgHandle(msg *pgx.ReplicationMessage) {
 	if msg == nil {
-		return fmt.Errorf("msg is empty")
+		l.Error("replication message is empty")
+		return
 	}
 
-	// 回复心跳
 	if msg.ServerHeartbeat != nil {
 
 		if msg.ServerHeartbeat.ServerWalEnd > r.getReceivedWal() {
 			r.setReceivedWal(msg.ServerHeartbeat.ServerWalEnd)
 		}
 		if msg.ServerHeartbeat.ReplyRequested == 1 {
-			_ = r.sendStatus()
+			if err := r.sendStatus(); err != nil {
+				l.Error(err)
+			}
 		}
 	}
 
 	if msg.WalMessage != nil {
-		data, err := r.parseMsg(msg.WalMessage)
+		result := parselogical.NewParseResult(string(msg.WalMessage.WalData))
+		if err := result.Parse(); err != nil {
+			l.Errorf("parse message err: %s", err)
+			return
+		}
+
+		if _, ok := r.eventsOperation[result.Operation]; !ok {
+			l.Debugf("ignore this event %s", result.Operation)
+			return
+		}
+
+		if r.Table != "" {
+			schemaAndTable := strings.Split(result.Relation, ".")
+			if len(schemaAndTable) != 2 || schemaAndTable[1] != r.Table {
+				l.Debugf("ignore this table %s", schemaAndTable[1])
+				return
+			}
+		}
+
+		data, err := r.buildPoint(result)
 		if err != nil {
-			return fmt.Errorf("invalid pgoutput msg: %s", err)
+			l.Errorf("build point err: %s", err)
+			return
 		}
 
-		// filter other events
-		if testAssert && len(data) > 0 {
+		if testAssert {
 			l.Debugf("Data: %s", string(data))
-			return nil
 		}
-		return io.NamedFeed(data, io.Metric, inputName)
-	}
 
-	return nil
+		if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+			l.Errorf("io feed err: %s", err.Error())
+		} else {
+			l.Debugf("feed %d bytes to io ok", len(data))
+		}
+	}
 }
 
-// sendStatus send heartbeat
 func (r *Replication) sendStatus() error {
 	r.sendStatusLock.Lock()
 	defer r.sendStatusLock.Unlock()
 
 	status, err := r.getStatus()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create StandbyStatus object: %s", err)
 	}
 
-	return r.replicationConn.SendStandbyStatus(status)
+	err = r.replicationConn.SendStandbyStatus(status)
+	if err != nil {
+		return fmt.Errorf("unable to send StandbyStatus object: %s", err)
+	}
+
+	return nil
 }
 
-// Parse test_decoding format wal to WalData
-func (r *Replication) parseMsg(msg *pgx.WalMessage) ([]byte, error) {
-	result := parselogical.NewParseResult(*(*string)(unsafe.Pointer(&msg.WalData)))
-	if err := result.Parse(); err != nil {
-		return nil, err
-	}
+func (r *Replication) buildPoint(result *parselogical.ParseResult) ([]byte, error) {
 
-	if _, ok := r.eventsOperation[result.Operation]; !ok {
-		// INSERT, UPDATE, DELETE, BEGIN, COMMIT
-		return nil, nil
-	}
-
-	var tags = make(map[string]string, len(r.tagKeys))
+	var tags = make(map[string]string)
 	var fields = make(map[string]interface{}, len(r.fieldKeys))
 
 	for key, column := range result.Columns {
@@ -312,10 +339,11 @@ func (r *Replication) parseMsg(msg *pgx.WalMessage) ([]byte, error) {
 		}
 	}
 
+	tags["relation"] = result.Relation
+	tags["database"] = r.Database
 	for k, v := range r.Tags {
 		tags[k] = v
 	}
-	tags["relation"] = result.Relation
 
 	return io.MakeMetric(defaultMeasurement, tags, fields, time.Now())
 }
@@ -345,7 +373,7 @@ func typeAssert(typer, value string) interface{} {
 
 func (r *Replication) deleteSelfSlot() error {
 
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s", r.User, r.Password, r.Host, r.Port, r.Database)
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", r.User, r.Password, r.Host, r.Port, r.Database)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return err
