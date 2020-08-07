@@ -62,6 +62,7 @@ type MainConfig struct {
 
 	Log      string `toml:"log"`
 	LogLevel string `toml:"log_level"`
+	GinLog   string `toml:"gin_log"`
 
 	ConfigDir string `toml:"config_dir"` // XXX: not used: to compatible parsing with forethought datakit.conf
 
@@ -122,14 +123,16 @@ func newDefaultCfg() *Config {
 	return &Config{
 		TelegrafAgentCfg: defaultTelegrafAgentCfg(),
 		MainCfg: &MainConfig{
-			GlobalTags:    map[string]string{},
-			FlushInterval: internal.Duration{Duration: 10 * time.Second},
-			Interval:      internal.Duration{Duration: 10 * time.Second},
+			GlobalTags:      map[string]string{},
+			FlushInterval:   internal.Duration{Duration: 10 * time.Second},
+			Interval:        internal.Duration{Duration: 10 * time.Second},
+			MaxPostInterval: internal.Duration{Duration: (10 + 5) * time.Second}, // add 5s plus for network latency
 
 			HTTPServerAddr: "0.0.0.0:9529",
 
 			LogLevel: "info",
 			Log:      filepath.Join(datakit.InstallDir, "datakit.log"),
+			GinLog:   filepath.Join(datakit.InstallDir, "gin.log"),
 
 			RoundInterval: false,
 			cfgPath:       filepath.Join(datakit.InstallDir, "datakit.conf"),
@@ -168,8 +171,12 @@ func LoadCfg() error {
 	l = logger.SLogger("config")
 
 	l.Infof("set log to %s", Cfg.MainCfg.Log)
+	l.Infof("main cfg: %+#v", Cfg.MainCfg)
 
 	datakit.Init()
+	if Cfg.MainCfg.MaxPostInterval.Duration > 0 {
+		datakit.MaxLifeCheckInterval = Cfg.MainCfg.MaxPostInterval.Duration
+	}
 
 	initPluginCfgs()
 
@@ -430,14 +437,17 @@ func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) err
 			if str, ok := kv.Value.(*ast.String); ok {
 				dur, err = time.ParseDuration(str.Value)
 				if err != nil {
+					l.Errorf("parse duration(%s) from %s failed: %s", str.Value, name, err.Error())
 					return err
 				}
 			}
 		}
 	}
 
-	if c.MainCfg.MaxPostInterval.Duration != 0 && datakit.MaxLifeCheckInterval < dur {
+	l.Debugf("try set MaxLifeCheckInterval to %v from %s...", dur, name)
+	if datakit.MaxLifeCheckInterval+5*time.Second < dur { // use the max interval from all inputs
 		datakit.MaxLifeCheckInterval = dur
+		l.Debugf("set MaxLifeCheckInterval to %v from %s", dur, name)
 	}
 
 	c.Inputs[name] = append(c.Inputs[name], input)
