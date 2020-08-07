@@ -127,11 +127,10 @@ func (o *Oss) handleResponse(lsRes *oss.ListBucketsResult, ag *objectAgent) {
 
 		name := bucket.Name
 		obj := map[string]interface{}{
-			"__name":        fmt.Sprintf(`OSS_%s`, name), // 目前displayName与ID一样
-			"__description": ``,
-			"CreationDate":  bucket.CreationDate,
-			"XMLName":       bucket.XMLName,
-			"Ower.XMLName":  lsRes.Owner.XMLName,
+			"__name":       fmt.Sprintf(`OSS_%s`, name), // 目前displayName与ID一样
+			"CreationDate": bucket.CreationDate,
+			"XMLName":      bucket.XMLName,
+			"Ower.XMLName": lsRes.Owner.XMLName,
 		}
 
 		tags := map[string]interface{}{
