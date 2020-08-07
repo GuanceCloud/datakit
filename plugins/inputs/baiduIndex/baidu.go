@@ -74,6 +74,7 @@ func (b *BaiduIndex) initcfg() bool {
 
 	if b.Cookie == "" {
 		l.Error("cookie is required")
+		return true
 	}
 
 	return false
