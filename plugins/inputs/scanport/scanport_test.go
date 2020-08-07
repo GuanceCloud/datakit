@@ -14,7 +14,7 @@ func TestHandle(t *testing.T) {
 
 	t.Run("case-tracerouter", func(t *testing.T) {
 		scan := Scanport{}
-		scan.Targets = []string{"127.0.0.1"}
+		// scan.Targets = []string{"127.0.0.1"}
 		scan.Port = "88-5000"
 		scan.Process = 100
 		scan.handle()
