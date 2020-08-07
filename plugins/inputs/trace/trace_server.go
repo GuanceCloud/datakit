@@ -58,13 +58,14 @@ const (
 	US_PER_SECOND   int64 = 1000000
 	SPAN_TYPE_ENTRY       = "entry"
 	SPAN_TYPE_LOCAL       = "local"
+	SPAN_TYPE_EXIT        = "exit"
 )
 
 var SkyWalkTraceUrl  = map[string]bool{
-	SKYWALK_SEGMENT: true,
-	SKYWALK_PROPERTIES: true,
-	SKYWALK_KEEPALIVE: true,
-	SKYWALK_SEGMENTS: true,
+	SKYWALK_SEGMENT    : true,
+	SKYWALK_PROPERTIES : true,
+	SKYWALK_KEEPALIVE  : true,
+	SKYWALK_SEGMENTS   : true,
 }
 
 func (tAdpt *TraceAdapter) mkLineProto() {
