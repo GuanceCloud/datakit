@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
@@ -318,7 +319,7 @@ func doFlush(bodies [][]byte, url string) error {
 	}
 
 	if config.Cfg.MainCfg.Name == "" {
-		config.Cfg.MainCfg.Name = config.Cfg.MainCfg
+		config.Cfg.MainCfg.Name = datakit.Hostname
 	}
 
 	if cookies == "" {
@@ -388,6 +389,13 @@ func doFlush(bodies [][]byte, url string) error {
 	case Object: // object is json
 		req.Header.Set("Content-Type", "application/json")
 	default: // others are line-protocol
+	}
+
+	if datakit.MaxLifeCheckInterval > 0 {
+		l.Debugf("set max-post-interval: %v", datakit.MaxLifeCheckInterval)
+		req.Header.Set("X-Max-POST-Interval", fmt.Sprintf("%v", datakit.MaxLifeCheckInterval))
+	} else {
+		l.Debugf("max-post-interval not set: %+#v", datakit.MaxLifeCheckInterval)
 	}
 
 	l.Debugf("post to %s...", categoryURLs[url])
