@@ -1,6 +1,6 @@
 package awstrail
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+import "gitlab.jiagouyun.com/cloudcare-tools/datakit"
 
 const (
 	inputName = "aws_cloudtrail"
@@ -23,7 +23,7 @@ type (
 		AccessToken  string
 		RegionID     string
 		MetricName   string
-		Interval     internal.Duration
+		Interval     datakit.Duration
 
 		// //以下字段用于过滤结果
 		// UserName     string //产生该事件的用户名
