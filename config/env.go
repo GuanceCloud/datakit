@@ -32,9 +32,23 @@ func (c *Config) loadEnvs() error {
 		c.withinDocker = true
 	}
 
+	dkhost := os.Getenv("ENV_HOSTNAME")
+	if dkhost != "" {
+		l.Debugf("set hostname to %s from ENV", dkhost)
+		c.MainCfg.Hostname = dkhost
+	} else {
+		name, err := os.Hostname()
+		if err != nil {
+			l.Errorf("get hostname failed: %s", err.Error())
+		} else {
+			l.Debugf("set hostname to %s from os.Hostname()", dkhost)
+			c.MainCfg.Hostname = name
+		}
+	}
+
 	if c.withinDocker {
 		maincfg := filepath.Join(datakit.InstallDir, "datakit.conf")
-		if _, err := os.Stat(maincfg); err != nil { // create the main config
+		if fi, err := os.Stat(maincfg); err != nil || fi.Size() == 0 { // create the main config
 
 			l.Debugf("generating datakit.conf...")
 
