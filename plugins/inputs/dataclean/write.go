@@ -14,7 +14,8 @@ import (
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/serializers"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/rotate"
 )
 
@@ -243,7 +244,7 @@ func (w *httpWriter) write(data []byte, ri *reqinfo) error {
 
 	var err error
 	if w.bgzip {
-		rc, err := internal.CompressWithGzip(reqBodyBuffer)
+		rc, err := datakit.CompressWithGzip(reqBodyBuffer)
 		if err != nil {
 			return err
 		}
@@ -275,24 +276,12 @@ func (w *httpWriter) write(data []byte, ri *reqinfo) error {
 		return err
 	}
 
-	// if h.Username != "" || h.Password != "" {
-	// 	req.SetBasicAuth(h.Username, h.Password)
-	// }
-
-	//req.Header.Set("User-Agent", "Telegraf/"+internal.Version())
 	if ri.headers != nil {
 		req.Header = ri.headers
 	}
-	//req.Header.Set("Content-Type", defaultContentType)
 	if w.bgzip {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
-	// for k, v := range h.Headers {
-	// 	if strings.ToLower(k) == "host" {
-	// 		req.Host = v
-	// 	}
-	// 	req.Header.Set(k, v)
-	// }
 
 	moduleLogger.Debugf("final url: %s", u)
 	moduleLogger.Debugf("final header: %s", req.Header)
