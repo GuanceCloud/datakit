@@ -10,7 +10,7 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
@@ -57,7 +57,7 @@ const (
 
 	# ##(required) you can use * to apply to all metrics of this project
 	#name = "CPUUtilization"
-	
+
 	# ##(optional) you may specify period of this metric
 	#period = 60
 
@@ -70,7 +70,7 @@ const (
     #	{"instanceId":"i-bp15wj5w33t8vf******"}
     #	]
 	#	'''
-	
+
 	# ##(optional) custom tags
 	#[inputs.cms.project.metrics.property.tags]
 	#key1 = "val1"
@@ -86,10 +86,10 @@ type (
 	}
 
 	Property struct {
-		Name       string            `toml:"name"`
-		Period     int               `toml:"period"`
-		Interval   internal.Duration `toml:"interval"`
-		Dimensions string            `toml:"dimensions"`
+		Name       string           `toml:"name"`
+		Period     int              `toml:"period"`
+		Interval   datakit.Duration `toml:"interval"`
+		Dimensions string           `toml:"dimensions"`
 
 		Tags map[string]string `toml:"tags,omitempty"`
 	}
@@ -120,8 +120,8 @@ type (
 		AccessKeyID     string            `toml:"access_key_id"`
 		AccessKeySecret string            `toml:"access_key_secret"`
 		SecurityToken   string            `toml:"security_token"`
-		Interval        internal.Duration `toml:"interval"`
-		Delay           internal.Duration `toml:"delay"`
+		Interval        datakit.Duration  `toml:"interval"`
+		Delay           datakit.Duration  `toml:"delay"`
 		Project         []*Project        `toml:"project"`
 		Tags            map[string]string `toml:"tags,omitempty"`
 
