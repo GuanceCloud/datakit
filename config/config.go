@@ -19,7 +19,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -65,16 +64,16 @@ type MainConfig struct {
 	ConfigDir string `toml:"config_dir"` // XXX: not used: to compatible parsing with forethought datakit.conf
 
 	//验证dk存活
-	MaxPostInterval internal.Duration `toml:"max_post_interval"`
+	MaxPostInterval datakit.Duration `toml:"max_post_interval"`
 
 	//DataCleanTemplate string
 
 	GlobalTags map[string]string `toml:"global_tags"`
 
-	Interval      internal.Duration `toml:"interval"`
 	RoundInterval bool
-	FlushInterval internal.Duration
-	FlushJitter   internal.Duration
+	Interval      datakit.Duration `toml:"interval"`
+	flushInterval datakit.Duration
+	flushJitter   datakit.Duration
 
 	OutputFile string `toml:"output_file,omitempty"`
 
@@ -122,9 +121,9 @@ func newDefaultCfg() *Config {
 		TelegrafAgentCfg: defaultTelegrafAgentCfg(),
 		MainCfg: &MainConfig{
 			GlobalTags:      map[string]string{},
-			FlushInterval:   internal.Duration{Duration: 10 * time.Second},
-			Interval:        internal.Duration{Duration: 10 * time.Second},
-			MaxPostInterval: internal.Duration{Duration: (10 + 5) * time.Second}, // add 5s plus for network latency
+			flushInterval:   datakit.Duration{time.Second * 10},
+			Interval:        datakit.Duration{time.Second * 10},
+			MaxPostInterval: datakit.Duration{time.Second * 15}, // add 5s plus for network latency
 
 			HTTPServerAddr: "0.0.0.0:9529",
 
@@ -170,7 +169,6 @@ func LoadCfg() error {
 	l.Infof("set log to %s", Cfg.MainCfg.Log)
 	l.Infof("main cfg: %+#v", Cfg.MainCfg)
 
-	datakit.Init()
 	if Cfg.MainCfg.MaxPostInterval.Duration > 0 {
 		datakit.MaxLifeCheckInterval = Cfg.MainCfg.MaxPostInterval.Duration
 	}
