@@ -11,7 +11,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -73,7 +73,7 @@ func (co *CostOrder) getNormalData(ctx context.Context) error {
 		default:
 		}
 		co.runningInstance.resumeHistoryFetch()
-		internal.SleepContext(ctx, co.interval)
+		datakit.SleepContext(ctx, co.interval)
 
 		select {
 		case <-ctx.Done():
@@ -213,8 +213,8 @@ func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			"RelatedOrderId": item.RelatedOrderId,
 		}
 
-		fields["PretaxGrossAmount"], _ = strconv.ParseFloat(internal.NumberFormat(item.PretaxGrossAmount), 64)
-		fields["PretaxAmount"], _ = strconv.ParseFloat(internal.NumberFormat(item.PretaxAmount), 64)
+		fields["PretaxGrossAmount"], _ = strconv.ParseFloat(datakit.NumberFormat(item.PretaxGrossAmount), 64)
+		fields["PretaxAmount"], _ = strconv.ParseFloat(datakit.NumberFormat(item.PretaxAmount), 64)
 
 		// reqDetail := bssopenapi.CreateGetOrderDetailRequest()
 		// reqDetail.OrderId = item.OrderId
