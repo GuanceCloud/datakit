@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -241,7 +240,7 @@ func (r *runningInstance) run(ctx context.Context) error {
 		}
 
 		if used < r.cfg.Interval.Duration {
-			internal.SleepContext(ctx, r.cfg.Interval.Duration-used)
+			datakit.SleepContext(ctx, r.cfg.Interval.Duration-used)
 		}
 	}
 }
