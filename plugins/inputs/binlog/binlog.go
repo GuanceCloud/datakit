@@ -12,7 +12,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -108,7 +107,7 @@ func (b *Binlog) Run() {
 
 				if err := bl.run(b.ctx); err != nil && err != context.Canceled {
 					moduleLogger.Errorf("%s", err.Error())
-					internal.SleepContext(b.ctx, time.Second*3)
+					datakit.SleepContext(b.ctx, time.Second*3)
 				} else if err == context.Canceled {
 					break
 				}
