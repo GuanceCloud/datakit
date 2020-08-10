@@ -8,9 +8,12 @@ log_level='{{.LogLevel}}'
 config_dir='{{.ConfigDir}}'
 http_server_addr='{{.HTTPServerAddr}}'
 
-## Override default hostname, if empty use os.Hostname()
-hostname = ""
+## Override default hostname
+# if empty use os.Hostname(), or get from env ENV_HOSTNAME
+hostname = "{{.Hostname}}"
+
 ## If set to true, do no set the "host" tag.
+## Deprecated, not-using
 omit_hostname = false
 
 output_file = ""
@@ -87,11 +90,5 @@ output_file = ""
 #  ## Maximum number of rotated archives to keep, any older logs are deleted.
 #  ## If set to -1, no archives are removed.
 #  # logfile_rotation_max_archives = 5
-
-#  ## Override default hostname, if empty use os.Hostname()
-#  hostname = ""
-#  ## If set to true, do no set the "host" tag in the telegraf agent.
-#  omit_hostname = false
-
 `
 )
