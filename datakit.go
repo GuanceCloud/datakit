@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"runtime"
 	"strconv"
@@ -220,4 +221,60 @@ func CompressWithGzip(data io.Reader) (io.ReadCloser, error) {
 	}()
 
 	return pipeReader, err
+}
+
+var (
+	dnsdests = []string{
+		`114.114.114.114:80`,
+		`8.8.8.8:80`,
+	}
+)
+
+func LocalIP() (string, error) {
+
+	for _, dest := range dnsdests {
+		conn, err := net.DialTimeout("udp", dest, time.Second)
+		if err == nil {
+			defer conn.Close()
+			localAddr := conn.LocalAddr().(*net.UDPAddr)
+			return localAddr.IP.String(), nil
+		}
+	}
+
+	return GetFirstGlobalUnicastIP()
+}
+
+func GetFirstGlobalUnicastIP() (string, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			return "", err
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			default:
+				// pass
+			}
+
+			switch {
+			case ip.IsGlobalUnicast():
+				return ip.String(), nil
+			default:
+				// pass
+			}
+		}
+	}
+
+	return "", fmt.Errorf("no IP found")
 }
