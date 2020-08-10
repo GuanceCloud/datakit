@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
@@ -29,7 +29,7 @@ type objectAgent struct {
 	RegionID        string            `toml:"region_id"`
 	AccessKeyID     string            `toml:"access_key_id"`
 	AccessKeySecret string            `toml:"access_key_secret"`
-	Interval        internal.Duration `toml:"interval"`
+	Interval        datakit.Duration  `toml:"interval"`
 	Tags            map[string]string `toml:"tags,omitempty"`
 
 	Ecs *Ecs `toml:"ecs,omitempty"`
