@@ -27,7 +27,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/telegrafwrap"
 )
 
