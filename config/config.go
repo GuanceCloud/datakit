@@ -23,8 +23,6 @@ import (
 )
 
 var (
-	ConvertedCfg []string
-
 	l                             = logger.DefaultSLogger("config")
 	Cfg                   *Config = nil
 	EnabledTelegrafInputs         = map[string]interface{}{}
@@ -78,10 +76,10 @@ type MainConfig struct {
 
 	OutputFile string `toml:"output_file,omitempty"`
 
-	Hostname     string
-	OmitHostname bool
+	OmitHostname bool // Deprecated
 
-	cfgPath string
+	Hostname string `toml:"hostname"`
+	cfgPath  string
 }
 
 func init() {
@@ -196,8 +194,6 @@ func (c *Config) LoadMainConfig() error {
 
 	//telegraf的相应配置
 	bAgentSetLogLevel := false
-	bAgentSetOmitHost := false
-	bAgentSetHostname := false
 
 	if val, ok := tbl.Fields["agent"]; ok {
 		subTable, ok := val.(*ast.Table)
@@ -207,14 +203,6 @@ func (c *Config) LoadMainConfig() error {
 
 		if _, ok := subTable.Fields["debug"]; ok {
 			bAgentSetLogLevel = true
-		}
-
-		if _, ok := subTable.Fields["omit_hostname"]; ok {
-			bAgentSetOmitHost = true
-		}
-
-		if _, ok := subTable.Fields["hostname"]; ok {
-			bAgentSetHostname = true
 		}
 
 		if err = toml.UnmarshalTable(subTable, c.TelegrafAgentCfg); err != nil {
@@ -227,20 +215,6 @@ func (c *Config) LoadMainConfig() error {
 	if err := toml.UnmarshalTable(tbl, c.MainCfg); err != nil {
 		l.Errorf("UnmarshalTable failed: " + err.Error())
 		return err
-	}
-
-	if !c.MainCfg.OmitHostname { // get default host-name
-		if c.MainCfg.Hostname == "" {
-			hostname, err := os.Hostname()
-			if err != nil {
-				l.Errorf("get hostname failed: %s", err.Error())
-				return err
-			}
-
-			c.MainCfg.Hostname = hostname
-		}
-
-		c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
 	}
 
 	if c.TelegrafAgentCfg.LogTarget == "file" && c.TelegrafAgentCfg.Logfile == "" {
@@ -260,16 +234,32 @@ func (c *Config) LoadMainConfig() error {
 		c.TelegrafAgentCfg.Debug = (strings.ToLower(c.MainCfg.LogLevel) == "debug")
 	}
 
-	if !bAgentSetOmitHost {
-		c.TelegrafAgentCfg.OmitHostname = c.MainCfg.OmitHostname
-	}
-
-	if !bAgentSetHostname {
-		c.TelegrafAgentCfg.Hostname = c.MainCfg.Hostname
-	}
-
 	c.MainCfg.DataWayRequestURL = fmt.Sprintf("%s://%s%s?token=%s",
 		c.MainCfg.DataWay.Scheme, c.MainCfg.DataWay.Host, c.MainCfg.DataWay.DefaultPath, c.MainCfg.DataWay.Token)
+
+	// reset global tags
+	for k, v := range c.MainCfg.GlobalTags {
+		switch strings.ToLower(v) {
+		case `$datakit_hostname`:
+			c.MainCfg.GlobalTags[k] = c.MainCfg.Hostname
+			l.Debugf("set global tag %s: %s", k, c.MainCfg.Hostname)
+
+		case `$datakit_ip`:
+			ip := "unavailable"
+			ip, err = datakit.LocalIP()
+			if err != nil {
+				l.Errorf("get local ip failed: %s", err.Error())
+			}
+			l.Debugf("set global tag %s: %s", k, ip)
+			c.MainCfg.GlobalTags[k] = ip
+
+		case `$datakit_uuid`, `$datakit_id`:
+			c.MainCfg.GlobalTags[k] = c.MainCfg.UUID
+			l.Debugf("set global tag %s: %s", k, c.MainCfg.UUID)
+		default:
+			// pass
+		}
+	}
 
 	return nil
 }
