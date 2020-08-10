@@ -13,14 +13,13 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 //用于支持在datakit.conf中加入telegraf的agent配置
 type TelegrafAgentConfig struct {
 	// Interval at which to gather information
-	Interval internal.Duration
+	Interval datakit.Duration
 
 	// RoundInterval rounds collection interval to 'interval'.
 	//     ie, if Interval=10s then always collect on :00, :10, :20, etc.
@@ -32,22 +31,22 @@ type TelegrafAgentConfig struct {
 	//       when interval = "250ms", precision will be "1ms"
 	// Precision will NOT be used for service inputs. It is up to each individual
 	// service input to set the timestamp at the appropriate precision.
-	Precision internal.Duration
+	Precision datakit.Duration
 
 	// CollectionJitter is used to jitter the collection by a random amount.
 	// Each plugin will sleep for a random time within jitter before collecting.
 	// This can be used to avoid many plugins querying things like sysfs at the
 	// same time, which can have a measurable effect on the system.
-	CollectionJitter internal.Duration
+	CollectionJitter datakit.Duration
 
 	// FlushInterval is the Interval at which to flush data
-	FlushInterval internal.Duration
+	FlushInterval datakit.Duration
 
 	// FlushJitter Jitters the flush interval by a random amount.
 	// This is primarily to avoid large write spikes for users running a large
 	// number of telegraf instances.
 	// ie, a jitter of 5s and interval 10s means flushes will happen every 10-15s
-	FlushJitter internal.Duration
+	FlushJitter datakit.Duration
 
 	// MetricBatchSize is the maximum number of metrics that is wrote to an
 	// output plugin in one call.
@@ -87,11 +86,11 @@ type TelegrafAgentConfig struct {
 
 	// The file will be rotated after the time interval specified.  When set
 	// to 0 no time based rotation is performed.
-	LogfileRotationInterval internal.Duration `toml:"logfile_rotation_interval"`
+	LogfileRotationInterval datakit.Duration `toml:"logfile_rotation_interval"`
 
 	// The logfile will be rotated when it becomes larger than the specified
 	// size.  When set to 0 no size based rotation is performed.
-	LogfileRotationMaxSize internal.Size `toml:"logfile_rotation_max_size"`
+	LogfileRotationMaxSize datakit.Size `toml:"logfile_rotation_max_size"`
 
 	// Maximum number of rotated archives to keep, any older logs are deleted.
 	// If set to -1, no archives are removed.
@@ -103,23 +102,23 @@ type TelegrafAgentConfig struct {
 
 func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 	c := &TelegrafAgentConfig{
-		Interval: internal.Duration{
+		Interval: datakit.Duration{
 			Duration: time.Second * 10,
 		},
 
 		RoundInterval:     true,
 		MetricBatchSize:   1000,
 		MetricBufferLimit: 100000,
-		CollectionJitter: internal.Duration{
+		CollectionJitter: datakit.Duration{
 			Duration: 0,
 		},
-		FlushInterval: internal.Duration{
+		FlushInterval: datakit.Duration{
 			Duration: time.Second * 10,
 		},
-		FlushJitter: internal.Duration{
+		FlushJitter: datakit.Duration{
 			Duration: 0,
 		},
-		Precision: internal.Duration{
+		Precision: datakit.Duration{
 			Duration: time.Nanosecond,
 		},
 
