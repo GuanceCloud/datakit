@@ -21,7 +21,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -147,7 +146,7 @@ func (s *CMS) run() error {
 			}
 		}
 
-		internal.SleepContext(s.ctx, batchInterval)
+		datakit.SleepContext(s.ctx, batchInterval)
 	}
 }
 
