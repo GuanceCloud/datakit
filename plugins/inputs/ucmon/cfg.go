@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
@@ -30,7 +30,7 @@ const (
 type (
 	ucMetric struct {
 		MetricName string
-		Interval   internal.Duration
+		Interval   datakit.Duration
 	}
 
 	ucResource struct {
