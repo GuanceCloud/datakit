@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"text/template"
 	"time"
 
@@ -96,7 +97,6 @@ type TelegrafAgentConfig struct {
 	// If set to -1, no archives are removed.
 	LogfileRotationMaxArchives int `toml:"logfile_rotation_max_archives"`
 
-	Hostname     string
 	OmitHostname bool
 }
 
@@ -127,7 +127,7 @@ func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
 		LogTarget:                  "file",
 		Logfile:                    filepath.Join(datakit.TelegrafDir, "agent.log"),
 		LogfileRotationMaxArchives: 5,
-		OmitHostname:               false,
+		OmitHostname:               true, // do not append host tag
 	}
 	return c
 }
@@ -209,7 +209,6 @@ func marshalAgentCfg(cfg *TelegrafAgentConfig) (string, error) {
 		LogfileRotationInterval    time.Duration `toml:"logfile_rotation_interval"`
 		LogfileRotationMaxSize     int64         `toml:"logfile_rotation_max_size"`
 		LogfileRotationMaxArchives int           `toml:"logfile_rotation_max_archives"`
-		Hostname                   string
 		OmitHostname               bool
 	}
 
@@ -231,7 +230,6 @@ func marshalAgentCfg(cfg *TelegrafAgentConfig) (string, error) {
 		LogfileRotationInterval:    cfg.LogfileRotationInterval.Duration / time.Second,
 		LogfileRotationMaxSize:     cfg.LogfileRotationMaxSize.Size,
 		LogfileRotationMaxArchives: cfg.LogfileRotationMaxArchives,
-		Hostname:                   cfg.Hostname,
 		OmitHostname:               cfg.OmitHostname,
 	}
 
@@ -319,31 +317,36 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 
 	tlegrafConfig := globalTags + agentcfg + fileoutstr + httpoutstr
 
-	pluginCfgs := ""
+	parts := []string{}
 
 	for f, _ := range files {
+
+		l.Infof("try merge %s as telegraf config...", f)
+
 		d, err := ioutil.ReadFile(f)
 		if err != nil {
 			l.Errorf("%s", err.Error())
-			return "", err
+			continue
 		}
 
-		l.Infof("merge %s as telegraf config", f)
-		pluginCfgs += string(d) + "\n"
-	}
-
-	if len(ConvertedCfg) > 0 {
-		for _, c := range ConvertedCfg {
-			pluginCfgs += c + "\n"
+		prt, err := buildInputCfg(d)
+		if err != nil {
+			continue
 		}
+
+		l.Debugf("append telegraf config: %s", prt)
+
+		parts = append(parts, prt)
 	}
 
-	if pluginCfgs == "" {
+	if len(parts) == 0 {
 		return "", nil
 	}
 
-	// check if @pluginCfgs include any datakit input
-	tbl, err := toml.Parse([]byte(pluginCfgs))
+	inputscfgs := strings.Join(parts, "\n")
+
+	// check if @parts include any datakit input
+	tbl, err := toml.Parse([]byte(inputscfgs))
 	if err != nil {
 		l.Error(err)
 		return "", err
@@ -375,7 +378,27 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 		}
 	}
 
-	tlegrafConfig += pluginCfgs
+	tlegrafConfig += inputscfgs
 
 	return tlegrafConfig, err
+}
+
+func buildInputCfg(d []byte) (string, error) {
+
+	var err error
+
+	tpl := template.New("")
+	tpl, err = tpl.Parse(string(d))
+	if err != nil {
+		l.Errorf("%s", err.Error())
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	if err := tpl.Execute(&buf, Cfg.MainCfg); err != nil {
+		l.Errorf("%s", err.Error())
+		return "", err
+	}
+
+	return buf.String(), nil
 }
