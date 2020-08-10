@@ -1264,7 +1264,10 @@ service_names = [
   ## If true, collect raw CPU time metrics.
   collect_cpu_time = false
  ## If true, compute and report the sum of all non-idle CPU states.
-  report_active = false`
+  report_active = false
+	[inputs.cpu.tags]
+		host = '${{.Hostname}}'
+	`
 
 	TelegrafInputs[`disk`].Sample = `
 #Read metrics about disk usage by mount point
@@ -1274,7 +1277,11 @@ service_names = [
  # mount_points = ["/"]
 
  ## Ignore mount points by filesystem type.
-  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]`
+  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
+
+	[inputs.disk.tags]
+	host = '{{.Hostname}}'
+	`
 
 	TelegrafInputs[`diskio`].Sample = `
 # Read metrics about disk IO by device
@@ -1303,21 +1310,35 @@ service_names = [
   # present for the device is used as the device name tag.
   # The typical use case is for LVM volumes, to get the VG/LV name instead of
   # the near-meaningless DM-0 name.
-   name_templates = ["$ID_FS_LABEL","$DM_VG_NAME/$DM_LV_NAME"]`
+   name_templates = ["$ID_FS_LABEL","$DM_VG_NAME/$DM_LV_NAME"]
+
+	[inputs.diskio.tags]
+	host = '{{.Hostname}}'
+	 `
 
 	TelegrafInputs[`kernel`].Sample = `
 # Get kernel statistics from /proc/stat
 [[inputs.kernel]]
  # no configuration
+[inputs.kernel.tags]
+host = '{{.Hostname}}'
 
  # Get kernel statistics from /proc/vmstat
  [[inputs.kernel_vmstat]]
-   # no configuration`
+   # no configuration
+
+	[inputs.kernel_vmstat.tags]
+	host = '{{.Hostname}}'
+	 `
 
 	TelegrafInputs[`mem`].Sample = `
 # Read metrics about memory usage
 [[inputs.mem]]
-  # no configuration`
+  # no configuration
+
+	[inputs.mem.tags]
+	host = '{{.Hostname}}'
+	`
 
 	TelegrafInputs[`processes`].Sample = `
 # Get the number of processes and group them by status
@@ -1366,13 +1387,21 @@ pid_file = "/var/run/nginx.pid"
 	TelegrafInputs[`swap`].Sample = `
 # Read metrics about swap memory usage
 [[inputs.swap]]
-  # no configuration`
+  # no configuration
+
+	[inputs.swap.tags]
+	host = '{{.Hostname}}'
+	`
 
 	TelegrafInputs[`system`].Sample = `
 # Read metrics about system load & uptime
 [[inputs.system]]
   ## Uncomment to remove deprecated metrics.
-  fielddrop = ["uptime_format"]`
+  fielddrop = ["uptime_format"]
+
+	[inputs.system.tags]
+	host = '{{.Hostname}}'
+	`
 
 	TelegrafInputs[`activemq`].Sample = `
  # Gather ActiveMQ metrics
@@ -2306,13 +2335,17 @@ pid_file = "/var/run/nginx.pid"
 
 	TelegrafInputs[`systemd_units`].Sample = `
 [[inputs.systemd_units]]
-  ## Set timeout for systemctl execution
-  # timeout = "1s"
-  #
-  ## Filter for a specific unit type, default is "service", other possible
-  ## values are "socket", "target", "device", "mount", "automount", "swap",
-  ## "timer", "path", "slice" and "scope ":
-  # unittype = "service"`
+  # Set timeout for systemctl execution
+  timeout = "1s"
+
+  # Filter for a specific unit type, default is "service", other possible
+  # values are "socket", "target", "device", "mount", "automount", "swap",
+  # "timer", "path", "slice" and "scope ":
+  unittype = "service"
+
+	[inputs.systemd_units.tags]
+	host = '{{.Hostname}}'
+	`
 
 	TelegrafInputs[`influxdb`].Sample = `
 # Read InfluxDB-formatted JSON metrics from one or more HTTP endpoints
