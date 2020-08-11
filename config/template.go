@@ -1,7 +1,7 @@
 package config
 
 const (
-	MainConfigTemplate = `uuid='{{.UUID}}'
+	MainConfigTemplate = `uuid='{{.UUID}}'  # do NOT change it!!!
 ftdataway='{{.FtGateway}}' # deprecated
 log='{{.Log}}'
 log_level='{{.LogLevel}}'
