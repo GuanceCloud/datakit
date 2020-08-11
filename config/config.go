@@ -354,8 +354,28 @@ func DumpInputsOutputs() {
 	l.Infof("available inputs: %s", strings.Join(names, ","))
 }
 
-func InitCfg(dwcfg *DataWayCfg) error {
-	if err := initMainCfg(dwcfg); err != nil {
+func buildMainCfgFile() error {
+	var err error
+	t := template.New("")
+	t, err = t.Parse(MainConfigTemplate)
+	if err != nil {
+		return fmt.Errorf("Error creating %s: %s", Cfg.MainCfg.cfgPath, err)
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	if err = t.Execute(buf, Cfg.MainCfg); err != nil {
+		return fmt.Errorf("Error creating %s: %s", Cfg.MainCfg.cfgPath, err)
+	}
+
+	if err := ioutil.WriteFile(Cfg.MainCfg.cfgPath, []byte(buf.Bytes()), 0664); err != nil {
+		return fmt.Errorf("error creating %s: %s", Cfg.MainCfg.cfgPath, err)
+	}
+
+	return nil
+}
+
+func InitCfg() error {
+	if err := buildMainCfgFile(); err != nil {
 		return err
 	}
 
@@ -366,10 +386,12 @@ func InitCfg(dwcfg *DataWayCfg) error {
 	return nil
 }
 
-func initMainCfg(dwcfg *DataWayCfg) error {
+/*
+func initMainCfg(dwcfg *DataWayCfg, tags map[string]string) error {
 
 	Cfg.MainCfg.UUID = cliutils.XID("dkid_")
 	Cfg.MainCfg.DataWay = dwcfg
+	Cfg.MainCfg.GlobalTags = tags
 
 	var err error
 	tm := template.New("")
@@ -388,7 +410,7 @@ func initMainCfg(dwcfg *DataWayCfg) error {
 	}
 
 	return nil
-}
+} */
 
 func parseCfgFile(f string) (*ast.Table, error) {
 	data, err := ioutil.ReadFile(f)
