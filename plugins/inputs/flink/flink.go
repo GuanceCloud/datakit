@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -94,7 +95,8 @@ func extract(db string, prec string, body []byte) error {
 	var fields = make(map[string]interface{}, len(pts))
 	for _, pt := range pts {
 		ptFields, _ := pt.Fields()
-		fields[fmt.Sprintf("%s%s", prefixStr, pt.Name())] = ptFields["value"]
+		key := strings.ReplaceAll(fmt.Sprintf("%s%s", prefixStr, pt.Name()), "_", ".")
+		fields[key] = ptFields["value"]
 	}
 
 	tags, _ := DBList.Load(db)
