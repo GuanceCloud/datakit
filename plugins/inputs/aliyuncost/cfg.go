@@ -9,7 +9,7 @@ import (
 
 const (
 	aliyuncostConfigSample = `
-#[[inputs.boa]]
+#[[inputs.aliyuncost]]
 #  ## Aliyun Region (required)
 #  ## See: https://www.alibabacloud.com/help/zh/doc-detail/40654.htm
 #  region_id = 'cn-hangzhou'
