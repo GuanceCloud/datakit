@@ -333,7 +333,7 @@ func httpStart(addr string) {
 	}
 
 	// internal datakit stats API
-	router.POST("/stats", func(c *gin.Context) { getInputsStats(c.Writer, c.Request) })
+	router.GET("/stats", func(c *gin.Context) { getInputsStats(c.Writer, c.Request) })
 	// ansible api
 	router.POST("/ansible", func(c *gin.Context) { AnsibleHander(c.Writer, c.Request) })
 
