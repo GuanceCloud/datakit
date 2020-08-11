@@ -12,7 +12,7 @@ import (
 
 const (
 	configSample = `
-#[[inputs.actiontrail]]
+#[[inputs.aliyunactiontrail]]
 
 # ##(required)
 #region = 'cn-hangzhou'
