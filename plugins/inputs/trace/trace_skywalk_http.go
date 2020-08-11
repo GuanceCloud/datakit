@@ -113,6 +113,8 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 		}
 		if span.SpanType == "Entry" {
 			t.spanType  = SPAN_TYPE_ENTRY
+		} else if span.SpanType == "Exit"{
+			t.spanType  = SPAN_TYPE_EXIT
 		} else {
 			t.spanType  = SPAN_TYPE_LOCAL
 		}
