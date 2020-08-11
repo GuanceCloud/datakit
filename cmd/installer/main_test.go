@@ -15,6 +15,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
+func TestParseTags(t *testing.T) {
+	x := `a=$datakit_ip,b=$datakit_host`
+	tags := parseGlobalTags(x)
+	t.Logf("tags: %+#v", tags)
+}
+
 func TestUnmarshal(t *testing.T) {
 	x := []byte(`
 uuid='dkit_a429ef4c-184d-4ed0-9bfc-72fa119ef02b'
