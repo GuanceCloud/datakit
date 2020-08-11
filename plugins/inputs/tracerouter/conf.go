@@ -7,8 +7,6 @@ const (
 #[[inputs.tracerouter]]
 #  ## 采集的频度，最小粒度10m
 #  interval = '10m'
-#  ## 指标集名称，默认值scanport
-#  metricName = ''
 #  ## trace addr ip or domain
 #  addr = ''
 #`

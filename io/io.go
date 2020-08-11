@@ -377,7 +377,10 @@ func doFlush(bodies [][]byte, url string) error {
 	}
 
 	if datakit.MaxLifeCheckInterval > 0 {
+		l.Debugf("set max-post-interval: %v", datakit.MaxLifeCheckInterval)
 		req.Header.Set("X-Max-POST-Interval", fmt.Sprintf("%v", datakit.MaxLifeCheckInterval))
+	} else {
+		l.Debugf("max-post-interval not set: %+#v", datakit.MaxLifeCheckInterval)
 	}
 
 	l.Debugf("post to %s...", categoryURLs[url])
