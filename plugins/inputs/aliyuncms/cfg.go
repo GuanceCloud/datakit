@@ -15,7 +15,7 @@ import (
 
 const (
 	aliyuncmsConfigSample = `
-#[[inputs.cms]]
+#[[inputs.aliyuncms]]
 
  # ##(required)
  #access_key_id = ''
@@ -31,12 +31,12 @@ const (
  # ##(optional) delay collect duration
  #delay = '5m'
 
- #[inputs.cms.tags]
+ #[inputs.aliyuncms.tags]
  #key1 = "val1"
  #key2 = "val2"
 
  # ##(required)
- #[[inputs.cms.project]]
+ #[[inputs.aliyuncms.project]]
   #	##(required) product namespace
   #name='acs_ecs_dashboard'
 
@@ -44,7 +44,7 @@ const (
   #metric_name=''
 
   # ##(required)
-  #[inputs.cms.project.metrics]
+  #[inputs.aliyuncms.project.metrics]
 
    # ##(required)
    # ## names of metrics
@@ -53,7 +53,7 @@ const (
    #]
 
    # ##(optional)
-   #[[inputs.cms.project.metrics.property]]
+   #[[inputs.aliyuncms.project.metrics.property]]
 
 	# ##(required) you can use * to apply to all metrics of this project
 	#name = "CPUUtilization"
@@ -72,7 +72,7 @@ const (
 	#	'''
 
 	# ##(optional) custom tags
-	#[inputs.cms.project.metrics.property.tags]
+	#[inputs.aliyuncms.project.metrics.property.tags]
 	#key1 = "val1"
 	#key2 = "val2"
 `
