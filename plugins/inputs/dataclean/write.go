@@ -8,14 +8,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"sync/atomic"
 	"time"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/serializers"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/rotate"
 )
 
 const (
@@ -95,13 +93,6 @@ func (wm *writerMgr) addHttpWriter(remote string) {
 	wm.writers = append(wm.writers, w)
 }
 
-func (wm *writerMgr) addFileWriter(file string) {
-	w, err := newFileWritfer([]string{file})
-	if err == nil {
-		wm.writers = append(wm.writers, w)
-	}
-}
-
 func newhttpWriter(schema, host, path string, query url.Values) writer {
 	w := &httpWriter{
 		schema: schema,
@@ -117,36 +108,6 @@ func newhttpWriter(schema, host, path string, query url.Values) writer {
 		Timeout: defaultClientTimeout,
 	}
 	return w
-}
-
-func newFileWritfer(files []string) (writer, error) {
-	f := &fileWriter{
-		Files: files,
-	}
-
-	writers := []io.Writer{}
-
-	if len(f.Files) == 0 {
-		f.Files = []string{"stdout"}
-	}
-
-	for _, file := range f.Files {
-		if file == "stdout" {
-			writers = append(writers, os.Stdout)
-		} else {
-			of, err := rotate.NewFileWriter(file, f.RotationInterval, f.RotationMaxSize, f.RotationMaxArchives)
-			if err != nil {
-				moduleLogger.Errorf("open file %s failed, %s", file, err)
-				return nil, err
-			}
-
-			writers = append(writers, of)
-			f.closers = append(f.closers, of)
-		}
-	}
-	f.writer = io.MultiWriter(writers...)
-
-	return f, nil
 }
 
 func (wm *writerMgr) add(req *reqinfo) {
