@@ -123,8 +123,7 @@ func (e *Ecs) handleResponse(resp *ecs.DescribeInstancesResponse, ag *objectAgen
 		}
 
 		obj := map[string]interface{}{
-			`__name`:        fmt.Sprintf(`%s(%s)`, inst.InstanceName, inst.InstanceId),
-			`__description`: ``,
+			`__name`: fmt.Sprintf(`%s(%s)`, inst.InstanceName, inst.InstanceId),
 		}
 
 		obj[`Cpu`] = inst.Cpu
