@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	iowrite "io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,9 +14,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kardianos/service"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
@@ -232,7 +236,6 @@ func __run() {
 }
 
 func loadConfig() {
-
 	config.Cfg.InputFilters = inputFilters
 
 	for {
@@ -255,7 +258,6 @@ func runTelegraf() error {
 func runDatakit() error {
 
 	l = logger.SLogger("datakit")
-
 	io.Start()
 
 	// start HTTP server
@@ -276,11 +278,8 @@ func runDatakit() error {
 func runInputs() error {
 
 	for name, ips := range config.Cfg.Inputs {
-
 		for _, input := range ips {
-
 			switch input.(type) {
-
 			case inputs.Input:
 				l.Infof("starting input %s ...", name)
 				datakit.WG.Add(1)
@@ -289,52 +288,63 @@ func runInputs() error {
 					i.Run()
 					l.Infof("input %s exited", name)
 				}(input, name)
-
 			default:
 				l.Warn("ignore input %s", name)
 			}
 		}
-
 	}
-
 	return nil
 }
 
 func httpStart(addr string) {
+	router := gin.New()
+	gin.DisableConsoleColor()
 
-	mux := http.NewServeMux()
+	l.Info("set gin log to %s", config.Cfg.MainCfg.GinLog)
+	f, err := os.Create(config.Cfg.MainCfg.GinLog)
+	if err != nil {
+		l.Fatalf("create gin log failed: %s", err)
+	}
+
+	gin.DefaultWriter = iowrite.MultiWriter(f)
+	if config.Cfg.MainCfg.LogLevel != "debug" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
+	router.Use(uhttp.CORSMiddleware)
+
+	// TODO: need any method?
+	// router.Any()
 
 	if _, ok := config.Cfg.Inputs["trace"]; ok {
 		l.Info("open route for trace")
-		mux.HandleFunc("/trace", trace.Handle)
-		mux.HandleFunc("/v3/segment", trace.Handle)
-		mux.HandleFunc("/v3/segments", trace.Handle)
-		mux.HandleFunc("/v3/management/reportProperties", trace.Handle)
-		mux.HandleFunc("/v3/management/keepAlive", trace.Handle)
+		router.POST("/trac", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+		router.POST("/v3/segment", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+		router.POST("/v3/segments", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+		router.POST("/v3/management/reportProperties", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+		router.POST("/v3/management/keepAlive", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
 	}
 
 	if _, ok := config.Cfg.Inputs["druid"]; ok {
 		l.Info("open route for druid")
-		mux.HandleFunc("/druid", druid.Handle)
+		router.POST("/druid", func(c *gin.Context) { druid.Handle(c.Writer, c.Request) })
 	}
 
 	// internal datakit stats API
-	mux.HandleFunc("/stats", getInputsStats)
+	router.POST("/stats", func(c *gin.Context) { getInputsStats(c.Writer, c.Request) })
+	// ansible api
+	router.POST("/ansible", func(c *gin.Context) { AnsibleHander(c.Writer, c.Request) })
 
 	srv := &http.Server{
-		Addr:         addr,
-		Handler:      requestLogger(mux),
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		Addr:    addr,
+		Handler: router,
 	}
-
-	l.Infof("start http server on %s ok", addr)
-
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
 			l.Error(err)
 		}
-
 		l.Info("http server exit")
 	}()
 
@@ -349,6 +359,39 @@ func httpStart(addr string) {
 	}
 
 	return
+}
+
+func AnsibleHander(w http.ResponseWriter, r *http.Request) {
+	dataType := r.URL.Query().Get("type")
+	body, err := ioutil.ReadAll(r.Body)
+	l.Infof("ansible body {}", string(body))
+	defer r.Body.Close()
+
+	if err != nil {
+		l.Errorf("failed of http parsen body in ansible err:%s", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	switch dataType {
+	case "keyevent":
+		if err := io.NamedFeed(body, io.KeyEvent, "ansible"); err != nil {
+			l.Errorf("failed to io Feed, err: %s", err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+
+	case "metric":
+		if err := io.NamedFeed(body, io.Metric, "ansible"); err != nil {
+			l.Errorf("failed to io Feed, err: %s", err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 }
 
 func getInputsStats(w http.ResponseWriter, r *http.Request) {
