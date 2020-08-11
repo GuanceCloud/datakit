@@ -26,6 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flink"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/telegrafwrap"
@@ -332,10 +333,19 @@ func httpStart(addr string) {
 		router.POST("/druid", func(c *gin.Context) { druid.Handle(c.Writer, c.Request) })
 	}
 
+	if _, ok := config.Cfg.Inputs["flink"]; ok {
+		l.Info("open route for influxdb write")
+		router.POST("/write", func(c *gin.Context) {
+			if _, ok := flink.DBList.Load(c.Query("db")); ok {
+				flink.Handle(c.Writer, c.Request)
+			}
+		})
+	}
+
 	// internal datakit stats API
 	router.GET("/stats", func(c *gin.Context) { getInputsStats(c.Writer, c.Request) })
 	// ansible api
-	router.POST("/ansible", func(c *gin.Context) { AnsibleHander(c.Writer, c.Request) })
+	router.GET("/ansible", func(c *gin.Context) { AnsibleHander(c.Writer, c.Request) })
 
 	srv := &http.Server{
 		Addr:    addr,
