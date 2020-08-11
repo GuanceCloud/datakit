@@ -93,7 +93,6 @@ func (r *Rds) run(ag *objectAgent) {
 					pageNum++
 					continue
 				}
-				moduleLogger.Debugf("joly1")
 				break
 			}
 
@@ -119,6 +118,19 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 
 	for _, db := range resp.Items.DBInstance {
 		//moduleLogger.Debugf("dbinstanceInfo %+#v", db)
+
+		exclude := false
+		for _, dbIsId := range ag.Rds.ExcludeDBInstanceIDs {
+			if db.DBInstanceId == dbIsId {
+				exclude = true
+				break
+			}
+		}
+
+		if exclude {
+			continue
+		}
+
 		tags := map[string]interface{}{
 			"__class":               "RDS",
 			"__provider":            "aliyun",
