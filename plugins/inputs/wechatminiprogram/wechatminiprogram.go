@@ -67,6 +67,7 @@ type requestQueries map[string]string
 func (wx *WxClient) GetDailySummary(accessToken string) {
 	body, timeObj := wx.API(accessToken, DailySummaryURL)
 	tags := map[string]string{}
+	tags["appid"] = wx.Appid
 	fields := map[string]interface{}{}
 	for _, d := range gjson.Get(string(body), "list").Array() {
 		fields["visit_total"] = d.Get("visit_total").Int()
@@ -79,6 +80,7 @@ func (wx *WxClient) GetDailySummary(accessToken string) {
 func (wx *WxClient) GetDailyVisitTrend(accessToken string) {
 	body, timeObj := wx.API(accessToken, DailyVisitTrendURL)
 	tags := map[string]string{}
+	tags["appid"] = wx.Appid
 	fields := map[string]interface{}{}
 	for _, d := range gjson.Get(string(body), "list").Array() {
 		fields["session_cnt"] = d.Get("session_cnt").Int()
@@ -96,6 +98,7 @@ func (wx *WxClient) GetDailyVisitTrend(accessToken string) {
 func (wx *WxClient) GetVisitDistribution(accessToken string) () {
 	body, timeObj := wx.API(accessToken, VisitDistributionURL)
 	tags := map[string]string{}
+	tags["appid"] = wx.Appid
 	fields := map[string]interface{}{}
 	for _, v := range gjson.Get(string(body), "list").Array() {
 		index := v.Get("index").String()
@@ -118,6 +121,7 @@ func (wx *WxClient) GetUserPortrait(accessToken string) {
 func (wx *WxClient) GetVisitPage(accessToken string) () {
 	body, timeObj := wx.API(accessToken, VisitPageURL)
 	tags := map[string]string{}
+	tags["appid"] = wx.Appid
 	fields := map[string]interface{}{}
 	for _, v := range gjson.Get(string(body), "list").Array() {
 		tags["page_path"] = v.Get("page_path").String()
@@ -189,6 +193,7 @@ func (wx *WxClient) FormatUserPortraitData(body string, dataType string, timeObj
 	for k, v := range gjson.Get(body, dataType).Map() {
 		for _, value := range v.Array() {
 			tags := map[string]string{}
+			tags["appid"] = wx.Appid
 			fields := map[string]interface{}{}
 			tags[k] = value.Get("name").String()
 			fields[fmt.Sprintf("%s_by_%s", dataType, k)] = value.Get("value").Int()

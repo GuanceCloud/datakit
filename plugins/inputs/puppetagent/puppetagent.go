@@ -58,7 +58,7 @@ func (_ *PuppetAgent) SampleConfig() string {
 }
 
 func (_ *PuppetAgent) Catalog() string {
-	return inputName
+	return "puppet"
 }
 
 func (pa *PuppetAgent) Run() {
