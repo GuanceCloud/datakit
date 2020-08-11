@@ -21,10 +21,12 @@ import (
 	"github.com/influxdata/toml"
 	"github.com/kardianos/service"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -52,6 +54,10 @@ var (
 	flagDataway      = flag.String("dataway", "", `address of dataway(http://IP:Port/v1/write/metric), port default 9528`)
 	flagInfo         = flag.Bool("info", false, "show installer info")
 	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
+
+	flagEnableInputs = flag.String("enable-inputs", "", `default enable inputs(comma splited, example: cpu,mem,disk)`)
+	flagDatakitID    = flag.String("datakit-id", "", `specify DataKit ID, example: prod-env-datakit`)
+	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=$datakit_hostname,from=$datakit_id`)
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./agent-%s-%s.tar.gz",
@@ -115,6 +121,9 @@ func main() {
 
 	} else { // install new datakit
 
+		uninstallDataKitService(dkservice) // uninstall service if installed before
+
+		// prepare dataway info
 		var dwcfg *config.DataWayCfg
 		if *flagDataway == "" {
 			for {
@@ -129,15 +138,25 @@ func main() {
 			}
 		} else {
 			dwcfg, err = config.ParseDataway(*flagDataway)
-
 			if err != nil {
 				l.Fatal(err)
 			}
 		}
 
-		uninstallDataKitService(dkservice) // uninstall service if installed before
+		config.Cfg.MainCfg.DataWay = dwcfg
 
-		if err := config.InitCfg(dwcfg); err != nil {
+		// accept any install options
+		config.Cfg.MainCfg.GlobalTags = parseGlobalTags(*flagGlobalTags)
+		if *flagDatakitID != "" {
+			config.Cfg.MainCfg.UUID = *flagDatakitID
+		} else {
+			config.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
+		}
+
+		enableInputs(*flagEnableInputs)
+
+		// build datakit main config
+		if err := config.InitCfg(); err != nil {
 			l.Fatalf("failed to init datakit main config: %s", err.Error())
 		}
 
@@ -197,7 +216,7 @@ Golang Version: %s
 		installDir = `/usr/local/cloudcare/dataflux/` + ServiceName
 
 	default:
-		// TODO
+		// TODO: more os/arch support
 	}
 }
 
@@ -474,4 +493,62 @@ func migrateLagacyDatakit() {
 	if err := installDatakitService(dkservice); err != nil {
 		l.Warnf("fail to register service %s: %s, ignored", ServiceName, err.Error())
 	}
+}
+
+func enableInputs(inputlist string) {
+	elems := strings.Split(inputlist, ",")
+	if len(elems) == 0 {
+		return
+	}
+
+	for _, elem := range elems {
+		if err := doEnableInput(elem); err != nil {
+			l.Debug("enable input %s failed, ignored", elem)
+		}
+	}
+}
+
+func doEnableInput(name string) error {
+	if i, ok := config.TelegrafInputs[name]; ok {
+		if err := ioutil.WriteFile(filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf"), []byte(i.Sample), os.ModePerm); err != nil {
+			l.Error("build input %s config failed: %s", name, err.Error())
+			return err
+		}
+		l.Debug("enable input %s ok", name)
+		return nil
+	}
+
+	if c, ok := inputs.Inputs[name]; ok {
+		i := c()
+		sample := i.SampleConfig()
+		catalog := i.Catalog()
+
+		if err := ioutil.WriteFile(filepath.Join(datakit.ConfdDir, catalog, name+".conf"), []byte(sample), os.ModePerm); err != nil {
+			l.Error("build input %s config failed: %s", name, err.Error())
+			return err
+		}
+
+		l.Debug("enable input %s ok", name)
+		return nil
+	}
+
+	l.Warnf("input %s not found, ignored", name)
+	return nil
+}
+
+func parseGlobalTags(s string) map[string]string {
+	tags := map[string]string{}
+
+	parts := strings.Split(s, ",")
+	for _, p := range parts {
+		arr := strings.Split(p, "=")
+		if len(arr) != 2 {
+			l.Warnf("invalid global tag: %s, ignored", p)
+			continue
+		}
+
+		tags[arr[0]] = arr[1]
+	}
+
+	return tags
 }
