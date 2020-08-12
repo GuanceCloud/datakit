@@ -83,7 +83,7 @@ func (h *Httpstat) Run() {
 	}
 
 	if h.MetricName == "" {
-		h.MetricName = "httpStat"
+		h.MetricName = "httpstat"
 	}
 
 	tick := time.NewTicker(h.IntervalDuration)
