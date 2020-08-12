@@ -26,6 +26,7 @@ var (
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 
 	ServiceName = "datakit"
+	//Hostname    = ""
 
 	AgentLogFile string
 
