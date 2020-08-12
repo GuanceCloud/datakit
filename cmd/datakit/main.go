@@ -299,7 +299,7 @@ func httpStart(addr string) {
 	router := gin.New()
 	gin.DisableConsoleColor()
 
-	l.Info("set gin log to %s", config.Cfg.MainCfg.GinLog)
+	l.Infof("set gin log to %s", config.Cfg.MainCfg.GinLog)
 	f, err := os.Create(config.Cfg.MainCfg.GinLog)
 	if err != nil {
 		l.Fatalf("create gin log failed: %s", err)

@@ -19,21 +19,11 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-# Failed to build oraclemonitor:
-# 
-# > # runtime/cgo
-# > In file included from _cgo_export.c:3:0:
-# > /usr/include/stdlib.h:25:10: fatal error: bits/libc-header-start.h: No such file or directory
-# > #include <bits/libc-header-start.h>
-# >         ^~~~~~~~~~~~~~~~~~~~~~~~~~
-# > compilation terminated.
-#
-# Solution:
-# > apt-get install gcc-multilib
-# 
-# LOCAL_ARCHS = "darwin/amd64"
 LOCAL_ARCHS = "all"
+LOCAL_ARCHS = "darwin/amd64"
+LOCAL_ARCHS = "windows/amd64"
 LOCAL_ARCHS = "linux/amd64"
+
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -64,7 +54,7 @@ define build
 	@mkdir -p build $(PUB_DIR)/$(1)
 	@mkdir -p git
 	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Commit string="$(COMMIT)"; Branch string="$(BRANCH)"; Uploader string="$(UPLOADER)");' > git/git.go
-	GO111MODULE=off go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
+	@go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
 	tree -Csh -L 4 build pub
 endef
@@ -169,4 +159,3 @@ agent:
 clean:
 	rm -rf build/*
 	rm -rf $(PUB_DIR)/*
-	rm -rf embed/*
