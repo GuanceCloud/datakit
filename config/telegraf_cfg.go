@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
-	"time"
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
@@ -18,121 +17,64 @@ import (
 )
 
 //用于支持在datakit.conf中加入telegraf的agent配置
-type TelegrafAgentConfig struct {
-	// Interval at which to gather information
-	Interval datakit.Duration
-
-	// RoundInterval rounds collection interval to 'interval'.
-	//     ie, if Interval=10s then always collect on :00, :10, :20, etc.
-	RoundInterval bool
-
-	// By default or when set to "0s", precision will be set to the same
-	// timestamp order as the collection interval, with the maximum being 1s.
-	//   ie, when interval = "10s", precision will be "1s"
-	//       when interval = "250ms", precision will be "1ms"
-	// Precision will NOT be used for service inputs. It is up to each individual
-	// service input to set the timestamp at the appropriate precision.
-	Precision datakit.Duration
-
-	// CollectionJitter is used to jitter the collection by a random amount.
-	// Each plugin will sleep for a random time within jitter before collecting.
-	// This can be used to avoid many plugins querying things like sysfs at the
-	// same time, which can have a measurable effect on the system.
-	CollectionJitter datakit.Duration
-
-	// FlushInterval is the Interval at which to flush data
-	FlushInterval datakit.Duration
-
-	// FlushJitter Jitters the flush interval by a random amount.
-	// This is primarily to avoid large write spikes for users running a large
-	// number of telegraf instances.
-	// ie, a jitter of 5s and interval 10s means flushes will happen every 10-15s
-	FlushJitter datakit.Duration
-
-	// MetricBatchSize is the maximum number of metrics that is wrote to an
-	// output plugin in one call.
-	MetricBatchSize int
-
-	// MetricBufferLimit is the max number of metrics that each output plugin
-	// will cache. The buffer is cleared when a successful write occurs. When
-	// full, the oldest metrics will be overwritten. This number should be a
-	// multiple of MetricBatchSize. Due to current implementation, this could
-	// not be less than 2 times MetricBatchSize.
-	MetricBufferLimit int
-
-	// FlushBufferWhenFull tells Telegraf to flush the metric buffer whenever
-	// it fills up, regardless of FlushInterval. Setting this option to true
-	// does _not_ deactivate FlushInterval.
-	FlushBufferWhenFull bool
-
-	// TODO(cam): Remove UTC and parameter, they are no longer
-	// valid for the agent config. Leaving them here for now for backwards-
-	// compatibility
-	UTC bool `toml:"utc"`
-
-	// Debug is the option for running in debug mode
-	Debug bool `toml:"debug"`
-
-	// Quiet is the option for running in quiet mode
-	Quiet bool `toml:"quiet"`
-
-	// Log target controls the destination for logs and can be one of "file",
-	// "stderr" or, on Windows, "eventlog".  When set to "file", the output file
-	// is determined by the "logfile" setting.
-	LogTarget string `toml:"logtarget"`
-
-	// Name of the file to be logged to when using the "file" logtarget.  If set to
-	// the empty string then logs are written to stderr.
-	Logfile string `toml:"logfile"`
-
-	// The file will be rotated after the time interval specified.  When set
-	// to 0 no time based rotation is performed.
-	LogfileRotationInterval datakit.Duration `toml:"logfile_rotation_interval"`
-
-	// The logfile will be rotated when it becomes larger than the specified
-	// size.  When set to 0 no size based rotation is performed.
-	LogfileRotationMaxSize datakit.Size `toml:"logfile_rotation_max_size"`
-
-	// Maximum number of rotated archives to keep, any older logs are deleted.
-	// If set to -1, no archives are removed.
-	LogfileRotationMaxArchives int `toml:"logfile_rotation_max_archives"`
-
-	OmitHostname bool
+type agent struct {
+	Interval                   string `toml:interval`
+	RoundInterval              bool   `toml:"round_interval"`
+	Precision                  string `toml:"precision"`
+	CollectionJitter           string `toml:"collection_jitter"`
+	FlushInterval              string `toml:"flush_interval"`
+	FlushJitter                string `toml:"flush_jitter"`
+	MetricBatchSize            int    `toml:"metric_batch_size"`
+	MetricBufferLimit          int    `toml:"metric_buffer_limit"`
+	FlushBufferWhenFull        bool   `toml:"-"`
+	UTC                        bool   `toml:"utc"`
+	Debug                      bool   `toml:"debug"`
+	Quiet                      bool   `toml:"quiet"`
+	LogTarget                  string `toml:"logtarget"`
+	Logfile                    string `toml:"logfile"`
+	LogfileRotationInterval    string `toml:"logfile_rotation_interval"`
+	LogfileRotationMaxSize     string `toml:"logfile_rotation_max_size"`
+	LogfileRotationMaxArchives int    `toml:"logfile_rotation_max_archives"`
+	OmitHostname               bool   `toml:"omit_hostname"`
 }
 
-func defaultTelegrafAgentCfg() *TelegrafAgentConfig {
-	c := &TelegrafAgentConfig{
-		Interval: datakit.Duration{
-			Duration: time.Second * 10,
-		},
+type fileoutCfg struct {
+	OutputFiles string
+}
 
-		RoundInterval:     true,
-		MetricBatchSize:   1000,
-		MetricBufferLimit: 100000,
-		CollectionJitter: datakit.Duration{
-			Duration: 0,
-		},
-		FlushInterval: datakit.Duration{
-			Duration: time.Second * 10,
-		},
-		FlushJitter: datakit.Duration{
-			Duration: 0,
-		},
-		Precision: datakit.Duration{
-			Duration: time.Nanosecond,
-		},
+type httpoutCfg struct {
+	DataWay     string
+	DKUUID      string
+	DKVERSION   string
+	DKUserAgent string
+}
 
+type telegrafcfg struct {
+	Agent *agent `toml:"agent"`
+}
+
+func defaultTelegrafAgentCfg() *agent {
+	c := &agent{
+		Interval:                   "10s",
+		RoundInterval:              true,
+		MetricBatchSize:            1000,
+		MetricBufferLimit:          100000,
+		CollectionJitter:           "0s",
+		FlushInterval:              "10s",
+		FlushJitter:                "0s",
+		Precision:                  "ns",
 		Debug:                      false,
 		Quiet:                      false,
 		LogTarget:                  "file",
 		Logfile:                    filepath.Join(datakit.TelegrafDir, "agent.log"),
 		LogfileRotationMaxArchives: 5,
+		LogfileRotationMaxSize:     "32MB",
 		OmitHostname:               true, // do not append host tag
 	}
 	return c
 }
 
-func (c *Config) loadTelegrafConfigs(inputcfgs map[string]*ast.Table, filters []string) (string, error) {
+func (c *Config) loadTelegrafInputsConfigs(inputcfgs map[string]*ast.Table, filters []string) (string, error) {
 
 	telegrafCfgFiles := map[string]interface{}{}
 
@@ -189,51 +131,8 @@ files = ['{{.OutputFiles}}']
 `
 )
 
-func marshalAgentCfg(cfg *TelegrafAgentConfig) (string, error) {
-
-	type dummyAgentCfg struct {
-		Interval                   time.Duration
-		RoundInterval              bool
-		Precision                  time.Duration
-		CollectionJitter           time.Duration
-		FlushInterval              time.Duration
-		FlushJitter                time.Duration
-		MetricBatchSize            int
-		MetricBufferLimit          int
-		FlushBufferWhenFull        bool
-		UTC                        bool          `toml:"utc"`
-		Debug                      bool          `toml:"debug"`
-		Quiet                      bool          `toml:"quiet"`
-		LogTarget                  string        `toml:"-"`
-		Logfile                    string        `toml:"logfile"`
-		LogfileRotationInterval    time.Duration `toml:"logfile_rotation_interval"`
-		LogfileRotationMaxSize     int64         `toml:"logfile_rotation_max_size"`
-		LogfileRotationMaxArchives int           `toml:"logfile_rotation_max_archives"`
-		OmitHostname               bool
-	}
-
-	c := &dummyAgentCfg{
-		Interval:                   cfg.Interval.Duration / time.Second,
-		RoundInterval:              cfg.RoundInterval,
-		Precision:                  cfg.Precision.Duration / time.Second,
-		CollectionJitter:           cfg.CollectionJitter.Duration / time.Second,
-		FlushInterval:              cfg.FlushInterval.Duration / time.Second,
-		FlushJitter:                cfg.FlushJitter.Duration / time.Second,
-		MetricBatchSize:            cfg.MetricBatchSize,
-		MetricBufferLimit:          cfg.MetricBufferLimit,
-		FlushBufferWhenFull:        cfg.FlushBufferWhenFull,
-		UTC:                        cfg.UTC,
-		Debug:                      cfg.Debug,
-		Quiet:                      cfg.Quiet,
-		LogTarget:                  cfg.LogTarget,
-		Logfile:                    cfg.Logfile,
-		LogfileRotationInterval:    cfg.LogfileRotationInterval.Duration / time.Second,
-		LogfileRotationMaxSize:     cfg.LogfileRotationMaxSize.Size,
-		LogfileRotationMaxArchives: cfg.LogfileRotationMaxArchives,
-		OmitHostname:               cfg.OmitHostname,
-	}
-
-	agdata, err := toml.Marshal(c)
+func marshalAgentCfg(cfg *agent) (string, error) {
+	agdata, err := toml.Marshal(cfg)
 	if err != nil {
 		return "", err
 	}
@@ -242,9 +141,9 @@ func marshalAgentCfg(cfg *TelegrafAgentConfig) (string, error) {
 
 func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, error) {
 
-	agentcfg, err := marshalAgentCfg(c.TelegrafAgentCfg)
+	agentcfg, err := marshalAgentCfg(c.MainCfg.TelegrafAgentCfg)
 	if err != nil {
-		l.Errorf("%s", err.Error())
+		l.Errorf("marshal agent faled: %s", err.Error())
 		return "", err
 	}
 
@@ -255,17 +154,6 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 	for k, v := range c.MainCfg.GlobalTags {
 		tag := fmt.Sprintf("%s='%s'\n", k, v)
 		globalTags += tag
-	}
-
-	type fileoutCfg struct {
-		OutputFiles string
-	}
-
-	type httpoutCfg struct {
-		DataWay     string
-		DKUUID      string
-		DKVERSION   string
-		DKUserAgent string
 	}
 
 	fileoutstr := ""
@@ -329,7 +217,7 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 			continue
 		}
 
-		prt, err := buildInputCfg(d)
+		prt, err := c.buildInputCfg(d)
 		if err != nil {
 			continue
 		}
@@ -340,7 +228,7 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 	}
 
 	if len(parts) == 0 {
-		return "", nil
+		return tlegrafConfig, nil
 	}
 
 	inputscfgs := strings.Join(parts, "\n")
@@ -383,19 +271,19 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 	return tlegrafConfig, err
 }
 
-func buildInputCfg(d []byte) (string, error) {
+func (c *Config) buildInputCfg(d []byte) (string, error) {
 
 	var err error
 
-	tpl := template.New("")
-	tpl, err = tpl.Parse(string(d))
+	t := template.New("")
+	t, err = t.Parse(string(d))
 	if err != nil {
 		l.Errorf("%s", err.Error())
 		return "", err
 	}
 
 	var buf bytes.Buffer
-	if err := tpl.Execute(&buf, Cfg.MainCfg); err != nil {
+	if err := t.Execute(&buf, c.MainCfg); err != nil {
 		l.Errorf("%s", err.Error())
 		return "", err
 	}
