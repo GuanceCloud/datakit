@@ -1,20 +1,31 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
+	"context"
 	"flag"
 	"fmt"
+	sysIO "io"
+	"io/ioutil"
 	"log"
-	"path/filepath"
+	"net/http"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"github.com/BurntSushi/toml"
+	"golang.org/x/net/context/ctxhttp"
 )
+
+var input chan []byte
+
+func init() {
+	input = make(chan []byte, 128)
+}
 
 // ParseConfig 解析配置文件
 func ParseConfig(fpath string) (*NetPacket, error) {
@@ -46,36 +57,43 @@ type NetPacket struct {
 
 func (p *NetPacket) handle() {
 	var (
-		device         string        = p.Device
+		device         []string      = p.Device
 		snapshotLength int32         = 1024
 		promiscuous    bool          = false
 		timeout        time.Duration = 30 * time.Second
 	)
 
 	// 默认
-	if device == "" {
+	if len(device) == 0 {
 		devices, err := pcap.FindAllDevs()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		device = devices[0].Name
+		device = make([]string, 1)
+
+		device[0] = devices[0].Name
 	}
 
-	handle, err := pcap.OpenLive(device, snapshotLength, promiscuous, timeout)
-	if err != nil {
-		log.Fatal(err)
+	if p.Metric == "" {
+		p.Metric = "tcpdump"
 	}
 
-	defer handle.Close()
+	for _, dc := range device {
+		handle, err := pcap.OpenLive(dc, snapshotLength, promiscuous, timeout)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-	for packet := range packetSource.Packets() {
-		// 包解析
-		p.parsePacketLayers(packet)
+		defer handle.Close()
 
-		// 构造数据
-		p.ethernetType()
+		packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+		for packet := range packetSource.Packets() {
+			// 包解析
+			p.parsePacketLayers(packet)
+			// 构造数据
+			p.ethernetType()
+		}
 	}
 }
 
@@ -152,7 +170,10 @@ func (p *NetPacket) tcpData() {
 	if err != nil {
 		l.Errorf("new point failed: %s", err.Error())
 	}
-	fmt.Println("tcp point =======>", string(ptline))
+
+	if err := WriteDataWay(ptline, p.DataWay); err != nil {
+		l.Errorf("err msg", err)
+	}
 }
 
 // upd data
@@ -176,21 +197,20 @@ func (p *NetPacket) udpData() {
 		l.Errorf("new point failed: %s", err.Error())
 	}
 
-	fmt.Println("udp point =======>", string(ptline))
+	if err := WriteDataWay(ptline, "http://172.16.0.12:32758/v1/write/metrics?token=tkn_caba81680c8c4fb6b773e95b162623fe"); err != nil {
+		l.Errorf("err msg", err)
+	}
 }
 
 var (
 	flagCfgStr = flag.String("cfg", "", "json config string")
 
-	// flagLog = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "tcpdump.log"), "log file")
-
-	l      *logger.Logger
-	rpcCli io.DataKitClient
+	l *logger.Logger
 )
 
 func main() {
-	dump, err := ParseConfig('./config.conf')
-	if err == "" {
+	dump, err := ParseConfig("./config.conf")
+	if err != nil {
 		panic("config(json string) missing")
 	}
 
@@ -207,4 +227,57 @@ func main() {
 func (p *NetPacket) run() {
 	l.Info("start monit oracle...")
 	p.handle()
+
+	go p.pushData()
+}
+
+// dataway写入数据
+func WriteDataWay(data []byte, urlPath string) error {
+	// dataway path
+	ctx, _ := context.WithCancel(context.Background())
+	httpReq, err := http.NewRequest("POST", urlPath, bytes.NewBuffer(data))
+
+	if err != nil {
+		l.Errorf("[error] %s", err.Error())
+		return err
+	}
+
+	httpReq = httpReq.WithContext(ctx)
+	httpReq.Header.Set("X-Datakit-UUID", "mockdata_test")
+
+	tmctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	httpResp, err := ctxhttp.Do(tmctx, http.DefaultClient, httpReq)
+	if err != nil {
+		l.Errorf("[error] %s", err.Error())
+		return err
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode/100 != 2 {
+		scanner := bufio.NewScanner(sysIO.LimitReader(httpResp.Body, 1024*1024))
+		line := ""
+		if scanner.Scan() {
+			line = scanner.Text()
+		}
+		err = fmt.Errorf("server returned HTTP status %s: %s", httpResp.Status, line)
+	}
+	body, err := ioutil.ReadAll(httpResp.Body)
+	if err != nil {
+		l.Errorf("[error] read error %s", err.Error())
+		return err
+	}
+	l.Errorf("[debug] %s %d", string(body), httpResp.StatusCode)
+	return err
+}
+
+func (p *NetPacket) pushData() {
+	for ch := range input {
+		fmt.Println("point =======>", string(ch))
+
+		if err := WriteDataWay(ch, "http://172.16.0.12:32758/v1/write/metrics?token=tkn_caba81680c8c4fb6b773e95b162623fe"); err != nil {
+			l.Errorf("err msg", err)
+		}
+	}
 }
