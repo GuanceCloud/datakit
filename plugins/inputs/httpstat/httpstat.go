@@ -21,7 +21,7 @@ import (
 
 var (
 	l    *logger.Logger
-	name = "httpStat"
+	name = "httpstat"
 )
 
 // project
