@@ -185,9 +185,9 @@ func startIO() {
 	f = func(trace []byte, _ error) {
 		defer rtpanic.Recover(f, nil)
 
-		tick := time.NewTicker(config.Cfg.MainCfg.Interval.Duration)
+		tick := time.NewTicker(config.Cfg.MainCfg.IntervalDuration)
 		defer tick.Stop()
-		l.Debugf("io interval: %v", config.Cfg.MainCfg.Interval.Duration)
+		l.Debugf("io interval: %v", config.Cfg.MainCfg.IntervalDuration)
 
 		if trace != nil {
 			l.Warn("recover ok")
