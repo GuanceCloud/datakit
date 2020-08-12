@@ -6,12 +6,12 @@ const (
 	description = `stat http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
 	serverProcessing, contentTransfer, and total time`
 	httpstatConfigSample = `
-#[[inputs.httpstat]]
+#[[inputs.httpStat]]
 #  ##if empty, use "httpstat"
 #  metricName = ''
 #  ## default is 10s
 #  interval = '10s'
-#  [[inputs.httpstat.action]]
+#  [[inputs.httpStat.action]]
 #    url = ""
 #    method = ""
 #    playload = ""
