@@ -1,7 +1,6 @@
 package config
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -10,7 +9,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/influxdata/toml"
@@ -29,8 +27,7 @@ var (
 )
 
 type Config struct {
-	MainCfg          *MainConfig
-	TelegrafAgentCfg *TelegrafAgentConfig
+	MainCfg *MainConfig
 
 	Inputs map[string][]inputs.Input
 
@@ -47,8 +44,7 @@ type DataWayCfg struct {
 }
 
 type MainConfig struct {
-	UUID string `toml:"uuid"`
-
+	UUID              string      `toml:"uuid"`
 	DataWay           *DataWayCfg `toml:"dataway"`
 	DataWayRequestURL string      `toml:"-"`
 
@@ -63,14 +59,15 @@ type MainConfig struct {
 	ConfigDir string `toml:"config_dir"` // XXX: not used: to compatible parsing with forethought datakit.conf
 
 	//验证dk存活
-	MaxPostInterval datakit.Duration `toml:"max_post_interval"`
-
-	//DataCleanTemplate string
+	MaxPostInterval string        `toml:"max_post_interval"`
+	maxPostInterval time.Duration `toml:"-"`
 
 	GlobalTags map[string]string `toml:"global_tags"`
 
-	RoundInterval bool
-	Interval      datakit.Duration `toml:"interval"`
+	RoundInterval    bool
+	Interval         string `toml:"interval"`
+	IntervalDuration time.Duration
+
 	flushInterval datakit.Duration
 	flushJitter   datakit.Duration
 
@@ -80,6 +77,8 @@ type MainConfig struct {
 
 	Hostname string `toml:"hostname"`
 	cfgPath  string
+
+	TelegrafAgentCfg *agent `toml:"agent"`
 }
 
 func init() {
@@ -117,12 +116,11 @@ func init() {
 func newDefaultCfg() *Config {
 
 	return &Config{
-		TelegrafAgentCfg: defaultTelegrafAgentCfg(),
 		MainCfg: &MainConfig{
 			GlobalTags:      map[string]string{},
 			flushInterval:   datakit.Duration{time.Second * 10},
-			Interval:        datakit.Duration{time.Second * 10},
-			MaxPostInterval: datakit.Duration{time.Second * 15}, // add 5s plus for network latency
+			Interval:        "10s",
+			MaxPostInterval: "15s", // add 5s plus for network latency
 
 			HTTPServerAddr: "0.0.0.0:9529",
 
@@ -130,8 +128,9 @@ func newDefaultCfg() *Config {
 			Log:      filepath.Join(datakit.InstallDir, "datakit.log"),
 			GinLog:   filepath.Join(datakit.InstallDir, "gin.log"),
 
-			RoundInterval: false,
-			cfgPath:       filepath.Join(datakit.InstallDir, "datakit.conf"),
+			RoundInterval:    false,
+			cfgPath:          filepath.Join(datakit.InstallDir, "datakit.conf"),
+			TelegrafAgentCfg: defaultTelegrafAgentCfg(),
 		},
 		Inputs: map[string][]inputs.Input{},
 	}
@@ -169,8 +168,8 @@ func LoadCfg() error {
 	l.Infof("set log to %s", Cfg.MainCfg.Log)
 	l.Infof("main cfg: %+#v", Cfg.MainCfg)
 
-	if Cfg.MainCfg.MaxPostInterval.Duration > 0 {
-		datakit.MaxLifeCheckInterval = Cfg.MainCfg.MaxPostInterval.Duration
+	if Cfg.MainCfg.maxPostInterval > 0 {
+		datakit.MaxLifeCheckInterval = Cfg.MainCfg.maxPostInterval
 	}
 
 	initPluginCfgs()
@@ -185,54 +184,53 @@ func LoadCfg() error {
 	return nil
 }
 
-func (c *Config) LoadMainConfig() error {
-
-	tbl, err := parseCfgFile(c.MainCfg.cfgPath)
+func (c *Config) setHostname() {
+	hn, err := os.Hostname()
 	if err != nil {
+		l.Errorf("get hostname failed: %s", err.Error())
+	} else {
+		c.MainCfg.Hostname = hn
+		l.Infof("set hostname to %s", hn)
+	}
+}
+
+func (c *Config) doLoadMainConfig(cfgdata []byte) error {
+	if err := toml.Unmarshal(cfgdata, c.MainCfg); err != nil {
+		l.Errorf("unmarshal main cfg failed %s", err.Error())
 		return err
 	}
 
-	//telegraf的相应配置
-	bAgentSetLogLevel := false
-
-	if val, ok := tbl.Fields["agent"]; ok {
-		subTable, ok := val.(*ast.Table)
-		if !ok {
-			return fmt.Errorf("invalid agent configuration")
-		}
-
-		if _, ok := subTable.Fields["debug"]; ok {
-			bAgentSetLogLevel = true
-		}
-
-		if err = toml.UnmarshalTable(subTable, c.TelegrafAgentCfg); err != nil {
-			return fmt.Errorf("invalid telegraf configuration, %s", err)
-		}
-
-		delete(tbl.Fields, "agent")
-	}
-
-	if err := toml.UnmarshalTable(tbl, c.MainCfg); err != nil {
-		l.Errorf("UnmarshalTable failed: " + err.Error())
-		return err
-	}
-
-	if c.TelegrafAgentCfg.LogTarget == "file" && c.TelegrafAgentCfg.Logfile == "" {
-		c.TelegrafAgentCfg.Logfile = filepath.Join(datakit.InstallDir, "embed", "agent.log")
-	}
-
-	if datakit.AgentLogFile != "" {
-		c.TelegrafAgentCfg.Logfile = datakit.AgentLogFile
+	if c.MainCfg.TelegrafAgentCfg.LogTarget == "file" && c.MainCfg.TelegrafAgentCfg.Logfile == "" {
+		c.MainCfg.TelegrafAgentCfg.Logfile = filepath.Join(datakit.InstallDir, "embed", "agent.log")
 	}
 
 	if c.MainCfg.OutputFile != "" {
 		datakit.OutputFile = c.MainCfg.OutputFile
 	}
 
-	//如果telegraf的agent相关配置没有，则默认使用datakit的同名配置
-	if !bAgentSetLogLevel {
-		c.TelegrafAgentCfg.Debug = (strings.ToLower(c.MainCfg.LogLevel) == "debug")
+	if c.MainCfg.Hostname == "" {
+		c.setHostname()
 	}
+
+	if c.MainCfg.MaxPostInterval != "" {
+		du, err := time.ParseDuration(c.MainCfg.MaxPostInterval)
+		if err != nil {
+			l.Warnf("parse %s failed: %s, set default to 15s", c.MainCfg.MaxPostInterval)
+			du = time.Second * 15
+		}
+		c.MainCfg.maxPostInterval = du
+	}
+
+	if c.MainCfg.Interval != "" {
+		du, err := time.ParseDuration(c.MainCfg.Interval)
+		if err != nil {
+			l.Warnf("parse %s failed: %s, set default to 10s", c.MainCfg.Interval)
+			du = time.Second * 10
+		}
+		c.MainCfg.IntervalDuration = du
+	}
+
+	c.MainCfg.TelegrafAgentCfg.Debug = (strings.ToLower(c.MainCfg.LogLevel) == "debug")
 
 	c.MainCfg.DataWayRequestURL = fmt.Sprintf("%s://%s%s?token=%s",
 		c.MainCfg.DataWay.Scheme, c.MainCfg.DataWay.Host, c.MainCfg.DataWay.DefaultPath, c.MainCfg.DataWay.Token)
@@ -241,12 +239,16 @@ func (c *Config) LoadMainConfig() error {
 	for k, v := range c.MainCfg.GlobalTags {
 		switch strings.ToLower(v) {
 		case `$datakit_hostname`:
+			if c.MainCfg.Hostname == "" {
+				c.setHostname()
+			}
+
 			c.MainCfg.GlobalTags[k] = c.MainCfg.Hostname
 			l.Debugf("set global tag %s: %s", k, c.MainCfg.Hostname)
 
 		case `$datakit_ip`:
 			ip := "unavailable"
-			ip, err = datakit.LocalIP()
+			ip, err := datakit.LocalIP()
 			if err != nil {
 				l.Errorf("get local ip failed: %s", err.Error())
 			}
@@ -262,6 +264,16 @@ func (c *Config) LoadMainConfig() error {
 	}
 
 	return nil
+}
+
+func (c *Config) LoadMainConfig() error {
+	cfgdata, err := ioutil.ReadFile(c.MainCfg.cfgPath)
+	if err != nil {
+		l.Errorf("reaed main cfg %s failed: %s", c.MainCfg.cfgPath, err.Error())
+		return err
+	}
+
+	return c.doLoadMainConfig(cfgdata)
 }
 
 func CheckConfd() error {
@@ -354,63 +366,23 @@ func DumpInputsOutputs() {
 	l.Infof("available inputs: %s", strings.Join(names, ","))
 }
 
-func buildMainCfgFile() error {
-	var err error
-	t := template.New("")
-	t, err = t.Parse(MainConfigTemplate)
-	if err != nil {
-		return fmt.Errorf("Error creating %s: %s", Cfg.MainCfg.cfgPath, err)
-	}
-
-	buf := bytes.NewBuffer([]byte{})
-	if err = t.Execute(buf, Cfg.MainCfg); err != nil {
-		return fmt.Errorf("Error creating %s: %s", Cfg.MainCfg.cfgPath, err)
-	}
-
-	if err := ioutil.WriteFile(Cfg.MainCfg.cfgPath, []byte(buf.Bytes()), 0664); err != nil {
-		return fmt.Errorf("error creating %s: %s", Cfg.MainCfg.cfgPath, err)
-	}
-
-	return nil
+func buildMainCfg(mc *MainConfig) ([]byte, error) {
+	data, err := toml.Marshal(mc)
+	return data, err
 }
 
 func InitCfg() error {
-	if err := buildMainCfgFile(); err != nil {
+	data, err := buildMainCfg(Cfg.MainCfg)
+	if err != nil {
 		return err
 	}
 
-	// clean all old dirs
-	os.RemoveAll(datakit.ConfdDir)
-	os.RemoveAll(datakit.DataDir)
-	os.RemoveAll(datakit.LuaDir)
-	return nil
-}
-
-/*
-func initMainCfg(dwcfg *DataWayCfg, tags map[string]string) error {
-
-	Cfg.MainCfg.UUID = cliutils.XID("dkid_")
-	Cfg.MainCfg.DataWay = dwcfg
-	Cfg.MainCfg.GlobalTags = tags
-
-	var err error
-	tm := template.New("")
-	tm, err = tm.Parse(MainConfigTemplate)
-	if err != nil {
-		return fmt.Errorf("Error creating %s: %s", Cfg.MainCfg.cfgPath, err)
-	}
-
-	buf := bytes.NewBuffer([]byte{})
-	if err = tm.Execute(buf, Cfg.MainCfg); err != nil {
-		return fmt.Errorf("Error creating %s: %s", Cfg.MainCfg.cfgPath, err)
-	}
-
-	if err := ioutil.WriteFile(Cfg.MainCfg.cfgPath, []byte(buf.Bytes()), 0664); err != nil {
+	if err := ioutil.WriteFile(Cfg.MainCfg.cfgPath, data, 0664); err != nil {
 		return fmt.Errorf("error creating %s: %s", Cfg.MainCfg.cfgPath, err)
 	}
 
 	return nil
-} */
+}
 
 func parseCfgFile(f string) (*ast.Table, error) {
 	data, err := ioutil.ReadFile(f)
