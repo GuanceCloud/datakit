@@ -323,7 +323,7 @@ func doFlush(bodies [][]byte, url string) error {
 	}
 
 	if cookies == "" {
-		cookies = fmt.Sprintf("uuid=%s;name=%s;hostname=%s;max_post_interval=%s,version=%s,os=%s,arch=%s",
+		cookies = fmt.Sprintf("uuid=%s;name=%s;hostname=%s;max_post_interval=%s;version=%s;os=%s;arch=%s",
 			config.Cfg.MainCfg.UUID,
 			config.Cfg.MainCfg.Name,
 			datakit.Hostname,
