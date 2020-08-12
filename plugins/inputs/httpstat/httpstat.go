@@ -21,7 +21,7 @@ import (
 
 var (
 	l    *logger.Logger
-	name = "httpStat"
+	name = "httpstat"
 )
 
 // project
@@ -83,7 +83,7 @@ func (h *Httpstat) Run() {
 	}
 
 	if h.MetricName == "" {
-		h.MetricName = "httpStat"
+		h.MetricName = "httpstat"
 	}
 
 	tick := time.NewTicker(h.IntervalDuration)
