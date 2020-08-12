@@ -442,8 +442,9 @@ var (
 
 			entry: "main.go",
 			osarchs: map[string]bool{
-				"linux/amd64": true,
-				"linux/386":   true,
+				"linux/amd64":  true,
+				"linux/386":    true,
+				`darwin/amd64`: true,
 			},
 
 			buildArgs: nil,
