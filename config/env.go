@@ -1,9 +1,9 @@
 package config
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
-	"text/template"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -11,14 +11,22 @@ import (
 
 func (c *Config) loadEnvs() error {
 
-	dkid := os.Getenv("ENV_UUID")
-	dwcfg := os.Getenv("ENV_DATAWAY")
+	enableInputs := os.Getenv("ENV_ENABLE_INPUTS")
+	if enableInputs != "" {
+		EnableInputs(enableInputs)
+	}
+
+	globalTags := os.Getenv("ENV_GLOBAL_TAGS")
+	if globalTags != "" {
+		c.MainCfg.GlobalTags = ParseGlobalTags(globalTags)
+	}
 
 	loglvl := os.Getenv("ENV_LOG_LEVEL")
 	if loglvl != "" {
 		c.MainCfg.LogLevel = loglvl
 	}
 
+	dwcfg := os.Getenv("ENV_DATAWAY")
 	if dwcfg != "" {
 		dw, err := ParseDataway(dwcfg)
 		if err != nil {
@@ -37,13 +45,7 @@ func (c *Config) loadEnvs() error {
 		l.Debugf("set hostname to %s from ENV", dkhost)
 		c.MainCfg.Hostname = dkhost
 	} else {
-		name, err := os.Hostname()
-		if err != nil {
-			l.Errorf("get hostname failed: %s", err.Error())
-		} else {
-			l.Debugf("set hostname to %s from os.Hostname()", dkhost)
-			c.MainCfg.Hostname = name
-		}
+		c.setHostname()
 	}
 
 	if c.withinDocker {
@@ -52,27 +54,19 @@ func (c *Config) loadEnvs() error {
 
 			l.Debugf("generating datakit.conf...")
 
+			dkid := os.Getenv("ENV_UUID")
 			c.MainCfg.UUID = dkid
 			if dkid == "" {
 				c.MainCfg.UUID = cliutils.XID("dkid_")
 			}
 
-			fd, err := os.OpenFile(maincfg, os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
+			cfgdata, err := buildMainCfg(c.MainCfg)
 			if err != nil {
-				l.Errorf("failed to open %s: %s", maincfg, err)
+				l.Errorf("failed to build main cfg %s", err)
 				return err
 			}
 
-			defer fd.Close()
-
-			tmp := template.New("")
-			tmp, err = tmp.Parse(MainConfigTemplate)
-			if err != nil {
-				l.Errorf("failed to parse template: %s", err)
-				return err
-			}
-
-			if err := tmp.Execute(fd, c.MainCfg); err != nil {
+			if err := ioutil.WriteFile(maincfg, cfgdata, os.ModePerm); err != nil {
 				l.Error(err)
 				return err
 			}
