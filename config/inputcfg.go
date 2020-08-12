@@ -69,7 +69,7 @@ func (c *Config) LoadConfig() error {
 		}
 	}
 
-	telegrafRawCfg, err := c.loadTelegrafConfigs(availableInputCfgs, c.InputFilters)
+	telegrafRawCfg, err := c.loadTelegrafInputsConfigs(availableInputCfgs, c.InputFilters)
 	if err != nil {
 		return err
 	}
@@ -238,4 +238,73 @@ func initPluginCfgs() {
 			}
 		}
 	}
+}
+
+func EnableInputs(inputlist string) {
+	elems := strings.Split(inputlist, ",")
+	if len(elems) == 0 {
+		return
+	}
+
+	for _, elem := range elems {
+		if err := doEnableInput(elem); err != nil {
+			l.Debug("enable input %s failed, ignored", elem)
+		}
+	}
+}
+
+func doEnableInput(name string) error {
+	if i, ok := TelegrafInputs[name]; ok {
+
+		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, i.Catalog), os.ModePerm); err != nil {
+			l.Error("mkdir failed: %s", err.Error())
+			return err
+		}
+
+		if err := ioutil.WriteFile(filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf"), []byte(i.Sample), os.ModePerm); err != nil {
+			l.Error("build input %s config failed: %s", name, err.Error())
+			return err
+		}
+		l.Debugf("enable input %s ok", name)
+		return nil
+	}
+
+	if c, ok := inputs.Inputs[name]; ok {
+		i := c()
+		sample := i.SampleConfig()
+		catalog := i.Catalog()
+
+		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
+			l.Error("mkdir failed: %s", err.Error())
+			return err
+		}
+
+		if err := ioutil.WriteFile(filepath.Join(datakit.ConfdDir, catalog, name+".conf"), []byte(sample), os.ModePerm); err != nil {
+			l.Error("build input %s config failed: %s", name, err.Error())
+			return err
+		}
+
+		l.Debugf("enable input %s ok", name)
+		return nil
+	}
+
+	l.Warnf("input %s not found, ignored", name)
+	return nil
+}
+
+func ParseGlobalTags(s string) map[string]string {
+	tags := map[string]string{}
+
+	parts := strings.Split(s, ",")
+	for _, p := range parts {
+		arr := strings.Split(p, "=")
+		if len(arr) != 2 {
+			l.Warnf("invalid global tag: %s, ignored", p)
+			continue
+		}
+
+		tags[arr[0]] = arr[1]
+	}
+
+	return tags
 }
