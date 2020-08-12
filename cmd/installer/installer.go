@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"text/template"
 
 	"github.com/dustin/go-humanize"
 	"github.com/influxdata/toml"
@@ -26,7 +25,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -66,8 +64,12 @@ var (
 )
 
 func main() {
+	lopt := logger.OPT_DEFAULT | logger.OPT_COLOR
+	if runtime.GOOS == "windows" {
+		lopt = logger.OPT_DEFAULT // disable color on windows
+	}
 
-	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_DEFAULT|logger.OPT_COLOR)
+	logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
 	l = logger.SLogger("installer")
 
 	flag.Parse()
@@ -116,10 +118,12 @@ func main() {
 
 	if *flagUpgrade { // upgrade new version
 
-		l.Info("Upgrading...")
+		l.Infof("Upgrading to version %s...", DataKitVersion)
 		migrateLagacyDatakit()
 
 	} else { // install new datakit
+
+		l.Infof("Installing version %s...", DataKitVersion)
 
 		uninstallDataKitService(dkservice) // uninstall service if installed before
 
@@ -146,14 +150,17 @@ func main() {
 		config.Cfg.MainCfg.DataWay = dwcfg
 
 		// accept any install options
-		config.Cfg.MainCfg.GlobalTags = parseGlobalTags(*flagGlobalTags)
+		if *flagGlobalTags != "" {
+			config.Cfg.MainCfg.GlobalTags = config.ParseGlobalTags(*flagGlobalTags)
+		}
+
 		if *flagDatakitID != "" {
 			config.Cfg.MainCfg.UUID = *flagDatakitID
 		} else {
 			config.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
 		}
 
-		enableInputs(*flagEnableInputs)
+		config.EnableInputs(*flagEnableInputs)
 
 		// build datakit main config
 		if err := config.InitCfg(); err != nil {
@@ -420,19 +427,12 @@ func updateLagacyConfig(dir string) {
 		maincfg.DataWay = dwcfg
 	}
 
-	fd, err := os.OpenFile(filepath.Join(dir, "datakit.conf"), os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
+	cfgdata, err = toml.Marshal(maincfg)
 	if err != nil {
 		l.Fatal(err)
 	}
 
-	defer fd.Close()
-
-	tmp := template.New("")
-	tmp, err = tmp.Parse(config.MainConfigTemplate)
-	if err != nil {
-		l.Fatal(err)
-	}
-	if err := tmp.Execute(fd, maincfg); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(dir, "datakit.conf"), cfgdata, os.ModePerm); err != nil {
 		l.Fatal(err)
 	}
 }
@@ -493,62 +493,4 @@ func migrateLagacyDatakit() {
 	if err := installDatakitService(dkservice); err != nil {
 		l.Warnf("fail to register service %s: %s, ignored", ServiceName, err.Error())
 	}
-}
-
-func enableInputs(inputlist string) {
-	elems := strings.Split(inputlist, ",")
-	if len(elems) == 0 {
-		return
-	}
-
-	for _, elem := range elems {
-		if err := doEnableInput(elem); err != nil {
-			l.Debug("enable input %s failed, ignored", elem)
-		}
-	}
-}
-
-func doEnableInput(name string) error {
-	if i, ok := config.TelegrafInputs[name]; ok {
-		if err := ioutil.WriteFile(filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf"), []byte(i.Sample), os.ModePerm); err != nil {
-			l.Error("build input %s config failed: %s", name, err.Error())
-			return err
-		}
-		l.Debug("enable input %s ok", name)
-		return nil
-	}
-
-	if c, ok := inputs.Inputs[name]; ok {
-		i := c()
-		sample := i.SampleConfig()
-		catalog := i.Catalog()
-
-		if err := ioutil.WriteFile(filepath.Join(datakit.ConfdDir, catalog, name+".conf"), []byte(sample), os.ModePerm); err != nil {
-			l.Error("build input %s config failed: %s", name, err.Error())
-			return err
-		}
-
-		l.Debug("enable input %s ok", name)
-		return nil
-	}
-
-	l.Warnf("input %s not found, ignored", name)
-	return nil
-}
-
-func parseGlobalTags(s string) map[string]string {
-	tags := map[string]string{}
-
-	parts := strings.Split(s, ",")
-	for _, p := range parts {
-		arr := strings.Split(p, "=")
-		if len(arr) != 2 {
-			l.Warnf("invalid global tag: %s, ignored", p)
-			continue
-		}
-
-		tags[arr[0]] = arr[1]
-	}
-
-	return tags
 }
