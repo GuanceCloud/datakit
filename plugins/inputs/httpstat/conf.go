@@ -7,8 +7,6 @@ const (
 	serverProcessing, contentTransfer, and total time`
 	httpstatConfigSample = `
 #[[inputs.httpstat]]
-#  ##if empty, use "httpstat"
-#  metricName = ''
 #  ## default is 10s
 #  interval = '10s'
 #  [[inputs.httpstat.action]]
