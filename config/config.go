@@ -44,7 +44,9 @@ type DataWayCfg struct {
 }
 
 type MainConfig struct {
-	UUID              string      `toml:"uuid"`
+	UUID string `toml:"uuid"`
+	Name string `toml:"name"`
+
 	DataWay           *DataWayCfg `toml:"dataway"`
 	DataWayRequestURL string      `toml:"-"`
 
