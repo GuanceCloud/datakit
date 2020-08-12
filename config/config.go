@@ -51,6 +51,7 @@ type DataWayCfg struct {
 
 type MainConfig struct {
 	UUID string `toml:"uuid"`
+	Name string `toml:"name"`
 
 	DataWay           *DataWayCfg `toml:"dataway"`
 	DataWayRequestURL string      `toml:"-"`
@@ -61,6 +62,7 @@ type MainConfig struct {
 
 	Log      string `toml:"log"`
 	LogLevel string `toml:"log_level"`
+	GinLog   string `toml:"gin_log"`
 
 	ConfigDir string `toml:"config_dir"` // XXX: not used: to compatible parsing with forethought datakit.conf
 
@@ -130,6 +132,7 @@ func newDefaultCfg() *Config {
 
 			LogLevel: "info",
 			Log:      filepath.Join(datakit.InstallDir, "datakit.log"),
+			GinLog:   filepath.Join(datakit.InstallDir, "gin.log"),
 
 			RoundInterval: false,
 			cfgPath:       filepath.Join(datakit.InstallDir, "datakit.conf"),
