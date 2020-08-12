@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -19,19 +18,18 @@ import (
 	"google.golang.org/grpc"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 )
 
 var (
-	flagCfgStr  = flag.String("cfg", "", "json config string")
+	// flagCfgStr  = flag.String("cfg", "", "json config string")
 	flagCfgFile = flag.String("cfg-file", "", "json config file")
-	flagDesc    = flag.String("desc", "", "description of the process, for debugging")
+	// flagDesc    = flag.String("desc", "", "description of the process, for debugging")
 
-	flagRPCServer = flag.String("rpc-server", "unix://"+datakit.GRPCDomainSock, "gRPC server")
-	flagLog       = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log file")
-	flagLogLevel  = flag.String("log-level", "info", "log file")
+	// flagRPCServer = flag.String("rpc-server", "unix://"+datakit.GRPCDomainSock, "gRPC server")
+	// flagLog       = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log file")
+	// flagLogLevel = flag.String("log-level", "info", "log file")
 
 	l      *logger.Logger
 	rpcCli io.DataKitClient
