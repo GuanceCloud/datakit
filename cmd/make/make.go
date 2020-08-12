@@ -407,7 +407,7 @@ func tarFiles(goos, goarch string) {
 type dkexternal struct {
 	name string
 
-	lang string // go/python/java
+	lang string // go/others
 
 	entry     string
 	buildArgs []string
@@ -421,6 +421,7 @@ type dkexternal struct {
 var (
 	externals = []*dkexternal{
 		&dkexternal{
+			// requirement: apt-get install gcc-multilib
 			name: "oraclemonitor",
 			lang: "go",
 
@@ -438,7 +439,6 @@ var (
 
 		&dkexternal{
 			name: "csv",
-			lang: "python",
 			osarchs: map[string]bool{
 				`linux/386`:     true,
 				`linux/amd64`:   true,
@@ -453,7 +453,6 @@ var (
 		},
 		&dkexternal{
 			name: "ansible",
-			lang: "python",
 			osarchs: map[string]bool{
 				`linux/386`:     true,
 				`linux/amd64`:   true,
@@ -514,7 +513,7 @@ func buildExternals(outdir, goos, goarch string) {
 				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 			}
 
-		case "python", "py": // for python, just copy source code into build dir
+		default: // for python, just copy source code into build dir
 			args := append(ex.buildArgs, filepath.Join(outdir, "externals"))
 			cmd := exec.Command(ex.buildCmd, args...)
 			if ex.envs != nil {
@@ -525,12 +524,6 @@ func buildExternals(outdir, goos, goarch string) {
 			if err != nil {
 				l.Fatalf("failed to build python(%s %s): %s, err: %s", ex.buildCmd, strings.Join(args, " "), res, err.Error())
 			}
-
-		case "java":
-			// TODO
-
-		default:
-			l.Fatalf("unknown external language type: %s", ex.lang)
 		}
 	}
 }
@@ -554,7 +547,7 @@ func buildInstaller(outdir, goos, goarch string) {
 
 	msg, err := runEnv(args, env)
 	if err != nil {
-		l.Errorf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+		l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 	}
 }
 
