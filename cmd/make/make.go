@@ -437,6 +437,22 @@ var (
 		},
 
 		&dkexternal{
+			name: "tcpdump",
+			lang: "go",
+
+			entry: "main.go",
+			osarchs: map[string]bool{
+				"linux/amd64": true,
+				"linux/386":   true,
+			},
+
+			buildArgs: nil,
+			envs: []string{
+				"CGO_ENABLED=1",
+			},
+		},
+
+		&dkexternal{
 			name: "csv",
 			lang: "python",
 			osarchs: map[string]bool{
