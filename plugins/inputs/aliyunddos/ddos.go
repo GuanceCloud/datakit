@@ -53,8 +53,8 @@ func (_ *DDoS) Gather() error {
 }
 
 func (a *DDoS) Run() {
-	l = logger.SLogger("aliyunDDOS")
-	l.Info("aliyunDDOS input started...")
+	l = logger.SLogger("aliyunddos")
+	l.Info("aliyunddos input started...")
 
 	cli, err := sdk.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
 	if err != nil {
