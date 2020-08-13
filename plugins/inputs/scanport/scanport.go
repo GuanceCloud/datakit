@@ -25,7 +25,7 @@ const (
 
 var (
 	l         *logger.Logger
-	name      = "scanport"
+	inputName = "scanport"
 	rxDNSName = regexp.MustCompile(DNSName)
 )
 
@@ -46,7 +46,7 @@ func (_ *Scanport) Gather() error {
 }
 
 func init() {
-	inputs.Add(name, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &Scanport{}
 	})
 }
@@ -120,7 +120,7 @@ func (s *Scanport) handle() {
 
 			fmt.Println("point ======>", string(pt))
 
-			err = io.NamedFeed([]byte(pt), io.Metric, name)
+			err = io.NamedFeed([]byte(pt), io.Metric, inputName)
 			if err != nil {
 				l.Errorf("push metric point error %v", err)
 			}
@@ -306,7 +306,7 @@ func isDNSName(str string) bool {
 }
 
 func parseDNS(domain string) (string, error) {
-	addr, err := net.ResolveIPAddr("ip", name)
+	addr, err := net.ResolveIPAddr("ip", inputName)
 	if err != nil {
 		return "", err
 	}
