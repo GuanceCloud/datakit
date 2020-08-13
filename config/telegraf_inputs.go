@@ -1266,7 +1266,7 @@ service_names = [
  ## If true, compute and report the sum of all non-idle CPU states.
   report_active = false
 	[inputs.cpu.tags]
-		host = '${{.Hostname}}'
+		host = '{{.Hostname}}'
 	`
 
 	TelegrafInputs[`disk`].Sample = `

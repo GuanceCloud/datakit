@@ -217,7 +217,7 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 			continue
 		}
 
-		prt, err := c.buildInputCfg(d)
+		prt, err := c.BuildInputCfg(d)
 		if err != nil {
 			continue
 		}
@@ -271,7 +271,7 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 	return tlegrafConfig, err
 }
 
-func (c *Config) buildInputCfg(d []byte) (string, error) {
+func (c *Config) BuildInputCfg(d []byte) (string, error) {
 
 	var err error
 
