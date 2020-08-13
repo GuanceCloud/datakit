@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	name = "self"
+	inputName = "self"
 )
 
 type SelfInfo struct {
@@ -44,14 +44,14 @@ func (s *SelfInfo) Run() {
 			s.stat.Update()
 			statMetric := s.stat.ToMetric()
 
-			io.NamedFeed([]byte(statMetric.String()), io.Metric, name)
+			io.NamedFeed([]byte(statMetric.String()), io.Metric, inputName)
 		}
 	}
 }
 
 func init() {
 	StartTime = time.Now()
-	inputs.Add(name, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &SelfInfo{
 			stat: &ClientStat{
 				OS:   runtime.GOOS,
