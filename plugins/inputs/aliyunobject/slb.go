@@ -16,15 +16,15 @@ const (
 	slbSampleConfig = `
 #[inputs.aliyunobject.slb]
 
-# ## @param - custom tags for slb object - [list of key:value element] - optional
-#[inputs.aliyunobject.slb.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of slb instanceid] - optional
 #instanceids = ['']
 
 # ## @param - custom tags - [list of excluded slb instanceid] - optional
 #exclude_instanceids = ['']
+
+# ## @param - custom tags for slb object - [list of key:value element] - optional
+#[inputs.aliyunobject.slb.tags]
+# key1 = 'val1'
 `
 )
 
