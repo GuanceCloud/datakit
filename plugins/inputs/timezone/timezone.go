@@ -64,7 +64,7 @@ func (t *Timezone) SampleConfig() string {
 }
 
 func (t *Timezone) Catalog() string {
-	return "timezone"
+	return "host"
 }
 
 func (t *Timezone) Run() {
