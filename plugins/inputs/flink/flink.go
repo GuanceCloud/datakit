@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -17,8 +16,6 @@ import (
 
 const (
 	inputName = "flink"
-
-	prefixStr = "flink_"
 
 	sampleCfg = `
 [[inputs.flink]]
@@ -95,8 +92,7 @@ func extract(db string, prec string, body []byte) error {
 	var fields = make(map[string]interface{}, len(pts))
 	for _, pt := range pts {
 		ptFields, _ := pt.Fields()
-		key := strings.ReplaceAll(fmt.Sprintf("%s%s", prefixStr, pt.Name()), "_", ".")
-		fields[key] = ptFields["value"]
+		fields[string(pt.Name())] = ptFields["value"]
 	}
 
 	tags, _ := DBList.Load(db)
