@@ -197,7 +197,7 @@ func (p *NetPacket) udpData() {
 		l.Errorf("new point failed: %s", err.Error())
 	}
 
-	if err := WriteDataWay(ptline, "http://172.16.0.12:32758/v1/write/metrics?token=tkn_caba81680c8c4fb6b773e95b162623fe"); err != nil {
+	if err := WriteDataWay(ptline, p.DataWay); err != nil {
 		l.Errorf("err msg", err)
 	}
 }
