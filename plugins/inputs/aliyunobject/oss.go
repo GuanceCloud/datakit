@@ -14,15 +14,17 @@ const (
 	ossSampleConfig = `
 #[inputs.aliyunobject.oss]
 
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.oss.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of oss buckets] - optional
 #buckets = []
 
 # ## @param - custom tags - [list of excluded oss instanceid] - optional
+
 #exclude_buckets = []
+
+# ## @param - custom tags for ecs object - [list of key:value element] - optional
+#[inputs.aliyunobject.oss.tags]
+# key1 = 'val1'
+
 `
 )
 
