@@ -2,8 +2,9 @@ package aliyunobject
 
 import (
 	"encoding/json"
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch"
 	"time"
+
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
@@ -14,15 +15,15 @@ const (
 	elasticsearchSampleConfig = `
 #[inputs.aliyunobject.elasticsearch]
 
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.elasticsearch.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of elasticsearch instanceid] - optional
 #instanceids = ['']
 
 # ## @param - custom tags - [list of excluded elasticsearch instanceid] - optional
 #exclude_instanceids = ['']
+
+# ## @param - custom tags for ecs object - [list of key:value element] - optional
+#[inputs.aliyunobject.elasticsearch.tags]
+# key1 = 'val1'
 `
 )
 
