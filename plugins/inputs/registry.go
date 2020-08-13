@@ -8,9 +8,7 @@ type Input interface {
 	Catalog() string
 	Run()
 	SampleConfig() string
-
-	// Status() string
-	// TotalBytes() int64
+	//Stop() error
 
 	// add more...
 }
