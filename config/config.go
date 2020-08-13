@@ -38,6 +38,7 @@ type DataWayCfg struct {
 	Host        string `toml:"host"`
 	Scheme      string `toml:"scheme"`
 	Token       string `toml:"token"`
+	Timeout     string `toml:"timeout"`
 	DefaultPath string `toml:"default_path"`
 }
 
@@ -438,7 +439,9 @@ func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) err
 
 func ParseDataway(dw string) (*DataWayCfg, error) {
 
-	dwcfg := &DataWayCfg{}
+	dwcfg := &DataWayCfg{
+		Timeout: "30s",
+	}
 
 	if u, err := url.Parse(dw); err == nil {
 		dwcfg.Scheme = u.Scheme
