@@ -3,26 +3,27 @@ package aliyunobject
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	redis "github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"time"
 )
 
 const (
 	redisSampleConfig = `
 #[inputs.aliyunobject.redis]
 
-# ## @param - custom tags for redis object - [list of key:value element] - optional
-#[inputs.aliyunobject.redis.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of redis instanceid] - optional
 #instanceids = ['']
 
 # ## @param - custom tags - [list of excluded redis instanceid] - optional
 #exclude_instanceids = ['']
+
+# ## @param - custom tags for redis object - [list of key:value element] - optional
+#[inputs.aliyunobject.redis.tags]
+# key1 = 'val1'
 `
 )
 
@@ -135,10 +136,10 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 		}
 
 		obj := map[string]interface{}{
-			"__name": inst.InstanceName,
+			"__name":         inst.InstanceName,
 			"DestroyTime":    inst.DestroyTime,
 			"ConnectionMode": inst.ConnectionMode,
-			"CreateTime": inst.CreateTime,
+			"CreateTime":     inst.CreateTime,
 		}
 
 		for _, t := range inst.Tags.Tag {
