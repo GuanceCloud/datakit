@@ -58,17 +58,7 @@ type InputsStat struct {
 }
 
 type qstats struct {
-	name string
-	ch   chan []*InputsStat
-}
-
-func init() {
-	input = make(chan *iodata, 128)
-	qstatsCh = make(chan *qstats)
-
-	httpCli = &http.Client{
-		Timeout: time.Second,
-	}
+	ch chan []*InputsStat
 }
 
 // Deprecated
@@ -178,7 +168,18 @@ func startIO() {
 		Logging:            nil,
 	}
 
-	stats := map[string]*InputsStat{}
+	input = make(chan *iodata, len(config.Cfg.Inputs))
+	qstatsCh = make(chan *qstats)
+
+	du, err := time.ParseDuration(config.Cfg.MainCfg.DataWay.Timeout)
+	if err != nil {
+		l.Warnf("parse dataway timeout failed: %s", err.Error())
+		du = time.Second * 30
+	}
+
+	httpCli = &http.Client{
+		Timeout: du,
+	}
 
 	defer ioStop()
 
@@ -195,6 +196,7 @@ func startIO() {
 			l.Warn("recover ok")
 		}
 
+		stats := map[string]*InputsStat{}
 		for {
 			select {
 			case d := <-input:
@@ -225,17 +227,9 @@ func startIO() {
 
 			case q := <-qstatsCh:
 				statRes := []*InputsStat{}
-				if q.name == "" {
-					for _, v := range stats {
-						statRes = append(statRes, v)
-					}
-				} else {
-					stat := stats[q.name]
-					if stat != nil {
-						statRes = append(statRes, stat)
-					}
+				for _, v := range stats {
+					statRes = append(statRes, v)
 				}
-
 				select {
 				case q.ch <- statRes: // maybe blocking(i.e., client canceled)
 				default:
@@ -452,10 +446,9 @@ func fileOutput(body []byte) error {
 	return nil
 }
 
-func GetStats(iname string) ([]*InputsStat, error) {
+func GetStats() ([]*InputsStat, error) {
 	q := &qstats{
-		name: iname,
-		ch:   make(chan []*InputsStat),
+		ch: make(chan []*InputsStat),
 	}
 
 	tick := time.NewTicker(time.Second * 3)
