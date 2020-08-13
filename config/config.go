@@ -378,6 +378,10 @@ func InitCfg() error {
 		return err
 	}
 
+	if Cfg.MainCfg.Hostname == "" {
+		Cfg.setHostname()
+	}
+
 	if err := ioutil.WriteFile(Cfg.MainCfg.cfgPath, data, 0664); err != nil {
 		return fmt.Errorf("error creating %s: %s", Cfg.MainCfg.cfgPath, err)
 	}
