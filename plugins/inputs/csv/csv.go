@@ -42,7 +42,8 @@ type CSV struct {
 }
 
 var (
-	l *logger.Logger
+	l         *logger.Logger
+	inputName = "csv"
 )
 
 func (x *CSV) Catalog() string {
@@ -87,7 +88,7 @@ func (x *CSV) Run() {
 		close(ch)
 	}()
 
-	time.Sleep(time.Duration(2)*time.Second)
+	time.Sleep(time.Duration(2) * time.Second)
 	l.Infof("csv PID: %d", cmd.Process.Pid)
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
@@ -120,7 +121,7 @@ func (x *CSV) Run() {
 }
 
 func init() {
-	inputs.Add("csv", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &CSV{}
 	})
 }
