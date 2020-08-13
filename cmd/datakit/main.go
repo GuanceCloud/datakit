@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -10,8 +11,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
+	"sort"
 	"strings"
 	"syscall"
+	"text/template"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -47,6 +51,7 @@ var (
 
 	inputFilters = []string{}
 	l            *logger.Logger
+	uptime       = time.Now()
 )
 
 func main() {
@@ -122,9 +127,7 @@ func showAllCollectors() {
 
 	ndatakit := 0
 	for k, vs := range collectors {
-		//fmt.Println(k)
 		for _, v := range vs {
-			//fmt.Printf("  |--[d][% 12s] %s\n", k, v)
 			fmt.Printf("[d][% 12s] %s\n", k, v)
 			ndatakit++
 		}
@@ -137,9 +140,7 @@ func showAllCollectors() {
 	}
 
 	for k, vs := range collectors {
-		//fmt.Println(k)
 		for _, v := range vs {
-			//fmt.Printf("  |--[t] %s\n", v)
 			fmt.Printf("[t][% 12s] %s\n", k, v)
 			nagent++
 		}
@@ -264,7 +265,7 @@ func runDatakit() error {
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
-		httpStart(config.Cfg.MainCfg.HTTPServerAddr)
+		httpStart(config.Cfg.MainCfg.HTTPBind)
 		l.Info("HTTPServer goroutine exit")
 	}()
 
@@ -314,6 +315,42 @@ func httpStart(addr string) {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(uhttp.CORSMiddleware)
+
+	type welcome struct {
+		Version string
+		BuildAt string
+		Uptime  string
+		OS      string
+		Arch    string
+	}
+
+	wel := &welcome{
+		Version: git.Version,
+		BuildAt: git.BuildAt,
+		OS:      runtime.GOOS,
+		Arch:    runtime.GOARCH,
+	}
+
+	router.NoRoute(func(c *gin.Context) {
+		c.Writer.Header().Set("Content-Type", "text/html")
+		t := template.New(``)
+		t, err := t.Parse(config.WelcomeMsgTemplate)
+		if err != nil {
+			l.Error("parse welcome msg failed: %s", err.Error())
+			uhttp.HttpErr(c, err)
+			return
+		}
+
+		buf := &bytes.Buffer{}
+		wel.Uptime = fmt.Sprintf("%v", time.Since(uptime))
+		if err := t.Execute(buf, wel); err != nil {
+			l.Error("build html failed: %s", err.Error())
+			uhttp.HttpErr(c, err)
+			return
+		}
+
+		c.String(404, buf.String())
+	})
 
 	// TODO: need any method?
 	// router.Any()
@@ -403,7 +440,27 @@ func AnsibleHander(w http.ResponseWriter, r *http.Request) {
 
 }
 
+type datakitStats struct {
+	DatakitInputsStats []*io.InputsStat `json:"datakit_inputs_status"`
+	AgentInputsStats   string           `json:"agent_inputs_status"`
+	EnabledInputs      []string         `json:"enabled_inputs"`
+	AvailableInputs    []string         `json:"available_inputs"`
+
+	Version string `json:"version"`
+	BuildAt string `json:"build_at"`
+	Uptime  string `json:"uptime"`
+	OSArch  string `json:"os_arch"`
+}
+
 func getInputsStats(w http.ResponseWriter, r *http.Request) {
+	stats := &datakitStats{
+		AgentInputsStats: "unavailable",
+		Version:          git.Version,
+		BuildAt:          git.BuildAt,
+		Uptime:           fmt.Sprintf("%v", time.Since(uptime)),
+		OSArch:           fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+	}
+
 	res, err := io.GetStats("") // get all inputs stats
 	if err != nil {
 		l.Error(err)
@@ -412,7 +469,35 @@ func getInputsStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := json.MarshalIndent(res, "", "    ")
+	stats.DatakitInputsStats = res
+
+	for k, _ := range config.Cfg.Inputs {
+		stats.EnabledInputs = append(stats.EnabledInputs, k)
+	}
+
+	for k, _ := range config.EnabledTelegrafInputs {
+		stats.EnabledInputs = append(stats.EnabledInputs, k)
+	}
+
+	if len(stats.EnabledInputs) > 0 {
+		sort.Strings(stats.EnabledInputs)
+	}
+
+	for k, _ := range inputs.Inputs {
+		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", k))
+	}
+
+	for k, _ := range config.TelegrafInputs {
+		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[T] %s", k))
+	}
+	stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("tatal %d, datakit %d, agent: %d",
+		len(stats.AvailableInputs), len(inputs.Inputs), len(config.TelegrafInputs)))
+
+	if len(stats.AvailableInputs) > 0 {
+		sort.Strings(stats.AvailableInputs)
+	}
+
+	body, err := json.MarshalIndent(stats, "", "    ")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
