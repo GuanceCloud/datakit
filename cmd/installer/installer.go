@@ -25,6 +25,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/timezone"
 )
 
 var (
@@ -48,6 +50,27 @@ var (
 
 	l *logger.Logger
 
+	/////////////////////////////////////////////////////////////////////////////////////////////
+	// We have to add these inputs manually here, especially datakit's inputs,
+	// because all datakit's inputs are plugable, while not importing:
+	//
+	// 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	//
+	// the `inputs.Inputs' list is empty, so we can't get the desired input's info.
+	//
+	// But when we import `all' into the installer program, the binary will increase
+	// rapidly to about 100+MB, so we only add these minimal info here, just for a small
+	// installer, and easy to download.
+	/////////////////////////////////////////////////////////////////////////////////////////////
+	inputsAvailableDuringInstall = map[string][]string{
+		"cpu":      []string{"host", config.TelegrafInputs["cpu"].Sample}, // FIXME: Mac works ok?
+		"mem":      []string{"host", config.TelegrafInputs["mem"].Sample},
+		"disk":     []string{"host", config.TelegrafInputs["disk"].Sample},
+		"timezone": []string{"timezone", timezone.Sample},
+	}
+)
+
+var (
 	flagUpgrade      = flag.Bool("upgrade", false, ``)
 	flagDataway      = flag.String("dataway", "", `address of dataway(http://IP:Port/v1/write/metric), port default 9528`)
 	flagInfo         = flag.Bool("info", false, "show installer info")
@@ -67,7 +90,7 @@ var (
 func main() {
 	lopt := logger.OPT_DEFAULT | logger.OPT_COLOR
 	if runtime.GOOS == "windows" {
-		lopt = logger.OPT_DEFAULT // disable color on windows
+		lopt = logger.OPT_DEFAULT // disable color on windows(some color not working under windows)
 	}
 
 	logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
@@ -163,12 +186,12 @@ func main() {
 			config.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
 		}
 
-		config.EnableInputs(*flagEnableInputs)
-
 		// build datakit main config
 		if err := config.InitCfg(); err != nil {
 			l.Fatalf("failed to init datakit main config: %s", err.Error())
 		}
+
+		enableInputs(*flagEnableInputs)
 
 		l.Infof("installing service %s...", ServiceName)
 		if err := installDatakitService(dkservice); err != nil {
@@ -502,5 +525,40 @@ func migrateLagacyDatakit() {
 	l.Infof("installing service %s...", ServiceName)
 	if err := installDatakitService(dkservice); err != nil {
 		l.Warnf("fail to register service %s: %s, ignored", ServiceName, err.Error())
+	}
+}
+
+func enableInputs(inputlist string) {
+	elems := strings.Split(inputlist, ",")
+	if len(elems) == 0 {
+		return
+	}
+
+	for _, name := range elems {
+		if sample, ok := inputsAvailableDuringInstall[name]; ok {
+			if len(sample) != 2 {
+				l.Warnf("no config sample available for input %s", name)
+				continue
+			}
+
+			fpath := filepath.Join(datakit.ConfdDir, sample[0], name+".conf")
+			if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+				l.Error("mkdir failed: %s, ignored", err.Error())
+				continue
+			}
+
+			cfgdata, err := config.Cfg.BuildInputCfg([]byte(sample[1]))
+			if err != nil {
+				l.Error("buld config for %s failed: %s, ignored", name, err.Error())
+				continue
+			}
+
+			if err := ioutil.WriteFile(fpath, []byte(cfgdata), os.ModePerm); err != nil {
+				l.Error("write input %s config failed: %s, ignored", name, err.Error())
+				continue
+			}
+
+			l.Debugf("enable input %s ok", name)
+		}
 	}
 }
