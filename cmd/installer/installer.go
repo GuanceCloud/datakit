@@ -56,6 +56,7 @@ var (
 	flagEnableInputs = flag.String("enable-inputs", "", `default enable inputs(comma splited, example: cpu,mem,disk)`)
 	flagDatakitID    = flag.String("datakit-id", "", `specify DataKit ID, example: prod-env-datakit`)
 	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=$datakit_hostname,from=$datakit_id`)
+	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./agent-%s-%s.tar.gz",
@@ -154,6 +155,8 @@ func main() {
 			config.Cfg.MainCfg.GlobalTags = config.ParseGlobalTags(*flagGlobalTags)
 		}
 
+		config.Cfg.MainCfg.HTTPBind = fmt.Sprintf("0.0.0.0:%d", *flagPort)
+
 		if *flagDatakitID != "" {
 			config.Cfg.MainCfg.UUID = *flagDatakitID
 		} else {
@@ -182,6 +185,13 @@ func main() {
 		l.Info(":) Upgrade Success!")
 	} else {
 		l.Info(":) Install Success!")
+	}
+
+	localIP, err := datakit.LocalIP()
+	if err != nil {
+		l.Info("get local IP failed: %s", err.Error())
+	} else {
+		fmt.Printf("\n\tVisit http://%s:%d/stats to see DataKit running status.\n\n", localIP, *flagPort)
 	}
 }
 
