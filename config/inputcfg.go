@@ -246,27 +246,28 @@ func EnableInputs(inputlist string) {
 		return
 	}
 
-	for _, elem := range elems {
-		if err := doEnableInput(elem); err != nil {
-			l.Debug("enable input %s failed, ignored", elem)
+	for _, name := range elems {
+		fpath, sample, err := doEnableInput(name)
+		if err != nil {
+			l.Debug("enable input %s failed, ignored", name)
 		}
+
+		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+			l.Error("mkdir failed: %s, ignored", err.Error())
+			continue
+		}
+
+		if err := ioutil.WriteFile(fpath, []byte(sample), os.ModePerm); err != nil {
+			l.Error("write input %s config failed: %s, ignored", name, err.Error())
+			continue
+		}
+		l.Debugf("enable input %s ok", name)
 	}
 }
 
-func doEnableInput(name string) error {
+func doEnableInput(name string) (string, string, error) {
 	if i, ok := TelegrafInputs[name]; ok {
-
-		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, i.Catalog), os.ModePerm); err != nil {
-			l.Error("mkdir failed: %s", err.Error())
-			return err
-		}
-
-		if err := ioutil.WriteFile(filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf"), []byte(i.Sample), os.ModePerm); err != nil {
-			l.Error("build input %s config failed: %s", name, err.Error())
-			return err
-		}
-		l.Debugf("enable input %s ok", name)
-		return nil
+		return filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf"), i.Sample, nil
 	}
 
 	if c, ok := inputs.Inputs[name]; ok {
@@ -274,22 +275,10 @@ func doEnableInput(name string) error {
 		sample := i.SampleConfig()
 		catalog := i.Catalog()
 
-		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
-			l.Error("mkdir failed: %s", err.Error())
-			return err
-		}
-
-		if err := ioutil.WriteFile(filepath.Join(datakit.ConfdDir, catalog, name+".conf"), []byte(sample), os.ModePerm); err != nil {
-			l.Error("build input %s config failed: %s", name, err.Error())
-			return err
-		}
-
-		l.Debugf("enable input %s ok", name)
-		return nil
+		return filepath.Join(datakit.ConfdDir, catalog, name+".conf"), sample, nil
 	}
 
-	l.Warnf("input %s not found, ignored", name)
-	return nil
+	return "", "", fmt.Errorf("input %s not found, ignored", name)
 }
 
 func ParseGlobalTags(s string) map[string]string {
