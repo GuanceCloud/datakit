@@ -34,8 +34,8 @@ var regions = []string{
 }
 
 var (
-	l    *logger.Logger
-	name = "aliyunrdsslowLog"
+	l         *logger.Logger
+	inputName = "aliyunrdsslowLog"
 )
 
 type rdsInstance struct {
@@ -206,7 +206,7 @@ func (r *AliyunRDS) handleResponse(response *rds.DescribeSlowLogsResponse, produ
 			l.Errorf("make metric point error %v", err)
 		}
 
-		err = io.NamedFeed([]byte(pt), io.Metric, name)
+		err = io.NamedFeed([]byte(pt), io.Metric, inputName)
 	}
 
 	return nil
@@ -220,7 +220,7 @@ func unixTimeStrISO8601(t time.Time) string {
 }
 
 func init() {
-	inputs.Add(name, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &AliyunRDS{}
 	})
 }

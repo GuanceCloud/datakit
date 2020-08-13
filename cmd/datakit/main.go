@@ -461,7 +461,7 @@ func getInputsStats(w http.ResponseWriter, r *http.Request) {
 		OSArch:           fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	}
 
-	res, err := io.GetStats("") // get all inputs stats
+	res, err := io.GetStats() // get all inputs stats
 	if err != nil {
 		l.Error(err)
 		w.WriteHeader(http.StatusBadRequest)
