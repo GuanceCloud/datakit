@@ -146,8 +146,8 @@ const (
 #		tagn = "tagn"
 `
 
-	name              = "yarn"
-	defaultMetricName = name
+	inputName         = "yarn"
+	defaultMetricName = inputName
 	defaultInterval   = "60s"
 	urlPrefix         = "/ws/v1/cluster/"
 	host              = "host"
@@ -202,7 +202,7 @@ func (p *YarnParam) gather() {
 
 	switch p.input.Interval.(type) {
 	case int64:
-		d = time.Duration(p.input.Interval.(int64))*time.Second
+		d = time.Duration(p.input.Interval.(int64)) * time.Second
 	case string:
 		d, err = time.ParseDuration(p.input.Interval.(string))
 		if err != nil {
@@ -271,7 +271,7 @@ func (p *YarnParam) gatherMainSection() (err error) {
 	if err != nil || resp.StatusCode != 200 {
 		fields[canConect] = false
 		pt, _ := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed(pt, io.Metric, name)
+		p.output.IoFeed(pt, io.Metric, inputName)
 		return
 	}
 	defer resp.Body.Close()
@@ -313,7 +313,7 @@ func (p *YarnParam) gatherMainSection() (err error) {
 		return
 	}
 
-	err = p.output.IoFeed(pt, io.Metric, name)
+	err = p.output.IoFeed(pt, io.Metric, inputName)
 	return
 }
 
@@ -355,7 +355,7 @@ func (p *YarnParam) gatherAppSection() error {
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed(pt, io.Metric, name)
+		err = p.output.IoFeed(pt, io.Metric, inputName)
 		if err != nil {
 			return err
 		}
@@ -400,7 +400,7 @@ func (p *YarnParam) gatherNodeSection() error {
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed(pt, io.Metric, name)
+		err = p.output.IoFeed(pt, io.Metric, inputName)
 		if err != nil {
 			return err
 		}
@@ -543,7 +543,7 @@ func (p *YarnParam) gatherQueueSection() error {
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed(pt, io.Metric, name)
+		err = p.output.IoFeed(pt, io.Metric, inputName)
 		if err != nil {
 			return err
 		}
@@ -580,7 +580,7 @@ func getQueueNodeVal(top *jsonquery.Node, expr string, valType VAL_TYPE) (i inte
 }
 
 func init() {
-	inputs.Add(name, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		p := &Yarn{}
 		return p
 	})
