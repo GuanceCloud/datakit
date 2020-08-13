@@ -4,13 +4,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
-const (
-	defaultSkywalkGrpc = ":11800"
-)
+
 var (
 	traceConfigSample = `
 #[inputs.trace]
-#	skywalkingGrpc = ":11800"
+#	skywalkingGrpcV3 = ":11800"
+#	skywalkingGrpcV2 = ":13800"
 #	[inputs.trace.tags]
 #		tag1 = "tag1"
 #		tag2 = "tag2"
@@ -22,7 +21,8 @@ var (
 var gTags map[string]string
 
 type Trace struct {
-	SkywalkingGrpc  string
+	SkywalkingGrpcV3  string
+	SkywalkingGrpcV2  string
 	Tags map[string]string
 }
 
@@ -38,10 +38,14 @@ func (t *Trace) Run() {
 	log = logger.SLogger("trace")
 	log.Infof("trace input started...")
 	gTags = t.Tags
-	if t.SkywalkingGrpc == "" {
-		t.SkywalkingGrpc = defaultSkywalkGrpc
+
+	if t.SkywalkingGrpcV3 != "" {
+		go SkyWalkingServerV3(t.SkywalkingGrpcV3)
 	}
-	SkyWalkingServer(t.SkywalkingGrpc)
+
+	if t.SkywalkingGrpcV2 != "" {
+		go SkyWalkingServerV2(t.SkywalkingGrpcV2)
+	}
 }
 
 func init() {
