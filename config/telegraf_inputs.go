@@ -399,10 +399,10 @@ urls = ["http://agent:8080/jolokia"]
  brokers = ["localhost:9092"]
 
 # Topics to consume.
- topics = ["telegraf"]
+topics = ["telegraf"]
 
 # When set this tag will be added to all metrics with the topic as the value.
- topic_tag = ""
+# topic_tag = ""
 
 # Optional Client id
 #client_id = "datakit-agent"
@@ -410,7 +410,7 @@ urls = ["http://agent:8080/jolokia"]
 # Set the minimal supported Kafka version.  Setting this enables the use of new
 # Kafka features and APIs.  Must be 0.10.2.0 or greater.
 #   ex: version = "1.1.0"
- version = ""
+# version = ""
 
 # Optional TLS Config
 #tls_ca = "/etc/telegraf/ca.pem"
@@ -421,17 +421,17 @@ urls = ["http://agent:8080/jolokia"]
 
 # SASL authentication credentials.  These settings should typically be used
 # with TLS encryption enabled using the "enable_tls" option.
- sasl_username = "kafka"
- sasl_password = "secret"
+# sasl_username = "kafka"
+# sasl_password = "secret"
 
 # SASL protocol version.  When connecting to Azure EventHub set to 0.
- sasl_version = 1
+# sasl_version = 1
 
 # Name of the consumer group.
- consumer_group = "telegraf_metrics_consumers"
+# consumer_group = "telegraf_metrics_consumers"
 
 # Initial offset position; one of "oldest" or "newest".
- offset = "oldest"
+# offset = "oldest"
 
 # Consumer group partition assignment strategy; one of "range", "roundrobin" or "sticky".
  balance_strategy = "range"
@@ -448,7 +448,7 @@ urls = ["http://agent:8080/jolokia"]
 # output metric_batch_size is 1000, setting this to 100 will ensure that a
 # full batch is collected and the write is triggered immediately without
 # waiting until the next flush_interval.
- max_undelivered_messages = 1000
+# max_undelivered_messages = 1000
 
 # Data format to consume.
 # Each data format has its own unique set of configuration options, read
