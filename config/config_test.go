@@ -5,7 +5,18 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
+
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 )
+
+func TestEnableInputs(t *testing.T) {
+	fpath, sample, err := doEnableInput("timezone")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("fpath: %s, sample: %s", fpath, sample)
+}
 
 func TestBuildInputCfg(t *testing.T) {
 
@@ -42,7 +53,7 @@ func TestBuildInputCfg(t *testing.T) {
 	host = '{{.Hostname}}'`
 
 	Cfg.MainCfg.Hostname = "this-is-the-test-host-name"
-	sample, err := buildInputCfg([]byte(data))
+	sample, err := Cfg.BuildInputCfg([]byte(data))
 	if err != nil {
 		t.Fatal(err)
 	}
