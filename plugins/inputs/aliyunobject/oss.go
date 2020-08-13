@@ -29,7 +29,7 @@ const (
 type Oss struct {
 	Tags           map[string]string `toml:"tags,omitempty"`
 	Buckets        []string          `toml:"buckets,omitempty"`
-	ExcludeBuckets []string          `toml:"exclude_bukets,omitempty"`
+	ExcludeBuckets []string          `toml:"exclude_buckets,omitempty"`
 }
 
 func (o *Oss) run(ag *objectAgent) {
