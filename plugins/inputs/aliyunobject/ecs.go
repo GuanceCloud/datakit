@@ -16,15 +16,15 @@ const (
 	ecsSampleConfig = `
 #[inputs.aliyunobject.ecs]
 
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.ecs.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of ecs instanceid] - optional
 #instanceids = ['']
 
 # ## @param - custom tags - [list of excluded ecs instanceid] - optional
 #exclude_instanceids = ['']
+
+# ## @param - custom tags for ecs object - [list of key:value element] - optional
+#[inputs.aliyunobject.ecs.tags]
+# key1 = 'val1'
 `
 )
 
