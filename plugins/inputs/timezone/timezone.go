@@ -43,8 +43,8 @@ const (
 )
 
 var (
-	inputName            = "timezone"
-	timeZoneConfigSample = `### active     : whether to monitor timezone changes.
+	inputName = "timezone"
+	Sample    = `### active     : whether to monitor timezone changes.
 ### interval   : monitor interval, the default value is "60s".
 ### metricsName: the name of metric, default is "timezone"
 
@@ -53,13 +53,14 @@ var (
   interval    = "60s"
   metricsName = "timezone"
   [inputs.timezone.tags]
+		host = '{{.Hostname}}'
 #    tag1 = "tag1"
 #    tag2 = "tag2"
 #    tagn = "tagn"`
 )
 
 func (t *Timezone) SampleConfig() string {
-	return timeZoneConfigSample
+	return Sample
 }
 
 func (t *Timezone) Catalog() string {
