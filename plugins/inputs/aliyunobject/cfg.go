@@ -39,6 +39,12 @@ type objectAgent struct {
 	Ons    *Ons    `toml:"ons,omitempty"`
 	Domain *Domain `toml:"domain,omitempty"`
 	Dds    *Dds    `toml:"dds,omitempty"`
+	Redis *Redis `toml:"redis,omitempty"`
+	Cdn *Cdn `toml:"cdn,omitempty"`
+	Waf *Waf `toml:"waf,omitempty"`
+	Es *Elasticsearch `toml:"elasticsearch,omitempty"`
+	InfluxDB *InfluxDB `toml:"influxdb,omitempty"`
+
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
