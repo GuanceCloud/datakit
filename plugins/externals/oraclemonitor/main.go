@@ -23,16 +23,9 @@ import (
 )
 
 var (
-	// flagCfgStr  = flag.String("cfg", "", "json config string")
 	flagCfgFile = flag.String("cfg-file", "", "json config file")
-	// flagDesc    = flag.String("desc", "", "description of the process, for debugging")
-
-	// flagRPCServer = flag.String("rpc-server", "unix://"+datakit.GRPCDomainSock, "gRPC server")
-	// flagLog       = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log file")
-	// flagLogLevel = flag.String("log-level", "info", "log file")
-
-	l      *logger.Logger
-	rpcCli io.DataKitClient
+	l           *logger.Logger
+	rpcCli      io.DataKitClient
 )
 
 type monitor oraclemonitor.OracleMonitor
