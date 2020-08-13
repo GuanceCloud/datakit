@@ -99,7 +99,7 @@ func (m *Mock) Run() {
 }
 
 func init() {
-	inputs.Add("mock", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &Mock{}
 	})
 }
