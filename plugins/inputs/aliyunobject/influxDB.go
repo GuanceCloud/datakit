@@ -2,29 +2,30 @@ package aliyunobject
 
 import (
 	"encoding/json"
+	"strconv"
+	"time"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"strconv"
-	"time"
 )
 
 const (
 	influxDBSampleConfig = `
 #[inputs.aliyunobject.influxdb]
 
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.influxdb.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of influxdb instanceid] - optional
 #instanceids = ['']
 
 # ## @param - custom tags - [list of excluded influxdb instanceid] - optional
 #exclude_instanceids = ['']
+
+# ## @param - custom tags for ecs object - [list of key:value element] - optional
+#[inputs.aliyunobject.influxdb.tags]
+# key1 = 'val1'
 `
 )
 
