@@ -23,6 +23,7 @@ LOCAL_ARCHS = "all"
 LOCAL_ARCHS = "darwin/amd64"
 LOCAL_ARCHS = "windows/amd64"
 LOCAL_ARCHS = "linux/amd64"
+LOCAL_ARCHS = "linux/amd64|windows/amd64"
 
 DEFAULT_ARCHS = "all"
 
