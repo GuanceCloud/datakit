@@ -20,10 +20,10 @@ const (
 # key1 = 'val1'
 
 # ## @param - custom tags - [list of rds instanceid] - optional
-#db_instanceids = ['']
+#db_instanceids = []
 
 # ## @param - custom tags - [list of excluded rds instanceid] - optional
-#exclude_db_instanceids = ['']
+#exclude_db_instanceids = []
 `
 )
 
@@ -153,6 +153,18 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 			"ZoneId":                db.ZoneId,
 		}
 
+		//add rds object custom tags
+		for k, v := range r.Tags {
+			tags[k] = v
+		}
+
+		//add global tags
+		for k, v := range ag.Tags {
+			if _, have := tags[k]; !have {
+				tags[k] = v
+			}
+		}
+
 		obj := &map[string]interface{}{
 			"__name":                       fmt.Sprintf(`%s_%s`, db.DBInstanceDescription, db.DBInstanceId),
 			"__tags":                       tags,
@@ -181,18 +193,6 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 			"DedicatedHostZoneIdForSlave":  db.DedicatedHostZoneIdForSlave,
 			"DedicatedHostZoneIdForLog":    db.DedicatedHostNameForLog,
 			"ReadOnlyDBInstanceIds":        db.ReadOnlyDBInstanceIds,
-		}
-
-		//add rds object custom tags
-		for k, v := range r.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
 		}
 
 		objs = append(objs, obj)
