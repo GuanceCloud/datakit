@@ -19,11 +19,11 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-LOCAL_ARCHS = "all"
 LOCAL_ARCHS = "darwin/amd64"
 LOCAL_ARCHS = "windows/amd64"
 LOCAL_ARCHS = "linux/amd64"
-LOCAL_ARCHS = "linux/amd64|windows/amd64"
+LOCAL_ARCHS = "linux/amd64|windows/amd64|linux/arm"
+LOCAL_ARCHS = "all"
 
 DEFAULT_ARCHS = "all"
 
@@ -57,7 +57,7 @@ define build
 	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Commit string="$(COMMIT)"; Branch string="$(BRANCH)"; Uploader string="$(UPLOADER)");' > git/git.go
 	@go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
-	tree -Csh -L 4 build pub
+	tree -Csh -L 3 build pub
 endef
 
 define pub
