@@ -6,7 +6,7 @@ import (
 
 const (
 	configSample = `
-#[inputs.scanport]
+#[[inputs.scanport]]
 #  ## 采集的频度，最小粒度10m
 #  interval = '10m'
 #  ## ip或域名，或cidr网络192.168.1.1/30, (default "127.0.0.1")
