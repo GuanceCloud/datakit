@@ -4,7 +4,7 @@ import "github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
 
 const (
 	aliyunCDNConfigSample = `
-#[[cdn]]
+#[[inputs.cdn]]
 #  accessKeyId = ''
 #  accessKeySecret = ''
 #  region = "cn-hangzhou"
