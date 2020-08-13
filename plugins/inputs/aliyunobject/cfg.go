@@ -32,10 +32,13 @@ type objectAgent struct {
 	Interval        internal.Duration `toml:"interval"`
 	Tags            map[string]string `toml:"tags,omitempty"`
 
-	Ecs *Ecs `toml:"ecs,omitempty"`
-	Slb *Slb `toml:"slb,omitempty"`
-	Oss *Oss `toml:"oss,omitempty"`
-	Rds *Rds `toml:"rds,omitempty"`
+	Ecs    *Ecs    `toml:"ecs,omitempty"`
+	Slb    *Slb    `toml:"slb,omitempty"`
+	Oss    *Oss    `toml:"oss,omitempty"`
+	Rds    *Rds    `toml:"rds,omitempty"`
+	Ons    *Ons    `toml:"ons,omitempty"`
+	Domain *Domain `toml:"domain,omitempty"`
+	Dds    *Dds    `toml:"dds,omitempty"`
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
