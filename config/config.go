@@ -27,10 +27,8 @@ var (
 )
 
 type Config struct {
-	MainCfg *MainConfig
-
-	Inputs map[string][]inputs.Input
-
+	MainCfg      *MainConfig
+	Inputs       map[string][]inputs.Input
 	InputFilters []string
 
 	withinDocker bool
@@ -50,7 +48,7 @@ type MainConfig struct {
 	DataWay           *DataWayCfg `toml:"dataway"`
 	DataWayRequestURL string      `toml:"-"`
 
-	HTTPServerAddr string `toml:"http_server_addr"`
+	HTTPBind string `toml:"http_server_addr"`
 
 	FtGateway string `toml:"ftdataway"` // XXX: deprecated
 
@@ -124,7 +122,7 @@ func newDefaultCfg() *Config {
 			Interval:        "10s",
 			MaxPostInterval: "15s", // add 5s plus for network latency
 
-			HTTPServerAddr: "0.0.0.0:9529",
+			HTTPBind: "0.0.0.0:9529",
 
 			LogLevel: "info",
 			Log:      filepath.Join(datakit.InstallDir, "datakit.log"),
