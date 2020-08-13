@@ -63,10 +63,17 @@ var (
 	// installer, and easy to download.
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	inputsAvailableDuringInstall = map[string][]string{
-		"cpu":      []string{"host", config.TelegrafInputs["cpu"].Sample}, // FIXME: Mac works ok?
-		"mem":      []string{"host", config.TelegrafInputs["mem"].Sample},
-		"disk":     []string{"host", config.TelegrafInputs["disk"].Sample},
-		"timezone": []string{"timezone", timezone.Sample},
+		// telegraf inputs
+		"cpu":               []string{"host", config.TelegrafInputs["cpu"].Sample}, // FIXME: Mac works ok?
+		"mem":               []string{"host", config.TelegrafInputs["mem"].Sample},
+		"disk":              []string{"host", config.TelegrafInputs["disk"].Sample},
+		"net":               []string{"network", config.TelegrafInputs["net"].Sample},
+		"win_perf_counters": []string{"windows", config.TelegrafInputs["win_perf_counters"].Sample},
+		"processes":         []string{"processes", config.TelegrafInputs["processes"].Sample},
+		"swap":              []string{"swap", config.TelegrafInputs["swap"].Sample},
+
+		// datakit inputs
+		"timezone": []string{"host", timezone.Sample},
 	}
 )
 
@@ -559,6 +566,8 @@ func enableInputs(inputlist string) {
 			}
 
 			l.Debugf("enable input %s ok", name)
+		} else {
+			l.Debugf("input %s not enabled", name)
 		}
 	}
 }
