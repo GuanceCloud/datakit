@@ -14,22 +14,22 @@ const (
 	ossSampleConfig = `
 #[inputs.aliyunobject.oss]
 
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.oss.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of oss buckets] - optional
 #buckets = ['']
 
 # ## @param - custom tags - [list of excluded oss instanceid] - optional
 #exclude_buckets = ['']
+
+# ## @param - custom tags for ecs object - [list of key:value element] - optional
+#[inputs.aliyunobject.oss.tags]
+# key1 = 'val1'
 `
 )
 
 type Oss struct {
 	Tags           map[string]string `toml:"tags,omitempty"`
 	Buckets        []string          `toml:"buckets,omitempty"`
-	ExcludeBuckets []string          `toml:"exclude_bukets,omitempty"`
+	ExcludeBuckets []string          `toml:"exclude_buckets,omitempty"`
 }
 
 func (o *Oss) run(ag *objectAgent) {
