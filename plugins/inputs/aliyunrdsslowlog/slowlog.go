@@ -35,7 +35,7 @@ var regions = []string{
 
 var (
 	l         *logger.Logger
-	inputName = "aliyunrdsslowLog"
+	inputName = "aliyunrdsslowlog"
 )
 
 type rdsInstance struct {
@@ -64,9 +64,9 @@ func (_ *AliyunRDS) Gather() error {
 }
 
 func (a *AliyunRDS) Run() {
-	l = logger.SLogger("aliyunRDSSlowlog")
+	l = logger.SLogger(inputName)
 
-	l.Info("aliyunRDSSlowlog input started...")
+	l.Info("input started...")
 
 	cli, err := rds.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
 	if err != nil {
