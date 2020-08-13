@@ -2,32 +2,33 @@ package aliyunobject
 
 import (
 	"encoding/json"
+	"time"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"time"
 )
 
 const (
 	cdnSampleConfig = `
 #[inputs.aliyunobject.cdn]
 
-# ## @param - custom tags for cdn object - [list of key:value element] - optional
-#[inputs.aliyunobject.cdn.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of cdn DomainName] - optional
 #domainNames = ['']
 
 # ## @param - custom tags - [list of excluded cdn exclude_domainNames] - optional
 #exclude_domainNames = ['']
+
+# ## @param - custom tags for cdn object - [list of key:value element] - optional
+#[inputs.aliyunobject.cdn.tags]
+# key1 = 'val1'
 `
 )
 
 type Cdn struct {
 	Tags               map[string]string `toml:"tags,omitempty"`
-	DomainNames    []string          `toml:"domainNames,omitempty"`
+	DomainNames        []string          `toml:"domainNames,omitempty"`
 	ExcludeDomainNames []string          `toml:"exclude_domainNames,omitempty"`
 }
 
@@ -59,7 +60,7 @@ func (e *Cdn) run(ag *objectAgent) {
 		default:
 		}
 
-		pageNum  := 1
+		pageNum := 1
 		pageSize := 100
 		req := cdn.CreateDescribeUserDomainsRequest()
 
@@ -128,16 +129,14 @@ func (e *Cdn) handleResponse(resp *cdn.DescribeUserDomainsResponse, ag *objectAg
 		}
 
 		tags := map[string]interface{}{
-			"__class":    "CDN",
-			"__provider": "aliyun",
-			"ResourceGroupId":    inst.ResourceGroupId,
+			"__class":         "CDN",
+			"__provider":      "aliyun",
+			"ResourceGroupId": inst.ResourceGroupId,
 		}
 
 		obj := map[string]interface{}{
 			"__name": inst.DomainName,
-
 		}
-
 
 		for k, v := range e.Tags {
 			tags[k] = v
