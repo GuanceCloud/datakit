@@ -69,18 +69,7 @@ var (
 #	[inputs.traefik.tags]
 #		tag1 = "tag1"
 #		tag2 = "tag2"
-#		tag3 = "tag3"
-
-#[[inputs.traefik]]
-#	interval    = "60s"
-#	active      = true
-#	url         = "http://127.0.0.1:8080/health"
-#	metricsName = "traefik"
-#	[inputs.traefik.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
-`
+#		tag3 = "tag3"`
 )
 
 func (t *Traefik) SampleConfig() string {
