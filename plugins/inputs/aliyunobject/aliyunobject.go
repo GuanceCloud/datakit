@@ -53,6 +53,15 @@ func (ag *objectAgent) Run() {
 	if ag.Rds != nil {
 		ag.addModule(ag.Rds)
 	}
+	if ag.Ons != nil {
+		ag.addModule(ag.Ons)
+	}
+	if ag.Dds != nil {
+		ag.addModule(ag.Dds)
+	}
+	if ag.Domain != nil {
+		ag.addModule(ag.Domain)
+	}
 
 	for _, s := range ag.subModules {
 		ag.wg.Add(1)
