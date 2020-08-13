@@ -31,7 +31,7 @@ const (
 	sampleCfg = `
 [inputs.druid]
 	# [inputs.druid.tags]
-	# tags1 = "tags1"
+	# tags1 = "value1"
 `
 )
 
