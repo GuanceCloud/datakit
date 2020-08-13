@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	l *logger.Logger
+	l *logger.Logger = logger.DefaultSLogger("datakit")
 
 	Exit *cliutils.Sem
 	WG   sync.WaitGroup = sync.WaitGroup{}
@@ -22,6 +22,7 @@ var (
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 
 	ServiceName = "datakit"
+	Hostname    = ""
 
 	AgentLogFile string
 
@@ -39,6 +40,13 @@ var (
 
 func Init() {
 	l = logger.SLogger("datakit")
+	var err error
+	Hostname, err = os.Hostname()
+	if err != nil {
+		l.Error("get hostname failed: %s", err.Error())
+	}
+
+	l.Infof("datakit hostname: %s", Hostname)
 }
 
 func MonitProc(proc *os.Process, name string) {
