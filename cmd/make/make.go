@@ -276,7 +276,7 @@ func releaseAgent() {
 
 	oc := &cliutils.OssCli{
 		Host:       ossHost,
-		PartSize:   128 * 1024 * 1024,
+		PartSize:   512 * 1024 * 1024,
 		AccessKey:  ak,
 		SecretKey:  sk,
 		BucketName: bucket,
