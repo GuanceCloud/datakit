@@ -19,10 +19,10 @@ const (
 # key1 = 'val1'
 
 # ## @param - custom tags - [list of oss buckets] - optional
-#buckets = ['']
+#buckets = []
 
 # ## @param - custom tags - [list of excluded oss instanceid] - optional
-#exclude_buckets = ['']
+#exclude_buckets = []
 `
 )
 
