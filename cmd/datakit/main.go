@@ -383,6 +383,11 @@ func httpStart(addr string) {
 	// ansible api
 	router.POST("/ansible", func(c *gin.Context) { AnsibleHander(c.Writer, c.Request) })
 
+	// telegraf running
+	if len(config.EnabledTelegrafInputs) > 0 {
+		router.POST("/telegraf", func(c *gin.Context) { io.HandleTelegrafOutput(c) })
+	}
+
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: router,
@@ -441,10 +446,9 @@ func AnsibleHander(w http.ResponseWriter, r *http.Request) {
 }
 
 type datakitStats struct {
-	DatakitInputsStats []*io.InputsStat `json:"datakit_inputs_status"`
-	AgentInputsStats   string           `json:"agent_inputs_status"`
-	EnabledInputs      []string         `json:"enabled_inputs"`
-	AvailableInputs    []string         `json:"available_inputs"`
+	InputsStats     []*io.InputsStat `json:"inputs_status"`
+	EnabledInputs   []string         `json:"enabled_inputs"`
+	AvailableInputs []string         `json:"available_inputs"`
 
 	Version string `json:"version"`
 	BuildAt string `json:"build_at"`
@@ -454,11 +458,10 @@ type datakitStats struct {
 
 func getInputsStats(w http.ResponseWriter, r *http.Request) {
 	stats := &datakitStats{
-		AgentInputsStats: "unavailable",
-		Version:          git.Version,
-		BuildAt:          git.BuildAt,
-		Uptime:           fmt.Sprintf("%v", time.Since(uptime)),
-		OSArch:           fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		Version: git.Version,
+		BuildAt: git.BuildAt,
+		Uptime:  fmt.Sprintf("%v", time.Since(uptime)),
+		OSArch:  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	}
 
 	res, err := io.GetStats() // get all inputs stats
@@ -469,7 +472,7 @@ func getInputsStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stats.DatakitInputsStats = res
+	stats.InputsStats = res
 
 	for k, _ := range config.Cfg.Inputs {
 		stats.EnabledInputs = append(stats.EnabledInputs, k)
