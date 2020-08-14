@@ -8,7 +8,6 @@ type Input interface {
 	Catalog() string
 	Run()
 	SampleConfig() string
-	//Stop() error
 
 	// add more...
 }
