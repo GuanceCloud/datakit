@@ -3,6 +3,7 @@ package trace
 import (
 	"encoding/json"
 	"fmt"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"time"
 	"strconv"
 	"encoding/binary"
@@ -21,64 +22,72 @@ func (z *ZipkinTracer) parseZipkinJsonV2(octets []byte) error {
 
 	for _, zs := range spans {
 		tAdpter := TraceAdapter{}
-		tAdpter.source = "zipkin"
+		tAdpter.Source = "zipkin"
 
-		tAdpter.duration    = int64(zs.Duration/time.Microsecond)
-		tAdpter.timestampUs = zs.Timestamp.UnixNano()/1000
+		tAdpter.Duration    = int64(zs.Duration/time.Microsecond)
+		tAdpter.TimestampUs = zs.Timestamp.UnixNano()/1000
 		sJson, err := json.Marshal(zs)
 		if err != nil {
 			return err
 		}
-		tAdpter.content = string(sJson)
+		tAdpter.Content = string(sJson)
 
-		tAdpter.class         = "tracing"
+		tAdpter.Class         = "tracing"
 		if zs.LocalEndpoint != nil {
-			tAdpter.serviceName   = zs.LocalEndpoint.ServiceName
+			tAdpter.ServiceName   = zs.LocalEndpoint.ServiceName
 		}
 
-		tAdpter.operationName = zs.Name
+		tAdpter.OperationName = zs.Name
 
 		if zs.ParentID != nil {
-			tAdpter.parentID      = fmt.Sprintf("%x", uint64(*zs.ParentID))
+			tAdpter.ParentID      = fmt.Sprintf("%x", uint64(*zs.ParentID))
 		}
 
 		if zs.TraceID.High != 0 {
-			tAdpter.traceID = fmt.Sprintf("%x%x", zs.TraceID.High, zs.TraceID.Low)
+			tAdpter.TraceID = fmt.Sprintf("%x%x", zs.TraceID.High, zs.TraceID.Low)
 		} else {
-			tAdpter.traceID = fmt.Sprintf("%x", zs.TraceID.Low)
+			tAdpter.TraceID = fmt.Sprintf("%x", zs.TraceID.Low)
 		}
 
-		tAdpter.spanID        = fmt.Sprintf("%x", uint64(zs.ID))
+		tAdpter.SpanID        = fmt.Sprintf("%x", uint64(zs.ID))
 
 		for tag, _ := range zs.Tags {
 			if tag == "error" {
-				tAdpter.isError = "true"
+				tAdpter.IsError = "true"
 				break
 			}
 		}
 
 		if zs.RemoteEndpoint != nil {
 			if len(zs.RemoteEndpoint.IPv4) != 0 {
-				tAdpter.endPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv4)
+				tAdpter.EndPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv4)
 			}
 
 			if len(zs.RemoteEndpoint.IPv6) != 0 {
-				tAdpter.endPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv6)
+				tAdpter.EndPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv6)
 			}
 		}
 
-		tAdpter.spanType = SPAN_TYPE_ENTRY
+		tAdpter.SpanType = SPAN_TYPE_ENTRY
 		if zs.RemoteEndpoint == nil {
 			if zs.LocalEndpoint == nil {
-				tAdpter.spanType = SPAN_TYPE_LOCAL
+				tAdpter.SpanType = SPAN_TYPE_LOCAL
 			} else {
 				if len(zs.LocalEndpoint.IPv4) == 0 && len(zs.LocalEndpoint.IPv6) == 0 {
-					tAdpter.spanType = SPAN_TYPE_LOCAL
+					tAdpter.SpanType = SPAN_TYPE_LOCAL
 				}
 			}
 		}
 
-		tAdpter.mkLineProto()
+		tAdpter.Tags = ZipkinTags
+		pt, err := tAdpter.MkLineProto()
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		if err := dkio.NamedFeed(pt, dkio.Logging, "tracing"); err != nil {
+			log.Errorf("io feed err: %s", err)
+		}
 	}
 	return nil
 }
@@ -91,63 +100,71 @@ func (z *ZipkinTracer) parseZipkinProtobufV2(octets []byte) error {
 
 	for _, zs := range zss {
 		tAdpter := TraceAdapter{}
-		tAdpter.source = "zipkin"
+		tAdpter.Source = "zipkin"
 
-		tAdpter.duration    = int64(zs.Duration/time.Microsecond)
-		tAdpter.timestampUs = zs.Timestamp.UnixNano()/1000
+		tAdpter.Duration    = int64(zs.Duration/time.Microsecond)
+		tAdpter.TimestampUs = zs.Timestamp.UnixNano()/1000
 		sJson, err := json.Marshal(zs)
 		if err != nil {
 			return err
 		}
-		tAdpter.content = string(sJson)
+		tAdpter.Content = string(sJson)
 
-		tAdpter.class         = "tracing"
+		tAdpter.Class         = "tracing"
 		if zs.LocalEndpoint != nil {
-			tAdpter.serviceName   = zs.LocalEndpoint.ServiceName
+			tAdpter.ServiceName   = zs.LocalEndpoint.ServiceName
 		}
-		tAdpter.operationName = zs.Name
+		tAdpter.OperationName = zs.Name
 
 		if zs.ParentID != nil {
-			tAdpter.parentID      = fmt.Sprintf("%d", *zs.ParentID)
+			tAdpter.ParentID      = fmt.Sprintf("%d", *zs.ParentID)
 		}
 
 		if zs.TraceID.High != 0 {
-			tAdpter.traceID = fmt.Sprintf("%d%d", zs.TraceID.High, zs.TraceID.Low)
+			tAdpter.TraceID = fmt.Sprintf("%d%d", zs.TraceID.High, zs.TraceID.Low)
 		} else {
-			tAdpter.traceID = fmt.Sprintf("%d", zs.TraceID.Low)
+			tAdpter.TraceID = fmt.Sprintf("%d", zs.TraceID.Low)
 		}
 
-		tAdpter.spanID        = fmt.Sprintf("%d", zs.ID)
+		tAdpter.SpanID        = fmt.Sprintf("%d", zs.ID)
 
 		for tag, _ := range zs.Tags {
 			if tag == "error" {
-				tAdpter.isError = "true"
+				tAdpter.IsError = "true"
 				break
 			}
 		}
 
 		if zs.RemoteEndpoint != nil {
 			if len(zs.RemoteEndpoint.IPv4) != 0 {
-				tAdpter.endPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv4)
+				tAdpter.EndPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv4)
 			}
 
 			if len(zs.RemoteEndpoint.IPv6) != 0 {
-				tAdpter.endPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv6)
+				tAdpter.EndPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv6)
 			}
 		}
 
-		tAdpter.spanType = SPAN_TYPE_ENTRY
+		tAdpter.SpanType = SPAN_TYPE_ENTRY
 		if zs.RemoteEndpoint == nil {
 			if zs.LocalEndpoint == nil {
-				tAdpter.spanType = SPAN_TYPE_LOCAL
+				tAdpter.SpanType = SPAN_TYPE_LOCAL
 			} else {
 				if len(zs.LocalEndpoint.IPv4) == 0 && len(zs.LocalEndpoint.IPv6) == 0 {
-					tAdpter.spanType = SPAN_TYPE_LOCAL
+					tAdpter.SpanType = SPAN_TYPE_LOCAL
 				}
 			}
 		}
 
-		tAdpter.mkLineProto()
+		tAdpter.Tags = ZipkinTags
+		pt, err := tAdpter.MkLineProto()
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		if err := dkio.NamedFeed(pt, dkio.Logging, "tracing"); err != nil {
+			log.Errorf("io feed err: %s", err)
+		}
 	}
 	return nil
 }
