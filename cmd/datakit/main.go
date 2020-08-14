@@ -277,24 +277,7 @@ func runDatakit() error {
 }
 
 func runInputs() error {
-
-	for name, ips := range config.Cfg.Inputs {
-		for _, input := range ips {
-			switch input.(type) {
-			case inputs.Input:
-				l.Infof("starting input %s ...", name)
-				datakit.WG.Add(1)
-				go func(i inputs.Input, name string) {
-					defer datakit.WG.Done()
-					i.Run()
-					l.Infof("input %s exited", name)
-				}(input, name)
-			default:
-				l.Warn("ignore input %s", name)
-			}
-		}
-	}
-	return nil
+	return config.StartInputs()
 }
 
 func httpStart(addr string) {
