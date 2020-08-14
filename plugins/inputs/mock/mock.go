@@ -6,7 +6,6 @@ import (
 
 	"github.com/Pallinder/go-randomdata"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"github.com/influxdata/telegraf"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -35,16 +34,8 @@ func (m *Mock) SampleConfig() string {
 	return sampleCfg
 }
 
-func (m *Mock) Description() string {
-	return "mock testing data"
-}
-
 func (m *Mock) Catalog() string {
 	return "mock"
-}
-
-func (m *Mock) Gather(acc telegraf.Accumulator) error {
-	return nil
 }
 
 func (m *Mock) Run() {
