@@ -55,7 +55,7 @@ define build
 	@mkdir -p build $(PUB_DIR)/$(1)
 	@mkdir -p git
 	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Commit string="$(COMMIT)"; Branch string="$(BRANCH)"; Uploader string="$(UPLOADER)");' > git/git.go
-	@go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
+	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
 	tree -Csh -L 3 build pub
 endef
