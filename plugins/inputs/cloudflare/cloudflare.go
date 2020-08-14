@@ -10,7 +10,7 @@ import (
 	"github.com/tidwall/gjson"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	//"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -24,15 +24,18 @@ const (
 
 	sampleCfg = `
 [[inputs.cloudflare]]
+	# cloudflare login email
 	email = ""
 
+	# service zone id
 	zone_id = ""
 
+	# api key
 	api_key = ""
 
-	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+	# valid time units are "m", "h"
 	# required
-	interval = "10s"
+	interval = "24h"
 
 	# [inputs.cloudflare.tags]
 	# tags1 = "value1"
@@ -69,33 +72,76 @@ func (_ *Cloudflare) Catalog() string {
 func (h *Cloudflare) Run() {
 	l = logger.SLogger(inputName)
 
+	if h.laodCfg() {
+		return
+	}
+
 	ticker := time.NewTicker(h.duration)
 	defer ticker.Stop()
 
 	l.Infof("cloudflare input started.")
 
-	// for {
-	// 	select {
-	// 	case <-datakit.Exit.Wait():
-	// 		l.Info("exit")
-	// 		return
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
 
-	// 	case <-ticker.C:
-	// 		l.Debugf("feed %d bytes to io ok", len(data))
-	// 	}
-	// }
+		case <-ticker.C:
+			data, err := h.getMetrics()
+			if err != nil {
+				l.Error(err)
+				continue
+			}
+			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+				l.Error(err)
+				continue
+			}
+			l.Debugf("feed %d bytes to io ok", len(data))
+		}
+	}
 }
 
-func (h *Cloudflare) laodCfg() {
-	h.requ, _ = http.NewRequest("GET",
-		// fmt.Sprintf("%s/zones/%s/analytics/dashboard?since=-%d&continuous=true",
-		fmt.Sprintf("%s/zones/%s/analytics/dashboard",
-			cloudflareAPIURL,
-			h.ZoneID,
-		), nil)
+func (h *Cloudflare) laodCfg() bool {
+	var err error
+	var d time.Duration
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return true
+		default:
+			// next
+		}
+
+		d, err = time.ParseDuration(h.Interval)
+		if err != nil || d <= 0 {
+			l.Errorf("invalid interval, %s", err.Error())
+			time.Sleep(time.Second)
+			continue
+		}
+		h.duration = d
+
+		h.requ, err = http.NewRequest("GET",
+			fmt.Sprintf("%s/zones/%s/analytics/dashboard?since=-%d&continuous=true",
+				cloudflareAPIURL,
+				h.ZoneID,
+				h.duration/time.Minute,
+			), nil)
+		if err != nil {
+			l.Errorf("new request error: %s", err.Error())
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+
 	h.requ.Header.Add("X-Auth-Email", h.Email)
 	h.requ.Header.Add("X-Auth-Key", h.APIKey)
 	h.requ.Header.Add("Content-Type", "application/json")
+
+	return false
 }
 
 func (h *Cloudflare) getMetrics() ([]byte, error) {
@@ -115,7 +161,7 @@ func (h *Cloudflare) getMetrics() ([]byte, error) {
 
 	if !jsonMetrics.Get("success").Bool() {
 		for _, errMsg := range jsonMetrics.Get("errors").Array() {
-			fmt.Printf("code: %d, message: %s\n", errMsg.Get("code").Int(), errMsg.Get("message").String())
+			l.Errorf("err, code: %d, message: %s\n", errMsg.Get("code").Int(), errMsg.Get("message").String())
 		}
 		return nil, fmt.Errorf("failed to get cloudflare metrics")
 	}
