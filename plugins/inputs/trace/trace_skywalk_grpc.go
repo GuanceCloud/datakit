@@ -3,41 +3,14 @@ package trace
 import (
 	"net"
 
+	"google.golang.org/grpc"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	swV2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace/skywalking/v2/language-agent-v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace/skywalking/v2/register"
-	swV3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace/skywalking/v3"
-	"google.golang.org/grpc"
 )
 
-func SkyWalkingServerV3(addr string) {
-	log.Infof("skywalking V3 gRPC starting...")
-
-	rpcListener, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Errorf("start skywalking V3 gRPC server %s failed: %v", addr, err)
-		return
-	}
-
-	log.Infof("start skywalking V3 gRPC server on %s ok", addr)
-
-	rpcServer := grpc.NewServer()
-	swV3.RegisterTraceSegmentReportServiceServer(rpcServer, &SkywalkingServerV3{})
-	go func() {
-		if err := rpcServer.Serve(rpcListener); err != nil {
-			log.Error(err)
-		}
-
-		log.Info("skywalking V3 gRPC server exit")
-	}()
-
-	<-datakit.Exit.Wait()
-	log.Info("skywalking V3 gRPC server stopping...")
-	rpcServer.Stop()
-	return
-}
-
-func SkyWalkingServerV2(addr string) {
+func SkyWalkingServerRunV2(addr string) {
 	log.Infof("skywalking V2 gRPC starting...")
 
 	rpcListener, err := net.Listen("tcp", addr)
