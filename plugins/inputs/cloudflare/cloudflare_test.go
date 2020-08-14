@@ -20,9 +20,10 @@ func TestMain(t *testing.T) {
 	__init()
 
 	var c = Cloudflare{
-		Email:  email,
-		ZoneID: zoneID,
-		APIKey: apiKey,
+		Email:    email,
+		ZoneID:   zoneID,
+		APIKey:   apiKey,
+		Interval: "24h",
 	}
 
 	c.laodCfg()
