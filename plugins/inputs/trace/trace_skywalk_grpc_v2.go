@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"sync"
 
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace/skywalking/v2/common"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace/skywalking/v2/register"
 	swV2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace/skywalking/v2/language-agent-v2"
@@ -68,51 +69,59 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 	for _, span := range sg.Segment.Spans {
 		t := TraceAdapter{}
 
-		t.source = "skywalking"
-		t.duration = (span.EndTime -span.StartTime)*1000
-		t.timestampUs = span.StartTime * 1000
+		t.Source = "skywalking"
+		t.Duration = (span.EndTime -span.StartTime)*1000
+		t.TimestampUs = span.StartTime * 1000
 		js ,err := json.Marshal(span)
 		if err != nil {
 			return err
 		}
-		t.content = string(js)
-		t.class         = "tracing"
-		t.serviceName   = service
-		t.operationName = span.OperationName
-		if t.operationName == "" {
+		t.Content = string(js)
+		t.Class         = "tracing"
+		t.ServiceName   = service
+		t.OperationName = span.OperationName
+		if t.OperationName == "" {
 			on, ok :=regEndpointRev.Load(span.OperationNameId)
 			if !ok {
-				return fmt.Errorf("operarion name null", sid)
+				return fmt.Errorf("operation name null", sid)
 			}
 			switch on.(type) {
 			case string:
-				t.operationName = on.(string)
+				t.OperationName = on.(string)
 			default:
-				return fmt.Errorf("operarion Name wrong type")
+				return fmt.Errorf("operation Name wrong type")
 			}
 		}
 
 		if len(span.Refs) > 0 {
-			t.parentID = fmt.Sprintf("%v%v", span.Refs[0].ParentTraceSegmentId.IdParts[2], span.Refs[0].ParentSpanId)
+			t.ParentID = fmt.Sprintf("%v%v", span.Refs[0].ParentTraceSegmentId.IdParts[2], span.Refs[0].ParentSpanId)
 		} else if span.ParentSpanId != -1 {
-			t.parentID = fmt.Sprintf("%v%v", sgid, span.ParentSpanId)
+			t.ParentID = fmt.Sprintf("%v%v", sgid, span.ParentSpanId)
 		}
 
-		t.traceID       = fmt.Sprintf("%d", traceId)
-		t.spanID        = fmt.Sprintf("%v%v", sgid, span.SpanId)
+		t.TraceID       = fmt.Sprintf("%d", traceId)
+		t.SpanID        = fmt.Sprintf("%v%v", sgid, span.SpanId)
 		if span.IsError {
-			t.isError   = "true"
+			t.IsError   = "true"
 		}
 		if span.SpanType == common.SpanType_Entry {
-			t.spanType  = SPAN_TYPE_ENTRY
+			t.SpanType  = SPAN_TYPE_ENTRY
 		} else if span.SpanType == common.SpanType_Local {
-			t.spanType  = SPAN_TYPE_LOCAL
+			t.SpanType  = SPAN_TYPE_LOCAL
 		} else {
-			t.spanType  = SPAN_TYPE_EXIT
+			t.SpanType  = SPAN_TYPE_EXIT
 		}
-		t.endPoint      = span.Peer
+		t.EndPoint      = span.Peer
+		t.Tags = SkywalkingV2Tags
+		pt, err := t.MkLineProto()
+		if err != nil {
+			log.Error(err)
+			continue
+		}
 
-		t.mkLineProto()
+		if err := dkio.NamedFeed(pt, dkio.Logging, "tracing"); err != nil {
+			log.Errorf("io feed err: %s", err)
+		}
 	}
 	return nil
 }
