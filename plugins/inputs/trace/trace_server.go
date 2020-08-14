@@ -37,21 +37,23 @@ type JaegerTracer struct {
 }
 
 type TraceAdapter struct {
-	source string
+	Source string
 
-	duration    int64
-	timestampUs int64
-	content     string
+	Duration    int64
+	TimestampUs int64
+	Content     string
 
-	class         string
-	serviceName   string
-	operationName string
-	parentID      string
-	traceID       string
-	spanID        string
-	isError       string
-	spanType      string
-	endPoint      string
+	Class         string
+	ServiceName   string
+	OperationName string
+	ParentID      string
+	TraceID       string
+	SpanID        string
+	IsError       string
+	SpanType      string
+	EndPoint      string
+
+	Tags          map[string]string
 }
 
 const (
@@ -68,54 +70,52 @@ var SkyWalkTraceUrl  = map[string]bool{
 	SKYWALK_SEGMENTS   : true,
 }
 
-func (tAdpt *TraceAdapter) mkLineProto() {
+func (tAdpt *TraceAdapter) MkLineProto() ([]byte, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
-	tags["__class"] = tAdpt.class
-	tags["__operationName"] = tAdpt.operationName
-	tags["__serviceName"] = tAdpt.serviceName
-	tags["__parentID"] = tAdpt.parentID
-	tags["__traceID"] = tAdpt.traceID
-	tags["__spanID"] = tAdpt.spanID
+	tags["__class"]         = tAdpt.Class
+	tags["__operationName"] = tAdpt.OperationName
+	tags["__serviceName"]   = tAdpt.ServiceName
+	tags["__parentID"]      = tAdpt.ParentID
+	tags["__traceID"]       = tAdpt.TraceID
+	tags["__spanID"]        = tAdpt.SpanID
 
-	for tag, tagV := range gTags {
+	for tag, tagV := range tAdpt.Tags {
 		tags[tag] = tagV
 	}
-	if tAdpt.isError == "true" {
+	if tAdpt.IsError == "true" {
 		tags["__isError"] = "true"
 	} else {
 		tags["__isError"] = "false"
 	}
 
-	if tAdpt.endPoint != "" {
-		tags["__endpoint"] = tAdpt.endPoint
+	if tAdpt.EndPoint != "" {
+		tags["__endpoint"] = tAdpt.EndPoint
 	} else {
 		tags["__endpoint"] = "null"
 	}
 
-	if tAdpt.spanType != "" {
-		tags["__spanType"] = tAdpt.spanType
+	if tAdpt.SpanType != "" {
+		tags["__spanType"] = tAdpt.SpanType
 	} else {
 		tags["__spanType"] = SPAN_TYPE_ENTRY
 	}
 
-	fields["__duration"] = tAdpt.duration
-	fields["__content"] = tAdpt.content
+	fields["__duration"] = tAdpt.Duration
+	fields["__content"]  = tAdpt.Content
 
-	ts := time.Unix(tAdpt.timestampUs/US_PER_SECOND, (tAdpt.timestampUs%US_PER_SECOND)*1000)
+	ts := time.Unix(tAdpt.TimestampUs/US_PER_SECOND, (tAdpt.TimestampUs%US_PER_SECOND)*1000)
 
-	pt, err := io.MakeMetric(tAdpt.source, tags, fields, ts)
+	pt, err := io.MakeMetric(tAdpt.Source, tags, fields, ts)
 	if err != nil {
-		log.Errorf("build metric err: %s", err)
-		return
+		return nil, fmt.Errorf("build metric err: %s", err)
 	}
 
-	log.Debugf(string(pt))
+	lineProtoStr := string(pt)
+	log.Debugf(lineProtoStr)
 
-	if err := io.NamedFeed(pt, io.Logging, "tracing"); err != nil {
-		log.Errorf("io feed err: %s", err)
-	}
+	return pt, nil
 }
 
 func (t *TraceReqInfo) Decode(octets []byte) error {
