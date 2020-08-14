@@ -129,7 +129,7 @@ func extract(body []byte) error {
 			timeNode[timestamp] = make(map[string]interface{})
 		}
 
-		metricKey := strings.Replace(metric.Service+"."+metric.Metric, "/", ".", -1)
+		metricKey := strings.ReplaceAll(metric.Service+"."+metric.Metric, "/", ".")
 		switch metricType {
 		case Normal:
 			timeNode[timestamp][metricKey] = metric.Value
