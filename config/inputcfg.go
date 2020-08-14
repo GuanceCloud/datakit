@@ -92,7 +92,7 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator, inputcfgs 
 	}
 
 	if name == "self" {
-		c.Inputs[name] = append(c.Inputs[name], creator())
+		c.Inputs[name] = append(c.Inputs[name], &inputInfo{input: creator(), cfg: "no config for `self' input"})
 		return nil
 	}
 
@@ -117,7 +117,7 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 							continue
 						}
 
-						if err := c.tryUnmarshal(v, name, creator); err != nil {
+						if err := c.tryUnmarshal(v, name, creator, fp); err != nil {
 							l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 							continue
 						}
@@ -127,7 +127,7 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 				}
 
 			default:
-				if err := c.tryUnmarshal(node, name, creator); err != nil {
+				if err := c.tryUnmarshal(node, name, creator, fp); err != nil {
 					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 				} else {
 					l.Infof("load input %s from %s ok", name, fp)
@@ -137,7 +137,7 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 	}
 }
 
-func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) error {
+func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creator, fp string) error {
 
 	tbls := []*ast.Table{}
 
@@ -158,7 +158,7 @@ func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creat
 			return err
 		}
 
-		if err := c.addInput(name, input, t); err != nil {
+		if err := c.addInput(name, input, t, fp); err != nil {
 			l.Error("add %s failed: %v", name, err)
 			return err
 		}
