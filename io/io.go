@@ -358,7 +358,7 @@ func doFlush(bodies [][]byte, url string) error {
 			return err
 		}
 
-		l.Debugf("gzip %d->%d", len(body), len(gzbody))
+		l.Debugf("gzip %d/%d", len(body), len(gzbody))
 
 		gzOn = true
 		body = gzbody
