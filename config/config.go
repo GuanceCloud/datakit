@@ -14,7 +14,6 @@ import (
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -26,9 +25,15 @@ var (
 	EnabledTelegrafInputs         = map[string]interface{}{}
 )
 
+type inputInfo struct {
+	input inputs.Input
+	cfg   string
+}
+
 type Config struct {
-	MainCfg      *MainConfig
-	Inputs       map[string][]inputs.Input
+	MainCfg *MainConfig
+	//_Inputs      map[string][]inputs.Input
+	Inputs       map[string][]*inputInfo
 	InputFilters []string
 
 	withinDocker bool
@@ -108,7 +113,6 @@ func init() {
 	datakit.ConfdDir = filepath.Join(datakit.InstallDir, "conf.d")
 	datakit.GRPCDomainSock = filepath.Join(datakit.InstallDir, "datakit.sock")
 
-	datakit.Exit = cliutils.NewSem()
 	Cfg = newDefaultCfg()
 
 	initTelegrafSamples()
@@ -133,7 +137,8 @@ func newDefaultCfg() *Config {
 			cfgPath:          filepath.Join(datakit.InstallDir, "datakit.conf"),
 			TelegrafAgentCfg: defaultTelegrafAgentCfg(),
 		},
-		Inputs: map[string][]inputs.Input{},
+		//Inputs: map[string][]inputs.Input{},
+		Inputs: map[string][]*inputInfo{},
 	}
 }
 
@@ -414,7 +419,7 @@ func sliceContains(name string, list []string) bool {
 	return false
 }
 
-func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) error {
+func (c *Config) addInput(name string, input inputs.Input, table *ast.Table, fp string) error {
 
 	var dur time.Duration
 	var err error
@@ -436,7 +441,7 @@ func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) err
 		l.Debugf("set MaxLifeCheckInterval to %v from %s", dur, name)
 	}
 
-	c.Inputs[name] = append(c.Inputs[name], input)
+	c.Inputs[name] = append(c.Inputs[name], &inputInfo{input: input, cfg: fp})
 
 	return nil
 }
@@ -476,4 +481,25 @@ func ParseDataway(dw string) (*DataWayCfg, error) {
 	}
 
 	return dwcfg, nil
+}
+
+func StartInputs() error {
+	for name, arr := range Cfg.Inputs {
+		for _, ii := range arr {
+
+			switch ii.input.(type) {
+			case inputs.Input:
+				l.Infof("starting input %s ...", name)
+				datakit.WG.Add(1)
+				go func(i inputs.Input, name string) {
+					defer datakit.WG.Done()
+					i.Run()
+					l.Infof("input %s exited", name)
+				}(ii.input, name)
+			default:
+				l.Warn("ignore input %s", name)
+			}
+		}
+	}
+	return nil
 }
