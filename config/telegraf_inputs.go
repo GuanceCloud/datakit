@@ -4,6 +4,8 @@ type telegrafInput struct {
 	name            string
 	Catalog, Sample string
 	enabled         bool
+
+	cfgs []string
 }
 
 var (
