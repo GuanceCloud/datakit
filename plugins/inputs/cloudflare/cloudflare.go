@@ -25,12 +25,15 @@ const (
 	sampleCfg = `
 [[inputs.cloudflare]]
 	# cloudflare login email
+	# required
 	email = ""
 
 	# service zone id
+	# required
 	zone_id = ""
 
 	# api key
+	# required
 	api_key = ""
 
 	# valid time units are "m", "h"
