@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	url2 "net/url"
+	"strconv"
 	"time"
 )
 
@@ -36,6 +37,8 @@ func (wx *WxClient) run() {
 	wx.GetUserPortrait(token)
 	wx.GetDailyVisitTrend(token)
 	wx.GetVisitPage(token)
+	wx.GetJsErrSearch(token,1,100)
+	wx.GetPerformance(token)
 }
 
 func (wx *WxClient) Run() {
@@ -202,6 +205,128 @@ func (wx *WxClient) FormatUserPortraitData(body string, dataType string, timeObj
 	}
 }
 
+func (wx *WxClient) GetJsErrSearch(accessToken string,startPage int64,limit int64) (){
+	queries := requestQueries{
+		"access_token": accessToken,
+	}
+	url := wx.GetUrl(jsErrSearchURL, queries)
+	var cstZone = time.FixedZone("CST", 8*3600)
+	d, _ := time.ParseDuration("-24h")
+	date := time.Now().Add(d).In(cstZone).Format("20060102")
+	start, _ := time.ParseInLocation("20060102 15:04:05", date + " 23:59:59", cstZone)
+	end, _ := time.ParseInLocation("20060102 15:04:05", date + " 00:00:00", cstZone)
+	bodyMap := map[string]interface{}{
+		"start_time": start.Unix(),
+		"end_time":   end.Unix(),
+		"start": startPage,
+		"limit": limit,
+	}
+	requestBody, err := json.Marshal(bodyMap)
+	if err != nil {
+		l.Errorf("wechat request body to json err: %s",err)
+	}
+
+	resp, err := http.Post(url, "application/json; encoding=utf-8", bytes.NewBuffer(requestBody))
+	if err != nil {
+		l.Errorf("wechat http send url:%s body:%s err: %s",url,err,requestBody)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		l.Errorf("failed to io Feed, err: %s", err.Error())
+
+	}
+	defer resp.Body.Close()
+
+	if gjson.Get(string(body),"errcode").Int() != 0 {
+		l.Errorf("jsErrSearch http error : %s",string(body))
+		return
+	}
+
+	for _,result := range gjson.Get(string(body),"results").Array() {
+		tags := map[string]string{
+			"client_version":result.Get("client_version").String(),
+			"app_version":result.Get("app_version").String(),
+			"appid":wx.Appid,
+		}
+		fields := map[string]interface{}{
+			"version_error_cnt": result.Get("version_error_cnt").Int(),
+			"total_error_cnt": result.Get("total_error_cnt").Int(),
+			"__content" : result.Get("errmsg").String(),
+		}
+		timeStamp := result.Get("time").Int()
+		data, err := io.MakeMetric("miniProgramJsErr", tags, fields, time.Unix(timeStamp,0))
+		if err != nil {
+			l.Errorf("failed to make metric, err: %s,metric: %s, tags: %s ,fields: %s", err.Error(),"miniProgramJsErr",tags,fields)
+			return
+		}
+
+		if err := io.NamedFeed(data, io.Logging, inputName); err != nil {
+			l.Errorf("failed to io Feed, err: %s", err.Error())
+			return
+		}
+	}
+
+	if startPage * limit <= gjson.Get(string(body),"total").Int() {
+		startPage ++
+		wx.GetJsErrSearch(accessToken,startPage,limit)
+	}
+}
+
+func (wx *WxClient) GetPerformance(accessToken string) (){
+	queries := requestQueries{
+		"access_token": accessToken,
+	}
+	url := wx.GetUrl(PerformanceURL, queries)
+	var cstZone = time.FixedZone("CST", 8*3600)
+	d, _ := time.ParseDuration("-24h")
+	date := time.Now().Add(d).In(cstZone).Format("20060102")
+	start, _ := time.ParseInLocation("20060102 15:04:05", date + " 23:59:59", cstZone)
+	end, _ := time.ParseInLocation("20060102 15:04:05", date + " 00:00:00", cstZone)
+	for k,v := range Config["cost_time_type"] {
+		key,_ := strconv.Atoi(k)
+		bodyMap := map[string]interface{}{
+			"default_start_time": start.Unix(),
+			"default_end_time":   end.Unix(),
+			"cost_time_type": key,
+		}
+		requestBody, err := json.Marshal(bodyMap)
+		if err != nil {
+			l.Errorf("wechat request body to json err: %s",err)
+		}
+
+		resp, err := http.Post(url, "application/json; encoding=utf-8", bytes.NewBuffer(requestBody))
+		if err != nil {
+			l.Errorf("wechat http send url:%s body:%s err: %s",url,err,requestBody)
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			l.Errorf("failed to io Feed, err: %s", err.Error())
+
+		}
+		defer resp.Body.Close()
+		tags := map[string]string{
+			"cost_time_type":v,
+			"appid":wx.Appid,
+		}
+
+		data := gjson.Get(string(body),"default_time_data").String()
+		for _,v :=range gjson.Get(data,"list").Array() {
+			fields := map[string]interface{}{
+				"cost_time" : v.Get("cost_time").Int(),
+			}
+			line, err := io.MakeMetric("Performance", tags, fields, end)
+			if err != nil {
+				l.Errorf("failed to make metric, err: %s,metric: %s, tags: %s ,fields: %s", err.Error(),"Performance",tags,fields)
+				return
+			}
+
+			if err := io.NamedFeed(line, io.Metric, inputName); err != nil {
+				l.Errorf("failed to io Feed, err: %s", err.Error())
+				return
+			}
+		}
+	}
+}
 
 
 
