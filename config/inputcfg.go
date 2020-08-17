@@ -69,7 +69,7 @@ func (c *Config) LoadConfig() error {
 		}
 	}
 
-	telegrafRawCfg, err := c.loadTelegrafConfigs(availableInputCfgs, c.InputFilters)
+	telegrafRawCfg, err := c.loadTelegrafInputsConfigs(availableInputCfgs, c.InputFilters)
 	if err != nil {
 		return err
 	}
@@ -238,4 +238,62 @@ func initPluginCfgs() {
 			}
 		}
 	}
+}
+
+func EnableInputs(inputlist string) {
+	elems := strings.Split(inputlist, ",")
+	if len(elems) == 0 {
+		return
+	}
+
+	for _, name := range elems {
+		fpath, sample, err := doEnableInput(name)
+		if err != nil {
+			l.Debug("enable input %s failed, ignored", name)
+		}
+
+		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+			l.Error("mkdir failed: %s, ignored", err.Error())
+			continue
+		}
+
+		if err := ioutil.WriteFile(fpath, []byte(sample), os.ModePerm); err != nil {
+			l.Error("write input %s config failed: %s, ignored", name, err.Error())
+			continue
+		}
+		l.Debugf("enable input %s ok", name)
+	}
+}
+
+func doEnableInput(name string) (string, string, error) {
+	if i, ok := TelegrafInputs[name]; ok {
+		return filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf"), i.Sample, nil
+	}
+
+	if c, ok := inputs.Inputs[name]; ok {
+		i := c()
+		sample := i.SampleConfig()
+		catalog := i.Catalog()
+
+		return filepath.Join(datakit.ConfdDir, catalog, name+".conf"), sample, nil
+	}
+
+	return "", "", fmt.Errorf("input %s not found, ignored", name)
+}
+
+func ParseGlobalTags(s string) map[string]string {
+	tags := map[string]string{}
+
+	parts := strings.Split(s, ",")
+	for _, p := range parts {
+		arr := strings.Split(p, "=")
+		if len(arr) != 2 {
+			l.Warnf("invalid global tag: %s, ignored", p)
+			continue
+		}
+
+		tags[arr[0]] = arr[1]
+	}
+
+	return tags
 }
