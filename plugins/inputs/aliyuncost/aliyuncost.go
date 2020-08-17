@@ -13,7 +13,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -200,7 +199,7 @@ func (r *runningInstance) QueryAccountTransactionsWrap(ctx context.Context, requ
 		if err == nil {
 			return
 		}
-		internal.SleepContext(ctx, time.Millisecond*200)
+		datakit.SleepContext(ctx, time.Millisecond*200)
 	}
 
 	return
@@ -213,7 +212,7 @@ func (r *runningInstance) QueryAccountBalanceWrap(ctx context.Context, request *
 		if err == nil {
 			return
 		}
-		internal.SleepContext(ctx, time.Millisecond*200)
+		datakit.SleepContext(ctx, time.Millisecond*200)
 	}
 
 	return
@@ -226,7 +225,7 @@ func (r *runningInstance) QueryBillWrap(ctx context.Context, request *bssopenapi
 		if err == nil {
 			return
 		}
-		internal.SleepContext(ctx, time.Millisecond*200)
+		datakit.SleepContext(ctx, time.Millisecond*200)
 	}
 
 	return
@@ -239,7 +238,7 @@ func (r *runningInstance) QueryInstanceBillWrap(ctx context.Context, request *bs
 		if err == nil {
 			return
 		}
-		internal.SleepContext(ctx, time.Millisecond*200)
+		datakit.SleepContext(ctx, time.Millisecond*200)
 	}
 
 	return
@@ -252,7 +251,7 @@ func (r *runningInstance) QueryOrdersWrap(ctx context.Context, request *bssopena
 		if err == nil {
 			return
 		}
-		internal.SleepContext(ctx, time.Millisecond*200)
+		datakit.SleepContext(ctx, time.Millisecond*200)
 	}
 
 	return
