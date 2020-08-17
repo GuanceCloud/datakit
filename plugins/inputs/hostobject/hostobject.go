@@ -10,7 +10,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -22,7 +21,7 @@ type (
 		Name     string
 		Class    string
 		Desc     string `toml:"description,omitempty"`
-		Interval internal.Duration
+		Interval datakit.Duration
 		Tags     map[string]string `toml:"tags,omitempty"`
 	}
 
@@ -40,10 +39,6 @@ func (_ *Collector) Catalog() string {
 func (_ *Collector) SampleConfig() string {
 	return sampleConfig
 }
-
-// func (_ *Collector) Description() string {
-// 	return "Collect host info and send to Dataflux as object data format."
-// }
 
 func (c *Collector) Run() {
 
@@ -114,11 +109,6 @@ func (c *Collector) Run() {
 		tags["os_type"] = oi.OSType
 		tags["os"] = oi.Release
 
-		//tags["cpu_total"] = fmt.Sprintf("%d", runtime.NumCPU())
-
-		//meminfo, _ := mem.VirtualMemory()
-		//tags["memory_total"] = fmt.Sprintf("%v", meminfo.Total/uint64(1024*1024*1024))
-
 		for k, v := range c.Tags {
 			tags[k] = v
 		}
@@ -149,7 +139,7 @@ func (c *Collector) Run() {
 			moduleLogger.Errorf("%s", err)
 		}
 
-		internal.SleepContext(ctx, c.Interval.Duration)
+		datakit.SleepContext(ctx, c.Interval.Duration)
 	}
 
 }
