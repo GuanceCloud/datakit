@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"golang.org/x/time/rate"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
@@ -31,7 +32,7 @@ type AwsInstance struct {
 	AccessToken  string
 	RegionID     string
 	MetricName   string
-	Interval     internal.Duration
+	Interval     datakit.Duration
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
