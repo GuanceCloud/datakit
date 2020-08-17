@@ -14,7 +14,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -241,7 +240,7 @@ func (r *AwsInstance) run(ctx context.Context) error {
 
 		}
 
-		internal.SleepContext(ctx, r.Interval.Duration)
+		datakit.SleepContext(ctx, r.Interval.Duration)
 	}
 
 }
