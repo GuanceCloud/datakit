@@ -1,98 +1,102 @@
-package config
+package inputs
 
-type telegrafInput struct {
+type TelegrafInput struct {
 	name            string
 	Catalog, Sample string
 
 	enabled bool
 }
 
+func (ti *TelegrafInput) Enabled() bool {
+	return ti.enabled
+}
+
 var (
-	TelegrafInputs = map[string]*telegrafInput{ // Name: Catalog
+	TelegrafInputs = map[string]*TelegrafInput{ // Name: Catalog
 
-		"disk":          &telegrafInput{name: "disk", Catalog: "host"},
-		"cpu":           &telegrafInput{name: "cpu", Catalog: "host"},
-		"diskio":        &telegrafInput{name: "diskio", Catalog: "host"},
-		"mem":           &telegrafInput{name: "mem", Catalog: "host"},
-		"kernel":        &telegrafInput{name: "kernel", Catalog: "host"},
-		"swap":          &telegrafInput{name: "swap", Catalog: "host"},
-		"system":        &telegrafInput{name: "system", Catalog: "host"},
-		`systemd_units`: &telegrafInput{name: "systemd_units", Catalog: "host"},
+		"disk":          &TelegrafInput{name: "disk", Catalog: "host"},
+		"cpu":           &TelegrafInput{name: "cpu", Catalog: "host"},
+		"diskio":        &TelegrafInput{name: "diskio", Catalog: "host"},
+		"mem":           &TelegrafInput{name: "mem", Catalog: "host"},
+		"kernel":        &TelegrafInput{name: "kernel", Catalog: "host"},
+		"swap":          &TelegrafInput{name: "swap", Catalog: "host"},
+		"system":        &TelegrafInput{name: "system", Catalog: "host"},
+		`systemd_units`: &TelegrafInput{name: "systemd_units", Catalog: "host"},
 
-		"iptables":        &telegrafInput{name: "iptables", Catalog: "network"},
-		"ping":            &telegrafInput{name: "ping", Catalog: "network"},
-		"net":             &telegrafInput{name: "net", Catalog: "network"},
-		"net_response":    &telegrafInput{name: "net_response", Catalog: "network"},
-		"http":            &telegrafInput{name: "http", Catalog: "network"},
-		"socket_listener": &telegrafInput{name: "socket_listener", Catalog: "network"},
+		"iptables":        &TelegrafInput{name: "iptables", Catalog: "network"},
+		"ping":            &TelegrafInput{name: "ping", Catalog: "network"},
+		"net":             &TelegrafInput{name: "net", Catalog: "network"},
+		"net_response":    &TelegrafInput{name: "net_response", Catalog: "network"},
+		"http":            &TelegrafInput{name: "http", Catalog: "network"},
+		"socket_listener": &TelegrafInput{name: "socket_listener", Catalog: "network"},
 
-		"nginx":   &telegrafInput{name: "nginx", Catalog: "nginx"},
-		"tengine": &telegrafInput{name: "tengine", Catalog: "tengine"},
-		"apache":  &telegrafInput{name: "apache", Catalog: "apache"},
+		"nginx":   &TelegrafInput{name: "nginx", Catalog: "nginx"},
+		"tengine": &TelegrafInput{name: "tengine", Catalog: "tengine"},
+		"apache":  &TelegrafInput{name: "apache", Catalog: "apache"},
 
-		"mysql":         &telegrafInput{name: "mysql", Catalog: "db"},
-		"postgresql":    &telegrafInput{name: "postgresql", Catalog: "db"},
-		"mongodb":       &telegrafInput{name: "mongodb", Catalog: "db"},
-		"redis":         &telegrafInput{name: "redis", Catalog: "db"},
-		"elasticsearch": &telegrafInput{name: "elasticsearch", Catalog: "db"},
-		"sqlserver":     &telegrafInput{name: "sqlserver", Catalog: "db"},
-		"memcached":     &telegrafInput{name: "memcached", Catalog: "db"},
-		"solr":          &telegrafInput{name: "solr", Catalog: "db"},
-		`influxdb`:      &telegrafInput{name: "influxdb", Catalog: "db"},
+		"mysql":         &TelegrafInput{name: "mysql", Catalog: "db"},
+		"postgresql":    &TelegrafInput{name: "postgresql", Catalog: "db"},
+		"mongodb":       &TelegrafInput{name: "mongodb", Catalog: "db"},
+		"redis":         &TelegrafInput{name: "redis", Catalog: "db"},
+		"elasticsearch": &TelegrafInput{name: "elasticsearch", Catalog: "db"},
+		"sqlserver":     &TelegrafInput{name: "sqlserver", Catalog: "db"},
+		"memcached":     &TelegrafInput{name: "memcached", Catalog: "db"},
+		"solr":          &TelegrafInput{name: "solr", Catalog: "db"},
+		`influxdb`:      &TelegrafInput{name: "influxdb", Catalog: "db"},
 
-		"openldap":  &telegrafInput{name: "openldap", Catalog: "openldap"},
-		"phpfpm":    &telegrafInput{name: "phpfpm", Catalog: "phpfpm"},
-		"activemq":  &telegrafInput{name: "activemq", Catalog: "activemq"},
-		"zookeeper": &telegrafInput{name: "zookeeper", Catalog: "zookeeper"},
-		"ceph":      &telegrafInput{name: "ceph", Catalog: "ceph"},
-		"dns_query": &telegrafInput{name: "dns_query", Catalog: "dns_query"},
+		"openldap":  &TelegrafInput{name: "openldap", Catalog: "openldap"},
+		"phpfpm":    &TelegrafInput{name: "phpfpm", Catalog: "phpfpm"},
+		"activemq":  &TelegrafInput{name: "activemq", Catalog: "activemq"},
+		"zookeeper": &TelegrafInput{name: "zookeeper", Catalog: "zookeeper"},
+		"ceph":      &TelegrafInput{name: "ceph", Catalog: "ceph"},
+		"dns_query": &TelegrafInput{name: "dns_query", Catalog: "dns_query"},
 
-		"docker":     &telegrafInput{name: "docker", Catalog: "docker"},
-		"docker_log": &telegrafInput{name: "docker_log", Catalog: "docker"},
+		"docker":     &TelegrafInput{name: "docker", Catalog: "docker"},
+		"docker_log": &TelegrafInput{name: "docker_log", Catalog: "docker"},
 
-		"rabbitmq":       &telegrafInput{name: "rabbitmq", Catalog: "rabbitmq"},
-		"nsq":            &telegrafInput{name: "nsq", Catalog: "nsq"},
-		"nsq_consumer":   &telegrafInput{name: "nsq_consumer", Catalog: "nsq"},
-		"kafka_consumer": &telegrafInput{name: "kafka_consumer", Catalog: "kafka"},
-		"mqtt_consumer":  &telegrafInput{name: "mqtt_consumer", Catalog: "mqtt"},
+		"rabbitmq":       &TelegrafInput{name: "rabbitmq", Catalog: "rabbitmq"},
+		"nsq":            &TelegrafInput{name: "nsq", Catalog: "nsq"},
+		"nsq_consumer":   &TelegrafInput{name: "nsq_consumer", Catalog: "nsq"},
+		"kafka_consumer": &TelegrafInput{name: "kafka_consumer", Catalog: "kafka"},
+		"mqtt_consumer":  &TelegrafInput{name: "mqtt_consumer", Catalog: "mqtt"},
 
-		"fluentd":   &telegrafInput{name: "fluentd", Catalog: "fluentd"},
-		"haproxy":   &telegrafInput{name: "haproxy", Catalog: "haproxy"},
-		"jenkins":   &telegrafInput{name: "jenkins", Catalog: "jenkins"},
-		"kapacitor": &telegrafInput{name: "kapacitor", Catalog: "kapacitor"},
-		"ntpq":      &telegrafInput{name: "ntpq", Catalog: "ntpq"},
-		"openntpd":  &telegrafInput{name: "openntpd", Catalog: "openntpd"},
-		"processes": &telegrafInput{name: "processes", Catalog: "processes"},
-		"x509_cert": &telegrafInput{name: "x509_cert", Catalog: "tls"},
-		"nats":      &telegrafInput{name: "nats", Catalog: "nats"},
+		"fluentd":   &TelegrafInput{name: "fluentd", Catalog: "fluentd"},
+		"haproxy":   &TelegrafInput{name: "haproxy", Catalog: "haproxy"},
+		"jenkins":   &TelegrafInput{name: "jenkins", Catalog: "jenkins"},
+		"kapacitor": &TelegrafInput{name: "kapacitor", Catalog: "kapacitor"},
+		"ntpq":      &TelegrafInput{name: "ntpq", Catalog: "ntpq"},
+		"openntpd":  &TelegrafInput{name: "openntpd", Catalog: "openntpd"},
+		"processes": &TelegrafInput{name: "processes", Catalog: "processes"},
+		"x509_cert": &TelegrafInput{name: "x509_cert", Catalog: "tls"},
+		"nats":      &TelegrafInput{name: "nats", Catalog: "nats"},
 
-		"win_services":      &telegrafInput{name: "win_services", Catalog: "windows"},
-		"win_perf_counters": &telegrafInput{name: "win_perf_counters", Catalog: "windows"},
+		"win_services":      &TelegrafInput{name: "win_services", Catalog: "windows"},
+		"win_perf_counters": &TelegrafInput{name: "win_perf_counters", Catalog: "windows"},
 
-		"cloudwatch": &telegrafInput{name: "cloudwatch", Catalog: "aws"},
-		"vsphere":    &telegrafInput{name: "vsphere", Catalog: "vmware"},
-		"snmp":       &telegrafInput{name: "snmp", Catalog: "snmp"},
-		"exec":       &telegrafInput{name: "exec", Catalog: "exec"},
-		"syslog":     &telegrafInput{name: "syslog", Catalog: "syslog"},
-		"varnish":    &telegrafInput{name: "varnish", Catalog: "varnish"},
+		"cloudwatch": &TelegrafInput{name: "cloudwatch", Catalog: "aws"},
+		"vsphere":    &TelegrafInput{name: "vsphere", Catalog: "vmware"},
+		"snmp":       &TelegrafInput{name: "snmp", Catalog: "snmp"},
+		"exec":       &TelegrafInput{name: "exec", Catalog: "exec"},
+		"syslog":     &TelegrafInput{name: "syslog", Catalog: "syslog"},
+		"varnish":    &TelegrafInput{name: "varnish", Catalog: "varnish"},
 
-		"kube_inventory": &telegrafInput{name: "kube_inventory", Catalog: "k8s"},
-		"kubernetes":     &telegrafInput{name: "kubernetes", Catalog: "k8s"},
+		"kube_inventory": &TelegrafInput{name: "kube_inventory", Catalog: "k8s"},
+		"kubernetes":     &TelegrafInput{name: "kubernetes", Catalog: "k8s"},
 
-		"jolokia2_agent": &telegrafInput{name: "jolokia2_agent", Catalog: "jolokia2_agent"},
+		"jolokia2_agent": &TelegrafInput{name: "jolokia2_agent", Catalog: "jolokia2_agent"},
 
-		"amqp":          &telegrafInput{name: "amqp", Catalog: "amqp"},
-		"amqp_consumer": &telegrafInput{name: "amqp_consumer", Catalog: "amqp"},
+		"amqp":          &TelegrafInput{name: "amqp", Catalog: "amqp"},
+		"amqp_consumer": &TelegrafInput{name: "amqp_consumer", Catalog: "amqp"},
 
-		"github": &telegrafInput{name: "github", Catalog: "github"},
-		"uwsgi":  &telegrafInput{name: "uwsgi", Catalog: "uwsgi"},
+		"github": &TelegrafInput{name: "github", Catalog: "github"},
+		"uwsgi":  &TelegrafInput{name: "uwsgi", Catalog: "uwsgi"},
 
-		`consul`:     &telegrafInput{name: "consul", Catalog: "consul"},
-		`kibana`:     &telegrafInput{name: "kibana", Catalog: "kibana"},
-		`modbus`:     &telegrafInput{name: "modbus", Catalog: "modbus"},
-		`dotnetclr`:  &telegrafInput{name: "dotnetclr", Catalog: "dotnetclr"},
-		`aspdotnet`:  &telegrafInput{name: "aspdotnet", Catalog: "aspdotnet"},
-		`msexchange`: &telegrafInput{name: "msexchange", Catalog: "msexchange"},
+		`consul`:     &TelegrafInput{name: "consul", Catalog: "consul"},
+		`kibana`:     &TelegrafInput{name: "kibana", Catalog: "kibana"},
+		`modbus`:     &TelegrafInput{name: "modbus", Catalog: "modbus"},
+		`dotnetclr`:  &TelegrafInput{name: "dotnetclr", Catalog: "dotnetclr"},
+		`aspdotnet`:  &TelegrafInput{name: "aspdotnet", Catalog: "aspdotnet"},
+		`msexchange`: &TelegrafInput{name: "msexchange", Catalog: "msexchange"},
 	}
 )
 
