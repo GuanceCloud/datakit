@@ -1,32 +1,33 @@
 package trace
 
 import (
-	"io"
-	"fmt"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"sync"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace/skywalking/v2/common"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace/skywalking/v2/register"
 	swV2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace/skywalking/v2/language-agent-v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace/skywalking/v2/register"
 )
 
 type SkywalkingServerV2         struct {}
 type SkywalkingRegisterServerV2 struct {}
 type SkywalkingPingServerV2     struct {}
 
-var regService     sync.Map
-var regServiceRev  sync.Map
-var regEndpoint    sync.Map
-var regEndpointRev sync.Map
+var regService     sync.Map   //key:serviceName value: serviceID
+var regServiceRev  sync.Map   //key:serviceID value: serviceName
+var regInstance    sync.Map   //key:uuid value:serviceID
+var regEndpoint    sync.Map   //key:endpointName value: endpointID
+var regEndpointRev sync.Map   //key:endpointID value: endpointName
 
 var ServiceIdGen  = GenGlobalId(0)
 var NetAddrIdGen  = GenGlobalId(10000)
 var InstanceIdGen = GenGlobalId(20000)
 var EndpointIdGen = GenGlobalId(30000)
-
+//a
 
 func (s *SkywalkingServerV2) Collect(tsc swV2.TraceSegmentReportService_CollectServer) error {
 	cmd := new(common.Commands)
@@ -152,11 +153,17 @@ func (s *SkywalkingRegisterServerV2) DoServiceRegister(ctx context.Context, r *r
 }
 
 func (s *SkywalkingRegisterServerV2) DoServiceInstanceRegister(ctx context.Context, r *register.ServiceInstances) (*register.ServiceInstanceRegisterMapping, error) {
+	var ok bool
+	var serInstanceID int32
 	regMap := register.ServiceInstanceRegisterMapping{}
+
 	for _, sin := range r.Instances {
 		uuid := sin.InstanceUUID
 		sid  := sin.ServiceId
-		serInstanceID := InstanceIdGen()
+		if _, ok = regInstance.Load(uuid); !ok{
+			serInstanceID = InstanceIdGen()
+			regInstance.Store(uuid, sid)
+		}
 		kp := &common.KeyIntValuePair{Key:uuid, Value:serInstanceID}
 		regMap.ServiceInstances = append(regMap.ServiceInstances, kp)
 		log.Infof("DoServiceInstanceRegister serviceID: %v uuid: %v instanceID: %v\n", sid, uuid, serInstanceID)
@@ -215,8 +222,20 @@ func (s *SkywalkingRegisterServerV2)DoServiceAndNetworkAddressMappingRegister(ct
 }
 
 func (s *SkywalkingPingServerV2) DoPing(ctx context.Context, r *register.ServiceInstancePingPkg) (*common.Commands, error) {
-	log.Infof("SkywalkingPing %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
-	return  new(common.Commands), nil
+	cmds := &common.Commands{}
+	if _, ok := regInstance.Load(r.ServiceInstanceUUID); !ok {
+		v := r.ServiceInstanceUUID[0:8]+"-"+r.ServiceInstanceUUID[8:12]+"-"+r.ServiceInstanceUUID[12:16]+"-"+r.ServiceInstanceUUID[16:20]+"-"+r.ServiceInstanceUUID[20:32]
+		cmd := &common.Command{Command:"ServiceMetadataReset"}
+		kv  := &common.KeyStringValuePair{Key:"SerialNumber",
+			//Value:r.ServiceInstanceUUID
+			Value:v}
+		cmd.Args      = append(cmd.Args, kv)
+		cmds.Commands = append(cmds.Commands, cmd)
+		log.Errorf("Ping %v, %v, %v", r.ServiceInstanceId, v, r.Time)
+	} else {
+		log.Infof("Ping %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
+	}
+	return  cmds, nil
 }
 
 func GenGlobalId(startCnt int32) func () int32 {
