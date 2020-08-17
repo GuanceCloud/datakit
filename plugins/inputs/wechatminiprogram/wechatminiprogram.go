@@ -268,7 +268,7 @@ func (wx *WxClient) GetJsErrSearch(accessToken string,startPage int64,limit int6
 
 	if startPage * limit <= gjson.Get(string(body),"total").Int() {
 		startPage ++
-		wx.getJsErrSearch(accessToken,startPage,limit)
+		wx.GetJsErrSearch(accessToken,startPage,limit)
 	}
 }
 
