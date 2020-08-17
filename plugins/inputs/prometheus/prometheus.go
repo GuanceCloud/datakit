@@ -27,7 +27,7 @@ const (
 
 var (
 	promAgent *Prometheus
-	name      = "prometheus"
+	inputName = "prometheus"
 
 	sampleConfig = `
   ## An array of urls to scrape metrics from.
@@ -350,7 +350,7 @@ func (p *Prometheus) gatherURL(u URLAndAddress) error {
 		}
 
 		fields, _ := metric.Fields()
-		io.NamedFeedEx(name, io.Metric, metric.Name(), tags, fields, metric.Time())
+		io.NamedFeedEx(inputName, io.Metric, metric.Name(), tags, fields, metric.Time())
 
 		// switch metric.Type() {
 		// case telegraf.Counter:
@@ -415,7 +415,7 @@ func (p *Prometheus) Run() {
 }
 
 func init() {
-	inputs.Add(name, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		promAgent = &Prometheus{
 			ResponseTimeout: internal.Duration{Duration: time.Second * 3},
 			kubernetesPods:  map[string]URLAndAddress{},
