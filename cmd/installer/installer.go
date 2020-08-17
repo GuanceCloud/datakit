@@ -15,16 +15,18 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"text/template"
 
 	"github.com/dustin/go-humanize"
 	"github.com/influxdata/toml"
 	"github.com/kardianos/service"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/timezone"
 )
 
 var (
@@ -48,10 +50,43 @@ var (
 
 	l *logger.Logger
 
+	/////////////////////////////////////////////////////////////////////////////////////////////
+	// We have to add these inputs manually here, especially datakit's inputs,
+	// because all datakit's inputs are plugable, while not importing:
+	//
+	// 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	//
+	// the `inputs.Inputs' list is empty, so we can't get the desired input's info.
+	//
+	// But when we import `all' into the installer program, the binary will increase
+	// rapidly to about 100+MB, so we only add these minimal info here, just for a small
+	// installer, and easy to download.
+	/////////////////////////////////////////////////////////////////////////////////////////////
+	inputsAvailableDuringInstall = map[string][]string{
+		// telegraf inputs
+		"cpu":               []string{"host", config.TelegrafInputs["cpu"].Sample}, // FIXME: Mac works ok?
+		"mem":               []string{"host", config.TelegrafInputs["mem"].Sample},
+		"disk":              []string{"host", config.TelegrafInputs["disk"].Sample},
+		"net":               []string{"network", config.TelegrafInputs["net"].Sample},
+		"win_perf_counters": []string{"windows", config.TelegrafInputs["win_perf_counters"].Sample},
+		"processes":         []string{"processes", config.TelegrafInputs["processes"].Sample},
+		"swap":              []string{"swap", config.TelegrafInputs["swap"].Sample},
+
+		// datakit inputs
+		"timezone": []string{"host", timezone.Sample},
+	}
+)
+
+var (
 	flagUpgrade      = flag.Bool("upgrade", false, ``)
 	flagDataway      = flag.String("dataway", "", `address of dataway(http://IP:Port/v1/write/metric), port default 9528`)
 	flagInfo         = flag.Bool("info", false, "show installer info")
 	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
+
+	flagEnableInputs = flag.String("enable-inputs", "", `default enable inputs(comma splited, example: cpu,mem,disk)`)
+	flagDatakitID    = flag.String("datakit-id", "", `specify DataKit ID, example: prod-env-datakit`)
+	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=$datakit_hostname,from=$datakit_id`)
+	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./agent-%s-%s.tar.gz",
@@ -60,8 +95,12 @@ var (
 )
 
 func main() {
+	lopt := logger.OPT_DEFAULT | logger.OPT_COLOR
+	if runtime.GOOS == "windows" {
+		lopt = logger.OPT_DEFAULT // disable color on windows(some color not working under windows)
+	}
 
-	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_DEFAULT|logger.OPT_COLOR)
+	logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
 	l = logger.SLogger("installer")
 
 	flag.Parse()
@@ -110,11 +149,16 @@ func main() {
 
 	if *flagUpgrade { // upgrade new version
 
-		l.Info("Upgrading...")
+		l.Infof("Upgrading to version %s...", DataKitVersion)
 		migrateLagacyDatakit()
 
 	} else { // install new datakit
 
+		l.Infof("Installing version %s...", DataKitVersion)
+
+		uninstallDataKitService(dkservice) // uninstall service if installed before
+
+		// prepare dataway info
 		var dwcfg *config.DataWayCfg
 		if *flagDataway == "" {
 			for {
@@ -129,17 +173,32 @@ func main() {
 			}
 		} else {
 			dwcfg, err = config.ParseDataway(*flagDataway)
-
 			if err != nil {
 				l.Fatal(err)
 			}
 		}
 
-		uninstallDataKitService(dkservice) // uninstall service if installed before
+		config.Cfg.MainCfg.DataWay = dwcfg
 
-		if err := config.InitCfg(dwcfg); err != nil {
+		// accept any install options
+		if *flagGlobalTags != "" {
+			config.Cfg.MainCfg.GlobalTags = config.ParseGlobalTags(*flagGlobalTags)
+		}
+
+		config.Cfg.MainCfg.HTTPBind = fmt.Sprintf("0.0.0.0:%d", *flagPort)
+
+		if *flagDatakitID != "" {
+			config.Cfg.MainCfg.UUID = *flagDatakitID
+		} else {
+			config.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
+		}
+
+		// build datakit main config
+		if err := config.InitCfg(); err != nil {
 			l.Fatalf("failed to init datakit main config: %s", err.Error())
 		}
+
+		enableInputs(*flagEnableInputs)
 
 		l.Infof("installing service %s...", ServiceName)
 		if err := installDatakitService(dkservice); err != nil {
@@ -156,6 +215,13 @@ func main() {
 		l.Info(":) Upgrade Success!")
 	} else {
 		l.Info(":) Install Success!")
+	}
+
+	localIP, err := datakit.LocalIP()
+	if err != nil {
+		l.Info("get local IP failed: %s", err.Error())
+	} else {
+		fmt.Printf("\n\tVisit http://%s:%d/stats to see DataKit running status.\n\n", localIP, *flagPort)
 	}
 }
 
@@ -197,7 +263,7 @@ Golang Version: %s
 		installDir = `/usr/local/cloudcare/dataflux/` + ServiceName
 
 	default:
-		// TODO
+		// TODO: more os/arch support
 	}
 }
 
@@ -401,19 +467,12 @@ func updateLagacyConfig(dir string) {
 		maincfg.DataWay = dwcfg
 	}
 
-	fd, err := os.OpenFile(filepath.Join(dir, "datakit.conf"), os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
+	cfgdata, err = toml.Marshal(maincfg)
 	if err != nil {
 		l.Fatal(err)
 	}
 
-	defer fd.Close()
-
-	tmp := template.New("")
-	tmp, err = tmp.Parse(config.MainConfigTemplate)
-	if err != nil {
-		l.Fatal(err)
-	}
-	if err := tmp.Execute(fd, maincfg); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(dir, "datakit.conf"), cfgdata, os.ModePerm); err != nil {
 		l.Fatal(err)
 	}
 }
@@ -473,5 +532,42 @@ func migrateLagacyDatakit() {
 	l.Infof("installing service %s...", ServiceName)
 	if err := installDatakitService(dkservice); err != nil {
 		l.Warnf("fail to register service %s: %s, ignored", ServiceName, err.Error())
+	}
+}
+
+func enableInputs(inputlist string) {
+	elems := strings.Split(inputlist, ",")
+	if len(elems) == 0 {
+		return
+	}
+
+	for _, name := range elems {
+		if sample, ok := inputsAvailableDuringInstall[name]; ok {
+			if len(sample) != 2 {
+				l.Warnf("no config sample available for input %s", name)
+				continue
+			}
+
+			fpath := filepath.Join(datakit.ConfdDir, sample[0], name+".conf")
+			if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+				l.Error("mkdir failed: %s, ignored", err.Error())
+				continue
+			}
+
+			cfgdata, err := config.Cfg.BuildInputCfg([]byte(sample[1]))
+			if err != nil {
+				l.Error("buld config for %s failed: %s, ignored", name, err.Error())
+				continue
+			}
+
+			if err := ioutil.WriteFile(fpath, []byte(cfgdata), os.ModePerm); err != nil {
+				l.Error("write input %s config failed: %s, ignored", name, err.Error())
+				continue
+			}
+
+			l.Debugf("enable input %s ok", name)
+		} else {
+			l.Debugf("input %s not enabled", name)
+		}
 	}
 }
