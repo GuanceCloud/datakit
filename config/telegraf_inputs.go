@@ -18,6 +18,8 @@ var (
 		"system":        &telegrafInput{name: "system", Catalog: "host"},
 		`systemd_units`: &telegrafInput{name: "systemd_units", Catalog: "host"},
 
+		"nvidia_smi": &telegrafInput{name: "nvidia_smi", Catalog: "nvidia"},
+
 		"iptables":        &telegrafInput{name: "iptables", Catalog: "network"},
 		"ping":            &telegrafInput{name: "ping", Catalog: "network"},
 		"net":             &telegrafInput{name: "net", Catalog: "network"},
@@ -37,6 +39,7 @@ var (
 		"sqlserver":     &telegrafInput{name: "sqlserver", Catalog: "db"},
 		"memcached":     &telegrafInput{name: "memcached", Catalog: "db"},
 		"solr":          &telegrafInput{name: "solr", Catalog: "db"},
+		"clickhouse":    &telegrafInput{name: "clickhouse", Catalog: "db"},
 		`influxdb`:      &telegrafInput{name: "influxdb", Catalog: "db"},
 
 		"openldap":  &telegrafInput{name: "openldap", Catalog: "openldap"},
@@ -399,10 +402,10 @@ urls = ["http://agent:8080/jolokia"]
  brokers = ["localhost:9092"]
 
 # Topics to consume.
- topics = ["telegraf"]
+topics = ["telegraf"]
 
 # When set this tag will be added to all metrics with the topic as the value.
- topic_tag = ""
+# topic_tag = ""
 
 # Optional Client id
 #client_id = "datakit-agent"
@@ -410,7 +413,7 @@ urls = ["http://agent:8080/jolokia"]
 # Set the minimal supported Kafka version.  Setting this enables the use of new
 # Kafka features and APIs.  Must be 0.10.2.0 or greater.
 #   ex: version = "1.1.0"
- version = ""
+# version = ""
 
 # Optional TLS Config
 #tls_ca = "/etc/telegraf/ca.pem"
@@ -421,17 +424,17 @@ urls = ["http://agent:8080/jolokia"]
 
 # SASL authentication credentials.  These settings should typically be used
 # with TLS encryption enabled using the "enable_tls" option.
- sasl_username = "kafka"
- sasl_password = "secret"
+# sasl_username = "kafka"
+# sasl_password = "secret"
 
 # SASL protocol version.  When connecting to Azure EventHub set to 0.
- sasl_version = 1
+# sasl_version = 1
 
 # Name of the consumer group.
- consumer_group = "telegraf_metrics_consumers"
+# consumer_group = "telegraf_metrics_consumers"
 
 # Initial offset position; one of "oldest" or "newest".
- offset = "oldest"
+# offset = "oldest"
 
 # Consumer group partition assignment strategy; one of "range", "roundrobin" or "sticky".
  balance_strategy = "range"
@@ -448,7 +451,7 @@ urls = ["http://agent:8080/jolokia"]
 # output metric_batch_size is 1000, setting this to 100 will ensure that a
 # full batch is collected and the write is triggered immediately without
 # waiting until the next flush_interval.
- max_undelivered_messages = 1000
+# max_undelivered_messages = 1000
 
 # Data format to consume.
 # Each data format has its own unique set of configuration options, read
@@ -1264,7 +1267,10 @@ service_names = [
   ## If true, collect raw CPU time metrics.
   collect_cpu_time = false
  ## If true, compute and report the sum of all non-idle CPU states.
-  report_active = false`
+  report_active = false
+	[inputs.cpu.tags]
+		host = '{{.Hostname}}'
+	`
 
 	TelegrafInputs[`disk`].Sample = `
 #Read metrics about disk usage by mount point
@@ -1274,7 +1280,11 @@ service_names = [
  # mount_points = ["/"]
 
  ## Ignore mount points by filesystem type.
-  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]`
+  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
+
+	[inputs.disk.tags]
+	host = '{{.Hostname}}'
+	`
 
 	TelegrafInputs[`diskio`].Sample = `
 # Read metrics about disk IO by device
@@ -1303,21 +1313,35 @@ service_names = [
   # present for the device is used as the device name tag.
   # The typical use case is for LVM volumes, to get the VG/LV name instead of
   # the near-meaningless DM-0 name.
-   name_templates = ["$ID_FS_LABEL","$DM_VG_NAME/$DM_LV_NAME"]`
+   name_templates = ["$ID_FS_LABEL","$DM_VG_NAME/$DM_LV_NAME"]
+
+	[inputs.diskio.tags]
+	host = '{{.Hostname}}'
+	 `
 
 	TelegrafInputs[`kernel`].Sample = `
 # Get kernel statistics from /proc/stat
 [[inputs.kernel]]
  # no configuration
+[inputs.kernel.tags]
+host = '{{.Hostname}}'
 
  # Get kernel statistics from /proc/vmstat
  [[inputs.kernel_vmstat]]
-   # no configuration`
+   # no configuration
+
+	[inputs.kernel_vmstat.tags]
+	host = '{{.Hostname}}'
+	 `
 
 	TelegrafInputs[`mem`].Sample = `
 # Read metrics about memory usage
 [[inputs.mem]]
-  # no configuration`
+  # no configuration
+
+	[inputs.mem.tags]
+	host = '{{.Hostname}}'
+	`
 
 	TelegrafInputs[`processes`].Sample = `
 # Get the number of processes and group them by status
@@ -1366,13 +1390,30 @@ pid_file = "/var/run/nginx.pid"
 	TelegrafInputs[`swap`].Sample = `
 # Read metrics about swap memory usage
 [[inputs.swap]]
-  # no configuration`
+  # no configuration
+
+	[inputs.swap.tags]
+	host = '{{.Hostname}}'
+	`
 
 	TelegrafInputs[`system`].Sample = `
 # Read metrics about system load & uptime
 [[inputs.system]]
   ## Uncomment to remove deprecated metrics.
-  fielddrop = ["uptime_format"]`
+  fielddrop = ["uptime_format"]
+
+	[inputs.system.tags]
+	host = '{{.Hostname}}'
+	`
+
+	TelegrafInputs[`nvidia_smi`].Sample = `
+# Pulls statistics from nvidia GPUs attached to the host
+[[inputs.nvidia_smi]]
+  ## Optional: path to nvidia-smi binary, defaults to $PATH via exec.LookPath
+  # bin_path = "/usr/bin/nvidia-smi"
+
+  ## Optional: timeout for GPU polling
+  # timeout = "5s"`
 
 	TelegrafInputs[`activemq`].Sample = `
  # Gather ActiveMQ metrics
@@ -2304,15 +2345,86 @@ pid_file = "/var/run/nginx.pid"
    # username = "username"
    # password = "pa$$word"`
 
+	TelegrafInputs[`clickhouse`].Sample = `
+# Read metrics from one or many ClickHouse servers
+[[inputs.clickhouse]]
+  ## Username for authorization on ClickHouse server
+  ## example: username = "default"
+  username = "default"
+
+  ## Password for authorization on ClickHouse server
+  ## example: password = "super_secret"
+
+  ## HTTP(s) timeout while getting metrics values
+  ## The timeout includes connection time, any redirects, and reading the response body.
+  ##   example: timeout = 1s
+  # timeout = 5s
+
+  ## List of servers for metrics scraping
+  ## metrics scrape via HTTP(s) clickhouse interface
+  ## https://clickhouse.tech/docs/en/interfaces/http/
+  ##    example: servers = ["http://127.0.0.1:8123","https://custom-server.mdb.yandexcloud.net"]
+  servers         = ["http://127.0.0.1:8123"]
+
+  ## If "auto_discovery"" is "true" plugin tries to connect to all servers available in the cluster
+  ## with using same "user:password" described in "user" and "password" parameters
+  ## and get this server hostname list from "system.clusters" table
+  ## see
+  ## - https://clickhouse.tech/docs/en/operations/system_tables/#system-clusters
+  ## - https://clickhouse.tech/docs/en/operations/server_settings/settings/#server_settings_remote_servers
+  ## - https://clickhouse.tech/docs/en/operations/table_engines/distributed/
+  ## - https://clickhouse.tech/docs/en/operations/table_engines/replication/#creating-replicated-tables
+  ##    example: auto_discovery = false
+  # auto_discovery = true
+
+  ## Filter cluster names in "system.clusters" when "auto_discovery" is "true"
+  ## when this filter present then "WHERE cluster IN (...)" filter will apply
+  ## please use only full cluster names here, regexp and glob filters is not allowed
+  ## for "/etc/clickhouse-server/config.d/remote.xml"
+  ## <yandex>
+  ##  <remote_servers>
+  ##    <my-own-cluster>
+  ##        <shard>
+  ##          <replica><host>clickhouse-ru-1.local</host><port>9000</port></replica>
+  ##          <replica><host>clickhouse-ru-2.local</host><port>9000</port></replica>
+  ##        </shard>
+  ##        <shard>
+  ##          <replica><host>clickhouse-eu-1.local</host><port>9000</port></replica>
+  ##          <replica><host>clickhouse-eu-2.local</host><port>9000</port></replica>
+  ##        </shard>
+  ##    </my-onw-cluster>
+  ##  </remote_servers>
+  ##
+  ## </yandex>
+  ##
+  ## example: cluster_include = ["my-own-cluster"]
+  # cluster_include = []
+
+  ## Filter cluster names in "system.clusters" when "auto_discovery" is "true"
+  ## when this filter present then "WHERE cluster NOT IN (...)" filter will apply
+  ##    example: cluster_exclude = ["my-internal-not-discovered-cluster"]
+  # cluster_exclude = []
+
+  ## Optional TLS Config
+  # tls_ca = "/etc/telegraf/ca.pem"
+  # tls_cert = "/etc/telegraf/cert.pem"
+  # tls_key = "/etc/telegraf/key.pem"
+  ## Use TLS but skip chain & host verification
+  # insecure_skip_verify = false`
+
 	TelegrafInputs[`systemd_units`].Sample = `
 [[inputs.systemd_units]]
-  ## Set timeout for systemctl execution
-  # timeout = "1s"
-  #
-  ## Filter for a specific unit type, default is "service", other possible
-  ## values are "socket", "target", "device", "mount", "automount", "swap",
-  ## "timer", "path", "slice" and "scope ":
-  # unittype = "service"`
+  # Set timeout for systemctl execution
+  timeout = "1s"
+
+  # Filter for a specific unit type, default is "service", other possible
+  # values are "socket", "target", "device", "mount", "automount", "swap",
+  # "timer", "path", "slice" and "scope ":
+  unittype = "service"
+
+	[inputs.systemd_units.tags]
+	host = '{{.Hostname}}'
+	`
 
 	TelegrafInputs[`influxdb`].Sample = `
 # Read InfluxDB-formatted JSON metrics from one or more HTTP endpoints
