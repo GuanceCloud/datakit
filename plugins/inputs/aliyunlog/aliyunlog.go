@@ -19,9 +19,10 @@ import (
 	consumerLibrary "github.com/aliyun/aliyun-log-go-sdk/consumer"
 )
 
-const inputName = `aliyunlog`
-
-var moduleLogger *logger.Logger
+var (
+	inputName    = `aliyunlog`
+	moduleLogger *logger.Logger
+)
 
 type runningProject struct {
 	inst *ConsumerInstance
