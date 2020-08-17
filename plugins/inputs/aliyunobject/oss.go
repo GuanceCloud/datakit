@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -31,7 +31,7 @@ const (
 type Oss struct {
 	Tags           map[string]string `toml:"tags,omitempty"`
 	Buckets        []string          `toml:"buckets,omitempty"`
-	ExcludeBuckets []string          `toml:"exclude_bukets,omitempty"`
+	ExcludeBuckets []string          `toml:"exclude_buckets,omitempty"`
 }
 
 func (o *Oss) run(ag *objectAgent) {
@@ -51,7 +51,7 @@ func (o *Oss) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -91,7 +91,7 @@ func (o *Oss) run(ag *objectAgent) {
 			marker = lsRes.NextMarker
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
