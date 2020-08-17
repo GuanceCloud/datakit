@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -18,8 +17,6 @@ import (
 const (
 	inputName = "flink"
 
-	prefixStr = "flink_"
-
 	sampleCfg = `
 [[inputs.flink]]
 	db = "flink"
@@ -31,7 +28,7 @@ const (
 var (
 	l *logger.Logger
 
-	DBList = Flinks{m: make(map[string]map[string]string), mut: &sync.RWMutex{}}
+	dbList = Flinks{m: make(map[string]map[string]string), mut: &sync.RWMutex{}}
 )
 
 func init() {
@@ -57,10 +54,22 @@ func (f *Flink) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("flink input started...")
 
-	DBList.Store(f.DB, f.Tags)
+	dbList.Store(f.DB, f.Tags)
 }
 
 func Handle(w http.ResponseWriter, r *http.Request) {
+	db, ok := r.URL.Query()["db"]
+	if !ok || len(db) == 0 {
+		l.Errorf("not found url param of 'db'")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if _, ok := dbList.Load(db[0]); !ok {
+		l.Errorf("not open db %s", db[0])
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -95,11 +104,10 @@ func extract(db string, prec string, body []byte) error {
 	var fields = make(map[string]interface{}, len(pts))
 	for _, pt := range pts {
 		ptFields, _ := pt.Fields()
-		key := strings.ReplaceAll(fmt.Sprintf("%s%s", prefixStr, pt.Name()), "_", ".")
-		fields[key] = ptFields["value"]
+		fields[string(pt.Name())] = ptFields["value"]
 	}
 
-	tags, _ := DBList.Load(db)
+	tags, _ := dbList.Load(db)
 	data, err := io.MakeMetric(db, tags, fields, pts[0].Time())
 	if err != nil {
 		return err
