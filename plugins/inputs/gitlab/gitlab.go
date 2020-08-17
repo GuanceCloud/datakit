@@ -43,7 +43,7 @@ type GitlabParam struct {
 }
 
 const (
-	name               = "gitlab"
+	inputName          = "gitlab"
 	gitlabConfigSample = `### You need to configure an [[inputs.gitlab]] for each gitlab to be monitored.
 ### active     : whether to gather gitlab data.
 ### host       : gitlab service url.
@@ -167,7 +167,7 @@ func PathExists(path string) bool {
 }
 
 func init() {
-	inputs.Add(name, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		git := &Gitlab{}
 		return git
 	})

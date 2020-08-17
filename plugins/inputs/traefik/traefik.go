@@ -50,9 +50,9 @@ type TraefikParam struct {
 }
 
 var (
-	name = "traefik"
+	inputName = "traefik"
 
-	defaultMetricName   = name
+	defaultMetricName   = inputName
 	defaultInterval     = "60s"
 	traefikConfigSample = `
 ### You need to configure an [[inputs.traefik]] for each traefik to be monitored.
@@ -69,18 +69,7 @@ var (
 #	[inputs.traefik.tags]
 #		tag1 = "tag1"
 #		tag2 = "tag2"
-#		tag3 = "tag3"
-
-#[[inputs.traefik]]
-#	interval    = "60s"
-#	active      = true
-#	url         = "http://127.0.0.1:8080/health"
-#	metricsName = "traefik"
-#	[inputs.traefik.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
-`
+#		tag3 = "tag3"`
 )
 
 func (t *Traefik) SampleConfig() string {
@@ -118,7 +107,7 @@ func (p *TraefikParam) gather() {
 
 	switch p.input.Interval.(type) {
 	case int64:
-		d = time.Duration(p.input.Interval.(int64))*time.Second
+		d = time.Duration(p.input.Interval.(int64)) * time.Second
 	case string:
 		d, err = time.ParseDuration(p.input.Interval.(string))
 		if err != nil {
@@ -161,7 +150,7 @@ func (p *TraefikParam) getMetrics() (err error) {
 	if err != nil || resp.StatusCode != 200 {
 		fields["can_connect"] = false
 		pt, _ := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed(pt, io.Metric, name)
+		p.output.IoFeed(pt, io.Metric, inputName)
 		return
 	}
 	defer resp.Body.Close()
@@ -189,7 +178,7 @@ func (p *TraefikParam) getMetrics() (err error) {
 	if err != nil {
 		return
 	}
-	err = p.output.IoFeed(pt, io.Metric, name)
+	err = p.output.IoFeed(pt, io.Metric, inputName)
 	return
 }
 
@@ -206,7 +195,7 @@ func getReadableTimeStr(d time.Duration) string {
 }
 
 func init() {
-	inputs.Add("traefik", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		p := &Traefik{}
 		return p
 	})
