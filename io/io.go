@@ -28,8 +28,6 @@ var (
 	inputCh    = make(chan *iodata, 1024)
 	inputstats = map[string]*InputsStat{}
 
-	crashCh = make(chan string, 32)
-
 	qstatsCh = make(chan *qstats)
 
 	cache = map[string][][]byte{
@@ -72,10 +70,6 @@ type InputsStat struct {
 
 type qstats struct {
 	ch chan []*InputsStat
-}
-
-func AddCrash(name string) {
-	crashCh <- name
 }
 
 func ChanInfo() (int, int) {
@@ -250,18 +244,6 @@ func startIO() {
 
 			case <-tick.C:
 				flush(cache)
-
-			case name := <-crashCh:
-
-				stat, ok := inputstats[name]
-				if !ok {
-					inputstats[name] = &InputsStat{
-						Name:     name,
-						CrashCnt: 1,
-					}
-				} else {
-					stat.CrashCnt++
-				}
 
 			case <-datakit.Exit.Wait():
 				l.Info("io exit on exit")
