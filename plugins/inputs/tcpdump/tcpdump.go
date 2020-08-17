@@ -35,6 +35,7 @@ type Tcpdump struct {
 }
 
 const (
+	inputName    = `tcpdump`
 	configSample = `
 #[[inputs.tcpdump]]
 #  ## 采集的频度，最小粒度5m
@@ -109,7 +110,7 @@ func (o *Tcpdump) Run() {
 }
 
 func init() {
-	inputs.Add("tcpdump", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &Tcpdump{}
 	})
 }
