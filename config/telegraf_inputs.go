@@ -18,6 +18,8 @@ var (
 		"system":        &telegrafInput{name: "system", Catalog: "host"},
 		`systemd_units`: &telegrafInput{name: "systemd_units", Catalog: "host"},
 
+		"nvidia_smi": &telegrafInput{name: "nvidia_smi", Catalog: "nvidia"},
+
 		"iptables":        &telegrafInput{name: "iptables", Catalog: "network"},
 		"ping":            &telegrafInput{name: "ping", Catalog: "network"},
 		"net":             &telegrafInput{name: "net", Catalog: "network"},
@@ -1403,6 +1405,15 @@ pid_file = "/var/run/nginx.pid"
 	[inputs.system.tags]
 	host = '{{.Hostname}}'
 	`
+
+	TelegrafInputs[`nvidia_smi`].Sample = `
+# Pulls statistics from nvidia GPUs attached to the host
+[[inputs.nvidia_smi]]
+  ## Optional: path to nvidia-smi binary, defaults to $PATH via exec.LookPath
+  # bin_path = "/usr/bin/nvidia-smi"
+
+  ## Optional: timeout for GPU polling
+  # timeout = "5s"`
 
 	TelegrafInputs[`activemq`].Sample = `
  # Gather ActiveMQ metrics
