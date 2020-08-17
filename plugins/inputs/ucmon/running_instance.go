@@ -8,7 +8,7 @@ import (
 	"github.com/ucloud/ucloud-sdk-go/ucloud/auth"
 	"golang.org/x/time/rate"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -60,7 +60,7 @@ func (r *ucInstance) run(ctx context.Context) error {
 		}
 		useage := time.Now().Sub(t)
 		if useage < 5*time.Minute {
-			internal.SleepContext(ctx, 5*time.Minute-useage)
+			datakit.SleepContext(ctx, 5*time.Minute-useage)
 		}
 	}
 }
