@@ -4,7 +4,7 @@ import "github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
 
 const (
 	configSample = `
-#[[rdsslowlog]]
+#[[inputs.aliyunrdsslowlog]]
 #  ## 阿里云ak信息
 #  accessKeyId = ''
 #  accessKeySecret = ''
@@ -15,7 +15,7 @@ const (
 #  product = ["mysql", "sqlserver"]
 #  ## 指标名，默认值(aliyun_rds_slow_log)
 #  metricName = ""
-#  
+#
 `
 )
 
