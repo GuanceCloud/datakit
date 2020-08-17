@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"golang.org/x/time/rate"
 )
 
@@ -35,7 +35,7 @@ const (
 type (
 	azureMetric struct {
 		MetricName string
-		Interval   internal.Duration
+		Interval   datakit.Duration
 	}
 
 	azureResource struct {
