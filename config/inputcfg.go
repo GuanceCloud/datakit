@@ -19,7 +19,7 @@ import (
 func (c *Config) LoadConfig() error {
 
 	// detect same-name input name between datakit and telegraf
-	for k, _ := range TelegrafInputs {
+	for k, _ := range inputs.TelegrafInputs {
 		if _, ok := inputs.Inputs[k]; ok {
 			panic(fmt.Sprintf("same name input %s within datakit and telegraf", k))
 		}
@@ -63,6 +63,7 @@ func (c *Config) LoadConfig() error {
 	}
 
 	// reset inputs(for reloading)
+	l.Debug("reset inputs")
 	inputs.ResetInputs()
 
 	for name, creator := range inputs.Inputs {
@@ -161,7 +162,7 @@ func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creat
 			return err
 		}
 
-		if err := c.addInput(name, input, t, fp); err != nil {
+		if err := inputs.AddInput(name, input, t, fp); err != nil {
 			l.Error("add %s failed: %v", name, err)
 			return err
 		}
@@ -213,7 +214,7 @@ func initPluginSamples() {
 	}
 
 	// create telegraf input plugin's configures
-	for name, input := range TelegrafInputs {
+	for name, input := range inputs.TelegrafInputs {
 
 		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf.sample")
 		old := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf")
@@ -235,7 +236,7 @@ func initPluginSamples() {
 			l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
 		}
 
-		if input, ok := TelegrafInputs[name]; ok {
+		if input, ok := inputs.TelegrafInputs[name]; ok {
 			if err := ioutil.WriteFile(cfgpath, []byte(input.Sample), 0644); err != nil {
 				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 			}
@@ -269,7 +270,7 @@ func EnableInputs(inputlist string) {
 }
 
 func doEnableInput(name string) (string, string, error) {
-	if i, ok := TelegrafInputs[name]; ok {
+	if i, ok := inputs.TelegrafInputs[name]; ok {
 		return filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf"), i.Sample, nil
 	}
 
