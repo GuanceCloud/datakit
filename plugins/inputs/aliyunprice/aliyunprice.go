@@ -11,7 +11,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -235,7 +234,7 @@ func (a *AliyunPriceAgent) Run() {
 				}
 			}
 
-			internal.SleepContext(a.ctx, time.Second*5)
+			datakit.SleepContext(a.ctx, time.Second*5)
 		}
 
 	}()
