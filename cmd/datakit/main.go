@@ -371,11 +371,7 @@ func httpStart(addr string) {
 
 	if _, ok := config.Cfg.Inputs["flink"]; ok {
 		l.Info("open route for influxdb write")
-		router.POST("/write", func(c *gin.Context) {
-			if _, ok := flink.DBList.Load(c.Query("db")); ok {
-				flink.Handle(c.Writer, c.Request)
-			}
-		})
+		router.POST("/write", func(c *gin.Context) { flink.Handle(c.Writer, c.Request) })
 	}
 
 	// internal datakit stats API
