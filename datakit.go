@@ -21,8 +21,10 @@ import (
 
 var (
 	Exit = cliutils.NewSem()
+	WG   = sync.WaitGroup{}
 
-	WG sync.WaitGroup = sync.WaitGroup{}
+	GlobalExit = cliutils.NewSem()
+	GlobalWG   = sync.WaitGroup{}
 
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 
