@@ -10,9 +10,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -161,7 +159,7 @@ func (r *AliyunActiontrail) run() error {
 
 		r.handleResponse(response)
 
-		internal.SleepContext(r.ctx, r.Interval.Duration)
+		datakit.SleepContext(r.ctx, r.Interval.Duration)
 		startTm = startTm.Add(r.Interval.Duration)
 	}
 }
