@@ -88,6 +88,6 @@ func GRPCServer(uds string) {
 	l.Info("stopping gRPC server...")
 	s.rpcServer.Stop()
 
-	l.Info("exit")
+	l.Info("gRPC exit")
 	return
 }
