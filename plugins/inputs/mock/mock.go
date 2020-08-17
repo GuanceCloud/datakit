@@ -83,7 +83,7 @@ func (m *Mock) Run() {
 			}
 
 		case <-datakit.Exit.Wait():
-			l.Info("exit")
+			l.Info("mock exit")
 			return
 		}
 	}
