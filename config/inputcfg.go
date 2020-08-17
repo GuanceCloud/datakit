@@ -62,6 +62,9 @@ func (c *Config) LoadConfig() error {
 		return err
 	}
 
+	// reset inputs(for reloading)
+	inputs.ResetInputs()
+
 	for name, creator := range inputs.Inputs {
 		if err := c.doLoadInputConf(name, creator, availableInputCfgs); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
@@ -92,7 +95,7 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator, inputcfgs 
 	}
 
 	if name == "self" {
-		c.Inputs[name] = append(c.Inputs[name], &inputInfo{input: creator(), cfg: "no config for `self' input"})
+		inputs.AddSelf(creator())
 		return nil
 	}
 
@@ -170,7 +173,7 @@ func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creat
 }
 
 // Creata datakit input plugin's configures if not exists
-func initPluginCfgs() {
+func initPluginSamples() {
 	for name, create := range inputs.Inputs {
 		if name == "self" {
 			continue
