@@ -33,7 +33,7 @@ type StatsdParams struct {
 }
 
 var (
-	name               = "statsd"
+	inputName          = "statsd"
 	statsdConfigSample = `### You need to configure an [[inputs.statsd]] for each statsd service to be monitored.
 ### active: whether to monitor statsd.
 ### interval: monitor interval, the default value is "60s".
@@ -60,7 +60,7 @@ var (
 #		tag2 = "tag2"
 #		tag3 = "tag3"
 `
-	defaultMetricName = name
+	defaultMetricName = inputName
 	defaultInterval   = "60s"
 )
 
@@ -99,7 +99,7 @@ func (t *StatsD) Run() {
 }
 
 func init() {
-	inputs.Add(name, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		p := &StatsD{}
 		return p
 	})

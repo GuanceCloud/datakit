@@ -53,7 +53,7 @@ require (
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb v1.8.0 // indirect
-	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
+	github.com/influxdata/influxdb1-client v0.0.0-20200515024757-02f0bf5dbca3
 	github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/jackc/pgx v3.6.0+incompatible
