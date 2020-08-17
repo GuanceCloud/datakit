@@ -11,7 +11,7 @@ import (
 
 	"github.com/influxdata/toml"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
@@ -51,16 +51,16 @@ func TestAccountBalance(t *testing.T) {
 	tags[`Currency`] = resp.Data.Currency
 
 	var fv float64
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(resp.Data.AvailableAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(resp.Data.AvailableAmount), 64); err == nil {
 		fields[`AvailableAmount`] = fv
 	}
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(resp.Data.MybankCreditAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(resp.Data.MybankCreditAmount), 64); err == nil {
 		fields[`MybankCreditAmount`] = fv
 	}
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(resp.Data.AvailableCashAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(resp.Data.AvailableCashAmount), 64); err == nil {
 		fields[`AvailableCashAmount`] = fv
 	}
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(resp.Data.CreditAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(resp.Data.CreditAmount), 64); err == nil {
 		fields[`CreditAmount`] = fv
 	}
 

@@ -7,7 +7,7 @@ import (
 
 const (
 	configSample = `
-#[[security]]
+#[[inputs.aliyunsecurity]]
 #  accessKeyId = ''
 #  accessKeySecret = ''
 #  region = "cn-hangzhou"
