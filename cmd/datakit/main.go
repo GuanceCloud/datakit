@@ -28,7 +28,6 @@ var (
 	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d, list configired and mis-configured collectors`)
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
 
-	flagListCollectors    = flag.Bool("tree", false, `list vailable collectors`)
 	flagListConfigSamples = flag.Bool("config-samples", false, `list all config samples`)
 )
 
@@ -85,11 +84,6 @@ Golang Version: %s
 		os.Exit(0)
 	}
 
-	if *flagListCollectors {
-		showAllCollectors()
-		os.Exit(0)
-	}
-
 	if *flagListConfigSamples {
 		showAllConfigSamples()
 		os.Exit(0)
@@ -105,46 +99,13 @@ Golang Version: %s
 	}
 }
 
-func showAllCollectors() {
-	collectors := map[string][]string{}
-
-	for k, v := range inputs.Inputs {
-		cat := v().Catalog()
-		collectors[cat] = append(collectors[cat], k)
-	}
-
-	ndatakit := 0
-	for k, vs := range collectors {
-		for _, v := range vs {
-			fmt.Printf("[d][% 12s] %s\n", k, v)
-			ndatakit++
-		}
-	}
-
-	nagent := 0
-	collectors = map[string][]string{}
-	for k, v := range config.TelegrafInputs {
-		collectors[v.Catalog] = append(collectors[v.Catalog], k)
-	}
-
-	for k, vs := range collectors {
-		for _, v := range vs {
-			fmt.Printf("[t][% 12s] %s\n", k, v)
-			nagent++
-		}
-	}
-
-	fmt.Println("===================================")
-	fmt.Printf("total: %d, datakit: %d, agent: %d\n", ndatakit+nagent, ndatakit, nagent)
-}
-
 func showAllConfigSamples() {
 	for k, v := range inputs.Inputs {
 		sample := v().SampleConfig()
 		fmt.Printf("%s\n========= [D] ==========\n%s\n", k, sample)
 	}
 
-	for k, v := range config.TelegrafInputs {
+	for k, v := range inputs.TelegrafInputs {
 		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v.Sample)
 	}
 }
