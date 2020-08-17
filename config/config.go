@@ -16,7 +16,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -106,8 +105,6 @@ func init() {
 	datakit.GRPCDomainSock = filepath.Join(datakit.InstallDir, "datakit.sock")
 
 	Cfg = newDefaultCfg()
-
-	initTelegrafSamples()
 }
 
 func newDefaultCfg() *Config {
@@ -152,7 +149,6 @@ func LoadCfg() error {
 		return err
 	}
 
-	// loading from
 	if err := Cfg.LoadMainConfig(); err != nil {
 		return err
 	}
@@ -388,33 +384,6 @@ func sliceContains(name string, list []string) bool {
 		}
 	}
 	return false
-}
-
-func (c *Config) addInput(name string, input inputs.Input, table *ast.Table, fp string) error {
-
-	var dur time.Duration
-	var err error
-	if node, ok := table.Fields["interval"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-				dur, err = time.ParseDuration(str.Value)
-				if err != nil {
-					l.Errorf("parse duration(%s) from %s failed: %s", str.Value, name, err.Error())
-					return err
-				}
-			}
-		}
-	}
-
-	l.Debugf("try set MaxLifeCheckInterval to %v from %s...", dur, name)
-	if datakit.MaxLifeCheckInterval+5*time.Second < dur { // use the max interval from all inputs
-		datakit.MaxLifeCheckInterval = dur
-		l.Debugf("set MaxLifeCheckInterval to %v from %s", dur, name)
-	}
-
-	//c.Inputs[name] = append(c.Inputs[name], &InputInfo{input: input, cfg: fp})
-
-	return nil
 }
 
 func ParseDataway(dw string) (*DataWayCfg, error) {
