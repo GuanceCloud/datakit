@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
@@ -25,14 +25,14 @@ const (
 
 #	##(required) property names of wmi class, you can optinally specify alias as field name.
 #	metrics = [
-#		['DeviceID'], 
+#		['DeviceID'],
 #		['FileSystem', 'disk_filesystem']
 #	]
-	
+
 #[[inputs.wmi.query]]
 #	class = 'Win32_OperatingSystem'
 #	metrics = [
-#		['NumberOfProcesses', 'system_proc_count'], 
+#		['NumberOfProcesses', 'system_proc_count'],
 #		['NumberOfUsers']
 #	]
 `
@@ -41,7 +41,7 @@ const (
 type (
 	ClassQuery struct {
 		Class    string
-		Interval internal.Duration
+		Interval datakit.Duration
 		Metrics  [][]string
 
 		lastTime time.Time
@@ -49,7 +49,7 @@ type (
 
 	Instance struct {
 		MetricName string
-		Interval   internal.Duration
+		Interval   datakit.Duration
 		Queries    []*ClassQuery `toml:"query"`
 
 		ctx       context.Context
