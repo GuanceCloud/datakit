@@ -2,6 +2,7 @@ package inputs
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/influxdata/toml/ast"
@@ -26,6 +27,9 @@ var (
 	inputInfos = map[string][]*inputInfo{}
 
 	l *logger.Logger = logger.DefaultSLogger("inputs")
+
+	panicInputs = map[string]int{}
+	mtx         = sync.RWMutex{}
 )
 
 func Add(name string, creator Creator) {
@@ -57,6 +61,9 @@ func (ii *inputInfo) Run() {
 
 func AddInput(name string, input Input, table *ast.Table, fp string) error {
 
+	mtx.Lock()
+	defer mtx.Unlock()
+
 	var dur time.Duration
 	var err error
 	if node, ok := table.Fields["interval"]; ok {
@@ -82,18 +89,37 @@ func AddInput(name string, input Input, table *ast.Table, fp string) error {
 	return nil
 }
 
+func InputInstaces(name string) int {
+	mtx.RLock()
+	defer mtx.RUnlock()
+
+	if arr, ok := inputInfos[name]; ok {
+		return len(arr)
+	}
+	return 0
+}
+
 func ResetInputs() {
+
+	mtx.Lock()
+	defer mtx.Unlock()
 	inputInfos = map[string][]*inputInfo{}
 }
 
 func AddSelf(i Input) {
+
+	mtx.Lock()
+	defer mtx.Unlock()
+
 	inputInfos["self"] = append(inputInfos["self"], &inputInfo{input: i, cfg: "no config for `self' input"})
 }
 
 func AddTelegrafInput(name, fp string) {
 
-	TelegrafInputs[name].enabled = true
+	mtx.Lock()
+	defer mtx.Unlock()
 
+	l.Debugf("add telegraf input %s from %s", name, fp)
 	inputInfos[name] = append(inputInfos[name],
 		&inputInfo{input: nil, /* not used */
 			ti:  nil, /*not used*/
@@ -121,6 +147,8 @@ func StartTelegraf() {
 func RunInputs() error {
 
 	l = logger.SLogger("inputs")
+	mtx.RLock()
+	defer mtx.RUnlock()
 
 	for name, arr := range inputInfos {
 		for _, ii := range arr {
@@ -151,8 +179,7 @@ func protectRunningInput(name string, ii *inputInfo) {
 				return
 			}
 
-			// TODO: report crash info
-			//io.AddCrash(name)
+			addPanic(name)
 		}
 
 		ii.Run()
@@ -168,6 +195,25 @@ func protectRunningInput(name string, ii *inputInfo) {
 }
 
 func InputEnabled(name string) bool {
-	_, ok := inputInfos[name]
+	mtx.RLock()
+	defer mtx.RUnlock()
+	x, ok := inputInfos[name]
+	if ok {
+		l.Debugf("datakit input %s enabled: %s", name, x[0].cfg)
+	}
 	return ok
+}
+
+func GetPanicCnt(name string) int {
+	mtx.RLock()
+	defer mtx.RUnlock()
+
+	return panicInputs[name]
+}
+
+func addPanic(name string) {
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	panicInputs[name]++
 }
