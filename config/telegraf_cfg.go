@@ -86,9 +86,8 @@ func (c *Config) loadTelegrafInputsConfigs(inputcfgs map[string]*ast.Table, filt
 					for inputName, _ := range tbl_.Fields {
 						l.Debugf("check if telegraf input name(%s)?", inputName)
 
-						if _, ok := TelegrafInputs[inputName]; ok {
-							TelegrafInputs[inputName].enabled = true
-							TelegrafInputs[inputName].cfgs = append(TelegrafInputs[inputName].cfgs, fp)
+						if _, ok := inputs.TelegrafInputs[inputName]; ok {
+							inputs.AddTelegrafInput(inputName, fp)
 
 							l.Infof("enable telegraf input %s, config: %s", inputName, fp)
 							telegrafCfgFiles[fp] = nil
