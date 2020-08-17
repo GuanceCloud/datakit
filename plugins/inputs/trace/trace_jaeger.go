@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/uber/jaeger-client-go/thrift"
 	j "github.com/uber/jaeger-client-go/thrift-gen/jaeger"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func (z *JaegerTracer) Decode(octets []byte) error {
@@ -29,34 +30,41 @@ func (z *JaegerTracer) parseJaegerThrift(octets []byte) error {
 
 	for _, s := range batch.Spans {
 		tAdpter := TraceAdapter{}
-		tAdpter.source = "jaeger"
+		tAdpter.Source = "jaeger"
 
-		tAdpter.duration    = s.Duration
-		tAdpter.timestampUs = s.StartTime
+		tAdpter.Duration    = s.Duration
+		tAdpter.TimestampUs = s.StartTime
 		sJson, err := json.Marshal(s)
 		if err != nil {
 			return err
 		}
-		tAdpter.content = string(sJson)
+		tAdpter.Content = string(sJson)
 
-		tAdpter.class         = "tracing"
-		tAdpter.serviceName   = batch.Process.ServiceName
-		tAdpter.operationName = s.OperationName
+		tAdpter.Class         = "tracing"
+		tAdpter.ServiceName   = batch.Process.ServiceName
+		tAdpter.OperationName = s.OperationName
 		if s.ParentSpanId != 0 {
-			tAdpter.parentID      = fmt.Sprintf("%d", s.ParentSpanId)
+			tAdpter.ParentID      = fmt.Sprintf("%d", s.ParentSpanId)
 		}
 
-		tAdpter.traceID = fmt.Sprintf("%x%x", uint64(s.TraceIdHigh), uint64(s.TraceIdLow))
-		tAdpter.spanID  = fmt.Sprintf("%d", s.SpanId)
+		tAdpter.TraceID = fmt.Sprintf("%x%x", uint64(s.TraceIdHigh), uint64(s.TraceIdLow))
+		tAdpter.SpanID  = fmt.Sprintf("%d", s.SpanId)
 
 		for _, tag := range s.Tags {
 			if tag.Key == "error" {
-				tAdpter.isError = "true"
+				tAdpter.IsError = "true"
 				break
 			}
 		}
-
-		tAdpter.mkLineProto()
+		tAdpter.Tags = JaegerTags
+		pt, err := tAdpter.MkLineProto()
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		if err := dkio.NamedFeed(pt, dkio.Logging, "tracing"); err != nil {
+			log.Errorf("io feed err: %s", err)
+		}
 	}
 
 	return nil
