@@ -11,6 +11,8 @@ const (
 	UserPortraitURL      = "datacube/getweanalysisappiduserportrait"
 	VisitDistributionURL = "datacube/getweanalysisappidvisitdistribution"
 	VisitPageURL         = "datacube/getweanalysisappidvisitpage"
+	jsErrSearchURL         = "wxaapi/log/jserr_search"
+	PerformanceURL         = "wxaapi/log/get_performance"
 )
 
 var (
@@ -24,16 +26,7 @@ var (
 # appid = ""
 ## Small program unique credential key   AppSecret
 # secret = ""
-
-
-# [[inputs.wechatminiprogram]]
-## WeChat everyday run time
-# runtime = '18:10'
-## Small program unique unique credentials   AppID
-# appid = ""
-## Small program unique credential key   AppSecret
-# secret = ""
-	`
+`
 )
 
 var Config = map[string]map[string]string{
@@ -115,4 +108,10 @@ var Config = map[string]map[string]string{
 		"6": "6-10 页",
 		"7": ">10 页",
 	},
+	"cost_time_type":{
+		"1":"启动总耗时",
+		"2":"下载耗时",
+		"3":"初次渲染耗时",
+	},
+
 }
