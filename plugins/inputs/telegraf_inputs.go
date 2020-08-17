@@ -3,12 +3,18 @@ package inputs
 type TelegrafInput struct {
 	name            string
 	Catalog, Sample string
-
-	enabled bool
 }
 
 func (ti *TelegrafInput) Enabled() bool {
-	return ti.enabled
+
+	mtx.RLock()
+	defer mtx.RUnlock()
+
+	x, ok := inputInfos[ti.name]
+	if ok {
+		l.Debugf("telegraf input %s enabled: %s", ti.name, x[0].cfg)
+	}
+	return ok
 }
 
 var (
@@ -101,8 +107,13 @@ var (
 )
 
 func HaveTelegrafInputs() bool {
-	for _, ti := range TelegrafInputs {
-		if ti.enabled {
+
+	mtx.RLock()
+	defer mtx.RUnlock()
+
+	for k, _ := range TelegrafInputs {
+		_, ok := inputInfos[k]
+		if ok {
 			return true
 		}
 	}
@@ -110,7 +121,7 @@ func HaveTelegrafInputs() bool {
 	return false
 }
 
-func initTelegrafSamples() {
+func init() {
 
 	TelegrafInputs[`amqp_consumer`].Sample = `
 [[inputs.amqp_consumer]]
