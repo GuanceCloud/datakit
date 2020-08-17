@@ -24,7 +24,7 @@ func (p *StatsdParams) gather() {
 
 	switch p.input.Interval.(type) {
 	case int64:
-		d = time.Duration(p.input.Interval.(int64))*time.Second
+		d = time.Duration(p.input.Interval.(int64)) * time.Second
 	case string:
 		d, err = time.ParseDuration(p.input.Interval.(string))
 		if err != nil {
@@ -107,13 +107,13 @@ func (p *StatsdParams) getMetrics(conn net.Conn) error {
 	if err != nil {
 		return err
 	}
-	err = p.output.IoFeed(pt, io.Metric, name)
+	err = p.output.IoFeed(pt, io.Metric, inputName)
 	return err
 
 ERR:
 	fields["can_connect"] = false
 	pt, _ = io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
-	err = p.output.IoFeed(pt, io.Metric, name)
+	err = p.output.IoFeed(pt, io.Metric, inputName)
 	return ConnectionReset
 }
 
@@ -157,6 +157,6 @@ func (p *StatsdParams) reportNotUp() error {
 	if err != nil {
 		return err
 	}
-	err = p.output.IoFeed(pt, io.Metric, name)
+	err = p.output.IoFeed(pt, io.Metric, inputName)
 	return err
 }
