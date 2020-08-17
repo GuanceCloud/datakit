@@ -3,6 +3,7 @@ package trace
 import (
 	"encoding/json"
 	"fmt"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"unsafe"
 	"time"
 
@@ -62,37 +63,37 @@ func (z *ZipkinTracer) parseZipkinJsonV1(octets []byte) error {
 
 	for _, zs := range spans {
 		tAdpter := TraceAdapter{}
-		tAdpter.source = "zipkin"
+		tAdpter.Source = "zipkin"
 
-		tAdpter.duration = zs.Duration
-		tAdpter.timestampUs = zs.Timestamp
-		if tAdpter.timestampUs == 0 {
-			tAdpter.timestampUs = getFirstTimestamp(zs)
+		tAdpter.Duration = zs.Duration
+		tAdpter.TimestampUs = zs.Timestamp
+		if tAdpter.TimestampUs == 0 {
+			tAdpter.TimestampUs = getFirstTimestamp(zs)
 		}
 
 		js, err := json.Marshal(zs)
 		if err != nil {
 			return err
 		}
-		tAdpter.content = string(js)
+		tAdpter.Content = string(js)
 
-		tAdpter.class = "tracing"
-		tAdpter.operationName = zs.Name
-		tAdpter.parentID = zs.ParentID
-		tAdpter.traceID = zs.TraceID
-		tAdpter.spanID = zs.ID
+		tAdpter.Class = "tracing"
+		tAdpter.OperationName = zs.Name
+		tAdpter.ParentID = zs.ParentID
+		tAdpter.TraceID  = zs.TraceID
+		tAdpter.SpanID   = zs.ID
 
 		for _, ano := range zs.Annotations {
 			if ano.Host != nil && ano.Host.ServiceName != "" {
-				tAdpter.serviceName = ano.Host.ServiceName
+				tAdpter.ServiceName = ano.Host.ServiceName
 				break
 			}
 		}
 
-		if tAdpter.serviceName == "" {
+		if tAdpter.ServiceName == "" {
 			for _, bno := range zs.BinaryAnnotations {
 				if bno.Host != nil && bno.Host.ServiceName != "" {
-					tAdpter.serviceName = bno.Host.ServiceName
+					tAdpter.ServiceName = bno.Host.ServiceName
 					break
 				}
 			}
@@ -100,12 +101,19 @@ func (z *ZipkinTracer) parseZipkinJsonV1(octets []byte) error {
 
 		for _, bno := range zs.BinaryAnnotations {
 			if bno != nil && bno.Key == "error" {
-				tAdpter.isError = "true"
+				tAdpter.IsError = "true"
 				break
 			}
 		}
-
-		tAdpter.mkLineProto()
+		tAdpter.Tags = ZipkinTags
+		pt, err := tAdpter.MkLineProto()
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		if err := dkio.NamedFeed(pt, dkio.Logging, "tracing"); err != nil {
+			log.Errorf("io feed err: %s", err)
+		}
 	}
 	return nil
 }
@@ -182,16 +190,16 @@ func (z *ZipkinTracer) parseZipkinThriftV1(octets []byte) error{
 	for _, zs := range zspans {
 		z := zipkinConvThrift2Json(zs)
 		tAdpter := TraceAdapter{}
-		tAdpter.source = "zipkin"
+		tAdpter.Source = "zipkin"
 
 		if zs.Duration != nil {
-			tAdpter.duration = *zs.Duration
+			tAdpter.Duration = *zs.Duration
 		}
 
 		if zs.Timestamp != nil {
-			tAdpter.timestampUs = *zs.Timestamp
+			tAdpter.TimestampUs = *zs.Timestamp
 		} else {
-			tAdpter.timestampUs = time.Now().UnixNano()/1000
+			tAdpter.TimestampUs = time.Now().UnixNano()/1000
 		}
 
 
@@ -199,28 +207,28 @@ func (z *ZipkinTracer) parseZipkinThriftV1(octets []byte) error{
 		if err != nil {
 			return err
 		}
-		tAdpter.content = string(js)
+		tAdpter.Content = string(js)
 
-		tAdpter.class = "tracing"
-		tAdpter.operationName = zs.Name
+		tAdpter.Class = "tracing"
+		tAdpter.OperationName = zs.Name
 		if zs.ParentID != nil {
-			tAdpter.parentID = fmt.Sprintf("%d", uint64(*zs.ParentID))
+			tAdpter.ParentID = fmt.Sprintf("%d", uint64(*zs.ParentID))
 		}
 
-		tAdpter.traceID = fmt.Sprintf("%d", uint64(zs.TraceID))
-		tAdpter.spanID = fmt.Sprintf("%d", uint64(zs.ID))
+		tAdpter.TraceID = fmt.Sprintf("%d", uint64(zs.TraceID))
+		tAdpter.SpanID = fmt.Sprintf("%d", uint64(zs.ID))
 
 		for _, ano := range zs.Annotations {
 			if ano.Host != nil && ano.Host.ServiceName != "" {
-				tAdpter.serviceName = ano.Host.ServiceName
+				tAdpter.ServiceName = ano.Host.ServiceName
 				break
 			}
 		}
 
-		if tAdpter.serviceName == "" {
+		if tAdpter.ServiceName == "" {
 			for _, bno := range zs.BinaryAnnotations {
 				if bno.Host != nil && bno.Host.ServiceName != "" {
-					tAdpter.serviceName = bno.Host.ServiceName
+					tAdpter.ServiceName = bno.Host.ServiceName
 					break
 				}
 			}
@@ -228,12 +236,20 @@ func (z *ZipkinTracer) parseZipkinThriftV1(octets []byte) error{
 
 		for _, bno := range zs.BinaryAnnotations {
 			if bno != nil && bno.Key == "error" {
-				tAdpter.isError = "true"
+				tAdpter.IsError = "true"
 				break
 			}
 		}
 
-		tAdpter.mkLineProto()
+		tAdpter.Tags = ZipkinTags
+		pt, err := tAdpter.MkLineProto()
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		if err := dkio.NamedFeed(pt, dkio.Logging, "tracing"); err != nil {
+			log.Errorf("io feed err: %s", err)
+		}
 	}
 	return nil
 }
