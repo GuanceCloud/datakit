@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -40,7 +41,10 @@ var (
 	l        *logger.Logger
 	httpBind string
 
-	uptime = time.Now()
+	uptime    = time.Now()
+	mutex     = sync.Mutex{}
+	reload    time.Time
+	reloadCnt int
 
 	stopCh   = make(chan interface{})
 	stopOkCh = make(chan interface{})
@@ -93,9 +97,13 @@ func reloadDatakit() error {
 }
 
 func restartHttpServer() {
+	l.Info("trigger HTTP server to stopping...")
 	stopCh <- nil // trigger HTTP server to stopping
-	<-stopOkCh    // wait HTTP server stop ok
 
+	l.Info("wait HTTP server to stopping...")
+	<-stopOkCh // wait HTTP server stop ok
+
+	l.Info("reload HTTP server...")
 	httpStart(httpBind)
 }
 
@@ -198,20 +206,33 @@ func httpStart(addr string) {
 		Addr:    addr,
 		Handler: router,
 	}
+
 	go func() {
+		retryCnt := 0
+	__retry:
 		if err := srv.ListenAndServe(); err != nil {
-			l.Error(err)
+
+			if err != http.ErrServerClosed {
+				time.Sleep(time.Second)
+				retryCnt++
+				l.Warnf("start HTTP server at %s failed: %s, retrying(%d)...", addr, err.Error(), retryCnt)
+				goto __retry
+			} else {
+				l.Debugf("http server(%s) stopped on: %s", addr, err.Error())
+			}
 		}
+
 		stopOkCh <- nil
 		l.Info("http server exit")
 	}()
 
+	l.Debug("http server started")
+
 	<-stopCh
-	l.Info("stopping http server...")
+	l.Debug("stopping http server...")
 
 	if err := srv.Shutdown(context.Background()); err != nil {
 		l.Errorf("Failed of http server shutdown, err: %s", err.Error())
-
 	} else {
 		l.Info("http server shutdown ok")
 	}
@@ -253,24 +274,31 @@ func apiAnsibleHandler(w http.ResponseWriter, r *http.Request) {
 
 type datakitStats struct {
 	InputsStats     []*io.InputsStat `json:"inputs_status"`
-	EnabledInputs   []string         `json:"enabled_inputs"`
+	EnabledInputs   map[string]int   `json:"enabled_inputs"`
 	AvailableInputs []string         `json:"available_inputs"`
 
-	Version string `json:"version"`
-	BuildAt string `json:"build_at"`
-	Uptime  string `json:"uptime"`
-	OSArch  string `json:"os_arch"`
+	Version   string    `json:"version"`
+	BuildAt   string    `json:"build_at"`
+	Uptime    string    `json:"uptime"`
+	OSArch    string    `json:"os_arch"`
+	Reload    time.Time `json:"reload"`
+	ReloadCnt int       `json:"reload_cnt"`
 }
 
 func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	stats := &datakitStats{
-		Version: git.Version,
-		BuildAt: git.BuildAt,
-		Uptime:  fmt.Sprintf("%v", time.Since(uptime)),
-		OSArch:  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		Version:       git.Version,
+		BuildAt:       git.BuildAt,
+		Uptime:        fmt.Sprintf("%v", time.Since(uptime)),
+		OSArch:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		ReloadCnt:     reloadCnt,
+		Reload:        reload,
+		EnabledInputs: map[string]int{},
 	}
 
-	res, err := io.GetStats() // get all inputs stats
+	var err error
+
+	stats.InputsStats, err = io.GetStats() // get all inputs stats
 	if err != nil {
 		l.Error(err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -278,37 +306,35 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stats.InputsStats = res
+	for _, is := range stats.InputsStats {
+		is.CrashCnt = inputs.GetPanicCnt(is.Name)
+	}
 
 	for k, _ := range inputs.Inputs {
 		if inputs.InputEnabled(k) {
-			stats.EnabledInputs = append(stats.EnabledInputs, k)
+			stats.EnabledInputs[k] = inputs.InputInstaces(k)
 		}
 	}
 
 	for k, ti := range inputs.TelegrafInputs {
 		if ti.Enabled() {
-			stats.EnabledInputs = append(stats.EnabledInputs, k)
+			stats.EnabledInputs[k] = inputs.InputInstaces(k)
 		}
-	}
-
-	if len(stats.EnabledInputs) > 0 {
-		sort.Strings(stats.EnabledInputs)
 	}
 
 	for k, _ := range inputs.Inputs {
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", k))
 	}
 
-	for k, _ := range config.TelegrafInputs {
+	for k, _ := range inputs.TelegrafInputs {
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[T] %s", k))
 	}
-	stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("tatal %d, datakit %d, agent: %d",
-		len(stats.AvailableInputs), len(inputs.Inputs), len(config.TelegrafInputs)))
 
-	if len(stats.AvailableInputs) > 0 {
-		sort.Strings(stats.AvailableInputs)
-	}
+	// add available inputs(datakit+telegraf) stats
+	stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("tatal %d, datakit %d, agent: %d",
+		len(stats.AvailableInputs), len(inputs.Inputs), len(inputs.TelegrafInputs)))
+
+	sort.Strings(stats.AvailableInputs)
 
 	body, err := json.MarshalIndent(stats, "", "    ")
 	if err != nil {
@@ -367,9 +393,21 @@ func apiTelegrafOutput(c *gin.Context) {
 }
 
 func apiReload(c *gin.Context) {
+
 	if err := reloadDatakit(); err != nil {
 		uhttp.HttpErr(c, err)
+		return
 	}
 
 	httpOK.HttpResp(c)
+
+	go func() {
+		//mutex.Lock()
+		//defer mutex.Unlock()
+		reload = time.Now()
+		reloadCnt++
+
+		restartHttpServer()
+		l.Info("reload HTTP server ok")
+	}()
 }
