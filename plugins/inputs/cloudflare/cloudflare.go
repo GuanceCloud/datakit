@@ -169,8 +169,11 @@ func (h *Cloudflare) getMetrics() ([]byte, error) {
 		return nil, fmt.Errorf("failed to get cloudflare metrics")
 	}
 
-	tags := make(map[string]string)
+	tags := make(map[string]string, len(h.Tags)+1)
 	tags["zone_id"] = h.ZoneID
+	for k, v := range h.Tags {
+		tags[k] = v
+	}
 
 	timeseries := jsonMetrics.Get("result.timeseries").Array()
 
