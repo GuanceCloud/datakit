@@ -18,9 +18,10 @@ build-dev:
   script:
     - make test
     - make pub_test
-    - make preprod
-    - make pub_preprod
-    - make pub_testing_img
+    # disable them to save CI time
+    #- make preprod
+    #- make pub_preprod
+    #- make pub_testing_img
     - make test_notify
   tags:
     - cloudcare-ft
