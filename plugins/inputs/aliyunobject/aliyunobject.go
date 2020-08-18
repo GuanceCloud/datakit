@@ -31,6 +31,9 @@ func (_ *objectAgent) SampleConfig() string {
 	buf.WriteString(wafSampleConfig)
 	buf.WriteString(elasticsearchSampleConfig)
 	buf.WriteString(influxDBSampleConfig)
+	buf.WriteString(onsSampleConfig)
+	buf.WriteString(domainSampleConfig)
+	buf.WriteString(ddsSampleConfig)
 	return buf.String()
 }
 
