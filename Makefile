@@ -22,8 +22,8 @@ ENTRY = cmd/datakit/main.go
 LOCAL_ARCHS = "darwin/amd64"
 LOCAL_ARCHS = "windows/amd64"
 LOCAL_ARCHS = "linux/amd64|windows/amd64|linux/arm"
-LOCAL_ARCHS = "all"
 LOCAL_ARCHS = "linux/amd64"
+LOCAL_ARCHS = "all"
 
 DEFAULT_ARCHS = "all"
 
@@ -32,7 +32,8 @@ DATE := $(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION := $(shell go version)
 COMMIT := $(shell git rev-parse --short HEAD)
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
-UPLOADER:= $(shell hostname)/${USER}
+COMMITER := $(shell git log -1 --pretty=format:'%an')
+UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(VERSION))"}}')
 NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(VERSION))"}}')
 
