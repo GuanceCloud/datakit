@@ -33,37 +33,65 @@ $ make pub_agent       # 将 telegraf 发布到各个环境（测试、预发、
 
 因 telegraf 不常更新，每次 datakit 发布无需额外发布 telegraf。**如果新版的 telegraf 有采集器被集成到 datakit 中**，则需要重新打包、发布一次 telegraf
 
-## datakit 使用示例
-
-列举当前 datakit 支持的采集器列表，可 `grep` 输出，采集器带 `[d]` 前缀的为 datakit 采集器，带 `[t]` 为 telegraf 采集器
-
-```
-# 查看阿里云采集器列表
-$ ./datakit -tree | grep aliyun
-aliyun
-  |--[d] aliyunddos
-  |--[d] aliyunsecurity
-  |--[d] aliyunlog
-  |--[d] aliyuncms
-  |--[d] aliyuncdn
-  |--[d] aliyuncost
-  |--[d] aliyunprice
-  |--[d] aliyunrdsslowLog
-  |--[d] aliyunactiontrail
-
-# 查看CPU集器列表
-$ ./datakit -tree | grep cpu
-cpu
-  |--[t] cpu
-
-# 查看所有采集器列表，末尾会列出采集器个数统计
-$ ./datakit -tree 
-...
-===================================
-total: 95, datakit: 33, agent: 62
-```
-
 ## 采集器开发
+
+### 本地容器运行 DataKit
+
+以下脚本可用于在本地以容器的方式运行 DataKit：
+
+``` bash
+#!/bin/bash
+version=`git describe --always --tags`
+container_name=${USER}-datakit            # 以本地用户名命名的 datakit
+host_confd=$HOME/datakit-confd            # 将 HOME 目录下的 datakit-confd 作为 datakit/confd 目录，便于在主机上编辑，不用再登入容器修改
+
+# 大家自行配置 dataway
+dataway="http://dataway-ip:port/v1/write/metric?token=<your-token>"
+
+# 绑定宿主机上的端口映射为 DataKit 的 HTTP 端口，自行改之
+host_port=9529
+
+# 将 datakit/agent 的配置文件和日志映射到 host 的 HOME 目录下
+sudo truncate -s 0 $HOME/dk.log
+sudo truncate -s 0 $HOME/dk.conf
+sudo truncate -s 0 $HOME/tg.conf
+sudo truncate -s 0 $HOME/tg.log
+
+# 停掉老的容器
+sudo docker stop $container_name
+sudo docker rm $container_name
+
+# 从本地的编译包构建本地 docker 镜像
+img="registry.jiagouyun.com/datakit/datakit:${version}"
+sudo docker rmi $img
+sudo docker build -t $img .
+
+# 启动容器
+sudo docker run -d --name=$container_name \
+	-v "${host_confd}":"/usr/local/cloudcare/dataflux/datakit/conf.d" \
+	--mount type=bind,source="$HOME/dk.log",target="/usr/local/cloudcare/dataflux/datakit/datakit.log" \
+	--mount type=bind,source="$HOME/dk.conf",target="/usr/local/cloudcare/dataflux/datakit/datakit.conf" \
+	--mount type=bind,source="$HOME/tg.conf",target="/usr/local/cloudcare/dataflux/datakit/embed/agent.conf" \
+	--mount type=bind,source="$HOME/tg.log",target="/usr/local/cloudcare/dataflux/datakit/embed/agent.log" \
+	-e ENV_DATAWAY="${dataway}" \
+	-e ENV_WITHIN_DOCKER=1 \
+	-e ENV_LOG_LEVEL=debug \
+	-e ENV_GLOBAL_TAGS='from=$datakit_hostname,id=$datakit_id' \
+	-e ENV_ENABLE_INPUTS='cpu,mem,disk,diskio' \
+	-e ENV_HOSTNAME=datakit \
+	-e ENV_UUID="${USER}-datakit-${version}" \
+	--privileged \
+	--publish $host_port:9529 \
+	$img
+
+#
+# 注意：上面的一堆 ENV_xxx 开启了一些默认选项：
+# - ENV_GLOBAL_TAGS：默认配置的全局 tags，可不带
+# - ENV_ENABLE_INPUTS: 默认开启的采集器，可不带
+# - ENV_UUID: 指定 datakit 的 UUID，不带就生成随机 ID
+# - ENV_HOSTNAME: 强烈建议带上，不然 hostname 每个容器运行后都不同
+#
+```
 
 ### 约束
 
