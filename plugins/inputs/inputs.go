@@ -2,6 +2,7 @@ package inputs
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -157,41 +158,48 @@ func RunInputs() error {
 				continue
 			}
 
-			protectRunningInput(name, ii)
+			l.Infof("starting input %s ...", name)
+			datakit.WG.Add(1)
+			go func(name string, ii *inputInfo) {
+				defer datakit.WG.Done()
+				protectRunningInput(name, ii)
+				l.Infof("input %s exited", name)
+			}(name, ii)
 		}
 	}
 	return nil
 }
 
+var (
+	MaxCrash = 6
+)
+
 func protectRunningInput(name string, ii *inputInfo) {
 	var f rtpanic.RecoverCallback
-	crashCnt := 0
-	crashTime := []time.Time{}
+	crashTime := []string{}
 
-	f = func(trace []byte, _ error) {
+	f = func(trace []byte, err error) {
+
 		defer rtpanic.Recover(f, nil)
+
 		if trace != nil {
-			l.Warn("input %s panic trace:\n", name, string(trace))
-			crashTime = append(crashTime, time.Now())
-			crashCnt++
-			if crashCnt > 6 {
-				l.Warn("input %s crash %d times(at %+#v), exit now.", name, crashTime, crashCnt)
+			l.Warnf("input %s panic err: %v", name, err)
+			l.Warnf("input %s panic trace:\n%s", name, string(trace))
+
+			crashTime = append(crashTime, fmt.Sprintf("%v", time.Now()))
+			addPanic(name)
+
+			if len(crashTime) >= MaxCrash {
+				l.Warnf("input %s crash %d times(at %+#v), exit now.",
+					name, len(crashTime), strings.Join(crashTime, ","))
 				return
 			}
-
-			addPanic(name)
 		}
 
 		ii.Run()
 	}
 
-	l.Infof("starting input %s ...", name)
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		f(nil, nil)
-		l.Infof("input %s exited", name)
-	}()
+	f(nil, nil)
 }
 
 func InputEnabled(name string) (int, []string) {
