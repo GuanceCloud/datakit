@@ -1,7 +1,6 @@
 package flink
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -58,15 +57,9 @@ func (f *Flink) Run() {
 }
 
 func Handle(w http.ResponseWriter, r *http.Request) {
-	db, ok := r.URL.Query()["db"]
-	if !ok || len(db) == 0 {
-		l.Errorf("not found url param of 'db'")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if _, ok := dbList.Load(db[0]); !ok {
-		l.Errorf("not open db %s", db[0])
+	db := r.URL.Query().Get("db")
+	if _, ok := dbList.Load(db); !ok {
+		l.Errorf("not open db %s", db)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -79,7 +72,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := extract(r.URL.Query().Get("db"), r.URL.Query().Get("precision"), body); err == nil {
+	if err := extract(db, r.URL.Query().Get("precision"), body); err == nil {
 		w.WriteHeader(http.StatusOK)
 	} else {
 		l.Errorf("failed to handle, %s", err.Error())
@@ -88,10 +81,6 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func extract(db string, prec string, body []byte) error {
-	if db == "" {
-		return fmt.Errorf("invalid db, db is empty")
-	}
-
 	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), prec)
 	if err != nil {
 		return err
