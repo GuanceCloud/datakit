@@ -29,8 +29,10 @@ COMMIT := $(shell git rev-parse --short HEAD)
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 COMMITER := $(shell git log -1 --pretty=format:'%an')
 UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
+
 NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(VERSION))"}}')
 NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(VERSION))"}}')
+NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER) 正在提交分支 $(BRANCH) 的 CI，此刻请勿在 $(BRANCH) 分支提交代码，避免 CI 任务被取消"}}')
 
 ###################################
 # Detect telegraf update info
@@ -119,6 +121,12 @@ release_notify:
 		'https://oapi.dingtalk.com/robot/send?access_token=5109b365f7be669c45c5677418a1c2fe7d5251485a09f514131177b203ed785f' \
 		-H 'Content-Type: application/json' \
 		-d '$(NOTIFY_MSG_RELEASE)'
+
+ci_notify:
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=5109b365f7be669c45c5677418a1c2fe7d5251485a09f514131177b203ed785f' \
+		-H 'Content-Type: application/json' \
+		-d '$(NOTIFY_CI)'
 
 define build_agent
 	git rm -rf telegraf
