@@ -20,13 +20,15 @@ import (
 )
 
 var (
-	Exit *cliutils.Sem
-	WG   sync.WaitGroup = sync.WaitGroup{}
+	Exit = cliutils.NewSem()
+	WG   = sync.WaitGroup{}
+
+	GlobalExit = cliutils.NewSem()
+	GlobalWG   = sync.WaitGroup{}
 
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 
 	ServiceName = "datakit"
-	//Hostname    = ""
 
 	AgentLogFile string
 
