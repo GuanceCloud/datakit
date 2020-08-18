@@ -19,7 +19,7 @@ import (
 func (c *Config) LoadConfig() error {
 
 	// detect same-name input name between datakit and telegraf
-	for k, _ := range TelegrafInputs {
+	for k, _ := range inputs.TelegrafInputs {
 		if _, ok := inputs.Inputs[k]; ok {
 			panic(fmt.Sprintf("same name input %s within datakit and telegraf", k))
 		}
@@ -62,6 +62,10 @@ func (c *Config) LoadConfig() error {
 		return err
 	}
 
+	// reset inputs(for reloading)
+	l.Debug("reset inputs")
+	inputs.ResetInputs()
+
 	for name, creator := range inputs.Inputs {
 		if err := c.doLoadInputConf(name, creator, availableInputCfgs); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
@@ -92,7 +96,7 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator, inputcfgs 
 	}
 
 	if name == "self" {
-		c.Inputs[name] = append(c.Inputs[name], creator())
+		inputs.AddSelf(creator())
 		return nil
 	}
 
@@ -117,7 +121,7 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 							continue
 						}
 
-						if err := c.tryUnmarshal(v, name, creator); err != nil {
+						if err := c.tryUnmarshal(v, name, creator, fp); err != nil {
 							l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 							continue
 						}
@@ -127,7 +131,7 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 				}
 
 			default:
-				if err := c.tryUnmarshal(node, name, creator); err != nil {
+				if err := c.tryUnmarshal(node, name, creator, fp); err != nil {
 					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 				} else {
 					l.Infof("load input %s from %s ok", name, fp)
@@ -137,7 +141,7 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 	}
 }
 
-func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) error {
+func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creator, fp string) error {
 
 	tbls := []*ast.Table{}
 
@@ -158,7 +162,7 @@ func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creat
 			return err
 		}
 
-		if err := c.addInput(name, input, t); err != nil {
+		if err := inputs.AddInput(name, input, t, fp); err != nil {
 			l.Error("add %s failed: %v", name, err)
 			return err
 		}
@@ -170,7 +174,7 @@ func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creat
 }
 
 // Creata datakit input plugin's configures if not exists
-func initPluginCfgs() {
+func initPluginSamples() {
 	for name, create := range inputs.Inputs {
 		if name == "self" {
 			continue
@@ -210,7 +214,7 @@ func initPluginCfgs() {
 	}
 
 	// create telegraf input plugin's configures
-	for name, input := range TelegrafInputs {
+	for name, input := range inputs.TelegrafInputs {
 
 		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf.sample")
 		old := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf")
@@ -232,7 +236,7 @@ func initPluginCfgs() {
 			l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
 		}
 
-		if input, ok := TelegrafInputs[name]; ok {
+		if input, ok := inputs.TelegrafInputs[name]; ok {
 			if err := ioutil.WriteFile(cfgpath, []byte(input.Sample), 0644); err != nil {
 				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 			}
@@ -266,7 +270,7 @@ func EnableInputs(inputlist string) {
 }
 
 func doEnableInput(name string) (string, string, error) {
-	if i, ok := TelegrafInputs[name]; ok {
+	if i, ok := inputs.TelegrafInputs[name]; ok {
 		return filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf"), i.Sample, nil
 	}
 
