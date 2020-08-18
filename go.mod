@@ -97,7 +97,7 @@ require (
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/xanzy/go-gitlab v0.31.0
 	github.com/zcalusic/sysinfo v0.0.0-20200228145645-a159d7cc708b // indirect
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200729035319-59638165b038
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200818074621-1fc80b8dd3a6
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
