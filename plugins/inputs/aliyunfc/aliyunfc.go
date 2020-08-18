@@ -93,6 +93,8 @@ var (
 )
 
 type FC struct {
+	Interval string `toml:"interval"`
+	Metric   string `toml:"metric"`
 }
 
 func (m *FC) SampleConfig() string {
@@ -104,7 +106,7 @@ func (m *FC) Description() string {
 }
 
 func (m *FC) Catalog() string {
-	return "aliyunfc"
+	return "aliyun"
 }
 
 func (m *FC) Run() {
