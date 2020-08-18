@@ -17,10 +17,11 @@ const (
 #[inputs.aliyunobject.rds]
 
 # ## @param - custom tags - [list of rds instanceid] - optional
-#db_instanceids = ['']
+#db_instanceids = []
 
 # ## @param - custom tags - [list of excluded rds instanceid] - optional
-#exclude_db_instanceids = ['']
+#exclude_db_instanceids = []
+
 
 # ## @param - custom tags for rds object - [list of key:value element] - optional
 #[inputs.aliyunobject.rds.tags]
@@ -94,7 +95,6 @@ func (r *Rds) run(ag *objectAgent) {
 					pageNum++
 					continue
 				}
-				moduleLogger.Debugf("joly1")
 				break
 			}
 
@@ -120,6 +120,19 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 
 	for _, db := range resp.Items.DBInstance {
 		//moduleLogger.Debugf("dbinstanceInfo %+#v", db)
+
+		exclude := false
+		for _, dbIsId := range ag.Rds.ExcludeDBInstanceIDs {
+			if db.DBInstanceId == dbIsId {
+				exclude = true
+				break
+			}
+		}
+
+		if exclude {
+			continue
+		}
+
 		tags := map[string]interface{}{
 			"__class":               "RDS",
 			"__provider":            "aliyun",
@@ -140,6 +153,18 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 			"VpcCloudInstanceId":    db.VpcCloudInstanceId,
 			"VpcId":                 db.VpcId,
 			"ZoneId":                db.ZoneId,
+		}
+
+		//add rds object custom tags
+		for k, v := range r.Tags {
+			tags[k] = v
+		}
+
+		//add global tags
+		for k, v := range ag.Tags {
+			if _, have := tags[k]; !have {
+				tags[k] = v
+			}
 		}
 
 		obj := &map[string]interface{}{
@@ -170,18 +195,6 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 			"DedicatedHostZoneIdForSlave":  db.DedicatedHostZoneIdForSlave,
 			"DedicatedHostZoneIdForLog":    db.DedicatedHostNameForLog,
 			"ReadOnlyDBInstanceIds":        db.ReadOnlyDBInstanceIds,
-		}
-
-		//add rds object custom tags
-		for k, v := range r.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
 		}
 
 		objs = append(objs, obj)
