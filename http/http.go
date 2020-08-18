@@ -31,7 +31,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flink"
-	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 var (
@@ -165,15 +165,14 @@ func httpStart(addr string) {
 	// TODO: need any method?
 	// router.Any()
 
-	/*
-		if inputs.InputEnabled("trace") {
-			l.Info("open route for trace")
-			router.POST("/trac", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-			router.POST("/v3/segment", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-			router.POST("/v3/segments", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-			router.POST("/v3/management/reportProperties", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-			router.POST("/v3/management/keepAlive", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-		} */
+	if inputs.InputEnabled("trace") {
+		l.Info("open route for trace")
+		router.POST("/trac", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+		router.POST("/v3/segment", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+		router.POST("/v3/segments", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+		router.POST("/v3/management/reportProperties", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+		router.POST("/v3/management/keepAlive", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+	}
 
 	if inputs.InputEnabled("druid") {
 		l.Info("open route for druid")
@@ -182,11 +181,7 @@ func httpStart(addr string) {
 
 	if inputs.InputEnabled("flink") {
 		l.Info("open route for influxdb write")
-		router.POST("/write", func(c *gin.Context) {
-			if _, ok := flink.DBList.Load(c.Query("db")); ok {
-				flink.Handle(c.Writer, c.Request)
-			}
-		})
+		router.POST("/write", func(c *gin.Context) { flink.Handle(c.Writer, c.Request) })
 	}
 
 	// internal datakit stats API
