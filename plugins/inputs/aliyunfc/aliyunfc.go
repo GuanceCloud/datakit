@@ -92,6 +92,9 @@ var (
 	`
 )
 
+type FC struct {
+}
+
 func (m *FC) SampleConfig() string {
 	return sampleCfg
 }
