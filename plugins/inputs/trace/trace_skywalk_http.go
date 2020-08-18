@@ -85,42 +85,42 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 	for _, span := range sg.Spans {
 		t := TraceAdapter{}
 
-		t.source = "skywalking"
+		t.Source = "skywalking"
 
-		t.duration = (span.EndTime -span.StartTime)*1000
-		t.timestampUs = span.StartTime * 1000
+		t.Duration = (span.EndTime -span.StartTime)*1000
+		t.TimestampUs = span.StartTime * 1000
 		js ,err := json.Marshal(span)
 		if err != nil {
 			return err
 		}
-		t.content = string(js)
-		t.class         = "tracing"
-		t.serviceName   = sg.Service
-		t.operationName = span.OperationName
+		t.Content = string(js)
+		t.Class         = "tracing"
+		t.ServiceName   = sg.Service
+		t.OperationName = span.OperationName
 		if span.SpanType == "Entry" {
 			if len(span.Refs) > 0 {
-				t.parentID      = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
+				t.ParentID      = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
 					span.Refs[0].ParentSpanId)
 			}
 		} else {
-			t.parentID      = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.ParentSpanId)
+			t.ParentID      = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.ParentSpanId)
 		}
 
-		t.traceID       = sg.TraceId
-		t.spanID        = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.SpanId)
+		t.TraceID       = sg.TraceId
+		t.SpanID        = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.SpanId)
 		if span.IsError {
-			t.isError   = "true"
+			t.IsError   = "true"
 		}
 		if span.SpanType == "Entry" {
-			t.spanType  = SPAN_TYPE_ENTRY
+			t.SpanType  = SPAN_TYPE_ENTRY
 		} else if span.SpanType == "Exit"{
-			t.spanType  = SPAN_TYPE_EXIT
+			t.SpanType  = SPAN_TYPE_EXIT
 		} else {
-			t.spanType  = SPAN_TYPE_LOCAL
+			t.SpanType  = SPAN_TYPE_LOCAL
 		}
-		t.endPoint      = span.Peer
+		t.EndPoint      = span.Peer
 
-		t.mkLineProto()
+		t.MkLineProto()
 	}
 	return nil
 }
