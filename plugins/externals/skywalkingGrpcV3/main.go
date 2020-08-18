@@ -2,23 +2,23 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
+	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net"
-	"flag"
-	"encoding/json"
 	"path/filepath"
 	"time"
-	"context"
 
-	"google.golang.org/grpc"
 	"github.com/influxdata/toml"
+	"google.golang.org/grpc"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-    swV3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/skywalkingGrpcV3/v3"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	swV3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/skywalkingGrpcV3/v3"
 )
 
 type SkywalkingServerV3 struct {}
@@ -69,11 +69,6 @@ var (
 
 
 func main() {
-	doInit()
-	skywalkingGrpcServRun(fmt.Sprintf(":%d", skywalkingV3.GrpcPort))
-}
-
-func doInit() {
 	flag.Parse()
 
 	cfgdata, err := base64.StdEncoding.DecodeString(*flagCfgStr)
@@ -100,7 +95,10 @@ func doInit() {
 	defer conn.Close()
 
 	rpcCli = dkio.NewDataKitClient(conn)
+
+	skywalkingGrpcServRun(fmt.Sprintf(":%d", skywalkingV3.GrpcPort))
 }
+
 
 func skywalkingGrpcServRun(addr string) {
 	l.Infof("skywalking V3 gRPC starting...")
