@@ -1,7 +1,6 @@
 package flink
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sync"
