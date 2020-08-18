@@ -32,7 +32,7 @@ UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 
 NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(VERSION))"}}')
 NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(VERSION))"}}')
-NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER) 正在提交分支 $(BRANCH) 的 CI，此刻请勿在 $(BRANCH) 分支提交代码，避免 CI 任务被取消"}}')
+NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER) 正在执行 DataKit 分支 $(BRANCH) 的 CI，此刻请勿在 $(BRANCH) 分支提交代码，避免 CI 任务被取消"}}')
 
 ###################################
 # Detect telegraf update info
@@ -124,7 +124,7 @@ release_notify:
 
 ci_notify:
 	@curl \
-		'https://oapi.dingtalk.com/robot/send?access_token=5109b365f7be669c45c5677418a1c2fe7d5251485a09f514131177b203ed785f' \
+		'https://oapi.dingtalk.com/robot/send?access_token=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87' \
 		-H 'Content-Type: application/json' \
 		-d '$(NOTIFY_CI)'
 
