@@ -165,7 +165,7 @@ func httpStart(addr string) {
 	// TODO: need any method?
 	// router.Any()
 
-	if inputs.InputEnabled("trace") {
+	if n, _ := inputs.InputEnabled("trace"); n > 0 {
 		l.Info("open route for trace")
 		router.POST("/trac", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
 		router.POST("/v3/segment", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
@@ -174,12 +174,12 @@ func httpStart(addr string) {
 		router.POST("/v3/management/keepAlive", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
 	}
 
-	if inputs.InputEnabled("druid") {
+	if n, _ := inputs.InputEnabled("druid"); n > 0 {
 		l.Info("open route for druid")
 		router.POST("/druid", func(c *gin.Context) { druid.Handle(c.Writer, c.Request) })
 	}
 
-	if inputs.InputEnabled("flink") {
+	if n, _ := inputs.InputEnabled("flink"); n > 0 {
 		l.Info("open route for influxdb write")
 		router.POST("/write", func(c *gin.Context) { flink.Handle(c.Writer, c.Request) })
 	}
@@ -267,9 +267,15 @@ func apiAnsibleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type enabledInput struct {
+	Input     string   `json:"input"`
+	Instances int      `json:"instances"`
+	Cfgs      []string `json:"configs"`
+}
+
 type datakitStats struct {
 	InputsStats     []*io.InputsStat `json:"inputs_status"`
-	EnabledInputs   map[string]int   `json:"enabled_inputs"`
+	EnabledInputs   []*enabledInput  `json:"enabled_inputs"`
 	AvailableInputs []string         `json:"available_inputs"`
 
 	Version   string    `json:"version"`
@@ -282,13 +288,12 @@ type datakitStats struct {
 
 func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	stats := &datakitStats{
-		Version:       git.Version,
-		BuildAt:       git.BuildAt,
-		Uptime:        fmt.Sprintf("%v", time.Since(uptime)),
-		OSArch:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		ReloadCnt:     reloadCnt,
-		Reload:        reload,
-		EnabledInputs: map[string]int{},
+		Version:   git.Version,
+		BuildAt:   git.BuildAt,
+		Uptime:    fmt.Sprintf("%v", time.Since(uptime)),
+		OSArch:    fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		ReloadCnt: reloadCnt,
+		Reload:    reload,
 	}
 
 	var err error
@@ -306,14 +311,16 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for k, _ := range inputs.Inputs {
-		if inputs.InputEnabled(k) {
-			stats.EnabledInputs[k] = inputs.InputInstaces(k)
+		n, cfgs := inputs.InputEnabled(k)
+		if n > 0 {
+			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Cfgs: cfgs})
 		}
 	}
 
 	for k, ti := range inputs.TelegrafInputs {
-		if ti.Enabled() {
-			stats.EnabledInputs[k] = inputs.InputInstaces(k)
+		n, cfgs := ti.Enabled()
+		if n > 0 {
+			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Cfgs: cfgs})
 		}
 	}
 
