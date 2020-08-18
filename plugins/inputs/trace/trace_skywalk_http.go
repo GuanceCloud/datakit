@@ -121,6 +121,7 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 			t.SpanType  = SPAN_TYPE_LOCAL
 		}
 		t.EndPoint      = span.Peer
+		t.Tags          = SkywalkingV3Tags
 
 		pt, err := t.MkLineProto()
 		if err != nil {
