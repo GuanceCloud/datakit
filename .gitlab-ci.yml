@@ -16,6 +16,7 @@ build-dev:
   only:
     - dev
   script:
+    - make ci_notify
     - make test
     - make pub_test
     # disable them to save CI time
@@ -31,6 +32,7 @@ build-release:
   only:
     - master
   script:
+    - make ci_notify
     - make release
     - make pub_release
     - make pub_release_img
