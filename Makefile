@@ -19,12 +19,7 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-LOCAL_ARCHS = "darwin/amd64"
-LOCAL_ARCHS = "windows/amd64"
-LOCAL_ARCHS = "linux/amd64|windows/amd64|linux/arm"
-LOCAL_ARCHS = "linux/amd64"
 LOCAL_ARCHS = "all"
-
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
