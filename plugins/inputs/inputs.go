@@ -194,14 +194,20 @@ func protectRunningInput(name string, ii *inputInfo) {
 	}()
 }
 
-func InputEnabled(name string) bool {
+func InputEnabled(name string) (int, []string) {
 	mtx.RLock()
 	defer mtx.RUnlock()
-	x, ok := inputInfos[name]
-	if ok {
-		l.Debugf("datakit input %s enabled: %s", name, x[0].cfg)
+	arr, ok := inputInfos[name]
+	if !ok {
+		return 0, nil
 	}
-	return ok
+
+	cfgs := []string{}
+	for _, i := range arr {
+		cfgs = append(cfgs, i.cfg)
+	}
+
+	return len(arr), cfgs
 }
 
 func GetPanicCnt(name string) int {
