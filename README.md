@@ -68,7 +68,7 @@ sudo docker build -t $img .
 
 # 启动容器
 sudo docker run -d --name=$container_name \
-	-v "/home/tan/datakit-confd":"/usr/local/cloudcare/dataflux/datakit/conf.d" \
+	-v "${host_confd}":"/usr/local/cloudcare/dataflux/datakit/conf.d" \
 	--mount type=bind,source="$HOME/dk.log",target="/usr/local/cloudcare/dataflux/datakit/datakit.log" \
 	--mount type=bind,source="$HOME/dk.conf",target="/usr/local/cloudcare/dataflux/datakit/datakit.conf" \
 	--mount type=bind,source="$HOME/tg.conf",target="/usr/local/cloudcare/dataflux/datakit/embed/agent.conf" \
