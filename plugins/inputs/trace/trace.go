@@ -42,6 +42,7 @@ var (
 var JaegerTags       map[string]string
 var ZipkinTags       map[string]string
 var SkywalkingV2Tags map[string]string
+var SkywalkingV3Tags map[string]string
 
 type Jaeger struct {
 	Tags  map[string]string
@@ -89,7 +90,10 @@ func (t *Trace) Run() {
 	}
 
 	if t.SkywalkingV3 != nil {
-		go SkyWalkingServerRunV3(t.SkywalkingV3)
+		SkywalkingV3Tags = t.SkywalkingV3.Tags
+		if t.SkywalkingV3.GrpcPort != 0 {
+			go SkyWalkingServerRunV3(t.SkywalkingV3)
+		}
 	}
 }
 
