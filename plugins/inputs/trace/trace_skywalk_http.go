@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"fmt"
 	"encoding/json"
+
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 type SkyWalkTag struct {
@@ -120,7 +122,14 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 		}
 		t.EndPoint      = span.Peer
 
-		t.MkLineProto()
+		pt, err := t.MkLineProto()
+		if err != nil {
+			continue
+		}
+
+		if err := dkio.NamedFeed(pt, dkio.Logging, "tracing"); err != nil {
+			log.Errorf("io feed err: %s", err)
+		}
 	}
 	return nil
 }
