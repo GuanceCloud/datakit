@@ -5,16 +5,21 @@ type TelegrafInput struct {
 	Catalog, Sample string
 }
 
-func (ti *TelegrafInput) Enabled() bool {
+func (ti *TelegrafInput) Enabled() (int, []string) {
 
 	mtx.RLock()
 	defer mtx.RUnlock()
 
-	x, ok := inputInfos[ti.name]
-	if ok {
-		l.Debugf("telegraf input %s enabled: %s", ti.name, x[0].cfg)
+	arr, ok := inputInfos[ti.name]
+	if !ok {
+		return 0, nil
 	}
-	return ok
+
+	cfgs := []string{}
+	for _, i := range arr {
+		cfgs = append(cfgs, i.cfg)
+	}
+	return len(arr), cfgs
 }
 
 var (
