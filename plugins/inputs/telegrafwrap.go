@@ -1,4 +1,4 @@
-package telegrafwrap
+package inputs
 
 import (
 	"fmt"
@@ -8,33 +8,20 @@ import (
 	"runtime"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
-type TelegrafSvr struct{}
-
 var (
-	Svr          = &TelegrafSvr{}
-	l            *logger.Logger
 	telegrafConf string
 )
 
-func (s *TelegrafSvr) Start() {
-
-	l = logger.SLogger("telegrafwrap")
-
-	if len(config.EnabledTelegrafInputs) == 0 {
-		l.Info("no telegraf inputs enabled")
-		return
-	}
+func startTelegraf() {
 
 	telegrafConf = filepath.Join(datakit.TelegrafDir, "agent.conf")
 
 	l.Info("starting telegraf...")
 
-	proc, err := s.startAgent()
+	proc, err := doStart()
 	if err != nil {
 		l.Error(err)
 		return
@@ -43,7 +30,7 @@ func (s *TelegrafSvr) Start() {
 	datakit.MonitProc(proc, "telegraf")
 }
 
-func (s *TelegrafSvr) startAgent() (*os.Process, error) {
+func doStart() (*os.Process, error) {
 
 	env := os.Environ()
 	if runtime.GOOS == "windows" {
