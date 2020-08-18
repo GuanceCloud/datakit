@@ -278,22 +278,24 @@ type datakitStats struct {
 	EnabledInputs   []*enabledInput  `json:"enabled_inputs"`
 	AvailableInputs []string         `json:"available_inputs"`
 
-	Version   string    `json:"version"`
-	BuildAt   string    `json:"build_at"`
-	Uptime    string    `json:"uptime"`
-	OSArch    string    `json:"os_arch"`
-	Reload    time.Time `json:"reload"`
-	ReloadCnt int       `json:"reload_cnt"`
+	Version      string    `json:"version"`
+	BuildAt      string    `json:"build_at"`
+	Uptime       string    `json:"uptime"`
+	OSArch       string    `json:"os_arch"`
+	Reload       time.Time `json:"reload"`
+	ReloadCnt    int       `json:"reload_cnt"`
+	WithinDocker bool      `json:"docker"`
 }
 
 func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	stats := &datakitStats{
-		Version:   git.Version,
-		BuildAt:   git.BuildAt,
-		Uptime:    fmt.Sprintf("%v", time.Since(uptime)),
-		OSArch:    fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		ReloadCnt: reloadCnt,
-		Reload:    reload,
+		Version:      git.Version,
+		BuildAt:      git.BuildAt,
+		Uptime:       fmt.Sprintf("%v", time.Since(uptime)),
+		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		ReloadCnt:    reloadCnt,
+		Reload:       reload,
+		WithinDocker: config.Cfg.WithinDocker,
 	}
 
 	var err error
