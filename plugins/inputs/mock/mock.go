@@ -1,7 +1,6 @@
 package mock
 
 import (
-	"os"
 	"time"
 
 	"github.com/Pallinder/go-randomdata"
@@ -9,6 +8,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -41,11 +41,6 @@ func (m *Mock) Catalog() string {
 func (m *Mock) Run() {
 
 	l = logger.SLogger("mock")
-	host, err := os.Hostname()
-	if err != nil {
-		host = randomdata.SillyName()
-		l.Warnf("get hostname failed: %s, use random silly name(%s) instead", err, host)
-	}
 
 	l.Info("mock input started...")
 
@@ -62,7 +57,7 @@ func (m *Mock) Run() {
 		case <-tick.C:
 			pt, err := influxdb.NewPoint(m.Metric,
 				map[string]string{
-					"from": host,
+					"from": config.Cfg.MainCfg.Hostname,
 				},
 				map[string]interface{}{
 					"f1": randomdata.Number(0, 100),
