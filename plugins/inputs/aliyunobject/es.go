@@ -16,10 +16,10 @@ const (
 #[inputs.aliyunobject.elasticsearch]
 
 # ## @param - custom tags - [list of elasticsearch instanceid] - optional
-#instanceids = ['']
+#instanceids = []
 
 # ## @param - custom tags - [list of excluded elasticsearch instanceid] - optional
-#exclude_instanceids = ['']
+#exclude_instanceids = []
 
 # ## @param - custom tags for ecs object - [list of key:value element] - optional
 #[inputs.aliyunobject.elasticsearch.tags]
@@ -128,19 +128,29 @@ func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse,
 
 		obj := map[string]interface{}{
 			`__name`: inst.Description,
+			`clientNodeConfiguration`: inst.ClientNodeConfiguration,
+			`createdAt`: inst.CreatedAt,
+			`elasticDataNodeConfiguration`: inst.ElasticDataNodeConfiguration,
+			`esVersion`: inst.EsVersion,
+			`kibanaConfiguration`: inst.KibanaConfiguration,
+			`masterConfiguration`: inst.MasterConfiguration,
+			`networkConfig`: inst.NetworkConfig,
+			`nodeAmount`: inst.NodeAmount,
+			`nodeSpec`: inst.NodeSpec,
 		}
 
 		tags := map[string]interface{}{
 			`__class`:  `ES`,
 			`provider`: `aliyun`,
-
 			`InstanceId`: inst.InstanceId,
-
+			`advancedDedicateMaster`: inst.AdvancedDedicateMaster,
+			`dedicateMaster`: inst.DedicateMaster,
+			`paymentType`: inst.PaymentType,
 			`ResourceGroupId`: inst.ResourceGroupId,
 			`Status`:          inst.Status,
 		}
 
-		//tags on ecs instance
+		//tags on es instance
 		for _, t := range inst.Tags {
 			if _, have := tags[t.TagKey]; !have {
 				tags[t.TagKey] = t.TagValue
@@ -149,7 +159,7 @@ func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse,
 			}
 		}
 
-		//add ecs object custom tags
+		//add es object custom tags
 		for k, v := range e.Tags {
 			tags[k] = v
 		}
