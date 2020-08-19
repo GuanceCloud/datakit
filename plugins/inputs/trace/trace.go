@@ -39,17 +39,17 @@ var (
 	log *logger.Logger
 )
 
-var JaegerTags       map[string]string
-var ZipkinTags       map[string]string
+var JaegerTags map[string]string
+var ZipkinTags map[string]string
 var SkywalkingV2Tags map[string]string
 var SkywalkingV3Tags map[string]string
 
 type Jaeger struct {
-	Tags  map[string]string
+	Tags map[string]string
 }
 
 type Zipkin struct {
-	Tags  map[string]string
+	Tags map[string]string
 }
 
 type Skywalking struct {
@@ -61,7 +61,6 @@ type Trace struct {
 	Zipkin       *Zipkin
 	SkywalkingV2 *Skywalking
 	SkywalkingV3 *Skywalking
-
 }
 
 func (_ *Trace) Catalog() string {
@@ -77,11 +76,11 @@ func (t *Trace) Run() {
 	log.Infof("trace input started...")
 
 	if t.Jaeger != nil {
-		JaegerTags       = t.Jaeger.Tags
+		JaegerTags = t.Jaeger.Tags
 	}
 
 	if t.Zipkin != nil {
-		ZipkinTags       = t.Zipkin.Tags
+		ZipkinTags = t.Zipkin.Tags
 	}
 
 	if t.SkywalkingV2 != nil {
