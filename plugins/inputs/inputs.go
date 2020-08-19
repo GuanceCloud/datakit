@@ -127,22 +127,22 @@ func AddTelegrafInput(name, fp string) {
 			cfg: fp})
 }
 
-func StartTelegraf() {
+func StartTelegraf() error {
 
 	if !HaveTelegrafInputs() {
 		l.Info("no telegraf inputs enabled")
-		return
+		return nil
 	}
 
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
-		startTelegraf()
+		_ = doStartTelegraf()
 
 		l.Info("telegraf process exit ok")
 	}()
 
-	return
+	return nil
 }
 
 func RunInputs() error {
