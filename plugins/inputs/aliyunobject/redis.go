@@ -127,7 +127,6 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 			"EngineVersion":       inst.EngineVersion,
 			"ResourceGroupId":     inst.ResourceGroupId,
 			"VSwitchId":           inst.VSwitchId,
-			"VpcCloudInstanceId":  inst.VpcCloudInstanceId,
 			"VpcId":               inst.VpcId,
 			"ZoneId":              inst.ZoneId,
 			"ConnectionMode":      inst.ConnectionMode,
@@ -147,7 +146,6 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 		obj := map[string]interface{}{
 			"__name":           inst.InstanceName,
 			"DestroyTime":      inst.DestroyTime,
-			"ConnectionMode":   inst.ConnectionMode,
 			"CreateTime":       inst.CreateTime,
 			"Bandwidth":        inst.Bandwidth,
 			"Capacity":         inst.Capacity,
