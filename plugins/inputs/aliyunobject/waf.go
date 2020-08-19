@@ -2,7 +2,6 @@ package aliyunobject
 
 import (
 	"encoding/json"
-	"fmt"
 	waf "github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -92,7 +91,6 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 	}
 	obj["__tags"] = tags
 	objs = append(objs, obj)
-	fmt.Println(objs)
 	data, err := json.Marshal(&objs)
 	if err == nil {
 		io.NamedFeed(data, io.Object, inputName)
