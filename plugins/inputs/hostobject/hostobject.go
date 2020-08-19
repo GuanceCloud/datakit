@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net"
-	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -94,10 +93,7 @@ func (c *Collector) Run() {
 			"__class": c.Class,
 		}
 
-		hostname, err := os.Hostname()
-		if err == nil {
-			tags["host"] = hostname
-		}
+		tags["host"] = config.Cfg.MainCfg.Hostname
 
 		ipval := getIP()
 		if mac, err := getMacAddr(ipval); err == nil && mac != "" {
@@ -149,12 +145,9 @@ func (c *Collector) initialize() error {
 	if c.Class == "" {
 		c.Class = "Servers"
 	}
+
 	if c.Name == "" {
-		name, err := os.Hostname()
-		if err != nil {
-			return err
-		}
-		c.Name = name
+		c.Name = config.Cfg.MainCfg.Hostname
 	}
 	if c.Interval.Duration == 0 {
 		c.Interval.Duration = 3 * time.Minute
