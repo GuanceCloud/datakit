@@ -135,9 +135,22 @@ func (dm *Domain) handleResponse(resp *domain.QueryDomainListResponse, ag *objec
 		}
 
 		tags := map[string]interface{}{
-			"__class":    "Domain",
-			"__provider": "aliyun",
-			"InstanceId": d.InstanceId,
+			"__class":                  "Domain",
+			"__provider":               "aliyun",
+			"InstanceId":               d.InstanceId,
+			"DomainStatus":             d.DomainStatus,
+			"ZhRegistrantOrganization": d.ZhRegistrantOrganization,
+			"Email":                    d.Email,
+			"DomainType":               d.DomainType,
+			"DomainName":               d.DomainName,
+			"ProductId":                d.ProductId,
+			"ExpirationDateStatus":     d.ExpirationDateStatus,
+			"RegistrantType":           d.RegistrantType,
+			"Premium":                  d.Premium,
+			"DomainAuditStatus":        d.DomainAuditStatus,
+			"DomainGroupName":          d.DomainGroupName,
+			"RegistrantOrganization":   d.RegistrantOrganization,
+			"DomainGroupId":            d.DomainGroupId,
 		}
 
 		//add Domain object custom tags
@@ -153,8 +166,15 @@ func (dm *Domain) handleResponse(resp *domain.QueryDomainListResponse, ag *objec
 		}
 
 		obj := &map[string]interface{}{
-			"__name": fmt.Sprintf(`Domain_%s`, d.InstanceId),
-			"__tags": tags,
+			"__name":                 fmt.Sprintf(`Domain_%s`, d.InstanceId),
+			"__tags":                 tags,
+			"RegistrationDate":       d.RegistrationDate,
+			"RegistrationDateLong":   d.RegistrationDateLong,
+			"Remark":                 d.Remark,
+			"ExpirationDateLong":     d.ExpirationDateLong,
+			"ExpirationDate":         d.ExpirationDate,
+			"ExpirationCurrDateDiff": d.ExpirationCurrDateDiff,
+			"DnsList":                d.DnsList,
 		}
 
 		objs = append(objs, obj)
