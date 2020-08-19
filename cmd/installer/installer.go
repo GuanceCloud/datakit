@@ -31,7 +31,6 @@ import (
 )
 
 var (
-	ServiceName    = `datakit`
 	DataKitBaseUrl = ""
 	DataKitVersion = ""
 	installDir     = ""
@@ -46,7 +45,7 @@ var (
 	curDownloading = ""
 
 	osarch           = runtime.GOOS + "/" + runtime.GOARCH
-	dkservice        service.Service
+	svc              service.Service
 	lagacyInstallDir = ""
 
 	l *logger.Logger
@@ -86,27 +85,20 @@ func main() {
 		l.Fatal(err)
 	}
 
-	datakitExe := filepath.Join(installDir, "datakit")
+	datakit.ServiceExecutable = filepath.Join(installDir, "datakit")
 	if runtime.GOOS == "windows" {
-		datakitExe += ".exe"
+		datakit.ServiceExecutable += ".exe"
 	}
 
 	var err error
-	prog := &program{}
-	dkservice, err = service.New(prog, &service.Config{
-		Name:        ServiceName,
-		DisplayName: ServiceName,
-		Description: `Collects data and upload it to DataFlux.`,
-		Executable:  datakitExe,
-		Arguments:   nil, // no args need here
-	})
-
+	svc, err = datakit.NewService()
 	if err != nil {
-		l.Fatalf("new %s service failed: %s", runtime.GOOS, err.Error())
+		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
+		return
 	}
 
 	l.Info("stoping datakit...")
-	stopDataKitService(dkservice) // stop service if installed before
+	stopDataKitService(svc) // stop service if installed before
 
 	if *flagOffline && *flagSrcs != "" {
 		for _, f := range strings.Split(*flagSrcs, ",") {
@@ -115,6 +107,7 @@ func main() {
 	} else {
 		curDownloading = "datakit"
 		doDownload(datakitUrl, installDir)
+
 		curDownloading = "agent"
 		doDownload(telegrafUrl, installDir)
 	}
@@ -128,7 +121,7 @@ func main() {
 
 		l.Infof("Installing version %s...", DataKitVersion)
 
-		uninstallDataKitService(dkservice) // uninstall service if installed before
+		uninstallDataKitService(svc) // uninstall service if installed before
 
 		// prepare dataway info
 		var dwcfg *config.DataWayCfg
@@ -172,15 +165,15 @@ func main() {
 
 		enableInputs(*flagEnableInputs)
 
-		l.Infof("installing service %s...", ServiceName)
-		if err := installDatakitService(dkservice); err != nil {
-			l.Warnf("fail to register service %s: %s, ignored", ServiceName, err.Error())
+		l.Infof("installing service %s...", datakit.ServiceName)
+		if err := installDatakitService(svc); err != nil {
+			l.Warnf("fail to install service %s: %s, ignored", datakit.ServiceName, err.Error())
 		}
 	}
 
-	l.Infof("starting service %s...", ServiceName)
-	if err := startDatakitService(dkservice); err != nil {
-		l.Fatalf("fail to star service %s: %s", ServiceName, err.Error())
+	l.Infof("starting service %s...", datakit.ServiceName)
+	if err := startDatakitService(svc); err != nil {
+		l.Fatalf("fail to star service %s: %s", datakit.ServiceName, err.Error())
 	}
 
 	if *flagUpgrade { // upgrade new version
@@ -225,14 +218,14 @@ Golang Version: %s
 	switch osarch {
 
 	case "windows/amd64":
-		installDir = `C:\Program Files\dataflux\` + ServiceName
+		installDir = `C:\Program Files\dataflux\datakit`
 
 	case "windows/386":
-		installDir = `C:\Program Files (x86)\dataflux\` + ServiceName
+		installDir = `C:\Program Files (x86)\dataflux\datakit`
 
 	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
 		"darwin/amd64", "darwin/386":
-		installDir = `/usr/local/cloudcare/dataflux/` + ServiceName
+		installDir = `/usr/local/cloudcare/dataflux/datakit`
 
 	default:
 		// TODO: more os/arch support
@@ -364,12 +357,6 @@ func (wc *writeCounter) PrintProgress() {
 	}
 }
 
-type program struct{}
-
-func (p *program) Start(s service.Service) error { go p.run(s); return nil }
-func (p *program) run(s service.Service)         {}
-func (p *program) Stop(s service.Service) error  { return nil }
-
 func stopDataKitService(s service.Service) error {
 
 	if err := service.Control(s, "stop"); err != nil {
@@ -398,16 +385,16 @@ func startDatakitService(s service.Service) error {
 func stopLagacyDatakit() {
 	switch osarch {
 	case "windows/amd64", "windows/386":
-		stopDataKitService(dkservice)
+		stopDataKitService(svc)
 	default:
-		cmd := exec.Command(`stop`, []string{ServiceName}...)
+		cmd := exec.Command(`stop`, []string{datakit.ServiceName}...)
 		if _, err := cmd.Output(); err != nil {
 			l.Debugf("upstart stop datakit failed, try systemctl...")
 		} else {
 			return
 		}
 
-		cmd = exec.Command("systemctl", []string{"stop", ServiceName}...)
+		cmd = exec.Command("systemctl", []string{"stop", datakit.ServiceName}...)
 		if _, err := cmd.Output(); err != nil {
 			l.Debugf("systemctl stop datakit failed, ignored")
 		}
@@ -456,15 +443,15 @@ func migrateLagacyDatakit() {
 	switch osarch {
 
 	case "windows/amd64", "windows/386":
-		lagacyInstallDir = `C:\Program Files\Forethought\` + ServiceName
+		lagacyInstallDir = `C:\Program Files\Forethought\datakit`
 		if _, err := os.Stat(lagacyInstallDir); err != nil {
-			lagacyInstallDir = `C:\Program Files (x86)\Forethought\` + ServiceName
+			lagacyInstallDir = `C:\Program Files (x86)\Forethought\datakit`
 		}
 
 	case "linux/amd64", "linux/386",
 		"linux/arm", "linux/arm64",
 		"darwin/amd64", "darwin/386":
-		lagacyInstallDir = `/usr/local/cloudcare/forethought/` + ServiceName
+		lagacyInstallDir = `/usr/local/cloudcare/forethought/datakit`
 		lagacyServiceFiles = []string{"/lib/systemd/system/datakit.service", "/etc/systemd/system/datakit.service"}
 	default:
 		l.Fatalf("%s not support", osarch)
@@ -479,7 +466,7 @@ func migrateLagacyDatakit() {
 	updateLagacyConfig(lagacyInstallDir)
 
 	// uninstall service, remove old datakit.service file(for UNIX OS)
-	uninstallDataKitService(dkservice)
+	uninstallDataKitService(svc)
 	for _, sf := range lagacyServiceFiles {
 		if _, err := os.Stat(sf); err == nil {
 			if err := os.Remove(sf); err != nil {
@@ -501,9 +488,9 @@ func migrateLagacyDatakit() {
 		}
 	}
 
-	l.Infof("installing service %s...", ServiceName)
-	if err := installDatakitService(dkservice); err != nil {
-		l.Warnf("fail to register service %s: %s, ignored", ServiceName, err.Error())
+	l.Infof("installing service %s...", datakit.ServiceName)
+	if err := installDatakitService(svc); err != nil {
+		l.Warnf("fail to register service %s: %s, ignored", datakit.ServiceName, err.Error())
 	}
 }
 
@@ -571,9 +558,9 @@ func preInit() {
 		"timezone": []string{"host", timezone.Sample},
 	}
 
-	lopt := logger.OPT_DEFAULT | logger.OPT_COLOR
-	if runtime.GOOS == "windows" {
-		lopt = logger.OPT_DEFAULT // disable color on windows(some color not working under windows)
+	lopt := logger.OPT_DEFAULT | logger.OPT_STDOUT
+	if runtime.GOOS != "windows" { // disable color on windows(some color not working under windows)
+		lopt |= logger.OPT_COLOR
 	}
 
 	logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
