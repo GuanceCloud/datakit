@@ -1,7 +1,8 @@
 syntax = "proto3";
 
 //option go_package = ".;external";
-option go_package = "io";
+//option go_package = "io";
+option go_package = ".;io";
 
 package io;
 
@@ -20,4 +21,12 @@ message Request {
 	bytes Objects = 2; // JSON object body
 	string Precision = 3; // Valid time precisions are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 	string Name = 4; // who request the Feed
+	IoType io   = 5; // io data type
+}
+
+enum IoType {
+    	METRIC   = 0;
+    	KEYEVENT = 1;
+    	OBJECT   = 2;
+    	LOGGING  = 3;
 }
