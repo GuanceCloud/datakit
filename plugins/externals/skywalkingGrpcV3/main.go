@@ -99,6 +99,32 @@ func main() {
 	skywalkingGrpcServRun(fmt.Sprintf(":%d", skywalkingV3.GrpcPort))
 }
 
+func debugMsgToGrpc() {
+	ticker := time.NewTicker(10*time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			lines := [][]byte{}
+			lines = append(lines, []byte("a,b=1 c=1.1,d=3"))
+			lines = append(lines, []byte("aa,b=1 c=1.1,d=3"))
+			r, err := rpcCli.Send(ctx, &dkio.Request{
+				Lines    : bytes.Join(lines, []byte("\n")),
+				Precision: "ns",
+				Name     : "skywalkingGrpcV3",
+				Io       : dkio.IoType_LOGGING,
+			})
+			if err != nil {
+				l.Errorf("feed error: %s", err.Error())
+			} else {
+				l.Debugf("feed %d points, error: `%s'", r.GetPoints(), r.GetErr())
+			}
+		}
+	}
+}
+
 
 func skywalkingGrpcServRun(addr string) {
 	l.Infof("skywalking V3 gRPC starting...")
@@ -192,9 +218,10 @@ func skywalkGrpcToLineProto(sg *swV3.SegmentObject) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	r, err := rpcCli.Send(ctx, &dkio.Request{
-		Lines:     bytes.Join(lines, []byte("\n")),
+		Lines    : bytes.Join(lines, []byte("\n")),
 		Precision: "ns",
-		Name:      "skywalkingGrpcV3",
+		Name     : "skywalkingGrpcV3",
+		Io       : dkio.IoType_LOGGING,
 	})
 	if err != nil {
 		l.Errorf("feed error: %s", err.Error())
