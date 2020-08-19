@@ -69,10 +69,17 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 	tags := map[string]interface{}{
 		"__class":    "WAF",
 		"__provider": "aliyun",
+		"InDebt": resp.InstanceInfo.InDebt,
+		"InstanceId": resp.InstanceInfo.InstanceId,
+		"PayType": resp.InstanceInfo.PayType,
+		"Region": resp.InstanceInfo.Region,
+		"Status": resp.InstanceInfo.Status,
+		"SubscriptionType": resp.InstanceInfo.SubscriptionType,
 	}
 
 	obj := map[string]interface{}{
 		"__name": resp.InstanceInfo.InstanceId,
+		"EndDate": resp.InstanceInfo.EndDate,
 
 	}
 	for k, v := range e.Tags {
