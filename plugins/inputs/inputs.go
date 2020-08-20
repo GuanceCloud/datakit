@@ -13,7 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-
 type Input interface {
 	Catalog() string
 	Run()
@@ -22,12 +21,11 @@ type Input interface {
 	// add more...
 }
 
-
-
 type HttpRegInput interface {
 	Input
 	RegHttpHandler()
 }
+
 type Creator func() Input
 
 var (
@@ -42,9 +40,14 @@ var (
 
 func Add(name string, creator Creator) {
 	if _, ok := Inputs[name]; ok {
-		panic(fmt.Sprintf("inputs %s exist", name))
+		panic(fmt.Sprintf("inputs %s exist(from datakit)", name))
 	}
 
+	if _, ok := TelegrafInputs[name]; ok {
+		panic(fmt.Sprintf("inputs %s exist(from telegraf)", name))
+	}
+
+	l.Infof("add input %s", name)
 	Inputs[name] = creator
 }
 
