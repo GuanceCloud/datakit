@@ -27,7 +27,7 @@ type Server struct {
 }
 
 func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
-
+	var catagory string
 	resp := &Response{}
 
 	if req.Lines != nil {
@@ -37,7 +37,20 @@ func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
 		}
 
 		l.Debugf("received %d points from %s", len(pts), req.Name)
-		NamedFeed(req.Lines, Metric, req.Name)
+		switch req.Io {
+		case IoType_METRIC:
+			catagory = Metric
+		case IoType_KEYEVENT:
+			catagory = KeyEvent
+		case IoType_OBJECT:
+			catagory = Object
+		case IoType_LOGGING:
+			catagory = Logging
+		default:
+			catagory = Metric
+		}
+		l.Debugf("%s %v", catagory, req.Name)
+		NamedFeed(req.Lines, catagory, req.Name)
 		resp.Points = int64(len(pts))
 	}
 
