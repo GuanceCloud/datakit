@@ -15,14 +15,18 @@ RUN apt-get update
 RUN apt-get install -y libaio-dev libaio1 unzip
 RUN unzip /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip -d /opt/oracle
 
-ARG within_docker=1
 ARG dataway=""
 ARG uuid=""
 ARG loglevel=""
+ARG enable_inputs=""
+ARG global_tags=""
+ARG hostname=""
 
 env ENV_UUID=$uuid
 env ENV_DATAWAY=$dataway
-env ENV_WITHIN_DOCKER=$within_docker
 env ENV_LOG_LEVEL=$loglevel
+env ENV_ENABLE_INPUTS=$enable_inputs
+env ENV_GLOBAL_TAGS=$global_tags
+env ENV_HOSTNAME=$hostname
 
-CMD "/usr/local/cloudcare/dataflux/datakit/datakit"
+CMD ["/usr/local/cloudcare/dataflux/datakit/datakit", "-docker"]
