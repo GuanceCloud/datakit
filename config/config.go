@@ -14,24 +14,20 @@ import (
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
-	l                             = logger.DefaultSLogger("config")
-	Cfg                   *Config = nil
-	EnabledTelegrafInputs         = map[string]interface{}{}
+	l           = logger.DefaultSLogger("config")
+	Cfg *Config = nil
 )
 
 type Config struct {
 	MainCfg      *MainConfig
-	Inputs       map[string][]inputs.Input
 	InputFilters []string
 
-	withinDocker bool
+	WithinDocker bool
 }
 
 type DataWayCfg struct {
@@ -108,10 +104,7 @@ func init() {
 	datakit.ConfdDir = filepath.Join(datakit.InstallDir, "conf.d")
 	datakit.GRPCDomainSock = filepath.Join(datakit.InstallDir, "datakit.sock")
 
-	datakit.Exit = cliutils.NewSem()
 	Cfg = newDefaultCfg()
-
-	initTelegrafSamples()
 }
 
 func newDefaultCfg() *Config {
@@ -133,7 +126,6 @@ func newDefaultCfg() *Config {
 			cfgPath:          filepath.Join(datakit.InstallDir, "datakit.conf"),
 			TelegrafAgentCfg: defaultTelegrafAgentCfg(),
 		},
-		Inputs: map[string][]inputs.Input{},
 	}
 }
 
@@ -157,7 +149,6 @@ func LoadCfg() error {
 		return err
 	}
 
-	// loading from
 	if err := Cfg.LoadMainConfig(); err != nil {
 		return err
 	}
@@ -173,14 +164,12 @@ func LoadCfg() error {
 		datakit.MaxLifeCheckInterval = Cfg.MainCfg.maxPostInterval
 	}
 
-	initPluginCfgs()
+	initPluginSamples()
 
 	if err := Cfg.LoadConfig(); err != nil {
 		l.Error(err)
 		return err
 	}
-
-	DumpInputsOutputs()
 
 	return nil
 }
@@ -350,23 +339,6 @@ func CheckConfd() error {
 	return nil
 }
 
-func DumpInputsOutputs() {
-	names := []string{}
-
-	for name := range Cfg.Inputs {
-		names = append(names, name)
-	}
-
-	for k, i := range TelegrafInputs {
-		if i.enabled {
-			names = append(names, k)
-			EnabledTelegrafInputs[k] = nil
-		}
-	}
-
-	l.Infof("available inputs: %s", strings.Join(names, ","))
-}
-
 func buildMainCfg(mc *MainConfig) ([]byte, error) {
 	data, err := toml.Marshal(mc)
 	return data, err
@@ -412,33 +384,6 @@ func sliceContains(name string, list []string) bool {
 		}
 	}
 	return false
-}
-
-func (c *Config) addInput(name string, input inputs.Input, table *ast.Table) error {
-
-	var dur time.Duration
-	var err error
-	if node, ok := table.Fields["interval"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-				dur, err = time.ParseDuration(str.Value)
-				if err != nil {
-					l.Errorf("parse duration(%s) from %s failed: %s", str.Value, name, err.Error())
-					return err
-				}
-			}
-		}
-	}
-
-	l.Debugf("try set MaxLifeCheckInterval to %v from %s...", dur, name)
-	if datakit.MaxLifeCheckInterval+5*time.Second < dur { // use the max interval from all inputs
-		datakit.MaxLifeCheckInterval = dur
-		l.Debugf("set MaxLifeCheckInterval to %v from %s", dur, name)
-	}
-
-	c.Inputs[name] = append(c.Inputs[name], input)
-
-	return nil
 }
 
 func ParseDataway(dw string) (*DataWayCfg, error) {

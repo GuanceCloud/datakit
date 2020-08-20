@@ -26,6 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/timezone"
 )
 
@@ -49,32 +50,6 @@ var (
 	lagacyInstallDir = ""
 
 	l *logger.Logger
-
-	/////////////////////////////////////////////////////////////////////////////////////////////
-	// We have to add these inputs manually here, especially datakit's inputs,
-	// because all datakit's inputs are plugable, while not importing:
-	//
-	// 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	//
-	// the `inputs.Inputs' list is empty, so we can't get the desired input's info.
-	//
-	// But when we import `all' into the installer program, the binary will increase
-	// rapidly to about 100+MB, so we only add these minimal info here, just for a small
-	// installer, and easy to download.
-	/////////////////////////////////////////////////////////////////////////////////////////////
-	inputsAvailableDuringInstall = map[string][]string{
-		// telegraf inputs
-		"cpu":               []string{"host", config.TelegrafInputs["cpu"].Sample}, // FIXME: Mac works ok?
-		"mem":               []string{"host", config.TelegrafInputs["mem"].Sample},
-		"disk":              []string{"host", config.TelegrafInputs["disk"].Sample},
-		"net":               []string{"network", config.TelegrafInputs["net"].Sample},
-		"win_perf_counters": []string{"windows", config.TelegrafInputs["win_perf_counters"].Sample},
-		"processes":         []string{"processes", config.TelegrafInputs["processes"].Sample},
-		"swap":              []string{"swap", config.TelegrafInputs["swap"].Sample},
-
-		// datakit inputs
-		"timezone": []string{"host", timezone.Sample},
-	}
 )
 
 var (
@@ -92,16 +67,13 @@ var (
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./agent-%s-%s.tar.gz",
 		runtime.GOOS, runtime.GOARCH, DataKitVersion, runtime.GOOS, runtime.GOARCH),
 		`local path of datakit and agent install files`)
+
+	inputsAvailableDuringInstall map[string][]string
 )
 
 func main() {
-	lopt := logger.OPT_DEFAULT | logger.OPT_COLOR
-	if runtime.GOOS == "windows" {
-		lopt = logger.OPT_DEFAULT // disable color on windows(some color not working under windows)
-	}
 
-	logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
-	l = logger.SLogger("installer")
+	preInit()
 
 	flag.Parse()
 
@@ -386,8 +358,8 @@ func doDownload(from, to string) {
 
 func (wc *writeCounter) PrintProgress() {
 	if wc.last > float64(wc.total)*0.01 || wc.current == wc.total { // update progress-bar each 1%
-		fmt.Printf("\r%s", strings.Repeat(" ", 35))
-		fmt.Printf("\rDownloading(%s)... %s/%s", curDownloading, humanize.Bytes(wc.current), humanize.Bytes(wc.total))
+		fmt.Printf("\r%s", strings.Repeat(" ", 36))
+		fmt.Printf("\rDownloading(% 7s)... %s/%s", curDownloading, humanize.Bytes(wc.current), humanize.Bytes(wc.total))
 		wc.last = 0.0
 	}
 }
@@ -570,4 +542,40 @@ func enableInputs(inputlist string) {
 			l.Debugf("input %s not enabled", name)
 		}
 	}
+}
+
+func preInit() {
+	/////////////////////////////////////////////////////////////////////////////////////////////
+	// We have to add these inputs manually here, especially datakit's inputs,
+	// because all datakit's inputs are plugable, while not importing:
+	//
+	// 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	//
+	// the `inputs.Inputs' list is empty, so we can't get the desired input's info.
+	//
+	// But when we import `all' into the installer program, the binary will increase
+	// rapidly to about 100+MB, so we only add these minimal info here, just for a small
+	// installer, and easy to download.
+	/////////////////////////////////////////////////////////////////////////////////////////////
+	inputsAvailableDuringInstall = map[string][]string{
+		// telegraf inputs
+		"cpu":               []string{"host", inputs.TelegrafInputs["cpu"].Sample}, // FIXME: Mac works ok?
+		"mem":               []string{"host", inputs.TelegrafInputs["mem"].Sample},
+		"disk":              []string{"host", inputs.TelegrafInputs["disk"].Sample},
+		"net":               []string{"network", inputs.TelegrafInputs["net"].Sample},
+		"win_perf_counters": []string{"windows", inputs.TelegrafInputs["win_perf_counters"].Sample},
+		"processes":         []string{"processes", inputs.TelegrafInputs["processes"].Sample},
+		"swap":              []string{"swap", inputs.TelegrafInputs["swap"].Sample},
+
+		// datakit inputs
+		"timezone": []string{"host", timezone.Sample},
+	}
+
+	lopt := logger.OPT_DEFAULT | logger.OPT_COLOR
+	if runtime.GOOS == "windows" {
+		lopt = logger.OPT_DEFAULT // disable color on windows(some color not working under windows)
+	}
+
+	logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
+	l = logger.SLogger("installer")
 }
