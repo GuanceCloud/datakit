@@ -27,6 +27,7 @@ require (
 	github.com/containerd/fifo v0.0.0-20200410184934-f15a3290365b // indirect
 	github.com/containerd/ttrpc v1.0.1 // indirect
 	github.com/containerd/typeurl v1.0.1
+	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cosiner/argv v0.0.1 // indirect
 	github.com/dchest/safefile v0.0.0-20151022103144-855e8d98f185 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
