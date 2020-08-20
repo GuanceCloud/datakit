@@ -1,105 +1,161 @@
 package trace
 
 import (
-	"fmt"
+	"bytes"
+	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
+	"io/ioutil"
+	"net/http"
+	"sync"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+)
+
+
+type TraceDecoder interface {
+	Decode(octets []byte) error
+}
+
+type TraceReqInfo struct {
+	Source      string
+	Version     string
+	ContentType string
+	Body        []byte
+}
+
+type TraceRepInfo struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+}
+type ZipkinTracer struct {
+	TraceReqInfo
+}
+
+
+
+type TraceAdapter struct {
+	Source        string
+	Duration      int64
+	TimestampUs   int64
+	Content       string
+
+	Class         string
+	ServiceName   string
+	OperationName string
+	ParentID      string
+	TraceID       string
+	SpanID        string
+	IsError       string
+	SpanType      string
+	EndPoint      string
+
+	Tags          map[string]string
+}
+
+const (
+	US_PER_SECOND   int64 = 1000000
+	SPAN_TYPE_ENTRY       = "entry"
+	SPAN_TYPE_LOCAL       = "local"
+	SPAN_TYPE_EXIT        = "exit"
 )
 
 var (
-	inputName = "trace"
-
-	traceConfigSample = `
-#[inputs.trace.jaeger]
-#	[inputs.trace.jaeger.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
-#
-#[inputs.trace.zipkin]
-#	[inputs.trace.zipkin.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
-#
-#[inputs.trace.skywalkingV2]
-#	grpcPort = 11800
-#	[inputs.trace.skywalkingV2.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
-#
-#[inputs.trace.skywalkingV3]
-#	grpcPort = 13800
-#	[inputs.trace.skywalkingV3.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
-`
 	log *logger.Logger
+	once sync.Once
 )
 
-var JaegerTags       map[string]string
-var ZipkinTags       map[string]string
-var SkywalkingV2Tags map[string]string
-var SkywalkingV3Tags map[string]string
+func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
+	tags   := make(map[string]string)
+	fields := make(map[string]interface{})
 
-type Jaeger struct {
-	Tags  map[string]string
-}
+	tags["__class"]         = tAdpt.Class
+	tags["__operationName"] = tAdpt.OperationName
+	tags["__serviceName"]   = tAdpt.ServiceName
+	tags["__parentID"]      = tAdpt.ParentID
+	tags["__traceID"]       = tAdpt.TraceID
+	tags["__spanID"]        = tAdpt.SpanID
 
-type Zipkin struct {
-	Tags  map[string]string
-}
-
-type Skywalking struct {
-	GrpcPort int32
-	Tags     map[string]string
-}
-type Trace struct {
-	Jaeger       *Jaeger
-	Zipkin       *Zipkin
-	SkywalkingV2 *Skywalking
-	SkywalkingV3 *Skywalking
-
-}
-
-func (_ *Trace) Catalog() string {
-	return "trace"
-}
-
-func (_ *Trace) SampleConfig() string {
-	return traceConfigSample
-}
-
-func (t *Trace) Run() {
-	log = logger.SLogger("trace")
-	log.Infof("trace input started...")
-
-	if t.Jaeger != nil {
-		JaegerTags       = t.Jaeger.Tags
+	for tag, tagV := range tAdpt.Tags {
+		tags[tag] = tagV
+	}
+	if tAdpt.IsError == "true" {
+		tags["__isError"] = "true"
+	} else {
+		tags["__isError"] = "false"
 	}
 
-	if t.Zipkin != nil {
-		ZipkinTags       = t.Zipkin.Tags
+	if tAdpt.EndPoint != "" {
+		tags["__endpoint"] = tAdpt.EndPoint
+	} else {
+		tags["__endpoint"] = "null"
 	}
 
-	if t.SkywalkingV2 != nil {
-		SkywalkingV2Tags = t.SkywalkingV2.Tags
-		go SkyWalkingServerRunV2(fmt.Sprintf(":%d", t.SkywalkingV2.GrpcPort))
+	if tAdpt.SpanType != "" {
+		tags["__spanType"] = tAdpt.SpanType
+	} else {
+		tags["__spanType"] = SPAN_TYPE_ENTRY
 	}
 
-	if t.SkywalkingV3 != nil {
-		SkywalkingV3Tags = t.SkywalkingV3.Tags
-		if t.SkywalkingV3.GrpcPort != 0 {
-			go SkyWalkingServerRunV3(t.SkywalkingV3)
+	fields["__duration"] = tAdpt.Duration
+	fields["__content"]  = tAdpt.Content
+
+	ts := time.Unix(tAdpt.TimestampUs/US_PER_SECOND, (tAdpt.TimestampUs%US_PER_SECOND)*1000)
+
+	pt, err := dkio.MakeMetric(tAdpt.Source, tags, fields, ts)
+	if err != nil {
+		GetInstance().Errorf("build metric err: %s", err)
+		return nil, err
+	}
+
+	lineProtoStr := string(pt)
+	GetInstance().Debugf(lineProtoStr)
+	return pt, err
+}
+
+func MkLineProto(adapterGroup []*TraceAdapter, pluginName string)  {
+	for _, tAdpt := range adapterGroup {
+		pt, err := BuildLineProto(tAdpt)
+		if err != nil {
+			continue
+		}
+
+		if err := dkio.NamedFeed(pt, dkio.Logging, pluginName); err != nil {
+			GetInstance().Errorf("io feed err: %s", err)
 		}
 	}
 }
 
-func init() {
-	inputs.Add(inputName, func() inputs.Input {
-		t := &Trace{}
-		return t
+func ParseHttpReq(r *http.Request) (*TraceReqInfo, error) {
+	var body []byte
+	var err error
+	req := &TraceReqInfo{}
+
+	req.Source      = r.URL.Query().Get("source")
+	req.Version     = r.URL.Query().Get("version")
+	req.ContentType = r.Header.Get("Content-Type")
+	contentEncoding := r.Header.Get("Content-Encoding")
+
+	body, err = ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body.Close()
+
+	if contentEncoding == "gzip" {
+		body, err = utils.ReadCompressed(bytes.NewReader(body), true)
+		if err != nil {
+			return req, err
+		}
+	}
+	req.Body = body
+	return req, err
+}
+
+//GetInstance 用于获取单例模式对象
+func GetInstance() *logger.Logger {
+	once.Do(func() {
+		log = logger.SLogger("trace")
 	})
+	return log
 }
