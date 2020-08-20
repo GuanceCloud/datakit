@@ -167,7 +167,7 @@ func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creat
 			return err
 		}
 
-		l.Infof("add input %s ok", name)
+		l.Infof("add input %s(%s) ok", name, fp)
 	}
 
 	return nil
