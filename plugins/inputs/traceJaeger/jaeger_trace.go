@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/gin-gonic/gin"
 	"github.com/uber/jaeger-client-go/thrift"
@@ -18,12 +19,12 @@ func JaegerTraceHandleWrap(c *gin.Context) {
 
 func JaegerTraceHandle(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("trace handle with path: %s", r.URL.Path)
-	//defer func() {
-	//	if r := recover(); r != nil {
-	//		log.Errorf("Stack crash: %v", r)
-	//		log.Errorf("Stack info :%s", string(debug.Stack()))
-	//	}
-	//}()
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("Stack crash: %v", r)
+			log.Errorf("Stack info :%s", string(debug.Stack()))
+		}
+	}()
 
 	if err := handleJaegerTrace(w, r); err != nil {
 		log.Errorf("%v", err)
