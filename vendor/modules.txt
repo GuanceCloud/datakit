@@ -66,7 +66,10 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/aegis
 github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi
 github.com/aliyun/alibaba-cloud-sdk-go/services/cdn
 github.com/aliyun/alibaba-cloud-sdk-go/services/cms
+github.com/aliyun/alibaba-cloud-sdk-go/services/dds
+github.com/aliyun/alibaba-cloud-sdk-go/services/domain
 github.com/aliyun/alibaba-cloud-sdk-go/services/ecs
+github.com/aliyun/alibaba-cloud-sdk-go/services/ons
 github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch
 github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore
 github.com/aliyun/alibaba-cloud-sdk-go/services/rds
@@ -553,7 +556,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200729035319-59638165b038
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200818074621-1fc80b8dd3a6
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
