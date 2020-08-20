@@ -35,7 +35,7 @@ type CreateInstanceRequest struct {
 	// 可用区
 	Zone *string `json:"Zone,omitempty" name:"Zone"`
 
-	// 实例版本（支持"5.6.4"、"6.4.3"）
+	// 实例版本（支持"5.6.4"、"6.4.3"、"6.8.2"、"7.5.1"）
 	EsVersion *string `json:"EsVersion,omitempty" name:"EsVersion"`
 
 	// 私有网络ID
@@ -397,6 +397,15 @@ type EsDictionaryInfo struct {
 
 	// 停用词词典列表
 	Stopwords []*DictInfo `json:"Stopwords,omitempty" name:"Stopwords" list`
+
+	// QQ分词词典列表
+	QQDict []*DictInfo `json:"QQDict,omitempty" name:"QQDict" list`
+
+	// 同义词词典列表
+	Synonym []*DictInfo `json:"Synonym,omitempty" name:"Synonym" list`
+
+	// 更新词典类型
+	UpdateType *string `json:"UpdateType,omitempty" name:"UpdateType"`
 }
 
 type EsPublicAcl struct {
@@ -607,6 +616,18 @@ type KeyValue struct {
 	Value *string `json:"Value,omitempty" name:"Value"`
 }
 
+type LocalDiskInfo struct {
+
+	// 本地盘类型<li>LOCAL_SATA：大数据型</li><li>NVME_SSD：高IO型</li>
+	LocalDiskType *string `json:"LocalDiskType,omitempty" name:"LocalDiskType"`
+
+	// 本地盘单盘大小
+	LocalDiskSize *uint64 `json:"LocalDiskSize,omitempty" name:"LocalDiskSize"`
+
+	// 本地盘块数
+	LocalDiskCount *uint64 `json:"LocalDiskCount,omitempty" name:"LocalDiskCount"`
+}
+
 type MasterNodeInfo struct {
 
 	// 是否启用了专用主节点
@@ -650,6 +671,16 @@ type NodeInfo struct {
 
 	// 节点磁盘容量（单位GB）
 	DiskSize *uint64 `json:"DiskSize,omitempty" name:"DiskSize"`
+
+	// 节点本地盘信息
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	LocalDiskInfo *LocalDiskInfo `json:"LocalDiskInfo,omitempty" name:"LocalDiskInfo"`
+
+	// 节点磁盘块数
+	DiskCount *uint64 `json:"DiskCount,omitempty" name:"DiskCount"`
+
+	// 节点磁盘是否加密 0: 不加密，1: 加密；默认不加密
+	DiskEncrypt *uint64 `json:"DiskEncrypt,omitempty" name:"DiskEncrypt"`
 }
 
 type Operation struct {
@@ -835,6 +866,15 @@ type UpdateInstanceRequest struct {
 
 	// Kibana内网访问状态
 	KibanaPrivateAccess *string `json:"KibanaPrivateAccess,omitempty" name:"KibanaPrivateAccess"`
+
+	// ES 6.8及以上版本基础版开启或关闭用户认证
+	BasicSecurityType *int64 `json:"BasicSecurityType,omitempty" name:"BasicSecurityType"`
+
+	// Kibana内网端口
+	KibanaPrivatePort *uint64 `json:"KibanaPrivatePort,omitempty" name:"KibanaPrivatePort"`
+
+	// 0: 蓝绿变更方式扩容，集群不重启 （默认） 1: 磁盘解挂载扩容，集群滚动重启
+	ScaleType *int64 `json:"ScaleType,omitempty" name:"ScaleType"`
 }
 
 func (r *UpdateInstanceRequest) ToJsonString() string {
@@ -864,13 +904,56 @@ func (r *UpdateInstanceResponse) FromJsonString(s string) error {
     return json.Unmarshal([]byte(s), &r)
 }
 
+type UpdatePluginsRequest struct {
+	*tchttp.BaseRequest
+
+	// 实例ID
+	InstanceId *string `json:"InstanceId,omitempty" name:"InstanceId"`
+
+	// 需要安装的插件名列表
+	InstallPluginList []*string `json:"InstallPluginList,omitempty" name:"InstallPluginList" list`
+
+	// 需要卸载的插件名列表
+	RemovePluginList []*string `json:"RemovePluginList,omitempty" name:"RemovePluginList" list`
+
+	// 是否强制重启
+	ForceRestart *bool `json:"ForceRestart,omitempty" name:"ForceRestart"`
+}
+
+func (r *UpdatePluginsRequest) ToJsonString() string {
+    b, _ := json.Marshal(r)
+    return string(b)
+}
+
+func (r *UpdatePluginsRequest) FromJsonString(s string) error {
+    return json.Unmarshal([]byte(s), &r)
+}
+
+type UpdatePluginsResponse struct {
+	*tchttp.BaseResponse
+	Response *struct {
+
+		// 唯一请求 ID，每次请求都会返回。定位问题时需要提供该次请求的 RequestId。
+		RequestId *string `json:"RequestId,omitempty" name:"RequestId"`
+	} `json:"Response"`
+}
+
+func (r *UpdatePluginsResponse) ToJsonString() string {
+    b, _ := json.Marshal(r)
+    return string(b)
+}
+
+func (r *UpdatePluginsResponse) FromJsonString(s string) error {
+    return json.Unmarshal([]byte(s), &r)
+}
+
 type UpgradeInstanceRequest struct {
 	*tchttp.BaseRequest
 
 	// 实例ID
 	InstanceId *string `json:"InstanceId,omitempty" name:"InstanceId"`
 
-	// 目标ES版本
+	// 目标ES版本，支持：”6.4.3“, "6.8.2"，"7.5.1"
 	EsVersion *string `json:"EsVersion,omitempty" name:"EsVersion"`
 
 	// 是否只做升级检查，默认值为false
