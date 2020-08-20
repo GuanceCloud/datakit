@@ -74,6 +74,7 @@ require (
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/selinux v1.5.1 // indirect
 	github.com/openzipkin/zipkin-go v0.2.2
+	github.com/pelletier/go-toml v1.4.0
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
@@ -91,7 +92,8 @@ require (
 	github.com/sirupsen/logrus v1.5.0 // indirect
 	github.com/stamblerre/gocode v1.0.0 // indirect
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
-	github.com/tencentcloud/tencentcloud-sdk-go v3.0.123+incompatible
+	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
+	github.com/tencentyun/cos-go-sdk-v5 v0.7.7
 	github.com/tidwall/gjson v1.3.0
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/ucloud/ucloud-sdk-go v0.14.0
