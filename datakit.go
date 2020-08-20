@@ -32,6 +32,7 @@ var (
 
 	MaxLifeCheckInterval time.Duration
 
+	Docker         = false
 	InstallDir     = ""
 	TelegrafDir    = ""
 	DataDir        = ""
