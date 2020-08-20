@@ -15,14 +15,16 @@ const (
 #[inputs.aliyunobject.oss]
 
 # ## @param - custom tags - [list of oss buckets] - optional
-#buckets = ['']
+#buckets = []
 
 # ## @param - custom tags - [list of excluded oss instanceid] - optional
-#exclude_buckets = ['']
+
+#exclude_buckets = []
 
 # ## @param - custom tags for ecs object - [list of key:value element] - optional
 #[inputs.aliyunobject.oss.tags]
 # key1 = 'val1'
+
 `
 )
 
