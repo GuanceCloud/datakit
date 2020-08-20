@@ -2,13 +2,11 @@ package aliyunobject
 
 import (
 	"encoding/json"
-	"fmt"
-	"time"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	redis "github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"time"
 )
 
 const (
@@ -16,10 +14,10 @@ const (
 #[inputs.aliyunobject.redis]
 
 # ## @param - custom tags - [list of redis instanceid] - optional
-#instanceids = ['']
+#instanceids = []
 
 # ## @param - custom tags - [list of excluded redis instanceid] - optional
-#exclude_instanceids = ['']
+#exclude_instanceids = []
 
 # ## @param - custom tags for redis object - [list of key:value element] - optional
 #[inputs.aliyunobject.redis.tags]
@@ -107,7 +105,6 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 	var objs []map[string]interface{}
 
 	for _, inst := range resp.Instances.KVStoreInstance {
-		fmt.Println(inst)
 		if len(e.ExcludeInstanceIDs) > 0 {
 			exclude := false
 			for _, v := range e.ExcludeInstanceIDs {
@@ -122,24 +119,44 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 		}
 
 		tags := map[string]interface{}{
-			"__class":    "REDIS",
-			"__provider": "aliyun",
-
-			"RegionId": inst.RegionId,
-
-			"EngineVersion":      inst.EngineVersion,
-			"ResourceGroupId":    inst.ResourceGroupId,
-			"VSwitchId":          inst.VSwitchId,
-			"VpcCloudInstanceId": inst.VpcCloudInstanceId,
-			"VpcId":              inst.VpcId,
-			"ZoneId":             inst.ZoneId,
+			"__class":             "REDIS",
+			"__provider":          "aliyun",
+			"RegionId":            inst.RegionId,
+			"ArchitectureType":    inst.ArchitectureType,
+			"ChargeType":          inst.ChargeType,
+			"EngineVersion":       inst.EngineVersion,
+			"ResourceGroupId":     inst.ResourceGroupId,
+			"VSwitchId":           inst.VSwitchId,
+			"VpcId":               inst.VpcId,
+			"ZoneId":              inst.ZoneId,
+			"ConnectionMode":      inst.ConnectionMode,
+			"HasRenewChangeOrder": inst.HasRenewChangeOrder,
+			"InstanceId":          inst.InstanceId,
+			"InstanceStatus":      inst.InstanceStatus,
+			"InstanceType":        inst.InstanceType,
+			"IsRds":               inst.IsRds,
+			"NetworkType":         inst.NetworkType,
+			"NodeType":            inst.NodeType,
+			"PackageType":         inst.PackageType,
+			"ReplacateId":         inst.ReplacateId,
+			"SearchKey":           inst.SearchKey,
+			"UserName":            inst.UserName,
 		}
 
 		obj := map[string]interface{}{
-			"__name":         inst.InstanceName,
-			"DestroyTime":    inst.DestroyTime,
-			"ConnectionMode": inst.ConnectionMode,
-			"CreateTime":     inst.CreateTime,
+			"__name":           inst.InstanceName,
+			"DestroyTime":      inst.DestroyTime,
+			"CreateTime":       inst.CreateTime,
+			"Bandwidth":        inst.Bandwidth,
+			"Capacity":         inst.Capacity,
+			"Config":           inst.Config,
+			"ConnectionDomain": inst.ConnectionDomain,
+			"Connections":      inst.Connections,
+			"EndTime":          inst.EndTime,
+			"InstanceClass":    inst.InstanceClass,
+			"Port":             inst.Port,
+			"PrivateIp":        inst.PrivateIp,
+			"QPS":              inst.QPS,
 		}
 
 		for _, t := range inst.Tags.Tag {
