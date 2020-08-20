@@ -295,7 +295,7 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		ReloadCnt:    reloadCnt,
 		Reload:       reload,
-		WithinDocker: config.Cfg.WithinDocker,
+		WithinDocker: datakit.Docker,
 	}
 
 	var err error
