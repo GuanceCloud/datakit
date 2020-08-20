@@ -1260,6 +1260,10 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200724094927-05a50c73056f
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200724094927-05a50c73056f/go.mod h1:Z9QmTIGFFSmcNlUuJaFjTQDWdgKdtwDqGaGTLl9jrWc=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200729035319-59638165b038 h1:iMcxRtnIdCsTWAMoD8MvmH3Yhv2phNwDw7fqxwgbMbs=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200729035319-59638165b038/go.mod h1:Z9QmTIGFFSmcNlUuJaFjTQDWdgKdtwDqGaGTLl9jrWc=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200818072726-2c4e3abcb3fb h1:A6oTj6+fiEBPNg7IkBkM89dPZf3F9jby3IxcXxuW3fY=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200818072726-2c4e3abcb3fb/go.mod h1:Z9QmTIGFFSmcNlUuJaFjTQDWdgKdtwDqGaGTLl9jrWc=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200818074621-1fc80b8dd3a6 h1:SwolMYq2kV2MRqJPoTTUiDIhKm1IJvOIFqywxlbdf0g=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200818074621-1fc80b8dd3a6/go.mod h1:Z9QmTIGFFSmcNlUuJaFjTQDWdgKdtwDqGaGTLl9jrWc=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200419044746-6486cbd8ef30 h1:lsnvoDTunweG2D8vMfNyPsRVdpmlvgA0SxgPgflRZ4c=
 gitlab.jiagouyun.com/cloudcare-tools/dflux-license v0.0.0-20200419044746-6486cbd8ef30/go.mod h1:AxpWMT3J4jwRv2RiIKJd/4+5B4TiVkdFlGSawSnC3q8=
 gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.1 h1:QGEaBlFuMan4HujQZgx4CWe6uqNY1q12kIAw9aTIuQM=
