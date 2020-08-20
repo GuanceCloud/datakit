@@ -3,6 +3,7 @@ package traceZipkin
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -10,8 +11,10 @@ var (
 	inputName = "traceZipkin"
 
 	traceZipkinConfigSample = `
-#[inputs.zipkin]
-#	[inputs.zipkin.tags]
+#[inputs.traceZipkin]
+#   pathV1 = "/api/v1/spans"
+#   pathV2 = "/api/v2/spans"
+#	[inputs.traceZipkin.tags]
 #		tag1 = "tag1"
 #		tag2 = "tag2"
 #		tag3 = "tag3"
@@ -26,7 +29,9 @@ type Zipkin struct {
 }
 
 type TraceZipkin struct {
-	Zipkin       *Zipkin
+	PathV1  string
+	PathV2  string
+	Tags    map[string]string
 }
 
 func (_ *TraceZipkin) Catalog() string {
@@ -41,12 +46,22 @@ func (t *TraceZipkin) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
-	if t.Zipkin != nil {
-		ZipkinTags       = t.Zipkin.Tags
+	if t != nil {
+		ZipkinTags       = t.Tags
 	}
 
 	<-datakit.Exit.Wait()
 	log.Infof("%s input exit", inputName)
+}
+
+func (t *TraceZipkin) RegHttpHandler() {
+	if t.PathV1 != "" {
+		http.RegHttpHandler("POST", t.PathV1, ZipkinTraceHandleV1Wrap)
+	}
+
+	if t.PathV2 != "" {
+		http.RegHttpHandler("POST", t.PathV2, ZipkinTraceHandleV2Wrap)
+	}
 }
 
 func init() {
