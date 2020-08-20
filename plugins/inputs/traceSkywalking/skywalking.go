@@ -4,22 +4,23 @@ import (
 	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 var (
 	inputName = "traceSkywalking"
 
 	traceJaegerConfigSample = `
-#[inputs.skywalking.V2]
+#[inputs.traceSkywalking.V2]
 #	grpcPort = 11800
-#	[inputs.skywalking.V2.tags]
+#	[inputs.traceSkywalking.V2.tags]
 #		tag1 = "tag1"
 #		tag2 = "tag2"
 #		tag3 = "tag3"
 #
-#[inputs.skywalking.V3]
+#[inputs.traceSkywalking.V3]
 #	grpcPort = 13800
-#	[inputs.skywalking.V3.tags]
+#	[inputs.traceSkywalking.V3.tags]
 #		tag1 = "tag1"
 #		tag2 = "tag2"
 #		tag3 = "tag3"
@@ -68,6 +69,15 @@ func (t *SkywalkingTrace) Run() {
 
 	<-datakit.Exit.Wait()
 	log.Infof("%s input exit", inputName)
+}
+
+func (t *SkywalkingTrace) RegHttpHandler() {
+	if t.V3 != nil {
+		http.RegHttpHandler("POST", "/v3/segment", SkywalkingTraceHandleWrap)
+		http.RegHttpHandler("POST", "/v3/segments", SkywalkingTraceHandleWrap)
+		http.RegHttpHandler("POST", "/v3/management/reportProperties", SkywalkingTraceHandleWrap)
+		http.RegHttpHandler("POST", "/v3/management/keepAlive", SkywalkingTraceHandleWrap)
+	}
 }
 
 func init() {
