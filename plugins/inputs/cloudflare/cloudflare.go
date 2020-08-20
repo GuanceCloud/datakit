@@ -144,6 +144,10 @@ func (h *Cloudflare) laodCfg() bool {
 	h.requ.Header.Add("X-Auth-Key", h.APIKey)
 	h.requ.Header.Add("Content-Type", "application/json")
 
+	if _, ok := h.Tags["zone_id"]; !ok {
+		h.Tags["zone_id"] = h.ZoneID
+	}
+
 	return false
 }
 
@@ -169,9 +173,6 @@ func (h *Cloudflare) getMetrics() ([]byte, error) {
 		return nil, fmt.Errorf("failed to get cloudflare metrics")
 	}
 
-	tags := make(map[string]string)
-	tags["zone_id"] = h.ZoneID
-
 	timeseries := jsonMetrics.Get("result.timeseries").Array()
 
 	for _, timeserie := range timeseries {
@@ -184,7 +185,7 @@ func (h *Cloudflare) getMetrics() ([]byte, error) {
 		fields["uniques"] = timeserie.Get("uniques.all").Int()
 		parseRequest(fields, timeserie.Get("requests"))
 		parseBandwidth(fields, timeserie.Get("bandwidth"))
-		data, err := io.MakeMetric(defaultMeasurement, tags, fields, t)
+		data, err := io.MakeMetric(defaultMeasurement, h.Tags, fields, t)
 		if err != nil {
 			continue
 		}
