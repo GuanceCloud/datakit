@@ -86,9 +86,8 @@ func (c *Config) loadTelegrafInputsConfigs(inputcfgs map[string]*ast.Table, filt
 					for inputName, _ := range tbl_.Fields {
 						l.Debugf("check if telegraf input name(%s)?", inputName)
 
-						if _, ok := TelegrafInputs[inputName]; ok {
-							TelegrafInputs[inputName].enabled = true
-							l.Infof("enable telegraf input %s, config: %s", inputName, fp)
+						if _, ok := inputs.TelegrafInputs[inputName]; ok {
+							l.Infof("find telegraf input %s, config: %s", inputName, fp)
 							telegrafCfgFiles[fp] = nil
 						}
 					}
@@ -216,6 +215,11 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 			continue
 		}
 
+		if err := addTelegrafCfg(prt, f); err != nil {
+			l.Warnf("ignore telegraf input cfg file %s", f)
+			continue
+		}
+
 		l.Debugf("append telegraf config: %s", prt)
 
 		parts = append(parts, prt)
@@ -227,13 +231,28 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 
 	inputscfgs := strings.Join(parts, "\n")
 
-	// check if @parts include any datakit input
-	tbl, err := toml.Parse([]byte(inputscfgs))
-	if err != nil {
+	// check if merged config parsing ok
+	if _, err := toml.Parse([]byte(inputscfgs)); err != nil {
 		l.Error(err)
 		return "", err
 	}
 
+	tlegrafConfig += inputscfgs
+
+	return tlegrafConfig, err
+}
+
+func addTelegrafCfg(cfgdata, fp string) error {
+
+	tbl, err := toml.Parse([]byte(cfgdata))
+	if err != nil {
+		l.Warnf("parse failed: %s, ignored, cfgdata:\n%s", err.Error(), cfgdata)
+		return err
+	}
+
+	inputNames := []string{}
+
+	// test if all inputs.xxx ok
 	for field, node := range tbl.Fields {
 		switch field {
 		case "inputs":
@@ -243,15 +262,14 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 			} else {
 				for inputName, _ := range tbl_.Fields {
 
-					// NOTE: if telegraf found any unknown inputs, telegraf will exit,
-					// so if any xxx.conf with datakit input and telegraf input mixed, telegraf will exit
+					// NOTE: if telegraf found any unknown inputs(usually it's a datakit input), telegraf
+					// will exit, so if any xxx.conf both contains datakit & telegraf inputs, just disable
+					// applying xxx.conf on telegraf
 					if _, ok := inputs.Inputs[inputName]; ok {
-						l.Errorf("found datakit input `%s' within merged telegraf conf:\n%s", inputName, tbl.Source())
-						l.Warnf("disable all telegraf inputs")
-						for _, v := range TelegrafInputs {
-							v.enabled = false
-						}
-						return "", fmt.Errorf("invalid datakit config")
+						l.Warnf("found datakit input `%s' while parsing telegraf conf:\n%s", inputName, tbl.Source())
+						return fmt.Errorf("mixed datakit inputs %s", inputName)
+					} else {
+						inputNames = append(inputNames, inputName)
 					}
 				}
 			}
@@ -260,9 +278,10 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 		}
 	}
 
-	tlegrafConfig += inputscfgs
-
-	return tlegrafConfig, err
+	for _, name := range inputNames {
+		inputs.AddTelegrafInput(name, fp)
+	}
+	return nil
 }
 
 func (c *Config) BuildInputCfg(d []byte) (string, error) {
