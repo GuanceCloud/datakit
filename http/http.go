@@ -166,15 +166,6 @@ func httpStart(addr string) {
 	// TODO: need any method?
 	// router.Any()
 
-	//if n, _ := inputs.InputEnabled("trace"); n > 0 {
-	//	l.Info("open route for trace")
-	//	router.POST("/trac", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-	//	router.POST("/v3/segment", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-	//	router.POST("/v3/segments", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-	//	router.POST("/v3/management/reportProperties", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-	//	router.POST("/v3/management/keepAlive", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-	//}
-
 	if n, _ := inputs.InputEnabled("druid"); n > 0 {
 		l.Info("open route for druid")
 		router.POST("/druid", func(c *gin.Context) { druid.Handle(c.Writer, c.Request) })
