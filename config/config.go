@@ -151,11 +151,12 @@ func LoadCfg() error {
 		return err
 	}
 
+	l.Infof("set log to %s", Cfg.MainCfg.Log)
+
 	// set global log root
 	logger.SetGlobalRootLogger(Cfg.MainCfg.Log, Cfg.MainCfg.LogLevel, logger.OPT_DEFAULT)
 	l = logger.SLogger("config")
 
-	l.Infof("set log to %s", Cfg.MainCfg.Log)
 	l.Infof("main cfg: %+#v", Cfg.MainCfg)
 
 	if Cfg.MainCfg.maxPostInterval > 0 {
