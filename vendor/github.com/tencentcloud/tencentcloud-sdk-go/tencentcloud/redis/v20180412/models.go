@@ -221,7 +221,7 @@ type CreateInstanceAccountRequest struct {
 	// 路由策略：填写master或者replication，表示主节点或者从节点
 	ReadonlyPolicy []*string `json:"ReadonlyPolicy,omitempty" name:"ReadonlyPolicy" list`
 
-	// 读写策略：填写r、w、rw，表示只读、只写、读写
+	// 读写策略：填写r、rw，表示只读、读写
 	Privilege *string `json:"Privilege,omitempty" name:"Privilege"`
 
 	// 子账号描述信息
@@ -264,7 +264,7 @@ type CreateInstancesRequest struct {
 	// 实例所属的可用区ID
 	ZoneId *uint64 `json:"ZoneId,omitempty" name:"ZoneId"`
 
-	// 实例类型：2 – Redis2.8主从版，3 – Redis3.2主从版(CKV主从版)，4 – Redis3.2集群版(CKV集群版)，5-Redis2.8单机版，6 – Redis4.0主从版，7 – Redis4.0集群版，
+	// 实例类型：2 – Redis2.8内存版（标准架构），3 – Redis3.2内存版（标准架构），4 – CKV 3.2内存版(标准架构)，6 – Redis4.0内存版（标准架构），7 – Redis4.0内存版（集群架构），8 – Redis5.0内存版（标准架构），9 – Redis5.0内存版（集群架构），
 	TypeId *uint64 `json:"TypeId,omitempty" name:"TypeId"`
 
 	// 实例容量，单位MB， 取值大小以 查询售卖规格接口返回的规格为准
@@ -279,7 +279,7 @@ type CreateInstancesRequest struct {
 	// 付费方式:0-按量计费，1-包年包月。
 	BillingMode *int64 `json:"BillingMode,omitempty" name:"BillingMode"`
 
-	// 实例密码，密码规则：1.长度为8-16个字符；2:至少包含字母、数字和字符!@^*()中的两种（创建免密实例时，可不传入该字段，该字段内容会忽略）
+	// 实例密码，8-30个字符，至少包含小写字母、大写字母、数字和字符 ()`~!@#$%^&*-+=_|{}[]:;<>,.?/ 中的2种，不能以"/"开头。
 	Password *string `json:"Password,omitempty" name:"Password"`
 
 	// 私有网络ID，如果不传则默认选择基础网络，请使用私有网络列表查询，如：vpc-sad23jfdfk
@@ -300,19 +300,19 @@ type CreateInstancesRequest struct {
 	// 用户自定义的端口 不填则默认为6379，范围[1024,65535]
 	VPort *uint64 `json:"VPort,omitempty" name:"VPort"`
 
-	// 实例分片数量，Redis2.8主从版、CKV主从版和Redis2.8单机版、Redis4.0主从版不需要填写
+	// 实例分片数量，购买标准版实例不需要填写，集群版分片数量范围[3,5,8,12,16,24,32,64,96,128]
 	RedisShardNum *int64 `json:"RedisShardNum,omitempty" name:"RedisShardNum"`
 
-	// 实例副本数量，Redis2.8主从版、CKV主从版和Redis2.8单机版不需要填写
+	// 实例副本数量，Redis 2.8标准版、CKV标准版只支持1副本，4.0、5.0标准版和集群版支持1-5个副本。
 	RedisReplicasNum *int64 `json:"RedisReplicasNum,omitempty" name:"RedisReplicasNum"`
 
-	// 是否支持副本只读，Redis2.8主从版、CKV主从版和Redis2.8单机版不需要填写
+	// 是否支持副本只读，Redis 2.8标准版、CKV标准版不支持副本只读，开启副本只读，实例将自动读写分离，写请求路由到主节点，读请求路由到副本节点，如需开启副本只读建议副本数>=2.
 	ReplicasReadonly *bool `json:"ReplicasReadonly,omitempty" name:"ReplicasReadonly"`
 
-	// 实例名称
+	// 实例名称，长度小于60的中文/英文/数字/"-"/"_"
 	InstanceName *string `json:"InstanceName,omitempty" name:"InstanceName"`
 
-	// 是否支持免密，true-免密实例，false-非免密实例，默认为非免密实例
+	// 是否支持免密，true-免密实例，false-非免密实例，默认为非免密实例，仅VPC网络的实例支持免密码访问。
 	NoAuth *bool `json:"NoAuth,omitempty" name:"NoAuth"`
 }
 
@@ -356,6 +356,9 @@ type DelayDistribution struct {
 
 	// 大小
 	Size *int64 `json:"Size,omitempty" name:"Size"`
+
+	// 修改时间
+	Updatetime *int64 `json:"Updatetime,omitempty" name:"Updatetime"`
 }
 
 type DeleteInstanceAccountRequest struct {
@@ -974,7 +977,7 @@ type DescribeInstanceMonitorTookDistRequest struct {
 	// 时间；例如："20190219"
 	Date *string `json:"Date,omitempty" name:"Date"`
 
-	// 请求类型：1——string类型，2——所有类型
+	// 时间范围：1——实时，2——近30分钟，3——近6小时，4——近24小时
 	SpanType *int64 `json:"SpanType,omitempty" name:"SpanType"`
 }
 
@@ -1320,7 +1323,7 @@ type DescribeInstancesRequest struct {
 	// 计费模式：postpaid-按量计费；prepaid-包年包月
 	BillingMode *string `json:"BillingMode,omitempty" name:"BillingMode"`
 
-	// 实例类型：1-Redis老集群版；2-Redis 2.8主从版；3-CKV主从版；4-CKV集群版；5-Redis 2.8单机版；6-Redis 4.0主从版；7-Redis 4.0集群版
+	// 实例类型：1-Redis老集群版；2-Redis 2.8主从版；3-CKV主从版；4-CKV集群版；5-Redis 2.8单机版；6-Redis 4.0主从版；7-Redis 4.0集群版；8 – Redis5.0主从版，9 – Redis5.0集群版，
 	Type *int64 `json:"Type,omitempty" name:"Type"`
 
 	// 搜索关键词：支持实例Id、实例名称、完整IP
@@ -1360,6 +1363,46 @@ func (r *DescribeInstancesResponse) ToJsonString() string {
 }
 
 func (r *DescribeInstancesResponse) FromJsonString(s string) error {
+    return json.Unmarshal([]byte(s), &r)
+}
+
+type DescribeMaintenanceWindowRequest struct {
+	*tchttp.BaseRequest
+
+	// 实例ID
+	InstanceId *string `json:"InstanceId,omitempty" name:"InstanceId"`
+}
+
+func (r *DescribeMaintenanceWindowRequest) ToJsonString() string {
+    b, _ := json.Marshal(r)
+    return string(b)
+}
+
+func (r *DescribeMaintenanceWindowRequest) FromJsonString(s string) error {
+    return json.Unmarshal([]byte(s), &r)
+}
+
+type DescribeMaintenanceWindowResponse struct {
+	*tchttp.BaseResponse
+	Response *struct {
+
+		// 维护时间窗起始时间，如：17:00
+		StartTime *string `json:"StartTime,omitempty" name:"StartTime"`
+
+		// 维护时间窗结束时间，如：19:00
+		EndTime *string `json:"EndTime,omitempty" name:"EndTime"`
+
+		// 唯一请求 ID，每次请求都会返回。定位问题时需要提供该次请求的 RequestId。
+		RequestId *string `json:"RequestId,omitempty" name:"RequestId"`
+	} `json:"Response"`
+}
+
+func (r *DescribeMaintenanceWindowResponse) ToJsonString() string {
+    b, _ := json.Marshal(r)
+    return string(b)
+}
+
+func (r *DescribeMaintenanceWindowResponse) FromJsonString(s string) error {
     return json.Unmarshal([]byte(s), &r)
 }
 
@@ -2350,6 +2393,34 @@ type InstanceSet struct {
 	// 是否为免密实例，true-免密实例；false-非免密实例
 	// 注意：此字段可能返回 null，表示取不到有效值。
 	NoAuth *bool `json:"NoAuth,omitempty" name:"NoAuth"`
+
+	// 客户端连接数
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	ClientLimit *int64 `json:"ClientLimit,omitempty" name:"ClientLimit"`
+
+	// DTS状态（内部参数，用户可忽略）
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	DtsStatus *int64 `json:"DtsStatus,omitempty" name:"DtsStatus"`
+
+	// 分片带宽上限，单位MB
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	NetLimit *int64 `json:"NetLimit,omitempty" name:"NetLimit"`
+
+	// 免密实例标识（内部参数，用户可忽略）
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	PasswordFree *int64 `json:"PasswordFree,omitempty" name:"PasswordFree"`
+
+	// 实例只读标识（内部参数，用户可忽略）
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	ReadOnly *int64 `json:"ReadOnly,omitempty" name:"ReadOnly"`
+
+	// 内部参数，用户可忽略
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	Vip6 *string `json:"Vip6,omitempty" name:"Vip6"`
+
+	// 内部参数，用户可忽略
+	// 注意：此字段可能返回 null，表示取不到有效值。
+	RemainBandwidthDuration *string `json:"RemainBandwidthDuration,omitempty" name:"RemainBandwidthDuration"`
 }
 
 type InstanceSlowlogDetail struct {
@@ -2731,6 +2802,49 @@ func (r *ModifyInstanceResponse) ToJsonString() string {
 }
 
 func (r *ModifyInstanceResponse) FromJsonString(s string) error {
+    return json.Unmarshal([]byte(s), &r)
+}
+
+type ModifyMaintenanceWindowRequest struct {
+	*tchttp.BaseRequest
+
+	// 实例ID
+	InstanceId *string `json:"InstanceId,omitempty" name:"InstanceId"`
+
+	// 维护时间窗起始时间，如：17:00
+	StartTime *string `json:"StartTime,omitempty" name:"StartTime"`
+
+	// 维护时间窗结束时间，如：19:00
+	EndTime *string `json:"EndTime,omitempty" name:"EndTime"`
+}
+
+func (r *ModifyMaintenanceWindowRequest) ToJsonString() string {
+    b, _ := json.Marshal(r)
+    return string(b)
+}
+
+func (r *ModifyMaintenanceWindowRequest) FromJsonString(s string) error {
+    return json.Unmarshal([]byte(s), &r)
+}
+
+type ModifyMaintenanceWindowResponse struct {
+	*tchttp.BaseResponse
+	Response *struct {
+
+		// 修改状态：success 或者 failed
+		Status *string `json:"Status,omitempty" name:"Status"`
+
+		// 唯一请求 ID，每次请求都会返回。定位问题时需要提供该次请求的 RequestId。
+		RequestId *string `json:"RequestId,omitempty" name:"RequestId"`
+	} `json:"Response"`
+}
+
+func (r *ModifyMaintenanceWindowResponse) ToJsonString() string {
+    b, _ := json.Marshal(r)
+    return string(b)
+}
+
+func (r *ModifyMaintenanceWindowResponse) FromJsonString(s string) error {
     return json.Unmarshal([]byte(s), &r)
 }
 
@@ -3317,6 +3431,49 @@ func (r *UpgradeInstanceResponse) ToJsonString() string {
 }
 
 func (r *UpgradeInstanceResponse) FromJsonString(s string) error {
+    return json.Unmarshal([]byte(s), &r)
+}
+
+type UpgradeInstanceVersionRequest struct {
+	*tchttp.BaseRequest
+
+	// 目标实例类型，同CreateInstances接口的Type，即实例要变更的目标类型
+	TargetInstanceType *string `json:"TargetInstanceType,omitempty" name:"TargetInstanceType"`
+
+	// 切换模式：1-维护时间窗切换，2-立即切换
+	SwitchOption *int64 `json:"SwitchOption,omitempty" name:"SwitchOption"`
+
+	// 实例ID
+	InstanceId *string `json:"InstanceId,omitempty" name:"InstanceId"`
+}
+
+func (r *UpgradeInstanceVersionRequest) ToJsonString() string {
+    b, _ := json.Marshal(r)
+    return string(b)
+}
+
+func (r *UpgradeInstanceVersionRequest) FromJsonString(s string) error {
+    return json.Unmarshal([]byte(s), &r)
+}
+
+type UpgradeInstanceVersionResponse struct {
+	*tchttp.BaseResponse
+	Response *struct {
+
+		// 订单ID
+		DealId *string `json:"DealId,omitempty" name:"DealId"`
+
+		// 唯一请求 ID，每次请求都会返回。定位问题时需要提供该次请求的 RequestId。
+		RequestId *string `json:"RequestId,omitempty" name:"RequestId"`
+	} `json:"Response"`
+}
+
+func (r *UpgradeInstanceVersionResponse) ToJsonString() string {
+    b, _ := json.Marshal(r)
+    return string(b)
+}
+
+func (r *UpgradeInstanceVersionResponse) FromJsonString(s string) error {
     return json.Unmarshal([]byte(s), &r)
 }
 
