@@ -21,9 +21,9 @@ import (
 
 var (
 	flagVersion        = flag.Bool("version", false, `show verison info`)
-	flagDataWay        = flag.String("dataway", ``, `dataway IP:Port`)
 	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d, list configired and mis-configured collectors`)
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
+	flagDocker         = flag.Bool("docker", false, "run within docker")
 
 	flagListConfigSamples = flag.Bool("config-samples", false, `list all config samples`)
 )
@@ -40,10 +40,14 @@ func main() {
 
 	tryLoadConfig()
 
-	datakit.Entry = __run
-	if err := datakit.StartService(); err != nil {
-		l.Errorf("start service failed: %s", err.Error())
-		return
+	if *flagDocker {
+		run()
+	} else {
+		datakit.Entry = run
+		if err := datakit.StartService(); err != nil {
+			l.Errorf("start service failed: %s", err.Error())
+			return
+		}
 	}
 
 	l.Info("datakit exited")
@@ -76,6 +80,10 @@ Golang Version: %s
 	if *flagInputFilters != "" {
 		inputFilters = strings.Split(":"+strings.TrimSpace(*flagInputFilters)+":", ":")
 	}
+
+	if *flagDocker {
+		datakit.Docker = true
+	}
 }
 
 func showAllConfigSamples() {
@@ -89,7 +97,7 @@ func showAllConfigSamples() {
 	}
 }
 
-func __run() error {
+func run() error {
 
 	inputs.StartTelegraf()
 
