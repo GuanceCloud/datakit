@@ -31,6 +31,9 @@ func (_ *objectAgent) SampleConfig() string {
 	buf.WriteString(wafSampleConfig)
 	buf.WriteString(elasticsearchSampleConfig)
 	buf.WriteString(influxDBSampleConfig)
+	buf.WriteString(onsSampleConfig)
+	buf.WriteString(domainSampleConfig)
+	buf.WriteString(ddsSampleConfig)
 	return buf.String()
 }
 
@@ -65,6 +68,16 @@ func (ag *objectAgent) Run() {
 	if ag.Rds != nil {
 		ag.addModule(ag.Rds)
 	}
+
+	if ag.Ons != nil {
+		ag.addModule(ag.Ons)
+	}
+	if ag.Dds != nil {
+		ag.addModule(ag.Dds)
+	}
+	if ag.Domain != nil {
+		ag.addModule(ag.Domain)
+	}
 	if ag.Redis != nil {
 		ag.addModule(ag.Redis)
 	}
@@ -79,6 +92,7 @@ func (ag *objectAgent) Run() {
 	}
 	if ag.InfluxDB != nil {
 		ag.addModule(ag.InfluxDB)
+
 	}
 
 	for _, s := range ag.subModules {
