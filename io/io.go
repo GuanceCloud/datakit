@@ -21,13 +21,23 @@ import (
 )
 
 var (
-	input    chan *iodata
-	qstatsCh chan *qstats
-
 	l       *logger.Logger
+	httpCli *http.Client
 	baseURL string
 
-	httpCli      *http.Client
+	inputCh    = make(chan *iodata, 1024)
+	inputstats = map[string]*InputsStat{}
+
+	qstatsCh = make(chan *qstats)
+
+	cache = map[string][][]byte{
+		__MetricDeprecated: nil,
+		Metric:             nil,
+		KeyEvent:           nil,
+		Object:             nil,
+		Logging:            nil,
+	}
+
 	categoryURLs map[string]string
 
 	outputFile     *os.File
@@ -55,10 +65,15 @@ type InputsStat struct {
 	Count    int64     `json:"count"`
 	First    time.Time `json:"first"`
 	Last     time.Time `json:"last"`
+	CrashCnt int       `json:"crash_cnt"`
 }
 
 type qstats struct {
 	ch chan []*InputsStat
+}
+
+func ChanInfo() (int, int) {
+	return len(inputCh), cap(inputCh)
 }
 
 // Deprecated
@@ -74,7 +89,7 @@ func doFeed(data []byte, category, name string) error {
 	}
 
 	select {
-	case input <- &iodata{
+	case inputCh <- &iodata{
 		category: category,
 		data:     data,
 		name:     name,
@@ -160,17 +175,6 @@ func startIO() {
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
 
-	cache := map[string][][]byte{
-		__MetricDeprecated: nil,
-		Metric:             nil,
-		KeyEvent:           nil,
-		Object:             nil,
-		Logging:            nil,
-	}
-
-	input = make(chan *iodata, len(config.Cfg.Inputs))
-	qstatsCh = make(chan *qstats)
-
 	du, err := time.ParseDuration(config.Cfg.MainCfg.DataWay.Timeout)
 	if err != nil {
 		l.Warnf("parse dataway timeout failed: %s", err.Error())
@@ -196,10 +200,9 @@ func startIO() {
 			l.Warn("recover ok")
 		}
 
-		stats := map[string]*InputsStat{}
 		for {
 			select {
-			case d := <-input:
+			case d := <-inputCh:
 				if d == nil {
 					l.Warn("get empty data, ignored")
 				} else {
@@ -209,8 +212,9 @@ func startIO() {
 					l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
 					cache[d.category] = append(cache[d.category], d.data)
 
-					if istat, ok := stats[d.name]; !ok {
-						stats[d.name] = &InputsStat{
+					stat, ok := inputstats[d.name]
+					if !ok {
+						inputstats[d.name] = &InputsStat{
 							Name:     d.name,
 							Category: d.category,
 							Total:    int64(len(d.data)),
@@ -219,15 +223,16 @@ func startIO() {
 							Last:     now,
 						}
 					} else {
-						istat.Total += int64(len(d.data))
-						istat.Count++
-						istat.Last = now
+						stat.Total += int64(len(d.data))
+						stat.Count++
+						stat.Last = now
+						stat.Category = d.category
 					}
 				}
 
 			case q := <-qstatsCh:
 				statRes := []*InputsStat{}
-				for _, v := range stats {
+				for _, v := range inputstats {
 					statRes = append(statRes, v)
 				}
 				select {
@@ -241,7 +246,7 @@ func startIO() {
 				flush(cache)
 
 			case <-datakit.Exit.Wait():
-				l.Info("exit")
+				l.Info("io exit on exit")
 				return
 			}
 		}
@@ -259,14 +264,12 @@ func Start() {
 	go func() {
 		defer datakit.WG.Done()
 		startIO()
-		l.Info("io goroutine exit")
 	}()
 
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
 		GRPCServer(datakit.GRPCDomainSock)
-		l.Info("gRPC goroutine exit")
 	}()
 }
 
