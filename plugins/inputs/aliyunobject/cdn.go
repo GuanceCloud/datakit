@@ -15,10 +15,10 @@ const (
 #[inputs.aliyunobject.cdn]
 
 # ## @param - custom tags - [list of cdn DomainName] - optional
-#domainNames = ['']
+#domainNames = []
 
 # ## @param - custom tags - [list of excluded cdn exclude_domainNames] - optional
-#exclude_domainNames = ['']
+#exclude_domainNames = []
 
 # ## @param - custom tags for cdn object - [list of key:value element] - optional
 #[inputs.aliyunobject.cdn.tags]
@@ -132,10 +132,19 @@ func (e *Cdn) handleResponse(resp *cdn.DescribeUserDomainsResponse, ag *objectAg
 			"__class":         "CDN",
 			"__provider":      "aliyun",
 			"ResourceGroupId": inst.ResourceGroupId,
+			"Cname": inst.Cname,
+			"CdnType": inst.CdnType,
+			"DomainStatus": inst.DomainStatus,
+			"SslProtocol": inst.SslProtocol,
 		}
 
 		obj := map[string]interface{}{
 			"__name": inst.DomainName,
+			"GmtCreated": inst.GmtCreated,
+			"GmtModified": inst.GmtModified,
+			"Description": inst.Description,
+			"Sandbox": inst.Sandbox,
+			"Sources": inst.Sources,
 		}
 
 		for k, v := range e.Tags {
