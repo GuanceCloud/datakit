@@ -32,15 +32,19 @@ type objectAgent struct {
 	Interval        datakit.Duration  `toml:"interval"`
 	Tags            map[string]string `toml:"tags,omitempty"`
 
-	Ecs *Ecs `toml:"ecs,omitempty"`
-	Slb *Slb `toml:"slb,omitempty"`
-	Oss *Oss `toml:"oss,omitempty"`
-	Rds *Rds `toml:"rds,omitempty"`
+	Ecs    *Ecs    `toml:"ecs,omitempty"`
+	Slb    *Slb    `toml:"slb,omitempty"`
+	Oss    *Oss    `toml:"oss,omitempty"`
+	Rds    *Rds    `toml:"rds,omitempty"`
+	Ons    *Ons    `toml:"ons,omitempty"`
+	Domain *Domain `toml:"domain,omitempty"`
+	Dds    *Dds    `toml:"dds,omitempty"`
 	Redis *Redis `toml:"redis,omitempty"`
 	Cdn *Cdn `toml:"cdn,omitempty"`
 	Waf *Waf `toml:"waf,omitempty"`
 	Es *Elasticsearch `toml:"elasticsearch,omitempty"`
 	InfluxDB *InfluxDB `toml:"influxdb,omitempty"`
+
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
