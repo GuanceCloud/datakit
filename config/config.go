@@ -26,8 +26,6 @@ var (
 type Config struct {
 	MainCfg      *MainConfig
 	InputFilters []string
-
-	WithinDocker bool
 }
 
 type DataWayCfg struct {
