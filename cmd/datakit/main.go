@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
@@ -155,14 +155,14 @@ func runDatakitWithHTTPServer() error {
 
 	io.Start()
 
-	go func() {
-		http.Start(config.Cfg.MainCfg.HTTPBind)
-	}()
-
 	if err := inputs.RunInputs(); err != nil {
 		l.Error("error running inputs: %v", err)
 		return err
 	}
+
+	go func() {
+		http.Start(config.Cfg.MainCfg.HTTPBind)
+	}()
 
 	return nil
 }
