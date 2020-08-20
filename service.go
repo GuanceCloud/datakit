@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	"github.com/kardianos/service"
-
-	L "gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var (
@@ -20,8 +18,6 @@ var (
 	StopCh     = make(chan interface{})
 	waitstopCh = make(chan interface{})
 	logger     service.Logger
-
-	l = L.DefaultSLogger("datakit")
 )
 
 type program struct{}
@@ -47,8 +43,6 @@ func NewService() (service.Service, error) {
 
 func StartService() error {
 
-	l = L.SLogger("datakit")
-
 	svc, err := NewService()
 	if err != nil {
 		return err
@@ -66,7 +60,7 @@ func StartService() error {
 		logger.Errorf("start service failed: %s", err.Error())
 	}
 
-	logger.Error("datakit service exited")
+	logger.Info("datakit service exited")
 	return nil
 }
 
@@ -75,28 +69,23 @@ func (p *program) Start(s service.Service) error {
 		return fmt.Errorf("entry not set")
 	}
 
-	return Entry()
+	go Entry()
+	return nil
 }
 
 func (p *program) Stop(s service.Service) error {
-	//close(StopCh)
+	close(StopCh)
 
 	// We must wait here:
 	// On windows, we stop datakit in services.msc, if datakit process do not
 	// echo to here, services.msc will complain the datakit process has been
 	// exit unexpected
-	//l.Info("wait waitstopCh...")
-	//<-waitstopCh
-	//l.Info("wait waitstopCh done")
+	<-waitstopCh
 	return nil
 }
 
 func Quit() {
 	Exit.Close()
-
-	l.Info("wait...")
 	WG.Wait()
-
-	l.Info("wg wait done")
-	//close(waitstopCh)
+	close(waitstopCh)
 }
