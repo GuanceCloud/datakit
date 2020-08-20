@@ -31,7 +31,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flink"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
+	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 var (
@@ -162,17 +162,18 @@ func httpStart(addr string) {
 		c.String(404, buf.String())
 	})
 
+	RegPathToHttpServ(router)
 	// TODO: need any method?
 	// router.Any()
 
-	if n, _ := inputs.InputEnabled("trace"); n > 0 {
-		l.Info("open route for trace")
-		router.POST("/trac", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-		router.POST("/v3/segment", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-		router.POST("/v3/segments", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-		router.POST("/v3/management/reportProperties", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-		router.POST("/v3/management/keepAlive", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
-	}
+	//if n, _ := inputs.InputEnabled("trace"); n > 0 {
+	//	l.Info("open route for trace")
+	//	router.POST("/trac", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+	//	router.POST("/v3/segment", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+	//	router.POST("/v3/segments", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+	//	router.POST("/v3/management/reportProperties", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+	//	router.POST("/v3/management/keepAlive", func(c *gin.Context) { trace.Handle(c.Writer, c.Request) })
+	//}
 
 	if n, _ := inputs.InputEnabled("druid"); n > 0 {
 		l.Info("open route for druid")
@@ -415,3 +416,4 @@ func apiReload(c *gin.Context) {
 		l.Info("reload HTTP server ok")
 	}()
 }
+
