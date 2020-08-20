@@ -18,10 +18,10 @@ const (
 #[inputs.aliyunobject.influxdb]
 
 # ## @param - custom tags - [list of influxdb instanceid] - optional
-#instanceids = ['']
+#instanceids = []
 
 # ## @param - custom tags - [list of excluded influxdb instanceid] - optional
-#exclude_instanceids = ['']
+#exclude_instanceids = []
 
 # ## @param - custom tags for ecs object - [list of key:value element] - optional
 #[inputs.aliyunobject.influxdb.tags]
@@ -131,21 +131,28 @@ func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
 
 		obj := map[string]interface{}{
 			`__name`: inst.Get("InstanceAlias").String(),
+			`InstanceClass`: inst.Get("InstanceClass").String(),
+			`GmtCreated`: inst.Get("GmtCreated").String(),
+			`GmtExpire`: inst.Get("GmtExpire").String(),
+			`InstanceStorage`: inst.Get("InstanceStorage").String(),
 		}
 
-		obj[`InstanceStorage`] = inst.Get("InstanceStorage").String()
-		obj[`LockMode`] = inst.Get("LockMode").String()
 		tags := map[string]interface{}{
 			`__class`:    `InfluxDB`,
 			`provider`:   `aliyun`,
 			`InstanceId`: inst.Get("InstanceId").String(),
+			`ZoneId`: inst.Get("ZoneId").String(),
+			`ChargeType`: inst.Get("ChargeType").String(),
+			`UserId`: inst.Get("UserId").String(),
+			`InstanceStatus`: inst.Get("InstanceStatus").String(),
+			`NetworkType`: inst.Get("NetworkType").String(),
+			`RegionId`: inst.Get("RegionId").String(),
+			`EngineType`: inst.Get("EngineType").String(),
 		}
 
-		//add ecs object custom tags
 		for k, v := range e.Tags {
 			tags[k] = v
 		}
-		//add global tags
 		for k, v := range ag.Tags {
 			if _, have := tags[k]; !have {
 				tags[k] = v
@@ -155,11 +162,9 @@ func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
 
 		objs = append(objs, obj)
 	}
-
 	if len(objs) <= 0 {
 		return
 	}
-
 	data, err := json.Marshal(&objs)
 	if err == nil {
 		io.NamedFeed(data, io.Object, inputName)
