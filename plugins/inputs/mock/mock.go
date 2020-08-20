@@ -1,15 +1,14 @@
 package mock
 
 import (
-	"os"
 	"time"
 
 	"github.com/Pallinder/go-randomdata"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"github.com/influxdata/telegraf"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -35,26 +34,13 @@ func (m *Mock) SampleConfig() string {
 	return sampleCfg
 }
 
-func (m *Mock) Description() string {
-	return "mock testing data"
-}
-
 func (m *Mock) Catalog() string {
 	return "mock"
-}
-
-func (m *Mock) Gather(acc telegraf.Accumulator) error {
-	return nil
 }
 
 func (m *Mock) Run() {
 
 	l = logger.SLogger("mock")
-	host, err := os.Hostname()
-	if err != nil {
-		host = randomdata.SillyName()
-		l.Warnf("get hostname failed: %s, use random silly name(%s) instead", err, host)
-	}
 
 	l.Info("mock input started...")
 
@@ -71,7 +57,7 @@ func (m *Mock) Run() {
 		case <-tick.C:
 			pt, err := influxdb.NewPoint(m.Metric,
 				map[string]string{
-					"from": host,
+					"from": config.Cfg.MainCfg.Hostname,
 				},
 				map[string]interface{}{
 					"f1": randomdata.Number(0, 100),
@@ -92,7 +78,7 @@ func (m *Mock) Run() {
 			}
 
 		case <-datakit.Exit.Wait():
-			l.Info("exit")
+			l.Info("mock exit")
 			return
 		}
 	}
