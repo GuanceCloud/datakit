@@ -54,7 +54,7 @@ func (_ *Systemd) SampleConfig() string {
 }
 
 func (_ *Systemd) Catalog() string {
-	return inputName
+	return "host"
 }
 
 func (s *Systemd) Run() {
