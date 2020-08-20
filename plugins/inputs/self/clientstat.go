@@ -1,7 +1,6 @@
 package self
 
 import (
-	"os"
 	"runtime"
 	"time"
 
@@ -30,7 +29,7 @@ type ClientStat struct {
 }
 
 func (s *ClientStat) Update() {
-	s.HostName, _ = os.Hostname()
+	s.HostName = config.Cfg.MainCfg.Hostname
 
 	var memStatus runtime.MemStats
 	runtime.ReadMemStats(&memStatus)
