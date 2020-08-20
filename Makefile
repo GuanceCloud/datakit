@@ -19,12 +19,7 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-LOCAL_ARCHS = "darwin/amd64"
-LOCAL_ARCHS = "windows/amd64"
-LOCAL_ARCHS = "linux/amd64|windows/amd64|linux/arm"
 LOCAL_ARCHS = "all"
-LOCAL_ARCHS = "linux/amd64"
-
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -32,9 +27,12 @@ DATE := $(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION := $(shell go version)
 COMMIT := $(shell git rev-parse --short HEAD)
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
-UPLOADER:= $(shell hostname)/${USER}
+COMMITER := $(shell git log -1 --pretty=format:'%an')
+UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
+
 NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(VERSION))"}}')
 NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(VERSION))"}}')
+NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER) 正在执行 DataKit 的 CI，此刻请勿在 CI 分支(dev/master)提交代码，避免 CI 任务被取消"}}')
 
 ###################################
 # Detect telegraf update info
@@ -123,6 +121,12 @@ release_notify:
 		'https://oapi.dingtalk.com/robot/send?access_token=5109b365f7be669c45c5677418a1c2fe7d5251485a09f514131177b203ed785f' \
 		-H 'Content-Type: application/json' \
 		-d '$(NOTIFY_MSG_RELEASE)'
+
+ci_notify:
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87' \
+		-H 'Content-Type: application/json' \
+		-d '$(NOTIFY_CI)'
 
 define build_agent
 	git rm -rf telegraf
