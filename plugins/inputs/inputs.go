@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
+
 type Input interface {
 	Catalog() string
 	Run()
@@ -21,6 +22,12 @@ type Input interface {
 	// add more...
 }
 
+
+
+type HttpRegInput interface {
+	Input
+	RegHttpHandler()
+}
 type Creator func() Input
 
 var (
@@ -156,6 +163,10 @@ func RunInputs() error {
 			if ii.input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
 				continue
+			}
+			switch inp := ii.input.(type) {
+			case HttpRegInput:
+				inp.RegHttpHandler()
 			}
 
 			l.Infof("starting input %s ...", name)
