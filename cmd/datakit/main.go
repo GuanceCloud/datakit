@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -10,8 +9,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/kardianos/service"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -24,50 +21,36 @@ import (
 
 var (
 	flagVersion        = flag.Bool("version", false, `show verison info`)
-	flagDataWay        = flag.String("dataway", ``, `dataway IP:Port`)
 	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d, list configired and mis-configured collectors`)
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
+	flagDocker         = flag.Bool("docker", false, "run within docker")
 
 	flagListConfigSamples = flag.Bool("config-samples", false, `list all config samples`)
 )
 
 var (
-	stopCh     = make(chan interface{})
-	waitExitCh = make(chan interface{})
-
-	waithttpStopCh = make(chan interface{})
-
 	inputFilters = []string{}
-	l            *logger.Logger
+	l            = logger.DefaultSLogger("main")
 )
 
 func main() {
-
-	logger.SetStdoutRootLogger(logger.DEBUG, logger.OPT_DEFAULT)
-	l = logger.SLogger("main")
-
 	flag.Parse()
 
 	applyFlags()
 
-	loadConfig()
+	tryLoadConfig()
 
-	svcConfig := &service.Config{
-		Name: datakit.ServiceName,
+	if *flagDocker {
+		run()
+	} else {
+		datakit.Entry = run
+		if err := datakit.StartService(); err != nil {
+			l.Errorf("start service failed: %s", err.Error())
+			return
+		}
 	}
 
-	prg := &program{}
-	s, err := service.New(prg, svcConfig)
-	if err != nil {
-		l.Fatal(err)
-		return
-	}
-
-	l.Info("starting datakit service")
-
-	if err = s.Run(); err != nil {
-		l.Fatal(err)
-	}
+	l.Info("datakit exited")
 }
 
 func applyFlags() {
@@ -97,6 +80,10 @@ Golang Version: %s
 	if *flagInputFilters != "" {
 		inputFilters = strings.Split(":"+strings.TrimSpace(*flagInputFilters)+":", ":")
 	}
+
+	if *flagDocker {
+		datakit.Docker = true
+	}
 }
 
 func showAllConfigSamples() {
@@ -110,46 +97,13 @@ func showAllConfigSamples() {
 	}
 }
 
-type program struct{}
-
-func (p *program) Start(s service.Service) error {
-	go p.run(s)
-	return nil
-}
-
-func (p *program) run(s service.Service) {
-	__run()
-}
-
-func (p *program) Stop(s service.Service) error {
-	close(stopCh)
-
-	// We must wait here:
-	// On windows, we stop datakit in services.msc, if datakit process do not
-	// echo to here, services.msc will complain the datakit process has been
-	// exit unexpected
-	<-waitExitCh
-
-	return nil
-}
-
-func exitDatakit() {
-	datakit.Exit.Close()
-
-	l.Info("wait all goroutines exit...")
-	datakit.WG.Wait()
-
-	l.Info("closing waitExitCh...")
-	close(waitExitCh)
-}
-
-func __run() {
+func run() error {
 
 	inputs.StartTelegraf()
 
 	l.Info("datakit start...")
-	if err := runDatakitWithHTTPServer(); err != nil && err != context.Canceled {
-		l.Fatalf("datakit abort: %s", err)
+	if err := runDatakitWithHTTPServer(); err != nil {
+		return err
 	}
 
 	l.Info("datakit start ok. Wait signal or service stop...")
@@ -167,19 +121,22 @@ func __run() {
 			// TODO: reload configures
 		} else {
 			l.Infof("get signal %v, wait & exit", sig)
-			exitDatakit()
+			datakit.Quit()
 		}
-	case <-stopCh:
+
+	case <-datakit.StopCh:
 		l.Infof("service stopping")
-		exitDatakit()
+		datakit.Quit()
+
 	case <-datakit.GlobalExit.Wait():
 		l.Debug("datakit exit on sem")
 	}
 
 	l.Info("datakit exit.")
+	return nil
 }
 
-func loadConfig() {
+func tryLoadConfig() {
 	config.Cfg.InputFilters = inputFilters
 
 	for {
@@ -196,11 +153,11 @@ func loadConfig() {
 
 func runDatakitWithHTTPServer() error {
 
-	l = logger.SLogger("datakit")
 	io.Start()
 
 	if err := inputs.RunInputs(); err != nil {
 		l.Error("error running inputs: %v", err)
+		return err
 	}
 
 	go func() {
