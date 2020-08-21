@@ -65,7 +65,6 @@ type InputsStat struct {
 	Count    int64     `json:"count"`
 	First    time.Time `json:"first"`
 	Last     time.Time `json:"last"`
-	CrashCnt int       `json:"crash_cnt"`
 }
 
 type qstats struct {
