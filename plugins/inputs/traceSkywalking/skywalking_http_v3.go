@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"runtime/debug"
 
+	"github.com/gin-gonic/gin"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
@@ -65,6 +67,10 @@ const (
 	SKYWALK_PROPERTIES = "/v3/management/reportProperties"
 	SKYWALK_KEEPALIVE  = "/v3/management/keepAlive"
 )
+
+func SkywalkingTraceHandleWrap(c *gin.Context) {
+	SkywalkingTraceHandle(c.Writer, c.Request)
+}
 
 func SkywalkingTraceHandle(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("trace handle with path: %s", r.URL.Path)
