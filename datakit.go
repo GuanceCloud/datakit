@@ -28,12 +28,11 @@ var (
 
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 
-	ServiceName = "datakit"
-
 	AgentLogFile string
 
 	MaxLifeCheckInterval time.Duration
 
+	Docker         = false
 	InstallDir     = ""
 	TelegrafDir    = ""
 	DataDir        = ""
