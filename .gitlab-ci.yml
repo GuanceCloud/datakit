@@ -17,7 +17,7 @@ build-dev:
     - dev
   script:
     - make ci_notify
-    - make check
+    #- make check
     - make test
     - make pub_test
     # disable them to save CI time
@@ -34,7 +34,7 @@ build-release:
     - master
   script:
     - make ci_notify
-    - make check
+    #- make check
     - make release
     - make pub_release
     - make pub_release_img
