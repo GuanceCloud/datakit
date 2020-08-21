@@ -47,7 +47,7 @@ func (run *RunningProject) describeDomainBpsData(domain string) {
 
 	bpsRes, err := run.client.DescribeDomainBpsData(bpsParams)
 	if err != nil {
-		run.logger.Errorf("[cdn] action DescribeDomainBpsData failed, %s", err.Error())
+		l.Errorf("[cdn] action DescribeDomainBpsData failed, %s", err.Error())
 	}
 
 	// 指标收集
@@ -100,7 +100,7 @@ func (run *RunningProject) describeDomainTrafficData(domain string) {
 
 	trafficRes, err := run.client.DescribeDomainTrafficData(trafficParams)
 	if err != nil {
-		run.logger.Errorf("[cdn] action DescribeDomainTrafficData failed, %s", err.Error())
+		l.Errorf("[cdn] action DescribeDomainTrafficData failed, %s", err.Error())
 	}
 
 	// 指标收集
@@ -149,7 +149,7 @@ func (run *RunningProject) describeDomainHitRateData(domain string) {
 
 	hitRateRes, err := run.client.DescribeDomainHitRateData(hitRateParams)
 	if err != nil {
-		run.logger.Errorf("[cdn] action DescribeDomainTrafficData failed, %s", err.Error())
+		l.Errorf("[cdn] action DescribeDomainTrafficData failed, %s", err.Error())
 	}
 
 	// 指标收集
@@ -192,7 +192,7 @@ func (run *RunningProject) describeDomainReqHitRateData(domain string) {
 
 	reqHitRateRes, err := run.client.DescribeDomainReqHitRateData(reqHitRateParams)
 	if err != nil {
-		run.logger.Errorf("[cdn] action DescribeDomainReqHitRateData failed, %s", err.Error())
+		l.Errorf("[cdn] action DescribeDomainReqHitRateData failed, %s", err.Error())
 	}
 
 	// 收集数据
@@ -236,7 +236,7 @@ func (run *RunningProject) describeDomainSrcBpsData(domain string) {
 
 	domainSrcBpsRes, err := run.client.DescribeDomainSrcBpsData(domainSrcBpsParams)
 	if err != nil {
-		run.logger.Errorf("[cdn] action DescribeDomainSrcBpsData failed, %s", err.Error())
+		l.Errorf("[cdn] action DescribeDomainSrcBpsData failed, %s", err.Error())
 	}
 
 	// 收集数据
@@ -280,7 +280,7 @@ func (run *RunningProject) describeDomainSrcTrafficData(domain string) {
 
 	domainSrcTrafficBpsRes, err := run.client.DescribeDomainSrcTrafficData(domainSrcTrafficBpsParams)
 	if err != nil {
-		run.logger.Errorf("[cdn] action DescribeDomainSrcTrafficData failed, %s", err.Error())
+		l.Errorf("[cdn] action DescribeDomainSrcTrafficData failed, %s", err.Error())
 	}
 
 	// 收集数据
@@ -323,7 +323,7 @@ func (run *RunningProject) describeDomainUvData(domain string) {
 
 	uvRes, err := run.client.DescribeDomainUvData(uvParams)
 	if err != nil {
-		run.logger.Warnf("action:DescribeDomainUvData, error: %s", err.Error())
+		l.Warnf("action:DescribeDomainUvData, error: %s", err.Error())
 	}
 
 	for _, point := range uvRes.UvDataInterval.UsageData {
@@ -366,7 +366,7 @@ func (run *RunningProject) describeDomainPvData(domain string) {
 
 	pvRes, err := run.client.DescribeDomainPvData(pvParams)
 	if err != nil {
-		run.logger.Warnf("action:DescribeDomainPvData, error: %s", err.Error())
+		l.Warnf("action:DescribeDomainPvData, error: %s", err.Error())
 	}
 
 	for _, point := range pvRes.PvDataInterval.UsageData {
@@ -412,7 +412,7 @@ func (run *RunningProject) describeDomainTopClientIpVisit(domain string) {
 
 	clientIpVisitRes, err := run.client.DescribeDomainTopClientIpVisit(clientIpVisitParams)
 	if err != nil {
-		run.logger.Warnf("action:DescribeDomainTopClientIpVisit, error: %s", err.Error())
+		l.Warnf("action:DescribeDomainTopClientIpVisit, error: %s", err.Error())
 	}
 
 	for _, point := range clientIpVisitRes.ClientIpList {
@@ -453,7 +453,7 @@ func (run *RunningProject) describeDomainISPData(domain string) {
 
 	ispRes, err := run.client.DescribeDomainISPData(ispParams)
 	if err != nil {
-		run.logger.Warnf("action:DescribeDomainISPData, error: %s", err.Error())
+		l.Warnf("action:DescribeDomainISPData, error: %s", err.Error())
 	}
 
 	for _, point := range ispRes.Value.ISPProportionData {
@@ -500,7 +500,7 @@ func (run *RunningProject) describeDomainTopUrlVisit(domain string) {
 
 	response, err := run.client.DescribeDomainTopUrlVisit(request)
 	if err != nil {
-		run.logger.Warnf("action:DescribeDomainTopUrlVisit, error: %s", err.Error())
+		l.Warnf("action:DescribeDomainTopUrlVisit, error: %s", err.Error())
 	}
 
 	for _, point := range response.AllUrlList.UrlList {
@@ -628,7 +628,7 @@ func (run *RunningProject) describeDomainSrcTopUrlVisit(domain string) {
 	request.EndTime = run.endTime
 	response, err := run.client.DescribeDomainSrcTopUrlVisit(request)
 	if err != nil {
-		run.logger.Warnf("action:DescribeDomainSrcTopUrlVisit, error: %s", err.Error())
+		l.Warnf("action:DescribeDomainSrcTopUrlVisit, error: %s", err.Error())
 	}
 	for _, point := range response.AllUrlList.UrlList {
 		tags := map[string]string{}
@@ -756,7 +756,7 @@ func (run *RunningProject) DescribeTopDomainsByFlow() {
 
 	response, err := run.client.DescribeTopDomainsByFlow(request)
 	if err != nil {
-		run.logger.Warnf("action:DescribeTopDomainsByFlow, error: %s", err.Error())
+		l.Warnf("action:DescribeTopDomainsByFlow, error: %s", err.Error())
 	}
 
 	for _, point := range response.TopDomains.TopDomain {
@@ -802,7 +802,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 	response, err := run.client.DescribeDomainTopReferVisit(request)
 	if err != nil {
-		run.logger.Warnf("action:DescribeDomainTopReferVisit, error: %s", err.Error())
+		l.Warnf("action:DescribeDomainTopReferVisit, error: %s", err.Error())
 	}
 	for _, point := range response.TopReferList.ReferList {
 		tags := map[string]string{}
@@ -843,7 +843,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainSrcHttpCodeData(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainSrcHttpCodeData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainSrcHttpCodeData, error: %s", err.Error())
 // 		fmt.Println("error ===>", err)
 // 	}
 
@@ -882,7 +882,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainQpsData(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainQpsData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainQpsData, error: %s", err.Error())
 // 		fmt.Println("error ===>", err)
 // 	}
 
@@ -931,7 +931,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainQpsDataByLayer(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainQpsDataByLayer, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainQpsDataByLayer, error: %s", err.Error())
 // 	}
 // 	for _, point := range response.QpsDataInterval.DataModule {
 // 		const layout = time.RFC3339
@@ -972,7 +972,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 // 	fmt.Println("request ======>", request)
 // 	response, err := run.Client.DescribeDomainSrcQpsData(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainSrcQpsData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainSrcQpsData, error: %s", err.Error())
 // 	}
 // 	fmt.Println("response ======>", response.SrcQpsDataPerInterval.DataModule)
 // 	for _, point := range response.SrcQpsDataPerInterval.DataModule {
@@ -1010,7 +1010,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainAverageResponseTime(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainAverageResponseTime, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainAverageResponseTime, error: %s", err.Error())
 // 	}
 
 // 	for _, point := range response.AvgRTPerInterval.DataModule {
@@ -1044,7 +1044,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainFileSizeProportionData(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainFileSizeProportionData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainFileSizeProportionData, error: %s", err.Error())
 // 	}
 
 // 	for _, data := range response.FileSizeProportionDataInterval.UsageData {
@@ -1114,7 +1114,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 // 	response, err := run.Client.DescribeDomainRealTimeBpsData(request)
 // 	if err != nil {
 // 		fmt.Print(err.Error())
-// 		run.logger.Warnf("action:DescribeDomainRealTimeBpsData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainRealTimeBpsData, error: %s", err.Error())
 // 	}
 
 // 	for _, point := range response.Data.BpsModel {
@@ -1146,7 +1146,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainRealTimeSrcBpsData(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainRealTimeSrcBpsData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainRealTimeSrcBpsData, error: %s", err.Error())
 // 	}
 
 // 	for _, point := range response.RealTimeSrcBpsDataPerInterval.DataModule {
@@ -1181,7 +1181,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainRealTimeSrcHttpCodeData(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainQpsData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainQpsData, error: %s", err.Error())
 // 	}
 
 // 	for _, data := range response.RealTimeSrcHttpCodeData.UsageData {
@@ -1214,7 +1214,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainRealTimeSrcTrafficData(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainRealTimeSrcTrafficData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainRealTimeSrcTrafficData, error: %s", err.Error())
 // 	}
 
 // 	for _, point := range response.RealTimeSrcTrafficDataPerInterval.DataModule {
@@ -1247,7 +1247,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainRealTimeByteHitRateData(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainRealTimeByteHitRateData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainRealTimeByteHitRateData, error: %s", err.Error())
 // 	}
 
 // 	for _, point := range response.Data.ByteHitRateDataModel {
@@ -1281,7 +1281,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainRealTimeQpsData(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainRealTimeQpsData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainRealTimeQpsData, error: %s", err.Error())
 // 	}
 
 // 	for _, point := range response.Data.QpsModel {
@@ -1312,7 +1312,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainRealTimeTrafficData(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainRealTimeTrafficData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainRealTimeTrafficData, error: %s", err.Error())
 // 	}
 
 // 	for _, point := range response.RealTimeTrafficDataPerInterval.DataModule {
@@ -1343,7 +1343,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainRealTimeReqHitRateData(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainRealTimeReqHitRateData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainRealTimeReqHitRateData, error: %s", err.Error())
 // 	}
 
 // 	for _, point := range response.Data.ReqHitRateDataModel {
@@ -1376,7 +1376,7 @@ func (run *RunningProject) describeDomainTopReferVisit(domain string) {
 
 // 	response, err := run.Client.DescribeDomainHttpCodeData(request)
 // 	if err != nil {
-// 		run.logger.Warnf("action:DescribeDomainHttpCodeData, error: %s", err.Error())
+// 		l.Warnf("action:DescribeDomainHttpCodeData, error: %s", err.Error())
 // 	}
 
 // 	for _, data := range response.HttpCodeData.UsageData {
