@@ -192,7 +192,7 @@ func compile() {
 
 		goos, goarch := parts[0], parts[1]
 
-		dir := fmt.Sprintf("build/%s-%s-%s", *flagName, goos, goarch)
+		dir := fmt.Sprintf("%s/%s-%s-%s", *flagBuildDir, *flagName, goos, goarch)
 
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -388,7 +388,7 @@ func tarFiles(goos, goarch string) {
 		`czf`,
 		gz,
 		`-C`,
-		// the whole build/datakit-<goos>-<goarch> dir
+		// the whole *flagBuildDir/datakit-<goos>-<goarch> dir
 		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s-%s", *flagName, goos, goarch)), `.`,
 	}
 
@@ -473,8 +473,8 @@ var (
 
 			entry: "main.go",
 			osarchs: map[string]bool{
-				`linux/386`:     true,
-				`linux/amd64`:   true,
+				`linux/386`:   true,
+				`linux/amd64`: true,
 				//`linux/arm`:     true,
 				//`linux/arm64`:   true,
 				//`darwin/amd64`:  true,
