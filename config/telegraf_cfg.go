@@ -17,7 +17,7 @@ import (
 
 //用于支持在datakit.conf中加入telegraf的agent配置
 type agent struct {
-	Interval                   string `toml:interval`
+	Interval                   string `toml:"interval"`
 	RoundInterval              bool   `toml:"round_interval"`
 	Precision                  string `toml:"precision"`
 	CollectionJitter           string `toml:"collection_jitter"`
