@@ -27,6 +27,7 @@ require (
 	github.com/containerd/fifo v0.0.0-20200410184934-f15a3290365b // indirect
 	github.com/containerd/ttrpc v1.0.1 // indirect
 	github.com/containerd/typeurl v1.0.1
+	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cosiner/argv v0.0.1 // indirect
 	github.com/dchest/safefile v0.0.0-20151022103144-855e8d98f185 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
@@ -91,7 +92,8 @@ require (
 	github.com/sirupsen/logrus v1.5.0 // indirect
 	github.com/stamblerre/gocode v1.0.0 // indirect
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
-	github.com/tencentcloud/tencentcloud-sdk-go v3.0.123+incompatible
+	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
+	github.com/tencentyun/cos-go-sdk-v5 v0.7.7
 	github.com/tidwall/gjson v1.3.0
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/ucloud/ucloud-sdk-go v0.14.0
