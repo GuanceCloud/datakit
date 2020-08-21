@@ -9,7 +9,7 @@ const (
 #  ## 采集的频度，最小粒度5分钟
 #  interval = "5m"
 #  ## 指标名，默认值(kong)
-#  #[inputs.etcd.tags]
+#  #[inputs.kong.tags]
 #  #tags1 = "value1"
 #  
 `
