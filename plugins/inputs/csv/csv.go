@@ -30,9 +30,6 @@ type column struct {
 	TimePrecision string `toml:"time_precision,omitempty" yaml:"time_precision,omitempty"` // h/m/s/ms/us/ns
 }
 
-type Rule struct {
-}
-
 type CSV struct {
 	PathEnv   string    `toml:"path_env" yaml:"-"`
 	StartRows int       `toml:"start_rows" yaml:"start_rows"`
