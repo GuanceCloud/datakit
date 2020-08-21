@@ -5,8 +5,6 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 )
 
 func TestEnableInputs(t *testing.T) {
