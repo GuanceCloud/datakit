@@ -135,7 +135,7 @@ func (dm *Domain) handleResponse(resp *domain.QueryDomainListResponse, ag *objec
 		}
 
 		tags := map[string]interface{}{
-			"__class":                  "Domain",
+			"__class":                  "aliyun_domain",
 			"__provider":               "aliyun",
 			"InstanceId":               d.InstanceId,
 			"DomainStatus":             d.DomainStatus,
