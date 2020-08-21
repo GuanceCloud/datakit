@@ -13,6 +13,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	defaultTimeout                             = 5 * time.Second
+	defaultPerfEventsStatementsDigestTextLimit = 120
+	defaultPerfEventsStatementsLimit           = 250
+	defaultPerfEventsStatementsTimeLimit       = 86400
+	defaultGatherGlobalVars                    = true
+)
+
 var (
 	l    *logger.Logger
 	name = "mysqlMonitor"
@@ -56,10 +64,6 @@ func (mysql *Mysql) Run() {
 			return
 		}
 	}
-}
-
-func (mysql *Mysql) globalStatuses() error {
-
 }
 
 func init() {
