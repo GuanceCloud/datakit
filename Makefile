@@ -15,11 +15,15 @@ PRE_DOWNLOAD_ADDR = zhuyun-static-files-preprod.oss-cn-hangzhou.aliyuncs.com/dat
 LOCAL_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit
 
 PUB_DIR = pub
+BUILD_DIR = build
+
 BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
+LOCAL_ARCHS = "windows/amd64|linux/amd64|darwin/amd64"
 LOCAL_ARCHS = "all"
+LOCAL_ARCHS = "linux/amd64"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -32,7 +36,7 @@ UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 
 NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(VERSION))"}}')
 NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(VERSION))"}}')
-NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER) 正在执行 DataKit 的 CI，此刻请勿在 CI 分支(dev/master)提交代码，避免 CI 任务被取消"}}')
+NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER) 正在执行 DataKit 的 CI，此刻请勿在 CI 分支(dev/master)提交代码，避免 CI 任务被取消[摊手]"}}')
 
 ###################################
 # Detect telegraf update info
@@ -50,17 +54,17 @@ all: test release preprod local
 define build
 	@echo "===== $(BIN) $(1) ===="
 	@rm -rf $(PUB_DIR)/$(1)/*
-	@mkdir -p build $(PUB_DIR)/$(1)
+	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
 	@mkdir -p git
 	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Commit string="$(COMMIT)"; Branch string="$(BRANCH)"; Uploader string="$(UPLOADER)");' > git/git.go
-	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
+	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
-	tree -Csh -L 3 build pub
+	@tree -Csh -L 3 $(BUILD_DIR) $(PUB_DIR)
 endef
 
 define pub
-	echo "publish $(1) $(NAME) ..."
-	GO111MODULE=off go run cmd/make/make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
+	@echo "publish $(1) $(NAME) ..."
+	@GO111MODULE=off go run cmd/make/make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
 endef
 
 check:
