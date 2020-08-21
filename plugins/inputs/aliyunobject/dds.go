@@ -133,24 +133,22 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 		}
 
 		tags := map[string]interface{}{
-			"__class":               "dds",
-			"__provider":            "aliyun",
-			"DBInstanceDescription": db.DBInstanceDescription,
-			"DBInstanceId":          db.DBInstanceId,
-			"DBInstanceType":        db.DBInstanceType,
-			"RegionId":              db.RegionId,
-			"DBInstanceStatus":      db.DBInstanceStatus,
-			"Engine":                db.Engine,
-			"NetworkType":           db.NetworkType,
-			"LockMode":              db.LockMode,
-			"DBInstanceClass":       db.DBInstanceClass,
-			"DBInstanceStorage":     db.DBInstanceStorage,
-			"EngineVersion":         db.EngineVersion,
-			"ResourceGroupId":       db.ResourceGroupId,
-			"VSwitchId":             db.VSwitchId,
-			"VpcCloudInstanceId":    db.VPCCloudInstanceIds,
-			"VPCId":                 db.VPCId,
-			"ZoneId":                db.ZoneId,
+			"__class":            "aliyun_dds",
+			"__provider":         "aliyun",
+			"DBInstanceId":       db.DBInstanceId,
+			"DBInstanceType":     db.DBInstanceType,
+			"RegionId":           db.RegionId,
+			"DBInstanceStatus":   db.DBInstanceStatus,
+			"Engine":             db.Engine,
+			"NetworkType":        db.NetworkType,
+			"LockMode":           db.LockMode,
+			"DBInstanceClass":    db.DBInstanceClass,
+			"EngineVersion":      db.EngineVersion,
+			"ResourceGroupId":    db.ResourceGroupId,
+			"VSwitchId":          db.VSwitchId,
+			"VpcCloudInstanceId": db.VPCCloudInstanceIds,
+			"VPCId":              db.VPCId,
+			"ZoneId":             db.ZoneId,
 		}
 
 		for _, t := range db.Tags.Tag {
@@ -190,6 +188,7 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 			"ShardList":             db.ShardList,
 			"ReplicaSets":           db.ReplicaSets,
 			"MongosList":            db.MongosList,
+			"DBInstanceStorage":     db.DBInstanceStorage,
 		}
 
 		objs = append(objs, obj)
