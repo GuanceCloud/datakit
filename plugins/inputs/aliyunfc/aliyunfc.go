@@ -8,12 +8,12 @@ var (
 	inputName = "aliyunfc"
 
 	sampleCfg = `
-#[[inputs.aliyuncms]]
+[[inputs.aliyuncms]]
 
 ##(required)
-#access_key_id = 'xxx'
-#access_key_secret = 'xxxxx'
-#region_id = 'cn-hangzhou'
+access_key_id = 'xxx'
+access_key_secret = 'xxxxx'
+region_id = 'cn-hangzhou'
 
 # ##(optional)（Security Token Service，STS）
 #security_token = ''
@@ -29,15 +29,15 @@ var (
 #key2 = "val2"
 
 # ##(required)
-#[[inputs.aliyuncms.project]]
+[[inputs.aliyuncms.project]]
 # ##(required) product namespace
-#name='acs_fc'
+name='acs_fc'
 # ##(required)
-#[inputs.aliyuncms.project.metrics]
+[inputs.aliyuncms.project.metrics]
 
 ##(required)
 ## names of metrics
-#names =[
+names =[
 	'FuntionTotalInvocations',
 	'ServiceTotalInvocations',
 	'FunctionAvgDuration',
