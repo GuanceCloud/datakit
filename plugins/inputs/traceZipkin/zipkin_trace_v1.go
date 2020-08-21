@@ -1,16 +1,16 @@
 package traceZipkin
 
 import (
-	"fmt"
-	"time"
-	"unsafe"
+	"encoding/binary"
 	"encoding/json"
+	"fmt"
+	"net"
+	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	zipkincore "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceZipkin/zipkinV1_core"
-
 )
 
 type Endpoint struct {
@@ -27,9 +27,9 @@ type Annotation struct {
 }
 
 type BinaryAnnotation struct {
-	Key            string         `json:"key"`
-	Value          string         `json:"value"`
-	Host           *Endpoint      `json:"endpoint,omitempty"`
+	Key   string    `json:"key"`
+	Value string    `json:"value"`
+	Host  *Endpoint `json:"endpoint,omitempty"`
 }
 
 type ZipkinSpanV1 struct {
@@ -41,7 +41,7 @@ type ZipkinSpanV1 struct {
 	Duration  int64  `thrift:"duration,11" db:"duration" json:"duration,omitempty"`
 	Debug     bool   `thrift:"debug,9" db:"debug" json:"debug,omitempty"`
 
-	Annotations []*Annotation `thrift:"annotations,6" db:"annotations" json:"annotations"`
+	Annotations       []*Annotation       `thrift:"annotations,6" db:"annotations" json:"annotations"`
 	BinaryAnnotations []*BinaryAnnotation `thrift:"binary_annotations,8" db:"binary_annotations" json:"binaryAnnotations"`
 }
 
@@ -52,7 +52,7 @@ func getFirstTimestamp(zs *ZipkinSpanV1) int64 {
 		}
 	}
 
-	return time.Now().UnixNano()/1000
+	return time.Now().UnixNano() / 1000
 
 }
 func parseZipkinJsonV1(octets []byte) error {
@@ -81,8 +81,8 @@ func parseZipkinJsonV1(octets []byte) error {
 		tAdpter.Class = "tracing"
 		tAdpter.OperationName = zs.Name
 		tAdpter.ParentID = zs.ParentID
-		tAdpter.TraceID  = zs.TraceID
-		tAdpter.SpanID   = zs.ID
+		tAdpter.TraceID = zs.TraceID
+		tAdpter.SpanID = zs.ID
 
 		for _, ano := range zs.Annotations {
 			if ano.Host != nil && ano.Host.ServiceName != "" {
@@ -115,29 +115,33 @@ func parseZipkinJsonV1(octets []byte) error {
 	return nil
 }
 
+func int2ip(i uint32) []byte {
+	bs := make([]byte, 4)
+	binary.BigEndian.PutUint32(bs, i)
+	return bs
+}
+
 func zipkinConvThrift2Json(z *zipkincore.Span) *zipkincore.SpanJsonApater {
 	zc := &zipkincore.SpanJsonApater{}
 	zc.TraceID = uint64(z.TraceID)
-	zc.Name    = z.Name
-	zc.ID      = uint64(z.ID)
+	zc.Name = z.Name
+	zc.ID = uint64(z.ID)
 	if z.ParentID != nil {
-		zc.ParentID= uint64(*z.ParentID)
+		zc.ParentID = uint64(*z.ParentID)
 	}
 
 	for _, ano := range z.Annotations {
 		jAno := zipkincore.AnnotationJsonApater{}
 		jAno.Timestamp = uint64(ano.Timestamp)
-		jAno.Value   = ano.Value
+		jAno.Value = ano.Value
 		if ano.Host != nil {
 			ep := &zipkincore.EndpointJsonApater{}
 			ep.ServiceName = ano.Host.ServiceName
 			ep.Port = ano.Host.Port
 			ep.Ipv6 = append(ep.Ipv6, ano.Host.Ipv6...)
-			ptr := uintptr(unsafe.Pointer(&ano.Host.Ipv4))
-			for i:= 3; i >=0; i-- {
-				p := ptr + uintptr(i)
-				ep.Ipv4 = append(ep.Ipv4, *((*byte)(unsafe.Pointer(p))))
-			}
+
+			ipbytes := int2ip(uint32(ano.Host.Ipv4))
+			ep.Ipv4 = net.IP(ipbytes)
 			jAno.Host = ep
 		}
 		zc.Annotations = append(zc.Annotations, jAno)
@@ -153,22 +157,21 @@ func zipkinConvThrift2Json(z *zipkincore.Span) *zipkincore.SpanJsonApater {
 			ep.ServiceName = bno.Host.ServiceName
 			ep.Port = bno.Host.Port
 			ep.Ipv6 = append(ep.Ipv6, bno.Host.Ipv6...)
-			ptr := uintptr(unsafe.Pointer(&bno.Host.Ipv4))
-			for i:= 3; i >= 0; i-- {
-				p := ptr + uintptr(i)
-				ep.Ipv4 = append(ep.Ipv4, *((*byte)(unsafe.Pointer(p))))
-			}
+
+			ipbytes := int2ip(uint32(bno.Host.Ipv4))
+			ep.Ipv4 = net.IP(ipbytes)
+
 			jBno.Host = ep
 		}
 		zc.BinaryAnnotations = append(zc.BinaryAnnotations, jBno)
 	}
-	zc.Debug   = z.Debug
+	zc.Debug = z.Debug
 	if z.Timestamp != nil {
 		zc.Timestamp = uint64(*z.Timestamp)
 	}
 
 	if z.Duration != nil {
-		zc.Duration  = uint64(*z.Duration)
+		zc.Duration = uint64(*z.Duration)
 	}
 
 	if z.TraceIDHigh != nil {
@@ -178,7 +181,7 @@ func zipkinConvThrift2Json(z *zipkincore.Span) *zipkincore.SpanJsonApater {
 	return zc
 }
 
-func parseZipkinThriftV1(octets []byte) error{
+func parseZipkinThriftV1(octets []byte) error {
 	zspans, err := unmarshalZipkinThriftV1(octets)
 	if err != nil {
 		return err
@@ -197,9 +200,8 @@ func parseZipkinThriftV1(octets []byte) error{
 		if zs.Timestamp != nil {
 			tAdpter.TimestampUs = *zs.Timestamp
 		} else {
-			tAdpter.TimestampUs = time.Now().UnixNano()/1000
+			tAdpter.TimestampUs = time.Now().UnixNano() / 1000
 		}
-
 
 		js, err := json.Marshal(z)
 		if err != nil {
