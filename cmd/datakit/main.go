@@ -40,9 +40,12 @@ func main() {
 
 	tryLoadConfig()
 
+	// This may throw `Unix syslog delivery error` within docker, so we just
+	// start the entry under docker.
 	if *flagDocker {
 		run()
 	} else {
+
 		datakit.Entry = run
 		if err := datakit.StartService(); err != nil {
 			l.Errorf("start service failed: %s", err.Error())
