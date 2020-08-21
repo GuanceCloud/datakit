@@ -263,6 +263,7 @@ type enabledInput struct {
 	Input     string   `json:"input"`
 	Instances int      `json:"instances"`
 	Cfgs      []string `json:"configs"`
+	Panics    int      `json:"panic"`
 }
 
 type datakitStats struct {
@@ -300,14 +301,11 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, is := range stats.InputsStats {
-		is.CrashCnt = inputs.GetPanicCnt(is.Name)
-	}
-
 	for k, _ := range inputs.Inputs {
 		n, cfgs := inputs.InputEnabled(k)
+		npanic := inputs.GetPanicCnt(k)
 		if n > 0 {
-			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Cfgs: cfgs})
+			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Cfgs: cfgs, Panics: npanic})
 		}
 	}
 
@@ -407,4 +405,3 @@ func apiReload(c *gin.Context) {
 		l.Info("reload HTTP server ok")
 	}()
 }
-
