@@ -131,23 +131,24 @@ func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
 
 		obj := map[string]interface{}{
 			`__name`: inst.Get("InstanceAlias").String(),
-			`InstanceClass`: inst.Get("InstanceClass").String(),
 			`GmtCreated`: inst.Get("GmtCreated").String(),
 			`GmtExpire`: inst.Get("GmtExpire").String(),
 			`InstanceStorage`: inst.Get("InstanceStorage").String(),
+			`UserId`: inst.Get("UserId").String(),
 		}
 
 		tags := map[string]interface{}{
-			`__class`:    `InfluxDB`,
+			`__class`:    `aliyun_influxdb`,
 			`provider`:   `aliyun`,
 			`InstanceId`: inst.Get("InstanceId").String(),
 			`ZoneId`: inst.Get("ZoneId").String(),
 			`ChargeType`: inst.Get("ChargeType").String(),
-			`UserId`: inst.Get("UserId").String(),
 			`InstanceStatus`: inst.Get("InstanceStatus").String(),
 			`NetworkType`: inst.Get("NetworkType").String(),
 			`RegionId`: inst.Get("RegionId").String(),
 			`EngineType`: inst.Get("EngineType").String(),
+			`InstanceClass`: inst.Get("InstanceClass").String(),
+
 		}
 
 		for k, v := range e.Tags {
