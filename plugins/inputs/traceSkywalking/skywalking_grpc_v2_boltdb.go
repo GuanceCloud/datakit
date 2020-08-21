@@ -14,14 +14,14 @@ import (
 )
 
 var (
-	BoltDb           *bolt.DB
-	DbRWLocker        sync.RWMutex
-	RegService        sync.Map   //key: id,           value: serviceName
-	RegServiceRev     sync.Map   //key: serviceName,  value: id
-	RegInstance       sync.Map   //key: id,           value: instanceUUID
-	RegInstanceRev    sync.Map   //key: instanceUUID, value: id
-	RegEndpoint       sync.Map   //key: id,           value: endpointName
-	RegEndpointRev    sync.Map   //key: endpointName, value: id
+	BoltDb         *bolt.DB
+	DbRWLocker     sync.RWMutex
+	RegService     = &sync.Map{} //key: id,           value: serviceName
+	RegServiceRev  = &sync.Map{} //key: serviceName,  value: id
+	RegInstance    = &sync.Map{} //key: id,           value: instanceUUID
+	RegInstanceRev = &sync.Map{} //key: instanceUUID, value: id
+	RegEndpoint    = &sync.Map{} //key: id,           value: endpointName
+	RegEndpointRev = &sync.Map{} //key: endpointName, value: id
 
 )
 
@@ -41,7 +41,7 @@ func BoltDbInit() {
 	}
 
 	CreateAllDbBucket()
-	ReadFromDbByBucket(ServiceBucket , RegService , RegServiceRev )
+	ReadFromDbByBucket(ServiceBucket, RegService, RegServiceRev)
 	ReadFromDbByBucket(InstanceBucket, RegInstance, RegInstanceRev)
 	ReadFromDbByBucket(EndpointBucket, RegEndpoint, RegEndpointRev)
 }
@@ -74,7 +74,7 @@ func CreateDbBucket(bucket string) {
 	})
 
 }
-func ReadFromDbByBucket(bucket string, mapKV sync.Map, mapRevKV sync.Map) {
+func ReadFromDbByBucket(bucket string, mapKV *sync.Map, mapRevKV *sync.Map) {
 	BoltDb.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		c := b.Cursor()
@@ -99,7 +99,7 @@ func SaveRegInfo(bucket, msg string) (int32, error) {
 	DbRWLocker.Lock()
 	defer DbRWLocker.Unlock()
 
-	err :=  BoltDb.Update(func(tx *bolt.Tx) error {
+	err := BoltDb.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		id, _ := b.NextSequence()
 		gID = int32(id)
