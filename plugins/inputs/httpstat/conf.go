@@ -32,6 +32,6 @@ type Action struct {
 	Method        string `toml:"method"`
 	Playload      string `toml:"playload"`
 	KAlive        bool   `toml:"kAlive"`
-	TLSSkipVerify bool   `toml:"tlsSkipVerify`
-	Compress      bool   `toml:"compress`
+	TLSSkipVerify bool   `toml:"tlsSkipVerify"`
+	Compress      bool   `toml:"compress"`
 }
