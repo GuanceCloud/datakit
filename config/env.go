@@ -36,10 +36,6 @@ func (c *Config) loadEnvs() error {
 		c.MainCfg.DataWay = dw
 	}
 
-	if os.Getenv("ENV_WITHIN_DOCKER") != "" {
-		c.WithinDocker = true
-	}
-
 	dkhost := os.Getenv("ENV_HOSTNAME")
 	if dkhost != "" {
 		l.Debugf("set hostname to %s from ENV", dkhost)
@@ -48,7 +44,7 @@ func (c *Config) loadEnvs() error {
 		c.setHostname()
 	}
 
-	if c.WithinDocker {
+	if datakit.Docker {
 		maincfg := filepath.Join(datakit.InstallDir, "datakit.conf")
 		if fi, err := os.Stat(maincfg); err != nil || fi.Size() == 0 { // create the main config
 
