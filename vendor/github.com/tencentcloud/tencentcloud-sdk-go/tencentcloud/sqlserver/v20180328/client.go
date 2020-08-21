@@ -43,6 +43,81 @@ func NewClient(credential *common.Credential, region string, clientProfile *prof
 }
 
 
+func NewAssociateSecurityGroupsRequest() (request *AssociateSecurityGroupsRequest) {
+    request = &AssociateSecurityGroupsRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "AssociateSecurityGroups")
+    return
+}
+
+func NewAssociateSecurityGroupsResponse() (response *AssociateSecurityGroupsResponse) {
+    response = &AssociateSecurityGroupsResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口(AssociateSecurityGroups)用于安全组批量绑定实例。
+func (c *Client) AssociateSecurityGroups(request *AssociateSecurityGroupsRequest) (response *AssociateSecurityGroupsResponse, err error) {
+    if request == nil {
+        request = NewAssociateSecurityGroupsRequest()
+    }
+    response = NewAssociateSecurityGroupsResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewCompleteExpansionRequest() (request *CompleteExpansionRequest) {
+    request = &CompleteExpansionRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "CompleteExpansion")
+    return
+}
+
+func NewCompleteExpansionResponse() (response *CompleteExpansionResponse) {
+    response = &CompleteExpansionResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（CompleteExpansion）在实例发起扩容后，实例状态处于“升级待切换”时，可立即完成实例升级切换操作，无需等待可维护时间窗。本接口需要在实例低峰时调用，在完全切换成功前，存在部分库不可访问的风险。
+func (c *Client) CompleteExpansion(request *CompleteExpansionRequest) (response *CompleteExpansionResponse, err error) {
+    if request == nil {
+        request = NewCompleteExpansionRequest()
+    }
+    response = NewCompleteExpansionResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewCompleteMigrationRequest() (request *CompleteMigrationRequest) {
+    request = &CompleteMigrationRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "CompleteMigration")
+    return
+}
+
+func NewCompleteMigrationResponse() (response *CompleteMigrationResponse) {
+    response = &CompleteMigrationResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（CompleteMigration）作用是完成一个迁移任务
+func (c *Client) CompleteMigration(request *CompleteMigrationRequest) (response *CompleteMigrationResponse, err error) {
+    if request == nil {
+        request = NewCompleteMigrationRequest()
+    }
+    response = NewCompleteMigrationResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewCreateAccountRequest() (request *CreateAccountRequest) {
     request = &CreateAccountRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -89,6 +164,31 @@ func (c *Client) CreateBackup(request *CreateBackupRequest) (response *CreateBac
         request = NewCreateBackupRequest()
     }
     response = NewCreateBackupResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewCreateBasicDBInstancesRequest() (request *CreateBasicDBInstancesRequest) {
+    request = &CreateBasicDBInstancesRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "CreateBasicDBInstances")
+    return
+}
+
+func NewCreateBasicDBInstancesResponse() (response *CreateBasicDBInstancesResponse) {
+    response = &CreateBasicDBInstancesResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（CreateBasicDBInstances）用于创建SQL server基础版实例。
+func (c *Client) CreateBasicDBInstances(request *CreateBasicDBInstancesRequest) (response *CreateBasicDBInstancesResponse, err error) {
+    if request == nil {
+        request = NewCreateBasicDBInstancesRequest()
+    }
+    response = NewCreateBasicDBInstancesResponse()
     err = c.Send(request, response)
     return
 }
@@ -168,6 +268,56 @@ func (c *Client) CreateMigration(request *CreateMigrationRequest) (response *Cre
     return
 }
 
+func NewCreatePublishSubscribeRequest() (request *CreatePublishSubscribeRequest) {
+    request = &CreatePublishSubscribeRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "CreatePublishSubscribe")
+    return
+}
+
+func NewCreatePublishSubscribeResponse() (response *CreatePublishSubscribeResponse) {
+    response = &CreatePublishSubscribeResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（CreatePublishSubscribe）用于创建两个数据库之间的发布订阅关系。作为订阅者，不能再充当发布者，作为发布者可以有多个订阅者实例。
+func (c *Client) CreatePublishSubscribe(request *CreatePublishSubscribeRequest) (response *CreatePublishSubscribeResponse, err error) {
+    if request == nil {
+        request = NewCreatePublishSubscribeRequest()
+    }
+    response = NewCreatePublishSubscribeResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewCreateReadOnlyDBInstancesRequest() (request *CreateReadOnlyDBInstancesRequest) {
+    request = &CreateReadOnlyDBInstancesRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "CreateReadOnlyDBInstances")
+    return
+}
+
+func NewCreateReadOnlyDBInstancesResponse() (response *CreateReadOnlyDBInstancesResponse) {
+    response = &CreateReadOnlyDBInstancesResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（CreateReadOnlyDBInstances）用于添加只读副本实例。
+func (c *Client) CreateReadOnlyDBInstances(request *CreateReadOnlyDBInstancesRequest) (response *CreateReadOnlyDBInstancesResponse, err error) {
+    if request == nil {
+        request = NewCreateReadOnlyDBInstancesRequest()
+    }
+    response = NewCreateReadOnlyDBInstancesResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewDeleteAccountRequest() (request *DeleteAccountRequest) {
     request = &DeleteAccountRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -218,6 +368,31 @@ func (c *Client) DeleteDB(request *DeleteDBRequest) (response *DeleteDBResponse,
     return
 }
 
+func NewDeleteDBInstanceRequest() (request *DeleteDBInstanceRequest) {
+    request = &DeleteDBInstanceRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DeleteDBInstance")
+    return
+}
+
+func NewDeleteDBInstanceResponse() (response *DeleteDBInstanceResponse) {
+    response = &DeleteDBInstanceResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（DeleteDBInstance）用于释放回收站中的SQL server实例。释放后的实例将保存一段时间后物理销毁。其发布订阅将自动解除，其ro副本将自动释放。
+func (c *Client) DeleteDBInstance(request *DeleteDBInstanceRequest) (response *DeleteDBInstanceResponse, err error) {
+    if request == nil {
+        request = NewDeleteDBInstanceRequest()
+    }
+    response = NewDeleteDBInstanceResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewDeleteMigrationRequest() (request *DeleteMigrationRequest) {
     request = &DeleteMigrationRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -239,6 +414,31 @@ func (c *Client) DeleteMigration(request *DeleteMigrationRequest) (response *Del
         request = NewDeleteMigrationRequest()
     }
     response = NewDeleteMigrationResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewDeletePublishSubscribeRequest() (request *DeletePublishSubscribeRequest) {
+    request = &DeletePublishSubscribeRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DeletePublishSubscribe")
+    return
+}
+
+func NewDeletePublishSubscribeResponse() (response *DeletePublishSubscribeResponse) {
+    response = &DeletePublishSubscribeResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（DeletePublishSubscribe）用于删除两个数据库间的发布订阅关系。
+func (c *Client) DeletePublishSubscribe(request *DeletePublishSubscribeRequest) (response *DeletePublishSubscribeResponse, err error) {
+    if request == nil {
+        request = NewDeletePublishSubscribeRequest()
+    }
+    response = NewDeletePublishSubscribeResponse()
     err = c.Send(request, response)
     return
 }
@@ -268,6 +468,31 @@ func (c *Client) DescribeAccounts(request *DescribeAccountsRequest) (response *D
     return
 }
 
+func NewDescribeBackupByFlowIdRequest() (request *DescribeBackupByFlowIdRequest) {
+    request = &DescribeBackupByFlowIdRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DescribeBackupByFlowId")
+    return
+}
+
+func NewDescribeBackupByFlowIdResponse() (response *DescribeBackupByFlowIdResponse) {
+    response = &DescribeBackupByFlowIdResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口(DescribeBackupByFlowId)用于通过备份创建流程的ID查询创建的备份详情，流程ID可从接口CreateBackup中获得。
+func (c *Client) DescribeBackupByFlowId(request *DescribeBackupByFlowIdRequest) (response *DescribeBackupByFlowIdResponse, err error) {
+    if request == nil {
+        request = NewDescribeBackupByFlowIdRequest()
+    }
+    response = NewDescribeBackupByFlowIdResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewDescribeBackupsRequest() (request *DescribeBackupsRequest) {
     request = &DescribeBackupsRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -293,6 +518,31 @@ func (c *Client) DescribeBackups(request *DescribeBackupsRequest) (response *Des
     return
 }
 
+func NewDescribeCrossRegionZoneRequest() (request *DescribeCrossRegionZoneRequest) {
+    request = &DescribeCrossRegionZoneRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DescribeCrossRegionZone")
+    return
+}
+
+func NewDescribeCrossRegionZoneResponse() (response *DescribeCrossRegionZoneResponse) {
+    response = &DescribeCrossRegionZoneResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口(DescribeCrossRegionZone)根据主实例查询备机的容灾地域和可用区。
+func (c *Client) DescribeCrossRegionZone(request *DescribeCrossRegionZoneRequest) (response *DescribeCrossRegionZoneResponse, err error) {
+    if request == nil {
+        request = NewDescribeCrossRegionZoneRequest()
+    }
+    response = NewDescribeCrossRegionZoneResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewDescribeDBInstancesRequest() (request *DescribeDBInstancesRequest) {
     request = &DescribeDBInstancesRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -314,6 +564,31 @@ func (c *Client) DescribeDBInstances(request *DescribeDBInstancesRequest) (respo
         request = NewDescribeDBInstancesRequest()
     }
     response = NewDescribeDBInstancesResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewDescribeDBSecurityGroupsRequest() (request *DescribeDBSecurityGroupsRequest) {
+    request = &DescribeDBSecurityGroupsRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DescribeDBSecurityGroups")
+    return
+}
+
+func NewDescribeDBSecurityGroupsResponse() (response *DescribeDBSecurityGroupsResponse) {
+    response = &DescribeDBSecurityGroupsResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口(DescribeDBSecurityGroups)用于查询实例的安全组详情。
+func (c *Client) DescribeDBSecurityGroups(request *DescribeDBSecurityGroupsRequest) (response *DescribeDBSecurityGroupsResponse, err error) {
+    if request == nil {
+        request = NewDescribeDBSecurityGroupsRequest()
+    }
+    response = NewDescribeDBSecurityGroupsResponse()
     err = c.Send(request, response)
     return
 }
@@ -364,6 +639,56 @@ func (c *Client) DescribeFlowStatus(request *DescribeFlowStatusRequest) (respons
         request = NewDescribeFlowStatusRequest()
     }
     response = NewDescribeFlowStatusResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewDescribeMaintenanceSpanRequest() (request *DescribeMaintenanceSpanRequest) {
+    request = &DescribeMaintenanceSpanRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DescribeMaintenanceSpan")
+    return
+}
+
+func NewDescribeMaintenanceSpanResponse() (response *DescribeMaintenanceSpanResponse) {
+    response = &DescribeMaintenanceSpanResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（DescribeMaintenanceSpan）根据实例ID查询该实例的可维护时间窗。
+func (c *Client) DescribeMaintenanceSpan(request *DescribeMaintenanceSpanRequest) (response *DescribeMaintenanceSpanResponse, err error) {
+    if request == nil {
+        request = NewDescribeMaintenanceSpanRequest()
+    }
+    response = NewDescribeMaintenanceSpanResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewDescribeMigrationDatabasesRequest() (request *DescribeMigrationDatabasesRequest) {
+    request = &DescribeMigrationDatabasesRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DescribeMigrationDatabases")
+    return
+}
+
+func NewDescribeMigrationDatabasesResponse() (response *DescribeMigrationDatabasesResponse) {
+    response = &DescribeMigrationDatabasesResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（DescribeMigrationDatabases）的作用是查询待迁移数据库列表
+func (c *Client) DescribeMigrationDatabases(request *DescribeMigrationDatabasesRequest) (response *DescribeMigrationDatabasesResponse, err error) {
+    if request == nil {
+        request = NewDescribeMigrationDatabasesRequest()
+    }
+    response = NewDescribeMigrationDatabasesResponse()
     err = c.Send(request, response)
     return
 }
@@ -468,6 +793,131 @@ func (c *Client) DescribeProductConfig(request *DescribeProductConfigRequest) (r
     return
 }
 
+func NewDescribeProjectSecurityGroupsRequest() (request *DescribeProjectSecurityGroupsRequest) {
+    request = &DescribeProjectSecurityGroupsRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DescribeProjectSecurityGroups")
+    return
+}
+
+func NewDescribeProjectSecurityGroupsResponse() (response *DescribeProjectSecurityGroupsResponse) {
+    response = &DescribeProjectSecurityGroupsResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口(DescribeProjectSecurityGroups)用于查询项目的安全组详情。
+func (c *Client) DescribeProjectSecurityGroups(request *DescribeProjectSecurityGroupsRequest) (response *DescribeProjectSecurityGroupsResponse, err error) {
+    if request == nil {
+        request = NewDescribeProjectSecurityGroupsRequest()
+    }
+    response = NewDescribeProjectSecurityGroupsResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewDescribePublishSubscribeRequest() (request *DescribePublishSubscribeRequest) {
+    request = &DescribePublishSubscribeRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DescribePublishSubscribe")
+    return
+}
+
+func NewDescribePublishSubscribeResponse() (response *DescribePublishSubscribeResponse) {
+    response = &DescribePublishSubscribeResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（DescribePublishSubscribe）用于查询发布订阅关系列表。
+func (c *Client) DescribePublishSubscribe(request *DescribePublishSubscribeRequest) (response *DescribePublishSubscribeResponse, err error) {
+    if request == nil {
+        request = NewDescribePublishSubscribeRequest()
+    }
+    response = NewDescribePublishSubscribeResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewDescribeReadOnlyGroupByReadOnlyInstanceRequest() (request *DescribeReadOnlyGroupByReadOnlyInstanceRequest) {
+    request = &DescribeReadOnlyGroupByReadOnlyInstanceRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DescribeReadOnlyGroupByReadOnlyInstance")
+    return
+}
+
+func NewDescribeReadOnlyGroupByReadOnlyInstanceResponse() (response *DescribeReadOnlyGroupByReadOnlyInstanceResponse) {
+    response = &DescribeReadOnlyGroupByReadOnlyInstanceResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（DescribeReadOnlyGroupByReadOnlyInstance）用于通过只读副本实例ID查询其所在的只读组。
+func (c *Client) DescribeReadOnlyGroupByReadOnlyInstance(request *DescribeReadOnlyGroupByReadOnlyInstanceRequest) (response *DescribeReadOnlyGroupByReadOnlyInstanceResponse, err error) {
+    if request == nil {
+        request = NewDescribeReadOnlyGroupByReadOnlyInstanceRequest()
+    }
+    response = NewDescribeReadOnlyGroupByReadOnlyInstanceResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewDescribeReadOnlyGroupDetailsRequest() (request *DescribeReadOnlyGroupDetailsRequest) {
+    request = &DescribeReadOnlyGroupDetailsRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DescribeReadOnlyGroupDetails")
+    return
+}
+
+func NewDescribeReadOnlyGroupDetailsResponse() (response *DescribeReadOnlyGroupDetailsResponse) {
+    response = &DescribeReadOnlyGroupDetailsResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（DescribeReadOnlyGroupDetails）用于查询只读组详情。
+func (c *Client) DescribeReadOnlyGroupDetails(request *DescribeReadOnlyGroupDetailsRequest) (response *DescribeReadOnlyGroupDetailsResponse, err error) {
+    if request == nil {
+        request = NewDescribeReadOnlyGroupDetailsRequest()
+    }
+    response = NewDescribeReadOnlyGroupDetailsResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewDescribeReadOnlyGroupListRequest() (request *DescribeReadOnlyGroupListRequest) {
+    request = &DescribeReadOnlyGroupListRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DescribeReadOnlyGroupList")
+    return
+}
+
+func NewDescribeReadOnlyGroupListResponse() (response *DescribeReadOnlyGroupListResponse) {
+    response = &DescribeReadOnlyGroupListResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（DescribeReadOnlyGroupList）用于查询只读组列表。
+func (c *Client) DescribeReadOnlyGroupList(request *DescribeReadOnlyGroupListRequest) (response *DescribeReadOnlyGroupListResponse, err error) {
+    if request == nil {
+        request = NewDescribeReadOnlyGroupListRequest()
+    }
+    response = NewDescribeReadOnlyGroupListResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewDescribeRegionsRequest() (request *DescribeRegionsRequest) {
     request = &DescribeRegionsRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -564,6 +1014,31 @@ func (c *Client) DescribeZones(request *DescribeZonesRequest) (response *Describ
         request = NewDescribeZonesRequest()
     }
     response = NewDescribeZonesResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewDisassociateSecurityGroupsRequest() (request *DisassociateSecurityGroupsRequest) {
+    request = &DisassociateSecurityGroupsRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "DisassociateSecurityGroups")
+    return
+}
+
+func NewDisassociateSecurityGroupsResponse() (response *DisassociateSecurityGroupsResponse) {
+    response = &DisassociateSecurityGroupsResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口(DisassociateSecurityGroups)用于安全组批量解绑实例。
+func (c *Client) DisassociateSecurityGroups(request *DisassociateSecurityGroupsRequest) (response *DisassociateSecurityGroupsResponse, err error) {
+    if request == nil {
+        request = NewDisassociateSecurityGroupsRequest()
+    }
+    response = NewDisassociateSecurityGroupsResponse()
     err = c.Send(request, response)
     return
 }
@@ -693,6 +1168,56 @@ func (c *Client) ModifyAccountRemark(request *ModifyAccountRemarkRequest) (respo
     return
 }
 
+func NewModifyBackupNameRequest() (request *ModifyBackupNameRequest) {
+    request = &ModifyBackupNameRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "ModifyBackupName")
+    return
+}
+
+func NewModifyBackupNameResponse() (response *ModifyBackupNameResponse) {
+    response = &ModifyBackupNameResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口(ModifyBackupName)用于修改备份名称。
+func (c *Client) ModifyBackupName(request *ModifyBackupNameRequest) (response *ModifyBackupNameResponse, err error) {
+    if request == nil {
+        request = NewModifyBackupNameRequest()
+    }
+    response = NewModifyBackupNameResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewModifyBackupStrategyRequest() (request *ModifyBackupStrategyRequest) {
+    request = &ModifyBackupStrategyRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "ModifyBackupStrategy")
+    return
+}
+
+func NewModifyBackupStrategyResponse() (response *ModifyBackupStrategyResponse) {
+    response = &ModifyBackupStrategyResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（ModifyBackupStrategy）用于修改备份策略
+func (c *Client) ModifyBackupStrategy(request *ModifyBackupStrategyRequest) (response *ModifyBackupStrategyResponse, err error) {
+    if request == nil {
+        request = NewModifyBackupStrategyRequest()
+    }
+    response = NewModifyBackupStrategyResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewModifyDBInstanceNameRequest() (request *ModifyDBInstanceNameRequest) {
     request = &ModifyDBInstanceNameRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -768,6 +1293,31 @@ func (c *Client) ModifyDBInstanceRenewFlag(request *ModifyDBInstanceRenewFlagReq
     return
 }
 
+func NewModifyDBInstanceSecurityGroupsRequest() (request *ModifyDBInstanceSecurityGroupsRequest) {
+    request = &ModifyDBInstanceSecurityGroupsRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "ModifyDBInstanceSecurityGroups")
+    return
+}
+
+func NewModifyDBInstanceSecurityGroupsResponse() (response *ModifyDBInstanceSecurityGroupsResponse) {
+    response = &ModifyDBInstanceSecurityGroupsResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口(ModifyDBInstanceSecurityGroups)用于修改实例绑定的安全组。
+func (c *Client) ModifyDBInstanceSecurityGroups(request *ModifyDBInstanceSecurityGroupsRequest) (response *ModifyDBInstanceSecurityGroupsResponse, err error) {
+    if request == nil {
+        request = NewModifyDBInstanceSecurityGroupsRequest()
+    }
+    response = NewModifyDBInstanceSecurityGroupsResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewModifyDBNameRequest() (request *ModifyDBNameRequest) {
     request = &ModifyDBNameRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -818,6 +1368,31 @@ func (c *Client) ModifyDBRemark(request *ModifyDBRemarkRequest) (response *Modif
     return
 }
 
+func NewModifyMaintenanceSpanRequest() (request *ModifyMaintenanceSpanRequest) {
+    request = &ModifyMaintenanceSpanRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "ModifyMaintenanceSpan")
+    return
+}
+
+func NewModifyMaintenanceSpanResponse() (response *ModifyMaintenanceSpanResponse) {
+    response = &ModifyMaintenanceSpanResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（ModifyMaintenanceSpan）用于修改实例的可维护时间窗
+func (c *Client) ModifyMaintenanceSpan(request *ModifyMaintenanceSpanRequest) (response *ModifyMaintenanceSpanResponse, err error) {
+    if request == nil {
+        request = NewModifyMaintenanceSpanRequest()
+    }
+    response = NewModifyMaintenanceSpanResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewModifyMigrationRequest() (request *ModifyMigrationRequest) {
     request = &ModifyMigrationRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -843,6 +1418,106 @@ func (c *Client) ModifyMigration(request *ModifyMigrationRequest) (response *Mod
     return
 }
 
+func NewModifyPublishSubscribeNameRequest() (request *ModifyPublishSubscribeNameRequest) {
+    request = &ModifyPublishSubscribeNameRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "ModifyPublishSubscribeName")
+    return
+}
+
+func NewModifyPublishSubscribeNameResponse() (response *ModifyPublishSubscribeNameResponse) {
+    response = &ModifyPublishSubscribeNameResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（ModifyPublishSubscribeName）修改发布订阅的名称。
+func (c *Client) ModifyPublishSubscribeName(request *ModifyPublishSubscribeNameRequest) (response *ModifyPublishSubscribeNameResponse, err error) {
+    if request == nil {
+        request = NewModifyPublishSubscribeNameRequest()
+    }
+    response = NewModifyPublishSubscribeNameResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewModifyReadOnlyGroupDetailsRequest() (request *ModifyReadOnlyGroupDetailsRequest) {
+    request = &ModifyReadOnlyGroupDetailsRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "ModifyReadOnlyGroupDetails")
+    return
+}
+
+func NewModifyReadOnlyGroupDetailsResponse() (response *ModifyReadOnlyGroupDetailsResponse) {
+    response = &ModifyReadOnlyGroupDetailsResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（ModifyReadOnlyGroupDetails）用于修改只读组详情。
+func (c *Client) ModifyReadOnlyGroupDetails(request *ModifyReadOnlyGroupDetailsRequest) (response *ModifyReadOnlyGroupDetailsResponse, err error) {
+    if request == nil {
+        request = NewModifyReadOnlyGroupDetailsRequest()
+    }
+    response = NewModifyReadOnlyGroupDetailsResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewQueryMigrationCheckProcessRequest() (request *QueryMigrationCheckProcessRequest) {
+    request = &QueryMigrationCheckProcessRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "QueryMigrationCheckProcess")
+    return
+}
+
+func NewQueryMigrationCheckProcessResponse() (response *QueryMigrationCheckProcessResponse) {
+    response = &QueryMigrationCheckProcessResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（QueryMigrationCheckProcess）的作用是查询迁移检查任务的进度，适用于迁移源的类型为TencentDB for SQLServer 的迁移方式
+func (c *Client) QueryMigrationCheckProcess(request *QueryMigrationCheckProcessRequest) (response *QueryMigrationCheckProcessResponse, err error) {
+    if request == nil {
+        request = NewQueryMigrationCheckProcessRequest()
+    }
+    response = NewQueryMigrationCheckProcessResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewRemoveBackupsRequest() (request *RemoveBackupsRequest) {
+    request = &RemoveBackupsRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "RemoveBackups")
+    return
+}
+
+func NewRemoveBackupsResponse() (response *RemoveBackupsResponse) {
+    response = &RemoveBackupsResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（RemoveBackups）可以删除用户手动创建的备份文件。待删除的备份策略可以是实例备份，也可以是多库备份。
+func (c *Client) RemoveBackups(request *RemoveBackupsRequest) (response *RemoveBackupsResponse, err error) {
+    if request == nil {
+        request = NewRemoveBackupsRequest()
+    }
+    response = NewRemoveBackupsResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewRenewDBInstanceRequest() (request *RenewDBInstanceRequest) {
     request = &RenewDBInstanceRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -864,6 +1539,31 @@ func (c *Client) RenewDBInstance(request *RenewDBInstanceRequest) (response *Ren
         request = NewRenewDBInstanceRequest()
     }
     response = NewRenewDBInstanceResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewRenewPostpaidDBInstanceRequest() (request *RenewPostpaidDBInstanceRequest) {
+    request = &RenewPostpaidDBInstanceRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "RenewPostpaidDBInstance")
+    return
+}
+
+func NewRenewPostpaidDBInstanceResponse() (response *RenewPostpaidDBInstanceResponse) {
+    response = &RenewPostpaidDBInstanceResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（RenewPostpaidDBInstance）用于将通过接口TerminateDBInstance手动隔离的按量计费实例从回收站中恢复。
+func (c *Client) RenewPostpaidDBInstance(request *RenewPostpaidDBInstanceRequest) (response *RenewPostpaidDBInstanceResponse, err error) {
+    if request == nil {
+        request = NewRenewPostpaidDBInstanceRequest()
+    }
+    response = NewRenewPostpaidDBInstanceResponse()
     err = c.Send(request, response)
     return
 }
@@ -989,6 +1689,56 @@ func (c *Client) RunMigration(request *RunMigrationRequest) (response *RunMigrat
         request = NewRunMigrationRequest()
     }
     response = NewRunMigrationResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewStartMigrationCheckRequest() (request *StartMigrationCheckRequest) {
+    request = &StartMigrationCheckRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "StartMigrationCheck")
+    return
+}
+
+func NewStartMigrationCheckResponse() (response *StartMigrationCheckResponse) {
+    response = &StartMigrationCheckResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（StartMigrationCheck）的作用是启动一个迁移前的校验任务，适用于迁移源的类型为TencentDB for SQLServer 的迁移方式
+func (c *Client) StartMigrationCheck(request *StartMigrationCheckRequest) (response *StartMigrationCheckResponse, err error) {
+    if request == nil {
+        request = NewStartMigrationCheckRequest()
+    }
+    response = NewStartMigrationCheckResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewStopMigrationRequest() (request *StopMigrationRequest) {
+    request = &StopMigrationRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("sqlserver", APIVersion, "StopMigration")
+    return
+}
+
+func NewStopMigrationResponse() (response *StopMigrationResponse) {
+    response = &StopMigrationResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 本接口（StopMigration）作用是中止一个迁移任务
+func (c *Client) StopMigration(request *StopMigrationRequest) (response *StopMigrationResponse, err error) {
+    if request == nil {
+        request = NewStopMigrationRequest()
+    }
+    response = NewStopMigrationResponse()
     err = c.Send(request, response)
     return
 }
