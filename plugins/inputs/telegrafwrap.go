@@ -15,7 +15,7 @@ var (
 	telegrafConf string
 )
 
-func startTelegraf() {
+func doStartTelegraf() error {
 
 	telegrafConf = filepath.Join(datakit.TelegrafDir, "agent.conf")
 
@@ -23,11 +23,10 @@ func startTelegraf() {
 
 	proc, err := doStart()
 	if err != nil {
-		l.Error(err)
-		return
+		return err
 	}
 
-	datakit.MonitProc(proc, "telegraf")
+	return datakit.MonitProc(proc, "telegraf")
 }
 
 func doStart() (*os.Process, error) {
@@ -63,6 +62,7 @@ func doStart() (*os.Process, error) {
 	} else {
 		p, err = os.StartProcess(agentPath(), []string{"agent", "-config", telegrafConf}, procAttr)
 		if err != nil {
+			l.Errorf("start telegraf failed: %s", err.Error())
 			return nil, err
 		}
 	}
