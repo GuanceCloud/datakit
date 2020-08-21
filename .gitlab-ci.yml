@@ -38,6 +38,6 @@ build-release:
     - make release
     - make pub_release
     - make pub_release_img
-      #- make release_notify
+    - make release_notify
   tags:
     - cloudcare-ft
