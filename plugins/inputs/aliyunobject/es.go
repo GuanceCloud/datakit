@@ -140,7 +140,7 @@ func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse,
 		}
 
 		tags := map[string]interface{}{
-			`__class`:  `ES`,
+			`__class`:  `aliyun_elasticsearch`,
 			`provider`: `aliyun`,
 			`InstanceId`: inst.InstanceId,
 			`advancedDedicateMaster`: inst.AdvancedDedicateMaster,
