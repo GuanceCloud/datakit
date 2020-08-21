@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+	"os"
 
 	"github.com/boltdb/bolt"
 
@@ -32,10 +33,11 @@ const (
 )
 
 func BoltDbInit() {
+	mkDataDir()
+
 	dbAddr := getBoltDbAddr()
 	if err := ConnectBoltDb(dbAddr); err != nil {
-		log.Error(err)
-		return
+		log.Fatal(err)
 	}
 
 	CreateAllDbBucket()
@@ -45,7 +47,7 @@ func BoltDbInit() {
 }
 
 func getBoltDbAddr() string {
-	return filepath.Join(datakit.InstallDir, inputName, DbFile)
+	return filepath.Join(datakit.InstallDir, "data",inputName, DbFile)
 }
 
 func ConnectBoltDb(addr string) error {
@@ -107,4 +109,33 @@ func SaveRegInfo(bucket, msg string) (int32, error) {
 		return b.Put(bytesBuffer.Bytes(), []byte(msg))
 	})
 	return gID, err
+}
+
+func mkDataDir() {
+	dataDir := filepath.Join(datakit.InstallDir, "data")
+	zabbixDir := filepath.Join(dataDir, inputName)
+
+	if !PathExists(dataDir) {
+		return
+	}
+	if PathExists(zabbixDir) {
+		return
+	}
+
+	err := os.MkdirAll(zabbixDir, 0666)
+	if err != nil {
+		log.Fatalf("mkdir s err: %s", err.Error())
+	}
+}
+
+
+func PathExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return false
 }
