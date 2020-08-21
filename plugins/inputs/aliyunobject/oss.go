@@ -136,7 +136,7 @@ func (o *Oss) handleResponse(lsRes *oss.ListBucketsResult, ag *objectAgent) {
 		}
 
 		tags := map[string]interface{}{
-			"__class":           "OSS",
+			"__class":           "aliyun_oss",
 			"provider":          "aliyun",
 			"Location":          bucket.Location,
 			"Owner.ID":          lsRes.Owner.ID,
