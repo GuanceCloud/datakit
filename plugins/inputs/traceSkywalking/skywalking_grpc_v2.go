@@ -261,14 +261,14 @@ func (s *SkywalkingRegisterServerV2)DoServiceAndNetworkAddressMappingRegister(ct
 func (s *SkywalkingPingServerV2) DoPing(ctx context.Context, r *register.ServiceInstancePingPkg) (*common.Commands, error) {
 	cmds := &common.Commands{}
 	if _, ok := RegInstanceRev.Load(r.ServiceInstanceUUID); !ok {
-		v := r.ServiceInstanceUUID[0:8]+"-"+r.ServiceInstanceUUID[8:12]+"-"+r.ServiceInstanceUUID[12:16]+"-"+r.ServiceInstanceUUID[16:20]+"-"+r.ServiceInstanceUUID[20:32]
 		cmd := &common.Command{Command:"ServiceMetadataReset"}
-		kv  := &common.KeyStringValuePair{Key:"SerialNumber",
-			//Value:r.ServiceInstanceUUID
-			Value:v}
+		kv  := &common.KeyStringValuePair{
+			Key:"SerialNumber",
+			Value:r.ServiceInstanceUUID,
+		}
 		cmd.Args      = append(cmd.Args, kv)
 		cmds.Commands = append(cmds.Commands, cmd)
-		log.Errorf("Ping %v, %v, %v", r.ServiceInstanceId, v, r.Time)
+		log.Errorf("Ping %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
 	} else {
 		log.Infof("Ping %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
 	}
