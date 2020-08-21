@@ -119,7 +119,7 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 		}
 
 		tags := map[string]interface{}{
-			"__class":             "REDIS",
+			"__class":             "aliyun_redis",
 			"__provider":          "aliyun",
 			"RegionId":            inst.RegionId,
 			"ArchitectureType":    inst.ArchitectureType,
@@ -130,17 +130,18 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 			"VpcId":               inst.VpcId,
 			"ZoneId":              inst.ZoneId,
 			"ConnectionMode":      inst.ConnectionMode,
-			"HasRenewChangeOrder": inst.HasRenewChangeOrder,
 			"InstanceId":          inst.InstanceId,
 			"InstanceStatus":      inst.InstanceStatus,
 			"InstanceType":        inst.InstanceType,
-			"IsRds":               inst.IsRds,
 			"NetworkType":         inst.NetworkType,
 			"NodeType":            inst.NodeType,
 			"PackageType":         inst.PackageType,
 			"ReplacateId":         inst.ReplacateId,
 			"SearchKey":           inst.SearchKey,
-			"UserName":            inst.UserName,
+			"InstanceClass":    inst.InstanceClass,
+			"PrivateIp":        inst.PrivateIp,
+
+
 		}
 
 		obj := map[string]interface{}{
@@ -153,10 +154,11 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 			"ConnectionDomain": inst.ConnectionDomain,
 			"Connections":      inst.Connections,
 			"EndTime":          inst.EndTime,
-			"InstanceClass":    inst.InstanceClass,
 			"Port":             inst.Port,
-			"PrivateIp":        inst.PrivateIp,
 			"QPS":              inst.QPS,
+			"HasRenewChangeOrder": inst.HasRenewChangeOrder,
+			"IsRds":               inst.IsRds,
+			"UserName":            inst.UserName,
 		}
 
 		for _, t := range inst.Tags.Tag {
