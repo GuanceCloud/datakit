@@ -1,6 +1,7 @@
 package mysqlmonitor
 
 import (
+	"database/sql"
 	"time"
 )
 
@@ -89,4 +90,5 @@ type MysqlMonitor struct {
 	lastT            time.Time
 	initDone         bool
 	scanIntervalSlow uint32
+	db               *sql.DB
 }
