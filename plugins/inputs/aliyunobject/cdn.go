@@ -129,7 +129,7 @@ func (e *Cdn) handleResponse(resp *cdn.DescribeUserDomainsResponse, ag *objectAg
 		}
 
 		tags := map[string]interface{}{
-			"__class":         "CDN",
+			"__class":         "aliyun_cdn",
 			"__provider":      "aliyun",
 			"ResourceGroupId": inst.ResourceGroupId,
 			"Cname": inst.Cname,
