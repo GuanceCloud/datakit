@@ -13,7 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-
 type Input interface {
 	Catalog() string
 	Run()
@@ -22,12 +21,11 @@ type Input interface {
 	// add more...
 }
 
-
-
 type HttpRegInput interface {
 	Input
 	RegHttpHandler()
 }
+
 type Creator func() Input
 
 var (
@@ -42,9 +40,14 @@ var (
 
 func Add(name string, creator Creator) {
 	if _, ok := Inputs[name]; ok {
-		panic(fmt.Sprintf("inputs %s exist", name))
+		panic(fmt.Sprintf("inputs %s exist(from datakit)", name))
 	}
 
+	if _, ok := TelegrafInputs[name]; ok {
+		panic(fmt.Sprintf("inputs %s exist(from telegraf)", name))
+	}
+
+	l.Infof("add input %s", name)
 	Inputs[name] = creator
 }
 
@@ -134,22 +137,22 @@ func AddTelegrafInput(name, fp string) {
 			cfg: fp})
 }
 
-func StartTelegraf() {
+func StartTelegraf() error {
 
 	if !HaveTelegrafInputs() {
 		l.Info("no telegraf inputs enabled")
-		return
+		return nil
 	}
 
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
-		startTelegraf()
+		_ = doStartTelegraf()
 
 		l.Info("telegraf process exit ok")
 	}()
 
-	return
+	return nil
 }
 
 func RunInputs() error {
