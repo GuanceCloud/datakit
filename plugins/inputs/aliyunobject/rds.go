@@ -134,7 +134,7 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 		}
 
 		tags := map[string]interface{}{
-			"__class":               "RDS",
+			"__class":               "aliyun_rds",
 			"__provider":            "aliyun",
 			"DBInstanceDescription": db.DBInstanceDescription,
 			"DBInstanceId":          db.DBInstanceId,
