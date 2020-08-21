@@ -17,19 +17,17 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	swV3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/skywalkingGrpcV3/v3"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
-type SkywalkingServerV3 struct {}
-
+type SkywalkingServerV3 struct{}
 
 type Skywalking struct {
 	GrpcPort int32
 	Tags     map[string]string
 }
-
 
 var (
 	flagCfgStr    = flag.String("cfg", "", "toml config string")
@@ -37,11 +35,10 @@ var (
 	flagLog       = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "skywalkingGrpcV3.log"), "log file")
 	flagLogLevel  = flag.String("log-level", "info", "log file")
 
-	l      *logger.Logger
-	rpcCli dkio.DataKitClient
+	l            *logger.Logger
+	rpcCli       dkio.DataKitClient
 	skywalkingV3 Skywalking
 )
-
 
 func main() {
 	flag.Parse()
@@ -75,7 +72,7 @@ func main() {
 }
 
 func debugMsgToGrpc() {
-	ticker := time.NewTicker(10*time.Second)
+	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -86,10 +83,10 @@ func debugMsgToGrpc() {
 			lines = append(lines, []byte("a,b=1 c=1.1,d=3"))
 			lines = append(lines, []byte("aa,b=1 c=1.1,d=3"))
 			r, err := rpcCli.Send(ctx, &dkio.Request{
-				Lines    : bytes.Join(lines, []byte("\n")),
+				Lines:     bytes.Join(lines, []byte("\n")),
 				Precision: "ns",
-				Name     : "skywalkingGrpcV3",
-				Io       : dkio.IoType_LOGGING,
+				Name:      "skywalkingGrpcV3",
+				Io:        dkio.IoType_LOGGING,
 			})
 			if err != nil {
 				l.Errorf("feed error: %s", err.Error())
@@ -99,7 +96,6 @@ func debugMsgToGrpc() {
 		}
 	}
 }
-
 
 func skywalkingGrpcServRun(addr string) {
 	l.Infof("skywalking V3 gRPC starting...")
@@ -133,7 +129,6 @@ func (s *SkywalkingServerV3) Collect(tsc swV3.TraceSegmentReportService_CollectS
 			return err
 		}
 	}
-	return nil
 }
 
 func skywalkGrpcToLineProto(sg *swV3.SegmentObject) error {
@@ -143,38 +138,38 @@ func skywalkGrpcToLineProto(sg *swV3.SegmentObject) error {
 
 		t.Source = "skywalking"
 
-		t.Duration = (span.EndTime -span.StartTime)*1000
+		t.Duration = (span.EndTime - span.StartTime) * 1000
 		t.TimestampUs = span.StartTime * 1000
-		js ,err := json.Marshal(span)
+		js, err := json.Marshal(span)
 		if err != nil {
 			return err
 		}
 		t.Content = string(js)
-		t.Class         = "tracing"
-		t.ServiceName   = sg.Service
+		t.Class = "tracing"
+		t.ServiceName = sg.Service
 		t.OperationName = span.OperationName
 		if span.SpanType == swV3.SpanType_Entry {
 			if len(span.Refs) > 0 {
-				t.ParentID      = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
+				t.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
 					span.Refs[0].ParentSpanId)
 			}
 		} else {
-			t.ParentID      = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.ParentSpanId)
+			t.ParentID = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.ParentSpanId)
 		}
 
-		t.TraceID       = sg.TraceId
-		t.SpanID        = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.SpanId)
+		t.TraceID = sg.TraceId
+		t.SpanID = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.SpanId)
 		if span.IsError {
-			t.IsError   = "true"
+			t.IsError = "true"
 		}
 		if span.SpanType == swV3.SpanType_Entry {
-			t.SpanType  = trace.SPAN_TYPE_ENTRY
+			t.SpanType = trace.SPAN_TYPE_ENTRY
 		} else if span.SpanType == swV3.SpanType_Local {
-			t.SpanType  = trace.SPAN_TYPE_LOCAL
+			t.SpanType = trace.SPAN_TYPE_LOCAL
 		} else {
-			t.SpanType  = trace.SPAN_TYPE_EXIT
+			t.SpanType = trace.SPAN_TYPE_EXIT
 		}
-		t.EndPoint      = span.Peer
+		t.EndPoint = span.Peer
 
 		t.Tags = skywalkingV3.Tags
 		pt, err := trace.BuildLineProto(t)
@@ -193,10 +188,10 @@ func skywalkGrpcToLineProto(sg *swV3.SegmentObject) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	r, err := rpcCli.Send(ctx, &dkio.Request{
-		Lines    : bytes.Join(lines, []byte("\n")),
+		Lines:     bytes.Join(lines, []byte("\n")),
 		Precision: "ns",
-		Name     : "skywalkingGrpcV3",
-		Io       : dkio.IoType_LOGGING,
+		Name:      "skywalkingGrpcV3",
+		Io:        dkio.IoType_LOGGING,
 	})
 	if err != nil {
 		l.Errorf("feed error: %s", err.Error())
