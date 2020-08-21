@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Pallinder/go-randomdata"
@@ -19,15 +20,17 @@ var (
 	inputName = "mock"
 
 	sampleCfg = `
-# [inputs.mock]
-# interval = '3s'
-# metric = 'mock-testing'
+[inputs.mock]
+interval = '3s'
+metric = 'mock-testing'
+mock_panic = false
 	`
 )
 
 type Mock struct {
-	Interval string `toml:"interval"`
-	Metric   string `toml:"metric"`
+	Interval  string `toml:"interval"`
+	Metric    string `toml:"metric"`
+	MockPanic bool   `toml:"mock_panic"`
 }
 
 func (m *Mock) SampleConfig() string {
@@ -55,6 +58,11 @@ func (m *Mock) Run() {
 	for {
 		select {
 		case <-tick.C:
+
+			if m.MockPanic {
+				panic(fmt.Errorf("panic mocking"))
+			}
+
 			pt, err := influxdb.NewPoint(m.Metric,
 				map[string]string{
 					"from": config.Cfg.MainCfg.Hostname,
