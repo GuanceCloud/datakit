@@ -25,7 +25,8 @@ func TestHash(t *testing.T) {
 		go func(i int) {
 			k := strconv.Itoa(i*100 + i*10 + i)
 			for cnt := 0; cnt < 1000; cnt++ {
-				t.Logf("%s: %v\n", k, dblist.Load(k))
+				v, ok := dblist.Load(k)
+				t.Logf("%s: %v:%v\n", k, v, ok)
 			}
 			wg.Done()
 		}(idx)
