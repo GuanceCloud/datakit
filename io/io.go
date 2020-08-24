@@ -25,17 +25,17 @@ var (
 	httpCli *http.Client
 	baseURL string
 
-	inputCh    = make(chan *iodata, 1024)
+	inputCh    = make(chan *iodata, datakit.CommonChanCap)
 	inputstats = map[string]*InputsStat{}
 
 	qstatsCh = make(chan *qstats)
 
 	cache = map[string][][]byte{
-		__MetricDeprecated: nil,
-		Metric:             nil,
-		KeyEvent:           nil,
-		Object:             nil,
-		Logging:            nil,
+		MetricDeprecated: nil,
+		Metric:           nil,
+		KeyEvent:         nil,
+		Object:           nil,
+		Logging:          nil,
 	}
 
 	categoryURLs map[string]string
@@ -46,11 +46,18 @@ var (
 )
 
 const ( // categories
-	__MetricDeprecated = "/v1/write/metrics"
-	Metric             = "/v1/write/metric"
-	KeyEvent           = "/v1/write/keyevent"
-	Object             = "/v1/write/object"
-	Logging            = "/v1/write/logging"
+	MetricDeprecated = "/v1/write/metrics"
+	Metric           = "/v1/write/metric"
+	KeyEvent         = "/v1/write/keyevent"
+	Object           = "/v1/write/object"
+	Logging          = "/v1/write/logging"
+
+	minGZSize = 1024
+
+	httpDiv = 100
+	httpOk  = 2
+	httpBad = 4
+	httpErr = 5
 )
 
 type iodata struct {
@@ -101,25 +108,25 @@ func doFeed(data []byte, category, name string) error {
 	return nil
 }
 
-func NamedFeed(data []byte, catagory, name string) error {
-	return doFeed(data, catagory, name)
+func NamedFeed(data []byte, category, name string) error {
+	return doFeed(data, category, name)
 }
 
 // Deprecated
-func FeedEx(catagory string, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
-	return doFeedEx("", catagory, metric, tags, fields, t...)
+func FeedEx(category, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+	return doFeedEx("", category, metric, tags, fields, t...)
 }
 
-func NamedFeedEx(name, catagory string, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
-	return doFeedEx(name, catagory, metric, tags, fields, t...)
+func NamedFeedEx(name, category, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+	return doFeedEx(name, category, metric, tags, fields, t...)
 }
 
-func doFeedEx(name, catagory string, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+func doFeedEx(name, category, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
 	data, err := MakeMetric(metric, tags, fields, t...)
 	if err != nil {
 		return err
 	}
-	return doFeed(data, catagory, name)
+	return doFeed(data, category, name)
 }
 
 func MakeMetric(name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) ([]byte, error) {
@@ -165,11 +172,11 @@ func startIO() {
 
 	categoryURLs = map[string]string{
 
-		__MetricDeprecated: baseURL + __MetricDeprecated + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Metric:             baseURL + Metric + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		KeyEvent:           baseURL + KeyEvent + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Object:             baseURL + Object + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Logging:            baseURL + Logging + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		MetricDeprecated: baseURL + MetricDeprecated + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		Metric:           baseURL + Metric + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		KeyEvent:         baseURL + KeyEvent + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		Object:           baseURL + Object + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		Logging:          baseURL + Logging + "?token=" + config.Cfg.MainCfg.DataWay.Token,
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
@@ -306,9 +313,7 @@ func gz(data []byte) ([]byte, error) {
 	return z.Bytes(), nil
 }
 
-func doFlush(bodies [][]byte, url string) error {
-
-	var err error
+func doFlush(bodies [][]byte, url string) error { //nolint:funlen
 
 	if bodies == nil {
 		return nil
@@ -325,28 +330,30 @@ func doFlush(bodies [][]byte, url string) error {
 			runtime.GOARCH)
 	}
 
-	body := bytes.Join(bodies, []byte("\n"))
+	var body []byte
 	switch url {
 	case Object: // object is json
-		all_objs := []map[string]interface{}{}
+		allObjs := []map[string]interface{}{}
 
 		for _, data := range bodies {
 
 			var objs []map[string]interface{}
-			err := json.Unmarshal(data, &objs)
-			if err != nil {
+			if err := json.Unmarshal(data, &objs); err != nil {
 				l.Error(err)
 				return err
 			}
-			all_objs = append(all_objs, objs...)
+			allObjs = append(allObjs, objs...)
 		}
 
-		body, err = json.Marshal(all_objs)
-		if err != nil {
+		if jbody, err := json.Marshal(allObjs); err == nil {
+			body = jbody
+		} else {
 			l.Error(err)
 			return err
 		}
+
 	default: // others are line-protocol
+		body = bytes.Join(bodies, []byte("\n"))
 	}
 
 	if datakit.OutputFile != "" {
@@ -354,16 +361,14 @@ func doFlush(bodies [][]byte, url string) error {
 	}
 
 	gzOn := false
-	if len(body) > 1024 {
-		gzbody, err := gz(body)
-		if err != nil {
+	if len(body) > minGZSize {
+		if gzbody, err := gz(body); err == nil {
+			l.Debugf("gzip %d/%d", len(body), len(gzbody))
+			gzOn = true
+			body = gzbody
+		} else {
 			return err
 		}
-
-		l.Debugf("gzip %d/%d", len(body), len(gzbody))
-
-		gzOn = true
-		body = gzbody
 	}
 
 	req, err := http.NewRequest("POST", categoryURLs[url], bytes.NewBuffer(body))
@@ -406,12 +411,12 @@ func doFlush(bodies [][]byte, url string) error {
 		return err
 	}
 
-	switch resp.StatusCode / 100 {
-	case 2:
+	switch resp.StatusCode / httpDiv {
+	case httpOk:
 		l.Debugf("post to %s ok", url)
-	case 4:
+	case httpBad:
 		l.Errorf("post to %s failed(HTTP: %d): %s, data dropped", url, resp.StatusCode, string(respbody))
-	case 5:
+	case httpErr:
 		l.Warnf("post to %s failed(HTTP: %d): %s", url, resp.StatusCode, string(respbody))
 		return fmt.Errorf("dataway internal error")
 	}
@@ -448,12 +453,16 @@ func fileOutput(body []byte) error {
 	return nil
 }
 
+var (
+	statsTimeout = time.Second * 3
+)
+
 func GetStats() ([]*InputsStat, error) {
 	q := &qstats{
 		ch: make(chan []*InputsStat),
 	}
 
-	tick := time.NewTicker(time.Second * 3)
+	tick := time.NewTicker(statsTimeout)
 	defer tick.Stop()
 
 	select {
