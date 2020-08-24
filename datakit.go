@@ -19,6 +19,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
+const (
+	OS_WINDOWS = `windows`
+	OS_LINUX   = `linux`
+	OS_DARWIN  = `darwin`
+
+	CommonChanCap = 32
+)
+
 var (
 	Exit = cliutils.NewSem()
 	WG   = sync.WaitGroup{}
