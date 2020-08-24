@@ -1,3 +1,4 @@
+//nolint:gocyclo
 package config
 
 import (
@@ -5,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 
 	"github.com/influxdata/toml"
@@ -95,7 +95,7 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator, inputcfgs 
 		}
 	}
 
-	if name == "self" {
+	if name == "self" { //nolint:goconst
 		inputs.AddSelf(creator())
 		return nil
 	}
@@ -111,12 +111,12 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 
 		for field, node := range tbl.Fields {
 			switch field {
-			case "inputs":
-				tbl_, ok := node.(*ast.Table)
+			case "inputs": //nolint:goconst
+				stbl, ok := node.(*ast.Table)
 				if !ok {
 					l.Warnf("ignore bad toml node for %s within %s", name, fp)
 				} else {
-					for inputName, v := range tbl_.Fields {
+					for inputName, v := range stbl.Fields {
 						if inputName != name {
 							continue
 						}
@@ -145,13 +145,13 @@ func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creat
 
 	tbls := []*ast.Table{}
 
-	switch tbl.(type) {
+	switch t := tbl.(type) {
 	case []*ast.Table:
 		tbls = tbl.([]*ast.Table)
 	case *ast.Table:
 		tbls = append(tbls, tbl.(*ast.Table))
 	default:
-		return fmt.Errorf("invalid toml format on %s: %v", name, reflect.TypeOf(tbl))
+		return fmt.Errorf("invalid toml format on %s: %v", name, t)
 	}
 
 	for _, t := range tbls {
@@ -176,7 +176,7 @@ func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creat
 // Creata datakit input plugin's configures if not exists
 func initPluginSamples() {
 	for name, create := range inputs.Inputs {
-		if name == "self" {
+		if name == "self" { //nolint:goconst
 			continue
 		}
 
@@ -190,10 +190,8 @@ func initPluginSamples() {
 			tbl, err := parseCfgFile(old)
 			if err != nil {
 				l.Warnf("[error] parse conf %s failed on [%s]: %s, ignored", old, name, err)
-			} else {
-				if len(tbl.Fields) == 0 { // old config not used
-					os.Remove(old)
-				}
+			} else if len(tbl.Fields) == 0 { // old config not used
+				os.Remove(old)
 			}
 		}
 
@@ -208,7 +206,7 @@ func initPluginSamples() {
 			l.Fatalf("no sample available on collector %s", name)
 		}
 
-		if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
+		if err := ioutil.WriteFile(cfgpath, []byte(sample), 0600); err != nil {
 			l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 		}
 	}
@@ -223,10 +221,8 @@ func initPluginSamples() {
 			tbl, err := parseCfgFile(old)
 			if err != nil {
 				l.Warnf("[error] parse conf %s failed on [%s]: %s, ignored", old, name, err)
-			} else {
-				if len(tbl.Fields) == 0 { // old config not used
-					os.Remove(old)
-				}
+			} else if len(tbl.Fields) == 0 { // old config not used
+				os.Remove(old)
 			}
 		}
 
@@ -237,7 +233,7 @@ func initPluginSamples() {
 		}
 
 		if input, ok := inputs.TelegrafInputs[name]; ok {
-			if err := ioutil.WriteFile(cfgpath, []byte(input.Sample), 0644); err != nil {
+			if err := ioutil.WriteFile(cfgpath, []byte(input.Sample), 0600); err != nil {
 				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 			}
 		}
