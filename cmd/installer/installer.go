@@ -70,7 +70,7 @@ var (
 	inputsAvailableDuringInstall map[string][]string
 )
 
-func main() {
+func main() { //nolint:funlen
 
 	preInit()
 
@@ -98,7 +98,7 @@ func main() {
 	}
 
 	l.Info("stoping datakit...")
-	stopDataKitService(svc) // stop service if installed before
+	_ = stopDataKitService(svc) // stop service if installed before
 
 	if *flagOffline && *flagSrcs != "" {
 		for _, f := range strings.Split(*flagSrcs, ",") {
@@ -159,20 +159,20 @@ func main() {
 		}
 
 		// build datakit main config
-		if err := config.InitCfg(); err != nil {
+		if err = config.InitCfg(); err != nil {
 			l.Fatalf("failed to init datakit main config: %s", err.Error())
 		}
 
 		enableInputs(*flagEnableInputs)
 
 		l.Infof("installing service %s...", datakit.ServiceName)
-		if err := installDatakitService(svc); err != nil {
+		if err = installDatakitService(svc); err != nil {
 			l.Warnf("fail to install service %s: %s, ignored", datakit.ServiceName, err.Error())
 		}
 	}
 
 	l.Infof("starting service %s...", datakit.ServiceName)
-	if err := startDatakitService(svc); err != nil {
+	if err = startDatakitService(svc); err != nil {
 		l.Fatalf("fail to star service %s: %s", datakit.ServiceName, err.Error())
 	}
 
@@ -250,7 +250,7 @@ func _doDownload(r io.Reader, to string) {
 		l.Fatal(err)
 	}
 
-	if _, err := io.Copy(f, r); err != nil {
+	if _, err := io.Copy(f, r); err != nil { //nolint:gosec
 		l.Fatal(err)
 	}
 
@@ -291,12 +291,13 @@ func doExtract(r io.Reader, to string) {
 				l.Fatal(err)
 			}
 
+			// TODO: lock file before extracting, to avoid `text file busy` error
 			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
 			if err != nil {
 				l.Fatal(err)
 			}
 
-			if _, err := io.Copy(f, tr); err != nil {
+			if _, err := io.Copy(f, tr); err != nil { //nolint:gosec
 				l.Fatal(err)
 			}
 
@@ -361,6 +362,7 @@ func stopDataKitService(s service.Service) error {
 
 	if err := service.Control(s, "stop"); err != nil {
 		l.Warnf("stop service datakit failed: %s, ignored", err.Error())
+		return err
 	}
 
 	return nil
@@ -369,6 +371,7 @@ func stopDataKitService(s service.Service) error {
 func uninstallDataKitService(s service.Service) error {
 	if err := service.Control(s, "uninstall"); err != nil {
 		l.Warnf("stop service datakit failed: %s, ignored", err.Error())
+		return err
 	}
 
 	return nil
@@ -387,14 +390,14 @@ func stopLagacyDatakit() {
 	case "windows/amd64", "windows/386":
 		stopDataKitService(svc)
 	default:
-		cmd := exec.Command(`stop`, []string{datakit.ServiceName}...)
+		cmd := exec.Command(`stop`, []string{datakit.ServiceName}...) //nolint:gosec
 		if _, err := cmd.Output(); err != nil {
 			l.Debugf("upstart stop datakit failed, try systemctl...")
 		} else {
 			return
 		}
 
-		cmd = exec.Command("systemctl", []string{"stop", datakit.ServiceName}...)
+		cmd = exec.Command("systemctl", []string{"stop", datakit.ServiceName}...) //nolint:gosec
 		if _, err := cmd.Output(); err != nil {
 			l.Debugf("systemctl stop datakit failed, ignored")
 		}
@@ -408,22 +411,22 @@ func updateLagacyConfig(dir string) {
 	}
 
 	var maincfg config.MainConfig
-	if err := toml.Unmarshal(cfgdata, &maincfg); err != nil {
+	if err = toml.Unmarshal(cfgdata, &maincfg); err != nil {
 		l.Fatalf("toml unmarshal failed: %s", err.Error())
 	}
 
 	maincfg.Log = filepath.Join(installDir, "datakit.log") // reset log path
 	maincfg.ConfigDir = ""                                 // remove conf.d config: we use static conf.d dir, *not* configurable
 
-	// split orgin ftdataway into dataway object
+	// split origin ftdataway into dataway object
+	var dwcfg *config.DataWayCfg
 	if maincfg.FtGateway != "" {
-		dwcfg, err := config.ParseDataway(maincfg.FtGateway)
-		if err != nil {
+		if dwcfg, err = config.ParseDataway(maincfg.FtGateway); err != nil {
 			l.Fatal(err)
+		} else {
+			maincfg.FtGateway = "" // deprecated
+			maincfg.DataWay = dwcfg
 		}
-
-		maincfg.FtGateway = "" // deprecated
-		maincfg.DataWay = dwcfg
 	}
 
 	cfgdata, err = toml.Marshal(maincfg)
@@ -466,7 +469,7 @@ func migrateLagacyDatakit() {
 	updateLagacyConfig(lagacyInstallDir)
 
 	// uninstall service, remove old datakit.service file(for UNIX OS)
-	uninstallDataKitService(svc)
+	_ = uninstallDataKitService(svc)
 	for _, sf := range lagacyServiceFiles {
 		if _, err := os.Stat(sf); err == nil {
 			if err := os.Remove(sf); err != nil {
