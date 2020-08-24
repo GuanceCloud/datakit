@@ -132,17 +132,15 @@ func (f *Filter) IsActive() bool {
 // based on the drop/pass filter parameters
 func (f *Filter) shouldNamePass(key string) bool {
 	pass := func(f *Filter) bool {
-		if f.namePass.Match(key) {
-			return true
-		}
-		return false
+		return f.namePass.Match(key)
 	}
 
 	drop := func(f *Filter) bool {
-		if f.nameDrop.Match(key) {
+		if !f.nameDrop.Match(key) {
+			return true
+		} else {
 			return false
 		}
-		return true
 	}
 
 	if f.namePass != nil && f.nameDrop != nil {
