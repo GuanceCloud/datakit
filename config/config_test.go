@@ -108,19 +108,24 @@ global = "global config"
 	for f, v := range tbl.Fields {
 
 		switch f {
+
+		default:
+			// ignore
+			t.Log("ignore %+#v", f)
+
 		case "inputs":
 			switch v.(type) {
 			case *ast.Table:
-				tbl_ := v.(*ast.Table)
+				stbl := v.(*ast.Table)
 
-				for _, v_ := range tbl_.Fields {
-					switch v_.(type) {
+				for _, vv := range stbl.Fields {
+					switch vv.(type) {
 					case []*ast.Table:
-						for idx, elem := range v_.([]*ast.Table) {
+						for idx, elem := range vv.([]*ast.Table) {
 							t.Logf("[%d] %+#v, source: %s", idx, elem, elem.Source())
 						}
 					case *ast.Table:
-						t.Logf("%+#v, source: %s", v_.(*ast.Table), v_.(*ast.Table).Source())
+						t.Logf("%+#v, source: %s", vv.(*ast.Table), vv.(*ast.Table).Source())
 					default:
 						t.Log("bad data")
 					}
@@ -129,7 +134,6 @@ global = "global config"
 			default:
 				t.Log("unknown type")
 			}
-
 		}
 	}
 }
@@ -176,19 +180,19 @@ func TestTomlParse(t *testing.T) {
 	for f, v := range tbl.Fields {
 		switch f {
 		case "inputs":
-			tbl_ := v.(*ast.Table)
-			t.Logf("tbl_: %+#v", tbl_)
+			stbl := v.(*ast.Table)
+			t.Logf("stbl: %+#v", stbl)
 
-			for k, v_ := range tbl_.Fields {
-				// t.Logf("%s: %+#v", k, v_)
+			for k, vv := range stbl.Fields {
+				// t.Logf("%s: %+#v", k, vv)
 
 				tbls := []*ast.Table{}
 
-				switch v_.(type) {
+				switch vv.(type) {
 				case []*ast.Table:
-					tbls = v_.([]*ast.Table)
+					tbls = vv.([]*ast.Table)
 				case *ast.Table:
-					tbls = append(tbls, v_.(*ast.Table))
+					tbls = append(tbls, vv.(*ast.Table))
 				default:
 					t.Fatal("bad data")
 				}
@@ -197,8 +201,11 @@ func TestTomlParse(t *testing.T) {
 
 				for idx, elem := range tbls {
 					var o obj
-					toml.UnmarshalTable(elem, &o)
-					t.Logf("[%s] %d: %+#v\n", k, idx, o)
+					if err := toml.UnmarshalTable(elem, &o); err != nil {
+						t.Errorf(err.Error())
+					} else {
+						t.Logf("[%s] %d: %+#v\n", k, idx, o)
+					}
 				}
 			}
 
