@@ -13,7 +13,6 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"sync"
 	"text/template"
 	"time"
 
@@ -36,13 +35,13 @@ import (
 
 var (
 	errEmptyBody = uhttp.NewErr(errors.New("empty body"), http.StatusBadRequest, "datakit")
+	errBadPoints = uhttp.NewErr(errors.New("bad points"), http.StatusBadRequest, "datakit")
 	httpOK       = uhttp.NewErr(nil, http.StatusOK, "datakit")
 
 	l        *logger.Logger
 	httpBind string
 
 	uptime    = time.Now()
-	mutex     = sync.Mutex{}
 	reload    time.Time
 	reloadCnt int
 
@@ -107,7 +106,15 @@ func restartHttpServer() {
 	httpStart(httpBind)
 }
 
-func httpStart(addr string) {
+type welcome struct {
+	Version string
+	BuildAt string
+	Uptime  string
+	OS      string
+	Arch    string
+}
+
+func httpStart(addr string) { //nolint:funlen
 	router := gin.New()
 	gin.DisableConsoleColor()
 
@@ -126,21 +133,12 @@ func httpStart(addr string) {
 	router.Use(gin.Recovery())
 	router.Use(uhttp.CORSMiddleware)
 
-	type welcome struct {
-		Version string
-		BuildAt string
-		Uptime  string
-		OS      string
-		Arch    string
-	}
-
 	wel := &welcome{
 		Version: git.Version,
 		BuildAt: git.BuildAt,
 		OS:      runtime.GOOS,
 		Arch:    runtime.GOARCH,
 	}
-
 	router.NoRoute(func(c *gin.Context) {
 		c.Writer.Header().Set("Content-Type", "text/html")
 		t := template.New(``)
@@ -159,7 +157,7 @@ func httpStart(addr string) {
 			return
 		}
 
-		c.String(404, buf.String())
+		c.String(http.StatusNotFound, buf.String())
 	})
 
 	RegPathToHttpServ(router)
@@ -223,8 +221,6 @@ func httpStart(addr string) {
 	} else {
 		l.Info("http server shutdown ok")
 	}
-
-	return
 }
 
 func apiAnsibleHandler(w http.ResponseWriter, r *http.Request) {
@@ -281,6 +277,9 @@ type datakitStats struct {
 }
 
 func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
+
+	_ = r
+
 	stats := &datakitStats{
 		Version:      git.Version,
 		BuildAt:      git.BuildAt,
@@ -339,7 +338,6 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(body)
-	return
 }
 
 func apiTelegrafOutput(c *gin.Context) {
@@ -354,7 +352,7 @@ func apiTelegrafOutput(c *gin.Context) {
 
 	if len(body) == 0 {
 		l.Errorf("read http body failed: %s", err.Error())
-		uhttp.HttpErr(c, errEmptyBody)
+		uhttp.HttpErr(c, errBadPoints)
 		return
 	}
 
@@ -365,6 +363,11 @@ func apiTelegrafOutput(c *gin.Context) {
 	// so be careful to apply telegraf http output
 
 	points, err := models.ParsePointsWithPrecision(body, time.Now().UTC(), "n")
+	if err != nil {
+		l.Errorf("ParsePointsWithPrecision: %s", err.Error())
+		uhttp.HttpErr(c, errEmptyBody)
+	}
+
 	feeds := map[string][]string{}
 
 	for _, p := range points {
