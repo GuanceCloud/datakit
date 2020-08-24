@@ -270,7 +270,7 @@ func (s *SkywalkingPingServerV2) DoPing(ctx context.Context, r *register.Service
 		cmds.Commands = append(cmds.Commands, cmd)
 		log.Errorf("Ping %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
 	} else {
-		log.Infof("Ping %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
+		log.Debugf("Ping %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
 	}
 	return cmds, nil
 }
