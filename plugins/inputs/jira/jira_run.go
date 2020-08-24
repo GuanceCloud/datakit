@@ -57,7 +57,7 @@ func (p *JiraParam) active() {
 	}
 }
 
-func (p *JiraParam) gather(queue chan string, wg *sync.WaitGroup) {
+func (p *JiraParam) gather(queue <- chan string, wg *sync.WaitGroup) {
 	var d time.Duration
 	var err error
 
@@ -88,6 +88,7 @@ func (p *JiraParam) gather(queue chan string, wg *sync.WaitGroup) {
 	for {
 		select {
 		case issue := <-queue:
+			p.log.Debugf("Recv issue %v", issue)
 			issueL = append(issueL, issue)
 
 		case <-ticker.C:
@@ -99,7 +100,7 @@ func (p *JiraParam) gather(queue chan string, wg *sync.WaitGroup) {
 				default:
 				}
 				params := *p
-				p.input.Issue = issue
+				params.input.Issue = issue
 				err := params.getMetrics(c)
 				if err != nil {
 					p.log.Errorf("getMetrics err: %s", err.Error())
