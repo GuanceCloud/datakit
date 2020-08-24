@@ -45,10 +45,6 @@ type httpoutCfg struct {
 	HTTPServer string
 }
 
-type telegrafcfg struct {
-	Agent *agent `toml:"agent"`
-}
-
 func defaultTelegrafAgentCfg() *agent {
 	c := &agent{
 		Interval:                   "10s",
@@ -70,7 +66,10 @@ func defaultTelegrafAgentCfg() *agent {
 	return c
 }
 
+// TODO: filters maybe removed
 func (c *Config) loadTelegrafInputsConfigs(inputcfgs map[string]*ast.Table, filters []string) (string, error) {
+
+	_ = filters
 
 	telegrafCfgFiles := map[string]interface{}{}
 
@@ -135,7 +134,7 @@ func marshalAgentCfg(cfg *agent) (string, error) {
 	return string(agdata), nil
 }
 
-func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, error) {
+func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, error) { //nolint:funlen
 
 	agentcfg, err := marshalAgentCfg(c.MainCfg.TelegrafAgentCfg)
 	if err != nil {
@@ -172,7 +171,7 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 			l.Errorf("%s", err.Error())
 			return "", err
 		}
-		fileoutstr = string(buf.Bytes())
+		fileoutstr = buf.String()
 	}
 
 	if c.MainCfg.DataWay != nil {
@@ -193,7 +192,7 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 			return "", err
 		}
 
-		httpoutstr = string(buf.Bytes())
+		httpoutstr = buf.String()
 	}
 
 	tlegrafConfig := warning + globalTags + agentcfg + fileoutstr + httpoutstr
@@ -204,25 +203,27 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 
 		l.Infof("try merge %s as telegraf config...", f)
 
-		d, err := ioutil.ReadFile(f)
-		if err != nil {
+		var fdata []byte
+
+		if fdata, err = ioutil.ReadFile(f); err != nil {
 			l.Errorf("%s", err.Error())
 			continue
+		} else {
+
+			prt, err := c.BuildInputCfg(fdata)
+			if err != nil {
+				continue
+			}
+
+			if err := addTelegrafCfg(prt, f); err != nil {
+				l.Warnf("ignore telegraf input cfg file %s", f)
+				continue
+			}
+
+			l.Debugf("append telegraf config: %s", prt)
+
+			parts = append(parts, prt)
 		}
-
-		prt, err := c.BuildInputCfg(d)
-		if err != nil {
-			continue
-		}
-
-		if err := addTelegrafCfg(prt, f); err != nil {
-			l.Warnf("ignore telegraf input cfg file %s", f)
-			continue
-		}
-
-		l.Debugf("append telegraf config: %s", prt)
-
-		parts = append(parts, prt)
 	}
 
 	if len(parts) == 0 {
@@ -232,7 +233,7 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 	inputscfgs := strings.Join(parts, "\n")
 
 	// check if merged config parsing ok
-	if _, err := toml.Parse([]byte(inputscfgs)); err != nil {
+	if _, err = toml.Parse([]byte(inputscfgs)); err != nil {
 		l.Error(err)
 		return "", err
 	}
@@ -268,9 +269,8 @@ func addTelegrafCfg(cfgdata, fp string) error {
 					if _, ok := inputs.Inputs[inputName]; ok {
 						l.Warnf("found datakit input `%s' while parsing telegraf conf:\n%s", inputName, tbl.Source())
 						return fmt.Errorf("mixed datakit inputs %s", inputName)
-					} else {
-						inputNames = append(inputNames, inputName)
 					}
+					inputNames = append(inputNames, inputName)
 				}
 			}
 		default:
