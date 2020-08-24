@@ -129,8 +129,7 @@ func HaveTelegrafInputs() bool {
 	return false
 }
 
-func init() {
-
+func applyTelegrafSamples() {
 	TelegrafInputs[`amqp_consumer`].Sample = `
 [[inputs.amqp_consumer]]
 # Broker to consume from.
@@ -2991,5 +2990,9 @@ pid_file = "/var/run/nginx.pid"
 
 			##(optional)Set to true to include _Total instance when querying for all (*).
 			#IncludeTotal=false
-		`
+			`
+}
+
+func init() {
+	applyTelegrafSamples()
 }
