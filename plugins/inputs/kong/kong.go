@@ -84,6 +84,7 @@ func (kong *Kong) handle() {
 	resp, err := client.Get(kong.Addr)
 	if err != nil {
 		l.Errorf("get metric from kong error %s", err)
+		return
 	}
 
 	if resp != nil {
