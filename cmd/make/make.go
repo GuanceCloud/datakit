@@ -558,7 +558,7 @@ func buildInstaller(outdir, goos, goarch string) {
 		"go", "build",
 		"-o", filepath.Join(outdir, installerExe),
 		"-ldflags",
-		fmt.Sprintf("-w -s -X main.DataKitBaseUrl=%s -X main.DataKitVersion=%s", *flagDownloadAddr, git.Version),
+		fmt.Sprintf("-w -s -X main.DataKitBaseURL=%s -X main.DataKitVersion=%s", *flagDownloadAddr, git.Version),
 		"cmd/installer/installer.go",
 	}
 
