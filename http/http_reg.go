@@ -1,16 +1,16 @@
 package http
 
 import (
-	"net/http"
 	"github.com/gin-gonic/gin"
-	"strings"
+	"net/http"
 	"reflect"
 	"runtime"
+	"strings"
 )
 
 type RegHttpInfo struct {
-	Method string
-	Path   string
+	Method  string
+	Path    string
 	Handler gin.HandlerFunc
 }
 
@@ -27,12 +27,14 @@ func RegHttpHandler(method, path string, handler gin.HandlerFunc) {
 	httpRegList = append(httpRegList, regInfo)
 }
 
-func RegPathToHttpServ(router *gin.Engine) {
+func applyHTTPRoute(router *gin.Engine) {
 	for _, regInfo := range httpRegList {
-		method  := strings.ToUpper(regInfo.Method)
-		path    := regInfo.Path
+		method := strings.ToUpper(regInfo.Method)
+		path := regInfo.Path
 		handler := regInfo.Handler
-		l.Infof("register %s %s by handler %s to HTTP server", method, path, getFunctionName(handler,'/'))
+
+		l.Infof("register %s %s by handler %s to HTTP server", method, path, getFunctionName(handler, '/'))
+
 		switch method {
 		case http.MethodPost:
 			router.POST(path, handler)
@@ -51,7 +53,6 @@ func RegPathToHttpServ(router *gin.Engine) {
 		}
 	}
 }
-
 
 func getFunctionName(i interface{}, seps ...rune) string {
 	fn := runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
