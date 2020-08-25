@@ -1,3 +1,4 @@
+//nolint:gocyclo
 package config
 
 import (
@@ -64,9 +65,8 @@ type MainConfig struct {
 	IntervalDuration time.Duration
 
 	flushInterval datakit.Duration
-	flushJitter   datakit.Duration
 
-	OutputFile string `toml:"output_file,omitempty"`
+	OutputFile string `toml:"output_file"`
 
 	OmitHostname bool // Deprecated
 
@@ -219,7 +219,7 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		c.MainCfg.IntervalDuration = du
 	}
 
-	c.MainCfg.TelegrafAgentCfg.Debug = (strings.ToLower(c.MainCfg.LogLevel) == "debug")
+	c.MainCfg.TelegrafAgentCfg.Debug = strings.EqualFold(strings.ToLower(c.MainCfg.LogLevel), "debug")
 
 	c.MainCfg.DataWayRequestURL = fmt.Sprintf("%s://%s%s?token=%s",
 		c.MainCfg.DataWay.Scheme, c.MainCfg.DataWay.Host, c.MainCfg.DataWay.DefaultPath, c.MainCfg.DataWay.Token)
@@ -236,13 +236,14 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 			l.Debugf("set global tag %s: %s", k, c.MainCfg.Hostname)
 
 		case `$datakit_ip`:
-			ip := "unavailable"
-			ip, err := datakit.LocalIP()
-			if err != nil {
+			c.MainCfg.GlobalTags[k] = "unavailable"
+
+			if ipaddr, err := datakit.LocalIP(); err != nil {
 				l.Errorf("get local ip failed: %s", err.Error())
+			} else {
+				l.Debugf("set global tag %s: %s", k, ipaddr)
+				c.MainCfg.GlobalTags[k] = ipaddr
 			}
-			l.Debugf("set global tag %s: %s", k, ip)
-			c.MainCfg.GlobalTags[k] = ip
 
 		case `$datakit_uuid`, `$datakit_id`:
 			c.MainCfg.GlobalTags[k] = c.MainCfg.UUID
@@ -276,19 +277,19 @@ func CheckConfd() error {
 
 	checkSubDir := func(path string) error {
 
-		dir, err := ioutil.ReadDir(path)
+		ent, err := ioutil.ReadDir(path)
 		if err != nil {
 			return err
 		}
 
-		for _, item := range dir {
+		for _, item := range ent {
 			if item.IsDir() {
 				continue
 			}
 
 			filename := item.Name()
 
-			if filename == "." || filename == ".." {
+			if filename == "." || filename == ".." { //nolint:goconst
 				continue
 			}
 
@@ -309,12 +310,9 @@ func CheckConfd() error {
 			if tbl, err := toml.Parse(data); err != nil {
 				invalids = append(invalids, filename)
 				return err
-			} else {
-				if len(tbl.Fields) > 0 {
-					configed = append(configed, filename)
-				}
+			} else if len(tbl.Fields) > 0 {
+				configed = append(configed, filename)
 			}
-
 		}
 
 		return nil
@@ -325,11 +323,13 @@ func CheckConfd() error {
 			continue
 		}
 
-		if item.Name() == "." || item.Name() == ".." {
+		if item.Name() == "." || item.Name() == ".." { //nolint:goconst
 			continue
 		}
 
-		checkSubDir(filepath.Join(datakit.ConfdDir, item.Name()))
+		if err := checkSubDir(filepath.Join(datakit.ConfdDir, item.Name())); err != nil {
+			l.Error("checkSubDir: %s", err.Error())
+		}
 	}
 
 	fmt.Printf("inputs: %s\n", strings.Join(configed, ","))
@@ -353,7 +353,7 @@ func InitCfg() error {
 		Cfg.setHostname()
 	}
 
-	if err := ioutil.WriteFile(Cfg.MainCfg.cfgPath, data, 0664); err != nil {
+	if err := ioutil.WriteFile(Cfg.MainCfg.cfgPath, data, 0600); err != nil {
 		return fmt.Errorf("error creating %s: %s", Cfg.MainCfg.cfgPath, err)
 	}
 
@@ -398,17 +398,16 @@ func ParseDataway(dw string) (*DataWayCfg, error) {
 		dwcfg.DefaultPath = u.Path
 
 		if dwcfg.Scheme == "https" {
-			dwcfg.Host = dwcfg.Host + ":443"
+			dwcfg.Host += ":443"
 		}
 
 		l.Debugf("dataway: %+#v", dwcfg)
-
 	} else {
 		l.Errorf("parse url %s failed: %s", dw, err.Error())
 		return nil, err
 	}
 
-	conn, err := net.DialTimeout("tcp", dwcfg.Host, time.Second*5)
+	conn, err := net.DialTimeout("tcp", dwcfg.Host, time.Minute)
 	if err != nil {
 		l.Errorf("TCP dial host `%s' failed: %s", dwcfg.Host, err.Error())
 		return nil, err
