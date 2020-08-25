@@ -70,6 +70,14 @@ var (
 	inputsAvailableDuringInstall map[string][]string
 )
 
+const (
+	datakitBin = "datakit"
+	dlDatakit  = "datakit"
+	dlAgent    = "agent"
+
+	AvailableInputCfgLen = 2 // to avoid magic number
+)
+
 func main() {
 	preInit()
 	flag.Parse()
@@ -81,8 +89,8 @@ func main() {
 		l.Fatal(err)
 	}
 
-	datakit.ServiceExecutable = filepath.Join(installDir, "datakit")
-	if runtime.GOOS == "windows" {
+	datakit.ServiceExecutable = filepath.Join(installDir, datakitBin)
+	if runtime.GOOS == datakit.OS_WINDOWS {
 		datakit.ServiceExecutable += ".exe"
 	}
 
@@ -100,10 +108,10 @@ func main() {
 			extractDatakit(f, installDir)
 		}
 	} else {
-		curDownloading = "datakit"
+		curDownloading = dlDatakit
 		doDownload(datakitUrl, installDir)
 
-		curDownloading = "agent"
+		curDownloading = dlAgent
 		doDownload(telegrafUrl, installDir)
 	}
 
@@ -203,11 +211,11 @@ Golang Version: %s
 	}
 
 	if *flagDownloadOnly {
-		curDownloading = "datakit"
+		curDownloading = dlDatakit
 		doDownload(datakitUrl, fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion))
 
-		curDownloading = "agent"
+		curDownloading = dlAgent
 		doDownload(telegrafUrl, fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
 
 		os.Exit(0)
@@ -215,14 +223,17 @@ Golang Version: %s
 
 	switch osarch {
 
-	case "windows/amd64":
+	case datakit.OSARCH_WIN_AMD64:
 		installDir = `C:\Program Files\dataflux\datakit`
 
-	case "windows/386":
+	case datakit.OSARCH_WIN_386:
 		installDir = `C:\Program Files (x86)\dataflux\datakit`
 
-	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
-		"darwin/amd64", "darwin/386":
+	case datakit.OSARCH_LINUX_ARM,
+		datakit.OSARCH_LINUX_ARM64,
+		datakit.OSARCH_LINUX_386,
+		datakit.OSARCH_LINUX_AMD64,
+		datakit.OSARCH_DARWIN_AMD64:
 		installDir = `/usr/local/cloudcare/dataflux/datakit`
 
 	default:
@@ -385,7 +396,7 @@ func startDatakitService(s service.Service) error {
 
 func stopLagacyDatakit(svc service.Service) {
 	switch osarch {
-	case "windows/amd64", "windows/386":
+	case datakit.OSARCH_WIN_AMD64, datakit.OSARCH_WIN_386:
 		stopDataKitService(svc)
 	default:
 		cmd := exec.Command(`stop`, []string{datakit.ServiceName}...) //nolint:gosec
@@ -443,15 +454,18 @@ func migrateLagacyDatakit(svc service.Service) {
 
 	switch osarch {
 
-	case "windows/amd64", "windows/386":
+	case datakit.OSARCH_WIN_AMD64, datakit.OSARCH_WIN_386:
 		lagacyInstallDir = `C:\Program Files\Forethought\datakit`
 		if _, err := os.Stat(lagacyInstallDir); err != nil {
 			lagacyInstallDir = `C:\Program Files (x86)\Forethought\datakit`
 		}
 
-	case "linux/amd64", "linux/386",
-		"linux/arm", "linux/arm64",
-		"darwin/amd64", "darwin/386":
+	case datakit.OSARCH_LINUX_ARM,
+		datakit.OSARCH_LINUX_ARM64,
+		datakit.OSARCH_LINUX_386,
+		datakit.OSARCH_LINUX_AMD64,
+		datakit.OSARCH_DARWIN_AMD64:
+
 		lagacyInstallDir = `/usr/local/cloudcare/forethought/datakit`
 		lagacyServiceFiles = []string{"/lib/systemd/system/datakit.service", "/etc/systemd/system/datakit.service"}
 	default:
@@ -503,7 +517,7 @@ func enableInputs(inputlist string) {
 
 	for _, name := range elems {
 		if sample, ok := inputsAvailableDuringInstall[name]; ok {
-			if len(sample) != 2 {
+			if len(sample) != AvailableInputCfgLen {
 				l.Warnf("no config sample available for input %s", name)
 				continue
 			}
