@@ -44,16 +44,6 @@ type httpWriter struct {
 	bgzip  bool
 }
 
-type fileWriter struct {
-	Files               []string
-	RotationInterval    time.Duration
-	RotationMaxSize     int64
-	RotationMaxArchives int
-
-	writer  io.Writer
-	closers []io.Closer
-}
-
 type writerMgr struct {
 	serializer serializers.Serializer
 	writers    []writer
@@ -259,23 +249,4 @@ func (w *httpWriter) write(data []byte, ri *reqinfo) error {
 	}
 
 	return nil
-}
-
-func (f *fileWriter) write(data []byte, _ *reqinfo) error {
-	_, err := f.writer.Write(data)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (f *fileWriter) close() error {
-	var err error
-	for _, c := range f.closers {
-		errClose := c.Close()
-		if errClose != nil {
-			err = errClose
-		}
-	}
-	return err
 }
