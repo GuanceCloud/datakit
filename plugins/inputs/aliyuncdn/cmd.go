@@ -8,7 +8,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -17,7 +17,6 @@ type RunningProject struct {
 	accumulator telegraf.Accumulator
 	cfg         *Metric
 	client      *cdn.Client
-	logger      *models.Logger
 	domain      []string
 	action      string
 	metricName  string
