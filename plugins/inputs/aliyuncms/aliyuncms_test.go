@@ -10,8 +10,6 @@ import (
 
 	"github.com/influxdata/toml"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-
 	"github.com/influxdata/telegraf/metric"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
@@ -208,7 +206,6 @@ func TestGetMetricList(t *testing.T) {
 
 			newMetric, _ := metric.New(formatMeasurement(request.Namespace), tags, fields, tm)
 			_ = newMetric
-			log.Printf("%s", internal.Metric2InfluxLine(newMetric))
 		}
 
 		if response.NextToken == "" {
