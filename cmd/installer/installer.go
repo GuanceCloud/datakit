@@ -44,8 +44,8 @@ var (
 
 	curDownloading = ""
 
-	osarch           = runtime.GOOS + "/" + runtime.GOARCH
-	svc              service.Service
+	osarch = runtime.GOOS + "/" + runtime.GOARCH
+	//svc              service.Service
 	lagacyInstallDir = ""
 
 	l *logger.Logger
@@ -70,14 +70,10 @@ var (
 	inputsAvailableDuringInstall map[string][]string
 )
 
-func main() { //nolint:funlen
-
+func main() {
 	preInit()
-
 	flag.Parse()
-
 	config.InitDirs()
-
 	applyFlags()
 
 	// create install dir if not exists
@@ -90,8 +86,7 @@ func main() { //nolint:funlen
 		datakit.ServiceExecutable += ".exe"
 	}
 
-	var err error
-	svc, err = datakit.NewService()
+	svc, err := datakit.NewService()
 	if err != nil {
 		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
 		return
@@ -113,62 +108,11 @@ func main() { //nolint:funlen
 	}
 
 	if *flagUpgrade { // upgrade new version
-
 		l.Infof("Upgrading to version %s...", DataKitVersion)
-		migrateLagacyDatakit()
-
+		migrateLagacyDatakit(svc)
 	} else { // install new datakit
-
 		l.Infof("Installing version %s...", DataKitVersion)
-
-		uninstallDataKitService(svc) // uninstall service if installed before
-
-		// prepare dataway info
-		var dwcfg *config.DataWayCfg
-		if *flagDataway == "" {
-			for {
-				dw := readInput("Please set DataWay request URL(http://IP:Port/v1/write/metric) > ")
-				dwcfg, err = config.ParseDataway(dw)
-				if err == nil {
-					break
-				}
-
-				fmt.Printf("%s\n", err.Error())
-				continue
-			}
-		} else {
-			dwcfg, err = config.ParseDataway(*flagDataway)
-			if err != nil {
-				l.Fatal(err)
-			}
-		}
-
-		config.Cfg.MainCfg.DataWay = dwcfg
-
-		// accept any install options
-		if *flagGlobalTags != "" {
-			config.Cfg.MainCfg.GlobalTags = config.ParseGlobalTags(*flagGlobalTags)
-		}
-
-		config.Cfg.MainCfg.HTTPBind = fmt.Sprintf("0.0.0.0:%d", *flagPort)
-
-		if *flagDatakitID != "" {
-			config.Cfg.MainCfg.UUID = *flagDatakitID
-		} else {
-			config.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
-		}
-
-		// build datakit main config
-		if err = config.InitCfg(); err != nil {
-			l.Fatalf("failed to init datakit main config: %s", err.Error())
-		}
-
-		enableInputs(*flagEnableInputs)
-
-		l.Infof("installing service %s...", datakit.ServiceName)
-		if err = installDatakitService(svc); err != nil {
-			l.Warnf("fail to install service %s: %s, ignored", datakit.ServiceName, err.Error())
-		}
+		installNewDatakit(svc)
 	}
 
 	l.Infof("starting service %s...", datakit.ServiceName)
@@ -187,6 +131,60 @@ func main() { //nolint:funlen
 		l.Info("get local IP failed: %s", err.Error())
 	} else {
 		fmt.Printf("\n\tVisit http://%s:%d/stats to see DataKit running status.\n\n", localIP, *flagPort)
+	}
+}
+
+func getDataWayCfg() *config.DataWayCfg {
+	if *flagDataway == "" {
+		for {
+			dw := readInput("Please set DataWay request URL(http://IP:Port/v1/write/metric) > ")
+			dwcfg, err := config.ParseDataway(dw)
+			if err == nil {
+				return dwcfg
+			}
+
+			fmt.Printf("%s\n", err.Error())
+			continue
+		}
+	} else {
+		dwcfg, err := config.ParseDataway(*flagDataway)
+		if err != nil {
+			l.Fatal(err)
+		}
+		return dwcfg
+	}
+}
+
+func installNewDatakit(svc service.Service) {
+
+	uninstallDataKitService(svc) // uninstall service if installed before
+
+	// prepare dataway info
+	config.Cfg.MainCfg.DataWay = getDataWayCfg()
+
+	// accept any install options
+	if *flagGlobalTags != "" {
+		config.Cfg.MainCfg.GlobalTags = config.ParseGlobalTags(*flagGlobalTags)
+	}
+
+	config.Cfg.MainCfg.HTTPBind = fmt.Sprintf("0.0.0.0:%d", *flagPort)
+
+	if *flagDatakitID != "" {
+		config.Cfg.MainCfg.UUID = *flagDatakitID
+	} else {
+		config.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
+	}
+
+	// build datakit main config
+	if err := config.InitCfg(); err != nil {
+		l.Fatalf("failed to init datakit main config: %s", err.Error())
+	}
+
+	enableInputs(*flagEnableInputs)
+
+	l.Infof("installing service %s...", datakit.ServiceName)
+	if err := installDatakitService(svc); err != nil {
+		l.Warnf("fail to install service %s: %s, ignored", datakit.ServiceName, err.Error())
 	}
 }
 
@@ -385,7 +383,7 @@ func startDatakitService(s service.Service) error {
 	return service.Control(s, "start")
 }
 
-func stopLagacyDatakit() {
+func stopLagacyDatakit(svc service.Service) {
 	switch osarch {
 	case "windows/amd64", "windows/386":
 		stopDataKitService(svc)
@@ -439,7 +437,7 @@ func updateLagacyConfig(dir string) {
 	}
 }
 
-func migrateLagacyDatakit() {
+func migrateLagacyDatakit(svc service.Service) {
 
 	var lagacyServiceFiles []string = nil
 
@@ -465,7 +463,7 @@ func migrateLagacyDatakit() {
 		return
 	}
 
-	stopLagacyDatakit()
+	stopLagacyDatakit(svc)
 	updateLagacyConfig(lagacyInstallDir)
 
 	// uninstall service, remove old datakit.service file(for UNIX OS)
@@ -516,7 +514,7 @@ func enableInputs(inputlist string) {
 				continue
 			}
 
-			cfgdata, err := config.Cfg.BuildInputCfg([]byte(sample[1]))
+			cfgdata, err := config.BuildInputCfg([]byte(sample[1]), config.Cfg.MainCfg)
 			if err != nil {
 				l.Error("buld config for %s failed: %s, ignored", name, err.Error())
 				continue
@@ -559,6 +557,8 @@ func preInit() {
 
 		// datakit inputs
 		"timezone": []string{"host", timezone.Sample},
+
+		// TODO: we can add more host-related plugin here
 	}
 
 	lopt := logger.OPT_DEFAULT | logger.OPT_STDOUT
