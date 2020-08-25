@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	redis "github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"time"
 )
@@ -48,7 +48,7 @@ func (e *Redis) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -94,7 +94,7 @@ func (e *Redis) run(ag *objectAgent) {
 			req.PageNumber = requests.NewInteger(pageNum)
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -119,43 +119,41 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 		}
 
 		tags := map[string]interface{}{
-			"__class":             "aliyun_redis",
-			"__provider":          "aliyun",
-			"RegionId":            inst.RegionId,
-			"ArchitectureType":    inst.ArchitectureType,
-			"ChargeType":          inst.ChargeType,
-			"EngineVersion":       inst.EngineVersion,
-			"ResourceGroupId":     inst.ResourceGroupId,
-			"VSwitchId":           inst.VSwitchId,
-			"VpcId":               inst.VpcId,
-			"ZoneId":              inst.ZoneId,
-			"ConnectionMode":      inst.ConnectionMode,
-			"InstanceId":          inst.InstanceId,
-			"InstanceStatus":      inst.InstanceStatus,
-			"InstanceType":        inst.InstanceType,
-			"NetworkType":         inst.NetworkType,
-			"NodeType":            inst.NodeType,
-			"PackageType":         inst.PackageType,
-			"ReplacateId":         inst.ReplacateId,
-			"SearchKey":           inst.SearchKey,
+			"__class":          "aliyun_redis",
+			"__provider":       "aliyun",
+			"RegionId":         inst.RegionId,
+			"ArchitectureType": inst.ArchitectureType,
+			"ChargeType":       inst.ChargeType,
+			"EngineVersion":    inst.EngineVersion,
+			"ResourceGroupId":  inst.ResourceGroupId,
+			"VSwitchId":        inst.VSwitchId,
+			"VpcId":            inst.VpcId,
+			"ZoneId":           inst.ZoneId,
+			"ConnectionMode":   inst.ConnectionMode,
+			"InstanceId":       inst.InstanceId,
+			"InstanceStatus":   inst.InstanceStatus,
+			"InstanceType":     inst.InstanceType,
+			"NetworkType":      inst.NetworkType,
+			"NodeType":         inst.NodeType,
+			"PackageType":      inst.PackageType,
+			"ReplacateId":      inst.ReplacateId,
+			"SearchKey":        inst.SearchKey,
 			"InstanceClass":    inst.InstanceClass,
 			"PrivateIp":        inst.PrivateIp,
-
-
 		}
 
 		obj := map[string]interface{}{
-			"__name":           inst.InstanceName,
-			"DestroyTime":      inst.DestroyTime,
-			"CreateTime":       inst.CreateTime,
-			"Bandwidth":        inst.Bandwidth,
-			"Capacity":         inst.Capacity,
-			"Config":           inst.Config,
-			"ConnectionDomain": inst.ConnectionDomain,
-			"Connections":      inst.Connections,
-			"EndTime":          inst.EndTime,
-			"Port":             inst.Port,
-			"QPS":              inst.QPS,
+			"__name":              inst.InstanceName,
+			"DestroyTime":         inst.DestroyTime,
+			"CreateTime":          inst.CreateTime,
+			"Bandwidth":           inst.Bandwidth,
+			"Capacity":            inst.Capacity,
+			"Config":              inst.Config,
+			"ConnectionDomain":    inst.ConnectionDomain,
+			"Connections":         inst.Connections,
+			"EndTime":             inst.EndTime,
+			"Port":                inst.Port,
+			"QPS":                 inst.QPS,
 			"HasRenewChangeOrder": inst.HasRenewChangeOrder,
 			"IsRds":               inst.IsRds,
 			"UserName":            inst.UserName,
