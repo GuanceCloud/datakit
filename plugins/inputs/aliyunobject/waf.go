@@ -3,7 +3,7 @@ package aliyunobject
 import (
 	"encoding/json"
 	waf "github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"time"
 )
@@ -19,7 +19,7 @@ const (
 )
 
 type Waf struct {
-	Tags               map[string]string `toml:"tags,omitempty"`
+	Tags map[string]string `toml:"tags,omitempty"`
 }
 
 func (e *Waf) run(ag *objectAgent) {
@@ -39,7 +39,7 @@ func (e *Waf) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -55,7 +55,7 @@ func (e *Waf) run(ag *objectAgent) {
 			break
 		}
 		e.handleResponse(resp, ag)
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -66,22 +66,21 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 	}
 	var objs []map[string]interface{}
 	tags := map[string]interface{}{
-		"__class":    "aliyun_waf",
-		"__provider": "aliyun",
-		"InDebt": resp.InstanceInfo.InDebt,
-		"InstanceId": resp.InstanceInfo.InstanceId,
-		"PayType": resp.InstanceInfo.PayType,
-		"Region": resp.InstanceInfo.Region,
-		"Status": resp.InstanceInfo.Status,
+		"__class":          "aliyun_waf",
+		"__provider":       "aliyun",
+		"InDebt":           resp.InstanceInfo.InDebt,
+		"InstanceId":       resp.InstanceInfo.InstanceId,
+		"PayType":          resp.InstanceInfo.PayType,
+		"Region":           resp.InstanceInfo.Region,
+		"Status":           resp.InstanceInfo.Status,
 		"SubscriptionType": resp.InstanceInfo.SubscriptionType,
 	}
 
 	obj := map[string]interface{}{
-		"__name": resp.InstanceInfo.InstanceId,
-		"EndDate": resp.InstanceInfo.EndDate,
+		"__name":    resp.InstanceInfo.InstanceId,
+		"EndDate":   resp.InstanceInfo.EndDate,
 		"RemainDay": resp.InstanceInfo.RemainDay,
-		"Trial": resp.InstanceInfo.Trial,
-
+		"Trial":     resp.InstanceInfo.Trial,
 	}
 	for k, v := range e.Tags {
 		tags[k] = v
