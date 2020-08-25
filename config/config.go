@@ -102,12 +102,7 @@ func init() {
 	datakit.ConfdDir = filepath.Join(datakit.InstallDir, "conf.d")
 	datakit.GRPCDomainSock = filepath.Join(datakit.InstallDir, "datakit.sock")
 
-	Cfg = newDefaultCfg()
-}
-
-func newDefaultCfg() *Config {
-
-	return &Config{
+	Cfg = &Config{
 		MainCfg: &MainConfig{
 			GlobalTags:      map[string]string{},
 			flushInterval:   datakit.Duration{Duration: time.Second * 10},
