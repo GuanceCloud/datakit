@@ -66,9 +66,9 @@ func defaultTelegrafAgentCfg() *agent {
 	return c
 }
 
-// TODO: filters maybe removed
 func (c *Config) loadTelegrafInputsConfigs(inputcfgs map[string]*ast.Table, filters []string) (string, error) {
 
+	// TODO: filters maybe removed
 	_ = filters
 
 	telegrafCfgFiles := map[string]interface{}{}
@@ -78,11 +78,11 @@ func (c *Config) loadTelegrafInputsConfigs(inputcfgs map[string]*ast.Table, filt
 		for field, node := range tbl.Fields {
 			switch field {
 			case "inputs":
-				tbl_, ok := node.(*ast.Table)
+				stbl, ok := node.(*ast.Table)
 				if !ok {
 					l.Warnf("ignore bad toml node within %s", fp)
 				} else {
-					for inputName, _ := range tbl_.Fields {
+					for inputName := range stbl.Fields {
 						l.Debugf("check if telegraf input name(%s)?", inputName)
 
 						if _, ok := inputs.TelegrafInputs[inputName]; ok {
@@ -134,16 +134,8 @@ func marshalAgentCfg(cfg *agent) (string, error) {
 	return string(agdata), nil
 }
 
-func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, error) { //nolint:funlen
-
-	agentcfg, err := marshalAgentCfg(c.MainCfg.TelegrafAgentCfg)
-	if err != nil {
-		l.Errorf("marshal agent faled: %s", err.Error())
-		return "", err
-	}
-
-	agentcfg = "\n[agent]\n" + agentcfg
-	agentcfg += "\n"
+func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, error) {
+	telegrafConfig := warning
 
 	globalTags := "[global_tags]\n"
 	for k, v := range c.MainCfg.GlobalTags {
@@ -151,66 +143,57 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 		globalTags += tag
 	}
 
-	fileoutstr := ""
-	httpoutstr := ""
+	telegrafConfig += globalTags
+
+	var buf string
+	var err error
+
+	if buf, err = marshalAgentCfg(c.MainCfg.TelegrafAgentCfg); err != nil {
+		l.Errorf("marshal agent faled: %s", err.Error())
+		return "", err
+	}
+
+	telegrafConfig += ("\n[agent]\n" + buf + "\n")
 
 	if c.MainCfg.OutputFile != "" {
-		fileCfg := fileoutCfg{
-			OutputFiles: c.MainCfg.OutputFile,
-		}
-
-		tpl := template.New("")
-		tpl, err = tpl.Parse(fileOutputTemplate)
-		if err != nil {
-			l.Errorf("%s", err.Error())
+		if buf, err = applyTelegrafFileOutput(c.MainCfg.OutputFile); err != nil {
 			return "", err
 		}
-
-		buf := bytes.NewBuffer([]byte{})
-		if err = tpl.Execute(buf, &fileCfg); err != nil {
-			l.Errorf("%s", err.Error())
-			return "", err
-		}
-		fileoutstr = buf.String()
+		telegrafConfig += buf
 	}
 
+	// NOTE: telegraf can also POST to dataway directly, but we redirect the POST
+	// to datakit HTTP server to collecting all input's statistics.
+	// HTTP server on datakit should be open if any telegraf input enabled.
 	if c.MainCfg.DataWay != nil {
-		httpCfg := httpoutCfg{
-			HTTPServer: fmt.Sprintf("http://%s/telegraf", c.MainCfg.HTTPBind),
-		}
-
-		tpl := template.New("")
-		tpl, err = tpl.Parse(httpOutputTemplate)
-		if err != nil {
-			l.Errorf("%s", err.Error())
+		if buf, err = applyTelegrafHTTPOutput(c.MainCfg.HTTPBind); err != nil {
 			return "", err
 		}
-
-		buf := bytes.NewBuffer([]byte{})
-		if err = tpl.Execute(buf, &httpCfg); err != nil {
-			l.Errorf("%s", err.Error())
-			return "", err
-		}
-
-		httpoutstr = buf.String()
+		telegrafConfig += buf
 	}
 
-	tlegrafConfig := warning + globalTags + agentcfg + fileoutstr + httpoutstr
+	if buf, err = mergeTelegrafInputsCfgs(files, c.MainCfg); err != nil {
+		return "", err
+	}
 
+	telegrafConfig += buf
+
+	return telegrafConfig, nil
+}
+
+func mergeTelegrafInputsCfgs(files map[string]interface{}, mc *MainConfig) (string, error) {
 	parts := []string{}
 
-	for f, _ := range files {
+	for f := range files {
 
 		l.Infof("try merge %s as telegraf config...", f)
 
-		var fdata []byte
-
-		if fdata, err = ioutil.ReadFile(f); err != nil {
+		if fdata, err := ioutil.ReadFile(f); err != nil {
 			l.Errorf("%s", err.Error())
 			continue
 		} else {
 
-			prt, err := c.BuildInputCfg(fdata)
+			prt, err := BuildInputCfg(fdata, mc)
 			if err != nil {
 				continue
 			}
@@ -226,21 +209,59 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 		}
 	}
 
-	if len(parts) == 0 {
-		return tlegrafConfig, nil
-	}
-
-	inputscfgs := strings.Join(parts, "\n")
+	merged := strings.Join(parts, "\n")
 
 	// check if merged config parsing ok
-	if _, err = toml.Parse([]byte(inputscfgs)); err != nil {
+	if _, err := toml.Parse([]byte(merged)); err != nil {
 		l.Error(err)
 		return "", err
 	}
 
-	tlegrafConfig += inputscfgs
+	return merged, nil
+}
 
-	return tlegrafConfig, err
+func applyTelegrafFileOutput(fp string) (string, error) {
+	fileCfg := fileoutCfg{
+		OutputFiles: fp,
+	}
+
+	var err error
+	tpl := template.New("")
+	tpl, err = tpl.Parse(fileOutputTemplate)
+	if err != nil {
+		l.Errorf("%s", err.Error())
+		return "", err
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	if err = tpl.Execute(buf, &fileCfg); err != nil {
+		l.Errorf("%s", err.Error())
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
+func applyTelegrafHTTPOutput(server string) (string, error) {
+	httpCfg := httpoutCfg{
+		HTTPServer: fmt.Sprintf("http://%s/telegraf", server),
+	}
+
+	var err error
+	tpl := template.New("")
+	tpl, err = tpl.Parse(httpOutputTemplate)
+	if err != nil {
+		l.Errorf("%s", err.Error())
+		return "", err
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	if err = tpl.Execute(buf, &httpCfg); err != nil {
+		l.Errorf("%s", err.Error())
+		return "", err
+	}
+
+	return buf.String(), nil
 }
 
 func addTelegrafCfg(cfgdata, fp string) error {
@@ -257,11 +278,11 @@ func addTelegrafCfg(cfgdata, fp string) error {
 	for field, node := range tbl.Fields {
 		switch field {
 		case "inputs":
-			tbl_, ok := node.(*ast.Table)
+			stbl, ok := node.(*ast.Table)
 			if !ok {
 				l.Warnf("ignore bad toml node: %s", tbl.Source())
 			} else {
-				for inputName, _ := range tbl_.Fields {
+				for inputName := range stbl.Fields {
 
 					// NOTE: if telegraf found any unknown inputs(usually it's a datakit input), telegraf
 					// will exit, so if any xxx.conf both contains datakit & telegraf inputs, just disable
@@ -284,7 +305,7 @@ func addTelegrafCfg(cfgdata, fp string) error {
 	return nil
 }
 
-func (c *Config) BuildInputCfg(d []byte) (string, error) {
+func BuildInputCfg(d []byte, mc *MainConfig) (string, error) {
 
 	var err error
 
@@ -296,7 +317,7 @@ func (c *Config) BuildInputCfg(d []byte) (string, error) {
 	}
 
 	var buf bytes.Buffer
-	if err := t.Execute(&buf, c.MainCfg); err != nil {
+	if err := t.Execute(&buf, mc); err != nil {
 		l.Errorf("%s", err.Error())
 		return "", err
 	}
