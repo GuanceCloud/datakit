@@ -913,7 +913,7 @@ IncludeTotal=false #Set to true to include _Total instance when querying for all
 	## set to 64 for vCenter 5.5 and 6.0 (default: 256)
 	# max_query_objects = 256
 
-	## number of metrics to retreive per query for non-realtime resources (clusters and datastores)
+	## number of metrics to retrieve per query for non-realtime resources (clusters and datastores)
 	## set to 64 for vCenter 5.5 and 6.0 (default: 256)
 	# max_query_metrics = 256
 
