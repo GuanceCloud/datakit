@@ -20,8 +20,23 @@ import (
 type SkywalkingServerV2 struct{}
 type SkywalkingRegisterServerV2 struct{}
 type SkywalkingPingServerV2 struct{}
+type SkywalkingJVMMetricServerV2 struct{}
 
-var NetAddrIdGen = GenGlobalId(10000)
+var (
+	NetAddrIdGen   = GenGlobalId(10000)
+	ServiceIdGen   = GenGlobalId(20000)
+	InstanceIdGen  = GenGlobalId(30000)
+	EndpointIdGen  = GenGlobalId(40000)
+	SerialNumIdGen = GenGlobalId(50000)
+
+	RegService     = &sync.Map{} //key: id,           value: serviceName
+	RegServiceRev  = &sync.Map{} //key: serviceName,  value: id
+	RegInstance    = &sync.Map{} //key: id,           value: instanceUUID
+	RegInstanceRev = &sync.Map{} //key: instanceUUID, value: id
+	RegEndpoint    = &sync.Map{} //key: id,           value: endpointName
+	RegEndpointRev = &sync.Map{} //key: endpointName, value: id
+)
+
 
 func SkyWalkingServerRunV2(addr string) {
 	log.Infof("skywalking V2 gRPC starting...")
@@ -36,8 +51,10 @@ func SkyWalkingServerRunV2(addr string) {
 
 	rpcServer := grpc.NewServer()
 	swV2.RegisterTraceSegmentReportServiceServer(rpcServer, &SkywalkingServerV2{})
+	swV2.RegisterJVMMetricReportServiceServer(rpcServer, &SkywalkingJVMMetricServerV2{})
 	register.RegisterRegisterServer(rpcServer, &SkywalkingRegisterServerV2{})
 	register.RegisterServiceInstancePingServer(rpcServer, &SkywalkingPingServerV2{})
+
 	go func() {
 		if err := rpcServer.Serve(rpcListener); err != nil {
 			log.Error(err)
@@ -151,16 +168,11 @@ func (s *SkywalkingRegisterServerV2) DoServiceRegister(ctx context.Context, r *r
 	var sid interface{}
 	var serviceID int32
 	var ok bool
-	var err error
 	serMap := register.ServiceRegisterMapping{}
 	for _, s := range r.Services {
 		service := s.ServiceName
 		if sid, ok = RegServiceRev.Load(service); !ok {
-			sid, err = SaveRegInfo(ServiceBucket, service)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
+			sid = ServiceIdGen()
 			RegService.Store(sid, service)
 			RegServiceRev.Store(service, sid)
 		}
@@ -180,18 +192,13 @@ func (s *SkywalkingRegisterServerV2) DoServiceRegister(ctx context.Context, r *r
 func (s *SkywalkingRegisterServerV2) DoServiceInstanceRegister(ctx context.Context, r *register.ServiceInstances) (*register.ServiceInstanceRegisterMapping, error) {
 	var ok bool
 	var serInstanceID int32
-	var err error
 	regMap := register.ServiceInstanceRegisterMapping{}
 
 	for _, sin := range r.Instances {
 		uuid := sin.InstanceUUID
 		sid := sin.ServiceId
 		if _, ok = RegInstanceRev.Load(uuid); !ok {
-			serInstanceID, err = SaveRegInfo(InstanceBucket, uuid)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
+			serInstanceID = InstanceIdGen()
 			RegInstance.Store(serInstanceID, uuid)
 			RegInstanceRev.Store(uuid, serInstanceID)
 		}
@@ -206,7 +213,6 @@ func (s *SkywalkingRegisterServerV2) DoEndpointRegister(ctx context.Context, r *
 	var epid interface{}
 	var ok bool
 	var endpointID int32
-	var err error
 
 	reg := register.EndpointMapping{}
 	for _, v := range r.Endpoints {
@@ -216,11 +222,7 @@ func (s *SkywalkingRegisterServerV2) DoEndpointRegister(ctx context.Context, r *
 		from := v.From
 
 		if epid, ok = RegEndpointRev.Load(eName); !ok {
-			epid, err = SaveRegInfo(EndpointBucket, eName)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
+			epid = EndpointIdGen()
 			RegEndpoint.Store(epid, eName)
 			RegEndpointRev.Store(eName, epid)
 		}
@@ -264,14 +266,20 @@ func (s *SkywalkingPingServerV2) DoPing(ctx context.Context, r *register.Service
 		cmd := &common.Command{Command: "ServiceMetadataReset"}
 		kv := &common.KeyStringValuePair{
 			Key:   "SerialNumber",
-			Value: r.ServiceInstanceUUID,
+			Value: fmt.Sprintf("%v", SerialNumIdGen()),
 		}
 		cmd.Args = append(cmd.Args, kv)
 		cmds.Commands = append(cmds.Commands, cmd)
 		log.Errorf("Ping %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
 	} else {
-		log.Infof("Ping %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
+		log.Debugf("Ping %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
 	}
+	return cmds, nil
+}
+
+func (s *SkywalkingJVMMetricServerV2) Collect(ctx context.Context, jvm *swV2.JVMMetricCollection) (*common.Commands, error) {
+	cmds := &common.Commands{}
+	log.Debugf("JVMMetricReportService %v", jvm.ServiceInstanceId)
 	return cmds, nil
 }
 
@@ -280,9 +288,11 @@ func GenGlobalId(startCnt int32) func() int32 {
 	var mutex sync.Mutex
 
 	return func() int32 {
+		var rtnId int32
 		mutex.Lock()
 		id += 1
+		rtnId = id
 		mutex.Unlock()
-		return id
+		return rtnId
 	}
 }
