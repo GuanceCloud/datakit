@@ -7,7 +7,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -49,7 +49,7 @@ func (e *Elasticsearch) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -104,7 +104,7 @@ func (e *Elasticsearch) run(ag *objectAgent) {
 			}
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -127,27 +127,27 @@ func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse,
 		}
 
 		obj := map[string]interface{}{
-			`__name`: inst.Description,
-			`clientNodeConfiguration`: inst.ClientNodeConfiguration,
-			`createdAt`: inst.CreatedAt,
+			`__name`:                       inst.Description,
+			`clientNodeConfiguration`:      inst.ClientNodeConfiguration,
+			`createdAt`:                    inst.CreatedAt,
 			`elasticDataNodeConfiguration`: inst.ElasticDataNodeConfiguration,
-			`esVersion`: inst.EsVersion,
-			`kibanaConfiguration`: inst.KibanaConfiguration,
-			`masterConfiguration`: inst.MasterConfiguration,
-			`networkConfig`: inst.NetworkConfig,
-			`nodeAmount`: inst.NodeAmount,
-			`nodeSpec`: inst.NodeSpec,
+			`esVersion`:                    inst.EsVersion,
+			`kibanaConfiguration`:          inst.KibanaConfiguration,
+			`masterConfiguration`:          inst.MasterConfiguration,
+			`networkConfig`:                inst.NetworkConfig,
+			`nodeAmount`:                   inst.NodeAmount,
+			`nodeSpec`:                     inst.NodeSpec,
 		}
 
 		tags := map[string]interface{}{
-			`__class`:  `aliyun_elasticsearch`,
-			`provider`: `aliyun`,
-			`InstanceId`: inst.InstanceId,
+			`__class`:                `aliyun_elasticsearch`,
+			`provider`:               `aliyun`,
+			`InstanceId`:             inst.InstanceId,
 			`advancedDedicateMaster`: inst.AdvancedDedicateMaster,
-			`dedicateMaster`: inst.DedicateMaster,
-			`paymentType`: inst.PaymentType,
-			`ResourceGroupId`: inst.ResourceGroupId,
-			`Status`:          inst.Status,
+			`dedicateMaster`:         inst.DedicateMaster,
+			`paymentType`:            inst.PaymentType,
+			`ResourceGroupId`:        inst.ResourceGroupId,
+			`Status`:                 inst.Status,
 		}
 
 		//tags on es instance
