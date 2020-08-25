@@ -56,7 +56,7 @@ func (t *SkywalkingTrace) Run() {
 	if t.V2 != nil {
 		SkywalkingTagsV2 = t.V2.Tags
 		if t.V2.GrpcPort != 0 {
-			BoltDbInit()
+			//BoltDbInit()
 			go SkyWalkingServerRunV2(fmt.Sprintf(":%d", t.V2.GrpcPort))
 		}
 	}
