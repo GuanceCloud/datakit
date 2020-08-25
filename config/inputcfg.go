@@ -19,9 +19,9 @@ import (
 func (c *Config) LoadConfig() error {
 
 	// detect same-name input name between datakit and telegraf
-	for k, _ := range inputs.TelegrafInputs {
+	for k := range inputs.TelegrafInputs {
 		if _, ok := inputs.Inputs[k]; ok {
-			panic(fmt.Sprintf("same name input %s within datakit and telegraf", k))
+			l.Fatalf(fmt.Sprintf("same name input %s within datakit and telegraf", k))
 		}
 	}
 
@@ -265,21 +265,28 @@ func EnableInputs(inputlist string) {
 	}
 }
 
-func doEnableInput(name string) (string, string, error) {
+func doEnableInput(name string) (fpath, sample string, err error) {
 	if i, ok := inputs.TelegrafInputs[name]; ok {
-		return filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf"), i.Sample, nil
+		fpath = filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf")
+		sample = i.Sample
+		return
 	}
 
 	if c, ok := inputs.Inputs[name]; ok {
 		i := c()
-		sample := i.SampleConfig()
-		catalog := i.Catalog()
+		sample = i.SampleConfig()
 
-		return filepath.Join(datakit.ConfdDir, catalog, name+".conf"), sample, nil
+		fpath = filepath.Join(datakit.ConfdDir, i.Catalog(), name+".conf")
+		return
 	}
 
-	return "", "", fmt.Errorf("input %s not found, ignored", name)
+	err = fmt.Errorf("input %s not found, ignored", name)
+	return
 }
+
+const (
+	tagsKVPartsLen = 2
+)
 
 func ParseGlobalTags(s string) map[string]string {
 	tags := map[string]string{}
@@ -287,7 +294,7 @@ func ParseGlobalTags(s string) map[string]string {
 	parts := strings.Split(s, ",")
 	for _, p := range parts {
 		arr := strings.Split(p, "=")
-		if len(arr) != 2 {
+		if len(arr) != tagsKVPartsLen {
 			l.Warnf("invalid global tag: %s, ignored", p)
 			continue
 		}
