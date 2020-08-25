@@ -78,8 +78,10 @@ type qstats struct {
 	ch chan []*InputsStat
 }
 
-func ChanInfo() (int, int) {
-	return len(inputCh), cap(inputCh)
+func ChanInfo() (l, c int) {
+	l = len(inputCh)
+	c = cap(inputCh)
+	return
 }
 
 // Deprecated
