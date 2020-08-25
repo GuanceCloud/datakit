@@ -184,8 +184,6 @@ func TestTomlParse(t *testing.T) {
 			t.Logf("stbl: %+#v", stbl)
 
 			for k, vv := range stbl.Fields {
-				// t.Logf("%s: %+#v", k, vv)
-
 				tbls := []*ast.Table{}
 
 				switch tpe := vv.(type) {
