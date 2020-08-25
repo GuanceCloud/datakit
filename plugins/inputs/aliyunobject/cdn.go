@@ -6,7 +6,7 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -49,7 +49,7 @@ func (e *Cdn) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -104,7 +104,7 @@ func (e *Cdn) run(ag *objectAgent) {
 			}
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -132,19 +132,19 @@ func (e *Cdn) handleResponse(resp *cdn.DescribeUserDomainsResponse, ag *objectAg
 			"__class":         "aliyun_cdn",
 			"__provider":      "aliyun",
 			"ResourceGroupId": inst.ResourceGroupId,
-			"Cname": inst.Cname,
-			"CdnType": inst.CdnType,
-			"DomainStatus": inst.DomainStatus,
-			"SslProtocol": inst.SslProtocol,
+			"Cname":           inst.Cname,
+			"CdnType":         inst.CdnType,
+			"DomainStatus":    inst.DomainStatus,
+			"SslProtocol":     inst.SslProtocol,
 		}
 
 		obj := map[string]interface{}{
-			"__name": inst.DomainName,
-			"GmtCreated": inst.GmtCreated,
+			"__name":      inst.DomainName,
+			"GmtCreated":  inst.GmtCreated,
 			"GmtModified": inst.GmtModified,
 			"Description": inst.Description,
-			"Sandbox": inst.Sandbox,
-			"Sources": inst.Sources,
+			"Sandbox":     inst.Sandbox,
+			"Sources":     inst.Sources,
 		}
 
 		for k, v := range e.Tags {
