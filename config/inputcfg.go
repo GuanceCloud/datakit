@@ -1,4 +1,3 @@
-//nolint:gocyclo
 package config
 
 import (
@@ -173,41 +172,53 @@ func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creat
 	return nil
 }
 
+func migrateOldCfg(name string, c inputs.Creator) error {
+	if name == "self" { //nolint:goconst
+		return nil
+	}
+
+	input := c()
+	catalog := input.Catalog()
+
+	cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf.sample")
+	old := filepath.Join(datakit.ConfdDir, catalog, name+".conf")
+
+	if _, err := os.Stat(old); err == nil {
+		tbl, err := parseCfgFile(old)
+		if err != nil {
+			l.Warnf("[error] parse conf %s failed on [%s]: %s, ignored", old, name, err)
+		} else if len(tbl.Fields) == 0 { // old config not used
+			if err := os.Remove(old); err != nil {
+				l.Errorf("Remove: %s, ignored", err.Error())
+			}
+		}
+	}
+
+	// overwrite old config sample
+	l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
+	if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
+		l.Errorf("create catalog dir %s failed: %s", catalog, err.Error())
+		return err
+	}
+
+	sample := input.SampleConfig()
+	if sample == "" {
+		return fmt.Errorf("no sample available on collector %s", name)
+	}
+
+	if err := ioutil.WriteFile(cfgpath, []byte(sample), 0600); err != nil {
+		l.Errorf("failed to create sample configure for collector %s: %s", name, err.Error())
+		return err
+	}
+
+	return nil
+}
+
 // Creata datakit input plugin's configures if not exists
 func initPluginSamples() {
 	for name, create := range inputs.Inputs {
-		if name == "self" { //nolint:goconst
-			continue
-		}
-
-		input := create()
-		catalog := input.Catalog()
-
-		cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf.sample")
-		old := filepath.Join(datakit.ConfdDir, catalog, name+".conf")
-
-		if _, err := os.Stat(old); err == nil {
-			tbl, err := parseCfgFile(old)
-			if err != nil {
-				l.Warnf("[error] parse conf %s failed on [%s]: %s, ignored", old, name, err)
-			} else if len(tbl.Fields) == 0 { // old config not used
-				os.Remove(old)
-			}
-		}
-
-		// overwrite old config sample
-		l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
-		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
-			l.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
-		}
-
-		sample := input.SampleConfig()
-		if sample == "" {
-			l.Fatalf("no sample available on collector %s", name)
-		}
-
-		if err := ioutil.WriteFile(cfgpath, []byte(sample), 0600); err != nil {
-			l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
+		if err := migrateOldCfg(name, create); err != nil {
+			l.Fatal(err)
 		}
 	}
 
