@@ -313,62 +313,79 @@ func gz(data []byte) ([]byte, error) {
 	return z.Bytes(), nil
 }
 
-func doFlush(bodies [][]byte, url string) error { //nolint:funlen
+func initCookies() {
+	cookies = fmt.Sprintf("uuid=%s;name=%s;hostname=%s;max_post_interval=%s;version=%s;os=%s;arch=%s",
+		config.Cfg.MainCfg.UUID,
+		config.Cfg.MainCfg.Name,
+		config.Cfg.MainCfg.Hostname,
+		datakit.MaxLifeCheckInterval,
+		git.Version,
+		runtime.GOOS,
+		runtime.GOARCH)
+}
 
-	if bodies == nil {
-		return nil
+func buildObjBody(bodies [][]byte) ([]byte, error) {
+	allObjs := []map[string]interface{}{}
+
+	for _, data := range bodies {
+		var objs []map[string]interface{}
+		if err := json.Unmarshal(data, &objs); err != nil {
+			l.Error(err)
+			return nil, err
+		}
+		allObjs = append(allObjs, objs...)
 	}
 
-	if cookies == "" {
-		cookies = fmt.Sprintf("uuid=%s;name=%s;hostname=%s;max_post_interval=%s;version=%s;os=%s;arch=%s",
-			config.Cfg.MainCfg.UUID,
-			config.Cfg.MainCfg.Name,
-			config.Cfg.MainCfg.Hostname,
-			datakit.MaxLifeCheckInterval,
-			git.Version,
-			runtime.GOOS,
-			runtime.GOARCH)
+	jbody, err := json.Marshal(allObjs)
+	if err != nil {
+		l.Error(err)
+		return nil, err
 	}
 
-	var body []byte
+	return jbody, nil
+}
+
+func buildBody(url string, bodies [][]byte) (body []byte, gzon bool, err error) {
 	switch url {
 	case Object: // object is json
-		allObjs := []map[string]interface{}{}
 
-		for _, data := range bodies {
-
-			var objs []map[string]interface{}
-			if err := json.Unmarshal(data, &objs); err != nil {
-				l.Error(err)
-				return err
-			}
-			allObjs = append(allObjs, objs...)
-		}
-
-		if jbody, err := json.Marshal(allObjs); err == nil {
-			body = jbody
-		} else {
-			l.Error(err)
-			return err
+		body, err = buildObjBody(bodies) // convert raw objects bytes as json array
+		if err != nil {
+			return
 		}
 
 	default: // others are line-protocol
 		body = bytes.Join(bodies, []byte("\n"))
 	}
 
-	if datakit.OutputFile != "" {
-		return fileOutput(body)
+	if len(body) > minGZSize && datakit.OutputFile == "" { // should not gzip on file output
+		if body, err = gz(body); err != nil {
+			l.Errorf("gz: %s", err.Error())
+			return
+		}
+		gzon = true
 	}
 
-	gzOn := false
-	if len(body) > minGZSize {
-		if gzbody, err := gz(body); err == nil {
-			l.Debugf("gzip %d/%d", len(body), len(gzbody))
-			gzOn = true
-			body = gzbody
-		} else {
-			return err
-		}
+	return
+}
+
+func doFlush(bodies [][]byte, url string) error {
+
+	if bodies == nil {
+		return nil
+	}
+
+	if cookies == "" {
+		initCookies()
+	}
+
+	body, gz, err := buildBody(url, bodies)
+	if err != nil {
+		return err
+	}
+
+	if datakit.OutputFile != "" {
+		return fileOutput(body)
 	}
 
 	req, err := http.NewRequest("POST", categoryURLs[url], bytes.NewBuffer(body))
@@ -378,7 +395,7 @@ func doFlush(bodies [][]byte, url string) error { //nolint:funlen
 	}
 
 	req.Header.Set("Cookie", cookies)
-	if gzOn {
+	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
 
