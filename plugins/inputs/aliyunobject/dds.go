@@ -13,16 +13,16 @@ import (
 
 const (
 	ddsSampleConfig = `
-#[inputs.aliyunobject.dds]
+#[inputs.aliyunobject.mongodb]
 
-# ## @param - custom tags for dds object - [list of key:value element] - optional
-#[inputs.aliyunobject.dds.tags]
+# ## @param - custom tags for mongodb object - [list of key:value element] - optional
+#[inputs.aliyunobject.mongodb.tags]
 # key1 = 'val1'
 
-# ## @param - custom tags - [list of dds instanceid] - optional
+# ## @param - custom tags - [list of mongodb instanceid] - optional
 #db_instanceids = []
 
-# ## @param - custom tags - [list of excluded dds instanceid] - optional
+# ## @param - custom tags - [list of excluded mongodb instanceid] - optional
 #exclude_db_instanceids = []
 `
 )
@@ -133,7 +133,7 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 		}
 
 		tags := map[string]interface{}{
-			"__class":            "aliyun_dds",
+			"__class":            "aliyun_mongodb",
 			"__provider":         "aliyun",
 			"DBInstanceId":       db.DBInstanceId,
 			"DBInstanceType":     db.DBInstanceType,
