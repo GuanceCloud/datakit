@@ -27,7 +27,7 @@ type Server struct {
 }
 
 func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
-	var catagory string
+	var category string
 	resp := &Response{}
 
 	if req.Lines != nil {
@@ -39,24 +39,30 @@ func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
 		l.Debugf("received %d points from %s", len(pts), req.Name)
 		switch req.Io {
 		case IoType_METRIC:
-			catagory = Metric
+			category = Metric
 		case IoType_KEYEVENT:
-			catagory = KeyEvent
+			category = KeyEvent
 		case IoType_OBJECT:
-			catagory = Object
+			category = Object
 		case IoType_LOGGING:
-			catagory = Logging
+			category = Logging
 		default:
-			catagory = Metric
+			category = Metric
 		}
-		l.Debugf("%s %v", catagory, req.Name)
-		NamedFeed(req.Lines, catagory, req.Name)
+		l.Debugf("%s %v", category, req.Name)
+
+		if err := NamedFeed(req.Lines, category, req.Name); err != nil {
+			l.Errorf("NamedFeed: %s", err.Error())
+			resp.Err = err.Error()
+		}
+
 		resp.Points = int64(len(pts))
 	}
 
 	if req.Objects != nil {
 		// TODO
 		// XXX: check if valid objects
+		l.Info("ingore checking objects")
 	}
 
 	return resp, nil
@@ -102,5 +108,4 @@ func GRPCServer(uds string) {
 	s.rpcServer.Stop()
 
 	l.Info("gRPC exit")
-	return
 }
