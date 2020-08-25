@@ -56,6 +56,8 @@ func getFirstTimestamp(zs *ZipkinSpanV1) int64 {
 
 }
 func parseZipkinJsonV1(octets []byte) error {
+	log.Debugf("->|%v|<-", string(octets))
+	
 	spans := []*ZipkinSpanV1{}
 	if err := json.Unmarshal(octets, &spans); err != nil {
 		return err
