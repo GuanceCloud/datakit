@@ -51,7 +51,7 @@ func TestBuildInputCfg(t *testing.T) {
 	host = '{{.Hostname}}'`
 
 	Cfg.MainCfg.Hostname = "this-is-the-test-host-name"
-	sample, err := Cfg.BuildInputCfg([]byte(data))
+	sample, err := BuildInputCfg([]byte(data), Cfg.MainCfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,15 +111,15 @@ global = "global config"
 
 		default:
 			// ignore
-			t.Log("ignore %+#v", f)
+			t.Logf("ignore %+#v", f)
 
 		case "inputs":
-			switch v.(type) {
+			switch tpe := v.(type) {
 			case *ast.Table:
 				stbl := v.(*ast.Table)
 
 				for _, vv := range stbl.Fields {
-					switch vv.(type) {
+					switch tt := vv.(type) {
 					case []*ast.Table:
 						for idx, elem := range vv.([]*ast.Table) {
 							t.Logf("[%d] %+#v, source: %s", idx, elem, elem.Source())
@@ -127,12 +127,12 @@ global = "global config"
 					case *ast.Table:
 						t.Logf("%+#v, source: %s", vv.(*ast.Table), vv.(*ast.Table).Source())
 					default:
-						t.Log("bad data")
+						t.Logf("bad data: %v", tt)
 					}
 				}
 
 			default:
-				t.Log("unknown type")
+				t.Logf("unknown type: %v", tpe)
 			}
 		}
 	}
@@ -188,13 +188,13 @@ func TestTomlParse(t *testing.T) {
 
 				tbls := []*ast.Table{}
 
-				switch vv.(type) {
+				switch tpe := vv.(type) {
 				case []*ast.Table:
 					tbls = vv.([]*ast.Table)
 				case *ast.Table:
 					tbls = append(tbls, vv.(*ast.Table))
 				default:
-					t.Fatal("bad data")
+					t.Fatalf("bad data: %v", tpe)
 				}
 
 				t.Logf("elems: %d", len(tbls))
