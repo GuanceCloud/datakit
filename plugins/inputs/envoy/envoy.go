@@ -109,7 +109,7 @@ func (e *Envoy) Run() {
 				continue
 			}
 			if testAssert {
-				l.Debugf("date: %s", string(data))
+				l.Debugf("data: %s", string(data))
 				continue
 			}
 
