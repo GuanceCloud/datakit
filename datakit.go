@@ -24,6 +24,16 @@ const (
 	OS_LINUX   = `linux`
 	OS_DARWIN  = `darwin`
 
+	OSARCH_WIN_AMD64 = "windows/amd64"
+	OSARCH_WIN_386   = "windows/386"
+
+	OSARCH_LINUX_ARM   = "linux/arm"
+	OSARCH_LINUX_ARM64 = "linux/arm64"
+	OSARCH_LINUX_386   = "linux/386"
+	OSARCH_LINUX_AMD64 = "linux/amd64"
+
+	OSARCH_DARWIN_AMD64 = "darwin/amd64"
+
 	CommonChanCap = 32
 )
 
