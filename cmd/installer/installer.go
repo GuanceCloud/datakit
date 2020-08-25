@@ -31,14 +31,14 @@ import (
 )
 
 var (
-	DataKitBaseUrl = ""
+	DataKitBaseURL = ""
 	DataKitVersion = ""
 	installDir     = ""
 
-	datakitUrl = "https://" + path.Join(DataKitBaseUrl,
+	datakitUrl = "https://" + path.Join(DataKitBaseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion))
 
-	telegrafUrl = "https://" + path.Join(DataKitBaseUrl,
+	telegrafUrl = "https://" + path.Join(DataKitBaseURL,
 		"telegraf",
 		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
 
@@ -165,7 +165,7 @@ func getDataWayCfg() *config.DataWayCfg {
 
 func installNewDatakit(svc service.Service) {
 
-	uninstallDataKitService(svc) // uninstall service if installed before
+	_ = uninstallDataKitService(svc) // uninstall service if installed before
 
 	// prepare dataway info
 	config.Cfg.MainCfg.DataWay = getDataWayCfg()
@@ -206,7 +206,7 @@ Golang Version: %s
        BaseUrl: %s
        DataKit: %s
       Telegraf: %s
-`, git.Version, git.BuildAt, git.Golang, DataKitBaseUrl, datakitUrl, telegrafUrl)
+`, git.Version, git.BuildAt, git.Golang, DataKitBaseURL, datakitUrl, telegrafUrl)
 		os.Exit(0)
 	}
 
@@ -341,7 +341,7 @@ func (wc *writeCounter) Write(p []byte) (int, error) {
 }
 
 func doDownload(from, to string) {
-	resp, err := http.Get(from)
+	resp, err := http.Get(from) //nolint:gosec
 	if err != nil {
 		l.Fatalf("failed to download %s: %s", from, err)
 	}
@@ -397,7 +397,7 @@ func startDatakitService(s service.Service) error {
 func stopLagacyDatakit(svc service.Service) {
 	switch osarch {
 	case datakit.OSARCH_WIN_AMD64, datakit.OSARCH_WIN_386:
-		stopDataKitService(svc)
+		_ = stopDataKitService(svc)
 	default:
 		cmd := exec.Command(`stop`, []string{datakit.ServiceName}...) //nolint:gosec
 		if _, err := cmd.Output(); err != nil {
