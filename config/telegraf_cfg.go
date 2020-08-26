@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 	"strings"
 	"text/template"
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -43,27 +41,6 @@ type fileoutCfg struct {
 
 type httpoutCfg struct {
 	HTTPServer string
-}
-
-func defaultTelegrafAgentCfg() *agent {
-	c := &agent{
-		Interval:                   "10s",
-		RoundInterval:              true,
-		MetricBatchSize:            1000,
-		MetricBufferLimit:          100000,
-		CollectionJitter:           "0s",
-		FlushInterval:              "10s",
-		FlushJitter:                "0s",
-		Precision:                  "ns",
-		Debug:                      false,
-		Quiet:                      false,
-		LogTarget:                  "file",
-		Logfile:                    filepath.Join(datakit.TelegrafDir, "agent.log"),
-		LogfileRotationMaxArchives: 5,
-		LogfileRotationMaxSize:     "32MB",
-		OmitHostname:               true, // do not append host tag
-	}
-	return c
 }
 
 func (c *Config) loadTelegrafInputsConfigs(inputcfgs map[string]*ast.Table, filters []string) (string, error) {
