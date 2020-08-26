@@ -436,22 +436,22 @@ var (
 			},
 		},
 
-		&dkexternal{
-			name: "tcpdump",
-			lang: "go",
+		// &dkexternal{
+		// 	name: "tcpdump",
+		// 	lang: "go",
 
-			entry: "main.go",
-			osarchs: map[string]bool{
-				"linux/amd64":  true,
-				"linux/386":    true,
-				`darwin/amd64`: true,
-			},
+		// 	entry: "main.go",
+		// 	osarchs: map[string]bool{
+		// 		"linux/amd64":  true,
+		// 		"linux/386":    true,
+		// 		`darwin/amd64`: true,
+		// 	},
 
-			buildArgs: nil,
-			envs: []string{
-				"CGO_ENABLED=1",
-			},
-		},
+		// 	buildArgs: nil,
+		// 	envs: []string{
+		// 		"CGO_ENABLED=1",
+		// 	},
+		// },
 
 		&dkexternal{
 			name: "csv",

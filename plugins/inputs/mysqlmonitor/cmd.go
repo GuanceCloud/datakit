@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -97,7 +99,7 @@ const (
 )
 
 // MySQL environment.
-func (m *Mysql) gatherGlobalVariables() error {
+func (m *MysqlMonitor) gatherGlobalVariables(db *sql.DB, serv string) error {
 	// run query
 	rows, err := db.Query(globalVariablesQuery)
 	if err != nil {
@@ -111,6 +113,8 @@ func (m *Mysql) gatherGlobalVariables() error {
 	// parse DSN and save server tag
 	servtag := getDSNTag(serv)
 	tags := map[string]string{"server": servtag}
+	tags["metricType"] = "globalVariables"
+
 	fields := make(map[string]interface{})
 	for rows.Next() {
 		if err := rows.Scan(&key, &val); err != nil {
@@ -134,7 +138,7 @@ func (m *Mysql) gatherGlobalVariables() error {
 
 	// Send any remaining fields
 	if len(fields) > 0 {
-		pt, err := io.MakeMetric(mysql.MetricName, tags, item, time.Now())
+		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
@@ -147,7 +151,7 @@ func (m *Mysql) gatherGlobalVariables() error {
 	return nil
 }
 
-func (m *Mysql) parseGlobalVariables(key string, value sql.RawBytes) (interface{}, error) {
+func (m *MysqlMonitor) parseGlobalVariables(key string, value sql.RawBytes) (interface{}, error) {
 	return ConvertGlobalVariables(key, value)
 }
 
@@ -155,7 +159,7 @@ func (m *Mysql) parseGlobalVariables(key string, value sql.RawBytes) (interface{
 // When the server is slave, then it returns only one row.
 // If the multi-source replication is set, then everything works differently
 // This code does not work with multi-source replication.
-func (m *Mysql) gatherSlaveStatuses() error {
+func (m *MysqlMonitor) gatherSlaveStatuses(db *sql.DB, serv string) error {
 	// run query
 	rows, err := db.Query(slaveStatusQuery)
 	if err != nil {
@@ -166,6 +170,7 @@ func (m *Mysql) gatherSlaveStatuses() error {
 	servtag := getDSNTag(serv)
 
 	tags := map[string]string{"server": servtag}
+	tags["metricType"] = "slaveStatus"
 	fields := make(map[string]interface{})
 
 	// to save the column names as a field key
@@ -186,18 +191,17 @@ func (m *Mysql) gatherSlaveStatuses() error {
 		}
 		// range over columns, and try to parse values
 		for i, col := range cols {
-			if m.MetricVersion >= 2 {
-				col = strings.ToLower(col)
-			}
 			if value, ok := m.parseValue(*vals[i].(*sql.RawBytes)); ok {
 				fields["slave_"+col] = value
 			}
 		}
 
-		pt, err := io.MakeMetric(mysql.MetricName, tags, item, time.Now())
+		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
+
+		fmt.Println("point data ========>", string(pt))
 
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
@@ -210,7 +214,7 @@ func (m *Mysql) gatherSlaveStatuses() error {
 
 // gatherBinaryLogs can be used to collect size and count of all binary files
 // binlogs metric requires the MySQL server to turn it on in configuration
-func (m *Mysql) gatherBinaryLogs() error {
+func (m *MysqlMonitor) gatherBinaryLogs(db *sql.DB, serv string) error {
 	// run query
 	rows, err := db.Query(binaryLogsQuery)
 	if err != nil {
@@ -221,6 +225,8 @@ func (m *Mysql) gatherBinaryLogs() error {
 	// parse DSN and save host as a tag
 	servtag := getDSNTag(serv)
 	tags := map[string]string{"server": servtag}
+	tags["metricType"] = "globalVariables"
+
 	var (
 		size     uint64 = 0
 		count    uint64 = 0
@@ -241,7 +247,7 @@ func (m *Mysql) gatherBinaryLogs() error {
 		"binary_files_count": count,
 	}
 
-	pt, err := io.MakeMetric(mysql.MetricName, tags, item, time.Now())
+	pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 	if err != nil {
 		l.Errorf("make metric point error %v", err)
 	}
@@ -257,7 +263,7 @@ func (m *Mysql) gatherBinaryLogs() error {
 // gatherGlobalStatuses can be used to get MySQL status metrics
 // the mappings of actual names and names of each status to be exported
 // to output is provided on mappings variable
-func (m *Mysql) gatherGlobalStatuses() error {
+func (m *MysqlMonitor) gatherGlobalStatuses(db *sql.DB, serv string) error {
 	// run query
 	rows, err := db.Query(globalStatusQuery)
 	if err != nil {
@@ -268,6 +274,7 @@ func (m *Mysql) gatherGlobalStatuses() error {
 	// parse the DSN and save host name as a tag
 	servtag := getDSNTag(serv)
 	tags := map[string]string{"server": servtag}
+	tags["metricType"] = "globalStatus"
 	fields := make(map[string]interface{})
 	for rows.Next() {
 		var key string
@@ -280,14 +287,14 @@ func (m *Mysql) gatherGlobalStatuses() error {
 		key = strings.ToLower(key)
 		value, err := ConvertGlobalStatus(key, val)
 		if err != nil {
-			m.Log.Debugf("Error parsing global status: %v", err)
+			l.Debugf("Error parsing global status: %v", err)
 		} else {
 			fields[key] = value
 		}
 	}
 
 	// Send any remaining fields
-	pt, err := io.MakeMetric(mysql.MetricName, tags, item, time.Now())
+	pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 	if err != nil {
 		l.Errorf("make metric point error %v", err)
 	}
@@ -302,7 +309,7 @@ func (m *Mysql) gatherGlobalStatuses() error {
 
 // GatherProcessList can be used to collect metrics on each running command
 // and its state with its running count
-func (m *Mysql) GatherProcessListStatuses() error {
+func (m *MysqlMonitor) GatherProcessListStatuses(db *sql.DB, serv string) error {
 	// run query
 	rows, err := db.Query(infoSchemaProcessListQuery)
 	if err != nil {
@@ -338,11 +345,13 @@ func (m *Mysql) GatherProcessListStatuses() error {
 	}
 
 	tags := map[string]string{"server": servtag}
+	tags["metricType"] = "processListStatus"
+
 	for s, c := range stateCounts {
 		fields[newNamespace("threads", s)] = c
 	}
 
-	pt, err := io.MakeMetric(mysql.MetricName, tags, item, time.Now())
+	pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 	if err != nil {
 		l.Errorf("make metric point error %v", err)
 	}
@@ -368,11 +377,13 @@ func (m *Mysql) GatherProcessListStatuses() error {
 		}
 
 		tags := map[string]string{"server": servtag, "user": user}
+		tags["metricType"] = "userConnectionsCount"
+
 		fields := make(map[string]interface{})
 
 		fields["connections"] = connections
 
-		pt, err := io.MakeMetric(mysql.MetricName, tags, item, time.Now())
+		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
@@ -388,7 +399,7 @@ func (m *Mysql) GatherProcessListStatuses() error {
 
 // GatherUserStatistics can be used to collect metrics on each running command
 // and its state with its running count
-func (m *Mysql) GatherUserStatisticsStatuses() error {
+func (m *MysqlMonitor) GatherUserStatisticsStatuses(db *sql.DB, serv string) error {
 	// run query
 	rows, err := db.Query(infoSchemaUserStatisticsQuery)
 	if err != nil {
@@ -419,6 +430,8 @@ func (m *Mysql) GatherUserStatisticsStatuses() error {
 		}
 
 		tags := map[string]string{"server": servtag, "user": *read[0].(*string)}
+		tags["metricType"] = "userStatisticsStatus"
+
 		fields := map[string]interface{}{}
 
 		for i := range cols {
@@ -437,7 +450,7 @@ func (m *Mysql) GatherUserStatisticsStatuses() error {
 			}
 		}
 
-		pt, err := io.MakeMetric(mysql.MetricName, tags, item, time.Now())
+		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
@@ -611,7 +624,7 @@ func getColSlice(l int) ([]interface{}, error) {
 
 // gatherPerfTableIOWaits can be used to get total count and time
 // of I/O wait event for each table and process
-func (m *Mysql) gatherPerfTableIOWaits() error {
+func (m *MysqlMonitor) gatherPerfTableIOWaits(db *sql.DB, serv string) error {
 	rows, err := db.Query(perfTableIOWaitsQuery)
 	if err != nil {
 		return err
@@ -641,6 +654,7 @@ func (m *Mysql) gatherPerfTableIOWaits() error {
 			"schema": objSchema,
 			"name":   objName,
 		}
+		tags["metricType"] = "perfTableIOWait"
 
 		fields := map[string]interface{}{
 			"table_io_waits_total_fetch":          countFetch,
@@ -653,7 +667,7 @@ func (m *Mysql) gatherPerfTableIOWaits() error {
 			"table_io_waits_seconds_total_delete": timeDelete / picoSeconds,
 		}
 
-		pt, err := io.MakeMetric(mysql.MetricName, tags, fields, time.Now())
+		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
@@ -668,7 +682,7 @@ func (m *Mysql) gatherPerfTableIOWaits() error {
 
 // gatherPerfIndexIOWaits can be used to get total count and time
 // of I/O wait event for each index and process
-func (m *Mysql) gatherPerfIndexIOWaits() error {
+func (m *MysqlMonitor) gatherPerfIndexIOWaits(db *sql.DB, serv string) error {
 	rows, err := db.Query(perfIndexIOWaitsQuery)
 	if err != nil {
 		return err
@@ -699,6 +713,9 @@ func (m *Mysql) gatherPerfIndexIOWaits() error {
 			"name":   objName,
 			"index":  indexName,
 		}
+
+		tags["metricType"] = "perfIndexIOWait"
+
 		fields := map[string]interface{}{
 			"index_io_waits_total_fetch":         countFetch,
 			"index_io_waits_seconds_total_fetch": timeFetch / picoSeconds,
@@ -715,7 +732,7 @@ func (m *Mysql) gatherPerfIndexIOWaits() error {
 			fields["index_io_waits_seconds_total_delete"] = timeDelete / picoSeconds
 		}
 
-		pt, err := io.MakeMetric(mysql.MetricName, tags, fields, time.Now())
+		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
@@ -729,7 +746,7 @@ func (m *Mysql) gatherPerfIndexIOWaits() error {
 }
 
 // gatherInfoSchemaAutoIncStatuses can be used to get auto incremented values of the column
-func (m *Mysql) gatherInfoSchemaAutoIncStatuses() error {
+func (m *MysqlMonitor) gatherInfoSchemaAutoIncStatuses(db *sql.DB, serv string) error {
 	rows, err := db.Query(infoSchemaAutoIncQuery)
 	if err != nil {
 		return err
@@ -753,11 +770,14 @@ func (m *Mysql) gatherInfoSchemaAutoIncStatuses() error {
 			"table":  table,
 			"column": column,
 		}
+
+		tags["metricType"] = "schemaAutoIncStatus"
+
 		fields := make(map[string]interface{})
 		fields["auto_increment_column"] = incValue
 		fields["auto_increment_column_max"] = maxInt
 
-		pt, err := io.MakeMetric(mysql.MetricName, tags, fields, time.Now())
+		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
@@ -772,7 +792,7 @@ func (m *Mysql) gatherInfoSchemaAutoIncStatuses() error {
 
 // gatherInnoDBMetrics can be used to fetch enabled metrics from
 // information_schema.INNODB_METRICS
-func (m *Mysql) gatherInnoDBMetrics() error {
+func (m *MysqlMonitor) gatherInnoDBMetrics(db *sql.DB, serv string) error {
 	// run query
 	rows, err := db.Query(innoDBMetricsQuery)
 	if err != nil {
@@ -783,6 +803,8 @@ func (m *Mysql) gatherInnoDBMetrics() error {
 	// parse DSN and save server tag
 	servtag := getDSNTag(serv)
 	tags := map[string]string{"server": servtag}
+	tags["metricType"] = "innoDBMetric"
+
 	fields := make(map[string]interface{})
 	for rows.Next() {
 		var key string
@@ -794,15 +816,10 @@ func (m *Mysql) gatherInnoDBMetrics() error {
 		if value, ok := m.parseValue(val); ok {
 			fields[key] = value
 		}
-		// Send 20 fields at a time
-		if len(fields) >= 20 {
-			acc.AddFields("mysql_innodb", fields, tags)
-			fields = make(map[string]interface{})
-		}
 	}
 	// Send any remaining fields
 	if len(fields) > 0 {
-		pt, err := io.MakeMetric(mysql.MetricName, tags, fields, time.Now())
+		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
@@ -819,7 +836,7 @@ func (m *Mysql) gatherInnoDBMetrics() error {
 // the total number and time for SQL and external lock wait events
 // for each table and operation
 // requires the MySQL server to be enabled to save this metric
-func (m *Mysql) gatherPerfTableLockWaits() error {
+func (m *MysqlMonitor) gatherPerfTableLockWaits(db *sql.DB, serv string) error {
 	// check if table exists,
 	// if performance_schema is not enabled, tables do not exist
 	// then there is no need to scan them
@@ -900,6 +917,8 @@ func (m *Mysql) gatherPerfTableLockWaits() error {
 			"table":  objectName,
 		}
 
+		tags["metricType"] = "perfTableLockWait"
+
 		sqlLWTags := copyTags(tags)
 		sqlLWTags["perf_query"] = "sql_lock_waits_total"
 		sqlLWFields := map[string]interface{}{
@@ -912,7 +931,16 @@ func (m *Mysql) gatherPerfTableLockWaits() error {
 			"write_concurrent_insert": countWriteConcurrentInsert,
 			"write_low_priority":      countWriteLowPriority,
 		}
-		acc.AddFields("mysql_perf_schema", sqlLWFields, sqlLWTags)
+
+		pt, err := io.MakeMetric(m.MetricName, sqlLWTags, sqlLWFields, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %v", err)
+		}
+
+		err = io.NamedFeed([]byte(pt), io.Metric, name)
+		if err != nil {
+			l.Errorf("push metric point error %v", err)
+		}
 
 		externalLWTags := copyTags(tags)
 		externalLWTags["perf_query"] = "external_lock_waits_total"
@@ -920,7 +948,16 @@ func (m *Mysql) gatherPerfTableLockWaits() error {
 			"read":  countReadExternal,
 			"write": countWriteExternal,
 		}
-		acc.AddFields("mysql_perf_schema", externalLWFields, externalLWTags)
+
+		pt, err = io.MakeMetric(m.MetricName, externalLWTags, externalLWFields, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %v", err)
+		}
+
+		err = io.NamedFeed([]byte(pt), io.Metric, name)
+		if err != nil {
+			l.Errorf("push metric point error %v", err)
+		}
 
 		sqlLWSecTotalTags := copyTags(tags)
 		sqlLWSecTotalTags["perf_query"] = "sql_lock_waits_seconds_total"
@@ -934,7 +971,18 @@ func (m *Mysql) gatherPerfTableLockWaits() error {
 			"write_concurrent_insert": timeWriteConcurrentInsert / picoSeconds,
 			"write_low_priority":      timeWriteLowPriority / picoSeconds,
 		}
-		acc.AddFields("mysql_perf_schema", sqlLWSecTotalFields, sqlLWSecTotalTags)
+
+		pt, err = io.MakeMetric(m.MetricName, sqlLWSecTotalTags, sqlLWSecTotalFields, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %v", err)
+		}
+
+		fmt.Println("sql_lock_waits_seconds_total =======>", string(pt))
+
+		err = io.NamedFeed([]byte(pt), io.Metric, name)
+		if err != nil {
+			l.Errorf("push metric point error %v", err)
+		}
 
 		externalLWSecTotalTags := copyTags(tags)
 		externalLWSecTotalTags["perf_query"] = "external_lock_waits_seconds_total"
@@ -943,7 +991,7 @@ func (m *Mysql) gatherPerfTableLockWaits() error {
 			"write": timeWriteExternal / picoSeconds,
 		}
 
-		pt, err := io.MakeMetric(mysql.MetricName, tags, fields, time.Now())
+		pt, err = io.MakeMetric(m.MetricName, externalLWSecTotalTags, externalLWSecTotalFields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
@@ -957,7 +1005,7 @@ func (m *Mysql) gatherPerfTableLockWaits() error {
 }
 
 // gatherPerfEventWaits can be used to get total time and number of event waits
-func (m *Mysql) gatherPerfEventWaits() error {
+func (m *MysqlMonitor) gatherPerfEventWaits(db *sql.DB, serv string) error {
 	rows, err := db.Query(perfEventWaitsQuery)
 	if err != nil {
 		return err
@@ -973,6 +1021,9 @@ func (m *Mysql) gatherPerfEventWaits() error {
 	tags := map[string]string{
 		"server": servtag,
 	}
+
+	tags["metricType"] = "perfEventWaits"
+
 	for rows.Next() {
 		if err := rows.Scan(&event, &starCount, &timeWait); err != nil {
 			return err
@@ -983,7 +1034,7 @@ func (m *Mysql) gatherPerfEventWaits() error {
 			"events_waits_seconds_total": timeWait / picoSeconds,
 		}
 
-		pt, err := io.MakeMetric(mysql.MetricName, tags, fields, time.Now())
+		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
@@ -997,7 +1048,7 @@ func (m *Mysql) gatherPerfEventWaits() error {
 }
 
 // gatherPerfFileEvents can be used to get stats on file events
-func (m *Mysql) gatherPerfFileEventsStatuses() error {
+func (m *MysqlMonitor) gatherPerfFileEventsStatuses(db *sql.DB, serv string) error {
 	rows, err := db.Query(perfFileEventsQuery)
 	if err != nil {
 		return err
@@ -1016,6 +1067,9 @@ func (m *Mysql) gatherPerfFileEventsStatuses() error {
 	tags := map[string]string{
 		"server": servtag,
 	}
+
+	tags["metricType"] = "perfFileEventsStatus"
+
 	for rows.Next() {
 		err = rows.Scan(
 			&eventName,
@@ -1028,28 +1082,50 @@ func (m *Mysql) gatherPerfFileEventsStatuses() error {
 		}
 
 		tags["event_name"] = eventName
-		fields := make(map[string]interface{})
+		miscfields := make(map[string]interface{})
 
 		miscTags := copyTags(tags)
 		miscTags["mode"] = "misc"
-		fields["file_events_total"] = countWrite
-		fields["file_events_seconds_total"] = sumTimerMisc / picoSeconds
-		acc.AddFields("mysql_perf_schema", fields, miscTags)
+		miscfields["file_events_total"] = countWrite
+		miscfields["file_events_seconds_total"] = sumTimerMisc / picoSeconds
+
+		pt, err := io.MakeMetric(m.MetricName, miscTags, miscfields, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %v", err)
+		}
+
+		err = io.NamedFeed([]byte(pt), io.Metric, name)
+		if err != nil {
+			l.Errorf("push metric point error %v", err)
+		}
 
 		readTags := copyTags(tags)
 		readTags["mode"] = "read"
-		fields["file_events_total"] = countRead
-		fields["file_events_seconds_total"] = sumTimerRead / picoSeconds
-		fields["file_events_bytes_totals"] = sumNumBytesRead
-		acc.AddFields("mysql_perf_schema", fields, readTags)
+		readfields := make(map[string]interface{})
+
+		readfields["file_events_total"] = countRead
+		readfields["file_events_seconds_total"] = sumTimerRead / picoSeconds
+		readfields["file_events_bytes_totals"] = sumNumBytesRead
+
+		pt, err = io.MakeMetric(m.MetricName, readTags, readfields, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %v", err)
+		}
+
+		err = io.NamedFeed([]byte(pt), io.Metric, name)
+		if err != nil {
+			l.Errorf("push metric point error %v", err)
+		}
 
 		writeTags := copyTags(tags)
 		writeTags["mode"] = "write"
-		fields["file_events_total"] = countWrite
-		fields["file_events_seconds_total"] = sumTimerWrite / picoSeconds
-		fields["file_events_bytes_totals"] = sumNumBytesWrite
+		writefields := make(map[string]interface{})
 
-		pt, err := io.MakeMetric(mysql.MetricName, tags, fields, time.Now())
+		writefields["file_events_total"] = countWrite
+		writefields["file_events_seconds_total"] = sumTimerWrite / picoSeconds
+		writefields["file_events_bytes_totals"] = sumNumBytesWrite
+
+		pt, err = io.MakeMetric(m.MetricName, tags, writefields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
@@ -1064,7 +1140,7 @@ func (m *Mysql) gatherPerfFileEventsStatuses() error {
 }
 
 // gatherPerfEventsStatements can be used to get attributes of each event
-func (m *Mysql) gatherPerfEventsStatements() error {
+func (m *MysqlMonitor) gatherPerfEventsStatements(db *sql.DB, serv string) error {
 	query := fmt.Sprintf(
 		perfEventsStatementsQuery,
 		m.PerfEventsStatementsDigestTextLimit,
@@ -1092,6 +1168,8 @@ func (m *Mysql) gatherPerfEventsStatements() error {
 	tags := map[string]string{
 		"server": servtag,
 	}
+
+	tags["metricType"] = "perfEventsStatements"
 
 	for rows.Next() {
 		err = rows.Scan(
@@ -1125,7 +1203,7 @@ func (m *Mysql) gatherPerfEventsStatements() error {
 			"events_statements_no_index_used_total":     noIndexUsed,
 		}
 
-		pt, err := io.MakeMetric(mysql.MetricName, tags, fields, time.Now())
+		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 		}
@@ -1139,7 +1217,7 @@ func (m *Mysql) gatherPerfEventsStatements() error {
 }
 
 // gatherTableSchema can be used to gather stats on each schema
-func (m *Mysql) gatherTableSchema() error {
+func (m *MysqlMonitor) gatherTableSchema(db *sql.DB, serv string) error {
 	var dbList []string
 	servtag := getDSNTag(serv)
 
@@ -1183,6 +1261,7 @@ func (m *Mysql) gatherTableSchema() error {
 			dataFree      float64
 			createOptions string
 		)
+
 		for rows.Next() {
 			err = rows.Scan(
 				&tableSchema,
@@ -1204,37 +1283,7 @@ func (m *Mysql) gatherTableSchema() error {
 			tags["schema"] = tableSchema
 			tags["table"] = tableName
 
-			if m.MetricVersion < 2 {
-				acc.AddFields(newNamespace("info_schema", "table_rows"),
-					map[string]interface{}{"value": tableRows}, tags)
-
-				dlTags := copyTags(tags)
-				dlTags["component"] = "data_length"
-				acc.AddFields(newNamespace("info_schema", "table_size", "data_length"),
-					map[string]interface{}{"value": dataLength}, dlTags)
-
-				ilTags := copyTags(tags)
-				ilTags["component"] = "index_length"
-				acc.AddFields(newNamespace("info_schema", "table_size", "index_length"),
-					map[string]interface{}{"value": indexLength}, ilTags)
-
-				dfTags := copyTags(tags)
-				dfTags["component"] = "data_free"
-				acc.AddFields(newNamespace("info_schema", "table_size", "data_free"),
-					map[string]interface{}{"value": dataFree}, dfTags)
-			} else {
-				acc.AddFields("mysql_table_schema",
-					map[string]interface{}{"rows": tableRows}, tags)
-
-				acc.AddFields("mysql_table_schema",
-					map[string]interface{}{"data_length": dataLength}, tags)
-
-				acc.AddFields("mysql_table_schema",
-					map[string]interface{}{"index_length": indexLength}, tags)
-
-				acc.AddFields("mysql_table_schema",
-					map[string]interface{}{"data_free": dataFree}, tags)
-			}
+			fields := make(map[string]interface{})
 
 			versionTags := copyTags(tags)
 			versionTags["type"] = tableType
@@ -1242,7 +1291,13 @@ func (m *Mysql) gatherTableSchema() error {
 			versionTags["row_format"] = rowFormat
 			versionTags["create_options"] = createOptions
 
-			pt, err := io.MakeMetric(mysql.MetricName, tags, fields, time.Now())
+			fields["rows"] = tableRows
+			fields["data_length"] = dataLength
+			fields["index_length"] = indexLength
+			fields["data_free"] = dataFree
+			fields["table_version"] = version
+
+			pt, err := io.MakeMetric(m.MetricName, versionTags, fields, time.Now())
 			if err != nil {
 				l.Errorf("make metric point error %v", err)
 			}
@@ -1256,7 +1311,7 @@ func (m *Mysql) gatherTableSchema() error {
 	return nil
 }
 
-func (m *Mysql) parseValue(value sql.RawBytes) (interface{}, bool) {
+func (m *MysqlMonitor) parseValue(value sql.RawBytes) (interface{}, bool) {
 	return parseValue(value)
 }
 
@@ -1319,11 +1374,6 @@ func findThreadState(rawCommand, rawState string) string {
 	return "other"
 }
 
-// newNamespace can be used to make a namespace
-func newNamespace(words ...string) string {
-	return strings.Replace(strings.Join(words, "_"), " ", "_", -1)
-}
-
 func copyTags(in map[string]string) map[string]string {
 	out := make(map[string]string)
 	for k, v := range in {
@@ -1345,10 +1395,98 @@ func dsnAddTimeout(dsn string) (string, error) {
 	return conf.FormatDSN(), nil
 }
 
+// newNamespace can be used to make a namespace
+func newNamespace(words ...string) string {
+	return strings.Replace(strings.Join(words, "_"), " ", "_", -1)
+}
+
 func getDSNTag(dsn string) string {
 	conf, err := mysql.ParseDSN(dsn)
 	if err != nil {
 		return "127.0.0.1:3306"
 	}
 	return conf.Addr
+}
+
+func (m *MysqlMonitor) gatherExtend(db *sql.DB, serv string) {
+	for key, item := range metricMap {
+		resMap, err := m.query(db, serv, item)
+		if err != nil {
+			l.Errorf("mysql query faild %v", err)
+		}
+
+		servtag := getDSNTag(serv)
+
+		m.handleResponse(key, servtag, resMap)
+	}
+}
+
+func (m *MysqlMonitor) handleResponse(mm string, servtag string, response []map[string]interface{}) error {
+	for _, item := range response {
+		tags := map[string]string{"server": servtag}
+		tags["metricType"] = mm
+
+		pt, err := io.MakeMetric(m.MetricName, tags, item, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %v", err)
+		}
+
+		err = io.NamedFeed([]byte(pt), io.Metric, name)
+		if err != nil {
+			l.Errorf("push metric point error %v", err)
+		}
+	}
+
+	return nil
+}
+
+func (r *MysqlMonitor) query(db *sql.DB, serv string, sql string) ([]map[string]interface{}, error) {
+	rows, err := db.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	columns, _ := rows.Columns()
+	columnLength := len(columns)
+	cache := make([]interface{}, columnLength)
+	for idx, _ := range cache {
+		var a interface{}
+		cache[idx] = &a
+	}
+	var list []map[string]interface{}
+	for rows.Next() {
+		_ = rows.Scan(cache...)
+
+		item := make(map[string]interface{})
+		for i, data := range cache {
+			key := strings.ToLower(columns[i])
+			val := *data.(*interface{})
+
+			if val != nil {
+				vType := reflect.TypeOf(val)
+
+				switch vType.String() {
+				case "int64":
+					item[key] = val.(int64)
+				case "string":
+					var data interface{}
+					data, err := strconv.ParseFloat(val.(string), 64)
+					if err != nil {
+						data = val
+					}
+					item[key] = data
+				case "time.Time":
+					item[key] = val.(time.Time)
+				case "[]uint8":
+					item[key] = string(val.([]uint8))
+				default:
+					return nil, fmt.Errorf("unsupport data type '%s' now\n", vType)
+				}
+			}
+		}
+
+		list = append(list, item)
+	}
+	return list, nil
 }
