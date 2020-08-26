@@ -117,9 +117,9 @@ func (d *DataClean) Run() {
 		d.write.addHttpWriter(config.Cfg.MainCfg.DataWayRequestURL)
 	}
 
-	if config.Cfg.MainCfg.OutputFile != "" {
-		d.write.addFileWriter(config.Cfg.MainCfg.OutputFile)
-	}
+	// if config.Cfg.MainCfg.OutputFile != "" {
+	// 	d.write.addFileWriter(config.Cfg.MainCfg.OutputFile)
+	// }
 
 	go func() {
 		<-datakit.Exit.Wait()
