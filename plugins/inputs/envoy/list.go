@@ -6,7 +6,7 @@ var collectList = map[string]interface{}{
 	"envoy_cluster_manager_cluster_removed":                     nil,
 	"envoy_cluster_manager_cluster_updated":                     nil,
 	"envoy_cluster_manager_cluster_updated_via_merge":           nil,
-	"envoy_cluster_manager_update_merge_cancelled":              nil,
+	"envoy_cluster_manager_update_merge_cancelled":              nil, //nolint:misspell
 	"envoy_cluster_manager_update_out_of_merge_window":          nil,
 	"envoy_filesystem_flushed_by_timer":                         nil,
 	"envoy_filesystem_reopen_failed":                            nil,
