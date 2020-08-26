@@ -13,7 +13,7 @@ var (
 	ServiceExecutable  string
 	ServiceArguments   []string
 
-	Entry func() error
+	Entry func()
 
 	StopCh     = make(chan interface{})
 	waitstopCh = make(chan interface{})
@@ -48,19 +48,27 @@ func StartService() error {
 		return err
 	}
 
-	errch := make(chan error, 5)
+	errch := make(chan error, CommonChanCap)
 	logger, err = svc.Logger(errch)
 	if err != nil {
 		return err
 	}
 
-	logger.Info("datakit set service logger ok, starting...")
-
-	if err := svc.Run(); err != nil {
-		logger.Errorf("start service failed: %s", err.Error())
+	if err := logger.Info("datakit set service logger ok, starting..."); err != nil {
+		return err
 	}
 
-	logger.Info("datakit service exited")
+	if err := svc.Run(); err != nil {
+		if serr := logger.Errorf("start service failed: %s", err.Error()); serr != nil {
+			return serr
+		}
+		return err
+	}
+
+	if err := logger.Info("datakit service exited"); err != nil {
+		return err
+	}
+
 	return nil
 }
 
