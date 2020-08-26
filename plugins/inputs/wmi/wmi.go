@@ -8,7 +8,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -101,7 +100,7 @@ func (r *Instance) run(ctx context.Context) error {
 			query.lastTime = time.Now()
 		}
 
-		internal.SleepContext(ctx, time.Second)
+		datakit.SleepContext(ctx, time.Second)
 	}
 }
 
