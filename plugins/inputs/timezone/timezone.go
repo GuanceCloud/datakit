@@ -43,28 +43,28 @@ const (
 )
 
 var (
-	name                 = "timezone"
-	timeZoneConfigSample = `### active     : whether to monitor timezone changes.
+	inputName = "timezone"
+	Sample    = `### active     : whether to monitor timezone changes.
 ### interval   : monitor interval, the default value is "60s".
 ### metricsName: the name of metric, default is "timezone"
 
-#[inputs.timezone]
-#  active      = true
-#  interval    = "60s"
-#  metricsName = "timezone"
-#  [inputs.timezone.tags]
+[inputs.timezone]
+  active      = true
+  interval    = "60s"
+  metricsName = "timezone"
+  [inputs.timezone.tags]
+		host = '{{.Hostname}}'
 #    tag1 = "tag1"
 #    tag2 = "tag2"
-#    tagn = "tagn"
-`
+#    tagn = "tagn"`
 )
 
 func (t *Timezone) SampleConfig() string {
-	return timeZoneConfigSample
+	return Sample
 }
 
 func (t *Timezone) Catalog() string {
-	return "timezone"
+	return "host"
 }
 
 func (t *Timezone) Run() {
@@ -94,7 +94,7 @@ func (p *TzParams) gather() {
 
 	switch p.input.Interval.(type) {
 	case int64:
-		d = time.Duration(p.input.Interval.(int64))*time.Second
+		d = time.Duration(p.input.Interval.(int64)) * time.Second
 	case string:
 		d, err = time.ParseDuration(p.input.Interval.(string))
 		if err != nil {
@@ -139,7 +139,7 @@ func (p *TzParams) getMetrics() error {
 		return err
 	}
 
-	if err := p.output.ioFeed(pt, io.Metric, name); err != nil {
+	if err := p.output.ioFeed(pt, io.Metric, inputName); err != nil {
 		return err
 	}
 	return nil
@@ -165,7 +165,7 @@ func getOsTimezone() (string, error) {
 }
 
 func init() {
-	inputs.Add(name, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		tz := &Timezone{}
 		return tz
 	})
