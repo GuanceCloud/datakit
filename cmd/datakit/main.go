@@ -99,13 +99,13 @@ func showAllConfigSamples() {
 	}
 }
 
-func run() error {
+func run() {
 
 	inputs.StartTelegraf()
 
 	l.Info("datakit start...")
 	if err := runDatakitWithHTTPServer(); err != nil {
-		return err
+		return
 	}
 
 	l.Info("datakit start ok. Wait signal or service stop...")
@@ -135,7 +135,6 @@ func run() error {
 	}
 
 	l.Info("datakit exit.")
-	return nil
 }
 
 func tryLoadConfig() {
