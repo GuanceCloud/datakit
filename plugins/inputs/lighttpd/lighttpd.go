@@ -17,24 +17,24 @@ const (
 
 	sampleCfg = `
 [[inputs.lighttpd]]
-	# lighttpd status url
-	# required
-	url = "http://127.0.0.1:8080/server-status"
-
-	# lighttpd version is "v1" or "v2"
-	# required
-	version = "v1"
-
-	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	# required
-	interval = "10s"
-
-	# [inputs.lighttpd.tags]
-	# tags1 = "value1"
+    # lighttpd status url
+    # required
+    url = "http://127.0.0.1:8080/server-status"
+    
+    # lighttpd version is "v1" or "v2"
+    # required
+    version = "v1"
+    
+    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    # required
+    interval = "10s"
+    
+    # [inputs.lighttpd.tags]
+    # tags1 = "value1"
 `
 )
 
-var l *logger.Logger
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -57,11 +57,11 @@ type Lighttpd struct {
 	duration time.Duration
 }
 
-func (_ *Lighttpd) SampleConfig() string {
+func (Lighttpd) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *Lighttpd) Catalog() string {
+func (Lighttpd) Catalog() string {
 	return inputName
 }
 
@@ -83,7 +83,7 @@ func (h *Lighttpd) Run() {
 			return
 
 		case <-ticker.C:
-			data, err := LighttpdStatusParse(h.statusURL, h.statusVersion, h.Tags)
+			data, err := h.getMetrics()
 			if err != nil {
 				l.Error(err)
 				continue
@@ -112,7 +112,7 @@ func (h *Lighttpd) loadcfg() bool {
 			// nil
 		}
 
-		d, err := time.ParseDuration(h.CollectCycle)
+		d, err := time.ParseDuration(h.Interval)
 		if err != nil || d <= 0 {
 			l.Errorf("invalid interval, %s", err.Error())
 			time.Sleep(time.Second)

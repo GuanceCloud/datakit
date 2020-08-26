@@ -44,8 +44,7 @@ func ParseV2(prodata io.Reader) ([]telegraf.Metric, error) {
 			} else {
 				// standard metric
 				// reading fields
-				fields := make(map[string]interface{})
-				fields = getNameAndValueV2(m, metricName)
+				fields := getNameAndValueV2(m, metricName)
 				// converting to telegraf metric
 				if len(fields) > 0 {
 					var t time.Time
@@ -54,9 +53,9 @@ func ParseV2(prodata io.Reader) ([]telegraf.Metric, error) {
 					} else {
 						t = now
 					}
-					metric, err := metric.New(_PROMETHEUS_TO_METRIC_MEASUREMENT, tags, fields, t, valueType(mf.GetType()))
+					metricData, err := metric.New(_PROMETHEUS_TO_METRIC_MEASUREMENT, tags, fields, t, valueType(mf.GetType()))
 					if err == nil {
-						metrics = append(metrics, metric)
+						metrics = append(metrics, metricData)
 					}
 				}
 			}
