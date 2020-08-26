@@ -7,7 +7,7 @@ import (
 
 const (
 	configSample = `
-#[[inputs.mysql]]
+#[[inputs.mysqlmonitor]]
 ## specify servers via a url matching:
 ##  [username[:password]@][protocol[(address)]]/[?tls=[true|false|skip-verify|custom]]
 ##  see https://github.com/go-sql-driver/mysql#dsn-data-source-name
@@ -36,6 +36,8 @@ servers = ["tcp(127.0.0.1:3306)/"]
 # gather_binary_logs = false
 ## gather metrics from PERFORMANCE_SCHEMA.GLOBAL_VARIABLES
 # gather_global_variables = true
+## gather metrics from PERFORMANCE_SCHEMA.GLOBAL_STATUS
+# gather_global_status = true
 ## gather metrics from PERFORMANCE_SCHEMA.TABLE_IO_WAITS_SUMMARY_BY_TABLE
 # gather_table_io_waits = false
 ## gather metrics from PERFORMANCE_SCHEMA.TABLE_LOCK_WAITS
@@ -52,9 +54,6 @@ servers = ["tcp(127.0.0.1:3306)/"]
 # perf_events_statements_digest_text_limit = 120
 # perf_events_statements_limit = 250
 # perf_events_statements_time_limit = 86400
-## Some queries we may want to run less often (such as SHOW GLOBAL VARIABLES)
-##   example: interval_slow = "30m"
-# interval_slow = ""
 ## Optional TLS Config (will be used if tls=custom parameter specified in server uri)
 # tls_ca = "/etc/telegraf/ca.pem"
 # tls_cert = "/etc/telegraf/cert.pem"
@@ -65,28 +64,31 @@ servers = ["tcp(127.0.0.1:3306)/"]
 )
 
 type MysqlMonitor struct {
-	Servers                             []string `toml:"servers"`
-	PerfEventsStatementsDigestTextLimit int64    `toml:"perf_events_statements_digest_text_limit"`
-	PerfEventsStatementsLimit           int64    `toml:"perf_events_statements_limit"`
-	PerfEventsStatementsTimeLimit       int64    `toml:"perf_events_statements_time_limit"`
-	TableSchemaDatabases                []string `toml:"table_schema_databases"`
-	GatherProcessList                   bool     `toml:"gather_process_list"`
-	GatherUserStatistics                bool     `toml:"gather_user_statistics"`
-	GatherInfoSchemaAutoInc             bool     `toml:"gather_info_schema_auto_inc"`
-	GatherInnoDBMetrics                 bool     `toml:"gather_innodb_metrics"`
-	GatherSlaveStatus                   bool     `toml:"gather_slave_status"`
-	GatherBinaryLogs                    bool     `toml:"gather_binary_logs"`
-	GatherTableIOWaits                  bool     `toml:"gather_table_io_waits"`
-	GatherTableLockWaits                bool     `toml:"gather_table_lock_waits"`
-	GatherIndexIOWaits                  bool     `toml:"gather_index_io_waits"`
-	GatherEventWaits                    bool     `toml:"gather_event_waits"`
-	GatherTableSchema                   bool     `toml:"gather_table_schema"`
-	GatherFileEventsStats               bool     `toml:"gather_file_events_stats"`
-	GatherPerfEventsStatements          bool     `toml:"gather_perf_events_statements"`
-	GatherGlobalVars                    bool     `toml:"gather_global_variables"`
-	IntervalSlow                        string   `toml:"interval_slow"`
+	Servers                             []string      `toml:"servers"`
+	MetricName                          string        `toml:"metricName"`
+	Interval                            string        `toml:"interval"`
+	IntervalDuration                    time.Duration `json:"-" toml:"-"`
+	PerfEventsStatementsDigestTextLimit int64         `toml:"perf_events_statements_digest_text_limit"`
+	PerfEventsStatementsLimit           int64         `toml:"perf_events_statements_limit"`
+	PerfEventsStatementsTimeLimit       int64         `toml:"perf_events_statements_time_limit"`
+	TableSchemaDatabases                []string      `toml:"table_schema_databases"`
+	GatherProcessList                   bool          `toml:"gather_process_list"`
+	GatherUserStatistics                bool          `toml:"gather_user_statistics"`
+	GatherInfoSchemaAutoInc             bool          `toml:"gather_info_schema_auto_inc"`
+	GatherInnoDBMetrics                 bool          `toml:"gather_innodb_metrics"`
+	GatherSlaveStatus                   bool          `toml:"gather_slave_status"`
+	GatherBinaryLogs                    bool          `toml:"gather_binary_logs"`
+	GatherTableIOWaits                  bool          `toml:"gather_table_io_waits"`
+	GatherTableLockWaits                bool          `toml:"gather_table_lock_waits"`
+	GatherIndexIOWaits                  bool          `toml:"gather_index_io_waits"`
+	GatherEventWaits                    bool          `toml:"gather_event_waits"`
+	GatherTableSchema                   bool          `toml:"gather_table_schema"`
+	GatherFileEventsStats               bool          `toml:"gather_file_events_stats"`
+	GatherPerfEventsStatements          bool          `toml:"gather_perf_events_statements"`
+	GatherGlobalVars                    bool          `toml:"gather_global_variables"`
+	GatherGlobalStatus                  bool          `toml:"gather_global_status"`
+	IntervalSlow                        string        `toml:"interval_slow"`
 
-	tls.ClientConfig
 	lastT            time.Time
 	initDone         bool
 	scanIntervalSlow uint32
