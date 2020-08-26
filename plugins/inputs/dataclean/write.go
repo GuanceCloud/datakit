@@ -4,18 +4,16 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"sync/atomic"
 	"time"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/serializers"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/rotate"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
@@ -43,16 +41,6 @@ type httpWriter struct {
 	path   string
 	query  url.Values
 	bgzip  bool
-}
-
-type fileWriter struct {
-	Files               []string
-	RotationInterval    time.Duration
-	RotationMaxSize     int64
-	RotationMaxArchives int
-
-	writer  io.Writer
-	closers []io.Closer
 }
 
 type writerMgr struct {
@@ -95,13 +83,6 @@ func (wm *writerMgr) addHttpWriter(remote string) {
 	wm.writers = append(wm.writers, w)
 }
 
-func (wm *writerMgr) addFileWriter(file string) {
-	w, err := newFileWritfer([]string{file})
-	if err == nil {
-		wm.writers = append(wm.writers, w)
-	}
-}
-
 func newhttpWriter(schema, host, path string, query url.Values) writer {
 	w := &httpWriter{
 		schema: schema,
@@ -117,36 +98,6 @@ func newhttpWriter(schema, host, path string, query url.Values) writer {
 		Timeout: defaultClientTimeout,
 	}
 	return w
-}
-
-func newFileWritfer(files []string) (writer, error) {
-	f := &fileWriter{
-		Files: files,
-	}
-
-	writers := []io.Writer{}
-
-	if len(f.Files) == 0 {
-		f.Files = []string{"stdout"}
-	}
-
-	for _, file := range f.Files {
-		if file == "stdout" {
-			writers = append(writers, os.Stdout)
-		} else {
-			of, err := rotate.NewFileWriter(file, f.RotationInterval, f.RotationMaxSize, f.RotationMaxArchives)
-			if err != nil {
-				moduleLogger.Errorf("open file %s failed, %s", file, err)
-				return nil, err
-			}
-
-			writers = append(writers, of)
-			f.closers = append(f.closers, of)
-		}
-	}
-	f.writer = io.MultiWriter(writers...)
-
-	return f, nil
 }
 
 func (wm *writerMgr) add(req *reqinfo) {
@@ -239,16 +190,12 @@ func (w *httpWriter) close() error {
 
 func (w *httpWriter) write(data []byte, ri *reqinfo) error {
 
-	var reqBodyBuffer io.Reader = bytes.NewBuffer(data)
-
 	var err error
 	if w.bgzip {
-		rc, err := internal.CompressWithGzip(reqBodyBuffer)
+		data, err = datakit.GZip(data)
 		if err != nil {
 			return err
 		}
-		defer rc.Close()
-		reqBodyBuffer = rc
 	}
 
 	u := ri.origUrl
@@ -256,7 +203,7 @@ func (w *httpWriter) write(data []byte, ri *reqinfo) error {
 	u.Host = w.host
 	u.Path = w.path
 
-	//保留ftdataway的参数，同时带上url如果有特定参数(如果和ftdataway的参数重复，则ftdataway优先)
+	//保留dataway的参数，同时带上url如果有特定参数(如果和dataway的参数重复，则ftdataway优先)
 	query := make(url.Values)
 	for k, v := range w.query {
 		query[k] = v
@@ -270,29 +217,17 @@ func (w *httpWriter) write(data []byte, ri *reqinfo) error {
 
 	u.RawQuery = query.Encode()
 
-	req, err := http.NewRequest("POST", u.String(), reqBodyBuffer)
+	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
 
-	// if h.Username != "" || h.Password != "" {
-	// 	req.SetBasicAuth(h.Username, h.Password)
-	// }
-
-	//req.Header.Set("User-Agent", "Telegraf/"+internal.Version())
 	if ri.headers != nil {
 		req.Header = ri.headers
 	}
-	//req.Header.Set("Content-Type", defaultContentType)
 	if w.bgzip {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
-	// for k, v := range h.Headers {
-	// 	if strings.ToLower(k) == "host" {
-	// 		req.Host = v
-	// 	}
-	// 	req.Header.Set(k, v)
-	// }
 
 	moduleLogger.Debugf("final url: %s", u)
 	moduleLogger.Debugf("final header: %s", req.Header)
@@ -309,23 +244,4 @@ func (w *httpWriter) write(data []byte, ri *reqinfo) error {
 	}
 
 	return nil
-}
-
-func (f *fileWriter) write(data []byte, _ *reqinfo) error {
-	_, err := f.writer.Write(data)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (f *fileWriter) close() error {
-	var err error
-	for _, c := range f.closers {
-		errClose := c.Close()
-		if errClose != nil {
-			err = errClose
-		}
-	}
-	return err
 }

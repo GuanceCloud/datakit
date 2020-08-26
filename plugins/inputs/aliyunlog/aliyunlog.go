@@ -19,9 +19,10 @@ import (
 	consumerLibrary "github.com/aliyun/aliyun-log-go-sdk/consumer"
 )
 
-const inputName = `aliyunlog`
-
-var moduleLogger *logger.Logger
+var (
+	inputName    = `aliyunlog`
+	moduleLogger *logger.Logger
+)
 
 type runningProject struct {
 	inst *ConsumerInstance
@@ -52,10 +53,6 @@ func (_ *ConsumerInstance) Catalog() string {
 func (_ *ConsumerInstance) SampleConfig() string {
 	return aliyunlogConfigSample
 }
-
-// func (_ *AliyunLog) Description() string {
-// 	return "Collect logs from aliyun SLS"
-// }
 
 func (al *ConsumerInstance) Run() {
 
@@ -260,7 +257,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 							if fval, err := strconv.ParseFloat(strval, 64); err == nil {
 								nval = int64(math.Floor(fval))
 							} else {
-								//r.logger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
+								moduleLogger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
 							}
 						} else {
 							fields[k] = nval
@@ -268,7 +265,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 					case "float":
 						fval, err := strconv.ParseFloat(strval, 64)
 						if err != nil {
-							//r.logger.Warnf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
+							moduleLogger.Warnf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
 						} else {
 							fields[k] = fval
 						}
