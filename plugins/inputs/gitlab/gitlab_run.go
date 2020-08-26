@@ -17,7 +17,7 @@ func (g *GitlabParam) gather() {
 
 	switch g.input.Interval.(type) {
 	case int64:
-		d = time.Duration(g.input.Interval.(int64))*time.Second
+		d = time.Duration(g.input.Interval.(int64)) * time.Second
 	case string:
 		d, err = time.ParseDuration(g.input.Interval.(string))
 		if err != nil {
@@ -190,7 +190,7 @@ func (p *GitlabParam) getCommitMetrics(client *gitlab.Client, start time.Time, s
 				return err
 			}
 
-			err = p.output.IoFeed(pts, io.Metric, name)
+			err = p.output.IoFeed(pts, io.Metric, inputName)
 			p.log.Debugf(string(pts))
 			if err != nil {
 				return err
