@@ -155,7 +155,7 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 			t.SpanType = trace.SPAN_TYPE_EXIT
 		}
 		t.EndPoint = span.Peer
-		t.Tags = SkywalkingTagsV3
+		t.Tags = SkywalkingTagsV2
 
 		adapterGroup = append(adapterGroup, t)
 	}
