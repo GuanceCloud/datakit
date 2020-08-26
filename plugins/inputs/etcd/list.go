@@ -34,8 +34,8 @@ var (
 		"etcd_server_proposals_committed_total":                       nil,
 		"etcd_server_proposals_pending":                               nil,
 		"go_memstats_heap_objects":                                    nil,
-		"etcd_debugging_snap_save_marshalling_duration_seconds_count": nil,
-		"etcd_debugging_snap_save_marshalling_duration_seconds_sum":   nil,
+		"etcd_debugging_snap_save_marshalling_duration_seconds_count": nil, //nolint:misspell
+		"etcd_debugging_snap_save_marshalling_duration_seconds_sum":   nil, //nolint:misspell
 		"go_memstats_heap_inuse_bytes":                                nil,
 		"process_virtual_memory_bytes":                                nil,
 		"etcd_grpc_proxy_cache_keys_total":                            nil,
