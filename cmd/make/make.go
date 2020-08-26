@@ -192,7 +192,7 @@ func compile() {
 
 		goos, goarch := parts[0], parts[1]
 
-		dir := fmt.Sprintf("build/%s-%s-%s", *flagName, goos, goarch)
+		dir := fmt.Sprintf("%s/%s-%s-%s", *flagBuildDir, *flagName, goos, goarch)
 
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -276,7 +276,7 @@ func releaseAgent() {
 
 	oc := &cliutils.OssCli{
 		Host:       ossHost,
-		PartSize:   128 * 1024 * 1024,
+		PartSize:   512 * 1024 * 1024,
 		AccessKey:  ak,
 		SecretKey:  sk,
 		BucketName: bucket,
@@ -388,7 +388,7 @@ func tarFiles(goos, goarch string) {
 		`czf`,
 		gz,
 		`-C`,
-		// the whole build/datakit-<goos>-<goarch> dir
+		// the whole *flagBuildDir/datakit-<goos>-<goarch> dir
 		path.Join(*flagBuildDir, fmt.Sprintf("%s-%s-%s", *flagName, goos, goarch)), `.`,
 	}
 
@@ -407,7 +407,7 @@ func tarFiles(goos, goarch string) {
 type dkexternal struct {
 	name string
 
-	lang string // go/python/java
+	lang string // go/others
 
 	entry     string
 	buildArgs []string
@@ -421,6 +421,7 @@ type dkexternal struct {
 var (
 	externals = []*dkexternal{
 		&dkexternal{
+			// requirement: apt-get install gcc-multilib
 			name: "oraclemonitor",
 			lang: "go",
 
@@ -455,7 +456,6 @@ var (
 
 		&dkexternal{
 			name: "csv",
-			lang: "python",
 			osarchs: map[string]bool{
 				`linux/386`:     true,
 				`linux/amd64`:   true,
@@ -470,7 +470,6 @@ var (
 		},
 		&dkexternal{
 			name: "ansible",
-			lang: "python",
 			osarchs: map[string]bool{
 				`linux/386`:     true,
 				`linux/amd64`:   true,
@@ -482,6 +481,28 @@ var (
 			},
 			buildArgs: []string{"plugins/externals/ansible/build.sh"},
 			buildCmd:  "bash",
+		},
+
+		&dkexternal{
+			// requirement: apt-get install gcc-multilib
+			name: "skywalkingGrpcV3",
+			lang: "go",
+
+			entry: "main.go",
+			osarchs: map[string]bool{
+				`linux/386`:   true,
+				`linux/amd64`: true,
+				//`linux/arm`:     true,
+				//`linux/arm64`:   true,
+				//`darwin/amd64`:  true,
+				`windows/amd64`: true,
+				`windows/386`:   true,
+			},
+
+			buildArgs: nil,
+			envs: []string{
+				"CGO_ENABLED=1",
+			},
 		},
 
 		// others...
@@ -531,7 +552,7 @@ func buildExternals(outdir, goos, goarch string) {
 				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 			}
 
-		case "python", "py": // for python, just copy source code into build dir
+		default: // for python, just copy source code into build dir
 			args := append(ex.buildArgs, filepath.Join(outdir, "externals"))
 			cmd := exec.Command(ex.buildCmd, args...)
 			if ex.envs != nil {
@@ -542,12 +563,6 @@ func buildExternals(outdir, goos, goarch string) {
 			if err != nil {
 				l.Fatalf("failed to build python(%s %s): %s, err: %s", ex.buildCmd, strings.Join(args, " "), res, err.Error())
 			}
-
-		case "java":
-			// TODO
-
-		default:
-			l.Fatalf("unknown external language type: %s", ex.lang)
 		}
 	}
 }
@@ -560,7 +575,7 @@ func buildInstaller(outdir, goos, goarch string) {
 		"go", "build",
 		"-o", filepath.Join(outdir, installerExe),
 		"-ldflags",
-		fmt.Sprintf("-w -s -X main.DataKitBaseUrl=%s -X main.DataKitVersion=%s", *flagDownloadAddr, git.Version),
+		fmt.Sprintf("-w -s -X main.DataKitBaseURL=%s -X main.DataKitVersion=%s", *flagDownloadAddr, git.Version),
 		"cmd/installer/installer.go",
 	}
 
@@ -571,7 +586,7 @@ func buildInstaller(outdir, goos, goarch string) {
 
 	msg, err := runEnv(args, env)
 	if err != nil {
-		l.Errorf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+		l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
 	}
 }
 
