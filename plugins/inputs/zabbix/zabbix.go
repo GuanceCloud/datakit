@@ -31,10 +31,10 @@ const (
 var (
 	defaultDataDir   = "data"
 	defaultInterval  = "60s"
-	defaultZabbixDir = name
+	defaultZabbixDir = "zabbix"
 	defaultStartDate = "2019-12-02T00:00:00"
 	locker           sync.Mutex
-	name             = "zabbix"
+	inputName        = "zabbix"
 )
 
 type Zabbix struct {
@@ -114,7 +114,7 @@ func PathExists(path string) bool {
 }
 
 func init() {
-	inputs.Add(name, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		z := &Zabbix{}
 		return z
 	})

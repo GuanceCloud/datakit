@@ -2,17 +2,16 @@ package zabbix
 
 import (
 	"database/sql"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 )
 
 const (
-	nanosPerSecond     = int64(time.Second / time.Nanosecond)
-	nanosPerMillisecond = int64(time.Millisecond / time.Nanosecond)
+	nanosPerSecond = int64(time.Second / time.Nanosecond)
 )
 
 type Extracter struct {
@@ -52,7 +51,7 @@ func (e *Extracter) getSQL() string {
 		strings.Replace(
 			query,
 			"##STARTDATE##", e.Starttime, -1),
-		    "##ENDDATE##", e.Endtime, -1)
+		"##ENDDATE##", e.Endtime, -1)
 }
 
 func (e *Extracter) Extract() error {
@@ -108,4 +107,3 @@ func NsToTime(ns string) (time.Time, error) {
 	return time.Unix(nsInt/nanosPerSecond,
 		nsInt%nanosPerSecond), nil
 }
-

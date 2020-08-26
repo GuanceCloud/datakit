@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/influxdata/toml"
 
@@ -94,7 +93,7 @@ func TestInput(t *testing.T) {
 	config.Cfg.MainCfg.DataWay.Host = "openway.dataflux.cn"
 	config.Cfg.MainCfg.DataWay.Token = "tkn_61c438e7786141d8988dcdf92f899b3f"
 	config.Cfg.MainCfg.DataWay.Scheme = "https"
-	config.Cfg.MainCfg.Interval.Duration = time.Second * 10
+	config.Cfg.MainCfg.Interval = `10s`
 
 	io.Start()
 
