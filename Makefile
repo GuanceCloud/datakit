@@ -15,6 +15,8 @@ PRE_DOWNLOAD_ADDR = zhuyun-static-files-preprod.oss-cn-hangzhou.aliyuncs.com/dat
 LOCAL_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit
 
 PUB_DIR = pub
+BUILD_DIR = build
+
 BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
@@ -41,9 +43,12 @@ DATE := $(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION := $(shell go version)
 COMMIT := $(shell git rev-parse --short HEAD)
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
-UPLOADER:= $(shell hostname)/${USER}
+COMMITER := $(shell git log -1 --pretty=format:'%an')
+UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
+
 NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(VERSION))"}}')
 NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(VERSION))"}}')
+NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行DataKit CI，此刻请勿在CI分支(dev/master)提交代码，避免CI任务失败[摊手]"}}')
 
 ###################################
 # Detect telegraf update info
@@ -58,25 +63,39 @@ endif
 
 all: test release preprod local
 
+define GIT_INFO
+//nolint
+package git
+const (
+	BuildAt string="$(DATE)"
+	Version string="$(VERSION)"
+	Golang string="$(GOVERSION)"
+	Commit string="$(COMMIT)"
+	Branch string="$(BRANCH)"
+	Uploader string="$(UPLOADER)"
+);
+endef
+export GIT_INFO
+
 define build
 	@echo "===== $(BIN) $(1) ===="
 	@rm -rf $(PUB_DIR)/$(1)/*
-	@mkdir -p build $(PUB_DIR)/$(1)
+	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
 	@mkdir -p git
-	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Commit string="$(COMMIT)"; Branch string="$(BRANCH)"; Uploader string="$(UPLOADER)");' > git/git.go
-	GO111MODULE=off go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build  \
+	@echo "$$GIT_INFO" > git/git.go
+	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
-	tree -Csh -L 4 build pub
+	@tree -Csh -L 3 $(BUILD_DIR) $(PUB_DIR)
 endef
 
 define pub
-	echo "publish $(1) $(NAME) ..."
-	GO111MODULE=off go run cmd/make/make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
+	@echo "publish $(1) $(NAME) ..."
+	@GO111MODULE=off go run cmd/make/make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
 endef
 
 check:
-	@go vet ./...
-	#@golangci-lint run --timeout 1h # https://golangci-lint.run/usage/install/#local-installation
+	@golangci-lint run | tee lint.err # https://golangci-lint.run/usage/install/#local-installation
+	@#go vet ./...
 
 local:
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
@@ -133,6 +152,12 @@ release_notify:
 		-H 'Content-Type: application/json' \
 		-d '$(NOTIFY_MSG_RELEASE)'
 
+ci_notify:
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87' \
+		-H 'Content-Type: application/json' \
+		-d '$(NOTIFY_CI)'
+
 define build_agent
 	git rm -rf telegraf
 	- git submodule add -f https://github.com/influxdata/telegraf.git
@@ -169,4 +194,3 @@ agent:
 clean:
 	rm -rf build/*
 	rm -rf $(PUB_DIR)/*
-	rm -rf embed/*

@@ -2,12 +2,12 @@ package io
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
@@ -20,25 +20,43 @@ import (
 )
 
 var (
-	input    chan *iodata
-	qstatsCh chan *qstats
-
 	l       *logger.Logger
+	httpCli *http.Client
 	baseURL string
 
-	httpCli      *http.Client
+	inputCh    = make(chan *iodata, datakit.CommonChanCap)
+	inputstats = map[string]*InputsStat{}
+
+	qstatsCh = make(chan *qstats)
+
+	cache = map[string][][]byte{
+		MetricDeprecated: nil,
+		Metric:           nil,
+		KeyEvent:         nil,
+		Object:           nil,
+		Logging:          nil,
+	}
+
 	categoryURLs map[string]string
 
 	outputFile     *os.File
 	outputFileSize int64
+	cookies        string
 )
 
 const ( // categories
-	__MetricDeprecated = "/v1/write/metrics"
-	Metric             = "/v1/write/metric"
-	KeyEvent           = "/v1/write/keyevent"
-	Object             = "/v1/write/object"
-	Logging            = "/v1/write/logging"
+	MetricDeprecated = "/v1/write/metrics"
+	Metric           = "/v1/write/metric"
+	KeyEvent         = "/v1/write/keyevent"
+	Object           = "/v1/write/object"
+	Logging          = "/v1/write/logging"
+
+	minGZSize = 1024
+
+	httpDiv = 100
+	httpOk  = 2
+	httpBad = 4
+	httpErr = 5
 )
 
 type iodata struct {
@@ -56,17 +74,13 @@ type InputsStat struct {
 }
 
 type qstats struct {
-	name string
-	ch   chan []*InputsStat
+	ch chan []*InputsStat
 }
 
-func init() {
-	input = make(chan *iodata, 128)
-	qstatsCh = make(chan *qstats)
-
-	httpCli = &http.Client{
-		Timeout: time.Second,
-	}
+func ChanInfo() (l, c int) {
+	l = len(inputCh)
+	c = cap(inputCh)
+	return
 }
 
 // Deprecated
@@ -82,7 +96,7 @@ func doFeed(data []byte, category, name string) error {
 	}
 
 	select {
-	case input <- &iodata{
+	case inputCh <- &iodata{
 		category: category,
 		data:     data,
 		name:     name,
@@ -95,25 +109,25 @@ func doFeed(data []byte, category, name string) error {
 	return nil
 }
 
-func NamedFeed(data []byte, catagory, name string) error {
-	return doFeed(data, catagory, name)
+func NamedFeed(data []byte, category, name string) error {
+	return doFeed(data, category, name)
 }
 
 // Deprecated
-func FeedEx(catagory string, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
-	return doFeedEx("", catagory, metric, tags, fields, t...)
+func FeedEx(category, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+	return doFeedEx("", category, metric, tags, fields, t...)
 }
 
-func NamedFeedEx(name, catagory string, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
-	return doFeedEx(name, catagory, metric, tags, fields, t...)
+func NamedFeedEx(name, category, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+	return doFeedEx(name, category, metric, tags, fields, t...)
 }
 
-func doFeedEx(name, catagory string, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+func doFeedEx(name, category, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
 	data, err := MakeMetric(metric, tags, fields, t...)
 	if err != nil {
 		return err
 	}
-	return doFeed(data, catagory, name)
+	return doFeed(data, category, name)
 }
 
 func MakeMetric(name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) ([]byte, error) {
@@ -159,24 +173,24 @@ func startIO() {
 
 	categoryURLs = map[string]string{
 
-		__MetricDeprecated: baseURL + __MetricDeprecated + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Metric:             baseURL + Metric + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		KeyEvent:           baseURL + KeyEvent + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Object:             baseURL + Object + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Logging:            baseURL + Logging + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		MetricDeprecated: baseURL + MetricDeprecated + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		Metric:           baseURL + Metric + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		KeyEvent:         baseURL + KeyEvent + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		Object:           baseURL + Object + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		Logging:          baseURL + Logging + "?token=" + config.Cfg.MainCfg.DataWay.Token,
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
 
-	cache := map[string][][]byte{
-		__MetricDeprecated: nil,
-		Metric:             nil,
-		KeyEvent:           nil,
-		Object:             nil,
-		Logging:            nil,
+	du, err := time.ParseDuration(config.Cfg.MainCfg.DataWay.Timeout)
+	if err != nil {
+		l.Warnf("parse dataway timeout failed: %s", err.Error())
+		du = time.Second * 30
 	}
 
-	stats := map[string]*InputsStat{}
+	httpCli = &http.Client{
+		Timeout: du,
+	}
 
 	defer ioStop()
 
@@ -185,9 +199,9 @@ func startIO() {
 	f = func(trace []byte, _ error) {
 		defer rtpanic.Recover(f, nil)
 
-		tick := time.NewTicker(config.Cfg.MainCfg.Interval.Duration)
+		tick := time.NewTicker(config.Cfg.MainCfg.IntervalDuration)
 		defer tick.Stop()
-		l.Debugf("io interval: %v", config.Cfg.MainCfg.Interval.Duration)
+		l.Debugf("io interval: %v", config.Cfg.MainCfg.IntervalDuration)
 
 		if trace != nil {
 			l.Warn("recover ok")
@@ -195,7 +209,7 @@ func startIO() {
 
 		for {
 			select {
-			case d := <-input:
+			case d := <-inputCh:
 				if d == nil {
 					l.Warn("get empty data, ignored")
 				} else {
@@ -205,8 +219,9 @@ func startIO() {
 					l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
 					cache[d.category] = append(cache[d.category], d.data)
 
-					if istat, ok := stats[d.name]; !ok {
-						stats[d.name] = &InputsStat{
+					stat, ok := inputstats[d.name]
+					if !ok {
+						inputstats[d.name] = &InputsStat{
 							Name:     d.name,
 							Category: d.category,
 							Total:    int64(len(d.data)),
@@ -215,25 +230,18 @@ func startIO() {
 							Last:     now,
 						}
 					} else {
-						istat.Total += int64(len(d.data))
-						istat.Count++
-						istat.Last = now
+						stat.Total += int64(len(d.data))
+						stat.Count++
+						stat.Last = now
+						stat.Category = d.category
 					}
 				}
 
 			case q := <-qstatsCh:
 				statRes := []*InputsStat{}
-				if q.name == "" {
-					for _, v := range stats {
-						statRes = append(statRes, v)
-					}
-				} else {
-					stat := stats[q.name]
-					if stat != nil {
-						statRes = append(statRes, stat)
-					}
+				for _, v := range inputstats {
+					statRes = append(statRes, v)
 				}
-
 				select {
 				case q.ch <- statRes: // maybe blocking(i.e., client canceled)
 				default:
@@ -245,7 +253,7 @@ func startIO() {
 				flush(cache)
 
 			case <-datakit.Exit.Wait():
-				l.Info("exit")
+				l.Info("io exit on exit")
 				return
 			}
 		}
@@ -263,14 +271,12 @@ func Start() {
 	go func() {
 		defer datakit.WG.Done()
 		startIO()
-		l.Info("io goroutine exit")
 	}()
 
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
 		GRPCServer(datakit.GRPCDomainSock)
-		l.Info("gRPC goroutine exit")
 	}()
 }
 
@@ -295,66 +301,79 @@ func flush(cache map[string][][]byte) {
 	}
 }
 
-func gz(data []byte) ([]byte, error) {
-	var z bytes.Buffer
-	zw := gzip.NewWriter(&z)
-	if _, err := zw.Write(data); err != nil {
+func initCookies() {
+	cookies = fmt.Sprintf("uuid=%s;name=%s;hostname=%s;max_post_interval=%s;version=%s;os=%s;arch=%s",
+		config.Cfg.MainCfg.UUID,
+		config.Cfg.MainCfg.Name,
+		config.Cfg.MainCfg.Hostname,
+		datakit.MaxLifeCheckInterval,
+		git.Version,
+		runtime.GOOS,
+		runtime.GOARCH)
+}
+
+func buildObjBody(bodies [][]byte) ([]byte, error) {
+	allObjs := []map[string]interface{}{}
+
+	for _, data := range bodies {
+		var objs []map[string]interface{}
+		if err := json.Unmarshal(data, &objs); err != nil {
+			l.Error(err)
+			return nil, err
+		}
+		allObjs = append(allObjs, objs...)
+	}
+
+	jbody, err := json.Marshal(allObjs)
+	if err != nil {
 		l.Error(err)
 		return nil, err
 	}
 
-	zw.Flush()
-	zw.Close()
-	return z.Bytes(), nil
+	return jbody, nil
+}
+
+func buildBody(url string, bodies [][]byte) (body []byte, gzon bool, err error) {
+	switch url {
+	case Object: // object is json
+
+		body, err = buildObjBody(bodies) // convert raw objects bytes as json array
+		if err != nil {
+			return
+		}
+
+	default: // others are line-protocol
+		body = bytes.Join(bodies, []byte("\n"))
+	}
+
+	if len(body) > minGZSize && datakit.OutputFile == "" { // should not gzip on file output
+		if body, err = datakit.GZip(body); err != nil {
+			l.Errorf("gz: %s", err.Error())
+			return
+		}
+		gzon = true
+	}
+
+	return
 }
 
 func doFlush(bodies [][]byte, url string) error {
-
-	var err error
 
 	if bodies == nil {
 		return nil
 	}
 
-	body := bytes.Join(bodies, []byte("\n"))
-	switch url {
-	case Object: // object is json
-		all_objs := []map[string]interface{}{}
+	if cookies == "" {
+		initCookies()
+	}
 
-		for _, data := range bodies {
-
-			var objs []map[string]interface{}
-			err := json.Unmarshal(data, &objs)
-			if err != nil {
-				l.Error(err)
-				return err
-			}
-			all_objs = append(all_objs, objs...)
-		}
-
-		body, err = json.Marshal(all_objs)
-		if err != nil {
-			l.Error(err)
-			return err
-		}
-	default: // others are line-protocol
+	body, gz, err := buildBody(url, bodies)
+	if err != nil {
+		return err
 	}
 
 	if datakit.OutputFile != "" {
 		return fileOutput(body)
-	}
-
-	gzOn := false
-	if len(body) > 1024 {
-		gzbody, err := gz(body)
-		if err != nil {
-			return err
-		}
-
-		l.Debugf("gzip %d->%d", len(body), len(gzbody))
-
-		gzOn = true
-		body = gzbody
 	}
 
 	req, err := http.NewRequest("POST", categoryURLs[url], bytes.NewBuffer(body))
@@ -363,10 +382,8 @@ func doFlush(bodies [][]byte, url string) error {
 		return err
 	}
 
-	req.Header.Set("X-Datakit-UUID", config.Cfg.MainCfg.UUID)
-	req.Header.Set("X-Version", git.Version)
-	req.Header.Set("User-Agent", datakit.DKUserAgent)
-	if gzOn {
+	req.Header.Set("Cookie", cookies)
+	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
 
@@ -399,12 +416,12 @@ func doFlush(bodies [][]byte, url string) error {
 		return err
 	}
 
-	switch resp.StatusCode / 100 {
-	case 2:
+	switch resp.StatusCode / httpDiv {
+	case httpOk:
 		l.Debugf("post to %s ok", url)
-	case 4:
+	case httpBad:
 		l.Errorf("post to %s failed(HTTP: %d): %s, data dropped", url, resp.StatusCode, string(respbody))
-	case 5:
+	case httpErr:
 		l.Warnf("post to %s failed(HTTP: %d): %s", url, resp.StatusCode, string(respbody))
 		return fmt.Errorf("dataway internal error")
 	}
@@ -441,13 +458,16 @@ func fileOutput(body []byte) error {
 	return nil
 }
 
-func GetStats(iname string) ([]*InputsStat, error) {
+var (
+	statsTimeout = time.Second * 3
+)
+
+func GetStats() ([]*InputsStat, error) {
 	q := &qstats{
-		name: iname,
-		ch:   make(chan []*InputsStat),
+		ch: make(chan []*InputsStat),
 	}
 
-	tick := time.NewTicker(time.Second * 3)
+	tick := time.NewTicker(statsTimeout)
 	defer tick.Stop()
 
 	select {
