@@ -76,14 +76,13 @@ require (
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/mattn/go-zglob v0.0.3
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
+	github.com/mibk/dupl v1.0.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 	github.com/modern-go/reflect2 v1.0.1
 	github.com/naoina/go-stringutil v0.1.0
 	github.com/naoina/toml v0.1.1
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
-	github.com/onsi/ginkgo v1.12.0 // indirect
-	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/opencontainers/runc v0.1.1
@@ -106,6 +105,7 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237
 	github.com/robfig/cron v1.2.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
+	github.com/securego/gosec v0.0.0-20200401082031-e946c8c39989 // indirect
 	github.com/shirou/gopsutil v2.20.1+incompatible
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
@@ -118,6 +118,7 @@ require (
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.7
 	github.com/tidwall/gjson v1.3.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
+	github.com/tommy-muehle/go-mnd v1.3.0 // indirect
 	github.com/trivago/tgo v1.0.1
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/ucloud/ucloud-sdk-go v0.14.0
