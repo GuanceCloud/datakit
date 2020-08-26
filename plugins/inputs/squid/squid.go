@@ -41,8 +41,8 @@ type SquidParam struct {
 }
 
 var (
-	name              = "squid"
-	defaultMetricName = name
+	inputName         = "squid"
+	defaultMetricName = inputName
 	defaultInterval   = "60s"
 	defaultPort       = 3218
 	squidConfigSample = `### interval: monitor interval, the default value is "60s".
@@ -101,7 +101,7 @@ func (p *SquidParam) gather() {
 
 	switch p.input.Interval.(type) {
 	case int64:
-		d = time.Duration(p.input.Interval.(int64))*time.Second
+		d = time.Duration(p.input.Interval.(int64)) * time.Second
 	case string:
 		d, err = time.ParseDuration(p.input.Interval.(string))
 		if err != nil {
@@ -150,7 +150,7 @@ func (p *SquidParam) getMetrics() (err error) {
 	if err != nil {
 		fields["can_connect"] = false
 		pt, _ := io.MakeMetric(p.input.Squid.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed(pt, io.Metric, name)
+		p.output.IoFeed(pt, io.Metric, inputName)
 		return
 	}
 
@@ -182,12 +182,12 @@ func (p *SquidParam) getMetrics() (err error) {
 		return
 	}
 
-	err = p.output.IoFeed(pt, io.Metric, name)
+	err = p.output.IoFeed(pt, io.Metric, inputName)
 	return
 }
 
 func init() {
-	inputs.Add(name, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		s := &Squid{}
 		return s
 	})

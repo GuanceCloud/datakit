@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -14,22 +14,24 @@ const (
 	ossSampleConfig = `
 #[inputs.aliyunobject.oss]
 
+# ## @param - custom tags - [list of oss buckets] - optional
+#buckets = []
+
+# ## @param - custom tags - [list of excluded oss instanceid] - optional
+
+#exclude_buckets = []
+
 # ## @param - custom tags for ecs object - [list of key:value element] - optional
 #[inputs.aliyunobject.oss.tags]
 # key1 = 'val1'
 
-# ## @param - custom tags - [list of oss buckets] - optional
-#buckets = ['']
-
-# ## @param - custom tags - [list of excluded oss instanceid] - optional
-#exclude_buckets = ['']
 `
 )
 
 type Oss struct {
 	Tags           map[string]string `toml:"tags,omitempty"`
 	Buckets        []string          `toml:"buckets,omitempty"`
-	ExcludeBuckets []string          `toml:"exclude_bukets,omitempty"`
+	ExcludeBuckets []string          `toml:"exclude_buckets,omitempty"`
 }
 
 func (o *Oss) run(ag *objectAgent) {
@@ -49,7 +51,7 @@ func (o *Oss) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -89,7 +91,7 @@ func (o *Oss) run(ag *objectAgent) {
 			marker = lsRes.NextMarker
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -134,7 +136,7 @@ func (o *Oss) handleResponse(lsRes *oss.ListBucketsResult, ag *objectAgent) {
 		}
 
 		tags := map[string]interface{}{
-			"__class":           "OSS",
+			"__class":           "aliyun_oss",
 			"provider":          "aliyun",
 			"Location":          bucket.Location,
 			"Owner.ID":          lsRes.Owner.ID,

@@ -7,7 +7,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
@@ -74,7 +74,7 @@ type DataDisk struct {
 type Ecs struct {
 	MetricName string
 	PayAsYouGo bool
-	Interval   internal.Duration
+	Interval   datakit.Duration
 
 	Region string
 
