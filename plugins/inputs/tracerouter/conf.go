@@ -15,6 +15,6 @@ const (
 type TraceRouter struct {
 	Metric           string        `json:"metricName" toml:"metricName"`
 	Interval         string        `json:"interval" toml:"interval"`
-	Addr             string        `json:"interval" toml:"addr"`
+	Addr             string        `json:"addr" toml:"addr"`
 	IntervalDuration time.Duration `json:"-" toml:"-"`
 }
