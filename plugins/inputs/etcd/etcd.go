@@ -19,34 +19,34 @@ const (
 
 	sampleCfg = `
 [[inputs.etcd]]
-	# required
-	host = "127.0.0.1"
-
-	# required
-	port = 2379
-
-	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	# required
-	interval = "10s"
-
-	# use HTTPS TLS
-	tls_open = false
-
-	# CA
-	tls_cacert_file = "ca.crt"
-
-	# client
-	tls_cert_file = "peer.crt"
-
-	# key
-	tls_key_file = "peer.key"
-
-	# [inputs.etcd.tags]
-	# tags1 = "value1"
+    # required
+    host = "127.0.0.1"
+    
+    # required
+    port = 2379
+    
+    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    # required
+    interval = "10s"
+    
+    # use HTTPS TLS
+    tls_open = false
+    
+    # CA
+    tls_cacert_file = "ca.crt"
+    
+    # client
+    tls_cert_file = "peer.crt"
+    
+    # key
+    tls_key_file = "peer.key"
+    
+    # [inputs.etcd.tags]
+    # tags1 = "value1"
 `
 )
 
-var l *logger.Logger
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -74,11 +74,11 @@ type Etcd struct {
 	tlsConfig *tls.Config
 }
 
-func (_ *Etcd) SampleConfig() string {
+func (Etcd) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *Etcd) Catalog() string {
+func (Etcd) Catalog() string {
 	return inputName
 }
 

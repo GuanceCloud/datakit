@@ -8,7 +8,7 @@ import (
 
 func TestLoadConf(t *testing.T) {
 	x := `
-[[inputs.instances]]
+[[inputs.oraclemonitor]]
   ## 采集的频度，最小粒度5m
 	libPath = "a/b/c"
   interval = '10s'
