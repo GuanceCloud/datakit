@@ -1,28 +1,30 @@
 package main
 
 import (
-	"bytes"
-	"context"
-	"encoding/base64"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"net"
-	"path/filepath"
+
 	"time"
+	"bytes"
+	"context"
+	"path/filepath"
+	"encoding/json"
+	"encoding/base64"
 
 	"github.com/influxdata/toml"
 	"google.golang.org/grpc"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	swV3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/skywalkingGrpcV3/v3"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
-)
+	dkio   "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	lang   "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/skywalkingGrpcV3/skywalking/network/language/agent/v3"
+	common "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/skywalkingGrpcV3/skywalking/network/common/v3"
+	mgment "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/skywalkingGrpcV3/skywalking/network/management/v3"
 
-type SkywalkingServerV3 struct{}
+)
 
 type Skywalking struct {
 	GrpcPort int32
@@ -71,55 +73,14 @@ func main() {
 	skywalkingGrpcServRun(fmt.Sprintf(":%d", skywalkingV3.GrpcPort))
 }
 
-func debugMsgToGrpc() {
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-			defer cancel()
-			lines := [][]byte{}
-			lines = append(lines, []byte("a,b=1 c=1.1,d=3"))
-			lines = append(lines, []byte("aa,b=1 c=1.1,d=3"))
-			r, err := rpcCli.Send(ctx, &dkio.Request{
-				Lines:     bytes.Join(lines, []byte("\n")),
-				Precision: "ns",
-				Name:      "skywalkingGrpcV3",
-				Io:        dkio.IoType_LOGGING,
-			})
-			if err != nil {
-				l.Errorf("feed error: %s", err.Error())
-			} else {
-				l.Debugf("feed %d points, error: `%s'", r.GetPoints(), r.GetErr())
-			}
-		}
-	}
+type SkywalkingServerV3 struct{
 }
 
-func skywalkingGrpcServRun(addr string) {
-	l.Infof("skywalking V3 gRPC starting...")
-
-	rpcListener, err := net.Listen("tcp", addr)
-	if err != nil {
-		l.Errorf("start skywalking V3 gRPC server %s failed: %v", addr, err)
-		return
-	}
-
-	l.Infof("start skywalking V3 gRPC server on %s ok", addr)
-
-	rpcServer := grpc.NewServer()
-	swV3.RegisterTraceSegmentReportServiceServer(rpcServer, &SkywalkingServerV3{})
-	if err := rpcServer.Serve(rpcListener); err != nil {
-		l.Error(err)
-	}
-}
-
-func (s *SkywalkingServerV3) Collect(tsc swV3.TraceSegmentReportService_CollectServer) error {
+func (s *SkywalkingServerV3) Collect(tsc lang.TraceSegmentReportService_CollectServer) error {
 	for {
 		sgo, err := tsc.Recv()
 		if err == io.EOF {
-			return tsc.SendAndClose(&swV3.Commands{})
+			return tsc.SendAndClose(&common.Commands{})
 		}
 		if err != nil {
 			return err
@@ -130,8 +91,7 @@ func (s *SkywalkingServerV3) Collect(tsc swV3.TraceSegmentReportService_CollectS
 		}
 	}
 }
-
-func skywalkGrpcToLineProto(sg *swV3.SegmentObject) error {
+func skywalkGrpcToLineProto(sg *lang.SegmentObject) error {
 	var lines [][]byte
 	for _, span := range sg.Spans {
 		t := &trace.TraceAdapter{}
@@ -148,7 +108,7 @@ func skywalkGrpcToLineProto(sg *swV3.SegmentObject) error {
 		t.Class = "tracing"
 		t.ServiceName = sg.Service
 		t.OperationName = span.OperationName
-		if span.SpanType == swV3.SpanType_Entry {
+		if span.SpanType == lang.SpanType_Entry {
 			if len(span.Refs) > 0 {
 				t.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
 					span.Refs[0].ParentSpanId)
@@ -162,9 +122,9 @@ func skywalkGrpcToLineProto(sg *swV3.SegmentObject) error {
 		if span.IsError {
 			t.IsError = "true"
 		}
-		if span.SpanType == swV3.SpanType_Entry {
+		if span.SpanType == lang.SpanType_Entry {
 			t.SpanType = trace.SPAN_TYPE_ENTRY
-		} else if span.SpanType == swV3.SpanType_Local {
+		} else if span.SpanType == lang.SpanType_Local {
 			t.SpanType = trace.SPAN_TYPE_LOCAL
 		} else {
 			t.SpanType = trace.SPAN_TYPE_EXIT
@@ -199,4 +159,57 @@ func skywalkGrpcToLineProto(sg *swV3.SegmentObject) error {
 	}
 	l.Debugf("feed %d points, error: `%s'", r.GetPoints(), r.GetErr())
 	return nil
+}
+
+type SkywalkingManagementServerV3 struct{
+}
+
+func (_ *SkywalkingManagementServerV3) ReportInstanceProperties(ctx context.Context, mng *mgment.InstanceProperties) (*common.Commands, error) {
+	var kvpStr string
+	cmd := &common.Commands{}
+
+	for _, kvp := range mng.Properties {
+		kvpStr += fmt.Sprintf("[%v:%v]", kvp.Key, kvp.Value)
+	}
+	l.Debugf("ReportInstanceProperties service:%v instance:%v properties:%v", mng.Service, mng.ServiceInstance, kvpStr)
+
+	return cmd, nil
+}
+
+func (_ *SkywalkingManagementServerV3) KeepAlive(ctx context.Context, ping *mgment.InstancePingPkg) (*common.Commands, error) {
+	cmd := &common.Commands{}
+
+	l.Debugf("KeepAlive service:%v instance:%v", ping.Service, ping.ServiceInstance)
+
+	return cmd, nil
+}
+
+
+type SkywalkingJVMMetricReportServerV3 struct {
+}
+
+func (_ *SkywalkingJVMMetricReportServerV3) Collect(ctx context.Context, jvm *lang.JVMMetricCollection) (*common.Commands, error) {
+	cmd := &common.Commands{}
+	//l.Debugf("JVMMetricReportService service:%v instance:%v", jvm.Service, jvm.ServiceInstance)
+	return cmd, nil
+}
+
+func skywalkingGrpcServRun(addr string) {
+	l.Infof("skywalking V3 gRPC starting...")
+
+	rpcListener, err := net.Listen("tcp", addr)
+	if err != nil {
+		l.Errorf("start skywalking V3 gRPC server %s failed: %v", addr, err)
+		return
+	}
+
+	l.Infof("start skywalking V3 gRPC server on %s ok", addr)
+
+	rpcServer := grpc.NewServer()
+	lang.RegisterTraceSegmentReportServiceServer(rpcServer, &SkywalkingServerV3{})
+	lang.RegisterJVMMetricReportServiceServer(rpcServer, &SkywalkingJVMMetricReportServerV3{})
+	mgment.RegisterManagementServiceServer(rpcServer, &SkywalkingManagementServerV3{})
+	if err := rpcServer.Serve(rpcListener); err != nil {
+		l.Error(err)
+	}
 }
