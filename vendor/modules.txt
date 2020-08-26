@@ -51,7 +51,7 @@ github.com/Pallinder/go-randomdata
 github.com/StackExchange/wmi
 # github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 github.com/aeden/traceroute
-# github.com/aliyun/alibaba-cloud-sdk-go v1.61.370
+# github.com/aliyun/alibaba-cloud-sdk-go v1.61.391
 github.com/aliyun/alibaba-cloud-sdk-go/sdk
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials
@@ -68,10 +68,16 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/aegis
 github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi
 github.com/aliyun/alibaba-cloud-sdk-go/services/cdn
 github.com/aliyun/alibaba-cloud-sdk-go/services/cms
+github.com/aliyun/alibaba-cloud-sdk-go/services/dds
+github.com/aliyun/alibaba-cloud-sdk-go/services/domain
 github.com/aliyun/alibaba-cloud-sdk-go/services/ecs
+github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch
+github.com/aliyun/alibaba-cloud-sdk-go/services/ons
+github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore
 github.com/aliyun/alibaba-cloud-sdk-go/services/rds
 github.com/aliyun/alibaba-cloud-sdk-go/services/sas
 github.com/aliyun/alibaba-cloud-sdk-go/services/slb
+github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
 github.com/aliyun/aliyun-log-go-sdk/consumer
@@ -117,7 +123,6 @@ github.com/aws/aws-sdk-go/private/protocol/query
 github.com/aws/aws-sdk-go/private/protocol/query/queryutil
 github.com/aws/aws-sdk-go/private/protocol/rest
 github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
-github.com/aws/aws-sdk-go/service/cloudtrail
 github.com/aws/aws-sdk-go/service/cloudwatch
 github.com/aws/aws-sdk-go/service/costexplorer
 github.com/aws/aws-sdk-go/service/health
@@ -126,6 +131,8 @@ github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/basgys/goxml2json v1.1.0
 github.com/basgys/goxml2json
+# github.com/boltdb/bolt v1.3.1
+github.com/boltdb/bolt
 # github.com/caio/go-tdigest v2.3.0+incompatible
 github.com/caio/go-tdigest
 # github.com/cenkalti/backoff v2.2.1+incompatible
@@ -196,6 +203,8 @@ github.com/containerd/fifo
 github.com/containerd/ttrpc
 # github.com/containerd/typeurl v1.0.1
 github.com/containerd/typeurl
+# github.com/coreos/go-systemd/v22 v22.1.0
+github.com/coreos/go-systemd/v22/dbus
 # github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 github.com/cznic/mathutil
 # github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e
@@ -271,6 +280,8 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
+# github.com/godbus/dbus/v5 v5.0.3
+github.com/godbus/dbus/v5
 # github.com/godror/godror v0.17.0
 github.com/godror/godror
 github.com/godror/godror/odpi/embed
@@ -326,7 +337,7 @@ github.com/hpcloud/tail/ratelimiter
 github.com/hpcloud/tail/util
 github.com/hpcloud/tail/watch
 github.com/hpcloud/tail/winfile
-# github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
+# github.com/influxdata/influxdb1-client v0.0.0-20200515024757-02f0bf5dbca3
 github.com/influxdata/influxdb1-client/models
 github.com/influxdata/influxdb1-client/pkg/escape
 github.com/influxdata/influxdb1-client/v2
@@ -357,9 +368,9 @@ github.com/jackc/pgx/internal/sanitize
 github.com/jackc/pgx/pgio
 github.com/jackc/pgx/pgproto3
 github.com/jackc/pgx/pgtype
-# github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
+# github.com/jmespath/go-jmespath v0.3.0
 github.com/jmespath/go-jmespath
-# github.com/json-iterator/go v1.1.9
+# github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
 # github.com/junhsieh/goexamples v0.0.0-20190721045834-1c67ae74caa6
 github.com/junhsieh/goexamples/fieldbinding/fieldbinding
@@ -394,6 +405,8 @@ github.com/mitchellh/go-homedir
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
 github.com/modern-go/reflect2
+# github.com/mozillazg/go-httpheader v0.2.1
+github.com/mozillazg/go-httpheader
 # github.com/naoina/go-stringutil v0.1.0
 github.com/naoina/go-stringutil
 # github.com/naoina/toml v0.1.1
@@ -499,8 +512,10 @@ github.com/siddontang/go-mysql/schema
 github.com/sirupsen/logrus
 # github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 github.com/syndtr/gocapability/capability
-# github.com/tencentcloud/tencentcloud-sdk-go v3.0.123+incompatible
+# github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
+github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/billing/v20180709
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdb/v20170320
+github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/clb/v20180317
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/errors
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/http
@@ -512,6 +527,8 @@ github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/monitor/v20180724
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/postgres/v20170312
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/redis/v20180412
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sqlserver/v20180328
+# github.com/tencentyun/cos-go-sdk-v5 v0.7.7
+github.com/tencentyun/cos-go-sdk-v5
 # github.com/tidwall/gjson v1.3.0
 github.com/tidwall/gjson
 # github.com/tidwall/match v1.0.1
@@ -558,7 +575,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200729035319-59638165b038
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200818074621-1fc80b8dd3a6
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
@@ -615,7 +632,8 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
+# golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
@@ -627,7 +645,8 @@ golang.org/x/crypto/pkcs12
 golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh
-# golang.org/x/net v0.0.0-20200301022130-244492dfa37a
+golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
+# golang.org/x/net v0.0.0-20200625001655-4c5254603344
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -642,11 +661,12 @@ golang.org/x/net/trace
 # golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+# golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
+# golang.org/x/sys v0.0.0-20200808120158-1030fc2bf1d9
 golang.org/x/sys/cpu
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
@@ -774,11 +794,11 @@ google.golang.org/protobuf/types/known/timestamppb
 google.golang.org/protobuf/types/known/wrapperspb
 # gopkg.in/fsnotify.v1 v1.4.7
 gopkg.in/fsnotify.v1
-# gopkg.in/ini.v1 v1.51.0
+# gopkg.in/ini.v1 v1.57.0
 gopkg.in/ini.v1
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 gopkg.in/tomb.v1
-# gopkg.in/yaml.v2 v2.2.8
+# gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2

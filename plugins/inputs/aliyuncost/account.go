@@ -11,7 +11,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -73,7 +73,7 @@ func (ca *CostAccount) getRealtimeData(ctx context.Context) error {
 		}
 
 		ca.runningInstance.resumeHistoryFetch()
-		internal.SleepContext(ctx, ca.interval)
+		datakit.SleepContext(ctx, ca.interval)
 
 		select {
 		case <-ctx.Done():
@@ -227,16 +227,16 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 
 	var fv float64
 	var err error
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(balanceResp.Data.AvailableAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(balanceResp.Data.AvailableAmount), 64); err == nil {
 		balanceFields[`AvailableAmount`] = fv
 	}
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(balanceResp.Data.MybankCreditAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(balanceResp.Data.MybankCreditAmount), 64); err == nil {
 		balanceFields[`MybankCreditAmount`] = fv
 	}
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(balanceResp.Data.AvailableCashAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(balanceResp.Data.AvailableCashAmount), 64); err == nil {
 		balanceFields[`AvailableCashAmount`] = fv
 	}
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(balanceResp.Data.CreditAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(balanceResp.Data.CreditAmount), 64); err == nil {
 		balanceFields[`CreditAmount`] = fv
 	}
 
@@ -278,10 +278,10 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 
 		fields[`TransactionNumber`] = item.TransactionNumber //交易编号
 		fields[`TransactionChannelSN`] = item.TransactionChannelSN
-		fields[`RecordID`] = item.RecordID                                                 //订单号/账单号
-		fields[`Remarks`] = item.Remarks                                                   //交易备注
-		fields[`Amount`], _ = strconv.ParseFloat(internal.NumberFormat(item.Amount), 64)   //交易金额
-		fields[`Balance`], _ = strconv.ParseFloat(internal.NumberFormat(item.Balance), 64) //交易发生前当前余额
+		fields[`RecordID`] = item.RecordID                                                //订单号/账单号
+		fields[`Remarks`] = item.Remarks                                                  //交易备注
+		fields[`Amount`], _ = strconv.ParseFloat(datakit.NumberFormat(item.Amount), 64)   //交易金额
+		fields[`Balance`], _ = strconv.ParseFloat(datakit.NumberFormat(item.Balance), 64) //交易发生前当前余额
 
 		tm, err := time.Parse("2006-01-02T15:04:05Z", item.TransactionTime)
 		if err != nil {
