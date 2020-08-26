@@ -1,7 +1,7 @@
 package aliyunlog
 
 import (
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	"log"
 	"testing"
@@ -58,11 +58,6 @@ func TestLoadConfig(t *testing.T) {
 	} else {
 		log.Printf("ok")
 	}
-}
-
-func process(shardId int, logGroupList *sls.LogGroupList) string {
-	fmt.Println(shardId, logGroupList)
-	return ""
 }
 
 func createClient() sls.ClientInterface {
