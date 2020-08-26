@@ -9,7 +9,7 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	var cdn AliyunCDN
+	var cdn CDN
 
 	data, err := ioutil.ReadFile("./cdn.toml")
 	if err != nil {
