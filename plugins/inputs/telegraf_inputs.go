@@ -81,6 +81,7 @@ var (
 		"ntpq":      {name: "ntpq", Catalog: "ntpq"},
 		"openntpd":  {name: "openntpd", Catalog: "openntpd"},
 		"processes": {name: "processes", Catalog: "processes"},
+		"procstat":  {name: "procstat", Catalog: "processes"},
 		"x509_cert": {name: "x509_cert", Catalog: "tls"},
 		"nats":      {name: "nats", Catalog: "nats"},
 
@@ -131,6 +132,7 @@ func HaveTelegrafInputs() bool {
 
 //nolint:lll,goconst
 func init() { //nolint:fulen // we have to init all these samples here
+
 	TelegrafInputs[`amqp_consumer`].Sample = `
 [[inputs.amqp_consumer]]
 # Broker to consume from.
@@ -1377,8 +1379,9 @@ host = '{{.Hostname}}'
 	TelegrafInputs[`processes`].Sample = `
 # Get the number of processes and group them by status
 [[inputs.processes]]
- # no configuration
+ # no configuration`
 
+	TelegrafInputs[`procstat`].Sample = `
 # Monitor process cpu and memory usage
 [[inputs.procstat]]
 # PID file to monitor process
