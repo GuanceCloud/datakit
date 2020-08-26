@@ -65,25 +65,7 @@ func TestBuildInputCfg(t *testing.T) {
 
 func TestLoadMainCfg(t *testing.T) {
 
-	c := &Config{
-		MainCfg: &MainConfig{
-			GlobalTags:      map[string]string{},
-			flushInterval:   datakit.Duration{Duration: time.Second * 10},
-			Interval:        "10s",
-			MaxPostInterval: "15s", // add 5s plus for network latency
-
-			HTTPBind: "0.0.0.0:9529",
-
-			LogLevel: "info",
-			Log:      filepath.Join(datakit.InstallDir, "datakit.log"),
-			GinLog:   filepath.Join(datakit.InstallDir, "gin.log"),
-
-			RoundInterval:    false,
-			cfgPath:          filepath.Join(datakit.InstallDir, "datakit.conf"),
-			TelegrafAgentCfg: defaultTelegrafAgentCfg(),
-		},
-	}
-
+	c := Cfg
 	if err := c.LoadMainConfig(); err != nil {
 		t.Errorf("%s", err)
 	}
