@@ -12,7 +12,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -76,7 +76,7 @@ func (cb *CostBill) getNormalData(ctx context.Context) error {
 		}
 
 		cb.runningInstance.resumeHistoryFetch()
-		internal.SleepContext(ctx, cb.interval)
+		datakit.SleepContext(ctx, cb.interval)
 
 		select {
 		case <-ctx.Done():
@@ -287,7 +287,7 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		fields[`PretaxGrossAmount`] = item.PretaxGrossAmount
 		fields[`DeductedByCoupons`] = item.DeductedByCoupons
 		fields[`InvoiceDiscount`] = item.InvoiceDiscount
-		fields[`RoundDownDiscount`], _ = strconv.ParseFloat(internal.NumberFormat(item.RoundDownDiscount), 64)
+		fields[`RoundDownDiscount`], _ = strconv.ParseFloat(datakit.NumberFormat(item.RoundDownDiscount), 64)
 		fields[`PretaxAmount`] = item.PretaxAmount
 		fields[`DeductedByCashCoupons`] = item.DeductedByCashCoupons
 		fields[`DeductedByPrepaidCard`] = item.DeductedByPrepaidCard
