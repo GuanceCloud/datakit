@@ -3,14 +3,16 @@ package aliyunactiontrail
 import (
 	"context"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"golang.org/x/time/rate"
+
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
 	configSample = `
-#[[inputs.actiontrail]]
+#[[inputs.aliyunactiontrail]]
 
 # ##(required)
 #region = 'cn-hangzhou'
@@ -20,9 +22,9 @@ const (
 # ##(optional) if empty, use "aliyun_actiontrail"
 #metric_name = ''
 
-# ##(optional) ISO8601 unix time format: 2020-02-01T06:00:00Z 
+# ##(optional) ISO8601 unix time format: 2020-02-01T06:00:00Z
 # ## the earliest is 90 days from now.
-# ## if empty, from now on. 
+# ## if empty, from now on.
 #from = ''
 
 # ##(optional) default is 10m, must not be less than 10m
@@ -37,7 +39,7 @@ type (
 		AccessID   string
 		MetricName string
 		From       string
-		Interval   internal.Duration //至少10分钟
+		Interval   datakit.Duration //至少10分钟
 
 		client *actiontrail.Client
 

@@ -13,33 +13,21 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-// druid config
-// bin: datakit_test/druid/apache-druid-0.18.1/bin/start-micro-quickstart
-// config file: druid/apache-druid-0.18.1/conf/druid/single-server/micro-quickstart/_common/common.runtime.properties
-//
-// druid.monitoring.emissionPeriod=PT10s
-// druid.monitoring.monitors=["com.metamx.metrics.JvmMonitor"]
-// druid.emitter=none
-// druid.emitter.http.flushMillis=10000
-// druid.emitter.http.recipientBaseUrl=http://ADDR_TO_THIS_SERVICE:8424
-
 const (
 	inputName = "druid"
 
 	defaultMeasurement = "druid"
 
 	sampleCfg = `
-[inputs.druid]
-	# [inputs.druid.tags]
-	# tags1 = "tags1"
+[[inputs.druid]]
+    # [inputs.druid.tags]
+    # tags1 = "value1"
 `
 )
 
 var (
-	l *logger.Logger
-
+	l          = logger.DefaultSLogger(inputName)
 	testAssert bool
-
 	globalTags map[string]string
 )
 
@@ -53,11 +41,11 @@ type Druid struct {
 	Tags map[string]string `toml:"tags"`
 }
 
-func (d *Druid) SampleConfig() string {
+func (Druid) SampleConfig() string {
 	return sampleCfg
 }
 
-func (d *Druid) Catalog() string {
+func (Druid) Catalog() string {
 	return inputName
 }
 
@@ -104,50 +92,18 @@ func extract(body []byte) error {
 		return err
 	}
 
-	var timeNode = make(map[string]map[string]interface{})
-	var host, version string
-	if len(metrics) > 0 {
-		host = metrics[0].Host
-		version = metrics[0].Version
-	} else {
+	if len(metrics) == 0 {
 		return fmt.Errorf("druid metrics is empty")
 	}
 
-	for _, metric := range metrics {
-
-		metricType, ok := metricsTemplate[metric.Metric]
-		if !ok {
-			continue
-		}
-		if metric.Service == "druid/peon" {
-			// Skipping all metrics from peon. These are task specific and need some
-			continue
-		}
-
-		timestamp := metric.Timestamp
-		if _, ok := timeNode[timestamp]; !ok {
-			timeNode[timestamp] = make(map[string]interface{})
-		}
-
-		metricKey := strings.Replace(metric.Service+"."+metric.Metric, "/", ".", -1)
-		switch metricType {
-		case Normal:
-			timeNode[timestamp][metricKey] = metric.Value
-		case Count:
-			timeNode[timestamp][metricKey] = int64(metric.Value)
-		case ConvertRange:
-			timeNode[timestamp][metricKey] = metric.Value * 100
-		default:
-			l.Info("Unknown metric type ", metricType)
-		}
-	}
-
 	tags := make(map[string]string)
-	tags["host"] = host
-	tags["versin"] = version
+	tags["host"] = metrics[0].Host
+	tags["versin"] = metrics[0].Version
 	for k, v := range globalTags {
 		tags[k] = v
 	}
+
+	timeNode := getTimeNodeMetrics(metrics)
 
 	flag := false
 	for timeKey, fileds := range timeNode {
@@ -166,7 +122,7 @@ func extract(body []byte) error {
 		}
 
 		if testAssert {
-			fmt.Println(string(data))
+			l.Infof("%s\n", data)
 		}
 
 		if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
@@ -179,5 +135,41 @@ func extract(body []byte) error {
 	if flag {
 		return fmt.Errorf("extract error")
 	}
+
 	return nil
+}
+
+func getTimeNodeMetrics(metrics druidMetric) map[string]map[string]interface{} {
+	var timeNode = make(map[string]map[string]interface{})
+
+	for _, metric := range metrics {
+
+		metricType, ok := metricsTemplate[metric.Metric]
+		if !ok {
+			continue
+		}
+		if metric.Service == "druid/peon" {
+			// Skipping all metrics from peon. These are task specific and need some
+			continue
+		}
+
+		timestamp := metric.Timestamp
+		if _, ok := timeNode[timestamp]; !ok {
+			timeNode[timestamp] = make(map[string]interface{})
+		}
+
+		metricKey := strings.ReplaceAll(metric.Service+"."+metric.Metric, "/", ".")
+		switch metricType {
+		case Normal:
+			timeNode[timestamp][metricKey] = metric.Value
+		case Count:
+			timeNode[timestamp][metricKey] = int64(metric.Value)
+		case ConvertRange:
+			timeNode[timestamp][metricKey] = metric.Value * 100
+		default:
+			l.Info("Unknown metric type ", metricType)
+		}
+	}
+
+	return timeNode
 }
