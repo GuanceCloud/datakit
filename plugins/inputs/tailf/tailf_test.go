@@ -7,8 +7,6 @@ import (
 	"os"
 	"testing"
 	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var (
@@ -31,11 +29,6 @@ var (
 		"/tmp/tailf_test/a123/b123/5678.txt",
 	}
 )
-
-func __init() {
-	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_DEFAULT)
-	l = logger.SLogger(inputName)
-}
 
 func TestWrite(t *testing.T) {
 
@@ -63,7 +56,7 @@ func TestWrite(t *testing.T) {
 			return
 		}
 		for index, file := range files {
-			file.WriteString(time.Now().Format(time.RFC3339Nano) +
+			_, _ = file.WriteString(time.Now().Format(time.RFC3339Nano) +
 				fmt.Sprintf(" -- index: %d -- count: %d\n", index, count))
 			time.Sleep(200 * time.Millisecond)
 		}
@@ -72,7 +65,6 @@ func TestWrite(t *testing.T) {
 }
 
 func TestMain(t *testing.T) {
-	__init()
 	testAssert = true
 
 	var tailer = Tailf{
@@ -88,5 +80,4 @@ func TestMain(t *testing.T) {
 
 func TestFileList(t *testing.T) {
 	t.Log(getFileList(logFiles, ignore))
-	//	fmt.Println("hello,world")
 }
