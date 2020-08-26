@@ -18,15 +18,16 @@ const (
 
 	sampleCfg = `
 [[inputs.flink]]
-	db = "flink"
-	# [inputs.flink.tags]
-	# tags1 = "value1"
+    # require
+    db = "flink"
+
+    # [inputs.flink.tags]
+    # tags1 = "value1"
 `
 )
 
 var (
-	l *logger.Logger
-
+	l      = logger.DefaultSLogger(inputName)
 	dbList = Flinks{m: make(map[string]map[string]string), mut: &sync.RWMutex{}}
 )
 
@@ -41,11 +42,11 @@ type Flink struct {
 	Tags map[string]string `toml:"tags"`
 }
 
-func (_ *Flink) SampleConfig() string {
+func (Flink) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *Flink) Catalog() string {
+func (Flink) Catalog() string {
 	return inputName
 }
 
@@ -80,7 +81,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func extract(db string, prec string, body []byte) error {
+func extract(db, prec string, body []byte) error {
 	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), prec)
 	if err != nil {
 		return err
