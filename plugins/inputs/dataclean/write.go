@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -191,16 +190,12 @@ func (w *httpWriter) close() error {
 
 func (w *httpWriter) write(data []byte, ri *reqinfo) error {
 
-	var reqBodyBuffer io.Reader = bytes.NewBuffer(data)
-
 	var err error
 	if w.bgzip {
-		rc, err := datakit.CompressWithGzip(reqBodyBuffer)
+		data, err = datakit.GZip(data)
 		if err != nil {
 			return err
 		}
-		defer rc.Close()
-		reqBodyBuffer = rc
 	}
 
 	u := ri.origUrl
@@ -208,7 +203,7 @@ func (w *httpWriter) write(data []byte, ri *reqinfo) error {
 	u.Host = w.host
 	u.Path = w.path
 
-	//保留ftdataway的参数，同时带上url如果有特定参数(如果和ftdataway的参数重复，则ftdataway优先)
+	//保留dataway的参数，同时带上url如果有特定参数(如果和dataway的参数重复，则ftdataway优先)
 	query := make(url.Values)
 	for k, v := range w.query {
 		query[k] = v
@@ -222,7 +217,7 @@ func (w *httpWriter) write(data []byte, ri *reqinfo) error {
 
 	u.RawQuery = query.Encode()
 
-	req, err := http.NewRequest("POST", u.String(), reqBodyBuffer)
+	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
