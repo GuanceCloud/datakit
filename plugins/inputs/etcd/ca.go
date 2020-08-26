@@ -8,7 +8,6 @@ import (
 )
 
 func TLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
-
 	// Load client cert
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -23,7 +22,7 @@ func TLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
 
 	caCertPool := x509.NewCertPool()
 	if !caCertPool.AppendCertsFromPEM(caCert) {
-		return nil, errors.New("failed to append certs from PEM.")
+		return nil, errors.New("failed to append certs from PEM")
 	}
 
 	tlsConfig := &tls.Config{
