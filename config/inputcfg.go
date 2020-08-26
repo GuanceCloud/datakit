@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 
 	"github.com/influxdata/toml"
@@ -19,9 +18,9 @@ import (
 func (c *Config) LoadConfig() error {
 
 	// detect same-name input name between datakit and telegraf
-	for k, _ := range TelegrafInputs {
+	for k := range inputs.TelegrafInputs {
 		if _, ok := inputs.Inputs[k]; ok {
-			panic(fmt.Sprintf("same name input %s within datakit and telegraf", k))
+			l.Fatalf(fmt.Sprintf("same name input %s within datakit and telegraf", k))
 		}
 	}
 
@@ -62,6 +61,10 @@ func (c *Config) LoadConfig() error {
 		return err
 	}
 
+	// reset inputs(for reloading)
+	l.Debug("reset inputs")
+	inputs.ResetInputs()
+
 	for name, creator := range inputs.Inputs {
 		if err := c.doLoadInputConf(name, creator, availableInputCfgs); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
@@ -69,7 +72,7 @@ func (c *Config) LoadConfig() error {
 		}
 	}
 
-	telegrafRawCfg, err := c.loadTelegrafConfigs(availableInputCfgs, c.InputFilters)
+	telegrafRawCfg, err := c.loadTelegrafInputsConfigs(availableInputCfgs, c.InputFilters)
 	if err != nil {
 		return err
 	}
@@ -91,8 +94,8 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator, inputcfgs 
 		}
 	}
 
-	if name == "self" {
-		c.Inputs[name] = append(c.Inputs[name], creator())
+	if name == "self" { //nolint:goconst
+		inputs.AddSelf(creator())
 		return nil
 	}
 
@@ -107,17 +110,17 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 
 		for field, node := range tbl.Fields {
 			switch field {
-			case "inputs":
-				tbl_, ok := node.(*ast.Table)
+			case "inputs": //nolint:goconst
+				stbl, ok := node.(*ast.Table)
 				if !ok {
 					l.Warnf("ignore bad toml node for %s within %s", name, fp)
 				} else {
-					for inputName, v := range tbl_.Fields {
+					for inputName, v := range stbl.Fields {
 						if inputName != name {
 							continue
 						}
 
-						if err := c.tryUnmarshal(v, name, creator); err != nil {
+						if err := c.tryUnmarshal(v, name, creator, fp); err != nil {
 							l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 							continue
 						}
@@ -127,7 +130,7 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 				}
 
 			default:
-				if err := c.tryUnmarshal(node, name, creator); err != nil {
+				if err := c.tryUnmarshal(node, name, creator, fp); err != nil {
 					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 				} else {
 					l.Infof("load input %s from %s ok", name, fp)
@@ -137,17 +140,17 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 	}
 }
 
-func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) error {
+func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creator, fp string) error {
 
 	tbls := []*ast.Table{}
 
-	switch tbl.(type) {
+	switch t := tbl.(type) {
 	case []*ast.Table:
 		tbls = tbl.([]*ast.Table)
 	case *ast.Table:
 		tbls = append(tbls, tbl.(*ast.Table))
 	default:
-		return fmt.Errorf("invalid toml format on %s: %v", name, reflect.TypeOf(tbl))
+		return fmt.Errorf("invalid toml format on %s: %v", name, t)
 	}
 
 	for _, t := range tbls {
@@ -158,59 +161,69 @@ func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creat
 			return err
 		}
 
-		if err := c.addInput(name, input, t); err != nil {
+		if err := inputs.AddInput(name, input, t, fp); err != nil {
 			l.Error("add %s failed: %v", name, err)
 			return err
 		}
 
-		l.Infof("add input %s ok", name)
+		l.Infof("add input %s(%s) ok", name, fp)
+	}
+
+	return nil
+}
+
+func migrateOldCfg(name string, c inputs.Creator) error {
+	if name == "self" { //nolint:goconst
+		return nil
+	}
+
+	input := c()
+	catalog := input.Catalog()
+
+	cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf.sample")
+	old := filepath.Join(datakit.ConfdDir, catalog, name+".conf")
+
+	if _, err := os.Stat(old); err == nil {
+		tbl, err := parseCfgFile(old)
+		if err != nil {
+			l.Warnf("[error] parse conf %s failed on [%s]: %s, ignored", old, name, err)
+		} else if len(tbl.Fields) == 0 { // old config not used
+			if err := os.Remove(old); err != nil {
+				l.Errorf("Remove: %s, ignored", err.Error())
+			}
+		}
+	}
+
+	// overwrite old config sample
+	l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
+	if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
+		l.Errorf("create catalog dir %s failed: %s", catalog, err.Error())
+		return err
+	}
+
+	sample := input.SampleConfig()
+	if sample == "" {
+		return fmt.Errorf("no sample available on collector %s", name)
+	}
+
+	if err := ioutil.WriteFile(cfgpath, []byte(sample), 0600); err != nil {
+		l.Errorf("failed to create sample configure for collector %s: %s", name, err.Error())
+		return err
 	}
 
 	return nil
 }
 
 // Creata datakit input plugin's configures if not exists
-func initPluginCfgs() {
+func initPluginSamples() {
 	for name, create := range inputs.Inputs {
-		if name == "self" {
-			continue
-		}
-
-		input := create()
-		catalog := input.Catalog()
-
-		cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf.sample")
-		old := filepath.Join(datakit.ConfdDir, catalog, name+".conf")
-
-		if _, err := os.Stat(old); err == nil {
-			tbl, err := parseCfgFile(old)
-			if err != nil {
-				l.Warnf("[error] parse conf %s failed on [%s]: %s, ignored", old, name, err)
-			} else {
-				if len(tbl.Fields) == 0 { // old config not used
-					os.Remove(old)
-				}
-			}
-		}
-
-		// overwrite old config sample
-		l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
-		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
-			l.Fatalf("create catalog dir %s failed: %s", catalog, err.Error())
-		}
-
-		sample := input.SampleConfig()
-		if sample == "" {
-			l.Fatalf("no sample available on collector %s", name)
-		}
-
-		if err := ioutil.WriteFile(cfgpath, []byte(sample), 0644); err != nil {
-			l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
+		if err := migrateOldCfg(name, create); err != nil {
+			l.Fatal(err)
 		}
 	}
 
 	// create telegraf input plugin's configures
-	for name, input := range TelegrafInputs {
+	for name, input := range inputs.TelegrafInputs {
 
 		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf.sample")
 		old := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf")
@@ -219,10 +232,8 @@ func initPluginCfgs() {
 			tbl, err := parseCfgFile(old)
 			if err != nil {
 				l.Warnf("[error] parse conf %s failed on [%s]: %s, ignored", old, name, err)
-			} else {
-				if len(tbl.Fields) == 0 { // old config not used
-					os.Remove(old)
-				}
+			} else if len(tbl.Fields) == 0 { // old config not used
+				os.Remove(old)
 			}
 		}
 
@@ -232,10 +243,75 @@ func initPluginCfgs() {
 			l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
 		}
 
-		if input, ok := TelegrafInputs[name]; ok {
-			if err := ioutil.WriteFile(cfgpath, []byte(input.Sample), 0644); err != nil {
+		if input, ok := inputs.TelegrafInputs[name]; ok {
+			if err := ioutil.WriteFile(cfgpath, []byte(input.Sample), 0600); err != nil {
 				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 			}
 		}
 	}
+}
+
+func EnableInputs(inputlist string) {
+	elems := strings.Split(inputlist, ",")
+	if len(elems) == 0 {
+		return
+	}
+
+	for _, name := range elems {
+		fpath, sample, err := doEnableInput(name)
+		if err != nil {
+			l.Debug("enable input %s failed, ignored", name)
+		}
+
+		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+			l.Error("mkdir failed: %s, ignored", err.Error())
+			continue
+		}
+
+		if err := ioutil.WriteFile(fpath, []byte(sample), os.ModePerm); err != nil {
+			l.Error("write input %s config failed: %s, ignored", name, err.Error())
+			continue
+		}
+		l.Debugf("enable input %s ok", name)
+	}
+}
+
+func doEnableInput(name string) (fpath, sample string, err error) {
+	if i, ok := inputs.TelegrafInputs[name]; ok {
+		fpath = filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf")
+		sample = i.Sample
+		return
+	}
+
+	if c, ok := inputs.Inputs[name]; ok {
+		i := c()
+		sample = i.SampleConfig()
+
+		fpath = filepath.Join(datakit.ConfdDir, i.Catalog(), name+".conf")
+		return
+	}
+
+	err = fmt.Errorf("input %s not found, ignored", name)
+	return
+}
+
+const (
+	tagsKVPartsLen = 2
+)
+
+func ParseGlobalTags(s string) map[string]string {
+	tags := map[string]string{}
+
+	parts := strings.Split(s, ",")
+	for _, p := range parts {
+		arr := strings.Split(p, "=")
+		if len(arr) != tagsKVPartsLen {
+			l.Warnf("invalid global tag: %s, ignored", p)
+			continue
+		}
+
+		tags[arr[0]] = arr[1]
+	}
+
+	return tags
 }
