@@ -274,8 +274,6 @@ func WriteDataWay(data []byte, urlPath string) error {
 
 func (p *NetPacket) pushData() {
 	for ch := range input {
-		fmt.Println("point =======>", string(ch))
-
 		if err := WriteDataWay(ch, "http://172.16.0.12:32758/v1/write/metrics?token=tkn_caba81680c8c4fb6b773e95b162623fe"); err != nil {
 			l.Errorf("err msg", err)
 		}
