@@ -6,9 +6,7 @@ const (
 	description = `stat http protocol request time, contain dnsLookup, tcpConnection, tlsHandshake,
 	serverProcessing, contentTransfer, and total time`
 	httpstatConfigSample = `
-#[[inputs.httpStat]]
-#  ##if empty, use "httpstat"
-#  metricName = ''
+#[[inputs.httpstat]]
 #  ## default is 10s
 #  interval = '10s'
 #  [[inputs.httpStat.action]]
@@ -34,6 +32,6 @@ type Action struct {
 	Method        string `toml:"method"`
 	Playload      string `toml:"playload"`
 	KAlive        bool   `toml:"kAlive"`
-	TLSSkipVerify bool   `toml:"tlsSkipVerify`
-	Compress      bool   `toml:"compress`
+	TLSSkipVerify bool   `toml:"tlsSkipVerify"`
+	Compress      bool   `toml:"compress"`
 }
