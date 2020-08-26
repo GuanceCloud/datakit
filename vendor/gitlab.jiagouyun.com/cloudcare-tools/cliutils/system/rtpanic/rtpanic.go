@@ -1,8 +1,6 @@
 package rtpanic
 
 import (
-	"log"
-	"reflect"
 	"runtime"
 )
 
@@ -24,15 +22,12 @@ func Recover(recoverCallback, cleanupCallback RecoverCallback) {
 		buf := make([]byte, StackTraceSize)
 		runtime.Stack(buf, false)
 
-		log.Printf("[error] err: %s, stack trace\n%s", err.Error(), string(buf))
-
 		if cleanupCallback != nil {
 			cleanupCallback(buf, err)
 		}
 
 		if recoverCallback != nil {
-			log.Printf("[info] try recover %s", runtime.FuncForPC(reflect.ValueOf(recoverCallback).Pointer()).Name())
-			recoverCallback(buf, nil) // 将 panic 信息回送给复活函数处理
+			recoverCallback(buf, err) // 将 panic 信息回送给复活函数处理
 		}
 	}
 }
