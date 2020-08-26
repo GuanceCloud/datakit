@@ -333,6 +333,7 @@ github.com/influxdata/influxdb1-client/v2
 # github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
 github.com/influxdata/telegraf
 github.com/influxdata/telegraf/filter
+github.com/influxdata/telegraf/internal/tls
 github.com/influxdata/telegraf/metric
 github.com/influxdata/telegraf/plugins/outputs
 github.com/influxdata/telegraf/plugins/outputs/wavefront
