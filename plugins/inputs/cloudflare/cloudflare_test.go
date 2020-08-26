@@ -1,7 +1,6 @@
 package cloudflare
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"testing"
 )
 
@@ -11,13 +10,7 @@ const (
 	apiKey = "d44e173bf1a3cd849c868a9662ae56d32470a"
 )
 
-func __init() {
-	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_DEFAULT)
-	l = logger.SLogger(inputName)
-}
-
 func TestMain(t *testing.T) {
-	__init()
 
 	var c = Cloudflare{
 		Email:    email,
