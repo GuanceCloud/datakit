@@ -312,7 +312,7 @@ func unmarshalZipkinThriftV1(octets []byte) ([]*zipkincore.Span, error) {
 		if err = zs.Read(transport); err != nil {
 			return nil, err
 		}
-		spans[i] = zs
+		spans = append(spans, zs)
 	}
 
 	if err = transport.ReadListEnd(); err != nil {
