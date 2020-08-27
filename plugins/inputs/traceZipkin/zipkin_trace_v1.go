@@ -46,16 +46,27 @@ type ZipkinSpanV1 struct {
 }
 
 func getFirstTimestamp(zs *ZipkinSpanV1) int64 {
+	var ts int64
+	var isFound bool
+	ts = 0x7FFFFFFFFFFFFFFF
 	for _, ano := range zs.Annotations {
-		if ano.Timestamp != 0 {
-			return ano.Timestamp
+		if ano.Timestamp == 0 {
+			continue
+		}
+		if ano.Timestamp < ts {
+			isFound = true
+			ts = ano.Timestamp
 		}
 	}
 
+	if isFound {
+		return ts
+	}
 	return time.Now().UnixNano() / 1000
-
 }
 func parseZipkinJsonV1(octets []byte) error {
+	log.Debugf("->|%v|<-", string(octets))
+	
 	spans := []*ZipkinSpanV1{}
 	if err := json.Unmarshal(octets, &spans); err != nil {
 		return err
@@ -106,6 +117,10 @@ func parseZipkinJsonV1(octets []byte) error {
 				break
 			}
 		}
+
+		if tAdpter.Duration == 0  {
+			tAdpter.Duration = getDurationByAno(zs.Annotations)
+		}
 		tAdpter.Tags = ZipkinTags
 
 		adapterGroup = append(adapterGroup, tAdpter)
@@ -113,6 +128,31 @@ func parseZipkinJsonV1(octets []byte) error {
 
 	trace.MkLineProto(adapterGroup, inputName)
 	return nil
+}
+
+func getDurationByAno(anos []*Annotation) int64 {
+	if len(anos) < 2 {
+		return 0
+	}
+
+	var startTs, stopTs int64
+	startTs = 0x7FFFFFFFFFFFFFFF
+	for _, ano := range anos {
+		if ano.Timestamp == 0 {
+			continue
+		}
+		if ano.Timestamp > stopTs {
+			stopTs = ano.Timestamp
+		}
+
+		if ano.Timestamp < startTs {
+			startTs = ano.Timestamp
+		}
+	}
+	if stopTs > startTs {
+		return stopTs - startTs
+	}
+	return 0
 }
 
 func int2ip(i uint32) []byte {
@@ -200,7 +240,8 @@ func parseZipkinThriftV1(octets []byte) error {
 		if zs.Timestamp != nil {
 			tAdpter.TimestampUs = *zs.Timestamp
 		} else {
-			tAdpter.TimestampUs = time.Now().UnixNano() / 1000
+			//tAdpter.TimestampUs = time.Now().UnixNano() / 1000
+			tAdpter.TimestampUs = getStartTimestamp(zs)
 		}
 
 		js, err := json.Marshal(z)
@@ -240,6 +281,10 @@ func parseZipkinThriftV1(octets []byte) error {
 				break
 			}
 		}
+		if tAdpter.Duration == 0 {
+			tAdpter.Duration = getDurationThriftAno(zs.Annotations)
+		}
+
 
 		tAdpter.Tags = ZipkinTags
 		adapterGroup = append(adapterGroup, tAdpter)
@@ -275,4 +320,49 @@ func unmarshalZipkinThriftV1(octets []byte) ([]*zipkincore.Span, error) {
 	}
 
 	return spans, nil
+}
+
+func getStartTimestamp(zs *zipkincore.Span) int64 {
+	var ts int64
+	var isFound bool
+	ts = 0x7FFFFFFFFFFFFFFF
+	for _, ano := range zs.Annotations {
+		if ano.Timestamp == 0 {
+			continue
+		}
+		if ano.Timestamp < ts {
+			isFound = true
+			ts = ano.Timestamp
+		}
+	}
+
+	if isFound {
+		return ts
+	}
+	return time.Now().UnixNano() / 1000
+}
+
+func getDurationThriftAno(anos []*zipkincore.Annotation) int64 {
+	if len(anos) < 2 {
+		return 0
+	}
+
+	var startTs, stopTs int64
+	startTs = 0x7FFFFFFFFFFFFFFF
+	for _, ano := range anos {
+		if ano.Timestamp == 0 {
+			continue
+		}
+		if ano.Timestamp > stopTs {
+			stopTs = ano.Timestamp
+		}
+
+		if ano.Timestamp < startTs {
+			startTs = ano.Timestamp
+		}
+	}
+	if stopTs > startTs {
+		return stopTs - startTs
+	}
+	return 0
 }
