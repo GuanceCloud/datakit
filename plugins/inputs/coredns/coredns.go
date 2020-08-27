@@ -18,24 +18,24 @@ const (
 
 	sampleCfg = `
 [[inputs.coredns]]
-	# coredns host
-	# required
-	host = "127.0.0.1"
-
-	# coredns prometheus port
-	# required
-	port = 9153
-
-	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	# required
-	interval = "10s"
-
-	# [inputs.coredns.tags]
-	# tags1 = "value1"
+    # coredns host
+    # required
+    host = "127.0.0.1"
+    
+    # coredns prometheus port
+    # required
+    port = 9153
+    
+    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    # required
+    interval = "10s"
+    
+    # [inputs.coredns.tags]
+    # tags1 = "value1"
 `
 )
 
-var l *logger.Logger
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -56,11 +56,11 @@ type Coredns struct {
 	duration time.Duration
 }
 
-func (_ *Coredns) SampleConfig() string {
+func (Coredns) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *Coredns) Catalog() string {
+func (Coredns) Catalog() string {
 	return "network"
 }
 
