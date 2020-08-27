@@ -2,18 +2,10 @@ package pgreplication
 
 import (
 	"testing"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
-func __init() {
-	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_DEFAULT)
-	l = logger.SLogger(inputName)
-	testAssert = true
-}
-
 func TestMain(t *testing.T) {
-	__init()
+	testAssert = true
 
 	var r = Replication{
 		Host:     "172.16.0.43",
