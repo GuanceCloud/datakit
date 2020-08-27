@@ -5,14 +5,17 @@ import "gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 const (
 	grantType            = "client_credential"
 	baseURL              = "https://api.weixin.qq.com/"
-	accessTokenURL       = "cgi-bin/token"
+	accessTokenURL       = "cgi-bin/token" //nolint:gosec
 	DailySummaryURL      = "datacube/getweanalysisappiddailysummarytrend"
 	DailyVisitTrendURL   = "datacube/getweanalysisappiddailyvisittrend"
 	UserPortraitURL      = "datacube/getweanalysisappiduserportrait"
 	VisitDistributionURL = "datacube/getweanalysisappidvisitdistribution"
 	VisitPageURL         = "datacube/getweanalysisappidvisitpage"
-	jsErrSearchURL         = "wxaapi/log/jserr_search"
-	PerformanceURL         = "wxaapi/log/get_performance"
+	jsErrSearchURL       = "wxaapi/log/jserr_search"
+	PerformanceURL       = "wxaapi/log/get_performance"
+	offect               = 8 * 3600
+	errcode              = 40000
+	daySecond            = 24 * 3600
 )
 
 var (
@@ -108,10 +111,9 @@ var Config = map[string]map[string]string{
 		"6": "6-10 页",
 		"7": ">10 页",
 	},
-	"cost_time_type":{
-		"1":"启动总耗时",
-		"2":"下载耗时",
-		"3":"初次渲染耗时",
+	"cost_time_type": {
+		"1": "启动总耗时",
+		"2": "下载耗时",
+		"3": "初次渲染耗时",
 	},
-
 }
