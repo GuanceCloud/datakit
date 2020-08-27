@@ -15,15 +15,15 @@ const (
 	ddsSampleConfig = `
 #[inputs.aliyunobject.mongodb]
 
-# ## @param - custom tags for mongodb object - [list of key:value element] - optional
-#[inputs.aliyunobject.mongodb.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of mongodb instanceid] - optional
 #db_instanceids = []
 
 # ## @param - custom tags - [list of excluded mongodb instanceid] - optional
 #exclude_db_instanceids = []
+
+# ## @param - custom tags for mongodb object - [list of key:value element] - optional
+#[inputs.aliyunobject.mongodb.tags]
+# key1 = 'val1'
 `
 )
 
@@ -64,7 +64,7 @@ func (r *Dds) run(ag *objectAgent) {
 		pageNum := 1
 		pageSize := 100
 		req := dds.CreateDescribeDBInstancesRequest()
-		req.Scheme = "https"
+		req.Scheme = "https" //nolint:goconst
 
 		for {
 			moduleLogger.Infof("pageNume %v, pagesize %v", pageNum, pageSize)
@@ -97,12 +97,12 @@ func (r *Dds) run(ag *objectAgent) {
 				break
 			}
 
-			if len(r.DBInstancesIDs) <= 0 && resp.TotalCount < resp.PageNumber*pageSize {
+			if len(r.DBInstancesIDs) == 0 && resp.TotalCount < resp.PageNumber*pageSize {
 				break
 			}
 
 			pageNum++
-			if len(r.DBInstancesIDs) <= 0 {
+			if len(r.DBInstancesIDs) == 0 {
 				req.PageNumber = requests.NewInteger(pageNum)
 			}
 		}
@@ -121,8 +121,8 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 		//moduleLogger.Debugf("dbinstanceInfo %+#v", db)
 
 		exclude := false
-		for _, dbIsId := range ag.Dds.ExcludeDBInstanceIDs {
-			if db.DBInstanceId == dbIsId {
+		for _, dbIsID := range ag.Dds.ExcludeDBInstanceIDs {
+			if db.DBInstanceId == dbIsID {
 				exclude = true
 				break
 			}
@@ -194,7 +194,7 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 		objs = append(objs, obj)
 	}
 
-	if len(objs) <= 0 {
+	if len(objs) == 0 {
 		return
 	}
 
