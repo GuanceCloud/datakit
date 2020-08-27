@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -17,14 +18,47 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"golang.org/x/net/context/ctxhttp"
 )
 
-var input chan []byte
+var (
+	flagCfgFile  = flag.String("cfg-file", "", "json config file")
+	flagLog      = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log file")
+	flagLogLevel = flag.String("log-level", "info", "log file")
+	flagDesc     = flag.String("desc", "", "description of the process, for debugging")
 
-func init() {
-	input = make(chan []byte, 128)
+	l      *logger.Logger
+	config *Config = new(Config)
+)
+
+func main() {
+	// 配置参数
+	flag.Parse()
+
+	if *flagCfgFile == "" {
+		panic("config missing")
+	}
+
+	if *flagDesc != "" {
+		l = logger.SLogger("tcpdump-" + *flagDesc)
+	} else {
+		l = logger.SLogger("tcpdump")
+	}
+
+	l.Infof("log level: %s", *flagLogLevel)
+
+	cfg, err := ParseConfig(*flagCfgFile)
+	if err != nil {
+		panic("config missing")
+	}
+
+	logger.SetGlobalRootLogger(*flagLog,
+		*flagLogLevel,
+		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+
+	cfg.NetPacket.run()
 }
 
 // ParseConfig 解析配置文件
@@ -37,12 +71,16 @@ func ParseConfig(fpath string) (*NetPacket, error) {
 	return &c, nil
 }
 
+type Config struct {
+	NetPacket *NetPacket `toml:"inputs.tcpdump"`
+}
+
 type NetPacket struct {
 	Metric string
 	// tcpdump.Tcpdump
 	Device   []string `toml:"device"`
 	Protocol []string `toml:"protocol"`
-	DataWay  string   `toml:"dataway"`
+	WriteUrl string   `toml:"writeUrl"`
 	SrcHost  string
 	DstHost  string
 	Eth      *layers.Ethernet
@@ -171,7 +209,7 @@ func (p *NetPacket) tcpData() {
 		l.Errorf("new point failed: %s", err.Error())
 	}
 
-	if err := WriteDataWay(ptline, p.DataWay); err != nil {
+	if err := WriteData(ptline, p.WriteUrl); err != nil {
 		l.Errorf("err msg", err)
 	}
 }
@@ -197,42 +235,20 @@ func (p *NetPacket) udpData() {
 		l.Errorf("new point failed: %s", err.Error())
 	}
 
-	if err := WriteDataWay(ptline, p.DataWay); err != nil {
+	if err := WriteData(ptline, p.WriteUrl); err != nil {
 		l.Errorf("err msg", err)
 	}
 }
 
-var (
-	flagCfgStr = flag.String("cfg", "", "json config string")
-
-	l *logger.Logger
-)
-
-func main() {
-	dump, err := ParseConfig("./config.conf")
-	if err != nil {
-		panic("config(json string) missing")
-	}
-
-	logger.SetGlobalRootLogger("./tcpdump.log",
-		"info",
-		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
-
-	l = logger.SLogger("tcpdump")
-
-	l.Infof("log level: %s", "info")
-	dump.run()
-}
-
 func (p *NetPacket) run() {
-	l.Info("start monit oracle...")
+	l.Info("start monit tcpdump...")
 	p.handle()
 
 	go p.pushData()
 }
 
 // dataway写入数据
-func WriteDataWay(data []byte, urlPath string) error {
+func WriteData(data []byte, urlPath string) error {
 	// dataway path
 	ctx, _ := context.WithCancel(context.Background())
 	httpReq, err := http.NewRequest("POST", urlPath, bytes.NewBuffer(data))
@@ -270,12 +286,4 @@ func WriteDataWay(data []byte, urlPath string) error {
 	}
 	l.Errorf("[debug] %s %d", string(body), httpResp.StatusCode)
 	return err
-}
-
-func (p *NetPacket) pushData() {
-	for ch := range input {
-		if err := WriteDataWay(ch, "http://172.16.0.12:32758/v1/write/metrics?token=tkn_caba81680c8c4fb6b773e95b162623fe"); err != nil {
-			l.Errorf("err msg", err)
-		}
-	}
 }
