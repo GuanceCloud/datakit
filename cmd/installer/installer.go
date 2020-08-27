@@ -90,7 +90,7 @@ func main() {
 	}
 
 	datakit.ServiceExecutable = filepath.Join(installDir, datakitBin)
-	if runtime.GOOS == datakit.OS_WINDOWS {
+	if runtime.GOOS == datakit.OSWindows {
 		datakit.ServiceExecutable += ".exe"
 	}
 
@@ -223,17 +223,17 @@ Golang Version: %s
 
 	switch osarch {
 
-	case datakit.OSARCH_WIN_AMD64:
+	case datakit.OSArchWinAmd64:
 		installDir = `C:\Program Files\dataflux\datakit`
 
-	case datakit.OSARCH_WIN_386:
+	case datakit.OSArchWin386:
 		installDir = `C:\Program Files (x86)\dataflux\datakit`
 
-	case datakit.OSARCH_LINUX_ARM,
-		datakit.OSARCH_LINUX_ARM64,
-		datakit.OSARCH_LINUX_386,
-		datakit.OSARCH_LINUX_AMD64,
-		datakit.OSARCH_DARWIN_AMD64:
+	case datakit.OSArchLinuxArm,
+		datakit.OSArchLinuxArm64,
+		datakit.OSArchLinux386,
+		datakit.OSArchLinuxAmd64,
+		datakit.OSArchDarwinAmd64:
 		installDir = `/usr/local/cloudcare/dataflux/datakit`
 
 	default:
@@ -396,7 +396,7 @@ func startDatakitService(s service.Service) error {
 
 func stopLagacyDatakit(svc service.Service) {
 	switch osarch {
-	case datakit.OSARCH_WIN_AMD64, datakit.OSARCH_WIN_386:
+	case datakit.OSArchWinAmd64, datakit.OSArchWin386:
 		_ = stopDataKitService(svc)
 	default:
 		cmd := exec.Command(`stop`, []string{datakit.ServiceName}...) //nolint:gosec
@@ -454,17 +454,17 @@ func migrateLagacyDatakit(svc service.Service) {
 
 	switch osarch {
 
-	case datakit.OSARCH_WIN_AMD64, datakit.OSARCH_WIN_386:
+	case datakit.OSArchWinAmd64, datakit.OSArchWin386:
 		lagacyInstallDir = `C:\Program Files\Forethought\datakit`
 		if _, err := os.Stat(lagacyInstallDir); err != nil {
 			lagacyInstallDir = `C:\Program Files (x86)\Forethought\datakit`
 		}
 
-	case datakit.OSARCH_LINUX_ARM,
-		datakit.OSARCH_LINUX_ARM64,
-		datakit.OSARCH_LINUX_386,
-		datakit.OSARCH_LINUX_AMD64,
-		datakit.OSARCH_DARWIN_AMD64:
+	case datakit.OSArchLinuxArm,
+		datakit.OSArchLinuxArm64,
+		datakit.OSArchLinux386,
+		datakit.OSArchLinuxAmd64,
+		datakit.OSArchDarwinAmd64:
 
 		lagacyInstallDir = `/usr/local/cloudcare/forethought/datakit`
 		lagacyServiceFiles = []string{"/lib/systemd/system/datakit.service", "/etc/systemd/system/datakit.service"}
