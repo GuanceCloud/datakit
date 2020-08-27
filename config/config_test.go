@@ -1,10 +1,14 @@
 package config
 
 import (
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func TestEnableInputs(t *testing.T) {
@@ -61,7 +65,7 @@ func TestBuildInputCfg(t *testing.T) {
 
 func TestLoadMainCfg(t *testing.T) {
 
-	c := newDefaultCfg()
+	c := Cfg
 	if err := c.LoadMainConfig(); err != nil {
 		t.Errorf("%s", err)
 	}
