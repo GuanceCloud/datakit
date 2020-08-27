@@ -2,7 +2,6 @@ package io
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -302,19 +301,6 @@ func flush(cache map[string][][]byte) {
 	}
 }
 
-func gz(data []byte) ([]byte, error) {
-	var z bytes.Buffer
-	zw := gzip.NewWriter(&z)
-	if _, err := zw.Write(data); err != nil {
-		l.Error(err)
-		return nil, err
-	}
-
-	zw.Flush()
-	zw.Close()
-	return z.Bytes(), nil
-}
-
 func initCookies() {
 	cookies = fmt.Sprintf("uuid=%s;name=%s;hostname=%s;max_post_interval=%s;version=%s;os=%s;arch=%s",
 		config.Cfg.MainCfg.UUID,
@@ -361,7 +347,7 @@ func buildBody(url string, bodies [][]byte) (body []byte, gzon bool, err error) 
 	}
 
 	if len(body) > minGZSize && datakit.OutputFile == "" { // should not gzip on file output
-		if body, err = gz(body); err != nil {
+		if body, err = datakit.GZip(body); err != nil {
 			l.Errorf("gz: %s", err.Error())
 			return
 		}
