@@ -15,15 +15,15 @@ const (
 	domainSampleConfig = `
 #[inputs.aliyunobject.domain]
 
-# ## @param - custom tags for Domain object - [list of key:value element] - optional
-#[inputs.aliyunobject.domain.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of Domain instanceid] - optional
 #instanceids = []
 
 # ## @param - custom tags - [list of excluded Domain instanceid] - optional
 #exclude_instanceids = []
+
+# ## @param - custom tags for Domain object - [list of key:value element] - optional
+#[inputs.aliyunobject.domain.tags]
+# key1 = 'val1'
 `
 )
 
