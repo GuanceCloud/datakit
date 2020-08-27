@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -20,8 +19,42 @@ import (
 )
 
 var (
-	l           = logger.DefaultSLogger("config")
-	Cfg *Config = nil
+	l = logger.DefaultSLogger("config")
+
+	Cfg = &Config{ //nolint:dupl
+		MainCfg: &MainConfig{
+			GlobalTags:      map[string]string{},
+			flushInterval:   datakit.Duration{Duration: time.Second * 10},
+			Interval:        "10s",
+			MaxPostInterval: "15s", // add 5s plus for network latency
+
+			HTTPBind: "0.0.0.0:9529",
+
+			LogLevel: "info",
+			Log:      filepath.Join(datakit.InstallDir, "datakit.log"),
+			GinLog:   filepath.Join(datakit.InstallDir, "gin.log"),
+
+			RoundInterval: false,
+			cfgPath:       filepath.Join(datakit.InstallDir, "datakit.conf"),
+			TelegrafAgentCfg: &agent{
+				Interval:                   "10s",
+				RoundInterval:              true,
+				MetricBatchSize:            1000,
+				MetricBufferLimit:          100000,
+				CollectionJitter:           "0s",
+				FlushInterval:              "10s",
+				FlushJitter:                "0s",
+				Precision:                  "ns",
+				Debug:                      false,
+				Quiet:                      false,
+				LogTarget:                  "file",
+				Logfile:                    filepath.Join(datakit.TelegrafDir, "agent.log"),
+				LogfileRotationMaxArchives: 5,
+				LogfileRotationMaxSize:     "32MB",
+				OmitHostname:               true, // do not append host tag
+			},
+		},
+	}
 )
 
 type Config struct {
@@ -74,57 +107,6 @@ type MainConfig struct {
 	cfgPath  string
 
 	TelegrafAgentCfg *agent `toml:"agent"`
-}
-
-func init() {
-	osarch := runtime.GOOS + "/" + runtime.GOARCH
-
-	switch osarch {
-	case "windows/amd64":
-		datakit.InstallDir = `C:\Program Files\dataflux\` + datakit.ServiceName
-
-	case "windows/386":
-		datakit.InstallDir = `C:\Program Files (x86)\dataflux\` + datakit.ServiceName
-
-	case "linux/amd64", "linux/386", "linux/arm", "linux/arm64",
-		"darwin/amd64", "darwin/386",
-		"freebsd/amd64", "freebsd/386":
-		datakit.InstallDir = `/usr/local/cloudcare/dataflux/` + datakit.ServiceName
-	default:
-		panic("unsupported os/arch: %s" + osarch)
-	}
-
-	datakit.AgentLogFile = filepath.Join(datakit.InstallDir, "embed", "agent.log")
-
-	datakit.TelegrafDir = filepath.Join(datakit.InstallDir, "embed")
-	datakit.DataDir = filepath.Join(datakit.InstallDir, "data")
-	datakit.LuaDir = filepath.Join(datakit.InstallDir, "lua")
-	datakit.ConfdDir = filepath.Join(datakit.InstallDir, "conf.d")
-	datakit.GRPCDomainSock = filepath.Join(datakit.InstallDir, "datakit.sock")
-
-	Cfg = newDefaultCfg()
-}
-
-func newDefaultCfg() *Config {
-
-	return &Config{
-		MainCfg: &MainConfig{
-			GlobalTags:      map[string]string{},
-			flushInterval:   datakit.Duration{Duration: time.Second * 10},
-			Interval:        "10s",
-			MaxPostInterval: "15s", // add 5s plus for network latency
-
-			HTTPBind: "0.0.0.0:9529",
-
-			LogLevel: "info",
-			Log:      filepath.Join(datakit.InstallDir, "datakit.log"),
-			GinLog:   filepath.Join(datakit.InstallDir, "gin.log"),
-
-			RoundInterval:    false,
-			cfgPath:          filepath.Join(datakit.InstallDir, "datakit.conf"),
-			TelegrafAgentCfg: defaultTelegrafAgentCfg(),
-		},
-	}
 }
 
 func InitDirs() {
