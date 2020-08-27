@@ -22,7 +22,6 @@ const (
 # ## @param - custom tags - [list of excluded rds instanceid] - optional
 #exclude_db_instanceids = []
 
-
 # ## @param - custom tags for rds object - [list of key:value element] - optional
 #[inputs.aliyunobject.rds.tags]
 # key1 = 'val1'
