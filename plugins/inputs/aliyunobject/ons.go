@@ -90,7 +90,7 @@ func (r *Ons) handleResponse(resp *ons.OnsInstanceInServiceListResponse, ag *obj
 			}
 		}
 
-		if !inc {
+		if len(ag.Ons.InstancesIDs) > 0 && !inc {
 			continue
 		}
 
