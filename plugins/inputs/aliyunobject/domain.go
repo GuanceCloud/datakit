@@ -118,7 +118,7 @@ func (dm *Domain) handleResponse(resp *domain.QueryDomainListResponse, ag *objec
 			}
 		}
 
-		if !inc {
+		if len(ag.Domain.InstanceIDs) > 0 && !inc {
 			continue
 		}
 
