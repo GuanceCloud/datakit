@@ -5,21 +5,21 @@ type TelegrafInput struct {
 	Catalog, Sample string
 }
 
-func (ti *TelegrafInput) Enabled() (int, []string) {
+func (ti *TelegrafInput) Enabled() (n int, cfgs []string) {
 
 	mtx.RLock()
 	defer mtx.RUnlock()
 
 	arr, ok := inputInfos[ti.name]
 	if !ok {
-		return 0, nil
+		return
 	}
 
-	cfgs := []string{}
 	for _, i := range arr {
 		cfgs = append(cfgs, i.cfg)
 	}
-	return len(arr), cfgs
+	n = len(arr)
+	return
 }
 
 var (
@@ -129,7 +129,8 @@ func HaveTelegrafInputs() bool {
 	return false
 }
 
-func applyTelegrafSamples() {
+//nolint:lll,goconst
+func init() { //nolint:fulen // we have to init all these samples here
 	TelegrafInputs[`amqp_consumer`].Sample = `
 [[inputs.amqp_consumer]]
 # Broker to consume from.
@@ -324,7 +325,7 @@ repositories = [
         ## Multi-value plugins can be handled two ways.
         ## "split" will parse and store the multi-value plugin data into separate measurements
         ## "join" will parse and store the multi-value plugin as a single multi-value measurement.
-        ## "split" is the default behavior for backward compatability with previous versions of influxdb.
+        ## "split" is the default behavior for backward compatibility with previous versions of influxdb.
         collectd_parse_multivalue = "split"
 
 	# ----
@@ -492,7 +493,7 @@ topics = ["telegraf"]
 	TelegrafInputs[`mqtt_consumer`].Sample = `
 [[inputs.mqtt_consumer]]
 ## Broker URLs for the MQTT server or cluster.  To connect to multiple
-## clusters or standalone servers, use a seperate plugin instance.
+## clusters or standalone servers, use a separate plugin instance.
 ##   example: servers = ["tcp://localhost:1883"]
 ##            servers = ["ssl://localhost:1883"]
 ##            servers = ["ws://localhost:1883"]
@@ -909,11 +910,11 @@ IncludeTotal=false #Set to true to include _Total instance when querying for all
 	## separator character to use for measurement and field names (default: "_")
 	# separator = "_"
 
-	## number of objects to retreive per query for realtime resources (vms and hosts)
+	## number of objects to retrieve per query for realtime resources (vms and hosts)
 	## set to 64 for vCenter 5.5 and 6.0 (default: 256)
 	# max_query_objects = 256
 
-	## number of metrics to retreive per query for non-realtime resources (clusters and datastores)
+	## number of metrics to retrieve per query for non-realtime resources (clusters and datastores)
 	## set to 64 for vCenter 5.5 and 6.0 (default: 256)
 	# max_query_metrics = 256
 
@@ -1381,41 +1382,41 @@ host = '{{.Hostname}}'
 # Monitor process cpu and memory usage
 [[inputs.procstat]]
 # PID file to monitor process
-pid_file = "/var/run/nginx.pid"
-# executable name (ie, pgrep <exe>)
- exe = "nginx"
-# pattern as argument for pgrep (ie, pgrep -f <pattern>)
- pattern = "nginx"
-# user as argument for pgrep (ie, pgrep -u <user>)
- user = "nginx"
-# Systemd unit name
- systemd_unit = "nginx.service"
-# CGroup name or path
- cgroup = "systemd/system.slice/nginx.service"
-
-# Windows service name
- win_service = ""
-
-# override for process_name
-# This is optional; default is sourced from /proc/<pid>/status
- process_name = "bar"
-
-# Field name prefix
- prefix = ""
-
-# When true add the full cmdline as a tag.
- cmdline_tag = false
-
-# Add PID as a tag instead of a field; useful to differentiate between
-# processes whose tags are otherwise the same.  Can create a large number
-# of series, use judiciously.
- pid_tag = false
-
-# Method to use when finding process IDs.  Can be one of 'pgrep', or
-# 'native'.  The pgrep finder calls the pgrep executable in the PATH while
-# the native finder performs the search directly in a manor dependent on the
-# platform.  Default is 'pgrep'
- pid_finder = "pgrep"`
+pid_file = "/var/run/nginx.pid" # change your PID file here
+## executable name (ie, pgrep <exe>)
+# exe = "nginx"
+## pattern as argument for pgrep (ie, pgrep -f <pattern>)
+# pattern = "nginx"
+## user as argument for pgrep (ie, pgrep -u <user>)
+# user = "nginx"
+## Systemd unit name
+# systemd_unit = "nginx.service"
+## CGroup name or path
+# cgroup = "systemd/system.slice/nginx.service"
+#
+## Windows service name
+# win_service = ""
+#
+## override for process_name
+## This is optional; default is sourced from /proc/<pid>/status
+# process_name = "bar"
+#
+## Field name prefix
+# prefix = ""
+#
+## When true add the full cmdline as a tag.
+# cmdline_tag = false
+#
+## Add PID as a tag instead of a field; useful to differentiate between
+## processes whose tags are otherwise the same.  Can create a large number
+## of series, use judiciously.
+# pid_tag = false
+#
+## Method to use when finding process IDs.  Can be one of 'pgrep', or
+## 'native'.  The pgrep finder calls the pgrep executable in the PATH while
+## the native finder performs the search directly in a manor dependent on the
+## platform.  Default is 'pgrep'
+# pid_finder = "pgrep"`
 
 	TelegrafInputs[`swap`].Sample = `
 # Read metrics about swap memory usage
@@ -2279,7 +2280,7 @@ pid_file = "/var/run/nginx.pid"
    ##   See https://github.com/denisenkom/go-mssqldb for detailed connection
    ##   parameters.
    servers = [
-    "Server=192.168.1.10;Port=1433;User Id=<user>;Password=<pw>;app name=telegraf;log=1;",
+    "Server=192.168.1.10;Port=1433;User Id=<user>;Password=<pw>;app name=datakit;log=1;",
    ]
 
    ## Optional parameter, setting this to 2 will use a new version
@@ -2991,8 +2992,4 @@ pid_file = "/var/run/nginx.pid"
 			##(optional)Set to true to include _Total instance when querying for all (*).
 			#IncludeTotal=false
 			`
-}
-
-func init() {
-	applyTelegrafSamples()
 }
