@@ -21,24 +21,21 @@ const (
 
 	sampleCfg = `
 [inputs.systemd]
-	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	# required
-	interval = "10s"
-
-	# [inputs.systemd.tags]
-	# tags1 = "value1"
+    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    # required
+    interval = "10s"
+    
+    # [inputs.systemd.tags]
+    # tags1 = "value1"
 `
 )
 
-var l *logger.Logger
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Systemd{}
 	})
-}
-
-type trie struct {
 }
 
 type Systemd struct {
@@ -49,11 +46,11 @@ type Systemd struct {
 	duration time.Duration
 }
 
-func (_ *Systemd) SampleConfig() string {
+func (Systemd) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *Systemd) Catalog() string {
+func (Systemd) Catalog() string {
 	return "host"
 }
 
@@ -120,64 +117,87 @@ func (s *Systemd) loadcfg() bool {
 	return false
 }
 
+type metrics struct {
+	total     int
+	loaded    int
+	active    int
+	service   int
+	socket    int
+	device    int
+	mount     int
+	automount int
+	swap      int
+	target    int
+	path      int
+	timer     int
+	slice     int
+	scope     int
+}
+
 func (s *Systemd) getMetrics() ([]byte, error) {
-	var loaded, active, service, socket, device, mount, automount,
-		swap, target, path, timer, slice, scope int
 
 	units, err := s.conn.ListUnits()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, unitStatus := range units {
-		nameBlocks := strings.Split(unitStatus.Name, ".")
-		switch nameBlocks[len(nameBlocks)-1] {
-		case "service":
-			service++
-		case "socket":
-			socket++
-		case "device":
-			device++
-		case "mount":
-			mount++
-		case "automount":
-			automount++
-		case "swap":
-			swap++
-		case "target":
-			target++
-		case "path":
-			path++
-		case "timer":
-			timer++
-		case "slice":
-			slice++
-		case "scope":
-			scope++
-		}
+	statusMetrics := unitStatus(units)
 
-		if unitStatus.LoadState == "loaded" {
-			loaded++
-		}
-		if unitStatus.ActiveState == "active" {
-			active++
-		}
-	}
 	fields := map[string]interface{}{
-		"units_total":        len(units),
-		"units_loaded_count": loaded,
-		"units_active_count": active,
-		"unit_service":       service,
-		"unit_socket":        socket,
-		"unit_device":        device,
-		"unit_mount":         mount,
-		"unit_automount":     automount,
-		"unit_swap":          swap,
-		"unit_target":        target,
-		"unit_path":          path,
-		"unit_timer":         timer,
-		"unit_slice":         slice,
-		"unit_scope":         scope,
+		"units_total":        statusMetrics.total,
+		"units_loaded_count": statusMetrics.loaded,
+		"units_active_count": statusMetrics.active,
+		"unit_service":       statusMetrics.service,
+		"unit_socket":        statusMetrics.socket,
+		"unit_device":        statusMetrics.device,
+		"unit_mount":         statusMetrics.mount,
+		"unit_automount":     statusMetrics.automount,
+		"unit_swap":          statusMetrics.swap,
+		"unit_target":        statusMetrics.target,
+		"unit_path":          statusMetrics.path,
+		"unit_timer":         statusMetrics.timer,
+		"unit_slice":         statusMetrics.slice,
+		"unit_scope":         statusMetrics.scope,
 	}
 	return io.MakeMetric(defaultMeasurement, s.Tags, fields, time.Now())
+}
+
+func unitStatus(units []dbus.UnitStatus) metrics {
+	var m metrics
+	m.total = len(units)
+
+	for index := range units {
+		nameBlocks := strings.Split(units[index].Name, ".")
+		switch nameBlocks[len(nameBlocks)-1] {
+		case "service":
+			m.service++
+		case "socket":
+			m.socket++
+		case "device":
+			m.device++
+		case "mount":
+			m.mount++
+		case "automount":
+			m.automount++
+		case "swap":
+			m.swap++
+		case "target":
+			m.target++
+		case "path":
+			m.path++
+		case "timer":
+			m.timer++
+		case "slice":
+			m.slice++
+		case "scope":
+			m.scope++
+		}
+		if units[index].LoadState == "loaded" {
+			m.loaded++
+		}
+		if units[index].ActiveState == "active" {
+			m.active++
+		}
+	}
+	return m
 }
