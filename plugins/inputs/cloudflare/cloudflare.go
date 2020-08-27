@@ -24,28 +24,28 @@ const (
 
 	sampleCfg = `
 [[inputs.cloudflare]]
-	# cloudflare login email
-	# required
-	email = ""
-
-	# service zone id
-	# required
-	zone_id = ""
-
-	# api key
-	# required
-	api_key = ""
-
-	# valid time units are "m", "h"
-	# required
-	interval = "24h"
-
-	# [inputs.cloudflare.tags]
-	# tags1 = "value1"
+    # cloudflare login email
+    # required
+    email = ""
+    
+    # service zone id
+    # required
+    zone_id = ""
+    
+    # api key
+    # required
+    api_key = ""
+    
+    # valid time units are "m", "h"
+    # required
+    interval = "24h"
+    
+    # [inputs.cloudflare.tags]
+    # tags1 = "value1"
 `
 )
 
-var l *logger.Logger
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -64,11 +64,11 @@ type Cloudflare struct {
 	duration time.Duration
 }
 
-func (_ *Cloudflare) SampleConfig() string {
+func (Cloudflare) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *Cloudflare) Catalog() string {
+func (Cloudflare) Catalog() string {
 	return inputName
 }
 
