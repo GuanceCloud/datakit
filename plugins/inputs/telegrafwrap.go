@@ -32,7 +32,7 @@ func doStartTelegraf() error {
 func doStart() (*os.Process, error) {
 
 	env := os.Environ()
-	if runtime.GOOS == datakit.OS_WINDOWS {
+	if runtime.GOOS == datakit.OSWindows {
 		env = append(env, fmt.Sprintf(`TELEGRAF_CONFIG_PATH=%s`, telegrafConf))
 	}
 	procAttr := &os.ProcAttr{
@@ -47,7 +47,7 @@ func doStart() (*os.Process, error) {
 	var p *os.Process
 	telegrafBin := agentPath()
 
-	if runtime.GOOS == datakit.OS_WINDOWS {
+	if runtime.GOOS == datakit.OSWindows {
 
 		cmd := exec.Command(telegrafBin, "-console")
 		cmd.Env = env
@@ -75,7 +75,7 @@ func doStart() (*os.Process, error) {
 
 func agentPath() string {
 	fpath := filepath.Join(datakit.TelegrafDir, runtime.GOOS+"-"+runtime.GOARCH, "agent")
-	if runtime.GOOS == datakit.OS_WINDOWS {
+	if runtime.GOOS == datakit.OSWindows {
 		fpath += ".exe"
 	}
 
