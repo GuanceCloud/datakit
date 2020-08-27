@@ -21,36 +21,36 @@ const (
 	defaultMeasurement = "envoy"
 
 	sampleCfg = `
-# [[inputs.envoy]]
-#	# required
-# 	host = "127.0.0.1"
-#
-#	# required
-# 	port = 9901
-#
-# 	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-#	# required
-# 	interval = "10s"
-#
-# 	# use HTTPS TLS
-# 	tls_open = false
-#
-# 	# CA
-# 	tls_cacert_file = "ca.crt"
-#
-# 	# client
-# 	tls_cert_file = "peer.crt"
-#
-# 	# key
-# 	tls_key_file = "peer.key"
-#
-# 	# [inputs.envoy.tags]
-# 	# tags1 = "value1"
+[[inputs.envoy]]
+    # required
+    host = "127.0.0.1"
+    
+    # required
+    port = 9901
+    
+    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    required
+    interval = "10s"
+    
+    # use HTTPS TLS
+    tls_open = false
+    
+    # CA
+    tls_cacert_file = "ca.crt"
+    
+    # client
+    tls_cert_file = "peer.crt"
+    
+    # key
+    tls_key_file = "peer.key"
+    
+    # [inputs.envoy.tags]
+    # tags1 = "value1"
 `
 )
 
 var (
-	l          *logger.Logger
+	l          = logger.DefaultSLogger(inputName)
 	testAssert bool
 )
 
@@ -77,11 +77,11 @@ type Envoy struct {
 	tlsConfig *tls.Config
 }
 
-func (_ *Envoy) SampleConfig() string {
+func (Envoy) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *Envoy) Catalog() string {
+func (Envoy) Catalog() string {
 	return inputName
 }
 
