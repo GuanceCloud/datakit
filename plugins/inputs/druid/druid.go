@@ -13,33 +13,21 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-// druid config
-// bin: datakit_test/druid/apache-druid-0.18.1/bin/start-micro-quickstart
-// config file: druid/apache-druid-0.18.1/conf/druid/single-server/micro-quickstart/_common/common.runtime.properties
-//
-// druid.monitoring.emissionPeriod=PT10s
-// druid.monitoring.monitors=["com.metamx.metrics.JvmMonitor"]
-// druid.emitter=none
-// druid.emitter.http.flushMillis=10000
-// druid.emitter.http.recipientBaseUrl=http://ADDR_TO_THIS_SERVICE:8424
-
 const (
 	inputName = "druid"
 
 	defaultMeasurement = "druid"
 
 	sampleCfg = `
-[inputs.druid]
-	# [inputs.druid.tags]
-	# tags1 = "value1"
+[[inputs.druid]]
+    # [inputs.druid.tags]
+    # tags1 = "value1"
 `
 )
 
 var (
-	l *logger.Logger
-
+	l          = logger.DefaultSLogger(inputName)
 	testAssert bool
-
 	globalTags map[string]string
 )
 
@@ -53,11 +41,11 @@ type Druid struct {
 	Tags map[string]string `toml:"tags"`
 }
 
-func (d *Druid) SampleConfig() string {
+func (Druid) SampleConfig() string {
 	return sampleCfg
 }
 
-func (d *Druid) Catalog() string {
+func (Druid) Catalog() string {
 	return inputName
 }
 
@@ -104,14 +92,55 @@ func extract(body []byte) error {
 		return err
 	}
 
-	var timeNode = make(map[string]map[string]interface{})
-	var host, version string
-	if len(metrics) > 0 {
-		host = metrics[0].Host
-		version = metrics[0].Version
-	} else {
+	if len(metrics) == 0 {
 		return fmt.Errorf("druid metrics is empty")
 	}
+
+	tags := make(map[string]string)
+	tags["host"] = metrics[0].Host
+	tags["versin"] = metrics[0].Version
+	for k, v := range globalTags {
+		tags[k] = v
+	}
+
+	timeNode := getTimeNodeMetrics(metrics)
+
+	flag := false
+	for timeKey, fileds := range timeNode {
+		t, err := time.Parse(time.RFC3339, timeKey)
+		if err != nil {
+			l.Errorf("failed to paras timestamp '%s', err: %s", timeKey, err.Error())
+			flag = true
+			continue
+		}
+
+		data, err := io.MakeMetric(defaultMeasurement, tags, fileds, t)
+		if err != nil {
+			l.Errorf("failed to make metric, err: %s", err.Error())
+			flag = true
+			continue
+		}
+
+		if testAssert {
+			l.Infof("%s\n", data)
+		}
+
+		if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+			l.Errorf("failed to io Feed, err: %s", err.Error())
+			flag = true
+			continue
+		}
+	}
+
+	if flag {
+		return fmt.Errorf("extract error")
+	}
+
+	return nil
+}
+
+func getTimeNodeMetrics(metrics druidMetric) map[string]map[string]interface{} {
+	var timeNode = make(map[string]map[string]interface{})
 
 	for _, metric := range metrics {
 
@@ -142,42 +171,5 @@ func extract(body []byte) error {
 		}
 	}
 
-	tags := make(map[string]string)
-	tags["host"] = host
-	tags["versin"] = version
-	for k, v := range globalTags {
-		tags[k] = v
-	}
-
-	flag := false
-	for timeKey, fileds := range timeNode {
-		t, err := time.Parse(time.RFC3339, timeKey)
-		if err != nil {
-			l.Errorf("failed to paras timestamp '%s', err: %s", timeKey, err.Error())
-			flag = true
-			continue
-		}
-
-		data, err := io.MakeMetric(defaultMeasurement, tags, fileds, t)
-		if err != nil {
-			l.Errorf("failed to make metric, err: %s", err.Error())
-			flag = true
-			continue
-		}
-
-		if testAssert {
-			fmt.Println(string(data))
-		}
-
-		if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
-			l.Errorf("failed to io Feed, err: %s", err.Error())
-			flag = true
-			continue
-		}
-	}
-
-	if flag {
-		return fmt.Errorf("extract error")
-	}
-	return nil
+	return timeNode
 }
