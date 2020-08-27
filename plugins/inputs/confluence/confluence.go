@@ -18,21 +18,21 @@ const (
 
 	sampleCfg = `
 [[inputs.confluence]]
-	# confluence url
-	# required
-	url = "http://127.0.0.1:8090/plugins/servlet/prometheus/metrics"
-
-	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	# required
-	interval = "10s"
-
-	# [inputs.confluence.tags]
-	# tags1 = "value1"
+    # confluence url
+    # required
+    url = "http://127.0.0.1:8090/plugins/servlet/prometheus/metrics"
+    
+    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    # required
+    interval = "10s"
+    
+    # [inputs.confluence.tags]
+    # tags1 = "value1"
 `
 )
 
 var (
-	l          *logger.Logger
+	l          = logger.DefaultSLogger(inputName)
 	testAssert bool
 )
 
@@ -50,11 +50,11 @@ type Confluence struct {
 	duration time.Duration
 }
 
-func (_ *Confluence) SampleConfig() string {
+func (Confluence) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *Confluence) Catalog() string {
+func (Confluence) Catalog() string {
 	return inputName
 }
 
