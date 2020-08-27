@@ -14,15 +14,15 @@ const (
 	onsSampleConfig = `
 #[inputs.aliyunobject.rocketmq]
 
-# ## @param - custom tags for rocketmq object - [list of key:value element] - optional
-#[inputs.aliyunobject.rocketmq.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of rocketmq instanceid] - optional
 #instanceids = []
 
 # ## @param - custom tags - [list of excluded rocketmq instanceid] - optional
 #exclude_instanceids = []
+
+# ## @param - custom tags for rocketmq object - [list of key:value element] - optional
+#[inputs.aliyunobject.rocketmq.tags]
+# key1 = 'val1'
 `
 )
 
@@ -90,7 +90,7 @@ func (r *Ons) handleResponse(resp *ons.OnsInstanceInServiceListResponse, ag *obj
 			}
 		}
 
-		if !inc {
+		if len(ag.Ons.InstancesIDs) > 0 && !inc {
 			continue
 		}
 
