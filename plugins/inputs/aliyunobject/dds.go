@@ -15,15 +15,15 @@ const (
 	ddsSampleConfig = `
 #[inputs.aliyunobject.mongodb]
 
-# ## @param - custom tags for mongodb object - [list of key:value element] - optional
-#[inputs.aliyunobject.mongodb.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of mongodb instanceid] - optional
 #db_instanceids = []
 
 # ## @param - custom tags - [list of excluded mongodb instanceid] - optional
 #exclude_db_instanceids = []
+
+# ## @param - custom tags for mongodb object - [list of key:value element] - optional
+#[inputs.aliyunobject.mongodb.tags]
+# key1 = 'val1'
 `
 )
 
