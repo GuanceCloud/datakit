@@ -23,10 +23,11 @@ var (
 
 	Cfg = &Config{ //nolint:dupl
 		MainCfg: &MainConfig{
-			GlobalTags:      map[string]string{},
-			flushInterval:   datakit.Duration{Duration: time.Second * 10},
-			Interval:        "10s",
-			MaxPostInterval: "15s", // add 5s plus for network latency
+			GlobalTags:       map[string]string{},
+			flushInterval:    datakit.Duration{Duration: time.Second * 10},
+			Interval:         "10s",
+			MaxPostInterval:  "15s", // add 5s plus for network latency
+			IntervalDuration: 10 * time.Second,
 
 			HTTPBind: "0.0.0.0:9529",
 
