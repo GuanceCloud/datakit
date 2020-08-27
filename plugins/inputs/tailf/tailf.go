@@ -3,7 +3,6 @@
 package tailf
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -20,28 +19,26 @@ import (
 const (
 	inputName = "tailf"
 
-	defaultMeasurement = "tailf"
-
 	sampleCfg = `
 [[inputs.tailf]]
-	# required
-	logfiles = ["/tmp/tailf_test/**/*.log"]
-	
-	# glob filteer
-	ignore = [""]
-	
-	# required
-	source = "tailf"
-	
-	# [inputs.tailf.tags]
-	# tags1 = "value1"
+    # required
+    logfiles = ["/tmp/tailf_test/**/*.log"]
+    
+    # glob filteer
+    ignore = [""]
+    
+    # required
+    source = "tailf"
+    
+    # [inputs.tailf.tags]
+    # tags1 = "value1"
 `
+	loopReadFileTimeMillisecond = 100
 )
 
 var (
-	l *logger.Logger
-
-	testAssert = false
+	l          = logger.DefaultSLogger(inputName)
+	testAssert bool
 )
 
 type Tailf struct {
@@ -65,11 +62,11 @@ func init() {
 	})
 }
 
-func (_ *Tailf) Catalog() string {
+func (Tailf) Catalog() string {
 	return "log"
 }
 
-func (_ *Tailf) SampleConfig() string {
+func (Tailf) SampleConfig() string {
 	return sampleCfg
 }
 
@@ -164,7 +161,7 @@ func (t *Tailf) updateTailers() error {
 func (t *Tailf) getLines() {
 	l.Infof("tailf input started.")
 
-	loopTick := time.NewTicker(100 * time.Millisecond)
+	loopTick := time.NewTicker(loopReadFileTimeMillisecond * time.Millisecond)
 	defer loopTick.Stop()
 	updateTick := time.NewTicker(time.Second)
 	defer updateTick.Stop()
@@ -240,11 +237,10 @@ func (t *Tailf) parseLine(line *tail.Line, filename string) ([]byte, error) {
 	return io.MakeMetric(t.Source, tags, fields, time.Now())
 }
 
-func getFileList(filesGlob []string, ignoreGlob []string) ([]string, error) {
+func getFileList(filesGlob, ignoreGlob []string) ([]string, error) {
 
 	var matches, passlist []string
 	for _, f := range filesGlob {
-		fmt.Println(f)
 		matche, err := zglob.Glob(f)
 		if err != nil {
 			return nil, err
@@ -262,7 +258,6 @@ func getFileList(filesGlob []string, ignoreGlob []string) ([]string, error) {
 	}
 
 	for _, match := range matches {
-		fmt.Println(match)
 		for _, g := range globs {
 			if g.Match(match) {
 				goto __NEXT
