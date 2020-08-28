@@ -74,11 +74,11 @@ type Etcd struct {
 	tlsConfig *tls.Config
 }
 
-func (Etcd) SampleConfig() string {
+func (*Etcd) SampleConfig() string {
 	return sampleCfg
 }
 
-func (Etcd) Catalog() string {
+func (*Etcd) Catalog() string {
 	return inputName
 }
 
