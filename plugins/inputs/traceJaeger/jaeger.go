@@ -13,7 +13,7 @@ var (
 
 	traceJaegerConfigSample = `
 #[inputs.traceJaeger]
-#   path = "/api/traces"
+#	path = "/api/traces"
 #	[inputs.traceJaeger.tags]
 #		tag1 = "tag1"
 #		tag2 = "tag2"
