@@ -22,6 +22,11 @@ var (
 	log *logger.Logger
 )
 
+const (
+	defaultZipkinPathV1 = "/api/v1/spans"
+	defaultZipkinPathV2 = "/api/v2/spans"
+)
+
 var ZipkinTags       map[string]string
 
 type Zipkin struct {
@@ -55,13 +60,15 @@ func (t *TraceZipkin) Run() {
 }
 
 func (t *TraceZipkin) RegHttpHandler() {
-	if t.PathV1 != "" {
-		http.RegHttpHandler("POST", t.PathV1, ZipkinTraceHandleV1Wrap)
+	if t.PathV1 == "" {
+		t.PathV1 = defaultZipkinPathV1
 	}
+	http.RegHttpHandler("POST", t.PathV1, ZipkinTraceHandleV1Wrap)
 
-	if t.PathV2 != "" {
-		http.RegHttpHandler("POST", t.PathV2, ZipkinTraceHandleV2Wrap)
+	if t.PathV2 == "" {
+		t.PathV2 = defaultZipkinPathV2
 	}
+	http.RegHttpHandler("POST", t.PathV2, ZipkinTraceHandleV2Wrap)
 }
 
 func init() {
