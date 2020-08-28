@@ -76,11 +76,11 @@ type Mongodboplog struct {
 	pointlist map[string]string
 }
 
-func (Mongodboplog) Catalog() string {
+func (*Mongodboplog) Catalog() string {
 	return "db"
 }
 
-func (Mongodboplog) SampleConfig() string {
+func (*Mongodboplog) SampleConfig() string {
 	return sampleCfg
 }
 
