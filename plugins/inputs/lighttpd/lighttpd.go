@@ -57,11 +57,11 @@ type Lighttpd struct {
 	duration time.Duration
 }
 
-func (Lighttpd) SampleConfig() string {
+func (*Lighttpd) SampleConfig() string {
 	return sampleCfg
 }
 
-func (Lighttpd) Catalog() string {
+func (*Lighttpd) Catalog() string {
 	return inputName
 }
 
