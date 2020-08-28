@@ -46,11 +46,11 @@ type Systemd struct {
 	duration time.Duration
 }
 
-func (Systemd) SampleConfig() string {
+func (*Systemd) SampleConfig() string {
 	return sampleCfg
 }
 
-func (Systemd) Catalog() string {
+func (*Systemd) Catalog() string {
 	return "host"
 }
 

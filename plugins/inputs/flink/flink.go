@@ -42,11 +42,11 @@ type Flink struct {
 	Tags map[string]string `toml:"tags"`
 }
 
-func (Flink) SampleConfig() string {
+func (*Flink) SampleConfig() string {
 	return sampleCfg
 }
 
-func (Flink) Catalog() string {
+func (*Flink) Catalog() string {
 	return inputName
 }
 
