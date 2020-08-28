@@ -143,12 +143,12 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 			"NetworkType":        db.NetworkType,
 			"LockMode":           db.LockMode,
 			"DBInstanceClass":    db.DBInstanceClass,
-			"EngineVersion":      db.EngineVersion,
 			"ResourceGroupId":    db.ResourceGroupId,
 			"VSwitchId":          db.VSwitchId,
 			"VpcCloudInstanceId": db.VPCCloudInstanceIds,
 			"VPCId":              db.VPCId,
 			"ZoneId":             db.ZoneId,
+			"VpcAuthMode":        db.VpcAuthMode,
 		}
 
 		for _, t := range db.Tags.Tag {
@@ -180,7 +180,6 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 			"LastDowngradeTime":     db.LastDowngradeTime,
 			"ChargeType":            db.ChargeType,
 			"ReadonlyReplicas":      db.ReadonlyReplicas,
-			"VpcAuthMode":           db.VpcAuthMode,
 			"MaxConnections":        db.MaxConnections,
 			"ReplicationFactor":     db.ReplicationFactor,
 			"CurrentKernelVersion":  db.CurrentKernelVersion,
@@ -189,6 +188,7 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 			"ReplicaSets":           db.ReplicaSets,
 			"MongosList":            db.MongosList,
 			"DBInstanceStorage":     db.DBInstanceStorage,
+			"EngineVersion":         db.EngineVersion,
 		}
 
 		objs = append(objs, obj)
