@@ -77,11 +77,11 @@ type Envoy struct {
 	tlsConfig *tls.Config
 }
 
-func (Envoy) SampleConfig() string {
+func (*Envoy) SampleConfig() string {
 	return sampleCfg
 }
 
-func (Envoy) Catalog() string {
+func (*Envoy) Catalog() string {
 	return inputName
 }
 
