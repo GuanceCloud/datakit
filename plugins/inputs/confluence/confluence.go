@@ -50,11 +50,11 @@ type Confluence struct {
 	duration time.Duration
 }
 
-func (Confluence) SampleConfig() string {
+func (*Confluence) SampleConfig() string {
 	return sampleCfg
 }
 
-func (Confluence) Catalog() string {
+func (*Confluence) Catalog() string {
 	return inputName
 }
 
