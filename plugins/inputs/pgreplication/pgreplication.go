@@ -100,11 +100,11 @@ type Replication struct {
 	sendStatusLock sync.Mutex
 }
 
-func (Replication) Catalog() string {
+func (*Replication) Catalog() string {
 	return "db"
 }
 
-func (Replication) SampleConfig() string {
+func (*Replication) SampleConfig() string {
 	return sampleCfg
 }
 
