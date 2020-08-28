@@ -41,11 +41,11 @@ type Druid struct {
 	Tags map[string]string `toml:"tags"`
 }
 
-func (Druid) SampleConfig() string {
+func (*Druid) SampleConfig() string {
 	return sampleCfg
 }
 
-func (Druid) Catalog() string {
+func (*Druid) Catalog() string {
 	return inputName
 }
 
