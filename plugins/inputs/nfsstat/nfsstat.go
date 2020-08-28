@@ -55,11 +55,11 @@ type NFSstat struct {
 	duration time.Duration
 }
 
-func (NFSstat) SampleConfig() string {
+func (*NFSstat) SampleConfig() string {
 	return sampleCfg
 }
 
-func (NFSstat) Catalog() string {
+func (*NFSstat) Catalog() string {
 	return inputName
 }
 
