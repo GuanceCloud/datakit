@@ -52,11 +52,11 @@ type PuppetAgent struct {
 	watcher  *fsnotify.Watcher
 }
 
-func (PuppetAgent) SampleConfig() string {
+func (*PuppetAgent) SampleConfig() string {
 	return sampleCfg
 }
 
-func (PuppetAgent) Catalog() string {
+func (*PuppetAgent) Catalog() string {
 	return "puppet"
 }
 
