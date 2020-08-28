@@ -56,11 +56,11 @@ type Coredns struct {
 	duration time.Duration
 }
 
-func (Coredns) SampleConfig() string {
+func (*Coredns) SampleConfig() string {
 	return sampleCfg
 }
 
-func (Coredns) Catalog() string {
+func (*Coredns) Catalog() string {
 	return "network"
 }
 
