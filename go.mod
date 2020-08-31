@@ -6,15 +6,12 @@ require (
 	github.com/Azure/azure-sdk-for-go v37.1.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.9.3
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
-	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
-	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
-	github.com/BurntSushi/toml v0.3.1
-	github.com/Masterminds/semver v1.5.0 // indirect
-	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.2.0
 	github.com/Azure/go-autorest/autorest/to v0.3.0
 	github.com/Azure/go-autorest/autorest/validation v0.2.0
 	github.com/Azure/go-autorest/tracing v0.5.0
+	github.com/BurntSushi/toml v0.3.1
+	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Microsoft/go-winio v0.4.15-0.20190919025122-fc70bd9a86b5
 	github.com/Microsoft/hcsshim v0.8.9
 	github.com/Pallinder/go-randomdata v1.2.0
@@ -62,10 +59,10 @@ require (
 	github.com/golang/snappy v0.0.1
 	github.com/golangci/golangci-lint v1.27.0 // indirect
 	github.com/google/gopacket v1.1.17
-	github.com/hasura/pgdeltastream v0.1.7 // indirect
 	github.com/google/pprof v0.0.0-20191218002539-d4f498aebedc // indirect
 	github.com/google/uuid v1.1.1
 	github.com/grpc-ecosystem/grpc-gateway v1.12.1
+	github.com/hasura/pgdeltastream v0.1.7 // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20200515024757-02f0bf5dbca3
@@ -126,7 +123,6 @@ require (
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.7
 	github.com/tidwall/gjson v1.3.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
-	github.com/tommy-muehle/go-mnd v1.3.0 // indirect
 	github.com/trivago/tgo v1.0.1
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/ucloud/ucloud-sdk-go v0.14.0
