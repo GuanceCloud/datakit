@@ -1,11 +1,11 @@
 package traceSkywalking
 
 import (
+	"encoding/base64"
 	"os"
 	"os/exec"
-	"runtime"
 	"path/filepath"
-	"encoding/base64"
+	"runtime"
 
 	"github.com/influxdata/toml"
 
