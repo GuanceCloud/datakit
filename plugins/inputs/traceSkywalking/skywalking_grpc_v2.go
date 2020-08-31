@@ -17,9 +17,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceSkywalking/v2/register"
 )
 
-type SkywalkingServerV2 struct{}
-type SkywalkingRegisterServerV2 struct{}
-type SkywalkingPingServerV2 struct{}
+type SkywalkingServerV2          struct{}
+type SkywalkingRegisterServerV2  struct{}
+type SkywalkingPingServerV2      struct{}
 type SkywalkingJVMMetricServerV2 struct{}
 
 var (
@@ -256,6 +256,7 @@ func (s *SkywalkingRegisterServerV2) DoNetworkAddressRegister(ctx context.Contex
 	}
 	return &reg, nil
 }
+
 func (s *SkywalkingRegisterServerV2) DoServiceAndNetworkAddressMappingRegister(ctx context.Context, r *register.ServiceAndNetworkAddressMappings) (*common.Commands, error) {
 	return new(common.Commands), nil
 }
