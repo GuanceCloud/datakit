@@ -561,13 +561,13 @@ func preInit() {
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	inputsAvailableDuringInstall = map[string][]string{
 		// telegraf inputs
-		"cpu":               []string{"host", inputs.TelegrafInputs["cpu"].Sample}, // FIXME: Mac works ok?
-		"mem":               []string{"host", inputs.TelegrafInputs["mem"].Sample},
-		"disk":              []string{"host", inputs.TelegrafInputs["disk"].Sample},
-		"net":               []string{"network", inputs.TelegrafInputs["net"].Sample},
-		"win_perf_counters": []string{"windows", inputs.TelegrafInputs["win_perf_counters"].Sample},
-		"processes":         []string{"processes", inputs.TelegrafInputs["processes"].Sample},
-		"swap":              []string{"swap", inputs.TelegrafInputs["swap"].Sample},
+		"cpu":               []string{"host", inputs.TelegrafInputs["cpu"].SampleConfig()}, // FIXME: Mac works ok?
+		"mem":               []string{"host", inputs.TelegrafInputs["mem"].SampleConfig()},
+		"disk":              []string{"host", inputs.TelegrafInputs["disk"].SampleConfig()},
+		"net":               []string{"network", inputs.TelegrafInputs["net"].SampleConfig()},
+		"win_perf_counters": []string{"windows", inputs.TelegrafInputs["win_perf_counters"].SampleConfig()},
+		"processes":         []string{"processes", inputs.TelegrafInputs["processes"].SampleConfig()},
+		"swap":              []string{"swap", inputs.TelegrafInputs["swap"].SampleConfig()},
 
 		// datakit inputs
 		"timezone": []string{"host", timezone.Sample},
