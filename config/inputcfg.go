@@ -244,7 +244,7 @@ func initPluginSamples() {
 		}
 
 		if input, ok := inputs.TelegrafInputs[name]; ok {
-			if err := ioutil.WriteFile(cfgpath, []byte(input.Sample), 0600); err != nil {
+			if err := ioutil.WriteFile(cfgpath, []byte(input.SampleConfig()), 0600); err != nil {
 				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 			}
 		}
@@ -279,7 +279,7 @@ func EnableInputs(inputlist string) {
 func doEnableInput(name string) (fpath, sample string, err error) {
 	if i, ok := inputs.TelegrafInputs[name]; ok {
 		fpath = filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf")
-		sample = i.Sample
+		sample = i.SampleConfig()
 		return
 	}
 
