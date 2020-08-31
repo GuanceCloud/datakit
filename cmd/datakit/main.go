@@ -90,12 +90,11 @@ Golang Version: %s
 
 func showAllConfigSamples() {
 	for k, v := range inputs.Inputs {
-		sample := v().SampleConfig()
-		fmt.Printf("%s\n========= [D] ==========\n%s\n", k, sample)
+		fmt.Printf("%s\n========= [D] ==========\n%s\n", k, v().SampleConfig())
 	}
 
 	for k, v := range inputs.TelegrafInputs {
-		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v.Sample)
+		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v.SampleConfig())
 	}
 }
 
