@@ -25,7 +25,7 @@ import (
 
 var (
 	flagCfgFile  = flag.String("cfg-file", "", "json config file")
-	flagLog      = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log file")
+	flagLog      = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "tcpdump.log"), "log file")
 	flagLogLevel = flag.String("log-level", "info", "log file")
 	flagDesc     = flag.String("desc", "", "description of the process, for debugging")
 
@@ -62,17 +62,17 @@ func main() {
 }
 
 // ParseConfig 解析配置文件
-func ParseConfig(fpath string) (*NetPacket, error) {
-	var c NetPacket
-	_, err := toml.DecodeFile(fpath, &c)
+func ParseConfig(fpath string) (*Config, error) {
+	_, err := toml.DecodeFile(fpath, config)
 	if err != nil {
 		return nil, err
 	}
-	return &c, nil
+
+	return config, nil
 }
 
 type Config struct {
-	NetPacket *NetPacket `toml:"inputs.tcpdump"`
+	NetPacket *NetPacket `toml:"tcpdump"`
 }
 
 type NetPacket struct {
@@ -113,8 +113,10 @@ func (p *NetPacket) handle() {
 		device[0] = devices[0].Name
 	}
 
-	if p.Metric == "" {
-		p.Metric = "tcpdump"
+	p.Metric = "tcpdump"
+
+	if p.WriteUrl == "" {
+		p.WriteUrl = "http://0.0.0.0:9529/telegraf"
 	}
 
 	for _, dc := range device {
@@ -130,7 +132,7 @@ func (p *NetPacket) handle() {
 			// 包解析
 			p.parsePacketLayers(packet)
 			// 构造数据
-			p.ethernetType()
+			p.ethernetType(dc)
 		}
 	}
 }
@@ -158,36 +160,37 @@ func (p *NetPacket) parsePacketLayers(packet gopacket.Packet) {
 	}
 }
 
-func (p *NetPacket) ethernetType() {
+func (p *NetPacket) ethernetType(dc string) {
 	switch p.Eth.EthernetType {
 	case layers.EthernetTypeIPv4:
-		p.ParseData()
+		p.ParseData(dc)
 	default:
 		// todo
 	}
 }
 
 // 构造数据
-func (p *NetPacket) ParseData() {
+func (p *NetPacket) ParseData(dc string) {
 	switch {
 	case p.IPv4.Protocol == layers.IPProtocolTCP:
-		p.tcpData()
+		p.tcpData(dc)
 	case p.IPv4.Protocol == layers.IPProtocolUDP:
-		p.udpData()
+		p.udpData(dc)
 	}
 }
 
 // tcp data
-func (p *NetPacket) tcpData() {
+func (p *NetPacket) tcpData(dc string) {
 	fields := make(map[string]interface{})
 	tags := make(map[string]string)
 
 	src := fmt.Sprintf("%s:%s", p.SrcHost, p.TCP.SrcPort)
 	dst := fmt.Sprintf("%s:%s", p.DstHost, p.TCP.DstPort)
 
-	tags["src"] = src // 源ip
-	tags["dst"] = dst // 目标ip
+	fields["src"] = src // 源ip
+	fields["dst"] = dst // 目标ip
 	tags["protocol"] = "tcp"
+	tags["device"] = dc
 
 	fields["dstMac"] = fmt.Sprintf("%s", p.Eth.DstMAC) // mac地址
 	fields["srcMac"] = fmt.Sprintf("%s", p.Eth.SrcMAC) // mac地址
@@ -215,16 +218,18 @@ func (p *NetPacket) tcpData() {
 }
 
 // upd data
-func (p *NetPacket) udpData() {
+func (p *NetPacket) udpData(dc string) {
 	fields := make(map[string]interface{})
 	tags := make(map[string]string)
 
 	src := fmt.Sprintf("%s:%s", p.SrcHost, p.UDP.SrcPort)
 	dst := fmt.Sprintf("%s:%s", p.DstHost, p.UDP.DstPort)
 
-	tags["src"] = src // 源ip
-	tags["dst"] = dst // 目标ip
+	fields["src"] = src // 源ip
+	fields["dst"] = dst // 目标ip
 	tags["protocol"] = "udp"
+	tags["device"] = dc
+
 	fields["dstMac"] = fmt.Sprintf("%s", p.Eth.DstMAC) // mac地址
 	fields["srcMac"] = fmt.Sprintf("%s", p.Eth.SrcMAC) // mac地址
 
@@ -243,8 +248,6 @@ func (p *NetPacket) udpData() {
 func (p *NetPacket) run() {
 	l.Info("start monit tcpdump...")
 	p.handle()
-
-	go p.pushData()
 }
 
 // dataway写入数据
