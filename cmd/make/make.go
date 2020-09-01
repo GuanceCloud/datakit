@@ -161,7 +161,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"CGO_ENABLED=0",
 	}
 
-	l.Debugf("building %s, envs: %v", fmt.Sprintf("%s-%s/%s", goos, goarch, bin), env)
+	l.Debugf("building %s", fmt.Sprintf("%s-%s/%s", goos, goarch, bin))
 	msg, err := runEnv(args, env)
 	if err != nil {
 		l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
@@ -371,7 +371,7 @@ func releaseAgent() {
 	}
 
 	for k, v := range ossfiles {
-		l.Debugf("upload %s -> %s ...", k, v)
+		l.Debugf("upload %s...", k)
 		if err := oc.Upload(k, v); err != nil {
 			l.Fatal(err)
 		}
@@ -401,7 +401,6 @@ func tarFiles(goos, goarch string) {
 	if err != nil {
 		l.Fatal(err)
 	}
-	l.Debugf("tar %s ok", gz)
 }
 
 type dkexternal struct {
