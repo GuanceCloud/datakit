@@ -10,30 +10,10 @@ import (
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
-
-//用于支持在datakit.conf中加入telegraf的agent配置
-type agent struct {
-	Interval                   string `toml:"interval"`
-	RoundInterval              bool   `toml:"round_interval"`
-	Precision                  string `toml:"precision"`
-	CollectionJitter           string `toml:"collection_jitter"`
-	FlushInterval              string `toml:"flush_interval"`
-	FlushJitter                string `toml:"flush_jitter"`
-	MetricBatchSize            int    `toml:"metric_batch_size"`
-	MetricBufferLimit          int    `toml:"metric_buffer_limit"`
-	FlushBufferWhenFull        bool   `toml:"-"`
-	UTC                        bool   `toml:"utc"`
-	Debug                      bool   `toml:"debug"`
-	Quiet                      bool   `toml:"quiet"`
-	LogTarget                  string `toml:"logtarget"`
-	Logfile                    string `toml:"logfile"`
-	LogfileRotationInterval    string `toml:"logfile_rotation_interval"`
-	LogfileRotationMaxSize     string `toml:"logfile_rotation_max_size"`
-	LogfileRotationMaxArchives int    `toml:"logfile_rotation_max_archives"`
-	OmitHostname               bool   `toml:"omit_hostname"`
-}
 
 type fileoutCfg struct {
 	OutputFiles string
@@ -43,7 +23,7 @@ type httpoutCfg struct {
 	HTTPServer string
 }
 
-func (c *Config) loadTelegrafInputsConfigs(inputcfgs map[string]*ast.Table, filters []string) (string, error) {
+func loadTelegrafInputsConfigs(c *datakit.Config, inputcfgs map[string]*ast.Table, filters []string) (string, error) {
 
 	// TODO: filters maybe removed
 	_ = filters
@@ -62,7 +42,7 @@ func (c *Config) loadTelegrafInputsConfigs(inputcfgs map[string]*ast.Table, filt
 					for inputName := range stbl.Fields {
 						l.Debugf("check if telegraf input name(%s)?", inputName)
 
-						if _, ok := inputs.TelegrafInputs[inputName]; ok {
+						if _, ok := tgi.TelegrafInputs[inputName]; ok {
 							l.Infof("find telegraf input %s, config: %s", inputName, fp)
 							telegrafCfgFiles[fp] = nil
 						}
@@ -76,7 +56,7 @@ func (c *Config) loadTelegrafInputsConfigs(inputcfgs map[string]*ast.Table, filt
 	}
 
 	l.Info("generating telegraf conf...")
-	return c.generateTelegrafConfig(telegrafCfgFiles)
+	return generateTelegrafConfig(c, telegrafCfgFiles)
 }
 
 const (
@@ -103,7 +83,7 @@ data_format = "influx"
 `
 )
 
-func marshalAgentCfg(cfg *agent) (string, error) {
+func marshalAgentCfg(cfg *datakit.TelegrafCfg) (string, error) {
 	agdata, err := toml.Marshal(cfg)
 	if err != nil {
 		return "", err
@@ -111,7 +91,7 @@ func marshalAgentCfg(cfg *agent) (string, error) {
 	return string(agdata), nil
 }
 
-func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, error) {
+func generateTelegrafConfig(c *datakit.Config, files map[string]interface{}) (string, error) {
 	telegrafConfig := warning
 
 	globalTags := "[global_tags]\n"
@@ -158,7 +138,7 @@ func (c *Config) generateTelegrafConfig(files map[string]interface{}) (string, e
 	return telegrafConfig, nil
 }
 
-func mergeTelegrafInputsCfgs(files map[string]interface{}, mc *MainConfig) (string, error) {
+func mergeTelegrafInputsCfgs(files map[string]interface{}, mc *datakit.MainConfig) (string, error) {
 	parts := []string{}
 
 	for f := range files {
@@ -282,7 +262,7 @@ func addTelegrafCfg(cfgdata, fp string) error {
 	return nil
 }
 
-func BuildInputCfg(d []byte, mc *MainConfig) (string, error) {
+func BuildInputCfg(d []byte, mc *datakit.MainConfig) (string, error) {
 
 	var err error
 
