@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 var (
@@ -93,7 +94,7 @@ func showAllConfigSamples() {
 		fmt.Printf("%s\n========= [D] ==========\n%s\n", k, v().SampleConfig())
 	}
 
-	for k, v := range inputs.TelegrafInputs {
+	for k, v := range tgi.TelegrafInputs {
 		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v.SampleConfig())
 	}
 }
@@ -137,10 +138,10 @@ func run() {
 }
 
 func tryLoadConfig() {
-	config.Cfg.InputFilters = inputFilters
+	datakit.Cfg.InputFilters = inputFilters
 
 	for {
-		if err := config.LoadCfg(); err != nil {
+		if err := config.LoadCfg(datakit.Cfg); err != nil {
 			l.Errorf("load config failed: %s", err)
 			time.Sleep(time.Second)
 		} else {
@@ -161,7 +162,7 @@ func runDatakitWithHTTPServer() error {
 	}
 
 	go func() {
-		http.Start(config.Cfg.MainCfg.HTTPBind)
+		http.Start(datakit.Cfg.MainCfg.HTTPBind)
 	}()
 
 	return nil
