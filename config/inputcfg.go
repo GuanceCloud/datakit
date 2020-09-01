@@ -12,13 +12,14 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 // load all inputs under @InstallDir/conf.d
-func (c *Config) LoadConfig() error {
+func LoadInputsConfig(c *datakit.Config) error {
 
 	// detect same-name input name between datakit and telegraf
-	for k := range inputs.TelegrafInputs {
+	for k := range tgi.TelegrafInputs {
 		if _, ok := inputs.Inputs[k]; ok {
 			l.Fatalf(fmt.Sprintf("same name input %s within datakit and telegraf", k))
 		}
@@ -66,13 +67,13 @@ func (c *Config) LoadConfig() error {
 	inputs.ResetInputs()
 
 	for name, creator := range inputs.Inputs {
-		if err := c.doLoadInputConf(name, creator, availableInputCfgs); err != nil {
+		if err := doLoadInputConf(c, name, creator, availableInputCfgs); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
 			return err
 		}
 	}
 
-	telegrafRawCfg, err := c.loadTelegrafInputsConfigs(availableInputCfgs, c.InputFilters)
+	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, availableInputCfgs, c.InputFilters)
 	if err != nil {
 		return err
 	}
@@ -87,7 +88,7 @@ func (c *Config) LoadConfig() error {
 	return nil
 }
 
-func (c *Config) doLoadInputConf(name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
+func doLoadInputConf(c *datakit.Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
 	if len(c.InputFilters) > 0 {
 		if !sliceContains(name, c.InputFilters) {
 			return nil
@@ -100,12 +101,12 @@ func (c *Config) doLoadInputConf(name string, creator inputs.Creator, inputcfgs 
 	}
 
 	l.Debugf("search input cfg for %s", name)
-	c.searchDatakitInputCfg(inputcfgs, name, creator)
+	searchDatakitInputCfg(c, inputcfgs, name, creator)
 
 	return nil
 }
 
-func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name string, creator inputs.Creator) {
+func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, name string, creator inputs.Creator) {
 	for fp, tbl := range inputcfgs {
 
 		for field, node := range tbl.Fields {
@@ -120,7 +121,7 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 							continue
 						}
 
-						if err := c.tryUnmarshal(v, name, creator, fp); err != nil {
+						if err := tryUnmarshal(v, name, creator, fp); err != nil {
 							l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 							continue
 						}
@@ -130,7 +131,7 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 				}
 
 			default:
-				if err := c.tryUnmarshal(node, name, creator, fp); err != nil {
+				if err := tryUnmarshal(node, name, creator, fp); err != nil {
 					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 				} else {
 					l.Infof("load input %s from %s ok", name, fp)
@@ -140,7 +141,7 @@ func (c *Config) searchDatakitInputCfg(inputcfgs map[string]*ast.Table, name str
 	}
 }
 
-func (c *Config) tryUnmarshal(tbl interface{}, name string, creator inputs.Creator, fp string) error {
+func tryUnmarshal(tbl interface{}, name string, creator inputs.Creator, fp string) error {
 
 	tbls := []*ast.Table{}
 
@@ -223,7 +224,7 @@ func initPluginSamples() {
 	}
 
 	// create telegraf input plugin's configures
-	for name, input := range inputs.TelegrafInputs {
+	for name, input := range tgi.TelegrafInputs {
 
 		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf.sample")
 		old := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf")
@@ -243,12 +244,51 @@ func initPluginSamples() {
 			l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
 		}
 
-		if input, ok := inputs.TelegrafInputs[name]; ok {
+		if input, ok := tgi.TelegrafInputs[name]; ok {
 			if err := ioutil.WriteFile(cfgpath, []byte(input.SampleConfig()), 0600); err != nil {
 				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
 			}
 		}
 	}
+}
+
+func initDefaultEnabledPlugins(c *datakit.Config) error {
+
+	if len(c.MainCfg.DefaultEnabledInputs) == 0 {
+		return nil
+	}
+
+	fdir := "default_enabled"
+
+	if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, fdir), os.ModePerm); err != nil {
+		l.Error("mkdir failed: %s, ignored", err.Error())
+		return err
+	}
+
+	for _, name := range c.MainCfg.DefaultEnabledInputs {
+
+		fpath := filepath.Join(datakit.ConfdDir, fdir, name+".conf")
+		sample, err := inputs.GetSample(name)
+		if err != nil {
+			l.Error("failed to get %s sample, ignored", name)
+			continue
+		}
+
+		cfgdata, err := BuildInputCfg([]byte(sample), c.MainCfg)
+		if err != nil {
+			l.Error("buld config for %s failed: %s, ignored", name, err.Error())
+			continue
+		}
+
+		if err := ioutil.WriteFile(fpath, []byte(cfgdata), os.ModePerm); err != nil {
+			l.Error("write input %s config failed: %s, ignored", name, err.Error())
+			continue
+		}
+
+		l.Debugf("enable input %s ok", name)
+	}
+
+	return nil
 }
 
 func EnableInputs(inputlist string) {
@@ -277,7 +317,7 @@ func EnableInputs(inputlist string) {
 }
 
 func doEnableInput(name string) (fpath, sample string, err error) {
-	if i, ok := inputs.TelegrafInputs[name]; ok {
+	if i, ok := tgi.TelegrafInputs[name]; ok {
 		fpath = filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf")
 		sample = i.SampleConfig()
 		return
@@ -293,25 +333,4 @@ func doEnableInput(name string) (fpath, sample string, err error) {
 
 	err = fmt.Errorf("input %s not found, ignored", name)
 	return
-}
-
-const (
-	tagsKVPartsLen = 2
-)
-
-func ParseGlobalTags(s string) map[string]string {
-	tags := map[string]string{}
-
-	parts := strings.Split(s, ",")
-	for _, p := range parts {
-		arr := strings.Split(p, "=")
-		if len(arr) != tagsKVPartsLen {
-			l.Warnf("invalid global tag: %s, ignored", p)
-			continue
-		}
-
-		tags[arr[0]] = arr[1]
-	}
-
-	return tags
 }
