@@ -15,7 +15,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -138,12 +137,12 @@ func MakeMetric(name string, tags map[string]string, fields map[string]interface
 		tm = time.Now().UTC()
 	}
 
-	if len(config.Cfg.MainCfg.GlobalTags) > 0 {
+	if len(datakit.Cfg.MainCfg.GlobalTags) > 0 {
 		if tags == nil {
 			tags = map[string]string{}
 		}
 
-		for k, v := range config.Cfg.MainCfg.GlobalTags {
+		for k, v := range datakit.Cfg.MainCfg.GlobalTags {
 			if _, ok := tags[k]; !ok { // do not overwrite exists tags
 				tags[k] = v
 			}
@@ -166,23 +165,23 @@ func ioStop() {
 }
 
 func startIO() {
-	baseURL = "http://" + config.Cfg.MainCfg.DataWay.Host
-	if config.Cfg.MainCfg.DataWay.Scheme == "https" {
-		baseURL = "https://" + config.Cfg.MainCfg.DataWay.Host
+	baseURL = "http://" + datakit.Cfg.MainCfg.DataWay.Host
+	if datakit.Cfg.MainCfg.DataWay.Scheme == "https" {
+		baseURL = "https://" + datakit.Cfg.MainCfg.DataWay.Host
 	}
 
 	categoryURLs = map[string]string{
 
-		MetricDeprecated: baseURL + MetricDeprecated + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Metric:           baseURL + Metric + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		KeyEvent:         baseURL + KeyEvent + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Object:           baseURL + Object + "?token=" + config.Cfg.MainCfg.DataWay.Token,
-		Logging:          baseURL + Logging + "?token=" + config.Cfg.MainCfg.DataWay.Token,
+		MetricDeprecated: baseURL + MetricDeprecated + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
+		Metric:           baseURL + Metric + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
+		KeyEvent:         baseURL + KeyEvent + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
+		Object:           baseURL + Object + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
+		Logging:          baseURL + Logging + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
 
-	du, err := time.ParseDuration(config.Cfg.MainCfg.DataWay.Timeout)
+	du, err := time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Timeout)
 	if err != nil {
 		l.Warnf("parse dataway timeout failed: %s", err.Error())
 		du = time.Second * 30
@@ -199,9 +198,9 @@ func startIO() {
 	f = func(trace []byte, _ error) {
 		defer rtpanic.Recover(f, nil)
 
-		tick := time.NewTicker(config.Cfg.MainCfg.IntervalDuration)
+		tick := time.NewTicker(datakit.Cfg.MainCfg.IntervalDuration)
 		defer tick.Stop()
-		l.Debugf("io interval: %v", config.Cfg.MainCfg.IntervalDuration)
+		l.Debugf("io interval: %v", datakit.Cfg.MainCfg.IntervalDuration)
 
 		if trace != nil {
 			l.Warn("recover ok")
@@ -303,9 +302,9 @@ func flush(cache map[string][][]byte) {
 
 func initCookies() {
 	cookies = fmt.Sprintf("uuid=%s;name=%s;hostname=%s;max_post_interval=%s;version=%s;os=%s;arch=%s",
-		config.Cfg.MainCfg.UUID,
-		config.Cfg.MainCfg.Name,
-		config.Cfg.MainCfg.Hostname,
+		datakit.Cfg.MainCfg.UUID,
+		datakit.Cfg.MainCfg.Name,
+		datakit.Cfg.MainCfg.Hostname,
 		datakit.MaxLifeCheckInterval,
 		git.Version,
 		runtime.GOOS,
