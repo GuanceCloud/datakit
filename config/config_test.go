@@ -1,14 +1,12 @@
 package config
 
 import (
-	"path/filepath"
 	"testing"
-	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func TestEnableInputs(t *testing.T) {
@@ -54,8 +52,8 @@ func TestBuildInputCfg(t *testing.T) {
 	[inputs.diskio.tags]
 	host = '{{.Hostname}}'`
 
-	Cfg.MainCfg.Hostname = "this-is-the-test-host-name"
-	sample, err := BuildInputCfg([]byte(data), Cfg.MainCfg)
+	datakit.Cfg.MainCfg.Hostname = "this-is-the-test-host-name"
+	sample, err := BuildInputCfg([]byte(data), datakit.Cfg.MainCfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +63,7 @@ func TestBuildInputCfg(t *testing.T) {
 
 func TestLoadMainCfg(t *testing.T) {
 
-	c := Cfg
+	c := datakit.Cfg
 	if err := c.LoadMainConfig(); err != nil {
 		t.Errorf("%s", err)
 	}
