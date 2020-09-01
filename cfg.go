@@ -129,22 +129,23 @@ type MainConfig struct {
 	DataWay              *DataWayCfg       `toml:"dataway"`
 	DataWayRequestURL    string            `toml:"-"`
 	HTTPBind             string            `toml:"http_server_addr"`
-	FtGateway            string            `toml:"ftdataway"` // XXX: deprecated
+	FtGateway            string            `toml:"ftdataway,omitempty"` // XXX: deprecated
 	Log                  string            `toml:"log"`
 	LogLevel             string            `toml:"log_level"`
 	GinLog               string            `toml:"gin_log"`
-	ConfigDir            string            `toml:"config_dir"`        // XXX: not used: to compatible parsing with forethought datakit.conf
-	MaxPostInterval      string            `toml:"max_post_interval"` //验证dk存活
+	ConfigDir            string            `toml:"config_dir,omitempty"` // XXX: not used: to compatible parsing with forethought datakit.conf
+	MaxPostInterval      string            `toml:"max_post_interval"`    //验证dk存活
 	GlobalTags           map[string]string `toml:"global_tags"`
 	RoundInterval        bool
 	Interval             string `toml:"interval"`
 	IntervalDuration     time.Duration
 	flushInterval        Duration
 	OutputFile           string `toml:"output_file"`
-	OmitHostname         bool   // Deprecated
-	Hostname             string `toml:"hostname"`
+	OmitHostname         bool   `toml:"omit_hostname,omitempty"` // Deprecated
+	Hostname             string `toml:"hostname,omitempty"`
 	cfgPath              string
-	DefaultEnabledInputs []string
+	DefaultEnabledInputs []string     `toml:"default_enabled_inputs"`
+	InstallDate          time.Time    `toml:"install_date"`
 	TelegrafAgentCfg     *TelegrafCfg `toml:"agent"`
 }
 
