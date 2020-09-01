@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins"
 )
 
 var (
@@ -36,25 +37,7 @@ var (
 	rpcCli io.DataKitClient
 )
 
-type monitor struct {
-	LibPath  string `json:"libPath" toml:"libPath"`
-	Metric   string `json:"metricName" toml:"metricName"`
-	Interval string `json:"interval" toml:"interval"`
-
-	InstanceId string `json:"instanceId" toml:"instanceId"`
-	User       string `json:"username" toml:"username"`
-	Password   string `json:"password" toml:"password"`
-	Desc       string `json:"instanceDesc" toml:"instanceDesc"`
-	Host       string `json:"host" toml:"host"`
-	Port       string `json:"port" toml:"port"`
-	Server     string `json:"server" toml:"server"`
-	Type       string `json:"type" toml:"type"`
-
-	Tags map[string]string `json:"tags" toml:"tags"`
-
-	DB               *sql.DB       `json:"-" json:"-"`
-	IntervalDuration time.Duration `json:"-" json:"-"`
-}
+type monitor plugins.OracleMonitor
 
 func main() {
 	flag.Parse()

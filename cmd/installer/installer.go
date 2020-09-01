@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/influxdata/toml"
@@ -54,7 +55,7 @@ var (
 	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
 
 	flagEnableInputs = flag.String("enable-inputs", "", `default enable inputs(comma splited, example: cpu,mem,disk)`)
-	flagDatakitID    = flag.String("datakit-id", "", `specify DataKit ID, example: prod-env-datakit`)
+	flagDatakitName  = flag.String("name", "", `specify DataKit name, example: prod-env-datakit`)
 	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=$datakit_hostname,from=$datakit_id`)
 	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
 
@@ -170,12 +171,13 @@ func installNewDatakit(svc service.Service) {
 	}
 
 	datakit.Cfg.MainCfg.HTTPBind = fmt.Sprintf("0.0.0.0:%d", *flagPort)
+	datakit.Cfg.MainCfg.InstallDate = time.Now()
 
-	if *flagDatakitID != "" {
-		datakit.Cfg.MainCfg.UUID = *flagDatakitID
-	} else {
-		datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
+	if *flagDatakitName != "" {
+		datakit.Cfg.MainCfg.Name = *flagDatakitName
 	}
+
+	datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
 
 	datakit.Cfg.EnableDefaultsInputs(*flagEnableInputs)
 
