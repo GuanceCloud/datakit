@@ -13,7 +13,7 @@ import (
 	"github.com/siddontang/go-mysql/replication"
 	"github.com/siddontang/go-mysql/schema"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -211,7 +211,7 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 
 		tags := map[string]string{
 			"_host":            h.rb.cfg.Addr,
-			"_collector_host_": config.Cfg.MainCfg.Hostname,
+			"_collector_host_": datakit.Cfg.MainCfg.Hostname,
 			"_db":              e.Table.Schema,
 			"_table":           e.Table.Name,
 			"_event":           e.Action,
