@@ -1,6 +1,6 @@
 // +build darwin
 
-package inputs
+package telegraf_inputs
 
 import (
 	"github.com/influxdata/telegraf/plugins/inputs/processes"

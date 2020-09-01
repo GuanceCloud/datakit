@@ -1,7 +1,7 @@
 // +build linux
 
 // linux only inputs
-package inputs
+package telegraf_inputs
 
 import (
 	"github.com/influxdata/telegraf/plugins/inputs/iptables"
@@ -25,7 +25,7 @@ var (
 
 func init() {
 	for k, v := range telegrafInputsLinux {
-		l.Debug("add telegraf plugin %s", k)
+		l.Debugf("add telegraf plugin %s", k)
 		TelegrafInputs[k] = v
 	}
 }

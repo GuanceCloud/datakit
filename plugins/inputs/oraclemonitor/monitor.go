@@ -15,7 +15,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -107,7 +106,7 @@ func (o *OracleMonitor) Run() {
 		"-rpc-server", "unix://" + datakit.GRPCDomainSock,
 		"-desc", o.Desc,
 		"-log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"),
-		"-log-level", config.Cfg.MainCfg.LogLevel,
+		"-log-level", datakit.Cfg.MainCfg.LogLevel,
 	}
 
 	cmd := exec.Command(bin, args...)
