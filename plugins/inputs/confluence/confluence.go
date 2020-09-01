@@ -1,7 +1,6 @@
 package confluence
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -120,7 +119,6 @@ func (c *Confluence) loadcfg() bool {
 }
 
 func (c *Confluence) getMetrics() ([]byte, error) {
-
 	client := &http.Client{}
 	client.Timeout = time.Second * 5
 	defer client.CloseIdleConnections()
@@ -131,37 +129,5 @@ func (c *Confluence) getMetrics() ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	metrics, err := ParseV2(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(metrics) == 0 {
-		return nil, fmt.Errorf("metrics is empty")
-	}
-
-	var tags = make(map[string]string)
-	var fields = make(map[string]interface{}, len(metrics))
-
-	// prometheus to point
-	for _, metric := range metrics {
-
-		for k, v := range metric.Tags() {
-			if _, ok := collectList[k]; ok {
-				tags[k] = v
-			}
-		}
-
-		for k, v := range metric.Fields() {
-			if _, ok := collectList[k]; ok {
-				fields[k] = v
-			}
-		}
-	}
-
-	for k, v := range c.Tags {
-		tags[k] = v
-	}
-
-	return io.MakeMetric(defaultMeasurement, tags, fields, time.Now())
+	return io.PrometheusToMetrics(resp.Body, inputName, inputName, c.Tags, time.Now())
 }
