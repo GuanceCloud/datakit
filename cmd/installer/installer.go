@@ -23,11 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/timezone"
 )
 
 var (
@@ -67,21 +63,19 @@ var (
 		runtime.GOOS, runtime.GOARCH, DataKitVersion, runtime.GOOS, runtime.GOARCH),
 		`local path of datakit and agent install files`)
 
-	inputsAvailableDuringInstall map[string][]string
+	inputsAvailableDuringInstall map[string]bool
 )
 
 const (
 	datakitBin = "datakit"
 	dlDatakit  = "datakit"
 	dlAgent    = "agent"
-
-	AvailableInputCfgLen = 2 // to avoid magic number
 )
 
 func main() {
 	preInit()
 	flag.Parse()
-	config.InitDirs()
+	datakit.InitDirs()
 	applyFlags()
 
 	// create install dir if not exists
@@ -142,11 +136,11 @@ func main() {
 	}
 }
 
-func getDataWayCfg() *config.DataWayCfg {
+func getDataWayCfg() *datakit.DataWayCfg {
 	if *flagDataway == "" {
 		for {
 			dw := readInput("Please set DataWay request URL(http://IP:Port/v1/write/metric) > ")
-			dwcfg, err := config.ParseDataway(dw)
+			dwcfg, err := datakit.ParseDataway(dw)
 			if err == nil {
 				return dwcfg
 			}
@@ -155,7 +149,7 @@ func getDataWayCfg() *config.DataWayCfg {
 			continue
 		}
 	} else {
-		dwcfg, err := config.ParseDataway(*flagDataway)
+		dwcfg, err := datakit.ParseDataway(*flagDataway)
 		if err != nil {
 			l.Fatal(err)
 		}
@@ -168,27 +162,27 @@ func installNewDatakit(svc service.Service) {
 	_ = uninstallDataKitService(svc) // uninstall service if installed before
 
 	// prepare dataway info
-	config.Cfg.MainCfg.DataWay = getDataWayCfg()
+	datakit.Cfg.MainCfg.DataWay = getDataWayCfg()
 
 	// accept any install options
 	if *flagGlobalTags != "" {
-		config.Cfg.MainCfg.GlobalTags = config.ParseGlobalTags(*flagGlobalTags)
+		datakit.Cfg.MainCfg.GlobalTags = datakit.ParseGlobalTags(*flagGlobalTags)
 	}
 
-	config.Cfg.MainCfg.HTTPBind = fmt.Sprintf("0.0.0.0:%d", *flagPort)
+	datakit.Cfg.MainCfg.HTTPBind = fmt.Sprintf("0.0.0.0:%d", *flagPort)
 
 	if *flagDatakitID != "" {
-		config.Cfg.MainCfg.UUID = *flagDatakitID
+		datakit.Cfg.MainCfg.UUID = *flagDatakitID
 	} else {
-		config.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
+		datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
 	}
+
+	datakit.Cfg.EnableDefaultsInputs(*flagEnableInputs)
 
 	// build datakit main config
-	if err := config.InitCfg(); err != nil {
+	if err := datakit.Cfg.InitCfg(); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
-
-	enableInputs(*flagEnableInputs)
 
 	l.Infof("installing service %s...", datakit.ServiceName)
 	if err := installDatakitService(svc); err != nil {
@@ -419,7 +413,7 @@ func updateLagacyConfig(dir string) {
 		l.Fatalf("read lagacy datakit.conf failed: %s", err.Error())
 	}
 
-	var maincfg config.MainConfig
+	var maincfg datakit.MainConfig
 	if err = toml.Unmarshal(cfgdata, &maincfg); err != nil {
 		l.Fatalf("toml unmarshal failed: %s", err.Error())
 	}
@@ -428,9 +422,9 @@ func updateLagacyConfig(dir string) {
 	maincfg.ConfigDir = ""                                 // remove conf.d config: we use static conf.d dir, *not* configurable
 
 	// split origin ftdataway into dataway object
-	var dwcfg *config.DataWayCfg
+	var dwcfg *datakit.DataWayCfg
 	if maincfg.FtGateway != "" {
-		if dwcfg, err = config.ParseDataway(maincfg.FtGateway); err != nil {
+		if dwcfg, err = datakit.ParseDataway(maincfg.FtGateway); err != nil {
 			l.Fatal(err)
 		} else {
 			maincfg.FtGateway = "" // deprecated
@@ -509,43 +503,6 @@ func migrateLagacyDatakit(svc service.Service) {
 	}
 }
 
-func enableInputs(inputlist string) {
-	elems := strings.Split(inputlist, ",")
-	if len(elems) == 0 {
-		return
-	}
-
-	for _, name := range elems {
-		if sample, ok := inputsAvailableDuringInstall[name]; ok {
-			if len(sample) != AvailableInputCfgLen {
-				l.Warnf("no config sample available for input %s", name)
-				continue
-			}
-
-			fpath := filepath.Join(datakit.ConfdDir, sample[0], name+".conf")
-			if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
-				l.Error("mkdir failed: %s, ignored", err.Error())
-				continue
-			}
-
-			cfgdata, err := config.BuildInputCfg([]byte(sample[1]), config.Cfg.MainCfg)
-			if err != nil {
-				l.Error("buld config for %s failed: %s, ignored", name, err.Error())
-				continue
-			}
-
-			if err := ioutil.WriteFile(fpath, []byte(cfgdata), os.ModePerm); err != nil {
-				l.Error("write input %s config failed: %s, ignored", name, err.Error())
-				continue
-			}
-
-			l.Debugf("enable input %s ok", name)
-		} else {
-			l.Debugf("input %s not enabled", name)
-		}
-	}
-}
-
 func preInit() {
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	// We have to add these inputs manually here, especially datakit's inputs,
@@ -559,18 +516,18 @@ func preInit() {
 	// rapidly to about 100+MB, so we only add these minimal info here, just for a small
 	// installer, and easy to download.
 	/////////////////////////////////////////////////////////////////////////////////////////////
-	inputsAvailableDuringInstall = map[string][]string{
+	inputsAvailableDuringInstall = map[string]bool{
 		// telegraf inputs
-		"cpu":               []string{"host", inputs.TelegrafInputs["cpu"].SampleConfig()}, // FIXME: Mac works ok?
-		"mem":               []string{"host", inputs.TelegrafInputs["mem"].SampleConfig()},
-		"disk":              []string{"host", inputs.TelegrafInputs["disk"].SampleConfig()},
-		"net":               []string{"network", inputs.TelegrafInputs["net"].SampleConfig()},
-		"win_perf_counters": []string{"windows", inputs.TelegrafInputs["win_perf_counters"].SampleConfig()},
-		"processes":         []string{"processes", inputs.TelegrafInputs["processes"].SampleConfig()},
-		"swap":              []string{"swap", inputs.TelegrafInputs["swap"].SampleConfig()},
+		"cpu":               true,
+		"mem":               true,
+		"disk":              true,
+		"net":               true,
+		"win_perf_counters": true,
+		"processes":         true,
+		"swap":              true,
 
 		// datakit inputs
-		"timezone": []string{"host", timezone.Sample},
+		"timezone": true,
 
 		// TODO: we can add more host-related plugin here
 	}
