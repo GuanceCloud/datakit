@@ -266,19 +266,6 @@ github.com/eapache/queue
 # github.com/eclipse/paho.mqtt.golang v1.2.0
 github.com/eclipse/paho.mqtt.golang
 github.com/eclipse/paho.mqtt.golang/packets
-# github.com/ericchiang/k8s v1.2.0
-github.com/ericchiang/k8s
-github.com/ericchiang/k8s/apis/apiextensions/v1beta1
-github.com/ericchiang/k8s/apis/apps/v1
-github.com/ericchiang/k8s/apis/core/v1
-github.com/ericchiang/k8s/apis/extensions/v1beta1
-github.com/ericchiang/k8s/apis/meta/v1
-github.com/ericchiang/k8s/apis/policy/v1beta1
-github.com/ericchiang/k8s/apis/resource
-github.com/ericchiang/k8s/runtime
-github.com/ericchiang/k8s/runtime/schema
-github.com/ericchiang/k8s/util/intstr
-github.com/ericchiang/k8s/watch/versioned
 # github.com/fatih/structs v1.0.0
 github.com/fatih/structs
 # github.com/fsnotify/fsnotify v1.4.7
@@ -439,7 +426,6 @@ github.com/influxdata/telegraf/plugins/inputs/kafka_consumer
 github.com/influxdata/telegraf/plugins/inputs/kapacitor
 github.com/influxdata/telegraf/plugins/inputs/kernel
 github.com/influxdata/telegraf/plugins/inputs/kibana
-github.com/influxdata/telegraf/plugins/inputs/kube_inventory
 github.com/influxdata/telegraf/plugins/inputs/kubernetes
 github.com/influxdata/telegraf/plugins/inputs/linux_sysctl_fs
 github.com/influxdata/telegraf/plugins/inputs/mem
@@ -523,6 +509,8 @@ github.com/jackc/pgx/stdlib
 # github.com/jcmturner/gofork v1.0.0
 github.com/jcmturner/gofork/encoding/asn1
 github.com/jcmturner/gofork/x/crypto/pbkdf2
+# github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
+github.com/jinzhu/copier
 # github.com/jmespath/go-jmespath v0.3.0
 github.com/jmespath/go-jmespath
 # github.com/json-iterator/go v1.1.10
@@ -543,8 +531,6 @@ github.com/klauspost/compress/zstd/internal/xxhash
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/kr/fs v0.1.0
 github.com/kr/fs
-# github.com/kubernetes/apimachinery v0.0.0-20190119020841-d41becfba9ee
-github.com/kubernetes/apimachinery/pkg/api/resource
 # github.com/leodido/go-urn v1.2.0
 github.com/leodido/go-urn
 # github.com/leodido/ragel-machinery v0.0.0-20181214104525-299bdde78165
@@ -1021,8 +1007,6 @@ google.golang.org/protobuf/types/known/wrapperspb
 gopkg.in/asn1-ber.v1
 # gopkg.in/fsnotify.v1 v1.4.7
 gopkg.in/fsnotify.v1
-# gopkg.in/inf.v0 v0.9.1
-gopkg.in/inf.v0
 # gopkg.in/ini.v1 v1.57.0
 gopkg.in/ini.v1
 # gopkg.in/jcmturner/aescts.v1 v1.0.1

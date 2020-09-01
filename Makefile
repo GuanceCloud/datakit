@@ -22,8 +22,8 @@ NAME = datakit
 ENTRY = cmd/datakit/main.go
 
 LOCAL_ARCHS = "all"
-LOCAL_ARCHS = "windows/amd64|linux/amd64|darwin/amd64"
-LOCAL_ARCHS = "linux/amd64"
+#LOCAL_ARCHS = "windows/amd64|linux/amd64|darwin/amd64"
+#LOCAL_ARCHS = "linux/amd64"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -81,9 +81,11 @@ define pub
 	@GO111MODULE=off go run cmd/make/make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
 endef
 
-check:
+lint:
 	@golangci-lint run | tee lint.err # https://golangci-lint.run/usage/install/#local-installation
-	@#go vet ./...
+
+vet:
+	@go vet ./...
 
 local:
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
