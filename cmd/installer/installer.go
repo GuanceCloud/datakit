@@ -63,8 +63,6 @@ var (
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./agent-%s-%s.tar.gz",
 		runtime.GOOS, runtime.GOARCH, DataKitVersion, runtime.GOOS, runtime.GOARCH),
 		`local path of datakit and agent install files`)
-
-	inputsAvailableDuringInstall map[string]bool
 )
 
 const (
@@ -506,33 +504,6 @@ func migrateLagacyDatakit(svc service.Service) {
 }
 
 func preInit() {
-	/////////////////////////////////////////////////////////////////////////////////////////////
-	// We have to add these inputs manually here, especially datakit's inputs,
-	// because all datakit's inputs are plugable, while not importing:
-	//
-	// 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	//
-	// the `inputs.Inputs' list is empty, so we can't get the desired input's info.
-	//
-	// But when we import `all' into the installer program, the binary will increase
-	// rapidly to about 100+MB, so we only add these minimal info here, just for a small
-	// installer, and easy to download.
-	/////////////////////////////////////////////////////////////////////////////////////////////
-	inputsAvailableDuringInstall = map[string]bool{
-		// telegraf inputs
-		"cpu":               true,
-		"mem":               true,
-		"disk":              true,
-		"net":               true,
-		"win_perf_counters": true,
-		"processes":         true,
-		"swap":              true,
-
-		// datakit inputs
-		"timezone": true,
-
-		// TODO: we can add more host-related plugin here
-	}
 
 	lopt := logger.OPT_DEFAULT | logger.OPT_STDOUT
 	if runtime.GOOS != "windows" { // disable color on windows(some color not working under windows)
