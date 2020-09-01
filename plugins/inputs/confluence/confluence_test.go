@@ -9,7 +9,8 @@ func TestMain(t *testing.T) {
 
 	var co = Confluence{
 		URL:      "http://127.0.0.1:8090/plugins/servlet/prometheus/metrics",
-		Interval: "10s",
+		Interval: "5s",
+		Tags:     map[string]string{"TEST_TAGS": "XXXXXXXXX"},
 	}
 
 	data, err := co.getMetrics()
