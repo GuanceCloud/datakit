@@ -30,32 +30,32 @@ const (
 [[inputs.postgresql_replication]]
     # required
     host="127.0.0.1"
-    
+
     # required
     port=25432
-    
+
     # postgres user (need replication privilege)
     # required
     user="testuser"
-    
+
     # required
     password="pwd"
-    
+
     # required
     database="testdb"
-    
+
     table="test_table"
-    
+
     # there are 3 events: "INSERT","UPDATE","DELETE"
     # required
     events=["INSERT"]
-    
+
     # tags
     tag_colunms=[]
-    
+
     # fields. required
     field_colunms=["fieldName"]
-    
+
     # [inputs.postgresql_replication.tags]
     # tags1 = "value1"
 `
@@ -100,11 +100,11 @@ type Replication struct {
 	sendStatusLock sync.Mutex
 }
 
-func (Replication) Catalog() string {
+func (*Replication) Catalog() string {
 	return "db"
 }
 
-func (Replication) SampleConfig() string {
+func (*Replication) SampleConfig() string {
 	return sampleCfg
 }
 
