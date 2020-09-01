@@ -97,7 +97,6 @@ func (c *Coredns) Run() {
 }
 
 func (c *Coredns) loadcfg() bool {
-
 	if c.Interval == "" && c.CollectCycle != "" {
 		c.Interval = c.CollectCycle
 	}
@@ -124,41 +123,20 @@ func (c *Coredns) loadcfg() bool {
 	if c.Tags == nil {
 		c.Tags = make(map[string]string)
 	}
-
 	if _, ok := c.Tags["address"]; !ok {
 		c.Tags["address"] = fmt.Sprintf("%s:%d", c.Host, c.Port)
 	}
-
 	c.address = fmt.Sprintf("http://%s:%d/metrics", c.Host, c.Port)
 
 	return false
 }
 
 func (c *Coredns) getMetrics() ([]byte, error) {
-
 	resp, err := http.Get(c.address)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	metrics, err := ParseV2(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(metrics) == 0 {
-		return nil, fmt.Errorf("the metrics is empty")
-	}
-
-	var fields = make(map[string]interface{}, len(metrics))
-
-	// prometheus to point
-	for _, metric := range metrics {
-		for k, v := range metric.Fields() {
-			fields[k] = v
-		}
-	}
-
-	return io.MakeMetric(defaultMeasurement, c.Tags, fields, time.Now())
+	return io.PrometheusToMetrics(resp.Body, inputName, inputName, c.Tags, time.Now())
 }
