@@ -83,20 +83,6 @@ func (ti *TelegrafInput) SampleConfig() string {
 	return fmt.Sprintf("[[inputs.%s]]\n%s", ti.name, ti.input.SampleConfig())
 }
 
-func CheckTelegrafToml(inputName string, tomlcfg []byte) error {
-	switch inputName {
-	case `cpu`:
-		var i cpu.CPUStats
-		if err := toml.Unmarshal(tomlcfg, &i); err != nil {
-			return err
-		}
-	default:
-		// TODO
-	}
-
-	return nil
-}
-
 var (
 	TelegrafInputs = map[string]*TelegrafInput{ // Name: Catalog
 
@@ -308,4 +294,25 @@ func init() {
 				#When tags are formatted like "key:value" with ":" as a delimiter then
 				#they will be splitted and reported as proper key:value in Telegraf
 				#tag_delimiter = ":"`
+}
+
+func CheckTelegrafToml(name string, tomlcfg []byte) error {
+
+	ti, ok := TelegrafInputs[name]
+
+	if !ok {
+		return fmt.Errorf("input not found")
+	}
+
+	if ti.input == nil {
+		return fmt.Errorf("input check unavailable")
+	}
+
+	if err := toml.Unmarshal(tomlcfg, ti.input); err != nil {
+		l.Errorf("toml.Unmarshal: %s", err.Error())
+		return err
+	}
+
+	l.Debugf("toml %+#v", ti.input)
+	return nil
 }
