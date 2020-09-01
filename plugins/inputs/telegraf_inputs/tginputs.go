@@ -1,4 +1,4 @@
-package inputs
+package telegraf_inputs
 
 import (
 	"fmt"
@@ -13,6 +13,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/ceph"
 	"github.com/influxdata/telegraf/plugins/inputs/clickhouse"
 	"github.com/influxdata/telegraf/plugins/inputs/cloudwatch"
+	//"github.com/influxdata/telegraf/plugins/inputs/consul" // get ambiguous import error
 	"github.com/influxdata/telegraf/plugins/inputs/cpu"
 	"github.com/influxdata/telegraf/plugins/inputs/disk"
 	"github.com/influxdata/telegraf/plugins/inputs/diskio"
@@ -30,7 +31,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/kafka_consumer"
 	"github.com/influxdata/telegraf/plugins/inputs/kapacitor"
 	"github.com/influxdata/telegraf/plugins/inputs/kibana"
-	"github.com/influxdata/telegraf/plugins/inputs/kube_inventory"
+	//"github.com/influxdata/telegraf/plugins/inputs/kube_inventory"
 	"github.com/influxdata/telegraf/plugins/inputs/kubernetes"
 	"github.com/influxdata/telegraf/plugins/inputs/mem"
 	"github.com/influxdata/telegraf/plugins/inputs/memcached"
@@ -80,23 +81,6 @@ func (ti *TelegrafInput) SampleConfig() string {
 	}
 
 	return fmt.Sprintf("[[inputs.%s]]\n%s", ti.name, ti.input.SampleConfig())
-}
-
-func (ti *TelegrafInput) Enabled() (n int, cfgs []string) {
-
-	mtx.RLock()
-	defer mtx.RUnlock()
-
-	arr, ok := inputInfos[ti.name]
-	if !ok {
-		return
-	}
-
-	for _, i := range arr {
-		cfgs = append(cfgs, i.cfg)
-	}
-	n = len(arr)
-	return
 }
 
 func CheckTelegrafToml(inputName string, tomlcfg []byte) error {
@@ -176,20 +160,58 @@ var (
 		"exec":       {name: "exec", Catalog: "exec", input: &exec.Exec{}},
 		"syslog":     {name: "syslog", Catalog: "syslog", input: &syslog.Syslog{}},
 
-		"kube_inventory": {name: "kube_inventory", Catalog: "k8s", input: &kube_inventory.KubernetesInventory{}},
-		"kubernetes":     {name: "kubernetes", Catalog: "k8s", input: &kubernetes.Kubernetes{}},
+		// get panic:
+		//   panic: mismatching message name: got k8s.io.kubernetes.pkg.watch.versioned.Event, want github.com/ericchiang.k8s.watch.versioned.Event
+		"kube_inventory": {name: "kube_inventory", Catalog: "k8s", input: nil},
+
+		"kubernetes": {name: "kubernetes", Catalog: "k8s", input: &kubernetes.Kubernetes{}},
 
 		"jolokia2_agent": {name: "jolokia2_agent", Catalog: "jolokia2_agent", input: &jolokia2.JolokiaAgent{}},
 		"amqp_consumer":  {name: "amqp_consumer", Catalog: "amqp", input: &amqp_consumer.AMQPConsumer{}},
 		"github":         {name: "github", Catalog: "github", input: &github.GitHub{}},
 		"uwsgi":          {name: "uwsgi", Catalog: "uwsgi", input: &uwsgi.Uwsgi{}},
-		//`consul`:         {name: "consul", Catalog: "consul", input: &consul.Consul{}},
-		`kibana`: {name: "kibana", Catalog: "kibana", input: &kibana.Kibana{}},
-		`modbus`: {name: "modbus", Catalog: "modbus", input: &modbus.Modbus{}},
+		`consul`:         {name: "consul", Catalog: "consul", input: nil},
+		`kibana`:         {name: "kibana", Catalog: "kibana", input: &kibana.Kibana{}},
+		`modbus`:         {name: "modbus", Catalog: "modbus", input: &modbus.Modbus{}},
 	}
 )
 
 func init() {
+	TelegrafInputs[`kube_inventory`].Sample = `
+	[[inputs.kube_inventory]]
+	# URL for the Kubernetes API
+	url = "https://127.0.0.1"
+
+	# Namespace to use. Set to "" to use all namespaces.
+	 namespace = "default"
+
+	# Use bearer token for authorization. ('bearer_token' takes priority)
+	# If both of these are empty, we'll use the default serviceaccount:
+	# at: /run/secrets/kubernetes.io/serviceaccount/token
+	 bearer_token = "/path/to/bearer/token"
+	# OR
+	 bearer_token_string = "abc_123"
+
+	# Set response_timeout (default 5 seconds)
+	 response_timeout = "5s"
+
+	# Optional Resources to exclude from gathering
+	# Leave them with blank with try to gather everything available.
+	# Values can be - "daemonsets", deployments", "endpoints", "ingress", "nodes",
+	# "persistentvolumes", "persistentvolumeclaims", "pods", "services", "statefulsets"
+	#resource_exclude = [ "deployments", "nodes", "statefulsets" ]
+
+	# Optional Resources to include when gathering
+	# Overrides resource_exclude if both set.
+	#resource_include = [ "deployments", "nodes", "statefulsets" ]
+
+	# Optional TLS Config
+	#tls_ca = "/path/to/cafile"
+	#tls_cert = "/path/to/certfile"
+	#tls_key = "/path/to/keyfile"
+	# Use TLS but skip chain & host verification
+	#insecure_skip_verify = false`
+
 	TelegrafInputs["haproxy"].Sample = `
  # Read metrics of haproxy, via socket or csv stats page
  [[inputs.haproxy]]
@@ -257,48 +279,33 @@ func init() {
    # insecure_skip_verify = false`
 
 	TelegrafInputs["consul"].Sample = `
-# Gather health check statuses from services registered in Consul
-	[[inputs.consul]]
-		# Consul server address
-		address = "localhost:8500"
+		# Gather health check statuses from services registered in Consul
+			[[inputs.consul]]
+				# Consul server address
+				address = "localhost:8500"
 
-		# URI scheme for the Consul server, one of "http", "https"
-		scheme = "http"
+				# URI scheme for the Consul server, one of "http", "https"
+				scheme = "http"
 
-		# ACL token used in every request
-		token = ""
+				# ACL token used in every request
+				token = ""
 
-		# HTTP Basic Authentication username and password.
-		username = ""
-		password = ""
+				# HTTP Basic Authentication username and password.
+				username = ""
+				password = ""
 
-		# Data center to query the health checks from
-		datacenter = ""
+				# Data center to query the health checks from
+				datacenter = ""
 
-		# Optional TLS Config
-		#tls_ca = "/etc/telegraf/ca.pem"
-		#tls_cert = "/etc/telegraf/cert.pem"
-		#tls_key = "/etc/telegraf/key.pem"
-		# Use TLS but skip chain & host verification
-		#insecure_skip_verify = true
+				# Optional TLS Config
+				#tls_ca = "/etc/telegraf/ca.pem"
+				#tls_cert = "/etc/telegraf/cert.pem"
+				#tls_key = "/etc/telegraf/key.pem"
+				# Use TLS but skip chain & host verification
+				#insecure_skip_verify = true
 
-		# Consul checks' tag splitting
-		#When tags are formatted like "key:value" with ":" as a delimiter then
-		#they will be splitted and reported as proper key:value in Telegraf
-		#tag_delimiter = ":"`
-}
-
-func HaveTelegrafInputs() bool {
-
-	mtx.RLock()
-	defer mtx.RUnlock()
-
-	for k := range TelegrafInputs {
-		_, ok := inputInfos[k]
-		if ok {
-			return true
-		}
-	}
-
-	return false
+				# Consul checks' tag splitting
+				#When tags are formatted like "key:value" with ":" as a delimiter then
+				#they will be splitted and reported as proper key:value in Telegraf
+				#tag_delimiter = ":"`
 }

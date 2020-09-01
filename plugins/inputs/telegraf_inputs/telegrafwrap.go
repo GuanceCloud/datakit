@@ -1,4 +1,4 @@
-package inputs
+package telegraf_inputs
 
 import (
 	"fmt"
@@ -8,14 +8,16 @@ import (
 	"runtime"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var (
 	telegrafConf string
+	l            = logger.DefaultSLogger("telegraf_inputs")
 )
 
-func doStartTelegraf() error {
+func StartTelegraf() error {
 
 	telegrafConf = filepath.Join(datakit.TelegrafDir, "agent.conf")
 
