@@ -3,7 +3,6 @@
 package oraclemonitor
 
 import (
-	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,10 +10,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -50,25 +49,7 @@ var (
 	l         = logger.DefaultSLogger(inputName)
 )
 
-type OracleMonitor struct {
-	LibPath  string `json:"libPath" toml:"libPath"`
-	Metric   string `json:"metricName" toml:"metricName"`
-	Interval string `json:"interval" toml:"interval"`
-
-	InstanceId string `json:"instanceId" toml:"instanceId"`
-	User       string `json:"username" toml:"username"`
-	Password   string `json:"password" toml:"password"`
-	Desc       string `json:"instanceDesc" toml:"instanceDesc"`
-	Host       string `json:"host" toml:"host"`
-	Port       string `json:"port" toml:"port"`
-	Server     string `json:"server" toml:"server"`
-	Type       string `json:"type" toml:"type"`
-
-	Tags map[string]string `json:"tags" toml:"tags"`
-
-	DB               *sql.DB       `json:"-" json:"-"`
-	IntervalDuration time.Duration `json:"-" json:"-"`
-}
+type OracleMonitor plugins.OracleMonitor
 
 func (_ *OracleMonitor) Catalog() string {
 	return "oracle"
