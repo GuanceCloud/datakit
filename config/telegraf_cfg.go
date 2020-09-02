@@ -262,6 +262,10 @@ func addTelegrafCfg(cfgdata, fp string) error {
 	return nil
 }
 
+// Telegraf input sample config may contains some template filed from main-config like {{.Hostname}}.
+// After importing telegraf source code, most telegraf input sample config comes from telegraf source
+// code (no datakit main-config template filed added). But we still keep the settings for some config
+// samples that added manually by datakit.
 func BuildInputCfg(d []byte, mc *datakit.MainConfig) (string, error) {
 
 	var err error
