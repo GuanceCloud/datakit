@@ -49,6 +49,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/openntpd"
 	"github.com/influxdata/telegraf/plugins/inputs/ping"
 	"github.com/influxdata/telegraf/plugins/inputs/postgresql"
+	"github.com/influxdata/telegraf/plugins/inputs/procstat"
 	"github.com/influxdata/telegraf/plugins/inputs/rabbitmq"
 	"github.com/influxdata/telegraf/plugins/inputs/redis"
 	"github.com/influxdata/telegraf/plugins/inputs/snmp"
@@ -100,12 +101,13 @@ func (ti *TelegrafInput) SampleConfig() string {
 var (
 	TelegrafInputs = map[string]*TelegrafInput{ // Name: Catalog
 
-		"disk":   {name: "disk", Catalog: "host", input: &disk.DiskStats{}},
-		"diskio": {name: "diskio", Catalog: "host", input: &diskio.DiskIO{}},
-		"mem":    {name: "mem", Catalog: "host", input: &mem.MemStats{}},
-		"swap":   {name: "swap", Catalog: "host", input: &swap.SwapStats{}},
-		"system": {name: "system", Catalog: "host", input: &system.SystemStats{}},
-		"cpu":    {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
+		"disk":     {name: "disk", Catalog: "host", input: &disk.DiskStats{}},
+		"diskio":   {name: "diskio", Catalog: "host", input: &diskio.DiskIO{}},
+		"mem":      {name: "mem", Catalog: "host", input: &mem.MemStats{}},
+		"swap":     {name: "swap", Catalog: "host", input: &swap.SwapStats{}},
+		"system":   {name: "system", Catalog: "host", input: &system.SystemStats{}},
+		"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
+		"procstat": {name: "procstat", Catalog: "host", input: &procstat.Procstat{}},
 
 		"ping":            {name: "ping", Catalog: "network", input: &ping.Ping{}},
 		"net":             {name: "net", Catalog: "network", input: &net.NetIOStats{}},
