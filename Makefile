@@ -23,7 +23,7 @@ ENTRY = cmd/datakit/main.go
 
 LOCAL_ARCHS = "all"
 #LOCAL_ARCHS = "windows/amd64|linux/amd64|darwin/amd64"
-#LOCAL_ARCHS = "linux/amd64"
+LOCAL_ARCHS = "linux/amd64"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
