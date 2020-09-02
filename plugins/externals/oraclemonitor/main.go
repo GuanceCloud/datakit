@@ -354,7 +354,7 @@ func WriteData(data []byte, urlPath string) error {
 		l.Errorf("[error] read error %s", err.Error())
 		return err
 	}
-	l.Errorf("[debug] %s %d", string(body), httpResp.StatusCode)
+	l.Debugf("[debug] %s %d", string(body), httpResp.StatusCode)
 	return err
 }
 
@@ -732,6 +732,95 @@ from (select a.recid backup_recid,
 ) group by backup_types
 `
 
+	oracle_failed_login_sql = `
+	select b.name name,b.lcount lcount_value from dba_users a join user$ b on a.username = b.name where a.INHERITED='NO'
+	`
+
+	oracle_temp_file_info_sql = `
+	select f.tablespace_name "tablespace_name",
+       d.file_name "tempfile_name",
+    d.status "status",
+       round((f.bytes_free + f.bytes_used), 2) "t_size",
+       round(nvl(p.bytes_used, 0), 2) "t_use",
+       round(((f.bytes_free + f.bytes_used) - nvl(p.bytes_used, 0)),
+             2) "t_free",
+       round((round(nvl(p.bytes_used, 0), 2) /
+             round((f.bytes_free + f.bytes_used), 2)) * 100,
+             2) as "t_percent"
+  	from SYS.V_$TEMP_SPACE_HEADER f,
+       DBA_TEMP_FILES           d,
+       SYS.V_$TEMP_EXTENT_POOL  p
+ 	where f.tablespace_name(+) = d.tablespace_name
+	`
+
+	oracle_object_info_sql = `
+	select object_type,
+ 	count(*) all_count,
+ 	sum(case when status = 'INVALID' then 1 else 0 end) invaid_count,
+ 	sum(case when status != 'INVALID' then 1 else 0 end) vaid_count
+ 	from dba_objects
+	group by object_type
+	`
+
+	oracle_broken_jobs_sql = `select count(broken) broken_value from dba_jobs`
+
+	oracle_session_wait_info_sql = `
+	select wait_class, sum(total_waits) waits_value from  v$session_wait_class group by wait_class
+	`
+
+	oracle_scn_growth_statistics_sql = `
+	declare
+    rsl number;
+    headroom_in_scn number;
+    headroom_in_sec number;
+    cur_scn_compat number;
+    max_scn_compat number;
+
+	begin
+	    dbms_scn.getcurrentscnparams(rsl,headroom_in_scn,headroom_in_sec,cur_scn_compat,max_scn_compat);
+	    dbms_output.put_line('RSL='||rsl);
+	    dbms_output.put_line('headroom_in_scn='||headroom_in_scn);
+	    dbms_output.put_line('headroom_in_sec='||headroom_in_sec);
+	    dbms_output.put_line('CUR_SCN_COMPAT='||cur_scn_compat);
+	    dbms_output.put_line('MAX_SCN_COMPAT='||max_scn_compat);
+	end
+	`
+
+	oracle_scn_max_statistics_sql = `
+	declare
+	    rsl number;
+	    headroom_in_scn number;
+	    headroom_in_sec number;
+	    cur_scn_compat number;
+	    max_scn_compat number;
+
+	begin
+	    dbms_scn.getcurrentscnparams(rsl,headroom_in_scn,headroom_in_sec,cur_scn_compat,max_scn_compat);
+	    dbms_output.put_line('RSL='||rsl);
+	    dbms_output.put_line('headroom_in_scn='||headroom_in_scn);
+	    dbms_output.put_line('headroom_in_sec='||headroom_in_sec);
+	    dbms_output.put_line('CUR_SCN_COMPAT='||cur_scn_compat);
+	    dbms_output.put_line('MAX_SCN_COMPAT='||max_scn_compat);
+	end`
+
+	oracle_scn_instance_statistics_sql = `
+	declare
+    rsl number;
+    headroom_in_scn number;
+    headroom_in_sec number;
+    cur_scn_compat number;
+    max_scn_compat number;
+
+	begin
+	    dbms_scn.getcurrentscnparams(rsl,headroom_in_scn,headroom_in_sec,cur_scn_compat,max_scn_compat);
+	    dbms_output.put_line('RSL='||rsl);
+	    dbms_output.put_line('headroom_in_scn='||headroom_in_scn);
+	    dbms_output.put_line('headroom_in_sec='||headroom_in_sec);
+	    dbms_output.put_line('CUR_SCN_COMPAT='||cur_scn_compat);
+	    dbms_output.put_line('MAX_SCN_COMPAT='||max_scn_compat);
+	end
+	`
+
 	oracle_tablespace_free_pct_sql = `
 select a.tablespace_name tablespace_name,
       a.bytes  t_size,
@@ -793,6 +882,37 @@ where a.tablespace_name = b.tablespace_name`
     from v$rsrcpdbmetric r, cdb_pdbs p
     `
 
+	oracle_clu_info_sql = `
+	resource\ora.asm\crsctl status res ora.asm
+    resource\ora.cvu\crsctl status res ora.cvu
+    resource\ora.gsd\crsctl status res ora.gsd
+    resource\ora.LISTENER.lsnr\crsctl status res ora.LISTENER.lsnr
+    resource\ora.LISTENER_SCAN1.lsnr\crsctl status res ora.LISTENER_SCAN1.lsnr
+    resource\ora.LISTENER_SCAN2.lsnr\crsctl status res ora.LISTENER_SCAN2.lsnr
+    resource\ora.LISTENER_SCAN3.lsnr\crsctl status res ora.LISTENER_SCAN3.lsnr
+    resource\ora.net1.network\crsctl status res ora.net1.network
+    resource\ora.node1.vip\crsctl status res ora.node1.vip
+    resource\ora.node2.vip\crsctl status res ora.node2.vip
+    resource\ora.oc4j\crsctl status res ora.oc4j
+    resource\ora.ons\crsctl status res ora.ons
+    resource\ora.OVDATA.dg\crsctl status res ora.OVDATA.dg
+    resource\ora.rac.db\crsctl status res ora.rac.db
+    resource\ora.RACDATA.dg\crsctl status res ora.RACDATA.dg
+    resource\ora.RACFRA.dg\crsctl status res ora.RACFRA.dg
+    resource\ora.registry.acfs\crsctl status res ora.registry.acfs
+    resource\ora.scan1.vip\crsctl status res ora.scan1.vip
+    resource\ora.scan2.vip\crsctl status res ora.scan2.vip
+    resource\ora.scan3.vip\crsctl status res ora.scan3.vip
+    server\Oracle High Availability Services\crsctl check has
+    server\Cluster Ready Services\crsctl check crs | grep Ready
+    server\Cluster Synchronization Services\crsctl check css
+    server\Event Manager\crsctl check evm
+    component\freespace\cluvfy comp freespace | tail -1
+    component\clocksync\cluvfy comp clocksync  | tail -1
+    component\nodeapp\cluvfy comp nodeapp | tail -1
+    component\scan\cluvfy comp scan | tail -1
+	`
+
 	// 采集ASM磁盘组状态
 	oracle_asm_group_info_sql = `
     select GROUP_NUMBER,NAME AS GROUP_NAME,STATE,TYPE,TOTAL_MB,FREE_MB,REQUIRED_MIRROR_FREE_MB,USABLE_FILE_MB,OFFLINE_DISKS,VOTING_FILES from v$asm_diskgroup
@@ -822,7 +942,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_hostinfo_sql,
 		metricType: "oracle_hostinfo",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"stat_name"},
 	},
@@ -830,7 +950,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_dbinfo_sql,
 		metricType: "oracle_dbinfo",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"ora_db_id"},
 	},
@@ -838,7 +958,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_key_params_sql,
 		metricType: "oracle_key_params",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"ora_db_id"},
 	},
@@ -846,21 +966,21 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_instinfo_sql,
 		metricType: "oracle_instinfo",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 	},
 
 	&ExecCfg{
 		sql:        oracle_psu_sql,
 		metricType: "oracle_psu",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 	},
 
 	&ExecCfg{
 		sql:        oracle_blocking_sessions_sql,
 		metricType: "oracle_blocking_sessions",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"sid", "serial", "username"},
 	},
@@ -868,7 +988,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_undo_stat_sql,
 		metricType: "oracle_undo_stat",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"stat_name"},
 	},
@@ -876,7 +996,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_redo_info_sql,
 		metricType: "oracle_redo_info",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"group_no", "sequence_no"},
 	},
@@ -884,7 +1004,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_standby_log_sql,
 		metricType: "oracle_standby_log",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"message_num"},
 	},
@@ -892,7 +1012,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_standby_process_sql,
 		metricType: "oracle_standby_process",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"process_seq"},
 	},
@@ -900,7 +1020,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_asm_diskgroups_sql,
 		metricType: "oracle_asm_diskgroups",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"group_number", "group_name"},
 	},
@@ -908,7 +1028,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_flash_area_info_sql,
 		metricType: "oracle_flash_area_info",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"name"},
 	},
@@ -916,15 +1036,71 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_tbs_space_sql,
 		metricType: "oracle_tbs_space",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"tablespace_name"},
 	},
 
 	&ExecCfg{
+		sql:        oracle_failed_login_sql,
+		metricType: "oracle_failed_login",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_temp_file_info_sql,
+		metricType: "oracle_temp_file_info",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_object_info_sql,
+		metricType: "oracle_object_info",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_broken_jobs_sql,
+		metricType: "oracle_broken_jobs",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_session_wait_info_sql,
+		metricType: "oracle_session_wait_info",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_scn_growth_statistics_sql,
+		metricType: "oracle_scn_growth_statistics",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_scn_max_statistics_sql,
+		metricType: "oracle_scn_max_statistics",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_pdb_failures_jobs_sql,
+		metricType: "oracle_pdb_failures_jobs",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
 		sql:        oracle_tbs_meta_info_sql,
 		metricType: "oracle_tbs_meta_info",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"tablespace_name"},
 	},
@@ -932,7 +1108,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_temp_segment_usage_sql,
 		metricType: "oracle_temp_segment_usage",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"tablespace_name"},
 	},
@@ -940,7 +1116,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_trans_sql,
 		metricType: "oracle_trans",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"stat_name"},
 	},
@@ -948,7 +1124,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_archived_log_sql,
 		metricType: "oracle_archived_log",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"stat_name"},
 	},
@@ -956,7 +1132,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_pgastat_sql,
 		metricType: "oracle_pgastat",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"name"},
 	},
@@ -964,7 +1140,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_accounts_sql,
 		metricType: "oracle_accounts",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"username", "user_id"},
 	},
@@ -972,7 +1148,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_locks_sql,
 		metricType: "oracle_locks",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"session_id"},
 	},
@@ -980,7 +1156,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_session_ratio_sql,
 		metricType: "oracle_session_ratio",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"parameter"},
 	},
@@ -988,7 +1164,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_snap_info_sql,
 		metricType: "oracle_snap_info",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"dbid", "snap_id"},
 	},
@@ -996,7 +1172,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oralce_backup_set_info_sql,
 		metricType: "oralce_backup_set_info",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"backup_types"},
 	},
@@ -1004,7 +1180,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_tablespace_free_pct_sql,
 		metricType: "oracle_tablespace_free_pct",
-		cluster:    "single, rac, dg",
+		cluster:    "single",
 		version:    "10g, 11g, 12c",
 		tagsMap:    []string{"tablesapce_name"},
 	},
@@ -1073,6 +1249,13 @@ var execCfgs = []*ExecCfg{
 		cluster:    "single",
 		version:    "12c",
 		tagsMap:    []string{"pdb_name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_clu_info_sql,
+		metricType: "oracle_clu_info",
+		cluster:    "rac",
+		version:    "11g",
 	},
 
 	&ExecCfg{
