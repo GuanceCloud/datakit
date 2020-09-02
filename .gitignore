@@ -6,8 +6,8 @@ proxy_config.yaml
 pub
 a.out
 test.go
-build/
-builds/
+dist/
+./builds/
 *.ak
 old/
 *.tar.gz
