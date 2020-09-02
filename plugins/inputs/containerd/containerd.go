@@ -71,11 +71,11 @@ type Containerd struct {
 	duration time.Duration
 }
 
-func (Containerd) Catalog() string {
+func (*Containerd) Catalog() string {
 	return inputName
 }
 
-func (Containerd) SampleConfig() string {
+func (*Containerd) SampleConfig() string {
 	return sampleCfg
 }
 
