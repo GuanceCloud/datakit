@@ -6,6 +6,23 @@ import (
 	"testing"
 )
 
+func TestCheckWinInputUnderWindows(t *testing.T) {
+	s := `#[[inputs.win_services]]
+# Reports information about Windows service status.
+# Monitoring some services may require running Telegraf with administrator privileges.
+# Names of the services to monitor. Leave empty to monitor all the available services on the host
+service_names = [
+	"LanmanServer",
+	"TermService",
+]`
+
+	if runtime.GOOS == "windows" {
+		if err := CheckTelegrafToml("win_services", []byte(s)); err != nil {
+			t.Fatal("should be `not-found-input`")
+		}
+	}
+}
+
 func TestCheckWinInputUnderLinux(t *testing.T) {
 	s := `#[[inputs.win_services]]
 # Reports information about Windows service status.
