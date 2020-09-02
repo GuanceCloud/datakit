@@ -22,17 +22,18 @@ const (
   ## # 实例描述(非必要属性)
   instanceDesc = 'DBA团队自建Oracle单实例-booboo'
   ## oracle实例地址(ip)
-  host = '10.200.6.53'
+  host = 'xxx.xxx.xx.x'
   ## oracle监听端口
   port = '1521'
   ## 帐号
-  username = 'dbmonitor'
+  username = 'xxxxxx'
   ## 密码
-  password = 'dbmonitor'
+  password = 'xxxxxx'
   ## oracle的服务名
   server = 'testdb.zhuyun'
-  ## 实例类型 例如 单实例、DG、RAC 等，非必要属性
+  ## 实例类型 例如 single、dg、rac(require)
   cluster= 'single'
+  ## 采集的oracle版本，支持10g, 11g, 12c
   version = '11g'
 `
 )
