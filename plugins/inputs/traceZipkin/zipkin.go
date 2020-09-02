@@ -12,14 +12,19 @@ var (
 
 	traceZipkinConfigSample = `
 #[inputs.traceZipkin]
-#   pathV1 = "/api/v1/spans"
-#   pathV2 = "/api/v2/spans"
+#	pathV1 = "/api/v1/spans"
+#	pathV2 = "/api/v2/spans"
 #	[inputs.traceZipkin.tags]
 #		tag1 = "tag1"
 #		tag2 = "tag2"
 #		tag3 = "tag3"
 `
 	log *logger.Logger
+)
+
+const (
+	defaultZipkinPathV1 = "/api/v1/spans"
+	defaultZipkinPathV2 = "/api/v2/spans"
 )
 
 var ZipkinTags       map[string]string
@@ -55,13 +60,15 @@ func (t *TraceZipkin) Run() {
 }
 
 func (t *TraceZipkin) RegHttpHandler() {
-	if t.PathV1 != "" {
-		http.RegHttpHandler("POST", t.PathV1, ZipkinTraceHandleV1Wrap)
+	if t.PathV1 == "" {
+		t.PathV1 = defaultZipkinPathV1
 	}
+	http.RegHttpHandler("POST", t.PathV1, ZipkinTraceHandleV1Wrap)
 
-	if t.PathV2 != "" {
-		http.RegHttpHandler("POST", t.PathV2, ZipkinTraceHandleV2Wrap)
+	if t.PathV2 == "" {
+		t.PathV2 = defaultZipkinPathV2
 	}
+	http.RegHttpHandler("POST", t.PathV2, ZipkinTraceHandleV2Wrap)
 }
 
 func init() {
