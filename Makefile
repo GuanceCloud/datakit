@@ -15,15 +15,13 @@ PRE_DOWNLOAD_ADDR = zhuyun-static-files-preprod.oss-cn-hangzhou.aliyuncs.com/dat
 LOCAL_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit
 
 PUB_DIR = pub
-BUILD_DIR = build
+BUILD_DIR = dist
 
 BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-LOCAL_ARCHS = "all"
-#LOCAL_ARCHS = "windows/amd64|linux/amd64|darwin/amd64"
-LOCAL_ARCHS = "linux/amd64"
+LOCAL_ARCHS = "local"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -78,7 +76,8 @@ endef
 
 define pub
 	@echo "publish $(1) $(NAME) ..."
-	@GO111MODULE=off go run cmd/make/make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) -archs $(3)
+	@GO111MODULE=off go run cmd/make/make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) \
+		-build-dir $(BUILD_DIR) -archs $(3)
 endef
 
 lint:
