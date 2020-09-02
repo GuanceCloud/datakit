@@ -13,7 +13,7 @@ var (
 
 	traceJaegerConfigSample = `
 #[inputs.traceJaeger]
-#   path = "/api/traces"
+#	path = "/api/traces"
 #	[inputs.traceJaeger.tags]
 #		tag1 = "tag1"
 #		tag2 = "tag2"
@@ -23,6 +23,10 @@ var (
 )
 
 var JaegerTags       map[string]string
+
+const (
+	defaultJeagerPath = "/api/traces"
+)
 
 type JaegerTrace struct {
 	Path  string
@@ -50,9 +54,10 @@ func (t *JaegerTrace) Run() {
 }
 
 func (t *JaegerTrace) RegHttpHandler() {
-	if t.Path != "" {
-		http.RegHttpHandler("POST", t.Path, JaegerTraceHandleWrap)
+	if t.Path == "" {
+		t.Path = defaultJeagerPath
 	}
+	http.RegHttpHandler("POST", t.Path, JaegerTraceHandleWrap)
 }
 
 func init() {
