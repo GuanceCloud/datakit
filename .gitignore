@@ -46,3 +46,4 @@ run.sh
 *.pyc
 plugins/externals/csv/venv
 *.sh
+*.zip
