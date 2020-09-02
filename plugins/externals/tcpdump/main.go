@@ -287,6 +287,6 @@ func WriteData(data []byte, urlPath string) error {
 		l.Errorf("[error] read error %s", err.Error())
 		return err
 	}
-	l.Errorf("[debug] %s %d", string(body), httpResp.StatusCode)
+	l.Debugf("[debug] %s %d", string(body), httpResp.StatusCode)
 	return err
 }
