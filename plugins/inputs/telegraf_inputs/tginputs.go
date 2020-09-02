@@ -13,7 +13,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/ceph"
 	"github.com/influxdata/telegraf/plugins/inputs/clickhouse"
 	"github.com/influxdata/telegraf/plugins/inputs/cloudwatch"
-	//"github.com/influxdata/telegraf/plugins/inputs/consul" // get ambiguous import error
 	"github.com/influxdata/telegraf/plugins/inputs/cpu"
 	"github.com/influxdata/telegraf/plugins/inputs/disk"
 	"github.com/influxdata/telegraf/plugins/inputs/diskio"
@@ -31,7 +30,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/kafka_consumer"
 	"github.com/influxdata/telegraf/plugins/inputs/kapacitor"
 	"github.com/influxdata/telegraf/plugins/inputs/kibana"
-	//"github.com/influxdata/telegraf/plugins/inputs/kube_inventory"
 	"github.com/influxdata/telegraf/plugins/inputs/kubernetes"
 	"github.com/influxdata/telegraf/plugins/inputs/mem"
 	"github.com/influxdata/telegraf/plugins/inputs/memcached"
@@ -65,18 +63,34 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/vsphere"
 	"github.com/influxdata/telegraf/plugins/inputs/x509_cert"
 	"github.com/influxdata/telegraf/plugins/inputs/zookeeper"
+	//"github.com/influxdata/telegraf/plugins/inputs/consul" // get ambiguous import error
+	//"github.com/influxdata/telegraf/plugins/inputs/phpfpm" // not exported
+	//"github.com/influxdata/telegraf/plugins/inputs/haproxy" // not exported
+	//"github.com/influxdata/telegraf/plugins/inputs/kube_inventory" // runtime crash
 )
 
 type TelegrafInput struct {
 	input   telegraf.Input
 	name    string
 	Catalog string
-	Sample  string
+
+	// For some telegraf inputs, there are reasons to use specific Sample:
+	//  - for telegraf source code that can't build with exists datakit (package conflict)
+	//  - for telegraf source code that not exported
+	//  - some of telegraf inputs use the same telegraf input, i.e., jolokia2_agent, win_perf_counters
+	// so we can't get sample from input.SampleConfig(), we just return the Sample field
+	//
+	// Bad news: it's hard to sync upstream telegraf updates on these inputs
+	Sample string
 }
 
 func (ti *TelegrafInput) SampleConfig() string {
 	// telegraf not exported inputs, return sample directly(if configured in init())
 	if ti.input == nil {
+		return ti.Sample
+	}
+
+	if ti.Sample != "" { // prefer specified sample
 		return ti.Sample
 	}
 
@@ -92,8 +106,6 @@ var (
 		"swap":   {name: "swap", Catalog: "host", input: &swap.SwapStats{}},
 		"system": {name: "system", Catalog: "host", input: &system.SystemStats{}},
 		"cpu":    {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
-
-		"nvidia_smi": {name: "nvidia_smi", Catalog: "nvidia", input: &nvidia_smi.NvidiaSMI{}},
 
 		"ping":            {name: "ping", Catalog: "network", input: &ping.Ping{}},
 		"net":             {name: "net", Catalog: "network", input: &net.NetIOStats{}},
@@ -116,8 +128,8 @@ var (
 		"clickhouse":    {name: "clickhouse", Catalog: "db", input: &clickhouse.ClickHouse{}},
 		`influxdb`:      {name: "influxdb", Catalog: "db", input: &influxdb.InfluxDB{}},
 
-		"openldap":  {name: "openldap", Catalog: "openldap", input: &openldap.Openldap{}},
-		"phpfpm":    {name: "phpfpm", Catalog: "phpfpm", input: nil}, // telegraf not exported
+		"openldap": {name: "openldap", Catalog: "openldap", input: &openldap.Openldap{}},
+
 		"zookeeper": {name: "zookeeper", Catalog: "zookeeper", input: &zookeeper.Zookeeper{}},
 		"ceph":      {name: "ceph", Catalog: "ceph", input: &ceph.Ceph{}},
 		"dns_query": {name: "dns_query", Catalog: "dns_query", input: &dns_query.DnsQuery{}},
@@ -133,7 +145,6 @@ var (
 		"mqtt_consumer":  {name: "mqtt_consumer", Catalog: "mqtt", input: &mqtt_consumer.MQTTConsumer{}},
 
 		"fluentd":    {name: "fluentd", Catalog: "fluentd", input: &fluentd.Fluentd{}},
-		"haproxy":    {name: "haproxy", Catalog: "haproxy", input: nil}, // telegraf not exported
 		"jenkins":    {name: "jenkins", Catalog: "jenkins", input: &jenkins.Jenkins{}},
 		"kapacitor":  {name: "kapacitor", Catalog: "kapacitor", input: &kapacitor.Kapacitor{}},
 		"ntpq":       {name: "ntpq", Catalog: "ntpq", input: &ntpq.NTPQ{}},
@@ -146,155 +157,28 @@ var (
 		"exec":       {name: "exec", Catalog: "exec", input: &exec.Exec{}},
 		"syslog":     {name: "syslog", Catalog: "syslog", input: &syslog.Syslog{}},
 
-		// get panic:
-		//   panic: mismatching message name: got k8s.io.kubernetes.pkg.watch.versioned.Event, want github.com/ericchiang.k8s.watch.versioned.Event
-		"kube_inventory": {name: "kube_inventory", Catalog: "k8s", input: nil},
-
-		"kubernetes": {name: "kubernetes", Catalog: "k8s", input: &kubernetes.Kubernetes{}},
-
+		"nvidia_smi":     {name: "nvidia_smi", Catalog: "nvidia", input: &nvidia_smi.NvidiaSMI{}},
+		"kubernetes":     {name: "kubernetes", Catalog: "k8s", input: &kubernetes.Kubernetes{}},
 		"jolokia2_agent": {name: "jolokia2_agent", Catalog: "jolokia2_agent", input: &jolokia2.JolokiaAgent{}},
 		"amqp_consumer":  {name: "amqp_consumer", Catalog: "amqp", input: &amqp_consumer.AMQPConsumer{}},
 		"github":         {name: "github", Catalog: "github", input: &github.GitHub{}},
 		"uwsgi":          {name: "uwsgi", Catalog: "uwsgi", input: &uwsgi.Uwsgi{}},
-		`consul`:         {name: "consul", Catalog: "consul", input: nil},
 		`kibana`:         {name: "kibana", Catalog: "kibana", input: &kibana.Kibana{}},
 		`modbus`:         {name: "modbus", Catalog: "modbus", input: &modbus.Modbus{}},
+
+		// ambiguous import
+		`consul`: {name: "consul", Catalog: "consul", Sample: samples["consul"], input: nil},
+
+		// get panic:
+		//   panic: mismatching message name: got k8s.io.kubernetes.pkg.watch.versioned.Event,
+		//          want github.com/ericchiang.k8s.watch.versioned.Event
+		"kube_inventory": {name: "kube_inventory", Catalog: "k8s", Sample: samples["kube_inventory"], input: nil},
+
+		// telegraf not exported
+		"phpfpm":  {name: "phpfpm", Catalog: "phpfpm", Sample: samples["phpfpm"], input: nil},
+		"haproxy": {name: "haproxy", Catalog: "haproxy", Sample: samples["haproxy"], input: nil},
 	}
 )
-
-func init() {
-	TelegrafInputs[`kube_inventory`].Sample = `
-	[[inputs.kube_inventory]]
-	# URL for the Kubernetes API
-	url = "https://127.0.0.1"
-
-	# Namespace to use. Set to "" to use all namespaces.
-	 namespace = "default"
-
-	# Use bearer token for authorization. ('bearer_token' takes priority)
-	# If both of these are empty, we'll use the default serviceaccount:
-	# at: /run/secrets/kubernetes.io/serviceaccount/token
-	 bearer_token = "/path/to/bearer/token"
-	# OR
-	 bearer_token_string = "abc_123"
-
-	# Set response_timeout (default 5 seconds)
-	 response_timeout = "5s"
-
-	# Optional Resources to exclude from gathering
-	# Leave them with blank with try to gather everything available.
-	# Values can be - "daemonsets", deployments", "endpoints", "ingress", "nodes",
-	# "persistentvolumes", "persistentvolumeclaims", "pods", "services", "statefulsets"
-	#resource_exclude = [ "deployments", "nodes", "statefulsets" ]
-
-	# Optional Resources to include when gathering
-	# Overrides resource_exclude if both set.
-	#resource_include = [ "deployments", "nodes", "statefulsets" ]
-
-	# Optional TLS Config
-	#tls_ca = "/path/to/cafile"
-	#tls_cert = "/path/to/certfile"
-	#tls_key = "/path/to/keyfile"
-	# Use TLS but skip chain & host verification
-	#insecure_skip_verify = false`
-
-	TelegrafInputs["haproxy"].Sample = `
- # Read metrics of haproxy, via socket or csv stats page
- [[inputs.haproxy]]
-   ## An array of address to gather stats about. Specify an ip on hostname
-   ## with optional port. ie localhost, 10.10.3.33:1936, etc.
-   ## Make sure you specify the complete path to the stats endpoint
-   ## including the protocol, ie http://10.10.3.33:1936/haproxy?stats
-
-   ## If no servers are specified, then default to 127.0.0.1:1936/haproxy?stats
-   servers = ["http://myhaproxy.com:1936/haproxy?stats"]
-
-   ## Credentials for basic HTTP authentication
-   # username = "admin"
-   # password = "admin"
-
-   ## You can also use local socket with standard wildcard globbing.
-   ## Server address not starting with 'http' will be treated as a possible
-   ## socket, so both examples below are valid.
-   # servers = ["socket:/run/haproxy/admin.sock", "/run/haproxy/*.sock"]
-
-   ## By default, some of the fields are renamed from what haproxy calls them.
-   ## Setting this option to true results in the plugin keeping the original
-   ## field names.
-   # keep_field_names = false
-
-   ## Optional TLS Config
-   # tls_ca = "/etc/telegraf/ca.pem"
-   # tls_cert = "/etc/telegraf/cert.pem"
-   # tls_key = "/etc/telegraf/key.pem"
-   ## Use TLS but skip chain & host verification
-   # insecure_skip_verify = false`
-
-	TelegrafInputs["phpfpm"].Sample = `
-# Read metrics of phpfpm, via HTTP status page or socket
- [[inputs.phpfpm]]
-   ## An array of addresses to gather stats about. Specify an ip or hostname
-   ## with optional port and path
-   ##
-   ## Plugin can be configured in three modes (either can be used):
-   ##   - http: the URL must start with http:// or https://, ie:
-   ##       "http://localhost/status"
-   ##       "http://192.168.130.1/status?full"
-   ##
-   ##   - unixsocket: path to fpm socket, ie:
-   ##       "/var/run/php5-fpm.sock"
-   ##      or using a custom fpm status path:
-   ##       "/var/run/php5-fpm.sock:fpm-custom-status-path"
-   ##
-   ##   - fcgi: the URL must start with fcgi:// or cgi://, and port must be present, ie:
-   ##       "fcgi://10.0.0.12:9000/status"
-   ##       "cgi://10.0.10.12:9001/status"
-   ##
-   ## Example of multiple gathering from local socket and remote host
-   ## urls = ["http://192.168.1.20/status", "/tmp/fpm.sock"]
-   urls = ["http://localhost/status"]
-
-   ## Duration allowed to complete HTTP requests.
-   # timeout = "5s"
-
-   ## Optional TLS Config
-   # tls_ca = "/etc/telegraf/ca.pem"
-   # tls_cert = "/etc/telegraf/cert.pem"
-   # tls_key = "/etc/telegraf/key.pem"
-   ## Use TLS but skip chain & host verification
-   # insecure_skip_verify = false`
-
-	TelegrafInputs["consul"].Sample = `
-		# Gather health check statuses from services registered in Consul
-			[[inputs.consul]]
-				# Consul server address
-				address = "localhost:8500"
-
-				# URI scheme for the Consul server, one of "http", "https"
-				scheme = "http"
-
-				# ACL token used in every request
-				token = ""
-
-				# HTTP Basic Authentication username and password.
-				username = ""
-				password = ""
-
-				# Data center to query the health checks from
-				datacenter = ""
-
-				# Optional TLS Config
-				#tls_ca = "/etc/telegraf/ca.pem"
-				#tls_cert = "/etc/telegraf/cert.pem"
-				#tls_key = "/etc/telegraf/key.pem"
-				# Use TLS but skip chain & host verification
-				#insecure_skip_verify = true
-
-				# Consul checks' tag splitting
-				#When tags are formatted like "key:value" with ":" as a delimiter then
-				#they will be splitted and reported as proper key:value in Telegraf
-				#tag_delimiter = ":"`
-}
 
 func CheckTelegrafToml(name string, tomlcfg []byte) error {
 
