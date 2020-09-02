@@ -26,6 +26,7 @@ var (
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
 	flagDocker         = flag.Bool("docker", false, "run within docker")
 
+	flagListCollectors    = flag.Bool("tree", false, `list vailable collectors`)
 	flagListConfigSamples = flag.Bool("config-samples", false, `list all config samples`)
 )
 
@@ -80,6 +81,11 @@ Golang Version: %s
 		os.Exit(0)
 	}
 
+	if *flagListCollectors {
+		listCollectors()
+		os.Exit(0)
+	}
+
 	if *flagInputFilters != "" {
 		inputFilters = strings.Split(":"+strings.TrimSpace(*flagInputFilters)+":", ":")
 	}
@@ -89,13 +95,47 @@ Golang Version: %s
 	}
 }
 
+func listCollectors() {
+	collectors := map[string][]string{}
+
+	for k, v := range inputs.Inputs {
+		cat := v().Catalog()
+		collectors[cat] = append(collectors[cat], k)
+	}
+
+	ndk := 0
+	for k, vs := range collectors {
+		fmt.Println(k)
+		for _, v := range vs {
+			fmt.Printf("  |--[d] %s\n", v)
+			ndk++
+		}
+	}
+
+	collectors = map[string][]string{}
+	for k, v := range tgi.TelegrafInputs {
+		collectors[v.Catalog] = append(collectors[v.Catalog], k)
+	}
+
+	ntg := 0
+	for k, vs := range collectors {
+		fmt.Println(k)
+		for _, v := range vs {
+			fmt.Printf("  |--[t] %s\n", v)
+			ntg++
+		}
+	}
+
+	fmt.Printf("total %d, datakit: %d, telegraf: %d\n", ntg+ndk, ndk, ntg)
+}
+
 func showAllConfigSamples() {
 	for k, v := range inputs.Inputs {
-		fmt.Printf("%s\n========= [D] ==========\n%s\n", k, v().SampleConfig())
+		fmt.Printf("#========= [D] % 32s ==========\n%s\n", k, v().SampleConfig())
 	}
 
 	for k, v := range tgi.TelegrafInputs {
-		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v.SampleConfig())
+		fmt.Printf("#========= [T] % 32s ==========\n%s\n", k, v.SampleConfig())
 	}
 }
 
