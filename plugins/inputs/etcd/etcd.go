@@ -1,11 +1,13 @@
 package etcd
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"net/http"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -115,7 +117,6 @@ func (e *Etcd) Run() {
 }
 
 func (e *Etcd) loadcfg() bool {
-
 	if e.Interval == "" && e.CollectCycle != "" {
 		e.Interval = e.CollectCycle
 	}
@@ -157,7 +158,6 @@ func (e *Etcd) loadcfg() bool {
 	if e.Tags == nil {
 		e.Tags = make(map[string]string)
 	}
-
 	if _, ok := e.Tags["address"]; !ok {
 		e.Tags["address"] = fmt.Sprintf("%s:%d", e.Host, e.Port)
 	}
@@ -166,7 +166,6 @@ func (e *Etcd) loadcfg() bool {
 }
 
 func (e *Etcd) getMetrics() ([]byte, error) {
-
 	client := &http.Client{}
 	client.Timeout = time.Second * 5
 	defer client.CloseIdleConnections()
@@ -176,12 +175,40 @@ func (e *Etcd) getMetrics() ([]byte, error) {
 			TLSClientConfig: e.tlsConfig,
 		}
 	}
-
 	resp, err := client.Get(e.address)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	return io.PrometheusToMetrics(resp.Body, inputName, inputName, e.Tags, time.Now())
+	pts, err := cliutils.PromTextToMetrics(resp.Body, inputName, inputName, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	var buffer = bytes.Buffer{}
+
+	for _, pt := range pts {
+		// discard
+		if pt.Name() == "etcd_grpc_server" {
+			continue
+		}
+		ptFields, err := pt.Fields()
+		if err != nil {
+			continue
+		}
+		ptTags := pt.Tags()
+		for k, v := range e.Tags {
+			if _, ok := ptTags[k]; !ok {
+				ptTags[k] = v
+			}
+		}
+		data, err := io.MakeMetric(pt.Name(), ptTags, ptFields, pt.Time())
+		if err != nil {
+			continue
+		}
+		buffer.Write(data)
+		buffer.WriteString("\n")
+	}
+
+	return buffer.Bytes(), nil
 }
