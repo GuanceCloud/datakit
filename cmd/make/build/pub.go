@@ -212,8 +212,8 @@ func PubDatakit() {
 	for k, v := range ossfiles {
 
 		fi, _ := os.Stat(k)
-
 		l.Debugf("upload %s(%s)...", k, humanize.Bytes(uint64(fi.Size())))
+
 		if err := oc.Upload(k, v); err != nil {
 			l.Fatal(err)
 		}
