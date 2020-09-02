@@ -62,11 +62,11 @@ func init() {
 	})
 }
 
-func (Tailf) Catalog() string {
+func (*Tailf) Catalog() string {
 	return "log"
 }
 
-func (Tailf) SampleConfig() string {
+func (*Tailf) SampleConfig() string {
 	return sampleCfg
 }
 
