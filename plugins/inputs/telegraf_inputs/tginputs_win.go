@@ -11,9 +11,9 @@ var (
 	telegrafInputsWin = map[string]*TelegrafInput{
 		"win_services":      {name: "win_services", Catalog: "windows", input: &win_services.WinServices{}},
 		"win_perf_counters": {name: "win_perf_counters", Catalog: "windows", input: &win_perf_counters.Win_PerfCounters{}},
-		`dotnetclr`:         {name: "dotnetclr", Catalog: "windows", input: &win_perf_counters.Win_PerfCounters{}},
-		`aspdotnet`:         {name: "aspdotnet", Catalog: "windows", input: &win_perf_counters.Win_PerfCounters{}},
-		`msexchange`:        {name: "msexchange", Catalog: "windows", input: &win_perf_counters.Win_PerfCounters{}},
+		`dotnetclr`:         {name: "dotnetclr", Catalog: "windows", Sample: samples["dotnetclr"], input: &win_perf_counters.Win_PerfCounters{}},
+		`aspdotnet`:         {name: "aspdotnet", Catalog: "windows", Sample: samples["aspdotnet"], input: &win_perf_counters.Win_PerfCounters{}},
+		`msexchange`:        {name: "msexchange", Catalog: "windows", Sample: samples["msexchange"], input: &win_perf_counters.Win_PerfCounters{}},
 	}
 )
 
