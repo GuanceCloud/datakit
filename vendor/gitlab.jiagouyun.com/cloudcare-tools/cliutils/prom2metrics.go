@@ -53,11 +53,7 @@ func PromTextToMetrics(data io.Reader, measurementPrefix, defaultMeasurement str
 	var pts []*ifxcli.Point
 
 	for name, metric := range metrics {
-		measurement := name
-		if measurementPrefix != "" {
-			measurement = getMeasurement(name, measurementPrefix)
-		}
-
+		measurement := getMeasurement(name, measurementPrefix)
 		p := prom{
 			metricName:         name,
 			measurement:        measurement,
