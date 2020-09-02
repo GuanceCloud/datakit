@@ -64,11 +64,11 @@ type Cloudflare struct {
 	duration time.Duration
 }
 
-func (Cloudflare) SampleConfig() string {
+func (*Cloudflare) SampleConfig() string {
 	return sampleCfg
 }
 
-func (Cloudflare) Catalog() string {
+func (*Cloudflare) Catalog() string {
 	return inputName
 }
 
