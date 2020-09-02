@@ -94,7 +94,7 @@ select max(id) id from
 `
 
 	mysql_metadatalock_session_sql = `
-select * from information_schema.processlist where State='Waiting for table metadata lock';
+select * from information_schema.processlist where State='Waiting for table metadata lock'
 `
 
 	mysql_metadatalock_trx_id_sql = `
