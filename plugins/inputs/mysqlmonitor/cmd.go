@@ -115,6 +115,10 @@ func (m *MysqlMonitor) gatherGlobalVariables(db *sql.DB, serv string) error {
 	tags := map[string]string{"server": servtag}
 	tags["metricType"] = "globalVariables"
 
+	for k, v := range m.Tags {
+		tags[k] = v
+	}
+
 	fields := make(map[string]interface{})
 	for rows.Next() {
 		if err := rows.Scan(&key, &val); err != nil {
@@ -171,6 +175,10 @@ func (m *MysqlMonitor) gatherSlaveStatuses(db *sql.DB, serv string) error {
 
 	tags := map[string]string{"server": servtag}
 	tags["metricType"] = "slaveStatus"
+	for k, v := range m.Tags {
+		tags[k] = v
+	}
+
 	fields := make(map[string]interface{})
 
 	// to save the column names as a field key
@@ -201,8 +209,6 @@ func (m *MysqlMonitor) gatherSlaveStatuses(db *sql.DB, serv string) error {
 			l.Errorf("make metric point error %v", err)
 		}
 
-		fmt.Println("point data ========>", string(pt))
-
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
@@ -226,6 +232,9 @@ func (m *MysqlMonitor) gatherBinaryLogs(db *sql.DB, serv string) error {
 	servtag := getDSNTag(serv)
 	tags := map[string]string{"server": servtag}
 	tags["metricType"] = "globalVariables"
+	for k, v := range m.Tags {
+		tags[k] = v
+	}
 
 	var (
 		size     uint64 = 0
@@ -275,6 +284,9 @@ func (m *MysqlMonitor) gatherGlobalStatuses(db *sql.DB, serv string) error {
 	servtag := getDSNTag(serv)
 	tags := map[string]string{"server": servtag}
 	tags["metricType"] = "globalStatus"
+	for k, v := range m.Tags {
+		tags[k] = v
+	}
 	fields := make(map[string]interface{})
 	for rows.Next() {
 		var key string
@@ -346,6 +358,9 @@ func (m *MysqlMonitor) GatherProcessListStatuses(db *sql.DB, serv string) error 
 
 	tags := map[string]string{"server": servtag}
 	tags["metricType"] = "processListStatus"
+	for k, v := range m.Tags {
+		tags[k] = v
+	}
 
 	for s, c := range stateCounts {
 		fields[newNamespace("threads", s)] = c
@@ -378,6 +393,9 @@ func (m *MysqlMonitor) GatherProcessListStatuses(db *sql.DB, serv string) error 
 
 		tags := map[string]string{"server": servtag, "user": user}
 		tags["metricType"] = "userConnectionsCount"
+		for k, v := range m.Tags {
+			tags[k] = v
+		}
 
 		fields := make(map[string]interface{})
 
@@ -431,6 +449,9 @@ func (m *MysqlMonitor) GatherUserStatisticsStatuses(db *sql.DB, serv string) err
 
 		tags := map[string]string{"server": servtag, "user": *read[0].(*string)}
 		tags["metricType"] = "userStatisticsStatus"
+		for k, v := range m.Tags {
+			tags[k] = v
+		}
 
 		fields := map[string]interface{}{}
 
@@ -656,6 +677,10 @@ func (m *MysqlMonitor) gatherPerfTableIOWaits(db *sql.DB, serv string) error {
 		}
 		tags["metricType"] = "perfTableIOWait"
 
+		for k, v := range m.Tags {
+			tags[k] = v
+		}
+
 		fields := map[string]interface{}{
 			"table_io_waits_total_fetch":          countFetch,
 			"table_io_waits_total_insert":         countInsert,
@@ -712,6 +737,10 @@ func (m *MysqlMonitor) gatherPerfIndexIOWaits(db *sql.DB, serv string) error {
 			"schema": objSchema,
 			"name":   objName,
 			"index":  indexName,
+		}
+
+		for k, v := range m.Tags {
+			tags[k] = v
 		}
 
 		tags["metricType"] = "perfIndexIOWait"
@@ -771,6 +800,10 @@ func (m *MysqlMonitor) gatherInfoSchemaAutoIncStatuses(db *sql.DB, serv string) 
 			"column": column,
 		}
 
+		for k, v := range m.Tags {
+			tags[k] = v
+		}
+
 		tags["metricType"] = "schemaAutoIncStatus"
 
 		fields := make(map[string]interface{})
@@ -804,6 +837,10 @@ func (m *MysqlMonitor) gatherInnoDBMetrics(db *sql.DB, serv string) error {
 	servtag := getDSNTag(serv)
 	tags := map[string]string{"server": servtag}
 	tags["metricType"] = "innoDBMetric"
+
+	for k, v := range m.Tags {
+		tags[k] = v
+	}
 
 	fields := make(map[string]interface{})
 	for rows.Next() {
@@ -917,6 +954,10 @@ func (m *MysqlMonitor) gatherPerfTableLockWaits(db *sql.DB, serv string) error {
 			"table":  objectName,
 		}
 
+		for k, v := range m.Tags {
+			tags[k] = v
+		}
+
 		tags["metricType"] = "perfTableLockWait"
 
 		sqlLWTags := copyTags(tags)
@@ -977,8 +1018,6 @@ func (m *MysqlMonitor) gatherPerfTableLockWaits(db *sql.DB, serv string) error {
 			l.Errorf("make metric point error %v", err)
 		}
 
-		fmt.Println("sql_lock_waits_seconds_total =======>", string(pt))
-
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
@@ -1020,6 +1059,10 @@ func (m *MysqlMonitor) gatherPerfEventWaits(db *sql.DB, serv string) error {
 	servtag := getDSNTag(serv)
 	tags := map[string]string{
 		"server": servtag,
+	}
+
+	for k, v := range m.Tags {
+		tags[k] = v
 	}
 
 	tags["metricType"] = "perfEventWaits"
@@ -1066,6 +1109,10 @@ func (m *MysqlMonitor) gatherPerfFileEventsStatuses(db *sql.DB, serv string) err
 	servtag := getDSNTag(serv)
 	tags := map[string]string{
 		"server": servtag,
+	}
+
+	for k, v := range m.Tags {
+		tags[k] = v
 	}
 
 	tags["metricType"] = "perfFileEventsStatus"
@@ -1167,6 +1214,14 @@ func (m *MysqlMonitor) gatherPerfEventsStatements(db *sql.DB, serv string) error
 	servtag := getDSNTag(serv)
 	tags := map[string]string{
 		"server": servtag,
+	}
+
+	for k, v := range m.Tags {
+		tags[k] = v
+	}
+
+	for k, v := range m.Tags {
+		tags[k] = v
 	}
 
 	tags["metricType"] = "perfEventsStatements"
@@ -1282,6 +1337,10 @@ func (m *MysqlMonitor) gatherTableSchema(db *sql.DB, serv string) error {
 			tags := map[string]string{"server": servtag}
 			tags["schema"] = tableSchema
 			tags["table"] = tableName
+
+			for k, v := range m.Tags {
+				tags[k] = v
+			}
 
 			fields := make(map[string]interface{})
 
@@ -1425,6 +1484,10 @@ func (m *MysqlMonitor) handleResponse(mm string, servtag string, response []map[
 	for _, item := range response {
 		tags := map[string]string{"server": servtag}
 		tags["metricType"] = mm
+
+		for k, v := range m.Tags {
+			tags[k] = v
+		}
 
 		pt, err := io.MakeMetric(m.MetricName, tags, item, time.Now())
 		if err != nil {
