@@ -55,7 +55,7 @@ github.com/Shopify/sarama
 github.com/StackExchange/wmi
 # github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 github.com/aeden/traceroute
-# github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
+# github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
 github.com/alecthomas/units
 # github.com/aliyun/alibaba-cloud-sdk-go v1.61.391
 github.com/aliyun/alibaba-cloud-sdk-go/sdk
@@ -343,7 +343,7 @@ github.com/golang-sql/civil
 github.com/golang/glog
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 github.com/golang/groupcache/lru
-# github.com/golang/protobuf v1.4.1
+# github.com/golang/protobuf v1.4.2
 github.com/golang/protobuf/descriptor
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
@@ -383,7 +383,7 @@ github.com/influxdata/go-syslog/v2/common
 github.com/influxdata/go-syslog/v2/nontransparent
 github.com/influxdata/go-syslog/v2/octetcounting
 github.com/influxdata/go-syslog/v2/rfc5424
-# github.com/influxdata/influxdb1-client v0.0.0-20200515024757-02f0bf5dbca3
+# github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
 github.com/influxdata/influxdb1-client/models
 github.com/influxdata/influxdb1-client/pkg/escape
 github.com/influxdata/influxdb1-client/v2
@@ -509,8 +509,6 @@ github.com/jackc/pgx/stdlib
 # github.com/jcmturner/gofork v1.0.0
 github.com/jcmturner/gofork/encoding/asn1
 github.com/jcmturner/gofork/x/crypto/pbkdf2
-# github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
-github.com/jinzhu/copier
 # github.com/jmespath/go-jmespath v0.3.0
 github.com/jmespath/go-jmespath
 # github.com/json-iterator/go v1.1.10
@@ -527,7 +525,7 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/konsorten/go-windows-terminal-sequences v1.0.2
+# github.com/konsorten/go-windows-terminal-sequences v1.0.3
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/kr/fs v0.1.0
 github.com/kr/fs
@@ -639,11 +637,11 @@ github.com/pkg/sftp
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.9.1
+# github.com/prometheus/common v0.13.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
-# github.com/prometheus/procfs v0.0.8
+# github.com/prometheus/procfs v0.1.3
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
 github.com/prometheus/procfs/nfs
@@ -681,7 +679,7 @@ github.com/siddontang/go-mysql/mysql
 github.com/siddontang/go-mysql/packet
 github.com/siddontang/go-mysql/replication
 github.com/siddontang/go-mysql/schema
-# github.com/sirupsen/logrus v1.5.0
+# github.com/sirupsen/logrus v1.6.0
 github.com/sirupsen/logrus
 # github.com/soniah/gosnmp v1.25.0
 github.com/soniah/gosnmp
@@ -776,7 +774,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200818074621-1fc80b8dd3a6
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200903031355-5947d2219283
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
