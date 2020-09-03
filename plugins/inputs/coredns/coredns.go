@@ -1,14 +1,8 @@
 package coredns
 
 import (
-	"fmt"
-	"net/http"
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
 const (
@@ -18,24 +12,20 @@ const (
 
 	sampleCfg = `
 [[inputs.coredns]]
-    # coredns host
+    # coredns metrics from http://HOST:PORT/metrics
+    # usually modify host and port
     # required
-    host = "127.0.0.1"
-    
-    # coredns prometheus port
-    # required
-    port = 9153
+    url = "http://127.0.0.1:9153/metrics"
     
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     # required
     interval = "10s"
     
     # [inputs.coredns.tags]
+    # from = "127.0.0.1:9153"
     # tags1 = "value1"
 `
 )
-
-var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -44,16 +34,9 @@ func init() {
 }
 
 type Coredns struct {
-	Host     string            `toml:"host"`
-	Port     int               `toml:"port"`
+	URL      string            `toml:"url"`
 	Interval string            `toml:"interval"`
 	Tags     map[string]string `toml:"tags"`
-	address  string
-
-	// forward compatibility
-	CollectCycle string `toml:"collect_cycle"`
-
-	duration time.Duration
 }
 
 func (*Coredns) SampleConfig() string {
@@ -65,78 +48,15 @@ func (*Coredns) Catalog() string {
 }
 
 func (c *Coredns) Run() {
-	l = logger.SLogger(inputName)
+	p := prom.Prom{
+		URL:      c.URL,
+		Interval: c.Interval,
+		Tags:     c.Tags,
 
-	if c.loadcfg() {
-		return
+		InputName:          inputName,
+		DefaultMeasurement: defaultMeasurement,
+
+		IgnoreMeasurement: []string{"coredns_plugin", "coredns_build", "coredns_go_info"},
 	}
-	ticker := time.NewTicker(c.duration)
-	defer ticker.Stop()
-
-	l.Infof("coredns input started.")
-
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return
-
-		case <-ticker.C:
-			data, err := c.getMetrics()
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
-				l.Error(err)
-				continue
-			}
-			l.Debugf("feed %d bytes to io ok", len(data))
-		}
-	}
-}
-
-func (c *Coredns) loadcfg() bool {
-	if c.Interval == "" && c.CollectCycle != "" {
-		c.Interval = c.CollectCycle
-	}
-
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return true
-		default:
-			// nil
-		}
-
-		d, err := time.ParseDuration(c.CollectCycle)
-		if err != nil || d <= 0 {
-			l.Errorf("invalid interval, %s", err.Error())
-			time.Sleep(time.Second)
-			continue
-		}
-		c.duration = d
-		break
-	}
-
-	if c.Tags == nil {
-		c.Tags = make(map[string]string)
-	}
-	if _, ok := c.Tags["address"]; !ok {
-		c.Tags["address"] = fmt.Sprintf("%s:%d", c.Host, c.Port)
-	}
-	c.address = fmt.Sprintf("http://%s:%d/metrics", c.Host, c.Port)
-
-	return false
-}
-
-func (c *Coredns) getMetrics() ([]byte, error) {
-	resp, err := http.Get(c.address)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	return io.PrometheusToMetrics(resp.Body, inputName, inputName, c.Tags, time.Now())
+	p.Start()
 }
