@@ -3,7 +3,6 @@ package cliutils
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -13,9 +12,13 @@ import (
 var (
 	ErrOssFileTooLarge = errors.New(`oss file too large`)
 
-	DefaultPartSize = int64(32 * 1024 * 1024) // 32MB
-	DefaultTimeout  = uint(30)                // seconds
+	DefaultPartSize = int64(32 * 1024 * 1024) //nolint:gomnd // 32MB
+	DefaultTimeout  = uint(30)                //nolint:gomnd // seconds
 	DefaultWorkers  = 8
+)
+
+const (
+	ossMaxParts = 10000
 )
 
 type OssCli struct {
@@ -33,10 +36,8 @@ type OssCli struct {
 }
 
 func (oc *OssCli) getBucket() error {
-
 	cli, err := oss.New(oc.Host, oc.AccessKey, oc.SecretKey)
 	if err != nil {
-		log.Printf("[error] %s", err.Error())
 		return err
 	}
 
@@ -49,7 +50,6 @@ func (oc *OssCli) getBucket() error {
 
 	bkt, err := cli.Bucket(oc.BucketName)
 	if err != nil {
-		log.Printf("[error] %s", err.Error())
 		return err
 	}
 
@@ -58,7 +58,6 @@ func (oc *OssCli) getBucket() error {
 }
 
 func (oc *OssCli) Init() error {
-
 	if oc.PartSize == 0 {
 		oc.PartSize = DefaultPartSize
 	}
@@ -102,7 +101,6 @@ func (oc *OssCli) Upload(from, to string) error {
 
 	st, err := os.Stat(from)
 	if err != nil {
-		log.Printf("[error] %s", err.Error())
 		return err
 	}
 
@@ -111,7 +109,6 @@ func (oc *OssCli) Upload(from, to string) error {
 	if size <= oc.PartSize { // 小文件直接上传
 		if err := oc.bkt.PutObjectFromFile(to, from); err != nil {
 			oc.FailedCnt++
-			log.Printf("[error] %s", err.Error())
 			return err
 		}
 
@@ -119,9 +116,9 @@ func (oc *OssCli) Upload(from, to string) error {
 		oc.UploadedBytes += size
 
 		return nil
-	} else {
-		return oc.multipartUpload(from, to)
 	}
+
+	return oc.multipartUpload(from, to)
 }
 
 func (oc *OssCli) SetMeta(obj string, meta map[string]string) error {
@@ -143,7 +140,6 @@ func (oc *OssCli) ListObjects(prefix, marker string, maxKeys int) (oss.ListObjec
 }
 
 func (oc *OssCli) Move(from, to string) error {
-
 	if _, err := oc.bkt.CopyObject(from, to); err != nil {
 		return err
 	}
@@ -151,68 +147,57 @@ func (oc *OssCli) Move(from, to string) error {
 	return oc.bkt.DeleteObject(from)
 }
 
-func (oc *OssCli) multipartUpload(from, to string) error {
-	// 大文件分片上传
+func (oc *OssCli) mpworker(imur *oss.InitiateMultipartUploadResult,
+	c *oss.FileChunk, from string, exit chan interface{}) (p oss.UploadPart, err error) {
 
-	var err error
+	select {
+	case <-exit:
+		return
+
+	default:
+
+		for i := 0; i < 3; i++ {
+			p, err = oc.bkt.UploadPartFromFile(*imur, from, c.Offset, c.Size, c.Number)
+			if err == nil {
+				return p, nil
+			}
+			time.Sleep(time.Second)
+		}
+		return
+	}
+}
+
+func (oc *OssCli) multipartUpload(from, to string) error {
 
 	st, err := os.Stat(from)
 	if err != nil {
-		log.Printf("[error] %s", err.Error())
 		return err
 	}
 
 	size := st.Size()
 
-	if size > int64(oc.PartSize*10000) { // 最大只支持 10k 个分片
-		log.Printf("[error] too large file %s(%d)", from, size)
+	if size > oc.PartSize*ossMaxParts { // 最大只支持 10k 个分片
 		return ErrOssFileTooLarge
 	}
 
-	partCnt := size / int64(oc.PartSize)
+	partCnt := size / oc.PartSize
 
 	chunks, err := oss.SplitFileByPartNum(from, int(partCnt))
 	if err != nil {
-		log.Printf("[error] %s", err.Error())
 		return err
 	}
 
 	// 新建分片上传
 	imur, err := oc.bkt.InitiateMultipartUpload(to, nil)
 	if err != nil {
-		log.Printf("[error] %s", err.Error())
 		return err
 	}
 
-	log.Printf("[debug]: %+#v", imur)
-
 	resCh := make(chan *oss.UploadPart, len(chunks)) // 接受返回结果
 	failedCh := make(chan error)
-	die := make(chan int) // 勒令退出
+	exit := make(chan interface{}) // 勒令退出
 
-	defer close(die)
-
-	worker := func(c *oss.FileChunk) {
-		select {
-		case <-die:
-			return
-		default:
-
-			for i := 0; i < 3; i++ {
-				p, err := oc.bkt.UploadPartFromFile(imur, from, c.Offset, c.Size, c.Number)
-				if err == nil {
-					resCh <- &p
-					return
-				} else {
-					time.Sleep(time.Second)
-				}
-			}
-
-			if err != nil {
-				failedCh <- err
-			}
-		}
-	}
+	defer close(exit)
 
 	// 启动上传任务
 	parts := []oss.UploadPart{}
@@ -222,15 +207,11 @@ func (oc *OssCli) multipartUpload(from, to string) error {
 		select {
 		case p := <-resCh:
 			parts = append(parts, *p)
-			log.Printf("[debug] part-%05d (%s) uplaod OK(%d/%d)", p.PartNumber, from, len(parts), len(chunks))
 			nrWorkers--
 
-		case err := <-failedCh:
-			if err != nil {
-				log.Printf("[error] %s", err.Error())
-			}
-
-			oc.bkt.AbortMultipartUpload(imur)
+		case err = <-failedCh:
+			// ignore abort error
+			_ = oc.bkt.AbortMultipartUpload(imur)
 			return err
 
 		default:
@@ -240,22 +221,26 @@ func (oc *OssCli) multipartUpload(from, to string) error {
 		if len(parts) == len(chunks) { // 所有分片全部完成
 			break
 		}
-
 		if nrWorkers >= oc.Workers || idx >= len(chunks) { // 控制并发个数
 			continue
 		}
 
 		// 每个分片都用一个新的 goroutine 上传
-		go worker(&chunks[idx])
+		go func() {
+			if p, err := oc.mpworker(&imur, &chunks[idx], from, exit); err != nil { //nolint:govet
+				failedCh <- err
+			} else {
+				resCh <- &p
+			}
+		}()
+
 		idx++
 		nrWorkers++
 	}
 
-	log.Printf("[debug] complete %s...", to)
 	_, err = oc.bkt.CompleteMultipartUpload(imur, parts)
 	if err != nil {
-		log.Printf("[error] %s", err.Error())
-		oc.bkt.AbortMultipartUpload(imur)
+		_ = oc.bkt.AbortMultipartUpload(imur)
 
 		oc.FailedCnt++
 		return err
