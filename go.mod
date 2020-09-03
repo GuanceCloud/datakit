@@ -27,7 +27,6 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gin-gonic/gin v1.6.2
-	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/go-ole/go-ole v1.2.4
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobwas/glob v0.2.3
@@ -35,16 +34,15 @@ require (
 	github.com/gofrs/uuid v2.1.0+incompatible
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/protobuf v1.4.1
+	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.1
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.9 // indirect
-	github.com/influxdata/influxdb1-client v0.0.0-20200515024757-02f0bf5dbca3
+	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
 	github.com/influxdata/telegraf v1.15.2
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/jackc/pgx v3.6.0+incompatible
 	github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5 // indirect
-	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/kardianos/service v1.0.0
 	github.com/klauspost/cpuid v1.2.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -65,15 +63,14 @@ require (
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.9.1
-	github.com/prometheus/procfs v0.0.8
+	github.com/prometheus/common v0.13.0
+	github.com/prometheus/procfs v0.1.3
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/robfig/cron v1.2.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
-	github.com/sirupsen/logrus v1.5.0 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
@@ -85,7 +82,7 @@ require (
 	github.com/ucloud/ucloud-sdk-go v0.14.0
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/xanzy/go-gitlab v0.31.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200818074621-1fc80b8dd3a6
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200903031355-5947d2219283
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/sys v0.0.0-20200808120158-1030fc2bf1d9
