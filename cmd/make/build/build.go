@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -14,6 +14,33 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
+
+var (
+	/* Use:
+		go tool dist list
+	to get current os/arch list */
+
+	OSArches = []string{ // supported os/arch list
+		`linux/386`,
+		`linux/amd64`,
+		`linux/arm`,
+		`linux/arm64`,
+
+		`darwin/amd64`,
+
+		`windows/amd64`,
+		`windows/386`,
+	}
+)
+
+func runEnv(args, env []string) ([]byte, error) {
+	cmd := exec.Command(args[0], args[1:]...)
+	if env != nil {
+		cmd.Env = append(os.Environ(), env...)
+	}
+
+	return cmd.CombinedOutput()
+}
 
 var (
 	l = logger.DefaultSLogger("build")
@@ -31,6 +58,10 @@ var (
 
 func prepare() {
 
+	os.RemoveAll(BuildDir)
+	_ = os.MkdirAll(BuildDir, os.ModePerm)
+	_ = os.MkdirAll(filepath.Join(PubDir, Release), os.ModePerm)
+
 	// create version info
 	vd := &versionDesc{
 		Version:  strings.TrimSpace(git.Version),
@@ -46,12 +77,9 @@ func prepare() {
 		l.Fatal(err)
 	}
 
-	if err := ioutil.WriteFile(path.Join(PubDir, Release, "version"), versionInfo, 0666); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(PubDir, Release, "version"), versionInfo, 0666); err != nil {
 		l.Fatal(err)
 	}
-
-	os.RemoveAll(BuildDir)
-	_ = os.MkdirAll(BuildDir, os.ModePerm)
 }
 
 func Compile() {
@@ -108,7 +136,7 @@ func Compile() {
 
 func compileArch(bin, goos, goarch, dir string) {
 
-	output := path.Join(dir, bin)
+	output := filepath.Join(dir, bin)
 	if goos == "windows" {
 		output += ".exe"
 	}
