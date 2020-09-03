@@ -175,10 +175,7 @@ func httpStart(addr string) {
 		router.POST("/write", func(c *gin.Context) { flink.Handle(c.Writer, c.Request) })
 	}
 
-	// telegraf running
-	if inputs.HaveTelegrafInputs() {
-		router.POST("/telegraf", func(c *gin.Context) { apiTelegrafOutput(c) })
-	}
+	router.POST("/telegraf", func(c *gin.Context) { apiTelegrafOutput(c) })
 
 	// internal datakit stats API
 	router.GET("/stats", func(c *gin.Context) { apiGetInputsStats(c.Writer, c.Request) })
