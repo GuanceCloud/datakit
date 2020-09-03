@@ -803,6 +803,8 @@ from (select a.recid backup_recid,
 	    dbms_output.put_line('MAX_SCN_COMPAT='||max_scn_compat);
 	end`
 
+	oracle_pdb_failures_jobs_sql = `select failures  failures_value from dba_jobs`
+
 	oracle_scn_instance_statistics_sql = `
 	declare
     rsl number;
