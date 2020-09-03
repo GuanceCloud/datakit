@@ -1,17 +1,8 @@
 package etcd
 
 import (
-	"bytes"
-	"crypto/tls"
-	"fmt"
-	"net/http"
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
 const (
@@ -21,34 +12,26 @@ const (
 
 	sampleCfg = `
 [[inputs.etcd]]
+    # etcd metrics from http(https)://HOST:PORT/metrics
+    # usually modify host and port
     # required
-    host = "127.0.0.1"
-    
-    # required
-    port = 2379
+    url = "http://127.0.0.1:2379/metrics"
     
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     # required
     interval = "10s"
     
-    # use HTTPS TLS
+    ## Optional TLS Config
     tls_open = false
-    
-    # CA
-    tls_cacert_file = "ca.crt"
-    
-    # client
-    tls_cert_file = "peer.crt"
-    
-    # key
-    tls_key_file = "peer.key"
+    # tls_ca = "/path/to/ca.crt"
+    # tls_cert = "/path/to/peer.crt"
+    # tls_key = "/path/to/peer.key"
     
     # [inputs.etcd.tags]
+    # from = "127.0.0.1:2379"
     # tags1 = "value1"
 `
 )
-
-var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -57,23 +40,13 @@ func init() {
 }
 
 type Etcd struct {
-	Host       string            `toml:"host"`
-	Port       int               `toml:"port"`
+	URL        string            `toml:"url"`
 	Interval   string            `toml:"interval"`
-	TLSOpen    bool              `toml:"tls_open"`
 	CacertFile string            `toml:"tls_cacert_file"`
 	CertFile   string            `toml:"tls_cert_file"`
 	KeyFile    string            `toml:"tls_key_file"`
 	Tags       map[string]string `toml:"tags"`
-
-	// forward compatibility
-	CollectCycle string `toml:"collect_cycle"`
-
-	address  string
-	duration time.Duration
-
-	// HTTPS TLS config
-	tlsConfig *tls.Config
+	TLSOpen    bool              `toml:"tls_open"`
 }
 
 func (*Etcd) SampleConfig() string {
@@ -85,130 +58,19 @@ func (*Etcd) Catalog() string {
 }
 
 func (e *Etcd) Run() {
-	l = logger.SLogger(inputName)
+	p := prom.Prom{
+		URL:        e.URL,
+		Interval:   e.Interval,
+		TLSOpen:    e.TLSOpen,
+		CacertFile: e.CacertFile,
+		CertFile:   e.CertFile,
+		KeyFile:    e.KeyFile,
+		Tags:       e.Tags,
 
-	if e.loadcfg() {
-		return
+		InputName:          inputName,
+		DefaultMeasurement: defaultMeasurement,
+
+		IgnoreMeasurement: []string{"etcd_grpc_server", "etcd_server", "etcd_go_info", "etcd_cluster"},
 	}
-	ticker := time.NewTicker(e.duration)
-	defer ticker.Stop()
-
-	l.Infof("etcd input started.")
-
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return
-
-		case <-ticker.C:
-			data, err := e.getMetrics()
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
-				l.Error(err)
-				continue
-			}
-			l.Debugf("feed %d bytes to io ok", len(data))
-		}
-	}
-}
-
-func (e *Etcd) loadcfg() bool {
-	if e.Interval == "" && e.CollectCycle != "" {
-		e.Interval = e.CollectCycle
-	}
-
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return true
-		default:
-			// nil
-		}
-
-		d, err := time.ParseDuration(e.Interval)
-		if err != nil || d <= 0 {
-			l.Errorf("invalid interval, err %s", err.Error())
-			time.Sleep(time.Second)
-			continue
-		}
-		e.duration = d
-
-		// "https" or "http"
-		if e.TLSOpen {
-			e.address = fmt.Sprintf("https://%s:%d/metrics", e.Host, e.Port)
-			tc, err := TLSConfig(e.CacertFile, e.CertFile, e.KeyFile)
-			if err != nil {
-				l.Errorf("failed to TLS, err: %s", err.Error())
-				time.Sleep(time.Second)
-			} else {
-				e.tlsConfig = tc
-				break
-			}
-		} else {
-			e.address = fmt.Sprintf("http://%s:%d/metrics", e.Host, e.Port)
-			break
-		}
-	}
-
-	if e.Tags == nil {
-		e.Tags = make(map[string]string)
-	}
-	if _, ok := e.Tags["address"]; !ok {
-		e.Tags["address"] = fmt.Sprintf("%s:%d", e.Host, e.Port)
-	}
-
-	return false
-}
-
-func (e *Etcd) getMetrics() ([]byte, error) {
-	client := &http.Client{}
-	client.Timeout = time.Second * 5
-	defer client.CloseIdleConnections()
-
-	if e.tlsConfig != nil {
-		client.Transport = &http.Transport{
-			TLSClientConfig: e.tlsConfig,
-		}
-	}
-	resp, err := client.Get(e.address)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	pts, err := cliutils.PromTextToMetrics(resp.Body, inputName, inputName, time.Now())
-	if err != nil {
-		return nil, err
-	}
-	var buffer = bytes.Buffer{}
-
-	for _, pt := range pts {
-		// discard
-		if pt.Name() == "etcd_grpc_server" {
-			continue
-		}
-		ptFields, err := pt.Fields()
-		if err != nil {
-			continue
-		}
-		ptTags := pt.Tags()
-		for k, v := range e.Tags {
-			if _, ok := ptTags[k]; !ok {
-				ptTags[k] = v
-			}
-		}
-		data, err := io.MakeMetric(pt.Name(), ptTags, ptFields, pt.Time())
-		if err != nil {
-			continue
-		}
-		buffer.Write(data)
-		buffer.WriteString("\n")
-	}
-
-	return buffer.Bytes(), nil
+	p.Start()
 }
