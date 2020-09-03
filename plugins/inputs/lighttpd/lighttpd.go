@@ -30,6 +30,7 @@ const (
     interval = "10s"
     
     # [inputs.lighttpd.tags]
+    # from = "127.0.0.1:8080"
     # tags1 = "value1"
 `
 )
@@ -47,9 +48,6 @@ type Lighttpd struct {
 	Version  string            `toml:"version"`
 	Interval string            `toml:"interval"`
 	Tags     map[string]string `toml:"tags"`
-
-	// forward compatibility
-	CollectCycle string `toml:"collect_cycle"`
 
 	statusURL     string
 	statusVersion Version
@@ -98,11 +96,6 @@ func (h *Lighttpd) Run() {
 }
 
 func (h *Lighttpd) loadcfg() bool {
-
-	if h.Interval == "" && h.CollectCycle != "" {
-		h.Interval = h.CollectCycle
-	}
-
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -132,16 +125,6 @@ func (h *Lighttpd) loadcfg() bool {
 			l.Error("invalid lighttpd version")
 			time.Sleep(time.Second)
 		}
-	}
-
-	if h.Tags == nil {
-		h.Tags = make(map[string]string)
-	}
-	if _, ok := h.Tags["url"]; !ok {
-		h.Tags["url"] = h.URL
-	}
-	if _, ok := h.Tags["version"]; !ok {
-		h.Tags["version"] = h.Version
 	}
 
 	return false
