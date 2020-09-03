@@ -3,6 +3,7 @@ package prom
 import (
 	"bytes"
 	"net/http"
+	"strings"
 	"time"
 
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
@@ -22,24 +23,22 @@ const (
 	sampleCfg = `
 [[inputs.prom]]
     # required
-    url = "127.0.0.1:9090/metrics"
+    url = "http://127.0.0.1:9090/metrics"
     
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     # required
     interval = "10s"
     
-    # use HTTPS TLS
+    ## Optional TLS Config
     tls_open = false
-    tls_ca = "ca.crt"
-    tls_cert = "peer.crt"
-    tls_key = "peer.key"
+    # tls_ca = "/path/to/ca.crt"
+    # tls_cert = "/path/to/peer.crt"
+    # tls_key = "/path/to/peer.key"
     
     # [inputs.prom.tags]
     # tags1 = "value1"
 `
 )
-
-// var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -47,23 +46,26 @@ func init() {
 	})
 }
 
+var TestAssert = true
+
 type Prom struct {
-	URL        string            `toml:"url"`
-	Interval   string            `toml:"interval"`
-	TLSOpen    bool              `toml:"tls_open"`
-	CacertFile string            `toml:"tls_ca"`
-	CertFile   string            `toml:"tls_cert"`
-	KeyFile    string            `toml:"tls_key"`
-	Tags       map[string]string `toml:"tags"`
-
-	InputName          string
-	DefaultMeasurement string
-
-	IgnoreMeasurement []string
+	URL                   string            `toml:"url"`
+	Interval              string            `toml:"interval"`
+	CacertFile            string            `toml:"tls_ca"`
+	CertFile              string            `toml:"tls_cert"`
+	KeyFile               string            `toml:"tls_key"`
+	Tags                  map[string]string `toml:"tags"`
+	InputName             string
+	DefaultMeasurement    string
+	IgnoreMeasurement     []string
+	IgnoreTagsKeyPrefix   []string
+	IgnoreFieldsKeyPrefix []string
 
 	client   *http.Client
 	duration time.Duration
 	log      *logger.Logger
+
+	TLSOpen bool `toml:"tls_open"`
 }
 
 func (*Prom) SampleConfig() string {
@@ -81,22 +83,17 @@ func (p *Prom) Run() {
 }
 
 func (p *Prom) Start() {
-	p.log = logger.SLogger(p.InputName)
-	p.client = &http.Client{}
-	defer p.client.CloseIdleConnections()
-
 	if p.loadcfg() {
 		return
 	}
-
 	ticker := time.NewTicker(p.duration)
 	defer ticker.Stop()
-
 	p.log.Infof("%s input started.", p.InputName)
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
+			p.client.CloseIdleConnections()
 			p.log.Info("exit")
 			return
 
@@ -106,7 +103,13 @@ func (p *Prom) Start() {
 				p.log.Error(err)
 				continue
 			}
-			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+
+			if TestAssert {
+				p.log.Infof("%s", data)
+				continue
+			}
+
+			if err := io.NamedFeed(data, io.Metric, p.InputName); err != nil {
 				p.log.Error(err)
 				continue
 			}
@@ -118,6 +121,8 @@ func (p *Prom) Start() {
 
 func (p *Prom) loadcfg() bool {
 	var err error
+	p.log = logger.SLogger(p.InputName)
+	p.client = &http.Client{}
 	p.client.Timeout = time.Second * 5
 
 	for {
@@ -172,12 +177,7 @@ func (p *Prom) getMetrics() ([]byte, error) {
 			continue
 		}
 
-		fields, err := pt.Fields()
-		if err != nil {
-			p.log.Error(err)
-			continue
-		}
-
+		fields, _ := pt.Fields()
 		tags := pt.Tags()
 		for k, v := range p.Tags {
 			if _, ok := tags[k]; !ok {
@@ -197,13 +197,46 @@ func (p *Prom) getMetrics() ([]byte, error) {
 }
 
 func (p *Prom) ignore(pt *ifxcli.Point) bool {
-	return p.ignoreMeasurement(pt.Name())
+	fields, err := pt.Fields()
+	if err != nil {
+		p.log.Error(err)
+		return true
+	}
+	return p.ignoreMeasurement(pt.Name()) || p.ignoreTagsKeyPrefix(pt.Tags()) || p.ignoreFieldsKeyPrefix(fields)
 }
 
 func (p *Prom) ignoreMeasurement(measurement string) bool {
 	for _, m := range p.IgnoreMeasurement {
 		if measurement == m {
 			return true
+		}
+	}
+	return false
+}
+
+func (p *Prom) ignoreTagsKeyPrefix(tags map[string]string) bool {
+	if len(p.IgnoreTagsKeyPrefix) == 0 {
+		return false
+	}
+	for key := range tags {
+		for _, m := range p.IgnoreTagsKeyPrefix {
+			if strings.HasPrefix(key, m) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (p *Prom) ignoreFieldsKeyPrefix(fields map[string]interface{}) bool {
+	if len(p.IgnoreFieldsKeyPrefix) == 0 {
+		return false
+	}
+	for key := range fields {
+		for _, m := range p.IgnoreFieldsKeyPrefix {
+			if strings.HasPrefix(key, m) {
+				return true
+			}
 		}
 	}
 	return false
