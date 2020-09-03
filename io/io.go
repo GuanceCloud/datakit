@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -13,7 +12,6 @@ import (
 
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -157,45 +155,6 @@ func MakeMetric(name string, tags map[string]string, fields map[string]interface
 		return nil, err
 	}
 	return []byte(pt.String()), nil
-}
-
-func PrometheusToMetrics(data io.Reader, measurementPrefix, defaultmeasurement string, tags map[string]string, t ...time.Time) ([]byte, error) {
-	var tm time.Time
-	if len(t) > 0 {
-		tm = t[0]
-	} else {
-		tm = time.Now().UTC()
-	}
-
-	pts, err := cliutils.PromTextToMetrics(data, measurementPrefix, defaultmeasurement, tm)
-	if err != nil {
-		return nil, err
-	}
-
-	var buffer = bytes.Buffer{}
-
-	for _, pt := range pts {
-		ptFields, err := pt.Fields()
-		if err != nil {
-			continue
-		}
-
-		ptTags := pt.Tags()
-		for k, v := range tags {
-			if _, ok := ptTags[k]; !ok {
-				ptTags[k] = v
-			}
-		}
-
-		data, err := MakeMetric(pt.Name(), ptTags, ptFields, pt.Time())
-		if err != nil {
-			continue
-		}
-		buffer.Write(data)
-		buffer.WriteString("\n")
-	}
-
-	return buffer.Bytes(), nil
 }
 
 func ioStop() {
