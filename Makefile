@@ -21,7 +21,21 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-LOCAL_ARCHS = "all"
+# Failed to build oraclemonitor:
+# 
+# > # runtime/cgo
+# > In file included from _cgo_export.c:3:0:
+# > /usr/include/stdlib.h:25:10: fatal error: bits/libc-header-start.h: No such file or directory
+# > #include <bits/libc-header-start.h>
+# >         ^~~~~~~~~~~~~~~~~~~~~~~~~~
+# > compilation terminated.
+#
+# Solution:
+# > apt-get install gcc-multilib
+# 
+# LOCAL_ARCHS = "darwin/amd64"
+# LOCAL_ARCHS = "all"
+LOCAL_ARCHS = "linux/amd64"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
