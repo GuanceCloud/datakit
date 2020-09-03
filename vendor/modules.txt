@@ -20,6 +20,8 @@ github.com/Azure/go-autorest/autorest/validation
 github.com/Azure/go-autorest/logger
 # github.com/Azure/go-autorest/tracing v0.5.0
 github.com/Azure/go-autorest/tracing
+# github.com/BurntSushi/toml v0.3.1
+github.com/BurntSushi/toml
 # github.com/Microsoft/go-winio v0.4.15-0.20190919025122-fc70bd9a86b5
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
@@ -315,6 +317,10 @@ github.com/golang/protobuf/ptypes/wrappers
 github.com/golang/snappy
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
+# github.com/google/gopacket v1.1.17
+github.com/google/gopacket
+github.com/google/gopacket/layers
+github.com/google/gopacket/pcap
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
 # github.com/grpc-ecosystem/grpc-gateway v1.12.1
@@ -338,6 +344,7 @@ github.com/influxdata/influxdb1-client/v2
 # github.com/influxdata/telegraf v0.10.2-0.20200225003258-fc2486f24c26
 github.com/influxdata/telegraf
 github.com/influxdata/telegraf/filter
+github.com/influxdata/telegraf/internal/tls
 github.com/influxdata/telegraf/metric
 github.com/influxdata/telegraf/plugins/outputs
 github.com/influxdata/telegraf/plugins/outputs/wavefront
