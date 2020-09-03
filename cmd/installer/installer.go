@@ -1,36 +1,25 @@
 package main
 
 import (
-	"archive/tar"
-	"bufio"
-	"compress/gzip"
 	"flag"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
-	"github.com/dustin/go-humanize"
-	"github.com/influxdata/toml"
 	"github.com/kardianos/service"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
 	DataKitBaseURL = ""
 	DataKitVersion = ""
-	installDir     = ""
 
 	datakitUrl = "https://" + path.Join(DataKitBaseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion))
@@ -38,12 +27,6 @@ var (
 	telegrafUrl = "https://" + path.Join(DataKitBaseURL,
 		"telegraf",
 		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
-
-	curDownloading = ""
-
-	osarch = runtime.GOOS + "/" + runtime.GOARCH
-	//svc              service.Service
-	lagacyInstallDir = ""
 
 	l *logger.Logger
 )
@@ -72,17 +55,24 @@ const (
 )
 
 func main() {
-	preInit()
+	lopt := logger.OPT_DEFAULT | logger.OPT_STDOUT
+	if runtime.GOOS != "windows" { // disable color on windows(some color not working under windows)
+		lopt |= logger.OPT_COLOR
+	}
+
+	logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
+	l = logger.SLogger("installer")
+
 	flag.Parse()
 	datakit.InitDirs()
 	applyFlags()
 
 	// create install dir if not exists
-	if err := os.MkdirAll(installDir, 0775); err != nil {
+	if err := os.MkdirAll(install.InstallDir, 0775); err != nil {
 		l.Fatal(err)
 	}
 
-	datakit.ServiceExecutable = filepath.Join(installDir, datakitBin)
+	datakit.ServiceExecutable = filepath.Join(install.InstallDir, datakitBin)
 	if runtime.GOOS == datakit.OSWindows {
 		datakit.ServiceExecutable += ".exe"
 	}
@@ -94,30 +84,30 @@ func main() {
 	}
 
 	l.Info("stoping datakit...")
-	_ = stopDataKitService(svc) // stop service if installed before
+	_ = install.StopDataKitService(svc) // stop service if installed before
 
 	if *flagOffline && *flagSrcs != "" {
 		for _, f := range strings.Split(*flagSrcs, ",") {
-			extractDatakit(f, installDir)
+			install.ExtractDatakit(f, install.InstallDir)
 		}
 	} else {
-		curDownloading = dlDatakit
-		doDownload(datakitUrl, installDir)
+		install.CurDownloading = dlDatakit
+		install.Download(datakitUrl, install.InstallDir)
 
-		curDownloading = dlAgent
-		doDownload(telegrafUrl, installDir)
+		install.CurDownloading = dlAgent
+		install.Download(telegrafUrl, install.InstallDir)
 	}
 
 	if *flagUpgrade { // upgrade new version
 		l.Infof("Upgrading to version %s...", DataKitVersion)
-		migrateLagacyDatakit(svc)
+		install.MigrateLagacyDatakit(svc)
 	} else { // install new datakit
 		l.Infof("Installing version %s...", DataKitVersion)
-		installNewDatakit(svc)
+		install.InstallNewDatakit(svc)
 	}
 
 	l.Infof("starting service %s...", datakit.ServiceName)
-	if err = startDatakitService(svc); err != nil {
+	if err = service.Control(svc, "start"); err != nil {
 		l.Fatalf("fail to star service %s: %s", datakit.ServiceName, err.Error())
 	}
 
@@ -132,61 +122,6 @@ func main() {
 		l.Info("get local IP failed: %s", err.Error())
 	} else {
 		fmt.Printf("\n\tVisit http://%s:%d/stats to see DataKit running status.\n\n", localIP, *flagPort)
-	}
-}
-
-func getDataWayCfg() *datakit.DataWayCfg {
-	if *flagDataway == "" {
-		for {
-			dw := readInput("Please set DataWay request URL(http://IP:Port/v1/write/metric) > ")
-			dwcfg, err := datakit.ParseDataway(dw)
-			if err == nil {
-				return dwcfg
-			}
-
-			fmt.Printf("%s\n", err.Error())
-			continue
-		}
-	} else {
-		dwcfg, err := datakit.ParseDataway(*flagDataway)
-		if err != nil {
-			l.Fatal(err)
-		}
-		return dwcfg
-	}
-}
-
-func installNewDatakit(svc service.Service) {
-
-	_ = uninstallDataKitService(svc) // uninstall service if installed before
-
-	// prepare dataway info
-	datakit.Cfg.MainCfg.DataWay = getDataWayCfg()
-
-	// accept any install options
-	if *flagGlobalTags != "" {
-		datakit.Cfg.MainCfg.GlobalTags = datakit.ParseGlobalTags(*flagGlobalTags)
-	}
-
-	datakit.Cfg.MainCfg.HTTPBind = fmt.Sprintf("0.0.0.0:%d", *flagPort)
-	datakit.Cfg.MainCfg.InstallDate = time.Now()
-
-	if *flagDatakitName != "" {
-		datakit.Cfg.MainCfg.Name = *flagDatakitName
-	}
-
-	datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
-
-	datakit.Cfg.EnableDefaultsInputs(*flagEnableInputs)
-
-	// build datakit main config
-	if err := datakit.Cfg.InitCfg(); err != nil {
-		l.Fatalf("failed to init datakit main config: %s", err.Error())
-	}
-
-	l.Infof("installing service %s...", datakit.ServiceName)
-	if err := installDatakitService(svc); err != nil {
-		l.Warnf("fail to install service %s: %s, ignored", datakit.ServiceName, err.Error())
 	}
 }
 
@@ -205,311 +140,40 @@ Golang Version: %s
 	}
 
 	if *flagDownloadOnly {
-		curDownloading = dlDatakit
-		doDownload(datakitUrl, fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
+		install.DownloadOnly = true
+
+		install.CurDownloading = dlDatakit
+		install.Download(datakitUrl, fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion))
 
-		curDownloading = dlAgent
-		doDownload(telegrafUrl, fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
+		install.CurDownloading = dlAgent
+		install.Download(telegrafUrl, fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
 
 		os.Exit(0)
 	}
 
-	switch osarch {
+	switch install.OSArch {
 
 	case datakit.OSArchWinAmd64:
-		installDir = `C:\Program Files\dataflux\datakit`
+		install.InstallDir = `C:\Program Files\dataflux\datakit`
 
 	case datakit.OSArchWin386:
-		installDir = `C:\Program Files (x86)\dataflux\datakit`
+		install.InstallDir = `C:\Program Files (x86)\dataflux\datakit`
 
 	case datakit.OSArchLinuxArm,
 		datakit.OSArchLinuxArm64,
 		datakit.OSArchLinux386,
 		datakit.OSArchLinuxAmd64,
 		datakit.OSArchDarwinAmd64:
-		installDir = `/usr/local/cloudcare/dataflux/datakit`
+		install.InstallDir = `/usr/local/cloudcare/dataflux/datakit`
 
 	default:
 		// TODO: more os/arch support
 	}
-}
 
-func readInput(prompt string) string {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print(prompt)
-	txt, err := reader.ReadString('\n')
-	if err != nil {
-		l.Fatal(err)
-	}
-
-	return strings.TrimSpace(txt)
-}
-
-func _doDownload(r io.Reader, to string) {
-
-	f, err := os.OpenFile(to, os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		l.Fatal(err)
-	}
-
-	if _, err := io.Copy(f, r); err != nil { //nolint:gosec
-		l.Fatal(err)
-	}
-
-	f.Close()
-}
-
-func doExtract(r io.Reader, to string) {
-	gzr, err := gzip.NewReader(r)
-	if err != nil {
-		l.Fatal(err)
-	}
-
-	defer gzr.Close()
-	tr := tar.NewReader(gzr)
-	for {
-		hdr, err := tr.Next()
-		switch {
-		case err == io.EOF:
-			return
-		case err != nil:
-			l.Fatal(err)
-		case hdr == nil:
-			continue
-		}
-
-		target := filepath.Join(to, hdr.Name)
-		switch hdr.Typeflag {
-		case tar.TypeDir:
-			if _, err := os.Stat(target); err != nil {
-				if err := os.MkdirAll(target, 0755); err != nil {
-					l.Fatal(err)
-				}
-			}
-
-		case tar.TypeReg:
-
-			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
-				l.Fatal(err)
-			}
-
-			// TODO: lock file before extracting, to avoid `text file busy` error
-			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
-			if err != nil {
-				l.Fatal(err)
-			}
-
-			if _, err := io.Copy(f, tr); err != nil { //nolint:gosec
-				l.Fatal(err)
-			}
-
-			f.Close()
-		}
-	}
-}
-
-func extractDatakit(gz, to string) {
-	data, err := os.Open(gz)
-	if err != nil {
-		l.Fatalf("open file %s failed: %s", gz, err)
-	}
-
-	defer data.Close()
-
-	doExtract(data, to)
-}
-
-type writeCounter struct {
-	total   uint64
-	current uint64
-	last    float64
-}
-
-func (wc *writeCounter) Write(p []byte) (int, error) {
-	n := len(p)
-	wc.current += uint64(n)
-	wc.last += float64(n)
-	wc.PrintProgress()
-	return n, nil
-}
-
-func doDownload(from, to string) {
-	resp, err := http.Get(from) //nolint:gosec
-	if err != nil {
-		l.Fatalf("failed to download %s: %s", from, err)
-	}
-
-	defer resp.Body.Close()
-	cnt := &writeCounter{
-		total: uint64(resp.ContentLength),
-	}
-
-	if *flagDownloadOnly {
-		_doDownload(io.TeeReader(resp.Body, cnt), to)
-	} else {
-		doExtract(io.TeeReader(resp.Body, cnt), to)
-	}
-	fmt.Printf("\n")
-}
-
-func (wc *writeCounter) PrintProgress() {
-	if wc.last > float64(wc.total)*0.01 || wc.current == wc.total { // update progress-bar each 1%
-		fmt.Printf("\r%s", strings.Repeat(" ", 36))
-		fmt.Printf("\rDownloading(% 7s)... %s/%s", curDownloading, humanize.Bytes(wc.current), humanize.Bytes(wc.total))
-		wc.last = 0.0
-	}
-}
-
-func stopDataKitService(s service.Service) error {
-
-	if err := service.Control(s, "stop"); err != nil {
-		l.Warnf("stop service datakit failed: %s, ignored", err.Error())
-		return err
-	}
-
-	return nil
-}
-
-func uninstallDataKitService(s service.Service) error {
-	if err := service.Control(s, "uninstall"); err != nil {
-		l.Warnf("stop service datakit failed: %s, ignored", err.Error())
-		return err
-	}
-
-	return nil
-}
-
-func installDatakitService(s service.Service) error {
-	return service.Control(s, "install")
-}
-
-func startDatakitService(s service.Service) error {
-	return service.Control(s, "start")
-}
-
-func stopLagacyDatakit(svc service.Service) {
-	switch osarch {
-	case datakit.OSArchWinAmd64, datakit.OSArchWin386:
-		_ = stopDataKitService(svc)
-	default:
-		cmd := exec.Command(`stop`, []string{datakit.ServiceName}...) //nolint:gosec
-		if _, err := cmd.Output(); err != nil {
-			l.Debugf("upstart stop datakit failed, try systemctl...")
-		} else {
-			return
-		}
-
-		cmd = exec.Command("systemctl", []string{"stop", datakit.ServiceName}...) //nolint:gosec
-		if _, err := cmd.Output(); err != nil {
-			l.Debugf("systemctl stop datakit failed, ignored")
-		}
-	}
-}
-
-func updateLagacyConfig(dir string) {
-	cfgdata, err := ioutil.ReadFile(filepath.Join(dir, "datakit.conf"))
-	if err != nil {
-		l.Fatalf("read lagacy datakit.conf failed: %s", err.Error())
-	}
-
-	var maincfg datakit.MainConfig
-	if err = toml.Unmarshal(cfgdata, &maincfg); err != nil {
-		l.Fatalf("toml unmarshal failed: %s", err.Error())
-	}
-
-	maincfg.Log = filepath.Join(installDir, "datakit.log") // reset log path
-	maincfg.ConfigDir = ""                                 // remove conf.d config: we use static conf.d dir, *not* configurable
-
-	// split origin ftdataway into dataway object
-	var dwcfg *datakit.DataWayCfg
-	if maincfg.FtGateway != "" {
-		if dwcfg, err = datakit.ParseDataway(maincfg.FtGateway); err != nil {
-			l.Fatal(err)
-		} else {
-			maincfg.FtGateway = "" // deprecated
-			maincfg.DataWay = dwcfg
-		}
-	}
-
-	cfgdata, err = toml.Marshal(maincfg)
-	if err != nil {
-		l.Fatal(err)
-	}
-
-	if err := ioutil.WriteFile(filepath.Join(dir, "datakit.conf"), cfgdata, os.ModePerm); err != nil {
-		l.Fatal(err)
-	}
-}
-
-func migrateLagacyDatakit(svc service.Service) {
-
-	var lagacyServiceFiles []string = nil
-
-	switch osarch {
-
-	case datakit.OSArchWinAmd64, datakit.OSArchWin386:
-		lagacyInstallDir = `C:\Program Files\Forethought\datakit`
-		if _, err := os.Stat(lagacyInstallDir); err != nil {
-			lagacyInstallDir = `C:\Program Files (x86)\Forethought\datakit`
-		}
-
-	case datakit.OSArchLinuxArm,
-		datakit.OSArchLinuxArm64,
-		datakit.OSArchLinux386,
-		datakit.OSArchLinuxAmd64,
-		datakit.OSArchDarwinAmd64:
-
-		lagacyInstallDir = `/usr/local/cloudcare/forethought/datakit`
-		lagacyServiceFiles = []string{"/lib/systemd/system/datakit.service", "/etc/systemd/system/datakit.service"}
-	default:
-		l.Fatalf("%s not support", osarch)
-	}
-
-	if _, err := os.Stat(lagacyInstallDir); err != nil {
-		l.Debug("no lagacy datakit installed")
-		return
-	}
-
-	stopLagacyDatakit(svc)
-	updateLagacyConfig(lagacyInstallDir)
-
-	// uninstall service, remove old datakit.service file(for UNIX OS)
-	_ = uninstallDataKitService(svc)
-	for _, sf := range lagacyServiceFiles {
-		if _, err := os.Stat(sf); err == nil {
-			if err := os.Remove(sf); err != nil {
-				l.Fatalf("remove %s failed: %s", sf, err.Error())
-			}
-		}
-	}
-
-	os.RemoveAll(installDir) // clean new install dir if exists
-
-	// move all lagacy datakit files to new install dir
-	if err := os.Rename(lagacyInstallDir, installDir); err != nil {
-		l.Fatalf("remove %s failed: %s", installDir, err.Error())
-	}
-
-	for _, dir := range []string{datakit.TelegrafDir, datakit.DataDir, datakit.LuaDir, datakit.ConfdDir} {
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			l.Fatalf("create %s failed: %s", dir, err)
-		}
-	}
-
-	l.Infof("installing service %s...", datakit.ServiceName)
-	if err := installDatakitService(svc); err != nil {
-		l.Warnf("fail to register service %s: %s, ignored", datakit.ServiceName, err.Error())
-	}
-}
-
-func preInit() {
-
-	lopt := logger.OPT_DEFAULT | logger.OPT_STDOUT
-	if runtime.GOOS != "windows" { // disable color on windows(some color not working under windows)
-		lopt |= logger.OPT_COLOR
-	}
-
-	logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
-	l = logger.SLogger("installer")
+	install.DataWay = *flagDataway
+	install.GlobalTags = *flagGlobalTags
+	install.Port = *flagPort
+	install.DatakitName = *flagDatakitName
+	install.EnableInputs = *flagEnableInputs
 }
