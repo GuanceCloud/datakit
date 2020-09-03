@@ -38,14 +38,9 @@ func (m *MysqlMonitor) Run() {
 	l = logger.SLogger("mysqlMonitor")
 	l.Info("mysqlMonitor input started...")
 
-	interval, err := time.ParseDuration(m.Interval)
-	if err != nil {
-		l.Error(err)
-	}
+	m.checkCfg()
 
-	m.MetricName = name
-
-	tick := time.NewTicker(interval)
+	tick := time.NewTicker(m.IntervalDuration)
 	defer tick.Stop()
 
 	for {
@@ -57,6 +52,25 @@ func (m *MysqlMonitor) Run() {
 			l.Info("exit")
 			return
 		}
+	}
+}
+
+func (m *MysqlMonitor) checkCfg() {
+	// 采集频度
+	m.IntervalDuration = 10 * time.Minute
+
+	if m.Interval != "" {
+		du, err := time.ParseDuration(m.Interval)
+		if err != nil {
+			l.Errorf("bad interval %s: %s, use default: 10m", m.Interval, err.Error())
+		} else {
+			m.IntervalDuration = du
+		}
+	}
+
+	// 指标集名称
+	if m.MetricName == "" {
+		m.MetricName = name
 	}
 }
 
@@ -88,9 +102,11 @@ func (m *MysqlMonitor) gatherServer(serv string) error {
 
 	defer db.Close()
 
-	err = m.gatherGlobalStatuses(db, serv)
-	if err != nil {
-		return err
+	if m.GatherGlobalStatus {
+		err = m.gatherGlobalStatuses(db, serv)
+		if err != nil {
+			return err
+		}
 	}
 
 	if m.GatherGlobalVars {
