@@ -231,7 +231,7 @@ func (m *MysqlMonitor) gatherBinaryLogs(db *sql.DB, serv string) error {
 	// parse DSN and save host as a tag
 	servtag := getDSNTag(serv)
 	tags := map[string]string{"server": servtag}
-	tags["metricType"] = "globalVariables"
+	tags["metricType"] = "binaryLogSize"
 	for k, v := range m.Tags {
 		tags[k] = v
 	}
@@ -252,8 +252,8 @@ func (m *MysqlMonitor) gatherBinaryLogs(db *sql.DB, serv string) error {
 		count++
 	}
 	fields := map[string]interface{}{
-		"binary_size_bytes":  size,
-		"binary_files_count": count,
+		"binary_size_bytes":  int(size / 1024),
+		"binary_files_count": int(count / 1024),
 	}
 
 	pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
@@ -288,6 +288,7 @@ func (m *MysqlMonitor) gatherGlobalStatuses(db *sql.DB, serv string) error {
 		tags[k] = v
 	}
 	fields := make(map[string]interface{})
+
 	for rows.Next() {
 		var key string
 		var val sql.RawBytes
@@ -302,6 +303,20 @@ func (m *MysqlMonitor) gatherGlobalStatuses(db *sql.DB, serv string) error {
 			l.Debugf("Error parsing global status: %v", err)
 		} else {
 			fields[key] = value
+		}
+
+		if len(fields) >= 20 {
+			pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
+			if err != nil {
+				l.Errorf("make metric point error %v", err)
+			}
+
+			err = io.NamedFeed([]byte(pt), io.Metric, name)
+			if err != nil {
+				l.Errorf("push metric point error %v", err)
+			}
+
+			fields = make(map[string]interface{})
 		}
 	}
 
@@ -807,8 +822,8 @@ func (m *MysqlMonitor) gatherInfoSchemaAutoIncStatuses(db *sql.DB, serv string) 
 		tags["metricType"] = "schemaAutoIncStatus"
 
 		fields := make(map[string]interface{})
-		fields["auto_increment_column"] = incValue
-		fields["auto_increment_column_max"] = maxInt
+		fields["auto_increment_column"] = int(incValue)
+		fields["auto_increment_column_max"] = int(maxInt)
 
 		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
@@ -1337,6 +1352,7 @@ func (m *MysqlMonitor) gatherTableSchema(db *sql.DB, serv string) error {
 			tags := map[string]string{"server": servtag}
 			tags["schema"] = tableSchema
 			tags["table"] = tableName
+			tags["metricType"] = "tableSchemaStat"
 
 			for k, v := range m.Tags {
 				tags[k] = v
