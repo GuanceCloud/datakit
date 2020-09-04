@@ -57,7 +57,7 @@ func TestRun(t *testing.T) {
 
 		m := MysqlMonitor{}
 		m.Servers = []string{"root:root@tcp(10.200.6.53:3306)/"}
-		// ok
+		ok
 		m.GatherProcessList = true
 		// 无测试数 ok
 		m.GatherUserStatistics = true
@@ -83,7 +83,7 @@ func TestRun(t *testing.T) {
 		m.GatherFileEventsStats = true
 		// 无测试数据 ok
 		m.GatherPerfEventsStatements = true
-		// fail
+		// // fail
 		m.GatherGlobalVars = true
 		// fail
 		m.GatherGlobalStatus = true
