@@ -137,7 +137,9 @@ func (m *MysqlMonitor) gatherGlobalVariables(db *sql.DB, serv string) error {
 		if err != nil {
 			l.Debugf("Error parsing global variable %q: %v", key, err)
 		} else {
-			fields[key] = value
+			if value != nil {
+				fields[key] = value
+			}
 		}
 	}
 
@@ -321,28 +323,10 @@ func (m *MysqlMonitor) gatherGlobalStatuses(db *sql.DB, serv string) error {
 		if err != nil {
 			l.Debugf("Error parsing global status: %v", err)
 		} else {
-			fields[key] = value
+			if value != nil {
+				fields[key] = value
+			}
 		}
-
-		// if len(fields) >= 20 {
-		// 	pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
-		// 	if err != nil {
-		// 		l.Errorf("make metric point error %v", err)
-		// 	}
-
-		// 	_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
-		// 	if err != nil {
-		// 		l.Errorf("[error] : %s", err.Error())
-		// 		return err
-		// 	}
-
-		// 	err = io.NamedFeed([]byte(pt), io.Metric, name)
-		// 	if err != nil {
-		// 		l.Errorf("push metric point error %v", err)
-		// 	}
-
-		// 	fields = make(map[string]interface{})
-		// }
 	}
 
 	// Send any remaining fields
