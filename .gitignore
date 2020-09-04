@@ -7,7 +7,7 @@ pub
 a.out
 test.go
 dist/
-./builds/
+build/
 *.ak
 old/
 *.tar.gz
