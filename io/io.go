@@ -12,6 +12,7 @@ import (
 
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
 
+	influxm "github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -90,7 +91,12 @@ func Feed(data []byte, category string) error {
 
 func doFeed(data []byte, category, name string) error {
 	switch category {
-	case Metric, KeyEvent, Object, Logging:
+	case Metric, KeyEvent, Logging:
+		// metric line check
+		if err := checkMetric(data); err != nil {
+			return fmt.Errorf("invalid line protocol data %v", err)
+		}
+	case Object:
 	default:
 		return fmt.Errorf("invalid category %s", category)
 	}
@@ -106,6 +112,17 @@ func doFeed(data []byte, category, name string) error {
 		l.Warn("feed skipped on global exit")
 	}
 
+	return nil
+}
+
+func checkMetric(data []byte) error {
+	if config.Cfg.MainCfg.CheckMetric {
+		_, err := influxm.ParsePointsWithPrecision(data, time.Now().UTC(), "n")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
+		}
+	}
 	return nil
 }
 
