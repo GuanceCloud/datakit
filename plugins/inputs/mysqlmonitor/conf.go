@@ -16,7 +16,7 @@ const (
 #    servers = ["user@tcp(127.0.0.1:3306)/?tls=false"]
 
 # If no servers are specified, then localhost is used as the host.
-servers = ["tcp(127.0.0.1:3306)/"]
+ servers = ["tcp(127.0.0.1:3306)/"]
 # scan interval
  interval = "10m"
 # Selects the metric output format.
@@ -57,7 +57,7 @@ servers = ["tcp(127.0.0.1:3306)/"]
  perf_events_statements_limit = 250
  perf_events_statements_time_limit = 86400
 # Use TLS but skip chain & host verification
- [inputs.mysqlmonitor.tags]
+ [inputs.mysqlMonitor.tags]
  tags1 = "value1"
 `
 )
