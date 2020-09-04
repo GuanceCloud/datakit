@@ -22,7 +22,7 @@ NAME = datakit
 ENTRY = cmd/datakit/main.go
 
 LOCAL_ARCHS = "local"
-LOCAL_ARCHS = "all"
+#LOCAL_ARCHS = "all"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -150,26 +150,26 @@ ci_notify:
 		-d '$(NOTIFY_CI)'
 
 define build_agent
-	git rm -rf telegraf
-	- git submodule add -f https://github.com/influxdata/telegraf.git
+	@#git rm -rf telegraf
+	@#- git submodule add -f https://github.com/influxdata/telegraf.git
 
 	@echo "==== build telegraf... ===="
-	cd telegraf && go mod download
+	@cd telegraf && go mod download
 
 	# Linux
 	cd telegraf && GOOS=linux   GOARCH=amd64   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-amd64/agent    ./cmd/telegraf
 	cd telegraf && GOOS=linux   GOARCH=386     GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-386/agent      ./cmd/telegraf
-	#cd telegraf && GOOS=linux  GOARCH=s390x   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-s390x/agent    ./cmd/telegraf
-	#cd telegraf && GOOS=linux  GOARCH=ppc64le GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-ppc64le/agent  ./cmd/telegraf
+	@#cd telegraf && GOOS=linux  GOARCH=s390x   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-s390x/agent    ./cmd/telegraf
+	@#cd telegraf && GOOS=linux  GOARCH=ppc64le GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-ppc64le/agent  ./cmd/telegraf
 	cd telegraf && GOOS=linux   GOARCH=arm     GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm/agent      ./cmd/telegraf
 	cd telegraf && GOOS=linux   GOARCH=arm64   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm64/agent    ./cmd/telegraf
 
 	# Mac
 	cd telegraf && GOOS=darwin  GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/darwin-amd64/agent      ./cmd/telegraf
 
-	# FreeBSD
-	#cd telegraf && GOOS=freebsd GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-386/agent      ./cmd/telegraf
-	#cd telegraf && GOOS=freebsd GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-amd64/agent    ./cmd/telegraf
+	## FreeBSD
+	##cd telegraf && GOOS=freebsd GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-386/agent      ./cmd/telegraf
+	##cd telegraf && GOOS=freebsd GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-amd64/agent    ./cmd/telegraf
 
 	# Windows
 	cd telegraf && GOOS=windows GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/windows-386/agent.exe   ./cmd/telegraf
