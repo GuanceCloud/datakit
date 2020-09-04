@@ -27,10 +27,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flink"
-	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 var (
@@ -164,18 +160,10 @@ func httpStart(addr string) {
 	router.NoRoute(page404)
 
 	applyHTTPRoute(router)
-
-	if n, _ := inputs.InputEnabled("druid"); n > 0 {
-		l.Info("open route for druid")
-		router.POST("/druid", func(c *gin.Context) { druid.Handle(c.Writer, c.Request) })
+	// telegraf running
+	if inputs.HaveTelegrafInputs() {
+		router.POST("/telegraf", func(c *gin.Context) { apiTelegrafOutput(c) })
 	}
-
-	if n, _ := inputs.InputEnabled("flink"); n > 0 {
-		l.Info("open route for influxdb write")
-		router.POST("/write", func(c *gin.Context) { flink.Handle(c.Writer, c.Request) })
-	}
-
-	router.POST("/telegraf", func(c *gin.Context) { apiTelegrafOutput(c) })
 
 	// internal datakit stats API
 	router.GET("/stats", func(c *gin.Context) { apiGetInputsStats(c.Writer, c.Request) })
