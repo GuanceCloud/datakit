@@ -57,36 +57,35 @@ func TestRun(t *testing.T) {
 
 		m := MysqlMonitor{}
 		m.Servers = []string{"root:root@tcp(10.200.6.53:3306)/"}
-		ok
-		m.GatherProcessList = true
-		// 无测试数 ok
-		m.GatherUserStatistics = true
-		// int64 ok
-		m.GatherInfoSchemaAutoInc = true
-		// ok
-		m.GatherInnoDBMetrics = true
-		// 无测试数 ok
-		m.GatherSlaveStatus = true
-		// ok
-		m.GatherBinaryLogs = true
-		//  ok
-		m.GatherTableIOWaits = true
-		// 无测试数 ok
-		m.GatherTableLockWaits = true
-		// 数据切分(todo) ok
-		m.GatherIndexIOWaits = true
-		// ok
-		m.GatherEventWaits = true
-		// ok
-		m.GatherTableSchema = true
-		// ok
-		m.GatherFileEventsStats = true
-		// 无测试数据 ok
-		m.GatherPerfEventsStatements = true
+		// m.GatherProcessList = true
+		// // 无测试数 ok
+		// m.GatherUserStatistics = true
+		// // int64 ok
+		// m.GatherInfoSchemaAutoInc = true
+		// // ok
+		// m.GatherInnoDBMetrics = true
+		// // 无测试数 ok
+		// m.GatherSlaveStatus = true
+		// // ok
+		// m.GatherBinaryLogs = true
+		// //  ok
+		// m.GatherTableIOWaits = true
+		// // 无测试数 ok
+		// m.GatherTableLockWaits = true
+		// // 数据切分(todo) ok
+		// m.GatherIndexIOWaits = true
+		// // ok
+		// m.GatherEventWaits = true
+		// // ok
+		// m.GatherTableSchema = true
+		// // ok
+		// m.GatherFileEventsStats = true
+		// // 无测试数据 ok
+		// m.GatherPerfEventsStatements = true
 		// // fail
 		m.GatherGlobalVars = true
 		// fail
-		m.GatherGlobalStatus = true
+		// m.GatherGlobalStatus = true
 		m.Interval = "10s"
 		m.MetricName = name
 
