@@ -2,21 +2,17 @@ package confluence
 
 import (
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
 func TestMain(t *testing.T) {
-	testAssert = true
-
-	var co = Confluence{
+	c := Confluence{
 		URL:      "http://127.0.0.1:8090/plugins/servlet/prometheus/metrics",
-		Interval: "10s",
+		Interval: "5s",
+		Tags:     map[string]string{"TestTags": "TestValue"},
 	}
 
-	data, err := co.getMetrics()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Logf("data: \n%s\n", data)
-
+	prom.TestAssert = true
+	c.Run()
 }
