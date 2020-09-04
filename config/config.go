@@ -28,6 +28,7 @@ var (
 			Interval:         "10s",
 			MaxPostInterval:  "15s", // add 5s plus for network latency
 			IntervalDuration: 10 * time.Second,
+			CheckMetric:      false,
 
 			HTTPBind: "0.0.0.0:9529",
 
@@ -72,8 +73,9 @@ type DataWayCfg struct {
 }
 
 type MainConfig struct {
-	UUID string `toml:"uuid"`
-	Name string `toml:"name"`
+	UUID        string `toml:"uuid"`
+	Name        string `toml:"name"`
+	CheckMetric bool   `toml:"checkMetric"`
 
 	DataWay           *DataWayCfg `toml:"dataway"`
 	DataWayRequestURL string      `toml:"-"`
