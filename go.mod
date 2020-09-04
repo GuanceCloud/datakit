@@ -6,6 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go v37.1.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.9.3
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
+	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/Pallinder/go-randomdata v1.2.0
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
@@ -36,6 +37,7 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.1
+	github.com/google/gopacket v1.1.18
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
@@ -85,6 +87,7 @@ require (
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200903031355-5947d2219283
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/net v0.0.0-20200625001655-4c5254603344
 	golang.org/x/sys v0.0.0-20200808120158-1030fc2bf1d9
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	golang.org/x/tools v0.0.0-20200809012840-6f4f008689da // indirect

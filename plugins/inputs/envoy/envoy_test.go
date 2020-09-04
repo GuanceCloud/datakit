@@ -2,18 +2,17 @@ package envoy
 
 import (
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
 func TestMain(t *testing.T) {
-	testAssert = true
-
-	var envoyer = Envoy{
-		Host:     "127.0.0.1",
-		Port:     9901,
+	e := Envoy{
+		URL:      "http://127.0.0.1:9901/stats/prometheus",
 		Interval: "10s",
-		TLSOpen:  false,
+		Tags:     map[string]string{"TestTags": "TestValue"},
 	}
 
-	envoyer.Run()
-
+	prom.TestAssert = true
+	e.Run()
 }
