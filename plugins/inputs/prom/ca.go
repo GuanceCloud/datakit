@@ -1,4 +1,4 @@
-package etcd
+package prom
 
 import (
 	"crypto/tls"
@@ -13,13 +13,11 @@ func TLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	// Load CA cert
 	caCert, err := ioutil.ReadFile(caFile)
 	if err != nil {
 		return nil, err
 	}
-
 	caCertPool := x509.NewCertPool()
 	if !caCertPool.AppendCertsFromPEM(caCert) {
 		return nil, errors.New("failed to append certs from PEM")
@@ -29,7 +27,6 @@ func TLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      caCertPool,
 	}
-
 	tlsConfig.BuildNameToCertificate()
 
 	return tlsConfig, nil
