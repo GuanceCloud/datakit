@@ -33,8 +33,8 @@ ENTRY = cmd/datakit/main.go
 # Solution:
 # > apt-get install gcc-multilib
 # 
-LOCAL_ARCHS = "darwin/amd64"
-# LOCAL_ARCHS = "all"
+# LOCAL_ARCHS = "darwin/amd64"
+LOCAL_ARCHS = "all"
 # LOCAL_ARCHS = "linux/amd64"
 DEFAULT_ARCHS = "all"
 
