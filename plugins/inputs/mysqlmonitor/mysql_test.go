@@ -57,28 +57,36 @@ func TestRun(t *testing.T) {
 
 		m := MysqlMonitor{}
 		m.Servers = []string{"root:root@tcp(10.200.6.53:3306)/"}
-		m.GatherProcessList = false
-		// 无测试数
-		m.GatherUserStatistics = false
-		// int64
-		m.GatherInfoSchemaAutoInc = false
-		m.GatherInnoDBMetrics = false
-		// 无测试数
-		m.GatherSlaveStatus = false
-		m.GatherBinaryLogs = false
-		// 数据切分(todo)
+		// ok
+		m.GatherProcessList = true
+		// 无测试数 ok
+		m.GatherUserStatistics = true
+		// int64 ok
+		m.GatherInfoSchemaAutoInc = true
+		// ok
+		m.GatherInnoDBMetrics = true
+		// 无测试数 ok
+		m.GatherSlaveStatus = true
+		// ok
+		m.GatherBinaryLogs = true
+		//  ok
 		m.GatherTableIOWaits = true
-		// 无测试数
-		m.GatherTableLockWaits = false
-		// 数据切分(todo)
+		// 无测试数 ok
+		m.GatherTableLockWaits = true
+		// 数据切分(todo) ok
 		m.GatherIndexIOWaits = true
-		m.GatherEventWaits = false
-		m.GatherTableSchema = false
-		m.GatherFileEventsStats = false
-		// 无测试数据
-		m.GatherPerfEventsStatements = false
-		m.GatherGlobalVars = false
-		m.GatherGlobalStatus = false
+		// ok
+		m.GatherEventWaits = true
+		// ok
+		m.GatherTableSchema = true
+		// ok
+		m.GatherFileEventsStats = true
+		// 无测试数据 ok
+		m.GatherPerfEventsStatements = true
+		// fail
+		m.GatherGlobalVars = true
+		// fail
+		m.GatherGlobalStatus = true
 		m.Interval = "10s"
 		m.MetricName = name
 
