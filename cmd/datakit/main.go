@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -27,7 +29,7 @@ var (
 	flagDocker         = flag.Bool("docker", false, "run within docker")
 
 	flagListCollectors    = flag.Bool("tree", false, `list vailable collectors`)
-	flagListConfigSamples = flag.Bool("config-samples", false, `list all config samples`)
+	flagDumpConfigSamples = flag.String("dump-samples", "", `dump all config samples`)
 )
 
 var (
@@ -71,8 +73,8 @@ Golang Version: %s
 		os.Exit(0)
 	}
 
-	if *flagListConfigSamples {
-		showAllConfigSamples()
+	if *flagDumpConfigSamples != "" {
+		dumpAllConfigSamples(*flagDumpConfigSamples)
 		os.Exit(0)
 	}
 
@@ -129,13 +131,24 @@ func listCollectors() {
 	fmt.Printf("total %d, datakit: %d, telegraf: %d\n", ntg+ndk, ndk, ntg)
 }
 
-func showAllConfigSamples() {
+func dumpAllConfigSamples(fpath string) {
+
+	if err := os.MkdirAll(fpath, os.ModePerm); err != nil {
+		panic(err)
+	}
+
 	for k, v := range inputs.Inputs {
-		fmt.Printf("#========= [D] % 32s ==========\n%s\n", k, v().SampleConfig())
+		sample := v().SampleConfig()
+		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), os.ModePerm); err != nil {
+			panic(err)
+		}
 	}
 
 	for k, v := range tgi.TelegrafInputs {
-		fmt.Printf("#========= [T] % 32s ==========\n%s\n", k, v.SampleConfig())
+		sample := v.SampleConfig()
+		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), os.ModePerm); err != nil {
+			panic(err)
+		}
 	}
 }
 
