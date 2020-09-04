@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	influxm "github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -147,6 +148,12 @@ func (m *MysqlMonitor) gatherGlobalVariables(db *sql.DB, serv string) error {
 			l.Errorf("make metric point error %v", err)
 		}
 
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
+		}
+
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
@@ -209,6 +216,12 @@ func (m *MysqlMonitor) gatherSlaveStatuses(db *sql.DB, serv string) error {
 			l.Errorf("make metric point error %v", err)
 		}
 
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
+		}
+
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
@@ -261,6 +274,12 @@ func (m *MysqlMonitor) gatherBinaryLogs(db *sql.DB, serv string) error {
 		l.Errorf("make metric point error %v", err)
 	}
 
+	_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+	if err != nil {
+		l.Errorf("[error] : %s", err.Error())
+		return err
+	}
+
 	err = io.NamedFeed([]byte(pt), io.Metric, name)
 	if err != nil {
 		l.Errorf("push metric point error %v", err)
@@ -305,25 +324,37 @@ func (m *MysqlMonitor) gatherGlobalStatuses(db *sql.DB, serv string) error {
 			fields[key] = value
 		}
 
-		if len(fields) >= 20 {
-			pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
-			if err != nil {
-				l.Errorf("make metric point error %v", err)
-			}
+		// if len(fields) >= 20 {
+		// 	pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
+		// 	if err != nil {
+		// 		l.Errorf("make metric point error %v", err)
+		// 	}
 
-			err = io.NamedFeed([]byte(pt), io.Metric, name)
-			if err != nil {
-				l.Errorf("push metric point error %v", err)
-			}
+		// 	_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		// 	if err != nil {
+		// 		l.Errorf("[error] : %s", err.Error())
+		// 		return err
+		// 	}
 
-			fields = make(map[string]interface{})
-		}
+		// 	err = io.NamedFeed([]byte(pt), io.Metric, name)
+		// 	if err != nil {
+		// 		l.Errorf("push metric point error %v", err)
+		// 	}
+
+		// 	fields = make(map[string]interface{})
+		// }
 	}
 
 	// Send any remaining fields
 	pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 	if err != nil {
 		l.Errorf("make metric point error %v", err)
+	}
+
+	_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+	if err != nil {
+		l.Errorf("[error] : %s", err.Error())
+		return err
 	}
 
 	err = io.NamedFeed([]byte(pt), io.Metric, name)
@@ -386,6 +417,12 @@ func (m *MysqlMonitor) GatherProcessListStatuses(db *sql.DB, serv string) error 
 		l.Errorf("make metric point error %v", err)
 	}
 
+	_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+	if err != nil {
+		l.Errorf("[error] : %s", err.Error())
+		return err
+	}
+
 	err = io.NamedFeed([]byte(pt), io.Metric, name)
 	if err != nil {
 		l.Errorf("push metric point error %v", err)
@@ -419,6 +456,12 @@ func (m *MysqlMonitor) GatherProcessListStatuses(db *sql.DB, serv string) error 
 		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
+		}
+
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
 		}
 
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
@@ -489,6 +532,12 @@ func (m *MysqlMonitor) GatherUserStatisticsStatuses(db *sql.DB, serv string) err
 		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
+		}
+
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
 		}
 
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
@@ -712,6 +761,12 @@ func (m *MysqlMonitor) gatherPerfTableIOWaits(db *sql.DB, serv string) error {
 			l.Errorf("make metric point error %v", err)
 		}
 
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
+		}
+
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
@@ -781,6 +836,12 @@ func (m *MysqlMonitor) gatherPerfIndexIOWaits(db *sql.DB, serv string) error {
 			l.Errorf("make metric point error %v", err)
 		}
 
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
+		}
+
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
@@ -799,7 +860,7 @@ func (m *MysqlMonitor) gatherInfoSchemaAutoIncStatuses(db *sql.DB, serv string) 
 
 	var (
 		schema, table, column string
-		incValue, maxInt      uint64
+		incValue, maxInt      int64
 	)
 
 	servtag := getDSNTag(serv)
@@ -822,12 +883,18 @@ func (m *MysqlMonitor) gatherInfoSchemaAutoIncStatuses(db *sql.DB, serv string) 
 		tags["metricType"] = "schemaAutoIncStatus"
 
 		fields := make(map[string]interface{})
-		fields["auto_increment_column"] = int(incValue)
-		fields["auto_increment_column_max"] = int(maxInt)
+		fields["auto_increment_column"] = incValue
+		fields["auto_increment_column_max"] = maxInt
 
 		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
+		}
+
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
 		}
 
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
@@ -874,6 +941,12 @@ func (m *MysqlMonitor) gatherInnoDBMetrics(db *sql.DB, serv string) error {
 		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
+		}
+
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
 		}
 
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
@@ -993,6 +1066,12 @@ func (m *MysqlMonitor) gatherPerfTableLockWaits(db *sql.DB, serv string) error {
 			l.Errorf("make metric point error %v", err)
 		}
 
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
+		}
+
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
@@ -1008,6 +1087,12 @@ func (m *MysqlMonitor) gatherPerfTableLockWaits(db *sql.DB, serv string) error {
 		pt, err = io.MakeMetric(m.MetricName, externalLWTags, externalLWFields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
+		}
+
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
 		}
 
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
@@ -1033,6 +1118,12 @@ func (m *MysqlMonitor) gatherPerfTableLockWaits(db *sql.DB, serv string) error {
 			l.Errorf("make metric point error %v", err)
 		}
 
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
+		}
+
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
@@ -1048,6 +1139,12 @@ func (m *MysqlMonitor) gatherPerfTableLockWaits(db *sql.DB, serv string) error {
 		pt, err = io.MakeMetric(m.MetricName, externalLWSecTotalTags, externalLWSecTotalFields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
+		}
+
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
 		}
 
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
@@ -1095,6 +1192,12 @@ func (m *MysqlMonitor) gatherPerfEventWaits(db *sql.DB, serv string) error {
 		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
+		}
+
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
 		}
 
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
@@ -1174,6 +1277,12 @@ func (m *MysqlMonitor) gatherPerfFileEventsStatuses(db *sql.DB, serv string) err
 			l.Errorf("make metric point error %v", err)
 		}
 
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
+		}
+
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
@@ -1190,6 +1299,12 @@ func (m *MysqlMonitor) gatherPerfFileEventsStatuses(db *sql.DB, serv string) err
 		pt, err = io.MakeMetric(m.MetricName, tags, writefields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
+		}
+
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
 		}
 
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
@@ -1276,6 +1391,12 @@ func (m *MysqlMonitor) gatherPerfEventsStatements(db *sql.DB, serv string) error
 		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
+		}
+
+		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+		if err != nil {
+			l.Errorf("[error] : %s", err.Error())
+			return err
 		}
 
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
@@ -1375,6 +1496,12 @@ func (m *MysqlMonitor) gatherTableSchema(db *sql.DB, serv string) error {
 			pt, err := io.MakeMetric(m.MetricName, versionTags, fields, time.Now())
 			if err != nil {
 				l.Errorf("make metric point error %v", err)
+			}
+
+			_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+			if err != nil {
+				l.Errorf("[error] : %s", err.Error())
+				return err
 			}
 
 			err = io.NamedFeed([]byte(pt), io.Metric, name)
