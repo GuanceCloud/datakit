@@ -7,7 +7,7 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/domain"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -15,15 +15,15 @@ const (
 	domainSampleConfig = `
 #[inputs.aliyunobject.domain]
 
-# ## @param - custom tags for Domain object - [list of key:value element] - optional
-#[inputs.aliyunobject.domain.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of Domain instanceid] - optional
 #instanceids = []
 
 # ## @param - custom tags - [list of excluded Domain instanceid] - optional
 #exclude_instanceids = []
+
+# ## @param - custom tags for Domain object - [list of key:value element] - optional
+#[inputs.aliyunobject.domain.tags]
+# key1 = 'val1'
 `
 )
 
@@ -50,7 +50,7 @@ func (dm *Domain) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -97,7 +97,7 @@ func (dm *Domain) run(ag *objectAgent) {
 
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -118,7 +118,7 @@ func (dm *Domain) handleResponse(resp *domain.QueryDomainListResponse, ag *objec
 			}
 		}
 
-		if !inc {
+		if len(ag.Domain.InstanceIDs) > 0 && !inc {
 			continue
 		}
 
