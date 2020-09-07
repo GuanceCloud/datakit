@@ -16,6 +16,7 @@ import (
 )
 
 func  parseZipkinJsonV2(octets []byte) error {
+	log.Debugf("->|%s|<-", string(octets))
 	spans := []*zipkinmodel.SpanModel{}
 	if err := json.Unmarshal(octets, &spans); err != nil {
 		return err
@@ -70,15 +71,20 @@ func  parseZipkinJsonV2(octets []byte) error {
 			}
 		}
 
-		tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
-		if zs.RemoteEndpoint == nil {
-			if zs.LocalEndpoint == nil {
-				tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
-			} else {
-				if len(zs.LocalEndpoint.IPv4) == 0 && len(zs.LocalEndpoint.IPv6) == 0 {
-					tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
-				}
-			}
+		//tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
+		//if zs.RemoteEndpoint == nil {
+		//	if zs.LocalEndpoint == nil {
+		//		tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+		//	} else {
+		//		if len(zs.LocalEndpoint.IPv4) == 0 && len(zs.LocalEndpoint.IPv6) == 0 {
+		//			tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+		//		}
+		//	}
+		//}
+		if zs.Kind == zipkinmodel.Undetermined {
+			tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+		} else {
+			tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
 		}
 
 		tAdpter.Tags = ZipkinTags
@@ -144,15 +150,20 @@ func parseZipkinProtobufV2(octets []byte) error {
 			}
 		}
 
-		tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
-		if zs.RemoteEndpoint == nil {
-			if zs.LocalEndpoint == nil {
-				tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
-			} else {
-				if len(zs.LocalEndpoint.IPv4) == 0 && len(zs.LocalEndpoint.IPv6) == 0 {
-					tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
-				}
-			}
+		//tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
+		//if zs.RemoteEndpoint == nil {
+		//	if zs.LocalEndpoint == nil {
+		//		tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+		//	} else {
+		//		if len(zs.LocalEndpoint.IPv4) == 0 && len(zs.LocalEndpoint.IPv6) == 0 {
+		//			tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+		//		}
+		//	}
+		//}
+		if zs.Kind == zipkinmodel.Undetermined {
+			tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+		} else {
+			tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
 		}
 
 		tAdpter.Tags = ZipkinTags
