@@ -12,11 +12,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-var (
-	//batchInterval = 5 * time.Minute
-	rateLimit = 10
-)
-
 func (r *ucInstance) run(ctx context.Context) error {
 
 	uccfg := ucloud.NewConfig()
