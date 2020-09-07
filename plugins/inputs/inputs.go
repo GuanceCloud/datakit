@@ -11,6 +11,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 type Input interface {
@@ -43,17 +44,16 @@ func Add(name string, creator Creator) {
 		panic(fmt.Sprintf("inputs %s exist(from datakit)", name))
 	}
 
-	if _, ok := TelegrafInputs[name]; ok {
+	if _, ok := tgi.TelegrafInputs[name]; ok {
 		panic(fmt.Sprintf("inputs %s exist(from telegraf)", name))
 	}
 
-	l.Infof("add input %s", name)
 	Inputs[name] = creator
 }
 
 type inputInfo struct {
 	input Input
-	ti    *TelegrafInput
+	ti    *tgi.TelegrafInput
 	cfg   string
 }
 
@@ -147,7 +147,7 @@ func StartTelegraf() error {
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
-		_ = doStartTelegraf()
+		_ = tgi.StartTelegraf()
 
 		l.Info("telegraf process exit ok")
 	}()
@@ -219,9 +219,39 @@ func protectRunningInput(name string, ii *inputInfo) {
 	f(nil, nil)
 }
 
+func GetPanicCnt(name string) int {
+	mtx.RLock()
+	defer mtx.RUnlock()
+
+	return panicInputs[name]
+}
+
+func addPanic(name string) {
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	panicInputs[name]++
+}
+
+func HaveTelegrafInputs() bool {
+
+	mtx.RLock()
+	defer mtx.RUnlock()
+
+	for k := range tgi.TelegrafInputs {
+		_, ok := inputInfos[k]
+		if ok {
+			return true
+		}
+	}
+
+	return false
+}
+
 func InputEnabled(name string) (n int, cfgs []string) {
 	mtx.RLock()
 	defer mtx.RUnlock()
+
 	arr, ok := inputInfos[name]
 	if !ok {
 		return
@@ -235,16 +265,16 @@ func InputEnabled(name string) (n int, cfgs []string) {
 	return
 }
 
-func GetPanicCnt(name string) int {
-	mtx.RLock()
-	defer mtx.RUnlock()
+func GetSample(name string) (sample string, err error) {
+	if c, ok := Inputs[name]; ok {
+		sample = c().SampleConfig()
+		return
+	}
 
-	return panicInputs[name]
-}
+	if i, ok := tgi.TelegrafInputs[name]; ok {
+		sample = i.SampleConfig()
+		return
+	}
 
-func addPanic(name string) {
-	mtx.Lock()
-	defer mtx.Unlock()
-
-	panicInputs[name]++
+	return "", fmt.Errorf("input not found")
 }
