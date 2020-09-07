@@ -2,7 +2,6 @@ package trace
 
 import (
 	"bytes"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -10,6 +9,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
 )
 
 type TraceDecoder interface {
