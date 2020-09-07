@@ -1,12 +1,7 @@
 package oraclemonitor
 
 import (
-	"os"
-	"path/filepath"
-	"runtime"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -40,11 +35,9 @@ const (
 
 var (
 	inputName = "oraclemonitor"
-	l         = logger.DefaultSLogger(inputName)
 )
 
-type OracleMonitor struct {
-}
+type OracleMonitor plugins.OracleMonitor
 
 func (_ *OracleMonitor) Catalog() string {
 	return "oracle"
@@ -55,19 +48,6 @@ func (_ *OracleMonitor) SampleConfig() string {
 }
 
 func (o *OracleMonitor) Run() {
-	l = logger.SLogger(inputName)
-
-	l.Info("starting external oraclemonitor...")
-
-	bin := filepath.Join(datakit.InstallDir, "externals", "oraclemonitor")
-	if runtime.GOOS == "windows" {
-		bin += ".exe"
-	}
-
-	if _, err := os.Stat(bin); err != nil {
-		l.Error("check %s failed: %s", bin, err.Error())
-		return
-	}
 }
 
 func init() {
