@@ -1,48 +1,40 @@
-// +build linux
-
 package oraclemonitor
 
 import (
-	"database/sql"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
 	configSample = `
-[[inputs.oraclemonitor]]
+[[oraclemonitor]]
   ## 采集的频度，最小粒度5m
-  interval = '10s'
-  libPath = ''
+  interval = '1m'
   ## 指标集名称，默认值oracle_monitor
-  metricName = ''
+  metricName = 'oracle_monitor'
   ## 实例ID(非必要属性)
-  instanceId = ''
+  instanceId = 'oracle01'
   ## # 实例描述(非必要属性)
-  instanceDesc = ''
+  instanceDesc = 'DBA团队自建Oracle单实例-booboo'
   ## oracle实例地址(ip)
-  host = ''
+  host = 'xxx.xxx.xx.x'
   ## oracle监听端口
-  port = ''
+  port = '1521'
   ## 帐号
-  username = ''
+  username = 'xxxxxx'
   ## 密码
-  password = ''
+  password = 'xxxxxx'
   ## oracle的服务名
-  server = ''
-  ## 实例类型 例如 单实例、DG、RAC 等，非必要属性
-  type= 'singleInstance'
+  server = 'testdb.zhuyun'
+  ## 实例类型 例如 single、dg、rac(require)
+  cluster= 'single'
+  ## 采集的oracle版本，支持10g, 11g, 12c
+  version = '11g'
 `
 )
 
@@ -52,23 +44,6 @@ var (
 )
 
 type OracleMonitor struct {
-	LibPath  string `json:"libPath" toml:"libPath"`
-	Metric   string `json:"metricName" toml:"metricName"`
-	Interval string `json:"interval" toml:"interval"`
-
-	InstanceId string `json:"instanceId" toml:"instanceId"`
-	User       string `json:"username" toml:"username"`
-	Password   string `json:"password" toml:"password"`
-	Desc       string `json:"instanceDesc" toml:"instanceDesc"`
-	Host       string `json:"host" toml:"host"`
-	Port       string `json:"port" toml:"port"`
-	Server     string `json:"server" toml:"server"`
-	Type       string `json:"type" toml:"type"`
-
-	Tags map[string]string `json:"tags" toml:"tags"`
-
-	DB               *sql.DB       `json:"-" json:"-"`
-	IntervalDuration time.Duration `json:"-" json:"-"`
 }
 
 func (_ *OracleMonitor) Catalog() string {
@@ -93,36 +68,6 @@ func (o *OracleMonitor) Run() {
 		l.Error("check %s failed: %s", bin, err.Error())
 		return
 	}
-
-	cfg, err := json.Marshal(o)
-	if err != nil {
-		l.Errorf("toml marshal failed: %v", err)
-		return
-	}
-
-	b64cfg := base64.StdEncoding.EncodeToString(cfg)
-
-	args := []string{
-		"-cfg", b64cfg,
-		"-rpc-server", "unix://" + datakit.GRPCDomainSock,
-		"-desc", o.Desc,
-		"-log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"),
-		"-log-level", config.Cfg.MainCfg.LogLevel,
-	}
-
-	cmd := exec.Command(bin, args...)
-	cmd.Env = []string{ // we need oracle instantclient_xx_xx lib
-		fmt.Sprintf("LD_LIBRARY_PATH=%s:$LD_LIBRARY_PATH", o.LibPath),
-	}
-
-	l.Infof("starting process %+#v", cmd)
-	if err := cmd.Start(); err != nil {
-		l.Error(err)
-		return
-	}
-
-	l.Infof("oraclemonitor PID: %d", cmd.Process.Pid)
-	datakit.MonitProc(cmd.Process, inputName) // blocking
 }
 
 func init() {

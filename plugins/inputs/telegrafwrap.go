@@ -32,7 +32,7 @@ func doStartTelegraf() error {
 func doStart() (*os.Process, error) {
 
 	env := os.Environ()
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		env = append(env, fmt.Sprintf(`TELEGRAF_CONFIG_PATH=%s`, telegrafConf))
 	}
 	procAttr := &os.ProcAttr{
@@ -45,11 +45,11 @@ func doStart() (*os.Process, error) {
 	}
 
 	var p *os.Process
-	var err error
+	telegrafBin := agentPath()
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 
-		cmd := exec.Command(agentPath(), "-console")
+		cmd := exec.Command(telegrafBin, "-console")
 		cmd.Env = env
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -57,10 +57,11 @@ func doStart() (*os.Process, error) {
 		if err := cmd.Start(); err != nil {
 			return nil, err
 		}
-		p = cmd.Process
 
+		p = cmd.Process
 	} else {
-		p, err = os.StartProcess(agentPath(), []string{"agent", "-config", telegrafConf}, procAttr)
+		var err error
+		p, err = os.StartProcess(telegrafBin, []string{"agent", "-config", telegrafConf}, procAttr)
 		if err != nil {
 			l.Errorf("start telegraf failed: %s", err.Error())
 			return nil, err
@@ -68,14 +69,14 @@ func doStart() (*os.Process, error) {
 	}
 
 	l.Infof("telegraf PID: %d", p.Pid)
-	time.Sleep(time.Millisecond * 20)
+	time.Sleep(time.Second)
 	return p, nil
 }
 
 func agentPath() string {
 	fpath := filepath.Join(datakit.TelegrafDir, runtime.GOOS+"-"+runtime.GOARCH, "agent")
-	if runtime.GOOS == "windows" {
-		fpath = fpath + ".exe"
+	if runtime.GOOS == datakit.OSWindows {
+		fpath += ".exe"
 	}
 
 	return fpath
