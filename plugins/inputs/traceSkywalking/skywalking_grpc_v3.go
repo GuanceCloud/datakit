@@ -10,7 +10,6 @@ import (
 	"github.com/influxdata/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 func SkyWalkingServerRunV3(s *Skywalking) {
@@ -38,7 +37,7 @@ func SkyWalkingServerRunV3(s *Skywalking) {
 		"-cfg", b64cfg,
 		"-rpc-server", "unix://" + datakit.GRPCDomainSock,
 		"-log", filepath.Join(datakit.InstallDir, "externals", "skywalkingGrpcV3.log"),
-		"-log-level", config.Cfg.MainCfg.LogLevel,
+		"-log-level", datakit.Cfg.MainCfg.LogLevel,
 	}
 
 	cmd := exec.Command(bin, args...)
