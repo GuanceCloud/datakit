@@ -5,112 +5,113 @@ type TelegrafInput struct {
 	Catalog, Sample string
 }
 
-func (ti *TelegrafInput) Enabled() (int, []string) {
+func (ti *TelegrafInput) Enabled() (n int, cfgs []string) {
 
 	mtx.RLock()
 	defer mtx.RUnlock()
 
 	arr, ok := inputInfos[ti.name]
 	if !ok {
-		return 0, nil
+		return
 	}
 
-	cfgs := []string{}
 	for _, i := range arr {
 		cfgs = append(cfgs, i.cfg)
 	}
-	return len(arr), cfgs
+	n = len(arr)
+	return
 }
 
 var (
 	TelegrafInputs = map[string]*TelegrafInput{ // Name: Catalog
 
-		"disk":          &TelegrafInput{name: "disk", Catalog: "host"},
-		"cpu":           &TelegrafInput{name: "cpu", Catalog: "host"},
-		"diskio":        &TelegrafInput{name: "diskio", Catalog: "host"},
-		"mem":           &TelegrafInput{name: "mem", Catalog: "host"},
-		"kernel":        &TelegrafInput{name: "kernel", Catalog: "host"},
-		"swap":          &TelegrafInput{name: "swap", Catalog: "host"},
-		"system":        &TelegrafInput{name: "system", Catalog: "host"},
-		`systemd_units`: &TelegrafInput{name: "systemd_units", Catalog: "host"},
+		"disk":          {name: "disk", Catalog: "host"},
+		"cpu":           {name: "cpu", Catalog: "host"},
+		"diskio":        {name: "diskio", Catalog: "host"},
+		"mem":           {name: "mem", Catalog: "host"},
+		"kernel":        {name: "kernel", Catalog: "host"},
+		"swap":          {name: "swap", Catalog: "host"},
+		"system":        {name: "system", Catalog: "host"},
+		`systemd_units`: {name: "systemd_units", Catalog: "host"},
 
-		"nvidia_smi": &TelegrafInput{name: "nvidia_smi", Catalog: "nvidia"},
+		"nvidia_smi": {name: "nvidia_smi", Catalog: "nvidia"},
 
-		"iptables":        &TelegrafInput{name: "iptables", Catalog: "network"},
-		"ping":            &TelegrafInput{name: "ping", Catalog: "network"},
-		"net":             &TelegrafInput{name: "net", Catalog: "network"},
-		"net_response":    &TelegrafInput{name: "net_response", Catalog: "network"},
-		"http":            &TelegrafInput{name: "http", Catalog: "network"},
-		"socket_listener": &TelegrafInput{name: "socket_listener", Catalog: "network"},
+		"iptables":        {name: "iptables", Catalog: "network"},
+		"ping":            {name: "ping", Catalog: "network"},
+		"net":             {name: "net", Catalog: "network"},
+		"net_response":    {name: "net_response", Catalog: "network"},
+		"http":            {name: "http", Catalog: "network"},
+		"socket_listener": {name: "socket_listener", Catalog: "network"},
 
-		"nginx":   &TelegrafInput{name: "nginx", Catalog: "nginx"},
-		"tengine": &TelegrafInput{name: "tengine", Catalog: "tengine"},
-		"apache":  &TelegrafInput{name: "apache", Catalog: "apache"},
+		"nginx":   {name: "nginx", Catalog: "nginx"},
+		"tengine": {name: "tengine", Catalog: "tengine"},
+		"apache":  {name: "apache", Catalog: "apache"},
 
-		"mysql":         &TelegrafInput{name: "mysql", Catalog: "db"},
-		"postgresql":    &TelegrafInput{name: "postgresql", Catalog: "db"},
-		"mongodb":       &TelegrafInput{name: "mongodb", Catalog: "db"},
-		"redis":         &TelegrafInput{name: "redis", Catalog: "db"},
-		"elasticsearch": &TelegrafInput{name: "elasticsearch", Catalog: "db"},
-		"sqlserver":     &TelegrafInput{name: "sqlserver", Catalog: "db"},
-		"memcached":     &TelegrafInput{name: "memcached", Catalog: "db"},
-		"solr":          &TelegrafInput{name: "solr", Catalog: "db"},
-		"clickhouse":    &TelegrafInput{name: "clickhouse", Catalog: "db"},
-		`influxdb`:      &TelegrafInput{name: "influxdb", Catalog: "db"},
+		"mysql":         {name: "mysql", Catalog: "db"},
+		"postgresql":    {name: "postgresql", Catalog: "db"},
+		"mongodb":       {name: "mongodb", Catalog: "db"},
+		"redis":         {name: "redis", Catalog: "db"},
+		"elasticsearch": {name: "elasticsearch", Catalog: "db"},
+		"sqlserver":     {name: "sqlserver", Catalog: "db"},
+		"memcached":     {name: "memcached", Catalog: "db"},
+		"solr":          {name: "solr", Catalog: "db"},
+		"clickhouse":    {name: "clickhouse", Catalog: "db"},
+		`influxdb`:      {name: "influxdb", Catalog: "db"},
 
-		"openldap":  &TelegrafInput{name: "openldap", Catalog: "openldap"},
-		"phpfpm":    &TelegrafInput{name: "phpfpm", Catalog: "phpfpm"},
-		"activemq":  &TelegrafInput{name: "activemq", Catalog: "activemq"},
-		"zookeeper": &TelegrafInput{name: "zookeeper", Catalog: "zookeeper"},
-		"ceph":      &TelegrafInput{name: "ceph", Catalog: "ceph"},
-		"dns_query": &TelegrafInput{name: "dns_query", Catalog: "dns_query"},
+		"openldap":  {name: "openldap", Catalog: "openldap"},
+		"phpfpm":    {name: "phpfpm", Catalog: "phpfpm"},
+		"activemq":  {name: "activemq", Catalog: "activemq"},
+		"zookeeper": {name: "zookeeper", Catalog: "zookeeper"},
+		"ceph":      {name: "ceph", Catalog: "ceph"},
+		"dns_query": {name: "dns_query", Catalog: "dns_query"},
 
-		"docker":     &TelegrafInput{name: "docker", Catalog: "docker"},
-		"docker_log": &TelegrafInput{name: "docker_log", Catalog: "docker"},
+		"docker":     {name: "docker", Catalog: "docker"},
+		"docker_log": {name: "docker_log", Catalog: "docker"},
 
-		"rabbitmq":       &TelegrafInput{name: "rabbitmq", Catalog: "rabbitmq"},
-		"nsq":            &TelegrafInput{name: "nsq", Catalog: "nsq"},
-		"nsq_consumer":   &TelegrafInput{name: "nsq_consumer", Catalog: "nsq"},
-		"kafka_consumer": &TelegrafInput{name: "kafka_consumer", Catalog: "kafka"},
-		"mqtt_consumer":  &TelegrafInput{name: "mqtt_consumer", Catalog: "mqtt"},
+		"rabbitmq":       {name: "rabbitmq", Catalog: "rabbitmq"},
+		"nsq":            {name: "nsq", Catalog: "nsq"},
+		"nsq_consumer":   {name: "nsq_consumer", Catalog: "nsq"},
+		"kafka_consumer": {name: "kafka_consumer", Catalog: "kafka"},
+		"mqtt_consumer":  {name: "mqtt_consumer", Catalog: "mqtt"},
 
-		"fluentd":   &TelegrafInput{name: "fluentd", Catalog: "fluentd"},
-		"haproxy":   &TelegrafInput{name: "haproxy", Catalog: "haproxy"},
-		"jenkins":   &TelegrafInput{name: "jenkins", Catalog: "jenkins"},
-		"kapacitor": &TelegrafInput{name: "kapacitor", Catalog: "kapacitor"},
-		"ntpq":      &TelegrafInput{name: "ntpq", Catalog: "ntpq"},
-		"openntpd":  &TelegrafInput{name: "openntpd", Catalog: "openntpd"},
-		"processes": &TelegrafInput{name: "processes", Catalog: "processes"},
-		"x509_cert": &TelegrafInput{name: "x509_cert", Catalog: "tls"},
-		"nats":      &TelegrafInput{name: "nats", Catalog: "nats"},
+		"fluentd":   {name: "fluentd", Catalog: "fluentd"},
+		"haproxy":   {name: "haproxy", Catalog: "haproxy"},
+		"jenkins":   {name: "jenkins", Catalog: "jenkins"},
+		"kapacitor": {name: "kapacitor", Catalog: "kapacitor"},
+		"ntpq":      {name: "ntpq", Catalog: "ntpq"},
+		"openntpd":  {name: "openntpd", Catalog: "openntpd"},
+		"processes": {name: "processes", Catalog: "processes"},
+		"procstat":  {name: "procstat", Catalog: "processes"},
+		"x509_cert": {name: "x509_cert", Catalog: "tls"},
+		"nats":      {name: "nats", Catalog: "nats"},
 
-		"win_services":      &TelegrafInput{name: "win_services", Catalog: "windows"},
-		"win_perf_counters": &TelegrafInput{name: "win_perf_counters", Catalog: "windows"},
+		"win_services":      {name: "win_services", Catalog: "windows"},
+		"win_perf_counters": {name: "win_perf_counters", Catalog: "windows"},
 
-		"cloudwatch": &TelegrafInput{name: "cloudwatch", Catalog: "aws"},
-		"vsphere":    &TelegrafInput{name: "vsphere", Catalog: "vmware"},
-		"snmp":       &TelegrafInput{name: "snmp", Catalog: "snmp"},
-		"exec":       &TelegrafInput{name: "exec", Catalog: "exec"},
-		"syslog":     &TelegrafInput{name: "syslog", Catalog: "syslog"},
-		"varnish":    &TelegrafInput{name: "varnish", Catalog: "varnish"},
+		"cloudwatch": {name: "cloudwatch", Catalog: "aws"},
+		"vsphere":    {name: "vsphere", Catalog: "vmware"},
+		"snmp":       {name: "snmp", Catalog: "snmp"},
+		"exec":       {name: "exec", Catalog: "exec"},
+		"syslog":     {name: "syslog", Catalog: "syslog"},
+		"varnish":    {name: "varnish", Catalog: "varnish"},
 
-		"kube_inventory": &TelegrafInput{name: "kube_inventory", Catalog: "k8s"},
-		"kubernetes":     &TelegrafInput{name: "kubernetes", Catalog: "k8s"},
+		"kube_inventory": {name: "kube_inventory", Catalog: "k8s"},
+		"kubernetes":     {name: "kubernetes", Catalog: "k8s"},
 
-		"jolokia2_agent": &TelegrafInput{name: "jolokia2_agent", Catalog: "jolokia2_agent"},
+		"jolokia2_agent": {name: "jolokia2_agent", Catalog: "jolokia2_agent"},
 
-		"amqp":          &TelegrafInput{name: "amqp", Catalog: "amqp"},
-		"amqp_consumer": &TelegrafInput{name: "amqp_consumer", Catalog: "amqp"},
+		"amqp":          {name: "amqp", Catalog: "amqp"},
+		"amqp_consumer": {name: "amqp_consumer", Catalog: "amqp"},
 
-		"github": &TelegrafInput{name: "github", Catalog: "github"},
-		"uwsgi":  &TelegrafInput{name: "uwsgi", Catalog: "uwsgi"},
+		"github": {name: "github", Catalog: "github"},
+		"uwsgi":  {name: "uwsgi", Catalog: "uwsgi"},
 
-		`consul`:     &TelegrafInput{name: "consul", Catalog: "consul"},
-		`kibana`:     &TelegrafInput{name: "kibana", Catalog: "kibana"},
-		`modbus`:     &TelegrafInput{name: "modbus", Catalog: "modbus"},
-		`dotnetclr`:  &TelegrafInput{name: "dotnetclr", Catalog: "dotnetclr"},
-		`aspdotnet`:  &TelegrafInput{name: "aspdotnet", Catalog: "aspdotnet"},
-		`msexchange`: &TelegrafInput{name: "msexchange", Catalog: "msexchange"},
+		`consul`:     {name: "consul", Catalog: "consul"},
+		`kibana`:     {name: "kibana", Catalog: "kibana"},
+		`modbus`:     {name: "modbus", Catalog: "modbus"},
+		`dotnetclr`:  {name: "dotnetclr", Catalog: "dotnetclr"},
+		`aspdotnet`:  {name: "aspdotnet", Catalog: "aspdotnet"},
+		`msexchange`: {name: "msexchange", Catalog: "msexchange"},
 	}
 )
 
@@ -119,7 +120,7 @@ func HaveTelegrafInputs() bool {
 	mtx.RLock()
 	defer mtx.RUnlock()
 
-	for k, _ := range TelegrafInputs {
+	for k := range TelegrafInputs {
 		_, ok := inputInfos[k]
 		if ok {
 			return true
@@ -129,7 +130,8 @@ func HaveTelegrafInputs() bool {
 	return false
 }
 
-func init() {
+//nolint:lll,goconst
+func init() { //nolint:fulen // we have to init all these samples here
 
 	TelegrafInputs[`amqp_consumer`].Sample = `
 [[inputs.amqp_consumer]]
@@ -325,7 +327,7 @@ repositories = [
         ## Multi-value plugins can be handled two ways.
         ## "split" will parse and store the multi-value plugin data into separate measurements
         ## "join" will parse and store the multi-value plugin as a single multi-value measurement.
-        ## "split" is the default behavior for backward compatability with previous versions of influxdb.
+        ## "split" is the default behavior for backward compatibility with previous versions of influxdb.
         collectd_parse_multivalue = "split"
 
 	# ----
@@ -493,7 +495,7 @@ topics = ["telegraf"]
 	TelegrafInputs[`mqtt_consumer`].Sample = `
 [[inputs.mqtt_consumer]]
 ## Broker URLs for the MQTT server or cluster.  To connect to multiple
-## clusters or standalone servers, use a seperate plugin instance.
+## clusters or standalone servers, use a separate plugin instance.
 ##   example: servers = ["tcp://localhost:1883"]
 ##            servers = ["ssl://localhost:1883"]
 ##            servers = ["ws://localhost:1883"]
@@ -910,11 +912,11 @@ IncludeTotal=false #Set to true to include _Total instance when querying for all
 	## separator character to use for measurement and field names (default: "_")
 	# separator = "_"
 
-	## number of objects to retreive per query for realtime resources (vms and hosts)
+	## number of objects to retrieve per query for realtime resources (vms and hosts)
 	## set to 64 for vCenter 5.5 and 6.0 (default: 256)
 	# max_query_objects = 256
 
-	## number of metrics to retreive per query for non-realtime resources (clusters and datastores)
+	## number of metrics to retrieve per query for non-realtime resources (clusters and datastores)
 	## set to 64 for vCenter 5.5 and 6.0 (default: 256)
 	# max_query_metrics = 256
 
@@ -1377,46 +1379,47 @@ host = '{{.Hostname}}'
 	TelegrafInputs[`processes`].Sample = `
 # Get the number of processes and group them by status
 [[inputs.processes]]
- # no configuration
+ # no configuration`
 
+	TelegrafInputs[`procstat`].Sample = `
 # Monitor process cpu and memory usage
 [[inputs.procstat]]
 # PID file to monitor process
-pid_file = "/var/run/nginx.pid"
-# executable name (ie, pgrep <exe>)
- exe = "nginx"
-# pattern as argument for pgrep (ie, pgrep -f <pattern>)
- pattern = "nginx"
-# user as argument for pgrep (ie, pgrep -u <user>)
- user = "nginx"
-# Systemd unit name
- systemd_unit = "nginx.service"
-# CGroup name or path
- cgroup = "systemd/system.slice/nginx.service"
-
-# Windows service name
- win_service = ""
-
-# override for process_name
-# This is optional; default is sourced from /proc/<pid>/status
- process_name = "bar"
-
-# Field name prefix
- prefix = ""
-
-# When true add the full cmdline as a tag.
- cmdline_tag = false
-
-# Add PID as a tag instead of a field; useful to differentiate between
-# processes whose tags are otherwise the same.  Can create a large number
-# of series, use judiciously.
- pid_tag = false
-
-# Method to use when finding process IDs.  Can be one of 'pgrep', or
-# 'native'.  The pgrep finder calls the pgrep executable in the PATH while
-# the native finder performs the search directly in a manor dependent on the
-# platform.  Default is 'pgrep'
- pid_finder = "pgrep"`
+pid_file = "/var/run/nginx.pid" # change your PID file here
+## executable name (ie, pgrep <exe>)
+# exe = "nginx"
+## pattern as argument for pgrep (ie, pgrep -f <pattern>)
+# pattern = "nginx"
+## user as argument for pgrep (ie, pgrep -u <user>)
+# user = "nginx"
+## Systemd unit name
+# systemd_unit = "nginx.service"
+## CGroup name or path
+# cgroup = "systemd/system.slice/nginx.service"
+#
+## Windows service name
+# win_service = ""
+#
+## override for process_name
+## This is optional; default is sourced from /proc/<pid>/status
+# process_name = "bar"
+#
+## Field name prefix
+# prefix = ""
+#
+## When true add the full cmdline as a tag.
+# cmdline_tag = false
+#
+## Add PID as a tag instead of a field; useful to differentiate between
+## processes whose tags are otherwise the same.  Can create a large number
+## of series, use judiciously.
+# pid_tag = false
+#
+## Method to use when finding process IDs.  Can be one of 'pgrep', or
+## 'native'.  The pgrep finder calls the pgrep executable in the PATH while
+## the native finder performs the search directly in a manor dependent on the
+## platform.  Default is 'pgrep'
+# pid_finder = "pgrep"`
 
 	TelegrafInputs[`swap`].Sample = `
 # Read metrics about swap memory usage
@@ -2280,7 +2283,7 @@ pid_file = "/var/run/nginx.pid"
    ##   See https://github.com/denisenkom/go-mssqldb for detailed connection
    ##   parameters.
    servers = [
-    "Server=192.168.1.10;Port=1433;User Id=<user>;Password=<pw>;app name=telegraf;log=1;",
+    "Server=192.168.1.10;Port=1433;User Id=<user>;Password=<pw>;app name=datakit;log=1;",
    ]
 
    ## Optional parameter, setting this to 2 will use a new version
@@ -2991,5 +2994,5 @@ pid_file = "/var/run/nginx.pid"
 
 			##(optional)Set to true to include _Total instance when querying for all (*).
 			#IncludeTotal=false
-		`
+			`
 }
