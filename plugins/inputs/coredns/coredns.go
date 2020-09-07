@@ -8,7 +8,6 @@ const (
 	inputName = "coredns"
 
 	sampleCfg = `
-[[inputs.prom]]
     # coredns metrics from http://HOST:PORT/metrics
     # usually modify host and port
     # required
@@ -38,7 +37,7 @@ type Coredns struct {
 }
 
 func (*Coredns) SampleConfig() string {
-	return sampleCfg
+	return "[[inputs.prom]]" + sampleCfg
 }
 
 func (*Coredns) Catalog() string {
