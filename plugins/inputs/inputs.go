@@ -21,7 +21,7 @@ type Input interface {
 	// add more...
 }
 
-type HttpRegInput interface {
+type HTTPInput interface {
 	Input
 	RegHttpHandler()
 }
@@ -167,9 +167,12 @@ func RunInputs() error {
 				l.Debugf("skip non-datakit-input %s", name)
 				continue
 			}
+
 			switch inp := ii.input.(type) {
-			case HttpRegInput:
+			case HTTPInput:
 				inp.RegHttpHandler()
+			default:
+				// pass
 			}
 
 			l.Infof("starting input %s ...", name)
@@ -216,20 +219,20 @@ func protectRunningInput(name string, ii *inputInfo) {
 	f(nil, nil)
 }
 
-func InputEnabled(name string) (int, []string) {
+func InputEnabled(name string) (n int, cfgs []string) {
 	mtx.RLock()
 	defer mtx.RUnlock()
 	arr, ok := inputInfos[name]
 	if !ok {
-		return 0, nil
+		return
 	}
 
-	cfgs := []string{}
 	for _, i := range arr {
 		cfgs = append(cfgs, i.cfg)
 	}
 
-	return len(arr), cfgs
+	n = len(arr)
+	return
 }
 
 func GetPanicCnt(name string) int {
