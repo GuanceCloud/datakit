@@ -8,7 +8,6 @@ const (
 	inputName = "etcd"
 
 	sampleCfg = `
-[[inputs.prom]]
     # etcd metrics from http(https)://HOST:PORT/metrics
     # usually modify host and port
     # required
@@ -44,7 +43,7 @@ type Etcd struct {
 }
 
 func (*Etcd) SampleConfig() string {
-	return sampleCfg
+	return "[[inputs.prom]]" + sampleCfg
 }
 
 func (*Etcd) Catalog() string {

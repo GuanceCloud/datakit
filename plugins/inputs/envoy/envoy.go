@@ -8,7 +8,6 @@ const (
 	inputName = "envoy"
 
 	sampleCfg = `
-[[inputs.prom]]
     # envoy metrics from http(https)://HOST:PORT/stats/prometheus
     # usually modify host and port
     # required
@@ -45,7 +44,7 @@ type Envoy struct {
 }
 
 func (*Envoy) SampleConfig() string {
-	return sampleCfg
+	return "[[inputs.prom]]" + sampleCfg
 }
 
 func (*Envoy) Catalog() string {
