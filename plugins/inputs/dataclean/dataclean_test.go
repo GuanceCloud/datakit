@@ -9,8 +9,6 @@ import (
 	"github.com/influxdata/telegraf/metric"
 	"github.com/influxdata/telegraf/plugins/serializers"
 	"github.com/influxdata/toml"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 )
 
 func TestDumpMaincfg(t *testing.T) {
@@ -87,14 +85,5 @@ func TestSerialize(t *testing.T) {
 	if err != nil {
 		t.Errorf("%s", err)
 	}
-
-	newms, err := internal.Points2Metrics(pts)
-	if err != nil {
-		t.Errorf("%s", err)
-	}
-
-	for _, mt := range newms {
-		log.Printf("time: %s", mt.Time())
-	}
-
+	_ = pts
 }
