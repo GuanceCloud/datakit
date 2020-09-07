@@ -1,10 +1,14 @@
 package config
 
 import (
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func TestEnableInputs(t *testing.T) {
@@ -51,7 +55,7 @@ func TestBuildInputCfg(t *testing.T) {
 	host = '{{.Hostname}}'`
 
 	Cfg.MainCfg.Hostname = "this-is-the-test-host-name"
-	sample, err := Cfg.BuildInputCfg([]byte(data))
+	sample, err := BuildInputCfg([]byte(data), Cfg.MainCfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +65,7 @@ func TestBuildInputCfg(t *testing.T) {
 
 func TestLoadMainCfg(t *testing.T) {
 
-	c := newDefaultCfg()
+	c := Cfg
 	if err := c.LoadMainConfig(); err != nil {
 		t.Errorf("%s", err)
 	}
@@ -108,28 +112,32 @@ global = "global config"
 	for f, v := range tbl.Fields {
 
 		switch f {
-		case "inputs":
-			switch v.(type) {
-			case *ast.Table:
-				tbl_ := v.(*ast.Table)
 
-				for _, v_ := range tbl_.Fields {
-					switch v_.(type) {
+		default:
+			// ignore
+			t.Logf("ignore %+#v", f)
+
+		case "inputs":
+			switch tpe := v.(type) {
+			case *ast.Table:
+				stbl := v.(*ast.Table)
+
+				for _, vv := range stbl.Fields {
+					switch tt := vv.(type) {
 					case []*ast.Table:
-						for idx, elem := range v_.([]*ast.Table) {
+						for idx, elem := range vv.([]*ast.Table) {
 							t.Logf("[%d] %+#v, source: %s", idx, elem, elem.Source())
 						}
 					case *ast.Table:
-						t.Logf("%+#v, source: %s", v_.(*ast.Table), v_.(*ast.Table).Source())
+						t.Logf("%+#v, source: %s", vv.(*ast.Table), vv.(*ast.Table).Source())
 					default:
-						t.Log("bad data")
+						t.Logf("bad data: %v", tt)
 					}
 				}
 
 			default:
-				t.Log("unknown type")
+				t.Logf("unknown type: %v", tpe)
 			}
-
 		}
 	}
 }
@@ -176,29 +184,30 @@ func TestTomlParse(t *testing.T) {
 	for f, v := range tbl.Fields {
 		switch f {
 		case "inputs":
-			tbl_ := v.(*ast.Table)
-			t.Logf("tbl_: %+#v", tbl_)
+			stbl := v.(*ast.Table)
+			t.Logf("stbl: %+#v", stbl)
 
-			for k, v_ := range tbl_.Fields {
-				// t.Logf("%s: %+#v", k, v_)
-
+			for k, vv := range stbl.Fields {
 				tbls := []*ast.Table{}
 
-				switch v_.(type) {
+				switch tpe := vv.(type) {
 				case []*ast.Table:
-					tbls = v_.([]*ast.Table)
+					tbls = vv.([]*ast.Table)
 				case *ast.Table:
-					tbls = append(tbls, v_.(*ast.Table))
+					tbls = append(tbls, vv.(*ast.Table))
 				default:
-					t.Fatal("bad data")
+					t.Fatalf("bad data: %v", tpe)
 				}
 
 				t.Logf("elems: %d", len(tbls))
 
 				for idx, elem := range tbls {
 					var o obj
-					toml.UnmarshalTable(elem, &o)
-					t.Logf("[%s] %d: %+#v\n", k, idx, o)
+					if err := toml.UnmarshalTable(elem, &o); err != nil {
+						t.Errorf(err.Error())
+					} else {
+						t.Logf("[%s] %d: %+#v\n", k, idx, o)
+					}
 				}
 			}
 

@@ -1,5 +1,0 @@
-sudo apt-get install libaio1 libaio-dev
-
-or
-
-sudo yum install libaio
