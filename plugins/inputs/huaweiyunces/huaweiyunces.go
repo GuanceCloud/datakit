@@ -193,16 +193,14 @@ func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
 			continue
 		}
 
-		if testInput {
-			data, err := io.MakeMetric(metricSetName, tags, fields)
-			if err != nil {
-				moduleLogger.Errorf("MakeMetric failed, %s", err)
-			} else {
-				fmt.Printf("**** %s ****\n", string(data))
-			}
+		/*data, err := io.MakeMetric(metricSetName, tags, fields)
+		if err != nil {
+			moduleLogger.Errorf("MakeMetric failed, %s", err)
 		} else {
-			io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
-		}
+			fmt.Printf("**** %s ****\n", string(data))
+		}*/
+
+		io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
 
 	}
 
