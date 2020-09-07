@@ -1,3 +1,4 @@
+//nolint:golint,stylecheck
 package http
 
 import (
@@ -11,9 +12,9 @@ import (
 )
 
 var (
-	ErrUnexpectedInternalServerError = NewErr(errors.New(`unexpected internal server error`), nhttp.StatusInternalServerError, ``)
-	ErrBadAuthHeader                 = NewErr(errors.New("invalid http Authorization header"), nhttp.StatusForbidden, ``)
-	ErrAuthFailed                    = NewErr(errors.New("http Authorization failed"), nhttp.StatusForbidden, ``)
+	ErrUnexpectedInternalServerError = NewErr(errors.New(`unexpected internal server error`), nhttp.StatusInternalServerError, "")
+	ErrBadAuthHeader                 = NewErr(errors.New("invalid http Authorization header"), nhttp.StatusForbidden, "")
+	ErrAuthFailed                    = NewErr(errors.New("http Authorization failed"), nhttp.StatusForbidden, "")
 )
 
 type HttpError struct {
@@ -36,7 +37,7 @@ func (he *HttpError) Error() string {
 	if he.Err == nil {
 		return ""
 	} else {
-		return fmt.Sprintf("%s", he.Err.Error())
+		return he.Err.Error()
 	}
 }
 
@@ -143,7 +144,7 @@ func HttpErr(c *gin.Context, err error) {
 	if ok {
 		he.HttpResp(c)
 	} else {
-		he = NewErr(err, nhttp.StatusInternalServerError, ``)
+		he = NewErr(err, nhttp.StatusInternalServerError, "")
 		he.ErrCode = ""
 		he.HttpResp(c)
 	}
@@ -157,8 +158,8 @@ func titleErr(namespace string, err error) string {
 	str := err.Error()
 	elem := strings.Split(str, ` `)
 
-	out := ``
-	if namespace != `` {
+	var out string
+	if namespace != "" {
 		out = namespace + `.`
 	}
 
