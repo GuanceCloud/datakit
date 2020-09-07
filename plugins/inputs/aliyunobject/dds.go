@@ -7,23 +7,23 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/dds"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
 	ddsSampleConfig = `
-#[inputs.aliyunobject.dds]
+#[inputs.aliyunobject.mongodb]
 
-# ## @param - custom tags for dds object - [list of key:value element] - optional
-#[inputs.aliyunobject.dds.tags]
-# key1 = 'val1'
-
-# ## @param - custom tags - [list of dds instanceid] - optional
+# ## @param - custom tags - [list of mongodb instanceid] - optional
 #db_instanceids = []
 
-# ## @param - custom tags - [list of excluded dds instanceid] - optional
+# ## @param - custom tags - [list of excluded mongodb instanceid] - optional
 #exclude_db_instanceids = []
+
+# ## @param - custom tags for mongodb object - [list of key:value element] - optional
+#[inputs.aliyunobject.mongodb.tags]
+# key1 = 'val1'
 `
 )
 
@@ -50,7 +50,7 @@ func (r *Dds) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -64,7 +64,7 @@ func (r *Dds) run(ag *objectAgent) {
 		pageNum := 1
 		pageSize := 100
 		req := dds.CreateDescribeDBInstancesRequest()
-		req.Scheme = "https"
+		req.Scheme = "https" //nolint:goconst
 
 		for {
 			moduleLogger.Infof("pageNume %v, pagesize %v", pageNum, pageSize)
@@ -97,17 +97,17 @@ func (r *Dds) run(ag *objectAgent) {
 				break
 			}
 
-			if len(r.DBInstancesIDs) <= 0 && resp.TotalCount < resp.PageNumber*pageSize {
+			if len(r.DBInstancesIDs) == 0 && resp.TotalCount < resp.PageNumber*pageSize {
 				break
 			}
 
 			pageNum++
-			if len(r.DBInstancesIDs) <= 0 {
+			if len(r.DBInstancesIDs) == 0 {
 				req.PageNumber = requests.NewInteger(pageNum)
 			}
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -121,8 +121,8 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 		//moduleLogger.Debugf("dbinstanceInfo %+#v", db)
 
 		exclude := false
-		for _, dbIsId := range ag.Dds.ExcludeDBInstanceIDs {
-			if db.DBInstanceId == dbIsId {
+		for _, dbIsID := range ag.Dds.ExcludeDBInstanceIDs {
+			if db.DBInstanceId == dbIsID {
 				exclude = true
 				break
 			}
@@ -133,7 +133,7 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 		}
 
 		tags := map[string]interface{}{
-			"__class":            "aliyun_dds",
+			"__class":            "aliyun_mongodb",
 			"__provider":         "aliyun",
 			"DBInstanceId":       db.DBInstanceId,
 			"DBInstanceType":     db.DBInstanceType,
@@ -143,12 +143,12 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 			"NetworkType":        db.NetworkType,
 			"LockMode":           db.LockMode,
 			"DBInstanceClass":    db.DBInstanceClass,
-			"EngineVersion":      db.EngineVersion,
 			"ResourceGroupId":    db.ResourceGroupId,
 			"VSwitchId":          db.VSwitchId,
 			"VpcCloudInstanceId": db.VPCCloudInstanceIds,
 			"VPCId":              db.VPCId,
 			"ZoneId":             db.ZoneId,
+			"VpcAuthMode":        db.VpcAuthMode,
 		}
 
 		for _, t := range db.Tags.Tag {
@@ -180,7 +180,6 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 			"LastDowngradeTime":     db.LastDowngradeTime,
 			"ChargeType":            db.ChargeType,
 			"ReadonlyReplicas":      db.ReadonlyReplicas,
-			"VpcAuthMode":           db.VpcAuthMode,
 			"MaxConnections":        db.MaxConnections,
 			"ReplicationFactor":     db.ReplicationFactor,
 			"CurrentKernelVersion":  db.CurrentKernelVersion,
@@ -189,12 +188,13 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 			"ReplicaSets":           db.ReplicaSets,
 			"MongosList":            db.MongosList,
 			"DBInstanceStorage":     db.DBInstanceStorage,
+			"EngineVersion":         db.EngineVersion,
 		}
 
 		objs = append(objs, obj)
 	}
 
-	if len(objs) <= 0 {
+	if len(objs) == 0 {
 		return
 	}
 
