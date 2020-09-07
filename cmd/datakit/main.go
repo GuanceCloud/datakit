@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	flagVersion        = flag.Bool("version", false, `show verison info`)
+	flagVersion        = flag.Bool("version", false, `show version info`)
 	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d, list configired and mis-configured collectors`)
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
 	flagDocker         = flag.Bool("docker", false, "run within docker")
@@ -45,7 +45,6 @@ func main() {
 	if *flagDocker {
 		run()
 	} else {
-
 		datakit.Entry = run
 		if err := datakit.StartService(); err != nil {
 			l.Errorf("start service failed: %s", err.Error())
@@ -100,13 +99,13 @@ func showAllConfigSamples() {
 	}
 }
 
-func run() error {
+func run() {
 
 	inputs.StartTelegraf()
 
 	l.Info("datakit start...")
 	if err := runDatakitWithHTTPServer(); err != nil {
-		return err
+		return
 	}
 
 	l.Info("datakit start ok. Wait signal or service stop...")
@@ -116,7 +115,7 @@ func run() error {
 	// windows/UNIX, datakit should exit via `service-stop' operation, so the signal
 	// branch should not reached, but for daily debugging(ctrl-c), we kept the signal
 	// exit option.
-	signals := make(chan os.Signal)
+	signals := make(chan os.Signal, datakit.CommonChanCap)
 	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 	select {
 	case sig := <-signals:
@@ -136,7 +135,6 @@ func run() error {
 	}
 
 	l.Info("datakit exit.")
-	return nil
 }
 
 func tryLoadConfig() {
