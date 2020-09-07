@@ -54,6 +54,7 @@ var (
 	Release      string
 	MainEntry    string
 	DownloadAddr string
+	ReleaseType  string
 )
 
 func prepare() {
@@ -145,7 +146,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"go", "build",
 		"-o", output,
 		"-ldflags",
-		"-w -s",
+		fmt.Sprintf("-w -s -X main.ReleaseType=%s", ReleaseType),
 		MainEntry,
 	}
 
