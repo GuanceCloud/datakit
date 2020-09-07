@@ -8,7 +8,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -89,11 +88,11 @@ func (c *Collector) Run() {
 		}
 
 		tags := map[string]string{
-			"uuid":    config.Cfg.MainCfg.UUID,
+			"uuid":    datakit.Cfg.MainCfg.UUID,
 			"__class": c.Class,
 		}
 
-		tags["host"] = config.Cfg.MainCfg.Hostname
+		tags["host"] = datakit.Cfg.MainCfg.Hostname
 
 		ipval := getIP()
 		if mac, err := getMacAddr(ipval); err == nil && mac != "" {
@@ -147,7 +146,7 @@ func (c *Collector) initialize() error {
 	}
 
 	if c.Name == "" {
-		c.Name = config.Cfg.MainCfg.Hostname
+		c.Name = datakit.Cfg.MainCfg.Hostname
 	}
 	if c.Interval.Duration == 0 {
 		c.Interval.Duration = 3 * time.Minute
