@@ -55,10 +55,6 @@ type (
 		cancelFun context.CancelFunc
 	}
 
-	metricMeta struct {
-		//unit string
-	}
-
 	queryListInfo struct {
 		//meta *metricMeta
 

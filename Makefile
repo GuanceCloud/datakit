@@ -21,8 +21,21 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-LOCAL_ARCHS = "windows/amd64|linux/amd64|darwin/amd64"
+# Failed to build oraclemonitor:
+# 
+# > # runtime/cgo
+# > In file included from _cgo_export.c:3:0:
+# > /usr/include/stdlib.h:25:10: fatal error: bits/libc-header-start.h: No such file or directory
+# > #include <bits/libc-header-start.h>
+# >         ^~~~~~~~~~~~~~~~~~~~~~~~~~
+# > compilation terminated.
+#
+# Solution:
+# > apt-get install gcc-multilib
+# 
+# LOCAL_ARCHS = "darwin/amd64"
 LOCAL_ARCHS = "all"
+# LOCAL_ARCHS = "linux/amd64"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -50,12 +63,26 @@ endif
 
 all: test release preprod local
 
+define GIT_INFO
+//nolint
+package git
+const (
+	BuildAt string="$(DATE)"
+	Version string="$(VERSION)"
+	Golang string="$(GOVERSION)"
+	Commit string="$(COMMIT)"
+	Branch string="$(BRANCH)"
+	Uploader string="$(UPLOADER)"
+);
+endef
+export GIT_INFO
+
 define build
 	@echo "===== $(BIN) $(1) ===="
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
 	@mkdir -p git
-	@echo 'package git; const (BuildAt string="$(DATE)"; Version string="$(VERSION)"; Golang string="$(GOVERSION)"; Commit string="$(COMMIT)"; Branch string="$(BRANCH)"; Uploader string="$(UPLOADER)");' > git/git.go
+	@echo "$$GIT_INFO" > git/git.go
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
 		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
 	@tree -Csh -L 3 $(BUILD_DIR) $(PUB_DIR)
@@ -67,8 +94,8 @@ define pub
 endef
 
 check:
-	@go vet ./...
-	#@golangci-lint run --timeout 1h # https://golangci-lint.run/usage/install/#local-installation
+	@golangci-lint run | tee lint.err # https://golangci-lint.run/usage/install/#local-installation
+	@#go vet ./...
 
 local:
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
