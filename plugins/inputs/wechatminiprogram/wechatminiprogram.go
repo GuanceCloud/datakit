@@ -4,21 +4,22 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/tidwall/gjson"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"io/ioutil"
 	"net/http"
 	url2 "net/url"
 	"strconv"
 	"time"
+
+	"github.com/tidwall/gjson"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type WxClient struct {
-	Appid    string `toml:"appid"`
-	Secret   string `toml:"secret"`
+	Appid   string `toml:"appid"`
+	Secret  string `toml:"secret"`
 	RunTime string `toml:"runtime"`
 }
 
@@ -37,7 +38,7 @@ func (wx *WxClient) run() {
 	wx.GetUserPortrait(token)
 	wx.GetDailyVisitTrend(token)
 	wx.GetVisitPage(token)
-	wx.GetJsErrSearch(token,1,100)
+	wx.GetJsErrSearch(token, 1, 100)
 	wx.GetPerformance(token)
 }
 
@@ -50,7 +51,7 @@ func (wx *WxClient) Run() {
 		l.Error(err)
 	}
 	sleepTime := wx.formatRuntime()
-	time.Sleep(time.Duration(sleepTime)*time.Second)
+	time.Sleep(time.Duration(sleepTime) * time.Second)
 	tick := time.NewTicker(interval)
 	defer tick.Stop()
 	for {
@@ -152,9 +153,8 @@ func (wx *WxClient) writeMetric(metric string, tags map[string]string, fields ma
 	}
 	data, err := io.MakeMetric(metric, tags, fields, timeObj)
 
-
 	if err != nil {
-		l.Errorf("failed to make metric, err: %s,metric: %s, tags: %s ,fields: %s", err.Error(),metric,tags,fields)
+		l.Errorf("failed to make metric, err: %s,metric: %s, tags: %s ,fields: %s", err.Error(), metric, tags, fields)
 		return
 	}
 
@@ -173,26 +173,26 @@ func (wx *WxClient) GetAccessToken() (token string) {
 		"grant_type": grantType,
 	}
 	url := wx.GetUrl(accessTokenURL, queries)
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:gosec
 	if err != nil {
-		l.Errorf("get token error %s",err)
+		l.Errorf("get token error %s", err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		l.Errorf("get token read err:%s",err)
+		l.Errorf("get token read err:%s", err)
 	}
 
 	defer resp.Body.Close()
 	code := gjson.Get(string(body), "errcode").Int()
-	if code >= 40000 {
-		fmt.Printf("error:%s",string(body))
+	if code >= errcode {
+		fmt.Printf("error:%s", string(body))
 		l.Errorf("config error: %s", gjson.Get(string(body), "errmsg").String())
 		return wx.GetAccessToken()
 	}
 	return gjson.Get(string(body), "access_token").String()
 }
 
-func (wx *WxClient) FormatUserPortraitData(body string, dataType string, timeObj time.Time) () {
+func (wx *WxClient) FormatUserPortraitData(body, dataType string, timeObj time.Time) () {
 	for k, v := range gjson.Get(body, dataType).Map() {
 		for _, value := range v.Array() {
 			tags := map[string]string{}
@@ -205,30 +205,30 @@ func (wx *WxClient) FormatUserPortraitData(body string, dataType string, timeObj
 	}
 }
 
-func (wx *WxClient) GetJsErrSearch(accessToken string,startPage int64,limit int64) (){
+func (wx *WxClient) GetJsErrSearch(accessToken string, startPage, limit int64) () {
 	queries := requestQueries{
 		"access_token": accessToken,
 	}
 	url := wx.GetUrl(jsErrSearchURL, queries)
-	var cstZone = time.FixedZone("CST", 8*3600)
+	var cstZone = time.FixedZone("CST", offect)
 	d, _ := time.ParseDuration("-24h")
 	date := time.Now().Add(d).In(cstZone).Format("20060102")
-	start, _ := time.ParseInLocation("20060102 15:04:05", date + " 23:59:59", cstZone)
-	end, _ := time.ParseInLocation("20060102 15:04:05", date + " 00:00:00", cstZone)
+	start, _ := time.ParseInLocation("20060102 15:04:05", date+" 23:59:59", cstZone)
+	end, _ := time.ParseInLocation("20060102 15:04:05", date+" 00:00:00", cstZone)
 	bodyMap := map[string]interface{}{
 		"start_time": start.Unix(),
 		"end_time":   end.Unix(),
-		"start": startPage,
-		"limit": limit,
+		"start":      startPage,
+		"limit":      limit,
 	}
 	requestBody, err := json.Marshal(bodyMap)
 	if err != nil {
-		l.Errorf("wechat request body to json err: %s",err)
+		l.Errorf("wechat request body to json err: %s", err)
 	}
 
-	resp, err := http.Post(url, "application/json; encoding=utf-8", bytes.NewBuffer(requestBody))
+	resp, err := http.Post(url, "application/json; encoding=utf-8", bytes.NewBuffer(requestBody)) //nolint:gosec
 	if err != nil {
-		l.Errorf("wechat http send url:%s body:%s err: %s",url,err,requestBody)
+		l.Errorf("wechat http send url:%s body:%s err: %s", url, err, requestBody)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -237,26 +237,26 @@ func (wx *WxClient) GetJsErrSearch(accessToken string,startPage int64,limit int6
 	}
 	defer resp.Body.Close()
 
-	if gjson.Get(string(body),"errcode").Int() != 0 {
-		l.Errorf("jsErrSearch http error : %s",string(body))
+	if gjson.Get(string(body), "errcode").Int() != 0 {
+		l.Errorf("jsErrSearch http error : %s", string(body))
 		return
 	}
 
-	for _,result := range gjson.Get(string(body),"results").Array() {
+	for _, result := range gjson.Get(string(body), "results").Array() {
 		tags := map[string]string{
-			"client_version":result.Get("client_version").String(),
-			"app_version":result.Get("app_version").String(),
-			"appid":wx.Appid,
+			"client_version": result.Get("client_version").String(),
+			"app_version":    result.Get("app_version").String(),
+			"appid":          wx.Appid,
 		}
 		fields := map[string]interface{}{
 			"version_error_cnt": result.Get("version_error_cnt").Int(),
-			"total_error_cnt": result.Get("total_error_cnt").Int(),
-			"__content" : result.Get("errmsg").String(),
+			"total_error_cnt":   result.Get("total_error_cnt").Int(),
+			"__content":         result.Get("errmsg").String(),
 		}
 		timeStamp := result.Get("time").Int()
-		data, err := io.MakeMetric("miniProgramJsErr", tags, fields, time.Unix(timeStamp,0))
+		data, err := io.MakeMetric("miniProgramJsErr", tags, fields, time.Unix(timeStamp, 0))
 		if err != nil {
-			l.Errorf("failed to make metric, err: %s,metric: %s, tags: %s ,fields: %s", err.Error(),"miniProgramJsErr",tags,fields)
+			l.Errorf("failed to make metric, err: %s,metric: %s, tags: %s ,fields: %s", err.Error(), "miniProgramJsErr", tags, fields)
 			return
 		}
 
@@ -266,37 +266,37 @@ func (wx *WxClient) GetJsErrSearch(accessToken string,startPage int64,limit int6
 		}
 	}
 
-	if startPage * limit <= gjson.Get(string(body),"total").Int() {
-		startPage ++
-		wx.GetJsErrSearch(accessToken,startPage,limit)
+	if startPage*limit <= gjson.Get(string(body), "total").Int() {
+		startPage++
+		wx.GetJsErrSearch(accessToken, startPage, limit)
 	}
 }
 
-func (wx *WxClient) GetPerformance(accessToken string) (){
+func (wx *WxClient) GetPerformance(accessToken string) () {
 	queries := requestQueries{
 		"access_token": accessToken,
 	}
 	url := wx.GetUrl(PerformanceURL, queries)
-	var cstZone = time.FixedZone("CST", 8*3600)
+	var cstZone = time.FixedZone("CST", offect)
 	d, _ := time.ParseDuration("-24h")
 	date := time.Now().Add(d).In(cstZone).Format("20060102")
-	start, _ := time.ParseInLocation("20060102 15:04:05", date + " 23:59:59", cstZone)
-	end, _ := time.ParseInLocation("20060102 15:04:05", date + " 00:00:00", cstZone)
-	for k,v := range Config["cost_time_type"] {
-		key,_ := strconv.Atoi(k)
+	start, _ := time.ParseInLocation("20060102 15:04:05", date+" 23:59:59", cstZone)
+	end, _ := time.ParseInLocation("20060102 15:04:05", date+" 00:00:00", cstZone)
+	for k, v := range Config["cost_time_type"] {
+		key, _ := strconv.Atoi(k)
 		bodyMap := map[string]interface{}{
 			"default_start_time": start.Unix(),
 			"default_end_time":   end.Unix(),
-			"cost_time_type": key,
+			"cost_time_type":     key,
 		}
 		requestBody, err := json.Marshal(bodyMap)
 		if err != nil {
-			l.Errorf("wechat request body to json err: %s",err)
+			l.Errorf("wechat request body to json err: %s", err)
 		}
 
-		resp, err := http.Post(url, "application/json; encoding=utf-8", bytes.NewBuffer(requestBody))
+		resp, err := http.Post(url, "application/json; encoding=utf-8", bytes.NewBuffer(requestBody)) //nolint:gosec
 		if err != nil {
-			l.Errorf("wechat http send url:%s body:%s err: %s",url,err,requestBody)
+			l.Errorf("wechat http send url:%s body:%s err: %s", url, err, requestBody)
 		}
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -305,18 +305,18 @@ func (wx *WxClient) GetPerformance(accessToken string) (){
 		}
 		defer resp.Body.Close()
 		tags := map[string]string{
-			"cost_time_type":v,
-			"appid":wx.Appid,
+			"cost_time_type": v,
+			"appid":          wx.Appid,
 		}
 
-		data := gjson.Get(string(body),"default_time_data").String()
-		for _,v :=range gjson.Get(data,"list").Array() {
+		data := gjson.Get(string(body), "default_time_data").String()
+		for _, v := range gjson.Get(data, "list").Array() {
 			fields := map[string]interface{}{
-				"cost_time" : v.Get("cost_time").Int(),
+				"cost_time": v.Get("cost_time").Int(),
 			}
 			line, err := io.MakeMetric("Performance", tags, fields, end)
 			if err != nil {
-				l.Errorf("failed to make metric, err: %s,metric: %s, tags: %s ,fields: %s", err.Error(),"Performance",tags,fields)
+				l.Errorf("failed to make metric, err: %s,metric: %s, tags: %s ,fields: %s", err.Error(), "Performance", tags, fields)
 				return
 			}
 
@@ -328,19 +328,17 @@ func (wx *WxClient) GetPerformance(accessToken string) (){
 	}
 }
 
-
-
-func (wx *WxClient) API(accessToken string, apiUrl string) ([]byte, time.Time) {
+func (wx *WxClient) API(accessToken, apiUrl string) ([]byte, time.Time) {
 	queries := requestQueries{
 		"access_token": accessToken,
 	}
-	url := wx.GetUrl(apiUrl, queries)
-	var cstZone = time.FixedZone("CST", 8*3600)
+	url := wx.GetUrl(apiUrl, queries) //nolint:gosec
+	var cstZone = time.FixedZone("CST", offect)
 	d, _ := time.ParseDuration("-24h")
 	date := time.Now().Add(d).In(cstZone).Format("20060102")
-	timeObj, err := time.ParseInLocation("20060102 15:04:05", date + " 23:59:59", cstZone)
+	timeObj, err := time.ParseInLocation("20060102 15:04:05", date+" 23:59:59", cstZone)
 	if err != nil {
-		l.Errorf("API time format err: %s",err)
+		l.Errorf("API time format err: %s", err)
 	}
 	bodyMap := map[string]string{
 		"begin_date": date,
@@ -348,12 +346,12 @@ func (wx *WxClient) API(accessToken string, apiUrl string) ([]byte, time.Time) {
 	}
 	requestBody, err := json.Marshal(bodyMap)
 	if err != nil {
-		l.Errorf("wechat request body to json err: %s",err)
+		l.Errorf("wechat request body to json err: %s", err)
 	}
 
-	resp, err := http.Post(url, "application/json; encoding=utf-8", bytes.NewBuffer(requestBody))
+	resp, err := http.Post(url, "application/json; encoding=utf-8", bytes.NewBuffer(requestBody)) //nolint:gosec
 	if err != nil {
-		l.Errorf("wechat http send url:%s body:%s err: %s",url,err,requestBody)
+		l.Errorf("wechat http send url:%s body:%s err: %s", url, err, requestBody)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -362,27 +360,25 @@ func (wx *WxClient) API(accessToken string, apiUrl string) ([]byte, time.Time) {
 	}
 	defer resp.Body.Close()
 	code := gjson.Get(string(body), "errcode").Int()
-	if code >= 40000 {
+	if code >= errcode {
 		l.Errorf("api error: %s %s", apiUrl, gjson.Get(string(body), "errmsg").String())
 	}
 	return body, timeObj
 }
 
-func (wx *WxClient)formatRuntime() int64{
-	var cstZone = time.FixedZone("CST", 8*3600)
+func (wx *WxClient) formatRuntime() int64 {
+	var cstZone = time.FixedZone("CST", offect)
 	now := time.Now().In(cstZone)
-	format := fmt.Sprintf("%s %s:00",now.Format("20060102"),wx.RunTime)
-	runTime,err := time.ParseInLocation("20060102 15:04:05",format,cstZone)
+	format := fmt.Sprintf("%s %s:00", now.Format("20060102"), wx.RunTime)
+	runTime, err := time.ParseInLocation("20060102 15:04:05", format, cstZone)
 	if err != nil {
 		return wx.formatRuntime()
 	}
 	var sleepTime float64
 	if now.Unix() > runTime.Unix() {
-		sleepTime = 24 * 3600 - now.Sub(runTime).Seconds()
-
-	}else {
+		sleepTime = daySecond - now.Sub(runTime).Seconds()
+	} else {
 		sleepTime = runTime.Sub(now).Seconds()
-
 	}
 	return int64(sleepTime)
 }

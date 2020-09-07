@@ -42,7 +42,10 @@ func (o *SignOption) SignReq(r *http.Request) string {
 	o.SignStr = strings.Join(signElems, "\n")
 
 	h := hmac.New(sha256.New, []byte(o.SK))
-	h.Write([]byte(o.SignStr))
+	if _, err := h.Write([]byte(o.SignStr)); err != nil {
+		panic(err)
+	}
+
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
@@ -50,15 +53,15 @@ func (o *SignOption) ParseAuth(r *http.Request) error {
 
 	authHeader := r.Header.Get(`Authorization`)
 
-	parts := strings.Split(authHeader, ` `)
+	parts := strings.Split(authHeader, " ")
 	switch len(parts) {
-	case 2:
+	case 2: //nolint:gomnd
 		if parts[0] != o.AuthorizationType {
 			goto failed
 		}
 
 		signParts := strings.Split(parts[1], `:`)
-		if len(signParts) != 2 {
+		if len(signParts) != 2 { //nolint:gomnd
 			goto failed
 		}
 
