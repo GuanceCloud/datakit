@@ -2,6 +2,84 @@ package telegraf_inputs
 
 var (
 	samples = map[string]string{
+		"active_directory": `
+		[[inputs.win_perf_counters]]
+
+		# ##(optional)custom tags
+		#[inputs.win_perf_counters.tags]
+		#  monitorgroup = "ActiveDirectory"
+	  
+		# ##(required)
+		[[inputs.win_perf_counters.object]]
+		  ObjectName = "DirectoryServices"
+		  Instances = ["*"]
+		  Counters = ["Base Searches/sec","Database adds/sec","Database deletes/sec","Database modifys/sec","Database recycles/sec","LDAP Client Sessions","LDAP Searches/sec","LDAP Writes/sec"]
+	  
+		  Measurement = "win_ad"
+		  #Instances = [""] # Gathers all instances by default, specify to only gather these
+		  #IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
+	  
+		[[inputs.win_perf_counters.object]]
+		  ObjectName = "Security System-Wide Statistics"
+		  Instances = ["*"]
+		  Counters = ["NTLM Authentications","Kerberos Authentications","Digest Authentications"]
+		  Measurement = "win_ad"
+		  #IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
+	  
+		[[inputs.win_perf_counters.object]]
+		  ObjectName = "Database"
+		  Instances = ["*"]
+		  Counters = ["Database Cache % Hit","Database Cache Page Fault Stalls/sec","Database Cache Page Faults/sec","Database Cache Size"]
+		  Measurement = "win_db"
+		  #IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
+	  `,
+
+		/////////////////////////////////////////////////////////////////////////////////////////
+
+		"iis": `
+		[[inputs.win_perf_counters]]
+		[[inputs.win_perf_counters.object]]
+		  # HTTP Service request queues in the Kernel before being handed over to User Mode.
+		  ObjectName = "HTTP Service Request Queues"
+		  Instances = ["*"]
+		  Counters = ["CurrentQueueSize","RejectedRequests"]
+		  Measurement = "iis_http_queues"
+		  #IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
+	  
+		[[inputs.win_perf_counters.object]]
+		  # IIS, ASP.NET Applications
+		  ObjectName = "ASP.NET Applications"
+		  Counters = ["Cache Total Entries","Cache Total Hit Ratio","Cache Total Turnover Rate","Output Cache Entries","Output Cache Hits","Output Cache Hit Ratio","Output Cache Turnover Rate","Compilations Total","Errors Total/Sec","Pipeline Instance Count","Requests Executing","Requests in Application Queue","Requests/Sec"]
+		  Instances = ["*"]
+		  Measurement = "iis_aspnet_app"
+		  #IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
+	  
+		[[inputs.win_perf_counters.object]]
+		  # IIS, ASP.NET
+		  ObjectName = "ASP.NET"
+		  Counters = ["Application Restarts","Request Wait Time","Requests Current","Requests Queued","Requests Rejected"]
+		  Instances = ["*"]
+		  Measurement = "iis_aspnet"
+		  #IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
+	  
+		[[inputs.win_perf_counters.object]]
+		  # IIS, Web Service
+		  ObjectName = "Web Service"
+		  Counters = ["Get Requests/sec","Post Requests/sec","Connection Attempts/sec","Current Connections","ISAPI Extension Requests/sec"]
+		  Instances = ["*"]
+		  Measurement = "iis_websvc"
+		  #IncludeTotal=false #Set to true to include _Total instance when querying for all (*).
+	  
+		[[inputs.win_perf_counters.object]]
+		  # Web Service Cache / IIS
+		  ObjectName = "Web Service Cache"
+		  Counters = ["URI Cache Hits %","Kernel: URI Cache Hits %","File Cache Hits %"]
+		  Instances = ["*"]
+		  Measurement = "iis_websvc_cache"
+		  #IncludeTotal=false #Set to true to include _Total instance when querying for all (*).`,
+
+		/////////////////////////////////////////////////////////////////////////////////////////
+
 		"kube_inventory": `
 	[[inputs.kube_inventory]]
 	# URL for the Kubernetes API
@@ -241,7 +319,7 @@ var (
 
 		/////////////////////////////////////////////////////////////////////////////////////////
 		"aspdotnet": `
-[[inputs.win_perf_counters]]
+		[[inputs.win_perf_counters]]
 		[[inputs.win_perf_counters.object]]
 			##(required)
 			ObjectName = 'ASP.NET'
