@@ -9,7 +9,7 @@ const (
 #[[inputs.httpstat]]
 #  ## default is 10s
 #  interval = '10s'
-#  [[inputs.httpStat.action]]
+#  [[inputs.httpstat.action]]
 #    url = ""
 #    method = ""
 #    playload = ""
