@@ -5,9 +5,9 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -19,6 +19,22 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
+const (
+	OSWindows = `windows`
+	OSLinux   = `linux`
+	OSDarwin  = `darwin`
+
+	OSArchWinAmd64    = "windows/amd64"
+	OSArchWin386      = "windows/386"
+	OSArchLinuxArm    = "linux/arm"
+	OSArchLinuxArm64  = "linux/arm64"
+	OSArchLinux386    = "linux/386"
+	OSArchLinuxAmd64  = "linux/amd64"
+	OSArchDarwinAmd64 = "darwin/amd64"
+
+	CommonChanCap = 32
+)
+
 var (
 	Exit = cliutils.NewSem()
 	WG   = sync.WaitGroup{}
@@ -28,19 +44,36 @@ var (
 
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 
-	AgentLogFile string
-
 	MaxLifeCheckInterval time.Duration
 
-	Docker         = false
-	InstallDir     = ""
-	TelegrafDir    = ""
-	DataDir        = ""
-	LuaDir         = ""
-	ConfdDir       = ""
-	GRPCDomainSock = ""
+	Docker = false
 
 	OutputFile = ""
+
+	dnsdests = []string{
+		`114.114.114.114:80`,
+		`8.8.8.8:80`,
+	}
+
+	optionalInstallDir = map[string]string{
+		OSArchWinAmd64: filepath.Join(`C:\Program Files\dataflux\` + ServiceName),
+		OSArchWin386:   filepath.Join(`C:\Program Files (x86)\dataflux\` + ServiceName),
+
+		OSArchLinuxArm:    filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchLinuxArm64:  filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchLinuxAmd64:  filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchLinux386:    filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchDarwinAmd64: filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+	}
+
+	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
+
+	AgentLogFile   = filepath.Join(InstallDir, "embed", "agent.log")
+	TelegrafDir    = filepath.Join(InstallDir, "embed")
+	DataDir        = filepath.Join(InstallDir, "data")
+	LuaDir         = filepath.Join(InstallDir, "lua")
+	ConfdDir       = filepath.Join(InstallDir, "conf.d")
+	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 )
 
 func MonitProc(proc *os.Process, name string) error {
@@ -126,12 +159,11 @@ type Duration struct {
 
 // UnmarshalTOML parses the duration from the TOML config file
 func (d *Duration) UnmarshalTOML(b []byte) error {
-	var err error
-	b = bytes.Trim(b, `'`)
+	b = bytes.Trim(b, "'")
 
 	// see if we can directly convert it
-	d.Duration, err = time.ParseDuration(string(b))
-	if err == nil {
+	if du, err := time.ParseDuration(string(b)); err == nil {
+		d.Duration = du
 		return nil
 	}
 
@@ -144,16 +176,15 @@ func (d *Duration) UnmarshalTOML(b []byte) error {
 	}
 
 	// First try parsing as integer seconds
-	sI, err := strconv.ParseInt(string(b), 10, 64)
-	if err == nil {
+	if sI, err := strconv.ParseInt(string(b), 10, 64); err == nil {
 		d.Duration = time.Second * time.Duration(sI)
 		return nil
 	}
 	// Second try parsing as float seconds
-	sF, err := strconv.ParseFloat(string(b), 64)
-	if err == nil {
+	if sF, err := strconv.ParseFloat(string(b), 64); err == nil {
 		d.Duration = time.Second * time.Duration(sF)
-		return nil
+	} else {
+		return err
 	}
 
 	return nil
@@ -169,10 +200,11 @@ func (s *Size) UnmarshalTOML(b []byte) error {
 	b = bytes.Trim(b, `'`)
 
 	val, err := strconv.ParseInt(string(b), 10, 64)
-	if err == nil {
-		s.Size = val
-		return nil
+	if err != nil {
+		return err
 	}
+
+	s.Size = val
 	return nil
 }
 
@@ -198,39 +230,17 @@ func NumberFormat(str string) string {
 	return n
 }
 
-type ReadWaitCloser struct {
-	pipeReader *io.PipeReader
-	wg         sync.WaitGroup
-}
-
-func CompressWithGzip(data io.Reader) (io.ReadCloser, error) {
-	pipeReader, pipeWriter := io.Pipe()
-	gzipWriter := gzip.NewWriter(pipeWriter)
-
-	rc := &ReadWaitCloser{
-		pipeReader: pipeReader,
+func GZip(data []byte) ([]byte, error) {
+	var z bytes.Buffer
+	zw := gzip.NewWriter(&z)
+	if _, err := zw.Write(data); err != nil {
+		return nil, err
 	}
 
-	rc.wg.Add(1)
-	var err error
-	go func() {
-		_, err = io.Copy(gzipWriter, data)
-		gzipWriter.Close()
-		// subsequent reads from the read half of the pipe will
-		// return no bytes and the error err, or EOF if err is nil.
-		pipeWriter.CloseWithError(err)
-		rc.wg.Done()
-	}()
-
-	return pipeReader, err
+	zw.Flush()
+	zw.Close()
+	return z.Bytes(), nil
 }
-
-var (
-	dnsdests = []string{
-		`114.114.114.114:80`,
-		`8.8.8.8:80`,
-	}
-)
 
 func LocalIP() (string, error) {
 
