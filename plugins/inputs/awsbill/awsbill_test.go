@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/costexplorer"
@@ -23,10 +24,10 @@ AWS billing metrics are available about once every 4 hours.
 */
 
 var (
-	accessKey = `AKIAJ6J5MR44T3DLI4IQ`
-	secretKey = `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`
-	//accessKey   = `AKIA2O3KWILDBBOMNHE3`
-	//secretKey   = `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`
+	//accessKey = `AKIAJ6J5MR44T3DLI4IQ`
+	//secretKey = `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`
+	accessKey   = `AKIA2O3KWILDFXX6F72U`
+	secretKey   = `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`
 	accessToken = ``
 
 	//priceClient *cloudwatch.CloudWatch
@@ -36,10 +37,10 @@ var (
 
 func defaultAuthProvider() client.ConfigProvider {
 
-	cred := credentials.NewStaticCredentials(accessKey, secretKey, accessToken)
+	cred := credentials.NewStaticCredentials(accessKey, secretKey, "")
 
 	cfg := aws.NewConfig()
-	cfg.WithCredentials(cred) //.WithRegion(`cn-north-1`)
+	cfg.WithCredentials(cred).WithRegion(endpoints.CnNorth1RegionID)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigDisable,
@@ -58,7 +59,7 @@ func getCostClient() *costexplorer.CostExplorer {
 		return billClient
 	}
 
-	billClient = costexplorer.New(defaultAuthProvider(), aws.NewConfig().WithRegion("us-east-1"))
+	billClient = costexplorer.New(defaultAuthProvider(), aws.NewConfig().WithRegion("cn-north-1"))
 	return billClient
 }
 
@@ -68,7 +69,7 @@ func getCloudwatchClient() *cloudwatch.CloudWatch {
 		return cloudwatchCli
 	}
 
-	cli := cloudwatch.New(defaultAuthProvider(), aws.NewConfig().WithRegion(`us-east-1`))
+	cli := cloudwatch.New(defaultAuthProvider(), aws.NewConfig().WithRegion(endpoints.CnNorth1RegionID))
 	cloudwatchCli = cli
 
 	return cli
@@ -106,8 +107,8 @@ func TestListMetricsOfNamespce(t *testing.T) {
 		// 		Name: aws.String(dimension),
 		// 	},
 		// },
-		NextToken:  token,
-		MetricName: aws.String(`EstimatedCharges`),
+		NextToken: token,
+		//MetricName: aws.String(`EstimatedCharges`),
 	}
 
 	result, err := getCloudwatchClient().ListMetrics(params)
