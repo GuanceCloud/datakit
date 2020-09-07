@@ -130,7 +130,6 @@ func (m *MysqlMonitor) gatherGlobalVariables(db *sql.DB, serv string) error {
 		// parse mysql version and put into field and tag
 		if strings.Contains(key, "version") {
 			fields[key] = string(val)
-			tags[key] = string(val)
 		}
 
 		value, err := m.parseGlobalVariables(key, val)
