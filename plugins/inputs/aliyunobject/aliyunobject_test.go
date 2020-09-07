@@ -87,7 +87,6 @@ func TestInput(t *testing.T) {
 	datakit.GRPCDomainSock = filepath.Join(datakit.InstallDir, "datakit.sock")
 	datakit.Exit = cliutils.NewSem()
 
-	config.Cfg.MainCfg = &config.MainConfig{}
 	config.Cfg.MainCfg.DataWay = &config.DataWayCfg{}
 
 	config.Cfg.MainCfg.DataWay.Host = "openway.dataflux.cn"
