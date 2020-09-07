@@ -17,7 +17,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
@@ -92,7 +91,7 @@ func (r *runningProject) run() {
 		}
 
 		if c.ConsumerName == "" {
-			c.ConsumerName = "datakit-" + config.Cfg.MainCfg.UUID
+			c.ConsumerName = "datakit-" + datakit.Cfg.MainCfg.UUID
 		}
 
 		go func(ls *LogStoreCfg) {
@@ -130,7 +129,7 @@ func (al *adapterLogWriter) Write(p []byte) (n int, err error) {
 func sdkLogger() log.Logger {
 	var logger log.Logger
 	logger = log.NewLogfmtLogger(log.NewSyncWriter(&adapterLogWriter{}))
-	switch config.Cfg.MainCfg.LogLevel {
+	switch datakit.Cfg.MainCfg.LogLevel {
 	case "debug":
 		logger = level.NewFilter(logger, level.AllowDebug())
 	default:
@@ -334,12 +333,10 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 
 			tm := time.Unix(int64(l.GetTime()), 0)
 
-			if TestAliyunSLS {
-				mdata, _ := io.MakeMetric(r.metricName, tags, fields, tm)
-				fmt.Printf("#### %s\n", string(mdata))
-			} else {
-				io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, tm)
-			}
+			//mdata, _ := io.MakeMetric(r.metricName, tags, fields, tm)
+			//fmt.Printf("#### %s\n", string(mdata))
+
+			io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, tm)
 
 		}
 	}
