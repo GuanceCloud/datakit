@@ -30,6 +30,8 @@ var (
 
 	flagListCollectors    = flag.Bool("tree", false, `list vailable collectors`)
 	flagDumpConfigSamples = flag.String("dump-samples", "", `dump all config samples`)
+
+	ReleaseType = ""
 )
 
 var (
@@ -69,9 +71,12 @@ func applyFlags() {
  Build At(UTC): %s
 Golang Version: %s
       Uploader: %s
-`, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader)
+ReleasedInputs: %s
+`, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, ReleaseType)
 		os.Exit(0)
 	}
+
+	datakit.ReleaseType = ReleaseType
 
 	if *flagDumpConfigSamples != "" {
 		dumpAllConfigSamples(*flagDumpConfigSamples)
@@ -101,6 +106,7 @@ func listCollectors() {
 	collectors := map[string][]string{}
 
 	for k, v := range inputs.Inputs {
+
 		cat := v().Catalog()
 		collectors[cat] = append(collectors[cat], k)
 	}
@@ -109,6 +115,11 @@ func listCollectors() {
 	for k, vs := range collectors {
 		fmt.Println(k)
 		for _, v := range vs {
+
+			if ok := inputs.AllInputs[v]; !ok && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
+				continue
+			}
+
 			fmt.Printf("  |--[d] %s\n", v)
 			ndk++
 		}
@@ -123,6 +134,11 @@ func listCollectors() {
 	for k, vs := range collectors {
 		fmt.Println(k)
 		for _, v := range vs {
+
+			if ok := inputs.AllInputs[v]; !ok && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
+				continue
+			}
+
 			fmt.Printf("  |--[t] %s\n", v)
 			ntg++
 		}
