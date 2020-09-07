@@ -3,7 +3,6 @@
 package containerd
 
 import (
-	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -19,34 +18,33 @@ const (
 
 	sampleCfg = `
 [inputs.containerd]
-	# containerd sock file, default "/run/containerd/containerd.sock"
-	# required
-	location = "/run/containerd/containerd.sock"
-
-	# containerd namespace
-	# 'ps -ef | grep containerd | grep containerd-shim' print detail
-	# required
-	namespace = "moby"
-
-	# containerd ID list，ID is string and length 64.
-	# if value is "*", collect all ID
-	# required
-	ID_list = ["*"]
-
-	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	# required
-	interval = "10s"
-
-	# [inputs.containerd.tags]
-	# tags1 = "value1"
+    # containerd sock file, default "/run/containerd/containerd.sock"
+    # required
+    location = "/run/containerd/containerd.sock"
+    
+    # containerd namespace
+    # 'ps -ef | grep containerd | grep containerd-shim' print detail
+    # required
+    namespace = "moby"
+    
+    # containerd ID list，ID is string and length 64.
+    # if value is "*", collect all ID
+    # required
+    ID_list = ["*"]
+    
+    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    # required
+    interval = "10s"
+    
+    # [inputs.containerd.tags]
+    # tags1 = "value1"
 `
 	containerdSock = "/run/containerd/containerd.sock"
 )
 
 var (
-	l *logger.Logger
-
-	testAssert = false
+	l          = logger.DefaultSLogger(inputName)
+	testAssert bool
 )
 
 func init() {
@@ -73,11 +71,11 @@ type Containerd struct {
 	duration time.Duration
 }
 
-func (_ *Containerd) Catalog() string {
+func (*Containerd) Catalog() string {
 	return inputName
 }
 
-func (_ *Containerd) SampleConfig() string {
+func (*Containerd) SampleConfig() string {
 	return sampleCfg
 }
 
@@ -105,7 +103,7 @@ func (c *Containerd) Run() {
 				continue
 			}
 			if testAssert {
-				fmt.Printf("containerd data: %s", string(data))
+				l.Infof("data: %s\n", data)
 				continue
 			}
 			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
