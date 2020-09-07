@@ -13,7 +13,6 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"sync"
 	"text/template"
 	"time"
 
@@ -28,21 +27,17 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flink"
-	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 var (
 	errEmptyBody = uhttp.NewErr(errors.New("empty body"), http.StatusBadRequest, "datakit")
+	errBadPoints = uhttp.NewErr(errors.New("bad points"), http.StatusBadRequest, "datakit")
 	httpOK       = uhttp.NewErr(nil, http.StatusOK, "datakit")
 
 	l        *logger.Logger
 	httpBind string
 
 	uptime    = time.Now()
-	mutex     = sync.Mutex{}
 	reload    time.Time
 	reloadCnt int
 
@@ -107,6 +102,43 @@ func restartHttpServer() {
 	httpStart(httpBind)
 }
 
+type welcome struct {
+	Version string
+	BuildAt string
+	Uptime  string
+	OS      string
+	Arch    string
+}
+
+func page404(c *gin.Context) {
+
+	w := &welcome{
+		Version: git.Version,
+		BuildAt: git.BuildAt,
+		OS:      runtime.GOOS,
+		Arch:    runtime.GOARCH,
+	}
+
+	c.Writer.Header().Set("Content-Type", "text/html")
+	t := template.New(``)
+	t, err := t.Parse(config.WelcomeMsgTemplate)
+	if err != nil {
+		l.Error("parse welcome msg failed: %s", err.Error())
+		uhttp.HttpErr(c, err)
+		return
+	}
+
+	buf := &bytes.Buffer{}
+	w.Uptime = fmt.Sprintf("%v", time.Since(uptime))
+	if err := t.Execute(buf, w); err != nil {
+		l.Error("build html failed: %s", err.Error())
+		uhttp.HttpErr(c, err)
+		return
+	}
+
+	c.String(http.StatusNotFound, buf.String())
+}
+
 func httpStart(addr string) {
 	router := gin.New()
 	gin.DisableConsoleColor()
@@ -125,69 +157,19 @@ func httpStart(addr string) {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(uhttp.CORSMiddleware)
+	router.NoRoute(page404)
 
-	type welcome struct {
-		Version string
-		BuildAt string
-		Uptime  string
-		OS      string
-		Arch    string
-	}
-
-	wel := &welcome{
-		Version: git.Version,
-		BuildAt: git.BuildAt,
-		OS:      runtime.GOOS,
-		Arch:    runtime.GOARCH,
-	}
-
-	router.NoRoute(func(c *gin.Context) {
-		c.Writer.Header().Set("Content-Type", "text/html")
-		t := template.New(``)
-		t, err := t.Parse(config.WelcomeMsgTemplate)
-		if err != nil {
-			l.Error("parse welcome msg failed: %s", err.Error())
-			uhttp.HttpErr(c, err)
-			return
-		}
-
-		buf := &bytes.Buffer{}
-		wel.Uptime = fmt.Sprintf("%v", time.Since(uptime))
-		if err := t.Execute(buf, wel); err != nil {
-			l.Error("build html failed: %s", err.Error())
-			uhttp.HttpErr(c, err)
-			return
-		}
-
-		c.String(404, buf.String())
-	})
-
-	RegPathToHttpServ(router)
-	// TODO: need any method?
-	// router.Any()
-
-	if n, _ := inputs.InputEnabled("druid"); n > 0 {
-		l.Info("open route for druid")
-		router.POST("/druid", func(c *gin.Context) { druid.Handle(c.Writer, c.Request) })
-	}
-
-	if n, _ := inputs.InputEnabled("flink"); n > 0 {
-		l.Info("open route for influxdb write")
-		router.POST("/write", func(c *gin.Context) { flink.Handle(c.Writer, c.Request) })
-	}
-
-	// internal datakit stats API
-	router.GET("/stats", func(c *gin.Context) { apiGetInputsStats(c.Writer, c.Request) })
-
-	// ansible api
-	router.POST("/ansible", func(c *gin.Context) { apiAnsibleHandler(c.Writer, c.Request) })
-
-	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
-
+	applyHTTPRoute(router)
 	// telegraf running
 	if inputs.HaveTelegrafInputs() {
 		router.POST("/telegraf", func(c *gin.Context) { apiTelegrafOutput(c) })
 	}
+
+	// internal datakit stats API
+	router.GET("/stats", func(c *gin.Context) { apiGetInputsStats(c.Writer, c.Request) })
+	// ansible api
+	router.POST("/ansible", func(c *gin.Context) { apiAnsibleHandler(c.Writer, c.Request) })
+	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
 
 	srv := &http.Server{
 		Addr:    addr,
@@ -195,26 +177,11 @@ func httpStart(addr string) {
 	}
 
 	go func() {
-		retryCnt := 0
-	__retry:
-		if err := srv.ListenAndServe(); err != nil {
-
-			if err != http.ErrServerClosed {
-				time.Sleep(time.Second)
-				retryCnt++
-				l.Warnf("start HTTP server at %s failed: %s, retrying(%d)...", addr, err.Error(), retryCnt)
-				goto __retry
-			} else {
-				l.Debugf("http server(%s) stopped on: %s", addr, err.Error())
-			}
-		}
-
-		stopOkCh <- nil
+		tryStartHTTPServer(srv)
 		l.Info("http server exit")
 	}()
 
 	l.Debug("http server started")
-
 	<-stopCh
 	l.Debug("stopping http server...")
 
@@ -223,8 +190,28 @@ func httpStart(addr string) {
 	} else {
 		l.Info("http server shutdown ok")
 	}
+}
 
-	return
+func tryStartHTTPServer(srv *http.Server) {
+
+	retryCnt := 0
+
+	for {
+		if err := srv.ListenAndServe(); err != nil {
+
+			if err != http.ErrServerClosed {
+				time.Sleep(time.Second)
+				retryCnt++
+				l.Warnf("start HTTP server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
+				continue
+			} else {
+				l.Debugf("http server(%s) stopped on: %s", srv.Addr, err.Error())
+				break
+			}
+		}
+	}
+
+	stopOkCh <- nil
 }
 
 func apiAnsibleHandler(w http.ResponseWriter, r *http.Request) {
@@ -281,6 +268,9 @@ type datakitStats struct {
 }
 
 func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
+
+	_ = r
+
 	stats := &datakitStats{
 		Version:      git.Version,
 		BuildAt:      git.BuildAt,
@@ -339,7 +329,6 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(body)
-	return
 }
 
 func apiTelegrafOutput(c *gin.Context) {
@@ -354,7 +343,7 @@ func apiTelegrafOutput(c *gin.Context) {
 
 	if len(body) == 0 {
 		l.Errorf("read http body failed: %s", err.Error())
-		uhttp.HttpErr(c, errEmptyBody)
+		uhttp.HttpErr(c, errBadPoints)
 		return
 	}
 
@@ -365,6 +354,11 @@ func apiTelegrafOutput(c *gin.Context) {
 	// so be careful to apply telegraf http output
 
 	points, err := models.ParsePointsWithPrecision(body, time.Now().UTC(), "n")
+	if err != nil {
+		l.Errorf("ParsePointsWithPrecision: %s", err.Error())
+		uhttp.HttpErr(c, errEmptyBody)
+	}
+
 	feeds := map[string][]string{}
 
 	for _, p := range points {
