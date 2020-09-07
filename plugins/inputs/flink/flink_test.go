@@ -33,5 +33,4 @@ func TestHash(t *testing.T) {
 	}
 
 	wg.Wait()
-
 }

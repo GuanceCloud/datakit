@@ -6,23 +6,23 @@ import (
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ons"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
 	onsSampleConfig = `
-#[inputs.aliyunobject.ons]
+#[inputs.aliyunobject.rocketmq]
 
-# ## @param - custom tags for ons object - [list of key:value element] - optional
-#[inputs.aliyunobject.ons.tags]
-# key1 = 'val1'
-
-# ## @param - custom tags - [list of ons instanceid] - optional
+# ## @param - custom tags - [list of rocketmq instanceid] - optional
 #instanceids = []
 
-# ## @param - custom tags - [list of excluded ons instanceid] - optional
+# ## @param - custom tags - [list of excluded rocketmq instanceid] - optional
 #exclude_instanceids = []
+
+# ## @param - custom tags for rocketmq object - [list of key:value element] - optional
+#[inputs.aliyunobject.rocketmq.tags]
+# key1 = 'val1'
 `
 )
 
@@ -49,7 +49,7 @@ func (r *Ons) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -71,7 +71,7 @@ func (r *Ons) run(ag *objectAgent) {
 			moduleLogger.Errorf("%s", err)
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -90,7 +90,7 @@ func (r *Ons) handleResponse(resp *ons.OnsInstanceInServiceListResponse, ag *obj
 			}
 		}
 
-		if !inc {
+		if len(ag.Ons.InstancesIDs) > 0 && !inc {
 			continue
 		}
 
@@ -107,7 +107,7 @@ func (r *Ons) handleResponse(resp *ons.OnsInstanceInServiceListResponse, ag *obj
 		}
 
 		tags := map[string]interface{}{
-			"__class":           "ons",
+			"__class":           "aliyun_rocketmq",
 			"__provider":        "aliyun",
 			"InstanceId":        o.InstanceId,
 			"IndependentNaming": o.IndependentNaming,
