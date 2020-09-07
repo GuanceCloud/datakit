@@ -17,7 +17,7 @@ var (
 
 	StopCh     = make(chan interface{})
 	waitstopCh = make(chan interface{})
-	logger     service.Logger
+	slogger    service.Logger
 )
 
 type program struct{}
@@ -49,23 +49,23 @@ func StartService() error {
 	}
 
 	errch := make(chan error, CommonChanCap)
-	logger, err = svc.Logger(errch)
+	slogger, err = svc.Logger(errch)
 	if err != nil {
 		return err
 	}
 
-	if err := logger.Info("datakit set service logger ok, starting..."); err != nil {
+	if err := slogger.Info("datakit set service logger ok, starting..."); err != nil {
 		return err
 	}
 
 	if err := svc.Run(); err != nil {
-		if serr := logger.Errorf("start service failed: %s", err.Error()); serr != nil {
+		if serr := slogger.Errorf("start service failed: %s", err.Error()); serr != nil {
 			return serr
 		}
 		return err
 	}
 
-	if err := logger.Info("datakit service exited"); err != nil {
+	if err := slogger.Info("datakit service exited"); err != nil {
 		return err
 	}
 

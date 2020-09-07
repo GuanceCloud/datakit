@@ -25,6 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins"
 )
 
 var config *Config = new(Config)
@@ -37,6 +38,8 @@ var (
 
 	l *logger.Logger
 )
+
+type monitor plugins.OracleMonitor
 
 func main() {
 	// 配置参数
