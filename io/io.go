@@ -329,10 +329,10 @@ func initCookies() {
 }
 
 func buildObjBody(bodies [][]byte) ([]byte, error) {
-	allObjs := []map[string]interface{}{}
+	allObjs := make([]map[string]interface{}, 0)
 
 	for _, data := range bodies {
-		var objs []map[string]interface{}
+		objs := make([]map[string]interface{}, 0)
 		if err := json.Unmarshal(data, &objs); err != nil {
 			l.Error(err)
 			return nil, err
