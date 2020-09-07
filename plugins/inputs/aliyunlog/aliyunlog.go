@@ -22,7 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	sls "github.com/aliyun/aliyun-log-go-sdk"
-	consumerLibrary "github.com/aliyun/aliyun-log-go-sdk/consumer"
+	consumerLibrary "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunlog/consumer"
 )
 
 var (
@@ -130,7 +130,12 @@ func (al *adapterLogWriter) Write(p []byte) (n int, err error) {
 func sdkLogger() log.Logger {
 	var logger log.Logger
 	logger = log.NewLogfmtLogger(log.NewSyncWriter(&adapterLogWriter{}))
-	logger = level.NewFilter(logger, level.AllowInfo())
+	switch config.Cfg.MainCfg.LogLevel {
+	case "debug":
+		logger = level.NewFilter(logger, level.AllowDebug())
+	default:
+		logger = level.NewFilter(logger, level.AllowInfo())
+	}
 	logger = log.With(logger, "time", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 	return logger
 }
@@ -189,12 +194,8 @@ func (r *runningStore) run() error {
 		CursorPosition: consumerLibrary.BEGIN_CURSOR,
 	}
 
-	// var loggerFn = func(keyvals ...interface{}) error {
-
-	// }
-
-	consumerWorker := consumerLibrary.InitConsumerWorker(option, r.logProcess)
-	consumerWorker.Logger = sdkLogger()
+	consumerWorker := consumerLibrary.InitConsumerWorker(option, sdkLogger(), r.logProcess)
+	//consumerWorker.Logger = sdkLogger()
 	consumerWorker.Start()
 
 	<-datakit.Exit.Wait()
@@ -333,10 +334,12 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 
 			tm := time.Unix(int64(l.GetTime()), 0)
 
-			//mdata, _ := io.MakeMetric(r.metricName, tags, fields, tm)
-			//fmt.Printf("#### %s\n", string(mdata))
-
-			io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, tm)
+			if TestAliyunSLS {
+				mdata, _ := io.MakeMetric(r.metricName, tags, fields, tm)
+				fmt.Printf("#### %s\n", string(mdata))
+			} else {
+				io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, tm)
+			}
 
 		}
 	}
