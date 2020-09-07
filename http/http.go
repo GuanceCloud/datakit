@@ -172,6 +172,8 @@ func httpStart(addr string) {
 	router.POST("/ansible", func(c *gin.Context) { apiAnsibleHandler(c.Writer, c.Request) })
 	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
 
+	router.POST(io.Metric, func(c *gin.Context) { apiWriteMetric(c) })
+	router.POST(io.Object, func(c *gin.Context) { apiWriteObject(c) })
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: router,
