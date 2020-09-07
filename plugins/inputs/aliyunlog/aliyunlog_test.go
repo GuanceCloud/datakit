@@ -11,6 +11,10 @@ import (
 	sls "github.com/aliyun/aliyun-log-go-sdk"
 )
 
+var (
+	TestAliyunSLS = false
+)
+
 func TestConfig(t *testing.T) {
 
 	cfg := &ConsumerInstance{
@@ -109,6 +113,9 @@ func TestConsumer(t *testing.T) {
 }
 
 func TestService(t *testing.T) {
+
+	TestAliyunSLS = true
+
 	ag := NewAgent()
 
 	data, err := ioutil.ReadFile("./test.conf")
