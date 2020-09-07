@@ -114,7 +114,11 @@ func slogger(name string) *zap.SugaredLogger {
 	}
 
 	if root == nil {
-		SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT)
+		if runtime.GOOS != "windows" {
+			SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT|OPT_COLOR)
+		} else {
+			SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT)
+		}
 		root = stdoutRootLogger
 	}
 
