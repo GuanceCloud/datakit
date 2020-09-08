@@ -30,10 +30,7 @@ const (
 `
 )
 
-var (
-	l          = logger.DefaultSLogger(inputName)
-	testAssert bool
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -123,10 +120,6 @@ func extract(body []byte, tags map[string]string) error {
 			l.Errorf("failed to make metric, err: %s", err.Error())
 			flag = true
 			continue
-		}
-
-		if testAssert {
-			l.Infof("%s\n", data)
 		}
 
 		if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
