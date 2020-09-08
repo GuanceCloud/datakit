@@ -106,21 +106,30 @@ func listCollectors() {
 	collectors := map[string][]string{}
 
 	for k, v := range inputs.Inputs {
-
 		cat := v().Catalog()
 		collectors[cat] = append(collectors[cat], k)
 	}
 
+	star := " * "
+	uncheck := " ? "
+
 	ndk := 0
+	nuncheck := 0
 	for k, vs := range collectors {
 		fmt.Println(k)
 		for _, v := range vs {
+			checked := inputs.AllInputs[v]
 
-			if ok := inputs.AllInputs[v]; !ok && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
+			if !checked && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
 				continue
 			}
 
-			fmt.Printf("  |--[d] %s\n", v)
+			if checked {
+				fmt.Printf("  |--[d]%s%s\n", star, v)
+			} else {
+				nuncheck++
+				fmt.Printf("  |--[d]%s%s\n", uncheck, v)
+			}
 			ndk++
 		}
 	}
@@ -135,16 +144,23 @@ func listCollectors() {
 		fmt.Println(k)
 		for _, v := range vs {
 
-			if ok := inputs.AllInputs[v]; !ok && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
+			checked := inputs.AllInputs[v]
+			if !checked && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
 				continue
 			}
 
-			fmt.Printf("  |--[t] %s\n", v)
+			if checked {
+				fmt.Printf("  |--[t]%s%s\n", star, v)
+			} else {
+				nuncheck++
+				fmt.Printf("  |--[t]%s%s\n", uncheck, v)
+			}
+
 			ntg++
 		}
 	}
 
-	fmt.Printf("total %d, datakit: %d, telegraf: %d\n", ntg+ndk, ndk, ntg)
+	fmt.Printf("total %d, datakit: %d, telegraf: %d, uncheck: %d\n", ntg+ndk, ndk, ntg, nuncheck)
 }
 
 func dumpAllConfigSamples(fpath string) {

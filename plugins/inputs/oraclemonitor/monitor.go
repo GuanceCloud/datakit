@@ -7,29 +7,38 @@ import (
 
 const (
 	configSample = `
-[[oraclemonitor]]
-  ## 采集的频度，最小粒度5m
-  interval = '1m'
-  ## 指标集名称，默认值oracle_monitor
-  metricName = 'oracle_monitor'
-  ## 实例ID(非必要属性)
-  instanceId = 'oracle01'
-  ## # 实例描述(非必要属性)
-  instanceDesc = 'DBA团队自建Oracle单实例-booboo'
-  ## oracle实例地址(ip)
-  host = 'xxx.xxx.xx.x'
-  ## oracle监听端口
-  port = '1521'
-  ## 帐号
-  username = 'xxxxxx'
-  ## 密码
-  password = 'xxxxxx'
-  ## oracle的服务名
-  server = 'testdb.zhuyun'
-  ## 实例类型 例如 single、dg、rac(require)
-  cluster= 'single'
-  ## 采集的oracle版本，支持10g, 11g, 12c
-  version = '11g'
+[[inputs.external]]
+	name = 'oracle_monitor'
+	envs = ['LD_LIBRARY_PATH=/opt/oracle/instantclient_19_8:$LD_LIBRARY_PATH',]
+	cmd = "/usr/local/cloudcare/dataflux/datakit/externals"
+	args = [
+	'-instance-id', '<your-instance-id>',
+	'-metric-name', 'oracle_monitor',
+	'-internal', '1m',
+	'-instance-desc', '<your-oracle-description>',
+	'-host', '<your-oracle-host>',
+	'-port', '1521',
+	'-username', '<oracle-user-name>',
+	'-password', '<oracle-password>',
+	'-service-name', '<oracle-service-name>',
+	'-cluster-type', 'single',
+	'-oracle-version', '11g',
+	]
+
+	#############################
+	# 参数说明(标 * 为必选项)
+	#############################
+	# *-interval       : 采集的频度，最小粒度5m
+	#  -metric-name    : 指标集名称，默认值oracle_monitor
+	#  -instance-id    : 实例ID
+	#  -instance-desc  : 实例描述
+	# *-host           : oracle实例地址(ip)
+	#  -port           : oracle监听端口
+	# *-username       : oracle 用户名
+	# *-password       : oracle 密码
+	# *-service-name   : oracle的服务名
+	# *-cluster-type   : 实例类型(例如 single/dg/rac)
+	# *-oracle-version : 采集的oracle版本(支持10g, 11g, 12c)
 `
 )
 
