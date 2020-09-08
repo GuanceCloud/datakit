@@ -27,10 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flink"
-	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
+	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 var (
@@ -75,7 +72,7 @@ func reloadDatakit() error {
 
 	// reload configs
 	l.Info("reloading configs...")
-	if err := config.LoadCfg(); err != nil {
+	if err := config.LoadCfg(datakit.Cfg); err != nil {
 		l.Errorf("load config failed: %s", err)
 		return err
 	}
@@ -147,14 +144,14 @@ func httpStart(addr string) {
 	router := gin.New()
 	gin.DisableConsoleColor()
 
-	l.Infof("set gin log to %s", config.Cfg.MainCfg.GinLog)
-	f, err := os.Create(config.Cfg.MainCfg.GinLog)
+	l.Infof("set gin log to %s", datakit.Cfg.MainCfg.GinLog)
+	f, err := os.Create(datakit.Cfg.MainCfg.GinLog)
 	if err != nil {
 		l.Fatalf("create gin log failed: %s", err)
 	}
 
 	gin.DefaultWriter = iowrite.MultiWriter(f)
-	if config.Cfg.MainCfg.LogLevel != "debug" {
+	if datakit.Cfg.MainCfg.LogLevel != "debug" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -164,17 +161,6 @@ func httpStart(addr string) {
 	router.NoRoute(page404)
 
 	applyHTTPRoute(router)
-
-	if n, _ := inputs.InputEnabled("druid"); n > 0 {
-		l.Info("open route for druid")
-		router.POST("/druid", func(c *gin.Context) { druid.Handle(c.Writer, c.Request) })
-	}
-
-	if n, _ := inputs.InputEnabled("flink"); n > 0 {
-		l.Info("open route for influxdb write")
-		router.POST("/write", func(c *gin.Context) { flink.Handle(c.Writer, c.Request) })
-	}
-
 	// telegraf running
 	if inputs.HaveTelegrafInputs() {
 		router.POST("/telegraf", func(c *gin.Context) { apiTelegrafOutput(c) })
@@ -186,6 +172,8 @@ func httpStart(addr string) {
 	router.POST("/ansible", func(c *gin.Context) { apiAnsibleHandler(c.Writer, c.Request) })
 	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
 
+	router.POST(io.Metric, func(c *gin.Context) { apiWriteMetric(c) })
+	router.POST(io.Object, func(c *gin.Context) { apiWriteObject(c) })
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: router,
@@ -314,8 +302,8 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	for k, ti := range inputs.TelegrafInputs {
-		n, cfgs := ti.Enabled()
+	for k, _ := range tgi.TelegrafInputs {
+		n, cfgs := inputs.InputEnabled(k)
 		if n > 0 {
 			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Cfgs: cfgs})
 		}
@@ -325,13 +313,13 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", k))
 	}
 
-	for k, _ := range inputs.TelegrafInputs {
+	for k, _ := range tgi.TelegrafInputs {
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[T] %s", k))
 	}
 
 	// add available inputs(datakit+telegraf) stats
 	stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("tatal %d, datakit %d, agent: %d",
-		len(stats.AvailableInputs), len(inputs.Inputs), len(inputs.TelegrafInputs)))
+		len(stats.AvailableInputs), len(inputs.Inputs), len(tgi.TelegrafInputs)))
 
 	sort.Strings(stats.AvailableInputs)
 
