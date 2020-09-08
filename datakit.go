@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -38,6 +39,7 @@ const (
 var (
 	Exit = cliutils.NewSem()
 	WG   = sync.WaitGroup{}
+	l    = logger.DefaultSLogger("datakit")
 
 	GlobalExit = cliutils.NewSem()
 	GlobalWG   = sync.WaitGroup{}
