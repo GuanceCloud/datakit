@@ -5,15 +5,17 @@ RUN mkdir -p /usr/local/cloudcare/dataflux/datakit/embed/linux-amd64
 RUN mkdir -p /usr/local/cloudcare/dataflux/datakit/externals
 RUN mkdir -p /opt/oracle
 
-COPY build/datakit-linux-amd64/datakit /usr/local/cloudcare/dataflux/datakit/datakit
-COPY build/datakit-linux-amd64/externals /usr/local/cloudcare/dataflux/datakit/externals
+
+COPY dist/datakit-linux-amd64/datakit /usr/local/cloudcare/dataflux/datakit/datakit
+COPY dist/datakit-linux-amd64/externals /usr/local/cloudcare/dataflux/datakit/externals
 COPY embed/linux-amd64/agent /usr/local/cloudcare/dataflux/datakit/embed/linux-amd64/agent
-COPY plugins/externals/oraclemonitor/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip
 
 RUN apt-get update
-#RUN apt-get install -y libaio-dev libaio1 unzip vim
-RUN apt-get install -y libaio-dev libaio1 unzip
-RUN unzip /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip -d /opt/oracle
+RUN apt-get install -y libaio-dev libaio1 unzip wget
+
+RUN wget https://download.oracle.com/otn_software/linux/instantclient/19800/instantclient-basiclite-linux.x64-19.8.0.0.0dbru.zip?xd_co_f=6a6ddc80-4750-4aca-bd5f-ffd0b3fbd9aa -O /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basiclite-linux.zip
+#COPY plugins/externals/oraclemonitor/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip
+RUN unzip /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle
 
 ARG dataway=""
 ARG uuid=""
