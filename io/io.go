@@ -20,9 +20,10 @@ import (
 )
 
 var (
-	l       *logger.Logger
-	httpCli *http.Client
-	baseURL string
+	l          = logger.DefaultSLogger("io")
+	testAssert = false
+	httpCli    *http.Client
+	baseURL    string
 
 	inputCh    = make(chan *iodata, datakit.CommonChanCap)
 	inputstats = map[string]*InputsStat{}
@@ -77,6 +78,10 @@ type qstats struct {
 	ch chan []*InputsStat
 }
 
+func TestOutput() {
+	testAssert = true
+}
+
 func ChanInfo() (l, c int) {
 	l = len(inputCh)
 	c = cap(inputCh)
@@ -89,6 +94,11 @@ func Feed(data []byte, category string) error {
 }
 
 func doFeed(data []byte, category, name string) error {
+	if testAssert {
+		l.Infof("[%s] source: %s data: %s", category, name, data)
+		return nil
+	}
+
 	switch category {
 	case Metric, KeyEvent, Logging:
 		// metric line check
