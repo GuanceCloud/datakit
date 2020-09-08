@@ -1,7 +1,6 @@
 package aliyuncost
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -245,20 +244,16 @@ func TestConfig(t *testing.T) {
 
 func TestSvr(t *testing.T) {
 
-	var alicost CostCfg
+	ag := newAgent()
 
-	if data, err := ioutil.ReadFile("./demo.toml"); err != nil {
+	if data, err := ioutil.ReadFile("./test.conf"); err != nil {
 		log.Fatalf("%s", err)
 	} else {
-		if toml.Unmarshal(data, &alicost); err != nil {
+		if toml.Unmarshal(data, ag); err != nil {
 			log.Fatalf("%s", err)
 		}
 	}
 
-	alicost.ctx, alicost.cancelFun = context.WithCancel(context.Background())
-
-	alicost.Run()
-
-	time.Sleep(time.Hour)
-
+	ag.debugMode = true
+	ag.Run()
 }
