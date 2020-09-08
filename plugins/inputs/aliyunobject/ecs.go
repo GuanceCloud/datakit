@@ -140,7 +140,7 @@ func (e *Ecs) handleResponse(resp *ecs.DescribeInstancesResponse, ag *objectAgen
 		obj[`VlanId`] = inst.VlanId
 
 		tags := map[string]interface{}{
-			`__class`:                 `ECS`,
+			`__class`:                 `aliyun_ecs`,
 			`provider`:                `aliyun`,
 			`ClusterId`:               inst.ClusterId,
 			`DeploymentSetId`:         inst.DeploymentSetId,
