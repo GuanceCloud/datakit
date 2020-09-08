@@ -1,37 +1,41 @@
 package http
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"reflect"
 	"runtime"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
-type RegHttpInfo struct {
+type httpRouteInfo struct {
 	Method  string
 	Path    string
 	Handler gin.HandlerFunc
 }
 
-var (
-	httpRegList = make([]*RegHttpInfo, 0, 16)
-)
+var httpRouteList = make(map[string]*httpRouteInfo)
 
-func RegHttpHandler(method, path string, handler gin.HandlerFunc) {
-	regInfo := &RegHttpInfo{
-		method,
-		path,
-		handler,
+func RegHttpHandler(method, path string, handler http.HandlerFunc) {
+	method = strings.ToUpper(method)
+
+	if _, ok := httpRouteList[method+path]; ok {
+		l.Warnf("failed to register %s %s by handler %s to HTTP server because of exists", method, path, getFunctionName(handler, '/'))
+	} else {
+		httpRouteList[method+path] = &httpRouteInfo{
+			Method:  method,
+			Path:    path,
+			Handler: func(c *gin.Context) { handler(c.Writer, c.Request) },
+		}
 	}
-	httpRegList = append(httpRegList, regInfo)
 }
 
 func applyHTTPRoute(router *gin.Engine) {
-	for _, regInfo := range httpRegList {
-		method := strings.ToUpper(regInfo.Method)
-		path := regInfo.Path
-		handler := regInfo.Handler
+	for _, routeInfo := range httpRouteList {
+		method := routeInfo.Method
+		path := routeInfo.Path
+		handler := routeInfo.Handler
 
 		l.Infof("register %s %s by handler %s to HTTP server", method, path, getFunctionName(handler, '/'))
 

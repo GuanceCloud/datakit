@@ -24,6 +24,7 @@ require (
 	github.com/containerd/ttrpc v1.0.1 // indirect
 	github.com/containerd/typeurl v1.0.1
 	github.com/coreos/go-systemd/v22 v22.1.0
+	github.com/docker/docker v1.4.2-0.20180327123150-ed7b6428c133
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fsnotify/fsnotify v1.4.7
@@ -38,7 +39,7 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.2
 	github.com/golang/snappy v0.0.1
-	github.com/google/gopacket v1.1.18
+	github.com/google/gopacket v1.1.17
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
