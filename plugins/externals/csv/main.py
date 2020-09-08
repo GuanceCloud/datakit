@@ -3,16 +3,20 @@ import os
 import time
 import argparse
 import shutil
+import base64
+import logging
 
-from csvkit.network import Downloder
+from csvkit.network import Downloder, set_http_addr
 from csvkit.utils import is_http_url, exit
 from csvkit.yaml_parse import YamlParser
 from csvkit.worker import Worker
 from csvkit.const import FILE
 from csvkit.convert import Csv2Excel
+from csvkit.log import en_logging
 
 EXCEL_SUFFIX = ".xlsx"
 TEMP_DIR = ""
+HTTP_ADDR = ""
 
 def tmp_dir():
     global TEMP_DIR
@@ -31,14 +35,16 @@ def tmp_dir():
 
     return TEMP_DIR
 
-
 def parse_cli():
     """
     解析命令行参数
     :return: 解析后参数
     """
     parser = argparse.ArgumentParser(description="Convert CSV/EXCEL file to influxdb line protocol by http transmission")
-    parser.add_argument('-y','--yaml', help='YAML cfg info', default="")
+    parser.add_argument('--yaml', help='YAML cfg info', default="")
+    parser.add_argument('--http', help='Http host address', default="http://127.0.0.1:9529")
+    parser.add_argument('--log_file', help='Log file name', default="")
+    parser.add_argument('--log_level', help='Log level', default="info")
     args = parser.parse_args()
     return args
 #
@@ -63,6 +69,12 @@ def get_file(file):
     else:
         raise Exception("file `{}` not founded.".format(file))
 
+def read_local_cfg():
+    if not os.path.exists("config.yaml"):
+        return ""
+    with open("1.txt", "r") as f:
+        cfg_data = f.read()
+    return cfg_data
 
 def csv2excel(files):
     url_file, file_path = files
@@ -79,13 +91,32 @@ def csv2excel(files):
         return (url_file, conv_path)
 
 args = parse_cli()
-if args.yaml == "":
-    exit(0)
+en_logging(args.log_file, args.log_level)
 
-yaml_data = YamlParser(args.yaml).parse()
-succ_csv= get_file(yaml_data[FILE])
-succ_csv = csv2excel(succ_csv)
-Worker(yaml_data, *[succ_csv]).run()
-if TEMP_DIR != "":
-    shutil.rmtree(TEMP_DIR)
-exit(0)
+try:
+    logging.info("http addr: {}".format(args.http))
+    set_http_addr(args.http)
+
+    logging.info("start read yaml cfg file")
+    yaml_cfg = ""
+    if args.yaml != "":
+        yaml_cfg =  base64.standard_b64decode(args.yaml)
+    else:
+        yaml_cfg = read_local_cfg()
+
+    if yaml_cfg == "":
+        logging.critical("yaml cfg empty")
+        exit(0)
+
+    logging.info("start parse yaml cfg file")
+    yaml_data = YamlParser(yaml_cfg).parse()
+    logging.info("parsed yaml cfg data: {}".format(yaml_data))
+
+    succ_csv= get_file(yaml_data[FILE])
+    succ_csv = csv2excel(succ_csv)
+    Worker(yaml_data, *[succ_csv]).run()
+    if TEMP_DIR != "":
+        shutil.rmtree(TEMP_DIR)
+    exit(0)
+except Exception as e:
+    logging.critical("{}".format(e))
