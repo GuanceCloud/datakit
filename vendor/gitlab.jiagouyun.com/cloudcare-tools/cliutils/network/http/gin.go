@@ -38,7 +38,7 @@ func CORSMiddleware(c *gin.Context) {
 	c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 
 	if c.Request.Method == "OPTIONS" {
-		c.AbortWithStatus(204)
+		c.AbortWithStatus(http.StatusNoContent)
 		return
 	}
 
@@ -50,8 +50,7 @@ func TraceIDMiddleware(c *gin.Context) {
 		c.Next()
 	} else {
 		tid := c.Request.Header.Get("X-Trace-ID")
-		if len(tid) == 0 {
-			//tid = cliutils.UUID(`trace_`)
+		if tid == "" {
 			tid = cliutils.XID(`trace_`)
 			c.Request.Header.Set("X-Trace-ID", tid)
 		}
@@ -62,17 +61,16 @@ func TraceIDMiddleware(c *gin.Context) {
 }
 
 func FormatRequest(r *http.Request) string {
-	var request []string
 
 	// Add the request string
 	url := fmt.Sprintf("%v %v %v", r.Method, r.URL, r.Proto)
-	request = append(request, url)
+	request := []string{url}
+
 	// Add the host
 	request = append(request, fmt.Sprintf("Host: %v", r.Host))
 	// Loop through headers
 
 	for name, headers := range r.Header {
-		// name = strings.ToLower(name)
 		for _, h := range headers {
 			request = append(request, fmt.Sprintf("%v: %v", name, h))
 		}

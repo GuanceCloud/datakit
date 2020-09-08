@@ -1,69 +1,53 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
+	sysIO "io"
 	"io/ioutil"
+	"net/http"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	_ "github.com/godror/godror"
-	"google.golang.org/grpc"
+	"golang.org/x/net/context/ctxhttp"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins"
 )
+
+var config *Config = new(Config)
 
 var (
-	flagCfgStr  = flag.String("cfg", "", "json config string")
-	flagCfgFile = flag.String("cfg-file", "", "json config file")
-	flagDesc    = flag.String("desc", "", "description of the process, for debugging")
+	flagCfgFile  = flag.String("cfg-file", "", "config file")
+	flagLog      = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log file")
+	flagLogLevel = flag.String("log-level", "info", "log file")
+	flagDesc     = flag.String("desc", "", "description of the process, for debugging")
 
-	flagRPCServer = flag.String("rpc-server", "unix://"+datakit.GRPCDomainSock, "gRPC server")
-	flagLog       = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log file")
-	flagLogLevel  = flag.String("log-level", "info", "log file")
-
-	l      *logger.Logger
-	rpcCli io.DataKitClient
+	l *logger.Logger
 )
 
-type monitor oraclemonitor.OracleMonitor
+type monitor plugins.OracleMonitor
 
 func main() {
+	// 配置参数
 	flag.Parse()
-	var err error
 
-	var cfgdata []byte
-
-	if *flagCfgStr == "" {
-		if *flagCfgFile == "" {
-			panic("config missing")
-		}
-
-		cfgdata, err = ioutil.ReadFile(*flagCfgFile)
-		if err != nil {
-			panic(fmt.Sprintf("read config file %s failed: %s", *flagCfgFile, err.Error()))
-		}
-	} else {
-		cfgdata, err = base64.StdEncoding.DecodeString(*flagCfgStr)
-		if err != nil {
-			panic(err)
-		}
+	if *flagCfgFile == "" {
+		panic("config missing")
 	}
-
-	logger.SetGlobalRootLogger(*flagLog,
-		*flagLogLevel,
-		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
 
 	if *flagDesc != "" {
 		l = logger.SLogger("oraclemonitor-" + *flagDesc)
@@ -73,74 +57,117 @@ func main() {
 
 	l.Infof("log level: %s", *flagLogLevel)
 
-	var m monitor
-	if err := json.Unmarshal(cfgdata, &m); err != nil {
-		l.Errorf("failed to parse json `%s': %s", *flagCfgStr, err)
-		return
-	}
-
-	l.Infof("gRPC dial %s...", *flagRPCServer)
-	conn, err := grpc.Dial(*flagRPCServer, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Second*5))
+	cfg, err := ParseConfig(*flagCfgFile)
 	if err != nil {
-		l.Fatalf("connect RCP failed: %s", err)
+		panic("config missing")
 	}
 
-	l.Infof("gRPC connect %s ok", *flagRPCServer)
-	defer conn.Close()
+	logger.SetGlobalRootLogger(*flagLog,
+		*flagLogLevel,
+		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
 
-	rpcCli = io.NewDataKitClient(conn)
+	// 多实例子控制
+	var wg sync.WaitGroup
+	for _, monitor := range cfg.OracleMonitor {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			monitor.run()
+		}()
+	}
 
-	m.run()
+	wg.Wait()
 }
 
-func (m *monitor) run() {
+// ParseConfig 解析配置文件
+func ParseConfig(fpath string) (*Config, error) {
+	_, err := toml.DecodeFile(fpath, config)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+type Config struct {
+	OracleMonitor []*OracleMonitor `json:"oraclemonitor" toml:"oraclemonitor"`
+}
+
+type OracleMonitor struct {
+	Metric   string `json:"metricName" toml:"metricName"`
+	Interval string `json:"interval" toml:"interval"`
+
+	InstanceId string `json:"instanceId" toml:"instanceId"`
+	User       string `json:"username" toml:"username"`
+	Password   string `json:"password" toml:"password"`
+	Desc       string `json:"instanceDesc" toml:"instanceDesc"`
+	Host       string `json:"host" toml:"host"`
+	Port       string `json:"port" toml:"port"`
+	Server     string `json:"server" toml:"server"`
+	Type       string `json:"type" toml:"type"`
+	Version    string `json:"version" toml:"version"`
+	Cluster    string `json:"cluster" toml:"cluster"`
+
+	WriteUrl string            `json:"writeUrl" toml:"writeUrl"`
+	Tags     map[string]string `json:"tags" toml:"tags"`
+
+	DB               *sql.DB       `json:"-" json:"-"`
+	IntervalDuration time.Duration `json:"-" json:"-"`
+}
+
+func (o *OracleMonitor) run() {
 
 	l.Info("start monit oracle...")
 
-	m.IntervalDuration = 10 * time.Second
+	o.IntervalDuration = 10 * time.Minute
+	o.Metric = "oraclemonitor"
 
-	if m.Interval != "" {
-		du, err := time.ParseDuration(m.Interval)
+	if o.WriteUrl == "" {
+		o.WriteUrl = "http://0.0.0.0:9529/telegraf"
+	}
+
+	if o.Interval != "" {
+		du, err := time.ParseDuration(o.Interval)
 		if err != nil {
-			l.Errorf("bad interval %s: %s, use default: 10s", m.Interval, err.Error())
+			l.Errorf("bad interval %s: %s, use default: 10m", o.Interval, err.Error())
 		} else {
-			m.IntervalDuration = du
+			o.IntervalDuration = du
 		}
 	}
 
-	tick := time.NewTicker(m.IntervalDuration)
+	tick := time.NewTicker(o.IntervalDuration)
 	defer tick.Stop()
 
-	connStr := fmt.Sprintf("%s/%s@%s/%s", m.User, m.Password, m.Host, m.Server)
+	connStr := fmt.Sprintf("%s/%s@%s/%s", o.User, o.Password, o.Host, o.Server)
 	db, err := sql.Open("godror", connStr)
 	if err != nil {
 		l.Errorf("oracle connect faild %v", err)
 		return
 	}
-	m.DB = db
-	defer m.DB.Close()
+	o.DB = db
+	defer o.DB.Close()
 
-	// XXX: should we add signal handling here?
 	for {
 		select {
 		case <-tick.C:
-			for key, stmt := range metricMap {
-
-				l.Debugf("sql: %s", stmt)
-
-				res, err := query(m.DB, stmt)
-				if err != nil {
-					l.Errorf("oracle query `%s' faild: %v, ignored", stmt, err)
-					continue
-				}
-
-				handleResponse(m, key, res)
+			for _, obj := range execCfgs {
+				go o.handle(obj)
 			}
 		}
 	}
 }
 
-func handleResponse(m *monitor, k string, response []map[string]interface{}) error {
+func (o *OracleMonitor) handle(obj *ExecCfg) {
+	l.Debugf("sql: %s", obj.sql)
+
+	res, err := o.query(obj)
+	if err != nil {
+		l.Debugf("oracle query `%s' faild: %v, ignored", obj.sql, err)
+	}
+
+	handleResponse(o, obj.metricType, obj.tagsMap, res)
+}
+
+func handleResponse(m *OracleMonitor, k string, tagsKeys []string, response []map[string]interface{}) error {
 	lines := [][]byte{}
 
 	for _, item := range response {
@@ -155,11 +182,9 @@ func handleResponse(m *monitor, k string, response []map[string]interface{}) err
 		tags["host"] = m.Host
 		tags["type"] = k
 
-		if tagKeys, ok := tagsMap[k]; ok {
-			for _, tagKey := range tagKeys {
-				tags[tagKey] = String(item[tagKey])
-				delete(item, tagKey)
-			}
+		for _, tagKey := range tagsKeys {
+			tags[tagKey] = String(item[tagKey])
+			delete(item, tagKey)
 		}
 
 		// add user-added tags
@@ -174,8 +199,10 @@ func handleResponse(m *monitor, k string, response []map[string]interface{}) err
 			return err
 		}
 
-		lines = append(lines, ptline)
-		l.Debugf("add point %+#v", string(ptline))
+		// io 输出
+		if err := WriteData(ptline, m.WriteUrl); err != nil {
+			l.Errorf("err msg", err)
+		}
 	}
 
 	if len(lines) == 0 {
@@ -183,25 +210,21 @@ func handleResponse(m *monitor, k string, response []map[string]interface{}) err
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	r, err := rpcCli.Send(ctx, &io.Request{
-		Lines:     bytes.Join(lines, []byte("\n")),
-		Precision: "ns",
-		Name:      "oraclemonitor",
-	})
-	if err != nil {
-		l.Errorf("feed error: %s", err.Error())
-		return err
-	}
-
-	l.Debugf("feed %d points, error: `%s'", r.GetPoints(), r.GetErr())
-
 	return nil
 }
 
-func query(db *sql.DB, sql string) ([]map[string]interface{}, error) {
-	rows, err := db.Query(sql)
+func (o *OracleMonitor) query(obj *ExecCfg) ([]map[string]interface{}, error) {
+	// 版本执行控制
+	if !strings.Contains(obj.cluster, o.Cluster) {
+		return nil, fmt.Errorf("oracle query `%s' not support cluseter: %s, ignored\n", obj.sql, o.Cluster)
+	}
+
+	if !strings.Contains(obj.version, o.Version) {
+		l.Errorf("oracle query `%s' not support version: %s, ignored", obj.sql, o.Cluster)
+		return nil, fmt.Errorf("oracle query `%s' not support version: %s, ignored\n", obj.sql, o.Version)
+	}
+
+	rows, err := o.DB.Query(obj.sql)
 	if err != nil {
 		return nil, err
 	}
@@ -297,6 +320,47 @@ func String(i interface{}) string {
 	}
 }
 
+// dataway写入数据
+func WriteData(data []byte, urlPath string) error {
+	// dataway path
+	ctx, _ := context.WithCancel(context.Background())
+	httpReq, err := http.NewRequest("POST", urlPath, bytes.NewBuffer(data))
+
+	if err != nil {
+		l.Errorf("[error] %s", err.Error())
+		return err
+	}
+
+	httpReq = httpReq.WithContext(ctx)
+	httpReq.Header.Set("X-Datakit-UUID", "oracleMonitor")
+
+	tmctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	httpResp, err := ctxhttp.Do(tmctx, http.DefaultClient, httpReq)
+	if err != nil {
+		l.Errorf("[error] %s", err.Error())
+		return err
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode/100 != 2 {
+		scanner := bufio.NewScanner(sysIO.LimitReader(httpResp.Body, 1024*1024))
+		line := ""
+		if scanner.Scan() {
+			line = scanner.Text()
+		}
+		err = fmt.Errorf("server returned HTTP status %s: %s", httpResp.Status, line)
+	}
+	body, err := ioutil.ReadAll(httpResp.Body)
+	if err != nil {
+		l.Errorf("[error] read error %s", err.Error())
+		return err
+	}
+	l.Debugf("[debug] %s %d", string(body), httpResp.StatusCode)
+	return err
+}
+
 const (
 	oracle_hostinfo_sql = `
 SELECT stat_name, value
@@ -325,7 +389,7 @@ FROM v$instance
 	oracle_psu_sql = `
 select  nvl(max(id),0) max_id from  Dba_Registry_History
 `
-	oracle_key_params = `SELECT
+	oracle_key_params_sql = `SELECT
     name,
     value
 FROM
@@ -671,6 +735,97 @@ from (select a.recid backup_recid,
 ) group by backup_types
 `
 
+	oracle_failed_login_sql = `
+	select b.name name,b.lcount lcount_value from dba_users a join user$ b on a.username = b.name where a.INHERITED='NO'
+	`
+
+	oracle_temp_file_info_sql = `
+	select f.tablespace_name "tablespace_name",
+       d.file_name "tempfile_name",
+    d.status "status",
+       round((f.bytes_free + f.bytes_used), 2) "t_size",
+       round(nvl(p.bytes_used, 0), 2) "t_use",
+       round(((f.bytes_free + f.bytes_used) - nvl(p.bytes_used, 0)),
+             2) "t_free",
+       round((round(nvl(p.bytes_used, 0), 2) /
+             round((f.bytes_free + f.bytes_used), 2)) * 100,
+             2) as "t_percent"
+  	from SYS.V_$TEMP_SPACE_HEADER f,
+       DBA_TEMP_FILES           d,
+       SYS.V_$TEMP_EXTENT_POOL  p
+ 	where f.tablespace_name(+) = d.tablespace_name
+	`
+
+	oracle_object_info_sql = `
+	select object_type,
+ 	count(*) all_count,
+ 	sum(case when status = 'INVALID' then 1 else 0 end) invaid_count,
+ 	sum(case when status != 'INVALID' then 1 else 0 end) vaid_count
+ 	from dba_objects
+	group by object_type
+	`
+
+	oracle_broken_jobs_sql = `select count(broken) broken_value from dba_jobs`
+
+	oracle_session_wait_info_sql = `
+	select wait_class, sum(total_waits) waits_value from  v$session_wait_class group by wait_class
+	`
+
+	oracle_scn_growth_statistics_sql = `
+	declare
+    rsl number;
+    headroom_in_scn number;
+    headroom_in_sec number;
+    cur_scn_compat number;
+    max_scn_compat number;
+
+	begin
+	    dbms_scn.getcurrentscnparams(rsl,headroom_in_scn,headroom_in_sec,cur_scn_compat,max_scn_compat);
+	    dbms_output.put_line('RSL='||rsl);
+	    dbms_output.put_line('headroom_in_scn='||headroom_in_scn);
+	    dbms_output.put_line('headroom_in_sec='||headroom_in_sec);
+	    dbms_output.put_line('CUR_SCN_COMPAT='||cur_scn_compat);
+	    dbms_output.put_line('MAX_SCN_COMPAT='||max_scn_compat);
+	end
+	`
+
+	oracle_scn_max_statistics_sql = `
+	declare
+	    rsl number;
+	    headroom_in_scn number;
+	    headroom_in_sec number;
+	    cur_scn_compat number;
+	    max_scn_compat number;
+
+	begin
+	    dbms_scn.getcurrentscnparams(rsl,headroom_in_scn,headroom_in_sec,cur_scn_compat,max_scn_compat);
+	    dbms_output.put_line('RSL='||rsl);
+	    dbms_output.put_line('headroom_in_scn='||headroom_in_scn);
+	    dbms_output.put_line('headroom_in_sec='||headroom_in_sec);
+	    dbms_output.put_line('CUR_SCN_COMPAT='||cur_scn_compat);
+	    dbms_output.put_line('MAX_SCN_COMPAT='||max_scn_compat);
+	end`
+
+	oracle_pdb_failures_jobs_sql = `select failures  failures_value from dba_jobs`
+
+	oracle_scn_instance_statistics_sql = `
+	declare
+    rsl number;
+    headroom_in_scn number;
+    headroom_in_sec number;
+    cur_scn_compat number;
+    max_scn_compat number;
+
+	begin
+	    dbms_scn.getcurrentscnparams(rsl,headroom_in_scn,headroom_in_sec,cur_scn_compat,max_scn_compat);
+	    dbms_output.put_line('RSL='||rsl);
+	    dbms_output.put_line('headroom_in_scn='||headroom_in_scn);
+	    dbms_output.put_line('headroom_in_sec='||headroom_in_sec);
+	    dbms_output.put_line('CUR_SCN_COMPAT='||cur_scn_compat);
+	    dbms_output.put_line('MAX_SCN_COMPAT='||max_scn_compat);
+	end
+	`
+
 	oracle_tablespace_free_pct_sql = `
 select a.tablespace_name tablespace_name,
       a.bytes  t_size,
@@ -732,6 +887,37 @@ where a.tablespace_name = b.tablespace_name`
     from v$rsrcpdbmetric r, cdb_pdbs p
     `
 
+	oracle_clu_info_sql = `
+	resource\ora.asm\crsctl status res ora.asm
+    resource\ora.cvu\crsctl status res ora.cvu
+    resource\ora.gsd\crsctl status res ora.gsd
+    resource\ora.LISTENER.lsnr\crsctl status res ora.LISTENER.lsnr
+    resource\ora.LISTENER_SCAN1.lsnr\crsctl status res ora.LISTENER_SCAN1.lsnr
+    resource\ora.LISTENER_SCAN2.lsnr\crsctl status res ora.LISTENER_SCAN2.lsnr
+    resource\ora.LISTENER_SCAN3.lsnr\crsctl status res ora.LISTENER_SCAN3.lsnr
+    resource\ora.net1.network\crsctl status res ora.net1.network
+    resource\ora.node1.vip\crsctl status res ora.node1.vip
+    resource\ora.node2.vip\crsctl status res ora.node2.vip
+    resource\ora.oc4j\crsctl status res ora.oc4j
+    resource\ora.ons\crsctl status res ora.ons
+    resource\ora.OVDATA.dg\crsctl status res ora.OVDATA.dg
+    resource\ora.rac.db\crsctl status res ora.rac.db
+    resource\ora.RACDATA.dg\crsctl status res ora.RACDATA.dg
+    resource\ora.RACFRA.dg\crsctl status res ora.RACFRA.dg
+    resource\ora.registry.acfs\crsctl status res ora.registry.acfs
+    resource\ora.scan1.vip\crsctl status res ora.scan1.vip
+    resource\ora.scan2.vip\crsctl status res ora.scan2.vip
+    resource\ora.scan3.vip\crsctl status res ora.scan3.vip
+    server\Oracle High Availability Services\crsctl check has
+    server\Cluster Ready Services\crsctl check crs | grep Ready
+    server\Cluster Synchronization Services\crsctl check css
+    server\Event Manager\crsctl check evm
+    component\freespace\cluvfy comp freespace | tail -1
+    component\clocksync\cluvfy comp clocksync  | tail -1
+    component\nodeapp\cluvfy comp nodeapp | tail -1
+    component\scan\cluvfy comp scan | tail -1
+	`
+
 	// 采集ASM磁盘组状态
 	oracle_asm_group_info_sql = `
     select GROUP_NUMBER,NAME AS GROUP_NAME,STATE,TYPE,TOTAL_MB,FREE_MB,REQUIRED_MIRROR_FREE_MB,USABLE_FILE_MB,OFFLINE_DISKS,VOTING_FILES from v$asm_diskgroup
@@ -749,63 +935,346 @@ where a.tablespace_name = b.tablespace_name`
     `
 )
 
-var (
-	metricMap = map[string]string{
-		"oracle_hostinfo":            oracle_hostinfo_sql,
-		"oracle_dbinfo":              oracle_dbinfo_sql,
-		"oracle_instinfo":            oracle_instinfo_sql,
-		"oracle_psu":                 oracle_psu_sql,
-		"oracle_blocking_sessions":   oracle_blocking_sessions_sql,
-		"oracle_undo_stat":           oracle_undo_stat_sql,
-		"oracle_redo_info":           oracle_redo_info_sql,
-		"oracle_standby_log":         oracle_standby_log_sql,
-		"oracle_standby_process":     oracle_standby_process_sql,
-		"oracle_asm_diskgroups":      oracle_asm_diskgroups_sql,
-		"oracle_flash_area_info":     oracle_flash_area_info_sql,
-		"oracle_tbs_space":           oracle_tbs_space_sql,
-		"oracle_tbs_meta_info":       oracle_tbs_meta_info_sql,
-		"oracle_temp_segment_usage":  oracle_temp_segment_usage_sql,
-		"oracle_trans":               oracle_trans_sql,
-		"oracle_archived_log":        oracle_archived_log_sql,
-		"oracle_pgastat":             oracle_pgastat_sql,
-		"oracle_accounts":            oracle_accounts_sql,
-		"oracle_locks":               oracle_locks_sql,
-		"oracle_session_ratio":       oracle_session_ratio_sql,
-		"oracle_snap_info":           oracle_snap_info_sql,
-		"oralce_backup_set_info":     oralce_backup_set_info_sql,
-		"oracle_tablespace_free_pct": oracle_tablespace_free_pct_sql,
-		"oracle_dg_fsfo_info":        oracle_dg_fsfo_info_sql,
-		"oracle_dg_performance_info": oracle_dg_performance_info_sql,
-		"oracle_dg_failover":         oracle_dg_failover_sql,
-		"oracle_dg_delay_info":       oracle_dg_delay_info_sql,
-		"oracle_dg_apply_rate":       oracle_dg_apply_rate_sql,
-		"oracle_dg_dest_error":       oracle_dg_dest_error_sql,
-		"oracle_dg_proc_info":        oracle_dg_proc_info_sql,
-		"oracle_cdb_db_info":         oracle_cdb_db_info_sql,
-		"oracle_cdb_resource_info":   oracle_cdb_resource_info_sql,
-		"oracle_asm_group_info":      oracle_asm_group_info_sql,
-		"oracle_asm_disk_info":       oracle_asm_disk_info_sql,
-	}
+type ExecCfg struct {
+	sql        string
+	metricType string
+	version    string
+	cluster    string
+	tagsMap    []string
+}
 
-	tagsMap = map[string][]string{
-		"oracle_hostinfo":            []string{"stat_name"},
-		"oracle_dbinfo":              []string{"ora_db_id"},
-		"oracle_key_params":          []string{"name"},
-		"oracle_blocking_sessions":   []string{"sid", "serial", "username"},
-		"oracle_redo_info":           []string{"group_no", "sequence_no"},
-		"oracle_standby_log":         []string{"message_num"},
-		"oracle_standby_process":     []string{"process_seq"},
-		"oracle_asm_diskgroups":      []string{"group_number", "group_name"},
-		"oracle_flash_area_info":     []string{"name"},
-		"oracle_tbs_space":           []string{"tablespace_name"},
-		"oracle_tbs_meta_info":       []string{"tablespace_name"},
-		"oracle_temp_segment_usage":  []string{"tablespace_name"},
-		"oracle_pgastat":             []string{"name"},
-		"oracle_accounts":            []string{"username", "user_id"},
-		"oracle_locks":               []string{"session_id"},
-		"oracle_session_ratio":       []string{"parameter"},
-		"oracle_snap_info":           []string{"dbid", "snap_id"},
-		"oralce_backup_set_info":     []string{"backup_types"},
-		"oracle_tablespace_free_pct": []string{"tablesapce_name"},
-	}
-)
+var execCfgs = []*ExecCfg{
+	&ExecCfg{
+		sql:        oracle_hostinfo_sql,
+		metricType: "oracle_hostinfo",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"stat_name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_dbinfo_sql,
+		metricType: "oracle_dbinfo",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"ora_db_id"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_key_params_sql,
+		metricType: "oracle_key_params",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"ora_db_id"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_instinfo_sql,
+		metricType: "oracle_instinfo",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_psu_sql,
+		metricType: "oracle_psu",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_blocking_sessions_sql,
+		metricType: "oracle_blocking_sessions",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"sid", "serial", "username"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_undo_stat_sql,
+		metricType: "oracle_undo_stat",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"stat_name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_redo_info_sql,
+		metricType: "oracle_redo_info",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"group_no", "sequence_no"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_standby_log_sql,
+		metricType: "oracle_standby_log",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"message_num"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_standby_process_sql,
+		metricType: "oracle_standby_process",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"process_seq"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_asm_diskgroups_sql,
+		metricType: "oracle_asm_diskgroups",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"group_number", "group_name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_flash_area_info_sql,
+		metricType: "oracle_flash_area_info",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_tbs_space_sql,
+		metricType: "oracle_tbs_space",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"tablespace_name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_failed_login_sql,
+		metricType: "oracle_failed_login",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_temp_file_info_sql,
+		metricType: "oracle_temp_file_info",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_object_info_sql,
+		metricType: "oracle_object_info",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_broken_jobs_sql,
+		metricType: "oracle_broken_jobs",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_session_wait_info_sql,
+		metricType: "oracle_session_wait_info",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_scn_growth_statistics_sql,
+		metricType: "oracle_scn_growth_statistics",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_scn_max_statistics_sql,
+		metricType: "oracle_scn_max_statistics",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_pdb_failures_jobs_sql,
+		metricType: "oracle_pdb_failures_jobs",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_tbs_meta_info_sql,
+		metricType: "oracle_tbs_meta_info",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"tablespace_name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_temp_segment_usage_sql,
+		metricType: "oracle_temp_segment_usage",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"tablespace_name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_trans_sql,
+		metricType: "oracle_trans",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"stat_name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_archived_log_sql,
+		metricType: "oracle_archived_log",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"stat_name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_pgastat_sql,
+		metricType: "oracle_pgastat",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_accounts_sql,
+		metricType: "oracle_accounts",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"username", "user_id"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_locks_sql,
+		metricType: "oracle_locks",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"session_id"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_session_ratio_sql,
+		metricType: "oracle_session_ratio",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"parameter"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_snap_info_sql,
+		metricType: "oracle_snap_info",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"dbid", "snap_id"},
+	},
+
+	&ExecCfg{
+		sql:        oralce_backup_set_info_sql,
+		metricType: "oralce_backup_set_info",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"backup_types"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_tablespace_free_pct_sql,
+		metricType: "oracle_tablespace_free_pct",
+		cluster:    "single",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"tablesapce_name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_dg_fsfo_info_sql,
+		metricType: "oracle_dg_fsfo_info",
+		cluster:    "dg",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_dg_performance_info_sql,
+		metricType: "oracle_dg_performance_info",
+		cluster:    "dg",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_dg_failover_sql,
+		metricType: "oracle_dg_failover",
+		cluster:    "dg",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_dg_delay_info_sql,
+		metricType: "oracle_dg_delay_info",
+		cluster:    "dg",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_dg_apply_rate_sql,
+		metricType: "oracle_dg_apply_rate",
+		cluster:    "dg",
+		version:    "10g, 11g, 12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_dg_dest_error_sql,
+		metricType: "oracle_dg_dest_error",
+		cluster:    "dg",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"dest_name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_dg_proc_info_sql,
+		metricType: "oracle_dg_proc_info",
+		cluster:    "dg",
+		version:    "10g, 11g, 12c",
+		tagsMap:    []string{"process"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_cdb_db_info_sql,
+		metricType: "oracle_cdb_db_info",
+		cluster:    "single",
+		version:    "12c",
+	},
+
+	&ExecCfg{
+		sql:        oracle_cdb_resource_info_sql,
+		metricType: "oracle_cdb_resource_info",
+		cluster:    "single",
+		version:    "12c",
+		tagsMap:    []string{"pdb_name"},
+	},
+
+	&ExecCfg{
+		sql:        oracle_clu_info_sql,
+		metricType: "oracle_clu_info",
+		cluster:    "rac",
+		version:    "11g",
+	},
+
+	&ExecCfg{
+		sql:        oracle_asm_group_info_sql,
+		metricType: "oracle_asm_group_info",
+		cluster:    "rac",
+		version:    "11g",
+	},
+
+	&ExecCfg{
+		sql:        oracle_asm_disk_info_sql,
+		metricType: "oracle_asm_disk_info",
+		cluster:    "rac",
+		version:    "11g",
+		tagsMap:    []string{"disk_name", "group_name"},
+	},
+}
