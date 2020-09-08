@@ -95,7 +95,7 @@ var (
 		"nvidia_smi":             true,
 		"openldap":               true,
 		"openntpd":               true,
-		"oraclemonitor":          true,
+		"oraclemonitor":          false, // TODO: re-impl
 		"phpfpm":                 true,
 		"ping":                   true,
 		"postgresql":             true,
