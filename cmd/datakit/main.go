@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -17,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 var (
@@ -25,7 +28,8 @@ var (
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
 	flagDocker         = flag.Bool("docker", false, "run within docker")
 
-	flagListConfigSamples = flag.Bool("config-samples", false, `list all config samples`)
+	flagListCollectors    = flag.Bool("tree", false, `list vailable collectors`)
+	flagDumpConfigSamples = flag.String("dump-samples", "", `dump all config samples`)
 )
 
 var (
@@ -69,13 +73,18 @@ Golang Version: %s
 		os.Exit(0)
 	}
 
-	if *flagListConfigSamples {
-		showAllConfigSamples()
+	if *flagDumpConfigSamples != "" {
+		dumpAllConfigSamples(*flagDumpConfigSamples)
 		os.Exit(0)
 	}
 
 	if *flagCheckConfigDir {
 		config.CheckConfd()
+		os.Exit(0)
+	}
+
+	if *flagListCollectors {
+		listCollectors()
 		os.Exit(0)
 	}
 
@@ -88,14 +97,58 @@ Golang Version: %s
 	}
 }
 
-func showAllConfigSamples() {
+func listCollectors() {
+	collectors := map[string][]string{}
+
 	for k, v := range inputs.Inputs {
-		sample := v().SampleConfig()
-		fmt.Printf("%s\n========= [D] ==========\n%s\n", k, sample)
+		cat := v().Catalog()
+		collectors[cat] = append(collectors[cat], k)
 	}
 
-	for k, v := range inputs.TelegrafInputs {
-		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v.Sample)
+	ndk := 0
+	for k, vs := range collectors {
+		fmt.Println(k)
+		for _, v := range vs {
+			fmt.Printf("  |--[d] %s\n", v)
+			ndk++
+		}
+	}
+
+	collectors = map[string][]string{}
+	for k, v := range tgi.TelegrafInputs {
+		collectors[v.Catalog] = append(collectors[v.Catalog], k)
+	}
+
+	ntg := 0
+	for k, vs := range collectors {
+		fmt.Println(k)
+		for _, v := range vs {
+			fmt.Printf("  |--[t] %s\n", v)
+			ntg++
+		}
+	}
+
+	fmt.Printf("total %d, datakit: %d, telegraf: %d\n", ntg+ndk, ndk, ntg)
+}
+
+func dumpAllConfigSamples(fpath string) {
+
+	if err := os.MkdirAll(fpath, os.ModePerm); err != nil {
+		panic(err)
+	}
+
+	for k, v := range inputs.Inputs {
+		sample := v().SampleConfig()
+		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), os.ModePerm); err != nil {
+			panic(err)
+		}
+	}
+
+	for k, v := range tgi.TelegrafInputs {
+		sample := v.SampleConfig()
+		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), os.ModePerm); err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -138,10 +191,10 @@ func run() {
 }
 
 func tryLoadConfig() {
-	config.Cfg.InputFilters = inputFilters
+	datakit.Cfg.InputFilters = inputFilters
 
 	for {
-		if err := config.LoadCfg(); err != nil {
+		if err := config.LoadCfg(datakit.Cfg); err != nil {
 			l.Errorf("load config failed: %s", err)
 			time.Sleep(time.Second)
 		} else {
@@ -162,7 +215,7 @@ func runDatakitWithHTTPServer() error {
 	}
 
 	go func() {
-		http.Start(config.Cfg.MainCfg.HTTPBind)
+		http.Start(datakit.Cfg.MainCfg.HTTPBind)
 	}()
 
 	return nil
