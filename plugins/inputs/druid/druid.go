@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -62,11 +60,7 @@ func (d *Druid) Run() {
 }
 
 func (d *Druid) RegHttpHandler() {
-	httpd.RegHttpHandler("POST", d.Path, d.HandleWrap)
-}
-
-func (d *Druid) HandleWrap(c *gin.Context) {
-	d.Handle(c.Writer, c.Request)
+	httpd.RegHttpHandler("POST", d.Path, d.Handle)
 }
 
 func (d *Druid) Handle(w http.ResponseWriter, r *http.Request) {
