@@ -19,15 +19,15 @@ import (
 )
 
 var (
-	inputName    = "aws_billing"
+	inputName    = "awsbill"
 	moduleLogger *logger.Logger
 )
 
-func (_ *AwsInstance) Catalog() string {
+func (*AwsInstance) Catalog() string {
 	return "aws"
 }
 
-func (_ *AwsInstance) SampleConfig() string {
+func (*AwsInstance) SampleConfig() string {
 	return sampleConfig
 }
 
@@ -47,7 +47,7 @@ func (a *AwsInstance) Run() {
 	a.billingMetrics = make(map[string]*cloudwatch.Metric)
 
 	if a.MetricName == "" {
-		a.MetricName = "aws_billing"
+		a.MetricName = "awsbill"
 	}
 
 	if a.Interval.Duration == 0 {
@@ -205,10 +205,10 @@ func (r *AwsInstance) run(ctx context.Context) error {
 		default:
 		}
 
-		end_time := time.Now().UTC().Truncate(time.Minute)
-		start_time := end_time.Add(-r.Interval.Duration)
+		endTime := time.Now().UTC().Truncate(time.Minute)
+		startTime := endTime.Add(-r.Interval.Duration)
 
-		response, err := r.getMetric(ctx, start_time, end_time)
+		response, err := r.getMetric(ctx, startTime, endTime)
 
 		if err != nil {
 			moduleLogger.Errorf("fail to GetMetricData, %s", err)
