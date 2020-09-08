@@ -196,7 +196,7 @@ func handleResponse(m *monitor, k string, tagsKeys []string, response []map[stri
 
 		// io 输出
 		if err := WriteData(ptline, datakitPostURL); err != nil {
-			l.Errorf("err msg", err)
+			return err
 		}
 	}
 
@@ -348,7 +348,7 @@ func WriteData(data []byte, urlPath string) error {
 		l.Debugf("post to %s ok", urlPath)
 		return nil
 	default:
-		l.Errorf("post to %s failed(HTTP: %d): %s", resp.StatusCode, string(body))
+		l.Errorf("post to %s failed(HTTP: %d): %s", urlPath, resp.StatusCode, string(body))
 		return fmt.Errorf("post datakit failed")
 	}
 	return nil
