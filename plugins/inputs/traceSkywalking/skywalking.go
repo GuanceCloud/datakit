@@ -2,11 +2,12 @@ package traceSkywalking
 
 import (
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
 var (
 	inputName = "traceSkywalking"
 
@@ -29,13 +30,13 @@ var (
 )
 
 type Skywalking struct {
-	GrpcPort    int32
-	Tags        map[string]string
+	GrpcPort int32
+	Tags     map[string]string
 }
 
 type SkywalkingTrace struct {
-	V2       *Skywalking
-	V3       *Skywalking
+	V2 *Skywalking
+	V3 *Skywalking
 }
 
 var SkywalkingTagsV2 map[string]string
@@ -74,10 +75,10 @@ func (t *SkywalkingTrace) Run() {
 
 func (t *SkywalkingTrace) RegHttpHandler() {
 	if t.V3 != nil {
-		http.RegHttpHandler("POST", "/v3/segment", SkywalkingTraceHandleWrap)
-		http.RegHttpHandler("POST", "/v3/segments", SkywalkingTraceHandleWrap)
-		http.RegHttpHandler("POST", "/v3/management/reportProperties", SkywalkingTraceHandleWrap)
-		http.RegHttpHandler("POST", "/v3/management/keepAlive", SkywalkingTraceHandleWrap)
+		http.RegHttpHandler("POST", "/v3/segment", SkywalkingTraceHandle)
+		http.RegHttpHandler("POST", "/v3/segments", SkywalkingTraceHandle)
+		http.RegHttpHandler("POST", "/v3/management/reportProperties", SkywalkingTraceHandle)
+		http.RegHttpHandler("POST", "/v3/management/keepAlive", SkywalkingTraceHandle)
 	}
 }
 
