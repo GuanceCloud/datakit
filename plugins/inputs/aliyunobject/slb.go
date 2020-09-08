@@ -131,7 +131,7 @@ func (s *Slb) handleResponse(resp *slb.DescribeLoadBalancersResponse, ag *object
 		obj[`AddressIPVersion`] = inst.AddressIPVersion
 
 		tags := map[string]interface{}{
-			`__class`:            `SLB`,
+			`__class`:            `aliyun_slb`,
 			`provider`:           `aliyun`,
 			`InternetChargeType`: inst.InternetChargeType,
 			`ResourceGroupId`:    inst.ResourceGroupId,
