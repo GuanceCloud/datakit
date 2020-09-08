@@ -11,14 +11,14 @@ import (
 
 const (
 	sampleConfig = `
-#[[inputs.aws_billing]]
+#[[inputs.awsbill]]
 # ##(required)
 #access_key = ''
 #access_secret = ''
 #access_token = ''
 #region_id = 'us-east-1'
 
-# ##(optional) custom metric name, default is aws_billing
+# ##(optional) custom metric name, default is awsbill
 #metric_name = ''
 
 # ##(optional) collect interval, default is 6 hours. AWS billing metrics are available about once every 4 hours.
