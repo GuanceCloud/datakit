@@ -3,9 +3,13 @@ package dockerlog
 import (
 	"context"
 	"testing"
+
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestMain(t *testing.T) {
+	iod.TestOutput()
+
 	var d = DockerLogs{
 		Endpoint:      defaultEndpoint,
 		newEnvClient:  NewEnvClient,
