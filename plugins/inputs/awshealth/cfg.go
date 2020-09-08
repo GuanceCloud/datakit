@@ -1,52 +1,53 @@
 package awshealth
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"context"
+
+	"golang.org/x/time/rate"
+
+	"github.com/aws/aws-sdk-go/service/health"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-type CredentialConfig struct {
-	Region      string
-	AccessKey   string
-	SecretKey   string
-	RoleARN     string
-	Profile     string
-	Filename    string
-	Token       string
-	EndpointURL string
-}
+const (
+	sampleConfig = `
+#[[inputs.awshealth]]
+# ##(required)
+#access_key_id = ''
+#access_key_secret = ''
+#region = 'cn-north-1'
 
-func (c *CredentialConfig) Credentials() client.ConfigProvider {
-	if c.RoleARN != "" {
-		return c.assumeCredentials()
-	} else {
-		return c.rootCredentials()
-	}
-}
+# ##(optional) custom metric name, default is awshealth
+#metric_name = ''
 
-func (c *CredentialConfig) rootCredentials() client.ConfigProvider {
-	config := &aws.Config{
-		Region:   aws.String(c.Region),
-		Endpoint: &c.EndpointURL,
-	}
-	if c.AccessKey != "" || c.SecretKey != "" {
-		config.Credentials = credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, c.Token)
-	} else if c.Profile != "" || c.Filename != "" {
-		config.Credentials = credentials.NewSharedCredentials(c.Filename, c.Profile)
-	}
+# ##(optional) collect interval, default is 1min.
+#interval = '1m'
 
-	return session.New(config)
-}
+# ##(optional) custom tags
+#[inputs.awshealth.tags]
+#key1 = "val1"
+`
+)
 
-func (c *CredentialConfig) assumeCredentials() client.ConfigProvider {
-	rootCredentials := c.rootCredentials()
-	config := &aws.Config{
-		Region:   aws.String(c.Region),
-		Endpoint: &c.EndpointURL,
+type (
+	agent struct {
+		AccessKeyID     string `toml:"access_key_id"`
+		AccessKeySecret string `toml:"access_key_secret"`
+		Region          string `toml:"region"`
+		Interval        datakit.Duration
+		MetricName      string `toml:"metric_name"`
+		// EventStatus     []string
+		// EventType       []string
+		// EventCode       []string
+		// Services        []string
+		Tags map[string]string `toml:"tags,omitempty"`
+
+		client *health.Health
+
+		rateLimiter *rate.Limiter
+
+		ctx       context.Context
+		cancelFun context.CancelFunc
 	}
-	config.Credentials = stscreds.NewCredentials(rootCredentials, c.RoleARN)
-	return session.New(config)
-}
+)
