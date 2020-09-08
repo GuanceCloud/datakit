@@ -30,6 +30,20 @@ func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
 	var category string
 	resp := &Response{}
 
+	switch req.Io {
+	case IoType_METRIC:
+		category = Metric
+	case IoType_KEYEVENT:
+		category = KeyEvent
+	case IoType_OBJECT:
+		category = Object
+	case IoType_LOGGING:
+		category = Logging
+	default:
+		category = Metric
+	}
+	l.Debugf("%s %v", category, req.Name)
+
 	if req.Lines != nil {
 		pts, err := influxm.ParsePointsWithPrecision(req.Lines, time.Now().UTC(), req.Precision)
 		if err != nil {
@@ -37,19 +51,6 @@ func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
 		}
 
 		l.Debugf("received %d points from %s", len(pts), req.Name)
-		switch req.Io {
-		case IoType_METRIC:
-			category = Metric
-		case IoType_KEYEVENT:
-			category = KeyEvent
-		case IoType_OBJECT:
-			category = Object
-		case IoType_LOGGING:
-			category = Logging
-		default:
-			category = Metric
-		}
-		l.Debugf("%s %v", category, req.Name)
 
 		if err := NamedFeed(req.Lines, category, req.Name); err != nil {
 			l.Errorf("NamedFeed: %s", err.Error())
@@ -62,6 +63,10 @@ func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
 	if req.Objects != nil {
 		// TODO
 		// XXX: check if valid objects
+		if err := NamedFeed(req.Objects, category, req.Name); err != nil {
+			l.Errorf("NamedFeed: %s", err.Error())
+			resp.Err = err.Error()
+		}
 		l.Info("ingore checking objects")
 	}
 
