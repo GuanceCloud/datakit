@@ -1,7 +1,6 @@
 package oraclemonitor
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -9,20 +8,22 @@ const (
 	configSample = `
 [[inputs.external]]
 	name = 'oracle_monitor'
-	envs = ['LD_LIBRARY_PATH=/opt/oracle/instantclient_19_8:$LD_LIBRARY_PATH',]
-	cmd = "/usr/local/cloudcare/dataflux/datakit/externals"
+	cmd  = "/usr/local/cloudcare/dataflux/datakit/externals/oraclemonitor"
 	args = [
-	'-instance-id', '<your-instance-id>',
-	'-metric-name', 'oracle_monitor',
-	'-internal', '1m',
-	'-instance-desc', '<your-oracle-description>',
-	'-host', '<your-oracle-host>',
-	'-port', '1521',
-	'-username', '<oracle-user-name>',
-	'-password', '<oracle-password>',
-	'-service-name', '<oracle-service-name>',
-	'-cluster-type', 'single',
-	'-oracle-version', '11g',
+	'-instance-id'    , '<your-instance-id>'        ,
+	'-metric-name'    , 'oracle_monitor'            ,
+	'-internal'       , '1m'                        ,
+	'-instance-desc'  , '<your-oracle-description>' ,
+	'-host'           , '<your-oracle-host>'        ,
+	'-port'           , '1521'                      ,
+	'-username'       , '<oracle-user-name>'        ,
+	'-password'       , '<oracle-password>'         ,
+	'-service-name'   , '<oracle-service-name>'     ,
+	'-cluster-type'   , 'single'                    ,
+	'-oracle-version' , '11g'                       ,
+	]
+	envs = [
+	'LD_LIBRARY_PATH=/opt/oracle/instantclient_19_8:$LD_LIBRARY_PATH',
 	]
 
 	#############################
@@ -46,18 +47,13 @@ var (
 	inputName = "oraclemonitor"
 )
 
-type OracleMonitor plugins.OracleMonitor
+type OracleMonitor struct{}
 
-func (_ *OracleMonitor) Catalog() string {
-	return "oracle"
-}
+func (_ *OracleMonitor) Catalog() string { return "db" }
 
-func (_ *OracleMonitor) SampleConfig() string {
-	return configSample
-}
+func (_ *OracleMonitor) SampleConfig() string { return configSample }
 
-func (o *OracleMonitor) Run() {
-}
+func (o *OracleMonitor) Run() {}
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
