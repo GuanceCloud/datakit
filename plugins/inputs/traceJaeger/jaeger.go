@@ -1,10 +1,9 @@
 package traceJaeger
 
-
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -22,15 +21,15 @@ var (
 	log *logger.Logger
 )
 
-var JaegerTags       map[string]string
+var JaegerTags map[string]string
 
 const (
 	defaultJeagerPath = "/api/traces"
 )
 
 type JaegerTrace struct {
-	Path  string
-	Tags  map[string]string
+	Path string
+	Tags map[string]string
 }
 
 func (_ *JaegerTrace) Catalog() string {
@@ -46,7 +45,7 @@ func (t *JaegerTrace) Run() {
 	log.Infof("%s input started...", inputName)
 
 	if t != nil {
-		JaegerTags       = t.Tags
+		JaegerTags = t.Tags
 	}
 
 	<-datakit.Exit.Wait()
@@ -57,7 +56,7 @@ func (t *JaegerTrace) RegHttpHandler() {
 	if t.Path == "" {
 		t.Path = defaultJeagerPath
 	}
-	http.RegHttpHandler("POST", t.Path, JaegerTraceHandleWrap)
+	http.RegHttpHandler("POST", t.Path, JaegerTraceHandle)
 }
 
 func init() {
@@ -66,5 +65,3 @@ func init() {
 		return t
 	})
 }
-
-
