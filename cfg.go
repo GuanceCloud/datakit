@@ -327,9 +327,9 @@ func (c *Config) LoadEnvs() error {
 
 			l.Debugf("generating datakit.conf...")
 
-			dkid := os.Getenv("ENV_UUID")
-			c.MainCfg.UUID = dkid
-			if dkid == "" {
+			c.MainCfg.Name = os.Getenv("ENV_NAME")
+
+			if c.MainCfg.UUID == "" {
 				c.MainCfg.UUID = cliutils.XID("dkid_")
 			}
 
