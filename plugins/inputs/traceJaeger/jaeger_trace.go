@@ -6,16 +6,11 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/gin-gonic/gin"
 	"github.com/uber/jaeger-client-go/thrift"
 	j "github.com/uber/jaeger-client-go/thrift-gen/jaeger"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
-
-func JaegerTraceHandleWrap(c *gin.Context) {
-	JaegerTraceHandle(c.Writer, c.Request)
-}
 
 func JaegerTraceHandle(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("trace handle with path: %s", r.URL.Path)
@@ -61,7 +56,7 @@ func parseJaegerThrift(octets []byte) error {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "jaeger"
 
-		tAdpter.Duration    = s.Duration
+		tAdpter.Duration = s.Duration
 		tAdpter.TimestampUs = s.StartTime
 		sJson, err := json.Marshal(s)
 		if err != nil {
@@ -69,15 +64,15 @@ func parseJaegerThrift(octets []byte) error {
 		}
 		tAdpter.Content = string(sJson)
 
-		tAdpter.Class         = "tracing"
-		tAdpter.ServiceName   = batch.Process.ServiceName
+		tAdpter.Class = "tracing"
+		tAdpter.ServiceName = batch.Process.ServiceName
 		tAdpter.OperationName = s.OperationName
 		if s.ParentSpanId != 0 {
-			tAdpter.ParentID      = fmt.Sprintf("%d", s.ParentSpanId)
+			tAdpter.ParentID = fmt.Sprintf("%d", s.ParentSpanId)
 		}
 
 		tAdpter.TraceID = fmt.Sprintf("%x%x", uint64(s.TraceIdHigh), uint64(s.TraceIdLow))
-		tAdpter.SpanID  = fmt.Sprintf("%d", s.SpanId)
+		tAdpter.SpanID = fmt.Sprintf("%d", s.SpanId)
 
 		for _, tag := range s.Tags {
 			if tag.Key == "error" {
