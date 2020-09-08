@@ -37,10 +37,7 @@ const (
 	nfsStatFileLocation = "/proc/net/rpc/nfsd"
 )
 
-var (
-	l          = logger.DefaultSLogger(inputName)
-	testAssert bool
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -85,10 +82,6 @@ func (n *NFSstat) Run() {
 			data, err := buildPoint(n.Location, n.Tags)
 			if err != nil {
 				l.Error(err)
-				continue
-			}
-			if testAssert {
-				l.Infof("data: %s\n", data)
 				continue
 			}
 			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
