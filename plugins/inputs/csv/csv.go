@@ -69,16 +69,21 @@ func (x *CSV) SampleConfig() string {
 }
 
 func (x *CSV) Run() {
+	var encodeStr string
 	l = logger.SLogger("csv")
-	l.Info("csv started")
 
-	b, err := yaml.Marshal(x)
-	if err != nil {
+	if b, err := yaml.Marshal(x); err != nil {
 		l.Error(err)
+		return
+	} else {
+		encodeStr = base64.StdEncoding.EncodeToString(b)
+	}
+
+	if datakit.Cfg.MainCfg.HTTPBind == "" {
+		l.Errorf("missed http_server_addr configuration in datakit.conf")
 		return
 	}
 
-	encodeStr := base64.StdEncoding.EncodeToString(b)
 	port := strings.Split(datakit.Cfg.MainCfg.HTTPBind, ":")[1]
 	args := []string{
 		filepath.Join(datakit.InstallDir, "externals", "csv", "main.py"),
@@ -88,12 +93,10 @@ func (x *CSV) Run() {
 		"--log_level", datakit.Cfg.MainCfg.LogLevel,
 	}
 
+	l.Info("csv started")
 	cmd := exec.Command("python", args...)
 	if x.PathEnv != "" {
-		cmd.Env = []string{
-			fmt.Sprintf("PATH=%s:$PATH", x.PathEnv),
-		}
-
+		cmd.Env = []string{fmt.Sprintf("PATH=%s:$PATH", x.PathEnv)}
 		l.Infof("set PATH to %s", cmd.Env[0])
 	}
 	cmd.Stdout = os.Stdout
