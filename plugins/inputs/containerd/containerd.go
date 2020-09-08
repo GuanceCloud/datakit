@@ -42,10 +42,7 @@ const (
 	containerdSock = "/run/containerd/containerd.sock"
 )
 
-var (
-	l          = logger.DefaultSLogger(inputName)
-	testAssert bool
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -100,10 +97,6 @@ func (c *Containerd) Run() {
 			data, err := c.collectContainerd()
 			if err != nil {
 				l.Error(err)
-				continue
-			}
-			if testAssert {
-				l.Infof("data: %s\n", data)
 				continue
 			}
 			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
