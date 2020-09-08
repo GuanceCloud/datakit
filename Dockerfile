@@ -13,8 +13,8 @@ COPY embed/linux-amd64/agent /usr/local/cloudcare/dataflux/datakit/embed/linux-a
 RUN apt-get update
 RUN apt-get install -y libaio-dev libaio1 unzip wget
 
-RUN wget https://download.oracle.com/otn_software/linux/instantclient/19800/instantclient-basiclite-linux.x64-19.8.0.0.0dbru.zip?xd_co_f=6a6ddc80-4750-4aca-bd5f-ffd0b3fbd9aa -O /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basiclite-linux.zip
-#COPY plugins/externals/oraclemonitor/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip
+# TODO: we should host the file on OSS
+RUN wget -q https://download.oracle.com/otn_software/linux/instantclient/19800/instantclient-basiclite-linux.x64-19.8.0.0.0dbru.zip?xd_co_f=6a6ddc80-4750-4aca-bd5f-ffd0b3fbd9aa -O /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basiclite-linux.zip
 RUN unzip /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle
 
 ARG dataway=""
