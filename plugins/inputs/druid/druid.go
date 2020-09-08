@@ -8,7 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -20,6 +23,10 @@ const (
 
 	sampleCfg = `
 [[inputs.druid]]
+    # http server route path
+    # required
+    path = "/druid"
+
     # [inputs.druid.tags]
     # tags1 = "value1"
 `
@@ -28,7 +35,6 @@ const (
 var (
 	l          = logger.DefaultSLogger(inputName)
 	testAssert bool
-	globalTags map[string]string
 )
 
 func init() {
@@ -38,6 +44,7 @@ func init() {
 }
 
 type Druid struct {
+	Path string            `toml:"path"`
 	Tags map[string]string `toml:"tags"`
 }
 
@@ -52,14 +59,17 @@ func (*Druid) Catalog() string {
 func (d *Druid) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("druid input started...")
-
-	if globalTags == nil {
-		globalTags = d.Tags
-	}
 }
 
-func Handle(w http.ResponseWriter, r *http.Request) {
+func (d *Druid) RegHttpHandler() {
+	httpd.RegHttpHandler("POST", d.Path, d.HandleWrap)
+}
 
+func (d *Druid) HandleWrap(c *gin.Context) {
+	d.Handle(c.Writer, c.Request)
+}
+
+func (d *Druid) Handle(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		l.Errorf("failed to read body, err: %s", err.Error())
@@ -68,7 +78,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := extract(body); err == nil {
+	if err := extract(body, d.Tags); err == nil {
 		w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
@@ -84,8 +94,7 @@ type druidMetric []struct {
 	Value     float64 `json:"value"`
 }
 
-func extract(body []byte) error {
-
+func extract(body []byte, tags map[string]string) error {
 	var metrics druidMetric
 	if err := json.Unmarshal(body, &metrics); err != nil {
 		l.Errorf("failed to paras data, err: %s", err.Error())
@@ -96,11 +105,12 @@ func extract(body []byte) error {
 		return fmt.Errorf("druid metrics is empty")
 	}
 
-	tags := make(map[string]string)
-	tags["host"] = metrics[0].Host
-	tags["versin"] = metrics[0].Version
-	for k, v := range globalTags {
-		tags[k] = v
+	_tags := make(map[string]string)
+	_tags["host"] = metrics[0].Host
+	_tags["versin"] = metrics[0].Version
+
+	for k, v := range tags {
+		_tags[k] = v
 	}
 
 	timeNode := getTimeNodeMetrics(metrics)
@@ -114,7 +124,7 @@ func extract(body []byte) error {
 			continue
 		}
 
-		data, err := io.MakeMetric(defaultMeasurement, tags, fileds, t)
+		data, err := io.MakeMetric(defaultMeasurement, _tags, fileds, t)
 		if err != nil {
 			l.Errorf("failed to make metric, err: %s", err.Error())
 			flag = true
