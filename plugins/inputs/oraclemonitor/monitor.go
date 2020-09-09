@@ -7,23 +7,24 @@ import (
 const (
 	configSample = `
 [[inputs.external]]
-	name = 'oracle_monitor'
+	daemon = true
+	name = 'oraclemonitor'
 	cmd  = "/usr/local/cloudcare/dataflux/datakit/externals/oraclemonitor"
 	args = [
-	'-instance-id'    , '<your-instance-id>'        ,
-	'-metric-name'    , 'oracle_monitor'            ,
-	'-internal'       , '1m'                        ,
-	'-instance-desc'  , '<your-oracle-description>' ,
-	'-host'           , '<your-oracle-host>'        ,
-	'-port'           , '1521'                      ,
-	'-username'       , '<oracle-user-name>'        ,
-	'-password'       , '<oracle-password>'         ,
-	'-service-name'   , '<oracle-service-name>'     ,
-	'-cluster-type'   , 'single'                    ,
-	'-oracle-version' , '11g'                       ,
+		'-instance-id'    , '<your-instance-id>'        ,
+		'-metric-name'    , 'oracle_monitor'            ,
+		'-internal'       , '1m'                        ,
+		'-instance-desc'  , '<your-oracle-description>' ,
+		'-host'           , '<your-oracle-host>'        ,
+		'-port'           , '1521'                      ,
+		'-username'       , '<oracle-user-name>'        ,
+		'-password'       , '<oracle-password>'         ,
+		'-service-name'   , '<oracle-service-name>'     ,
+		'-cluster-type'   , 'single'                    ,
+		'-oracle-version' , '11g'                       ,
 	]
 	envs = [
-	'LD_LIBRARY_PATH=/opt/oracle/instantclient_19_8:$LD_LIBRARY_PATH',
+		'LD_LIBRARY_PATH=/opt/oracle/instantclient_19_8:$LD_LIBRARY_PATH',
 	]
 
 	#############################
