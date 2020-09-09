@@ -31,9 +31,9 @@ const (
     
     ## Optional TLS Config
     tls_open = false
-    # tls_ca = "/path/to/ca.crt"
-    # tls_cert = "/path/to/peer.crt"
-    # tls_key = "/path/to/peer.key"
+    # tls_ca = "/tmp/ca.crt"
+    # tls_cert = "/tmp/peer.crt"
+    # tls_key = "/tmp/peer.key"
     
     # [inputs.prom.tags]
     # tags1 = "value1"
@@ -51,21 +51,19 @@ var TestAssert = true
 type Prom struct {
 	URL                   string            `toml:"url"`
 	Interval              string            `toml:"interval"`
+	TLSOpen               bool              `toml:"tls_open"`
 	CacertFile            string            `toml:"tls_ca"`
 	CertFile              string            `toml:"tls_cert"`
 	KeyFile               string            `toml:"tls_key"`
 	Tags                  map[string]string `toml:"tags"`
-	InputName             string
-	DefaultMeasurement    string
-	IgnoreMeasurement     []string
-	IgnoreTagsKeyPrefix   []string
-	IgnoreFieldsKeyPrefix []string
+	InputName             string            `toml:"name"`
+	IgnoreMeasurement     []string          `toml:"ignore_measurement"`
+	IgnoreTagsKeyPrefix   []string          `toml:"ignore_tags_key_prefix"`
+	IgnoreFieldsKeyPrefix []string          `toml:"ignore_fields_key_prefix"`
 
 	client   *http.Client
 	duration time.Duration
 	log      *logger.Logger
-
-	TLSOpen bool `toml:"tls_open"`
 }
 
 func (*Prom) SampleConfig() string {
@@ -77,15 +75,10 @@ func (*Prom) Catalog() string {
 }
 
 func (p *Prom) Run() {
-	p.InputName = inputName
-	p.DefaultMeasurement = defaultMeasurement
-	p.Start()
-}
-
-func (p *Prom) Start() {
 	if p.loadcfg() {
 		return
 	}
+
 	ticker := time.NewTicker(p.duration)
 	defer ticker.Stop()
 	p.log.Infof("%s input started.", p.InputName)
@@ -116,7 +109,6 @@ func (p *Prom) Start() {
 			p.log.Debugf("feed %d bytes to io ok", len(data))
 		}
 	}
-
 }
 
 func (p *Prom) loadcfg() bool {
@@ -166,7 +158,7 @@ func (p *Prom) getMetrics() ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	pts, err := cliutils.PromTextToMetrics(resp.Body, p.InputName, p.DefaultMeasurement, time.Now())
+	pts, err := cliutils.PromTextToMetrics(resp.Body, p.InputName, p.InputName, time.Now())
 	if err != nil {
 		return nil, err
 	}

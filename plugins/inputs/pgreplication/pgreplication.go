@@ -61,10 +61,7 @@ const (
 `
 )
 
-var (
-	l          = logger.DefaultSLogger(inputName)
-	testAssert bool
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -291,10 +288,6 @@ func (r *Replication) replicationMsgHandle(msg *pgx.ReplicationMessage) {
 		if err != nil {
 			l.Errorf("build point err: %s", err)
 			return
-		}
-
-		if testAssert {
-			l.Debugf("Data: %s", string(data))
 		}
 
 		if err := io.NamedFeed(data, io.Metric, inputName); err != nil {

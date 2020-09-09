@@ -20,9 +20,10 @@ import (
 )
 
 var (
-	l       *logger.Logger
-	httpCli *http.Client
-	baseURL string
+	l          = logger.DefaultSLogger("io")
+	testAssert = false
+	httpCli    *http.Client
+	baseURL    string
 
 	inputCh    = make(chan *iodata, datakit.CommonChanCap)
 	inputstats = map[string]*InputsStat{}
@@ -77,6 +78,10 @@ type qstats struct {
 	ch chan []*InputsStat
 }
 
+func TestOutput() {
+	testAssert = true
+}
+
 func ChanInfo() (l, c int) {
 	l = len(inputCh)
 	c = cap(inputCh)
@@ -89,6 +94,11 @@ func Feed(data []byte, category string) error {
 }
 
 func doFeed(data []byte, category, name string) error {
+	if testAssert {
+		l.Infof("[%s] source: %s data: %s", category, name, data)
+		return nil
+	}
+
 	switch category {
 	case Metric, KeyEvent, Logging:
 		// metric line check
@@ -197,11 +207,15 @@ func startIO() {
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
+	var du time.Duration
+	var err error
 
-	du, err := time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Timeout)
-	if err != nil {
-		l.Warnf("parse dataway timeout failed: %s", err.Error())
-		du = time.Second * 30
+	if datakit.Cfg.MainCfg.DataWay.Timeout != "" {
+		du, err = time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Timeout)
+		if err != nil {
+			l.Warnf("parse dataway timeout failed: %s", err.Error())
+			du = time.Second * 30
+		}
 	}
 
 	httpCli = &http.Client{
@@ -215,9 +229,9 @@ func startIO() {
 	f = func(trace []byte, _ error) {
 		defer rtpanic.Recover(f, nil)
 
-		tick := time.NewTicker(datakit.Cfg.MainCfg.IntervalDuration)
+		tick := time.NewTicker(datakit.IntervalDuration)
 		defer tick.Stop()
-		l.Debugf("io interval: %v", datakit.Cfg.MainCfg.IntervalDuration)
+		l.Debugf("io interval: %v", datakit.IntervalDuration)
 
 		if trace != nil {
 			l.Warn("recover ok")
