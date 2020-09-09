@@ -99,9 +99,9 @@ func Compile() {
 		archs = strings.Split(Archs, "|")
 	}
 
-	for _, arch := range archs {
+	for idx, _ := range archs {
 
-		parts := strings.Split(arch, "/")
+		parts := strings.Split(archs[idx], "/")
 		if len(parts) != 2 {
 			l.Fatalf("invalid arch %q", parts)
 		}
