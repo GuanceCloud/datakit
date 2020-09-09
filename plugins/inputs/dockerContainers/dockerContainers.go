@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	inputName = "dockerContainers"
+	inputName = "docker_containers"
 
 	sampleCfg = `
-[[inputName.dockerContainers]]
+[[inputs.docker_containers]]
     # Docker Endpoint
     # To use TCP, set endpoint = "tcp://[ip]:[port]"
     # To use environment variables (ie, docker-machine), set endpoint = "ENV"
@@ -167,9 +167,11 @@ func (d *DockerContainers) gather() {
 
 	data, err := json.Marshal(d.objects)
 	if err != nil {
-	}
-
-	if err := io.NamedFeed(data, io.Object, inputName); err != nil {
+		l.Error(err)
+	} else {
+		if err := io.NamedFeed(data, io.Object, inputName); err != nil {
+			l.Error(err)
+		}
 	}
 
 	d.objects = d.objects[:0]
