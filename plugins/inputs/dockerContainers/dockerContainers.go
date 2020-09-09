@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -209,7 +210,7 @@ func (d *DockerContainers) gatherContainer(container types.Container) error {
 
 func containerName(names []string) string {
 	if len(names) > 0 {
-		return names[0]
+		return strings.TrimPrefix(names[0], "/")
 	}
 	return ""
 }
