@@ -54,6 +54,7 @@ var (
 	Release      string
 	MainEntry    string
 	DownloadAddr string
+	ReleaseType  string
 )
 
 func prepare() {
@@ -98,9 +99,9 @@ func Compile() {
 		archs = strings.Split(Archs, "|")
 	}
 
-	for _, arch := range archs {
+	for idx, _ := range archs {
 
-		parts := strings.Split(arch, "/")
+		parts := strings.Split(archs[idx], "/")
 		if len(parts) != 2 {
 			l.Fatalf("invalid arch %q", parts)
 		}
@@ -145,7 +146,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"go", "build",
 		"-o", output,
 		"-ldflags",
-		"-w -s",
+		fmt.Sprintf("-w -s -X main.ReleaseType=%s", ReleaseType),
 		MainEntry,
 	}
 
