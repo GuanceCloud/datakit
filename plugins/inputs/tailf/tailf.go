@@ -36,10 +36,7 @@ const (
 	loopReadFileTimeMillisecond = 100
 )
 
-var (
-	l          = logger.DefaultSLogger(inputName)
-	testAssert bool
-)
+var l = logger.DefaultSLogger(inputName)
 
 type Tailf struct {
 	LogFiles []string          `toml:"logfiles"`
@@ -196,10 +193,6 @@ func (t *Tailf) loopTailer(tl *tail.Tail) bool {
 			data, err := t.parseLine(line, tl.Filename)
 			if err != nil {
 				l.Error(err)
-				continue
-			}
-			if testAssert {
-				l.Debugf("io.Feed data: %s\n", string(data))
 				continue
 			}
 			if err := io.NamedFeed(data, io.Logging, inputName); err != nil {
