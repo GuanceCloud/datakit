@@ -115,11 +115,11 @@ func updateLagacyConfig(dir string) {
 
 	// split origin ftdataway into dataway object
 	var dwcfg *datakit.DataWayCfg
-	if maincfg.FtGateway != "" {
-		if dwcfg, err = datakit.ParseDataway(maincfg.FtGateway); err != nil {
+	if maincfg.DeprecatedFtGateway != "" {
+		if dwcfg, err = datakit.ParseDataway(maincfg.DeprecatedFtGateway); err != nil {
 			l.Fatal(err)
 		} else {
-			maincfg.FtGateway = "" // deprecated
+			maincfg.DeprecatedFtGateway = "" // deprecated
 			maincfg.DataWay = dwcfg
 		}
 	}
