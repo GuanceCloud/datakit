@@ -208,7 +208,7 @@ func (d *DockerLogs) loadCfg() bool {
 
 		d.timeoutDuration, err = time.ParseDuration(d.Timeout)
 		if err != nil || d.timeoutDuration <= 0 {
-			err = fmt.Errorf("invalid interval, %s", err.Error())
+			err = fmt.Errorf("invalid timeout, %s", err.Error())
 			goto label
 		}
 		if d.Endpoint == "ENV" {
