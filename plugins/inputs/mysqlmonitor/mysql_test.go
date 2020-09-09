@@ -51,7 +51,7 @@ func TestRun(t *testing.T) {
 		config.Cfg.MainCfg.DataWay.Host = "preprod-openway.cloudcare.cn"
 		config.Cfg.MainCfg.DataWay.Token = "tkn_f299ad7b7c0d4acdb8657be8d086f13a"
 		config.Cfg.MainCfg.DataWay.Scheme = "https"
-		config.Cfg.MainCfg.IntervalDuration = time.Second * 10
+		datakit.IntervalDuration = time.Second * 10
 
 		io.Start()
 
