@@ -2,10 +2,12 @@ package pgreplication
 
 import (
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestMain(t *testing.T) {
-	testAssert = true
+	io.TestOutput()
 
 	var r = Replication{
 		Host:     "172.16.0.43",
