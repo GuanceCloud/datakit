@@ -120,7 +120,7 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 
 		tags := map[string]interface{}{
 			"__class":          "aliyun_redis",
-			"__provider":       "aliyun",
+			"provider":       "aliyun",
 			"RegionId":         inst.RegionId,
 			"ArchitectureType": inst.ArchitectureType,
 			"ChargeType":       inst.ChargeType,
