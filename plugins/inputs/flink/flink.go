@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	influxm "github.com/influxdata/influxdb1-client/models"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -29,9 +28,8 @@ const (
 )
 
 var (
-	l            = logger.DefaultSLogger(inputName)
-	dbList       = Flinks{m: make(map[string]interface{}), mut: &sync.RWMutex{}}
-	registerOnly = true
+	l      = logger.DefaultSLogger(inputName)
+	dbList = Flinks{m: make(map[string]interface{}), mut: &sync.RWMutex{}}
 )
 
 func init() {
@@ -60,11 +58,8 @@ func (f *Flink) Run() {
 	dbList.Store(f.DB)
 }
 
-func (f *Flink) HandleWrap(c *gin.Context) {
-	if registerOnly {
-		httpd.RegHttpHandler("POST", "/write", f.HandleWrap)
-		registerOnly = false
-	}
+func (f *Flink) RegHttpHandler() {
+	httpd.RegHttpHandler("POST", "/write", f.Handle)
 }
 
 func (f *Flink) Handle(w http.ResponseWriter, r *http.Request) {
