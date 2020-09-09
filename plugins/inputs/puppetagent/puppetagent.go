@@ -35,10 +35,7 @@ const (
 	lastrunfileLocation = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
 )
 
-var (
-	l          = logger.DefaultSLogger(inputName)
-	testAssert bool
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -145,20 +142,12 @@ func (pa *PuppetAgent) do() {
 				continue
 			}
 
-			if testAssert {
-				l.Infof("get event: %v\n", event)
-			}
-
 			if event.Op&fsnotify.Write == fsnotify.Write ||
 				event.Op&fsnotify.Chmod == fsnotify.Chmod {
 
 				data, err := buildPoint(pa.Location, pa.Tags)
 				if err != nil {
 					l.Error(err)
-					continue
-				}
-				if testAssert {
-					l.Infof("data: %s\n", data)
 					continue
 				}
 				if err := io.Feed(data, io.Metric); err != nil {
