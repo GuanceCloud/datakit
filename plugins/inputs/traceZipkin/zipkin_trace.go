@@ -2,20 +2,11 @@ package traceZipkin
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"runtime/debug"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
-
-func ZipkinTraceHandleV1Wrap(c *gin.Context) {
-	ZipkinTraceHandleV1(c.Writer, c.Request)
-}
-
-func ZipkinTraceHandleV2Wrap(c *gin.Context) {
-	ZipkinTraceHandleV2(c.Writer, c.Request)
-}
 
 func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("trace handle with path: %s", r.URL.Path)
