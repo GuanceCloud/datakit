@@ -37,6 +37,7 @@ var (
 		"diskio":                 false,
 		"dns_query":              true,
 		"docker":                 true,
+		"docker_containers":      false,
 		"docker_log":             true,
 		"druid":                  true,
 		"elasticsearch":          true,
