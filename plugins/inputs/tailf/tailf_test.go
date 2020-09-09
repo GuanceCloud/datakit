@@ -7,6 +7,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 var (
@@ -65,8 +67,7 @@ func TestWrite(t *testing.T) {
 }
 
 func TestMain(t *testing.T) {
-	testAssert = true
-
+	io.TestOutput()
 	var tailer = Tailf{
 		LogFiles: logFiles,
 		Ignore:   ignore,
