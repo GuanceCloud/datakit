@@ -106,7 +106,6 @@ func buildMonitor() *monitor {
 }
 
 func main() {
-	// 配置参数
 	flag.Parse()
 
 	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?name=oraclemonitor", *fDatakitHTTPPort)

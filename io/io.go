@@ -197,11 +197,15 @@ func startIO() {
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
+	var du time.Duration
+	var err error
 
-	du, err := time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Timeout)
-	if err != nil {
-		l.Warnf("parse dataway timeout failed: %s", err.Error())
-		du = time.Second * 30
+	if datakit.Cfg.MainCfg.DataWay.Timeout != "" {
+		du, err = time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Timeout)
+		if err != nil {
+			l.Warnf("parse dataway timeout failed: %s", err.Error())
+			du = time.Second * 30
+		}
 	}
 
 	httpCli = &http.Client{
