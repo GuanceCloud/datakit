@@ -63,7 +63,7 @@ class CallbackModule(CallbackBase):
 
     def send_task_event(self, host, res):
         tags = {
-            "host": '"{}"'.format(host),
+            "host": host,
             "__status": res.get('__status'),
             "ansible_status": res.get('ansible_status'),
             "__source": "ansible"
