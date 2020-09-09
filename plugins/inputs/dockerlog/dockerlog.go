@@ -132,7 +132,7 @@ func (*DockerLogs) SampleConfig() string {
 }
 
 func (*DockerLogs) Catalog() string {
-	return "log"
+	return "docker"
 }
 
 func (d *DockerLogs) Run() {
