@@ -126,12 +126,17 @@ func ParseDataway(dw string) (*DataWayCfg, error) {
 }
 
 type MainConfig struct {
-	UUID                 string            `toml:"uuid"`
-	Name                 string            `toml:"name"`
-	DataWay              *DataWayCfg       `toml:"dataway"`
-	DataWayRequestURL    string            `toml:"-"`
-	HTTPBind             string            `toml:"http_server_addr"`
-	FtGateway            string            `toml:"ftdataway,omitempty"` // XXX: deprecated
+	UUID              string      `toml:"uuid"`
+	Name              string      `toml:"name"`
+	DataWay           *DataWayCfg `toml:"dataway"`
+	DataWayRequestURL string      `toml:"-"`
+	HTTPBind          string      `toml:"http_server_addr"`
+
+	// For old datakit verison conf, there may exist these fields,
+	// if these tags missing, TOML will parse error
+	DeprecatedFtGateway        string `toml:"ftdataway,omitempty"`
+	DeprecatedIntervalDuration string `toml:"interval_duration,omitempty"`
+
 	Log                  string            `toml:"log"`
 	LogLevel             string            `toml:"log_level"`
 	GinLog               string            `toml:"gin_log"`
