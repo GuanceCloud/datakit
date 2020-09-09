@@ -70,3 +70,14 @@ func TestRPC(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestMeasurement(t *testing.T) {
+	tmpFields := map[string]interface{}{"year": 2020}
+
+	data, err := MakeMetric("/dazzling_jackson", nil, tmpFields)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("%s", data)
+}
