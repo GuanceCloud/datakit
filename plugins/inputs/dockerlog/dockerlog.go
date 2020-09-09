@@ -23,38 +23,41 @@ import (
 )
 
 const (
-	inputName = "dockerlog_v1"
+	inputName = "dockerlog"
 
 	sampleCfg = `
-[[inputs.dockerlog_v1]]
-    ## Docker Endpoint
-    ##   To use TCP, set endpoint = "tcp://[ip]:[port]"
-    ##   To use environment variables (ie, docker-machine), set endpoint = "ENV"
+[[inputs.dockerlog]]
+    # Docker Endpoint
+    # To use TCP, set endpoint = "tcp://[ip]:[port]"
+    # To use environment variables (ie, docker-machine), set endpoint = "ENV"
     endpoint = "unix:///var/run/docker.sock"
-  
-    ## When true, container logs are read from the beginning; otherwise
-    ## reading begins at the end of the log.
+ 
+    # data source. if source is empty, use container name.
+    source = ""
+
+    # When true, container logs are read from the beginning; otherwise
+    # reading begins at the end of the log.
     from_beginning = false
   
-    ## Timeout for Docker API calls.
+    # Timeout for Docker API calls.
     timeout = "5s"
   
-    ## Containers to include and exclude. Globs accepted.
-    ## Note that an empty array for both will include all containers
+    # Containers to include and exclude. Globs accepted.
+    # Note that an empty array for both will include all containers
     container_name_include = []
     container_name_exclude = []
   
-    ## Container states to include and exclude. Globs accepted.
-    ## When empty only containers in the "running" state will be captured.
+    # Container states to include and exclude. Globs accepted.
+    # When empty only containers in the "running" state will be captured.
     container_state_include = []
     container_state_exclude = []
   
-    ## docker labels to include and exclude as tags.  Globs accepted.
-    ## Note that an empty array for both will include all labels as tags
+    # docker labels to include and exclude as tags.  Globs accepted.
+    # Note that an empty array for both will include all labels as tags
     docker_label_include = []
     docker_label_exclude = []
   
-    ## Set the source tag for the metrics to the container ID hostname, eg first 12 chars
+    # Set the source tag for the metrics to the container ID hostname, eg first 12 chars
     source_tag = false
   
     ## Optional TLS Config
@@ -63,6 +66,9 @@ const (
     # tls_key = "/etc/telegraf/key.pem"
     ## Use TLS but skip chain & host verification
     # insecure_skip_verify = false
+
+    # [inputs.dockerlog.tags]
+    # tags1 = "value1"
 `
 
 	defaultEndpoint = "unix:///var/run/docker.sock"
@@ -92,16 +98,18 @@ func init() {
 }
 
 type DockerLogs struct {
-	Endpoint              string   `toml:"endpoint"`
-	FromBeginning         bool     `toml:"from_beginning"`
-	Timeout               string   `toml:"timeout"`
-	LabelInclude          []string `toml:"docker_label_include"`
-	LabelExclude          []string `toml:"docker_label_exclude"`
-	ContainerInclude      []string `toml:"container_name_include"`
-	ContainerExclude      []string `toml:"container_name_exclude"`
-	ContainerStateInclude []string `toml:"container_state_include"`
-	ContainerStateExclude []string `toml:"container_state_exclude"`
-	IncludeSourceTag      bool     `toml:"source_tag"`
+	Endpoint              string            `toml:"endpoint"`
+	FromBeginning         bool              `toml:"from_beginning"`
+	Timeout               string            `toml:"timeout"`
+	LabelInclude          []string          `toml:"docker_label_include"`
+	LabelExclude          []string          `toml:"docker_label_exclude"`
+	ContainerInclude      []string          `toml:"container_name_include"`
+	ContainerExclude      []string          `toml:"container_name_exclude"`
+	ContainerStateInclude []string          `toml:"container_state_include"`
+	ContainerStateExclude []string          `toml:"container_state_exclude"`
+	Source                string            `toml:"source"`
+	IncludeSourceTag      bool              `toml:"source_tag"`
+	Tags                  map[string]string `toml:"tags"`
 
 	timeoutDuration time.Duration
 	ClientConfig
@@ -124,7 +132,7 @@ func (*DockerLogs) SampleConfig() string {
 }
 
 func (*DockerLogs) Catalog() string {
-	return inputName
+	return "docker"
 }
 
 func (d *DockerLogs) Run() {
@@ -137,7 +145,7 @@ func (d *DockerLogs) Run() {
 	ticker := time.NewTicker(updateInterval)
 	defer ticker.Stop()
 
-	l.Info("dockerlog_v1 input start")
+	l.Info("dockerlog input start")
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -261,10 +269,20 @@ func (d *DockerLogs) tailContainerLogs(ctx context.Context, container types.Cont
 		"container_name":    containerName,
 		"container_image":   imageName,
 		"container_version": imageVersion,
+		"endpoint":          d.Endpoint,
 	}
 
 	if d.IncludeSourceTag {
 		tags["source"] = hostnameFromID(container.ID)
+	}
+
+	for k, v := range d.Tags {
+		tags[k] = v
+	}
+
+	measurement := containerName
+	if d.Source != "" {
+		measurement = d.Source
 	}
 
 	// Add matching container labels as tags
@@ -305,9 +323,9 @@ func (d *DockerLogs) tailContainerLogs(ctx context.Context, container types.Cont
 	// If the container is *not* using a TTY, streams for stdout and stderr are
 	// multiplexed.
 	if hasTTY {
-		return tailStream(tags, container.ID, logReader, "tty")
+		return tailStream(measurement, tags, container.ID, logReader, "tty")
 	} else {
-		return tailMultiplexed(tags, container.ID, logReader)
+		return tailMultiplexed(measurement, tags, container.ID, logReader)
 	}
 }
 
@@ -335,7 +353,7 @@ func parseLine(line []byte) (time.Time, string, error) {
 	return ts, string(message), nil
 }
 
-func tailStream(baseTags map[string]string, containerID string, reader io.ReadCloser, stream string) error {
+func tailStream(measurement string, baseTags map[string]string, containerID string, reader io.ReadCloser, stream string) error {
 	defer reader.Close()
 
 	tags := make(map[string]string, len(baseTags)+1)
@@ -358,7 +376,7 @@ func tailStream(baseTags map[string]string, containerID string, reader io.ReadCl
 					"container_id": containerID,
 					"__content":    message,
 				}
-				data, err := iod.MakeMetric(inputName, tags, fields, ts)
+				data, err := iod.MakeMetric(measurement, tags, fields, ts)
 				if err != nil {
 					l.Error(err)
 				} else {
@@ -378,7 +396,7 @@ func tailStream(baseTags map[string]string, containerID string, reader io.ReadCl
 	}
 }
 
-func tailMultiplexed(tags map[string]string, containerID string, src io.ReadCloser) error {
+func tailMultiplexed(measurement string, tags map[string]string, containerID string, src io.ReadCloser) error {
 	outReader, outWriter := io.Pipe()
 	errReader, errWriter := io.Pipe()
 
@@ -386,7 +404,7 @@ func tailMultiplexed(tags map[string]string, containerID string, src io.ReadClos
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := tailStream(tags, containerID, outReader, "stdout")
+		err := tailStream(measurement, tags, containerID, outReader, "stdout")
 		if err != nil {
 			l.Error(err)
 		}
@@ -395,7 +413,7 @@ func tailMultiplexed(tags map[string]string, containerID string, src io.ReadClos
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := tailStream(tags, containerID, errReader, "stderr")
+		err := tailStream(measurement, tags, containerID, errReader, "stderr")
 		if err != nil {
 			l.Error(err)
 		}
