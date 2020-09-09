@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
 )
 
@@ -32,6 +33,15 @@ func applyFlags() {
 	build.Release = *flagRelease
 	build.MainEntry = *flagMain
 	build.DownloadAddr = *flagDownloadAddr
+
+	switch *flagRelease {
+	case "release":
+		l.Debug("under release, only checked inputs released")
+		build.ReleaseType = datakit.ReleaseCheckedInputs
+	default:
+		l.Debug("under non-release, all inputs released")
+		build.ReleaseType = datakit.ReleaseAllInputs
+	}
 
 	if *flagPubAgent {
 		build.PubTelegraf()
