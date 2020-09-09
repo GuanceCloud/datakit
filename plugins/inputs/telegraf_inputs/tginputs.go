@@ -18,12 +18,13 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/diskio"
 	"github.com/influxdata/telegraf/plugins/inputs/dns_query"
 	"github.com/influxdata/telegraf/plugins/inputs/docker"
-	"github.com/influxdata/telegraf/plugins/inputs/docker_log"
 	"github.com/influxdata/telegraf/plugins/inputs/elasticsearch"
 	"github.com/influxdata/telegraf/plugins/inputs/exec"
 	"github.com/influxdata/telegraf/plugins/inputs/fluentd"
 	"github.com/influxdata/telegraf/plugins/inputs/github"
 	"github.com/influxdata/telegraf/plugins/inputs/http"
+	"github.com/influxdata/telegraf/plugins/inputs/http_response"
+	"github.com/influxdata/telegraf/plugins/inputs/httpjson"
 	"github.com/influxdata/telegraf/plugins/inputs/influxdb"
 	"github.com/influxdata/telegraf/plugins/inputs/jenkins"
 	"github.com/influxdata/telegraf/plugins/inputs/jolokia2"
@@ -110,10 +111,16 @@ var (
 		"procstat": {name: "procstat", Catalog: "host", input: &procstat.Procstat{}},
 
 		"ping":            {name: "ping", Catalog: "network", input: &ping.Ping{}},
-		"net":             {name: "net", Catalog: "network", input: &net.NetIOStats{}},
+		"net":             {name: "net", Catalog: "network", input: &net.NetStats{}},
+		"netstat":         {name: "netstat", Catalog: "network", input: &net.NetIOStats{}},
 		"net_response":    {name: "net_response", Catalog: "network", input: &net_response.NetResponse{}},
 		"http":            {name: "http", Catalog: "network", input: &http.HTTP{}},
+		"http_response":   {name: "http_response", Catalog: "network", input: &http_response.HTTPResponse{}},
+		"httpjson":        {name: "httpjson", Catalog: "network", input: &httpjson.HttpJson{}},
 		"socket_listener": {name: "socket_listener", Catalog: "network", input: &socket_listener.SocketListener{}},
+
+		// collectd use socket_listener to gather data
+		"collectd": {name: "socket_listener", Catalog: "collectd", input: &socket_listener.SocketListener{}},
 
 		"nginx":   {name: "nginx", Catalog: "nginx", input: &nginx.Nginx{}},
 		"tengine": {name: "tengine", Catalog: "tengine", input: &tengine.Tengine{}},
@@ -129,6 +136,7 @@ var (
 		"solr":          {name: "solr", Catalog: "db", input: &solr.Solr{}},
 		"clickhouse":    {name: "clickhouse", Catalog: "db", input: &clickhouse.ClickHouse{}},
 		`influxdb`:      {name: "influxdb", Catalog: "db", input: &influxdb.InfluxDB{}},
+		`goruntime`:     {name: "influxdb", Catalog: "golang", input: &influxdb.InfluxDB{}},
 
 		"openldap": {name: "openldap", Catalog: "openldap", input: &openldap.Openldap{}},
 
@@ -136,8 +144,7 @@ var (
 		"ceph":      {name: "ceph", Catalog: "ceph", input: &ceph.Ceph{}},
 		"dns_query": {name: "dns_query", Catalog: "dns_query", input: &dns_query.DnsQuery{}},
 
-		"docker":     {name: "docker", Catalog: "docker", input: &docker.Docker{}},
-		"docker_log": {name: "docker_log", Catalog: "docker", input: &docker_log.DockerLogs{}},
+		"docker": {name: "docker", Catalog: "docker", input: &docker.Docker{}},
 
 		"activemq":       {name: "activemq", Catalog: "activemq", input: &activemq.ActiveMQ{}},
 		"rabbitmq":       {name: "rabbitmq", Catalog: "rabbitmq", input: &rabbitmq.RabbitMQ{}},
@@ -159,14 +166,23 @@ var (
 		"exec":       {name: "exec", Catalog: "exec", input: &exec.Exec{}},
 		"syslog":     {name: "syslog", Catalog: "syslog", input: &syslog.Syslog{}},
 
-		"nvidia_smi":     {name: "nvidia_smi", Catalog: "nvidia", input: &nvidia_smi.NvidiaSMI{}},
-		"kubernetes":     {name: "kubernetes", Catalog: "k8s", input: &kubernetes.Kubernetes{}},
+		"nvidia_smi":    {name: "nvidia_smi", Catalog: "nvidia", input: &nvidia_smi.NvidiaSMI{}},
+		"kubernetes":    {name: "kubernetes", Catalog: "k8s", input: &kubernetes.Kubernetes{}},
+		"amqp_consumer": {name: "amqp_consumer", Catalog: "amqp", input: &amqp_consumer.AMQPConsumer{}},
+		"github":        {name: "github", Catalog: "github", input: &github.GitHub{}},
+		"uwsgi":         {name: "uwsgi", Catalog: "uwsgi", input: &uwsgi.Uwsgi{}},
+		`kibana`:        {name: "kibana", Catalog: "kibana", input: &kibana.Kibana{}},
+		`modbus`:        {name: "modbus", Catalog: "modbus", input: &modbus.Modbus{}},
+
+		// jolokia2 related
+		`weblogic`:       {name: "jolokia2_agent", Catalog: "weblogic", input: &jolokia2.JolokiaAgent{}},
+		`jvm`:            {name: "jolokia2_agent", Catalog: "jvm", input: &jolokia2.JolokiaAgent{}},
+		`hadoop_hdfs`:    {name: "jolokia2_agent", Catalog: "hadoop_hdfs", input: &jolokia2.JolokiaAgent{}},
 		"jolokia2_agent": {name: "jolokia2_agent", Catalog: "jolokia2_agent", input: &jolokia2.JolokiaAgent{}},
-		"amqp_consumer":  {name: "amqp_consumer", Catalog: "amqp", input: &amqp_consumer.AMQPConsumer{}},
-		"github":         {name: "github", Catalog: "github", input: &github.GitHub{}},
-		"uwsgi":          {name: "uwsgi", Catalog: "uwsgi", input: &uwsgi.Uwsgi{}},
-		`kibana`:         {name: "kibana", Catalog: "kibana", input: &kibana.Kibana{}},
-		`modbus`:         {name: "modbus", Catalog: "modbus", input: &modbus.Modbus{}},
+		"jboss":          {name: "jolokia2_agent", Catalog: "jboss", input: &jolokia2.JolokiaAgent{}},
+		"cassandra":      {name: "jolokia2_agent", Catalog: "cassandra", input: &jolokia2.JolokiaAgent{}},
+		"bitbucket":      {name: "jolokia2_agent", Catalog: "bitbucket", input: &jolokia2.JolokiaAgent{}},
+		"kafka":          {name: "jolokia2_agent", Catalog: "kafka", input: &jolokia2.JolokiaAgent{}},
 
 		// ambiguous import
 		`consul`: {name: "consul", Catalog: "consul", Sample: samples["consul"], input: nil},
