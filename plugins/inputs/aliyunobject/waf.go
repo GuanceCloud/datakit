@@ -67,7 +67,7 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 	var objs []map[string]interface{}
 	tags := map[string]interface{}{
 		"__class":          "aliyun_waf",
-		"__provider":       "aliyun",
+		"provider":       "aliyun",
 		"InDebt":           resp.InstanceInfo.InDebt,
 		"InstanceId":       resp.InstanceInfo.InstanceId,
 		"PayType":          resp.InstanceInfo.PayType,
