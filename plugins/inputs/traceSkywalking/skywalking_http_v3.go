@@ -1,29 +1,27 @@
 package traceSkywalking
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"encoding/json"
 	"runtime/debug"
-
-	"github.com/gin-gonic/gin"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 type SkyWalkTag struct {
-	Key   string                `json:"key,omitempty"`
-	Value interface{}           `json:"value,omitempty"`
+	Key   string      `json:"key,omitempty"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 type SkyWalkLogData struct {
-	Key   string                `json:"key,omitempty"`
-	Value interface{}           `json:"value,omitempty"`
+	Key   string      `json:"key,omitempty"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 type SkyWalkLog struct {
 	Time float64
-	Data []*SkyWalkLogData      `json:"data,omitempty"`
+	Data []*SkyWalkLogData `json:"data,omitempty"`
 }
 
 type SkyWalkRef struct {
@@ -40,7 +38,7 @@ type SkyWalkRef struct {
 type SkyWalkSpan struct {
 	SpanId        uint64        `json:"spanId"`
 	ParentSpanId  int64         `json:"parentSpanId"`
-	StartTime     int64		    `json:"startTime"`
+	StartTime     int64         `json:"startTime"`
 	EndTime       int64         `json:"endTime"`
 	OperationName string        `json:"operationName"`
 	Peer          string        `json:"peer"`
@@ -48,9 +46,9 @@ type SkyWalkSpan struct {
 	SpanLayer     string        `json:"spanLayer"`
 	ComponentId   uint64        `json:"componentId"`
 	IsError       bool          `json:"isError"`
-	Logs		  []*SkyWalkLog `json:"logs,omitempty"`
+	Logs          []*SkyWalkLog `json:"logs,omitempty"`
 	Tags          []*SkyWalkTag `json:"tags,omitempty"`
-	Refs		  []*SkyWalkRef `json:"Refs,omitempty"`
+	Refs          []*SkyWalkRef `json:"Refs,omitempty"`
 }
 
 type SkyWalkSegment struct {
@@ -67,10 +65,6 @@ const (
 	SKYWALK_PROPERTIES = "/v3/management/reportProperties"
 	SKYWALK_KEEPALIVE  = "/v3/management/keepAlive"
 )
-
-func SkywalkingTraceHandleWrap(c *gin.Context) {
-	SkywalkingTraceHandle(c.Writer, c.Request)
-}
 
 func SkywalkingTraceHandle(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("trace handle with path: %s", r.URL.Path)
@@ -95,9 +89,9 @@ func handleSkywalkingTrace(w http.ResponseWriter, r *http.Request) error {
 	return handleSkyWalking(w, r, r.URL.Path, reqInfo.Body)
 }
 
-func handleSkyWalking(w http.ResponseWriter, r *http.Request, path string, body []byte) error{
+func handleSkyWalking(w http.ResponseWriter, r *http.Request, path string, body []byte) error {
 	log.Debugf("path = %s body = ->|%s|<-", path, string(body))
-	switch path{
+	switch path {
 	case SKYWALK_SEGMENT:
 		return handleSkyWalkSegment(w, r, body)
 	case SKYWALK_SEGMENTS:
@@ -119,39 +113,39 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 
 		t.Source = "skywalking"
 
-		t.Duration = (span.EndTime -span.StartTime)*1000
+		t.Duration = (span.EndTime - span.StartTime) * 1000
 		t.TimestampUs = span.StartTime * 1000
-		js ,err := json.Marshal(span)
+		js, err := json.Marshal(span)
 		if err != nil {
 			return err
 		}
 		t.Content = string(js)
-		t.Class         = "tracing"
-		t.ServiceName   = sg.Service
+		t.Class = "tracing"
+		t.ServiceName = sg.Service
 		t.OperationName = span.OperationName
 		if span.SpanType == "Entry" {
 			if len(span.Refs) > 0 {
-				t.ParentID      = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
+				t.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
 					span.Refs[0].ParentSpanId)
 			}
 		} else {
-			t.ParentID      = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.ParentSpanId)
+			t.ParentID = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.ParentSpanId)
 		}
 
-		t.TraceID       = sg.TraceId
-		t.SpanID        = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.SpanId)
+		t.TraceID = sg.TraceId
+		t.SpanID = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.SpanId)
 		if span.IsError {
-			t.IsError   = "true"
+			t.IsError = "true"
 		}
 		if span.SpanType == "Entry" {
-			t.SpanType  = trace.SPAN_TYPE_ENTRY
-		} else if span.SpanType == "Exit"{
-			t.SpanType  = trace.SPAN_TYPE_EXIT
+			t.SpanType = trace.SPAN_TYPE_ENTRY
+		} else if span.SpanType == "Exit" {
+			t.SpanType = trace.SPAN_TYPE_EXIT
 		} else {
-			t.SpanType  = trace.SPAN_TYPE_LOCAL
+			t.SpanType = trace.SPAN_TYPE_LOCAL
 		}
-		t.EndPoint      = span.Peer
-		t.Tags          = SkywalkingTagsV3
+		t.EndPoint = span.Peer
+		t.Tags = SkywalkingTagsV3
 
 		adapterGroup = append(adapterGroup, t)
 	}
