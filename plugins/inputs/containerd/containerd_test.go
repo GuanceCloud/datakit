@@ -4,10 +4,12 @@ package containerd
 
 import (
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestMain(t *testing.T) {
-	testAssert = true
+	io.TestOutput()
 
 	var con = Containerd{
 		HostPath:  "/run/containerd/containerd.sock",
