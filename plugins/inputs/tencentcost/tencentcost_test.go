@@ -29,7 +29,7 @@ func TestServe(t *testing.T) {
 	datakit.Cfg.MainCfg.DataWay.Host = "openway.dataflux.cn"
 	datakit.Cfg.MainCfg.DataWay.Token = "tkn_61c438e7786141d8988dcdf92f899b3f"
 	datakit.Cfg.MainCfg.DataWay.Scheme = "https"
-	datakit.Cfg.MainCfg.IntervalDuration = time.Second * 10
+	datakit.IntervalDuration = time.Second * 10
 
 	io.Start()
 
