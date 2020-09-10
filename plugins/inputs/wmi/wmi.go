@@ -21,12 +21,8 @@ func (_ *Instance) SampleConfig() string {
 	return sampleConfig
 }
 
-// func (_ *WmiAgent) Description() string {
-// 	return `Collect metrics from Windows WMI.`
-// }
-
 func (_ *Instance) Catalog() string {
-	return `wmi`
+	return `windows`
 }
 
 func (ag *Instance) Run() {
