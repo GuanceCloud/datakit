@@ -66,6 +66,7 @@ type DockerContainers struct {
 
 	timeoutDuration  time.Duration
 	intervalDutation time.Duration
+	host             string
 	ClientConfig
 
 	newEnvClient func() (Client, error)
@@ -152,6 +153,11 @@ func (d *DockerContainers) loadCfg() bool {
 		time.Sleep(time.Second)
 	}
 
+	if strings.HasPrefix(d.Endpoint, "tcp") {
+		d.host = d.Endpoint
+	} else {
+		d.host = datakit.Cfg.MainCfg.Hostname
+	}
 	d.opts.All = d.All
 	return false
 }
@@ -201,7 +207,7 @@ func (d *DockerContainers) gatherContainer(container types.Container) error {
 		ContainerID:     container.ID,
 		ContainerImage:  container.Image,
 		ContainerStatue: container.State,
-		Host:            containerJSON.Config.Hostname,
+		Host:            d.host,
 		PID:             strconv.Itoa(containerJSON.State.Pid),
 	}
 	obj.Carated = containerTime(containerJSON.Created)
