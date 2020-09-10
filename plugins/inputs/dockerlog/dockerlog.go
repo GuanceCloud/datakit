@@ -149,6 +149,7 @@ func (d *DockerLogs) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
+			d.Stop()
 			l.Info("exit")
 			return
 
@@ -427,10 +428,10 @@ func tailMultiplexed(measurement string, tags map[string]string, containerID str
 	return err
 }
 
-// func (d *DockerLogs) Stop() {
-// 	d.cancelTails()
-// 	d.wg.Wait()
-// }
+func (d *DockerLogs) Stop() {
+	d.cancelTails()
+	d.wg.Wait()
+}
 
 func (d *DockerLogs) matchedContainerName(names []string) string {
 	// Check if all container names are filtered; in practice I believe
