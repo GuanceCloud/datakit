@@ -35,7 +35,7 @@ var (
 	errBadPoints = uhttp.NewErr(errors.New("bad points"), http.StatusBadRequest, "datakit")
 	httpOK       = uhttp.NewErr(nil, http.StatusOK, "datakit")
 
-	l        *logger.Logger
+	l         = logger.SLogger("http")
 	httpBind string
 
 	uptime    = time.Now()
@@ -47,11 +47,7 @@ var (
 )
 
 func Start(bind string) {
-
-	l = logger.SLogger("http")
-
 	httpBind = bind
-
 	// start HTTP server
 	httpStart(bind)
 	l.Info("HTTPServer goroutine exit")
@@ -169,7 +165,6 @@ func httpStart(addr string) {
 	// internal datakit stats API
 	router.GET("/stats", func(c *gin.Context) { apiGetInputsStats(c.Writer, c.Request) })
 	// ansible api
-	router.POST("/ansible", func(c *gin.Context) { apiAnsibleHandler(c.Writer, c.Request) })
 	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
 
 	router.POST(io.Metric, func(c *gin.Context) { apiWriteMetric(c) })
@@ -217,37 +212,7 @@ func tryStartHTTPServer(srv *http.Server) {
 	stopOkCh <- nil
 }
 
-func apiAnsibleHandler(w http.ResponseWriter, r *http.Request) {
-	dataType := r.URL.Query().Get("type")
-	body, err := ioutil.ReadAll(r.Body)
-	l.Infof("ansible body {}", string(body))
-	defer r.Body.Close()
 
-	if err != nil {
-		l.Errorf("failed of http parsen body in ansible err:%s", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	switch dataType {
-	case "keyevent":
-		if err := io.NamedFeed(body, io.KeyEvent, "ansible"); err != nil {
-			l.Errorf("failed to io Feed, err: %s", err.Error())
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-
-	case "metric":
-		if err := io.NamedFeed(body, io.Metric, "ansible"); err != nil {
-			l.Errorf("failed to io Feed, err: %s", err.Error())
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-
-	default:
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-}
 
 type enabledInput struct {
 	Input     string   `json:"input"`
