@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
-	sysIO "io"
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
@@ -18,168 +16,164 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BurntSushi/toml"
 	_ "github.com/godror/godror"
 	"golang.org/x/net/context/ctxhttp"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins"
 )
-
-var config *Config = new(Config)
 
 var (
-	flagCfgFile  = flag.String("cfg-file", "", "config file")
-	flagLog      = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log file")
-	flagLogLevel = flag.String("log-level", "info", "log file")
-	flagDesc     = flag.String("desc", "", "description of the process, for debugging")
+	fInterval        = flag.String("interval", "5m", "gather interval")
+	fMetric          = flag.String("metric-name", "oracle_monitor", "gathered metric name")
+	fInstance        = flag.String("instance-id", "", "oracle instance ID")
+	fInstanceDesc    = flag.String("instance-desc", "", "oracle description")
+	fHost            = flag.String("host", "", "oracle host")
+	fPort            = flag.String("port", "1521", "oracle port")
+	fUsername        = flag.String("username", "", "oracle username")
+	fPassword        = flag.String("password", "", "oracle password")
+	fServiceName     = flag.String("service-name", "", "oracle service name")
+	fClusterType     = flag.String("cluster-type", "", "oracle cluster type(single/dg/rac)")
+	fOracleVersion   = flag.String("oracle-version", "", "oracle version(support 10g/11g/12c)")
+	fTags            = flag.String("tags", "", `additional tags in 'a=b,c=d,...' format`)
+	fDatakitHTTPPort = flag.Int("datakit-http-port", 9529, "DataKit HTTP server port")
 
-	l *logger.Logger
+	fLog      = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log path")
+	fLogLevel = flag.String("log-level", "info", "log file")
+
+	l              *logger.Logger
+	datakitPostURL = ""
 )
 
-type monitor plugins.OracleMonitor
+type monitor struct {
+	libPath       string
+	metric        string
+	interval      string
+	instanceId    string
+	user          string
+	password      string
+	desc          string
+	host          string
+	port          string
+	serviceName   string
+	clusterType   string
+	tags          map[string]string
+	oracleVersion string
 
-func main() {
-	// 配置参数
-	flag.Parse()
+	db               *sql.DB
+	intervalDuration time.Duration
+}
 
-	if *flagCfgFile == "" {
-		panic("config missing")
+func buildMonitor() *monitor {
+	m := &monitor{
+		metric:        *fMetric,
+		interval:      *fInterval,
+		instanceId:    *fInstance,
+		user:          *fUsername,
+		password:      *fPassword,
+		desc:          *fInstanceDesc,
+		host:          *fHost,
+		port:          *fPort,
+		serviceName:   *fServiceName,
+		clusterType:   *fClusterType,
+		oracleVersion: *fOracleVersion,
 	}
 
-	if *flagDesc != "" {
-		l = logger.SLogger("oraclemonitor-" + *flagDesc)
+	if m.interval != "" {
+		du, err := time.ParseDuration(m.interval)
+		if err != nil {
+			l.Errorf("bad interval %s: %s, use default: 10m", m.interval, err.Error())
+			m.intervalDuration = 10 * time.Minute
+		} else {
+			m.intervalDuration = du
+		}
+	}
+
+	for {
+		db, err := sql.Open("godror", fmt.Sprintf("%s/%s@%s:%s/%s", m.user, m.password, m.host, m.port, m.serviceName))
+		if err == nil {
+			m.db = db
+			break
+		}
+
+		l.Errorf("oracle connect faild %v, retry each 3 seconds...", err)
+		time.Sleep(time.Second * 3)
+		continue
+	}
+
+	return m
+}
+
+func main() {
+	flag.Parse()
+
+	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?name=oraclemonitor", *fDatakitHTTPPort)
+
+	logger.SetGlobalRootLogger(*fLog, *fLogLevel, logger.OPT_DEFAULT)
+	if *fInstanceDesc != "" { // add description to logger
+		l = logger.SLogger("oraclemonitor-" + *fInstanceDesc)
 	} else {
 		l = logger.SLogger("oraclemonitor")
 	}
 
-	l.Infof("log level: %s", *flagLogLevel)
-
-	cfg, err := ParseConfig(*flagCfgFile)
-	if err != nil {
-		panic("config missing")
-	}
-
-	logger.SetGlobalRootLogger(*flagLog,
-		*flagLogLevel,
-		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
-
-	// 多实例子控制
-	var wg sync.WaitGroup
-	for _, monitor := range cfg.OracleMonitor {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			monitor.run()
-		}()
-	}
-
-	wg.Wait()
+	m := buildMonitor()
+	m.run()
 }
 
-// ParseConfig 解析配置文件
-func ParseConfig(fpath string) (*Config, error) {
-	_, err := toml.DecodeFile(fpath, config)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
-}
+func (m *monitor) run() {
 
-type Config struct {
-	OracleMonitor []*OracleMonitor `json:"oraclemonitor" toml:"oraclemonitor"`
-}
+	l.Info("start oraclemonitor...")
 
-type OracleMonitor struct {
-	Metric   string `json:"metricName" toml:"metricName"`
-	Interval string `json:"interval" toml:"interval"`
-
-	InstanceId string `json:"instanceId" toml:"instanceId"`
-	User       string `json:"username" toml:"username"`
-	Password   string `json:"password" toml:"password"`
-	Desc       string `json:"instanceDesc" toml:"instanceDesc"`
-	Host       string `json:"host" toml:"host"`
-	Port       string `json:"port" toml:"port"`
-	Server     string `json:"server" toml:"server"`
-	Type       string `json:"type" toml:"type"`
-	Version    string `json:"version" toml:"version"`
-	Cluster    string `json:"cluster" toml:"cluster"`
-
-	WriteUrl string            `json:"writeUrl" toml:"writeUrl"`
-	Tags     map[string]string `json:"tags" toml:"tags"`
-
-	DB               *sql.DB       `json:"-" json:"-"`
-	IntervalDuration time.Duration `json:"-" json:"-"`
-}
-
-func (o *OracleMonitor) run() {
-
-	l.Info("start monit oracle...")
-
-	o.IntervalDuration = 10 * time.Minute
-	o.Metric = "oraclemonitor"
-
-	if o.WriteUrl == "" {
-		o.WriteUrl = "http://0.0.0.0:9529/telegraf"
-	}
-
-	if o.Interval != "" {
-		du, err := time.ParseDuration(o.Interval)
-		if err != nil {
-			l.Errorf("bad interval %s: %s, use default: 10m", o.Interval, err.Error())
-		} else {
-			o.IntervalDuration = du
-		}
-	}
-
-	tick := time.NewTicker(o.IntervalDuration)
+	tick := time.NewTicker(m.intervalDuration)
 	defer tick.Stop()
+	defer m.db.Close()
 
-	connStr := fmt.Sprintf("%s/%s@%s/%s", o.User, o.Password, o.Host, o.Server)
-	db, err := sql.Open("godror", connStr)
-	if err != nil {
-		l.Errorf("oracle connect faild %v", err)
-		return
-	}
-	o.DB = db
-	defer o.DB.Close()
+	wg := sync.WaitGroup{}
 
 	for {
 		select {
 		case <-tick.C:
-			for _, obj := range execCfgs {
-				go o.handle(obj)
+			for _, ec := range execCfgs {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					m.handle(ec)
+				}()
 			}
+
+			wg.Wait() // blocking
 		}
 	}
 }
 
-func (o *OracleMonitor) handle(obj *ExecCfg) {
-	l.Debugf("sql: %s", obj.sql)
-
-	res, err := o.query(obj)
+func (m *monitor) handle(ec *ExecCfg) {
+	res, err := m.query(ec)
 	if err != nil {
-		l.Debugf("oracle query `%s' faild: %v, ignored", obj.sql, err)
+		l.Errorf("oracle query `%s' faild: %v, ignored", ec.metricType, err)
+		return
 	}
 
-	handleResponse(o, obj.metricType, obj.tagsMap, res)
+	if res == nil {
+		return
+	}
+
+	_ = handleResponse(m, ec.metricType, ec.tagsMap, res)
 }
 
-func handleResponse(m *OracleMonitor, k string, tagsKeys []string, response []map[string]interface{}) error {
+func handleResponse(m *monitor, k string, tagsKeys []string, response []map[string]interface{}) error {
 	lines := [][]byte{}
 
 	for _, item := range response {
 
 		tags := map[string]string{}
 
-		tags["oracle_server"] = m.Server
-		tags["oracle_port"] = m.Port
-		tags["instance_id"] = m.InstanceId
-		tags["instance_desc"] = m.Desc
+		tags["oracle_server"] = m.serviceName
+		tags["oracle_port"] = m.port
+		tags["instance_id"] = m.instanceId
+		tags["instance_desc"] = m.desc
 		tags["product"] = "oracle"
-		tags["host"] = m.Host
+		tags["host"] = m.host
 		tags["type"] = k
 
 		for _, tagKey := range tagsKeys {
@@ -189,19 +183,19 @@ func handleResponse(m *OracleMonitor, k string, tagsKeys []string, response []ma
 
 		// add user-added tags
 		// XXX: this may overwrite tags within @tags
-		for k, v := range m.Tags {
+		for k, v := range m.tags {
 			tags[k] = v
 		}
 
-		ptline, err := io.MakeMetric(m.Metric, tags, item, time.Now())
+		ptline, err := io.MakeMetric(m.metric, tags, item, time.Now())
 		if err != nil {
 			l.Errorf("new point failed: %s", err.Error())
 			return err
 		}
 
 		// io 输出
-		if err := WriteData(ptline, m.WriteUrl); err != nil {
-			l.Errorf("err msg", err)
+		if err := WriteData(ptline, datakitPostURL); err != nil {
+			return err
 		}
 	}
 
@@ -213,18 +207,19 @@ func handleResponse(m *OracleMonitor, k string, tagsKeys []string, response []ma
 	return nil
 }
 
-func (o *OracleMonitor) query(obj *ExecCfg) ([]map[string]interface{}, error) {
+func (m *monitor) query(obj *ExecCfg) ([]map[string]interface{}, error) {
 	// 版本执行控制
-	if !strings.Contains(obj.cluster, o.Cluster) {
-		return nil, fmt.Errorf("oracle query `%s' not support cluseter: %s, ignored\n", obj.sql, o.Cluster)
+	if !strings.Contains(obj.cluster, m.clusterType) {
+		l.Debugf("ignore %s on cluster type %s", obj.metricType, m.clusterType)
+		return nil, nil
 	}
 
-	if !strings.Contains(obj.version, o.Version) {
-		l.Errorf("oracle query `%s' not support version: %s, ignored", obj.sql, o.Cluster)
-		return nil, fmt.Errorf("oracle query `%s' not support version: %s, ignored\n", obj.sql, o.Version)
+	if !strings.Contains(obj.version, m.oracleVersion) {
+		l.Debugf("ignore %s on oracle version %s", obj.metricType, m.oracleVersion)
+		return nil, nil
 	}
 
-	rows, err := o.DB.Query(obj.sql)
+	rows, err := m.db.Query(obj.sql)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +315,6 @@ func String(i interface{}) string {
 	}
 }
 
-// dataway写入数据
 func WriteData(data []byte, urlPath string) error {
 	// dataway path
 	ctx, _ := context.WithCancel(context.Background())
@@ -332,33 +326,31 @@ func WriteData(data []byte, urlPath string) error {
 	}
 
 	httpReq = httpReq.WithContext(ctx)
-	httpReq.Header.Set("X-Datakit-UUID", "oracleMonitor")
-
 	tmctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	httpResp, err := ctxhttp.Do(tmctx, http.DefaultClient, httpReq)
+	resp, err := ctxhttp.Do(tmctx, http.DefaultClient, httpReq)
 	if err != nil {
 		l.Errorf("[error] %s", err.Error())
 		return err
 	}
-	defer httpResp.Body.Close()
+	defer resp.Body.Close()
 
-	if httpResp.StatusCode/100 != 2 {
-		scanner := bufio.NewScanner(sysIO.LimitReader(httpResp.Body, 1024*1024))
-		line := ""
-		if scanner.Scan() {
-			line = scanner.Text()
-		}
-		err = fmt.Errorf("server returned HTTP status %s: %s", httpResp.Status, line)
-	}
-	body, err := ioutil.ReadAll(httpResp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		l.Errorf("[error] read error %s", err.Error())
+		l.Error(err)
 		return err
 	}
-	l.Debugf("[debug] %s %d", string(body), httpResp.StatusCode)
-	return err
+
+	switch resp.StatusCode / 100 {
+	case 2:
+		l.Debugf("post to %s ok", urlPath)
+		return nil
+	default:
+		l.Errorf("post to %s failed(HTTP: %d): %s", urlPath, resp.StatusCode, string(body))
+		return fmt.Errorf("post datakit failed")
+	}
+	return nil
 }
 
 const (
