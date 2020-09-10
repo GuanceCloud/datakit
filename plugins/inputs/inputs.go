@@ -14,6 +14,15 @@ import (
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
+var (
+	Inputs     = map[string]Creator{}
+	inputInfos = map[string][]*inputInfo{}
+
+	l           *logger.Logger = logger.DefaultSLogger("inputs")
+	panicInputs                = map[string]int{}
+	mtx                        = sync.RWMutex{}
+)
+
 type Input interface {
 	Catalog() string
 	Run()
@@ -28,16 +37,6 @@ type HTTPInput interface {
 }
 
 type Creator func() Input
-
-var (
-	Inputs     = map[string]Creator{}
-	inputInfos = map[string][]*inputInfo{}
-
-	l *logger.Logger = logger.DefaultSLogger("inputs")
-
-	panicInputs = map[string]int{}
-	mtx         = sync.RWMutex{}
-)
 
 func Add(name string, creator Creator) {
 	if _, ok := Inputs[name]; ok {
