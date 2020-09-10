@@ -75,7 +75,7 @@ type DockerContainers struct {
 	client Client
 	opts   types.ContainerListOptions
 
-	objects []*DockerObject
+	objects []*ContainerObject
 }
 
 func (*DockerContainers) SampleConfig() string {
@@ -185,6 +185,7 @@ func (d *DockerContainers) gather() {
 		if err := io.NamedFeed(data, io.Object, inputName); err != nil {
 			l.Error(err)
 		}
+		l.Infof("%s", data)
 	}
 
 	d.objects = d.objects[:0]
@@ -199,7 +200,7 @@ func (d *DockerContainers) gatherContainer(container types.Container) error {
 		return err
 	}
 
-	var obj = DockerObject{}
+	var obj = ContainerObject{}
 	obj.Name = containerName(container.Names)
 	obj.Tags = Tags{
 		Class:           "docker_containers",
