@@ -90,6 +90,10 @@ var (
 		"netstat":                false, // doc missing
 		"nfsstat":                true,
 		"nginx":                  false,
+		"nginx_plus":             false,
+		"nginx_plus_api":         false,
+		"nginx_upstream_check":   false,
+		"nginx_vts":              false,
 		"nsq":                    true,
 		"nsq_consumer":           true,
 		"ntpq":                   false,
