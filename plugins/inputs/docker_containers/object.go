@@ -1,4 +1,4 @@
-package dockerContainers
+package docker_containers
 
 import (
 	"github.com/docker/docker/api/types"
