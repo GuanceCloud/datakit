@@ -207,11 +207,15 @@ func startIO() {
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
+	var du time.Duration
+	var err error
 
-	du, err := time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Timeout)
-	if err != nil {
-		l.Warnf("parse dataway timeout failed: %s", err.Error())
-		du = time.Second * 30
+	if datakit.Cfg.MainCfg.DataWay.Timeout != "" {
+		du, err = time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Timeout)
+		if err != nil {
+			l.Warnf("parse dataway timeout failed: %s", err.Error())
+			du = time.Second * 30
+		}
 	}
 
 	httpCli = &http.Client{
@@ -225,9 +229,9 @@ func startIO() {
 	f = func(trace []byte, _ error) {
 		defer rtpanic.Recover(f, nil)
 
-		tick := time.NewTicker(datakit.Cfg.MainCfg.IntervalDuration)
+		tick := time.NewTicker(datakit.IntervalDuration)
 		defer tick.Stop()
-		l.Debugf("io interval: %v", datakit.Cfg.MainCfg.IntervalDuration)
+		l.Debugf("io interval: %v", datakit.IntervalDuration)
 
 		if trace != nil {
 			l.Warn("recover ok")
