@@ -2,7 +2,6 @@ language: go
 go:
  - 1.11.x
  - 1.12.x
- - 1.13.x
  - master
 
 addons:
@@ -39,11 +38,10 @@ jobs:
       install: ./.travis.install.sh
     - os: osx
       go: 1.x
-# windows doesn't work on travis (package installation just hangs and then errors out)
-#    - os: windows
-#      go: 1.x
-#      # We don't need nmap - but that's the only way to get npcap:
-#      before_install: choco install npcap --version 0.86 -y
+    - os: windows
+      go: 1.x
+      # winpcap does not work on travis ci - so install nmap to get libpcap
+      before_install: choco install nmap
     - stage: style
       name: "fmt/vet/lint"
       go: 1.x
