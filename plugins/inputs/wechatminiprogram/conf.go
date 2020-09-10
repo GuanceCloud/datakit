@@ -35,15 +35,12 @@ var (
 	"VisitDistribution",
 	"UserPortrait",
 	"DailyVisitTrend",
-	"VisitPage"
-]
+	"VisitPage"]
 
-[inputs.wechatminiprogram.operation]
- name = [
-	"JsErrSearch",
-	"Performance"
-]
-
+#[inputs.wechatminiprogram.operation]
+# name = [
+#	"JsErrSearch",
+#	"Performance"]
 `
 )
 
