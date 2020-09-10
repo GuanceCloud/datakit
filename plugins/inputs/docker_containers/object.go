@@ -4,14 +4,14 @@ package docker_containers
 // 	"github.com/docker/docker/api/types"
 // )
 
-type DockerObject struct {
+type ContainerObject struct {
 	Name        string `json:"__name"`
 	Tags        Tags   `json:"__tags"`
 	Carated     int64  `json:"created"`
 	Started     int64  `json:"started_at"`
 	Finished    int64  `json:"finished_at"`
 	Path        string `json:"path"`
-	Description string `json:"__description"`
+	Description string `json:"__description,omitempty"`
 	//Inspect  types.ContainerJSON `json:"inspect"`
 }
 
