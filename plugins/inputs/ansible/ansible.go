@@ -14,8 +14,8 @@ const (
 	inputName = "ansible"
 
 	ConfigSample = `
-#[inputs.ansible]
-	paht = "/ansible"
+[[inputs.ansible]]
+   paht = "/ansible"
 
 `
 )
