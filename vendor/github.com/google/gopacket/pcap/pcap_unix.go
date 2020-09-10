@@ -33,7 +33,6 @@ import (
 #include <stdlib.h>
 #include <pcap.h>
 #include <stdint.h>
-#include <poll.h>
 
 // Some old versions of pcap don't define this constant.
 #ifndef PCAP_NETMASK_UNKNOWN
@@ -143,24 +142,28 @@ int pcap_offline_filter_escaping(struct bpf_program *fp, uintptr_t pkt_hdr, uint
 
 // pcap_wait returns when the next packet is available or the timeout expires.
 // Since it uses pcap_get_selectable_fd, it will not work in Windows.
-int pcap_wait(pcap_t *p, int msec) {
-	struct pollfd fds[1];
+int pcap_wait(pcap_t *p, int usec) {
+	fd_set fds;
 	int fd;
+	struct timeval tv;
 
 	fd = pcap_get_selectable_fd(p);
 	if(fd < 0) {
 		return fd;
 	}
 
-	fds[0].fd = fd;
-	fds[0].events = POLLIN;
+	FD_ZERO(&fds);
+	FD_SET(fd, &fds);
 
-	if(msec != 0) {
-		return poll(fds, 1, msec);
+	tv.tv_sec = 0;
+	tv.tv_usec = usec;
+
+	if(usec != 0) {
+		return select(fd+1, &fds, NULL, NULL, &tv);
 	}
 
 	// block indefinitely if no timeout provided
-	return poll(fds, 1, -1);
+	return select(fd+1, &fds, NULL, NULL, NULL);
 }
 
 */
@@ -176,7 +179,6 @@ const (
 	pcapErrorDenied          = C.PCAP_ERROR_PERM_DENIED
 	pcapErrorNotUp           = C.PCAP_ERROR_IFACE_NOT_UP
 	pcapWarning              = C.PCAP_WARNING
-	pcapError                = C.PCAP_ERROR
 	pcapDIN                  = C.PCAP_D_IN
 	pcapDOUT                 = C.PCAP_D_OUT
 	pcapDINOUT               = C.PCAP_D_INOUT
@@ -346,7 +348,7 @@ func (b *BPF) pcapOfflineFilter(ci gopacket.CaptureInfo, data []byte) bool {
 	hdr.caplen = C.bpf_u_int32(len(data)) // Trust actual length over ci.Length.
 	hdr.len = C.bpf_u_int32(ci.Length)
 	dataptr := (*C.u_char)(unsafe.Pointer(&data[0]))
-	return C.pcap_offline_filter_escaping((*C.struct_bpf_program)(&b.bpf.bpf),
+	return C.pcap_offline_filter_escaping((*C.struct_bpf_program)(&b.bpf),
 		C.uintptr_t(uintptr(unsafe.Pointer(hdr))),
 		C.uintptr_t(uintptr(unsafe.Pointer(dataptr)))) != 0
 }
@@ -682,13 +684,13 @@ func (p *Handle) setNonBlocking() error {
 
 // waitForPacket waits for a packet or for the timeout to expire.
 func (p *Handle) waitForPacket() {
-	// According to pcap_get_selectable_fd() man page, there are some cases where it will
-	// return a file descriptor, but a simple call of select() or poll() will not indicate
-	// that the descriptor is readable until a full buffer's worth of packets is received,
-	// so the call must have a timeout less than *or equal* to the packet buffer timeout.
-	// The packet buffer timeout is set to timeoutMillis(p.timeout) in pcapOpenLive(),
-	// so we should be fine to use it here too.
-	C.pcap_wait(p.cptr, C.int(timeoutMillis(p.timeout)))
+	// need to wait less than the read timeout according to pcap documentation.
+	// timeoutMillis rounds up to at least one millisecond so we can safely
+	// subtract up to a millisecond.
+	usec := timeoutMillis(p.timeout) * 1000
+	usec -= 100
+
+	C.pcap_wait(p.cptr, C.int(usec))
 }
 
 // openOfflineFile returns contents of input file as a *Handle.
