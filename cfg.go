@@ -16,14 +16,15 @@ import (
 )
 
 var (
+	IntervalDuration = 10 * time.Second
+
 	Cfg = &Config{ //nolint:dupl
 		MainCfg: &MainConfig{
-			GlobalTags:       map[string]string{},
-			flushInterval:    Duration{Duration: time.Second * 10},
-			Interval:         "10s",
-			MaxPostInterval:  "15s", // add 5s plus for network latency
-			IntervalDuration: 10 * time.Second,
-			StrictMode:       false,
+			GlobalTags:      map[string]string{},
+			flushInterval:   Duration{Duration: time.Second * 10},
+			Interval:        "10s",
+			MaxPostInterval: "15s", // add 5s plus for network latency
+			StrictMode:      false,
 
 			HTTPBind: "0.0.0.0:9529",
 
@@ -125,12 +126,17 @@ func ParseDataway(dw string) (*DataWayCfg, error) {
 }
 
 type MainConfig struct {
-	UUID                 string            `toml:"uuid"`
-	Name                 string            `toml:"name"`
-	DataWay              *DataWayCfg       `toml:"dataway"`
-	DataWayRequestURL    string            `toml:"-"`
-	HTTPBind             string            `toml:"http_server_addr"`
-	FtGateway            string            `toml:"ftdataway,omitempty"` // XXX: deprecated
+	UUID              string      `toml:"uuid"`
+	Name              string      `toml:"name"`
+	DataWay           *DataWayCfg `toml:"dataway"`
+	DataWayRequestURL string      `toml:"-"`
+	HTTPBind          string      `toml:"http_server_addr"`
+
+	// For old datakit verison conf, there may exist these fields,
+	// if these tags missing, TOML will parse error
+	DeprecatedFtGateway        string `toml:"ftdataway,omitempty"`
+	DeprecatedIntervalDuration string `toml:"interval_duration,omitempty"`
+
 	Log                  string            `toml:"log"`
 	LogLevel             string            `toml:"log_level"`
 	GinLog               string            `toml:"gin_log"`
@@ -140,14 +146,13 @@ type MainConfig struct {
 	RoundInterval        bool
 	StrictMode           bool   `toml:"strict_mode,omitempty"`
 	Interval             string `toml:"interval"`
-	IntervalDuration     time.Duration
 	flushInterval        Duration
 	OutputFile           string `toml:"output_file"`
 	OmitHostname         bool   `toml:"omit_hostname,omitempty"` // Deprecated
 	Hostname             string `toml:"hostname,omitempty"`
 	cfgPath              string
 	DefaultEnabledInputs []string     `toml:"default_enabled_inputs"`
-	InstallDate          time.Time    `toml:"install_date"`
+	InstallDate          time.Time    `toml:"install_date,omitempty"`
 	TelegrafAgentCfg     *TelegrafCfg `toml:"agent"`
 }
 
@@ -225,7 +230,7 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 			l.Warnf("parse %s failed: %s, set default to 10s", c.MainCfg.Interval)
 			du = time.Second * 10
 		}
-		c.MainCfg.IntervalDuration = du
+		IntervalDuration = du
 	}
 
 	c.MainCfg.TelegrafAgentCfg.Debug = strings.EqualFold(strings.ToLower(c.MainCfg.LogLevel), "debug")
@@ -287,6 +292,9 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 }
 
 func (c *Config) LoadEnvs() error {
+	if !Docker { // only accept configs from ENV within docker
+		return nil
+	}
 
 	enableInputs := os.Getenv("ENV_ENABLE_INPUTS")
 	if enableInputs != "" {
@@ -321,28 +329,25 @@ func (c *Config) LoadEnvs() error {
 		c.setHostname()
 	}
 
-	if Docker {
-		maincfg := filepath.Join(InstallDir, "datakit.conf")
-		if fi, err := os.Stat(maincfg); err != nil || fi.Size() == 0 { // create the main config
+	c.MainCfg.Name = os.Getenv("ENV_NAME")
 
-			l.Debugf("generating datakit.conf...")
+	if fi, err := os.Stat(c.MainCfg.cfgPath); err != nil || fi.Size() == 0 { // create the main config
+		if c.MainCfg.UUID == "" { // datakit.conf not exit: we have to create new datakit with new UUID
+			c.MainCfg.UUID = cliutils.XID("dkid_")
+		}
 
-			dkid := os.Getenv("ENV_UUID")
-			c.MainCfg.UUID = dkid
-			if dkid == "" {
-				c.MainCfg.UUID = cliutils.XID("dkid_")
-			}
+		c.MainCfg.InstallDate = time.Now()
 
-			cfgdata, err := toml.Marshal(c.MainCfg)
-			if err != nil {
-				l.Errorf("failed to build main cfg %s", err)
-				return err
-			}
+		cfgdata, err := toml.Marshal(c.MainCfg)
+		if err != nil {
+			l.Errorf("failed to build main cfg %s", err)
+			return err
+		}
 
-			if err := ioutil.WriteFile(maincfg, cfgdata, os.ModePerm); err != nil {
-				l.Error(err)
-				return err
-			}
+		l.Debugf("generating datakit.conf...")
+		if err := ioutil.WriteFile(c.MainCfg.cfgPath, cfgdata, os.ModePerm); err != nil {
+			l.Error(err)
+			return err
 		}
 	}
 
