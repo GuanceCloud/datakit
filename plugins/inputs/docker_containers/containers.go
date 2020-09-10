@@ -1,4 +1,4 @@
-package dockerContainers
+package docker_containers
 
 import (
 	"context"
@@ -30,6 +30,9 @@ const (
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     interval = "5s"
 
+    # Is all containers
+    all = false
+
     # Timeout for Docker API calls.
     timeout = "5s"
 
@@ -59,6 +62,7 @@ type DockerContainers struct {
 	Endpoint string `toml:"endpoint"`
 	Interval string `toml:"interval"`
 	Timeout  string `toml:"timeout"`
+	All      bool   `toml:"all"`
 
 	timeoutDuration  time.Duration
 	intervalDutation time.Duration
@@ -91,7 +95,7 @@ func (d *DockerContainers) Run() {
 	ticker := time.NewTicker(d.intervalDutation)
 	defer ticker.Stop()
 
-	l.Info("dockerContainers input start")
+	l.Info("docker_containers input start")
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -147,6 +151,8 @@ func (d *DockerContainers) loadCfg() bool {
 		l.Error(err)
 		time.Sleep(time.Second)
 	}
+
+	d.opts.All = d.All
 	return false
 }
 
@@ -219,6 +225,9 @@ func containerTime(tim string) int64 {
 	t, err := time.Parse(time.RFC3339Nano, tim)
 	if err != nil {
 		return 0
+	}
+	if t.UnixNano() < 0 {
+		return -1
 	}
 	return t.UnixNano()
 }
