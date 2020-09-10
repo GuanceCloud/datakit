@@ -5,6 +5,7 @@
 - python 脚本 在 datakit 安装目录下的 externals/ansible/task_info.py 中
 - 需要将 python 脚本放到 ansible.cfg callback plugin 指定目录  callback_plugins = /x/x
 - 安装 python脚本所需环境 pip install -r requirement.txt
+- ansible 中需配置 bin_ansible_callbacks = True
 - ansible 中需启动callback plugin 白名单 callback_whitelist = task_info
 
 ## 配置
