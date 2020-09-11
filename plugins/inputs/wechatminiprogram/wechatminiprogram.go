@@ -2,12 +2,15 @@ package wechatminiprogram
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	url2 "net/url"
+	"reflect"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/tidwall/gjson"
@@ -18,10 +21,33 @@ import (
 )
 
 type WxClient struct {
-	Appid   string `toml:"appid"`
-	Secret  string `toml:"secret"`
-	RunTime string `toml:"runtime"`
+	Appid     string            `toml:"appid"`
+	Secret    string            `toml:"secret"`
+	Tags      map[string]string `toml:"tags,omitempty"`
+	Analysis  *Analysis         `toml:"analysis,omitempty"`
+	Operation *Operation        `toml:"operation,omitempty"`
+
+	ctx       context.Context
+	cancelFun context.CancelFunc
+	wg sync.WaitGroup
+	subModules []subModule
+
 }
+type subModule interface {
+	run(wx *WxClient)
+}
+
+type Analysis struct {
+	Name    []string `toml:"name,omitempty"`
+	RunTime string   `toml:"runtime"`
+}
+
+type Operation struct {
+	Name []string `toml:"name,omitempty"`
+}
+
+
+
 
 func (wx *WxClient) SampleConfig() string {
 	return sampleCfg
@@ -31,44 +57,104 @@ func (wx *WxClient) Catalog() string {
 	return "wechat"
 }
 
-func (wx *WxClient) run() {
-	token := wx.GetAccessToken()
-	wx.GetDailySummary(token)
-	wx.GetVisitDistribution(token)
-	wx.GetUserPortrait(token)
-	wx.GetDailyVisitTrend(token)
-	wx.GetVisitPage(token)
-	wx.GetJsErrSearch(token, 1, 100)
-	wx.GetPerformance(token)
-}
-
-func (wx *WxClient) Run() {
-
-	l = logger.SLogger("wechat")
-	l.Info("wechat input started...")
+func (an *Analysis) run(wx *WxClient) {
 	interval, err := time.ParseDuration("24h")
 	if err != nil {
 		l.Error(err)
 	}
 	sleepTime := wx.formatRuntime()
 	time.Sleep(time.Duration(sleepTime) * time.Second)
-	tick := time.NewTicker(interval)
-	defer tick.Stop()
 	for {
-		wx.run()
-		select {
-		case <-tick.C:
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return
+		token := wx.GetAccessToken()
+		wxClient := reflect.ValueOf(wx)
+		params := []reflect.Value{
+			reflect.ValueOf(token),
 		}
+		for _,c :=range wx.Analysis.Name {
+			if wxClient.MethodByName(c).IsValid() {
+				l.Info(c)
+				wxClient.MethodByName(c).Call(params)
+			}
+		}
+		select {
+		case <-wx.ctx.Done():
+			return
+		default:
+		}
+		datakit.SleepContext(wx.ctx,interval)
 	}
+}
+
+func (op *Operation) run(wx *WxClient) {
+	l.Info("operation run")
+	interval, err := time.ParseDuration("5m")
+	if err != nil {
+		l.Error(err)
+	}
+	for {
+		token := wx.GetAccessToken()
+		wxClient := reflect.ValueOf(wx)
+
+		for _, c := range wx.Operation.Name {
+			params := []reflect.Value{
+				reflect.ValueOf(token),
+			}
+			if c == "JsErrSearch" {
+				var pageNum ,pageSize int64 = 1 ,100
+				params = append(params, reflect.ValueOf(pageNum))
+				params = append(params, reflect.ValueOf(pageSize))
+			}
+			if wxClient.MethodByName(c).IsValid() {
+				l.Info(c)
+				wxClient.MethodByName(c).Call(params)
+			}
+		}
+		select {
+		case <-wx.ctx.Done():
+			return
+		default:
+		}
+		datakit.SleepContext(wx.ctx,interval)
+	}
+}
+
+func (wx *WxClient) addModule(m subModule) {
+	wx.subModules = append(wx.subModules, m)
+}
+
+
+
+func (wx *WxClient) Run() {
+	wx.ctx, wx.cancelFun = context.WithCancel(context.Background())
+
+	l = logger.SLogger("wechat")
+	l.Info("wechat input started...")
+	if wx.Analysis != nil {
+		wx.addModule(wx.Analysis)
+
+	}
+	if wx.Operation != nil {
+		wx.addModule(wx.Operation)
+
+	}
+
+	for _, s := range wx.subModules {
+		wx.wg.Add(1)
+		go func(s subModule) {
+			defer wx.wg.Done()
+			s.run(wx)
+		}(s)
+	}
+
+	wx.wg.Wait()
+
+	l.Debugf("done")
 
 }
 
 type requestQueries map[string]string
 
-func (wx *WxClient) GetDailySummary(accessToken string) {
+func (wx *WxClient) DailySummary(accessToken string) {
 	body, timeObj := wx.API(accessToken, DailySummaryURL)
 	tags := map[string]string{}
 	tags["appid"] = wx.Appid
@@ -81,7 +167,7 @@ func (wx *WxClient) GetDailySummary(accessToken string) {
 	wx.writeMetric("DailySummary", tags, fields, timeObj)
 }
 
-func (wx *WxClient) GetDailyVisitTrend(accessToken string) {
+func (wx *WxClient) DailyVisitTrend(accessToken string) {
 	body, timeObj := wx.API(accessToken, DailyVisitTrendURL)
 	tags := map[string]string{}
 	tags["appid"] = wx.Appid
@@ -99,7 +185,7 @@ func (wx *WxClient) GetDailyVisitTrend(accessToken string) {
 
 }
 
-func (wx *WxClient) GetVisitDistribution(accessToken string) () {
+func (wx *WxClient) VisitDistribution(accessToken string) () {
 	body, timeObj := wx.API(accessToken, VisitDistributionURL)
 	tags := map[string]string{}
 	tags["appid"] = wx.Appid
@@ -116,13 +202,13 @@ func (wx *WxClient) GetVisitDistribution(accessToken string) () {
 	}
 }
 
-func (wx *WxClient) GetUserPortrait(accessToken string) {
+func (wx *WxClient) UserPortrait(accessToken string) {
 	body, timeObj := wx.API(accessToken, UserPortraitURL)
 	wx.FormatUserPortraitData(string(body), "visit_uv_new", timeObj)
 	wx.FormatUserPortraitData(string(body), "visit_uv", timeObj)
 }
 
-func (wx *WxClient) GetVisitPage(accessToken string) () {
+func (wx *WxClient) VisitPage(accessToken string) () {
 	body, timeObj := wx.API(accessToken, VisitPageURL)
 	tags := map[string]string{}
 	tags["appid"] = wx.Appid
@@ -205,7 +291,7 @@ func (wx *WxClient) FormatUserPortraitData(body, dataType string, timeObj time.T
 	}
 }
 
-func (wx *WxClient) GetJsErrSearch(accessToken string, startPage, limit int64) () {
+func (wx *WxClient) JsErrSearch(accessToken string, startPage, limit int64) () {
 	queries := requestQueries{
 		"access_token": accessToken,
 	}
@@ -268,11 +354,11 @@ func (wx *WxClient) GetJsErrSearch(accessToken string, startPage, limit int64) (
 
 	if startPage*limit <= gjson.Get(string(body), "total").Int() {
 		startPage++
-		wx.GetJsErrSearch(accessToken, startPage, limit)
+		wx.JsErrSearch(accessToken, startPage, limit)
 	}
 }
 
-func (wx *WxClient) GetPerformance(accessToken string) () {
+func (wx *WxClient) Performance(accessToken string) () {
 	queries := requestQueries{
 		"access_token": accessToken,
 	}
@@ -369,7 +455,8 @@ func (wx *WxClient) API(accessToken, apiUrl string) ([]byte, time.Time) {
 func (wx *WxClient) formatRuntime() int64 {
 	var cstZone = time.FixedZone("CST", offect)
 	now := time.Now().In(cstZone)
-	format := fmt.Sprintf("%s %s:00", now.Format("20060102"), wx.RunTime)
+
+	format := fmt.Sprintf("%s %s:00", now.Format("20060102"), wx.Analysis.RunTime)
 	runTime, err := time.ParseInLocation("20060102 15:04:05", format, cstZone)
 	if err != nil {
 		return wx.formatRuntime()
