@@ -6,14 +6,35 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
+
+func addTailfInputs(mc *datakit.MainConfig) {
+
+	src := mc.Name
+	if src == "" {
+		src = mc.UUID
+	}
+
+	tailfDatakitLog := &tailf.Tailf{
+		LogFiles: []string{
+			mc.Log,
+			datakit.AgentLogFile,
+		},
+		Source: src,
+	}
+
+	l.Infof("add input %+#v", tailfDatakitLog)
+	_ = inputs.AddInput("tailf", tailfDatakitLog, "no-config-available")
+}
 
 // load all inputs under @InstallDir/conf.d
 func LoadInputsConfig(c *datakit.Config) error {
@@ -65,6 +86,9 @@ func LoadInputsConfig(c *datakit.Config) error {
 	// reset inputs(for reloading)
 	l.Debug("reset inputs")
 	inputs.ResetInputs()
+	if c.MainCfg.LogUpload { // re-add tailf on datakit log
+		addTailfInputs(c.MainCfg)
+	}
 
 	for name, creator := range inputs.Inputs {
 		if err := doLoadInputConf(c, name, creator, availableInputCfgs); err != nil {
@@ -107,9 +131,13 @@ func doLoadInputConf(c *datakit.Config, name string, creator inputs.Creator, inp
 }
 
 func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, name string, creator inputs.Creator) {
+	var err error
+
 	for fp, tbl := range inputcfgs {
 
 		for field, node := range tbl.Fields {
+			inputlist := []inputs.Input{}
+
 			switch field {
 			case "inputs": //nolint:goconst
 				stbl, ok := node.(*ast.Table)
@@ -121,7 +149,8 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 							continue
 						}
 
-						if err := tryUnmarshal(v, name, creator, fp); err != nil {
+						inputlist, err = tryUnmarshal(v, name, creator)
+						if err != nil {
 							l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 							continue
 						}
@@ -130,18 +159,26 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 					}
 				}
 
-			default:
-				if err := tryUnmarshal(node, name, creator, fp); err != nil {
+			default: // compatible with old version: no [[inputs.xxx]] header
+				inputlist, err = tryUnmarshal(node, name, creator)
+				if err != nil {
 					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
-				} else {
-					l.Infof("load input %s from %s ok", name, fp)
 				}
+			}
+
+			for _, i := range inputlist {
+				if err := inputs.AddInput(name, i, fp); err != nil {
+					l.Error("add %s failed: %v", name, err)
+					continue
+				}
+
+				l.Infof("add input %s(%s) ok", name, fp)
 			}
 		}
 	}
 }
 
-func tryUnmarshal(tbl interface{}, name string, creator inputs.Creator, fp string) error {
+func tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputList []inputs.Input, err error) {
 
 	tbls := []*ast.Table{}
 
@@ -151,26 +188,50 @@ func tryUnmarshal(tbl interface{}, name string, creator inputs.Creator, fp strin
 	case *ast.Table:
 		tbls = append(tbls, tbl.(*ast.Table))
 	default:
-		return fmt.Errorf("invalid toml format on %s: %v", name, t)
+		err = fmt.Errorf("invalid toml format on %s: %v", name, t)
+		return
 	}
 
 	for _, t := range tbls {
 		input := creator()
 
-		if err := toml.UnmarshalTable(t, input); err != nil {
+		err = toml.UnmarshalTable(t, input)
+		if err != nil {
 			l.Errorf("toml unmarshal %s failed: %v", name, err)
-			return err
+			return
 		}
 
-		if err := inputs.AddInput(name, input, t, fp); err != nil {
-			l.Error("add %s failed: %v", name, err)
-			return err
-		}
+		l.Debugf("try set MaxLifeCheckInterval from ", name)
+		trySetMaxPostInterval(t)
 
-		l.Infof("add input %s(%s) ok", name, fp)
+		inputList = append(inputList, input)
 	}
 
-	return nil
+	return
+}
+
+func trySetMaxPostInterval(t *ast.Table) {
+	var dur time.Duration
+	var err error
+	node, ok := t.Fields["interval"]
+	if !ok {
+		return
+	}
+
+	if kv, ok := node.(*ast.KeyValue); ok {
+		if str, ok := kv.Value.(*ast.String); ok {
+			dur, err = time.ParseDuration(str.Value)
+			if err != nil {
+				l.Errorf("parse duration(%s) from %+#v failed: %s, ignored", str.Value, t, err.Error())
+				return
+			}
+
+			if datakit.MaxLifeCheckInterval+5*time.Second < dur { // use the max interval from all inputs
+				datakit.MaxLifeCheckInterval = dur
+				l.Debugf("set MaxLifeCheckInterval to %v ok", dur)
+			}
+		}
+	}
 }
 
 func migrateOldCfg(name string, c inputs.Creator) error {
