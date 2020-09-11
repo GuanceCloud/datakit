@@ -91,13 +91,14 @@ type TelegrafInput struct {
 }
 
 func (ti *TelegrafInput) SampleConfig() string {
-	// telegraf not exported inputs, return sample directly(if configured in init())
-	if ti.input == nil {
-		return ti.Sample
-	}
 
 	if ti.Sample != "" { // prefer specified sample
 		return ti.Sample
+	}
+
+	// telegraf not exported inputs, return sample directly(if configured in init())
+	if ti.input == nil {
+		panic(fmt.Errorf("%s should have a specific config-sample", ti.name))
 	}
 
 	return fmt.Sprintf("[[inputs.%s]]\n%s", ti.name, ti.input.SampleConfig())
@@ -113,6 +114,8 @@ var (
 		"system":   {name: "system", Catalog: "host", input: &system.SystemStats{}},
 		"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
 		"procstat": {name: "procstat", Catalog: "host", input: &procstat.Procstat{}},
+
+		"internal": {name: "internal", Catalog: "internal", Sample: samples["internal"], input: nil}, // import internal package not allowed
 
 		"ping":            {name: "ping", Catalog: "network", input: &ping.Ping{}},
 		"net":             {name: "net", Catalog: "network", input: &net.NetStats{}},
