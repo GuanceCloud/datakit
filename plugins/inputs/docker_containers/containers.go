@@ -66,6 +66,7 @@ type DockerContainers struct {
 
 	timeoutDuration  time.Duration
 	intervalDutation time.Duration
+	host             string
 	ClientConfig
 
 	newEnvClient func() (Client, error)
@@ -74,7 +75,7 @@ type DockerContainers struct {
 	client Client
 	opts   types.ContainerListOptions
 
-	objects []*DockerObject
+	objects []*ContainerObject
 }
 
 func (*DockerContainers) SampleConfig() string {
@@ -152,6 +153,11 @@ func (d *DockerContainers) loadCfg() bool {
 		time.Sleep(time.Second)
 	}
 
+	if strings.HasPrefix(d.Endpoint, "tcp") {
+		d.host = d.Endpoint
+	} else {
+		d.host = datakit.Cfg.MainCfg.Hostname
+	}
 	d.opts.All = d.All
 	return false
 }
@@ -179,6 +185,7 @@ func (d *DockerContainers) gather() {
 		if err := io.NamedFeed(data, io.Object, inputName); err != nil {
 			l.Error(err)
 		}
+		l.Infof("%s", data)
 	}
 
 	d.objects = d.objects[:0]
@@ -193,7 +200,7 @@ func (d *DockerContainers) gatherContainer(container types.Container) error {
 		return err
 	}
 
-	var obj = DockerObject{}
+	var obj = ContainerObject{}
 	obj.Name = containerName(container.Names)
 	obj.Tags = Tags{
 		Class:           "docker_containers",
@@ -201,14 +208,16 @@ func (d *DockerContainers) gatherContainer(container types.Container) error {
 		ContainerID:     container.ID,
 		ContainerImage:  container.Image,
 		ContainerStatue: container.State,
-		Host:            containerJSON.Config.Hostname,
+		Host:            d.host,
 		PID:             strconv.Itoa(containerJSON.State.Pid),
 	}
 	obj.Carated = containerTime(containerJSON.Created)
 	obj.Started = containerTime(containerJSON.State.StartedAt)
 	obj.Finished = containerTime(containerJSON.State.FinishedAt)
 	obj.Path = containerJSON.Path
-	obj.Inspect = containerJSON
+	// obj.Inspect = containerJSON
+	description, _ := json.Marshal(containerJSON)
+	obj.Description = string(description)
 
 	d.objects = append(d.objects, &obj)
 	return nil
