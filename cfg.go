@@ -26,11 +26,14 @@ var (
 			MaxPostInterval: "15s", // add 5s plus for network latency
 			StrictMode:      false,
 
-			HTTPBind: "0.0.0.0:9529",
+			HTTPBind: "0.0.00:9529",
 
-			LogLevel: "info",
-			Log:      filepath.Join(InstallDir, "datakit.log"),
-			GinLog:   filepath.Join(InstallDir, "gin.log"),
+			LogLevel:  "info",
+			Log:       filepath.Join(InstallDir, "datakit.log"),
+			LogRotate: 32,
+			LogUpload: false,
+
+			GinLog: filepath.Join(InstallDir, "gin.log"),
 
 			RoundInterval: false,
 			cfgPath:       filepath.Join(InstallDir, "datakit.conf"),
@@ -137,8 +140,11 @@ type MainConfig struct {
 	DeprecatedFtGateway        string `toml:"ftdataway,omitempty"`
 	DeprecatedIntervalDuration int64  `toml:"interval_duration,omitempty"`
 
-	Log                  string            `toml:"log"`
-	LogLevel             string            `toml:"log_level"`
+	Log       string `toml:"log"`
+	LogLevel  string `toml:"log_level"`
+	LogRotate int    `toml:"log_rotate,omitempty"`
+	LogUpload bool   `toml:"log_upload"`
+
 	GinLog               string            `toml:"gin_log"`
 	ConfigDir            string            `toml:"config_dir,omitempty"` // XXX: not used: to compatible parsing with forethought datakit.conf
 	MaxPostInterval      string            `toml:"max_post_interval"`    //验证dk存活

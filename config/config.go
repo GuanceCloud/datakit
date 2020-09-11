@@ -32,8 +32,16 @@ func LoadCfg(c *datakit.Config) error {
 
 	l.Infof("set log to %s", c.MainCfg.Log)
 
+	loggerOptions := logger.OPT_DEFAULT
+	if c.MainCfg.LogUpload { // upload datakit.log and agent.log to dataflux
+		l.Info("log uploading on, log rotate disabled")
+		loggerOptions ^= logger.OPT_ROTATE // BUG: tailf can't tail on rotate log
+		addTailfInputs(c.MainCfg)
+	}
+
 	// set global log root
-	logger.SetGlobalRootLogger(c.MainCfg.Log, c.MainCfg.LogLevel, logger.OPT_DEFAULT)
+	logger.MaxSize = c.MainCfg.LogRotate
+	logger.SetGlobalRootLogger(c.MainCfg.Log, c.MainCfg.LogLevel, loggerOptions)
 	l = logger.SLogger("config")
 
 	l.Infof("main cfg: %+#v", c.MainCfg)
