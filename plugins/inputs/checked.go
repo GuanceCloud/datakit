@@ -37,8 +37,8 @@ var (
 		"diskio":                 false,
 		"dns_query":              true,
 		"docker":                 true,
-		"docker_containers":      false,
-		"dockerlog":              false,
+		"docker_containers":      true,
+		"dockerlog":              true,
 		"druid":                  true,
 		"elasticsearch":          true,
 		"envoy":                  true,
@@ -127,6 +127,7 @@ var (
 		"tencentcost":            true,
 		"tencentobject":          false, // doc miss
 		"tengine":                true,
+		"tidb":                   false,
 		"timezone":               true,
 		"traceJaeger":            false,
 		"traceSkywalking":        false,
