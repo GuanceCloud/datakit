@@ -46,10 +46,6 @@ func (a *AwsInstance) Run() {
 
 	a.billingMetrics = make(map[string]*cloudwatch.Metric)
 
-	if a.MetricName == "" {
-		a.MetricName = "awsbill"
-	}
-
 	if a.Interval.Duration == 0 {
 		a.Interval.Duration = time.Hour * 4
 	}
@@ -212,7 +208,7 @@ func (r *AwsInstance) run(ctx context.Context) error {
 		return err
 	}
 
-	metricName := r.MetricName
+	metricName := `awsbill`
 
 	for {
 		select {

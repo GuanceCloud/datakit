@@ -81,7 +81,6 @@ func TestConfig(t *testing.T) {
 		AccessKey:    "xxx",
 		AccessSecret: "xxx",
 		RegionID:     "xxx",
-		MetricName:   "xxx",
 	}
 
 	if data, err := toml.Marshal(ag); err != nil {
