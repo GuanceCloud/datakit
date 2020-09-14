@@ -8,6 +8,7 @@
 package layers
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 
@@ -23,6 +24,14 @@ type EnumMetadata struct {
 	Name string
 	// LayerType is the layer type implied by the given enum.
 	LayerType gopacket.LayerType
+}
+
+// errorFunc returns a decoder that spits out a specific error message.
+func errorFunc(msg string) gopacket.Decoder {
+	var e = errors.New(msg)
+	return gopacket.DecodeFunc(func([]byte, gopacket.PacketBuilder) error {
+		return e
+	})
 }
 
 // EthernetType is an enumeration of ethernet type values, and acts as a decoder
@@ -121,8 +130,6 @@ const (
 	LinkTypeLinuxIRDA      LinkType = 144
 	LinkTypeLinuxLAPD      LinkType = 177
 	LinkTypeLinuxUSB       LinkType = 220
-	LinkTypeFC2            LinkType = 224
-	LinkTypeFC2Framed      LinkType = 225
 	LinkTypeIPv4           LinkType = 228
 	LinkTypeIPv6           LinkType = 229
 )
