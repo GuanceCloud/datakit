@@ -91,6 +91,10 @@ type DataWayCfg struct {
 	Token       string `toml:"token"`
 	Timeout     string `toml:"timeout"`
 	DefaultPath string `toml:"default_path"`
+
+	WSHost   string `toml:"ws_host"`
+	WSScheme string `toml:"ws_scheme"`
+	WSPath   string `toml:"ws_path"`
 }
 
 func ParseDataway(dw string) (*DataWayCfg, error) {
@@ -98,7 +102,10 @@ func ParseDataway(dw string) (*DataWayCfg, error) {
 		Timeout: "30s",
 	}
 
-	if u, err := url.Parse(dw); err == nil {
+	// 1st part: dataway HTTP host, 2nd part(optional): dataway websocket host
+	parts := strings.Split(dw, ";")
+
+	if u, err := url.Parse(parts[0]); err == nil {
 		dwcfg.Scheme = u.Scheme
 		dwcfg.Token = u.Query().Get("token")
 		dwcfg.Host = u.Host
@@ -108,21 +115,34 @@ func ParseDataway(dw string) (*DataWayCfg, error) {
 			dwcfg.Host += ":443"
 		}
 
+		if len(parts) == 2 {
+			if u, err := url.Parse(parts[1]); err == nil {
+				dwcfg.WSScheme = u.Scheme
+				dwcfg.WSHost = u.Host
+				dwcfg.WSPath = u.Path
+			} else {
+				l.Errorf("failed to parse %s: %s", parts[1], err.Error())
+				return nil, err
+			}
+		}
+
 		l.Debugf("dataway: %+#v", dwcfg)
 	} else {
 		l.Errorf("parse url %s failed: %s", dw, err.Error())
 		return nil, err
 	}
 
-	conn, err := net.DialTimeout("tcp", dwcfg.Host, time.Minute)
-	if err != nil {
-		l.Errorf("TCP dial host `%s' failed: %s", dwcfg.Host, err.Error())
-		return nil, err
-	}
+	for _, h := range []string{dwcfg.Host, dwcfg.WSHost} {
+		conn, err := net.DialTimeout("tcp", h, time.Minute)
+		if err != nil {
+			l.Errorf("TCP dial host `%s' failed: %s", h, err.Error())
+			return nil, err
+		}
 
-	if err := conn.Close(); err != nil {
-		l.Errorf("close failed: %s", err.Error())
-		return nil, err
+		if err := conn.Close(); err != nil {
+			l.Errorf("close failed: %s", err.Error())
+			return nil, err
+		}
 	}
 
 	return dwcfg, nil
