@@ -214,9 +214,6 @@ func run() {
 	case <-datakit.StopCh:
 		l.Infof("service stopping")
 		datakit.Quit()
-
-	case <-datakit.GlobalExit.Wait():
-		l.Debug("datakit exit on sem")
 	}
 
 	l.Info("datakit exit.")
