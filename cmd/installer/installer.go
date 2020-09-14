@@ -32,8 +32,9 @@ var (
 )
 
 var (
-	flagUpgrade      = flag.Bool("upgrade", false, ``)
-	flagDataway      = flag.String("dataway", "", `address of dataway(http://IP:Port/v1/write/metric), port default 9528`)
+	flagUpgrade = flag.Bool("upgrade", false, ``)
+	flagDataway = flag.String("dataway", "", `address of dataway(http://IP:Port/v1/write/metric;ws://IP:Port/v1/datakit), port default 9528 and 9530`)
+
 	flagInfo         = flag.Bool("info", false, "show installer info")
 	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
 
