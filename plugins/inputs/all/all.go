@@ -20,7 +20,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/containerd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/coredns"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dataclean"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dockerContainers"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/docker_containers"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dockerlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/envoy"
@@ -70,6 +70,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
 
 	// external inputs wrap
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ansible"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/csv"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 	//
