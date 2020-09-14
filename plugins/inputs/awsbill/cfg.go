@@ -18,9 +18,6 @@ const (
 #access_secret = ''
 #region_id = 'us-east-1'
 
-# ##(optional) custom metric name, default is awsbill
-#metric_name = ''
-
 # ##(optional) collect interval, default is 4 hours. AWS billing metrics are available about once every 4 hours.
 #interval = '4h'
 `
@@ -30,9 +27,9 @@ type AwsInstance struct {
 	AccessKey    string
 	AccessSecret string
 	//AccessToken  string
-	RegionID   string
-	MetricName string
-	Interval   datakit.Duration
+	RegionID string
+
+	Interval datakit.Duration
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
