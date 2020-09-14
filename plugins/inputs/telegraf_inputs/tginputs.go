@@ -42,6 +42,10 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/net"
 	"github.com/influxdata/telegraf/plugins/inputs/net_response"
 	"github.com/influxdata/telegraf/plugins/inputs/nginx"
+	"github.com/influxdata/telegraf/plugins/inputs/nginx_plus"
+	"github.com/influxdata/telegraf/plugins/inputs/nginx_plus_api"
+	"github.com/influxdata/telegraf/plugins/inputs/nginx_upstream_check"
+	"github.com/influxdata/telegraf/plugins/inputs/nginx_vts"
 	"github.com/influxdata/telegraf/plugins/inputs/nsq"
 	"github.com/influxdata/telegraf/plugins/inputs/nsq_consumer"
 	"github.com/influxdata/telegraf/plugins/inputs/ntpq"
@@ -122,7 +126,12 @@ var (
 		// collectd use socket_listener to gather data
 		"collectd": {name: "socket_listener", Catalog: "collectd", input: &socket_listener.SocketListener{}},
 
-		"nginx":   {name: "nginx", Catalog: "nginx", input: &nginx.Nginx{}},
+		"nginx":                {name: "nginx", Catalog: "nginx", input: &nginx.Nginx{}},
+		"nginx_upstream_check": {name: "nginx_upstream_check", Catalog: "nginx", input: &nginx_upstream_check.NginxUpstreamCheck{}},
+		"nginx_plus_api":       {name: "nginx_plus_api", Catalog: "nginx", input: &nginx_plus_api.NginxPlusApi{}},
+		"nginx_plus":           {name: "nginx_plus", Catalog: "nginx", input: &nginx_plus.NginxPlus{}},
+		"nginx_vts":            {name: "nginx_vts", Catalog: "nginx", input: &nginx_vts.NginxVTS{}},
+
 		"tengine": {name: "tengine", Catalog: "tengine", input: &tengine.Tengine{}},
 		"apache":  {name: "apache", Catalog: "apache", input: &apache.Apache{}},
 
