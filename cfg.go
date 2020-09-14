@@ -26,7 +26,7 @@ var (
 			MaxPostInterval: "15s", // add 5s plus for network latency
 			StrictMode:      false,
 
-			HTTPBind: "0.0.00:9529",
+			HTTPBind: "0.0.0.0:9529",
 
 			LogLevel:  "info",
 			Log:       filepath.Join(InstallDir, "datakit.log"),
