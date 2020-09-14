@@ -96,18 +96,11 @@ type InterfaceAddress struct {
 	P2P       net.IP     // P2P destination address for this IP may be nil
 }
 
-// bpfFilter keeps C.struct_bpf_program separate from BPF.orig which might be a pointer to go memory.
-// This is a workaround for https://github.com/golang/go/issues/32970 which will be fixed in go1.14.
-// (type conversion is in pcap_unix.go pcapOfflineFilter)
-type bpfFilter struct {
-	bpf pcapBpfProgram // takes a finalizer, not overriden by outsiders
-}
-
 // BPF is a compiled filter program, useful for offline packet matching.
 type BPF struct {
 	orig string
-	bpf  *bpfFilter
-	hdr  pcapPkthdr // allocate on the heap to enable optimizations
+	bpf  pcapBpfProgram // takes a finalizer, not overriden by outsiders
+	hdr  pcapPkthdr     // allocate on the heap to enable optimizations
 }
 
 // BPFInstruction is a byte encoded structure holding a BPF instruction
@@ -271,7 +264,6 @@ const (
 	aeDenied       = activateError(pcapErrorDenied)
 	aeNotUp        = activateError(pcapErrorNotUp)
 	aeWarning      = activateError(pcapWarning)
-	aeError        = activateError(pcapError)
 )
 
 func (a activateError) Error() string {
@@ -290,8 +282,6 @@ func (a activateError) Error() string {
 		return "Interface Not Up"
 	case aeWarning:
 		return fmt.Sprintf("Warning: %v", activateErrMsg.Error())
-	case aeError:
-		return fmt.Sprintf("Error: %v", activateErrMsg.Error())
 	default:
 		return fmt.Sprintf("unknown activated error: %d", a)
 	}
@@ -518,10 +508,10 @@ func bpfInstructionFilter(bpfInstructions []BPFInstruction) (bpf pcapBpfProgram,
 // BPF filters need to be created from activated handles, because they need to
 // know the underlying link type to correctly compile their offsets.
 func (p *Handle) NewBPF(expr string) (*BPF, error) {
-	bpf := &BPF{orig: expr, bpf: new(bpfFilter)}
+	bpf := &BPF{orig: expr}
 
 	var err error
-	bpf.bpf.bpf, err = p.pcapCompile(expr, pcapNetmaskUnknown)
+	bpf.bpf, err = p.pcapCompile(expr, pcapNetmaskUnknown)
 	if err != nil {
 		return nil, err
 	}
@@ -558,9 +548,9 @@ func NewBPF(linkType layers.LinkType, captureLength int, expr string) (*BPF, err
 // know the underlying link type to correctly compile their offsets.
 func (p *Handle) NewBPFInstructionFilter(bpfInstructions []BPFInstruction) (*BPF, error) {
 	var err error
-	bpf := &BPF{orig: "BPF Instruction Filter", bpf: new(bpfFilter)}
+	bpf := &BPF{orig: "BPF Instruction Filter"}
 
-	bpf.bpf.bpf, err = bpfInstructionFilter(bpfInstructions)
+	bpf.bpf, err = bpfInstructionFilter(bpfInstructions)
 	if err != nil {
 		return nil, err
 	}
@@ -569,7 +559,7 @@ func (p *Handle) NewBPFInstructionFilter(bpfInstructions []BPFInstruction) (*BPF
 	return bpf, nil
 }
 func destroyBPF(bpf *BPF) {
-	bpf.bpf.bpf.free()
+	bpf.bpf.free()
 }
 
 // String returns the original string this BPF filter was compiled from.
@@ -766,7 +756,7 @@ func (p *InactiveHandle) Activate() (*Handle, error) {
 	pcapSetTstampPrecision(p.cptr, pcapTstampPrecisionNano)
 	handle, err := p.pcapActivate()
 	if err != aeNoError {
-		if err == aeWarning || err == aeError {
+		if err == aeWarning {
 			activateErrMsg = p.Error()
 		}
 		return nil, err

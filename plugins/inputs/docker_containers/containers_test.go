@@ -1,4 +1,4 @@
-package dockerContainers
+package docker_containers
 
 import (
 	"testing"
@@ -11,6 +11,7 @@ func TestMain(t *testing.T) {
 
 	var d = DockerContainers{
 		Endpoint:     defaultEndpoint,
+		All:          false,
 		Timeout:      "5s",
 		Interval:     "5s",
 		newEnvClient: NewEnvClient,
