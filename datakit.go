@@ -38,9 +38,6 @@ var (
 	WG   = sync.WaitGroup{}
 	l    = logger.DefaultSLogger("datakit")
 
-	GlobalExit = cliutils.NewSem()
-	GlobalWG   = sync.WaitGroup{}
-
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 
 	MaxLifeCheckInterval time.Duration
