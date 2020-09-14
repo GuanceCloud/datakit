@@ -88,7 +88,6 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/slb
 github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
-github.com/aliyun/aliyun-log-go-sdk/consumer
 # github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/andygrunwald/go-jira v1.12.0
@@ -361,7 +360,7 @@ github.com/golang/snappy
 github.com/google/go-github/github
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
-# github.com/google/gopacket v1.1.18
+# github.com/google/gopacket v1.1.17
 github.com/google/gopacket
 github.com/google/gopacket/layers
 github.com/google/gopacket/pcap
@@ -418,7 +417,6 @@ github.com/influxdata/telegraf/plugins/inputs/disk
 github.com/influxdata/telegraf/plugins/inputs/diskio
 github.com/influxdata/telegraf/plugins/inputs/dns_query
 github.com/influxdata/telegraf/plugins/inputs/docker
-github.com/influxdata/telegraf/plugins/inputs/docker_log
 github.com/influxdata/telegraf/plugins/inputs/elasticsearch
 github.com/influxdata/telegraf/plugins/inputs/exec
 github.com/influxdata/telegraf/plugins/inputs/fluentd
@@ -448,6 +446,10 @@ github.com/influxdata/telegraf/plugins/inputs/nats
 github.com/influxdata/telegraf/plugins/inputs/net
 github.com/influxdata/telegraf/plugins/inputs/net_response
 github.com/influxdata/telegraf/plugins/inputs/nginx
+github.com/influxdata/telegraf/plugins/inputs/nginx_plus
+github.com/influxdata/telegraf/plugins/inputs/nginx_plus_api
+github.com/influxdata/telegraf/plugins/inputs/nginx_upstream_check
+github.com/influxdata/telegraf/plugins/inputs/nginx_vts
 github.com/influxdata/telegraf/plugins/inputs/nsq
 github.com/influxdata/telegraf/plugins/inputs/nsq_consumer
 github.com/influxdata/telegraf/plugins/inputs/ntpq
