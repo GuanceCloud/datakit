@@ -1,4 +1,4 @@
-package dockerContainers
+package docker_containers
 
 import (
 	"context"
@@ -30,6 +30,9 @@ const (
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     interval = "5s"
 
+    # Is all containers
+    all = false
+
     # Timeout for Docker API calls.
     timeout = "5s"
 
@@ -59,9 +62,11 @@ type DockerContainers struct {
 	Endpoint string `toml:"endpoint"`
 	Interval string `toml:"interval"`
 	Timeout  string `toml:"timeout"`
+	All      bool   `toml:"all"`
 
 	timeoutDuration  time.Duration
 	intervalDutation time.Duration
+	host             string
 	ClientConfig
 
 	newEnvClient func() (Client, error)
@@ -70,7 +75,7 @@ type DockerContainers struct {
 	client Client
 	opts   types.ContainerListOptions
 
-	objects []*DockerObject
+	objects []*ContainerObject
 }
 
 func (*DockerContainers) SampleConfig() string {
@@ -91,7 +96,7 @@ func (d *DockerContainers) Run() {
 	ticker := time.NewTicker(d.intervalDutation)
 	defer ticker.Stop()
 
-	l.Info("dockerContainers input start")
+	l.Info("docker_containers input start")
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -147,6 +152,13 @@ func (d *DockerContainers) loadCfg() bool {
 		l.Error(err)
 		time.Sleep(time.Second)
 	}
+
+	if strings.HasPrefix(d.Endpoint, "tcp") {
+		d.host = d.Endpoint
+	} else {
+		d.host = datakit.Cfg.MainCfg.Hostname
+	}
+	d.opts.All = d.All
 	return false
 }
 
@@ -173,6 +185,7 @@ func (d *DockerContainers) gather() {
 		if err := io.NamedFeed(data, io.Object, inputName); err != nil {
 			l.Error(err)
 		}
+		l.Infof("%s", data)
 	}
 
 	d.objects = d.objects[:0]
@@ -187,7 +200,7 @@ func (d *DockerContainers) gatherContainer(container types.Container) error {
 		return err
 	}
 
-	var obj = DockerObject{}
+	var obj = ContainerObject{}
 	obj.Name = containerName(container.Names)
 	obj.Tags = Tags{
 		Class:           "docker_containers",
@@ -195,14 +208,16 @@ func (d *DockerContainers) gatherContainer(container types.Container) error {
 		ContainerID:     container.ID,
 		ContainerImage:  container.Image,
 		ContainerStatue: container.State,
-		Host:            containerJSON.Config.Hostname,
+		Host:            d.host,
 		PID:             strconv.Itoa(containerJSON.State.Pid),
 	}
 	obj.Carated = containerTime(containerJSON.Created)
 	obj.Started = containerTime(containerJSON.State.StartedAt)
 	obj.Finished = containerTime(containerJSON.State.FinishedAt)
 	obj.Path = containerJSON.Path
-	obj.Inspect = containerJSON
+	// obj.Inspect = containerJSON
+	description, _ := json.Marshal(containerJSON)
+	obj.Description = string(description)
 
 	d.objects = append(d.objects, &obj)
 	return nil
@@ -219,6 +234,9 @@ func containerTime(tim string) int64 {
 	t, err := time.Parse(time.RFC3339Nano, tim)
 	if err != nil {
 		return 0
+	}
+	if t.UnixNano() < 0 {
+		return -1
 	}
 	return t.UnixNano()
 }
