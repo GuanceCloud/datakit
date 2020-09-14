@@ -46,8 +46,6 @@ func init() {
 	})
 }
 
-var TestAssert = true
-
 type Prom struct {
 	URL                   string            `toml:"url"`
 	Interval              string            `toml:"interval"`
@@ -96,12 +94,6 @@ func (p *Prom) Run() {
 				p.log.Error(err)
 				continue
 			}
-
-			if TestAssert {
-				p.log.Infof("%s", data)
-				continue
-			}
-
 			if err := io.NamedFeed(data, io.Metric, p.InputName); err != nil {
 				p.log.Error(err)
 				continue
