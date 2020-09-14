@@ -23,13 +23,13 @@ const (
 [[inputs.tailf]]
     # required
     logfiles = ["/tmp/tailf_test/**/*.log"]
-    
+
     # glob filteer
     ignore = [""]
-    
+
     # required
     source = "tailf"
-    
+
     # [inputs.tailf.tags]
     # tags1 = "value1"
 `
@@ -199,7 +199,6 @@ func (t *Tailf) loopTailer(tl *tail.Tail) bool {
 				l.Error(err)
 				continue
 			}
-			l.Debugf("feed %d bytes to io ok", len(data))
 
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
