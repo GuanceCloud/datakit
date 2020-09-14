@@ -135,7 +135,7 @@ type MainConfig struct {
 	// For old datakit verison conf, there may exist these fields,
 	// if these tags missing, TOML will parse error
 	DeprecatedFtGateway        string `toml:"ftdataway,omitempty"`
-	DeprecatedIntervalDuration string `toml:"interval_duration,omitempty"`
+	DeprecatedIntervalDuration int64  `toml:"interval_duration,omitempty"`
 
 	Log                  string            `toml:"log"`
 	LogLevel             string            `toml:"log_level"`
