@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"golang.org/x/time/rate"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud"
 )
 
 const (
@@ -95,7 +97,7 @@ type (
 		Tags            map[string]string `toml:"tags,omitempty"`
 		Namespace       []*Namespace      `toml:"namespace"`
 
-		client *hwClient
+		client *huaweicloud.HWClient
 
 		limiter *rate.Limiter
 
