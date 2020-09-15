@@ -3,6 +3,7 @@ package awsbill
 import (
 	"io/ioutil"
 	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -23,18 +24,14 @@ import (
 //AWS billing metrics are available about once every 4 hours.
 
 var (
-	accessKey = `AKIAJ6J5MR44T3DLI4IQ`
-	secretKey = `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`
-	//accessKey   = `AKIA2O3KWILDACARVQWZ`
-	//secretKey   = `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`
-	accessToken = ``
-
-	//priceClient *cloudwatch.CloudWatch
 	cloudwatchCli *cloudwatch.CloudWatch
 	billClient    *costexplorer.CostExplorer
 )
 
 func defaultAuthProvider() client.ConfigProvider {
+
+	accessKey := os.Getenv("AWS_AK")
+	secretKey := os.Getenv("AWS_SK")
 
 	cred := credentials.NewStaticCredentials(accessKey, secretKey, "")
 
