@@ -176,6 +176,29 @@ func MakeMetric(name string, tags map[string]string, fields map[string]interface
 		}
 	}
 
+	for k, v := range tags { // remove any suffix `\` in all tag values
+		tags[k] = datakit.TrimSuffixAll(v, `\`)
+	}
+
+	for k, v := range fields { // convert uint to int
+		switch v.(type) {
+		case uint64:
+			fields[k] = fmt.Sprintf("%d", v.(uint64)) // convert uint64 to string to avoid overflow
+			l.Warnf("force convert uint64 to string(%d -> %s)", v.(uint64), fields[k])
+		case uint32:
+			fields[k] = int64(v.(uint32))
+			l.Warn("force convert uint32 to int64")
+		case uint16:
+			fields[k] = int64(v.(uint16))
+			l.Warn("force convert uint16 to int64")
+		case uint8:
+			fields[k] = int64(v.(uint8))
+			l.Warn("force convert uint8 to int64")
+		default:
+			// pass
+		}
+	}
+
 	pt, err := ifxcli.NewPoint(name, tags, fields, tm)
 	if err != nil {
 		return nil, err
