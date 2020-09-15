@@ -44,6 +44,8 @@ func (a *Security) Run() {
 
 	l.Info("aliyunSecurity input started...")
 
+	a.checkCfg()
+
 	cli, err := sas.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
 	if err != nil {
 		l.Errorf("create client failed, %s", err)
@@ -58,12 +60,7 @@ func (a *Security) Run() {
 
 	a.aclient = cli2
 
-	interval, err := time.ParseDuration(a.Interval)
-	if err != nil {
-		l.Error(err)
-	}
-
-	tick := time.NewTicker(interval)
+	tick := time.NewTicker(a.IntervalDuration)
 	defer tick.Stop()
 
 	for {
@@ -75,6 +72,25 @@ func (a *Security) Run() {
 			l.Info("exit")
 			return
 		}
+	}
+}
+
+func (r *Security) checkCfg() {
+	// 采集频度
+	r.IntervalDuration = 10 * time.Second
+
+	if r.Interval != "" {
+		du, err := time.ParseDuration(r.Interval)
+		if err != nil {
+			l.Errorf("bad interval %s: %s, use default: 10s", r.Interval, err.Error())
+		} else {
+			r.IntervalDuration = du
+		}
+	}
+
+	// 指标集名称
+	if r.MetricName == "" {
+		r.MetricName = "aliyunsecurity"
 	}
 }
 
@@ -164,7 +180,6 @@ func (r *Security) describeRiskCheckSummary(region string) {
 	// TrafficData
 	request := sas.CreateDescribeRiskCheckSummaryRequest()
 	request.Scheme = "https"
-	request.RegionId = region
 
 	response, err := r.client.DescribeRiskCheckSummary(request)
 	if err != nil {
@@ -176,7 +191,6 @@ func (r *Security) describeRiskCheckSummary(region string) {
 
 	tags["product"] = "sas"
 	tags["type"] = "describeRiskCheckSummary"
-	tags["region"] = region
 
 	fields["risk_check_summary_risk_count"] = response.RiskCheckSummary.RiskCount
 
