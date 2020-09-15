@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -89,7 +90,7 @@ func (s *Scanport) checkCfg() {
 
 // handle
 func (s *Scanport) handle() {
-	ips, err := s.GetAllIp()
+	ips, err := s.getAllIp()
 	if err != nil {
 		l.Errorf("convert config ip fail error %v", err.Error())
 		return
@@ -102,7 +103,6 @@ func (s *Scanport) handle() {
 		tm := time.Now()
 
 		ports := s.GetIpOpenPort(ips[i])
-
 		if len(ports) > 0 {
 			b, err := json.Marshal(ports)
 			if err != nil {
@@ -111,14 +111,17 @@ func (s *Scanport) handle() {
 
 			var resStr = string(b)
 			tags["ip"] = ips[i]
+
+			if isDNSName(s.Targets) {
+				tags["domain"] = s.Targets
+			}
+
 			fields["openPort"] = resStr[1 : len(resStr)-1]
 
 			pt, err := io.MakeMetric("scanport", tags, fields, tm)
 			if err != nil {
 				l.Errorf("make metric point error %v", err)
 			}
-
-			fmt.Println("point ======>", string(pt))
 
 			err = io.NamedFeed([]byte(pt), io.Metric, inputName)
 			if err != nil {
@@ -129,16 +132,20 @@ func (s *Scanport) handle() {
 }
 
 //获取所有ip
-func (s *Scanport) GetAllIp() ([]string, error) {
+func (s *Scanport) getAllIp() ([]string, error) {
 	var (
 		ips []string
 	)
 
-	if len(s.Targets) == 0 {
-		s.Targets = []string{"127.0.0.1"}
+	targets := []string{"127.0.0.1"}
+
+	if len(s.Targets) != 0 {
+		//处理 ","号 如 80,81,88 或 80,88-100
+		targets = strings.Split(strings.Trim(s.Targets, ","), ",")
 	}
 
-	for _, target := range s.Targets {
+	for _, target := range targets {
+		target = strings.TrimSpace(target)
 		if isIP(target) {
 			ips = append(ips, target)
 		} else if isDNSName(target) {
@@ -160,8 +167,14 @@ func (s *Scanport) GetAllIp() ([]string, error) {
 //获取所有端口
 func (s *Scanport) getAllPort() ([]int, error) {
 	var ports []int
-	//处理 ","号 如 80,81,88 或 80,88-100
-	portArr := strings.Split(strings.Trim(s.Port, ","), ",")
+
+	portArr := []string{"80"}
+
+	if len(s.Port) != 0 {
+		//处理 ","号 如 80,81,88 或 80,88-100
+		portArr = strings.Split(strings.Trim(s.Port, ","), ",")
+	}
+
 	for _, v := range portArr {
 		portArr2 := strings.Split(strings.Trim(v, "-"), "-")
 		startPort, err := filterPort(portArr2[0])
@@ -246,9 +259,10 @@ func (s *Scanport) GetIpOpenPort(ip string) []int {
 	} else {
 		pageCount = s.Process
 	}
+
 	num = int(math.Ceil(float64(total) / float64(pageCount)))
 
-	l.Info(fmt.Sprintf("%v 【%v】需要扫描端口总数:%v 个，总协程:%v 个，每个协程处理:%v 个，超时时间:%v毫秒", time.Now().Format("2006-01-02 15:04:05"), ip, total, pageCount, num, s.Timeout))
+	l.Info(fmt.Sprintf("%v 【%v】scan port total:%v，goroutine count:%v，peer goroutine handle count:%v，timeout:%vms", time.Now().Format("2006-01-02 15:04:05"), ip, total, pageCount, num, s.Timeout))
 	start := time.Now()
 	all := map[int][]int{}
 	for i := 1; i <= pageCount; i++ {
@@ -276,12 +290,16 @@ func (s *Scanport) GetIpOpenPort(ip string) []int {
 			openPorts = append(openPorts, tmpPorts...)
 			mutex.Unlock()
 			if len(tmpPorts) > 0 {
-				l.Info(fmt.Sprintf("%v 【%v】协程%v 执行完成，时长： %.3fs，开放端口： %v", time.Now().Format("2006-01-02 15:04:05"), ip, key, time.Since(start).Seconds(), tmpPorts))
+				l.Info(fmt.Sprintf("%v 【%v】goroutine%v complete，cost time： %.3fs，open ports： %v", time.Now().Format("2006-01-02 15:04:05"), ip, key, time.Since(start).Seconds(), tmpPorts))
 			}
 		}(v, k)
 	}
 	wg.Wait()
-	l.Info(fmt.Sprintf("%v 【%v】扫描结束，执行时长%.3fs , 所有开放的端口:%v", time.Now().Format("2006-01-02 15:04:05"), ip, time.Since(start).Seconds(), openPorts))
+
+	sort.Ints(openPorts)
+
+	l.Info(fmt.Sprintf("%v 【%v】scan finish，cost time%.3fs , open ports:%v", time.Now().Format("2006-01-02 15:04:05"), ip, time.Since(start).Seconds(), openPorts))
+
 	return openPorts
 }
 
@@ -306,7 +324,7 @@ func isDNSName(str string) bool {
 }
 
 func parseDNS(domain string) (string, error) {
-	addr, err := net.ResolveIPAddr("ip", inputName)
+	addr, err := net.ResolveIPAddr("ip", domain)
 	if err != nil {
 		return "", err
 	}
