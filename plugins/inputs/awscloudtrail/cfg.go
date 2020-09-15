@@ -1,10 +1,11 @@
-package awsbill
+package awscloudtrail
 
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"golang.org/x/time/rate"
+
+	"github.com/aws/aws-sdk-go/service/cloudtrail"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
@@ -12,33 +13,29 @@ import (
 const (
 	sampleConfig = `
 # ##(required)
-#[[inputs.awsbill]]
+#[[inputs.awscloudtrail]]
 # ##(required)
 #access_key = ''
 #access_secret = ''
 #region_id = 'us-east-1'
 
-# ##(optional) collect interval, default is 4 hours. AWS billing metrics are available about once every 4 hours.
-#interval = '4h'
-`
+# ##(optional) collect interval
+#interval = '5m'`
 )
 
 type AwsInstance struct {
 	AccessKey    string
 	AccessSecret string
-	//AccessToken  string
-	RegionID string
+	RegionID     string
 
 	Interval datakit.Duration
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
 
-	cloudwatchClient *cloudwatch.CloudWatch
+	awsClient *cloudtrail.CloudTrail
 
 	rateLimiter *rate.Limiter
-
-	billingMetrics map[string]*cloudwatch.Metric
 
 	debugMode bool
 }
