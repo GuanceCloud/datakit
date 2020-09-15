@@ -185,7 +185,6 @@ func (d *DockerContainers) gather() {
 		if err := io.NamedFeed(data, io.Object, inputName); err != nil {
 			l.Error(err)
 		}
-		l.Infof("%s", data)
 	}
 
 	d.objects = d.objects[:0]
