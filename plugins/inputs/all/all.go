@@ -13,6 +13,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunrdsslowlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunsecurity"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/awsbill"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/awscloudtrail"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/azurecms"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/baiduIndex"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cloudflare"
