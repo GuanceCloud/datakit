@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud"
 )
 
 var (
@@ -45,7 +46,7 @@ func (ag *agent) Run() {
 		ag.Interval.Duration = time.Minute * 5
 	}
 
-	ag.client = newHWClient(ag.AccessKeyID, ag.AccessKeySecret, ag.EndPoint, ag.ProjectID)
+	ag.client = huaweicloud.NewHWClient(ag.AccessKeyID, ag.AccessKeySecret, ag.EndPoint, ag.ProjectID, moduleLogger)
 
 	//每秒最多20个请求
 	limit := rate.Every(50 * time.Millisecond)
@@ -150,11 +151,19 @@ func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
 	req.to = endTime
 	req.from = startTime
 
-	resp, err := ag.client.getMetric(req.namespace, req.metricname, req.filter, req.period, req.from, req.to, req.dimensoions)
+	dms := []string{}
+	for _, d := range req.dimensoions {
+		dms = append(dms, fmt.Sprintf("%s,%s", d.Name, d.Value))
+	}
+
+	resData, err := ag.client.CESGetMetric(req.namespace, req.metricname, req.filter, req.period, req.from, req.to, dms)
 	if err != nil {
 		moduleLogger.Errorf("fail to get metric: Namespace=%s, MetricName=%s, Period=%v, StartTime=%v(%s), EndTime=%v(%s), Dimensions=%s", req.namespace, req.metricname, req.period, req.from, logStarttime, req.to, logEndtime, req.dimensoions)
 		return
 	}
+
+	resp := parseMetricResponse(resData, req.filter)
+
 	moduleLogger.Debugf("get %d datapoints: Namespace=%s, MetricName=%s, Filter=%s, Period=%v, InterVal=%v, StartTime=%v(%s), EndTime=%v(%s), Dimensions=%s", len(resp.datapoints), req.namespace, req.metricname, req.filter, req.period, req.interval, req.from, logStarttime, req.to, logEndtime, req.dimensoions)
 
 	metricSetName := req.metricSetName
