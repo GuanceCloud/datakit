@@ -15,7 +15,7 @@ const (
 
 	ConfigSample = `
 [[inputs.ansible]]
-   paht = "/ansible"
+   path = "/ansible"
 
 `
 )
