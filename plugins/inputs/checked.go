@@ -17,6 +17,7 @@ var (
 		"amqp_consumer":          false,
 		"apache":                 true,
 		"aws_billing":            false,
+		"awscloudtrail":          false,
 		"azure_monitor":          false,
 		"baiduIndex":             true,
 		"binlog":                 true,
