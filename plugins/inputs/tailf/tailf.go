@@ -133,8 +133,7 @@ func (t *Tailf) loadcfg() bool {
 		MustExist: true,
 		Poll:      false, // default watch method is "inotify"
 		Pipe:      false,
-		//Logger:    tail.DiscardingLogger,
-		Logger: tail.DefaultLogger,
+		Logger:    tail.DiscardingLogger,
 	}
 	t.runningFileList = sync.Map{}
 	t.wg = sync.WaitGroup{}
