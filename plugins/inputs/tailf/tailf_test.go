@@ -14,9 +14,9 @@ import (
 
 var (
 	logFiles = []string{
-		//"/tmp/tailf_test/**/*.*",
-		"/tmp/tailf_test/a123/ab.log",
-		//"/tmp/tailf_test/a123/*.txt",
+		// "/tmp/tailf_test/**/*.*",
+		// "/tmp/tailf_test/a123/ab.log",
+		// "/tmp/tailf_test/a123/*.txt",
 		//"/tmp/tailf_test/*.no",
 	}
 
@@ -28,9 +28,9 @@ var (
 
 	paths = []string{
 		//"/tmp/tailf_test/a123/b123/1234.log",
-		//"/tmp/tailf_test/a123/b123/5678.txt",
-		"/tmp/tailf_test/a123/ab.log",
-		//"/tmp/tailf_test/a123/cd.txt",
+		// "/tmp/tailf_test/a123/b123/5678.txt",
+		//"/tmp/tailf_test/a123/ab.log",
+		"/tmp/tailf_test/a123/cd.txt",
 	}
 )
 
@@ -49,6 +49,7 @@ func TestWrite(t *testing.T) {
 	}
 	defer func() {
 		for _, f := range files {
+			fmt.Printf("fd %s close", f.Name())
 			f.Close()
 		}
 	}()
@@ -72,6 +73,7 @@ func TestWrite(t *testing.T) {
 func TestMain(t *testing.T) {
 	io.TestOutput()
 	go TestWrite(t)
+	time.Sleep(time.Second)
 
 	var tailer = Tailf{
 		LogFiles: logFiles,
@@ -80,11 +82,12 @@ func TestMain(t *testing.T) {
 		Tags:     map[string]string{"TestKey": "TestValue"},
 	}
 
-	time.Sleep(time.Second)
-	go tailer.Run()
+	go func() {
+		time.Sleep(time.Second * 20)
+		datakit.Exit.Close()
+	}()
 
-	time.Sleep(30 * time.Second)
-	datakit.Exit.Close()
+	tailer.Run()
 }
 
 func TestFileList(t *testing.T) {
