@@ -35,7 +35,7 @@ func fileList(filesGlob []string) []string {
 	for _, f := range filesGlob {
 		matche, err := zglob.Glob(f)
 		if err != nil {
-			l.Errorf("logfiles glob, %s", err)
+			l.Warnf("logfile %s, %s", f, err)
 			continue
 		}
 		matches = append(matches, matche...)
