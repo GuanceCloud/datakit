@@ -3,6 +3,8 @@
 package tailf
 
 import (
+	"bytes"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -32,6 +34,10 @@ const (
     # [inputs.tailf.tags]
     # tags1 = "value1"
 `
+
+	updateFileListInterval   = time.Second * 3
+	checkFileIsExistInterval = time.Minute * 20
+	metricFeedCount          = 20
 )
 
 var l = logger.DefaultSLogger(inputName)
@@ -43,6 +49,9 @@ type Tailf struct {
 	Tags     map[string]string `toml:"tags"`
 
 	tailerConf tail.Config
+
+	runningFileList sync.Map
+	wg              sync.WaitGroup
 }
 
 func init() {
@@ -68,25 +77,32 @@ func (t *Tailf) Run() {
 
 	l.Infof("tailf input started.")
 
-	var fileList = getFileList(t.LogFiles, t.Ignore)
-	var wg sync.WaitGroup
+	ticker := time.NewTicker(updateFileListInterval)
+	defer ticker.Stop()
 
-	for _, f := range fileList {
-		wg.Add(1)
-		go func(file string) {
-			defer wg.Done()
-			for {
-				if err := t.getLines(file); err != nil {
-					time.Sleep(time.Second)
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Infof("waiting for all tailers to exit")
+			t.wg.Wait()
+			l.Info("exit")
+			return
+
+		case <-ticker.C:
+			fileList := getFileList(t.LogFiles, t.Ignore)
+			for _, f := range fileList {
+				if _, ok := t.runningFileList.Load(f); !ok {
+					t.runningFileList.Store(f, nil)
+					l.Debugf("start tail, %s", f)
+
+					t.wg.Add(1)
+					go t.startTail(f)
 				} else {
-					l.Infof("file %s is ending", f)
-					break
+					l.Debugf("file %s is tailing now", f)
 				}
 			}
-		}(f)
+		}
 	}
-	wg.Wait()
-	l.Info("exit")
 }
 
 func (t *Tailf) loadcfg() bool {
@@ -117,9 +133,23 @@ func (t *Tailf) loadcfg() bool {
 		MustExist: true,
 		Poll:      false, // default watch method is "inotify"
 		Pipe:      false,
-		Logger:    tail.DiscardingLogger,
+		//Logger:    tail.DiscardingLogger,
+		Logger: tail.DefaultLogger,
 	}
+	t.runningFileList = sync.Map{}
+	t.wg = sync.WaitGroup{}
 	return false
+}
+
+func (t *Tailf) startTail(file string) {
+	defer t.wg.Done()
+
+	err := t.getLines(file)
+	// file is not exist or datakit exit
+	if err == nil {
+		t.runningFileList.Delete(file)
+		l.Debugf("file %s is ending", file)
+	}
 }
 
 func (t *Tailf) getLines(file string) error {
@@ -130,11 +160,14 @@ func (t *Tailf) getLines(file string) error {
 	}
 	defer tailer.Cleanup()
 
-	var tags = make(map[string]string)
+	tags := make(map[string]string)
 	for k, v := range t.Tags {
 		tags[k] = v
 	}
 	tags["filename"] = file
+
+	var buffer bytes.Buffer
+	count := 0
 
 	for {
 		select {
@@ -154,9 +187,25 @@ func (t *Tailf) getLines(file string) error {
 				l.Error(err)
 				continue
 			}
-			if err := io.NamedFeed(data, io.Logging, inputName); err != nil {
-				l.Error(err)
-				continue
+
+			buffer.Write(data)
+			buffer.WriteString("\n")
+			count++
+
+			if count >= metricFeedCount {
+				if err := io.NamedFeed(buffer.Bytes(), io.Logging, inputName); err != nil {
+					l.Error(err)
+				}
+				count = 0
+				// not use buffer.Reset()
+				buffer = bytes.Buffer{}
+			}
+
+		case <-time.After(checkFileIsExistInterval):
+			_, statErr := os.Lstat(file)
+			if os.IsNotExist(statErr) {
+				l.Warnf("check file %s is not exist", file)
+				return nil
 			}
 		}
 	}
