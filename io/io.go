@@ -215,18 +215,14 @@ func ioStop() {
 }
 
 func startIO() {
-	baseURL = "http://" + datakit.Cfg.MainCfg.DataWay.Host
-	if datakit.Cfg.MainCfg.DataWay.Scheme == "https" {
-		baseURL = "https://" + datakit.Cfg.MainCfg.DataWay.Host
-	}
 
 	categoryURLs = map[string]string{
 
-		MetricDeprecated: baseURL + MetricDeprecated + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
-		Metric:           baseURL + Metric + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
-		KeyEvent:         baseURL + KeyEvent + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
-		Object:           baseURL + Object + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
-		Logging:          baseURL + Logging + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
+		MetricDeprecated: datakit.Cfg.MainCfg.DataWay.DeprecatedMetricURL(),
+		Metric:           datakit.Cfg.MainCfg.DataWay.MetricURL(),
+		KeyEvent:         datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
+		Object:           datakit.Cfg.MainCfg.DataWay.ObjectURL(),
+		Logging:          datakit.Cfg.MainCfg.DataWay.LoggingURL(),
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
