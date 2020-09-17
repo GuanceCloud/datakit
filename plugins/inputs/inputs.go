@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/influxdata/toml/ast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -69,45 +67,25 @@ func (ii *inputInfo) Run() {
 	}
 }
 
-func AddInput(name string, input Input, table *ast.Table, fp string) error {
+func AddInput(name string, input Input, fp string) error {
 
 	mtx.Lock()
 	defer mtx.Unlock()
-
-	var dur time.Duration
-	var err error
-	if node, ok := table.Fields["interval"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-				dur, err = time.ParseDuration(str.Value)
-				if err != nil {
-					l.Errorf("parse duration(%s) from %s failed: %s", str.Value, name, err.Error())
-					return err
-				}
-			}
-		}
-	}
-
-	l.Debugf("try set MaxLifeCheckInterval to %v from %s...", dur, name)
-	if datakit.MaxLifeCheckInterval+5*time.Second < dur { // use the max interval from all inputs
-		datakit.MaxLifeCheckInterval = dur
-		l.Debugf("set MaxLifeCheckInterval to %v from %s", dur, name)
-	}
 
 	inputInfos[name] = append(inputInfos[name], &inputInfo{input: input, cfg: fp})
 
 	return nil
 }
 
-func InputInstaces(name string) int {
-	mtx.RLock()
-	defer mtx.RUnlock()
-
-	if arr, ok := inputInfos[name]; ok {
-		return len(arr)
-	}
-	return 0
-}
+//func InputInstaces(name string) int {
+//	mtx.RLock()
+//	defer mtx.RUnlock()
+//
+//	if arr, ok := inputInfos[name]; ok {
+//		return len(arr)
+//	}
+//	return 0
+//}
 
 func ResetInputs() {
 
@@ -161,7 +139,7 @@ func RunInputs() error {
 	defer mtx.RUnlock()
 
 	for name, arr := range inputInfos {
-		for _, ii := range arr {
+		for idx, ii := range arr {
 			if ii.input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
 				continue
@@ -174,7 +152,7 @@ func RunInputs() error {
 				// pass
 			}
 
-			l.Infof("starting input %s ...", name)
+			l.Infof("starting %dth input %s ...", idx, name)
 			datakit.WG.Add(1)
 			go func(name string, ii *inputInfo) {
 				defer datakit.WG.Done()
