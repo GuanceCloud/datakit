@@ -23,7 +23,7 @@ const (
 	sampleCfg = `
 [[inputs.tailf]]
     # required
-    logfiles = ["/tmp/tailf_test/**/*.log"]
+    logfiles = ["/usr/local/cloudcare/dataflux/datakit/*.log"]
 
     # glob filteer
     ignore = [""]
