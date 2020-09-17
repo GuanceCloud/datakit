@@ -45,23 +45,36 @@ func readInput(prompt string) string {
 }
 
 func getDataWayCfg() *datakit.DataWayCfg {
+	var dc *datakit.DataWayCfg
+	var err error
+
 	if DataWay == "" {
 		for {
 			dw := readInput("Please set DataWay request URL(http://IP:Port/v1/write/metric) > ")
-			dwcfg, err := datakit.ParseDataway(dw)
-			if err == nil {
-				return dwcfg
+			dc, err = datakit.ParseDataway(dw)
+			if err != nil {
+				fmt.Printf("%s\n", err.Error())
+				continue
 			}
 
-			fmt.Printf("%s\n", err.Error())
-			continue
+			if err := dc.Test(); err != nil {
+				fmt.Printf("%s\n", err.Error())
+				continue
+			}
+
+			return dc
 		}
 	} else {
-		dwcfg, err := datakit.ParseDataway(DataWay)
+		dc, err := datakit.ParseDataway(DataWay)
 		if err != nil {
 			l.Fatal(err)
 		}
-		return dwcfg
+
+		if err := dc.Test(); err != nil {
+			l.Fatal(err)
+		}
+
+		return dc
 	}
 }
 
@@ -111,7 +124,7 @@ func updateLagacyConfig(dir string) {
 	}
 
 	maincfg.Log = filepath.Join(InstallDir, "datakit.log") // reset log path
-	maincfg.ConfigDir = ""                                 // remove conf.d config: we use static conf.d dir, *not* configurable
+	maincfg.DeprecatedConfigDir = ""                       // remove conf.d config: we use static conf.d dir, *not* configurable
 
 	// split origin ftdataway into dataway object
 	var dwcfg *datakit.DataWayCfg
