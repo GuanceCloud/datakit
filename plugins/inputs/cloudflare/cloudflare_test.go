@@ -1,21 +1,16 @@
 package cloudflare
 
 import (
+	"os"
 	"testing"
-)
-
-const (
-	email  = "a_ha2008@qq.com"
-	zoneID = "0355d2a9ca65054d3d7f6013d8b237f4"
-	apiKey = "d44e173bf1a3cd849c868a9662ae56d32470a"
 )
 
 func TestMain(t *testing.T) {
 
 	var c = Cloudflare{
-		Email:    email,
-		ZoneID:   zoneID,
-		APIKey:   apiKey,
+		Email:    os.Getenv("CF_EMAIL"),
+		ZoneID:   os.Getenv("CF_ZoneID"),
+		APIKey:   os.Getenv("CF_APIKEY"),
 		Interval: "24h",
 	}
 
