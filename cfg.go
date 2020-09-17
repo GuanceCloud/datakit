@@ -1,6 +1,7 @@
 package datakit
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	bstoml "github.com/BurntSushi/toml"
 	"github.com/influxdata/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -20,9 +22,7 @@ var (
 
 	Cfg = &Config{ //nolint:dupl
 		MainCfg: &MainConfig{
-			GlobalTags: map[string]string{
-				"": "",
-			},
+			GlobalTags:      map[string]string{},
 			flushInterval:   Duration{Duration: time.Second * 10},
 			Interval:        "10s",
 			MaxPostInterval: "15s", // add 5s plus for network latency
@@ -86,54 +86,114 @@ type Config struct {
 }
 
 type DataWayCfg struct {
-	Host        string `toml:"host"`
-	Scheme      string `toml:"scheme"`
-	Token       string `toml:"token"`
-	Timeout     string `toml:"timeout"`
-	DefaultPath string `toml:"default_path"`
+	URL string `toml:"url"`
+
+	Host      string     `toml:"host"`
+	Scheme    string     `toml:"scheme"`
+	URLValues url.Values `toml:"-"`
+
+	Timeout string `toml:"timeout"`
+
+	DeprecatedToken string `toml:"token,omitempty"`
 }
 
-func ParseDataway(dw string) (*DataWayCfg, error) {
+func (dc *DataWayCfg) DeprecatedMetricURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.Scheme,
+		dc.Host,
+		"/v1/write/metrics",
+		dc.URLValues.Encode())
+}
+
+func (dc *DataWayCfg) MetricURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.Scheme,
+		dc.Host,
+		"/v1/write/metric",
+		dc.URLValues.Encode())
+}
+
+func (dc *DataWayCfg) ObjectURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.Scheme,
+		dc.Host,
+		"/v1/write/object",
+		dc.URLValues.Encode())
+}
+
+func (dc *DataWayCfg) LoggingURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.Scheme,
+		dc.Host,
+		"/v1/write/logging",
+		dc.URLValues.Encode())
+}
+
+func (dc *DataWayCfg) KeyEventURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.Scheme,
+		dc.Host,
+		"/v1/write/keyevent",
+		dc.URLValues.Encode())
+}
+
+func (dc *DataWayCfg) Test() error {
+	conn, err := net.DialTimeout("tcp", dc.Host, time.Minute)
+	if err != nil {
+		l.Errorf("TCP dial host `%s' failed: %s", dc.Host, err.Error())
+		return err
+	}
+
+	if err := conn.Close(); err != nil {
+		l.Errorf("close failed: %s", err.Error())
+		return err
+	}
+	return nil
+}
+
+func (dc *DataWayCfg) addToken(tkn string) {
+	if dc.URLValues == nil {
+		dc.URLValues = url.Values{}
+	}
+
+	if dc.URLValues.Get("token") == "" {
+		l.Debugf("use old token %s", dc.DeprecatedToken)
+		dc.URLValues.Set("token", dc.DeprecatedToken)
+	}
+}
+
+func ParseDataway(urlstr string) (*DataWayCfg, error) {
 	dwcfg := &DataWayCfg{
 		Timeout: "30s",
 	}
 
-	if u, err := url.Parse(dw); err == nil {
+	if u, err := url.Parse(urlstr); err == nil {
 		dwcfg.Scheme = u.Scheme
-		dwcfg.Token = u.Query().Get("token")
+		dwcfg.URLValues = u.Query()
 		dwcfg.Host = u.Host
-		dwcfg.DefaultPath = u.Path
+		u.Path = "" // clear any path
 
 		if dwcfg.Scheme == "https" {
 			dwcfg.Host += ":443"
 		}
 
+		dwcfg.URL = u.String()
+
 		l.Debugf("dataway: %+#v", dwcfg)
 	} else {
-		l.Errorf("parse url %s failed: %s", dw, err.Error())
+		l.Errorf("parse url %s failed: %s", urlstr, err.Error())
 		return nil, err
 	}
 
-	conn, err := net.DialTimeout("tcp", dwcfg.Host, time.Minute)
-	if err != nil {
-		l.Errorf("TCP dial host `%s' failed: %s", dwcfg.Host, err.Error())
-		return nil, err
-	}
-
-	if err := conn.Close(); err != nil {
-		l.Errorf("close failed: %s", err.Error())
-		return nil, err
-	}
-
+	l.Debugf("dataway config: %+#v", dwcfg)
 	return dwcfg, nil
 }
 
 type MainConfig struct {
-	UUID              string      `toml:"uuid"`
-	Name              string      `toml:"name"`
-	DataWay           *DataWayCfg `toml:"dataway,omitempty"`
-	DataWayRequestURL string      `toml:"-"`
-	HTTPBind          string      `toml:"http_server_addr"`
+	UUID     string      `toml:"uuid"`
+	Name     string      `toml:"name"`
+	DataWay  *DataWayCfg `toml:"dataway,omitempty"`
+	HTTPBind string      `toml:"http_server_addr"`
 
 	// For old datakit verison conf, there may exist these fields,
 	// if these tags missing, TOML will parse error
@@ -187,12 +247,12 @@ func (c *Config) InitCfg() error {
 		c.setHostname()
 	}
 
-	data, err := toml.Marshal(c.MainCfg)
-	if err != nil {
+	buf := new(bytes.Buffer)
+	if err := bstoml.NewEncoder(buf).Encode(c.MainCfg); err != nil {
 		return err
 	}
 
-	if err := ioutil.WriteFile(c.MainCfg.cfgPath, data, 0600); err != nil {
+	if err := ioutil.WriteFile(c.MainCfg.cfgPath, buf.Bytes(), 0600); err != nil {
 		return fmt.Errorf("error creating %s: %s", c.MainCfg.cfgPath, err)
 	}
 
@@ -200,10 +260,13 @@ func (c *Config) InitCfg() error {
 }
 
 func (c *Config) doLoadMainConfig(cfgdata []byte) error {
-	if err := toml.Unmarshal(cfgdata, c.MainCfg); err != nil {
+	meta, err := bstoml.Decode(string(cfgdata), c.MainCfg)
+	if err != nil {
 		l.Errorf("unmarshal main cfg failed %s", err.Error())
 		return err
 	}
+
+	l.Debugf("undecoded keys: %+#v", meta.Undecoded())
 
 	if c.MainCfg.TelegrafAgentCfg.LogTarget == "file" && c.MainCfg.TelegrafAgentCfg.Logfile == "" {
 		c.MainCfg.TelegrafAgentCfg.Logfile = filepath.Join(InstallDir, "embed", "agent.log")
@@ -215,6 +278,17 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 
 	if c.MainCfg.Hostname == "" {
 		c.setHostname()
+	}
+
+	dw, err := ParseDataway(c.MainCfg.DataWay.URL)
+	if err != nil {
+		return err
+	}
+
+	c.MainCfg.DataWay = dw
+
+	if c.MainCfg.DataWay.DeprecatedToken != "" { // compatible with old dataway config
+		c.MainCfg.DataWay.addToken(c.MainCfg.DataWay.DeprecatedToken)
 	}
 
 	if c.MainCfg.MaxPostInterval != "" {
@@ -237,9 +311,6 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 	}
 
 	c.MainCfg.TelegrafAgentCfg.Debug = strings.EqualFold(strings.ToLower(c.MainCfg.LogLevel), "debug")
-
-	c.MainCfg.DataWayRequestURL = fmt.Sprintf("%s://%s%s?token=%s",
-		c.MainCfg.DataWay.Scheme, c.MainCfg.DataWay.Host, c.MainCfg.DataWay.DefaultPath, c.MainCfg.DataWay.Token)
 
 	// reset global tags
 	for k, v := range c.MainCfg.GlobalTags {
@@ -265,9 +336,6 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		case `$datakit_uuid`, `$datakit_id`:
 			c.MainCfg.GlobalTags[k] = c.MainCfg.UUID
 			l.Debugf("set global tag %s: %s", k, c.MainCfg.UUID)
-
-		case "": // empty tag-key: remove it
-			delete(c.MainCfg.GlobalTags, "")
 
 		default:
 			// pass
