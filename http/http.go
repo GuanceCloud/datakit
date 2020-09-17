@@ -47,7 +47,9 @@ var (
 )
 
 func Start(bind string) {
+
 	l = logger.SLogger("http")
+
 	httpBind = bind
 	// start HTTP server
 	httpStart(bind)
