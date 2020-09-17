@@ -3,8 +3,23 @@ package datakit
 import (
 	"testing"
 
+	"github.com/influxdata/toml"
 	"github.com/kardianos/service"
 )
+
+func TestMarshalMainCfg(t *testing.T) {
+
+	if Cfg.MainCfg.Hostname == "" {
+		Cfg.setHostname()
+	}
+
+	data, err := toml.Marshal(Cfg.MainCfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("%s", string(data))
+}
 
 func TestLocalIP(t *testing.T) {
 	ip, err := LocalIP()
