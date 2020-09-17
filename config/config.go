@@ -33,6 +33,7 @@ func LoadCfg(c *datakit.Config) error {
 	l.Infof("set log to %s", c.MainCfg.Log)
 
 	// set global log root
+	logger.MaxSize = c.MainCfg.LogRotate
 	logger.SetGlobalRootLogger(c.MainCfg.Log, c.MainCfg.LogLevel, logger.OPT_DEFAULT)
 	l = logger.SLogger("config")
 
