@@ -245,6 +245,12 @@ func startIO() {
 		Timeout: du,
 	}
 
+	if datakit.MaxLifeCheckInterval > 0 {
+		l.Debugf("max-post-interval: %v", datakit.MaxLifeCheckInterval)
+	} else {
+		l.Debugf("max-post-interval not set")
+	}
+
 	defer ioStop()
 
 	var f rtpanic.RecoverCallback
@@ -269,7 +275,11 @@ func startIO() {
 
 					now := time.Now()
 
-					l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
+					if d.name == "tailf" && datakit.Cfg.MainCfg.LogUpload {
+					} else {
+						l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
+					}
+
 					cache[d.category] = append(cache[d.category], d.data)
 
 					stat, ok := inputstats[d.name]
@@ -447,13 +457,12 @@ func doFlush(bodies [][]byte, url string) error {
 	}
 
 	if datakit.MaxLifeCheckInterval > 0 {
-		l.Debugf("set max-post-interval: %v", datakit.MaxLifeCheckInterval)
 		req.Header.Set("X-Max-POST-Interval", fmt.Sprintf("%v", datakit.MaxLifeCheckInterval))
-	} else {
-		l.Debugf("max-post-interval not set: %+#v", datakit.MaxLifeCheckInterval)
 	}
 
 	l.Debugf("post to %s...", categoryURLs[url])
+
+	postbeg := time.Now()
 
 	resp, err := httpCli.Do(req)
 	if err != nil {
@@ -461,13 +470,14 @@ func doFlush(bodies [][]byte, url string) error {
 		return err
 	}
 
-	l.Debugf("get resp from %s...", categoryURLs[url])
 	defer resp.Body.Close()
 	respbody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
+
+	l.Debugf("post cost %v", time.Since(postbeg))
 
 	switch resp.StatusCode / httpDiv {
 	case httpOk:
