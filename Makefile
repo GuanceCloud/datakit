@@ -70,13 +70,13 @@ define build
 	@mkdir -p git
 	@echo "$$GIT_INFO" > git/git.go
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
-		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
+		 -env $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
 	@tree -Csh -L 3 $(BUILD_DIR)
 endef
 
 define pub
 	@echo "publish $(1) $(NAME) ..."
-	@GO111MODULE=off go run cmd/make/make.go -pub -release $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) \
+	@GO111MODULE=off go run cmd/make/make.go -pub -env $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) \
 		-build-dir $(BUILD_DIR) -archs $(3)
 	@tree -Csh -L 3 $(PUB_DIR)
 endef
@@ -119,10 +119,10 @@ pub_release_img:
 	@sudo docker push pubrepo.jiagouyun.com/dataflux/datakit:$(VERSION)
 
 pub_agent:
-	@go run cmd/make/make.go -pub-agent -release local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
-	@go run cmd/make/make.go -pub-agent -release test -pub-dir embed -download-addr $(TEST_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
-	@go run cmd/make/make.go -pub-agent -release preprod -pub-dir embed -download-addr $(PRE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
-	@go run cmd/make/make.go -pub-agent -release release -pub-dir embed -download-addr $(RELEASE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
+	@go run cmd/make/make.go -pub-agent -env local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
+	@go run cmd/make/make.go -pub-agent -env test -pub-dir embed -download-addr $(TEST_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
+	@go run cmd/make/make.go -pub-agent -env preprod -pub-dir embed -download-addr $(PRE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
+	@go run cmd/make/make.go -pub-agent -env release -pub-dir embed -download-addr $(RELEASE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
 
 pub_preprod:
 	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
