@@ -111,7 +111,7 @@ func updateLagacyConfig(dir string) {
 	}
 
 	maincfg.Log = filepath.Join(InstallDir, "datakit.log") // reset log path
-	maincfg.ConfigDir = ""                                 // remove conf.d config: we use static conf.d dir, *not* configurable
+	maincfg.DeprecatedConfigDir = ""                       // remove conf.d config: we use static conf.d dir, *not* configurable
 
 	// split origin ftdataway into dataway object
 	var dwcfg *datakit.DataWayCfg
