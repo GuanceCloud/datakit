@@ -61,6 +61,7 @@ var (
 		"httpjson":               false, // doc missing
 		"httpstat":               true,
 		"influxdb":               false,
+		"internal":               true,
 		"iptables":               true,
 		"jenkins":                true,
 		"jira":                   true,
