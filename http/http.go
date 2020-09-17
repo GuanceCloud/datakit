@@ -35,7 +35,7 @@ var (
 	errBadPoints = uhttp.NewErr(errors.New("bad points"), http.StatusBadRequest, "datakit")
 	httpOK       = uhttp.NewErr(nil, http.StatusOK, "datakit")
 
-	l         = logger.SLogger("http")
+	l        = logger.DefaultSLogger("http")
 	httpBind string
 
 	uptime    = time.Now()
@@ -47,6 +47,9 @@ var (
 )
 
 func Start(bind string) {
+
+	l = logger.SLogger("http")
+
 	httpBind = bind
 	// start HTTP server
 	httpStart(bind)
@@ -211,8 +214,6 @@ func tryStartHTTPServer(srv *http.Server) {
 
 	stopOkCh <- nil
 }
-
-
 
 type enabledInput struct {
 	Input     string   `json:"input"`
