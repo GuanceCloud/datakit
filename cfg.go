@@ -20,7 +20,9 @@ var (
 
 	Cfg = &Config{ //nolint:dupl
 		MainCfg: &MainConfig{
-			GlobalTags:      map[string]string{},
+			GlobalTags: map[string]string{
+				"": "",
+			},
 			flushInterval:   Duration{Duration: time.Second * 10},
 			Interval:        "10s",
 			MaxPostInterval: "15s", // add 5s plus for network latency
@@ -31,6 +33,7 @@ var (
 			LogLevel: "info",
 			Log:      filepath.Join(InstallDir, "datakit.log"),
 			GinLog:   filepath.Join(InstallDir, "gin.log"),
+			DataWay:  &DataWayCfg{},
 
 			RoundInterval: false,
 			cfgPath:       filepath.Join(InstallDir, "datakit.conf"),
@@ -128,7 +131,7 @@ func ParseDataway(dw string) (*DataWayCfg, error) {
 type MainConfig struct {
 	UUID              string      `toml:"uuid"`
 	Name              string      `toml:"name"`
-	DataWay           *DataWayCfg `toml:"dataway"`
+	DataWay           *DataWayCfg `toml:"dataway,omitempty"`
 	DataWayRequestURL string      `toml:"-"`
 	HTTPBind          string      `toml:"http_server_addr"`
 
@@ -136,19 +139,19 @@ type MainConfig struct {
 	// if these tags missing, TOML will parse error
 	DeprecatedFtGateway        string `toml:"ftdataway,omitempty"`
 	DeprecatedIntervalDuration int64  `toml:"interval_duration,omitempty"`
+	DeprecatedConfigDir        string `toml:"config_dir,omitempty"`
+	DeprecatedOmitHostname     bool   `toml:"omit_hostname,omitempty"`
 
 	Log                  string            `toml:"log"`
 	LogLevel             string            `toml:"log_level"`
 	GinLog               string            `toml:"gin_log"`
-	ConfigDir            string            `toml:"config_dir,omitempty"` // XXX: not used: to compatible parsing with forethought datakit.conf
-	MaxPostInterval      string            `toml:"max_post_interval"`    //验证dk存活
+	MaxPostInterval      string            `toml:"max_post_interval"`
 	GlobalTags           map[string]string `toml:"global_tags"`
 	RoundInterval        bool
 	StrictMode           bool   `toml:"strict_mode,omitempty"`
 	Interval             string `toml:"interval"`
 	flushInterval        Duration
 	OutputFile           string `toml:"output_file"`
-	OmitHostname         bool   `toml:"omit_hostname,omitempty"` // Deprecated
 	Hostname             string `toml:"hostname,omitempty"`
 	cfgPath              string
 	DefaultEnabledInputs []string     `toml:"default_enabled_inputs"`
@@ -180,16 +183,16 @@ func (c *Config) LoadMainConfig() error {
 
 func (c *Config) InitCfg() error {
 
+	if c.MainCfg.Hostname == "" {
+		c.setHostname()
+	}
+
 	data, err := toml.Marshal(c.MainCfg)
 	if err != nil {
 		return err
 	}
 
-	if Cfg.MainCfg.Hostname == "" {
-		Cfg.setHostname()
-	}
-
-	if err := ioutil.WriteFile(Cfg.MainCfg.cfgPath, data, 0600); err != nil {
+	if err := ioutil.WriteFile(c.MainCfg.cfgPath, data, 0600); err != nil {
 		return fmt.Errorf("error creating %s: %s", c.MainCfg.cfgPath, err)
 	}
 
@@ -262,6 +265,10 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		case `$datakit_uuid`, `$datakit_id`:
 			c.MainCfg.GlobalTags[k] = c.MainCfg.UUID
 			l.Debugf("set global tag %s: %s", k, c.MainCfg.UUID)
+
+		case "": // empty tag-key: remove it
+			delete(c.MainCfg.GlobalTags, "")
+
 		default:
 			// pass
 		}
