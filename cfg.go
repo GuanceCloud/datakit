@@ -30,10 +30,12 @@ var (
 
 			HTTPBind: "0.0.0.0:9529",
 
-			LogLevel: "info",
-			Log:      filepath.Join(InstallDir, "datakit.log"),
-			GinLog:   filepath.Join(InstallDir, "gin.log"),
-			DataWay:  &DataWayCfg{},
+			LogLevel:  "info",
+			Log:       filepath.Join(InstallDir, "datakit.log"),
+			LogRotate: 32,
+			LogUpload: false,
+			GinLog:    filepath.Join(InstallDir, "gin.log"),
+			DataWay:   &DataWayCfg{},
 
 			RoundInterval: false,
 			cfgPath:       filepath.Join(InstallDir, "datakit.conf"),
@@ -202,8 +204,11 @@ type MainConfig struct {
 	DeprecatedConfigDir        string `toml:"config_dir,omitempty"`
 	DeprecatedOmitHostname     bool   `toml:"omit_hostname,omitempty"`
 
-	Log                  string            `toml:"log"`
-	LogLevel             string            `toml:"log_level"`
+	Log       string `toml:"log"`
+	LogLevel  string `toml:"log_level"`
+	LogRotate int    `toml:"log_rotate,omitempty"`
+	LogUpload bool   `toml:"log_upload"`
+
 	GinLog               string            `toml:"gin_log"`
 	MaxPostInterval      string            `toml:"max_post_interval"`
 	GlobalTags           map[string]string `toml:"global_tags"`
