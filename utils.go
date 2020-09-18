@@ -14,6 +14,19 @@ import (
 	"time"
 )
 
+func TrimSuffixAll(s, sfx string) string {
+	var x string
+	for {
+		x = strings.TrimSuffix(s, sfx)
+		if x == s {
+			break
+		}
+		s = x
+	}
+
+	return x
+}
+
 func MonitProc(proc *os.Process, name string) error {
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
