@@ -226,7 +226,7 @@ func tryLoadConfig() {
 	datakit.Cfg.InputFilters = inputFilters
 
 	for {
-		if err := config.LoadCfg(datakit.Cfg); err != nil {
+		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
 			l.Errorf("load config failed: %s", err)
 			time.Sleep(time.Second)
 		} else {

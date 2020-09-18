@@ -16,9 +16,9 @@ var (
 	Inputs     = map[string]Creator{}
 	inputInfos = map[string][]*inputInfo{}
 
-	l           *logger.Logger = logger.DefaultSLogger("inputs")
-	panicInputs                = map[string]int{}
-	mtx                        = sync.RWMutex{}
+	l           = logger.DefaultSLogger("inputs")
+	panicInputs = map[string]int{}
+	mtx         = sync.RWMutex{}
 )
 
 type Input interface {
@@ -38,11 +38,11 @@ type Creator func() Input
 
 func Add(name string, creator Creator) {
 	if _, ok := Inputs[name]; ok {
-		panic(fmt.Sprintf("inputs %s exist(from datakit)", name))
+		l.Fatalf("inputs %s exist(from datakit)", name)
 	}
 
 	if _, ok := tgi.TelegrafInputs[name]; ok {
-		panic(fmt.Sprintf("inputs %s exist(from telegraf)", name))
+		l.Fatal("inputs %s exist(from telegraf)", name)
 	}
 
 	Inputs[name] = creator
