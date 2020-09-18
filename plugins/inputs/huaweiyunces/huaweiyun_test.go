@@ -1,12 +1,16 @@
 package huaweiyunces
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"testing"
 	"time"
 
 	"github.com/influxdata/toml"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud"
 )
 
 var (
@@ -23,14 +27,18 @@ func TestGetMetric(t *testing.T) {
 
 	//https://support.huaweicloud.com/api-ces/ces_03_0033.html
 
-	cli := newHWClient(ak, sk, endPoint, projectID)
+	cli := huaweicloud.NewHWClient(ak, sk, endPoint, projectID, moduleLogger)
 	dims := []*Dimension{
 		{
 			Name:  "instance_id",
 			Value: "b5d7b7a3-681d-4c08-8e32-f14b640b3e12",
 		},
 	}
-	resp, err := cli.getMetric("SYS.ECS", "cpu_util", "min", 300, time.Now().Add(-5*time.Minute).Unix()*1000, time.Now().Unix()*1000, dims)
+	dms := []string{}
+	for _, d := range dims {
+		dms = append(dms, fmt.Sprintf("%s,%s", d.Name, d.Value))
+	}
+	resp, err := cli.CESGetMetric("SYS.ECS", "cpu_util", "min", 300, time.Now().Add(-5*time.Minute).Unix()*1000, time.Now().Unix()*1000, dms)
 	if err != nil {
 		t.Error(err)
 	}
@@ -39,7 +47,7 @@ func TestGetMetric(t *testing.T) {
 
 func TestBatchMetrics(t *testing.T) {
 
-	cli := newHWClient(ak, sk, endPoint, projectID)
+	cli := huaweicloud.NewHWClient(ak, sk, endPoint, projectID, moduleLogger)
 
 	dims := []*Dimension{
 		{
@@ -69,7 +77,8 @@ func TestBatchMetrics(t *testing.T) {
 		Metrics: items,
 	}
 
-	resp, err := cli.batchMetrics(b)
+	jdata, _ := json.Marshal(b)
+	resp, err := cli.CESGetBatchMetrics(jdata)
 	if err == nil {
 		result := parseBatchResponse(resp, b.Filter)
 		if result != nil {
