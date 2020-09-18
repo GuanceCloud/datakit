@@ -32,7 +32,7 @@ func TestRPC(t *testing.T) {
 
 	conn, err := grpc.Dial("unix://"+uds, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	defer conn.Close()
