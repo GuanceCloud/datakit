@@ -99,7 +99,7 @@ func (ti *TelegrafInput) SampleConfig() string {
 
 	// telegraf not exported inputs, return sample directly(if configured in init())
 	if ti.input == nil {
-		panic(fmt.Errorf("%s should have a specific config-sample", ti.name))
+		l.Fatal("%s should have a specific config-sample", ti.name)
 	}
 
 	return fmt.Sprintf("[[inputs.%s]]\n%s", ti.name, ti.input.SampleConfig())
