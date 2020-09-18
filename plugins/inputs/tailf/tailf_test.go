@@ -36,14 +36,14 @@ var (
 
 func TestWrite(t *testing.T) {
 	if err := os.MkdirAll(deepDir, os.ModePerm); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	var files []*os.File
 	for _, path := range paths {
 		f, err := os.Create(path)
 		if err != nil {
-			panic(err)
+			t.Fatal(err)
 		}
 		files = append(files, f)
 	}
