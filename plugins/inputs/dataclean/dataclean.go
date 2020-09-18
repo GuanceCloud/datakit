@@ -113,7 +113,7 @@ func (d *DataClean) Run() {
 	d.write = newWritMgr()
 
 	if datakit.Cfg.MainCfg.DataWay != nil {
-		d.write.addHttpWriter(datakit.Cfg.MainCfg.DataWayRequestURL)
+		d.write.addHttpWriter(datakit.Cfg.MainCfg.DataWay.MetricURL())
 	}
 
 	go func() {
