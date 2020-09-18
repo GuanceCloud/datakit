@@ -29,6 +29,14 @@ func TestParseDataWay(t *testing.T) {
 	}
 
 	t.Log(string(buf.Bytes()))
+
+	dw, err = ParseDataway("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("%+#v", dw)
+
 }
 
 func TestUnmarshalMainCfg(t *testing.T) {
@@ -92,12 +100,12 @@ logfile_rotation_interval = ""
 		t.Logf("%+#v", mc.DataWay)
 	}
 
-	buf := new(bytes.Buffer)
-	if err := t2.NewEncoder(buf).Encode(&mc); err != nil {
+	data, err := TomlMarshal(&mc)
+	if err != nil {
 		t.Fatal(err)
-	} else {
-		t.Log(buf.String())
 	}
+
+	t.Log(string(data))
 }
 
 func TestMarshalMainCfg(t *testing.T) {
@@ -113,11 +121,11 @@ func TestMarshalMainCfg(t *testing.T) {
 
 	t.Logf("%s", string(data))
 
-	buf := new(bytes.Buffer)
-	if err := t2.NewEncoder(buf).Encode(Cfg.MainCfg); err != nil {
+	data, err = TomlMarshal(Cfg.MainCfg)
+	if err != nil {
 		t.Fatal(err)
 	} else {
-		t.Log(buf.String())
+		t.Log(data)
 	}
 }
 
