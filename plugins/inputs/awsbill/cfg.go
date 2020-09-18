@@ -11,28 +11,25 @@ import (
 
 const (
 	sampleConfig = `
+# ##(required)
 #[[inputs.awsbill]]
 # ##(required)
 #access_key = ''
 #access_secret = ''
-#access_token = ''
 #region_id = 'us-east-1'
 
-# ##(optional) custom metric name, default is awsbill
-#metric_name = ''
-
-# ##(optional) collect interval, default is 6 hours. AWS billing metrics are available about once every 4 hours.
-#interval = '6h'
+# ##(optional) collect interval, default is 4 hours. AWS billing metrics are available about once every 4 hours.
+#interval = '4h'
 `
 )
 
 type AwsInstance struct {
 	AccessKey    string
 	AccessSecret string
-	AccessToken  string
-	RegionID     string
-	MetricName   string
-	Interval     datakit.Duration
+	//AccessToken  string
+	RegionID string
+
+	Interval datakit.Duration
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
@@ -42,4 +39,6 @@ type AwsInstance struct {
 	rateLimiter *rate.Limiter
 
 	billingMetrics map[string]*cloudwatch.Metric
+
+	debugMode bool
 }
