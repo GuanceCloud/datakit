@@ -18,21 +18,20 @@ var (
 	l = logger.DefaultSLogger("config")
 )
 
-func LoadCfg(c *datakit.Config) error {
+func LoadCfg(c *datakit.Config, mcp string) error {
 
 	datakit.InitDirs()
 
-	if err := c.LoadEnvs(); err != nil {
+	if err := c.LoadEnvs(mcp); err != nil {
 		return err
 	}
 
-	if err := c.LoadMainConfig(); err != nil {
+	if err := c.LoadMainConfig(mcp); err != nil {
 		return err
 	}
-
-	l.Infof("set log to %s", c.MainCfg.Log)
 
 	// set global log root
+	l.Infof("set log to %s", c.MainCfg.Log)
 	logger.MaxSize = c.MainCfg.LogRotate
 	logger.SetGlobalRootLogger(c.MainCfg.Log, c.MainCfg.LogLevel, logger.OPT_DEFAULT)
 	l = logger.SLogger("config")
