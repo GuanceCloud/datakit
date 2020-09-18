@@ -160,14 +160,14 @@ func (pa *PuppetAgent) do() {
 			if event.Op&fsnotify.Remove == fsnotify.Remove {
 				_ = pa.watcher.Remove(pa.Location)
 				if err := pa.watcher.Add(pa.Location); err != nil {
-					l.Errorf(err.Error())
+					l.Error(err)
 					time.Sleep(time.Second)
 				}
 			}
 
 		case err, ok := <-pa.watcher.Errors:
 			if !ok {
-				l.Warn(err.Error())
+				l.Warn(err)
 			}
 		}
 	}
