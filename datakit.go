@@ -66,6 +66,7 @@ var (
 	TelegrafDir    = filepath.Join(InstallDir, "embed")
 	DataDir        = filepath.Join(InstallDir, "data")
 	LuaDir         = filepath.Join(InstallDir, "lua")
+	MainConfPath   = filepath.Join(InstallDir, "datakit.conf")
 	ConfdDir       = filepath.Join(InstallDir, "conf.d")
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 )
