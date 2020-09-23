@@ -37,7 +37,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/modbus"
 	"github.com/influxdata/telegraf/plugins/inputs/mongodb"
 	"github.com/influxdata/telegraf/plugins/inputs/mqtt_consumer"
-	"github.com/influxdata/telegraf/plugins/inputs/mysql"
 	"github.com/influxdata/telegraf/plugins/inputs/nats"
 	"github.com/influxdata/telegraf/plugins/inputs/net"
 	"github.com/influxdata/telegraf/plugins/inputs/net_response"
@@ -131,7 +130,7 @@ var (
 		// collectd use socket_listener to gather data
 		"collectd": {name: "socket_listener", Catalog: "collectd", input: &socket_listener.SocketListener{}},
 
-		"nginx":                {name: "nginx", Catalog: "nginx", input: &nginx.Nginx{}},
+		"nginx":                {name: "nginx", Catalog: "nginx", Sample: samples["nginx"], input: &nginx.Nginx{}},
 		"nginx_upstream_check": {name: "nginx_upstream_check", Catalog: "nginx", input: &nginx_upstream_check.NginxUpstreamCheck{}},
 		"nginx_plus_api":       {name: "nginx_plus_api", Catalog: "nginx", input: &nginx_plus_api.NginxPlusApi{}},
 		"nginx_plus":           {name: "nginx_plus", Catalog: "nginx", input: &nginx_plus.NginxPlus{}},
@@ -140,7 +139,6 @@ var (
 		"tengine": {name: "tengine", Catalog: "tengine", input: &tengine.Tengine{}},
 		"apache":  {name: "apache", Catalog: "apache", input: &apache.Apache{}},
 
-		"mysql":         {name: "mysql", Catalog: "db", input: &mysql.Mysql{}},
 		"postgresql":    {name: "postgresql", Catalog: "db", input: &postgresql.Postgresql{}},
 		"mongodb":       {name: "mongodb", Catalog: "db", input: &mongodb.MongoDB{}},
 		"redis":         {name: "redis", Catalog: "db", input: &redis.Redis{}},
@@ -181,7 +179,7 @@ var (
 		"syslog":     {name: "syslog", Catalog: "syslog", input: &syslog.Syslog{}},
 
 		"nvidia_smi":    {name: "nvidia_smi", Catalog: "nvidia", input: &nvidia_smi.NvidiaSMI{}},
-		"kubernetes":    {name: "kubernetes", Catalog: "k8s", input: &kubernetes.Kubernetes{}},
+		"kubernetes":    {name: "kubernetes", Catalog: "k8s", Sample: samples["kubernetes"], input: &kubernetes.Kubernetes{}},
 		"amqp_consumer": {name: "amqp_consumer", Catalog: "amqp", input: &amqp_consumer.AMQPConsumer{}},
 		"github":        {name: "github", Catalog: "github", input: &github.GitHub{}},
 		"uwsgi":         {name: "uwsgi", Catalog: "uwsgi", input: &uwsgi.Uwsgi{}},
