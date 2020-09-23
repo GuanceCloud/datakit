@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/influxdata/toml"
+	bstoml "github.com/BurntSushi/toml"
 	"github.com/kardianos/service"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -45,24 +45,38 @@ func readInput(prompt string) string {
 }
 
 func getDataWayCfg() *datakit.DataWayCfg {
+	var dc *datakit.DataWayCfg
+	var err error
+
 	if DataWay == "" {
 		for {
 			dw := readInput("Please set DataWay request URL(http://IP:Port/v1/write/metric) > ")
-			dwcfg, err := datakit.ParseDataway(dw)
-			if err == nil {
-				return dwcfg
+			dc, err = datakit.ParseDataway(dw)
+			if err != nil {
+				fmt.Printf("%s\n", err.Error())
+				continue
 			}
 
-			fmt.Printf("%s\n", err.Error())
-			continue
+			if err := dc.Test(); err != nil {
+				fmt.Printf("%s\n", err.Error())
+				continue
+			}
+
+			break
+
 		}
 	} else {
-		dwcfg, err := datakit.ParseDataway(DataWay)
+		dc, err = datakit.ParseDataway(DataWay)
 		if err != nil {
 			l.Fatal(err)
 		}
-		return dwcfg
+
+		if err := dc.Test(); err != nil {
+			l.Fatal(err)
+		}
 	}
+
+	return dc
 }
 
 func InstallNewDatakit(svc service.Service) {
@@ -89,7 +103,7 @@ func InstallNewDatakit(svc service.Service) {
 	datakit.Cfg.EnableDefaultsInputs(EnableInputs)
 
 	// build datakit main config
-	if err := datakit.Cfg.InitCfg(); err != nil {
+	if err := datakit.Cfg.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
@@ -106,12 +120,12 @@ func updateLagacyConfig(dir string) {
 	}
 
 	var maincfg datakit.MainConfig
-	if err = toml.Unmarshal(cfgdata, &maincfg); err != nil {
-		l.Fatalf("toml unmarshal failed: %s", err.Error())
+	if _, err = bstoml.Decode(string(cfgdata), &maincfg); err != nil {
+		l.Fatalf("unmarshal failed: %s", err.Error())
 	}
 
 	maincfg.Log = filepath.Join(InstallDir, "datakit.log") // reset log path
-	maincfg.ConfigDir = ""                                 // remove conf.d config: we use static conf.d dir, *not* configurable
+	maincfg.DeprecatedConfigDir = ""                       // remove conf.d config: we use static conf.d dir, *not* configurable
 
 	// split origin ftdataway into dataway object
 	var dwcfg *datakit.DataWayCfg
@@ -124,7 +138,7 @@ func updateLagacyConfig(dir string) {
 		}
 	}
 
-	cfgdata, err = toml.Marshal(maincfg)
+	cfgdata, err = datakit.TomlMarshal(maincfg)
 	if err != nil {
 		l.Fatal(err)
 	}
@@ -134,7 +148,38 @@ func updateLagacyConfig(dir string) {
 	}
 }
 
-func MigrateLagacyDatakit(svc service.Service) {
+func upgradeMainConfigure(cfg *datakit.Config, mcp string) {
+
+	mcdata, err := ioutil.ReadFile(mcp)
+	if err != nil {
+		l.Fatalf("ioutil.ReadFile(): %s", err.Error())
+	}
+
+	if _, err := bstoml.Decode(string(mcdata), cfg.MainCfg); err != nil {
+		l.Fatalf("unmarshal main cfg failed %s", err.Error())
+	}
+
+	mc := cfg.MainCfg
+
+	if mc.DataWay.URL == "" { // use old-version configure fields to build @URL
+		mc.DataWay.URL = fmt.Sprintf("%s://%s", mc.DataWay.DeprecatedScheme, mc.DataWay.DeprecatedHost)
+	}
+
+	if mc.DataWay.DeprecatedToken != "" {
+		mc.DataWay.URL += fmt.Sprintf("?token=%s", mc.DataWay.DeprecatedToken)
+	}
+
+	// clear deprecated fields
+	mc.DataWay.DeprecatedToken = ""
+	mc.DataWay.DeprecatedHost = ""
+	mc.DataWay.DeprecatedScheme = ""
+
+	if err := cfg.InitCfg(mcp); err != nil {
+		l.Fatal(err)
+	}
+}
+
+func UpgradeDatakit(svc service.Service) {
 
 	var lagacyServiceFiles []string = nil
 
@@ -160,6 +205,9 @@ func MigrateLagacyDatakit(svc service.Service) {
 
 	if _, err := os.Stat(lagacyInstallDir); err != nil {
 		l.Debug("no lagacy datakit installed")
+
+		// generate new main configure
+		upgradeMainConfigure(datakit.Cfg, datakit.MainConfPath)
 		return
 	}
 
