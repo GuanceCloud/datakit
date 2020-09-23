@@ -37,7 +37,7 @@ const (
 
 	updateFileListInterval   = time.Second * 3
 	checkFileIsExistInterval = time.Minute * 20
-	metricFeedCount          = 20
+	metricFeedCount          = 10
 )
 
 var l = logger.DefaultSLogger(inputName)
@@ -201,6 +201,14 @@ func (t *Tailf) getLines(file string) error {
 			}
 
 		case <-time.After(checkFileIsExistInterval):
+			if count > 0 {
+				if err := io.NamedFeed(buffer.Bytes(), io.Logging, inputName); err != nil {
+					l.Error(err)
+				}
+				count = 0
+				buffer = bytes.Buffer{}
+			}
+
 			_, statErr := os.Lstat(file)
 			if os.IsNotExist(statErr) {
 				l.Warnf("check file %s is not exist", file)
