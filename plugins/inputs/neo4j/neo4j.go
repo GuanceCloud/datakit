@@ -1,17 +1,17 @@
-package kong
+package neo4j
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
-	inputName = "kong"
+	inputName = "neo4j"
 
 	sampleCfg = `
     # neo4j metrics from http(https)://HOST:PORT/metrics
     # usually modify host and port
     # required
-    url = "http://127.0.0.1:8001/metrics"
+    url = "http://127.0.0.1:2004/metrics"
 
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     # required
@@ -24,7 +24,7 @@ const (
     # tls_key = "/tmp/peer.key"
 
     ## Internal configuration. Don't modify.
-    name = "kong"
+    name = "neo4j"
     ## ignore_measurement = []
 
     # [inputs.prom.tags]
@@ -33,20 +33,20 @@ const (
 `
 )
 
-type Kong struct{}
+type Neo4j struct{}
 
-func (*Kong) Run() {}
+func (*Neo4j) Run() {}
 
-func (*Kong) Catalog() string {
+func (*Neo4j) Catalog() string {
 	return inputName
 }
 
-func (*Kong) SampleConfig() string {
+func (*Neo4j) SampleConfig() string {
 	return "[[inputs.prom]]" + sampleCfg
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Kong{}
+		return &Neo4j{}
 	})
 }
