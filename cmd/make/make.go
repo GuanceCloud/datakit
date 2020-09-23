@@ -17,7 +17,7 @@ var (
 	flagDownloadAddr = flag.String("download-addr", "", "")
 	flagPubDir       = flag.String("pub-dir", "pub", "")
 	flagArchs        = flag.String("archs", "local", "os archs")
-	flagRelease      = flag.String(`release`, ``, `build for local/test/preprod/release`)
+	flagEnv          = flag.String(`env`, ``, `build for local/test/preprod/release`)
 	flagPub          = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/release/preprod`)
 	flagPubAgent     = flag.Bool("pub-agent", false, `publish telegraf`)
 
@@ -30,11 +30,11 @@ func applyFlags() {
 	build.PubDir = *flagPubDir
 	build.AppName = *flagName
 	build.Archs = *flagArchs
-	build.Release = *flagRelease
+	build.Release = *flagEnv
 	build.MainEntry = *flagMain
 	build.DownloadAddr = *flagDownloadAddr
 
-	switch *flagRelease {
+	switch *flagEnv {
 	case "release":
 		l.Debug("under release, only checked inputs released")
 		build.ReleaseType = datakit.ReleaseCheckedInputs
