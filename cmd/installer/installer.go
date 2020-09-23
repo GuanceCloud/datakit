@@ -100,7 +100,7 @@ func main() {
 
 	if *flagUpgrade { // upgrade new version
 		l.Infof("Upgrading to version %s...", DataKitVersion)
-		install.MigrateLagacyDatakit(svc)
+		install.UpgradeDatakit(svc)
 	} else { // install new datakit
 		l.Infof("Installing version %s...", DataKitVersion)
 		install.InstallNewDatakit(svc)
