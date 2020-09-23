@@ -176,6 +176,29 @@ func MakeMetric(name string, tags map[string]string, fields map[string]interface
 		}
 	}
 
+	for k, v := range tags { // remove any suffix `\` in all tag values
+		tags[k] = datakit.TrimSuffixAll(v, `\`)
+	}
+
+	for k, v := range fields { // convert uint to int
+		switch v.(type) {
+		case uint64:
+			fields[k] = fmt.Sprintf("%d", v.(uint64)) // convert uint64 to string to avoid overflow
+			l.Warnf("force convert uint64 to string(%d -> %s)", v.(uint64), fields[k])
+		case uint32:
+			fields[k] = int64(v.(uint32))
+			l.Warn("force convert uint32 to int64")
+		case uint16:
+			fields[k] = int64(v.(uint16))
+			l.Warn("force convert uint16 to int64")
+		case uint8:
+			fields[k] = int64(v.(uint8))
+			l.Warn("force convert uint8 to int64")
+		default:
+			// pass
+		}
+	}
+
 	pt, err := ifxcli.NewPoint(name, tags, fields, tm)
 	if err != nil {
 		return nil, err
@@ -192,18 +215,14 @@ func ioStop() {
 }
 
 func startIO() {
-	baseURL = "http://" + datakit.Cfg.MainCfg.DataWay.Host
-	if datakit.Cfg.MainCfg.DataWay.Scheme == "https" {
-		baseURL = "https://" + datakit.Cfg.MainCfg.DataWay.Host
-	}
 
 	categoryURLs = map[string]string{
 
-		MetricDeprecated: baseURL + MetricDeprecated + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
-		Metric:           baseURL + Metric + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
-		KeyEvent:         baseURL + KeyEvent + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
-		Object:           baseURL + Object + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
-		Logging:          baseURL + Logging + "?token=" + datakit.Cfg.MainCfg.DataWay.Token,
+		MetricDeprecated: datakit.Cfg.MainCfg.DataWay.DeprecatedMetricURL(),
+		Metric:           datakit.Cfg.MainCfg.DataWay.MetricURL(),
+		KeyEvent:         datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
+		Object:           datakit.Cfg.MainCfg.DataWay.ObjectURL(),
+		Logging:          datakit.Cfg.MainCfg.DataWay.LoggingURL(),
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
@@ -220,6 +239,12 @@ func startIO() {
 
 	httpCli = &http.Client{
 		Timeout: du,
+	}
+
+	if datakit.MaxLifeCheckInterval > 0 {
+		l.Debugf("max-post-interval: %v", datakit.MaxLifeCheckInterval)
+	} else {
+		l.Debugf("max-post-interval not set")
 	}
 
 	defer ioStop()
@@ -246,7 +271,11 @@ func startIO() {
 
 					now := time.Now()
 
-					l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
+					if d.name == "tailf" && datakit.Cfg.MainCfg.LogUpload {
+					} else {
+						l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
+					}
+
 					cache[d.category] = append(cache[d.category], d.data)
 
 					stat, ok := inputstats[d.name]
@@ -424,13 +453,12 @@ func doFlush(bodies [][]byte, url string) error {
 	}
 
 	if datakit.MaxLifeCheckInterval > 0 {
-		l.Debugf("set max-post-interval: %v", datakit.MaxLifeCheckInterval)
 		req.Header.Set("X-Max-POST-Interval", fmt.Sprintf("%v", datakit.MaxLifeCheckInterval))
-	} else {
-		l.Debugf("max-post-interval not set: %+#v", datakit.MaxLifeCheckInterval)
 	}
 
 	l.Debugf("post to %s...", categoryURLs[url])
+
+	postbeg := time.Now()
 
 	resp, err := httpCli.Do(req)
 	if err != nil {
@@ -438,13 +466,14 @@ func doFlush(bodies [][]byte, url string) error {
 		return err
 	}
 
-	l.Debugf("get resp from %s...", categoryURLs[url])
 	defer resp.Body.Close()
 	respbody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
+
+	l.Debugf("post cost %v", time.Since(postbeg))
 
 	switch resp.StatusCode / httpDiv {
 	case httpOk:
