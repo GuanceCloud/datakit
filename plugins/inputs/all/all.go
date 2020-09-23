@@ -43,6 +43,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/neo4j"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nfsstat"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pgreplication"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/puppetagent"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/scanport"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
