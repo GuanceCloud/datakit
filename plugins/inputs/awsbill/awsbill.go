@@ -31,10 +31,6 @@ func (*AwsInstance) SampleConfig() string {
 	return sampleConfig
 }
 
-// func (_ *AwsBillAgent) Description() string {
-// 	return ""
-// }
-
 func (a *AwsInstance) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
