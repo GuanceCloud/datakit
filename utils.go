@@ -12,7 +12,22 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	bstoml "github.com/BurntSushi/toml"
 )
+
+func TrimSuffixAll(s, sfx string) string {
+	var x string
+	for {
+		x = strings.TrimSuffix(s, sfx)
+		if x == s {
+			break
+		}
+		s = x
+	}
+
+	return x
+}
 
 func MonitProc(proc *os.Process, name string) error {
 	tick := time.NewTicker(time.Second)
@@ -234,4 +249,13 @@ func GetFirstGlobalUnicastIP() (string, error) {
 	}
 
 	return "", fmt.Errorf("no IP found")
+}
+
+func TomlMarshal(v interface{}) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	if err := bstoml.NewEncoder(buf).Encode(v); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }

@@ -193,15 +193,18 @@ func handleResponse(m *monitor, k string, tagsKeys []string, response []map[stri
 			return err
 		}
 
-		// io 输出
-		if err := WriteData(ptline, datakitPostURL); err != nil {
-			return err
-		}
+		lines = append(lines, ptline)
+
 	}
 
 	if len(lines) == 0 {
 		l.Debugf("no metric collected on %s", k)
 		return nil
+	}
+
+	// io 输出
+	if err := WriteData(bytes.Join(lines, []byte("\n")), datakitPostURL); err != nil {
+		return err
 	}
 
 	return nil
