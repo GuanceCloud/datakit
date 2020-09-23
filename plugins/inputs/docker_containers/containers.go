@@ -214,9 +214,8 @@ func (d *DockerContainers) gatherContainer(container types.Container) error {
 	obj.Started = containerTime(containerJSON.State.StartedAt)
 	obj.Finished = containerTime(containerJSON.State.FinishedAt)
 	obj.Path = containerJSON.Path
-	// obj.Inspect = containerJSON
-	description, _ := json.Marshal(containerJSON)
-	obj.Description = string(description)
+	inspect, _ := json.Marshal(containerJSON)
+	obj.Inspect = string(inspect)
 
 	d.objects = append(d.objects, &obj)
 	return nil
