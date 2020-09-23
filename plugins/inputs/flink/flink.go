@@ -29,7 +29,7 @@ const (
 
 var (
 	l      = logger.DefaultSLogger(inputName)
-	dbList = Flinks{m: make(map[string]interface{}), mut: &sync.RWMutex{}}
+	dbList = Flinks{m: make(map[string]interface{}), mu: sync.RWMutex{}}
 )
 
 func init() {
@@ -115,19 +115,21 @@ func extract(db, prec string, body []byte, tags map[string]string) error {
 }
 
 type Flinks struct {
-	m   map[string]interface{}
-	mut *sync.RWMutex
+	m  map[string]interface{}
+	mu sync.RWMutex
 }
 
 func (f *Flinks) Store(key string) {
-	f.mut.Lock()
-	defer f.mut.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	f.m[key] = nil
 }
 
 func (f *Flinks) IsExist(key string) bool {
-	f.mut.Lock()
-	defer f.mut.Unlock()
-	_, ok := f.m[key]
-	return ok
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+
+	_, exist := f.m[key]
+	return exist
 }
