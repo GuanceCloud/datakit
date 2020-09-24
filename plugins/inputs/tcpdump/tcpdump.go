@@ -6,7 +6,7 @@ import (
 
 const (
 	configSample = `
-[tcpdump]
+[inputs.tcpdump]
 ## 网卡
 device = []
 ## 协议类型
