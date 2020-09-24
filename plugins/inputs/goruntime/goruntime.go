@@ -38,7 +38,7 @@ type Goruntime struct{}
 func (*Goruntime) Run() {}
 
 func (*Goruntime) Catalog() string {
-	return "go"
+	return "golang"
 }
 
 func (*Goruntime) SampleConfig() string {
