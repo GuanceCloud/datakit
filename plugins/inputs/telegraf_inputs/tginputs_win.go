@@ -14,9 +14,8 @@ var (
 		`dotnetclr`:         {name: "dotnetclr", Catalog: "windows", Sample: samples["dotnetclr"], input: &win_perf_counters.Win_PerfCounters{}},
 		`aspdotnet`:         {name: "aspdotnet", Catalog: "windows", Sample: samples["aspdotnet"], input: &win_perf_counters.Win_PerfCounters{}},
 		`msexchange`:        {name: "msexchange", Catalog: "windows", Sample: samples["msexchange"], input: &win_perf_counters.Win_PerfCounters{}},
-
-		`iis`:              {name: "iis", Catalog: "iis", Sample: samples["iis"], input: &win_perf_counters.Win_PerfCounters{}},
-		`active_directory`: {name: "active_directory", Catalog: "active_directory", Sample: samples["active_directory"], input: &win_perf_counters.Win_PerfCounters{}},
+		`iis`:               {name: "iis", Catalog: "iis", Sample: samples["iis"], input: &win_perf_counters.Win_PerfCounters{}},
+		`active_directory`:  {name: "active_directory", Catalog: "active_directory", Sample: samples["active_directory"], input: &win_perf_counters.Win_PerfCounters{}},
 	}
 )
 
