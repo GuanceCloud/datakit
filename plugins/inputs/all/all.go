@@ -26,9 +26,11 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/envoy"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/expressjs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flink"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/goruntime"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/harborMonitor"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpstat"
@@ -39,6 +41,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mock"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodboplog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysqlmonitor"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/neo4j"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nfsstat"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pgreplication"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
@@ -50,7 +53,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/systemd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcms"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcost"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentobject"
@@ -65,6 +67,9 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/wechatminiprogram"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/yarn"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
+
+	// removed
+	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
 
 	// only windows
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/wmi"
