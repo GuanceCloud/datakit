@@ -17,11 +17,11 @@ import (
 	"time"
 
 	_ "github.com/godror/godror"
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"golang.org/x/net/context/ctxhttp"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 var (
@@ -187,14 +187,12 @@ func handleResponse(m *monitor, k string, tagsKeys []string, response []map[stri
 			tags[k] = v
 		}
 
-		ptline, err := io.MakeMetric(m.metric, tags, item, time.Now())
+		pt, err := ifxcli.NewPoint(m.metric, tags, item, time.Now())
 		if err != nil {
-			l.Errorf("new point failed: %s", err.Error())
 			return err
 		}
 
-		lines = append(lines, ptline)
-
+		lines = append(lines, []byte(pt.String()))
 	}
 
 	if len(lines) == 0 {
