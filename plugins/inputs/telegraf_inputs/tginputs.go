@@ -150,7 +150,6 @@ var (
 		"solr":          {name: "solr", Catalog: "db", input: &solr.Solr{}},
 		"clickhouse":    {name: "clickhouse", Catalog: "db", input: &clickhouse.ClickHouse{}},
 		`influxdb`:      {name: "influxdb", Catalog: "db", input: &influxdb.InfluxDB{}},
-		`goruntime`:     {name: "influxdb", Catalog: "golang", input: &influxdb.InfluxDB{}},
 
 		"openldap": {name: "openldap", Catalog: "openldap", input: &openldap.Openldap{}},
 
