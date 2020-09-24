@@ -25,7 +25,7 @@ const (
 
     ## Internal configuration. Don't modify.
     name = "expressjs"
-    ## ignore_measurement = []
+    ## ignore_measurement = ['nodejs_version_info']
 
     # [inputs.prom.tags]
     # from = "127.0.0.1:2379"
