@@ -53,7 +53,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/systemd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcms"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcost"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentobject"
@@ -68,6 +67,9 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/wechatminiprogram"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/yarn"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
+
+	// removed
+	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
 
 	// only windows
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/wmi"
