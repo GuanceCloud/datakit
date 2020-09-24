@@ -77,16 +77,6 @@ func AddInput(name string, input Input, fp string) error {
 	return nil
 }
 
-//func InputInstaces(name string) int {
-//	mtx.RLock()
-//	defer mtx.RUnlock()
-//
-//	if arr, ok := inputInfos[name]; ok {
-//		return len(arr)
-//	}
-//	return 0
-//}
-
 func ResetInputs() {
 
 	mtx.Lock()
