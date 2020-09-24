@@ -2,6 +2,82 @@ package telegraf_inputs
 
 var (
 	samples = map[string]string{
+		"kube_inventory": `
+		[[inputs.kube_inventory]]
+  ## URL for the Kubernetes API
+  url = "https://127.0.0.1"
+
+  ## Namespace to use. Set to "" to use all namespaces.
+  # namespace = "default"
+
+  ## Use bearer token for authorization. ('bearer_token' takes priority)
+  ## If both of these are empty, we'll use the default serviceaccount:
+  ## at: /run/secrets/kubernetes.io/serviceaccount/token
+  # bearer_token = "/path/to/bearer/token"
+  ## OR
+  # bearer_token_string = "abc_123"
+
+  ## Set response_timeout (default 5 seconds)
+  # response_timeout = "5s"
+
+  ## Optional Resources to exclude from gathering
+  ## Leave them with blank with try to gather everything available.
+  ## Values can be - "daemonsets", deployments", "endpoints", "ingress", "nodes",
+  ## "persistentvolumes", "persistentvolumeclaims", "pods", "services", "statefulsets"
+  # resource_exclude = [ "deployments", "nodes", "statefulsets" ]
+
+  ## Optional Resources to include when gathering
+  ## Overrides resource_exclude if both set.
+  # resource_include = [ "deployments", "nodes", "statefulsets" ]
+
+  ## selectors to include and exclude as tags.  Globs accepted.
+  ## Note that an empty array for both will include all selectors as tags
+  ## selector_exclude overrides selector_include if both set.
+  selector_include = []
+  selector_exclude = ["*"]
+
+  ## Optional TLS Config
+  # tls_ca = "/path/to/cafile"
+  # tls_cert = "/path/to/certfile"
+  # tls_key = "/path/to/keyfile"
+  ## Use TLS but skip chain & host verification
+  # insecure_skip_verify = false
+
+  ## Uncomment to remove deprecated metrics.
+  # fielddrop = ["terminated_reason"]
+		`,
+		/////////////////////////////////////////////////////////////////////////////////////////
+
+		"kubernetes": `
+		[[inputs.kubernetes]]
+  ## URL for the kubelet
+  url = "http://127.0.0.1:10255"
+
+  ## Use bearer token for authorization. ('bearer_token' takes priority)
+  ## If both of these are empty, we'll use the default serviceaccount:
+  ## at: /run/secrets/kubernetes.io/serviceaccount/token
+  # bearer_token = "/path/to/bearer/token"
+  ## OR
+  # bearer_token_string = "abc_123"
+
+  ## Pod labels to be added as tags.  An empty array for both include and
+  ## exclude will include all labels.
+  # label_include = []
+  # label_exclude = ["*"]
+
+  ## Set response_timeout (default 5 seconds)
+  # response_timeout = "5s"
+
+  ## Optional TLS Config
+  # tls_ca = /path/to/cafile
+  # tls_cert = /path/to/certfile
+  # tls_key = /path/to/keyfile
+  ## Use TLS but skip chain & host verification
+  # insecure_skip_verify = false
+		`,
+
+		/////////////////////////////////////////////////////////////////////////////////////////
+
 		"internal": `
 # Collect statistics about itself
 [[inputs.internal]]
@@ -10,15 +86,16 @@ collect_memstats = true`,
 
 		/////////////////////////////////////////////////////////////////////////////////////////
 		"nginx": `
+[[inputs.nginx]]
 # An array of Nginx stub_status URI to gather stats.
 urls = ["http://localhost/server_status"]
 
 ## Optional TLS Config
-tls_ca = "/etc/telegraf/ca.pem"
-tls_cert = "/etc/telegraf/cert.cer"
-tls_key = "/etc/telegraf/key.key"
+#tls_ca = "/etc/telegraf/ca.pem"
+#tls_cert = "/etc/telegraf/cert.cer"
+#tls_key = "/etc/telegraf/key.key"
 ## Use TLS but skip chain & host verification
-insecure_skip_verify = false
+#insecure_skip_verify = false
 
 # HTTP response timeout (default: 5s)
 response_timeout = "5s"
@@ -100,43 +177,6 @@ Counters = ["URI Cache Hits %","Kernel: URI Cache Hits %","File Cache Hits %"]
 Instances = ["*"]
 Measurement = "iis_websvc_cache"
 #IncludeTotal=false #Set to true to include _Total instance when querying for all (*).`,
-
-		/////////////////////////////////////////////////////////////////////////////////////////
-
-		"kube_inventory": `
-[[inputs.kube_inventory]]
-# URL for the Kubernetes API
-url = "https://127.0.0.1"
-
-# Namespace to use. Set to "" to use all namespaces.
-namespace = "default"
-
-# Use bearer token for authorization. ('bearer_token' takes priority)
-# If both of these are empty, we'll use the default serviceaccount:
-# at: /run/secrets/kubernetes.io/serviceaccount/token
-bearer_token = "/path/to/bearer/token"
-# OR
-bearer_token_string = "abc_123"
-
-# Set response_timeout (default 5 seconds)
-response_timeout = "5s"
-
-# Optional Resources to exclude from gathering
-# Leave them with blank with try to gather everything available.
-# Values can be - "daemonsets", deployments", "endpoints", "ingress", "nodes",
-# "persistentvolumes", "persistentvolumeclaims", "pods", "services", "statefulsets"
-#resource_exclude = [ "deployments", "nodes", "statefulsets" ]
-
-# Optional Resources to include when gathering
-# Overrides resource_exclude if both set.
-#resource_include = [ "deployments", "nodes", "statefulsets" ]
-
-# Optional TLS Config
-#tls_ca = "/path/to/cafile"
-#tls_cert = "/path/to/certfile"
-#tls_key = "/path/to/keyfile"
-# Use TLS but skip chain & host verification
-#insecure_skip_verify = false`,
 
 		/////////////////////////////////////////////////////////////////////////////////////////
 

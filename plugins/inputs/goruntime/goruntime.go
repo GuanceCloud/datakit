@@ -1,17 +1,17 @@
-package kong
+package Goruntime
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
-	inputName = "kong"
+	inputName = "goruntime"
 
 	sampleCfg = `
-    # neo4j metrics from http(https)://HOST:PORT/metrics
+    # Goruntime metrics from http(https)://HOST:PORT/metrics
     # usually modify host and port
     # required
-    url = "http://127.0.0.1:8001/metrics"
+    url = "http://127.0.0.1:9090/metrics"
 
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     # required
@@ -24,29 +24,29 @@ const (
     # tls_key = "/tmp/peer.key"
 
     ## Internal configuration. Don't modify.
-    name = "kong"
+    name = "goruntime"
     ## ignore_measurement = []
 
     # [inputs.prom.tags]
-    # from = "127.0.0.1:2379"
+    # from = "127.0.0.1:9090"
     # tags1 = "value1"
 `
 )
 
-type Kong struct{}
+type Goruntime struct{}
 
-func (*Kong) Run() {}
+func (*Goruntime) Run() {}
 
-func (*Kong) Catalog() string {
-	return inputName
+func (*Goruntime) Catalog() string {
+	return "golang"
 }
 
-func (*Kong) SampleConfig() string {
+func (*Goruntime) SampleConfig() string {
 	return "[[inputs.prom]]" + sampleCfg
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Kong{}
+		return &Goruntime{}
 	})
 }
