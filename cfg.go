@@ -181,10 +181,6 @@ func ParseDataway(urlstr string) (*DataWayCfg, error) {
 		dwcfg.host = u.Host
 		u.Path = "" // clear any path
 
-		if dwcfg.scheme == "https" {
-			dwcfg.host += ":443"
-		}
-
 		dwcfg.URL = u.String()
 	} else {
 		l.Errorf("parse url %s failed: %s", urlstr, err.Error())
