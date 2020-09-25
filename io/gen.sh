@@ -1,1 +1,1 @@
-protoc -I . dk.proto --go_out=plugins=grpc:.
+protoc dk.proto --go_out=plugins=grpc:.
