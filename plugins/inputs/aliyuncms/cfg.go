@@ -10,12 +10,12 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
 	aliyuncmsConfigSample = `
-#[[inputs.cms]]
+#[[inputs.aliyuncms]]
 
  # ##(required)
  #access_key_id = ''
@@ -31,12 +31,12 @@ const (
  # ##(optional) delay collect duration
  #delay = '5m'
 
- #[inputs.cms.tags]
+ #[inputs.aliyuncms.tags]
  #key1 = "val1"
  #key2 = "val2"
 
  # ##(required)
- #[[inputs.cms.project]]
+ #[[inputs.aliyuncms.project]]
   #	##(required) product namespace
   #name='acs_ecs_dashboard'
 
@@ -44,7 +44,7 @@ const (
   #metric_name=''
 
   # ##(required)
-  #[inputs.cms.project.metrics]
+  #[inputs.aliyuncms.project.metrics]
 
    # ##(required)
    # ## names of metrics
@@ -53,11 +53,11 @@ const (
    #]
 
    # ##(optional)
-   #[[inputs.cms.project.metrics.property]]
+   #[[inputs.aliyuncms.project.metrics.property]]
 
 	# ##(required) you can use * to apply to all metrics of this project
 	#name = "CPUUtilization"
-	
+
 	# ##(optional) you may specify period of this metric
 	#period = 60
 
@@ -70,9 +70,9 @@ const (
     #	{"instanceId":"i-bp15wj5w33t8vf******"}
     #	]
 	#	'''
-	
+
 	# ##(optional) custom tags
-	#[inputs.cms.project.metrics.property.tags]
+	#[inputs.aliyuncms.project.metrics.property.tags]
 	#key1 = "val1"
 	#key2 = "val2"
 `
@@ -86,10 +86,10 @@ type (
 	}
 
 	Property struct {
-		Name       string            `toml:"name"`
-		Period     int               `toml:"period"`
-		Interval   internal.Duration `toml:"interval"`
-		Dimensions string            `toml:"dimensions"`
+		Name       string           `toml:"name"`
+		Period     int              `toml:"period"`
+		Interval   datakit.Duration `toml:"interval"`
+		Dimensions string           `toml:"dimensions"`
 
 		Tags map[string]string `toml:"tags,omitempty"`
 	}
@@ -120,8 +120,8 @@ type (
 		AccessKeyID     string            `toml:"access_key_id"`
 		AccessKeySecret string            `toml:"access_key_secret"`
 		SecurityToken   string            `toml:"security_token"`
-		Interval        internal.Duration `toml:"interval"`
-		Delay           internal.Duration `toml:"delay"`
+		Interval        datakit.Duration  `toml:"interval"`
+		Delay           datakit.Duration  `toml:"delay"`
 		Project         []*Project        `toml:"project"`
 		Tags            map[string]string `toml:"tags,omitempty"`
 
