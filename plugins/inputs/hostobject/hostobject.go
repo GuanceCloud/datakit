@@ -4,13 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net"
-	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -22,7 +19,7 @@ type (
 		Name     string
 		Class    string
 		Desc     string `toml:"description,omitempty"`
-		Interval internal.Duration
+		Interval datakit.Duration
 		Tags     map[string]string `toml:"tags,omitempty"`
 	}
 
@@ -40,10 +37,6 @@ func (_ *Collector) Catalog() string {
 func (_ *Collector) SampleConfig() string {
 	return sampleConfig
 }
-
-// func (_ *Collector) Description() string {
-// 	return "Collect host info and send to Dataflux as object data format."
-// }
 
 func (c *Collector) Run() {
 
@@ -95,14 +88,11 @@ func (c *Collector) Run() {
 		}
 
 		tags := map[string]string{
-			"uuid":    config.Cfg.MainCfg.UUID,
+			"uuid":    datakit.Cfg.MainCfg.UUID,
 			"__class": c.Class,
 		}
 
-		hostname, err := os.Hostname()
-		if err == nil {
-			tags["host"] = hostname
-		}
+		tags["host"] = datakit.Cfg.MainCfg.Hostname
 
 		ipval := getIP()
 		if mac, err := getMacAddr(ipval); err == nil && mac != "" {
@@ -113,11 +103,6 @@ func (c *Collector) Run() {
 		oi := getOSInfo()
 		tags["os_type"] = oi.OSType
 		tags["os"] = oi.Release
-
-		//tags["cpu_total"] = fmt.Sprintf("%d", runtime.NumCPU())
-
-		//meminfo, _ := mem.VirtualMemory()
-		//tags["memory_total"] = fmt.Sprintf("%v", meminfo.Total/uint64(1024*1024*1024))
 
 		for k, v := range c.Tags {
 			tags[k] = v
@@ -149,7 +134,7 @@ func (c *Collector) Run() {
 			moduleLogger.Errorf("%s", err)
 		}
 
-		internal.SleepContext(ctx, c.Interval.Duration)
+		datakit.SleepContext(ctx, c.Interval.Duration)
 	}
 
 }
@@ -159,12 +144,9 @@ func (c *Collector) initialize() error {
 	if c.Class == "" {
 		c.Class = "Servers"
 	}
+
 	if c.Name == "" {
-		name, err := os.Hostname()
-		if err != nil {
-			return err
-		}
-		c.Name = name
+		c.Name = datakit.Cfg.MainCfg.Hostname
 	}
 	if c.Interval.Duration == 0 {
 		c.Interval.Duration = 3 * time.Minute

@@ -22,10 +22,6 @@ func (_ *azureInstance) SampleConfig() string {
 	return sampleConfig
 }
 
-// func (_ *azureMonitorAgent) Description() string {
-// 	return ""
-// }
-
 func (ag *azureInstance) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
