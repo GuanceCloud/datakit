@@ -21,35 +21,37 @@ const (
 
 	sampleCfg = `
 [[inputs.mongodb_oplog]]
-	# MongoDB URL: mongodb://user:password@host:port/database
-	# required
-	mongodb_url="mongodb://127.0.0.1:27017"
-
-	# required
-	database="testdb"
-
-	# required
-	collection="testcollection"
-
-	# tags path
-	tagList=[
-		"/path",
-		"/a/b/c/e"
-	]
-
-	# fields path. required
-	# type in [int, float, bool, string]
-	[inputs.mongodb_oplog.fieldList]
-		"/a/c/d" = "int"
-		"/a/c/f[1]/e/f" = "int"
-		# "/a/c/f\\[0\\]" = "int"
-
-	# [inputs.mongodb_oplog.tags]
-	# tags1 = "value1"
+    # MongoDB URL: mongodb://user:password@host:port/database
+    # required
+    mongodb_url="mongodb://127.0.0.1:27017"
+    
+    # required
+    database="testdb"
+    
+    # required
+    collection="testcollection"
+    
+    # tags path
+    tagList=[
+    	"/path",
+    	"/a/b/c/e"
+    ]
+    
+    # fields path. required
+    # type in [int, float, bool, string]
+    [inputs.mongodb_oplog.fieldList]
+    	"/a/c/d" = "int"
+    	"/a/c/f[1]/e/f" = "int"
+    	# "/a/c/f\\[0\\]" = "int"
+    
+    # [inputs.mongodb_oplog.tags]
+    # tags1 = "value1"
 `
+
+	timestampBitOffset = 32
 )
 
-var l *logger.Logger
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -74,11 +76,11 @@ type Mongodboplog struct {
 	pointlist map[string]string
 }
 
-func (_ *Mongodboplog) Catalog() string {
+func (*Mongodboplog) Catalog() string {
 	return "db"
 }
 
-func (_ *Mongodboplog) SampleConfig() string {
+func (*Mongodboplog) SampleConfig() string {
 	return sampleCfg
 }
 
@@ -92,7 +94,7 @@ func (m *Mongodboplog) Run() {
 	}
 
 	for _, v := range m.TagList {
-		m.pointlist[v] = "tags"
+		m.pointlist[v] = "t"
 	}
 	for k, v := range m.FieldList {
 		m.pointlist[k] = v
@@ -119,7 +121,6 @@ func (m *Mongodboplog) Run() {
 		}
 	}
 
-	session.SetPoolLimit(2)
 	session.SetSocketTimeout(0)
 	session.SetMode(mgo.Primary, true)
 
@@ -128,7 +129,7 @@ func (m *Mongodboplog) Run() {
 	// bson.MongoTimestamp int64
 	// |----------32---------|-----------32-----------|
 	// |   timestamp second  |          count         |
-	query["ts"] = bson.M{"$gt": bson.MongoTimestamp(time.Now().Unix() << 32)}
+	query["ts"] = bson.M{"$gt": bson.MongoTimestamp(time.Now().Unix() << timestampBitOffset)}
 
 	m.iter = session.DB("local").C("oplog.rs").Find(query).LogReplay().Tail(-1)
 	defer m.iter.Close()
@@ -179,7 +180,6 @@ func (m *Mongodboplog) runloop() {
 
 				default:
 					// nil
-
 				}
 			}
 		}
@@ -210,11 +210,10 @@ func (md *mgodata) makeMetric(tags map[string]string) ([]byte, error) {
 }
 
 func (md *mgodata) setTime(ts bson.MongoTimestamp) {
-	md.time = time.Unix(int64(ts)>>32, 0)
+	md.time = time.Unix(int64(ts)>>timestampBitOffset, 0)
 }
 
 func (md *mgodata) parse(docelem bson.D, succkey string) {
-
 	for _, elem := range docelem {
 		completeKey := succkey + elem.Name
 
@@ -240,7 +239,7 @@ func (md *mgodata) parse(docelem bson.D, succkey string) {
 func (md *mgodata) typeAssert(completeKey string, value interface{}) {
 	if typee, ok := md.pointlist[completeKey]; ok {
 		switch typee {
-		case "tags":
+		case "t":
 			if v, ok := value.(string); ok {
 				md.tags[completeKey] = v
 			}
@@ -269,7 +268,7 @@ func (md *mgodata) typeAssert(completeKey string, value interface{}) {
 type PartialLog struct {
 	Timestamp     bson.MongoTimestamp `bson:"ts"`
 	Operation     string              `bson:"op"`
-	Gid           string              `bson:"g"`
+	GID           string              `bson:"g"`
 	Namespace     string              `bson:"ns"`
 	Object        bson.D              `bson:"o"`
 	Query         bson.M              `bson:"o2"`
@@ -284,5 +283,5 @@ type PartialLog struct {
 	 */
 	UniqueIndexesUpdates bson.M // generate by CollisionMatrix
 	RawSize              int    // generate by Decorator
-	SourceId             int    // generate by Validator
+	SourceID             int    // generate by Validator
 }

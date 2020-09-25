@@ -25,23 +25,19 @@ const (
 
 	sampleCfg = `
 [inputs.nfsstat]
-	# nfsstat file location. default "/proc/net/rpc/nfsd"
-	location = "/proc/net/rpc/nfsd"
-
-	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	interval = "10s"
-
-	# [inputs.nfsstat.tags]
-	# tags1 = "value1"
+    # nfsstat file location. default "/proc/net/rpc/nfsd"
+    location = "/proc/net/rpc/nfsd"
+    
+    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    interval = "10s"
+    
+    # [inputs.nfsstat.tags]
+    # tags1 = "value1"
 `
 	nfsStatFileLocation = "/proc/net/rpc/nfsd"
 )
 
-var (
-	l *logger.Logger
-
-	testAssert bool
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -56,11 +52,11 @@ type NFSstat struct {
 	duration time.Duration
 }
 
-func (_ *NFSstat) SampleConfig() string {
+func (*NFSstat) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *NFSstat) Catalog() string {
+func (*NFSstat) Catalog() string {
 	return inputName
 }
 
@@ -78,7 +74,6 @@ func (n *NFSstat) Run() {
 
 	for {
 		select {
-
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
 			return
@@ -87,10 +82,6 @@ func (n *NFSstat) Run() {
 			data, err := buildPoint(n.Location, n.Tags)
 			if err != nil {
 				l.Error(err)
-				continue
-			}
-			if testAssert {
-				fmt.Printf("data: %s\n", string(data))
 				continue
 			}
 			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
@@ -103,7 +94,6 @@ func (n *NFSstat) Run() {
 }
 
 func (n *NFSstat) loadcfg() bool {
-
 	if n.Location == "" {
 		n.Location = nfsStatFileLocation
 		l.Infof("location is empty, use default location %s", nfsStatFileLocation)
@@ -148,15 +138,14 @@ func (n *NFSstat) loadcfg() bool {
 func buildPoint(fn string, tags map[string]string) ([]byte, error) {
 	data, err := ioutil.ReadFile(fn)
 	if err != nil {
-		return nil, fmt.Errorf("Could not open %s.", fn)
+		return nil, fmt.Errorf("could not open %s", fn)
 	}
 
 	if len(data) == 0 {
-		return nil, fmt.Errorf("File is empty.")
+		return nil, fmt.Errorf("file is empty")
 	}
 
-	nfsStats := fmt.Sprintf("%s", string(data))
-	stats, err := nfs.ParseServerRPCStats(strings.NewReader(nfsStats))
+	stats, err := nfs.ParseServerRPCStats(strings.NewReader(string(data)))
 	if err != nil {
 		return nil, err
 	}
@@ -174,9 +163,7 @@ func deepHit(data interface{}, prefix string, m map[string]interface{}) {
 	for i := 0; i < v.NumField(); i++ {
 		if v.Field(i).CanInterface() {
 			key := strings.ToLower(t.Field(i).Name)
-
 			switch v.Field(i).Kind() {
-
 			case reflect.Struct:
 				deepHit(v.Field(i).Interface(), prefix+key+"_", m)
 

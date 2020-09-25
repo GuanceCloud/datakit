@@ -3,13 +3,13 @@
 package tailf
 
 import (
-	"fmt"
+	"bytes"
+	"os"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/gobwas/glob"
 	"github.com/hpcloud/tail"
-	"github.com/mattn/go-zglob"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -20,29 +20,28 @@ import (
 const (
 	inputName = "tailf"
 
-	defaultMeasurement = "tailf"
-
 	sampleCfg = `
 [[inputs.tailf]]
-	# required
-	logfiles = ["/tmp/tailf_test/**/*.log"]
-	
-	# glob filteer
-	ignore = [""]
-	
-	# required
-	source = "tailf"
-	
-	# [inputs.tailf.tags]
-	# tags1 = "value1"
+    # required
+    logfiles = ["/usr/local/cloudcare/dataflux/datakit/*.txt"]
+
+    # glob filteer
+    ignore = [""]
+
+    # required
+    source = "tailf"
+
+    # [inputs.tailf.tags]
+    # tags1 = "value1"
 `
+
+	updateFileListInterval   = time.Second * 3
+	checkFileIsExistInterval = time.Minute * 20
+	metricsFeedInterval      = time.Second * 5
+	metricsFeedCount         = 10
 )
 
-var (
-	l *logger.Logger
-
-	testAssert = false
-)
+var l = logger.DefaultSLogger(inputName)
 
 type Tailf struct {
 	LogFiles []string          `toml:"logfiles"`
@@ -50,13 +49,10 @@ type Tailf struct {
 	Source   string            `toml:"source"`
 	Tags     map[string]string `toml:"tags"`
 
-	seek    *tail.SeekInfo
-	tailers map[string]*tailer
-}
+	tailerConf tail.Config
 
-type tailer struct {
-	tl    *tail.Tail
-	exist bool
+	runningFileList sync.Map
+	wg              sync.WaitGroup
 }
 
 func init() {
@@ -65,26 +61,52 @@ func init() {
 	})
 }
 
-func (_ *Tailf) Catalog() string {
+func (*Tailf) Catalog() string {
 	return "log"
 }
 
-func (_ *Tailf) SampleConfig() string {
+func (*Tailf) SampleConfig() string {
 	return sampleCfg
 }
 
 func (t *Tailf) Run() {
 	l = logger.SLogger(inputName)
 
-	if t.initcfg() {
+	if t.loadcfg() {
 		return
 	}
 
-	t.getLines()
+	l.Infof("tailf input started.")
+
+	ticker := time.NewTicker(updateFileListInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Infof("waiting for all tailers to exit")
+			t.wg.Wait()
+			l.Info("exit")
+			return
+
+		case <-ticker.C:
+			fileList := getFileList(t.LogFiles, t.Ignore)
+			for _, f := range fileList {
+				if _, ok := t.runningFileList.Load(f); !ok {
+					t.runningFileList.Store(f, nil)
+					l.Debugf("start tail, %s", f)
+
+					t.wg.Add(1)
+					go t.startTail(f)
+				} else {
+					l.Debugf("file %s already tailing now", f)
+				}
+			}
+		}
+	}
 }
 
-func (t *Tailf) initcfg() bool {
-	// check source
+func (t *Tailf) loadcfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -102,175 +124,104 @@ func (t *Tailf) initcfg() bool {
 		}
 	}
 
-	if t.Tags == nil {
-		t.Tags = make(map[string]string)
+	t.tailerConf = tail.Config{
+		ReOpen: true,
+		Follow: true,
+		Location: &tail.SeekInfo{
+			Whence: 2, // seek is 2
+			Offset: 0,
+		},
+		MustExist: true,
+		Poll:      false, // default watch method is "inotify"
+		Pipe:      false,
+		Logger:    tail.DiscardingLogger,
 	}
-
-	t.tailers = make(map[string]*tailer)
-
-	t.seek = &tail.SeekInfo{
-		Whence: 2,
-		Offset: 0,
-	}
-
+	t.runningFileList = sync.Map{}
+	t.wg = sync.WaitGroup{}
 	return false
 }
 
-func (t *Tailf) updateTailers() error {
+func (t *Tailf) startTail(file string) {
+	defer t.wg.Done()
 
-	fileList, err := getFileList(t.LogFiles, t.Ignore)
+	err := t.getLines(file)
+	// file is not exist or datakit exit
+	if err == nil {
+		t.runningFileList.Delete(file)
+		l.Debugf("file %s is ending", file)
+	}
+}
+
+func (t *Tailf) getLines(file string) error {
+	tailer, err := tail.TailFile(file, t.tailerConf)
 	if err != nil {
+		l.Error("build tailer, %s", err)
 		return err
 	}
+	defer tailer.Cleanup()
 
-	// set false
-	for _, tailer := range t.tailers {
-		tailer.exist = false
-	}
-
-	for _, fn := range fileList {
-		if _, ok := t.tailers[fn]; !ok {
-			tl, err := tail.TailFile(fn,
-				tail.Config{
-					ReOpen:    true,
-					Follow:    true,
-					Location:  t.seek,
-					MustExist: true,
-					// defaultWatchMethod is "inotify"
-					Poll:   false,
-					Pipe:   false,
-					Logger: tail.DiscardingLogger,
-				})
-			if err != nil {
-				continue
-			}
-
-			t.tailers[fn] = &tailer{tl: tl}
-		}
-		t.tailers[fn].exist = true
-	}
-
-	// filter the not exist file
-	for key, tailer := range t.tailers {
-		if !tailer.exist {
-			tailer.tl.Cleanup()
-			delete(t.tailers, key)
-		}
-	}
-
-	return nil
-}
-
-func (t *Tailf) getLines() {
-	l.Infof("tailf input started.")
-
-	loopTick := time.NewTicker(100 * time.Millisecond)
-	defer loopTick.Stop()
-	updateTick := time.NewTicker(time.Second)
-	defer updateTick.Stop()
-
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return
-
-		case <-loopTick.C:
-			for _, tailer := range t.tailers {
-				// return true is 'exit'
-				if t.loopTailer(tailer.tl) {
-					return
-				}
-			}
-
-		case <-updateTick.C:
-			if err := t.updateTailers(); err != nil {
-				l.Error("update file list error: %s", err.Error())
-			}
-		}
-	}
-}
-
-// loopTailer return bool of is "exit"
-func (t *Tailf) loopTailer(tl *tail.Tail) bool {
-	for {
-		select {
-		case line := <-tl.Lines:
-			data, err := t.parseLine(line, tl.Filename)
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-			if testAssert {
-				l.Debugf("io.Feed data: %s\n", string(data))
-				continue
-			}
-			if err := io.NamedFeed(data, io.Logging, inputName); err != nil {
-				l.Error(err)
-				continue
-			}
-			l.Debugf("feed %d bytes to io ok", len(data))
-
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return true
-		default:
-			return false
-		}
-	}
-}
-
-func (t *Tailf) parseLine(line *tail.Line, filename string) ([]byte, error) {
-	// only '__content' kv
-
-	if line.Err != nil {
-		return nil, line.Err
-	}
-
-	var tags = make(map[string]string)
-	var fields = make(map[string]interface{}, 1)
+	tags := make(map[string]string)
 	for k, v := range t.Tags {
 		tags[k] = v
 	}
-	tags["filename"] = filename
+	tags["filename"] = file
 
-	text := strings.TrimRight(line.Text, "\r")
-	fields["__content"] = text
+	var buffer bytes.Buffer
+	count := 0
 
-	return io.MakeMetric(t.Source, tags, fields, time.Now())
-}
+	feedTicker := time.NewTicker(metricsFeedInterval)
+	defer feedTicker.Stop()
 
-func getFileList(filesGlob []string, ignoreGlob []string) ([]string, error) {
+	checkTicker := time.NewTicker(checkFileIsExistInterval)
+	defer checkTicker.Stop()
 
-	var matches, passlist []string
-	for _, f := range filesGlob {
-		fmt.Println(f)
-		matche, err := zglob.Glob(f)
-		if err != nil {
-			return nil, err
-		}
-		matches = append(matches, matche...)
-	}
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return nil
 
-	var globs []glob.Glob
-	for _, ig := range ignoreGlob {
-		g, err := glob.Compile(ig)
-		if err != nil {
-			return nil, err
-		}
-		globs = append(globs, g)
-	}
+		case line := <-tailer.Lines:
+			if line.Err != nil {
+				l.Error("tailer lines, %s", err)
+			}
 
-	for _, match := range matches {
-		fmt.Println(match)
-		for _, g := range globs {
-			if g.Match(match) {
-				goto __NEXT
+			text := strings.TrimRight(line.Text, "\r")
+			fields := map[string]interface{}{"__content": text}
+
+			data, err := io.MakeMetric(t.Source, tags, fields, time.Now())
+			if err != nil {
+				l.Error(err)
+				continue
+			}
+
+			buffer.Write(data)
+			buffer.WriteString("\n")
+			count++
+
+			if count >= metricsFeedCount {
+				if err := io.NamedFeed(buffer.Bytes(), io.Logging, inputName); err != nil {
+					l.Error(err)
+				}
+				count = 0
+				// not use buffer.Reset()
+				buffer = bytes.Buffer{}
+			}
+
+		case <-feedTicker.C:
+			if count > 0 {
+				if err := io.NamedFeed(buffer.Bytes(), io.Logging, inputName); err != nil {
+					l.Error(err)
+				}
+				count = 0
+				buffer = bytes.Buffer{}
+			}
+
+		case <-checkTicker.C:
+			_, statErr := os.Lstat(file)
+			if os.IsNotExist(statErr) {
+				l.Warnf("check file %s is not exist", file)
+				return nil
 			}
 		}
-		passlist = append(passlist, match)
-	__NEXT:
 	}
-
-	return passlist, nil
 }
