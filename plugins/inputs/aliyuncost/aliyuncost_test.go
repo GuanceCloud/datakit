@@ -1,7 +1,6 @@
 package aliyuncost
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,7 +10,7 @@ import (
 
 	"github.com/influxdata/toml"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
@@ -51,16 +50,16 @@ func TestAccountBalance(t *testing.T) {
 	tags[`Currency`] = resp.Data.Currency
 
 	var fv float64
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(resp.Data.AvailableAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(resp.Data.AvailableAmount), 64); err == nil {
 		fields[`AvailableAmount`] = fv
 	}
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(resp.Data.MybankCreditAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(resp.Data.MybankCreditAmount), 64); err == nil {
 		fields[`MybankCreditAmount`] = fv
 	}
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(resp.Data.AvailableCashAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(resp.Data.AvailableCashAmount), 64); err == nil {
 		fields[`AvailableCashAmount`] = fv
 	}
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(resp.Data.CreditAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(resp.Data.CreditAmount), 64); err == nil {
 		fields[`CreditAmount`] = fv
 	}
 
@@ -245,20 +244,16 @@ func TestConfig(t *testing.T) {
 
 func TestSvr(t *testing.T) {
 
-	var alicost CostCfg
+	ag := newAgent()
 
-	if data, err := ioutil.ReadFile("./demo.toml"); err != nil {
+	if data, err := ioutil.ReadFile("./test.conf"); err != nil {
 		log.Fatalf("%s", err)
 	} else {
-		if toml.Unmarshal(data, &alicost); err != nil {
+		if toml.Unmarshal(data, ag); err != nil {
 			log.Fatalf("%s", err)
 		}
 	}
 
-	alicost.ctx, alicost.cancelFun = context.WithCancel(context.Background())
-
-	alicost.Run()
-
-	time.Sleep(time.Hour)
-
+	ag.debugMode = true
+	ag.Run()
 }

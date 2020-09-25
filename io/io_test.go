@@ -32,7 +32,7 @@ func TestRPC(t *testing.T) {
 
 	conn, err := grpc.Dial("unix://"+uds, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	defer conn.Close()
@@ -69,4 +69,36 @@ func TestRPC(t *testing.T) {
 	log.Printf("stopping server...")
 
 	wg.Wait()
+}
+
+func TestMeasurement(t *testing.T) {
+	tmpFields := map[string]interface{}{"year": 2020}
+
+	data, err := MakeMetric("/dazzling_jackson", nil, tmpFields)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("%s", data)
+}
+
+func TestMakeMetric(t *testing.T) {
+	l, err := MakeMetric("abc", map[string]string{
+		"t1": `c:\\\\\\\\\\\\\`,
+		"t2": `\dddddd`,
+		"t3": "def",
+	},
+		map[string]interface{}{
+			"f1": uint64(time.Now().UnixNano()),
+			"f2": false,
+			"f3": 1.234,
+			"f5": "haha",
+		},
+		time.Now())
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("%s", string(l))
 }
