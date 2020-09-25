@@ -6,14 +6,15 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 type Nat struct {
 	MetricName  string
 	Description string
 	PayAsYouGo  bool
-	Interval    internal.Duration
+	Interval    datakit.Duration
 
 	Region string
 
