@@ -1,8 +1,10 @@
 package logger
 
 import (
+	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -13,12 +15,15 @@ import (
 )
 
 const (
-	OPT_ENC_CONSOLE     = 1 // non-json
-	OPT_SHORT_CALLER    = 2
-	OPT_STDOUT          = 4
-	OPT_COLOR           = 8
-	OPT_RESERVED_LOGGER = 16
-	OPT_DEFAULT         = OPT_ENC_CONSOLE | OPT_SHORT_CALLER
+	// non-json
+	OPT_ENC_CONSOLE = 1 //nolint:golint,stylecheck
+
+	OPT_SHORT_CALLER    = 2                                               //nolint:stylecheck,golint
+	OPT_STDOUT          = 4                                               //nolint:stylecheck,golint
+	OPT_COLOR           = 8                                               //nolint:stylecheck,golint
+	OPT_RESERVED_LOGGER = 16                                              //nolint:stylecheck,golint
+	OPT_ROTATE          = 32                                              //nolint:stylecheck,golint
+	OPT_DEFAULT         = OPT_ENC_CONSOLE | OPT_SHORT_CALLER | OPT_ROTATE //nolint:stylecheck,golint
 
 	DEBUG = "debug"
 	INFO  = "info"
@@ -28,7 +33,7 @@ var (
 	defaultRootLogger *zap.Logger
 	stdoutRootLogger  *zap.Logger
 
-	__l                 *zap.SugaredLogger
+	ll                  *zap.SugaredLogger
 	reservedSLoggerName string = "__reserved__"
 	slogs               *sync.Map
 
@@ -44,7 +49,6 @@ type Logger struct {
 }
 
 func SetStdoutRootLogger(level string, options int) {
-
 	mtx.Lock()
 	defer mtx.Unlock()
 
@@ -64,8 +68,8 @@ func SetGlobalRootLogger(fpath, level string, options int) {
 	defer mtx.Unlock()
 
 	if defaultRootLogger != nil {
-		if __l != nil {
-			__l.Warnf("global root logger has been initialized %+#v", defaultRootLogger)
+		if ll != nil {
+			ll.Warnf("global root logger has been initialized %+#v", defaultRootLogger)
 		}
 
 		return
@@ -80,10 +84,10 @@ func SetGlobalRootLogger(fpath, level string, options int) {
 	slogs = &sync.Map{}
 
 	if options&OPT_RESERVED_LOGGER != 0 {
-		__l = getSugarLogger(defaultRootLogger, reservedSLoggerName)
-		slogs.Store(reservedSLoggerName, __l)
+		ll = getSugarLogger(defaultRootLogger, reservedSLoggerName)
+		slogs.Store(reservedSLoggerName, ll)
 
-		__l.Info("root logger init ok")
+		ll.Info("root logger init ok")
 	}
 }
 
@@ -104,14 +108,17 @@ func DefaultSLogger(name string) *Logger {
 }
 
 func slogger(name string) *zap.SugaredLogger {
-
 	root := defaultRootLogger // prefer defaultRootLogger
 	if root == nil {
 		root = stdoutRootLogger
 	}
 
 	if root == nil {
-		SetStdoutRootLogger(DEBUG, OPT_DEFAULT)
+		if runtime.GOOS != "windows" {
+			SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT|OPT_COLOR)
+		} else {
+			SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT)
+		}
 		root = stdoutRootLogger
 	}
 
@@ -119,18 +126,18 @@ func slogger(name string) *zap.SugaredLogger {
 
 	if defaultRootLogger != nil {
 		l, ok := slogs.LoadOrStore(name, newlog)
-		if __l != nil {
+		if ll != nil {
 			if ok {
-				__l.Debugf("add new sloger `%s'", name)
+				ll.Debugf("add new sloger `%s'", name)
 			} else {
-				__l.Debugf("reused exist sloger `%s'", name)
+				ll.Debugf("reused exist sloger `%s'", name)
 			}
 		}
 
 		return l.(*zap.SugaredLogger)
-	} else {
-		return newlog
 	}
+
+	return newlog
 }
 
 func getLogger(root *zap.Logger, name string) *zap.Logger {
@@ -145,7 +152,12 @@ func newWinFileSink(u *url.URL) (zap.Sink, error) {
 	return os.OpenFile(u.Path[1:], os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 }
 
-func _NewRotateRootLogger(fpath, level string, options int) (*zap.Logger, error) {
+func newRotateRootLogger(fpath, level string, options int) (*zap.Logger, error) {
+	if fpath == "" {
+		fmt.Printf("default log file set to %s/logger.log\n", os.TempDir())
+		fpath = filepath.Join(os.TempDir(), `logger.log`)
+	}
+
 	w := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   fpath,
 		MaxSize:    MaxSize,
@@ -167,14 +179,40 @@ func _NewRotateRootLogger(fpath, level string, options int) (*zap.Logger, error)
 		EncodeCaller: zapcore.FullCallerEncoder,
 	}
 
-	encoder := zapcore.NewConsoleEncoder(encodeCfg)
+	if options&OPT_COLOR != 0 {
+		encodeCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	}
 
-	core := zapcore.NewCore(encoder, w, zap.InfoLevel)
-	l := zap.New(core)
+	if options&OPT_SHORT_CALLER != 0 {
+		encodeCfg.EncodeCaller = zapcore.ShortCallerEncoder
+	}
+
+	var enc zapcore.Encoder
+	if options&OPT_ENC_CONSOLE != 0 {
+		enc = zapcore.NewConsoleEncoder(encodeCfg)
+	} else {
+		enc = zapcore.NewJSONEncoder(encodeCfg)
+	}
+
+	lvl := zap.InfoLevel
+	switch strings.ToLower(level) {
+	case INFO: // pass
+	case DEBUG:
+		lvl = zap.DebugLevel
+	default:
+		lvl = zap.DebugLevel
+	}
+
+	core := zapcore.NewCore(enc, w, lvl)
+	l := zap.New(core, zap.AddCaller())
 	return l, nil
 }
 
 func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
+
+	if options&OPT_ROTATE != 0 && options&OPT_STDOUT == 0 {
+		return newRotateRootLogger(fpath, level, options)
+	}
 
 	cfg := &zap.Config{
 		Encoding: `json`,
@@ -197,12 +235,14 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 		cfg.OutputPaths = []string{fpath}
 
 		if runtime.GOOS == "windows" { // See: https://github.com/uber-go/zap/issues/621
-			zap.RegisterSink("winfile", newWinFileSink)
+			if err := zap.RegisterSink("winfile", newWinFileSink); err != nil {
+				panic(err)
+			}
+
 			cfg.OutputPaths = []string{
 				"winfile:///" + fpath,
 			}
 		}
-
 	}
 
 	switch strings.ToLower(level) {
