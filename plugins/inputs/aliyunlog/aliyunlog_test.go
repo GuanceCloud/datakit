@@ -1,7 +1,7 @@
 package aliyunlog
 
 import (
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	"log"
 	"testing"
@@ -9,6 +9,10 @@ import (
 	"github.com/influxdata/toml"
 
 	sls "github.com/aliyun/aliyun-log-go-sdk"
+)
+
+var (
+	TestAliyunSLS = false
 )
 
 func TestConfig(t *testing.T) {
@@ -60,11 +64,6 @@ func TestLoadConfig(t *testing.T) {
 	}
 }
 
-func process(shardId int, logGroupList *sls.LogGroupList) string {
-	fmt.Println(shardId, logGroupList)
-	return ""
-}
-
 func createClient() sls.ClientInterface {
 	AccessKeyID := ""
 	AccessKeySecret := ""
@@ -114,6 +113,9 @@ func TestConsumer(t *testing.T) {
 }
 
 func TestService(t *testing.T) {
+
+	TestAliyunSLS = true
+
 	ag := NewAgent()
 
 	data, err := ioutil.ReadFile("./test.conf")
