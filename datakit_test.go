@@ -11,7 +11,8 @@ import (
 )
 
 func TestParseDataWay(t *testing.T) {
-	dw, err := ParseDataway("http://1.2.3.4/v1/write/metrics?token=123&a=b&d=e&c=123_456")
+	//dw, err := ParseDataway("http://1.2.3.4/v1/write/metrics?token=123&a=b&d=e&c=123_456")
+	dw, err := ParseDataway("https://1.2.3.4:443/v1/write/metrics?token=123&a=b&d=e&c=123_456")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,21 +23,21 @@ func TestParseDataWay(t *testing.T) {
 	t.Log(dw.KeyEventURL())
 	t.Log(dw.DeprecatedMetricURL())
 
+	t.Logf("%+#v", dw)
+
 	Cfg.MainCfg.DataWay = dw
 	buf := new(bytes.Buffer)
 	if err := t2.NewEncoder(buf).Encode(Cfg.MainCfg); err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log(string(buf.Bytes()))
+	//t.Log(string(buf.Bytes()))
 
 	dw, err = ParseDataway("")
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	t.Logf("%+#v", dw)
-
 }
 
 func TestUnmarshalMainCfg(t *testing.T) {
