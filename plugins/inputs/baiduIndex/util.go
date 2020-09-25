@@ -19,7 +19,7 @@ func Run(method, path, body string, headers map[string]string) (int, string) {
 
 	method = strings.ToUpper(method)
 	if method != "GET" && method != "POST" && method != "PUT" && method != "DELETE" {
-		panic("Unsupported HTTP Method: " + method)
+		l.Error("Unsupported HTTP Method: " + method)
 	}
 
 	tr := &http.Transport{
@@ -29,7 +29,7 @@ func Run(method, path, body string, headers map[string]string) (int, string) {
 
 	req, err := http.NewRequest(method, path, strings.NewReader(body))
 	if err != nil {
-		panic(err)
+		l.Error(err)
 	}
 
 	for k, v := range headers {
@@ -38,14 +38,14 @@ func Run(method, path, body string, headers map[string]string) (int, string) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		panic(err)
+		l.Error(err)
 	}
 
 	defer resp.Body.Close()
 
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		l.Error(err)
 	}
 
 	respStatusCode := resp.StatusCode
