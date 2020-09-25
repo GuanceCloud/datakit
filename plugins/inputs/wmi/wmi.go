@@ -4,11 +4,11 @@ package wmi
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -21,12 +21,8 @@ func (_ *Instance) SampleConfig() string {
 	return sampleConfig
 }
 
-// func (_ *WmiAgent) Description() string {
-// 	return `Collect metrics from Windows WMI.`
-// }
-
 func (_ *Instance) Catalog() string {
-	return `wmi`
+	return `windows`
 }
 
 func (ag *Instance) Run() {
@@ -94,14 +90,24 @@ func (r *Instance) run(ctx context.Context) error {
 
 			}
 
+			hostname, _ := os.Hostname()
+
+			tags := map[string]string{
+				"host": hostname,
+			}
+
+			for k, v := range r.Tags {
+				tags[k] = v
+			}
+
 			for _, fields := range fieldsArr {
-				io.NamedFeedEx(inputName, io.Metric, r.MetricName, nil, fields)
+				io.NamedFeedEx(inputName, io.Metric, r.MetricName, tags, fields)
 			}
 
 			query.lastTime = time.Now()
 		}
 
-		internal.SleepContext(ctx, time.Second)
+		datakit.SleepContext(ctx, time.Second)
 	}
 }
 

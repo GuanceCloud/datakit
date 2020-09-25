@@ -1,62 +1,139 @@
-// +build ignore
-
-// +build linux,amd64
-
-package netPacket
+package main
 
 import (
+	"bufio"
 	"bytes"
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"flag"
 	"fmt"
+	sysIO "io"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"path/filepath"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
-	"google.golang.org/grpc"
+	"golang.org/x/net/context/ctxhttp"
 )
 
-func (p *NetPacket) exec() {
+var (
+	flagCfgFile  = flag.String("cfg-file", "", "json config file")
+	flagLog      = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "tcpdump.log"), "log file")
+	flagLogLevel = flag.String("log-level", "info", "log file")
+	flagDesc     = flag.String("desc", "", "description of the process, for debugging")
+
+	l      *logger.Logger
+	config *Config = new(Config)
+)
+
+func main() {
+	// 配置参数
+	flag.Parse()
+
+	if *flagCfgFile == "" {
+		panic("config missing")
+	}
+
+	if *flagDesc != "" {
+		l = logger.SLogger("tcpdump-" + *flagDesc)
+	} else {
+		l = logger.SLogger("tcpdump")
+	}
+
+	l.Infof("log level: %s", *flagLogLevel)
+
+	cfg, err := ParseConfig(*flagCfgFile)
+	if err != nil {
+		panic("config missing")
+	}
+
+	logger.SetGlobalRootLogger(*flagLog,
+		*flagLogLevel,
+		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+
+	cfg.NetPacket.run()
+}
+
+// ParseConfig 解析配置文件
+func ParseConfig(fpath string) (*Config, error) {
+	_, err := toml.DecodeFile(fpath, config)
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+type Config struct {
+	NetPacket *NetPacket `toml:"tcpdump"`
+}
+
+type NetPacket struct {
+	Metric string
+	// tcpdump.Tcpdump
+	Device   []string `toml:"device"`
+	Protocol []string `toml:"protocol"`
+	WriteUrl string   `toml:"writeUrl"`
+	SrcHost  string
+	DstHost  string
+	Eth      *layers.Ethernet
+	ARP      *layers.ARP
+	IPv4     *layers.IPv4
+	IPv6     *layers.IPv6
+	TCP      *layers.TCP
+	UDP      *layers.UDP
+
+	Payload []byte
+}
+
+func (p *NetPacket) handle() {
 	var (
-		device         string        = p.Device
+		device         []string      = p.Device
 		snapshotLength int32         = 1024
 		promiscuous    bool          = false
 		timeout        time.Duration = 30 * time.Second
 	)
 
 	// 默认
-	if device == "" {
+	if len(device) == 0 {
 		devices, err := pcap.FindAllDevs()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		device = devices[0].Name
+		device = make([]string, 1)
+
+		device[0] = devices[0].Name
 	}
 
-	handle, err := pcap.OpenLive(device, snapshotLength, promiscuous, timeout)
-	if err != nil {
-		log.Fatal(err)
+	p.Metric = "tcpdump"
+
+	if p.WriteUrl == "" {
+		p.WriteUrl = "http://0.0.0.0:9529/telegraf"
 	}
 
-	defer handle.Close()
+	for _, dc := range device {
+		handle, err := pcap.OpenLive(dc, snapshotLength, promiscuous, timeout)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-	for packet := range packetSource.Packets() {
-		// 包解析
-		p.parsePacketLayers(packet)
+		defer handle.Close()
 
-		// 构造数据
-		p.ethernetType(acc)
+		packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+		for packet := range packetSource.Packets() {
+			// 包解析
+			p.parsePacketLayers(packet)
+			// 构造数据
+			p.ethernetType(dc)
+		}
 	}
 }
 
@@ -64,6 +141,12 @@ func (p *NetPacket) exec() {
 func (p *NetPacket) parsePacketLayers(packet gopacket.Packet) {
 	for _, l := range packet.Layers() {
 		switch l.LayerType() {
+		case layers.LayerTypeEthernet:
+			p.Eth, _ = l.(*layers.Ethernet)
+		case layers.LayerTypeIPv4:
+			p.IPv4, _ = l.(*layers.IPv4)
+			p.SrcHost = fmt.Sprintf("%s", p.IPv4.SrcIP)
+			p.DstHost = fmt.Sprintf("%s", p.IPv4.DstIP)
 		case layers.LayerTypeTCP:
 			p.TCP, _ = l.(*layers.TCP)
 		case layers.LayerTypeUDP:
@@ -73,41 +156,41 @@ func (p *NetPacket) parsePacketLayers(packet gopacket.Packet) {
 
 	// Check for errors
 	if err := packet.ErrorLayer(); err != nil {
-		//fmt.Println("Error decoding some part of the packet:", err)
-		// todo
+		l.Errorf("Error decoding some part of the packet: %v", err)
 	}
 }
 
-func (p *NetPacket) ethernetType() {
+func (p *NetPacket) ethernetType(dc string) {
 	switch p.Eth.EthernetType {
 	case layers.EthernetTypeIPv4:
-		p.ParseData()
+		p.ParseData(dc)
 	default:
 		// todo
 	}
 }
 
 // 构造数据
-func (p *NetPacket) ParseData() {
+func (p *NetPacket) ParseData(dc string) {
 	switch {
 	case p.IPv4.Protocol == layers.IPProtocolTCP:
-		p.tcpData()
+		p.tcpData(dc)
 	case p.IPv4.Protocol == layers.IPProtocolUDP:
-		p.udpData()
+		p.udpData(dc)
 	}
 }
 
 // tcp data
-func (p *NetPacket) tcpData() {
+func (p *NetPacket) tcpData(dc string) {
 	fields := make(map[string]interface{})
 	tags := make(map[string]string)
 
 	src := fmt.Sprintf("%s:%s", p.SrcHost, p.TCP.SrcPort)
 	dst := fmt.Sprintf("%s:%s", p.DstHost, p.TCP.DstPort)
 
-	tags["src"] = src // 源ip
-	tags["dst"] = dst // 目标ip
+	fields["src"] = src // 源ip
+	fields["dst"] = dst // 目标ip
 	tags["protocol"] = "tcp"
+	tags["device"] = dc
 
 	fields["dstMac"] = fmt.Sprintf("%s", p.Eth.DstMAC) // mac地址
 	fields["srcMac"] = fmt.Sprintf("%s", p.Eth.SrcMAC) // mac地址
@@ -123,165 +206,87 @@ func (p *NetPacket) tcpData() {
 	fields["ugr"] = p.TCP.URG
 	fields["ece"] = p.TCP.ECE
 	fields["ns"] = p.TCP.NS
-	// fields["playload"] = p.Payload
 
-	acc.AddFields("tcpPacket", fields, tags)
+	ptline, err := io.MakeMetric(p.Metric, tags, fields, time.Now())
+	if err != nil {
+		l.Errorf("new point failed: %s", err.Error())
+	}
+
+	if err := WriteData(ptline, p.WriteUrl); err != nil {
+		l.Errorf("err msg", err)
+	}
 }
 
 // upd data
-func (p *NetPacket) udpData() {
+func (p *NetPacket) udpData(dc string) {
 	fields := make(map[string]interface{})
 	tags := make(map[string]string)
 
 	src := fmt.Sprintf("%s:%s", p.SrcHost, p.UDP.SrcPort)
 	dst := fmt.Sprintf("%s:%s", p.DstHost, p.UDP.DstPort)
 
-	tags["src"] = src // 源ip
-	tags["dst"] = dst // 目标ip
+	fields["src"] = src // 源ip
+	fields["dst"] = dst // 目标ip
 	tags["protocol"] = "udp"
+	tags["device"] = dc
+
 	fields["dstMac"] = fmt.Sprintf("%s", p.Eth.DstMAC) // mac地址
 	fields["srcMac"] = fmt.Sprintf("%s", p.Eth.SrcMAC) // mac地址
 
 	fields["len"] = len(p.Payload)
-	// fields["playload"] = p.Payload
 
-	acc.AddFields("udpPacket", fields, tags)
-}
-
-var (
-	flagCfgStr = flag.String("cfg", "", "json config string")
-	flagDesc   = flag.String("desc", "", "description of the process, for debugging")
-
-	flagRPCServer = flag.String("rpc-server", "unix://"+datakit.GRPCDomainSock, "gRPC server")
-	flagLog       = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log file")
-	flagLogLevel  = flag.String("log-level", "info", "log file")
-
-	l      *logger.Logger
-	rpcCli io.DataKitClient
-)
-
-type NetPacket struct {
-	tcpdump.Tcpdump
-	SrcHost string
-	DstHost string
-
-	// packet layers data
-	Eth *layers.Ethernet
-	// ARP    *layers.ARP
-	// IPv4   *layers.IPv4
-	// IPv6   *layers.IPv6
-	TCP *layers.TCP
-	UDP *layers.UDP
-	// ICMPv4 *layers.ICMPv4
-	// ICMPv6 *layers.ICMPv6
-}
-
-func main() {
-	flag.Parse()
-
-	if *flagCfgStr == "" {
-		panic("config(json string) missing")
-	}
-
-	logger.SetGlobalRootLogger(*flagLog,
-		*flagLogLevel,
-		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
-
-	if *flagDesc != "" {
-		l = logger.SLogger("oraclemonitor-" + *flagDesc)
-	} else {
-		l = logger.SLogger("oraclemonitor")
-	}
-
-	l.Infof("log level: %s", *flagLogLevel)
-
-	var dump NetPacket
-	cfg, err := base64.StdEncoding.DecodeString(*flagCfgStr)
+	ptline, err := io.MakeMetric(p.Metric, tags, fields, time.Now())
 	if err != nil {
-		panic(err)
+		l.Errorf("new point failed: %s", err.Error())
 	}
 
-	if err := json.Unmarshal(cfg, &dump); err != nil {
-		l.Errorf("failed to parse json `%s': %s", *flagCfgStr, err)
-		return
+	if err := WriteData(ptline, p.WriteUrl); err != nil {
+		l.Errorf("err msg", err)
 	}
-
-	l.Infof("gRPC dial %s...", *flagRPCServer)
-	conn, err := grpc.Dial(*flagRPCServer, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Second*5))
-	if err != nil {
-		l.Fatalf("connect RCP failed: %s", err)
-	}
-
-	l.Infof("gRPC connect %s ok", *flagRPCServer)
-	defer conn.Close()
-
-	rpcCli = io.NewDataKitClient(conn)
-
-	dump.run()
 }
 
-func (dump *Netdump) run() {
-
-	l.Info("start monit oracle...")
-
+func (p *NetPacket) run() {
+	l.Info("start monit tcpdump...")
+	p.handle()
 }
 
-func handleResponse(m *monitor, k string, response []map[string]interface{}) error {
-	lines := [][]byte{}
+// dataway写入数据
+func WriteData(data []byte, urlPath string) error {
+	// dataway path
+	ctx, _ := context.WithCancel(context.Background())
+	httpReq, err := http.NewRequest("POST", urlPath, bytes.NewBuffer(data))
 
-	for _, item := range response {
-
-		tags := map[string]string{}
-
-		tags["oracle_server"] = m.Server
-		tags["oracle_port"] = m.Port
-		tags["instance_id"] = m.InstanceId
-		tags["instance_desc"] = m.Desc
-		tags["product"] = "oracle"
-		tags["host"] = m.Host
-		tags["type"] = k
-
-		if tagKeys, ok := tagsMap[k]; ok {
-			for _, tagKey := range tagKeys {
-				tags[tagKey] = String(item[tagKey])
-				delete(item, tagKey)
-			}
-		}
-
-		// add user-added tags
-		// XXX: this may overwrite tags within @tags
-		for k, v := range m.Tags {
-			tags[k] = v
-		}
-
-		ptline, err := io.MakeMetric(m.Metric, tags, item, time.Now())
-		if err != nil {
-			l.Errorf("new point failed: %s", err.Error())
-			return err
-		}
-
-		lines = append(lines, ptline)
-		l.Debugf("add point %+#v", string(ptline))
-	}
-
-	if len(lines) == 0 {
-		l.Debugf("no metric collected on %s", k)
-		return nil
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	r, err := rpcCli.Send(ctx, &io.Request{
-		Lines:     bytes.Join(lines, []byte("\n")),
-		Precision: "ns",
-		Name:      "oraclemonitor",
-	})
 	if err != nil {
-		l.Errorf("feed error: %s", err.Error())
+		l.Errorf("[error] %s", err.Error())
 		return err
 	}
 
-	l.Debugf("feed %d points, error: %s", r.GetPoints(), r.GetErr())
+	httpReq = httpReq.WithContext(ctx)
+	httpReq.Header.Set("X-Datakit-UUID", "mockdata_test")
 
-	return nil
+	tmctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	httpResp, err := ctxhttp.Do(tmctx, http.DefaultClient, httpReq)
+	if err != nil {
+		l.Errorf("[error] %s", err.Error())
+		return err
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode/100 != 2 {
+		scanner := bufio.NewScanner(sysIO.LimitReader(httpResp.Body, 1024*1024))
+		line := ""
+		if scanner.Scan() {
+			line = scanner.Text()
+		}
+		err = fmt.Errorf("server returned HTTP status %s: %s", httpResp.Status, line)
+	}
+	body, err := ioutil.ReadAll(httpResp.Body)
+	if err != nil {
+		l.Errorf("[error] read error %s", err.Error())
+		return err
+	}
+	l.Debugf("[debug] %s %d", string(body), httpResp.StatusCode)
+	return err
 }
