@@ -4,107 +4,117 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-type CostAccount struct {
-	interval        time.Duration
-	name            string
-	runningInstance *runningInstance
-	logger          *logger.Logger
+type costAccount struct {
+	interval    time.Duration
+	measurement string
+	ag          *agent
+
+	historyFlag int32
 }
 
-func NewCostAccount(cfg *CostCfg, ri *runningInstance) *CostAccount {
-	c := &CostAccount{
-		name:            "aliyun_cost_account",
-		interval:        cfg.AccountInterval.Duration,
-		runningInstance: ri,
+func newCostAccount(ag *agent) *costAccount {
+	c := &costAccount{
+		ag:          ag,
+		measurement: "aliyun_cost_account",
+		interval:    ag.AccountInterval.Duration,
 	}
-	c.logger = logger.SLogger(`aliyuncost:account`)
 	return c
 }
 
-func (ca *CostAccount) run(ctx context.Context) error {
+func (ca *costAccount) run(ctx context.Context) {
 
-	var wg sync.WaitGroup
+	if ca.ag.CollectHistoryData {
+		go func() {
+			ca.getHistoryData(ctx)
+		}()
+	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		time.Sleep(time.Millisecond * 10)
-		ca.getHistoryData(ctx)
-	}()
+	ca.getData(ctx)
 
-	ca.getRealtimeData(ctx)
-
-	wg.Wait()
-
-	ca.logger.Info("done")
-
-	return nil
+	moduleLogger.Info("transactions done")
 }
 
-func (ca *CostAccount) getRealtimeData(ctx context.Context) error {
+func (ca *costAccount) getData(ctx context.Context) {
 
 	for {
 		//暂停历史数据抓取
-		ca.runningInstance.suspendHistoryFetch()
-		now := time.Now().Truncate(time.Minute)
-		start := now.Add(-time.Hour * 24)
-		from := unixTimeStr(start) //需要传unix时间
+		atomic.AddInt32(&ca.historyFlag, 1)
 
-		end := unixTimeStr(now)
-		if err := ca.getTransactions(ctx, from, end, nil); err != nil && err != context.Canceled {
-			ca.logger.Errorf("%s", err)
+		start := time.Now().UTC()
+
+		endTime := start.Truncate(time.Minute)
+
+		shift := time.Hour
+		if ca.interval > shift {
+			shift = ca.interval
+		}
+		shift += 5 * time.Minute
+
+		from := unixTimeStr(endTime.Add(-shift)) //需要传unix时间
+		end := unixTimeStr(endTime)
+
+		if err := ca.getTransactions(ctx, from, end, nil); err != nil {
+			moduleLogger.Errorf("%s", err)
 		}
 
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return
 		default:
 		}
 
-		ca.runningInstance.resumeHistoryFetch()
-		internal.SleepContext(ctx, ca.interval)
+		usage := time.Now().UTC().Sub(start)
+		if ca.interval > usage {
+			atomic.AddInt32(&ca.historyFlag, -1)
+			datakit.SleepContext(ctx, ca.interval-usage)
+		}
 
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return
 		default:
 		}
 	}
 }
 
-func (ca *CostAccount) getHistoryData(ctx context.Context) error {
+func (ca *costAccount) getHistoryData(ctx context.Context) error {
 
-	key := "." + ca.runningInstance.cacheFileKey(`account`)
+	key := "." + ca.ag.cacheFileKey(`account`)
 
-	if !ca.runningInstance.cfg.CollectHistoryData {
-		DelAliyunCostHistory(key)
+	if !ca.ag.CollectHistoryData {
+		if !ca.ag.debugMode {
+			delAliyunCostHistory(key)
+		}
 		return nil
 	}
 
-	ca.logger.Info("start getting history Transactions")
+	moduleLogger.Info("start getting history Transactions")
 
-	info, _ := GetAliyunCostHistory(key)
+	var info *historyInfo
+
+	if !ca.ag.debugMode {
+		info, _ = getAliyunCostHistory(key)
+	}
 
 	if info == nil {
 		info = &historyInfo{}
 	} else if info.Statue == 1 {
-		ca.logger.Infof("already fetched the history data")
+		moduleLogger.Infof("already fetched the history data")
 		return nil
 	}
 
 	if info.Start == "" {
-		now := time.Now().Truncate(time.Minute)
+		now := time.Now().UTC().Truncate(time.Minute)
 		start := now.Add(-time.Hour * 8760)
 		info.Start = unixTimeStr(start)
 		info.End = unixTimeStr(now)
@@ -115,7 +125,7 @@ func (ca *CostAccount) getHistoryData(ctx context.Context) error {
 	info.key = key
 
 	if err := ca.getTransactions(ctx, info.Start, info.End, info); err != nil && err != context.Canceled {
-		ca.logger.Errorf("fail to get account transactions of history(%s-%s): %s", info.Start, info.End, err)
+		moduleLogger.Errorf("fail to get account transactions of history(%s-%s): %s", info.Start, info.End, err)
 		return err
 	}
 
@@ -124,11 +134,11 @@ func (ca *CostAccount) getHistoryData(ctx context.Context) error {
 
 //获取账户流水收支明细查询
 //https://www.alibabacloud.com/help/zh/doc-detail/118472.htm?spm=a2c63.p38356.b99.35.457e524dKiDhkZ
-func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, info *historyInfo) error {
+func (ca *costAccount) getTransactions(ctx context.Context, start, end string, info *historyInfo) error {
 
 	defer func() {
 		if e := recover(); e != nil {
-			ca.logger.Errorf("panic, %v", e)
+			moduleLogger.Errorf("panic, %v", e)
 		}
 	}()
 
@@ -139,23 +149,23 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, i
 
 	//账户余额查询接口
 	//https://www.alibabacloud.com/help/zh/doc-detail/87997.htm?spm=a2c63.p38356.b99.34.717125earDjnGX
-	ca.logger.Infof("%sstart getting Balance", logPrefix)
+	moduleLogger.Infof("%sgetting Balance", logPrefix)
 
 	balanceReq := bssopenapi.CreateQueryAccountBalanceRequest()
 	balanceReq.Scheme = "https"
-	balanceResp, err := ca.runningInstance.QueryAccountBalanceWrap(ctx, balanceReq)
+	balanceResp, err := ca.ag.queryAccountBalanceWrap(ctx, balanceReq)
 	if err != nil {
-		ca.logger.Errorf("%sfail to get balance, %s", logPrefix, err)
+		moduleLogger.Errorf("%sfail to get balance, %s", logPrefix, err)
 		return err
 	}
 
 	select {
 	case <-ctx.Done():
-		return context.Canceled
+		return nil
 	default:
 	}
 
-	ca.logger.Infof("%sstart getting Transactions(%s - %s)", logPrefix, start, end)
+	moduleLogger.Infof("%sgetting Transactions(%s - %s)", logPrefix, start, end)
 
 	req := bssopenapi.CreateQueryAccountTransactionsRequest()
 	req.CreateTimeStart = start
@@ -169,26 +179,34 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, i
 
 	for { //分页
 		if info != nil {
-			ca.runningInstance.wait()
+			for atomic.LoadInt32(&ca.historyFlag) == 1 {
+				select {
+				case <-ctx.Done():
+					return nil
+				default:
+				}
+				datakit.SleepContext(ctx, 3*time.Second)
+			}
 		}
 
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return nil
 		default:
 		}
 
-		resp, err := ca.runningInstance.QueryAccountTransactionsWrap(ctx, req)
+		resp, err := ca.ag.queryAccountTransactionsWrap(ctx, req)
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return nil
 		default:
 		}
 		if err != nil {
-			return fmt.Errorf("%sfail to get transactions from %s to %s: %s", logPrefix, start, end, err)
+			moduleLogger.Errorf("%s", err)
+			return fmt.Errorf("%sfail to get transactions from %s to %s", logPrefix, start, end)
 		}
 
-		ca.logger.Debugf("%sTransactions(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", logPrefix, start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.AccountTransactionsList.AccountTransactionsListItem))
+		moduleLogger.Debugf(" %sPage%d: count=%d, TotalCount=%d, PageSize=%d", logPrefix, resp.Data.PageNum, len(resp.Data.AccountTransactionsList.AccountTransactionsListItem), resp.Data.TotalCount, resp.Data.PageSize)
 
 		if err := ca.parseTransactionsResponse(ctx, balanceResp, resp); err != nil {
 			return err
@@ -199,7 +217,9 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, i
 			req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
 			if info != nil {
 				info.PageNum = resp.Data.PageNum + 1
-				SetAliyunCostHistory(info.key, info)
+				if !ca.ag.debugMode {
+					setAliyunCostHistory(info.key, info)
+				}
 			}
 		} else {
 
@@ -208,17 +228,19 @@ func (ca *CostAccount) getTransactions(ctx context.Context, start, end string, i
 
 	}
 
-	ca.logger.Debugf("%sfinish getting Transactions(%s - %s)", logPrefix, start, end)
+	moduleLogger.Debugf("%sfinish Transactions(%s - %s)", logPrefix, start, end)
 
 	if info != nil {
 		info.Statue = 1
-		SetAliyunCostHistory(info.key, info)
+		if !ca.ag.debugMode {
+			setAliyunCostHistory(info.key, info)
+		}
 	}
 
 	return nil
 }
 
-func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceResp *bssopenapi.QueryAccountBalanceResponse, resp *bssopenapi.QueryAccountTransactionsResponse) error {
+func (ca *costAccount) parseTransactionsResponse(ctx context.Context, balanceResp *bssopenapi.QueryAccountBalanceResponse, resp *bssopenapi.QueryAccountTransactionsResponse) error {
 
 	balanceTags := map[string]string{}
 	balanceFields := map[string]interface{}{}
@@ -227,33 +249,33 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 
 	var fv float64
 	var err error
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(balanceResp.Data.AvailableAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(balanceResp.Data.AvailableAmount), 64); err == nil {
 		balanceFields[`AvailableAmount`] = fv
 	}
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(balanceResp.Data.MybankCreditAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(balanceResp.Data.MybankCreditAmount), 64); err == nil {
 		balanceFields[`MybankCreditAmount`] = fv
 	}
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(balanceResp.Data.AvailableCashAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(balanceResp.Data.AvailableCashAmount), 64); err == nil {
 		balanceFields[`AvailableCashAmount`] = fv
 	}
-	if fv, err = strconv.ParseFloat(internal.NumberFormat(balanceResp.Data.CreditAmount), 64); err == nil {
+	if fv, err = strconv.ParseFloat(datakit.NumberFormat(balanceResp.Data.CreditAmount), 64); err == nil {
 		balanceFields[`CreditAmount`] = fv
 	}
 
 	accname := resp.Data.AccountName
 	accid := resp.Data.AccountID
 	if accid == "" {
-		accid = ca.runningInstance.accountID
+		accid = ca.ag.accountID
 	}
 	if accname == "" {
-		accname = ca.runningInstance.accountName
+		accname = ca.ag.accountName
 	}
 
 	for _, item := range resp.Data.AccountTransactionsList.AccountTransactionsListItem {
 
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return nil
 		default:
 		}
 
@@ -278,27 +300,33 @@ func (ca *CostAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 
 		fields[`TransactionNumber`] = item.TransactionNumber //交易编号
 		fields[`TransactionChannelSN`] = item.TransactionChannelSN
-		fields[`RecordID`] = item.RecordID                                                 //订单号/账单号
-		fields[`Remarks`] = item.Remarks                                                   //交易备注
-		fields[`Amount`], _ = strconv.ParseFloat(internal.NumberFormat(item.Amount), 64)   //交易金额
-		fields[`Balance`], _ = strconv.ParseFloat(internal.NumberFormat(item.Balance), 64) //交易发生前当前余额
+		fields[`RecordID`] = item.RecordID                                                //订单号/账单号
+		fields[`Remarks`] = item.Remarks                                                  //交易备注
+		fields[`Amount`], _ = strconv.ParseFloat(datakit.NumberFormat(item.Amount), 64)   //交易金额
+		fields[`Balance`], _ = strconv.ParseFloat(datakit.NumberFormat(item.Balance), 64) //交易发生前当前余额
 
 		tm, err := time.Parse("2006-01-02T15:04:05Z", item.TransactionTime)
 		if err != nil {
-			ca.logger.Warnf("fail to parse time:%v %s, error: %s", item.TransactionTime, item.RecordID, err)
+			moduleLogger.Warnf("fail to parse time:%v %s, error: %s", item.TransactionTime, item.RecordID, err)
 		} else {
 			tm = tm.Add(-8 * time.Hour) //返回的不是unix时间字符串
-			io.NamedFeedEx(inputName, io.Metric, ca.getName(), tags, fields, tm)
+
+			if ca.ag.debugMode {
+				//data, _ := io.MakeMetric(ca.getName(), tags, fields, tm)
+				//fmt.Printf("-----%s\n", string(data))
+			} else {
+				io.NamedFeedEx(inputName, io.Metric, ca.getName(), tags, fields, tm)
+			}
 		}
 	}
 
 	return nil
 }
 
-func (ca *CostAccount) getInterval() time.Duration {
+func (ca *costAccount) getInterval() time.Duration {
 	return ca.interval
 }
 
-func (ca *CostAccount) getName() string {
-	return ca.name
+func (ca *costAccount) getName() string {
+	return ca.measurement
 }

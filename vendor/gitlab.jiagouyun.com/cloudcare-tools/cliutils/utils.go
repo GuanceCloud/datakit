@@ -3,7 +3,7 @@ package cliutils
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec
 	crand "crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -52,17 +52,15 @@ func WgWait(wg *sync.WaitGroup, timeout int) {
 		case <-time.After(time.Second * time.Duration(timeout)):
 		}
 	} else {
-		select {
-		case <-c:
-		}
+		<-c
 	}
 }
 
 var (
 	letterBytes   = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	letterIdxBits = uint(6)              // 6 bits to represent a letter index
+	letterIdxBits = uint(6)              //nolint:gomnd // 6 bits to represent a letter index
 	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
-	letterIdxMax  = 63 / letterIdxBits
+	letterIdxMax  = 63 / letterIdxBits   //nolint:gomnd
 )
 
 func CreateRandomString(n int) string {
@@ -94,17 +92,20 @@ func SizeFmt(n int64) string {
 
 	unit := []string{"", "K", "M", "G", "T", "P", "E", "Z"}
 	for _, u := range unit {
-		if math.Abs(f) < 1024.0 {
+		if math.Abs(f) < 1024.0 { //nolint:gomnd
 			return fmt.Sprintf("%3.4f%sB", f, u)
 		}
-		f /= 1024.0
+		f /= 1024.0 //nolint:gomnd
 	}
 	return fmt.Sprintf("%3.4fYB", f)
 }
 
 func Md5Hash(data []byte) string {
-	hasher := md5.New()
-	hasher.Write(data)
+	hasher := md5.New() //nolint:gosec
+	if _, err := hasher.Write(data); err != nil {
+		panic(err)
+	}
+
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
