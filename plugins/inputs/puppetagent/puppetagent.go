@@ -24,22 +24,18 @@ const (
 
 	sampleCfg = `
 [inputs.puppetagent]
-	# puppetagent location of lastrunfile
-	# default "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
-	# required
-	location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
-	
-	# [inputs.puppetagent.tags]
-	# tags1 = "value1"
+    # puppetagent location of lastrunfile
+    # default "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
+    # required
+    location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
+    
+    # [inputs.puppetagent.tags]
+    # tags1 = "value1"
 `
 	lastrunfileLocation = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
 )
 
-var (
-	l *logger.Logger
-
-	testAssert bool
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -53,11 +49,11 @@ type PuppetAgent struct {
 	watcher  *fsnotify.Watcher
 }
 
-func (_ *PuppetAgent) SampleConfig() string {
+func (*PuppetAgent) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *PuppetAgent) Catalog() string {
+func (*PuppetAgent) Catalog() string {
 	return "puppet"
 }
 
@@ -146,20 +142,12 @@ func (pa *PuppetAgent) do() {
 				continue
 			}
 
-			if testAssert {
-				fmt.Printf("get event: %v\n", event)
-			}
-
 			if event.Op&fsnotify.Write == fsnotify.Write ||
 				event.Op&fsnotify.Chmod == fsnotify.Chmod {
 
 				data, err := buildPoint(pa.Location, pa.Tags)
 				if err != nil {
 					l.Error(err)
-					continue
-				}
-				if testAssert {
-					fmt.Printf("data: %s\n", string(data))
 					continue
 				}
 				if err := io.Feed(data, io.Metric); err != nil {
@@ -172,14 +160,14 @@ func (pa *PuppetAgent) do() {
 			if event.Op&fsnotify.Remove == fsnotify.Remove {
 				_ = pa.watcher.Remove(pa.Location)
 				if err := pa.watcher.Add(pa.Location); err != nil {
-					l.Errorf(err.Error())
+					l.Error(err)
 					time.Sleep(time.Second)
 				}
 			}
 
 		case err, ok := <-pa.watcher.Errors:
 			if !ok {
-				l.Warn(err.Error())
+				l.Warn(err)
 			}
 		}
 	}
@@ -233,7 +221,7 @@ func buildPoint(fn string, tags map[string]string) ([]byte, error) {
 		return nil, err
 	}
 
-	if len(fn) == 0 {
+	if fn == "" {
 		return nil, fmt.Errorf("location file is empty")
 	}
 

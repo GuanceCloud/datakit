@@ -7,7 +7,7 @@ import (
 
 const (
 	configSample = `
-#[[ddos]]
+#[[inputs.aliyunddos]]
 #  accessKeyId = ''
 #  accessKeySecret = ''
 #  region = "cn-hangzhou"
