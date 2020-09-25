@@ -4,6 +4,9 @@ FILE = "file"
 RULES = "Rules"
 PRMK  = "PrimaryKey"
 
+METRICS = "metrics"
+METRIC  = "metric"
+
 MEMENT = "metric"
 TAG    = "Tags"
 AS_TAG = "as_tag"
@@ -34,3 +37,10 @@ BOOL  = "bool"
 FLOAT = "float"
 FieldType =  [INT, STR, BOOL, FLOAT]
 TsUnit = ["s", "ms", "us", "ns"]
+
+
+OBJECTS = "objects"
+OBJECT = "object"
+AS_OBJ = "as_object"
+AS_CLASS = "as_class"
+
