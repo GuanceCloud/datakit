@@ -335,13 +335,7 @@ func initDefaultEnabledPlugins(c *datakit.Config) error {
 			continue
 		}
 
-		cfgdata, err := BuildInputCfg([]byte(sample), c.MainCfg)
-		if err != nil {
-			l.Error("buld config for %s failed: %s, ignored", name, err.Error())
-			continue
-		}
-
-		if err := ioutil.WriteFile(fpath, []byte(cfgdata), os.ModePerm); err != nil {
+		if err := ioutil.WriteFile(fpath, []byte(sample), os.ModePerm); err != nil {
 			l.Error("write input %s config failed: %s, ignored", name, err.Error())
 			continue
 		}
