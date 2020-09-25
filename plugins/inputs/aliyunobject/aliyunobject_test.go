@@ -6,14 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/influxdata/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -88,13 +86,11 @@ func TestInput(t *testing.T) {
 	datakit.GRPCDomainSock = filepath.Join(datakit.InstallDir, "datakit.sock")
 	datakit.Exit = cliutils.NewSem()
 
-	config.Cfg.MainCfg = &config.MainConfig{}
-	config.Cfg.MainCfg.DataWay = &config.DataWayCfg{}
-
-	config.Cfg.MainCfg.DataWay.Host = "openway.dataflux.cn"
-	config.Cfg.MainCfg.DataWay.Token = "tkn_61c438e7786141d8988dcdf92f899b3f"
-	config.Cfg.MainCfg.DataWay.Scheme = "https"
-	config.Cfg.MainCfg.Interval.Duration = time.Second * 10
+	datakit.Cfg.MainCfg.DataWay = &datakit.DataWayCfg{}
+	datakit.Cfg.MainCfg.DataWay.Host = "openway.dataflux.cn"
+	datakit.Cfg.MainCfg.DataWay.Token = "tkn_61c438e7786141d8988dcdf92f899b3f"
+	datakit.Cfg.MainCfg.DataWay.Scheme = "https"
+	datakit.Cfg.MainCfg.Interval = `10s`
 
 	io.Start()
 
