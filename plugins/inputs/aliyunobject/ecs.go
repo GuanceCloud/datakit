@@ -8,7 +8,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -16,15 +16,15 @@ const (
 	ecsSampleConfig = `
 #[inputs.aliyunobject.ecs]
 
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.ecs.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of ecs instanceid] - optional
 #instanceids = ['']
 
 # ## @param - custom tags - [list of excluded ecs instanceid] - optional
 #exclude_instanceids = ['']
+
+# ## @param - custom tags for ecs object - [list of key:value element] - optional
+#[inputs.aliyunobject.ecs.tags]
+# key1 = 'val1'
 `
 )
 
@@ -51,7 +51,7 @@ func (e *Ecs) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -97,7 +97,7 @@ func (e *Ecs) run(ag *objectAgent) {
 			req.PageNumber = requests.NewInteger(pageNum)
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -140,7 +140,7 @@ func (e *Ecs) handleResponse(resp *ecs.DescribeInstancesResponse, ag *objectAgen
 		obj[`VlanId`] = inst.VlanId
 
 		tags := map[string]interface{}{
-			`__class`:                 `ECS`,
+			`__class`:                 `aliyun_ecs`,
 			`provider`:                `aliyun`,
 			`ClusterId`:               inst.ClusterId,
 			`DeploymentSetId`:         inst.DeploymentSetId,
