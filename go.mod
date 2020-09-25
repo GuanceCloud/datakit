@@ -32,6 +32,7 @@ require (
 	github.com/go-kit/kit v0.10.0
 	github.com/go-ole/go-ole v1.2.4
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/gobuffalo/logger v1.0.1
 	github.com/gobwas/glob v0.2.3
 	github.com/godror/godror v0.17.0
 	github.com/gofrs/uuid v2.1.0+incompatible
@@ -46,6 +47,7 @@ require (
 	github.com/influxdata/telegraf v1.15.2
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/jackc/pgx v3.6.0+incompatible
+	github.com/jdcloud-api/jdcloud-sdk-go v1.43.0
 	github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5 // indirect
 	github.com/kardianos/service v1.0.0
 	github.com/klauspost/cpuid v1.2.0 // indirect
