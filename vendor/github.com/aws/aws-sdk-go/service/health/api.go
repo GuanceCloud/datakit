@@ -77,8 +77,8 @@ func (c *Health) DescribeAffectedAccountsForOrganizationRequest(input *DescribeA
 // See the AWS API reference guide for AWS Health APIs and Notifications's
 // API operation DescribeAffectedAccountsForOrganization for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidPaginationToken "InvalidPaginationToken"
+// Returned Error Types:
+//   * InvalidPaginationToken
 //   The specified pagination token (nextToken) is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/health-2016-08-04/DescribeAffectedAccountsForOrganization
@@ -222,11 +222,11 @@ func (c *Health) DescribeAffectedEntitiesRequest(input *DescribeAffectedEntities
 // See the AWS API reference guide for AWS Health APIs and Notifications's
 // API operation DescribeAffectedEntities for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidPaginationToken "InvalidPaginationToken"
+// Returned Error Types:
+//   * InvalidPaginationToken
 //   The specified pagination token (nextToken) is not valid.
 //
-//   * ErrCodeUnsupportedLocale "UnsupportedLocale"
+//   * UnsupportedLocale
 //   The specified locale is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/health-2016-08-04/DescribeAffectedEntities
@@ -373,11 +373,11 @@ func (c *Health) DescribeAffectedEntitiesForOrganizationRequest(input *DescribeA
 // See the AWS API reference guide for AWS Health APIs and Notifications's
 // API operation DescribeAffectedEntitiesForOrganization for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidPaginationToken "InvalidPaginationToken"
+// Returned Error Types:
+//   * InvalidPaginationToken
 //   The specified pagination token (nextToken) is not valid.
 //
-//   * ErrCodeUnsupportedLocale "UnsupportedLocale"
+//   * UnsupportedLocale
 //   The specified locale is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/health-2016-08-04/DescribeAffectedEntitiesForOrganization
@@ -591,8 +591,8 @@ func (c *Health) DescribeEventAggregatesRequest(input *DescribeEventAggregatesIn
 // See the AWS API reference guide for AWS Health APIs and Notifications's
 // API operation DescribeEventAggregates for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidPaginationToken "InvalidPaginationToken"
+// Returned Error Types:
+//   * InvalidPaginationToken
 //   The specified pagination token (nextToken) is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/health-2016-08-04/DescribeEventAggregates
@@ -729,8 +729,8 @@ func (c *Health) DescribeEventDetailsRequest(input *DescribeEventDetailsInput) (
 // See the AWS API reference guide for AWS Health APIs and Notifications's
 // API operation DescribeEventDetails for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnsupportedLocale "UnsupportedLocale"
+// Returned Error Types:
+//   * UnsupportedLocale
 //   The specified locale is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/health-2016-08-04/DescribeEventDetails
@@ -817,8 +817,8 @@ func (c *Health) DescribeEventDetailsForOrganizationRequest(input *DescribeEvent
 // See the AWS API reference guide for AWS Health APIs and Notifications's
 // API operation DescribeEventDetailsForOrganization for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnsupportedLocale "UnsupportedLocale"
+// Returned Error Types:
+//   * UnsupportedLocale
 //   The specified locale is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/health-2016-08-04/DescribeEventDetailsForOrganization
@@ -903,11 +903,11 @@ func (c *Health) DescribeEventTypesRequest(input *DescribeEventTypesInput) (req 
 // See the AWS API reference guide for AWS Health APIs and Notifications's
 // API operation DescribeEventTypes for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidPaginationToken "InvalidPaginationToken"
+// Returned Error Types:
+//   * InvalidPaginationToken
 //   The specified pagination token (nextToken) is not valid.
 //
-//   * ErrCodeUnsupportedLocale "UnsupportedLocale"
+//   * UnsupportedLocale
 //   The specified locale is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/health-2016-08-04/DescribeEventTypes
@@ -1050,11 +1050,11 @@ func (c *Health) DescribeEventsRequest(input *DescribeEventsInput) (req *request
 // See the AWS API reference guide for AWS Health APIs and Notifications's
 // API operation DescribeEvents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidPaginationToken "InvalidPaginationToken"
+// Returned Error Types:
+//   * InvalidPaginationToken
 //   The specified pagination token (nextToken) is not valid.
 //
-//   * ErrCodeUnsupportedLocale "UnsupportedLocale"
+//   * UnsupportedLocale
 //   The specified locale is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/health-2016-08-04/DescribeEvents
@@ -1203,11 +1203,11 @@ func (c *Health) DescribeEventsForOrganizationRequest(input *DescribeEventsForOr
 // See the AWS API reference guide for AWS Health APIs and Notifications's
 // API operation DescribeEventsForOrganization for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidPaginationToken "InvalidPaginationToken"
+// Returned Error Types:
+//   * InvalidPaginationToken
 //   The specified pagination token (nextToken) is not valid.
 //
-//   * ErrCodeUnsupportedLocale "UnsupportedLocale"
+//   * UnsupportedLocale
 //   The specified locale is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/health-2016-08-04/DescribeEventsForOrganization
@@ -1420,8 +1420,8 @@ func (c *Health) DisableHealthServiceAccessForOrganizationRequest(input *Disable
 // See the AWS API reference guide for AWS Health APIs and Notifications's
 // API operation DisableHealthServiceAccessForOrganization for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+// Returned Error Types:
+//   * ConcurrentModificationException
 //   EnableHealthServiceAccessForOrganization is already in progress. Wait for
 //   the action to complete before trying again. To get the current status, use
 //   the DescribeHealthServiceStatusForOrganization operation.
@@ -1507,8 +1507,8 @@ func (c *Health) EnableHealthServiceAccessForOrganizationRequest(input *EnableHe
 // See the AWS API reference guide for AWS Health APIs and Notifications's
 // API operation EnableHealthServiceAccessForOrganization for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+// Returned Error Types:
+//   * ConcurrentModificationException
 //   EnableHealthServiceAccessForOrganization is already in progress. Wait for
 //   the action to complete before trying again. To get the current status, use
 //   the DescribeHealthServiceStatusForOrganization operation.
@@ -1561,7 +1561,7 @@ type AffectedEntity struct {
 
 	// The most recent status of the entity affected by the event. The possible
 	// values are IMPAIRED, UNIMPAIRED, and UNKNOWN.
-	StatusCode *string `locationName:"statusCode" type:"string" enum:"entityStatusCode"`
+	StatusCode *string `locationName:"statusCode" type:"string" enum:"EntityStatusCode"`
 
 	// A map of entity tags attached to the affected entity.
 	Tags map[string]*string `locationName:"tags" type:"map"`
@@ -1623,6 +1623,64 @@ func (s *AffectedEntity) SetStatusCode(v string) *AffectedEntity {
 func (s *AffectedEntity) SetTags(v map[string]*string) *AffectedEntity {
 	s.Tags = v
 	return s
+}
+
+// EnableHealthServiceAccessForOrganization is already in progress. Wait for
+// the action to complete before trying again. To get the current status, use
+// the DescribeHealthServiceStatusForOrganization operation.
+type ConcurrentModificationException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ConcurrentModificationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConcurrentModificationException) GoString() string {
+	return s.String()
+}
+
+func newErrorConcurrentModificationException(v protocol.ResponseMetadata) error {
+	return &ConcurrentModificationException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ConcurrentModificationException) Code() string {
+	return "ConcurrentModificationException"
+}
+
+// Message returns the exception's message.
+func (s *ConcurrentModificationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ConcurrentModificationException) OrigErr() error {
+	return nil
+}
+
+func (s *ConcurrentModificationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ConcurrentModificationException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ConcurrentModificationException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // A range of dates and times that is used by the EventFilter and EntityFilter
@@ -2091,7 +2149,7 @@ type DescribeEventAggregatesInput struct {
 	// The only currently supported value is eventTypeCategory.
 	//
 	// AggregateField is a required field
-	AggregateField *string `locationName:"aggregateField" type:"string" required:"true" enum:"eventAggregateField"`
+	AggregateField *string `locationName:"aggregateField" type:"string" required:"true" enum:"EventAggregateField"`
 
 	// Values to narrow the results returned.
 	Filter *EventFilter `locationName:"filter" type:"structure"`
@@ -2979,7 +3037,7 @@ type Event struct {
 
 	// The category of the event. Possible values are issue, scheduledChange, and
 	// accountNotification.
-	EventTypeCategory *string `locationName:"eventTypeCategory" min:"3" type:"string" enum:"eventTypeCategory"`
+	EventTypeCategory *string `locationName:"eventTypeCategory" min:"3" type:"string" enum:"EventTypeCategory"`
 
 	// The unique identifier for the event type. The format is AWS_SERVICE_DESCRIPTION
 	// ; for example, AWS_EC2_SYSTEM_MAINTENANCE_EVENT.
@@ -2999,7 +3057,7 @@ type Event struct {
 
 	// The most recent status of the event. Possible values are open, closed, and
 	// upcoming.
-	StatusCode *string `locationName:"statusCode" type:"string" enum:"eventStatusCode"`
+	StatusCode *string `locationName:"statusCode" type:"string" enum:"EventStatusCode"`
 }
 
 // String returns the string representation
@@ -3459,7 +3517,7 @@ type EventType struct {
 	_ struct{} `type:"structure"`
 
 	// A list of event type category codes (issue, scheduledChange, or accountNotification).
-	Category *string `locationName:"category" min:"3" type:"string" enum:"eventTypeCategory"`
+	Category *string `locationName:"category" min:"3" type:"string" enum:"EventTypeCategory"`
 
 	// The unique identifier for the event type. The format is AWS_SERVICE_DESCRIPTION
 	// ; for example, AWS_EC2_SYSTEM_MAINTENANCE_EVENT.
@@ -3558,6 +3616,62 @@ func (s *EventTypeFilter) SetServices(v []*string) *EventTypeFilter {
 	return s
 }
 
+// The specified pagination token (nextToken) is not valid.
+type InvalidPaginationToken struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidPaginationToken) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidPaginationToken) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidPaginationToken(v protocol.ResponseMetadata) error {
+	return &InvalidPaginationToken{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidPaginationToken) Code() string {
+	return "InvalidPaginationToken"
+}
+
+// Message returns the exception's message.
+func (s *InvalidPaginationToken) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidPaginationToken) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidPaginationToken) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidPaginationToken) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidPaginationToken) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Error information returned when a DescribeAffectedEntitiesForOrganization
 // operation cannot find or process a specific entity.
 type OrganizationAffectedEntitiesErrorItem struct {
@@ -3625,7 +3739,7 @@ type OrganizationEvent struct {
 	EndTime *time.Time `locationName:"endTime" type:"timestamp"`
 
 	// The category of the event type.
-	EventTypeCategory *string `locationName:"eventTypeCategory" min:"3" type:"string" enum:"eventTypeCategory"`
+	EventTypeCategory *string `locationName:"eventTypeCategory" min:"3" type:"string" enum:"EventTypeCategory"`
 
 	// The unique identifier for the event type. The format is AWS_SERVICE_DESCRIPTION.
 	// For example, AWS_EC2_SYSTEM_MAINTENANCE_EVENT.
@@ -3645,7 +3759,7 @@ type OrganizationEvent struct {
 
 	// The most recent status of the event. Possible values are open, closed, and
 	// upcoming.
-	StatusCode *string `locationName:"statusCode" type:"string" enum:"eventStatusCode"`
+	StatusCode *string `locationName:"statusCode" type:"string" enum:"EventStatusCode"`
 }
 
 // String returns the string representation
@@ -3984,43 +4098,99 @@ func (s *OrganizationEventFilter) SetStartTime(v *DateTimeRange) *OrganizationEv
 	return s
 }
 
+// The specified locale is not supported.
+type UnsupportedLocale struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s UnsupportedLocale) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnsupportedLocale) GoString() string {
+	return s.String()
+}
+
+func newErrorUnsupportedLocale(v protocol.ResponseMetadata) error {
+	return &UnsupportedLocale{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *UnsupportedLocale) Code() string {
+	return "UnsupportedLocale"
+}
+
+// Message returns the exception's message.
+func (s *UnsupportedLocale) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *UnsupportedLocale) OrigErr() error {
+	return nil
+}
+
+func (s *UnsupportedLocale) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *UnsupportedLocale) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *UnsupportedLocale) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 const (
-	// EntityStatusCodeImpaired is a entityStatusCode enum value
+	// EntityStatusCodeImpaired is a EntityStatusCode enum value
 	EntityStatusCodeImpaired = "IMPAIRED"
 
-	// EntityStatusCodeUnimpaired is a entityStatusCode enum value
+	// EntityStatusCodeUnimpaired is a EntityStatusCode enum value
 	EntityStatusCodeUnimpaired = "UNIMPAIRED"
 
-	// EntityStatusCodeUnknown is a entityStatusCode enum value
+	// EntityStatusCodeUnknown is a EntityStatusCode enum value
 	EntityStatusCodeUnknown = "UNKNOWN"
 )
 
 const (
-	// EventAggregateFieldEventTypeCategory is a eventAggregateField enum value
+	// EventAggregateFieldEventTypeCategory is a EventAggregateField enum value
 	EventAggregateFieldEventTypeCategory = "eventTypeCategory"
 )
 
 const (
-	// EventStatusCodeOpen is a eventStatusCode enum value
+	// EventStatusCodeOpen is a EventStatusCode enum value
 	EventStatusCodeOpen = "open"
 
-	// EventStatusCodeClosed is a eventStatusCode enum value
+	// EventStatusCodeClosed is a EventStatusCode enum value
 	EventStatusCodeClosed = "closed"
 
-	// EventStatusCodeUpcoming is a eventStatusCode enum value
+	// EventStatusCodeUpcoming is a EventStatusCode enum value
 	EventStatusCodeUpcoming = "upcoming"
 )
 
 const (
-	// EventTypeCategoryIssue is a eventTypeCategory enum value
+	// EventTypeCategoryIssue is a EventTypeCategory enum value
 	EventTypeCategoryIssue = "issue"
 
-	// EventTypeCategoryAccountNotification is a eventTypeCategory enum value
+	// EventTypeCategoryAccountNotification is a EventTypeCategory enum value
 	EventTypeCategoryAccountNotification = "accountNotification"
 
-	// EventTypeCategoryScheduledChange is a eventTypeCategory enum value
+	// EventTypeCategoryScheduledChange is a EventTypeCategory enum value
 	EventTypeCategoryScheduledChange = "scheduledChange"
 
-	// EventTypeCategoryInvestigation is a eventTypeCategory enum value
+	// EventTypeCategoryInvestigation is a EventTypeCategory enum value
 	EventTypeCategoryInvestigation = "investigation"
 )

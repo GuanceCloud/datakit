@@ -2,6 +2,8 @@ package aliyunlog
 
 import (
 	"encoding/json"
+	"fmt"
+	sysio "io"
 	"math"
 	"strconv"
 	"strings"
@@ -10,18 +12,22 @@ import (
 
 	"github.com/gofrs/uuid"
 
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	sls "github.com/aliyun/aliyun-log-go-sdk"
-	consumerLibrary "github.com/aliyun/aliyun-log-go-sdk/consumer"
+	consumerLibrary "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunlog/consumer"
 )
 
-const inputName = `aliyunlog`
-
-var moduleLogger *logger.Logger
+var (
+	inputName    = `aliyunlog`
+	moduleLogger *logger.Logger
+)
 
 type runningProject struct {
 	inst *ConsumerInstance
@@ -53,10 +59,6 @@ func (_ *ConsumerInstance) SampleConfig() string {
 	return aliyunlogConfigSample
 }
 
-// func (_ *AliyunLog) Description() string {
-// 	return "Collect logs from aliyun SLS"
-// }
-
 func (al *ConsumerInstance) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
@@ -84,6 +86,14 @@ func (r *runningProject) run() {
 	for _, c := range r.cfg.Stores {
 		r.wg.Add(1)
 
+		if c.ConsumerGroupName == "" {
+			c.ConsumerGroupName = "datakit"
+		}
+
+		if c.ConsumerName == "" {
+			c.ConsumerName = "datakit-" + datakit.Cfg.MainCfg.UUID
+		}
+
 		go func(ls *LogStoreCfg) {
 			defer r.wg.Done()
 
@@ -104,6 +114,29 @@ func (r *runningProject) run() {
 	}
 
 	r.wg.Wait()
+}
+
+type adapterLogWriter struct {
+	sysio.Writer
+}
+
+func (al *adapterLogWriter) Write(p []byte) (n int, err error) {
+	fmt.Printf("****\n")
+	moduleLogger.Errorf("%s", string(p))
+	return len(p), nil
+}
+
+func sdkLogger() log.Logger {
+	var logger log.Logger
+	logger = log.NewLogfmtLogger(log.NewSyncWriter(&adapterLogWriter{}))
+	switch datakit.Cfg.MainCfg.LogLevel {
+	case "debug":
+		logger = level.NewFilter(logger, level.AllowDebug())
+	default:
+		logger = level.NewFilter(logger, level.AllowInfo())
+	}
+	logger = log.With(logger, "time", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
+	return logger
 }
 
 func (r *runningStore) run() error {
@@ -160,7 +193,8 @@ func (r *runningStore) run() error {
 		CursorPosition: consumerLibrary.BEGIN_CURSOR,
 	}
 
-	consumerWorker := consumerLibrary.InitConsumerWorker(option, r.logProcess)
+	consumerWorker := consumerLibrary.InitConsumerWorker(option, sdkLogger(), r.logProcess)
+	//consumerWorker.Logger = sdkLogger()
 	consumerWorker.Start()
 
 	<-datakit.Exit.Wait()
@@ -260,7 +294,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 							if fval, err := strconv.ParseFloat(strval, 64); err == nil {
 								nval = int64(math.Floor(fval))
 							} else {
-								//r.logger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
+								moduleLogger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
 							}
 						} else {
 							fields[k] = nval
@@ -268,7 +302,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 					case "float":
 						fval, err := strconv.ParseFloat(strval, 64)
 						if err != nil {
-							//r.logger.Warnf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
+							moduleLogger.Warnf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
 						} else {
 							fields[k] = fval
 						}
@@ -298,7 +332,12 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 			}
 
 			tm := time.Unix(int64(l.GetTime()), 0)
+
+			//mdata, _ := io.MakeMetric(r.metricName, tags, fields, tm)
+			//fmt.Printf("#### %s\n", string(mdata))
+
 			io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, tm)
+
 		}
 	}
 	return ""
