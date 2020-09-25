@@ -67,13 +67,8 @@ type StatusV2 struct {
 	Status5xx int `yaml:"status_5xx"`
 }
 
-func LighttpdStatusParse(url string, v Version, tags map[string]string) ([]byte, error) {
-
-	if url == "" {
-		return nil, errors.New("invalid lighttpd status url")
-	}
-
-	resp, err := http.Get(url)
+func (h *Lighttpd) getMetrics() ([]byte, error) {
+	resp, err := http.Get(h.statusURL)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +81,7 @@ func LighttpdStatusParse(url string, v Version, tags map[string]string) ([]byte,
 
 	var value reflect.Value
 
-	switch v {
+	switch h.statusVersion {
 	case v1:
 		status := StatusV1{}
 		if err := json.Unmarshal(body, &status); err != nil {
@@ -106,9 +101,10 @@ func LighttpdStatusParse(url string, v Version, tags map[string]string) ([]byte,
 	}
 
 	var fields = make(map[string]interface{}, value.NumField())
+
 	for i := 0; i < value.NumField(); i++ {
 		fields[value.Type().Field(i).Name] = value.Field(i).Int()
 	}
 
-	return io.MakeMetric(defaultMeasurement, tags, fields, time.Now())
+	return io.MakeMetric(defaultMeasurement, h.Tags, fields, time.Now())
 }
