@@ -1,7 +1,9 @@
 package awsbill
 
 import (
+	"io/ioutil"
 	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -10,36 +12,31 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/costexplorer"
 )
 
-/*
-https://docs.datadoghq.com/integrations/amazon_billing/#service-checks
-https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/monitor_estimated_charges_with_cloudwatch.html#turning_on_billing_metrics
+//https://docs.datadoghq.com/integrations/amazon_billing/#service-checks
+//https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/monitor_estimated_charges_with_cloudwatch.html#turning_on_billing_metrics
 
-AWS billing metrics are available about once every 4 hours.
-*/
+//AWS billing metrics are available about once every 4 hours.
 
 var (
-	accessKey = `AKIAJ6J5MR44T3DLI4IQ`
-	secretKey = `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`
-	//accessKey   = `AKIA2O3KWILDBBOMNHE3`
-	//secretKey   = `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`
-	accessToken = ``
-
-	//priceClient *cloudwatch.CloudWatch
 	cloudwatchCli *cloudwatch.CloudWatch
 	billClient    *costexplorer.CostExplorer
 )
 
 func defaultAuthProvider() client.ConfigProvider {
 
-	cred := credentials.NewStaticCredentials(accessKey, secretKey, accessToken)
+	accessKey := os.Getenv("AWS_AK")
+	secretKey := os.Getenv("AWS_SK")
+
+	cred := credentials.NewStaticCredentials(accessKey, secretKey, "")
 
 	cfg := aws.NewConfig()
-	cfg.WithCredentials(cred) //.WithRegion(`cn-north-1`)
+	cfg.WithCredentials(cred) //.WithRegion(endpoints.CnNorth1RegionID)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigDisable,
@@ -58,7 +55,8 @@ func getCostClient() *costexplorer.CostExplorer {
 		return billClient
 	}
 
-	billClient = costexplorer.New(defaultAuthProvider(), aws.NewConfig().WithRegion("us-east-1"))
+	billClient = costexplorer.New(defaultAuthProvider(), aws.NewConfig())
+
 	return billClient
 }
 
@@ -68,7 +66,8 @@ func getCloudwatchClient() *cloudwatch.CloudWatch {
 		return cloudwatchCli
 	}
 
-	cli := cloudwatch.New(defaultAuthProvider(), aws.NewConfig().WithRegion(`us-east-1`))
+	//cli := cloudwatch.New(defaultAuthProvider(), aws.NewConfig().WithRegion(endpoints.CnNorth1RegionID))
+	cli := cloudwatch.New(defaultAuthProvider(), aws.NewConfig().WithRegion(endpoints.UsEast1RegionID))
 	cloudwatchCli = cli
 
 	return cli
@@ -78,9 +77,7 @@ func TestConfig(t *testing.T) {
 	ag := &AwsInstance{
 		AccessKey:    "xxx",
 		AccessSecret: "xxx",
-		AccessToken:  "xxx",
 		RegionID:     "xxx",
-		MetricName:   "xxx",
 	}
 
 	if data, err := toml.Marshal(ag); err != nil {
@@ -93,6 +90,7 @@ func TestConfig(t *testing.T) {
 func TestListMetricsOfNamespce(t *testing.T) {
 
 	//如果你没有使用该产品，则会返回空
+	//aws中: namespace + metricname + dimension 确定一个具体的指标
 	//metric := `CPUUtilization`
 	namespace := `AWS/Billing`
 	//namespace := `AWS/EC2`
@@ -106,8 +104,8 @@ func TestListMetricsOfNamespce(t *testing.T) {
 		// 		Name: aws.String(dimension),
 		// 	},
 		// },
-		NextToken:  token,
-		MetricName: aws.String(`EstimatedCharges`),
+		NextToken: token,
+		//MetricName: aws.String(`EstimatedCharges`),
 	}
 
 	result, err := getCloudwatchClient().ListMetrics(params)
@@ -116,7 +114,7 @@ func TestListMetricsOfNamespce(t *testing.T) {
 		log.Fatalf("fail to get namespace metrics, %s", err)
 	}
 
-	log.Printf("%s", result)
+	log.Printf("%d, %s", len(result.Metrics), result)
 
 	// stub := &stubProvider{
 	// 	creds: credentials.Value{
@@ -140,17 +138,17 @@ func TestMetricStatics(t *testing.T) {
 		MetricName: aws.String(`EstimatedCharges`),
 		Namespace:  aws.String(`AWS/Billing`),
 		Dimensions: []*cloudwatch.Dimension{
-			&cloudwatch.Dimension{
+			{
 				Name:  aws.String(`ServiceName`),
 				Value: aws.String(`AmazonEC2`),
 			},
-			&cloudwatch.Dimension{
+			{
 				Name:  aws.String(`Currency`),
 				Value: aws.String(`USD`),
 			},
 		},
 		EndTime:   aws.Time(time.Now().UTC().Truncate(time.Minute).Add(-1 * time.Hour)),
-		StartTime: aws.Time(time.Now().UTC().Truncate(time.Minute).Add(-8 * time.Hour)),
+		StartTime: aws.Time(time.Now().UTC().Truncate(time.Minute).Add(-25*time.Hour - time.Second*40)),
 		Period:    aws.Int64(60),
 		Statistics: []*string{
 			aws.String(`SampleCount`),
@@ -223,7 +221,7 @@ func TestGetMetrics(t *testing.T) {
 
 	params := &cloudwatch.GetMetricDataInput{
 		EndTime:           aws.Time(time.Now().UTC().Truncate(time.Minute)),
-		StartTime:         aws.Time(time.Now().UTC().Truncate(time.Minute).Add(-6 * time.Hour)),
+		StartTime:         aws.Time(time.Now().UTC().Truncate(time.Minute).Add(-30 * 24 * time.Hour)),
 		MetricDataQueries: []*cloudwatch.MetricDataQuery{query1, query2}, //max 100
 	}
 
@@ -259,21 +257,22 @@ func TestGetCostAndUsage(t *testing.T) {
 	_ = svc
 
 	params := &costexplorer.GetCostAndUsageInput{
-		Filter: &costexplorer.Expression{
-			Dimensions: &costexplorer.DimensionValues{
-				Key: aws.String(costexplorer.DimensionUsageType),
-				Values: []*string{
-					aws.String(``),
-				},
-			},
-		},
+		// Filter: &costexplorer.Expression{
+		// 	Dimensions: &costexplorer.DimensionValues{
+		// 		Key: aws.String(costexplorer.DimensionUsageType),
+		// 		Values: []*string{
+		// 			aws.String(``),
+		// 		},
+		// 	},
+		// },
 		Metrics: []*string{
 			aws.String("UsageQuantity"),
+			aws.String("BlendedCost"),
 		},
 		Granularity: aws.String(`DAILY`),
 		TimePeriod: &costexplorer.DateInterval{
-			Start: aws.String(`2020-03-02`),
-			End:   aws.String(`2020-04-20`),
+			Start: aws.String(`2020-01-02`),
+			End:   aws.String(`2020-09-10`),
 		},
 	}
 
@@ -283,4 +282,20 @@ func TestGetCostAndUsage(t *testing.T) {
 	}
 
 	log.Printf("%s", result)
+}
+
+func TestSvr(t *testing.T) {
+
+	ag := newInstance()
+	ag.debugMode = true
+
+	if data, err := ioutil.ReadFile("./test.conf"); err != nil {
+		log.Fatalf("%s", err)
+	} else {
+		if toml.Unmarshal(data, ag); err != nil {
+			log.Fatalf("%s", err)
+		}
+	}
+
+	ag.Run()
 }

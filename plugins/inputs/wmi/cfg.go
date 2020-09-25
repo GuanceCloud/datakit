@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
@@ -16,23 +16,34 @@ const (
 
 	sampleConfig = `
 #[[inputs.wmi]]
+
+# ##(optional) custom measurement name
+# metric_name = 'WMI'
+
+# ##(optional) global collect interval, default is 5min
+# interval = '5m'
+
+# ##(optional) custom tags
+#[inputs.wmi.tags]
+#key1 = "val1"
+
 #[[inputs.wmi.query]]
 #	##(required) the name of the WMI class. see: https://docs.microsoft.com/en-us/previous-versions//aa394084(v=vs.85)?redirectedfrom=MSDN
 #	class = 'Win32_LogicalDisk'
 
-#	##(optional) collect rate，default is one miniute
+#	##(optional) collect interval of this class，use global interval if not set
 #	interval='1m'
 
 #	##(required) property names of wmi class, you can optinally specify alias as field name.
 #	metrics = [
-#		['DeviceID'], 
+#		['DeviceID'],
 #		['FileSystem', 'disk_filesystem']
 #	]
-	
+
 #[[inputs.wmi.query]]
 #	class = 'Win32_OperatingSystem'
 #	metrics = [
-#		['NumberOfProcesses', 'system_proc_count'], 
+#		['NumberOfProcesses', 'system_proc_count'],
 #		['NumberOfUsers']
 #	]
 `
@@ -41,16 +52,17 @@ const (
 type (
 	ClassQuery struct {
 		Class    string
-		Interval internal.Duration
+		Interval datakit.Duration
 		Metrics  [][]string
 
 		lastTime time.Time
 	}
 
 	Instance struct {
-		MetricName string
-		Interval   internal.Duration
-		Queries    []*ClassQuery `toml:"query"`
+		MetricName string `toml:"metric_name"`
+		Interval   datakit.Duration
+		Tags       map[string]string `toml:"tags"`
+		Queries    []*ClassQuery     `toml:"query"`
 
 		ctx       context.Context
 		cancelFun context.CancelFunc

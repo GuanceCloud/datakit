@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"golang.org/x/time/rate"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
+	"golang.org/x/time/rate"
 )
 
 func (r *azureInstance) run(ctx context.Context) error {
@@ -75,7 +75,7 @@ func (r *azureInstance) run(ctx context.Context) error {
 			}
 		}
 		useage := time.Now().Sub(t)
-		internal.SleepContext(ctx, 5*time.Minute-useage)
+		datakit.SleepContext(ctx, 5*time.Minute-useage)
 	}
 }
 
@@ -176,7 +176,7 @@ func (r *azureInstance) fetchMetric(ctx context.Context, info *queryListInfo) er
 					metricTime = (*mv.TimeStamp).Time
 				}
 
-				io.NameingFeedEx(inputName, io.Metric, metricName, tags, fields, metricTime)
+				io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields, metricTime)
 
 			}
 		}
