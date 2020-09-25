@@ -318,6 +318,31 @@ func (c *Client) DescribeProductEventList(request *DescribeProductEventListReque
     return
 }
 
+func NewDescribeProductListRequest() (request *DescribeProductListRequest) {
+    request = &DescribeProductListRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("monitor", APIVersion, "DescribeProductList")
+    return
+}
+
+func NewDescribeProductListResponse() (response *DescribeProductListResponse) {
+    response = &DescribeProductListResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 查询云监控产品列表
+func (c *Client) DescribeProductList(request *DescribeProductListRequest) (response *DescribeProductListResponse, err error) {
+    if request == nil {
+        request = NewDescribeProductListRequest()
+    }
+    response = NewDescribeProductListResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewGetMonitorDataRequest() (request *GetMonitorDataRequest) {
     request = &GetMonitorDataRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -334,7 +359,7 @@ func NewGetMonitorDataResponse() (response *GetMonitorDataResponse) {
 }
 
 // 获取云产品的监控数据。传入产品的命名空间、对象维度描述和监控指标即可获得相应的监控数据。
-// 接口调用频率限制为：20次/秒，1200次/分钟。
+// 接口调用频率限制为：20次/秒，1200次/分钟。单请求最多可支持批量拉取10个实例的监控数据，单请求的数据点数限制为1440个。
 // 若您需要调用的指标、对象较多，可能存在因限频出现拉取失败的情况，建议尽量将请求按时间维度均摊。
 func (c *Client) GetMonitorData(request *GetMonitorDataRequest) (response *GetMonitorDataResponse, err error) {
     if request == nil {
@@ -370,6 +395,31 @@ func (c *Client) ModifyAlarmReceivers(request *ModifyAlarmReceiversRequest) (res
     return
 }
 
+func NewModifyPolicyGroupRequest() (request *ModifyPolicyGroupRequest) {
+    request = &ModifyPolicyGroupRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("monitor", APIVersion, "ModifyPolicyGroup")
+    return
+}
+
+func NewModifyPolicyGroupResponse() (response *ModifyPolicyGroupResponse) {
+    response = &ModifyPolicyGroupResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 更新策略组
+func (c *Client) ModifyPolicyGroup(request *ModifyPolicyGroupRequest) (response *ModifyPolicyGroupResponse, err error) {
+    if request == nil {
+        request = NewModifyPolicyGroupRequest()
+    }
+    response = NewModifyPolicyGroupResponse()
+    err = c.Send(request, response)
+    return
+}
+
 func NewPutMonitorDataRequest() (request *PutMonitorDataRequest) {
     request = &PutMonitorDataRequest{
         BaseRequest: &tchttp.BaseRequest{},
@@ -397,6 +447,31 @@ func (c *Client) PutMonitorData(request *PutMonitorDataRequest) (response *PutMo
         request = NewPutMonitorDataRequest()
     }
     response = NewPutMonitorDataResponse()
+    err = c.Send(request, response)
+    return
+}
+
+func NewSendCustomAlarmMsgRequest() (request *SendCustomAlarmMsgRequest) {
+    request = &SendCustomAlarmMsgRequest{
+        BaseRequest: &tchttp.BaseRequest{},
+    }
+    request.Init().WithApiInfo("monitor", APIVersion, "SendCustomAlarmMsg")
+    return
+}
+
+func NewSendCustomAlarmMsgResponse() (response *SendCustomAlarmMsgResponse) {
+    response = &SendCustomAlarmMsgResponse{
+        BaseResponse: &tchttp.BaseResponse{},
+    }
+    return
+}
+
+// 发送自定义消息告警
+func (c *Client) SendCustomAlarmMsg(request *SendCustomAlarmMsgRequest) (response *SendCustomAlarmMsgResponse, err error) {
+    if request == nil {
+        request = NewSendCustomAlarmMsgRequest()
+    }
+    response = NewSendCustomAlarmMsgResponse()
     err = c.Send(request, response)
     return
 }

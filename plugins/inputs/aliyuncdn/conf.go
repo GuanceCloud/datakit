@@ -4,7 +4,7 @@ import "github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
 
 const (
 	aliyunCDNConfigSample = `
-#[[cdn]]
+#[[inputs.aliyuncdn]]
 #  accessKeyId = ''
 #  accessKeySecret = ''
 #  region = "cn-hangzhou"
@@ -12,11 +12,11 @@ const (
 #  interval = "5m"
 #  domains = []
 
-#  [cdn.summary]
+#  [inputs.aliyuncdn.summary]
 #     ## metric name
 #     metricName = "aliyun_cdn_summary"
 
-#  [cdn.metric]
+#  [inputs.aliyuncdn.metric]
 #     ## 该参数为阿里云api action, 支持以下action
 #     ## describeDomainBpsData,describeDomainTrafficData,describeDomainHitRateData,describeDomainReqHitRateData,describeDomainSrcBpsData,describeDomainSrcTrafficData,describeDomainUvData,describeDomainPvData,
 #     ## describeDomainTopClientIpVisit, describeDomainISPData, describeDomainTopUrlVisit, describeDomainSrcTopUrlVisit, describeTopDomainsByFlow, describeDomainTopReferVisit
@@ -27,8 +27,7 @@ const (
 #     ## 在describeDomainBpsData、describeDomainTrafficData、describeDomainTopClientIpVisit action下可以配置该参数，根据业务场景选择(非必须参数)
 #     locationNameEn = ""
 #     ## 在describeDomainTopClientIpVisit action下可以配置该参数，根据业务场景选择(非必须参数)
-#     sortBy = ""
-`
+#     sortBy = ""`
 )
 
 type Metric struct {
