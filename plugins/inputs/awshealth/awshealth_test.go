@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/health"
@@ -19,8 +20,10 @@ import (
 var (
 	//accessKey   = `AKIAJ6J5MR44T3DLI4IQ`
 	//secretKey   = `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`
-	accessKey   = `AKIA2O3KWILDBBOMNHE3`
-	secretKey   = `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`
+	//accessKey   = `AKIA2O3KWILDBBOMNHE3`
+	//secretKey   = `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`
+	accessKey   = `AKIA2O3KWILDFXX6F72U`
+	secretKey   = `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`
 	accessToken = ``
 
 	cloudwatchCli *cloudwatch.CloudWatch
@@ -32,7 +35,7 @@ func defaultAuthProvider() client.ConfigProvider {
 	cred := credentials.NewStaticCredentials(accessKey, secretKey, accessToken)
 
 	cfg := aws.NewConfig()
-	cfg.WithCredentials(cred).WithRegion(`cn-north-1`)
+	cfg.WithCredentials(cred).WithRegion(endpoints.CnNorth1RegionID)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigDisable,
@@ -62,7 +65,7 @@ func getHealthClient() *health.Health {
 	if healthCli != nil {
 		return healthCli
 	}
-	healthCli = health.New(defaultAuthProvider())
+	healthCli = health.New(defaultAuthProvider(), aws.NewConfig().WithRegion(endpoints.CnNorth1RegionID))
 	return healthCli
 }
 

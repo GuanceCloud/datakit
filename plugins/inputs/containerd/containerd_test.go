@@ -5,17 +5,11 @@ package containerd
 import (
 	"testing"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-func __init() {
-	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_DEFAULT)
-	l = logger.SLogger(inputName)
-}
-
 func TestMain(t *testing.T) {
-	__init()
-	testAssert = true
+	io.TestOutput()
 
 	var con = Containerd{
 		HostPath:  "/run/containerd/containerd.sock",

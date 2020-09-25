@@ -8,7 +8,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -16,15 +16,15 @@ const (
 	slbSampleConfig = `
 #[inputs.aliyunobject.slb]
 
-# ## @param - custom tags for slb object - [list of key:value element] - optional
-#[inputs.aliyunobject.slb.tags]
-# key1 = 'val1'
-
 # ## @param - custom tags - [list of slb instanceid] - optional
 #instanceids = ['']
 
 # ## @param - custom tags - [list of excluded slb instanceid] - optional
 #exclude_instanceids = ['']
+
+# ## @param - custom tags for slb object - [list of key:value element] - optional
+#[inputs.aliyunobject.slb.tags]
+# key1 = 'val1'
 `
 )
 
@@ -51,7 +51,7 @@ func (s *Slb) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -97,7 +97,7 @@ func (s *Slb) run(ag *objectAgent) {
 			req.PageNumber = requests.NewInteger(pageNum)
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -131,7 +131,7 @@ func (s *Slb) handleResponse(resp *slb.DescribeLoadBalancersResponse, ag *object
 		obj[`AddressIPVersion`] = inst.AddressIPVersion
 
 		tags := map[string]interface{}{
-			`__class`:            `SLB`,
+			`__class`:            `aliyun_slb`,
 			`provider`:           `aliyun`,
 			`InternetChargeType`: inst.InternetChargeType,
 			`ResourceGroupId`:    inst.ResourceGroupId,
