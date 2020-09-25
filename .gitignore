@@ -6,8 +6,8 @@ proxy_config.yaml
 pub
 a.out
 test.go
+dist/
 build/
-builds/
 *.ak
 old/
 *.tar.gz
@@ -45,3 +45,5 @@ run.sh
 *.csv
 *.pyc
 plugins/externals/csv/venv
+*.sh
+*.zip

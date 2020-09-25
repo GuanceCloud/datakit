@@ -1,13 +1,12 @@
 package self
 
 import (
-	"os"
 	"runtime"
 	"time"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -30,7 +29,7 @@ type ClientStat struct {
 }
 
 func (s *ClientStat) Update() {
-	s.HostName, _ = os.Hostname()
+	s.HostName = datakit.Cfg.MainCfg.Hostname
 
 	var memStatus runtime.MemStats
 	runtime.ReadMemStats(&memStatus)
@@ -48,7 +47,7 @@ func (s *ClientStat) ToMetric() *influxdb.Point {
 	measurement := "datakit"
 
 	tags := map[string]string{
-		"uuid":    config.Cfg.MainCfg.UUID,
+		"uuid":    datakit.Cfg.MainCfg.UUID,
 		"vserion": git.Version,
 		"os":      s.OS,
 		"arch":    s.Arch,
