@@ -4,106 +4,116 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-type CostOrder struct {
-	interval        time.Duration
-	name            string
-	runningInstance *runningInstance
-	logger          *logger.Logger
+type costOrder struct {
+	interval    time.Duration
+	measurement string
+	ag          *agent
+
+	historyFlag int32
 }
 
-func NewCostOrder(cfg *CostCfg, ri *runningInstance) *CostOrder {
-	c := &CostOrder{
-		name:            "aliyun_cost_order",
-		interval:        cfg.OrdertInterval.Duration,
-		runningInstance: ri,
-		logger:          logger.SLogger(`aliyuncost:order`),
+func newCostOrder(ag *agent) *costOrder {
+	c := &costOrder{
+		ag:          ag,
+		measurement: "aliyun_cost_order",
+		interval:    ag.OrdertInterval.Duration,
 	}
 	return c
 }
 
-func (co *CostOrder) run(ctx context.Context) error {
+func (co *costOrder) run(ctx context.Context) {
 
-	var wg sync.WaitGroup
+	if co.ag.CollectHistoryData {
+		go func() {
+			time.Sleep(time.Millisecond * 10)
+			co.getHistoryData(ctx)
+		}()
+	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		time.Sleep(time.Millisecond * 10)
-		co.getHistoryData(ctx)
-	}()
+	co.getData(ctx)
 
-	co.getNormalData(ctx)
-
-	wg.Wait()
-
-	co.logger.Info("done")
-
-	return nil
+	moduleLogger.Info("order done")
 }
 
-func (co *CostOrder) getNormalData(ctx context.Context) error {
+func (co *costOrder) getData(ctx context.Context) {
 
 	for {
-		co.runningInstance.suspendHistoryFetch()
-		now := time.Now().Truncate(time.Minute)
-		//start := now.Add(-co.interval)
-		start := now.Add(-time.Hour * 24 * 30)
+		//暂停历史数据抓取
+		atomic.AddInt32(&co.historyFlag, 1)
 
-		from := unixTimeStr(start)
-		to := unixTimeStr(now)
+		start := time.Now().UTC()
 
-		if err := co.getOrders(ctx, from, to, nil); err != nil && err != context.Canceled {
-			co.logger.Errorf("%s", err)
+		endTime := start.Truncate(time.Minute)
+
+		shift := time.Hour
+		if co.interval > shift {
+			shift = co.interval
+		}
+		shift += 5 * time.Minute
+
+		from := unixTimeStr(endTime.Add(-shift))
+		end := unixTimeStr(endTime)
+
+		if err := co.getOrders(ctx, from, end, nil); err != nil {
+			moduleLogger.Errorf("%s", err)
+		} else {
+			//lastTime = endTime.Add(-shift)
 		}
 
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return
 		default:
 		}
-		co.runningInstance.resumeHistoryFetch()
-		internal.SleepContext(ctx, co.interval)
+
+		usage := time.Now().UTC().Sub(start)
+		if co.interval > usage {
+			atomic.AddInt32(&co.historyFlag, -1)
+			datakit.SleepContext(ctx, co.interval-usage)
+		}
 
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return
 		default:
 		}
 	}
 }
 
-func (co *CostOrder) getHistoryData(ctx context.Context) error {
+func (co *costOrder) getHistoryData(ctx context.Context) {
 
-	key := "." + co.runningInstance.cacheFileKey(`orders`)
+	key := "." + co.ag.cacheFileKey(`orders`)
 
-	if !co.runningInstance.cfg.CollectHistoryData {
-		return nil
+	if !co.ag.CollectHistoryData {
+		return
 	}
 
-	co.logger.Info("start getting history Orders")
+	moduleLogger.Info("start getting history Orders")
 
-	info, _ := GetAliyunCostHistory(key)
+	var info *historyInfo
+	if !co.ag.debugMode {
+		info, _ = getAliyunCostHistory(key)
+	}
 
 	if info == nil {
 		info = &historyInfo{}
 	} else if info.Statue == 1 {
-		co.logger.Infof("already fetched the history data")
-		return nil
+		moduleLogger.Infof("already fetched the history data")
+		return
 	}
 
 	if info.Start == "" {
-		now := time.Now().Truncate(time.Minute)
+		now := time.Now().UTC().Truncate(time.Minute)
 		start := now.Add(-time.Hour * 8760)
 		info.Start = unixTimeStr(start)
 		info.End = unixTimeStr(now)
@@ -114,17 +124,16 @@ func (co *CostOrder) getHistoryData(ctx context.Context) error {
 	info.key = key
 
 	if err := co.getOrders(ctx, info.Start, info.End, info); err != nil && err != context.Canceled {
-		co.logger.Errorf("fail to get orders of history(%s-%s): %s", info.Start, info.End, err)
-		return err
+		moduleLogger.Errorf("fail to get orders of history(%s-%s): %s", info.Start, info.End, err)
 	}
-
-	return nil
 }
 
-func (co *CostOrder) getOrders(ctx context.Context, start, end string, info *historyInfo) error {
+func (co *costOrder) getOrders(ctx context.Context, start, end string, info *historyInfo) error {
 
 	defer func() {
-		recover()
+		if e := recover(); e != nil {
+			moduleLogger.Errorf("panic, %v", e)
+		}
 	}()
 
 	logPrefix := ""
@@ -132,12 +141,16 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, info *his
 		logPrefix = "(history) "
 	}
 
-	co.logger.Infof("%sstart getting Orders(%s - %s)", logPrefix, start, end)
+	moduleLogger.Infof("%sgetting Orders(%s - %s)", logPrefix, start, end)
 
 	req := bssopenapi.CreateQueryOrdersRequest()
 	req.Scheme = "https"
-	req.CreateTimeStart = start
-	req.CreateTimeEnd = end
+	if start != "" {
+		req.CreateTimeStart = start
+	}
+	if end != "" {
+		req.CreateTimeEnd = end
+	}
 	req.PageSize = requests.NewInteger(100)
 	if info != nil {
 		req.PageNum = requests.NewInteger(info.PageNum)
@@ -147,21 +160,29 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, info *his
 
 	for {
 		if info != nil {
-			co.runningInstance.wait()
+			for atomic.LoadInt32(&co.historyFlag) == 1 {
+				select {
+				case <-ctx.Done():
+					return nil
+				default:
+				}
+				datakit.SleepContext(ctx, 3*time.Second)
+			}
 		}
 
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return nil
 		default:
 		}
 
-		resp, err := co.runningInstance.QueryOrdersWrap(ctx, req)
+		resp, err := co.ag.queryOrdersWrap(ctx, req)
 		if err != nil {
-			return fmt.Errorf("%sfail to get Orders(%s - %s), %s", logPrefix, start, end, err)
+			moduleLogger.Errorf("%s", err)
+			return fmt.Errorf("%sfail to get Orders(%s - %s)", logPrefix, start, end)
 		}
 
-		co.logger.Debugf("%sOrder(%s - %s): TotalCount=%d, PageNum=%d, PageSize=%d, Count=%d", logPrefix, start, end, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.OrderList.Order))
+		moduleLogger.Debugf(" %sPage%d: count=%d, TotalCount=%d, PageSize=%d", logPrefix, resp.Data.PageNum, len(resp.Data.OrderList.Order), resp.Data.TotalCount, resp.Data.PageSize)
 
 		if err = co.parseOrderResponse(ctx, resp); err != nil {
 			return err
@@ -171,30 +192,34 @@ func (co *CostOrder) getOrders(ctx context.Context, start, end string, info *his
 			req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
 			if info != nil {
 				info.PageNum = resp.Data.PageNum + 1
-				SetAliyunCostHistory(info.key, info)
+				if !co.ag.debugMode {
+					setAliyunCostHistory(info.key, info)
+				}
 			}
 		} else {
 			break
 		}
 	}
 
-	co.logger.Debugf("%sfinish getting Orders(%s - %s)", logPrefix, start, end)
+	moduleLogger.Debugf("%sfinish Orders(%s - %s)", logPrefix, start, end)
 
 	if info != nil {
 		info.Statue = 1
-		SetAliyunCostHistory(info.key, info)
+		if !co.ag.debugMode {
+			setAliyunCostHistory(info.key, info)
+		}
 	}
 
 	return nil
 }
 
-func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.QueryOrdersResponse) error {
+func (co *costOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.QueryOrdersResponse) error {
 
 	for _, item := range resp.Data.OrderList.Order {
 
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return nil
 		default:
 		}
 
@@ -204,8 +229,8 @@ func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			"SubscriptionType": item.SubscriptionType,
 			"OrderType":        item.OrderType,
 			"Currency":         item.Currency,
-			"AccountName":      co.runningInstance.accountName,
-			"AccountID":        co.runningInstance.accountID,
+			"AccountName":      co.ag.accountName,
+			"AccountID":        co.ag.accountID,
 		}
 
 		fields := map[string]interface{}{
@@ -213,8 +238,8 @@ func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			"RelatedOrderId": item.RelatedOrderId,
 		}
 
-		fields["PretaxGrossAmount"], _ = strconv.ParseFloat(internal.NumberFormat(item.PretaxGrossAmount), 64)
-		fields["PretaxAmount"], _ = strconv.ParseFloat(internal.NumberFormat(item.PretaxAmount), 64)
+		fields["PretaxGrossAmount"], _ = strconv.ParseFloat(datakit.NumberFormat(item.PretaxGrossAmount), 64)
+		fields["PretaxAmount"], _ = strconv.ParseFloat(datakit.NumberFormat(item.PretaxAmount), 64)
 
 		// reqDetail := bssopenapi.CreateGetOrderDetailRequest()
 		// reqDetail.OrderId = item.OrderId
@@ -229,19 +254,24 @@ func (co *CostOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 
 		t, err := time.Parse(time.RFC3339, item.CreateTime)
 		if err != nil {
-			co.logger.Warnf("fail to parse time:%v, error:%s", item.CreateTime, err)
+			moduleLogger.Warnf("fail to parse time:%v, error:%s", item.CreateTime, err)
 			continue
 		}
-		io.NamedFeedEx(inputName, io.Metric, co.getName(), tags, fields, t)
+		if co.ag.debugMode {
+			//data, _ := io.MakeMetric(co.getName(), tags, fields, t)
+			//fmt.Printf("-----%s\n", string(data))
+		} else {
+			io.NamedFeedEx(inputName, io.Metric, co.getName(), tags, fields, t)
+		}
 	}
 
 	return nil
 }
 
-func (co *CostOrder) getInterval() time.Duration {
+func (co *costOrder) getInterval() time.Duration {
 	return co.interval
 }
 
-func (co *CostOrder) getName() string {
-	return co.name
+func (co *costOrder) getName() string {
+	return co.measurement
 }
