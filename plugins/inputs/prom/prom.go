@@ -35,6 +35,14 @@ const (
     # tls_cert = "/tmp/peer.crt"
     # tls_key = "/tmp/peer.key"
     
+    ## data source
+    name = "temp"
+
+    ## ignore rules
+    # ignore_measurement = ["temp_grpc_server""]
+    # ignore_tags_key_prefix = []
+    # ignore_fields_key_prefix" = []
+
     # [inputs.prom.tags]
     # tags1 = "value1"
 `
