@@ -10,16 +10,13 @@ import (
 
 	"github.com/influxdata/toml"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-
 	"github.com/influxdata/telegraf/metric"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
 
 func apiClient() *cms.Client {
-	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAI4FwpUNoPEFj7kQScDrDE", "CI8Lzj22RODi3L79jzMmR3gKjMe3YG")
-	//client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAIqo2UBnC4q78J", "t43b4XdKq9Bv50pzSy1yIYiIlwTtvd")
+	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "", "")
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
@@ -109,7 +106,7 @@ func TestLoadConfig(t *testing.T) {
 //查询对应产品可以获取哪些监控项
 func TestGetMetricMeta(t *testing.T) {
 
-	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "LTAI4FwpUNoPEFj7kQScDrDE", "CI8Lzj22RODi3L79jzMmR3gKjMe3YG")
+	client, err := cms.NewClientWithAccessKey("cn-hangzhou", "", "")
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
@@ -208,7 +205,6 @@ func TestGetMetricList(t *testing.T) {
 
 			newMetric, _ := metric.New(formatMeasurement(request.Namespace), tags, fields, tm)
 			_ = newMetric
-			log.Printf("%s", internal.Metric2InfluxLine(newMetric))
 		}
 
 		if response.NextToken == "" {

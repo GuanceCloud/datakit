@@ -4,7 +4,6 @@ package binlog
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/siddontang/go-mysql/replication"
 	"github.com/siddontang/go-mysql/schema"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -209,11 +209,9 @@ func (h *MainEventHandler) OnRow(e *RowsEvent) error {
 
 		fields := map[string]interface{}{}
 
-		hostname, _ := os.Hostname()
-
 		tags := map[string]string{
 			"_host":            h.rb.cfg.Addr,
-			"_collector_host_": hostname,
+			"_collector_host_": datakit.Cfg.MainCfg.Hostname,
 			"_db":              e.Table.Schema,
 			"_table":           e.Table.Name,
 			"_event":           e.Action,

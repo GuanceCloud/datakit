@@ -1,6 +1,7 @@
 package aliyunobject
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -19,7 +20,21 @@ type subModule interface {
 }
 
 func (_ *objectAgent) SampleConfig() string {
-	return sampleConfig + ecsSampleConfig + slbSampleConfig + ossSampleConfig + rdsSampleConfig
+	var buf bytes.Buffer
+	buf.WriteString(sampleConfig)
+	buf.WriteString(ecsSampleConfig)
+	buf.WriteString(slbSampleConfig)
+	buf.WriteString(ossSampleConfig)
+	buf.WriteString(rdsSampleConfig)
+	buf.WriteString(redisSampleConfig)
+	buf.WriteString(cdnSampleConfig)
+	buf.WriteString(wafSampleConfig)
+	buf.WriteString(elasticsearchSampleConfig)
+	buf.WriteString(influxDBSampleConfig)
+	buf.WriteString(onsSampleConfig)
+	buf.WriteString(domainSampleConfig)
+	buf.WriteString(ddsSampleConfig)
+	return buf.String()
 }
 
 func (_ *objectAgent) Catalog() string {
@@ -52,6 +67,32 @@ func (ag *objectAgent) Run() {
 	}
 	if ag.Rds != nil {
 		ag.addModule(ag.Rds)
+	}
+
+	if ag.Ons != nil {
+		ag.addModule(ag.Ons)
+	}
+	if ag.Dds != nil {
+		ag.addModule(ag.Dds)
+	}
+	if ag.Domain != nil {
+		ag.addModule(ag.Domain)
+	}
+	if ag.Redis != nil {
+		ag.addModule(ag.Redis)
+	}
+	if ag.Cdn != nil {
+		ag.addModule(ag.Cdn)
+	}
+	if ag.Waf != nil {
+		ag.addModule(ag.Waf)
+	}
+	if ag.Es != nil {
+		ag.addModule(ag.Es)
+	}
+	if ag.InfluxDB != nil {
+		ag.addModule(ag.InfluxDB)
+
 	}
 
 	for _, s := range ag.subModules {
