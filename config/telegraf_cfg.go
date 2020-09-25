@@ -150,19 +150,14 @@ func mergeTelegrafInputsCfgs(files map[string]interface{}, mc *datakit.MainConfi
 			continue
 		} else {
 
-			prt, err := BuildInputCfg(fdata, mc)
-			if err != nil {
-				continue
-			}
-
-			if err := addTelegrafCfg(prt, f); err != nil {
+			if err := addTelegrafCfg(string(fdata), f); err != nil {
 				l.Warnf("ignore telegraf input cfg file %s", f)
 				continue
 			}
 
-			l.Debugf("append telegraf config: %s", prt)
+			l.Debugf("append telegraf config: %s", string(fdata))
 
-			parts = append(parts, prt)
+			parts = append(parts, string(fdata))
 		}
 	}
 
@@ -266,6 +261,11 @@ func addTelegrafCfg(cfgdata, fp string) error {
 // After importing telegraf source code, most telegraf input sample config comes from telegraf source
 // code (no datakit main-config template filed added). But we still keep the settings for some config
 // samples that added manually by datakit.
+
+// Feature remove: most telegraf config sample generated from telegraf souce code,
+// we can't inject {{.Variable}} into the config sample any more
+// but for datakit inputs config sample, we can add some {{.Variable}} to the config
+// sample.
 func BuildInputCfg(d []byte, mc *datakit.MainConfig) (string, error) {
 
 	var err error
