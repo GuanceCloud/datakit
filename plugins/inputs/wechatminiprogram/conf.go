@@ -5,35 +5,43 @@ import "gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 const (
 	grantType            = "client_credential"
 	baseURL              = "https://api.weixin.qq.com/"
-	accessTokenURL       = "cgi-bin/token"
+	accessTokenURL       = "cgi-bin/token" //nolint:gosec
 	DailySummaryURL      = "datacube/getweanalysisappiddailysummarytrend"
 	DailyVisitTrendURL   = "datacube/getweanalysisappiddailyvisittrend"
 	UserPortraitURL      = "datacube/getweanalysisappiduserportrait"
 	VisitDistributionURL = "datacube/getweanalysisappidvisitdistribution"
 	VisitPageURL         = "datacube/getweanalysisappidvisitpage"
+	jsErrSearchURL       = "wxaapi/log/jserr_search"
+	PerformanceURL       = "wxaapi/log/get_performance"
+	offect               = 8 * 3600
+	errcode              = 40000
+	daySecond            = 24 * 3600
 )
 
 var (
 	l         *logger.Logger
 	inputName = "wechatminiprogram"
 	sampleCfg = `
-# [[inputs.wechatminiprogram]]
-## WeChat everyday run time
-# runtime = '18:10'
-## Small program unique unique credentials   AppID
-# appid = ""
-## Small program unique credential key   AppSecret
-# secret = ""
+[[inputs.wechatminiprogram]]
 
-
-# [[inputs.wechatminiprogram]]
-## WeChat everyday run time
-# runtime = '18:10'
 ## Small program unique unique credentials   AppID
-# appid = ""
+ appid = ""
 ## Small program unique credential key   AppSecret
-# secret = ""
-	`
+ secret = ""
+[inputs.wechatminiprogram.analysis]
+ runtime = "18:13"
+ name = [
+	"DailySummary",
+	"VisitDistribution",
+	"UserPortrait",
+	"DailyVisitTrend",
+	"VisitPage"]
+
+#[inputs.wechatminiprogram.operation]
+# name = [
+#	"JsErrSearch",
+#	"Performance"]
+`
 )
 
 var Config = map[string]map[string]string{
@@ -114,5 +122,10 @@ var Config = map[string]map[string]string{
 		"5": "5 页",
 		"6": "6-10 页",
 		"7": ">10 页",
+	},
+	"cost_time_type": {
+		"1": "启动总耗时",
+		"2": "下载耗时",
+		"3": "初次渲染耗时",
 	},
 }

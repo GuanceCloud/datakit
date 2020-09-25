@@ -17,7 +17,6 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -94,7 +93,7 @@ func (s *runningInstance) run(ctx context.Context) error {
 			}
 		}
 
-		internal.SleepContext(ctx, time.Second*3)
+		datakit.SleepContext(ctx, time.Second*3)
 	}
 }
 
@@ -220,13 +219,13 @@ func (s *runningInstance) fetchMetricMeta(ctx context.Context, namespace, metric
 			tempDelay = max
 		}
 
-		if err == nil && !response.IsSuccess() {
+		if err == nil && !response.Success {
 			err = fmt.Errorf("%s", response.String())
 		}
 
 		if err != nil {
 			moduleLogger.Warnf("%s", err)
-			internal.SleepContext(ctx, tempDelay)
+			datakit.SleepContext(ctx, tempDelay)
 		} else {
 			if i != 0 {
 				moduleLogger.Debugf("retry successed, %d", i)
@@ -402,7 +401,7 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 				tempDelay = max
 			}
 
-			if err == nil && !resp.IsSuccess() {
+			if err == nil && !resp.Success {
 				err = fmt.Errorf("%s", resp.String())
 			}
 

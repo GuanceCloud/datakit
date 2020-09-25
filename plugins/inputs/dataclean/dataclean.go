@@ -11,7 +11,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -113,12 +112,8 @@ func (d *DataClean) Run() {
 
 	d.write = newWritMgr()
 
-	if config.Cfg.MainCfg.DataWay != nil {
-		d.write.addHttpWriter(config.Cfg.MainCfg.DataWayRequestURL)
-	}
-
-	if config.Cfg.MainCfg.OutputFile != "" {
-		d.write.addFileWriter(config.Cfg.MainCfg.OutputFile)
+	if datakit.Cfg.MainCfg.DataWay != nil {
+		d.write.addHttpWriter(datakit.Cfg.MainCfg.DataWay.MetricURL())
 	}
 
 	go func() {
