@@ -2,6 +2,7 @@ package pgreplication
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	ioeof "io"
 	"strconv"
@@ -10,7 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"database/sql"
 	"github.com/jackc/pgx"
 	_ "github.com/lib/pq"
 	"github.com/nickelser/parselogical"
@@ -27,46 +27,41 @@ const (
 	defaultMeasurement = "postgresql_replication"
 
 	sampleCfg = `
-# [[inputs.postgresql_replication]]
-#	# required
-# 	host="127.0.0.1"
-#
-#	# required
-# 	port=25432
-#
-# 	# postgres user (need replication privilege)
-#	# required
-# 	user="testuser"
-#
-#	# required
-# 	password="pwd"
-#
-#	# required
-# 	database="testdb"
-#
-#	table="test_table"
-#
-# 	# exlcude the events of postgres
-# 	# there are 3 events: "INSERT","UPDATE","DELETE"
-#	# required
-# 	events=["INSERT"]
-#
-# 	# tags
-# 	tag_colunms=[]
-#
-# 	# fields. required
-# 	field_colunms=["fieldName"]
-#
-# 	# [inputs.postgresql_replication.tags]
-# 	# tags1 = "value1"
+[[inputs.postgresql_replication]]
+    # required
+    host="127.0.0.1"
+
+    # required
+    port=25432
+
+    # postgres user (need replication privilege)
+    # required
+    user="testuser"
+
+    # required
+    password="pwd"
+
+    # required
+    database="testdb"
+
+    table="test_table"
+
+    # there are 3 events: "INSERT","UPDATE","DELETE"
+    # required
+    events=["INSERT"]
+
+    # tags
+    tag_colunms=[]
+
+    # fields. required
+    field_colunms=["fieldName"]
+
+    # [inputs.postgresql_replication.tags]
+    # tags1 = "value1"
 `
 )
 
-var (
-	l *logger.Logger
-
-	testAssert bool
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -102,11 +97,11 @@ type Replication struct {
 	sendStatusLock sync.Mutex
 }
 
-func (_ *Replication) Catalog() string {
+func (*Replication) Catalog() string {
 	return "db"
 }
 
-func (_ *Replication) SampleConfig() string {
+func (*Replication) SampleConfig() string {
 	return sampleCfg
 }
 
@@ -151,7 +146,6 @@ func (r *Replication) Run() {
 const sendHeartbeatInterval = 5
 
 func (r *Replication) runloop() {
-
 	tick := time.NewTicker(time.Second * sendHeartbeatInterval)
 
 	for {
@@ -296,10 +290,6 @@ func (r *Replication) replicationMsgHandle(msg *pgx.ReplicationMessage) {
 			return
 		}
 
-		if testAssert {
-			l.Debugf("Data: %s", string(data))
-		}
-
 		if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
 			l.Errorf("io feed err: %s", err.Error())
 		} else {
@@ -380,8 +370,7 @@ func (r *Replication) deleteSelfSlot() error {
 	}
 	defer db.Close()
 
-	sqlstr := fmt.Sprintf("SELECT pg_drop_replication_slot('%s')", r.slotName)
-	_, err = db.Exec(sqlstr)
+	_, err = db.Exec("SELECT pg_drop_replication_slot('?')", r.slotName)
 	if err != nil {
 		return err
 	}
