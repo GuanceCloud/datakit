@@ -2,10 +2,9 @@ package datakit
 
 import (
 	"fmt"
-	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
-	"syscall"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -13,65 +12,61 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
-var (
-	l *logger.Logger
+const (
+	OSWindows = `windows`
+	OSLinux   = `linux`
+	OSDarwin  = `darwin`
 
-	Exit *cliutils.Sem
-	WG   sync.WaitGroup = sync.WaitGroup{}
+	OSArchWinAmd64    = "windows/amd64"
+	OSArchWin386      = "windows/386"
+	OSArchLinuxArm    = "linux/arm"
+	OSArchLinuxArm64  = "linux/arm64"
+	OSArchLinux386    = "linux/386"
+	OSArchLinuxAmd64  = "linux/amd64"
+	OSArchDarwinAmd64 = "darwin/amd64"
+
+	CommonChanCap = 32
+
+	ReleaseCheckedInputs = "checked"
+	ReleaseAllInputs     = "all"
+)
+
+var (
+	ReleaseType = "" // default only release checked inputs
+
+	Exit = cliutils.NewSem()
+	WG   = sync.WaitGroup{}
+	l    = logger.DefaultSLogger("datakit")
+
+	GlobalExit = cliutils.NewSem()
+	GlobalWG   = sync.WaitGroup{}
 
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 
-	ServiceName = "datakit"
-
-	AgentLogFile string
-
 	MaxLifeCheckInterval time.Duration
 
-	InstallDir     = ""
-	TelegrafDir    = ""
-	DataDir        = ""
-	LuaDir         = ""
-	ConfdDir       = ""
-	GRPCDomainSock = ""
+	Docker = false
 
 	OutputFile = ""
-)
 
-func Init() {
-	l = logger.SLogger("datakit")
-}
+	optionalInstallDir = map[string]string{
+		OSArchWinAmd64: filepath.Join(`C:\Program Files\dataflux\` + ServiceName),
+		OSArchWin386:   filepath.Join(`C:\Program Files (x86)\dataflux\` + ServiceName),
 
-func MonitProc(proc *os.Process, name string) {
-	tick := time.NewTicker(time.Second)
-	defer tick.Stop()
-
-	for {
-		select {
-		case <-tick.C:
-			p, err := os.FindProcess(proc.Pid)
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-
-			switch runtime.GOOS {
-			case "windows":
-				l.Debugf("%s on PID %d ok", name, proc.Pid)
-
-			default:
-				if err := p.Signal(syscall.Signal(0)); err != nil {
-					l.Errorf("signal 0 to %s failed: %s", name, err)
-				}
-			}
-
-		case <-Exit.Wait():
-			l.Infof("exit, killing %s...", name)
-			if err := proc.Kill(); err != nil { // XXX: should we wait here?
-				l.Warnf("killing %s failed: %s, ignored", name, err)
-			}
-
-			l.Infof("killing %s (PID: %d) ok", name, proc.Pid)
-			return
-		}
+		OSArchLinuxArm:    filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchLinuxArm64:  filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchLinuxAmd64:  filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchLinux386:    filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchDarwinAmd64: filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
 	}
-}
+
+	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
+
+	AgentLogFile   = filepath.Join(InstallDir, "embed", "agent.log")
+	TelegrafDir    = filepath.Join(InstallDir, "embed")
+	DataDir        = filepath.Join(InstallDir, "data")
+	LuaDir         = filepath.Join(InstallDir, "lua")
+	MainConfPath   = filepath.Join(InstallDir, "datakit.conf")
+	ConfdDir       = filepath.Join(InstallDir, "conf.d")
+	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
+)
