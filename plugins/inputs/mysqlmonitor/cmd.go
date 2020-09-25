@@ -266,8 +266,8 @@ func (m *MysqlMonitor) gatherBinaryLogs(db *sql.DB, serv string) error {
 		count++
 	}
 	fields := map[string]interface{}{
-		"binary_size_bytes":  int(size / 1024),
-		"binary_files_count": int(count / 1024),
+		"binary_size_bytes":  fmt.Sprintf("%d", size),
+		"binary_files_count": fmt.Sprintf("%d", count),
 	}
 
 	pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
@@ -843,7 +843,7 @@ func (m *MysqlMonitor) gatherInfoSchemaAutoIncStatuses(db *sql.DB, serv string) 
 
 	var (
 		schema, table, column string
-		incValue, maxInt      int64
+		incValue, maxInt      uint64
 	)
 
 	servtag := getDSNTag(serv)
@@ -866,8 +866,8 @@ func (m *MysqlMonitor) gatherInfoSchemaAutoIncStatuses(db *sql.DB, serv string) 
 		tags["metricType"] = "schemaAutoIncStatus"
 
 		fields := make(map[string]interface{})
-		fields["auto_increment_column"] = incValue
-		fields["auto_increment_column_max"] = maxInt
+		fields["auto_increment_column"] = fmt.Sprintf("%d", incValue)
+		fields["auto_increment_column_max"] = fmt.Sprintf("%d", maxInt)
 
 		pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 		if err != nil {
