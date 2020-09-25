@@ -3,20 +3,20 @@ package aliyuncdn
 import (
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 var (
 	l *logger.Logger
 
-	name = "aliyuncdn"
+	inputName = "aliyuncdn"
 )
 
 func (_ *CDN) Catalog() string {
@@ -36,7 +36,7 @@ func (_ *CDN) Gather() error {
 }
 
 func (c *CDN) Run() {
-	l = logger.SLogger(name)
+	l = logger.SLogger(inputName)
 
 	l.Info("aliyunCDN input started...")
 
@@ -141,7 +141,7 @@ func (r *CDN) getDomain(metricName string, domain string) []string {
 					l.Errorf("[influxdb convert point] failed, %v", err.Error())
 				}
 
-				err = io.NamedFeed([]byte(pt.String()), io.Metric, name)
+				err = io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
 			}
 		}
 
@@ -213,7 +213,7 @@ func (run *RunningProject) commond(action string) {
 }
 
 func init() {
-	inputs.Add(name, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &CDN{}
 	})
 }

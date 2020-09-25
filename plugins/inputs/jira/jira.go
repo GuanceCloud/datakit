@@ -75,10 +75,10 @@ const (
 #		tag2 = "tag2"
 #		tag3 = "tag3"
 `
+	inputName         = "jira"
 	defaultInterval   = "60s"
-	defaultMetricName = "jira"
+	defaultMetricName = inputName
 	maxIssuesPerQueue = 1000
-	name              = "jira"
 )
 
 func (g *Jira) Catalog() string {
@@ -111,7 +111,7 @@ func (j *Jira) Run() {
 }
 
 func init() {
-	inputs.Add(name, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		jira := &Jira{}
 		return jira
 	})
