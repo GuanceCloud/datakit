@@ -7,9 +7,9 @@ import logging
 import json
 from xlrd.sheet import Cell
 from csvkit.exceptions import AbortException, DropException, IgnoreException
-from csvkit.const import *
+from csvkit.const_bak import *
 from csvkit.utils import exit
-from csvkit.network import Sender
+from csvkit.network import MetricSender
 
 BATCH_SIZE = 10
 
