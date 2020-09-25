@@ -1,19 +1,16 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/kardianos/service"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -22,57 +19,46 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/outputs/all"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/telegrafwrap"
+	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 var (
-	flagVersion        = flag.Bool("version", false, `show verison info`)
-	flagDataWay        = flag.String("dataway", ``, `dataway IP:Port`)
+	flagVersion        = flag.Bool("version", false, `show version info`)
 	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d, list configired and mis-configured collectors`)
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
+	flagDocker         = flag.Bool("docker", false, "run within docker")
 
 	flagListCollectors    = flag.Bool("tree", false, `list vailable collectors`)
-	flagListConfigSamples = flag.Bool("config-samples", false, `list all config samples`)
+	flagDumpConfigSamples = flag.String("dump-samples", "", `dump all config samples`)
+
+	ReleaseType = ""
 )
 
 var (
-	stopCh     chan struct{} = make(chan struct{})
-	waitExitCh chan struct{} = make(chan struct{})
-
 	inputFilters = []string{}
-	l            *logger.Logger
+	l            = logger.DefaultSLogger("main")
 )
 
 func main() {
-
-	logger.SetStdoutRootLogger(logger.DEBUG, logger.OPT_DEFAULT)
-	l = logger.SLogger("main")
-
 	flag.Parse()
 
 	applyFlags()
 
-	loadConfig()
+	tryLoadConfig()
 
-	svcConfig := &service.Config{
-		Name: datakit.ServiceName,
+	// This may throw `Unix syslog delivery error` within docker, so we just
+	// start the entry under docker.
+	if *flagDocker {
+		run()
+	} else {
+		datakit.Entry = run
+		if err := datakit.StartService(); err != nil {
+			l.Errorf("start service failed: %s", err.Error())
+			return
+		}
 	}
 
-	prg := &program{}
-	s, err := service.New(prg, svcConfig)
-	if err != nil {
-		l.Fatal(err)
-		return
-	}
-
-	l.Info("starting datakit service")
-
-	if err = s.Run(); err != nil {
-		l.Fatal(err)
-	}
+	l.Info("datakit exited")
 }
 
 func applyFlags() {
@@ -85,17 +71,15 @@ func applyFlags() {
  Build At(UTC): %s
 Golang Version: %s
       Uploader: %s
-`, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader)
+ReleasedInputs: %s
+`, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, ReleaseType)
 		os.Exit(0)
 	}
 
-	if *flagListCollectors {
-		showAllCollectors()
-		os.Exit(0)
-	}
+	datakit.ReleaseType = ReleaseType
 
-	if *flagListConfigSamples {
-		showAllConfigSamples()
+	if *flagDumpConfigSamples != "" {
+		dumpAllConfigSamples(*flagDumpConfigSamples)
 		os.Exit(0)
 	}
 
@@ -104,12 +88,21 @@ Golang Version: %s
 		os.Exit(0)
 	}
 
+	if *flagListCollectors {
+		listCollectors()
+		os.Exit(0)
+	}
+
 	if *flagInputFilters != "" {
 		inputFilters = strings.Split(":"+strings.TrimSpace(*flagInputFilters)+":", ":")
 	}
+
+	if *flagDocker {
+		datakit.Docker = true
+	}
 }
 
-func showAllCollectors() {
+func listCollectors() {
 	collectors := map[string][]string{}
 
 	for k, v := range inputs.Inputs {
@@ -117,94 +110,98 @@ func showAllCollectors() {
 		collectors[cat] = append(collectors[cat], k)
 	}
 
-	ndatakit := 0
+	star := " * "
+	uncheck := " ? "
+
+	ndk := 0
+	nuncheck := 0
+
+	output := []string{}
+
 	for k, vs := range collectors {
-		//fmt.Println(k)
+		output = append(output, k)
 		for _, v := range vs {
-			//fmt.Printf("  |--[d][% 12s] %s\n", k, v)
-			fmt.Printf("[d][% 12s] %s\n", k, v)
-			ndatakit++
+			checked, ok := inputs.AllInputs[v]
+			if !ok {
+				l.Errorf("datakit input %s not exists in check list", v)
+			}
+
+			if !checked && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
+				continue
+			}
+
+			if checked {
+				output = append(output, fmt.Sprintf("  |--[d]%s%s", star, v))
+			} else {
+				nuncheck++
+				output = append(output, fmt.Sprintf("  |--[d]%s%s", uncheck, v))
+			}
+			ndk++
 		}
 	}
 
-	nagent := 0
 	collectors = map[string][]string{}
-	for k, v := range config.TelegrafInputs {
+	for k, v := range tgi.TelegrafInputs {
 		collectors[v.Catalog] = append(collectors[v.Catalog], k)
 	}
 
+	ntg := 0
 	for k, vs := range collectors {
-		//fmt.Println(k)
+		output = append(output, k)
 		for _, v := range vs {
-			//fmt.Printf("  |--[t] %s\n", v)
-			fmt.Printf("[t][% 12s] %s\n", k, v)
-			nagent++
+
+			checked, ok := inputs.AllInputs[v]
+			if !ok {
+				l.Errorf("telegraf input %s not exists in check list", v)
+			}
+
+			if !checked && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
+				continue
+			}
+
+			if checked {
+				output = append(output, fmt.Sprintf("  |--[t]%s%s", star, v))
+			} else {
+				nuncheck++
+				output = append(output, fmt.Sprintf("  |--[t]%s%s", uncheck, v))
+			}
+
+			ntg++
 		}
 	}
 
-	fmt.Println("===================================")
-	fmt.Printf("total: %d, datakit: %d, agent: %d\n", ndatakit+nagent, ndatakit, nagent)
+	fmt.Println(strings.Join(output, "\n"))
+	fmt.Printf("total %d, datakit: %d, telegraf: %d, uncheck: %d\n", ntg+ndk, ndk, ntg, nuncheck)
 }
 
-func showAllConfigSamples() {
+func dumpAllConfigSamples(fpath string) {
+
+	if err := os.MkdirAll(fpath, os.ModePerm); err != nil {
+		panic(err)
+	}
+
 	for k, v := range inputs.Inputs {
 		sample := v().SampleConfig()
-		fmt.Printf("%s\n========= [D] ==========\n%s\n", k, sample)
-	}
-
-	for k, v := range config.TelegrafInputs {
-		fmt.Printf("%s\n========= [T] ==========\n%s\n", k, v.Sample)
-	}
-}
-
-type program struct{}
-
-func (p *program) Start(s service.Service) error {
-	go p.run(s)
-	return nil
-}
-
-func (p *program) run(s service.Service) {
-	__run()
-}
-
-func (p *program) Stop(s service.Service) error {
-	close(stopCh)
-
-	// We must wait here:
-	// On windows, we stop datakit in services.msc, if datakit process do not
-	// echo to here, services.msc will complain the datakit process has been
-	// exit unexpected
-	<-waitExitCh
-
-	return nil
-}
-
-func exitDatakit() {
-	datakit.Exit.Close()
-
-	l.Info("wait all goroutines exit...")
-	datakit.WG.Wait()
-
-	l.Info("closing waitExitCh...")
-	close(waitExitCh)
-}
-
-func __run() {
-
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		if err := runTelegraf(); err != nil {
-			l.Fatalf("fail to start sub service: %s", err)
+		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), os.ModePerm); err != nil {
+			panic(err)
 		}
+	}
 
-		l.Info("telegraf process exit ok")
-	}()
+	for k, v := range tgi.TelegrafInputs {
+		sample := v.SampleConfig()
+		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), os.ModePerm); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func run() {
+
+	inputs.StartTelegraf()
 
 	l.Info("datakit start...")
-	if err := runDatakit(); err != nil && err != context.Canceled {
-		l.Fatalf("datakit abort: %s", err)
+	if err := runDatakitWithHTTPServer(); err != nil {
+		return
 	}
 
 	l.Info("datakit start ok. Wait signal or service stop...")
@@ -214,7 +211,7 @@ func __run() {
 	// windows/UNIX, datakit should exit via `service-stop' operation, so the signal
 	// branch should not reached, but for daily debugging(ctrl-c), we kept the signal
 	// exit option.
-	signals := make(chan os.Signal)
+	signals := make(chan os.Signal, datakit.CommonChanCap)
 	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 	select {
 	case sig := <-signals:
@@ -222,22 +219,25 @@ func __run() {
 			// TODO: reload configures
 		} else {
 			l.Infof("get signal %v, wait & exit", sig)
-			exitDatakit()
+			datakit.Quit()
 		}
-	case <-stopCh:
+
+	case <-datakit.StopCh:
 		l.Infof("service stopping")
-		exitDatakit()
+		datakit.Quit()
+
+	case <-datakit.GlobalExit.Wait():
+		l.Debug("datakit exit on sem")
 	}
 
 	l.Info("datakit exit.")
 }
 
-func loadConfig() {
-
-	config.Cfg.InputFilters = inputFilters
+func tryLoadConfig() {
+	datakit.Cfg.InputFilters = inputFilters
 
 	for {
-		if err := config.LoadCfg(); err != nil {
+		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
 			l.Errorf("load config failed: %s", err)
 			time.Sleep(time.Second)
 		} else {
@@ -248,181 +248,18 @@ func loadConfig() {
 	l = logger.SLogger("main")
 }
 
-func runTelegraf() error {
-	telegrafwrap.Svr.Start()
-	return nil
-}
-
-func runDatakit() error {
-
-	l = logger.SLogger("datakit")
+func runDatakitWithHTTPServer() error {
 
 	io.Start()
 
-	// start HTTP server
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		httpStart(config.Cfg.MainCfg.HTTPServerAddr)
-		l.Info("HTTPServer goroutine exit")
-	}()
-
-	if err := runInputs(); err != nil {
+	if err := inputs.RunInputs(); err != nil {
 		l.Error("error running inputs: %v", err)
+		return err
 	}
-
-	return nil
-}
-
-func runInputs() error {
-
-	for name, ips := range config.Cfg.Inputs {
-
-		for _, input := range ips {
-
-			switch input.(type) {
-
-			case inputs.Input:
-				l.Infof("starting input %s ...", name)
-				datakit.WG.Add(1)
-				go func(i inputs.Input, name string) {
-					defer datakit.WG.Done()
-					i.Run()
-					l.Infof("input %s exited", name)
-				}(input, name)
-
-			default:
-				l.Warn("ignore input %s", name)
-			}
-		}
-
-	}
-
-	return nil
-}
-
-func httpStart(addr string) {
-
-	mux := http.NewServeMux()
-
-	if _, ok := config.Cfg.Inputs["trace"]; ok {
-		l.Info("open route for trace")
-		mux.HandleFunc("/trace", trace.Handle)
-		mux.HandleFunc("/v3/segment", trace.Handle)
-		mux.HandleFunc("/v3/segments", trace.Handle)
-		mux.HandleFunc("/v3/management/reportProperties", trace.Handle)
-		mux.HandleFunc("/v3/management/keepAlive", trace.Handle)
-	}
-
-	if _, ok := config.Cfg.Inputs["druid"]; ok {
-		l.Info("open route for druid")
-		mux.HandleFunc("/druid", druid.Handle)
-	}
-
-	// internal datakit stats API
-	mux.HandleFunc("/stats", getInputsStats)
-	// ansible api
-	mux.HandleFunc("/ansible", AnsibleHander)
-
-	srv := &http.Server{
-		Addr:         addr,
-		Handler:      requestLogger(mux),
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-	}
-
-	l.Infof("start http server on %s ok", addr)
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			l.Error(err)
-		}
-
-		l.Info("http server exit")
+		http.Start(datakit.Cfg.MainCfg.HTTPBind)
 	}()
 
-	<-datakit.Exit.Wait()
-	l.Info("stopping http server...")
-
-	if err := srv.Shutdown(context.Background()); err != nil {
-		l.Errorf("Failed of http server shutdown, err: %s", err.Error())
-
-	} else {
-		l.Info("http server shutdown ok")
-	}
-
-	return
-}
-
-func AnsibleHander(w http.ResponseWriter, r *http.Request) {
-	dataType := r.URL.Query().Get("type")
-	body, err := ioutil.ReadAll(r.Body)
-	l.Infof("ansible body {}",string(body))
-	defer r.Body.Close()
-
-	if err!= nil {
-		l.Errorf("failed of http parsen body in ansible err:%s",err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	switch dataType {
-	case "keyevent":
-		if err := io.NamedFeed(body, io.KeyEvent, "ansible"); err != nil {
-			l.Errorf("failed to io Feed, err: %s", err.Error())
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-
-	case "metric":
-		if err := io.NamedFeed(body, io.Metric, "ansible"); err != nil {
-			l.Errorf("failed to io Feed, err: %s", err.Error())
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-
-	default:
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-}
-
-
-
-func getInputsStats(w http.ResponseWriter, r *http.Request) {
-	res, err := io.GetStats("") // get all inputs stats
-	if err != nil {
-		l.Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	body, err := json.MarshalIndent(res, "", "    ")
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(body)
-	return
-}
-
-func requestLogger(targetMux http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		path := r.URL.Path
-		raw := r.URL.RawQuery
-		clientIP := r.RemoteAddr
-
-		targetMux.ServeHTTP(w, r)
-
-		if raw != "" {
-			path = path + "?" + raw
-		}
-
-		l.Infof(" %15s | %#v\n", clientIP, path)
-	})
+	return nil
 }
