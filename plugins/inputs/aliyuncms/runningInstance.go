@@ -219,7 +219,7 @@ func (s *runningInstance) fetchMetricMeta(ctx context.Context, namespace, metric
 			tempDelay = max
 		}
 
-		if err == nil && !response.IsSuccess() {
+		if err == nil && !response.Success {
 			err = fmt.Errorf("%s", response.String())
 		}
 
@@ -401,7 +401,7 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 				tempDelay = max
 			}
 
-			if err == nil && !resp.IsSuccess() {
+			if err == nil && !resp.Success {
 				err = fmt.Errorf("%s", resp.String())
 			}
 
