@@ -83,8 +83,8 @@ const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ss
 `
 
 var (
-	name              = "Ssh"
-	defaultMetricName = name
+	inputName         = "ssh"
+	defaultMetricName = inputName
 	defaultInterval   = "60s"
 	sshCfgErr         = errors.New("both password and privateKeyFile missed")
 )
@@ -163,7 +163,7 @@ func (p *SshParam) gather() {
 
 	switch p.input.Interval.(type) {
 	case int64:
-		d = time.Duration(p.input.Interval.(int64))*time.Second
+		d = time.Duration(p.input.Interval.(int64)) * time.Second
 	case string:
 		d, err = time.ParseDuration(p.input.Interval.(string))
 		if err != nil {
@@ -245,7 +245,7 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 	if err != nil {
 		return err
 	}
-	err = p.output.IoFeed(pt, io.Metric, name)
+	err = p.output.IoFeed(pt, io.Metric, inputName)
 	return err
 }
 
@@ -255,7 +255,7 @@ func getMsInterval(d time.Duration) float64 {
 }
 
 func init() {
-	inputs.Add("ssh", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		p := &Ssh{}
 		return p
 	})

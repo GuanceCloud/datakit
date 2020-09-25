@@ -3,11 +3,15 @@ import os
 import threading
 import time
 import xlrd
+import logging
+import json
 from xlrd.sheet import Cell
 from csvkit.exceptions import AbortException, DropException, IgnoreException
 from csvkit.const import *
 from csvkit.utils import exit
 from csvkit.network import Sender
+
+BATCH_SIZE = 10
 
 class SheetWorker:
     def __init__(self, yaml, sheet, uploader):
@@ -15,27 +19,68 @@ class SheetWorker:
         self.sheet = sheet
         self.uploader = uploader
         self.primary_key = set()
-
+        self._objects = []
+        self._metrics = []
 
     def run(self):
         for r in range(self.yaml[START], self.sheet.nrows):
             row_data = self.sheet.row(r)
-            try:
-                data = self.proc_row(r, row_data, self.yaml)
-                self.uploader.send(data.encode())
-            except DropException:
-                continue
-            except AbortException:
-                exit(1)
-            except:
-                raise
+            if METRICS in self.yaml:
+                self._proc_metric(r, row_data)
 
-    def proc_row(self, r_index, row_data, yaml_data):
+            if OBJECTS in self.yaml:
+                self._proc_object(r, row_data)
+        self._flush()
+
+    def _proc_object(self, r, row_data):
+        self._proc_object_row(r, row_data, self.yaml[OBJECTS])
+
+    def _proc_object_row(self, r_index, row_data, yaml_data):
+        obj = {}
+        o = self._proc_obj(r_index, row_data, yaml_data)
+        t = self._proc_tags(r_index, row_data, yaml_data)
+        obj["__name"] = o
+        obj["__tags"] = t
+        self._objects.append(obj)
+        if len(self._objects) >= BATCH_SIZE:
+            self._flush_objects()
+
+    def _proc_obj(self, r_index, row_data, yaml_data):
+        return str(row_data[yaml_data[AS_OBJ][INDEX]].value)
+
+    def _proc_tags(self, r_index, row_data, yaml_data):
+        tags = {}
+        for info in yaml_data[AS_TAG]:
+            name = info[NAME]
+            tagv = str(row_data[info[INDEX]].value)
+            tags[name] = tagv
+
+        if AS_CLASS in yaml_data:
+            tags["__class"] = row_data[yaml_data[AS_CLASS][INDEX]].value
+
+        return tags
+
+    def _proc_metric(self, r, row_data):
+        try:
+            self._proc_metric_row(r, row_data, self.yaml[METRICS])
+        except DropException:
+            logging.error("drop metrics line {} {}".format(r, row_data))
+        except AbortException:
+            logging.critical("abort metrics line {} {}".format(r, row_data))
+            exit(1)
+        except:
+            raise
+
+    def _proc_metric_row(self, r_index, row_data, yaml_data):
         measurement = self._build_measurement(row_data, yaml_data)
         tags = self._build_tags(r_index,row_data, yaml_data)
         fields = self._build_fields(r_index,row_data, yaml_data)
         timestamp = self._build_timestamp(row_data, yaml_data)
-        return self._mk_line_proto(measurement, tags, fields, timestamp)
+        ln_data = self._mk_line_proto(measurement, tags, fields, timestamp)
+        logging.debug("line {} build metrics: {}".format(r_index, row_data))
+        self._metrics.append(ln_data)
+        if len(self._metrics) >= BATCH_SIZE:
+            self._flush_metrics()
 
     def check_pk(self, row_data, rule):
         if PRMK not in rule:
@@ -129,27 +174,6 @@ class SheetWorker:
         t = time.strptime(t, format)
         return int(time.mktime(t)*1E9)
 
-    def _mk_line_proto(self, measurement, tags, fields, timestamp):
-        line_proto_data = ""
-        line_proto_data += "{}".format(measurement)
-        is_frist_field = True
-        # tags可选
-        if tags:
-            for key, val in tags.items():
-                line_proto_data += ",{}={}".format(key, val)
-        # fields必填
-        for key, val in fields.items():
-            if is_frist_field:
-                prefix = " "
-                is_frist_field = False
-            else:
-                prefix = ","
-
-            line_proto_data += "{}{}={}".format(prefix, key, self._conv_field_str(val))
-        if timestamp:
-            line_proto_data += " {}".format(timestamp)
-        line_proto_data += "\n"
-        return line_proto_data
 
     def _conv_field_str(self, value):
         type_str = type(value).__name__
@@ -191,6 +215,49 @@ class SheetWorker:
                 return self.sheet.cell(r_min, c_min)
         return Cell(0, None)
 
+    def _mk_line_proto(self, measurement, tags, fields, timestamp):
+        line_proto_data = ""
+        line_proto_data += "{}".format(measurement)
+        is_frist_field = True
+        # tags可选
+        if tags:
+            for key, val in tags.items():
+                line_proto_data += ",{}={}".format(key, val)
+        # fields必填
+        for key, val in fields.items():
+            if is_frist_field:
+                prefix = " "
+                is_frist_field = False
+            else:
+                prefix = ","
+
+            line_proto_data += "{}{}={}".format(prefix, key, self._conv_field_str(val))
+        if timestamp:
+            line_proto_data += " {}".format(timestamp)
+        line_proto_data += "\n"
+        return line_proto_data
+
+    def _flush_metrics(self):
+        if len(self._metrics) == 0:
+            return
+        data = "\n".join(self._metrics)
+        logging.debug("build metrics: {}".format(data))
+        self.uploader.send_metrics(data)
+        self._metrics = []
+
+
+    def _flush_objects(self):
+        if len(self._objects) == 0:
+            return
+        data = json.dumps(self._objects)
+        logging.debug("build objects: {}".format(data))
+        self.uploader.send_objects(data)
+        self._objects = []
+
+    def _flush(self):
+        self._flush_metrics()
+        self._flush_objects()
+
 
 class Worker:
     def __init__(self, yaml, *files):
@@ -209,11 +276,10 @@ class Worker:
             t.join()
 
     def work_task(self, file_url, file_path):
-        socket = "unix://" + os.path.join(os.getcwd(), "datakit.sock")
         with xlrd.open_workbook(file_path) as wbook:
             for name in wbook.sheet_names():
                 sheet = wbook.sheet_by_name(name)
                 if sheet.nrows == 0 or sheet.ncols == 0:
                     continue
-                s_worker = SheetWorker(self.yaml, sheet, Sender(socket))
+                s_worker = SheetWorker(self.yaml, sheet, Sender())
                 s_worker.run()
