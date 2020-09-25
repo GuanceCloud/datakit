@@ -4,17 +4,17 @@ import "sync"
 
 const (
 	aliyunlogConfigSample = `
-#[[inputs.consumer]]
+#[[inputs.aliyunlog]]
 # ##(required)
 #endpoint = ''
 #access_key_id = ''
 #access_key_secret = ''
 	
-#[[inputs.consumer.projects]]
+#[[inputs.aliyunlog.projects]]
 # ##(required) project name 
 #name = ''
 	
-#[[inputs.consumer.projects.stores]]
+#[[inputs.aliyunlog.projects.stores]]
 # ##(required) name of log store
 #name = ''
 	
