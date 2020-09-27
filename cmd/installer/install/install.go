@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/influxdata/toml"
+	bstoml "github.com/BurntSushi/toml"
 	"github.com/kardianos/service"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -26,7 +26,8 @@ var (
 	OSArch = runtime.GOOS + "/" + runtime.GOARCH
 
 	InstallDir   = ""
-	DataWay      = ""
+	DataWayHTTP  = ""
+	DataWayWs    = ""
 	GlobalTags   = ""
 	Port         = 9529
 	DatakitName  = ""
@@ -48,10 +49,11 @@ func getDataWayCfg() *datakit.DataWayCfg {
 	var dc *datakit.DataWayCfg
 	var err error
 
-	if DataWay == "" {
+	if DataWayHTTP == "" || DataWayWs == "" {
 		for {
-			dw := readInput("Please set DataWay request URL(http://IP:Port/v1/write/metric) > ")
-			dc, err = datakit.ParseDataway(dw)
+			dwhttp := readInput("Please set DataWay HTTP URL(http[s]://host:port?token=xxx) > ")
+			dwws := readInput("Please set DataWay Websocket URL(ws[s]://host:port?token=xxx) > ")
+			dc, err = datakit.ParseDataway(dwhttp, dwws)
 			if err != nil {
 				fmt.Printf("%s\n", err.Error())
 				continue
@@ -62,10 +64,11 @@ func getDataWayCfg() *datakit.DataWayCfg {
 				continue
 			}
 
-			return dc
+			break
+
 		}
 	} else {
-		dc, err := datakit.ParseDataway(DataWay)
+		dc, err = datakit.ParseDataway(DataWayHTTP, DataWayWs)
 		if err != nil {
 			l.Fatal(err)
 		}
@@ -73,9 +76,9 @@ func getDataWayCfg() *datakit.DataWayCfg {
 		if err := dc.Test(); err != nil {
 			l.Fatal(err)
 		}
-
-		return dc
 	}
+
+	return dc
 }
 
 func InstallNewDatakit(svc service.Service) {
@@ -102,7 +105,7 @@ func InstallNewDatakit(svc service.Service) {
 	datakit.Cfg.EnableDefaultsInputs(EnableInputs)
 
 	// build datakit main config
-	if err := datakit.Cfg.InitCfg(); err != nil {
+	if err := datakit.Cfg.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
@@ -119,8 +122,8 @@ func updateLagacyConfig(dir string) {
 	}
 
 	var maincfg datakit.MainConfig
-	if err = toml.Unmarshal(cfgdata, &maincfg); err != nil {
-		l.Fatalf("toml unmarshal failed: %s", err.Error())
+	if _, err = bstoml.Decode(string(cfgdata), &maincfg); err != nil {
+		l.Fatalf("unmarshal failed: %s", err.Error())
 	}
 
 	maincfg.Log = filepath.Join(InstallDir, "datakit.log") // reset log path
@@ -129,7 +132,7 @@ func updateLagacyConfig(dir string) {
 	// split origin ftdataway into dataway object
 	var dwcfg *datakit.DataWayCfg
 	if maincfg.DeprecatedFtGateway != "" {
-		if dwcfg, err = datakit.ParseDataway(maincfg.DeprecatedFtGateway); err != nil {
+		if dwcfg, err = datakit.ParseDataway(maincfg.DeprecatedFtGateway, ""); err != nil {
 			l.Fatal(err)
 		} else {
 			maincfg.DeprecatedFtGateway = "" // deprecated
@@ -137,7 +140,7 @@ func updateLagacyConfig(dir string) {
 		}
 	}
 
-	cfgdata, err = toml.Marshal(maincfg)
+	cfgdata, err = datakit.TomlMarshal(maincfg)
 	if err != nil {
 		l.Fatal(err)
 	}
@@ -147,7 +150,38 @@ func updateLagacyConfig(dir string) {
 	}
 }
 
-func MigrateLagacyDatakit(svc service.Service) {
+func upgradeMainConfigure(cfg *datakit.Config, mcp string) {
+
+	mcdata, err := ioutil.ReadFile(mcp)
+	if err != nil {
+		l.Fatalf("ioutil.ReadFile(): %s", err.Error())
+	}
+
+	if _, err := bstoml.Decode(string(mcdata), cfg.MainCfg); err != nil {
+		l.Fatalf("unmarshal main cfg failed %s", err.Error())
+	}
+
+	mc := cfg.MainCfg
+
+	if mc.DataWay.URL == "" { // use old-version configure fields to build @URL
+		mc.DataWay.URL = fmt.Sprintf("%s://%s", mc.DataWay.DeprecatedScheme, mc.DataWay.DeprecatedHost)
+	}
+
+	if mc.DataWay.DeprecatedToken != "" {
+		mc.DataWay.URL += fmt.Sprintf("?token=%s", mc.DataWay.DeprecatedToken)
+	}
+
+	// clear deprecated fields
+	mc.DataWay.DeprecatedToken = ""
+	mc.DataWay.DeprecatedHost = ""
+	mc.DataWay.DeprecatedScheme = ""
+
+	if err := cfg.InitCfg(mcp); err != nil {
+		l.Fatal(err)
+	}
+}
+
+func UpgradeDatakit(svc service.Service) {
 
 	var lagacyServiceFiles []string = nil
 
@@ -173,6 +207,9 @@ func MigrateLagacyDatakit(svc service.Service) {
 
 	if _, err := os.Stat(lagacyInstallDir); err != nil {
 		l.Debug("no lagacy datakit installed")
+
+		// generate new main configure
+		upgradeMainConfigure(datakit.Cfg, datakit.MainConfPath)
 		return
 	}
 
