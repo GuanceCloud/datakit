@@ -115,20 +115,26 @@ func listCollectors() {
 
 	ndk := 0
 	nuncheck := 0
+
+	output := []string{}
+
 	for k, vs := range collectors {
-		fmt.Println(k)
+		output = append(output, k)
 		for _, v := range vs {
-			checked := inputs.AllInputs[v]
+			checked, ok := inputs.AllInputs[v]
+			if !ok {
+				l.Errorf("datakit input %s not exists in check list", v)
+			}
 
 			if !checked && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
 				continue
 			}
 
 			if checked {
-				fmt.Printf("  |--[d]%s%s\n", star, v)
+				output = append(output, fmt.Sprintf("  |--[d]%s%s", star, v))
 			} else {
 				nuncheck++
-				fmt.Printf("  |--[d]%s%s\n", uncheck, v)
+				output = append(output, fmt.Sprintf("  |--[d]%s%s", uncheck, v))
 			}
 			ndk++
 		}
@@ -141,25 +147,30 @@ func listCollectors() {
 
 	ntg := 0
 	for k, vs := range collectors {
-		fmt.Println(k)
+		output = append(output, k)
 		for _, v := range vs {
 
-			checked := inputs.AllInputs[v]
+			checked, ok := inputs.AllInputs[v]
+			if !ok {
+				l.Errorf("telegraf input %s not exists in check list", v)
+			}
+
 			if !checked && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
 				continue
 			}
 
 			if checked {
-				fmt.Printf("  |--[t]%s%s\n", star, v)
+				output = append(output, fmt.Sprintf("  |--[t]%s%s", star, v))
 			} else {
 				nuncheck++
-				fmt.Printf("  |--[t]%s%s\n", uncheck, v)
+				output = append(output, fmt.Sprintf("  |--[t]%s%s", uncheck, v))
 			}
 
 			ntg++
 		}
 	}
 
+	fmt.Println(strings.Join(output, "\n"))
 	fmt.Printf("total %d, datakit: %d, telegraf: %d, uncheck: %d\n", ntg+ndk, ndk, ntg, nuncheck)
 }
 
@@ -223,7 +234,7 @@ func tryLoadConfig() {
 	datakit.Cfg.InputFilters = inputFilters
 
 	for {
-		if err := config.LoadCfg(datakit.Cfg); err != nil {
+		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
 			l.Errorf("load config failed: %s", err)
 			time.Sleep(time.Second)
 		} else {
