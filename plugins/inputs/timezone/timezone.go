@@ -53,7 +53,6 @@ var (
   interval    = "60s"
   metricsName = "timezone"
   [inputs.timezone.tags]
-		host = '{{.Hostname}}'
 #    tag1 = "tag1"
 #    tag2 = "tag2"
 #    tagn = "tagn"`
