@@ -23,7 +23,7 @@ const (
 	sampleCfg = `
 [[inputs.tailf]]
     # required
-    logfiles = ["/usr/local/cloudcare/dataflux/*/*.txt"]
+    logfiles = ["/usr/local/cloudcare/dataflux/datakit/*.txt"]
 
     # glob filteer
     ignore = [""]
@@ -37,7 +37,8 @@ const (
 
 	updateFileListInterval   = time.Second * 3
 	checkFileIsExistInterval = time.Minute * 20
-	metricFeedCount          = 20
+	metricsFeedInterval      = time.Second * 5
+	metricsFeedCount         = 10
 )
 
 var l = logger.DefaultSLogger(inputName)
@@ -98,7 +99,7 @@ func (t *Tailf) Run() {
 					t.wg.Add(1)
 					go t.startTail(f)
 				} else {
-					l.Debugf("file %s is tailing now", f)
+					l.Debugf("file %s already tailing now", f)
 				}
 			}
 		}
@@ -168,6 +169,12 @@ func (t *Tailf) getLines(file string) error {
 	var buffer bytes.Buffer
 	count := 0
 
+	feedTicker := time.NewTicker(metricsFeedInterval)
+	defer feedTicker.Stop()
+
+	checkTicker := time.NewTicker(checkFileIsExistInterval)
+	defer checkTicker.Stop()
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -191,7 +198,7 @@ func (t *Tailf) getLines(file string) error {
 			buffer.WriteString("\n")
 			count++
 
-			if count >= metricFeedCount {
+			if count >= metricsFeedCount {
 				if err := io.NamedFeed(buffer.Bytes(), io.Logging, inputName); err != nil {
 					l.Error(err)
 				}
@@ -200,7 +207,16 @@ func (t *Tailf) getLines(file string) error {
 				buffer = bytes.Buffer{}
 			}
 
-		case <-time.After(checkFileIsExistInterval):
+		case <-feedTicker.C:
+			if count > 0 {
+				if err := io.NamedFeed(buffer.Bytes(), io.Logging, inputName); err != nil {
+					l.Error(err)
+				}
+				count = 0
+				buffer = bytes.Buffer{}
+			}
+
+		case <-checkTicker.C:
 			_, statErr := os.Lstat(file)
 			if os.IsNotExist(statErr) {
 				l.Warnf("check file %s is not exist", file)
