@@ -79,7 +79,7 @@ func GRPCServer(uds string) {
 
 	if _, err := os.Stat(uds); err == nil {
 		if err := os.Remove(uds); err != nil {
-			panic(err)
+			l.Fatal(err)
 		}
 	}
 
