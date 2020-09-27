@@ -1,3 +1,4 @@
+# -*- encoding: utf8 -*-
 # metric and object common const variable
 FILE   = "file"
 ROWS   = "startRows"
@@ -35,6 +36,10 @@ NULL_OP_ABORT  = "abort"
 NULL_OP_DROP   = "drop"
 NULL_OP_FILL   = "fill"
 FIELD_OP = [NULL_OP_IGNORE, NULL_OP_ABORT, NULL_OP_DROP, NULL_OP_FILL]
+
+
+NAME  = "name"
+CLASS = "class"
 
 
 
