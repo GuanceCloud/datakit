@@ -2,7 +2,7 @@ package inputs
 
 var (
 	AllInputs = map[string]bool{
-		"active_directory":       false,
+		"active_directory":       true,
 		"activemq":               true,
 		"aliyunactiontrail":      false,
 		"aliyuncdn":              true,
@@ -44,7 +44,7 @@ var (
 		"docker":                 true,
 		"docker_containers":      true,
 		"dockerlog":              true,
-		"dotnetclr":              false,
+		"dotnetclr":              true,
 		"druid":                  true,
 		"elasticsearch":          true,
 		"envoy":                  true,
