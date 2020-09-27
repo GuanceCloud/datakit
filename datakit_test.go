@@ -1,7 +1,6 @@
 package datakit
 
 import (
-	"bytes"
 	"testing"
 
 	t2 "github.com/BurntSushi/toml"
@@ -11,24 +10,75 @@ import (
 )
 
 func TestParseDataWay(t *testing.T) {
-	dw, err := ParseDataway("http://1.2.3.4/v1/write/metrics?token=123&a=b&d=e&c=123_456")
-	if err != nil {
-		t.Fatal(err)
+
+	type tcase struct {
+		url        string
+		wsurl      string
+		assertTrue bool
 	}
 
-	t.Log(dw.MetricURL())
-	t.Log(dw.LoggingURL())
-	t.Log(dw.ObjectURL())
-	t.Log(dw.KeyEventURL())
-	t.Log(dw.DeprecatedMetricURL())
+	for _, url := range []*tcase{
 
-	Cfg.MainCfg.DataWay = dw
-	buf := new(bytes.Buffer)
-	if err := t2.NewEncoder(buf).Encode(Cfg.MainCfg); err != nil {
-		t.Fatal(err)
+		&tcase{
+			url:        "http://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
+			wsurl:      "ws://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
+			assertTrue: true,
+		},
+		&tcase{
+			url:        "https://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
+			wsurl:      "wss://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
+			assertTrue: true,
+		},
+
+		&tcase{
+			url:        "http://preprod-openway.cloudcare.cn:80?token=123&a=b&d=e&c=123_456",
+			wsurl:      "ws://preprod-openway.cloudcare.cn:80?token=123&a=b&d=e&c=123_456",
+			assertTrue: true,
+		},
+		&tcase{
+			url:        "https://preprod-openway.cloudcare.cn:443?token=123&a=b&d=e&c=123_456",
+			wsurl:      "ws://preprod-openway.cloudcare.cn:443?token=123&a=b&d=e&c=123_456",
+			assertTrue: true,
+		},
+
+		&tcase{
+			url:        "http://1.2.3?token=123&a=b&d=e&c=123_456",
+			wsurl:      "ws://1.2.3?token=123&a=b&d=e&c=123_456",
+			assertTrue: false,
+		}, // dial timeout
+
+		&tcase{
+			url:        "",
+			wsurl:      "",
+			assertTrue: false,
+		}, // empty dataway url
+
+		&tcase{
+			url:        "http://1.2.3?token=123&a=b&d=e&c=123_456",
+			assertTrue: false,
+			// empty ws url
+		},
+	} {
+
+		dw, err := ParseDataway(url.url, url.wsurl)
+		if err != nil {
+			if url.assertTrue {
+				t.Fatal(err)
+			}
+			t.Log(err)
+		} else {
+			if err := dw.Test(); err != nil {
+				if url.assertTrue {
+					t.Fatal(err)
+				}
+				t.Log(err)
+			}
+
+			if dw != nil {
+				t.Logf("%+#v", dw)
+			}
+		}
 	}
-
-	t.Log(string(buf.Bytes()))
 }
 
 func TestUnmarshalMainCfg(t *testing.T) {
@@ -92,12 +142,12 @@ logfile_rotation_interval = ""
 		t.Logf("%+#v", mc.DataWay)
 	}
 
-	buf := new(bytes.Buffer)
-	if err := t2.NewEncoder(buf).Encode(&mc); err != nil {
+	data, err := TomlMarshal(&mc)
+	if err != nil {
 		t.Fatal(err)
-	} else {
-		t.Log(buf.String())
 	}
+
+	t.Log(string(data))
 }
 
 func TestMarshalMainCfg(t *testing.T) {
@@ -113,11 +163,11 @@ func TestMarshalMainCfg(t *testing.T) {
 
 	t.Logf("%s", string(data))
 
-	buf := new(bytes.Buffer)
-	if err := t2.NewEncoder(buf).Encode(Cfg.MainCfg); err != nil {
+	data, err = TomlMarshal(Cfg.MainCfg)
+	if err != nil {
 		t.Fatal(err)
 	} else {
-		t.Log(buf.String())
+		t.Log(data)
 	}
 }
 
