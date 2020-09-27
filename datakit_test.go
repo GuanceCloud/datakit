@@ -1,7 +1,6 @@
 package datakit
 
 import (
-	"bytes"
 	"testing"
 
 	t2 "github.com/BurntSushi/toml"
@@ -11,33 +10,40 @@ import (
 )
 
 func TestParseDataWay(t *testing.T) {
-	//dw, err := ParseDataway("http://1.2.3.4/v1/write/metrics?token=123&a=b&d=e&c=123_456")
-	dw, err := ParseDataway("https://1.2.3.4:443/v1/write/metrics?token=123&a=b&d=e&c=123_456")
-	if err != nil {
-		t.Fatal(err)
+
+	type tcase struct {
+		url        string
+		assertTrue bool
 	}
 
-	t.Log(dw.MetricURL())
-	t.Log(dw.LoggingURL())
-	t.Log(dw.ObjectURL())
-	t.Log(dw.KeyEventURL())
-	t.Log(dw.DeprecatedMetricURL())
+	for _, url := range []*tcase{
 
-	t.Logf("%+#v", dw)
+		&tcase{url: "http://preprod-openway.cloudcare.cn/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
+		&tcase{url: "https://preprod-openway.cloudcare.cn/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
+		&tcase{url: "http://preprod-openway.cloudcare.cn:80/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
+		&tcase{url: "https://preprod-openway.cloudcare.cn:443/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
+		&tcase{url: "https://preprod-openway.cloudcare.cn:443/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
+		&tcase{url: "wss://preprod-openway.cloudcare.cn/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
+		&tcase{url: "ws://preprod-openway.cloudcare.cn/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
+		&tcase{url: "ws://1.2.3/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: false}, // dial timeout
+		&tcase{url: "", assertTrue: false}, // empty dataway url
+	} {
 
-	Cfg.MainCfg.DataWay = dw
-	buf := new(bytes.Buffer)
-	if err := t2.NewEncoder(buf).Encode(Cfg.MainCfg); err != nil {
-		t.Fatal(err)
+		dw, err := ParseDataway(url.url)
+		if err != nil {
+			if url.assertTrue {
+				t.Fatal(err)
+			}
+			t.Log(err)
+		}
+
+		if err := dw.Test(); err != nil {
+			if url.assertTrue {
+				t.Fatal(err)
+			}
+			t.Log(err)
+		}
 	}
-
-	//t.Log(string(buf.Bytes()))
-
-	dw, err = ParseDataway("")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("%+#v", dw)
 }
 
 func TestUnmarshalMainCfg(t *testing.T) {
