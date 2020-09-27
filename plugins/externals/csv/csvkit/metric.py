@@ -1,3 +1,4 @@
+# -*- encoding: utf8 -*-
 import logging
 import xlrd
 import time
@@ -19,7 +20,10 @@ class MetricCfgChecker:
         self.toml  = parsed_toml
         self.cfg   = {}
         self.tag_ts = []
-        self.title = self.sheet.row_values(self.toml[ROWS])
+        if ROWS in self.toml:
+            self.title = self.sheet.row_values(self.toml[ROWS])
+        else:
+            self.title = self.sheet.row_values(0)
 
     def check(self):
         self._ck_common()
