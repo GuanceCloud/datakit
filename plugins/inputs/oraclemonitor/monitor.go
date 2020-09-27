@@ -1,3 +1,5 @@
+// +build linux
+
 package oraclemonitor
 
 import (
@@ -13,7 +15,7 @@ const (
 	args = [
 		'-instance-id'    , '<your-instance-id>'        ,
 		'-metric-name'    , 'oracle_monitor'            ,
-		'-internal'       , '1m'                        ,
+		'-interval'       , '1m'                        ,
 		'-instance-desc'  , '<your-oracle-description>' ,
 		'-host'           , '<your-oracle-host>'        ,
 		'-port'           , '1521'                      ,
