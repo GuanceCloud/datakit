@@ -17,11 +17,11 @@ import (
 	"time"
 
 	_ "github.com/godror/godror"
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"golang.org/x/net/context/ctxhttp"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 var (
@@ -134,12 +134,12 @@ func (m *monitor) run() {
 	for {
 		select {
 		case <-tick.C:
-			for _, ec := range execCfgs {
+			for idx, _ := range execCfgs {
 				wg.Add(1)
-				go func() {
+				go func(i int) {
 					defer wg.Done()
-					m.handle(ec)
-				}()
+					m.handle(execCfgs[i])
+				}(idx)
 			}
 
 			wg.Wait() // blocking
@@ -153,6 +153,8 @@ func (m *monitor) handle(ec *ExecCfg) {
 		l.Errorf("oracle query `%s' faild: %v, ignored", ec.metricType, err)
 		return
 	}
+
+	l.Debugf("get %d result from metric %s", len(res), ec.metricType)
 
 	if res == nil {
 		return
@@ -187,14 +189,13 @@ func handleResponse(m *monitor, k string, tagsKeys []string, response []map[stri
 			tags[k] = v
 		}
 
-		ptline, err := io.MakeMetric(m.metric, tags, item, time.Now())
+		pt, err := ifxcli.NewPoint(m.metric, tags, item, time.Now())
 		if err != nil {
-			l.Errorf("new point failed: %s", err.Error())
+			l.Error("NewPoint(): %s", err.Error())
 			return err
 		}
 
-		lines = append(lines, ptline)
-
+		lines = append(lines, []byte(pt.String()))
 	}
 
 	if len(lines) == 0 {
