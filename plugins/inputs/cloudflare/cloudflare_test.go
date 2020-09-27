@@ -18,10 +18,9 @@ func TestMain(t *testing.T) {
 
 	data, err := c.getMetrics()
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	t.Logf("len: %d\n", len(data))
 	t.Logf("%s\n", data)
-
 }
