@@ -97,6 +97,7 @@ func (m *MysqlMonitor) gatherServer(serv string) error {
 
 	db, err := sql.Open("mysql", serv)
 	if err != nil {
+		l.Errorf("sql.Open(): %s", err.Error())
 		return err
 	}
 
