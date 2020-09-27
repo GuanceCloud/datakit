@@ -1,3 +1,4 @@
+# -*- encoding: utf8 -*-
 class ConfException(BaseException):
     pass
 
