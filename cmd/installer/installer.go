@@ -32,8 +32,9 @@ var (
 )
 
 var (
-	flagUpgrade = flag.Bool("upgrade", false, ``)
-	flagDataway = flag.String("dataway", "", `address of dataway(http://IP:Port/v1/write/metric;ws://IP:Port/v1/datakit), port default 9528 and 9530`)
+	flagUpgrade     = flag.Bool("upgrade", false, ``)
+	flagDatawayHTTP = flag.String("dataway", "", `address of dataway(http://IP:Port?token=xxx), port default 9528`)
+	flagDatawayWS   = flag.String("dataway-ws", "", `address of dataway websocket(ws://IP:Port?token=xxx), port default 9531`)
 
 	flagInfo         = flag.Bool("info", false, "show installer info")
 	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
@@ -101,7 +102,7 @@ func main() {
 
 	if *flagUpgrade { // upgrade new version
 		l.Infof("Upgrading to version %s...", DataKitVersion)
-		install.MigrateLagacyDatakit(svc)
+		install.UpgradeDatakit(svc)
 	} else { // install new datakit
 		l.Infof("Installing version %s...", DataKitVersion)
 		install.InstallNewDatakit(svc)
@@ -172,7 +173,8 @@ Golang Version: %s
 		// TODO: more os/arch support
 	}
 
-	install.DataWay = *flagDataway
+	install.DataWayHTTP = *flagDatawayHTTP
+	install.DataWayWs = *flagDatawayWS
 	install.GlobalTags = *flagGlobalTags
 	install.Port = *flagPort
 	install.DatakitName = *flagDatakitName
