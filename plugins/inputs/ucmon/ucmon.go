@@ -2,6 +2,7 @@ package ucmon
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
@@ -26,10 +27,6 @@ func (_ *ucInstance) SampleConfig() string {
 func (_ *ucInstance) Catalog() string {
 	return "ucloud"
 }
-
-// func (_ *ucMonitorAgent) Description() string {
-// 	return ""
-// }
 
 func (ag *ucInstance) Run() {
 
@@ -75,9 +72,7 @@ func (ag *ucInstance) Run() {
 			}
 
 			rateLimiter.Wait(ag.ctx)
-			if err := ag.fetchMetric(ag.ctx, req); err != nil {
-				moduleLogger.Errorf(`fail to get metric "%s.%s", %s`, req.resourceID, req.metricname, err)
-			}
+			ag.fetchMetric(ag.ctx, req)
 		}
 		useage := time.Now().Sub(t)
 		if useage < 5*time.Minute {
@@ -105,8 +100,6 @@ func (ag *ucInstance) fetchMetric(ctx context.Context, info *queryListInfo) erro
 	}
 	end = now.Unix()
 
-	moduleLogger.Debugf("GetMetric: resourceID=%s, metric=%s, range=%v - %v, interval=%s", info.resourceID, info.metricname, begin, end, info.intervalTime)
-
 	req := ag.ucCli.NewGenericRequest()
 	req.SetAction("GetMetric")
 	req.SetRegion(ag.Region)
@@ -121,18 +114,27 @@ func (ag *ucInstance) fetchMetric(ctx context.Context, info *queryListInfo) erro
 	req.SetPayload(reqPayload)
 
 	resp, err := ag.ucCli.GenericInvoke(req)
+	if err == nil && resp.GetRetCode() != 0 {
+		err = fmt.Errorf("%s", resp.GetMessage())
+	}
+
 	if err != nil {
+		moduleLogger.Errorf(`fail to get metric "%s.%s", %s`, info.resourceID, info.metricname, err)
 		return err
 	}
 
+	measurement := "ucloud_monitor_" + info.resourceType
+
 	payload := resp.GetPayload()
 	if mapData, ok := payload["DataSets"].(map[string]interface{}); ok {
-		for _, v := range mapData {
-			if series, ok := v.([]interface{}); ok {
-				for _, metricItem := range series {
-					if metricItemMap, ok := metricItem.(map[string]interface{}); ok {
+		for name, datapoints := range mapData {
+			if dps, ok := datapoints.([]interface{}); ok {
 
-						metricName := "ucmon_" + info.metricname
+				moduleLogger.Debugf("%d datapoints, %s.%s(%s), %v - %v", len(dps), info.resourceType, info.metricname, info.resourceID, begin, end)
+
+				for _, dp := range dps {
+					if datapoint, ok := dp.(map[string]interface{}); ok {
+
 						tags := map[string]string{
 							"Region":       ag.Region,
 							"Zone":         ag.Zone,
@@ -140,14 +142,27 @@ func (ag *ucInstance) fetchMetric(ctx context.Context, info *queryListInfo) erro
 							"ResourceID":   info.resourceID,
 							"ResourceType": info.resourceType,
 						}
-						fields := metricItemMap
-						metricTime := time.Unix(time.Now().Unix(), 0)
-						if tm, ok := fields["Timestamp"].(float64); ok {
-							metricTime = time.Unix(int64(tm), 0)
-							delete(fields, "Timestamp")
+
+						fields := map[string]interface{}{}
+
+						if val, ok := datapoint["Value"]; ok {
+							fields[name] = val
+						} else {
+							moduleLogger.Warnf("Value not found, %s", datapoint)
+							continue
 						}
 
-						io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields, metricTime)
+						metricTime := time.Now().UTC()
+						if tm, ok := fields["Timestamp"].(float64); ok {
+							metricTime = time.Unix(int64(tm), 0)
+						}
+
+						if ag.debugMode {
+							data, _ := io.MakeMetric(measurement, tags, fields, metricTime)
+							fmt.Printf("-----%s\n", string(data))
+						} else {
+							io.NamedFeedEx(inputName, io.Metric, measurement, tags, fields, metricTime)
+						}
 
 					}
 				}
@@ -160,10 +175,14 @@ func (ag *ucInstance) fetchMetric(ctx context.Context, info *queryListInfo) erro
 	return nil
 }
 
+func newAgent() *ucInstance {
+	ac := &ucInstance{}
+	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
+	return ac
+}
+
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		ac := &ucInstance{}
-		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-		return ac
+		return newAgent()
 	})
 }
