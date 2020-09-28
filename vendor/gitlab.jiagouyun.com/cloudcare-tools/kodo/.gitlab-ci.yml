@@ -1,0 +1,62 @@
+before_script:
+  - rm -rf /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/kodo
+  - mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/kodo/image
+  - mv * /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/kodo
+  - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/kodo
+
+variables:
+  PROJECT: "kodo"
+
+stages:
+  - deploy
+
+build:
+  stage: deploy
+  only:
+    - /^release(\/|-)?.*$/
+    - dev
+    - logger
+    - /^pre(\/|-)?.*$/
+    - branch-to-debug-gitlab-CI
+  script:
+    - GO111MODULE=off go build -v -o ./image/kodo cmd/kodows/main.go
+    - GO111MODULE=off go build -v -o ./image/kodows cmd/kodows/main.go
+    - docker build -t kodo:$CI_COMMIT_REF_NAME ./image/
+    - docker tag kodo:$CI_COMMIT_REF_NAME registry.jiagouyun.com/kodo/kodo:$CI_COMMIT_REF_NAME
+    - docker push registry.jiagouyun.com/kodo/kodo:$CI_COMMIT_REF_NAME
+  tags:
+    - cloudcare-tools
+
+buildRTM:
+  stage: deploy
+  only:
+    - /\d+\.\d+\.\d+-\w+-\d+-prod/
+  script:
+    - GO111MODULE=off go build -v -o ./image/kodo cmd/kodo/main.go
+    - GO111MODULE=off go build -v -o ./image/kodows cmd/kodows/main.go
+    - V=(${CI_COMMIT_REF_NAME//[\.-]/ })
+    - VDIR=${V[0]}.${V[1]}.${V[2]}
+    - REPO=dataflux/$VDIR
+    - TAG=${PROJECT}-${V[3]}-${V[4]}
+    - docker build -t $REPO:$TAG ./image/
+    - docker tag $REPO:$TAG pubrepo.jiagouyun.com/$REPO:$TAG
+    - docker push pubrepo.jiagouyun.com/$REPO:$TAG
+  tags:
+    - cloudcare
+
+buildRTMPrev:
+  stage: deploy
+  only:
+    - /\d+\.\d+\.\d+\.\d+-\w+-prev/
+  script:
+    - GO111MODULE=off go build -v -o ./image/kodo cmd/kodo/main.go
+    - GO111MODULE=off go build -v -o ./image/kodows cmd/kodows/main.go
+    - V=(${CI_COMMIT_REF_NAME//[\.-]/ })
+    - VDIR=${V[0]}.${V[1]}.${V[2]}.${V[3]}
+    - REPO=dataflux-prev/$VDIR
+    - TAG=${PROJECT}-${V[4]}
+    - docker build -t $REPO:$TAG ./image/
+    - docker tag $REPO:$TAG pubrepo.jiagouyun.com/$REPO:$TAG
+    - docker push pubrepo.jiagouyun.com/$REPO:$TAG
+  tags:
+    - cloudcare
