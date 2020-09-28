@@ -30,8 +30,8 @@ const (
     ignore = [""]
 
     # read file from beginning
-    # if from_begin was false, 
-    from_begin = false
+    # if from_begin was false, off auto discovery file
+    from_beginning = false
 
     # required
     source = ""
