@@ -29,7 +29,7 @@ const (
     ignore = [""]
 
     # required
-    source = "tailf"
+    source = ""
 
     # [inputs.tailf.tags]
     # tags1 = "value1"
@@ -117,7 +117,7 @@ func (t *Tailf) loadcfg() bool {
 		}
 
 		if t.Source == "" {
-			l.Errorf("invalid source")
+			l.Errorf("tailf source was empty")
 			time.Sleep(time.Second)
 		} else {
 			break
