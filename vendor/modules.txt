@@ -98,7 +98,7 @@ github.com/antchfx/jsonquery
 github.com/antchfx/xpath
 # github.com/apache/thrift v0.13.0
 github.com/apache/thrift/lib/go/thrift
-# github.com/aws/aws-sdk-go v1.30.9
+# github.com/aws/aws-sdk-go v1.31.12
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/aws/awsutil
@@ -270,11 +270,11 @@ github.com/eclipse/paho.mqtt.golang
 github.com/eclipse/paho.mqtt.golang/packets
 # github.com/fatih/structs v1.0.0
 github.com/fatih/structs
-# github.com/fsnotify/fsnotify v1.4.7
+# github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
 # github.com/gin-contrib/sse v0.1.0
 github.com/gin-contrib/sse
-# github.com/gin-gonic/gin v1.6.2
+# github.com/gin-gonic/gin v1.6.3
 github.com/gin-gonic/gin
 github.com/gin-gonic/gin/binding
 github.com/gin-gonic/gin/internal/bytesconv
@@ -295,9 +295,9 @@ github.com/go-playground/locales
 github.com/go-playground/locales/currency
 # github.com/go-playground/universal-translator v0.17.0
 github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.2.0
+# github.com/go-playground/validator/v10 v10.3.0
 github.com/go-playground/validator/v10
-# github.com/go-redis/redis v6.15.7+incompatible
+# github.com/go-redis/redis v6.15.8+incompatible
 github.com/go-redis/redis
 github.com/go-redis/redis/internal
 github.com/go-redis/redis/internal/consistenthash
@@ -322,6 +322,16 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
+# github.com/gobwas/httphead v0.0.0-20200921212729-da3d93bc3c58
+github.com/gobwas/httphead
+# github.com/gobwas/pool v0.2.1
+github.com/gobwas/pool
+github.com/gobwas/pool/internal/pmath
+github.com/gobwas/pool/pbufio
+github.com/gobwas/pool/pbytes
+# github.com/gobwas/ws v1.0.4
+github.com/gobwas/ws
+github.com/gobwas/ws/wsutil
 # github.com/godbus/dbus/v5 v5.0.3
 github.com/godbus/dbus/v5
 # github.com/godror/godror v0.17.0
@@ -367,6 +377,8 @@ github.com/google/gopacket/layers
 github.com/google/gopacket/pcap
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
+# github.com/gorilla/websocket v1.4.0
+github.com/gorilla/websocket
 # github.com/grpc-ecosystem/grpc-gateway v1.12.1
 github.com/grpc-ecosystem/grpc-gateway/internal
 github.com/grpc-ecosystem/grpc-gateway/runtime
@@ -440,9 +452,6 @@ github.com/influxdata/telegraf/plugins/inputs/memcached
 github.com/influxdata/telegraf/plugins/inputs/modbus
 github.com/influxdata/telegraf/plugins/inputs/mongodb
 github.com/influxdata/telegraf/plugins/inputs/mqtt_consumer
-github.com/influxdata/telegraf/plugins/inputs/mysql
-github.com/influxdata/telegraf/plugins/inputs/mysql/v1
-github.com/influxdata/telegraf/plugins/inputs/mysql/v2
 github.com/influxdata/telegraf/plugins/inputs/nats
 github.com/influxdata/telegraf/plugins/inputs/net
 github.com/influxdata/telegraf/plugins/inputs/net_response
@@ -520,6 +529,18 @@ github.com/jackc/pgx/stdlib
 # github.com/jcmturner/gofork v1.0.0
 github.com/jcmturner/gofork/encoding/asn1
 github.com/jcmturner/gofork/x/crypto/pbkdf2
+# github.com/jdcloud-api/jdcloud-sdk-go v1.43.0
+github.com/jdcloud-api/jdcloud-sdk-go/core
+github.com/jdcloud-api/jdcloud-sdk-go/services/charge/models
+github.com/jdcloud-api/jdcloud-sdk-go/services/common/models
+github.com/jdcloud-api/jdcloud-sdk-go/services/disk/models
+github.com/jdcloud-api/jdcloud-sdk-go/services/monitor/apis
+github.com/jdcloud-api/jdcloud-sdk-go/services/monitor/client
+github.com/jdcloud-api/jdcloud-sdk-go/services/monitor/models
+github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis
+github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client
+github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models
+github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models
 # github.com/jmespath/go-jmespath v0.3.0
 github.com/jmespath/go-jmespath
 # github.com/json-iterator/go v1.1.10
@@ -648,7 +669,7 @@ github.com/pkg/sftp
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.13.0
+# github.com/prometheus/common v0.14.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
@@ -785,14 +806,18 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200903031355-5947d2219283
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200924074212-8d61bb78afeb
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 # gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 gitlab.jiagouyun.com/cloudcare-tools/ftagent/lua
 gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20200928035315-f2d6f0279a19
+gitlab.jiagouyun.com/cloudcare-tools/kodo
+gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg
 # go.mongodb.org/mongo-driver v1.3.1
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -831,11 +856,11 @@ go.opencensus.io/internal
 go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
-# go.uber.org/atomic v1.6.0
+# go.uber.org/atomic v1.7.0
 go.uber.org/atomic
-# go.uber.org/multierr v1.5.0
+# go.uber.org/multierr v1.6.0
 go.uber.org/multierr
-# go.uber.org/zap v1.15.0
+# go.uber.org/zap v1.16.0
 go.uber.org/zap
 go.uber.org/zap/buffer
 go.uber.org/zap/internal/bufferpool
@@ -884,7 +909,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20200808120158-1030fc2bf1d9
+# golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
