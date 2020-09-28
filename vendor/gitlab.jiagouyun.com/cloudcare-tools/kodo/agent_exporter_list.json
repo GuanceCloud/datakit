@@ -1,0 +1,11 @@
+[{
+        "name": "ft_node_exporter",
+        "url": "https://github.com/CloudCare/ft_node_exporter",
+        "details": ""
+    },
+    {
+        "name": "ft_wmi_exporter",
+        "url": "https://github.com/CloudCare/ft_wmi_exporter",
+        "details": ""
+    }
+]

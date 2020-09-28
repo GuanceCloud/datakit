@@ -7,12 +7,14 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
@@ -102,6 +104,7 @@ type DataWayCfg struct {
 
 	host      string
 	scheme    string
+	wstoken   string
 	urlValues url.Values
 
 	wspath      string
@@ -148,6 +151,19 @@ func (dc *DataWayCfg) KeyEventURL() string {
 		dc.host,
 		"/v1/write/keyevent",
 		dc.urlValues.Encode())
+}
+
+func (dc *DataWayCfg) BuildWSURL(mc *MainConfig) *url.URL {
+
+	rawQuery := fmt.Sprintf("id=%s&version=%s&os=%s&arch=%s&token=%s",
+		mc.UUID, git.Version, runtime.GOOS, runtime.GOARCH, dc.wstoken)
+
+	return &url.URL{
+		Scheme:   dc.wsscheme,
+		Host:     dc.wshost,
+		Path:     dc.wspath,
+		RawQuery: rawQuery,
+	}
 }
 
 func (dc *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
@@ -241,6 +257,11 @@ func ParseDataway(httpurl, wsurl string) (*DataWayCfg, error) {
 			dc.wspath = u.Path
 			if dc.wspath == "" {
 				dc.wspath = DefaultWebsocketPath
+			}
+
+			dc.wstoken = dc.wsUrlValues.Get("token")
+			if dc.wstoken == "" {
+				l.Warn("ws token missing, ignored")
 			}
 
 		case "http", "https":
