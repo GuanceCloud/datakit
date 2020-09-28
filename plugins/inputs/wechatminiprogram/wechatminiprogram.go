@@ -62,10 +62,6 @@ func (an *Analysis) run(wx *WxClient) {
 	if err != nil {
 		l.Error(err)
 	}
-	if wx.RunTime != "" {
-		sleepTime := wx.formatRuntime()
-		time.Sleep(time.Duration(sleepTime) * time.Second)
-	}
 
 	for {
 		token := wx.GetAccessToken()
@@ -139,6 +135,10 @@ func (wx *WxClient) Run() {
 	if wx.Operation != nil {
 		wx.addModule(wx.Operation)
 
+	}
+	if wx.RunTime != "" {
+		sleepTime := wx.formatRuntime()
+		time.Sleep(time.Duration(sleepTime) * time.Second)
 	}
 
 	for _, s := range wx.subModules {
