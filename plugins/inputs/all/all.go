@@ -79,7 +79,8 @@ import (
 
 	// external inputs wrap
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ansible"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/csv"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/csvmetric"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/csvobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
 	//
 	// Buggy inputs
