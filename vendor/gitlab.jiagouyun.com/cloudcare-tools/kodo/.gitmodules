@@ -1,0 +1,6 @@
+[submodule "vendor/github.com/olivere/vendor/github.com/olivere/elastic"]
+	path = vendor/github.com/olivere/vendor/github.com/olivere/elastic
+	url = https://github.com/olivere/elastic
+[submodule "vendor/github.com/olivere/elastic"]
+	path = vendor/github.com/olivere/elastic
+	url = https://github.com/olivere/elastic
