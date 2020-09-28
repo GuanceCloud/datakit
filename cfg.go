@@ -146,7 +146,24 @@ func (dc *DataWayCfg) KeyEventURL() string {
 }
 
 func (dc *DataWayCfg) Test() error {
-	conn, err := net.DialTimeout("tcp", dc.host, time.Minute)
+
+	tcphost := dc.host
+
+	if _, _, err := net.SplitHostPort(tcphost); err != nil {
+		switch dc.scheme {
+		case "http", "ws":
+			tcphost += ":80"
+		case "https", "wss":
+			tcphost += ":443"
+		}
+
+		if _, _, err := net.SplitHostPort(tcphost); err != nil {
+			l.Errorf("net.SplitHostPort(): %s", err)
+			return err
+		}
+	}
+
+	conn, err := net.DialTimeout("tcp", tcphost, time.Second*5)
 	if err != nil {
 		l.Errorf("TCP dial host `%s' failed: %s", dc.host, err.Error())
 		return err
@@ -181,17 +198,12 @@ func ParseDataway(urlstr string) (*DataWayCfg, error) {
 		dwcfg.host = u.Host
 		u.Path = "" // clear any path
 
-		if dwcfg.scheme == "https" {
-			dwcfg.host += ":443"
-		}
-
 		dwcfg.URL = u.String()
 	} else {
 		l.Errorf("parse url %s failed: %s", urlstr, err.Error())
 		return nil, err
 	}
 
-	l.Debugf("dataway config: %+#v", dwcfg)
 	return dwcfg, nil
 }
 

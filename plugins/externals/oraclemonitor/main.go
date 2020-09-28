@@ -134,12 +134,12 @@ func (m *monitor) run() {
 	for {
 		select {
 		case <-tick.C:
-			for _, ec := range execCfgs {
+			for idx, _ := range execCfgs {
 				wg.Add(1)
-				go func() {
+				go func(i int) {
 					defer wg.Done()
-					m.handle(ec)
-				}()
+					m.handle(execCfgs[i])
+				}(idx)
 			}
 
 			wg.Wait() // blocking
@@ -153,6 +153,8 @@ func (m *monitor) handle(ec *ExecCfg) {
 		l.Errorf("oracle query `%s' faild: %v, ignored", ec.metricType, err)
 		return
 	}
+
+	l.Debugf("get %d result from metric %s", len(res), ec.metricType)
 
 	if res == nil {
 		return
@@ -189,6 +191,7 @@ func handleResponse(m *monitor, k string, tagsKeys []string, response []map[stri
 
 		pt, err := ifxcli.NewPoint(m.metric, tags, item, time.Now())
 		if err != nil {
+			l.Error("NewPoint(): %s", err.Error())
 			return err
 		}
 
