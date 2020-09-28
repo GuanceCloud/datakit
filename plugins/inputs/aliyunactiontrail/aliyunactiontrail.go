@@ -238,7 +238,10 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 		default:
 		}
 
-		tags := map[string]string{}
+		tags := map[string]string{
+			"__source": "aliyun_actiontrail",
+		}
+
 		fields := map[string]interface{}{}
 
 		if eventType, ok := ev["eventType"].(string); ok {
@@ -252,46 +255,6 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 		if serviceName, ok := ev["serviceName"].(string); ok {
 			tags["serviceName"] = serviceName
 		}
-
-		// fields["eventId"] = ev["eventId"]
-		// if fields["eventSource"] != nil {
-		// 	fields["eventSource"] = ev["eventSource"]
-		// }
-		// if ev["sourceIpAddress"] != nil {
-		// 	fields["sourceIpAddress"] = ev["sourceIpAddress"]
-		// }
-		// if fields["userAgent"] != nil {
-		// 	fields["userAgent"] = ev["userAgent"]
-		// }
-		// if fields["eventVersion"] != nil {
-		// 	fields["eventVersion"] = ev["eventVersion"]
-		// }
-
-		// if userIdentity, ok := ev["userIdentity"].(map[string]interface{}); ok {
-		// 	if fields["userIdentity_accountId"] != nil {
-		// 		fields["userIdentity_accountId"] = userIdentity["accountId"]
-		// 	}
-		// 	if fields["userIdentity_type"] != nil {
-		// 		fields["userIdentity_type"] = userIdentity["type"]
-		// 	}
-		// 	if fields["userIdentity_principalId"] != nil {
-		// 		fields["userIdentity_principalId"] = userIdentity["principalId"]
-		// 	}
-
-		// 	if userName, ok := userIdentity["userName"].(string); ok && userName != "" {
-		// 		tags["userIdentity_userName"] = userName
-		// 	}
-
-		// 	if accessKeyID, ok := userIdentity["accessKeyId"].(string); ok && accessKeyID != "" {
-		// 		tags["userIdentity_accessKeyId"] = accessKeyID
-		// 	}
-		// }
-
-		// if additionalEventData, ok := ev["additionalEventData"].(map[string]interface{}); ok {
-		// 	if fields["isMFAChecked"] != nil {
-		// 		fields["isMFAChecked"] = additionalEventData["isMFAChecked"]
-		// 	}
-		// }
 
 		eventTime := ev["eventTime"].(string) //utc
 		evtm, err := time.Parse(`2006-01-02T15:04:05Z`, eventTime)
