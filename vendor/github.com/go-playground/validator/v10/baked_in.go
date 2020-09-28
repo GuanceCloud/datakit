@@ -120,6 +120,8 @@ var (
 		"excludesrune":         excludesRune,
 		"startswith":           startsWith,
 		"endswith":             endsWith,
+		"startsnotwith":        startsNotWith,
+		"endsnotwith":          endsNotWith,
 		"isbn":                 isISBN,
 		"isbn10":               isISBN10,
 		"isbn13":               isISBN13,
@@ -688,6 +690,16 @@ func startsWith(fl FieldLevel) bool {
 // EndsWith is the validation function for validating that the field's value ends with the text specified within the param.
 func endsWith(fl FieldLevel) bool {
 	return strings.HasSuffix(fl.Field().String(), fl.Param())
+}
+
+// StartsNotWith is the validation function for validating that the field's value does not start with the text specified within the param.
+func startsNotWith(fl FieldLevel) bool {
+	return !startsWith(fl)
+}
+
+// EndsNotWith is the validation function for validating that the field's value does not end with the text specified within the param.
+func endsNotWith(fl FieldLevel) bool {
+	return !endsWith(fl)
 }
 
 // FieldContains is the validation function for validating if the current field's value contains the field specified by the param's value.
@@ -1990,12 +2002,7 @@ func isFQDN(fl FieldLevel) bool {
 		return false
 	}
 
-	if val[len(val)-1] == '.' {
-		val = val[0 : len(val)-1]
-	}
-
-	return strings.ContainsAny(val, ".") &&
-		hostnameRegexRFC952.MatchString(val)
+	return fqdnRegexRFC1123.MatchString(val)
 }
 
 // IsDir is the validation function for validating if the current field's value is a valid directory.
