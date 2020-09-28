@@ -337,6 +337,12 @@ func Start() {
 		defer datakit.WG.Done()
 		GRPCServer(datakit.GRPCDomainSock)
 	}()
+
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		startWS()
+	}()
 }
 
 func flush(cache map[string][][]byte) {
