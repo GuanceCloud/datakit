@@ -26,6 +26,7 @@ type WxClient struct {
 	Tags      map[string]string `toml:"tags,omitempty"`
 	Analysis  *Analysis         `toml:"analysis,omitempty"`
 	Operation *Operation        `toml:"operation,omitempty"`
+	RunTime string   `toml:"runtime,omitempty"`
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
@@ -39,7 +40,6 @@ type subModule interface {
 
 type Analysis struct {
 	Name    []string `toml:"name,omitempty"`
-	RunTime string   `toml:"runtime"`
 }
 
 type Operation struct {
@@ -62,8 +62,11 @@ func (an *Analysis) run(wx *WxClient) {
 	if err != nil {
 		l.Error(err)
 	}
-	sleepTime := wx.formatRuntime()
-	time.Sleep(time.Duration(sleepTime) * time.Second)
+	if wx.RunTime != "" {
+		sleepTime := wx.formatRuntime()
+		time.Sleep(time.Duration(sleepTime) * time.Second)
+	}
+
 	for {
 		token := wx.GetAccessToken()
 		wxClient := reflect.ValueOf(wx)
@@ -87,7 +90,7 @@ func (an *Analysis) run(wx *WxClient) {
 
 func (op *Operation) run(wx *WxClient) {
 	l.Info("operation run")
-	interval, err := time.ParseDuration("5m")
+	interval, err := time.ParseDuration("24h")
 	if err != nil {
 		l.Error(err)
 	}
@@ -188,13 +191,14 @@ func (wx *WxClient) DailyVisitTrend(accessToken string) {
 func (wx *WxClient) VisitDistribution(accessToken string) () {
 	body, timeObj := wx.API(accessToken, VisitDistributionURL)
 	tags := map[string]string{}
-	tags["appid"] = wx.Appid
 	fields := map[string]interface{}{}
+	tags["appid"] = wx.Appid
 	for _, v := range gjson.Get(string(body), "list").Array() {
 		index := v.Get("index").String()
 		for _, item := range v.Get("item_list").Array() {
 			if itemValue, ok := Config[index]; ok {
-				tags[index] = itemValue[item.Get("key").String()]
+				tags["index_key"] = index
+				tags["index_value"] = itemValue[item.Get("key").String()]
 				fields["visit_pv"] = item.Get("value").Int()
 				wx.writeMetric("VisitDistribution", tags, fields, timeObj)
 			}
@@ -279,13 +283,14 @@ func (wx *WxClient) GetAccessToken() (token string) {
 }
 
 func (wx *WxClient) FormatUserPortraitData(body, dataType string, timeObj time.Time) () {
+	tags := map[string]string{}
+	tags["appid"] = wx.Appid
+	fields := map[string]interface{}{}
 	for k, v := range gjson.Get(body, dataType).Map() {
 		for _, value := range v.Array() {
-			tags := map[string]string{}
-			tags["appid"] = wx.Appid
-			fields := map[string]interface{}{}
-			tags[k] = value.Get("name").String()
-			fields[fmt.Sprintf("%s_by_%s", dataType, k)] = value.Get("value").Int()
+			tags["index_key"] = k
+			tags["index_value"] = value.Get("name").String()
+			fields[dataType] = value.Get("value").Int()
 			wx.writeMetric("UserPortrait", tags, fields, timeObj)
 		}
 	}
@@ -366,8 +371,8 @@ func (wx *WxClient) Performance(accessToken string) () {
 	var cstZone = time.FixedZone("CST", offect)
 	d, _ := time.ParseDuration("-24h")
 	date := time.Now().Add(d).In(cstZone).Format("20060102")
-	start, _ := time.ParseInLocation("20060102 15:04:05", date+" 23:59:59", cstZone)
-	end, _ := time.ParseInLocation("20060102 15:04:05", date+" 00:00:00", cstZone)
+	end, _ := time.ParseInLocation("20060102 15:04:05", date+" 23:59:59", cstZone)
+	start, _ := time.ParseInLocation("20060102 15:04:05", date+" 00:00:00", cstZone)
 	for k, v := range Config["cost_time_type"] {
 		key, _ := strconv.Atoi(k)
 		bodyMap := map[string]interface{}{
@@ -453,10 +458,11 @@ func (wx *WxClient) API(accessToken, apiUrl string) ([]byte, time.Time) {
 }
 
 func (wx *WxClient) formatRuntime() int64 {
+
 	var cstZone = time.FixedZone("CST", offect)
 	now := time.Now().In(cstZone)
 
-	format := fmt.Sprintf("%s %s:00", now.Format("20060102"), wx.Analysis.RunTime)
+	format := fmt.Sprintf("%s %s:00", now.Format("20060102"), wx.RunTime)
 	runTime, err := time.ParseInLocation("20060102 15:04:05", format, cstZone)
 	if err != nil {
 		return wx.formatRuntime()
