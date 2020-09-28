@@ -203,10 +203,7 @@ func (r *AliyunActiontrail) run() error {
 		now := time.Now().UTC().Truncate(time.Minute)
 		if lastTime.IsZero() {
 			lastTime = now.Add(-r.Interval.Duration)
-		} else {
-			lastTime = lastTime.Add(-time.Minute)
 		}
-
 		from := timeStrISO8601(lastTime)
 		to := timeStrISO8601(now)
 
@@ -256,46 +253,45 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 			tags["serviceName"] = serviceName
 		}
 
-		fields["eventId"] = ev["eventId"]
-		if fields["eventSource"] != nil {
-			fields["eventSource"] = ev["eventSource"]
-		}
-		if ev["sourceIpAddress"] != nil {
-			fields["sourceIpAddress"] = ev["sourceIpAddress"]
-		}
-		if fields["userAgent"] != nil {
-			fields["userAgent"] = ev["userAgent"]
-		}
-		if fields["eventVersion"] != nil {
-			fields["eventVersion"] = ev["eventVersion"]
-		}
+		// fields["eventId"] = ev["eventId"]
+		// if fields["eventSource"] != nil {
+		// 	fields["eventSource"] = ev["eventSource"]
+		// }
+		// if ev["sourceIpAddress"] != nil {
+		// 	fields["sourceIpAddress"] = ev["sourceIpAddress"]
+		// }
+		// if fields["userAgent"] != nil {
+		// 	fields["userAgent"] = ev["userAgent"]
+		// }
+		// if fields["eventVersion"] != nil {
+		// 	fields["eventVersion"] = ev["eventVersion"]
+		// }
 
-		if userIdentity, ok := ev["userIdentity"].(map[string]interface{}); ok {
-			if fields["userIdentity_accountId"] != nil {
-				fields["userIdentity_accountId"] = userIdentity["accountId"]
-			}
-			if fields["userIdentity_type"] != nil {
-				fields["userIdentity_type"] = userIdentity["type"]
-			}
-			if fields["userIdentity_principalId"] != nil {
-				fields["userIdentity_principalId"] = userIdentity["principalId"]
-			}
+		// if userIdentity, ok := ev["userIdentity"].(map[string]interface{}); ok {
+		// 	if fields["userIdentity_accountId"] != nil {
+		// 		fields["userIdentity_accountId"] = userIdentity["accountId"]
+		// 	}
+		// 	if fields["userIdentity_type"] != nil {
+		// 		fields["userIdentity_type"] = userIdentity["type"]
+		// 	}
+		// 	if fields["userIdentity_principalId"] != nil {
+		// 		fields["userIdentity_principalId"] = userIdentity["principalId"]
+		// 	}
 
-			if userName, ok := userIdentity["userName"].(string); ok && userName != "" {
-				tags["userIdentity_userName"] = userName
-			}
+		// 	if userName, ok := userIdentity["userName"].(string); ok && userName != "" {
+		// 		tags["userIdentity_userName"] = userName
+		// 	}
 
-			if accessKeyID, ok := userIdentity["accessKeyId"].(string); ok && accessKeyID != "" {
-				tags["userIdentity_accessKeyId"] = accessKeyID
-			}
-		}
+		// 	if accessKeyID, ok := userIdentity["accessKeyId"].(string); ok && accessKeyID != "" {
+		// 		tags["userIdentity_accessKeyId"] = accessKeyID
+		// 	}
+		// }
 
-		if additionalEventData, ok := ev["additionalEventData"].(map[string]interface{}); ok {
-			//fields["loginAccount"] = additionalEventData["loginAccount"]
-			if fields["isMFAChecked"] != nil {
-				fields["isMFAChecked"] = additionalEventData["isMFAChecked"]
-			}
-		}
+		// if additionalEventData, ok := ev["additionalEventData"].(map[string]interface{}); ok {
+		// 	if fields["isMFAChecked"] != nil {
+		// 		fields["isMFAChecked"] = additionalEventData["isMFAChecked"]
+		// 	}
+		// }
 
 		eventTime := ev["eventTime"].(string) //utc
 		evtm, err := time.Parse(`2006-01-02T15:04:05Z`, eventTime)
