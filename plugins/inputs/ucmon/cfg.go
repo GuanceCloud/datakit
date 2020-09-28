@@ -56,8 +56,6 @@ type (
 	}
 
 	queryListInfo struct {
-		//meta *metricMeta
-
 		intervalTime time.Duration
 
 		resourceID   string
