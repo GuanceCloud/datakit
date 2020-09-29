@@ -22,14 +22,19 @@ const (
 
 	sampleCfg = `
 [[inputs.tailf]]
+    # glob logfiles
     # required
     logfiles = ["/usr/local/cloudcare/dataflux/datakit/*.txt"]
 
     # glob filteer
     ignore = [""]
 
+    # read file from beginning
+    # if from_begin was false, off auto discovery file
+    from_beginning = false
+
     # required
-    source = "tailf"
+    source = ""
 
     # [inputs.tailf.tags]
     # tags1 = "value1"
@@ -44,10 +49,11 @@ const (
 var l = logger.DefaultSLogger(inputName)
 
 type Tailf struct {
-	LogFiles []string          `toml:"logfiles"`
-	Ignore   []string          `toml:"ignore"`
-	Source   string            `toml:"source"`
-	Tags     map[string]string `toml:"tags"`
+	LogFiles      []string          `toml:"logfiles"`
+	Ignore        []string          `toml:"ignore"`
+	FromBeginning bool              `toml:"from_beginning"`
+	Source        string            `toml:"source"`
+	Tags          map[string]string `toml:"tags"`
 
 	tailerConf tail.Config
 
@@ -102,6 +108,12 @@ func (t *Tailf) Run() {
 					l.Debugf("file %s already tailing now", f)
 				}
 			}
+
+			if t.FromBeginning {
+				// off auto discovery file
+				// ticker was unreachable
+				ticker.Stop()
+			}
 		}
 	}
 }
@@ -117,20 +129,25 @@ func (t *Tailf) loadcfg() bool {
 		}
 
 		if t.Source == "" {
-			l.Errorf("invalid source")
+			l.Errorf("tailf source was empty")
 			time.Sleep(time.Second)
 		} else {
 			break
 		}
 	}
 
-	t.tailerConf = tail.Config{
-		ReOpen: true,
-		Follow: true,
-		Location: &tail.SeekInfo{
+	var seek *tail.SeekInfo
+	if !t.FromBeginning {
+		seek = &tail.SeekInfo{
 			Whence: 2, // seek is 2
 			Offset: 0,
-		},
+		}
+	}
+
+	t.tailerConf = tail.Config{
+		ReOpen:    true,
+		Follow:    true,
+		Location:  seek,
 		MustExist: true,
 		Poll:      false, // default watch method is "inotify"
 		Pipe:      false,
