@@ -2,6 +2,9 @@ package telegraf_inputs
 
 var (
 	samples = map[string]string{
+
+		/////////////////////////////////////////////////////////////////////////////////////////
+
 		"kube_inventory": `
 		[[inputs.kube_inventory]]
   ## URL for the Kubernetes API
