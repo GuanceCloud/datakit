@@ -345,32 +345,25 @@ func flush(cache map[string][][]byte) {
 
 	defer httpCli.CloseIdleConnections()
 
-	if err := doFlush(cache[Metric], Metric); err == nil {
-		curCacheCnt -= len(cache[Metric])
-		cache[Metric] = nil
+	if err := doFlush(cache[Metric], Metric); err != nil {
+		l.Errorf("post metrics failed, drop %d packages", len(cache[Metric]))
 	}
+	cache[Metric] = nil
 
-	if err := doFlush(cache[KeyEvent], KeyEvent); err == nil {
-		curCacheCnt -= len(cache[KeyEvent])
-		cache[KeyEvent] = nil
+	if err := doFlush(cache[KeyEvent], KeyEvent); err != nil {
+		l.Errorf("post keyevent failed, drop %d packages", len(cache[KeyEvent]))
 	}
+	cache[KeyEvent] = nil
 
-	if err := doFlush(cache[Object], Object); err == nil {
-		curCacheCnt -= len(cache[Object])
-		cache[Object] = nil
+	if err := doFlush(cache[Object], Object); err != nil {
+		l.Errorf("post object failed, drop %d packages", len(cache[Object]))
 	}
+	cache[Object] = nil
 
-	if err := doFlush(cache[Logging], Logging); err == nil {
-		curCacheCnt -= len(cache[Logging])
-		cache[Logging] = nil
+	if err := doFlush(cache[Logging], Logging); err != nil {
+		l.Errorf("post logging failed, drop %d packages", len(cache[Logging]))
 	}
-
-	if curCacheCnt > 1024 { // clear all cached data to avoid OOM
-		l.Warnf("cleanning %d cache to avoid OOM", curCacheCnt)
-		for k, _ := range cache {
-			delete(cache, k)
-		}
-	}
+	cache[Logging] = nil
 }
 
 func initCookies() {
