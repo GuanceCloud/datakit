@@ -109,7 +109,7 @@ func (x *CsvObject) Run() {
 	}
 
 	l.Info("csvobject started")
-	cmd := exec.Command("python3", args...)
+	cmd := exec.Command("python", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
