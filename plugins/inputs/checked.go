@@ -2,7 +2,7 @@ package inputs
 
 var (
 	AllInputs = map[string]bool{
-		"active_directory":       false,
+		"active_directory":       true,
 		"activemq":               true,
 		"aliyunactiontrail":      false,
 		"aliyuncdn":              true,
@@ -15,7 +15,7 @@ var (
 		"aliyunprice":            true,
 		"aliyunrdsslowlog":       true,
 		"aliyunsecurity":         true,
-		"amqp_consumer":          false,
+		"amqp_consumer":          true,
 		"ansible":                true,
 		"apache":                 true,
 		"aspdotnet":              true,
@@ -29,7 +29,7 @@ var (
 		"ceph":                   true,
 		"clickhouse":             true,
 		"cloudflare":             true,
-		"cloudwatch":             false,
+		"cloudwatch":             true,
 		"collectd":               true,
 		"confluence":             true,
 		"consul":                 true,
@@ -44,13 +44,13 @@ var (
 		"docker":                 true,
 		"docker_containers":      true,
 		"dockerlog":              true,
-		"dotnetclr":              false,
+		"dotnetclr":              true,
 		"druid":                  true,
 		"elasticsearch":          true,
 		"envoy":                  true,
 		"etcd":                   true,
 		"exec":                   true,
-		"expressjs":              false, // TODO: impl by http-input
+		"expressjs":              true,
 		"external":               true,
 		"flink":                  true,
 		"fluentd":                true,
