@@ -37,6 +37,7 @@ var (
 		Object:           nil,
 		Logging:          nil,
 	}
+	curCacheCnt = 0
 
 	categoryURLs map[string]string
 
@@ -277,6 +278,7 @@ func startIO() {
 					}
 
 					cache[d.category] = append(cache[d.category], d.data)
+					curCacheCnt++
 
 					stat, ok := inputstats[d.name]
 					if !ok {
@@ -350,19 +352,30 @@ func flush(cache map[string][][]byte) {
 	defer httpCli.CloseIdleConnections()
 
 	if err := doFlush(cache[Metric], Metric); err == nil {
+		curCacheCnt -= len(cache[Metric])
 		cache[Metric] = nil
 	}
 
 	if err := doFlush(cache[KeyEvent], KeyEvent); err == nil {
+		curCacheCnt -= len(cache[KeyEvent])
 		cache[KeyEvent] = nil
 	}
 
 	if err := doFlush(cache[Object], Object); err == nil {
+		curCacheCnt -= len(cache[Object])
 		cache[Object] = nil
 	}
 
 	if err := doFlush(cache[Logging], Logging); err == nil {
+		curCacheCnt -= len(cache[Logging])
 		cache[Logging] = nil
+	}
+
+	if curCacheCnt > 1024 { // clear all cached data to avoid OOM
+		l.Warnf("cleanning %d cache to avoid OOM", curCacheCnt)
+		for k, _ := range cache {
+			delete(cache, k)
+		}
 	}
 }
 
