@@ -53,7 +53,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/openntpd"
 	"github.com/influxdata/telegraf/plugins/inputs/ping"
 	"github.com/influxdata/telegraf/plugins/inputs/postgresql"
-	"github.com/influxdata/telegraf/plugins/inputs/processes"
 	"github.com/influxdata/telegraf/plugins/inputs/procstat"
 	"github.com/influxdata/telegraf/plugins/inputs/rabbitmq"
 	"github.com/influxdata/telegraf/plugins/inputs/redis"
@@ -101,20 +100,24 @@ func (ti *TelegrafInput) SampleConfig() string {
 		l.Fatal("%s should have a specific config-sample", ti.name)
 	}
 
-	return fmt.Sprintf("[[inputs.%s]]\n%s", ti.name, ti.input.SampleConfig())
+	s := ti.input.SampleConfig()
+	if s == "" {
+		s = "# no sample need here, just open the input"
+	}
+
+	return fmt.Sprintf("[[inputs.%s]]\n%s", ti.name, s)
 }
 
 var (
 	TelegrafInputs = map[string]*TelegrafInput{ // Name: Catalog
 
-		"disk":      {name: "disk", Catalog: "host", input: &disk.DiskStats{}},
-		"diskio":    {name: "diskio", Catalog: "host", input: &diskio.DiskIO{}},
-		"mem":       {name: "mem", Catalog: "host", input: &mem.MemStats{}},
-		"swap":      {name: "swap", Catalog: "host", input: &swap.SwapStats{}},
-		"system":    {name: "system", Catalog: "host", input: &system.SystemStats{}},
-		"cpu":       {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
-		"procstat":  {name: "procstat", Catalog: "host", input: &procstat.Procstat{}},
-		"processes": {name: "processes", Catalog: "host", input: &processes.Processes{}},
+		"disk":     {name: "disk", Catalog: "host", input: &disk.DiskStats{}},
+		"diskio":   {name: "diskio", Catalog: "host", input: &diskio.DiskIO{}},
+		"mem":      {name: "mem", Catalog: "host", input: &mem.MemStats{}},
+		"swap":     {name: "swap", Catalog: "host", input: &swap.SwapStats{}},
+		"system":   {name: "system", Catalog: "host", input: &system.SystemStats{}},
+		"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
+		"procstat": {name: "procstat", Catalog: "host", input: &procstat.Procstat{}},
 
 		"internal": {name: "internal", Catalog: "internal", Sample: samples["internal"], input: nil}, // import internal package not allowed
 
