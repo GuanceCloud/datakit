@@ -1,8 +1,12 @@
-class AbortException(Exception):
+# -*- encoding: utf8 -*-
+class ConfException(BaseException):
     pass
 
-class DropException(Exception):
+class AbortException(BaseException):
     pass
 
-class IgnoreException(Exception):
+class DropException(BaseException):
+    pass
+
+class IgnoreException(BaseException):
     pass
