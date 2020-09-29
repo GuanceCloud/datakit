@@ -25,6 +25,7 @@ type CsvField struct {
 }
 
 type CsvObject struct {
+	PythonEnv string         `toml:"pythonEnv"`
 	File      string         `toml:"file,omitempty"`
 	StartRows int            `toml:"startRows,omitempty"`
 	Interval  string         `toml:"interval,omitempty"`
@@ -37,6 +38,7 @@ type CsvObject struct {
 const (
 	configSample = `
 #[[inputs.csvobject]]
+#  pythonEnv = "python3"
 #  file      = "/path/your/csvfile.csv"
 #  startRows = 0
 #  interval  = "60s"
@@ -72,6 +74,7 @@ func (_ *CsvObject) SampleConfig() string {
 func (x *CsvObject) Run() {
 	var encodeStr string
 	var intVal int
+	var startCmd = "python"
 	l = logger.SLogger(inputName)
 	logFile := inputName + ".log"
 
@@ -108,8 +111,11 @@ func (x *CsvObject) Run() {
 		"--log_level", datakit.Cfg.MainCfg.LogLevel,
 	}
 
+	if x.PythonEnv != ""{
+		startCmd = x.PythonEnv
+	}
 	l.Info("csvobject started")
-	cmd := exec.Command("python", args...)
+	cmd := exec.Command(startCmd, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
