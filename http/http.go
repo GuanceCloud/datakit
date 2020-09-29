@@ -320,14 +320,6 @@ func apiWriteLog(c *gin.Context) {
 			break
 		}
 
-		var data interface{}
-
-		if err = json.Unmarshal(bytes, &data); err != nil {
-			l.Errorf("json unmarshal error %v", err)
-			uhttp.HttpErr(c, err)
-			return
-		}
-
 		tags := make(map[string]string)
 		fields := make(map[string]interface{})
 
@@ -336,11 +328,9 @@ func apiWriteLog(c *gin.Context) {
 		}
 
 		tm := time.Now()
-		if logMap, ok := data.(map[string]interface{}); ok {
-			fields = logMap
-		} else {
-			fields["log"] = data
-		}
+
+		n := len(bytes)
+		fields["__content"] = string(bytes[0 : n-1])
 
 		pt, err := io.MakeMetric(measurement, tags, fields, tm)
 		if err != nil {
@@ -351,7 +341,7 @@ func apiWriteLog(c *gin.Context) {
 
 		l.Debug("point data", string(pt))
 
-		err = io.NamedFeed([]byte(pt), io.Metric, "")
+		err = io.NamedFeed([]byte(pt), io.Logging, "")
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
 			uhttp.HttpErr(c, err)
