@@ -14,10 +14,10 @@ import (
 
 var (
 	logFiles = []string{
-		// "/tmp/tailf_test/**/*.*",
+		"/tmp/tailf_test/**/*.*",
 		// "/tmp/tailf_test/a123/ab.log",
 		// "/tmp/tailf_test/a123/*.txt",
-		//"/tmp/tailf_test/*.no",
+		// "/tmp/tailf_test/*.no",
 	}
 
 	ignore = []string{
@@ -72,14 +72,15 @@ func TestWrite(t *testing.T) {
 
 func TestMain(t *testing.T) {
 	io.TestOutput()
-	go TestWrite(t)
-	time.Sleep(time.Second)
+	// go TestWrite(t)
+	// time.Sleep(time.Second)
 
 	var tailer = Tailf{
-		LogFiles: logFiles,
-		Ignore:   ignore,
-		Source:   "NAXXRAMAS",
-		Tags:     map[string]string{"TestKey": "TestValue"},
+		LogFiles:      logFiles,
+		Ignore:        ignore,
+		FromBeginning: true,
+		Source:        "NAXXRAMAS",
+		Tags:          map[string]string{"TestKey": "TestValue"},
 	}
 
 	go func() {
