@@ -2,6 +2,7 @@ package csvmetric
 
 import (
 	"encoding/base64"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -30,6 +31,7 @@ type MetricField struct {
 }
 type CsvMetric struct {
 	File      string         `toml:"file"`
+	Interval  string         `toml:"interval,omitempty"`
 	StartRows int            `toml:"startRows"`
 	Metric    string         `toml:"metric"`
 	Tags      []string       `toml:"tags,omitempty"`
@@ -43,8 +45,9 @@ const (
 #[[inputs.csvmetric]]
 #  file      = "/path/your/csvfile.csv"
 #  startRows = 0 
+#  interval  = "60s"
 #  metric    = "metric-name"
-#  tags      = ["column-name1","column-name2","column-name3"] 
+#  tags      = ["column-name1","column-name2"] 
 #  [inputs.csvmetric.timestamp]
 #    column     = "column"
 #    timeFormat = "15/08/27 10:20:06"
@@ -61,6 +64,7 @@ const (
 #    nullFill   = "default-value"
 #    type       = "str"
 `
+	defaultInterval = "0s"
 )
 var (
 	l         *logger.Logger
@@ -77,6 +81,7 @@ func (_ *CsvMetric) SampleConfig() string {
 
 func (x *CsvMetric) Run() {
 	var encodeStr string
+	var intVal int
 	l = logger.SLogger(inputName)
 	logFile := inputName + ".log"
 
@@ -85,6 +90,17 @@ func (x *CsvMetric) Run() {
 		return
 	} else {
 		encodeStr = base64.StdEncoding.EncodeToString(b)
+	}
+
+	if x.Interval == "" {
+		x.Interval = defaultInterval
+	}
+
+	if interval, err := time.ParseDuration(x.Interval); err != nil {
+		l.Error(err)
+		return
+	} else {
+		intVal = int(interval)/1E9
 	}
 
 	if datakit.Cfg.MainCfg.HTTPBind == "" {
@@ -96,6 +112,7 @@ func (x *CsvMetric) Run() {
 	args := []string{
 		filepath.Join(datakit.InstallDir, "externals", "csv", "main.py"),
 		"--metric", encodeStr,
+		"--interval", fmt.Sprintf("%d", intVal),
 		"--http", "http://127.0.0.1:" + port,
 		"--log_file", filepath.Join(datakit.InstallDir, "externals", logFile),
 		"--log_level", datakit.Cfg.MainCfg.LogLevel,
