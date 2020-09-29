@@ -2,6 +2,7 @@ package csvobject
 
 import (
 	"encoding/base64"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,6 +27,7 @@ type CsvField struct {
 type CsvObject struct {
 	File      string         `toml:"file,omitempty"`
 	StartRows int            `toml:"startRows,omitempty"`
+	Interval  string         `toml:"interval,omitempty"`
 	Name      string         `toml:"name,omitempty"`
 	Class     string         `toml:"class,omitempty"`
 	Tags      []string       `toml:"tags,omitempty"`
@@ -37,9 +39,10 @@ const (
 #[[inputs.csvobject]]
 #  file      = "/path/your/csvfile.csv"
 #  startRows = 0
+#  interval  = "60s"
 #  name      = "objectname"
 #  class     = "objectclass"
-#  tags      = ["column-name1","column-name2","column-name3"]
+#  tags      = ["column-name1","column-name2"]
 #  [[inputs.csvobject.field]]
 #    column     = "column-name3"
 #    nullOp     = "ignore"
@@ -51,6 +54,7 @@ const (
 #    nullFill   = "default-value"
 #    type       = "str"
 `
+	defaultInterval = "0s"
 )
 var (
 	l         *logger.Logger
@@ -67,6 +71,7 @@ func (_ *CsvObject) SampleConfig() string {
 
 func (x *CsvObject) Run() {
 	var encodeStr string
+	var intVal int
 	l = logger.SLogger(inputName)
 	logFile := inputName + ".log"
 
@@ -75,6 +80,17 @@ func (x *CsvObject) Run() {
 		return
 	} else {
 		encodeStr = base64.StdEncoding.EncodeToString(b)
+	}
+
+	if x.Interval == "" {
+		x.Interval = defaultInterval
+	}
+
+	if interval, err := time.ParseDuration(x.Interval); err != nil {
+		l.Error(err)
+		return
+	} else {
+		intVal = int(interval)/1E9
 	}
 
 	if datakit.Cfg.MainCfg.HTTPBind == "" {
@@ -86,6 +102,7 @@ func (x *CsvObject) Run() {
 	args := []string{
 		filepath.Join(datakit.InstallDir, "externals", "csv", "main.py"),
 		"--object", encodeStr,
+		"--interval", fmt.Sprintf("%d", intVal),
 		"--http", "http://127.0.0.1:" + port,
 		"--log_file", filepath.Join(datakit.InstallDir, "externals", logFile),
 		"--log_level", datakit.Cfg.MainCfg.LogLevel,
