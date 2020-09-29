@@ -44,11 +44,9 @@ class MetricCfgChecker:
         tags = []
         if TAGS in self.toml:
             for tag in self.toml[TAGS]:
-                if tag not in self.title:
-                    raise Exception()
                 t          = {}
                 t[COLUMN] = tag
-                t[INDEX]  = self.title.index(tag)
+                t[INDEX]  = self._get_index(tag)
                 t[TYPE]    = CELL_STR
                 t[NULL_OP] = NULL_OP_IGNORE
                 tags.append(t)
@@ -62,9 +60,7 @@ class MetricCfgChecker:
                 f = {}
                 self._ck_item(field, COLUMN, True, f)
                 column = f[COLUMN]
-                if column not in self.title:
-                    raise Exception("field {} not found in {} row".format(column, self.toml[FILE]))
-                f[INDEX]   = self.title.index(column)
+                f[INDEX]   = self._get_index(column)
                 self._ck_item(field, TYPE, False, f, CELL_STR, CELL_TYPE)
                 self._ck_item(field, NULL_OP, False, f, NULL_OP_IGNORE, FIELD_OP)
                 if NULL_OP in f and f[NULL_OP] == NULL_OP_FILL:
@@ -93,9 +89,11 @@ class MetricCfgChecker:
         self._ck_item(ts, COLUMN, True, t)
         if TS_TF not in ts and TS_P not in ts:
             raise Exception("both {} and {} missed in {} configuration {}".format(TS_TF, TS_P, TS))
+        ts[INDEX] = self._get_index(ts[COLUMN])
         self._ck_item(ts, TS_TF, False, t)
         self._ck_item(ts, TS_P, False, t, None, TS_P_TYPE)
         self.tag_ts.append(ts[COLUMN])
+        self.cfg[TS] = ts
 
     def _ck_item(self, obj_dict, key, required, store_dict=None, default_val=None, valid_list=[]):
         if key not in obj_dict and required:
@@ -127,6 +125,12 @@ class MetricCfgChecker:
                 raise
         except:
             raise DropException("{} cannot convert to {}".format(val_str, typ))
+
+    def _get_index(self, title_name):
+        if title_name not in self.title:
+            raise Exception("{} cannot found in {}".format(title_name, self.title))
+        return self.title.index(title_name)
+
 
 
 class MetricSheetWorker:
