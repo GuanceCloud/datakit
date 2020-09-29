@@ -18,7 +18,7 @@ import (
 )
 
 type TimeStamp struct {
-	Column     string  `toml:"column"`
+	Column     string  `toml:"column,omitempty"`
 	TimeFormat string  `toml:"timeFormat,omitempty"`
 	Precision  string  `toml:"precision,omitempty"`
 }
@@ -30,6 +30,7 @@ type MetricField struct {
 	Type       string  `toml:"type,omitempty"`
 }
 type CsvMetric struct {
+	PythonEnv string         `toml:"pythonEnv"`
 	File      string         `toml:"file"`
 	Interval  string         `toml:"interval,omitempty"`
 	StartRows int            `toml:"startRows"`
@@ -43,8 +44,9 @@ type CsvMetric struct {
 const (
 	configSample = `
 #[[inputs.csvmetric]]
+#  pythonEnv = "python3"
 #  file      = "/path/your/csvfile.csv"
-#  startRows = 0 
+#  startRows = 0
 #  interval  = "60s"
 #  metric    = "metric-name"
 #  tags      = ["column-name1","column-name2"] 
@@ -82,6 +84,7 @@ func (_ *CsvMetric) SampleConfig() string {
 func (x *CsvMetric) Run() {
 	var encodeStr string
 	var intVal int
+	var startCmd = "python"
 	l = logger.SLogger(inputName)
 	logFile := inputName + ".log"
 
@@ -118,8 +121,11 @@ func (x *CsvMetric) Run() {
 		"--log_level", datakit.Cfg.MainCfg.LogLevel,
 	}
 
+	if x.PythonEnv != ""{
+		startCmd = x.PythonEnv
+	}
 	l.Info("csvmetric started")
-	cmd := exec.Command("python", args...)
+	cmd := exec.Command(startCmd, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
