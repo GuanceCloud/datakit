@@ -119,7 +119,7 @@ func (x *CsvMetric) Run() {
 	}
 
 	l.Info("csvmetric started")
-	cmd := exec.Command("python3", args...)
+	cmd := exec.Command("python", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
