@@ -1,7 +1,6 @@
 package http
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -174,8 +173,6 @@ func httpStart(addr string) {
 	router.POST(io.Metric, func(c *gin.Context) { apiWriteMetric(c) })
 	router.POST(io.Object, func(c *gin.Context) { apiWriteObject(c) })
 
-	router.POST("/log/fluentd/measurement/:name", func(c *gin.Context) { apiWriteLog(c) })
-
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: router,
@@ -302,54 +299,6 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(body)
-}
-
-// api 数据
-func apiWriteLog(c *gin.Context) {
-	// 获取指标集名称
-	measurement := c.Param("name")
-	// 获取query参数
-	queryMap := c.Request.URL.Query()
-
-	defer c.Request.Body.Close()
-	r := bufio.NewReader(c.Request.Body)
-
-	for {
-		bytes, err := r.ReadBytes(byte('\n'))
-		if err == iowrite.EOF || string(bytes) == "" {
-			break
-		}
-
-		tags := make(map[string]string)
-		fields := make(map[string]interface{})
-
-		for key, val := range queryMap {
-			tags[key] = strings.Join(val, ",")
-		}
-
-		tm := time.Now()
-
-		n := len(bytes)
-		fields["__content"] = string(bytes[0 : n-1])
-
-		pt, err := io.MakeMetric(measurement, tags, fields, tm)
-		if err != nil {
-			l.Errorf("make metric point error %v", err)
-			uhttp.HttpErr(c, err)
-			return
-		}
-
-		l.Debug("point data", string(pt))
-
-		err = io.NamedFeed([]byte(pt), io.Logging, "")
-		if err != nil {
-			l.Errorf("push metric point error %v", err)
-			uhttp.HttpErr(c, err)
-			return
-		}
-	}
-
-	httpOK.HttpResp(c)
 }
 
 func apiTelegrafOutput(c *gin.Context) {
