@@ -191,7 +191,7 @@ class ObjectSheetWorker:
             except:
                 raise
             else:
-                tags[self.toml[CLASS][COLUMN]] = clas
+                tags["__class"] = clas
 
         tags_info = self.toml.get(TAGS, [])
         for tag in tags_info:
@@ -271,7 +271,7 @@ class ObjectSheetWorker:
     def _flush_objects(self):
         if len(self._objects) == 0:
             return
-        data = json.dumps(self._objects)
+        data = json.dumps(self._objects, ensure_ascii=False)
         logging.debug("build objects: {}".format(data))
         self.uploader.send(data)
         self._objects = []
