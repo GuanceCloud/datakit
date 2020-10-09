@@ -16,8 +16,8 @@ const (
 # project_id = ''
 # region_id=''
 
-# ## @param - collection interval - string - optional - default: 5m
-# interval = '5m'
+# ## @param - collection interval - string - optional - default: 6h  1h <= interval <= 24h
+# interval = '6h'
 
 # ## @param - custom tags - [list of key:value element] - optional
 #[inputs.huaweiyunobject.tags]

@@ -24,10 +24,10 @@ type=""
 endpoint=""
 
 # ## @param - custom tags - [list of Elb instanceid] - optional
-#instanceids = ['']
+#instanceids = []
 
 # ## @param - custom tags - [list of excluded Elb instanceid] - optional
-#exclude_instanceids = ['']
+#exclude_instanceids = []
 
 # ## @param - custom tags for Elb object - [list of key:value element] - optional
 #[inputs.huaweiyunobject.elb.tags]
@@ -184,17 +184,17 @@ func (e *Elb) handResponseV1(resp *elb.ListLoadbalancersV1, ag *objectAgent) {
 		obj[`id`] = lb.ID
 
 		obj[`name`] = lb.Name
-		obj[`security_group_id`] = lb.SecurityGroupID
 		obj[`update_time`] = lb.UpdateTime
 		obj[`vip_address`] = lb.VipAddress
 		obj[`vip_subnet_id`] = lb.VipSubnetID
 
 		tags := map[string]interface{}{
-			`__class`:  `huaweiyun_elb`,
-			`provider`: `huaweiyun`,
-			`status`:   lb.Status,
-			`type`:     lb.Type,
-			`vpc_id`:   lb.VpcID,
+			`__class`:           `huaweiyun_elb`,
+			`provider`:          `huaweiyun`,
+			`status`:            lb.Status,
+			`type`:              lb.Type,
+			`vpc_id`:            lb.VpcID,
+			`security_group_id`: lb.SecurityGroupID,
 		}
 
 		//add ecs object custom tags
@@ -258,6 +258,18 @@ func (e *Elb) handResponseV2(lbs []elb.LoadbalancerV2, ag *objectAgent) {
 			}
 		}
 
+		listeners, err := json.Marshal(lb.Listeners)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+
+		pools, err := json.Marshal(lb.Pools)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+
 		obj := map[string]interface{}{
 			`__name`:                fmt.Sprintf(`%s(%s)`, lb.Name, lb.ID),
 			`provisioning_status`:   lb.ProvisioningStatus,
@@ -270,9 +282,9 @@ func (e *Elb) handResponseV2(lbs []elb.LoadbalancerV2, ag *objectAgent) {
 			`description`:           lb.Description,
 			`id`:                    lb.ID,
 			`name`:                  lb.Name,
-			`listeners`:             lb.Listeners,
+			`listeners`:             listeners,
 			`operating_status`:      lb.OperatingStatus,
-			`pools`:                 lb.Pools,
+			`pools`:                 pools,
 			`vip_address`:           lb.VipAddress,
 			`vip_subnet_id`:         lb.VipSubnetID,
 		}
