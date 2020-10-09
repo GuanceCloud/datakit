@@ -45,7 +45,11 @@ func (ag *objectAgent) Run() {
 	}()
 
 	if ag.Interval.Duration == 0 {
-		ag.Interval.Duration = time.Minute * 5
+		ag.Interval.Duration = time.Hour * 6
+	} else if ag.Interval.Duration < time.Hour*1 {
+		ag.Interval.Duration = time.Hour * 1
+	} else if ag.Interval.Duration > time.Hour*24 {
+		ag.Interval.Duration = time.Hour * 24
 	}
 
 	if ag.Ecs != nil {
