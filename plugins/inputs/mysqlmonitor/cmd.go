@@ -1570,6 +1570,7 @@ func copyTags(in map[string]string) map[string]string {
 func dsnAddTimeout(dsn string) (string, error) {
 	conf, err := mysql.ParseDSN(dsn)
 	if err != nil {
+		l.Errorf("mysql.ParseDSN(): %s", err.Error())
 		return "", err
 	}
 
