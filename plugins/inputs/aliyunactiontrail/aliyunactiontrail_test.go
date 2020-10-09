@@ -2,6 +2,7 @@ package aliyunactiontrail
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"testing"
 	"time"
@@ -10,53 +11,26 @@ import (
 	"github.com/influxdata/toml"
 )
 
-func TestConfig(t *testing.T) {
-
-	var cfg AliyunActiontrail
-	// cfg.Actiontrail = []*ActiontrailInstance{
-	// 	&ActiontrailInstance{
-	// 		Region:     "",
-	// 		AccessID:   "",
-	// 		AccessKey:  "",
-	// 		MetricName: "aliac",
-	// 	},
-	// 	&ActiontrailInstance{
-	// 		Region:     "11",
-	// 		AccessID:   "22",
-	// 		AccessKey:  "",
-	// 		MetricName: "aliac2",
-	// 	},
-	// }
-	if data, err := toml.Marshal(&cfg); err != nil {
-		t.Errorf("%s", err)
-	} else {
-		log.Printf("%s", string(data))
-	}
-}
-
 func TestActiontrail(t *testing.T) {
-	cli, err := actiontrail.NewClientWithAccessKey(`cn-hangzhou`, `LTAI4FkR2SokHHESouUMrkxV`, `ht4jybX3IrhQAUgHrUOTJRrkP8dONJ`)
+	cli, err := actiontrail.NewClientWithAccessKey(`cn-hangzhou`, ``, ``)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
 
-	//startTm := time.Now().Truncate(time.Hour).Add(-time.Hour * 22)
-
 	request := actiontrail.CreateLookupEventsRequest()
 	request.Scheme = "https"
-	//request.StartTime = unixTimeStrISO8601(startTm)
-	//request.EndTime = unixTimeStrISO8601(startTm.Add(time.Minute * 30))
-
-	//log.Printf("range: %s - %s", request.StartTime, request.EndTime)
+	request.StartTime = `2020-09-27T00:00:00Z`
+	request.EndTime = `2020-09-27T08:40:00Z`
 
 	response, err := cli.LookupEvents(request)
 	if err != nil {
 		t.Errorf("LookupEvents failed, %s", err)
 	}
 
-	fmt.Printf("%s\n", response.String())
+	fmt.Printf("count: %d\n", len(response.Events))
 
 	for _, ev := range response.Events {
+
 		tags := map[string]string{}
 		fields := map[string]interface{}{}
 
@@ -100,4 +74,20 @@ func TestActiontrail(t *testing.T) {
 		fmt.Printf("%s, %s\n", ev["referencedResources"], evtm)
 
 	}
+}
+
+func TestSvr(t *testing.T) {
+
+	ag := newAgent()
+
+	if data, err := ioutil.ReadFile("./test.conf"); err != nil {
+		log.Fatalf("%s", err)
+	} else {
+		if toml.Unmarshal(data, ag); err != nil {
+			log.Fatalf("%s", err)
+		}
+	}
+
+	ag.debugMode = true
+	ag.Run()
 }
