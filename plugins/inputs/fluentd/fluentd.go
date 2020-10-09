@@ -61,14 +61,6 @@ func (f *Fluentd) RegHttpHandler() {
 }
 
 func (f *Fluentd) Handle(w http.ResponseWriter, r *http.Request) {
-	// body, err := ioutil.ReadAll(r.Body)
-	// if err != nil {
-	// 	l.Errorf("failed to read body, err: %s", err.Error())
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
-	// defer r.Body.Close()
-
 	if err := extract(r.Body, f.Metric, f.Tags); err == nil {
 		w.WriteHeader(http.StatusOK)
 	} else {
