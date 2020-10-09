@@ -109,12 +109,17 @@ func (e *Mysql) handleResponse(resp *huaweicloud.ListRdsResponse, ag *objectAgen
 			`__name`: fmt.Sprintf(`%s(%s)`, inst.Name, inst.Id),
 		}
 
-		obj[`backupStrategy`] = inst.BackupStrategy
+		backupStrategy, err := json.Marshal(inst.BackupStrategy)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`backup_strategy`] = backupStrategy
 
 		obj[`created`] = inst.Created
 
 		obj[`version`] = inst.DataStore.Version
-		obj[`dbUserName`] = inst.DbUserName
+		obj[`db_user_name`] = inst.DbUserName
 
 		obj[`disk_encryption_id`] = inst.DiskEncryptionId
 
@@ -124,33 +129,58 @@ func (e *Mysql) handleResponse(resp *huaweicloud.ListRdsResponse, ag *objectAgen
 		//obj[`ha_replication_mode`] = inst.Ha.ReplicationMode
 		obj[`id`] = inst.Id
 		obj[`maintenance_window`] = inst.MaintenanceWindow
-		obj[`nodes`] = inst.Nodes
-		obj[`port`] = inst.Port
-		obj[`private_ips`] = inst.PrivateIps
 
-		obj[`pupblic_ips`] = inst.PublicIps
-		obj[`related_instance`] = inst.RelatedInstance
+		nodes, err := json.Marshal(inst.Nodes)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`nodes`] = nodes
+
+		obj[`port`] = inst.Port
+
+		privateIps, err := json.Marshal(inst.PrivateIps)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`private_ips`] = privateIps
+
+		publicIps, err := json.Marshal(inst.PublicIps)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`pupblic_ips`] = publicIps
+
+		relatedInstance, err := json.Marshal(inst.RelatedInstance)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`related_instance`] = relatedInstance
+
 		obj[`subnet_id`] = inst.SubnetId
 
 		obj[`switch_strategy`] = inst.SwitchStrategy
 		obj[`time_zone`] = inst.TimeZone
 		obj[`updated`] = inst.Updated
-		obj[`volume_size`] = inst.Volume.Size
+		obj[`volume.size`] = inst.Volume.Size
 
 		tags := map[string]interface{}{
 			`__class`:             `huaweiyun_mysql`,
 			`provider`:            `huaweiyun`,
 			`datastore_type`:      inst.DataStore.Type,
 			`charge_mode`:         inst.ChargeInfo.ChargeMode,
-			`ha_mode`:             inst.Ha.Mode,
-			`ha_replication_mode`: inst.Ha.ReplicationMode,
+			`ha.mode`:             inst.Ha.Mode,
+			`ha.replication_mode`: inst.Ha.ReplicationMode,
 			`name`:                inst.Name,
 			`region`:              inst.Region,
 			`security_group_id`:   inst.SecurityGroupId,
 			`status`:              inst.Status,
 			`type`:                inst.Type,
 
-			`volume_type`: inst.Volume.Type,
+			`volume.type`: inst.Volume.Type,
 			`vpc_id`:      inst.VpcId,
 		}
 
