@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/md5"
 	"fmt"
 	"net"
 	"os"
@@ -258,4 +259,13 @@ func TomlMarshal(v interface{}) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func TomlMd5(v interface{}) (string, error) {
+	b, err := TomlMarshal(v)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", md5.Sum(b)), nil
 }
