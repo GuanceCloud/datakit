@@ -16,10 +16,10 @@ const (
 endpoint=""
 
 # ## @param - custom tags - [list of obs instanceid] - optional
-#buckets = ['']
+#buckets = []
 
 # ## @param - custom tags - [list of excluded obs instanceid] - optional
-#exclude_buckets = ['']
+#exclude_buckets = []
 
 # ## @param - custom tags for obs object - [list of key:value element] - optional
 #[inputs.huaweiyunobject.obs.tags]
@@ -122,13 +122,20 @@ func (o *Obs) handleResponse(resp *obs.ListBucketsOutput, ag *objectAgent) {
 			`__name`: fmt.Sprintf(`%s`, bk.Name),
 		}
 
-		obj[`Owener`] = resp.Owner
-		obj[`Owner.Local`] = resp.Owner.XMLName.Local
-		obj[`Owner.Space`] = resp.Owner.XMLName.Space
-		obj[`XMLName`] = resp.XMLName
+		owner, err := json.Marshal(resp.Owner)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`Owener`] = owner
 
-		obj[`Bucket.Space`] = bk.XMLName.Space
-		obj[`Bucket.Local`] = bk.XMLName.Local
+		xmlName, err := json.Marshal(bk.XMLName)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`Bucket.XMLName`] = xmlName
+
 		obj[`Name`] = bk.Name
 
 		obj[`CreationDate`] = bk.CreationDate
