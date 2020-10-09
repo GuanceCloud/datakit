@@ -1,46 +1,45 @@
 # -*- encoding: utf8 -*-
-START = "start_rows"
-FILE = "file"
-RULES = "Rules"
-PRMK  = "PrimaryKey"
-
-METRICS = "metrics"
-METRIC  = "metric"
-
-MEMENT = "metric"
-TAG    = "Tags"
-AS_TAG = "as_tag"
-AS_FIELD = "as_field"
-AS_TIME  = "as_time"
-FIELD  = "Fields"
-TS     = "Timestamp"
-
-COLUMN  = "columns"
+# metric and object common const variable
+FILE   = "file"
+ROWS   = "startRows"
+COLUMN = "column"
 INDEX  = "index"
-CELL    = "Cell"
-TYPE    = "type"
-NAME    = "name"
-NACTION = "na_action"
-TUNIT   = "time_precision"
-TIME_FORMAT = "time_format"
+TAGS   = "tags"
+
+# metric const variable
+METRIC = "metric"
+TS     = "timestamp"
+TS_TF  = "timeFormat"
+TS_P   = "precision"
+TS_P_NS = "ns"
+TS_P_US = "us"
+TS_P_MS = "ms"
+TS_P_S  = "s"
+TS_P_M  = "m"
+TS_P_H  = "h"
+TS_P_TYPE = [TS_P_NS, TS_P_US, TS_P_MS, TS_P_S]
+
+FIELD     = "field"
+NULL_OP   = "nullOp"
+NULL_FILL = "nullFill"
+TYPE      = "type"
+
+CELL_INT   = "int"
+CELL_STR   = "str"
+CELL_BOOL  = "bool"
+CELL_FLOAT = "float"
+CELL_TYPE = [CELL_INT, CELL_STR, CELL_BOOL, CELL_FLOAT]
 
 
-
-IGNORE = "ignore"
-DROP   = "drop"
-ABORT  = "abort"
-NaAction = [IGNORE, DROP, ABORT]
-
-INT   = "int"
-STR   = "str"
-BOOL  = "bool"
-FLOAT = "float"
-FieldType =  [INT, STR, BOOL, FLOAT]
-TsUnit = ["s", "ms", "us", "ns"]
+NULL_OP_IGNORE = "ignore"
+NULL_OP_ABORT  = "abort"
+NULL_OP_DROP   = "drop"
+NULL_OP_FILL   = "fill"
+FIELD_OP = [NULL_OP_IGNORE, NULL_OP_ABORT, NULL_OP_DROP, NULL_OP_FILL]
 
 
-OBJECTS = "objects"
-OBJECT = "object"
-AS_OBJ = "as_object"
-AS_CLASS = "as_class"
+NAME  = "name"
+CLASS = "class"
+
+
 
