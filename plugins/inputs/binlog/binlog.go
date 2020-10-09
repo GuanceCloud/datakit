@@ -43,10 +43,6 @@ func (_ *Binlog) SampleConfig() string {
 	return binlogConfigSample
 }
 
-// func (_ *Binlog) Description() string {
-// 	return ""
-// }
-
 type adapterLogWriter struct {
 	io.Writer
 }
