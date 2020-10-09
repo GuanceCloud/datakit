@@ -118,36 +118,80 @@ func (e *Ecs) handleResponse(resp *huaweicloud.ListEcsResponse, ag *objectAgent)
 		obj[`created`] = fmt.Sprintf("%v", s.Created)
 		obj[`description`] = s.Description
 		obj[`OS-DCF:diskConfig`] = s.DiskConfig
-		obj[`flavor`] = s.Flavor
+
+		flavor, err := json.Marshal(s.Flavor)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`flavor`] = flavor
+
 		obj[`hostId`] = s.HostID
 		obj[`host_status`] = s.HostStatus
 		obj[`OS-EXT-SRV-ATTR:hypervisor_hostname`] = s.HypervisorHostname
 		obj[`id`] = s.ID
 
-		obj[`image`] = s.Image
+		image, err := json.Marshal(s.Image)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`image`] = image
+
 		obj[`OS-EXT-SRV-ATTR:instance_name`] = s.InstanceName
 		obj[`OS-EXT-SRV-ATTR:kernel_id`] = s.KernelID
 		obj[`key_name`] = s.KeyName
 		obj[`OS-EXT-SRV-ATTR:launch_index`] = s.LaunchIndex
 		obj[`OS-SRV-USG:launched_at`] = s.LaunchedAt
 		obj[`name`] = s.Name
-		obj[`metadata`] = s.Metadata
-		obj[`os:scheduler_hints`] = s.OsSchedulerHints
+
+		metadata, err := json.Marshal(s.Metadata)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`metadata`] = metadata
+
+		osSchedulerHints, err := json.Marshal(s.OsSchedulerHints)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`os:scheduler_hints`] = osSchedulerHints
+
 		obj[`OS-EXT-STS:power_state`] = s.PowerState
 		obj[`progress`] = s.Progress
 		obj[`OS-EXT-SRV-ATTR:ramdisk_id`] = s.RamdiskID
 		obj[`OS-EXT-SRV-ATTR:reservation_id`] = s.ReservationID
 		obj[`OS-EXT-SRV-ATTR:root_device_name`] = s.RootDeviceName
-		obj[`security_groups`] = s.SecurityGroups
-		obj[`sys_tags`] = s.SysTags
-		obj[`tags`] = s.Tags
+
+		securityGroups, err := json.Marshal(s.SecurityGroups)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`security_groups`] = securityGroups
+
+		sTags, err := json.Marshal(s.Tags)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`tags`] = sTags
+
 		obj[`OS-EXT-STS:task_state`] = s.TaskState
 		obj[`tenant_id`] = s.TenantID
 		obj[`OS-SRV-USG:terminated_at`] = s.TerminatedAt
 		obj[`updated`] = s.Updated
 		obj[`OS-EXT-SRV-ATTR:user_data`] = s.UserData
 		obj[`user_id`] = s.UserID
-		obj[`os-extended-volumes:volumes_attached`] = s.VolumeAttached
+
+		volumeAttached, err := json.Marshal(s.VolumeAttached)
+		if err != nil {
+			moduleLogger.Errorf(`%s, ignore`, err.Error())
+			return
+		}
+		obj[`os-extended-volumes:volumes_attached`] = volumeAttached
 
 		tags := map[string]interface{}{
 			`__class`:                  `huaweiyun_ecs`,
