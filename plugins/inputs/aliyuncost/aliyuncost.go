@@ -134,6 +134,10 @@ func (ag *agent) queryAccountTransactionsWrap(ctx context.Context, request *bsso
 	for i := 0; i < 5; i++ {
 		ag.rateLimiter.Wait(ctx)
 		response, err = ag.client.QueryAccountTransactions(request)
+		if err == nil && !response.Success {
+			err = fmt.Errorf("%s", response.String())
+		}
+
 		if err == nil {
 			return
 		}
@@ -147,6 +151,9 @@ func (ag *agent) queryAccountBalanceWrap(ctx context.Context, request *bssopenap
 	for i := 0; i < 5; i++ {
 		ag.rateLimiter.Wait(ctx)
 		response, err = ag.client.QueryAccountBalance(request)
+		if err == nil && !response.Success {
+			err = fmt.Errorf("%s", response.String())
+		}
 		if err == nil {
 			return
 		}
@@ -160,6 +167,9 @@ func (ag *agent) queryBillWrap(ctx context.Context, request *bssopenapi.QueryBil
 	for i := 0; i < apiRetryCount; i++ {
 		ag.rateLimiter.Wait(ctx)
 		response, err = ag.client.QueryBill(request)
+		if err == nil && !response.Success {
+			err = fmt.Errorf("%s", response.String())
+		}
 		if err == nil {
 			return
 		}
@@ -186,6 +196,9 @@ func (ag *agent) queryOrdersWrap(ctx context.Context, request *bssopenapi.QueryO
 	for i := 0; i < apiRetryCount; i++ {
 		ag.rateLimiter.Wait(ctx)
 		response, err = ag.client.QueryOrders(request)
+		if err == nil && !response.Success {
+			err = fmt.Errorf("%s", response.String())
+		}
 		if err == nil {
 			return
 		}

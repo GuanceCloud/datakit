@@ -39,9 +39,9 @@ const (
     name = "temp"
 
     ## ignore rules
-    # ignore_measurement = ["temp_grpc_server""]
+    # ignore_measurement = ["temp_xxx"]
     # ignore_tags_key_prefix = []
-    # ignore_fields_key_prefix" = []
+    # ignore_fields_key_prefix = []
 
     # [inputs.prom.tags]
     # tags1 = "value1"
