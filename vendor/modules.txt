@@ -440,9 +440,6 @@ github.com/influxdata/telegraf/plugins/inputs/memcached
 github.com/influxdata/telegraf/plugins/inputs/modbus
 github.com/influxdata/telegraf/plugins/inputs/mongodb
 github.com/influxdata/telegraf/plugins/inputs/mqtt_consumer
-github.com/influxdata/telegraf/plugins/inputs/mysql
-github.com/influxdata/telegraf/plugins/inputs/mysql/v1
-github.com/influxdata/telegraf/plugins/inputs/mysql/v2
 github.com/influxdata/telegraf/plugins/inputs/nats
 github.com/influxdata/telegraf/plugins/inputs/net
 github.com/influxdata/telegraf/plugins/inputs/net_response
@@ -520,6 +517,18 @@ github.com/jackc/pgx/stdlib
 # github.com/jcmturner/gofork v1.0.0
 github.com/jcmturner/gofork/encoding/asn1
 github.com/jcmturner/gofork/x/crypto/pbkdf2
+# github.com/jdcloud-api/jdcloud-sdk-go v1.43.0
+github.com/jdcloud-api/jdcloud-sdk-go/core
+github.com/jdcloud-api/jdcloud-sdk-go/services/charge/models
+github.com/jdcloud-api/jdcloud-sdk-go/services/common/models
+github.com/jdcloud-api/jdcloud-sdk-go/services/disk/models
+github.com/jdcloud-api/jdcloud-sdk-go/services/monitor/apis
+github.com/jdcloud-api/jdcloud-sdk-go/services/monitor/client
+github.com/jdcloud-api/jdcloud-sdk-go/services/monitor/models
+github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis
+github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client
+github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models
+github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models
 # github.com/jmespath/go-jmespath v0.3.0
 github.com/jmespath/go-jmespath
 # github.com/json-iterator/go v1.1.10
