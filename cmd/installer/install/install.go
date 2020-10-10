@@ -81,7 +81,9 @@ func getDataWayCfg() *datakit.DataWayCfg {
 
 func InstallNewDatakit(svc service.Service) {
 
-	_ = uninstallDataKitService(svc) // uninstall service if installed before
+	if err := service.Control(svc, "uninstall"); err != nil {
+		l.Warnf("uninstall service: %s, ignored", err.Error())
+	}
 
 	// prepare dataway info
 	datakit.Cfg.MainCfg.DataWay = getDataWayCfg()
@@ -109,7 +111,7 @@ func InstallNewDatakit(svc service.Service) {
 
 	l.Infof("installing service %s...", datakit.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
-		l.Warnf("fail to install service %s: %s, ignored", datakit.ServiceName, err.Error())
+		l.Warnf("install service: %s, ignored", err.Error())
 	}
 }
 
@@ -215,7 +217,10 @@ func UpgradeDatakit(svc service.Service) {
 	updateLagacyConfig(lagacyInstallDir)
 
 	// uninstall service, remove old datakit.service file(for UNIX OS)
-	_ = uninstallDataKitService(svc)
+	if err := service.Control(svc, "uninstall"); err != nil {
+		l.Warnf("uninstall service %s, ignored", err.Error())
+	}
+
 	for _, sf := range lagacyServiceFiles {
 		if _, err := os.Stat(sf); err == nil {
 			if err := os.Remove(sf); err != nil {
@@ -239,14 +244,18 @@ func UpgradeDatakit(svc service.Service) {
 
 	l.Infof("installing service %s...", datakit.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
-		l.Warnf("fail to register service %s: %s, ignored", datakit.ServiceName, err.Error())
+		l.Warnf("install service: %s, ignored", err.Error())
 	}
 }
 
 func stopLagacyDatakit(svc service.Service) {
 	switch OSArch {
 	case datakit.OSArchWinAmd64, datakit.OSArchWin386:
-		_ = StopDataKitService(svc)
+
+		if err := service.Control(svc, "stop"); err != nil {
+			l.Warnf("stop service: %s, ignored", err.Error())
+		}
+
 	default:
 		cmd := exec.Command(`stop`, []string{datakit.ServiceName}...) //nolint:gosec
 		if _, err := cmd.Output(); err != nil {
@@ -260,23 +269,4 @@ func stopLagacyDatakit(svc service.Service) {
 			l.Debugf("systemctl stop datakit failed, ignored")
 		}
 	}
-}
-
-func uninstallDataKitService(s service.Service) error {
-	if err := service.Control(s, "uninstall"); err != nil {
-		l.Warnf("stop service datakit failed: %s, ignored", err.Error())
-		return err
-	}
-
-	return nil
-}
-
-func StopDataKitService(s service.Service) error {
-
-	if err := service.Control(s, "stop"); err != nil {
-		l.Warnf("stop service datakit failed: %s, ignored", err.Error())
-		return err
-	}
-
-	return nil
 }
