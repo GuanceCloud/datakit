@@ -54,6 +54,7 @@ var (
 		"external":               true,
 		"flink":                  true,
 		"fluentd":                true,
+		"fluentdlog":             false,
 		"github":                 true,
 		"gitlab":                 true,
 		"goruntime":              true,
