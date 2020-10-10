@@ -22,9 +22,9 @@ const (
     # http server route path
     # input url(required)
 	path = "/fluentd"
-	# log name(required) 
-	metric = ""
-    # [inputs.fluentd.tags]
+	# log source(required) 
+	source = ""
+    # [inputs.fluentdlog.tags]
     # tags1 = "value1"
 `
 )
@@ -39,7 +39,7 @@ func init() {
 
 type Fluentd struct {
 	Path   string            `toml:"path"`
-	Metric string            `toml:"metric"`
+	Metric string            `toml:"source"`
 	Tags   map[string]string `toml:"tags"`
 }
 
