@@ -1,4 +1,4 @@
-# -*- encoding: utf8 -*-
+# -*- coding:utf-8 -*-
 # metric and object common const variable
 FILE   = "file"
 ROWS   = "startRows"
