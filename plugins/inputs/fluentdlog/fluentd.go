@@ -1,4 +1,4 @@
-package fluentd
+package fluentdlog
 
 import (
 	"bufio"
@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	inputName = "fluentd"
+	inputName = "fluentdlog"
 
 	defaultMeasurement = "fluentd"
 
 	sampleCfg = `
-[[inputs.fluentd]]
+[[inputs.fluentdlog]]
     # http server route path
     # input url(required)
 	path = "/fluentd"
@@ -48,7 +48,7 @@ func (*Fluentd) SampleConfig() string {
 }
 
 func (*Fluentd) Catalog() string {
-	return inputName
+	return "fluentd"
 }
 
 func (*Fluentd) Run() {
