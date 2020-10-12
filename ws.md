@@ -37,21 +37,14 @@ DataKit                   |         | <----.         +----------+    |
 
 ```json
 {
-	"type"    : int 消息类型,
+	"type"    : string 消息类型,
+	"code"    : string 消息状态码: ok/error/bad_request
 	"id"      : "消息 ID，形如 msg_XID",
 	"dest"    : [ "dkit_xid", "dkit_xid", ...], # 表示消息应该发给谁，对于 DataKit 上报的消息，此字段可为空
 	"b64data" : "xxxxxxxxxxx"           # 经 base64 编码后的消息体（可以是任何消息格式）
 }
 
-type:
-
-- 1~99    : datakit 上报
-- 100-199 : web 下发
-- 200     : ok
-- 400~499 : 错误
-
 ```
-
 
 - web 端通过往 DataFlux 发送 HTTP 请求来控制 datakit，DataFlux 收到请求后，生成 ws 请求经由 dataway 发送给 datakit，此时 DataFlux 需等待 datakit 的 ws 请求返回（视不同消息类型而定），当 ws 请求返回后，再完成 web 端的 HTTP 请求。这里允许 ws 请求超时，这种情况下，web 端的 HTTP 请求应该返回 timeout (HTTP 504) 错误。
 
@@ -68,9 +61,9 @@ DataKit 启动后，自动连接 DataWay 上指定的 ws 服务，并发送一�
 
 ```json
 {
-	"type": 1,
+	"type": "online",
 	"id": "msg_xxxxxxxxxxxxx",
-	"dest": "",
+	"dest": null,
 	"b64data": base64(
 		{
 			"id"               : "dkit_xid",
@@ -93,9 +86,9 @@ DataKit online 成功后，应按照约定的频率（该约定频率可在 onli
 
 ```json
 {
-	"type": 2,
+	"type": "heartbeat",
 	"id": "msg_xxxxxxxxxxxxx",
-	"dest": "",
+	"dest": null,
 	"b64data": base64(dkit_xid) # 只需说明 datakit id 即可
 }
 ```
@@ -104,17 +97,17 @@ DataKit online 成功后，应按照约定的频率（该约定频率可在 onli
 
 Web 通过调用 DataFlux 上的一系列 HTTP 接口，实现对 DataKit 的管理
 
-### 获取指定采集器配置
+### 获取采集器数据源配置
 
-web 端可获取某个 DataKit 上指定名称（可指定多个）的采集器配置。如果其中一个采集器尚未启用，则返回 Error。
+web 端可获取某个 DataKit 上可用的（可指定多个）的数据源配置。如果其中一个数据源不存在（不支持），则返回 Error。
 
 - 请求体示例
 
 ```json
 {
-	"type": 100,
+	"type": "get_input_config",
 	"id": "msg_1234",
-	"dest": "dkit_xid",
+	"dest": ["dkit_xid"],
 	"b64data": base64(["cpu", "mysqlMonitor"])
 }
 ```
@@ -123,17 +116,81 @@ web 端可获取某个 DataKit 上指定名称（可指定多个）的采集器�
 
 ```json
 {
-  "type": 200,
+  "type": "get_input_config",
   "id": "msg_1234", # 保持和请求体一样的 ID
-  "dest": "",
+	"code": "ok",
+  "dest": null,
   "b64data": base64({
-		"cpu-<md5>": "cpu-cfg",
-		"mysqlMonitor-<md5>": "mysqlMonitor-cfg",
+			"cpu": { "toml": base64("cpu-toml-cfg"), "form": base64("cpu-form-cfg") },
+			"mysqlMonitor": { "toml": base64("mysqlMonitor-toml-cfg"), "form": base64("mysqlMonitor-toml-cfg") }
 		})
 }
 ```
 
-其中 `cpu-cfg 形式如下（mysql-monitor 也类似，以其 template 形式而定）：
+前端拿到这个 JSON 后，需要对消息做**两层 base64 解码**：先将 `b64data` 字段解码成 json，然后再将里层的各个 `toml` 和 `form` 字段解码成 toml 或 json，以在前端展示。
+
+- Error 返回示例
+
+```json
+{
+	"type": "get_input_config",
+	"id": "msg_1234", # 保持和请求体一样的 ID
+	"code": "error",
+	"dest": null,
+	"b64data": base64(
+			"input xxx not available"
+	)
+}
+```
+
+### 获取已开启的采集器配置
+
+web 端可获取某个 DataKit 上已开启的数据源（可指定多个）的配置。如果其中一个采集器尚未启用，则返回 Error。
+
+- 请求体示例
+
+```json
+{
+	"type": "get_enabled_input_config",
+	"id": "msg_1234",
+	"dest": ["dkit_xid"],
+	"b64data": base64(["cpu", "mysqlMonitor"])
+}
+```
+
+- 返回体示例（假定 cpu/mysqlMonitor 各开启了两个采集实例）
+
+```json
+{
+  "type": "get_enabled_input_config",
+  "id": "msg_1234", # 保持和请求体一样的 ID
+	"code": "ok",
+  "dest": null,
+  "b64data": base64({
+			"cpu-<md5-1>": { "toml": base64("cpu-toml-cfg"), "form": base64("cpu-form-cfg") },
+			"cpu-<md5-2>": { "toml": base64("cpu-toml-cfg"), "form": base64("cpu-form-cfg") },
+			"mysqlMonitor-<md5-1>": { "toml": base64("mysqlMonitor-toml-cfg"), "form": base64("mysqlMonitor-toml-cfg") },
+			"mysqlMonitor-<md5-2>": { "toml": base64("mysqlMonitor-toml-cfg"), "form": base64("mysqlMonitor-toml-cfg") }
+		})
+}
+```
+
+其中 `cpu-tom-cfg` 形式如下（mysql-monitor 也类似）：
+
+```toml
+[[inputs.cpu]]
+
+  ## Whether to report per-cpu stats or not
+  percpu = true
+  ## Whether to report total system cpu stats or not
+  totalcpu = true
+  ## If true, collect raw CPU time metrics.
+  collect_cpu_time = false
+  ## If true, compute and report the sum of all non-idle CPU states.
+  report_active = false
+```
+
+其中 `cpu-form-cfg` 形式如下（mysqlMonitor 也类似，以其 template 形式而定）：
 
 ```json
 {
@@ -166,15 +223,16 @@ web 端可获取某个 DataKit 上指定名称（可指定多个）的采集器�
 }
 ```
 
-前端拿到这个 JSON 后，直接能以 UI 形式展现。
+前端拿到这个 JSON 后，需要对消息做两层 base64 解码：先将 `b64data` 解码成 json，然后再将里层的各个 `toml` 和 `form` 字段解码成 toml 或 json，以在前端展示。
 
-- Error 返回
+- Error 返回示例
 
 ```json
 {
-	"type": 400,
+	"type": "get_enabled_input_config",
 	"id": "msg_1234", # 保持和请求体一样的 ID
-	"dest": "",
+	"code": "error",
+	"dest": null,
 	"b64data": base64(
 			"input xxx not enabled"
 	)
@@ -187,18 +245,21 @@ web 端获取到某个采集器当前配置后，可直接进行更改并同步�
 
 ```json
 {
-	"type": 102,
+	"type": "update_enabled_input_config",
 	"id": "msg_1234",
 	"dest": "dkit_xid",
-	"b64data": base64(
-		"cpu-<md5>": "cpu-cfg",
+  "b64data": base64({
+			"cpu-<md5-1>": { "toml": base64("cpu-toml-cfg"), "form": base64("cpu-form-cfg") },
+			"cpu-<md5-2>": { "toml": base64("cpu-toml-cfg"), "form": base64("cpu-form-cfg") },
+			"mysqlMonitor-<md5-1>": { "toml": base64("mysqlMonitor-toml-cfg"), "form": base64("mysqlMonitor-toml-cfg") },
+			"mysqlMonitor-<md5-2>": { "toml": base64("mysqlMonitor-toml-cfg"), "form": base64("mysqlMonitor-toml-cfg") }
+		})
 	)
 }
 ```
 
-此处 cpu-cfg 跟上面的形式一致。
-
 >注意，此处 md5 是原始配置的 md5（不然 datakit 无法定位原配置），datakit 收到新的配置后，会重命名磁盘上对应的 `cpu-<md5>.conf`。
+>另外，如果 `toml` 配置和 `form` 配置都有提供（原则上这是不允许的），datakit 以 `form` 为准。
 
 ### 新增采集器配置
 
@@ -206,29 +267,27 @@ web 端获取到某个采集器当前配置后，可直接进行更改并同步�
 
 ```json
 {
-	"type": 102,
-	"id": "msg_1234",
-	"dest": "dkit_xid",
-	"b64data": base64(
-		{
-				"cpu": [ cpu-cfg ],
-				"mem": [ mem-cfg ],
-				"mysqlMonitor": [ mysqlMonitor-cfg ],
-		}
-	)
+  "type": "set_input_config",
+  "id": "msg_1234", # 保持和请求体一样的 ID
+  "dest": ["dkit_xid"],
+  "b64data": base64({
+			"cpu": { "toml": base64("cpu-toml-cfg"), "form": base64("cpu-form-cfg") },
+			"mysqlMonitor": { "toml": base64("mysqlMonitor-toml-cfg"), "form": base64("mysqlMonitor-toml-cfg") }
+		})
 }
 ```
 
-此处 `cpu-cfg` 形式跟上文一致，都是 JSON 形式的 UI 模板，datakit 拿到后，需转换成对应 toml 文件：`cpu-<md5>.conf`
+如果 `toml` 配置和 `form` 配置都有提供（原则上这是不允许的），datakit 以 `form` 为准。
 
 - 返回体
 
 ```json
 {
-	"type": 200,
-	"id": "msg_1234", # 保持和请求体一样的 ID
-	"dest": "",
-	"b64data": base64("ok")
+  "type": "set_input_config",
+  "id": "msg_1234", # 保持和请求体一样的 ID
+	"code": "ok",
+  "dest": null,
+  "b64data": "",
 }
 ```
 
@@ -236,17 +295,18 @@ web 端获取到某个采集器当前配置后，可直接进行更改并同步�
 
 ```json
 {
-	"type": 400,
+	"type": "set_input_config",
 	"id": "msg_1234", # 保持和请求体一样的 ID
-	"dest": "",
+	"code": "error",
+	"dest": null,
 	"b64data": base64(
-			"input xxx not exists" 
+			"input xxx not available" 
 			# 对某些平台而言，部分采集器是不能用的（比如 oracle-monitor 在 windows 版本的 DataKit 上就不能用）
 	)
 }
 ```
 
-### 删除指定采集器
+### 禁用指定采集器
 
 web 端可删除某个 DataKit 上指定名称的采集器。注意，此时的删除是物理删除，但需 reload DataKit 才能生效。
 
@@ -254,10 +314,10 @@ web 端可删除某个 DataKit 上指定名称的采集器。注意，此时的�
 
 ```json
 {
-	"type": 103,
+	"type": "disable_input",
 	"id": "msg_1234",
-	"dest": "dkit_xid",
-	"b64data": base64(["cpu-<md5>", "mem-<md5>", "mysqlMonitor-<md5>", ...])
+	"dest": ["dkit_xid"],
+	"b64data": base64(["cpu-<md5>", "mem-<md5>", "mysqlMonitor-<md5>"])
 }
 ```
 
@@ -279,7 +339,7 @@ web 端可删除某个 DataKit 上指定名称的采集器。注意，此时的�
 
 ```json
 {
-	"type": 104,
+	"type": "reload",
 	"id": "msg_1234",
 	"dest": "dkit_xid",
 	"b64data": "" # 此处无消息体
@@ -289,26 +349,6 @@ web 端可删除某个 DataKit 上指定名称的采集器。注意，此时的�
 - 返回体：此消息无返回。DataKit reload 完成后，需重新 online（因配置变更）
 - Error 返回（无）
 
-### 获取 DataKit 指定采集器的配置模板
-
-即使某个采集器尚未启用，web 端可通过指定的消息类型，获取某个 DataKit 上指定采集器的配置模板，便于前端表单化配置界面。
-
-- 请求体
-
-```json
-{
-	"type": 105,
-	"id": "msg_1234",
-	"dest": "dkit_xid",
-	"b64data": base64(["cpu", "mysqlMonitor"])
-}
-```
-
-配置模板格式在后面提及。
-
-- 返回体：见后文
-- Error 返回：见后文
-
 ### 临时测试某个采集器是否能正常工作
 
 在 web 端设置了某个采集器之后，在实际下发配置之前，可对改配置做一个临时测试，并可在 web 端查看采集到的数据。
@@ -317,22 +357,26 @@ web 端可删除某个 DataKit 上指定名称的采集器。注意，此时的�
 
 ```json
 {
-	"type": 106,
+	"type": "test_input_config",
 	"id": "msg_1234",
-	"dest": "dkit_xid",
-	"b64data": base64(cpu-cfg)
+	"dest": ["dkit_xid"],
+  "b64data": base64({
+			"cpu": { "toml": base64("cpu-toml-cfg"), "form": base64("cpu-form-cfg") },
+			"mysqlMonitor": { "toml": base64("mysqlMonitor-toml-cfg"), "form": base64("mysqlMonitor-toml-cfg") }
+		})
 }
 ```
 
-此处 `cpu-cfg` 形式跟上文一致，都是 JSON 形式的 UI 模板，datakit 拿到后，需转换成临时 toml 文件，作为 telegraf 输入(测试完后，需删除临时文件)。如果是 datakit 采集器，则实例化具体的采集器对象，并调用 `Test()` 接口获取到示例数据。如果配置有误，则应返回对应错误信息（如数据库连接失败）
+datakit 拿到配置后，优先以 `toml` 为准（`form` 需转换成临时 toml 文件）作为 telegraf 输入(测试完后，需删除临时文件)。如果是 datakit 采集器，则实例化具体的采集器对象，并调用 `Test()` 接口获取到示例数据。如果配置有误，则应返回对应错误信息（如数据库连接失败）
 
 - 返回体
 
 ```json
 {
-	"type": 200,
+	"type": "test_input_config",
 	"id": "msg_1234",
-	"dest": "dkit_xid",
+	"code": "ok",
+	"dest": null,
 	"b64data": base64(
 			行协议的 CPU 数据。如果是对象数据，则此处是 JSON 格式
 	)
@@ -343,16 +387,16 @@ web 端可删除某个 DataKit 上指定名称的采集器。注意，此时的�
 
 ```json
 {
-	"type": 4xx,
+	"type": "test_input_config",
 	"id": "msg_1234",
-	"dest": "dkit_xid",
+	"dest": null,
 	"b64data": base64(Test() 接口报错信息)
 }
 ```
 
 >注：要实现该需求，datakit 的每个 input 需实现一个 `Test()` 接口，对 telegraf 采集器，则统一实现一个 `Test()` 接口即可，然后命令行调用 telegraf 的 test 功能，生成一个临时的 telegraf conf 供测试，抓取命令行输出即可得到结果。
 
-## 采集器模板
+## 采集器配置 form 模板
 
 为便于 web 端提供 UI 方式来生成采集器配置，这里需要提供一个中间层来实现 UI 配置到采集器配置的转换，以 `cpu` 采集器为例，当前的 cpu 采集器配置项有 4 个：
 
