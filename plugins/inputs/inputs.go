@@ -25,6 +25,7 @@ type Input interface {
 	Catalog() string
 	Run()
 	SampleConfig() string
+	Test() ([]byte, error)
 
 	// add more...
 }
