@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import logging
 
 def en_logging(log_file, log_level):
