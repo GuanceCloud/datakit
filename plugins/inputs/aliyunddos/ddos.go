@@ -56,6 +56,8 @@ func (a *DDoS) Run() {
 	l = logger.SLogger("aliyunddos")
 	l.Info("aliyunddos input started...")
 
+	a.checkCfg()
+
 	cli, err := sdk.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
 	if err != nil {
 		l.Errorf("create client failed, %s", err)
@@ -63,12 +65,7 @@ func (a *DDoS) Run() {
 
 	a.client = cli
 
-	interval, err := time.ParseDuration(a.Interval)
-	if err != nil {
-		l.Error(err)
-	}
-
-	tick := time.NewTicker(interval)
+	tick := time.NewTicker(a.IntervalDuration)
 	defer tick.Stop()
 
 	for {
@@ -80,6 +77,25 @@ func (a *DDoS) Run() {
 			l.Info("exit")
 			return
 		}
+	}
+}
+
+func (a *DDoS) checkCfg() {
+	// 采集频度
+	a.IntervalDuration = 24 * time.Hour
+
+	if a.Interval != "" {
+		du, err := time.ParseDuration(a.Interval)
+		if err != nil {
+			l.Errorf("bad interval %s: %s, use default: 10m", a.Interval, err.Error())
+		} else {
+			a.IntervalDuration = du
+		}
+	}
+
+	// 指标集名称
+	if a.MetricName == "" {
+		a.MetricName = inputName
 	}
 }
 
@@ -154,9 +170,9 @@ func (r *DDoS) command() {
 		go r.describeWebRules(region)
 	}
 
-	for _, region := range regions3 {
-		go r.describePayInfo(region)
-	}
+	// for _, region := range regions3 {
+	// 	go r.describePayInfo(region)
+	// }
 }
 
 func (r *DDoS) describeInstanceDetails(instanceID, region string) error {
@@ -403,53 +419,53 @@ func (r *DDoS) describeNetworkRules(instanceID, region string) error {
 	return nil
 }
 
-func (r *DDoS) describePayInfo(region string) error {
-	request := requests.NewCommonRequest()
-	request.Method = "POST"
-	request.Scheme = "https" // https | http
-	request.Domain = "wafopenapi.cn-hangzhou.aliyuncs.com"
-	request.Version = "2018-01-17"
-	request.ApiName = "DescribePayInfo"
+// func (r *DDoS) describePayInfo(region string) error {
+// 	request := requests.NewCommonRequest()
+// 	request.Method = "POST"
+// 	request.Scheme = "https" // https | http
+// 	request.Domain = "wafopenapi.cn-hangzhou.aliyuncs.com"
+// 	request.Version = "2018-01-17"
+// 	request.ApiName = "DescribePayInfo"
 
-	request.QueryParams["RegionId"] = region
+// 	request.QueryParams["RegionId"] = region
 
-	response, err := r.client.ProcessCommonRequest(request)
-	if err != nil {
-		l.Error("describePayInfo failed", err)
-		return err
-	}
+// 	response, err := r.client.ProcessCommonRequest(request)
+// 	if err != nil {
+// 		l.Error("describePayInfo failed", err)
+// 		return err
+// 	}
 
-	data := response.GetHttpContentString()
+// 	data := response.GetHttpContentString()
 
-	instanceArr := gjson.Parse(data).Get("Result").Array()
+// 	instanceArr := gjson.Parse(data).Get("Result").Array()
 
-	for _, item := range instanceArr {
-		tags := map[string]string{}
-		fields := map[string]interface{}{}
+// 	for _, item := range instanceArr {
+// 		tags := map[string]string{}
+// 		fields := map[string]interface{}{}
 
-		tags["product"] = "waf"
-		tags["action"] = "describePayInfo"
-		tags["region"] = item.Get("Region").String()
+// 		tags["product"] = "waf"
+// 		tags["action"] = "describePayInfo"
+// 		tags["region"] = item.Get("Region").String()
 
-		fields["endDate"] = item.Get("EndDate").Int()
-		fields["inDebt"] = item.Get("InDebt").Int()
-		fields["instanceId"] = item.Get("InstanceId").String()
-		fields["PayType"] = item.Get("PayType").Int()
-		fields["trial"] = item.Get("Trial").Int()
-		fields["region"] = item.Get("Region").String()
-		fields["remainDay"] = item.Get("RemainDay").Int()
-		fields["status"] = item.Get("Status").Int()
+// 		fields["endDate"] = item.Get("EndDate").Int()
+// 		fields["inDebt"] = item.Get("InDebt").Int()
+// 		fields["instanceId"] = item.Get("InstanceId").String()
+// 		fields["PayType"] = item.Get("PayType").Int()
+// 		fields["trial"] = item.Get("Trial").Int()
+// 		fields["region"] = item.Get("Region").String()
+// 		fields["remainDay"] = item.Get("RemainDay").Int()
+// 		fields["status"] = item.Get("Status").Int()
 
-		pt, err := influxdb.NewPoint(r.MetricName, tags, fields, time.Now())
-		if err != nil {
-			return err
-		}
+// 		pt, err := influxdb.NewPoint(r.MetricName, tags, fields, time.Now())
+// 		if err != nil {
+// 			return err
+// 		}
 
-		err = io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
-	}
+// 		err = io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
