@@ -1,6 +1,7 @@
 package inputs
 
 import (
+/*
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunactiontrail"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyuncdn"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyuncms"
@@ -89,4 +90,6 @@ import (
 	// BUG: within vendor/github.com/ericchiang/k8s/watch/versioned/generated.pb.go, we should replace
 	// github.com/ericchiang.k8s.watch.versioned.Event -> k8s.io.kubernetes.pkg.watch.versioned.Event
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prometheus"
+
+*/
 )
