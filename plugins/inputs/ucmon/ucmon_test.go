@@ -1,12 +1,13 @@
 package ucmon
 
 import (
+	"io/ioutil"
 	"log"
 	"reflect"
 	"testing"
 	"time"
 
-	//"github.com/influxdata/toml"
+	"github.com/influxdata/toml"
 
 	"github.com/ucloud/ucloud-sdk-go/services/uhost"
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
@@ -17,44 +18,10 @@ func loadConfig() (*ucloud.Config, *auth.Credential) {
 	cfg := ucloud.NewConfig()
 
 	credential := auth.NewCredential()
-	credential.PrivateKey = "o3kgCI6D55TMPSX5cyvdW6pLfnSELJnaOrJhPwl2HWsJuSr2bhR8pr0PYVgsCZz5"
-	credential.PublicKey = "yWNvxpEq8hA42qABkaeRxloYhROUmAnFUgOkfJ0K1hfw36mG6aIqUk7dPts="
+	credential.PrivateKey = ""
+	credential.PublicKey = "="
 
 	return &cfg, &credential
-}
-
-func TestConfig(t *testing.T) {
-
-	cfg := &ucInstance{
-		PublicKey:  "xxx",
-		PrivateKey: "xxx",
-		Region:     "xxx",
-		Zone:       "xxx",
-		ProjectID:  "xxx",
-		Resource: []*ucResource{
-			&ucResource{
-				ResourceID:   "xxx",
-				ResourceType: "xxx",
-				Metrics: []*ucMetric{
-					&ucMetric{
-						MetricName: "xxx",
-					},
-					&ucMetric{
-						MetricName: "yyy",
-					},
-				},
-			},
-		},
-	}
-
-	_ = cfg
-
-	/*
-		data, err := toml.Marshal(cfg)
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
-		log.Printf("cfg: %s", string(data)) */
 }
 
 func TestRegion(t *testing.T) {
@@ -72,7 +39,6 @@ func TestRegion(t *testing.T) {
 		log.Fatalf("%s", err)
 	}
 	resContent := resp.GetPayload()
-	//log.Printf("type: %s", reflect.TypeOf(resContent["Regions"]))
 	if regions, ok := resContent["Regions"].([]interface{}); ok {
 		for _, reg := range regions {
 			if regmap, ok := reg.(map[string]interface{}); ok {
@@ -161,4 +127,23 @@ func TestGetMetrics(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestSvr(t *testing.T) {
+
+	ag := newAgent()
+
+	data, err := ioutil.ReadFile("./test.conf")
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	err = toml.Unmarshal(data, ag)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	ag.debugMode = true
+	ag.Run()
+
 }
