@@ -80,7 +80,7 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.7
-	github.com/tidwall/gjson v1.6.0
+	github.com/tidwall/gjson v1.6.1
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/ucloud/ucloud-sdk-go v0.14.0
