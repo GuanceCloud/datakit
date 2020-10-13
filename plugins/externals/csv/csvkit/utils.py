@@ -1,4 +1,4 @@
-# -*- encoding: utf8 -*-
+# -*- coding:utf-8 -*-
 import sys
 import argparse
 import os
@@ -50,6 +50,7 @@ def parse_cli():
     parser = argparse.ArgumentParser(description="Convert CSV/EXCEL file to influxdb line protocol by http transmission")
     parser.add_argument('--metric', help='Toml cfg info about metric', default="")
     parser.add_argument('--object', help='Toml cfg info about object', default="")
+    parser.add_argument('--interval', help='Toml cfg info about object', default="0")
     parser.add_argument('--http', help='Http host address', default="http://127.0.0.1:9529")
     parser.add_argument('--log_file', help='Log file name', default="")
     parser.add_argument('--log_level', help='Log level', default="info")
