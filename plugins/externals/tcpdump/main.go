@@ -71,6 +71,7 @@ func ParseConfig(fpath string) (*Config, error) {
 	return config, nil
 }
 
+// 解析config
 type Config struct {
 	NetPacket *NetPacket `toml:"tcpdump"`
 }
