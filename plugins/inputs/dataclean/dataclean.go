@@ -1,149 +1,128 @@
 package dataclean
 
 import (
-	"context"
-	"fmt"
-	"io"
+	"io/ioutil"
+	"log"
 	"net/http"
-	"os"
-
-	"github.com/gin-gonic/gin"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
+	"github.com/gin-gonic/gin"
 )
 
 const (
-	inputName = `dataclean`
+	inputName = "dataclean"
+
+	defaultMeasurement = "dataclean"
+
+	sampleCfg = `
+[[inputs.dataclean]]
+    # http server route path
+    # required
+    path = "/dataclean"
+
+    points_lua_files = []
+
+    json_lua_files = []
+
+`
 )
 
-var moduleLogger *logger.Logger
-
-type DataClean struct {
-	BindAddr        string         `toml:"bind_addr"`
-	GinLog          string         `toml:"gin_log"`
-	GlobalLua       []*LuaConfig   `toml:"global_lua"`
-	Routes          []*RouteConfig `toml:"routes_config"`
-	LuaWorker       int            `toml:"lua_worker"`
-	EnableConfigAPI bool           `toml:"enable_config_api"`
-	CfgPwd          string         `toml:"cfg_api_pwd"`
-	//Template string
-
-	ctx       context.Context
-	cancelFun context.CancelFunc
-
-	httpsrv *http.Server
-
-	write *writerMgr
-
-	luaMachine *luaMachine
-}
-
-func (d *DataClean) CheckRoute(route string) bool {
-
-	for _, rt := range d.Routes {
-		if rt.Name == route {
-			return true
-		}
-	}
-	return false
-}
-
-func (d *DataClean) Bindaddr() string {
-	return d.BindAddr
-}
-
-func (_ *DataClean) SampleConfig() string {
-	return sampleConfig
-}
-
-// func (_ *DataClean) Description() string {
-// 	return ""
-// }
-
-func (_ *DataClean) Catalog() string {
-	return "dataclean"
-}
-
-func (d *DataClean) Init() error {
-
-	moduleLogger = logger.SLogger(inputName)
-
-	if d.LuaWorker == 0 {
-		d.LuaWorker = 4
-	}
-
-	d.luaMachine = NewLuaMachine(datakit.LuaDir, d.LuaWorker)
-	d.luaMachine.routes = d.Routes
-	d.luaMachine.globals = d.GlobalLua
-
-	if d.BindAddr == "" {
-		d.BindAddr = `0.0.0.0:9529`
-	}
-
-	gin.DisableConsoleColor()
-	if d.GinLog != "" {
-		moduleLogger.Debugf("set gin log to %s", d.GinLog)
-		f, _ := os.Create(d.GinLog)
-		gin.DefaultWriter = io.MultiWriter(f)
-	} else {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
-	return nil
-}
-
-func (d *DataClean) Run() {
-
-	if err := d.Init(); err != nil {
-		return
-	}
-
-	if err := d.luaMachine.StartGlobal(); err != nil {
-		moduleLogger.Errorf("fail to start global lua, %s", err)
-		return
-	}
-
-	if err := d.luaMachine.StartRoutes(); err != nil {
-		moduleLogger.Errorf("fail to start routes lua, %s", err)
-		return
-	}
-
-	d.write = newWritMgr()
-
-	if datakit.Cfg.MainCfg.DataWay != nil {
-		d.write.addHttpWriter(datakit.Cfg.MainCfg.DataWay.MetricURL())
-	}
-
-	go func() {
-		<-datakit.Exit.Wait()
-		d.cancelFun()
-		d.stopSvr()
-		d.write.stop()
-		if d.luaMachine != nil {
-			d.luaMachine.Stop()
-		}
-	}()
-
-	d.write.run()
-
-	d.startSvr(d.BindAddr)
-}
-
-func (d *DataClean) FakeDataway() string {
-	return fmt.Sprintf("http://%s/v1/write/metric", d.BindAddr)
-}
-
-func NewAgent() *DataClean {
-	ac := &DataClean{}
-	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-	return ac
-}
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		ac := NewAgent()
-		return ac
+		return &DataClean{}
 	})
+}
+
+type DataClean struct {
+	Path           string   `toml:"path"`
+	PointsLuaFiles []string `toml:"points_lua_files"`
+	JSONLuaFiles   []string `toml:"json_lua_files"`
+}
+
+func (*DataClean) SampleConfig() string {
+	return sampleCfg
+}
+
+func (*DataClean) Catalog() string {
+	return inputName
+}
+
+func (d *DataClean) Run() {
+	var err error
+	l = logger.SLogger(inputName)
+
+	err = luascript.AddLuaCodesFromFile("points", d.PointsLuaFiles)
+	if err != nil {
+		log.Println(err)
+	}
+
+	err = luascript.AddLuaCodesFromFile("json", d.JSONLuaFiles)
+	if err != nil {
+		log.Println(err)
+	}
+
+	l.Infof("dataclean input started...")
+
+	luascript.Run()
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			luascript.Stop()
+		default:
+		}
+	}
+}
+
+func (d *DataClean) RegHttpHandler() {
+	httpd.RegGinHandler("POST", d.Path, handle)
+}
+
+func handle(c *gin.Context) {
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+
+	}
+	defer c.Request.Body.Close()
+
+	if len(body) == 0 {
+	}
+
+	category := c.Query("category")
+
+	switch category {
+	case io.Metric, io.Logging, io.KeyEvent:
+		pts, err := ParsePoints(body, "ns")
+		if err != nil {
+			log.Println(err)
+		}
+
+		p, err := NewPointsData("points", category, pts)
+		if err != nil {
+			log.Println(err)
+		}
+
+		err = luascript.SendData(p)
+		if err != nil {
+			log.Println(err)
+		}
+
+	case io.Object:
+		// p, err := NewPointsData(pointsCategory, pts)
+		// if err != nil {
+		// }
+		// luascript.SendData(p)
+
+	default:
+	}
+
+	c.Writer.WriteHeader(http.StatusOK)
 }
