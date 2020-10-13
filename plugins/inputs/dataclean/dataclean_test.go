@@ -1,89 +1,82 @@
 package dataclean
 
 import (
-	"log"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/metric"
-	"github.com/influxdata/telegraf/plugins/serializers"
-	"github.com/influxdata/toml"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+
+	"github.com/gin-gonic/gin"
 )
 
-func TestDumpMaincfg(t *testing.T) {
+func TestMain(t *testing.T) {
+	io.TestOutput()
 
-	log.SetFlags(log.Lshortfile)
-
-	maincfg := &DataClean{
-		BindAddr:        "0.0.0.0:9528",
-		GinLog:          "gin.log",
-		LuaWorker:       4,
-		EnableConfigAPI: true,
-		CfgPwd:          "111",
-	}
-
-	maincfg.GlobalLua = append(maincfg.GlobalLua, &LuaConfig{
-		Path: "a.lua",
-		//Circle: `*/1 * * * *`,
-	})
-
-	rt := &RouteConfig{
-		Name:             "demo",
-		DisableLua:       false,
-		DisableTypeCheck: false,
-	}
-	rt.Lua = append(rt.Lua, LuaConfig{
-		Path: "demo.lua",
-		//Circle: `*/1 * * * *`,
-	})
-
-	maincfg.Routes = append(maincfg.Routes, rt)
-
-	cfgdata, err := toml.Marshal(maincfg)
+	tmpfile, err := ioutil.TempFile("", "example.*.lua")
 	if err != nil {
-		log.Fatalf("%e", err)
+		t.Fatal(err)
 	}
-	log.Printf("%s", string(cfgdata))
+	defer os.Remove(tmpfile.Name())
 
+	if err := ioutil.WriteFile(tmpfile.Name(), []byte(luaCode), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	dataclean := DataClean{
+		Path:           "/dataclean",
+		PointsLuaFiles: []string{tmpfile.Name()},
+	}
+
+	{
+		router := gin.New()
+		router.POST(dataclean.Path, handle)
+		httpsrv := &http.Server{
+			Addr:    "0.0.0.0:9999",
+			Handler: router,
+		}
+		go func() {
+			if err := httpsrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				t.Error(err)
+			}
+		}()
+		defer httpsrv.Close()
+	}
+
+	time.Sleep(1 * time.Second)
+
+	go dataclean.Run()
+
+	http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/metric", "text/html; charset=utf-8",
+		strings.NewReader(`point01,t1=tags10,t2=tags20 f1=11i,f2=true,f3="hello" 1602581410306591000`))
+
+	http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/logging", "text/html; charset=utf-8",
+		strings.NewReader(`point02,t1=tags10,t2=tags20 f1=11i,f2=true,f3="hello" 1602581410306591000`))
+
+	time.Sleep(3 * time.Second)
+
+	datakit.Exit.Close()
 }
 
-func makeMetric(value interface{}, name ...string) telegraf.Metric {
-	if value == nil {
-		panic("Cannot use a nil value")
-	}
-	measurement := "test1"
-	if len(name) > 0 {
-		measurement = name[0]
-	}
-	tags := map[string]string{"tag1": "value1"}
-	pt, _ := metric.New(
-		measurement,
-		tags,
-		map[string]interface{}{"value": value},
-		time.Now().Add(-time.Hour),
-	)
-	return pt
-}
-
-func TestSerialize(t *testing.T) {
-	s, _ := serializers.NewInfluxSerializer()
-
-	ms := []telegraf.Metric{
-		makeMetric(1, "test1"),
-		makeMetric(2, "test2"),
-		makeMetric(3, "test3"),
-	}
-	data, err := s.SerializeBatch(ms)
-	if err != nil {
-		t.Errorf("%s", err)
-	}
-
-	log.Printf("%s", string(data))
-
-	pts, err := ParsePoints(data, "n")
-	if err != nil {
-		t.Errorf("%s", err)
-	}
-	_ = pts
-}
+var luaCode = `
+function handle(points)
+	for _, pt in pairs(points) do
+		print("name", pt.name)
+		print("time", pt.time)
+		print("-------\ntags:")
+		for k, v in pairs(pt.tags) do
+			print(k, v)
+		end
+		print("-------\nfields:")
+		for k, v in pairs(pt.fields) do
+			print(k, v)
+		end
+		print("------------------------")
+	end
+	return points
+end
+`
