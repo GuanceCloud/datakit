@@ -1,4 +1,3 @@
-mkdir -p $1/csv/rpc
 mkdir -p $1/csv/csvkit
 
 cp plugins/externals/csv/main.py            $1/csv/
