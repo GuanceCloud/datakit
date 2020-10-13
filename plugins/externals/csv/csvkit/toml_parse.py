@@ -1,4 +1,4 @@
-# -*- encoding: utf8 -*-
+# -*- coding:utf-8 -*-
 import toml
 import logging
 from csvkit.utils import exit
