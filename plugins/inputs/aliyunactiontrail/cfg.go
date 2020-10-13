@@ -14,13 +14,10 @@ const (
 	configSample = `
 #[[inputs.aliyunactiontrail]]
 
-# ##(required)
+# ##(required) 
 #region = 'cn-hangzhou'
 #access_id = ''
 #access_key = ''
-
-# ##(optional) if empty, use "aliyun_actiontrail"
-#metric_name = ''
 
 # ##(optional) ISO8601 unix time format: 2020-02-01T06:00:00Z
 # ## the earliest is 90 days from now.
@@ -43,11 +40,15 @@ type (
 
 		client *actiontrail.Client
 
-		metricName string
+		regions []string
 
 		rateLimiter *rate.Limiter
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
+
+		historyFlag int32
+
+		debugMode bool
 	}
 )
