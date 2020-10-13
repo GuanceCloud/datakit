@@ -86,7 +86,9 @@ func main() {
 	}
 
 	l.Info("stoping datakit...")
-	_ = install.StopDataKitService(svc) // stop service if installed before
+	if err := service.Control(svc, "stop"); err != nil {
+		l.Warnf("stop service: %s, ignored", err.Error())
+	}
 
 	if *flagOffline && *flagSrcs != "" {
 		for _, f := range strings.Split(*flagSrcs, ",") {
@@ -110,7 +112,7 @@ func main() {
 
 	l.Infof("starting service %s...", datakit.ServiceName)
 	if err = service.Control(svc, "start"); err != nil {
-		l.Fatalf("fail to star service %s: %s", datakit.ServiceName, err.Error())
+		l.Fatalf("star service: %s", err.Error())
 	}
 
 	if *flagUpgrade { // upgrade new version
