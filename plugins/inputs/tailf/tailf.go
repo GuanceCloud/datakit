@@ -118,6 +118,11 @@ func (t *Tailf) Run() {
 	}
 }
 
+func (t *Tailf) Test() ([]byte, error) {
+	// TODO
+	return nil, nil
+}
+
 func (t *Tailf) loadcfg() bool {
 	for {
 		select {
