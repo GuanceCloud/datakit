@@ -172,6 +172,7 @@ func httpStart(addr string) {
 
 	router.POST(io.Metric, func(c *gin.Context) { apiWriteMetric(c) })
 	router.POST(io.Object, func(c *gin.Context) { apiWriteObject(c) })
+
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: router,
@@ -315,12 +316,6 @@ func apiTelegrafOutput(c *gin.Context) {
 		uhttp.HttpErr(c, errBadPoints)
 		return
 	}
-
-	// NOTE:
-	// - we only accept nano-second precison here
-	// - no gzip content-encoding support
-	// - only accept influx line protocol
-	// so be careful to apply telegraf http output
 
 	points, err := models.ParsePointsWithPrecision(body, time.Now().UTC(), "n")
 	if err != nil {
