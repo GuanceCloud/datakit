@@ -37,6 +37,8 @@ var (
 		Object:           nil,
 		Logging:          nil,
 	}
+	cacheCnt       = map[string]int{}
+	cacheUploadMax = 100 * 1024 // 100KiB
 
 	categoryURLs map[string]string
 
@@ -277,6 +279,7 @@ func startIO() {
 					}
 
 					cache[d.category] = append(cache[d.category], d.data)
+					cacheCnt[d.category] += len(d.data)
 
 					stat, ok := inputstats[d.name]
 					if !ok {
@@ -293,6 +296,12 @@ func startIO() {
 						stat.Count++
 						stat.Last = now
 						stat.Category = d.category
+					}
+
+					for _, cnt := range cacheCnt {
+						if cnt >= cacheUploadMax {
+							flush(cache)
+						}
 					}
 				}
 
@@ -343,21 +352,29 @@ func flush(cache map[string][][]byte) {
 
 	defer httpCli.CloseIdleConnections()
 
-	if err := doFlush(cache[Metric], Metric); err == nil {
-		cache[Metric] = nil
+	if err := doFlush(cache[Metric], Metric); err != nil {
+		l.Errorf("post metrics failed, drop %d packages", len(cache[Metric]))
 	}
+	cache[Metric] = nil
+	cacheCnt[Metric] = 0
 
-	if err := doFlush(cache[KeyEvent], KeyEvent); err == nil {
-		cache[KeyEvent] = nil
+	if err := doFlush(cache[KeyEvent], KeyEvent); err != nil {
+		l.Errorf("post keyevent failed, drop %d packages", len(cache[KeyEvent]))
 	}
+	cache[KeyEvent] = nil
+	cacheCnt[KeyEvent] = 0
 
-	if err := doFlush(cache[Object], Object); err == nil {
-		cache[Object] = nil
+	if err := doFlush(cache[Object], Object); err != nil {
+		l.Errorf("post object failed, drop %d packages", len(cache[Object]))
 	}
+	cache[Object] = nil
+	cacheCnt[Object] = 0
 
-	if err := doFlush(cache[Logging], Logging); err == nil {
-		cache[Logging] = nil
+	if err := doFlush(cache[Logging], Logging); err != nil {
+		l.Errorf("post logging failed, drop %d packages", len(cache[Logging]))
 	}
+	cache[Logging] = nil
+	cacheCnt[Logging] = 0
 }
 
 func initCookies() {
