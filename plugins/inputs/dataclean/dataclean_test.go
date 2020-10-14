@@ -14,6 +14,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	pt1 = `point01,t1=tags10,t2=tags20 f1=11i,f2=true,f3="hello" 1602581410306591000`
+	pt2 = `point02,t1=tags10,t2=tags20 f1=11i,f2=true,f3="hello" 1602581410306591000`
+	ob1 = `{"source":"dk1", "status":200}`
+)
+
 func TestMain(t *testing.T) {
 	io.TestOutput()
 
@@ -28,8 +34,9 @@ func TestMain(t *testing.T) {
 	}
 
 	dataclean := DataClean{
-		Path:           "/dataclean",
-		PointsLuaFiles: []string{tmpfile.Name()},
+		Path: "/dataclean",
+		// PointsLuaFiles: []string{tmpfile.Name()},
+		ObjectLuaFiles: []string{tmpfile.Name()},
 	}
 
 	{
@@ -51,32 +58,47 @@ func TestMain(t *testing.T) {
 
 	go dataclean.Run()
 
-	http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/metric", "text/html; charset=utf-8",
-		strings.NewReader(`point01,t1=tags10,t2=tags20 f1=11i,f2=true,f3="hello" 1602581410306591000`))
+	http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/object", "application/json; charset=utf-8",
+		strings.NewReader(ob1))
 
-	http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/logging", "text/html; charset=utf-8",
-		strings.NewReader(`point02,t1=tags10,t2=tags20 f1=11i,f2=true,f3="hello" 1602581410306591000`))
+	// http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/metric", "text/html; charset=utf-8",
+	// 	strings.NewReader(pt1))
+
+	// http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/logging", "text/html; charset=utf-8",
+	// 	strings.NewReader(pt2))
 
 	time.Sleep(3 * time.Second)
 
 	datakit.Exit.Close()
 }
 
+// var luaCode = `
+// function handle(points)
+// 	for _, pt in pairs(points) do
+// 		print("name", pt.name)
+// 		print("time", pt.time)
+// 		print("-------\ntags:")
+// 		for k, v in pairs(pt.tags) do
+// 			print(k, v)
+// 		end
+// 		print("-------\nfields:")
+// 		for k, v in pairs(pt.fields) do
+// 			print(k, v)
+// 		end
+// 		print("------------------------")
+// 	end
+// 	return points
+// end
+// `
+
 var luaCode = `
-function handle(points)
-	for _, pt in pairs(points) do
-		print("name", pt.name)
-		print("time", pt.time)
-		print("-------\ntags:")
-		for k, v in pairs(pt.tags) do
-			print(k, v)
-		end
-		print("-------\nfields:")
-		for k, v in pairs(pt.fields) do
-			print(k, v)
-		end
-		print("------------------------")
+function handle(xxx)
+	for key, element in pairs(xxx) do
+		print("key:     ", key)
+		print("element: ", element)
+		element="modify data"
 	end
-	return points
+	print("------------------------")
+	return xxx
 end
 `
