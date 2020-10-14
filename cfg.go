@@ -227,12 +227,29 @@ func ParseDataway(urlstr string) (*DataWayCfg, error) {
 		dwcfg.scheme = u.Scheme
 		dwcfg.urlValues = u.Query()
 		dwcfg.host = u.Host
-		dwcfg.path = u.Path
 		u.Path = "" // clear any path
-
 		dwcfg.URL = u.String()
 	} else {
 		l.Errorf("parse url %s failed: %s", urlstr, err.Error())
+		return nil, err
+	}
+
+	return dwcfg, nil
+}
+
+func ParseDatawayDataClean(urlstr string) (*DataWayCfg, error) {
+	dwcfg := &DataWayCfg{
+		Timeout: "30s",
+	}
+
+	if u, err := url.Parse(urlstr); err == nil {
+		dwcfg.scheme = u.Scheme
+		dwcfg.urlValues = u.Query()
+		dwcfg.host = u.Host
+		dwcfg.path = u.Path
+		dwcfg.DataCleanURL = u.String()
+	} else {
+		l.Errorf("parse dataclean url %s failed: %s", urlstr, err.Error())
 		return nil, err
 	}
 
@@ -331,15 +348,17 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		l.Fatal("dataway url not set")
 	}
 
-	var urlstr string
+	var dw *DataWayCfg
 	if c.MainCfg.DataWay.DataCleanURL != "" {
-		urlstr = c.MainCfg.DataWay.DataCleanURL
+		dw, err = ParseDatawayDataClean(c.MainCfg.DataWay.DataCleanURL)
+		if err != nil {
+			return err
+		}
 	} else {
-		urlstr = c.MainCfg.DataWay.URL
-	}
-	dw, err := ParseDataway(urlstr)
-	if err != nil {
-		return err
+		dw, err = ParseDataway(c.MainCfg.DataWay.URL)
+		if err != nil {
+			return err
+		}
 	}
 	c.MainCfg.DataWay = dw
 
