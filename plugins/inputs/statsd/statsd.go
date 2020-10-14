@@ -77,6 +77,17 @@ func (t *StatsD) Run() {
 		return
 	}
 
+	p := t.genParam()
+	p.log.Info("statsd input started...")
+	p.gather()
+}
+
+func (t *StatsD) Test() ([]byte, error) {
+	p := t.genParam()
+	return p.getMetrics(true)
+}
+
+func (t *StatsD) genParam() *StatsdParams {
 	reg, _ := regexp.Compile(`:\d{1,5}$`)
 
 	if t.MetricsName == "" {
@@ -93,11 +104,9 @@ func (t *StatsD) Run() {
 
 	input := StatsdInput{*t}
 	output := StatsdOutput{io.NamedFeed}
-	p := StatsdParams{input, output, logger.SLogger("statsd")}
-	p.log.Info("statsd input started...")
-	p.gather()
+	p := &StatsdParams{input, output, logger.SLogger("statsd")}
+    return p
 }
-
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		p := &StatsD{}
