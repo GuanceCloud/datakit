@@ -214,6 +214,7 @@ func ioStop() {
 }
 
 func startIO() {
+	l.Debugf("dataclean url: %s", datakit.Cfg.MainCfg.DataWay.DataCleanURL)
 
 	if datakit.Cfg.MainCfg.DataWay.DataCleanURL != "" {
 		categoryURLs = map[string]string{
