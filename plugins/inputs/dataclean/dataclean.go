@@ -28,8 +28,7 @@ const (
 
     points_lua_files = []
 
-    json_lua_files = []
-
+    object_lua_files = []
 `
 )
 
@@ -44,7 +43,7 @@ func init() {
 type DataClean struct {
 	Path           string   `toml:"path"`
 	PointsLuaFiles []string `toml:"points_lua_files"`
-	JSONLuaFiles   []string `toml:"json_lua_files"`
+	ObjectLuaFiles []string `toml:"object_lua_files"`
 }
 
 func (*DataClean) SampleConfig() string {
@@ -64,7 +63,7 @@ func (d *DataClean) Run() {
 		log.Println(err)
 	}
 
-	err = luascript.AddLuaCodesFromFile("json", d.JSONLuaFiles)
+	err = luascript.AddLuaCodesFromFile("object", d.ObjectLuaFiles)
 	if err != nil {
 		log.Println(err)
 	}
@@ -87,42 +86,52 @@ func (d *DataClean) RegHttpHandler() {
 }
 
 func handle(c *gin.Context) {
+	category := c.Query("category")
+
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-
+		l.Errorf("read body, %s", err.Error())
+		goto end
 	}
 	defer c.Request.Body.Close()
-
-	if len(body) == 0 {
-	}
-
-	category := c.Query("category")
 
 	switch category {
 	case io.Metric, io.Logging, io.KeyEvent:
 		pts, err := ParsePoints(body, "ns")
 		if err != nil {
-			log.Println(err)
+			l.Errorf("parse points, %s", err.Error())
+			goto end
 		}
 
 		p, err := NewPointsData("points", category, pts)
 		if err != nil {
-			log.Println(err)
+			l.Errorf("new points data, %s", err.Error())
+			goto end
 		}
 
 		err = luascript.SendData(p)
 		if err != nil {
-			log.Println(err)
+			l.Error(err)
+			goto end
 		}
 
 	case io.Object:
-		// p, err := NewPointsData(pointsCategory, pts)
-		// if err != nil {
-		// }
-		// luascript.SendData(p)
+		j, err := NewObjectData("object", category, body)
+		if err != nil {
+			l.Error(err)
+			goto end
+		}
+
+		err = luascript.SendData(j)
+		if err != nil {
+			l.Error(err)
+			goto end
+		}
 
 	default:
+		l.Errorf("invalid category")
 	}
 
+end:
 	c.Writer.WriteHeader(http.StatusOK)
 }
