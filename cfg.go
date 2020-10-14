@@ -90,7 +90,8 @@ type Config struct {
 }
 
 type DataWayCfg struct {
-	URL string `toml:"url"`
+	URL          string `toml:"url"`
+	DataCleanURL string `toml:"dataclean_url"`
 
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
@@ -99,6 +100,7 @@ type DataWayCfg struct {
 	host   string
 	scheme string
 	token  string
+	path   string
 
 	urlValues url.Values
 
@@ -143,6 +145,35 @@ func (dc *DataWayCfg) KeyEventURL() string {
 		dc.host,
 		"/v1/write/keyevent",
 		dc.urlValues.Encode())
+}
+func (dc *DataWayCfg) DataCleanMetricURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		dc.path,
+		"category=/v1/write/metric")
+}
+func (dc *DataWayCfg) DataCleanObjectURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		dc.path,
+		"category=/v1/write/object")
+}
+func (dc *DataWayCfg) DataCleanLoggingURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		dc.path,
+		"category=/v1/write/logging")
+}
+
+func (dc *DataWayCfg) DataCleanKeyEventURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		dc.path,
+		"category=/v1/write/keyevent")
 }
 
 func (dc *DataWayCfg) Test() error {
@@ -196,6 +227,7 @@ func ParseDataway(urlstr string) (*DataWayCfg, error) {
 		dwcfg.scheme = u.Scheme
 		dwcfg.urlValues = u.Query()
 		dwcfg.host = u.Host
+		dwcfg.path = u.Path
 		u.Path = "" // clear any path
 
 		dwcfg.URL = u.String()
@@ -299,7 +331,13 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		l.Fatal("dataway url not set")
 	}
 
-	dw, err := ParseDataway(c.MainCfg.DataWay.URL)
+	var urlstr string
+	if c.MainCfg.DataWay.DataCleanURL != "" {
+		urlstr = c.MainCfg.DataWay.DataCleanURL
+	} else {
+		urlstr = c.MainCfg.DataWay.URL
+	}
+	dw, err := ParseDataway(urlstr)
 	if err != nil {
 		return err
 	}
