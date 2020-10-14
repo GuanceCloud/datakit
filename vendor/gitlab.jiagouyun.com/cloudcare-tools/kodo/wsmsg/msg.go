@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -11,10 +13,25 @@ import (
 
 var (
 	l = logger.DefaultSLogger("kodows/msg")
+	clich = make(chan *DatakitClient)
+	hbch  = make(chan string)
+	msgch = make(chan *WrapMsg)
 )
 
+type DatakitClient struct {
+	UUID    string
+	Version string
+	OS      string
+	Arch    string
+	Docker  bool
+	Token   string
+	Conn    net.Conn
+
+	heartbeat time.Time
+}
+
 type WrapMsg struct {
-	Type    int      `json:"type"`
+	Type    string      `json:"type"`
 	ID      string   `json:"id"`
 	Dest    []string `json:"dest,omitempty"`
 	B64Data string   `json:"b64data,omitempty"`
@@ -37,7 +54,7 @@ func ParseWrapMsg(data []byte) (*WrapMsg, error) {
 }
 
 func (wm *WrapMsg) Invalid() bool {
-	return (wm.Type == 0 || wm.ID == "")
+	return wm.ID == ""
 }
 
 func (wm *WrapMsg) Send() {
@@ -53,6 +70,7 @@ func SendToDatakit(rawmsg []byte) {
 	}
 
 	wm.raw = rawmsg
+	fmt.Println(wm)
 	msgch <- wm
 }
 
@@ -62,7 +80,7 @@ func (wm *WrapMsg) Handle() error {
 		return err
 	}
 
-	l.Debugf("handle msg %+#v", wm)
+	l.Infof("handle msg %+#v", wm)
 
 	switch wm.Type {
 	case MTypeHeartbeat:
@@ -72,24 +90,19 @@ func (wm *WrapMsg) Handle() error {
 		}
 
 		return m.Handle(wm)
+	case MTypeOnline:
+		//var m WrapMsg
+		//if err := json.Unmarshal(raw, &m); err != nil {
+		//	return err
+		//}
+		l.Infof("online kodo %s",wm)
+		//TODO set wm to redis
+		return nil
 
-	case MTypeInputConfig:
-		var m MsgInputConfig
-		if err := json.Unmarshal(raw, &m); err != nil {
-			return err
-		}
 
-		return m.Handle(wm)
-
-	case MTypeGetInputConfig, MTypeSetInputConfig: // should not been here
-
-		// case: xxx:
-		// TODO: echo resp to redis key, some HTTP request looping on it
-		// ...
-		return fmt.Errorf("should not been here")
 
 	default:
-		return fmt.Errorf("unknown msg type: %d", wm.Type)
+		return fmt.Errorf("unknown msg type: %s", wm.Type)
 	}
 }
 
@@ -103,22 +116,6 @@ func BuildMsg(m interface{}, dest ...string) (*WrapMsg, error) {
 		ID:      cliutils.XID("wmsg_"),
 		Dest:    dest,
 		B64Data: base64.StdEncoding.EncodeToString(j),
-	}
-
-	switch m.(type) {
-	case MsgDatakitHeartbeat:
-		wm.Type = MTypeHeartbeat
-	case MsgGetInputConfig:
-		wm.Type = MTypeGetInputConfig
-	case MsgSetInputConfig:
-		wm.Type = MTypeSetInputConfig
-	case MsgInputConfig:
-		wm.Type = MTypeInputConfig
-
-		// TODO: add more type
-
-	default:
-		return nil, fmt.Errorf("unknown msg type")
 	}
 
 	return wm, nil
@@ -137,6 +134,18 @@ func (m *MsgDatakitHeartbeat) Handle(_ *WrapMsg) error {
 	hbch <- m.UUID
 	return nil
 }
+
+type MsgDatakitOnline struct {
+	UUID    string
+	Version string
+	OS      string
+	Arch    string
+	Name    string
+	Heartbeat string
+	EnabledInputs []string
+	AvailableInputs []string
+}
+
 
 // get datakit input config
 type MsgGetInputConfig struct {
@@ -167,14 +176,14 @@ func (m *MsgSetInputConfig) Handle(wm *WrapMsg) error {
 }
 
 const (
-	// msgs upload from datakit
-	MTypeHeartbeat int = iota + 1
+	MTypeOnline string = "online"
+	MTypeHeartbeat string = "heartbeat"
+	MTypeGetInput string = "get_input_config"
+	MTypeGetEnableInput string = "get_enabled_input_config"
+	MTypeUpdateEnableInput string = "update_enabled_input_config"
+	MTypeSetEnableInput string = "set_enabled_input_config"
+	MTypeDisableInput string = "disable_input_config"
+	MTypeReload string = "reload"
+	MTypeTestInput string = "test_input_config"
 
-	MTypeInputConfig
-
-	// msgs send to datakit
-	MTypeGetInputConfig
-	MTypeSetInputConfig
-
-	// ...
 )
