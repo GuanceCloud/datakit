@@ -243,20 +243,6 @@ func migrateOldCfg(name string, c inputs.Creator) error {
 	catalog := input.Catalog()
 
 	cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf.sample")
-	old := filepath.Join(datakit.ConfdDir, catalog, name+".conf")
-
-	if _, err := os.Stat(old); err == nil {
-		tbl, err := parseCfgFile(old)
-		if err != nil {
-			l.Warnf("[error] parse conf %s failed on [%s]: %s, ignored", old, name, err)
-		} else if len(tbl.Fields) == 0 { // old config not used
-			if err := os.Remove(old); err != nil {
-				l.Errorf("Remove: %s, ignored", err.Error())
-			}
-		}
-	}
-
-	// overwrite old config sample
 	l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
 	if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
 		l.Errorf("create catalog dir %s failed: %s", catalog, err.Error())
@@ -288,18 +274,6 @@ func initPluginSamples() {
 	for name, input := range tgi.TelegrafInputs {
 
 		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf.sample")
-		old := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf")
-
-		if _, err := os.Stat(old); err == nil {
-			tbl, err := parseCfgFile(old)
-			if err != nil {
-				l.Warnf("[error] parse conf %s failed on [%s]: %s, ignored", old, name, err)
-			} else if len(tbl.Fields) == 0 { // old config not used
-				os.Remove(old)
-			}
-		}
-
-		// overwrite old telegraf config sample
 		l.Debugf("create telegraf conf path %s", filepath.Join(datakit.ConfdDir, input.Catalog))
 		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, input.Catalog), os.ModePerm); err != nil {
 			l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
