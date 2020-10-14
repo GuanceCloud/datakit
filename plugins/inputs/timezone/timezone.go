@@ -71,6 +71,17 @@ func (t *Timezone) Run() {
 		return
 	}
 
+    p := t.genParams()
+	p.log.Info("timezone input started...")
+	p.gather()
+}
+
+func (t *Timezone) Test() ([]byte, error) {
+	p := t.genParams()
+	return p.getMetrics(true)
+}
+
+func (t *Timezone) genParams() *TzParams {
 	if t.Interval == nil {
 		t.Interval = defaultInterval
 	}
@@ -79,12 +90,10 @@ func (t *Timezone) Run() {
 		t.MetricsName = defaultMetricName
 	}
 
-	input := TzInput{*t}
+	input  := TzInput{*t}
 	output := TzOutput{io.NamedFeed}
-	p := TzParams{input, output, logger.SLogger("timezone")}
-
-	p.log.Info("timezone input started...")
-	p.gather()
+	p := &TzParams{input, output, logger.SLogger("timezone")}
+    return p
 }
 
 func (p *TzParams) gather() {
@@ -111,7 +120,7 @@ func (p *TzParams) gather() {
 	for {
 		select {
 		case <-tick.C:
-			err = p.getMetrics()
+			_, err = p.getMetrics(false)
 			if err != nil {
 				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
@@ -123,25 +132,28 @@ func (p *TzParams) gather() {
 	}
 }
 
-func (p *TzParams) getMetrics() error {
+func (p *TzParams) getMetrics(isTest bool) ([]byte, error) {
 	fields := make(map[string]interface{})
 
 	timezone, err := getOsTimezone()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fields["tz"] = timezone
 
 	pt, err := io.MakeMetric(p.input.MetricsName, p.input.Tags, fields, time.Now())
 	if err != nil {
-		return err
+		return nil,err
 	}
 
-	if err := p.output.ioFeed(pt, io.Metric, inputName); err != nil {
-		return err
+	if !isTest {
+		if err := p.output.ioFeed(pt, io.Metric, inputName); err != nil {
+			return pt, err
+		}
 	}
-	return nil
+
+	return pt, nil
 }
 
 func getOsTimezone() (string, error) {
