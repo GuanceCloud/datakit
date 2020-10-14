@@ -11,6 +11,11 @@ import (
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
+const (
+	pointsCallbackFnName   = "handle"
+	pointsCallbackTypeName = "points"
+)
+
 type pointsData struct {
 	name     string
 	category string
@@ -20,7 +25,7 @@ type pointsData struct {
 
 func NewPointsData(name string, category string, pts []*influxdb.Point) (*pointsData, error) {
 	if name == "" {
-		return nil, fmt.Errorf("name doesnot empty")
+		return nil, fmt.Errorf("invalid name, name is empty")
 	}
 
 	var p = pointsData{
@@ -57,20 +62,18 @@ func (p *pointsData) DataToLua() interface{} {
 }
 
 func (*pointsData) CallbackFnName() string {
-	return "handle"
+	return pointsCallbackFnName
 }
 
 func (*pointsData) CallbackTypeName() string {
-	return "points"
+	return pointsCallbackTypeName
 }
 
 func (p *pointsData) Handle(value string, err error) {
 	if err != nil {
-		fmt.Printf("receive error: %v\n", err)
+		l.Errorf("handle receive error: %s", err.Error())
 		return
 	}
-
-	fmt.Printf("jsonStr: %s\n\n", value)
 
 	type pd struct {
 		Name   string                 `json:"name"`
@@ -89,6 +92,8 @@ func (p *pointsData) Handle(value string, err error) {
 
 		pt, err := influxdb.NewPoint(m.Name, m.Tags, m.Fields, time.Unix(0, m.Time))
 		if err != nil {
+			l.Error(err)
+			return
 		}
 
 		buffer.WriteString(pt.String())
@@ -97,6 +102,7 @@ func (p *pointsData) Handle(value string, err error) {
 
 	err = io.Feed(buffer.Bytes(), p.category)
 	if err != nil {
+		l.Error(err)
 	}
 }
 
