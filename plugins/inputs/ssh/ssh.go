@@ -102,6 +102,21 @@ func (s *Ssh) Run() {
 		return
 	}
 
+	p := s.genParam()
+	p.log.Infof("ssh input started...")
+	p.gather()
+}
+
+func (s *Ssh) Test() ([]byte, error) {
+	p := s.genParam()
+	clientCfg, err := p.getSshClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	return p.getMetrics(clientCfg, true)
+}
+
+func (s *Ssh) genParam() *SshParam {
 	reg, _ := regexp.Compile(`:\d{1,5}$`)
 
 	if s.MetricsName == "" {
@@ -120,8 +135,7 @@ func (s *Ssh) Run() {
 	output := SshOutput{io.NamedFeed}
 
 	p := &SshParam{input, output, logger.SLogger("ssh")}
-	p.log.Infof("ssh input started...")
-	p.gather()
+	return p
 }
 
 func (p *SshParam) getSshClientConfig() (*ssh.ClientConfig, error) {
@@ -186,7 +200,7 @@ func (p *SshParam) gather() {
 	for {
 		select {
 		case <-tick.C:
-			err := p.getMetrics(clientCfg)
+			_, err := p.getMetrics(clientCfg, false)
 			if err != nil {
 				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
@@ -198,7 +212,7 @@ func (p *SshParam) gather() {
 	}
 }
 
-func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
+func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig, isTest bool) ([]byte, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
@@ -243,10 +257,14 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig) error {
 
 	pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	err = p.output.IoFeed(pt, io.Metric, inputName)
-	return err
+
+	if !isTest {
+		err = p.output.IoFeed(pt, io.Metric, inputName)
+	}
+
+	return pt, err
 }
 
 func getMsInterval(d time.Duration) float64 {
