@@ -215,13 +215,21 @@ func ioStop() {
 
 func startIO() {
 
-	categoryURLs = map[string]string{
-
-		MetricDeprecated: datakit.Cfg.MainCfg.DataWay.DeprecatedMetricURL(),
-		Metric:           datakit.Cfg.MainCfg.DataWay.MetricURL(),
-		KeyEvent:         datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
-		Object:           datakit.Cfg.MainCfg.DataWay.ObjectURL(),
-		Logging:          datakit.Cfg.MainCfg.DataWay.LoggingURL(),
+	if datakit.Cfg.MainCfg.DataWay.DataCleanURL != "" {
+		categoryURLs = map[string]string{
+			Metric:   datakit.Cfg.MainCfg.DataWay.DataCleanMetricURL(),
+			KeyEvent: datakit.Cfg.MainCfg.DataWay.DataCleanKeyEventURL(),
+			Object:   datakit.Cfg.MainCfg.DataWay.DataCleanObjectURL(),
+			Logging:  datakit.Cfg.MainCfg.DataWay.DataCleanLoggingURL(),
+		}
+	} else {
+		categoryURLs = map[string]string{
+			MetricDeprecated: datakit.Cfg.MainCfg.DataWay.DeprecatedMetricURL(),
+			Metric:           datakit.Cfg.MainCfg.DataWay.MetricURL(),
+			KeyEvent:         datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
+			Object:           datakit.Cfg.MainCfg.DataWay.ObjectURL(),
+			Logging:          datakit.Cfg.MainCfg.DataWay.LoggingURL(),
+		}
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
@@ -275,9 +283,6 @@ func startIO() {
 						l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
 					}
 
-					cache[d.category] = append(cache[d.category], d.data)
-					cacheCnt[d.category] += len(d.data)
-
 					stat, ok := inputstats[d.name]
 					if !ok {
 						inputstats[d.name] = &InputsStat{
@@ -294,6 +299,17 @@ func startIO() {
 						stat.Last = now
 						stat.Category = d.category
 					}
+
+					// not cache
+					if datakit.Cfg.MainCfg.DataWay.DataCleanURL != "" {
+						if err := doFlush([][]byte{d.data}, d.category); err != nil {
+							l.Errorf("post keyevent failed, drop %d packages", len(d.data))
+						}
+						continue
+					}
+
+					cache[d.category] = append(cache[d.category], d.data)
+					cacheCnt[d.category] += len(d.data)
 
 					for _, cnt := range cacheCnt {
 						if cnt >= cacheUploadMax {
