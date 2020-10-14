@@ -301,6 +301,11 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
+
+
+
+
+
 func apiTelegrafOutput(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
