@@ -1,15 +1,31 @@
 package io
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/url"
+	"runtime"
 	"time"
 
 	"github.com/gorilla/websocket"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg"
+)
+
+const (
+	MTypeOnline            string = "online"
+	MTypeHeartbeat         string = "heartbeat"
+	MTypeGetInput          string = "get_input_config"
+	MTypeGetEnableInput    string = "get_enabled_input_config"
+	MTypeUpdateEnableInput string = "update_enabled_input_config"
+	MTypeSetEnableInput    string = "set_enabled_input_config"
+	MTypeDisableInput      string = "disable_input_config"
+	MTypeReload            string = "reload"
+	MTypeTestInput         string = "test_input_config"
 )
 
 var (
@@ -25,8 +41,10 @@ type wscli struct {
 
 func startWS() {
 	var wsurl *url.URL
-
+	l.Infof("ws start")
 	wsurl = datakit.Cfg.MainCfg.DataWay.BuildWSURL(datakit.Cfg.MainCfg)
+
+	l.Infof("ws server config %s", wsurl)
 	cli = &wscli{
 		id:   datakit.Cfg.MainCfg.UUID,
 		exit: make(chan interface{}),
@@ -54,6 +72,7 @@ func (wc *wscli) tryConnect(wsurl string) {
 		_ = resp
 
 		wc.c = c
+		l.Infof("ws ready")
 		break
 	}
 }
@@ -82,20 +101,19 @@ func (wc *wscli) waitMsg() {
 				l.Warn("recover ok: %s", string(trace))
 			}
 
-			mtype, resp, err := wc.c.ReadMessage()
+			_, resp, err := wc.c.ReadMessage()
 			if err != nil {
 				l.Error(err)
 				wc.reset()
 				continue
 			}
 
-			_ = mtype // TODO:
-
 			wm, err := wsmsg.ParseWrapMsg(resp)
 			if err != nil {
 				l.Error("msg.ParseWrapMsg(): %s", err.Error())
 				continue
 			}
+			l.Infof("dk hand message %s", wm)
 
 			wc.handle(wm)
 		}
@@ -114,8 +132,13 @@ func (wc *wscli) sendHeartbeat() {
 		if trace != nil {
 			l.Warn("recover ok: %s", string(trace))
 		}
-
-		tick := time.NewTicker(time.Minute) // FIXME: interval should be configurable
+		heart, err := time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Heartbeat)
+		l.Infof("heartbeat config %s", datakit.Cfg.MainCfg.DataWay.Heartbeat)
+		l.Infof("heart,%s", heart)
+		if err != nil {
+			l.Error(err)
+		}
+		tick := time.NewTicker(heart)
 		defer tick.Stop()
 
 		for {
@@ -158,7 +181,66 @@ func (wc *wscli) sendText(wm *wsmsg.WrapMsg) error {
 
 func (wc *wscli) handle(wm *wsmsg.WrapMsg) error {
 	switch wm.Type {
+	case MTypeOnline:
+		wc.OnlineInfo(wm)
+	case MTypeHeartbeat:
+		wm.B64Data = wc.id
+
 	}
-	return nil
-	// TODO
+	return wc.sendText(wm)
+}
+
+func (wc *wscli) OnlineInfo(wm *wsmsg.WrapMsg) {
+
+	m := wsmsg.MsgDatakitOnline{
+		UUID:            wc.id,
+		Name:            datakit.Cfg.MainCfg.Name,
+		Version:         git.Version,
+		OS:              runtime.GOOS,
+		Arch:            runtime.GOARCH,
+		Heartbeat:       datakit.Cfg.MainCfg.DataWay.Heartbeat,
+		AvailableInputs: GetAvailableInputs(),
+		EnabledInputs:   GetEnableInputs(),
+	}
+	wm.Dest = []string{wc.id}
+	wm.B64Data = ToBase64(m)
+}
+
+func ToBase64(wm interface{}) string {
+	body, err := json.Marshal(wm)
+	if err != nil {
+		l.Errorf("%s toBase64 err:%s", wm, err)
+	}
+	return base64.StdEncoding.EncodeToString(body)
+}
+
+func GetAvailableInputs() []string {
+	var AvailableInputs []string
+	for k, _ := range inputs.Inputs {
+		AvailableInputs = append(AvailableInputs, k)
+	}
+
+	for k, _ := range tgi.TelegrafInputs {
+		//n, cfgs := inputs.InputEnabled(k)
+		AvailableInputs = append(AvailableInputs, k)
+	}
+	return AvailableInputs
+}
+
+func GetEnableInputs() []string {
+	var EnableInputs []string
+	for k, _ := range inputs.Inputs {
+		n, _ := inputs.InputEnabled(k)
+		if n > 0 {
+			EnableInputs = append(EnableInputs,k)
+		}
+	}
+
+	for k, _ := range tgi.TelegrafInputs {
+		n, _ := inputs.InputEnabled(k)
+		if n > 0 {
+			EnableInputs = append(EnableInputs,k)
+		}
+	}
+	return EnableInputs
 }
