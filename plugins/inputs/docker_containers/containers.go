@@ -66,7 +66,7 @@ type DockerContainers struct {
 	All      bool   `toml:"all"`
 
 	timeoutDuration  time.Duration
-	intervalDutation time.Duration
+	intervalDuration time.Duration
 	host             string
 	ClientConfig
 
@@ -109,7 +109,7 @@ func (d *DockerContainers) Run() {
 		return
 	}
 
-	ticker := time.NewTicker(d.intervalDutation)
+	ticker := time.NewTicker(d.intervalDuration)
 	defer ticker.Stop()
 
 	l.Info("docker_containers input start")
@@ -152,11 +152,11 @@ func (d *DockerContainers) initCfg() bool {
 }
 
 func (d *DockerContainers) loadCfg() (err error) {
-	d.intervalDutation, err = time.ParseDuration(d.Interval)
+	d.intervalDuration, err = time.ParseDuration(d.Interval)
 	if err != nil {
 		err = fmt.Errorf("invalid interval, %s", err.Error())
 		return
-	} else if d.intervalDutation <= 0 {
+	} else if d.intervalDuration <= 0 {
 		err = fmt.Errorf("invalid interval, cannot be less than zero")
 		return
 	}
