@@ -122,7 +122,6 @@ func (d *DockerContainers) Run() {
 		case <-ticker.C:
 			data, err := d.gather()
 			if err != nil {
-				l.Error(err)
 				continue
 			}
 			if err := io.NamedFeed(data, io.Object, inputName); err != nil {
