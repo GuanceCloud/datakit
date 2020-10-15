@@ -103,7 +103,7 @@ func (t *TiDB) loadcfg() bool {
 
 		t.duration, err = time.ParseDuration(t.Interval)
 		if err != nil || t.duration <= 0 {
-			l.Errorf("invalid interval, err %s", err.Error())
+			l.Errorf("invalid interval")
 			time.Sleep(time.Second)
 			continue
 		}
