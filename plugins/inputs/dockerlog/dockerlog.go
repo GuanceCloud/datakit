@@ -92,6 +92,7 @@ func init() {
 			newEnvClient:  NewEnvClient,
 			newClient:     NewClient,
 			containerList: make(map[string]context.CancelFunc),
+			Tags:          make(map[string]string),
 		}
 	})
 }
