@@ -27,7 +27,7 @@ func (con *Containerd) collectContainerd() ([]byte, error) {
 	defer cancel()
 	ctx = namespaces.WithNamespace(ctx, con.Namespace)
 
-	client, err := containerd.New(con.HostPath)
+	client, err := containerd.New(con.Location)
 	if err != nil {
 		return nil, err
 	}
