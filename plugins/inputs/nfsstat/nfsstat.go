@@ -25,9 +25,11 @@ const (
 	sampleCfg = `
 [inputs.nfsstat]
     # nfsstat file location. default "/proc/net/rpc/nfsd"
+    # required
     location = "/proc/net/rpc/nfsd"
     
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    # required
     interval = "10s"
     
     # [inputs.nfsstat.tags]
