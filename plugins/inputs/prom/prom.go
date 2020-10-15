@@ -128,7 +128,7 @@ func (p *Prom) loadcfg() bool {
 
 		p.duration, err = time.ParseDuration(p.Interval)
 		if err != nil || p.duration <= 0 {
-			p.log.Errorf("invalid interval, err %s", err.Error())
+			p.log.Errorf("invalid interval")
 			time.Sleep(time.Second)
 			continue
 		}
