@@ -42,6 +42,7 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &TiDB{
 			Interval: datakit.Cfg.MainCfg.Interval,
+			Tags:     make(map[string]string),
 		}
 	})
 }
