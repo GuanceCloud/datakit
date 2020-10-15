@@ -107,7 +107,7 @@ func (h *Lighttpd) loadcfg() bool {
 
 		d, err := time.ParseDuration(h.Interval)
 		if err != nil || d <= 0 {
-			l.Errorf("invalid interval, %s", err.Error())
+			l.Errorf("invalid interval")
 			time.Sleep(time.Second)
 			continue
 		}
