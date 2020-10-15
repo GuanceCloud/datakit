@@ -54,6 +54,7 @@ func (*Druid) Catalog() string {
 }
 
 func (*Druid) Test() ([]byte, error) {
+	// 被动接受 http 数据，无法进行测试
 	return nil, nil
 }
 
