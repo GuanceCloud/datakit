@@ -87,19 +87,23 @@ func (*DockerContainers) Catalog() string {
 	return "docker"
 }
 
-func (d *DockerContainers) Test() ([]byte, error) {
+func (d *DockerContainers) Test() (result *inputs.TestResult, err error) {
 	l = logger.SLogger(inputName)
 
-	if err := d.loadCfg(); err != nil {
-		return nil, err
+	if err = d.loadCfg(); err != nil {
+		return
 	}
 
-	data, err := d.gather()
+	var data []byte
+	data, err = d.gather()
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return data, nil
+	result.Result = data
+	result.Desc = "placeholder"
+
+	return
 }
 
 func (d *DockerContainers) Run() {
