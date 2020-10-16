@@ -57,6 +57,12 @@ func (wx *WxClient) Catalog() string {
 	return "wechat"
 }
 
+func (wx *WxClient) Test() (*inputs.TestResult, error) {
+	var result *inputs.TestResult
+	return result ,nil
+}
+
+
 func (an *Analysis) run(wx *WxClient) {
 	interval, err := time.ParseDuration("24h")
 	if err != nil {
