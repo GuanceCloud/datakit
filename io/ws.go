@@ -3,7 +3,10 @@ package io
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/url"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -16,17 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg"
 )
 
-const (
-	MTypeOnline            string = "online"
-	MTypeHeartbeat         string = "heartbeat"
-	MTypeGetInput          string = "get_input_config"
-	MTypeGetEnableInput    string = "get_enabled_input_config"
-	MTypeUpdateEnableInput string = "update_enabled_input_config"
-	MTypeSetEnableInput    string = "set_enabled_input_config"
-	MTypeDisableInput      string = "disable_input_config"
-	MTypeReload            string = "reload"
-	MTypeTestInput         string = "test_input_config"
-)
+
 
 var (
 	cli   *wscli
@@ -133,8 +126,7 @@ func (wc *wscli) sendHeartbeat() {
 			l.Warn("recover ok: %s", string(trace))
 		}
 		heart, err := time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Heartbeat)
-		l.Infof("heartbeat config %s", datakit.Cfg.MainCfg.DataWay.Heartbeat)
-		l.Infof("heart,%s", heart)
+
 		if err != nil {
 			l.Error(err)
 		}
@@ -181,14 +173,87 @@ func (wc *wscli) sendText(wm *wsmsg.WrapMsg) error {
 
 func (wc *wscli) handle(wm *wsmsg.WrapMsg) error {
 	switch wm.Type {
-	case MTypeOnline:
+	case wsmsg.MTypeOnline:
 		wc.OnlineInfo(wm)
-	case MTypeHeartbeat:
-		wm.B64Data = wc.id
+	case wsmsg.MTypeGetInput:
+		wc.GetInputsConfig(wm)
+	case wsmsg.MTypeGetEnableInput:
+		wc.GetEnableInputsConfig(wm)
+	case wsmsg.MTypeDisableInput:
+
+	case wsmsg.MTypeSetEnableInput:
+	case wsmsg.MTypeTestInput:
+	case wsmsg.MTypeUpdateEnableInput:
+	case wsmsg.MTypeReload:
+
+	//case wsmsg.MTypeHeartbeat:
+	default:
+		wm.Code = "error"
+		wm.B64Data = ToBase64(fmt.Errorf("unknow type %s ",wm.Type).Error())
 
 	}
 	return wc.sendText(wm)
 }
+
+func (wc *wscli) DisableInput(wm *wsmsg.WrapMsg) {
+
+}
+
+
+func (wc *wscli) GetEnableInputsConfig(wm *wsmsg.WrapMsg) {
+	var names wsmsg.MsgGetInputConfig
+	_ = names.Handle(wm)
+	var Enable []map[string]map[string]string
+	for _,v :=range names.Names {
+		n, cfg := inputs.InputEnabled(v)
+		if n > 0 {
+			for _,path := range cfg {
+				cfgData,err := ioutil.ReadFile(path)
+				if err != nil {
+					wm.Code = "error"
+					errorMessage := fmt.Sprintf("get enable config read file error path:%s",path)
+					l.Error(errorMessage)
+					wm.B64Data = ToBase64(errorMessage)
+					return
+				}
+				_,fileName := filepath.Split(path)
+				Enable = append(Enable, map[string]map[string]string{fileName:{"toml":ToBase64(string(cfgData))}})
+			}
+		} else {
+			wm.B64Data = ToBase64(fmt.Sprintf("input %s not enable",v))
+			return
+		}
+	}
+	wm.B64Data = ToBase64(Enable)
+
+}
+
+
+
+func (wc *wscli) GetInputsConfig(wm *wsmsg.WrapMsg) {
+	var names wsmsg.MsgGetInputConfig
+	err := names.Handle(wm)
+	if err != nil {
+		wm.Code = "error"
+		l.Errorf("GetInputsConfig %s params error",wm)
+		return
+	}
+	var data []map[string]map[string]string
+
+	for _, v := range names.Names {
+		sample,err:= inputs.GetSample(v)
+		if err != nil {
+			l.Errorf("get sample error %s",err)
+			wm.Code = "error"
+			wm.B64Data = ToBase64(fmt.Sprintf("get sample error %s",err))
+			return
+		}
+		data = append(data, map[string]map[string]string{v:{"toml":ToBase64(sample)}})
+	}
+	wm.B64Data = ToBase64(data)
+}
+
+
 
 func (wc *wscli) OnlineInfo(wm *wsmsg.WrapMsg) {
 
@@ -219,9 +284,7 @@ func GetAvailableInputs() []string {
 	for k, _ := range inputs.Inputs {
 		AvailableInputs = append(AvailableInputs, k)
 	}
-
 	for k, _ := range tgi.TelegrafInputs {
-		//n, cfgs := inputs.InputEnabled(k)
 		AvailableInputs = append(AvailableInputs, k)
 	}
 	return AvailableInputs
@@ -232,14 +295,15 @@ func GetEnableInputs() []string {
 	for k, _ := range inputs.Inputs {
 		n, _ := inputs.InputEnabled(k)
 		if n > 0 {
-			EnableInputs = append(EnableInputs,k)
+			EnableInputs = append(EnableInputs, k)
 		}
 	}
 
 	for k, _ := range tgi.TelegrafInputs {
-		n, _ := inputs.InputEnabled(k)
+		n, cfg := inputs.InputEnabled(k)
+		l.Infof("cfg : %s",cfg)
 		if n > 0 {
-			EnableInputs = append(EnableInputs,k)
+			EnableInputs = append(EnableInputs, k)
 		}
 	}
 	return EnableInputs
