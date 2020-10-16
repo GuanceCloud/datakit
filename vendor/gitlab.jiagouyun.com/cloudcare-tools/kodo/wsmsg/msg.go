@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	l = logger.DefaultSLogger("kodows/msg")
+	l     = logger.DefaultSLogger("kodows/msg")
 	clich = make(chan *DatakitClient)
 	hbch  = make(chan string)
 	msgch = make(chan *WrapMsg)
@@ -27,16 +27,17 @@ type DatakitClient struct {
 	Token   string
 	Conn    net.Conn
 
-	heartbeat time.Time
+	Heartbeat time.Time
 }
 
 type WrapMsg struct {
-	Type    string      `json:"type"`
+	Type    string   `json:"type"`
 	ID      string   `json:"id"`
 	Dest    []string `json:"dest,omitempty"`
 	B64Data string   `json:"b64data,omitempty"`
 
-	raw []byte
+	Code string
+	raw  []byte
 }
 
 type Msg interface {
@@ -95,11 +96,15 @@ func (wm *WrapMsg) Handle() error {
 		//if err := json.Unmarshal(raw, &m); err != nil {
 		//	return err
 		//}
-		l.Infof("online kodo %s",wm)
-		//TODO set wm to redis
+		//l.Infof("online kodo %s",m)
+		//TODO set wm to redis,mysql
 		return nil
-
-
+	case MTypeGetInput:
+		//TODO set to redis
+		return nil
+	case MTypeGetEnableInput:
+		//TODO set to redis
+		return nil
 
 	default:
 		return fmt.Errorf("unknown msg type: %s", wm.Type)
@@ -116,6 +121,10 @@ func BuildMsg(m interface{}, dest ...string) (*WrapMsg, error) {
 		ID:      cliutils.XID("wmsg_"),
 		Dest:    dest,
 		B64Data: base64.StdEncoding.EncodeToString(j),
+	}
+	switch m.(type) {
+	case MsgDatakitHeartbeat:
+		wm.Type = MTypeHeartbeat
 	}
 
 	return wm, nil
@@ -136,16 +145,15 @@ func (m *MsgDatakitHeartbeat) Handle(_ *WrapMsg) error {
 }
 
 type MsgDatakitOnline struct {
-	UUID    string
-	Version string
-	OS      string
-	Arch    string
-	Name    string
-	Heartbeat string
-	EnabledInputs []string
+	UUID            string
+	Version         string
+	OS              string
+	Arch            string
+	Name            string
+	Heartbeat       string
+	EnabledInputs   []string
 	AvailableInputs []string
 }
-
 
 // get datakit input config
 type MsgGetInputConfig struct {
@@ -153,18 +161,18 @@ type MsgGetInputConfig struct {
 }
 
 func (m *MsgGetInputConfig) Handle(wm *WrapMsg) error {
-	// TODO
-	return nil
+	data, err := base64.StdEncoding.DecodeString(wm.B64Data)
+	if err != nil {
+		l.Errorf("get inputs config err %s", err)
+		return err
+	}
+
+	return json.Unmarshal(data,&m.Names)
 }
 
-type MsgInputConfig struct {
-	Configs map[string][]string `json:"configs"`
-}
 
-func (m *MsgInputConfig) Handle(wm *WrapMsg) error {
-	// TODO
-	return nil
-}
+
+
 
 type MsgSetInputConfig struct {
 	Configs map[string][]string `json:"configs"`
@@ -176,14 +184,13 @@ func (m *MsgSetInputConfig) Handle(wm *WrapMsg) error {
 }
 
 const (
-	MTypeOnline string = "online"
-	MTypeHeartbeat string = "heartbeat"
-	MTypeGetInput string = "get_input_config"
-	MTypeGetEnableInput string = "get_enabled_input_config"
+	MTypeOnline            string = "online"
+	MTypeHeartbeat         string = "heartbeat"
+	MTypeGetInput          string = "get_input_config"
+	MTypeGetEnableInput    string = "get_enabled_input_config"
 	MTypeUpdateEnableInput string = "update_enabled_input_config"
-	MTypeSetEnableInput string = "set_enabled_input_config"
-	MTypeDisableInput string = "disable_input_config"
-	MTypeReload string = "reload"
-	MTypeTestInput string = "test_input_config"
-
+	MTypeSetEnableInput    string = "set_enabled_input_config"
+	MTypeDisableInput      string = "disable_input_config"
+	MTypeReload            string = "reload"
+	MTypeTestInput         string = "test_input_config"
 )
