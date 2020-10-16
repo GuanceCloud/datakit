@@ -37,7 +37,7 @@ require (
 	github.com/gofrs/uuid v2.1.0+incompatible
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/golang/snappy v0.0.1
 	github.com/google/gopacket v1.1.17
 	github.com/gorilla/websocket v1.4.0
@@ -88,7 +88,7 @@ require (
 	github.com/xanzy/go-gitlab v0.31.0
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200924074212-8d61bb78afeb
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20200928035315-f2d6f0279a19
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201016062710-af4adade1b73
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344
 	golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d
