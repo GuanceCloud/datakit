@@ -74,19 +74,23 @@ func (*Cloudflare) Catalog() string {
 	return inputName
 }
 
-func (h *Cloudflare) Test() ([]byte, error) {
+func (h *Cloudflare) Test() (result *inputs.TestResult, err error) {
 	l = logger.SLogger(inputName)
 
-	if err := h.loadCfg(); err != nil {
-		return nil, err
+	if err = h.loadCfg(); err != nil {
+		return
 	}
 
-	data, err := h.getMetrics()
+	var data []byte
+	data, err = h.getMetrics()
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return data, nil
+	result.Result = data
+	result.Desc = "placeholder"
+
+	return result, nil
 }
 
 func (h *Cloudflare) Run() {
