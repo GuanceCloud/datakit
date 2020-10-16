@@ -101,7 +101,7 @@ func (s *Systemd) loadcfg() bool {
 
 		s.duration, err = time.ParseDuration(s.Interval)
 		if err != nil || s.duration <= 0 {
-			l.Errorf("invalid interval, err %s", err.Error())
+			l.Errorf("invalid interval")
 			time.Sleep(time.Second)
 			continue
 		}
