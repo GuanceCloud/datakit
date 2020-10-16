@@ -6,8 +6,10 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -268,4 +270,21 @@ func TomlMd5(v interface{}) (string, error) {
 	}
 
 	return fmt.Sprintf("%x", md5.Sum(b)), nil
+}
+
+func FileRename(inputName, path string) (newPath string){
+	dir := filepath.Dir(path)
+	b,err := ioutil.ReadFile(path)
+	if err != nil {
+		l.Errorf("read config error path:%s input:%s err:%s ",path,inputName,err.Error())
+		return ""
+	}
+	newName := fmt.Sprintf("%s-%x.conf",inputName, md5.Sum(b))
+	newPath = filepath.Join(dir,newName)
+	err = os.Rename(path,newPath)
+	if err != nil {
+		l.Errorf("rename config error path:%s input:%s err:%s ",path,inputName,err.Error())
+		return ""
+	}
+	return
 }
