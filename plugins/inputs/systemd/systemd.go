@@ -58,20 +58,24 @@ func (*Systemd) Catalog() string {
 	return "host"
 }
 
-func (s *Systemd) Test() ([]byte, error) {
+func (s *Systemd) Test() (result *inputs.TestResult, err error) {
 	l = logger.SLogger(inputName)
 
-	if err := s.loadCfg(); err != nil {
-		return nil, err
+	if err = s.loadCfg(); err != nil {
+		return
 	}
 	defer s.stop()
 
-	data, err := s.getMetrics()
+	var data []byte
+	data, err = s.getMetrics()
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return data, nil
+	result.Result = data
+	result.Desc = "placeholder"
+
+	return
 }
 
 func (s *Systemd) Run() {
