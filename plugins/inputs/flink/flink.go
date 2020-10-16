@@ -53,9 +53,10 @@ func (*Flink) Catalog() string {
 	return inputName
 }
 
-func (*Flink) Test() ([]byte, error) {
+func (*Flink) Test() (result *inputs.TestResult, err error) {
 	// 被动接收 http 数据，无法进行测试
-	return nil, nil
+	result.Desc = "placeholder"
+	return
 }
 
 func (f *Flink) Run() {

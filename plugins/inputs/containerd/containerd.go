@@ -76,19 +76,23 @@ func (*Containerd) SampleConfig() string {
 	return sampleCfg
 }
 
-func (c *Containerd) Test() ([]byte, error) {
+func (c *Containerd) Test() (result *inputs.TestResult, err error) {
 	l = logger.SLogger(inputName)
 
-	if err := c.loadCfg(); err != nil {
-		return nil, err
+	if err = c.loadCfg(); err != nil {
+		return
 	}
 
-	data, err := c.collectContainerd()
+	var data []byte
+	data, err = c.collectContainerd()
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return data, nil
+	result.Result = data
+	result.Desc = "placeholder"
+
+	return
 }
 
 func (c *Containerd) Run() {
