@@ -53,9 +53,10 @@ func (*Druid) Catalog() string {
 	return inputName
 }
 
-func (*Druid) Test() ([]byte, error) {
+func (*Druid) Test() (result *inputs.TestResult, err error) {
 	// 被动接受 http 数据，无法进行测试
-	return nil, nil
+	result.Desc = "placeholder"
+	return
 }
 
 func (d *Druid) Run() {
