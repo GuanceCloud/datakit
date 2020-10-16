@@ -1,13 +1,18 @@
 package coredns
 
 import (
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
 const (
 	inputName = "coredns"
 
 	sampleCfg = `
+[[inputs.prom]]
     # coredns metrics from http://HOST:PORT/metrics
     # usually modify host and port
     # required
@@ -17,10 +22,6 @@ const (
     # required
     interval = "10s"
     
-    # Internal configurationl. Don't modify
-    name = "coredns"
-    ignore_measurement = ["coredns_plugin", "coredns_build", "coredns_go_info"]
-
     # [inputs.prom.tags]
     # from = "127.0.0.1:9153"
     # tags1 = "value1"
@@ -29,20 +30,29 @@ const (
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Coredns{}
+		return &prom.Prom{
+			Interval:       datakit.Cfg.MainCfg.Interval,
+			InputName:      inputName,
+			CatalogStr:     "network",
+			SampleCfg:      sampleCfg,
+			Tags:           make(map[string]string),
+			IgnoreFunc:     ignore,
+			PromToNameFunc: nil,
+		}
 	})
 }
 
-type Coredns struct {
+var ignoreMeasurements = []string{
+	"coredns_plugin",
+	"coredns_build",
+	"coredns_go_info",
 }
 
-func (*Coredns) SampleConfig() string {
-	return "[[inputs.prom]]" + sampleCfg
-}
-
-func (*Coredns) Catalog() string {
-	return "network"
-}
-
-func (*Coredns) Run() {
+func ignore(pt *ifxcli.Point) bool {
+	for _, m := range ignoreMeasurements {
+		if pt.Name() == m {
+			return true
+		}
+	}
+	return false
 }
