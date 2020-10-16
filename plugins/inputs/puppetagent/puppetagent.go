@@ -57,9 +57,10 @@ func (*PuppetAgent) Catalog() string {
 	return "puppet"
 }
 
-func (pa *PuppetAgent) Test() ([]byte, error) {
+func (pa *PuppetAgent) Test() (result *inputs.TestResult, err error) {
 	// 监听文件变更，无法进行测试
-	return nil, nil
+	result.Desc = "placeholder"
+	return
 }
 
 func (pa *PuppetAgent) Run() {
