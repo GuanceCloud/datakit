@@ -122,13 +122,13 @@ func (d *DockerContainers) loadCfg() bool {
 
 		d.intervalDutation, err = time.ParseDuration(d.Interval)
 		if err != nil || d.intervalDutation <= 0 {
-			err = fmt.Errorf("invalid interval, %s", err.Error())
+			err = fmt.Errorf("invalid interval")
 			goto label
 		}
 
 		d.timeoutDuration, err = time.ParseDuration(d.Timeout)
 		if err != nil || d.timeoutDuration <= 0 {
-			err = fmt.Errorf("invalid timeout, %s", err.Error())
+			err = fmt.Errorf("invalid timeout")
 			goto label
 		}
 
