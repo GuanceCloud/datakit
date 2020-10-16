@@ -461,6 +461,8 @@ github.com/golang/protobuf v1.4.0/go.mod h1:jodUvKwWbYaEsadDk5Fwe5c77LiNKVO9IDvq
 github.com/golang/protobuf v1.4.1/go.mod h1:U8fpvMrcmy5pZrNK1lt4xCsGvpyWQ/VVv6QDs8UjoX8=
 github.com/golang/protobuf v1.4.2 h1:+Z5KGCizgyZCbGh1KZqA0fcLLkwbsjIzS4aV2v7wJX0=
 github.com/golang/protobuf v1.4.2/go.mod h1:oDoupMAO8OvCJWAcko0GGGIgR6R6ocIYbsSw735rRwI=
+github.com/golang/protobuf v1.4.3 h1:JjCZWpVbqXDqFVmTfYWEVTMIYrL/NPdPSCHPJ0T/raM=
+github.com/golang/protobuf v1.4.3/go.mod h1:oDoupMAO8OvCJWAcko0GGGIgR6R6ocIYbsSw735rRwI=
 github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/golang/snappy v0.0.1 h1:Qgr9rKW7uDUkrbSmQeiDsGa8SjGyCOGtuasMWwvp2P4=
 github.com/golang/snappy v0.0.1/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
@@ -1113,6 +1115,10 @@ gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20200812025743-4f3e0180ff98/go.
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20200911020900-ed0f068b7a02 h1:gNYc+Y5CD2lB4YwSHVVtcYRwaMpsg8yGpZzlWio1WSQ=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20200928035315-f2d6f0279a19 h1:AxYlNs8K9bLOySspf0ut4aI6+D4jVF8rBxdTXCBQ/Jg=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20200928035315-f2d6f0279a19/go.mod h1:6R3jcJ9f7vu1qROnkUT/NzCMM1+10v2qpZt16efDa8k=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201016031746-6154da60b92c h1:RHQIG0QRk0vRnatWFarrUm2pnMz0kTM6KbnVHTsymtU=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201016031746-6154da60b92c/go.mod h1:6R3jcJ9f7vu1qROnkUT/NzCMM1+10v2qpZt16efDa8k=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201016062710-af4adade1b73 h1:C5mCbpjBxQd0IwLUNrmPDh9Q+Qg377xL7trRQWKu/+c=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201016062710-af4adade1b73/go.mod h1:6R3jcJ9f7vu1qROnkUT/NzCMM1+10v2qpZt16efDa8k=
 go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738/go.mod h1:dnLIgRNXwCJa5e+c6mIZCrds/GIG4ncV9HhK5PX7jPg=
