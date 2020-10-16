@@ -204,7 +204,7 @@ func tryStartHTTPServer(srv *http.Server) {
 			if err != http.ErrServerClosed {
 				time.Sleep(time.Second)
 				retryCnt++
-				l.Warnf("start HTTP server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
+				//l.Warnf("start HTTP server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
 				continue
 			} else {
 				l.Debugf("http server(%s) stopped on: %s", srv.Addr, err.Error())
