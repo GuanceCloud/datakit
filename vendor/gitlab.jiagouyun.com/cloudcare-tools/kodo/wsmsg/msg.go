@@ -13,10 +13,12 @@ import (
 
 var (
 	l     = logger.DefaultSLogger("kodows/msg")
-	clich = make(chan *DatakitClient)
-	hbch  = make(chan string)
-	msgch = make(chan *WrapMsg)
+	Msgch = make(chan *WrapMsg)
+	Hbch  = make(chan string)
+	Clich = make(chan *DatakitClient)
+
 )
+
 
 type DatakitClient struct {
 	UUID    string
@@ -37,7 +39,7 @@ type WrapMsg struct {
 	B64Data string   `json:"b64data,omitempty"`
 
 	Code string
-	raw  []byte
+	Raw  []byte
 }
 
 type Msg interface {
@@ -58,8 +60,12 @@ func (wm *WrapMsg) Invalid() bool {
 	return wm.ID == ""
 }
 
+func (dc *DatakitClient) Online() {
+	Clich <- dc
+}
+
 func (wm *WrapMsg) Send() {
-	msgch <- wm
+	Msgch <- wm
 }
 
 func SendToDatakit(rawmsg []byte) {
@@ -70,9 +76,9 @@ func SendToDatakit(rawmsg []byte) {
 		return
 	}
 
-	wm.raw = rawmsg
+	wm.Raw = rawmsg
 	fmt.Println(wm)
-	msgch <- wm
+	Msgch <- wm
 }
 
 func (wm *WrapMsg) Handle() error {
@@ -140,7 +146,7 @@ type MsgDatakitHeartbeat struct {
 }
 
 func (m *MsgDatakitHeartbeat) Handle(_ *WrapMsg) error {
-	hbch <- m.UUID
+	Hbch <- m.UUID
 	return nil
 }
 
