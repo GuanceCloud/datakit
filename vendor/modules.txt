@@ -322,16 +322,6 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
-# github.com/gobwas/httphead v0.0.0-20200921212729-da3d93bc3c58
-github.com/gobwas/httphead
-# github.com/gobwas/pool v0.2.1
-github.com/gobwas/pool
-github.com/gobwas/pool/internal/pmath
-github.com/gobwas/pool/pbufio
-github.com/gobwas/pool/pbytes
-# github.com/gobwas/ws v1.0.4
-github.com/gobwas/ws
-github.com/gobwas/ws/wsutil
 # github.com/godbus/dbus/v5 v5.0.3
 github.com/godbus/dbus/v5
 # github.com/godror/godror v0.17.0
@@ -355,7 +345,7 @@ github.com/golang-sql/civil
 github.com/golang/glog
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 github.com/golang/groupcache/lru
-# github.com/golang/protobuf v1.4.2
+# github.com/golang/protobuf v1.4.3
 github.com/golang/protobuf/descriptor
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
@@ -741,11 +731,11 @@ github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/redis/v20180412
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sqlserver/v20180328
 # github.com/tencentyun/cos-go-sdk-v5 v0.7.7
 github.com/tencentyun/cos-go-sdk-v5
-# github.com/tidwall/gjson v1.6.0
+# github.com/tidwall/gjson v1.6.1
 github.com/tidwall/gjson
 # github.com/tidwall/match v1.0.1
 github.com/tidwall/match
-# github.com/tidwall/pretty v1.0.0
+# github.com/tidwall/pretty v1.0.2
 github.com/tidwall/pretty
 # github.com/trivago/tgo v1.0.1
 github.com/trivago/tgo/tcontainer
@@ -810,13 +800,11 @@ github.com/yuin/gopher-lua/pm
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
-gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 # gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 gitlab.jiagouyun.com/cloudcare-tools/ftagent/lua
 gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20200928035315-f2d6f0279a19
-gitlab.jiagouyun.com/cloudcare-tools/kodo
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201016062710-af4adade1b73
 gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg
 # go.mongodb.org/mongo-driver v1.3.1
 go.mongodb.org/mongo-driver/bson
