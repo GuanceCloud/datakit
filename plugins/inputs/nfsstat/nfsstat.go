@@ -63,19 +63,23 @@ func (*NFSstat) Catalog() string {
 	return inputName
 }
 
-func (n *NFSstat) Test() ([]byte, error) {
+func (n *NFSstat) Test() (result *inputs.TestResult, err error) {
 	l = logger.SLogger(inputName)
 
-	if err := n.loadCfg(); err != nil {
+	if err = n.loadCfg(); err != nil {
 		return nil, err
 	}
 
-	data, err := buildPoint(n.Location, n.Tags)
+	var data []byte
+	data, err = buildPoint(n.Location, n.Tags)
 	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
+	result.Result = data
+	result.Desc = "placeholder"
+
+	return
 }
 
 func (n *NFSstat) Run() {
