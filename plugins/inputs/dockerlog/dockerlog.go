@@ -135,9 +135,10 @@ func (*DockerLogs) Catalog() string {
 	return "docker"
 }
 
-func (d *DockerLogs) Test() ([]byte, error) {
+func (d *DockerLogs) Test() (result *inputs.TestResult, err error) {
 	// 主动请求变更数据，拥有不确定性，无法进行测试
-	return nil, nil
+	result.Desc = "placeholder"
+	return
 }
 
 func (d *DockerLogs) Run() {
