@@ -91,17 +91,23 @@ func (p *Prom) Catalog() string {
 	return p.CatalogStr
 }
 
-func (p *Prom) Test() ([]byte, error) {
-	if err := p.loadCfg(); err != nil {
-		return nil, err
+func (p *Prom) Test() (result *inputs.TestResult, err error) {
+	p.log = logger.SLogger(p.InputName)
+
+	if err = p.loadCfg(); err != nil {
+		return
 	}
 
-	data, err := p.getMetrics()
+	var data []byte
+	data, err = p.getMetrics()
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return data, nil
+	result.Result = data
+	result.Desc = "placeholder"
+
+	return
 }
 
 func (p *Prom) Run() {
