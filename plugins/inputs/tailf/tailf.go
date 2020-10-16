@@ -4,6 +4,7 @@ package tailf
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -63,7 +64,9 @@ type Tailf struct {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Tailf{}
+		return &Tailf{
+			Tags: make(map[string]string),
+		}
 	})
 }
 
@@ -75,10 +78,16 @@ func (*Tailf) SampleConfig() string {
 	return sampleCfg
 }
 
+func (*Tailf) Test() (result *inputs.TestResult, err error) {
+	// 监听文件变更，无法进行测试
+	result.Desc = "placeholder"
+	return
+}
+
 func (t *Tailf) Run() {
 	l = logger.SLogger(inputName)
 
-	if t.loadcfg() {
+	if t.initCfg() {
 		return
 	}
 
@@ -118,12 +127,7 @@ func (t *Tailf) Run() {
 	}
 }
 
-func (t *Tailf) Test() (*inputs.TestResult, error) {
-	// TODO
-	return nil, nil
-}
-
-func (t *Tailf) loadcfg() bool {
+func (t *Tailf) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -133,12 +137,21 @@ func (t *Tailf) loadcfg() bool {
 			// nil
 		}
 
-		if t.Source == "" {
-			l.Errorf("tailf source was empty")
+		if err := t.loadCfg(); err != nil {
+			l.Error(err)
 			time.Sleep(time.Second)
 		} else {
 			break
 		}
+	}
+
+	return false
+}
+
+func (t *Tailf) loadCfg() (err error) {
+	if t.Source == "" {
+		err = fmt.Errorf("source cannot be empty")
+		return
 	}
 
 	var seek *tail.SeekInfo
@@ -160,7 +173,7 @@ func (t *Tailf) loadcfg() bool {
 	}
 	t.runningFileList = sync.Map{}
 	t.wg = sync.WaitGroup{}
-	return false
+	return
 }
 
 func (t *Tailf) startTail(file string) {
