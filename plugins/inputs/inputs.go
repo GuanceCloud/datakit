@@ -21,11 +21,16 @@ var (
 	mtx         = sync.RWMutex{}
 )
 
+type TestResult struct {
+	Result []byte // line protocol or any plugin test result
+	Desc   string // description of Result
+}
+
 type Input interface {
 	Catalog() string
 	Run()
 	SampleConfig() string
-	Test() ([]byte, error)
+	Test() (*TestResult, error)
 
 	// add more...
 }
