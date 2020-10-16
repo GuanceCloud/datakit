@@ -118,7 +118,7 @@ func (t *Tailf) Run() {
 	}
 }
 
-func (t *Tailf) Test() ([]byte, error) {
+func (t *Tailf) Test() (*inputs.TestResult, error) {
 	// TODO
 	return nil, nil
 }
