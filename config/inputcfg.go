@@ -165,8 +165,11 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 				}
 			}
-
 			for _, i := range inputlist {
+				fp = datakit.FileRename(name,fp)
+				if fp == "" {
+					continue
+				}
 				if err := inputs.AddInput(name, i, fp); err != nil {
 					l.Error("add %s failed: %v", name, err)
 					continue
