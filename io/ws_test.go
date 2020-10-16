@@ -1,8 +1,13 @@
 package io
 
 import (
+	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -18,5 +23,18 @@ func TestB64(t *testing.T) {
 	//a := string(data)
 	//t.Fatal(string(data),data)
 	_ = json.Unmarshal(data,&a.Names)
+
+}
+
+func TestRename(t *testing.T) {
+	path := "/Users/admin/Desktop/test/123.conf"
+	//path := "/usr/local/cloudcare/dataflux/datakit/conf.d"
+	a:= filepath.Dir(path)
+	b,_ := ioutil.ReadFile(path)
+	newName := fmt.Sprintf("%x.conf", md5.Sum(b))
+	newPath := filepath.Join(a,newName)
+	fmt.Println(newPath)
+	err := os.Rename(path,newPath)
+	fmt.Println(err)
 
 }
