@@ -63,18 +63,23 @@ func (*TiDB) Catalog() string {
 	return "db"
 }
 
-func (t *TiDB) Test() ([]byte, error) {
+func (t *TiDB) Test() (result *inputs.TestResult, err error) {
 	l = logger.SLogger(inputName)
-	if err := t.loadCfg(); err != nil {
-		return nil, err
+
+	if err = t.loadCfg(); err != nil {
+		return
 	}
 
-	data, err := t.getMetrics()
+	var data []byte
+	data, err = t.getMetrics()
 	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
+	result.Result = data
+	result.Desc = "placeholder"
+
+	return
 }
 
 func (t *TiDB) Run() {
