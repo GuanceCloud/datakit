@@ -78,9 +78,10 @@ func (*Tailf) SampleConfig() string {
 	return sampleCfg
 }
 
-func (*Tailf) Test() ([]byte, error) {
+func (*Tailf) Test() (result *inputs.TestResult, err error) {
 	// 监听文件变更，无法进行测试
-	return nil, nil
+	result.Desc = "placeholder"
+	return
 }
 
 func (t *Tailf) Run() {
