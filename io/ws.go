@@ -181,6 +181,7 @@ func (wc *wscli) handle(wm *wsmsg.WrapMsg) error {
 		wc.GetEnableInputsConfig(wm)
 	case wsmsg.MTypeDisableInput:
 
+
 	case wsmsg.MTypeSetEnableInput:
 	case wsmsg.MTypeTestInput:
 	case wsmsg.MTypeUpdateEnableInput:
@@ -196,6 +197,8 @@ func (wc *wscli) handle(wm *wsmsg.WrapMsg) error {
 }
 
 func (wc *wscli) DisableInput(wm *wsmsg.WrapMsg) {
+
+
 
 }
 
