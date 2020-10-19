@@ -116,9 +116,12 @@ func (_ *CMS) SampleConfig() string {
 	return aliyuncmsConfigSample
 }
 
-// func (_ *CmsAgent) Description() string {
-// 	return `Collect metrics from alibaba Cloud Monitor Service.`
-// }
+func (ac *CMS) Test() (*inputs.TestResult, error) {
+	ac.mode = "test"
+	ac.testResult = &inputs.TestResult{}
+	ac.Run()
+	return ac.testResult, ac.testError
+}
 
 func (_ *CMS) Catalog() string {
 	return `aliyun`
