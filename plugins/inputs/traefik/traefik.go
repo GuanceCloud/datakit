@@ -57,13 +57,11 @@ var (
 	traefikConfigSample = `
 ### You need to configure an [[inputs.traefik]] for each traefik to be monitored.
 ### interval: monitor interval, the default value is "60s".
-### active: whether to monitor traefik.
 ### url: traefik service WebUI url.
 ### metricsName: the name of metric, default is "traefik"
 
 #[[inputs.traefik]]
 #	interval    = "60s"
-#	active      = true
 #	url         = "http://127.0.0.1:8080/health"
 #	metricsName = "traefik"
 #	[inputs.traefik.tags]
@@ -81,7 +79,7 @@ func (t *Traefik) Catalog() string {
 }
 
 func (t *Traefik) Run() {
-	if !t.Active || t.Url == "" {
+	if t.Url == "" {
 		return
 	}
 
@@ -90,9 +88,12 @@ func (t *Traefik) Run() {
 	p.gather()
 }
 
-func (t *Traefik) Test() ([]byte, error) {
-	p := t.genParam()
-	return p.getMetrics(true)
+func (t *Traefik) Test() (*inputs.TestResult, error) {
+	tRst := &inputs.TestResult{}
+	para := t.genParam()
+	pt, err := para.getMetrics(true)
+	tRst.Result = pt
+	return tRst, err
 }
 
 func (t *Traefik) genParam() *TraefikParam {
