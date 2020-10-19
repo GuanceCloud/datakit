@@ -51,7 +51,7 @@ func (o *order) run(ctx context.Context) {
 	cpf.HttpProfile.Endpoint = "billing.tencentcloudapi.com"
 	o.client, _ = billing.NewClient(credential, "", cpf)
 
-	if o.agent.CollectHistoryData {
+	if o.agent.CollectHistoryData && !o.agent.isTest() {
 		go func() {
 			o.getHistoryData(ctx)
 		}()
@@ -80,6 +80,10 @@ func (o *order) getData(ctx context.Context) {
 		err := o.describeDealsByCond(ctx, lastTime, endTime, nil)
 		if err == nil {
 			lastTime = endTime.Add(-shift)
+		}
+
+		if o.agent.isTest() {
+			return
 		}
 
 		select {
@@ -192,6 +196,9 @@ func (o *order) describeDealsByCond(ctx context.Context, startTime time.Time, en
 					moduleLogger.Errorf("%s", err)
 					break
 				}
+				if o.agent.isTest() {
+					break
+				}
 			} else {
 				break
 			}
@@ -200,6 +207,9 @@ func (o *order) describeDealsByCond(ctx context.Context, startTime time.Time, en
 		}
 
 		if err != nil {
+			if o.agent.isTest() {
+				o.agent.testError = err
+			}
 			break
 		}
 
@@ -298,6 +308,11 @@ func (o *order) handleResponse(ctx context.Context, response *billing.DescribeDe
 
 		}
 
-		io.NamedFeedEx(inputName, io.Metric, o.getName(), tags, fields, metrictime)
+		if o.agent.isTest() {
+			data, _ := io.MakeMetric(o.getName(), tags, fields, metrictime)
+			o.agent.testResult.Result = append(o.agent.testResult.Result, data...)
+		} else {
+			io.NamedFeedEx(inputName, io.Metric, o.getName(), tags, fields, metrictime)
+		}
 	}
 }
