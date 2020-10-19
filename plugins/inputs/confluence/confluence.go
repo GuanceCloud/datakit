@@ -1,13 +1,18 @@
 package confluence
 
 import (
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
 const (
 	inputName = "confluence"
 
 	sampleCfg = `
+[[inputs.prom]]
     # confluence metrics from http://HOST:PORT/plugins/servlet/prometheus/metrics
     # usually modify host and port
     # required
@@ -23,10 +28,6 @@ const (
     # tls_cert = "/tmp/peer.crt"
     # tls_key = "/tmp/peer.key"
 
-    ## Internal configuration. Don't modify.
-    name = "confluence"
-    ignore_measurement = ["confluence_jvm_info", "confluence_plugin"]
-
     # [inputs.prom.tags]
     # from = "127.0.0.1:8090"
     # tags1 = "value1"
@@ -35,20 +36,28 @@ const (
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Confluence{}
+		return &prom.Prom{
+			Interval:       datakit.Cfg.MainCfg.Interval,
+			InputName:      inputName,
+			CatalogStr:     inputName,
+			SampleCfg:      sampleCfg,
+			Tags:           make(map[string]string),
+			IgnoreFunc:     ignore,
+			PromToNameFunc: nil,
+		}
 	})
 }
 
-type Confluence struct {
+var ignoreMeasurements = []string{
+	"confluence_jvm_info",
+	"confluence_plugin",
 }
 
-func (*Confluence) SampleConfig() string {
-	return "[[inputs.prom]]" + sampleCfg
-}
-
-func (*Confluence) Catalog() string {
-	return inputName
-}
-
-func (*Confluence) Run() {
+func ignore(pt *ifxcli.Point) bool {
+	for _, m := range ignoreMeasurements {
+		if pt.Name() == m {
+			return true
+		}
+	}
+	return false
 }
