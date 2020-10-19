@@ -3,6 +3,7 @@ package dataclean
 import (
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -30,12 +31,9 @@ const (
 
     object_lua_files = []
 
-    ## global
-    [[inputs.dataclean.crontab_lua_list]]
-    lua_file = ""
-    schedule = ""
-
-
+    # [[inputs.dataclean.crontab_lua_list]]
+    # lua_file = ""
+    # schedule = ""
 `
 )
 
@@ -57,6 +55,7 @@ type DataClean struct {
 	cron *luascript.LuaCron
 
 	enable bool
+	mut    sync.Mutex
 }
 
 func (*DataClean) SampleConfig() string {
@@ -79,7 +78,10 @@ func (d *DataClean) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
+			d.mut.Lock()
 			d.enable = false
+			d.mut.Unlock()
+
 			luascript.Stop()
 			return
 		default:
@@ -89,6 +91,7 @@ func (d *DataClean) Run() {
 
 func (d *DataClean) initCfg() bool {
 	var err error
+	d.mut = sync.Mutex{}
 	d.cron = luascript.NewLuaCron()
 	d.ls = luascript.NewLuaScript(2)
 
@@ -133,7 +136,7 @@ func (d *DataClean) RegHttpHandler() {
 
 func (d *DataClean) handle(c *gin.Context) {
 	if !d.enable {
-		l.Warnf("lua worker does not exist")
+		l.Warnf("worker does not exist")
 		return
 	}
 
