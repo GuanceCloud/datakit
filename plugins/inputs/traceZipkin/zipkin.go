@@ -59,7 +59,7 @@ func (t *TraceZipkin) Run() {
 	log.Infof("%s input exit", inputName)
 }
 
-func (t *TraceZipkin) Test() ([]byte, error) {
+func (t *TraceZipkin) Test() (*inputs.TestResult, error) {
 	return nil, nil
 }
 
