@@ -224,7 +224,6 @@ func HaveTelegrafInputs() bool {
 func InputEnabled(name string) (n int, cfgs []string) {
 	mtx.RLock()
 	defer mtx.RUnlock()
-
 	arr, ok := inputInfos[name]
 	if !ok {
 		return
