@@ -45,12 +45,7 @@ var (
 	defaultMetricName = inputName
 	defaultInterval   = "60s"
 	defaultPort       = 3218
-	squidConfigSample = `### interval: monitor interval, the default value is "60s".
-### active: whether to monitor squid.
-### metricsName: the name of metric, default is "squid"
-
-#[inputs.squid]
-#	active   = true
+	squidConfigSample = `#[inputs.squid]
 #	interval = "60s"
 #	port     = 3128
 #	metricsName = "squid"
@@ -74,17 +69,25 @@ func (s *Squid) Description() string {
 }
 
 func (s *Squid) Run() {
-	if !s.Active {
-		return
-	}
 	p := s.genParam()
 	p.log.Info("squid input started...")
 	p.gather()
 }
 
-func (s *Squid) Test() ([]byte, error) {
-	p := s.genParam()
-	return p.getMetrics(true)
+func (s *Squid) Test() (*inputs.TestResult, error) {
+	tRst := &inputs.TestResult{}
+
+	para := s.genParam()
+	pt, err := para.getMetrics(true)
+
+	tRst.Result = pt
+	if err != nil {
+		tRst.Desc = "链接squid服务器错误"
+	} else {
+		tRst.Desc = "链接squid服务正常"
+	}
+
+	return tRst, err
 }
 
 func (s *Squid) genParam() *SquidParam {
