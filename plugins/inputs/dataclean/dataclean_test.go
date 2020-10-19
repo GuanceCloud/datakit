@@ -41,7 +41,7 @@ func TestMain(t *testing.T) {
 
 	{
 		router := gin.New()
-		router.POST(dataclean.Path, handle)
+		router.POST(dataclean.Path, dataclean.handle)
 		httpsrv := &http.Server{
 			Addr:    "0.0.0.0:9999",
 			Handler: router,
@@ -58,6 +58,7 @@ func TestMain(t *testing.T) {
 
 	go dataclean.Run()
 
+	time.Sleep(time.Second)
 	http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/object", "application/json; charset=utf-8",
 		strings.NewReader(ob1))
 
@@ -96,7 +97,6 @@ function handle(xxx)
 	for key, element in pairs(xxx) do
 		print("key:     ", key)
 		print("element: ", element)
-		element="modify data"
 	end
 	print("------------------------")
 	return xxx
