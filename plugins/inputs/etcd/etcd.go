@@ -1,13 +1,18 @@
 package etcd
 
 import (
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
 const (
 	inputName = "etcd"
 
 	sampleCfg = `
+[[inputs.prom]]
     # etcd metrics from http(https)://HOST:PORT/metrics
     # usually modify host and port
     # required
@@ -23,10 +28,6 @@ const (
     # tls_cert = "/tmp/peer.crt"
     # tls_key = "/tmp/peer.key"
 
-    ## Internal configuration. Don't modify.
-    name = "etcd"
-    ignore_measurement = ["etcd_grpc_server", "etcd_server", "etcd_go_info", "etcd_cluster"]
-    
     # [inputs.prom.tags]
     # from = "127.0.0.1:2379"
     # tags1 = "value1"
@@ -35,20 +36,30 @@ const (
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Etcd{}
+		return &prom.Prom{
+			Interval:       datakit.Cfg.MainCfg.Interval,
+			InputName:      inputName,
+			CatalogStr:     inputName,
+			SampleCfg:      sampleCfg,
+			Tags:           make(map[string]string),
+			IgnoreFunc:     ignore,
+			PromToNameFunc: nil,
+		}
 	})
 }
 
-type Etcd struct {
+var ignoreMeasurements = []string{
+	"etcd_grpc_server",
+	"etcd_server",
+	"etcd_go_info",
+	"etcd_cluster",
 }
 
-func (*Etcd) SampleConfig() string {
-	return "[[inputs.prom]]" + sampleCfg
-}
-
-func (*Etcd) Catalog() string {
-	return inputName
-}
-
-func (*Etcd) Run() {
+func ignore(pt *ifxcli.Point) bool {
+	for _, m := range ignoreMeasurements {
+		if pt.Name() == m {
+			return true
+		}
+	}
+	return false
 }
