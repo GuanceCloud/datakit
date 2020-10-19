@@ -7,6 +7,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -40,5 +41,16 @@ type AwsInstance struct {
 
 	billingMetrics map[string]*cloudwatch.Metric
 
-	debugMode bool
+	mode string
+
+	testResult *inputs.TestResult
+	testError  error
+}
+
+func (ag *AwsInstance) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *AwsInstance) isDebug() bool {
+	return ag.mode == "debug"
 }
