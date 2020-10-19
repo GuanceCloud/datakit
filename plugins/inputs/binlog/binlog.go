@@ -33,6 +33,11 @@ type Binlog struct {
 
 	ctx       context.Context
 	cancelfun context.CancelFunc
+
+	mode string
+
+	testResult *inputs.TestResult
+	testError  error
 }
 
 func (_ *Binlog) Catalog() string {
@@ -41,6 +46,12 @@ func (_ *Binlog) Catalog() string {
 
 func (_ *Binlog) SampleConfig() string {
 	return binlogConfigSample
+}
+
+func (_ *Binlog) Test() (result *inputs.TestResult, err error) {
+	// 被动接受数据，无法进行测试
+	result.Desc = "placeholder"
+	return
 }
 
 type adapterLogWriter struct {
