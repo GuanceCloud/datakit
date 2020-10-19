@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -68,7 +70,10 @@ type (
 		ctx       context.Context
 		cancelFun context.CancelFunc
 
-		debugMode bool
+		mode string
+
+		testResult *inputs.TestResult
+		testError  error
 	}
 
 	queryListInfo struct {
@@ -81,6 +86,14 @@ type (
 		lastFetchTime time.Time
 	}
 )
+
+func (ag *ucInstance) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *ucInstance) isDebug() bool {
+	return ag.mode == "debug"
+}
 
 func (a *ucInstance) genQueryInfo() []*queryListInfo {
 
