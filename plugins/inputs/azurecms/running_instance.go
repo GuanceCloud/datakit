@@ -72,7 +72,15 @@ func (r *azureInstance) run(ctx context.Context) error {
 			r.rateLimiter.Wait(ctx)
 			if err := r.fetchMetric(ctx, req); err != nil {
 				moduleLogger.Errorf(`fail to get metric "%s.%s", %s`, req.resourceID, req.metricname)
+				if r.isTest() {
+					r.testError = err
+					return err
+				}
 			}
+		}
+
+		if r.isTest() {
+			return nil
 		}
 		useage := time.Now().Sub(t)
 		datakit.SleepContext(ctx, 5*time.Minute-useage)
@@ -176,7 +184,12 @@ func (r *azureInstance) fetchMetric(ctx context.Context, info *queryListInfo) er
 					metricTime = (*mv.TimeStamp).Time
 				}
 
-				io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields, metricTime)
+				if r.isTest() {
+					data, _ := io.MakeMetric(metricName, tags, fields, metricTime)
+					r.testResult.Result = append(r.testResult.Result, data...)
+				} else {
+					io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields, metricTime)
+				}
 
 			}
 		}
