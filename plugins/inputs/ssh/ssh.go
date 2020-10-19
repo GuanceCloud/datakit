@@ -46,7 +46,6 @@ type SshParam struct {
 const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ssh/sftp to be monitored.
 ### host: ssh/sftp service ip:port, if "127.0.0.1", default port is 22.
 ### interval: monitor interval, the default value is "60s".
-### active: whether to monitor ssh/sftp.
 ### username: the user name of ssh/sftp.
 ### password: the password of ssh/sftp. optional
 ### sftpCheck: whether to monitor sftp.
@@ -55,7 +54,6 @@ const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ss
 
 #[[inputs.ssh]]
 #	interval = "60s"
-#	active   = true
 #	host     = "127.0.0.1:22"
 #	username = "xxx"
 #	password = "xxx"
@@ -69,7 +67,6 @@ const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ss
 
 #[[inputs.ssh]]
 #	interval = "60s"
-#	active   = true
 #	host     = "127.0.0.1:22"
 #	username = "xxx"
 #	password = "xxx"
@@ -98,7 +95,7 @@ func (s *Ssh) SampleConfig() string {
 }
 
 func (s *Ssh) Run() {
-	if !s.Active || s.Host == "" {
+	if s.Host == "" {
 		return
 	}
 
@@ -107,13 +104,17 @@ func (s *Ssh) Run() {
 	p.gather()
 }
 
-func (s *Ssh) Test() ([]byte, error) {
-	p := s.genParam()
-	clientCfg, err := p.getSshClientConfig()
+func (s *Ssh) Test() (*inputs.TestResult, error) {
+	tRst := &inputs.TestResult{}
+	para := s.genParam()
+	clientCfg, err := para.getSshClientConfig()
 	if err != nil {
-		return nil, err
+		tRst.Desc = "链接ssh服务器错误"
+		return tRst, err
 	}
-	return p.getMetrics(clientCfg, true)
+	pt, err := para.getMetrics(clientCfg, true)
+	tRst.Result = pt
+	return tRst, err
 }
 
 func (s *Ssh) genParam() *SshParam {
