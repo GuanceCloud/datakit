@@ -52,7 +52,7 @@ func (t *JaegerTrace) Run() {
 	log.Infof("%s input exit", inputName)
 }
 
-func (t *JaegerTrace) Test() ([]byte, error) {
+func (t *JaegerTrace) Test() (*inputs.TestResult, error) {
 	return nil, nil
 }
 
