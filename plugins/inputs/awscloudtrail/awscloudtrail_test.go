@@ -11,7 +11,7 @@ import (
 func TestSvr(t *testing.T) {
 
 	ag := newInstance()
-	ag.debugMode = true
+	ag.mode = "debug"
 
 	if data, err := ioutil.ReadFile("./test.conf"); err != nil {
 		log.Fatalf("%s", err)
