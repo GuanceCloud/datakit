@@ -2,8 +2,8 @@ package dataclean
 
 import (
 	"io/ioutil"
-	"log"
 	"net/http"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript"
@@ -22,13 +22,20 @@ const (
 
 	sampleCfg = `
 [[inputs.dataclean]]
-    # http server route path
-    # required
+    ## http server route path
+    ## required
     path = "/dataclean"
 
     points_lua_files = []
 
     object_lua_files = []
+
+    ## global
+    [[inputs.dataclean.crontab_lua_list]]
+    lua_file = ""
+    schedule = ""
+
+
 `
 )
 
@@ -41,9 +48,15 @@ func init() {
 }
 
 type DataClean struct {
-	Path           string   `toml:"path"`
-	PointsLuaFiles []string `toml:"points_lua_files"`
-	ObjectLuaFiles []string `toml:"object_lua_files"`
+	Path           string              `toml:"path"`
+	PointsLuaFiles []string            `toml:"points_lua_files"`
+	ObjectLuaFiles []string            `toml:"object_lua_files"`
+	Global         []map[string]string `toml:"crontab_lua_list"`
+
+	ls   *luascript.LuaScript
+	cron *luascript.LuaCron
+
+	enable bool
 }
 
 func (*DataClean) SampleConfig() string {
@@ -55,37 +68,75 @@ func (*DataClean) Catalog() string {
 }
 
 func (d *DataClean) Run() {
-	var err error
 	l = logger.SLogger(inputName)
 
-	err = luascript.AddLuaCodesFromFile("points", d.PointsLuaFiles)
-	if err != nil {
-		log.Println(err)
-	}
-
-	err = luascript.AddLuaCodesFromFile("object", d.ObjectLuaFiles)
-	if err != nil {
-		log.Println(err)
+	if d.initCfg() {
+		return
 	}
 
 	l.Infof("dataclean input started...")
 
-	luascript.Run()
-
 	for {
 		select {
 		case <-datakit.Exit.Wait():
+			d.enable = false
 			luascript.Stop()
+			return
 		default:
 		}
 	}
 }
 
-func (d *DataClean) RegHttpHandler() {
-	httpd.RegGinHandler("POST", d.Path, handle)
+func (d *DataClean) initCfg() bool {
+	var err error
+	d.cron = luascript.NewLuaCron()
+	d.ls = luascript.NewLuaScript(2)
+
+	for {
+	lable:
+		time.Sleep(time.Second)
+
+		select {
+		case <-datakit.Exit.Wait():
+			return true
+		default:
+			for _, global := range d.Global {
+				err = d.cron.AddLuaFromFile(global["lua_file"], global["schedule"])
+				if err != nil {
+					l.Error(err)
+					goto lable
+				}
+			}
+
+			err = d.ls.AddLuaCodesFromFile("points", d.PointsLuaFiles)
+			if err != nil {
+				l.Error(err)
+				goto lable
+			}
+
+			err = d.ls.AddLuaCodesFromFile("object", d.ObjectLuaFiles)
+			if err != nil {
+				l.Error(err)
+				goto lable
+			}
+
+			d.ls.Run()
+			d.enable = true
+			return false
+		}
+	}
 }
 
-func handle(c *gin.Context) {
+func (d *DataClean) RegHttpHandler() {
+	httpd.RegGinHandler("POST", d.Path, d.handle)
+}
+
+func (d *DataClean) handle(c *gin.Context) {
+	if !d.enable {
+		l.Warnf("lua worker does not exist")
+		return
+	}
+
 	category := c.Query("category")
 
 	body, err := ioutil.ReadAll(c.Request.Body)
@@ -109,7 +160,7 @@ func handle(c *gin.Context) {
 			goto end
 		}
 
-		err = luascript.SendData(p)
+		err = d.ls.SendData(p)
 		if err != nil {
 			l.Error(err)
 			goto end
@@ -122,7 +173,7 @@ func handle(c *gin.Context) {
 			goto end
 		}
 
-		err = luascript.SendData(j)
+		err = d.ls.SendData(j)
 		if err != nil {
 			l.Error(err)
 			goto end
