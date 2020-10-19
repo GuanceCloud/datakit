@@ -97,6 +97,7 @@ type DataWayCfg struct {
 	URL     string `toml:"url"`
 	WSURL   string `toml:"ws_url"`
 	Timeout string `toml:"timeout"`
+	Heartbeat string `toml:"heartbeat"`
 
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
@@ -227,6 +228,7 @@ func ParseDataway(httpurl, wsurl string) (*DataWayCfg, error) {
 
 	dc := &DataWayCfg{
 		Timeout: "30s",
+		//Heartbeat: "30s",
 	}
 
 	if httpurl == "" {
@@ -390,6 +392,7 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 	if err != nil {
 		return err
 	}
+	dw.Heartbeat = c.MainCfg.DataWay.Heartbeat
 	c.MainCfg.DataWay = dw
 
 	if c.MainCfg.DataWay.DeprecatedToken != "" { // compatible with old dataway config
