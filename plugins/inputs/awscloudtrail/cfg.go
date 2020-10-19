@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -37,5 +38,16 @@ type AwsInstance struct {
 
 	rateLimiter *rate.Limiter
 
-	debugMode bool
+	mode string
+
+	testResult *inputs.TestResult
+	testError  error
+}
+
+func (ag *AwsInstance) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *AwsInstance) isDebug() bool {
+	return ag.mode == "debug"
 }
