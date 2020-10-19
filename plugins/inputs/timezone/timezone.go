@@ -44,12 +44,10 @@ const (
 
 var (
 	inputName = "timezone"
-	Sample    = `### active     : whether to monitor timezone changes.
-### interval   : monitor interval, the default value is "60s".
+	Sample    = `### interval   : monitor interval, the default value is "60s".
 ### metricsName: the name of metric, default is "timezone"
 
 [inputs.timezone]
-  active      = true
   interval    = "60s"
   metricsName = "timezone"
   [inputs.timezone.tags]
@@ -67,18 +65,17 @@ func (t *Timezone) Catalog() string {
 }
 
 func (t *Timezone) Run() {
-	if t.Active == false {
-		return
-	}
-
-    p := t.genParams()
+	p := t.genParams()
 	p.log.Info("timezone input started...")
 	p.gather()
 }
 
-func (t *Timezone) Test() ([]byte, error) {
-	p := t.genParams()
-	return p.getMetrics(true)
+func (t *Timezone) Test() (*inputs.TestResult, error) {
+	tRst := &inputs.TestResult{}
+	para := t.genParams()
+	pt, err :=  para.getMetrics(true)
+	tRst.Result = pt
+	return tRst, err
 }
 
 func (t *Timezone) genParams() *TzParams {
