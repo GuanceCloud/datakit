@@ -648,8 +648,8 @@ github.com/prometheus/procfs/nfs
 github.com/rcrowley/go-metrics
 # github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237
 github.com/remyoudompheng/bigfft
-# github.com/robfig/cron v1.2.0
-github.com/robfig/cron
+# github.com/robfig/cron/v3 v3.0.0
+github.com/robfig/cron/v3
 # github.com/rs/xid v1.2.1
 github.com/rs/xid
 # github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
@@ -767,7 +767,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20201013111511-4b063e7184d4
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20201019091409-df078dd4a19e
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript
