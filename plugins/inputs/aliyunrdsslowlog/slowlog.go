@@ -175,6 +175,8 @@ func (r *AliyunRDS) handleResponse(response *rds.DescribeSlowLogsResponse, produ
 		return nil
 	}
 
+	var lines [][]byte
+
 	for _, point := range response.Items.SQLSlowLog {
 		tags := map[string]string{}
 		fields := map[string]interface{}{}
@@ -206,10 +208,25 @@ func (r *AliyunRDS) handleResponse(response *rds.DescribeSlowLogsResponse, produ
 			l.Errorf("make metric point error %v", err)
 		}
 
+		lines = append(lines, pt)
+
 		err = io.NamedFeed([]byte(pt), io.Metric, inputName)
 	}
 
+	r.resData = bytes.Join(lines, []byte("\n"))
+
 	return nil
+}
+
+func (r *AliyunRDS) Test() (*intputs.TestResult, error) {
+	r.test = true
+
+    res := &intputs.TestResult {
+    	Result: r.resData,
+    	Desc: "success!",
+    }
+
+    return res, nil
 }
 
 func unixTimeStrISO8601(t time.Time) string {
