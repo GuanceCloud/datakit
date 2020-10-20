@@ -209,10 +209,23 @@ func (r *Security) describeRiskCheckSummary(region string) {
 		l.Errorf("make metric point error %v", err)
 	}
 
+	r.resData = pt
+
 	err = io.NamedFeed([]byte(pt), io.Metric, inputName)
 	if err != nil {
 		l.Errorf("push metric point error %v", err)
 	}
+}
+
+func (r *AliyunRDS) Test() (*intputs.TestResult, error) {
+	r.test = true
+
+    res := &intputs.TestResult {
+    	Result: r.resData,
+    	Desc: "success!",
+    }
+
+    return res, nil
 }
 
 func init() {
