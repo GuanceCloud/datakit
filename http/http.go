@@ -18,7 +18,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/influxdb1-client/models"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -46,6 +45,9 @@ var (
 	stopOkCh = make(chan interface{})
 )
 
+
+
+
 func Start(bind string) {
 
 	l = logger.SLogger("http")
@@ -56,7 +58,7 @@ func Start(bind string) {
 	l.Info("HTTPServer goroutine exit")
 }
 
-func reloadDatakit() error {
+func ReloadDatakit() error {
 
 	// FIXME: if config.LoadCfg() failed:
 	// we should add a function like try-load-cfg(), to testing
@@ -78,9 +80,15 @@ func reloadDatakit() error {
 
 	l.Info("reloading io...")
 	io.Start()
-
 	l.Info("reloading telegraf...")
 	inputs.StartTelegraf()
+
+	l.Info("reload ws...")
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		StartWS()
+	}()
 
 	l.Info("reloading inputs...")
 	if err := inputs.RunInputs(); err != nil {
@@ -91,7 +99,7 @@ func reloadDatakit() error {
 	return nil
 }
 
-func restartHttpServer() {
+func RestartHttpServer() {
 	l.Info("trigger HTTP server to stopping...")
 	stopCh <- nil // trigger HTTP server to stopping
 
@@ -351,7 +359,7 @@ func apiTelegrafOutput(c *gin.Context) {
 
 func apiReload(c *gin.Context) {
 
-	if err := reloadDatakit(); err != nil {
+	if err := ReloadDatakit(); err != nil {
 		uhttp.HttpErr(c, err)
 		return
 	}
@@ -364,7 +372,7 @@ func apiReload(c *gin.Context) {
 		reload = time.Now()
 		reloadCnt++
 
-		restartHttpServer()
+		RestartHttpServer()
 		l.Info("reload HTTP server ok")
 	}()
 }
