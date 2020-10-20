@@ -128,7 +128,7 @@ func (r *Security) describeSummaryInfo(region string) {
 		return
 	}
 
-	r.resData = pt
+	r.resData = []byte(pt.String())
 
 	err = io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
 }
@@ -219,26 +219,26 @@ func (r *Security) describeRiskCheckSummary(region string) {
 	}
 }
 
-func (r *AliyunRDS) Test() (*intputs.TestResult, error) {
-	r.test = true
-	r.resData = nil
+func (s *Security) Test() (*inputs.TestResult, error) {
+	s.test = true
+	s.resData = nil
 
-	cli, err := sas.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
+	cli, err := sas.NewClientWithAccessKey(s.RegionID, s.AccessKeyID, s.AccessKeySecret)
 	if err != nil {
 		l.Errorf("create client failed, %s", err)
 	}
-	cli2, err := aegis.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
+	cli2, err := aegis.NewClientWithAccessKey(s.RegionID, s.AccessKeyID, s.AccessKeySecret)
 	if err != nil {
 		l.Errorf("create client failed, %s", err)
 	}
 
-	a.client = cli
-	a.aclient = cli2
+	s.client = cli
+	s.aclient = cli2
 
-	a.command()
+	s.command()
 
-    res := &intputs.TestResult {
-    	Result: r.resData,
+    res := &inputs.TestResult {
+    	Result: s.resData,
     	Desc: "success!",
     }
 
