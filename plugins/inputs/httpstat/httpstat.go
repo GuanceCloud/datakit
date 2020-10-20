@@ -39,6 +39,8 @@ type httpPing struct {
 	kAlive        bool
 	compress      bool
 	tlsSkipVerify bool
+	httpStat      *Httpstat
+	resData       []byte
 }
 
 // Result holds Ping result
@@ -279,14 +281,22 @@ func (h *httpPing) setTransport() {
 	}
 }
 
-func (h *httpPing) Test() (*intputs.TestResult, error) {
+func (h *Httpstat) Test() (*inputs.TestResult, error) {
 	h.test = true
 	h.resData = nil
 
-	h.run()
+	for _, c := range h.Actions {
+		p := &httpPing{
+			cfg:        c,
+			metricName: h.MetricName,
+		}
+		p.run()
 
-    res := &intputs.TestResult {
-    	Result: r.resData,
+		h.resData = p.resData
+	}
+
+    res := &inputs.TestResult {
+    	Result: h.resData,
     	Desc: "success!",
     }
 
