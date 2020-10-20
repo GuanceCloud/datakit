@@ -24,7 +24,7 @@ require (
 	github.com/lib/pq v1.8.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.13.0
-	github.com/robfig/cron v1.2.0
+	github.com/robfig/cron/v3 v3.0.0
 	github.com/rs/xid v1.2.1
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/tidwall/pretty v1.0.2 // indirect
