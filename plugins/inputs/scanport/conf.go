@@ -31,4 +31,6 @@ type Scanport struct {
 	Timeout          int               `json:"timeout" toml:"timeout"`
 	Process          int               `json:"process" toml:"process"`
 	IntervalDuration time.Duration     `json:"-" toml:"-"`
+	test             bool              `toml:"-"`
+	resData          []byte            `toml:"-"`
 }
