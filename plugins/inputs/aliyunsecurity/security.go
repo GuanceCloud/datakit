@@ -128,6 +128,8 @@ func (r *Security) describeSummaryInfo(region string) {
 		return
 	}
 
+	r.resData = []byte(pt.String())
+
 	err = io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
 }
 
@@ -209,10 +211,38 @@ func (r *Security) describeRiskCheckSummary(region string) {
 		l.Errorf("make metric point error %v", err)
 	}
 
+	r.resData = pt
+
 	err = io.NamedFeed([]byte(pt), io.Metric, inputName)
 	if err != nil {
 		l.Errorf("push metric point error %v", err)
 	}
+}
+
+func (s *Security) Test() (*inputs.TestResult, error) {
+	s.test = true
+	s.resData = nil
+
+	cli, err := sas.NewClientWithAccessKey(s.RegionID, s.AccessKeyID, s.AccessKeySecret)
+	if err != nil {
+		l.Errorf("create client failed, %s", err)
+	}
+	cli2, err := aegis.NewClientWithAccessKey(s.RegionID, s.AccessKeyID, s.AccessKeySecret)
+	if err != nil {
+		l.Errorf("create client failed, %s", err)
+	}
+
+	s.client = cli
+	s.aclient = cli2
+
+	s.command()
+
+    res := &inputs.TestResult {
+    	Result: s.resData,
+    	Desc: "success!",
+    }
+
+    return res, nil
 }
 
 func init() {
