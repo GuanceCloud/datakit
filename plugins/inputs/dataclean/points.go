@@ -100,7 +100,7 @@ func (p *pointsData) Handle(value string, err error) {
 		buffer.WriteString("\n")
 	}
 
-	err = io.Feed(buffer.Bytes(), p.category)
+	err = io.NamedFeed(buffer.Bytes(), p.category, inputName)
 	if err != nil {
 		l.Error(err)
 	}
