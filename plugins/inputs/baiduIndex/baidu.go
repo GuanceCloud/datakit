@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"bytes"
 
 	"github.com/tidwall/gjson"
 
@@ -92,6 +93,7 @@ func (b *BaiduIndex) command() {
 }
 
 func (b *BaiduIndex) getSearchIndex() {
+	var lines [][]byte
 	var keywords = [][]*searchWord{}
 	var et = time.Now()
 	var st = et.Add(-time.Duration(24 * time.Hour))
@@ -220,7 +222,7 @@ func (b *BaiduIndex) getSearchIndex() {
 		}
 	}
 
-	r.resData = bytes.Join(lines, []byte("\n"))
+	b.resData = bytes.Join(lines, []byte("\n"))
 }
 
 func (b *BaiduIndex) getExtendedIndex(tt string) {
@@ -288,13 +290,13 @@ func (b *BaiduIndex) getExtendedIndex(tt string) {
 	}
 }
 
-func (b *BaiduIndex) Test() (*intputs.TestResult, error) {
+func (b *BaiduIndex) Test() (*inputs.TestResult, error) {
 	b.test = true
 	b.resData = nil
 
 	b.command()
 
-    res := &intputs.TestResult {
+    res := &inputs.TestResult {
     	Result: b.resData,
     	Desc: "success!",
     }
