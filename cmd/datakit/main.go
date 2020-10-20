@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -256,6 +257,12 @@ func runDatakitWithHTTPServer() error {
 
 	go func() {
 		http.Start(datakit.Cfg.MainCfg.HTTPBind)
+	}()
+
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		http.StartWS()
 	}()
 
 	return nil
