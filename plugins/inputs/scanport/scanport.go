@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"bytes"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -353,7 +354,7 @@ func parseCIDR(cidr string) ([]string, error) {
 	return ips[1 : len(ips)-1], nil
 }
 
-func (s *Scanport) Test() (*intputs.TestResult, error) {
+func (s *Scanport) Test() (*inputs.TestResult, error) {
 	s.test = true
 	s.resData = nil
 
@@ -362,7 +363,7 @@ func (s *Scanport) Test() (*intputs.TestResult, error) {
 
 	s.handle()
 
-    res := &intputs.TestResult {
+    res := &inputs.TestResult {
     	Result: s.resData,
     	Desc: "success!",
     }
