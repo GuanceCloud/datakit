@@ -134,10 +134,10 @@ func (r *HarborMonitor) getHealth(baseUrl string) string {
 	return resp
 }
 
-func (r *HarborMonitor) Test() (*intputs.TestResult, error) {
+func (r *HarborMonitor) Test() (*inputs.TestResult, error) {
 	r.test = true
 
-    res := &intputs.TestResult {
+    res := &inputs.TestResult {
     	Result: r.resData,
     	Desc: "success!",
     }
