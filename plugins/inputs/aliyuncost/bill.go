@@ -33,7 +33,7 @@ func newCostBill(ag *agent) *costBill {
 
 func (cb *costBill) run(ctx context.Context) {
 
-	if cb.ag.CollectHistoryData {
+	if cb.ag.CollectHistoryData && !cb.ag.isTest() {
 		go func() {
 			cb.getHistoryData(ctx)
 		}()
@@ -57,6 +57,10 @@ func (cb *costBill) getData(ctx context.Context) {
 		cycle := fmt.Sprintf("%d-%02d", start.Year(), start.Month())
 		if err := cb.getBills(ctx, cycle, nil); err != nil {
 			moduleLogger.Errorf("%s", err)
+			if cb.ag.isTest() {
+				cb.ag.testError = err
+				return
+			}
 		}
 
 		select {
@@ -73,6 +77,11 @@ func (cb *costBill) getData(ctx context.Context) {
 		*/
 
 		atomic.AddInt32(&cb.historyFlag, -1)
+
+		if cb.ag.isTest() {
+			break
+		}
+
 		datakit.SleepContext(ctx, cb.interval)
 
 		select {
@@ -97,7 +106,7 @@ func (cb *costBill) getHistoryData(ctx context.Context) {
 
 	var info *historyInfo
 
-	if !cb.ag.debugMode {
+	if !cb.ag.isDebug() {
 		info, _ = getAliyunCostHistory(key)
 	}
 
@@ -125,7 +134,7 @@ func (cb *costBill) getHistoryData(ctx context.Context) {
 
 		if info.StartTime.Unix() >= info.EndTime.Unix() {
 			info.Statue = 1
-			if !cb.ag.debugMode {
+			if !cb.ag.isDebug() {
 				setAliyunCostHistory(key, info)
 			}
 			break
@@ -140,7 +149,7 @@ func (cb *costBill) getHistoryData(ctx context.Context) {
 		}
 
 		info.StartTime = info.StartTime.AddDate(0, 1, 0)
-		if !cb.ag.debugMode {
+		if !cb.ag.isDebug() {
 			setAliyunCostHistory(key, info)
 		}
 	}
@@ -314,7 +323,10 @@ func (cb *costBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		} else {
 			//返回的不是utc
 			t = t.Add(-8 * time.Hour)
-			if cb.ag.debugMode {
+			if cb.ag.isTest() {
+				data, _ := io.MakeMetric(cb.getName(), tags, fields, t)
+				cb.ag.testResult.Result = append(cb.ag.testResult.Result, data...)
+			} else if cb.ag.isDebug() {
 				//data, _ := io.MakeMetric(cb.getName(), tags, fields, t)
 				//fmt.Printf("-----%s\n", string(data))
 			} else {
