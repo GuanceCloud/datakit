@@ -2,6 +2,7 @@ package aliyunrdsslowlog
 
 import (
 	"time"
+	"bytes"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
@@ -175,6 +176,8 @@ func (r *AliyunRDS) handleResponse(response *rds.DescribeSlowLogsResponse, produ
 		return nil
 	}
 
+	var lines [][]byte
+
 	for _, point := range response.Items.SQLSlowLog {
 		tags := map[string]string{}
 		fields := map[string]interface{}{}
@@ -206,10 +209,37 @@ func (r *AliyunRDS) handleResponse(response *rds.DescribeSlowLogsResponse, produ
 			l.Errorf("make metric point error %v", err)
 		}
 
+		lines = append(lines, pt)
+
 		err = io.NamedFeed([]byte(pt), io.Metric, inputName)
 	}
 
+	r.resData = bytes.Join(lines, []byte("\n"))
+
 	return nil
+}
+
+func (a *AliyunRDS) Test() (*inputs.TestResult, error) {
+	a.test = true
+    a.resData = nil
+
+    cli, err := rds.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
+	if err != nil {
+		l.Errorf("create client failed, %s", err)
+	}
+
+	a.client = cli
+
+    for _, val := range a.Product {
+		a.exec(val)
+	}
+
+    res := &inputs.TestResult {
+    	Result: a.resData,
+    	Desc: "success!",
+    }
+
+    return res, nil
 }
 
 func unixTimeStrISO8601(t time.Time) string {
