@@ -12,7 +12,7 @@ func TestMain(t *testing.T) {
 	io.TestOutput()
 
 	var con = Containerd{
-		HostPath:  "/run/containerd/containerd.sock",
+		Location:  "/run/containerd/containerd.sock",
 		Namespace: "moby",
 		IDList:    []string{"*"},
 		Interval:  "5s",
