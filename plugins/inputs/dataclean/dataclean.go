@@ -138,6 +138,11 @@ func (d *DataClean) initCfg() bool {
 		time.Sleep(time.Second)
 	}
 
+	l.Debugf("init lua success")
+	l.Debugf("crontab lua list: %v", d.Global)
+	l.Debugf("points lua: %v", d.PointsLuaFiles)
+	l.Debugf("object lua: %v", d.ObjectLuaFiles)
+
 	return false
 }
 
