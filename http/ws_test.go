@@ -1,4 +1,4 @@
-package io
+package http
 
 import (
 	"crypto/md5"
@@ -37,4 +37,10 @@ func TestRename(t *testing.T) {
 	err := os.Rename(path,newPath)
 	fmt.Println(err)
 
+}
+
+func TestJson(t *testing.T) {
+	a := "example"
+	b,err := json.Marshal(a)
+	fmt.Println(b,err)
 }
