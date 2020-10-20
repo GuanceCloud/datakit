@@ -122,7 +122,7 @@ func (t *TraceRouter) parseHopData(resultHop traceroute.TracerouteResult) {
 
 }
 
-func (t *TraceRouter) Test() (*intputs.TestResult, error) {
+func (t *TraceRouter) Test() (*inputs.TestResult, error) {
 	t.test = true
 	t.resData = nil
 
@@ -139,7 +139,7 @@ func (t *TraceRouter) Test() (*intputs.TestResult, error) {
 
 	t.parseHopData(resHop)
 
-    res := &intputs.TestResult {
+    res := &inputs.TestResult {
     	Result: t.resData,
     	Desc: "success!",
     }
