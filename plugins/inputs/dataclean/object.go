@@ -60,7 +60,7 @@ func (j *objectData) Handle(value string, err error) {
 		return
 	}
 
-	err = io.Feed([]byte(value), j.category)
+	err = io.NamedFeed([]byte(value), j.category, inputName)
 	if err != nil {
 		l.Error(err)
 	}
