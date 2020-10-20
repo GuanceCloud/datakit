@@ -212,11 +212,15 @@ func (b *BaiduIndex) getSearchIndex() {
 			l.Errorf("make metric point error %s", err)
 		}
 
+		lines = append(lines, pt)
+
 		err = io.NamedFeed([]byte(pt3), io.Metric, inputName)
 		if err != nil {
 			l.Errorf("push metric point error %s", err)
 		}
 	}
+
+	r.resData = bytes.Join(lines, []byte("\n"))
 }
 
 func (b *BaiduIndex) getExtendedIndex(tt string) {
@@ -282,6 +286,17 @@ func (b *BaiduIndex) getExtendedIndex(tt string) {
 			l.Errorf("push metric point error %s", err)
 		}
 	}
+}
+
+func (r *BaiduIndex) Test() (*intputs.TestResult, error) {
+	r.test = true
+
+    res := &intputs.TestResult {
+    	Result: r.resData,
+    	Desc: "success!",
+    }
+
+    return res, nil
 }
 
 func init() {
