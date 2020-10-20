@@ -336,6 +336,8 @@ func (m *MysqlMonitor) gatherGlobalStatuses(db *sql.DB, serv string) error {
 		l.Errorf("make metric point error %v", err)
 	}
 
+	m.resData = pt
+
 	_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
 	if err != nil {
 		l.Errorf("[error] : %s", err.Error())
