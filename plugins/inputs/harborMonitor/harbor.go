@@ -104,6 +104,8 @@ func (h *HarborMonitor) command() {
 		l.Errorf("make metric point error %v", err)
 	}
 
+	h.resData = pt
+
 	err = io.NamedFeed([]byte(pt), io.Metric, inputName)
 	if err != nil {
 		l.Errorf("push metric point error %v", err)
@@ -130,6 +132,17 @@ func (r *HarborMonitor) getHealth(baseUrl string) string {
 	_, resp := Get(path)
 
 	return resp
+}
+
+func (r *HarborMonitor) Test() (*inputs.TestResult, error) {
+	r.test = true
+
+    res := &inputs.TestResult {
+    	Result: r.resData,
+    	Desc: "success!",
+    }
+
+    return res, nil
 }
 
 func init() {
