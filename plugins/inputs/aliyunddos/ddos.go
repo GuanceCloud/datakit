@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"bytes"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -172,7 +173,7 @@ func (r *DDoS) command() {
 }
 
 func (r *DDoS) describeInstanceDetails(instanceID, region string) error {
-	var lines  [][]byte{}
+	var lines  [][]byte
 	request := requests.NewCommonRequest()
 	request.Method = "POST"
 	request.Scheme = "https"
@@ -420,14 +421,14 @@ func (r *DDoS) describeNetworkRules(instanceID, region string) error {
 	return nil
 }
 
-func (d *DDoS) Test() (*intputs.TestResult, error) {
+func (d *DDoS) Test() (*inputs.TestResult, error) {
 	d.test = true
 	d.resData = nil
 
 	d.command()
 
-    res := &intputs.TestResult {
-    	Result: r.resData,
+    res := &inputs.TestResult {
+    	Result: d.resData,
     	Desc: "success!",
     }
 
