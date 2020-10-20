@@ -73,20 +73,29 @@ func (d *DataClean) Run() {
 		return
 	}
 
+	d.ls.Run()
+	d.cron.Run()
+	d.enable = true
+
 	l.Infof("dataclean input started...")
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			d.mut.Lock()
-			d.enable = false
-			d.mut.Unlock()
-
-			luascript.Stop()
+			d.stop()
 			return
 		default:
 		}
 	}
+}
+
+func (d *DataClean) stop() {
+	d.mut.Lock()
+	d.enable = false
+	d.mut.Unlock()
+
+	d.ls.Stop()
+	d.cron.Stoping()
 }
 
 func (d *DataClean) initCfg() bool {
@@ -96,9 +105,6 @@ func (d *DataClean) initCfg() bool {
 	d.ls = luascript.NewLuaScript(2)
 
 	for {
-	lable:
-		time.Sleep(time.Second)
-
 		select {
 		case <-datakit.Exit.Wait():
 			return true
@@ -111,23 +117,28 @@ func (d *DataClean) initCfg() bool {
 				}
 			}
 
-			err = d.ls.AddLuaCodesFromFile("points", d.PointsLuaFiles)
-			if err != nil {
-				l.Error(err)
-				goto lable
+			if d.PointsLuaFiles != nil {
+				err = d.ls.AddLuaCodesFromFile("points", d.PointsLuaFiles)
+				if err != nil {
+					l.Error(err)
+					goto lable
+				}
 			}
 
-			err = d.ls.AddLuaCodesFromFile("object", d.ObjectLuaFiles)
-			if err != nil {
-				l.Error(err)
-				goto lable
+			if d.ObjectLuaFiles != nil {
+				err = d.ls.AddLuaCodesFromFile("object", d.ObjectLuaFiles)
+				if err != nil {
+					l.Error(err)
+					goto lable
+				}
 			}
-
-			d.ls.Run()
-			d.enable = true
-			return false
 		}
+		break
+	lable:
+		time.Sleep(time.Second)
 	}
+
+	return false
 }
 
 func (d *DataClean) RegHttpHandler() {
@@ -151,6 +162,13 @@ func (d *DataClean) handle(c *gin.Context) {
 
 	switch category {
 	case io.Metric, io.Logging, io.KeyEvent:
+		if d.PointsLuaFiles == nil {
+			if err := io.NamedFeed(body, category, inputName); err != nil {
+				l.Error(err)
+			}
+			goto end
+		}
+
 		pts, err := ParsePoints(body, "ns")
 		if err != nil {
 			l.Errorf("parse points, %s", err.Error())
@@ -170,6 +188,13 @@ func (d *DataClean) handle(c *gin.Context) {
 		}
 
 	case io.Object:
+		if d.ObjectLuaFiles == nil {
+			if err := io.NamedFeed(body, category, inputName); err != nil {
+				l.Error(err)
+			}
+			goto end
+		}
+
 		j, err := NewObjectData("object", category, body)
 		if err != nil {
 			l.Error(err)
