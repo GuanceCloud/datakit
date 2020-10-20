@@ -218,8 +218,20 @@ func (r *AliyunRDS) handleResponse(response *rds.DescribeSlowLogsResponse, produ
 	return nil
 }
 
-func (r *AliyunRDS) Test() (*intputs.TestResult, error) {
-	r.test = true
+func (a *AliyunRDS) Test() (*intputs.TestResult, error) {
+	a.test = true
+    a.resData = nil
+
+    cli, err := rds.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
+	if err != nil {
+		l.Errorf("create client failed, %s", err)
+	}
+
+	a.client = cli
+
+    for _, val := range a.Product {
+		a.exec(val)
+	}
 
     res := &intputs.TestResult {
     	Result: r.resData,
