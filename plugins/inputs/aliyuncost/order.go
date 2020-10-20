@@ -33,7 +33,7 @@ func newCostOrder(ag *agent) *costOrder {
 
 func (co *costOrder) run(ctx context.Context) {
 
-	if co.ag.CollectHistoryData {
+	if co.ag.CollectHistoryData && !co.ag.isTest() {
 		go func() {
 			time.Sleep(time.Millisecond * 10)
 			co.getHistoryData(ctx)
@@ -66,8 +66,15 @@ func (co *costOrder) getData(ctx context.Context) {
 
 		if err := co.getOrders(ctx, from, end, nil); err != nil {
 			moduleLogger.Errorf("%s", err)
+			if co.ag.isTest() {
+				return
+			}
 		} else {
 			//lastTime = endTime.Add(-shift)
+		}
+
+		if co.ag.isTest() {
+			break
 		}
 
 		select {
@@ -101,7 +108,7 @@ func (co *costOrder) getHistoryData(ctx context.Context) {
 	moduleLogger.Info("start getting history Orders")
 
 	var info *historyInfo
-	if !co.ag.debugMode {
+	if !co.ag.isDebug() {
 		info, _ = getAliyunCostHistory(key)
 	}
 
@@ -192,7 +199,7 @@ func (co *costOrder) getOrders(ctx context.Context, start, end string, info *his
 			req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
 			if info != nil {
 				info.PageNum = resp.Data.PageNum + 1
-				if !co.ag.debugMode {
+				if !co.ag.isDebug() {
 					setAliyunCostHistory(info.key, info)
 				}
 			}
@@ -205,7 +212,7 @@ func (co *costOrder) getOrders(ctx context.Context, start, end string, info *his
 
 	if info != nil {
 		info.Statue = 1
-		if !co.ag.debugMode {
+		if !co.ag.isDebug() {
 			setAliyunCostHistory(info.key, info)
 		}
 	}
@@ -257,7 +264,10 @@ func (co *costOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			moduleLogger.Warnf("fail to parse time:%v, error:%s", item.CreateTime, err)
 			continue
 		}
-		if co.ag.debugMode {
+		if co.ag.isTest() {
+			data, _ := io.MakeMetric(co.getName(), tags, fields, t)
+			co.ag.testResult.Result = append(co.ag.testResult.Result, data...)
+		} else if co.ag.isDebug() {
 			//data, _ := io.MakeMetric(co.getName(), tags, fields, t)
 			//fmt.Printf("-----%s\n", string(data))
 		} else {
