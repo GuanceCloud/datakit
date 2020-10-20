@@ -57,10 +57,10 @@ func (wx *WxClient) Catalog() string {
 	return "wechat"
 }
 
-func (wx *WxClient) Test() (*inputs.TestResult, error) {
-	var result *inputs.TestResult
-	return result ,nil
-}
+//func (wx *WxClient) Test() (*inputs.TestResult, error) {
+//	var result *inputs.TestResult
+//	return result ,nil
+//}
 
 
 func (an *Analysis) run(wx *WxClient) {
@@ -134,10 +134,17 @@ func (wx *WxClient) Run() {
 
 	l = logger.SLogger("wechat")
 	l.Info("wechat input started...")
+
+	go func() {
+		<-datakit.Exit.Wait()
+		wx.cancelFun()
+	}()
+
 	if wx.Analysis != nil {
 		wx.addModule(wx.Analysis)
 
 	}
+
 	if wx.Operation != nil {
 		wx.addModule(wx.Operation)
 
