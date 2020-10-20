@@ -5,7 +5,10 @@ import (
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
 	"golang.org/x/time/rate"
 )
 
@@ -56,7 +59,10 @@ type (
 		accountName string
 		accountID   string
 
-		debugMode bool
+		mode string
+
+		testResult *inputs.TestResult
+		testError  error
 	}
 
 	subModule interface {
@@ -65,6 +71,14 @@ type (
 		run(context.Context)
 	}
 )
+
+func (a *agent) isTest() bool {
+	return a.mode == "test"
+}
+
+func (a *agent) isDebug() bool {
+	return a.mode == "debug"
+}
 
 func unixTimeStr(t time.Time) string {
 	s := t.Format(`2006-01-02T15:04:05Z`)

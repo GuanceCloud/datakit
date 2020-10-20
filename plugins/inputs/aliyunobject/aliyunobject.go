@@ -41,6 +41,13 @@ func (_ *objectAgent) Catalog() string {
 	return `aliyun`
 }
 
+func (ag *objectAgent) Test() (*inputs.TestResult, error) {
+	ag.mode = "test"
+	ag.testResult = &inputs.TestResult{}
+	ag.Run()
+	return ag.testResult, ag.testError
+}
+
 func (ag *objectAgent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
