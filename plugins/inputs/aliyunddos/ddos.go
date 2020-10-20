@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"bytes"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -169,13 +170,10 @@ func (r *DDoS) command() {
 	for _, region := range regions2 {
 		go r.describeWebRules(region)
 	}
-
-	// for _, region := range regions3 {
-	// 	go r.describePayInfo(region)
-	// }
 }
 
 func (r *DDoS) describeInstanceDetails(instanceID, region string) error {
+	var lines  [][]byte
 	request := requests.NewCommonRequest()
 	request.Method = "POST"
 	request.Scheme = "https"
@@ -221,11 +219,15 @@ func (r *DDoS) describeInstanceDetails(instanceID, region string) error {
 			l.Errorf("make metric point error %v", err)
 		}
 
+		lines = append(lines, pt)
+
 		err = io.NamedFeed([]byte(pt), io.Metric, inputName)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
 		}
 	}
+
+	r.resData = bytes.Join(lines, []byte("\n"))
 
 	return nil
 }
@@ -419,53 +421,20 @@ func (r *DDoS) describeNetworkRules(instanceID, region string) error {
 	return nil
 }
 
-// func (r *DDoS) describePayInfo(region string) error {
-// 	request := requests.NewCommonRequest()
-// 	request.Method = "POST"
-// 	request.Scheme = "https" // https | http
-// 	request.Domain = "wafopenapi.cn-hangzhou.aliyuncs.com"
-// 	request.Version = "2018-01-17"
-// 	request.ApiName = "DescribePayInfo"
+func (d *DDoS) Test() (*inputs.TestResult, error) {
+	d.test = true
+	d.resData = nil
 
-// 	request.QueryParams["RegionId"] = region
+	d.command()
 
-// 	response, err := r.client.ProcessCommonRequest(request)
-// 	if err != nil {
-// 		l.Error("describePayInfo failed", err)
-// 		return err
-// 	}
+    res := &inputs.TestResult {
+    	Result: d.resData,
+    	Desc: "success!",
+    }
 
-// 	data := response.GetHttpContentString()
+    return res, nil
+}
 
-// 	instanceArr := gjson.Parse(data).Get("Result").Array()
-
-// 	for _, item := range instanceArr {
-// 		tags := map[string]string{}
-// 		fields := map[string]interface{}{}
-
-// 		tags["product"] = "waf"
-// 		tags["action"] = "describePayInfo"
-// 		tags["region"] = item.Get("Region").String()
-
-// 		fields["endDate"] = item.Get("EndDate").Int()
-// 		fields["inDebt"] = item.Get("InDebt").Int()
-// 		fields["instanceId"] = item.Get("InstanceId").String()
-// 		fields["PayType"] = item.Get("PayType").Int()
-// 		fields["trial"] = item.Get("Trial").Int()
-// 		fields["region"] = item.Get("Region").String()
-// 		fields["remainDay"] = item.Get("RemainDay").Int()
-// 		fields["status"] = item.Get("Status").Int()
-
-// 		pt, err := influxdb.NewPoint(r.MetricName, tags, fields, time.Now())
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		err = io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
-// 	}
-
-// 	return nil
-// }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
