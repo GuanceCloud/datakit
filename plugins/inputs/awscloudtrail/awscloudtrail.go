@@ -32,6 +32,13 @@ func (*AwsInstance) SampleConfig() string {
 	return sampleConfig
 }
 
+func (a *AwsInstance) Test() (*inputs.TestResult, error) {
+	a.mode = "test"
+	a.testResult = &inputs.TestResult{}
+	a.Run()
+	return a.testResult, a.testError
+}
+
 func (a *AwsInstance) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
@@ -88,6 +95,10 @@ func (r *AwsInstance) run(ctx context.Context) {
 
 		if err := r.initClient(); err != nil {
 			moduleLogger.Errorf("fail to init client, %s", err)
+			if r.isTest() {
+				r.testError = err
+				return
+			}
 			time.Sleep(time.Second)
 		} else {
 			break
@@ -119,6 +130,10 @@ func (r *AwsInstance) run(ctx context.Context) {
 
 		if err != nil {
 			moduleLogger.Errorf("fail to LookupEvents, %s", err)
+			if r.isTest() {
+				r.testError = err
+				return
+			}
 		} else {
 			for _, evt := range response.Events {
 
@@ -159,7 +174,10 @@ func (r *AwsInstance) run(ctx context.Context) {
 				}
 				fields["Resources"] = strings.Join(resources, ",")
 
-				if r.debugMode {
+				if r.isTest() {
+					data, _ := io.MakeMetric(measurement, tags, fields, *evt.EventTime)
+					r.testResult.Result = append(r.testResult.Result, data...)
+				} else if r.isDebug() {
 					data, _ := io.MakeMetric(measurement, tags, fields, *evt.EventTime)
 					fmt.Printf("%s\n", string(data))
 				} else {
@@ -167,6 +185,10 @@ func (r *AwsInstance) run(ctx context.Context) {
 				}
 			}
 
+		}
+
+		if r.isTest() {
+			break
 		}
 
 		datakit.SleepContext(ctx, r.Interval.Duration)
