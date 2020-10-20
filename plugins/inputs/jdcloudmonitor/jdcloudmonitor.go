@@ -32,6 +32,13 @@ func (_ *agent) SampleConfig() string {
 	return sampleConfig
 }
 
+func (ag *agent) Test() (*inputs.TestResult, error) {
+	ag.mode = "test"
+	ag.testResult = &inputs.TestResult{}
+	ag.Run()
+	return ag.testResult, ag.testError
+}
+
 func (ag *agent) Run() {
 	moduleLogger = logger.SLogger(inputName)
 
@@ -57,11 +64,13 @@ func (ag *agent) Run() {
 	ag.limiter = rate.NewLimiter(limit, 1)
 
 	if err := ag.genReqs(ag.ctx); err != nil {
+		ag.testError = err
 		return
 	}
 
 	if len(ag.reqs) == 0 {
 		moduleLogger.Warnf("no metric found")
+		ag.testError = fmt.Errorf("no metric found")
 		return
 	}
 
@@ -88,6 +97,10 @@ func (ag *agent) Run() {
 			}
 
 			ag.fetchMetric(ag.ctx, req)
+		}
+
+		if ag.isTest() {
+			break
 		}
 
 		datakit.SleepContext(ag.ctx, time.Second*3)
@@ -156,6 +169,7 @@ func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
 
 	if err != nil || resp.Error.Code != 0 {
 		moduleLogger.Errorf("fail to get metric: Service=%s, ResourceID=%s, MetricName=%s, AggregateType=%s, StartTime=%v, EndTime=%v, %v", req.servicename, req.resourceid, req.metricname, req.aggreType, req.from, req.to, resp.Error)
+		ag.testError = err
 		return
 	}
 
@@ -196,7 +210,10 @@ func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
 				continue
 			}
 
-			if ag.debugMode {
+			if ag.isTest() {
+				data, _ := io.MakeMetric(measurement, tags, fields)
+				ag.testResult.Result = append(ag.testResult.Result, data...)
+			} else if ag.isDebug() {
 				data, err := io.MakeMetric(measurement, tags, fields)
 				if err != nil {
 					moduleLogger.Errorf("MakeMetric failed, %s", err)
