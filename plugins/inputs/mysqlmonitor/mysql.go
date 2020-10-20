@@ -211,14 +211,14 @@ func (m *MysqlMonitor) gatherServer(serv string) error {
 	return nil
 }
 
-func (m *MysqlMonitor) Test() (*intputs.TestResult, error) {
+func (m *MysqlMonitor) Test() (*inputs.TestResult, error) {
 	m.test = true
 	m.resData = nil
 
 	m.handle()
 
-    res := &intputs.TestResult {
-    	Result: r.resData,
+    res := &inputs.TestResult {
+    	Result: m.resData,
     	Desc: "success!",
     }
 
