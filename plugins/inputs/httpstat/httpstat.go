@@ -226,6 +226,8 @@ func (h *httpPing) uploadData(resData Result) {
 
 	pt, _ := influxdb.NewPoint(h.metricName, tags, fields, time.Now())
 
+	h.resData = []byte(pt.String())
+
 	io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
 }
 
@@ -275,6 +277,20 @@ func (h *httpPing) setTransport() {
 		},
 		Proxy: http.ProxyFromEnvironment,
 	}
+}
+
+func (h *httpPing) Test() (*intputs.TestResult, error) {
+	h.test = true
+	h.resData = nil
+
+	h.run()
+
+    res := &intputs.TestResult {
+    	Result: r.resData,
+    	Desc: "success!",
+    }
+
+    return res, nil
 }
 
 // Normalize fixes scheme

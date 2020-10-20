@@ -17,4 +17,6 @@ type TraceRouter struct {
 	Interval         string        `json:"interval" toml:"interval"`
 	Addr             string        `json:"addr" toml:"addr"`
 	IntervalDuration time.Duration `json:"-" toml:"-"`
+	test             bool              `toml:"-"`
+	resData          []byte            `toml:"-"`
 }
