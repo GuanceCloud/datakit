@@ -1,6 +1,7 @@
 package mongodboplog
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -55,7 +56,11 @@ var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Mongodboplog{}
+		return &Mongodboplog{
+			FieldList: make(map[string]string),
+			Tags:      make(map[string]string),
+			pointlist: make(map[string]string),
+		}
 	})
 }
 
@@ -84,22 +89,26 @@ func (*Mongodboplog) SampleConfig() string {
 	return sampleCfg
 }
 
+func (m *Mongodboplog) Test() (result *inputs.TestResult, err error) {
+	l = logger.SLogger(inputName)
+
+	m.initCfg()
+
+	var session *mgo.Session
+	if session, err = mgo.Dial(m.MongodbURL); err != nil {
+		err = fmt.Errorf("failed to connect, err: %s", err.Error())
+	} else {
+		session.Close()
+	}
+
+	result.Desc = "placeholder"
+	return
+}
+
 func (m *Mongodboplog) Run() {
 	l = logger.SLogger(inputName)
 
-	m.namespace = m.Database + "." + m.Collection
-	m.pointlist = make(map[string]string)
-	if m.Tags == nil {
-		m.Tags = make(map[string]string)
-	}
-
-	for _, v := range m.TagList {
-		m.pointlist[v] = "t"
-	}
-	for k, v := range m.FieldList {
-		m.pointlist[k] = v
-	}
-
+	m.initCfg()
 	var session *mgo.Session
 	var err error
 
@@ -137,6 +146,16 @@ func (m *Mongodboplog) Run() {
 	l.Infof("mongodb_oplog input started.")
 
 	m.runloop()
+}
+
+func (m *Mongodboplog) initCfg() {
+	m.namespace = m.Database + "." + m.Collection
+	for _, v := range m.TagList {
+		m.pointlist[v] = "t"
+	}
+	for k, v := range m.FieldList {
+		m.pointlist[k] = v
+	}
 }
 
 func (m *Mongodboplog) runloop() {
