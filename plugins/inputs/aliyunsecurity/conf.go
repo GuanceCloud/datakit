@@ -25,7 +25,9 @@ type Security struct {
 	AccessKeySecret  string `toml:"accessKeySecret"`
 	Interval         string `toml:"interval"`
 	MetricName       string `toml:"metricName"`
-	client           *sas.Client
-	aclient          *aegis.Client
-	IntervalDuration time.Duration
+	client           *sas.Client  `toml:"-"`
+	aclient          *aegis.Client  `toml:"-"`
+	IntervalDuration time.Duration  `toml:"-"`
+	test             bool           `toml:"-"`
+	resData          []byte         `toml:"-"`
 }
