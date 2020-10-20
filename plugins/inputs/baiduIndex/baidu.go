@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"bytes"
 
 	"github.com/tidwall/gjson"
 
@@ -92,6 +93,7 @@ func (b *BaiduIndex) command() {
 }
 
 func (b *BaiduIndex) getSearchIndex() {
+	var lines [][]byte
 	var keywords = [][]*searchWord{}
 	var et = time.Now()
 	var st = et.Add(-time.Duration(24 * time.Hour))
@@ -212,11 +214,15 @@ func (b *BaiduIndex) getSearchIndex() {
 			l.Errorf("make metric point error %s", err)
 		}
 
+		lines = append(lines, pt)
+
 		err = io.NamedFeed([]byte(pt3), io.Metric, inputName)
 		if err != nil {
 			l.Errorf("push metric point error %s", err)
 		}
 	}
+
+	b.resData = bytes.Join(lines, []byte("\n"))
 }
 
 func (b *BaiduIndex) getExtendedIndex(tt string) {
@@ -282,6 +288,20 @@ func (b *BaiduIndex) getExtendedIndex(tt string) {
 			l.Errorf("push metric point error %s", err)
 		}
 	}
+}
+
+func (b *BaiduIndex) Test() (*inputs.TestResult, error) {
+	b.test = true
+	b.resData = nil
+
+	b.command()
+
+    res := &inputs.TestResult {
+    	Result: b.resData,
+    	Desc: "success!",
+    }
+
+    return res, nil
 }
 
 func init() {
