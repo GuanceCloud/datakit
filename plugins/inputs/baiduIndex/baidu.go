@@ -288,11 +288,14 @@ func (b *BaiduIndex) getExtendedIndex(tt string) {
 	}
 }
 
-func (r *BaiduIndex) Test() (*intputs.TestResult, error) {
-	r.test = true
+func (b *BaiduIndex) Test() (*intputs.TestResult, error) {
+	b.test = true
+	b.resData = nil
+
+	b.command()
 
     res := &intputs.TestResult {
-    	Result: r.resData,
+    	Result: b.resData,
     	Desc: "success!",
     }
 
