@@ -16,9 +16,7 @@ var (
 	Msgch = make(chan *WrapMsg)
 	Hbch  = make(chan string)
 	Clich = make(chan *DatakitClient)
-
 )
-
 
 type DatakitClient struct {
 	UUID    string
@@ -105,10 +103,9 @@ func (wm *WrapMsg) Handle() error {
 		//l.Infof("online kodo %s",m)
 		//TODO set wm to redis,mysql
 		return nil
-	case MTypeGetInput:
-		//TODO set to redis
-		return nil
-	case MTypeGetEnableInput:
+
+	case MTypeGetInput,MTypeDisableInput,MTypeGetEnableInput,MTypeSetInput,MTypeUpdateEnableInput,MTypeReload,MTypeTestInput:
+
 		//TODO set to redis
 		return nil
 
@@ -173,20 +170,21 @@ func (m *MsgGetInputConfig) Handle(wm *WrapMsg) error {
 		return err
 	}
 
-	return json.Unmarshal(data,&m.Names)
+	return json.Unmarshal(data, &m.Names)
 }
 
-
-
-
-
 type MsgSetInputConfig struct {
-	Configs map[string][]string `json:"configs"`
+	Configs map[string]map[string]string `json:"configs"`
 }
 
 func (m *MsgSetInputConfig) Handle(wm *WrapMsg) error {
-	// TODO
-	return nil
+	data, err := base64.StdEncoding.DecodeString(wm.B64Data)
+	if err != nil {
+		l.Errorf("get inputs config err %s", err)
+		return err
+	}
+
+	return json.Unmarshal(data,&m.Configs)
 }
 
 const (
@@ -195,7 +193,7 @@ const (
 	MTypeGetInput          string = "get_input_config"
 	MTypeGetEnableInput    string = "get_enabled_input_config"
 	MTypeUpdateEnableInput string = "update_enabled_input_config"
-	MTypeSetEnableInput    string = "set_enabled_input_config"
+	MTypeSetInput          string = "set_input_config"
 	MTypeDisableInput      string = "disable_input_config"
 	MTypeReload            string = "reload"
 	MTypeTestInput         string = "test_input_config"
