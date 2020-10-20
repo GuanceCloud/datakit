@@ -132,7 +132,7 @@ func TestInput(t *testing.T) {
 		t.Error(err)
 	}
 	ag := newAgent()
-	ag.debugMode = true
+	ag.mode = "debug"
 	if err = toml.Unmarshal(data, &ag); err != nil {
 		t.Error(err)
 	}

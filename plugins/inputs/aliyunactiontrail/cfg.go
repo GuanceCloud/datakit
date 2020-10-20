@@ -8,6 +8,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -49,6 +50,17 @@ type (
 
 		historyFlag int32
 
-		debugMode bool
+		mode string
+
+		testResult *inputs.TestResult
+		testError  error
 	}
 )
+
+func (a *AliyunActiontrail) isTest() bool {
+	return a.mode == "test"
+}
+
+func (a *AliyunActiontrail) isDebug() bool {
+	return a.mode == "debug"
+}
