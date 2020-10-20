@@ -304,7 +304,7 @@ func startIO() {
 					// not cache
 					if datakit.Cfg.MainCfg.DataWay.DataCleanURL != "" {
 						if err := doFlush([][]byte{d.data}, d.category); err != nil {
-							l.Errorf("post keyevent failed, drop %d packages", len(d.data))
+							l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
 						}
 						continue
 					}
