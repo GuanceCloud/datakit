@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"bytes"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -96,6 +97,8 @@ func (s *Scanport) handle() {
 		return
 	}
 
+	var lines [][]byte
+
 	//扫所有的ip
 	for i := 0; i < len(ips); i++ {
 		tags := make(map[string]string)
@@ -123,12 +126,16 @@ func (s *Scanport) handle() {
 				l.Errorf("make metric point error %v", err)
 			}
 
+			lines = append(lines, pt)
+
 			err = io.NamedFeed([]byte(pt), io.Metric, inputName)
 			if err != nil {
 				l.Errorf("push metric point error %v", err)
 			}
 		}
 	}
+
+	s.resData = bytes.Join(lines, []byte("\n"))
 }
 
 //获取所有ip
@@ -345,6 +352,23 @@ func parseCIDR(cidr string) ([]string, error) {
 	}
 	// remove network address and broadcast address
 	return ips[1 : len(ips)-1], nil
+}
+
+func (s *Scanport) Test() (*inputs.TestResult, error) {
+	s.test = true
+	s.resData = nil
+
+	s.Targets = "127.0.0.1"
+	s.Port = "1000-3000"
+
+	s.handle()
+
+    res := &inputs.TestResult {
+    	Result: s.resData,
+    	Desc: "success!",
+    }
+
+    return res, nil
 }
 
 func inc(ip net.IP) {
