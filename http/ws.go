@@ -1,13 +1,16 @@
-package io
+package http
 
 import (
+	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -19,11 +22,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg"
 )
 
-
-
 var (
 	cli   *wscli
 	wsurl *url.URL
+
 )
 
 type wscli struct {
@@ -32,7 +34,7 @@ type wscli struct {
 	exit chan interface{}
 }
 
-func startWS() {
+func StartWS() {
 	var wsurl *url.URL
 	l.Infof("ws start")
 	wsurl = datakit.Cfg.MainCfg.DataWay.BuildWSURL(datakit.Cfg.MainCfg)
@@ -61,7 +63,6 @@ func (wc *wscli) tryConnect(wsurl string) {
 			time.Sleep(time.Second * 3)
 			continue
 		}
-
 		_ = resp
 
 		wc.c = c
@@ -72,8 +73,10 @@ func (wc *wscli) tryConnect(wsurl string) {
 
 func (wc *wscli) reset() {
 	wc.c.Close()
+
 	wc.tryConnect(wsurl.String())
 	wc.exit = make(chan interface{})
+
 
 	// heartbeat worker will exit on @wc.exit, waitMsg() will not, so just restart the heartbeat worker only
 	go func() {
@@ -92,11 +95,12 @@ func (wc *wscli) waitMsg() {
 
 			if trace != nil {
 				l.Warn("recover ok: %s", string(trace))
+				time.Sleep(time.Second*3)
 			}
 
 			_, resp, err := wc.c.ReadMessage()
 			if err != nil {
-				l.Error(err)
+				//l.Error(err)
 				wc.reset()
 				continue
 			}
@@ -125,7 +129,11 @@ func (wc *wscli) sendHeartbeat() {
 		if trace != nil {
 			l.Warn("recover ok: %s", string(trace))
 		}
-		heart, err := time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Heartbeat)
+		heartbeatTime := datakit.Cfg.MainCfg.DataWay.Heartbeat
+		if heartbeatTime == "" {
+			heartbeatTime = "30s"
+		}
+		heart, err := time.ParseDuration(heartbeatTime)
 
 		if err != nil {
 			l.Error(err)
@@ -134,14 +142,16 @@ func (wc *wscli) sendHeartbeat() {
 		defer tick.Stop()
 
 		for {
+
+			wm, err := wsmsg.BuildMsg(m)
+			if err != nil {
+				l.Error(err)
+			}
+
+			_ = wc.sendText(wm)
+
 			select {
 			case <-tick.C:
-				wm, err := wsmsg.BuildMsg(m)
-				if err != nil {
-					l.Error(err)
-				}
-
-				_ = wc.sendText(wm)
 
 			case <-wc.exit:
 				return
@@ -180,86 +190,209 @@ func (wc *wscli) handle(wm *wsmsg.WrapMsg) error {
 	case wsmsg.MTypeGetEnableInput:
 		wc.GetEnableInputsConfig(wm)
 	case wsmsg.MTypeDisableInput:
-
-
-	case wsmsg.MTypeSetEnableInput:
+		wc.DisableInput(wm)
+	case wsmsg.MTypeSetInput:
+		wc.SetInput(wm)
 	case wsmsg.MTypeTestInput:
+
 	case wsmsg.MTypeUpdateEnableInput:
+		wc.UpdateEnableInput(wm)
 	case wsmsg.MTypeReload:
+		wc.Reload(wm)
 
 	//case wsmsg.MTypeHeartbeat:
 	default:
-		wm.Code = "error"
-		wm.B64Data = ToBase64(fmt.Errorf("unknow type %s ",wm.Type).Error())
+		cli.SetMessage(wm, "error", fmt.Errorf("unknow type %s ", wm.Type).Error())
 
 	}
 	return wc.sendText(wm)
 }
 
-func (wc *wscli) DisableInput(wm *wsmsg.WrapMsg) {
-
-
+func (wc *wscli) Reload(wm *wsmsg.WrapMsg) {
+	err := ReloadDatakit()
+	if err != nil {
+		l.Errorf("reload err:%s", err.Error())
+		wc.SetMessage(wm,"error",err.Error())
+	}
+	go func() {
+		RestartHttpServer()
+		l.Info("reload HTTP server ok")
+	}()
+	wc.SetMessage(wm, "ok", "")
 
 }
 
+func (wc *wscli) UpdateEnableInput(wm *wsmsg.WrapMsg) {
+	var configs wsmsg.MsgSetInputConfig
+	err := configs.Handle(wm)
+	if err != nil {
+		wc.SetMessage(wm, "error", err.Error())
+	}
+	for k, v := range configs.Configs {
+		cfgSclice := strings.Split(k, "-")
+		n, cfgPath := inputs.InputEnabled(cfgSclice[0])
+		if n > 0 {
+			for _, path := range cfgPath {
+				if strings.Contains(path, k) {
+					err = os.Remove(path)
+					if err != nil {
+						l.Error("update config remove old err:%s", err)
+						return
+					}
+					data, _ := base64.StdEncoding.DecodeString(v["toml"])
+					newName := fmt.Sprintf("%s-%x.conf", cfgSclice[0], md5.Sum(data))
+					newPath := strings.Replace(path, fmt.Sprintf("%s.conf", k), newName, 1)
+					ioutil.WriteFile(newPath, data, 0600)
+				}
+			}
+		} else {
+			wc.SetMessage(wm, "error", fmt.Sprintf("input file %s not exist", k))
+			return
+		}
+	}
+	wc.SetMessage(wm, "ok", "")
+
+}
+
+func (wc *wscli) SetInput(wm *wsmsg.WrapMsg) {
+	var configs wsmsg.MsgSetInputConfig
+	err := configs.Handle(wm)
+	if err != nil {
+		wc.SetMessage(wm, "error", err.Error())
+	}
+	for k, v := range configs.Configs {
+		if creator, ok := inputs.Inputs[k]; ok {
+			err = wc.WriteFile(k, creator().Catalog(), v)
+			if err != nil {
+				wc.SetMessage(wm, "error", err.Error())
+				return
+			}
+			continue
+		}
+
+		if creator, ok := tgi.TelegrafInputs[k]; ok {
+			err = wc.WriteFile(k, creator.Catalog, v)
+			if err != nil {
+				wc.SetMessage(wm, "error", err.Error())
+				return
+			}
+			continue
+		}
+		wc.SetMessage(wm, "error", fmt.Sprintf("input %s not abailable", k))
+		return
+	}
+	wc.SetMessage(wm, "ok", "")
+}
+
+func (wc *wscli) WriteFile(k, catalog string, v map[string]string, ) error {
+	data, err := base64.StdEncoding.DecodeString(v["toml"])
+	if err != nil {
+		return err
+	}
+	fileName := fmt.Sprintf("%s-%x.conf", k, md5.Sum(data))
+	n, configPaths := inputs.InputEnabled(k)
+	if n > 0 {
+		for _,v :=range configPaths {
+			if strings.Contains(v, fileName) {
+				return fmt.Errorf("config %s is exist",fileName)
+			}
+		}
+	}
+
+	path := filepath.Join(datakit.ConfdDir, catalog, fileName)
+	err = ioutil.WriteFile(path, data, 0600)
+	return err
+}
+
+func (wc *wscli) DisableInput(wm *wsmsg.WrapMsg) {
+	var names wsmsg.MsgGetInputConfig
+	_ = names.Handle(wm)
+	for _, v := range names.Names {
+		inputSlice := strings.Split(v, "-")
+		if len(inputSlice) <= 1 {
+			wc.SetMessage(wm, "error", fmt.Errorf("params err %s split :%s ", wm, inputSlice).Error())
+			return
+		}
+		n, cfgs := inputs.InputEnabled(inputSlice[0])
+		if n <= 0 {
+			wc.SetMessage(wm, "error", fmt.Sprintf("input %s not enable", v))
+			return
+		}
+		for _, cfg := range cfgs {
+			if strings.Contains(cfg, v) {
+				err := os.Remove(cfg)
+				if err != nil {
+					errMessage := fmt.Sprintf("disable config remove file err :%s", err)
+					l.Error(errMessage)
+					wc.SetMessage(wm, "error", errMessage)
+					return
+				}
+			}
+		}
+	}
+	wc.SetMessage(wm, "ok", "")
+}
 
 func (wc *wscli) GetEnableInputsConfig(wm *wsmsg.WrapMsg) {
 	var names wsmsg.MsgGetInputConfig
 	_ = names.Handle(wm)
 	var Enable []map[string]map[string]string
-	for _,v :=range names.Names {
+	for _, v := range names.Names {
 		n, cfg := inputs.InputEnabled(v)
 		if n > 0 {
-			for _,path := range cfg {
-				cfgData,err := ioutil.ReadFile(path)
+			for _, path := range cfg {
+				cfgData, err := ioutil.ReadFile(path)
 				if err != nil {
-					wm.Code = "error"
-					errorMessage := fmt.Sprintf("get enable config read file error path:%s",path)
-					l.Error(errorMessage)
-					wm.B64Data = ToBase64(errorMessage)
+					errorMessage := fmt.Sprintf("get enable config read file error path:%s", path)
+					wc.SetMessage(wm, "error", errorMessage)
 					return
 				}
-				_,fileName := filepath.Split(path)
-				Enable = append(Enable, map[string]map[string]string{fileName:{"toml":ToBase64(string(cfgData))}})
+				_, fileName := filepath.Split(path)
+				Enable = append(Enable, map[string]map[string]string{fileName: {"toml": ToBase64(string(cfgData))}})
 			}
 		} else {
-			wm.B64Data = ToBase64(fmt.Sprintf("input %s not enable",v))
+			wc.SetMessage(wm, "error", fmt.Sprintf("input %s not enable", v))
 			return
 		}
 	}
-	wm.B64Data = ToBase64(Enable)
-
+	wc.SetMessage(wm, "ok", Enable)
 }
 
+func (wc *wscli) SetMessage(wm *wsmsg.WrapMsg, code string, Message interface{}) {
+	wm.Code = code
+	if Message != "" {
+		wm.B64Data = ToBase64(Message)
+	} else {
+		wm.B64Data = ""
+	}
 
+}
 
 func (wc *wscli) GetInputsConfig(wm *wsmsg.WrapMsg) {
 	var names wsmsg.MsgGetInputConfig
 	err := names.Handle(wm)
 	if err != nil {
-		wm.Code = "error"
-		l.Errorf("GetInputsConfig %s params error",wm)
+		errMessage := fmt.Sprintf("GetInputsConfig %s params error", wm)
+		l.Error(errMessage)
+		wc.SetMessage(wm, "error", errMessage)
 		return
 	}
 	var data []map[string]map[string]string
 
 	for _, v := range names.Names {
-		sample,err:= inputs.GetSample(v)
+		sample, err := inputs.GetSample(v)
 		if err != nil {
-			l.Errorf("get sample error %s",err)
-			wm.Code = "error"
-			wm.B64Data = ToBase64(fmt.Sprintf("get sample error %s",err))
+			errMessage := fmt.Sprintf("get sample error %s", err)
+			l.Error(errMessage)
+			wc.SetMessage(wm, "error", errMessage)
 			return
 		}
-		data = append(data, map[string]map[string]string{v:{"toml":ToBase64(sample)}})
+		data = append(data, map[string]map[string]string{v: {"toml": ToBase64(sample)}})
 	}
 	wm.B64Data = ToBase64(data)
 }
 
-
-
 func (wc *wscli) OnlineInfo(wm *wsmsg.WrapMsg) {
-
 	m := wsmsg.MsgDatakitOnline{
 		UUID:            wc.id,
 		Name:            datakit.Cfg.MainCfg.Name,
@@ -304,7 +437,7 @@ func GetEnableInputs() []string {
 
 	for k, _ := range tgi.TelegrafInputs {
 		n, cfg := inputs.InputEnabled(k)
-		l.Infof("cfg : %s",cfg)
+		l.Infof("cfg : %s", cfg)
 		if n > 0 {
 			EnableInputs = append(EnableInputs, k)
 		}
