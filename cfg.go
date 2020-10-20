@@ -90,7 +90,8 @@ type Config struct {
 }
 
 type DataWayCfg struct {
-	URL string `toml:"url"`
+	URL          string `toml:"url"`
+	DataCleanURL string `toml:"dataclean_url"`
 
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
@@ -99,6 +100,7 @@ type DataWayCfg struct {
 	host   string
 	scheme string
 	token  string
+	path   string
 
 	urlValues url.Values
 
@@ -143,6 +145,35 @@ func (dc *DataWayCfg) KeyEventURL() string {
 		dc.host,
 		"/v1/write/keyevent",
 		dc.urlValues.Encode())
+}
+func (dc *DataWayCfg) DataCleanMetricURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		dc.path,
+		"category=/v1/write/metric")
+}
+func (dc *DataWayCfg) DataCleanObjectURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		dc.path,
+		"category=/v1/write/object")
+}
+func (dc *DataWayCfg) DataCleanLoggingURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		dc.path,
+		"category=/v1/write/logging")
+}
+
+func (dc *DataWayCfg) DataCleanKeyEventURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		dc.path,
+		"category=/v1/write/keyevent")
 }
 
 func (dc *DataWayCfg) Test() error {
@@ -197,10 +228,28 @@ func ParseDataway(urlstr string) (*DataWayCfg, error) {
 		dwcfg.urlValues = u.Query()
 		dwcfg.host = u.Host
 		u.Path = "" // clear any path
-
 		dwcfg.URL = u.String()
 	} else {
 		l.Errorf("parse url %s failed: %s", urlstr, err.Error())
+		return nil, err
+	}
+
+	return dwcfg, nil
+}
+
+func ParseDatawayDataClean(urlstr string) (*DataWayCfg, error) {
+	dwcfg := &DataWayCfg{
+		Timeout: "30s",
+	}
+
+	if u, err := url.Parse(urlstr); err == nil {
+		dwcfg.scheme = u.Scheme
+		dwcfg.urlValues = u.Query()
+		dwcfg.host = u.Host
+		dwcfg.path = u.Path
+		dwcfg.DataCleanURL = u.String()
+	} else {
+		l.Errorf("parse dataclean url %s failed: %s", urlstr, err.Error())
 		return nil, err
 	}
 
@@ -299,9 +348,17 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		l.Fatal("dataway url not set")
 	}
 
-	dw, err := ParseDataway(c.MainCfg.DataWay.URL)
-	if err != nil {
-		return err
+	var dw *DataWayCfg
+	if c.MainCfg.DataWay.DataCleanURL != "" {
+		dw, err = ParseDatawayDataClean(c.MainCfg.DataWay.DataCleanURL)
+		if err != nil {
+			return err
+		}
+	} else {
+		dw, err = ParseDataway(c.MainCfg.DataWay.URL)
+		if err != nil {
+			return err
+		}
 	}
 	c.MainCfg.DataWay = dw
 
