@@ -293,6 +293,7 @@ func ParseDataway(httpurl, wsurl string) (*DataWayCfg, error) {
 		dc.WSURL = fmt.Sprintf("%s://%s%s?%s", dc.wsscheme, dc.wshost, dc.wspath, dc.wsUrlValues.Encode())
 	}
 
+
 	return dc, nil
 }
 
@@ -393,6 +394,7 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		return err
 	}
 	dw.Heartbeat = c.MainCfg.DataWay.Heartbeat
+
 	c.MainCfg.DataWay = dw
 
 	if c.MainCfg.DataWay.DeprecatedToken != "" { // compatible with old dataway config
