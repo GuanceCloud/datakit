@@ -48,6 +48,13 @@ func (ag *objectAgent) getCredential() *common.Credential {
 	return credential
 }
 
+func (ag *objectAgent) Test() (*inputs.TestResult, error) {
+	ag.mode = "test"
+	ag.testResult = &inputs.TestResult{}
+	ag.Run()
+	return ag.testResult, ag.testError
+}
+
 func (ag *objectAgent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
@@ -75,21 +82,6 @@ func (ag *objectAgent) Run() {
 	if ag.Cdb != nil {
 		ag.addModule(ag.Cdb)
 	}
-	// if ag.Redis != nil {
-	// 	ag.addModule(ag.Redis)
-	// }
-	// if ag.Cdn != nil {
-	// 	ag.addModule(ag.Cdn)
-	// }
-	// if ag.Waf != nil {
-	// 	ag.addModule(ag.Waf)
-	// }
-	// if ag.Es != nil {
-	// 	ag.addModule(ag.Es)
-	// }
-	// if ag.InfluxDB != nil {
-	// 	ag.addModule(ag.InfluxDB)
-	// }
 
 	for _, s := range ag.subModules {
 		ag.wg.Add(1)
