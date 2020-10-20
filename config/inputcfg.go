@@ -134,7 +134,6 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 	var err error
 
 	for fp, tbl := range inputcfgs {
-
 		for field, node := range tbl.Fields {
 			inputlist := []inputs.Input{}
 
