@@ -81,6 +81,9 @@ func ToLValue(l *lua.LState, value interface{}) lua.LValue {
 	}
 }
 
+// SeSendToLua 将数据以实参方式，发送到 lua 指定的函数中
+// callbakTypeName 目前看来是多余的
+// TODO: 支持可变数量的实参，支持动态修改函数名
 func SendToLua(l *lua.LState, val lua.LValue, callbackFnName, callbackTypeName string) (lua.LValue, error) {
 	l.SetMetatable(val, l.GetTypeMetatable(callbackTypeName))
 	lv := l.GetGlobal(callbackFnName)
