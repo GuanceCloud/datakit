@@ -2,6 +2,7 @@ package aliyunrdsslowlog
 
 import (
 	"time"
+	"bytes"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
@@ -218,7 +219,7 @@ func (r *AliyunRDS) handleResponse(response *rds.DescribeSlowLogsResponse, produ
 	return nil
 }
 
-func (a *AliyunRDS) Test() (*intputs.TestResult, error) {
+func (a *AliyunRDS) Test() (*inputs.TestResult, error) {
 	a.test = true
     a.resData = nil
 
@@ -233,8 +234,8 @@ func (a *AliyunRDS) Test() (*intputs.TestResult, error) {
 		a.exec(val)
 	}
 
-    res := &intputs.TestResult {
-    	Result: r.resData,
+    res := &inputs.TestResult {
+    	Result: a.resData,
     	Desc: "success!",
     }
 
