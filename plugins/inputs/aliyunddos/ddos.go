@@ -420,8 +420,11 @@ func (r *DDoS) describeNetworkRules(instanceID, region string) error {
 	return nil
 }
 
-func (r *DDoS) Test() (*intputs.TestResult, error) {
-	r.test = true
+func (d *DDoS) Test() (*intputs.TestResult, error) {
+	d.test = true
+	d.resData = nil
+
+	d.command()
 
     res := &intputs.TestResult {
     	Result: r.resData,
