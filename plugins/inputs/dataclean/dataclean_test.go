@@ -59,11 +59,11 @@ func TestMain(t *testing.T) {
 	go dataclean.Run()
 
 	time.Sleep(time.Second)
-	http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/object", "application/json; charset=utf-8",
-		strings.NewReader(ob1))
+	// http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/object", "application/json; charset=utf-8",
+	// 	strings.NewReader(ob1))
 
-	// http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/metric", "text/html; charset=utf-8",
-	// 	strings.NewReader(pt1))
+	http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/metric", "text/html; charset=utf-8",
+		strings.NewReader(pt1))
 
 	// http.Post("http://127.0.0.1:9999/dataclean?category=/v1/write/logging", "text/html; charset=utf-8",
 	// 	strings.NewReader(pt2))
@@ -72,25 +72,6 @@ func TestMain(t *testing.T) {
 
 	datakit.Exit.Close()
 }
-
-// var luaCode = `
-// function handle(points)
-// 	for _, pt in pairs(points) do
-// 		print("name", pt.name)
-// 		print("time", pt.time)
-// 		print("-------\ntags:")
-// 		for k, v in pairs(pt.tags) do
-// 			print(k, v)
-// 		end
-// 		print("-------\nfields:")
-// 		for k, v in pairs(pt.fields) do
-// 			print(k, v)
-// 		end
-// 		print("------------------------")
-// 	end
-// 	return points
-// end
-// `
 
 var luaCode = `
 function handle(xxx)
@@ -102,3 +83,29 @@ function handle(xxx)
 	return xxx
 end
 `
+
+func TestCron(t *testing.T) {
+	var luaCode = `
+	print("------------------------")
+	`
+	tmpfile, err := ioutil.TempFile("", "example.*.lua")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpfile.Name())
+
+	if err := ioutil.WriteFile(tmpfile.Name(), []byte(luaCode), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	m := map[string]string{"lua_file": tmpfile.Name(), "schedule": "*/1 * * * *"}
+	dataclean := DataClean{
+		Global: []map[string]string{m},
+	}
+
+	dataclean.initCfg()
+	dataclean.cron.Run()
+	defer dataclean.stop()
+
+	time.Sleep(5 * time.Second)
+}
