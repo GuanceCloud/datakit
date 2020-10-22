@@ -224,8 +224,8 @@ func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
 	}
 	var returnMap = map[string]string{}
 	for k, v := range configs.Configs {
+		data, _ := base64.StdEncoding.DecodeString(v["toml"])
 		if creator, ok := inputs.Inputs[k]; ok {
-			data, _ := base64.StdEncoding.DecodeString(v["toml"])
 			tbl, err := toml.Parse(data)
 			if err != nil {
 				l.Error(err)
@@ -248,9 +248,23 @@ func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
 					}
 				}
 			}
+			continue
 		}
 
-		//TODO  telegraf test
+		if _, ok := tgi.TelegrafInputs[k]; ok {
+			result,err := inputs.TestTelegrafInput(data)
+			if err != nil {
+				wc.SetMessage(wm,"error",err.Error())
+				return
+			}
+
+			returnMap[k] = ToBase64(result)
+			continue
+		}
+
+		wc.SetMessage(wm,"error",fmt.Sprintf("input %s not available",k))
+		return
+
 	}
 	wc.SetMessage(wm,"ok",returnMap)
 }
