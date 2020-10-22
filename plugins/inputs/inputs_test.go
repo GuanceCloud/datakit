@@ -1,6 +1,7 @@
 package inputs
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/influxdata/toml"
@@ -49,4 +50,24 @@ func TestTomlMd5(t *testing.T) {
 	}
 
 	t.Log(x)
+}
+
+func TestTelInput(t *testing.T) {
+	cfg := `[[inputs.cpu]]
+
+	## Whether to report per-cpu stats or not
+	percpu = true
+	## Whether to report total system cpu stats or not
+	totalcpu = true
+	## If true, collect raw CPU time metrics.
+	collect_cpu_time = false
+	## If true, compute and report the sum of all non-idle CPU states.
+	report_active = false`
+
+	result, err := TestTelegrafInput([]byte(cfg))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	fmt.Printf("%s", string(result.Result))
 }
