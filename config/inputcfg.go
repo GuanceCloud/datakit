@@ -148,7 +148,7 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 							continue
 						}
 
-						inputlist, err = tryUnmarshal(v, name, creator)
+						inputlist, err = TryUnmarshal(v, name, creator)
 						if err != nil {
 							l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 							continue
@@ -159,7 +159,7 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 				}
 
 			default: // compatible with old version: no [[inputs.xxx]] header
-				inputlist, err = tryUnmarshal(node, name, creator)
+				inputlist, err = TryUnmarshal(node, name, creator)
 				if err != nil {
 					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 				}
@@ -180,7 +180,7 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 	}
 }
 
-func tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputList []inputs.Input, err error) {
+func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputList []inputs.Input, err error) {
 
 	tbls := []*ast.Table{}
 
