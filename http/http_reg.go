@@ -19,13 +19,26 @@ var httpRouteList = make(map[string]*httpRouteInfo)
 
 func RegHttpHandler(method, path string, handler http.HandlerFunc) {
 	method = strings.ToUpper(method)
-	if  _, ok := httpRouteList[method+path]; ok {
+	if _, ok := httpRouteList[method+path]; ok {
 		l.Warnf("failed to register %s %s by handler %s to HTTP server because of exists", method, path, getFunctionName(handler, '/'))
 	} else {
 		httpRouteList[method+path] = &httpRouteInfo{
 			Method:  method,
 			Path:    path,
 			Handler: func(c *gin.Context) { handler(c.Writer, c.Request) },
+		}
+	}
+}
+
+func RegGinHandler(method, path string, handler gin.HandlerFunc) {
+	method = strings.ToUpper(method)
+	if _, ok := httpRouteList[method+path]; ok {
+		l.Warnf("failed to register %s %s by handler %s to HTTP server because of exists", method, path, getFunctionName(handler, '/'))
+	} else {
+		httpRouteList[method+path] = &httpRouteInfo{
+			Method:  method,
+			Path:    path,
+			Handler: handler,
 		}
 	}
 }
