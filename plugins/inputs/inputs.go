@@ -290,7 +290,6 @@ func TestTelegrafInput(cfg []byte) (*TestResult, error) {
 	telegrafConfig += string(cfg)
 
 	if err := ioutil.WriteFile(cfgpath, []byte(telegrafConfig), 0664); err != nil {
-		l.Errorf("telegraf write file err:%s",err)
 		return nil, err
 	}
 
@@ -310,7 +309,6 @@ func TestTelegrafInput(cfg []byte) (*TestResult, error) {
 	cmd.Stderr = buf
 	cmd.Stdout = buf
 	if err := cmd.Run(); err != nil {
-		l.Errorf("telegraf cmd err:%s",err)
 		return nil, err
 	}
 
