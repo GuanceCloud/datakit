@@ -174,6 +174,7 @@ func (wc *wscli) sendHeartbeat() {
 }
 
 func (wc *wscli) sendText(wm *wsmsg.WrapMsg) error {
+	wm.Dest = []string{datakit.Cfg.MainCfg.UUID}
 	j, err := json.Marshal(wm)
 	if err != nil {
 		l.Error(err)
@@ -224,7 +225,10 @@ func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
 	}
 	var returnMap = map[string]string{}
 	for k, v := range configs.Configs {
-		data, _ := base64.StdEncoding.DecodeString(v["toml"])
+		data, err := base64.StdEncoding.DecodeString(v["toml"])
+		if err != nil {
+			wc.SetMessage(wm, "error", err.Error())
+		}
 		if creator, ok := inputs.Inputs[k]; ok {
 			tbl, err := toml.Parse(data)
 			if err != nil {
@@ -244,7 +248,7 @@ func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
 							wc.SetMessage(wm,"error",err.Error())
 							return
 						}
-						returnMap[k] = ToBase64(result)
+						returnMap[k] = base64.StdEncoding.EncodeToString(result.Result)
 					}
 				}
 			}
@@ -258,7 +262,7 @@ func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
 				return
 			}
 
-			returnMap[k] = ToBase64(result)
+			returnMap[k] = base64.StdEncoding.EncodeToString(result.Result)
 			continue
 		}
 
