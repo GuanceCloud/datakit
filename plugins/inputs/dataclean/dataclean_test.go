@@ -36,7 +36,7 @@ func TestMain(t *testing.T) {
 	dataclean := DataClean{
 		Path: "/dataclean",
 		// PointsLuaFiles: []string{tmpfile.Name()},
-		ObjectLuaFiles: []string{tmpfile.Name()},
+		// ObjectLuaFiles: []string{tmpfile.Name()},
 	}
 
 	{
