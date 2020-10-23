@@ -52,7 +52,16 @@ func StartWS() {
 		cli.waitMsg()
 	}()
 
-	cli.sendHeartbeat()
+	go func() {
+		cli.sendHeartbeat()
+	}()
+	select {
+	case <-datakit.Exit.Wait():
+		l.Info("start ws exit")
+		return
+	case <-cli.exit	:
+		cli.reset()
+	}
 
 
 }
@@ -76,11 +85,12 @@ func (wc *wscli) tryConnect(wsurl string) {
 
 func (wc *wscli) reset() {
 	wc.c.Close()
-	wc.exit <- "close"
 	wc.tryConnect(wsurl.String())
 	wc.exit = make(chan interface{})
 
-	// heartbeat worker will exit on @wc.exit, waitMsg() will not, so just restart the heartbeat worker only
+	go func() {
+		cli.waitMsg()
+	}()
 	go func() {
 		cli.sendHeartbeat()
 	}()
@@ -97,13 +107,14 @@ func (wc *wscli) waitMsg() {
 
 			if trace != nil {
 				l.Warn("recover ok: %s err:", string(trace),err.Error())
-				wc.reset()
+
 			}
 
 			_, resp, err := wc.c.ReadMessage()
 			if err != nil {
 				l.Error(err)
-				continue
+				wc.exit <- make(chan interface{})
+				return
 			}
 
 			wm, err := wsmsg.ParseWrapMsg(resp)
@@ -126,9 +137,6 @@ func (wc *wscli) waitMsg() {
 
 func (wc *wscli) sendHeartbeat() {
 	m := wsmsg.MsgDatakitHeartbeat{UUID: wc.id}
-	go func() {
-		<-datakit.Exit.Wait()
-	}()
 
 	var f rtpanic.RecoverCallback
 	f = func(trace []byte, _ error) {
@@ -157,7 +165,11 @@ func (wc *wscli) sendHeartbeat() {
 					l.Error(err)
 				}
 
-				_ = wc.sendText(wm)
+				err = wc.sendText(wm)
+				if err != nil {
+					wc.exit <- make(chan interface{})
+					return
+				}
 
 			case <-wc.exit:
 				l.Info("wc exit")
