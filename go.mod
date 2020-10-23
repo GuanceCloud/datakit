@@ -87,7 +87,7 @@ require (
 	github.com/xanzy/go-gitlab v0.31.0
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200924074212-8d61bb78afeb
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201016062710-af4adade1b73
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201023061407-44b2c46aefa7
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344
 	golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d
