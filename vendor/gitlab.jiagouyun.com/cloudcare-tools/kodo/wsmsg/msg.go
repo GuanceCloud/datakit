@@ -9,6 +9,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/kodo/config"
 )
 
 var (
@@ -16,7 +17,11 @@ var (
 	Msgch = make(chan *WrapMsg)
 	Hbch  = make(chan string)
 	Clich = make(chan *DatakitClient)
+	Onlinedks = map[string]*DatakitClient{}
+
+
 )
+
 
 type DatakitClient struct {
 	UUID    string
@@ -40,9 +45,23 @@ type WrapMsg struct {
 	Raw  []byte
 }
 
-type Msg interface {
-	Handle(*WrapMsg) error
+
+
+func SendOnline(dk *DatakitClient){
+	var m MsgDatakitOnline
+	wm,err:= BuildMsg(m,dk.UUID)
+	if err !=nil{
+		l.Error(err)
+	}
+
+
+	b,err:= json.Marshal(wm)
+	if err !=nil{
+		l.Error(err)
+	}
+	SendToDatakit(b)
 }
+
 
 func ParseWrapMsg(data []byte) (*WrapMsg, error) {
 
@@ -60,6 +79,7 @@ func (wm *WrapMsg) Invalid() bool {
 
 func (dc *DatakitClient) Online() {
 	Clich <- dc
+	SendOnline(dc)
 }
 
 func (wm *WrapMsg) Send() {
@@ -68,14 +88,12 @@ func (wm *WrapMsg) Send() {
 
 func SendToDatakit(rawmsg []byte) {
 
-	wm, err := ParseWrapMsg([]byte(rawmsg))
+	wm, err := ParseWrapMsg(rawmsg)
 	if err != nil {
 		l.Errorf("json.Unmarshal(): %s", err.Error())
 		return
 	}
-
 	wm.Raw = rawmsg
-	fmt.Println(wm)
 	Msgch <- wm
 }
 
@@ -93,26 +111,33 @@ func (wm *WrapMsg) Handle() error {
 		if err := json.Unmarshal(raw, &m); err != nil {
 			return err
 		}
-
 		return m.Handle(wm)
 	case MTypeOnline:
-		//var m WrapMsg
-		//if err := json.Unmarshal(raw, &m); err != nil {
-		//	return err
-		//}
-		//l.Infof("online kodo %s",m)
-		//TODO set wm to redis,mysql
+		wm.SetRedis()
+		//TODO set mysql
 		return nil
-
 	case MTypeGetInput,MTypeDisableInput,MTypeGetEnableInput,MTypeSetInput,MTypeUpdateEnableInput,MTypeReload,MTypeTestInput:
-
-		//TODO set to redis
+		wm.SetRedis()
 		return nil
+
 
 	default:
 		return fmt.Errorf("unknown msg type: %s", wm.Type)
 	}
 }
+
+func (wm *WrapMsg)SetRedis(){
+	dkId := wm.Dest[0]
+	token := Onlinedks[dkId].Token
+	b,err := json.Marshal(&wm)
+	if err != nil{
+		l.Errorf("set redis parse wm err:%s",err)
+	}
+	config.RedisCli.Set(fmt.Sprintf("%s-%s-%s",token,dkId,wm.ID),b,time.Second*30)
+	l.Info("set redis ok")
+}
+
+
 
 func BuildMsg(m interface{}, dest ...string) (*WrapMsg, error) {
 	j, err := json.Marshal(m)
@@ -128,6 +153,8 @@ func BuildMsg(m interface{}, dest ...string) (*WrapMsg, error) {
 	switch m.(type) {
 	case MsgDatakitHeartbeat:
 		wm.Type = MTypeHeartbeat
+	case MsgDatakitOnline:
+		wm.Type = MTypeOnline
 	}
 
 	return wm, nil
@@ -170,8 +197,9 @@ func (m *MsgGetInputConfig) Handle(wm *WrapMsg) error {
 		return err
 	}
 
-	return json.Unmarshal(data, &m.Names)
+	return json.Unmarshal(data,&m.Names)
 }
+
 
 type MsgSetInputConfig struct {
 	Configs map[string]map[string]string `json:"configs"`
