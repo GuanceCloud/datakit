@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"runtime"
 	"time"
 
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
@@ -16,7 +15,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
@@ -44,7 +42,6 @@ var (
 
 	outputFile     *os.File
 	outputFileSize int64
-	cookies        string
 )
 
 const ( // categories
@@ -217,14 +214,23 @@ func ioStop() {
 }
 
 func startIO() {
+	l.Debugf("dataclean url: %s", datakit.Cfg.MainCfg.DataWay.DataCleanURL)
 
-	categoryURLs = map[string]string{
-
-		MetricDeprecated: datakit.Cfg.MainCfg.DataWay.DeprecatedMetricURL(),
-		Metric:           datakit.Cfg.MainCfg.DataWay.MetricURL(),
-		KeyEvent:         datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
-		Object:           datakit.Cfg.MainCfg.DataWay.ObjectURL(),
-		Logging:          datakit.Cfg.MainCfg.DataWay.LoggingURL(),
+	if datakit.Cfg.MainCfg.DataWay.DataCleanURL != "" {
+		categoryURLs = map[string]string{
+			Metric:   datakit.Cfg.MainCfg.DataWay.DataCleanMetricURL(),
+			KeyEvent: datakit.Cfg.MainCfg.DataWay.DataCleanKeyEventURL(),
+			Object:   datakit.Cfg.MainCfg.DataWay.DataCleanObjectURL(),
+			Logging:  datakit.Cfg.MainCfg.DataWay.DataCleanLoggingURL(),
+		}
+	} else {
+		categoryURLs = map[string]string{
+			MetricDeprecated: datakit.Cfg.MainCfg.DataWay.DeprecatedMetricURL(),
+			Metric:           datakit.Cfg.MainCfg.DataWay.MetricURL(),
+			KeyEvent:         datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
+			Object:           datakit.Cfg.MainCfg.DataWay.ObjectURL(),
+			Logging:          datakit.Cfg.MainCfg.DataWay.LoggingURL(),
+		}
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
@@ -278,9 +284,6 @@ func startIO() {
 						l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
 					}
 
-					cache[d.category] = append(cache[d.category], d.data)
-					cacheCnt[d.category] += len(d.data)
-
 					stat, ok := inputstats[d.name]
 					if !ok {
 						inputstats[d.name] = &InputsStat{
@@ -297,6 +300,17 @@ func startIO() {
 						stat.Last = now
 						stat.Category = d.category
 					}
+
+					// not cache
+					if datakit.Cfg.MainCfg.DataWay.DataCleanURL != "" {
+						if err := doFlush([][]byte{d.data}, d.category); err != nil {
+							l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
+						}
+						continue
+					}
+
+					cache[d.category] = append(cache[d.category], d.data)
+					cacheCnt[d.category] += len(d.data)
 
 					for _, cnt := range cacheCnt {
 						if cnt >= cacheUploadMax {
@@ -377,17 +391,6 @@ func flush(cache map[string][][]byte) {
 	cacheCnt[Logging] = 0
 }
 
-func initCookies() {
-	cookies = fmt.Sprintf("uuid=%s;name=%s;hostname=%s;max_post_interval=%s;version=%s;os=%s;arch=%s",
-		datakit.Cfg.MainCfg.UUID,
-		datakit.Cfg.MainCfg.Name,
-		datakit.Cfg.MainCfg.Hostname,
-		datakit.MaxLifeCheckInterval,
-		git.Version,
-		runtime.GOOS,
-		runtime.GOARCH)
-}
-
 func buildObjBody(bodies [][]byte) ([]byte, error) {
 	allObjs := make([]map[string]interface{}, 0)
 
@@ -439,10 +442,6 @@ func doFlush(bodies [][]byte, url string) error {
 		return nil
 	}
 
-	if cookies == "" {
-		initCookies()
-	}
-
 	body, gz, err := buildBody(url, bodies)
 	if err != nil {
 		return err
@@ -458,7 +457,6 @@ func doFlush(bodies [][]byte, url string) error {
 		return err
 	}
 
-	req.Header.Set("Cookie", cookies)
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
@@ -467,10 +465,6 @@ func doFlush(bodies [][]byte, url string) error {
 	case Object: // object is json
 		req.Header.Set("Content-Type", "application/json")
 	default: // others are line-protocol
-	}
-
-	if datakit.MaxLifeCheckInterval > 0 {
-		req.Header.Set("X-Max-POST-Interval", fmt.Sprintf("%v", datakit.MaxLifeCheckInterval))
 	}
 
 	l.Debugf("post to %s...", categoryURLs[url])
