@@ -206,7 +206,6 @@ func (t *Tailf) getLines(file string) error {
 			}
 
 			text := strings.TrimRight(line.Text, "\r")
-			l.Warn(text)
 			if textLine.Len() == 0 {
 				textLine.WriteString(text)
 				continue
@@ -237,8 +236,6 @@ func (t *Tailf) getLines(file string) error {
 			cacheBuffer.Write(data)
 			cacheBuffer.WriteString("\n")
 			count++
-
-			l.Error(textLine.Len())
 
 			if count >= metricsFeedCount {
 				if err := io.NamedFeed(cacheBuffer.Bytes(), io.Logging, inputName); err != nil {
