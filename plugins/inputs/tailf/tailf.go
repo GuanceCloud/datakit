@@ -49,11 +49,12 @@ const (
 var l = logger.DefaultSLogger(inputName)
 
 type Tailf struct {
-	LogFiles      []string          `toml:"logfiles"`
-	Ignore        []string          `toml:"ignore"`
-	FromBeginning bool              `toml:"from_beginning"`
-	Source        string            `toml:"source"`
-	Tags          map[string]string `toml:"tags"`
+	LogFiles          []string          `toml:"logfiles"`
+	Ignore            []string          `toml:"ignore"`
+	FromBeginning     bool              `toml:"from_beginning"`
+	Source            string            `toml:"source"`
+	CharacterEncoding string            `toml:"character_encoding"`
+	Tags              map[string]string `toml:"tags"`
 
 	tailerConf tail.Config
 
@@ -194,7 +195,6 @@ func (t *Tailf) getLines(file string) error {
 		textLine    bytes.Buffer
 	)
 	count := 0
-	firstLine := true
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -206,13 +206,19 @@ func (t *Tailf) getLines(file string) error {
 			}
 
 			text := strings.TrimRight(line.Text, "\r")
-			if firstLine {
+			l.Warn(text)
+			if textLine.Len() == 0 {
 				textLine.WriteString(text)
-				firstLine = false
 				continue
 			}
-			// 如果行首含有空格、换行符、制表符，则将其添加到上一条 log 的末尾
-			if strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\r") || strings.HasPrefix(text, "\t") {
+
+			// 如果行首含有空格、换行符、制表符、换行符，则将其添加到上一条 log 的末尾
+			if strings.HasPrefix(text, " ") ||
+				strings.HasPrefix(text, "\r") ||
+				strings.HasPrefix(text, "\t") ||
+				strings.HasPrefix(text, "\n") ||
+				len(text) == 0 {
+
 				textLine.WriteString("\n")
 				textLine.WriteString(text)
 				continue
@@ -232,6 +238,8 @@ func (t *Tailf) getLines(file string) error {
 			cacheBuffer.WriteString("\n")
 			count++
 
+			l.Error(textLine.Len())
+
 			if count >= metricsFeedCount {
 				if err := io.NamedFeed(cacheBuffer.Bytes(), io.Logging, inputName); err != nil {
 					l.Error(err)
@@ -242,6 +250,17 @@ func (t *Tailf) getLines(file string) error {
 			}
 
 		case <-feedTicker.C:
+			if textLine.Len() != 0 {
+				fields := map[string]interface{}{"__content": textLine.String()}
+				textLine.Reset()
+				data, err := io.MakeMetric(t.Source, tags, fields, time.Now())
+				if err != nil {
+					l.Error(err)
+					continue
+				}
+				cacheBuffer.Write(data)
+				count++
+			}
 			if count > 0 {
 				if err := io.NamedFeed(cacheBuffer.Bytes(), io.Logging, inputName); err != nil {
 					l.Error(err)
