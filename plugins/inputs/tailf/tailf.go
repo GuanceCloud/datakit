@@ -183,15 +183,18 @@ func (t *Tailf) getLines(file string) error {
 	}
 	tags["filename"] = file
 
-	var buffer bytes.Buffer
-	count := 0
-
 	feedTicker := time.NewTicker(metricsFeedInterval)
 	defer feedTicker.Stop()
 
 	checkTicker := time.NewTicker(checkFileIsExistInterval)
 	defer checkTicker.Stop()
 
+	var (
+		cacheBuffer bytes.Buffer
+		textLine    bytes.Buffer
+	)
+	count := 0
+	firstLine := true
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -203,7 +206,21 @@ func (t *Tailf) getLines(file string) error {
 			}
 
 			text := strings.TrimRight(line.Text, "\r")
-			fields := map[string]interface{}{"__content": text}
+			if firstLine {
+				textLine.WriteString(text)
+				firstLine = false
+				continue
+			}
+			// 如果行首含有空格、换行符、制表符，则将其添加到上一条 log 的末尾
+			if strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\r") || strings.HasPrefix(text, "\t") {
+				textLine.WriteString("\n")
+				textLine.WriteString(text)
+				continue
+			}
+
+			fields := map[string]interface{}{"__content": textLine.String()}
+			textLine.Reset()
+			textLine.WriteString(text)
 
 			data, err := io.MakeMetric(t.Source, tags, fields, time.Now())
 			if err != nil {
@@ -211,26 +228,26 @@ func (t *Tailf) getLines(file string) error {
 				continue
 			}
 
-			buffer.Write(data)
-			buffer.WriteString("\n")
+			cacheBuffer.Write(data)
+			cacheBuffer.WriteString("\n")
 			count++
 
 			if count >= metricsFeedCount {
-				if err := io.NamedFeed(buffer.Bytes(), io.Logging, inputName); err != nil {
+				if err := io.NamedFeed(cacheBuffer.Bytes(), io.Logging, inputName); err != nil {
 					l.Error(err)
 				}
 				count = 0
 				// not use buffer.Reset()
-				buffer = bytes.Buffer{}
+				cacheBuffer = bytes.Buffer{}
 			}
 
 		case <-feedTicker.C:
 			if count > 0 {
-				if err := io.NamedFeed(buffer.Bytes(), io.Logging, inputName); err != nil {
+				if err := io.NamedFeed(cacheBuffer.Bytes(), io.Logging, inputName); err != nil {
 					l.Error(err)
 				}
 				count = 0
-				buffer = bytes.Buffer{}
+				cacheBuffer = bytes.Buffer{}
 			}
 
 		case <-checkTicker.C:
