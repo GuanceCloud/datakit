@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"fmt"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript"
@@ -95,7 +96,7 @@ func (h *HttpPacket) initCfg() bool {
 		case <-datakit.Exit.Wait():
 			return true
 		default:
-			if h.LuaFiles != nil {
+			if len(h.LuaFiles) != 0 {
 				err = h.ls.AddLuaCodesFromFile("points", h.LuaFiles)
 				if err != nil {
 					l.Error(err)
@@ -127,18 +128,24 @@ func (h *HttpPacket) handle(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
 	defer c.Request.Body.Close()
 
+	l.Debug("read body", string(body))
+
 	if err != nil {
 		l.Errorf("read body, %s", err.Error())
 		c.Writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if h.LuaFiles == nil {
+	if len(h.LuaFiles) == 0 {
 		if err := io.NamedFeed(body, io.Metric, inputName); err != nil {
 			l.Error(err)
+			c.Writer.WriteHeader(http.StatusBadRequest)
+			return
 		}
 
-		c.Writer.WriteHeader(http.StatusBadRequest)
+		l.Debug("point", string(body))
+
+		c.Writer.WriteHeader(http.StatusOK)
 		return
 	}
 
