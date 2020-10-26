@@ -10,6 +10,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/kodo/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/kodo/models"
 )
 
 var (
@@ -32,6 +33,7 @@ type DatakitClient struct {
 	Token   string
 	Conn    net.Conn
 
+	HeartbeatConf string
 	Heartbeat time.Time
 }
 
@@ -53,8 +55,6 @@ func SendOnline(dk *DatakitClient){
 	if err !=nil{
 		l.Error(err)
 	}
-
-
 	b,err:= json.Marshal(wm)
 	if err !=nil{
 		l.Error(err)
@@ -114,7 +114,7 @@ func (wm *WrapMsg) Handle() error {
 		return m.Handle(wm)
 	case MTypeOnline:
 		wm.SetRedis()
-		//TODO set mysql
+		SetDatakitOnline(wm)
 		return nil
 	case MTypeGetInput,MTypeDisableInput,MTypeGetEnableInput,MTypeSetInput,MTypeUpdateEnableInput,MTypeReload,MTypeTestInput:
 		wm.SetRedis()
@@ -125,6 +125,34 @@ func (wm *WrapMsg) Handle() error {
 		return fmt.Errorf("unknown msg type: %s", wm.Type)
 	}
 }
+
+func SetDatakitOnline(wm *WrapMsg){
+	if wm.Code != "ok"{
+		l.Errorf("online err:%s",wm)
+		return
+	}
+	data,err := base64.StdEncoding.DecodeString(wm.B64Data)
+	if err != nil{
+		l.Errorf("ws return err:%s",err)
+		return
+	}
+	var dk MsgDatakitOnline
+
+	err = json.Unmarshal(data,&dk)
+	if err != nil{
+		l.Errorf("ws online parse err : %s",err)
+		return
+	}
+	now := time.Now().Unix()
+	enable,_ := json.Marshal(dk.EnabledInputs)
+	avaliable,_ := json.Marshal(dk.AvailableInputs)
+	uuid := cliutils.XID("dkol_")
+	_, err = models.Stmts[`updateDKOnline`].Exec(uuid,dk.Name,Onlinedks[dk.UUID].Token,dk.UUID,dk.Version,dk.OS,dk.Arch,enable,avaliable,now,now,models.StatusOK,now,now)
+	if err != nil{
+		l.Errorf("set online run mysql err:%s",err)
+	}
+}
+
 
 func (wm *WrapMsg)SetRedis(){
 	dkId := wm.Dest[0]
