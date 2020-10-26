@@ -105,7 +105,7 @@ type DataWayCfg struct {
 
 	host      string
 	scheme    string
-	wstoken   string
+	WSToken   string
 	urlValues url.Values
 
 	wspath      string
@@ -156,8 +156,8 @@ func (dc *DataWayCfg) KeyEventURL() string {
 
 func (dc *DataWayCfg) BuildWSURL(mc *MainConfig) *url.URL {
 
-	rawQuery := fmt.Sprintf("id=%s&version=%s&os=%s&arch=%s&token=%s",
-		mc.UUID, git.Version, runtime.GOOS, runtime.GOARCH, dc.wstoken)
+	rawQuery := fmt.Sprintf("id=%s&version=%s&os=%s&arch=%s&token=%s&heartbeatconf=%s",
+		mc.UUID, git.Version, runtime.GOOS, runtime.GOARCH, dc.WSToken,dc.Heartbeat)
 
 	return &url.URL{
 		Scheme:   dc.wsscheme,
@@ -261,8 +261,8 @@ func ParseDataway(httpurl, wsurl string) (*DataWayCfg, error) {
 				dc.wspath = DefaultWebsocketPath
 			}
 
-			dc.wstoken = dc.wsUrlValues.Get("token")
-			if dc.wstoken == "" {
+			dc.WSToken = dc.wsUrlValues.Get("token")
+			if dc.WSToken == "" {
 				l.Warn("ws token missing, ignored")
 			}
 
