@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"sync"
 	"time"
-	"fmt"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript"
