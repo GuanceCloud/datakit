@@ -27,6 +27,14 @@ const (
     # if from_begin was false, off auto discovery file
     from_beginning = false
     
+    ## characters are replaced using the unicode replacement character
+    ## When set to the empty string the data is not decoded to text.
+    ## ex: character_encoding = "utf-8"
+    ##     character_encoding = "utf-16le"
+    ##     character_encoding = "utf-16be"
+    ##     character_encoding = ""
+    character_encoding = "utf-8"
+
     ## multiline parser/codec
     #[inputs.tail.multiline]
     ## The pattern should be a regexp which matches what you believe to be an indicator that the field is part of an event consisting of multiple lines of log data.
