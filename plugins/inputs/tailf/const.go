@@ -35,7 +35,7 @@ const (
     ##     character_encoding = "gbk"
     ##     character_encoding = "gb18030"
     ##     character_encoding = ""
-    character_encoding = "utf-8"
+    #character_encoding = ""
 
     ## multiline parser/codec
     #[inputs.tail.multiline]
