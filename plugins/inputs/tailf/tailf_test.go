@@ -36,15 +36,20 @@ func TestFromBegin(t *testing.T) {
 	io.TestOutput()
 
 	w1 := writeFile2()
-	///defer os.Remove(w1)
+	defer os.Remove(w1)
+
 	var tailer = Tailf{
 		LogFiles:      []string{w1},
 		FromBeginning: true,
 		Source:        "Testing",
+		MultilineConfig: MultilineConfig{
+			Pattern:        `^\D`,
+			MatchWhichLine: "next",
+		},
 	}
 
 	go tailer.Run()
-	time.Sleep(time.Second * 15)
+	time.Sleep(time.Second * 20)
 	datakit.Exit.Close()
 }
 
