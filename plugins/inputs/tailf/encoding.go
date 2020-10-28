@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/encoding/unicode"
 )
 
@@ -17,6 +18,10 @@ func NewDecoder(enc string) (decoder, error) {
 		return unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM).NewDecoder(), nil
 	case "utf-16be":
 		return unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM).NewDecoder(), nil
+	case "gbk":
+		return simplifiedchinese.GBK.NewDecoder(), nil
+	case "gb18030":
+		return simplifiedchinese.GB18030.NewDecoder(), nil
 	case "none", "":
 		return encoding.Nop.NewDecoder(), nil
 	}
