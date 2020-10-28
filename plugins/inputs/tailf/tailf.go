@@ -4,6 +4,7 @@ package tailf
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -26,6 +27,8 @@ type Tailf struct {
 
 	MultilineConfig MultilineConfig `toml:"multiline"`
 	multiline       *Multiline
+
+	decoder decoder
 
 	tailerConf tail.Config
 
@@ -89,17 +92,23 @@ func (t *Tailf) loadcfg() bool {
 		}
 
 		if t.Source == "" {
-			l.Errorf("tailf source was empty")
-			time.Sleep(time.Second)
+			err = fmt.Errorf("tailf source cannot be empty")
+			goto label
 		}
 
-		t.multiline, err = t.MultilineConfig.NewMultiline()
-		if err != nil {
-			l.Error(err)
-			time.Sleep(time.Second)
+		if t.decoder, err = NewDecoder(t.CharacterEncoding); err != nil {
+			goto label
+		}
+
+		if t.multiline, err = t.MultilineConfig.NewMultiline(); err != nil {
+			goto label
 		} else {
 			break
 		}
+
+	label:
+		l.Error(err)
+		time.Sleep(time.Second)
 	}
 
 	var seek *tail.SeekInfo
@@ -231,7 +240,13 @@ func (t *Tailf) receiver(tailer *tail.Tail, tags map[string]string) {
 			continue
 		}
 
-		fields := map[string]interface{}{"__content": text}
+		decodeText, err := t.decoder.String(text)
+		if err != nil {
+			l.Errorf("decode error, %s", err)
+			continue
+		}
+
+		fields := map[string]interface{}{"__content": decodeText}
 
 		data, err := io.MakeMetric(t.Source, tags, fields, time.Now())
 		if err != nil {
