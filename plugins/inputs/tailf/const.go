@@ -31,7 +31,9 @@ const (
     ## When set to the empty string the data is not decoded to text.
     ## ex: character_encoding = "utf-8"
     ##     character_encoding = "utf-16le"
-    ##     character_encoding = "utf-16be"
+    ##     character_encoding = "utf-16le"
+    ##     character_encoding = "gbk"
+    ##     character_encoding = "gb18030"
     ##     character_encoding = ""
     character_encoding = "utf-8"
 
