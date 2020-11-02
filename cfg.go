@@ -344,8 +344,8 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		c.setHostname()
 	}
 
-	if c.MainCfg.DataWay.URL == "" {
-		l.Fatal("dataway url not set")
+	if c.MainCfg.DataWay.URL == "" && c.MainCfg.DataWay.DataCleanURL == "" {
+		l.Fatal("dataway url or dataclean url not set")
 	}
 
 	var dw *DataWayCfg
