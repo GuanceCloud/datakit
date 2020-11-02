@@ -294,7 +294,9 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 							if fval, err := strconv.ParseFloat(strval, 64); err == nil {
 								nval = int64(math.Floor(fval))
 							} else {
-								moduleLogger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
+								if strval != "-" {
+									moduleLogger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
+								}
 							}
 						} else {
 							fields[k] = nval
@@ -302,7 +304,9 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 					case "float":
 						fval, err := strconv.ParseFloat(strval, 64)
 						if err != nil {
-							moduleLogger.Warnf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
+							if strval != "-" {
+								moduleLogger.Warnf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
+							}
 						} else {
 							fields[k] = fval
 						}
@@ -328,7 +332,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 			if err == nil {
 				fields["__content"] = string(contentStr)
 			} else {
-				moduleLogger.Warnf("fail to marshal content, %s", err)
+				moduleLogger.Debugf("fail to marshal content, %s", err)
 			}
 
 			tm := time.Unix(int64(l.GetTime()), 0)
