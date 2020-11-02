@@ -295,7 +295,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 								nval = int64(math.Floor(fval))
 							} else {
 								if strval != "-" {
-									moduleLogger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
+									moduleLogger.Debugf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
 								}
 							}
 						} else {
@@ -305,7 +305,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 						fval, err := strconv.ParseFloat(strval, 64)
 						if err != nil {
 							if strval != "-" {
-								moduleLogger.Warnf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
+								moduleLogger.Debugf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
 							}
 						} else {
 							fields[k] = fval
