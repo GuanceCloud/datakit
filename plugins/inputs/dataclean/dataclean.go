@@ -165,9 +165,11 @@ func (d *DataClean) handle(c *gin.Context) {
 	}
 	defer c.Request.Body.Close()
 
+	l.Debugf("receive data, category: %s, len(%d bytes)", category, len(body))
+
 	switch category {
 	case io.Metric, io.Logging, io.KeyEvent:
-		if d.PointsLuaFiles == nil {
+		if len(d.PointsLuaFiles) == 0 {
 			if err := io.NamedFeed(body, category, inputName); err != nil {
 				l.Error(err)
 			}
@@ -193,7 +195,7 @@ func (d *DataClean) handle(c *gin.Context) {
 		}
 
 	case io.Object:
-		if d.ObjectLuaFiles == nil {
+		if len(d.ObjectLuaFiles) == 0 {
 			if err := io.NamedFeed(body, category, inputName); err != nil {
 				l.Error(err)
 			}
