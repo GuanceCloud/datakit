@@ -56,6 +56,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/procstat"
 	"github.com/influxdata/telegraf/plugins/inputs/rabbitmq"
 	"github.com/influxdata/telegraf/plugins/inputs/redis"
+	"github.com/influxdata/telegraf/plugins/inputs/smart"
 	"github.com/influxdata/telegraf/plugins/inputs/snmp"
 	"github.com/influxdata/telegraf/plugins/inputs/socket_listener"
 	"github.com/influxdata/telegraf/plugins/inputs/solr"
@@ -118,6 +119,7 @@ var (
 		"system":   {name: "system", Catalog: "host", input: &system.SystemStats{}},
 		"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
 		"procstat": {name: "procstat", Catalog: "host", input: &procstat.Procstat{}},
+		"smart":    {name: "smart", Catalog: "host", input: &smart.Smart{}},
 
 		"internal": {name: "internal", Catalog: "internal", Sample: samples["internal"], input: nil}, // import internal package not allowed
 
