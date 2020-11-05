@@ -38,7 +38,7 @@ var (
 		"cpu":                    true,
 		"csvmetric":              true,
 		"csvobject":              true,
-		"dataclean":              false,
+		"dataclean":              true,
 		"disk":                   true,
 		"diskio":                 true,
 		"dns_query":              true,
