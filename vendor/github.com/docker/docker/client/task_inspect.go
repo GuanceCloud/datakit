@@ -2,11 +2,11 @@ package client // import "github.com/docker/docker/client"
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io/ioutil"
 
 	"github.com/docker/docker/api/types/swarm"
-	"golang.org/x/net/context"
 )
 
 // TaskInspectWithRaw returns the task information and its raw representation..
@@ -15,10 +15,10 @@ func (cli *Client) TaskInspectWithRaw(ctx context.Context, taskID string) (swarm
 		return swarm.Task{}, nil, objectNotFoundError{object: "task", id: taskID}
 	}
 	serverResp, err := cli.get(ctx, "/tasks/"+taskID, nil, nil)
+	defer ensureReaderClosed(serverResp)
 	if err != nil {
 		return swarm.Task{}, nil, wrapResponseError(err, serverResp, "task", taskID)
 	}
-	defer ensureReaderClosed(serverResp)
 
 	body, err := ioutil.ReadAll(serverResp.body)
 	if err != nil {
