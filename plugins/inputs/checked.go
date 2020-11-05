@@ -126,6 +126,7 @@ var (
 		"redis":                  true,
 		"scanport":               true,
 		"self":                   true,
+		"smart":                  false,
 		"snmp":                   true,
 		"socket_listener":        true, // collectd checked
 		"solr":                   true,
