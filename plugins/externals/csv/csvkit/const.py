@@ -40,6 +40,7 @@ FIELD_OP = [NULL_OP_IGNORE, NULL_OP_ABORT, NULL_OP_DROP, NULL_OP_FILL]
 
 NAME  = "name"
 CLASS = "class"
+CONT  = "content"
 
 
 
