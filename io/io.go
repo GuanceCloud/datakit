@@ -502,7 +502,7 @@ func doFlush(bodies [][]byte, url string) error {
 func fileOutput(body []byte) error {
 
 	if outputFile == nil {
-		f, err := os.OpenFile(datakit.OutputFile, os.O_WRONLY|os.O_APPEND, 0644)
+		f, err := os.OpenFile(datakit.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 		if err != nil {
 			l.Error(err)
 			return err
