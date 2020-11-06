@@ -1,4 +1,4 @@
-FROM ubuntu:latest AS base
+FROM ubuntu:18.04 AS base
 
 RUN mkdir -p /usr/local/cloudcare/dataflux/datakit
 RUN mkdir -p /usr/local/cloudcare/dataflux/datakit/embed/linux-amd64
