@@ -17,14 +17,7 @@ const (
 #[[inputs.aliyunlog.projects.stores]]
 # ##(required) name of log store
 #name = ''
-	
-# ##(optional) metric name, default is 'aliyunlog_+store-name' 
-#metric_name = ''
-	
-# ##(required) consumer group and consumer name for this log store
-#consumer_group_name = ''
-#consumer_name = ''
-	
+
 # ##(optional) specify which are tags and which are fields
 # ##eg., tags=["status_code","protocol"]
 # ##By default, the key used as tag cannot be field，you can still specify a key both be tag and field: tags=["status_code:*"]
@@ -59,6 +52,7 @@ type (
 		AccessKeySecret string
 		Projects        []*LogProject
 
-		wg sync.WaitGroup
+		wg   sync.WaitGroup
+		mode string
 	}
 )
