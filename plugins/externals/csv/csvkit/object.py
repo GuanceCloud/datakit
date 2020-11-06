@@ -2,6 +2,7 @@
 import logging
 import traceback
 import json
+from collections import OrderedDict
 
 import xlrd
 from xlrd.sheet import Cell
@@ -28,8 +29,8 @@ class ObjectCfgChecker:
         self._ck_common()
         self._ck_name()
         self._ck_class()
-        self._ck_tags()
-        self._ck_fields()
+        self._ck_content()
+
         logging.debug("checked configuration {}".format(self.cfg))
         return self.cfg
 
@@ -49,6 +50,17 @@ class ObjectCfgChecker:
         self.cfg[NAME] = d
         self.tag_found.append(name)
 
+    def _ck_content(self):
+        cont = []
+        for i, c in enumerate(self.title):
+            if str(c) == "":
+                continue
+            f = {}
+            f[INDEX] = i
+            f[NAME]  = str(c)
+            f[TYPE]  = CELL_STR
+            cont.append(f)
+        self.cfg[CONT] = cont
 
     def _ck_class(self):
         if CLASS not in self.toml:
@@ -65,48 +77,48 @@ class ObjectCfgChecker:
         self.tag_found.append(clas)
 
 
-    def _ck_tags(self):
-        tags = []
-        if TAGS in self.toml:
-            for tag in self.toml[TAGS]:
-                if tag not in self.title:
-                    raise Exception("{} configuration about {} not found in {} row{}".format(FIELD, tag, self.toml[FILE]), self.cfg[ROWS])
-                t          = {}
-                t[COLUMN] = tag
-                t[INDEX]  = self.title.index(tag)
-                t[TYPE]    = CELL_STR
-                t[NULL_OP] = NULL_OP_IGNORE
-                tags.append(t)
-                self.tag_found.append(tag)
-        self.cfg[TAGS] = tags
+    # def _ck_tags(self):
+    #     tags = []
+    #     if TAGS in self.toml:
+    #         for tag in self.toml[TAGS]:
+    #             if tag not in self.title:
+    #                 raise Exception("{} configuration about {} not found in {} row{}".format(FIELD, tag, self.toml[FILE]), self.cfg[ROWS])
+    #             t          = {}
+    #             t[COLUMN] = tag
+    #             t[INDEX]  = self.title.index(tag)
+    #             t[TYPE]    = CELL_STR
+    #             t[NULL_OP] = NULL_OP_IGNORE
+    #             tags.append(t)
+    #             self.tag_found.append(tag)
+    #     self.cfg[TAGS] = tags
 
-    def _ck_fields(self):
-        fields = []
-        if FIELD in self.toml:
-            for field in self.toml[FIELD]:
-                f = {}
-                self._ck_item(field, COLUMN, True, f)
-                column = f[COLUMN]
-                if column not in self.title:
-                    raise Exception("field {} not found in {} row".format(column, self.toml[FILE]))
-                f[INDEX]   = self.title.index(column)
-                self._ck_item(field, TYPE, False, f, CELL_STR, CELL_TYPE)
-                self._ck_item(field, NULL_OP, False, f, NULL_OP_IGNORE, FIELD_OP)
-                if NULL_OP in f and f[NULL_OP] == NULL_OP_FILL:
-                    self._ck_item(field, NULL_FILL, True, None)
-                    f[NULL_FILL] = self._conv_fill_value(field[NULL_FILL], field[TYPE])
-                fields.append(f)
-        else:
-            for index, field in enumerate(self.title):
-                f = {}
-                if field in self.tag_found:
-                    continue
-                f[COLUMN] = field
-                f[INDEX]  = index
-                f[TYPE]   = CELL_STR
-                f[NULL_OP] = NULL_OP_IGNORE
-                fields.append(f)
-        self.cfg[FIELD] = fields
+    # def _ck_fields(self):
+    #     fields = []
+    #     if FIELD in self.toml:
+    #         for field in self.toml[FIELD]:
+    #             f = {}
+    #             self._ck_item(field, COLUMN, True, f)
+    #             column = f[COLUMN]
+    #             if column not in self.title:
+    #                 raise Exception("field {} not found in {} row".format(column, self.toml[FILE]))
+    #             f[INDEX]   = self.title.index(column)
+    #             self._ck_item(field, TYPE, False, f, CELL_STR, CELL_TYPE)
+    #             self._ck_item(field, NULL_OP, False, f, NULL_OP_IGNORE, FIELD_OP)
+    #             if NULL_OP in f and f[NULL_OP] == NULL_OP_FILL:
+    #                 self._ck_item(field, NULL_FILL, True, None)
+    #                 f[NULL_FILL] = self._conv_fill_value(field[NULL_FILL], field[TYPE])
+    #             fields.append(f)
+    #     else:
+    #         for index, field in enumerate(self.title):
+    #             f = {}
+    #             if field in self.tag_found:
+    #                 continue
+    #             f[COLUMN] = field
+    #             f[INDEX]  = index
+    #             f[TYPE]   = CELL_STR
+    #             f[NULL_OP] = NULL_OP_IGNORE
+    #             fields.append(f)
+    #     self.cfg[FIELD] = fields
 
     def _ck_item(self, obj_dict, key, required, store_dict=None, default_val=None, valid_list=[]):
         if key not in obj_dict and required:
@@ -167,13 +179,11 @@ class ObjectSheetWorker:
     def _proc_object_row(self, r_index, row_data):
         obj = {}
         n = self._proc_name(r_index, row_data)
-        t = self._proc_class_tags(r_index, row_data)
-        f = self._proc_fields(r_index, row_data)
-        obj["__name"] = n
-        obj["__tags"] = t
-        for k, v in f.items():
-            if k not in obj:
-                obj[k] = v
+        c = self._proc_class(r_index, row_data)
+        t = self._proc_content(r_index, row_data)
+        obj["__name"]  = n
+        obj["__class"] = c
+        obj["__content"] = t
         self._objects.append(obj)
         if len(self._objects) >= BATCH_SIZE:
             self._flush_objects()
@@ -181,7 +191,7 @@ class ObjectSheetWorker:
     def _proc_name(self, r_index, row_data):
         return self._get_item(r_index, row_data, self.toml[NAME])
 
-    def _proc_class_tags(self, r_index, row_data):
+    def _proc_class(self, r_index, row_data):
         tags = {}
         if CLASS in self.toml:
             try:
@@ -191,32 +201,21 @@ class ObjectSheetWorker:
             except:
                 raise
             else:
-                tags["__class"] = clas
+                return clas
+        return ""
 
-        tags_info = self.toml.get(TAGS, [])
-        for tag in tags_info:
+    def _proc_content(self, r_index, row_data):
+        f = OrderedDict()
+        cont_info = self.toml.get(CONT, [])
+        for c in cont_info:
             try:
-                val = self._get_item(r_index, row_data, tag)
+                val = self._get_item(r_index, row_data, c)
             except IgnoreException:
                 continue
             except:
                 raise
             else:
-                tags[tag[COLUMN]] = val
-        return tags
-
-    def _proc_fields(self, r_index, row_data):
-        f = {}
-        fields_info = self.toml.get(FIELD, [])
-        for field in fields_info:
-            try:
-                val = self._get_item(r_index, row_data, field)
-            except IgnoreException:
-                continue
-            except:
-                raise
-            else:
-                f[field[COLUMN]] = val
+                f[c[NAME]] = val
         return f
 
     def _get_item(self, r_index, row, item_cfg):
