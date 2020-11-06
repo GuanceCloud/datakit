@@ -306,7 +306,12 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 						if err != nil {
 							if strval != "-" {
 								moduleLogger.Debugf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
+							}
+						} else {
+							fields[k] = fval
+						}
 					}
+				}
 			}
 
 			uid, _ := uuid.NewV4()
