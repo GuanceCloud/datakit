@@ -2,6 +2,7 @@ package trace
 
 import (
 	"bytes"
+	"compress/gzip"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -9,7 +10,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
 )
 
 type TraceDecoder interface {
@@ -140,13 +140,38 @@ func ParseHttpReq(r *http.Request) (*TraceReqInfo, error) {
 	defer r.Body.Close()
 
 	if contentEncoding == "gzip" {
-		body, err = utils.ReadCompressed(bytes.NewReader(body), true)
+		body, err = ReadCompressed(bytes.NewReader(body), true)
 		if err != nil {
 			return req, err
 		}
 	}
 	req.Body = body
 	return req, err
+}
+
+func ReadCompressed(body *bytes.Reader, isGzip bool) ([]byte, error) {
+	var data []byte
+	var err  error
+
+	if isGzip {
+		reader, err := gzip.NewReader(body)
+		if err != nil {
+			return nil, err
+		}
+
+		data, err = ioutil.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		data, err = ioutil.ReadAll(body)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return data, nil
 }
 
 //GetInstance 用于获取单例模式对象
