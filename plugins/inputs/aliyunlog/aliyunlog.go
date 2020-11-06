@@ -306,14 +306,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 						if err != nil {
 							if strval != "-" {
 								moduleLogger.Debugf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
-							}
-						} else {
-							fields[k] = fval
-						}
 					}
-				} else {
-					fields[k] = strval
-				}
 			}
 
 			uid, _ := uuid.NewV4()
@@ -332,7 +325,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 			if err == nil {
 				fields["__content"] = string(contentStr)
 			} else {
-				moduleLogger.Warnf("fail to marshal content, %s", err)
+				moduleLogger.Debugf("fail to marshal content, %s", err)
 			}
 
 			tm := time.Unix(int64(l.GetTime()), 0)
