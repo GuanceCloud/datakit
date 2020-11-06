@@ -77,49 +77,6 @@ class ObjectCfgChecker:
         self.tag_found.append(clas)
 
 
-    # def _ck_tags(self):
-    #     tags = []
-    #     if TAGS in self.toml:
-    #         for tag in self.toml[TAGS]:
-    #             if tag not in self.title:
-    #                 raise Exception("{} configuration about {} not found in {} row{}".format(FIELD, tag, self.toml[FILE]), self.cfg[ROWS])
-    #             t          = {}
-    #             t[COLUMN] = tag
-    #             t[INDEX]  = self.title.index(tag)
-    #             t[TYPE]    = CELL_STR
-    #             t[NULL_OP] = NULL_OP_IGNORE
-    #             tags.append(t)
-    #             self.tag_found.append(tag)
-    #     self.cfg[TAGS] = tags
-
-    # def _ck_fields(self):
-    #     fields = []
-    #     if FIELD in self.toml:
-    #         for field in self.toml[FIELD]:
-    #             f = {}
-    #             self._ck_item(field, COLUMN, True, f)
-    #             column = f[COLUMN]
-    #             if column not in self.title:
-    #                 raise Exception("field {} not found in {} row".format(column, self.toml[FILE]))
-    #             f[INDEX]   = self.title.index(column)
-    #             self._ck_item(field, TYPE, False, f, CELL_STR, CELL_TYPE)
-    #             self._ck_item(field, NULL_OP, False, f, NULL_OP_IGNORE, FIELD_OP)
-    #             if NULL_OP in f and f[NULL_OP] == NULL_OP_FILL:
-    #                 self._ck_item(field, NULL_FILL, True, None)
-    #                 f[NULL_FILL] = self._conv_fill_value(field[NULL_FILL], field[TYPE])
-    #             fields.append(f)
-    #     else:
-    #         for index, field in enumerate(self.title):
-    #             f = {}
-    #             if field in self.tag_found:
-    #                 continue
-    #             f[COLUMN] = field
-    #             f[INDEX]  = index
-    #             f[TYPE]   = CELL_STR
-    #             f[NULL_OP] = NULL_OP_IGNORE
-    #             fields.append(f)
-    #     self.cfg[FIELD] = fields
-
     def _ck_item(self, obj_dict, key, required, store_dict=None, default_val=None, valid_list=[]):
         if key not in obj_dict and required:
             raise Exception("missed {} configuration".format(key))
