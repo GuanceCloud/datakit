@@ -307,8 +307,6 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 							fields[k] = fval
 						}
 					}
-				} else {
-					fields[k] = strval
 				}
 			}
 
