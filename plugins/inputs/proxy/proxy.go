@@ -1,6 +1,8 @@
-package dataclean
+package proxy
 
 import (
+	"bytes"
+	"compress/gzip"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -8,6 +10,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript"
+	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -17,23 +20,15 @@ import (
 )
 
 const (
-	inputName = "dataclean"
+	inputName = "proxy"
 
-	defaultMeasurement = "dataclean"
+	defaultMeasurement = "proxy"
 
 	sampleCfg = `
-[[inputs.dataclean]]
+[[inputs.proxy]]
     ## http server route path
-    ## required
-    path = "/dataclean"
-
-    points_lua_files = []
-
-    object_lua_files = []
-
-    # [[inputs.dataclean.crontab_lua_list]]
-    # lua_file = ""
-    # schedule = ""
+		## required: don't change
+    path = "/proxy"
 `
 )
 
@@ -41,15 +36,16 @@ var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &DataClean{}
+		return &Proxy{}
 	})
 }
 
-type DataClean struct {
-	Path           string              `toml:"path"`
-	PointsLuaFiles []string            `toml:"points_lua_files"`
-	ObjectLuaFiles []string            `toml:"object_lua_files"`
-	Global         []map[string]string `toml:"crontab_lua_list"`
+type Proxy struct {
+	Path string `toml:"path"`
+
+	PointsLuaFiles []string            `toml:"-"`
+	ObjectLuaFiles []string            `toml:"-"`
+	Global         []map[string]string `toml:"-"`
 
 	ls   *luascript.LuaScript
 	cron *luascript.LuaCron
@@ -58,38 +54,41 @@ type DataClean struct {
 	mut    sync.Mutex
 }
 
-func (*DataClean) SampleConfig() string {
+func (*Proxy) SampleConfig() string {
 	return sampleCfg
 }
 
-func (*DataClean) Catalog() string {
+func (*Proxy) Catalog() string {
 	return inputName
 }
 
-func (d *DataClean) Run() {
+func (d *Proxy) Run() {
 	l = logger.SLogger(inputName)
 
 	if d.initCfg() {
 		return
 	}
 
-	d.ls.Run()
-	d.cron.Run()
+	if len(d.PointsLuaFiles) != 0 || len(d.ObjectLuaFiles) != 0 {
+		d.ls.Run()
+	}
+
+	if len(d.Global) != 0 {
+		d.cron.Run()
+	}
+
 	d.enable = true
 
-	l.Infof("dataclean input started...")
+	l.Infof("proxy input started...")
 
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			d.stop()
-			return
-		default:
-		}
+	select {
+	case <-datakit.Exit.Wait():
+		d.stop()
+		return
 	}
 }
 
-func (d *DataClean) stop() {
+func (d *Proxy) stop() {
 	d.mut.Lock()
 	d.enable = false
 	d.mut.Unlock()
@@ -98,7 +97,7 @@ func (d *DataClean) stop() {
 	d.cron.Stoping()
 }
 
-func (d *DataClean) initCfg() bool {
+func (d *Proxy) initCfg() bool {
 	var err error
 	d.mut = sync.Mutex{}
 	d.cron = luascript.NewLuaCron()
@@ -108,6 +107,7 @@ func (d *DataClean) initCfg() bool {
 		select {
 		case <-datakit.Exit.Wait():
 			return true
+
 		default:
 			for _, global := range d.Global {
 				err = d.cron.AddLuaFromFile(global["lua_file"], global["schedule"])
@@ -134,6 +134,7 @@ func (d *DataClean) initCfg() bool {
 			}
 		}
 		break
+
 	lable:
 		time.Sleep(time.Second)
 	}
@@ -146,11 +147,11 @@ func (d *DataClean) initCfg() bool {
 	return false
 }
 
-func (d *DataClean) RegHttpHandler() {
+func (d *Proxy) RegHttpHandler() {
 	httpd.RegGinHandler("POST", d.Path, d.handle)
 }
 
-func (d *DataClean) handle(c *gin.Context) {
+func (d *Proxy) handle(c *gin.Context) {
 	if !d.enable {
 		l.Warnf("worker does not exist")
 		return
@@ -158,12 +159,30 @@ func (d *DataClean) handle(c *gin.Context) {
 
 	category := c.Query("category")
 
+	gz := (c.Request.Header.Get("Content-Encoding") == "gzip")
+
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		l.Errorf("read body, %s", err.Error())
 		goto end
 	}
 	defer c.Request.Body.Close()
+
+	if gz {
+		r, err := gzip.NewReader(bytes.NewReader(body))
+		if err != nil {
+			l.Errorf("NewReader(): %s", err.Error())
+			uhttp.HttpErr(c, err)
+			return
+		}
+
+		body, err = ioutil.ReadAll(r)
+		if err != nil {
+			l.Errorf("ReadAll(): %s", err.Error())
+			uhttp.HttpErr(c, err)
+			return
+		}
+	}
 
 	l.Debugf("receive data, category: %s, len(%d bytes)", category, len(body))
 
