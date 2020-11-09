@@ -214,23 +214,12 @@ func ioStop() {
 }
 
 func startIO() {
-	l.Debugf("dataclean url: %s", datakit.Cfg.MainCfg.DataWay.DataCleanURL)
 
-	if datakit.Cfg.MainCfg.DataWay.DataCleanURL != "" {
-		categoryURLs = map[string]string{
-			Metric:   datakit.Cfg.MainCfg.DataWay.DataCleanMetricURL(),
-			KeyEvent: datakit.Cfg.MainCfg.DataWay.DataCleanKeyEventURL(),
-			Object:   datakit.Cfg.MainCfg.DataWay.DataCleanObjectURL(),
-			Logging:  datakit.Cfg.MainCfg.DataWay.DataCleanLoggingURL(),
-		}
-	} else {
-		categoryURLs = map[string]string{
-			MetricDeprecated: datakit.Cfg.MainCfg.DataWay.DeprecatedMetricURL(),
-			Metric:           datakit.Cfg.MainCfg.DataWay.MetricURL(),
-			KeyEvent:         datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
-			Object:           datakit.Cfg.MainCfg.DataWay.ObjectURL(),
-			Logging:          datakit.Cfg.MainCfg.DataWay.LoggingURL(),
-		}
+	categoryURLs = map[string]string{
+		Metric:   datakit.Cfg.MainCfg.DataWay.MetricURL(),
+		KeyEvent: datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
+		Object:   datakit.Cfg.MainCfg.DataWay.ObjectURL(),
+		Logging:  datakit.Cfg.MainCfg.DataWay.LoggingURL(),
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
@@ -301,20 +290,19 @@ func startIO() {
 						stat.Category = d.category
 					}
 
-					// not cache
-					if datakit.Cfg.MainCfg.DataWay.DataCleanURL != "" {
+					// disable cache under proxied mode, to prevent large packages in proxing lua module
+					if datakit.Cfg.MainCfg.DataWay.Proxy {
 						if err := doFlush([][]byte{d.data}, d.category); err != nil {
 							l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
 						}
-						continue
-					}
+					} else {
+						cache[d.category] = append(cache[d.category], d.data)
+						cacheCnt[d.category] += len(d.data)
 
-					cache[d.category] = append(cache[d.category], d.data)
-					cacheCnt[d.category] += len(d.data)
-
-					for _, cnt := range cacheCnt {
-						if cnt >= cacheUploadMax {
-							flush(cache)
+						for _, cnt := range cacheCnt {
+							if cnt >= cacheUploadMax {
+								flush(cache)
+							}
 						}
 					}
 				}
