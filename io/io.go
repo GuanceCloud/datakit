@@ -34,6 +34,7 @@ var (
 		KeyEvent:         nil,
 		Object:           nil,
 		Logging:          nil,
+		Tracing:          nil,
 	}
 	cacheCnt       = map[string]int{}
 	cacheUploadMax = 100 * 1024 // 100KiB
@@ -50,6 +51,7 @@ const ( // categories
 	KeyEvent         = "/v1/write/keyevent"
 	Object           = "/v1/write/object"
 	Logging          = "/v1/write/logging"
+	Tracing          = "/v1/write/tracing"
 
 	minGZSize = 1024
 
@@ -99,7 +101,7 @@ func doFeed(data []byte, category, name string) error {
 	}
 
 	switch category {
-	case Metric, KeyEvent, Logging:
+	case Metric, KeyEvent, Logging, Tracing:
 		// metric line check
 		if err := checkMetric(data); err != nil {
 			return fmt.Errorf("invalid line protocol data %v", err)
@@ -222,6 +224,7 @@ func startIO() {
 			KeyEvent: datakit.Cfg.MainCfg.DataWay.DataCleanKeyEventURL(),
 			Object:   datakit.Cfg.MainCfg.DataWay.DataCleanObjectURL(),
 			Logging:  datakit.Cfg.MainCfg.DataWay.DataCleanLoggingURL(),
+			Tracing:  datakit.Cfg.MainCfg.DataWay.DataCleanTracingURL(),
 		}
 	} else {
 		categoryURLs = map[string]string{
@@ -230,6 +233,7 @@ func startIO() {
 			KeyEvent:         datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
 			Object:           datakit.Cfg.MainCfg.DataWay.ObjectURL(),
 			Logging:          datakit.Cfg.MainCfg.DataWay.LoggingURL(),
+			Tracing:          datakit.Cfg.MainCfg.DataWay.TracingURL(),
 		}
 	}
 
@@ -389,6 +393,12 @@ func flush(cache map[string][][]byte) {
 	}
 	cache[Logging] = nil
 	cacheCnt[Logging] = 0
+
+	if err := doFlush(cache[Tracing], Tracing); err != nil {
+		l.Errorf("post tracing failed, drop %d packages", len(cache[Tracing]))
+	}
+	cache[Tracing] = nil
+	cacheCnt[Tracing] = 0
 }
 
 func buildObjBody(bodies [][]byte) ([]byte, error) {
