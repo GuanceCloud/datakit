@@ -81,13 +81,10 @@ func (d *Proxy) Run() {
 
 	l.Infof("proxy input started...")
 
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			d.stop()
-			return
-		default:
-		}
+	select {
+	case <-datakit.Exit.Wait():
+		d.stop()
+		return
 	}
 }
 
