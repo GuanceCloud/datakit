@@ -2,21 +2,23 @@ package aliyunobject
 
 import (
 	"encoding/json"
+	"fmt"
+	"time"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	redis "github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"time"
 )
 
 const (
 	redisSampleConfig = `
 #[inputs.aliyunobject.redis]
 
-# ## @param - custom tags - [list of redis instanceid] - optional
+# ## @param - [list of redis instanceid] - optional
 #instanceids = []
 
-# ## @param - custom tags - [list of excluded redis instanceid] - optional
+# ## @param - [list of excluded redis instanceid] - optional
 #exclude_instanceids = []
 
 # ## @param - custom tags for redis object - [list of key:value element] - optional
@@ -105,81 +107,14 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 	var objs []map[string]interface{}
 
 	for _, inst := range resp.Instances.KVStoreInstance {
-		if len(e.ExcludeInstanceIDs) > 0 {
-			exclude := false
-			for _, v := range e.ExcludeInstanceIDs {
-				if v == inst.InstanceId {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
+
+		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, inst.InstanceName, inst.InstanceId), `aliyun_redis`, inst, inst.InstanceId, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
+			objs = append(objs, obj)
+		} else {
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
 			}
 		}
-
-		tags := map[string]interface{}{
-			"__class":          "aliyun_redis",
-			"provider":       "aliyun",
-			"RegionId":         inst.RegionId,
-			"ArchitectureType": inst.ArchitectureType,
-			"ChargeType":       inst.ChargeType,
-			"EngineVersion":    inst.EngineVersion,
-			"ResourceGroupId":  inst.ResourceGroupId,
-			"VSwitchId":        inst.VSwitchId,
-			"VpcId":            inst.VpcId,
-			"ZoneId":           inst.ZoneId,
-			"ConnectionMode":   inst.ConnectionMode,
-			"InstanceId":       inst.InstanceId,
-			"InstanceStatus":   inst.InstanceStatus,
-			"InstanceType":     inst.InstanceType,
-			"NetworkType":      inst.NetworkType,
-			"NodeType":         inst.NodeType,
-			"PackageType":      inst.PackageType,
-			"ReplacateId":      inst.ReplacateId,
-			"SearchKey":        inst.SearchKey,
-			"InstanceClass":    inst.InstanceClass,
-			"PrivateIp":        inst.PrivateIp,
-		}
-
-		obj := map[string]interface{}{
-			"__name":              inst.InstanceName,
-			"DestroyTime":         inst.DestroyTime,
-			"CreateTime":          inst.CreateTime,
-			"Bandwidth":           inst.Bandwidth,
-			"Capacity":            inst.Capacity,
-			"Config":              inst.Config,
-			"ConnectionDomain":    inst.ConnectionDomain,
-			"Connections":         inst.Connections,
-			"EndTime":             inst.EndTime,
-			"Port":                inst.Port,
-			"QPS":                 inst.QPS,
-			"HasRenewChangeOrder": inst.HasRenewChangeOrder,
-			"IsRds":               inst.IsRds,
-			"UserName":            inst.UserName,
-		}
-
-		for _, t := range inst.Tags.Tag {
-			if _, have := tags[t.Key]; !have {
-				tags[t.Key] = t.Value
-			} else {
-				tags[`custom_`+t.Key] = t.Value
-			}
-		}
-
-		for k, v := range e.Tags {
-			tags[k] = v
-		}
-
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj["__tags"] = tags
-
-		objs = append(objs, obj)
 	}
 
 	if len(objs) <= 0 {
@@ -187,9 +122,9 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 	}
 
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
+	if err != nil {
 		moduleLogger.Errorf("%s", err)
+		return
 	}
+	io.NamedFeed(data, io.Object, inputName)
 }
