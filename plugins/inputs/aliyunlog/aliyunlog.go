@@ -87,7 +87,7 @@ func (r *runningProject) run() {
 		r.wg.Add(1)
 
 		if c.ConsumerGroupName == "" {
-			c.ConsumerGroupName = "datakit"
+			c.ConsumerGroupName = "datakit-" + datakit.Cfg.MainCfg.UUID
 		}
 
 		if c.ConsumerName == "" {
@@ -121,8 +121,7 @@ type adapterLogWriter struct {
 }
 
 func (al *adapterLogWriter) Write(p []byte) (n int, err error) {
-	fmt.Printf("****\n")
-	moduleLogger.Errorf("%s", string(p))
+	moduleLogger.Debugf("%s", string(p))
 	return len(p), nil
 }
 
@@ -188,13 +187,10 @@ func (r *runningStore) run() error {
 		Logstore:          r.cfg.Name,
 		ConsumerGroupName: r.cfg.ConsumerGroupName,
 		ConsumerName:      r.cfg.ConsumerName,
-		// This options is used for initialization, will be ignored once consumer group is created and each shard has been started to be consumed.
-		// Could be "begin", "end", "specific time format in time stamp", it's log receiving time.
-		CursorPosition: consumerLibrary.BEGIN_CURSOR,
+		CursorPosition:    consumerLibrary.END_CURSOR,
 	}
 
 	consumerWorker := consumerLibrary.InitConsumerWorker(option, sdkLogger(), r.logProcess)
-	//consumerWorker.Logger = sdkLogger()
 	consumerWorker.Start()
 
 	<-datakit.Exit.Wait()
@@ -295,7 +291,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 								nval = int64(math.Floor(fval))
 							} else {
 								if strval != "-" {
-									moduleLogger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
+									moduleLogger.Debugf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
 								}
 							}
 						} else {
@@ -305,14 +301,12 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 						fval, err := strconv.ParseFloat(strval, 64)
 						if err != nil {
 							if strval != "-" {
-								moduleLogger.Warnf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
+								moduleLogger.Debugf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
 							}
 						} else {
 							fields[k] = fval
 						}
 					}
-				} else {
-					fields[k] = strval
 				}
 			}
 
@@ -337,10 +331,12 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 
 			tm := time.Unix(int64(l.GetTime()), 0)
 
-			//mdata, _ := io.MakeMetric(r.metricName, tags, fields, tm)
-			//fmt.Printf("#### %s\n", string(mdata))
-
-			io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, tm)
+			if r.proj.inst.mode == "debug" {
+				mdata, _ := io.MakeMetric(r.metricName, tags, fields, tm)
+				fmt.Printf("%s\n", string(mdata))
+			} else {
+				io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, tm)
+			}
 
 		}
 	}
