@@ -15,10 +15,10 @@ const (
 	cosSampleConfig = `
 #[inputs.tencentobject.cos]
 
-# ## @param - custom tags - [list of buckets] - optional
+# ## @param - [list of buckets] - optional
 #buckets = ['']
 
-# ## @param - custom tags - [list of excluded buckets] - optional
+# ## @param - [list of excluded buckets] - optional
 #exclude_buckets = ['']
 
 # ## @param - custom tags - [list of key:value element] - optional
@@ -93,33 +93,19 @@ func (c *Cos) handleResponse(resp *cos.ServiceGetResult, ag *objectAgent) {
 			}
 		}
 
-		name := bucket.Name
-		obj := map[string]interface{}{
-			"__name":       fmt.Sprintf(`OSS_%s`, name), // 目前displayName与ID一样
-			"CreationDate": bucket.CreationDate,
-		}
-
-		tags := map[string]interface{}{
-			"__class":          "COS",
-			"provider":         "tencent",
+		content := map[string]interface{}{
 			"Location":         bucket.Region,
 			"OwnerID":          resp.Owner.ID,
 			"OwnerDisplayName": resp.Owner.DisplayName,
+			"CreationDate":     bucket.CreationDate,
 		}
 
-		//add oss object custom tags
-		for k, v := range c.Tags {
-			tags[k] = v
+		name := bucket.Name
+		obj := map[string]interface{}{
+			"__name":    fmt.Sprintf(`OSS_%s`, name), // 目前displayName与ID一样
+			"__class":   "tencent_cos",
+			"__content": content,
 		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj[`__tags`] = tags
 
 		objs = append(objs, obj)
 	}
@@ -129,9 +115,9 @@ func (c *Cos) handleResponse(resp *cos.ServiceGetResult, ag *objectAgent) {
 	}
 
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
+	if err != nil {
 		moduleLogger.Errorf("%s", err)
+		return
 	}
+	io.NamedFeed(data, io.Object, inputName)
 }

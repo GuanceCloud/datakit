@@ -81,48 +81,48 @@ func (c *Collector) Run() {
 		var objs []map[string]interface{}
 
 		obj := map[string]interface{}{
-			`__name`: c.Name,
+			`__name`:  c.Name,
+			"__class": c.Class,
 		}
 		if c.Desc != "" {
 			obj[`__description`] = c.Desc
 		}
 
-		tags := map[string]string{
-			"uuid":    datakit.Cfg.MainCfg.UUID,
-			"__class": c.Class,
+		content := map[string]string{
+			"uuid": datakit.Cfg.MainCfg.UUID,
 		}
 
-		tags["host"] = datakit.Cfg.MainCfg.Hostname
+		content["host"] = datakit.Cfg.MainCfg.Hostname
 
 		ipval := getIP()
 		if mac, err := getMacAddr(ipval); err == nil && mac != "" {
-			tags["mac"] = mac
+			content["mac"] = mac
 		}
-		tags["ip"] = ipval
+		content["ip"] = ipval
 
 		oi := getOSInfo()
-		tags["os_type"] = oi.OSType
-		tags["os"] = oi.Release
+		content["os_type"] = oi.OSType
+		content["os"] = oi.Release
 
 		for k, v := range c.Tags {
-			tags[k] = v
+			content[k] = v
 		}
 
-		obj[`__tags`] = tags
+		obj[`__content`] = content
 
 		switch c.Name {
 		case "__mac":
-			obj[`__name`] = tags["mac"]
+			obj[`__name`] = content["mac"]
 		case "__ip":
-			obj[`__name`] = tags["ip"]
+			obj[`__name`] = content["ip"]
 		case "__uuid":
-			obj[`__name`] = tags["uuid"]
+			obj[`__name`] = content["uuid"]
 		case "__host":
-			obj[`__name`] = tags["host"]
+			obj[`__name`] = content["host"]
 		case "__os":
-			obj[`__name`] = tags["os"]
+			obj[`__name`] = content["os"]
 		case "__os_type":
-			obj[`__name`] = tags["os_type"]
+			obj[`__name`] = content["os_type"]
 		}
 
 		objs = append(objs, obj)
