@@ -33,9 +33,9 @@ type ParseError struct {
 
 func (e *ParseError) Error() string {
 	buffer := e.buf[e.LineOffset:]
-	eol := strings.IndexAny(buffer, "\n")
+	eol := strings.IndexAny(buffer, "\r\n")
 	if eol >= 0 {
-		buffer = strings.TrimSuffix(buffer[:eol], "\r")
+		buffer = buffer[:eol]
 	}
 	if len(buffer) > maxErrorBufferSize {
 		startEllipsis := true
