@@ -1,4 +1,4 @@
-# Jenkins Input Plugin
+# Jenkins Plugin
 
 The jenkins plugin gathers information about the nodes and jobs running in a jenkins instance.
 
