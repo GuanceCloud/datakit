@@ -279,6 +279,7 @@ type MainConfig struct {
 	GlobalTags           map[string]string `toml:"global_tags"`
 	RoundInterval        bool
 	StrictMode           bool   `toml:"strict_mode,omitempty"`
+	EnablePProf          bool   `toml:"enable_pprof,omitempty"`
 	Interval             string `toml:"interval"`
 	flushInterval        Duration
 	OutputFile           string       `toml:"output_file"`
