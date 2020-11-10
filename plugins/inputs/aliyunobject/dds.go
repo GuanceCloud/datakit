@@ -15,10 +15,10 @@ const (
 	ddsSampleConfig = `
 #[inputs.aliyunobject.mongodb]
 
-# ## @param - custom tags - [list of mongodb instanceid] - optional
+# ## @param - [list of mongodb instanceid] - optional
 #db_instanceids = []
 
-# ## @param - custom tags - [list of excluded mongodb instanceid] - optional
+# ## @param - [list of excluded mongodb instanceid] - optional
 #exclude_db_instanceids = []
 
 # ## @param - custom tags for mongodb object - [list of key:value element] - optional
@@ -115,83 +115,17 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 
 	moduleLogger.Debugf("TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 
-	var objs []*map[string]interface{}
+	var objs []map[string]interface{}
 
 	for _, db := range resp.DBInstances.DBInstance {
-		//moduleLogger.Debugf("dbinstanceInfo %+#v", db)
 
-		exclude := false
-		for _, dbIsID := range ag.Dds.ExcludeDBInstanceIDs {
-			if db.DBInstanceId == dbIsID {
-				exclude = true
-				break
+		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s_%s`, db.DBInstanceDescription, db.DBInstanceId), `aliyun_mongodb`, db, db.DBInstanceId, r.ExcludeDBInstanceIDs, r.DBInstancesIDs); obj != nil {
+			objs = append(objs, obj)
+		} else {
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
 			}
 		}
-
-		if exclude {
-			continue
-		}
-
-		tags := map[string]interface{}{
-			"__class":            "aliyun_mongodb",
-			"__provider":         "aliyun",
-			"DBInstanceId":       db.DBInstanceId,
-			"DBInstanceType":     db.DBInstanceType,
-			"RegionId":           db.RegionId,
-			"DBInstanceStatus":   db.DBInstanceStatus,
-			"Engine":             db.Engine,
-			"NetworkType":        db.NetworkType,
-			"ChargeType":         db.ChargeType,
-			"LockMode":           db.LockMode,
-			"DBInstanceClass":    db.DBInstanceClass,
-			"ResourceGroupId":    db.ResourceGroupId,
-			"VSwitchId":          db.VSwitchId,
-			"VpcCloudInstanceId": db.VPCCloudInstanceIds,
-			"VPCId":              db.VPCId,
-			"ZoneId":             db.ZoneId,
-			"VpcAuthMode":        db.VpcAuthMode,
-		}
-
-		for _, t := range db.Tags.Tag {
-			tags[t.Key] = t.Value
-		}
-
-		//add dds object custom tags
-		for k, v := range r.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj := &map[string]interface{}{
-			"__name":                fmt.Sprintf(`%s_%s`, db.DBInstanceDescription, db.DBInstanceId),
-			"__tags":                tags,
-			"ExpireTime":            db.ExpireTime,
-			"DestroyTime":           db.DestroyTime,
-			"CreationTime":          db.CreationTime,
-			"DBInstanceDescription": db.DBInstanceDescription,
-			"MaintainStartTime":     db.MaintainStartTime,
-			"MaxIOPS":               db.MaxIOPS,
-			"MaintainEndTime":       db.MaintainEndTime,
-			"LastDowngradeTime":     db.LastDowngradeTime,
-			"ReadonlyReplicas":      db.ReadonlyReplicas,
-			"MaxConnections":        db.MaxConnections,
-			"ReplicationFactor":     db.ReplicationFactor,
-			"CurrentKernelVersion":  db.CurrentKernelVersion,
-			"ConfigserverList":      db.ConfigserverList,
-			"ShardList":             db.ShardList,
-			"ReplicaSets":           db.ReplicaSets,
-			"MongosList":            db.MongosList,
-			"DBInstanceStorage":     db.DBInstanceStorage,
-			"EngineVersion":         db.EngineVersion,
-		}
-
-		objs = append(objs, obj)
 	}
 
 	if len(objs) == 0 {
@@ -199,9 +133,8 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 	}
 
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
+	if err != nil {
 		moduleLogger.Errorf("%s", err)
 	}
+	io.NamedFeed(data, io.Object, inputName)
 }
