@@ -15,10 +15,10 @@ const (
 	elasticsearchSampleConfig = `
 #[inputs.aliyunobject.elasticsearch]
 
-# ## @param - custom tags - [list of elasticsearch instanceid] - optional
+# ## @param - [list of elasticsearch instanceid] - optional
 #instanceids = []
 
-# ## @param - custom tags - [list of excluded elasticsearch instanceid] - optional
+# ## @param - [list of excluded elasticsearch instanceid] - optional
 #exclude_instanceids = []
 
 # ## @param - custom tags for ecs object - [list of key:value element] - optional
@@ -113,67 +113,13 @@ func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse,
 
 	for _, inst := range resp.Result {
 
-		if len(e.ExcludeInstanceIDs) > 0 {
-			exclude := false
-			for _, v := range e.ExcludeInstanceIDs {
-				if v == inst.InstanceId {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
+		if obj, err := datakit.CloudObject2Json(inst.Description, `aliyun_elasticsearch`, inst, inst.InstanceId, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
+			objs = append(objs, obj)
+		} else {
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
 			}
 		}
-
-		obj := map[string]interface{}{
-			`__name`:                       inst.Description,
-			`clientNodeConfiguration`:      inst.ClientNodeConfiguration,
-			`createdAt`:                    inst.CreatedAt,
-			`elasticDataNodeConfiguration`: inst.ElasticDataNodeConfiguration,
-			`esVersion`:                    inst.EsVersion,
-			`kibanaConfiguration`:          inst.KibanaConfiguration,
-			`masterConfiguration`:          inst.MasterConfiguration,
-			`networkConfig`:                inst.NetworkConfig,
-			`nodeAmount`:                   inst.NodeAmount,
-			`nodeSpec`:                     inst.NodeSpec,
-		}
-
-		tags := map[string]interface{}{
-			`__class`:                `aliyun_elasticsearch`,
-			`provider`:               `aliyun`,
-			`InstanceId`:             inst.InstanceId,
-			`advancedDedicateMaster`: inst.AdvancedDedicateMaster,
-			`dedicateMaster`:         inst.DedicateMaster,
-			`paymentType`:            inst.PaymentType,
-			`ResourceGroupId`:        inst.ResourceGroupId,
-			`Status`:                 inst.Status,
-		}
-
-		//tags on es instance
-		for _, t := range inst.Tags {
-			if _, have := tags[t.TagKey]; !have {
-				tags[t.TagKey] = t.TagValue
-			} else {
-				tags[`custom_`+t.TagKey] = t.TagValue
-			}
-		}
-
-		//add es object custom tags
-		for k, v := range e.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj["__tags"] = tags
-
-		objs = append(objs, obj)
 	}
 
 	if len(objs) <= 0 {
@@ -181,9 +127,9 @@ func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse,
 	}
 
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
+	if err != nil {
 		moduleLogger.Errorf("%s", err)
+		return
 	}
+	io.NamedFeed(data, io.Object, inputName)
 }
