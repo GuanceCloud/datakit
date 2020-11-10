@@ -1,7 +1,5 @@
-/.idea
 /build
 /telegraf
 /telegraf.exe
 /telegraf.gz
 /vendor
-.DS_Store
