@@ -517,7 +517,12 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 		}
 
 		if len(fields) > 0 {
-			io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
+			if s.cfg.mode == "debug" {
+				data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
+				fmt.Printf("%s\n", string(data))
+			} else {
+				io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
+			}
 		}
 	}
 
