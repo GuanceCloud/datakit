@@ -16,10 +16,10 @@ const (
 	slbSampleConfig = `
 #[inputs.aliyunobject.slb]
 
-# ## @param - custom tags - [list of slb instanceid] - optional
+# ## @param - [list of slb instanceid] - optional
 #instanceids = ['']
 
-# ## @param - custom tags - [list of excluded slb instanceid] - optional
+# ## @param - [list of excluded slb instanceid] - optional
 #exclude_instanceids = ['']
 
 # ## @param - custom tags for slb object - [list of key:value element] - optional
@@ -109,66 +109,19 @@ func (s *Slb) handleResponse(resp *slb.DescribeLoadBalancersResponse, ag *object
 
 	for _, inst := range resp.LoadBalancers.LoadBalancer {
 
-		if len(s.ExcludeInstanceIDs) > 0 {
-			exclude := false
-			for _, v := range s.ExcludeInstanceIDs {
-				if v == inst.LoadBalancerId {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
+		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, inst.LoadBalancerName, inst.LoadBalancerId), `aliyun_slb`, inst, inst.LoadBalancerId, s.ExcludeInstanceIDs, s.InstancesIDs); obj != nil {
+			objs = append(objs, obj)
+		} else {
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
 			}
 		}
-
-		obj := map[string]interface{}{
-			`__name`: fmt.Sprintf(`%s(%s)`, inst.LoadBalancerName, inst.LoadBalancerId),
-		}
-
-		obj[`NetworkType`] = inst.NetworkType
-		obj[`CreationTime`] = inst.CreateTime
-		obj[`AddressIPVersion`] = inst.AddressIPVersion
-
-		tags := map[string]interface{}{
-			`__class`:            `aliyun_slb`,
-			`provider`:           `aliyun`,
-			`InternetChargeType`: inst.InternetChargeType,
-			`ResourceGroupId`:    inst.ResourceGroupId,
-			`LoadBalancerId`:     inst.LoadBalancerId,
-			`LoadBalancerName`:   inst.LoadBalancerName,
-			`LoadBalancerStatus`: inst.LoadBalancerStatus,
-			`PayType`:            inst.PayType,
-			`Address`:            inst.Address,
-			`AddressType`:        inst.AddressType,
-			`RegionId`:           inst.RegionId,
-			`MasterZoneId`:       inst.MasterZoneId,
-			`SlaveZoneId`:        inst.SlaveZoneId,
-			`VSwitchId`:          inst.VSwitchId,
-			`VpcId`:              inst.VpcId,
-		}
-
-		//add ecs object custom tags
-		for k, v := range s.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj["__tags"] = tags
-
-		objs = append(objs, obj)
 	}
 
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
+	if err != nil {
 		moduleLogger.Errorf("%s", err)
+		return
 	}
+	io.NamedFeed(data, io.Object, inputName)
 }
