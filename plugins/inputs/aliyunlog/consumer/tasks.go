@@ -3,20 +3,21 @@ package consumerLibrary
 import (
 	"errors"
 	"fmt"
-	"github.com/aliyun/aliyun-log-go-sdk"
-	"github.com/go-kit/kit/log/level"
 	"time"
+
+	sls "github.com/aliyun/aliyun-log-go-sdk"
+	"github.com/go-kit/kit/log/level"
 )
 
 func (consumer *ShardConsumerWorker) consumerInitializeTask() (string, error) {
-	checkpoint, err := consumer.client.getCheckPoint(consumer.shardId)
-	if err != nil {
-		return checkpoint, err
-	}
-	if checkpoint != "" && err == nil {
-		consumer.consumerCheckPointTracker.setPersistentCheckPoint(checkpoint)
-		return checkpoint, nil
-	}
+	// checkpoint, err := consumer.client.getCheckPoint(consumer.shardId)
+	// if err != nil {
+	// 	return checkpoint, err
+	// }
+	// if checkpoint != "" && err == nil {
+	// 	consumer.consumerCheckPointTracker.setPersistentCheckPoint(checkpoint)
+	// 	return checkpoint, nil
+	// }
 
 	if consumer.client.option.CursorPosition == BEGIN_CURSOR {
 		cursor, err := consumer.client.getCursor(consumer.shardId, "begin")

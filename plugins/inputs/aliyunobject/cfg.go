@@ -51,6 +51,8 @@ type objectAgent struct {
 	wg sync.WaitGroup
 
 	subModules []subModule
+
+	mode string
 }
 
 func (ag *objectAgent) addModule(m subModule) {
