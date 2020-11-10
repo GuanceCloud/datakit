@@ -14,10 +14,10 @@ const (
 	onsSampleConfig = `
 #[inputs.aliyunobject.rocketmq]
 
-# ## @param - custom tags - [list of rocketmq instanceid] - optional
+# ## @param - [list of rocketmq instanceid] - optional
 #instanceids = []
 
-# ## @param - custom tags - [list of excluded rocketmq instanceid] - optional
+# ## @param - [list of excluded rocketmq instanceid] - optional
 #exclude_instanceids = []
 
 # ## @param - custom tags for rocketmq object - [list of key:value element] - optional
@@ -77,67 +77,17 @@ func (r *Ons) run(ag *objectAgent) {
 
 func (r *Ons) handleResponse(resp *ons.OnsInstanceInServiceListResponse, ag *objectAgent) {
 
-	moduleLogger.Debugf("%+#v", resp)
-	var objs []*map[string]interface{}
+	var objs []map[string]interface{}
 
 	for _, o := range resp.Data.InstanceVO {
 
-		inc := false
-		for _, isid := range ag.Ons.InstancesIDs {
-			if isid == o.InstanceId {
-				inc = true
-				break
+		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`ons_%s`, o.InstanceId), `aliyun_rocketmq`, o, o.InstanceId, r.ExcludeInstanceIDs, r.InstancesIDs); obj != nil {
+			objs = append(objs, obj)
+		} else {
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
 			}
 		}
-
-		if len(ag.Ons.InstancesIDs) > 0 && !inc {
-			continue
-		}
-
-		exclude := false
-		for _, isId := range ag.Ons.ExcludeInstanceIDs {
-			if o.InstanceId == isId {
-				exclude = true
-				break
-			}
-		}
-
-		if exclude {
-			continue
-		}
-
-		tags := map[string]interface{}{
-			"__class":           "aliyun_rocketmq",
-			"__provider":        "aliyun",
-			"InstanceId":        o.InstanceId,
-			"IndependentNaming": o.IndependentNaming,
-			"InstanceName":      o.InstanceName,
-			"InstanceStatus":    o.InstanceStatus,
-			"InstanceType":      o.InstanceType,
-		}
-
-		for _, t := range o.Tags.Tag {
-			tags[t.Key] = t.Value
-		}
-
-		//add Ons object custom tags
-		for k, v := range r.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj := &map[string]interface{}{
-			"__name":      fmt.Sprintf(`ons_%s`, o.InstanceId),
-			"__tags":      tags,
-			"ReleaseTime": o.ReleaseTime,
-		}
-		objs = append(objs, obj)
 	}
 
 	if len(objs) <= 0 {
@@ -145,9 +95,9 @@ func (r *Ons) handleResponse(resp *ons.OnsInstanceInServiceListResponse, ag *obj
 	}
 
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
+	if err != nil {
 		moduleLogger.Errorf("%s", err)
+		return
 	}
+	io.NamedFeed(data, io.Object, inputName)
 }
