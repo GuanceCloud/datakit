@@ -127,6 +127,8 @@ type (
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
+
+		mode string
 	}
 
 	MetricMeta struct {
