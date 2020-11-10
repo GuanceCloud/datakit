@@ -219,6 +219,7 @@ func TestGetMetricList(t *testing.T) {
 func TestSvr(t *testing.T) {
 
 	ag := NewAgent()
+	ag.mode = "debug"
 
 	data, err := ioutil.ReadFile("./test.conf")
 	if err != nil {
