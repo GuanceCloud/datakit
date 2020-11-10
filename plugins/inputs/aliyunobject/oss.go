@@ -14,10 +14,10 @@ const (
 	ossSampleConfig = `
 #[inputs.aliyunobject.oss]
 
-# ## @param - custom tags - [list of oss buckets] - optional
+# ## @param - [list of oss buckets] - optional
 #buckets = []
 
-# ## @param - custom tags - [list of excluded oss instanceid] - optional
+# ## @param - [list of excluded oss instanceid] - optional
 
 #exclude_buckets = []
 
@@ -127,36 +127,22 @@ func (o *Oss) handleResponse(lsRes *oss.ListBucketsResult, ag *objectAgent) {
 			}
 		}
 
-		name := bucket.Name
-		obj := map[string]interface{}{
-			"__name":       fmt.Sprintf(`OSS_%s`, name), // 目前displayName与ID一样
-			"CreationDate": bucket.CreationDate,
-			"XMLName":      bucket.XMLName,
-			"Ower.XMLName": lsRes.Owner.XMLName,
-		}
-
-		tags := map[string]interface{}{
-			"__class":           "aliyun_oss",
-			"provider":          "aliyun",
+		content := map[string]interface{}{
+			"CreationDate":      bucket.CreationDate,
+			"XMLName":           bucket.XMLName,
+			"Ower.XMLName":      lsRes.Owner.XMLName,
 			"Location":          bucket.Location,
 			"Owner.ID":          lsRes.Owner.ID,
 			"Owner.DisplayName": lsRes.Owner.DisplayName,
 			"StorageClass":      bucket.StorageClass,
 		}
 
-		//add oss object custom tags
-		for k, v := range o.Tags {
-			tags[k] = v
+		name := bucket.Name
+		obj := map[string]interface{}{
+			"__name":    fmt.Sprintf(`OSS_%s`, name), // 目前displayName与ID一样
+			"__class":   "aliyun_oss",
+			"__content": content,
 		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj[`__tags`] = tags
 
 		objs = append(objs, obj)
 	}
@@ -166,9 +152,9 @@ func (o *Oss) handleResponse(lsRes *oss.ListBucketsResult, ag *objectAgent) {
 	}
 
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
+	if err != nil {
 		moduleLogger.Errorf("%s", err)
+		return
 	}
+	io.NamedFeed(data, io.Object, inputName)
 }
