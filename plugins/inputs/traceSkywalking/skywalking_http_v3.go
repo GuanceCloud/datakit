@@ -120,7 +120,6 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 			return err
 		}
 		t.Content = string(js)
-		t.Class = "tracing"
 		t.ServiceName = sg.Service
 		t.OperationName = span.OperationName
 		if span.SpanType == "Entry" {
