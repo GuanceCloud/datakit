@@ -37,7 +37,6 @@ type TraceAdapter struct {
 	TimestampUs int64
 	Content     string
 
-	Class         string
 	ServiceName   string
 	OperationName string
 	ParentID      string
@@ -65,8 +64,7 @@ var (
 func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
-
-	tags["__class"] = tAdpt.Class
+	
 	tags["__operationName"] = tAdpt.OperationName
 	tags["__serviceName"] = tAdpt.ServiceName
 	tags["__parentID"] = tAdpt.ParentID
@@ -117,7 +115,7 @@ func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 			continue
 		}
 
-		if err := dkio.NamedFeed(pt, dkio.Logging, pluginName); err != nil {
+		if err := dkio.NamedFeed(pt, dkio.Tracing, pluginName); err != nil {
 			GetInstance().Errorf("io feed err: %s", err)
 		}
 	}
