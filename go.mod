@@ -36,13 +36,12 @@ require (
 	github.com/gofrs/uuid v2.1.0+incompatible
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/golang/protobuf v1.4.2
-	github.com/google/go-github v17.0.0+incompatible // indirect
 	github.com/google/gopacket v1.1.17
-	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
-	github.com/influxdata/telegraf v1.16.1
+	//github.com/influxdata/telegraf v1.16.1
+	github.com/influxdata/telegraf v1.15.2
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/jackc/pgx v3.6.0+incompatible
 	github.com/jdcloud-api/jdcloud-sdk-go v1.43.0
