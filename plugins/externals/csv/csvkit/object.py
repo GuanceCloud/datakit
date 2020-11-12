@@ -173,7 +173,7 @@ class ObjectSheetWorker:
                 raise
             else:
                 f[c[NAME]] = val
-        return f
+        return json.dumps(f)
 
     def _get_item(self, r_index, row, item_cfg):
         if INDEX not in item_cfg:
