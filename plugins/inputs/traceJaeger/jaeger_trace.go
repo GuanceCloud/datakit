@@ -64,7 +64,6 @@ func parseJaegerThrift(octets []byte) error {
 		}
 		tAdpter.Content = string(sJson)
 
-		tAdpter.Class = "tracing"
 		tAdpter.ServiceName = batch.Process.ServiceName
 		tAdpter.OperationName = s.OperationName
 		if s.ParentSpanId != 0 {
