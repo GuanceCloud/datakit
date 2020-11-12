@@ -16,10 +16,10 @@ const (
 	rdsSampleConfig = `
 #[inputs.aliyunobject.rds]
 
-# ## @param - custom tags - [list of rds instanceid] - optional
+# ## @param - [list of rds instanceid] - optional
 #db_instanceids = []
 
-# ## @param - custom tags - [list of excluded rds instanceid] - optional
+# ## @param - [list of excluded rds instanceid] - optional
 #exclude_db_instanceids = []
 
 # ## @param - custom tags for rds object - [list of key:value element] - optional
@@ -115,88 +115,17 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 
 	moduleLogger.Debugf("TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalRecordCount, resp.PageRecordCount, resp.PageNumber)
 
-	var objs []*map[string]interface{}
+	var objs []map[string]interface{}
 
 	for _, db := range resp.Items.DBInstance {
-		//moduleLogger.Debugf("dbinstanceInfo %+#v", db)
 
-		exclude := false
-		for _, dbIsId := range ag.Rds.ExcludeDBInstanceIDs {
-			if db.DBInstanceId == dbIsId {
-				exclude = true
-				break
+		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s_%s`, db.DBInstanceDescription, db.DBInstanceId), `aliyun_rds`, db, db.DBInstanceId, r.ExcludeDBInstanceIDs, r.DBInstancesIDs); obj != nil {
+			objs = append(objs, obj)
+		} else {
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
 			}
 		}
-
-		if exclude {
-			continue
-		}
-
-		tags := map[string]interface{}{
-			"__class":               "aliyun_rds",
-			"__provider":            "aliyun",
-			"DBInstanceDescription": db.DBInstanceDescription,
-			"DBInstanceId":          db.DBInstanceId,
-			"DBInstanceType":        db.DBInstanceType,
-			"RegionId":              db.RegionId,
-			"DBInstanceStatus":      db.DBInstanceStatus,
-			"Engine":                db.Engine,
-			"DBInstanceNetType":     db.DBInstanceNetType,
-			"LockMode":              db.LockMode,
-			"Category":              db.Category,
-			"DBInstanceClass":       db.DBInstanceClass,
-			"DBInstanceStorageType": db.DBInstanceStorageType,
-			"EngineVersion":         db.EngineVersion,
-			"ResourceGroupId":       db.ResourceGroupId,
-			"VSwitchId":             db.VSwitchId,
-			"VpcCloudInstanceId":    db.VpcCloudInstanceId,
-			"VpcId":                 db.VpcId,
-			"ZoneId":                db.ZoneId,
-		}
-
-		//add rds object custom tags
-		for k, v := range r.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj := &map[string]interface{}{
-			"__name":                       fmt.Sprintf(`%s_%s`, db.DBInstanceDescription, db.DBInstanceId),
-			"__tags":                       tags,
-			"InsId":                        db.InsId,
-			"PayType":                      db.PayType,
-			"ExpireTime":                   db.ExpireTime,
-			"DestroyTime":                  db.DestroyTime,
-			"ConnectionMode":               db.ConnectionMode,
-			"InstanceNetworkType":          db.InstanceNetworkType,
-			"LockReason":                   db.LockReason,
-			"MutriORsignle":                db.MutriORsignle,
-			"CreateTime":                   db.CreateTime,
-			"GuardDBInstanceId":            db.GuardDBInstanceId,
-			"TempDBInstanceId":             db.TempDBInstanceId,
-			"MasterInstanceId":             db.MasterInstanceId,
-			"ReplicateId":                  db.ReplicateId,
-			"AutoUpgradeMinorVersion":      db.AutoUpgradeMinorVersion,
-			"DedicatedHostGroupId":         db.DedicatedHostGroupId,
-			"DedicatedHostIdForMaster":     db.DedicatedHostIdForMaster,
-			"DedicatedHostIdForSlave":      db.DedicatedHostIdForSlave,
-			"DedicatedHostIdForLog":        db.DedicatedHostIdForLog,
-			"DedicatedHostNameForMaster":   db.DedicatedHostNameForMaster,
-			"DedicatedHostNameForSlave":    db.DedicatedHostNameForSlave,
-			"DedicatedHostNameForLog":      db.DedicatedHostNameForLog,
-			"DedicatedHostZoneIdForMaster": db.DedicatedHostZoneIdForMaster,
-			"DedicatedHostZoneIdForSlave":  db.DedicatedHostZoneIdForSlave,
-			"DedicatedHostZoneIdForLog":    db.DedicatedHostNameForLog,
-			"ReadOnlyDBInstanceIds":        db.ReadOnlyDBInstanceIds,
-		}
-
-		objs = append(objs, obj)
 	}
 
 	if len(objs) <= 0 {
@@ -204,9 +133,9 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 	}
 
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
+	if err != nil {
 		moduleLogger.Errorf("%s", err)
+		return
 	}
+	io.NamedFeed(data, io.Object, inputName)
 }
