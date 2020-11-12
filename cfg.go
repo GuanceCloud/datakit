@@ -38,8 +38,6 @@ func DefaultConfig() *Config {
 			LogUpload: false,
 			GinLog:    filepath.Join(InstallDir, "gin.log"),
 
-			//DataWay:   &DataWayCfg{},
-
 			RoundInterval: false,
 			TelegrafAgentCfg: &TelegrafCfg{
 				Interval:                   "10s",
@@ -90,8 +88,8 @@ type Config struct {
 }
 
 type DataWayCfg struct {
-	URL          string `toml:"url"`
-	DataCleanURL string `toml:"dataclean_url"`
+	URL   string `toml:"url"`
+	Proxy bool   `toml:"proxy,omitempty"`
 
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
@@ -108,6 +106,14 @@ type DataWayCfg struct {
 }
 
 func (dc *DataWayCfg) DeprecatedMetricURL() string {
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/metric")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
@@ -116,6 +122,15 @@ func (dc *DataWayCfg) DeprecatedMetricURL() string {
 }
 
 func (dc *DataWayCfg) MetricURL() string {
+
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/metric")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
@@ -124,6 +139,15 @@ func (dc *DataWayCfg) MetricURL() string {
 }
 
 func (dc *DataWayCfg) ObjectURL() string {
+
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/object")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
@@ -132,6 +156,15 @@ func (dc *DataWayCfg) ObjectURL() string {
 }
 
 func (dc *DataWayCfg) LoggingURL() string {
+
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/logging")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
@@ -148,49 +181,20 @@ func (dc *DataWayCfg) TracingURL() string {
 }
 
 func (dc *DataWayCfg) KeyEventURL() string {
+
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/keyevent")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
 		"/v1/write/keyevent",
 		dc.urlValues.Encode())
-}
-func (dc *DataWayCfg) DataCleanMetricURL() string {
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		dc.path,
-		"category=/v1/write/metric")
-}
-func (dc *DataWayCfg) DataCleanObjectURL() string {
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		dc.path,
-		"category=/v1/write/object")
-}
-func (dc *DataWayCfg) DataCleanLoggingURL() string {
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		dc.path,
-		"category=/v1/write/logging")
-}
-
-func (dc *DataWayCfg) DataCleanTracingURL() string {
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		dc.path,
-		"category=/v1/write/tracing")
-}
-
-
-func (dc *DataWayCfg) DataCleanKeyEventURL() string {
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		dc.path,
-		"category=/v1/write/keyevent")
 }
 
 func (dc *DataWayCfg) Test() error {
@@ -244,29 +248,16 @@ func ParseDataway(urlstr string) (*DataWayCfg, error) {
 		dwcfg.scheme = u.Scheme
 		dwcfg.urlValues = u.Query()
 		dwcfg.host = u.Host
-		u.Path = "" // clear any path
+		if u.Path == "/proxy" {
+			l.Debugf("datakit proxied by %s", u.Host)
+			dwcfg.Proxy = true
+		} else {
+			u.Path = ""
+		}
+
 		dwcfg.URL = u.String()
 	} else {
 		l.Errorf("parse url %s failed: %s", urlstr, err.Error())
-		return nil, err
-	}
-
-	return dwcfg, nil
-}
-
-func ParseDatawayDataClean(urlstr string) (*DataWayCfg, error) {
-	dwcfg := &DataWayCfg{
-		Timeout: "30s",
-	}
-
-	if u, err := url.Parse(urlstr); err == nil {
-		dwcfg.scheme = u.Scheme
-		dwcfg.urlValues = u.Query()
-		dwcfg.host = u.Host
-		dwcfg.path = u.Path
-		dwcfg.DataCleanURL = u.String()
-	} else {
-		l.Errorf("parse dataclean url %s failed: %s", urlstr, err.Error())
 		return nil, err
 	}
 
@@ -296,6 +287,7 @@ type MainConfig struct {
 	GlobalTags           map[string]string `toml:"global_tags"`
 	RoundInterval        bool
 	StrictMode           bool   `toml:"strict_mode,omitempty"`
+	EnablePProf          bool   `toml:"enable_pprof,omitempty"`
 	Interval             string `toml:"interval"`
 	flushInterval        Duration
 	OutputFile           string       `toml:"output_file"`
@@ -361,21 +353,14 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		c.setHostname()
 	}
 
-	if c.MainCfg.DataWay.URL == "" && c.MainCfg.DataWay.DataCleanURL == "" {
-		l.Fatal("dataway url or dataclean url not set")
+	if c.MainCfg.DataWay.URL == "" {
+		l.Fatal("dataway URL not set")
 	}
 
 	var dw *DataWayCfg
-	if c.MainCfg.DataWay.DataCleanURL != "" {
-		dw, err = ParseDatawayDataClean(c.MainCfg.DataWay.DataCleanURL)
-		if err != nil {
-			return err
-		}
-	} else {
-		dw, err = ParseDataway(c.MainCfg.DataWay.URL)
-		if err != nil {
-			return err
-		}
+	dw, err = ParseDataway(c.MainCfg.DataWay.URL)
+	if err != nil {
+		return err
 	}
 	c.MainCfg.DataWay = dw
 
