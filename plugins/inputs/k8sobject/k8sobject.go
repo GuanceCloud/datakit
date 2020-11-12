@@ -153,9 +153,9 @@ type K8sContent struct {
 }
 
 type K8sObj struct {
-	Name  string                `json:"__name"`
-	Class string                `json:"__class"`
-	Content K8sContent              `json:"__content"`
+	Name    string         `json:"__name"`
+	Class   string         `json:"__class"`
+	Content string         `json:"__content"`
 }
 
 const (
@@ -292,10 +292,13 @@ func (k *K8sObject) gatherSummary(baseURL string) ([]byte, error) {
 			c := K8sObj{}
 			c.Name    = container.Name
 			c.Class   = "k8sobject"
-			c.Content = K8sContent{
+			kc := K8sContent{
 				&pod.PodRef,
 				&container,
 			}
+
+			kcJson, _ := json.Marshal(kc)
+			c.Content = string(kcJson)
 			containers = append(containers, c)
 		}
 	}
