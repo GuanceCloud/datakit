@@ -172,6 +172,14 @@ func (dc *DataWayCfg) LoggingURL() string {
 		dc.urlValues.Encode())
 }
 
+func (dc *DataWayCfg) TracingURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		"/v1/write/tracing",
+		dc.urlValues.Encode())
+}
+
 func (dc *DataWayCfg) KeyEventURL() string {
 
 	if dc.Proxy {
