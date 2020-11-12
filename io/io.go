@@ -221,7 +221,7 @@ func startIO() {
 		KeyEvent: datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
 		Object:   datakit.Cfg.MainCfg.DataWay.ObjectURL(),
 		Logging:  datakit.Cfg.MainCfg.DataWay.LoggingURL(),
-		Tracing:  datakit.Cfg.MainCfg.DataWay.DataCleanTracingURL(),
+		Tracing:  datakit.Cfg.MainCfg.DataWay.TracingURL(),
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
