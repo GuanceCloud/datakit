@@ -89,7 +89,6 @@ func parseZipkinJsonV1(octets []byte) error {
 		}
 		tAdpter.Content = string(js)
 
-		tAdpter.Class = "tracing"
 		tAdpter.OperationName = zs.Name
 		tAdpter.ParentID = zs.ParentID
 		tAdpter.TraceID = zs.TraceID
@@ -250,7 +249,6 @@ func parseZipkinThriftV1(octets []byte) error {
 		}
 		tAdpter.Content = string(js)
 
-		tAdpter.Class = "tracing"
 		tAdpter.OperationName = zs.Name
 		if zs.ParentID != nil {
 			tAdpter.ParentID = fmt.Sprintf("%d", uint64(*zs.ParentID))
