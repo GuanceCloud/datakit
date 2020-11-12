@@ -1,4 +1,4 @@
-# Linux Sysctl FS Input Plugin
+# Linux Sysctl FS Input
 
 The linux_sysctl_fs input provides Linux system level file metrics. The documentation on these fields can be found at https://www.kernel.org/doc/Documentation/sysctl/fs.txt.
 
