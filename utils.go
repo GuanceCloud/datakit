@@ -262,7 +262,7 @@ func TomlMarshal(v interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func Struct2JsonOfOneDepth(obj interface{}) (result map[string]interface{}, err error) {
+func Struct2JsonOfOneDepth(obj interface{}) (result string, err error) {
 
 	val := reflect.ValueOf(obj)
 
@@ -325,7 +325,13 @@ func Struct2JsonOfOneDepth(obj interface{}) (result map[string]interface{}, err 
 		return
 	}
 
-	result = content
+	var jsondata []byte
+	if jsondata, err = json.Marshal(content); err != nil {
+		return
+	} else {
+		result = string(jsondata)
+	}
+
 	return
 }
 
