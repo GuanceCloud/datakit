@@ -292,25 +292,14 @@ func (k *K8sObject) gatherSummary(baseURL string) ([]byte, error) {
 			c := K8sObj{}
 			c.Name = container.Name
 			c.Class = "k8sobject"
-
-			content := K8sContent{}
-
-			data, err := json.Marshal(&pod.PodRef)
-			if err != nil {
-				continue
+			kc := K8sContent{
+				&pod.PodRef,
+				&container,
 			}
-			content.PodRef = string(data)
 
-			data, err = json.Marshal(&container)
-			if err != nil {
-				continue
-			}
-			content.Container = string(data)
-
-			if data, err = json.Marshal(&content); err == nil {
-				c.Content = string(data)
-				containers = append(containers, c)
-			}
+			kcJson, _ := json.Marshal(kc)
+			c.Content = string(kcJson)
+			containers = append(containers, c)
 		}
 	}
 	return json.Marshal(containers)
