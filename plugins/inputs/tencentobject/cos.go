@@ -100,11 +100,17 @@ func (c *Cos) handleResponse(resp *cos.ServiceGetResult, ag *objectAgent) {
 			"CreationDate":     bucket.CreationDate,
 		}
 
+		jd, err := json.Marshal(content)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+			continue
+		}
+
 		name := bucket.Name
 		obj := map[string]interface{}{
 			"__name":    fmt.Sprintf(`OSS_%s`, name), // 目前displayName与ID一样
 			"__class":   "tencent_cos",
-			"__content": content,
+			"__content": string(jd),
 		}
 
 		objs = append(objs, obj)
