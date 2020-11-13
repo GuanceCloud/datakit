@@ -115,51 +115,14 @@ func (e *Cdn) handleResponse(resp *cdn.DescribeUserDomainsResponse, ag *objectAg
 	var objs []map[string]interface{}
 
 	for _, inst := range resp.Domains.PageData {
-		if len(e.ExcludeDomainNames) > 0 {
-			exclude := false
-			for _, v := range e.ExcludeDomainNames {
-				if v == inst.DomainName {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
+
+		if obj, err := datakit.CloudObject2Json(inst.DomainName, `aliyun_cdn`, inst, inst.DomainName, e.ExcludeDomainNames, e.DomainNames); obj != nil {
+			objs = append(objs, obj)
+		} else {
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
 			}
 		}
-
-		tags := map[string]interface{}{
-			"__class":         "aliyun_cdn",
-			"provider":      "aliyun",
-			"ResourceGroupId": inst.ResourceGroupId,
-			"Cname":           inst.Cname,
-			"CdnType":         inst.CdnType,
-			"DomainStatus":    inst.DomainStatus,
-			"SslProtocol":     inst.SslProtocol,
-		}
-
-		obj := map[string]interface{}{
-			"__name":      inst.DomainName,
-			"GmtCreated":  inst.GmtCreated,
-			"GmtModified": inst.GmtModified,
-			"Description": inst.Description,
-			"Sandbox":     inst.Sandbox,
-			"Sources":     inst.Sources,
-		}
-
-		for k, v := range e.Tags {
-			tags[k] = v
-		}
-
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj["__tags"] = tags
-
-		objs = append(objs, obj)
 	}
 
 	if len(objs) <= 0 {
@@ -167,9 +130,9 @@ func (e *Cdn) handleResponse(resp *cdn.DescribeUserDomainsResponse, ag *objectAg
 	}
 
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
+	if err != nil {
 		moduleLogger.Errorf("%s", err)
+		return
 	}
+	io.NamedFeed(data, io.Object, inputName)
 }
