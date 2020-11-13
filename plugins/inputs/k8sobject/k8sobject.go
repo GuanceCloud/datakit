@@ -149,8 +149,8 @@ type Metadata struct {
 }
 
 type K8sContent struct {
-	PodRef    string `json:"podRef"`
-	Container string `json:"container"`
+	PodRef    *PodReference     `json:"podRef"`
+	Container *ContainerMetrics `json:"container"`
 }
 
 type K8sObj struct {
