@@ -1,4 +1,4 @@
-# x509 Certificate Input Plugin
+# X509 Cert Input Plugin
 
 This plugin provides information about X509 certificate accessible via local
 file or network connection.
