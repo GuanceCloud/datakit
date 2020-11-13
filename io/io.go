@@ -34,6 +34,7 @@ var (
 		KeyEvent:         nil,
 		Object:           nil,
 		Logging:          nil,
+		Tracing:          nil,
 	}
 	cacheCnt       = map[string]int{}
 	cacheUploadMax = 100 * 1024 // 100KiB
@@ -50,6 +51,7 @@ const ( // categories
 	KeyEvent         = "/v1/write/keyevent"
 	Object           = "/v1/write/object"
 	Logging          = "/v1/write/logging"
+	Tracing          = "/v1/write/tracing"
 
 	minGZSize = 1024
 
@@ -99,7 +101,7 @@ func doFeed(data []byte, category, name string) error {
 	}
 
 	switch category {
-	case Metric, KeyEvent, Logging:
+	case Metric, KeyEvent, Logging, Tracing:
 		// metric line check
 		if err := checkMetric(data); err != nil {
 			return fmt.Errorf("invalid line protocol data %v", err)
@@ -214,23 +216,12 @@ func ioStop() {
 }
 
 func startIO() {
-	l.Debugf("dataclean url: %s", datakit.Cfg.MainCfg.DataWay.DataCleanURL)
-
-	if datakit.Cfg.MainCfg.DataWay.DataCleanURL != "" {
-		categoryURLs = map[string]string{
-			Metric:   datakit.Cfg.MainCfg.DataWay.DataCleanMetricURL(),
-			KeyEvent: datakit.Cfg.MainCfg.DataWay.DataCleanKeyEventURL(),
-			Object:   datakit.Cfg.MainCfg.DataWay.DataCleanObjectURL(),
-			Logging:  datakit.Cfg.MainCfg.DataWay.DataCleanLoggingURL(),
-		}
-	} else {
-		categoryURLs = map[string]string{
-			MetricDeprecated: datakit.Cfg.MainCfg.DataWay.DeprecatedMetricURL(),
-			Metric:           datakit.Cfg.MainCfg.DataWay.MetricURL(),
-			KeyEvent:         datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
-			Object:           datakit.Cfg.MainCfg.DataWay.ObjectURL(),
-			Logging:          datakit.Cfg.MainCfg.DataWay.LoggingURL(),
-		}
+	categoryURLs = map[string]string{
+		Metric:   datakit.Cfg.MainCfg.DataWay.MetricURL(),
+		KeyEvent: datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
+		Object:   datakit.Cfg.MainCfg.DataWay.ObjectURL(),
+		Logging:  datakit.Cfg.MainCfg.DataWay.LoggingURL(),
+		Tracing:  datakit.Cfg.MainCfg.DataWay.TracingURL(),
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
@@ -301,20 +292,19 @@ func startIO() {
 						stat.Category = d.category
 					}
 
-					// not cache
-					if datakit.Cfg.MainCfg.DataWay.DataCleanURL != "" {
+					// disable cache under proxied mode, to prevent large packages in proxing lua module
+					if datakit.Cfg.MainCfg.DataWay.Proxy {
 						if err := doFlush([][]byte{d.data}, d.category); err != nil {
 							l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
 						}
-						continue
-					}
+					} else {
+						cache[d.category] = append(cache[d.category], d.data)
+						cacheCnt[d.category] += len(d.data)
 
-					cache[d.category] = append(cache[d.category], d.data)
-					cacheCnt[d.category] += len(d.data)
-
-					for _, cnt := range cacheCnt {
-						if cnt >= cacheUploadMax {
-							flush(cache)
+						for _, cnt := range cacheCnt {
+							if cnt >= cacheUploadMax {
+								flush(cache)
+							}
 						}
 					}
 				}
@@ -389,6 +379,12 @@ func flush(cache map[string][][]byte) {
 	}
 	cache[Logging] = nil
 	cacheCnt[Logging] = 0
+
+	if err := doFlush(cache[Tracing], Tracing); err != nil {
+		l.Errorf("post tracing failed, drop %d packages", len(cache[Tracing]))
+	}
+	cache[Tracing] = nil
+	cacheCnt[Tracing] = 0
 }
 
 func buildObjBody(bodies [][]byte) ([]byte, error) {
