@@ -108,7 +108,9 @@ func (c *Collector) Run() {
 			content[k] = v
 		}
 
-		obj[`__content`] = content
+		data, err := json.Marshal(content)
+
+		obj[`__content`] = string(data)
 
 		switch c.Name {
 		case "__mac":
@@ -127,7 +129,7 @@ func (c *Collector) Run() {
 
 		objs = append(objs, obj)
 
-		data, err := json.Marshal(&objs)
+		data, err = json.Marshal(&objs)
 		if err == nil {
 			io.NamedFeed(data, io.Object, inputName)
 		} else {
