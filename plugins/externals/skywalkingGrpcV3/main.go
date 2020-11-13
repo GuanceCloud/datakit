@@ -105,7 +105,6 @@ func skywalkGrpcToLineProto(sg *lang.SegmentObject) error {
 			return err
 		}
 		t.Content = string(js)
-		t.Class = "tracing"
 		t.ServiceName = sg.Service
 		t.OperationName = span.OperationName
 		if span.SpanType == lang.SpanType_Entry {
