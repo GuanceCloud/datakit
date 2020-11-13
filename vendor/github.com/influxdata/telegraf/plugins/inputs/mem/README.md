@@ -1,4 +1,4 @@
-# Memory Input Plugin
+# Mem Input Plugin
 
 The mem plugin collects system memory metrics.
 
