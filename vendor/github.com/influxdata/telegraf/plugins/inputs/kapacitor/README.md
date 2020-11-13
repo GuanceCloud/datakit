@@ -1,4 +1,4 @@
-# Kapacitor Input Plugin
+# Kapacitor Plugin
 
 The Kapacitor plugin collects metrics from the given Kapacitor instances.
 
