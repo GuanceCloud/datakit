@@ -55,6 +55,7 @@ require (
 	github.com/lib/pq v1.4.0
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/mattn/go-zglob v0.0.3
+	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/naoina/toml v0.1.1
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
@@ -66,7 +67,7 @@ require (
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
 	github.com/pkg/sftp v1.11.0
-	github.com/prometheus/common v0.14.0
+	github.com/prometheus/common v0.15.0
 	github.com/prometheus/procfs v0.1.3
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/robfig/cron v1.2.0
@@ -87,7 +88,7 @@ require (
 	github.com/xanzy/go-gitlab v0.31.0
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200924074212-8d61bb78afeb
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201026093235-129803a51d1b
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201116053945-59fb6f805f68
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344
 	golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d
