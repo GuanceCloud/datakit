@@ -43,9 +43,9 @@ func loadTelegrafInputsConfigs(c *datakit.Config, inputcfgs map[string]*ast.Tabl
 						l.Debugf("check if telegraf input name(%s)?", inputName)
 
 						if _, ok := tgi.TelegrafInputs[inputName]; ok {
-							fp = datakit.FileRename(inputName,fp)
 							l.Infof("find telegraf input %s, config: %s", inputName, fp)
 							telegrafCfgFiles[fp] = nil
+
 						}
 					}
 				}
@@ -286,3 +286,4 @@ func BuildInputCfg(d []byte, mc *datakit.MainConfig) (string, error) {
 
 	return buf.String(), nil
 }
+
