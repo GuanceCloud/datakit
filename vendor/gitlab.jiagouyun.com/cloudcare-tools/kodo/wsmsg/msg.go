@@ -3,7 +3,6 @@ package wsmsg
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net"
 	"time"
 
@@ -43,7 +42,7 @@ type WrapMsg struct {
 	Dest    []string `json:"dest,omitempty"`
 	B64Data string   `json:"b64data,omitempty"`
 
-	Code string
+	Code string      `json:"code"`
 	Raw  []byte
 }
 
@@ -103,8 +102,7 @@ func (wm *WrapMsg) Handle() error {
 		return err
 	}
 
-	l.Infof("handle msg %+#v", wm)
-
+	//l.Infof("handle msg %+#v", wm)
 	switch wm.Type {
 	case MTypeHeartbeat:
 		var m MsgDatakitHeartbeat
@@ -116,13 +114,9 @@ func (wm *WrapMsg) Handle() error {
 		wm.SetRedis()
 		SetDatakitOnline(wm)
 		return nil
-	case MTypeGetInput,MTypeDisableInput,MTypeGetEnableInput,MTypeSetInput,MTypeUpdateEnableInput,MTypeReload,MTypeTestInput:
+	default:
 		wm.SetRedis()
 		return nil
-
-
-	default:
-		return fmt.Errorf("unknown msg type: %s", wm.Type)
 	}
 }
 
@@ -155,16 +149,14 @@ func SetDatakitOnline(wm *WrapMsg){
 
 
 func (wm *WrapMsg)SetRedis(){
-	dkId := wm.Dest[0]
-	token := Onlinedks[dkId].Token
+	//dkId := wm.Dest[0]
+	//token := Onlinedks[dkId].Token
 	b,err := json.Marshal(&wm)
 	if err != nil{
 		l.Errorf("set redis parse wm err:%s",err)
 	}
-	config.RedisCli.Set(fmt.Sprintf("%s-%s-%s",token,dkId,wm.ID),b,time.Second*30)
-	l.Info("set redis ok")
+	config.Redis.Publish(wm.Type,b)
 }
-
 
 
 func BuildMsg(m interface{}, dest ...string) (*WrapMsg, error) {
@@ -188,9 +180,6 @@ func BuildMsg(m interface{}, dest ...string) (*WrapMsg, error) {
 	return wm, nil
 }
 
-//
-// These msg will wrapped within ws.Msg as the field B64Data
-//
 
 // datakit heartbeat
 type MsgDatakitHeartbeat struct {
@@ -248,7 +237,6 @@ const (
 	MTypeHeartbeat         string = "heartbeat"
 	MTypeGetInput          string = "get_input_config"
 	MTypeGetEnableInput    string = "get_enabled_input_config"
-	MTypeUpdateEnableInput string = "update_enabled_input_config"
 	MTypeSetInput          string = "set_input_config"
 	MTypeDisableInput      string = "disable_input_config"
 	MTypeReload            string = "reload"
