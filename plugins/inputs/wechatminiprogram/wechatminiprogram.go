@@ -84,25 +84,32 @@ func (an *Analysis) run(wx *WxClient) {
 	}
 
 	for {
-		token, err := wx.GetAccessToken()
-		if err != nil {
-			l.Errorf("wechat get token err:%s", err)
-			continue
-		}
-		wxClient := reflect.ValueOf(wx)
-		params := []reflect.Value{
-			reflect.ValueOf(token),
-		}
-		for _, c := range wx.Analysis.Name {
-			if wxClient.MethodByName(c).IsValid() {
-				wxClient.MethodByName(c).Call(params)
-			}
-		}
 		select {
 		case <-wx.ctx.Done():
 			return
+		case <-datakit.Exit.Wait():
+			l.Info("wechat analysis exit...")
+
+			return
 		default:
+			token, err := wx.GetAccessToken()
+			if err != nil {
+				l.Errorf("wechat get token err:%s", err)
+				time.Sleep(time.Second*10)
+				continue
+			}
+			wxClient := reflect.ValueOf(wx)
+			params := []reflect.Value{
+				reflect.ValueOf(token),
+			}
+			for _, c := range wx.Analysis.Name {
+				if wxClient.MethodByName(c).IsValid() {
+					wxClient.MethodByName(c).Call(params)
+				}
+			}
 		}
+
+
 		datakit.SleepContext(wx.ctx, interval)
 	}
 }
@@ -114,31 +121,36 @@ func (op *Operation) run(wx *WxClient) {
 		l.Error(err)
 	}
 	for {
-		token, err := wx.GetAccessToken()
-		if err != nil {
-			l.Errorf("wechat get token err:%s", err)
-			continue
-		}
-		wxClient := reflect.ValueOf(wx)
 
-		for _, c := range wx.Operation.Name {
-			params := []reflect.Value{
-				reflect.ValueOf(token),
-			}
-			if c == "JsErrSearch" {
-				var pageNum, pageSize int64 = 1, 100
-				params = append(params, reflect.ValueOf(pageNum))
-				params = append(params, reflect.ValueOf(pageSize))
-			}
-			if wxClient.MethodByName(c).IsValid() {
-				l.Info(c)
-				wxClient.MethodByName(c).Call(params)
-			}
-		}
 		select {
 		case <-wx.ctx.Done():
 			return
+		case <-datakit.Exit.Wait():
+			l.Info("wechat operation exit...")
+			return
 		default:
+			token, err := wx.GetAccessToken()
+			if err != nil {
+				l.Errorf("wechat get token err:%s", err)
+				time.Sleep(time.Second*10)
+				continue
+			}
+			wxClient := reflect.ValueOf(wx)
+
+			for _, c := range wx.Operation.Name {
+				params := []reflect.Value{
+					reflect.ValueOf(token),
+				}
+				if c == "JsErrSearch" {
+					var pageNum, pageSize int64 = 1, 100
+					params = append(params, reflect.ValueOf(pageNum))
+					params = append(params, reflect.ValueOf(pageSize))
+				}
+				if wxClient.MethodByName(c).IsValid() {
+					l.Info(c)
+					wxClient.MethodByName(c).Call(params)
+				}
+			}
 		}
 		datakit.SleepContext(wx.ctx, interval)
 	}
@@ -154,11 +166,6 @@ func (wx *WxClient) Run() {
 	l = logger.SLogger("wechat")
 	l.Info("wechat input started...")
 
-	go func() {
-		<-datakit.Exit.Wait()
-		wx.cancelFun()
-	}()
-
 	if wx.Analysis != nil {
 		wx.addModule(wx.Analysis)
 
@@ -170,8 +177,19 @@ func (wx *WxClient) Run() {
 	}
 	if wx.RunTime != "" {
 		sleepTime := wx.formatRuntime()
-		time.Sleep(time.Duration(sleepTime) * time.Second)
-	}
+		tick := time.NewTicker(time.Duration(sleepTime) * time.Second)
+		for {
+			select {
+
+			case <-datakit.Exit.Wait():
+				l.Info("wechat  exit...")
+				return
+			case <- tick.C:
+				break
+			}
+
+		}
+		}
 
 	for _, s := range wx.subModules {
 		wx.wg.Add(1)
@@ -182,6 +200,7 @@ func (wx *WxClient) Run() {
 	}
 
 	wx.wg.Wait()
+
 
 	l.Debugf("done")
 
