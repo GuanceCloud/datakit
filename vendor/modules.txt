@@ -659,7 +659,7 @@ github.com/pkg/sftp
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.14.0
+# github.com/prometheus/common v0.15.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
@@ -804,7 +804,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 # gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 gitlab.jiagouyun.com/cloudcare-tools/ftagent/lua
 gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201026093235-129803a51d1b
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201116053945-59fb6f805f68
 gitlab.jiagouyun.com/cloudcare-tools/kodo/config
 gitlab.jiagouyun.com/cloudcare-tools/kodo/models
 gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg
