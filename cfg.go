@@ -393,6 +393,21 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 	if err != nil {
 		return err
 	}
+
+	heart,err := time.ParseDuration(c.MainCfg.DataWay.Heartbeat)
+	if err != nil {
+		l.Error("ws heartbeat config err:",err.Error())
+		c.MainCfg.DataWay.Heartbeat = "30s"
+	}
+	maxHeart,_:= time.ParseDuration("5m")
+	minHeart,_:= time.ParseDuration("30s")
+	if heart > maxHeart{
+		c.MainCfg.DataWay.Heartbeat = "5m"
+	}
+	if heart < minHeart{
+		c.MainCfg.DataWay.Heartbeat = "30s"
+	}
+
 	dw.Heartbeat = c.MainCfg.DataWay.Heartbeat
 
 	c.MainCfg.DataWay = dw
