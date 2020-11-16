@@ -78,6 +78,9 @@ var (
 			`rp_2160h`: [2]string{`2160h`, `1w`},
 			`autogen`:  [2]string{`25920h`, `720h`},
 		},
+		Ws: WsConfig{
+			Path: "/v1/datakit/ws",
+		},
 	}
 
 	Redis *redis.Client
@@ -167,6 +170,7 @@ type Config struct {
 	Secret    SecretCfg            `yaml:"secret"`
 	Stat      StatCfg              `yaml:"stat"`
 	Es        EsCfg                `yaml:"es"`
+	Ws        WsConfig             `yaml:"ws_server"`
 }
 
 type EsCfg struct {
@@ -179,6 +183,12 @@ type EsCfg struct {
 type FuncCfg struct {
 	Host   string `yaml:"host"`
 	Enable bool   `yaml:"enable"`
+}
+
+type WsConfig struct {
+	Bind string      `yaml:"bind"`
+	Path string		 `yaml:"path"`
+	TimeOut string   `yaml:"time_out"`
 }
 
 func DumpConfig(cfg *Config, f string) error {
