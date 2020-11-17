@@ -2,10 +2,11 @@ package aliyunobject
 
 import (
 	"encoding/json"
+	"time"
+
 	waf "github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"time"
 )
 
 const (
@@ -65,37 +66,36 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 		return
 	}
 	var objs []map[string]interface{}
-	tags := map[string]interface{}{
-		"__class":          "aliyun_waf",
-		"provider":       "aliyun",
+
+	content := map[string]interface{}{
 		"InDebt":           resp.InstanceInfo.InDebt,
 		"InstanceId":       resp.InstanceInfo.InstanceId,
 		"PayType":          resp.InstanceInfo.PayType,
 		"Region":           resp.InstanceInfo.Region,
 		"Status":           resp.InstanceInfo.Status,
 		"SubscriptionType": resp.InstanceInfo.SubscriptionType,
+		"EndDate":          resp.InstanceInfo.EndDate,
+		"RemainDay":        resp.InstanceInfo.RemainDay,
+		"Trial":            resp.InstanceInfo.Trial,
+	}
+
+	jd, err := json.Marshal(content)
+	if err != nil {
+		moduleLogger.Errorf("%s", err)
+		return
 	}
 
 	obj := map[string]interface{}{
 		"__name":    resp.InstanceInfo.InstanceId,
-		"EndDate":   resp.InstanceInfo.EndDate,
-		"RemainDay": resp.InstanceInfo.RemainDay,
-		"Trial":     resp.InstanceInfo.Trial,
+		"__class":   "aliyun_waf",
+		"__content": string(jd),
 	}
-	for k, v := range e.Tags {
-		tags[k] = v
-	}
-	for k, v := range ag.Tags {
-		if _, have := tags[k]; !have {
-			tags[k] = v
-		}
-	}
-	obj["__tags"] = tags
+
 	objs = append(objs, obj)
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
+	if err != nil {
 		moduleLogger.Errorf("%s", err)
+		return
 	}
+	io.NamedFeed(data, io.Object, inputName)
 }
