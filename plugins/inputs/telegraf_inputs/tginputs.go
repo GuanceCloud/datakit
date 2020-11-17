@@ -56,6 +56,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/procstat"
 	"github.com/influxdata/telegraf/plugins/inputs/rabbitmq"
 	"github.com/influxdata/telegraf/plugins/inputs/redis"
+	"github.com/influxdata/telegraf/plugins/inputs/smart"
 	"github.com/influxdata/telegraf/plugins/inputs/snmp"
 	"github.com/influxdata/telegraf/plugins/inputs/socket_listener"
 	"github.com/influxdata/telegraf/plugins/inputs/solr"
@@ -110,16 +111,13 @@ func (ti *TelegrafInput) SampleConfig() string {
 
 var (
 	TelegrafInputs = map[string]*TelegrafInput{ // Name: Catalog
-
-			"disk":     {name: "disk", Catalog: "host", Input: &disk.DiskStats{}},
+		"disk":     {name: "disk", Catalog: "host", Input: &disk.DiskStats{}},
 		"diskio":   {name: "diskio", Catalog: "host", Input: &diskio.DiskIO{}},
 		"mem":      {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
 		"swap":     {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
 		"system":   {name: "system", Catalog: "host", Input: &system.SystemStats{}},
 		"cpu":      {name: "cpu", Catalog: "host", Input: &cpu.CPUStats{}},
 		"procstat": {name: "procstat", Catalog: "host", Input: &procstat.Procstat{}},
-
-		"internal": {name: "internal", Catalog: "internal", Sample: samples["internal"], Input: nil}, // import internal package not allowed
 
 		"ping":            {name: "ping", Catalog: "network", Input: &ping.Ping{}},
 		"net":             {name: "net", Catalog: "network", Input: &net.NetIOStats{}},
@@ -129,6 +127,12 @@ var (
 		"http_response":   {name: "http_response", Catalog: "network", Input: &http_response.HTTPResponse{}},
 		"httpjson":        {name: "httpjson", Catalog: "network", Input: &httpjson.HttpJson{}},
 		"socket_listener": {name: "socket_listener", Catalog: "network", Input: &socket_listener.SocketListener{}},
+
+		"smart":    {name: "smart", Catalog: "host", Input: &smart.Smart{}},
+
+		"internal": {name: "internal", Catalog: "internal", Sample: samples["internal"], Input: nil}, // import internal package not allowed
+
+
 
 		// collectd use socket_listener to gather data
 		"collectd": {name: "socket_listener", Catalog: "collectd", Input: &socket_listener.SocketListener{}},
@@ -233,15 +237,3 @@ func CheckTelegrafToml(name string, tomlcfg []byte) error {
 	return nil
 }
 
-
-
-//func GetTelegrafInput(name string)(input telegraf.Input){
-//	switch name {
-//	case "disk":
-//		return &disk.DiskStats{}
-//
-//
-//
-//
-//	}
-//}

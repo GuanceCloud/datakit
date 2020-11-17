@@ -232,10 +232,13 @@ func (d *DockerContainers) gatherContainer(container types.Container) error {
 		return err
 	}
 
-	var obj = ContainerObject{}
+	var obj = ContainerObject{
+		Name:  containerName(container.Names),
+		Class: "docker_containers",
+	}
 	obj.Name = containerName(container.Names)
-	obj.Tags = Tags{
-		Class:           "docker_containers",
+
+	content := ObjectContent{
 		ContainerName:   obj.Name,
 		ContainerID:     container.ID,
 		ContainerImage:  container.Image,
@@ -243,12 +246,19 @@ func (d *DockerContainers) gatherContainer(container types.Container) error {
 		Host:            d.host,
 		PID:             strconv.Itoa(containerJSON.State.Pid),
 	}
-	obj.Carated = containerTime(containerJSON.Created)
-	obj.Started = containerTime(containerJSON.State.StartedAt)
-	obj.Finished = containerTime(containerJSON.State.FinishedAt)
-	obj.Path = containerJSON.Path
+	content.Carated = containerTime(containerJSON.Created)
+	content.Started = containerTime(containerJSON.State.StartedAt)
+	content.Finished = containerTime(containerJSON.State.FinishedAt)
+	content.Path = containerJSON.Path
 	inspect, _ := json.Marshal(containerJSON)
-	obj.Inspect = string(inspect)
+	content.Inspect = string(inspect)
+
+	jd, err := json.Marshal(content)
+	if err != nil {
+		return err
+
+	}
+	obj.Content = string(jd)
 
 	d.objects = append(d.objects, &obj)
 	return nil
