@@ -23,10 +23,10 @@ type=""
 ## 地区和终端节点 https://developer.huaweicloud.com/endpoint?ELB
 endpoint=""
 
-# ## @param - custom tags - [list of Elb instanceid] - optional
+# ## @param - [list of Elb instanceid] - optional
 #instanceids = []
 
-# ## @param - custom tags - [list of excluded Elb instanceid] - optional
+# ## @param - [list of excluded Elb instanceid] - optional
 #exclude_instanceids = []
 
 # ## @param - custom tags for Elb object - [list of key:value element] - optional
@@ -146,72 +146,14 @@ func (e *Elb) handResponseV1(resp *elb.ListLoadbalancersV1, ag *objectAgent) {
 	var objs []map[string]interface{}
 
 	for _, lb := range resp.Loadbalancers {
-		if len(e.ExcludeInstanceIDs) > 0 {
-			exclude := false
-			for _, v := range e.ExcludeInstanceIDs {
-				if v == lb.ID {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
+
+		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, lb.Name, lb.ID), `huaweiyun_elb`, lb, lb.ID, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
+			objs = append(objs, obj)
+		} else {
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
 			}
 		}
-
-		if len(e.InstancesIDs) > 0 {
-			include := false
-			for _, v := range e.InstancesIDs {
-				if v == lb.ID {
-					include = true
-					break
-				}
-			}
-
-			if !include {
-				continue
-			}
-		}
-
-		obj := map[string]interface{}{
-			`__name`: fmt.Sprintf(`%s(%s)`, lb.Name, lb.ID),
-		}
-
-		obj[`admin_state_up`] = lb.AdminStateUp
-		obj[`bandwidth`] = lb.Bandwidth
-		obj[`creation_time`] = lb.CreateTime
-		obj[`description`] = lb.Description
-		obj[`id`] = lb.ID
-
-		obj[`name`] = lb.Name
-		obj[`update_time`] = lb.UpdateTime
-		obj[`vip_address`] = lb.VipAddress
-		obj[`vip_subnet_id`] = lb.VipSubnetID
-
-		tags := map[string]interface{}{
-			`__class`:           `huaweiyun_elb`,
-			`provider`:          `huaweiyun`,
-			`status`:            lb.Status,
-			`type`:              lb.Type,
-			`vpc_id`:            lb.VpcID,
-			`security_group_id`: lb.SecurityGroupID,
-		}
-
-		//add ecs object custom tags
-		for k, v := range e.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj["__tags"] = tags
-
-		objs = append(objs, obj)
 	}
 
 	if len(objs) <= 0 {
@@ -231,86 +173,14 @@ func (e *Elb) handResponseV2(lbs []elb.LoadbalancerV2, ag *objectAgent) {
 	var objs []map[string]interface{}
 
 	for _, lb := range lbs {
-		if len(e.ExcludeInstanceIDs) > 0 {
-			exclude := false
-			for _, v := range e.ExcludeInstanceIDs {
-				if v == lb.ID {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
+
+		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, lb.Name, lb.ID), `huaweiyun_elb`, lb, lb.ID, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
+			objs = append(objs, obj)
+		} else {
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
 			}
 		}
-
-		if len(e.InstancesIDs) > 0 {
-			include := false
-			for _, v := range e.InstancesIDs {
-				if v == lb.ID {
-					include = true
-					break
-				}
-			}
-
-			if !include {
-				continue
-			}
-		}
-
-		listeners, err := json.Marshal(lb.Listeners)
-		if err != nil {
-			moduleLogger.Errorf(`%s, ignore`, err.Error())
-			return
-		}
-
-		pools, err := json.Marshal(lb.Pools)
-		if err != nil {
-			moduleLogger.Errorf(`%s, ignore`, err.Error())
-			return
-		}
-
-		obj := map[string]interface{}{
-			`__name`:                fmt.Sprintf(`%s(%s)`, lb.Name, lb.ID),
-			`provisioning_status`:   lb.ProvisioningStatus,
-			`tenant_id`:             lb.TenantID,
-			`updated_at`:            lb.UpdatedAt,
-			`vip_port_id`:           lb.VipPortID,
-			`admin_state_up`:        lb.AdminStateUp,
-			`create_at`:             lb.CreatedAt,
-			`enterprise_project_id`: lb.EnterpriseProjectID,
-			`description`:           lb.Description,
-			`id`:                    lb.ID,
-			`name`:                  lb.Name,
-			`listeners`:             listeners,
-			`operating_status`:      lb.OperatingStatus,
-			`pools`:                 pools,
-			`vip_address`:           lb.VipAddress,
-			`vip_subnet_id`:         lb.VipSubnetID,
-		}
-
-		tags := map[string]interface{}{
-			`__class`:    `huaweiyun_elb`,
-			`__provider`: `huaweiyun`,
-			`project_id`: lb.ProjectID,
-			`provider`:   lb.Provider,
-		}
-
-		//add ecs object custom tags
-		for k, v := range e.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj["__tags"] = tags
-
-		objs = append(objs, obj)
 	}
 
 	if len(objs) <= 0 {
@@ -318,10 +188,9 @@ func (e *Elb) handResponseV2(lbs []elb.LoadbalancerV2, ag *objectAgent) {
 	}
 
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
+	if err != nil {
 		moduleLogger.Errorf("%s", err)
+		return
 	}
-
+	io.NamedFeed(data, io.Object, inputName)
 }
