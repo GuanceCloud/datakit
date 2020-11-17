@@ -131,8 +131,10 @@ type (
 
 		mode string
 
+
 		testResult *inputs.TestResult
 		testError  error
+
 	}
 
 	MetricMeta struct {
