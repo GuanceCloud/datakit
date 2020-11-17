@@ -16,15 +16,11 @@ const (
 	ecsSampleConfig = `
 #[inputs.aliyunobject.ecs]
 
-# ## @param - custom tags - [list of ecs instanceid] - optional
+# ## @param - [list of ecs instanceid] - optional
 #instanceids = ['']
 
-# ## @param - custom tags - [list of excluded ecs instanceid] - optional
+# ## @param - [list of excluded ecs instanceid] - optional
 #exclude_instanceids = ['']
-
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.ecs.tags]
-# key1 = 'val1'
 `
 )
 
@@ -116,102 +112,17 @@ func (e *Ecs) run(ag *objectAgent) {
 
 func (e *Ecs) handleResponse(resp *ecs.DescribeInstancesResponse, ag *objectAgent) {
 
-	moduleLogger.Debugf("ECS TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
-
 	var objs []map[string]interface{}
 
 	for _, inst := range resp.Instances.Instance {
 
-		if len(e.ExcludeInstanceIDs) > 0 {
-			exclude := false
-			for _, v := range e.ExcludeInstanceIDs {
-				if v == inst.InstanceId {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
+		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, inst.InstanceName, inst.InstanceId), `aliyun_ecs`, inst, inst.InstanceId, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
+			objs = append(objs, obj)
+		} else {
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
 			}
 		}
-
-		obj := map[string]interface{}{
-			`__name`: fmt.Sprintf(`%s(%s)`, inst.InstanceName, inst.InstanceId),
-		}
-
-		obj[`Cpu`] = inst.Cpu
-		obj[`Memory`] = inst.Memory
-		obj[`CreationTime`] = inst.CreationTime
-		obj[`DeletionProtection`] = inst.DeletionProtection
-		obj[`ExpiredTime`] = inst.ExpiredTime
-		obj[`GPUAmount`] = inst.GPUAmount
-		obj[`GPUSpec`] = inst.GPUSpec
-		obj[`ImageId`] = inst.ImageId
-		obj[`IoOptimized`] = inst.IoOptimized
-		obj[`SaleCycle`] = inst.SaleCycle
-		obj[`StoppedMode`] = inst.StoppedMode
-		obj[`VlanId`] = inst.VlanId
-
-		tags := map[string]interface{}{
-			`__class`:                 `aliyun_ecs`,
-			`provider`:                `aliyun`,
-			`ClusterId`:               inst.ClusterId,
-			`DeploymentSetId`:         inst.DeploymentSetId,
-			`EipAddress.AllocationId`: inst.EipAddress.AllocationId,
-			`host`:                    inst.HostName,
-			`HpcClusterId`:            inst.HpcClusterId,
-			`InstanceChargeType`:      inst.InstanceChargeType,
-			`InstanceId`:              inst.InstanceId,
-			`InstanceName`:            inst.InstanceName,
-			`InstanceType`:            inst.InstanceType,
-			`OSName`:                  inst.OSName,
-			`OSNameEn`:                inst.OSNameEn,
-			`OSType`:                  inst.OSType,
-			`RegionId`:                inst.RegionId,
-			`ResourceGroupId`:         inst.ResourceGroupId,
-			`Status`:                  inst.Status,
-			`ZoneId`:                  inst.ZoneId,
-			`NatIpAddress`:            inst.VpcAttributes.NatIpAddress,
-			`VSwitchId`:               inst.VpcAttributes.VSwitchId,
-			`VpcId`:                   inst.VpcAttributes.VpcId,
-		}
-
-		for i, ipaddr := range inst.InnerIpAddress.IpAddress {
-			tags[fmt.Sprintf(`InnerIpAddress[%d]`, i)] = ipaddr
-		}
-
-		for i, ipaddr := range inst.PublicIpAddress.IpAddress {
-			tags[fmt.Sprintf(`PublicIpAddress[%d]`, i)] = ipaddr
-		}
-
-		for i, ipaddr := range inst.VpcAttributes.PrivateIpAddress.IpAddress {
-			tags[fmt.Sprintf(`PrivateIpAddress[%d]`, i)] = ipaddr
-		}
-
-		//tags on ecs instance
-		for _, t := range inst.Tags.Tag {
-			if _, have := tags[t.TagKey]; !have {
-				tags[t.TagKey] = t.TagValue
-			} else {
-				tags[`custom_`+t.TagKey] = t.TagValue
-			}
-		}
-
-		//add ecs object custom tags
-		for k, v := range e.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj["__tags"] = tags
-
-		objs = append(objs, obj)
 	}
 
 	if len(objs) <= 0 {
@@ -226,6 +137,16 @@ func (e *Ecs) handleResponse(resp *ecs.DescribeInstancesResponse, ag *objectAgen
 			io.NamedFeed(data, io.Object, inputName)
 		}
 	} else {
-		moduleLogger.Errorf("%s", err)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+			return
+		}
+
+		if ag.mode == "debug" {
+			fmt.Printf("%s", string(data))
+		} else {
+			io.NamedFeed(data, io.Object, inputName)
+		}
 	}
+
 }
