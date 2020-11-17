@@ -17,10 +17,10 @@ const (
 	influxDBSampleConfig = `
 #[inputs.aliyunobject.influxdb]
 
-# ## @param - custom tags - [list of influxdb instanceid] - optional
+# ## @param - [list of influxdb instanceid] - optional
 #instanceids = []
 
-# ## @param - custom tags - [list of excluded influxdb instanceid] - optional
+# ## @param - [list of excluded influxdb instanceid] - optional
 #exclude_instanceids = []
 
 # ## @param - custom tags for ecs object - [list of key:value element] - optional
@@ -129,46 +129,44 @@ func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
 			}
 		}
 
-		obj := map[string]interface{}{
-			`__name`:          inst.Get("InstanceAlias").String(),
+		content := map[string]interface{}{
 			`GmtCreated`:      inst.Get("GmtCreated").String(),
 			`GmtExpire`:       inst.Get("GmtExpire").String(),
 			`InstanceStorage`: inst.Get("InstanceStorage").String(),
 			`UserId`:          inst.Get("UserId").String(),
+			`InstanceId`:      inst.Get("InstanceId").String(),
+			`ZoneId`:          inst.Get("ZoneId").String(),
+			`ChargeType`:      inst.Get("ChargeType").String(),
+			`InstanceStatus`:  inst.Get("InstanceStatus").String(),
+			`NetworkType`:     inst.Get("NetworkType").String(),
+			`RegionId`:        inst.Get("RegionId").String(),
+			`EngineType`:      inst.Get("EngineType").String(),
+			`InstanceClass`:   inst.Get("InstanceClass").String(),
 		}
 
-		tags := map[string]interface{}{
-			`__class`:        `aliyun_influxdb`,
-			`provider`:       `aliyun`,
-			`InstanceId`:     inst.Get("InstanceId").String(),
-			`ZoneId`:         inst.Get("ZoneId").String(),
-			`ChargeType`:     inst.Get("ChargeType").String(),
-			`InstanceStatus`: inst.Get("InstanceStatus").String(),
-			`NetworkType`:    inst.Get("NetworkType").String(),
-			`RegionId`:       inst.Get("RegionId").String(),
-			`EngineType`:     inst.Get("EngineType").String(),
-			`InstanceClass`:  inst.Get("InstanceClass").String(),
+		jd, err := json.Marshal(content)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+			continue
 		}
 
-		for k, v := range e.Tags {
-			tags[k] = v
+		obj := map[string]interface{}{
+			`__name`:    inst.Get("InstanceAlias").String(),
+			`__class`:   `aliyun_influxdb`,
+			`__content`: string(jd),
 		}
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-		obj["__tags"] = tags
 
 		objs = append(objs, obj)
 	}
+
 	if len(objs) <= 0 {
 		return
 	}
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
+	if err != nil {
 		moduleLogger.Errorf("%s", err)
+		return
 	}
+	io.NamedFeed(data, io.Object, inputName)
+
 }
