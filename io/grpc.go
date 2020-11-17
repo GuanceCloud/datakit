@@ -39,6 +39,8 @@ func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
 		category = Object
 	case IoType_LOGGING:
 		category = Logging
+	case IoType_TRACING:
+		category = Tracing
 	default:
 		category = Metric
 	}
