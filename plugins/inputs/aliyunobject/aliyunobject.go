@@ -99,7 +99,6 @@ func (ag *objectAgent) Run() {
 	}
 	if ag.InfluxDB != nil {
 		ag.addModule(ag.InfluxDB)
-
 	}
 
 	for _, s := range ag.subModules {
