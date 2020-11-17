@@ -15,10 +15,10 @@ const (
 #[inputs.huaweiyunobject.obs]
 endpoint=""
 
-# ## @param - custom tags - [list of obs instanceid] - optional
+# ## @param - [list of obs instanceid] - optional
 #buckets = []
 
-# ## @param - custom tags - [list of excluded obs instanceid] - optional
+# ## @param - [list of excluded obs instanceid] - optional
 #exclude_buckets = []
 
 # ## @param - custom tags for obs object - [list of key:value element] - optional
@@ -119,7 +119,15 @@ func (o *Obs) handleResponse(resp *obs.ListBucketsOutput, ag *objectAgent) {
 		}
 
 		obj := map[string]interface{}{
-			`__name`: fmt.Sprintf(`%s`, bk.Name),
+			`__name`:  fmt.Sprintf(`%s`, bk.Name),
+			`__class`: `huaweiyun_obs`,
+		}
+
+		content := map[string]interface{}{
+			`provider`:          `huaweiyun`,
+			`Location`:          bk.Location,
+			`Owner.ID`:          resp.Owner.ID,
+			`Owner.DisplayName`: resp.Owner.DisplayName,
 		}
 
 		owner, err := json.Marshal(resp.Owner)
@@ -127,40 +135,26 @@ func (o *Obs) handleResponse(resp *obs.ListBucketsOutput, ag *objectAgent) {
 			moduleLogger.Errorf(`%s, ignore`, err.Error())
 			return
 		}
-		obj[`Owener`] = owner
+		content[`Owener`] = owner
 
 		xmlName, err := json.Marshal(bk.XMLName)
 		if err != nil {
 			moduleLogger.Errorf(`%s, ignore`, err.Error())
 			return
 		}
-		obj[`Bucket.XMLName`] = xmlName
+		content[`Bucket.XMLName`] = xmlName
 
-		obj[`Name`] = bk.Name
+		content[`Name`] = bk.Name
 
-		obj[`CreationDate`] = bk.CreationDate
+		content[`CreationDate`] = bk.CreationDate
 
-		tags := map[string]interface{}{
-			`__class`:           `huaweiyun_obs`,
-			`provider`:          `huaweiyun`,
-			`Location`:          bk.Location,
-			`Owner.ID`:          resp.Owner.ID,
-			`Owner.DisplayName`: resp.Owner.DisplayName,
+		jd, err := json.Marshal(content)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+			continue
 		}
 
-		//add obs object custom tags
-		for k, v := range o.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj["__tags"] = tags
+		obj["__content"] = string(jd)
 
 		objs = append(objs, obj)
 	}
