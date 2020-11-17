@@ -120,7 +120,6 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 			return err
 		}
 		t.Content = string(js)
-		t.Class = "tracing"
 		t.ServiceName = service
 		t.OperationName = span.OperationName
 		if t.OperationName == "" {
