@@ -42,8 +42,6 @@ func DefaultConfig() *Config {
 			LogUpload: false,
 			GinLog:    filepath.Join(InstallDir, "gin.log"),
 
-			//DataWay:   &DataWayCfg{},
-
 			RoundInterval: false,
 			TelegrafAgentCfg: &TelegrafCfg{
 				Interval:                   "10s",
@@ -95,6 +93,7 @@ type Config struct {
 
 type DataWayCfg struct {
 	URL     string `toml:"url"`
+	Proxy bool   `toml:"proxy,omitempty"`
 	WSURL   string `toml:"ws_url"`
 	Timeout string `toml:"timeout"`
 	Heartbeat string `toml:"heartbeat"`
@@ -115,6 +114,14 @@ type DataWayCfg struct {
 }
 
 func (dc *DataWayCfg) DeprecatedMetricURL() string {
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/metric")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
@@ -123,6 +130,15 @@ func (dc *DataWayCfg) DeprecatedMetricURL() string {
 }
 
 func (dc *DataWayCfg) MetricURL() string {
+
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/metric")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
@@ -131,6 +147,15 @@ func (dc *DataWayCfg) MetricURL() string {
 }
 
 func (dc *DataWayCfg) ObjectURL() string {
+
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/object")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
@@ -139,6 +164,15 @@ func (dc *DataWayCfg) ObjectURL() string {
 }
 
 func (dc *DataWayCfg) LoggingURL() string {
+
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/logging")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
@@ -146,7 +180,32 @@ func (dc *DataWayCfg) LoggingURL() string {
 		dc.urlValues.Encode())
 }
 
+func (dc *DataWayCfg) TracingURL() string {
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/tracing")
+	}
+
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		"/v1/write/tracing",
+		dc.urlValues.Encode())
+}
+
 func (dc *DataWayCfg) KeyEventURL() string {
+
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/keyevent")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
@@ -226,13 +285,23 @@ func (dc *DataWayCfg) addToken(tkn string) {
 
 func ParseDataway(httpurl, wsurl string) (*DataWayCfg, error) {
 
-	dc := &DataWayCfg{
+	dwcfg := &DataWayCfg{
 		Timeout: "30s",
-		//Heartbeat: "30s",
 	}
-
 	if httpurl == "" {
 		return nil, fmt.Errorf("empty dataway HTTP endpoint")
+	}
+
+	if u, err := url.Parse(httpurl); err == nil {
+		dwcfg.scheme = u.Scheme
+		dwcfg.urlValues = u.Query()
+		dwcfg.host = u.Host
+		if u.Path == "/proxy" {
+			l.Debugf("datakit proxied by %s", u.Host)
+			dwcfg.Proxy = true
+		} else {
+			u.Path = ""
+		}
 	}
 
 	var urls []string
@@ -251,27 +320,27 @@ func ParseDataway(httpurl, wsurl string) (*DataWayCfg, error) {
 
 		switch u.Scheme {
 		case "ws", "wss":
-			dc.WSURL = u.String()
+			dwcfg.WSURL = u.String()
 
-			dc.wsscheme = u.Scheme
-			dc.wsUrlValues = u.Query()
-			dc.wshost = u.Host
-			dc.wspath = u.Path
-			if dc.wspath == "" {
-				dc.wspath = DefaultWebsocketPath
+			dwcfg.wsscheme = u.Scheme
+			dwcfg.wsUrlValues = u.Query()
+			dwcfg.wshost = u.Host
+			dwcfg.wspath = u.Path
+			if dwcfg.wspath == "" {
+				dwcfg.wspath = DefaultWebsocketPath
 			}
 
-			dc.WSToken = dc.wsUrlValues.Get("token")
-			if dc.WSToken == "" {
+			dwcfg.WSToken = dwcfg.wsUrlValues.Get("token")
+			if dwcfg.WSToken == "" {
 				l.Warn("ws token missing, ignored")
 			}
 
 		case "http", "https":
-			dc.URL = u.String()
+			dwcfg.URL = u.String()
 
-			dc.scheme = u.Scheme
-			dc.urlValues = u.Query()
-			dc.host = u.Host
+			dwcfg.scheme = u.Scheme
+			dwcfg.urlValues = u.Query()
+			dwcfg.host = u.Host
 
 		default:
 			l.Errorf("unknown scheme %s", u.Scheme)
@@ -280,21 +349,21 @@ func ParseDataway(httpurl, wsurl string) (*DataWayCfg, error) {
 	}
 
 	if wsurl == "" { // for old version dataway, no websocket available
-		switch dc.scheme {
+		switch dwcfg.scheme {
 		case "http":
-			dc.wsscheme = "ws"
+			dwcfg.wsscheme = "ws"
 		case "https":
-			dc.wsscheme = "wss"
+			dwcfg.wsscheme = "wss"
 		}
 
-		dc.wshost = dc.host
-		dc.wsUrlValues = dc.urlValues // ws default share same urlvalues with http
-		dc.wspath = DefaultWebsocketPath
-		dc.WSURL = fmt.Sprintf("%s://%s%s?%s", dc.wsscheme, dc.wshost, dc.wspath, dc.wsUrlValues.Encode())
+		dwcfg.wshost = dwcfg.host
+		dwcfg.wsUrlValues = dwcfg.urlValues // ws default share same urlvalues with http
+		dwcfg.wspath = DefaultWebsocketPath
+		dwcfg.WSURL = fmt.Sprintf("%s://%s%s?%s", dwcfg.wsscheme, dwcfg.wshost, dwcfg.wspath, dwcfg.wsUrlValues.Encode())
 	}
 
 
-	return dc, nil
+	return dwcfg, nil
 }
 
 type MainConfig struct {
@@ -320,6 +389,7 @@ type MainConfig struct {
 	GlobalTags           map[string]string `toml:"global_tags"`
 	RoundInterval        bool
 	StrictMode           bool   `toml:"strict_mode,omitempty"`
+	EnablePProf          bool   `toml:"enable_pprof,omitempty"`
 	Interval             string `toml:"interval"`
 	flushInterval        Duration
 	OutputFile           string       `toml:"output_file"`
@@ -386,7 +456,7 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 	}
 
 	if c.MainCfg.DataWay.URL == "" {
-		l.Fatal("dataway url not set")
+		l.Fatal("dataway URL not set")
 	}
 
 	dw, err := ParseDataway(c.MainCfg.DataWay.URL, c.MainCfg.DataWay.WSURL)
