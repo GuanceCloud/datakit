@@ -2,6 +2,7 @@ package trace
 
 import (
 	"bytes"
+	"compress/gzip"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -9,7 +10,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
 )
 
 type TraceDecoder interface {
@@ -37,7 +37,6 @@ type TraceAdapter struct {
 	TimestampUs int64
 	Content     string
 
-	Class         string
 	ServiceName   string
 	OperationName string
 	ParentID      string
@@ -65,8 +64,7 @@ var (
 func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
-
-	tags["__class"] = tAdpt.Class
+	
 	tags["__operationName"] = tAdpt.OperationName
 	tags["__serviceName"] = tAdpt.ServiceName
 	tags["__parentID"] = tAdpt.ParentID
@@ -117,7 +115,7 @@ func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 			continue
 		}
 
-		if err := dkio.NamedFeed(pt, dkio.Logging, pluginName); err != nil {
+		if err := dkio.NamedFeed(pt, dkio.Tracing, pluginName); err != nil {
 			GetInstance().Errorf("io feed err: %s", err)
 		}
 	}
@@ -140,13 +138,38 @@ func ParseHttpReq(r *http.Request) (*TraceReqInfo, error) {
 	defer r.Body.Close()
 
 	if contentEncoding == "gzip" {
-		body, err = utils.ReadCompressed(bytes.NewReader(body), true)
+		body, err = ReadCompressed(bytes.NewReader(body), true)
 		if err != nil {
 			return req, err
 		}
 	}
 	req.Body = body
 	return req, err
+}
+
+func ReadCompressed(body *bytes.Reader, isGzip bool) ([]byte, error) {
+	var data []byte
+	var err  error
+
+	if isGzip {
+		reader, err := gzip.NewReader(body)
+		if err != nil {
+			return nil, err
+		}
+
+		data, err = ioutil.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		data, err = ioutil.ReadAll(body)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return data, nil
 }
 
 //GetInstance 用于获取单例模式对象
