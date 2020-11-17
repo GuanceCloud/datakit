@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	nhttp "net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -11,12 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
@@ -197,6 +198,14 @@ func dumpAllConfigSamples(fpath string) {
 }
 
 func run() {
+
+	if datakit.Cfg.MainCfg.EnablePProf {
+		go func() {
+			if err := nhttp.ListenAndServe(":6060", nil); err != nil {
+				l.Fatalf("pprof server error: %s", err.Error())
+			}
+		}()
+	}
 
 	inputs.StartTelegraf()
 
