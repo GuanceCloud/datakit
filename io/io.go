@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"runtime"
 	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
@@ -15,7 +14,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
@@ -35,6 +33,7 @@ var (
 		KeyEvent:         nil,
 		Object:           nil,
 		Logging:          nil,
+		Tracing:          nil,
 	}
 	cacheCnt       = map[string]int{}
 	cacheUploadMax = 100 * 1024 // 100KiB
@@ -43,7 +42,6 @@ var (
 
 	outputFile     *os.File
 	outputFileSize int64
-	cookies        string
 )
 
 const ( // categories
@@ -52,6 +50,7 @@ const ( // categories
 	KeyEvent         = "/v1/write/keyevent"
 	Object           = "/v1/write/object"
 	Logging          = "/v1/write/logging"
+	Tracing          = "/v1/write/tracing"
 
 	minGZSize = 1024
 
@@ -101,7 +100,7 @@ func doFeed(data []byte, category, name string) error {
 	}
 
 	switch category {
-	case Metric, KeyEvent, Logging:
+	case Metric, KeyEvent, Logging, Tracing:
 		// metric line check
 		if err := checkMetric(data); err != nil {
 			return fmt.Errorf("invalid line protocol data %v", err)
@@ -216,14 +215,12 @@ func ioStop() {
 }
 
 func startIO() {
-
 	categoryURLs = map[string]string{
-
-		MetricDeprecated: datakit.Cfg.MainCfg.DataWay.DeprecatedMetricURL(),
-		Metric:           datakit.Cfg.MainCfg.DataWay.MetricURL(),
-		KeyEvent:         datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
-		Object:           datakit.Cfg.MainCfg.DataWay.ObjectURL(),
-		Logging:          datakit.Cfg.MainCfg.DataWay.LoggingURL(),
+		Metric:   datakit.Cfg.MainCfg.DataWay.MetricURL(),
+		KeyEvent: datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
+		Object:   datakit.Cfg.MainCfg.DataWay.ObjectURL(),
+		Logging:  datakit.Cfg.MainCfg.DataWay.LoggingURL(),
+		Tracing:  datakit.Cfg.MainCfg.DataWay.TracingURL(),
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
@@ -277,9 +274,6 @@ func startIO() {
 						l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
 					}
 
-					cache[d.category] = append(cache[d.category], d.data)
-					cacheCnt[d.category] += len(d.data)
-
 					stat, ok := inputstats[d.name]
 					if !ok {
 						inputstats[d.name] = &InputsStat{
@@ -297,9 +291,19 @@ func startIO() {
 						stat.Category = d.category
 					}
 
-					for _, cnt := range cacheCnt {
-						if cnt >= cacheUploadMax {
-							flush(cache)
+					// disable cache under proxied mode, to prevent large packages in proxing lua module
+					if datakit.Cfg.MainCfg.DataWay.Proxy {
+						if err := doFlush([][]byte{d.data}, d.category); err != nil {
+							l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
+						}
+					} else {
+						cache[d.category] = append(cache[d.category], d.data)
+						cacheCnt[d.category] += len(d.data)
+
+						for _, cnt := range cacheCnt {
+							if cnt >= cacheUploadMax {
+								flush(cache)
+							}
 						}
 					}
 				}
@@ -375,17 +379,12 @@ func flush(cache map[string][][]byte) {
 	}
 	cache[Logging] = nil
 	cacheCnt[Logging] = 0
-}
 
-func initCookies() {
-	cookies = fmt.Sprintf("uuid=%s;name=%s;hostname=%s;max_post_interval=%s;version=%s;os=%s;arch=%s",
-		datakit.Cfg.MainCfg.UUID,
-		datakit.Cfg.MainCfg.Name,
-		datakit.Cfg.MainCfg.Hostname,
-		datakit.MaxLifeCheckInterval,
-		git.Version,
-		runtime.GOOS,
-		runtime.GOARCH)
+	if err := doFlush(cache[Tracing], Tracing); err != nil {
+		l.Errorf("post tracing failed, drop %d packages", len(cache[Tracing]))
+	}
+	cache[Tracing] = nil
+	cacheCnt[Tracing] = 0
 }
 
 func buildObjBody(bodies [][]byte) ([]byte, error) {
@@ -439,10 +438,6 @@ func doFlush(bodies [][]byte, url string) error {
 		return nil
 	}
 
-	if cookies == "" {
-		initCookies()
-	}
-
 	body, gz, err := buildBody(url, bodies)
 	if err != nil {
 		return err
@@ -458,7 +453,6 @@ func doFlush(bodies [][]byte, url string) error {
 		return err
 	}
 
-	req.Header.Set("Cookie", cookies)
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
@@ -467,10 +461,6 @@ func doFlush(bodies [][]byte, url string) error {
 	case Object: // object is json
 		req.Header.Set("Content-Type", "application/json")
 	default: // others are line-protocol
-	}
-
-	if datakit.MaxLifeCheckInterval > 0 {
-		req.Header.Set("X-Max-POST-Interval", fmt.Sprintf("%v", datakit.MaxLifeCheckInterval))
 	}
 
 	l.Debugf("post to %s...", categoryURLs[url])
@@ -508,7 +498,7 @@ func doFlush(bodies [][]byte, url string) error {
 func fileOutput(body []byte) error {
 
 	if outputFile == nil {
-		f, err := os.OpenFile(datakit.OutputFile, os.O_WRONLY|os.O_APPEND, 0644)
+		f, err := os.OpenFile(datakit.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 		if err != nil {
 			l.Error(err)
 			return err

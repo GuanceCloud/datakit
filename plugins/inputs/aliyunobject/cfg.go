@@ -57,6 +57,7 @@ type objectAgent struct {
 
 	testResult *inputs.TestResult
 	testError  error
+
 }
 
 func (ag *objectAgent) addModule(m subModule) {

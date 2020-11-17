@@ -38,7 +38,7 @@ var (
 		"cpu":                    true,
 		"csvmetric":              true,
 		"csvobject":              true,
-		"dataclean":              false,
+		"proxy":                  true,
 		"disk":                   true,
 		"diskio":                 true,
 		"dns_query":              true,
@@ -126,6 +126,7 @@ var (
 		"redis":                  true,
 		"scanport":               true,
 		"self":                   true,
+		"smart":                  false,
 		"snmp":                   true,
 		"socket_listener":        true, // collectd checked
 		"solr":                   true,
