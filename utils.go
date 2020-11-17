@@ -5,9 +5,11 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
@@ -274,4 +276,116 @@ func TomlMd5(v interface{}) (string, error) {
 func FileExist(filename string) bool {
 	_, err := os.Stat(filename)
 	return err == nil || os.IsExist(err)
+}
+
+func Struct2JsonOfOneDepth(obj interface{}) (result string, err error) {
+
+	val := reflect.ValueOf(obj)
+
+	kd := val.Kind()
+	if kd == reflect.Ptr {
+		if val.IsNil() {
+			err = fmt.Errorf("must not be a nil pointer")
+			return
+		}
+		val = val.Elem()
+		kd = val.Kind()
+	}
+
+	if kd != reflect.Struct {
+		err = fmt.Errorf("must be a Struct")
+		return
+	}
+
+	typ := reflect.TypeOf(val.Interface())
+
+	content := map[string]interface{}{}
+
+	num := val.NumField()
+
+	for i := 0; i < num; i++ {
+		if typ.Field(i).Tag.Get("json") == "" {
+			continue
+		}
+		key := typ.Field(i).Name
+		v := val.Field(i)
+
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				continue
+			}
+			v = v.Elem()
+		}
+
+		switch v.Kind() {
+		case reflect.Slice, reflect.Map, reflect.Interface:
+			if v.IsNil() {
+				continue
+			}
+		}
+
+		switch v.Kind() {
+		case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.String:
+			content[key] = v.Interface()
+		case reflect.Slice, reflect.Array, reflect.Map, reflect.Struct:
+			if jdata, e := json.Marshal(v.Interface()); e != nil {
+				err = e
+				return
+			} else {
+				content[key] = string(jdata)
+			}
+		}
+	}
+
+	if len(content) == 0 {
+		return
+	}
+
+	var jsondata []byte
+	if jsondata, err = json.Marshal(content); err != nil {
+		return
+	} else {
+		result = string(jsondata)
+	}
+
+	return
+}
+
+func CheckExcluded(item string, blacklist, whitelist []string) bool {
+
+	for _, v := range blacklist {
+		if v == item {
+			return true
+		}
+	}
+
+	if len(whitelist) > 0 {
+		exclude := true
+		for _, v := range whitelist {
+			if v == item {
+				exclude = false
+				break
+			}
+		}
+		return exclude
+	}
+
+	return false
+}
+
+func CloudObject2Json(name, class string, obj interface{}, id string, blacklist, whitelist []string) (map[string]interface{}, error) {
+	if CheckExcluded(id, blacklist, whitelist) {
+		return nil, nil
+	}
+
+	j, err := Struct2JsonOfOneDepth(obj)
+	if err != nil {
+		return nil, fmt.Errorf("convert %s-%s failed, %s", class, name, err)
+	}
+
+	return map[string]interface{}{
+		`__name`:    name,
+		`__class`:   class,
+		`__content`: j,
+	}, nil
 }
