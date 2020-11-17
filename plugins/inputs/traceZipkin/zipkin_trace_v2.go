@@ -35,7 +35,6 @@ func  parseZipkinJsonV2(octets []byte) error {
 		}
 		tAdpter.Content = string(sJson)
 
-		tAdpter.Class         = "tracing"
 		if zs.LocalEndpoint != nil {
 			tAdpter.ServiceName   = zs.LocalEndpoint.ServiceName
 		}
@@ -115,7 +114,6 @@ func parseZipkinProtobufV2(octets []byte) error {
 		}
 		tAdpter.Content = string(sJson)
 
-		tAdpter.Class         = "tracing"
 		if zs.LocalEndpoint != nil {
 			tAdpter.ServiceName   = zs.LocalEndpoint.ServiceName
 		}
@@ -131,7 +129,7 @@ func parseZipkinProtobufV2(octets []byte) error {
 			tAdpter.TraceID = fmt.Sprintf("%d", zs.TraceID.Low)
 		}
 
-		tAdpter.SpanID        = fmt.Sprintf("%d", zs.ID)
+		tAdpter.SpanID      = fmt.Sprintf("%d", zs.ID)
 
 		for tag, _ := range zs.Tags {
 			if tag == "error" {

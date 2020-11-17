@@ -540,15 +540,21 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 		}
 
 		if len(fields) > 0 {
+
 			if s.cfg.isTest() {
 				data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
 				s.cfg.testResult.Result = append(s.cfg.testResult.Result, data...)
+
+			if s.cfg.mode == "debug" {
+				data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
+				fmt.Printf("%s\n", string(data))
+
 			} else {
 				io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
 			}
 		}
 	}
-
+	}
 	return nil
 }
 
