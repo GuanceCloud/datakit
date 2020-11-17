@@ -98,7 +98,7 @@ github.com/antchfx/jsonquery
 github.com/antchfx/xpath
 # github.com/apache/thrift v0.13.0
 github.com/apache/thrift/lib/go/thrift
-# github.com/aws/aws-sdk-go v1.31.12
+# github.com/aws/aws-sdk-go v1.34.34
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/aws/awsutil
@@ -142,13 +142,11 @@ github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/basgys/goxml2json v1.1.0
 github.com/basgys/goxml2json
-# github.com/caio/go-tdigest v2.3.0+incompatible
-github.com/caio/go-tdigest
 # github.com/cenkalti/backoff v2.2.1+incompatible
 github.com/cenkalti/backoff
 # github.com/containerd/cgroups v0.0.0-20190919134610-bf292b21730f
 github.com/containerd/cgroups/stats/v1
-# github.com/containerd/containerd v1.4.0-beta.0
+# github.com/containerd/containerd v1.4.1
 github.com/containerd/containerd
 github.com/containerd/containerd/api/services/containers/v1
 github.com/containerd/containerd/api/services/content/v1
@@ -218,7 +216,7 @@ github.com/coreos/go-systemd/v22/dbus
 github.com/cznic/mathutil
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e
+# github.com/denisenkom/go-mssqldb v0.0.0-20200910202707-1e08a3fab204
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
 github.com/denisenkom/go-mssqldb/internal/decimal
@@ -230,7 +228,8 @@ github.com/dimchansky/utfbom
 # github.com/docker/distribution v2.6.0-rc.1.0.20170726174610-edc3ab29cdff+incompatible
 github.com/docker/distribution/digestset
 github.com/docker/distribution/reference
-# github.com/docker/docker v1.4.2-0.20180327123150-ed7b6428c133
+github.com/docker/distribution/registry/api/errcode
+# github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
 github.com/docker/docker/api
 github.com/docker/docker/api/types
 github.com/docker/docker/api/types/blkiodev
@@ -248,6 +247,7 @@ github.com/docker/docker/api/types/time
 github.com/docker/docker/api/types/versions
 github.com/docker/docker/api/types/volume
 github.com/docker/docker/client
+github.com/docker/docker/errdefs
 github.com/docker/docker/pkg/stdcopy
 # github.com/docker/go-connections v0.3.0
 github.com/docker/go-connections/nat
@@ -297,7 +297,7 @@ github.com/go-playground/locales/currency
 github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.3.0
 github.com/go-playground/validator/v10
-# github.com/go-redis/redis v6.15.8+incompatible
+# github.com/go-redis/redis v6.15.9+incompatible
 github.com/go-redis/redis
 github.com/go-redis/redis/internal
 github.com/go-redis/redis/internal/consistenthash
@@ -346,15 +346,11 @@ github.com/golang/glog
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.4.3
-github.com/golang/protobuf/descriptor
-github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
-github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-github.com/golang/protobuf/ptypes/wrappers
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
 # github.com/google/go-github v17.0.0+incompatible
@@ -369,10 +365,6 @@ github.com/google/gopacket/pcap
 github.com/google/uuid
 # github.com/gorilla/websocket v1.4.0
 github.com/gorilla/websocket
-# github.com/grpc-ecosystem/grpc-gateway v1.12.1
-github.com/grpc-ecosystem/grpc-gateway/internal
-github.com/grpc-ecosystem/grpc-gateway/runtime
-github.com/grpc-ecosystem/grpc-gateway/utilities
 # github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-retryablehttp v0.6.4
@@ -462,6 +454,7 @@ github.com/influxdata/telegraf/plugins/inputs/processes
 github.com/influxdata/telegraf/plugins/inputs/procstat
 github.com/influxdata/telegraf/plugins/inputs/rabbitmq
 github.com/influxdata/telegraf/plugins/inputs/redis
+github.com/influxdata/telegraf/plugins/inputs/smart
 github.com/influxdata/telegraf/plugins/inputs/snmp
 github.com/influxdata/telegraf/plugins/inputs/socket_listener
 github.com/influxdata/telegraf/plugins/inputs/solr
@@ -478,8 +471,6 @@ github.com/influxdata/telegraf/plugins/inputs/win_perf_counters
 github.com/influxdata/telegraf/plugins/inputs/win_services
 github.com/influxdata/telegraf/plugins/inputs/x509_cert
 github.com/influxdata/telegraf/plugins/inputs/zookeeper
-github.com/influxdata/telegraf/plugins/outputs
-github.com/influxdata/telegraf/plugins/outputs/wavefront
 github.com/influxdata/telegraf/plugins/parsers
 github.com/influxdata/telegraf/plugins/parsers/collectd
 github.com/influxdata/telegraf/plugins/parsers/csv
@@ -493,15 +484,6 @@ github.com/influxdata/telegraf/plugins/parsers/logfmt
 github.com/influxdata/telegraf/plugins/parsers/nagios
 github.com/influxdata/telegraf/plugins/parsers/value
 github.com/influxdata/telegraf/plugins/parsers/wavefront
-github.com/influxdata/telegraf/plugins/serializers
-github.com/influxdata/telegraf/plugins/serializers/carbon2
-github.com/influxdata/telegraf/plugins/serializers/graphite
-github.com/influxdata/telegraf/plugins/serializers/influx
-github.com/influxdata/telegraf/plugins/serializers/json
-github.com/influxdata/telegraf/plugins/serializers/nowmetric
-github.com/influxdata/telegraf/plugins/serializers/prometheus
-github.com/influxdata/telegraf/plugins/serializers/splunkmetric
-github.com/influxdata/telegraf/plugins/serializers/wavefront
 github.com/influxdata/telegraf/selfstat
 # github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 github.com/influxdata/toml
@@ -531,7 +513,7 @@ github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis
 github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client
 github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models
 github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models
-# github.com/jmespath/go-jmespath v0.3.0
+# github.com/jmespath/go-jmespath v0.4.0
 github.com/jmespath/go-jmespath
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
@@ -547,6 +529,8 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
+github.com/koding/websocketproxy
 # github.com/konsorten/go-windows-terminal-sequences v1.0.3
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/kr/fs v0.1.0
@@ -556,7 +540,7 @@ github.com/leodido/go-urn
 # github.com/leodido/ragel-machinery v0.0.0-20181214104525-299bdde78165
 github.com/leodido/ragel-machinery
 github.com/leodido/ragel-machinery/parser
-# github.com/lib/pq v1.4.0
+# github.com/lib/pq v1.8.0
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
@@ -667,14 +651,12 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
 github.com/prometheus/procfs/nfs
-# github.com/prometheus/prometheus v2.5.0+incompatible
-github.com/prometheus/prometheus/prompb
 # github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
 github.com/rcrowley/go-metrics
 # github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237
 github.com/remyoudompheng/bigfft
-# github.com/robfig/cron v1.2.0
-github.com/robfig/cron
+# github.com/robfig/cron/v3 v3.0.0
+github.com/robfig/cron/v3
 # github.com/rs/xid v1.2.1
 github.com/rs/xid
 # github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
@@ -709,7 +691,7 @@ github.com/soniah/gosnmp
 github.com/streadway/amqp
 # github.com/stretchr/objx v0.2.0
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.6.1
+# github.com/stretchr/testify v1.5.1
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 # github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
@@ -781,34 +763,31 @@ github.com/vmware/govmomi/vim25/progress
 github.com/vmware/govmomi/vim25/soap
 github.com/vmware/govmomi/vim25/types
 github.com/vmware/govmomi/vim25/xml
-# github.com/wavefronthq/wavefront-sdk-go v0.9.2
-github.com/wavefronthq/wavefront-sdk-go/histogram
-github.com/wavefronthq/wavefront-sdk-go/internal
-github.com/wavefronthq/wavefront-sdk-go/senders
 # github.com/xanzy/go-gitlab v0.31.0
 github.com/xanzy/go-gitlab
 # github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c
 github.com/xdg/scram
 # github.com/xdg/stringprep v1.0.0
 github.com/xdg/stringprep
-# github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb
+# github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da
 github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20200924074212-8d61bb78afeb
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20201019091409-df078dd4a19e
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript/module
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 # gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
-gitlab.jiagouyun.com/cloudcare-tools/ftagent/lua
 gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils
 # gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201116053945-59fb6f805f68
 gitlab.jiagouyun.com/cloudcare-tools/kodo/config
 gitlab.jiagouyun.com/cloudcare-tools/kodo/models
 gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg
-# go.mongodb.org/mongo-driver v1.3.1
+# go.mongodb.org/mongo-driver v1.4.1
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
 go.mongodb.org/mongo-driver/bson/bsonoptions
@@ -835,6 +814,7 @@ go.mongodb.org/mongo-driver/x/mongo/driver/description
 go.mongodb.org/mongo-driver/x/mongo/driver/dns
 go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt
 go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options
+go.mongodb.org/mongo-driver/x/mongo/driver/ocsp
 go.mongodb.org/mongo-driver/x/mongo/driver/operation
 go.mongodb.org/mongo-driver/x/mongo/driver/session
 go.mongodb.org/mongo-driver/x/mongo/driver/topology
@@ -857,7 +837,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+# golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
@@ -866,13 +846,14 @@ golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/md4
+golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/pkcs12
 golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
-# golang.org/x/net v0.0.0-20200625001655-4c5254603344
+# golang.org/x/net v0.0.0-20200904194848-62affa334b73
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -947,10 +928,7 @@ google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
 # google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
-google.golang.org/genproto/googleapis/api/annotations
-google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/status
-google.golang.org/genproto/protobuf/field_mask
 # google.golang.org/grpc v1.28.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -992,14 +970,12 @@ google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
 # google.golang.org/protobuf v1.25.0
-google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
 google.golang.org/protobuf/internal/descopts
 google.golang.org/protobuf/internal/detrand
 google.golang.org/protobuf/internal/encoding/defval
-google.golang.org/protobuf/internal/encoding/json
 google.golang.org/protobuf/internal/encoding/messageset
 google.golang.org/protobuf/internal/encoding/tag
 google.golang.org/protobuf/internal/encoding/text
@@ -1016,17 +992,13 @@ google.golang.org/protobuf/internal/set
 google.golang.org/protobuf/internal/strs
 google.golang.org/protobuf/internal/version
 google.golang.org/protobuf/proto
-google.golang.org/protobuf/reflect/protodesc
 google.golang.org/protobuf/reflect/protoreflect
 google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
-google.golang.org/protobuf/types/descriptorpb
 google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
-google.golang.org/protobuf/types/known/fieldmaskpb
 google.golang.org/protobuf/types/known/timestamppb
-google.golang.org/protobuf/types/known/wrapperspb
 # gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
 gopkg.in/asn1-ber.v1
 # gopkg.in/fsnotify.v1 v1.4.7
@@ -1085,5 +1057,3 @@ gopkg.in/natefinch/lumberjack.v2
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2
-# gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
-gopkg.in/yaml.v3
