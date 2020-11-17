@@ -16,10 +16,10 @@ const (
 	cdbSampleConfig = `
 #[inputs.tencentobject.cdb]
 
-# ## @param - custom tags - [list of instanceid] - optional
+# ## @param - [list of instanceid] - optional
 #db_instanceids = ['']
 
-# ## @param - custom tags - [list of excluded instanceid] - optional
+# ## @param - [list of excluded instanceid] - optional
 #exclude_db_instanceids = ['']
 
 # ## @param - custom tags for this object - [list of key:value element] - optional
@@ -108,121 +108,13 @@ func (c *Cdb) handleResponse(resp *cdb.DescribeDBInstancesResponse, ag *objectAg
 	var objs []map[string]interface{}
 
 	for _, db := range resp.Response.Items {
-		//moduleLogger.Debugf("dbinstanceInfo %+#v", db)
-
-		if len(c.ExcludeDBInstanceIDs) > 0 {
-			exclude := false
-			for _, v := range c.ExcludeDBInstanceIDs {
-				if v == *db.InstanceId {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
+		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s_%s`, *db.InstanceName, *db.InstanceId), `tencent_cdb`, db, *db.InstanceId, c.ExcludeDBInstanceIDs, c.DBInstancesIDs); obj != nil {
+			objs = append(objs, obj)
+		} else {
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
 			}
 		}
-
-		if len(c.DBInstancesIDs) > 0 {
-			exclude := true
-			for _, v := range c.DBInstancesIDs {
-				if v == *db.InstanceId {
-					exclude = false
-					break
-				}
-			}
-			if exclude {
-				continue
-			}
-		}
-
-		tags := map[string]interface{}{
-			"__class":      "CDB",
-			"provider":     "tencent",
-			"InstanceId":   *db.InstanceId,
-			"InstanceType": *db.InstanceType,
-			"Region":       *db.Region,
-			"Status":       *db.Status,
-		}
-
-		if db.ProjectId != nil {
-			tags["ProjectId"] = *db.ProjectId
-		}
-		if db.EngineVersion != nil {
-			tags["EngineVersion"] = *db.EngineVersion
-		}
-		if db.DeviceType != nil {
-			tags["DeviceType"] = *db.DeviceType
-		}
-		if db.ZoneName != nil {
-			tags["ZoneName"] = *db.ZoneName
-		}
-		if db.DeviceClass != nil {
-			tags["DeviceClass"] = *db.DeviceClass
-		}
-		if db.ProtectMode != nil {
-			tags["ProtectMode"] = *db.ProtectMode
-		}
-		if db.AutoRenew != nil {
-			tags["AutoRenew"] = *db.AutoRenew
-		}
-		if db.DeployMode != nil {
-			tags["DeployMode"] = *db.DeployMode
-		}
-		if db.CdbError != nil {
-			tags["CdbError"] = *db.CdbError
-		}
-		if db.PayType != nil {
-			tags["PayType"] = *db.PayType
-		}
-		if db.WanDomain != nil {
-			tags["WanDomain"] = *db.WanDomain
-		}
-		if db.WanPort != nil {
-			tags["WanPort"] = *db.WanPort
-		}
-		if db.WanStatus != nil {
-			tags["WanStatus"] = *db.WanStatus
-		}
-
-		obj := map[string]interface{}{
-			"__name":     fmt.Sprintf(`%s_%s`, *db.InstanceName, *db.InstanceId),
-			"__tags":     tags,
-			"Zone":       db.Zone,
-			"Memory":     *db.Memory,
-			"Volume":     *db.Volume,
-			"CreateTime": *db.CreateTime,
-			"Vport":      *db.Vport,
-		}
-		if db.DeadlineTime != nil {
-			obj["DeadlineTime"] = *db.DeadlineTime
-		}
-		if db.Cpu != nil {
-			obj["Cpu"] = *db.Cpu
-		}
-		if db.Vip != nil {
-			obj["Vip"] = *db.Vip
-		}
-		if db.Qps != nil {
-			obj["Qps"] = *db.Qps
-		}
-		if db.TaskStatus != nil {
-			obj["TaskStatus"] = *db.TaskStatus
-		}
-
-		//add rds object custom tags
-		for k, v := range c.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		objs = append(objs, obj)
 	}
 
 	if len(objs) <= 0 {
@@ -237,6 +129,8 @@ func (c *Cdb) handleResponse(resp *cdb.DescribeDBInstancesResponse, ag *objectAg
 			io.NamedFeed(data, io.Object, inputName)
 		}
 	} else {
-		moduleLogger.Errorf("%s", err)
+
+			moduleLogger.Errorf("%s", err)
+			return
+		}
 	}
-}

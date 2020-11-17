@@ -93,7 +93,7 @@ func (r *runningProject) run() {
 		r.wg.Add(1)
 
 		if c.ConsumerGroupName == "" {
-			c.ConsumerGroupName = "datakit"
+			c.ConsumerGroupName = "datakit-" + datakit.Cfg.MainCfg.UUID
 		}
 
 		if c.ConsumerName == "" {
@@ -127,8 +127,7 @@ type adapterLogWriter struct {
 }
 
 func (al *adapterLogWriter) Write(p []byte) (n int, err error) {
-	fmt.Printf("****\n")
-	moduleLogger.Errorf("%s", string(p))
+	moduleLogger.Debugf("%s", string(p))
 	return len(p), nil
 }
 
@@ -194,13 +193,10 @@ func (r *runningStore) run() error {
 		Logstore:          r.cfg.Name,
 		ConsumerGroupName: r.cfg.ConsumerGroupName,
 		ConsumerName:      r.cfg.ConsumerName,
-		// This options is used for initialization, will be ignored once consumer group is created and each shard has been started to be consumed.
-		// Could be "begin", "end", "specific time format in time stamp", it's log receiving time.
-		CursorPosition: consumerLibrary.BEGIN_CURSOR,
+		CursorPosition:    consumerLibrary.END_CURSOR,
 	}
 
 	consumerWorker := consumerLibrary.InitConsumerWorker(option, sdkLogger(), r.logProcess)
-	//consumerWorker.Logger = sdkLogger()
 	consumerWorker.Start()
 
 	<-datakit.Exit.Wait()
@@ -300,7 +296,9 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 							if fval, err := strconv.ParseFloat(strval, 64); err == nil {
 								nval = int64(math.Floor(fval))
 							} else {
-								moduleLogger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
+								if strval != "-" {
+									moduleLogger.Debugf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
+								}
 							}
 						} else {
 							fields[k] = nval
@@ -308,13 +306,13 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 					case "float":
 						fval, err := strconv.ParseFloat(strval, 64)
 						if err != nil {
-							moduleLogger.Warnf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
+							if strval != "-" {
+								moduleLogger.Debugf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
+							}
 						} else {
 							fields[k] = fval
 						}
 					}
-				} else {
-					fields[k] = strval
 				}
 			}
 
@@ -334,15 +332,17 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 			if err == nil {
 				fields["__content"] = string(contentStr)
 			} else {
-				moduleLogger.Warnf("fail to marshal content, %s", err)
+				moduleLogger.Debugf("fail to marshal content, %s", err)
 			}
 
 			tm := time.Unix(int64(l.GetTime()), 0)
 
-			//mdata, _ := io.MakeMetric(r.metricName, tags, fields, tm)
-			//fmt.Printf("#### %s\n", string(mdata))
-
-			io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, tm)
+			if r.proj.inst.mode == "debug" {
+				mdata, _ := io.MakeMetric(r.metricName, tags, fields, tm)
+				fmt.Printf("%s\n", string(mdata))
+			} else {
+				io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, tm)
+			}
 
 		}
 	}
