@@ -18,12 +18,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type CsvField struct {
-	Column     string  `toml:"column,omitempty"`
-	NullOp     string  `toml:"nullOp,omitempty"`
-	NullFill   string  `toml:"nullFill,omitempty"`
-	Type       string  `toml:"type,omitempty"`
-}
 
 type CsvObject struct {
 	PythonEnv string         `toml:"pythonEnv"`
@@ -32,8 +26,6 @@ type CsvObject struct {
 	Interval  string         `toml:"interval,omitempty"`
 	Name      string         `toml:"name,omitempty"`
 	Class     string         `toml:"class,omitempty"`
-	Tags      []string       `toml:"tags,omitempty"`
-	Field     []CsvField  `toml:"field,omitempty"`
 }
 
 const (
@@ -45,17 +37,6 @@ const (
 #  interval  = "60s"
 #  name      = "objectname"
 #  class     = "objectclass"
-#  tags      = ["column-name1","column-name2"]
-#  [[inputs.csvobject.field]]
-#    column     = "column-name3"
-#    nullOp     = "ignore"
-#    nullFill   = "default-value"
-#    type       = "int"
-#  [[inputs.csvobject.field]]
-#    column     = "column-name4"
-#    nullOp     = "drop"
-#    nullFill   = "default-value"
-#    type       = "str"
 `
 	defaultInterval = "0s"
 )
