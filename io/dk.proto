@@ -29,4 +29,5 @@ enum IoType {
     	KEYEVENT = 1;
     	OBJECT   = 2;
     	LOGGING  = 3;
+    	TRACING  = 4;
 }
