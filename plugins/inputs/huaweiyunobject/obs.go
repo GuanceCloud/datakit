@@ -148,7 +148,13 @@ func (o *Obs) handleResponse(resp *obs.ListBucketsOutput, ag *objectAgent) {
 
 		content[`CreationDate`] = bk.CreationDate
 
-		obj["__content"] = content
+		jd, err := json.Marshal(content)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+			continue
+		}
+
+		obj["__content"] = string(jd)
 
 		objs = append(objs, obj)
 	}
