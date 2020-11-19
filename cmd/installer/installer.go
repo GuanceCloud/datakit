@@ -39,7 +39,7 @@ var (
 
 	flagEnableInputs = flag.String("enable-inputs", "", `default enable inputs(comma splited, example: cpu,mem,disk)`)
 	flagDatakitName  = flag.String("name", "", `specify DataKit name, example: prod-env-datakit`)
-	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=$datakit_hostname,from=$datakit_id`)
+	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=__datakit_hostname,ip=__datakit_ip`)
 	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
