@@ -317,6 +317,7 @@ func (c *Config) InitCfg(p string) error {
 		l.Errorf("TomlMarshal(): %s", err.Error())
 		return err
 	} else {
+
 		if err := ioutil.WriteFile(p, mcdata, 0600); err != nil {
 			l.Errorf("error creating %s: %s", p, err)
 			return err
@@ -501,17 +502,13 @@ func (c *Config) LoadEnvs(mcp string) error {
 	return nil
 }
 
-const (
-	tagsKVPartsLen = 2
-)
-
 func ParseGlobalTags(s string) map[string]string {
 	tags := map[string]string{}
 
 	parts := strings.Split(s, ",")
 	for _, p := range parts {
 		arr := strings.Split(p, "=")
-		if len(arr) != tagsKVPartsLen {
+		if len(arr) != 2 {
 			l.Warnf("invalid global tag: %s, ignored", p)
 			continue
 		}
