@@ -79,10 +79,16 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 		"Trial":            resp.InstanceInfo.Trial,
 	}
 
+	jd, err := json.Marshal(content)
+	if err != nil {
+		moduleLogger.Errorf("%s", err)
+		return
+	}
+
 	obj := map[string]interface{}{
 		"__name":    resp.InstanceInfo.InstanceId,
 		"__class":   "aliyun_waf",
-		"__content": content,
+		"__content": string(jd),
 	}
 
 	objs = append(objs, obj)
