@@ -144,10 +144,16 @@ func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
 			`InstanceClass`:   inst.Get("InstanceClass").String(),
 		}
 
+		jd, err := json.Marshal(content)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+			continue
+		}
+
 		obj := map[string]interface{}{
 			`__name`:    inst.Get("InstanceAlias").String(),
 			`__class`:   `aliyun_influxdb`,
-			`__content`: content,
+			`__content`: string(jd),
 		}
 
 		objs = append(objs, obj)
