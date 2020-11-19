@@ -391,8 +391,12 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 
 	// reset global tags
 	for k, v := range c.MainCfg.GlobalTags {
+
+		// NOTE: accept `__` and `$` as tag-key prefix, to keep compatible with old prefix `$`
+		// by using `__` as prefix, avoid escaping `$` in Powershell and shell
+
 		switch strings.ToLower(v) {
-		case `$datakit_hostname`:
+		case `__datakit_hostname`, `$datakit_hostname`:
 			if c.MainCfg.Hostname == "" {
 				c.setHostname()
 			}
@@ -400,7 +404,7 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 			c.MainCfg.GlobalTags[k] = c.MainCfg.Hostname
 			l.Debugf("set global tag %s: %s", k, c.MainCfg.Hostname)
 
-		case `$datakit_ip`:
+		case `__datakit_ip`, `$datakit_ip`:
 			c.MainCfg.GlobalTags[k] = "unavailable"
 
 			if ipaddr, err := LocalIP(); err != nil {
@@ -410,7 +414,7 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 				c.MainCfg.GlobalTags[k] = ipaddr
 			}
 
-		case `$datakit_uuid`, `$datakit_id`:
+		case `__datakit_uuid`, `__datakit_id`, `$datakit_uuid`, `$datakit_id`:
 			c.MainCfg.GlobalTags[k] = c.MainCfg.UUID
 			l.Debugf("set global tag %s: %s", k, c.MainCfg.UUID)
 
