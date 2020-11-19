@@ -78,6 +78,7 @@ var (
 		"jira":                   true,
 		"jolokia2_agent":         true,
 		"jvm":                    true,
+		"k8sobject":              false,
 		"kafka":                  true,
 		"kafka_consumer":         true,
 		"kapacitor":              true,
