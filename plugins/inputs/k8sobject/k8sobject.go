@@ -3,14 +3,15 @@ package k8sobject
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/influxdata/telegraf/plugins/common/tls"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/influxdata/telegraf/plugins/common/tls"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 
 	"github.com/influxdata/telegraf/filter"
 
@@ -148,14 +149,14 @@ type Metadata struct {
 }
 
 type K8sContent struct {
-	PodRef     *PodReference       `json:"podRef"`
-	Container  *ContainerMetrics   `json:"container"`
+	PodRef    *PodReference     `json:"podRef"`
+	Container *ContainerMetrics `json:"container"`
 }
 
 type K8sObj struct {
-	Name  string                `json:"__name"`
-	Class string                `json:"__class"`
-	Content K8sContent              `json:"__content"`
+	Name    string `json:"__name"`
+	Class   string `json:"__class"`
+	Content string `json:"__content"`
 }
 
 const (
@@ -243,7 +244,7 @@ func (k *K8sObject) getToken() error {
 }
 
 //Gather collects kubernetes object from a given URL
-func (k *K8sObject) Gather()  {
+func (k *K8sObject) Gather() {
 	d, err := time.ParseDuration(k.Interval)
 	if err != nil {
 		log.Errorf("ParseDuration err: %s", err)
@@ -262,10 +263,9 @@ func (k *K8sObject) Gather()  {
 				io.NamedFeed(rst, io.Object, pluginName)
 			}
 
-
-			case <-datakit.Exit.Wait():
-				log.Infof("input %s exit", pluginName)
-				return
+		case <-datakit.Exit.Wait():
+			log.Infof("input %s exit", pluginName)
+			return
 		}
 	}
 }
@@ -290,19 +290,20 @@ func (k *K8sObject) gatherSummary(baseURL string) ([]byte, error) {
 	for _, pod := range summaryMetrics.Pods {
 		for _, container := range pod.Containers {
 			c := K8sObj{}
-			c.Name    = container.Name
-			c.Class   = "k8sobject"
-			c.Content = K8sContent{
+			c.Name = container.Name
+			c.Class = "k8sobject"
+			kc := K8sContent{
 				&pod.PodRef,
 				&container,
 			}
+
+			kcJson, _ := json.Marshal(kc)
+			c.Content = string(kcJson)
 			containers = append(containers, c)
 		}
 	}
 	return json.Marshal(containers)
 }
-
-
 
 func (k *K8sObject) gatherPodInfo(baseURL string) ([]Metadata, error) {
 	var podApi Pods
