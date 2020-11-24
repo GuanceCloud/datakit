@@ -12,10 +12,10 @@ import (
 
 var (
 	telegrafInputsLinux = map[string]*TelegrafInput{ // Name: Catalog
-		"iptables":      {name: "iptables", Catalog: "network", input: &iptables.Iptables{}},
-		"kernel":        {name: "kernel", Catalog: "host", input: &kernel.Kernel{}},
-		`systemd_units`: {name: "systemd_units", Catalog: "host", input: &systemd_units.SystemdUnits{}},
-		"varnish":       {name: "varnish", Catalog: "varnish", input: &varnish.Varnish{}},
+		"iptables":      {name: "iptables", Catalog: "network", Input: &iptables.Iptables{}},
+		"kernel":        {name: "kernel", Catalog: "host", Input: &kernel.Kernel{}},
+		`systemd_units`: {name: "systemd_units", Catalog: "host", Input: &systemd_units.SystemdUnits{}},
+		"varnish":       {name: "varnish", Catalog: "varnish", Input: &varnish.Varnish{}},
 	}
 )
 
