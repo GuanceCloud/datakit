@@ -348,7 +348,7 @@ func Start() {
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
-		GRPCServer(datakit.GRPCDomainSock)
+		GRPCServer()
 	}()
 }
 
