@@ -269,6 +269,7 @@ type MainConfig struct {
 	Name     string      `toml:"name"`
 	DataWay  *DataWayCfg `toml:"dataway,omitempty"`
 	HTTPBind string      `toml:"http_server_addr"`
+	GrpcPort int         `toml:"inner_grpc_port"`
 
 	// For old datakit verison conf, there may exist these fields,
 	// if these tags missing, TOML will parse error
