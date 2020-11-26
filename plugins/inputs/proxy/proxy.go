@@ -30,6 +30,7 @@ const (
     ## http server route path
 		## required: don't change
     path = "/proxy"
+	bind = "0.0.0.0:5588"
 `
 )
 
@@ -43,6 +44,7 @@ func init() {
 
 type Proxy struct {
 	Path string `toml:"path"`
+	Bind string `toml:"bind"`
 
 	PointsLuaFiles []string            `toml:"-"`
 	ObjectLuaFiles []string            `toml:"-"`
@@ -88,7 +90,8 @@ func (d *Proxy) Run() {
 	go func() {
 		wsurl := datakit.Cfg.MainCfg.DataWay.BuildWSURL(datakit.Cfg.MainCfg)
 		wsurl.RawQuery = ""
-		if err := http.ListenAndServe(wsurl.Host, websocketproxy.NewProxy(wsurl)); err != nil {
+
+		if err := http.ListenAndServe(d.Bind, websocketproxy.NewProxy(wsurl)); err != nil {
 			l.Error(err)
 			return
 		}
