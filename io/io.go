@@ -119,7 +119,7 @@ func doFeed(data []byte, category, name string) error {
 	}: // XXX: blocking
 
 	case <-datakit.Exit.Wait():
-		l.Warn("feed skipped on global exit")
+		l.Warnf("%s/%s feed skipped on global exit", category, name)
 	}
 
 	return nil
