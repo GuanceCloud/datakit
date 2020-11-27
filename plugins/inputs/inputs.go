@@ -114,9 +114,11 @@ func StartTelegraf() error {
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
-		_ = tgi.StartTelegraf()
-
-		l.Info("telegraf process exit ok")
+		if err := tgi.StartTelegraf(); err != nil {
+			l.Error("telegraf start failed")
+		} else {
+			l.Info("telegraf process exit ok")
+		}
 	}()
 
 	return nil
