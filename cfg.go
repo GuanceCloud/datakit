@@ -214,9 +214,12 @@ func (dc *DataWayCfg) KeyEventURL() string {
 }
 
 func (dc *DataWayCfg) BuildWSURL(mc *MainConfig) *url.URL {
-
-	rawQuery := fmt.Sprintf("id=%s&version=%s&os=%s&arch=%s&token=%s&heartbeatconf=%s",
-		mc.UUID, git.Version, runtime.GOOS, runtime.GOARCH, dc.WSToken,dc.Heartbeat)
+	ip,err:= LocalIP()
+	if err != nil {
+		ip = ""
+	}
+	rawQuery := fmt.Sprintf("id=%s&version=%s&os=%s&arch=%s&token=%s&heartbeatconf=%s&hostname=%s&ip=%s",
+		mc.UUID, git.Version, runtime.GOOS, runtime.GOARCH, dc.WSToken,dc.Heartbeat,mc.Hostname,ip)
 
 	return &url.URL{
 		Scheme:   dc.wsscheme,
