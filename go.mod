@@ -12,7 +12,7 @@ require (
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.391
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
-	github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible
+	github.com/aliyun/aliyun-oss-go-sdk v2.1.5+incompatible
 	github.com/andygrunwald/go-jira v1.12.0
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/apache/thrift v0.13.0
@@ -87,7 +87,7 @@ require (
 
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20201019091409-df078dd4a19e
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201116053945-59fb6f805f68
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201130093648-4e206f20e376
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73
 	golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d
