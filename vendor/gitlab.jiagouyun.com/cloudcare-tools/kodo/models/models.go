@@ -209,8 +209,11 @@ func Init(dialect, connStr string) error {
 
 		`qLogExtractRule`: `SELECT distinct url, workspaceUUID, source FROM main_log_extract_rule WHERE workspaceUUID=? AND status=?`,
 
-		`updateDKOnline`: `replace into main_datakit_online(uuid, name, token, dkUUID, version, os, arch, enableInputs, availableInputs, 
-					lastOnline, lastHeartbeat, status,creator, updator, createAt,updateAt) Values(?,?,?,?,?,?,?,?,?,?,?,?,"kodo","kodo",?,?) `,
+		`updateDKOnline`: `UPDATE  main_datakit_online SET  name=?, token=?,hostName=?,ip=?, version=?, os=?, arch=?, inputInfo=?, 
+					lastOnline=?, lastHeartbeat=?, status=? where dkUUID=?`,
+		`setDKOnline` : `insert into main_datakit_online(uuid, name, token,hostName,ip, dkUUID, version, os, arch, inputInfo, 
+					lastOnline, lastHeartbeat, status,creator, updator, createAt,updateAt) Values(?,?,?,?,?,?,?,?,?,?,?,?,?,"kodo","kodo",?,?)  `,
+		`existDK`:`select 1 from main_datakit_online where dkUUID=? limit 1`,
 		`updateDKStatus`: `update main_datakit_online set lastHeartbeat=?,status=?,updateAt=? where dkUUID=?`,
 	}
 
