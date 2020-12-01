@@ -116,6 +116,8 @@ github.com/aliyun/aliyun-oss-go-sdk v2.0.8+incompatible/go.mod h1:T/Aws4fEfogEE9
 github.com/aliyun/aliyun-oss-go-sdk v2.1.2+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
 github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible h1:6t4QUhWVCcnilQy+d3aO0zsaO7wH6N3geMo4wgbC4MY=
 github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
+github.com/aliyun/aliyun-oss-go-sdk v2.1.5+incompatible h1:v5yDfjkRY/kOxu05gkh0/D/2wYxbTFCoTr3JqFI0FLE=
+github.com/aliyun/aliyun-oss-go-sdk v2.1.5+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
 github.com/amir/raidman v0.0.0-20170415203553-1ccc43bfb9c9/go.mod h1:eliMa/PW+RDr2QLWRmLH1R1ZA4RInpmvOzDDXtaIZkc=
 github.com/andygrunwald/go-jira v1.12.0 h1:JJi2cEDmDxVtTXxC8ruLDbtOU6pA4OLeL0niyfNcoWw=
 github.com/andygrunwald/go-jira v1.12.0/go.mod h1:jYi4kFDbRPZTJdJOVJO4mpMMIwdB+rcZwSO58DzPd2I=
@@ -1176,6 +1178,8 @@ gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201113074132-326e05e238e9 h1:
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201113074132-326e05e238e9/go.mod h1:6R3jcJ9f7vu1qROnkUT/NzCMM1+10v2qpZt16efDa8k=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201116053945-59fb6f805f68 h1:CyCFmuPK5PpjAyMKLZQbbueIDNaK3HWtVtE5GuCHe/E=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201116053945-59fb6f805f68/go.mod h1:6R3jcJ9f7vu1qROnkUT/NzCMM1+10v2qpZt16efDa8k=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201130093648-4e206f20e376 h1:cHhau6rAfRPfhG7Gs/opLSj6pINIxxuWfb6J7EP2rwQ=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201130093648-4e206f20e376/go.mod h1:6R3jcJ9f7vu1qROnkUT/NzCMM1+10v2qpZt16efDa8k=
 go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738/go.mod h1:dnLIgRNXwCJa5e+c6mIZCrds/GIG4ncV9HhK5PX7jPg=
