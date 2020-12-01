@@ -30,6 +30,8 @@ type DatakitClient struct {
 	Arch    string
 	Docker  bool
 	Token   string
+	HostName string
+	Ip       string
 	Conn    net.Conn
 
 	HeartbeatConf string
@@ -102,7 +104,7 @@ func (wm *WrapMsg) Handle() error {
 		return err
 	}
 
-	//l.Infof("handle msg %+#v", wm)
+	l.Debugf("handle msg %+#v", wm)
 	switch wm.Type {
 	case MTypeHeartbeat:
 		var m MsgDatakitHeartbeat
@@ -138,10 +140,18 @@ func SetDatakitOnline(wm *WrapMsg){
 		return
 	}
 	now := time.Now().Unix()
-	enable,_ := json.Marshal(dk.EnabledInputs)
-	avaliable,_ := json.Marshal(dk.AvailableInputs)
-	uuid := cliutils.XID("dkol_")
-	_, err = models.Stmts[`updateDKOnline`].Exec(uuid,dk.Name,Onlinedks[dk.UUID].Token,dk.UUID,dk.Version,dk.OS,dk.Arch,enable,avaliable,now,now,models.StatusOK,now,now)
+	info,_ := json.Marshal(dk.InputInfo)
+
+	var count  = 0
+	err = models.Stmts["existDK"].QueryRow(dk.UUID).Scan(&count)
+	if count == 1{
+		_,err = models.Stmts["updateDKOnline"].Exec(dk.Name,Onlinedks[dk.UUID].Token,Onlinedks[dk.UUID].HostName,Onlinedks[dk.UUID].Ip,dk.Version,dk.OS,dk.Arch,info,now,now,0,dk.UUID)
+
+	}else {
+		uuid := cliutils.XID("dkol_")
+		_, err = models.Stmts[`setDKOnline`].Exec(uuid,dk.Name,Onlinedks[dk.UUID].Token,Onlinedks[dk.UUID].HostName,Onlinedks[dk.UUID].Ip,dk.UUID,dk.Version,dk.OS,dk.Arch,info,now,now,models.StatusOK,now,now)
+	}
+
 	if err != nil{
 		l.Errorf("set online run mysql err:%s",err)
 	}
@@ -155,7 +165,11 @@ func (wm *WrapMsg)SetRedis(){
 	if err != nil{
 		l.Errorf("set redis parse wm err:%s",err)
 	}
-	config.Redis.Publish(wm.Type,b)
+	if err := config.Redis.Publish(wm.Type,b).Err(); err != nil{
+		l.Errorf("redis publish err:%s",err.Error())
+	}
+	l.Debugf("set redis ok")
+
 }
 
 
@@ -198,8 +212,7 @@ type MsgDatakitOnline struct {
 	Arch            string
 	Name            string
 	Heartbeat       string
-	EnabledInputs   []string
-	AvailableInputs []string
+	InputInfo       map[string]interface{}
 }
 
 // get datakit input config
