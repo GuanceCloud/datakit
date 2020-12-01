@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg"
@@ -494,9 +495,15 @@ func (wc *wscli) OnlineInfo(wm *wsmsg.WrapMsg) {
 		OS:              runtime.GOOS,
 		Arch:            runtime.GOARCH,
 		Heartbeat:       datakit.Cfg.MainCfg.DataWay.Heartbeat,
-		AvailableInputs: GetAvailableInputs(),
-		EnabledInputs:   GetEnableInputs(),
+		InputInfo:       map[string]interface{}{},
 	}
+	m.InputInfo["availableInputs"] = GetAvailableInputs()
+	m.InputInfo["enabledInputs"] = GetEnableInputs()
+	state,err := io.GetStats()
+	if err != nil {
+		l.Errorf("get state err:%s",err.Error())
+	}
+	m.InputInfo["state"] = state
 
 	wc.SetMessage(wm, "ok", m)
 }
