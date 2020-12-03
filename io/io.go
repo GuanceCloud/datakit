@@ -52,6 +52,7 @@ const ( // categories
 	Object           = "/v1/write/object"
 	Logging          = "/v1/write/logging"
 	Tracing          = "/v1/write/tracing"
+	RumMetric        = "/v1/write/metric/rum"
 
 	minGZSize = 1024
 
