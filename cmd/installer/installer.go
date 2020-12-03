@@ -28,6 +28,8 @@ var (
 		"telegraf",
 		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
 
+	ip2locUrl   = "https://" + path.Join(DataKitBaseURL, "IP2LOCATION-LITE-DB11.BIN.ZIP")
+
 	l *logger.Logger
 )
 
@@ -52,6 +54,7 @@ const (
 	datakitBin = "datakit"
 	dlDatakit  = "datakit"
 	dlAgent    = "agent"
+	dlIp2Loc   = "ip2loc"
 )
 
 func main() {
@@ -98,6 +101,9 @@ func main() {
 
 		install.CurDownloading = dlAgent
 		install.Download(telegrafUrl, install.InstallDir)
+
+		install.CurDownloading = dlIp2Loc
+		install.Download(ip2locUrl, path.Join(install.InstallDir, "data"))
 	}
 
 	if *flagUpgrade { // upgrade new version
