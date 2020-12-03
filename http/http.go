@@ -173,6 +173,8 @@ func httpStart(addr string) {
 	router.POST(io.Metric, func(c *gin.Context) { apiWriteMetric(c) })
 	router.POST(io.Object, func(c *gin.Context) { apiWriteObject(c) })
 
+	router.POST(io.RumMetric, func(c *gin.Context) { apiWriteRumMetrics(c) })
+
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: router,
