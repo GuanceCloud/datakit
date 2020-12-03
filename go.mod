@@ -87,7 +87,7 @@ require (
 
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20201019091409-df078dd4a19e
 	gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201130093648-4e206f20e376
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201203104239-47151b6cbf03
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73
 	golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d
