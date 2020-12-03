@@ -254,4 +254,6 @@ const (
 	MTypeDisableInput      string = "disable_input_config"
 	MTypeReload            string = "reload"
 	MTypeTestInput         string = "test_input_config"
+	MTypeEnableInput       string = "enable_input_config"
+
 )
