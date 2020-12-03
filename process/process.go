@@ -35,8 +35,9 @@ func NewProcedure(pt *influxdb.Point) *Procedure {
 func (p *Procedure) Geo(ip string) *Procedure {
 	ipLocInfo, err := geo.Geo(ip)
 	if err != nil {
-		Log.Errorf("ProcessGeo err: %v", err)
+		Log.Errorf("Geo err: %v", err)
 	} else {
+		p.Point.Tags()["isp"]      = ipLocInfo.Isp
 		p.Point.Tags()["country"]  = ipLocInfo.Country_short
 		p.Point.Tags()["province"] = ipLocInfo.Region
 		p.Point.Tags()["city"]     = ipLocInfo.City
