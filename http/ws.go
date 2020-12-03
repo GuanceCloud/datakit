@@ -214,6 +214,8 @@ func (wc *wscli) handle(wm *wsmsg.WrapMsg) error {
 		wc.SetInput(wm)
 	case wsmsg.MTypeTestInput:
 		wc.TestInput(wm)
+	case wsmsg.MTypeEnableInput:
+		wc.EnableInputs(wm)
 
 	case wsmsg.MTypeReload:
 		wc.Reload(wm)
@@ -225,6 +227,46 @@ func (wc *wscli) handle(wm *wsmsg.WrapMsg) error {
 	}
 	return wc.sendText(wm)
 }
+
+func (wc *wscli) EnableInputs(wm *wsmsg.WrapMsg) {
+	var names wsmsg.MsgGetInputConfig
+	err := names.Handle(wm)
+	if err != nil {
+		wc.SetMessage(wm, "bad_request", fmt.Sprintf("parse config err:%s",err.Error()))
+		return
+	}
+	isExist := false
+	if err := filepath.Walk(datakit.ConfdDir, func(fp string, f os.FileInfo, err error) error {
+		if f.IsDir() {
+			return nil
+		}
+
+		if !strings.HasSuffix(f.Name(), ".off") {
+			return nil
+		}
+
+		for _,name := range names.Names {
+			fileName := strings.TrimSuffix(filepath.Base(fp), path.Ext(fp))
+			if fileName == fmt.Sprintf("%s.conf", name) {
+				isExist = true
+				err = os.Rename(fp,filepath.Join(filepath.Dir(fp),fileName))
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		wc.SetMessage(wm,"error",fmt.Sprintf("os walk err:%s",err.Error()))
+		return
+	}
+	if isExist {
+		wc.SetMessage(wm,"ok","")
+	}else {
+		wc.SetMessage(wm,"error","input not exist disabled config")
+	}
+
+}
+
+
 
 func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
 	var configs wsmsg.MsgSetInputConfig
@@ -413,10 +455,10 @@ func (wc *wscli) DisableInput(wm *wsmsg.WrapMsg) {
 		n,cfg := inputs.InputEnabled(name)
 		if n > 0 {
 			for _,fp := range cfg {
-				os.Remove(fp)
+				os.Rename(fp,fmt.Sprintf("%s.off",fp))
 			}
 		}else {
-			wc.SetMessage(wm, "error", fmt.Errorf("input:%s not eanble",name))
+			wc.SetMessage(wm, "error", fmt.Sprintf("input:%s not eanble",name))
 			return
 		}
 	}
