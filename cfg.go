@@ -180,6 +180,14 @@ func (dc *DataWayCfg) TracingURL() string {
 		dc.urlValues.Encode())
 }
 
+func (dc *DataWayCfg) RumURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		"/v1/write/rum",
+		dc.urlValues.Encode())
+}
+
 func (dc *DataWayCfg) KeyEventURL() string {
 
 	if dc.Proxy {
