@@ -11,6 +11,7 @@ import (
 
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/rum"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
 )
@@ -90,7 +91,7 @@ func apiWriteObject(c *gin.Context) {
 	}
 }
 
-func apiWriteRumMetrics(c *gin.Context) {
+func apiWriteRum(c *gin.Context) {
 	var precision string = DEFAULT_PRECISION
 	var body []byte
 	var err error
@@ -123,19 +124,40 @@ func apiWriteRumMetrics(c *gin.Context) {
 
 	l.Debugf("received %d points from %s", len(pts), name)
 
-	convertdata := [][]byte{}
+	metricsdata := [][]byte{}
+	esdata := [][]byte{}
 
 	for _, pt := range pts {
-		convertdata = append(convertdata, process.NewProcedure(influxdb.NewPointFrom(pt)).Geo(c.Request.RemoteAddr).GetByte())
+		if rum.IsMetric(string(pt.Name())) {
+			metricsdata = append(metricsdata, process.NewProcedure(influxdb.NewPointFrom(pt)).Geo(c.Request.RemoteAddr).GetByte())
+		} else if rum.IsES(string(pt.Name())) {
+			esdata = append(esdata, []byte(pt.String()))
+		} else {
+			l.Warnf("Unsupported rum name: '%s'", string(pt.Name()))
+		}
 	}
 
-	body = bytes.Join(convertdata, []byte("\n"))
+	if len(metricsdata) > 0 {
+		body = bytes.Join(metricsdata, []byte("\n"))
 
-	// TODO: add global tags
+		// TODO: add global tags
 
-	if err = io.NamedFeed(body, io.Metric, name); err != nil {
-		l.Errorf("NamedFeed: %s", err.Error())
-		uhttp.HttpErr(c, err)
+		if err = io.NamedFeed(body, io.Metric, name); err != nil {
+			l.Errorf("NamedFeed: %s", err.Error())
+			uhttp.HttpErr(c, err)
+		}
 	}
+
+	if len(esdata) > 0 {
+		body = bytes.Join(metricsdata, []byte("\n"))
+
+		// TODO: add global tags
+
+		if err = io.NamedFeed(body, io.Rum, name); err != nil {
+			l.Errorf("NamedFeed: %s", err.Error())
+			uhttp.HttpErr(c, err)
+		}
+	}
+
 	return
 }
