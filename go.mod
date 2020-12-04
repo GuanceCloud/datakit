@@ -53,6 +53,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/mattn/go-zglob v0.0.3
 	github.com/naoina/toml v0.1.1
+	github.com/nats-io/nats-server/v2 v2.1.4
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
