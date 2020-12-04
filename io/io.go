@@ -52,7 +52,7 @@ const ( // categories
 	Object           = "/v1/write/object"
 	Logging          = "/v1/write/logging"
 	Tracing          = "/v1/write/tracing"
-	RumMetric        = "/v1/write/metric/rum"
+	Rum              = "/v1/write/rum"
 
 	minGZSize = 1024
 
@@ -223,6 +223,7 @@ func startIO() {
 		Object:   datakit.Cfg.MainCfg.DataWay.ObjectURL(),
 		Logging:  datakit.Cfg.MainCfg.DataWay.LoggingURL(),
 		Tracing:  datakit.Cfg.MainCfg.DataWay.TracingURL(),
+		Rum:      datakit.Cfg.MainCfg.DataWay.RumURL(),
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
