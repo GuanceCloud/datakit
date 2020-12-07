@@ -149,7 +149,7 @@ func apiWriteRum(c *gin.Context) {
 	}
 
 	if len(esdata) > 0 {
-		body = bytes.Join(metricsdata, []byte("\n"))
+		body = bytes.Join(esdata, []byte("\n"))
 
 		// TODO: add global tags
 
