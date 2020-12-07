@@ -28,7 +28,7 @@ var (
 		"telegraf",
 		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
 
-	ip2locUrl   = "https://" + path.Join(DataKitBaseURL, "IP2LOCATION-LITE-DB11.BIN.ZIP")
+	ip2locUrl   = "https://" + path.Join(DataKitBaseURL, "IP2LOCATION-LITE-DB11.BIN.tar.gz")
 
 	l *logger.Logger
 )
