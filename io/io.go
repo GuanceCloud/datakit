@@ -35,6 +35,7 @@ var (
 		Object:           nil,
 		Logging:          nil,
 		Tracing:          nil,
+		Rum:              nil,
 	}
 	cacheCnt       = map[string]int{}
 	cacheUploadMax = 100 * 1024 // 100KiB
@@ -388,6 +389,12 @@ func flush(cache map[string][][]byte) {
 	}
 	cache[Tracing] = nil
 	cacheCnt[Tracing] = 0
+
+	if err := doFlush(cache[Rum], Rum); err != nil {
+		l.Errorf("post rum failed, drop %d packages", len(cache[Rum]))
+	}
+	cache[Rum] = nil
+	cacheCnt[Rum] = 0
 }
 
 func buildObjBody(bodies [][]byte) ([]byte, error) {
