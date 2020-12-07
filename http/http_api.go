@@ -98,7 +98,7 @@ func apiWriteRum(c *gin.Context) {
 
 	contentEncoding := c.Request.Header.Get("Content-Encoding")
 	name := c.Query(NAME)
-	precision = c.Query(PRECISION)
+	precision = utils.GinGetArg(c, "X-Precision", PRECISION)
 
 	body, err = ioutil.ReadAll(c.Request.Body)
 	if err != nil {
