@@ -19,7 +19,6 @@ func (_ *Rum) SampleConfig() string {
 }
 
 func (r *Rum) Run() {
-
 }
 
 func init() {
