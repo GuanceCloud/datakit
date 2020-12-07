@@ -107,6 +107,7 @@ func doFeed(data []byte, category, name string) error {
 		if err := checkMetric(data); err != nil {
 			return fmt.Errorf("invalid line protocol data %v", err)
 		}
+	case Rum:
 	case Object:
 	default:
 		return fmt.Errorf("invalid category %s", category)
