@@ -11,7 +11,8 @@ import (
 
 var (
 	Db *ipL.DB
-	Ip2LocDbPath = filepath.Join(datakit.InstallDir, "data", "IP2LOCATION-LITE-DB11.BIN")
+	Ip2LocDbPath = filepath.Join(datakit.InstallDir, "data", "IP2LOCATION-LITE-DB11.BIN",
+		"IP2LOCATION-LITE-DB11.BIN")
 )
 
 func Geo(ip string) (ipL.IP2Locationrecord, error){
