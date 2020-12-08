@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -129,7 +130,10 @@ func apiWriteRum(c *gin.Context) {
 
 	for _, pt := range pts {
 		if rum.IsMetric(string(pt.Name())) {
-			metricsdata = append(metricsdata, process.NewProcedure(influxdb.NewPointFrom(pt)).Geo(c.Request.RemoteAddr).GetByte())
+			addr := c.Request.RemoteAddr
+			parts := strings.Split(addr, ":")
+			addr = parts[0]
+			metricsdata = append(metricsdata, process.NewProcedure(influxdb.NewPointFrom(pt)).Geo(addr).GetByte())
 		} else if rum.IsES(string(pt.Name())) {
 			esdata = append(esdata, []byte(pt.String()))
 		} else {
