@@ -128,14 +128,15 @@ func apiWriteRum(c *gin.Context) {
 	metricsdata := [][]byte{}
 	esdata := [][]byte{}
 
+	addr := c.Request.RemoteAddr
+	parts := strings.Split(addr, ":")
+	addr = parts[0]
+
 	for _, pt := range pts {
 		if rum.IsMetric(string(pt.Name())) {
-			addr := c.Request.RemoteAddr
-			parts := strings.Split(addr, ":")
-			addr = parts[0]
 			metricsdata = append(metricsdata, process.NewProcedure(influxdb.NewPointFrom(pt)).Geo(addr).GetByte())
 		} else if rum.IsES(string(pt.Name())) {
-			esdata = append(esdata, []byte(pt.String()))
+			esdata = append(esdata, process.NewProcedure(influxdb.NewPointFrom(pt)).Geo(addr).GetByte())
 		} else {
 			l.Warnf("Unsupported rum name: '%s'", string(pt.Name()))
 		}
