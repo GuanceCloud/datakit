@@ -440,7 +440,7 @@ func (wc *wscli) WriteFile(tomlStr,cfgPath string) error{
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(cfgPath, data, 0600)
+	err = ioutil.WriteFile(cfgPath, data, 0660)
 	return err
 }
 
