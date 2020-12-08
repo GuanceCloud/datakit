@@ -37,12 +37,23 @@ func (p *Procedure) Geo(ip string) *Procedure {
 	if err != nil {
 		Log.Errorf("Geo err: %v", err)
 	} else {
-		p.Point.Tags()["isp"]      = ipLocInfo.Isp
-		p.Point.Tags()["country"]  = ipLocInfo.Country_short
-		p.Point.Tags()["province"] = ipLocInfo.Region
-		p.Point.Tags()["city"]     = ipLocInfo.City
+		tags := p.Tags()
+		tags["isp"]      = ipLocInfo.Isp
+		tags["country"]  = ipLocInfo.Country_short
+		tags["province"] = ipLocInfo.Region
+		tags["city"]     = ipLocInfo.City
+
 		f, _ := p.Point.Fields()
 		f["ip"] = ip
+
+		newPoint, err := influxdb.NewPoint(p.Point.Name(), tags, f, p.Time())
+		if err != nil {
+			Log.Errorf("New influxdb Point err: %v", err)
+		} else {
+			p.Point = newPoint
+		}
+
+		Log.Debugf("%v %v", ip, p.String())
 	}
 	return p
 }
