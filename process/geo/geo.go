@@ -10,12 +10,11 @@ import (
 )
 
 var (
-	Db *ipL.DB
-	Ip2LocDbPath = filepath.Join(datakit.InstallDir, "data", "IP2LOCATION-LITE-DB11.BIN",
-		"IP2LOCATION-LITE-DB11.BIN")
+	Db           *ipL.DB
+	Ip2LocDbPath = filepath.Join(datakit.InstallDir, "data", "iploc.bin")
 )
 
-func Geo(ip string) (ipL.IP2Locationrecord, error){
+func Geo(ip string) (ipL.IP2Locationrecord, error) {
 	if Db == nil {
 		return ipL.IP2Locationrecord{}, fmt.Errorf("ip2location db nil")
 	}
