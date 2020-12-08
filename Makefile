@@ -21,8 +21,7 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-#LOCAL_ARCHS = "linux/amd64|windows/amd64|darwin/amd64"
-LOCAL_ARCHS = "windows/amd64"
+LOCAL_ARCHS = "linux/amd64|windows/amd64|darwin/amd64"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -109,6 +108,7 @@ pub_test:
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/telegraf/agent-linux-amd64.tar.gz" | tar -xz -C .
+	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(VERSION) .
 	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
 
