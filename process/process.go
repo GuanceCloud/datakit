@@ -3,6 +3,7 @@ package process
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/geo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/ip2isp"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
@@ -38,7 +39,7 @@ func (p *Procedure) Geo(ip string) *Procedure {
 		Log.Errorf("Geo err: %v", err)
 	} else {
 		tags := p.Tags()
-		tags["isp"]      = ipLocInfo.Isp
+		tags["isp"]      = ip2isp.SearchIsp(ip)
 		tags["country"]  = ipLocInfo.Country_short
 		tags["province"] = ipLocInfo.Region
 		tags["city"]     = ipLocInfo.City
