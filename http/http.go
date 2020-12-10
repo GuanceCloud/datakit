@@ -139,6 +139,39 @@ func page404(c *gin.Context) {
 	c.String(http.StatusNotFound, buf.String())
 }
 
+func corsMiddleware(c *gin.Context) {
+	allowHeaders := []string{
+		"Content-Type",
+		"Content-Length",
+		"Accept-Encoding",
+		"X-CSRF-Token",
+		"Authorization",
+		"accept",
+		"origin",
+		"Cache-Control",
+		"X-Requested-With",
+
+		// dataflux headers
+		"X-Token",
+		"X-Datakit-UUID",
+		"X-RP",
+		"X-Precision",
+		"X-Lua",
+	}
+
+	c.Writer.Header().Set("Access-Control-Allow-Origin", c.GetHeader("origin"))
+	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	c.Writer.Header().Set("Access-Control-Allow-Headers", strings.Join(allowHeaders, ", "))
+	c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
+
+	if c.Request.Method == "OPTIONS" {
+		c.AbortWithStatus(http.StatusNoContent)
+		return
+	}
+
+	c.Next()
+}
+
 func httpStart(addr string) {
 	router := gin.New()
 	gin.DisableConsoleColor()
@@ -156,7 +189,7 @@ func httpStart(addr string) {
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
-	router.Use(uhttp.CORSMiddleware)
+	router.Use(corsMiddleware)
 	router.NoRoute(page404)
 
 	applyHTTPRoute(router)
