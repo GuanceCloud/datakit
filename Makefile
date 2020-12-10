@@ -178,9 +178,19 @@ define build_agent
 	tree -Csh embed
 endef
 
+
+define build_ip2isp
+	rm -rf china-operator-ip
+	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
+	@go run cmd/make/genIsp.go
+endef
+
 .PHONY: agent
 agent:
 	$(call build_agent)
+
+ip2isp:
+	$(call build_ip2isp)
 
 clean:
 	rm -rf build/*
