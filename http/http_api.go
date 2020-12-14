@@ -192,6 +192,7 @@ func apiWriteRum(c *gin.Context) {
 		if err = io.NamedFeed(body, io.Metric, name); err != nil {
 			l.Errorf("NamedFeed: %s", err.Error())
 			uhttp.HttpErr(c, err)
+			return
 		}
 	}
 
@@ -203,8 +204,11 @@ func apiWriteRum(c *gin.Context) {
 		if err = io.NamedFeed(body, io.Rum, name); err != nil {
 			l.Errorf("NamedFeed: %s", err.Error())
 			uhttp.HttpErr(c, err)
+			return
 		}
 	}
+
+	utils.ErrOK.HttpResp(c, "ok")
 
 	return
 }
