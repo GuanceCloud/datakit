@@ -62,6 +62,8 @@ func apiWriteMetric(c *gin.Context) {
 		l.Errorf("NamedFeed: %s", err.Error())
 		uhttp.HttpErr(c, err)
 	}
+
+	utils.ErrOK.HttpResp(c, "ok")
 	return
 }
 
