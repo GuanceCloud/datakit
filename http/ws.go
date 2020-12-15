@@ -544,6 +544,7 @@ func (wc *wscli) OnlineInfo(wm *wsmsg.WrapMsg) {
 	state,err := io.GetStats()
 	if err != nil {
 		l.Errorf("get state err:%s",err.Error())
+		state = []*io.InputsStat{}
 	}
 	m.InputInfo["state"] = state
 
