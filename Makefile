@@ -116,6 +116,7 @@ pub_release_img:
 	# release to pub hub
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/telegraf/agent-linux-amd64.tar.gz" | tar -xz -C .
+	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t pubrepo.jiagouyun.com/dataflux/datakit:$(VERSION) .
 	@sudo docker push pubrepo.jiagouyun.com/dataflux/datakit:$(VERSION)
 
