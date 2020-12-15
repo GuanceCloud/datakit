@@ -24,6 +24,8 @@ var (
 	l          *logger.Logger
 	inputName  = "cshark"
 	optChan = make(chan *Params)
+	params  *Params
+	duration int64
 )
 
 
@@ -43,27 +45,44 @@ func (_ *Shark) Gather() error {
 	return nil
 }
 
-func (s *Shark) SendOpt(opt string) error {
-	if err := s.parseParam(opt); err != nil {
+// func (s *Shark) SendOpt(opt string) error {
+// 	if err := s.parseParam(opt); err != nil {
+// 		return fmt.Errorf("command param err %v", err)
+// 	}
+
+// 	// check config
+// 	if err := s.checkParam(); err != nil {
+// 		return err
+// 	}
+
+// 	select {
+// 	case optChan <- s.Params:
+// 		fmt.Println("send success!")
+// 		return nil
+// 	default:
+// 		return fmt.Errorf("busy!")
+// 	}
+
+// 	return nil
+// }
+
+func SendCmdOpt(opt string) error {
+	if err := parseParam(opt); err != nil {
 		return fmt.Errorf("command param err %v", err)
 	}
 
 	// check config
-	if err := s.checkParam(); err != nil {
+	if err := checkParam(); err != nil {
 		return err
 	}
 
 	select {
-	case optChan <- s.Params:
+	case optChan <- params:
 		fmt.Println("send success!")
 		return nil
 	default:
 		return fmt.Errorf("busy!")
 	}
-
-	// optChan <- s.Params
-
-	return nil
 }
 
 func (s *Shark) Run() {
@@ -74,23 +93,21 @@ func (s *Shark) Run() {
 		s.MetricName = "cshark"
 	}
 
-	go func () {
-		for {
-			select {
-			case <- optChan:
-				fmt.Println("receive....")
-				s.Exec()
-			case <-datakit.Exit.Wait():
-				l.Info("exit")
-				return
-			}
+	for {
+		select {
+		case <- optChan:
+			fmt.Println("receive....")
+			s.Exec()
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
 		}
-	}()
+	}
 }
 
 // 参数解析
-func (s *Shark) parseParam(option string) error {
-	if err := json.Unmarshal([]byte(option), &s.Params); err != nil {
+func parseParam(option string) error {
+	if err := json.Unmarshal([]byte(option), &params); err != nil {
 		// l.Errorf("parsse option error:%v", err)
 		return fmt.Errorf("parsse option error:%v", err)
 	}
@@ -99,37 +116,37 @@ func (s *Shark) parseParam(option string) error {
 }
 
 // 参数校验
-func (s *Shark) checkParam() error {
+func checkParam() error {
 	// 协议check
-	if !util.IsSupport(s.Params.Stream.Protocol) {
-		return fmt.Errorf("not support this protocol %s", s.Params.Stream.Protocol)
+	if !util.IsSupport(params.Stream.Protocol) {
+		return fmt.Errorf("not support this protocol %s", params.Stream.Protocol)
 	}
 
 	// 时间check(todo)
-	duration, err := time.ParseDuration(s.Params.Stream.Duration)
+	du, err := time.ParseDuration(params.Stream.Duration)
 	if err != nil {
 		duration = 60
 		l.Error(err)
 	}
 
-	s.Duration = duration.Nanoseconds()/1e9
+	duration = du.Nanoseconds()/1e9
 
 	// src ip check
-	for _, ip := range s.Params.Stream.SrcIPs {
+	for _, ip := range params.Stream.SrcIPs {
 		if !util.IsIP(ip) {
 			return fmt.Errorf("source ip is not right %s", ip)
 		}
 	}
 
 	// dst ip check
-	for _, ip := range s.Params.Stream.DstIPs {
+	for _, ip := range params.Stream.DstIPs {
 		if !util.IsIP(ip) {
 			return fmt.Errorf("destination ip is not right %s", ip)
 		}
 	}
 
 	// port
-	for _, port := range s.Params.Stream.Ports {
+	for _, port := range params.Stream.Ports {
 		portN, _ := strconv.ParseInt(port, 10, 64)
 		if int(portN) > 65535 || int(portN) < 0 {
 			return fmt.Errorf("port ip is not right %s", port)
@@ -149,20 +166,20 @@ func (s *Shark) buildCommand() string {
 
 	// 控制参数
 	args = append(args,"-l")
-	for _, iface := range s.Params.Device {
+	for _, iface := range params.Device {
 		args = append(args, "-i", iface)
 	}
 
 	// 时常控制
-	du := fmt.Sprintf("duration:%d", s.Duration)
+	du := fmt.Sprintf("duration:%d", duration)
 	args = append(args, "-a", du)
 
 	// 过滤器 (todo)
-	if s.Params.Stream.Filter != "" {
-		args = append(args, "-f", s.Params.Stream.Filter)
+	if params.Stream.Filter != "" {
+		args = append(args, "-f", params.Stream.Filter)
 	}
 
-	args = append(args, "-Y", s.Params.Stream.Protocol)
+	args = append(args, "-Y", params.Stream.Protocol)
 
 	// 输出控制
 	separator := fmt.Sprintf("separator=%s", SEPARATOR)
@@ -182,7 +199,7 @@ func (s *Shark) buildCommand() string {
 func (s *Shark) Exec() {
 	// 构造命令
 	var streamCmdStr string
-	if s.Params.Stream != nil {
+	if params.Stream != nil {
 		streamCmdStr = s.buildCommand()
 		l.Info("stream cmd ====>", streamCmdStr)
 	}
