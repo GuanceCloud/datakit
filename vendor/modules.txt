@@ -736,6 +736,8 @@ github.com/ucloud/ucloud-sdk-go/ucloud/response
 github.com/ucloud/ucloud-sdk-go/ucloud/version
 # github.com/ugorji/go/codec v1.1.7
 github.com/ugorji/go/codec
+# github.com/unrolled/secure v1.0.8
+github.com/unrolled/secure
 # github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 github.com/vinllen/mgo
 github.com/vinllen/mgo/bson
