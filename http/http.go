@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/unrolled/secure"
+
 	"github.com/influxdata/influxdb1-client/models"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -172,8 +174,36 @@ func corsMiddleware(c *gin.Context) {
 	c.Next()
 }
 
+func tlsHandler(addr string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		secureMiddleware := secure.New(secure.Options{
+			SSLRedirect: true,
+			SSLHost:     addr,
+		})
+		err := secureMiddleware.Process(c.Writer, c.Request)
+
+		// If there was an error, do not continue.
+		if err != nil {
+			return
+		}
+
+		c.Next()
+	}
+}
+
 func httpStart(addr string) {
 	router := gin.New()
+
+	httpsAddr := ""
+	if datakit.Cfg.MainCfg.TLSCert != "" && datakit.Cfg.MainCfg.TLSKey != "" {
+		parts := strings.Split(addr, ":")
+		httpsAddr = parts[0] + fmt.Sprintf(":%v", datakit.Cfg.MainCfg.HTTPSPort)
+		router.Use(tlsHandler(httpsAddr))
+	}
+
+	l.Debugf("addr:%s, httpsAddr: %s", addr, httpsAddr)
+
 	gin.DisableConsoleColor()
 
 	l.Infof("set gin log to %s", datakit.Cfg.MainCfg.GinLog)
@@ -212,6 +242,14 @@ func httpStart(addr string) {
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: router,
+	}
+
+	if httpsAddr != "" {
+		go func() {
+			if err := router.RunTLS(httpsAddr, datakit.Cfg.MainCfg.TLSCert, datakit.Cfg.MainCfg.TLSKey); err != nil {
+				l.Errorf("fail to start https on %s, %s", httpsAddr, err)
+			}
+		}()
 	}
 
 	go func() {
