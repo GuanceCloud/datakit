@@ -195,15 +195,6 @@ func tlsHandler(addr string) gin.HandlerFunc {
 func httpStart(addr string) {
 	router := gin.New()
 
-	httpsAddr := ""
-	if datakit.Cfg.MainCfg.TLSCert != "" && datakit.Cfg.MainCfg.TLSKey != "" {
-		parts := strings.Split(addr, ":")
-		httpsAddr = parts[0] + fmt.Sprintf(":%v", datakit.Cfg.MainCfg.HTTPSPort)
-		router.Use(tlsHandler(httpsAddr))
-	}
-
-	l.Debugf("addr:%s, httpsAddr: %s", addr, httpsAddr)
-
 	gin.DisableConsoleColor()
 
 	l.Infof("set gin log to %s", datakit.Cfg.MainCfg.GinLog)
@@ -216,6 +207,15 @@ func httpStart(addr string) {
 	if datakit.Cfg.MainCfg.LogLevel != "debug" {
 		gin.SetMode(gin.ReleaseMode)
 	}
+
+	httpsAddr := ""
+	if datakit.Cfg.MainCfg.TLSCert != "" && datakit.Cfg.MainCfg.TLSKey != "" {
+		parts := strings.Split(addr, ":")
+		httpsAddr = parts[0] + fmt.Sprintf(":%v", datakit.Cfg.MainCfg.HTTPSPort)
+		//router.Use(tlsHandler(httpsAddr))
+	}
+
+	l.Debugf("addr:%s, httpsAddr: %s", addr, httpsAddr)
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
