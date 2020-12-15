@@ -30,7 +30,7 @@ func TestRun(t *testing.T) {
 		go s.Run()
 
 		for i := 0; i < 10; i++ {
-			if err := s.SendOpt(msg); err != nil {
+			if err := SendCmdOpt(msg); err != nil {
 				fmt.Println("err", err)
 			}
 			time.Sleep(5*time.Second)
