@@ -8,8 +8,6 @@ const (
 
 type Shark struct {
 	MetricName string
-	Params  *Params
-	Duration int64
 }
 
 type Params struct {
