@@ -109,6 +109,10 @@ func (m *FC) Catalog() string {
 	return "aliyun"
 }
 
+func (m *FC) Test() (result *inputs.TestResult,err error) {
+	return
+}
+
 func (m *FC) Run() {
 	return
 }
