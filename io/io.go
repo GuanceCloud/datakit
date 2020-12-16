@@ -34,6 +34,7 @@ var (
 		Object:           nil,
 		Logging:          nil,
 		Tracing:          nil,
+		Rum:              nil,
 	}
 	cacheCnt       = map[string]int{}
 	cacheUploadMax = 100 * 1024 // 100KiB
@@ -51,6 +52,7 @@ const ( // categories
 	Object           = "/v1/write/object"
 	Logging          = "/v1/write/logging"
 	Tracing          = "/v1/write/tracing"
+	Rum              = "/v1/write/rum"
 
 	minGZSize = 1024
 
@@ -105,6 +107,7 @@ func doFeed(data []byte, category, name string) error {
 		if err := checkMetric(data); err != nil {
 			return fmt.Errorf("invalid line protocol data %v", err)
 		}
+	case Rum:
 	case Object:
 	default:
 		return fmt.Errorf("invalid category %s", category)
@@ -118,7 +121,7 @@ func doFeed(data []byte, category, name string) error {
 	}: // XXX: blocking
 
 	case <-datakit.Exit.Wait():
-		l.Warn("feed skipped on global exit")
+		l.Warnf("%s/%s feed skipped on global exit", category, name)
 	}
 
 	return nil
@@ -221,6 +224,7 @@ func startIO() {
 		Object:   datakit.Cfg.MainCfg.DataWay.ObjectURL(),
 		Logging:  datakit.Cfg.MainCfg.DataWay.LoggingURL(),
 		Tracing:  datakit.Cfg.MainCfg.DataWay.TracingURL(),
+		Rum:      datakit.Cfg.MainCfg.DataWay.RumURL(),
 	}
 
 	l.Debugf("categoryURLs: %+#v", categoryURLs)
@@ -347,7 +351,7 @@ func Start() {
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
-		GRPCServer(datakit.GRPCDomainSock)
+		GRPCServer()
 	}()
 
 }
@@ -385,6 +389,12 @@ func flush(cache map[string][][]byte) {
 	}
 	cache[Tracing] = nil
 	cacheCnt[Tracing] = 0
+
+	if err := doFlush(cache[Rum], Rum); err != nil {
+		l.Errorf("post rum failed, drop %d packages", len(cache[Rum]))
+	}
+	cache[Rum] = nil
+	cacheCnt[Rum] = 0
 }
 
 func buildObjBody(bodies [][]byte) ([]byte, error) {
