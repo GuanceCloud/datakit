@@ -304,79 +304,38 @@ func initPluginSamples() {
 	}
 }
 
-func initDefaultEnabledPlugins(c *datakit.Config) error {
+func initDefaultEnabledPlugins(c *datakit.Config) {
 
 	if len(c.MainCfg.DefaultEnabledInputs) == 0 {
-		return nil
-	}
-
-	fdir := "default_enabled"
-
-	if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, fdir), os.ModePerm); err != nil {
-		l.Error("mkdir failed: %s, ignored", err.Error())
-		return err
+		return
 	}
 
 	for _, name := range c.MainCfg.DefaultEnabledInputs {
+		var fpath, sample string
 
-		fpath := filepath.Join(datakit.ConfdDir, fdir, name+".conf")
-		sample, err := inputs.GetSample(name)
-		if err != nil {
-			l.Error("failed to get %s sample, ignored", name)
+		if i, ok := tgi.TelegrafInputs[name]; ok {
+			fpath = filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf")
+			sample = i.SampleConfig()
+		} else if c, ok := inputs.Inputs[name]; ok {
+			i := c()
+			sample = i.SampleConfig()
+
+			fpath = filepath.Join(datakit.ConfdDir, i.Catalog(), name+".conf")
+		} else {
+			l.Warnf("input %s not found, ignored", name)
 			continue
-		}
-
-		if err := ioutil.WriteFile(fpath, []byte(sample), os.ModePerm); err != nil {
-			l.Error("write input %s config failed: %s, ignored", name, err.Error())
-			continue
-		}
-
-		l.Debugf("enable input %s ok", name)
-	}
-
-	return nil
-}
-
-func EnableInputs(inputlist string) {
-	elems := strings.Split(inputlist, ",")
-	if len(elems) == 0 {
-		return
-	}
-
-	for _, name := range elems {
-		fpath, sample, err := doEnableInput(name)
-		if err != nil {
-			l.Debug("enable input %s failed, ignored", name)
 		}
 
 		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
-			l.Error("mkdir failed: %s, ignored", err.Error())
+			l.Errorf("mkdir failed: %s, ignored", err.Error())
 			continue
 		}
 
 		if err := ioutil.WriteFile(fpath, []byte(sample), os.ModePerm); err != nil {
-			l.Error("write input %s config failed: %s, ignored", name, err.Error())
+			l.Errorf("write input %s config failed: %s, ignored", name, err.Error())
 			continue
 		}
-		l.Debugf("enable input %s ok", name)
+
+		l.Infof("enable input %s ok", name)
 	}
-}
-
-func doEnableInput(name string) (fpath, sample string, err error) {
-	if i, ok := tgi.TelegrafInputs[name]; ok {
-		fpath = filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf")
-		sample = i.SampleConfig()
-		return
-	}
-
-	if c, ok := inputs.Inputs[name]; ok {
-		i := c()
-		sample = i.SampleConfig()
-
-		fpath = filepath.Join(datakit.ConfdDir, i.Catalog(), name+".conf")
-		return
-	}
-
-	err = fmt.Errorf("input %s not found, ignored", name)
-	return
 }
