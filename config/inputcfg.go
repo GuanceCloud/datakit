@@ -48,7 +48,7 @@ func LoadInputsConfig(c *datakit.Config) error {
 	}
 
 	availableInput := map[string]map[string]*ast.Table{}
-	availableTgiInput := map[string]*ast.Table{}
+	availableTgiInput := map[string]map[string]*ast.Table{}
 
 	if err := filepath.Walk(datakit.ConfdDir, func(fp string, f os.FileInfo, err error) error {
 		if err != nil {
@@ -85,7 +85,7 @@ func LoadInputsConfig(c *datakit.Config) error {
 
 		}
 		if _, ok := tgi.TelegrafInputs[fileName]; ok {
-			availableTgiInput[fp] = tbl
+			availableTgiInput[fileName] = map[string]*ast.Table{fp:tbl}
 			return nil
 		}
 		l.Errorf("config:%s must name by input.conf example :disk.conf",fp)
@@ -108,7 +108,16 @@ func LoadInputsConfig(c *datakit.Config) error {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
 			return err}
 	}
-	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, availableTgiInput, c.InputFilters)
+
+	tgiInput := map[string]*ast.Table{}
+
+	for _,v := range availableTgiInput {
+		for fp,tbl := range v {
+			tgiInput[fp] = tbl
+		}
+	}
+
+	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, tgiInput, c.InputFilters)
 	if err != nil {
 		return err
 	}
