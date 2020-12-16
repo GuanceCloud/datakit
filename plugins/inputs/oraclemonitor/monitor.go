@@ -56,6 +56,10 @@ func (_ *OracleMonitor) Catalog() string { return "db" }
 
 func (_ *OracleMonitor) SampleConfig() string { return configSample }
 
+func (_ *OracleMonitor) Test() (result *inputs.TestResult,err error) {
+	return
+}
+
 func (o *OracleMonitor) Run() {}
 
 func init() {
