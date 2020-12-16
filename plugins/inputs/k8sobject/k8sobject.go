@@ -199,6 +199,10 @@ func (k *K8sObject) Catalog() string {
 	return pluginName
 }
 
+func (k *K8sObject) Test() (result *inputs.TestResult,err error) {
+	return
+}
+
 func (k *K8sObject) SampleConfig() string {
 	return k8sSampleConfig
 }
