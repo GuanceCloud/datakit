@@ -28,6 +28,8 @@ var (
 		"telegraf",
 		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
 
+	ip2locUrl = "https://" + path.Join(DataKitBaseURL, "iploc/iploc.tar.gz")
+
 	l *logger.Logger
 )
 
@@ -41,7 +43,7 @@ var (
 
 	flagEnableInputs = flag.String("enable-inputs", "", `default enable inputs(comma splited, example: cpu,mem,disk)`)
 	flagDatakitName  = flag.String("name", "", `specify DataKit name, example: prod-env-datakit`)
-	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=$datakit_hostname,from=$datakit_id`)
+	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=__datakit_hostname,ip=__datakit_ip`)
 	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
@@ -54,6 +56,7 @@ const (
 	datakitBin = "datakit"
 	dlDatakit  = "datakit"
 	dlAgent    = "agent"
+	dlIp2Loc   = "ip2loc"
 )
 
 func main() {
@@ -100,6 +103,9 @@ func main() {
 
 		install.CurDownloading = dlAgent
 		install.Download(telegrafUrl, install.InstallDir)
+
+		install.CurDownloading = dlIp2Loc
+		install.Download(ip2locUrl, path.Join(install.InstallDir, "data"))
 	}
 
 	if *flagUpgrade { // upgrade new version
