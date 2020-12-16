@@ -51,6 +51,10 @@ func (*Fluentd) Catalog() string {
 	return "fluentd"
 }
 
+func (Fluentd) Test() (result *inputs.TestResult,err error) {
+	return
+}
+
 func (*Fluentd) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("Fluentd input started...")

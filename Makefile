@@ -21,7 +21,7 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-LOCAL_ARCHS = "local"
+LOCAL_ARCHS = "linux/amd64|windows/amd64|darwin/amd64"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -108,6 +108,7 @@ pub_test:
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/telegraf/agent-linux-amd64.tar.gz" | tar -xz -C .
+	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(VERSION) .
 	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
 
@@ -115,6 +116,7 @@ pub_release_img:
 	# release to pub hub
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/telegraf/agent-linux-amd64.tar.gz" | tar -xz -C .
+	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t pubrepo.jiagouyun.com/dataflux/datakit:$(VERSION) .
 	@sudo docker push pubrepo.jiagouyun.com/dataflux/datakit:$(VERSION)
 
@@ -177,9 +179,19 @@ define build_agent
 	tree -Csh embed
 endef
 
+
+define build_ip2isp
+	rm -rf china-operator-ip
+	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
+	@go run cmd/make/genIsp.go
+endef
+
 .PHONY: agent
 agent:
 	$(call build_agent)
+
+ip2isp:
+	$(call build_ip2isp)
 
 clean:
 	rm -rf build/*
