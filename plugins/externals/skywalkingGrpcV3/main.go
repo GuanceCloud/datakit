@@ -150,7 +150,7 @@ func skywalkGrpcToLineProto(sg *lang.SegmentObject) error {
 		Lines:     bytes.Join(lines, []byte("\n")),
 		Precision: "ns",
 		Name:      "skywalkingGrpcV3",
-		Io:        dkio.IoType_LOGGING,
+		Io:        dkio.IoType_TRACING,
 	})
 	if err != nil {
 		l.Errorf("feed error: %s", err.Error())
