@@ -3,9 +3,10 @@ package io
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
-	"os"
 	"time"
+	"os"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
 	"google.golang.org/grpc"
@@ -39,6 +40,8 @@ func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
 		category = Object
 	case IoType_LOGGING:
 		category = Logging
+	case IoType_TRACING:
+		category = Tracing
 	default:
 		category = Metric
 	}
@@ -73,13 +76,24 @@ func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
 	return resp, nil
 }
 
-func GRPCServer(uds string) {
+func GRPCServer() {
+	var uds   string
+	var proto string
+	var err   error
 
 	l.Infof("gRPC starting...")
 
-	if _, err := os.Stat(uds); err == nil {
-		if err := os.Remove(uds); err != nil {
-			l.Fatal(err)
+	if datakit.Cfg.MainCfg.GrpcPort != 0 {
+		proto = "tcp"
+		uds   = fmt.Sprintf("127.0.0.1:%d", datakit.Cfg.MainCfg.GrpcPort)
+		datakit.GRPCSock = uds
+	} else {
+		proto = "unix"
+		uds   = datakit.GRPCDomainSock
+		if _, err := os.Stat(uds); err == nil {
+			if err := os.Remove(uds); err != nil {
+				l.Fatal(err)
+			}
 		}
 	}
 
@@ -87,9 +101,7 @@ func GRPCServer(uds string) {
 		uds: uds,
 	}
 
-	var err error
-
-	rpcListener, err = net.Listen("unix", s.uds)
+	rpcListener, err = net.Listen(proto, s.uds)
 	if err != nil {
 		l.Errorf("start gRPC server failed: %s", err)
 		return
