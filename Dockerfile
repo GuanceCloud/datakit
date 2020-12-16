@@ -9,6 +9,7 @@ RUN mkdir -p /opt/oracle
 COPY dist/datakit-linux-amd64/datakit /usr/local/cloudcare/dataflux/datakit/datakit
 COPY dist/datakit-linux-amd64/externals /usr/local/cloudcare/dataflux/datakit/externals
 COPY embed/linux-amd64/agent /usr/local/cloudcare/dataflux/datakit/embed/linux-amd64/agent
+COPY iploc.bin /usr/local/cloudcare/dataflux/datakit/data/iploc.bin
 
 RUN apt-get update
 RUN apt-get install -y libaio-dev libaio1 unzip wget
