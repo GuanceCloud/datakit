@@ -45,6 +45,7 @@ require (
 	//github.com/influxdata/telegraf v1.16.1
 	github.com/influxdata/telegraf v1.15.2
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
+	github.com/ip2location/ip2location-go v8.3.0+incompatible
 	github.com/jackc/pgx v3.6.0+incompatible
 	github.com/jdcloud-api/jdcloud-sdk-go v1.43.0
 	github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5 // indirect
@@ -82,6 +83,7 @@ require (
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/ucloud/ucloud-sdk-go v0.14.0
+	github.com/unrolled/secure v1.0.8
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/xanzy/go-gitlab v0.31.0
 
