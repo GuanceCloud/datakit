@@ -66,4 +66,5 @@ var (
 	MainConfPath   = filepath.Join(InstallDir, "datakit.conf")
 	ConfdDir       = filepath.Join(InstallDir, "conf.d")
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
+	GRPCSock       = ""
 )
