@@ -13,7 +13,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/ceph"
 	"github.com/influxdata/telegraf/plugins/inputs/clickhouse"
 	"github.com/influxdata/telegraf/plugins/inputs/cloudwatch"
-	"github.com/influxdata/telegraf/plugins/inputs/cpu"
 	"github.com/influxdata/telegraf/plugins/inputs/disk"
 	"github.com/influxdata/telegraf/plugins/inputs/diskio"
 	"github.com/influxdata/telegraf/plugins/inputs/dns_query"
@@ -116,8 +115,12 @@ var (
 		"mem":      {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
 		"swap":     {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
 		"system":   {name: "system", Catalog: "host", Input: &system.SystemStats{}},
-		"cpu":      {name: "cpu", Catalog: "host", Input: &cpu.CPUStats{}},
+		//"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
+		"cpu":      {name: "cpu", Catalog: "host", Sample: samples["cpu"], Input: nil},
 		"procstat": {name: "procstat", Catalog: "host", Input: &procstat.Procstat{}},
+		"smart":    {name: "smart", Catalog: "host", Input: &smart.Smart{}},
+
+		"internal": {name: "internal", Catalog: "internal", Sample: samples["internal"], Input: nil}, // import internal package not allowed
 
 		"ping":            {name: "ping", Catalog: "network", Input: &ping.Ping{}},
 		"net":             {name: "net", Catalog: "network", Input: &net.NetIOStats{}},
@@ -127,12 +130,6 @@ var (
 		"http_response":   {name: "http_response", Catalog: "network", Input: &http_response.HTTPResponse{}},
 		"httpjson":        {name: "httpjson", Catalog: "network", Input: &httpjson.HttpJson{}},
 		"socket_listener": {name: "socket_listener", Catalog: "network", Input: &socket_listener.SocketListener{}},
-
-		"smart":    {name: "smart", Catalog: "host", Input: &smart.Smart{}},
-
-		"internal": {name: "internal", Catalog: "internal", Sample: samples["internal"], Input: nil}, // import internal package not allowed
-
-
 
 		// collectd use socket_listener to gather data
 		"collectd": {name: "socket_listener", Catalog: "collectd", Input: &socket_listener.SocketListener{}},
