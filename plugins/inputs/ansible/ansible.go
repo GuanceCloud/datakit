@@ -28,6 +28,12 @@ func (a *Ansible) Catalog() string {
 	return inputName
 }
 
+func (a *Ansible) Test() (*inputs.TestResult,error) {
+	var result = &inputs.TestResult{}
+	result.Desc = "test ok"
+	return result,nil
+}
+
 func (a *Ansible) SampleConfig() string {
 	return ConfigSample
 }
