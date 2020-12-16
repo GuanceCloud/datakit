@@ -40,6 +40,10 @@ func (m *Mock) Catalog() string {
 	return "mock"
 }
 
+func (m *Mock) Test() (result *inputs.TestResult,err error) {
+	return
+}
+
 func (m *Mock) Run() {
 
 	l = logger.SLogger("mock")
