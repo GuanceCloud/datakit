@@ -57,6 +57,10 @@ func (_ *externalInput) SampleConfig() string {
 	return configSample
 }
 
+func (_ *externalInput) Test() (result *inputs.TestResult,err error) {
+	return
+}
+
 func (ex *externalInput) precheck() error {
 
 	ex.duration = time.Second * 10
