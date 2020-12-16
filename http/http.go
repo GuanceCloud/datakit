@@ -237,8 +237,6 @@ func httpStart(addr string) {
 	router.POST(io.Object, func(c *gin.Context) { apiWriteObject(c) })
 	router.POST(io.Logging, func(c *gin.Context) { apiWriteLogging(c) })
 
-	router.POST(io.Rum, func(c *gin.Context) { apiWriteRum(c) })
-
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: router,
