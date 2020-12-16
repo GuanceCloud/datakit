@@ -18,6 +18,7 @@ var (
 )
 
 func StartTelegraf() error {
+	l = logger.SLogger("telegraf_inputs")
 
 	telegrafConf = filepath.Join(datakit.TelegrafDir, "agent.conf")
 
@@ -33,39 +34,39 @@ func StartTelegraf() error {
 
 func doStart() (*os.Process, error) {
 
-	env := os.Environ()
-	if runtime.GOOS == datakit.OSWindows {
-		env = append(env, fmt.Sprintf(`TELEGRAF_CONFIG_PATH=%s`, telegrafConf))
-	}
-	procAttr := &os.ProcAttr{
-		Env: env,
-		Files: []*os.File{
-			os.Stdin,
-			os.Stdout,
-			os.Stderr,
-		},
-	}
-
 	var p *os.Process
 	telegrafBin := agentPath()
 
 	if runtime.GOOS == datakit.OSWindows {
+		env := os.Environ()
+		env = append(env, fmt.Sprintf(`TELEGRAF_CONFIG_PATH=%s`, telegrafConf))
 
 		cmd := exec.Command(telegrafBin, "-console")
 		cmd.Env = env
+
+		// XXX: under windows, we must redirect cmd stdout/stderr to os, or
+		// the restarting of telegraf will timeout.
+
+		// XXX: this makes me hard to get the telegraf startup error message(i.e., config error)
+
+		// TODO: we should check all telegraf config before starting it
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
-		if err := cmd.Start(); err != nil {
+		err := cmd.Start()
+		if err != nil {
+			//l.Error("start telegraf failed: %s, %s", err.Error(), string(out))
+			l.Error("start telegraf failed: %s", err.Error())
 			return nil, err
 		}
 
 		p = cmd.Process
 	} else {
 		var err error
-		p, err = os.StartProcess(telegrafBin, []string{"agent", "-config", telegrafConf}, procAttr)
+		cmd := exec.Command(telegrafBin, "-config", telegrafConf)
+		out, err := cmd.CombinedOutput()
 		if err != nil {
-			l.Errorf("start telegraf failed: %s", err.Error())
+			l.Errorf("start telegraf failed: %s, %s", err.Error(), string(out))
 			return nil, err
 		}
 	}
