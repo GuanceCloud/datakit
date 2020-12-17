@@ -61,7 +61,7 @@ func (_ *ConsumerInstance) SampleConfig() string {
 
 func (al *ConsumerInstance) Test() (result *inputs.TestResult, err error) {
 	// 被动接受数据，无法进行测试
-	result.Desc = "placeholder"
+	result.Desc = "success"
 	return
 }
 
