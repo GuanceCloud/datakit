@@ -97,11 +97,18 @@ func (m *Mongodboplog) Test() (result *inputs.TestResult, err error) {
 	var session *mgo.Session
 	if session, err = mgo.Dial(m.MongodbURL); err != nil {
 		err = fmt.Errorf("failed to connect, err: %s", err.Error())
-	} else {
-		session.Close()
 	}
+	defer func() {
+		if session != nil {
+			session.Close()
+		}
+	}()
 
-	result.Desc = "placeholder"
+	if err != nil {
+		result.Desc = "测试连接MongoDB失败，详情见错误信息"
+	} else {
+		result.Desc = "测试连接MongoDB成功"
+	}
 	return
 }
 
