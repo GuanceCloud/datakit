@@ -121,7 +121,11 @@ func (r *Replication) Test() (result *inputs.TestResult, err error) {
 	}
 	r.closeConn()
 
-	result.Desc = "placeholder"
+	if err != nil {
+		result.Desc = "测试连接postgresql失败，详情见错误信息"
+	} else {
+		result.Desc = "测试连接postgresql成功"
+	}
 	return
 }
 
