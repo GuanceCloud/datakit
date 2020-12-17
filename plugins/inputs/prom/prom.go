@@ -93,6 +93,8 @@ func (p *Prom) Catalog() string {
 
 func (p *Prom) Test() (result *inputs.TestResult, err error) {
 	p.log = logger.SLogger(p.InputName)
+	// default
+	result.Desc = "数据指标获取失败，详情见错误信息"
 
 	if err = p.loadCfg(); err != nil {
 		return
@@ -105,8 +107,7 @@ func (p *Prom) Test() (result *inputs.TestResult, err error) {
 	}
 
 	result.Result = data
-	result.Desc = "placeholder"
-
+	result.Desc = "数据指标获取成功"
 	return
 }
 

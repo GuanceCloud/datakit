@@ -50,7 +50,7 @@ func (_ *Binlog) SampleConfig() string {
 
 func (_ *Binlog) Test() (result *inputs.TestResult, err error) {
 	// 被动接受数据，无法进行测试
-	result.Desc = "placeholder"
+	result.Desc = "success"
 	return
 }
 
