@@ -59,7 +59,7 @@ func (*PuppetAgent) Catalog() string {
 
 func (pa *PuppetAgent) Test() (result *inputs.TestResult, err error) {
 	// 监听文件变更，无法进行测试
-	result.Desc = "placeholder"
+	result.Desc = "success"
 	return
 }
 
