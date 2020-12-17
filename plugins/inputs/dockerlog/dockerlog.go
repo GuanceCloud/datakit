@@ -137,7 +137,7 @@ func (*DockerLogs) Catalog() string {
 
 func (d *DockerLogs) Test() (result *inputs.TestResult, err error) {
 	// 主动请求变更数据，拥有不确定性，无法进行测试
-	result.Desc = "placeholder"
+	result.Desc = "success"
 	return
 }
 
