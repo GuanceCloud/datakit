@@ -45,27 +45,6 @@ func (_ *Shark) Gather() error {
 	return nil
 }
 
-// func (s *Shark) SendOpt(opt string) error {
-// 	if err := s.parseParam(opt); err != nil {
-// 		return fmt.Errorf("command param err %v", err)
-// 	}
-
-// 	// check config
-// 	if err := s.checkParam(); err != nil {
-// 		return err
-// 	}
-
-// 	select {
-// 	case optChan <- s.Params:
-// 		fmt.Println("send success!")
-// 		return nil
-// 	default:
-// 		return fmt.Errorf("busy!")
-// 	}
-
-// 	return nil
-// }
-
 func SendCmdOpt(opt string) error {
 	if err := parseParam(opt); err != nil {
 		return fmt.Errorf("command param err %v", err)
@@ -100,6 +79,7 @@ func (s *Shark) Run() {
 			s.Exec()
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
+			fmt.Println("++++++++exit")
 			return
 		}
 	}
@@ -161,6 +141,9 @@ func checkParam() error {
 // 构建抓包命令行
 func (s *Shark) buildCommand() string {
 	args := make([]string, 0)
+	portFilterStr := ""
+	srcIPFilterStr := ""
+	dstIPFilterStr := ""
 
 	args = append(args, "tshark")
 
@@ -179,11 +162,47 @@ func (s *Shark) buildCommand() string {
 		args = append(args, "-f", params.Stream.Filter)
 	}
 
-	args = append(args, "-Y", params.Stream.Protocol)
+	// 端口
+	if len(params.Stream.Ports) > 0 {
+		for _, port := range params.Stream.Ports {
+			portFilterStr += "port " + port + " or "
+		}
+		portFilterStr = strings.Trim(portFilterStr, "or ")
+
+		args = append(args, "-f", portFilterStr)
+	}
+
+	// ip
+	if len(params.Stream.SrcIPs) > 0 {
+		for _, srcIP := range params.Stream.SrcIPs {
+			srcIPFilterStr += "src host " + srcIP + " or "
+		}
+		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
+		args = append(args, "-f", srcIPFilterStr)
+	}
+
+	if len(params.Stream.DstIPs) > 0 {
+		for _, dstIP := range params.Stream.DstIPs {
+			dstIPFilterStr += "dst host " + dstIP + " or "
+		}
+		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
+		args = append(args, "-f", dstIPFilterStr)
+	}
+
+	if len(params.Stream.Protocol) > 0 {
+		args = append(args, "-Y", params.Stream.Protocol)
+
+		// 协议分发
+		switch	strings.ToUpper(params.Stream.Protocol) {
+			case "HTTP":
+				protocol.CommonItems = append(protocol.CommonItems, protocol.HttpItems...)
+			case "MYSQL":
+				protocol.CommonItems = append(protocol.CommonItems, protocol.MysqlItems...)
+		}
+	}
 
 	// 输出控制
 	separator := fmt.Sprintf("separator=%s", SEPARATOR)
-	// args = append(args, "-T", "fields", "-E", separator, "-E", "quote=d")
 	args = append(args, "-T", "fields", "-E", separator)
 
 	// 输出field
