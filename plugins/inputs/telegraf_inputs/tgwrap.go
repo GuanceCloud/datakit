@@ -33,8 +33,7 @@ func StartTelegraf() error {
 }
 
 func doStart() (*os.Process, error) {
-
-	var p *os.Process
+	var p = &os.Process{}
 	telegrafBin := agentPath()
 
 	if runtime.GOOS == datakit.OSWindows {
@@ -71,7 +70,7 @@ func doStart() (*os.Process, error) {
 		}
 	}
 
-	l.Infof("telegraf PID: %d", p.Pid)
+	l.Infof("telegraf PID: %v", p.Pid)
 	time.Sleep(time.Second)
 	return p, nil
 }
