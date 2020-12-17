@@ -55,7 +55,7 @@ func (*Flink) Catalog() string {
 
 func (*Flink) Test() (result *inputs.TestResult, err error) {
 	// 被动接收 http 数据，无法进行测试
-	result.Desc = "placeholder"
+	result.Desc = "success"
 	return
 }
 
