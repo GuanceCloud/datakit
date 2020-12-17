@@ -162,17 +162,16 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 					l.Warnf("ignore bad toml node for %s within %s", name, fp)
 				} else {
 					for inputName, v := range stbl.Fields {
-						if inputName != name {
-							continue
-						}
-
-						inputlist, err = TryUnmarshal(v, name, creator)
+						//if inputName != name {
+						//	continue
+						//}
+						inputlist, err = TryUnmarshal(v, inputName, creator)
 						if err != nil {
-							l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
+							l.Warnf("unmarshal input %s failed within %s: %s", inputName, fp, err.Error())
 							continue
 						}
 
-						l.Infof("load input %s from %s ok", name, fp)
+						l.Infof("load input %s from %s ok", inputName, fp)
 					}
 				}
 
