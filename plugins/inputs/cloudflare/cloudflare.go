@@ -76,6 +76,8 @@ func (*Cloudflare) Catalog() string {
 
 func (h *Cloudflare) Test() (result *inputs.TestResult, err error) {
 	l = logger.SLogger(inputName)
+	// default
+	result.Desc = "数据指标获取失败，详情见错误信息"
 
 	if err = h.loadCfg(); err != nil {
 		return
@@ -88,9 +90,8 @@ func (h *Cloudflare) Test() (result *inputs.TestResult, err error) {
 	}
 
 	result.Result = data
-	result.Desc = "placeholder"
-
-	return result, nil
+	result.Desc = "数据指标获取成功"
+	return
 }
 
 func (h *Cloudflare) Run() {
