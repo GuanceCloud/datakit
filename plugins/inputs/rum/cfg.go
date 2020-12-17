@@ -3,10 +3,13 @@ package rum
 const (
 	configSample = `
 [[inputs.rum]]
+# ##(optional) tell datakit which http header contains the source ip, if empty use the client ip
+ip_header = 'X-Forwarded-For'
 `
 )
 
 type Rum struct {
+	IPHeader string `toml:"ip_header,omitempty"`
 }
 
 var metricNames = map[string]bool{
