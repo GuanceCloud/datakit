@@ -29,6 +29,7 @@ const (
 var (
 	inputName    = `rum`
 	moduleLogger *logger.Logger
+	ipheaderName = ""
 )
 
 func (_ *Rum) Catalog() string {
@@ -43,6 +44,7 @@ func (r *Rum) Run() {
 }
 
 func (r *Rum) RegHttpHandler() {
+	ipheaderName = r.IPHeader
 	moduleLogger = logger.SLogger(inputName)
 	httpd.RegGinHandler("POST", io.Rum, Handle)
 }
@@ -55,6 +57,12 @@ func Handle(c *gin.Context) {
 
 	contentEncoding := c.Request.Header.Get("Content-Encoding")
 	precision = utils.GinGetArg(c, "X-Precision", PRECISION)
+
+	sourceIP := c.Request.Header.Get(ipheaderName)
+	if sourceIP == "" {
+		parts := strings.Split(c.Request.RemoteAddr, ":")
+		sourceIP = parts[0]
+	}
 
 	body, err = ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -84,15 +92,11 @@ func Handle(c *gin.Context) {
 	metricsdata := [][]byte{}
 	esdata := [][]byte{}
 
-	addr := c.Request.RemoteAddr
-	parts := strings.Split(addr, ":")
-	addr = parts[0]
-
 	for _, pt := range pts {
 		if IsMetric(string(pt.Name())) {
-			metricsdata = append(metricsdata, process.NewProcedure(influxdb.NewPointFrom(pt)).Geo(addr).GetByte())
+			metricsdata = append(metricsdata, process.NewProcedure(influxdb.NewPointFrom(pt)).Geo(sourceIP).GetByte())
 		} else if IsES(string(pt.Name())) {
-			esdata = append(esdata, process.NewProcedure(influxdb.NewPointFrom(pt)).Geo(addr).GetByte())
+			esdata = append(esdata, process.NewProcedure(influxdb.NewPointFrom(pt)).Geo(sourceIP).GetByte())
 		} else {
 			moduleLogger.Warnf("Unsupported rum name: '%s'", string(pt.Name()))
 		}
