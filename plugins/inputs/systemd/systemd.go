@@ -60,6 +60,8 @@ func (*Systemd) Catalog() string {
 
 func (s *Systemd) Test() (result *inputs.TestResult, err error) {
 	l = logger.SLogger(inputName)
+	// default
+	result.Desc = "数据指标获取失败，详情见错误信息"
 
 	if err = s.loadCfg(); err != nil {
 		return
@@ -73,8 +75,7 @@ func (s *Systemd) Test() (result *inputs.TestResult, err error) {
 	}
 
 	result.Result = data
-	result.Desc = "placeholder"
-
+	result.Desc = "数据指标获取成功"
 	return
 }
 
