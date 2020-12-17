@@ -4,6 +4,7 @@ package oraclemonitor
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 )
 
 const (
@@ -50,7 +51,9 @@ var (
 	inputName = "oraclemonitor"
 )
 
-type OracleMonitor struct{}
+type OracleMonitor struct{
+	external.ExernalInput
+}
 
 func (_ *OracleMonitor) Catalog() string { return "db" }
 
