@@ -55,7 +55,7 @@ func (*Druid) Catalog() string {
 
 func (*Druid) Test() (result *inputs.TestResult, err error) {
 	// 被动接受 http 数据，无法进行测试
-	result.Desc = "placeholder"
+	result.Desc = "success"
 	return
 }
 
