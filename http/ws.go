@@ -71,17 +71,23 @@ func StartWS() {
 func (wc *wscli) tryConnect(wsurl string) {
 
 	for {
-		c, resp, err := websocket.DefaultDialer.Dial(wsurl, nil)
-		if err != nil {
-			l.Errorf("websocket.DefaultDialer.Dial(): %s", err.Error())
-			time.Sleep(time.Second * 3)
-			continue
-		}
-		_ = resp
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		default:
+			c, resp, err := websocket.DefaultDialer.Dial(wsurl, nil)
+			if err != nil {
+				l.Errorf("websocket.DefaultDialer.Dial(): %s", err.Error())
+				time.Sleep(time.Second * 3)
+				continue
+			}
+			_ = resp
 
-		wc.c = c
-		l.Infof("ws ready")
-		break
+			wc.c = c
+			l.Infof("ws ready")
+			return
+		}
+
 	}
 }
 
