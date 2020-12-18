@@ -36,6 +36,7 @@ type DatakitClient struct {
 
 	HeartbeatConf string
 	Heartbeat time.Time
+	Status  string
 }
 
 type WrapMsg struct {
@@ -115,6 +116,9 @@ func (wm *WrapMsg) Handle() error {
 	case MTypeOnline:
 		wm.SetRedis()
 		SetDatakitOnline(wm)
+		return nil
+	case MtypeModifyDKStatus :
+		Onlinedks[wm.Dest[0]].Status = "reload"
 		return nil
 	default:
 		wm.SetRedis()
@@ -255,5 +259,8 @@ const (
 	MTypeReload            string = "reload"
 	MTypeTestInput         string = "test_input_config"
 	MTypeEnableInput       string = "enable_input_config"
+	MTypeCMD               string = "cmd"
+	MtypeCsharkCmd         string = "csharkCmd"
+	MtypeModifyDKStatus   string = "modifyStatus"
 
 )
