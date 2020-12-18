@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/naoina/toml"
 )
 
 type MsgGetInputConfig struct {
@@ -35,8 +37,17 @@ func TestRename(t *testing.T) {
 	fmt.Println(newPath)
 	err := os.Rename(path, newPath)
 	fmt.Println(err)
-
 }
 
+
+func TestParse(t *testing.T) {
+	path := "/Users/admin/Desktop/wechat.conf"
+	b, _ := ioutil.ReadFile(path)
+
+	tbl,err := toml.Parse(b)
+	fmt.Println(err)
+	fmt.Println(tbl.Fields)
+
+}
 
 
