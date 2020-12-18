@@ -407,7 +407,6 @@ github.com/influxdata/telegraf/plugins/inputs/apache
 github.com/influxdata/telegraf/plugins/inputs/ceph
 github.com/influxdata/telegraf/plugins/inputs/clickhouse
 github.com/influxdata/telegraf/plugins/inputs/cloudwatch
-github.com/influxdata/telegraf/plugins/inputs/cpu
 github.com/influxdata/telegraf/plugins/inputs/disk
 github.com/influxdata/telegraf/plugins/inputs/diskio
 github.com/influxdata/telegraf/plugins/inputs/dns_query
@@ -787,7 +786,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 # gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201203104239-47151b6cbf03
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201218052640-c63ec13ab452
 gitlab.jiagouyun.com/cloudcare-tools/kodo/config
 gitlab.jiagouyun.com/cloudcare-tools/kodo/models
 gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg
@@ -918,7 +917,7 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
+# golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 golang.org/x/xerrors
