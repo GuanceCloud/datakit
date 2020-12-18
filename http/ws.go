@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -241,37 +242,37 @@ func (wc *wscli) EnableInputs(wm *wsmsg.WrapMsg) {
 		wc.SetMessage(wm, "bad_request", fmt.Sprintf("parse config err:%s",err.Error()))
 		return
 	}
-	isExist := false
-	if err := filepath.Walk(datakit.ConfdDir, func(fp string, f os.FileInfo, err error) error {
-		if f.IsDir() {
-			return nil
+	inputsConfMap := SearchFile(names.Names)
+	for _,v := range names.Names {
+		n,_ := inputs.InputEnabled(v)
+		if n > 0 {
+			wc.SetMessage(wm, "error", fmt.Sprintf("input:%s is enable",v))
+			return
 		}
-
-		if !strings.HasSuffix(f.Name(), ".off") {
-			return nil
-		}
-
-		for _,name := range names.Names {
-			fileName := strings.TrimSuffix(filepath.Base(fp), path.Ext(fp))
-			if fileName == fmt.Sprintf("%s.conf", name) {
-				isExist = true
-				err = os.Rename(fp,filepath.Join(filepath.Dir(fp),fileName))
-				return err
+		if confPath ,ok := inputsConfMap[v];!ok {
+			wc.SetMessage(wm, "error", fmt.Sprintf("input:%s not exist conf",v))
+			return
+		}else {
+			buf, err := ioutil.ReadFile(confPath)
+			if err != nil {
+				wc.SetMessage(wm, "error", fmt.Sprintf("input:%s read conf err:%s",v,err))
+				return
 			}
+			tbl,err := toml.Parse(buf)
+			if err != nil {
+				wc.SetMessage(wm, "error", fmt.Sprintf("input:%s parse conf err:%s",v,err))
+				return
+			}
+			if len(tbl.Fields) == 0 {
+				datakit.AnnotationConf(confPath,"delete")
+			}
+
 		}
-		return nil
-	}); err != nil {
-		wc.SetMessage(wm,"error",fmt.Sprintf("os walk err:%s",err.Error()))
-		return
+
 	}
-	if isExist {
-		wc.SetMessage(wm,"ok","")
-	}else {
-		wc.SetMessage(wm,"error","input not exist disabled config")
-	}
+	wc.SetMessage(wm,"ok","")
 
 }
-
 
 
 func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
@@ -281,7 +282,7 @@ func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
 		wc.SetMessage(wm, "error", err.Error())
 		return
 	}
-	var returnMap = map[string]string{}
+	var returnMap = map[string]*inputs.TestResult{}
 	for k, v := range configs.Configs {
 		data, err := base64.StdEncoding.DecodeString(v["toml"])
 		if err != nil {
@@ -307,7 +308,7 @@ func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
 							wc.SetMessage(wm, "error", err.Error())
 							return
 						}
-						returnMap[k] = base64.StdEncoding.EncodeToString(result.Result)
+						returnMap[k] = result
 					}
 				}
 			}
@@ -321,7 +322,7 @@ func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
 				return
 			}
 
-			returnMap[k] = base64.StdEncoding.EncodeToString(result.Result)
+			returnMap[k] = result
 			continue
 		}
 
@@ -332,7 +333,16 @@ func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
 	wc.SetMessage(wm, "ok", returnMap)
 }
 
+func (wc *wscli)ModifyStatus() {
+	var wmsg = wsmsg.WrapMsg{}
+	wmsg.Type = wsmsg.MtypeModifyDKStatus
+	wmsg.ID = cliutils.XID("wmsg_")
+	wmsg.Code = "ok"
+	_ = wc.sendText(&wmsg)
+}
+
 func (wc *wscli) Reload(wm *wsmsg.WrapMsg) {
+	wc.ModifyStatus()
 	err := ReloadDatakit()
 	if err != nil {
 		l.Errorf("reload err:%s", err.Error())
@@ -365,6 +375,7 @@ func parseConf(conf string, name string) (listMd5 []string,catelog string, err e
 	}
 	tbl, err := toml.Parse(data)
 	if err != nil {
+		l.Errorf("toml parse err:%s",err.Error())
 		return
 	}
 
@@ -372,10 +383,7 @@ func parseConf(conf string, name string) (listMd5 []string,catelog string, err e
 		stbl, _ := node.(*ast.Table)
 		for _, sstbl := range stbl.Fields {
 			for _, tb := range sstbl.([]*ast.Table) {
-				if name != tb.Name {
-					err = fmt.Errorf("input: %s parse config err",name)
-					return
-				}
+
 				if creator, ok := inputs.Inputs[name]; ok {
 					inp := creator()
 					err = toml.UnmarshalTable(tb, inp)
@@ -408,15 +416,9 @@ func (wc *wscli) parseTomlToFile(tomlStr, name string) error {
 		return fmt.Errorf("cannot set same config")
 	}
 	inputPath := filepath.Join(datakit.ConfdDir, catalog, fmt.Sprintf("%s.conf",name))
-	n,cfg := inputs.InputEnabled(name)
-	if n > 0 {
-		for _,fp := range cfg {
-			fileName := strings.TrimSuffix(filepath.Base(fp), path.Ext(fp))
-			if fileName == name {
-				inputPath = fp
-				break
-			}
-		}
+	inputConfMap := SearchFile([]string{name})
+	if confPath,ok  := inputConfMap[name];ok {
+		inputPath = confPath
 	}
 	if err = wc.WriteFile(tomlStr,inputPath); err != nil {
 		return err
@@ -428,7 +430,7 @@ func (wc *wscli) SetInput(wm *wsmsg.WrapMsg) {
 	var configs wsmsg.MsgSetInputConfig
 	err := configs.Handle(wm)
 	if err != nil {
-		wc.SetMessage(wm, "bad_request", fmt.Sprintf("parse config err:%s",err.Error()))
+		wc.SetMessage(wm, "bad_request", fmt.Sprintf("%+#v",wm))
 		return
 	}
 	for k, v := range configs.Configs {
@@ -461,10 +463,13 @@ func (wc *wscli) DisableInput(wm *wsmsg.WrapMsg) {
 		n,cfg := inputs.InputEnabled(name)
 		if n > 0 {
 			for _,fp := range cfg {
-				os.Rename(fp,fmt.Sprintf("%s.off",fp))
+				if err := datakit.AnnotationConf(fp,"add");err!= nil {
+					wc.SetMessage(wm, "error", fmt.Sprintf("input:%s disable err:%s",name,err.Error()))
+					return
+				}
 			}
 		}else {
-			wc.SetMessage(wm, "error", fmt.Sprintf("input:%s not eanble",name))
+			wc.SetMessage(wm, "error", fmt.Sprintf("input:%s not enable",name))
 			return
 		}
 	}
@@ -515,22 +520,32 @@ func (wc *wscli) GetInputsConfig(wm *wsmsg.WrapMsg) {
 	var names wsmsg.MsgGetInputConfig
 	err := names.Handle(wm)
 	if err != nil {
-		errMessage := fmt.Sprintf("GetInputsConfig %s params error", wm)
-		l.Error(errMessage)
-		wc.SetMessage(wm, "error", errMessage)
+		wc.SetMessage(wm, "error", "request params error")
 		return
 	}
 	var data []map[string]map[string]string
-
+	inputConfMap := SearchFile(names.Names)
 	for _, v := range names.Names {
-		sample, err := inputs.GetSample(v)
-		if err != nil {
-			errMessage := fmt.Sprintf("get config error %s", err)
-			l.Error(errMessage)
-			wc.SetMessage(wm, "error", errMessage)
-			return
+		if inputConf,ok := inputConfMap[v];!ok{
+			sample, err := inputs.GetSample(v)
+			if err != nil {
+				errMessage := fmt.Sprintf("get config error %s", err)
+				l.Error(errMessage)
+				wc.SetMessage(wm, "error", errMessage)
+				return
+			}
+			data = append(data, map[string]map[string]string{v: {"toml": base64.StdEncoding.EncodeToString([]byte(sample))}})
+		}else {
+
+			buf,err :=  ioutil.ReadFile(inputConf)
+			if err != nil {
+				errMessage := fmt.Sprintf("get config error %s", err)
+				l.Error(errMessage)
+				wc.SetMessage(wm, "error", errMessage)
+				return
+			}
+			data = append(data, map[string]map[string]string{v: {"toml": base64.StdEncoding.EncodeToString(buf)}})
 		}
-		data = append(data, map[string]map[string]string{v: {"toml": base64.StdEncoding.EncodeToString([]byte(sample))}})
 	}
 	wc.SetMessage(wm, "ok", data)
 }
@@ -591,4 +606,35 @@ func GetEnableInputs()(Enable []string)  {
 		}
 	}
 	return Enable
+}
+
+
+
+func SearchFile(inputName []string) map[string]string {
+	confMap := map[string]string{
+	}
+
+	if err := filepath.Walk(datakit.ConfdDir, func(fp string, f os.FileInfo, err error) error {
+		if err != nil {
+			l.Error(err)
+		}
+
+		if f.IsDir() {
+			l.Debugf("ignore dir %s", fp)
+			return nil
+		}
+		for _,v := range inputName {
+			if f.Name() == fmt.Sprintf("%s.conf", v) {
+				confMap[v] = fp
+			}
+		}
+
+		return nil
+	}); err != nil {
+		l.Error(err)
+		return confMap
+
+	}
+	return confMap
+
 }
