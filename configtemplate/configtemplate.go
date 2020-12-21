@@ -17,6 +17,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
 )
 
+const (
+	defaultURL = `https://res.dataflux.cn/datakit/conf/`
+)
+
 type CfgTemplate struct {
 	InstallDir string
 	data       map[string]interface{}
@@ -69,18 +73,27 @@ func (c *CfgTemplate) InstallConfigs(path string, data []byte) error {
 	}
 
 	var packageData []byte
-	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
-		resp, err := http.Get(path)
+	if strings.HasPrefix(path, "file://") {
+
+		filepath := path[7:]
+		packageData, err = ioutil.ReadFile(filepath)
+		if err != nil {
+			return err
+		}
+
+	} else {
+		var url string
+		if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+			url = path
+		} else {
+			url = defaultURL + path
+		}
+		resp, err := http.Get(url)
 		if err != nil {
 			return err
 		}
 		defer resp.Body.Close()
 		packageData, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-	} else {
-		packageData, err = ioutil.ReadFile(path)
 		if err != nil {
 			return err
 		}

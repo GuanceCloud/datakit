@@ -45,7 +45,7 @@ var (
 	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=__datakit_hostname,ip=__datakit_ip`)
 	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
 
-	flagCfgTemplate     = flag.String("conf-tmpl", "res.dataflux.cn", `specify input config templates, can be file path or url, e.g, http://res.dataflux.cn/demo.tar.gz`)
+	flagCfgTemplate     = flag.String("conf-tmpl", "res.dataflux.cn", `specify input config templates, can be file path or url, e.g, http://res.dataflux.cn/datakit/conf`)
 	flagCfgTemplateData = flag.String("conf-tmpl-data", "", `specify the data which will apply the config template files`)
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
