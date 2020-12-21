@@ -28,6 +28,7 @@ const (
     endpoint = "unix:///var/run/docker.sock"
 
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    # require, cannot be less than zero
     interval = "5s"
 
     # Is all containers
@@ -37,9 +38,9 @@ const (
     timeout = "5s"
 
     ## Optional TLS Config
-    # tls_ca = "/etc/telegraf/ca.pem"
-    # tls_cert = "/etc/telegraf/cert.pem"
-    # tls_key = "/etc/telegraf/key.pem"
+    # tls_ca = "/tmp/ca.pem"
+    # tls_cert = "/tmp/cert.pem"
+    # tls_key = "/tmp/key.pem"
     ## Use TLS but skip chain & host verification
     # insecure_skip_verify = false
 `
@@ -51,7 +52,7 @@ var l = logger.DefaultSLogger(inputName)
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &DockerContainers{
-			Endpoint:     defaultEndpoint,
+			Interval:     datakit.Cfg.MainCfg.Interval,
 			newEnvClient: NewEnvClient,
 			newClient:    NewClient,
 		}
@@ -65,7 +66,7 @@ type DockerContainers struct {
 	All      bool   `toml:"all"`
 
 	timeoutDuration  time.Duration
-	intervalDutation time.Duration
+	intervalDuration time.Duration
 	host             string
 	ClientConfig
 
@@ -86,14 +87,34 @@ func (*DockerContainers) Catalog() string {
 	return "docker"
 }
 
-func (d *DockerContainers) Run() {
+func (d *DockerContainers) Test() (result *inputs.TestResult, err error) {
 	l = logger.SLogger(inputName)
+	// default
+	result.Desc = "数据指标获取失败，详情见错误信息"
 
-	if d.loadCfg() {
+	if err = d.loadCfg(); err != nil {
 		return
 	}
 
-	ticker := time.NewTicker(d.intervalDutation)
+	var data []byte
+	data, err = d.gather()
+	if err != nil {
+		return
+	}
+
+	result.Result = data
+	result.Desc = "数据指标获取成功"
+	return
+}
+
+func (d *DockerContainers) Run() {
+	l = logger.SLogger(inputName)
+
+	if d.initCfg() {
+		return
+	}
+
+	ticker := time.NewTicker(d.intervalDuration)
 	defer ticker.Stop()
 
 	l.Info("docker_containers input start")
@@ -104,13 +125,18 @@ func (d *DockerContainers) Run() {
 			return
 
 		case <-ticker.C:
-			d.gather()
+			data, err := d.gather()
+			if err != nil {
+				continue
+			}
+			if err := io.NamedFeed(data, io.Object, inputName); err != nil {
+				l.Error(err)
+			}
 		}
 	}
 }
 
-func (d *DockerContainers) loadCfg() bool {
-	var err error
+func (d *DockerContainers) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -120,37 +146,46 @@ func (d *DockerContainers) loadCfg() bool {
 			// nil
 		}
 
-		d.intervalDutation, err = time.ParseDuration(d.Interval)
-		if err != nil || d.intervalDutation <= 0 {
-			err = fmt.Errorf("invalid interval")
-			goto label
-		}
-
-		d.timeoutDuration, err = time.ParseDuration(d.Timeout)
-		if err != nil || d.timeoutDuration <= 0 {
-			err = fmt.Errorf("invalid timeout")
-			goto label
-		}
-
-		if d.Endpoint == "ENV" {
-			d.client, err = d.newEnvClient()
-			if err != nil {
-				goto label
-			}
+		if err := d.loadCfg(); err != nil {
+			l.Error(err)
+			time.Sleep(time.Second)
 		} else {
-			tlsConfig, err := d.ClientConfig.TLSConfig()
-			if err != nil {
-				goto label
-			}
-			d.client, err = d.newClient(d.Endpoint, tlsConfig)
-			if err != nil {
-				goto label
-			}
+			break
 		}
-		break
-	label:
-		l.Error(err)
-		time.Sleep(time.Second)
+	}
+	return false
+}
+
+func (d *DockerContainers) loadCfg() (err error) {
+	d.intervalDuration, err = time.ParseDuration(d.Interval)
+	if err != nil {
+		err = fmt.Errorf("invalid interval, %s", err.Error())
+		return
+	} else if d.intervalDuration <= 0 {
+		err = fmt.Errorf("invalid interval, cannot be less than zero")
+		return
+	}
+
+	d.timeoutDuration, err = time.ParseDuration(d.Timeout)
+	if err != nil {
+		err = fmt.Errorf("invalid timeout, %s", err.Error())
+		return
+	}
+
+	if d.Endpoint == "ENV" {
+		d.client, err = d.newEnvClient()
+		if err != nil {
+			return
+		}
+	} else {
+		tlsConfig, _err := d.ClientConfig.TLSConfig()
+		if _err != nil {
+			return _err
+		}
+		d.client, err = d.newClient(d.Endpoint, tlsConfig)
+		if err != nil {
+			return
+		}
 	}
 
 	if strings.HasPrefix(d.Endpoint, "tcp") {
@@ -159,17 +194,18 @@ func (d *DockerContainers) loadCfg() bool {
 		d.host = datakit.Cfg.MainCfg.Hostname
 	}
 	d.opts.All = d.All
-	return false
+
+	return
 }
 
-func (d *DockerContainers) gather() {
+func (d *DockerContainers) gather() ([]byte, error) {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, d.timeoutDuration)
 	defer cancel()
 	containers, err := d.client.ContainerList(ctx, d.opts)
 	if err != nil {
 		l.Error(err)
-		return
+		return nil, err
 	}
 
 	for _, container := range containers {
@@ -181,13 +217,11 @@ func (d *DockerContainers) gather() {
 	data, err := json.Marshal(d.objects)
 	if err != nil {
 		l.Error(err)
-	} else {
-		if err := io.NamedFeed(data, io.Object, inputName); err != nil {
-			l.Error(err)
-		}
+		return nil, err
 	}
 
 	d.objects = d.objects[:0]
+	return data, nil
 }
 
 func (d *DockerContainers) gatherContainer(container types.Container) error {

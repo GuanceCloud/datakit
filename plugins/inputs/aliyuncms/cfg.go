@@ -11,6 +11,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -129,6 +130,11 @@ type (
 		cancelFun context.CancelFunc
 
 		mode string
+
+
+		testResult *inputs.TestResult
+		testError  error
+
 	}
 
 	MetricMeta struct {
@@ -326,4 +332,12 @@ func errCtxMetricMeta(req *cms.DescribeMetricMetaListRequest) map[string]string 
 		"RegionId":   req.RegionId,
 		"Domain":     req.Domain,
 	}
+}
+
+func (a *CMS) isTest() bool {
+	return a.mode == "test"
+}
+
+func (a *CMS) isDebug() bool {
+	return a.mode == "debug"
 }
