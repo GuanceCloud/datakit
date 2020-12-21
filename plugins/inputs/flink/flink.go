@@ -34,7 +34,9 @@ var (
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Flink{}
+		return &Flink{
+			Tags: make(map[string]string),
+		}
 	})
 }
 
@@ -49,6 +51,12 @@ func (*Flink) SampleConfig() string {
 
 func (*Flink) Catalog() string {
 	return inputName
+}
+
+func (*Flink) Test() (result *inputs.TestResult, err error) {
+	// 被动接收 http 数据，无法进行测试
+	result.Desc = "success"
+	return
 }
 
 func (f *Flink) Run() {
