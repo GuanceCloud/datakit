@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"github.com/xanzy/go-gitlab"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,7 +46,6 @@ type GitlabParam struct {
 const (
 	inputName          = "gitlab"
 	gitlabConfigSample = `### You need to configure an [[inputs.gitlab]] for each gitlab to be monitored.
-### active     : whether to gather gitlab data.
 ### host       : gitlab service url.
 ### project    : project name or project id. If no configuration, get all projects.
 ### branch     : branch name.  If no configuration, get all branches.
@@ -56,7 +56,6 @@ const (
 ### metricsName: the name of metric, default is "gitlab"
 
 #[[inputs.gitlab]]
-#	active      = true
 #	host        = "https://gitlab.jiagouyun.com/api/v4"
 #	project     = "493"
 #	branch      = "dev"
@@ -71,7 +70,6 @@ const (
 #		tag3 = "tag3"
 
 #[[inputs.gitlab]]
-#	active      = true
 #	host        = "https://gitlab.jiagouyun.com/api/v4"
 #	project     = "493"
 #	branch      = "dev"
@@ -103,10 +101,29 @@ func (g *Gitlab) SampleConfig() string {
 }
 
 func (g *Gitlab) Run() {
-	if !g.Active || g.Host == "" {
+	if g.Host == "" {
 		return
 	}
+	p := g.genParam()
+	p.log.Info("gitlab input started...")
+	p.log.Debugf("%#v", p)
+	p.mkGitlabDataDir()
+	p.gather()
+}
 
+func (g *Gitlab) Test() (*inputs.TestResult, error) {
+	tRst := &inputs.TestResult{}
+	para := g.genParam()
+	_, err := gitlab.NewClient(para.input.Token, gitlab.WithBaseURL(para.input.Host))
+	if err != nil {
+		tRst.Desc = "链接gitlab服务器错误"
+	} else {
+		tRst.Desc = "链接gitlab正常"
+	}
+	return tRst, err
+}
+
+func (g *Gitlab) genParam() *GitlabParam {
 	if g.Interval == nil {
 		g.Interval = defaultInterval
 	}
@@ -125,12 +142,8 @@ func (g *Gitlab) Run() {
 	input := GitlabInput{*g}
 	output := GitlabOutput{io.NamedFeed}
 
-	p := GitlabParam{input, output, logger.SLogger("gitlab")}
-
-	p.log.Info("gitlab input started...")
-	p.log.Debugf("%#v", p)
-	p.mkGitlabDataDir()
-	p.gather()
+	p := &GitlabParam{input, output, logger.SLogger("gitlab")}
+    return p
 }
 
 func (g *GitlabParam) mkGitlabDataDir() {

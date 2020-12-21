@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -53,8 +54,20 @@ type objectAgent struct {
 	subModules []subModule
 
 	mode string
+
+	testResult *inputs.TestResult
+	testError  error
+
 }
 
 func (ag *objectAgent) addModule(m subModule) {
 	ag.subModules = append(ag.subModules, m)
+}
+
+func (ag *objectAgent) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *objectAgent) isDebug() bool {
+	return ag.mode == "debug"
 }
