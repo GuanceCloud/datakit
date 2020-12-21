@@ -97,7 +97,7 @@ type Config struct {
 type DataWayCfg struct {
 	URL     string `toml:"url"`
 	Proxy bool   `toml:"proxy,omitempty"`
-	WSURL   string `toml:"ws_url"`
+	WsPort   string `toml:"ws_port"`
 	Timeout string `toml:"timeout"`
 	Heartbeat string `toml:"heartbeat"`
 
@@ -107,13 +107,11 @@ type DataWayCfg struct {
 
 	host      string
 	scheme    string
-	WSToken   string
 	urlValues url.Values
 
 	wspath      string
 	wshost      string
 	wsscheme    string
-	wsUrlValues url.Values
 }
 
 func (dc *DataWayCfg) DeprecatedMetricURL() string {
@@ -229,8 +227,9 @@ func (dc *DataWayCfg) BuildWSURL(mc *MainConfig) *url.URL {
 	if err != nil {
 		ip = ""
 	}
+	token := dc.urlValues.Get("token")
 	rawQuery := fmt.Sprintf("id=%s&version=%s&os=%s&arch=%s&token=%s&heartbeatconf=%s&hostname=%s&ip=%s",
-		mc.UUID, git.Version, runtime.GOOS, runtime.GOARCH, dc.WSToken,dc.Heartbeat,mc.Hostname,ip)
+		mc.UUID, git.Version, runtime.GOOS, runtime.GOARCH, token,dc.Heartbeat,mc.Hostname,ip)
 
 	return &url.URL{
 		Scheme:   dc.wsscheme,
@@ -297,16 +296,16 @@ func (dc *DataWayCfg) addToken(tkn string) {
 	}
 }
 
-func ParseDataway(httpurl, wsurl string) (*DataWayCfg, error) {
-
+func ParseDataway(httpurl, wsport string) (*DataWayCfg, error) {
 	dwcfg := &DataWayCfg{
 		Timeout: "30s",
+		WsPort:wsport,
 	}
 	if httpurl == "" {
 		return nil, fmt.Errorf("empty dataway HTTP endpoint")
 	}
-
-	if u, err := url.Parse(httpurl); err == nil {
+	u, err := url.Parse(httpurl)
+	if err == nil {
 		dwcfg.scheme = u.Scheme
 		dwcfg.urlValues = u.Query()
 		dwcfg.host = u.Host
@@ -316,67 +315,29 @@ func ParseDataway(httpurl, wsurl string) (*DataWayCfg, error) {
 		} else {
 			u.Path = ""
 		}
+	}else {
+		l.Errorf("parse url %s failed: %s", httpurl, err.Error())
+		return nil, err
 	}
+	dwcfg.URL = u.String()
+	dwcfg.wspath = DefaultWebsocketPath
 
-	var urls []string
-	if wsurl == "" {
-		urls = []string{httpurl}
-	} else {
-		urls = []string{httpurl, wsurl}
-	}
-
-	for _, s := range urls {
-		u, err := url.Parse(s)
-		if err != nil {
-			l.Errorf("parse url %s failed: %s", s, err.Error())
-			return nil, err
+	switch u.Scheme {
+	case "http":
+		dwcfg.wsscheme = "ws"
+		if wsport == "" {
+			dwcfg.WsPort = "80"
 		}
-
-		switch u.Scheme {
-		case "ws", "wss":
-			dwcfg.WSURL = u.String()
-
-			dwcfg.wsscheme = u.Scheme
-			dwcfg.wsUrlValues = u.Query()
-			dwcfg.wshost = u.Host
-			dwcfg.wspath = u.Path
-			if dwcfg.wspath == "" {
-				dwcfg.wspath = DefaultWebsocketPath
-			}
-
-			dwcfg.WSToken = dwcfg.wsUrlValues.Get("token")
-			if dwcfg.WSToken == "" {
-				l.Warn("ws token missing, ignored")
-			}
-
-		case "http", "https":
-			dwcfg.URL = u.String()
-
-			dwcfg.scheme = u.Scheme
-			dwcfg.urlValues = u.Query()
-			dwcfg.host = u.Host
-
-		default:
-			l.Errorf("unknown scheme %s", u.Scheme)
-			return nil, fmt.Errorf("unknown scheme")
+	case "https":
+		dwcfg.wsscheme = "wss"
+		if wsport == "" {
+			dwcfg.WsPort = "443"
 		}
+	default:
+		l.Errorf("unknown scheme %s", u.Scheme)
+		return nil, fmt.Errorf("unknown scheme")
 	}
-
-	if wsurl == "" { // for old version dataway, no websocket available
-		switch dwcfg.scheme {
-		case "http":
-			dwcfg.wsscheme = "ws"
-		case "https":
-			dwcfg.wsscheme = "wss"
-		}
-
-		dwcfg.wshost = dwcfg.host
-		dwcfg.wsUrlValues = dwcfg.urlValues // ws default share same urlvalues with http
-		dwcfg.wspath = DefaultWebsocketPath
-		dwcfg.WSURL = fmt.Sprintf("%s://%s%s?%s", dwcfg.wsscheme, dwcfg.wshost, dwcfg.wspath, dwcfg.wsUrlValues.Encode())
-	}
-
-
+	dwcfg.wshost = fmt.Sprintf("%s:%s",u.Hostname(),dwcfg.WsPort)
 	return dwcfg, nil
 }
 
@@ -478,7 +439,8 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		l.Fatal("dataway URL not set")
 	}
 
-	dw, err := ParseDataway(c.MainCfg.DataWay.URL, c.MainCfg.DataWay.WSURL)
+
+	dw, err := ParseDataway(c.MainCfg.DataWay.URL, c.MainCfg.DataWay.WsPort)
 	if err != nil {
 		return err
 	}
