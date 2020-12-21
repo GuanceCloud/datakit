@@ -5,7 +5,10 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
 	"golang.org/x/time/rate"
 )
 
@@ -61,6 +64,11 @@ type (
 		cancelFun context.CancelFunc
 
 		rateLimiter *rate.Limiter
+
+		mode string
+
+		testResult *inputs.TestResult
+		testError  error
 	}
 
 	metricMeta struct {
@@ -88,6 +96,14 @@ type (
 		lastFetchTime time.Time
 	}
 )
+
+func (a *azureInstance) isTest() bool {
+	return a.mode == "test"
+}
+
+func (a *azureInstance) isDebug() bool {
+	return a.mode == "debug"
+}
 
 func (a *azureInstance) genQueryInfo() []*queryListInfo {
 
