@@ -67,7 +67,7 @@ func (c *CfgTemplate) InstallConfigs(path string, data []byte) error {
 	if len(data) > 0 {
 		jsonData := map[string]interface{}{}
 		if err := json.Unmarshal(data, &jsonData); err != nil {
-			return fmt.Errorf("invalid json data, %s", err)
+			return fmt.Errorf("invalid json data: %s, error:%s", string(data), err)
 		}
 		c.data = jsonData
 	}
