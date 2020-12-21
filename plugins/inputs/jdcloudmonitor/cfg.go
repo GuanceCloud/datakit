@@ -7,6 +7,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	jcwclient "github.com/jdcloud-api/jdcloud-sdk-go/services/monitor/client"
 )
@@ -92,7 +93,10 @@ type (
 
 		reqs []*metricsRequest
 
-		debugMode bool
+		mode string
+
+		testResult *inputs.TestResult
+		testError  error
 	}
 
 	metricsRequest struct {
@@ -111,6 +115,14 @@ type (
 		lastTime time.Time
 	}
 )
+
+func (ag *agent) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *agent) isDebug() bool {
+	return ag.mode == "debug"
+}
 
 func (p *Service) genMetricReq(metric string) (*metricsRequest, error) {
 

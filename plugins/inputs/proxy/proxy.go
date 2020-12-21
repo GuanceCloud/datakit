@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/koding/websocketproxy"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -29,6 +30,7 @@ const (
     ## http server route path
 		## required: don't change
     path = "/proxy"
+	bind = "0.0.0.0:5588"
 `
 )
 
@@ -42,6 +44,7 @@ func init() {
 
 type Proxy struct {
 	Path string `toml:"path"`
+	Bind string `toml:"bind"`
 
 	PointsLuaFiles []string            `toml:"-"`
 	ObjectLuaFiles []string            `toml:"-"`
@@ -62,6 +65,11 @@ func (*Proxy) Catalog() string {
 	return inputName
 }
 
+func (*Proxy) Test() (*inputs.TestResult, error) {
+	test := &inputs.TestResult{}
+	return test,nil
+}
+
 func (d *Proxy) Run() {
 	l = logger.SLogger(inputName)
 
@@ -78,6 +86,18 @@ func (d *Proxy) Run() {
 	}
 
 	d.enable = true
+
+	go func() {
+		wsurl := datakit.Cfg.MainCfg.DataWay.BuildWSURL(datakit.Cfg.MainCfg)
+		wsurl.RawQuery = ""
+
+		if err := http.ListenAndServe(d.Bind, websocketproxy.NewProxy(wsurl)); err != nil {
+			l.Error(err)
+			return
+		}
+	}()
+
+
 
 	l.Infof("proxy input started...")
 
