@@ -2,6 +2,7 @@ package aliyunfc
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyuncms"
 )
 
 var (
@@ -93,8 +94,9 @@ names =[
 )
 
 type FC struct {
-	Interval string `toml:"interval"`
-	Metric   string `toml:"metric"`
+
+	aliyuncms.CMS
+
 }
 
 func (m *FC) SampleConfig() string {
@@ -107,6 +109,12 @@ func (m *FC) Description() string {
 
 func (m *FC) Catalog() string {
 	return "aliyun"
+}
+
+func (m *FC) Test() (*inputs.TestResult,error) {
+	var result = inputs.TestResult{}
+	result.Desc = "aliyunfc use aliyuncms"
+	return &result,nil
 }
 
 func (m *FC) Run() {
