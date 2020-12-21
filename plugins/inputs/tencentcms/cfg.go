@@ -8,6 +8,8 @@ import (
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	monitor "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/monitor/v20180724"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type (
@@ -42,6 +44,11 @@ type (
 		client     *monitor.Client
 
 		periodsInfos map[string]MetricsPeriodInfo
+
+		mode string
+
+		testResult *inputs.TestResult
+		testError  error
 	}
 
 	MetricsRequest struct {
@@ -89,6 +96,14 @@ const (
 #		]'''
 `
 )
+
+func (ag *CMS) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *CMS) isDebug() bool {
+	return ag.mode == "debug"
+}
 
 func (p *Namespace) MakeDimension(mestric string) ([]*monitor.Instance, error) {
 
