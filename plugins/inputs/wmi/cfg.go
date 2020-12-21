@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -66,8 +67,21 @@ type (
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
+
+		mode string
+
+		testResult *inputs.TestResult
+		testError  error
 	}
 )
+
+func (ag *Instance) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *Instance) isDebug() bool {
+	return ag.mode == "debug"
+}
 
 func (c *ClassQuery) ToSql() (string, error) {
 	sql := "SELECT "
