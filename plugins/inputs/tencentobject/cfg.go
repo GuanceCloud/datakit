@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -48,6 +49,19 @@ type objectAgent struct {
 	wg sync.WaitGroup
 
 	subModules []subModule
+
+	mode string
+
+	testResult *inputs.TestResult
+	testError  error
+}
+
+func (ag *objectAgent) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *objectAgent) isDebug() bool {
+	return ag.mode == "debug"
 }
 
 func (ag *objectAgent) addModule(m subModule) {

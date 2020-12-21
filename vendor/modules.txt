@@ -88,7 +88,7 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/slb
 github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
-# github.com/aliyun/aliyun-oss-go-sdk v2.1.4+incompatible
+# github.com/aliyun/aliyun-oss-go-sdk v2.1.5+incompatible
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/andygrunwald/go-jira v1.12.0
 github.com/andygrunwald/go-jira
@@ -270,7 +270,7 @@ github.com/eclipse/paho.mqtt.golang
 github.com/eclipse/paho.mqtt.golang/packets
 # github.com/fatih/structs v1.0.0
 github.com/fatih/structs
-# github.com/fsnotify/fsnotify v1.4.7
+# github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
 # github.com/gin-contrib/sse v0.1.0
 github.com/gin-contrib/sse
@@ -345,7 +345,7 @@ github.com/golang-sql/civil
 github.com/golang/glog
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 github.com/golang/groupcache/lru
-# github.com/golang/protobuf v1.4.2
+# github.com/golang/protobuf v1.4.3
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
@@ -363,6 +363,8 @@ github.com/google/gopacket/layers
 github.com/google/gopacket/pcap
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
+# github.com/gorilla/websocket v1.4.0
+github.com/gorilla/websocket
 # github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-retryablehttp v0.6.4
@@ -405,7 +407,6 @@ github.com/influxdata/telegraf/plugins/inputs/apache
 github.com/influxdata/telegraf/plugins/inputs/ceph
 github.com/influxdata/telegraf/plugins/inputs/clickhouse
 github.com/influxdata/telegraf/plugins/inputs/cloudwatch
-github.com/influxdata/telegraf/plugins/inputs/cpu
 github.com/influxdata/telegraf/plugins/inputs/disk
 github.com/influxdata/telegraf/plugins/inputs/diskio
 github.com/influxdata/telegraf/plugins/inputs/dns_query
@@ -529,6 +530,8 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
+github.com/koding/websocketproxy
 # github.com/konsorten/go-windows-terminal-sequences v1.0.3
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/kr/fs v0.1.0
@@ -641,7 +644,7 @@ github.com/pkg/sftp
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.13.0
+# github.com/prometheus/common v0.15.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
@@ -783,6 +786,10 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 # gitlab.jiagouyun.com/cloudcare-tools/ftagent v1.0.2-0.20200421074654-24a7c53f8f54
 gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201218052640-c63ec13ab452
+gitlab.jiagouyun.com/cloudcare-tools/kodo/config
+gitlab.jiagouyun.com/cloudcare-tools/kodo/models
+gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg
 # go.mongodb.org/mongo-driver v1.4.1
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -822,11 +829,11 @@ go.opencensus.io/internal
 go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
-# go.uber.org/atomic v1.6.0
+# go.uber.org/atomic v1.7.0
 go.uber.org/atomic
-# go.uber.org/multierr v1.5.0
+# go.uber.org/multierr v1.6.0
 go.uber.org/multierr
-# go.uber.org/zap v1.15.0
+# go.uber.org/zap v1.16.0
 go.uber.org/zap
 go.uber.org/zap/buffer
 go.uber.org/zap/internal/bufferpool
@@ -876,7 +883,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20200826173525-f9321e4c35a6
+# golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
@@ -910,7 +917,7 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
+# golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 golang.org/x/xerrors
