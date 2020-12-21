@@ -65,7 +65,12 @@ var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Replication{}
+		return &Replication{
+			Tags:            make(map[string]string),
+			eventsOperation: make(map[string]interface{}),
+			tagKeys:         make(map[string]interface{}),
+			fieldKeys:       make(map[string]interface{}),
+		}
 	})
 }
 
@@ -105,21 +110,29 @@ func (*Replication) SampleConfig() string {
 	return sampleCfg
 }
 
+func (r *Replication) Test() (result *inputs.TestResult, err error) {
+	l = logger.SLogger(inputName)
+
+	r.initCfg()
+
+	// test connect
+	if err = r.checkAndResetConn(); err != nil {
+		err = fmt.Errorf("failed to connect, err: %s", err.Error())
+	}
+	r.closeConn()
+
+	if err != nil {
+		result.Desc = "测试连接postgresql失败，详情见错误信息"
+	} else {
+		result.Desc = "测试连接postgresql成功"
+	}
+	return
+}
+
 func (r *Replication) Run() {
 	l = logger.SLogger(inputName)
 
-	if r.Tags == nil {
-		r.Tags = make(map[string]string)
-	}
-	r.updateParamList()
-
-	r.pgConfig = pgx.ConnConfig{
-		Host:     r.Host,
-		Port:     r.Port,
-		Database: r.Database,
-		User:     r.User,
-		Password: r.Password,
-	}
+	r.initCfg()
 
 	for {
 		select {
@@ -147,16 +160,12 @@ const sendHeartbeatInterval = 5
 
 func (r *Replication) runloop() {
 	tick := time.NewTicker(time.Second * sendHeartbeatInterval)
+	defer tick.Stop()
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			if err := r.replicationConn.Close(); err != nil {
-				l.Errorf("replication connection close err: %s", err.Error())
-			}
-			if err := r.deleteSelfSlot(); err != nil {
-				l.Errorf("delete self slot err: %s", err.Error())
-			}
+			r.closeConn()
 			l.Info("exit")
 			return
 
@@ -186,11 +195,7 @@ func (r *Replication) runloop() {
 	}
 }
 
-func (r *Replication) updateParamList() {
-	r.eventsOperation = make(map[string]interface{})
-	r.tagKeys = make(map[string]interface{})
-	r.fieldKeys = make(map[string]interface{})
-
+func (r *Replication) initCfg() {
 	for _, event := range r.Events {
 		r.eventsOperation[event] = nil
 	}
@@ -200,10 +205,18 @@ func (r *Replication) updateParamList() {
 	for _, field := range r.FieldList {
 		r.fieldKeys[field] = nil
 	}
+
+	r.pgConfig = pgx.ConnConfig{
+		Host:     r.Host,
+		Port:     r.Port,
+		Database: r.Database,
+		User:     r.User,
+		Password: r.Password,
+	}
+	r.slotName = fmt.Sprintf("datakit_slot_%d", time.Now().UnixNano())
 }
 
 func (r *Replication) checkAndResetConn() error {
-
 	if r.replicationConn != nil && r.replicationConn.IsAlive() {
 		return nil
 	}
@@ -214,7 +227,6 @@ func (r *Replication) checkAndResetConn() error {
 		}
 	}
 
-	r.slotName = fmt.Sprintf("datakit_slot_%d", time.Now().UnixNano())
 	conn, err := pgx.ReplicationConnect(r.pgConfig)
 	if err != nil {
 		return err
@@ -225,12 +237,23 @@ func (r *Replication) checkAndResetConn() error {
 	}
 
 	if err := conn.StartReplication(r.slotName, 0, -1); err != nil {
-		_ = conn.Close()
+		conn.Close()
 		return err
 	}
 
 	r.replicationConn = conn
 	return nil
+}
+
+func (r *Replication) closeConn() {
+	if r.replicationConn != nil {
+		if err := r.replicationConn.Close(); err != nil {
+			l.Errorf("replication connection close err: %s", err.Error())
+		}
+	}
+	if err := r.deleteSelfSlot(); err != nil {
+		l.Errorf("delete self slot err: %s", err.Error())
+	}
 }
 
 func (r *Replication) getReceivedWal() uint64 {
@@ -253,7 +276,6 @@ func (r *Replication) replicationMsgHandle(msg *pgx.ReplicationMessage) {
 	}
 
 	if msg.ServerHeartbeat != nil {
-
 		if msg.ServerHeartbeat.ServerWalEnd > r.getReceivedWal() {
 			r.setReceivedWal(msg.ServerHeartbeat.ServerWalEnd)
 		}
@@ -316,7 +338,6 @@ func (r *Replication) sendStatus() error {
 }
 
 func (r *Replication) buildPoint(result *parselogical.ParseResult) ([]byte, error) {
-
 	var tags = make(map[string]string)
 	var fields = make(map[string]interface{}, len(r.fieldKeys))
 
@@ -339,7 +360,6 @@ func (r *Replication) buildPoint(result *parselogical.ParseResult) ([]byte, erro
 }
 
 func typeAssert(typer, value string) interface{} {
-
 	switch typer {
 	case "smallint", "integer", "bigint", "real", "double precision", "smallserial", "serial", "bigserial", "money":
 		if val, err := strconv.ParseInt(value, 10, 64); err == nil {
@@ -362,7 +382,6 @@ func typeAssert(typer, value string) interface{} {
 }
 
 func (r *Replication) deleteSelfSlot() error {
-
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", r.User, r.Password, r.Host, r.Port, r.Database)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
