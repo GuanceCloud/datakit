@@ -37,7 +37,7 @@ var (
 	l         = logger.DefaultSLogger(inputName)
 )
 
-type externalInput struct {
+type ExernalInput struct {
 	Name     string   `toml:"name"`
 	Daemon   bool     `toml:"daemon"`
 	Interval string   `toml:"interval"`
@@ -49,15 +49,19 @@ type externalInput struct {
 	duration time.Duration `toml:"-"`
 }
 
-func (_ *externalInput) Catalog() string {
+func (_ *ExernalInput) Catalog() string {
 	return "external"
 }
 
-func (_ *externalInput) SampleConfig() string {
+func (_ *ExernalInput) SampleConfig() string {
 	return configSample
 }
 
-func (ex *externalInput) precheck() error {
+func (_ *ExernalInput) Test() (result *inputs.TestResult,err error) {
+	return
+}
+
+func (ex *ExernalInput) precheck() error {
 
 	ex.duration = time.Second * 10
 	if ex.Interval != "" {
@@ -75,7 +79,7 @@ func (ex *externalInput) precheck() error {
 	return nil
 }
 
-func (ex *externalInput) start() error {
+func (ex *ExernalInput) start() error {
 	ex.cmd = exec.Command(ex.Cmd, ex.Args...)
 	if ex.Envs != nil {
 		ex.cmd.Env = ex.Envs
@@ -90,7 +94,7 @@ func (ex *externalInput) start() error {
 	return nil
 }
 
-func (ex *externalInput) Run() {
+func (ex *ExernalInput) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Infof("starting external input %s...", ex.Name)
@@ -132,6 +136,6 @@ func (ex *externalInput) Run() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &externalInput{}
+		return &ExernalInput{}
 	})
 }
