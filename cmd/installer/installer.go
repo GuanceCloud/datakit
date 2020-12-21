@@ -36,7 +36,7 @@ var (
 var (
 	flagUpgrade     = flag.Bool("upgrade", false, ``)
 	flagDatawayHTTP = flag.String("dataway", "", `address of dataway(http://IP:Port?token=xxx), port default 9528`)
-	flagDatawayWS   = flag.String("dataway-ws", "", `address of dataway websocket(ws://IP:Port?token=xxx), port default 9531`)
+	flagDatawayWS   = flag.String("dataway-ws", "", `ws port,defalut ws 80 wss 443`)
 
 	flagInfo         = flag.Bool("info", false, "show installer info")
 	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
@@ -182,7 +182,7 @@ Golang Version: %s
 	}
 
 	install.DataWayHTTP = *flagDatawayHTTP
-	install.DataWayWs = *flagDatawayWS
+	install.DataWayWsPort = *flagDatawayWS
 	install.GlobalTags = *flagGlobalTags
 	install.Port = *flagPort
 	install.DatakitName = *flagDatakitName
