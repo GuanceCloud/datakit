@@ -25,13 +25,13 @@ var (
 
 	OSArch = runtime.GOOS + "/" + runtime.GOARCH
 
-	InstallDir   = ""
-	DataWayHTTP  = ""
-	DataWayWs    = ""
-	GlobalTags   = ""
-	Port         = 9529
-	DatakitName  = ""
-	EnableInputs = ""
+	InstallDir    = ""
+	DataWayHTTP   = ""
+	DataWayWsPort = ""
+	GlobalTags    = ""
+	Port          = 9529
+	DatakitName   = ""
+	EnableInputs  = ""
 )
 
 func readInput(prompt string) string {
@@ -49,26 +49,23 @@ func getDataWayCfg() *datakit.DataWayCfg {
 	var dc *datakit.DataWayCfg
 	var err error
 
-	if DataWayHTTP == "" || DataWayWs == "" {
+	if DataWayHTTP == "" {
 		for {
 			dwhttp := readInput("Please set DataWay HTTP URL(http[s]://host:port?token=xxx) > ")
-			dwws := readInput("Please set DataWay Websocket URL(ws[s]://host:port?token=xxx) > ")
-			dc, err = datakit.ParseDataway(dwhttp, dwws)
+			dc, err = datakit.ParseDataway(dwhttp, "")
 			if err != nil {
 				fmt.Printf("%s\n", err.Error())
 				continue
 			}
-
 			if err := dc.Test(); err != nil {
 				fmt.Printf("%s\n", err.Error())
 				continue
 			}
-
 			break
 
 		}
 	} else {
-		dc, err = datakit.ParseDataway(DataWayHTTP, DataWayWs)
+		dc, err = datakit.ParseDataway(DataWayHTTP, DataWayWsPort)
 		if err != nil {
 			l.Fatal(err)
 		}
