@@ -31,6 +31,13 @@ func (*AwsInstance) SampleConfig() string {
 	return sampleConfig
 }
 
+func (a *AwsInstance) Test() (*inputs.TestResult, error) {
+	a.mode = "test"
+	a.testResult = &inputs.TestResult{}
+	a.Run()
+	return a.testResult, a.testError
+}
+
 func (a *AwsInstance) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
@@ -193,6 +200,10 @@ func (r *AwsInstance) run(ctx context.Context) error {
 
 		if err := r.initClient(); err != nil {
 			moduleLogger.Errorf("fail to init client, %s", err)
+			if r.isTest() {
+				r.testError = err
+				return err
+			}
 			time.Sleep(time.Second)
 		} else {
 			break
@@ -201,6 +212,9 @@ func (r *AwsInstance) run(ctx context.Context) error {
 	}
 
 	if err := r.getSupportMetrics(); err != nil {
+		if r.isTest() {
+			r.testError = err
+		}
 		return err
 	}
 
@@ -220,6 +234,10 @@ func (r *AwsInstance) run(ctx context.Context) error {
 
 		if err != nil {
 			moduleLogger.Errorf("fail to GetMetricData, %s", err)
+			if r.isTest() {
+				r.testError = err
+				return err
+			}
 		} else {
 			for _, res := range response.MetricDataResults {
 				if *res.StatusCode != cloudwatch.StatusCodeComplete {
@@ -241,7 +259,10 @@ func (r *AwsInstance) run(ctx context.Context) error {
 							tags[*dm.Name] = *dm.Value
 						}
 
-						if r.debugMode {
+						if r.isTest() {
+							data, _ := io.MakeMetric(metricName, tags, fields, *tm)
+							r.testResult.Result = append(r.testResult.Result, data...)
+						} else if r.isDebug() {
 							data, _ := io.MakeMetric(metricName, tags, fields, *tm)
 							fmt.Printf("%s\n", string(data))
 						} else {
@@ -253,6 +274,9 @@ func (r *AwsInstance) run(ctx context.Context) error {
 
 		}
 
+		if r.isTest() {
+			return nil
+		}
 		datakit.SleepContext(ctx, r.Interval.Duration)
 	}
 

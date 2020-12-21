@@ -31,14 +31,23 @@ func (_ *AliyunActiontrail) SampleConfig() string {
 	return configSample
 }
 
+func (a *AliyunActiontrail) Test() (*inputs.TestResult, error) {
+	a.mode = "test"
+	a.testResult = &inputs.TestResult{}
+	a.Run()
+	return a.testResult, a.testError
+}
+
 func (a *AliyunActiontrail) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
 
-	go func() {
-		<-datakit.Exit.Wait()
-		a.cancelFun()
-	}()
+	if !a.isTest() {
+		go func() {
+			<-datakit.Exit.Wait()
+			a.cancelFun()
+		}()
+	}
 
 	limit := rate.Every(40 * time.Millisecond)
 	a.rateLimiter = rate.NewLimiter(limit, 1)
@@ -129,6 +138,9 @@ func (a *AliyunActiontrail) lookupEvents(from, to string, region string, history
 				break
 			}
 			moduleLogger.Errorf("%sFail to LookupEvents(%s) %s - %s, %s", prefix, region, request.StartTime, request.EndTime, err)
+			if a.isTest() {
+				break
+			}
 
 			if tempDelay == 0 {
 				tempDelay = time.Millisecond * 200
@@ -143,8 +155,10 @@ func (a *AliyunActiontrail) lookupEvents(from, to string, region string, history
 			datakit.SleepContext(a.ctx, tempDelay)
 		}
 
-		moduleLogger.Debugf("%sLookupEvents(%s) %s - %s: count=%d, NextToken=%s", prefix, region, request.StartTime, request.EndTime, len(response.Events), response.NextToken)
-		a.handleResponse(response, history)
+		if err == nil {
+			moduleLogger.Debugf("%sLookupEvents(%s) %s - %s: count=%d, NextToken=%s", prefix, region, request.StartTime, request.EndTime, len(response.Events), response.NextToken)
+			a.handleResponse(response, history)
+		}
 
 		if err != nil || response.NextToken == "" {
 			break
@@ -178,6 +192,10 @@ func (r *AliyunActiontrail) run() error {
 		cli, err := actiontrail.NewClientWithAccessKey(region, r.AccessID, r.AccessKey)
 		if err != nil {
 			moduleLogger.Errorf("create client failed, %s", err)
+			if r.isTest() {
+				r.testError = err
+				return err
+			}
 			time.Sleep(time.Second)
 		} else {
 			r.client = cli
@@ -186,7 +204,9 @@ func (r *AliyunActiontrail) run() error {
 
 	}
 
-	go r.getHistory()
+	if !r.isTest() {
+		go r.getHistory()
+	}
 
 	var lastTime time.Time
 
@@ -209,7 +229,15 @@ func (r *AliyunActiontrail) run() error {
 
 		apiStart := time.Now()
 		for _, region := range r.regions {
-			r.lookupEvents(from, to, region, false)
+			err := r.lookupEvents(from, to, region, false)
+			if r.isTest() && err != nil {
+				r.testError = err
+				return err
+			}
+		}
+
+		if r.isTest() {
+			break
 		}
 
 		used := time.Now().Sub(apiStart)
@@ -222,6 +250,8 @@ func (r *AliyunActiontrail) run() error {
 
 		lastTime = now
 	}
+
+	return nil
 }
 
 func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsResponse, history bool) error {
@@ -265,7 +295,10 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 		evdata, _ := json.Marshal(&ev)
 		fields["__content"] = string(evdata)
 
-		if r.debugMode {
+		if r.isTest() {
+			data, _ := io.MakeMetric(r.MetricName, tags, fields, evtm)
+			r.testResult.Result = append(r.testResult.Result, data...)
+		} else if r.isDebug() {
 			data, _ := io.MakeMetric(r.MetricName, tags, fields, evtm)
 			fmt.Printf("-----%s\n", string(data))
 		} else {
