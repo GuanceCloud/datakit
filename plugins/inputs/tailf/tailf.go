@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hpcloud/tail"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -42,6 +43,12 @@ func (*Tailf) Catalog() string {
 
 func (*Tailf) SampleConfig() string {
 	return sampleCfg
+}
+
+func (*Tailf) Test() (result *inputs.TestResult, err error) {
+	// 监听文件变更，无法进行测试
+	result.Desc = "success"
+	return
 }
 
 func (t *Tailf) Run() {

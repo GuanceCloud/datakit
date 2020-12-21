@@ -93,4 +93,6 @@ type MysqlMonitor struct {
 	initDone         bool
 	scanIntervalSlow uint32
 	db               *sql.DB
+	test             bool           `toml:"-"`
+	resData          []byte         `toml:"-"`
 }

@@ -9,9 +9,8 @@ import (
 	"os"
 	"time"
 
-	ifxcli "github.com/influxdata/influxdb1-client/v2"
-
 	influxm "github.com/influxdata/influxdb1-client/models"
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -354,6 +353,7 @@ func Start() {
 		defer datakit.WG.Done()
 		GRPCServer()
 	}()
+
 }
 
 func flush(cache map[string][][]byte) {
