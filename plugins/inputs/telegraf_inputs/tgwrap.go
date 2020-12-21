@@ -33,8 +33,7 @@ func StartTelegraf() error {
 }
 
 func doStart() (*os.Process, error) {
-
-	var p *os.Process
+	var p = &os.Process{}
 	telegrafBin := agentPath()
 
 	if runtime.GOOS == datakit.OSWindows {
@@ -62,17 +61,20 @@ func doStart() (*os.Process, error) {
 
 		p = cmd.Process
 	} else {
-		var err error
 		cmd := exec.Command(telegrafBin, "-config", telegrafConf)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			l.Errorf("start telegraf failed: %s, %s", err.Error(), string(out))
-			return nil, err
-		}
+		go func() {
+			var err error
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				l.Errorf("start telegraf failed: %s, %s", err.Error(), string(out))
+			}
+		}()
+		time.Sleep(time.Second)
+		p = cmd.Process
 	}
 
-	l.Infof("telegraf PID: %d", p.Pid)
-	time.Sleep(time.Second)
+	l.Infof("telegraf PID: %+#v", p)
+	//time.Sleep(time.Second)
 	return p, nil
 }
 
