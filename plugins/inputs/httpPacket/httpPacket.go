@@ -55,6 +55,10 @@ func (*HttpPacket) Catalog() string {
 	return inputName
 }
 
+func (*HttpPacket) Test() (result *inputs.TestResult,err error) {
+	return
+}
+
 func (h *HttpPacket) Run() {
 	l = logger.SLogger(inputName)
 
