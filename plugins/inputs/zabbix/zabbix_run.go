@@ -12,6 +12,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
+var tbls = []string{"history", "history_uint", "trends", "trends_uint"}
+
 type ZabbixInput struct {
 	Zabbix
 }
@@ -26,7 +28,7 @@ func (z *ZabbixParam) gather() {
 	var start, stop time.Time
 	var d time.Duration
 	var err error
-	tbls := []string{"history", "history_uint", "trends", "trends_uint"}
+
 
 	switch z.input.Interval.(type) {
 	case int64:
@@ -59,7 +61,7 @@ func (z *ZabbixParam) gather() {
 				default:
 				}
 
-				err := z.gatherData(start, stop, tbl)
+				_, err := z.gatherData(start, stop, tbl, false)
 				if err != nil {
 					z.log.Errorf("gatherData %s", err.Error())
 				}
@@ -75,13 +77,13 @@ func (z *ZabbixParam) gather() {
 	}
 }
 
-func (z *ZabbixParam) gatherData(start, stop time.Time, tblName string) error {
+func (z *ZabbixParam) gatherData(start, stop time.Time, tblName string, isTest bool) ([]byte, error) {
 	starttimestr := strconv.FormatInt(start.Unix(), 10)
 	endtimestr   := strconv.FormatInt(stop.Unix() , 10)
 
 	ext := NewExtracter(z.input.DbType, z.input.DbAddress, tblName, starttimestr, endtimestr)
 	if err := ext.Extract(); err != nil {
-		return err
+		return nil, err
 	}
 
 	rowcount := len(ext.Result)
@@ -90,17 +92,21 @@ func (z *ZabbixParam) gatherData(start, stop time.Time, tblName string) error {
 
 	if rowcount != 0 {
 		inlineData := strings.Join(ext.Result[:], "\n")
-		pts, _, err := ParseInfluxPts([]byte(inlineData))
+		pt := []byte(inlineData)
+		if isTest {
+			return pt, nil
+		}
+		pts, _, err := ParseInfluxPts(pt)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		err = z.ProcessPts(pts)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func ParseInfluxPts(data []byte) ([]*influxdb.Point, int, error) {
