@@ -42,6 +42,7 @@ type wscli struct {
 func StartWS() {
 	l.Infof("ws start")
 	wsurl = datakit.Cfg.MainCfg.DataWay.BuildWSURL(datakit.Cfg.MainCfg)
+	l.Infof(wsurl.String())
 
 	cli = &wscli{
 		id:   datakit.Cfg.MainCfg.UUID,
