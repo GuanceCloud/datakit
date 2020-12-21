@@ -3,6 +3,7 @@ package tidb
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -39,7 +40,10 @@ var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &TiDB{}
+		return &TiDB{
+			Interval: datakit.Cfg.MainCfg.Interval,
+			Tags:     make(map[string]string),
+		}
 	})
 }
 
@@ -59,10 +63,30 @@ func (*TiDB) Catalog() string {
 	return "db"
 }
 
+func (t *TiDB) Test() (result *inputs.TestResult, err error) {
+	l = logger.SLogger(inputName)
+	// default
+	result.Desc = "数据指标获取失败，详情见错误信息"
+
+	if err = t.loadCfg(); err != nil {
+		return
+	}
+
+	var data []byte
+	data, err = t.getMetrics()
+	if err != nil {
+		return nil, err
+	}
+
+	result.Result = data
+	result.Desc = "数据指标获取成功"
+	return
+}
+
 func (t *TiDB) Run() {
 	l = logger.SLogger(inputName)
 
-	if t.loadcfg() {
+	if t.initCfg() {
 		return
 	}
 	ticker := time.NewTicker(t.duration)
@@ -90,8 +114,7 @@ func (t *TiDB) Run() {
 	}
 }
 
-func (t *TiDB) loadcfg() bool {
-	var err error
+func (t *TiDB) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -101,15 +124,26 @@ func (t *TiDB) loadcfg() bool {
 			// nil
 		}
 
-		t.duration, err = time.ParseDuration(t.Interval)
-		if err != nil || t.duration <= 0 {
-			l.Errorf("invalid interval")
+		if err := t.loadCfg(); err != nil {
+			l.Error(err)
 			time.Sleep(time.Second)
-			continue
+		} else {
+			break
 		}
-		break
 	}
 	return false
+}
+
+func (t *TiDB) loadCfg() (err error) {
+	t.duration, err = time.ParseDuration(t.Interval)
+	if err != nil {
+		err = fmt.Errorf("invalid interval, %s", err.Error())
+		return
+	} else if t.duration <= 0 {
+		err = fmt.Errorf("invalid interval, cannot be less than zero")
+		return
+	}
+	return
 }
 
 func (t *TiDB) getMetrics() ([]byte, error) {

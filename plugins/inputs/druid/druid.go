@@ -34,7 +34,9 @@ var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Druid{}
+		return &Druid{
+			Tags: make(map[string]string),
+		}
 	})
 }
 
@@ -49,6 +51,12 @@ func (*Druid) SampleConfig() string {
 
 func (*Druid) Catalog() string {
 	return inputName
+}
+
+func (*Druid) Test() (result *inputs.TestResult, err error) {
+	// 被动接受 http 数据，无法进行测试
+	result.Desc = "success"
+	return
 }
 
 func (d *Druid) Run() {

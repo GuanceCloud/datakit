@@ -3,6 +3,7 @@
 package systemd
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -34,7 +35,10 @@ var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Systemd{}
+		return &Systemd{
+			Interval: datakit.Cfg.MainCfg.Interval,
+			Tags:     make(map[string]string),
+		}
 	})
 }
 
@@ -54,12 +58,35 @@ func (*Systemd) Catalog() string {
 	return "host"
 }
 
+func (s *Systemd) Test() (result *inputs.TestResult, err error) {
+	l = logger.SLogger(inputName)
+	// default
+	result.Desc = "数据指标获取失败，详情见错误信息"
+
+	if err = s.loadCfg(); err != nil {
+		return
+	}
+	defer s.stop()
+
+	var data []byte
+	data, err = s.getMetrics()
+	if err != nil {
+		return
+	}
+
+	result.Result = data
+	result.Desc = "数据指标获取成功"
+	return
+}
+
 func (s *Systemd) Run() {
 	l = logger.SLogger(inputName)
 
-	if s.loadcfg() {
+	if s.initCfg() {
 		return
 	}
+	defer s.stop()
+
 	ticker := time.NewTicker(s.duration)
 	defer ticker.Stop()
 
@@ -68,7 +95,6 @@ func (s *Systemd) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			s.conn.Close()
 			l.Info("exit")
 			return
 
@@ -87,9 +113,11 @@ func (s *Systemd) Run() {
 	}
 }
 
-func (s *Systemd) loadcfg() bool {
-	var err error
+func (s *Systemd) stop() {
+	s.conn.Close()
+}
 
+func (s *Systemd) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -99,22 +127,32 @@ func (s *Systemd) loadcfg() bool {
 			// nil
 		}
 
-		s.duration, err = time.ParseDuration(s.Interval)
-		if err != nil || s.duration <= 0 {
-			l.Errorf("invalid interval")
+		if err := s.loadCfg(); err != nil {
+			l.Error(err)
 			time.Sleep(time.Second)
-			continue
+		} else {
+			break
 		}
-
-		s.conn, err = dbus.New()
-		if err != nil {
-			l.Errorf("connect systemd err: %s", err.Error())
-			time.Sleep(time.Second)
-			continue
-		}
-		break
 	}
+
 	return false
+}
+func (s *Systemd) loadCfg() (err error) {
+	s.duration, err = time.ParseDuration(s.Interval)
+	if err != nil {
+		err = fmt.Errorf("invalid interval, %s", err.Error())
+		return
+	} else if s.duration <= 0 {
+		err = fmt.Errorf("invalid interval, cannot be less than zero")
+		return
+	}
+
+	s.conn, err = dbus.New()
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 type metrics struct {
@@ -135,7 +173,6 @@ type metrics struct {
 }
 
 func (s *Systemd) getMetrics() ([]byte, error) {
-
 	units, err := s.conn.ListUnits()
 	if err != nil {
 		return nil, err
