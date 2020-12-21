@@ -33,7 +33,7 @@ func newCostAccount(ag *agent) *costAccount {
 
 func (ca *costAccount) run(ctx context.Context) {
 
-	if ca.ag.CollectHistoryData {
+	if ca.ag.CollectHistoryData && !ca.ag.isTest() {
 		go func() {
 			ca.getHistoryData(ctx)
 		}()
@@ -65,6 +65,14 @@ func (ca *costAccount) getData(ctx context.Context) {
 
 		if err := ca.getTransactions(ctx, from, end, nil); err != nil {
 			moduleLogger.Errorf("%s", err)
+			if ca.ag.isTest() {
+				ca.ag.testError = err
+				return
+			}
+		}
+
+		if ca.ag.isTest() {
+			break
 		}
 
 		select {
@@ -92,7 +100,7 @@ func (ca *costAccount) getHistoryData(ctx context.Context) error {
 	key := "." + ca.ag.cacheFileKey(`account`)
 
 	if !ca.ag.CollectHistoryData {
-		if !ca.ag.debugMode {
+		if !ca.ag.isDebug() {
 			delAliyunCostHistory(key)
 		}
 		return nil
@@ -102,7 +110,7 @@ func (ca *costAccount) getHistoryData(ctx context.Context) error {
 
 	var info *historyInfo
 
-	if !ca.ag.debugMode {
+	if !ca.ag.isDebug() {
 		info, _ = getAliyunCostHistory(key)
 	}
 
@@ -217,7 +225,7 @@ func (ca *costAccount) getTransactions(ctx context.Context, start, end string, i
 			req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
 			if info != nil {
 				info.PageNum = resp.Data.PageNum + 1
-				if !ca.ag.debugMode {
+				if !ca.ag.isDebug() {
 					setAliyunCostHistory(info.key, info)
 				}
 			}
@@ -232,7 +240,7 @@ func (ca *costAccount) getTransactions(ctx context.Context, start, end string, i
 
 	if info != nil {
 		info.Statue = 1
-		if !ca.ag.debugMode {
+		if !ca.ag.isDebug() {
 			setAliyunCostHistory(info.key, info)
 		}
 	}
@@ -311,7 +319,10 @@ func (ca *costAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 		} else {
 			tm = tm.Add(-8 * time.Hour) //返回的不是unix时间字符串
 
-			if ca.ag.debugMode {
+			if ca.ag.isTest() {
+				data, _ := io.MakeMetric(ca.getName(), tags, fields, tm)
+				ca.ag.testResult.Result = append(ca.ag.testResult.Result, data...)
+			} else if ca.ag.isDebug() {
 				//data, _ := io.MakeMetric(ca.getName(), tags, fields, tm)
 				//fmt.Printf("-----%s\n", string(data))
 			} else {
