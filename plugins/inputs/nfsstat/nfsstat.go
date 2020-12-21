@@ -5,7 +5,6 @@ package nfsstat
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -26,22 +25,26 @@ const (
 	sampleCfg = `
 [inputs.nfsstat]
     # nfsstat file location. default "/proc/net/rpc/nfsd"
+    # required
     location = "/proc/net/rpc/nfsd"
     
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    # required
     interval = "10s"
     
     # [inputs.nfsstat.tags]
     # tags1 = "value1"
 `
-	nfsStatFileLocation = "/proc/net/rpc/nfsd"
 )
 
 var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &NFSstat{}
+		return &NFSstat{
+			Interval: datakit.Cfg.MainCfg.Interval,
+			Tags:     make(map[string]string),
+		}
 	})
 }
 
@@ -60,10 +63,30 @@ func (*NFSstat) Catalog() string {
 	return inputName
 }
 
+func (n *NFSstat) Test() (result *inputs.TestResult, err error) {
+	l = logger.SLogger(inputName)
+	// default
+	result.Desc = "数据指标获取失败，详情见错误信息"
+
+	if err = n.loadCfg(); err != nil {
+		return nil, err
+	}
+
+	var data []byte
+	data, err = buildPoint(n.Location, n.Tags)
+	if err != nil {
+		return nil, err
+	}
+
+	result.Result = data
+	result.Desc = "数据指标获取成功"
+	return
+}
+
 func (n *NFSstat) Run() {
 	l = logger.SLogger(inputName)
 
-	if n.loadcfg() {
+	if n.initCfg() {
 		return
 	}
 
@@ -93,12 +116,7 @@ func (n *NFSstat) Run() {
 	}
 }
 
-func (n *NFSstat) loadcfg() bool {
-	if n.Location == "" {
-		n.Location = nfsStatFileLocation
-		l.Infof("location is empty, use default location %s", nfsStatFileLocation)
-	}
-
+func (n *NFSstat) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -108,31 +126,37 @@ func (n *NFSstat) loadcfg() bool {
 			// nil
 		}
 
-		d, err := time.ParseDuration(n.Interval)
-		if err != nil || d <= 0 {
-			l.Errorf("invalid interval")
-			time.Sleep(time.Second)
-			continue
-		}
-		n.duration = d
-
-		if _, err := os.Stat(n.Location); err != nil {
+		if err := n.loadCfg(); err != nil {
 			l.Error(err)
 			time.Sleep(time.Second)
-			continue
+		} else {
+			break
 		}
-
-		break
 	}
 
-	if n.Tags == nil {
-		n.Tags = make(map[string]string)
+	return false
+}
+
+func (n *NFSstat) loadCfg() (err error) {
+	if n.Location == "" {
+		err = fmt.Errorf("location cannot be empty")
+		return
 	}
+
+	n.duration, err = time.ParseDuration(n.Interval)
+	if err != nil {
+		err = fmt.Errorf("invalid interval, %s", err.Error())
+		return
+	} else if n.duration <= 0 {
+		err = fmt.Errorf("invalid interval, cannot be less than zero")
+		return
+	}
+
 	if _, ok := n.Tags["location"]; !ok {
 		n.Tags["location"] = n.Location
 	}
 
-	return false
+	return
 }
 
 func buildPoint(fn string, tags map[string]string) ([]byte, error) {
