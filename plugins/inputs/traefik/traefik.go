@@ -57,13 +57,11 @@ var (
 	traefikConfigSample = `
 ### You need to configure an [[inputs.traefik]] for each traefik to be monitored.
 ### interval: monitor interval, the default value is "60s".
-### active: whether to monitor traefik.
 ### url: traefik service WebUI url.
 ### metricsName: the name of metric, default is "traefik"
 
 #[[inputs.traefik]]
 #	interval    = "60s"
-#	active      = true
 #	url         = "http://127.0.0.1:8080/health"
 #	metricsName = "traefik"
 #	[inputs.traefik.tags]
@@ -81,10 +79,24 @@ func (t *Traefik) Catalog() string {
 }
 
 func (t *Traefik) Run() {
-	if !t.Active || t.Url == "" {
+	if t.Url == "" {
 		return
 	}
 
+	p := t.genParam()
+	p.log.Infof("traefik input started...")
+	p.gather()
+}
+
+func (t *Traefik) Test() (*inputs.TestResult, error) {
+	tRst := &inputs.TestResult{}
+	para := t.genParam()
+	pt, err := para.getMetrics(true)
+	tRst.Result = pt
+	return tRst, err
+}
+
+func (t *Traefik) genParam() *TraefikParam {
 	if t.MetricsName == "" {
 		t.MetricsName = defaultMetricName
 	}
@@ -97,10 +109,8 @@ func (t *Traefik) Run() {
 	output := TraefikOutput{io.NamedFeed}
 
 	p := &TraefikParam{input, output, logger.SLogger("traefik")}
-	p.log.Infof("traefik input started...")
-	p.gather()
+    return p
 }
-
 func (p *TraefikParam) gather() {
 	var d time.Duration
 	var err error
@@ -124,7 +134,7 @@ func (p *TraefikParam) gather() {
 	for {
 		select {
 		case <-tick.C:
-			err = p.getMetrics()
+			_, err = p.getMetrics(false)
 			if err != nil {
 				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
@@ -135,7 +145,7 @@ func (p *TraefikParam) gather() {
 	}
 }
 
-func (p *TraefikParam) getMetrics() (err error) {
+func (p *TraefikParam) getMetrics(isTest bool) ([]byte, error) {
 	var s TraefikServStats
 	s.TotalStatCodeCnt = make(map[string]int)
 
@@ -151,12 +161,12 @@ func (p *TraefikParam) getMetrics() (err error) {
 		fields["can_connect"] = false
 		pt, _ := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 		p.output.IoFeed(pt, io.Metric, inputName)
-		return
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if err := json.NewDecoder(resp.Body).Decode(&s); err != nil {
-		return fmt.Errorf("decode json err: %s", err.Error())
+		return nil, fmt.Errorf("decode json err: %s", err.Error())
 	}
 
 	tags["pid"] = fmt.Sprintf("%d", s.Pid)
@@ -176,10 +186,15 @@ func (p *TraefikParam) getMetrics() (err error) {
 
 	pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
-		return
+		return pt, err
 	}
-	err = p.output.IoFeed(pt, io.Metric, inputName)
-	return
+
+	if !isTest {
+		err = p.output.IoFeed(pt, io.Metric, inputName)
+		return pt, err
+	}
+
+	return pt, nil
 }
 
 func getReadableTimeStr(d time.Duration) string {
