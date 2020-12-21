@@ -56,6 +56,10 @@ func (e *Cvm) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
+		if ag.isTest() {
+			ag.testError = err
+			return
+		}
 		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
@@ -82,8 +86,18 @@ func (e *Cvm) run(ag *objectAgent) {
 					e.handleResponse(response, ag)
 				}
 			}
+			if err != nil && ag.isTest() {
+				ag.testError = err
+			}
 		} else {
 			moduleLogger.Errorf("invalid params, %s", err)
+			if ag.isTest() {
+				ag.testError = err
+			}
+		}
+
+		if ag.isTest() {
+			return
 		}
 
 		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
@@ -114,10 +128,14 @@ func (e *Cvm) handleResponse(resp *cvm.DescribeInstancesResponse, ag *objectAgen
 	}
 
 	data, err := json.Marshal(&objs)
-	if err != nil {
+	if err == nil {
+		if ag.isTest() {
+			ag.testResult.Result = append(ag.testResult.Result, data...)
+		} else {
+			io.NamedFeed(data, io.Object, inputName)
+		}
+	} else {
 		moduleLogger.Errorf("%s", err)
 		return
 	}
-	io.NamedFeed(data, io.Object, inputName)
-
 }

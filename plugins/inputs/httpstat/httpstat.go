@@ -39,6 +39,8 @@ type httpPing struct {
 	kAlive        bool
 	compress      bool
 	tlsSkipVerify bool
+	httpStat      *Httpstat
+	resData       []byte
 }
 
 // Result holds Ping result
@@ -226,6 +228,8 @@ func (h *httpPing) uploadData(resData Result) {
 
 	pt, _ := influxdb.NewPoint(h.metricName, tags, fields, time.Now())
 
+	h.resData = []byte(pt.String())
+
 	io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
 }
 
@@ -275,6 +279,28 @@ func (h *httpPing) setTransport() {
 		},
 		Proxy: http.ProxyFromEnvironment,
 	}
+}
+
+func (h *Httpstat) Test() (*inputs.TestResult, error) {
+	h.test = true
+	h.resData = nil
+
+	for _, c := range h.Actions {
+		p := &httpPing{
+			cfg:        c,
+			metricName: h.MetricName,
+		}
+		p.run()
+
+		h.resData = p.resData
+	}
+
+    res := &inputs.TestResult {
+    	Result: h.resData,
+    	Desc: "success!",
+    }
+
+    return res, nil
 }
 
 // Normalize fixes scheme

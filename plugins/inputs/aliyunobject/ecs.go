@@ -45,8 +45,13 @@ func (e *Ecs) run(ag *objectAgent) {
 		cli, err = ecs.NewClientWithAccessKey(ag.RegionID, ag.AccessKeyID, ag.AccessKeySecret)
 		if err == nil {
 			break
+		} else {
+			moduleLogger.Errorf("%s", err)
+			if ag.isTest() {
+				ag.testError = err
+				return
+			}
 		}
-		moduleLogger.Errorf("%s", err)
 		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
@@ -83,6 +88,10 @@ func (e *Ecs) run(ag *objectAgent) {
 				e.handleResponse(resp, ag)
 			} else {
 				moduleLogger.Errorf("%s", err)
+				if ag.isTest() {
+					ag.testError = err
+					return
+				}
 				break
 			}
 
@@ -91,6 +100,10 @@ func (e *Ecs) run(ag *objectAgent) {
 			}
 			pageNum++
 			req.PageNumber = requests.NewInteger(pageNum)
+		}
+
+		if ag.isTest() {
+			break
 		}
 
 		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
@@ -117,15 +130,23 @@ func (e *Ecs) handleResponse(resp *ecs.DescribeInstancesResponse, ag *objectAgen
 	}
 
 	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-
-	if ag.mode == "debug" {
-		fmt.Printf("%s", string(data))
+	if err == nil {
+		if ag.isTest() {
+			ag.testResult.Result = append(ag.testResult.Result, data...)
+		} else {
+			io.NamedFeed(data, io.Object, inputName)
+		}
 	} else {
-		io.NamedFeed(data, io.Object, inputName)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+			return
+		}
+
+		if ag.mode == "debug" {
+			fmt.Printf("%s", string(data))
+		} else {
+			io.NamedFeed(data, io.Object, inputName)
+		}
 	}
 
 }
