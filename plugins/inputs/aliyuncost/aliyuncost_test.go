@@ -254,6 +254,6 @@ func TestSvr(t *testing.T) {
 		}
 	}
 
-	ag.debugMode = true
+	ag.mode = "debug"
 	ag.Run()
 }
