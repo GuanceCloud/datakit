@@ -49,7 +49,9 @@ var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Cloudflare{}
+		return &Cloudflare{
+			Tags: make(map[string]string),
+		}
 	})
 }
 
@@ -72,10 +74,30 @@ func (*Cloudflare) Catalog() string {
 	return inputName
 }
 
+func (h *Cloudflare) Test() (result *inputs.TestResult, err error) {
+	l = logger.SLogger(inputName)
+	// default
+	result.Desc = "数据指标获取失败，详情见错误信息"
+
+	if err = h.loadCfg(); err != nil {
+		return
+	}
+
+	var data []byte
+	data, err = h.getMetrics()
+	if err != nil {
+		return
+	}
+
+	result.Result = data
+	result.Desc = "数据指标获取成功"
+	return
+}
+
 func (h *Cloudflare) Run() {
 	l = logger.SLogger(inputName)
 
-	if h.laodCfg() {
+	if h.initCfg() {
 		return
 	}
 
@@ -105,10 +127,7 @@ func (h *Cloudflare) Run() {
 	}
 }
 
-func (h *Cloudflare) laodCfg() bool {
-	var err error
-	var d time.Duration
-
+func (h *Cloudflare) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -118,26 +137,35 @@ func (h *Cloudflare) laodCfg() bool {
 			// next
 		}
 
-		d, err = time.ParseDuration(h.Interval)
-		if err != nil || d <= 0 {
-			l.Errorf("invalid interval")
+		if err := h.loadCfg(); err != nil {
+			l.Error(err)
 			time.Sleep(time.Second)
-			continue
+		} else {
+			break
 		}
-		h.duration = d
+	}
 
-		h.requ, err = http.NewRequest("GET",
-			fmt.Sprintf("%s/zones/%s/analytics/dashboard?since=-%d&continuous=true",
-				cloudflareAPIURL,
-				h.ZoneID,
-				h.duration/time.Minute,
-			), nil)
-		if err != nil {
-			l.Errorf("new request error: %s", err.Error())
-			time.Sleep(time.Second)
-			continue
-		}
-		break
+	return false
+}
+
+func (h *Cloudflare) loadCfg() (err error) {
+	h.duration, err = time.ParseDuration(h.Interval)
+	if err != nil {
+		err = fmt.Errorf("invalid interval, %s", err.Error())
+		return
+	} else if h.duration <= 0 {
+		err = fmt.Errorf("invalid interval, cannot be less than zero")
+		return
+	}
+
+	h.requ, err = http.NewRequest("GET",
+		fmt.Sprintf("%s/zones/%s/analytics/dashboard?since=-%d&continuous=true",
+			cloudflareAPIURL,
+			h.ZoneID,
+			h.duration/time.Minute,
+		), nil)
+	if err != nil {
+		return err
 	}
 
 	h.requ.Header.Add("X-Auth-Email", h.Email)
@@ -148,7 +176,7 @@ func (h *Cloudflare) laodCfg() bool {
 		h.Tags["zone_id"] = h.ZoneID
 	}
 
-	return false
+	return
 }
 
 func (h *Cloudflare) getMetrics() ([]byte, error) {
@@ -198,7 +226,6 @@ func (h *Cloudflare) getMetrics() ([]byte, error) {
 }
 
 func parseRequest(fieldsMap map[string]interface{}, metrics gjson.Result) {
-
 	fieldsMap["requests_all"] = metrics.Get("all").Int()
 	fieldsMap["requests_cached"] = metrics.Get("cached").Int()
 	fieldsMap["requests_uncached"] = metrics.Get("uncached").Int()
@@ -208,22 +235,18 @@ func parseRequest(fieldsMap map[string]interface{}, metrics gjson.Result) {
 	for k, status := range metrics.Get("http_status").Map() {
 		fieldsMap["requests_status_"+k] = status.Int()
 	}
-
 	for k, contentType := range metrics.Get("content_type").Map() {
 		fieldsMap["requests_content_type_"+k] = contentType.Int()
 	}
-
 	for k, country := range metrics.Get("country").Map() {
 		fieldsMap["requests_country_"+k] = country.Int()
 	}
-
 	for k, ipClass := range metrics.Get("ip_class").Map() {
 		fieldsMap["requests_ip_class_"+k] = ipClass.Int()
 	}
 }
 
 func parseBandwidth(fieldsMap map[string]interface{}, metrics gjson.Result) {
-
 	fieldsMap["bandwidth_all"] = metrics.Get("all").Int()
 	fieldsMap["bandwidth_cached"] = metrics.Get("cached").Int()
 	fieldsMap["bandwidth_uncached"] = metrics.Get("uncached").Int()
@@ -233,7 +256,6 @@ func parseBandwidth(fieldsMap map[string]interface{}, metrics gjson.Result) {
 	for k, contentType := range metrics.Get("content_type").Map() {
 		fieldsMap["bandwidth_content_type_"+k] = contentType.Int()
 	}
-
 	for k, country := range metrics.Get("country").Map() {
 		fieldsMap["bandwidth_country_"+k] = country.Int()
 	}

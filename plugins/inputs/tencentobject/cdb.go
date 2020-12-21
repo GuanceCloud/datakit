@@ -55,6 +55,10 @@ func (c *Cdb) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
+		if ag.isTest() {
+			ag.testError = err
+			return
+		}
 		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
@@ -80,9 +84,17 @@ func (c *Cdb) run(ag *objectAgent) {
 				} else {
 					moduleLogger.Errorf("%s", err)
 				}
+				if ag.isTest() {
+					ag.testError = err
+					return
+				}
 			} else {
 				c.handleResponse(response, ag)
 			}
+		}
+
+		if ag.isTest() {
+			return
 		}
 
 		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
@@ -110,9 +122,15 @@ func (c *Cdb) handleResponse(resp *cdb.DescribeDBInstancesResponse, ag *objectAg
 	}
 
 	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
+	if err == nil {
+		if ag.isTest() {
+			ag.testResult.Result = append(ag.testResult.Result, data...)
+		} else {
+			io.NamedFeed(data, io.Object, inputName)
+		}
+	} else {
+
+			moduleLogger.Errorf("%s", err)
+			return
+		}
 	}
-	io.NamedFeed(data, io.Object, inputName)
-}

@@ -26,7 +26,7 @@ const (
     version = "v1"
     
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-    # required
+    # required, cannot be less than zero
     interval = "10s"
     
     # [inputs.lighttpd.tags]
@@ -39,7 +39,10 @@ var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Lighttpd{}
+		return &Lighttpd{
+			Interval: datakit.Cfg.MainCfg.Interval,
+			Tags:     make(map[string]string),
+		}
 	})
 }
 
@@ -63,10 +66,30 @@ func (*Lighttpd) Catalog() string {
 	return inputName
 }
 
+func (h *Lighttpd) Test() (result *inputs.TestResult, err error) {
+	l = logger.SLogger(inputName)
+	// default
+	result.Desc = "数据指标获取失败，详情见错误信息"
+
+	if err = h.loadCfg(); err != nil {
+		return
+	}
+
+	var data []byte
+	data, err = h.getMetrics()
+	if err != nil {
+		return
+	}
+
+	result.Result = data
+	result.Desc = "数据指标获取成功"
+	return
+}
+
 func (h *Lighttpd) Run() {
 	l = logger.SLogger(inputName)
 
-	if h.loadcfg() {
+	if h.initCfg() {
 		return
 	}
 	ticker := time.NewTicker(h.duration)
@@ -94,8 +117,7 @@ func (h *Lighttpd) Run() {
 		}
 	}
 }
-
-func (h *Lighttpd) loadcfg() bool {
+func (h *Lighttpd) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -105,27 +127,36 @@ func (h *Lighttpd) loadcfg() bool {
 			// nil
 		}
 
-		d, err := time.ParseDuration(h.Interval)
-		if err != nil || d <= 0 {
-			l.Errorf("invalid interval")
+		if err := h.loadCfg(); err != nil {
+			l.Error(err)
 			time.Sleep(time.Second)
-			continue
-		}
-		h.duration = d
-
-		if h.Version == "v1" {
-			h.statusURL = fmt.Sprintf("%s?json", h.URL)
-			h.statusVersion = v1
-			break
-		} else if h.Version == "v2" {
-			h.statusURL = fmt.Sprintf("%s?format=plain", h.URL)
-			h.statusVersion = v2
-			break
 		} else {
-			l.Error("invalid lighttpd version")
-			time.Sleep(time.Second)
+			break
 		}
 	}
 
 	return false
+}
+
+func (h *Lighttpd) loadCfg() (err error) {
+	h.duration, err = time.ParseDuration(h.Interval)
+	if err != nil {
+		err = fmt.Errorf("invalid interval, %s", err.Error())
+		return
+	} else if h.duration <= 0 {
+		err = fmt.Errorf("invalid interval, cannot be less than zero")
+		return
+	}
+
+	if h.Version == "v1" {
+		h.statusURL = fmt.Sprintf("%s?json", h.URL)
+		h.statusVersion = v1
+		return
+	} else if h.Version == "v2" {
+		h.statusURL = fmt.Sprintf("%s?format=plain", h.URL)
+		h.statusVersion = v2
+		return
+	} else {
+		return fmt.Errorf("invalid lighttpd version")
+	}
 }
