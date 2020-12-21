@@ -39,6 +39,10 @@ func (s *SecureExec) SampleConfig() string {
 	return secureExecConfSample
 }
 
+func (s *SecureExec) Test() (result *inputs.TestResult,err error) {
+	return
+}
+
 func (s *SecureExec) Run() {
 	Log = logger.SLogger(inputName)
 

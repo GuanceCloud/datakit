@@ -1,7 +1,10 @@
 package Goruntime
 
 import (
+    ifxcli "github.com/influxdata/influxdb1-client/v2"
+    "gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+    "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
 const (
@@ -33,20 +36,20 @@ const (
 `
 )
 
-type Goruntime struct{}
-
-func (*Goruntime) Run() {}
-
-func (*Goruntime) Catalog() string {
-	return "golang"
-}
-
-func (*Goruntime) SampleConfig() string {
-	return "[[inputs.prom]]" + sampleCfg
-}
-
 func init() {
-	inputs.Add(inputName, func() inputs.Input {
-		return &Goruntime{}
-	})
+    inputs.Add(inputName, func() inputs.Input {
+        return &prom.Prom{
+            Interval:       datakit.Cfg.MainCfg.Interval,
+            InputName:      inputName,
+            CatalogStr:     inputName,
+            SampleCfg:      sampleCfg,
+            Tags:           make(map[string]string),
+            IgnoreFunc:     ignore,
+            PromToNameFunc: nil,
+        }
+    })
+}
+
+func ignore(pt *ifxcli.Point) bool {
+    return false
 }
