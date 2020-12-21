@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/configtemplate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -45,6 +46,9 @@ var (
 	flagDatakitName  = flag.String("name", "", `specify DataKit name, example: prod-env-datakit`)
 	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=__datakit_hostname,ip=__datakit_ip`)
 	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
+
+	flagCfgTemplate     = flag.String("conf-tmpl", "res.dataflux.cn", `specify input config templates, can be file path or url, e.g, http://res.dataflux.cn/demo.tar.gz`)
+	flagCfgTemplateData = flag.String("conf-tmpl-data", "", `specify the data which will apply the config template files`)
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./agent-%s-%s.tar.gz",
@@ -114,6 +118,11 @@ func main() {
 	} else { // install new datakit
 		l.Infof("Installing version %s...", DataKitVersion)
 		install.InstallNewDatakit(svc)
+	}
+
+	ct := configtemplate.NewCfgTemplate(install.InstallDir)
+	if err = ct.InstallConfigs(*flagCfgTemplate, []byte(*flagCfgTemplateData)); err != nil {
+		l.Fatalf("fail to intsall config template, %s", err)
 	}
 
 	l.Infof("starting service %s...", datakit.ServiceName)
