@@ -29,7 +29,7 @@ var (
 ## Small program unique credential key   AppSecret
  secret = ""
 ## every_day runtime
- runtime = "18:13"
+# runtime = "18:13"
 
 [inputs.wechatminiprogram.analysis]
  name = [
