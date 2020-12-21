@@ -9,8 +9,8 @@ import (
 
 var (
 	telegrafInputsNonWin = map[string]*TelegrafInput{ // Name: Catalog
-		"varnish":   {name: "varnish", Catalog: "varnish", input: &varnish.Varnish{}},
-		"processes": {name: "processes", Catalog: "host", input: &processes.Processes{}},
+		"varnish":   {name: "varnish", Catalog: "varnish", Input: &varnish.Varnish{}},
+		"processes": {name: "processes", Catalog: "host", Input: &processes.Processes{}},
 	}
 )
 
