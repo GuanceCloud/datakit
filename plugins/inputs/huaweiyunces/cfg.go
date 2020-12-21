@@ -8,6 +8,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud"
 )
 
@@ -105,6 +106,11 @@ type (
 		cancelFun context.CancelFunc
 
 		reqs []*metricsRequest
+
+		mode string
+
+		testResult *inputs.TestResult
+		testError  error
 	}
 
 	metricsRequest struct {
@@ -135,6 +141,14 @@ type (
 		lastTime time.Time
 	}
 )
+
+func (ag *agent) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *agent) isDebug() bool {
+	return ag.mode == "debug"
+}
 
 func (p *Namespace) genMetricReq(metric string) (*metricsRequest, error) {
 
