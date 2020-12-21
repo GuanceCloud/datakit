@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	defaultURL = `https://res.dataflux.cn/datakit/conf/`
+	defaultURL = `https://static.dataflux.cn/datakit/conf/`
 )
 
 type CfgTemplate struct {
