@@ -3,6 +3,7 @@ package configtemplate
 import (
 	"archive/tar"
 	"bytes"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -47,7 +48,13 @@ func (c *CfgTemplate) InstallConfigs(path string, data []byte) error {
 			return err
 		}
 	} else if bytes.HasPrefix(data, []byte("http://")) || bytes.HasPrefix(data, []byte("https://")) {
-		resp, err := http.Get(string(data))
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		cli := &http.Client{
+			Transport: tr,
+		}
+		resp, err := cli.Get(string(data))
 		if err != nil {
 			return err
 		}
@@ -92,7 +99,15 @@ func (c *CfgTemplate) InstallConfigs(path string, data []byte) error {
 				url = defaultURL + path + ".tar.gz"
 			}
 		}
-		resp, err := http.Get(url)
+
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		cli := &http.Client{
+			Transport: tr,
+		}
+
+		resp, err := cli.Get(url)
 		if err != nil {
 			return err
 		}
