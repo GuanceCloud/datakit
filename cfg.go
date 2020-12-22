@@ -20,7 +20,7 @@ import (
 var (
 	IntervalDuration = 10 * time.Second
 
-	DefaultWebsocketPath = "/v1/datakit/ws"
+	DefaultWebsocketPath = "/v1/ws/datakit"
 
 	Cfg = DefaultConfig()
 )
