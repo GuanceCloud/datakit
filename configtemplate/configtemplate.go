@@ -141,7 +141,7 @@ func (c *CfgTemplate) parsePackage(data []byte) error {
 		fi := hdr.FileInfo()
 		if !fi.IsDir() {
 			targetDir := filepath.Join(c.InstallDir, "conf.d", filepath.Dir(hdr.Name))
-			if err = os.MkdirAll(targetDir, 0664); err != nil {
+			if err = os.MkdirAll(targetDir, 0775); err != nil {
 				return fmt.Errorf("fail to create dir '%s', error: %s", targetDir, err)
 			}
 
