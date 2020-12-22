@@ -86,7 +86,11 @@ func (c *CfgTemplate) InstallConfigs(path string, data []byte) error {
 		if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
 			url = path
 		} else {
-			url = defaultURL + path
+			if strings.HasSuffix(path, ".tar.gz") {
+				url = defaultURL + path
+			} else {
+				url = defaultURL + path + ".tar.gz"
+			}
 		}
 		resp, err := http.Get(url)
 		if err != nil {
