@@ -49,15 +49,16 @@ func StartWS() {
 		exit: make(chan interface{}),
 	}
 
-	cli.tryConnect(wsurl.String())
+	if err := cli.tryConnect(wsurl.String());err == nil {
+		go func() {
+			cli.waitMsg()
+		}()
 
-	go func() {
-		cli.waitMsg()
-	}()
+		go func() {
+			cli.sendHeartbeat()
+		}()
+	}
 
-	go func() {
-		cli.sendHeartbeat()
-	}()
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -70,12 +71,12 @@ func StartWS() {
 
 }
 
-func (wc *wscli) tryConnect(wsurl string) {
+func (wc *wscli) tryConnect(wsurl string) error {
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			return
+			return fmt.Errorf("ws not ready:wsurl:%s",wsurl)
 		default:
 			c, resp, err := websocket.DefaultDialer.Dial(wsurl, nil)
 			if err != nil {
@@ -87,7 +88,7 @@ func (wc *wscli) tryConnect(wsurl string) {
 
 			wc.c = c
 			l.Infof("ws ready")
-			return
+			return nil
 		}
 
 	}
@@ -96,16 +97,17 @@ func (wc *wscli) tryConnect(wsurl string) {
 func (wc *wscli) reset() {
 	l.Infof("ws reset run")
 	wc.c.Close()
-	wc.tryConnect(wsurl.String())
 	wc.exit = make(chan interface{})
 
-	go func() {
-		cli.waitMsg()
-	}()
-	go func() {
-		cli.sendHeartbeat()
-	}()
+	if err := cli.tryConnect(wsurl.String());err == nil {
+		go func() {
+			cli.waitMsg()
+		}()
 
+		go func() {
+			cli.sendHeartbeat()
+		}()
+	}
 }
 
 func (wc *wscli) waitMsg() {
