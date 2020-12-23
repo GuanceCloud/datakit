@@ -3,11 +3,16 @@ package configtemplate
 import (
 	"log"
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 func TestCfgTemp(t *testing.T) {
-	ct := NewCfgTemplate(".")
-	err := ct.InstallConfigs("test.tar.gz", []byte(`base64://eyJBbGlZdW5fQUsiOiJ0aGlzIGlzIGFrIn0=`))
+
+	logger.DefaultSLogger("main")
+
+	ct := NewCfgTemplate("./result")
+	err := ct.InstallConfigs("file://./conf.d/test.tar.gz")
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
