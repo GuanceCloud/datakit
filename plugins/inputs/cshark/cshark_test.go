@@ -11,9 +11,10 @@ import (
 var msg = `
 {
     "device": ["lo"],
+    "sync": true,
     "stream": {
         "duration": "10s",
-        "protocol": "udp",
+        "protocol": "tcp",
         "filter": "'tcp dst port 8080'"
     }
 }
@@ -25,16 +26,18 @@ func TestRun(t *testing.T) {
 		datakit.OutputFile = "metrics.txt"
 
 		s := &Shark{}
+		s.Interval = "3s"
+		s.TsharkPath = "/usr/bin/tshark"
 
 		go s.Run()
 
-		time.Sleep(time.Second*1)
+		time.Sleep(time.Second*10)
 
 		if err := SendCmdOpt(msg); err != nil {
 			fmt.Println("err", err)
 		}
 
-		time.Sleep(30*time.Second)
+		time.Sleep(10*time.Second)
 
 		t.Log("ok")
 	})
