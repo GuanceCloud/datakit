@@ -1,6 +1,0 @@
-dist/
-.vscode/
-*~
-
-/cmd/termshark/termshark
-/typescript
