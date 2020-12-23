@@ -80,15 +80,15 @@ func LoadInputsConfig(c *datakit.Config) error {
 		fileName := strings.TrimSuffix(filepath.Base(fp), path.Ext(fp))
 
 		if _, ok := inputs.Inputs[fileName]; ok {
-			availableInput[fileName] = map[string]*ast.Table{fp:tbl}
+			availableInput[fileName] = map[string]*ast.Table{fp: tbl}
 			return nil
 
 		}
 		if _, ok := tgi.TelegrafInputs[fileName]; ok {
-			availableTgiInput[fileName] = map[string]*ast.Table{fp:tbl}
+			availableTgiInput[fileName] = map[string]*ast.Table{fp: tbl}
 			return nil
 		}
-		l.Errorf("config:%s must name by input.conf example :disk.conf",fp)
+		l.Errorf("config:%s must name by input.conf example :disk.conf", fp)
 		return nil
 	}); err != nil {
 		l.Error(err)
@@ -102,17 +102,21 @@ func LoadInputsConfig(c *datakit.Config) error {
 		addTailfInputs(c.MainCfg)
 	}
 
-	for name,available := range availableInput {
-		creator,_ := inputs.Inputs[name]
-		if err := doLoadInputConf(c, name, creator,available ); err != nil {
+	for name, available := range availableInput {
+		creator, _ := inputs.Inputs[name]
+		if err := doLoadInputConf(c, name, creator, available); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
-			return err}
+			return err
+		}
 	}
+
+	self, _ := inputs.Inputs["self"]
+	inputs.AddSelf(self())
 
 	tgiInput := map[string]*ast.Table{}
 
-	for _,v := range availableTgiInput {
-		for fp,tbl := range v {
+	for _, v := range availableTgiInput {
+		for fp, tbl := range v {
 			tgiInput[fp] = tbl
 		}
 	}
@@ -135,11 +139,6 @@ func doLoadInputConf(c *datakit.Config, name string, creator inputs.Creator, inp
 		if !sliceContains(name, c.InputFilters) {
 			return nil
 		}
-	}
-
-	if name == "self" { //nolint:goconst
-		inputs.AddSelf(creator())
-		return nil
 	}
 
 	l.Debugf("search input cfg for %s", name)
