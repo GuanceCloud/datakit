@@ -5,6 +5,7 @@ var ProtocolDic = map[string]bool{
 	"TCP":  true,
 	"UDP":  true,
 	"MYSQL": true,
+	"DNS":  true,
 	"SSH": false,
 }
 
