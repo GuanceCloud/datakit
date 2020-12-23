@@ -184,7 +184,7 @@ func (c *CfgTemplate) genConfig(targetFile string, tmpl []byte) error {
 		cfgData = buf.Bytes()
 	}
 
-	if err := ioutil.WriteFile(targetFile, cfgData, 0775); err != nil {
+	if err := ioutil.WriteFile(targetFile, cfgData, 0664); err != nil {
 		return fmt.Errorf("write file '%s' failed, %s", targetFile, err)
 	}
 	return nil
