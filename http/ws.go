@@ -370,6 +370,38 @@ func checkConfig(listInput []string) bool {
 	return true
 }
 
+func marshalToml(sstbl interface{},name string,listMd5 []string)(catelog string,err error)  {
+	tbls := []*ast.Table{}
+	switch t := sstbl.(type) {
+	case []*ast.Table:
+		tbls = sstbl.([]*ast.Table)
+	case *ast.Table:
+		tbls = append(tbls, sstbl.(*ast.Table))
+	default:
+		err = fmt.Errorf("invalid toml format on %s: %v", name, t)
+		return
+	}
+	for _, tb := range tbls {
+		if creator, ok := inputs.Inputs[name]; ok {
+			inp := creator()
+			err = toml.UnmarshalTable(tb, inp)
+			listMd5 = append(listMd5, inputs.SetInputsMD5(name,inp))
+			catelog = inp.Catalog()
+			continue
+		}
+		if creator, ok := tgi.TelegrafInputs[name]; ok {
+			catelog = creator.Catalog
+			cr := reflect.ValueOf(creator).Elem().Interface()
+			err = toml.UnmarshalTable(tb, cr.(tgi.TelegrafInput).Input)
+			listMd5 = append(listMd5, inputs.SetInputsMD5(name,cr.(tgi.TelegrafInput)))
+			continue
+		}
+		err = fmt.Errorf("input:%s is not available", name)
+		return
+	}
+	return
+}
+
 
 func parseConf(conf string, name string) (listMd5 []string,catelog string, err error) {
 	data, err := base64.StdEncoding.DecodeString(conf)
@@ -378,36 +410,35 @@ func parseConf(conf string, name string) (listMd5 []string,catelog string, err e
 	}
 	tbl, err := toml.Parse(data)
 	if err != nil {
-		l.Errorf("toml parse err:%s",err.Error())
+		l.Errorf("toml parse err:%s", err.Error())
 		return
 	}
+	for filed, node := range tbl.Fields {
+		switch filed {
 
-	for _, node := range tbl.Fields {
-		stbl, _ := node.(*ast.Table)
-		for _, sstbl := range stbl.Fields {
-			for _, tb := range sstbl.([]*ast.Table) {
-
-				if creator, ok := inputs.Inputs[name]; ok {
-					inp := creator()
-					err = toml.UnmarshalTable(tb, inp)
-					listMd5 = append(listMd5, inputs.SetInputsMD5(name,inp))
-					catelog = inp.Catalog()
-					continue
+		case "inputs":
+			stbl, ok := node.(*ast.Table)
+			if !ok {
+				err = fmt.Errorf("bad toml node for %s ", name)
+				return
+			} else {
+				for _, sstbl := range stbl.Fields {
+					catelog, err = marshalToml(sstbl, name, listMd5)
+					if err != nil {
+						return
+					}
 				}
-				if creator, ok := tgi.TelegrafInputs[name]; ok {
-					catelog = creator.Catalog
-					cr := reflect.ValueOf(creator).Elem().Interface()
-					err = toml.UnmarshalTable(tb, cr.(tgi.TelegrafInput).Input)
-					listMd5 = append(listMd5, inputs.SetInputsMD5(name,cr.(tgi.TelegrafInput)))
-					continue
-				}
-				err = fmt.Errorf("input:%s is not available", name)
+			}
+		default:
+			catelog,err = marshalToml(node,name,listMd5)
+			if err != nil {
 				return
 			}
 		}
 	}
 	return
 }
+
 
 
 func (wc *wscli) parseTomlToFile(tomlStr, name string) error {
