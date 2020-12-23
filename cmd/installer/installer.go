@@ -47,8 +47,7 @@ var (
 	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=__datakit_hostname,ip=__datakit_ip`)
 	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
 
-	flagCfgTemplate     = flag.String("conf-tmpl", "", `specify input config templates, can be file path or url, e.g, http://res.dataflux.cn/datakit/conf`)
-	flagCfgTemplateData = flag.String("conf-tmpl-data", "", `specify the data which will apply the config template files`)
+	flagCfgTemplate = flag.String("conf-tmpl", "", `specify input config templates, can be file path or url, e.g, http://res.dataflux.cn/datakit/conf`)
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./agent-%s-%s.tar.gz",
@@ -121,7 +120,7 @@ func main() {
 	}
 
 	ct := configtemplate.NewCfgTemplate(install.InstallDir)
-	if err = ct.InstallConfigs(*flagCfgTemplate, []byte(*flagCfgTemplateData)); err != nil {
+	if err = ct.InstallConfigs(*flagCfgTemplate); err != nil {
 		l.Fatalf("fail to intsall config template, %s", err)
 	}
 
