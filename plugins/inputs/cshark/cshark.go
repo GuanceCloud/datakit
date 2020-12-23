@@ -28,7 +28,6 @@ var (
 	duration int64
 )
 
-
 func (_ *Shark) SampleConfig() string {
 	return sharkConfigSample
 }
@@ -55,12 +54,30 @@ func SendCmdOpt(opt string) error {
 		return err
 	}
 
-	select {
-	case optChan <- params:
-		fmt.Println("send success!")
-		return nil
-	default:
-		return fmt.Errorf("busy!")
+	if params.Sync {
+		select {
+		case optChan <- params:
+			fmt.Println("send success!")
+			params.Fin = make(chan error)
+
+			err := <- params.Fin
+
+			if err != nil {
+				return err
+			}
+
+			return nil
+		default:
+			return fmt.Errorf("busy!")
+		}
+	} else {
+		select {
+		case optChan <- params:
+			fmt.Println("send success!")
+			return nil
+		default:
+			return fmt.Errorf("busy!")
+		}
 	}
 }
 
@@ -72,14 +89,46 @@ func (s *Shark) Run() {
 		s.MetricName = "cshark"
 	}
 
+	if s.Interval == "" {
+		s.Interval = "10s"
+	}
+
+	interval, err := time.ParseDuration(s.Interval)
+	if err != nil {
+		l.Error(err)
+	}
+
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
+
 	for {
 		select {
-		case <- optChan:
-			fmt.Println("receive....")
-			s.Exec()
+		case <-tick.C:
+			if _, err := TSharkVersion(s.TsharkPath); err != nil {
+				l.Errorf("tshark not install or Env path config error %v", err)
+			} else {
+				goto lable
+			}
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
-			fmt.Println("++++++++exit")
+			return
+		}
+	}
+
+lable:
+	for {
+		select {
+		case opt := <- optChan:
+			if err := s.Exec(); err != nil {
+				l.Errorf("exec error %v", err)
+			}
+
+			if opt.Sync {
+				opt.Fin <- err
+			}
+
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
 			return
 		}
 	}
@@ -145,12 +194,20 @@ func (s *Shark) buildCommand() string {
 	srcIPFilterStr := ""
 	dstIPFilterStr := ""
 
-	args = append(args, "tshark")
+	args = append(args, s.TsharkPath)
 
 	// 控制参数
 	args = append(args,"-l")
 	for _, iface := range params.Device {
 		args = append(args, "-i", iface)
+	}
+
+	if len(params.Device) == 0 {
+		args = append(args, "-i", "any")
+	}
+
+	if params.Count != 0 {
+		args = append(args, "-c", params.Count)
 	}
 
 	// 时常控制
@@ -198,6 +255,8 @@ func (s *Shark) buildCommand() string {
 				protocol.CommonItems = append(protocol.CommonItems, protocol.HttpItems...)
 			case "MYSQL":
 				protocol.CommonItems = append(protocol.CommonItems, protocol.MysqlItems...)
+			case "DNS":
+				protocol.CommonItems = append(protocol.CommonItems, protocol.DnslItems...)
 		}
 	}
 
@@ -215,7 +274,7 @@ func (s *Shark) buildCommand() string {
 	return cmdStr
 }
 
-func (s *Shark) Exec() {
+func (s *Shark) Exec() error {
 	// 构造命令
 	var streamCmdStr string
 	if params.Stream != nil {
@@ -226,7 +285,7 @@ func (s *Shark) Exec() {
 	fmt.Println("streamCmd ========>", streamCmdStr)
 
 	// 构造统计命令(todo)
-	s.streamExec(streamCmdStr)
+	return s.streamExec(streamCmdStr)
 }
 
 func (s *Shark) streamExec(cmdStr string) error {
