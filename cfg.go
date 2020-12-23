@@ -95,10 +95,10 @@ type Config struct {
 }
 
 type DataWayCfg struct {
-	URL     string `toml:"url"`
-	Proxy bool   `toml:"proxy,omitempty"`
-	WsPort   string `toml:"ws_port"`
-	Timeout string `toml:"timeout"`
+	URL       string `toml:"url"`
+	Proxy     bool   `toml:"proxy,omitempty"`
+	WsPort    string `toml:"ws_port"`
+	Timeout   string `toml:"timeout"`
 	Heartbeat string `toml:"heartbeat"`
 
 	DeprecatedHost   string `toml:"host,omitempty"`
@@ -109,9 +109,9 @@ type DataWayCfg struct {
 	scheme    string
 	urlValues url.Values
 
-	wspath      string
-	wshost      string
-	wsscheme    string
+	wspath   string
+	wshost   string
+	wsscheme string
 }
 
 func (dc *DataWayCfg) DeprecatedMetricURL() string {
@@ -198,6 +198,14 @@ func (dc *DataWayCfg) TracingURL() string {
 }
 
 func (dc *DataWayCfg) RumURL() string {
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/rum")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
@@ -223,13 +231,13 @@ func (dc *DataWayCfg) KeyEventURL() string {
 }
 
 func (dc *DataWayCfg) BuildWSURL(mc *MainConfig) *url.URL {
-	ip,err:= LocalIP()
+	ip, err := LocalIP()
 	if err != nil {
 		ip = ""
 	}
 	token := dc.urlValues.Get("token")
 	rawQuery := fmt.Sprintf("id=%s&version=%s&os=%s&arch=%s&token=%s&heartbeatconf=%s&hostname=%s&ip=%s",
-		mc.UUID, git.Version, runtime.GOOS, runtime.GOARCH, token,dc.Heartbeat,mc.Hostname,ip)
+		mc.UUID, git.Version, runtime.GOOS, runtime.GOARCH, token, dc.Heartbeat, mc.Hostname, ip)
 
 	return &url.URL{
 		Scheme:   dc.wsscheme,
@@ -299,7 +307,7 @@ func (dc *DataWayCfg) addToken(tkn string) {
 func ParseDataway(httpurl, wsport string) (*DataWayCfg, error) {
 	dwcfg := &DataWayCfg{
 		Timeout: "30s",
-		WsPort:wsport,
+		WsPort:  wsport,
 	}
 	if httpurl == "" {
 		return nil, fmt.Errorf("empty dataway HTTP endpoint")
@@ -315,7 +323,7 @@ func ParseDataway(httpurl, wsport string) (*DataWayCfg, error) {
 		} else {
 			u.Path = ""
 		}
-	}else {
+	} else {
 		l.Errorf("parse url %s failed: %s", httpurl, err.Error())
 		return nil, err
 	}
@@ -337,7 +345,7 @@ func ParseDataway(httpurl, wsport string) (*DataWayCfg, error) {
 		l.Errorf("unknown scheme %s", u.Scheme)
 		return nil, fmt.Errorf("unknown scheme")
 	}
-	dwcfg.wshost = fmt.Sprintf("%s:%s",u.Hostname(),dwcfg.WsPort)
+	dwcfg.wshost = fmt.Sprintf("%s:%s", u.Hostname(), dwcfg.WsPort)
 	return dwcfg, nil
 }
 
@@ -439,23 +447,22 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		l.Fatal("dataway URL not set")
 	}
 
-
 	dw, err := ParseDataway(c.MainCfg.DataWay.URL, c.MainCfg.DataWay.WsPort)
 	if err != nil {
 		return err
 	}
 
-	heart,err := time.ParseDuration(c.MainCfg.DataWay.Heartbeat)
+	heart, err := time.ParseDuration(c.MainCfg.DataWay.Heartbeat)
 	if err != nil {
-		l.Error("ws heartbeat config err:",err.Error())
+		l.Error("ws heartbeat config err:", err.Error())
 		c.MainCfg.DataWay.Heartbeat = "30s"
 	}
-	maxHeart,_:= time.ParseDuration("5m")
-	minHeart,_:= time.ParseDuration("30s")
-	if heart > maxHeart{
+	maxHeart, _ := time.ParseDuration("5m")
+	minHeart, _ := time.ParseDuration("30s")
+	if heart > maxHeart {
 		c.MainCfg.DataWay.Heartbeat = "5m"
 	}
-	if heart < minHeart{
+	if heart < minHeart {
 		c.MainCfg.DataWay.Heartbeat = "30s"
 	}
 
