@@ -43,7 +43,7 @@ func (_ *Rum) SampleConfig() string {
 func (r *Rum) Run() {
 }
 
-func (r *Rum) Test() (result *inputs.TestResult,err error) {
+func (r *Rum) Test() (result *inputs.TestResult, err error) {
 	return
 }
 
@@ -62,10 +62,23 @@ func Handle(c *gin.Context) {
 	contentEncoding := c.Request.Header.Get("Content-Encoding")
 	precision = utils.GinGetArg(c, "X-Precision", PRECISION)
 
-	sourceIP := c.Request.Header.Get(ipheaderName)
+	sourceIP := ""
+
+	if ipheaderName != "" {
+		sourceIP = c.Request.Header.Get(ipheaderName)
+		if sourceIP != "" {
+			parts := strings.Split(sourceIP, ",")
+			if len(parts) > 0 {
+				sourceIP = parts[0]
+			}
+		}
+	}
+
 	if sourceIP == "" {
 		parts := strings.Split(c.Request.RemoteAddr, ":")
-		sourceIP = parts[0]
+		if len(parts) > 0 {
+			sourceIP = parts[0]
+		}
 	}
 
 	body, err = ioutil.ReadAll(c.Request.Body)
