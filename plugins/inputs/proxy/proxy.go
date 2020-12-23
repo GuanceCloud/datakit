@@ -30,7 +30,7 @@ const (
     ## http server route path
 		## required: don't change
     path = "/proxy"
-	bind = "0.0.0.0:5588"
+	  bind = "0.0.0.0:5588"
 `
 )
 
@@ -67,7 +67,7 @@ func (*Proxy) Catalog() string {
 
 func (*Proxy) Test() (*inputs.TestResult, error) {
 	test := &inputs.TestResult{}
-	return test,nil
+	return test, nil
 }
 
 func (d *Proxy) Run() {
@@ -96,8 +96,6 @@ func (d *Proxy) Run() {
 			return
 		}
 	}()
-
-
 
 	l.Infof("proxy input started...")
 
