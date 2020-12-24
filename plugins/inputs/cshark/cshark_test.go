@@ -4,17 +4,22 @@ import (
 	"testing"
 	"fmt"
 	"time"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	// "gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var msg = `
 {
     "device": ["lo"],
+    "sync": true,
     "stream": {
         "duration": "10s",
-        "protocol": "http",
-        "filter": "'tcp dst port 8080'"
+        "protocol": "tcp",
+        "filter": "'tcp dst port 8080'",
+        "count": 10,
+        "port": ["8080"],
+        "srcIP": ["127.0.0.1"],
+        "dstIP": ["127.0.0.1"]
     }
 }
 `
@@ -23,18 +28,20 @@ func TestRun(t *testing.T) {
 		datakit.InstallDir = "."
 		datakit.DataDir = "."
 		datakit.OutputFile = "metrics.txt"
-		datakit.Exit = cliutils.NewSem()
 
 		s := &Shark{}
+		s.Interval = "3s"
+		s.TsharkPath = "/usr/bin/tshark"
 
 		go s.Run()
 
-		for i := 0; i < 10; i++ {
-			if err := s.SendOpt(msg); err != nil {
-				fmt.Println("err", err)
-			}
-			time.Sleep(5*time.Second)
+		time.Sleep(time.Second*10)
+
+		if err := SendCmdOpt(msg); err != nil {
+			fmt.Println("err", err)
 		}
+
+		time.Sleep(10*time.Second)
 
 		t.Log("ok")
 	})
