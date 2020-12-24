@@ -50,7 +50,7 @@ func StartWS() {
 		exit: make(chan interface{}),
 	}
 
-	if err := cli.tryConnect(wsurl.String());err == nil {
+	if err := cli.tryConnect(wsurl.String()); err == nil {
 		go func() {
 			cli.waitMsg()
 		}()
@@ -77,7 +77,7 @@ func (wc *wscli) tryConnect(wsurl string) error {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			return fmt.Errorf("ws not ready:wsurl:%s",wsurl)
+			return fmt.Errorf("ws not ready:wsurl:%s", wsurl)
 		default:
 			c, resp, err := websocket.DefaultDialer.Dial(wsurl, nil)
 			if err != nil {
@@ -100,7 +100,7 @@ func (wc *wscli) reset() {
 	wc.c.Close()
 	wc.exit = make(chan interface{})
 
-	if err := cli.tryConnect(wsurl.String());err == nil {
+	if err := cli.tryConnect(wsurl.String()); err == nil {
 		go func() {
 			cli.waitMsg()
 		}()
@@ -241,64 +241,58 @@ func (wc *wscli) handle(wm *wsmsg.WrapMsg) error {
 
 func (wc *wscli) CsharkCmd(wm *wsmsg.WrapMsg) {
 	data, _ := base64.StdEncoding.DecodeString(wm.B64Data)
-	_,ok :=inputs.InputsInfo["cshark"]
+	_, ok := inputs.InputsInfo["cshark"]
 	if !ok {
-		wc.SetMessage(wm,"error","input cshark not enable")
+		wc.SetMessage(wm, "error", "input cshark not enable")
 		return
 	}
-	a := cshark.Shark{}
-	err := a.SendOpt(string(data))
+	err := cshark.SendCmdOpt(string(data))
 	if err != nil {
-		wc.SetMessage(wm,"error",err.Error())
+		wc.SetMessage(wm, "error", err.Error())
 		return
 	}
-	wc.SetMessage(wm,"ok","")
+	wc.SetMessage(wm, "ok", "")
 
 }
-
-
-
-
 
 func (wc *wscli) EnableInputs(wm *wsmsg.WrapMsg) {
 	var names wsmsg.MsgGetInputConfig
 	err := names.Handle(wm)
 	if err != nil {
-		wc.SetMessage(wm, "bad_request", fmt.Sprintf("parse config err:%s",err.Error()))
+		wc.SetMessage(wm, "bad_request", fmt.Sprintf("parse config err:%s", err.Error()))
 		return
 	}
 	inputsConfMap := SearchFile(names.Names)
-	for _,v := range names.Names {
-		n,_ := inputs.InputEnabled(v)
+	for _, v := range names.Names {
+		n, _ := inputs.InputEnabled(v)
 		if n > 0 {
-			wc.SetMessage(wm, "error", fmt.Sprintf("input:%s is enable",v))
+			wc.SetMessage(wm, "error", fmt.Sprintf("input:%s is enable", v))
 			return
 		}
-		if confPath ,ok := inputsConfMap[v];!ok {
-			wc.SetMessage(wm, "error", fmt.Sprintf("input:%s not exist conf",v))
+		if confPath, ok := inputsConfMap[v]; !ok {
+			wc.SetMessage(wm, "error", fmt.Sprintf("input:%s not exist conf", v))
 			return
-		}else {
+		} else {
 			buf, err := ioutil.ReadFile(confPath)
 			if err != nil {
-				wc.SetMessage(wm, "error", fmt.Sprintf("input:%s read conf err:%s",v,err))
+				wc.SetMessage(wm, "error", fmt.Sprintf("input:%s read conf err:%s", v, err))
 				return
 			}
-			tbl,err := toml.Parse(buf)
+			tbl, err := toml.Parse(buf)
 			if err != nil {
-				wc.SetMessage(wm, "error", fmt.Sprintf("input:%s parse conf err:%s",v,err))
+				wc.SetMessage(wm, "error", fmt.Sprintf("input:%s parse conf err:%s", v, err))
 				return
 			}
 			if len(tbl.Fields) == 0 {
-				datakit.AnnotationConf(confPath,"delete")
+				datakit.AnnotationConf(confPath, "delete")
 			}
 
 		}
 
 	}
-	wc.SetMessage(wm,"ok","")
+	wc.SetMessage(wm, "ok", "")
 
 }
-
 
 func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
 	var configs wsmsg.MsgSetInputConfig
@@ -358,7 +352,7 @@ func (wc *wscli) TestInput(wm *wsmsg.WrapMsg) {
 	wc.SetMessage(wm, "ok", returnMap)
 }
 
-func (wc *wscli)ModifyStatus() {
+func (wc *wscli) ModifyStatus() {
 	var wmsg = wsmsg.WrapMsg{}
 	wmsg.Type = wsmsg.MtypeModifyDKStatus
 	wmsg.ID = cliutils.XID("wmsg_")
@@ -383,7 +377,7 @@ func (wc *wscli) Reload(wm *wsmsg.WrapMsg) {
 
 func checkConfig(listInput []string) bool {
 	var Set = map[string]bool{}
-	for _,inp := range listInput {
+	for _, inp := range listInput {
 		Set[inp] = true
 	}
 	if len(Set) != len(listInput) {
@@ -392,7 +386,7 @@ func checkConfig(listInput []string) bool {
 	return true
 }
 
-func marshalToml(sstbl interface{},name string,listMd5 []string)(catelog string,err error)  {
+func marshalToml(sstbl interface{}, name string, listMd5 []string) (catelog string, err error) {
 	tbls := []*ast.Table{}
 	switch t := sstbl.(type) {
 	case []*ast.Table:
@@ -407,7 +401,7 @@ func marshalToml(sstbl interface{},name string,listMd5 []string)(catelog string,
 		if creator, ok := inputs.Inputs[name]; ok {
 			inp := creator()
 			err = toml.UnmarshalTable(tb, inp)
-			listMd5 = append(listMd5, inputs.SetInputsMD5(name,inp))
+			listMd5 = append(listMd5, inputs.SetInputsMD5(name, inp))
 			catelog = inp.Catalog()
 			continue
 		}
@@ -415,7 +409,7 @@ func marshalToml(sstbl interface{},name string,listMd5 []string)(catelog string,
 			catelog = creator.Catalog
 			cr := reflect.ValueOf(creator).Elem().Interface()
 			err = toml.UnmarshalTable(tb, cr.(tgi.TelegrafInput).Input)
-			listMd5 = append(listMd5, inputs.SetInputsMD5(name,cr.(tgi.TelegrafInput)))
+			listMd5 = append(listMd5, inputs.SetInputsMD5(name, cr.(tgi.TelegrafInput)))
 			continue
 		}
 		err = fmt.Errorf("input:%s is not available", name)
@@ -424,8 +418,7 @@ func marshalToml(sstbl interface{},name string,listMd5 []string)(catelog string,
 	return
 }
 
-
-func parseConf(conf string, name string) (listMd5 []string,catelog string, err error) {
+func parseConf(conf string, name string) (listMd5 []string, catelog string, err error) {
 	data, err := base64.StdEncoding.DecodeString(conf)
 	if err != nil {
 		return
@@ -452,7 +445,7 @@ func parseConf(conf string, name string) (listMd5 []string,catelog string, err e
 				}
 			}
 		default:
-			catelog,err = marshalToml(node,name,listMd5)
+			catelog, err = marshalToml(node, name, listMd5)
 			if err != nil {
 				return
 			}
@@ -461,22 +454,20 @@ func parseConf(conf string, name string) (listMd5 []string,catelog string, err e
 	return
 }
 
-
-
 func (wc *wscli) parseTomlToFile(tomlStr, name string) error {
-	listInput,catalog, err := parseConf(tomlStr, name)
+	listInput, catalog, err := parseConf(tomlStr, name)
 	if err != nil {
 		return err
 	}
-	if !checkConfig(listInput){
+	if !checkConfig(listInput) {
 		return fmt.Errorf("cannot set same config")
 	}
-	inputPath := filepath.Join(datakit.ConfdDir, catalog, fmt.Sprintf("%s.conf",name))
+	inputPath := filepath.Join(datakit.ConfdDir, catalog, fmt.Sprintf("%s.conf", name))
 	inputConfMap := SearchFile([]string{name})
-	if confPath,ok  := inputConfMap[name];ok {
+	if confPath, ok := inputConfMap[name]; ok {
 		inputPath = confPath
 	}
-	if err = wc.WriteFile(tomlStr,inputPath); err != nil {
+	if err = wc.WriteFile(tomlStr, inputPath); err != nil {
 		return err
 	}
 	return nil
@@ -486,11 +477,11 @@ func (wc *wscli) SetInput(wm *wsmsg.WrapMsg) {
 	var configs wsmsg.MsgSetInputConfig
 	err := configs.Handle(wm)
 	if err != nil {
-		wc.SetMessage(wm, "bad_request", fmt.Sprintf("%+#v",wm))
+		wc.SetMessage(wm, "bad_request", fmt.Sprintf("%+#v", wm))
 		return
 	}
 	for k, v := range configs.Configs {
-		if err := wc.parseTomlToFile(v["toml"],k); err != nil {
+		if err := wc.parseTomlToFile(v["toml"], k); err != nil {
 			wc.SetMessage(wm, "error", err.Error())
 			return
 		}
@@ -499,7 +490,7 @@ func (wc *wscli) SetInput(wm *wsmsg.WrapMsg) {
 	wc.SetMessage(wm, "ok", "")
 }
 
-func (wc *wscli) WriteFile(tomlStr,cfgPath string) error{
+func (wc *wscli) WriteFile(tomlStr, cfgPath string) error {
 	data, err := base64.StdEncoding.DecodeString(tomlStr)
 	if err != nil {
 		return err
@@ -512,20 +503,20 @@ func (wc *wscli) DisableInput(wm *wsmsg.WrapMsg) {
 	var names wsmsg.MsgGetInputConfig
 	err := names.Handle(wm)
 	if err != nil {
-		wc.SetMessage(wm, "bad_request", fmt.Sprintf("parse config err:%s",err.Error()))
+		wc.SetMessage(wm, "bad_request", fmt.Sprintf("parse config err:%s", err.Error()))
 		return
 	}
-	for _,name := range names.Names {
-		n,cfg := inputs.InputEnabled(name)
+	for _, name := range names.Names {
+		n, cfg := inputs.InputEnabled(name)
 		if n > 0 {
-			for _,fp := range cfg {
-				if err := datakit.AnnotationConf(fp,"add");err!= nil {
-					wc.SetMessage(wm, "error", fmt.Sprintf("input:%s disable err:%s",name,err.Error()))
+			for _, fp := range cfg {
+				if err := datakit.AnnotationConf(fp, "add"); err != nil {
+					wc.SetMessage(wm, "error", fmt.Sprintf("input:%s disable err:%s", name, err.Error()))
 					return
 				}
 			}
-		}else {
-			wc.SetMessage(wm, "error", fmt.Sprintf("input:%s not enable",name))
+		} else {
+			wc.SetMessage(wm, "error", fmt.Sprintf("input:%s not enable", name))
 			return
 		}
 	}
@@ -535,7 +526,7 @@ func (wc *wscli) DisableInput(wm *wsmsg.WrapMsg) {
 func (wc *wscli) GetEnableInputsConfig(wm *wsmsg.WrapMsg) {
 	var names wsmsg.MsgGetInputConfig
 	err := names.Handle(wm)
-	if err != nil || len(names.Names)==0{
+	if err != nil || len(names.Names) == 0 {
 		wc.SetMessage(wm, "bad_request", fmt.Sprintf("params error"))
 		return
 	}
@@ -582,7 +573,7 @@ func (wc *wscli) GetInputsConfig(wm *wsmsg.WrapMsg) {
 	var data []map[string]map[string]string
 	inputConfMap := SearchFile(names.Names)
 	for _, v := range names.Names {
-		if inputConf,ok := inputConfMap[v];!ok{
+		if inputConf, ok := inputConfMap[v]; !ok {
 			sample, err := inputs.GetSample(v)
 			if err != nil {
 				errMessage := fmt.Sprintf("get config error %s", err)
@@ -591,9 +582,9 @@ func (wc *wscli) GetInputsConfig(wm *wsmsg.WrapMsg) {
 				return
 			}
 			data = append(data, map[string]map[string]string{v: {"toml": base64.StdEncoding.EncodeToString([]byte(sample))}})
-		}else {
+		} else {
 
-			buf,err :=  ioutil.ReadFile(inputConf)
+			buf, err := ioutil.ReadFile(inputConf)
 			if err != nil {
 				errMessage := fmt.Sprintf("get config error %s", err)
 				l.Error(errMessage)
@@ -608,19 +599,19 @@ func (wc *wscli) GetInputsConfig(wm *wsmsg.WrapMsg) {
 
 func (wc *wscli) OnlineInfo(wm *wsmsg.WrapMsg) {
 	m := wsmsg.MsgDatakitOnline{
-		UUID:            wc.id,
-		Name:            datakit.Cfg.MainCfg.Name,
-		Version:         git.Version,
-		OS:              runtime.GOOS,
-		Arch:            runtime.GOARCH,
-		Heartbeat:       datakit.Cfg.MainCfg.DataWay.Heartbeat,
-		InputInfo:       map[string]interface{}{},
+		UUID:      wc.id,
+		Name:      datakit.Cfg.MainCfg.Name,
+		Version:   git.Version,
+		OS:        runtime.GOOS,
+		Arch:      runtime.GOARCH,
+		Heartbeat: datakit.Cfg.MainCfg.DataWay.Heartbeat,
+		InputInfo: map[string]interface{}{},
 	}
 	m.InputInfo["availableInputs"] = GetAvailableInputs()
 	m.InputInfo["enabledInputs"] = GetEnableInputs()
-	state,err := io.GetStats()
+	state, err := io.GetStats()
 	if err != nil {
-		l.Errorf("get state err:%s",err.Error())
+		l.Errorf("get state err:%s", err.Error())
 		state = []*io.InputsStat{}
 	}
 	m.InputInfo["state"] = state
@@ -647,24 +638,22 @@ func GetAvailableInputs() []string {
 	return AvailableInputs
 }
 
-func GetEnableInputs()(Enable []string)  {
+func GetEnableInputs() (Enable []string) {
 	for k, _ := range inputs.Inputs {
 		n, _ := inputs.InputEnabled(k)
 		if n > 0 {
-			Enable = append(Enable,k)
+			Enable = append(Enable, k)
 		}
 	}
 
 	for k, _ := range tgi.TelegrafInputs {
 		n, _ := inputs.InputEnabled(k)
 		if n > 0 {
-			Enable = append(Enable,k)
+			Enable = append(Enable, k)
 		}
 	}
 	return Enable
 }
-
-
 
 func SearchFile(inputName []string) map[string]string {
 	confMap := map[string]string{
@@ -679,7 +668,7 @@ func SearchFile(inputName []string) map[string]string {
 			l.Debugf("ignore dir %s", fp)
 			return nil
 		}
-		for _,v := range inputName {
+		for _, v := range inputName {
 			if f.Name() == fmt.Sprintf("%s.conf", v) {
 				confMap[v] = fp
 			}
