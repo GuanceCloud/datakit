@@ -25,12 +25,13 @@ var (
 
 	OSArch = runtime.GOOS + "/" + runtime.GOARCH
 
-	InstallDir   = ""
-	DataWay      = ""
-	GlobalTags   = ""
-	Port         = 9529
-	DatakitName  = ""
-	EnableInputs = ""
+	InstallDir    = ""
+	DataWayHTTP   = ""
+	DataWayWsPort = ""
+	GlobalTags    = ""
+	Port          = 9529
+	DatakitName   = ""
+	EnableInputs  = ""
 )
 
 func readInput(prompt string) string {
@@ -48,25 +49,23 @@ func getDataWayCfg() *datakit.DataWayCfg {
 	var dc *datakit.DataWayCfg
 	var err error
 
-	if DataWay == "" {
+	if DataWayHTTP == "" {
 		for {
-			dw := readInput("Please set DataWay request URL(http://IP:Port/v1/write/metric) > ")
-			dc, err = datakit.ParseDataway(dw)
+			dwhttp := readInput("Please set DataWay HTTP URL(http[s]://host:port?token=xxx) > ")
+			dc, err = datakit.ParseDataway(dwhttp, "")
 			if err != nil {
 				fmt.Printf("%s\n", err.Error())
 				continue
 			}
-
 			if err := dc.Test(); err != nil {
 				fmt.Printf("%s\n", err.Error())
 				continue
 			}
-
 			break
 
 		}
 	} else {
-		dc, err = datakit.ParseDataway(DataWay)
+		dc, err = datakit.ParseDataway(DataWayHTTP, DataWayWsPort)
 		if err != nil {
 			l.Fatal(err)
 		}
@@ -132,7 +131,7 @@ func updateLagacyConfig(dir string) {
 	// split origin ftdataway into dataway object
 	var dwcfg *datakit.DataWayCfg
 	if maincfg.DeprecatedFtGateway != "" {
-		if dwcfg, err = datakit.ParseDataway(maincfg.DeprecatedFtGateway); err != nil {
+		if dwcfg, err = datakit.ParseDataway(maincfg.DeprecatedFtGateway, ""); err != nil {
 			l.Fatal(err)
 		} else {
 			maincfg.DeprecatedFtGateway = "" // deprecated
