@@ -26,28 +26,26 @@ type WxClient struct {
 	Tags      map[string]string `toml:"tags,omitempty"`
 	Analysis  *Analysis         `toml:"analysis,omitempty"`
 	Operation *Operation        `toml:"operation,omitempty"`
-	RunTime string   `toml:"runtime,omitempty"`
+	RunTime   string            `toml:"runtime,omitempty"`
 
-	ctx       context.Context
-	cancelFun context.CancelFunc
-	wg sync.WaitGroup
+	ctx        context.Context
+	cancelFun  context.CancelFunc
+	wg         sync.WaitGroup
 	subModules []subModule
-
+	isTest     bool
+	result     bytes.Buffer
 }
 type subModule interface {
 	run(wx *WxClient)
 }
 
 type Analysis struct {
-	Name    []string `toml:"name,omitempty"`
+	Name []string `toml:"name,omitempty"`
 }
 
 type Operation struct {
 	Name []string `toml:"name,omitempty"`
 }
-
-
-
 
 func (wx *WxClient) SampleConfig() string {
 	return sampleCfg
@@ -57,6 +55,28 @@ func (wx *WxClient) Catalog() string {
 	return "wechat"
 }
 
+func (wx *WxClient) Test() (*inputs.TestResult, error) {
+	wx.isTest = true
+	token, err := wx.GetAccessToken()
+	if err != nil {
+		return nil, err
+	}
+	wxClient := reflect.ValueOf(wx)
+	params := []reflect.Value{
+		reflect.ValueOf(token),
+	}
+	for _, c := range wx.Analysis.Name {
+		if wxClient.MethodByName(c).IsValid() {
+			wxClient.MethodByName(c).Call(params)
+		}
+	}
+	var result = inputs.TestResult{}
+	result.Result = wx.result.Bytes()
+	result.Desc = "wechta example"
+	return &result, nil
+
+}
+
 func (an *Analysis) run(wx *WxClient) {
 	interval, err := time.ParseDuration("24h")
 	if err != nil {
@@ -64,23 +84,33 @@ func (an *Analysis) run(wx *WxClient) {
 	}
 
 	for {
-		token := wx.GetAccessToken()
-		wxClient := reflect.ValueOf(wx)
-		params := []reflect.Value{
-			reflect.ValueOf(token),
-		}
-		for _,c :=range wx.Analysis.Name {
-			if wxClient.MethodByName(c).IsValid() {
-				l.Info(c)
-				wxClient.MethodByName(c).Call(params)
-			}
-		}
 		select {
 		case <-wx.ctx.Done():
 			return
+		case <-datakit.Exit.Wait():
+			l.Info("wechat analysis exit...")
+
+			return
 		default:
+			token, err := wx.GetAccessToken()
+			if err != nil {
+				l.Errorf("wechat get token err:%s", err)
+				time.Sleep(time.Second*10)
+				continue
+			}
+			wxClient := reflect.ValueOf(wx)
+			params := []reflect.Value{
+				reflect.ValueOf(token),
+			}
+			for _, c := range wx.Analysis.Name {
+				if wxClient.MethodByName(c).IsValid() {
+					wxClient.MethodByName(c).Call(params)
+				}
+			}
 		}
-		datakit.SleepContext(wx.ctx,interval)
+
+
+		datakit.SleepContext(wx.ctx, interval)
 	}
 }
 
@@ -91,29 +121,38 @@ func (op *Operation) run(wx *WxClient) {
 		l.Error(err)
 	}
 	for {
-		token := wx.GetAccessToken()
-		wxClient := reflect.ValueOf(wx)
 
-		for _, c := range wx.Operation.Name {
-			params := []reflect.Value{
-				reflect.ValueOf(token),
-			}
-			if c == "JsErrSearch" {
-				var pageNum ,pageSize int64 = 1 ,100
-				params = append(params, reflect.ValueOf(pageNum))
-				params = append(params, reflect.ValueOf(pageSize))
-			}
-			if wxClient.MethodByName(c).IsValid() {
-				l.Info(c)
-				wxClient.MethodByName(c).Call(params)
-			}
-		}
 		select {
 		case <-wx.ctx.Done():
 			return
+		case <-datakit.Exit.Wait():
+			l.Info("wechat operation exit...")
+			return
 		default:
+			token, err := wx.GetAccessToken()
+			if err != nil {
+				l.Errorf("wechat get token err:%s", err)
+				time.Sleep(time.Second*10)
+				continue
+			}
+			wxClient := reflect.ValueOf(wx)
+
+			for _, c := range wx.Operation.Name {
+				params := []reflect.Value{
+					reflect.ValueOf(token),
+				}
+				if c == "JsErrSearch" {
+					var pageNum, pageSize int64 = 1, 100
+					params = append(params, reflect.ValueOf(pageNum))
+					params = append(params, reflect.ValueOf(pageSize))
+				}
+				if wxClient.MethodByName(c).IsValid() {
+					l.Info(c)
+					wxClient.MethodByName(c).Call(params)
+				}
+			}
 		}
-		datakit.SleepContext(wx.ctx,interval)
+		datakit.SleepContext(wx.ctx, interval)
 	}
 }
 
@@ -121,25 +160,36 @@ func (wx *WxClient) addModule(m subModule) {
 	wx.subModules = append(wx.subModules, m)
 }
 
-
-
 func (wx *WxClient) Run() {
 	wx.ctx, wx.cancelFun = context.WithCancel(context.Background())
 
 	l = logger.SLogger("wechat")
 	l.Info("wechat input started...")
+
 	if wx.Analysis != nil {
 		wx.addModule(wx.Analysis)
 
 	}
+
 	if wx.Operation != nil {
 		wx.addModule(wx.Operation)
 
 	}
 	if wx.RunTime != "" {
 		sleepTime := wx.formatRuntime()
-		time.Sleep(time.Duration(sleepTime) * time.Second)
-	}
+		tick := time.NewTicker(time.Duration(sleepTime) * time.Second)
+		for {
+			select {
+
+			case <-datakit.Exit.Wait():
+				l.Info("wechat  exit...")
+				return
+			case <- tick.C:
+				break
+			}
+
+		}
+		}
 
 	for _, s := range wx.subModules {
 		wx.wg.Add(1)
@@ -150,6 +200,7 @@ func (wx *WxClient) Run() {
 	}
 
 	wx.wg.Wait()
+
 
 	l.Debugf("done")
 
@@ -238,10 +289,15 @@ func (wx *WxClient) GetUrl(api string, queries requestQueries) (url string) {
 }
 
 func (wx *WxClient) writeMetric(metric string, tags map[string]string, fields map[string]interface{}, timeObj time.Time) {
+
 	if len(fields) == 0 {
 		return
 	}
 	data, err := io.MakeMetric(metric, tags, fields, timeObj)
+	if wx.isTest {
+		wx.result.Write(data)
+		return
+	}
 
 	if err != nil {
 		l.Errorf("failed to make metric, err: %s,metric: %s, tags: %s ,fields: %s", err.Error(), metric, tags, fields)
@@ -255,8 +311,7 @@ func (wx *WxClient) writeMetric(metric string, tags map[string]string, fields ma
 
 }
 
-func (wx *WxClient) GetAccessToken() (token string) {
-
+func (wx *WxClient) GetAccessToken() (token string, err error) {
 	queries := requestQueries{
 		"appid":      wx.Appid,
 		"secret":     wx.Secret,
@@ -266,20 +321,21 @@ func (wx *WxClient) GetAccessToken() (token string) {
 	resp, err := http.Get(url) //nolint:gosec
 	if err != nil {
 		l.Errorf("get token error %s", err)
+		return "", err
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf("get token read err:%s", err)
+		return "", err
 	}
 
 	defer resp.Body.Close()
 	code := gjson.Get(string(body), "errcode").Int()
 	if code >= errcode {
-		fmt.Printf("error:%s", string(body))
 		l.Errorf("config error: %s", gjson.Get(string(body), "errmsg").String())
-		return wx.GetAccessToken()
+		return "", fmt.Errorf("config error: %s", gjson.Get(string(body), "errmsg").String())
 	}
-	return gjson.Get(string(body), "access_token").String()
+	return gjson.Get(string(body), "access_token").String(), nil
 }
 
 func (wx *WxClient) FormatUserPortraitData(body, dataType string, timeObj time.Time) () {

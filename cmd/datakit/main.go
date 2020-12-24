@@ -235,9 +235,6 @@ func run() {
 	case <-datakit.StopCh:
 		l.Infof("service stopping")
 		datakit.Quit()
-
-	case <-datakit.GlobalExit.Wait():
-		l.Debug("datakit exit on sem")
 	}
 
 	l.Info("datakit exit.")
@@ -269,6 +266,12 @@ func runDatakitWithHTTPServer() error {
 
 	go func() {
 		http.Start(datakit.Cfg.MainCfg.HTTPBind)
+	}()
+
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		http.StartWS()
 	}()
 
 	return nil

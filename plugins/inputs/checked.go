@@ -126,6 +126,7 @@ var (
 		"rabbitmq":               true,
 		"redis":                  true,
 		"scanport":               true,
+		"secureexec":             false,
 		"self":                   true,
 		"smart":                  false,
 		"snmp":                   true,

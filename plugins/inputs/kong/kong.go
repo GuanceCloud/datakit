@@ -1,7 +1,10 @@
 package kong
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+    ifxcli "github.com/influxdata/influxdb1-client/v2"
+    "gitlab.jiagouyun.com/cloudcare-tools/datakit"
+    "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+    "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
 const (
@@ -32,20 +35,20 @@ const (
 `
 )
 
-type Kong struct{}
-
-func (*Kong) Run() {}
-
-func (*Kong) Catalog() string {
-	return inputName
-}
-
-func (*Kong) SampleConfig() string {
-	return "[[inputs.prom]]" + sampleCfg
-}
-
 func init() {
-	inputs.Add(inputName, func() inputs.Input {
-		return &Kong{}
-	})
+    inputs.Add(inputName, func() inputs.Input {
+        return &prom.Prom{
+            Interval:       datakit.Cfg.MainCfg.Interval,
+            InputName:      inputName,
+            CatalogStr:     inputName,
+            SampleCfg:      sampleCfg,
+            Tags:           make(map[string]string),
+            IgnoreFunc:     ignore,
+            PromToNameFunc: nil,
+        }
+    })
+}
+
+func ignore(pt *ifxcli.Point) bool {
+    return false
 }
