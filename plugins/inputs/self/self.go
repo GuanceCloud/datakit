@@ -28,6 +28,10 @@ func (_ *SelfInfo) SampleConfig() string {
 	return ``
 }
 
+func (_ *SelfInfo) Test() (*inputs.TestResult, error) {
+	return nil, nil
+}
+
 func (s *SelfInfo) Run() {
 
 	tick := time.NewTicker(time.Second * 10)

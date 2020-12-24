@@ -2,8 +2,8 @@ package prom
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
@@ -17,8 +17,6 @@ import (
 
 const (
 	inputName = "prom"
-
-	defaultMeasurement = "prom"
 
 	sampleCfg = `
 [[inputs.prom]]
@@ -36,12 +34,8 @@ const (
     # tls_key = "/tmp/peer.key"
     
     ## data source
-    name = "temp"
-
-    ## ignore rules
-    # ignore_measurement = ["temp_xxx"]
-    # ignore_tags_key_prefix = []
-    # ignore_fields_key_prefix = []
+    # required
+    source = "temp"
 
     # [inputs.prom.tags]
     # tags1 = "value1"
@@ -50,49 +44,89 @@ const (
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Prom{}
+		return &Prom{
+			Interval:       datakit.Cfg.MainCfg.Interval,
+			InputName:      inputName,
+			SampleCfg:      sampleCfg,
+			Tags:           make(map[string]string),
+			IgnoreFunc:     defaultIgnoreFunc,
+			PromToNameFunc: defaultPromToNameFunc,
+		}
 	})
 }
 
+var (
+	defaultIgnoreFunc     = func(*ifxcli.Point) bool { return true }
+	defaultPromToNameFunc = func(old string) (string, string, error) { return old, old, nil }
+)
+
 type Prom struct {
-	URL                   string            `toml:"url"`
-	Interval              string            `toml:"interval"`
-	TLSOpen               bool              `toml:"tls_open"`
-	CacertFile            string            `toml:"tls_ca"`
-	CertFile              string            `toml:"tls_cert"`
-	KeyFile               string            `toml:"tls_key"`
-	Tags                  map[string]string `toml:"tags"`
-	InputName             string            `toml:"name"`
-	IgnoreMeasurement     []string          `toml:"ignore_measurement"`
-	IgnoreTagsKeyPrefix   []string          `toml:"ignore_tags_key_prefix"`
-	IgnoreFieldsKeyPrefix []string          `toml:"ignore_fields_key_prefix"`
+	URL      string `toml:"url"`
+	Interval string `toml:"interval"`
+
+	TLSOpen    bool   `toml:"tls_open"`
+	CacertFile string `toml:"tls_ca"`
+	CertFile   string `toml:"tls_cert"`
+	KeyFile    string `toml:"tls_key"`
+
+	Tags map[string]string `toml:"tags"`
+
+	InputName  string `toml:"source"`
+	CatalogStr string
+	SampleCfg  string
+
+	IgnoreFunc     func(*ifxcli.Point) bool
+	PromToNameFunc func(old string) (string, string, error)
 
 	client   *http.Client
 	duration time.Duration
 	log      *logger.Logger
 }
 
-func (*Prom) SampleConfig() string {
-	return sampleCfg
+func (p *Prom) SampleConfig() string {
+	return p.SampleCfg
 }
 
-func (*Prom) Catalog() string {
-	return inputName
+func (p *Prom) Catalog() string {
+	return p.CatalogStr
 }
 
-func (p *Prom) Run() {
-	if p.loadcfg() {
+func (p *Prom) Test() (result *inputs.TestResult, err error) {
+	p.log = logger.SLogger(p.InputName)
+	// default
+	result.Desc = "数据指标获取失败，详情见错误信息"
+
+	if err = p.loadCfg(); err != nil {
 		return
 	}
 
+	var data []byte
+	data, err = p.getMetrics()
+	if err != nil {
+		return
+	}
+
+	result.Result = data
+	result.Desc = "数据指标获取成功"
+	return
+}
+
+func (p *Prom) Run() {
+	p.log = logger.SLogger(p.InputName)
+
+	if p.initCfg() {
+		return
+	}
+	defer p.stop()
+
 	ticker := time.NewTicker(p.duration)
 	defer ticker.Stop()
+
 	p.log.Infof("%s input started.", p.InputName)
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			p.client.CloseIdleConnections()
 			p.log.Info("exit")
 			return
 
@@ -111,12 +145,11 @@ func (p *Prom) Run() {
 	}
 }
 
-func (p *Prom) loadcfg() bool {
-	var err error
-	p.log = logger.SLogger(p.InputName)
-	p.client = &http.Client{}
-	p.client.Timeout = time.Second * 5
+func (p *Prom) stop() {
+	p.client.CloseIdleConnections()
+}
 
+func (p *Prom) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -126,29 +159,42 @@ func (p *Prom) loadcfg() bool {
 			// nil
 		}
 
-		p.duration, err = time.ParseDuration(p.Interval)
-		if err != nil || p.duration <= 0 {
-			p.log.Errorf("invalid interval")
+		if err := p.loadCfg(); err != nil {
+			p.log.Error(err)
 			time.Sleep(time.Second)
-			continue
-		}
-
-		if p.TLSOpen {
-			tc, err := TLSConfig(p.CacertFile, p.CertFile, p.KeyFile)
-			if err != nil {
-				p.log.Error(err)
-				time.Sleep(time.Second)
-			} else {
-				p.client.Transport = &http.Transport{
-					TLSClientConfig: tc,
-				}
-				break
-			}
 		} else {
 			break
 		}
 	}
+
 	return false
+}
+
+func (p *Prom) loadCfg() (err error) {
+	p.duration, err = time.ParseDuration(p.Interval)
+	if err != nil {
+		err = fmt.Errorf("invalid interval, %s", err.Error())
+		return
+	} else if p.duration <= 0 {
+		err = fmt.Errorf("invalid interval, cannot be less than zero")
+		return
+	}
+
+	p.client = &http.Client{
+		Timeout: 5 * time.Second,
+	}
+	if p.TLSOpen {
+		tc, _err := TLSConfig(p.CacertFile, p.CertFile, p.KeyFile)
+		if _err != nil {
+			return _err
+		} else {
+			p.client.Transport = &http.Transport{
+				TLSClientConfig: tc,
+			}
+		}
+	}
+
+	return
 }
 
 func (p *Prom) getMetrics() ([]byte, error) {
@@ -165,7 +211,7 @@ func (p *Prom) getMetrics() ([]byte, error) {
 	var buffer = bytes.Buffer{}
 
 	for _, pt := range pts {
-		if p.ignore(pt) {
+		if p.IgnoreFunc != nil && p.IgnoreFunc(pt) {
 			continue
 		}
 
@@ -186,50 +232,4 @@ func (p *Prom) getMetrics() ([]byte, error) {
 	}
 
 	return buffer.Bytes(), nil
-}
-
-func (p *Prom) ignore(pt *ifxcli.Point) bool {
-	fields, err := pt.Fields()
-	if err != nil {
-		p.log.Error(err)
-		return true
-	}
-	return p.ignoreMeasurement(pt.Name()) || p.ignoreTagsKeyPrefix(pt.Tags()) || p.ignoreFieldsKeyPrefix(fields)
-}
-
-func (p *Prom) ignoreMeasurement(measurement string) bool {
-	for _, m := range p.IgnoreMeasurement {
-		if measurement == m {
-			return true
-		}
-	}
-	return false
-}
-
-func (p *Prom) ignoreTagsKeyPrefix(tags map[string]string) bool {
-	if len(p.IgnoreTagsKeyPrefix) == 0 {
-		return false
-	}
-	for key := range tags {
-		for _, m := range p.IgnoreTagsKeyPrefix {
-			if strings.HasPrefix(key, m) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (p *Prom) ignoreFieldsKeyPrefix(fields map[string]interface{}) bool {
-	if len(p.IgnoreFieldsKeyPrefix) == 0 {
-		return false
-	}
-	for key := range fields {
-		for _, m := range p.IgnoreFieldsKeyPrefix {
-			if strings.HasPrefix(key, m) {
-				return true
-			}
-		}
-	}
-	return false
 }
