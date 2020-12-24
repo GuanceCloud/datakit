@@ -142,6 +142,8 @@ github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/basgys/goxml2json v1.1.0
 github.com/basgys/goxml2json
+# github.com/blang/semver v3.5.1+incompatible
+github.com/blang/semver
 # github.com/cenkalti/backoff v2.2.1+incompatible
 github.com/cenkalti/backoff
 # github.com/containerd/cgroups v0.0.0-20190919134610-bf292b21730f
