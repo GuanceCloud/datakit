@@ -51,6 +51,10 @@ func (s *Slb) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
+		if ag.isTest() {
+			ag.testError = err
+			return
+		}
 		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
@@ -87,6 +91,10 @@ func (s *Slb) run(ag *objectAgent) {
 				s.handleResponse(resp, ag)
 			} else {
 				moduleLogger.Errorf("%s", err)
+				if ag.isTest() {
+					ag.testError = err
+					return
+				}
 				break
 			}
 
@@ -95,6 +103,10 @@ func (s *Slb) run(ag *objectAgent) {
 			}
 			pageNum++
 			req.PageNumber = requests.NewInteger(pageNum)
+		}
+
+		if ag.isTest() {
+			break
 		}
 
 		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
@@ -119,9 +131,17 @@ func (s *Slb) handleResponse(resp *slb.DescribeLoadBalancersResponse, ag *object
 	}
 
 	data, err := json.Marshal(&objs)
+	if err == nil {
+		if ag.isTest() {
+			ag.testResult.Result = append(ag.testResult.Result, data...)
+		} else {
+			io.NamedFeed(data, io.Object, inputName)
+		}
+	} else {
 	if err != nil {
 		moduleLogger.Errorf("%s", err)
 		return
 	}
 	io.NamedFeed(data, io.Object, inputName)
+	}
 }
