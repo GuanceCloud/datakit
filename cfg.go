@@ -7,16 +7,20 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
 	IntervalDuration = 10 * time.Second
+
+	DefaultWebsocketPath = "/v1/ws/datakit"
 
 	Cfg = DefaultConfig()
 )
@@ -30,7 +34,10 @@ func DefaultConfig() *Config {
 			MaxPostInterval: "15s", // add 5s plus for network latency
 			StrictMode:      false,
 
-			HTTPBind: "0.0.0.0:9529",
+			HTTPBind:  "0.0.0.0:9529",
+			HTTPSPort: 443,
+			TLSCert:   "",
+			TLSKey:    "",
 
 			LogLevel:  "info",
 			Log:       filepath.Join(InstallDir, "datakit.log"),
@@ -88,21 +95,23 @@ type Config struct {
 }
 
 type DataWayCfg struct {
-	URL   string `toml:"url"`
-	Proxy bool   `toml:"proxy,omitempty"`
+	URL       string `toml:"url"`
+	Proxy     bool   `toml:"proxy,omitempty"`
+	WsPort    string `toml:"ws_port"`
+	Timeout   string `toml:"timeout"`
+	Heartbeat string `toml:"heartbeat"`
 
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
 	DeprecatedToken  string `toml:"token,omitempty"`
 
-	host   string
-	scheme string
-	token  string
-	path   string
-
+	host      string
+	scheme    string
 	urlValues url.Values
 
-	Timeout string `toml:"timeout"`
+	wspath   string
+	wshost   string
+	wsscheme string
 }
 
 func (dc *DataWayCfg) DeprecatedMetricURL() string {
@@ -173,6 +182,14 @@ func (dc *DataWayCfg) LoggingURL() string {
 }
 
 func (dc *DataWayCfg) TracingURL() string {
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/tracing")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
@@ -181,6 +198,14 @@ func (dc *DataWayCfg) TracingURL() string {
 }
 
 func (dc *DataWayCfg) RumURL() string {
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/rum")
+	}
+
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
@@ -205,34 +230,66 @@ func (dc *DataWayCfg) KeyEventURL() string {
 		dc.urlValues.Encode())
 }
 
+func (dc *DataWayCfg) BuildWSURL(mc *MainConfig) *url.URL {
+	ip, err := LocalIP()
+	if err != nil {
+		ip = ""
+	}
+	token := dc.urlValues.Get("token")
+	rawQuery := fmt.Sprintf("id=%s&version=%s&os=%s&arch=%s&token=%s&heartbeatconf=%s&hostname=%s&ip=%s",
+		mc.UUID, git.Version, runtime.GOOS, runtime.GOARCH, token, dc.Heartbeat, mc.Hostname, ip)
+
+	return &url.URL{
+		Scheme:   dc.wsscheme,
+		Host:     dc.wshost,
+		Path:     dc.wspath,
+		RawQuery: rawQuery,
+	}
+}
+
+func (dc *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
+	tcpaddr := addr
+	if _, _, err := net.SplitHostPort(tcpaddr); err != nil {
+		switch scheme {
+		case "http", "ws":
+			tcpaddr += ":80"
+		case "https", "wss":
+			tcpaddr += ":443"
+		}
+
+		if _, _, err := net.SplitHostPort(tcpaddr); err != nil {
+			l.Errorf("net.SplitHostPort(): %s", err)
+			return "", err
+		}
+	}
+
+	return tcpaddr, nil
+}
+
 func (dc *DataWayCfg) Test() error {
 
-	tcphost := dc.host
+	wsaddr, err := dc.tcpaddr(dc.wsscheme, dc.wshost)
+	if err != nil {
+		return err
+	}
 
-	if _, _, err := net.SplitHostPort(tcphost); err != nil {
-		switch dc.scheme {
-		case "http", "ws":
-			tcphost += ":80"
-		case "https", "wss":
-			tcphost += ":443"
-		}
+	httpaddr, err := dc.tcpaddr(dc.scheme, dc.host)
+	if err != nil {
+		return err
+	}
 
-		if _, _, err := net.SplitHostPort(tcphost); err != nil {
-			l.Errorf("net.SplitHostPort(): %s", err)
+	for _, h := range []string{wsaddr, httpaddr} {
+		conn, err := net.DialTimeout("tcp", h, time.Second*5)
+		if err != nil {
+			l.Errorf("TCP dial host `%s' failed: %s", dc.host, err.Error())
 			return err
 		}
+
+		if err := conn.Close(); err != nil {
+			l.Errorf("Close(): %s, ignored", err.Error())
+		}
 	}
 
-	conn, err := net.DialTimeout("tcp", tcphost, time.Second*5)
-	if err != nil {
-		l.Errorf("TCP dial host `%s' failed: %s", dc.host, err.Error())
-		return err
-	}
-
-	if err := conn.Close(); err != nil {
-		l.Errorf("close failed: %s", err.Error())
-		return err
-	}
 	return nil
 }
 
@@ -247,12 +304,16 @@ func (dc *DataWayCfg) addToken(tkn string) {
 	}
 }
 
-func ParseDataway(urlstr string) (*DataWayCfg, error) {
+func ParseDataway(httpurl, wsport string) (*DataWayCfg, error) {
 	dwcfg := &DataWayCfg{
 		Timeout: "30s",
+		WsPort:  wsport,
 	}
-
-	if u, err := url.Parse(urlstr); err == nil {
+	if httpurl == "" {
+		return nil, fmt.Errorf("empty dataway HTTP endpoint")
+	}
+	u, err := url.Parse(httpurl)
+	if err == nil {
 		dwcfg.scheme = u.Scheme
 		dwcfg.urlValues = u.Query()
 		dwcfg.host = u.Host
@@ -262,22 +323,41 @@ func ParseDataway(urlstr string) (*DataWayCfg, error) {
 		} else {
 			u.Path = ""
 		}
-
-		dwcfg.URL = u.String()
 	} else {
-		l.Errorf("parse url %s failed: %s", urlstr, err.Error())
+		l.Errorf("parse url %s failed: %s", httpurl, err.Error())
 		return nil, err
 	}
+	dwcfg.URL = u.String()
+	dwcfg.wspath = DefaultWebsocketPath
 
+	switch u.Scheme {
+	case "http":
+		dwcfg.wsscheme = "ws"
+		if wsport == "" {
+			dwcfg.WsPort = "80"
+		}
+	case "https":
+		dwcfg.wsscheme = "wss"
+		if wsport == "" {
+			dwcfg.WsPort = "443"
+		}
+	default:
+		l.Errorf("unknown scheme %s", u.Scheme)
+		return nil, fmt.Errorf("unknown scheme")
+	}
+	dwcfg.wshost = fmt.Sprintf("%s:%s", u.Hostname(), dwcfg.WsPort)
 	return dwcfg, nil
 }
 
 type MainConfig struct {
-	UUID     string      `toml:"uuid"`
-	Name     string      `toml:"name"`
-	DataWay  *DataWayCfg `toml:"dataway,omitempty"`
-	HTTPBind string      `toml:"http_server_addr"`
-	GrpcPort int         `toml:"inner_grpc_port"`
+	UUID      string      `toml:"uuid"`
+	Name      string      `toml:"name"`
+	DataWay   *DataWayCfg `toml:"dataway,omitempty"`
+	HTTPBind  string      `toml:"http_server_addr"`
+	HTTPSPort int         `toml:"https_port,omitempty"`
+	TLSCert   string      `toml:"tls_cert,omitempty"`
+	TLSKey    string      `toml:"tls_key,omitempty"`
+	GrpcPort  int         `toml:"inner_grpc_port"`
 
 	// For old datakit verison conf, there may exist these fields,
 	// if these tags missing, TOML will parse error
@@ -367,11 +447,27 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		l.Fatal("dataway URL not set")
 	}
 
-	var dw *DataWayCfg
-	dw, err = ParseDataway(c.MainCfg.DataWay.URL)
+	dw, err := ParseDataway(c.MainCfg.DataWay.URL, c.MainCfg.DataWay.WsPort)
 	if err != nil {
 		return err
 	}
+
+	heart, err := time.ParseDuration(c.MainCfg.DataWay.Heartbeat)
+	if err != nil {
+		l.Error("ws heartbeat config err:", err.Error())
+		c.MainCfg.DataWay.Heartbeat = "30s"
+	}
+	maxHeart, _ := time.ParseDuration("5m")
+	minHeart, _ := time.ParseDuration("30s")
+	if heart > maxHeart {
+		c.MainCfg.DataWay.Heartbeat = "5m"
+	}
+	if heart < minHeart {
+		c.MainCfg.DataWay.Heartbeat = "30s"
+	}
+
+	dw.Heartbeat = c.MainCfg.DataWay.Heartbeat
+
 	c.MainCfg.DataWay = dw
 
 	if c.MainCfg.DataWay.DeprecatedToken != "" { // compatible with old dataway config
@@ -478,7 +574,13 @@ func (c *Config) LoadEnvs(mcp string) error {
 
 	dwcfg := os.Getenv("ENV_DATAWAY")
 	if dwcfg != "" {
-		dw, err := ParseDataway(dwcfg)
+
+		parts := strings.Split(dwcfg, ";")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid ENV_DATAWAY")
+		}
+
+		dw, err := ParseDataway(parts[0], parts[1])
 		if err != nil {
 			return err
 		}

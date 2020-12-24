@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -46,7 +47,8 @@ func LoadInputsConfig(c *datakit.Config) error {
 		}
 	}
 
-	availableInputCfgs := map[string]*ast.Table{}
+	availableInput := map[string]map[string]*ast.Table{}
+	availableTgiInput := map[string]map[string]*ast.Table{}
 
 	if err := filepath.Walk(datakit.ConfdDir, func(fp string, f os.FileInfo, err error) error {
 		if err != nil {
@@ -62,21 +64,31 @@ func LoadInputsConfig(c *datakit.Config) error {
 			l.Debugf("ignore non-conf %s", fp)
 			return nil
 		}
-
 		tbl, err := parseCfgFile(fp)
 		if err != nil {
 			l.Warnf("[error] parse conf %s failed: %s, ignored", fp, err)
 			return nil
+
 		}
 
 		if len(tbl.Fields) == 0 {
 			l.Debugf("no conf available on %s", fp)
 			return nil
+
 		}
 
-		l.Debugf("parse %s ok", fp)
+		fileName := strings.TrimSuffix(filepath.Base(fp), path.Ext(fp))
 
-		availableInputCfgs[fp] = tbl
+		if _, ok := inputs.Inputs[fileName]; ok {
+			availableInput[fileName] = map[string]*ast.Table{fp: tbl}
+			return nil
+
+		}
+		if _, ok := tgi.TelegrafInputs[fileName]; ok {
+			availableTgiInput[fileName] = map[string]*ast.Table{fp: tbl}
+			return nil
+		}
+		l.Errorf("config:%s must name by input.conf example :disk.conf", fp)
 		return nil
 	}); err != nil {
 		l.Error(err)
@@ -90,25 +102,35 @@ func LoadInputsConfig(c *datakit.Config) error {
 		addTailfInputs(c.MainCfg)
 	}
 
-	for name, creator := range inputs.Inputs {
-		if err := doLoadInputConf(c, name, creator, availableInputCfgs); err != nil {
+	for name, available := range availableInput {
+		creator, _ := inputs.Inputs[name]
+		if err := doLoadInputConf(c, name, creator, available); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
 			return err
 		}
 	}
 
-	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, availableInputCfgs, c.InputFilters)
+	self, _ := inputs.Inputs["self"]
+	inputs.AddSelf(self())
+
+	tgiInput := map[string]*ast.Table{}
+
+	for _, v := range availableTgiInput {
+		for fp, tbl := range v {
+			tgiInput[fp] = tbl
+		}
+	}
+
+	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, tgiInput, c.InputFilters)
 	if err != nil {
 		return err
 	}
-
 	if telegrafRawCfg != "" {
 		if err := ioutil.WriteFile(filepath.Join(datakit.TelegrafDir, "agent.conf"), []byte(telegrafRawCfg), os.ModePerm); err != nil {
 			l.Errorf("create telegraf conf failed: %s", err.Error())
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -117,11 +139,6 @@ func doLoadInputConf(c *datakit.Config, name string, creator inputs.Creator, inp
 		if !sliceContains(name, c.InputFilters) {
 			return nil
 		}
-	}
-
-	if name == "self" { //nolint:goconst
-		inputs.AddSelf(creator())
-		return nil
 	}
 
 	l.Debugf("search input cfg for %s", name)
@@ -134,7 +151,6 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 	var err error
 
 	for fp, tbl := range inputcfgs {
-
 		for field, node := range tbl.Fields {
 			inputlist := []inputs.Input{}
 
@@ -145,28 +161,27 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 					l.Warnf("ignore bad toml node for %s within %s", name, fp)
 				} else {
 					for inputName, v := range stbl.Fields {
-						if inputName != name {
-							continue
-						}
-
-						inputlist, err = tryUnmarshal(v, name, creator)
+						//if inputName != name {
+						//	continue
+						//}
+						inputlist, err = TryUnmarshal(v, inputName, creator)
 						if err != nil {
-							l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
+							l.Warnf("unmarshal input %s failed within %s: %s", inputName, fp, err.Error())
 							continue
 						}
 
-						l.Infof("load input %s from %s ok", name, fp)
+						l.Infof("load input %s from %s ok", inputName, fp)
 					}
 				}
 
 			default: // compatible with old version: no [[inputs.xxx]] header
-				inputlist, err = tryUnmarshal(node, name, creator)
+				inputlist, err = TryUnmarshal(node, name, creator)
 				if err != nil {
 					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 				}
 			}
-
 			for _, i := range inputlist {
+
 				if err := inputs.AddInput(name, i, fp); err != nil {
 					l.Error("add %s failed: %v", name, err)
 					continue
@@ -178,7 +193,7 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 	}
 }
 
-func tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputList []inputs.Input, err error) {
+func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputList []inputs.Input, err error) {
 
 	tbls := []*ast.Table{}
 
@@ -194,7 +209,6 @@ func tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 
 	for _, t := range tbls {
 		input := creator()
-
 		err = toml.UnmarshalTable(t, input)
 		if err != nil {
 			l.Errorf("toml unmarshal %s failed: %v", name, err)
@@ -205,6 +219,7 @@ func tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 		trySetMaxPostInterval(t)
 
 		inputList = append(inputList, input)
+
 	}
 
 	return
