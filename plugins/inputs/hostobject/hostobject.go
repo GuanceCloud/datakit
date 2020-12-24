@@ -21,6 +21,11 @@ type (
 		Desc     string `toml:"description,omitempty"`
 		Interval datakit.Duration
 		Tags     map[string]string `toml:"tags,omitempty"`
+
+		mode string
+
+		testResult *inputs.TestResult
+		testError  error
 	}
 
 	osInfo struct {
@@ -30,12 +35,23 @@ type (
 	}
 )
 
+func (c *Collector) isTest() bool {
+	return c.mode == "test"
+}
+
 func (_ *Collector) Catalog() string {
 	return "hostobject"
 }
 
 func (_ *Collector) SampleConfig() string {
 	return sampleConfig
+}
+
+func (c *Collector) Test() (*inputs.TestResult, error) {
+	c.mode = "test"
+	c.testResult = &inputs.TestResult{}
+	c.Run()
+	return c.testResult, c.testError
 }
 
 func (c *Collector) Run() {
@@ -131,11 +147,21 @@ func (c *Collector) Run() {
 
 		data, err = json.Marshal(&objs)
 		if err == nil {
-			io.NamedFeed(data, io.Object, inputName)
+			if c.isTest() {
+				c.testResult.Result = append(c.testResult.Result, data...)
+			} else {
+				io.NamedFeed(data, io.Object, inputName)
+			}
 		} else {
+			if c.isTest() {
+				c.testError = err
+			}
 			moduleLogger.Errorf("%s", err)
 		}
 
+		if c.isTest() {
+			break
+		}
 		datakit.SleepContext(ctx, c.Interval.Duration)
 	}
 

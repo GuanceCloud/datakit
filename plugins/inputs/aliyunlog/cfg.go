@@ -1,6 +1,10 @@
 package aliyunlog
 
-import "sync"
+import (
+	"sync"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
 
 const (
 	aliyunlogConfigSample = `
@@ -52,7 +56,13 @@ type (
 		AccessKeySecret string
 		Projects        []*LogProject
 
-		wg   sync.WaitGroup
+
+		wg sync.WaitGroup
+
 		mode string
+
+		testResult *inputs.TestResult
+		testError  error
+
 	}
 )

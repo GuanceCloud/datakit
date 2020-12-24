@@ -206,8 +206,9 @@ func (s *Shark) buildCommand() string {
 		args = append(args, "-i", "any")
 	}
 
-	if params.Count != 0 {
-		args = append(args, "-c", params.Count)
+	if params.Stream.Count != 0 {
+		count := fmt.Sprintf("%d", params.Stream.Count)
+		args = append(args, "-c", count)
 	}
 
 	// 时常控制
@@ -383,7 +384,7 @@ func (s *Shark) Test() (*inputs.TestResult, error) {
 		res.Result = nil
 		res.Desc = "tshark not install or Env path config error"
 	} else {
-		res.Result = version
+		res.Result = []byte(version.String())
 		res.Desc = "success"
 	}
 

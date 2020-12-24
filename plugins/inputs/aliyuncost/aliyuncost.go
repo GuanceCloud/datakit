@@ -37,6 +37,13 @@ func (*agent) SampleConfig() string {
 	return sampleConfig
 }
 
+func (ag *agent) Test() (*inputs.TestResult, error) {
+	ag.mode = "test"
+	ag.testResult = &inputs.TestResult{}
+	ag.Run()
+	return ag.testResult, ag.testError
+}
+
 func (ag *agent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
@@ -46,7 +53,7 @@ func (ag *agent) Run() {
 		ag.cancelFun()
 	}()
 
-	if !ag.debugMode {
+	if !ag.isDebug() && !ag.isTest() {
 		historyCacheDir = filepath.Join(datakit.DataDir, inputName)
 		os.MkdirAll(historyCacheDir, 0775)
 	}
@@ -86,6 +93,10 @@ func (ag *agent) Run() {
 		ag.client, err = bssopenapi.NewClientWithAccessKey(ag.RegionID, ag.AccessKeyID, ag.AccessKeySecret)
 		if err != nil {
 			moduleLogger.Errorf("%s", err)
+			if ag.isTest() {
+				ag.testError = err
+				return
+			}
 			time.Sleep(time.Second)
 		} else {
 			break
@@ -209,9 +220,7 @@ func (ag *agent) queryOrdersWrap(ctx context.Context, request *bssopenapi.QueryO
 }
 
 func newAgent() *agent {
-	ag := &agent{
-		debugMode: false,
-	}
+	ag := &agent{}
 	ag.ctx, ag.cancelFun = context.WithCancel(context.Background())
 	return ag
 }
