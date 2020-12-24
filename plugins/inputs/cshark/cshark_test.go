@@ -15,7 +15,11 @@ var msg = `
     "stream": {
         "duration": "10s",
         "protocol": "tcp",
-        "filter": "'tcp dst port 8080'"
+        "filter": "'tcp dst port 8080'",
+        "count": 10,
+        "port": ["8080"],
+        "srcIP": ["127.0.0.1"],
+        "dstIP": ["127.0.0.1"]
     }
 }
 `
