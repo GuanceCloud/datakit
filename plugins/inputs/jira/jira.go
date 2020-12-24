@@ -38,7 +38,6 @@ type JiraParam struct {
 
 const (
 	jiraConfigSample = `### You need to configure an [[inputs.jira]] for each jira to be monitored.
-### active     : whether to gather jira data.
 ### host       : jira service url.
 ### project    : project id. If no configuration, get all projects.
 ### issue      : issue id.  If no configuration, get all issues.
@@ -48,7 +47,6 @@ const (
 ### metricsName: the name of metric, default is "jira"
 
 #[[inputs.jira]]
-#	active      = true
 #	host        = "https://jira.jiagouyun.com/"
 #	project     = "11902"
 #	issue       = "52922"
@@ -62,7 +60,6 @@ const (
 #		tag3 = "tag3"
 
 #[[inputs.jira]]
-#	active      = true
 #	host        = "https://jira.jiagouyun.com/"
 #	project     = "11902"
 #	issue       = "52922"
@@ -90,9 +87,29 @@ func (j *Jira) SampleConfig() string {
 }
 
 func (j *Jira) Run() {
-	if !j.Active || j.Host == "" {
+	if j.Host == "" {
 		return
 	}
+	p := j.genParam()
+	p.log.Info("jira input started...")
+	p.active()
+}
+
+func (j *Jira) Test() (*inputs.TestResult, error) {
+	tRst := &inputs.TestResult{}
+
+	para := j.genParam()
+	_, err := para.makeJiraClient()
+	if err != nil {
+		tRst.Desc = "链接Jira服务器错误"
+	} else {
+		tRst.Desc = "链接Jira正常"
+	}
+
+	return tRst, err
+}
+
+func (j *Jira) genParam() *JiraParam {
 	if j.MetricsName == "" {
 		j.MetricsName = defaultMetricName
 	}
@@ -105,11 +122,9 @@ func (j *Jira) Run() {
 	output := JiraOutput{io.NamedFeed}
 	log := logger.SLogger("jira")
 
-	p := JiraParam{input, output, log}
-	p.log.Info("jira input started...")
-	p.active()
+	p := &JiraParam{input, output, log}
+	return p
 }
-
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		jira := &Jira{}
