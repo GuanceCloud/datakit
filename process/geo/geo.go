@@ -18,7 +18,22 @@ func Geo(ip string) (ipL.IP2Locationrecord, error) {
 	if Db == nil {
 		return ipL.IP2Locationrecord{}, fmt.Errorf("ip2location db nil")
 	}
-	return Db.Get_all(ip)
+
+	record, err := Db.Get_all(ip)
+
+	if record.City == "Invalid IP address." {
+		record.City = "unknown"
+	}
+
+	if record.Region == "Invalid IP address." {
+		record.Region = "unknown"
+	}
+
+	if record.Country_short == "Invalid IP address." {
+		record.Country_short = "unknown"
+	}
+
+	return record, err
 }
 
 func init() {

@@ -14,7 +14,6 @@ import (
 const (
 	zabbixConfigSample = `
 #[[inputs.zabbix]]
-#  active        = true
 #  dbType        = "mysql"
 #  dbAddress     = "zabbix:zabbix@tcp(127.0.0.1:3306)/zabbix"
 #  startdate     = "2020-01-01T00:00:00"
@@ -57,10 +56,28 @@ func (z *Zabbix) SampleConfig() string {
 }
 
 func (z *Zabbix) Run() {
-	if !z.Active {
-		return
-	}
+    p := z.genParam()
+	p.log.Info("yarn zabbix started...")
+	p.mkZabbixDataDir()
+	p.gather()
+}
 
+func (z *Zabbix) Test() (*inputs.TestResult, error) {
+	tRst := &inputs.TestResult{}
+	para := z.genParam()
+	start := para.getStartDate()
+	stop  := para.getStopDate(start)
+	for _, tbl := range tbls {
+		pt, err := para.gatherData(start, stop, tbl, true)
+		if err != nil || len(pt) > 0 {
+			tRst.Result = pt
+			return tRst, err
+		}
+	}
+    return tRst, nil
+}
+
+func (z *Zabbix) genParam() *ZabbixParam {
 	regPath := filepath.Join(datakit.InstallDir, defaultDataDir, defaultZabbixDir, z.Registry)
 	z.Registry = regPath
 
@@ -75,9 +92,7 @@ func (z *Zabbix) Run() {
 	input := ZabbixInput{*z}
 	output := ZabbixOutput{io.NamedFeed}
 	p := &ZabbixParam{input, output, logger.SLogger("zabbix")}
-	p.log.Info("yarn zabbix started...")
-	p.mkZabbixDataDir()
-	p.gather()
+	return p
 }
 
 func (p *ZabbixParam) mkZabbixDataDir() {
