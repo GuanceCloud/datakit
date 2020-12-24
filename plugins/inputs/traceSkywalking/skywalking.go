@@ -73,6 +73,10 @@ func (t *SkywalkingTrace) Run() {
 	log.Infof("%s input exit", inputName)
 }
 
+func (t *SkywalkingTrace) Test() (*inputs.TestResult, error) {
+	return nil, nil
+}
+
 func (t *SkywalkingTrace) RegHttpHandler() {
 	if t.V3 != nil {
 		http.RegHttpHandler("POST", "/v3/segment", SkywalkingTraceHandle)

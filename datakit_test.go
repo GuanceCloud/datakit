@@ -13,35 +13,70 @@ func TestParseDataWay(t *testing.T) {
 
 	type tcase struct {
 		url        string
+		wsurl      string
 		assertTrue bool
 	}
 
 	for _, url := range []*tcase{
 
-		&tcase{url: "http://preprod-openway.cloudcare.cn/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
-		&tcase{url: "https://preprod-openway.cloudcare.cn/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
-		&tcase{url: "http://preprod-openway.cloudcare.cn:80/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
-		&tcase{url: "https://preprod-openway.cloudcare.cn:443/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
-		&tcase{url: "https://preprod-openway.cloudcare.cn:443/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
-		&tcase{url: "wss://preprod-openway.cloudcare.cn/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
-		&tcase{url: "ws://preprod-openway.cloudcare.cn/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: true},
-		&tcase{url: "ws://1.2.3/v1/write/metrics?token=123&a=b&d=e&c=123_456", assertTrue: false}, // dial timeout
-		&tcase{url: "", assertTrue: false}, // empty dataway url
+		&tcase{
+			url:        "http://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
+			wsurl:      "ws://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
+			assertTrue: true,
+		},
+		&tcase{
+			url:        "https://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
+			wsurl:      "wss://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
+			assertTrue: true,
+		},
+
+		&tcase{
+			url:        "http://preprod-openway.cloudcare.cn:80?token=123&a=b&d=e&c=123_456",
+			wsurl:      "ws://preprod-openway.cloudcare.cn:80?token=123&a=b&d=e&c=123_456",
+			assertTrue: true,
+		},
+		&tcase{
+			url:        "https://preprod-openway.cloudcare.cn:443?token=123&a=b&d=e&c=123_456",
+			wsurl:      "ws://preprod-openway.cloudcare.cn:443?token=123&a=b&d=e&c=123_456",
+			assertTrue: true,
+		},
+
+		&tcase{
+			url:        "http://1.2.3?token=123&a=b&d=e&c=123_456",
+			wsurl:      "ws://1.2.3?token=123&a=b&d=e&c=123_456",
+			assertTrue: false,
+		}, // dial timeout
+
+		&tcase{
+			url:        "",
+			wsurl:      "",
+			assertTrue: false,
+		}, // empty dataway url
+
+		&tcase{
+			url:        "http://1.2.3?token=123&a=b&d=e&c=123_456",
+			assertTrue: false,
+			// empty ws url
+		},
 	} {
 
-		dw, err := ParseDataway(url.url)
+		dw, err := ParseDataway(url.url, url.wsurl)
 		if err != nil {
 			if url.assertTrue {
 				t.Fatal(err)
 			}
 			t.Log(err)
-		}
-
-		if err := dw.Test(); err != nil {
-			if url.assertTrue {
-				t.Fatal(err)
+		} else {
+			if err := dw.Test(); err != nil {
+				if url.assertTrue {
+					t.Fatal(err)
+				}
+				t.Log(err)
 			}
-			t.Log(err)
+
+			if dw != nil {
+				t.Logf("%+#v", dw)
+			}
 		}
 	}
 }
