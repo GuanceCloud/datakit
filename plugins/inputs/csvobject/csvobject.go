@@ -1,6 +1,7 @@
 package csvobject
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -138,6 +139,28 @@ func (x *CsvObject) Run() {
 			return
 		}
 	}
+}
+
+func (x *CsvObject) Test() (*inputs.TestResult, error) {
+	var out bytes.Buffer
+	tRst := &inputs.TestResult{}
+
+	if x.PythonEnv == "" {
+		x.PythonEnv = "python"
+	}
+	args := []string{
+		filepath.Join(datakit.InstallDir, "externals", "csv", "test.py"),
+	}
+	cmd := exec.Command(x.PythonEnv, args...)
+	cmd.Stderr = &out
+
+	err := cmd.Run()
+	if err != nil {
+		return tRst, fmt.Errorf("%s", out.String())
+	}
+
+	tRst.Desc = "Python环境及依赖包均已具备"
+	return tRst, nil
 }
 
 func init() {
