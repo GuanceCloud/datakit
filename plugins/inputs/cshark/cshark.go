@@ -24,8 +24,9 @@ var (
 	l          *logger.Logger
 	inputName  = "cshark"
 	optChan = make(chan *Params)
+	params  *Params
+	duration int64
 )
-
 
 func (_ *Shark) SampleConfig() string {
 	return sharkConfigSample
@@ -43,27 +44,41 @@ func (_ *Shark) Gather() error {
 	return nil
 }
 
-func (s *Shark) SendOpt(opt string) error {
-	if err := s.parseParam(opt); err != nil {
+func SendCmdOpt(opt string) error {
+	if err := parseParam(opt); err != nil {
 		return fmt.Errorf("command param err %v", err)
 	}
 
 	// check config
-	if err := s.checkParam(); err != nil {
+	if err := checkParam(); err != nil {
 		return err
 	}
 
-	select {
-	case optChan <- s.Params:
-		fmt.Println("send success!")
-		return nil
-	default:
-		return fmt.Errorf("busy!")
+	if params.Sync {
+		select {
+		case optChan <- params:
+			fmt.Println("send success!")
+			params.Fin = make(chan error)
+
+			err := <- params.Fin
+
+			if err != nil {
+				return err
+			}
+
+			return nil
+		default:
+			return fmt.Errorf("busy!")
+		}
+	} else {
+		select {
+		case optChan <- params:
+			fmt.Println("send success!")
+			return nil
+		default:
+			return fmt.Errorf("busy!")
+		}
 	}
-
-	// optChan <- s.Params
-
-	return nil
 }
 
 func (s *Shark) Run() {
@@ -74,23 +89,54 @@ func (s *Shark) Run() {
 		s.MetricName = "cshark"
 	}
 
-	go func () {
-		for {
-			select {
-			case <- optChan:
-				fmt.Println("receive....")
-				s.Exec()
-			case <-datakit.Exit.Wait():
-				l.Info("exit")
-				return
+	if s.Interval == "" {
+		s.Interval = "10s"
+	}
+
+	interval, err := time.ParseDuration(s.Interval)
+	if err != nil {
+		l.Error(err)
+	}
+
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
+
+	for {
+		select {
+		case <-tick.C:
+			if _, err := TSharkVersion(s.TsharkPath); err != nil {
+				l.Errorf("tshark not install or Env path config error %v", err)
+			} else {
+				goto lable
 			}
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
 		}
-	}()
+	}
+
+lable:
+	for {
+		select {
+		case opt := <- optChan:
+			if err := s.Exec(); err != nil {
+				l.Errorf("exec error %v", err)
+			}
+
+			if opt.Sync {
+				opt.Fin <- err
+			}
+
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+		}
+	}
 }
 
 // 参数解析
-func (s *Shark) parseParam(option string) error {
-	if err := json.Unmarshal([]byte(option), &s.Params); err != nil {
+func parseParam(option string) error {
+	if err := json.Unmarshal([]byte(option), &params); err != nil {
 		// l.Errorf("parsse option error:%v", err)
 		return fmt.Errorf("parsse option error:%v", err)
 	}
@@ -99,37 +145,37 @@ func (s *Shark) parseParam(option string) error {
 }
 
 // 参数校验
-func (s *Shark) checkParam() error {
+func checkParam() error {
 	// 协议check
-	if !util.IsSupport(s.Params.Stream.Protocol) {
-		return fmt.Errorf("not support this protocol %s", s.Params.Stream.Protocol)
+	if !util.IsSupport(params.Stream.Protocol) {
+		return fmt.Errorf("not support this protocol %s", params.Stream.Protocol)
 	}
 
 	// 时间check(todo)
-	duration, err := time.ParseDuration(s.Params.Stream.Duration)
+	du, err := time.ParseDuration(params.Stream.Duration)
 	if err != nil {
 		duration = 60
 		l.Error(err)
 	}
 
-	s.Duration = duration.Nanoseconds()/1e9
+	duration = du.Nanoseconds()/1e9
 
 	// src ip check
-	for _, ip := range s.Params.Stream.SrcIPs {
+	for _, ip := range params.Stream.SrcIPs {
 		if !util.IsIP(ip) {
 			return fmt.Errorf("source ip is not right %s", ip)
 		}
 	}
 
 	// dst ip check
-	for _, ip := range s.Params.Stream.DstIPs {
+	for _, ip := range params.Stream.DstIPs {
 		if !util.IsIP(ip) {
 			return fmt.Errorf("destination ip is not right %s", ip)
 		}
 	}
 
 	// port
-	for _, port := range s.Params.Stream.Ports {
+	for _, port := range params.Stream.Ports {
 		portN, _ := strconv.ParseInt(port, 10, 64)
 		if int(portN) > 65535 || int(portN) < 0 {
 			return fmt.Errorf("port ip is not right %s", port)
@@ -144,29 +190,79 @@ func (s *Shark) checkParam() error {
 // 构建抓包命令行
 func (s *Shark) buildCommand() string {
 	args := make([]string, 0)
+	portFilterStr := ""
+	srcIPFilterStr := ""
+	dstIPFilterStr := ""
 
-	args = append(args, "tshark")
+	args = append(args, s.TsharkPath)
 
 	// 控制参数
 	args = append(args,"-l")
-	for _, iface := range s.Params.Device {
+	for _, iface := range params.Device {
 		args = append(args, "-i", iface)
 	}
 
+	if len(params.Device) == 0 {
+		args = append(args, "-i", "any")
+	}
+
+	if params.Stream.Count != 0 {
+		count := fmt.Sprintf("%d", params.Stream.Count)
+		args = append(args, "-c", count)
+	}
+
 	// 时常控制
-	du := fmt.Sprintf("duration:%d", s.Duration)
+	du := fmt.Sprintf("duration:%d", duration)
 	args = append(args, "-a", du)
 
 	// 过滤器 (todo)
-	if s.Params.Stream.Filter != "" {
-		args = append(args, "-f", s.Params.Stream.Filter)
+	if params.Stream.Filter != "" {
+		args = append(args, "-f", params.Stream.Filter)
 	}
 
-	args = append(args, "-Y", s.Params.Stream.Protocol)
+	// 端口
+	if len(params.Stream.Ports) > 0 {
+		for _, port := range params.Stream.Ports {
+			portFilterStr += "port " + port + " or "
+		}
+		portFilterStr = strings.Trim(portFilterStr, "or ")
+
+		args = append(args, "-f", portFilterStr)
+	}
+
+	// ip
+	if len(params.Stream.SrcIPs) > 0 {
+		for _, srcIP := range params.Stream.SrcIPs {
+			srcIPFilterStr += "src host " + srcIP + " or "
+		}
+		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
+		args = append(args, "-f", srcIPFilterStr)
+	}
+
+	if len(params.Stream.DstIPs) > 0 {
+		for _, dstIP := range params.Stream.DstIPs {
+			dstIPFilterStr += "dst host " + dstIP + " or "
+		}
+		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
+		args = append(args, "-f", dstIPFilterStr)
+	}
+
+	if len(params.Stream.Protocol) > 0 {
+		args = append(args, "-Y", params.Stream.Protocol)
+
+		// 协议分发
+		switch	strings.ToUpper(params.Stream.Protocol) {
+			case "HTTP":
+				protocol.CommonItems = append(protocol.CommonItems, protocol.HttpItems...)
+			case "MYSQL":
+				protocol.CommonItems = append(protocol.CommonItems, protocol.MysqlItems...)
+			case "DNS":
+				protocol.CommonItems = append(protocol.CommonItems, protocol.DnslItems...)
+		}
+	}
 
 	// 输出控制
 	separator := fmt.Sprintf("separator=%s", SEPARATOR)
-	// args = append(args, "-T", "fields", "-E", separator, "-E", "quote=d")
 	args = append(args, "-T", "fields", "-E", separator)
 
 	// 输出field
@@ -179,10 +275,10 @@ func (s *Shark) buildCommand() string {
 	return cmdStr
 }
 
-func (s *Shark) Exec() {
+func (s *Shark) Exec() error {
 	// 构造命令
 	var streamCmdStr string
-	if s.Params.Stream != nil {
+	if params.Stream != nil {
 		streamCmdStr = s.buildCommand()
 		l.Info("stream cmd ====>", streamCmdStr)
 	}
@@ -190,7 +286,7 @@ func (s *Shark) Exec() {
 	fmt.Println("streamCmd ========>", streamCmdStr)
 
 	// 构造统计命令(todo)
-	s.streamExec(streamCmdStr)
+	return s.streamExec(streamCmdStr)
 }
 
 func (s *Shark) streamExec(cmdStr string) error {
@@ -278,6 +374,21 @@ func (s *Shark) parseLine(line string) []byte {
 	}
 
 	return pt
+}
+
+func (s *Shark) Test() (*inputs.TestResult, error) {
+	res := &inputs.TestResult{}
+
+	if version, err := TSharkVersion(s.TsharkPath); err != nil {
+		l.Errorf("tshark not install or Env path config error %v", err)
+		res.Result = nil
+		res.Desc = "tshark not install or Env path config error"
+	} else {
+		res.Result = []byte(version.String())
+		res.Desc = "success"
+	}
+
+    return res, nil
 }
 
 func init() {
