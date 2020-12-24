@@ -1,10 +1,19 @@
 package inputs
 
 import (
+	"bytes"
+	"crypto/md5"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/influxdata/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
@@ -14,17 +23,31 @@ import (
 
 var (
 	Inputs     = map[string]Creator{}
-	inputInfos = map[string][]*inputInfo{}
+	InputsInfo = map[string][]*inputInfo{}
 
 	l           = logger.DefaultSLogger("inputs")
 	panicInputs = map[string]int{}
 	mtx         = sync.RWMutex{}
+
 )
+
+
+type ConfDetail struct {
+	Path string
+	ConfMd5  []string
+}
+
+
+type TestResult struct {
+	Result []byte // line protocol or any plugin test result
+	Desc   string // description of Result
+}
 
 type Input interface {
 	Catalog() string
 	Run()
 	SampleConfig() string
+	Test() (*TestResult, error)
 
 	// add more...
 }
@@ -52,6 +75,7 @@ type inputInfo struct {
 	input Input
 	ti    *tgi.TelegrafInput
 	cfg   string
+
 }
 
 func (ii *inputInfo) Run() {
@@ -67,13 +91,23 @@ func (ii *inputInfo) Run() {
 	}
 }
 
+
+func SetInputsMD5(name string,input interface{}) string {
+	data,err :=  toml.Marshal(input)
+	if err != nil {
+		l.Errorf("input to toml err")
+		return ""
+	}
+	newName := fmt.Sprintf("%s-%x",name, md5.Sum(data))
+	return newName
+}
+
+
 func AddInput(name string, input Input, fp string) error {
 
 	mtx.Lock()
 	defer mtx.Unlock()
-
-	inputInfos[name] = append(inputInfos[name], &inputInfo{input: input, cfg: fp})
-
+	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input, cfg: fp})
 	return nil
 }
 
@@ -81,7 +115,7 @@ func ResetInputs() {
 
 	mtx.Lock()
 	defer mtx.Unlock()
-	inputInfos = map[string][]*inputInfo{}
+	InputsInfo = map[string][]*inputInfo{}
 }
 
 func AddSelf(i Input) {
@@ -89,7 +123,7 @@ func AddSelf(i Input) {
 	mtx.Lock()
 	defer mtx.Unlock()
 
-	inputInfos["self"] = append(inputInfos["self"], &inputInfo{input: i, cfg: "no config for `self' input"})
+	InputsInfo["self"] = append(InputsInfo["self"], &inputInfo{input: i, cfg: "no config for `self' input"})
 }
 
 func AddTelegrafInput(name, fp string) {
@@ -98,10 +132,11 @@ func AddTelegrafInput(name, fp string) {
 	defer mtx.Unlock()
 
 	l.Debugf("add telegraf input %s from %s", name, fp)
-	inputInfos[name] = append(inputInfos[name],
+	InputsInfo[name] = append(InputsInfo[name],
 		&inputInfo{input: nil, /* not used */
 			ti:  nil, /*not used*/
-			cfg: fp})
+			cfg: fp,
+		})
 }
 
 func StartTelegraf() error {
@@ -130,7 +165,7 @@ func RunInputs() error {
 	mtx.RLock()
 	defer mtx.RUnlock()
 
-	for name, arr := range inputInfos {
+	for name, arr := range InputsInfo {
 		for idx, ii := range arr {
 			if ii.input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
@@ -208,7 +243,7 @@ func HaveTelegrafInputs() bool {
 	defer mtx.RUnlock()
 
 	for k := range tgi.TelegrafInputs {
-		_, ok := inputInfos[k]
+		_, ok := InputsInfo[k]
 		if ok {
 			return true
 		}
@@ -220,8 +255,7 @@ func HaveTelegrafInputs() bool {
 func InputEnabled(name string) (n int, cfgs []string) {
 	mtx.RLock()
 	defer mtx.RUnlock()
-
-	arr, ok := inputInfos[name]
+	arr, ok := InputsInfo[name]
 	if !ok {
 		return
 	}
@@ -246,4 +280,64 @@ func GetSample(name string) (sample string, err error) {
 	}
 
 	return "", fmt.Errorf("input not found")
+}
+
+func TestTelegrafInput(cfg []byte) (*TestResult, error) {
+
+	telegrafDir := datakit.TelegrafDir
+
+	filename := fmt.Sprintf("tlcfg-%v", time.Now().UnixNano())
+	cfgpath := filepath.Join(telegrafDir, filename)
+
+	agentgentCfg := &datakit.TelegrafCfg{
+		Interval:                   "10s",
+		RoundInterval:              true,
+		MetricBatchSize:            1000,
+		MetricBufferLimit:          100000,
+		CollectionJitter:           "0s",
+		FlushInterval:              "10s",
+		FlushJitter:                "0s",
+		Precision:                  "ns",
+		Debug:                      false,
+		Quiet:                      false,
+		LogTarget:                  "file",
+		Logfile:                    filepath.Join(telegrafDir, "agent.log"),
+		LogfileRotationMaxArchives: 5,
+		LogfileRotationMaxSize:     "32MB",
+		OmitHostname:               true, // do not append host tag
+	}
+
+	agdata, _ := toml.Marshal(agentgentCfg)
+
+	telegrafConfig := ("\n[agent]\n" + string(agdata) + "\n")
+	telegrafConfig += string(cfg)
+
+	if err := ioutil.WriteFile(cfgpath, []byte(telegrafConfig), 0664); err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		recover()
+		os.Remove(cfgpath)
+	}()
+
+	agentpath := filepath.Join(telegrafDir, runtime.GOOS+"-"+runtime.GOARCH, "agent")
+	if runtime.GOOS == datakit.OSWindows {
+		agentpath += ".exe"
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	cmd := exec.Command(agentpath, "-config", cfgpath, "-test")
+	cmd.Env = os.Environ()
+	cmd.Stderr = buf
+	cmd.Stdout = buf
+	if err := cmd.Run(); err != nil {
+		return nil, err
+	}
+
+	result := &TestResult{
+		Result: buf.Bytes(),
+	}
+
+	return result, nil
 }

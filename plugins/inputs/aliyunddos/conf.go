@@ -25,6 +25,8 @@ type DDoS struct {
 	Interval         string        `toml:"interval"`
 	IntervalDuration time.Duration `json:"-" toml:"-"`
 	MetricName       string        `toml:"metricName"`
-	client           *sdk.Client
-	aclient          *aegis.Client
+	client           *sdk.Client    `toml:"-"`
+	aclient          *aegis.Client  `toml:"-"`
+	test             bool           `toml:"-"`
+	resData          []byte         `toml:"-"`
 }

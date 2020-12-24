@@ -29,6 +29,13 @@ func (*agent) Catalog() string {
 	return `huaweiyun`
 }
 
+func (ag *agent) Test() (*inputs.TestResult, error) {
+	ag.mode = "test"
+	ag.testResult = &inputs.TestResult{}
+	ag.Run()
+	return ag.testResult, ag.testError
+}
+
 func (ag *agent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
@@ -53,11 +60,17 @@ func (ag *agent) Run() {
 	ag.limiter = rate.NewLimiter(limit, 1)
 
 	if err := ag.genReqs(ag.ctx); err != nil {
+		if ag.isTest() {
+			ag.testError = err
+		}
 		return
 	}
 
 	if len(ag.reqs) == 0 {
 		moduleLogger.Warnf("no metric found")
+		if ag.isTest() {
+			ag.testError = fmt.Errorf("no metric found")
+		}
 		return
 	}
 
@@ -84,6 +97,10 @@ func (ag *agent) Run() {
 			}
 
 			ag.fetchMetric(ag.ctx, req)
+		}
+
+		if ag.isTest() {
+			break
 		}
 
 		datakit.SleepContext(ag.ctx, time.Second*3)
@@ -159,6 +176,9 @@ func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
 	resData, err := ag.client.CESGetMetric(req.namespace, req.metricname, req.filter, req.period, req.from, req.to, dms)
 	if err != nil {
 		moduleLogger.Errorf("fail to get metric: Namespace=%s, MetricName=%s, Period=%v, StartTime=%v(%s), EndTime=%v(%s), Dimensions=%s", req.namespace, req.metricname, req.period, req.from, logStarttime, req.to, logEndtime, req.dimensoions)
+		if ag.isTest() {
+			ag.testError = err
+		}
 		return
 	}
 
@@ -202,14 +222,12 @@ func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
 			continue
 		}
 
-		/*data, err := io.MakeMetric(metricSetName, tags, fields)
-		if err != nil {
-			moduleLogger.Errorf("MakeMetric failed, %s", err)
+		if ag.isTest() {
+			data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
+			ag.testResult.Result = append(ag.testResult.Result, data...)
 		} else {
-			fmt.Printf("**** %s ****\n", string(data))
-		}*/
-
-		io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
+			io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
+		}
 
 	}
 
