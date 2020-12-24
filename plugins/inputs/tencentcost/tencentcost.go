@@ -25,6 +25,13 @@ func (_ *TencentCost) SampleConfig() string {
 	return sampleConfig
 }
 
+func (t *TencentCost) Test() (*inputs.TestResult, error) {
+	t.mode = "test"
+	t.testResult = &inputs.TestResult{}
+	t.Run()
+	return t.testResult, t.testError
+}
+
 func (t *TencentCost) Run() {
 	moduleLogger = logger.SLogger(inputName)
 
