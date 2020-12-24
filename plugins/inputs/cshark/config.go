@@ -3,8 +3,10 @@ package cshark
 const (
 	sharkConfigSample = `
 #[[inputs.cshark]]
-interval = "10s"
-tsharkPath = "/usr/bin/tshark"
+## tshark check频度
+#interval = "10s"
+## tshark 安装路径（$type tshark)
+#tsharkPath = "/usr/bin/tshark"
 `
 )
 
@@ -19,7 +21,7 @@ type Params struct {
     Stream  *Stream           `json:"stream"`
     Statistics *Statistics    `json:"statistics"`
     Sync     bool             `json:"sync"`
-    Fin      chan error `json:"-"`
+    Fin      chan error       `json:"-"`
 }
 
 type Stream struct {
