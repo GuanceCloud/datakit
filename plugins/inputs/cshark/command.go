@@ -6,11 +6,16 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"regexp"
 	"time"
 	"runtime"
+	"bytes"
 	"syscall"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"github.com/blang/semver"
 )
+
+var TSharkVersionUnknown = fmt.Errorf("Could not determine version of tshark")
 
 type Command struct {
 	sync.Mutex
@@ -26,6 +31,7 @@ func (c *Command) String() string {
 func (c *Command) Start() error {
 	c.Lock()
 	defer c.Unlock()
+
 	res := c.Cmd.Start()
 	return res
 }
@@ -105,5 +111,31 @@ func (c *Command) MonitProc() error {
 			return nil
 		}
 	}
+}
+
+func TSharkVersionFromOutput(output string) (semver.Version, error) {
+	var ver = regexp.MustCompile(`^TShark .*?(\d+\.\d+\.\d+)`)
+	res := ver.FindStringSubmatch(output)
+
+	if len(res) > 0 {
+		if v, err := semver.Make(res[1]); err == nil {
+			return v, nil
+		} else {
+			return semver.Version{}, err
+		}
+	}
+
+	return semver.Version{}, TSharkVersionUnknown
+}
+
+func TSharkVersion(tsharkBin string) (semver.Version, error) {
+	cmd := exec.Command(tsharkBin, "-v")
+
+	cmdOutput := &bytes.Buffer{}
+	cmd.Stdout = cmdOutput
+	cmd.Run() // don't check error - older versions return error code 1. Just search output.
+	output := cmdOutput.Bytes()
+
+	return TSharkVersionFromOutput(string(output))
 }
 
