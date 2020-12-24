@@ -111,6 +111,8 @@ func (t *TraceRouter) parseHopData(resultHop traceroute.TracerouteResult) {
 				l.Errorf("make metric point error %v", err)
 			}
 
+			t.resData = pt
+
 			err = io.NamedFeed([]byte(pt), io.Metric, inputName)
 			if err != nil {
 				l.Errorf("push metric point error %v", err)
@@ -118,6 +120,31 @@ func (t *TraceRouter) parseHopData(resultHop traceroute.TracerouteResult) {
 		}
 	}
 
+}
+
+func (t *TraceRouter) Test() (*inputs.TestResult, error) {
+	t.test = true
+	t.resData = nil
+
+
+	host := t.Addr
+	options := traceroute.TracerouteOptions{}
+	options.SetMaxHops(traceroute.DEFAULT_MAX_HOPS + 1)
+	options.SetFirstHop(traceroute.DEFAULT_FIRST_HOP)
+
+	resHop, err := traceroute.Traceroute(host, &options)
+	if err != nil {
+		l.Errorf("tracerouter error %v", err)
+	}
+
+	t.parseHopData(resHop)
+
+    res := &inputs.TestResult {
+    	Result: t.resData,
+    	Desc: "success!",
+    }
+
+    return res, nil
 }
 
 func init() {

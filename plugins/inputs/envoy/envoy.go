@@ -1,13 +1,20 @@
 package envoy
 
 import (
+	"strings"
+
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
 const (
 	inputName = "envoy"
 
 	sampleCfg = `
+[[inputs.prom]]
     # envoy metrics from http(https)://HOST:PORT/stats/prometheus
     # usually modify host and port
     # required
@@ -23,11 +30,6 @@ const (
     # tls_cert = "/tmp/peer.crt"
     # tls_key = "/tmp/peer.key"
     
-    ## Internal configuration. Don't modify.
-    name = "envoy"
-    ignore_measurement = ["envoy_http", "envoy_listener"]
-    ignore_fields_key_prefix= ["envoy_server_worker"]
-
     # [inputs.prom.tags]
     # from = "127.0.0.1:9901"
     # tags1 = "value1"
@@ -36,20 +38,41 @@ const (
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Envoy{}
+		return &prom.Prom{
+			Interval:       datakit.Cfg.MainCfg.Interval,
+			InputName:      inputName,
+			CatalogStr:     inputName,
+			SampleCfg:      sampleCfg,
+			Tags:           make(map[string]string),
+			IgnoreFunc:     ignore,
+			PromToNameFunc: nil,
+		}
 	})
 }
 
-type Envoy struct {
-}
+var (
+	ignoreMeasurements    = []string{"envoy_http", "envoy_listener"}
+	ignoreFieldsKeyPrefix = []string{"envoy_server_worker"}
+)
 
-func (*Envoy) SampleConfig() string {
-	return "[[inputs.prom]]" + sampleCfg
-}
+func ignore(pt *ifxcli.Point) bool {
+	fields, err := pt.Fields()
+	if err != nil {
+		return false
+	}
 
-func (*Envoy) Catalog() string {
-	return inputName
-}
+	for _, m := range ignoreMeasurements {
+		if pt.Name() == m {
+			return true
+		}
+	}
 
-func (*Envoy) Run() {
+	for key := range fields {
+		for _, m := range ignoreFieldsKeyPrefix {
+			if strings.HasPrefix(key, m) {
+				return true
+			}
+		}
+	}
+	return false
 }
