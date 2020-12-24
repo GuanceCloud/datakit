@@ -143,7 +143,7 @@ func TestSvr(t *testing.T) {
 		log.Fatalf("%s", err)
 	}
 
-	ag.debugMode = true
+	ag.mode = "debug"
 	ag.Run()
 
 }

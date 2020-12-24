@@ -26,5 +26,7 @@ type AliyunRDS struct {
 	Product         []string `toml:"product"`
 	Interval        string   `toml:"interval"`
 	MetricName      string   `toml:"metricName"`
-	client          *rds.Client
+	client          *rds.Client    `toml:"-"`
+	test             bool           `toml:"-"`
+	resData          []byte         `toml:"-"`
 }
