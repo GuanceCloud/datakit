@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -54,4 +55,17 @@ type TencentCost struct {
 	cancelFun context.CancelFunc
 
 	subModules []subModule
+
+	mode string
+
+	testResult *inputs.TestResult
+	testError  error
+}
+
+func (ag *TencentCost) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *TencentCost) isDebug() bool {
+	return ag.mode == "debug"
 }

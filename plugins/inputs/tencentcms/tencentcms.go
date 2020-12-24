@@ -49,9 +49,12 @@ func (_ *CMS) SampleConfig() string {
 	return cmsConfigSample
 }
 
-// func (_ *TencentCms) Description() string {
-// 	return ""
-// }
+func (c *CMS) Test() (*inputs.TestResult, error) {
+	c.mode = "test"
+	c.testResult = &inputs.TestResult{}
+	c.Run()
+	return c.testResult, c.testError
+}
 
 func (c *CMS) initialize() error {
 
@@ -84,6 +87,10 @@ func (tc *CMS) Run() {
 
 		if err := tc.initialize(); err != nil {
 			moduleLogger.Errorf("%s", err)
+			if tc.isTest() {
+				tc.testError = err
+				return
+			}
 			time.Sleep(time.Second)
 		} else {
 			break
@@ -109,6 +116,9 @@ func (s *CMS) run() error {
 	for _, ns := range s.Namespace {
 		if err := s.fetchAvatiableMetrics(ns); err != nil {
 			moduleLogger.Errorf("fail to get base metrics of namespace \"%s\": %s", ns.Name, err)
+			if s.isTest() {
+				s.testError = err
+			}
 			return err
 		}
 	}
@@ -144,6 +154,10 @@ func (s *CMS) run() error {
 			if err = s.fetchMetrics(req); err != nil {
 				moduleLogger.Errorf(`get tencent metric "%s.%s" failed: %s`, *req.q.Namespace, *req.q.MetricName, err)
 			}
+		}
+
+		if s.isTest() {
+			return nil
 		}
 
 		datakit.SleepContext(s.ctx, batchInterval)
@@ -224,6 +238,9 @@ func (c *CMS) fetchMetrics(req *MetricsRequest) error {
 		req.q = nq
 
 		if resp, err = c.client.GetMonitorData(req.q); err != nil {
+			if c.isTest() {
+				c.testError = err
+			}
 			return err
 		}
 
@@ -249,7 +266,12 @@ func (c *CMS) fetchMetrics(req *MetricsRequest) error {
 			fields := map[string]interface{}{}
 			fields[*req.q.MetricName] = *val
 
-			io.NamedFeedEx(inputName, io.Metric, foramtNamespaceName(*req.q.Namespace), tags, fields)
+			if c.isTest() {
+				data, _ := io.MakeMetric(foramtNamespaceName(*req.q.Namespace), tags, fields)
+				c.testResult.Result = append(c.testResult.Result, data...)
+			} else {
+				io.NamedFeedEx(inputName, io.Metric, foramtNamespaceName(*req.q.Namespace), tags, fields)
+			}
 
 		}
 	}
