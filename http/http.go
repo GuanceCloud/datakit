@@ -17,8 +17,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/influxdata/influxdb1-client/models"
+	"github.com/unrolled/secure"
 
+	"github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -46,6 +47,9 @@ var (
 	stopOkCh = make(chan interface{})
 )
 
+
+
+
 func Start(bind string) {
 
 	l = logger.SLogger("http")
@@ -56,7 +60,7 @@ func Start(bind string) {
 	l.Info("HTTPServer goroutine exit")
 }
 
-func reloadDatakit() error {
+func ReloadDatakit() error {
 
 	// FIXME: if config.LoadCfg() failed:
 	// we should add a function like try-load-cfg(), to testing
@@ -78,9 +82,15 @@ func reloadDatakit() error {
 
 	l.Info("reloading io...")
 	io.Start()
-
 	l.Info("reloading telegraf...")
 	inputs.StartTelegraf()
+
+	l.Info("reload ws...")
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		StartWS()
+	}()
 
 	l.Info("reloading inputs...")
 	if err := inputs.RunInputs(); err != nil {
@@ -91,7 +101,7 @@ func reloadDatakit() error {
 	return nil
 }
 
-func restartHttpServer() {
+func RestartHttpServer() {
 	l.Info("trigger HTTP server to stopping...")
 	stopCh <- nil // trigger HTTP server to stopping
 
@@ -139,8 +149,60 @@ func page404(c *gin.Context) {
 	c.String(http.StatusNotFound, buf.String())
 }
 
+func corsMiddleware(c *gin.Context) {
+	allowHeaders := []string{
+		"Content-Type",
+		"Content-Length",
+		"Accept-Encoding",
+		"X-CSRF-Token",
+		"Authorization",
+		"accept",
+		"origin",
+		"Cache-Control",
+		"X-Requested-With",
+
+		// dataflux headers
+		"X-Token",
+		"X-Datakit-UUID",
+		"X-RP",
+		"X-Precision",
+		"X-Lua",
+	}
+
+	c.Writer.Header().Set("Access-Control-Allow-Origin", c.GetHeader("origin"))
+	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	c.Writer.Header().Set("Access-Control-Allow-Headers", strings.Join(allowHeaders, ", "))
+	c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
+
+	if c.Request.Method == "OPTIONS" {
+		c.AbortWithStatus(http.StatusNoContent)
+		return
+	}
+
+	c.Next()
+}
+
+func tlsHandler(addr string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		secureMiddleware := secure.New(secure.Options{
+			SSLRedirect: true,
+			SSLHost:     addr,
+		})
+		err := secureMiddleware.Process(c.Writer, c.Request)
+
+		// If there was an error, do not continue.
+		if err != nil {
+			return
+		}
+
+		c.Next()
+	}
+}
+
 func httpStart(addr string) {
 	router := gin.New()
+
 	gin.DisableConsoleColor()
 
 	l.Infof("set gin log to %s", datakit.Cfg.MainCfg.GinLog)
@@ -154,9 +216,18 @@ func httpStart(addr string) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	httpsAddr := ""
+	if datakit.Cfg.MainCfg.TLSCert != "" && datakit.Cfg.MainCfg.TLSKey != "" {
+		parts := strings.Split(addr, ":")
+		httpsAddr = parts[0] + fmt.Sprintf(":%v", datakit.Cfg.MainCfg.HTTPSPort)
+		//router.Use(tlsHandler(httpsAddr))
+	}
+
+	l.Debugf("addr:%s, httpsAddr: %s", addr, httpsAddr)
+
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
-	router.Use(uhttp.CORSMiddleware)
+	router.Use(corsMiddleware)
 	router.NoRoute(page404)
 
 	applyHTTPRoute(router)
@@ -173,12 +244,19 @@ func httpStart(addr string) {
 	router.POST(io.Metric, func(c *gin.Context) { apiWriteMetric(c) })
 	router.POST(io.Object, func(c *gin.Context) { apiWriteObject(c) })
 	router.POST(io.Logging, func(c *gin.Context) { apiWriteLogging(c) })
-
-	router.POST(io.Rum, func(c *gin.Context) { apiWriteRum(c) })
+	router.POST(io.Tracing, func(c *gin.Context) { apiWriteTracing(c) })
 
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: router,
+	}
+
+	if httpsAddr != "" {
+		go func() {
+			if err := router.RunTLS(httpsAddr, datakit.Cfg.MainCfg.TLSCert, datakit.Cfg.MainCfg.TLSKey); err != nil {
+				l.Errorf("fail to start https on %s, %s", httpsAddr, err)
+			}
+		}()
 	}
 
 	go func() {
@@ -304,6 +382,11 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
+
+
+
+
+
 func apiTelegrafOutput(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -349,7 +432,7 @@ func apiTelegrafOutput(c *gin.Context) {
 
 func apiReload(c *gin.Context) {
 
-	if err := reloadDatakit(); err != nil {
+	if err := ReloadDatakit(); err != nil {
 		uhttp.HttpErr(c, err)
 		return
 	}
@@ -362,7 +445,7 @@ func apiReload(c *gin.Context) {
 		reload = time.Now()
 		reloadCnt++
 
-		restartHttpServer()
+		RestartHttpServer()
 		l.Info("reload HTTP server ok")
 	}()
 }
