@@ -17,8 +17,6 @@ var (
 )
 
 func (p *StatsdParams) gather() {
-	var connectFail bool = true
-	var conn net.Conn
 	var err error
 	var d time.Duration
 
@@ -41,30 +39,9 @@ func (p *StatsdParams) gather() {
 	for {
 		select {
 		case <-tick.C:
-			if connectFail {
-				conn, err = net.Dial("tcp", p.input.Host)
-				if err != nil {
-					connectFail = true
-				} else {
-					connectFail = false
-				}
-			}
-
-			if connectFail == false && conn != nil {
-				err = p.getMetrics(conn)
-				if err != nil && err != ConnectionReset {
-					p.log.Errorf("getMetrics err: %s", err.Error())
-				}
-
-				if err == ConnectionReset {
-					connectFail = true
-					conn.Close()
-				}
-			} else {
-				err = p.reportNotUp()
-				if err != nil {
-					p.log.Errorf("reportNotUp err: %s", err.Error())
-				}
+			_, err = p.getMetrics(false)
+			if err != nil {
+				p.reportNotUp()
 			}
 
 		case <-datakit.Exit.Wait():
@@ -74,7 +51,7 @@ func (p *StatsdParams) gather() {
 	}
 }
 
-func (p *StatsdParams) getMetrics(conn net.Conn) error {
+func (p *StatsdParams) getMetrics(isTest bool) ([]byte, error) {
 	var pt []byte
 	var err error
 
@@ -86,6 +63,15 @@ func (p *StatsdParams) getMetrics(conn net.Conn) error {
 		tags[tag] = tagV
 	}
 	fields["is_up"] = true
+
+	conn, err := net.Dial("tcp", p.input.Host)
+	if err != nil {
+		if !isTest {
+			p.reportNotUp()
+		}
+		return nil, err
+	}
+	defer conn.Close()
 
 	err = getMetric(conn, "counters", fields)
 	if err != nil {
@@ -105,16 +91,23 @@ func (p *StatsdParams) getMetrics(conn net.Conn) error {
 	fields["can_connect"] = true
 	pt, err = io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	err = p.output.IoFeed(pt, io.Metric, inputName)
-	return err
+
+	if !isTest {
+		err = p.output.IoFeed(pt, io.Metric, inputName)
+	}
+
+	return pt, err
 
 ERR:
 	fields["can_connect"] = false
 	pt, _ = io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
-	err = p.output.IoFeed(pt, io.Metric, inputName)
-	return ConnectionReset
+
+	if !isTest {
+		err = p.output.IoFeed(pt, io.Metric, inputName)
+	}
+	return pt, err
 }
 
 func getMetric(conn net.Conn, msg string, fields map[string]interface{}) error {
