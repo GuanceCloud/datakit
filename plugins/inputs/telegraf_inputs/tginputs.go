@@ -13,7 +13,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/ceph"
 	"github.com/influxdata/telegraf/plugins/inputs/clickhouse"
 	"github.com/influxdata/telegraf/plugins/inputs/cloudwatch"
-	"github.com/influxdata/telegraf/plugins/inputs/cpu"
 	"github.com/influxdata/telegraf/plugins/inputs/disk"
 	"github.com/influxdata/telegraf/plugins/inputs/diskio"
 	"github.com/influxdata/telegraf/plugins/inputs/dns_query"
@@ -76,7 +75,7 @@ import (
 )
 
 type TelegrafInput struct {
-	input   telegraf.Input
+	Input   telegraf.Input
 	name    string
 	Catalog string
 
@@ -97,11 +96,11 @@ func (ti *TelegrafInput) SampleConfig() string {
 	}
 
 	// telegraf not exported inputs, return sample directly(if configured in init())
-	if ti.input == nil {
+	if ti.Input == nil {
 		l.Fatal("%s should have a specific config-sample", ti.name)
 	}
 
-	s := ti.input.SampleConfig()
+	s := ti.Input.SampleConfig()
 	if s == "" {
 		s = "# no sample need here, just open the input"
 	}
@@ -111,106 +110,106 @@ func (ti *TelegrafInput) SampleConfig() string {
 
 var (
 	TelegrafInputs = map[string]*TelegrafInput{ // Name: Catalog
+		"disk":     {name: "disk", Catalog: "host", Input: &disk.DiskStats{}},
+		"diskio":   {name: "diskio", Catalog: "host", Input: &diskio.DiskIO{}},
+		"mem":      {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
+		"swap":     {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
+		"system":   {name: "system", Catalog: "host", Input: &system.SystemStats{}},
+		//"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
+		"cpu":      {name: "cpu", Catalog: "host", Sample: samples["cpu"], Input: nil},
+		"procstat": {name: "procstat", Catalog: "host", Input: &procstat.Procstat{}},
+		"smart":    {name: "smart", Catalog: "host", Input: &smart.Smart{}},
 
-		"disk":     {name: "disk", Catalog: "host", input: &disk.DiskStats{}},
-		"diskio":   {name: "diskio", Catalog: "host", input: &diskio.DiskIO{}},
-		"mem":      {name: "mem", Catalog: "host", input: &mem.MemStats{}},
-		"swap":     {name: "swap", Catalog: "host", input: &swap.SwapStats{}},
-		"system":   {name: "system", Catalog: "host", input: &system.SystemStats{}},
-		"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
-		"procstat": {name: "procstat", Catalog: "host", input: &procstat.Procstat{}},
-		"smart":    {name: "smart", Catalog: "host", input: &smart.Smart{}},
+		"internal": {name: "internal", Catalog: "internal", Sample: samples["internal"], Input: nil}, // import internal package not allowed
 
-		"internal": {name: "internal", Catalog: "internal", Sample: samples["internal"], input: nil}, // import internal package not allowed
-
-		"ping":            {name: "ping", Catalog: "network", input: &ping.Ping{}},
-		"net":             {name: "net", Catalog: "network", input: &net.NetIOStats{}},
-		"netstat":         {name: "netstat", Catalog: "network", input: &net.NetStats{}},
-		"net_response":    {name: "net_response", Catalog: "network", input: &net_response.NetResponse{}},
-		"http":            {name: "http", Catalog: "network", input: &http.HTTP{}},
-		"http_response":   {name: "http_response", Catalog: "network", input: &http_response.HTTPResponse{}},
-		"httpjson":        {name: "httpjson", Catalog: "network", input: &httpjson.HttpJson{}},
-		"socket_listener": {name: "socket_listener", Catalog: "network", input: &socket_listener.SocketListener{}},
+		"ping":            {name: "ping", Catalog: "network", Input: &ping.Ping{}},
+		"net":             {name: "net", Catalog: "network", Input: &net.NetIOStats{}},
+		"netstat":         {name: "netstat", Catalog: "network", Input: &net.NetStats{}},
+		"net_response":    {name: "net_response", Catalog: "network", Input: &net_response.NetResponse{}},
+		"http":            {name: "http", Catalog: "network", Input: &http.HTTP{}},
+		"http_response":   {name: "http_response", Catalog: "network", Input: &http_response.HTTPResponse{}},
+		"httpjson":        {name: "httpjson", Catalog: "network", Input: &httpjson.HttpJson{}},
+		"socket_listener": {name: "socket_listener", Catalog: "network", Input: &socket_listener.SocketListener{}},
 
 		// collectd use socket_listener to gather data
-		"collectd": {name: "socket_listener", Catalog: "collectd", input: &socket_listener.SocketListener{}},
+		"collectd": {name: "socket_listener", Catalog: "collectd", Input: &socket_listener.SocketListener{}},
 
-		"nginx":                {name: "nginx", Catalog: "nginx", Sample: samples["nginx"], input: &nginx.Nginx{}},
-		"nginx_upstream_check": {name: "nginx_upstream_check", Catalog: "nginx", input: &nginx_upstream_check.NginxUpstreamCheck{}},
-		"nginx_plus_api":       {name: "nginx_plus_api", Catalog: "nginx", input: &nginx_plus_api.NginxPlusApi{}},
-		"nginx_plus":           {name: "nginx_plus", Catalog: "nginx", input: &nginx_plus.NginxPlus{}},
-		"nginx_vts":            {name: "nginx_vts", Catalog: "nginx", input: &nginx_vts.NginxVTS{}},
+		"nginx":                {name: "nginx", Catalog: "nginx", Sample: samples["nginx"], Input: &nginx.Nginx{}},
+		"nginx_upstream_check": {name: "nginx_upstream_check", Catalog: "nginx", Input: &nginx_upstream_check.NginxUpstreamCheck{}},
+		"nginx_plus_api":       {name: "nginx_plus_api", Catalog: "nginx", Input: &nginx_plus_api.NginxPlusApi{}},
+		"nginx_plus":           {name: "nginx_plus", Catalog: "nginx", Input: &nginx_plus.NginxPlus{}},
+		"nginx_vts":            {name: "nginx_vts", Catalog: "nginx", Input: &nginx_vts.NginxVTS{}},
 
-		"tengine": {name: "tengine", Catalog: "tengine", input: &tengine.Tengine{}},
-		"apache":  {name: "apache", Catalog: "apache", input: &apache.Apache{}},
+		"tengine": {name: "tengine", Catalog: "tengine", Input: &tengine.Tengine{}},
+		"apache":  {name: "apache", Catalog: "apache", Input: &apache.Apache{}},
 
-		"postgresql":    {name: "postgresql", Catalog: "db", input: &postgresql.Postgresql{}},
-		"mongodb":       {name: "mongodb", Catalog: "db", input: &mongodb.MongoDB{}},
-		"redis":         {name: "redis", Catalog: "db", input: &redis.Redis{}},
-		"elasticsearch": {name: "elasticsearch", Catalog: "db", input: &elasticsearch.Elasticsearch{}},
-		"sqlserver":     {name: "sqlserver", Catalog: "db", input: &sqlserver.SQLServer{}},
-		"memcached":     {name: "memcached", Catalog: "db", input: &memcached.Memcached{}},
-		"solr":          {name: "solr", Catalog: "db", input: &solr.Solr{}},
-		"clickhouse":    {name: "clickhouse", Catalog: "db", input: &clickhouse.ClickHouse{}},
-		`influxdb`:      {name: "influxdb", Catalog: "db", input: &influxdb.InfluxDB{}},
+		"postgresql":    {name: "postgresql", Catalog: "db", Input: &postgresql.Postgresql{}},
+		"mongodb":       {name: "mongodb", Catalog: "db", Input: &mongodb.MongoDB{}},
+		"redis":         {name: "redis", Catalog: "db", Input: &redis.Redis{}},
+		"elasticsearch": {name: "elasticsearch", Catalog: "db", Input: &elasticsearch.Elasticsearch{}},
+		"sqlserver":     {name: "sqlserver", Catalog: "db", Input: &sqlserver.SQLServer{}},
+		"memcached":     {name: "memcached", Catalog: "db", Input: &memcached.Memcached{}},
+		"solr":          {name: "solr", Catalog: "db", Input: &solr.Solr{}},
+		"clickhouse":    {name: "clickhouse", Catalog: "db", Input: &clickhouse.ClickHouse{}},
+		`influxdb`:      {name: "influxdb", Catalog: "db", Input: &influxdb.InfluxDB{}},
 
-		"openldap": {name: "openldap", Catalog: "openldap", input: &openldap.Openldap{}},
+		"openldap": {name: "openldap", Catalog: "openldap", Input: &openldap.Openldap{}},
 
-		"zookeeper": {name: "zookeeper", Catalog: "zookeeper", input: &zookeeper.Zookeeper{}},
-		"ceph":      {name: "ceph", Catalog: "ceph", input: &ceph.Ceph{}},
-		"dns_query": {name: "dns_query", Catalog: "dns_query", input: &dns_query.DnsQuery{}},
+		"zookeeper": {name: "zookeeper", Catalog: "zookeeper", Input: &zookeeper.Zookeeper{}},
+		"ceph":      {name: "ceph", Catalog: "ceph", Input: &ceph.Ceph{}},
+		"dns_query": {name: "dns_query", Catalog: "dns_query", Input: &dns_query.DnsQuery{}},
 
-		"docker": {name: "docker", Catalog: "docker", input: &docker.Docker{}},
+		"docker": {name: "docker", Catalog: "docker", Input: &docker.Docker{}},
 
-		"activemq":       {name: "activemq", Catalog: "activemq", input: &activemq.ActiveMQ{}},
-		"rabbitmq":       {name: "rabbitmq", Catalog: "rabbitmq", input: &rabbitmq.RabbitMQ{}},
-		"nsq":            {name: "nsq", Catalog: "nsq", input: &nsq.NSQ{}},
-		"nsq_consumer":   {name: "nsq_consumer", Catalog: "nsq", input: &nsq_consumer.NSQConsumer{}},
-		"kafka_consumer": {name: "kafka_consumer", Catalog: "kafka", input: &kafka_consumer.KafkaConsumer{}},
-		"mqtt_consumer":  {name: "mqtt_consumer", Catalog: "mqtt", input: &mqtt_consumer.MQTTConsumer{}},
+		"activemq":       {name: "activemq", Catalog: "activemq", Input: &activemq.ActiveMQ{}},
+		"rabbitmq":       {name: "rabbitmq", Catalog: "rabbitmq", Input: &rabbitmq.RabbitMQ{}},
+		"nsq":            {name: "nsq", Catalog: "nsq", Input: &nsq.NSQ{}},
+		"nsq_consumer":   {name: "nsq_consumer", Catalog: "nsq", Input: &nsq_consumer.NSQConsumer{}},
+		"kafka_consumer": {name: "kafka_consumer", Catalog: "kafka", Input: &kafka_consumer.KafkaConsumer{}},
+		"mqtt_consumer":  {name: "mqtt_consumer", Catalog: "mqtt", Input: &mqtt_consumer.MQTTConsumer{}},
 
-		"fluentd":    {name: "fluentd", Catalog: "fluentd", input: &fluentd.Fluentd{}},
-		"jenkins":    {name: "jenkins", Catalog: "jenkins", input: &jenkins.Jenkins{}},
-		"kapacitor":  {name: "kapacitor", Catalog: "kapacitor", input: &kapacitor.Kapacitor{}},
-		"ntpq":       {name: "ntpq", Catalog: "ntpq", input: &ntpq.NTPQ{}},
-		"openntpd":   {name: "openntpd", Catalog: "openntpd", input: &openntpd.Openntpd{}},
-		"x509_cert":  {name: "x509_cert", Catalog: "tls", input: &x509_cert.X509Cert{}},
-		"nats":       {name: "nats", Catalog: "nats", input: &nats.Nats{}},
-		"cloudwatch": {name: "cloudwatch", Catalog: "aws", input: &cloudwatch.CloudWatch{}},
-		"vsphere":    {name: "vsphere", Catalog: "vmware", input: &vsphere.VSphere{}},
-		"snmp":       {name: "snmp", Catalog: "snmp", input: &snmp.Snmp{}},
-		"exec":       {name: "exec", Catalog: "exec", input: &exec.Exec{}},
-		"syslog":     {name: "syslog", Catalog: "syslog", input: &syslog.Syslog{}},
+		"fluentd":    {name: "fluentd", Catalog: "fluentd", Input: &fluentd.Fluentd{}},
+		"jenkins":    {name: "jenkins", Catalog: "jenkins", Input: &jenkins.Jenkins{}},
+		"kapacitor":  {name: "kapacitor", Catalog: "kapacitor", Input: &kapacitor.Kapacitor{}},
+		"ntpq":       {name: "ntpq", Catalog: "ntpq", Input: &ntpq.NTPQ{}},
+		"openntpd":   {name: "openntpd", Catalog: "openntpd", Input: &openntpd.Openntpd{}},
+		"x509_cert":  {name: "x509_cert", Catalog: "tls", Input: &x509_cert.X509Cert{}},
+		"nats":       {name: "nats", Catalog: "nats", Input: &nats.Nats{}},
+		"cloudwatch": {name: "cloudwatch", Catalog: "aws", Input: &cloudwatch.CloudWatch{}},
+		"vsphere":    {name: "vsphere", Catalog: "vmware", Input: &vsphere.VSphere{}},
+		"snmp":       {name: "snmp", Catalog: "snmp", Input: &snmp.Snmp{}},
+		"exec":       {name: "exec", Catalog: "exec", Input: &exec.Exec{}},
+		"syslog":     {name: "syslog", Catalog: "syslog", Input: &syslog.Syslog{}},
 
-		"nvidia_smi":    {name: "nvidia_smi", Catalog: "nvidia", input: &nvidia_smi.NvidiaSMI{}},
-		"kubernetes":    {name: "kubernetes", Catalog: "k8s", Sample: samples["kubernetes"], input: &kubernetes.Kubernetes{}},
-		"amqp_consumer": {name: "amqp_consumer", Catalog: "amqp", input: &amqp_consumer.AMQPConsumer{}},
-		"github":        {name: "github", Catalog: "github", input: &github.GitHub{}},
-		"uwsgi":         {name: "uwsgi", Catalog: "uwsgi", input: &uwsgi.Uwsgi{}},
-		`kibana`:        {name: "kibana", Catalog: "kibana", input: &kibana.Kibana{}},
-		`modbus`:        {name: "modbus", Catalog: "modbus", input: &modbus.Modbus{}},
+		"nvidia_smi":    {name: "nvidia_smi", Catalog: "nvidia", Input: &nvidia_smi.NvidiaSMI{}},
+		"kubernetes":    {name: "kubernetes", Catalog: "k8s", Sample: samples["kubernetes"], Input: &kubernetes.Kubernetes{}},
+		"amqp_consumer": {name: "amqp_consumer", Catalog: "amqp", Input: &amqp_consumer.AMQPConsumer{}},
+		"github":        {name: "github", Catalog: "github", Input: &github.GitHub{}},
+		"uwsgi":         {name: "uwsgi", Catalog: "uwsgi", Input: &uwsgi.Uwsgi{}},
+		`kibana`:        {name: "kibana", Catalog: "kibana", Input: &kibana.Kibana{}},
+		`modbus`:        {name: "modbus", Catalog: "modbus", Input: &modbus.Modbus{}},
 
 		// jolokia2 related
-		`weblogic`:       {name: "jolokia2_agent", Catalog: "weblogic", input: &jolokia2.JolokiaAgent{}},
-		`jvm`:            {name: "jolokia2_agent", Catalog: "jvm", input: &jolokia2.JolokiaAgent{}},
-		`hadoop_hdfs`:    {name: "jolokia2_agent", Catalog: "hadoop_hdfs", input: &jolokia2.JolokiaAgent{}},
-		"jolokia2_agent": {name: "jolokia2_agent", Catalog: "jolokia2_agent", input: &jolokia2.JolokiaAgent{}},
-		"jboss":          {name: "jolokia2_agent", Catalog: "jboss", input: &jolokia2.JolokiaAgent{}},
-		"cassandra":      {name: "jolokia2_agent", Catalog: "cassandra", input: &jolokia2.JolokiaAgent{}},
-		"bitbucket":      {name: "jolokia2_agent", Catalog: "bitbucket", input: &jolokia2.JolokiaAgent{}},
-		"kafka":          {name: "jolokia2_agent", Catalog: "kafka", input: &jolokia2.JolokiaAgent{}},
+		`weblogic`:       {name: "jolokia2_agent", Catalog: "weblogic", Input: &jolokia2.JolokiaAgent{}},
+		`jvm`:            {name: "jolokia2_agent", Catalog: "jvm", Input: &jolokia2.JolokiaAgent{}},
+		`hadoop_hdfs`:    {name: "jolokia2_agent", Catalog: "hadoop_hdfs", Input: &jolokia2.JolokiaAgent{}},
+		"jolokia2_agent": {name: "jolokia2_agent", Catalog: "jolokia2_agent", Input: &jolokia2.JolokiaAgent{}},
+		"jboss":          {name: "jolokia2_agent", Catalog: "jboss", Input: &jolokia2.JolokiaAgent{}},
+		"cassandra":      {name: "jolokia2_agent", Catalog: "cassandra", Input: &jolokia2.JolokiaAgent{}},
+		"bitbucket":      {name: "jolokia2_agent", Catalog: "bitbucket", Input: &jolokia2.JolokiaAgent{}},
+		"kafka":          {name: "jolokia2_agent", Catalog: "kafka", Input: &jolokia2.JolokiaAgent{}},
 
 		// ambiguous import
-		`consul`: {name: "consul", Catalog: "consul", Sample: samples["consul"], input: nil},
+		`consul`: {name: "consul", Catalog: "consul", Sample: samples["consul"], Input: nil},
 
 		// get panic:
 		//   panic: mismatching message name: got k8s.io.kubernetes.pkg.watch.versioned.Event,
 		//          want github.com/ericchiang.k8s.watch.versioned.Event
-		"kube_inventory": {name: "kube_inventory", Catalog: "k8s", Sample: samples["kube_inventory"], input: nil},
+		"kube_inventory": {name: "kube_inventory", Catalog: "k8s", Sample: samples["kube_inventory"], Input: nil},
 
 		// telegraf not exported
-		"phpfpm":  {name: "phpfpm", Catalog: "phpfpm", Sample: samples["phpfpm"], input: nil},
-		"haproxy": {name: "haproxy", Catalog: "haproxy", Sample: samples["haproxy"], input: nil},
+		"phpfpm":  {name: "phpfpm", Catalog: "phpfpm", Sample: samples["phpfpm"], Input: nil},
+		"haproxy": {name: "haproxy", Catalog: "haproxy", Sample: samples["haproxy"], Input: nil},
 	}
 )
 
@@ -222,15 +221,16 @@ func CheckTelegrafToml(name string, tomlcfg []byte) error {
 		return fmt.Errorf("input not found")
 	}
 
-	if ti.input == nil {
+	if ti.Input == nil {
 		return fmt.Errorf("input check unavailable")
 	}
 
-	if err := toml.Unmarshal(tomlcfg, ti.input); err != nil {
+	if err := toml.Unmarshal(tomlcfg, ti.Input); err != nil {
 		l.Errorf("toml.Unmarshal: %s", err.Error())
 		return err
 	}
 
-	l.Debugf("toml %+#v", ti.input)
+	l.Debugf("toml %+#v", ti.Input)
 	return nil
 }
+

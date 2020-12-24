@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
 	"reflect"
+
 	"testing"
 
 	"github.com/influxdata/toml"

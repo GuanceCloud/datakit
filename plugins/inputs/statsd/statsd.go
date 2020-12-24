@@ -35,13 +35,11 @@ type StatsdParams struct {
 var (
 	inputName          = "statsd"
 	statsdConfigSample = `### You need to configure an [[inputs.statsd]] for each statsd service to be monitored.
-### active: whether to monitor statsd.
 ### interval: monitor interval, the default value is "60s".
 ### host: statsd service ip:port, if "127.0.0.1", default port is 8126.
 ### metricsName: the name of metric, default is "statsd"
 
 #[[inputs.statsd]]
-#	active      = true
 #	interval    = "60s"
 #	host        = "127.0.0.1:8126"
 #	metricsName = "statsd"
@@ -51,7 +49,6 @@ var (
 #		tag3 = "tag3"
 
 #[[inputs.statsd]]
-#	active      = true
 #	interval    = "60s"
 #	host        = "127.0.0.1:8126"
 #	metricsName = "statsd"
@@ -73,10 +70,31 @@ func (t *StatsD) SampleConfig() string {
 }
 
 func (t *StatsD) Run() {
-	if !t.Active || t.Host == "" {
+	if t.Host == "" {
 		return
 	}
 
+	p := t.genParam()
+	p.log.Info("statsd input started...")
+	p.gather()
+}
+
+func (t *StatsD) Test() (*inputs.TestResult, error) {
+	tRst := &inputs.TestResult{}
+	para := t.genParam()
+
+	pt, err:= para.getMetrics(true)
+	tRst.Result = pt
+	if err != nil {
+		tRst.Desc = "链接statsd服务器错误"
+	} else {
+		tRst.Desc = "链接statsd服务正常"
+	}
+
+	return tRst,err
+}
+
+func (t *StatsD) genParam() *StatsdParams {
 	reg, _ := regexp.Compile(`:\d{1,5}$`)
 
 	if t.MetricsName == "" {
@@ -93,11 +111,9 @@ func (t *StatsD) Run() {
 
 	input := StatsdInput{*t}
 	output := StatsdOutput{io.NamedFeed}
-	p := StatsdParams{input, output, logger.SLogger("statsd")}
-	p.log.Info("statsd input started...")
-	p.gather()
+	p := &StatsdParams{input, output, logger.SLogger("statsd")}
+    return p
 }
-
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		p := &StatsD{}

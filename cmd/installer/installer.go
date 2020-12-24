@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/configtemplate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -34,8 +35,10 @@ var (
 )
 
 var (
-	flagUpgrade      = flag.Bool("upgrade", false, ``)
-	flagDataway      = flag.String("dataway", "", `address of dataway(http://IP:Port/v1/write/metric), port default 9528`)
+	flagUpgrade     = flag.Bool("upgrade", false, ``)
+	flagDatawayHTTP = flag.String("dataway", "", `address of dataway(http://IP:Port?token=xxx), port default 9528`)
+	flagDatawayWS   = flag.String("dataway-ws", "", `ws port,defalut ws 80 wss 443`)
+
 	flagInfo         = flag.Bool("info", false, "show installer info")
 	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
 
@@ -43,6 +46,8 @@ var (
 	flagDatakitName  = flag.String("name", "", `specify DataKit name, example: prod-env-datakit`)
 	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=__datakit_hostname,ip=__datakit_ip`)
 	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
+
+	flagCfgTemplate = flag.String("conf-tmpl", "", `specify input config templates, can be file path or url, e.g, http://res.dataflux.cn/datakit/conf`)
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./agent-%s-%s.tar.gz",
@@ -114,6 +119,11 @@ func main() {
 		install.InstallNewDatakit(svc)
 	}
 
+	ct := configtemplate.NewCfgTemplate(install.InstallDir)
+	if err = ct.InstallConfigs(*flagCfgTemplate); err != nil {
+		l.Fatalf("fail to intsall config template, %s", err)
+	}
+
 	l.Infof("starting service %s...", datakit.ServiceName)
 	if err = service.Control(svc, "start"); err != nil {
 		l.Fatalf("star service: %s", err.Error())
@@ -179,7 +189,8 @@ Golang Version: %s
 		// TODO: more os/arch support
 	}
 
-	install.DataWay = *flagDataway
+	install.DataWayHTTP = *flagDatawayHTTP
+	install.DataWayWsPort = *flagDatawayWS
 	install.GlobalTags = *flagGlobalTags
 	install.Port = *flagPort
 	install.DatakitName = *flagDatakitName
