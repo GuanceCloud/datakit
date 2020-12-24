@@ -53,8 +53,16 @@ func (c *Cos) run(ag *objectAgent) {
 		result, _, err := client.Service.Get(context.Background())
 		if err != nil {
 			moduleLogger.Errorf("%s", err)
+			if ag.isTest() {
+				ag.testError = err
+				return
+			}
 		} else {
 			c.handleResponse(result, ag)
+		}
+
+		if ag.isTest() {
+			return
 		}
 
 		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
@@ -121,9 +129,14 @@ func (c *Cos) handleResponse(resp *cos.ServiceGetResult, ag *objectAgent) {
 	}
 
 	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
+	if err == nil {
+		if ag.isTest() {
+			ag.testResult.Result = append(ag.testResult.Result, data...)
+		} else {
+			io.NamedFeed(data, io.Object, inputName)
+		}
+	} else {
+			moduleLogger.Errorf("%s", err)
+			return
+		}
 	}
-	io.NamedFeed(data, io.Object, inputName)
-}
