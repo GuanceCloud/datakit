@@ -89,10 +89,10 @@ var (
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &DockerLogs{
-			Endpoint:      defaultEndpoint,
 			newEnvClient:  NewEnvClient,
 			newClient:     NewClient,
 			containerList: make(map[string]context.CancelFunc),
+			Tags:          make(map[string]string),
 		}
 	})
 }
@@ -135,10 +135,16 @@ func (*DockerLogs) Catalog() string {
 	return "docker"
 }
 
+func (d *DockerLogs) Test() (result *inputs.TestResult, err error) {
+	// 主动请求变更数据，拥有不确定性，无法进行测试
+	result.Desc = "success"
+	return
+}
+
 func (d *DockerLogs) Run() {
 	l = logger.SLogger(inputName)
 
-	if d.loadCfg() {
+	if d.initCfg() {
 		return
 	}
 
@@ -196,8 +202,7 @@ func (d *DockerLogs) gather() {
 	}
 }
 
-func (d *DockerLogs) loadCfg() bool {
-	var err error
+func (d *DockerLogs) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -207,46 +212,51 @@ func (d *DockerLogs) loadCfg() bool {
 			// nil
 		}
 
-		d.timeoutDuration, err = time.ParseDuration(d.Timeout)
-		if err != nil || d.timeoutDuration <= 0 {
-			err = fmt.Errorf("invalid timeout")
-			goto label
-		}
-		if d.Endpoint == "ENV" {
-			d.client, err = d.newEnvClient()
-			if err != nil {
-				goto label
-			}
+		if err := d.loadCfg(); err != nil {
+			l.Error(err)
+			time.Sleep(time.Second)
 		} else {
-			tlsConfig, err := d.ClientConfig.TLSConfig()
-			if err != nil {
-				goto label
-			}
-			d.client, err = d.newClient(d.Endpoint, tlsConfig)
-			if err != nil {
-				goto label
-			}
+			break
 		}
+	}
+	return false
+}
 
-		// Create filters
-		err = d.createLabelFilters()
-		if err != nil {
-			goto label
+func (d *DockerLogs) loadCfg() (err error) {
+	d.timeoutDuration, err = time.ParseDuration(d.Timeout)
+	if err != nil {
+		err = fmt.Errorf("invalid timeout, %s", err.Error())
+		return
+	}
 
-		}
-		err = d.createContainerFilters()
+	if d.Endpoint == "ENV" {
+		d.client, err = d.newEnvClient()
 		if err != nil {
-			goto label
+			return
 		}
-		err = d.createContainerStateFilters()
+	} else {
+		tlsConfig, _err := d.ClientConfig.TLSConfig()
+		if _err != nil {
+			return _err
+		}
+		d.client, err = d.newClient(d.Endpoint, tlsConfig)
 		if err != nil {
-			goto label
+			return
 		}
+	}
 
-		break
-	label:
-		l.Error(err)
-		time.Sleep(time.Second)
+	// Create filters
+	err = d.createLabelFilters()
+	if err != nil {
+		return
+	}
+	err = d.createContainerFilters()
+	if err != nil {
+		return
+	}
+	err = d.createContainerStateFilters()
+	if err != nil {
+		return
 	}
 
 	filterArgs := filters.NewArgs()
@@ -261,7 +271,7 @@ func (d *DockerLogs) loadCfg() bool {
 		}
 	}
 
-	return false
+	return
 }
 
 func (d *DockerLogs) tailContainerLogs(ctx context.Context, container types.Container, containerName string) error {
