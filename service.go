@@ -91,9 +91,3 @@ func (p *program) Stop(s service.Service) error {
 	<-waitstopCh
 	return nil
 }
-
-func Quit() {
-	Exit.Close()
-	WG.Wait()
-	close(waitstopCh)
-}
