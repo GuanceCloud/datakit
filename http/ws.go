@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg"
 )
@@ -238,16 +239,32 @@ func (wc *wscli) handle(wm *wsmsg.WrapMsg) error {
 		wc.TestInput(wm)
 	case wsmsg.MTypeEnableInput:
 		wc.EnableInputs(wm)
-
 	case wsmsg.MTypeReload:
 		wc.Reload(wm)
-
+	case wsmsg.MtypeCsharkCmd:
+		wc.CsharkCmd(wm)
 	//case wsmsg.MTypeHeartbeat:
 	default:
 		wc.SetMessage(wm, "error", fmt.Errorf("unknow type %s ", wm.Type).Error())
 
 	}
 	return wc.sendText(wm)
+}
+
+func (wc *wscli) CsharkCmd(wm *wsmsg.WrapMsg) {
+	data, _ := base64.StdEncoding.DecodeString(wm.B64Data)
+	_, ok := inputs.InputsInfo["cshark"]
+	if !ok {
+		wc.SetMessage(wm, "error", "input cshark not enable")
+		return
+	}
+	err := cshark.SendCmdOpt(string(data))
+	if err != nil {
+		wc.SetMessage(wm, "error", err.Error())
+		return
+	}
+	wc.SetMessage(wm, "ok", "")
+
 }
 
 func (wc *wscli) EnableInputs(wm *wsmsg.WrapMsg) {
