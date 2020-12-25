@@ -17,6 +17,7 @@ require (
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/apache/thrift v0.13.0
 	github.com/aws/aws-sdk-go v1.34.34
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/containerd v1.4.1
 	github.com/containerd/continuity v0.0.0-20200413184840-d3ef23f19fbb // indirect
 	github.com/containerd/fifo v0.0.0-20200410184934-f15a3290365b // indirect
@@ -75,6 +76,8 @@ require (
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
+	github.com/sirupsen/logrus v1.6.0 // indirect
+	github.com/smartystreets/assertions v1.1.0 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
