@@ -268,11 +268,5 @@ func runDatakitWithHTTPServer() error {
 		http.Start(datakit.Cfg.MainCfg.HTTPBind)
 	}()
 
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		http.StartWS()
-	}()
-
 	return nil
 }
