@@ -47,17 +47,20 @@ var (
 	stopOkCh = make(chan interface{})
 )
 
-
-
-
 func Start(bind string) {
 
 	l = logger.SLogger("http")
 
 	httpBind = bind
+
 	// start HTTP server
-	httpStart(bind)
-	l.Info("HTTPServer goroutine exit")
+	go func() {
+		httpStart(bind)
+	}()
+
+	go func() {
+		StartWS()
+	}()
 }
 
 func ReloadDatakit() error {
@@ -381,11 +384,6 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(body)
 }
-
-
-
-
-
 
 func apiTelegrafOutput(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
