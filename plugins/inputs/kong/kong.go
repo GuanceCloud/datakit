@@ -11,7 +11,6 @@ const (
 	inputName = "kong"
 
 	sampleCfg = `
-    # neo4j metrics from http(https)://HOST:PORT/metrics
     # usually modify host and port
     # required
     url = "http://127.0.0.1:8001/metrics"
