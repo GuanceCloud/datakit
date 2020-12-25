@@ -43,12 +43,18 @@ func (c *wscli) setup() {
 
 	c.reset = make(chan interface{})
 
-	cli.tryConnect(wsurl.String())
+	if err := cli.tryConnect(wsurl.String()); err != nil {
+		return
+	}
+
+	datakit.WG.Add(2)
 	go func() {
+		defer datakit.WG.Done()
 		cli.waitMsg() // blocking reader, do not add to datakit.WG
 	}()
 
 	go func() {
+		defer datakit.WG.Done()
 		cli.sendHeartbeat()
 	}()
 }
@@ -122,8 +128,11 @@ func (wc *wscli) waitMsg() {
 			_, resp, err := wc.c.ReadMessage()
 			if err != nil {
 				l.Errorf("ws read message error: %s", err)
-				wc.reset <- nil
-				return
+				select {
+				case wc.reset <- nil:
+				default:
+					return
+				}
 			}
 
 			wm, err := wsmsg.ParseWrapMsg(resp)
@@ -135,8 +144,11 @@ func (wc *wscli) waitMsg() {
 			l.Debugf("ws hand message %s", wm)
 
 			if err := wc.handle(wm); err != nil {
-				wc.reset <- nil
-				return
+				select {
+				case wc.reset <- nil:
+				default:
+					return
+				}
 			}
 		}
 	}
@@ -174,8 +186,11 @@ func (wc *wscli) sendHeartbeat() {
 
 			err = wc.sendText(wm)
 			if err != nil {
-				wc.reset <- nil
-				return
+				select {
+				case wc.reset <- nil:
+				default:
+					return
+				}
 			}
 
 			select {
