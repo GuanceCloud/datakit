@@ -15,8 +15,7 @@ import (
 	"unicode"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
+	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 )
 
 const (
@@ -124,7 +123,7 @@ func (c *CfgTemplate) parsePackage(data []byte) error {
 	if data == nil {
 		return nil
 	}
-	tarData, err := utils.ReadCompressed(bytes.NewReader(data), true)
+	tarData, err := uhttp.Unzip(data)
 	if err != nil {
 		return fmt.Errorf("fail to decompress, error: %s. Is it a tar.gz?", err)
 	}
