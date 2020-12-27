@@ -2,7 +2,10 @@ package http
 
 import (
 	"bytes"
+	"compress/gzip"
+	"crypto/md5"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -111,4 +114,65 @@ func RequestLoggerMiddleware(c *gin.Context) {
 		log.Printf("[warn] %s %s %d, RemoteAddr: %s, Request: [%s], Body: %s",
 			c.Request.Method, c.Request.URL, code, c.Request.RemoteAddr, FormatRequest(c.Request), w.body.String())
 	}
+}
+
+func GinReadWithMD5(c *gin.Context) (buf []byte, md5str string, err error) {
+	buf, err = readBody(c)
+	if err != nil {
+		return
+	}
+
+	md5str = fmt.Sprintf("%x", md5.Sum(buf))
+
+	if c.Request.Header.Get("Content-Encoding") == "gzip" {
+		buf, err = Unzip(buf)
+	}
+	return
+}
+
+func GinRead(c *gin.Context) (buf []byte, err error) {
+	buf, err = readBody(c)
+	if err != nil {
+		return
+	}
+
+	if c.Request.Header.Get("Content-Encoding") == "gzip" {
+		buf, err = Unzip(buf)
+	}
+	return
+}
+
+func GinGetArg(c *gin.Context, hdr, param string) (v string, err error) {
+	v = c.Request.Header.Get(hdr)
+	if v == "" {
+		v = c.Query(param)
+		if v == "" {
+			err = fmt.Errorf("HTTP header %s and query param %s missing", hdr, param)
+		}
+	}
+	return
+}
+
+func Unzip(in []byte) (out []byte, err error) {
+	gzr, err := gzip.NewReader(bytes.NewBuffer(in))
+	if err != nil {
+		return
+	}
+
+	out, err = ioutil.ReadAll(gzr)
+	if err != nil {
+		return
+	}
+	gzr.Close()
+	return
+}
+
+func readBody(c *gin.Context) ([]byte, error) {
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	defer c.Request.Body.Close()
+	return body, nil
 }
