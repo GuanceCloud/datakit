@@ -68,10 +68,8 @@ func (s *Service) Query() (svc.Status, error) {
 		return svc.Status{}, err
 	}
 	return svc.Status{
-		State:                   svc.State(t.CurrentState),
-		Accepts:                 svc.Accepted(t.ControlsAccepted),
-		ProcessId:               t.ProcessId,
-		Win32ExitCode:           t.Win32ExitCode,
-		ServiceSpecificExitCode: t.ServiceSpecificExitCode,
+		State:     svc.State(t.CurrentState),
+		Accepts:   svc.Accepted(t.ControlsAccepted),
+		ProcessId: t.ProcessId,
 	}, nil
 }
