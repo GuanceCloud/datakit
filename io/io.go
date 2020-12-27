@@ -95,11 +95,11 @@ func Feed(data []byte, category string) error {
 	return doFeed(data, category, "")
 }
 
+func SetTest() {
+	testAssert = true
+}
+
 func doFeed(data []byte, category, name string) error {
-	if testAssert {
-		l.Infof("[%s] source: %s data: %s", category, name, data)
-		return nil
-	}
 
 	switch category {
 	case Metric, KeyEvent, Logging, Tracing:
@@ -107,10 +107,15 @@ func doFeed(data []byte, category, name string) error {
 		if err := checkMetric(data); err != nil {
 			return fmt.Errorf("invalid line protocol data %v", err)
 		}
-	case Rum:
+	case Rum: // do not check RUM data structure, too complecated
 	case Object:
 	default:
 		return fmt.Errorf("invalid category %s", category)
+	}
+
+	if testAssert {
+		l.Infof("[%s] source: `%s', data: %s", category, name, data)
+		return nil
 	}
 
 	select {
