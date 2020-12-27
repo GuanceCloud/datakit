@@ -20,7 +20,7 @@ require (
 	github.com/andygrunwald/go-jira v1.12.0
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/apache/thrift v0.13.0
-	github.com/aws/aws-sdk-go v1.34.34
+	github.com/aws/aws-sdk-go v1.35.20
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/cgroups v0.0.0-20201119153540-4cbc285b3327 // indirect
 	github.com/containerd/containerd v1.4.1
@@ -32,11 +32,11 @@ require (
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fsnotify/fsnotify v1.4.9
+	github.com/gin-contrib/cors v1.3.1 // indirect
 
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-kit/kit v0.10.0
 	github.com/go-ole/go-ole v1.2.4
-	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobwas/glob v0.2.3
 	github.com/godror/godror v0.17.0
@@ -45,7 +45,7 @@ require (
 	github.com/golang/protobuf v1.4.3
 
 	github.com/google/gopacket v1.1.17
-	github.com/gorilla/websocket v1.4.0
+	github.com/gorilla/websocket v1.4.2
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
@@ -59,13 +59,15 @@ require (
 	github.com/kardianos/service v1.0.0
 	github.com/klauspost/cpuid v1.2.0 // indirect
 	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
-	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lib/pq v1.8.0
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/mattn/go-zglob v0.0.3
+	github.com/mitchellh/hashstructure v1.0.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/naoina/toml v0.1.1
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
+	github.com/onsi/ginkgo v1.12.1 // indirect
+	github.com/onsi/gomega v1.10.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/selinux v1.5.1 // indirect
@@ -75,14 +77,12 @@ require (
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
 	github.com/pkg/sftp v1.11.0
 
-	github.com/prometheus/common v0.15.0 // indirect
-
 	github.com/prometheus/procfs v0.1.3
+	github.com/prometheus/prometheus v2.5.0+incompatible // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
-	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.7
@@ -91,20 +91,17 @@ require (
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/ucloud/ucloud-sdk-go v0.14.0
-	github.com/ugorji/go v1.2.2 // indirect
 	github.com/unrolled/secure v1.0.8
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/xanzy/go-gitlab v0.31.0
-
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20201227071819-a2039e61b54c
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201218052640-c63ec13ab452
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20201227150604-9da64af6b767
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201227150804-d80351eba51f
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/net v0.0.0-20200904194848-62affa334b73
-	golang.org/x/sys v0.0.0-20201223074533-0d417f636930
+	golang.org/x/net v0.0.0-20200625001655-4c5254603344
+	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 	golang.org/x/text v0.3.3
 
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
-	golang.org/x/tools v0.0.0-20200809012840-6f4f008689da // indirect
 	google.golang.org/grpc v1.28.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/ini.v1 v1.57.0 // indirect
