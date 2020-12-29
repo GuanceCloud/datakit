@@ -116,15 +116,12 @@ func (_ *CMS) SampleConfig() string {
 	return aliyuncmsConfigSample
 }
 
-func (ac *CMS) Test() (*inputs.TestResult, error) {
-	ac.mode = "test"
-	ac.testResult = &inputs.TestResult{}
-	ac.Run()
-	return ac.testResult, ac.testError
-}
-
 func (_ *CMS) Catalog() string {
 	return `aliyun`
+}
+
+func (_ *CMS) Test() (*inputs.TestResult, error) {
+	return nil, nil
 }
 
 func (ac *CMS) Run() {
