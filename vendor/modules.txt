@@ -532,7 +532,7 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
+# github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c => github.com/1157987916/websocketproxy v0.0.0-20201229082103-cfa96d57158c
 github.com/koding/websocketproxy
 # github.com/kr/fs v0.1.0
 github.com/kr/fs
