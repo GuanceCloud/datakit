@@ -30,29 +30,26 @@ import (
 )
 
 var (
-	cli   *wscli
-	wsurl *url.URL
+	cli     *wscli
+	wsurl   *url.URL
+	wsReset = make(chan interface{})
 )
 
 type wscli struct {
-	c     *websocket.Conn
-	id    string
-	reset chan interface{}
+	c  *websocket.Conn
+	id string
 }
 
 func (c *wscli) setup() {
 
-	c.reset = make(chan interface{})
-
 	if err := cli.tryConnect(wsurl.String()); err != nil {
 		return
 	}
-
-	datakit.WG.Add(2)
 	go func() {
-		defer datakit.WG.Done()
+		//defer datakit.WG.Done()
 		cli.waitMsg() // blocking reader, do not add to datakit.WG
 	}()
+	datakit.WG.Add(1)
 
 	go func() {
 		defer datakit.WG.Done()
@@ -75,15 +72,20 @@ func StartWS() {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("start ws exit")
-			cli.c.Close()
+			if cli.c != nil {
+				l.Info("ws closed")
+				cli.c.Close()
+			}
 			return
-
-		case <-cli.reset:
-
+		case <-wsReset:
 			l.Info("start ws on reset")
+			if cli.c != nil {
+				l.Info("ws closed")
 
-			cli.c.Close()
+				cli.c.Close()
+			}
 			cli.setup()
+
 		}
 	}
 }
@@ -126,16 +128,24 @@ func (wc *wscli) waitMsg() {
 				l.Warnf("recover ok: %s err:", string(trace), err.Error())
 			}
 
+			select {
+			case <-datakit.Exit.Wait():
+				l.Info("wait message exit on global exit")
+				return
+			default:
+			}
+
+			l.Debug("waiting message...")
 			_, resp, err := wc.c.ReadMessage()
 			if err != nil {
 				l.Errorf("ws read message error: %s", err)
 				select {
-				case wc.reset <- nil:
+				case wsReset <- nil:
 				default:
+					l.Info("wait message exit.")
 					return
 				}
 			}
-
 			wm, err := wsmsg.ParseWrapMsg(resp)
 			if err != nil {
 				l.Errorf("msg.ParseWrapMsg(): %s", err.Error())
@@ -146,7 +156,7 @@ func (wc *wscli) waitMsg() {
 
 			if err := wc.handle(wm); err != nil {
 				select {
-				case wc.reset <- nil:
+				case wsReset <- nil:
 				default:
 					return
 				}
@@ -188,12 +198,11 @@ func (wc *wscli) sendHeartbeat() {
 			err = wc.sendText(wm)
 			if err != nil {
 				select {
-				case wc.reset <- nil:
+				case wsReset <- nil:
 				default:
 					return
 				}
 			}
-
 			select {
 			case <-tick.C:
 			case <-datakit.Exit.Wait():
@@ -240,7 +249,7 @@ func (wc *wscli) handle(wm *wsmsg.WrapMsg) error {
 	case wsmsg.MTypeEnableInput:
 		wc.EnableInputs(wm)
 	case wsmsg.MTypeReload:
-		wc.Reload(wm)
+		go wc.Reload(wm)
 	case wsmsg.MtypeCsharkCmd:
 		wc.CsharkCmd(wm)
 	//case wsmsg.MTypeHeartbeat:
@@ -383,7 +392,6 @@ func (wc *wscli) Reload(wm *wsmsg.WrapMsg) {
 		RestartHttpServer()
 		l.Info("reload HTTP server ok")
 	}()
-	wc.SetMessage(wm, "ok", "")
 
 }
 
