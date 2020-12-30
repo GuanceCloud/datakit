@@ -6,12 +6,14 @@ import (
 
 	ipL "github.com/ip2location/ip2location-go"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var (
 	Db           *ipL.DB
 	Ip2LocDbPath = filepath.Join(datakit.InstallDir, "data", "iploc.bin")
+	l            = logger.DefaultSLogger("geo")
 )
 
 func Geo(ip string) (ipL.IP2Locationrecord, error) {
@@ -40,6 +42,6 @@ func init() {
 	var err error
 	Db, err = ipL.OpenDB(Ip2LocDbPath)
 	if err != nil {
-		fmt.Printf("Open %v db err %v", Ip2LocDbPath, err)
+		l.Warnf("Open %v db err %v", Ip2LocDbPath, err)
 	}
 }
