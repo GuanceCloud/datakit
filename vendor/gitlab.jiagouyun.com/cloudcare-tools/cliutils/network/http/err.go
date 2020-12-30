@@ -12,25 +12,44 @@ import (
 )
 
 var (
-	ErrUnexpectedInternalServerError = NewErr(errors.New(`unexpected internal server error`), nhttp.StatusInternalServerError, "")
-	ErrBadAuthHeader                 = NewErr(errors.New("invalid http Authorization header"), nhttp.StatusForbidden, "")
-	ErrAuthFailed                    = NewErr(errors.New("http Authorization failed"), nhttp.StatusForbidden, "")
+	DefaultNamespace                 = ""
+	ErrUnexpectedInternalServerError = NewErr(errors.New(`unexpected internal server error`), nhttp.StatusInternalServerError)
+	ErrBadAuthHeader                 = NewErr(errors.New("invalid http Authorization header"), nhttp.StatusForbidden)
+	ErrAuthFailed                    = NewErr(errors.New("http Authorization failed"), nhttp.StatusForbidden)
 )
 
 type HttpError struct {
-	ErrCode  string
-	Err      error
-	HttpCode int
-	Message  string
-	Content  interface{}
+	ErrCode  string `json:"error_code,omitempty"`
+	Err      error  `json:"-"`
+	HttpCode int    `json:"-"`
 }
 
-func NewErr(err error, httpCode int, namespace string) *HttpError {
-	return &HttpError{
-		ErrCode:  titleErr(namespace, err),
-		HttpCode: httpCode,
-		Err:      err,
+type bodyResp struct {
+	*HttpError
+	Message string      `json:"message,omitempty"`
+	Content interface{} `json:"content,omitempty"`
+}
+
+func NewNamespaceErr(err error, httpCode int, namespace string) *HttpError {
+	if err == nil {
+		return &HttpError{
+			HttpCode: httpCode,
+		}
+	} else {
+		return &HttpError{
+			ErrCode:  titleErr(namespace, err),
+			HttpCode: httpCode,
+			Err:      err,
+		}
 	}
+}
+
+func NewErr(err error, httpCode int) *HttpError {
+	return NewNamespaceErr(err, httpCode, DefaultNamespace)
+}
+
+func undefinedErr(err error) *HttpError {
+	return NewErr(err, nhttp.StatusInternalServerError)
 }
 
 func (he *HttpError) Error() string {
@@ -41,113 +60,71 @@ func (he *HttpError) Error() string {
 	}
 }
 
-func (he *HttpError) Json(args ...interface{}) ([]byte, error) {
-
-	obj := map[string]interface{}{
-		"code":      he.HttpCode,
-		"errorCode": he.ErrCode,
-	}
-
-	if args == nil {
-		obj[`message`] = he.Error()
-	} else {
-		obj[`message`] = fmt.Sprint(he.Error(), args)
-	}
-
-	j, err := json.Marshal(&obj)
-	if err != nil {
-		return nil, err
-	}
-
-	return j, nil
-}
-
 func (he *HttpError) HttpBody(c *gin.Context, body interface{}) {
-	obj := map[string]interface{}{
-		"code":      he.HttpCode,
-		"errorCode": he.ErrCode,
-		"content":   body,
-	}
-
-	j, err := json.Marshal(&obj)
-	if err != nil {
-		ErrUnexpectedInternalServerError.HttpResp(c, err)
+	if body == nil {
+		c.Status(he.HttpCode)
 		return
 	}
 
-	c.Data(he.HttpCode, `application/json`, j)
-}
-
-func (he *HttpError) HttpResp(c *gin.Context, args ...interface{}) {
-	obj := map[string]interface{}{
-		"code":      he.HttpCode,
-		"errorCode": he.ErrCode,
+	resp := &bodyResp{
+		HttpError: he,
+		Content:   body,
 	}
 
-	if args == nil {
-		obj[`message`] = he.Error()
-	} else {
-		obj[`message`] = fmt.Sprint(args...)
-	}
-
-	j, err := json.Marshal(&obj)
+	j, err := json.Marshal(resp)
 	if err != nil {
-		ErrUnexpectedInternalServerError.HttpResp(c, err)
+		undefinedErr(err).httpResp(c, "%s: %+#v", "json.Marshal() failed", resp)
 		return
 	}
 
-	c.Data(he.HttpCode, `application/json`, j)
-}
-
-func (he *HttpError) HttpTraceIdResp(c *gin.Context, traceId string, args ...interface{}) {
-	obj := map[string]interface{}{
-		"code":      he.HttpCode,
-		"errorCode": he.ErrCode,
-	}
-
-	if args == nil {
-		obj[`message`] = he.Error()
-	} else {
-		obj[`message`] = fmt.Sprint(he.Error(), args)
-	}
-
-	j, err := json.Marshal(&obj)
-	if err != nil {
-		ErrUnexpectedInternalServerError.HttpResp(c, err)
-		return
-	}
-
-	c.Writer.Header().Set(`X-Trace-Id`, traceId)
-
-	c.Data(he.HttpCode, `application/json`, j)
-}
-
-func (he *HttpError) HttpTraceIdBody(c *gin.Context, traceId string, body interface{}) {
-	obj := map[string]interface{}{
-		"code":      he.HttpCode,
-		"errorCode": he.ErrCode,
-		"content":   body,
-	}
-
-	j, err := json.Marshal(&obj)
-	if err != nil {
-		ErrUnexpectedInternalServerError.HttpResp(c, err)
-		return
-	}
-
-	c.Writer.Header().Set(`X-Trace-Id`, traceId)
 	c.Data(he.HttpCode, `application/json`, j)
 }
 
 func HttpErr(c *gin.Context, err error) {
-	he, ok := err.(*HttpError)
-	if ok {
-		he.HttpResp(c)
-	} else {
-		he = NewErr(err, nhttp.StatusInternalServerError, "")
-		he.ErrCode = ""
-		he.HttpResp(c)
+
+	switch err.(type) {
+	case *HttpError:
+		he := err.(*HttpError)
+		he.httpResp(c, "")
+	case *MsgError:
+		me := err.(*MsgError)
+		if me.Args != nil {
+			me.HttpError.httpResp(c, me.Fmt, me.Args...)
+		}
+	default:
+		undefinedErr(err).httpResp(c, "")
 	}
+}
+
+func HttpErrf(c *gin.Context, err error, format string, args ...interface{}) {
+	switch err.(type) {
+	case *HttpError:
+		he := err.(*HttpError)
+		he.httpResp(c, format, args...)
+	case *MsgError:
+		me := err.(*MsgError)
+		me.HttpError.httpResp(c, format, args...)
+	default:
+		undefinedErr(err).httpResp(c, "")
+	}
+}
+
+func (he *HttpError) httpResp(c *gin.Context, format string, args ...interface{}) {
+	resp := &bodyResp{
+		HttpError: he,
+	}
+
+	if args != nil {
+		resp.Message = fmt.Sprintf(format, args...)
+	}
+
+	j, err := json.Marshal(&resp)
+	if err != nil {
+		undefinedErr(err).httpResp(c, "%s: %+#v", "json.Marshal() failed", resp)
+		return
+	}
+
+	c.Data(he.HttpCode, `application/json`, j)
 }
 
 func titleErr(namespace string, err error) string {
@@ -172,4 +149,35 @@ func titleErr(namespace string, err error) string {
 	}
 
 	return out
+}
+
+// Dynamic error create based on specific HttpError
+type MsgError struct {
+	*HttpError
+	Fmt  string
+	Args []interface{}
+}
+
+func Errorf(he *HttpError, format string, args ...interface{}) *MsgError {
+	return &MsgError{
+		HttpError: he,
+		Fmt:       format,
+		Args:      args,
+	}
+}
+
+func Error(he *HttpError, msg string) *MsgError {
+	return &MsgError{
+		HttpError: he,
+		Fmt:       "%s",
+		Args:      []interface{}{msg},
+	}
+}
+
+func (me *MsgError) Error() string {
+	if me.HttpError != nil {
+		return me.Err.Error()
+	} else {
+		return ""
+	}
 }
