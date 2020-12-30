@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	iowrite "io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"runtime"
@@ -32,10 +30,6 @@ import (
 )
 
 var (
-	errEmptyBody = uhttp.NewErr(errors.New("empty body"), http.StatusBadRequest, "datakit")
-	errBadPoints = uhttp.NewErr(errors.New("bad points"), http.StatusBadRequest, "datakit")
-	httpOK       = uhttp.NewErr(nil, http.StatusOK, "datakit")
-
 	l        = logger.DefaultSLogger("http")
 	httpBind string
 
@@ -47,17 +41,20 @@ var (
 	stopOkCh = make(chan interface{})
 )
 
-
-
-
 func Start(bind string) {
 
 	l = logger.SLogger("http")
 
 	httpBind = bind
+
 	// start HTTP server
-	httpStart(bind)
-	l.Info("HTTPServer goroutine exit")
+	go func() {
+		HttpStart(bind)
+	}()
+
+	go func() {
+		StartWS()
+	}()
 }
 
 func ReloadDatakit() error {
@@ -109,7 +106,7 @@ func RestartHttpServer() {
 	<-stopOkCh // wait HTTP server stop ok
 
 	l.Info("reload HTTP server...")
-	httpStart(httpBind)
+	HttpStart(httpBind)
 }
 
 type welcome struct {
@@ -200,7 +197,7 @@ func tlsHandler(addr string) gin.HandlerFunc {
 	}
 }
 
-func httpStart(addr string) {
+func HttpStart(addr string) {
 	router := gin.New()
 
 	gin.DisableConsoleColor()
@@ -382,31 +379,22 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
-
-
-
-
-
 func apiTelegrafOutput(c *gin.Context) {
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := uhttp.GinRead(c)
 	if err != nil {
-		l.Errorf("read http body failed: %s", err.Error())
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
 		return
 	}
 
-	defer c.Request.Body.Close()
-
 	if len(body) == 0 {
-		l.Errorf("read http body failed: %s", err.Error())
-		uhttp.HttpErr(c, errBadPoints)
+		uhttp.HttpErr(c, uhttp.Error(ErrEmptyBody, "empty body"))
 		return
 	}
 
 	points, err := models.ParsePointsWithPrecision(body, time.Now().UTC(), "n")
 	if err != nil {
-		l.Errorf("ParsePointsWithPrecision: %s", err.Error())
-		uhttp.HttpErr(c, errEmptyBody)
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+		return
 	}
 
 	feeds := map[string][]string{}
@@ -422,22 +410,22 @@ func apiTelegrafOutput(c *gin.Context) {
 
 	for k, lines := range feeds {
 		if err := io.NamedFeed([]byte(strings.Join(lines, "\n")), io.Metric, k); err != nil {
-			uhttp.HttpErr(c, err)
+			uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 			return
 		}
 	}
 
-	httpOK.HttpResp(c)
+	ErrOK.HttpBody(c, nil)
 }
 
 func apiReload(c *gin.Context) {
 
 	if err := ReloadDatakit(); err != nil {
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrReloadDatakitFailed, err.Error()))
 		return
 	}
 
-	httpOK.HttpResp(c)
+	ErrOK.HttpBody(c, nil)
 
 	go func() {
 		//mutex.Lock()
