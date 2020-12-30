@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -31,7 +32,10 @@ func (s *runningInstance) run(ctx context.Context) error {
 
 	defer func() {
 		if err := recover(); err != nil {
-			moduleLogger.Errorf("panic, %v", err)
+			buf := make([]byte, 2048)
+			n := runtime.Stack(buf, false)
+			moduleLogger.Errorf("panic: %s", err)
+			moduleLogger.Errorf("%s", string(buf[:n]))
 		}
 	}()
 
@@ -44,10 +48,6 @@ func (s *runningInstance) run(ctx context.Context) error {
 
 		if err := s.initializeAliyunCMS(); err != nil {
 			moduleLogger.Errorf("initialize failed, %s", err)
-			if s.cfg.isTest() {
-				s.cfg.testError = err
-				return err
-			}
 		} else {
 			break
 		}
@@ -60,17 +60,11 @@ func (s *runningInstance) run(ctx context.Context) error {
 	s.limiter = rate.NewLimiter(limit, 1)
 
 	if err := s.genReqs(ctx); err != nil {
-		if s.cfg.isTest() {
-			s.cfg.testError = err
-		}
 		return err
 	}
 
 	if len(s.reqs) == 0 {
 		moduleLogger.Warnf("no metric found")
-		if s.cfg.isTest() {
-			s.cfg.testError = fmt.Errorf("there is no metric configuration to collect")
-		}
 		return nil
 	}
 
@@ -98,22 +92,14 @@ func (s *runningInstance) run(ctx context.Context) error {
 
 			if err := s.fetchMetric(ctx, req); err != nil {
 				if err != errSkipDueInterval && err != context.Canceled {
-					if s.cfg.isTest() {
-						s.cfg.testError = err
-						return err
-					}
+					moduleLogger.Warnf("%s", err)
 				}
 			}
-		}
-
-		if s.cfg.isTest() {
-			break
 		}
 
 		datakit.SleepContext(ctx, time.Second*3)
 	}
 
-	return nil
 }
 
 func (s *runningInstance) genReqs(ctx context.Context) error {
@@ -426,10 +412,6 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 
 			if err != nil {
 				moduleLogger.Warnf("DescribeMetricList: %s", err)
-				if s.cfg.isTest() {
-					s.cfg.testError = err
-					break
-				}
 				time.Sleep(tempDelay)
 			} else {
 				if i != 0 {
@@ -535,25 +517,17 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 			tm = time.Unix((int64(ft))/1000, 0)
 		}
 
-		if len(fields) == 0 {
-			moduleLogger.Warnf("skip %s.%s datapoint for no value, %s", req.q.Namespace, metricName, datapoint)
-		}
-
 		if len(fields) > 0 {
-
-			if s.cfg.isTest() {
-				data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
-				s.cfg.testResult.Result = append(s.cfg.testResult.Result, data...)
 
 			if s.cfg.mode == "debug" {
 				data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
 				fmt.Printf("%s\n", string(data))
-
 			} else {
 				io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
 			}
+		} else {
+			moduleLogger.Warnf("skip %s.%s datapoint for no value, %s", req.q.Namespace, metricName, datapoint)
 		}
-	}
 	}
 	return nil
 }
