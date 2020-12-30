@@ -20,12 +20,13 @@ var (
 )
 
 type Token struct {
-	WsUUID   string
-	MaxTSCnt int64
-	Token    string
-	DBUUID   string
-	Status   int
-	Creator  string
+	WsUUID    string
+	BillState string
+	VerType   string
+	Token     string
+	DBUUID    string
+	Status    int
+	Creator   string
 
 	CreateAt int64
 	UpdateAt int64
@@ -109,21 +110,29 @@ type LogExtractRule struct {
 }
 
 type DKOnline struct {
-	UUID            string `json:"uuid,omitempty"`
-	Name            string `json:"name,omitempty"`
-	Token           string `json:"token,omitempty"`
-	DkUUID          string `json:"dkUUID,omitempty"`
-	Version         string `json:"version,omitempty"`
-	Os              string `json:"os,omitempty"`
-	Arch            string `json:"arch,omitempty"`
+	UUID            string   `json:"uuid,omitempty"`
+	Name            string   `json:"name,omitempty"`
+	Token           string   `json:"token,omitempty"`
+	DkUUID          string   `json:"dkUUID,omitempty"`
+	Version         string   `json:"version,omitempty"`
+	Os              string   `json:"os,omitempty"`
+	Arch            string   `json:"arch,omitempty"`
 	EnableInputs    []string `json:"enableInputs,omitempty"`
 	AvailableInputs []string `json:"availableInputs,omitempty"`
-	LastOnline      int64  `json:"lastOnline,omitempty"`
-	LastHeartbeat   int64  `json:"lastHeartbeat,omitempty"`
+	LastOnline      int64    `json:"lastOnline,omitempty"`
+	LastHeartbeat   int64    `json:"lastHeartbeat,omitempty"`
 
 	CreateAt int64 `json:"create_at,omitempty"`
 	UpdateAt int64 `json:"update_at,omitempty"`
 	DeleteAt int64 `json:"delete_at,omitempty"`
+}
+
+type ObjectClassCfg struct {
+	UUID      string `json:"uuid"`
+	WsUUID    string `json:"workspace_uuid"`
+	ClassName string `json:"class_name"`
+	Tags      string `json:"tags"`
+	Fields    string `json:"fields"`
 }
 
 var (
@@ -156,8 +165,17 @@ func Init(dialect, connStr string) error {
 	DB.SetConnMaxLifetime(time.Second * 28)
 
 	sqls := map[string]string{
+		// get workspace cli token
+		`qWorkspaceCliToken`: `SELECT cliToken FROM main_workspace WHERE uuid=? limit 1`,
+
 		// get team/token info
-		`qToken`: `SELECT uuid, dbUUID, maxTsCount FROM main_workspace WHERE status=? AND token=? limit 1`,
+		`qToken`: `SELECT uuid, dbUUID, versionType, billingState FROM main_workspace WHERE status=? AND token=? limit 1`,
+
+		// get workspace influxdb info
+		`qWorkspaceDBInfo`: `SELECT influxdb.DB, influx_inst.uuid, influx_inst.host, influx_inst.authorization from main_workspace AS ws
+			INNER JOIN main_influx_db AS influxdb ON influxdb.uuid=ws.dbUUID
+			INNER JOIN main_influx_instance AS influx_inst ON influxdb.influxInstanceUUID=influx_inst.UUID
+			WHERE BINARY ws.UUID=?`,
 
 		//更新agent信息表
 		`uAgent`: `UPDATE main_agent SET version=?,status=?,uploadAt=? WHERE uuid=?`,
@@ -209,12 +227,29 @@ func Init(dialect, connStr string) error {
 
 		`qLogExtractRule`: `SELECT distinct url, workspaceUUID, source FROM main_log_extract_rule WHERE workspaceUUID=? AND status=?`,
 
-		`updateDKOnline`: `UPDATE  main_datakit_online SET  name=?, token=?,hostName=?,ip=?, version=?, os=?, arch=?, inputInfo=?, 
+		`updateDKOnline`: `UPDATE  main_datakit_online SET  name=?, token=?,hostName=?,ip=?, version=?, os=?, arch=?, inputInfo=?,
 					lastOnline=?, lastHeartbeat=?, status=? where dkUUID=?`,
-		`setDKOnline` : `insert into main_datakit_online(uuid, name, token,hostName,ip, dkUUID, version, os, arch, inputInfo, 
+		`setDKOnline`: `insert into main_datakit_online(uuid, name, token,hostName,ip, dkUUID, version, os, arch, inputInfo,
 					lastOnline, lastHeartbeat, status,creator, updator, createAt,updateAt) Values(?,?,?,?,?,?,?,?,?,?,?,?,?,"kodo","kodo",?,?)  `,
-		`existDK`:`select 1 from main_datakit_online where dkUUID=? limit 1`,
+		`existDK`:        `select 1 from main_datakit_online where dkUUID=? limit 1`,
 		`updateDKStatus`: `update main_datakit_online set lastHeartbeat=?,status=?,updateAt=? where dkUUID=?`,
+		// 配置表
+		`qConfig`: `SELECT keyCode,value FROM main_config`,
+
+		//对象分类
+		`qObjectClass`: `SELECT tags, fields FROM biz_object_class_cfg WHERE workspaceUUID=? AND name=? AND status=?`,
+
+		`qObjectClassByUUID`: `SELECT tags, fields, name FROM biz_object_class_cfg WHERE workspaceUUID=? AND status=?`,
+
+		`uObjectClass`: `UPDATE biz_object_class_cfg SET tags=?, fields=?, updateAt=? WHERE workspaceUUID=? AND name=?`,
+
+		`iObjectClass`: `INSERT INTO biz_object_class_cfg(uuid,workspaceUUID,name,tags,fields,createAt,publicSet,colSets,creator) VALUES(?,?,?,?,?,?,'{}','[]','kodo')`,
+
+		`qWorkSpacesDBUUIDs`: `SELECT uuid, dbUUID FROM main_workspace
+							 WHERE status=?`,
+
+		`qWorkSpacesDBUUID`: `SELECT dbUUID FROM main_workspace
+							 WHERE uuid=?`,
 	}
 
 	for k, v := range sqls {
