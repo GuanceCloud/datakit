@@ -2,13 +2,11 @@ package rum
 
 import (
 	"bytes"
-	"io/ioutil"
 	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -17,8 +15,6 @@ import (
 	"github.com/gin-gonic/gin"
 	influxm "github.com/influxdata/influxdb1-client/models"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
 )
 
 const (
@@ -27,9 +23,9 @@ const (
 )
 
 var (
-	inputName    = `rum`
-	moduleLogger *logger.Logger
-	ipheaderName = ""
+	inputName                   = `rum`
+	ipheaderName                = ""
+	l            *logger.Logger = logger.DefaultSLogger(inputName)
 )
 
 func (_ *Rum) Catalog() string {
@@ -49,7 +45,7 @@ func (r *Rum) Test() (result *inputs.TestResult, err error) {
 
 func (r *Rum) RegHttpHandler() {
 	ipheaderName = r.IPHeader
-	moduleLogger = logger.SLogger(inputName)
+	l = logger.SLogger(inputName)
 	httpd.RegGinHandler("POST", io.Rum, Handle)
 }
 
@@ -58,11 +54,9 @@ func Handle(c *gin.Context) {
 	var precision string = DEFAULT_PRECISION
 	var body []byte
 	var err error
-
-	contentEncoding := c.Request.Header.Get("Content-Encoding")
-	precision = utils.GinGetArg(c, "X-Precision", PRECISION)
-
 	sourceIP := ""
+
+	precision, _ = uhttp.GinGetArg(c, "X-Precision", PRECISION)
 
 	if ipheaderName != "" {
 		sourceIP = c.Request.Header.Get(ipheaderName)
@@ -81,50 +75,46 @@ func Handle(c *gin.Context) {
 		}
 	}
 
-	body, err = ioutil.ReadAll(c.Request.Body)
+	body, err = uhttp.GinRead(c)
 	if err != nil {
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(httpd.ErrHttpReadErr, err.Error()))
 		return
-	}
-	defer c.Request.Body.Close()
-
-	if contentEncoding == "gzip" {
-		body, err = utils.ReadCompressed(bytes.NewReader(body), true)
-		if err != nil {
-			uhttp.HttpErr(c, err)
-			return
-		}
 	}
 
 	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), precision)
 	if err != nil {
-		moduleLogger.Errorf("ParsePoints: %s", err.Error())
-		e := uhttp.NewErr(err, 400, "")
-		e.HttpResp(c)
+		uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
 		return
 	}
 
-	moduleLogger.Debugf("received %d points", len(pts))
+	l.Debugf("received %d points", len(pts))
 
 	metricsdata := [][]byte{}
 	esdata := [][]byte{}
 
 	for _, pt := range pts {
-		if IsMetric(string(pt.Name())) {
-			metricsdata = append(metricsdata, process.NewProcedure(influxdb.NewPointFrom(pt)).Geo(sourceIP).GetByte())
-		} else if IsES(string(pt.Name())) {
-			esdata = append(esdata, process.NewProcedure(influxdb.NewPointFrom(pt)).Geo(sourceIP).GetByte())
+		ptname := string(pt.Name())
+
+		proc := process.NewProcedure(influxdb.NewPointFrom(pt))
+		line := proc.Geo(sourceIP).GetByte()
+		if err := proc.LastError(); err != nil {
+			l.Debugf("rum proc error: %s, ignored", err.Error())
+		}
+
+		if IsMetric(ptname) {
+			metricsdata = append(metricsdata, line)
+		} else if IsES(ptname) {
+			esdata = append(esdata, line)
 		} else {
-			moduleLogger.Warnf("Unsupported rum name: '%s'", string(pt.Name()))
+			uhttp.HttpErr(c, uhttp.Errorf(httpd.ErrBadReq, "unknown RUM metric name `%s'", ptname))
+			return
 		}
 	}
 
 	if len(metricsdata) > 0 {
 		body = bytes.Join(metricsdata, []byte("\n"))
-
 		if err = io.NamedFeed(body, io.Metric, inputName); err != nil {
-			moduleLogger.Errorf("NamedFeed: %s", err.Error())
-			uhttp.HttpErr(c, err)
+			uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
 			return
 		}
 	}
@@ -133,13 +123,12 @@ func Handle(c *gin.Context) {
 		body = bytes.Join(esdata, []byte("\n"))
 
 		if err = io.NamedFeed(body, io.Rum, inputName); err != nil {
-			moduleLogger.Errorf("NamedFeed: %s", err.Error())
-			uhttp.HttpErr(c, err)
+			uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
 			return
 		}
 	}
 
-	utils.ErrOK.HttpResp(c, "ok")
+	httpd.ErrOK.HttpBody(c, nil)
 }
 
 func init() {
