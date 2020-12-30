@@ -1,8 +1,6 @@
 package http
 
 import (
-	"bytes"
-	"io/ioutil"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,7 +8,6 @@ import (
 
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
 )
 
 const (
@@ -24,29 +21,18 @@ func apiWriteMetric(c *gin.Context) {
 	var body []byte
 	var err error
 
-	contentEncoding := c.Request.Header.Get("Content-Encoding")
 	name := c.Query(NAME)
 	precision = c.Query(PRECISION)
 
-	body, err = ioutil.ReadAll(c.Request.Body)
+	body, err = uhttp.GinRead(c)
 	if err != nil {
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
 		return
-	}
-	defer c.Request.Body.Close()
-
-	if contentEncoding == "gzip" {
-		body, err = utils.ReadCompressed(bytes.NewReader(body), true)
-		if err != nil {
-			uhttp.HttpErr(c, err)
-			return
-		}
 	}
 
 	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), precision)
 	if err != nil {
-		l.Errorf("ParsePoints: %s", err.Error())
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
 
@@ -55,11 +41,11 @@ func apiWriteMetric(c *gin.Context) {
 	// TODO: add global tags
 
 	if err = io.NamedFeed(body, io.Metric, name); err != nil {
-		l.Errorf("NamedFeed: %s", err.Error())
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+		return
 	}
 
-	utils.ErrOK.HttpResp(c, "ok")
+	ErrOK.HttpBody(c, nil)
 	return
 }
 
@@ -68,29 +54,18 @@ func apiWriteLogging(c *gin.Context) {
 	var body []byte
 	var err error
 
-	contentEncoding := c.Request.Header.Get("Content-Encoding")
 	name := c.Query(NAME)
 	precision = c.Query(PRECISION)
 
-	body, err = ioutil.ReadAll(c.Request.Body)
+	body, err = uhttp.GinRead(c)
 	if err != nil {
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
 		return
-	}
-	defer c.Request.Body.Close()
-
-	if contentEncoding == "gzip" {
-		body, err = utils.ReadCompressed(bytes.NewReader(body), true)
-		if err != nil {
-			uhttp.HttpErr(c, err)
-			return
-		}
 	}
 
 	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), precision)
 	if err != nil {
-		l.Errorf("ParsePoints: %s", err.Error())
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
 
@@ -99,10 +74,11 @@ func apiWriteLogging(c *gin.Context) {
 	// TODO: add global tags
 
 	if err = io.NamedFeed(body, io.Logging, name); err != nil {
-		l.Errorf("NamedFeed: %s", err.Error())
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+		return
 	}
-	return
+
+	ErrOK.HttpBody(c, nil)
 }
 
 func apiWriteTracing(c *gin.Context) {
@@ -110,29 +86,18 @@ func apiWriteTracing(c *gin.Context) {
 	var body []byte
 	var err error
 
-	contentEncoding := c.Request.Header.Get("Content-Encoding")
 	name := c.Query(NAME)
 	precision = c.Query(PRECISION)
 
-	body, err = ioutil.ReadAll(c.Request.Body)
+	body, err = uhttp.GinRead(c)
 	if err != nil {
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
 		return
-	}
-	defer c.Request.Body.Close()
-
-	if contentEncoding == "gzip" {
-		body, err = utils.ReadCompressed(bytes.NewReader(body), true)
-		if err != nil {
-			uhttp.HttpErr(c, err)
-			return
-		}
 	}
 
 	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), precision)
 	if err != nil {
-		l.Errorf("ParsePoints: %s", err.Error())
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
 
@@ -141,35 +106,29 @@ func apiWriteTracing(c *gin.Context) {
 	// TODO: add global tags
 
 	if err = io.NamedFeed(body, io.Tracing, name); err != nil {
-		l.Errorf("NamedFeed: %s", err.Error())
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+		return
 	}
-	return
+
+	ErrOK.HttpBody(c, nil)
 }
 
 func apiWriteObject(c *gin.Context) {
 	var body []byte
 	var err error
 
-	contentEncoding := c.Request.Header.Get("Content-Encoding")
 	name := c.Query(NAME)
 
-	body, err = ioutil.ReadAll(c.Request.Body)
+	body, err = uhttp.GinRead(c)
 	if err != nil {
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
 		return
-	}
-	defer c.Request.Body.Close()
-
-	if contentEncoding == "gzip" {
-		if body, err = utils.ReadCompressed(bytes.NewReader(body), true); err != nil {
-			uhttp.HttpErr(c, err)
-			return
-		}
 	}
 
 	if err = io.NamedFeed(body, io.Object, name); err != nil {
-		l.Errorf("NamedFeed: %s", err.Error())
-		uhttp.HttpErr(c, err)
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+		return
 	}
+
+	ErrOK.HttpBody(c, nil)
 }
