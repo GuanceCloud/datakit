@@ -22,17 +22,17 @@ const (
 [[inputs.prom]]
     # required
     url = "http://127.0.0.1:9090/metrics"
-    
+
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     # required
     interval = "10s"
-    
+
     ## Optional TLS Config
     tls_open = false
     # tls_ca = "/tmp/ca.crt"
     # tls_cert = "/tmp/peer.crt"
     # tls_key = "/tmp/peer.key"
-    
+
     ## data source
     # required
     source = "temp"
@@ -41,19 +41,6 @@ const (
     # tags1 = "value1"
 `
 )
-
-func init() {
-	inputs.Add(inputName, func() inputs.Input {
-		return &Prom{
-			Interval:       datakit.Cfg.MainCfg.Interval,
-			InputName:      inputName,
-			SampleCfg:      sampleCfg,
-			Tags:           make(map[string]string),
-			IgnoreFunc:     defaultIgnoreFunc,
-			PromToNameFunc: defaultPromToNameFunc,
-		}
-	})
-}
 
 var (
 	defaultIgnoreFunc     = func(*ifxcli.Point) bool { return true }
