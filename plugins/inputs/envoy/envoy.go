@@ -19,7 +19,7 @@ const (
     # usually modify host and port
     # required
     url = "http://127.0.0.1:8090/stats/prometheus"
-    
+
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     # required
     interval = "10s"
@@ -29,7 +29,7 @@ const (
     # tls_ca = "/tmp/ca.crt"
     # tls_cert = "/tmp/peer.crt"
     # tls_key = "/tmp/peer.key"
-    
+
     # [inputs.prom.tags]
     # from = "127.0.0.1:9901"
     # tags1 = "value1"

@@ -2,17 +2,26 @@ package config
 
 import (
 	"io/ioutil"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/go-redis/redis"
 	"go.uber.org/zap"
 	yaml "gopkg.in/yaml.v2"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/kodo/utils"
 )
 
 var (
+	l = logger.DefaultSLogger("config")
+
 	C = Config{
 		Influx: InfluxCfg{
 			ReadTimeOut:  30,
 			WriteTimeOut: 30,
+			EnableGrant:  true,
 		},
 
 		Database: DatabaseCfg{
@@ -50,6 +59,15 @@ var (
 			Dataway:        "http://internal-dataway.utils:9528",
 			EsConsumer:     false,
 			RetryTimes:     3600 * 24,
+			MaxWrites:      1000,
+			MeterInterval:  60, //minute
+			SysWsUUID:      `wksp_system`,
+		},
+
+		DQL: DQLCfg{
+			MaxDuration:  365 * 24 * time.Hour,
+			MaxLimit:     5000,
+			DefaultLimit: 1000,
 		},
 
 		Ck: CkCfg{
@@ -62,9 +80,10 @@ var (
 		},
 
 		Es: EsCfg{
-			Host:   ``,
-			User:   ``,
-			Passwd: ``,
+			Host:    ``,
+			User:    ``,
+			Passwd:  ``,
+			TimeOut: `30s`,
 		},
 
 		RpConfig: map[string][2]string{
@@ -79,7 +98,18 @@ var (
 			`autogen`:  [2]string{`25920h`, `720h`},
 		},
 		Ws: WsConfig{
-			Path: "/v1/datakit/ws",
+			Path: "/v1/ws/datakit",
+		},
+
+		ShardDurationConfig: map[string]string{
+			`25920h`: `720h`, // 3 year
+			`8640h`:  `720h`, // 1 year
+			`4320h`:  `720h`, // 6 month
+			`2160h`:  `1w`,   // 3 month
+			`720h`:   `1w`,   // 1 month
+			`336h`:   `2d`,   // 2 weeks
+			`168h`:   `1d`,   // 1 week
+			`24h`:    `6h`,   // 1 day
 		},
 	}
 
@@ -137,10 +167,22 @@ type GlobalCfg struct {
 	Dataway        string `yaml:"dataway"`
 	EsConsumer     bool   `yaml:"es_consumer"`
 	RetryTimes     int64  `yaml:"retry_time_seconds"`
+	SysDBUUID      string `yaml:"sys_db_uuid"`
+	SysWsUUID      string `yaml:"sys_ws_uuid"`
+	MeterInterval  int    `yaml:"meter_interval"`
+
+	MaxWrites int `yaml:"max_writes"`
 
 	// each license should only used on 1 dataway, if any dataway mis-configured
 	// license(legal) used on other dataway, kodo will refuse it's request.
 	EnableLicenseDataWayBinding bool `yaml:"enable_license_dataWay_binding"`
+}
+
+type DQLCfg struct {
+	MaxDurationStr string        `yaml:"max_duration"`
+	MaxDuration    time.Duration `yaml:"-"`
+	MaxLimit       int64         `yaml:"max_limit"`
+	DefaultLimit   int64         `yaml:"default_limit"`
 }
 
 type CkCfg struct {
@@ -163,21 +205,25 @@ type Config struct {
 	Redis     RedisCfg             `yaml:"redis"`
 	LogConfig LogCfg               `yaml:"log"`
 	RpConfig  map[string][2]string `yaml:"global_rp"`
+	ShardDurationConfig map[string]string    `yaml:"shard_duration_cfg"`
 	Func      FuncCfg              `yaml:"func"`
 	NSQ       NSQCfg               `yaml:"nsq"`
 	Global    GlobalCfg            `yaml:"global"`
+	DQL                 DQLCfg               `yaml:"dql"`
 	Ck        CkCfg                `yaml:"ck"`
 	Secret    SecretCfg            `yaml:"secret"`
 	Stat      StatCfg              `yaml:"stat"`
 	Es        EsCfg                `yaml:"es"`
 	Ws        WsConfig             `yaml:"ws_server"`
+
 }
 
 type EsCfg struct {
-	Host   string `yaml:"host"`
-	User   string `yaml:"user"`
-	Passwd string `yaml:"password"`
-	Enable bool   `yaml:"enable"`
+	Host    string `yaml:"host"`
+	User    string `yaml:"user"`
+	Passwd  string `yaml:"password"`
+	Enable  bool   `yaml:"enable"`
+	TimeOut string `yaml:"timeout"`
 }
 
 type FuncCfg struct {
@@ -211,4 +257,62 @@ func LoadConfig(f string) error {
 	}
 
 	return nil
+}
+
+func ApplyConfig() {
+	var err error
+
+	// set kodo log
+	dir, err := filepath.Abs(filepath.Dir(C.LogConfig.LogFile))
+	if err != nil {
+		l.Fatal(err)
+	}
+
+	exist, err := utils.PathExists(dir)
+	if err != nil {
+		l.Fatalf("get dir error![%v]\n", err)
+	}
+
+	l.Debugf("dir %s  %v", dir, exist)
+	if !exist {
+		err = os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			l.Fatalf("create dir error![%v]\n", err)
+		}
+	}
+
+	// parse duration
+	if C.DQL.MaxDurationStr != "" {
+		du, err := utils.ParseDuration(C.DQL.MaxDurationStr)
+		if err != nil {
+			// if parse failed, use default
+			l.Error(err)
+		} else {
+			C.DQL.MaxDuration = du
+		}
+	}
+
+	// init redis conncetions
+	redisOpt := redis.Options{
+		Addr: C.Redis.Host,
+		DB:   C.Redis.Db,
+	}
+
+	if len(C.Redis.Pass) > 0 {
+		//l.Debugf("set redis password: %s", C.Redis.Pass)
+		redisOpt.Password = C.Redis.Pass
+	}
+
+	Redis = redis.NewClient(&redisOpt)
+	for {
+		_, err := Redis.Ping().Result()
+		if err != nil {
+			l.Errorf("%s, retry...", err)
+			time.Sleep(time.Second)
+		} else {
+			l.Info("[info] connect to redis ok.")
+			break
+		}
+	}
+
 }
