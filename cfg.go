@@ -454,8 +454,8 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 
 	heart, err := time.ParseDuration(c.MainCfg.DataWay.Heartbeat)
 	if err != nil {
-		l.Error("ws heartbeat config err:", err.Error())
 		c.MainCfg.DataWay.Heartbeat = "30s"
+		l.Warnf("ws heartbeat not set, default to %s", c.MainCfg.DataWay.Heartbeat)
 	}
 	maxHeart, _ := time.ParseDuration("5m")
 	minHeart, _ := time.ParseDuration("30s")
