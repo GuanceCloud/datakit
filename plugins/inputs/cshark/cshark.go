@@ -137,7 +137,6 @@ lable:
 // 参数解析
 func parseParam(option string) error {
 	if err := json.Unmarshal([]byte(option), &params); err != nil {
-		// l.Errorf("parsse option error:%v", err)
 		return fmt.Errorf("parsse option error:%v", err)
 	}
 
@@ -217,7 +216,8 @@ func (s *Shark) buildCommand() string {
 
 	// 过滤器 (todo)
 	if params.Stream.Filter != "" {
-		args = append(args, "-f", params.Stream.Filter)
+		filter := fmt.Sprintf("'%s'", params.Stream.Filter)
+		args = append(args, "-f", filter)
 	}
 
 	// 端口
@@ -226,7 +226,7 @@ func (s *Shark) buildCommand() string {
 			portFilterStr += "port " + port + " or "
 		}
 		portFilterStr = strings.Trim(portFilterStr, "or ")
-
+		portFilterStr = fmt.Sprintf("'%s'", portFilterStr)
 		args = append(args, "-f", portFilterStr)
 	}
 
@@ -236,6 +236,7 @@ func (s *Shark) buildCommand() string {
 			srcIPFilterStr += "src host " + srcIP + " or "
 		}
 		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
+		srcIPFilterStr = fmt.Sprintf("'%s'", srcIPFilterStr)
 		args = append(args, "-f", srcIPFilterStr)
 	}
 
@@ -244,6 +245,7 @@ func (s *Shark) buildCommand() string {
 			dstIPFilterStr += "dst host " + dstIP + " or "
 		}
 		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
+		dstIPFilterStr = fmt.Sprintf("'%s'", dstIPFilterStr)
 		args = append(args, "-f", dstIPFilterStr)
 	}
 
