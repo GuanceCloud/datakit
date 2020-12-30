@@ -14,8 +14,7 @@ var msg = `
     "sync": true,
     "stream": {
         "duration": "10s",
-        "protocol": "tcp",
-        "filter": "'tcp dst port 8080'",
+        "protocol": "http",
         "count": 10,
         "port": ["8080"],
         "srcIP": ["127.0.0.1"],
