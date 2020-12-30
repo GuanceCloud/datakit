@@ -68,3 +68,9 @@ var (
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock       = ""
 )
+
+func Quit() {
+	Exit.Close()
+	WG.Wait()
+	close(waitstopCh)
+}
