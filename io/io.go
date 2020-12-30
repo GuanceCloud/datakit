@@ -95,11 +95,11 @@ func Feed(data []byte, category string) error {
 	return doFeed(data, category, "")
 }
 
+func SetTest() {
+	testAssert = true
+}
+
 func doFeed(data []byte, category, name string) error {
-	if testAssert {
-		l.Infof("[%s] source: %s data: %s", category, name, data)
-		return nil
-	}
 
 	switch category {
 	case Metric, KeyEvent, Logging, Tracing:
@@ -107,10 +107,15 @@ func doFeed(data []byte, category, name string) error {
 		if err := checkMetric(data); err != nil {
 			return fmt.Errorf("invalid line protocol data %v", err)
 		}
-	case Rum:
+	case Rum: // do not check RUM data structure, too complecated
 	case Object:
 	default:
 		return fmt.Errorf("invalid category %s", category)
+	}
+
+	if testAssert {
+		l.Infof("[%s] source: `%s', data: %s", category, name, data)
+		return nil
 	}
 
 	select {
@@ -187,16 +192,16 @@ func MakeMetric(name string, tags map[string]string, fields map[string]interface
 		switch v.(type) {
 		case uint64:
 			fields[k] = fmt.Sprintf("%d", v.(uint64)) // convert uint64 to string to avoid overflow
-			l.Warnf("force convert uint64 to string(%d -> %s)", v.(uint64), fields[k])
+			l.Warnf("within input %s, force convert uint64 to string(%d -> %s)", name, v.(uint64), fields[k])
 		case uint32:
 			fields[k] = int64(v.(uint32))
-			l.Warn("force convert uint32 to int64")
+			l.Warnf("within input %s, force convert uint32 to int64", name, v.(uint32), fields[k])
 		case uint16:
 			fields[k] = int64(v.(uint16))
-			l.Warn("force convert uint16 to int64")
+			l.Warnf("within input %s, force convert uint16 to int64", name, v.(uint32), fields[k])
 		case uint8:
 			fields[k] = int64(v.(uint8))
-			l.Warn("force convert uint8 to int64")
+			l.Warnf("within input %s, force convert uint8 to int64", name, v.(uint32), fields[k])
 		default:
 			// pass
 		}
