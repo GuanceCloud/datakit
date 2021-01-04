@@ -205,7 +205,7 @@ func (d *Proxy) handle(c *gin.Context) {
 	l.Debugf("receive data, category: %s, len(%d bytes)", category, len(body))
 
 	switch category {
-	case io.Metric, io.Logging, io.KeyEvent, io.Tracing, io.RUM:
+	case io.Metric, io.Logging, io.KeyEvent, io.Tracing, io.Rum:
 		if len(d.PointsLuaFiles) == 0 {
 			if err := io.NamedFeed(body, category, inputName); err != nil {
 				l.Error(err)
