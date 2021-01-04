@@ -1,7 +1,6 @@
 package process
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -20,11 +19,13 @@ var (
 		"grok"       : grok.Grok,
 		"rename"     : Rename   ,
 		"user_agent" : UserAgent,
-		"urldecode"  : UrlDecode,
-		"GeoIp"      : GeoIp    ,
+		"url_decode" : UrlDecode,
+		"geo_ip"     : GeoIp    ,
 		"date"       : Date     ,
 		"expr"       : Expr     ,
 		"stringf"    : Stringf  ,
+		"cast"       : Cast     ,
+		"group"      : Group    ,
 	}
 )
 
@@ -87,40 +88,21 @@ func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func ParseScript(path string) ([]parser.Node, error) {
-	pNodes := make([]parser.Node, 0)
+func Cast(p *Procedure, node parser.Node) (*Procedure, error) {
+	return p, nil
+}
 
+func Group(p *Procedure, node parser.Node) (*Procedure, error) {
+	return p, nil
+}
+
+func ParseScript(path string) ([]parser.Node, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	s := bufio.NewScanner(strings.NewReader(string(data)))
-	for s.Scan() {
-		str := s.Text()
-		str = strings.TrimSpace(str)
-
-		if len(str) == 0 {
-			continue
-		}
-
-		if str[0] == '#' {
-			continue
-		}
-
-		nodes, err := parser.ParseFuncExpr(str)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(nodes) == 0 {
-			continue
-		}
-
-		pNodes = append(pNodes, nodes...)
-	}
-
-	return pNodes, nil
+	return parser.ParseFuncExpr(string(data))
 }
 
 func logStructed(data string) []byte {
