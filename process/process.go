@@ -6,15 +6,17 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/ip2isp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 )
 
 type Procedure struct {
 	*influxdb.Point
-	lastErr error
+	Content   []byte
+	lastErr   error
 }
 
 var (
-	l *logger.Logger = logger.DefaultSLogger("process")
+	l = logger.DefaultSLogger("process")
 )
 
 func (p *Procedure) LastError() error {
@@ -26,14 +28,21 @@ func (p *Procedure) GetPoint() *influxdb.Point {
 }
 
 func (p *Procedure) GetByte() []byte {
-	return []byte(p.Point.String())
+	if p.Point != nil {
+		return []byte(p.Point.String())
+	}
+	return p.Content
 }
 
 func (p *Procedure) GetString() string {
-	return p.Point.String()
+	if p.Point != nil {
+		p.Point.String()
+	}
+
+	return string(p.Content)
 }
 
-func NewProcedure(pt *influxdb.Point) *Procedure {
+func NewProcedure(pt *influxdb.Point, nodes []parser.Node) *Procedure {
 	return &Procedure{
 		Point: pt,
 	}
