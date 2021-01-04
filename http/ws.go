@@ -312,6 +312,9 @@ func (wc *wscli) EnableInputs(wm *wsmsg.WrapMsg) {
 
 	}
 	wc.SetMessage(wm, "ok", "")
+	inputName := strings.Join(names.Names,"")
+	title := fmt.Sprintf("uuid 为 %s 的datakit 开启了采集器:%s", wc.id, inputName)
+	WriteKeyevent(inputName,title)
 
 }
 
@@ -500,14 +503,41 @@ func (wc *wscli) SetInput(wm *wsmsg.WrapMsg) {
 		wc.SetMessage(wm, "bad_request", fmt.Sprintf("%+#v", wm))
 		return
 	}
+	var names []string
 	for k, v := range configs.Configs {
+		names = append(names, k)
 		if err := wc.parseTomlToFile(v["toml"], k); err != nil {
 			wc.SetMessage(wm, "error", err.Error())
 			return
 		}
-
 	}
 	wc.SetMessage(wm, "ok", "")
+	inputName := strings.Join(names, ",")
+	title := fmt.Sprintf("uuid 为 %s 的datakit 配置了新采集器:%s", wc.id, inputName)
+	WriteKeyevent(inputName,title)
+}
+
+func WriteKeyevent(inputName,title string) {
+	name := "self"
+	tags := map[string]string{
+		"datakit_uuid":    datakit.Cfg.MainCfg.UUID,
+		"datakit_name":    datakit.Cfg.MainCfg.Name,
+		"datakit_version": git.Version,
+		"datakit_os":      runtime.GOOS,
+		"datakit_arch":    runtime.GOARCH,
+		"__status":        "info",
+
+	}
+	now := time.Now().Local()
+	fields := map[string]interface{}{
+		"__title": title,
+		"inputName": inputName,
+	}
+	err := io.NamedFeedEx(name, io.KeyEvent, "__keyevent", tags, fields, now)
+	if err != nil {
+		l.Errorf("ws write keyevent err:%s",err.Error())
+	}
+	l.Infof("write keyevent ok")
 }
 
 func (wc *wscli) WriteFile(tomlStr, cfgPath string) error {
@@ -541,6 +571,10 @@ func (wc *wscli) DisableInput(wm *wsmsg.WrapMsg) {
 		}
 	}
 	wc.SetMessage(wm, "ok", "")
+	inputName := strings.Join(names.Names,"")
+	title := fmt.Sprintf("uuid 为 %s 的datakit 关闭了采集器:%s", wc.id, inputName)
+	WriteKeyevent(inputName,title)
+
 }
 
 func (wc *wscli) GetEnableInputsConfig(wm *wsmsg.WrapMsg) {
