@@ -61,6 +61,32 @@ func (p *Procedure) ProcessLog(data string, nodes []parser.Node) *Procedure {
 }
 
 func Rename(p *Procedure, node parser.Node) (*Procedure, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	}
+
+	old := funcExpr.Param[0].(*parser.StringLiteral).Val
+	new := funcExpr.Param[1].(*parser.StringLiteral).Val
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal(p.Content, &data)
+	if err != nil {
+		return p, err
+	}
+
+	if v, ok := data[old]; ok {
+		data[new] = v
+	} else {
+		return nil, fmt.Errorf("old tag %v not founded", old)
+	}
+
+	js, err := json.Marshal(data)
+	if err != nil {
+		return p, err
+	}
+	p.Content = js
+
 	return p, nil
 }
 
@@ -77,6 +103,33 @@ func GeoIp(p *Procedure, node parser.Node) (*Procedure, error) {
 }
 
 func Date(p *Procedure, node parser.Node) (*Procedure, error) {
+	//funcExpr := node.(*parser.FuncExpr)
+	//if len(funcExpr.Param) != 3 {
+	//	return nil, fmt.Errorf("func %s expected 3 args", funcExpr.Name)
+	//}
+	//
+	//tag   := funcExpr.Param[0].(*parser.StringLiteral).Val
+	//fmts  := funcExpr.Param[1].(*parser.StringLiteral).Val
+	//field := funcExpr.Param[2].(*parser.StringLiteral).Val
+	//
+	//data := make(map[string]interface{})
+	//err := json.Unmarshal(p.Content, &data)
+	//if err != nil {
+	//	return p, err
+	//}
+	//
+	//if v, ok := data[field]; ok {
+	//	data[tag] = time.
+	//} else {
+	//	return nil, fmt.Errorf("%v not founded", field)
+	//}
+	//
+	//js, err := json.Marshal(data)
+	//if err != nil {
+	//	return p, err
+	//}
+	//p.Content = js
+
 	return p, nil
 }
 
@@ -85,10 +138,68 @@ func Expr(p *Procedure, node parser.Node) (*Procedure, error) {
 }
 
 func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
+	outdata := make([]interface{}, 0)
+
+	funcExpr := node.(*parser.FuncExpr)
+	tag  := funcExpr.Param[0].(*parser.StringLiteral).Val
+	fmts := funcExpr.Param[1].(*parser.StringLiteral).Val
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal(p.Content, &data)
+	if err != nil {
+		return p, err
+	}
+
+	for i := 2; i < len(funcExpr.Param); i++ {
+		switch v := funcExpr.Param[i].(type) {
+		case *parser.Jspath:
+			outdata = append(outdata, data[v.Jspath])
+		case *parser.NumberLiteral:
+			if v.IsInt {
+				outdata = append(outdata, v.Int)
+			} else {
+				outdata = append(outdata, v.Float)
+			}
+		case *parser.StringLiteral:
+			outdata = append(outdata, v.Val)
+		default:
+			outdata = append(outdata, v)
+		}
+	}
+
+	s := fmt.Sprintf(fmts, outdata...)
+	data[tag] = s
+
+	js, err := json.Marshal(data)
+	if err != nil {
+		return p, err
+	}
+	p.Content = js
+
 	return p, nil
 }
 
 func Cast(p *Procedure, node parser.Node) (*Procedure, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	}
+	field := funcExpr.Param[0].(*parser.StringLiteral).Val
+	tInfo := funcExpr.Param[1].(*parser.StringLiteral).Val
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal(p.Content, &data)
+	if err != nil {
+		return p, err
+	}
+
+	data[field] = cast(data[field], tInfo)
+	js, err := json.Marshal(data)
+	if err != nil {
+		return p, err
+	}
+	p.Content = js
+
 	return p, nil
 }
 
