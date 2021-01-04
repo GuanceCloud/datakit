@@ -42,7 +42,7 @@ func (p *Procedure) GetString() string {
 	return string(p.Content)
 }
 
-func NewProcedure(pt *influxdb.Point, nodes []parser.Node) *Procedure {
+func NewProcedure(pt *influxdb.Point) *Procedure {
 	return &Procedure{
 		Point: pt,
 	}
