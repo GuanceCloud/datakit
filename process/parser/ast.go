@@ -1,14 +1,14 @@
 package parser
 
 import (
+	"errors"
+	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
-	"fmt"
-	"errors"
 
 	"github.com/prometheus/prometheus/util/strutil"
 )
