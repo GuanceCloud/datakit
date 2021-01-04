@@ -6,7 +6,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/ip2isp"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 )
 
 type Procedure struct {
