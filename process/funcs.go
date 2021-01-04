@@ -22,7 +22,9 @@ var (
 		"user_agent" : UserAgent,
 		"urldecode"  : UrlDecode,
 		"GeoIp"      : GeoIp    ,
-		"date"       : Date    ,
+		"date"       : Date     ,
+		"expr"       : Expr     ,
+		"stringf"    : Stringf  ,
 	}
 )
 
@@ -77,6 +79,13 @@ func Date(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
+func Expr(p *Procedure, node parser.Node) (*Procedure, error) {
+	return p, nil
+}
+
+func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
+	return p, nil
+}
 
 func ParseScript(path string) ([]parser.Node, error) {
 	pNodes := make([]parser.Node, 0)
