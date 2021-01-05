@@ -2,6 +2,7 @@ package aliyunobject
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	waf "github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi"
@@ -11,16 +12,20 @@ import (
 
 const (
 	wafSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.waf]
-
-# ## @param - custom tags for waf object - [list of key:value element] - optional
-#[inputs.aliyunobject.waf.tags]
-# key1 = 'val1'
+    # ##(optional) ignore this object, default is false
+    #disable = false
 `
 )
 
 type Waf struct {
-	Tags map[string]string `toml:"tags,omitempty"`
+	Disable bool              `toml:"disable"`
+	Tags    map[string]string `toml:"tags,omitempty"`
+}
+
+func (e *Waf) disabled() bool {
+	return e.Disable
 }
 
 func (e *Waf) run(ag *objectAgent) {
@@ -52,7 +57,7 @@ func (e *Waf) run(ag *objectAgent) {
 		req := waf.CreateDescribeInstanceInfoRequest()
 		resp, err := cli.DescribeInstanceInfo(req)
 		if err != nil {
-			moduleLogger.Errorf("%s", err)
+			moduleLogger.Errorf("waf object: %s", err)
 			break
 		}
 		e.handleResponse(resp, ag)
@@ -97,5 +102,9 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 		moduleLogger.Errorf("%s", err)
 		return
 	}
-	io.NamedFeed(data, io.Object, inputName)
+	if ag.isDebug() {
+		fmt.Printf("%s\n", string(data))
+	} else {
+		io.NamedFeed(data, io.Object, inputName)
+	}
 }
