@@ -14,24 +14,28 @@ import (
 
 const (
 	rdsSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.rds]
+    # ##(optional) ignore this object, default is false
+    #disable = false
 
-# ## @param - [list of rds instanceid] - optional
-#db_instanceids = []
+    # ##(optional) list of rds instanceid
+    #db_instanceids = []
 
-# ## @param - [list of excluded rds instanceid] - optional
-#exclude_db_instanceids = []
-
-# ## @param - custom tags for rds object - [list of key:value element] - optional
-#[inputs.aliyunobject.rds.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded rds instanceid
+    #exclude_db_instanceids = []
 `
 )
 
 type Rds struct {
+	Disable              bool              `toml:"disable"`
 	Tags                 map[string]string `toml:"tags,omitempty"`
 	DBInstancesIDs       []string          `toml:"db_instanceids,omitempty"`
 	ExcludeDBInstanceIDs []string          `toml:"exclude_db_instanceids,omitempty"`
+}
+
+func (r *Rds) disabled() bool {
+	return r.Disable
 }
 
 func (r *Rds) run(ag *objectAgent) {
@@ -67,7 +71,7 @@ func (r *Rds) run(ag *objectAgent) {
 		req := rds.CreateDescribeDBInstancesRequest()
 
 		for {
-			moduleLogger.Infof("pageNume %v, pagesize %v", pageNum, pageSize)
+			moduleLogger.Debugf("pageNume %v, pagesize %v", pageNum, pageSize)
 			if len(r.DBInstancesIDs) > 0 {
 				if pageNum <= len(r.DBInstancesIDs) {
 					req.DBInstanceId = r.DBInstancesIDs[pageNum-1]
@@ -137,5 +141,9 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 		moduleLogger.Errorf("%s", err)
 		return
 	}
-	io.NamedFeed(data, io.Object, inputName)
+	if ag.isDebug() {
+		fmt.Printf("%s\n", string(data))
+	} else {
+		io.NamedFeed(data, io.Object, inputName)
+	}
 }
