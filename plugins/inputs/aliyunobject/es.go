@@ -2,6 +2,7 @@ package aliyunobject
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch"
@@ -13,24 +14,28 @@ import (
 
 const (
 	elasticsearchSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.elasticsearch]
+    # ##(optional) ignore this object, default is false
+    #disable = false
 
-# ## @param - [list of elasticsearch instanceid] - optional
-#instanceids = []
+    # ##(optional) list of elasticsearch instanceid
+    #instanceids = []
 
-# ## @param - [list of excluded elasticsearch instanceid] - optional
-#exclude_instanceids = []
-
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.elasticsearch.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded elasticsearch instanceid
+    #exclude_instanceids = []
 `
 )
 
 type Elasticsearch struct {
+	Disable            bool              `toml:"disable"`
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+}
+
+func (e *Elasticsearch) disabled() bool {
+	return e.Disable
 }
 
 func (e *Elasticsearch) run(ag *objectAgent) {
@@ -64,7 +69,7 @@ func (e *Elasticsearch) run(ag *objectAgent) {
 		size := 100
 		req := elasticsearch.CreateListInstanceRequest()
 		for {
-			moduleLogger.Infof("pageNume %v, pagesize %v", page, size)
+			moduleLogger.Debugf("pageNume %v, pagesize %v", page, size)
 			if len(e.InstancesIDs) > 0 {
 				if page <= len(e.InstancesIDs) {
 					req.InstanceId = e.InstancesIDs[page-1]
@@ -131,5 +136,9 @@ func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse,
 		moduleLogger.Errorf("%s", err)
 		return
 	}
-	io.NamedFeed(data, io.Object, inputName)
+	if ag.isDebug() {
+		fmt.Printf("%s\n", string(data))
+	} else {
+		io.NamedFeed(data, io.Object, inputName)
+	}
 }
