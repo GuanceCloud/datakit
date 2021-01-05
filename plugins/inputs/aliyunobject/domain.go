@@ -13,24 +13,28 @@ import (
 
 const (
 	domainSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.domain]
+    # ##(optional) ignore this object, default is false
+    #disable = false
 
-# ## @param - [list of Domain instanceid] - optional
-#instanceids = []
+    # ##(optional) list of Domain instanceid
+    #instanceids = []
 
-# ## @param - [list of excluded Domain instanceid] - optional
-#exclude_instanceids = []
-
-# ## @param - custom tags for Domain object - [list of key:value element] - optional
-#[inputs.aliyunobject.domain.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded Domain instanceid
+    #exclude_instanceids = []
 `
 )
 
 type Domain struct {
+	Disable            bool              `toml:"disable"`
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstanceIDs        []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+}
+
+func (dm *Domain) disabled() bool {
+	return dm.Disable
 }
 
 func (dm *Domain) run(ag *objectAgent) {
@@ -66,7 +70,7 @@ func (dm *Domain) run(ag *objectAgent) {
 		req := domain.CreateQueryDomainListRequest()
 
 		for {
-			moduleLogger.Infof("pageNume %v, pagesize %v", pageNum, pageSize)
+			moduleLogger.Debugf("pageNume %v, pagesize %v", pageNum, pageSize)
 
 			req.PageNum = requests.NewInteger(pageNum)
 			req.PageSize = requests.NewInteger(pageSize)
@@ -127,5 +131,9 @@ func (dm *Domain) handleResponse(resp *domain.QueryDomainListResponse, ag *objec
 		moduleLogger.Errorf("%s", err)
 		return
 	}
-	io.NamedFeed(data, io.Object, inputName)
+	if ag.isDebug() {
+		fmt.Printf("%s\n", string(data))
+	} else {
+		io.NamedFeed(data, io.Object, inputName)
+	}
 }
