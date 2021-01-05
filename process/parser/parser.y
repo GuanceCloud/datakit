@@ -58,6 +58,7 @@ AND OR NIL NULL RE JP
 	string_literal
 	nil_literal
 	number_literal
+	columnref
 
 
 
@@ -100,8 +101,14 @@ function_exprs: function_expr
 		 ;
 
 /* expression */
-expr:  string_literal| nil_literal | bool_literal | number_literal | regex | jpath | paren_expr | function_expr | binary_expr
+expr:  columnref | string_literal| nil_literal | bool_literal | number_literal | regex | jpath | paren_expr | function_expr | binary_expr
 		;
+
+columnref: identifier
+				 {
+				   $$ = &Identifier{Name: $1.Val}
+				 }
+				 ;
 
 
 unary_op: ADD
@@ -168,10 +175,6 @@ function_arg: expr
 						{
 							$$ = $1
 						}
-						| identifier
-                        {
-                        	$$ = &Identifier{Name: $1.Val}
-                        }
 						;
 
 
