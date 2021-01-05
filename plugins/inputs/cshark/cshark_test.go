@@ -10,11 +10,9 @@ import (
 
 var msg = `
 {
-    "device": ["lo0"],
-    "sync": true,
     "stream": {
         "protocol":"tcp",
-        "duration": "10s",
+        "duration": "100s",
         "port": ["3306"],
         "srcIP": ["127.0.0.1"],
         "dstIP": ["127.0.0.1"]
@@ -47,7 +45,7 @@ func TestRun(t *testing.T) {
 		   fmt.Println("err", err)
 		}
 
-		time.Sleep(1*time.Second)
+		time.Sleep(100*time.Second)
 
 		t.Log("ok")
 	})
