@@ -12,8 +12,6 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/providers"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 
@@ -28,7 +26,7 @@ var (
 	retryCount = 5
 )
 
-func (s *runningInstance) run(ctx context.Context) error {
+func (s *CMS) run(ctx context.Context) {
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -42,7 +40,7 @@ func (s *runningInstance) run(ctx context.Context) error {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			return nil
+			return
 		default:
 		}
 
@@ -60,17 +58,17 @@ func (s *runningInstance) run(ctx context.Context) error {
 	s.limiter = rate.NewLimiter(limit, 1)
 
 	if err := s.genReqs(ctx); err != nil {
-		return err
+		return
 	}
 
 	if len(s.reqs) == 0 {
 		moduleLogger.Warnf("no metric found")
-		return nil
+		return
 	}
 
 	select {
 	case <-ctx.Done():
-		return context.Canceled
+		return
 	default:
 	}
 
@@ -78,7 +76,7 @@ func (s *runningInstance) run(ctx context.Context) error {
 
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return
 		default:
 		}
 
@@ -86,7 +84,7 @@ func (s *runningInstance) run(ctx context.Context) error {
 
 			select {
 			case <-ctx.Done():
-				return context.Canceled
+				return
 			default:
 			}
 
@@ -102,31 +100,63 @@ func (s *runningInstance) run(ctx context.Context) error {
 
 }
 
-func (s *runningInstance) genReqs(ctx context.Context) error {
+//构造所有请求
+func (s *CMS) genReqs(ctx context.Context) error {
 
-	//生成所有请求
+	for _, proj := range s.Project {
 
-	for _, proj := range s.cfg.Project {
-
-		/*projMetricMetas, err := s.fetchMetricMeta(ctx, proj.Name, "")
-		if err != nil {
+		if err := proj.checkProperties(); err != nil {
 			return err
 		}
 
-		//暂不支持*, 指标过多
-		if len(proj.Metrics.MetricNames) > 0 && proj.Metrics.MetricNames[0] == "*" {
-			names := []string{}
-			for _, meta := range projMetricMetas {
-				names = append(names, meta.metricName)
-			}
-			proj.Metrics.MetricNames = names
-		}*/
+		var reqs []*MetricsRequest
 
-		for _, metricName := range proj.Metrics.MetricNames {
-
-			if metricName == "*" {
-				continue
+		var metrcNames []string
+		if proj.MetricNames != "" {
+			parts := strings.Split(proj.MetricNames, ",")
+			for _, p := range parts {
+				metrcNames = append(metrcNames, strings.TrimSpace(p))
 			}
+		} else {
+			if proj.Metrics != nil {
+				metrcNames = proj.Metrics.MetricNames
+			}
+		}
+
+		if len(metrcNames) == 0 {
+			metas, err := s.describeMetricMetaList(ctx, proj.namespace(), "")
+			if err != nil {
+				moduleLogger.Errorf("fail to DescribeMetricMetaList, %s", err)
+				return err
+			}
+			moduleLogger.Debugf("get %d metrics of %s", len(metas), proj.namespace())
+
+			for name, meta := range metas {
+				select {
+				case <-ctx.Done():
+					return context.Canceled
+				default:
+				}
+
+				r := proj.makeReqWrap(name)
+				r.meta = meta
+				reqs = append(reqs, r)
+			}
+		} else {
+			for _, metricName := range metrcNames {
+
+				select {
+				case <-ctx.Done():
+					return context.Canceled
+				default:
+				}
+
+				r := proj.makeReqWrap(metricName)
+				reqs = append(reqs, r)
+			}
+		}
+
+		for _, req := range reqs {
 
 			select {
 			case <-ctx.Done():
@@ -134,67 +164,42 @@ func (s *runningInstance) genReqs(ctx context.Context) error {
 			default:
 			}
 
-			req, err := proj.genMetricReq(metricName, s.cfg.RegionID)
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-				return err
-			}
+			proj.applyProperty(req)
 
 			if req.interval == 0 {
-				req.interval = s.cfg.Interval.Duration
+				req.interval = s.Interval.Duration
 			}
-
-			/*if meta, ok := projMetricMetas[metricName]; ok {
-				req.meta = meta
-			}*/
-
-			s.reqs = append(s.reqs, req)
 		}
+
+		s.reqs = append(s.reqs, reqs...)
 	}
 
 	return nil
 }
 
-func (s *runningInstance) initializeAliyunCMS() error {
-	// if s.cfg.RegionID == "" {
-	// 	return errors.New("region id is not set")
-	// }
+func (s *CMS) initializeAliyunCMS() error {
 
-	configuration := &providers.Configuration{
-		AccessKeyID:     s.cfg.AccessKeyID,
-		AccessKeySecret: s.cfg.AccessKeySecret,
-	}
-	credentialProviders := []providers.Provider{
-		providers.NewConfigurationCredentialProvider(configuration),
-		providers.NewEnvCredentialProvider(),
-		providers.NewInstanceMetadataProvider(),
-	}
-	credential, err := providers.NewChainProvider(credentialProviders).Retrieve()
+	cli, err := cms.NewClientWithAccessKey(s.RegionID, s.AccessKeyID, s.AccessKeySecret)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve credential")
+		return err
 	}
-	cli, err := cms.NewClientWithOptions(s.cfg.RegionID, sdk.NewConfig(), credential)
-	if err != nil {
-		return fmt.Errorf("failed to create cms client: %v", err)
-	}
-
-	s.cmsClient = cli
+	s.apiClient = cli
 
 	return nil
 }
 
-func (s *runningInstance) fetchMetricMeta(ctx context.Context, namespace, metricname string) (map[string]*MetricMeta, error) {
+func (s *CMS) describeMetricMetaList(ctx context.Context, namespace, metricname string) (map[string]*MetricMeta, error) {
 
 	request := cms.CreateDescribeMetricMetaListRequest()
 	request.Scheme = "https"
 	request.Namespace = namespace
 	request.MetricName = metricname
-	request.PageSize = requests.NewInteger(100)
+	request.PageSize = requests.NewInteger(1000)
 
-	if s.cfg.SecurityToken != "" {
+	if s.SecurityToken != "" {
 		//fmt.Printf("token: %s\n", s.cfg.SecurityToken)
-		request.QueryParams["SecurityToken"] = s.cfg.SecurityToken
-		request.FormParams["SecurityToken"] = s.cfg.SecurityToken
+		request.QueryParams["SecurityToken"] = s.SecurityToken
+		request.FormParams["SecurityToken"] = s.SecurityToken
 
 	}
 
@@ -212,7 +217,7 @@ func (s *runningInstance) fetchMetricMeta(ctx context.Context, namespace, metric
 		}
 
 		s.limiter.Wait(ctx)
-		response, err = s.cmsClient.DescribeMetricMetaList(request)
+		response, err = s.apiClient.DescribeMetricMetaList(request)
 
 		if tempDelay == 0 {
 			tempDelay = time.Millisecond * 50
@@ -232,9 +237,6 @@ func (s *runningInstance) fetchMetricMeta(ctx context.Context, namespace, metric
 			moduleLogger.Warnf("%s", err)
 			datakit.SleepContext(ctx, tempDelay)
 		} else {
-			if i != 0 {
-				moduleLogger.Debugf("retry successed, %d", i)
-			}
 			break
 		}
 	}
@@ -270,17 +272,17 @@ func (s *runningInstance) fetchMetricMeta(ctx context.Context, namespace, metric
 			Unit:        res.Unit,
 			metricName:  res.MetricName,
 		}
-		moduleLogger.Debugf("%s.%s: Periods=%s, Dimensions=%s, Statistics=%s, Unit=%s", namespace, res.MetricName, periodStrs, res.Dimensions, res.Statistics, res.Unit)
+		//moduleLogger.Debugf("%s.%s: Periods=%s, Dimensions=%s, Statistics=%s, Unit=%s", namespace, res.MetricName, periodStrs, res.Dimensions, res.Statistics, res.Unit)
 		metas[res.MetricName] = meta
 	}
 
 	return metas, nil
 }
 
-func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) error {
+func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 
 	if req.tryGetMeta > 0 && req.meta == nil {
-		metas, _ := s.fetchMetricMeta(ctx, req.q.Namespace, req.q.MetricName)
+		metas, _ := s.describeMetricMetaList(ctx, req.q.Namespace, req.q.MetricName)
 		if len(metas) > 0 {
 			req.meta = metas[req.q.MetricName]
 		}
@@ -355,12 +357,12 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 	endTime := nt.Unix() * 1000
 	var startTime int64
 	if req.lastTime.IsZero() {
-		startTime = nt.Add(-(s.cfg.Delay.Duration)).Unix() * 1000
+		startTime = nt.Add(-(s.Delay.Duration)).Unix() * 1000
 	} else {
 		if nt.Sub(req.lastTime) < req.interval {
 			return errSkipDueInterval
 		}
-		startTime = req.lastTime.Add(-(s.cfg.Delay.Duration)).Unix() * 1000
+		startTime = req.lastTime.Add(-(s.Delay.Duration)).Unix() * 1000
 	}
 
 	logEndtime := time.Unix(endTime/int64(1000), 0)
@@ -370,10 +372,10 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 	req.q.StartTime = strconv.FormatInt(startTime, 10)
 	req.q.NextToken = ""
 
-	if s.cfg.SecurityToken != "" {
+	if s.SecurityToken != "" {
 		//fmt.Printf("token: %s\n", s.cfg.SecurityToken)
-		req.q.QueryParams["SecurityToken"] = s.cfg.SecurityToken
-		req.q.FormParams["SecurityToken"] = s.cfg.SecurityToken
+		req.q.QueryParams["SecurityToken"] = s.SecurityToken
+		req.q.FormParams["SecurityToken"] = s.SecurityToken
 
 	}
 
@@ -394,7 +396,7 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 
 			s.limiter.Wait(ctx)
 			//fmt.Printf("querys: %s", req.q.GetQueryParams())
-			resp, err = s.cmsClient.DescribeMetricList(req.q)
+			resp, err = s.apiClient.DescribeMetricList(req.q)
 
 			if tempDelay == 0 {
 				tempDelay = time.Millisecond * 50
@@ -429,10 +431,6 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 		req.q.NextToken = resp.NextToken
 		more = (req.q.NextToken != "")
 
-		// if len(resp.Datapoints) == 0 {
-		// 	break
-		// }
-
 		dps := []map[string]interface{}{}
 		if resp.Datapoints != "" {
 			if err = json.Unmarshal([]byte(resp.Datapoints), &dps); err != nil {
@@ -451,12 +449,12 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 
 	req.lastTime = nt
 
-	metricName := req.q.MetricName
-
-	metricSetName := req.metricSetName
+	metricSetName := req.measurementName
 	if metricSetName == "" {
 		metricSetName = formatMeasurement(req.q.Namespace)
 	}
+
+	metricName := req.q.MetricName
 
 	for _, datapoint := range datapoints {
 
@@ -473,8 +471,8 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 				tags[k] = v
 			}
 		} else {
-			if s.cfg.Tags != nil {
-				for k, v := range s.cfg.Tags {
+			if s.Tags != nil {
+				for k, v := range s.Tags {
 					tags[k] = v
 				}
 			}
@@ -519,7 +517,7 @@ func (s *runningInstance) fetchMetric(ctx context.Context, req *MetricsRequest) 
 
 		if len(fields) > 0 {
 
-			if s.cfg.mode == "debug" {
+			if s.mode == "debug" {
 				data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
 				fmt.Printf("%s\n", string(data))
 			} else {
@@ -542,13 +540,7 @@ func formatMeasurement(project string) string {
 	return fmt.Sprintf("aliyuncms_%s", project)
 }
 
-func snakeCase(s string) string {
-	s = SnakeCase(s)
-	s = strings.Replace(s, "__", "_", -1)
-	return s
-}
-
-func SnakeCase(in string) string {
+func snakeCase(in string) string {
 	runes := []rune(in)
 	length := len(runes)
 
@@ -560,5 +552,7 @@ func SnakeCase(in string) string {
 		out = append(out, unicode.ToLower(runes[i]))
 	}
 
-	return string(out)
+	s := strings.Replace(string(out), "__", "_", -1)
+
+	return s
 }
