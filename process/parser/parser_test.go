@@ -1,13 +1,9 @@
 package parser
 
-import "testing"
+import (
+	"testing"
+)
 
-type parseCase struct {
-	in       string
-	expected interface{}
-	err      string
-	fail     bool
-}
 var in = `avg(x.y.z,1,2,3, p68, re("cd"), pqa);
 
 f(g(f("abc"), 123),
