@@ -2,6 +2,7 @@ package aliyunobject
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -15,24 +16,28 @@ import (
 
 const (
 	influxDBSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.influxdb]
+    # ##(optional) ignore this object, default is false
+    #disable = false
 
-# ## @param - [list of influxdb instanceid] - optional
-#instanceids = []
+    # ##(optional) list of influxdb instanceid
+    #instanceids = []
 
-# ## @param - [list of excluded influxdb instanceid] - optional
-#exclude_instanceids = []
-
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.influxdb.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded influxdb instanceid
+    #exclude_instanceids = []
 `
 )
 
 type InfluxDB struct {
+	Disable            bool              `toml:"disable"`
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+}
+
+func (e *InfluxDB) disabled() bool {
+	return e.Disable
 }
 
 func (e *InfluxDB) run(ag *objectAgent) {
@@ -167,6 +172,10 @@ func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
 		moduleLogger.Errorf("%s", err)
 		return
 	}
-	io.NamedFeed(data, io.Object, inputName)
+	if ag.isDebug() {
+		fmt.Printf("%s\n", string(data))
+	} else {
+		io.NamedFeed(data, io.Object, inputName)
+	}
 
 }
