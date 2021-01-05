@@ -76,3 +76,7 @@ func (p *Procedure) Geo(ip string) *Procedure {
 	}
 	return p
 }
+
+func init() {
+	GenScript()
+}
