@@ -3,10 +3,14 @@ package process
 import (
 	"encoding/json"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/grok"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 	"io/ioutil"
 	"strings"
+
+	"github.com/tidwall/gjson"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/grok"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
+
 )
 const (
 	CONTENT = "__content"
@@ -18,13 +22,14 @@ var (
 	funcsMap = map[string]ProFunc{
 		"grok"       : grok.Grok,
 		"rename"     : Rename   ,
+		"stringf"    : Stringf  ,
+		"cast"       : Cast     ,
+		"expr"       : Expr     ,
+
 		"user_agent" : UserAgent,
 		"url_decode" : UrlDecode,
 		"geo_ip"     : GeoIp    ,
 		"date"       : Date     ,
-		"expr"       : Expr     ,
-		"stringf"    : Stringf  ,
-		"cast"       : Cast     ,
 		"group"      : Group    ,
 	}
 )
@@ -66,8 +71,8 @@ func Rename(p *Procedure, node parser.Node) (*Procedure, error) {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	old := funcExpr.Param[0].(*parser.StringLiteral).Val
-	new := funcExpr.Param[1].(*parser.StringLiteral).Val
+	old := funcExpr.Param[0].(*parser.Identifier).Name
+	new := funcExpr.Param[1].(*parser.Identifier).Name
 
 	data := make(map[string]interface{})
 	err := json.Unmarshal(p.Content, &data)
@@ -75,17 +80,15 @@ func Rename(p *Procedure, node parser.Node) (*Procedure, error) {
 		return p, err
 	}
 
-	if v, ok := data[old]; ok {
-		data[new] = v
-	} else {
-		return nil, fmt.Errorf("old tag %v not founded", old)
-	}
+	r := gjson.GetBytes(p.Content, old)
+	data[new] = getGjsonRst(&r)
+	delete(data, old)
 
-	js, err := json.Marshal(data)
-	if err != nil {
+	if js, err := json.Marshal(data); err != nil {
 		return p, err
+	} else {
+		p.Content = js
 	}
-	p.Content = js
 
 	return p, nil
 }
@@ -103,32 +106,6 @@ func GeoIp(p *Procedure, node parser.Node) (*Procedure, error) {
 }
 
 func Date(p *Procedure, node parser.Node) (*Procedure, error) {
-	//funcExpr := node.(*parser.FuncExpr)
-	//if len(funcExpr.Param) != 3 {
-	//	return nil, fmt.Errorf("func %s expected 3 args", funcExpr.Name)
-	//}
-	//
-	//tag   := funcExpr.Param[0].(*parser.StringLiteral).Val
-	//fmts  := funcExpr.Param[1].(*parser.StringLiteral).Val
-	//field := funcExpr.Param[2].(*parser.StringLiteral).Val
-	//
-	//data := make(map[string]interface{})
-	//err := json.Unmarshal(p.Content, &data)
-	//if err != nil {
-	//	return p, err
-	//}
-	//
-	//if v, ok := data[field]; ok {
-	//	data[tag] = time.
-	//} else {
-	//	return nil, fmt.Errorf("%v not founded", field)
-	//}
-	//
-	//js, err := json.Marshal(data)
-	//if err != nil {
-	//	return p, err
-	//}
-	//p.Content = js
 
 	return p, nil
 }
@@ -152,8 +129,9 @@ func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
 
 	for i := 2; i < len(funcExpr.Param); i++ {
 		switch v := funcExpr.Param[i].(type) {
-		case *parser.Jspath:
-			outdata = append(outdata, data[v.Jspath])
+		case *parser.Identifier:
+			gRst := gjson.GetBytes(p.Content, v.Name)
+			outdata = append(outdata, getGjsonRst(&gRst))
 		case *parser.NumberLiteral:
 			if v.IsInt {
 				outdata = append(outdata, v.Int)
@@ -170,22 +148,24 @@ func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
 	s := fmt.Sprintf(fmts, outdata...)
 	data[tag] = s
 
-	js, err := json.Marshal(data)
-	if err != nil {
+	if js, err := json.Marshal(data); err != nil {
 		return p, err
+	} else {
+		p.Content = js
 	}
-	p.Content = js
 
 	return p, nil
 }
 
 func Cast(p *Procedure, node parser.Node) (*Procedure, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 2 {
+	if len(funcExpr.Param) != 3 {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
-	field := funcExpr.Param[0].(*parser.StringLiteral).Val
-	tInfo := funcExpr.Param[1].(*parser.StringLiteral).Val
+
+	nField := funcExpr.Param[0].(*parser.Identifier).Name
+	field := funcExpr.Param[1].(*parser.Identifier).Name
+	tInfo := funcExpr.Param[2].(*parser.StringLiteral).Val
 
 	data := make(map[string]interface{})
 	err := json.Unmarshal(p.Content, &data)
@@ -193,12 +173,14 @@ func Cast(p *Procedure, node parser.Node) (*Procedure, error) {
 		return p, err
 	}
 
-	data[field] = cast(data[field], tInfo)
-	js, err := json.Marshal(data)
-	if err != nil {
+	rst := gjson.GetBytes(p.Content, field)
+	data[nField] = cast(&rst, tInfo)
+
+	if js, err := json.Marshal(data); err != nil {
 		return p, err
+	} else {
+		p.Content = js
 	}
-	p.Content = js
 
 	return p, nil
 }
@@ -219,7 +201,6 @@ func ParseScript(path string) ([]parser.Node, error) {
 		case *parser.FuncExpr:
 			DebugNodesHelp(v, "")
 		default:
-
 		}
 	}
 
@@ -249,4 +230,33 @@ func logStructed(data string) []byte {
 	m[CONTENT] = data
 	js, _ := json.Marshal(m)
 	return js
+}
+
+func getGjsonRst(g *gjson.Result) interface{} {
+	switch g.Type {
+	case gjson.Null:
+		return nil
+
+	case gjson.False:
+		return false
+
+	case gjson.Number:
+		if strings.Contains(g.Raw, ".") {
+			return g.Float()
+		} else {
+			return g.Int()
+		}
+
+	case gjson.String:
+		return g.String()
+
+	case gjson.True:
+		return true
+
+	case gjson.JSON:
+		return g.Raw
+
+	default:
+		return nil
+	}
 }
