@@ -30,3 +30,19 @@ func TestRenameFunc(t *testing.T) {
 	r := gjson.GetBytes(p.Content, "bb")
 	assertEqual(t, r.String(), "2")
 }
+
+
+func TestExprFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+
+	script := `expr(a.second*10+(2+3)*5, bb);`
+	nodes, err := parser.ParseFuncExpr(script)
+	assertEqual(t, err, nil)
+
+	p := NewProcedure(nil)
+	p = p.ProcessLog(js, nodes)
+	assertEqual(t, p.lastErr, nil)
+
+	r := gjson.GetBytes(p.Content, "bb")
+	assertEqual(t, r.String(), "45")
+}
