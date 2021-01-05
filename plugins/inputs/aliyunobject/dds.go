@@ -13,24 +13,28 @@ import (
 
 const (
 	ddsSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.mongodb]
+    # ##(optional) ignore this object, default is false
+    #disable = false
+	
+	# ##(optional) list of mongodb instanceid
+    #db_instanceids = []
 
-# ## @param - [list of mongodb instanceid] - optional
-#db_instanceids = []
-
-# ## @param - [list of excluded mongodb instanceid] - optional
-#exclude_db_instanceids = []
-
-# ## @param - custom tags for mongodb object - [list of key:value element] - optional
-#[inputs.aliyunobject.mongodb.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded mongodb instanceid
+    #exclude_db_instanceids = []
 `
 )
 
 type Dds struct {
+	Disable              bool              `toml:"disable"`
 	Tags                 map[string]string `toml:"tags,omitempty"`
 	DBInstancesIDs       []string          `toml:"db_instanceids,omitempty"`
 	ExcludeDBInstanceIDs []string          `toml:"exclude_db_instanceids,omitempty"`
+}
+
+func (r *Dds) disabled() bool {
+	return r.Disable
 }
 
 func (r *Dds) run(ag *objectAgent) {
@@ -67,7 +71,7 @@ func (r *Dds) run(ag *objectAgent) {
 		req.Scheme = "https" //nolint:goconst
 
 		for {
-			moduleLogger.Infof("pageNume %v, pagesize %v", pageNum, pageSize)
+			moduleLogger.Debugf("pageNume %v, pagesize %v", pageNum, pageSize)
 			if len(r.DBInstancesIDs) > 0 {
 				if pageNum <= len(r.DBInstancesIDs) {
 					req.DBInstanceId = r.DBInstancesIDs[pageNum-1]
@@ -136,5 +140,9 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 	if err != nil {
 		moduleLogger.Errorf("%s", err)
 	}
-	io.NamedFeed(data, io.Object, inputName)
+	if ag.isDebug() {
+		fmt.Printf("%s\n", string(data))
+	} else {
+		io.NamedFeed(data, io.Object, inputName)
+	}
 }
