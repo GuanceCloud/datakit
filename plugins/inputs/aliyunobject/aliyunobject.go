@@ -13,10 +13,12 @@ import (
 var (
 	inputName    = `aliyunobject`
 	moduleLogger *logger.Logger
+	sampleConf   = ""
 )
 
 type subModule interface {
 	run(*objectAgent)
+	disabled() bool
 }
 
 func (_ *objectAgent) SampleConfig() string {
@@ -63,43 +65,55 @@ func (ag *objectAgent) Run() {
 		ag.Interval.Duration = time.Minute * 5
 	}
 
-	if ag.Ecs != nil {
-		ag.addModule(ag.Ecs)
+	if ag.Ecs == nil {
+		ag.Ecs = &Ecs{}
 	}
 	if ag.Slb != nil {
-		ag.addModule(ag.Slb)
+		ag.Slb = &Slb{}
 	}
-	if ag.Oss != nil {
-		ag.addModule(ag.Oss)
+	if ag.Oss == nil {
+		ag.Oss = &Oss{}
 	}
-	if ag.Rds != nil {
-		ag.addModule(ag.Rds)
+	if ag.Rds == nil {
+		ag.Rds = &Rds{}
 	}
-
-	if ag.Ons != nil {
-		ag.addModule(ag.Ons)
+	if ag.Ons == nil {
+		ag.Ons = &Ons{}
 	}
-	if ag.Dds != nil {
-		ag.addModule(ag.Dds)
+	if ag.Dds == nil {
+		ag.Dds = &Dds{}
 	}
-	if ag.Domain != nil {
-		ag.addModule(ag.Domain)
+	if ag.Domain == nil {
+		ag.Domain = &Domain{}
 	}
-	if ag.Redis != nil {
-		ag.addModule(ag.Redis)
+	if ag.Redis == nil {
+		ag.Redis = &Redis{}
 	}
-	if ag.Cdn != nil {
-		ag.addModule(ag.Cdn)
+	if ag.Cdn == nil {
+		ag.Cdn = &Cdn{}
 	}
-	if ag.Waf != nil {
-		ag.addModule(ag.Waf)
+	if ag.Waf == nil {
+		ag.Waf = &Waf{}
 	}
-	if ag.Es != nil {
-		ag.addModule(ag.Es)
+	if ag.Es == nil {
+		ag.Es = &Elasticsearch{}
 	}
 	if ag.InfluxDB != nil {
-		ag.addModule(ag.InfluxDB)
+		ag.InfluxDB = &InfluxDB{}
 	}
+
+	ag.addModule(ag.Ecs)
+	ag.addModule(ag.Slb)
+	ag.addModule(ag.Oss)
+	ag.addModule(ag.Rds)
+	ag.addModule(ag.Ons)
+	ag.addModule(ag.Dds)
+	ag.addModule(ag.Domain)
+	ag.addModule(ag.Redis)
+	ag.addModule(ag.Cdn)
+	ag.addModule(ag.Waf)
+	ag.addModule(ag.Es)
+	ag.addModule(ag.InfluxDB)
 
 	for _, s := range ag.subModules {
 		ag.wg.Add(1)
