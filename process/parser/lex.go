@@ -579,7 +579,7 @@ func acceptRemainDuration(l *Lexer) bool {
 ////////////////////////////////
 // helpers
 ////////////////////////////////
-func isAlphaNumeric(r rune) bool { return isAlpha(r) || isDigit(r) }
+func isAlphaNumeric(r rune) bool { return isAlpha(r) || isDigit(r) || r == '.'}
 func isAlpha(r rune) bool        { return r == '_' || ('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z') }
 func isDigit(r rune) bool        { return '0' <= r && r <= '9' }
 func isSpace(r rune) bool        { return r == ' ' || r == '\t' || r == '\n' || r == '\r' }
