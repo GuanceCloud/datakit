@@ -8,7 +8,6 @@ import (
 
 	"github.com/tidwall/gjson"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 
 )
@@ -20,7 +19,7 @@ type ProFunc func(p *Procedure, node parser.Node) (*Procedure, error)
 
 var (
 	funcsMap = map[string]ProFunc{
-		"grok"       : grok.Grok,
+		"grok"       : Grok,
 		"rename"     : Rename   ,
 		"stringf"    : Stringf  ,
 		"cast"       : Cast     ,
