@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	SEPARATOR = "#"
+	SEPARATOR = "~"
 )
 
 var (
@@ -231,7 +231,7 @@ func (s *Shark) buildCommand() string {
 	}
 
 	// ip
-	if len(params.Stream.SrcIPs) > 0 {
+	if (len(params.Stream.SrcIPs) > 0) && (len(params.Stream.DstIPs) == 0) {
 		for _, srcIP := range params.Stream.SrcIPs {
 			srcIPFilterStr += "src host " + srcIP + " or "
 		}
@@ -240,13 +240,31 @@ func (s *Shark) buildCommand() string {
 		args = append(args, "-f", srcIPFilterStr)
 	}
 
-	if len(params.Stream.DstIPs) > 0 {
+	if (len(params.Stream.DstIPs) > 0) && (len(params.Stream.SrcIPs) == 0) {
 		for _, dstIP := range params.Stream.DstIPs {
 			dstIPFilterStr += "dst host " + dstIP + " or "
 		}
 		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
 		dstIPFilterStr = fmt.Sprintf("'%s'", dstIPFilterStr)
 		args = append(args, "-f", dstIPFilterStr)
+	}
+
+	if (len(params.Stream.DstIPs) > 0) && (len(params.Stream.SrcIPs) > 0) {
+		for _, srcIP := range params.Stream.SrcIPs {
+			srcIPFilterStr += "src host " + srcIP + " or "
+		}
+		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
+
+		for _, dstIP := range params.Stream.DstIPs {
+			dstIPFilterStr += "dst host " + dstIP + " or "
+		}
+
+		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
+
+
+		filterStr := fmt.Sprintf("'(%s) and (%s)'", srcIPFilterStr, dstIPFilterStr)
+
+		args = append(args, "-f", filterStr)
 	}
 
 	if len(params.Stream.Protocol) > 0 {
@@ -347,25 +365,27 @@ func (s *Shark) parseLine(line string) []byte {
 	}
 
 	for idx, item := range items {
-		field := protocol.CommonItems[idx]
+		if idx < len(protocol.CommonItems) {
+			field := protocol.CommonItems[idx]
 
-		if idx > 0 {
-			if field.Tag {
-				tags[field.Header] = item
-			} else {
-				if field.Type == "Int" {
-					if val, err := strconv.ParseInt(item, 10, 64); err == nil {
-						fields[field.Header] = val
-					}
+			if idx > 0 {
+				if field.Tag {
+					tags[field.Header] = item
 				} else {
-					fields[field.Header] = item
+					if field.Type == "Int" {
+						if val, err := strconv.ParseInt(item, 10, 64); err == nil {
+							fields[field.Header] = val
+						}
+					} else {
+						fields[field.Header] = item
+					}
 				}
-			}
-		} else {
-			if timestamp, err := strconv.ParseInt(item, 10, 64); err != nil {
-				tm = time.Now()
 			} else {
-				tm = time.Unix(timestamp, 0)
+				if timestamp, err := strconv.ParseInt(item, 10, 64); err != nil {
+					tm = time.Now()
+				} else {
+					tm = time.Unix(timestamp, 0)
+				}
 			}
 		}
 	}
