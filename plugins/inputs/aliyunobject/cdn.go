@@ -2,6 +2,7 @@ package aliyunobject
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -12,24 +13,28 @@ import (
 
 const (
 	cdnSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.cdn]
+	# ##(optional) ignore this object, default is false
+	#disable = false
 
-# ## @param - custom tags - [list of cdn DomainName] - optional
-#domainNames = []
+    # ##(optional) list of cdn DomainName
+    #domainNames = []
 
-# ## @param - custom tags - [list of excluded cdn exclude_domainNames] - optional
-#exclude_domainNames = []
-
-# ## @param - custom tags for cdn object - [list of key:value element] - optional
-#[inputs.aliyunobject.cdn.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded cdn exclude_domainNames
+    #exclude_domainNames = []
 `
 )
 
 type Cdn struct {
+	Disable            bool              `toml:"disable"`
 	Tags               map[string]string `toml:"tags,omitempty"`
 	DomainNames        []string          `toml:"domainNames,omitempty"`
 	ExcludeDomainNames []string          `toml:"exclude_domainNames,omitempty"`
+}
+
+func (e *Cdn) disabled() bool {
+	return e.Disable
 }
 
 func (e *Cdn) run(ag *objectAgent) {
@@ -65,7 +70,7 @@ func (e *Cdn) run(ag *objectAgent) {
 		req := cdn.CreateDescribeUserDomainsRequest()
 
 		for {
-			moduleLogger.Infof("pageNume %v, pagesize %v", pageNum, pageSize)
+			moduleLogger.Debugf("pageNume %v, pagesize %v", pageNum, pageSize)
 			if len(e.DomainNames) > 0 {
 				if pageNum <= len(e.DomainNames) {
 					req.DomainName = e.DomainNames[pageNum-1]
@@ -134,5 +139,9 @@ func (e *Cdn) handleResponse(resp *cdn.DescribeUserDomainsResponse, ag *objectAg
 		moduleLogger.Errorf("%s", err)
 		return
 	}
-	io.NamedFeed(data, io.Object, inputName)
+	if ag.isDebug() {
+		fmt.Printf("%s\n", string(data))
+	} else {
+		io.NamedFeed(data, io.Object, inputName)
+	}
 }
