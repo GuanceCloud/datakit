@@ -3,10 +3,10 @@ package process
 import (
 	"encoding/json"
 	"fmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/grok"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 	"io/ioutil"
 	"strings"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/grok"
 )
 const (
 	CONTENT = "__content"
@@ -213,7 +213,30 @@ func ParseScript(path string) ([]parser.Node, error) {
 		return nil, err
 	}
 
-	return parser.ParseFuncExpr(string(data))
+	nodes, err := parser.ParseFuncExpr(string(data))
+	for _, node := range nodes {
+		switch v := node.(type) {
+		case *parser.FuncExpr:
+			DebugNodesHelp(v, "")
+		default:
+
+		}
+	}
+
+	return nodes, err
+}
+
+func DebugNodesHelp(f *parser.FuncExpr, prev string)  {
+	l.Debugf("%v%v", prev, f.Name)
+
+	for _, node := range f.Param {
+		switch v := node.(type) {
+		case *parser.FuncExpr:
+			DebugNodesHelp(v, prev+"    ")
+		default:
+			l.Debugf("%v%v", prev+"    |", node)
+		}
+	}
 }
 
 func logStructed(data string) []byte {
