@@ -13,24 +13,28 @@ import (
 
 const (
 	redisSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.redis]
+    # ##(optional) ignore this object, default is false
+    #disable = false
+	
+    # ##(optional) list of redis instanceid
+    #instanceids = []
 
-# ## @param - [list of redis instanceid] - optional
-#instanceids = []
-
-# ## @param - [list of excluded redis instanceid] - optional
-#exclude_instanceids = []
-
-# ## @param - custom tags for redis object - [list of key:value element] - optional
-#[inputs.aliyunobject.redis.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded redis instanceid
+    #exclude_instanceids = []
 `
 )
 
 type Redis struct {
+	Disable            bool              `toml:"disable"`
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+}
+
+func (e *Redis) disabled() bool {
+	return e.Disable
 }
 
 func (e *Redis) run(ag *objectAgent) {
@@ -126,5 +130,9 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 		moduleLogger.Errorf("%s", err)
 		return
 	}
-	io.NamedFeed(data, io.Object, inputName)
+	if ag.isDebug() {
+		fmt.Printf("%s\n", string(data))
+	} else {
+		io.NamedFeed(data, io.Object, inputName)
+	}
 }

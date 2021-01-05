@@ -2,6 +2,7 @@ package aliyunobject
 
 import (
 	"context"
+	"reflect"
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -57,10 +58,19 @@ type objectAgent struct {
 
 	testResult *inputs.TestResult
 	testError  error
-
 }
 
 func (ag *objectAgent) addModule(m subModule) {
+	if m == nil {
+		return
+	}
+	v := reflect.ValueOf(m)
+	if v.IsNil() {
+		return
+	}
+	if m.disabled() {
+		return
+	}
 	ag.subModules = append(ag.subModules, m)
 }
 
