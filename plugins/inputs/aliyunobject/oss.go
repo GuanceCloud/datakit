@@ -12,26 +12,28 @@ import (
 
 const (
 	ossSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.oss]
+    # ##(optional) ignore this object, default is false
+    #disable = false
 
-# ## @param - [list of oss buckets] - optional
-#buckets = []
+    # ##(optional) list of oss buckets
+    #buckets = []
 
-# ## @param - [list of excluded oss instanceid] - optional
-
-#exclude_buckets = []
-
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.oss.tags]
-# key1 = 'val1'
-
+	# ##(optional) list of excluded oss instanceid
+    #exclude_buckets = []
 `
 )
 
 type Oss struct {
+	Disable        bool              `toml:"disable"`
 	Tags           map[string]string `toml:"tags,omitempty"`
 	Buckets        []string          `toml:"buckets,omitempty"`
 	ExcludeBuckets []string          `toml:"exclude_buckets,omitempty"`
+}
+
+func (o *Oss) disabled() bool {
+	return o.Disable
 }
 
 func (o *Oss) run(ag *objectAgent) {
@@ -162,5 +164,9 @@ func (o *Oss) handleResponse(lsRes *oss.ListBucketsResult, ag *objectAgent) {
 		moduleLogger.Errorf("%s", err)
 		return
 	}
-	io.NamedFeed(data, io.Object, inputName)
+	if ag.isDebug() {
+		fmt.Printf("%s\n", string(data))
+	} else {
+		io.NamedFeed(data, io.Object, inputName)
+	}
 }
