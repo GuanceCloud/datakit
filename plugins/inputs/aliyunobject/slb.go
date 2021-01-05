@@ -14,24 +14,28 @@ import (
 
 const (
 	slbSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.slb]
+    # ##(optional) ignore this object, default is false
+    #disable = false
 
-# ## @param - [list of slb instanceid] - optional
-#instanceids = ['']
+    # ##(optional) list of slb instanceid
+    #instanceids = ['']
 
-# ## @param - [list of excluded slb instanceid] - optional
-#exclude_instanceids = ['']
-
-# ## @param - custom tags for slb object - [list of key:value element] - optional
-#[inputs.aliyunobject.slb.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded slb instanceid
+    #exclude_instanceids = ['']
 `
 )
 
 type Slb struct {
+	Disable            bool              `toml:"disable"`
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+}
+
+func (s *Slb) disabled() bool {
+	return s.Disable
 }
 
 func (s *Slb) run(ag *objectAgent) {
@@ -131,17 +135,16 @@ func (s *Slb) handleResponse(resp *slb.DescribeLoadBalancersResponse, ag *object
 	}
 
 	data, err := json.Marshal(&objs)
-	if err == nil {
-		if ag.isTest() {
-			ag.testResult.Result = append(ag.testResult.Result, data...)
-		} else {
-			io.NamedFeed(data, io.Object, inputName)
-		}
-	} else {
 	if err != nil {
 		moduleLogger.Errorf("%s", err)
 		return
 	}
-	io.NamedFeed(data, io.Object, inputName)
+
+	if ag.isTest() {
+		ag.testResult.Result = append(ag.testResult.Result, data...)
+	} else if ag.isDebug() {
+		fmt.Printf("%s\n", string(data))
+	} else {
+		io.NamedFeed(data, io.Object, inputName)
 	}
 }
