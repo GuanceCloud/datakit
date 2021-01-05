@@ -20,6 +20,14 @@ type Node interface {
 	Pos() *PositionRange
 }
 
+type Identifier struct { // impl Expr
+	Name string
+}
+
+func (e *Identifier) String() string      { return "id("+e.Name+")" }
+func (e *Identifier) Pos() *PositionRange { return nil } // TODO
+
+
 type NumberLiteral struct {
 	IsInt bool
 	Float float64
@@ -69,8 +77,8 @@ type Jspath struct {
 	Jspath string
 }
 
-func (e *Jspath) String() string      { return fmt.Sprintf("re('%s')", e.Regex) }
-func (e *Jspath) Pos() *PositionRange { return nil } // TODO
+func (j *Jspath) String() string      { return fmt.Sprintf("jp('%s')", j.Jspath) }
+func (j *Jspath) Pos() *PositionRange { return nil } // TODO
 
 type ParenExpr struct {
 	Param Node
