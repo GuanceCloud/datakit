@@ -1,4 +1,4 @@
-package grok
+package process
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"github.com/tidwall/gjson"
 	vgrok "github.com/vjeantet/grok"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 )
 
@@ -15,7 +14,7 @@ var (
 	grokCfg *vgrok.Grok
 )
 
-func Grok(p *process.Procedure, node parser.Node) (*process.Procedure, error) {
+func Grok(p *Procedure, node parser.Node) (*Procedure, error) {
 	filedName := "__content"
 
 	funcExpr := node.(*parser.FuncExpr)
