@@ -6,33 +6,42 @@ import (
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ons"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
 	onsSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.rocketmq]
+    # ##(optional) ignore this object, default is false
+    #disable = false
 
-# ## @param - [list of rocketmq instanceid] - optional
-#instanceids = []
+    # ##(optional) list of rocketmq instanceid
+    #instanceids = []
 
-# ## @param - [list of excluded rocketmq instanceid] - optional
-#exclude_instanceids = []
-
-# ## @param - custom tags for rocketmq object - [list of key:value element] - optional
-#[inputs.aliyunobject.rocketmq.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded rocketmq instanceid
+    #exclude_instanceids = []
 `
 )
 
 type Ons struct {
+	Disable            bool              `toml:"disable"`
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
 }
 
+func (r *Ons) disabled() bool {
+	return r.Disable
+}
+
 func (r *Ons) run(ag *objectAgent) {
+	if r.disabled() {
+		return
+	}
+
 	var cli *ons.Client
 	var err error
 
@@ -61,14 +70,13 @@ func (r *Ons) run(ag *objectAgent) {
 		}
 
 		req := ons.CreateOnsInstanceInServiceListRequest()
-		moduleLogger.Debugf("%+#v", req)
 
 		resp, err := cli.OnsInstanceInServiceList(req)
 
 		if err == nil {
 			r.handleResponse(resp, ag)
 		} else {
-			moduleLogger.Errorf("%s", err)
+			moduleLogger.Errorf("ons object: %s", err)
 		}
 
 		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
@@ -99,5 +107,9 @@ func (r *Ons) handleResponse(resp *ons.OnsInstanceInServiceListResponse, ag *obj
 		moduleLogger.Errorf("%s", err)
 		return
 	}
-	io.NamedFeed(data, io.Object, inputName)
+	if ag.isDebug() {
+		fmt.Printf("%s\n", string(data))
+	} else {
+		io.NamedFeed(data, io.Object, inputName)
+	}
 }
