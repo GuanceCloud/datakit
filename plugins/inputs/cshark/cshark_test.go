@@ -14,7 +14,7 @@ var msg = `
     "sync": true,
     "stream": {
         "protocol":"tcp",
-        "duration": "5m",
+        "duration": "10s",
         "port": ["3306"],
         "srcIP": ["127.0.0.1"],
         "dstIP": ["127.0.0.1"]
@@ -35,19 +35,19 @@ func TestRun(t *testing.T) {
 
 		time.Sleep(time.Second*10)
 
-		go func() {
-			if err := SendCmdOpt(msg); err != nil {
-			   fmt.Println("err", err)
-			}
-		}()
+		// go func() {
+		// 	if err := SendCmdOpt(msg); err != nil {
+		// 	   fmt.Println("err", err)
+		// 	}
+		// }()
 
-		time.Sleep(10*time.Second)
+		// time.Sleep(10*time.Second)
 
 		if err := SendCmdOpt(msg); err != nil {
 		   fmt.Println("err", err)
 		}
 
-		time.Sleep(10*time.Minute)
+		time.Sleep(1*time.Second)
 
 		t.Log("ok")
 	})
