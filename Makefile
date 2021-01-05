@@ -21,8 +21,8 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-#LOCAL_ARCHS = "windows/amd64|darwin/amd64|linux/amd64"
-LOCAL_ARCHS = "local"
+LOCAL_ARCHS = "windows/amd64|darwin/amd64|linux/amd64"
+# LOCAL_ARCHS = "local"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -35,7 +35,7 @@ UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 
 NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(VERSION))"}}')
 NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(VERSION))"}}')
-NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行DataKit CI，此刻请勿在CI分支(dev/master)提交代码，避免CI任务失败[摊手]"}}')
+NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支(dev/master)提交代码，以免 CI 任务失败"}}')
 
 ###################################
 # Detect telegraf update info
