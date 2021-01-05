@@ -115,8 +115,8 @@ func Expr(p *Procedure, node parser.Node) (*Procedure, error) {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	tag  := funcExpr.Param[0].(*parser.Identifier).Name
-	expr := funcExpr.Param[1].(*parser.BinaryExpr)
+	tag  := funcExpr.Param[1].(*parser.Identifier).Name
+	expr := funcExpr.Param[0].(*parser.BinaryExpr)
 
 	data := make(map[string]interface{})
 	if err := json.Unmarshal(p.Content, &data); err != nil {
