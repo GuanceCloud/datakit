@@ -21,8 +21,8 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-#LOCAL_ARCHS = "windows/amd64|darwin/amd64|linux/amd64"
-LOCAL_ARCHS = "local"
+LOCAL_ARCHS = "windows/amd64|darwin/amd64|linux/amd64"
+#LOCAL_ARCHS = "local"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -83,7 +83,7 @@ define pub
 endef
 
 lint:
-	@golangci-lint run | tee lint.err # https://golangci-lint.run/usage/install/#local-installation
+	@golangci-lint run --timeout 1h | tee check.err # https://golangci-lint.run/usage/install/#local-installation
 
 vet:
 	@go vet ./...
@@ -184,7 +184,7 @@ endef
 define build_ip2isp
 	rm -rf china-operator-ip
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
-	@go run cmd/make/genIsp.go
+	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
 endef
 
 .PHONY: agent
