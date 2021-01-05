@@ -168,7 +168,13 @@ function_arg: expr
 						{
 							$$ = $1
 						}
+						| identifier
+                        {
+                        	$$ = &Identifier{Name: $1.Val}
+                        }
 						;
+
+
 
 binary_expr: expr ADD expr
 					 {
