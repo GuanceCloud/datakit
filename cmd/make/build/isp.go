@@ -1,4 +1,4 @@
-package main
+package build
 
 import (
 	"bufio"
@@ -16,26 +16,27 @@ const (
 
 var (
     Ip2IspDb = map[string]string {
-%s    } 
+%s    }
 )
 `
 )
+
 var (
 	Ip2IspDb = map[string]string{}
 
 	IspValid = map[string]string{
-		"chinanet" : "中国电信",
-		"cmcc"     : "中国移动",
-		"unicom"   : "中国联通",
-		"tietong"  : "中国铁通",
-		"cernet"   : "教育网"  ,
-		"cstnet"   : "科技网"  ,
-		"drpeng"   : "鹏博士"  ,
-		"googlecn" : "谷歌中国",
+		"chinanet": "中国电信",
+		"cmcc":     "中国移动",
+		"unicom":   "中国联通",
+		"tietong":  "中国铁通",
+		"cernet":   "教育网",
+		"cstnet":   "科技网",
+		"drpeng":   "鹏博士",
+		"googlecn": "谷歌中国",
 	}
 )
 
-func genIspFile(inputDir, outputFile string) error {
+func GenIspFile(inputDir, outputFile string) error {
 	files, err := ioutil.ReadDir(inputDir)
 	if err != nil {
 		return err
@@ -73,11 +74,11 @@ func genIspFile(inputDir, outputFile string) error {
 			Ip2IspDb[ipBitStr] = IspValid[isp]
 		}
 	}
-	OutputFileFlush(outputFile)
+	outputFileFlush(outputFile)
 	return nil
 }
 
-func OutputFileFlush(outputFile string) {
+func outputFileFlush(outputFile string) {
 	tmp := ""
 	fd, err := os.Create(outputFile)
 	if err != nil {
@@ -92,11 +93,4 @@ func OutputFileFlush(outputFile string) {
 
 	content := fmt.Sprintf(Gen_template, tmp)
 	fd.WriteString(content)
-}
-
-func main() {
-	curDir, _ := os.Getwd()
-	inputDir   := filepath.Join(curDir, "china-operator-ip")
-	outputFile := filepath.Join(curDir, "process", "ip2isp", "ip2isp.go")
-	genIspFile(inputDir, outputFile)
 }
