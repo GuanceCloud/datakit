@@ -198,8 +198,8 @@ func (s *Shark) buildCommand() string {
 
 	// 控制参数
 	args = append(args,"-l")
-	for _, iface := range params.Device {
-		args = append(args, "-i", iface)
+	if len(params.Device) > 0 {
+		args = append(args, "-i", params.Device)
 	}
 
 	if len(params.Device) == 0 {
