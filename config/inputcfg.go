@@ -68,7 +68,6 @@ func LoadInputsConfig(c *datakit.Config) error {
 		if err != nil {
 			l.Warnf("[error] parse conf %s failed: %s, ignored", fp, err)
 			return nil
-
 		}
 
 		if len(tbl.Fields) == 0 {
@@ -82,7 +81,6 @@ func LoadInputsConfig(c *datakit.Config) error {
 		if _, ok := inputs.Inputs[fileName]; ok {
 			availableInput[fileName] = map[string]*ast.Table{fp: tbl}
 			return nil
-
 		}
 		if _, ok := tgi.TelegrafInputs[fileName]; ok {
 			availableTgiInput[fileName] = map[string]*ast.Table{fp: tbl}
