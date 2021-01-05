@@ -111,6 +111,31 @@ func Date(p *Procedure, node parser.Node) (*Procedure, error) {
 }
 
 func Expr(p *Procedure, node parser.Node) (*Procedure, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	}
+
+	tag  := funcExpr.Param[0].(*parser.Identifier).Name
+	expr := funcExpr.Param[1].(*parser.BinaryExpr)
+
+	data := make(map[string]interface{})
+	if err := json.Unmarshal(p.Content, &data); err != nil {
+		return p, err
+	}
+
+	if v, err := Calc(expr, p.Content); err != nil {
+		return p, err
+	} else {
+		data[tag] = v
+	}
+
+	if js, err := json.Marshal(data); err != nil {
+		return p, err
+	} else {
+		p.Content = js
+	}
+
 	return p, nil
 }
 
@@ -118,6 +143,10 @@ func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
 	outdata := make([]interface{}, 0)
 
 	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) < 2 {
+		return nil, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
+	}
+
 	tag  := funcExpr.Param[0].(*parser.StringLiteral).Val
 	fmts := funcExpr.Param[1].(*parser.StringLiteral).Val
 
