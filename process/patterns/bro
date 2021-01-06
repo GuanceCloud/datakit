@@ -1,0 +1,13 @@
+# https://www.bro.org/sphinx/script-reference/log-files.html
+
+# http.log
+_bro_http %{_number:ts}\t%{_notspace:uid}\t%{_ip:orig_h}\t%{_int:orig_p}\t%{_ip:resp_h}\t%{_int:resp_p}\t%{_int:trans_depth}\t%{_greedydata:method}\t%{_greedydata:domain}\t%{_greedydata:uri}\t%{_greedydata:referrer}\t%{_greedydata:user_agent}\t%{_number:request_body_len}\t%{_number:response_body_len}\t%{_greedydata:status_code}\t%{_greedydata:status_msg}\t%{_greedydata:info_code}\t%{_greedydata:info_msg}\t%{_greedydata:filename}\t%{_greedydata:bro_tags}\t%{_greedydata:username}\t%{_greedydata:password}\t%{_greedydata:proxied}\t%{_greedydata:orig_fuids}\t%{_greedydata:orig_mime_types}\t%{_greedydata:resp_fuids}\t%{_greedydata:resp_mime_types}
+
+# dns.log
+_bro_dns %{_number:ts}\t%{_notspace:uid}\t%{_ip:orig_h}\t%{_int:orig_p}\t%{_ip:resp_h}\t%{_int:resp_p}\t%{_word:proto}\t%{_int:trans_id}\t%{_greedydata:query}\t%{_greedydata:qclass}\t%{_greedydata:qclass_name}\t%{_greedydata:qtype}\t%{_greedydata:qtype_name}\t%{_greedydata:rcode}\t%{_greedydata:rcode_name}\t%{_greedydata:AA}\t%{_greedydata:TC}\t%{_greedydata:RD}\t%{_greedydata:RA}\t%{_greedydata:Z}\t%{_greedydata:answers}\t%{_greedydata:TTLs}\t%{_greedydata:rejected}
+
+# conn.log
+_bro_conn %{_number:ts}\t%{_notspace:uid}\t%{_ip:orig_h}\t%{_int:orig_p}\t%{_ip:resp_h}\t%{_int:resp_p}\t%{_word:proto}\t%{_greedydata:service}\t%{_number:duration}\t%{_number:orig_bytes}\t%{_number:resp_bytes}\t%{_greedydata:conn_state}\t%{_greedydata:local_orig}\t%{_greedydata:missed_bytes}\t%{_greedydata:history}\t%{_greedydata:orig_pkts}\t%{_greedydata:orig_ip_bytes}\t%{_greedydata:resp_pkts}\t%{_greedydata:resp_ip_bytes}\t%{_greedydata:tunnel_parents}
+
+# files.log
+_bro_files %{_number:ts}\t%{_notspace:fuid}\t%{_ip:tx_hosts}\t%{_ip:rx_hosts}\t%{_notspace:conn_uids}\t%{_greedydata:source}\t%{_greedydata:depth}\t%{_greedydata:analyzers}\t%{_greedydata:mime_type}\t%{_greedydata:filename}\t%{_greedydata:duration}\t%{_greedydata:local_orig}\t%{_greedydata:is_orig}\t%{_greedydata:seen_bytes}\t%{_greedydata:total_bytes}\t%{_greedydata:missing_bytes}\t%{_greedydata:overflow_bytes}\t%{_greedydata:timedout}\t%{_greedydata:parent_fuid}\t%{_greedydata:md5}\t%{_greedydata:sha1}\t%{_greedydata:sha256}\t%{_greedydata:extracted}
