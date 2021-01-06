@@ -46,3 +46,77 @@ func TestExprFunc(t *testing.T) {
 	r := gjson.GetBytes(p.Content, "bb")
 	assertEqual(t, r.String(), "45")
 }
+
+func TestCastFloat2IntFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+
+	script := `cast(bb, a.first, "int");`
+	nodes, err := parser.ParseFuncExpr(script)
+	assertEqual(t, err, nil)
+
+	p := NewProcedure(nil)
+	p = p.ProcessLog(js, nodes)
+	assertEqual(t, p.lastErr, nil)
+
+	r := gjson.GetBytes(p.Content, "bb")
+	assertEqual(t, r.String(), "2")
+}
+
+func TestCastInt2FloatFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+
+	script := `cast(bb, a.second, "float");`
+	nodes, err := parser.ParseFuncExpr(script)
+	assertEqual(t, err, nil)
+
+	p := NewProcedure(nil)
+	p = p.ProcessLog(js, nodes)
+	assertEqual(t, p.lastErr, nil)
+
+	r := gjson.GetBytes(p.Content, "bb")
+	assertEqual(t, r.String(), "2")
+}
+
+func TestStringfFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+
+	script := `stringf(bb, "%d %s %v", a.second, a.thrid, a.forth);`
+	nodes, err := parser.ParseFuncExpr(script)
+	assertEqual(t, err, nil)
+
+	p := NewProcedure(nil)
+	p = p.ProcessLog(js, nodes)
+	assertEqual(t, p.lastErr, nil)
+
+	r := gjson.GetBytes(p.Content, "bb")
+	assertEqual(t, r.String(), "2 abc true")
+}
+
+func TestScriptFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+
+	script := `rename(a.second, bb);
+expr(a.second*10+(2+3)*5, cc);
+cast(dd, a.first, "int");
+
+stringf(ee, "%d %s %v", a.second, a.thrid, a.forth)
+`
+	nodes, err := parser.ParseFuncExpr(script)
+	assertEqual(t, err, nil)
+
+	p := NewProcedure(nil)
+	p = p.ProcessLog(js, nodes)
+	assertEqual(t, p.lastErr, nil)
+
+	r := gjson.GetBytes(p.Content, "bb")
+	assertEqual(t, r.String(), "2")
+
+	r = gjson.GetBytes(p.Content, "cc")
+	assertEqual(t, r.String(), "45")
+
+	r = gjson.GetBytes(p.Content, "dd")
+	assertEqual(t, r.String(), "2")
+
+	r = gjson.GetBytes(p.Content, "ee")
+	assertEqual(t, r.String(), "2 abc true")
+}
