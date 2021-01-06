@@ -52,7 +52,7 @@ func (p *Procedure) ProcessLog(data string, nodes []parser.Node) *Procedure {
 
 			p, err = f(p, node)
 			if err != nil {
-				l.Errorf("ProcessLog %v: %v", v.Name, err)
+				l.Errorf("ProcessLog func %v: %v", v.Name, err)
 				p.lastErr = err
 				return p
 			}
