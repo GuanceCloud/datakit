@@ -151,6 +151,10 @@ func checkParam() error {
 		return fmt.Errorf("not support this protocol %s", params.Stream.Protocol)
 	}
 
+	if len(params.Stream.Duration) == 0 {
+		params.Stream.Duration = "1m"
+	}
+
 	// 时间check(todo)
 	du, err := time.ParseDuration(params.Stream.Duration)
 	if err != nil {
