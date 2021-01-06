@@ -12,8 +12,8 @@ package parser
 }
 
 %token <item> SEMICOLON COMMA COMMENT
-	EOF ERROR ID LEFT_PAREN NUMBER
-	RIGHT_PAREN SPACE STRING QUOTED_STRING
+	EOF ERROR ID LEFT_PAREN LEFT_BRACKET NUMBER
+	RIGHT_PAREN RIGHT_BRACKET SPACE STRING QUOTED_STRING
 
 // operator
 %token operatorsStart
@@ -47,6 +47,8 @@ AND OR NIL NULL RE JP
 %type<nodes> function_args  function_exprs
 
 %type <node>
+	array_elem
+	array_list
 	binary_expr
 	expr
 	function_arg
@@ -101,7 +103,7 @@ function_exprs: function_expr
 		 ;
 
 /* expression */
-expr:  columnref | string_literal| nil_literal | bool_literal | number_literal | regex | jpath | paren_expr | function_expr | binary_expr
+expr:  array_elem | regex | jpath | paren_expr | function_expr | binary_expr
 		;
 
 columnref: identifier
@@ -175,9 +177,34 @@ function_arg: expr
 						{
 							$$ = $1
 						}
+						| LEFT_BRACKET array_list RIGHT_BRACKET
+                        {
+                        	$$ = getFuncArgList($2.(NodeList))
+                        }
 						;
 
+array_list: array_list COMMA array_elem
+					{
+						nl := $$.(NodeList)
+						nl = append(nl, $3)
+						$$ = nl
+					}
+					| array_elem
+					{
+						$$ = NodeList{$1}
+					}
+					| /* empty */
+					{
+						$$ = NodeList{}
+					}
+					;
 
+array_elem: number_literal
+					| string_literal
+					| columnref
+					| nil_literal
+					| bool_literal
+					;
 
 binary_expr: expr ADD expr
 					 {
