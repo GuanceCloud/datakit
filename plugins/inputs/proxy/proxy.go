@@ -3,6 +3,7 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -87,21 +88,25 @@ func (d *Proxy) Run() {
 
 	d.enable = true
 
+	wsurl := datakit.Cfg.MainCfg.DataWay.BuildWSURL(datakit.Cfg.MainCfg)
+	wsurl.RawQuery = ""
+	server := &http.Server{Addr: d.WSBind, Handler: websocketproxy.NewProxy(wsurl)}
+	l.Infof("[info] starting WebSocket proxy on %s, remote: %s", d.WSBind, wsurl.String())
 	go func() {
-		wsurl := datakit.Cfg.MainCfg.DataWay.BuildWSURL(datakit.Cfg.MainCfg)
-		wsurl.RawQuery = ""
-
-		if err := http.ListenAndServe(d.WSBind, websocketproxy.NewProxy(wsurl)); err != nil {
-			l.Error(err)
+		if err := server.ListenAndServe(); err != nil {
+			l.Error(err.Error())
 			return
 		}
 	}()
-
 	l.Infof("proxy input started...")
 
 	select {
 	case <-datakit.Exit.Wait():
 		d.stop()
+		if err := server.Shutdown(context.Background()); err != nil {
+			l.Errorf("[error] shutdown websocket server: %s", err.Error())
+		}
+		l.Infof("[info] websocketproxy closed ")
 		return
 	}
 }
