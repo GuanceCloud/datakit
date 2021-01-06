@@ -1,0 +1,39 @@
+## These patterns were tested w/ haproxy-1.4.15
+
+## Documentation of the haproxy log formats can be found at the following links:
+## http://code.google.com/p/haproxy-docs/wiki/HTTPLogFormat
+## http://code.google.com/p/haproxy-docs/wiki/TCPLogFormat
+
+_haproxytime (?!<[0-9])%{_hour:haproxy_hour}:%{_minute:haproxy_minute}(?::%{_second:haproxy_second})(?![0-9])
+_haproxydate %{_monthday:haproxy_monthday}/%{_month:haproxy_month}/%{_year:haproxy_year}:%{_haproxytime:haproxy_time}.%{_int:haproxy_milliseconds}
+
+# Override these default patterns to parse out what is captured in your haproxy.cfg
+_haproxycapturedrequestheaders %{_data:captured_request_headers}
+_haproxycapturedresponseheaders %{_data:captured_response_headers}
+
+# Example:
+#  These haproxy config lines will add data to the logs that are captured
+#  by the patterns below. Place them in your custom patterns directory to
+#  override the defaults.
+#
+#  capture request header Host len 40
+#  capture request header X-Forwarded-For len 50
+#  capture request header Accept-Language len 50
+#  capture request header Referer len 200
+#  capture request header User-Agent len 200
+#
+#  capture response header Content-Type len 30
+#  capture response header Content-Encoding len 10
+#  capture response header Cache-Control len 200
+#  capture response header Last-Modified len 200
+#
+# _haproxycapturedrequestheaders %{_data:request_header_host}\|%{_data:request_header_x_forwarded_for}\|%{_data:request_header_accept_language}\|%{_data:request_header_referer}\|%{_data:request_header_user_agent}
+# _haproxycapturedresponseheaders %{_data:response_header_content_type}\|%{_data:response_header_content_encoding}\|%{_data:response_header_cache_control}\|%{_data:response_header_last_modified}
+
+# parse a haproxy 'httplog' line
+_haproxyhttpbase %{_ip:client_ip}:%{_int:client_port} \[%{_haproxydate:accept_date}\] %{_notspace:frontend_name} %{_notspace:backend_name}/%{_notspace:server_name} %{_int:time_request}/%{_int:time_queue}/%{_int:time_backend_connect}/%{_int:time_backend_response}/%{_notspace:time_duration} %{_int:http_status_code} %{_notspace:bytes_read} %{_data:captured_request_cookie} %{_data:captured_response_cookie} %{_notspace:termination_state} %{_int:actconn}/%{_int:feconn}/%{_int:beconn}/%{_int:srvconn}/%{_notspace:retries} %{_int:srv_queue}/%{_int:backend_queue} (\{%{_haproxycapturedrequestheaders}\})?( )?(\{%{_haproxycapturedresponseheaders}\})?( )?"(<BADREQ>|(%{_word:http_verb} (%{_uriproto:http_proto}://)?(?:%{_user:http_user}(?::[^@]*)?@)?(?:%{_urihost:http_host})?(?:%{_uripathparam:http_request})?( HTTP/%{_number:http_version})?))?"
+
+_haproxyhttp (?:%{_syslogtimestamp:syslog_timestamp}|%{_timestamp_iso8601:timestamp8601}) %{_iporhost:syslog_server} %{_syslogprog}: %{_haproxyhttpbase}
+
+# parse a haproxy 'tcplog' line
+_haproxytcp (?:%{_syslogtimestamp:syslog_timestamp}|%{_timestamp_iso8601:timestamp8601}) %{_iporhost:syslog_server} %{_syslogprog}: %{_ip:client_ip}:%{_int:client_port} \[%{_haproxydate:accept_date}\] %{_notspace:frontend_name} %{_notspace:backend_name}/%{_notspace:server_name} %{_int:time_queue}/%{_int:time_backend_connect}/%{_notspace:time_duration} %{_notspace:bytes_read} %{_notspace:termination_state} %{_int:actconn}/%{_int:feconn}/%{_int:beconn}/%{_int:srvconn}/%{_notspace:retries} %{_int:srv_queue}/%{_int:backend_queue}
