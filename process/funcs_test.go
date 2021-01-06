@@ -63,6 +63,21 @@ func TestExprFunc(t *testing.T) {
 	assertEqual(t, r.String(), "45")
 }
 
+func TestExprFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"url":"abc","forth":true},"age":47}`
+
+	script := `urlencode(a.url, bb);`
+	nodes, err := parser.ParseFuncExpr(script)
+	assertEqual(t, err, nil)
+
+	p := NewProcedure(nil)
+	p = p.ProcessLog(js, nodes)
+	assertEqual(t, p.lastErr, nil)
+
+	r := gjson.GetBytes(p.Content, "bb")
+	assertEqual(t, r.String(), "45")
+}
+
 func TestCastFloat2IntFunc(t *testing.T) {
 	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
 
