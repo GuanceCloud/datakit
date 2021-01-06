@@ -1,0 +1,9 @@
+# JUNOS 11.4 RT_FLOW patterns
+_rt_flow_event (RT_FLOW_SESSION_CREATE|RT_FLOW_SESSION_CLOSE|RT_FLOW_SESSION_DENY)
+
+_rt_flow1 %{_rt_flow_event:event}: %{_greedydata:close-reason}: %{_ip:src-ip}/%{_int:src-port}->%{_ip:dst-ip}/%{_int:dst-port} %{_data:service} %{_ip:nat-src-ip}/%{_int:nat-src-port}->%{_ip:nat-dst-ip}/%{_int:nat-dst-port} %{_data:src-nat-rule-name} %{_data:dst-nat-rule-name} %{_int:protocol-id} %{_data:policy-name} %{_data:from-zone} %{_data:to-zone} %{_int:session-id} \d+\(%{_data:sent}\) \d+\(%{_data:received}\) %{_int:elapsed-time} .*
+
+_rt_flow2 %{_rt_flow_event:event}: session created %{_ip:src-ip}/%{_int:src-port}->%{_ip:dst-ip}/%{_int:dst-port} %{_data:service} %{_ip:nat-src-ip}/%{_int:nat-src-port}->%{_ip:nat-dst-ip}/%{_int:nat-dst-port} %{_data:src-nat-rule-name} %{_data:dst-nat-rule-name} %{_int:protocol-id} %{_data:policy-name} %{_data:from-zone} %{_data:to-zone} %{_int:session-id} .*
+
+_rt_flow3 %{_rt_flow_event:event}: session denied %{_ip:src-ip}/%{_int:src-port}->%{_ip:dst-ip}/%{_int:dst-port} %{_data:service} %{_int:protocol-id}\(\d\) %{_data:policy-name} %{_data:from-zone} %{_data:to-zone} .*
+
