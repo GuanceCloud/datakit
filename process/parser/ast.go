@@ -126,6 +126,38 @@ func (n Funcs) String() string {
 
 	return strings.Join(arr, "; ")
 }
+
+type NodeList []Node
+
+func (n NodeList) Pos() *PositionRange { return nil }
+func (n NodeList) String() string {
+	arr := []string{}
+	for _, arg := range n {
+		arr = append(arr, arg.String())
+	}
+	return strings.Join(arr, ", ")
+}
+
+type FuncArgList []Node
+
+func (n FuncArgList) Pos() *PositionRange { return nil }
+func (n FuncArgList) String() string {
+	arr := []string{}
+	for _, x := range n {
+		arr = append(arr, x.String())
+	}
+	return "[" + strings.Join(arr, ", ") + "]"
+}
+
+func getFuncArgList(nl NodeList) FuncArgList {
+	var res FuncArgList
+	for _, x := range nl {
+		res = append(res, x)
+	}
+	return res
+}
+
+
 var parserPool = sync.Pool{
 	New: func() interface{} {
 		return &parser{}
