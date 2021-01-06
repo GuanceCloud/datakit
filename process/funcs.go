@@ -93,10 +93,62 @@ func Rename(p *Procedure, node parser.Node) (*Procedure, error) {
 }
 
 func UserAgent(p *Procedure, node parser.Node) (*Procedure, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	}
+
+	field := funcExpr.Param[0].(*parser.Identifier).Name
+	tag  := funcExpr.Param[1].(*parser.Identifier).Name
+
+	data := make(map[string]interface{})
+	if err := json.Unmarshal(p.Content, &data); err != nil {
+		return p, err
+	}
+
+	rst := gjson.GetBytes(p.Content, field).String()
+	if v, err := UserAgent(rst, p.Content); err != nil {
+		return p, err
+	} else {
+		data[tag] = v
+	}
+
+	if js, err := json.Marshal(data); err != nil {
+		return p, err
+	} else {
+		p.Content = js
+	}
+
 	return p, nil
 }
 
 func UrlDecode(p *Procedure, node parser.Node) (*Procedure, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	}
+
+	field := funcExpr.Param[0].(*parser.Identifier).Name
+	tag  := funcExpr.Param[1].(*parser.Identifier).Name
+
+	data := make(map[string]interface{})
+	if err := json.Unmarshal(p.Content, &data); err != nil {
+		return p, err
+	}
+
+	rst := gjson.GetBytes(p.Content, field).String()
+	if v, err := urldecode(rst, p.Content); err != nil {
+		return p, err
+	} else {
+		data[tag] = v
+	}
+
+	if js, err := json.Marshal(data); err != nil {
+		return p, err
+	} else {
+		p.Content = js
+	}
+
 	return p, nil
 }
 
