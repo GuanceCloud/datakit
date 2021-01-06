@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -39,6 +40,7 @@ var (
 
 	stopCh   = make(chan interface{})
 	stopOkCh = make(chan interface{})
+	mtx      = sync.Mutex{}
 )
 
 func Start(bind string) {
@@ -88,7 +90,7 @@ func ReloadDatakit() error {
 		defer datakit.WG.Done()
 		StartWS()
 	}()
-
+	resetHttpRoute()
 	l.Info("reloading inputs...")
 	if err := inputs.RunInputs(); err != nil {
 		l.Error("error running inputs: %v", err)
