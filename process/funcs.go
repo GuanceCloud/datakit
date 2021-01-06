@@ -146,7 +146,7 @@ func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
 		return nil, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
 	}
 
-	tag  := funcExpr.Param[0].(*parser.StringLiteral).Val
+	tag  := funcExpr.Param[0].(*parser.Identifier).Name
 	fmts := funcExpr.Param[1].(*parser.StringLiteral).Val
 
 	data := make(map[string]interface{})
