@@ -16,6 +16,22 @@ func assertEqual(t *testing.T, a, b interface{}) {
 	}
 }
 
+func TestGrokFunc(t *testing.T) {
+	js := `127.0.0.1 - - [23/Apr/2014:22:58:32 +0200] "GET /index.php HTTP/1.1" 404 207`
+	script := `grok("%{COMMONAPACHELOG}");`
+
+	nodes, err := parser.ParseFuncExpr(script)
+	assertEqual(t, err, nil)
+
+	p := NewProcedure(nil)
+	p = p.ProcessLog(js, nodes)
+	assertEqual(t, p.lastErr, nil)
+
+	r := gjson.GetBytes(p.Content, "clientip")
+	assertEqual(t, r.String(), "127.0.0.1")
+}
+
+
 func TestRenameFunc(t *testing.T) {
 	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
 
