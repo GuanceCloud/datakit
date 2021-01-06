@@ -12,7 +12,6 @@ var msg = `
 {
     "stream": {
         "protocol":"tcp",
-        "duration": "100s",
         "port": ["3306"],
         "srcIP": ["127.0.0.1"],
         "dstIP": ["127.0.0.1"]
