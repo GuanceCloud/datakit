@@ -1,0 +1,2 @@
+_ruby_loglevel (?:DEBUG|FATAL|ERROR|WARN|INFO)
+_ruby_logger [DFEWI], \[%{_timestamp_iso8601:timestamp} #%{_posint:pid}\] *%{_ruby_loglevel:loglevel} -- +%{_data:progname}: %{_greedydata:message}
