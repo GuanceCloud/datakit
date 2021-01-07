@@ -6,8 +6,9 @@ import (
 
 	vgrok "github.com/vjeantet/grok"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/patterns"
 )
 
 type Procedure struct {
@@ -78,9 +79,11 @@ func NewProcedure(script string) *Procedure {
 	if script != "" {
 		p.nodes, p.lastErr = ParseScript(script)
 	}
+	p.grok = grokCfg
 	return p
 }
 
 func init() {
-	GenScript()
+	patterns.MkPatternsFile()
+	LoadPatterns()
 }
