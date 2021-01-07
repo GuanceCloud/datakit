@@ -71,6 +71,8 @@ var (
 	ItemTypeStr = map[ItemType]string{
 		LEFT_PAREN:    "(",
 		RIGHT_PAREN:   ")",
+		LEFT_BRACKET:  "[",
+		RIGHT_BRACKET: "]",
 		COMMA:         ",",
 		EQ:            "=",
 		SEMICOLON:     ";",
@@ -286,6 +288,15 @@ func lexStatements(l *Lexer) stateFn {
 			return l.errorf("unexpected right parenthesis %q", r)
 		}
 		return lexStatements
+
+	case r == '[':
+		l.bracketDepth++
+		l.emit(LEFT_BRACKET)
+
+	case r == ']':
+		l.bracketDepth--
+		l.emit(RIGHT_BRACKET)
+
 
 	case r == eof:
 		if l.parenDepth != 0 {
