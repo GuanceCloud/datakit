@@ -4,7 +4,7 @@
 
 package patterns
 
-var GlobalPatterns = map[string][][2]string {
+var GlobalPatterns = map[string][][]string {
     "aws" : {
 		{"_s3_request_line", `(?:%{_word:verb} %{_notspace:request}(?: HTTP/%{_number:httpversion})?|%{_data:rawrequest})`},
 		{"_s3_access_log", `%{_word:owner} %{_notspace:bucket} \[%{_httpdate:timestamp}\] %{_ip:clientip} %{_notspace:requester} %{_notspace:request_id} %{_notspace:operation} %{_notspace:key} (?:"%{_s3_request_line}"|-) (?:%{_int:response:int}|-) (?:-|%{_notspace:error_code}) (?:%{_int:bytes:int}|-) (?:%{_int:object_size:int}|-) (?:%{_int:request_time_ms:int}|-) (?:%{_int:turnaround_time_ms:int}|-) (?:%{_qs:referrer}|-) (?:"?%{_qs:agent}"?|-) (?:-|%{_notspace:version_id})`},
