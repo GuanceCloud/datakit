@@ -1,0 +1,4 @@
+# Remember, these can be multi-line events.
+_mcollective ., \[%{_timestamp_iso8601:timestamp} #%{_posint:pid}\]%{_space}%{_loglevel:event_level}
+
+_mcollectiveaudit %{_timestamp_iso8601:timestamp}:
