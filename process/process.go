@@ -6,8 +6,8 @@ import (
 
 	vgrok "github.com/vjeantet/grok"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 )
 
 type Procedure struct {
