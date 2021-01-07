@@ -1,0 +1,16 @@
+_syslog5424printascii [!-~]+
+
+_syslogbase2 (?:%{_syslogtimestamp:timestamp}|%{_timestamp_iso8601:timestamp8601}) (?:%{_syslogfacility} )?%{_sysloghost:logsource}+(?: %{_syslogprog}:|)
+_syslogpamsession %{_syslogbase} (?=%{_greedydata:message})%{_word:pam_module}\(%{_data:pam_caller}\): session %{_word:pam_session_state} for user %{_username:username}(?: by %{_greedydata:pam_by})?
+
+_cron_action [A-Z ]+
+_cronlog %{_syslogbase} \(%{_user:user}\) %{_cron_action:action} \(%{_data:message}\)
+
+_syslogline %{_syslogbase2} %{_greedydata:message}
+
+# IETF 5424 syslog(8) format (see http://www.rfc-editor.org/info/rfc5424)
+_syslog5424pri <%{_nonnegint:syslog5424_pri}>
+_syslog5424sd \[%{_data}\]+
+_syslog5424base %{_syslog5424pri}%{_nonnegint:syslog5424_ver} +(?:%{_timestamp_iso8601:syslog5424_ts}|-) +(?:%{_hostname:syslog5424_host}|-) +(-|%{_syslog5424printascii:syslog5424_app}) +(-|%{_syslog5424printascii:syslog5424_proc}) +(-|%{_syslog5424printascii:syslog5424_msgid}) +(?:%{_syslog5424sd:syslog5424_sd}|-|)
+
+_syslog5424line %{_syslog5424base} +%{_greedydata:syslog5424_msg}
