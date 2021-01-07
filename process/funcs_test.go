@@ -24,7 +24,7 @@ func TestGrokFunc(t *testing.T) {
 	assertEqual(t, err, nil)
 
 	p := NewProcedure(nil)
-	p = p.ProcessLog(js, nodes)
+	p = p.ProcessText(js, nodes)
 	assertEqual(t, p.lastErr, nil)
 
 	r := gjson.GetBytes(p.Content, "clientip")
@@ -40,7 +40,7 @@ func TestRenameFunc(t *testing.T) {
 	assertEqual(t, err, nil)
 
 	p := NewProcedure(nil)
-	p = p.ProcessLog(js, nodes)
+	p = p.ProcessText(js, nodes)
 	assertEqual(t, p.lastErr, nil)
 
 	r := gjson.GetBytes(p.Content, "bb")
@@ -56,7 +56,7 @@ func TestExprFunc(t *testing.T) {
 	assertEqual(t, err, nil)
 
 	p := NewProcedure(nil)
-	p = p.ProcessLog(js, nodes)
+	p = p.ProcessText(js, nodes)
 	assertEqual(t, p.lastErr, nil)
 
 	r := gjson.GetBytes(p.Content, "bb")
@@ -86,7 +86,7 @@ func TestCastFloat2IntFunc(t *testing.T) {
 	assertEqual(t, err, nil)
 
 	p := NewProcedure(nil)
-	p = p.ProcessLog(js, nodes)
+	p = p.ProcessText(js, nodes)
 	assertEqual(t, p.lastErr, nil)
 
 	r := gjson.GetBytes(p.Content, "bb")
@@ -101,7 +101,7 @@ func TestCastInt2FloatFunc(t *testing.T) {
 	assertEqual(t, err, nil)
 
 	p := NewProcedure(nil)
-	p = p.ProcessLog(js, nodes)
+	p = p.ProcessText(js, nodes)
 	assertEqual(t, p.lastErr, nil)
 
 	r := gjson.GetBytes(p.Content, "bb")
@@ -116,7 +116,7 @@ func TestStringfFunc(t *testing.T) {
 	assertEqual(t, err, nil)
 
 	p := NewProcedure(nil)
-	p = p.ProcessLog(js, nodes)
+	p = p.ProcessText(js, nodes)
 	assertEqual(t, p.lastErr, nil)
 
 	r := gjson.GetBytes(p.Content, "bb")
@@ -136,7 +136,7 @@ stringf(ee, "%d %s %v", a.second, a.thrid, a.forth)
 	assertEqual(t, err, nil)
 
 	p := NewProcedure(nil)
-	p = p.ProcessLog(js, nodes)
+	p = p.ProcessText(js, nodes)
 	assertEqual(t, p.lastErr, nil)
 
 	r := gjson.GetBytes(p.Content, "bb")
