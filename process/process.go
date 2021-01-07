@@ -79,9 +79,11 @@ func NewProcedure(script string) *Procedure {
 	if script != "" {
 		p.nodes, p.lastErr = ParseScript(script)
 	}
+	p.grok = grokCfg
 	return p
 }
 
 func init() {
 	patterns.MkPatternsFile()
+	LoadPatterns()
 }
