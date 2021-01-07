@@ -1,0 +1,3 @@
+# Default postgresql pg_log format pattern
+_postgresql %{_datestamp:timestamp} %{_tz} %{_data:user_id} %{_greedydata:connection_id} %{_posint:pid}
+
