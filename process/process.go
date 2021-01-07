@@ -1,17 +1,21 @@
 package process
 
 import (
-	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"fmt"
+	"strings"
 
+	vgrok "github.com/vjeantet/grok"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/geo"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/ip2isp"
 )
 
 type Procedure struct {
-	*influxdb.Point
 	Content   []byte
 	lastErr   error
+	patterns  map[string]string    //存放自定义patterns
+	nodes     []parser.Node
+	grok      *vgrok.Grok
 }
 
 var (
@@ -22,57 +26,57 @@ func (p *Procedure) LastError() error {
 	return p.lastErr
 }
 
-func (p *Procedure) GetPoint() *influxdb.Point {
-	return p.Point
-}
-
-func (p *Procedure) GetByte() []byte {
-	if p.Point != nil {
-		return []byte(p.Point.String())
-	}
+func (p *Procedure) GetContentByte() []byte {
 	return p.Content
 }
 
-func (p *Procedure) GetString() string {
-	if p.Point != nil {
-		p.Point.String()
-	}
-
+func (p *Procedure) GetContentStr() string {
 	return string(p.Content)
 }
 
-func NewProcedure(pt *influxdb.Point) *Procedure {
-	return &Procedure{
-		Point: pt,
-	}
+func (p *Procedure) GetSubContent(id string) interface{} {
+	return getContentById(p.Content, id)
 }
 
-func (p *Procedure) Geo(ip string) *Procedure {
+func (p *Procedure) ProcessText(data string) *Procedure {
+	var err error
+
 	if p.lastErr != nil {
 		return p
 	}
 
-	ipLocInfo, err := geo.Geo(ip)
-	if err != nil {
-		l.Errorf("Geo err: %v", err)
-	} else {
-		tags := p.Tags()
-		tags["isp"] = ip2isp.SearchIsp(ip)
-		tags["country"] = ipLocInfo.Country_short
-		tags["province"] = ipLocInfo.Region
-		tags["city"] = ipLocInfo.City
+	p.Content = logStructed(data)
 
-		f, _ := p.Point.Fields()
-		f["ip"] = ip
+	for _, node := range p.nodes {
+		switch v := node.(type) {
+		case *parser.FuncExpr:
+			fn := strings.ToLower(v.Name)
+			f, ok := funcsMap[fn]
+			if !ok {
+				err := fmt.Errorf("unsupported func: %v", v.Name)
+				l.Error(err)
+				p.lastErr = err
+				return p
+			}
 
-		newPoint, err := influxdb.NewPoint(p.Point.Name(), tags, f, p.Time())
-		if err != nil {
-			p.lastErr = err
-		} else {
-			p.Point = newPoint
+			p, err = f(p, node)
+			if err != nil {
+				l.Errorf("ProcessLog func %v: %v", v.Name, err)
+				p.lastErr = err
+				return p
+			}
+
+		default:
+			p.lastErr = fmt.Errorf("%v not function", v.String())
 		}
+	}
+	return p
+}
 
-		l.Debugf("%v %v", ip, p.String())
+func NewProcedure(script string) *Procedure {
+	p := &Procedure{}
+	if script != "" {
+		p.nodes, p.lastErr = ParseScript(script)
 	}
 	return p
 }
