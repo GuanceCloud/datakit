@@ -8,6 +8,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/patterns"
 )
 
 type Procedure struct {
@@ -82,5 +83,5 @@ func NewProcedure(script string) *Procedure {
 }
 
 func init() {
-	GenScript()
+	patterns.MkPatternsFile()
 }
