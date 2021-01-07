@@ -2,11 +2,12 @@ package process
 
 import (
 	"encoding/json"
-	"fmt"
+	"path/filepath"
 
 	"github.com/tidwall/gjson"
 	vgrok "github.com/vjeantet/grok"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 )
 
@@ -24,7 +25,7 @@ func Grok(p *Procedure, node parser.Node) (*Procedure, error) {
 	}
 
 	value := gjson.GetBytes(p.Content, filedName)
-	m, err := grok(pattern, value.String())
+	m, err := p.grok.Parse(pattern, value.String())
 	if err != nil {
 		return p, err
 	}
@@ -47,17 +48,17 @@ func Grok(p *Procedure, node parser.Node) (*Procedure, error) {
     return p, nil
 }
 
-func grok(pattern, text string) (map[string]string, error){
-	if grokCfg == nil {
-		return nil, fmt.Errorf("grok nil")
-	}
-	return grokCfg.Parse(pattern, text)
-}
+func LoadPatterns() {
+	g, err := vgrok.NewWithConfig(&vgrok.Config{
+		NamedCapturesOnly: true,
+		PatternsDir:[]string{
+			filepath.Join(datakit.InstallDir, "pattern"),
+		},
+	})
 
-func init() {
-	g, err := vgrok.NewWithConfig(&vgrok.Config{NamedCapturesOnly: true})
 	if err != nil {
-		fmt.Printf("grok init err: %v", err)
+		l.Errorf("grok init err: %v", err)
 	}
+
 	grokCfg = g
 }
