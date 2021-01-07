@@ -1,3 +1,0 @@
-_redistimestamp %{_monthday} %{_month} %{_time}
-_redislog \[%{_posint:pid}\] %{_redistimestamp:timestamp} \* 
-
