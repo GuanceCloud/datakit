@@ -36,11 +36,7 @@ func GenScript() {
 }
 
 func CreateScriptIfNeed(name, content string) error {
-	_, err := os.Stat(name)
-	if err == nil {
-		return nil
-	}
-	if os.IsNotExist(err) {
+	if !isDirOrFileExit(name) {
 		return ioutil.WriteFile(name, []byte(content), 0666)
 	}
 	return nil
@@ -48,12 +44,19 @@ func CreateScriptIfNeed(name, content string) error {
 }
 
 func CreateDirIfNeed(dir string) error {
-	_, err := os.Stat(dir)
-	if err == nil {
-		return nil
-	}
-	if os.IsNotExist(err) {
+	if !isDirOrFileExit(dir) {
 		return os.MkdirAll(dir, 0666)
 	}
 	return nil
+}
+
+func isDirOrFileExit(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
 }
