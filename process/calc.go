@@ -3,8 +3,6 @@ package process
 import (
 	"fmt"
 
-	"github.com/tidwall/gjson"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 )
 
@@ -38,9 +36,7 @@ func Calc(expr interface{}, content []byte) (interface{}, error) {
 		}
 
 	case *parser.Identifier:
-		name := v.Name
-		rst := gjson.GetBytes(content, name)
-		return getGjsonRst(&rst), nil
+		return getContentById(content, v.Name), nil
 
 	default:
 		return nil, fmt.Errorf("unsupported Expr %v", v)
