@@ -17,7 +17,7 @@ const (
 
 package patterns
 
-var GlobalPatterns = map[string][][2]string {
+var GlobalPatterns = map[string][][]string {
 `
 	fileTailer = `}`
 
