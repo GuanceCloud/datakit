@@ -8,10 +8,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 )
 
-
 func Calc(expr interface{}, content []byte) (interface{}, error) {
-    if expr == nil {
-    	return nil, nil
+	if expr == nil {
+		return nil, nil
 	}
 
 	switch v := expr.(type) {
@@ -83,7 +82,7 @@ func binaryOp(lv, rv interface{}, opCode int) (val interface{}, err error) {
 	case parser.NEQ:
 		val, err = binaryNeq(lv, rv)
 
-    //逻辑运算
+		//逻辑运算
 	case parser.AND:
 		val, err = binaryAnd(lv, rv)
 	case parser.OR:
@@ -101,11 +100,11 @@ func binaryAdd(lv, rv interface{}) (interface{}, error) {
 	case int64:
 		switch v2 := rv.(type) {
 		case int64:
-			return v1+v2, nil
+			return v1 + v2, nil
 		case uint64:
-			return v1+int64(v2), nil
+			return v1 + int64(v2), nil
 		case float64:
-			return float64(v1)+v2, nil
+			return float64(v1) + v2, nil
 		default:
 			return nil, err
 		}
@@ -113,11 +112,11 @@ func binaryAdd(lv, rv interface{}) (interface{}, error) {
 	case uint64:
 		switch v2 := rv.(type) {
 		case int64:
-			return int64(v1)+v2, nil
+			return int64(v1) + v2, nil
 		case uint64:
-			return v1+v2, nil
+			return v1 + v2, nil
 		case float64:
-			return float64(v1)+v2, nil
+			return float64(v1) + v2, nil
 		default:
 			return nil, err
 		}
@@ -125,11 +124,11 @@ func binaryAdd(lv, rv interface{}) (interface{}, error) {
 	case float64:
 		switch v2 := rv.(type) {
 		case int64:
-			return v1+float64(v2), nil
+			return v1 + float64(v2), nil
 		case uint64:
-			return v1+float64(v2), nil
+			return v1 + float64(v2), nil
 		case float64:
-			return v1+v2, nil
+			return v1 + v2, nil
 		default:
 			return nil, err
 		}
@@ -145,11 +144,11 @@ func binarySub(lv, rv interface{}) (interface{}, error) {
 	case int64:
 		switch v2 := rv.(type) {
 		case int64:
-			return v1-v2, nil
+			return v1 - v2, nil
 		case uint64:
-			return v1-int64(v2), nil
+			return v1 - int64(v2), nil
 		case float64:
-			return float64(v1)-v2, nil
+			return float64(v1) - v2, nil
 		default:
 			return nil, err
 		}
@@ -157,11 +156,11 @@ func binarySub(lv, rv interface{}) (interface{}, error) {
 	case uint64:
 		switch v2 := rv.(type) {
 		case int64:
-			return int64(v1)-v2, nil
+			return int64(v1) - v2, nil
 		case uint64:
-			return v1-v2, nil
+			return v1 - v2, nil
 		case float64:
-			return float64(v1)-v2, nil
+			return float64(v1) - v2, nil
 		default:
 			return nil, err
 		}
@@ -169,11 +168,11 @@ func binarySub(lv, rv interface{}) (interface{}, error) {
 	case float64:
 		switch v2 := rv.(type) {
 		case int64:
-			return v1-float64(v2), nil
+			return v1 - float64(v2), nil
 		case uint64:
-			return v1-float64(v2), nil
+			return v1 - float64(v2), nil
 		case float64:
-			return v1-v2, nil
+			return v1 - v2, nil
 		default:
 			return nil, err
 		}
@@ -189,11 +188,11 @@ func binaryMul(lv, rv interface{}) (interface{}, error) {
 	case int64:
 		switch v2 := rv.(type) {
 		case int64:
-			return v1*v2, nil
+			return v1 * v2, nil
 		case uint64:
-			return v1*int64(v2), nil
+			return v1 * int64(v2), nil
 		case float64:
-			return float64(v1)*v2, nil
+			return float64(v1) * v2, nil
 		default:
 			return nil, err
 		}
@@ -201,11 +200,11 @@ func binaryMul(lv, rv interface{}) (interface{}, error) {
 	case uint64:
 		switch v2 := rv.(type) {
 		case int64:
-			return int64(v1)*v2, nil
+			return int64(v1) * v2, nil
 		case uint64:
-			return v1*v2, nil
+			return v1 * v2, nil
 		case float64:
-			return float64(v1)*v2, nil
+			return float64(v1) * v2, nil
 		default:
 			return nil, err
 		}
@@ -213,11 +212,11 @@ func binaryMul(lv, rv interface{}) (interface{}, error) {
 	case float64:
 		switch v2 := rv.(type) {
 		case int64:
-			return v1*float64(v2), nil
+			return v1 * float64(v2), nil
 		case uint64:
-			return v1*float64(v2), nil
+			return v1 * float64(v2), nil
 		case float64:
-			return v1*v2, nil
+			return v1 * v2, nil
 		default:
 			return nil, err
 		}
@@ -233,11 +232,11 @@ func binaryDiv(lv, rv interface{}) (interface{}, error) {
 	case int64:
 		switch v2 := rv.(type) {
 		case int64:
-			return v1/v2, nil
+			return v1 / v2, nil
 		case uint64:
-			return v1/int64(v2), nil
+			return v1 / int64(v2), nil
 		case float64:
-			return float64(v1)/v2, nil
+			return float64(v1) / v2, nil
 		default:
 			return nil, err
 		}
@@ -245,11 +244,11 @@ func binaryDiv(lv, rv interface{}) (interface{}, error) {
 	case uint64:
 		switch v2 := rv.(type) {
 		case int64:
-			return int64(v1)/v2, nil
+			return int64(v1) / v2, nil
 		case uint64:
-			return v1/v2, nil
+			return v1 / v2, nil
 		case float64:
-			return float64(v1)/v2, nil
+			return float64(v1) / v2, nil
 		default:
 			return nil, err
 		}
@@ -257,11 +256,11 @@ func binaryDiv(lv, rv interface{}) (interface{}, error) {
 	case float64:
 		switch v2 := rv.(type) {
 		case int64:
-			return v1/float64(v2), nil
+			return v1 / float64(v2), nil
 		case uint64:
-			return v1/float64(v2), nil
+			return v1 / float64(v2), nil
 		case float64:
-			return v1/v2, nil
+			return v1 / v2, nil
 		default:
 			return nil, err
 		}
@@ -277,11 +276,11 @@ func binaryMod(lv, rv interface{}) (interface{}, error) {
 	case int64:
 		switch v2 := rv.(type) {
 		case int64:
-			return v1%v2, nil
+			return v1 % v2, nil
 		case uint64:
-			return v1%int64(v2), nil
+			return v1 % int64(v2), nil
 		case float64:
-			return v1%int64(v2), nil
+			return v1 % int64(v2), nil
 		default:
 			return nil, err
 		}
@@ -289,11 +288,11 @@ func binaryMod(lv, rv interface{}) (interface{}, error) {
 	case uint64:
 		switch v2 := rv.(type) {
 		case int64:
-			return int64(v1)%v2, nil
+			return int64(v1) % v2, nil
 		case uint64:
-			return v1%v2, nil
+			return v1 % v2, nil
 		case float64:
-			return int64(v1)%int64(v2), nil
+			return int64(v1) % int64(v2), nil
 		default:
 			return nil, err
 		}
@@ -301,11 +300,11 @@ func binaryMod(lv, rv interface{}) (interface{}, error) {
 	case float64:
 		switch v2 := rv.(type) {
 		case int64:
-			return int64(v1)%v2, nil
+			return int64(v1) % v2, nil
 		case uint64:
-			return int64(v1)%int64(v2), nil
+			return int64(v1) % int64(v2), nil
 		case float64:
-			return int64(v1)%int64(v2), nil
+			return int64(v1) % int64(v2), nil
 		default:
 			return nil, err
 		}
