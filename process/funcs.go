@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"os"
 
 	"github.com/tidwall/gjson"
 
@@ -344,7 +345,9 @@ func GroupIn(p *Procedure, node parser.Node) (*Procedure, error) {
 
 func ParseScript(scriptOrPath string) ([]parser.Node, error) {
 	data := scriptOrPath
-	if isDirOrFileExit(scriptOrPath) {
+
+	_, err := os.Stat(scriptOrPath)
+	if err ==  nil || !os.IsNotExist(err){
 		cont, err := ioutil.ReadFile(scriptOrPath)
 		if err != nil {
 			return nil, err
