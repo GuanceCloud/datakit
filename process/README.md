@@ -38,294 +38,223 @@
 
 - 数据类型：支持浮点（`123.4`, `5.67E3`）、整形（`123`, `-1`）、字符串（`'张三'`, `"hello world"`）、Boolean（`true`, `false`）四种类型
 
-## 函数
+
+## sdk使用
+
+用法：
+- 加载函数处理脚本
+procedure = NewProcedure(script)
+通过函数传入函数处理表达式脚本文件或脚本字符串, 注意在编写函数表示式时，通过分号分割，支持多行
+
+- 文本处理
+procedure.ProcessText(data)
+
+- 获取结果
+procedure.GetContentByte()
+
+## 脚本函数
 
 支持的处理函数
 
-函数: json_data = grok([grok_parttern],[json_path]=content)
-说明: 将对应json_path的字符串执行Grok，并成为用户指定tag结构中的子结构。
+函数: grok([grok_parttern], [json_path])
+
+参数:
+- `grok_parttern`: grok表达式 (必选参数)
+- `json_path`: 待处理数据的json_path (选填参数)
+
+说明: 将对应json_path的字符串执行Grok，并成为json_data子结构
+
 示例:
+```
+json_data = `{"content": "127.0.0.1 - - [23/Apr/2014:22:58:32 +0200] "GET /index.php HTTP/1.1" 404 207", "app": "dev"}`
+grok("%{COMMONAPACHELOG}", content);
+```
 
+函数: rename(json_path], [new_key])
 
-函数: tag =rename(oldtag)
-说明: 将结构中的原有tag改名为新的tag，支持json_path。
+参数:
+- `json_path`: 待改名的json_path (必选参数)
+- `new_key`: 新的key name  (必选参数)
 
-函数: tag = user_agent([json_path]=”“)
-说明: 提取user-agent中的浏览器，操作系统等信息，插入到tag下,如果json_path为空则读取当前的tag，下同。
+说明: 将结构中的原有key改名为新的new_key, 并成为json_data子结构
 
-函数: tag =urldecode([json_path]="")
-说明: 将对应字符串执行urldecode并赋值给tag
+示例:
+```
+json_data = `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+rename(a.second, bb);
+```
 
-函数: tag =geoip([json_path]="")
-说明: 将对应IP字符串获取响应地理信息，插入到tag下。比如tag是ip，则ip.country=china,ip.city=Shanghai
+函数: lowercase([json_path], [new_key])
 
-函数: tag =date("HH:MM:SS"，[json_path]="")
-说明: 将对应日期字段格式化为新的日期显示方式，并插入到tag下。
+参数:
+- `json_path`: 待处理数据的json_path (必选参数)
+- `new_key`: 新的key name  (必选参数)
 
-函数: tag =group("[0-200]:OK,[200-400]:Error"，[json_path]="")
-说明: 将对应的字段进行按条件分组赋值。
+说明: 将对应处理数据转化为小写，插入到new_key下,  并成为json_data子结构
 
-函数: tag = expr（"v/100",[json_path]="")
-说明: 将对应字段进行计算后，插入到tag下。
+示例:
+```
+json_data = `{"a":{"first":2.3,"second":2,"thrid":"ABC","forth":true},"age":47}`
+lowercase(a.thrid, bb);
+```
 
-函数: tag = stringf(" %s is %s",[json_path],[json_path]....)
+函数: uppercase([json_path], [new_key])
+
+参数:
+- `json_path`: 待处理数据的json_path (必选参数)
+- `new_key`: 新的key name  (必选参数)
+
+说明: 将对应处理数据转化为大写，插入到new_key下,  并成为json_data子结构
+
+示例:
+```
+json_data = `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+uppercase(a.thrid, bb);
+```
+
+函数: nullif([json_path], [range])
+
+参数:
+- `json_path`: 待处理数据的json_path (必选参数)
+- `new_key`: 新的key name  (必选参数)
+
+说明: 将对应处理数据转化为大写，插入到new_key下,  并成为json_data子结构
+
+示例:
+```
+json_data = `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+nullif(a.second, bb);
+```
+
+函数: user_agent([json_path], [new_key])
+
+参数:
+- `json_path`: 待处理数据的json_path (必选参数)
+- `new_key`: 新的key name  (必选参数)
+
+说明: 提取user-agent中的信息，插入到new_key下,  并成为json_data子结构
+
+示例:
+```
+json_data = `{"userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.2 (KHTML, like Gecko) Ubuntu/11.10 Chromium/15.0.874.106 Chrome/15.0.874.106 Safari/535.2"}`
+user_agent(userAgent, user_agent);
+```
+
+函数: urldecode([json_path], [new_key])
+
+参数:
+- `json_path`: 待处理数据的json_path (必选参数)
+- `new_key`: 新的key name  (必选参数)
+
+说明: 将对应字符串执行urldecode，插入到new_key下,  并成为json_data子结构
+
+示例:
+```
+json_data = `{"url":"http://www.example.org/default.html?ct=32&op=92&item=98"}`
+urldecode(url, url_dic);
+```
+
+函数: geoip([json_path], [new_key])
+
+参数:
+- `json_path`: 待处理数据的json_path (必选参数)
+- `new_key`: 新的key name  (必选参数)
+
+说明: 将对应IP字符串获取响应地理信息，插入到new_key下,  并成为json_data子结构
+
+示例:
+```
+json_data = `{"ip":"172.168.0.3"}`
+geoip(ip, ip_addr);
+```
+
+函数: datetime([json_path], [datetime_parttern]，[new_key])
+
+参数:
+- `json_path`: 待处理数据的json_path (必选参数)
+- `datetime_parttern`: 时间格式化字符串(格式化标准，待完善) (必选参数)
+- `new_key`: 新的key name  (必选参数)
+
+说明: 将对应日期字段格式化为新的日期显示方式，插入到new_key下,  并成为json_data子结构
+
+示例:
+```
+json_data = `{"date":"23/Apr/2014:22:58:32 +0200"}`
+datetime(date, "yyyy-mm-dd HH:MM:SS");
+```
+
+函数: expr([json_path], [expr], [new_key])
+
+参数:
+- `json_path`: 待处理数据的json_path (必选参数)
+- `expr`: 计算表达式 (必选参数)
+- `new_key`: 新的key name  (必选参数)
+
+说明: 将对应字段进行计算后，插入到new_key下,  并成为json_data子结构
+
+示例:
+```
+json_data = `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+expr(a.second*10+(2+3)*5, bb);
+```
+
+函数: stringf([new_key], [format_pattern], [json_path]....)
+
+参数:
+- `json_path`: 待处理数据的json_path (必选参数)
+- `format_pattern`: 格式化字符串 (必选参数)
+- `new_key`:   新的key name      (必选参数)
+
 说明: 通过printf格式自定义字符串
 
-
-举例：
-
-```python
-# 获取指标集 cpu 最近 5 分钟所有字段的数据
-M::cpu [5m]}
-
-# 查找匹配正则表达式 *db 的所有指标最近 5 分钟的数据
-M::re('*db') [5m]
-
-# 获取指标集 cpu 10 分钟前到 5 分钟前的所有字段数据
-M::cpu [10m:5m]
-
-# 获取指标集 cpu 10 分钟前到 5 分钟前的所有字段数据，以 1分钟的间隔来聚合
-M::cpu [10m:5m:1m]
-
-# 查询时序数据指标集 cpu 最近 5分钟的两个字段 time_active, time_guest_nice，
-# 以 host 和 cpu 两个 tag 来过滤，同时以 host 和 cpu 来分组显示结果。
-M:: cpu:(time_active, time_guest_nice)
-		{ host = "host-name", cpu = "cpu0" } [5m] BY host,cpu
-
-# 以身高倒排，获取前十
-O::human:(height, age) { age > 100, sex = "直男" } ORDER BY height LIMIT 10
-
-M::cpu,mem:(time_active, time_guest_nice, host) { host = "host-name", cpu = "cpu0" } [5m] BY host,cpu
+示例:
+```
+json_data = `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+stringf(bb, "%d %s %v", a.second, a.thrid, a.forth);
 ```
 
-注意，`::` 和 `:` 两边都是可以添加空白字符的，如下语句是等价的：
+函数: cast([json_path], [type]，[new_key])
 
-```python
-M::cpu:(time_active, time_guest_nice)
-	{ host = "host-name", cpu = "cpu0" } [5m]
+参数:
+- `json_path`: 待处理数据的json_path (必选参数)
+- `type`: 转化的类型, 以下枚举值int, bool, str, float (必选参数)
+- `new_key`:   新的key name  (必选参数)
 
-M   ::cpu : (time_active, time_guest_nice)
-	{ host = "host-name", cpu = "cpu0" } [5m]
+说明: 将对应的字段进行类型转化，插入到new_key下,  并成为json_data子结构
 
-M   :: cpu :   (time_active, time_guest_nice)
-	{ host = "host-name", cpu = "cpu0" } [5m]
+示例:
+```
+json_data = `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+cast(bb, a.second, "float");
 ```
 
-## 语句
+函数: group([json_path], [range], [new_key])
 
-### namespace
+参数:
+- `json_path`: 待处理数据的json_path (必选参数)
+- `range`: 指定范围 (必选参数)
+- `new_key`:   新的key name  (必选参数)
 
-语义层面，目前支持以下几种种数据源：
+说明: 将对应的字段进行按条件分组赋值
 
-- M/metric - 时序指标数据
-- O/object - 对象数据
-- L/logging - 日志数据
-- E/event - 事件数据
-- T/tracing - 追踪数据
-- R/rum - RUM 数据
-- F/func - Func 函数计算
-
-在语法层面，暂不对数据源做约束。数据源语法如下：
-
-```python
-data-source ::
-	# 具体查询细节...
+示例:
+```
+json_data = `{"age":10, "name": "张三"}`
+group(age, [0-16], children);
 ```
 
-在具体的查询中，如果不指定数据源，则默认为 `metric` 或 `M`，即时序指标是 DataFlux 的默认数据源。
 
-### data-source
+函数: group_in([json_path], [set], [new_key])
 
-指数据的来源，对不同来源的数据而言，其实际物理意义如下：
+参数:
+- `json_path`: 待处理数据的json_path (必选参数)
+- `set`: 指定集合 (必选参数)
+- `new_key`:   新的key name  (必选参数)
 
-- `M` - 指时序数据中的指标集
-- `L` - 日志数据，以字段 `__source` 作为逻辑意义上的分类
-- `O` - 对象数据，以字段 `__class` 作为逻辑意义上的分类
-- `E` - 事件数据，以字段 `__source` 作为逻辑意义上的分类
-- `T` - 追踪数据，以字段 `__serviceName` 作为逻辑意义上的分类
-- `R` - RUM 数据，以字段 `type` 作为逻辑意义上的分类
-- `F` - 暂无
+说明: 将对应的字段进行按条件分组赋值
 
-### target-clause
-
-查询的结果列表：
-
-```python
-M::cpu:(time_active, system_usage) {host="biz_prod"} [5m]
-
-# 这里支持同一个指标集上不同指标（类型要基本匹配）之间进行计算
-M::cpu:(time_active+1, time_active/time_guest_nice) [5m]
+示例:
 ```
-
-### filter-clause
-
-过滤子句用来对结果数据做过滤，类似 SQL 中的 `where` 条件：
-
-```python
-# 查询人口对象中（__class=human）中百岁直男的身高
-O::human:(height) { age > 100, sex = "直男" }
-
-# 带正则的过滤
-O::human:(height) { age > 100, sex != re("男") }
-
-# 带计算表达式的过滤
-O::human:(height) { (age + 1)/2 > 31, sex != re("男") }
-
-# 带或运算表达式的过滤
-O::human:(height) { age > 31 || sex != re("男"), weight > 70}
-
-# 带聚合的的结果列
-M::cpu:(avg(time_active) AS time_active_avg, time_guest_nice) [1d::1h]
-
-# 带聚合填充的的结果列
-M::cpu:(fill(avg(time_active) AS time_active_avg, 0.1), time_guest_nice) [1d::1h]
-
-# 带有 in 列表的查询,其中 in 中选项关系为逻辑 or, in 列表中只能是数值或者字符串
-O::human:(height) { age in [30, 40, 50], weight > 70}
+json_data = `{"age":10, "name": "张三"}`
+group_in(name, ["张三"], zhangsan);
 ```
-
-关于填充：
-
-- 数值填充：形如 `cpu:(fill(f1, 123), fill(f2, "foo bar"), fill(f3, 123.456))`
-- 线性填充：如 `cpu:(fill(f1, LINEAR))`
-- 前值填充：如 `cpu:(fill(f1, PREVIOUS))`
-
-> 注意：多个过滤条件之间。默认是 `AND` 的关系，但如果要表达 `OR` 的关系，就用 `||` 操作符即可。如下两个语句的意思是相等的：
-
-```python
-O::human:(height) { age > 31, sex != re("男") }
-O::human:(height) { age > 31 && sex != re("男") }
-```
-
-来个复杂的过滤表达式：
-
-```python
-M::some_metric {(a>123.45 && b!=re("abc")) || (z!="abc"), c=re("xyz")} [1d::30m]
-```
-
-### time-expr
-
-DataFlux 数据特点均有时间属性，故将时间的表达用单独的子句来表示：
-
-- `[5m]` - 最近 5 分钟
-- `[10m:5m]` - 最近 10 分钟到最近 5 分钟
-- `[10m:5m:1m]` - 最近 10 分钟到最近 5 分钟，且结果按照 1 分钟的间隔聚合
-<!-- - `[10d:1d:30m,1m]` - 最近 10 天到最近 1 天，且结果按照 30 分钟的间隔聚合，且将间隔的起始时间往后偏移 1 分钟
-- `[10d:1d:30m,-1.5m]` - 最近 10 天到最近 1 天，且结果按照 30 分钟的间隔聚合，且将间隔的起始时间往前偏移 1.5 分钟 -->
-- `[2019-01-01 12:13:14:5m:1w]` -  2019/1/1 12:13:14 到最近 5 分钟，且结果按照 1 周的间隔聚合。注意，指定日期时，只能精确到秒级别。且只有两种日期格式：
-	- `2006-01-02 15:04:05`：这里的时间指 UTC 时区的时间，不支持指定时区。
-	- `2006-01-02`
-
-时间单位支持如下几种：
-
-- `ns` - 纳秒
-- `us` - 微秒
-- `ms` - 毫秒
-- `s` - 秒
-- `m` - 分钟
-- `h` - 小时
-- `d` - 天
-- `w` - 周
-- `y` - 年，指定为 365d，不区分闰年。
-
-### by-clause 语句
-
-`BY` 子句用来对结果进行分类聚合。类似 MySQL 中的 `GROUP BY`
-
-### filter-clause 语句
-
-`FILTER ... WITH ...` 用来对不同数据集合做过滤计算：
-
-```python
-# 获取所有对象的 CPU 使用率
-M::cpu:(host, usage) FILTER O::ecs:(hostname) WITH {host = hostname}
-```
-
-### link-with 语句
-
-`LINK ... WITH ...` 用来对不同数据集做合并输出：
-
-```python
-O::ecs:(host, region) LINK M::cpu:(usage, hostname) [:5m] WITH {host = hostname}
-
-# 多 LINK 写法
-O::ecs:(host, region)
-    LINK M::cpu:(usage, hostname) [:5m]
-    LINK M::mem:(percent, hostname) [:5m]
-    WITH {host = hostname}
-```
-
-### SHOW 语句
-
-`SHOW_xxx` 用来浏览数据：
-
-- `SHOW_MEASUREMENT()` - 查看指标集列表
-- `SHOW_TAG_KEY()` - 查看指标集 tag 列表
-- `SHOW_TAG_VALLUE()` - 查看指标集 tag-value 列表
-- `SHOW_FIELD_KEY()` - 查看指标集 field-key 列表
-- `SHOW_OBJECT_CLASS()` - 查看对象分类列表
-- `SHOW_EVENT_SOURCE()` - 查看事件来源列表
-- `SHOW_LOGGING_SOURCE()` - 查看日志来源列表
-- `SHOW_TRACING_SERVICE()` - 查看 tracing 来源列表
-- `SHOW_RUM_TYPE()` - 查看 RUM 数据类型列表
-
-### 结果集函数结算
-
-DQL 支持对查询结果进行二次计算：
-
-```python
-func::dataflux__dql:(EXPR_EVAL(expr='data1.f1+data1.f2', data=dql('M::cpu:(f1, f2)')))
-
-# 通过 func 做跨数据集的计算
-F::dataflux__dql:(SOME_FUNC(
-	data1=dql('M::cpu:(f1, f2)'),
-	data2=dql('O::ecs:(f1, f2)'), some_args))
-
-# 通过 func 做跨数据集的复杂表达式计算
-F::dataflux__dql:(EXPR_EVAL(
-	expr='data1.f1/(data2.f2+3)',  # 表达式
-	data1=dql('M::cpu:(f1, f2)'),
-	data2=dql('O::ecs:(f1, f2)'),))
-```
-
-### 嵌套查询以及语句块
-
-以 `()` 来表示子查询和外层查询的分隔，如两层嵌套
-
-```python
-metric::(
-		# 子查询
-		metric::cpu,mem:(f1, f2) {host="abcd"} [1m:2m:5s] BY f1 DESC
-	):(f1)              # 外层查询目标列
-	{ host=re("abc*") } # 外城查询过滤条件
-	[1m:2m:1s]          # 外层查询时间限制
-```
-
-三层嵌套
-
-```python
-metric::(     # 第二层查询
-		metric::( # 第三层查询
-				metric::a:(f1,f2,f3) {host="foo"} [10m::1m]
-			):(f1,f2)
-	):(f1)
-```
-
-原则上不对嵌套层次做限制。但**不允许某层嵌套中出现多个平级的子查询**，如：
-
-```python
-object::(     # 第二层查询
-		object::( # 第三层查询
-				object::a:(f1,f2,f3) {host="foo"} [10m::1m]
-			):(f1,f2),
-
-		object::( # 并列第三层查询：不支持
-				object::b:(f1,f2,f3) {host="foo"} [10m::1m]
-			):(f1,f2)
-	):(f1)
-```
-
-## 函数说明
-
-参见 [dql 实现的函数](./Funcs.md)
-
