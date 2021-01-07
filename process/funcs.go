@@ -292,7 +292,7 @@ func Group(p *Procedure, node parser.Node) (*Procedure, error) {
 	}
 
 	field := funcExpr.Param[0].(*parser.Identifier).Name
-	set := funcExpr.Param[1].(*parser.Identifier).Name
+	// set := funcExpr.Param[1].(*parser.Identifier).Name
 	value := funcExpr.Param[1].(*parser.Identifier).Name
 	new_key := funcExpr.Param[1].(*parser.Identifier).Name
 
@@ -321,7 +321,7 @@ func GroupIn(p *Procedure, node parser.Node) (*Procedure, error) {
 	}
 
 	field := funcExpr.Param[0].(*parser.Identifier).Name
-	set := funcExpr.Param[1].(*parser.Identifier).Name
+	// set := funcExpr.Param[1].(*parser.Identifier).Name
 	value := funcExpr.Param[1].(*parser.Identifier).Name
 	new_key := funcExpr.Param[1].(*parser.Identifier).Name
 
