@@ -1,49 +1,99 @@
 package main
 
 import (
+	"os"
 	"bufio"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"regexp"
 	"strings"
+)
+
+const (
+	fileHeader = `//此文件由自动生成，请不要手动修改
+//此文件由自动生成，请不要手动修改
+//此文件由自动生成，请不要手动修改
+
+package patterns
+
+var GlobalPatterns = map[string][][2]string {
+`
+	fileTailer = `}`
+
+	contHeader = `    "%s" : {
+`
+	contTailer = `    },
+
+`
+
 )
 
 var (
 	convertMap []map[string]string
+
+	rege = regexp.MustCompile(`%{(\w+(?::\w+(?::\w+)?)?)}`)
 )
 
 func main() {
 	convertMap = make([]map[string]string, 100)
-	Convert(`D:\go\src\github.com\vjeantet\grok\patterns`, `D:\go\src\github.com\vjeantet\grok\pattern`)
+	dir,_ := os.Getwd()
+	Convert(filepath.Join(dir, "patterns"), filepath.Join(dir, "pattern.go"))
 }
 
-
-
-func Convert(inputDir, outputDir string) {
-	genConvertMap(inputDir)
-
+func Convert(inputDir, outputFile string) {
+	text := fileHeader
+	mkConvertMap(inputDir)
 	files, _ := getFilesByDir(inputDir)
 
 	for _, file := range files {
+		text += fmt.Sprintf(contHeader, file)
 		content, _ := ioutil.ReadFile(filepath.Join(inputDir, file))
 		s := bufio.NewScanner(strings.NewReader(string(content)))
-		newContent := ""
 		for s.Scan() {
 			str := s.Text()
+
+			lineElem := strings.SplitN(str, " ", 2)
+			if len(lineElem) < 2 {
+				continue
+			}
+
+			cvtMap := convertMap[len(lineElem[0])]
+			if cvtMap == nil {
+				continue
+			}
+
+			v, ok := cvtMap[lineElem[0]];
+			if !ok {
+				continue
+			}
+
+			str = strings.TrimSpace(lineElem[1])
+			found := make(map[string]int)
+			for _, key := range rege.FindAllStringSubmatch(str, -1) {
+				names := strings.Split(key[1], ":")
+				found[names[0]] = 1
+			}
+
 			//先把长模式大写串转换成小写串
 			for i:= len(convertMap) -1; i >=0 ;i-- {
 				cvtMap := convertMap[i]
 				for k, v := range cvtMap {
-					str = strings.Replace(str, k, v, -1)
+					if _, ok := found[k]; ok {
+						str = strings.Replace(str, k, v, -1)
+					}
 				}
 			}
-			str += "\r\n"
-			newContent += str
+			text += fmt.Sprintf("		{\"%v\", `%v`},\n", v, str)
 		}
-		ioutil.WriteFile(filepath.Join(outputDir, file), []byte(newContent), 0666)
+		text += contTailer
 	}
+	text += fileTailer
+
+	ioutil.WriteFile(outputFile, []byte(text), 0666)
 }
 
-func genConvertMap(inputDir string) {
+func mkConvertMap(inputDir string) {
 	files, _ := getFilesByDir(inputDir)
 
 	for _, file := range files {
