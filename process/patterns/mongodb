@@ -1,7 +1,0 @@
-_mongo_log %{_syslogtimestamp:timestamp} \[%{_word:component}\] %{_greedydata:message}
-_mongo_query \{ (?<={ ).*(?= } ntoreturn:) \}
-_mongo_slowquery %{_word} %{_mongo_worddash:database}\.%{_mongo_worddash:collection} %{_word}: %{_mongo_query:query} %{_word}:%{_nonnegint:ntoreturn} %{_word}:%{_nonnegint:ntoskip} %{_word}:%{_nonnegint:nscanned}.*nreturned:%{_nonnegint:nreturned}..+ (?<duration>[0-9]+)ms
-_mongo_worddash \b[\w-]+\b
-_mongo3_severity \w
-_mongo3_component %{_word}|-
-_mongo3_log %{_timestamp_iso8601:timestamp} %{_mongo3_severity:severity} %{_mongo3_component:component}%{_space}(?:\[%{_data:context}\])? %{_greedydata:message}
