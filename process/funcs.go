@@ -33,37 +33,6 @@ var (
 	}
 )
 
-func (p *Procedure) ProcessLog(data string, nodes []parser.Node) *Procedure {
-	var err error
-
-	p.Content = logStructed(data)
-
-	for _, node := range nodes {
-		switch v := node.(type) {
-		case *parser.FuncExpr:
-			fn := strings.ToLower(v.Name)
-			f, ok := funcsMap[fn]
-			if !ok {
-				err := fmt.Errorf("unsupported func: %v", v.Name)
-				l.Error(err)
-				p.lastErr = err
-				return p
-			}
-
-			p, err = f(p, node)
-			if err != nil {
-				l.Errorf("ProcessLog func %v: %v", v.Name, err)
-				p.lastErr = err
-				return p
-			}
-
-		default:
-			p.lastErr = fmt.Errorf("%v not function", v.String())
-		}
-	}
-	return p
-}
-
 func Rename(p *Procedure, node parser.Node) (*Procedure, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
@@ -79,8 +48,7 @@ func Rename(p *Procedure, node parser.Node) (*Procedure, error) {
 		return p, err
 	}
 
-	r := gjson.GetBytes(p.Content, old)
-	data[new] = getGjsonRst(&r)
+	data[new] = getContentById(p.Content, old)
 	delete(data, old)
 
 	if js, err := json.Marshal(data); err != nil {
@@ -262,8 +230,7 @@ func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
 	for i := 2; i < len(funcExpr.Param); i++ {
 		switch v := funcExpr.Param[i].(type) {
 		case *parser.Identifier:
-			gRst := gjson.GetBytes(p.Content, v.Name)
-			outdata = append(outdata, getGjsonRst(&gRst))
+			outdata = append(outdata, getContentById(p.Content, v.Name))
 		case *parser.NumberLiteral:
 			if v.IsInt {
 				outdata = append(outdata, v.Int)
@@ -347,10 +314,14 @@ func Group(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func ParseScript(path string) ([]parser.Node, error) {
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
+func ParseScript(scriptOrPath string) ([]parser.Node, error) {
+	data := scriptOrPath
+	if isDirOrFileExit(scriptOrPath) {
+		cont, err := ioutil.ReadFile(scriptOrPath)
+		if err != nil {
+			return nil, err
+		}
+		data = string(cont)
 	}
 
 	nodes, err := parser.ParseFuncExpr(string(data))
@@ -390,7 +361,8 @@ func logStructed(data string) []byte {
 	return js
 }
 
-func getGjsonRst(g *gjson.Result) interface{} {
+func getContentById(content []byte, id string) interface{} {
+	g := gjson.GetBytes(content, id)
 	switch g.Type {
 	case gjson.Null:
 		return nil
