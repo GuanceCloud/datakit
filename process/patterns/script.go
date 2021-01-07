@@ -36,19 +36,12 @@ func CreatePatternFile(name, content string) error {
 }
 
 func CreateDirIfNotExist(dir string) error {
-	if !isDirOrFileExit(dir) {
+	_, err := os.Stat(dir)
+	if err == nil {
+		return nil
+	}
+	if os.IsNotExist(err) {
 		return os.MkdirAll(dir, 0666)
 	}
 	return nil
-}
-
-func isDirOrFileExit(path string) bool {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true
-	}
-	if os.IsNotExist(err) {
-		return false
-	}
-	return true
 }
