@@ -107,11 +107,8 @@ func UserAgent(p *Procedure, node parser.Node) (*Procedure, error) {
 	}
 
 	rst := gjson.GetBytes(p.Content, field).String()
-	if v, err := UserAgent(rst, p.Content); err != nil {
-		return p, err
-	} else {
-		data[tag] = v
-	}
+	v := UserAgentParse(rst, p.Content)
+	data[tag] = v
 
 	if js, err := json.Marshal(data); err != nil {
 		return p, err
@@ -137,7 +134,7 @@ func UrlDecode(p *Procedure, node parser.Node) (*Procedure, error) {
 	}
 
 	rst := gjson.GetBytes(p.Content, field).String()
-	if v, err := urldecode(rst, p.Content); err != nil {
+	if v, err := UrldecodeParse(rst, p.Content); err != nil {
 		return p, err
 	} else {
 		data[tag] = v
@@ -153,10 +150,65 @@ func UrlDecode(p *Procedure, node parser.Node) (*Procedure, error) {
 }
 
 func GeoIp(p *Procedure, node parser.Node) (*Procedure, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	}
+
+	field := funcExpr.Param[0].(*parser.Identifier).Name
+	tag  := funcExpr.Param[1].(*parser.Identifier).Name
+
+	data := make(map[string]interface{})
+	if err := json.Unmarshal(p.Content, &data); err != nil {
+		return p, err
+	}
+
+	rst := gjson.GetBytes(p.Content, field).String()
+	if v, err := UrldecodeParse(rst, p.Content); err != nil {
+		return p, err
+	} else {
+		data[tag] = v
+	}
+
+	if js, err := json.Marshal(data); err != nil {
+		return p, err
+	} else {
+		p.Content = js
+	}
+
 	return p, nil
 }
 
 func Date(p *Procedure, node parser.Node) (*Procedure, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) < 2 {
+		return nil, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
+	}
+
+	tag  := funcExpr.Param[2].(*parser.Identifier).Name
+	fmts := funcExpr.Param[1].(*parser.StringLiteral).Val
+	field := funcExpr.Param[0].(*parser.Identifier).Name
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal(p.Content, &data)
+	if err != nil {
+		return p, err
+	}
+
+	rst := gjson.GetBytes(p.Content, field).String()
+
+	s, err := DateFormat(fmts, rst)
+	if err != nil {
+		return p, err
+	}
+
+	data[tag] = s
+
+	if js, err := json.Marshal(data); err != nil {
+		return p, err
+	} else {
+		p.Content = js
+	}
 
 	return p, nil
 }
@@ -266,6 +318,32 @@ func Cast(p *Procedure, node parser.Node) (*Procedure, error) {
 }
 
 func Group(p *Procedure, node parser.Node) (*Procedure, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	}
+
+	field := funcExpr.Param[0].(*parser.Identifier).Name
+	tag  := funcExpr.Param[1].(*parser.Identifier).Name
+
+	data := make(map[string]interface{})
+	if err := json.Unmarshal(p.Content, &data); err != nil {
+		return p, err
+	}
+
+	rst := gjson.GetBytes(p.Content, field).String()
+	if v, err := UrldecodeParse(rst, p.Content); err != nil {
+		return p, err
+	} else {
+		data[tag] = v
+	}
+
+	if js, err := json.Marshal(data); err != nil {
+		return p, err
+	} else {
+		p.Content = js
+	}
+
 	return p, nil
 }
 
