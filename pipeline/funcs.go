@@ -1,4 +1,4 @@
-package process
+package pipeline
 
 import (
 	"encoding/json"
@@ -9,24 +9,26 @@ import (
 
 	"github.com/tidwall/gjson"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
 const (
 	CONTENT = "__content"
 )
 
-type ProFunc func(p *Procedure, node parser.Node) (*Procedure, error)
+type ProFunc func(p *Pipeline, node parser.Node) (*Pipeline, error)
 
 var (
 	funcsMap = map[string]ProFunc{
 		"grok":      Grok,
+		"json":      Json,
 		"rename":    Rename,
-		"stringf":   Stringf,
+		"strfmt":    Strfmt,
 		"cast":      Cast,
 		"expr":      Expr,
-		"useragent": UserAgent,
-		"urldecode": UrlDecode,
+
+		"user_agent": UserAgent,
+		"url_decode": UrlDecode,
 		"geoip":     GeoIp,
 		"datetime":  DateTime,
 		"group":     Group,
@@ -34,122 +36,86 @@ var (
 	}
 )
 
-func Rename(p *Procedure, node parser.Node) (*Procedure, error) {
+func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 3{
+		return nil, fmt.Errorf("func %s expected 2 or 3 args", funcExpr.Name)
+	}
+
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+	old := funcExpr.Param[1].(*parser.Identifier).Name
+
+	newkey := old
+	if len(funcExpr.Param) == 3 {
+		newkey = funcExpr.Param[2].(*parser.Identifier).Name
+	}
+
+	cont := p.getContentStr(key)
+	v := getGjsonResult(cont, old)
+	p.setContent(newkey, v)
+
+	return p, nil
+}
+
+func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
-		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	old := funcExpr.Param[0].(*parser.Identifier).Name
-	new := funcExpr.Param[1].(*parser.Identifier).Name
+	old := funcExpr.Param[1].(*parser.Identifier).Name
+	new := funcExpr.Param[0].(*parser.Identifier).Name
 
-	data := make(map[string]interface{})
-	err := json.Unmarshal(p.Content, &data)
-	if err != nil {
-		return p, err
+	v := p.getContent(old)
+	p.setContent(new, v)
+	delete(p.Output, old)
+
+	return p, nil
+}
+
+func UserAgent(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
-	data[new] = getContentById(p.Content, old)
-	delete(data, old)
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+	UserAgentParse(p.getContentStr(key))
 
-	if js, err := json.Marshal(data); err != nil {
+	return p, nil
+}
+
+func UrlDecode(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+
+	if v, err := UrldecodeParse(p.getContentStr(key)); err != nil {
 		return p, err
 	} else {
-		p.Content = js
+		p.setContent(key, v)
 	}
 
 	return p, nil
 }
 
-func UserAgent(p *Procedure, node parser.Node) (*Procedure, error) {
+func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 2 {
+	if len(funcExpr.Param) != 1 {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	field := funcExpr.Param[0].(*parser.Identifier).Name
-	tag := funcExpr.Param[1].(*parser.Identifier).Name
+	key := funcExpr.Param[0].(*parser.Identifier).Name
 
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
-	}
-
-	rst := gjson.GetBytes(p.Content, field).String()
-	v := UserAgentParse(rst)
-
-	data[tag] = v
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
+	_ = key
 
 	return p, nil
 }
 
-func UrlDecode(p *Procedure, node parser.Node) (*Procedure, error) {
-	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 2 {
-		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
-	}
-
-	field := funcExpr.Param[0].(*parser.Identifier).Name
-	tag := funcExpr.Param[1].(*parser.Identifier).Name
-
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
-	}
-
-	rst := gjson.GetBytes(p.Content, field).String()
-	if v, err := UrldecodeParse(rst); err != nil {
-		return p, err
-	} else {
-		data[tag] = v
-	}
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
-
-	return p, nil
-}
-
-func GeoIp(p *Procedure, node parser.Node) (*Procedure, error) {
-	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 2 {
-		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
-	}
-
-	field := funcExpr.Param[0].(*parser.Identifier).Name
-	tag := funcExpr.Param[1].(*parser.Identifier).Name
-
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
-	}
-
-	rst := gjson.GetBytes(p.Content, field).String()
-	if v, err := UrldecodeParse(rst); err != nil {
-		return p, err
-	} else {
-		data[tag] = v
-	}
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
-
-	return p, nil
-}
-
-func DateTime(p *Procedure, node parser.Node) (*Procedure, error) {
+func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) < 2 {
 		return nil, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
@@ -183,36 +149,26 @@ func DateTime(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func Expr(p *Procedure, node parser.Node) (*Procedure, error) {
+func Expr(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	tag := funcExpr.Param[1].(*parser.Identifier).Name
+	key  := funcExpr.Param[1].(*parser.Identifier).Name
 	expr := funcExpr.Param[0].(*parser.BinaryExpr)
 
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
-	}
-
-	if v, err := Calc(expr, p.Content); err != nil {
+	if v, err := Calc(expr, p); err != nil {
 		return p, err
 	} else {
-		data[tag] = v
+		p.setContent(key, v)
 	}
 
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
 
 	return p, nil
 }
 
-func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
+func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	outdata := make([]interface{}, 0)
 
 	funcExpr := node.(*parser.FuncExpr)
@@ -220,19 +176,14 @@ func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
 		return nil, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
 	}
 
-	tag := funcExpr.Param[0].(*parser.Identifier).Name
+	key  := funcExpr.Param[0].(*parser.Identifier).Name
 	fmts := funcExpr.Param[1].(*parser.StringLiteral).Val
 
-	data := make(map[string]interface{})
-	err := json.Unmarshal(p.Content, &data)
-	if err != nil {
-		return p, err
-	}
 
 	for i := 2; i < len(funcExpr.Param); i++ {
 		switch v := funcExpr.Param[i].(type) {
 		case *parser.Identifier:
-			outdata = append(outdata, getContentById(p.Content, v.Name))
+			outdata = append(outdata, p.getContent(v.Name))
 		case *parser.NumberLiteral:
 			if v.IsInt {
 				outdata = append(outdata, v.Int)
@@ -246,47 +197,28 @@ func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
 		}
 	}
 
-	s := fmt.Sprintf(fmts, outdata...)
-	data[tag] = s
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
+	strfmt := fmt.Sprintf(fmts, outdata...)
+    p.setContent(key, strfmt)
 
 	return p, nil
 }
 
-func Cast(p *Procedure, node parser.Node) (*Procedure, error) {
+func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 3 {
+	if len(funcExpr.Param) != 2 {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	nField := funcExpr.Param[0].(*parser.Identifier).Name
-	field := funcExpr.Param[1].(*parser.Identifier).Name
-	tInfo := funcExpr.Param[2].(*parser.StringLiteral).Val
+	key      := funcExpr.Param[0].(*parser.Identifier).Name
+	castType := funcExpr.Param[1].(*parser.StringLiteral).Val
 
-	data := make(map[string]interface{})
-	err := json.Unmarshal(p.Content, &data)
-	if err != nil {
-		return p, err
-	}
-
-	rst := gjson.GetBytes(p.Content, field)
-	data[nField] = cast(&rst, tInfo)
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
+	v := cast(p.getContent(key), castType)
+	p.setContent(key, v)
 
 	return p, nil
 }
 
-func Group(p *Procedure, node parser.Node) (*Procedure, error) {
+func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
@@ -315,7 +247,7 @@ func Group(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func GroupIn(p *Procedure, node parser.Node) (*Procedure, error) {
+func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
@@ -381,20 +313,8 @@ func DebugNodesHelp(f *parser.FuncExpr, prev string) {
 	}
 }
 
-func logStructed(data string) []byte {
-	m := make(map[string]interface{})
-	err := json.Unmarshal([]byte(data), &m)
-	if err == nil {
-		return []byte(data)
-	}
-
-	m[CONTENT] = data
-	js, _ := json.Marshal(m)
-	return js
-}
-
-func getContentById(content []byte, id string) interface{} {
-	g := gjson.GetBytes(content, id)
+func getGjsonResult(data, id string) interface{} {
+	g := gjson.Get(data, id)
 	switch g.Type {
 	case gjson.Null:
 		return nil
