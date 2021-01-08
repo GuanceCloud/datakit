@@ -20,19 +20,18 @@ type ProFunc func(p *Pipeline, node parser.Node) (*Pipeline, error)
 
 var (
 	funcsMap = map[string]ProFunc{
-		"grok":      Grok,
-		"json":      Json,
-		"rename":    Rename,
-		"strfmt":    Strfmt,
-		"cast":      Cast,
-		"expr":      Expr,
-
-		"user_agent": UserAgent,
-		"url_decode": UrlDecode,
-		"geoip":     GeoIp,
-		"datetime":  DateTime,
-		"group":     Group,
-		"group_in":  GroupIn,
+		"grok"       :  Grok,
+		"json"       :  Json,
+		"rename"     :  Rename,
+		"strfmt"     :  Strfmt,
+		"cast"       :  Cast,
+		"expr"       :  Expr,
+		"user_agent" :  UserAgent,
+		"url_decode" :  UrlDecode,
+		"geoip"      :  GeoIp,
+		"datetime"   :  DateTime,
+		"group"      :  Group,
+		"group_in"   :  GroupIn,
 	}
 )
 
