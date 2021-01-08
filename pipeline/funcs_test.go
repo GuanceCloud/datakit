@@ -103,8 +103,8 @@ func TestGroupFunc(t *testing.T) {
 }
 
 func TestGroupInFunc(t *testing.T) {
-	js := `{"a":{"status": 200,"age":"47"}`
-	script := `json(_, a.status); group(a.status, [200, "47"], "ok", newkey);`
+	js := `{"a":{"status": "test","age":"47"}`
+	script := `json(_, a.status); group_in(a.status, [200, 47, "test"], "ok", newkey);`
 
 	p := NewPipeline(script)
 	p.Run(js)
