@@ -2,22 +2,27 @@ package process
 
 import (
 	"strings"
-	"github.com/tidwall/gjson"
 )
 
-func cast(result *gjson.Result, tInfo string) interface{} {
+func cast(result interface{}, tInfo string) interface{} {
 	switch strings.ToLower(tInfo) {
 	case "bool":
-		return result.Bool()
+		switch v := result.(type) {
+		case bool:
+			return v
+		case int,int32,int64,int8,int16:
+			return v !=0
+
+		}
 
 	case "int":
-		return result.Int()
+		return 1
 
 	case "float":
-		return result.Float()
+		return 1.1
 
 	case "str":
-		return result.String()
+		return "result.String()"
 	}
 
 	return nil
