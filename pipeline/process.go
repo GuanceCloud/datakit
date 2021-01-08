@@ -1,4 +1,4 @@
-package process
+package pipeline
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	vgrok "github.com/vjeantet/grok"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/patterns"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/patterns"
 )
 
 type Pipeline struct {
