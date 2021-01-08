@@ -3,10 +3,9 @@ package pipeline
 import (
 	"net/url"
 	"time"
-	"fmt"
 	"reflect"
 	"github.com/GuilhermeCaruso/kair"
-	"xojoc.pw/useragent"
+	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
 )
 
@@ -19,10 +18,25 @@ func UrldecodeHandle(path string) (interface{}, error) {
 	return params, nil
 }
 
-func UserAgentHandle(str string) interface{} {
-	ua := useragent.Parse(str)
+func UserAgentHandle(str string) (res map[string]interface{}) {
+	res = make(map[string]interface{})
+	ua := user_agent.New(str)
 
-	return ua
+	res["isMobile"] = ua.Mobile()
+	res["isBot"] = ua.Bot()
+	res["os"] = ua.OS()
+
+	name, version := ua.Browser()
+	res["browser"] = name
+	res["browserVer"] = version
+
+	en, v := ua.Engine()
+	res["engine"] = en
+	res["engineVer"] = v
+
+	res["ua"] = ua.Platform()
+
+	return res
 }
 
 func GeoIpHandle(str string) (interface{}, error) {
@@ -31,13 +45,18 @@ func GeoIpHandle(str string) (interface{}, error) {
 	return nil, nil
 }
 
-func DateFormatHandle(data interface{}, precision int64, fmts string, tz int) (interface{}, error) {
-	v, ok := data.(int64);
-	if !ok {
-		return nil, fmt.Errorf("timestamp is not expect %v", data)
+func DateFormatHandle(data interface{}, precision string, fmts string, tz int) (interface{}, error) {
+	v := conv.ToInt64(data)
+	var num int64 = 0
+	switch precision {
+	case "s":
+		num = 0
+	case "ms":
+		num = v * int64(time.Millisecond)
 	}
 
-	t := time.Unix(v, precision)
+
+	t := time.Unix(v, num)
 
 	day := t.Day()
 	year := t.Year()
