@@ -3,10 +3,12 @@ package aliyunobject
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -40,6 +42,16 @@ func (_ *objectAgent) SampleConfig() string {
 func (_ *objectAgent) Catalog() string {
 	return `aliyun`
 }
+
+func (_ *objectAgent) PipelineConfig() map[string]string{
+	pipelineMap := map[string]string{
+		"aliyun_redis.p":redisPipelineConifg,
+		"aliyun_waf.p":wafPipelineConfig,
+		"aliyun_cdn.p":cdnPipelineConifg,
+	}
+	return pipelineMap
+}
+
 
 func (ag *objectAgent) Test() (*inputs.TestResult, error) {
 	ag.mode = "test"
@@ -117,6 +129,25 @@ func (ag *objectAgent) Run() {
 func newAgent() *objectAgent {
 	ag := &objectAgent{}
 	return ag
+}
+
+
+func parseObject(obj interface{},class,id,pipelinePath string,blacklist,whitelist []string) {
+	if datakit.CheckExcluded(id, blacklist, whitelist) {
+		return
+	}
+	data,err := json.Marshal(obj)
+	if err != nil {
+		moduleLogger.Errorf("[error] json marshal err:%s", err.Error())
+		return
+	}
+	tags := map[string]string{
+		"class":class,
+	}
+
+	fields := inputs.RunPipeline(string(data),pipelinePath)
+	fields["content"] = string(data)
+	io.NamedFeedEx(inputName,io.Object,class,tags,fields,time.Now().UTC())
 }
 
 func init() {
