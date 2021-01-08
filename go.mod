@@ -108,4 +108,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools/v3 v3.0.2 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
+	xojoc.pw/useragent v0.0.0-20200116211053-1ec61d55e8fe
 )
