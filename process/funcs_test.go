@@ -53,7 +53,7 @@ func TestExprFunc(t *testing.T) {
 
 func TestUrlencodeFunc(t *testing.T) {
 	js := `{"a":{"url":"http://www.example.org/default.html?ct=32&op=92&item=98","second":2},"age":47}`
-	script := `urlencode(a.url, bb);`
+	script := `urldecode(a.url, bb);`
 
 	p := NewProcedure(script)
 	p.ProcessText(js)
