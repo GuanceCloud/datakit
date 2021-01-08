@@ -1,4 +1,4 @@
-package process
+package pipeline
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	vgrok "github.com/vjeantet/grok"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
 var (
@@ -20,8 +20,8 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	pattern := funcExpr.Param[0].(*parser.StringLiteral).Val
-	key     := funcExpr.Param[1].(*parser.Identifier).Name
+	pattern := funcExpr.Param[1].(*parser.StringLiteral).Val
+	key     := funcExpr.Param[0].(*parser.Identifier).Name
 
 	val := p.getContentStr(key)
 	m, err := p.grok.Parse(pattern, val)
