@@ -3,7 +3,7 @@ package pipeline
 import (
 	"testing"
 	"fmt"
-	"github.com/tidwall/gjson"
+	//"github.com/tidwall/gjson"
 )
 
 func assertEqual(t *testing.T, a, b interface{}) {
@@ -53,69 +53,51 @@ expr(a.second*10+(2+3)*5, bb);
 }
 
 func TestUrlencodeFunc(t *testing.T) {
-	js := `{"a":{"url":"http%3A%2F%2Fwww.baidu.com%2Fs%3Fwd%3D%E8%87%AA%E7%94%B1%E5%BA%A6","second":2},"age":47}`
-	script := `url_decode(a.url);`
+	js := `{"url":"http%3A%2F%2Fwww.baidu.com%2Fs%3Fwd%3D%E8%87%AA%E7%94%B1%E5%BA%A6","second":2}`
+	script := `json(_, url); url_decode(url);`
 
-	p := NewProcedure(script)
+	p := NewPipeline(script)
 	p.Run(js)
 
-	r := p.getContentStr("a.url")
-
-	fmt.Println("======>", r)
+	r := p.getContentStr("url")
 
 	assertEqual(t, r, "http://www.baidu.com/s?wd=自由度")
 }
 
 func TestUserAgentFunc(t *testing.T) {
 	js := `{"a":{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36","second":2},"age":47}`
-	script := `useragent(a.userAgent, bb);`
+	script := `json(_, a.userAgent); user_agent(a.userAgent); json(a.userAgent, Type)`
 
-	p := NewProcedure(script)
-	p.ProcessText(js)
+	p := NewPipeline(script)
+	p.Run(js)
 
-	r := gjson.GetBytes(p.Content, "bb")
+	fmt.Println("--->", p.Output)
 
-	assertEqual(t, r.Get("Mobile").Bool(), false)
+	r := p.getContentStr("Type")
+
+	fmt.Println("======>", r)
+
+	assertEqual(t, r, false)
 }
 
 func TestDatetimeFunc(t *testing.T) {
 	js := `{"a":{"date":"23/Apr/2014:22:58:32 +0200", "second":2},"age":47}`
 	script := `datetime(a.date, 'yyyy-mm-dd hh:MM:ss', new_date);`
 
-	p := NewProcedure(script)
-	p.ProcessText(js)
+	p := NewPipeline(script)
+	p.Run(js)
 
-	r := gjson.GetBytes(p.Content, "new_date")
-
-	fmt.Println("result ==>", r.String())
-	assertEqual(t, r.String(), "45")
-	//js := `{"a":{"url":"http://www.example.org/default.html?ct=32&op=92&item=98","second":2},"age":47}`
-	//script := `urldecode(a.url, bb);`
-	//
-	//p := NewProcedure(script)
-	//p.ProcessText(js)
-	//
-	//r := gjson.GetBytes(p.Content, "bb")
-	//assertEqual(t, r.String(), "45")
+	r := p.getContent("a.url")
+	assertEqual(t, r, "45")
 }
 
-func TestDatetimeFunc(t *testing.T) {
-	//js := `{"a":{"date":"2021.01.07 12:12", "second":2},"age":47}`
-	//script := `datetime(a.date, 'yyyy-mm-dd hh:MM:ss', new_date);`
-	//
-	//p := NewProcedure(script)
-	//p.ProcessText(js)
-	//
-	//r := gjson.GetBytes(p.Content, "bb")
-	//assertEqual(t, r.String(), "45")
-}
 
 func TestGroupFunc(t *testing.T) {
 	//js := `{"a":{"status": 200,"age":47}`
 	//script := `group(a.status, [200-299], "ok", bb);`
 	//
-	//p := NewProcedure(script)
-	//p.ProcessText(js)
+	//p := NewPipeline(script)
+	//p.Run(js)
 	//
 	//r := gjson.GetBytes(p.Content, "bb")
 	//assertEqual(t, r.String(), "45")
@@ -125,8 +107,8 @@ func TestGroupInFunc(t *testing.T) {
 	//js := `{"a":{"status": 200,"age":47}`
 	//script := `group(a.status, [200, 201], "ok", bb);`
 	//
-	//p := NewProcedure(script)
-	//p.ProcessText(js)
+	//p := NewPipeline(script)
+	//p.Run(js)
 	//
 	//r := gjson.GetBytes(p.Content, "bb")
 	//assertEqual(t, r.String(), "45")
