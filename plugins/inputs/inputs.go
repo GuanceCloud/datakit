@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/influxdata/toml"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
@@ -346,7 +346,7 @@ func ObjectPipeline(data, pipelinePath, id string, blacklist, whitelist []string
 	if datakit.CheckExcluded(id, blacklist, whitelist) {
 		return nil
 	}
-	pipeline := process.NewPipeline(pipelinePath)
+	pipeline := pipeline.NewPipeline(pipelinePath)
 	result := pipeline.Run(data).Result()
 	result["content"] = data
 	return result
