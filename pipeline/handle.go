@@ -4,9 +4,10 @@ import (
 	"net/url"
 	"time"
 	"fmt"
+	"reflect"
 	"github.com/GuilhermeCaruso/kair"
 	"xojoc.pw/useragent"
-	"github.com/spf13/cast"
+	conv "github.com/spf13/cast"
 )
 
 func UrldecodeHandle(path string) (interface{}, error) {
@@ -27,15 +28,16 @@ func UserAgentHandle(str string) interface{} {
 func GeoIpHandle(str string) (interface{}, error) {
 	// todo
 
-	return res, nil
+	return nil, nil
 }
 
-func DateFormatHandle(data int64, precision int64, fmts string, tz int) (interface{}, error) {
-	if v, ok := data.(int64); !ok {
-		return nil, fmt.Error("timestamp is not expect %v", data)
+func DateFormatHandle(data interface{}, precision int64, fmts string, tz int) (interface{}, error) {
+	v, ok := data.(int64);
+	if !ok {
+		return nil, fmt.Errorf("timestamp is not expect %v", data)
 	}
 
-	t := time.Unix(data, precision)
+	t := time.Unix(v, precision)
 
 	day := t.Day()
 	year := t.Year()
@@ -46,11 +48,11 @@ func DateFormatHandle(data int64, precision int64, fmts string, tz int) (interfa
 
 	datetime := kair.DateTime(day, mounth, year, hour, minute, sec)
 
-	return datetime.CustomFormat(pattern), nil
+	return datetime.CustomFormat(fmts), nil
 }
 
 func GroupHandle(value interface{}, start, end float64) bool {
-	num := cast.ToFloat64(value)
+	num := conv.ToFloat64(value)
 
 	if  num >= start && num <= end {
 		return true
