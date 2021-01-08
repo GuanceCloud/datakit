@@ -1,4 +1,4 @@
-package process
+package pipeline
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/tidwall/gjson"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
 const (
@@ -26,9 +26,9 @@ var (
 		"strfmt":    Strfmt,
 		"cast":      Cast,
 		"expr":      Expr,
-		
-		"useragent": UserAgent,
-		"urldecode": UrlDecode,
+
+		"user_agent": UserAgent,
+		"url_decode": UrlDecode,
 		"geoip":     GeoIp,
 		"datetime":  DateTime,
 		"group":     Group,
@@ -75,56 +75,28 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 func UserAgent(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 2 {
-		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	if len(funcExpr.Param) != 1 {
+		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
-	field := funcExpr.Param[0].(*parser.Identifier).Name
-	tag := funcExpr.Param[1].(*parser.Identifier).Name
-
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
-	}
-
-	rst := gjson.GetBytes(p.Content, field).String()
-	v := UserAgentParse(rst)
-	data[tag] = v
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+	UserAgentParse(p.getContentStr(key))
 
 	return p, nil
 }
 
 func UrlDecode(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 2 {
-		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	if len(funcExpr.Param) != 1 {
+		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
-	field := funcExpr.Param[0].(*parser.Identifier).Name
-	tag := funcExpr.Param[1].(*parser.Identifier).Name
+	key := funcExpr.Param[0].(*parser.Identifier).Name
 
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
-	}
-
-	rst := gjson.GetBytes(p.Content, field).String()
-	if v, err := UrldecodeParse(rst); err != nil {
+	if v, err := UrldecodeParse(p.getContentStr(key)); err != nil {
 		return p, err
 	} else {
-		data[tag] = v
-	}
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
+		p.setContent(key, v)
 	}
 
 	return p, nil
@@ -132,30 +104,13 @@ func UrlDecode(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 2 {
+	if len(funcExpr.Param) != 1 {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	field := funcExpr.Param[0].(*parser.Identifier).Name
-	tag := funcExpr.Param[1].(*parser.Identifier).Name
+	key := funcExpr.Param[0].(*parser.Identifier).Name
 
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
-	}
-
-	rst := gjson.GetBytes(p.Content, field).String()
-	if v, err := UrldecodeParse(rst); err != nil {
-		return p, err
-	} else {
-		data[tag] = v
-	}
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
+	_ = key
 
 	return p, nil
 }
