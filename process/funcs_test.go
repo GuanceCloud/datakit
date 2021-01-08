@@ -2,7 +2,7 @@ package process
 
 import (
 	"testing"
-
+	"fmt"
 	"github.com/tidwall/gjson"
 )
 
@@ -52,24 +52,39 @@ func TestExprFunc(t *testing.T) {
 }
 
 func TestUrlencodeFunc(t *testing.T) {
-	js := `{"a":{"url":"http://www.example.org/default.html?ct=32&op=92&item=98","second":2},"age":47}`
+	js := `{"a":{"url":"http%3A%2F%2Fwww.baidu.com%2Fs%3Fwd%3D%E8%87%AA%E7%94%B1%E5%BA%A6","second":2},"age":47}`
 	script := `urldecode(a.url, bb);`
 
 	p := NewProcedure(script)
 	p.ProcessText(js)
 
 	r := gjson.GetBytes(p.Content, "bb")
-	assertEqual(t, r.String(), "45")
+
+	assertEqual(t, r.String(), "http://www.baidu.com/s?wd=自由度")
 }
 
-func TestDatetimeFunc(t *testing.T) {
-	js := `{"a":{"date":"2021.01.07 12:12", "second":2},"age":47}`
-	script := `datetime(a.date, 'yyyy-mm-dd hh:MM:ss', new_date);`
+func TestUserAgentFunc(t *testing.T) {
+	js := `{"a":{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36","second":2},"age":47}`
+	script := `useragent(a.userAgent, bb);`
 
 	p := NewProcedure(script)
 	p.ProcessText(js)
 
 	r := gjson.GetBytes(p.Content, "bb")
+
+	assertEqual(t, r.Get("Mobile").Bool(), false)
+}
+
+func TestDatetimeFunc(t *testing.T) {
+	js := `{"a":{"date":"23/Apr/2014:22:58:32 +0200", "second":2},"age":47}`
+	script := `datetime(a.date, 'yyyy-mm-dd hh:MM:ss', new_date);`
+
+	p := NewProcedure(script)
+	p.ProcessText(js)
+
+	r := gjson.GetBytes(p.Content, "new_date")
+
+	fmt.Println("result ==>", r.String())
 	assertEqual(t, r.String(), "45")
 }
 
