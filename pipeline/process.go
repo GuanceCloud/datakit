@@ -36,6 +36,13 @@ func NewPipeline(script string) *Pipeline {
 }
 
 func (p *Pipeline) Run(data string) *Pipeline {
+	defer func() {
+		r := recover()
+		if r != nil {
+			p.lastErr = fmt.Errorf("%v", r)
+		}
+	}()
+
 	var err error
 
 	//防止脚本解析错误
@@ -72,8 +79,8 @@ func (p *Pipeline) Run(data string) *Pipeline {
 	return p
 }
 
-func (p *Pipeline) Result() map[string]interface{} {
-	return p.Output
+func (p *Pipeline) Result() (map[string]interface{}, error) {
+	return p.Output, p.lastErr
 }
 
 func (p *Pipeline) LastError() error {
