@@ -1,11 +1,10 @@
 package pipeline
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"strings"
 	"os"
+	"strings"
 
 	"github.com/tidwall/gjson"
 
@@ -120,30 +119,30 @@ func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return nil, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
 	}
 
-	tag := funcExpr.Param[2].(*parser.Identifier).Name
-	fmts := funcExpr.Param[1].(*parser.StringLiteral).Val
-	field := funcExpr.Param[0].(*parser.Identifier).Name
-
-	data := make(map[string]interface{})
-	err := json.Unmarshal(p.Content, &data)
-	if err != nil {
-		return p, err
-	}
-
-	rst := gjson.GetBytes(p.Content, field).String()
-
-	s, err := DateFormat(fmts, rst)
-	if err != nil {
-		return p, err
-	}
-
-	data[tag] = s
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
+	//tag := funcExpr.Param[2].(*parser.Identifier).Name
+	//fmts := funcExpr.Param[1].(*parser.StringLiteral).Val
+	//field := funcExpr.Param[0].(*parser.Identifier).Name
+	//
+	//data := make(map[string]interface{})
+	//err := json.Unmarshal(p.Content, &data)
+	//if err != nil {
+	//	return p, err
+	//}
+	//
+	//rst := gjson.GetBytes(p.Content, field).String()
+	//
+	//s, err := DateFormat(fmts, rst)
+	//if err != nil {
+	//	return p, err
+	//}
+	//
+	//data[tag] = s
+	//
+	//if js, err := json.Marshal(data); err != nil {
+	//	return p, err
+	//} else {
+	//	p.Content = js
+	//}
 
 	return p, nil
 }
@@ -222,26 +221,26 @@ func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	if len(funcExpr.Param) != 2 {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
-
-	field := funcExpr.Param[0].(*parser.Identifier).Name
-	// set := funcExpr.Param[1].(*parser.Identifier).Name
-	value := funcExpr.Param[1].(*parser.Identifier).Name
-	new_key := funcExpr.Param[1].(*parser.Identifier).Name
-
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
-	}
-
-	rst := gjson.GetBytes(p.Content, field).String()
-	v := GroupHandle(rst, []int{}, value, false)
-	data[new_key] = v
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
+	//
+	//field := funcExpr.Param[0].(*parser.Identifier).Name
+	//// set := funcExpr.Param[1].(*parser.Identifier).Name
+	//value := funcExpr.Param[1].(*parser.Identifier).Name
+	//new_key := funcExpr.Param[1].(*parser.Identifier).Name
+	//
+	//data := make(map[string]interface{})
+	//if err := json.Unmarshal(p.Content, &data); err != nil {
+	//	return p, err
+	//}
+	//
+	//rst := gjson.GetBytes(p.Content, field).String()
+	//v := GroupHandle(rst, []int{}, value, false)
+	//data[new_key] = v
+	//
+	//if js, err := json.Marshal(data); err != nil {
+	//	return p, err
+	//} else {
+	//	p.Content = js
+	//}
 
 	return p, nil
 }
@@ -252,25 +251,25 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	field := funcExpr.Param[0].(*parser.Identifier).Name
-	// set := funcExpr.Param[1].(*parser.Identifier).Name
-	value := funcExpr.Param[1].(*parser.Identifier).Name
-	new_key := funcExpr.Param[1].(*parser.Identifier).Name
-
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
-	}
-
-	rst := gjson.GetBytes(p.Content, field).String()
-	v := GroupHandle(rst, []int{}, value, true)
-	data[new_key] = v
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
+	//field := funcExpr.Param[0].(*parser.Identifier).Name
+	//// set := funcExpr.Param[1].(*parser.Identifier).Name
+	//value := funcExpr.Param[1].(*parser.Identifier).Name
+	//new_key := funcExpr.Param[1].(*parser.Identifier).Name
+	//
+	//data := make(map[string]interface{})
+	//if err := json.Unmarshal(p.Content, &data); err != nil {
+	//	return p, err
+	//}
+	//
+	//rst := gjson.GetBytes(p.Content, field).String()
+	//v := GroupHandle(rst, []int{}, value, true)
+	//data[new_key] = v
+	//
+	//if js, err := json.Marshal(data); err != nil {
+	//	return p, err
+	//} else {
+	//	p.Content = js
+	//}
 
 	return p, nil
 }
