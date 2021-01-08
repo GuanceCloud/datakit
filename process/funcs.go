@@ -77,6 +77,7 @@ func UserAgent(p *Procedure, node parser.Node) (*Procedure, error) {
 
 	rst := gjson.GetBytes(p.Content, field).String()
 	v := UserAgentParse(rst)
+
 	data[tag] = v
 
 	if js, err := json.Marshal(data); err != nil {
