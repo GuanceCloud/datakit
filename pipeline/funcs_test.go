@@ -53,7 +53,7 @@ func TestExprFunc(t *testing.T) {
 
 func TestUrlencodeFunc(t *testing.T) {
 	js := `{"a":{"url":"http%3A%2F%2Fwww.baidu.com%2Fs%3Fwd%3D%E8%87%AA%E7%94%B1%E5%BA%A6","second":2},"age":47}`
-	script := `urldecode(a.url, bb);`
+	script := `url_decode(a.url);`
 
 	p := NewProcedure(script)
 	p.ProcessText(js)
