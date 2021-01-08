@@ -97,8 +97,8 @@ func (c *Collector) Run() {
 		var objs []map[string]interface{}
 
 		obj := map[string]interface{}{
-			`name`:  c.Name,
-			"class": c.Class,
+			`*name`:  c.Name,
+			"*class": c.Class,
 		}
 		if c.Desc != "" {
 			obj[`description`] = c.Desc
@@ -126,21 +126,21 @@ func (c *Collector) Run() {
 
 		data, err := json.Marshal(content)
 
-		obj[`__content`] = string(data)
+		obj[`content`] = string(data)
 
 		switch c.Name {
 		case "__mac":
-			obj[`name`] = content["mac"]
+			obj[`*name`] = content["mac"]
 		case "__ip":
-			obj[`name`] = content["ip"]
+			obj[`*name`] = content["ip"]
 		case "__uuid":
-			obj[`name`] = content["uuid"]
+			obj[`*name`] = content["uuid"]
 		case "__host":
-			obj[`name`] = content["host"]
+			obj[`*name`] = content["host"]
 		case "__os":
-			obj[`name`] = content["os"]
+			obj[`*name`] = content["os"]
 		case "__os_type":
-			obj[`name`] = content["os_type"]
+			obj[`*name`] = content["os_type"]
 		}
 
 		objs = append(objs, obj)
