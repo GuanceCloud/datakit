@@ -6,7 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/influxdata/influxdb1-client/models"
+	influxm "github.com/influxdata/influxdb1-client/models"
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -36,6 +37,7 @@ func init() {
 }
 
 type TelegrafHTTP struct {
+	// map[measurement]pipelinePath
 	LoggingMeas map[string]string `toml:"logging_measurements"`
 }
 
@@ -74,7 +76,7 @@ func (t *TelegrafHTTP) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	points, err := models.ParsePointsWithPrecision(body, time.Now().UTC(), "n")
+	points, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), "n")
 	if err != nil {
 		l.Errorf("parse points, err: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
@@ -87,15 +89,26 @@ func (t *TelegrafHTTP) Handle(w http.ResponseWriter, r *http.Request) {
 	for _, point := range points {
 		meas := string(point.Name())
 
-		if p, ok := t.LoggingMeas[meas]; ok {
-			// TODO: pipeline
-			_ = p
+		if pipelinePath, ok := t.LoggingMeas[meas]; ok {
+			jsonStr, err := inputs.PointToJSON(point)
+			if err != nil {
+				l.Errorf("point to json, err: %s", err.Error())
+				continue
+			}
+
+			result := inputs.RunPipeline(jsonStr, pipelinePath)
+
+			pt, err := inputs.MapToPoint(result)
+			if err != nil {
+				l.Errorf("map to point, err: %s", err.Error())
+				continue
+			}
 
 			if _, ok := loggingFeeds[meas]; !ok {
 				loggingFeeds[meas] = []string{}
 			}
 
-			loggingFeeds[meas] = append(loggingFeeds[meas], point.String())
+			loggingFeeds[meas] = append(loggingFeeds[meas], pt.String())
 
 		} else {
 			if _, ok := metricFeeds[meas]; !ok {
@@ -106,10 +119,7 @@ func (t *TelegrafHTTP) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	l.Warnf("====================\n")
-
 	for k, lines := range metricFeeds {
-		l.Warnf("MMMMM == %s\n", lines)
 		if err := io.NamedFeed([]byte(strings.Join(lines, "\n")), io.Metric, k); err != nil {
 			l.Errorf("feed metric, err: %s", err.Error())
 			return
@@ -117,7 +127,6 @@ func (t *TelegrafHTTP) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for k, lines := range loggingFeeds {
-		l.Warnf("LLLLL == %s\n", lines)
 		if err := io.NamedFeed([]byte(strings.Join(lines, "\n")), io.Logging, k); err != nil {
 			l.Errorf("feed logging, err: %s", err.Error())
 			return
