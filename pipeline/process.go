@@ -60,7 +60,7 @@ func (p *Pipeline) Run(data string) *Pipeline {
 
 			_, err = f(p, node)
 			if err != nil {
-				l.Errorf("ProcessLog func %v: %v", v.Name, err)
+				l.Errorf("Run func %v: %v", v.Name, err)
 				p.lastErr = err
 				return p
 			}
@@ -85,6 +85,10 @@ func (p *Pipeline) getContent(key string) interface{} {
 		return p.Content
 	}
 
+	if v, ok := p.Output[key]; ok {
+		return v
+	}
+
 	var m interface{}
 	var nm interface{}
 
@@ -97,7 +101,7 @@ func (p *Pipeline) getContent(key string) interface{} {
 			nm = v[k]
 			m = nm
 		default:
-			return ""
+			nm = nil
 		}
 	}
 
