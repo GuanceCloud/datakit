@@ -234,6 +234,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 			tags["store"] = r.cfg.Name
 			tags["project"] = r.proj.cfg.Name
 			tags["__topic__"] = lg.GetTopic()
+			tags["*source"] = r.cfg.Name
 
 			for _, lt := range lg.GetLogTags() {
 				k := lt.GetKey()
@@ -251,17 +252,17 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 				}
 			}
 
-			if lg.GetSource() != "" {
-				tagInfo := r.checkAsTag("__source__")
-				if tagInfo != nil {
-					tags[tagInfo.name] = lg.GetSource()
-					if !tagInfo.onlyAsTag {
-						fields["__source__"] = lg.GetSource()
-					}
-				} else {
-					fields["__source__"] = lg.GetSource()
-				}
-			}
+			// if lg.GetSource() != "" {
+			// 	tagInfo := r.checkAsTag("__source__")
+			// 	if tagInfo != nil {
+			// 		tags[tagInfo.name] = lg.GetSource()
+			// 		if !tagInfo.onlyAsTag {
+			// 			fields["__source__"] = lg.GetSource()
+			// 		}
+			// 	} else {
+			// 		fields["__source__"] = lg.GetSource()
+			// 	}
+			// }
 
 			// if lg.GetCategory() != "" {
 			// 	tags["__category__"] = lg.GetCategory()
@@ -330,7 +331,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 
 			contentStr, err := json.Marshal(&contentMap)
 			if err == nil {
-				fields["__content"] = string(contentStr)
+				fields["message"] = string(contentStr)
 			} else {
 				moduleLogger.Debugf("fail to marshal content, %s", err)
 			}
