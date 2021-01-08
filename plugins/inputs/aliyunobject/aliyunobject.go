@@ -41,6 +41,13 @@ func (_ *objectAgent) Catalog() string {
 	return `aliyun`
 }
 
+func (_ *objectAgent) PipelineConfig() map[string]string{
+	pipelineMap := map[string]string{}
+	pipelineMap["aliyun.redis"] = redisPipelineConifg
+	return pipelineMap
+}
+
+
 func (ag *objectAgent) Test() (*inputs.TestResult, error) {
 	ag.mode = "test"
 	ag.testResult = &inputs.TestResult{}
