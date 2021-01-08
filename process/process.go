@@ -11,8 +11,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/patterns"
 )
 
-type Procedure struct {
-	Content   []byte
+type Pipeline struct {
+	Content   string
+	Output    map[string]interface{}
 	lastErr   error
 	patterns  map[string]string    //存放自定义patterns
 	nodes     []parser.Node
@@ -23,30 +24,27 @@ var (
 	l = logger.DefaultSLogger("process")
 )
 
-func (p *Procedure) LastError() error {
-	return p.lastErr
+func NewPipeline(script string) *Pipeline {
+	p := &Pipeline{
+		Output: make(map[string]interface{}),
+	}
+	if script != "" {
+		p.nodes, p.lastErr = ParseScript(script)
+	}
+	p.grok = grokCfg
+	return p
 }
 
-func (p *Procedure) GetContentByte() []byte {
-	return p.Content
-}
-
-func (p *Procedure) GetContentStr() string {
-	return string(p.Content)
-}
-
-func (p *Procedure) GetSubContent(id string) interface{} {
-	return getContentById(p.Content, id)
-}
-
-func (p *Procedure) ProcessText(data string) *Procedure {
+func (p *Pipeline) Run(data string) *Pipeline {
 	var err error
 
+	//防止脚本解析错误
 	if p.lastErr != nil {
 		return p
 	}
 
-	p.Content = logStructed(data)
+	p.Content = data
+	p.Output  = make(map[string]interface{})
 
 	for _, node := range p.nodes {
 		switch v := node.(type) {
@@ -74,13 +72,57 @@ func (p *Procedure) ProcessText(data string) *Procedure {
 	return p
 }
 
-func NewProcedure(script string) *Procedure {
-	p := &Procedure{}
-	if script != "" {
-		p.nodes, p.lastErr = ParseScript(script)
+func (p *Pipeline) Result() map[string]interface{} {
+	return p.Output
+}
+
+func (p *Pipeline) LastError() error {
+	return p.lastErr
+}
+
+func (p *Pipeline) getContent(key string) interface{} {
+	if key == "_" {
+		return p.Content
 	}
-	p.grok = grokCfg
-	return p
+
+	var m interface{}
+	var nm interface{}
+
+	m = p.Output
+	keys := strings.Split(key, ".")
+	for _, k := range keys {
+		switch m.(type) {
+		case map[string]interface{}:
+			v := m.(map[string]interface{})
+			nm = v[k]
+			m = nm
+		default:
+			return ""
+		}
+	}
+
+	return nm
+}
+
+func (p *Pipeline) getContentStr(key string) string {
+	content := p.getContent(key)
+
+	switch v := content.(type) {
+	case string:
+		return v
+	default:
+		return fmt.Sprintf("%v", content)
+	}
+
+	return ""
+}
+
+func (p *Pipeline) setContent(k string, v interface{}) {
+	if p.Output == nil {
+		p.Output = make(map[string]interface{})
+	}
+
+	p.Output[k] = v
 }
 
 func init() {
