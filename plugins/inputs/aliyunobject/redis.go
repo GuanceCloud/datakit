@@ -7,15 +7,13 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	redis "github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
 	redisSampleConfig = `
 #[inputs.aliyunobject.redis]
 
-#pipeline = "aliyun.redis.p"
+#pipeline = "aliyun_redis.p"
 
 # ## @param - [list of redis instanceid] - optional
 #instanceids = []
@@ -119,17 +117,6 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 
 
 	for _, inst := range resp.Instances.KVStoreInstance {
-		data,err := json.Marshal(inst)
-		if err != nil {
-			moduleLogger.Errorf("aliyun redis json marshal err:%s", err.Error())
-			continue
-		}
-		class := "aliyun_redis"
-		tags := map[string]string{
-			"class":class,
-		}
-		field := inputs.ObjectPipeline(string(data),e.PipelinePath,inst.InstanceId,e.ExcludeInstanceIDs,e.InstancesIDs)
-
-		io.NamedFeedEx(inputName,io.Object,class,tags,field,time.Now().UTC())
+		parseObject(inst, "aliyun_waf", inst.InstanceId, e.PipelinePath, e.ExcludeInstanceIDs, e.InstancesIDs)
 	}
 }
