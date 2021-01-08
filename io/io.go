@@ -2,7 +2,6 @@ package io
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -102,13 +101,12 @@ func SetTest() {
 func doFeed(data []byte, category, name string) error {
 
 	switch category {
-	case Metric, KeyEvent, Logging, Tracing:
+	case Metric, KeyEvent, Object, Logging, Tracing:
 		// metric line check
 		if err := checkMetric(data); err != nil {
 			return fmt.Errorf("invalid line protocol data %v", err)
 		}
 	case Rum: // do not check RUM data structure, too complecated
-	case Object:
 	default:
 		return fmt.Errorf("invalid category %s", category)
 	}
@@ -402,40 +400,8 @@ func flush(cache map[string][][]byte) {
 	cacheCnt[Rum] = 0
 }
 
-func buildObjBody(bodies [][]byte) ([]byte, error) {
-	allObjs := make([]map[string]interface{}, 0)
-
-	for _, data := range bodies {
-		objs := make([]map[string]interface{}, 0)
-		if err := json.Unmarshal(data, &objs); err != nil {
-			l.Error(err)
-			return nil, err
-		}
-		allObjs = append(allObjs, objs...)
-	}
-
-	jbody, err := json.Marshal(allObjs)
-	if err != nil {
-		l.Error(err)
-		return nil, err
-	}
-
-	return jbody, nil
-}
-
 func buildBody(url string, bodies [][]byte) (body []byte, gzon bool, err error) {
-	switch url {
-	case Object: // object is json
-
-		body, err = buildObjBody(bodies) // convert raw objects bytes as json array
-		if err != nil {
-			return
-		}
-
-	default: // others are line-protocol
-		body = bytes.Join(bodies, []byte("\n"))
-	}
-
+	body = bytes.Join(bodies, []byte("\n"))
 	if len(body) > minGZSize && datakit.OutputFile == "" { // should not gzip on file output
 		if body, err = datakit.GZip(body); err != nil {
 			l.Errorf("gz: %s", err.Error())
@@ -470,12 +436,6 @@ func doFlush(bodies [][]byte, url string) error {
 
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
-	}
-
-	switch url {
-	case Object: // object is json
-		req.Header.Set("Content-Type", "application/json")
-	default: // others are line-protocol
 	}
 
 	l.Debugf("post to %s...", categoryURLs[url])
