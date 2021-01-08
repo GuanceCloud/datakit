@@ -20,6 +20,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/confluence"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/containerd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/coredns"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/docker_containers"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dockerlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
@@ -58,6 +59,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/systemd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_http"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcms"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcost"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentobject"
@@ -72,7 +74,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/wechatminiprogram"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/yarn"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark"
 
 	// removed
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
