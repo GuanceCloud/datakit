@@ -12,9 +12,8 @@ import (
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
 )
@@ -78,7 +77,7 @@ func (r *logstashInfluxdbOutput) WriteHandler(c *gin.Context) {
 	db := c.Query("db")
 	precision := c.Query("precision")
 	if precision == "" {
-		precision = "ns"
+		precision = "ms" //https://www.elastic.co/guide/en/logstash/current/plugins-outputs-influxdb.html#plugins-outputs-influxdb-time_precision
 	}
 
 	if db == "" {
@@ -110,7 +109,7 @@ func (r *logstashInfluxdbOutput) WriteHandler(c *gin.Context) {
 			return
 		}
 
-		pp := process.NewPipeline(r.Pipeline)
+		pp := pipeline.NewPipeline(r.Pipeline)
 
 		for _, pt := range pts {
 			ptname := string(pt.Name())
@@ -129,11 +128,15 @@ func (r *logstashInfluxdbOutput) WriteHandler(c *gin.Context) {
 				continue
 			}
 			result := pp.Run(string(jdata)).Result()
-
+			if len(result) == 0 {
+				moduleLogger.Errorf("%v", pp.LastError())
+				continue
+			}
 			io.NamedFeedEx(inputName, category, ptname, nil, result, pt.Time())
 		}
 
 	} else {
+
 		if err = io.NamedFeed(body, category, inputName); err != nil {
 			uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
 			return
