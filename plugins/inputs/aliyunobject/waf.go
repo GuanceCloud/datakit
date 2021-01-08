@@ -1,26 +1,33 @@
 package aliyunobject
 
 import (
-	"encoding/json"
 	"time"
 
 	waf "github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
 	wafSampleConfig = `
 #[inputs.aliyunobject.waf]
-
+#pipeline = "aliyun_waf.p"
 # ## @param - custom tags for waf object - [list of key:value element] - optional
 #[inputs.aliyunobject.waf.tags]
 # key1 = 'val1'
 `
+	wafPipelineConfig = `
+	json(_,"InstanceId","name");
+	json(_,"Region");
+	json(_,"PayType");
+	json(_,"Status");
+	json(_,"InDebt");
+	json(_,"SubscriptionType");
+`
 )
 
 type Waf struct {
-	Tags map[string]string `toml:"tags,omitempty"`
+	Tags         map[string]string `toml:"tags,omitempty"`
+	PipelinePath string            `toml:"pipeline,omitempty"`
 }
 
 func (e *Waf) run(ag *objectAgent) {
@@ -65,37 +72,5 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 		moduleLogger.Warnf("%s", "waf payType 0")
 		return
 	}
-	var objs []map[string]interface{}
-
-	content := map[string]interface{}{
-		"InDebt":           resp.InstanceInfo.InDebt,
-		"InstanceId":       resp.InstanceInfo.InstanceId,
-		"PayType":          resp.InstanceInfo.PayType,
-		"Region":           resp.InstanceInfo.Region,
-		"Status":           resp.InstanceInfo.Status,
-		"SubscriptionType": resp.InstanceInfo.SubscriptionType,
-		"EndDate":          resp.InstanceInfo.EndDate,
-		"RemainDay":        resp.InstanceInfo.RemainDay,
-		"Trial":            resp.InstanceInfo.Trial,
-	}
-
-	jd, err := json.Marshal(content)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-
-	obj := map[string]interface{}{
-		"name":    resp.InstanceInfo.InstanceId,
-		"class":   "aliyun_waf",
-		"content": string(jd),
-	}
-
-	objs = append(objs, obj)
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-	io.NamedFeed(data, io.Object, inputName)
+	parseObject(resp.InstanceInfo, "aliyun_waf", resp.InstanceInfo.InstanceId, e.PipelinePath, []string{}, []string{})
 }
