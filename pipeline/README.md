@@ -55,7 +55,7 @@ p.Run(data) //data为string类型
 
 - 获取结果
 ```
-p.Result()  //返回类型为map[string]interface{}
+p.Result()  //返回类型为(map[string]interface{}, error)
 ```
 
 ## 脚本函数
