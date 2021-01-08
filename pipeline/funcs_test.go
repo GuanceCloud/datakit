@@ -128,3 +128,23 @@ strfmt(bb, "%d %s %v", a.second, a.thrid, a.forth);
 	p.Run(js)
 	assertEqual(t, p.getContent("bb"), "2 abc true")
 }
+
+func TestUppercaseFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	script := `json(_, a.thrid);
+uppercase(a.thrid);
+`
+	p := NewPipeline(script)
+	p.Run(js)
+	assertEqual(t, p.getContentStr("a.thrid"), "ABC")
+}
+
+func TestLowercaseFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
+	script := `json(_, a.thrid);
+lowercase(a.thrid);
+`
+	p := NewPipeline(script)
+	p.Run(js)
+	assertEqual(t, p.getContentStr("a.thrid"), "abc")
+}
