@@ -31,6 +31,9 @@ var (
 		"datetime"   :  DateTime,
 		"group"      :  Group,
 		"group_in"   :  GroupIn,
+
+		"uppercase"  :  Uppercase,
+		"lowercase"  :  Lowercase,
 	}
 )
 
@@ -309,6 +312,34 @@ func DebugNodesHelp(f *parser.FuncExpr, prev string) {
 			l.Debugf("%v%v", prev+"    |", node)
 		}
 	}
+}
+
+func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+	v := p.getContentStr(key)
+	v = strings.ToUpper(v)
+	p.setContent(key, v)
+
+	return p, nil
+}
+
+func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+	v := p.getContentStr(key)
+	v = strings.ToLower(v)
+	p.setContent(key, v)
+
+	return p, nil
 }
 
 func getGjsonResult(data, id string) interface{} {
