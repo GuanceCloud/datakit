@@ -80,7 +80,9 @@ func UserAgent(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
-	UserAgentParse(p.getContentStr(key))
+
+	v := UserAgentHandle(p.getContentStr(key))
+	p.setContent(new, v)
 
 	return p, nil
 }
@@ -93,7 +95,7 @@ func UrlDecode(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
 
-	if v, err := UrldecodeParse(p.getContentStr(key)); err != nil {
+	if v, err := UrldecodeHandle(p.getContentStr(key)); err != nil {
 		return p, err
 	} else {
 		p.setContent(key, v)
@@ -110,40 +112,41 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
 
-	_ = key
+	if v, err := GeoIpHandle(p.getContentStr(key)); err != nil {
+		return p, err
+	} else {
+		p.setContent(key, v)
+	}
 
 	return p, nil
 }
 
 func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	if len(funcExpr.Param) != 3 || len(funcExpr.Param) != 4 {
+		return nil, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
+	}
+
+	var tz = 8
+
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) < 2 {
-		return nil, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
+
+	key       := funcExpr.Param[0].(*parser.Identifier).Name
+	precision := funcExpr.Param[1].(*parser.StringLiteral).Val
+	fmts      := funcExpr.Param[2].(*parser.StringLiteral).Val
+
+	if len(funcExpr.Param) == 4 {
+		tzStr := funcExpr.Param[3].(*parser.StringLiteral).Val
+		if v, ok := tzStr.(*parser.NumberLiteral); ok {
+			if v.IsInt {
+				tz = v.Int
+			}
+		}
 	}
 
-	tag := funcExpr.Param[2].(*parser.Identifier).Name
-	fmts := funcExpr.Param[1].(*parser.StringLiteral).Val
-	field := funcExpr.Param[0].(*parser.Identifier).Name
-
-	data := make(map[string]interface{})
-	err := json.Unmarshal(p.Content, &data)
-	if err != nil {
-		return p, err
-	}
-
-	rst := gjson.GetBytes(p.Content, field).String()
-
-	s, err := DateFormat(fmts, rst)
-	if err != nil {
-		return p, err
-	}
-
-	data[tag] = s
-
-	if js, err := json.Marshal(data); err != nil {
+	if v, err := DateFormatHandle(p.getContent(key), 0, fmts, tz); err != nil {
 		return p, err
 	} else {
-		p.Content = js
+		p.setContent(key, v)
 	}
 
 	return p, nil
@@ -220,57 +223,125 @@ func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 2 {
-		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	if len(funcExpr.Param) != 3 || len(funcExpr.Param) != 4 {
+		return nil, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
 	}
 
-	field := funcExpr.Param[0].(*parser.Identifier).Name
-	// set := funcExpr.Param[1].(*parser.Identifier).Name
-	value := funcExpr.Param[1].(*parser.Identifier).Name
-	new_key := funcExpr.Param[1].(*parser.Identifier).Name
+	var nvalue interface{}
 
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
+	funcExpr := node.(*parser.FuncExpr)
+
+	key   := funcExpr.Param[0].(*parser.Identifier).Name
+	set   := funcExpr.Param[1].(*parser.NodeList)
+	value := funcExpr.Param[2]
+
+	newkey := key
+	var start, end float64
+
+	if len(funcExpr.Param) == 4 {
+		newkey = funcExpr.Param[3].(*parser.Identifier).Name
 	}
 
-	rst := gjson.GetBytes(p.Content, field).String()
-	v := GroupHandle(rst, []int{}, value, false)
-	data[new_key] = v
+	if len(set) != 2 {
+		nil, fmt.Errorf("range value is not expected 3 or 4 args", set)
+	}
 
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
+	if v. ok := set[0].(*parser.NumberLiteral); ok {
+		if v.IsInt {
+			start = float64(v.IsInt)
+		} else {
+			start = v.Float
+		}
+	}
+
+	if v. ok := set[1].(*parser.NumberLiteral); ok {
+		if v.IsInt {
+			end = float64(v.IsInt)
+		} else {
+			end = v.Float
+		}
+	}
+
+	if GroupHandle(p.getContent(key), start, end) {
+		switch v := funcExpr.Param[i].(type) {
+		case *parser.NumberLiteral:
+			if v.IsInt {
+				p.setContent(newkey, v.IsInt)
+			} else {
+				p.setContent(newkey, v.Float)
+			}
+		case *parser.StringLiteral:
+			p.setContent(newkey, v.Val)
+		case *parser.BoolLiteral:
+			p.setContent(newkey, v.Val)
+		}
 	}
 
 	return p, nil
 }
 
 func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	setdata := make([]interface{}, 0)
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 2 {
-		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	if len(funcExpr.Param) != 3 || len(funcExpr.Param) != 4 {
+		return nil, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
 	}
 
-	field := funcExpr.Param[0].(*parser.Identifier).Name
-	// set := funcExpr.Param[1].(*parser.Identifier).Name
-	value := funcExpr.Param[1].(*parser.Identifier).Name
-	new_key := funcExpr.Param[1].(*parser.Identifier).Name
+	var nvalue interface{}
 
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
+	funcExpr := node.(*parser.FuncExpr)
+
+	key   := funcExpr.Param[0].(*parser.Identifier).Name
+	set   := funcExpr.Param[1].(*parser.NodeList)
+	value := funcExpr.Param[2]
+
+	newkey := key
+	if len(funcExpr.Param) == 4 {
+		newkey = funcExpr.Param[3].(*parser.Identifier).Name
 	}
 
-	rst := gjson.GetBytes(p.Content, field).String()
-	v := GroupHandle(rst, []int{}, value, true)
-	data[new_key] = v
+	if len(set) != 2 {
+		nil, fmt.Errorf("range value is not expected 3 or 4 args", set)
+	}
 
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
+	for node. ok := range set {
+		switch v := node.(type) {
+		case *parser.Identifier:
+			setdata = append(setdata, p.getContent(v.Name))
+		case *parser.NumberLiteral:
+			if v.IsInt {
+				setdata = append(setdata, v.Int)
+			} else {
+				setdata = append(setdata, v.Float)
+			}
+		case *parser.StringLiteral:
+			setdata = append(setdata, v.Val)
+		default:
+			setdata = append(setdata, v)
+		}
+	}
+
+	if v. ok := set[1].(*parser.NumberLiteral); ok {
+		if v.IsInt {
+			end = float64(v.IsInt)
+		} else {
+			end = v.Float
+		}
+	}
+
+	if GroupHandle(p.getContent(key), setdata, value) {
+		switch v := funcExpr.Param[i].(type) {
+		case *parser.NumberLiteral:
+			if v.IsInt {
+				p.setContent(newkey, v.IsInt)
+			} else {
+				p.setContent(newkey, v.Float)
+			}
+		case *parser.StringLiteral:
+			p.setContent(newkey, v.Val)
+		case *parser.BoolLiteral:
+			p.setContent(newkey, v.Val)
+		}
 	}
 
 	return p, nil
