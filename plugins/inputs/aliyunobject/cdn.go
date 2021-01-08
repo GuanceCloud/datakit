@@ -1,19 +1,17 @@
 package aliyunobject
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
 	cdnSampleConfig = `
 #[inputs.aliyunobject.cdn]
-
+#pipeline = "aliyun_cdn.p"
 # ## @param - custom tags - [list of cdn DomainName] - optional
 #domainNames = []
 
@@ -24,12 +22,22 @@ const (
 #[inputs.aliyunobject.cdn.tags]
 # key1 = 'val1'
 `
+	cdnPipelineConifg = `
+	json(_,"DomainName","name");
+	json(_,"Cname");
+	json(_,"CdnType");
+	json(_,"DomainStatus");
+	json(_,"SslProtocol");
+	json(_,"ResourceGroupId");
+`
 )
 
 type Cdn struct {
 	Tags               map[string]string `toml:"tags,omitempty"`
 	DomainNames        []string          `toml:"domainNames,omitempty"`
 	ExcludeDomainNames []string          `toml:"exclude_domainNames,omitempty"`
+	PipelinePath       string            `toml:"pipeline,omitempty"`
+
 }
 
 func (e *Cdn) run(ag *objectAgent) {
@@ -109,30 +117,8 @@ func (e *Cdn) run(ag *objectAgent) {
 }
 
 func (e *Cdn) handleResponse(resp *cdn.DescribeUserDomainsResponse, ag *objectAgent) {
-
 	moduleLogger.Debugf("cdn TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
-
-	var objs []map[string]interface{}
-
 	for _, inst := range resp.Domains.PageData {
-
-		if obj, err := datakit.CloudObject2Json(inst.DomainName, `aliyun_cdn`, inst, inst.DomainName, e.ExcludeDomainNames, e.DomainNames); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
-		}
+		parseObject(inst, "aliyun_cdn", inst.DomainName, e.PipelinePath, e.ExcludeDomainNames, e.DomainNames)
 	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-	io.NamedFeed(data, io.Object, inputName)
 }
