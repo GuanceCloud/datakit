@@ -154,9 +154,9 @@ type K8sContent struct {
 }
 
 type K8sObj struct {
-	Name    string `json:"__name"`
-	Class   string `json:"__class"`
-	Content string `json:"__content"`
+	Name    string `json:"name"`
+	Class   string `json:"class"`
+	Content string `json:"content"`
 }
 
 const (
