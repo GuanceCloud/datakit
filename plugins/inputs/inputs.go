@@ -59,7 +59,7 @@ type HTTPInput interface {
 
 type PipelineInput interface {
 	Input
-	PipelineConfig()
+	PipelineConfig() map[string]string
 }
 
 type Creator func() Input
