@@ -34,6 +34,9 @@ var (
 
 		"uppercase"  :  Uppercase,
 		"lowercase"  :  Lowercase,
+		"drop_key"   :  Dropkey,
+		"add_key"    :  Addkey,
+
 	}
 )
 
@@ -338,6 +341,49 @@ func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	v := p.getContentStr(key)
 	v = strings.ToLower(v)
 	p.setContent(key, v)
+
+	return p, nil
+}
+
+func Dropkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+	delete(p.Output, key)
+
+	return p, nil
+}
+
+func Addkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+	var val interface{}
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		val = v.Val
+
+	case *parser.NumberLiteral:
+		if v.IsInt {
+			val = v.Int
+		} else {
+			val = v.Float
+		}
+
+	case *parser.BoolLiteral:
+		val = v.Val
+
+	case *parser.NilLiteral:
+		val = nil
+	}
+
+	p.setContent(key, val)
 
 	return p, nil
 }
