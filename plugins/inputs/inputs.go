@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/influxdata/toml"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
@@ -52,6 +53,11 @@ type Input interface {
 type HTTPInput interface {
 	Input
 	RegHttpHandler()
+}
+
+type PipelineInput interface {
+	Input
+	PipelineConfig() map[string]string
 }
 
 type Creator func() Input
@@ -332,3 +338,12 @@ func TestTelegrafInput(cfg []byte) (*TestResult, error) {
 
 	return result, nil
 }
+
+func RunPipeline(data, pipelinePath string) map[string]interface{} {
+	pipeline := pipeline.NewPipeline(pipelinePath)
+	result := pipeline.Run(data).Result()
+	return result
+}
+
+
+
