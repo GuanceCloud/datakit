@@ -16,11 +16,12 @@ const (
 	CONTENT = "__content"
 )
 
-type ProFunc func(p *Procedure, node parser.Node) (*Procedure, error)
+type ProFunc func(p *Pipeline, node parser.Node) (*Pipeline, error)
 
 var (
 	funcsMap = map[string]ProFunc{
 		"grok":      Grok,
+		"json":      Json,
 		"rename":    Rename,
 		"stringf":   Stringf,
 		"cast":      Cast,
@@ -34,10 +35,10 @@ var (
 	}
 )
 
-func Rename(p *Procedure, node parser.Node) (*Procedure, error) {
+func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 2 {
-		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 3{
+		return nil, fmt.Errorf("func %s expected 2 or 3 args", funcExpr.Name)
 	}
 
 	old := funcExpr.Param[0].(*parser.Identifier).Name
@@ -61,7 +62,34 @@ func Rename(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func UserAgent(p *Procedure, node parser.Node) (*Procedure, error) {
+func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	}
+
+	old := funcExpr.Param[0].(*parser.Identifier).Name
+	new := funcExpr.Param[1].(*parser.Identifier).Name
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal(p.Content, &data)
+	if err != nil {
+		return p, err
+	}
+
+	data[new] = getContentById(p.Content, old)
+	delete(data, old)
+
+	if js, err := json.Marshal(data); err != nil {
+		return p, err
+	} else {
+		p.Content = js
+	}
+
+	return p, nil
+}
+
+func UserAgent(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
@@ -88,7 +116,7 @@ func UserAgent(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func UrlDecode(p *Procedure, node parser.Node) (*Procedure, error) {
+func UrlDecode(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
@@ -118,7 +146,7 @@ func UrlDecode(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func GeoIp(p *Procedure, node parser.Node) (*Procedure, error) {
+func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
@@ -148,7 +176,7 @@ func GeoIp(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func DateTime(p *Procedure, node parser.Node) (*Procedure, error) {
+func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) < 2 {
 		return nil, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
@@ -182,7 +210,7 @@ func DateTime(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func Expr(p *Procedure, node parser.Node) (*Procedure, error) {
+func Expr(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
@@ -211,7 +239,7 @@ func Expr(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
+func Stringf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	outdata := make([]interface{}, 0)
 
 	funcExpr := node.(*parser.FuncExpr)
@@ -257,7 +285,7 @@ func Stringf(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func Cast(p *Procedure, node parser.Node) (*Procedure, error) {
+func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 3 {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
@@ -285,7 +313,7 @@ func Cast(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func Group(p *Procedure, node parser.Node) (*Procedure, error) {
+func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
@@ -314,7 +342,7 @@ func Group(p *Procedure, node parser.Node) (*Procedure, error) {
 	return p, nil
 }
 
-func GroupIn(p *Procedure, node parser.Node) (*Procedure, error) {
+func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
@@ -378,18 +406,6 @@ func DebugNodesHelp(f *parser.FuncExpr, prev string) {
 			l.Debugf("%v%v", prev+"    |", node)
 		}
 	}
-}
-
-func logStructed(data string) []byte {
-	m := make(map[string]interface{})
-	err := json.Unmarshal([]byte(data), &m)
-	if err == nil {
-		return []byte(data)
-	}
-
-	m[CONTENT] = data
-	js, _ := json.Marshal(m)
-	return js
 }
 
 func getContentById(content []byte, id string) interface{} {
