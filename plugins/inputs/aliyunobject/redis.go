@@ -2,18 +2,20 @@ package aliyunobject
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	redis "github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
 	redisSampleConfig = `
 #[inputs.aliyunobject.redis]
+
+#pipeline = "aliyun.redis.p"
 
 # ## @param - [list of redis instanceid] - optional
 #instanceids = []
@@ -26,11 +28,13 @@ const (
 # key1 = 'val1'
 `
 	redisPipelineConifg = `
-	json(_,"InstanceId",InstanceId)
-	json(_,"InstanceName","name")
-	json(_,"RegionId",RegionId)
-	json(_,"RegionId",RegionId)
 
+	json(_,"InstanceName","name");
+	json(_,"RegionId");
+	json(_,"InstanceStatus");
+	json(_,"InstanceId");
+	json(_,"NetworkType");
+	json(_,"ChargeType");
 
 `
 )
@@ -39,6 +43,7 @@ type Redis struct {
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string            `toml:"pipeline,omitempty"`
 }
 
 func (e *Redis) run(ag *objectAgent) {
@@ -112,27 +117,19 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 
 	moduleLogger.Debugf("redis TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 
-	var objs []map[string]interface{}
 
 	for _, inst := range resp.Instances.KVStoreInstance {
-
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, inst.InstanceName, inst.InstanceId), `aliyun_redis`, inst, inst.InstanceId, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
+		data,err := json.Marshal(inst)
+		if err != nil {
+			moduleLogger.Errorf("aliyun redis json marshal err:%s", err.Error())
+			continue
 		}
-	}
+		class := "aliyun_redis"
+		tags := map[string]string{
+			"class":class,
+		}
+		field := inputs.ObjectPipeline(string(data),e.PipelinePath,inst.InstanceId,e.ExcludeInstanceIDs,e.InstancesIDs)
 
-	if len(objs) <= 0 {
-		return
+		io.NamedFeedEx(inputName,io.Object,class,tags,field,time.Now().UTC())
 	}
-
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-	io.NamedFeed(data, io.Object, inputName)
 }
