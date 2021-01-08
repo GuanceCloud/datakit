@@ -28,15 +28,12 @@ var (
 	l           = logger.DefaultSLogger("inputs")
 	panicInputs = map[string]int{}
 	mtx         = sync.RWMutex{}
-
 )
 
-
 type ConfDetail struct {
-	Path string
-	ConfMd5  []string
+	Path    string
+	ConfMd5 []string
 }
-
 
 type TestResult struct {
 	Result []byte // line protocol or any plugin test result
@@ -59,7 +56,7 @@ type HTTPInput interface {
 
 type PipelineInput interface {
 	Input
-	PipelineConfig()
+	PipelineConfig() map[string]string
 }
 
 type Creator func() Input
@@ -80,7 +77,6 @@ type inputInfo struct {
 	input Input
 	ti    *tgi.TelegrafInput
 	cfg   string
-
 }
 
 func (ii *inputInfo) Run() {
@@ -96,17 +92,15 @@ func (ii *inputInfo) Run() {
 	}
 }
 
-
-func SetInputsMD5(name string,input interface{}) string {
-	data,err :=  toml.Marshal(input)
+func SetInputsMD5(name string, input interface{}) string {
+	data, err := toml.Marshal(input)
 	if err != nil {
 		l.Errorf("input to toml err")
 		return ""
 	}
-	newName := fmt.Sprintf("%s-%x",name, md5.Sum(data))
+	newName := fmt.Sprintf("%s-%x", name, md5.Sum(data))
 	return newName
 }
-
 
 func AddInput(name string, input Input, fp string) error {
 
