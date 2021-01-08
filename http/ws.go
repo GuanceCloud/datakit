@@ -313,9 +313,9 @@ func (wc *wscli) EnableInputs(wm *wsmsg.WrapMsg) {
 
 	}
 	wc.SetMessage(wm, "ok", "")
-	inputName := strings.Join(names.Names, "")
-	title := fmt.Sprintf("uuid 为 %s 的datakit 开启了采集器:%s", wc.id, inputName)
-	WriteKeyevent(inputName, title)
+	//inputName := strings.Join(names.Names, "")
+	//title := fmt.Sprintf("uuid 为 %s 的datakit 开启了采集器:%s", wc.id, inputName)
+	//WriteKeyevent(inputName, title)
 
 }
 
@@ -512,9 +512,9 @@ func (wc *wscli) SetInput(wm *wsmsg.WrapMsg) {
 		}
 	}
 	wc.SetMessage(wm, "ok", "")
-	inputName := strings.Join(names, ",")
-	title := fmt.Sprintf("uuid 为 %s 的datakit 配置了新采集器:%s", wc.id, inputName)
-	WriteKeyevent(inputName, title)
+	//inputName := strings.Join(names, ",")
+	//title := fmt.Sprintf("uuid 为 %s 的datakit 配置了新采集器:%s", wc.id, inputName)
+	//WriteKeyevent(inputName, title)
 }
 
 func WriteKeyevent(inputName, title string) {
@@ -570,9 +570,9 @@ func (wc *wscli) DisableInput(wm *wsmsg.WrapMsg) {
 		}
 	}
 	wc.SetMessage(wm, "ok", "")
-	inputName := strings.Join(names.Names, "")
-	title := fmt.Sprintf("uuid 为 %s 的datakit 关闭了采集器:%s", wc.id, inputName)
-	WriteKeyevent(inputName, title)
+	//inputName := strings.Join(names.Names, "")
+	//title := fmt.Sprintf("uuid 为 %s 的datakit 关闭了采集器:%s", wc.id, inputName)
+	//WriteKeyevent(inputName, title)
 
 }
 
