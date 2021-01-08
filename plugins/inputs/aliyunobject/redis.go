@@ -25,6 +25,14 @@ const (
 #[inputs.aliyunobject.redis.tags]
 # key1 = 'val1'
 `
+	redisPipelineConifg = `
+	json(_,"InstanceId",InstanceId)
+	json(_,"InstanceName","name")
+	json(_,"RegionId",RegionId)
+	json(_,"RegionId",RegionId)
+
+
+`
 )
 
 type Redis struct {
