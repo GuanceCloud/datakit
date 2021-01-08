@@ -148,3 +148,23 @@ lowercase(a.thrid);
 	p.Run(js)
 	assertEqual(t, p.getContentStr("a.thrid"), "abc")
 }
+
+func TestAddkeyFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
+	script := `add_key(aa, 3);
+`
+	p := NewPipeline(script)
+	p.Run(js)
+	assertEqual(t, p.getContentStr("aa"), "3")
+}
+
+func TestDropkeyFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
+	script := `json(_, a.thrid);
+json(_, a.first);
+drop_key(a.thrid)
+`
+	p := NewPipeline(script)
+	p.Run(js)
+	assertEqual(t, p.getContentStr("a.first"), "2.3")
+}
