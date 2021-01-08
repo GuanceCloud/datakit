@@ -288,7 +288,7 @@ func Cast(p *Procedure, node parser.Node) (*Procedure, error) {
 func Group(p *Procedure, node parser.Node) (*Procedure, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
-		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
 	field := funcExpr.Param[0].(*parser.Identifier).Name
@@ -317,7 +317,7 @@ func Group(p *Procedure, node parser.Node) (*Procedure, error) {
 func GroupIn(p *Procedure, node parser.Node) (*Procedure, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
-		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
 	field := funcExpr.Param[0].(*parser.Identifier).Name
