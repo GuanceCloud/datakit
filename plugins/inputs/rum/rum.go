@@ -10,11 +10,9 @@ import (
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process"
 
 	"github.com/gin-gonic/gin"
 	influxm "github.com/influxdata/influxdb1-client/models"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 const (
@@ -95,11 +93,13 @@ func Handle(c *gin.Context) {
 	for _, pt := range pts {
 		ptname := string(pt.Name())
 
-		proc := process.NewProcedure(influxdb.NewPointFrom(pt))
-		line := proc.Geo(sourceIP).GetByte()
-		if err := proc.LastError(); err != nil {
-			l.Debugf("rum proc error: %s, ignored", err.Error())
-		}
+		// proc := pipeline.NewProcedure(influxdb.NewPointFrom(pt))
+		// line := proc.Geo(sourceIP).GetByte()
+		// if err := proc.LastError(); err != nil {
+		// 	l.Debugf("rum proc error: %s, ignored", err.Error())
+		// }
+
+		line := []byte(pt.String())
 
 		if IsMetric(ptname) {
 			metricsdata = append(metricsdata, line)
