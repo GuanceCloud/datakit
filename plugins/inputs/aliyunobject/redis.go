@@ -2,39 +2,46 @@ package aliyunobject
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	redis "github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
 	redisSampleConfig = `
-# ##(optional)
 #[inputs.aliyunobject.redis]
-    # ##(optional) ignore this object, default is false
-    #disable = false
-	
-    # ##(optional) list of redis instanceid
-    #instanceids = []
 
-    # ##(optional) list of excluded redis instanceid
-    #exclude_instanceids = []
+#pipeline = "aliyun_redis.p"
+
+# ## @param - [list of redis instanceid] - optional
+#instanceids = []
+
+# ## @param - [list of excluded redis instanceid] - optional
+#exclude_instanceids = []
+
+# ## @param - custom tags for redis object - [list of key:value element] - optional
+#[inputs.aliyunobject.redis.tags]
+# key1 = 'val1'
+`
+	redisPipelineConifg = `
+
+	json(_,"InstanceName","name");
+	json(_,"RegionId");
+	json(_,"InstanceStatus");
+	json(_,"InstanceId");
+	json(_,"NetworkType");
+	json(_,"ChargeType");
+
 `
 )
 
 type Redis struct {
-	Disable            bool              `toml:"disable"`
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
-}
-
-func (e *Redis) disabled() bool {
-	return e.Disable
+	PipelinePath       string            `toml:"pipeline,omitempty"`
 }
 
 func (e *Redis) run(ag *objectAgent) {
@@ -108,31 +115,7 @@ func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *object
 
 	moduleLogger.Debugf("redis TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 
-	var objs []map[string]interface{}
-
 	for _, inst := range resp.Instances.KVStoreInstance {
-
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, inst.InstanceName, inst.InstanceId), `aliyun_redis`, inst, inst.InstanceId, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
-		}
-	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-	if ag.isDebug() {
-		fmt.Printf("%s\n", string(data))
-	} else {
-		io.NamedFeed(data, io.Object, inputName)
+		parseObject(inst, "aliyun_waf", inst.InstanceId, e.PipelinePath, e.ExcludeInstanceIDs, e.InstancesIDs)
 	}
 }
