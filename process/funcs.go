@@ -23,9 +23,10 @@ var (
 		"grok":      Grok,
 		"json":      Json,
 		"rename":    Rename,
-		"stringf":   Stringf,
+		"strfmt":    Strfmt,
 		"cast":      Cast,
 		"expr":      Expr,
+		
 		"useragent": UserAgent,
 		"urldecode": UrlDecode,
 		"geoip":     GeoIp,
@@ -41,23 +42,17 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return nil, fmt.Errorf("func %s expected 2 or 3 args", funcExpr.Name)
 	}
 
-	old := funcExpr.Param[0].(*parser.Identifier).Name
-	new := funcExpr.Param[1].(*parser.Identifier).Name
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+	old := funcExpr.Param[1].(*parser.Identifier).Name
 
-	data := make(map[string]interface{})
-	err := json.Unmarshal(p.Content, &data)
-	if err != nil {
-		return p, err
+	newkey := old
+	if len(funcExpr.Param) == 3 {
+		newkey = funcExpr.Param[2].(*parser.Identifier).Name
 	}
 
-	data[new] = getContentById(p.Content, old)
-	delete(data, old)
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
+	cont := p.getContentStr(key)
+	v := getGjsonResult(cont, old)
+	p.setContent(newkey, v)
 
 	return p, nil
 }
@@ -68,23 +63,12 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	old := funcExpr.Param[0].(*parser.Identifier).Name
-	new := funcExpr.Param[1].(*parser.Identifier).Name
+	old := funcExpr.Param[1].(*parser.Identifier).Name
+	new := funcExpr.Param[0].(*parser.Identifier).Name
 
-	data := make(map[string]interface{})
-	err := json.Unmarshal(p.Content, &data)
-	if err != nil {
-		return p, err
-	}
-
-	data[new] = getContentById(p.Content, old)
-	delete(data, old)
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
+	v := p.getContent(old)
+	p.setContent(new, v)
+	delete(p.Output, old)
 
 	return p, nil
 }
@@ -216,30 +200,20 @@ func Expr(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	tag := funcExpr.Param[1].(*parser.Identifier).Name
+	key  := funcExpr.Param[1].(*parser.Identifier).Name
 	expr := funcExpr.Param[0].(*parser.BinaryExpr)
 
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
-	}
-
-	if v, err := Calc(expr, p.Content); err != nil {
+	if v, err := Calc(expr, p); err != nil {
 		return p, err
 	} else {
-		data[tag] = v
+		p.setContent(key, v)
 	}
 
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
 
 	return p, nil
 }
 
-func Stringf(p *Pipeline, node parser.Node) (*Pipeline, error) {
+func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	outdata := make([]interface{}, 0)
 
 	funcExpr := node.(*parser.FuncExpr)
@@ -247,19 +221,14 @@ func Stringf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return nil, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
 	}
 
-	tag := funcExpr.Param[0].(*parser.Identifier).Name
+	key  := funcExpr.Param[0].(*parser.Identifier).Name
 	fmts := funcExpr.Param[1].(*parser.StringLiteral).Val
 
-	data := make(map[string]interface{})
-	err := json.Unmarshal(p.Content, &data)
-	if err != nil {
-		return p, err
-	}
 
 	for i := 2; i < len(funcExpr.Param); i++ {
 		switch v := funcExpr.Param[i].(type) {
 		case *parser.Identifier:
-			outdata = append(outdata, getContentById(p.Content, v.Name))
+			outdata = append(outdata, p.getContent(v.Name))
 		case *parser.NumberLiteral:
 			if v.IsInt {
 				outdata = append(outdata, v.Int)
@@ -273,42 +242,23 @@ func Stringf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		}
 	}
 
-	s := fmt.Sprintf(fmts, outdata...)
-	data[tag] = s
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
+	strfmt := fmt.Sprintf(fmts, outdata...)
+    p.setContent(key, strfmt)
 
 	return p, nil
 }
 
 func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 3 {
+	if len(funcExpr.Param) != 2 {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	nField := funcExpr.Param[0].(*parser.Identifier).Name
-	field := funcExpr.Param[1].(*parser.Identifier).Name
-	tInfo := funcExpr.Param[2].(*parser.StringLiteral).Val
+	key      := funcExpr.Param[0].(*parser.Identifier).Name
+	castType := funcExpr.Param[1].(*parser.StringLiteral).Val
 
-	data := make(map[string]interface{})
-	err := json.Unmarshal(p.Content, &data)
-	if err != nil {
-		return p, err
-	}
-
-	rst := gjson.GetBytes(p.Content, field)
-	data[nField] = cast(&rst, tInfo)
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
-	}
+	v := cast(p.getContent(key), castType)
+	p.setContent(key, v)
 
 	return p, nil
 }
@@ -408,8 +358,8 @@ func DebugNodesHelp(f *parser.FuncExpr, prev string) {
 	}
 }
 
-func getContentById(content []byte, id string) interface{} {
-	g := gjson.GetBytes(content, id)
+func getGjsonResult(data, id string) interface{} {
+	g := gjson.Get(data, id)
 	switch g.Type {
 	case gjson.Null:
 		return nil
