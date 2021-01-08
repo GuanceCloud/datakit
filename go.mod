@@ -82,6 +82,7 @@ require (
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
+	github.com/spf13/cast v1.3.1
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.7
