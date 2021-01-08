@@ -65,6 +65,7 @@ var (
 	LuaDir         = filepath.Join(InstallDir, "lua")
 	MainConfPath   = filepath.Join(InstallDir, "datakit.conf")
 	ConfdDir       = filepath.Join(InstallDir, "conf.d")
+	PipelineDir    = filepath.Join(InstallDir, "pipeline")
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock       = ""
 )
