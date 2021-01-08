@@ -60,7 +60,7 @@ func (p *Procedure) ProcessText(data string) *Procedure {
 				return p
 			}
 
-			p, err = f(p, node)
+			_, err = f(p, node)
 			if err != nil {
 				l.Errorf("ProcessLog func %v: %v", v.Name, err)
 				p.lastErr = err
