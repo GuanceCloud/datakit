@@ -5,9 +5,9 @@ package docker_containers
 // )
 
 type ContainerObject struct {
-	Name    string `json:"__name"`
-	Class   string `json:"__class"`
-	Content string `json:"__content"`
+	Name    string `json:"name"`
+	Class   string `json:"class"`
+	Content string `json:"content"`
 
 	//Inspect  types.ContainerJSON `json:"inspect"`
 }
