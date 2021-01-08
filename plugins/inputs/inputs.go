@@ -342,12 +342,11 @@ func TestTelegrafInput(cfg []byte) (*TestResult, error) {
 	return result, nil
 }
 
-func ObjectPipeline(data, pipelinePath, id string, blacklist, whitelist []string) map[string]interface{} {
-	if datakit.CheckExcluded(id, blacklist, whitelist) {
-		return nil
-	}
+func RunPipeline(data, pipelinePath string) map[string]interface{} {
 	pipeline := pipeline.NewPipeline(pipelinePath)
 	result := pipeline.Run(data).Result()
-	result["content"] = data
 	return result
 }
+
+
+
