@@ -86,9 +86,9 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 	}
 
 	obj := map[string]interface{}{
-		"__name":    resp.InstanceInfo.InstanceId,
-		"__class":   "aliyun_waf",
-		"__content": string(jd),
+		"name":    resp.InstanceInfo.InstanceId,
+		"class":   "aliyun_waf",
+		"content": string(jd),
 	}
 
 	objs = append(objs, obj)
