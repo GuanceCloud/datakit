@@ -2,8 +2,6 @@ package pipeline
 
 import (
 	"testing"
-
-	"github.com/tidwall/gjson"
 )
 
 func assertEqual(t *testing.T, a, b interface{}) {
@@ -15,139 +13,118 @@ func assertEqual(t *testing.T, a, b interface{}) {
 
 func TestGrokFunc(t *testing.T) {
 	js := `127.0.0.1 - - [23/Apr/2014:22:58:32 +0200] "GET /index.php HTTP/1.1" 404 207`
-	script := `grok("%{COMMONAPACHELOG}");`
+	script := `grok(_, "%{COMMONAPACHELOG}");`
 
-	p := NewProcedure(script)
-
-	p.ProcessText(js)
-
+	p := NewPipeline(script)
+	p.Run(js)
 	assertEqual(t, p.lastErr, nil)
 
-	r := gjson.GetBytes(p.Content, "clientip")
-	assertEqual(t, r.String(), "127.0.0.1")
+	r := p.getContentStr("clientip")
+	assertEqual(t, r, "127.0.0.1")
 }
 
 func TestRenameFunc(t *testing.T) {
-	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-	script := `rename(a.second, bb);`
+	js := `127.0.0.1 - - [23/Apr/2014:22:58:32 +0200] "GET /index.php HTTP/1.1" 404 207`
+	script := `grok(_, "%{COMMONAPACHELOG}");
+rename(newkey, clientip)`
 
-	p := NewProcedure(script)
-	p.ProcessText(js)
-
+	p := NewPipeline(script)
+	p.Run(js)
 	assertEqual(t, p.lastErr, nil)
 
-	r := gjson.GetBytes(p.Content, "bb")
-	assertEqual(t, r.String(), "2")
+	r := p.getContentStr("newkey")
+	assertEqual(t, r, "127.0.0.1")
 }
 
 func TestExprFunc(t *testing.T) {
+
 	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-	script := `expr(a.second*10+(2+3)*5, bb);`
+	script := `json(_, a.second);
+cast(a.second, "int");
+expr(a.second*10+(2+3)*5, bb);
+`
+	p := NewPipeline(script)
+	p.Run(js)
+	assertEqual(t, p.lastErr, nil)
 
-	p := NewProcedure(script)
-	p.ProcessText(js)
-
-	r := gjson.GetBytes(p.Content, "bb")
-	assertEqual(t, r.String(), "45")
+	assertEqual(t, p.getContentStr("bb"), "45")
 }
 
 func TestUrlencodeFunc(t *testing.T) {
-	js := `{"a":{"url":"http://www.example.org/default.html?ct=32&op=92&item=98","second":2},"age":47}`
-	script := `urldecode(a.url, bb);`
-
-	p := NewProcedure(script)
-	p.ProcessText(js)
-
-	r := gjson.GetBytes(p.Content, "bb")
-	assertEqual(t, r.String(), "45")
+	//js := `{"a":{"url":"http://www.example.org/default.html?ct=32&op=92&item=98","second":2},"age":47}`
+	//script := `urldecode(a.url, bb);`
+	//
+	//p := NewProcedure(script)
+	//p.ProcessText(js)
+	//
+	//r := gjson.GetBytes(p.Content, "bb")
+	//assertEqual(t, r.String(), "45")
 }
 
 func TestDatetimeFunc(t *testing.T) {
-	js := `{"a":{"date":"2021.01.07 12:12", "second":2},"age":47}`
-	script := `datetime(a.date, 'yyyy-mm-dd hh:MM:ss', new_date);`
-
-	p := NewProcedure(script)
-	p.ProcessText(js)
-
-	r := gjson.GetBytes(p.Content, "bb")
-	assertEqual(t, r.String(), "45")
+	//js := `{"a":{"date":"2021.01.07 12:12", "second":2},"age":47}`
+	//script := `datetime(a.date, 'yyyy-mm-dd hh:MM:ss', new_date);`
+	//
+	//p := NewProcedure(script)
+	//p.ProcessText(js)
+	//
+	//r := gjson.GetBytes(p.Content, "bb")
+	//assertEqual(t, r.String(), "45")
 }
 
 func TestGroupFunc(t *testing.T) {
-	js := `{"a":{"status": 200,"age":47}`
-	script := `group(a.status, [200-299], "ok", bb);`
-
-	p := NewProcedure(script)
-	p.ProcessText(js)
-
-	r := gjson.GetBytes(p.Content, "bb")
-	assertEqual(t, r.String(), "45")
+	//js := `{"a":{"status": 200,"age":47}`
+	//script := `group(a.status, [200-299], "ok", bb);`
+	//
+	//p := NewProcedure(script)
+	//p.ProcessText(js)
+	//
+	//r := gjson.GetBytes(p.Content, "bb")
+	//assertEqual(t, r.String(), "45")
 }
 
 func TestGroupInFunc(t *testing.T) {
-	js := `{"a":{"status": 200,"age":47}`
-	script := `group(a.status, [200, 201], "ok", bb);`
-
-	p := NewProcedure(script)
-	p.ProcessText(js)
-
-	r := gjson.GetBytes(p.Content, "bb")
-	assertEqual(t, r.String(), "45")
+	//js := `{"a":{"status": 200,"age":47}`
+	//script := `group(a.status, [200, 201], "ok", bb);`
+	//
+	//p := NewProcedure(script)
+	//p.ProcessText(js)
+	//
+	//r := gjson.GetBytes(p.Content, "bb")
+	//assertEqual(t, r.String(), "45")
 }
 
 func TestCastFloat2IntFunc(t *testing.T) {
 	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-	script := `cast(bb, a.first, "int");`
+	script := `json(_, a.first);
+cast(a.first, "int");
+`
+	p := NewPipeline(script)
+	p.Run(js)
 
-	p := NewProcedure(script)
-	p.ProcessText(js)
-
-	r := gjson.GetBytes(p.Content, "bb")
-	assertEqual(t, r.String(), "2")
+	assertEqual(t, p.getContentStr("a.first"), "2")
 }
 
 func TestCastInt2FloatFunc(t *testing.T) {
 	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-	script := `cast(bb, a.second, "float");`
-
-	p := NewProcedure(script)
-	p.ProcessText(js)
-
-	r := gjson.GetBytes(p.Content, "bb")
-	assertEqual(t, r.String(), "2")
+	script := `json(_, a.second);
+cast(a.second, "float");
+`
+	p := NewPipeline(script)
+	p.Run(js)
+	assertEqual(t, p.getContentStr("a.second"), "2")
 }
 
 func TestStringfFunc(t *testing.T) {
+	//js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	//script := `stringf(bb, "%d %s %v", a.second, a.thrid, a.forth);`
 	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-	script := `stringf(bb, "%d %s %v", a.second, a.thrid, a.forth);`
-
-	p := NewProcedure(script)
-	p.ProcessText(js)
-
-	r := gjson.GetBytes(p.Content, "bb")
-	assertEqual(t, r.String(), "2 abc true")
-}
-
-func TestScriptFunc(t *testing.T) {
-	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-	script := `rename(a.second, bb);
-expr(a.second*10+(2+3)*5, cc);
-cast(dd, a.first, "int");
-
-stringf(ee, "%d %s %v", a.second, a.thrid, a.forth)
+	script := `json(_, a.second);
+json(_, a.thrid);
+json(_, a.forth);
+strfmt(bb, "%d %s %v", a.second, a.thrid, a.forth);
 `
-	p := NewProcedure(script)
-	p.ProcessText(js)
-
-	r := gjson.GetBytes(p.Content, "bb")
-	assertEqual(t, r.String(), "2")
-
-	r = gjson.GetBytes(p.Content, "cc")
-	assertEqual(t, r.String(), "45")
-
-	r = gjson.GetBytes(p.Content, "dd")
-	assertEqual(t, r.String(), "2")
-
-	r = gjson.GetBytes(p.Content, "ee")
-	assertEqual(t, r.String(), "2 abc true")
+	p := NewPipeline(script)
+	p.Run(js)
+	assertEqual(t, p.getContent("bb"), "2 abc true")
 }
