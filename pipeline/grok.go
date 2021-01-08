@@ -1,4 +1,4 @@
-package process
+package pipeline
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	vgrok "github.com/vjeantet/grok"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
 var (
