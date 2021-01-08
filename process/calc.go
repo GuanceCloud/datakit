@@ -6,22 +6,22 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
 )
 
-func Calc(expr interface{}, content []byte) (interface{}, error) {
+func Calc(expr interface{}, p *Pipeline) (interface{}, error) {
 	if expr == nil {
 		return nil, nil
 	}
 
 	switch v := expr.(type) {
 	case *parser.ParenExpr:
-		return Calc(v.Param, content)
+		return Calc(v.Param, p)
 
 	case *parser.BinaryExpr:
-		lv, err := Calc(v.LHS, content)
+		lv, err := Calc(v.LHS, p)
 		if err != nil {
 			return nil, err
 		}
 
-		rv, err := Calc(v.RHS, content)
+		rv, err := Calc(v.RHS, p)
 		if err != nil {
 			return nil, err
 		}
@@ -36,7 +36,7 @@ func Calc(expr interface{}, content []byte) (interface{}, error) {
 		}
 
 	case *parser.Identifier:
-		return getContentById(content, v.Name), nil
+		return p.getContent(v.Name), nil
 
 	default:
 		return nil, fmt.Errorf("unsupported Expr %v", v)
