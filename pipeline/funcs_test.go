@@ -3,7 +3,6 @@ package pipeline
 import (
 	"testing"
 	"fmt"
-	//"github.com/tidwall/gjson"
 )
 
 func assertEqual(t *testing.T, a, b interface{}) {
@@ -66,52 +65,52 @@ func TestUrlencodeFunc(t *testing.T) {
 
 func TestUserAgentFunc(t *testing.T) {
 	js := `{"a":{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36","second":2},"age":47}`
-	script := `json(_, a.userAgent); user_agent(a.userAgent); json(a.userAgent, Type)`
+	script := `json(_, a.userAgent); user_agent(a.userAgent)`
 
 	p := NewPipeline(script)
 	p.Run(js)
 
-	fmt.Println("--->", p.Output)
+	r := p.getContentStr("os")
 
-	r := p.getContentStr("Type")
-
-	fmt.Println("======>", r)
-
-	assertEqual(t, r, false)
+	assertEqual(t, r, "Windows 7")
 }
 
 func TestDatetimeFunc(t *testing.T) {
-	js := `{"a":{"date":"23/Apr/2014:22:58:32 +0200", "second":2},"age":47}`
-	script := `datetime(a.date, 'yyyy-mm-dd hh:MM:ss', new_date);`
+	js := `{"a":{"timestamp": "1610103765000", "second":2},"age":47}`
+	script := `json(_, a.timestamp); datetime(a.timestamp, 's', 'YYYY-MM-dd hh:mm:ss');`
 
 	p := NewPipeline(script)
 	p.Run(js)
 
-	r := p.getContent("a.url")
-	assertEqual(t, r, "45")
+	r := p.getContent("a.timestamp")
+
+	fmt.Println("====>", r)
+
+	assertEqual(t, r, "2021-01-08 06:26:13")
 }
 
 
 func TestGroupFunc(t *testing.T) {
-	//js := `{"a":{"status": 200,"age":47}`
-	//script := `group(a.status, [200-299], "ok", bb);`
-	//
-	//p := NewPipeline(script)
-	//p.Run(js)
-	//
-	//r := gjson.GetBytes(p.Content, "bb")
-	//assertEqual(t, r.String(), "45")
+	js := `{"a":{"status": 200,"age":47}`
+	script := `json(_, a.status); group_between(a.status, [200, 299], "ok", newkey);`
+
+	p := NewPipeline(script)
+	p.Run(js)
+
+	r := p.getContent("newkey")
+
+	assertEqual(t, r, "ok")
 }
 
 func TestGroupInFunc(t *testing.T) {
-	//js := `{"a":{"status": 200,"age":47}`
-	//script := `group(a.status, [200, 201], "ok", bb);`
-	//
-	//p := NewPipeline(script)
-	//p.Run(js)
-	//
-	//r := gjson.GetBytes(p.Content, "bb")
-	//assertEqual(t, r.String(), "45")
+	js := `{"a":{"status": 200,"age":"47"}`
+	script := `json(_, a.status); group(a.status, [200, "47"], "ok", newkey);`
+
+	p := NewPipeline(script)
+	p.Run(js)
+
+	r := p.getContent("newkey")
+	assertEqual(t, r, "ok")
 }
 
 func TestCastFloat2IntFunc(t *testing.T) {
