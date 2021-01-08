@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"time"
 	"reflect"
+	"fmt"
 	"github.com/GuilhermeCaruso/kair"
 	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
