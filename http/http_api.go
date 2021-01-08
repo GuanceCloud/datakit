@@ -114,16 +114,28 @@ func apiWriteTracing(c *gin.Context) {
 }
 
 func apiWriteObject(c *gin.Context) {
+	var precision string = DEFAULT_PRECISION
 	var body []byte
 	var err error
 
 	name := c.Query(NAME)
+	precision = c.Query(PRECISION)
 
 	body, err = uhttp.GinRead(c)
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
 		return
 	}
+
+	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), precision)
+	if err != nil {
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+		return
+	}
+
+	l.Debugf("received object %d points from %s", len(pts), name)
+
+	// TODO: add global tags
 
 	if err = io.NamedFeed(body, io.Object, name); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
