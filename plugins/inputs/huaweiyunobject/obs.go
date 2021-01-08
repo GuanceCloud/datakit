@@ -119,8 +119,8 @@ func (o *Obs) handleResponse(resp *obs.ListBucketsOutput, ag *objectAgent) {
 		}
 
 		obj := map[string]interface{}{
-			`__name`:  fmt.Sprintf(`%s`, bk.Name),
-			`__class`: `huaweiyun_obs`,
+			`name`:  fmt.Sprintf(`%s`, bk.Name),
+			`class`: `huaweiyun_obs`,
 		}
 
 		content := map[string]interface{}{
@@ -154,7 +154,7 @@ func (o *Obs) handleResponse(resp *obs.ListBucketsOutput, ag *objectAgent) {
 			continue
 		}
 
-		obj["__content"] = string(jd)
+		obj["content"] = string(jd)
 
 		objs = append(objs, obj)
 	}
