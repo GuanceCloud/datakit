@@ -1,9 +1,9 @@
-package process
+package pipeline
 
 import (
 	"fmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
 func Calc(expr interface{}, p *Pipeline) (interface{}, error) {
