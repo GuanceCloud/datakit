@@ -43,14 +43,20 @@
 
 用法：
 - 加载函数处理脚本
-procedure = NewProcedure(script)
-通过函数传入函数处理表达式脚本文件或脚本字符串, 注意在编写函数表示式时，通过分号分割，支持多行
+```
+p := NewPipeline(script)  //script为string类型
+```
+传入函数处理表达式脚本文件或脚本字符串, 注意在编写函数表示式时，通过分号分割，支持多行
 
 - 文本处理
-procedure.ProcessText(data)
+```
+p.Run(data) //data为string类型
+```
 
 - 获取结果
-procedure.GetContentByte()
+```
+p.Result()  //返回类型为map[string]interface{}
+```
 
 ## 脚本函数
 
