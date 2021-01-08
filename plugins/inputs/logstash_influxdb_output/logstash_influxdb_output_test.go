@@ -11,7 +11,9 @@ func TestInput(t *testing.T) {
 
 	moduleLogger = logger.DefaultSLogger("dummy")
 
+	ag := logstashInfluxdbOutput{}
+
 	router := gin.New()
-	router.POST("/write", WriteHandler)
+	router.POST("/write", ag.WriteHandler)
 	router.Run(":8080")
 }
