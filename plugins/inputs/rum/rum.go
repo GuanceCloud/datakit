@@ -10,7 +10,7 @@ import (
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/process"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	"github.com/gin-gonic/gin"
 	influxm "github.com/influxdata/influxdb1-client/models"
@@ -95,7 +95,7 @@ func Handle(c *gin.Context) {
 	for _, pt := range pts {
 		ptname := string(pt.Name())
 
-		proc := process.NewProcedure(influxdb.NewPointFrom(pt))
+		proc := pipeline.NewProcedure(influxdb.NewPointFrom(pt))
 		line := proc.Geo(sourceIP).GetByte()
 		if err := proc.LastError(); err != nil {
 			l.Debugf("rum proc error: %s, ignored", err.Error())
