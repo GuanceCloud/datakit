@@ -45,15 +45,14 @@ func (_ *objectAgent) Catalog() string {
 	return `aliyun`
 }
 
-func (_ *objectAgent) PipelineConfig() map[string]string{
+func (_ *objectAgent) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"aliyun_redis.p":redisPipelineConifg,
-		"aliyun_waf.p":wafPipelineConfig,
-		"aliyun_cdn.p":cdnPipelineConifg,
+		"aliyun_redis.p": redisPipelineConifg,
+		"aliyun_waf.p":   wafPipelineConfig,
+		"aliyun_cdn.p":   cdnPipelineConifg,
 	}
 	return pipelineMap
 }
-
 
 func (ag *objectAgent) Test() (*inputs.TestResult, error) {
 	ag.mode = "test"
@@ -145,23 +144,22 @@ func newAgent() *objectAgent {
 	return ag
 }
 
-
-func parseObject(obj interface{},class,id,pipelinePath string,blacklist,whitelist []string) {
+func parseObject(obj interface{}, class, id, pipelinePath string, blacklist, whitelist []string) {
 	if datakit.CheckExcluded(id, blacklist, whitelist) {
 		return
 	}
-	data,err := json.Marshal(obj)
+	data, err := json.Marshal(obj)
 	if err != nil {
 		moduleLogger.Errorf("[error] json marshal err:%s", err.Error())
 		return
 	}
 	tags := map[string]string{
-		"class":class,
+		"class": class,
 	}
 
-	fields := inputs.RunPipeline(string(data),pipelinePath)
+	fields := inputs.RunPipeline(string(data), pipelinePath)
 	fields["content"] = string(data)
-	io.NamedFeedEx(inputName,io.Object,class,tags,fields,time.Now().UTC())
+	io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
 }
 
 func init() {

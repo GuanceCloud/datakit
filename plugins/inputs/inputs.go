@@ -3,6 +3,7 @@ package inputs
 import (
 	"bytes"
 	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	influxm "github.com/influxdata/influxdb1-client/models"
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"github.com/influxdata/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
@@ -341,9 +344,60 @@ func TestTelegrafInput(cfg []byte) (*TestResult, error) {
 
 func RunPipeline(data, pipelinePath string) map[string]interface{} {
 	pipeline := pipeline.NewPipeline(pipelinePath)
-	result := pipeline.Run(data).Result()
-	return result
+	return pipeline.Run(data).Result()
 }
 
+// PointToJSON, line protocol point to pipeline JSON
+func PointToJSON(point influxm.Point) (string, error) {
+	m := map[string]interface{}{
+		"measurement": point.Name(),
+		"tags":        point.Tags(),
+	}
 
+	fields, err := point.Fields()
+	if err != nil {
+		return "", err
+	}
 
+	for k, v := range fields {
+		m[k] = v
+	}
+
+	m["time"] = point.Time().Unix() * int64(time.Millisecond)
+
+	j, err := json.Marshal(m)
+	if err != nil {
+		return "", err
+	}
+
+	return string(j), nil
+}
+
+func MapToPoint(m map[string]interface{}) (*ifxcli.Point, error) {
+	measurement, ok := m["measurement"].(string)
+	if !ok {
+		return nil, fmt.Errorf("invalid measurement")
+	}
+
+	tags, ok := m["tags"].(map[string]string)
+	if !ok {
+		return nil, fmt.Errorf("invalid tags")
+	}
+
+	fields := func() map[string]interface{} {
+		var res = make(map[string]interface{})
+		for k, v := range m {
+			switch k {
+			case "measurement", "tags", "time":
+				// pass
+			default:
+				res[k] = v
+			}
+		}
+		return res
+	}()
+
+	// FIXME:
+	// use map["time"], ms or ns ?
+	return ifxcli.NewPoint(measurement, tags, fields, time.Now())
+}
