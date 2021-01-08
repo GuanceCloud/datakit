@@ -151,9 +151,9 @@ func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
 		}
 
 		obj := map[string]interface{}{
-			`__name`:    inst.Get("InstanceAlias").String(),
-			`__class`:   `aliyun_influxdb`,
-			`__content`: string(jd),
+			`name`:    inst.Get("InstanceAlias").String(),
+			`class`:   `aliyun_influxdb`,
+			`content`: string(jd),
 		}
 
 		objs = append(objs, obj)
