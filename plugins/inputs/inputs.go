@@ -57,6 +57,11 @@ type HTTPInput interface {
 	RegHttpHandler()
 }
 
+type PipelineInput interface {
+	Input
+	PipelineConfig() map[string]string
+}
+
 type Creator func() Input
 
 func Add(name string, creator Creator) {
