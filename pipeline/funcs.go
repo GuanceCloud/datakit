@@ -29,8 +29,8 @@ var (
 		"url_decode" :  UrlDecode,
 		"geoip"      :  GeoIp,
 		"datetime"   :  DateTime,
-		"group"      :  Group,
-		"group_in"   :  GroupIn,
+		// "group"      :  Group,
+		// "group_in"   :  GroupIn,
 
 		"uppercase"  :  Uppercase,
 		"lowercase"  :  Lowercase,
@@ -83,7 +83,7 @@ func UserAgent(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	key := funcExpr.Param[0].(*parser.Identifier).Name
 
 	v := UserAgentHandle(p.getContentStr(key))
-	p.setContent(new, v)
+	p.setContent(key, v)
 
 	return p, nil
 }
@@ -123,23 +123,25 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 }
 
 func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+
 	if len(funcExpr.Param) != 3 || len(funcExpr.Param) != 4 {
 		return nil, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
 	}
 
 	var tz = 8
 
-	funcExpr := node.(*parser.FuncExpr)
-
 	key       := funcExpr.Param[0].(*parser.Identifier).Name
 	precision := funcExpr.Param[1].(*parser.StringLiteral).Val
 	fmts      := funcExpr.Param[2].(*parser.StringLiteral).Val
 
+	_ = precision
+
 	if len(funcExpr.Param) == 4 {
-		tzStr := funcExpr.Param[3].(*parser.StringLiteral).Val
+		tzStr := funcExpr.Param[3]
 		if v, ok := tzStr.(*parser.NumberLiteral); ok {
 			if v.IsInt {
-				tz = v.Int
+				tz = int(v.Int)
 			}
 		}
 	}
@@ -222,130 +224,118 @@ func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	return p, nil
 }
 
-func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
-	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 3 || len(funcExpr.Param) != 4 {
-		return nil, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
-	}
-	var nvalue interface{}
+// func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
+// 	funcExpr := node.(*parser.FuncExpr)
+// 	if len(funcExpr.Param) != 3 || len(funcExpr.Param) != 4 {
+// 		return nil, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
+// 	}
+// 	var nvalue interface{}
 
-	funcExpr := node.(*parser.FuncExpr)
+// 	key   := funcExpr.Param[0].(*parser.Identifier).Name
+// 	set   := funcExpr.Param[1].(*parser.NodeList)
+// 	value := funcExpr.Param[2]
 
-	key   := funcExpr.Param[0].(*parser.Identifier).Name
-	set   := funcExpr.Param[1].(*parser.NodeList)
-	value := funcExpr.Param[2]
+// 	newkey := key
+// 	var start, end float64
 
-	newkey := key
-	var start, end float64
+// 	if len(funcExpr.Param) == 4 {
+// 		newkey = funcExpr.Param[3].(*parser.Identifier).Name
+// 	}
 
-	if len(funcExpr.Param) == 4 {
-		newkey = funcExpr.Param[3].(*parser.Identifier).Name
-	}
+// 	if len(set) != 2 {
+// 		return nil, fmt.Errorf("range value is not expected 3 or 4 args", set)
+// 	}
 
-	if len(set) != 2 {
-		nil, fmt.Errorf("range value is not expected 3 or 4 args", set)
-	}
+// 	if v, ok := set[0].(*parser.NumberLiteral); ok {
+// 		if v.IsInt {
+// 			start = float64(v.IsInt)
+// 		} else {
+// 			start = v.Float
+// 		}
+// 	}
 
-	if v. ok := set[0].(*parser.NumberLiteral); ok {
-		if v.IsInt {
-			start = float64(v.IsInt)
-		} else {
-			start = v.Float
-		}
-	}
+// 	if v, ok := set[1].(*parser.NumberLiteral); ok {
+// 		if v.IsInt {
+// 			end = float64(v.IsInt)
+// 		} else {
+// 			end = v.Float
+// 		}
+// 	}
 
-	if v. ok := set[1].(*parser.NumberLiteral); ok {
-		if v.IsInt {
-			end = float64(v.IsInt)
-		} else {
-			end = v.Float
-		}
-	}
+// 	if GroupHandle(p.getContent(key), start, end) {
+// 		switch v := value.(type) {
+// 		case *parser.NumberLiteral:
+// 			if v.IsInt {
+// 				p.setContent(newkey, v.IsInt)
+// 			} else {
+// 				p.setContent(newkey, v.Float)
+// 			}
+// 		case *parser.StringLiteral:
+// 			p.setContent(newkey, v.Val)
+// 		case *parser.BoolLiteral:
+// 			p.setContent(newkey, v.Val)
+// 		}
+// 	}
 
-	if GroupHandle(p.getContent(key), start, end) {
-		switch v := funcExpr.Param[i].(type) {
-		case *parser.NumberLiteral:
-			if v.IsInt {
-				p.setContent(newkey, v.IsInt)
-			} else {
-				p.setContent(newkey, v.Float)
-			}
-		case *parser.StringLiteral:
-			p.setContent(newkey, v.Val)
-		case *parser.BoolLiteral:
-			p.setContent(newkey, v.Val)
-		}
-	}
+// 	return p, nil
+// }
 
-	return p, nil
-}
+// func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
+// 	setdata := make([]interface{}, 0)
+// 	funcExpr := node.(*parser.FuncExpr)
+// 	if len(funcExpr.Param) != 3 || len(funcExpr.Param) != 4 {
+// 		return nil, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
+// 	}
 
-func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
-	setdata := make([]interface{}, 0)
-	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 3 || len(funcExpr.Param) != 4 {
-		return nil, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
-	}
+// 	var nvalue interface{}
 
-	var nvalue interface{}
+// 	key   := funcExpr.Param[0].(*parser.Identifier).Name
+// 	set   := funcExpr.Param[1].(*parser.NodeList)
+// 	value := funcExpr.Param[2]
 
-	funcExpr := node.(*parser.FuncExpr)
+// 	newkey := key
+// 	if len(funcExpr.Param) == 4 {
+// 		newkey = funcExpr.Param[3].(*parser.Identifier).Name
+// 	}
 
-	key   := funcExpr.Param[0].(*parser.Identifier).Name
-	set   := funcExpr.Param[1].(*parser.NodeList)
-	value := funcExpr.Param[2]
+// 	if len(set) != 2 {
+// 		return nil, fmt.Errorf("range value is not expected 3 or 4 args", set)
+// 	}
 
-	newkey := key
-	if len(funcExpr.Param) == 4 {
-		newkey = funcExpr.Param[3].(*parser.Identifier).Name
-	}
+// 	for node, ok := range set {
+// 		switch v := node.(type) {
+// 		case *parser.Identifier:
+// 			setdata = append(setdata, p.getContent(v.Name))
+// 		case *parser.NumberLiteral:
+// 			if v.IsInt {
+// 				setdata = append(setdata, v.Int)
+// 			} else {
+// 				setdata = append(setdata, v.Float)
+// 			}
+// 		case *parser.StringLiteral:
+// 			setdata = append(setdata, v.Val)
+// 		default:
+// 			setdata = append(setdata, v)
+// 		}
+// 	}
 
-	if len(set) != 2 {
-		nil, fmt.Errorf("range value is not expected 3 or 4 args", set)
-	}
+// 	if GroupInHandle(p.getContent(key), setdata) {
+// 		switch v := value.(type) {
+// 		case *parser.NumberLiteral:
+// 			if v.IsInt {
+// 				p.setContent(newkey, v.IsInt)
+// 			} else {
+// 				p.setContent(newkey, v.Float)
+// 			}
+// 		case *parser.StringLiteral:
+// 			p.setContent(newkey, v.Val)
+// 		case *parser.BoolLiteral:
+// 			p.setContent(newkey, v.Val)
+// 		}
+// 	}
 
-	for node. ok := range set {
-		switch v := node.(type) {
-		case *parser.Identifier:
-			setdata = append(setdata, p.getContent(v.Name))
-		case *parser.NumberLiteral:
-			if v.IsInt {
-				setdata = append(setdata, v.Int)
-			} else {
-				setdata = append(setdata, v.Float)
-			}
-		case *parser.StringLiteral:
-			setdata = append(setdata, v.Val)
-		default:
-			setdata = append(setdata, v)
-		}
-	}
-
-	if v. ok := set[1].(*parser.NumberLiteral); ok {
-		if v.IsInt {
-			end = float64(v.IsInt)
-		} else {
-			end = v.Float
-		}
-	}
-
-	if GroupHandle(p.getContent(key), setdata, value) {
-		switch v := funcExpr.Param[i].(type) {
-		case *parser.NumberLiteral:
-			if v.IsInt {
-				p.setContent(newkey, v.IsInt)
-			} else {
-				p.setContent(newkey, v.Float)
-			}
-		case *parser.StringLiteral:
-			p.setContent(newkey, v.Val)
-		case *parser.BoolLiteral:
-			p.setContent(newkey, v.Val)
-		}
-	}
-
-	return p, nil
-}
+// 	return p, nil
+// }
 
 func ParseScript(scriptOrPath string) ([]parser.Node, error) {
 	data := scriptOrPath
