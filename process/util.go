@@ -3,13 +3,13 @@ package process
 import (
 	"net/url"
 	"time"
-
+	"fmt"
 	"github.com/GuilhermeCaruso/kair"
-	"github.com/mssola/user_agent"
+	"xojoc.pw/useragent"
 )
 
 func UrldecodeParse(path string) (interface{}, error) {
-	params, err := url.ParseQuery(path)
+	params, err := url.QueryUnescape(path)
 	if err != nil {
 		return nil, err
 	}
@@ -18,7 +18,7 @@ func UrldecodeParse(path string) (interface{}, error) {
 }
 
 func UserAgentParse(str string) interface{} {
-	ua := user_agent.New(str)
+	ua := useragent.Parse(str)
 
 	return ua
 }
