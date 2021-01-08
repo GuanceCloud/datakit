@@ -142,6 +142,7 @@ var (
 		"systemd":                true,
 		"systemd_units":          false,
 		"tailf":                  true,
+		"telegraf_http":          false,
 		"tencentcms":             true,
 		"tencentcost":            true,
 		"tencentobject":          false,
