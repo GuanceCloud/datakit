@@ -1,10 +1,9 @@
 package process
 
 import (
-	"encoding/json"
+	"fmt"
 	"path/filepath"
 
-	"github.com/tidwall/gjson"
 	vgrok "github.com/vjeantet/grok"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -15,34 +14,23 @@ var (
 	grokCfg *vgrok.Grok
 )
 
-func Grok(p *Procedure, node parser.Node) (*Procedure, error) {
-	filedName := "__content"
-
+func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	pattern  := funcExpr.Param[0].(*parser.StringLiteral).Val
-	if len(funcExpr.Param) == 2 {
-		filedName = funcExpr.Param[1].(*parser.Identifier).Name
+	if len(funcExpr.Param) != 2 {
+		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	value := gjson.GetBytes(p.Content, filedName)
-	m, err := p.grok.Parse(pattern, value.String())
+	pattern := funcExpr.Param[0].(*parser.StringLiteral).Val
+	key     := funcExpr.Param[1].(*parser.Identifier).Name
+
+	val := p.getContentStr(key)
+	m, err := p.grok.Parse(pattern, val)
 	if err != nil {
 		return p, err
 	}
 
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(p.Content, &data); err != nil {
-		return p, err
-	}
-
 	for k, v := range m {
-		data[k] = v
-	}
-
-	if js, err := json.Marshal(data); err != nil {
-		return p, err
-	} else {
-		p.Content = js
+		p.setContent(k, v)
 	}
 
     return p, nil
