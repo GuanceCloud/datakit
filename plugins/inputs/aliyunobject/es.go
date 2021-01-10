@@ -26,11 +26,10 @@ const (
 `
 	elasticsearchPipelineConifg = `
 
-	json(_,DomainName,name);
-	json(_,Cname);
-	json(_,CdnType);
-	json(_,DomainStatus);
-	json(_,SslProtocol);
+	json(_,InstanceId);
+	json(_,paymentType);
+	json(_,Status);
+	json(_,dedicateMaster);
 	json(_,ResourceGroupId);
 `
 )
@@ -40,12 +39,14 @@ type Elasticsearch struct {
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
 	PipelinePath       string            `toml:"pipeline,omitempty"`
+
+	p                  *pipeline.Pipeline
 }
 
 func (e *Elasticsearch) run(ag *objectAgent) {
 	var cli *elasticsearch.Client
 	var err error
-
+	e.p = pipeline.NewPipeline(e.PipelinePath)
 	for {
 		select {
 		case <-ag.ctx.Done():
@@ -118,8 +119,7 @@ func (e *Elasticsearch) run(ag *objectAgent) {
 }
 
 func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse, ag *objectAgent) {
-	p := pipeline.NewPipeline(e.PipelinePath)
 	for _, inst := range resp.Result {
-		ag.parseObject(inst, "aliyun_elasticsearch", inst.InstanceId, p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
+		ag.parseObject(inst, "aliyun_elasticsearch",inst.Description, inst.InstanceId, p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
 	}
 }
