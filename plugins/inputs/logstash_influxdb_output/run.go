@@ -50,7 +50,11 @@ func (r *logstashInfluxdbOutput) RegHttpHandler() {
 
 	r.pipelinePool = &sync.Pool{
 		New: func() interface{} {
-			return pipeline.NewPipeline(r.Pipeline)
+			p, err := pipeline.NewPipeline(r.Pipeline)
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
+			}
+			return p
 		},
 	}
 
@@ -119,11 +123,18 @@ func (r *logstashInfluxdbOutput) WriteHandler(c *gin.Context) {
 
 		pp := r.pipelinePool.Get().(*pipeline.Pipeline)
 		defer func() {
-			r.pipelinePool.Put(pp)
+			if pp != nil {
+				r.pipelinePool.Put(pp)
+			}
 		}()
 
 		for _, pt := range pts {
 			ptname := string(pt.Name())
+
+			if pp == nil {
+				io.NamedFeed([]byte(pt.String()), category, inputName)
+				continue
+			}
 
 			pipelineInput := map[string]interface{}{}
 
@@ -138,7 +149,7 @@ func (r *logstashInfluxdbOutput) WriteHandler(c *gin.Context) {
 
 			pipelineInputBytes, err := json.Marshal(&pipelineInput)
 			if err != nil {
-				moduleLogger.Warnf("%s", err)
+				moduleLogger.Errorf("%s", err)
 				continue
 			}
 

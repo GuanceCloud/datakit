@@ -183,6 +183,12 @@ func (r *AliyunActiontrail) run() error {
 		}
 	}()
 
+	var err error
+	r.pipelineScript, err = pipeline.NewPipeline(r.Pipeline)
+	if err != nil {
+		moduleLogger.Errorf("%s", err)
+	}
+
 	for {
 
 		select {
@@ -266,8 +272,6 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 		return nil
 	}
 
-	pp := pipeline.NewPipeline(r.Pipeline)
-
 	for _, ev := range response.Events {
 
 		select {
@@ -305,10 +309,12 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 			continue
 		}
 
-		if result, err := pp.Run(string(evdata)).Result(); err != nil {
-			moduleLogger.Warnf("%s", err)
-		} else {
-			fields = result
+		if r.pipelineScript != nil {
+			if result, err := r.pipelineScript.Run(string(evdata)).Result(); err != nil {
+				moduleLogger.Warnf("%s", err)
+			} else {
+				fields = result
+			}
 		}
 
 		fields["message"] = string(evdata)
