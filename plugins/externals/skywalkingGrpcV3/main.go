@@ -6,24 +6,23 @@ import (
 	"io"
 	"net"
 
-	"time"
 	"bytes"
 	"context"
-	"path/filepath"
-	"encoding/json"
 	"encoding/base64"
+	"encoding/json"
+	"path/filepath"
+	"time"
 
 	"github.com/influxdata/toml"
 	"google.golang.org/grpc"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
-	dkio   "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	lang   "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/skywalkingGrpcV3/skywalking/network/language/agent/v3"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	common "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/skywalkingGrpcV3/skywalking/network/common/v3"
+	lang "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/skywalkingGrpcV3/skywalking/network/language/agent/v3"
 	mgment "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/skywalkingGrpcV3/skywalking/network/management/v3"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 type Skywalking struct {
@@ -73,7 +72,7 @@ func main() {
 	skywalkingGrpcServRun(fmt.Sprintf(":%d", skywalkingV3.GrpcPort))
 }
 
-type SkywalkingServerV3 struct{
+type SkywalkingServerV3 struct {
 }
 
 func (s *SkywalkingServerV3) Collect(tsc lang.TraceSegmentReportService_CollectServer) error {
@@ -160,7 +159,7 @@ func skywalkGrpcToLineProto(sg *lang.SegmentObject) error {
 	return nil
 }
 
-type SkywalkingManagementServerV3 struct{
+type SkywalkingManagementServerV3 struct {
 }
 
 func (_ *SkywalkingManagementServerV3) ReportInstanceProperties(ctx context.Context, mng *mgment.InstanceProperties) (*common.Commands, error) {
@@ -182,7 +181,6 @@ func (_ *SkywalkingManagementServerV3) KeepAlive(ctx context.Context, ping *mgme
 
 	return cmd, nil
 }
-
 
 type SkywalkingJVMMetricReportServerV3 struct {
 }
