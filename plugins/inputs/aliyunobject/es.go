@@ -1,6 +1,7 @@
 package aliyunobject
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch"
@@ -16,23 +17,18 @@ const (
 #[inputs.aliyunobject.elasticsearch]
     # ##(optional) ignore this object, default is false
     #disable = false
-
+	#pipeline = "aliyun_elasticsearch.p"
     # ##(optional) list of elasticsearch instanceid
     #instanceids = []
-	#pipeline = "aliyun_elasticsearch.p"
-	# ## @param - [list of elasticsearch instanceid] - optional
-	#instanceids = []
-
     # ##(optional) list of excluded elasticsearch instanceid
     #exclude_instanceids = []
 `
 	elasticsearchPipelineConifg = `
-
-	json(_,InstanceId);
-	json(_,paymentType);
-	json(_,Status);
-	json(_,dedicateMaster);
-	json(_,ResourceGroupId);
+json(_, InstanceId);
+json(_, paymentType);
+json(_, Status);
+json(_, dedicateMaster);
+json(_, ResourceGroupId);
 `
 )
 
@@ -132,7 +128,10 @@ func (e *Elasticsearch) run(ag *objectAgent) {
 
 func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse, ag *objectAgent) {
 	for _, inst := range resp.Result {
-		ag.parseObject(inst, "aliyun_elasticsearch", inst.Description, inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
+		tags := map[string]string{
+			"name": fmt.Sprintf("%s_%s", inst.Description, inst.InstanceId),
+		}
+		ag.parseObject(inst, "aliyun_elasticsearch", inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, tags)
 	}
 
 }
