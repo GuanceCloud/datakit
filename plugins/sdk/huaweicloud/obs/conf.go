@@ -318,7 +318,7 @@ func DummyQueryEscape(s string) string {
 	return s
 }
 
-func (conf *config) prepareBaseURL(bucketName string)(requestUrl string, canonicalizedUrl string){
+func (conf *config) prepareBaseURL(bucketName string) (requestUrl string, canonicalizedUrl string) {
 	urlHolder := conf.urlHolder
 	if conf.cname {
 		requestUrl = fmt.Sprintf("%s://%s:%d", urlHolder.scheme, urlHolder.host, urlHolder.port)
@@ -348,29 +348,29 @@ func (conf *config) prepareBaseURL(bucketName string)(requestUrl string, canonic
 	return
 }
 
-func (conf *config) prepareObjectKey(escape bool, objectKey string, escapeFunc func(s string) string)(encodeObjectKey string){
-	if escape{
+func (conf *config) prepareObjectKey(escape bool, objectKey string, escapeFunc func(s string) string) (encodeObjectKey string) {
+	if escape {
 		tempKey := []rune(objectKey)
 		result := make([]string, 0, len(tempKey))
-		for _, value:=range tempKey{
-			if string(value) == "/"{
+		for _, value := range tempKey {
+			if string(value) == "/" {
 				result = append(result, string(value))
-			}else{
-				if string(value) == " "{
+			} else {
+				if string(value) == " " {
 					result = append(result, url.PathEscape(string(value)))
-				}else{
+				} else {
 					result = append(result, url.QueryEscape(string(value)))
 				}
 			}
 		}
-		encodeObjectKey = strings.Join(result,"")
-	}else{
+		encodeObjectKey = strings.Join(result, "")
+	} else {
 		encodeObjectKey = escapeFunc(objectKey)
 	}
 	return
 }
 
-func (conf *config) prepareEscapeFunc(escape bool)(escapeFunc func(s string) string){
+func (conf *config) prepareEscapeFunc(escape bool) (escapeFunc func(s string) string) {
 	if escape {
 		return url.QueryEscape
 	} else {
