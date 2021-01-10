@@ -127,7 +127,7 @@ func (r *logstashInfluxdbOutput) WriteHandler(c *gin.Context) {
 				moduleLogger.Errorf("%s", err)
 				continue
 			}
-			result := pp.Run(string(jdata)).Result()
+			result, _ := pp.Run(string(jdata)).Result()
 			if len(result) == 0 {
 				moduleLogger.Errorf("%v", pp.LastError())
 				continue
