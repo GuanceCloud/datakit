@@ -127,6 +127,10 @@ func (p *Pipeline) setContent(k string, v interface{}) {
 		p.Output = make(map[string]interface{})
 	}
 
+	if v == nil {
+		return
+	}
+
 	p.Output[k] = v
 }
 
