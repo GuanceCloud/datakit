@@ -9,7 +9,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
@@ -25,6 +25,17 @@ const (
     # ##(optional) list of excluded ecs instanceid
     #exclude_instanceids = ['']
 `
+
+	ecsPipelineConifg = `
+
+json(_,InstanceName,name);
+json(_,RegionId);
+json(_,Status);
+json(_,InstanceId);
+json(_,NetworkType);
+json(_,InstanceChargeType);
+
+`
 )
 
 type Ecs struct {
@@ -32,6 +43,9 @@ type Ecs struct {
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string            `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (e *Ecs) disabled() bool {
@@ -41,6 +55,12 @@ func (e *Ecs) disabled() bool {
 func (e *Ecs) run(ag *objectAgent) {
 	var cli *ecs.Client
 	var err error
+	p, err := newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("%s", err.Error())
+		return
+	}
+	e.p = p
 
 	for {
 
@@ -120,35 +140,8 @@ func (e *Ecs) run(ag *objectAgent) {
 
 func (e *Ecs) handleResponse(resp *ecs.DescribeInstancesResponse, ag *objectAgent) {
 
-	var objs []map[string]interface{}
-
 	for _, inst := range resp.Instances.Instance {
-
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, inst.InstanceName, inst.InstanceId), `aliyun_ecs`, inst, inst.InstanceId, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
-		}
-	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-
-	if ag.isTest() {
-		ag.testResult.Result = append(ag.testResult.Result, data...)
-	} else if ag.isDebug() {
-		fmt.Printf("%s\n", string(data))
-	} else {
-		io.NamedFeed(data, io.Object, inputName)
+		ag.parseObject(inst, "aliyun_ecs", fmt.Sprintf(`%s(%s)`, inst.InstanceName, inst.InstanceId), inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
 	}
 
 }
