@@ -21,15 +21,15 @@ func (s *SecureExec) ExecInit() error {
 func ExecCmd(cmds string) (string, error) {
 	c := exec.Command(ShellPath, "/C", cmds)
 	stdout, err := c.CombinedOutput()
-	return ConvertByte2String(stdout, GB18030),err
+	return ConvertByte2String(stdout, GB18030), err
 }
 
 func ConvertByte2String(byte []byte, charset Charset) string {
 	var str string
 	switch charset {
 	case GB18030:
-		var decodeBytes,_=simplifiedchinese.GB18030.NewDecoder().Bytes(byte)
-		str= string(decodeBytes)
+		var decodeBytes, _ = simplifiedchinese.GB18030.NewDecoder().Bytes(byte)
+		str = string(decodeBytes)
 	case UTF8:
 		fallthrough
 	default:
@@ -37,4 +37,3 @@ func ConvertByte2String(byte []byte, charset Charset) string {
 	}
 	return str
 }
-
