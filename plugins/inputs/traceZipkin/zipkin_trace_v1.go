@@ -110,9 +110,10 @@ func parseZipkinJsonV1(octets []byte) error {
 			}
 		}
 
+		tAdpter.Status = trace.STATUS_OK
 		for _, bno := range zs.BinaryAnnotations {
 			if bno != nil && bno.Key == "error" {
-				tAdpter.IsError = "true"
+				tAdpter.Status = trace.STATUS_ERR
 				break
 			}
 		}
@@ -273,9 +274,10 @@ func parseZipkinThriftV1(octets []byte) error {
 			}
 		}
 
+		tAdpter.Status = trace.STATUS_OK
 		for _, bno := range zs.BinaryAnnotations {
 			if bno != nil && bno.Key == "error" {
-				tAdpter.IsError = "true"
+				tAdpter.Status = trace.STATUS_ERR
 				break
 			}
 		}
