@@ -1,15 +1,23 @@
 package rum
 
+import "sync"
+
 const (
 	configSample = `
 [[inputs.rum]]
 # ##(optional) tell datakit which http header contains the source ip, if empty use the client ip
 ip_header = 'X-Forwarded-For'
+pipeline = 'geoip(ip)'
 `
+
+	pipelineSample = `geoip(ip)`
 )
 
 type Rum struct {
 	IPHeader string `toml:"ip_header,omitempty"`
+	Pipeline string `toml:"pipeline"`
+
+	pipelinePool *sync.Pool
 }
 
 var metricNames = map[string]bool{
