@@ -133,8 +133,9 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 
 		t.TraceID = sg.TraceId
 		t.SpanID = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.SpanId)
+		t.Status = trace.STATUS_OK
 		if span.IsError {
-			t.IsError = "true"
+			t.Status = trace.STATUS_ERR
 		}
 		if span.SpanType == "Entry" {
 			t.SpanType = trace.SPAN_TYPE_ENTRY
