@@ -57,7 +57,7 @@ func (p *JiraParam) active() {
 	}
 }
 
-func (p *JiraParam) gather(queue <- chan string, wg *sync.WaitGroup) {
+func (p *JiraParam) gather(queue <-chan string, wg *sync.WaitGroup) {
 	var d time.Duration
 	var err error
 
