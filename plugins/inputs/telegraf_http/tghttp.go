@@ -7,6 +7,7 @@ import (
 	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -40,6 +41,7 @@ func init() {
 type TelegrafHTTP struct {
 	// map[measurement]pipelinePath
 	LoggingMeas map[string]string `toml:"logging_measurements"`
+	// no required goroutine safe
 	pipelineMap map[string]*pipeline.Pipeline
 }
 
@@ -121,21 +123,15 @@ func (t *TelegrafHTTP) Handle(w http.ResponseWriter, r *http.Request) {
 		meas := string(point.Name())
 
 		if _, ok := t.LoggingMeas[meas]; ok {
-			jsonStr, err := inputs.PointToJSON(point)
-			if err != nil {
-				l.Errorf("point to json, err: %s", err.Error())
-				continue
-			}
-
-			result, err := t.pipelineMap[meas].Run(jsonStr).Result()
+			result, err := t.pipelineMap[meas].RunPoint(point).Result()
 			if err != nil {
 				l.Error(err)
 				continue
 			}
 
-			pt, err := inputs.MapToPoint(result)
+			pt, err := ifxcli.NewPoint(meas, nil, result, point.Time())
 			if err != nil {
-				l.Errorf("map to point, err: %s", err.Error())
+				l.Error(err)
 				continue
 			}
 
