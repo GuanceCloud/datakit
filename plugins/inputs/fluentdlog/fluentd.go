@@ -5,7 +5,7 @@ import (
 	iowrite "io"
 	"net/http"
 	"time"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -39,6 +39,8 @@ func init() {
 
 type Fluentd struct {
 	Path   string            `toml:"path"`
+	Pipeline *pipeline.Pipeline  `toml:"-"`
+	PipelinePath string      `toml:"pipeline_path"`
 	Metric string            `toml:"source"`
 	Tags   map[string]string `toml:"tags"`
 }
@@ -55,9 +57,14 @@ func (Fluentd) Test() (result *inputs.TestResult,err error) {
 	return
 }
 
-func (*Fluentd) Run() {
+func (f *Fluentd) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("Fluentd input started...")
+	var err error
+	f.Pipeline, err = pipeline.NewPipeline(f.PipelinePath)
+	if err != nil {
+		l.Errorf("new pipeline error, %v", err)
+	}
 }
 
 func (f *Fluentd) RegHttpHandler() {
@@ -65,14 +72,14 @@ func (f *Fluentd) RegHttpHandler() {
 }
 
 func (f *Fluentd) Handle(w http.ResponseWriter, r *http.Request) {
-	if err := extract(r.Body, f.Metric, f.Tags); err == nil {
+	if err := extract(f.Pipeline, r.Body, f.Metric, f.Tags); err == nil {
 		w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 }
 
-func extract(body iowrite.Reader, metric string, tags map[string]string) error {
+func extract(p *pipeline.Pipeline, body iowrite.Reader, metric string, tags map[string]string) error {
 	r := bufio.NewReader(body)
 
 	for {
@@ -91,12 +98,21 @@ func extract(body iowrite.Reader, metric string, tags map[string]string) error {
 		tm := time.Now()
 
 		n := len(bytes)
-		_fields["content"] = string(bytes[0 : n-1])
+
+		if p != nil {
+			_fields, err = p.Run(string(bytes[0 : n-1])).Result()
+			if err != nil {
+				l.Errorf("run pipeline error, %v", err)
+				continue
+			}
+		} else {
+			_fields["content"] = string(bytes[0 : n-1])
+		}
 
 		pt, err := io.MakeMetric(metric, _tags, _fields, tm)
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
-			return err
+			continue
 		}
 
 		l.Debug("point data", string(pt))
@@ -104,7 +120,7 @@ func extract(body iowrite.Reader, metric string, tags map[string]string) error {
 		err = io.NamedFeed([]byte(pt), io.Logging, "")
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
-			return err
+			continue
 		}
 	}
 
