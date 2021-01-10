@@ -150,7 +150,11 @@ func (ag *objectAgent) parseObject(obj interface{}, class, id string, pipeline *
 			tags[k] = v
 		}
 	}
-	fields := pipeline.Run(string(data)).Result()
+	fields,err := pipeline.Run(string(data)).Result()
+	if err != nil {
+		moduleLogger.Errorf("[error] pipeline run err:%s",err.Error())
+		return
+	}
 	fields["content"] = string(data)
 
 	tags["class"] = class
