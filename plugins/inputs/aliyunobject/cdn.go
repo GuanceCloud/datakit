@@ -6,6 +6,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cdn"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
@@ -23,12 +24,12 @@ const (
 # key1 = 'val1'
 `
 	cdnPipelineConifg = `
-	json(_,"DomainName","name");
-	json(_,"Cname");
-	json(_,"CdnType");
-	json(_,"DomainStatus");
-	json(_,"SslProtocol");
-	json(_,"ResourceGroupId");
+	json(_,DomainName,name);
+	json(_,Cname);
+	json(_,CdnType);
+	json(_,DomainStatus);
+	json(_,SslProtocol);
+	json(_,ResourceGroupId);
 `
 )
 
@@ -118,7 +119,9 @@ func (e *Cdn) run(ag *objectAgent) {
 
 func (e *Cdn) handleResponse(resp *cdn.DescribeUserDomainsResponse, ag *objectAgent) {
 	moduleLogger.Debugf("cdn TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
+	p := pipeline.NewPipeline(e.PipelinePath)
+
 	for _, inst := range resp.Domains.PageData {
-		parseObject(inst, "aliyun_cdn", inst.DomainName, e.PipelinePath, e.ExcludeDomainNames, e.DomainNames)
+		ag.parseObject(inst, "aliyun_cdn", inst.DomainName, p, e.ExcludeDomainNames, e.DomainNames,e.Tags)
 	}
 }
