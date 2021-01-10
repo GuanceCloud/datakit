@@ -110,11 +110,11 @@ func (ti *TelegrafInput) SampleConfig() string {
 
 var (
 	TelegrafInputs = map[string]*TelegrafInput{ // Name: Catalog
-		"disk":     {name: "disk", Catalog: "host", Input: &disk.DiskStats{}},
-		"diskio":   {name: "diskio", Catalog: "host", Input: &diskio.DiskIO{}},
-		"mem":      {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
-		"swap":     {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
-		"system":   {name: "system", Catalog: "host", Input: &system.SystemStats{}},
+		"disk":   {name: "disk", Catalog: "host", Input: &disk.DiskStats{}},
+		"diskio": {name: "diskio", Catalog: "host", Input: &diskio.DiskIO{}},
+		"mem":    {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
+		"swap":   {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
+		"system": {name: "system", Catalog: "host", Input: &system.SystemStats{}},
 		//"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
 		"cpu":      {name: "cpu", Catalog: "host", Sample: samples["cpu"], Input: nil},
 		"procstat": {name: "procstat", Catalog: "host", Input: &procstat.Procstat{}},
@@ -233,4 +233,3 @@ func CheckTelegrafToml(name string, tomlcfg []byte) error {
 	l.Debugf("toml %+#v", ti.Input)
 	return nil
 }
-

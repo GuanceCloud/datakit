@@ -39,15 +39,12 @@ func TestRename(t *testing.T) {
 	fmt.Println(err)
 }
 
-
 func TestParse(t *testing.T) {
 	path := "/Users/admin/Desktop/wechat.conf"
 	b, _ := ioutil.ReadFile(path)
 
-	tbl,err := toml.Parse(b)
+	tbl, err := toml.Parse(b)
 	fmt.Println(err)
 	fmt.Println(tbl.Fields)
 
 }
-
-
