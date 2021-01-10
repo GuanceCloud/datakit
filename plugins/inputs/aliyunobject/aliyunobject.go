@@ -3,16 +3,21 @@ package aliyunobject
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"io/ioutil"
+	"path/filepath"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
 	inputName    = `aliyunobject`
-	moduleLogger *logger.Logger
+	moduleLogger = logger.DefaultSLogger("aliyunobject")
 	sampleConf   = ""
 )
 
@@ -41,6 +46,17 @@ func (_ *objectAgent) SampleConfig() string {
 
 func (_ *objectAgent) Catalog() string {
 	return `aliyun`
+}
+
+func (_ *objectAgent) PipelineConfig() map[string]string {
+	pipelineMap := map[string]string{
+		"aliyun_redis":         redisPipelineConifg,
+		"aliyun_waf":           wafPipelineConfig,
+		"aliyun_cdn":           cdnPipelineConifg,
+		"aliyun_elasticsearch": elasticsearchPipelineConifg,
+		"aliyun_influxdb":      influxDBPipelineConfig,
+	}
+	return pipelineMap
 }
 
 func (ag *objectAgent) Test() (*inputs.TestResult, error) {
@@ -87,19 +103,29 @@ func (ag *objectAgent) Run() {
 		ag.Domain = &Domain{}
 	}
 	if ag.Redis == nil {
-		ag.Redis = &Redis{}
+		ag.Redis = &Redis{
+			PipelinePath: "aliyun_redis.p",
+		}
 	}
 	if ag.Cdn == nil {
-		ag.Cdn = &Cdn{}
+		ag.Cdn = &Cdn{
+			PipelinePath: "aliyun_cdn.p",
+		}
 	}
 	if ag.Waf == nil {
-		ag.Waf = &Waf{}
+		ag.Waf = &Waf{
+			PipelinePath: "aliyun_waf.p",
+		}
 	}
 	if ag.Es == nil {
-		ag.Es = &Elasticsearch{}
+		ag.Es = &Elasticsearch{
+			PipelinePath: "aliyun_elasticsearch.p",
+		}
 	}
 	if ag.InfluxDB != nil {
-		ag.InfluxDB = &InfluxDB{}
+		ag.InfluxDB = &InfluxDB{
+			PipelinePath: "aliyun_influxdb.p",
+		}
 	}
 
 	ag.addModule(ag.Ecs)
@@ -131,6 +157,48 @@ func (ag *objectAgent) Run() {
 func newAgent() *objectAgent {
 	ag := &objectAgent{}
 	return ag
+}
+
+func newPipeline(pipelinePath string) (*pipeline.Pipeline, error) {
+	scriptPath := filepath.Join(datakit.PipelineDir, pipelinePath)
+	data, err := ioutil.ReadFile(scriptPath)
+	if err != nil {
+		return nil, err
+	}
+	p, err := pipeline.NewPipeline(string(data))
+	return p, err
+}
+
+func (ag *objectAgent) parseObject(obj interface{}, class, name, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string, tags map[string]string) {
+	if datakit.CheckExcluded(id, blacklist, whitelist) {
+		return
+	}
+	data, err := json.Marshal(obj)
+	if err != nil {
+		moduleLogger.Errorf("[error] json marshal err:%s", err.Error())
+		return
+	}
+	if tags == nil {
+		tags = map[string]string{}
+	}
+	for k, v := range ag.Tags {
+		if _, ok := tags[k]; ok {
+			continue
+		} else {
+			tags[k] = v
+		}
+	}
+	fields, err := pipeline.Run(string(data)).Result()
+	if err != nil {
+		moduleLogger.Errorf("[error] pipeline run err:%s", err.Error())
+		return
+	}
+	fields["content"] = string(data)
+
+	tags["class"] = class
+	tags["name"] = name
+
+	io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
 }
 
 func init() {
