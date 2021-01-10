@@ -95,7 +95,10 @@ func (c *Collector) Run() {
 		cancelFun()
 	}()
 
-	pp := pipeline.NewPipeline(c.Pipeline)
+	pp, err := pipeline.NewPipeline(c.Pipeline)
+	if err != nil {
+		moduleLogger.Errorf("%s", err)
+	}
 
 	for {
 
@@ -138,10 +141,13 @@ func (c *Collector) Run() {
 			continue
 		}
 
-		fields, err := pp.Run(string(data)).Result()
-		if err != nil {
-			moduleLogger.Warnf("%s", err)
-			fields = map[string]interface{}{}
+		fields := map[string]interface{}{}
+		if pp != nil {
+			if result, err := pp.Run(string(data)).Result(); err == nil {
+				fields = result
+			} else {
+				moduleLogger.Errorf("%s", err)
+			}
 		}
 
 		fields["message"] = string(data)
