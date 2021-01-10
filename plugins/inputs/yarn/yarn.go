@@ -206,7 +206,6 @@ func (y *Yarn) genParam() *YarnParam {
 	return p
 }
 
-
 func (p *YarnParam) gather() {
 	var d time.Duration
 	var err error
