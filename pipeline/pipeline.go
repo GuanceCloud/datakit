@@ -12,27 +12,29 @@ import (
 )
 
 type Pipeline struct {
-	Content   string
-	Output    map[string]interface{}
-	lastErr   error
-	patterns  map[string]string    //存放自定义patterns
-	nodes     []parser.Node
-	grok      *vgrok.Grok
+	Content  string
+	Output   map[string]interface{}
+	lastErr  error
+	patterns map[string]string //存放自定义patterns
+	nodes    []parser.Node
+	grok     *vgrok.Grok
 }
 
 var (
 	l = logger.DefaultSLogger("process")
 )
 
-func NewPipeline(script string) *Pipeline {
+func NewPipeline(script string) (*Pipeline, error) {
 	p := &Pipeline{
 		Output: make(map[string]interface{}),
+		grok:   grokCfg,
 	}
-	if script != "" {
-		p.nodes, p.lastErr = ParseScript(script)
+
+	if err := p.parseScript(script); err != nil {
+		return nil, err
 	}
-	p.grok = grokCfg
-	return p
+
+	return p, nil
 }
 
 func (p *Pipeline) Run(data string) *Pipeline {
@@ -51,7 +53,7 @@ func (p *Pipeline) Run(data string) *Pipeline {
 	}
 
 	p.Content = data
-	p.Output  = make(map[string]interface{})
+	p.Output = make(map[string]interface{})
 
 	for _, node := range p.nodes {
 		switch v := node.(type) {
@@ -136,7 +138,47 @@ func (p *Pipeline) setContent(k string, v interface{}) {
 	p.Output[k] = v
 }
 
-func init() {
-	patterns.MkPatternsFile()
-	LoadPatterns()
+func (pl *Pipeline) parseScript(script string) error {
+
+	nodes, err := parser.ParseFuncExpr(script)
+	if err != nil {
+		return err
+	}
+
+	for _, node := range nodes {
+		switch v := node.(type) {
+		case *parser.FuncExpr:
+			debugNodesHelp(v, "")
+		default:
+			return fmt.Errorf("should not been here")
+		}
+	}
+
+	pl.nodes = nodes
+	return nil
+}
+
+func debugNodesHelp(f *parser.FuncExpr, prev string) {
+	l.Debugf("%v%v", prev, f.Name)
+
+	for _, node := range f.Param {
+		switch v := node.(type) {
+		case *parser.FuncExpr:
+			debugNodesHelp(v, prev+"    ")
+		default:
+			l.Debugf("%v%v", prev+"    |", node)
+		}
+	}
+}
+
+func Init() error {
+	if err := patterns.InitPatternsFile(); err != nil {
+		return err
+	}
+
+	if err := loadPatterns(); err != nil {
+		return err
+	}
+
+	return nil
 }
