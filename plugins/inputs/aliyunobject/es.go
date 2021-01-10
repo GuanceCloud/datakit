@@ -120,6 +120,6 @@ func (e *Elasticsearch) run(ag *objectAgent) {
 
 func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse, ag *objectAgent) {
 	for _, inst := range resp.Result {
-		ag.parseObject(inst, "aliyun_elasticsearch",inst.Description, inst.InstanceId, p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
+		ag.parseObject(inst, "aliyun_elasticsearch",inst.Description, inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
 	}
 }
