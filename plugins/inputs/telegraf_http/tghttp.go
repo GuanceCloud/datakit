@@ -3,6 +3,7 @@ package telegraf_http
 import (
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,7 +35,10 @@ var (
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &TelegrafHTTP{LoggingMeas: make(map[string]string)}
+		return &TelegrafHTTP{
+			LoggingMeas: make(map[string]string),
+			pipelineMap: make(map[string]*pipeline.Pipeline),
+		}
 	})
 }
 
@@ -61,35 +65,16 @@ func (*TelegrafHTTP) Test() (result *inputs.TestResult, err error) {
 func (t *TelegrafHTTP) Run() {
 	l = logger.SLogger(inputName)
 
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return
-		default:
-			//pass
+	for meas, pipelinePath := range t.LoggingMeas {
+		p, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, pipelinePath))
+		if err != nil {
+			l.Error(err) // 忽略错误，只输出log
 		}
-
-		if err := t.loadCfg(); err != nil {
-			l.Error(err)
-			time.Sleep(time.Second /* default checking interval*/)
-		} else {
-			break
-		}
+		// 不会触发空指针引用panic
+		t.pipelineMap[meas] = p
 	}
 
 	l.Infof("telegraf_http input started...")
-}
-
-func (t *TelegrafHTTP) loadCfg() error {
-	for meas, pipelinePath := range t.LoggingMeas {
-		p, err := pipeline.NewPipelineFromFile(pipelinePath)
-		if err != nil {
-			return err
-		}
-		t.pipelineMap[meas] = p
-	}
-	return nil
 }
 
 func (t *TelegrafHTTP) RegHttpHandler() {
@@ -119,17 +104,17 @@ func (t *TelegrafHTTP) Handle(w http.ResponseWriter, r *http.Request) {
 	metricFeeds := map[string][]string{}
 	loggingFeeds := map[string][]string{}
 
-	for _, point := range points {
-		meas := string(point.Name())
+	for idx := range points {
+		meas := string(points[idx].Name())
 
 		if _, ok := t.LoggingMeas[meas]; ok {
-			result, err := t.pipelineMap[meas].RunPoint(point).Result()
+			result, err := t.pipelineMap[meas].RunPoint(points[idx]).Result()
 			if err != nil {
 				l.Error(err)
 				continue
 			}
 
-			pt, err := ifxcli.NewPoint(meas, nil, result, point.Time())
+			pt, err := ifxcli.NewPoint(meas, nil, result, points[idx].Time())
 			if err != nil {
 				l.Error(err)
 				continue
@@ -146,7 +131,7 @@ func (t *TelegrafHTTP) Handle(w http.ResponseWriter, r *http.Request) {
 				metricFeeds[meas] = []string{}
 			}
 
-			metricFeeds[meas] = append(metricFeeds[meas], point.String())
+			metricFeeds[meas] = append(metricFeeds[meas], points[idx].String())
 		}
 	}
 
