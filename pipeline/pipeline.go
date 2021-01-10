@@ -2,12 +2,15 @@ package pipeline
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"strings"
 
+	conv "github.com/spf13/cast"
 	vgrok "github.com/vjeantet/grok"
-	conv  "github.com/spf13/cast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/patterns"
 )
@@ -24,6 +27,16 @@ type Pipeline struct {
 var (
 	l = logger.DefaultSLogger("process")
 )
+
+func NewPipelineByScriptPath(path string) (*Pipeline, error) {
+
+	scriptPath := filepath.Join(datakit.PipelineDir, path)
+	data, err := ioutil.ReadFile(scriptPath)
+	if err != nil {
+		return nil, err
+	}
+	return NewPipeline(string(data))
+}
 
 func NewPipeline(script string) (*Pipeline, error) {
 	p := &Pipeline{
@@ -48,13 +61,14 @@ func (p *Pipeline) Run(data string) *Pipeline {
 
 	var err error
 
+	p.Content = data
+	p.Output = make(map[string]interface{})
+	p.Output["message"] = data
+
 	//防止脚本解析错误
 	if p.lastErr != nil {
 		return p
 	}
-
-	p.Content = data
-	p.Output = make(map[string]interface{})
 
 	for _, node := range p.nodes {
 		switch v := node.(type) {
@@ -125,6 +139,10 @@ func (p *Pipeline) getContentStr(key string) string {
 func (p *Pipeline) setContent(k string, v interface{}) {
 	if p.Output == nil {
 		p.Output = make(map[string]interface{})
+	}
+
+	if v == nil {
+		return
 	}
 
 	p.Output[k] = v
