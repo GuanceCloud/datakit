@@ -142,8 +142,9 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 
 		t.TraceID = fmt.Sprintf("%d", traceId)
 		t.SpanID = fmt.Sprintf("%v%v", sgid, span.SpanId)
+		t.Status = trace.STATUS_OK
 		if span.IsError {
-			t.IsError = "true"
+			t.Status = trace.STATUS_ERR
 		}
 		if span.SpanType == common.SpanType_Entry {
 			t.SpanType = trace.SPAN_TYPE_ENTRY
