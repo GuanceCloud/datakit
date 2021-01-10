@@ -10,6 +10,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 var moduleLogger *logger.Logger
@@ -20,6 +22,7 @@ type (
 		Class    string
 		Desc     string `toml:"description,omitempty"`
 		Interval datakit.Duration
+		Pipeline string            `toml:"pipeline"`
 		Tags     map[string]string `toml:"tags,omitempty"`
 
 		mode string
@@ -45,6 +48,12 @@ func (_ *Collector) Catalog() string {
 
 func (_ *Collector) SampleConfig() string {
 	return sampleConfig
+}
+
+func (r *Collector) PipelineConfig() map[string]string {
+	return map[string]string{
+		"hostobject": pipelineSample,
+	}
 }
 
 func (c *Collector) Test() (*inputs.TestResult, error) {
@@ -86,6 +95,8 @@ func (c *Collector) Run() {
 		cancelFun()
 	}()
 
+	pp := pipeline.NewPipeline(c.Pipeline)
+
 	for {
 
 		select {
@@ -94,74 +105,69 @@ func (c *Collector) Run() {
 		default:
 		}
 
-		var objs []map[string]interface{}
+		className := c.Class
 
-		obj := map[string]interface{}{
-			`*name`:  c.Name,
-			"*class": c.Class,
-		}
-		if c.Desc != "" {
-			obj[`description`] = c.Desc
+		tags := map[string]string{
+			"name": c.Name,
 		}
 
-		content := map[string]string{
+		obj := map[string]string{
 			"uuid": datakit.Cfg.MainCfg.UUID,
 		}
 
-		content["host"] = datakit.Cfg.MainCfg.Hostname
+		obj["host"] = datakit.Cfg.MainCfg.Hostname
 
 		ipval := getIP()
 		if mac, err := getMacAddr(ipval); err == nil && mac != "" {
-			content["mac"] = mac
+			obj["mac"] = mac
 		}
-		content["ip"] = ipval
+		obj["ip"] = ipval
 
 		oi := getOSInfo()
-		content["os_type"] = oi.OSType
-		content["os"] = oi.Release
+		obj["os_type"] = oi.OSType
+		obj["os"] = oi.Release
 
 		for k, v := range c.Tags {
-			content[k] = v
+			obj[k] = v
 		}
 
-		data, err := json.Marshal(content)
+		data, err := json.Marshal(obj)
+		if err != nil {
+			moduleLogger.Errorf("json marshal err:%s", err.Error())
+			datakit.SleepContext(ctx, c.Interval.Duration)
+			continue
+		}
 
-		obj[`content`] = string(data)
+		fields, err := pp.Run(string(data)).Result()
+		if err != nil {
+			moduleLogger.Warnf("%s", err)
+			fields = map[string]interface{}{}
+		}
 
+		fields["content"] = string(data)
+		if c.Desc != "" {
+			fields[`description`] = c.Desc
+		}
+
+		name := tags["name"]
 		switch c.Name {
 		case "__mac":
-			obj[`*name`] = content["mac"]
+			name = obj["mac"]
 		case "__ip":
-			obj[`*name`] = content["ip"]
+			name = obj["ip"]
 		case "__uuid":
-			obj[`*name`] = content["uuid"]
+			name = obj["uuid"]
 		case "__host":
-			obj[`*name`] = content["host"]
+			name = obj["host"]
 		case "__os":
-			obj[`*name`] = content["os"]
+			name = obj["os"]
 		case "__os_type":
-			obj[`*name`] = content["os_type"]
+			name = obj["os_type"]
 		}
+		tags["name"] = name
 
-		objs = append(objs, obj)
+		io.NamedFeedEx(inputName, io.Object, className, tags, fields, time.Now().UTC())
 
-		data, err = json.Marshal(&objs)
-		if err == nil {
-			if c.isTest() {
-				c.testResult.Result = append(c.testResult.Result, data...)
-			} else {
-				io.NamedFeed(data, io.Object, inputName)
-			}
-		} else {
-			if c.isTest() {
-				c.testError = err
-			}
-			moduleLogger.Errorf("%s", err)
-		}
-
-		if c.isTest() {
-			break
-		}
 		datakit.SleepContext(ctx, c.Interval.Duration)
 	}
 
