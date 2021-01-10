@@ -8,6 +8,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/actiontrail"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -41,6 +42,8 @@ type (
 		From       string
 		Interval   datakit.Duration //至少10分钟
 		Pipeline   string           `toml:"pipeline"`
+
+		pipelineScript *pipeline.Pipeline
 
 		client *actiontrail.Client
 
