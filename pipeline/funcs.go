@@ -119,10 +119,12 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
 
-	if v, err := GeoIpHandle(p.getContentStr(key)); err != nil {
+	if dic, err := GeoIpHandle(p.getContentStr(key)); err != nil {
 		return p, err
 	} else {
-		p.setContent(key, v)
+		for k, v := range dic {
+			p.setContent(k, v)
+		}
 	}
 
 	return p, nil
