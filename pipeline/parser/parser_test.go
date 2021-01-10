@@ -12,7 +12,8 @@ f(g(f("abc"), 123),
 
 kkk(g(1,2),h(2,3),[5,6,7])
 `
-func FuncPrintHelp(f *FuncExpr, prev string, t *testing.T)  {
+
+func FuncPrintHelp(f *FuncExpr, prev string, t *testing.T) {
 	t.Logf("%v%v", prev, f.Name)
 
 	for _, node := range f.Param {

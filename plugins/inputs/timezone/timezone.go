@@ -73,7 +73,7 @@ func (t *Timezone) Run() {
 func (t *Timezone) Test() (*inputs.TestResult, error) {
 	tRst := &inputs.TestResult{}
 	para := t.genParams()
-	pt, err :=  para.getMetrics(true)
+	pt, err := para.getMetrics(true)
 	tRst.Result = pt
 	return tRst, err
 }
@@ -87,10 +87,10 @@ func (t *Timezone) genParams() *TzParams {
 		t.MetricsName = defaultMetricName
 	}
 
-	input  := TzInput{*t}
+	input := TzInput{*t}
 	output := TzOutput{io.NamedFeed}
 	p := &TzParams{input, output, logger.SLogger("timezone")}
-    return p
+	return p
 }
 
 func (p *TzParams) gather() {
@@ -141,7 +141,7 @@ func (p *TzParams) getMetrics(isTest bool) ([]byte, error) {
 
 	pt, err := io.MakeMetric(p.input.MetricsName, p.input.Tags, fields, time.Now())
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
 	if !isTest {
