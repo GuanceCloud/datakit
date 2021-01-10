@@ -249,6 +249,7 @@ func (wc *wscli) handle(wm *wsmsg.WrapMsg) error {
 	case wsmsg.MTypeEnableInput:
 		wc.EnableInputs(wm)
 	case wsmsg.MTypeReload:
+		wc.ModifyStatus()
 		go wc.Reload(wm)
 	case wsmsg.MtypeCsharkCmd:
 		wc.CsharkCmd(wm)
@@ -385,7 +386,6 @@ func (wc *wscli) ModifyStatus() {
 }
 
 func (wc *wscli) Reload(wm *wsmsg.WrapMsg) {
-	wc.ModifyStatus()
 	err := ReloadDatakit()
 	if err != nil {
 		l.Errorf("reload err:%s", err.Error())
