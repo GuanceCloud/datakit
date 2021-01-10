@@ -16,15 +16,14 @@ const (
     #disable = false
 	#pipeline = "aliyun_waf.p"
 	# ## @param - custom tags for waf object - [list of key:value element] - optional
-	#[inputs.aliyunobject.waf.tags]
-	# key1 = 'val1'
+	
 `
 	wafPipelineConfig = `
-	json(_,Region);
-	json(_,PayType);
-	json(_,Status);
-	json(_,InDebt);
-	json(_,SubscriptionType);
+json(_, Region);
+json(_, PayType);
+json(_, Status);
+json(_, InDebt);
+json(_, SubscriptionType);
 `
 )
 
@@ -86,5 +85,8 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 		moduleLogger.Warnf("%s", "waf payType 0")
 		return
 	}
-	ag.parseObject(resp.InstanceInfo, "aliyun_waf", resp.InstanceInfo.InstanceId, resp.InstanceInfo.InstanceId, e.p, []string{}, []string{}, e.Tags)
+	tags := map[string]string{
+		"name": resp.InstanceInfo.InstanceId,
+	}
+	ag.parseObject(resp.InstanceInfo, "aliyun_waf", resp.InstanceInfo.InstanceId, e.p, []string{}, []string{}, tags)
 }
