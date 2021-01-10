@@ -3,9 +3,10 @@ package pipeline
 import (
 	"fmt"
 	"strings"
-
+	"os"
+	"io/ioutil"
+	"reflect"
 	"github.com/tidwall/gjson"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
@@ -17,23 +18,26 @@ type ProFunc func(p *Pipeline, node parser.Node) (*Pipeline, error)
 
 var (
 	funcsMap = map[string]ProFunc{
-		"grok":          Grok,
-		"json":          Json,
-		"rename":        Rename,
-		"strfmt":        Strfmt,
-		"cast":          Cast,
-		"expr":          Expr,
-		"user_agent":    UserAgent,
-		"url_decode":    UrlDecode,
-		"geoip":         GeoIp,
-		"datetime":      DateTime,
-		"group_between": Group,
-		"group_in":      GroupIn,
+		"grok"       :  Grok,
+		"json"       :  Json,
+		"rename"     :  Rename,
+		"strfmt"     :  Strfmt,
+		"cast"       :  Cast,
+		"expr"       :  Expr,
+		"user_agent" :  UserAgent,
+		"url_decode" :  UrlDecode,
+		"geoip"      :  GeoIp,
+		"datetime"   :  DateTime,
+		"group_between" :  Group,
+		"group_in"   :  GroupIn,
 
-		"uppercase": Uppercase,
-		"lowercase": Lowercase,
-		"drop_key":  Dropkey,
-		"add_key":   Addkey,
+		"uppercase"  :  Uppercase,
+		"lowercase"  :  Lowercase,
+		"drop_key"   :  Dropkey,
+		"add_key"    :  Addkey,
+		"nullif"     : NullIf,
+		"default_time" : DefaultTime,
+		"drop_origin_data" : DropOriginData,
 	}
 )
 
@@ -331,6 +335,57 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	return p, nil
 }
 
+func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+
+	v := TimestampHandle(p.getContentStr(key))
+	p.setContent(key, v)
+
+	return p, nil
+}
+
+func ParseScript(scriptOrPath string) ([]parser.Node, error) {
+	data := scriptOrPath
+
+	_, err := os.Stat(scriptOrPath)
+	if err ==  nil || !os.IsNotExist(err){
+		cont, err := ioutil.ReadFile(scriptOrPath)
+		if err != nil {
+			return nil, err
+		}
+		data = string(cont)
+	}
+
+	nodes, err := parser.ParseFuncExpr(string(data))
+	for _, node := range nodes {
+		switch v := node.(type) {
+		case *parser.FuncExpr:
+			DebugNodesHelp(v, "")
+		default:
+		}
+	}
+
+	return nodes, err
+}
+
+func DebugNodesHelp(f *parser.FuncExpr, prev string) {
+	l.Debugf("%v%v", prev, f.Name)
+
+	for _, node := range f.Param {
+		switch v := node.(type) {
+		case *parser.FuncExpr:
+			DebugNodesHelp(v, prev+"    ")
+		default:
+			l.Debugf("%v%v", prev+"    |", node)
+		}
+	}
+}
+
 func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 1 {
@@ -359,7 +414,52 @@ func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	return p, nil
 }
 
+func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	}
+
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+	var val interface{}
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		val = v.Val
+
+	case *parser.NumberLiteral:
+		if v.IsInt {
+			val = v.Int
+		} else {
+			val = v.Float
+		}
+
+	case *parser.BoolLiteral:
+		val = v.Val
+
+	case *parser.NilLiteral:
+		val = nil
+	}
+
+	if reflect.DeepEqual(p.getContent(key), val) {
+		delete(p.Output, key)
+	}
+
+	return p, nil
+}
+
 func Dropkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+	delete(p.Output, key)
+
+	return p, nil
+}
+
+func DropOriginData(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 1 {
 		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
