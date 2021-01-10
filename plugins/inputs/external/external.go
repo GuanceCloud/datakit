@@ -57,7 +57,7 @@ func (_ *ExernalInput) SampleConfig() string {
 	return configSample
 }
 
-func (_ *ExernalInput) Test() (result *inputs.TestResult,err error) {
+func (_ *ExernalInput) Test() (result *inputs.TestResult, err error) {
 	return
 }
 
