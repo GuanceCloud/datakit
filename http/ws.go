@@ -525,12 +525,12 @@ func WriteKeyevent(inputName, title string) {
 		"datakit_version": git.Version,
 		"datakit_os":      runtime.GOOS,
 		"datakit_arch":    runtime.GOARCH,
-		"status":          "info",
+		"__status":        "info",
 	}
 	now := time.Now().Local()
 	fields := map[string]interface{}{
-		"title":      title,
-		"input_name": inputName,
+		"__title":   title,
+		"inputName": inputName,
 	}
 	err := io.NamedFeedEx(name, io.KeyEvent, "__keyevent", tags, fields, now)
 	if err != nil {
