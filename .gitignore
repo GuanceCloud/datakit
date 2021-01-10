@@ -48,7 +48,4 @@ plugins/externals/csv/venv
 *.sh
 *.zip
 china-operator-ip
-<<<<<<< HEAD
 **build/
-=======
->>>>>>> parser
