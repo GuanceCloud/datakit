@@ -25,6 +25,6 @@ type HarborMonitor struct {
 	Username   string
 	Password   string
 	Interval   string
-	test             bool           `toml:"-"`
-	resData          []byte         `toml:"-"`
+	test       bool   `toml:"-"`
+	resData    []byte `toml:"-"`
 }

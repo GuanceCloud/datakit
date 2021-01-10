@@ -295,12 +295,12 @@ func (h *Httpstat) Test() (*inputs.TestResult, error) {
 		h.resData = p.resData
 	}
 
-    res := &inputs.TestResult {
-    	Result: h.resData,
-    	Desc: "success!",
-    }
+	res := &inputs.TestResult{
+		Result: h.resData,
+		Desc:   "success!",
+	}
 
-    return res, nil
+	return res, nil
 }
 
 // Normalize fixes scheme

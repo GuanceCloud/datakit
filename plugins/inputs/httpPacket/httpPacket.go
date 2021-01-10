@@ -39,9 +39,9 @@ func init() {
 }
 
 type HttpPacket struct {
-	Path           string              `toml:"path"`
-	LuaFiles       []string            `toml:"lua_files"`
-	ls   *luascript.LuaScript
+	Path     string   `toml:"path"`
+	LuaFiles []string `toml:"lua_files"`
+	ls       *luascript.LuaScript
 
 	enable bool
 	mut    sync.Mutex
@@ -55,7 +55,7 @@ func (*HttpPacket) Catalog() string {
 	return inputName
 }
 
-func (*HttpPacket) Test() (result *inputs.TestResult,err error) {
+func (*HttpPacket) Test() (result *inputs.TestResult, err error) {
 	return
 }
 
