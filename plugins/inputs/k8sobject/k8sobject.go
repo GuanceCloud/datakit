@@ -199,7 +199,7 @@ func (k *K8sObject) Catalog() string {
 	return pluginName
 }
 
-func (k *K8sObject) Test() (result *inputs.TestResult,err error) {
+func (k *K8sObject) Test() (result *inputs.TestResult, err error) {
 	return
 }
 
