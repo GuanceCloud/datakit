@@ -40,13 +40,18 @@ type Elasticsearch struct {
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
 	PipelinePath       string            `toml:"pipeline,omitempty"`
 
-	p                  *pipeline.Pipeline
+	p *pipeline.Pipeline
 }
 
 func (e *Elasticsearch) run(ag *objectAgent) {
 	var cli *elasticsearch.Client
 	var err error
-	e.p = pipeline.NewPipeline(e.PipelinePath)
+	p, err := newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 	for {
 		select {
 		case <-ag.ctx.Done():
@@ -120,6 +125,6 @@ func (e *Elasticsearch) run(ag *objectAgent) {
 
 func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse, ag *objectAgent) {
 	for _, inst := range resp.Result {
-		ag.parseObject(inst, "aliyun_elasticsearch",inst.Description, inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
+		ag.parseObject(inst, "aliyun_elasticsearch", inst.Description, inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
 	}
 }
