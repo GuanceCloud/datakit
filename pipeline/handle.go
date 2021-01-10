@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"time"
 	"reflect"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"github.com/GuilhermeCaruso/kair"
 	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
@@ -39,10 +40,21 @@ func UserAgentHandle(str string) (res map[string]interface{}) {
 	return res
 }
 
-func GeoIpHandle(str string) (interface{}, error) {
-	// todo
+func GeoIpHandle(ip string) (map[string]string, error) {
+	record, err := geo.Geo(ip)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	res := make(map[string]string)
+
+	res["city"] = record.City
+	res["region"] = record.Region
+	res["country"] = record.Country_short
+	res["city"] = record.City
+	res["isp"] = record.Isp
+
+	return res, nil
 }
 
 func DateFormatHandle(data interface{}, precision string, fmts string, tz int) (interface{}, error) {
