@@ -1,11 +1,10 @@
 package huaweiyunobject
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud"
 )
 
@@ -20,18 +19,26 @@ endpoint=""
 # ## @param - [list of excluded mysql instanceid] - optional
 #exclude_instanceids = ['']
 
-# ## @param - custom tags for mysql object - [list of key:value element] - optional
-#[inputs.huaweiyunobject.mysql.tags]
-# key1 = 'val1'
+`
+	mysqlPipelineConfig = `
+
+json(_,switch_strategy);
+json(_,charge_info);
+json(_,region);
+
 `
 )
 
 type Mysql struct {
-	EndPoint string            `toml:"endpoint"`
-	Tags     map[string]string `toml:"tags,omitempty"`
+	EndPoint string `toml:"endpoint"`
+
 	//ProjectID          string            `toml:"project_id"`
 	InstancesIDs       []string `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+
+	PipelinePath string `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (e *Mysql) run(ag *objectAgent) {
@@ -40,6 +47,13 @@ func (e *Mysql) run(ag *objectAgent) {
 		e.EndPoint = fmt.Sprintf(`rds.%s.myhuaweicloud.com`, ag.RegionID)
 	}
 	cli := huaweicloud.NewHWClient(ag.AccessKeyID, ag.AccessKeySecret, e.EndPoint, ag.ProjectID, moduleLogger)
+
+	p, err := pipeline.NewPipelineByScriptPath(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 
 	for {
 
@@ -88,28 +102,14 @@ func (e *Mysql) handleResponse(resp *huaweicloud.ListRdsResponse, ag *objectAgen
 
 	moduleLogger.Debugf("mysql TotalCount=%d", resp.TotalCount)
 
-	var objs []map[string]interface{}
-
 	for _, inst := range resp.Instances {
 
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, inst.Name, inst.Id), `huaweiyun_mysql`, inst, inst.Id, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
+		name := fmt.Sprintf(`%s(%s)`, inst.Name, inst.Id)
+		class := `huaweiyun_mysql`
+		err := ag.parseObject(inst, name, class, inst.Id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
 		}
-
 	}
 
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
-		moduleLogger.Errorf("%s", err)
-	}
 }
