@@ -1,5 +1,3 @@
-// +build !solaris
-
 package tailf
 
 import (
@@ -93,8 +91,12 @@ func (t *Tailf) loadcfg() bool {
 	var err error
 
 	if t.PipelinePath == "" {
-		t.PipelinePath = filepath.Join(datakit.InstallDir, t.Source+".p")
+		t.PipelinePath = filepath.Join(datakit.PipelineDir, t.Source+".p")
+	} else {
+		t.PipelinePath = filepath.Join(datakit.PipelineDir, t.PipelinePath)
 	}
+
+	l.Infof("pipeline_path is %s", t.PipelinePath)
 
 	for {
 		select {
