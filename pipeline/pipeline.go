@@ -61,13 +61,14 @@ func (p *Pipeline) Run(data string) *Pipeline {
 
 	var err error
 
+	p.Content = data
+	p.Output = make(map[string]interface{})
+	p.Output["message"] = data
+
 	//防止脚本解析错误
 	if p.lastErr != nil {
 		return p
 	}
-
-	p.Content = data
-	p.Output = make(map[string]interface{})
 
 	for _, node := range p.nodes {
 		switch v := node.(type) {
