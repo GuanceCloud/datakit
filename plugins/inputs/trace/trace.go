@@ -71,11 +71,11 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
-	tags["__operationName"] = tAdpt.OperationName
-	tags["__serviceName"] = tAdpt.ServiceName
-	tags["__parentID"] = tAdpt.ParentID
-	tags["__traceID"] = tAdpt.TraceID
-	tags["__spanID"] = tAdpt.SpanID
+	tags["operation"] = tAdpt.OperationName
+	tags["service"] = tAdpt.ServiceName
+	tags["parent_id"] = tAdpt.ParentID
+	tags["trace_id"] = tAdpt.TraceID
+	tags["span_id"] = tAdpt.SpanID
 
 	for tag, tagV := range tAdpt.Tags {
 		tags[tag] = tagV
