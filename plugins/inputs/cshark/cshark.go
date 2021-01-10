@@ -136,6 +136,7 @@ lable:
 
 // 参数解析
 func parseParam(option string) error {
+	params = new(Params)
 	if err := json.Unmarshal([]byte(option), &params); err != nil {
 		return fmt.Errorf("parsse option error:%v", err)
 	}
@@ -148,6 +149,10 @@ func checkParam() error {
 	// 协议check
 	if !util.IsSupport(params.Stream.Protocol) {
 		return fmt.Errorf("not support this protocol %s", params.Stream.Protocol)
+	}
+
+	if len(params.Stream.Duration) == 0 {
+		params.Stream.Duration = "1m"
 	}
 
 	// 时间check(todo)
@@ -197,8 +202,8 @@ func (s *Shark) buildCommand() string {
 
 	// 控制参数
 	args = append(args,"-l")
-	for _, iface := range params.Device {
-		args = append(args, "-i", iface)
+	if len(params.Device) > 0 {
+		args = append(args, "-i", params.Device)
 	}
 
 	if len(params.Device) == 0 {
@@ -221,48 +226,96 @@ func (s *Shark) buildCommand() string {
 	}
 
 	// 端口
-	if len(params.Stream.Ports) > 0 {
+	// if len(params.Stream.Ports) > 0 {
+	// 	for _, port := range params.Stream.Ports {
+	// 		portFilterStr += "port " + port + " or "
+	// 	}
+	// 	portFilterStr = strings.Trim(portFilterStr, "or ")
+	// 	portFilterStr = fmt.Sprintf("'%s'", portFilterStr)
+	// 	args = append(args, "-f", portFilterStr)
+	// }
+
+	// ip
+	if (len(params.Stream.SrcIPs) > 0) && (len(params.Stream.DstIPs) == 0) && (len(params.Stream.Ports) ==0) {
+		var filterStr string
+
+		for _, srcIP := range params.Stream.SrcIPs {
+			srcIPFilterStr += "src host " + srcIP + " or "
+		}
+		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
+
+		if strings.ToUpper(params.Stream.Protocol) == "TCP" || strings.ToUpper(params.Stream.Protocol) == "UDP" {
+			filterStr = fmt.Sprintf("'%s and (%s)'", params.Stream.Protocol, srcIPFilterStr)
+		} else {
+			filterStr = fmt.Sprintf("'%s'", srcIPFilterStr)
+		}
+
+		args = append(args, "-f", filterStr)
+	}
+
+	if (len(params.Stream.DstIPs) > 0) && (len(params.Stream.SrcIPs) == 0) && (len(params.Stream.Ports) ==0) {
+		var filterStr string
+
+		for _, dstIP := range params.Stream.DstIPs {
+			dstIPFilterStr += "dst host " + dstIP + " or "
+		}
+		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
+
+		if strings.ToUpper(params.Stream.Protocol) == "TCP" || strings.ToUpper(params.Stream.Protocol) == "UDP" {
+			filterStr = fmt.Sprintf("'%s and (%s)'", params.Stream.Protocol, dstIPFilterStr)
+		} else {
+			filterStr = fmt.Sprintf("'%s'", dstIPFilterStr)
+		}
+
+		args = append(args, "-f", filterStr)
+	}
+
+	if (len(params.Stream.SrcIPs) > 0) && (len(params.Stream.DstIPs) > 0) && (len(params.Stream.Ports) ==0) {
+		var filterStr string
+		for _, srcIP := range params.Stream.SrcIPs {
+			srcIPFilterStr += "src host " + srcIP + " or "
+		}
+		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
+
+		for _, dstIP := range params.Stream.DstIPs {
+			dstIPFilterStr += "dst host " + dstIP + " or "
+		}
+
+		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
+
+		if strings.ToUpper(params.Stream.Protocol) == "TCP" || strings.ToUpper(params.Stream.Protocol) == "UDP" {
+			filterStr = fmt.Sprintf("'%s and (%s) and (%s)'", params.Stream.Protocol, srcIPFilterStr, dstIPFilterStr)
+		} else {
+			filterStr = fmt.Sprintf("'(%s) and (%s)'", srcIPFilterStr, dstIPFilterStr)
+		}
+
+		args = append(args, "-f", filterStr)
+	}
+
+	if (len(params.Stream.DstIPs) > 0) && (len(params.Stream.SrcIPs) > 0)  && (len(params.Stream.Ports) > 0) {
+		var filterStr string
+
+		for _, srcIP := range params.Stream.SrcIPs {
+			srcIPFilterStr += "src host " + srcIP + " or "
+		}
+		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
+
+		for _, dstIP := range params.Stream.DstIPs {
+			dstIPFilterStr += "dst host " + dstIP + " or "
+		}
+
+		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
+
 		for _, port := range params.Stream.Ports {
 			portFilterStr += "port " + port + " or "
 		}
 		portFilterStr = strings.Trim(portFilterStr, "or ")
-		portFilterStr = fmt.Sprintf("'%s'", portFilterStr)
-		args = append(args, "-f", portFilterStr)
-	}
 
-	// ip
-	if (len(params.Stream.SrcIPs) > 0) && (len(params.Stream.DstIPs) == 0) {
-		for _, srcIP := range params.Stream.SrcIPs {
-			srcIPFilterStr += "src host " + srcIP + " or "
+		if strings.ToUpper(params.Stream.Protocol) == "TCP" || strings.ToUpper(params.Stream.Protocol) == "UDP" {
+			filterStr = fmt.Sprintf("'%s and (%s) and (%s) and (%s)'", params.Stream.Protocol, portFilterStr, srcIPFilterStr, dstIPFilterStr)
+		} else {
+			filterStr = fmt.Sprintf("'(%s) and (%s) and (%s)'", portFilterStr, srcIPFilterStr, dstIPFilterStr)
 		}
-		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
-		srcIPFilterStr = fmt.Sprintf("'%s'", srcIPFilterStr)
-		args = append(args, "-f", srcIPFilterStr)
-	}
-
-	if (len(params.Stream.DstIPs) > 0) && (len(params.Stream.SrcIPs) == 0) {
-		for _, dstIP := range params.Stream.DstIPs {
-			dstIPFilterStr += "dst host " + dstIP + " or "
-		}
-		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
-		dstIPFilterStr = fmt.Sprintf("'%s'", dstIPFilterStr)
-		args = append(args, "-f", dstIPFilterStr)
-	}
-
-	if (len(params.Stream.DstIPs) > 0) && (len(params.Stream.SrcIPs) > 0) {
-		for _, srcIP := range params.Stream.SrcIPs {
-			srcIPFilterStr += "src host " + srcIP + " or "
-		}
-		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
-
-		for _, dstIP := range params.Stream.DstIPs {
-			dstIPFilterStr += "dst host " + dstIP + " or "
-		}
-
-		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
-
-
-		filterStr := fmt.Sprintf("'(%s) and (%s)'", srcIPFilterStr, dstIPFilterStr)
 
 		args = append(args, "-f", filterStr)
 	}
@@ -348,6 +401,8 @@ func (s *Shark) streamExec(cmdStr string) error {
 		l.Errorf("exec wait error %v", err)
 		return err
 	}
+
+	fmt.Println("exec complete, exit...")
 
 	return nil
 }
