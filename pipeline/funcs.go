@@ -2,9 +2,9 @@ package pipeline
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"strings"
+	"os"
+	"io/ioutil"
 	"reflect"
 	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
@@ -43,7 +43,7 @@ var (
 
 func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 3{
+	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 3 {
 		return nil, fmt.Errorf("func %s expected 2 or 3 args", funcExpr.Name)
 	}
 
@@ -134,15 +134,15 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 
-	if len(funcExpr.Param) < 3  || len(funcExpr.Param) > 4 {
+	if len(funcExpr.Param) < 3 || len(funcExpr.Param) > 4 {
 		return nil, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
 	}
 
 	var tz = 8
 
-	key       := funcExpr.Param[0].(*parser.Identifier).Name
+	key := funcExpr.Param[0].(*parser.Identifier).Name
 	precision := funcExpr.Param[1].(*parser.StringLiteral).Val
-	fmts      := funcExpr.Param[2].(*parser.StringLiteral).Val
+	fmts := funcExpr.Param[2].(*parser.StringLiteral).Val
 
 	if len(funcExpr.Param) == 4 {
 		tzStr := funcExpr.Param[3]
@@ -168,7 +168,7 @@ func Expr(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	key  := funcExpr.Param[1].(*parser.Identifier).Name
+	key := funcExpr.Param[1].(*parser.Identifier).Name
 	expr := funcExpr.Param[0].(*parser.BinaryExpr)
 
 	if v, err := Calc(expr, p); err != nil {
@@ -176,7 +176,6 @@ func Expr(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	} else {
 		p.setContent(key, v)
 	}
-
 
 	return p, nil
 }
@@ -189,9 +188,8 @@ func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return nil, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
 	}
 
-	key  := funcExpr.Param[0].(*parser.Identifier).Name
+	key := funcExpr.Param[0].(*parser.Identifier).Name
 	fmts := funcExpr.Param[1].(*parser.StringLiteral).Val
-
 
 	for i := 2; i < len(funcExpr.Param); i++ {
 		switch v := funcExpr.Param[i].(type) {
@@ -211,7 +209,7 @@ func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	strfmt := fmt.Sprintf(fmts, outdata...)
-    p.setContent(key, strfmt)
+	p.setContent(key, strfmt)
 
 	return p, nil
 }
@@ -222,7 +220,7 @@ func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	key      := funcExpr.Param[0].(*parser.Identifier).Name
+	key := funcExpr.Param[0].(*parser.Identifier).Name
 	castType := funcExpr.Param[1].(*parser.StringLiteral).Val
 
 	v := cast(p.getContent(key), castType)
@@ -237,8 +235,8 @@ func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
 	}
 
-	key   := funcExpr.Param[0].(*parser.Identifier).Name
-	set   := funcExpr.Param[1].(parser.FuncArgList)
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+	set := funcExpr.Param[1].(parser.FuncArgList)
 	value := funcExpr.Param[2]
 
 	newkey := key
@@ -293,8 +291,8 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return nil, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
 	}
 
-	key   := funcExpr.Param[0].(*parser.Identifier).Name
-	set   := funcExpr.Param[1].(parser.FuncArgList)
+	key := funcExpr.Param[0].(*parser.Identifier).Name
+	set := funcExpr.Param[1].(parser.FuncArgList)
 	value := funcExpr.Param[2]
 
 	newkey := key
