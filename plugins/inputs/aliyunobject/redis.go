@@ -12,6 +12,7 @@ import (
 
 const (
 	redisSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.redis]
     # ##(optional) ignore this object, default is false
     #disable = false
@@ -44,6 +45,10 @@ type Redis struct {
 	PipelinePath       string            `toml:"pipeline,omitempty"`
 
 	p *pipeline.Pipeline
+}
+
+func (e *Redis) disabled() bool {
+	return e.Disable
 }
 
 func (e *Redis) run(ag *objectAgent) {
