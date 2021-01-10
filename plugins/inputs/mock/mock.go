@@ -40,7 +40,7 @@ func (m *Mock) Catalog() string {
 	return "mock"
 }
 
-func (m *Mock) Test() (result *inputs.TestResult,err error) {
+func (m *Mock) Test() (result *inputs.TestResult, err error) {
 	return
 }
 
