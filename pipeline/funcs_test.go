@@ -254,7 +254,7 @@ nullif(a.first, 2.3)
 `
 	p, err := NewPipeline(script)
 	assertEqual(t, err, nil)
-	
+
 	p.Run(js)
 
 	r := p.getContent("a.second")
