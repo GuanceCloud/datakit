@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/influxdata/toml"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -28,15 +27,12 @@ var (
 	l           = logger.DefaultSLogger("inputs")
 	panicInputs = map[string]int{}
 	mtx         = sync.RWMutex{}
-
 )
 
-
 type ConfDetail struct {
-	Path string
-	ConfMd5  []string
+	Path    string
+	ConfMd5 []string
 }
-
 
 type TestResult struct {
 	Result []byte // line protocol or any plugin test result
@@ -57,6 +53,11 @@ type HTTPInput interface {
 	RegHttpHandler()
 }
 
+type PipelineInput interface {
+	Input
+	PipelineConfig() map[string]string
+}
+
 type Creator func() Input
 
 func Add(name string, creator Creator) {
@@ -75,7 +76,6 @@ type inputInfo struct {
 	input Input
 	ti    *tgi.TelegrafInput
 	cfg   string
-
 }
 
 func (ii *inputInfo) Run() {
@@ -91,17 +91,15 @@ func (ii *inputInfo) Run() {
 	}
 }
 
-
-func SetInputsMD5(name string,input interface{}) string {
-	data,err :=  toml.Marshal(input)
+func SetInputsMD5(name string, input interface{}) string {
+	data, err := toml.Marshal(input)
 	if err != nil {
 		l.Errorf("input to toml err")
 		return ""
 	}
-	newName := fmt.Sprintf("%s-%x",name, md5.Sum(data))
+	newName := fmt.Sprintf("%s-%x", name, md5.Sum(data))
 	return newName
 }
-
 
 func AddInput(name string, input Input, fp string) error {
 
@@ -341,3 +339,7 @@ func TestTelegrafInput(cfg []byte) (*TestResult, error) {
 
 	return result, nil
 }
+
+
+
+
