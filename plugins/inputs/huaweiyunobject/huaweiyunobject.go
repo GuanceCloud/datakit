@@ -3,10 +3,13 @@ package huaweiyunobject
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -27,6 +30,23 @@ func (_ *objectAgent) SampleConfig() string {
 	buf.WriteString(obsSampleConfig)
 	buf.WriteString(mysqlSampleConfig)
 	return buf.String()
+}
+
+func (_ *objectAgent) PipelineConfig() map[string]string {
+	pipelineMap := map[string]string{
+		"huaweiyun_ecs":   ecsPipelineConifg,
+		"huaweiyun_elb":   elbPipelineConfig,
+		"huaweiyun_obs":   obsPipelineConifg,
+		"huaweiyun_mysql": mysqlPipelineConifg,
+	}
+	return pipelineMap
+}
+
+func (ag *objectAgent) Test() (*inputs.TestResult, error) {
+	ag.mode = "test"
+	ag.testResult = &inputs.TestResult{}
+	ag.Run()
+	return ag.testResult, ag.testError
 }
 
 func (_ *objectAgent) Catalog() string {
@@ -91,4 +111,29 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return newAgent()
 	})
+}
+
+func (ag *objectAgent) parseObject(obj interface{}, name, class, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string) error {
+	if datakit.CheckExcluded(id, blacklist, whitelist) {
+		return nil
+	}
+	data, err := json.Marshal(obj)
+	if err != nil {
+		moduleLogger.Errorf("[error] json marshal err:%s", err.Error())
+		return err
+	}
+
+	fields, err := pipeline.Run(string(data)).Result()
+	if err != nil {
+		moduleLogger.Errorf("[error] pipeline run err:%s", err.Error())
+		return err
+	}
+
+	fields["content"] = string(data)
+
+	tags := map[string]string{
+		"name": name,
+	}
+
+	return io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
 }
