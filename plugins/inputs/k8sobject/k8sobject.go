@@ -1,6 +1,7 @@
 package k8sobject
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -284,7 +285,7 @@ func buildURL(endpoint string, base string) (*url.URL, error) {
 }
 
 func (k *K8sObject) gatherSummary(baseURL string) ([]byte, error) {
-	containers := make([]K8sObj, 0)
+	rst := make([][]byte, 0)
 	summaryMetrics := &SummaryMetrics{}
 	err := k.LoadJson(fmt.Sprintf("%s/stats/summary", baseURL), summaryMetrics)
 	if err != nil {
@@ -293,20 +294,24 @@ func (k *K8sObject) gatherSummary(baseURL string) ([]byte, error) {
 
 	for _, pod := range summaryMetrics.Pods {
 		for _, container := range pod.Containers {
-			c := K8sObj{}
-			c.Name = container.Name
-			c.Class = "k8sobject"
 			kc := K8sContent{
 				&pod.PodRef,
 				&container,
 			}
 
 			kcJson, _ := json.Marshal(kc)
-			c.Content = string(kcJson)
-			containers = append(containers, c)
+			tag := map[string]string{"name": container.Name}
+			field := map[string]interface{}{"message": string(kcJson)}
+
+			pt, err := io.MakeMetric("k8sobject", tag, field, time.Now())
+			if err != nil {
+				return nil, err
+			}
+
+			rst = append(rst, pt)
 		}
 	}
-	return json.Marshal(containers)
+	return bytes.Join(rst, []byte("\n")), nil
 }
 
 func (k *K8sObject) gatherPodInfo(baseURL string) ([]Metadata, error) {
