@@ -42,7 +42,7 @@ type TraceAdapter struct {
 	ParentID      string
 	TraceID       string
 	SpanID        string
-	IsError       string
+	Status        string
 	SpanType      string
 	EndPoint      string
 
@@ -54,6 +54,12 @@ const (
 	SPAN_TYPE_ENTRY       = "entry"
 	SPAN_TYPE_LOCAL       = "local"
 	SPAN_TYPE_EXIT        = "exit"
+
+	STATUS_OK   = "ok"
+	STATUS_ERR  = "error"
+	STATUS_INFO = "info"
+	STATUS_WARN = "warning"
+	STATUS_CRITICAL ="critical"
 )
 
 var (
@@ -65,35 +71,32 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 	
-	tags["__operationName"] = tAdpt.OperationName
-	tags["__serviceName"] = tAdpt.ServiceName
-	tags["__parentID"] = tAdpt.ParentID
-	tags["__traceID"] = tAdpt.TraceID
-	tags["__spanID"] = tAdpt.SpanID
+	tags["operation"] = tAdpt.OperationName
+	tags["service"] = tAdpt.ServiceName
+	tags["parent_id"] = tAdpt.ParentID
+	tags["trace_id"] = tAdpt.TraceID
+	tags["span_id"] = tAdpt.SpanID
 
 	for tag, tagV := range tAdpt.Tags {
 		tags[tag] = tagV
 	}
-	if tAdpt.IsError == "true" {
-		tags["__isError"] = "true"
-	} else {
-		tags["__isError"] = "false"
-	}
+
+	tags["status"] = tAdpt.Status
 
 	if tAdpt.EndPoint != "" {
-		tags["__endpoint"] = tAdpt.EndPoint
+		tags["endpoint"] = tAdpt.EndPoint
 	} else {
-		tags["__endpoint"] = "null"
+		tags["endpoint"] = "null"
 	}
 
 	if tAdpt.SpanType != "" {
-		tags["__spanType"] = tAdpt.SpanType
+		tags["span_type"] = tAdpt.SpanType
 	} else {
-		tags["__spanType"] = SPAN_TYPE_ENTRY
+		tags["span_type"] = SPAN_TYPE_ENTRY
 	}
 
-	fields["__duration"] = tAdpt.Duration
-	fields["__content"] = tAdpt.Content
+	fields["duration"] = tAdpt.Duration
+	fields["message"] = tAdpt.Content
 
 	ts := time.Unix(tAdpt.TimestampUs/US_PER_SECOND, (tAdpt.TimestampUs%US_PER_SECOND)*1000)
 
