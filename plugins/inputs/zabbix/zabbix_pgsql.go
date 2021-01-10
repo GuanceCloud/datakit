@@ -169,4 +169,3 @@ WHERE grp.internal=0
    AND his.clock > ##STARTDATE##
    AND his.clock <= ##ENDDATE##;
 `
-

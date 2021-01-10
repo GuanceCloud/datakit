@@ -1,10 +1,10 @@
 package aliyunddos
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"time"
-	"bytes"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -173,7 +173,7 @@ func (r *DDoS) command() {
 }
 
 func (r *DDoS) describeInstanceDetails(instanceID, region string) error {
-	var lines  [][]byte
+	var lines [][]byte
 	request := requests.NewCommonRequest()
 	request.Method = "POST"
 	request.Scheme = "https"
@@ -427,14 +427,13 @@ func (d *DDoS) Test() (*inputs.TestResult, error) {
 
 	d.command()
 
-    res := &inputs.TestResult {
-    	Result: d.resData,
-    	Desc: "success!",
-    }
+	res := &inputs.TestResult{
+		Result: d.resData,
+		Desc:   "success!",
+	}
 
-    return res, nil
+	return res, nil
 }
-
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
