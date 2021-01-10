@@ -19,6 +19,9 @@ endpoint=""
 # ## @param - [list of excluded mysql instanceid] - optional
 #exclude_instanceids = ['']
 
+# 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名的脚本，作为其默认 pipeline 配置
+# pipeline = "huaweiyun_mysql_object.p"
+
 `
 	mysqlPipelineConfig = `
 
