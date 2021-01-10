@@ -15,6 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -38,6 +39,11 @@ func (a *AliyunActiontrail) Test() (*inputs.TestResult, error) {
 	return a.testResult, a.testError
 }
 
+func (a *AliyunActiontrail) PipelineConfig() map[string]string {
+	return map[string]string{
+		inputName: pipelineSample,
+	}
+}
 func (a *AliyunActiontrail) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
@@ -260,6 +266,8 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 		return nil
 	}
 
+	pp := pipeline.NewPipeline(r.Pipeline)
+
 	for _, ev := range response.Events {
 
 		select {
@@ -268,9 +276,8 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 		default:
 		}
 
-		tags := map[string]string{
-			"*source": "aliyun_actiontrail",
-		}
+		tags := map[string]string{}
+		tags["source"] = "aliyun_actiontrail"
 
 		fields := map[string]interface{}{}
 
@@ -292,7 +299,18 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 			moduleLogger.Warnf("%s", err)
 		}
 
-		evdata, _ := json.Marshal(&ev)
+		evdata, err := json.Marshal(&ev)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+			continue
+		}
+
+		if result, err := pp.Run(string(evdata)).Result(); err != nil {
+			moduleLogger.Warnf("%s", err)
+		} else {
+			fields = result
+		}
+
 		fields["message"] = string(evdata)
 
 		if r.isTest() {
