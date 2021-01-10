@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	conv "github.com/spf13/cast"
 	vgrok "github.com/vjeantet/grok"
-	conv  "github.com/spf13/cast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
