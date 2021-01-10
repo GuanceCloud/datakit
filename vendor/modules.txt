@@ -138,8 +138,6 @@ github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/service/cloudtrail
 github.com/aws/aws-sdk-go/service/cloudwatch
 github.com/aws/aws-sdk-go/service/costexplorer
-github.com/aws/aws-sdk-go/service/health
-github.com/aws/aws-sdk-go/service/pricing
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/basgys/goxml2json v1.1.0
@@ -694,6 +692,8 @@ github.com/siddontang/go-mysql/schema
 github.com/sirupsen/logrus
 # github.com/soniah/gosnmp v1.25.0
 github.com/soniah/gosnmp
+# github.com/spf13/cast v1.3.1
+github.com/spf13/cast
 # github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 github.com/streadway/amqp
 # github.com/stretchr/objx v0.2.0
