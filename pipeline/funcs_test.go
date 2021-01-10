@@ -63,6 +63,17 @@ func TestUrlencodeFunc(t *testing.T) {
 	assertEqual(t, r, "http://www.baidu.com/s?wd=自由度")
 }
 
+func TestGeoIpFunc(t *testing.T) {
+	js := `{"a":{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true},"age":47}`
+	script := `json(_, a.ip); geoip(a.ip);`
+
+	p := NewPipeline(script)
+	p.Run(js)
+
+	r := p.getContentStr("city")
+	assertEqual(t, r, "Shanghai")
+}
+
 func TestUserAgentFunc(t *testing.T) {
 	js := `{"a":{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36","second":2},"age":47}`
 	script := `json(_, a.userAgent); user_agent(a.userAgent)`
@@ -103,8 +114,8 @@ func TestGroupFunc(t *testing.T) {
 }
 
 func TestGroupInFunc(t *testing.T) {
-	js := `{"a":{"status": 200,"age":"47"}`
-	script := `json(_, a.status); group(a.status, [200, "47"], "ok", newkey);`
+	js := `{"a":{"status": "test","age":"47"}`
+	script := `json(_, a.status); group_in(a.status, [200, 47, "test"], "ok", newkey);`
 
 	p := NewPipeline(script)
 	p.Run(js)
