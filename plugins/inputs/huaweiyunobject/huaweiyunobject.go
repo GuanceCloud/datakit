@@ -53,6 +53,10 @@ func (_ *objectAgent) Catalog() string {
 	return `huaweiyun`
 }
 
+func (r *objectAgent) Test() (result *inputs.TestResult, err error) {
+	return
+}
+
 func (ag *objectAgent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
