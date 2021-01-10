@@ -11,6 +11,7 @@ import (
 
 const (
 	cdnSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.cdn]
 	# ##(optional) ignore this object, default is false
 	#disable = false
@@ -20,12 +21,8 @@ const (
 	# ## @param - custom tags - [list of cdn DomainName] - optional
 	#domainNames = []
 
-# ## @param - custom tags - [list of excluded cdn exclude_domainNames] - optional
-#exclude_domainNames = []
-
-# ## @param - custom tags for cdn object - [list of key:value element] - optional
-#[inputs.aliyunobject.cdn.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded cdn exclude_domainNames
+    #exclude_domainNames = []
 `
 	cdnPipelineConifg = `
 	json(_,Cname);
@@ -37,12 +34,17 @@ const (
 )
 
 type Cdn struct {
+	Disable            bool              `toml:"disable"`
 	Tags               map[string]string `toml:"tags,omitempty"`
 	DomainNames        []string          `toml:"domainNames,omitempty"`
 	ExcludeDomainNames []string          `toml:"exclude_domainNames,omitempty"`
 	PipelinePath       string            `toml:"pipeline,omitempty"`
 
 	p *pipeline.Pipeline
+}
+
+func (e *Cdn) disabled() bool {
+	return e.Disable
 }
 
 func (e *Cdn) run(ag *objectAgent) {
@@ -83,7 +85,7 @@ func (e *Cdn) run(ag *objectAgent) {
 		req := cdn.CreateDescribeUserDomainsRequest()
 
 		for {
-			moduleLogger.Infof("pageNume %v, pagesize %v", pageNum, pageSize)
+			moduleLogger.Debugf("pageNume %v, pagesize %v", pageNum, pageSize)
 			if len(e.DomainNames) > 0 {
 				if pageNum <= len(e.DomainNames) {
 					req.DomainName = e.DomainNames[pageNum-1]
