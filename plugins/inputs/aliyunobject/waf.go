@@ -29,13 +29,18 @@ type Waf struct {
 	Tags         map[string]string `toml:"tags,omitempty"`
 	PipelinePath string            `toml:"pipeline,omitempty"`
 
-	p                  *pipeline.Pipeline
+	p *pipeline.Pipeline
 }
 
 func (e *Waf) run(ag *objectAgent) {
 	var cli *waf.Client
 	var err error
-	e.p = pipeline.NewPipeline(e.PipelinePath)
+	p, err := newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] waf new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 	for {
 
 		select {
@@ -74,5 +79,5 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 		moduleLogger.Warnf("%s", "waf payType 0")
 		return
 	}
-	ag.parseObject(resp.InstanceInfo, "aliyun_waf",resp.InstanceInfo.InstanceId, resp.InstanceInfo.InstanceId, e.p, []string{}, []string{},e.Tags)
+	ag.parseObject(resp.InstanceInfo, "aliyun_waf", resp.InstanceInfo.InstanceId, resp.InstanceInfo.InstanceId, e.p, []string{}, []string{}, e.Tags)
 }
