@@ -18,7 +18,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/unrolled/secure"
 
-	"github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -230,10 +229,6 @@ func HttpStart(addr string) {
 	router.NoRoute(page404)
 
 	applyHTTPRoute(router)
-	// telegraf running
-	if inputs.HaveTelegrafInputs() {
-		router.POST("/telegraf", func(c *gin.Context) { apiTelegrafOutput(c) })
-	}
 
 	// internal datakit stats API
 	router.GET("/stats", func(c *gin.Context) { apiGetInputsStats(c.Writer, c.Request) })
@@ -341,7 +336,7 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for k, _ := range inputs.Inputs {
+	for k := range inputs.Inputs {
 		n, cfgs := inputs.InputEnabled(k)
 		npanic := inputs.GetPanicCnt(k)
 		if n > 0 {
@@ -349,18 +344,18 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	for k, _ := range tgi.TelegrafInputs {
+	for k := range tgi.TelegrafInputs {
 		n, cfgs := inputs.InputEnabled(k)
 		if n > 0 {
 			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Cfgs: cfgs})
 		}
 	}
 
-	for k, _ := range inputs.Inputs {
+	for k := range inputs.Inputs {
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", k))
 	}
 
-	for k, _ := range tgi.TelegrafInputs {
+	for k := range tgi.TelegrafInputs {
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[T] %s", k))
 	}
 
@@ -379,45 +374,6 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(body)
-}
-
-func apiTelegrafOutput(c *gin.Context) {
-	body, err := uhttp.GinRead(c)
-	if err != nil {
-		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
-		return
-	}
-
-	if len(body) == 0 {
-		uhttp.HttpErr(c, uhttp.Error(ErrEmptyBody, "empty body"))
-		return
-	}
-
-	points, err := models.ParsePointsWithPrecision(body, time.Now().UTC(), "n")
-	if err != nil {
-		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-		return
-	}
-
-	feeds := map[string][]string{}
-
-	for _, p := range points {
-		meas := string(p.Name())
-		if _, ok := feeds[meas]; !ok {
-			feeds[meas] = []string{}
-		}
-
-		feeds[meas] = append(feeds[meas], p.String())
-	}
-
-	for k, lines := range feeds {
-		if err := io.NamedFeed([]byte(strings.Join(lines, "\n")), io.Metric, k); err != nil {
-			uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-			return
-		}
-	}
-
-	ErrOK.HttpBody(c, nil)
 }
 
 func apiReload(c *gin.Context) {
