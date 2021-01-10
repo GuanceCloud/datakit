@@ -138,9 +138,9 @@ class ObjectSheetWorker:
         n = self._proc_name(r_index, row_data)
         c = self._proc_class(r_index, row_data)
         t = self._proc_content(r_index, row_data)
-        obj["__name"]  = n
-        obj["__class"] = c
-        obj["__content"] = t
+        obj["name"]  = n
+        obj["class"] = c
+        obj["content"] = t
         self._objects.append(obj)
         if len(self._objects) >= BATCH_SIZE:
             self._flush_objects()

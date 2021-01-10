@@ -116,9 +116,9 @@ func (c *Cos) handleResponse(resp *cos.ServiceGetResult, ag *objectAgent) {
 
 		name := bucket.Name
 		obj := map[string]interface{}{
-			"__name":    fmt.Sprintf(`OSS_%s`, name), // 目前displayName与ID一样
-			"__class":   "tencent_cos",
-			"__content": string(jd),
+			"name":    fmt.Sprintf(`OSS_%s`, name), // 目前displayName与ID一样
+			"class":   "tencent_cos",
+			"content": string(jd),
 		}
 
 		objs = append(objs, obj)
