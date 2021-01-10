@@ -388,9 +388,9 @@ func CloudObject2Json(name, class string, obj interface{}, id string, blacklist,
 	}
 
 	return map[string]interface{}{
-		`__name`:    name,
-		`__class`:   class,
-		`__content`: j,
+		`name`:    name,
+		`class`:   class,
+		`content`: j,
 	}, nil
 }
 
