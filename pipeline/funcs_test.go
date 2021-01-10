@@ -51,6 +51,21 @@ expr(a.second*10+(2+3)*5, bb);
 	assertEqual(t, p.getContentStr("bb"), "45")
 }
 
+func TestDefaultTimeFunc(t *testing.T) {
+
+	js := `{"a":{"time":"2014/04/08 22:05","second":2,"thrid":"abc","forth":true},"age":47}`
+	script := `json(_, a.time);
+default_time(a.time);
+`
+	p := NewPipeline(script)
+	p.Run(js)
+	assertEqual(t, p.lastErr, nil)
+
+	r := p.getContent("a.time")
+
+	assertEqual(t, r, 1396965900)
+}
+
 func TestUrlencodeFunc(t *testing.T) {
 	js := `{"url":"http%3A%2F%2Fwww.baidu.com%2Fs%3Fwd%3D%E8%87%AA%E7%94%B1%E5%BA%A6","second":2}`
 	script := `json(_, url); url_decode(url);`
@@ -88,7 +103,7 @@ func TestUserAgentFunc(t *testing.T) {
 
 func TestDatetimeFunc(t *testing.T) {
 	js := `{"a":{"timestamp": "1610103765000", "second":2},"age":47}`
-	script := `json(_, a.timestamp); datetime(a.timestamp, 's', 'YYYY-MM-dd hh:mm:ss');`
+	script := `json(_, a.timestamp); datetime(a.timestamp, 'ms', 'YYYY-MM-dd hh:mm:ss');`
 
 	p := NewPipeline(script)
 	p.Run(js)
@@ -97,7 +112,7 @@ func TestDatetimeFunc(t *testing.T) {
 
 	fmt.Println("====>", r)
 
-	assertEqual(t, r, "2021-01-08 06:26:13")
+	assertEqual(t, r, "2021-01-08 07:02:45")
 }
 
 
@@ -197,4 +212,17 @@ drop_key(a.thrid)
 	p := NewPipeline(script)
 	p.Run(js)
 	assertEqual(t, p.getContentStr("a.first"), "2.3")
+}
+
+func TestNullIfFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
+	script := `json(_, a.first);
+nullif(a.first, 2.3)
+`
+	p := NewPipeline(script)
+	p.Run(js)
+
+	r := p.getContent("a.second")
+
+	assertEqual(t, r, 2)
 }
