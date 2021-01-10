@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"time"
 	"os"
+	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
 	"google.golang.org/grpc"
@@ -77,19 +77,19 @@ func (s *Server) Send(ctx context.Context, req *Request) (*Response, error) {
 }
 
 func GRPCServer() {
-	var uds   string
+	var uds string
 	var proto string
-	var err   error
+	var err error
 
 	l.Infof("gRPC starting...")
 
 	if datakit.Cfg.MainCfg.GrpcPort != 0 {
 		proto = "tcp"
-		uds   = fmt.Sprintf("127.0.0.1:%d", datakit.Cfg.MainCfg.GrpcPort)
+		uds = fmt.Sprintf("127.0.0.1:%d", datakit.Cfg.MainCfg.GrpcPort)
 		datakit.GRPCSock = uds
 	} else {
 		proto = "unix"
-		uds   = datakit.GRPCDomainSock
+		uds = datakit.GRPCDomainSock
 		if _, err := os.Stat(uds); err == nil {
 			if err := os.Remove(uds); err != nil {
 				l.Fatal(err)
