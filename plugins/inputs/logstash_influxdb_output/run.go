@@ -3,6 +3,7 @@ package logstash_influxdb_output
 import (
 	"encoding/json"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -33,7 +34,7 @@ func (_ *logstashInfluxdbOutput) SampleConfig() string {
 
 func (r *logstashInfluxdbOutput) PipelineConfig() map[string]string {
 	return map[string]string{
-		"logstash_influxdb_output.p": pipelineSample,
+		inputName: pipelineSample,
 	}
 }
 
@@ -46,6 +47,13 @@ func (r *logstashInfluxdbOutput) Test() (result *inputs.TestResult, err error) {
 
 func (r *logstashInfluxdbOutput) RegHttpHandler() {
 	moduleLogger = logger.SLogger(inputName)
+
+	r.pipelinePool = &sync.Pool{
+		New: func() interface{} {
+			return pipeline.NewPipeline(r.Pipeline)
+		},
+	}
+
 	httpd.RegGinHandler("POST", "/write", r.WriteHandler)
 	httpd.RegGinHandler("POST", "/ping", PINGHandler)
 }
@@ -109,30 +117,39 @@ func (r *logstashInfluxdbOutput) WriteHandler(c *gin.Context) {
 			return
 		}
 
-		pp := pipeline.NewPipeline(r.Pipeline)
+		pp := r.pipelinePool.Get().(*pipeline.Pipeline)
+		defer func() {
+			r.pipelinePool.Put(pp)
+		}()
 
 		for _, pt := range pts {
 			ptname := string(pt.Name())
 
-			m := map[string]interface{}{}
-			m["measurement"] = ptname
-			m["tags"] = pt.Tags()
-			m["time"] = pt.Time().UnixNano()
-			fs, _ := pt.Fields()
-			for k, v := range fs {
-				m[k] = v
+			pipelineInput := map[string]interface{}{}
+
+			rawFields, _ := pt.Fields()
+			for k, v := range rawFields {
+				pipelineInput[k] = v
 			}
-			jdata, err := json.Marshal(&m)
+
+			for _, t := range pt.Tags() {
+				pipelineInput[string(t.Key)] = string(t.Value)
+			}
+
+			pipelineInputBytes, err := json.Marshal(&pipelineInput)
+			if err != nil {
+				moduleLogger.Warnf("%s", err)
+				continue
+			}
+
+			moduleLogger.Debugf("pipeline input: %s", string(pipelineInputBytes))
+			pipelineResult, err := pp.Run(string(pipelineInputBytes)).Result()
 			if err != nil {
 				moduleLogger.Errorf("%s", err)
-				continue
+			} else {
+				moduleLogger.Debugf("pipeline result: %s", pipelineResult)
+				io.NamedFeedEx(inputName, category, ptname, nil, pipelineResult, pt.Time())
 			}
-			result, _ := pp.Run(string(jdata)).Result()
-			if len(result) == 0 {
-				moduleLogger.Errorf("%v", pp.LastError())
-				continue
-			}
-			io.NamedFeedEx(inputName, category, ptname, nil, result, pt.Time())
 		}
 
 	} else {
