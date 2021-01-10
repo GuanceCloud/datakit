@@ -17,7 +17,7 @@ import (
 
 var (
 	inputName    = `aliyunobject`
-	moduleLogger *logger.Logger
+	moduleLogger = logger.DefaultSLogger("aliyunobject")
 	sampleConf   = ""
 )
 
@@ -103,19 +103,29 @@ func (ag *objectAgent) Run() {
 		ag.Domain = &Domain{}
 	}
 	if ag.Redis == nil {
-		ag.Redis = &Redis{}
+		ag.Redis = &Redis{
+			PipelinePath: "aliyun_redis.p",
+		}
 	}
 	if ag.Cdn == nil {
-		ag.Cdn = &Cdn{}
+		ag.Cdn = &Cdn{
+			PipelinePath: "aliyun_cdn.p",
+		}
 	}
 	if ag.Waf == nil {
-		ag.Waf = &Waf{}
+		ag.Waf = &Waf{
+			PipelinePath: "aliyun_waf.p",
+		}
 	}
 	if ag.Es == nil {
-		ag.Es = &Elasticsearch{}
+		ag.Es = &Elasticsearch{
+			PipelinePath: "aliyun_elasticsearch.p",
+		}
 	}
 	if ag.InfluxDB != nil {
-		ag.InfluxDB = &InfluxDB{}
+		ag.InfluxDB = &InfluxDB{
+			PipelinePath: "aliyun_influxdb.p",
+		}
 	}
 
 	ag.addModule(ag.Ecs)
