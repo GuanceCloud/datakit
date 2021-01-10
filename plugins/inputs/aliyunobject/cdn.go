@@ -15,30 +15,26 @@ const (
 #[inputs.aliyunobject.cdn]
 	# ##(optional) ignore this object, default is false
 	#disable = false
+	#pipeline = "aliyun_cdn.p"
     # ##(optional) list of cdn DomainName
     #domainNames = []
-	#pipeline = "aliyun_cdn.p"
-	# ## @param - custom tags - [list of cdn DomainName] - optional
-	#domainNames = []
-
     # ##(optional) list of excluded cdn exclude_domainNames
     #exclude_domainNames = []
 `
 	cdnPipelineConifg = `
-	json(_,Cname);
-	json(_,CdnType);
-	json(_,DomainStatus);
-	json(_,SslProtocol);
-	json(_,ResourceGroupId);
+json(_, Cname);
+json(_, CdnType);
+json(_, DomainStatus);
+json(_, SslProtocol);
+json(_, ResourceGroupId);
 `
 )
 
 type Cdn struct {
-	Disable            bool              `toml:"disable"`
-	Tags               map[string]string `toml:"tags,omitempty"`
-	DomainNames        []string          `toml:"domainNames,omitempty"`
-	ExcludeDomainNames []string          `toml:"exclude_domainNames,omitempty"`
-	PipelinePath       string            `toml:"pipeline,omitempty"`
+	Disable            bool     `toml:"disable"`
+	DomainNames        []string `toml:"domainNames,omitempty"`
+	ExcludeDomainNames []string `toml:"exclude_domainNames,omitempty"`
+	PipelinePath       string   `toml:"pipeline,omitempty"`
 
 	p *pipeline.Pipeline
 }
@@ -131,6 +127,9 @@ func (e *Cdn) run(ag *objectAgent) {
 func (e *Cdn) handleResponse(resp *cdn.DescribeUserDomainsResponse, ag *objectAgent) {
 	moduleLogger.Debugf("cdn TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 	for _, inst := range resp.Domains.PageData {
-		ag.parseObject(inst, "aliyun_cdn", inst.DomainName, inst.DomainName, e.p, e.ExcludeDomainNames, e.DomainNames, e.Tags)
+		tags := map[string]string{
+			"name": inst.DomainName,
+		}
+		ag.parseObject(inst, "aliyun_cdn", inst.DomainName, e.p, e.ExcludeDomainNames, e.DomainNames, tags)
 	}
 }
