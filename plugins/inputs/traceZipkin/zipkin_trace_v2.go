@@ -1,12 +1,12 @@
 package traceZipkin
 
 import (
+	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"net"
-	"time"
 	"strconv"
-	"encoding/json"
-	"encoding/binary"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	zipkinmodel "github.com/openzipkin/zipkin-go/model"
@@ -15,7 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
-func  parseZipkinJsonV2(octets []byte) error {
+func parseZipkinJsonV2(octets []byte) error {
 	log.Debugf("->|%s|<-", string(octets))
 	spans := []*zipkinmodel.SpanModel{}
 	if err := json.Unmarshal(octets, &spans); err != nil {
@@ -27,8 +27,8 @@ func  parseZipkinJsonV2(octets []byte) error {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "zipkin"
 
-		tAdpter.Duration    = int64(zs.Duration/time.Microsecond)
-		tAdpter.TimestampUs = zs.Timestamp.UnixNano()/1000
+		tAdpter.Duration = int64(zs.Duration / time.Microsecond)
+		tAdpter.TimestampUs = zs.Timestamp.UnixNano() / 1000
 		sJson, err := json.Marshal(zs)
 		if err != nil {
 			return err
@@ -36,13 +36,13 @@ func  parseZipkinJsonV2(octets []byte) error {
 		tAdpter.Content = string(sJson)
 
 		if zs.LocalEndpoint != nil {
-			tAdpter.ServiceName   = zs.LocalEndpoint.ServiceName
+			tAdpter.ServiceName = zs.LocalEndpoint.ServiceName
 		}
 
 		tAdpter.OperationName = zs.Name
 
 		if zs.ParentID != nil {
-			tAdpter.ParentID      = fmt.Sprintf("%x", uint64(*zs.ParentID))
+			tAdpter.ParentID = fmt.Sprintf("%x", uint64(*zs.ParentID))
 		}
 
 		if zs.TraceID.High != 0 {
@@ -51,7 +51,7 @@ func  parseZipkinJsonV2(octets []byte) error {
 			tAdpter.TraceID = fmt.Sprintf("%x", zs.TraceID.Low)
 		}
 
-		tAdpter.SpanID        = fmt.Sprintf("%x", uint64(zs.ID))
+		tAdpter.SpanID = fmt.Sprintf("%x", uint64(zs.ID))
 
 		for tag, _ := range zs.Tags {
 			if tag == "error" {
@@ -106,8 +106,8 @@ func parseZipkinProtobufV2(octets []byte) error {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "zipkin"
 
-		tAdpter.Duration    = int64(zs.Duration/time.Microsecond)
-		tAdpter.TimestampUs = zs.Timestamp.UnixNano()/1000
+		tAdpter.Duration = int64(zs.Duration / time.Microsecond)
+		tAdpter.TimestampUs = zs.Timestamp.UnixNano() / 1000
 		sJson, err := json.Marshal(zs)
 		if err != nil {
 			return err
@@ -115,12 +115,12 @@ func parseZipkinProtobufV2(octets []byte) error {
 		tAdpter.Content = string(sJson)
 
 		if zs.LocalEndpoint != nil {
-			tAdpter.ServiceName   = zs.LocalEndpoint.ServiceName
+			tAdpter.ServiceName = zs.LocalEndpoint.ServiceName
 		}
 		tAdpter.OperationName = zs.Name
 
 		if zs.ParentID != nil {
-			tAdpter.ParentID      = fmt.Sprintf("%d", *zs.ParentID)
+			tAdpter.ParentID = fmt.Sprintf("%d", *zs.ParentID)
 		}
 
 		if zs.TraceID.High != 0 {
@@ -129,7 +129,7 @@ func parseZipkinProtobufV2(octets []byte) error {
 			tAdpter.TraceID = fmt.Sprintf("%d", zs.TraceID.Low)
 		}
 
-		tAdpter.SpanID      = fmt.Sprintf("%d", zs.ID)
+		tAdpter.SpanID = fmt.Sprintf("%d", zs.ID)
 
 		for tag, _ := range zs.Tags {
 			if tag == "error" {
@@ -232,7 +232,6 @@ func zipkinTraceIDFromHex(h string) (t zipkinmodel.TraceID, err error) {
 	return
 }
 
-
 func zipkinSpanIDToModelSpanID(spanId []byte) (zid *zipkinmodel.ID, blank bool, err error) {
 	if len(spanId) == 0 {
 		return nil, true, nil
@@ -282,4 +281,3 @@ func protoAnnotationsToModelAnnotations(zpa []*zipkin_proto3.Annotation) (zma []
 	}
 	return zma
 }
-
