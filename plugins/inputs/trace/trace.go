@@ -64,7 +64,7 @@ var (
 func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
-	
+
 	tags["__operationName"] = tAdpt.OperationName
 	tags["__serviceName"] = tAdpt.ServiceName
 	tags["__parentID"] = tAdpt.ParentID
@@ -149,7 +149,7 @@ func ParseHttpReq(r *http.Request) (*TraceReqInfo, error) {
 
 func ReadCompressed(body *bytes.Reader, isGzip bool) ([]byte, error) {
 	var data []byte
-	var err  error
+	var err error
 
 	if isGzip {
 		reader, err := gzip.NewReader(body)
