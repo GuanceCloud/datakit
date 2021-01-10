@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"time"
 	"reflect"
+	"github.com/araddon/dateparse"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"github.com/GuilhermeCaruso/kair"
 	"github.com/mssola/user_agent"
@@ -59,16 +60,15 @@ func GeoIpHandle(ip string) (map[string]string, error) {
 
 func DateFormatHandle(data interface{}, precision string, fmts string, tz int) (interface{}, error) {
 	v := conv.ToInt64(data)
-	var num int64 = 0
+
+	var t time.Time
 	switch precision {
 	case "s":
-		num = 0
+		t = time.Unix(v, 0)
 	case "ms":
-		num = v * int64(time.Millisecond)
+		num := v * int64(time.Millisecond)
+		t = time.Unix(0, num)
 	}
-
-
-	t := time.Unix(v, num)
 
 	day := t.Day()
 	year := t.Year()
@@ -101,3 +101,15 @@ func GroupInHandle(value interface{}, set []interface{}) bool {
 
 	return false
 }
+
+func TimestampHandle(value string) int64 {
+	t, err := dateparse.ParseLocal(value)
+	if err != nil {
+		return time.Now().Unix()
+	}
+
+	unix_time := t.Unix()
+
+	return unix_time
+}
+
