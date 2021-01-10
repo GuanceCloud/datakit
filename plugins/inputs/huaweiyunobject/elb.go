@@ -171,7 +171,10 @@ func (e *Elb) handResponseV2(lbs []elb.LoadbalancerV2, ag *objectAgent) {
 	moduleLogger.Debugf("Elb TotalCount=%d", len(lbs))
 
 	for _, lb := range lbs {
-		err := ag.parseObject(lb, fmt.Sprintf(`%s(%s)`, lb.Name, lb.ID), `huaweiyun_elb`, lb.ID, e.p, e.ExcludeInstanceIDs, e.InstancesIDs)
+
+		name := fmt.Sprintf(`%s(%s)`, lb.Name, lb.ID)
+		class := `huaweiyun_elb`
+		err := ag.parseObject(lb, name, class, lb.ID, e.p, e.ExcludeInstanceIDs, e.InstancesIDs)
 		if err != nil {
 			moduleLogger.Errorf("%s", err)
 		}
