@@ -7,11 +7,12 @@ import (
 	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
-	ifxcli "github.com/influxdata/influxdb1-client/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -22,7 +23,7 @@ const (
 [inputs.telegraf_http]
 
     [inputs.telegraf_http.logging_measurements]
-    ## "logging_measurement" = "measurement.p"
+    ## "logging_measurement" = "pipeline.p"
 `
 )
 
@@ -39,6 +40,7 @@ func init() {
 type TelegrafHTTP struct {
 	// map[measurement]pipelinePath
 	LoggingMeas map[string]string `toml:"logging_measurements"`
+	pipelineMap map[string]*pipeline.Pipeline
 }
 
 func (*TelegrafHTTP) SampleConfig() string {
@@ -54,9 +56,38 @@ func (*TelegrafHTTP) Test() (result *inputs.TestResult, err error) {
 	return
 }
 
-func (*TelegrafHTTP) Run() {
+func (t *TelegrafHTTP) Run() {
 	l = logger.SLogger(inputName)
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return
+		default:
+			//pass
+		}
+
+		if err := t.loadCfg(); err != nil {
+			l.Error(err)
+			time.Sleep(time.Second /* default checking interval*/)
+		} else {
+			break
+		}
+	}
+
 	l.Infof("telegraf_http input started...")
+}
+
+func (t *TelegrafHTTP) loadCfg() error {
+	for meas, pipelinePath := range t.LoggingMeas {
+		p, err := pipeline.NewPipelineFromFile(pipelinePath)
+		if err != nil {
+			return err
+		}
+		t.pipelineMap[meas] = p
+	}
+	return nil
 }
 
 func (t *TelegrafHTTP) RegHttpHandler() {
@@ -89,14 +120,18 @@ func (t *TelegrafHTTP) Handle(w http.ResponseWriter, r *http.Request) {
 	for _, point := range points {
 		meas := string(point.Name())
 
-		if pipelinePath, ok := t.LoggingMeas[meas]; ok {
+		if _, ok := t.LoggingMeas[meas]; ok {
 			jsonStr, err := inputs.PointToJSON(point)
 			if err != nil {
 				l.Errorf("point to json, err: %s", err.Error())
 				continue
 			}
 
-			result := inputs.RunPipeline(jsonStr, pipelinePath)
+			result, err := t.pipelineMap[meas].Run(jsonStr).Result()
+			if err != nil {
+				l.Error(err)
+				continue
+			}
 
 			pt, err := inputs.MapToPoint(result)
 			if err != nil {
