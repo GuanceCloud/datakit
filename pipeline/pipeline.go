@@ -1,11 +1,13 @@
 package pipeline
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
 
+	influxm "github.com/influxdata/influxdb1-client/models"
 	conv "github.com/spf13/cast"
 	vgrok "github.com/vjeantet/grok"
 
@@ -45,10 +47,57 @@ func NewPipeline(script string) (*Pipeline, error) {
 	}
 
 	if err := p.parseScript(script); err != nil {
-		return nil, err
+		return p, err
 	}
 
 	return p, nil
+}
+
+func NewPipelineFromFile(filename string) (*Pipeline, error) {
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	return NewPipeline(string(b))
+}
+
+// PointToJSON, line protocol point to pipeline JSON
+func (p *Pipeline) RunPoint(point influxm.Point) *Pipeline {
+	defer func() {
+		r := recover()
+		if r != nil {
+			p.lastErr = fmt.Errorf("%v", r)
+		}
+	}()
+
+	m := map[string]interface{}{"measurement": string(point.Name())}
+
+	if tags := point.Tags(); len(tags) > 0 {
+		m["tags"] = map[string]string{}
+		for _, tag := range tags {
+			m["tags"].(map[string]string)[string(tag.Key)] = string(tag.Value)
+		}
+	}
+
+	fields, err := point.Fields()
+	if err != nil {
+		p.lastErr = err
+		return p
+	}
+
+	for k, v := range fields {
+		m[k] = v
+	}
+
+	m["time"] = point.UnixNano()
+
+	j, err := json.Marshal(m)
+	if err != nil {
+		p.lastErr = err
+		return p
+	}
+
+	return p.Run(string(j))
 }
 
 func (p *Pipeline) Run(data string) *Pipeline {
