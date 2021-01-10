@@ -269,7 +269,7 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 		}
 
 		tags := map[string]string{
-			"__source": "aliyun_actiontrail",
+			"*source": "aliyun_actiontrail",
 		}
 
 		fields := map[string]interface{}{}
@@ -293,7 +293,7 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 		}
 
 		evdata, _ := json.Marshal(&ev)
-		fields["__content"] = string(evdata)
+		fields["message"] = string(evdata)
 
 		if r.isTest() {
 			data, _ := io.MakeMetric(r.MetricName, tags, fields, evtm)
