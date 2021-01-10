@@ -144,7 +144,7 @@ func (c *Collector) Run() {
 			fields = map[string]interface{}{}
 		}
 
-		fields["content"] = string(data)
+		fields["message"] = string(data)
 		if c.Desc != "" {
 			fields[`description`] = c.Desc
 		}
