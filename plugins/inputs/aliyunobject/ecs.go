@@ -7,9 +7,9 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
@@ -18,20 +18,29 @@ const (
 #[inputs.aliyunobject.ecs]
     # ##(optional) ignore this object, default is false
     #disable = false
-
+	#pipeline = "aliyun_ecs.p"
     # ##(optional) list of ecs instanceid
     #instanceids = ['']
 
     # ##(optional) list of excluded ecs instanceid
     #exclude_instanceids = ['']
 `
+	ecsPipelineConfig = `
+json(_, InstanceId);
+json(_, InstanceChargeType);
+json(_, RegionId);
+json(_, InstanceType);
+json(_, VpcId);
+`
 )
 
 type Ecs struct {
-	Disable            bool              `toml:"disable"`
-	Tags               map[string]string `toml:"tags,omitempty"`
-	InstancesIDs       []string          `toml:"instanceids,omitempty"`
-	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	Disable            bool     `toml:"disable"`
+	InstancesIDs       []string `toml:"instanceids,omitempty"`
+	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string   `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (e *Ecs) disabled() bool {
@@ -41,7 +50,12 @@ func (e *Ecs) disabled() bool {
 func (e *Ecs) run(ag *objectAgent) {
 	var cli *ecs.Client
 	var err error
-
+	p, err := newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] ecs new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 	for {
 
 		select {
@@ -119,36 +133,11 @@ func (e *Ecs) run(ag *objectAgent) {
 }
 
 func (e *Ecs) handleResponse(resp *ecs.DescribeInstancesResponse, ag *objectAgent) {
-
-	var objs []map[string]interface{}
-
 	for _, inst := range resp.Instances.Instance {
-
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, inst.InstanceName, inst.InstanceId), `aliyun_ecs`, inst, inst.InstanceId, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf("%s_%s", inst.InstanceName, inst.InstanceId),
 		}
-	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-
-	if ag.isTest() {
-		ag.testResult.Result = append(ag.testResult.Result, data...)
-	} else if ag.isDebug() {
-		fmt.Printf("%s\n", string(data))
-	} else {
-		io.NamedFeed(data, io.Object, inputName)
+		ag.parseObject(inst, "aliyun_ecs", inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, tags)
 	}
 
 }
