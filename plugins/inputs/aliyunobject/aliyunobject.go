@@ -46,9 +46,11 @@ func (_ *objectAgent) Catalog() string {
 
 func (_ *objectAgent) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"aliyun_redis.p": redisPipelineConifg,
-		"aliyun_waf.p":   wafPipelineConfig,
-		"aliyun_cdn.p":   cdnPipelineConifg,
+		"aliyun_redis": redisPipelineConifg,
+		"aliyun_waf":   wafPipelineConfig,
+		"aliyun_cdn":   cdnPipelineConifg,
+		"aliyun_elasticsearch":   elasticsearchPipelineConifg,
+		"aliyun_influxdb":   influxDBPipelineConfig,
 	}
 	return pipelineMap
 }
@@ -131,7 +133,7 @@ func newAgent() *objectAgent {
 	return ag
 }
 
-func (ag *objectAgent) parseObject(obj interface{}, class, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string, tags map[string]string) {
+func (ag *objectAgent) parseObject(obj interface{}, class,name, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string, tags map[string]string) {
 	if datakit.CheckExcluded(id, blacklist, whitelist) {
 		return
 	}
@@ -158,7 +160,7 @@ func (ag *objectAgent) parseObject(obj interface{}, class, id string, pipeline *
 	fields["content"] = string(data)
 
 	tags["class"] = class
-	tags["name"] = fields["name"].(string)
+	tags["name"] = name
 
 	io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
 }
