@@ -18,4 +18,6 @@ const (
 #[inputs.hostobject.tags]
 # key1 = 'val1'
 `
+
+	pipelineSample = ``
 )
