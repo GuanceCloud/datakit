@@ -130,7 +130,7 @@ func (c *Cdb) handleResponse(resp *cdb.DescribeDBInstancesResponse, ag *objectAg
 		}
 	} else {
 
-			moduleLogger.Errorf("%s", err)
-			return
-		}
+		moduleLogger.Errorf("%s", err)
+		return
 	}
+}
