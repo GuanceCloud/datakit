@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"strings"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -11,6 +12,7 @@ import (
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	"github.com/gin-gonic/gin"
@@ -50,6 +52,13 @@ func (r *Rum) PipelineConfig() map[string]string {
 }
 
 func (r *Rum) RegHttpHandler() {
+
+	r.pipelinePool = &sync.Pool{
+		New: func() interface{} {
+			return pipeline.NewPipeline(r.Pipeline)
+		},
+	}
+
 	ipheaderName = r.IPHeader
 	l = logger.SLogger(inputName)
 	httpd.RegGinHandler("POST", io.Rum, r.Handle)
@@ -98,39 +107,74 @@ func (r *Rum) Handle(c *gin.Context) {
 	metricsdata := [][]byte{}
 	esdata := [][]byte{}
 
-	pp := pipeline.NewPipeline(r.Pipeline)
+	pp := r.pipelinePool.Get().(*pipeline.Pipeline)
+	defer func() {
+		r.pipelinePool.Put(pp)
+	}()
 
 	for _, pt := range pts {
 		ptname := string(pt.Name())
 
-		m := map[string]string{
-			"ip": sourceIP,
-		}
-
-		jdata, _ := json.Marshal(&m)
-		l.Debugf("input data: %s", string(jdata))
-
-		result, err := pp.Run(string(jdata)).Result()
-		if err != nil {
-			l.Warnf("pipeline run error, %s", err)
-		} else {
-			l.Debugf("pipeline result: %s", result)
-		}
-
-		for k, v := range result {
-			if k != "ip" {
-				if sv, ok := v.(string); ok {
-					pt.AddTag(k, sv)
-				}
-			}
-		}
-
-		line := []byte(pt.String())
-
 		if IsMetric(ptname) {
-			metricsdata = append(metricsdata, line)
+
+			ipInfo, err := geo.Geo(sourceIP)
+			if err != nil {
+				l.Errorf("parse ip error: %s", err)
+			} else {
+				pt.AddTag("city", ipInfo.City)
+				pt.AddTag("region", ipInfo.Region)
+				pt.AddTag("country", ipInfo.Country_short)
+				pt.AddTag("isp", ipInfo.Isp)
+			}
+
+			metricsdata = append(metricsdata, []byte(pt.String()))
+
 		} else if IsES(ptname) {
-			esdata = append(esdata, line)
+
+			pipelineInput := map[string]interface{}{}
+			pipelineInput["ip"] = sourceIP
+
+			rawFields, _ := pt.Fields()
+			for k, v := range rawFields {
+				pipelineInput[k] = v
+			}
+
+			for _, t := range pt.Tags() {
+				pipelineInput[string(t.Key)] = string(t.Value)
+			}
+
+			pipelineInputBytes, err := json.Marshal(&pipelineInput)
+			if err != nil {
+				l.Warnf("%s", err)
+				esdata = append(esdata, []byte(pt.String()))
+				continue
+			}
+
+			l.Debugf("pipeline input: %s", string(pipelineInputBytes))
+			pipelineResult, err := pp.Run(string(pipelineInputBytes)).Result()
+			if err != nil {
+				l.Warnf("%s", err)
+				esdata = append(esdata, []byte(pt.String()))
+				continue
+			} else {
+				l.Debugf("pipeline result: %s", pipelineResult)
+			}
+
+			tags := influxm.Tags{
+				influxm.Tag{
+					Key:   []byte("name"),
+					Value: []byte(ptname),
+				},
+			}
+
+			newPt, err := influxm.NewPoint(ptname, tags, pipelineResult, pt.Time())
+
+			if err != nil {
+				l.Errorf("%s", err)
+				esdata = append(esdata, []byte(pt.String()))
+			} else {
+				esdata = append(esdata, []byte(newPt.String()))
+			}
 		} else {
 			uhttp.HttpErr(c, uhttp.Errorf(httpd.ErrBadReq, "unknown RUM metric name `%s'", ptname))
 			return
