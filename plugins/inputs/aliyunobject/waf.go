@@ -5,6 +5,7 @@ import (
 
 	waf "github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
@@ -16,12 +17,12 @@ const (
 # key1 = 'val1'
 `
 	wafPipelineConfig = `
-	json(_,"InstanceId","name");
-	json(_,"Region");
-	json(_,"PayType");
-	json(_,"Status");
-	json(_,"InDebt");
-	json(_,"SubscriptionType");
+	json(_,InstanceId,name);
+	json(_,Region);
+	json(_,PayType);
+	json(_,Status);
+	json(_,InDebt);
+	json(_,SubscriptionType);
 `
 )
 
@@ -72,5 +73,6 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 		moduleLogger.Warnf("%s", "waf payType 0")
 		return
 	}
-	parseObject(resp.InstanceInfo, "aliyun_waf", resp.InstanceInfo.InstanceId, e.PipelinePath, []string{}, []string{})
+	p := pipeline.NewPipeline(e.PipelinePath)
+	ag.parseObject(resp.InstanceInfo, "aliyun_waf", resp.InstanceInfo.InstanceId, p, []string{}, []string{},e.Tags)
 }
