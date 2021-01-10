@@ -116,6 +116,6 @@ func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
 	for _, inst := range gjson.Get(resp, "InstanceList").Array() {
 		name := inst.Get("InstanceAlias").String()
 		id := inst.Get("InstanceId").String()
-		ag.parseObject(inst, "aliyun_influxdb",name, id, p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
+		ag.parseObject(inst, "aliyun_influxdb",name, id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
 	}
 }
