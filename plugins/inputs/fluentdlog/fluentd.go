@@ -91,7 +91,7 @@ func extract(body iowrite.Reader, metric string, tags map[string]string) error {
 		tm := time.Now()
 
 		n := len(bytes)
-		_fields["__content"] = string(bytes[0 : n-1])
+		_fields["content"] = string(bytes[0 : n-1])
 
 		pt, err := io.MakeMetric(metric, _tags, _fields, tm)
 		if err != nil {
