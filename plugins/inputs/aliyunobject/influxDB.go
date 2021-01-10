@@ -1,6 +1,7 @@
 package aliyunobject
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -18,32 +19,29 @@ const (
 #[inputs.aliyunobject.influxdb]
     # ##(optional) ignore this object, default is false
     #disable = false
+	#pipeline = "aliyun_influxdb.p"
 
     # ##(optional) list of influxdb instanceid
     #instanceids = []
-	#pipeline = "aliyun_influxdb.p"
-	# ## @param - [list of influxdb instanceid] - optional
-	#instanceids = []
 
     # ##(optional) list of excluded influxdb instanceid
     #exclude_instanceids = []
 `
 	influxDBPipelineConfig = `
-	json(_,InstanceId);
-	json(_,RegionId);
-	json(_,NetworkType);
-	json(_,InstanceClass);
-	json(_,ChargeType);
+json(_, InstanceId);
+json(_, RegionId);
+json(_, NetworkType);
+json(_, InstanceClass);
+json(_, ChargeType);
     
 `
 )
 
 type InfluxDB struct {
-	Disable            bool              `toml:"disable"`
-	Tags               map[string]string `toml:"tags,omitempty"`
-	InstancesIDs       []string          `toml:"instanceids,omitempty"`
-	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
-	PipelinePath       string            `toml:"pipeline,omitempty"`
+	Disable            bool     `toml:"disable"`
+	InstancesIDs       []string `toml:"instanceids,omitempty"`
+	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string   `toml:"pipeline,omitempty"`
 
 	p *pipeline.Pipeline
 }
@@ -126,6 +124,9 @@ func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
 	for _, inst := range gjson.Get(resp, "InstanceList").Array() {
 		name := inst.Get("InstanceAlias").String()
 		id := inst.Get("InstanceId").String()
-		ag.parseObject(inst, "aliyun_influxdb", name, id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
+		tags := map[string]string{
+			"name": fmt.Sprintf("%s_%s", name, id),
+		}
+		ag.parseObject(inst, "aliyun_influxdb", id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, tags)
 	}
 }
