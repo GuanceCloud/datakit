@@ -120,6 +120,6 @@ func (e *Cdn) run(ag *objectAgent) {
 func (e *Cdn) handleResponse(resp *cdn.DescribeUserDomainsResponse, ag *objectAgent) {
 	moduleLogger.Debugf("cdn TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 	for _, inst := range resp.Domains.PageData {
-		ag.parseObject(inst, "aliyun_cdn",inst.DomainName, inst.DomainName, p, e.ExcludeDomainNames, e.DomainNames,e.Tags)
+		ag.parseObject(inst, "aliyun_cdn",inst.DomainName, inst.DomainName, e.p, e.ExcludeDomainNames, e.DomainNames,e.Tags)
 	}
 }
