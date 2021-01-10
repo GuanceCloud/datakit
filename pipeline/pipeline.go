@@ -1,12 +1,14 @@
 package pipeline
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"strings"
 
+	influxm "github.com/influxdata/influxdb1-client/models"
+	conv "github.com/spf13/cast"
 	vgrok "github.com/vjeantet/grok"
-	conv  "github.com/spf13/cast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
@@ -45,6 +47,41 @@ func NewPipelineFromFile(filename string) (*Pipeline, error) {
 		return nil, err
 	}
 	return NewPipeline(string(b))
+}
+
+// PointToJSON, line protocol point to pipeline JSON
+func (p *Pipeline) RunPoint(point influxm.Point) *Pipeline {
+	defer func() {
+		r := recover()
+		if r != nil {
+			p.lastErr = fmt.Errorf("%v", r)
+		}
+	}()
+
+	m := map[string]interface{}{
+		"measurement": point.Name(),
+		"tags":        point.Tags(),
+	}
+
+	fields, err := point.Fields()
+	if err != nil {
+		p.lastErr = err
+		return p
+	}
+
+	for k, v := range fields {
+		m[k] = v
+	}
+
+	m["time"] = point.Time().UnixNano()
+
+	j, err := json.Marshal(m)
+	if err != nil {
+		p.lastErr = err
+		return p
+	}
+
+	return p.Run(string(j))
 }
 
 func (p *Pipeline) Run(data string) *Pipeline {
