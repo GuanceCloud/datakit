@@ -6,10 +6,13 @@ const (
 # ##(optional) tell datakit which http header contains the source ip, if empty use the client ip
 ip_header = 'X-Forwarded-For'
 `
+
+	pipelineSample = `geoip(ip)`
 )
 
 type Rum struct {
 	IPHeader string `toml:"ip_header,omitempty"`
+	Pipeline string `toml:"pipeline"`
 }
 
 var metricNames = map[string]bool{
