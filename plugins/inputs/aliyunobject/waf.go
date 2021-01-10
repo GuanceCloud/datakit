@@ -11,10 +11,12 @@ import (
 const (
 	wafSampleConfig = `
 #[inputs.aliyunobject.waf]
-#pipeline = "aliyun_waf.p"
-# ## @param - custom tags for waf object - [list of key:value element] - optional
-#[inputs.aliyunobject.waf.tags]
-# key1 = 'val1'
+    # ##(optional) ignore this object, default is false
+    #disable = false
+	#pipeline = "aliyun_waf.p"
+	# ## @param - custom tags for waf object - [list of key:value element] - optional
+	#[inputs.aliyunobject.waf.tags]
+	# key1 = 'val1'
 `
 	wafPipelineConfig = `
 	json(_,Region);
@@ -26,10 +28,14 @@ const (
 )
 
 type Waf struct {
+	Disable      bool              `toml:"disable"`
 	Tags         map[string]string `toml:"tags,omitempty"`
 	PipelinePath string            `toml:"pipeline,omitempty"`
+	p            *pipeline.Pipeline
+}
 
-	p *pipeline.Pipeline
+func (e *Waf) disabled() bool {
+	return e.Disable
 }
 
 func (e *Waf) run(ag *objectAgent) {
