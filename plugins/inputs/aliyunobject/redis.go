@@ -44,13 +44,18 @@ type Redis struct {
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
 	PipelinePath       string            `toml:"pipeline,omitempty"`
 
-	p                  *pipeline.Pipeline
+	p *pipeline.Pipeline
 }
 
 func (e *Redis) run(ag *objectAgent) {
 	var cli *redis.Client
 	var err error
-	e.p = pipeline.NewPipeline(e.PipelinePath)
+	p, err := newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] redis new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 	for {
 
 		select {
@@ -117,6 +122,6 @@ func (e *Redis) run(ag *objectAgent) {
 func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *objectAgent) {
 	moduleLogger.Debugf("redis TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 	for _, inst := range resp.Instances.KVStoreInstance {
-		ag.parseObject(inst, "aliyun_redis",inst.InstanceName, inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
+		ag.parseObject(inst, "aliyun_redis", inst.InstanceName, inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
 	}
 }
