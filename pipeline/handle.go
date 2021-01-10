@@ -2,17 +2,14 @@ package pipeline
 
 import (
 	"net/url"
-	"time"
 	"reflect"
-	"github.com/araddon/dateparse"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"time"
+
 	"github.com/GuilhermeCaruso/kair"
+	"github.com/araddon/dateparse"
 	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
-	"net/url"
-	"reflect"
-	"time"
 )
 
 func UrldecodeHandle(path string) (interface{}, error) {
@@ -74,11 +71,6 @@ func DateFormatHandle(data interface{}, precision string, fmts string, tz int) (
 		t = time.Unix(0, num)
 	}
 
-<<<<<<< HEAD
-	t := time.Unix(v, num)
-
-=======
->>>>>>> parser
 	day := t.Day()
 	year := t.Year()
 	mounth := int(t.Month())
@@ -121,4 +113,3 @@ func TimestampHandle(value string) int64 {
 
 	return unix_time
 }
-
