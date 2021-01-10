@@ -53,9 +53,10 @@ func parseZipkinJsonV2(octets []byte) error {
 
 		tAdpter.SpanID = fmt.Sprintf("%x", uint64(zs.ID))
 
+		tAdpter.Status = trace.STATUS_OK
 		for tag, _ := range zs.Tags {
 			if tag == "error" {
-				tAdpter.IsError = "true"
+				tAdpter.Status = trace.STATUS_ERR
 				break
 			}
 		}
@@ -131,9 +132,10 @@ func parseZipkinProtobufV2(octets []byte) error {
 
 		tAdpter.SpanID = fmt.Sprintf("%d", zs.ID)
 
+		tAdpter.Status = trace.STATUS_OK
 		for tag, _ := range zs.Tags {
 			if tag == "error" {
-				tAdpter.IsError = "true"
+				tAdpter.Status = trace.STATUS_ERR
 				break
 			}
 		}
