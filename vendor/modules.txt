@@ -100,6 +100,8 @@ github.com/antchfx/jsonquery
 github.com/antchfx/xpath
 # github.com/apache/thrift v0.13.0
 github.com/apache/thrift/lib/go/thrift
+# github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
+github.com/araddon/dateparse
 # github.com/aws/aws-sdk-go v1.35.20
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
