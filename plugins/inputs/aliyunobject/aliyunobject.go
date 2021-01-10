@@ -55,6 +55,7 @@ func (_ *objectAgent) PipelineConfig() map[string]string {
 		"aliyun_cdn":           cdnPipelineConifg,
 		"aliyun_elasticsearch": elasticsearchPipelineConifg,
 		"aliyun_influxdb":      influxDBPipelineConfig,
+		"aliyun_ecs":           ecsPipelineConifg,
 	}
 	return pipelineMap
 }
