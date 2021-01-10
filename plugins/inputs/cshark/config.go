@@ -17,7 +17,7 @@ type Shark struct {
 }
 
 type Params struct {
-    Device  []string          `json:"device"`
+    Device  string            `json:"device"`
     Stream  *Stream           `json:"stream"`
     Statistics *Statistics    `json:"statistics"`
     Sync     bool             `json:"sync"`
