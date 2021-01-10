@@ -2,6 +2,7 @@ package rum
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	"github.com/gin-gonic/gin"
@@ -41,13 +43,19 @@ func (r *Rum) Test() (result *inputs.TestResult, err error) {
 	return
 }
 
+func (r *Rum) PipelineConfig() map[string]string {
+	return map[string]string{
+		inputName: pipelineSample,
+	}
+}
+
 func (r *Rum) RegHttpHandler() {
 	ipheaderName = r.IPHeader
 	l = logger.SLogger(inputName)
-	httpd.RegGinHandler("POST", io.Rum, Handle)
+	httpd.RegGinHandler("POST", io.Rum, r.Handle)
 }
 
-func Handle(c *gin.Context) {
+func (r *Rum) Handle(c *gin.Context) {
 
 	var precision string = DEFAULT_PRECISION
 	var body []byte
@@ -90,14 +98,32 @@ func Handle(c *gin.Context) {
 	metricsdata := [][]byte{}
 	esdata := [][]byte{}
 
+	pp := pipeline.NewPipeline(r.Pipeline)
+
 	for _, pt := range pts {
 		ptname := string(pt.Name())
 
-		// proc := pipeline.NewProcedure(influxdb.NewPointFrom(pt))
-		// line := proc.Geo(sourceIP).GetByte()
-		// if err := proc.LastError(); err != nil {
-		// 	l.Debugf("rum proc error: %s, ignored", err.Error())
-		// }
+		m := map[string]string{
+			"ip": sourceIP,
+		}
+
+		jdata, _ := json.Marshal(&m)
+		l.Debugf("input data: %s", string(jdata))
+
+		result, err := pp.Run(string(jdata)).Result()
+		if err != nil {
+			l.Warnf("pipeline run error, %s", err)
+		} else {
+			l.Debugf("pipeline result: %s", result)
+		}
+
+		for k, v := range result {
+			if k != "ip" {
+				if sv, ok := v.(string); ok {
+					pt.AddTag(k, sv)
+				}
+			}
+		}
 
 		line := []byte(pt.String())
 
