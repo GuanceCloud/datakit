@@ -28,17 +28,17 @@ func (a *Ansible) Catalog() string {
 	return inputName
 }
 
-func (a *Ansible) Test() (*inputs.TestResult,error) {
+func (a *Ansible) Test() (*inputs.TestResult, error) {
 	var result = &inputs.TestResult{}
 	result.Desc = "test ok"
-	return result,nil
+	return result, nil
 }
 
 func (a *Ansible) SampleConfig() string {
 	return ConfigSample
 }
-var l = logger.DefaultSLogger(inputName)
 
+var l = logger.DefaultSLogger(inputName)
 
 func (a *Ansible) Run() {
 	l = logger.SLogger(inputName)
