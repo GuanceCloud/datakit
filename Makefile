@@ -69,7 +69,6 @@ define build
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
 	@mkdir -p git
-	@GO111MODULE=off go fmt ./...
 	@echo "$$GIT_INFO" > git/git.go
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
 		 -env $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
@@ -90,6 +89,7 @@ vet:
 	@go vet ./...
 
 local:
+	@GO111MODULE=off go fmt ./...
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
 test:
