@@ -10,6 +10,7 @@ import (
 
 const (
 	wafSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.waf]
     # ##(optional) ignore this object, default is false
     #disable = false
