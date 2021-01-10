@@ -73,9 +73,10 @@ func parseJaegerThrift(octets []byte) error {
 		tAdpter.TraceID = fmt.Sprintf("%x%x", uint64(s.TraceIdHigh), uint64(s.TraceIdLow))
 		tAdpter.SpanID = fmt.Sprintf("%d", s.SpanId)
 
+		tAdpter.Status = trace.STATUS_OK
 		for _, tag := range s.Tags {
 			if tag.Key == "error" {
-				tAdpter.IsError = "true"
+				tAdpter.Status = trace.STATUS_ERR
 				break
 			}
 		}
