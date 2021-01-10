@@ -5,10 +5,15 @@ import (
 	"path/filepath"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func initPluginPipeline() error {
+
+	if err := pipeline.Init(); err != nil {
+		return err
+	}
 
 	for name, c := range inputs.Inputs {
 		switch v := c().(type) {
