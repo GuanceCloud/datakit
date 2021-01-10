@@ -13,10 +13,10 @@ const (
 	PatternDir = "pattern"
 )
 
-func MkPatternsFile() {
+func InitPatternsFile() error {
 	dir := filepath.Join(datakit.InstallDir, PatternDir)
-	if err := CreateDirIfNotExist(dir); err != nil {
-		return
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return err
 	}
 
 	for name, contents := range GlobalPatterns {
@@ -26,22 +26,11 @@ func MkPatternsFile() {
 			content += strings.Join(rule, " ")
 			content += "\n"
 		}
-		CreatePatternFile(fName, content)
-	}
-}
 
-func CreatePatternFile(name, content string) error {
-	ioutil.WriteFile(name, []byte(content), 0666)
-	return nil
-}
+		if err := ioutil.WriteFile(fName, []byte(content), os.ModePerm); err != nil {
+			return err
+		}
+	}
 
-func CreateDirIfNotExist(dir string) error {
-	_, err := os.Stat(dir)
-	if err == nil {
-		return nil
-	}
-	if os.IsNotExist(err) {
-		return os.MkdirAll(dir, 0666)
-	}
 	return nil
 }
