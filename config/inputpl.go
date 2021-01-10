@@ -9,6 +9,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	pipelineWarning = `
+#------------------------------------   警告   -------------------------------------
+# 不要修改本文件，如果要更新，请拷贝至其它文件，最好以某种前缀区分，避免重启后被覆盖
+#-----------------------------------------------------------------------------------
+`
+)
+
 func initPluginPipeline() error {
 
 	if err := pipeline.Init(); err != nil {
@@ -21,9 +29,13 @@ func initPluginPipeline() error {
 			ps := v.PipelineConfig()
 
 			for k, v := range ps {
+				if v == "" {
+					continue // ignore empty pipeline
+				}
+
 				plpath := filepath.Join(datakit.PipelineDir, k+".p")
 
-				if err := ioutil.WriteFile(plpath, []byte(v), 0600); err != nil {
+				if err := ioutil.WriteFile(plpath, []byte(pipelineWarning+v), 0600); err != nil {
 					l.Errorf("failed to create pipeline script for %s/%s", name, k, err.Error())
 					return err
 				}
