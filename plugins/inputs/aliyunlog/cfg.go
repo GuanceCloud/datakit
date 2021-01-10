@@ -56,13 +56,11 @@ type (
 		AccessKeySecret string
 		Projects        []*LogProject
 
-
 		wg sync.WaitGroup
 
 		mode string
 
 		testResult *inputs.TestResult
 		testError  error
-
 	}
 )
