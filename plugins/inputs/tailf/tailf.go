@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -16,12 +17,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 type Tailf struct {
 	LogFiles          []string          `toml:"logfiles"`
 	Ignore            []string          `toml:"ignore"`
 	Source            string            `toml:"source"`
+	PipelinePath      string            `toml:"pipeline_path"`
 	FromBeginning     bool              `toml:"from_beginning"`
 	CharacterEncoding string            `toml:"character_encoding"`
 	Tags              map[string]string `toml:"tags"`
@@ -89,6 +92,10 @@ func (t *Tailf) Run() {
 func (t *Tailf) loadcfg() bool {
 	var err error
 
+	if t.PipelinePath == "" {
+		t.PipelinePath = filepath.Join(datakit.InstallDir, t.Source+".p")
+	}
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -108,6 +115,10 @@ func (t *Tailf) loadcfg() bool {
 		}
 
 		if t.multiline, err = t.MultilineConfig.NewMultiline(); err != nil {
+			goto label
+		}
+
+		if _, err = pipeline.NewPipelineFromFile(t.PipelinePath); err != nil {
 			goto label
 		} else {
 			break
@@ -177,6 +188,8 @@ func (t *Tailf) tailStart(file string) {
 }
 
 func (t *Tailf) receiver(tailer *tail.Tail, tags map[string]string) {
+	p, _ := pipeline.NewPipelineFromFile(t.PipelinePath)
+
 	ticker := time.NewTicker(defaultDruation)
 	defer ticker.Stop()
 
@@ -253,7 +266,16 @@ func (t *Tailf) receiver(tailer *tail.Tail, tags map[string]string) {
 			continue
 		}
 
-		fields := map[string]interface{}{"__content": decodeText}
+		var fields = make(map[string]interface{})
+		if p != nil {
+			fields, err = p.Run(decodeText).Result()
+			if err != nil {
+				l.Errorf("run pipeline error, %s", err)
+				continue
+			}
+		} else {
+			fields["message"] = decodeText
+		}
 
 		data, err := io.MakeMetric(t.Source, tags, fields, time.Now())
 		if err != nil {
