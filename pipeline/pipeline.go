@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	vgrok "github.com/vjeantet/grok"
@@ -36,6 +37,14 @@ func NewPipeline(script string) (*Pipeline, error) {
 	}
 
 	return p, nil
+}
+
+func NewPipelineFromFile(filename string) (*Pipeline, error) {
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	return NewPipeline(string(b))
 }
 
 func (p *Pipeline) Run(data string) *Pipeline {
