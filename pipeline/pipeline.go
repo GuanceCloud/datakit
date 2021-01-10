@@ -179,4 +179,6 @@ func Init() error {
 	if err := loadPatterns(); err != nil {
 		return err
 	}
+
+	return nil
 }
