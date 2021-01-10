@@ -2,11 +2,14 @@ package pipeline
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"strings"
 
 	vgrok "github.com/vjeantet/grok"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/patterns"
 )
@@ -23,6 +26,16 @@ type Pipeline struct {
 var (
 	l = logger.DefaultSLogger("process")
 )
+
+func NewPipelineByScriptPath(path string) (*Pipeline, error) {
+
+	scriptPath := filepath.Join(datakit.PipelineDir, path)
+	data, err := ioutil.ReadFile(scriptPath)
+	if err != nil {
+		return nil, err
+	}
+	return NewPipeline(string(data))
+}
 
 func NewPipeline(script string) (*Pipeline, error) {
 	p := &Pipeline{
