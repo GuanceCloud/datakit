@@ -36,21 +36,24 @@ const (
 `
 )
 
-
-
 type InfluxDB struct {
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
 	PipelinePath       string            `toml:"pipeline,omitempty"`
 
-	p                  *pipeline.Pipeline
+	p *pipeline.Pipeline
 }
 
 func (e *InfluxDB) run(ag *objectAgent) {
 	var cli *sdk.Client
 	var err error
-	e.p = pipeline.NewPipeline(e.PipelinePath)
+	p, err := newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] influxdb new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 	for {
 
 		select {
@@ -116,6 +119,6 @@ func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
 	for _, inst := range gjson.Get(resp, "InstanceList").Array() {
 		name := inst.Get("InstanceAlias").String()
 		id := inst.Get("InstanceId").String()
-		ag.parseObject(inst, "aliyun_influxdb",name, id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
+		ag.parseObject(inst, "aliyun_influxdb", name, id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
 	}
 }
