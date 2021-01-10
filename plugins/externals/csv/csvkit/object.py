@@ -134,14 +134,12 @@ class ObjectSheetWorker:
             raise
 
     def _proc_object_row(self, r_index, row_data):
-        obj = {}
         n = self._proc_name(r_index, row_data)
         c = self._proc_class(r_index, row_data)
         t = self._proc_content(r_index, row_data)
-        obj["name"]  = n
-        obj["class"] = c
-        obj["content"] = t
-        self._objects.append(obj)
+        data = c += ",name=" + n += " message=" + t
+
+        self._objects.append(data)
         if len(self._objects) >= BATCH_SIZE:
             self._flush_objects()
 
@@ -227,7 +225,7 @@ class ObjectSheetWorker:
     def _flush_objects(self):
         if len(self._objects) == 0:
             return
-        data = json.dumps(self._objects, ensure_ascii=False)
+        data = self._objects.join("\n")
         logging.debug("build objects: {}".format(data))
         self.uploader.send(data)
         self._objects = []
