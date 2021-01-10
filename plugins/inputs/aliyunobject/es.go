@@ -14,9 +14,14 @@ const (
 	elasticsearchSampleConfig = `
 # ##(optional)
 #[inputs.aliyunobject.elasticsearch]
-#pipeline = "aliyun_elasticsearch.p"
-# ## @param - [list of elasticsearch instanceid] - optional
-#instanceids = []
+    # ##(optional) ignore this object, default is false
+    #disable = false
+
+    # ##(optional) list of elasticsearch instanceid
+    #instanceids = []
+	#pipeline = "aliyun_elasticsearch.p"
+	# ## @param - [list of elasticsearch instanceid] - optional
+	#instanceids = []
 
     # ##(optional) list of excluded elasticsearch instanceid
     #exclude_instanceids = []
