@@ -50,11 +50,18 @@ func (_ *objectAgent) Catalog() string {
 
 func (_ *objectAgent) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"aliyun_redis":         redisPipelineConifg,
-		"aliyun_waf":           wafPipelineConfig,
 		"aliyun_cdn":           cdnPipelineConifg,
+		"aliyun_mongodb":       ddsPipelineConfig,
+		"aliyun_domain":        domainPipelineConfig,
+		"aliyun_ecs":           ecsPipelineConfig,
 		"aliyun_elasticsearch": elasticsearchPipelineConifg,
 		"aliyun_influxdb":      influxDBPipelineConfig,
+		"aliyun_rocketmq":      onsPipelineConfig,
+		"aliyun_oss":           ossPipelineConfig,
+		"aliyun_rds":           rdsPipelineConfig,
+		"aliyun_redis":         redisPipelineConifg,
+		"aliyun_slb":           slbPipelineConfig,
+		"aliyun_waf":           wafPipelineConfig,
 	}
 	return pipelineMap
 }
@@ -80,27 +87,40 @@ func (ag *objectAgent) Run() {
 	if ag.Interval.Duration == 0 {
 		ag.Interval.Duration = time.Minute * 5
 	}
-
 	if ag.Ecs == nil {
-		ag.Ecs = &Ecs{}
+		ag.Ecs = &Ecs{
+			PipelinePath: "aliyun_ecs.p",
+		}
 	}
 	if ag.Slb != nil {
-		ag.Slb = &Slb{}
+		ag.Slb = &Slb{
+			PipelinePath: "aliyun_slb.p",
+		}
 	}
 	if ag.Oss == nil {
-		ag.Oss = &Oss{}
+		ag.Oss = &Oss{
+			PipelinePath: "aliyun_oss.p",
+		}
 	}
 	if ag.Rds == nil {
-		ag.Rds = &Rds{}
+		ag.Rds = &Rds{
+			PipelinePath: "aliyun_rds.p",
+		}
 	}
 	if ag.Ons == nil {
-		ag.Ons = &Ons{}
+		ag.Ons = &Ons{
+			PipelinePath: "aliyun_rocketmq.p",
+		}
 	}
 	if ag.Dds == nil {
-		ag.Dds = &Dds{}
+		ag.Dds = &Dds{
+			PipelinePath: "aliyun_mongodb.p",
+		}
 	}
 	if ag.Domain == nil {
-		ag.Domain = &Domain{}
+		ag.Domain = &Domain{
+			PipelinePath: "aliyun_domain.p",
+		}
 	}
 	if ag.Redis == nil {
 		ag.Redis = &Redis{
@@ -169,7 +189,7 @@ func newPipeline(pipelinePath string) (*pipeline.Pipeline, error) {
 	return p, err
 }
 
-func (ag *objectAgent) parseObject(obj interface{}, class, name, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string, tags map[string]string) {
+func (ag *objectAgent) parseObject(obj interface{}, class, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string, tags map[string]string) {
 	if datakit.CheckExcluded(id, blacklist, whitelist) {
 		return
 	}
@@ -178,25 +198,12 @@ func (ag *objectAgent) parseObject(obj interface{}, class, name, id string, pipe
 		moduleLogger.Errorf("[error] json marshal err:%s", err.Error())
 		return
 	}
-	if tags == nil {
-		tags = map[string]string{}
-	}
-	for k, v := range ag.Tags {
-		if _, ok := tags[k]; ok {
-			continue
-		} else {
-			tags[k] = v
-		}
-	}
 	fields, err := pipeline.Run(string(data)).Result()
 	if err != nil {
 		moduleLogger.Errorf("[error] pipeline run err:%s", err.Error())
 		return
 	}
-	fields["content"] = string(data)
-
-	tags["class"] = class
-	tags["name"] = name
+	fields["message"] = string(data)
 
 	io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
 }

@@ -462,14 +462,7 @@ func Dropkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
 }
 
 func DropOriginData(p *Pipeline, node parser.Node) (*Pipeline, error) {
-	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 1 {
-		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
-	}
-
-	key := funcExpr.Param[0].(*parser.Identifier).Name
-	delete(p.Output, key)
-
+	delete(p.Output, "message")
 	return p, nil
 }
 
