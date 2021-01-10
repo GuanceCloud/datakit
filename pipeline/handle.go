@@ -1,13 +1,13 @@
 package pipeline
 
 import (
-	"net/url"
-	"time"
-	"reflect"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"github.com/GuilhermeCaruso/kair"
 	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"net/url"
+	"reflect"
+	"time"
 )
 
 func UrldecodeHandle(path string) (interface{}, error) {
@@ -67,7 +67,6 @@ func DateFormatHandle(data interface{}, precision string, fmts string, tz int) (
 		num = v * int64(time.Millisecond)
 	}
 
-
 	t := time.Unix(v, num)
 
 	day := t.Day()
@@ -85,7 +84,7 @@ func DateFormatHandle(data interface{}, precision string, fmts string, tz int) (
 func GroupHandle(value interface{}, start, end float64) bool {
 	num := conv.ToFloat64(value)
 
-	if  num >= start && num <= end {
+	if num >= start && num <= end {
 		return true
 	}
 

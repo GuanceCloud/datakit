@@ -1,8 +1,8 @@
 package aliyunrdsslowlog
 
 import (
-	"time"
 	"bytes"
+	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
@@ -221,25 +221,25 @@ func (r *AliyunRDS) handleResponse(response *rds.DescribeSlowLogsResponse, produ
 
 func (a *AliyunRDS) Test() (*inputs.TestResult, error) {
 	a.test = true
-    a.resData = nil
+	a.resData = nil
 
-    cli, err := rds.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
+	cli, err := rds.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
 	if err != nil {
 		l.Errorf("create client failed, %s", err)
 	}
 
 	a.client = cli
 
-    for _, val := range a.Product {
+	for _, val := range a.Product {
 		a.exec(val)
 	}
 
-    res := &inputs.TestResult {
-    	Result: a.resData,
-    	Desc: "success!",
-    }
+	res := &inputs.TestResult{
+		Result: a.resData,
+		Desc:   "success!",
+	}
 
-    return res, nil
+	return res, nil
 }
 
 func unixTimeStrISO8601(t time.Time) string {
