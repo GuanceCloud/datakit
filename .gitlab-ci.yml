@@ -19,7 +19,7 @@ build-dev:
     - make ci_notify
     #- make check
     - make test
-    #- make pub_test
+    - make pub_test
     #- make pub_testing_img
     - make test_notify
   tags:
