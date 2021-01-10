@@ -1,7 +1,6 @@
 package aliyunobject
 
 import (
-	"encoding/json"
 	"strconv"
 	"time"
 
@@ -10,13 +9,13 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
 	influxDBSampleConfig = `
 #[inputs.aliyunobject.influxdb]
-
+#pipeline = "aliyun_influxdb.p"
 # ## @param - [list of influxdb instanceid] - optional
 #instanceids = []
 
@@ -27,18 +26,31 @@ const (
 #[inputs.aliyunobject.influxdb.tags]
 # key1 = 'val1'
 `
+	influxDBPipelineConfig = `
+	json(_,InstanceId);
+	json(_,RegionId);
+	json(_,NetworkType);
+	json(_,InstanceClass);
+	json(_,ChargeType);
+    
+`
 )
+
+
 
 type InfluxDB struct {
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string            `toml:"pipeline,omitempty"`
+
+	p                  *pipeline.Pipeline
 }
 
 func (e *InfluxDB) run(ag *objectAgent) {
 	var cli *sdk.Client
 	var err error
-
+	e.p = pipeline.NewPipeline(e.PipelinePath)
 	for {
 
 		select {
@@ -101,72 +113,9 @@ func DescribeHiTSDBInstanceList(client sdk.Client, pageSize int, pageNumber int)
 }
 
 func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
-	var objs []map[string]interface{}
 	for _, inst := range gjson.Get(resp, "InstanceList").Array() {
-
-		if len(e.ExcludeInstanceIDs) > 0 {
-			exclude := false
-			for _, v := range e.ExcludeInstanceIDs {
-				if v == inst.Get("InstanceId").String() {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
-			}
-		}
-		if len(e.InstancesIDs) > 0 {
-			contain := false
-			for _, v := range e.InstancesIDs {
-				if v == inst.Get("InstanceId").String() {
-					contain = true
-					break
-				}
-			}
-			if !contain {
-				continue
-			}
-		}
-
-		content := map[string]interface{}{
-			`GmtCreated`:      inst.Get("GmtCreated").String(),
-			`GmtExpire`:       inst.Get("GmtExpire").String(),
-			`InstanceStorage`: inst.Get("InstanceStorage").String(),
-			`UserId`:          inst.Get("UserId").String(),
-			`InstanceId`:      inst.Get("InstanceId").String(),
-			`ZoneId`:          inst.Get("ZoneId").String(),
-			`ChargeType`:      inst.Get("ChargeType").String(),
-			`InstanceStatus`:  inst.Get("InstanceStatus").String(),
-			`NetworkType`:     inst.Get("NetworkType").String(),
-			`RegionId`:        inst.Get("RegionId").String(),
-			`EngineType`:      inst.Get("EngineType").String(),
-			`InstanceClass`:   inst.Get("InstanceClass").String(),
-		}
-
-		jd, err := json.Marshal(content)
-		if err != nil {
-			moduleLogger.Errorf("%s", err)
-			continue
-		}
-
-		obj := map[string]interface{}{
-			`name`:    inst.Get("InstanceAlias").String(),
-			`class`:   `aliyun_influxdb`,
-			`content`: string(jd),
-		}
-
-		objs = append(objs, obj)
+		name := inst.Get("InstanceAlias").String()
+		id := inst.Get("InstanceId").String()
+		ag.parseObject(inst, "aliyun_influxdb",name, id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
 	}
-
-	if len(objs) <= 0 {
-		return
-	}
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-	io.NamedFeed(data, io.Object, inputName)
-
 }
