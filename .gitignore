@@ -48,3 +48,4 @@ run.sh
 plugins/externals/csv/venv
 *.sh
 *.zip
+china-operator-ip
