@@ -109,7 +109,7 @@ func (t *Traefik) genParam() *TraefikParam {
 	output := TraefikOutput{io.NamedFeed}
 
 	p := &TraefikParam{input, output, logger.SLogger("traefik")}
-    return p
+	return p
 }
 func (p *TraefikParam) gather() {
 	var d time.Duration
