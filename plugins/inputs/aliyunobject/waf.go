@@ -17,7 +17,6 @@ const (
 # key1 = 'val1'
 `
 	wafPipelineConfig = `
-	json(_,InstanceId,name);
 	json(_,Region);
 	json(_,PayType);
 	json(_,Status);
@@ -29,12 +28,19 @@ const (
 type Waf struct {
 	Tags         map[string]string `toml:"tags,omitempty"`
 	PipelinePath string            `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (e *Waf) run(ag *objectAgent) {
 	var cli *waf.Client
 	var err error
-
+	p, err := newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] waf new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 	for {
 
 		select {
@@ -73,6 +79,5 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 		moduleLogger.Warnf("%s", "waf payType 0")
 		return
 	}
-	p := pipeline.NewPipeline(e.PipelinePath)
-	ag.parseObject(resp.InstanceInfo, "aliyun_waf", resp.InstanceInfo.InstanceId, p, []string{}, []string{},e.Tags)
+	ag.parseObject(resp.InstanceInfo, "aliyun_waf", resp.InstanceInfo.InstanceId, resp.InstanceInfo.InstanceId, e.p, []string{}, []string{}, e.Tags)
 }
