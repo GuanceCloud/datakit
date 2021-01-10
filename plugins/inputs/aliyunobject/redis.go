@@ -13,18 +13,16 @@ import (
 const (
 	redisSampleConfig = `
 #[inputs.aliyunobject.redis]
-
-#pipeline = "aliyun_redis.p"
-
-# ## @param - [list of redis instanceid] - optional
-#instanceids = []
-
-# ## @param - [list of excluded redis instanceid] - optional
-#exclude_instanceids = []
-
-# ## @param - custom tags for redis object - [list of key:value element] - optional
-#[inputs.aliyunobject.redis.tags]
-# key1 = 'val1'
+    # ##(optional) ignore this object, default is false
+    #disable = false
+    # ##(optional) list of redis instanceid
+    #instanceids = []
+    # ##(optional) list of excluded redis instanceid
+    #exclude_instanceids = []
+	#pipeline = "aliyun_redis.p"
+	# ## @param - custom tags for redis object - [list of key:value element] - optional
+	#[inputs.aliyunobject.redis.tags]
+	# key1 = 'val1'
 `
 	redisPipelineConifg = `
 
@@ -39,7 +37,8 @@ const (
 )
 
 type Redis struct {
-	Tags               map[string]string `toml:"tags"`
+	Disable            bool              `toml:"disable"`
+	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
 	PipelinePath       string            `toml:"pipeline,omitempty"`
