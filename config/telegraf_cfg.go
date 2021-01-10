@@ -15,13 +15,9 @@ import (
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
-type fileoutCfg struct {
-	OutputFiles string
-}
+type fileoutCfg struct{}
 
-type httpoutCfg struct {
-	HTTPServer string
-}
+type httpoutCfg struct{ HTTPServer string }
 
 func loadTelegrafInputsConfigs(c *datakit.Config, inputcfgs map[string]*ast.Table, filters []string) (string, error) {
 
@@ -113,13 +109,6 @@ func generateTelegrafConfig(c *datakit.Config, files map[string]interface{}) (st
 
 	telegrafConfig += ("\n[agent]\n" + buf + "\n")
 
-	if c.MainCfg.OutputFile != "" {
-		if buf, err = applyTelegrafFileOutput(c.MainCfg.OutputFile); err != nil {
-			return "", err
-		}
-		telegrafConfig += buf
-	}
-
 	// NOTE: telegraf can also POST to dataway directly, but we redirect the POST
 	// to datakit HTTP server to collecting all input's statistics.
 	// HTTP server on datakit should be open if any telegraf input enabled.
@@ -171,28 +160,6 @@ func mergeTelegrafInputsCfgs(files map[string]interface{}, mc *datakit.MainConfi
 	}
 
 	return merged, nil
-}
-
-func applyTelegrafFileOutput(fp string) (string, error) {
-	fileCfg := fileoutCfg{
-		OutputFiles: fp,
-	}
-
-	var err error
-	tpl := template.New("")
-	tpl, err = tpl.Parse(fileOutputTemplate)
-	if err != nil {
-		l.Errorf("%s", err.Error())
-		return "", err
-	}
-
-	buf := bytes.NewBuffer([]byte{})
-	if err = tpl.Execute(buf, &fileCfg); err != nil {
-		l.Errorf("%s", err.Error())
-		return "", err
-	}
-
-	return buf.String(), nil
 }
 
 func applyTelegrafHTTPOutput(server string) (string, error) {
