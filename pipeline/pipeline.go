@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	vgrok "github.com/vjeantet/grok"
+	conv  "github.com/spf13/cast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
@@ -118,16 +119,7 @@ func (p *Pipeline) getContent(key string) interface{} {
 }
 
 func (p *Pipeline) getContentStr(key string) string {
-	content := p.getContent(key)
-
-	switch v := content.(type) {
-	case string:
-		return v
-	default:
-		return fmt.Sprintf("%v", content)
-	}
-
-	return ""
+	return conv.ToString(p.getContent(key))
 }
 
 func (p *Pipeline) setContent(k string, v interface{}) {
