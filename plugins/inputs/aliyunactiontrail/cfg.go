@@ -28,6 +28,8 @@ const (
 # ##(optional) default is 10m, must not be less than 10m
 #interval = '10m'
 `
+
+	pipelineSample = ``
 )
 
 type (
@@ -38,6 +40,7 @@ type (
 		MetricName string
 		From       string
 		Interval   datakit.Duration //至少10分钟
+		Pipeline   string           `toml:"pipeline"`
 
 		client *actiontrail.Client
 
