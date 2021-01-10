@@ -1,18 +1,18 @@
 package cshark
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/blang/semver"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"io"
 	"os"
 	"os/exec"
-	"sync"
 	"regexp"
-	"time"
 	"runtime"
-	"bytes"
+	"sync"
 	"syscall"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"github.com/blang/semver"
+	"time"
 )
 
 var TSharkVersionUnknown = fmt.Errorf("Could not determine version of tshark")
@@ -138,4 +138,3 @@ func TSharkVersion(tsharkBin string) (semver.Version, error) {
 
 	return TSharkVersionFromOutput(string(output))
 }
-
