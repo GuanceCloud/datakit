@@ -187,12 +187,12 @@ func (c *CDN) Test() (*inputs.TestResult, error) {
 
 	c.run()
 
-    res := &inputs.TestResult {
-    	Result: c.resData,
-    	Desc: "success!",
-    }
+	res := &inputs.TestResult{
+		Result: c.resData,
+		Desc:   "success!",
+	}
 
-    return res, nil
+	return res, nil
 }
 
 func (run *RunningProject) commond(action string) {
