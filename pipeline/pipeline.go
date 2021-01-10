@@ -35,7 +35,7 @@ func NewPipeline(script string) (*Pipeline, error) {
 	}
 
 	if err := p.parseScript(script); err != nil {
-		return nil, err
+		return p, err
 	}
 
 	return p, nil
@@ -58,9 +58,13 @@ func (p *Pipeline) RunPoint(point influxm.Point) *Pipeline {
 		}
 	}()
 
-	m := map[string]interface{}{
-		"measurement": point.Name(),
-		"tags":        point.Tags(),
+	m := map[string]interface{}{"measurement": string(point.Name())}
+
+	if tags := point.Tags(); len(tags) > 0 {
+		m["tags"] = map[string]string{}
+		for _, tag := range tags {
+			m["tags"].(map[string]string)[string(tag.Key)] = string(tag.Value)
+		}
 	}
 
 	fields, err := point.Fields()
@@ -73,7 +77,7 @@ func (p *Pipeline) RunPoint(point influxm.Point) *Pipeline {
 		m[k] = v
 	}
 
-	m["time"] = point.Time().UnixNano()
+	m["time"] = point.UnixNano()
 
 	j, err := json.Marshal(m)
 	if err != nil {
