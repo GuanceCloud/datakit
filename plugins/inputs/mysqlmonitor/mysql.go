@@ -217,12 +217,12 @@ func (m *MysqlMonitor) Test() (*inputs.TestResult, error) {
 
 	m.handle()
 
-    res := &inputs.TestResult {
-    	Result: m.resData,
-    	Desc: "success!",
-    }
+	res := &inputs.TestResult{
+		Result: m.resData,
+		Desc:   "success!",
+	}
 
-    return res, nil
+	return res, nil
 }
 
 func init() {
