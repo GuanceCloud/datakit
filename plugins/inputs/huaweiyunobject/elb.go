@@ -1,11 +1,10 @@
 package huaweiyunobject
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud/elb"
 )
@@ -29,19 +28,26 @@ endpoint=""
 # ## @param - [list of excluded Elb instanceid] - optional
 #exclude_instanceids = []
 
-# ## @param - custom tags for Elb object - [list of key:value element] - optional
-#[inputs.huaweiyunobject.elb.tags]
-# key1 = 'val1'
+# 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名的脚本，作为其默认 pipeline 配置
+# pipeline = "huaweiyun_elb_object.p"
 `
+	elbPipelineConfig = `
+
+json(_,type);
+json(_,admin_state_up);
+	`
 )
 
 type Elb struct {
-	Type     string `toml:"type"`
-	EndPoint string `toml:"endpoint"`
+	Type         string `toml:"type"`
+	EndPoint     string `toml:"endpoint"`
+	PipelinePath string `toml:"pipeline,omitempty"`
 	//	ProjectID          string            `toml:"project_id"`
-	Tags               map[string]string `toml:"tags,omitempty"`
-	InstancesIDs       []string          `toml:"instanceids,omitempty"`
-	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+
+	InstancesIDs       []string `toml:"instanceids,omitempty"`
+	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (e *Elb) run(ag *objectAgent) {
@@ -49,6 +55,13 @@ func (e *Elb) run(ag *objectAgent) {
 	if e.EndPoint == `` {
 		e.EndPoint = fmt.Sprintf(`elb.%s.myhuaweicloud.com`, ag.RegionID)
 	}
+
+	p, err := pipeline.NewPipelineByScriptPath(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 
 	cli := huaweicloud.NewHWClient(ag.AccessKeyID, ag.AccessKeySecret, e.EndPoint, ag.ProjectID, moduleLogger)
 
@@ -143,54 +156,28 @@ func (e *Elb) doV2Action(cli *huaweicloud.HWClient, ag *objectAgent) {
 func (e *Elb) handResponseV1(resp *elb.ListLoadbalancersV1, ag *objectAgent) {
 
 	moduleLogger.Debugf("Elb TotalCount=%d", resp.InstanceNum)
-	var objs []map[string]interface{}
 
 	for _, lb := range resp.Loadbalancers {
 
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, lb.Name, lb.ID), `huaweiyun_elb`, lb, lb.ID, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
+		err := ag.parseObject(lb, fmt.Sprintf(`%s(%s)`, lb.Name, lb.ID), `huaweiyun_elb`, lb.ID, e.p, e.ExcludeInstanceIDs, e.InstancesIDs)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
 		}
-	}
 
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
-		moduleLogger.Errorf("%s", err)
 	}
 }
 
 func (e *Elb) handResponseV2(lbs []elb.LoadbalancerV2, ag *objectAgent) {
 	moduleLogger.Debugf("Elb TotalCount=%d", len(lbs))
-	var objs []map[string]interface{}
 
 	for _, lb := range lbs {
 
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, lb.Name, lb.ID), `huaweiyun_elb`, lb, lb.ID, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
+		name := fmt.Sprintf(`%s(%s)`, lb.Name, lb.ID)
+		class := `huaweiyun_elb`
+		err := ag.parseObject(lb, name, class, lb.ID, e.p, e.ExcludeInstanceIDs, e.InstancesIDs)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
 		}
 	}
 
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-	io.NamedFeed(data, io.Object, inputName)
 }
