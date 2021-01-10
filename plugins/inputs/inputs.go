@@ -339,7 +339,3 @@ func TestTelegrafInput(cfg []byte) (*TestResult, error) {
 
 	return result, nil
 }
-
-
-
-
