@@ -24,9 +24,8 @@ type Identifier struct { // impl Expr
 	Name string
 }
 
-func (e *Identifier) String() string      { return "id("+e.Name+")" }
+func (e *Identifier) String() string      { return "id(" + e.Name + ")" }
 func (e *Identifier) Pos() *PositionRange { return nil } // TODO
-
 
 type NumberLiteral struct {
 	IsInt bool
@@ -157,7 +156,6 @@ func getFuncArgList(nl NodeList) FuncArgList {
 	return res
 }
 
-
 var parserPool = sync.Pool{
 	New: func() interface{} {
 		return &parser{}
@@ -165,16 +163,16 @@ var parserPool = sync.Pool{
 }
 
 type parser struct {
-	lex         Lexer
-	yyParser    yyParserImpl
+	lex      Lexer
+	yyParser yyParserImpl
 
 	parseResult interface{}
 	lastClosing Pos
 	errs        ParseErrors
 
-	inject      ItemType
-	injecting   bool
-	context     interface{}
+	inject    ItemType
+	injecting bool
+	context   interface{}
 }
 
 func (p *parser) InjectItem(typ ItemType) {
@@ -346,7 +344,6 @@ func newParser(input string) *parser {
 	}
 	return p
 }
-
 
 // end of yylex.(*parser).newXXXX
 
