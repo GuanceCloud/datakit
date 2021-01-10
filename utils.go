@@ -58,10 +58,10 @@ func MonitProc(proc *os.Process, name string) error {
 
 		case <-Exit.Wait():
 			if err := proc.Kill(); err != nil { // XXX: should we wait here?
-				l.Errorf("kill %s failed :%s",name,err.Error())
+				l.Errorf("kill %s failed :%s", name, err.Error())
 				return err
 			}
-			l.Infof("kill %s ok",name)
+			l.Infof("kill %s ok", name)
 
 			return nil
 		}
@@ -394,7 +394,7 @@ func CloudObject2Json(name, class string, obj interface{}, id string, blacklist,
 	}, nil
 }
 
-func AnnotationConf(path ,handle string )error{
+func AnnotationConf(path, handle string) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -410,11 +410,11 @@ func AnnotationConf(path ,handle string )error{
 			break
 		}
 		if handle == "add" {
-			buf.WriteString(fmt.Sprintln("#"+ string(s)))
-		}else {
-			buf.WriteString(fmt.Sprintln(strings.Replace(string(s),"#","",1)))
+			buf.WriteString(fmt.Sprintln("#" + string(s)))
+		} else {
+			buf.WriteString(fmt.Sprintln(strings.Replace(string(s), "#", "", 1)))
 		}
 	}
-	err = ioutil.WriteFile(path,buf.Bytes(),0777)
+	err = ioutil.WriteFile(path, buf.Bytes(), 0777)
 	return err
 }
