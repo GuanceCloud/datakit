@@ -7,9 +7,9 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
@@ -18,20 +18,30 @@ const (
 #[inputs.aliyunobject.slb]
     # ##(optional) ignore this object, default is false
     #disable = false
-
+	#pipeline = "aliyun_slb.p"
     # ##(optional) list of slb instanceid
     #instanceids = ['']
 
     # ##(optional) list of excluded slb instanceid
     #exclude_instanceids = ['']
 `
+	slbPipelineConfig = `
+json(_, LoadBalancerId);
+json(_, LoadBalancerStatus);
+json(_, PayType);
+json(_, Address);
+json(_, RegionId);
+
+`
 )
 
 type Slb struct {
-	Disable            bool              `toml:"disable"`
-	Tags               map[string]string `toml:"tags,omitempty"`
-	InstancesIDs       []string          `toml:"instanceids,omitempty"`
-	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	Disable            bool     `toml:"disable"`
+	InstancesIDs       []string `toml:"instanceids,omitempty"`
+	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string   `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (s *Slb) disabled() bool {
@@ -41,7 +51,12 @@ func (s *Slb) disabled() bool {
 func (s *Slb) run(ag *objectAgent) {
 	var cli *slb.Client
 	var err error
-
+	p, err := newPipeline(s.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] slb new pipeline err:%s", err.Error())
+		return
+	}
+	s.p = p
 	for {
 
 		select {
@@ -121,30 +136,11 @@ func (s *Slb) handleResponse(resp *slb.DescribeLoadBalancersResponse, ag *object
 
 	moduleLogger.Debugf("SLB TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 
-	var objs []map[string]interface{}
-
 	for _, inst := range resp.LoadBalancers.LoadBalancer {
-
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, inst.LoadBalancerName, inst.LoadBalancerId), `aliyun_slb`, inst, inst.LoadBalancerId, s.ExcludeInstanceIDs, s.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf(`%s_%s`, inst.LoadBalancerName, inst.LoadBalancerId),
 		}
-	}
+		ag.parseObject(inst, "aliyun_slb", inst.LoadBalancerId, s.p, s.ExcludeInstanceIDs, s.InstancesIDs, tags)
 
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-
-	if ag.isTest() {
-		ag.testResult.Result = append(ag.testResult.Result, data...)
-	} else if ag.isDebug() {
-		fmt.Printf("%s\n", string(data))
-	} else {
-		io.NamedFeed(data, io.Object, inputName)
 	}
 }
