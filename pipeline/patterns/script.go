@@ -13,7 +13,7 @@ const (
 	PatternDir = "pattern"
 )
 
-func initPatternsFile() error {
+func InitPatternsFile() error {
 	dir := filepath.Join(datakit.InstallDir, PatternDir)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
@@ -27,8 +27,10 @@ func initPatternsFile() error {
 			content += "\n"
 		}
 
-		if err := ioutil.WriteFile(fName, []byte(content)); err != nil {
+		if err := ioutil.WriteFile(fName, []byte(content), os.ModePerm); err != nil {
 			return err
 		}
 	}
+
+	return nil
 }
