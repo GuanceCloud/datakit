@@ -5,10 +5,11 @@ import (
 	iowrite "io"
 	"net/http"
 	"time"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -22,7 +23,7 @@ const (
     # http server route path
     # input url(required)
 	path = "/fluentd"
-	# log source(required) 
+	# log source(required)
 	source = ""
     # [inputs.fluentdlog.tags]
     # tags1 = "value1"
@@ -38,11 +39,11 @@ func init() {
 }
 
 type Fluentd struct {
-	Path   string            `toml:"path"`
-	Pipeline *pipeline.Pipeline  `toml:"-"`
-	PipelinePath string      `toml:"pipeline_path"`
-	Metric string            `toml:"source"`
-	Tags   map[string]string `toml:"tags"`
+	Path         string             `toml:"path"`
+	Pipeline     *pipeline.Pipeline `toml:"-"`
+	PipelinePath string             `toml:"pipeline_path"`
+	Metric       string             `toml:"source"`
+	Tags         map[string]string  `toml:"tags"`
 }
 
 func (*Fluentd) SampleConfig() string {
