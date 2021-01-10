@@ -12,9 +12,13 @@ import (
 const (
 	cdnSampleConfig = `
 #[inputs.aliyunobject.cdn]
-#pipeline = "aliyun_cdn.p"
-# ## @param - custom tags - [list of cdn DomainName] - optional
-#domainNames = []
+	# ##(optional) ignore this object, default is false
+	#disable = false
+    # ##(optional) list of cdn DomainName
+    #domainNames = []
+	#pipeline = "aliyun_cdn.p"
+	# ## @param - custom tags - [list of cdn DomainName] - optional
+	#domainNames = []
 
 # ## @param - custom tags - [list of excluded cdn exclude_domainNames] - optional
 #exclude_domainNames = []
