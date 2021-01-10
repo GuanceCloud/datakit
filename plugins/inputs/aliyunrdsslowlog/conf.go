@@ -20,13 +20,13 @@ const (
 )
 
 type AliyunRDS struct {
-	RegionID        string   `toml:"region"`
-	AccessKeyID     string   `toml:"accessKeyId"`
-	AccessKeySecret string   `toml:"accessKeySecret"`
-	Product         []string `toml:"product"`
-	Interval        string   `toml:"interval"`
-	MetricName      string   `toml:"metricName"`
-	client          *rds.Client    `toml:"-"`
-	test             bool           `toml:"-"`
-	resData          []byte         `toml:"-"`
+	RegionID        string      `toml:"region"`
+	AccessKeyID     string      `toml:"accessKeyId"`
+	AccessKeySecret string      `toml:"accessKeySecret"`
+	Product         []string    `toml:"product"`
+	Interval        string      `toml:"interval"`
+	MetricName      string      `toml:"metricName"`
+	client          *rds.Client `toml:"-"`
+	test            bool        `toml:"-"`
+	resData         []byte      `toml:"-"`
 }
