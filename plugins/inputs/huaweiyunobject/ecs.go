@@ -1,11 +1,10 @@
 package huaweiyunobject
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud"
 )
 
@@ -22,18 +21,29 @@ endpoint=""
 # ## @param - [list of excluded ecs instanceid] - optional
 #exclude_instanceids = ['']
 
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.huaweiyunobject.ecs.tags]
-# key1 = 'val1'
+# 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名的脚本，作为其默认 pipeline 配置
+# pipeline = "huaweiyun_ecs_object.p"
+`
+	ecsPipelineConifg = `
+
+json(_,hostId);
+json(_,tenant_id);
+json(_,host_status);
+json(_,OS-EXT-SRV-ATTR:root_device_name, root_device_name);
+
 `
 )
 
 type Ecs struct {
-	Tags map[string]string `toml:"tags,omitempty"`
+
 	//	ProjectID          string            `toml:"project_id"`
 	EndPoint           string   `toml:"endpoint"`
 	InstancesIDs       []string `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+
+	PipelinePath string `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (e *Ecs) run(ag *objectAgent) {
@@ -41,6 +51,13 @@ func (e *Ecs) run(ag *objectAgent) {
 	if e.EndPoint == `` {
 		e.EndPoint = fmt.Sprintf(`ecs.%s.myhuaweicloud.com`, ag.RegionID)
 	}
+
+	p, err := pipeline.NewPipelineByScriptPath(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 
 	cli := huaweicloud.NewHWClient(ag.AccessKeyID, ag.AccessKeySecret, e.EndPoint, ag.ProjectID, moduleLogger)
 
@@ -89,27 +106,14 @@ func (e *Ecs) handleResponse(resp *huaweicloud.ListEcsResponse, ag *objectAgent)
 
 	moduleLogger.Debugf("ECS TotalCount=%d", resp.Count)
 
-	var objs []map[string]interface{}
-
 	for _, s := range resp.Servers {
 
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, s.InstanceName, s.ID), `huaweiyun_ecs`, s, s.ID, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
+		name := fmt.Sprintf(`%s(%s)`, s.InstanceName, s.ID)
+		class := `huaweiyun_ecs`
+		err := ag.parseObject(s, name, class, s.ID, e.p, e.ExcludeInstanceIDs, e.InstancesIDs)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+
 		}
-	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
-		moduleLogger.Errorf("%s", err)
 	}
 }
