@@ -20,9 +20,11 @@ endpoint=""
 # ## @param - [list of excluded obs instanceid] - optional
 #exclude_buckets = []
 
+# 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名的脚本，作为其默认 pipeline 配置
+# pipeline = "huaweiyun_obs_object.p"
 `
 	obsPipelineConifg = `
-	
+
 json(_,Location);
 
 `
