@@ -66,7 +66,6 @@ github.com/aliyun/alibaba-cloud-sdk-go/sdk
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/provider
-github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/providers
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/signers
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors
@@ -85,8 +84,10 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch
 github.com/aliyun/alibaba-cloud-sdk-go/services/ons
 github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore
 github.com/aliyun/alibaba-cloud-sdk-go/services/rds
+github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager
 github.com/aliyun/alibaba-cloud-sdk-go/services/sas
 github.com/aliyun/alibaba-cloud-sdk-go/services/slb
+github.com/aliyun/alibaba-cloud-sdk-go/services/tag
 github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
@@ -138,6 +139,7 @@ github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/service/cloudtrail
 github.com/aws/aws-sdk-go/service/cloudwatch
 github.com/aws/aws-sdk-go/service/costexplorer
+github.com/aws/aws-sdk-go/service/health
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/basgys/goxml2json v1.1.0
