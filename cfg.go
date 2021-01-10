@@ -387,7 +387,7 @@ type MainConfig struct {
 }
 
 func InitDirs() {
-	for _, dir := range []string{TelegrafDir, DataDir, LuaDir, ConfdDir} {
+	for _, dir := range []string{TelegrafDir, DataDir, LuaDir, ConfdDir, PipelineDir} {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
 		}
