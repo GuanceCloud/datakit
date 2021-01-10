@@ -12,12 +12,12 @@ func cast(result interface{}, tInfo string) interface{} {
 		switch v := result.(type) {
 		case bool:
 			return v
-		case int8,int16,int,int32,int64, uint8,uint16,uint,uint32,uint64:
-			return v !=0
+		case int8, int16, int, int32, int64, uint8, uint16, uint, uint32, uint64:
+			return v != 0
 		case float32, float64:
 			return v != 0
 		case string:
-            return v != "" && v != "0" && v != "false"
+			return v != "" && v != "0" && v != "false"
 		default:
 			return nil
 		}
@@ -30,14 +30,14 @@ func cast(result interface{}, tInfo string) interface{} {
 			} else {
 				return 0
 			}
-		case int8,int16,int,int32,int64, uint8,uint16,uint,uint32,uint64:
+		case int8, int16, int, int32, int64, uint8, uint16, uint, uint32, uint64:
 			return v
 		case float32:
 			return int64(v)
 		case float64:
 			return int64(v)
 		case string:
-			if intV , err := strconv.ParseInt(v, 64,64); err != nil {
+			if intV, err := strconv.ParseInt(v, 64, 64); err != nil {
 				l.Error(err)
 				return nil
 			} else {
@@ -58,9 +58,9 @@ func cast(result interface{}, tInfo string) interface{} {
 		case string:
 			n, _ := strconv.ParseFloat(v, 64)
 			return n
-		case float64,float32:
+		case float64, float32:
 			return v
-		case int8,int16,int,int32,int64, uint8,uint16,uint,uint32,uint64:
+		case int8, int16, int, int32, int64, uint8, uint16, uint, uint32, uint64:
 			return v
 		}
 
