@@ -1,6 +1,5 @@
 package zabbix
 
-
 func mySQL(tablename string) string {
 	switch tablename {
 	case "history":
@@ -171,4 +170,3 @@ WHERE grp.internal=0
    AND his.clock > ##STARTDATE##
    AND his.clock <= ##ENDDATE##;
 `
-
