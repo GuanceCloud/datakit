@@ -2,8 +2,6 @@ package pipeline
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -118,10 +116,12 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
 
-	if v, err := GeoIpHandle(p.getContentStr(key)); err != nil {
+	if dic, err := GeoIpHandle(p.getContentStr(key)); err != nil {
 		return p, err
 	} else {
-		p.setContent(key, v)
+		for k, v := range dic {
+			p.setContent(k, v)
+		}
 	}
 
 	return p, nil
@@ -283,7 +283,7 @@ func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	setdata := make([]interface{}, 0)
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 3 || len(funcExpr.Param) != 4 {
+	if len(funcExpr.Param) < 3 || len(funcExpr.Param) > 4 {
 		return nil, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
 	}
 
@@ -294,10 +294,6 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	newkey := key
 	if len(funcExpr.Param) == 4 {
 		newkey = funcExpr.Param[3].(*parser.Identifier).Name
-	}
-
-	if len(set) != 2 {
-		return nil, fmt.Errorf("range value %v is not expected 3 or 4 args", set)
 	}
 
 	for _, node := range set {
