@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	vgrok "github.com/vjeantet/grok"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/patterns"
