@@ -21,7 +21,7 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	pattern := funcExpr.Param[1].(*parser.StringLiteral).Val
-	key     := funcExpr.Param[0].(*parser.Identifier).Name
+	key := funcExpr.Param[0].(*parser.Identifier).Name
 
 	val := p.getContentStr(key)
 	m, err := p.grok.Parse(pattern, val)
@@ -33,20 +33,21 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		p.setContent(k, v)
 	}
 
-    return p, nil
+	return p, nil
 }
 
-func LoadPatterns() {
+func loadPatterns() error {
 	g, err := vgrok.NewWithConfig(&vgrok.Config{
 		NamedCapturesOnly: true,
-		PatternsDir:[]string{
+		PatternsDir: []string{
 			filepath.Join(datakit.InstallDir, "pattern"),
 		},
 	})
 
 	if err != nil {
-		l.Errorf("grok init err: %v", err)
+		return err
 	}
 
 	grokCfg = g
+	return nil
 }
