@@ -108,7 +108,9 @@ func (e *Ecs) handleResponse(resp *huaweicloud.ListEcsResponse, ag *objectAgent)
 
 	for _, s := range resp.Servers {
 
-		err := ag.parseObject(s, fmt.Sprintf(`%s(%s)`, s.InstanceName, s.ID), `huaweiyun_ecs`, s.ID, e.p, e.ExcludeInstanceIDs, e.InstancesIDs)
+		name := fmt.Sprintf(`%s(%s)`, s.InstanceName, s.ID)
+		class := `huaweiyun_ecs`
+		err := ag.parseObject(s, name, class, s.ID, e.p, e.ExcludeInstanceIDs, e.InstancesIDs)
 		if err != nil {
 			moduleLogger.Errorf("%s", err)
 
