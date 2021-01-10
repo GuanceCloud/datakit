@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io/ioutil"
+	"path/filepath"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -46,11 +48,11 @@ func (_ *objectAgent) Catalog() string {
 
 func (_ *objectAgent) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"aliyun_redis": redisPipelineConifg,
-		"aliyun_waf":   wafPipelineConfig,
-		"aliyun_cdn":   cdnPipelineConifg,
-		"aliyun_elasticsearch":   elasticsearchPipelineConifg,
-		"aliyun_influxdb":   influxDBPipelineConfig,
+		"aliyun_redis":         redisPipelineConifg,
+		"aliyun_waf":           wafPipelineConfig,
+		"aliyun_cdn":           cdnPipelineConifg,
+		"aliyun_elasticsearch": elasticsearchPipelineConifg,
+		"aliyun_influxdb":      influxDBPipelineConfig,
 	}
 	return pipelineMap
 }
@@ -133,7 +135,17 @@ func newAgent() *objectAgent {
 	return ag
 }
 
-func (ag *objectAgent) parseObject(obj interface{}, class,name, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string, tags map[string]string) {
+func newPipeline(pipelinePath string) (*pipeline.Pipeline, error) {
+	scriptPath := filepath.Join(datakit.PipelineDir, pipelinePath)
+	data, err := ioutil.ReadFile(scriptPath)
+	if err != nil {
+		return nil, err
+	}
+	p, err := pipeline.NewPipeline(string(data))
+	return p, err
+}
+
+func (ag *objectAgent) parseObject(obj interface{}, class, name, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string, tags map[string]string) {
 	if datakit.CheckExcluded(id, blacklist, whitelist) {
 		return
 	}
@@ -152,9 +164,9 @@ func (ag *objectAgent) parseObject(obj interface{}, class,name, id string, pipel
 			tags[k] = v
 		}
 	}
-	fields,err := pipeline.Run(string(data)).Result()
+	fields, err := pipeline.Run(string(data)).Result()
 	if err != nil {
-		moduleLogger.Errorf("[error] pipeline run err:%s",err.Error())
+		moduleLogger.Errorf("[error] pipeline run err:%s", err.Error())
 		return
 	}
 	fields["content"] = string(data)
