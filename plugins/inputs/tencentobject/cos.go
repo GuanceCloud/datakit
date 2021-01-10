@@ -136,7 +136,7 @@ func (c *Cos) handleResponse(resp *cos.ServiceGetResult, ag *objectAgent) {
 			io.NamedFeed(data, io.Object, inputName)
 		}
 	} else {
-			moduleLogger.Errorf("%s", err)
-			return
-		}
+		moduleLogger.Errorf("%s", err)
+		return
 	}
+}

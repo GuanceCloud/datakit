@@ -7,9 +7,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
-	"strings"
 
 	"github.com/influxdata/toml"
 
@@ -19,27 +19,26 @@ import (
 )
 
 type TimeStamp struct {
-	Column     string  `toml:"column,omitempty"`
-	TimeFormat string  `toml:"timeFormat,omitempty"`
-	Precision  string  `toml:"precision,omitempty"`
+	Column     string `toml:"column,omitempty"`
+	TimeFormat string `toml:"timeFormat,omitempty"`
+	Precision  string `toml:"precision,omitempty"`
 }
 
 type MetricField struct {
-	Column     string  `toml:"column,omitempty"`
-	NullOp     string  `toml:"nullOp,omitempty"`
-	NullFill   string  `toml:"nullFill,omitempty"`
-	Type       string  `toml:"type,omitempty"`
+	Column   string `toml:"column,omitempty"`
+	NullOp   string `toml:"nullOp,omitempty"`
+	NullFill string `toml:"nullFill,omitempty"`
+	Type     string `toml:"type,omitempty"`
 }
 type CsvMetric struct {
-	PythonEnv string         `toml:"pythonEnv"`
-	File      string         `toml:"file"`
-	Interval  string         `toml:"interval,omitempty"`
-	StartRows int            `toml:"startRows"`
-	Metric    string         `toml:"metric"`
-	Tags      []string       `toml:"tags,omitempty"`
-	Timestamp TimeStamp      `toml:"timestamp,omitempty"`
-	Field     []MetricField  `toml:"field,omitempty"`
-
+	PythonEnv string        `toml:"pythonEnv"`
+	File      string        `toml:"file"`
+	Interval  string        `toml:"interval,omitempty"`
+	StartRows int           `toml:"startRows"`
+	Metric    string        `toml:"metric"`
+	Tags      []string      `toml:"tags,omitempty"`
+	Timestamp TimeStamp     `toml:"timestamp,omitempty"`
+	Field     []MetricField `toml:"field,omitempty"`
 }
 
 const (
@@ -69,6 +68,7 @@ const (
 `
 	defaultInterval = "0s"
 )
+
 var (
 	l         *logger.Logger
 	inputName = "csvmetric"
@@ -104,7 +104,7 @@ func (x *CsvMetric) Run() {
 		l.Error(err)
 		return
 	} else {
-		intVal = int(interval)/1E9
+		intVal = int(interval) / 1e9
 	}
 
 	if datakit.Cfg.MainCfg.HTTPBind == "" {
@@ -122,7 +122,7 @@ func (x *CsvMetric) Run() {
 		"--log_level", datakit.Cfg.MainCfg.LogLevel,
 	}
 
-	if x.PythonEnv != ""{
+	if x.PythonEnv != "" {
 		startCmd = x.PythonEnv
 	}
 	l.Info("csvmetric started")
