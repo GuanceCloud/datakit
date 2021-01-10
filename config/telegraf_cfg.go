@@ -286,4 +286,3 @@ func BuildInputCfg(d []byte, mc *datakit.MainConfig) (string, error) {
 
 	return buf.String(), nil
 }
-
