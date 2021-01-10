@@ -24,7 +24,6 @@ const (
 # key1 = 'val1'
 `
 	cdnPipelineConifg = `
-	json(_,DomainName,name);
 	json(_,Cname);
 	json(_,CdnType);
 	json(_,DomainStatus);
@@ -39,12 +38,18 @@ type Cdn struct {
 	ExcludeDomainNames []string          `toml:"exclude_domainNames,omitempty"`
 	PipelinePath       string            `toml:"pipeline,omitempty"`
 
+	p *pipeline.Pipeline
 }
 
 func (e *Cdn) run(ag *objectAgent) {
 	var cli *cdn.Client
 	var err error
-
+	p, err := newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] cdn new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 	for {
 
 		select {
@@ -119,9 +124,7 @@ func (e *Cdn) run(ag *objectAgent) {
 
 func (e *Cdn) handleResponse(resp *cdn.DescribeUserDomainsResponse, ag *objectAgent) {
 	moduleLogger.Debugf("cdn TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
-	p := pipeline.NewPipeline(e.PipelinePath)
-
 	for _, inst := range resp.Domains.PageData {
-		ag.parseObject(inst, "aliyun_cdn", inst.DomainName, p, e.ExcludeDomainNames, e.DomainNames,e.Tags)
+		ag.parseObject(inst, "aliyun_cdn", inst.DomainName, inst.DomainName, e.p, e.ExcludeDomainNames, e.DomainNames, e.Tags)
 	}
 }
