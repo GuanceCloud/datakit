@@ -52,15 +52,19 @@ func (r *Rum) PipelineConfig() map[string]string {
 }
 
 func (r *Rum) RegHttpHandler() {
+	l = logger.SLogger(inputName)
 
 	r.pipelinePool = &sync.Pool{
 		New: func() interface{} {
-			return pipeline.NewPipeline(r.Pipeline)
+			p, err := pipeline.NewPipeline(r.Pipeline)
+			if err != nil {
+				l.Errorf("%s", err)
+			}
+			return p
 		},
 	}
 
 	ipheaderName = r.IPHeader
-	l = logger.SLogger(inputName)
 	httpd.RegGinHandler("POST", io.Rum, r.Handle)
 }
 
@@ -109,7 +113,9 @@ func (r *Rum) Handle(c *gin.Context) {
 
 	pp := r.pipelinePool.Get().(*pipeline.Pipeline)
 	defer func() {
-		r.pipelinePool.Put(pp)
+		if pp != nil {
+			r.pipelinePool.Put(pp)
+		}
 	}()
 
 	for _, pt := range pts {
@@ -130,6 +136,11 @@ func (r *Rum) Handle(c *gin.Context) {
 			metricsdata = append(metricsdata, []byte(pt.String()))
 
 		} else if IsES(ptname) {
+
+			if pp == nil {
+				esdata = append(esdata, []byte(pt.String()))
+				continue
+			}
 
 			pipelineInput := map[string]interface{}{}
 			pipelineInput["ip"] = sourceIP
