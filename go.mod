@@ -21,6 +21,7 @@ require (
 	github.com/andygrunwald/go-jira v1.12.0
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/apache/thrift v0.13.0
+	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/aws/aws-sdk-go v1.35.20
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/cgroups v0.0.0-20201119153540-4cbc285b3327 // indirect
