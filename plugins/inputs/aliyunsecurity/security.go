@@ -237,12 +237,12 @@ func (s *Security) Test() (*inputs.TestResult, error) {
 
 	s.command()
 
-    res := &inputs.TestResult {
-    	Result: s.resData,
-    	Desc: "success!",
-    }
+	res := &inputs.TestResult{
+		Result: s.resData,
+		Desc:   "success!",
+	}
 
-    return res, nil
+	return res, nil
 }
 
 func init() {
