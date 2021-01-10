@@ -1,20 +1,19 @@
 package aliyunobject
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
 	elasticsearchSampleConfig = `
 #[inputs.aliyunobject.elasticsearch]
-
+#pipeline = "aliyun_elasticsearch.p"
 # ## @param - [list of elasticsearch instanceid] - optional
 #instanceids = []
 
@@ -25,18 +24,29 @@ const (
 #[inputs.aliyunobject.elasticsearch.tags]
 # key1 = 'val1'
 `
+	elasticsearchPipelineConifg = `
+
+	json(_,InstanceId);
+	json(_,paymentType);
+	json(_,Status);
+	json(_,dedicateMaster);
+	json(_,ResourceGroupId);
+`
 )
 
 type Elasticsearch struct {
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string            `toml:"pipeline,omitempty"`
+
+	p                  *pipeline.Pipeline
 }
 
 func (e *Elasticsearch) run(ag *objectAgent) {
 	var cli *elasticsearch.Client
 	var err error
-
+	e.p = pipeline.NewPipeline(e.PipelinePath)
 	for {
 		select {
 		case <-ag.ctx.Done():
@@ -109,27 +119,7 @@ func (e *Elasticsearch) run(ag *objectAgent) {
 }
 
 func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse, ag *objectAgent) {
-	var objs []map[string]interface{}
-
 	for _, inst := range resp.Result {
-
-		if obj, err := datakit.CloudObject2Json(inst.Description, `aliyun_elasticsearch`, inst, inst.InstanceId, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
-		}
+		ag.parseObject(inst, "aliyun_elasticsearch",inst.Description, inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
 	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-	io.NamedFeed(data, io.Object, inputName)
 }

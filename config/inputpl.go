@@ -9,7 +9,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func InitPluginPipeline() error {
+func initPluginPipeline() error {
 
 	if err := pipeline.Init(); err != nil {
 		return err
