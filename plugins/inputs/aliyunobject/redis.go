@@ -7,6 +7,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	redis "github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
@@ -27,12 +28,12 @@ const (
 `
 	redisPipelineConifg = `
 
-	json(_,"InstanceName","name");
-	json(_,"RegionId");
-	json(_,"InstanceStatus");
-	json(_,"InstanceId");
-	json(_,"NetworkType");
-	json(_,"ChargeType");
+	json(_,InstanceName,name);
+	json(_,RegionId);
+	json(_,InstanceStatus);
+	json(_,InstanceId);
+	json(_,NetworkType);
+	json(_,ChargeType);
 
 `
 )
@@ -114,9 +115,8 @@ func (e *Redis) run(ag *objectAgent) {
 func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *objectAgent) {
 
 	moduleLogger.Debugf("redis TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
-
-
+	p := pipeline.NewPipeline(e.PipelinePath)
 	for _, inst := range resp.Instances.KVStoreInstance {
-		parseObject(inst, "aliyun_waf", inst.InstanceId, e.PipelinePath, e.ExcludeInstanceIDs, e.InstancesIDs)
+		ag.parseObject(inst, "aliyun_redis", inst.InstanceId, p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
 	}
 }
