@@ -1,8 +1,8 @@
 package pipeline
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func assertEqual(t *testing.T, a, b interface{}) {
@@ -99,7 +99,6 @@ func TestDatetimeFunc(t *testing.T) {
 
 	assertEqual(t, r, "2021-01-08 06:26:13")
 }
-
 
 func TestGroupFunc(t *testing.T) {
 	js := `{"a":{"status": 200,"age":47}`
