@@ -16,9 +16,14 @@ const (
 	influxDBSampleConfig = `
 # ##(optional)
 #[inputs.aliyunobject.influxdb]
-#pipeline = "aliyun_influxdb.p"
-# ## @param - [list of influxdb instanceid] - optional
-#instanceids = []
+    # ##(optional) ignore this object, default is false
+    #disable = false
+
+    # ##(optional) list of influxdb instanceid
+    #instanceids = []
+	#pipeline = "aliyun_influxdb.p"
+	# ## @param - [list of influxdb instanceid] - optional
+	#instanceids = []
 
     # ##(optional) list of excluded influxdb instanceid
     #exclude_instanceids = []
