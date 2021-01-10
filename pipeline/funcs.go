@@ -2,11 +2,13 @@ package pipeline
 
 import (
 	"fmt"
-	"strings"
-	"os"
 	"io/ioutil"
+	"os"
 	"reflect"
+	"strings"
+
 	"github.com/tidwall/gjson"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
@@ -18,26 +20,26 @@ type ProFunc func(p *Pipeline, node parser.Node) (*Pipeline, error)
 
 var (
 	funcsMap = map[string]ProFunc{
-		"grok"       :  Grok,
-		"json"       :  Json,
-		"rename"     :  Rename,
-		"strfmt"     :  Strfmt,
-		"cast"       :  Cast,
-		"expr"       :  Expr,
-		"user_agent" :  UserAgent,
-		"url_decode" :  UrlDecode,
-		"geoip"      :  GeoIp,
-		"datetime"   :  DateTime,
-		"group_between" :  Group,
-		"group_in"   :  GroupIn,
+		"grok":          Grok,
+		"json":          Json,
+		"rename":        Rename,
+		"strfmt":        Strfmt,
+		"cast":          Cast,
+		"expr":          Expr,
+		"user_agent":    UserAgent,
+		"url_decode":    UrlDecode,
+		"geoip":         GeoIp,
+		"datetime":      DateTime,
+		"group_between": Group,
+		"group_in":      GroupIn,
 
-		"uppercase"  :  Uppercase,
-		"lowercase"  :  Lowercase,
-		"drop_key"   :  Dropkey,
-		"add_key"    :  Addkey,
-		"nullif"     : NullIf,
-		"default_time" : DefaultTime,
-		"drop_origin_data" : DropOriginData,
+		"uppercase":        Uppercase,
+		"lowercase":        Lowercase,
+		"drop_key":         Dropkey,
+		"add_key":          Addkey,
+		"nullif":           NullIf,
+		"default_time":     DefaultTime,
+		"drop_origin_data": DropOriginData,
 	}
 )
 
@@ -353,7 +355,7 @@ func ParseScript(scriptOrPath string) ([]parser.Node, error) {
 	data := scriptOrPath
 
 	_, err := os.Stat(scriptOrPath)
-	if err ==  nil || !os.IsNotExist(err){
+	if err == nil || !os.IsNotExist(err) {
 		cont, err := ioutil.ReadFile(scriptOrPath)
 		if err != nil {
 			return nil, err
@@ -460,14 +462,7 @@ func Dropkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
 }
 
 func DropOriginData(p *Pipeline, node parser.Node) (*Pipeline, error) {
-	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 1 {
-		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
-	}
-
-	key := funcExpr.Param[0].(*parser.Identifier).Name
-	delete(p.Output, key)
-
+	delete(p.Output, "message")
 	return p, nil
 }
 
