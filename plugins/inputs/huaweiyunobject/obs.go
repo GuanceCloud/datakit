@@ -1,12 +1,11 @@
 package huaweiyunobject
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud/obs"
 )
 
@@ -21,17 +20,24 @@ endpoint=""
 # ## @param - [list of excluded obs instanceid] - optional
 #exclude_buckets = []
 
-# ## @param - custom tags for obs object - [list of key:value element] - optional
-#[inputs.huaweiyunobject.obs.tags]
-# key1 = 'val1'
+# 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名的脚本，作为其默认 pipeline 配置
+# pipeline = "huaweiyun_obs_object.p"
+`
+	obsPipelineConifg = `
+
+json(_,Location);
+
 `
 )
 
 type Obs struct {
-	EndPoint       string            `toml:"endpoint"`
-	Tags           map[string]string `toml:"tags,omitempty"`
-	Buckets        []string          `toml:"buckets,omitempty"`
-	ExcludeBuckets []string          `toml:"exclude_buckets,omitempty"`
+	EndPoint       string   `toml:"endpoint"`
+	Buckets        []string `toml:"buckets,omitempty"`
+	ExcludeBuckets []string `toml:"exclude_buckets,omitempty"`
+
+	PipelinePath string `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (o *Obs) run(ag *objectAgent) {
@@ -40,6 +46,13 @@ func (o *Obs) run(ag *objectAgent) {
 	if o.EndPoint == `` {
 		o.EndPoint = fmt.Sprintf(`obs.%s.myhuaweicloud.com`, ag.RegionID)
 	}
+
+	p, err := pipeline.NewPipelineByScriptPath(o.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
+		return
+	}
+	o.p = p
 
 	for {
 
@@ -87,86 +100,15 @@ func (o *Obs) handleResponse(resp *obs.ListBucketsOutput, ag *objectAgent) {
 
 	moduleLogger.Debugf("obs Count=%d", len(resp.Buckets))
 
-	var objs []map[string]interface{}
-
 	for _, bk := range resp.Buckets {
 
-		if len(o.ExcludeBuckets) > 0 {
-			exclude := false
-			for _, v := range o.ExcludeBuckets {
-				if v == bk.Name {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
-			}
-		}
-
-		if len(o.Buckets) > 0 {
-			include := false
-			for _, v := range o.Buckets {
-				if v == bk.Name {
-					include = true
-					break
-				}
-			}
-
-			if !include {
-				continue
-			}
-		}
-
-		obj := map[string]interface{}{
-			`name`:  fmt.Sprintf(`%s`, bk.Name),
-			`class`: `huaweiyun_obs`,
-		}
-
-		content := map[string]interface{}{
-			`provider`:          `huaweiyun`,
-			`Location`:          bk.Location,
-			`Owner.ID`:          resp.Owner.ID,
-			`Owner.DisplayName`: resp.Owner.DisplayName,
-		}
-
-		owner, err := json.Marshal(resp.Owner)
-		if err != nil {
-			moduleLogger.Errorf(`%s, ignore`, err.Error())
-			return
-		}
-		content[`Owener`] = owner
-
-		xmlName, err := json.Marshal(bk.XMLName)
-		if err != nil {
-			moduleLogger.Errorf(`%s, ignore`, err.Error())
-			return
-		}
-		content[`Bucket.XMLName`] = xmlName
-
-		content[`Name`] = bk.Name
-
-		content[`CreationDate`] = bk.CreationDate
-
-		jd, err := json.Marshal(content)
+		name := fmt.Sprintf(`%s`, bk.Name)
+		class := `huaweiyun_obs`
+		err := ag.parseObject(bk, name, class, bk.Name, o.p, o.ExcludeBuckets, o.Buckets)
 		if err != nil {
 			moduleLogger.Errorf("%s", err)
-			continue
 		}
 
-		obj["content"] = string(jd)
-
-		objs = append(objs, obj)
 	}
 
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
-		moduleLogger.Errorf("%s", err)
-	}
 }
