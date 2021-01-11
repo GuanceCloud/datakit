@@ -46,11 +46,16 @@ var (
 func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 3 {
-		return nil, fmt.Errorf("func %s expected 2 or 3 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 2 or 3 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
 	old := funcExpr.Param[1].(*parser.Identifier).Name
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
 
 	newkey := old
 	if len(funcExpr.Param) == 3 {
@@ -73,6 +78,11 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	old := funcExpr.Param[1].(*parser.Identifier).Name
 	new := funcExpr.Param[0].(*parser.Identifier).Name
 
+	if _, ok := p.getContentStrByCheck(old); !ok {
+		l.Warnf("key %v not exist", old)
+		return p, nil
+	}
+
 	v := p.getContent(old)
 	p.setContent(new, v)
 	delete(p.Output, old)
@@ -83,10 +93,15 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func UserAgent(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 1 {
-		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
 
 	dic := UserAgentHandle(p.getContentStr(key))
 
@@ -100,10 +115,15 @@ func UserAgent(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func UrlDecode(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 1 {
-		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
 
 	if v, err := UrldecodeHandle(p.getContentStr(key)); err != nil {
 		return p, err
@@ -117,10 +137,15 @@ func UrlDecode(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 1 {
-		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
 
 	if dic, err := GeoIpHandle(p.getContentStr(key)); err != nil {
 		return p, err
@@ -137,7 +162,7 @@ func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 
 	if len(funcExpr.Param) < 3 || len(funcExpr.Param) > 4 {
-		return nil, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
 	}
 
 	var tz = 8
@@ -145,6 +170,11 @@ func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	key := funcExpr.Param[0].(*parser.Identifier).Name
 	precision := funcExpr.Param[1].(*parser.StringLiteral).Val
 	fmts := funcExpr.Param[2].(*parser.StringLiteral).Val
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
 
 	if len(funcExpr.Param) == 4 {
 		tzStr := funcExpr.Param[3]
@@ -167,11 +197,16 @@ func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func Expr(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
-		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[1].(*parser.Identifier).Name
 	expr := funcExpr.Param[0].(*parser.BinaryExpr)
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
 
 	if v, err := Calc(expr, p); err != nil {
 		return p, err
@@ -187,11 +222,16 @@ func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) < 2 {
-		return nil, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
 	fmts := funcExpr.Param[1].(*parser.StringLiteral).Val
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
 
 	for i := 2; i < len(funcExpr.Param); i++ {
 		switch v := funcExpr.Param[i].(type) {
@@ -219,11 +259,16 @@ func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
-		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
 	castType := funcExpr.Param[1].(*parser.StringLiteral).Val
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
 
 	v := cast(p.getContent(key), castType)
 	p.setContent(key, v)
@@ -240,6 +285,11 @@ func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	key := funcExpr.Param[0].(*parser.Identifier).Name
 	set := funcExpr.Param[1].(parser.FuncArgList)
 	value := funcExpr.Param[2]
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
 
 	newkey := key
 	var start, end float64
@@ -297,6 +347,15 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	set := funcExpr.Param[1].(parser.FuncArgList)
 	value := funcExpr.Param[2]
 
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		return p, fmt.Errorf("key %v not exist", key)
+	}
+
 	newkey := key
 	if len(funcExpr.Param) == 4 {
 		newkey = funcExpr.Param[3].(*parser.Identifier).Name
@@ -340,13 +399,21 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 1 {
-		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
 
-	v := TimestampHandle(p.getContentStr(key))
-	p.setContent(key, v)
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
+
+	if v, err := TimestampHandle(p.getContentStr(key)); err != nil {
+		p.setContent(key, p.getContentStr(key))
+	} else {
+		p.setContent(key, v)
+	}
 
 	return p, nil
 }
@@ -391,10 +458,16 @@ func DebugNodesHelp(f *parser.FuncExpr, prev string) {
 func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 1 {
-		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
+
 	v := p.getContentStr(key)
 	v = strings.ToUpper(v)
 	p.setContent(key, v)
@@ -405,10 +478,16 @@ func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 1 {
-		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
+
 	v := p.getContentStr(key)
 	v = strings.ToLower(v)
 	p.setContent(key, v)
@@ -419,10 +498,16 @@ func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
-		return nil, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
+
 	var val interface{}
 	switch v := funcExpr.Param[1].(type) {
 	case *parser.StringLiteral:
@@ -452,10 +537,16 @@ func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func Dropkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 1 {
-		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
+
+	if _, ok := p.getContentStrByCheck(key); !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
+
 	delete(p.Output, key)
 
 	return p, nil
@@ -469,7 +560,7 @@ func DropOriginData(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func Addkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
-		return nil, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
