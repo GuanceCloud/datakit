@@ -113,7 +113,6 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
-
 	if _, ok := p.getContentStrByCheck(old); !ok {
 		l.Warnf("key %v not exist", old)
 		return p, nil
@@ -124,7 +123,7 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		l.Warnf("key %v not exist", old)
 		return p, nil
 	}
-	
+
 	p.setContent(new, v)
 	delete(p.Output, old)
 
