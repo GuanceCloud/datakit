@@ -103,13 +103,13 @@ func GroupInHandle(value interface{}, set []interface{}) bool {
 	return false
 }
 
-func TimestampHandle(value string) int64 {
+func TimestampHandle(value string) (int64, error) {
 	t, err := dateparse.ParseLocal(value)
 	if err != nil {
-		return time.Now().UnixNano()
+		return 0, err
 	}
 
 	unix_time := t.UnixNano()
 
-	return unix_time
+	return unix_time, nil
 }
