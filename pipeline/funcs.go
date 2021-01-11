@@ -345,8 +345,11 @@ func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	key := funcExpr.Param[0].(*parser.Identifier).Name
 
-	v := TimestampHandle(p.getContentStr(key))
-	p.setContent(key, v)
+	if v, err := TimestampHandle(p.getContentStr(key)); err != nil {
+		p.setContent(key, p.getContentStr(key))
+	} else {
+		p.setContent(key, v)
+	}
 
 	return p, nil
 }
