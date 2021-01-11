@@ -2,10 +2,13 @@ package tailf
 
 import (
 	"errors"
+	"os"
 
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/encoding/unicode"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 type decoder = *encoding.Decoder
@@ -26,4 +29,23 @@ func NewDecoder(enc string) (decoder, error) {
 		return encoding.Nop.NewDecoder(), nil
 	}
 	return nil, errors.New("unknown character encoding")
+}
+
+func isExist(path string) bool {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsExist(err) {
+			return true
+		}
+		return false
+	}
+	return true
+}
+
+func checkPipeLine(path string) error {
+	if path == "" {
+		return nil
+	}
+	_, err := pipeline.NewPipelineFromFile(path)
+	return err
 }
