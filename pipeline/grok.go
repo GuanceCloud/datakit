@@ -22,12 +22,12 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	var key, pattern string
-	switch v := funcExpr.Param[1].(type) {
+	switch v := funcExpr.Param[0].(type) {
 	case *parser.Identifier:
 		key = v.Name
 	default:
 		return p, fmt.Errorf("expect Identifier, got %s",
-			reflect.TypeOf(funcExpr.Param[1]).String())
+			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
 	switch v := funcExpr.Param[1].(type) {
