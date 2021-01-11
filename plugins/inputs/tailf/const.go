@@ -38,9 +38,10 @@ const (
     #character_encoding = ""
 
     ## multiline parser/codec
-    #[inputs.tail.multiline]
+    #[inputs.tailf.multiline]
     ## The pattern should be a regexp which matches what you believe to be an indicator that the field is part of an event consisting of multiple lines of log data.
-    #pattern = "^\s"
+    ## Note the use of escaping: \\
+    #pattern = "^\\s"
 
     ## The field's value must be previous or next and indicates the relation to the multi-line event.
     #match_which_line = "previous"
