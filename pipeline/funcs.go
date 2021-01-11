@@ -95,15 +95,30 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	old := funcExpr.Param[1].(*parser.Identifier).Name
-	new := funcExpr.Param[0].(*parser.Identifier).Name
+	var old, new string
 
-	if _, ok := p.getContentStrByCheck(old); !ok {
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier:
+		new = v.Name
+	default:
+		return p, fmt.Errorf("expect Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.Identifier:
+		old = v.Name
+	default:
+		return p, fmt.Errorf("expect Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[1]).String())
+	}
+
+	v := p.getContent(old)
+	if v == nil {
 		l.Warnf("key %v not exist", old)
 		return p, nil
 	}
 
-	v := p.getContent(old)
 	p.setContent(new, v)
 	delete(p.Output, old)
 
