@@ -305,6 +305,7 @@ type datakitStats struct {
 
 	Version      string    `json:"version"`
 	BuildAt      string    `json:"build_at"`
+	Branch       string    `json:"branch"`
 	Uptime       string    `json:"uptime"`
 	OSArch       string    `json:"os_arch"`
 	Reload       time.Time `json:"reload"`
@@ -319,6 +320,7 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	stats := &datakitStats{
 		Version:      git.Version,
 		BuildAt:      git.BuildAt,
+		Branch:       git.Branch,
 		Uptime:       fmt.Sprintf("%v", time.Since(uptime)),
 		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		ReloadCnt:    reloadCnt,
