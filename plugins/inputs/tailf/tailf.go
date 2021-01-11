@@ -98,10 +98,10 @@ func (t *Tailf) loadcfg() bool {
 	}
 
 	if isExist(t.PipelinePath) {
-		l.Infof("pipeline_path is %s", t.PipelinePath)
+		l.Debugf("use pipeline %s", t.PipelinePath)
 	} else {
 		t.PipelinePath = ""
-		l.Info("not use pipeline")
+		l.Warn("no pipeline applied")
 	}
 
 	for {
@@ -197,8 +197,7 @@ func (t *Tailf) tailStart(file string) {
 
 func (t *Tailf) receiver(tailer *tail.Tail, tags map[string]string) {
 	var p *pipeline.Pipeline
-	if t.PipelinePath == "" {
-		// use pipeline
+	if t.PipelinePath != "" {
 		p, _ = pipeline.NewPipelineFromFile(t.PipelinePath)
 	}
 
