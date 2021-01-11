@@ -193,6 +193,15 @@ func (p *Pipeline) getContentStr(key string) string {
 	return conv.ToString(p.getContent(key))
 }
 
+func (p *Pipeline) getContentStrByCheck(key string) (string, bool) {
+	v := p.getContent(key)
+	if v == nil {
+		return "", false
+	}
+
+	return conv.ToString(v), true
+}
+
 func (p *Pipeline) setContent(k string, v interface{}) {
 	if p.Output == nil {
 		p.Output = make(map[string]interface{})
