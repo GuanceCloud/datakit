@@ -3,6 +3,7 @@ package pipeline
 import (
 	"fmt"
 	"path/filepath"
+	"reflect"
 
 	vgrok "github.com/vjeantet/grok"
 
@@ -20,20 +21,26 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	pattern := funcExpr.Param[1].(*parser.StringLiteral).Val
-	key := funcExpr.Param[0].(*parser.Identifier).Name
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		pattern := v.Val
+		key := funcExpr.Param[0].(*parser.Identifier).Name
 
-	val := p.getContentStr(key)
-	m, err := p.grok.Parse(pattern, val)
-	if err != nil {
-		return p, err
+		val := p.getContentStr(key)
+		m, err := p.grok.Parse(pattern, val)
+		if err != nil {
+			return p, err
+		}
+
+		for k, v := range m {
+			p.setContent(k, v)
+		}
+
+		return p, nil
+	default:
+		return p, fmt.Errorf("expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
-
-	for k, v := range m {
-		p.setContent(k, v)
-	}
-
-	return p, nil
 }
 
 func loadPatterns() error {
