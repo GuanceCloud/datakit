@@ -1,12 +1,8 @@
 package tailf
 
 import (
-	"bytes"
 	"fmt"
-	"os"
 	"path/filepath"
-	"reflect"
-	"strings"
 	"sync"
 	"time"
 
@@ -15,8 +11,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 type Tailf struct {
@@ -178,167 +172,6 @@ func (t *Tailf) tailNewFiles(file string) {
 	}()
 }
 
-func (t *Tailf) tailStart(file string) {
-	tailer, err := tail.TailFile(file, t.tailerConf)
-	if err != nil {
-		l.Error("build tailer, %s", err)
-		return
-	}
-	defer tailer.Cleanup()
-
-	tags := make(map[string]string)
-	for k, v := range t.Tags {
-		tags[k] = v
-	}
-	tags["filename"] = file
-
-	t.receiver(tailer, tags)
-}
-
-func (t *Tailf) receiver(tailer *tail.Tail, tags map[string]string) {
-	var p *pipeline.Pipeline
-	if t.PipelinePath == "" {
-		// use pipeline
-		p, _ = pipeline.NewPipelineFromFile(t.PipelinePath)
-	}
-
-	ticker := time.NewTicker(defaultDruation)
-	defer ticker.Stop()
-
-	var (
-		buffer   bytes.Buffer
-		textLine bytes.Buffer
-
-		tailerOpen  = true
-		channelOpen = true
-
-		line  *tail.Line
-		count int64
-	)
-
-	for {
-		line = nil
-
-		select {
-		case <-datakit.Exit.Wait():
-			l.Debugf("Tailing file %s is ending", tailer.Filename)
-			return
-
-		case line, tailerOpen = <-tailer.Lines:
-			if !tailerOpen {
-				channelOpen = false
-			}
-
-		case <-ticker.C:
-			if count > 0 {
-				if err := io.NamedFeed(buffer.Bytes(), io.Logging, t.Source); err != nil {
-					l.Error(err)
-				}
-				buffer = bytes.Buffer{}
-				count = 0
-			}
-
-			_, statErr := os.Lstat(tailer.Filename)
-			if os.IsNotExist(statErr) {
-				l.Warnf("check file %s is not exist", tailer.Filename)
-				return
-			}
-		}
-
-		var text string
-
-		if line != nil {
-			text = strings.TrimRight(line.Text, "\r")
-
-			if t.multiline.IsEnabled() {
-				if text = t.multiline.ProcessLine(text, &textLine); text == "" {
-					continue
-				}
-			}
-		}
-
-		if line == nil || !channelOpen || !tailerOpen {
-			if text += t.multiline.Flush(&textLine); text == "" {
-				if !channelOpen {
-					l.Warnf("Tailing %s data channel is closed", tailer.Filename)
-					return
-				}
-				continue
-			}
-		}
-
-		if line != nil && line.Err != nil {
-			l.Errorf("Tailing %q: %s", tailer.Filename, line.Err.Error())
-			continue
-		}
-
-		decodeText, err := t.decoder.String(text)
-		if err != nil {
-			l.Errorf("decode error, %s", err)
-			continue
-		}
-
-		var fields = make(map[string]interface{})
-		if p != nil {
-
-			fields, err = p.Run(decodeText).Result()
-			if err != nil {
-				l.Errorf("run pipeline error, %s", err)
-				continue
-			}
-		} else {
-			fields["message"] = decodeText
-		}
-
-		var ts time.Time
-		if v, ok := fields["time"]; ok { // time should be nano-second
-			nanots, ok := v.(int64)
-			if !ok {
-				l.Warn("filed `time' should be nano-second, but got `%s'", reflect.TypeOf(v).String())
-				continue
-			}
-
-			ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
-			delete(fields, "time")
-		} else {
-			ts = time.Now()
-		}
-
-		data, err := io.MakeMetric(t.Source, tags, fields, ts)
-		if err != nil {
-			l.Error(err)
-			continue
-		}
-
-		buffer.Write(data)
-		buffer.WriteString("\n")
-		count++
-
-		if count >= metricFeedCount {
-			if err := io.NamedFeed(buffer.Bytes(), io.Logging, t.Source); err != nil {
-				l.Error(err)
-			}
-			buffer = bytes.Buffer{}
-			count = 0
-		}
-	}
-}
-
-func isExist(path string) bool {
-	_, err := os.Stat(path)
-	if err != nil {
-		if os.IsExist(err) {
-			return true
-		}
-		return false
-	}
-	return true
-}
-
-func checkPipeLine(path string) error {
-	if path == "" {
-		return nil
-	}
-	_, err := pipeline.NewPipelineFromFile(path)
-	return err
+func (t *Tailf) tailStart(filename string) {
+	newTailer(t, filename).run()
 }
