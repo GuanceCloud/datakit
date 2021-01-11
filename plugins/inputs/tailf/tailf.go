@@ -221,7 +221,7 @@ func (t *Tailf) receiver(tailer *tail.Tail, tags map[string]string) {
 
 		case <-ticker.C:
 			if count > 0 {
-				if err := io.NamedFeed(buffer.Bytes(), io.Logging, inputName); err != nil {
+				if err := io.NamedFeed(buffer.Bytes(), io.Logging, t.Source); err != nil {
 					l.Error(err)
 				}
 				buffer = bytes.Buffer{}
@@ -270,7 +270,14 @@ func (t *Tailf) receiver(tailer *tail.Tail, tags map[string]string) {
 
 		var fields = make(map[string]interface{})
 		if p != nil {
-			fields, err = p.Run(decodeText).Result()
+			p.Run(decodeText)
+			if p.LastError() != nil {
+				l.Errorf("pipeline last error: %s", p.LastError())
+				time.Sleep(time.Second)
+				continue
+			}
+
+			fields, err = p.Result()
 			if err != nil {
 				l.Errorf("run pipeline error, %s", err)
 				continue
@@ -290,12 +297,11 @@ func (t *Tailf) receiver(tailer *tail.Tail, tags map[string]string) {
 		count++
 
 		if count >= metricFeedCount {
-			if err := io.NamedFeed(buffer.Bytes(), io.Logging, inputName); err != nil {
+			if err := io.NamedFeed(buffer.Bytes(), io.Logging, t.Source); err != nil {
 				l.Error(err)
 			}
 			buffer = bytes.Buffer{}
 			count = 0
 		}
-
 	}
 }
