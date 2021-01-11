@@ -21,26 +21,34 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
+	var key, pattern string
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.Identifier:
+		key = v.Name
+	default:
+		return p, fmt.Errorf("expect Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[1]).String())
+	}
+
 	switch v := funcExpr.Param[1].(type) {
 	case *parser.StringLiteral:
-		pattern := v.Val
-		key := funcExpr.Param[0].(*parser.Identifier).Name
-
-		val := p.getContentStr(key)
-		m, err := p.grok.Parse(pattern, val)
-		if err != nil {
-			return p, err
-		}
-
-		for k, v := range m {
-			p.setContent(k, v)
-		}
-
-		return p, nil
+		pattern = v.Val
 	default:
 		return p, fmt.Errorf("expect StringLiteral, got %s",
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
+
+	val := p.getContentStr(key)
+	m, err := p.grok.Parse(pattern, val)
+	if err != nil {
+		return p, err
+	}
+
+	for k, v := range m {
+		p.setContent(k, v)
+	}
+
+	return p, nil
 }
 
 func loadPatterns() error {
