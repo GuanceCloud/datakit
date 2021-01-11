@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -270,14 +271,8 @@ func (t *Tailf) receiver(tailer *tail.Tail, tags map[string]string) {
 
 		var fields = make(map[string]interface{})
 		if p != nil {
-			p.Run(decodeText)
-			if p.LastError() != nil {
-				l.Errorf("pipeline last error: %s", p.LastError())
-				time.Sleep(time.Second)
-				continue
-			}
 
-			fields, err = p.Result()
+			fields, err = p.Run(decodeText).Result()
 			if err != nil {
 				l.Errorf("run pipeline error, %s", err)
 				continue
@@ -286,7 +281,21 @@ func (t *Tailf) receiver(tailer *tail.Tail, tags map[string]string) {
 			fields["message"] = decodeText
 		}
 
-		data, err := io.MakeMetric(t.Source, tags, fields, time.Now())
+		var ts time.Time
+		if v, ok := fields["time"]; ok { // time should be nano-second
+			nanots, ok := v.(int64)
+			if !ok {
+				l.Warn("filed `time' should be nano-second, but got `%s'", reflect.TypeOf(v).String())
+				continue
+			}
+
+			ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
+			delete(fields, "time")
+		} else {
+			ts = time.Now()
+		}
+
+		data, err := io.MakeMetric(t.Source, tags, fields, ts)
 		if err != nil {
 			l.Error(err)
 			continue
