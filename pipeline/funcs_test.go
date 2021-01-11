@@ -63,7 +63,7 @@ func TestDefaultTimeFunc(t *testing.T) {
 
 	js := `{"a":{"time":"2014/04/08 22:05","second":2,"thrid":"abc","forth":true},"age":47}`
 	script := `json(_, a.time);
-default_time(a.time);
+default_time(a.second);
 `
 	p, err := NewPipeline(script)
 	assertEqual(t, err, nil)
