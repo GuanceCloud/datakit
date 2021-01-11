@@ -106,10 +106,10 @@ func GroupInHandle(value interface{}, set []interface{}) bool {
 func TimestampHandle(value string) int64 {
 	t, err := dateparse.ParseLocal(value)
 	if err != nil {
-		return time.Now().Unix()
+		return time.Now().UnixNano()
 	}
 
-	unix_time := t.Unix()
+	unix_time := t.UnixNano()
 
 	return unix_time
 }
