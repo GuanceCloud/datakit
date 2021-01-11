@@ -49,20 +49,40 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 2 or 3 args", funcExpr.Name)
 	}
 
-	key := funcExpr.Param[0].(*parser.Identifier).Name
-	old := funcExpr.Param[1].(*parser.Identifier).Name
+	var key, old string
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier:
+		key = v.Name
+	default:
+		return p, fmt.Errorf("expect Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
 
-	if _, ok := p.getContentStrByCheck(key); !ok {
-		l.Warnf("key %v not exist", key)
-		return p, nil
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.Identifier:
+		old = v.Name
+	default:
+		return p, fmt.Errorf("expect Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
 	newkey := old
 	if len(funcExpr.Param) == 3 {
-		newkey = funcExpr.Param[2].(*parser.Identifier).Name
+		switch v := funcExpr.Param[2].(type) {
+		case *parser.Identifier:
+			newkey = v.Name
+		default:
+			return p, fmt.Errorf("expect Identifier, got %s",
+				reflect.TypeOf(funcExpr.Param[2]).String())
+		}
 	}
 
-	cont := p.getContentStr(key)
+	cont, ok := p.getContentStrByCheck(key)
+	if !ok {
+		l.Warnf("key %v not exist", key)
+		return p, nil
+	}
+
 	v := getGjsonResult(cont, old)
 	p.setContent(newkey, v)
 
@@ -200,12 +220,23 @@ func Expr(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	key := funcExpr.Param[1].(*parser.Identifier).Name
-	expr := funcExpr.Param[0].(*parser.BinaryExpr)
+	var key string
+	var expr *parser.BinaryExpr
 
-	if _, ok := p.getContentStrByCheck(key); !ok {
-		l.Warnf("key %v not exist", key)
-		return p, nil
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.BinaryExpr:
+		expr = v
+	default:
+		return p, fmt.Errorf("expect BinaryExpr, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.Identifier:
+		key = v.Name
+	default:
+		return p, fmt.Errorf("expect Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
 	if v, err := Calc(expr, p); err != nil {
@@ -225,12 +256,21 @@ func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
 	}
 
-	key := funcExpr.Param[0].(*parser.Identifier).Name
-	fmts := funcExpr.Param[1].(*parser.StringLiteral).Val
+	var key, fmts string
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier:
+		key = v.Name
+	default:
+		return p, fmt.Errorf("expect Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
 
-	if _, ok := p.getContentStrByCheck(key); !ok {
-		l.Warnf("key %v not exist", key)
-		return p, nil
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		fmts = v.Val
+	default:
+		return p, fmt.Errorf("expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
 	for i := 2; i < len(funcExpr.Param); i++ {
@@ -262,12 +302,21 @@ func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	key := funcExpr.Param[0].(*parser.Identifier).Name
-	castType := funcExpr.Param[1].(*parser.StringLiteral).Val
+	var key, castType string
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier:
+		key = v.Name
+	default:
+		return p, fmt.Errorf("expect Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
 
-	if _, ok := p.getContentStrByCheck(key); !ok {
-		l.Warnf("key %v not exist", key)
-		return p, nil
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		castType = v.Val
+	default:
+		return p, fmt.Errorf("expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
 	v := cast(p.getContent(key), castType)
@@ -461,15 +510,22 @@ func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
-	key := funcExpr.Param[0].(*parser.Identifier).Name
+	var key string
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier:
+		key = v.Name
+	default:
+		return p, fmt.Errorf("expect Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
 
-	if _, ok := p.getContentStrByCheck(key); !ok {
+	cont, ok := p.getContentStrByCheck(key)
+	if !ok {
 		l.Warnf("key %v not exist", key)
 		return p, nil
 	}
 
-	v := p.getContentStr(key)
-	v = strings.ToUpper(v)
+	v := strings.ToUpper(cont)
 	p.setContent(key, v)
 
 	return p, nil
@@ -481,15 +537,22 @@ func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
-	key := funcExpr.Param[0].(*parser.Identifier).Name
+	var key string
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier:
+		key = v.Name
+	default:
+		return p, fmt.Errorf("expect Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
 
-	if _, ok := p.getContentStrByCheck(key); !ok {
+	cont, ok := p.getContentStrByCheck(key)
+	if !ok {
 		l.Warnf("key %v not exist", key)
 		return p, nil
 	}
 
-	v := p.getContentStr(key)
-	v = strings.ToLower(v)
+	v := strings.ToLower(cont)
 	p.setContent(key, v)
 
 	return p, nil
@@ -540,11 +603,13 @@ func Dropkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
-	key := funcExpr.Param[0].(*parser.Identifier).Name
-
-	if _, ok := p.getContentStrByCheck(key); !ok {
-		l.Warnf("key %v not exist", key)
-		return p, nil
+	var key string
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier:
+		key = v.Name
+	default:
+		return p, fmt.Errorf("expect Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
 	delete(p.Output, key)
@@ -563,7 +628,15 @@ func Addkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
 	}
 
-	key := funcExpr.Param[0].(*parser.Identifier).Name
+	var key string
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier:
+		key = v.Name
+	default:
+		return p, fmt.Errorf("expect Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
 	var val interface{}
 	switch v := funcExpr.Param[1].(type) {
 	case *parser.StringLiteral:
