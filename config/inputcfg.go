@@ -216,7 +216,7 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 			return
 		}
 
-		l.Debugf("try set MaxLifeCheckInterval from ", name)
+		l.Debugf("try set MaxLifeCheckInterval from %s", name)
 		trySetMaxPostInterval(t)
 
 		inputList = append(inputList, input)
