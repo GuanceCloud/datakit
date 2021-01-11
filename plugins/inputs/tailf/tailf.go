@@ -96,7 +96,12 @@ func (t *Tailf) loadcfg() bool {
 		t.PipelinePath = filepath.Join(datakit.PipelineDir, t.PipelinePath)
 	}
 
-	l.Infof("pipeline_path is %s", t.PipelinePath)
+	if isExist(t.PipelinePath) {
+		l.Infof("pipeline_path is %s", t.PipelinePath)
+	} else {
+		t.PipelinePath = ""
+		l.Info("not use pipeline")
+	}
 
 	for {
 		select {
@@ -120,7 +125,7 @@ func (t *Tailf) loadcfg() bool {
 			goto label
 		}
 
-		if _, err = pipeline.NewPipelineFromFile(t.PipelinePath); err != nil {
+		if err = checkPipeLine(t.PipelinePath); err != nil {
 			goto label
 		} else {
 			break
@@ -190,7 +195,11 @@ func (t *Tailf) tailStart(file string) {
 }
 
 func (t *Tailf) receiver(tailer *tail.Tail, tags map[string]string) {
-	p, _ := pipeline.NewPipelineFromFile(t.PipelinePath)
+	var p *pipeline.Pipeline
+	if t.PipelinePath == "" {
+		// use pipeline
+		p, _ = pipeline.NewPipelineFromFile(t.PipelinePath)
+	}
 
 	ticker := time.NewTicker(defaultDruation)
 	defer ticker.Stop()
@@ -298,4 +307,23 @@ func (t *Tailf) receiver(tailer *tail.Tail, tags map[string]string) {
 		}
 
 	}
+}
+
+func isExist(path string) bool {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsExist(err) {
+			return true
+		}
+		return false
+	}
+	return true
+}
+
+func checkPipeLine(path string) error {
+	if path == "" {
+		return nil
+	}
+	_, err := pipeline.NewPipelineFromFile(path)
+	return err
 }
