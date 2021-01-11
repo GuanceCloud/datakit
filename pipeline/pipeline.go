@@ -235,8 +235,6 @@ func (pl *Pipeline) parseScript(script string) error {
 }
 
 func debugNodesHelp(f *parser.FuncExpr, prev string) {
-	l.Debugf("%v%v", prev, f.Name)
-
 	for _, node := range f.Param {
 		switch v := node.(type) {
 		case *parser.FuncExpr:
