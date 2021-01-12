@@ -7,6 +7,9 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -34,6 +38,9 @@ const (
  
     # data source. if source is empty, use container name.
     source = ""
+
+    # grok pipeline script path
+    pipeline_path = ""
 
     # When true, container logs are read from the beginning; otherwise
     # reading begins at the end of the log.
@@ -108,6 +115,7 @@ type DockerLogs struct {
 	ContainerStateInclude []string          `toml:"container_state_include"`
 	ContainerStateExclude []string          `toml:"container_state_exclude"`
 	Source                string            `toml:"source"`
+	PipelinePath          string            `toml:"pipeline_path"`
 	IncludeSourceTag      bool              `toml:"source_tag"`
 	Tags                  map[string]string `toml:"tags"`
 
@@ -125,6 +133,8 @@ type DockerLogs struct {
 	wg              sync.WaitGroup
 	mu              sync.Mutex
 	containerList   map[string]context.CancelFunc
+
+	pipe *pipeline.Pipeline
 }
 
 func (*DockerLogs) SampleConfig() string {
@@ -223,6 +233,19 @@ func (d *DockerLogs) initCfg() bool {
 }
 
 func (d *DockerLogs) loadCfg() (err error) {
+	if d.PipelinePath == "" {
+		d.PipelinePath = filepath.Join(datakit.PipelineDir, d.Source+".p")
+	} else {
+		d.PipelinePath = filepath.Join(datakit.PipelineDir, d.PipelinePath)
+	}
+
+	if isExist(d.PipelinePath) {
+		l.Infof("pipeline_path is %s", d.PipelinePath)
+	} else {
+		d.PipelinePath = ""
+		l.Info("not use pipeline")
+	}
+
 	d.timeoutDuration, err = time.ParseDuration(d.Timeout)
 	if err != nil {
 		err = fmt.Errorf("invalid timeout, %s", err.Error())
@@ -257,6 +280,16 @@ func (d *DockerLogs) loadCfg() (err error) {
 	err = d.createContainerStateFilters()
 	if err != nil {
 		return
+	}
+	if err = checkPipeLine(d.PipelinePath); err != nil {
+		return
+	}
+
+	if d.PipelinePath != "" {
+		d.pipe, err = pipeline.NewPipelineFromFile(d.PipelinePath)
+		if err != nil {
+			return
+		}
 	}
 
 	filterArgs := filters.NewArgs()
@@ -334,9 +367,9 @@ func (d *DockerLogs) tailContainerLogs(ctx context.Context, container types.Cont
 	// If the container is *not* using a TTY, streams for stdout and stderr are
 	// multiplexed.
 	if hasTTY {
-		return tailStream(measurement, tags, container.ID, logReader, "tty")
+		return tailStream(measurement, tags, container.ID, logReader, "tty", d.pipe)
 	} else {
-		return tailMultiplexed(measurement, tags, container.ID, logReader)
+		return tailMultiplexed(measurement, tags, container.ID, logReader, d.pipe)
 	}
 }
 
@@ -364,7 +397,7 @@ func parseLine(line []byte) (time.Time, string, error) {
 	return ts, string(message), nil
 }
 
-func tailStream(measurement string, baseTags map[string]string, containerID string, reader io.ReadCloser, stream string) error {
+func tailStream(measurement string, baseTags map[string]string, containerID string, reader io.ReadCloser, stream string, pipe *pipeline.Pipeline) error {
 	defer reader.Close()
 
 	tags := make(map[string]string, len(baseTags)+1)
@@ -377,37 +410,63 @@ func tailStream(measurement string, baseTags map[string]string, containerID stri
 
 	for {
 		line, err := r.ReadBytes('\n')
-
-		if len(line) != 0 {
-			ts, message, err := parseLine(line)
-			if err != nil {
-				l.Error(err)
-			} else {
-				fields := map[string]interface{}{
-					"container_id": containerID,
-					"__content":    message,
-				}
-				data, err := iod.MakeMetric(measurement, tags, fields, ts)
-				if err != nil {
-					l.Error(err)
-				} else {
-					if err := iod.NamedFeed(data, iod.Logging, inputName); err != nil {
-						l.Error(err)
-					}
-				}
-			}
-		}
-
 		if err != nil {
 			if err == io.EOF {
 				return nil
 			}
 			return err
 		}
+
+		if len(line) == 0 {
+			continue
+		}
+
+		ts, message, err := parseLine(line)
+		if err != nil {
+			l.Error(err)
+			continue
+		}
+
+		var fields = make(map[string]interface{})
+
+		if pipe != nil {
+			fields, err = pipe.Run(message).Result()
+			if err != nil {
+				l.Errorf("run pipeline error, %s", err)
+				continue
+			}
+		} else {
+			fields["message"] = message
+		}
+
+		if _, ok := fields["container_id"]; !ok {
+			fields["container_id"] = containerID
+		}
+
+		if v, ok := fields["time"]; ok { // time should be nano-second
+			nanots, ok := v.(int64)
+			if !ok {
+				l.Warn("filed `time' should be nano-second, but got `%s'", reflect.TypeOf(v).String())
+				continue
+			}
+
+			ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
+			delete(fields, "time")
+		}
+
+		data, err := iod.MakeMetric(measurement, tags, fields, ts)
+		if err != nil {
+			l.Error(err)
+		} else {
+			if err := iod.NamedFeed(data, iod.Logging, inputName); err != nil {
+				l.Error(err)
+			}
+		}
 	}
+
 }
 
-func tailMultiplexed(measurement string, tags map[string]string, containerID string, src io.ReadCloser) error {
+func tailMultiplexed(measurement string, tags map[string]string, containerID string, src io.ReadCloser, pipe *pipeline.Pipeline) error {
 	outReader, outWriter := io.Pipe()
 	errReader, errWriter := io.Pipe()
 
@@ -415,7 +474,7 @@ func tailMultiplexed(measurement string, tags map[string]string, containerID str
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := tailStream(measurement, tags, containerID, outReader, "stdout")
+		err := tailStream(measurement, tags, containerID, outReader, "stdout", pipe)
 		if err != nil {
 			l.Error(err)
 		}
@@ -424,7 +483,7 @@ func tailMultiplexed(measurement string, tags map[string]string, containerID str
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := tailStream(measurement, tags, containerID, errReader, "stderr")
+		err := tailStream(measurement, tags, containerID, errReader, "stderr", pipe)
 		if err != nil {
 			l.Error(err)
 		}
@@ -532,4 +591,22 @@ func hostnameFromID(id string) string {
 		return id[0:12]
 	}
 	return id
+}
+func isExist(path string) bool {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsExist(err) {
+			return true
+		}
+		return false
+	}
+	return true
+}
+
+func checkPipeLine(path string) error {
+	if path == "" {
+		return nil
+	}
+	_, err := pipeline.NewPipelineFromFile(path)
+	return err
 }
