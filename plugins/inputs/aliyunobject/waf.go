@@ -10,26 +10,32 @@ import (
 
 const (
 	wafSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.waf]
-#pipeline = "aliyun_waf.p"
-# ## @param - custom tags for waf object - [list of key:value element] - optional
-#[inputs.aliyunobject.waf.tags]
-# key1 = 'val1'
+    # ##(optional) ignore this object, default is false
+    #disable = false
+	#pipeline = "aliyun_waf.p"
+	# ## @param - custom tags for waf object - [list of key:value element] - optional
+	
 `
 	wafPipelineConfig = `
-	json(_,Region);
-	json(_,PayType);
-	json(_,Status);
-	json(_,InDebt);
-	json(_,SubscriptionType);
+json(_, Region);
+json(_, PayType);
+json(_, Status);
+json(_, InDebt);
+json(_, SubscriptionType);
 `
 )
 
 type Waf struct {
+	Disable      bool              `toml:"disable"`
 	Tags         map[string]string `toml:"tags,omitempty"`
 	PipelinePath string            `toml:"pipeline,omitempty"`
+	p            *pipeline.Pipeline
+}
 
-	p *pipeline.Pipeline
+func (e *Waf) disabled() bool {
+	return e.Disable
 }
 
 func (e *Waf) run(ag *objectAgent) {
@@ -66,7 +72,7 @@ func (e *Waf) run(ag *objectAgent) {
 		req := waf.CreateDescribeInstanceInfoRequest()
 		resp, err := cli.DescribeInstanceInfo(req)
 		if err != nil {
-			moduleLogger.Errorf("%s", err)
+			moduleLogger.Errorf("waf object: %s", err)
 			break
 		}
 		e.handleResponse(resp, ag)
@@ -79,5 +85,8 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 		moduleLogger.Warnf("%s", "waf payType 0")
 		return
 	}
-	ag.parseObject(resp.InstanceInfo, "aliyun_waf", resp.InstanceInfo.InstanceId, resp.InstanceInfo.InstanceId, e.p, []string{}, []string{}, e.Tags)
+	tags := map[string]string{
+		"name": resp.InstanceInfo.InstanceId,
+	}
+	ag.parseObject(resp.InstanceInfo, "aliyun_waf", resp.InstanceInfo.InstanceId, e.p, []string{}, []string{}, tags)
 }

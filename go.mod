@@ -3,8 +3,8 @@ module gitlab.jiagouyun.com/cloudcare-tools/datakit
 go 1.13
 
 require (
+	//github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/azure-sdk-for-go v37.1.0+incompatible
-	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest v12.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.9.3
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
@@ -112,3 +112,5 @@ require (
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
 	xojoc.pw/useragent v0.0.0-20200116211053-1ec61d55e8fe // indirect
 )
+
+replace github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c => github.com/1157987916/websocketproxy v0.0.0-20201229082103-cfa96d57158c
