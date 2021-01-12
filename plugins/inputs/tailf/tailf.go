@@ -160,7 +160,6 @@ func (t *Tailf) loadcfg() bool {
 
 func (t *Tailf) tailNewFiles(file string) {
 	if _, ok := t.runningFileList.Load(file); ok {
-		l.Debugf("file %s already tailing now", file)
 		return
 	}
 
