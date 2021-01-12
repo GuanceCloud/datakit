@@ -109,9 +109,11 @@ func (p *Pipeline) Run(data string) *Pipeline {
 	p.Output["message"] = data
 
 	//防止脚本解析错误
-	if p.lastErr != nil {
+	if len(p.nodes) == 0 {
 		return p
 	}
+	//错误状态复位
+	p.lastErr = nil
 
 	var f rtpanic.RecoverCallback
 
