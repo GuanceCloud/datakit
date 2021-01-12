@@ -62,7 +62,7 @@ func (f *Fluentd) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("Fluentd input started...")
 	var err error
-	f.Pipeline, err = pipeline.NewPipeline(f.PipelinePath)
+	f.Pipeline, err = pipeline.NewPipelineFromFile(f.PipelinePath)
 	if err != nil {
 		l.Errorf("new pipeline error, %v", err)
 	}
