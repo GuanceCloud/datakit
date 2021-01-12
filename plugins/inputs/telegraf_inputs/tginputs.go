@@ -86,7 +86,8 @@ type TelegrafInput struct {
 	// so we can't get sample from input.SampleConfig(), we just return the Sample field
 	//
 	// Bad news: it's hard to sync upstream telegraf updates on these inputs
-	Sample string
+	Sample   string
+	Pipeline string
 }
 
 func (ti *TelegrafInput) SampleConfig() string {
