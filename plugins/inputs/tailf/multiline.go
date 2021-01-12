@@ -13,10 +13,10 @@ type Multiline struct {
 }
 
 type MultilineConfig struct {
-	Pattern        string `toml:"pattern"`
-	MatchWhichLine string `toml:"match_which_line"`
-	InvertMatch    bool
-	Timeout        time.Duration
+	Pattern        string        `toml:"pattern"`
+	MatchWhichLine string        `toml:"match_which_line"`
+	InvertMatch    bool          `toml:-`
+	Timeout        time.Duration `toml:-`
 }
 
 const (
