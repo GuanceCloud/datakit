@@ -46,23 +46,23 @@ func (obsClient ObsClient) doAuthTemporary(method, bucketName, objectKey string,
 	} else {
 		if isV4 {
 			date, parseDateErr := time.Parse(RFC1123_FORMAT, headers[HEADER_DATE_CAMEL][0])
-			if parseDateErr != nil{
+			if parseDateErr != nil {
 				doLog(LEVEL_WARN, "Failed to parse date with reason: %v", parseDateErr)
 				return "", parseDateErr
 			}
 			delete(headers, HEADER_DATE_CAMEL)
 			shortDate := date.Format(SHORT_DATE_FORMAT)
 			longDate := date.Format(LONG_DATE_FORMAT)
-			if len(headers[HEADER_HOST_CAMEL]) != 0{
-				index := strings.LastIndex(headers[HEADER_HOST_CAMEL][0],":")
-				if index != -1{
+			if len(headers[HEADER_HOST_CAMEL]) != 0 {
+				index := strings.LastIndex(headers[HEADER_HOST_CAMEL][0], ":")
+				if index != -1 {
 					port := headers[HEADER_HOST_CAMEL][0][index+1:]
-					if port == "80" || port == "443"{
+					if port == "80" || port == "443" {
 						headers[HEADER_HOST_CAMEL] = []string{headers[HEADER_HOST_CAMEL][0][:index]}
 					}
 				}
-				
-			}	
+
+			}
 
 			signedHeaders, _headers := getSignedHeaders(headers)
 
@@ -75,7 +75,7 @@ func (obsClient ObsClient) doAuthTemporary(method, bucketName, objectKey string,
 
 			requestUrl, canonicalizedUrl = obsClient.conf.formatUrls(bucketName, objectKey, params, true)
 			parsedRequestUrl, _err := url.Parse(requestUrl)
-			if _err != nil{
+			if _err != nil {
 				return "", _err
 			}
 
@@ -87,7 +87,7 @@ func (obsClient ObsClient) doAuthTemporary(method, bucketName, objectKey string,
 		} else {
 			originDate := headers[HEADER_DATE_CAMEL][0]
 			date, parseDateErr := time.Parse(RFC1123_FORMAT, originDate)
-			if parseDateErr != nil{
+			if parseDateErr != nil {
 				doLog(LEVEL_WARN, "Failed to parse date with reason: %v", parseDateErr)
 				return "", parseDateErr
 			}
@@ -102,7 +102,6 @@ func (obsClient ObsClient) doAuthTemporary(method, bucketName, objectKey string,
 				requestUrl += "&"
 			}
 			delete(headers, HEADER_DATE_CAMEL)
-
 
 			if obsClient.conf.signature != SignatureObs {
 				requestUrl += "AWS"
@@ -280,19 +279,19 @@ func getV2StringToSign(method, canonicalizedUrl string, headers map[string][]str
 
 	var isSecurityToken bool
 	var securityToken []string
-	if isObs{
+	if isObs {
 		securityToken, isSecurityToken = headers[HEADER_STS_TOKEN_OBS]
-	}else{
+	} else {
 		securityToken, isSecurityToken = headers[HEADER_STS_TOKEN_AMZ]
 	}
 	var query []string
-	if !isSecurityToken{
+	if !isSecurityToken {
 		parmas := strings.Split(canonicalizedUrl, "?")
-		if len(parmas) > 1{
-			query = strings.Split(parmas[1],"&")
-			for _, value := range query{
-				if strings.HasPrefix(value, HEADER_STS_TOKEN_AMZ + "=") || strings.HasPrefix(value, HEADER_STS_TOKEN_OBS + "="){
-					if value[len(HEADER_STS_TOKEN_AMZ)+1:] != ""{
+		if len(parmas) > 1 {
+			query = strings.Split(parmas[1], "&")
+			for _, value := range query {
+				if strings.HasPrefix(value, HEADER_STS_TOKEN_AMZ+"=") || strings.HasPrefix(value, HEADER_STS_TOKEN_OBS+"=") {
+					if value[len(HEADER_STS_TOKEN_AMZ)+1:] != "" {
 						securityToken = []string{value[len(HEADER_STS_TOKEN_AMZ)+1:]}
 						isSecurityToken = true
 					}
@@ -301,8 +300,8 @@ func getV2StringToSign(method, canonicalizedUrl string, headers map[string][]str
 		}
 	}
 	logStringToSign := stringToSign
-	if isSecurityToken && len(securityToken) > 0{
-		logStringToSign = strings.Replace(logStringToSign,securityToken[0],"******",-1)
+	if isSecurityToken && len(securityToken) > 0 {
+		logStringToSign = strings.Replace(logStringToSign, securityToken[0], "******", -1)
 	}
 	doLog(LEVEL_DEBUG, "The v2 auth stringToSign:\n%s", logStringToSign)
 	return stringToSign
@@ -349,15 +348,15 @@ func getV4StringToSign(method, canonicalizedUrl, queryUrl, scope, longDate, payl
 
 	var isSecurityToken bool
 	var securityToken []string
-	if securityToken, isSecurityToken = headers[HEADER_STS_TOKEN_OBS];!isSecurityToken{
+	if securityToken, isSecurityToken = headers[HEADER_STS_TOKEN_OBS]; !isSecurityToken {
 		securityToken, isSecurityToken = headers[HEADER_STS_TOKEN_AMZ]
 	}
 	var query []string
-	if !isSecurityToken{
-		query = strings.Split(queryUrl,"&")
-		for _, value := range query{
-			if strings.HasPrefix(value, HEADER_STS_TOKEN_AMZ + "=") || strings.HasPrefix(value, HEADER_STS_TOKEN_OBS + "="){
-				if value[len(HEADER_STS_TOKEN_AMZ)+1:] != ""{
+	if !isSecurityToken {
+		query = strings.Split(queryUrl, "&")
+		for _, value := range query {
+			if strings.HasPrefix(value, HEADER_STS_TOKEN_AMZ+"=") || strings.HasPrefix(value, HEADER_STS_TOKEN_OBS+"=") {
+				if value[len(HEADER_STS_TOKEN_AMZ)+1:] != "" {
 					securityToken = []string{value[len(HEADER_STS_TOKEN_AMZ)+1:]}
 					isSecurityToken = true
 				}
@@ -365,8 +364,8 @@ func getV4StringToSign(method, canonicalizedUrl, queryUrl, scope, longDate, payl
 		}
 	}
 	logCanonicalRequest := _canonicalRequest
-	if isSecurityToken && len(securityToken) > 0{
-		logCanonicalRequest = strings.Replace(logCanonicalRequest,securityToken[0],"******",-1)
+	if isSecurityToken && len(securityToken) > 0 {
+		logCanonicalRequest = strings.Replace(logCanonicalRequest, securityToken[0], "******", -1)
 	}
 	doLog(LEVEL_DEBUG, "The v4 auth canonicalRequest:\n%s", logCanonicalRequest)
 
