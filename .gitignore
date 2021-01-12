@@ -8,7 +8,6 @@ pub
 a.out
 test.go
 dist/
-build/
 *.ak
 old/
 *.tar.gz
@@ -49,3 +48,4 @@ plugins/externals/csv/venv
 *.sh
 *.zip
 china-operator-ip
+**build/
