@@ -9,72 +9,66 @@ import (
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
+	"golang.org/x/time/rate"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
 	aliyuncmsConfigSample = `
+# ##(required)
 #[[inputs.aliyuncms]]
 
  # ##(required)
- #access_key_id = ''
- #access_key_secret = ''
- #region_id = 'cn-hangzhou'
+ # access_key_id = ''
+ # access_key_secret = ''
+ # region_id = 'cn-hangzhou'
 
- # ##(optional)（Security Token Service，STS）
- #security_token = ''
+ # ##(optional) Security Token Service(STS)
+ ## security_token = ''
 
  # ##(optional) global collect interval, default is 5min.
- #interval = '5m'
+ ## interval = '5m'
 
  # ##(optional) delay collect duration
- #delay = '5m'
+ ## delay = '5m'
 
- #[inputs.aliyuncms.tags]
- #key1 = "val1"
- #key2 = "val2"
+ # ##(optional) custom tags
+ ## [inputs.aliyuncms.tags]
+ ##  key1 = "val1"
+ ##  key2 = "val2"
 
- # ##(required)
- #[[inputs.aliyuncms.project]]
-  #	##(required) product namespace
-  #name='acs_ecs_dashboard'
+# ##(required)
+#[[inputs.aliyuncms.project]]
+# ##(required) product namespace
+# namespace='acs_ecs_dashboard'
 
-  # ##(optional) custom metric name，default is "aliyuncms_<name>"
-  #metric_name=''
+# ##(optional) names of metrics, comma-separated, if empty, collect all metrics of the project
+## metric = 'CPUUtilization,DiskWriteBPS'
 
-  # ##(required)
-  #[inputs.aliyuncms.project.metrics]
+# ##(optional)
+## [[inputs.aliyuncms.project.property]]
 
-   # ##(required)
-   # ## names of metrics
-   #names = [
-   #	'CPUUtilization',
-   #]
+# ##(optional) comma-separated metrics which this property will apply to, if empty, apply to all
+## name = 'CPUUtilization,DiskWriteBPS'
 
-   # ##(optional)
-   #[[inputs.aliyuncms.project.metrics.property]]
+# ##(optional) you may specify period of this metric
+## period = 60
 
-	# ##(required) you can use * to apply to all metrics of this project
-	#name = "CPUUtilization"
+# ##(optional) collect interval of thie metric
+## interval = '5m'
 
-	# ##(optional) you may specify period of this metric
-	#period = 60
+# ##(optional) collect filter, a json string
+## dimensions = '''
+##  [
+##	 {"instanceId":"i-bp15wj5w33t8vf******"}
+##	]
+##	'''
 
-	# ##(optional) collect interval of thie metric
-	#interval = '5m'
-
-	# ##(optional) collect filter, a json string
-	#dimensions = '''
-    #  [
-    #	{"instanceId":"i-bp15wj5w33t8vf******"}
-    #	]
-	#	'''
-
-	# ##(optional) custom tags
-	#[inputs.aliyuncms.project.metrics.property.tags]
-	#key1 = "val1"
-	#key2 = "val2"
+# ##(optional) custom tags for the metrics
+## [inputs.aliyuncms.project.property.tags]
+## key1 = "val1"
+## key2 = "val2"
 `
 )
 
@@ -94,25 +88,25 @@ type (
 		Tags map[string]string `toml:"tags,omitempty"`
 	}
 
+	//deprecated
 	Metric struct {
 		MetricNames []string    `toml:"names"`
 		Property    []*Property `toml:"property,omitempty"`
-
-		//兼容老的配置
-		Dimensions []*Dimension `toml:"dimensions,omitempty"`
 	}
 
 	Project struct {
-		Name       string `toml:"name"`
-		MetricName string `toml:"metric_name"`
+		Name      string `toml:"name"` //deprecated
+		Namespace string `toml:"namespace"`
 
-		//兼容老的配置
-		InstanceIDs []string `toml:"instanceIds,omitempty"`
+		MetricNames string `toml:"metric,omitempty"`
 
-		Metrics *Metric `toml:"metrics"`
+		MetricName string `toml:"metric_name"` //deprecated
 
-		//该Project下的全局指标采集属性
-		globalMetricProperty *Property
+		Metrics *Metric `toml:"metrics"` //deprecated
+
+		Property []*Property `toml:"property,omitempty"`
+
+		properties map[string]*Property
 	}
 
 	CMS struct {
@@ -127,6 +121,12 @@ type (
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
+
+		apiClient *cms.Client
+
+		reqs []*MetricsRequest
+
+		limiter *rate.Limiter
 
 		mode string
 	}
@@ -157,14 +157,14 @@ type (
 
 		meta *MetricMeta
 
-		metricSetName string
-
 		//每个指标可单独配置interval，默认使用全局的配置
 		interval time.Duration
 
+		measurementName string
+
 		tryGetMeta int
 
-		//period的配置不支持时调整period
+		//当period的配置不支持时调整period
 		tunePeriod bool
 
 		tuneDimension bool
@@ -173,159 +173,93 @@ type (
 	}
 )
 
-func (p *Project) genMetricReq(metric string, region string) (*MetricsRequest, error) {
+func (p *Project) makeReqWrap(metricName string) *MetricsRequest {
 
 	req := cms.CreateDescribeMetricListRequest()
 	req.Scheme = "https"
-	req.RegionId = region
+	//req.RegionId = region
 	req.Period = "60"
-	req.MetricName = metric
-	req.Namespace = p.Name
-
-	var interval time.Duration
-
-	var metricTags map[string]string
-
-	if p.Metrics.Dimensions != nil || len(p.InstanceIDs) > 0 { //兼容老的配置
-
-		dimensions := []map[string]string{}
-
-		var dimension *Dimension
-
-		for _, d := range p.Metrics.Dimensions {
-			if d.Name == metric {
-				dimension = d
-				if d.Period > 0 {
-					req.Period = strconv.FormatInt(int64(d.Period), 10)
-				}
-				break
-			}
-		}
-
-		if dimension != nil && dimension.Value != "" {
-			if err := json.Unmarshal([]byte(dimension.Value), &dimensions); err != nil {
-				return nil, fmt.Errorf("invalid dimension(%s.%s): %s, %s", p.Name, metric, dimension.Value, err)
-			}
-		}
-
-		bHaveSetID := false
-		for _, m := range dimensions {
-			if _, ok := m["instanceId"]; ok {
-				bHaveSetID = true
-				break
-			}
-		}
-
-		//如果dimension中没有配置instanceId，而全局配置了，则添加进去
-		if !bHaveSetID && len(p.InstanceIDs) > 0 {
-			for _, id := range p.InstanceIDs {
-				dimensions = append(dimensions, map[string]string{
-					"instanceId": id})
-			}
-		}
-
-		if len(dimensions) > 0 {
-			js, err := json.Marshal(&dimensions)
-			if err != nil {
-				return nil, err
-			}
-			req.Dimensions = string(js)
-		}
-
-	} else {
-
-		if p.globalMetricProperty == nil {
-			for _, prop := range p.Metrics.Property {
-				if prop.Name == "*" {
-					p.globalMetricProperty = prop
-					if prop.Dimensions != "" {
-						checkDimensions := []map[string]string{}
-						if err := json.Unmarshal([]byte(prop.Dimensions), &checkDimensions); err != nil {
-							return nil, fmt.Errorf("invalid dimension(%s): %s, %s", metric, prop.Dimensions, err)
-						}
-						p.globalMetricProperty.Dimensions = strings.Trim(prop.Dimensions, " \t\r\n")
-					}
-					break
-				}
-			}
-		}
-
-		var property *Property
-
-		for _, prop := range p.Metrics.Property {
-			if prop.Name == "*" {
-				continue
-			}
-			if prop.Name == metric {
-				property = prop
-				if prop.Period > 0 {
-					req.Period = strconv.FormatInt(int64(prop.Period), 10)
-				}
-				if prop.Interval.Duration != 0 {
-					interval = prop.Interval.Duration
-				}
-				metricTags = property.Tags
-				break
-			}
-		}
-
-		if property == nil && p.globalMetricProperty != nil {
-			if p.globalMetricProperty.Period > 0 {
-				req.Period = strconv.FormatInt(int64(p.globalMetricProperty.Period), 10)
-			}
-			interval = p.globalMetricProperty.Interval.Duration
-			metricTags = p.globalMetricProperty.Tags
-		}
-
-		if property != nil && property.Dimensions != "" {
-			//检查配置是否正确
-			checkDimensions := []map[string]string{}
-			if err := json.Unmarshal([]byte(property.Dimensions), &checkDimensions); err != nil {
-				return nil, fmt.Errorf("invalid dimension(%s): %s, %s", metric, property.Dimensions, err)
-			}
-			req.Dimensions = strings.Trim(property.Dimensions, " \t\r\n")
-		}
-
-		if req.Dimensions == "" && p.globalMetricProperty != nil {
-			req.Dimensions = p.globalMetricProperty.Dimensions
-		}
-	}
+	req.MetricName = metricName
+	req.Namespace = p.namespace()
 
 	reqWrap := &MetricsRequest{
-		q:             req,
-		tags:          metricTags,
-		interval:      interval,
-		tryGetMeta:    5,
-		metricSetName: p.MetricName,
+		q:               req,
+		tryGetMeta:      5,
+		measurementName: p.MetricName,
 	}
 
-	return reqWrap, nil
+	return reqWrap
 }
 
-func errCtxMetricList(req *MetricsRequest) map[string]string {
-
-	return map[string]string{
-		"Scheme":     req.q.Scheme,
-		"MetricName": req.q.MetricName,
-		"Namespace":  req.q.Namespace,
-		"Dimensions": req.q.Dimensions,
-		"Period":     req.q.Period,
-		"StartTime":  req.q.StartTime,
-		"EndTime":    req.q.EndTime,
-		"NextToken":  req.q.NextToken,
-		"RegionId":   req.q.RegionId,
-		"Domain":     req.q.Domain,
+func (p *Project) namespace() string {
+	if p.Namespace == "" {
+		return p.Name
 	}
+	return p.Namespace
 }
 
-func errCtxMetricMeta(req *cms.DescribeMetricMetaListRequest) map[string]string {
-	return map[string]string{
-		"Scheme":     req.Scheme,
-		"MetricName": req.MetricName,
-		"Namespace":  req.Namespace,
-		"RegionId":   req.RegionId,
-		"Domain":     req.Domain,
+func (p *Project) checkProperties() error {
+	p.properties = make(map[string]*Property)
+
+	props := p.Property
+	if props == nil && p.Metrics != nil {
+		props = p.Metrics.Property
 	}
+	for _, prop := range props {
+		checkDimensions := []map[string]string{}
+		if err := json.Unmarshal([]byte(prop.Dimensions), &checkDimensions); err != nil {
+			err = fmt.Errorf("invalid dimension of property '%s', error: %s", prop.Name, err)
+			moduleLogger.Errorf("%s", err)
+			return err
+		}
+		prop.Dimensions = strings.Trim(prop.Dimensions, " \t\r\n")
+
+		if prop.Name == "" {
+			p.properties["*"] = prop
+		} else {
+			parts := strings.Split(prop.Name, ",")
+			if len(parts) > 1 {
+				for _, sn := range parts {
+					sn = strings.TrimSpace(sn)
+					np := &Property{}
+					np.Dimensions = prop.Dimensions
+					np.Interval = prop.Interval
+					np.Period = prop.Period
+					np.Name = sn
+					np.Tags = prop.Tags
+					p.properties[sn] = np
+				}
+			} else if len(parts) == 1 {
+				p.properties[prop.Name] = prop
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (p *Project) applyProperty(req *MetricsRequest) {
+
+	metricName := req.q.MetricName
+
+	var property *Property
+	property = p.properties[metricName]
+	if property == nil {
+		property = p.properties["*"]
+	}
+
+	if property != nil {
+		if property.Period > 0 {
+			req.q.Period = strconv.FormatInt(int64(property.Period), 10)
+		}
+		if property.Interval.Duration != 0 {
+			req.interval = property.Interval.Duration
+		}
+		req.tags = property.Tags
+		req.q.Dimensions = property.Dimensions
+	}
+
 }
 
 func (a *CMS) isDebug() bool {
