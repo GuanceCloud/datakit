@@ -17,11 +17,13 @@ import (
 
 var (
 	inputName    = `aliyunobject`
-	moduleLogger *logger.Logger
+	moduleLogger = logger.DefaultSLogger("aliyunobject")
+	sampleConf   = ""
 )
 
 type subModule interface {
 	run(*objectAgent)
+	disabled() bool
 }
 
 func (_ *objectAgent) SampleConfig() string {
@@ -48,11 +50,18 @@ func (_ *objectAgent) Catalog() string {
 
 func (_ *objectAgent) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"aliyun_redis":         redisPipelineConifg,
-		"aliyun_waf":           wafPipelineConfig,
 		"aliyun_cdn":           cdnPipelineConifg,
+		"aliyun_mongodb":       ddsPipelineConfig,
+		"aliyun_domain":        domainPipelineConfig,
+		"aliyun_ecs":           ecsPipelineConfig,
 		"aliyun_elasticsearch": elasticsearchPipelineConifg,
 		"aliyun_influxdb":      influxDBPipelineConfig,
+		"aliyun_rocketmq":      onsPipelineConfig,
+		"aliyun_oss":           ossPipelineConfig,
+		"aliyun_rds":           rdsPipelineConfig,
+		"aliyun_redis":         redisPipelineConifg,
+		"aliyun_slb":           slbPipelineConfig,
+		"aliyun_waf":           wafPipelineConfig,
 	}
 	return pipelineMap
 }
@@ -78,44 +87,79 @@ func (ag *objectAgent) Run() {
 	if ag.Interval.Duration == 0 {
 		ag.Interval.Duration = time.Minute * 5
 	}
-
-	if ag.Ecs != nil {
-		ag.addModule(ag.Ecs)
+	if ag.Ecs == nil {
+		ag.Ecs = &Ecs{
+			PipelinePath: "aliyun_ecs.p",
+		}
 	}
 	if ag.Slb != nil {
-		ag.addModule(ag.Slb)
+		ag.Slb = &Slb{
+			PipelinePath: "aliyun_slb.p",
+		}
 	}
-	if ag.Oss != nil {
-		ag.addModule(ag.Oss)
+	if ag.Oss == nil {
+		ag.Oss = &Oss{
+			PipelinePath: "aliyun_oss.p",
+		}
 	}
-	if ag.Rds != nil {
-		ag.addModule(ag.Rds)
+	if ag.Rds == nil {
+		ag.Rds = &Rds{
+			PipelinePath: "aliyun_rds.p",
+		}
 	}
-
-	if ag.Ons != nil {
-		ag.addModule(ag.Ons)
+	if ag.Ons == nil {
+		ag.Ons = &Ons{
+			PipelinePath: "aliyun_rocketmq.p",
+		}
 	}
-	if ag.Dds != nil {
-		ag.addModule(ag.Dds)
+	if ag.Dds == nil {
+		ag.Dds = &Dds{
+			PipelinePath: "aliyun_mongodb.p",
+		}
 	}
-	if ag.Domain != nil {
-		ag.addModule(ag.Domain)
+	if ag.Domain == nil {
+		ag.Domain = &Domain{
+			PipelinePath: "aliyun_domain.p",
+		}
 	}
-	if ag.Redis != nil {
-		ag.addModule(ag.Redis)
+	if ag.Redis == nil {
+		ag.Redis = &Redis{
+			PipelinePath: "aliyun_redis.p",
+		}
 	}
-	if ag.Cdn != nil {
-		ag.addModule(ag.Cdn)
+	if ag.Cdn == nil {
+		ag.Cdn = &Cdn{
+			PipelinePath: "aliyun_cdn.p",
+		}
 	}
-	if ag.Waf != nil {
-		ag.addModule(ag.Waf)
+	if ag.Waf == nil {
+		ag.Waf = &Waf{
+			PipelinePath: "aliyun_waf.p",
+		}
 	}
-	if ag.Es != nil {
-		ag.addModule(ag.Es)
+	if ag.Es == nil {
+		ag.Es = &Elasticsearch{
+			PipelinePath: "aliyun_elasticsearch.p",
+		}
 	}
 	if ag.InfluxDB != nil {
-		ag.addModule(ag.InfluxDB)
+		ag.InfluxDB = &InfluxDB{
+			PipelinePath: "aliyun_influxdb.p",
+		}
 	}
+
+	ag.addModule(ag.Ecs)
+	ag.addModule(ag.Slb)
+	ag.addModule(ag.Oss)
+	ag.addModule(ag.Rds)
+	ag.addModule(ag.Ons)
+	ag.addModule(ag.Dds)
+	ag.addModule(ag.Domain)
+	ag.addModule(ag.Redis)
+	ag.addModule(ag.Cdn)
+	ag.addModule(ag.Waf)
+	ag.addModule(ag.Es)
+	ag.addModule(ag.InfluxDB)
 
 	for _, s := range ag.subModules {
 		ag.wg.Add(1)
@@ -145,7 +189,7 @@ func newPipeline(pipelinePath string) (*pipeline.Pipeline, error) {
 	return p, err
 }
 
-func (ag *objectAgent) parseObject(obj interface{}, class, name, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string, tags map[string]string) {
+func (ag *objectAgent) parseObject(obj interface{}, class, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string, tags map[string]string) {
 	if datakit.CheckExcluded(id, blacklist, whitelist) {
 		return
 	}
@@ -154,25 +198,12 @@ func (ag *objectAgent) parseObject(obj interface{}, class, name, id string, pipe
 		moduleLogger.Errorf("[error] json marshal err:%s", err.Error())
 		return
 	}
-	if tags == nil {
-		tags = map[string]string{}
-	}
-	for k, v := range ag.Tags {
-		if _, ok := tags[k]; ok {
-			continue
-		} else {
-			tags[k] = v
-		}
-	}
 	fields, err := pipeline.Run(string(data)).Result()
 	if err != nil {
 		moduleLogger.Errorf("[error] pipeline run err:%s", err.Error())
 		return
 	}
-	fields["content"] = string(data)
-
-	tags["class"] = class
-	tags["name"] = name
+	fields["message"] = string(data)
 
 	io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
 }
