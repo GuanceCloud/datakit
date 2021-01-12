@@ -1,15 +1,18 @@
 package pipeline
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
 
+	influxm "github.com/influxdata/influxdb1-client/models"
 	conv "github.com/spf13/cast"
 	vgrok "github.com/vjeantet/grok"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/patterns"
@@ -25,7 +28,7 @@ type Pipeline struct {
 }
 
 var (
-	l = logger.DefaultSLogger("process")
+	l = logger.DefaultSLogger("pipeline")
 )
 
 func NewPipelineByScriptPath(path string) (*Pipeline, error) {
@@ -45,13 +48,22 @@ func NewPipeline(script string) (*Pipeline, error) {
 	}
 
 	if err := p.parseScript(script); err != nil {
-		return nil, err
+		return p, err
 	}
 
 	return p, nil
 }
 
-func (p *Pipeline) Run(data string) *Pipeline {
+func NewPipelineFromFile(filename string) (*Pipeline, error) {
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	return NewPipeline(string(b))
+}
+
+// PointToJSON, line protocol point to pipeline JSON
+func (p *Pipeline) RunPoint(point influxm.Point) *Pipeline {
 	defer func() {
 		r := recover()
 		if r != nil {
@@ -59,7 +71,37 @@ func (p *Pipeline) Run(data string) *Pipeline {
 		}
 	}()
 
-	var err error
+	m := map[string]interface{}{"measurement": string(point.Name())}
+
+	if tags := point.Tags(); len(tags) > 0 {
+		m["tags"] = map[string]string{}
+		for _, tag := range tags {
+			m["tags"].(map[string]string)[string(tag.Key)] = string(tag.Value)
+		}
+	}
+
+	fields, err := point.Fields()
+	if err != nil {
+		p.lastErr = err
+		return p
+	}
+
+	for k, v := range fields {
+		m[k] = v
+	}
+
+	m["time"] = point.UnixNano()
+
+	j, err := json.Marshal(m)
+	if err != nil {
+		p.lastErr = err
+		return p
+	}
+
+	return p.Run(string(j))
+}
+
+func (p *Pipeline) Run(data string) *Pipeline {
 
 	p.Content = data
 	p.Output = make(map[string]interface{})
@@ -70,29 +112,44 @@ func (p *Pipeline) Run(data string) *Pipeline {
 		return p
 	}
 
-	for _, node := range p.nodes {
-		switch v := node.(type) {
-		case *parser.FuncExpr:
-			fn := strings.ToLower(v.Name)
-			f, ok := funcsMap[fn]
-			if !ok {
-				err := fmt.Errorf("unsupported func: %v", v.Name)
-				l.Error(err)
-				p.lastErr = err
-				return p
-			}
+	var f rtpanic.RecoverCallback
 
-			_, err = f(p, node)
-			if err != nil {
-				l.Errorf("Run func %v: %v", v.Name, err)
-				p.lastErr = err
-				return p
-			}
+	f = func(trace []byte, err error) {
 
-		default:
-			p.lastErr = fmt.Errorf("%v not function", v.String())
+		defer rtpanic.Recover(f, nil)
+
+		if trace != nil {
+			l.Error("panic: %s", string(trace))
+			p.lastErr = fmt.Errorf("%s", trace)
+			return
+		}
+
+		for _, node := range p.nodes {
+			switch v := node.(type) {
+			case *parser.FuncExpr:
+				fn := strings.ToLower(v.Name)
+				f, ok := funcsMap[fn]
+				if !ok {
+					err := fmt.Errorf("unsupported func: %v", v.Name)
+					l.Error(err)
+					p.lastErr = err
+					return
+				}
+
+				_, err = f(p, node)
+				if err != nil {
+					l.Errorf("Run func %v: %v", v.Name, err)
+					p.lastErr = err
+					return
+				}
+
+			default:
+				p.lastErr = fmt.Errorf("%v not function", v.String())
+			}
 		}
 	}
+
+	f(nil, nil)
 	return p
 }
 
@@ -134,6 +191,15 @@ func (p *Pipeline) getContent(key string) interface{} {
 
 func (p *Pipeline) getContentStr(key string) string {
 	return conv.ToString(p.getContent(key))
+}
+
+func (p *Pipeline) getContentStrByCheck(key string) (string, bool) {
+	v := p.getContent(key)
+	if v == nil {
+		return "", false
+	}
+
+	return conv.ToString(v), true
 }
 
 func (p *Pipeline) setContent(k string, v interface{}) {
@@ -182,6 +248,9 @@ func debugNodesHelp(f *parser.FuncExpr, prev string) {
 }
 
 func Init() error {
+
+	l = logger.SLogger("pipeline")
+
 	if err := patterns.InitPatternsFile(); err != nil {
 		return err
 	}

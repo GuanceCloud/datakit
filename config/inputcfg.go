@@ -108,9 +108,6 @@ func LoadInputsConfig(c *datakit.Config) error {
 		}
 	}
 
-	self, _ := inputs.Inputs["self"]
-	inputs.AddSelf(self())
-
 	tgiInput := map[string]*ast.Table{}
 
 	for _, v := range availableTgiInput {
@@ -129,6 +126,12 @@ func LoadInputsConfig(c *datakit.Config) error {
 			return err
 		}
 	}
+
+	inputs.AddSelf()
+	if len(inputs.InputsInfo["telegraf_http"]) == 0 && inputs.HaveTelegrafInputs() {
+		inputs.AddTelegrafHTTP()
+	}
+
 	return nil
 }
 
@@ -213,7 +216,7 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 			return
 		}
 
-		l.Debugf("try set MaxLifeCheckInterval from ", name)
+		l.Debugf("try set MaxLifeCheckInterval from %s", name)
 		trySetMaxPostInterval(t)
 
 		inputList = append(inputList, input)
