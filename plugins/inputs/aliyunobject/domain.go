@@ -1,42 +1,59 @@
 package aliyunobject
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/domain"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
 	domainSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.domain]
+    # ##(optional) ignore this object, default is false
+    #disable = false
+	#pipeline = "aliyun_domain.p"
+    # ##(optional) list of Domain instanceid
+    #instanceids = []
 
-# ## @param - [list of Domain instanceid] - optional
-#instanceids = []
-
-# ## @param - [list of excluded Domain instanceid] - optional
-#exclude_instanceids = []
-
-# ## @param - custom tags for Domain object - [list of key:value element] - optional
-#[inputs.aliyunobject.domain.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded Domain instanceid
+    #exclude_instanceids = []
+`
+	domainPipelineConfig = `
+json(_, InstanceId);
+json(_, DomainStatus);
+json(_, DomainName);
+json(_, DomainType);
+json(_, ExpirationDateStatus);
 `
 )
 
 type Domain struct {
-	Tags               map[string]string `toml:"tags,omitempty"`
-	InstanceIDs        []string          `toml:"instanceids,omitempty"`
-	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	Disable            bool     `toml:"disable"`
+	InstanceIDs        []string `toml:"instanceids,omitempty"`
+	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string   `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
+}
+
+func (dm *Domain) disabled() bool {
+	return dm.Disable
 }
 
 func (dm *Domain) run(ag *objectAgent) {
 	var cli *domain.Client
 	var err error
-
+	p, err := newPipeline(dm.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] domain new pipeline err:%s", err.Error())
+		return
+	}
+	dm.p = p
 	for {
 
 		select {
@@ -66,7 +83,7 @@ func (dm *Domain) run(ag *objectAgent) {
 		req := domain.CreateQueryDomainListRequest()
 
 		for {
-			moduleLogger.Infof("pageNume %v, pagesize %v", pageNum, pageSize)
+			moduleLogger.Debugf("pageNume %v, pagesize %v", pageNum, pageSize)
 
 			req.PageNum = requests.NewInteger(pageNum)
 			req.PageSize = requests.NewInteger(pageSize)
@@ -105,27 +122,10 @@ func (dm *Domain) handleResponse(resp *domain.QueryDomainListResponse, ag *objec
 
 	moduleLogger.Debugf("TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalItemNum, resp.PageSize, resp.CurrentPageNum)
 
-	var objs []map[string]interface{}
-
 	for _, d := range resp.Data.Domain {
-
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`Domain_%s`, d.InstanceId), `aliyun_domain`, d, d.InstanceId, dm.ExcludeInstanceIDs, dm.InstanceIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf("%s_%s", d.InstanceId, d.DomainName),
 		}
+		ag.parseObject(d, "aliyun_domain", d.DomainName, dm.p, dm.ExcludeInstanceIDs, dm.InstanceIDs, tags)
 	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-	io.NamedFeed(data, io.Object, inputName)
 }
