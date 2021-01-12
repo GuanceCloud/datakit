@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -19,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
@@ -32,6 +34,10 @@ var (
 
 	flagListCollectors    = flag.Bool("tree", false, `list vailable collectors`)
 	flagDumpConfigSamples = flag.String("dump-samples", "", `dump all config samples`)
+
+	flagCmd      = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText     = flag.String("pltxt", "", "input text for the pipeline(json or raw text)")
 
 	ReleaseType = ""
 )
@@ -79,6 +85,11 @@ ReleasedInputs: %s
 	}
 
 	datakit.ReleaseType = ReleaseType
+
+	if *flagCmd {
+		runDatakitWithCmd()
+		os.Exit(0)
+	}
 
 	if *flagDumpConfigSamples != "" {
 		dumpAllConfigSamples(*flagDumpConfigSamples)
@@ -269,4 +280,40 @@ func runDatakitWithHTTPServer() error {
 	}()
 
 	return nil
+}
+
+func runDatakitWithCmd() {
+	if *flagPipeline != "" {
+
+		if *flagText == "" {
+			l.Fatal("-pltxt required")
+		}
+
+		if err := pipeline.Init(); err != nil {
+			l.Fatalf("pipeline init failed: %s", err.Error())
+		}
+
+		start := time.Now()
+		pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, *flagPipeline))
+		if err != nil {
+			l.Fatalf("new pipeline failed: %s", err.Error())
+		}
+
+		res, err := pl.Run(*flagText).Result()
+		if err != nil {
+			l.Fatalf("run pipeline failed: %s", err.Error())
+		}
+
+		if len(res) == 0 {
+			fmt.Println("No data extracted from pipeline")
+			return
+		}
+
+		if j, err := json.MarshalIndent(res, "", "    "); err != nil {
+			l.Fatal(err)
+		} else {
+			fmt.Printf("Extracted data(cost: %v):\n", time.Since(start))
+			fmt.Printf("%s\n", string(j))
+		}
+	}
 }
