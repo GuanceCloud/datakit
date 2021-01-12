@@ -3,6 +3,7 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -87,21 +88,25 @@ func (d *Proxy) Run() {
 
 	d.enable = true
 
+	wsurl := datakit.Cfg.MainCfg.DataWay.BuildWSURL(datakit.Cfg.MainCfg)
+	wsurl.RawQuery = ""
+	server := &http.Server{Addr: d.WSBind, Handler: websocketproxy.NewProxy(wsurl)}
+	l.Infof("[info] starting WebSocket proxy on %s, remote: %s", d.WSBind, wsurl.String())
 	go func() {
-		wsurl := datakit.Cfg.MainCfg.DataWay.BuildWSURL(datakit.Cfg.MainCfg)
-		wsurl.RawQuery = ""
-
-		if err := http.ListenAndServe(d.WSBind, websocketproxy.NewProxy(wsurl)); err != nil {
-			l.Error(err)
+		if err := server.ListenAndServe(); err != nil {
+			l.Error(err.Error())
 			return
 		}
 	}()
-
 	l.Infof("proxy input started...")
 
 	select {
 	case <-datakit.Exit.Wait():
 		d.stop()
+		if err := server.Shutdown(context.Background()); err != nil {
+			l.Errorf("[error] shutdown websocket server: %s", err.Error())
+		}
+		l.Infof("[info] websocketproxy closed ")
 		return
 	}
 }
@@ -205,7 +210,7 @@ func (d *Proxy) handle(c *gin.Context) {
 	l.Debugf("receive data, category: %s, len(%d bytes)", category, len(body))
 
 	switch category {
-	case io.Metric, io.Logging, io.KeyEvent:
+	case io.Metric, io.Logging, io.KeyEvent, io.Tracing, io.Rum:
 		if len(d.PointsLuaFiles) == 0 {
 			if err := io.NamedFeed(body, category, inputName); err != nil {
 				l.Error(err)
@@ -252,7 +257,7 @@ func (d *Proxy) handle(c *gin.Context) {
 		}
 
 	default:
-		l.Errorf("invalid category")
+		l.Errorf("invalid category: `%s'", category)
 	}
 
 end:

@@ -1,6 +1,7 @@
 package aliyunobject
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -14,35 +15,39 @@ import (
 
 const (
 	influxDBSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.influxdb]
-#pipeline = "aliyun_influxdb.p"
-# ## @param - [list of influxdb instanceid] - optional
-#instanceids = []
+    # ##(optional) ignore this object, default is false
+    #disable = false
+	#pipeline = "aliyun_influxdb.p"
 
-# ## @param - [list of excluded influxdb instanceid] - optional
-#exclude_instanceids = []
+    # ##(optional) list of influxdb instanceid
+    #instanceids = []
 
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.influxdb.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded influxdb instanceid
+    #exclude_instanceids = []
 `
 	influxDBPipelineConfig = `
-	json(_,InstanceId);
-	json(_,RegionId);
-	json(_,NetworkType);
-	json(_,InstanceClass);
-	json(_,ChargeType);
+json(_, InstanceId);
+json(_, RegionId);
+json(_, NetworkType);
+json(_, InstanceClass);
+json(_, ChargeType);
     
 `
 )
 
 type InfluxDB struct {
-	Tags               map[string]string `toml:"tags,omitempty"`
-	InstancesIDs       []string          `toml:"instanceids,omitempty"`
-	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
-	PipelinePath       string            `toml:"pipeline,omitempty"`
+	Disable            bool     `toml:"disable"`
+	InstancesIDs       []string `toml:"instanceids,omitempty"`
+	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string   `toml:"pipeline,omitempty"`
 
 	p *pipeline.Pipeline
+}
+
+func (e *InfluxDB) disabled() bool {
+	return e.Disable
 }
 
 func (e *InfluxDB) run(ag *objectAgent) {
@@ -119,6 +124,9 @@ func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
 	for _, inst := range gjson.Get(resp, "InstanceList").Array() {
 		name := inst.Get("InstanceAlias").String()
 		id := inst.Get("InstanceId").String()
-		ag.parseObject(inst, "aliyun_influxdb", name, id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
+		tags := map[string]string{
+			"name": fmt.Sprintf("%s_%s", name, id),
+		}
+		ag.parseObject(inst, "aliyun_influxdb", id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, tags)
 	}
 }
