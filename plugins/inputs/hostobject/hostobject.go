@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -71,7 +73,12 @@ func (c *Collector) Run() {
 
 	defer func() {
 		if e := recover(); e != nil {
-			moduleLogger.Errorf("panic error, %v", e)
+			if err := recover(); err != nil {
+				buf := make([]byte, 2048)
+				n := runtime.Stack(buf, false)
+				moduleLogger.Errorf("panic: %s", err)
+				moduleLogger.Errorf("%s", string(buf[:n]))
+			}
 		}
 	}()
 
@@ -97,9 +104,24 @@ func (c *Collector) Run() {
 		cancelFun()
 	}()
 
-	pp, err := pipeline.NewPipeline(c.Pipeline)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
+	script := c.Pipeline
+	if script == "" {
+		scriptPath := filepath.Join(datakit.PipelineDir, inputName+".p")
+		data, err := ioutil.ReadFile(scriptPath)
+		if err == nil {
+			script = string(data)
+		}
+	}
+
+	var pp *pipeline.Pipeline
+
+	if script != "" {
+		p, err := pipeline.NewPipeline(script)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+		} else {
+			pp = p
+		}
 	}
 
 	for {
