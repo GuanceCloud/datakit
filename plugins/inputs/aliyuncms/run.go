@@ -439,7 +439,7 @@ func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 			}
 		}
 
-		moduleLogger.Debugf("get %v datapoints: Namespace=%s, MetricName=%s, Period=%s, StartTime=%s(%s), EndTime=%s(%s), Dimensions=%s, RegionId=%s, NextToken=%s", len(dps), req.q.Namespace, req.q.MetricName, req.q.Period, req.q.StartTime, logStarttime, req.q.EndTime, logEndtime, req.q.Dimensions, req.q.RegionId, resp.NextToken)
+		moduleLogger.Debugf("get %v datapoints: Namespace = %s, MetricName = %s, Period = %s, StartTime = %s(%s), EndTime = %s(%s), Dimensions = %s, RegionId = %s, NextToken = %s", len(dps), req.q.Namespace, req.q.MetricName, req.q.Period, req.q.StartTime, logStarttime, req.q.EndTime, logEndtime, req.q.Dimensions, req.q.RegionId, resp.NextToken)
 
 		if err != nil {
 			break
@@ -481,23 +481,16 @@ func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 
 		fields := make(map[string]interface{})
 
-		if average, ok := datapoint["Average"]; ok {
-			fields[formatField(metricName, "Average")] = average
-		}
-		if minimum, ok := datapoint["Minimum"]; ok {
-			fields[formatField(metricName, "Minimum")] = minimum
-		}
-		if maximum, ok := datapoint["Maximum"]; ok {
-			fields[formatField(metricName, "Maximum")] = maximum
-		}
-		if value, ok := datapoint["Value"]; ok {
-			fields[formatField(metricName, "Value")] = value
-		}
-		if value, ok := datapoint["Sum"]; ok {
-			fields[formatField(metricName, "Sum")] = value
-		}
-		if value, ok := datapoint["SumPerMinute"]; ok {
-			fields[formatField(metricName, "SumPerMinute")] = value
+		for _, k := range valueKeys {
+			v := datapoint[k]
+			if v == nil {
+				continue
+			}
+			if sv, ok := v.(string); ok && sv == "" {
+				fields[formatField(metricName, k)] = float64(0)
+			} else {
+				fields[formatField(metricName, k)] = v
+			}
 		}
 
 		for _, k := range supportedDimensions {
