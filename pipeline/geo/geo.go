@@ -38,10 +38,8 @@ func Geo(ip string) (ipL.IP2Locationrecord, error) {
 	return record, err
 }
 
-func init() {
+func Init() error {
 	var err error
 	Db, err = ipL.OpenDB(Ip2LocDbPath)
-	if err != nil {
-		l.Warnf("Open %v db err %v", Ip2LocDbPath, err)
-	}
+	return err
 }
