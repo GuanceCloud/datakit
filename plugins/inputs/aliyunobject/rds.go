@@ -24,9 +24,20 @@ const (
     # ##(optional) list of excluded rds instanceid
     #exclude_db_instanceids = []
 `
+	rdsPipelineConfig = `
+json(_, DBInstanceId);
+json(_, DBInstanceType);
+json(_, RegionId);
+json(_, Engine);
+json(_, DBInstanceClass);
+`
+)
+
+type Rds struct {
 	Disable              bool     `toml:"disable"`
 	DBInstancesIDs       []string `toml:"db_instanceids,omitempty"`
 	ExcludeDBInstanceIDs []string `toml:"exclude_db_instanceids,omitempty"`
+	PipelinePath         string   `toml:"pipeline,omitempty"`
 
 	p *pipeline.Pipeline
 }
