@@ -1,9 +1,9 @@
 package util
 
 import (
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark/protocol"
 	"net"
 	"strings"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark/protocol"
 )
 
 func IsSupport(pro string) bool {
@@ -24,9 +24,9 @@ func IsSupport(pro string) bool {
 
 func IsIP(ipstr string) bool {
 	address := net.ParseIP(ipstr)
-    if address != nil {
-        return true
-    }
+	if address != nil {
+		return true
+	}
 
-    return false
+	return false
 }

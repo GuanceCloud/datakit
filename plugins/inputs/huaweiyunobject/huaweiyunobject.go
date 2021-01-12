@@ -129,7 +129,7 @@ func (ag *objectAgent) parseObject(obj interface{}, name, class, id string, pipe
 		return err
 	}
 
-	fields["content"] = string(data)
+	fields["message"] = string(data)
 
 	tags := map[string]string{
 		"name": name,
