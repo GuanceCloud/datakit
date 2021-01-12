@@ -1,10 +1,10 @@
 package baiduIndex
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"time"
-	"bytes"
 
 	"github.com/tidwall/gjson"
 
@@ -296,12 +296,12 @@ func (b *BaiduIndex) Test() (*inputs.TestResult, error) {
 
 	b.command()
 
-    res := &inputs.TestResult {
-    	Result: b.resData,
-    	Desc: "success!",
-    }
+	res := &inputs.TestResult{
+		Result: b.resData,
+		Desc:   "success!",
+	}
 
-    return res, nil
+	return res, nil
 }
 
 func init() {

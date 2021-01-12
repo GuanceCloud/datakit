@@ -120,7 +120,7 @@ func TestRange(t *testing.T) {
 		fmt.Println("ready")
 	}()
 	go func() {
-		<- c
+		<-c
 		fmt.Println("shoudao")
 		cancelFun()
 
@@ -129,6 +129,5 @@ func TestRange(t *testing.T) {
 	for i := 0; i < 100000000; i++ {
 		fmt.Println(i)
 	}
-
 
 }
