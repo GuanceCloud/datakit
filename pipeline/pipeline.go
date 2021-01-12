@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/patterns"
 )
@@ -221,15 +222,6 @@ func (pl *Pipeline) parseScript(script string) error {
 		return err
 	}
 
-	for _, node := range nodes {
-		switch v := node.(type) {
-		case *parser.FuncExpr:
-			debugNodesHelp(v, "")
-		default:
-			return fmt.Errorf("should not been here")
-		}
-	}
-
 	pl.nodes = nodes
 	return nil
 }
@@ -248,6 +240,10 @@ func debugNodesHelp(f *parser.FuncExpr, prev string) {
 func Init() error {
 
 	l = logger.SLogger("pipeline")
+
+	if err := geo.Init(); err != nil {
+		return err
+	}
 
 	if err := patterns.InitPatternsFile(); err != nil {
 		return err
