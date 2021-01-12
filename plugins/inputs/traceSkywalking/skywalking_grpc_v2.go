@@ -17,9 +17,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceSkywalking/v2/register"
 )
 
-type SkywalkingServerV2          struct{}
-type SkywalkingRegisterServerV2  struct{}
-type SkywalkingPingServerV2      struct{}
+type SkywalkingServerV2 struct{}
+type SkywalkingRegisterServerV2 struct{}
+type SkywalkingPingServerV2 struct{}
 type SkywalkingJVMMetricServerV2 struct{}
 
 var (
@@ -36,7 +36,6 @@ var (
 	RegEndpoint    = &sync.Map{} //key: id,           value: endpointName
 	RegEndpointRev = &sync.Map{} //key: endpointName, value: id
 )
-
 
 func SkyWalkingServerRunV2(addr string) {
 	log.Infof("skywalking V2 gRPC starting...")
