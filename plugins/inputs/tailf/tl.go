@@ -140,8 +140,11 @@ func (t *tailer) receiver() {
 type multilineStatus int
 
 const (
+	// tail channel 关闭，执行 return
 	_return multilineStatus = iota
+	// multiline 判断数据为多行，将数据存入缓存，继续读取下一行
 	_continue
+	// multiline 判断多行数据结束，将缓存中的数据放出，继续执行后续处理
 	_next
 )
 
