@@ -2,6 +2,7 @@ package aliyunobject
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -12,39 +13,39 @@ import (
 
 const (
 	redisSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.redis]
-
-#pipeline = "aliyun_redis.p"
-
-# ## @param - [list of redis instanceid] - optional
-#instanceids = []
-
-# ## @param - [list of excluded redis instanceid] - optional
-#exclude_instanceids = []
-
-# ## @param - custom tags for redis object - [list of key:value element] - optional
-#[inputs.aliyunobject.redis.tags]
-# key1 = 'val1'
+    # ##(optional) ignore this object, default is false
+    #disable = false
+	#pipeline = "aliyun_redis.p"
+    # ##(optional) list of redis instanceid
+    #instanceids = []
+    # ##(optional) list of excluded redis instanceid
+    #exclude_instanceids = []
+	# ## @param - custom tags for redis object - [list of key:value element] - optional
+	
 `
 	redisPipelineConifg = `
-
-	json(_,InstanceName,name);
-	json(_,RegionId);
-	json(_,InstanceStatus);
-	json(_,InstanceId);
-	json(_,NetworkType);
-	json(_,ChargeType);
-
+json(_, InstanceName, name);
+json(_, RegionId);
+json(_, InstanceStatus);
+json(_, InstanceId);
+json(_, NetworkType);
+json(_, ChargeType);
 `
 )
 
 type Redis struct {
-	Tags               map[string]string `toml:"tags"`
-	InstancesIDs       []string          `toml:"instanceids,omitempty"`
-	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
-	PipelinePath       string            `toml:"pipeline,omitempty"`
+	Disable            bool     `toml:"disable"`
+	InstancesIDs       []string `toml:"instanceids,omitempty"`
+	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string   `toml:"pipeline,omitempty"`
 
 	p *pipeline.Pipeline
+}
+
+func (e *Redis) disabled() bool {
+	return e.Disable
 }
 
 func (e *Redis) run(ag *objectAgent) {
@@ -122,6 +123,9 @@ func (e *Redis) run(ag *objectAgent) {
 func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *objectAgent) {
 	moduleLogger.Debugf("redis TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 	for _, inst := range resp.Instances.KVStoreInstance {
-		ag.parseObject(inst, "aliyun_redis", inst.InstanceName, inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, e.Tags)
+		tags := map[string]string{
+			"name": fmt.Sprintf(`%s_%s`, inst.InstanceName, inst.InstanceId),
+		}
+		ag.parseObject(inst, "aliyun_redis", inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, tags)
 	}
 }

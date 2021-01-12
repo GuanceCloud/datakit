@@ -25,8 +25,8 @@ type Httpstat struct {
 	Actions          []*Action `toml:"action"`
 	httpPing         []*httpPing
 	IntervalDuration time.Duration `json:"-" toml:"-"`
-	test             bool           `toml:"-"`
-	resData          []byte         `toml:"-"`
+	test             bool          `toml:"-"`
+	resData          []byte        `toml:"-"`
 }
 
 type Action struct {
