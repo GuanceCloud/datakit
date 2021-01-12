@@ -34,5 +34,3 @@ func ExecCmd(cmds string) (string, error) {
 	stdout, err := cmd.CombinedOutput()
 	return string(stdout), err
 }
-
-
