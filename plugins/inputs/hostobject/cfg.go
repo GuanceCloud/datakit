@@ -14,6 +14,9 @@ const (
 # ##(optional) collect interval, default is 3 miniutes
 #interval = '3m'
 
+# ##(optional) 
+#pipeline = ''
+
 # ##(optional) custom tags
 #[inputs.hostobject.tags]
 # key1 = 'val1'

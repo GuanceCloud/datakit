@@ -2,6 +2,8 @@ package logstash_influxdb_output
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -10,11 +12,11 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
 )
@@ -48,11 +50,24 @@ func (r *logstashInfluxdbOutput) Test() (result *inputs.TestResult, err error) {
 func (r *logstashInfluxdbOutput) RegHttpHandler() {
 	moduleLogger = logger.SLogger(inputName)
 
+	script := r.Pipeline
+	if script == "" {
+		scriptPath := filepath.Join(datakit.PipelineDir, inputName+".p")
+		data, err := ioutil.ReadFile(scriptPath)
+		if err == nil {
+			script = string(data)
+		}
+	}
+
 	r.pipelinePool = &sync.Pool{
 		New: func() interface{} {
-			p, err := pipeline.NewPipeline(r.Pipeline)
+			if script == "" {
+				return nil
+			}
+			p, err := pipeline.NewPipeline(script)
 			if err != nil {
 				moduleLogger.Errorf("%s", err)
+				return nil
 			}
 			return p
 		},
