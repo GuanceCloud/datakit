@@ -23,6 +23,9 @@ const (
     # required
     source = ""
 
+    # grok pipeline script path
+    pipeline_path = ""
+
     # read file from beginning
     # if from_begin was false, off auto discovery file
     from_beginning = false
