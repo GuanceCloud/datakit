@@ -13,34 +13,46 @@ func assertEqual(t *testing.T, a, b interface{}) {
 }
 
 func TestGrokFunc(t *testing.T) {
-	Init()
-	js := `127.0.0.1 - - [23/Apr/2014:22:58:32 +0200] "GET /index.php HTTP/1.1" 404 207`
-	script := `grok(_, "%{_commonapachelog}");`
+	script := `
+add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)");
+add_pattern("_minute", "(?:[0-5][0-9])");
+add_pattern("_hour", "(?:2[0123]|[01]?[0-9])");
+add_pattern("time", "([^0-9]?)%{_hour:hour}:%{_minute:minute}(?::%{_second:second})([^0-9]?)");
+grok(_, "%{time}");`
 
 	p, err := NewPipeline(script)
 	assertEqual(t, err, nil)
 
-	p.Run(js)
+	p.Run("12:13:14")
 	assertEqual(t, p.lastErr, nil)
 
-	r := p.getContentStr("clientip")
-	assertEqual(t, r, "127.0.0.1")
+	hour := p.getContentStr("hour")
+	assertEqual(t, hour, "12")
+
+	minute := p.getContentStr("minute")
+	assertEqual(t, minute, "13")
+
+	second := p.getContentStr("second")
+	assertEqual(t, second, "14")
 }
 
 func TestRenameFunc(t *testing.T) {
-	Init()
-	js := `127.0.0.1 - - [23/Apr/2014:22:58:32 +0200] "GET /index.php HTTP/1.1" 404 207`
-	script := `grok(_, "%{_commonapachelog}");
-rename(newkey, clientip)`
+	script := `
+add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)");
+add_pattern("_minute", "(?:[0-5][0-9])");
+add_pattern("_hour", "(?:2[0123]|[01]?[0-9])");
+add_pattern("time", "([^0-9]?)%{_hour:hour}:%{_minute:minute}(?::%{_second:second})([^0-9]?)");
+grok(_, "%{time}");
+rename(newhour, hour)`
 
 	p, err := NewPipeline(script)
 	assertEqual(t, err, nil)
 
-	p.Run(js)
+	p.Run("12:13:14")
 	assertEqual(t, p.lastErr, nil)
 
-	r := p.getContentStr("newkey")
-	assertEqual(t, r, "127.0.0.1")
+	r := p.getContentStr("newhour")
+	assertEqual(t, r, "12")
 }
 
 func TestExprFunc(t *testing.T) {
