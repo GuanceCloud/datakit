@@ -1,7 +1,6 @@
 package aliyunobject
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -9,7 +8,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
@@ -25,6 +24,16 @@ const (
     # ##(optional) list of excluded rds instanceid
     #exclude_db_instanceids = []
 `
+	rdsPipelineConifg = `
+
+json(_,InstanceName,name);
+json(_,RegionId);
+json(_,Status);
+json(_,InstanceId);
+json(_,NetworkType);
+json(_,InstanceChargeType);
+
+`
 )
 
 type Rds struct {
@@ -32,6 +41,10 @@ type Rds struct {
 	Tags                 map[string]string `toml:"tags,omitempty"`
 	DBInstancesIDs       []string          `toml:"db_instanceids,omitempty"`
 	ExcludeDBInstanceIDs []string          `toml:"exclude_db_instanceids,omitempty"`
+
+	PipelinePath string `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (r *Rds) disabled() bool {
@@ -41,6 +54,12 @@ func (r *Rds) disabled() bool {
 func (r *Rds) run(ag *objectAgent) {
 	var cli *rds.Client
 	var err error
+	p, err := newPipeline(r.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("%s", err.Error())
+		return
+	}
+	r.p = p
 
 	for {
 
@@ -119,31 +138,7 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 
 	moduleLogger.Debugf("TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalRecordCount, resp.PageRecordCount, resp.PageNumber)
 
-	var objs []map[string]interface{}
-
 	for _, db := range resp.Items.DBInstance {
-
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s_%s`, db.DBInstanceDescription, db.DBInstanceId), `aliyun_rds`, db, db.DBInstanceId, r.ExcludeDBInstanceIDs, r.DBInstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
-		}
-	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-	if ag.isDebug() {
-		fmt.Printf("%s\n", string(data))
-	} else {
-		io.NamedFeed(data, io.Object, inputName)
+		ag.parseObject(db, "aliyun_rds", fmt.Sprintf(`%s_%s`, db.DBInstanceDescription, db.DBInstanceId), db.DBInstanceId, r.p, r.ExcludeDBInstanceIDs, r.DBInstancesIDs, r.Tags)
 	}
 }
