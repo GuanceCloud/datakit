@@ -4,13 +4,9 @@ import (
 	"context"
 	"time"
 
-	"golang.org/x/time/rate"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
 
 var (
@@ -100,18 +96,6 @@ var (
 
 var moduleLogger *logger.Logger
 
-type (
-	runningInstance struct {
-		cfg *CMS
-
-		cmsClient *cms.Client
-
-		reqs []*MetricsRequest
-
-		limiter *rate.Limiter
-	}
-)
-
 func (_ *CMS) SampleConfig() string {
 	return aliyuncmsConfigSample
 }
@@ -124,28 +108,24 @@ func (_ *CMS) Test() (*inputs.TestResult, error) {
 	return nil, nil
 }
 
-func (ac *CMS) Run() {
+func (c *CMS) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
 
 	go func() {
 		<-datakit.Exit.Wait()
-		ac.cancelFun()
+		c.cancelFun()
 	}()
 
-	if ac.Delay.Duration == 0 {
-		ac.Delay.Duration = time.Minute * 5
+	if c.Delay.Duration == 0 {
+		c.Delay.Duration = time.Minute * 5
 	}
 
-	if ac.Interval.Duration == 0 {
-		ac.Interval.Duration = time.Minute * 5
+	if c.Interval.Duration == 0 {
+		c.Interval.Duration = time.Minute * 5
 	}
 
-	rc := &runningInstance{
-		cfg: ac,
-	}
-
-	rc.run(ac.ctx)
+	c.run(c.ctx)
 }
 
 func NewAgent() *CMS {
