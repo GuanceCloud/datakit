@@ -9,14 +9,110 @@ import (
 	"github.com/influxdata/toml/ast"
 )
 
-func TestEnableInputs(t *testing.T) {
-	fpath, sample, err := doEnableInput("timezone")
-	if err != nil {
-		t.Fatal(err)
+var tomlParseCases = []struct {
+	in string
+}{
+	{
+		in: `
+		[[inputs.abc]]
+			key1 = "1-line-string"
+			key2 = '''multili
+			string
+			'''`,
+	},
+
+	{
+		in: `
+[[inputs.abc]]
+	key1 = 1
+	key2 = "a"
+	key3 = 3.14`,
+	},
+
+	{
+		in: `
+[[inputs.abc]]
+	key1 = 11
+	key2 = "aa"
+	key3 = 6.28`,
+	},
+
+	{
+		in: `
+[[inputs.abc]]
+	key1 = 22
+	key2 = "aaa"
+	key3 = 6.18`,
+	},
+	{
+		in: `
+[[inputs.def]]
+	key1 = 22
+	key2 = "aaa"
+	key3 = 6.18`,
+	},
+}
+
+func TestTomlParse(t *testing.T) {
+
+	type obj struct {
+		Key1 int     `toml:"key1"`
+		Key2 string  `toml:"key2"`
+		Key3 float64 `toml:"key3"`
 	}
 
-	t.Logf("fpath: %s, sample: %s", fpath, sample)
+	for _, tcase := range tomlParseCases {
+		tbl, err := toml.Parse([]byte(tcase.in))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if tbl.Fields == nil {
+			t.Fatal("empty data")
+		}
+
+		for f, v := range tbl.Fields {
+
+			switch f {
+
+			default:
+				// ignore
+				t.Logf("ignore %+#v", f)
+
+			case "inputs":
+				switch tpe := v.(type) {
+				case *ast.Table:
+					stbl := v.(*ast.Table)
+
+					for _, vv := range stbl.Fields {
+						switch tt := vv.(type) {
+						case []*ast.Table:
+							for idx, elem := range vv.([]*ast.Table) {
+								t.Logf("[%d] %+#v, source: %s", idx, elem, elem.Source())
+							}
+						case *ast.Table:
+							t.Logf("%+#v, source: %s", vv.(*ast.Table), vv.(*ast.Table).Source())
+						default:
+							t.Logf("bad data: %v", tt)
+						}
+					}
+
+				default:
+					t.Logf("unknown type: %v", tpe)
+				}
+			}
+		}
+	}
 }
+
+//func TestEnableInputs(t *testing.T) {
+//	fpath, sample, err := doEnableInput("timezone")
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	t.Logf("fpath: %s, sample: %s", fpath, sample)
+//}
 
 func TestBuildInputCfg(t *testing.T) {
 
@@ -61,14 +157,14 @@ func TestBuildInputCfg(t *testing.T) {
 	t.Logf("sample: %s", sample)
 }
 
-func TestLoadMainCfg(t *testing.T) {
-
-	c := datakit.Cfg
-	if err := c.LoadMainConfig(); err != nil {
-		t.Errorf("%s", err)
-	}
-}
-
+//func TestLoadMainCfg(t *testing.T) {
+//
+//	c := datakit.Cfg
+//	if err := c.LoadMainConfig(); err != nil {
+//		t.Errorf("%s", err)
+//	}
+//}
+//
 func TestTomlUnmarshal(t *testing.T) {
 	x := []byte(`
 global = "global config"
@@ -136,81 +232,6 @@ global = "global config"
 			default:
 				t.Logf("unknown type: %v", tpe)
 			}
-		}
-	}
-}
-
-func TestTomlParse(t *testing.T) {
-	x := []byte(`
-[[inputs.abc]]
-	key1 = 1
-	key2 = "a"
-	key3 = 3.14
-
-[[inputs.abc]]
-	key1 = 11
-	key2 = "aa"
-	key3 = 6.28
-
-[[inputs.abc]]
-	key1 = 22
-	key2 = "aaa"
-	key3 = 6.18
-
-[[inputs.def]]
-	key1 = 22
-	key2 = "aaa"
-	key3 = 6.18
-
-	`)
-
-	type obj struct {
-		Key1 int     `toml:"key1"`
-		Key2 string  `toml:"key2"`
-		Key3 float64 `toml:"key3"`
-	}
-
-	tbl, err := toml.Parse(x)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if tbl.Fields == nil {
-		t.Fatal("empty data")
-	}
-
-	for f, v := range tbl.Fields {
-		switch f {
-		case "inputs":
-			stbl := v.(*ast.Table)
-			t.Logf("stbl: %+#v", stbl)
-
-			for k, vv := range stbl.Fields {
-				tbls := []*ast.Table{}
-
-				switch tpe := vv.(type) {
-				case []*ast.Table:
-					tbls = vv.([]*ast.Table)
-				case *ast.Table:
-					tbls = append(tbls, vv.(*ast.Table))
-				default:
-					t.Fatalf("bad data: %v", tpe)
-				}
-
-				t.Logf("elems: %d", len(tbls))
-
-				for idx, elem := range tbls {
-					var o obj
-					if err := toml.UnmarshalTable(elem, &o); err != nil {
-						t.Errorf(err.Error())
-					} else {
-						t.Logf("[%s] %d: %+#v\n", k, idx, o)
-					}
-				}
-			}
-
-		default:
-			t.Fatal("bad data")
 		}
 	}
 }

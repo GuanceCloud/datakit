@@ -125,7 +125,7 @@ func (c *Clb) handleResponse(resp *clb.DescribeLoadBalancersResponse, ag *object
 			io.NamedFeed(data, io.Object, inputName)
 		}
 	} else {
-			moduleLogger.Errorf("%s", err)
-			return
-		}
+		moduleLogger.Errorf("%s", err)
+		return
+	}
 }
