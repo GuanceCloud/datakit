@@ -3,6 +3,7 @@ package install
 import (
 	"archive/tar"
 	"compress/gzip"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -42,6 +43,10 @@ func (wc *writeCounter) PrintProgress() {
 }
 
 func Download(from, to string) {
+
+	// disable SSL verify for some bad client
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
 	resp, err := http.Get(from) //nolint:gosec
 	if err != nil {
 		l.Fatalf("failed to download %s: %s", from, err)
