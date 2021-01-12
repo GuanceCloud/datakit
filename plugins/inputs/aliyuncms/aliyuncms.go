@@ -92,6 +92,15 @@ var (
 		"regionName",
 		"SubscriptionName",
 	}
+
+	valueKeys = []string{
+		"Average",
+		"Minimum",
+		"Maximum",
+		"Value",
+		"Sum",
+		"SumPerMinute",
+	}
 )
 
 var moduleLogger *logger.Logger
