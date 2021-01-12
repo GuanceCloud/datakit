@@ -93,11 +93,12 @@ function_exprs: function_expr
 		 }
 		 | function_exprs SEMICOLON function_expr
 		 {
-             $1 = append($1, $3)
+			 $1 = append($1, $3)
 			 $$ = $1
 		 }
-		 | function_exprs SEMICOLON
+		 | function_exprs function_expr
 		 {
+			 $1 = append($1, $2)
 			 $$ = $1
 		 }
 		 ;
