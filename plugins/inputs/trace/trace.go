@@ -55,11 +55,11 @@ const (
 	SPAN_TYPE_LOCAL       = "local"
 	SPAN_TYPE_EXIT        = "exit"
 
-	STATUS_OK   = "ok"
-	STATUS_ERR  = "error"
-	STATUS_INFO = "info"
-	STATUS_WARN = "warning"
-	STATUS_CRITICAL ="critical"
+	STATUS_OK       = "ok"
+	STATUS_ERR      = "error"
+	STATUS_INFO     = "info"
+	STATUS_WARN     = "warning"
+	STATUS_CRITICAL = "critical"
 )
 
 var (
@@ -70,7 +70,7 @@ var (
 func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
-	
+
 	tags["operation"] = tAdpt.OperationName
 	tags["service"] = tAdpt.ServiceName
 	tags["parent_id"] = tAdpt.ParentID
@@ -152,7 +152,7 @@ func ParseHttpReq(r *http.Request) (*TraceReqInfo, error) {
 
 func ReadCompressed(body *bytes.Reader, isGzip bool) ([]byte, error) {
 	var data []byte
-	var err  error
+	var err error
 
 	if isGzip {
 		reader, err := gzip.NewReader(body)

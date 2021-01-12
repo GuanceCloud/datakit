@@ -1,31 +1,31 @@
 package cshark
 
 import (
-	"fmt"
-	"time"
 	"bufio"
-    "strconv"
+	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"strconv"
+	"time"
 	// "github.com/gcla/termshark/v2"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark/util"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark/protocol"
 	"encoding/json"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark/protocol"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark/util"
 	"strings"
 )
 
 const (
-	SEPARATOR = "#"
+	SEPARATOR = "~"
 )
 
 var (
-	l          *logger.Logger
-	inputName  = "cshark"
-	optChan = make(chan *Params)
-	params  *Params
-	duration int64
+	l         *logger.Logger
+	inputName = "cshark"
+	optChan   = make(chan *Params)
+	params    *Params
+	duration  int64
 )
 
 func (_ *Shark) SampleConfig() string {
@@ -60,7 +60,7 @@ func SendCmdOpt(opt string) error {
 			fmt.Println("send success!")
 			params.Fin = make(chan error)
 
-			err := <- params.Fin
+			err := <-params.Fin
 
 			if err != nil {
 				return err
@@ -118,7 +118,7 @@ func (s *Shark) Run() {
 lable:
 	for {
 		select {
-		case opt := <- optChan:
+		case opt := <-optChan:
 			if err := s.Exec(); err != nil {
 				l.Errorf("exec error %v", err)
 			}
@@ -136,8 +136,8 @@ lable:
 
 // 参数解析
 func parseParam(option string) error {
+	params = new(Params)
 	if err := json.Unmarshal([]byte(option), &params); err != nil {
-		// l.Errorf("parsse option error:%v", err)
 		return fmt.Errorf("parsse option error:%v", err)
 	}
 
@@ -151,6 +151,10 @@ func checkParam() error {
 		return fmt.Errorf("not support this protocol %s", params.Stream.Protocol)
 	}
 
+	if len(params.Stream.Duration) == 0 {
+		params.Stream.Duration = "1m"
+	}
+
 	// 时间check(todo)
 	du, err := time.ParseDuration(params.Stream.Duration)
 	if err != nil {
@@ -158,7 +162,7 @@ func checkParam() error {
 		l.Error(err)
 	}
 
-	duration = du.Nanoseconds()/1e9
+	duration = du.Nanoseconds() / 1e9
 
 	// src ip check
 	for _, ip := range params.Stream.SrcIPs {
@@ -184,7 +188,7 @@ func checkParam() error {
 
 	// pfb校验(todo)
 
-    return nil
+	return nil
 }
 
 // 构建抓包命令行
@@ -197,9 +201,9 @@ func (s *Shark) buildCommand() string {
 	args = append(args, s.TsharkPath)
 
 	// 控制参数
-	args = append(args,"-l")
-	for _, iface := range params.Device {
-		args = append(args, "-i", iface)
+	args = append(args, "-l")
+	if len(params.Device) > 0 {
+		args = append(args, "-i", params.Device)
 	}
 
 	if len(params.Device) == 0 {
@@ -217,47 +221,116 @@ func (s *Shark) buildCommand() string {
 
 	// 过滤器 (todo)
 	if params.Stream.Filter != "" {
-		args = append(args, "-f", params.Stream.Filter)
+		filter := fmt.Sprintf("'%s'", params.Stream.Filter)
+		args = append(args, "-f", filter)
 	}
 
 	// 端口
-	if len(params.Stream.Ports) > 0 {
+	// if len(params.Stream.Ports) > 0 {
+	// 	for _, port := range params.Stream.Ports {
+	// 		portFilterStr += "port " + port + " or "
+	// 	}
+	// 	portFilterStr = strings.Trim(portFilterStr, "or ")
+	// 	portFilterStr = fmt.Sprintf("'%s'", portFilterStr)
+	// 	args = append(args, "-f", portFilterStr)
+	// }
+
+	// ip
+	if (len(params.Stream.SrcIPs) > 0) && (len(params.Stream.DstIPs) == 0) && (len(params.Stream.Ports) == 0) {
+		var filterStr string
+
+		for _, srcIP := range params.Stream.SrcIPs {
+			srcIPFilterStr += "src host " + srcIP + " or "
+		}
+		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
+
+		if strings.ToUpper(params.Stream.Protocol) == "TCP" || strings.ToUpper(params.Stream.Protocol) == "UDP" {
+			filterStr = fmt.Sprintf("'%s and (%s)'", params.Stream.Protocol, srcIPFilterStr)
+		} else {
+			filterStr = fmt.Sprintf("'%s'", srcIPFilterStr)
+		}
+
+		args = append(args, "-f", filterStr)
+	}
+
+	if (len(params.Stream.DstIPs) > 0) && (len(params.Stream.SrcIPs) == 0) && (len(params.Stream.Ports) == 0) {
+		var filterStr string
+
+		for _, dstIP := range params.Stream.DstIPs {
+			dstIPFilterStr += "dst host " + dstIP + " or "
+		}
+		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
+
+		if strings.ToUpper(params.Stream.Protocol) == "TCP" || strings.ToUpper(params.Stream.Protocol) == "UDP" {
+			filterStr = fmt.Sprintf("'%s and (%s)'", params.Stream.Protocol, dstIPFilterStr)
+		} else {
+			filterStr = fmt.Sprintf("'%s'", dstIPFilterStr)
+		}
+
+		args = append(args, "-f", filterStr)
+	}
+
+	if (len(params.Stream.SrcIPs) > 0) && (len(params.Stream.DstIPs) > 0) && (len(params.Stream.Ports) == 0) {
+		var filterStr string
+		for _, srcIP := range params.Stream.SrcIPs {
+			srcIPFilterStr += "src host " + srcIP + " or "
+		}
+		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
+
+		for _, dstIP := range params.Stream.DstIPs {
+			dstIPFilterStr += "dst host " + dstIP + " or "
+		}
+
+		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
+
+		if strings.ToUpper(params.Stream.Protocol) == "TCP" || strings.ToUpper(params.Stream.Protocol) == "UDP" {
+			filterStr = fmt.Sprintf("'%s and (%s) and (%s)'", params.Stream.Protocol, srcIPFilterStr, dstIPFilterStr)
+		} else {
+			filterStr = fmt.Sprintf("'(%s) and (%s)'", srcIPFilterStr, dstIPFilterStr)
+		}
+
+		args = append(args, "-f", filterStr)
+	}
+
+	if (len(params.Stream.DstIPs) > 0) && (len(params.Stream.SrcIPs) > 0) && (len(params.Stream.Ports) > 0) {
+		var filterStr string
+
+		for _, srcIP := range params.Stream.SrcIPs {
+			srcIPFilterStr += "src host " + srcIP + " or "
+		}
+		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
+
+		for _, dstIP := range params.Stream.DstIPs {
+			dstIPFilterStr += "dst host " + dstIP + " or "
+		}
+
+		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
+
 		for _, port := range params.Stream.Ports {
 			portFilterStr += "port " + port + " or "
 		}
 		portFilterStr = strings.Trim(portFilterStr, "or ")
 
-		args = append(args, "-f", portFilterStr)
-	}
-
-	// ip
-	if len(params.Stream.SrcIPs) > 0 {
-		for _, srcIP := range params.Stream.SrcIPs {
-			srcIPFilterStr += "src host " + srcIP + " or "
+		if strings.ToUpper(params.Stream.Protocol) == "TCP" || strings.ToUpper(params.Stream.Protocol) == "UDP" {
+			filterStr = fmt.Sprintf("'%s and (%s) and (%s) and (%s)'", params.Stream.Protocol, portFilterStr, srcIPFilterStr, dstIPFilterStr)
+		} else {
+			filterStr = fmt.Sprintf("'(%s) and (%s) and (%s)'", portFilterStr, srcIPFilterStr, dstIPFilterStr)
 		}
-		srcIPFilterStr = strings.Trim(srcIPFilterStr, "or ")
-		args = append(args, "-f", srcIPFilterStr)
-	}
 
-	if len(params.Stream.DstIPs) > 0 {
-		for _, dstIP := range params.Stream.DstIPs {
-			dstIPFilterStr += "dst host " + dstIP + " or "
-		}
-		dstIPFilterStr = strings.Trim(dstIPFilterStr, "or ")
-		args = append(args, "-f", dstIPFilterStr)
+		args = append(args, "-f", filterStr)
 	}
 
 	if len(params.Stream.Protocol) > 0 {
 		args = append(args, "-Y", params.Stream.Protocol)
 
 		// 协议分发
-		switch	strings.ToUpper(params.Stream.Protocol) {
-			case "HTTP":
-				protocol.CommonItems = append(protocol.CommonItems, protocol.HttpItems...)
-			case "MYSQL":
-				protocol.CommonItems = append(protocol.CommonItems, protocol.MysqlItems...)
-			case "DNS":
-				protocol.CommonItems = append(protocol.CommonItems, protocol.DnslItems...)
+		switch strings.ToUpper(params.Stream.Protocol) {
+		case "HTTP":
+			protocol.CommonItems = append(protocol.CommonItems, protocol.HttpItems...)
+		case "MYSQL":
+			protocol.CommonItems = append(protocol.CommonItems, protocol.MysqlItems...)
+		case "DNS":
+			protocol.CommonItems = append(protocol.CommonItems, protocol.DnslItems...)
 		}
 	}
 
@@ -329,13 +402,15 @@ func (s *Shark) streamExec(cmdStr string) error {
 		return err
 	}
 
+	fmt.Println("exec complete, exit...")
+
 	return nil
 }
 
 func (s *Shark) parseLine(line string) []byte {
 	var (
-		tm time.Time
-		tags = map[string]string{}
+		tm     time.Time
+		tags   = map[string]string{}
 		fields = map[string]interface{}{}
 	)
 
@@ -345,25 +420,27 @@ func (s *Shark) parseLine(line string) []byte {
 	}
 
 	for idx, item := range items {
-		field := protocol.CommonItems[idx]
+		if idx < len(protocol.CommonItems) {
+			field := protocol.CommonItems[idx]
 
-		if idx > 0 {
-			if field.Tag {
-				tags[field.Header] = item
-			} else {
-				if field.Type == "Int" {
-					if val, err := strconv.ParseInt(item, 10, 64); err == nil {
-						fields[field.Header] = val
-					}
+			if idx > 0 {
+				if field.Tag {
+					tags[field.Header] = item
 				} else {
-					fields[field.Header] = item
+					if field.Type == "Int" {
+						if val, err := strconv.ParseInt(item, 10, 64); err == nil {
+							fields[field.Header] = val
+						}
+					} else {
+						fields[field.Header] = item
+					}
 				}
-			}
-		} else {
-			if timestamp, err := strconv.ParseInt(item, 10, 64); err != nil {
-				tm = time.Now()
 			} else {
-				tm = time.Unix(timestamp, 0)
+				if timestamp, err := strconv.ParseInt(item, 10, 64); err != nil {
+					tm = time.Now()
+				} else {
+					tm = time.Unix(timestamp, 0)
+				}
 			}
 		}
 	}
@@ -388,7 +465,7 @@ func (s *Shark) Test() (*inputs.TestResult, error) {
 		res.Desc = "success"
 	}
 
-    return res, nil
+	return res, nil
 }
 
 func init() {
