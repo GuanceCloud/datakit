@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/patterns"
 )
@@ -108,9 +109,11 @@ func (p *Pipeline) Run(data string) *Pipeline {
 	p.Output["message"] = data
 
 	//防止脚本解析错误
-	if p.lastErr != nil {
+	if len(p.nodes) == 0 {
 		return p
 	}
+	//错误状态复位
+	p.lastErr = nil
 
 	var f rtpanic.RecoverCallback
 
@@ -221,22 +224,11 @@ func (pl *Pipeline) parseScript(script string) error {
 		return err
 	}
 
-	for _, node := range nodes {
-		switch v := node.(type) {
-		case *parser.FuncExpr:
-			debugNodesHelp(v, "")
-		default:
-			return fmt.Errorf("should not been here")
-		}
-	}
-
 	pl.nodes = nodes
 	return nil
 }
 
 func debugNodesHelp(f *parser.FuncExpr, prev string) {
-	l.Debugf("%v%v", prev, f.Name)
-
 	for _, node := range f.Param {
 		switch v := node.(type) {
 		case *parser.FuncExpr:
@@ -250,6 +242,10 @@ func debugNodesHelp(f *parser.FuncExpr, prev string) {
 func Init() error {
 
 	l = logger.SLogger("pipeline")
+
+	if err := geo.Init(); err != nil {
+		return err
+	}
 
 	if err := patterns.InitPatternsFile(); err != nil {
 		return err
