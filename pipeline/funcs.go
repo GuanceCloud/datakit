@@ -40,6 +40,8 @@ var (
 		"nullif":           NullIf,
 		"default_time":     DefaultTime,
 		"drop_origin_data": DropOriginData,
+
+		"add_pattern": AddPattern,
 	}
 )
 
