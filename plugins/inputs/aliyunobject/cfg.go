@@ -2,6 +2,7 @@ package aliyunobject
 
 import (
 	"context"
+	"reflect"
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -19,19 +20,14 @@ const (
 # ## @param - collection interval - string - optional - default: 5m
 # interval = '5m'
 
-# ## @param - custom tags - [list of key:value element] - optional
-#[inputs.aliyunobject.tags]
-# key1 = 'val1'
-
 `
 )
 
 type objectAgent struct {
-	RegionID        string            `toml:"region_id"`
-	AccessKeyID     string            `toml:"access_key_id"`
-	AccessKeySecret string            `toml:"access_key_secret"`
-	Interval        datakit.Duration  `toml:"interval"`
-	Tags            map[string]string `toml:"tags,omitempty"`
+	RegionID        string           `toml:"region_id"`
+	AccessKeyID     string           `toml:"access_key_id"`
+	AccessKeySecret string           `toml:"access_key_secret"`
+	Interval        datakit.Duration `toml:"interval"`
 
 	Ecs      *Ecs           `toml:"ecs,omitempty"`
 	Slb      *Slb           `toml:"slb,omitempty"`
@@ -57,10 +53,19 @@ type objectAgent struct {
 
 	testResult *inputs.TestResult
 	testError  error
-
 }
 
 func (ag *objectAgent) addModule(m subModule) {
+	if m == nil {
+		return
+	}
+	v := reflect.ValueOf(m)
+	if v.IsNil() {
+		return
+	}
+	if m.disabled() {
+		return
+	}
 	ag.subModules = append(ag.subModules, m)
 }
 
