@@ -1,13 +1,12 @@
 package aliyunobject
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
@@ -16,20 +15,28 @@ const (
 #[inputs.aliyunobject.oss]
     # ##(optional) ignore this object, default is false
     #disable = false
-
+	#pipeline = "aliyun_oss.p"
     # ##(optional) list of oss buckets
     #buckets = []
 
 	# ##(optional) list of excluded oss instanceid
     #exclude_buckets = []
 `
+	ossPipelineConfig = `
+json(_, Location);
+json(_, StorageClass);
+json(_, CreationDate);
+
+`
 )
 
 type Oss struct {
-	Disable        bool              `toml:"disable"`
-	Tags           map[string]string `toml:"tags,omitempty"`
-	Buckets        []string          `toml:"buckets,omitempty"`
-	ExcludeBuckets []string          `toml:"exclude_buckets,omitempty"`
+	Disable        bool     `toml:"disable"`
+	Buckets        []string `toml:"buckets,omitempty"`
+	ExcludeBuckets []string `toml:"exclude_buckets,omitempty"`
+	PipelinePath   string   `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (o *Oss) disabled() bool {
@@ -39,7 +46,12 @@ func (o *Oss) disabled() bool {
 func (o *Oss) run(ag *objectAgent) {
 	var cli *oss.Client
 	var err error
-
+	p, err := newPipeline(o.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] oss new pipeline err:%s", err.Error())
+		return
+	}
+	o.p = p
 	for {
 
 		select {
@@ -99,74 +111,10 @@ func (o *Oss) run(ag *objectAgent) {
 
 func (o *Oss) handleResponse(lsRes *oss.ListBucketsResult, ag *objectAgent) {
 
-	var objs []map[string]interface{}
 	for _, bucket := range lsRes.Buckets {
-
-		if len(o.ExcludeBuckets) > 0 {
-			exclude := false
-			for _, v := range o.ExcludeBuckets {
-				if v == bucket.Name {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf(`OSS_%s`, bucket.Name),
 		}
-
-		if len(o.Buckets) > 0 {
-			include := false
-			for _, v := range o.Buckets {
-				if v == bucket.Name {
-					include = true
-					break
-				}
-			}
-
-			if !include {
-				continue
-			}
-		}
-
-		content := map[string]interface{}{
-			"CreationDate":      bucket.CreationDate,
-			"XMLName":           bucket.XMLName,
-			"Ower.XMLName":      lsRes.Owner.XMLName,
-			"Location":          bucket.Location,
-			"Owner.ID":          lsRes.Owner.ID,
-			"Owner.DisplayName": lsRes.Owner.DisplayName,
-			"StorageClass":      bucket.StorageClass,
-		}
-
-		jd, err := json.Marshal(content)
-		if err != nil {
-			moduleLogger.Errorf("%s", err)
-			continue
-		}
-
-		name := bucket.Name
-		obj := map[string]interface{}{
-			"name":    fmt.Sprintf(`OSS_%s`, name), // 目前displayName与ID一样
-			"class":   "aliyun_oss",
-			"content": string(jd),
-		}
-
-		objs = append(objs, obj)
-	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-	if ag.isDebug() {
-		fmt.Printf("%s\n", string(data))
-	} else {
-		io.NamedFeed(data, io.Object, inputName)
+		ag.parseObject(bucket, "aliyun_oss", bucket.Name, o.p, o.Buckets, o.ExcludeBuckets, tags)
 	}
 }
