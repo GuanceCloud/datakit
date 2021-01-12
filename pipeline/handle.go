@@ -2,13 +2,14 @@ package pipeline
 
 import (
 	"net/url"
-	"time"
 	"reflect"
-	"github.com/araddon/dateparse"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"time"
+
 	"github.com/GuilhermeCaruso/kair"
+	"github.com/araddon/dateparse"
 	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 )
 
 func UrldecodeHandle(path string) (interface{}, error) {
@@ -85,7 +86,7 @@ func DateFormatHandle(data interface{}, precision string, fmts string, tz int) (
 func GroupHandle(value interface{}, start, end float64) bool {
 	num := conv.ToFloat64(value)
 
-	if  num >= start && num <= end {
+	if num >= start && num <= end {
 		return true
 	}
 
@@ -102,14 +103,13 @@ func GroupInHandle(value interface{}, set []interface{}) bool {
 	return false
 }
 
-func TimestampHandle(value string) int64 {
+func TimestampHandle(value string) (int64, error) {
 	t, err := dateparse.ParseLocal(value)
 	if err != nil {
-		return time.Now().Unix()
+		return 0, err
 	}
 
-	unix_time := t.Unix()
+	unix_time := t.UnixNano()
 
-	return unix_time
+	return unix_time, nil
 }
-
