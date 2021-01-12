@@ -13,6 +13,7 @@ func assertEqual(t *testing.T, a, b interface{}) {
 }
 
 func TestGrokFunc(t *testing.T) {
+	Init()
 	js := `127.0.0.1 - - [23/Apr/2014:22:58:32 +0200] "GET /index.php HTTP/1.1" 404 207`
 	script := `grok(_, "%{COMMONAPACHELOG}");`
 
@@ -27,6 +28,7 @@ func TestGrokFunc(t *testing.T) {
 }
 
 func TestRenameFunc(t *testing.T) {
+	Init()
 	js := `127.0.0.1 - - [23/Apr/2014:22:58:32 +0200] "GET /index.php HTTP/1.1" 404 207`
 	script := `grok(_, "%{COMMONAPACHELOG}");
 rename(newkey, clientip)`
@@ -61,7 +63,7 @@ func TestDefaultTimeFunc(t *testing.T) {
 
 	js := `{"a":{"time":"2014/04/08 22:05","second":2,"thrid":"abc","forth":true},"age":47}`
 	script := `json(_, a.time);
-default_time(a.time);
+default_time(a.second);
 `
 	p, err := NewPipeline(script)
 	assertEqual(t, err, nil)
@@ -254,10 +256,9 @@ nullif(a.first, 2.3)
 `
 	p, err := NewPipeline(script)
 	assertEqual(t, err, nil)
-	
+
 	p.Run(js)
 
-	r := p.getContent("a.second")
-
-	assertEqual(t, r, 2)
+	r := p.getContent("a.first")
+	assertEqual(t, r, nil)
 }
