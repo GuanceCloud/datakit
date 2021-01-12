@@ -2,13 +2,12 @@ package tencentobject
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
 	cos "github.com/tencentyun/cos-go-sdk-v5"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
@@ -25,12 +24,21 @@ const (
 #[inputs.tencentobject.cos.tags]
 # key1 = 'val1'
 `
+
+	cosPipelineConfig = `
+json(_, Name);
+json(_, Region);
+json(_, CreationDate);
+`
 )
 
 type Cos struct {
 	Tags           map[string]string `toml:"tags,omitempty"`
 	Buckets        []string          `toml:"buckets,omitempty"`
 	ExcludeBuckets []string          `toml:"exclude_buckets,omitempty"`
+	PipelinePath   string            `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (c *Cos) run(ag *objectAgent) {
@@ -41,6 +49,13 @@ func (c *Cos) run(ag *objectAgent) {
 			SecretKey: ag.AccessKeySecret,
 		},
 	})
+
+	var err error
+	c.p, err = newPipeline(c.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] cos new pipeline err:%s", err.Error())
+		return
+	}
 
 	for {
 
@@ -71,72 +86,11 @@ func (c *Cos) run(ag *objectAgent) {
 
 func (c *Cos) handleResponse(resp *cos.ServiceGetResult, ag *objectAgent) {
 
-	var objs []map[string]interface{}
 	for _, bucket := range resp.Buckets {
 
-		if len(c.ExcludeBuckets) > 0 {
-			exclude := false
-			for _, v := range c.ExcludeBuckets {
-				if v == bucket.Name {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf(`OSS_%s`, bucket.Name),
 		}
-
-		if len(c.Buckets) > 0 {
-			include := false
-			for _, v := range c.Buckets {
-				if v == bucket.Name {
-					include = true
-					break
-				}
-			}
-
-			if !include {
-				continue
-			}
-		}
-
-		content := map[string]interface{}{
-			"Location":         bucket.Region,
-			"OwnerID":          resp.Owner.ID,
-			"OwnerDisplayName": resp.Owner.DisplayName,
-			"CreationDate":     bucket.CreationDate,
-		}
-
-		jd, err := json.Marshal(content)
-		if err != nil {
-			moduleLogger.Errorf("%s", err)
-			continue
-		}
-
-		name := bucket.Name
-		obj := map[string]interface{}{
-			"name":    fmt.Sprintf(`OSS_%s`, name), // 目前displayName与ID一样
-			"class":   "tencent_cos",
-			"content": string(jd),
-		}
-
-		objs = append(objs, obj)
-	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		if ag.isTest() {
-			ag.testResult.Result = append(ag.testResult.Result, data...)
-		} else {
-			io.NamedFeed(data, io.Object, inputName)
-		}
-	} else {
-		moduleLogger.Errorf("%s", err)
-		return
+		ag.parseObject(bucket, "tencent_cos", bucket.Name, c.p, c.ExcludeBuckets, c.Buckets, tags)
 	}
 }
