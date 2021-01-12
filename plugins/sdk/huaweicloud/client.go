@@ -88,7 +88,11 @@ func (c *HWClient) Request(method string, resPath string, querys map[string]stri
 		bodyReader = strings.NewReader(string(body))
 	}
 
-	req, _ := http.NewRequest(method, requestURL, bodyReader)
+	req, err := http.NewRequest(method, requestURL, bodyReader)
+	if err != nil {
+		err = fmt.Errorf("fail for url: %s, %s", requestURL, err)
+		return nil, err
+	}
 
 	req.Header.Add("Content-Length", fmt.Sprintf("%d", len(body)))
 	req.Header.Add("X-Sdk-Date", xdate)
