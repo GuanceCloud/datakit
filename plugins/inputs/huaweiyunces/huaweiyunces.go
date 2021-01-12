@@ -225,6 +225,10 @@ func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
 		if ag.isTest() {
 			data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
 			ag.testResult.Result = append(ag.testResult.Result, data...)
+		} else if ag.isDebug() {
+			data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
+			fmt.Printf("%s\n", string(data))
+
 		} else {
 			io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
 		}
