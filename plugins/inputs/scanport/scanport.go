@@ -1,6 +1,7 @@
 package scanport
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"bytes"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -363,12 +363,12 @@ func (s *Scanport) Test() (*inputs.TestResult, error) {
 
 	s.handle()
 
-    res := &inputs.TestResult {
-    	Result: s.resData,
-    	Desc: "success!",
-    }
+	res := &inputs.TestResult{
+		Result: s.resData,
+		Desc:   "success!",
+	}
 
-    return res, nil
+	return res, nil
 }
 
 func inc(ip net.IP) {

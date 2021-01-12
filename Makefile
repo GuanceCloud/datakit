@@ -35,7 +35,7 @@ UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 
 NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(VERSION))"}}')
 NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(VERSION))"}}')
-NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行DataKit CI，此刻请勿在CI分支(dev/master)提交代码，避免CI任务失败[摊手]"}}')
+NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支(dev/master)提交代码，以免 CI 任务失败"}}')
 
 ###################################
 # Detect telegraf update info
@@ -48,7 +48,7 @@ ifdef TELEGRAF_VERSION
 	TELEGRAF_LDFLAGS += -X main.version=$(TELEGRAF_VERSION)
 endif
 
-all: test release preprod local
+all: testing release preprod local
 
 define GIT_INFO
 //nolint
@@ -83,15 +83,19 @@ define pub
 endef
 
 lint:
-	@golangci-lint run | tee lint.err # https://golangci-lint.run/usage/install/#local-installation
+	@golangci-lint run --timeout 1h | tee check.err # https://golangci-lint.run/usage/install/#local-installation
 
 vet:
 	@go vet ./...
 
+test:
+	@GO111MODULE=off go test ./...
+
 local:
+	@GO111MODULE=off go fmt ./...
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
-test:
+testing:
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
 preprod:
@@ -103,7 +107,7 @@ release:
 pub_local:
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
-pub_test:
+pub_testing:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
 pub_testing_img:
@@ -184,7 +188,7 @@ endef
 define build_ip2isp
 	rm -rf china-operator-ip
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
-	@go run cmd/make/genIsp.go
+	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
 endef
 
 .PHONY: agent
