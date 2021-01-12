@@ -121,17 +121,17 @@ func (r *Rum) Handle(c *gin.Context) {
 	for _, pt := range pts {
 		ptname := string(pt.Name())
 
-		if IsMetric(ptname) {
+		ipInfo, err := geo.Geo(sourceIP)
+		if err != nil {
+			l.Errorf("parse ip error: %s", err)
+		} else {
+			pt.AddTag("city", ipInfo.City)
+			pt.AddTag("region", ipInfo.Region)
+			pt.AddTag("country", ipInfo.Country_short)
+			pt.AddTag("isp", ipInfo.Isp)
+		}
 
-			ipInfo, err := geo.Geo(sourceIP)
-			if err != nil {
-				l.Errorf("parse ip error: %s", err)
-			} else {
-				pt.AddTag("city", ipInfo.City)
-				pt.AddTag("region", ipInfo.Region)
-				pt.AddTag("country", ipInfo.Country_short)
-				pt.AddTag("isp", ipInfo.Isp)
-			}
+		if IsMetric(ptname) {
 
 			metricsdata = append(metricsdata, []byte(pt.String()))
 
@@ -143,7 +143,6 @@ func (r *Rum) Handle(c *gin.Context) {
 			}
 
 			pipelineInput := map[string]interface{}{}
-			pipelineInput["ip"] = sourceIP
 
 			rawFields, _ := pt.Fields()
 			for k, v := range rawFields {
