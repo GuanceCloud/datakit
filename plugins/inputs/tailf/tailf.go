@@ -92,10 +92,10 @@ func (t *Tailf) loadcfg() bool {
 	}
 
 	if isExist(t.PipelinePath) {
-		l.Infof("pipeline_path is %s", t.PipelinePath)
+		l.Debugf("use pipeline %s", t.PipelinePath)
 	} else {
 		t.PipelinePath = ""
-		l.Info("not use pipeline")
+		l.Warn("no pipeline applied")
 	}
 
 	for {
@@ -154,7 +154,6 @@ func (t *Tailf) loadcfg() bool {
 
 func (t *Tailf) tailNewFiles(file string) {
 	if _, ok := t.runningFileList.Load(file); ok {
-		l.Debugf("file %s already tailing now", file)
 		return
 	}
 
