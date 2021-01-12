@@ -413,7 +413,7 @@ func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 			}
 
 			if err != nil {
-				moduleLogger.Warnf("DescribeMetricList: %s", err)
+				//moduleLogger.Warnf("DescribeMetricList: %s", err)
 				time.Sleep(tempDelay)
 			} else {
 				if i != 0 {
@@ -424,7 +424,8 @@ func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 		}
 
 		if err != nil {
-			moduleLogger.Errorf("fail to get %s.%s, %s", req.q.Namespace, req.q.MetricName, err)
+			moduleLogger.Debugf("params: Namespace: %s, MetricName: %s, Period: %s, StartTime: %s, EndTime: %s, Dimensions: %s, RegionId: %s, NextToken: %s", req.q.Namespace, req.q.MetricName, req.q.Period, req.q.StartTime, req.q.EndTime, req.q.Dimensions, req.q.RegionId, resp.NextToken)
+			moduleLogger.Errorf("bad response, err: %s", err)
 			return err
 		}
 
