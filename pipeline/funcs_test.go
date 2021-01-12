@@ -15,7 +15,7 @@ func assertEqual(t *testing.T, a, b interface{}) {
 func TestGrokFunc(t *testing.T) {
 	Init()
 	js := `127.0.0.1 - - [23/Apr/2014:22:58:32 +0200] "GET /index.php HTTP/1.1" 404 207`
-	script := `grok(_, "%{COMMONAPACHELOG}");`
+	script := `grok(_, "%{_commonapachelog}");`
 
 	p, err := NewPipeline(script)
 	assertEqual(t, err, nil)
@@ -30,7 +30,7 @@ func TestGrokFunc(t *testing.T) {
 func TestRenameFunc(t *testing.T) {
 	Init()
 	js := `127.0.0.1 - - [23/Apr/2014:22:58:32 +0200] "GET /index.php HTTP/1.1" 404 207`
-	script := `grok(_, "%{COMMONAPACHELOG}");
+	script := `grok(_, "%{_commonapachelog}");
 rename(newkey, clientip)`
 
 	p, err := NewPipeline(script)
