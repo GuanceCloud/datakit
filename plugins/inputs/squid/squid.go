@@ -104,7 +104,7 @@ func (s *Squid) genParam() *SquidParam {
 	input := SquidInput{*s}
 	output := SquidOutput{io.NamedFeed}
 	p := &SquidParam{input, output, logger.SLogger("squid")}
-    return  p
+	return p
 }
 
 func (p *SquidParam) gather() {
