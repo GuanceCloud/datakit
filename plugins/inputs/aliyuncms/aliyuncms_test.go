@@ -181,7 +181,7 @@ func TestGetMetricList(t *testing.T) {
 	request := cms.CreateDescribeMetricListRequest()
 	request.Scheme = "https"
 	request.RegionId = ag.RegionID
-	request.MetricName = "net_rx.rate"
+	request.MetricName = "BWRateInFromInside"
 	request.Namespace = "acs_nat_gateway"
 	request.Period = "60"
 	//request.StartTime = "1588156800000"
