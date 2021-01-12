@@ -3,7 +3,9 @@ package hostobject
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
+	"runtime"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -114,10 +116,11 @@ func (c *Collector) Run() {
 			"name": c.Name,
 		}
 
-		obj := map[string]string{
+		obj := map[string]interface{}{
 			"uuid": datakit.Cfg.MainCfg.UUID,
 		}
 
+		obj["cpus"] = fmt.Sprintf("%d", runtime.NumCPU())
 		obj["host"] = datakit.Cfg.MainCfg.Hostname
 
 		ipval := getIP()
@@ -158,17 +161,17 @@ func (c *Collector) Run() {
 		name := tags["name"]
 		switch c.Name {
 		case "__mac":
-			name = obj["mac"]
+			name = obj["mac"].(string)
 		case "__ip":
-			name = obj["ip"]
+			name = obj["ip"].(string)
 		case "__uuid":
-			name = obj["uuid"]
+			name = obj["uuid"].(string)
 		case "__host":
-			name = obj["host"]
+			name = obj["host"].(string)
 		case "__os":
-			name = obj["os"]
+			name = obj["os"].(string)
 		case "__os_type":
-			name = obj["os_type"]
+			name = obj["os_type"].(string)
 		}
 		tags["name"] = name
 
