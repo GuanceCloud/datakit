@@ -126,7 +126,6 @@ func (t *TraceRouter) Test() (*inputs.TestResult, error) {
 	t.test = true
 	t.resData = nil
 
-
 	host := t.Addr
 	options := traceroute.TracerouteOptions{}
 	options.SetMaxHops(traceroute.DEFAULT_MAX_HOPS + 1)
@@ -139,12 +138,12 @@ func (t *TraceRouter) Test() (*inputs.TestResult, error) {
 
 	t.parseHopData(resHop)
 
-    res := &inputs.TestResult {
-    	Result: t.resData,
-    	Desc: "success!",
-    }
+	res := &inputs.TestResult{
+		Result: t.resData,
+		Desc:   "success!",
+	}
 
-    return res, nil
+	return res, nil
 }
 
 func init() {
