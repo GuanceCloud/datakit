@@ -84,25 +84,25 @@ func (lw *loggerWrapper) rotate() {
 	stat, err := lw.fd.Stat()
 	if err != nil {
 		_err := lw.fd.Close()
-		if _err != nil{
+		if _err != nil {
 			doLog(LEVEL_WARN, "Failed to close file with reason: %v", _err)
 		}
 		panic(err)
 	}
 	if stat.Size() >= logConf.maxLogSize {
 		_err := lw.fd.Sync()
-		if _err != nil{
+		if _err != nil {
 			panic(err)
 		}
 		_err = lw.fd.Close()
-		if _err != nil{
+		if _err != nil {
 			doLog(LEVEL_WARN, "Failed to close file with reason: %v", _err)
 		}
 		if lw.index > logConf.backups {
 			lw.index = 1
 		}
 		_err = os.Rename(lw.fullPath, lw.fullPath+"."+IntToString(lw.index))
-		if _err != nil{
+		if _err != nil {
 			panic(err)
 		}
 		lw.index++
@@ -122,7 +122,7 @@ func (lw *loggerWrapper) doFlush() {
 		lw.logger.Println(m)
 	}
 	err := lw.fd.Sync()
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 }
@@ -140,7 +140,7 @@ func (lw *loggerWrapper) doWrite() {
 		if !ok {
 			lw.doFlush()
 			_err := lw.fd.Close()
-			if _err != nil{
+			if _err != nil {
 				doLog(LEVEL_WARN, "Failed to close file with reason: %v", _err)
 			}
 			break
@@ -227,7 +227,7 @@ func InitLogWithCacheCnt(logFullPath string, maxLogSize int64, backups int, leve
 			stat, err = os.Stat(_fullPath)
 			if err != nil {
 				_err := fd.Close()
-				if _err != nil{
+				if _err != nil {
 					doLog(LEVEL_WARN, "Failed to close file with reason: %v", _err)
 				}
 				return err
@@ -251,7 +251,7 @@ func InitLogWithCacheCnt(logFullPath string, maxLogSize int64, backups int, leve
 
 		if err = filepath.Walk(filepath.Dir(_fullPath), walkFunc); err != nil {
 			_err := fd.Close()
-			if _err != nil{
+			if _err != nil {
 				doLog(LEVEL_WARN, "Failed to close file with reason: %v", _err)
 			}
 			return err

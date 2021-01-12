@@ -95,7 +95,7 @@ func (an *Analysis) run(wx *WxClient) {
 			token, err := wx.GetAccessToken()
 			if err != nil {
 				l.Errorf("wechat get token err:%s", err)
-				time.Sleep(time.Second*10)
+				time.Sleep(time.Second * 10)
 				continue
 			}
 			wxClient := reflect.ValueOf(wx)
@@ -108,7 +108,6 @@ func (an *Analysis) run(wx *WxClient) {
 				}
 			}
 		}
-
 
 		datakit.SleepContext(wx.ctx, interval)
 	}
@@ -132,7 +131,7 @@ func (op *Operation) run(wx *WxClient) {
 			token, err := wx.GetAccessToken()
 			if err != nil {
 				l.Errorf("wechat get token err:%s", err)
-				time.Sleep(time.Second*10)
+				time.Sleep(time.Second * 10)
 				continue
 			}
 			wxClient := reflect.ValueOf(wx)
@@ -184,12 +183,12 @@ func (wx *WxClient) Run() {
 			case <-datakit.Exit.Wait():
 				l.Info("wechat  exit...")
 				return
-			case <- tick.C:
+			case <-tick.C:
 				break
 			}
 
 		}
-		}
+	}
 
 	for _, s := range wx.subModules {
 		wx.wg.Add(1)
@@ -200,7 +199,6 @@ func (wx *WxClient) Run() {
 	}
 
 	wx.wg.Wait()
-
 
 	l.Debugf("done")
 
@@ -239,7 +237,7 @@ func (wx *WxClient) DailyVisitTrend(accessToken string) {
 
 }
 
-func (wx *WxClient) VisitDistribution(accessToken string) () {
+func (wx *WxClient) VisitDistribution(accessToken string) {
 	body, timeObj := wx.API(accessToken, VisitDistributionURL)
 	tags := map[string]string{}
 	fields := map[string]interface{}{}
@@ -263,7 +261,7 @@ func (wx *WxClient) UserPortrait(accessToken string) {
 	wx.FormatUserPortraitData(string(body), "visit_uv", timeObj)
 }
 
-func (wx *WxClient) VisitPage(accessToken string) () {
+func (wx *WxClient) VisitPage(accessToken string) {
 	body, timeObj := wx.API(accessToken, VisitPageURL)
 	tags := map[string]string{}
 	tags["appid"] = wx.Appid
@@ -338,7 +336,7 @@ func (wx *WxClient) GetAccessToken() (token string, err error) {
 	return gjson.Get(string(body), "access_token").String(), nil
 }
 
-func (wx *WxClient) FormatUserPortraitData(body, dataType string, timeObj time.Time) () {
+func (wx *WxClient) FormatUserPortraitData(body, dataType string, timeObj time.Time) {
 	tags := map[string]string{}
 	tags["appid"] = wx.Appid
 	fields := map[string]interface{}{}
@@ -352,7 +350,7 @@ func (wx *WxClient) FormatUserPortraitData(body, dataType string, timeObj time.T
 	}
 }
 
-func (wx *WxClient) JsErrSearch(accessToken string, startPage, limit int64) () {
+func (wx *WxClient) JsErrSearch(accessToken string, startPage, limit int64) {
 	queries := requestQueries{
 		"access_token": accessToken,
 	}
@@ -419,7 +417,7 @@ func (wx *WxClient) JsErrSearch(accessToken string, startPage, limit int64) () {
 	}
 }
 
-func (wx *WxClient) Performance(accessToken string) () {
+func (wx *WxClient) Performance(accessToken string) {
 	queries := requestQueries{
 		"access_token": accessToken,
 	}
