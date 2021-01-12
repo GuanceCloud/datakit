@@ -207,7 +207,7 @@ func protectRunningInput(name string, ii *inputInfo) {
 
 			if len(crashTime) >= MaxCrash {
 				l.Warnf("input %s crash %d times(at %+#v), exit now.",
-					name, len(crashTime), strings.Join(crashTime, ","))
+					name, len(crashTime), strings.Join(crashTime, "\n"))
 				return
 			}
 		}

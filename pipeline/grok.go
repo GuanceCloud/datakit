@@ -20,6 +20,10 @@ var (
 )
 
 func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	if p.grok == nil {
+		return p, fmt.Errorf("grok not init")
+	}
+
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
@@ -85,7 +89,7 @@ func AddPattern(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		}
 	}
 	p.patterns[name] = pattern
-
+	p.grok = nil
 	g, err := createGrok(p.patterns)
 	if err != nil {
 		return p, err
