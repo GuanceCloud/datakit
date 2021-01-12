@@ -30,29 +30,26 @@ import (
 )
 
 var (
-	cli   *wscli
-	wsurl *url.URL
+	cli     *wscli
+	wsurl   *url.URL
+	wsReset = make(chan interface{})
 )
 
 type wscli struct {
-	c     *websocket.Conn
-	id    string
-	reset chan interface{}
+	c  *websocket.Conn
+	id string
 }
 
 func (c *wscli) setup() {
 
-	c.reset = make(chan interface{})
-
 	if err := cli.tryConnect(wsurl.String()); err != nil {
 		return
 	}
-
-	datakit.WG.Add(2)
 	go func() {
-		defer datakit.WG.Done()
+		//defer datakit.WG.Done()
 		cli.waitMsg() // blocking reader, do not add to datakit.WG
 	}()
+	datakit.WG.Add(1)
 
 	go func() {
 		defer datakit.WG.Done()
@@ -75,15 +72,20 @@ func StartWS() {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("start ws exit")
-			cli.c.Close()
+			if cli.c != nil {
+				l.Info("ws closed")
+				cli.c.Close()
+			}
 			return
-
-		case <-cli.reset:
-
+		case <-wsReset:
 			l.Info("start ws on reset")
+			if cli.c != nil {
+				l.Info("ws closed")
 
-			cli.c.Close()
+				cli.c.Close()
+			}
 			cli.setup()
+
 		}
 	}
 }
@@ -126,16 +128,24 @@ func (wc *wscli) waitMsg() {
 				l.Warnf("recover ok: %s err:", string(trace), err.Error())
 			}
 
+			select {
+			case <-datakit.Exit.Wait():
+				l.Info("wait message exit on global exit")
+				return
+			default:
+			}
+
+			l.Debug("waiting message...")
 			_, resp, err := wc.c.ReadMessage()
 			if err != nil {
 				l.Errorf("ws read message error: %s", err)
 				select {
-				case wc.reset <- nil:
+				case wsReset <- nil:
 				default:
+					l.Info("wait message exit.")
 					return
 				}
 			}
-
 			wm, err := wsmsg.ParseWrapMsg(resp)
 			if err != nil {
 				l.Errorf("msg.ParseWrapMsg(): %s", err.Error())
@@ -146,7 +156,7 @@ func (wc *wscli) waitMsg() {
 
 			if err := wc.handle(wm); err != nil {
 				select {
-				case wc.reset <- nil:
+				case wsReset <- nil:
 				default:
 					return
 				}
@@ -188,12 +198,11 @@ func (wc *wscli) sendHeartbeat() {
 			err = wc.sendText(wm)
 			if err != nil {
 				select {
-				case wc.reset <- nil:
+				case wsReset <- nil:
 				default:
 					return
 				}
 			}
-
 			select {
 			case <-tick.C:
 			case <-datakit.Exit.Wait():
@@ -240,7 +249,8 @@ func (wc *wscli) handle(wm *wsmsg.WrapMsg) error {
 	case wsmsg.MTypeEnableInput:
 		wc.EnableInputs(wm)
 	case wsmsg.MTypeReload:
-		wc.Reload(wm)
+		wc.ModifyStatus()
+		go wc.Reload(wm)
 	case wsmsg.MtypeCsharkCmd:
 		wc.CsharkCmd(wm)
 	//case wsmsg.MTypeHeartbeat:
@@ -303,6 +313,9 @@ func (wc *wscli) EnableInputs(wm *wsmsg.WrapMsg) {
 
 	}
 	wc.SetMessage(wm, "ok", "")
+	//inputName := strings.Join(names.Names, "")
+	//title := fmt.Sprintf("uuid 为 %s 的datakit 开启了采集器:%s", wc.id, inputName)
+	//WriteKeyevent(inputName, title)
 
 }
 
@@ -373,7 +386,6 @@ func (wc *wscli) ModifyStatus() {
 }
 
 func (wc *wscli) Reload(wm *wsmsg.WrapMsg) {
-	wc.ModifyStatus()
 	err := ReloadDatakit()
 	if err != nil {
 		l.Errorf("reload err:%s", err.Error())
@@ -383,7 +395,6 @@ func (wc *wscli) Reload(wm *wsmsg.WrapMsg) {
 		RestartHttpServer()
 		l.Info("reload HTTP server ok")
 	}()
-	wc.SetMessage(wm, "ok", "")
 
 }
 
@@ -492,14 +503,40 @@ func (wc *wscli) SetInput(wm *wsmsg.WrapMsg) {
 		wc.SetMessage(wm, "bad_request", fmt.Sprintf("%+#v", wm))
 		return
 	}
+	var names []string
 	for k, v := range configs.Configs {
+		names = append(names, k)
 		if err := wc.parseTomlToFile(v["toml"], k); err != nil {
 			wc.SetMessage(wm, "error", err.Error())
 			return
 		}
-
 	}
 	wc.SetMessage(wm, "ok", "")
+	//inputName := strings.Join(names, ",")
+	//title := fmt.Sprintf("uuid 为 %s 的datakit 配置了新采集器:%s", wc.id, inputName)
+	//WriteKeyevent(inputName, title)
+}
+
+func WriteKeyevent(inputName, title string) {
+	name := "self"
+	tags := map[string]string{
+		"datakit_uuid":    datakit.Cfg.MainCfg.UUID,
+		"datakit_name":    datakit.Cfg.MainCfg.Name,
+		"datakit_version": git.Version,
+		"datakit_os":      runtime.GOOS,
+		"datakit_arch":    runtime.GOARCH,
+		"status":          "info",
+	}
+	now := time.Now().Local()
+	fields := map[string]interface{}{
+		"title":      title,
+		"input_name": inputName,
+	}
+	err := io.NamedFeedEx(name, io.KeyEvent, "__keyevent", tags, fields, now)
+	if err != nil {
+		l.Errorf("ws write keyevent err:%s", err.Error())
+	}
+	l.Infof("write keyevent ok")
 }
 
 func (wc *wscli) WriteFile(tomlStr, cfgPath string) error {
@@ -533,6 +570,10 @@ func (wc *wscli) DisableInput(wm *wsmsg.WrapMsg) {
 		}
 	}
 	wc.SetMessage(wm, "ok", "")
+	//inputName := strings.Join(names.Names, "")
+	//title := fmt.Sprintf("uuid 为 %s 的datakit 关闭了采集器:%s", wc.id, inputName)
+	//WriteKeyevent(inputName, title)
+
 }
 
 func (wc *wscli) GetEnableInputsConfig(wm *wsmsg.WrapMsg) {

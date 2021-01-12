@@ -1,10 +1,10 @@
 package main
 
 import (
-	"os"
 	"bufio"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -26,7 +26,6 @@ var GlobalPatterns = map[string][][]string {
 	contTailer = `    },
 
 `
-
 )
 
 var (
@@ -37,7 +36,7 @@ var (
 
 func main() {
 	convertMap = make([]map[string]string, 100)
-	dir,_ := os.Getwd()
+	dir, _ := os.Getwd()
 	Convert(filepath.Join(dir, "patterns"), filepath.Join(dir, "pattern.go"))
 }
 
@@ -63,7 +62,7 @@ func Convert(inputDir, outputFile string) {
 				continue
 			}
 
-			v, ok := cvtMap[lineElem[0]];
+			v, ok := cvtMap[lineElem[0]]
 			if !ok {
 				continue
 			}
@@ -76,7 +75,7 @@ func Convert(inputDir, outputFile string) {
 			}
 
 			//先把长模式大写串转换成小写串
-			for i:= len(convertMap) -1; i >=0 ;i-- {
+			for i := len(convertMap) - 1; i >= 0; i-- {
 				cvtMap := convertMap[i]
 				for k, v := range cvtMap {
 					if _, ok := found[k]; ok {
@@ -109,7 +108,7 @@ func mkConvertMap(inputDir string) {
 				continue
 			}
 
-			nPattern := "_"+strings.ToLower(lineElem[0])
+			nPattern := "_" + strings.ToLower(lineElem[0])
 			patternLen := len(lineElem[0])
 			if convertMap[patternLen] == nil {
 				convertMap[patternLen] = make(map[string]string)
@@ -121,7 +120,7 @@ func mkConvertMap(inputDir string) {
 
 func getFilesByDir(dir string) ([]string, error) {
 	files := make([]string, 0)
-	fileInfoList,err := ioutil.ReadDir(dir)
+	fileInfoList, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
