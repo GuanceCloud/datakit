@@ -1,42 +1,60 @@
 package aliyunobject
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/dds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
 	ddsSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.mongodb]
+    # ##(optional) ignore this object, default is false
+    #disable = false
+	#pipeline = "aliyun_mongodb.p"
 
-# ## @param - [list of mongodb instanceid] - optional
-#db_instanceids = []
+	# ##(optional) list of mongodb instanceid
+    #db_instanceids = []
 
-# ## @param - [list of excluded mongodb instanceid] - optional
-#exclude_db_instanceids = []
-
-# ## @param - custom tags for mongodb object - [list of key:value element] - optional
-#[inputs.aliyunobject.mongodb.tags]
-# key1 = 'val1'
+    # ##(optional) list of excluded mongodb instanceid
+    #exclude_db_instanceids = []
+`
+	ddsPipelineConfig = `
+json(_, DBInstanceId);
+json(_, ChargeType);
+json(_, RegionId);
+json(_, DBInstanceType);
+json(_, DBInstanceClass);
 `
 )
 
 type Dds struct {
-	Tags                 map[string]string `toml:"tags,omitempty"`
-	DBInstancesIDs       []string          `toml:"db_instanceids,omitempty"`
-	ExcludeDBInstanceIDs []string          `toml:"exclude_db_instanceids,omitempty"`
+	Disable              bool     `toml:"disable"`
+	DBInstancesIDs       []string `toml:"db_instanceids,omitempty"`
+	ExcludeDBInstanceIDs []string `toml:"exclude_db_instanceids,omitempty"`
+	PipelinePath         string   `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
+}
+
+func (r *Dds) disabled() bool {
+	return r.Disable
 }
 
 func (r *Dds) run(ag *objectAgent) {
 	var cli *dds.Client
 	var err error
-
+	p, err := newPipeline(r.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] mongodb new pipeline err:%s", err.Error())
+		return
+	}
+	r.p = p
 	for {
 
 		select {
@@ -67,7 +85,7 @@ func (r *Dds) run(ag *objectAgent) {
 		req.Scheme = "https" //nolint:goconst
 
 		for {
-			moduleLogger.Infof("pageNume %v, pagesize %v", pageNum, pageSize)
+			moduleLogger.Debugf("pageNume %v, pagesize %v", pageNum, pageSize)
 			if len(r.DBInstancesIDs) > 0 {
 				if pageNum <= len(r.DBInstancesIDs) {
 					req.DBInstanceId = r.DBInstancesIDs[pageNum-1]
@@ -115,26 +133,11 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 
 	moduleLogger.Debugf("TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 
-	var objs []map[string]interface{}
-
 	for _, db := range resp.DBInstances.DBInstance {
-
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s_%s`, db.DBInstanceDescription, db.DBInstanceId), `aliyun_mongodb`, db, db.DBInstanceId, r.ExcludeDBInstanceIDs, r.DBInstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf("%s_%s", db.DBInstanceDescription, db.DBInstanceId),
 		}
+		ag.parseObject(db, "aliyun_mongodb", db.DBInstanceId, r.p, r.ExcludeDBInstanceIDs, r.DBInstancesIDs, tags)
 	}
 
-	if len(objs) == 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-	}
-	io.NamedFeed(data, io.Object, inputName)
 }
