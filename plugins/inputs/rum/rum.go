@@ -3,12 +3,15 @@ package rum
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -54,9 +57,21 @@ func (r *Rum) PipelineConfig() map[string]string {
 func (r *Rum) RegHttpHandler() {
 	l = logger.SLogger(inputName)
 
+	script := r.Pipeline
+	if script == "" {
+		scriptPath := filepath.Join(datakit.PipelineDir, inputName+".p")
+		data, err := ioutil.ReadFile(scriptPath)
+		if err == nil {
+			script = string(data)
+		}
+	}
+
 	r.pipelinePool = &sync.Pool{
 		New: func() interface{} {
-			p, err := pipeline.NewPipeline(r.Pipeline)
+			if script == "" {
+				return nil
+			}
+			p, err := pipeline.NewPipeline(script)
 			if err != nil {
 				l.Errorf("%s", err)
 			}
