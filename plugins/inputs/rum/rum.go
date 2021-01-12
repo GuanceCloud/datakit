@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -85,6 +86,15 @@ func (r *Rum) RegHttpHandler() {
 
 func (r *Rum) Handle(c *gin.Context) {
 
+	defer func() {
+		if err := recover(); err != nil {
+			buf := make([]byte, 2048)
+			n := runtime.Stack(buf, false)
+			l.Errorf("panic: %s", err)
+			l.Errorf("%s", string(buf[:n]))
+		}
+	}()
+
 	var precision string = DEFAULT_PRECISION
 	var body []byte
 	var err error
@@ -111,6 +121,7 @@ func (r *Rum) Handle(c *gin.Context) {
 
 	body, err = uhttp.GinRead(c)
 	if err != nil {
+		l.Errorf("%s", err)
 		uhttp.HttpErr(c, uhttp.Error(httpd.ErrHttpReadErr, err.Error()))
 		return
 	}
@@ -126,7 +137,11 @@ func (r *Rum) Handle(c *gin.Context) {
 	metricsdata := [][]byte{}
 	esdata := [][]byte{}
 
-	pp := r.pipelinePool.Get().(*pipeline.Pipeline)
+	pp_ := r.pipelinePool.Get()
+	var pp *pipeline.Pipeline
+	if pp_ != nil {
+		pp = pp_.(*pipeline.Pipeline)
+	}
 	defer func() {
 		if pp != nil {
 			r.pipelinePool.Put(pp)
@@ -218,6 +233,7 @@ func (r *Rum) Handle(c *gin.Context) {
 		body = bytes.Join(esdata, []byte("\n"))
 
 		if err = io.NamedFeed(body, io.Rum, inputName); err != nil {
+			l.Errorf("io.NamedFeed error, %s", err)
 			uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
 			return
 		}
