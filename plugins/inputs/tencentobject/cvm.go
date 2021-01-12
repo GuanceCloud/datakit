@@ -1,7 +1,6 @@
 package tencentobject
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -10,7 +9,7 @@ import (
 	cvm "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cvm/v20170312"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
@@ -27,12 +26,21 @@ const (
 #[inputs.tencentobject.cvm.tags]
 # key1 = 'val1'
 `
+
+	cvmPipelineConfig = `
+json(_, Name);
+json(_, Region);
+json(_, CreationDate);
+`
 )
 
 type Cvm struct {
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string            `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (e *Cvm) run(ag *objectAgent) {
@@ -42,6 +50,12 @@ func (e *Cvm) run(ag *objectAgent) {
 	credential := ag.getCredential()
 	cpf := profile.NewClientProfile()
 	cpf.HttpProfile.Endpoint = "cvm.tencentcloudapi.com"
+
+	e.p, err = newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] cvm new pipeline err:%s", err.Error())
+		return
+	}
 
 	for {
 
@@ -109,33 +123,11 @@ func (e *Cvm) handleResponse(resp *cvm.DescribeInstancesResponse, ag *objectAgen
 
 	moduleLogger.Debugf("CVM TotalCount=%d", *resp.Response.TotalCount)
 
-	var objs []map[string]interface{}
-
 	for _, inst := range resp.Response.InstanceSet {
 
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, *inst.InstanceName, *inst.InstanceId), `tencent_cvm`, inst, *inst.InstanceId, e.ExcludeInstanceIDs, e.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf(`%s(%s)`, *inst.InstanceName, *inst.InstanceId),
 		}
-
-	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		if ag.isTest() {
-			ag.testResult.Result = append(ag.testResult.Result, data...)
-		} else {
-			io.NamedFeed(data, io.Object, inputName)
-		}
-	} else {
-		moduleLogger.Errorf("%s", err)
-		return
+		ag.parseObject(inst, "tencent_cvm", *inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, tags)
 	}
 }
