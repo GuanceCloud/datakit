@@ -6,9 +6,9 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
@@ -17,32 +17,16 @@ const (
 #[inputs.aliyunobject.rds]
     # ##(optional) ignore this object, default is false
     #disable = false
-
+	#pipeline = "aliyun_rds.p"
     # ##(optional) list of rds instanceid
     #db_instanceids = []
 
     # ##(optional) list of excluded rds instanceid
     #exclude_db_instanceids = []
 `
-	rdsPipelineConifg = `
-
-json(_,InstanceName,name);
-json(_,RegionId);
-json(_,Status);
-json(_,InstanceId);
-json(_,NetworkType);
-json(_,InstanceChargeType);
-
-`
-)
-
-type Rds struct {
-	Disable              bool              `toml:"disable"`
-	Tags                 map[string]string `toml:"tags,omitempty"`
-	DBInstancesIDs       []string          `toml:"db_instanceids,omitempty"`
-	ExcludeDBInstanceIDs []string          `toml:"exclude_db_instanceids,omitempty"`
-
-	PipelinePath string `toml:"pipeline,omitempty"`
+	Disable              bool     `toml:"disable"`
+	DBInstancesIDs       []string `toml:"db_instanceids,omitempty"`
+	ExcludeDBInstanceIDs []string `toml:"exclude_db_instanceids,omitempty"`
 
 	p *pipeline.Pipeline
 }
@@ -56,11 +40,10 @@ func (r *Rds) run(ag *objectAgent) {
 	var err error
 	p, err := newPipeline(r.PipelinePath)
 	if err != nil {
-		moduleLogger.Errorf("%s", err.Error())
+		moduleLogger.Errorf("[error] rds new pipeline err:%s", err.Error())
 		return
 	}
 	r.p = p
-
 	for {
 
 		select {
@@ -139,6 +122,9 @@ func (r *Rds) handleResponse(resp *rds.DescribeDBInstancesResponse, ag *objectAg
 	moduleLogger.Debugf("TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalRecordCount, resp.PageRecordCount, resp.PageNumber)
 
 	for _, db := range resp.Items.DBInstance {
-		ag.parseObject(db, "aliyun_rds", fmt.Sprintf(`%s_%s`, db.DBInstanceDescription, db.DBInstanceId), db.DBInstanceId, r.p, r.ExcludeDBInstanceIDs, r.DBInstancesIDs, r.Tags)
+		tags := map[string]string{
+			"name": fmt.Sprintf(`%s_%s`, db.DBInstanceDescription, db.DBInstanceId),
+		}
+		ag.parseObject(db, "aliyun_rds", db.DBInstanceId, r.p, r.ExcludeDBInstanceIDs, r.DBInstancesIDs, tags)
 	}
 }
