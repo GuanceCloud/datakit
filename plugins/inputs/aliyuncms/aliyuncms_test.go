@@ -176,11 +176,13 @@ func TestListTagResources(t *testing.T) {
 
 func TestGetMetricList(t *testing.T) {
 
+	ag := loadCfg("test.conf").(*CMS)
+
 	request := cms.CreateDescribeMetricListRequest()
 	request.Scheme = "https"
-	request.RegionId = "cn-hangzhou"
-	request.MetricName = "NodeStatsNetworkoutPackages"
-	request.Namespace = "acs_elasticsearch"
+	request.RegionId = ag.RegionID
+	request.MetricName = "net_rx.rate"
+	request.Namespace = "acs_nat_gateway"
 	request.Period = "60"
 	//request.StartTime = "1588156800000"
 	//request.EndTime = "1588157100000"
@@ -190,7 +192,6 @@ func TestGetMetricList(t *testing.T) {
 	//request.Dimensions = `[{"instanceId":"i-bp1bnmpvz2tuu7odx6cx"}]`
 	request.NextToken = ""
 
-	ag := loadCfg("test.conf").(*CMS)
 	apiClient, _ := cms.NewClientWithAccessKey(ag.RegionID, ag.AccessKeyID, ag.AccessKeySecret)
 
 	for {
