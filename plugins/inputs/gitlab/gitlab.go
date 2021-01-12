@@ -143,7 +143,7 @@ func (g *Gitlab) genParam() *GitlabParam {
 	output := GitlabOutput{io.NamedFeed}
 
 	p := &GitlabParam{input, output, logger.SLogger("gitlab")}
-    return p
+	return p
 }
 
 func (g *GitlabParam) mkGitlabDataDir() {
