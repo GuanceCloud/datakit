@@ -83,7 +83,7 @@ func (t *StatsD) Test() (*inputs.TestResult, error) {
 	tRst := &inputs.TestResult{}
 	para := t.genParam()
 
-	pt, err:= para.getMetrics(true)
+	pt, err := para.getMetrics(true)
 	tRst.Result = pt
 	if err != nil {
 		tRst.Desc = "链接statsd服务器错误"
@@ -91,7 +91,7 @@ func (t *StatsD) Test() (*inputs.TestResult, error) {
 		tRst.Desc = "链接statsd服务正常"
 	}
 
-	return tRst,err
+	return tRst, err
 }
 
 func (t *StatsD) genParam() *StatsdParams {
@@ -112,7 +112,7 @@ func (t *StatsD) genParam() *StatsdParams {
 	input := StatsdInput{*t}
 	output := StatsdOutput{io.NamedFeed}
 	p := &StatsdParams{input, output, logger.SLogger("statsd")}
-    return p
+	return p
 }
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
