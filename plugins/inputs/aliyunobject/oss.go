@@ -23,9 +23,9 @@ const (
     #exclude_buckets = []
 `
 	ossPipelineConfig = `
-json(_, Location);
-json(_, StorageClass);
-json(_, CreationDate);
+json(_, Location)
+json(_, StorageClass)
+json(_, CreationDate)
 
 `
 )
