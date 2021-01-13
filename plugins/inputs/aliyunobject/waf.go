@@ -12,8 +12,9 @@ const (
 	wafSampleConfig = `
 # ##(optional)
 #[inputs.aliyunobject.waf]
-    # ##(optional) ignore this object, default is false
-    #disable = false
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
 	#pipeline = "aliyun_waf.p"
 	# ## @param - custom tags for waf object - [list of key:value element] - optional
 	

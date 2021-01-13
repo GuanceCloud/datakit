@@ -15,14 +15,16 @@ const (
 	rdsSampleConfig = `
 # ##(optional)
 #[inputs.aliyunobject.rds]
-    # ##(optional) ignore this object, default is false
-    #disable = false
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	
 	#pipeline = "aliyun_rds.p"
-    # ##(optional) list of rds instanceid
-    #db_instanceids = []
-
-    # ##(optional) list of excluded rds instanceid
-    #exclude_db_instanceids = []
+	# ##(optional) list of rds instanceid
+	#db_instanceids = []
+	
+	# ##(optional) list of excluded rds instanceid
+	#exclude_db_instanceids = []
 `
 	rdsPipelineConfig = `
 json(_, DBInstanceId)
