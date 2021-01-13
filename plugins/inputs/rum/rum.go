@@ -3,16 +3,21 @@ package rum
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	"github.com/gin-gonic/gin"
@@ -54,9 +59,21 @@ func (r *Rum) PipelineConfig() map[string]string {
 func (r *Rum) RegHttpHandler() {
 	l = logger.SLogger(inputName)
 
+	script := r.Pipeline
+	if script == "" {
+		scriptPath := filepath.Join(datakit.PipelineDir, inputName+".p")
+		data, err := ioutil.ReadFile(scriptPath)
+		if err == nil {
+			script = string(data)
+		}
+	}
+
 	r.pipelinePool = &sync.Pool{
 		New: func() interface{} {
-			p, err := pipeline.NewPipeline(r.Pipeline)
+			if script == "" {
+				return nil
+			}
+			p, err := pipeline.NewPipeline(script)
 			if err != nil {
 				l.Errorf("%s", err)
 			}
@@ -69,6 +86,15 @@ func (r *Rum) RegHttpHandler() {
 }
 
 func (r *Rum) Handle(c *gin.Context) {
+
+	defer func() {
+		if err := recover(); err != nil {
+			buf := make([]byte, 2048)
+			n := runtime.Stack(buf, false)
+			l.Errorf("panic: %s", err)
+			l.Errorf("%s", string(buf[:n]))
+		}
+	}()
 
 	var precision string = DEFAULT_PRECISION
 	var body []byte
@@ -96,6 +122,7 @@ func (r *Rum) Handle(c *gin.Context) {
 
 	body, err = uhttp.GinRead(c)
 	if err != nil {
+		l.Errorf("%s", err)
 		uhttp.HttpErr(c, uhttp.Error(httpd.ErrHttpReadErr, err.Error()))
 		return
 	}
@@ -111,7 +138,11 @@ func (r *Rum) Handle(c *gin.Context) {
 	metricsdata := [][]byte{}
 	esdata := [][]byte{}
 
-	pp := r.pipelinePool.Get().(*pipeline.Pipeline)
+	pp_ := r.pipelinePool.Get()
+	var pp *pipeline.Pipeline
+	if pp_ != nil {
+		pp = pp_.(*pipeline.Pipeline)
+	}
 	defer func() {
 		if pp != nil {
 			r.pipelinePool.Put(pp)
@@ -121,17 +152,18 @@ func (r *Rum) Handle(c *gin.Context) {
 	for _, pt := range pts {
 		ptname := string(pt.Name())
 
-		if IsMetric(ptname) {
+		ipInfo, err := geo.Geo(sourceIP)
+		if err != nil {
+			l.Errorf("parse ip error: %s", err)
+		} else {
 
-			ipInfo, err := geo.Geo(sourceIP)
-			if err != nil {
-				l.Errorf("parse ip error: %s", err)
-			} else {
-				pt.AddTag("city", ipInfo.City)
-				pt.AddTag("region", ipInfo.Region)
-				pt.AddTag("country", ipInfo.Country_short)
-				pt.AddTag("isp", ipInfo.Isp)
-			}
+			pt.AddTag("city", ipInfo.City)
+			pt.AddTag("province", ipInfo.Region)
+			pt.AddTag("country", ipInfo.Country_short)
+			pt.AddTag("isp", ip2isp.SearchIsp(sourceIP))
+		}
+
+		if IsMetric(ptname) {
 
 			metricsdata = append(metricsdata, []byte(pt.String()))
 
@@ -143,7 +175,6 @@ func (r *Rum) Handle(c *gin.Context) {
 			}
 
 			pipelineInput := map[string]interface{}{}
-			pipelineInput["ip"] = sourceIP
 
 			rawFields, _ := pt.Fields()
 			for k, v := range rawFields {
@@ -204,6 +235,7 @@ func (r *Rum) Handle(c *gin.Context) {
 		body = bytes.Join(esdata, []byte("\n"))
 
 		if err = io.NamedFeed(body, io.Rum, inputName); err != nil {
+			l.Errorf("io.NamedFeed error, %s", err)
 			uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
 			return
 		}
