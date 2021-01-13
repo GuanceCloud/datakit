@@ -26,12 +26,11 @@ const (
 	
 `
 	redisPipelineConifg = `
-json(_, InstanceName, name);
-json(_, RegionId);
-json(_, InstanceStatus);
-json(_, InstanceId);
-json(_, NetworkType);
-json(_, ChargeType);
+json(_, RegionId)
+json(_, InstanceStatus)
+json(_, InstanceId)
+json(_, NetworkType)
+json(_, ChargeType)
 `
 )
 
