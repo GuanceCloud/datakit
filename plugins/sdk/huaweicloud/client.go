@@ -81,14 +81,21 @@ func (c *HWClient) Request(method string, resPath string, querys map[string]stri
 	if queryString != "" {
 		requestURL += "?" + queryString
 	}
-	//moduleLogger.Debugf("requestURL: %s", requestURL)
 
 	var bodyReader io.Reader
 	if body != nil {
 		bodyReader = strings.NewReader(string(body))
 	}
 
-	req, _ := http.NewRequest(method, requestURL, bodyReader)
+	req, err := http.NewRequest(method, requestURL, bodyReader)
+	if err != nil {
+		err = fmt.Errorf("invalid request url: %s, err:%s", requestURL, err)
+		return nil, err
+	}
+
+	if c.logger != nil {
+		c.logger.Debugf("api url: %s", requestURL)
+	}
 
 	req.Header.Add("Content-Length", fmt.Sprintf("%d", len(body)))
 	req.Header.Add("X-Sdk-Date", xdate)
