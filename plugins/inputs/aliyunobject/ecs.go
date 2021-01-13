@@ -26,11 +26,11 @@ const (
     #exclude_instanceids = ['']
 `
 	ecsPipelineConfig = `
-json(_, InstanceId);
-json(_, InstanceChargeType);
-json(_, RegionId);
-json(_, InstanceType);
-json(_, VpcAttributes.VpcId, VpcId);
+json(_, InstanceId)
+json(_, InstanceChargeType)
+json(_, RegionId)
+json(_, InstanceType)
+json(_, VpcAttributes.VpcId, VpcId)
 `
 )
 
