@@ -25,11 +25,11 @@ const (
     #exclude_db_instanceids = []
 `
 	rdsPipelineConfig = `
-json(_, DBInstanceId);
-json(_, DBInstanceType);
-json(_, RegionId);
-json(_, Engine);
-json(_, DBInstanceClass);
+json(_, DBInstanceId)
+json(_, DBInstanceType)
+json(_, RegionId)
+json(_, Engine)
+json(_, DBInstanceClass)
 `
 )
 
