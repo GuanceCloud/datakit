@@ -331,8 +331,23 @@ index_expr: identifier LEFT_BRACKET number_literal RIGHT_BRACKET
 						if !nl.IsInt {
 							yylex.(*parser).addParseErr(nil,
 								fmt.Errorf("array index should be int, got `%f'", nl.Float))
+							$$ = nil
 						} else {
-							$$ = &IndexExpr{Obj: &Identifier{Name: $1.Val}, Index: nl.Int}
+							$$ = &IndexExpr{Obj: &Identifier{Name: $1.Val}, Index: []int64{nl.Int}}
+						}
+					}
+					| index_expr LEFT_BRACKET number_literal RIGHT_BRACKET
+					{
+
+						nl := $3.(*NumberLiteral)
+						if !nl.IsInt {
+							yylex.(*parser).addParseErr(nil,
+								fmt.Errorf("array index should be int, got `%f'", nl.Float))
+							$$ = nil
+						} else {
+							in := $1.(*IndexExpr)
+							in.Index = append(in.Index, nl.Int)
+							$$ = in
 						}
 					}
 					;
