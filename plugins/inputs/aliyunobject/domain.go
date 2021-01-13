@@ -24,11 +24,11 @@ const (
     #exclude_instanceids = []
 `
 	domainPipelineConfig = `
-json(_, InstanceId);
-json(_, DomainStatus);
-json(_, DomainName);
-json(_, DomainType);
-json(_, ExpirationDateStatus);
+json(_, InstanceId)
+json(_, DomainStatus)
+json(_, DomainName)
+json(_, DomainType)
+json(_, ExpirationDateStatus)
 `
 )
 
