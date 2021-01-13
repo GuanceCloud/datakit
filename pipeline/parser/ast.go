@@ -20,11 +20,48 @@ type Node interface {
 	Pos() *PositionRange
 }
 
+type Ast struct {
+	Functions []*FuncExpr
+}
+
+func (e *Ast) String() string {
+	arr := []string{}
+	for _, f := range e.Functions {
+		arr = append(arr, f.String())
+	}
+	return strings.Join(arr, "\n")
+}
+
+func (e *Ast) Pos() *PositionRange { return nil } // TODO
+
+type IndexExpr struct {
+	Obj   *Identifier
+	Index int64
+}
+
+func (e *IndexExpr) String() string      { return e.Obj.String() + fmt.Sprintf("[%d]", e.Index) }
+func (e *IndexExpr) Pos() *PositionRange { return nil } // TODO
+
+type AttrExpr struct {
+	Obj  Node
+	Attr Node
+}
+
+func (e *AttrExpr) String() string {
+	if e.Attr != nil {
+		return e.Obj.String() + "." + e.Attr.String()
+	} else {
+		return e.Obj.String()
+	}
+}
+
+func (e *AttrExpr) Pos() *PositionRange { return nil } // TODO
+
 type Identifier struct { // impl Expr
 	Name string
 }
 
-func (e *Identifier) String() string      { return "id(" + e.Name + ")" }
+func (e *Identifier) String() string      { return e.Name }
 func (e *Identifier) Pos() *PositionRange { return nil } // TODO
 
 type NumberLiteral struct {
@@ -166,7 +203,7 @@ type parser struct {
 	lex      Lexer
 	yyParser yyParserImpl
 
-	parseResult interface{}
+	parseResult Node
 	lastClosing Pos
 	errs        ParseErrors
 
@@ -396,16 +433,16 @@ type PositionRange struct {
 	Start, End Pos
 }
 
-func ParseFuncExpr(input string) (res []Node, err error) {
+func ParsePipeline(input string) (res Node, err error) {
 	p := newParser(input)
 	defer parserPool.Put(p)
 	defer p.recover(&err)
 
-	p.InjectItem(START_FUNC_EXPRESSION)
+	p.InjectItem(START_PIPELINE)
 	p.yyParser.Parse(p)
 
 	if p.parseResult != nil {
-		res = p.parseResult.([]Node)
+		res = p.parseResult
 	}
 
 	if len(p.errs) != 0 {
