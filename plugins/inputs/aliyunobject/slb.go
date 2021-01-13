@@ -16,14 +16,16 @@ const (
 	slbSampleConfig = `
 # ##(optional)
 #[inputs.aliyunobject.slb]
-    # ##(optional) ignore this object, default is false
-    #disable = false
-	#pipeline = "aliyun_slb.p"
-    # ##(optional) list of slb instanceid
-    #instanceids = ['']
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
 
-    # ##(optional) list of excluded slb instanceid
-    #exclude_instanceids = ['']
+	#pipeline = "aliyun_slb.p"
+	# ##(optional) list of slb instanceid
+	#instanceids = ['']
+	
+	# ##(optional) list of excluded slb instanceid
+	#exclude_instanceids = ['']
 `
 	slbPipelineConfig = `
 json(_, LoadBalancerId)
