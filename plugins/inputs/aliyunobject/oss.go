@@ -13,14 +13,15 @@ const (
 	ossSampleConfig = `
 # ##(optional)
 #[inputs.aliyunobject.oss]
-    # ##(optional) ignore this object, default is false
-    #disable = false
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
 	#pipeline = "aliyun_oss.p"
-    # ##(optional) list of oss buckets
-    #buckets = []
-
+	# ##(optional) list of oss buckets
+	#buckets = []
+	
 	# ##(optional) list of excluded oss instanceid
-    #exclude_buckets = []
+	#exclude_buckets = []
 `
 	ossPipelineConfig = `
 json(_, Location)
