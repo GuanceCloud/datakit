@@ -26,10 +26,10 @@ endpoint=""
 `
 	ecsPipelineConifg = `
 
-json(_,hostId);
-json(_,tenant_id);
-json(_,host_status);
-json(_,OS-EXT-SRV-ATTR:root_device_name, root_device_name);
+json(_,hostId)
+json(_,tenant_id)
+json(_,host_status)
+json(_,OS-EXT-SRV-ATTR:root_device_name, root_device_name)
 
 `
 )
