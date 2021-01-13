@@ -14,6 +14,35 @@ type parseCase struct {
 }
 
 var parseCases = []*parseCase{
+	// case: multi-dim arr
+
+	{
+		in:   `f(x.y[2.5])`,
+		fail: true,
+	},
+
+	{
+		in: `f(x.y[1][2].z)`,
+		expected: &Ast{
+			Functions: []*FuncExpr{
+				&FuncExpr{
+					Name: `f`,
+					Param: []Node{
+						&AttrExpr{
+							Obj: &Identifier{Name: "x"},
+							Attr: &AttrExpr{
+								Obj: &IndexExpr{
+									Obj:   &Identifier{Name: "y"},
+									Index: []int64{1, 2},
+								},
+								Attr: &Identifier{Name: "z"},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
 
 	// case: multiple functions
 	{
@@ -109,7 +138,7 @@ var parseCases = []*parseCase{
 							Attr: &AttrExpr{
 								Obj: &IndexExpr{
 									Obj:   &Identifier{Name: "y"},
-									Index: 1,
+									Index: []int64{1},
 								},
 								Attr: &Identifier{Name: "z"},
 							},
@@ -164,11 +193,10 @@ func runCases(t *testing.T, cases []*parseCase) {
 			t.Fatal("should not been here")
 		}
 
-		var x, y string
-		x = tc.expected.String()
-		y = ast.String()
-
 		if !tc.fail {
+			var x, y string
+			x = tc.expected.String()
+			y = ast.String()
 			testutil.Ok(t, err)
 			testutil.Equals(t, x, y)
 			t.Logf("[%d] ok %s -> %s", idx, tc.in, y)
