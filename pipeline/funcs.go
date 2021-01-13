@@ -22,6 +22,7 @@ var (
 	funcsMap = map[string]ProFunc{
 		"grok":          Grok,
 		"json":          Json,
+		"json_all":      JsonAll,
 		"rename":        Rename,
 		"strfmt":        Strfmt,
 		"cast":          Cast,
@@ -87,6 +88,13 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	v := getGjsonResult(cont, old)
 	p.setContent(newkey, v)
+
+	return p, nil
+}
+
+func JsonAll(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	out := JsonParse(p.Content)
+	p.Output = out
 
 	return p, nil
 }
