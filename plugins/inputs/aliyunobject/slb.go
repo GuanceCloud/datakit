@@ -26,11 +26,11 @@ const (
     #exclude_instanceids = ['']
 `
 	slbPipelineConfig = `
-json(_, LoadBalancerId);
-json(_, LoadBalancerStatus);
-json(_, PayType);
-json(_, Address);
-json(_, RegionId);
+json(_, LoadBalancerId)
+json(_, LoadBalancerStatus)
+json(_, PayType)
+json(_, Address)
+json(_, RegionId)
 
 `
 )

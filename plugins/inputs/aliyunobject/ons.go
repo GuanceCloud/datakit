@@ -25,11 +25,11 @@ const (
     #exclude_instanceids = []
 `
 	onsPipelineConfig = `
-json(_, InstanceId);
-json(_, InstanceStatus);
-json(_, IndependentNaming);
-json(_, InstanceName);
-json(_, InstanceType);
+json(_, InstanceId)
+json(_, InstanceStatus)
+json(_, IndependentNaming)
+json(_, InstanceName)
+json(_, InstanceType)
 `
 )
 
