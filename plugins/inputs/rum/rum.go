@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	"github.com/gin-gonic/gin"
@@ -159,7 +160,7 @@ func (r *Rum) Handle(c *gin.Context) {
 			pt.AddTag("city", ipInfo.City)
 			pt.AddTag("province", ipInfo.Region)
 			pt.AddTag("country", ipInfo.Country_short)
-			pt.AddTag("isp", ipInfo.Isp)
+			pt.AddTag("isp", ip2isp.SearchIsp(sourceIP))
 		}
 
 		if IsMetric(ptname) {
