@@ -7,10 +7,12 @@ const (
 [[inputs.rum]]
 # ##(optional) tell datakit which http header contains the source ip, if empty use the client ip
 ip_header = 'X-Forwarded-For'
-pipeline = 'geoip(ip)'
+
+# ##(optional)
+#pipeline = ''
 `
 
-	pipelineSample = `geoip(ip)`
+	pipelineSample = ``
 )
 
 type Rum struct {
