@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -86,6 +87,15 @@ func PINGHandler(c *gin.Context) {
 
 func (r *logstashInfluxdbOutput) WriteHandler(c *gin.Context) {
 
+	defer func() {
+		if err := recover(); err != nil {
+			buf := make([]byte, 2048)
+			n := runtime.Stack(buf, false)
+			moduleLogger.Errorf("panic: %s", err)
+			moduleLogger.Errorf("%s", string(buf[:n]))
+		}
+	}()
+
 	body, err := uhttp.GinRead(c)
 
 	if err != nil {
@@ -136,7 +146,11 @@ func (r *logstashInfluxdbOutput) WriteHandler(c *gin.Context) {
 			return
 		}
 
-		pp := r.pipelinePool.Get().(*pipeline.Pipeline)
+		pp_ := r.pipelinePool.Get()
+		var pp *pipeline.Pipeline
+		if pp_ != nil {
+			pp = pp_.(*pipeline.Pipeline)
+		}
 		defer func() {
 			if pp != nil {
 				r.pipelinePool.Put(pp)
