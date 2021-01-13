@@ -30,7 +30,7 @@ json(_, InstanceId);
 json(_, InstanceChargeType);
 json(_, RegionId);
 json(_, InstanceType);
-json(_, VpcId);
+json(_, VpcAttributes.VpcId, VpcId);
 `
 )
 
