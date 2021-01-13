@@ -28,11 +28,11 @@ const (
     #exclude_instanceids = []
 `
 	influxDBPipelineConfig = `
-json(_, InstanceId);
-json(_, RegionId);
-json(_, NetworkType);
-json(_, InstanceClass);
-json(_, ChargeType);
+json(_, InstanceId)
+json(_, RegionId)
+json(_, NetworkType)
+json(_, InstanceClass)
+json(_, ChargeType)
     
 `
 )
