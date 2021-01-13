@@ -155,8 +155,9 @@ func (r *Rum) Handle(c *gin.Context) {
 		if err != nil {
 			l.Errorf("parse ip error: %s", err)
 		} else {
+
 			pt.AddTag("city", ipInfo.City)
-			pt.AddTag("region", ipInfo.Region)
+			pt.AddTag("province", ipInfo.Region)
 			pt.AddTag("country", ipInfo.Country_short)
 			pt.AddTag("isp", ipInfo.Isp)
 		}
