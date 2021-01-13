@@ -22,11 +22,11 @@ const (
     #exclude_domainNames = []
 `
 	cdnPipelineConifg = `
-json(_, Cname);
-json(_, CdnType);
-json(_, DomainStatus);
-json(_, SslProtocol);
-json(_, ResourceGroupId);
+json(_, Cname)
+json(_, CdnType)
+json(_, DomainStatus)
+json(_, SslProtocol)
+json(_, ResourceGroupId)
 `
 )
 
