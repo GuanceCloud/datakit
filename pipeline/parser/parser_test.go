@@ -4,13 +4,11 @@ import (
 	"testing"
 )
 
-var in = `avg(x.y.z,1,2,3, p68, re("cd"), pqa);
-
-f(g(f("abc"), 123),
-1,2,3);
-
-
-kkk(g(1,2),h(2,3),[5,6,7])
+var in = `avg(x.y.z,1,2,3, p68, re("cd"), pqa)
+f1(g(f2("abc"), 123), 1,2,3)
+kkk(g(1,2),h(2,3),[5,6,7]);
+f1(g(f2("abc"), 123), 1,2,3)
+f1() f2(); f3(); f()
 `
 
 func FuncPrintHelp(f *FuncExpr, prev string, t *testing.T) {
