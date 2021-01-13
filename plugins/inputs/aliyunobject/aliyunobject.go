@@ -193,17 +193,24 @@ func (ag *objectAgent) parseObject(obj interface{}, class, id string, pipeline *
 	if datakit.CheckExcluded(id, blacklist, whitelist) {
 		return
 	}
-	data, err := json.Marshal(obj)
-	if err != nil {
-		moduleLogger.Errorf("[error] json marshal err:%s", err.Error())
-		return
+	message := ""
+	switch obj.(type) {
+	case string:
+		message = obj.(string)
+	default:
+		data, err := json.Marshal(obj)
+		if err != nil {
+			moduleLogger.Errorf("[error] json marshal err:%s", err.Error())
+			return
+		}
+		message = string(data)
 	}
-	fields, err := pipeline.Run(string(data)).Result()
+	fields, err := pipeline.Run(message).Result()
 	if err != nil {
 		moduleLogger.Errorf("[error] pipeline run err:%s", err.Error())
 		return
 	}
-	fields["message"] = string(data)
+	fields["message"] = message
 
 	io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
 }
