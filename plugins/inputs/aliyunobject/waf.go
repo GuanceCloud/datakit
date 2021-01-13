@@ -19,11 +19,11 @@ const (
 	
 `
 	wafPipelineConfig = `
-json(_, Region);
-json(_, PayType);
-json(_, Status);
-json(_, InDebt);
-json(_, SubscriptionType);
+json(_, Region)
+json(_, PayType)
+json(_, Status)
+json(_, InDebt)
+json(_, SubscriptionType)
 `
 )
 
