@@ -25,11 +25,11 @@ const (
     #exclude_db_instanceids = []
 `
 	ddsPipelineConfig = `
-json(_, DBInstanceId);
-json(_, ChargeType);
-json(_, RegionId);
-json(_, DBInstanceType);
-json(_, DBInstanceClass);
+json(_, DBInstanceId)
+json(_, ChargeType)
+json(_, RegionId)
+json(_, DBInstanceType)
+json(_, DBInstanceClass)
 `
 )
 
