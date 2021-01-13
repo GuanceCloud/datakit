@@ -33,8 +33,8 @@ endpoint=""
 `
 	elbPipelineConfig = `
 
-json(_,type);
-json(_,admin_state_up);
+json(_,type)
+json(_,admin_state_up)
 	`
 )
 
