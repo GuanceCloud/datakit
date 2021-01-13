@@ -24,11 +24,11 @@ const (
     #exclude_instanceids = []
 `
 	elasticsearchPipelineConifg = `
-json(_, instanceId);
-json(_, paymentType);
-json(_, status);
-json(_, dedicateMaster);
-json(_, resourceGroupId);
+json(_, instanceId)
+json(_, paymentType)
+json(_, status)
+json(_, dedicateMaster)
+json(_, resourceGroupId)
 `
 )
 
