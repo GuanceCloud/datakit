@@ -2,6 +2,9 @@ package logstash_influxdb_output
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -10,11 +13,11 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
 )
@@ -48,11 +51,24 @@ func (r *logstashInfluxdbOutput) Test() (result *inputs.TestResult, err error) {
 func (r *logstashInfluxdbOutput) RegHttpHandler() {
 	moduleLogger = logger.SLogger(inputName)
 
+	script := r.Pipeline
+	if script == "" {
+		scriptPath := filepath.Join(datakit.PipelineDir, inputName+".p")
+		data, err := ioutil.ReadFile(scriptPath)
+		if err == nil {
+			script = string(data)
+		}
+	}
+
 	r.pipelinePool = &sync.Pool{
 		New: func() interface{} {
-			p, err := pipeline.NewPipeline(r.Pipeline)
+			if script == "" {
+				return nil
+			}
+			p, err := pipeline.NewPipeline(script)
 			if err != nil {
 				moduleLogger.Errorf("%s", err)
+				return nil
 			}
 			return p
 		},
@@ -70,6 +86,15 @@ func PINGHandler(c *gin.Context) {
 }
 
 func (r *logstashInfluxdbOutput) WriteHandler(c *gin.Context) {
+
+	defer func() {
+		if err := recover(); err != nil {
+			buf := make([]byte, 2048)
+			n := runtime.Stack(buf, false)
+			moduleLogger.Errorf("panic: %s", err)
+			moduleLogger.Errorf("%s", string(buf[:n]))
+		}
+	}()
 
 	body, err := uhttp.GinRead(c)
 
@@ -121,7 +146,11 @@ func (r *logstashInfluxdbOutput) WriteHandler(c *gin.Context) {
 			return
 		}
 
-		pp := r.pipelinePool.Get().(*pipeline.Pipeline)
+		pp_ := r.pipelinePool.Get()
+		var pp *pipeline.Pipeline
+		if pp_ != nil {
+			pp = pp_.(*pipeline.Pipeline)
+		}
 		defer func() {
 			if pp != nil {
 				r.pipelinePool.Put(pp)
