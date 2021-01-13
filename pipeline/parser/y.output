@@ -325,17 +325,19 @@ state 30
 state 31
 	function_name:  identifier.    (48)
 	index_expr:  identifier.LEFT_BRACKET number_literal RIGHT_BRACKET 
-	attr_expr:  identifier.    (57)
+	attr_expr:  identifier.    (58)
 
 	LEFT_PAREN  reduce 48 (src line 280)
 	LEFT_BRACKET  shift 64
-	.  reduce 57 (src line 340)
+	.  reduce 58 (src line 355)
 
 
 state 32
-	attr_expr:  index_expr.    (58)
+	index_expr:  index_expr.LEFT_BRACKET number_literal RIGHT_BRACKET 
+	attr_expr:  index_expr.    (59)
 
-	.  reduce 58 (src line 344)
+	LEFT_BRACKET  shift 65
+	.  reduce 59 (src line 359)
 
 
 state 33
@@ -347,7 +349,7 @@ state 33
 state 34
 	number_literal:  unary_op.NUMBER 
 
-	NUMBER  shift 65
+	NUMBER  shift 66
 	.  error
 
 
@@ -396,7 +398,7 @@ state 41
 state 42
 	identifier:  IDENTIFIER LEFT_PAREN string_literal.RIGHT_PAREN 
 
-	RIGHT_PAREN  shift 66
+	RIGHT_PAREN  shift 67
 	.  error
 
 
@@ -432,7 +434,7 @@ state 44
 	array_elem  goto 19
 	binary_expr  goto 23
 	expr  goto 17
-	function_arg  goto 67
+	function_arg  goto 68
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -466,7 +468,7 @@ state 45
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 68
+	expr  goto 69
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -500,7 +502,7 @@ state 46
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 69
+	expr  goto 70
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -534,7 +536,7 @@ state 47
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 70
+	expr  goto 71
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -568,7 +570,7 @@ state 48
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 71
+	expr  goto 72
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -602,7 +604,7 @@ state 49
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 72
+	expr  goto 73
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -636,7 +638,7 @@ state 50
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 73
+	expr  goto 74
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -670,7 +672,7 @@ state 51
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 74
+	expr  goto 75
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -704,7 +706,7 @@ state 52
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 75
+	expr  goto 76
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -738,7 +740,7 @@ state 53
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 76
+	expr  goto 77
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -772,7 +774,7 @@ state 54
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 77
+	expr  goto 78
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -806,7 +808,7 @@ state 55
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 78
+	expr  goto 79
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -840,7 +842,7 @@ state 56
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 79
+	expr  goto 80
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -874,7 +876,7 @@ state 57
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 80
+	expr  goto 81
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -908,7 +910,7 @@ state 58
 	identifier  goto 31
 	array_elem  goto 19
 	binary_expr  goto 23
-	expr  goto 81
+	expr  goto 82
 	function_expr  goto 22
 	paren_expr  goto 21
 	regex  goto 20
@@ -923,8 +925,8 @@ state 59
 	function_arg:  LEFT_BRACKET array_list.RIGHT_BRACKET 
 	array_list:  array_list.COMMA array_elem 
 
-	COMMA  shift 83
-	RIGHT_BRACKET  shift 82
+	COMMA  shift 84
+	RIGHT_BRACKET  shift 83
 	.  error
 
 
@@ -943,18 +945,18 @@ state 61
 	IDENTIFIER  shift 11
 	.  error
 
-	identifier  goto 84
-	index_expr  goto 85
+	identifier  goto 85
+	index_expr  goto 86
 
 state 62
 	regex:  RE LEFT_PAREN.string_literal RIGHT_PAREN 
 	regex:  RE LEFT_PAREN.QUOTED_STRING RIGHT_PAREN 
 
 	STRING  shift 35
-	QUOTED_STRING  shift 87
+	QUOTED_STRING  shift 88
 	.  error
 
-	string_literal  goto 86
+	string_literal  goto 87
 
 state 63
 	paren_expr:  LEFT_PAREN expr.RIGHT_PAREN 
@@ -973,7 +975,7 @@ state 63
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	RIGHT_PAREN  shift 88
+	RIGHT_PAREN  shift 89
 	ADD  shift 45
 	DIV  shift 46
 	GTE  shift 47
@@ -1000,27 +1002,38 @@ state 64
 	.  error
 
 	unary_op  goto 34
-	number_literal  goto 89
+	number_literal  goto 90
 
 state 65
+	index_expr:  index_expr LEFT_BRACKET.number_literal RIGHT_BRACKET 
+
+	NUMBER  shift 33
+	ADD  shift 40
+	SUB  shift 41
+	.  error
+
+	unary_op  goto 34
+	number_literal  goto 91
+
+state 66
 	number_literal:  unary_op NUMBER.    (50)
 
 	.  reduce 50 (src line 291)
 
 
-state 66
+state 67
 	identifier:  IDENTIFIER LEFT_PAREN string_literal RIGHT_PAREN.    (55)
 
 	.  reduce 55 (src line 322)
 
 
-state 67
+state 68
 	function_args:  function_args COMMA function_arg.    (21)
 
 	.  reduce 21 (src line 151)
 
 
-state 68
+state 69
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr ADD expr.    (34)
 	binary_expr:  expr.DIV expr 
@@ -1044,7 +1057,7 @@ state 68
 	.  reduce 34 (src line 200)
 
 
-state 69
+state 70
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr DIV expr.    (35)
@@ -1065,7 +1078,7 @@ state 69
 	.  reduce 35 (src line 204)
 
 
-state 70
+state 71
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1091,7 +1104,7 @@ state 70
 	.  reduce 36 (src line 208)
 
 
-state 71
+state 72
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1117,7 +1130,7 @@ state 71
 	.  reduce 37 (src line 214)
 
 
-state 72
+state 73
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1149,7 +1162,7 @@ state 72
 	.  reduce 38 (src line 220)
 
 
-state 73
+state 74
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1182,7 +1195,7 @@ state 73
 	.  reduce 39 (src line 226)
 
 
-state 74
+state 75
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1208,7 +1221,7 @@ state 74
 	.  reduce 40 (src line 232)
 
 
-state 75
+state 76
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1234,7 +1247,7 @@ state 75
 	.  reduce 41 (src line 238)
 
 
-state 76
+state 77
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1255,7 +1268,7 @@ state 76
 	.  reduce 42 (src line 244)
 
 
-state 77
+state 78
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1276,7 +1289,7 @@ state 77
 	.  reduce 43 (src line 249)
 
 
-state 78
+state 79
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1302,7 +1315,7 @@ state 78
 	.  reduce 44 (src line 254)
 
 
-state 79
+state 80
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1323,7 +1336,7 @@ state 79
 	.  reduce 45 (src line 260)
 
 
-state 80
+state 81
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1347,7 +1360,7 @@ state 80
 	.  reduce 46 (src line 265)
 
 
-state 81
+state 82
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1373,13 +1386,13 @@ state 81
 	.  reduce 47 (src line 270)
 
 
-state 82
+state 83
 	function_arg:  LEFT_BRACKET array_list RIGHT_BRACKET.    (26)
 
 	.  reduce 26 (src line 171)
 
 
-state 83
+state 84
 	array_list:  array_list COMMA.array_elem 
 
 	NUMBER  shift 33
@@ -1393,86 +1406,101 @@ state 83
 	.  error
 
 	unary_op  goto 34
-	array_elem  goto 90
+	array_elem  goto 92
 	bool_literal  goto 28
 	string_literal  goto 26
 	nil_literal  goto 27
 	number_literal  goto 25
 
-state 84
+state 85
 	index_expr:  identifier.LEFT_BRACKET number_literal RIGHT_BRACKET 
-	attr_expr:  attr_expr DOT identifier.    (59)
+	attr_expr:  attr_expr DOT identifier.    (60)
 
 	LEFT_BRACKET  shift 64
-	.  reduce 59 (src line 348)
-
-
-state 85
-	attr_expr:  attr_expr DOT index_expr.    (60)
-
-	.  reduce 60 (src line 352)
+	.  reduce 60 (src line 363)
 
 
 state 86
-	regex:  RE LEFT_PAREN string_literal.RIGHT_PAREN 
+	index_expr:  index_expr.LEFT_BRACKET number_literal RIGHT_BRACKET 
+	attr_expr:  attr_expr DOT index_expr.    (61)
 
-	RIGHT_PAREN  shift 91
-	.  error
+	LEFT_BRACKET  shift 65
+	.  reduce 61 (src line 367)
 
 
 state 87
-	regex:  RE LEFT_PAREN QUOTED_STRING.RIGHT_PAREN 
+	regex:  RE LEFT_PAREN string_literal.RIGHT_PAREN 
 
-	RIGHT_PAREN  shift 92
+	RIGHT_PAREN  shift 93
 	.  error
 
 
 state 88
+	regex:  RE LEFT_PAREN QUOTED_STRING.RIGHT_PAREN 
+
+	RIGHT_PAREN  shift 94
+	.  error
+
+
+state 89
 	paren_expr:  LEFT_PAREN expr RIGHT_PAREN.    (19)
 
 	.  reduce 19 (src line 139)
 
 
-state 89
+state 90
 	index_expr:  identifier LEFT_BRACKET number_literal.RIGHT_BRACKET 
 
-	RIGHT_BRACKET  shift 93
+	RIGHT_BRACKET  shift 95
 	.  error
 
 
-state 90
+state 91
+	index_expr:  index_expr LEFT_BRACKET number_literal.RIGHT_BRACKET 
+
+	RIGHT_BRACKET  shift 96
+	.  error
+
+
+state 92
 	array_list:  array_list COMMA array_elem.    (27)
 
 	.  reduce 27 (src line 177)
 
 
-state 91
+state 93
 	regex:  RE LEFT_PAREN string_literal RIGHT_PAREN.    (51)
 
 	.  reduce 51 (src line 307)
 
 
-state 92
+state 94
 	regex:  RE LEFT_PAREN QUOTED_STRING RIGHT_PAREN.    (52)
 
 	.  reduce 52 (src line 311)
 
 
-state 93
+state 95
 	index_expr:  identifier LEFT_BRACKET number_literal RIGHT_BRACKET.    (56)
 
 	.  reduce 56 (src line 328)
 
 
+state 96
+	index_expr:  index_expr LEFT_BRACKET number_literal RIGHT_BRACKET.    (57)
+
+	.  reduce 57 (src line 339)
+
+
 46 terminals, 21 nonterminals
-61 grammar rules, 94/8000 states
+62 grammar rules, 97/8000 states
 0 shift/reduce, 0 reduce/reduce conflicts reported
 70 working sets used
 memory: parser 350/120000
 10 extra closures
-374 shift entries, 2 exceptions
-47 goto entries
-238 entries saved by goto default
-Optimizer space used: output 178/120000
-178 table entries, 5 zero
-maximum spread: 45, maximum offset: 83
+380 shift entries, 2 exceptions
+48 goto entries
+239 entries saved by goto default
+Optimizer space used: output 194/120000
+194 table entries, 18 zero
+maximum spread: 45, maximum offset: 84
