@@ -37,23 +37,16 @@ func (_ *objectAgent) PipelineConfig() map[string]string {
 		"huaweiyun_ecs":   ecsPipelineConifg,
 		"huaweiyun_elb":   elbPipelineConfig,
 		"huaweiyun_obs":   obsPipelineConifg,
-		"huaweiyun_mysql": mysqlPipelineConifg,
+		"huaweiyun_mysql": mysqlPipelineConfig,
 	}
 	return pipelineMap
-}
-
-func (ag *objectAgent) Test() (*inputs.TestResult, error) {
-	ag.mode = "test"
-	ag.testResult = &inputs.TestResult{}
-	ag.Run()
-	return ag.testResult, ag.testError
 }
 
 func (_ *objectAgent) Catalog() string {
 	return `huaweiyun`
 }
 
-func (r *objectAgent) Test() (result *inputs.TestResult, err error) {
+func (ag *objectAgent) Test() (result *inputs.TestResult, err error) {
 	return
 }
 
