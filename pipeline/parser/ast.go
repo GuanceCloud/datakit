@@ -36,10 +36,17 @@ func (e *Ast) Pos() *PositionRange { return nil } // TODO
 
 type IndexExpr struct {
 	Obj   *Identifier
-	Index int64
+	Index []int64
 }
 
-func (e *IndexExpr) String() string      { return e.Obj.String() + fmt.Sprintf("[%d]", e.Index) }
+func (e *IndexExpr) String() string {
+	x := e.Obj.String()
+	for i, _ := range e.Index {
+		x += fmt.Sprintf("[%d]", e.Index[i])
+	}
+
+	return x
+}
 func (e *IndexExpr) Pos() *PositionRange { return nil } // TODO
 
 type AttrExpr struct {
@@ -394,6 +401,11 @@ type ParseErr struct {
 }
 
 func (e *ParseErr) Error() string {
+
+	if e.Pos == nil {
+		return fmt.Sprintf("%s", e.Err)
+	}
+
 	pos := int(e.Pos.Start)
 	lastLineBrk := -1
 	ln := e.LineOffset + 1
