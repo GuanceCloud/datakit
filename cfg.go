@@ -333,18 +333,28 @@ func ParseDataway(httpurl, wsport string) (*DataWayCfg, error) {
 	switch u.Scheme {
 	case "http":
 		dwcfg.wsscheme = "ws"
-		if wsport == "" {
-			dwcfg.WsPort = "80"
-		}
+
 	case "https":
 		dwcfg.wsscheme = "wss"
-		if wsport == "" {
-			dwcfg.WsPort = "443"
-		}
+
 	default:
 		l.Errorf("unknown scheme %s", u.Scheme)
 		return nil, fmt.Errorf("unknown scheme")
 	}
+	//此处判断 如果 不填 ws_port 并且填写了 http_port 默认为 9530 不填则为 80 or 443
+	if wsport == "" {
+		if u.Port() != "" {
+			wsport = "9530"
+		} else {
+			if dwcfg.wsscheme == "ws" {
+				wsport = "80"
+			} else {
+				wsport = "443"
+			}
+		}
+
+	}
+	dwcfg.WsPort = wsport
 	dwcfg.wshost = fmt.Sprintf("%s:%s", u.Hostname(), dwcfg.WsPort)
 	return dwcfg, nil
 }
