@@ -28,11 +28,11 @@ const (
     #exclude_instanceids = []
 `
 	influxDBPipelineConfig = `
-json(_, InstanceId);
-json(_, RegionId);
-json(_, NetworkType);
-json(_, InstanceClass);
-json(_, ChargeType);
+json(_, InstanceId)
+json(_, RegionId)
+json(_, NetworkType)
+json(_, InstanceClass)
+json(_, ChargeType)
     
 `
 )
@@ -127,6 +127,6 @@ func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
 		tags := map[string]string{
 			"name": fmt.Sprintf("%s_%s", name, id),
 		}
-		ag.parseObject(inst, "aliyun_influxdb", id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, tags)
+		ag.parseObject(inst.String(), "aliyun_influxdb", id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, tags)
 	}
 }
