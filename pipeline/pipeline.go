@@ -24,7 +24,7 @@ type Pipeline struct {
 	Output   map[string]interface{}
 	lastErr  error
 	patterns map[string]string //存放自定义patterns
-	nodes    []parser.Node
+	ast      *parser.Ast
 	grok     *vgrok.Grok
 }
 
@@ -109,9 +109,10 @@ func (p *Pipeline) Run(data string) *Pipeline {
 	p.Output["message"] = data
 
 	//防止脚本解析错误
-	if len(p.nodes) == 0 {
+	if len(p.ast.Functions) == 0 {
 		return p
 	}
+
 	//错误状态复位
 	p.lastErr = nil
 
@@ -127,27 +128,18 @@ func (p *Pipeline) Run(data string) *Pipeline {
 			return
 		}
 
-		for _, node := range p.nodes {
-			switch v := node.(type) {
-			case *parser.FuncExpr:
-				fn := strings.ToLower(v.Name)
-				f, ok := funcsMap[fn]
-				if !ok {
-					err := fmt.Errorf("unsupported func: %v", v.Name)
-					l.Error(err)
-					p.lastErr = err
-					return
-				}
+		for _, fn := range p.ast.Functions {
+			fname := strings.ToLower(fn.Name)
+			plf, ok := funcsMap[fname]
+			if !ok {
+				p.lastErr = fmt.Errorf("unsupported func: `%v'", fn.Name)
+				return
+			}
 
-				_, err = f(p, node)
-				if err != nil {
-					l.Errorf("Run func %v: %v", v.Name, err)
-					p.lastErr = err
-					return
-				}
-
-			default:
-				p.lastErr = fmt.Errorf("%v not function", v.String())
+			_, err = plf(p, fn)
+			if err != nil {
+				p.lastErr = fmt.Errorf("Run func %v: %v", fn.Name, err)
+				return
 			}
 		}
 	}
@@ -219,12 +211,18 @@ func (p *Pipeline) setContent(k string, v interface{}) {
 
 func (pl *Pipeline) parseScript(script string) error {
 
-	nodes, err := parser.ParseFuncExpr(script)
+	node, err := parser.ParsePipeline(script)
 	if err != nil {
 		return err
 	}
 
-	pl.nodes = nodes
+	switch ast := node.(type) {
+	case *parser.Ast:
+		pl.ast = ast
+	default:
+		return fmt.Errorf("should not been here")
+	}
+
 	return nil
 }
 
