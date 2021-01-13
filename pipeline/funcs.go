@@ -16,10 +16,10 @@ const (
 	CONTENT = "__content"
 )
 
-type ProFunc func(p *Pipeline, node parser.Node) (*Pipeline, error)
+type PipelineFunc func(p *Pipeline, node parser.Node) (*Pipeline, error)
 
 var (
-	funcsMap = map[string]ProFunc{
+	funcsMap = map[string]PipelineFunc{
 		"grok":          Grok,
 		"json":          Json,
 		"rename":        Rename,
@@ -553,7 +553,7 @@ func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	return p, nil
 }
 
-func ParseScript(scriptOrPath string) ([]parser.Node, error) {
+func ParseScript(scriptOrPath string) (*parser.Ast, error) {
 	data := scriptOrPath
 
 	_, err := os.Stat(scriptOrPath)
@@ -565,16 +565,17 @@ func ParseScript(scriptOrPath string) ([]parser.Node, error) {
 		data = string(cont)
 	}
 
-	nodes, err := parser.ParseFuncExpr(string(data))
-	for _, node := range nodes {
-		switch v := node.(type) {
-		case *parser.FuncExpr:
-			DebugNodesHelp(v, "")
-		default:
+	node, err := parser.ParsePipeline(string(data))
+	switch ast := node.(type) {
+	case *parser.Ast:
+		for _, f := range ast.Functions {
+			DebugNodesHelp(f, "")
 		}
-	}
 
-	return nodes, err
+		return ast, nil
+	default:
+		return nil, fmt.Errorf("should not been here")
+	}
 }
 
 func DebugNodesHelp(f *parser.FuncExpr, prev string) {
