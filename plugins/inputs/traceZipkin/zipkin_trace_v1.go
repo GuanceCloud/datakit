@@ -66,7 +66,7 @@ func getFirstTimestamp(zs *ZipkinSpanV1) int64 {
 }
 func parseZipkinJsonV1(octets []byte) error {
 	log.Debugf("->|%v|<-", string(octets))
-	
+
 	spans := []*ZipkinSpanV1{}
 	if err := json.Unmarshal(octets, &spans); err != nil {
 		return err
@@ -110,14 +110,15 @@ func parseZipkinJsonV1(octets []byte) error {
 			}
 		}
 
+		tAdpter.Status = trace.STATUS_OK
 		for _, bno := range zs.BinaryAnnotations {
 			if bno != nil && bno.Key == "error" {
-				tAdpter.IsError = "true"
+				tAdpter.Status = trace.STATUS_ERR
 				break
 			}
 		}
 
-		if tAdpter.Duration == 0  {
+		if tAdpter.Duration == 0 {
 			tAdpter.Duration = getDurationByAno(zs.Annotations)
 		}
 		tAdpter.Tags = ZipkinTags
@@ -273,16 +274,16 @@ func parseZipkinThriftV1(octets []byte) error {
 			}
 		}
 
+		tAdpter.Status = trace.STATUS_OK
 		for _, bno := range zs.BinaryAnnotations {
 			if bno != nil && bno.Key == "error" {
-				tAdpter.IsError = "true"
+				tAdpter.Status = trace.STATUS_ERR
 				break
 			}
 		}
 		if tAdpter.Duration == 0 {
 			tAdpter.Duration = getDurationThriftAno(zs.Annotations)
 		}
-
 
 		tAdpter.Tags = ZipkinTags
 		adapterGroup = append(adapterGroup, tAdpter)
