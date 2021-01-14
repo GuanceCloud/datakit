@@ -240,54 +240,63 @@ rename(newhour, hour)`
 //	assertEqual(t, p.getContent("bb"), "2 abc true")
 //}
 //
-//func TestUppercaseFunc(t *testing.T) {
-//	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-//	script := `json(_, a.thrid);
-//uppercase(a.thrid);
-//`
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//	assertEqual(t, p.getContentStr("a.thrid"), "ABC")
-//}
-//
-//func TestLowercaseFunc(t *testing.T) {
-//	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
-//	script := `json(_, a.thrid);
-//lowercase(a.thrid);
-//`
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//	assertEqual(t, p.getContentStr("a.thrid"), "abc")
-//}
-//
-//func TestAddkeyFunc(t *testing.T) {
-//	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
-//	script := `add_key(aa, 3);
-//`
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//	assertEqual(t, p.getContentStr("aa"), "3")
-//}
-//
-//func TestDropkeyFunc(t *testing.T) {
-//	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
-//	script := `json(_, a.thrid);
-//json(_, a.first);
-//drop_key(a.thrid)
-//`
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//	assertEqual(t, p.getContentStr("a.first"), "2.3")
-//}
-//
+func TestUppercaseFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	script := `json(_, a.thrid)
+uppercase(a.thrid)
+`
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+
+	v, _ := p.getContent("a.thrid")
+	t.Log(v, "ABC")
+	t.Log(p.Output)
+	assertEqual(t, v, "ABC")
+}
+
+func TestLowercaseFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
+	script := `json(_, a.thrid)
+lowercase(a.thrid)
+`
+	p, err := NewPipeline(script)
+	t.Log(err)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+	v, _ := p.getContentStr("a.thrid")
+	assertEqual(t, v, "abc")
+}
+
+func TestAddkeyFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
+	script := `add_key(aa, 3)
+`
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+	v, _ := p.getContentStr("aa")
+	assertEqual(t, v, "3")
+}
+
+func TestDropkeyFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
+	script := `json(_, a.thrid)
+json(_, a.first)
+drop_key(a.thrid)
+`
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+	v, _ := p.getContentStr("a.first")
+	assertEqual(t, v, "2.3")
+	t.Log(p.Output)
+}
+
 //func TestNullIfFunc(t *testing.T) {
 //	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
 //	script := `json(_, a.first);
