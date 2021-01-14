@@ -16,7 +16,7 @@ var (
 	funcsMap = map[string]PipelineFunc{
 		"grok":          Grok,
 		"json":          Json,
-		//"rename":        Rename,
+		"rename":        Rename,
 		//"strfmt":        Strfmt,
 		//"cast":          Cast,
 		//"expr":          Expr,
@@ -87,42 +87,45 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	return p, nil
 }
-//
-//func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) != 2 {
-//		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
-//	}
-//
-//	var old, new *parser.AttrExpr
-//
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.AttrExpr:
-//		new = v
-//	default:
-//		return p, fmt.Errorf("expect AttrExpr, got `%s'",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	switch v := funcExpr.Param[1].(type) {
-//	case *parser.AttrExpr:
-//		old = v
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got `%s'",
-//			reflect.TypeOf(funcExpr.Param[1]).String())
-//	}
-//
-//	v, ok := p.getContent(old.String())
-//	if !ok {
-//		l.Warnf("key `%v' not exist", old)
-//		return p, nil
-//	}
-//
-//	p.setContent(new.String(), v)
-//	delete(p.Output, old.String())
-//
-//	return p, nil
-//}
+
+func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	}
+
+	var old, new parser.Node
+
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.AttrExpr, *parser.Identifier:
+		new = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.AttrExpr, *parser.Identifier:
+		old = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
+			reflect.TypeOf(funcExpr.Param[1]).String())
+	}
+
+	v, err := p.getContent(old)
+	if err != nil {
+		return p, err
+	}
+
+	err = p.setContent(new, v)
+	if err != nil {
+		return p, err
+	}
+
+	delete(p.Output, old.String())
+
+	return p, nil
+}
 //
 //func UserAgent(p *Pipeline, node parser.Node) (*Pipeline, error) {
 //	funcExpr := node.(*parser.FuncExpr)
