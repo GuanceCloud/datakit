@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
@@ -143,6 +144,19 @@ func checkMetric(data []byte) error {
 
 func NamedFeed(data []byte, category, name string) error {
 	return doFeed(data, category, name)
+}
+
+func NamedFeedPoints(pts []influxm.Point, category, name string) error {
+	if len(pts) == 0 {
+		return nil
+	}
+
+	lines := []string{}
+	for _, p := range pts {
+		lines = append(lines, p.String())
+	}
+
+	return NamedFeed([]byte(strings.Join(lines, "\n")), category, name)
 }
 
 // Deprecated
