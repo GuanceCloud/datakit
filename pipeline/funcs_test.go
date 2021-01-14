@@ -2,15 +2,23 @@ package pipeline
 
 import (
 	"testing"
-	"fmt"
+	"strconv"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 )
 
 type funcCase struct {
 	data     string
 	script   string
 	expected string
-	err      string
+	key      string
+	err      error
 	fail     bool
+}
+
+type EscapeError string
+
+func (e EscapeError) Error() string {
+	return "invalid URL escape " + strconv.Quote(string(e))
 }
 
 func assertEqual(t *testing.T, a, b interface{}) {
@@ -126,38 +134,80 @@ default_time(a.second);
 }
 
 func TestUrlencodeFunc(t *testing.T) {
-	var testCase := []*funcCase{
+	var testCase = []*funcCase{
 		{
-			data: ``,
-			script: ``,
+			data: `{"url":"http%3a%2f%2fwww.baidu.com%2fs%3fwd%3d%e6%b5%8b%e8%af%95","second":2}`,
+			script: `json(_, url) url_decode(url)`,
+			expected: `http://www.baidu.com/s?wd=测试`,
+			key: "url",
+			err: nil,
+		},
+		{
+			data: `{"url":"","second":2}`,
+			script: `json(_, url) url_decode(url)`,
 			expected: ``,
+			key: "url",
+			err: nil,
+		},
+		{
+			data: `{"url":"+%3F%26%3D%23%2B%25%21%3C%3E%23%22%7B%7D%7C%5C%5E%5B%5D%60%E2%98%BA%09%3A%2F%40%24%27%28%29%2A%2C%3B","second":2}`,
+			script: `json(_, url) url_decode(url)`,
+			expected: " ?&=#+%!<>#\"{}|\\^[]`☺\t:/@$'()*,;",
+			key: "url",
+			err: nil,
+		},
+		{
+			data: `{"url[0]":"+%3F%26%3D%23%2B%25%21%3C%3E%23%22%7B%7D%7C%5C%5E%5B%5D%60%E2%98%BA%09%3A%2F%40%24%27%28%29%2A%2C%3B","second":2}`,
+			script: `json(_, "url[0]") url_decode("url[0]")`,
+			expected: " ?&=#+%!<>#\"{}|\\^[]`☺\t:/@$'()*,;",
+			key: "url[0]",
+			err: nil,
+		},
+		{
+			data: `{"url":"+%3F%26%3D%23%2B%25%21%3C%3E%23%22%7B%7D%7C%5C%5E%5B%5D%60%E2%98%BA%09%3A%2F%40%24%27%28%29%2A%2C%3B","second":2}`,
+			script: `json(_, "url") url_decode("url", "aaa")`,
+			expected: " ?&=#+%!<>#\"{}|\\^[]`☺\t:/@$'()*,;",
+			key: "url",
+			err: nil,
 		},
 	}
-	js := `{"url":"http%3A%2F%2Fwww.baidu.com%2Fs%3Fwd%3D%E8%87%AA%E7%94%B1%E5%BA%A6","second":2}`
-	script := `json(_, url) url_decode(url)`
 
-	p, err := NewPipeline(script)
-	assertEqual(t, err, nil)
+	for _, tt := range testCase {
+		p, err := NewPipeline(tt.script)
 
-	p.Run(js)
+		assertEqual(t, err, nil)
 
-	r, _ := p.getContentStr("url")
+		p.Run(tt.data)
 
-	assertEqual(t, r, "http://www.baidu.com/s?wd=自由度")
+		r, err := p.getContentStr(tt.key)
+
+		assertEqual(t, r, tt.expected)
+	}
 }
 
 func TestGeoIpFunc(t *testing.T) {
-	js := `{"a":{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true},"age":47}`
-	script := `json(_, a.ip) geoip(a.ip)`
+	var testCase = []*funcCase{
+		{
+			data: `{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, ip) geoip(ip)`,
+			expected: "Shanghai",
+			key: "city",
+			err: nil,
+		},
+	}
 
-	p, err := NewPipeline(script)
-	assertEqual(t, err, nil)
+	geo.Init()
 
-	p.Run(js)
+	for _, tt := range testCase {
+		p, err := NewPipeline(tt.script)
+		assertEqual(t, err, p.lastErr)
 
-	r, _ := p.getContentStr("city")
+		p.Run(tt.data)
 
-	assertEqual(t, r, "Shanghai")
+		r, err := p.getContentStr("city")
+
+		assertEqual(t, r, tt.expected)
+	}
 }
 
 func TestUserAgentFunc(t *testing.T) {
@@ -187,15 +237,13 @@ datetime(a.timestamp, 'ms', 'YYYY-MM-dd hh:mm:ss')`
 
 	r, _ := p.getContent("a.timestamp")
 
-	fmt.Println("====>", r)
-
 	assertEqual(t, r, "2021-01-08 07:02:45")
 }
 
 func TestGroupFunc(t *testing.T) {
-	js := `{"a":{"status": 200,"age":47}`
-	script := `json(_, a.status)
-group_between(a.status, [200, 299], "ok", newkey)`
+	js := `{"status": 200,"age":47}`
+	script := `json(_, status)
+group_between(status, [200, 299], "ok", newkey)`
 
 	p, err := NewPipeline(script)
 	assertEqual(t, err, nil)
@@ -208,9 +256,9 @@ group_between(a.status, [200, 299], "ok", newkey)`
 }
 
 func TestGroupInFunc(t *testing.T) {
-	js := `{"a":{"status": "test","age":"47"}`
-	script := `json(_, a.status)
-group_in(a.status, [200, 47, "test"], "ok", newkey)`
+	js := `{"status": "test","age":"47"}`
+	script := `json(_, status)
+group_in(status, [200, 47, "test"], "ok", newkey)`
 
 	p, err := NewPipeline(script)
 	assertEqual(t, err, nil)
