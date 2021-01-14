@@ -20,6 +20,13 @@ func GsonGet(s string, node interface{}) (string, error) {
 		return "", err
 	}
 
+	switch s := v.(type) {
+	case string:
+		return s, nil
+	default:
+
+	}
+
 	b, err := json.Marshal(v)
 	return string(b), err
 }
