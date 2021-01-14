@@ -4,10 +4,6 @@ import (
 	"testing"
 )
 
-
-
-
-
 func assertEqual(t *testing.T, a, b interface{}) {
 	t.Helper()
 	if a != b {
@@ -66,25 +62,25 @@ grok(_, "%{time}")`
 	second, _ := p.getContentStr("second")
 	assertEqual(t, second, "14")
 }
-//
-//func TestRenameFunc(t *testing.T) {
-//	script := `
-//add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)");
-//add_pattern("_minute", "(?:[0-5][0-9])");
-//add_pattern("_hour", "(?:2[0123]|[01]?[0-9])");
-//add_pattern("time", "([^0-9]?)%{_hour:hour}:%{_minute:minute}(?::%{_second:second})([^0-9]?)");
-//grok(_, "%{time}");
-//rename(newhour, hour)`
-//
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run("12:13:14")
-//	assertEqual(t, p.lastErr, nil)
-//
-//	r := p.getContentStr("newhour")
-//	assertEqual(t, r, "12")
-//}
+
+func TestRenameFunc(t *testing.T) {
+	script := `
+add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)")
+add_pattern("_minute", "(?:[0-5][0-9])")
+add_pattern("_hour", "(?:2[0123]|[01]?[0-9])")
+add_pattern("time", "([^0-9]?)%{_hour:hour}:%{_minute:minute}(?::%{_second:second})([^0-9]?)")
+grok(_, "%{time}")
+rename(newhour, hour)`
+
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run("12:13:14")
+	assertEqual(t, p.lastErr, nil)
+
+	r, _ := p.getContentStr("newhour")
+	assertEqual(t, r, "12")
+}
 //
 //func TestExprFunc(t *testing.T) {
 //
