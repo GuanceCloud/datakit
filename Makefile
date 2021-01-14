@@ -22,7 +22,7 @@ NAME = datakit
 ENTRY = cmd/datakit/main.go
 
 LOCAL_ARCHS = "windows/amd64|darwin/amd64|linux/amd64"
-#LOCAL_ARCHS = "local"
+LOCAL_ARCHS = "local"
 DEFAULT_ARCHS = "all"
 
 VERSION := $(shell git describe --always --tags)
@@ -48,7 +48,7 @@ ifdef TELEGRAF_VERSION
 	TELEGRAF_LDFLAGS += -X main.version=$(TELEGRAF_VERSION)
 endif
 
-all: test release preprod local
+all: testing release preprod local
 
 define GIT_INFO
 //nolint
@@ -88,10 +88,14 @@ lint:
 vet:
 	@go vet ./...
 
+test:
+	@GO111MODULE=off go test ./...
+
 local:
+	@GO111MODULE=off go fmt ./...
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
-test:
+testing:
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
 preprod:
@@ -103,7 +107,7 @@ release:
 pub_local:
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
-pub_test:
+pub_testing:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
 pub_testing_img:

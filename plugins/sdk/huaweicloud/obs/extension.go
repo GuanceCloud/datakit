@@ -20,9 +20,9 @@ import (
 type extensionOptions interface{}
 type extensionHeaders func(headers map[string][]string, isObs bool) error
 
-func setHeaderPrefix(key string, value string) extensionHeaders{
-	return func(headers map[string][]string, isObs bool) error{
-		if strings.TrimSpace(value) == ""{
+func setHeaderPrefix(key string, value string) extensionHeaders {
+	return func(headers map[string][]string, isObs bool) error {
+		if strings.TrimSpace(value) == "" {
 			return fmt.Errorf("set header %s with empty value", key)
 		}
 		setHeaders(headers, key, []string{value}, isObs)
@@ -30,6 +30,6 @@ func setHeaderPrefix(key string, value string) extensionHeaders{
 	}
 }
 
-func WithReqPaymentHeader(requester PayerType) extensionHeaders{
+func WithReqPaymentHeader(requester PayerType) extensionHeaders {
 	return setHeaderPrefix(REQUEST_PAYER, string(requester))
 }
