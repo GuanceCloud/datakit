@@ -20,14 +20,14 @@ const (
 )
 
 type Security struct {
-	RegionID         string `toml:"region"`
-	AccessKeyID      string `toml:"accessKeyId"`
-	AccessKeySecret  string `toml:"accessKeySecret"`
-	Interval         string `toml:"interval"`
-	MetricName       string `toml:"metricName"`
-	client           *sas.Client  `toml:"-"`
-	aclient          *aegis.Client  `toml:"-"`
-	IntervalDuration time.Duration  `toml:"-"`
-	test             bool           `toml:"-"`
-	resData          []byte         `toml:"-"`
+	RegionID         string        `toml:"region"`
+	AccessKeyID      string        `toml:"accessKeyId"`
+	AccessKeySecret  string        `toml:"accessKeySecret"`
+	Interval         string        `toml:"interval"`
+	MetricName       string        `toml:"metricName"`
+	client           *sas.Client   `toml:"-"`
+	aclient          *aegis.Client `toml:"-"`
+	IntervalDuration time.Duration `toml:"-"`
+	test             bool          `toml:"-"`
+	resData          []byte        `toml:"-"`
 }
