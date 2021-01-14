@@ -173,7 +173,7 @@ func UrlDecode(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	cont, err := p.getContentStr(key)
-	fmt.P
+
 	if err != nil {
 		l.Warnf("key `%v' not exist", key)
 		return p, nil
@@ -191,7 +191,7 @@ func UrlDecode(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 1 {
-		return p, fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)
+		return p, fmt.Errorf("func `%s' expected 1 args", funcExpr.Name)
 	}
 
 	var key parser.Node
