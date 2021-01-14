@@ -81,23 +81,24 @@ rename(newhour, hour)`
 	r, _ := p.getContentStr("newhour")
 	assertEqual(t, r, "12")
 }
-//
-//func TestExprFunc(t *testing.T) {
-//
-//	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-//	script := `json(_, a.second);
-//cast(a.second, "int");
-//expr(a.second*10+(2+3)*5, bb);
-//`
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//	assertEqual(t, p.lastErr, nil)
-//
-//	assertEqual(t, p.getContentStr("bb"), "45")
-//}
-//
+
+func TestExprFunc(t *testing.T) {
+
+	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	script := `json(_, a.second)
+cast(a.second, "int")
+expr(a.second*10+(2+3)*5, bb)
+`
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+	assertEqual(t, p.lastErr, nil)
+
+	v, _ := p.getContentStr("bb")
+	assertEqual(t, v, "45")
+}
+
 //func TestDefaultTimeFunc(t *testing.T) {
 //
 //	js := `{"a":{"time":"2014/04/08 22:05","second":2,"thrid":"abc","forth":true},"age":47}`
@@ -185,7 +186,7 @@ rename(newhour, hour)`
 //
 //	assertEqual(t, r, "ok")
 //}
-//
+
 //func TestGroupInFunc(t *testing.T) {
 //	js := `{"a":{"status": "test","age":"47"}`
 //	script := `json(_, a.status); group_in(a.status, [200, 47, "test"], "ok", newkey);`
@@ -198,48 +199,53 @@ rename(newhour, hour)`
 //	r := p.getContent("newkey")
 //	assertEqual(t, r, "ok")
 //}
-//
-//func TestCastFloat2IntFunc(t *testing.T) {
-//	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-//	script := `json(_, a.first);
-//cast(a.first, "int");
-//`
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//
-//	assertEqual(t, p.getContentStr("a.first"), "2")
-//}
-//
-//func TestCastInt2FloatFunc(t *testing.T) {
-//	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-//	script := `json(_, a.second);
-//cast(a.second, "float");
-//`
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//	assertEqual(t, p.getContentStr("a.second"), "2")
-//}
-//
-//func TestStringfFunc(t *testing.T) {
-//	//js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-//	//script := `stringf(bb, "%d %s %v", a.second, a.thrid, a.forth);`
-//	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-//	script := `json(_, a.second);
-//json(_, a.thrid);
-//json(_, a.forth);
-//strfmt(bb, "%d %s %v", a.second, a.thrid, a.forth);
-//`
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//	assertEqual(t, p.getContent("bb"), "2 abc true")
-//}
-//
+
+func TestCastFloat2IntFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	script := `json(_, a.first)
+cast(a.first, "int")
+`
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+	v, _ := p.getContentStr("a.first")
+
+	assertEqual(t, v, "2")
+}
+
+func TestCastInt2FloatFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	script := `json(_, a.second)
+cast(a.second, "float")
+`
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+
+	v, _ := p.getContentStr("a.second")
+	assertEqual(t, v, "2")
+}
+
+func TestStringfFunc(t *testing.T) {
+	//js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	//script := `stringf(bb, "%d %s %v", a.second, a.thrid, a.forth);`
+	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	script := `json(_, a.second)
+json(_, a.thrid)
+cast(a.second, "int")
+json(_, a.forth)
+strfmt(bb, "%d %s %v", a.second, a.thrid, a.forth)
+`
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+	v, _ := p.getContent("bb")
+	assertEqual(t, v, "2 \"abc\" true")
+}
+
 func TestUppercaseFunc(t *testing.T) {
 	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
 	script := `json(_, a.thrid)
@@ -251,9 +257,7 @@ uppercase(a.thrid)
 	p.Run(js)
 
 	v, _ := p.getContent("a.thrid")
-	t.Log(v, "ABC")
-	t.Log(p.Output)
-	assertEqual(t, v, "ABC")
+	assertEqual(t, v, "\"ABC\"")
 }
 
 func TestLowercaseFunc(t *testing.T) {
@@ -267,7 +271,7 @@ lowercase(a.thrid)
 
 	p.Run(js)
 	v, _ := p.getContentStr("a.thrid")
-	assertEqual(t, v, "abc")
+	assertEqual(t, v, "\"abc\"")
 }
 
 func TestAddkeyFunc(t *testing.T) {
