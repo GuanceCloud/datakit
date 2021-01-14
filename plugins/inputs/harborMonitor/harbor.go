@@ -137,12 +137,12 @@ func (r *HarborMonitor) getHealth(baseUrl string) string {
 func (r *HarborMonitor) Test() (*inputs.TestResult, error) {
 	r.test = true
 
-    res := &inputs.TestResult {
-    	Result: r.resData,
-    	Desc: "success!",
-    }
+	res := &inputs.TestResult{
+		Result: r.resData,
+		Desc:   "success!",
+	}
 
-    return res, nil
+	return res, nil
 }
 
 func init() {
