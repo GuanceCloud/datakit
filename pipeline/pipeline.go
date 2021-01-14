@@ -3,6 +3,7 @@ package pipeline
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -156,57 +157,62 @@ func (p *Pipeline) LastError() error {
 	return p.lastErr
 }
 
-func (p *Pipeline) getContent(key string) interface{} {
-	if key == "_" {
-		return p.Content
+func (p *Pipeline) getContent(key interface{}) (interface{}, error) {
+	var k string
+
+	switch t := key.(type) {
+	case *parser.Identifier:
+		k = t.String()
+	case *parser.AttrExpr:
+		k = t.String()
+	case string:
+		k = t
+	default:
+		return nil, fmt.Errorf("unsupported %v get", reflect.TypeOf(key).String())
 	}
 
-	if v, ok := p.Output[key]; ok {
-		return v
+	if k == "_" {
+		return p.Content, nil
 	}
 
-	var m interface{}
-	var nm interface{}
-
-	m = p.Output
-	keys := strings.Split(key, ".")
-	for _, k := range keys {
-		switch m.(type) {
-		case map[string]interface{}:
-			v := m.(map[string]interface{})
-			nm = v[k]
-			m = nm
-		default:
-			nm = nil
-		}
+	v, ok := p.Output[k]
+	if !ok {
+		return nil, fmt.Errorf("%v no found", k)
 	}
-
-	return nm
+	return v, nil
 }
 
-func (p *Pipeline) getContentStr(key string) string {
-	return conv.ToString(p.getContent(key))
+func (p *Pipeline) getContentStr(key interface{}) (string, error) {
+	c, err := p.getContent(key)
+	return conv.ToString(c), err
 }
 
-func (p *Pipeline) getContentStrByCheck(key string) (string, bool) {
-	v := p.getContent(key)
-	if v == nil {
-		return "", false
+
+func (p *Pipeline) setContent(k, v interface{}) error {
+	var key string
+
+	switch t := k.(type) {
+	case *parser.Identifier:
+		key = t.String()
+	case *parser.AttrExpr:
+		key = t.String()
+	case string:
+		key = t
+	default:
+		return fmt.Errorf("unsupported %v set", reflect.TypeOf(key).String())
 	}
 
-	return conv.ToString(v), true
-}
-
-func (p *Pipeline) setContent(k string, v interface{}) {
 	if p.Output == nil {
 		p.Output = make(map[string]interface{})
 	}
 
 	if v == nil {
-		return
+		return nil
 	}
 
-	p.Output[k] = v
+	p.Output[key] = v
+
+	return nil
 }
 
 func (pl *Pipeline) parseScript(script string) error {
