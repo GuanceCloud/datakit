@@ -29,10 +29,9 @@ func (z *ZabbixParam) gather() {
 	var d time.Duration
 	var err error
 
-
 	switch z.input.Interval.(type) {
 	case int64:
-		d = time.Duration(z.input.Interval.(int64))*time.Second
+		d = time.Duration(z.input.Interval.(int64)) * time.Second
 	case string:
 		d, err = time.ParseDuration(z.input.Interval.(string))
 		if err != nil {
@@ -79,7 +78,7 @@ func (z *ZabbixParam) gather() {
 
 func (z *ZabbixParam) gatherData(start, stop time.Time, tblName string, isTest bool) ([]byte, error) {
 	starttimestr := strconv.FormatInt(start.Unix(), 10)
-	endtimestr   := strconv.FormatInt(stop.Unix() , 10)
+	endtimestr := strconv.FormatInt(stop.Unix(), 10)
 
 	ext := NewExtracter(z.input.DbType, z.input.DbAddress, tblName, starttimestr, endtimestr)
 	if err := ext.Extract(); err != nil {

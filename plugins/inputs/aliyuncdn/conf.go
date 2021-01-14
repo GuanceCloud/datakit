@@ -51,6 +51,6 @@ type CDN struct {
 	Summary         *Summary `toml:"summary"`
 	Interval        string   `toml:"interval"`
 	client          *cdn.Client
-	test             bool           `toml:"-"`
-	resData          []byte         `toml:"-"`
+	test            bool   `toml:"-"`
+	resData         []byte `toml:"-"`
 }

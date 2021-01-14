@@ -26,6 +26,8 @@ github.com/Azure/go-autorest/logger
 github.com/Azure/go-autorest/tracing
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
+# github.com/GuilhermeCaruso/kair v0.0.0-20200618030634-2cbc3ec356d4
+github.com/GuilhermeCaruso/kair
 # github.com/Microsoft/go-winio v0.4.16-0.20201130162521-d1ffc52c7331
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
@@ -64,7 +66,6 @@ github.com/aliyun/alibaba-cloud-sdk-go/sdk
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/provider
-github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/providers
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/signers
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors
@@ -83,8 +84,10 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch
 github.com/aliyun/alibaba-cloud-sdk-go/services/ons
 github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore
 github.com/aliyun/alibaba-cloud-sdk-go/services/rds
+github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager
 github.com/aliyun/alibaba-cloud-sdk-go/services/sas
 github.com/aliyun/alibaba-cloud-sdk-go/services/slb
+github.com/aliyun/alibaba-cloud-sdk-go/services/tag
 github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
@@ -98,6 +101,8 @@ github.com/antchfx/jsonquery
 github.com/antchfx/xpath
 # github.com/apache/thrift v0.13.0
 github.com/apache/thrift/lib/go/thrift
+# github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
+github.com/araddon/dateparse
 # github.com/aws/aws-sdk-go v1.35.20
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -137,7 +142,6 @@ github.com/aws/aws-sdk-go/service/cloudtrail
 github.com/aws/aws-sdk-go/service/cloudwatch
 github.com/aws/aws-sdk-go/service/costexplorer
 github.com/aws/aws-sdk-go/service/health
-github.com/aws/aws-sdk-go/service/pricing
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/basgys/goxml2json v1.1.0
@@ -562,6 +566,8 @@ github.com/modern-go/concurrent
 github.com/modern-go/reflect2
 # github.com/mozillazg/go-httpheader v0.2.1
 github.com/mozillazg/go-httpheader
+# github.com/mssola/user_agent v0.5.2
+github.com/mssola/user_agent
 # github.com/naoina/go-stringutil v0.1.0
 github.com/naoina/go-stringutil
 # github.com/naoina/toml v0.1.1
@@ -652,6 +658,8 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
 github.com/prometheus/procfs/nfs
+# github.com/prometheus/prometheus v2.5.0+incompatible
+github.com/prometheus/prometheus/util/strutil
 # github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
 github.com/rcrowley/go-metrics
 # github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237
@@ -688,6 +696,8 @@ github.com/siddontang/go-mysql/schema
 github.com/sirupsen/logrus
 # github.com/soniah/gosnmp v1.25.0
 github.com/soniah/gosnmp
+# github.com/spf13/cast v1.3.1
+github.com/spf13/cast
 # github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 github.com/streadway/amqp
 # github.com/stretchr/objx v0.2.0
