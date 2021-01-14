@@ -1,13 +1,12 @@
-package tailf
+package ngnixlog
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
 )
 
 const (
-	inputName = "tailf"
+	inputName = "ngnixlog"
 
 	sampleCfg = `
 [[inputs.tailf]]
@@ -19,7 +18,7 @@ const (
     ignore = [""]
 
     # required
-    source = ""
+    source = "ngnixlog"
 
     # grok pipeline script path
     pipeline_path = ""
@@ -54,18 +53,25 @@ const (
     # [inputs.tailf.tags]
     # tags1 = "value1"
 `
+	pipelineCfg = `
+grok(_, "%{_iporhost:clientip} - %{_username:remote_user} \\[%{_httpdate:date_timestamp}\\] \"(?:%{_word:method} %{_notspace:request_uri}(?: HTTP/%{_number:httpversion})?|%{_data:raw_request})\" %{_int:status} %{_number:body_bytes_sent} \"%{_data:http_referer}\" \"%{_data:http_user_agent}\"")
+
+grok(_, "(?:%{_ipv4:clientip}|-)(?:,\s[\d.]+)* (?:%{_data:remote_user}|-) (?:%{_data:ident}|-) \\[%{_httpdate:date_timestamp}\\] \"(?:%{_word:method} %{_notspace:request_uri}(?: HTTP/%{_number:httpversion})?|%{_data:raw_request})\" %{_number:status} (?:%{_number:body_bytes_sent}|-) \"%{_data:http_referer}\" \"%{_data:http_user_agent}\" (?:%{_number:request_length}|-) (?:%{_number:bytes_sent}|-) (?:%{_number:request_time}|-")
+
+grok(_, "(?<timestamp>%{_year}[./]%{_monthnum}[./]%{_monthday} %{time}) \[%{_loglevel:level}\] %{_posint:pid}#%{_number:threadid}\: \*%{_number:connectionid} %{_greedydata:message}, client: %{_ip:clientip}, server: %{_greedydata:server}, request: "(?<request>%{_word:method} %{_unixpath:path} http/(?<httpversion>[0-9.]*))"(, )?(upstream: "(?<upstream>[^,]*)")?(, )?(host: "(?<host>[^,]*)")?")
+
+cast(body_bytes_sent, "int")
+cast(status, "int")
+`
 )
-
-const (
-	defaultDruation = time.Second * 5
-
-	metricFeedCount = 10
-)
-
-// var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return NewTailf(inputName, "log", sampleCfg, nil)
+		return tailf.NewTailf(
+			inputName,
+			"log",
+			sampleCfg,
+			map[string]string{"ngnixlog.p": pipelineCfg},
+		)
 	})
 }
