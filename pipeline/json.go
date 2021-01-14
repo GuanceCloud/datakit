@@ -3,8 +3,8 @@ package pipeline
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+	"reflect"
 )
 
 func GsonGet(s string, node interface{}) (string, error) {
@@ -24,10 +24,10 @@ func GsonGet(s string, node interface{}) (string, error) {
 	return string(b), err
 }
 
-func jsonGet(val interface{}, node interface{}) (interface{}, error){
+func jsonGet(val interface{}, node interface{}) (interface{}, error) {
 	switch t := node.(type) {
 	case *parser.AttrExpr:
-        return getByAttr(val, t)
+		return getByAttr(val, t)
 
 	case *parser.Identifier:
 		return getByIdentifier(val, t)
@@ -65,7 +65,7 @@ func getByIdentifier(val interface{}, i *parser.Identifier) (interface{}, error)
 			return child, nil
 		}
 	default:
-        return nil, fmt.Errorf("%v unsupport identifier get", reflect.TypeOf(v))
+		return nil, fmt.Errorf("%v unsupport identifier get", reflect.TypeOf(v))
 	}
 }
 
@@ -81,15 +81,15 @@ func getByIndex(val interface{}, i *parser.IndexExpr, dimension int) (interface{
 			index = len(v) + index
 		}
 
-		if index < 0 || index >= len(v){
+		if index < 0 || index >= len(v) {
 			return nil, fmt.Errorf("index out of range")
 		}
 
 		child := v[index]
-		if dimension == len(i.Index) - 1 {
+		if dimension == len(i.Index)-1 {
 			return child, nil
 		} else {
-			return getByIndex(child, i, dimension + 1)
+			return getByIndex(child, i, dimension+1)
 		}
 	default:
 		return nil, fmt.Errorf("%v unsupport index get", reflect.TypeOf(v))
