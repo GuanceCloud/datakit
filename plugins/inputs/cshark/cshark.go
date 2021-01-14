@@ -1,18 +1,18 @@
 package cshark
 
 import (
-	"fmt"
-	"time"
 	"bufio"
-    "strconv"
+	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"strconv"
+	"time"
 	// "github.com/gcla/termshark/v2"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark/util"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark/protocol"
 	"encoding/json"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark/protocol"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark/util"
 	"strings"
 )
 
@@ -21,11 +21,11 @@ const (
 )
 
 var (
-	l          *logger.Logger
-	inputName  = "cshark"
-	optChan = make(chan *Params)
-	params  *Params
-	duration int64
+	l         *logger.Logger
+	inputName = "cshark"
+	optChan   = make(chan *Params)
+	params    *Params
+	duration  int64
 )
 
 func (_ *Shark) SampleConfig() string {
@@ -60,7 +60,7 @@ func SendCmdOpt(opt string) error {
 			fmt.Println("send success!")
 			params.Fin = make(chan error)
 
-			err := <- params.Fin
+			err := <-params.Fin
 
 			if err != nil {
 				return err
@@ -118,7 +118,7 @@ func (s *Shark) Run() {
 lable:
 	for {
 		select {
-		case opt := <- optChan:
+		case opt := <-optChan:
 			if err := s.Exec(); err != nil {
 				l.Errorf("exec error %v", err)
 			}
@@ -162,7 +162,7 @@ func checkParam() error {
 		l.Error(err)
 	}
 
-	duration = du.Nanoseconds()/1e9
+	duration = du.Nanoseconds() / 1e9
 
 	// src ip check
 	for _, ip := range params.Stream.SrcIPs {
@@ -188,7 +188,7 @@ func checkParam() error {
 
 	// pfb校验(todo)
 
-    return nil
+	return nil
 }
 
 // 构建抓包命令行
@@ -201,7 +201,7 @@ func (s *Shark) buildCommand() string {
 	args = append(args, s.TsharkPath)
 
 	// 控制参数
-	args = append(args,"-l")
+	args = append(args, "-l")
 	if len(params.Device) > 0 {
 		args = append(args, "-i", params.Device)
 	}
@@ -236,7 +236,7 @@ func (s *Shark) buildCommand() string {
 	// }
 
 	// ip
-	if (len(params.Stream.SrcIPs) > 0) && (len(params.Stream.DstIPs) == 0) && (len(params.Stream.Ports) ==0) {
+	if (len(params.Stream.SrcIPs) > 0) && (len(params.Stream.DstIPs) == 0) && (len(params.Stream.Ports) == 0) {
 		var filterStr string
 
 		for _, srcIP := range params.Stream.SrcIPs {
@@ -253,7 +253,7 @@ func (s *Shark) buildCommand() string {
 		args = append(args, "-f", filterStr)
 	}
 
-	if (len(params.Stream.DstIPs) > 0) && (len(params.Stream.SrcIPs) == 0) && (len(params.Stream.Ports) ==0) {
+	if (len(params.Stream.DstIPs) > 0) && (len(params.Stream.SrcIPs) == 0) && (len(params.Stream.Ports) == 0) {
 		var filterStr string
 
 		for _, dstIP := range params.Stream.DstIPs {
@@ -270,7 +270,7 @@ func (s *Shark) buildCommand() string {
 		args = append(args, "-f", filterStr)
 	}
 
-	if (len(params.Stream.SrcIPs) > 0) && (len(params.Stream.DstIPs) > 0) && (len(params.Stream.Ports) ==0) {
+	if (len(params.Stream.SrcIPs) > 0) && (len(params.Stream.DstIPs) > 0) && (len(params.Stream.Ports) == 0) {
 		var filterStr string
 		for _, srcIP := range params.Stream.SrcIPs {
 			srcIPFilterStr += "src host " + srcIP + " or "
@@ -292,7 +292,7 @@ func (s *Shark) buildCommand() string {
 		args = append(args, "-f", filterStr)
 	}
 
-	if (len(params.Stream.DstIPs) > 0) && (len(params.Stream.SrcIPs) > 0)  && (len(params.Stream.Ports) > 0) {
+	if (len(params.Stream.DstIPs) > 0) && (len(params.Stream.SrcIPs) > 0) && (len(params.Stream.Ports) > 0) {
 		var filterStr string
 
 		for _, srcIP := range params.Stream.SrcIPs {
@@ -324,13 +324,13 @@ func (s *Shark) buildCommand() string {
 		args = append(args, "-Y", params.Stream.Protocol)
 
 		// 协议分发
-		switch	strings.ToUpper(params.Stream.Protocol) {
-			case "HTTP":
-				protocol.CommonItems = append(protocol.CommonItems, protocol.HttpItems...)
-			case "MYSQL":
-				protocol.CommonItems = append(protocol.CommonItems, protocol.MysqlItems...)
-			case "DNS":
-				protocol.CommonItems = append(protocol.CommonItems, protocol.DnslItems...)
+		switch strings.ToUpper(params.Stream.Protocol) {
+		case "HTTP":
+			protocol.CommonItems = append(protocol.CommonItems, protocol.HttpItems...)
+		case "MYSQL":
+			protocol.CommonItems = append(protocol.CommonItems, protocol.MysqlItems...)
+		case "DNS":
+			protocol.CommonItems = append(protocol.CommonItems, protocol.DnslItems...)
 		}
 	}
 
@@ -409,8 +409,8 @@ func (s *Shark) streamExec(cmdStr string) error {
 
 func (s *Shark) parseLine(line string) []byte {
 	var (
-		tm time.Time
-		tags = map[string]string{}
+		tm     time.Time
+		tags   = map[string]string{}
 		fields = map[string]interface{}{}
 	)
 
@@ -465,7 +465,7 @@ func (s *Shark) Test() (*inputs.TestResult, error) {
 		res.Desc = "success"
 	}
 
-    return res, nil
+	return res, nil
 }
 
 func init() {
