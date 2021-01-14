@@ -298,7 +298,6 @@ drop_key(a.thrid)
 	p.Run(js)
 	v, _ := p.getContentStr("a.first")
 	assertEqual(t, v, "2.3")
-	t.Log(p.Output)
 }
 
 //func TestNullIfFunc(t *testing.T) {
