@@ -3,16 +3,21 @@ package aliyunobject
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"io/ioutil"
+	"path/filepath"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
 	inputName    = `aliyunobject`
-	moduleLogger *logger.Logger
+	moduleLogger = logger.DefaultSLogger("aliyunobject")
 	sampleConf   = ""
 )
 
@@ -43,6 +48,24 @@ func (_ *objectAgent) Catalog() string {
 	return `aliyun`
 }
 
+func (_ *objectAgent) PipelineConfig() map[string]string {
+	pipelineMap := map[string]string{
+		"aliyun_cdn":           cdnPipelineConifg,
+		"aliyun_mongodb":       ddsPipelineConfig,
+		"aliyun_domain":        domainPipelineConfig,
+		"aliyun_ecs":           ecsPipelineConfig,
+		"aliyun_elasticsearch": elasticsearchPipelineConifg,
+		"aliyun_influxdb":      influxDBPipelineConfig,
+		"aliyun_rocketmq":      onsPipelineConfig,
+		"aliyun_oss":           ossPipelineConfig,
+		"aliyun_rds":           rdsPipelineConfig,
+		"aliyun_redis":         redisPipelineConifg,
+		"aliyun_slb":           slbPipelineConfig,
+		"aliyun_waf":           wafPipelineConfig,
+	}
+	return pipelineMap
+}
+
 func (ag *objectAgent) Test() (*inputs.TestResult, error) {
 	ag.mode = "test"
 	ag.testResult = &inputs.TestResult{}
@@ -64,42 +87,65 @@ func (ag *objectAgent) Run() {
 	if ag.Interval.Duration == 0 {
 		ag.Interval.Duration = time.Minute * 5
 	}
-
 	if ag.Ecs == nil {
-		ag.Ecs = &Ecs{}
+		ag.Ecs = &Ecs{
+			PipelinePath: "aliyun_ecs.p",
+		}
 	}
 	if ag.Slb != nil {
-		ag.Slb = &Slb{}
+		ag.Slb = &Slb{
+			PipelinePath: "aliyun_slb.p",
+		}
 	}
 	if ag.Oss == nil {
-		ag.Oss = &Oss{}
+		ag.Oss = &Oss{
+			PipelinePath: "aliyun_oss.p",
+		}
 	}
 	if ag.Rds == nil {
-		ag.Rds = &Rds{}
+		ag.Rds = &Rds{
+			PipelinePath: "aliyun_rds.p",
+		}
 	}
 	if ag.Ons == nil {
-		ag.Ons = &Ons{}
+		ag.Ons = &Ons{
+			PipelinePath: "aliyun_rocketmq.p",
+		}
 	}
 	if ag.Dds == nil {
-		ag.Dds = &Dds{}
+		ag.Dds = &Dds{
+			PipelinePath: "aliyun_mongodb.p",
+		}
 	}
 	if ag.Domain == nil {
-		ag.Domain = &Domain{}
+		ag.Domain = &Domain{
+			PipelinePath: "aliyun_domain.p",
+		}
 	}
 	if ag.Redis == nil {
-		ag.Redis = &Redis{}
+		ag.Redis = &Redis{
+			PipelinePath: "aliyun_redis.p",
+		}
 	}
 	if ag.Cdn == nil {
-		ag.Cdn = &Cdn{}
+		ag.Cdn = &Cdn{
+			PipelinePath: "aliyun_cdn.p",
+		}
 	}
 	if ag.Waf == nil {
-		ag.Waf = &Waf{}
+		ag.Waf = &Waf{
+			PipelinePath: "aliyun_waf.p",
+		}
 	}
 	if ag.Es == nil {
-		ag.Es = &Elasticsearch{}
+		ag.Es = &Elasticsearch{
+			PipelinePath: "aliyun_elasticsearch.p",
+		}
 	}
 	if ag.InfluxDB != nil {
-		ag.InfluxDB = &InfluxDB{}
+		ag.InfluxDB = &InfluxDB{
+			PipelinePath: "aliyun_influxdb.p",
+		}
 	}
 
 	ag.addModule(ag.Ecs)
@@ -131,6 +177,42 @@ func (ag *objectAgent) Run() {
 func newAgent() *objectAgent {
 	ag := &objectAgent{}
 	return ag
+}
+
+func newPipeline(pipelinePath string) (*pipeline.Pipeline, error) {
+	scriptPath := filepath.Join(datakit.PipelineDir, pipelinePath)
+	data, err := ioutil.ReadFile(scriptPath)
+	if err != nil {
+		return nil, err
+	}
+	p, err := pipeline.NewPipeline(string(data))
+	return p, err
+}
+
+func (ag *objectAgent) parseObject(obj interface{}, class, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string, tags map[string]string) {
+	if datakit.CheckExcluded(id, blacklist, whitelist) {
+		return
+	}
+	message := ""
+	switch obj.(type) {
+	case string:
+		message = obj.(string)
+	default:
+		data, err := json.Marshal(obj)
+		if err != nil {
+			moduleLogger.Errorf("[error] json marshal err:%s", err.Error())
+			return
+		}
+		message = string(data)
+	}
+	fields, err := pipeline.Run(message).Result()
+	if err != nil {
+		moduleLogger.Errorf("[error] pipeline run err:%s", err.Error())
+		return
+	}
+	fields["message"] = message
+
+	io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
 }
 
 func init() {
