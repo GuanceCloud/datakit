@@ -21,6 +21,7 @@ type rumAPICase struct {
 	method        string
 	gz            bool
 	expectErrCode string
+	fail          bool
 }
 
 var (
@@ -33,11 +34,19 @@ var (
 			gz:     true,
 		},
 
+		{
+			api:    "/v1/write/rum",
+			body:   []byte(`js_error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			method: `POST`,
+			gz:     true,
+		},
+
 		{ // unknown RUM metric
 			api:           "/v1/write/rum",
 			body:          []byte(`not_rum_metric,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
 			method:        `POST`,
 			gz:            true,
+			fail:          true,
 			expectErrCode: "datakit.badRequest",
 		},
 
@@ -47,9 +56,30 @@ var (
 			method:        `POST`,
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
+			fail:          true,
 		},
 	}
 )
+
+func TestRUMHandle(t *testing.T) {
+	r := &Rum{}
+	for _, tc := range rumAPICases {
+		ifdata, esdata, err := r.handleBody([]byte(tc.body), DEFAULT_PRECISION, "1.2.3.4")
+		if err != nil {
+			t.Log(err)
+			if !tc.fail {
+				t.Fatal(err)
+			}
+		}
+
+		for _, pt := range ifdata {
+			t.Logf("ifdata: %s", pt.String())
+		}
+		for _, pt := range esdata {
+			t.Logf("ifdata: %s", pt.String())
+		}
+	}
+}
 
 func TestAPI(t *testing.T) {
 
