@@ -3,9 +3,9 @@ package pipeline
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
@@ -110,7 +110,7 @@ func (p *Pipeline) Run(data string) *Pipeline {
 	p.Output["message"] = data
 
 	//防止脚本解析错误
-	if len(p.ast.Functions) == 0 {
+	if p.ast == nil || len(p.ast.Functions) == 0 {
 		return p
 	}
 
@@ -186,7 +186,6 @@ func (p *Pipeline) getContentStr(key interface{}) (string, error) {
 	c, err := p.getContent(key)
 	return conv.ToString(c), err
 }
-
 
 func (p *Pipeline) setContent(k, v interface{}) error {
 	var key string
