@@ -3,12 +3,17 @@ package tencentobject
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"io/ioutil"
+	"path/filepath"
 	"time"
 
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -28,12 +33,17 @@ func (_ *objectAgent) SampleConfig() string {
 	buf.WriteString(cosSampleConfig)
 	buf.WriteString(clbSampleConfig)
 	buf.WriteString(cdbSampleConfig)
-	// buf.WriteString(redisSampleConfig)
-	// buf.WriteString(cdnSampleConfig)
-	// buf.WriteString(wafSampleConfig)
-	// buf.WriteString(elasticsearchSampleConfig)
-	// buf.WriteString(influxDBSampleConfig)
 	return buf.String()
+}
+
+func (_ *objectAgent) PipelineConfig() map[string]string {
+	pipelineMap := map[string]string{
+		"tencent_cdb": cdbPipelineConfig,
+		"tencent_cos": cosPipelineConfig,
+		"tencent_clb": clbPipelineConfig,
+		"tencent_cvm": cvmPipelineConfig,
+	}
+	return pipelineMap
 }
 
 func (_ *objectAgent) Catalog() string {
@@ -53,6 +63,35 @@ func (ag *objectAgent) Test() (*inputs.TestResult, error) {
 	ag.testResult = &inputs.TestResult{}
 	ag.Run()
 	return ag.testResult, ag.testError
+}
+
+func newPipeline(pipelinePath string) (*pipeline.Pipeline, error) {
+	scriptPath := filepath.Join(datakit.PipelineDir, pipelinePath)
+	data, err := ioutil.ReadFile(scriptPath)
+	if err != nil {
+		return nil, err
+	}
+	p, err := pipeline.NewPipeline(string(data))
+	return p, err
+}
+
+func (ag *objectAgent) parseObject(obj interface{}, class, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string, tags map[string]string) {
+	if datakit.CheckExcluded(id, blacklist, whitelist) {
+		return
+	}
+	data, err := json.Marshal(obj)
+	if err != nil {
+		moduleLogger.Errorf("[error] json marshal err:%s", err.Error())
+		return
+	}
+	fields, err := pipeline.Run(string(data)).Result()
+	if err != nil {
+		moduleLogger.Errorf("[error] pipeline run err:%s", err.Error())
+		return
+	}
+	fields["message"] = string(data)
+
+	io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
 }
 
 func (ag *objectAgent) Run() {
