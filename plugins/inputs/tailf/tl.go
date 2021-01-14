@@ -58,7 +58,7 @@ func (t *tailer) run() {
 
 	t.tail, err = tail.TailFile(t.filename, t.tf.tailerConf)
 	if err != nil {
-		l.Error("failed of build tailer, err:%s", err)
+		t.tf.log.Error("failed of build tailer, err:%s", err)
 		return
 	}
 	defer t.tail.Cleanup()
@@ -66,7 +66,7 @@ func (t *tailer) run() {
 	if t.tf.PipelinePath != "" {
 		t.pipe, err = pipeline.NewPipelineFromFile(t.tf.PipelinePath)
 		if err != nil {
-			l.Error("failed of pipeline, err:%s", err)
+			t.tf.log.Error("failed of pipeline, err:%s", err)
 			return
 		}
 	}
@@ -88,7 +88,7 @@ func (t *tailer) receiver() {
 
 		select {
 		case <-datakit.Exit.Wait():
-			l.Debugf("Tailing source:%s, file %s is ending", t.source, t.filename)
+			t.tf.log.Debugf("Tailing source:%s, file %s is ending", t.source, t.filename)
 			return
 
 		case line, t.tailerOpen = <-t.tail.Lines:
@@ -102,7 +102,7 @@ func (t *tailer) receiver() {
 			}
 			_, statErr := os.Lstat(t.filename)
 			if os.IsNotExist(statErr) {
-				l.Warnf("check file %s is not exist", t.filename)
+				t.tf.log.Warnf("check file %s is not exist", t.filename)
 				return
 			}
 		}
@@ -164,7 +164,7 @@ func (t *tailer) multiline(line *tail.Line) (text string, status multilineStatus
 		if text += t.tf.multiline.Flush(&t.textLine); text == "" {
 			if !t.channelOpen {
 				status = _return
-				l.Warnf("Tailing %s data channel is closed", t.filename)
+				t.tf.log.Warnf("Tailing %s data channel is closed", t.filename)
 				return
 			}
 
@@ -174,7 +174,7 @@ func (t *tailer) multiline(line *tail.Line) (text string, status multilineStatus
 	}
 
 	if line != nil && line.Err != nil {
-		l.Errorf("Tailing %q: %s", t.filename, line.Err.Error())
+		t.tf.log.Errorf("Tailing %q: %s", t.filename, line.Err.Error())
 		status = _continue
 		return
 	}
@@ -186,7 +186,7 @@ func (t *tailer) multiline(line *tail.Line) (text string, status multilineStatus
 func (t *tailer) decode(text string) (str string, err error) {
 	str, err = t.tf.decoder.String(text)
 	if err != nil {
-		l.Errorf("decode error, %s", err) // only print err
+		t.tf.log.Errorf("decode error, %s", err) // only print err
 	}
 	return
 }
@@ -197,7 +197,7 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 	if t.pipe != nil {
 		fields, err = t.pipe.Run(text).Result()
 		if err != nil {
-			l.Errorf("run pipeline error, %s", err)
+			t.tf.log.Errorf("run pipeline error, %s", err)
 			return
 		}
 	} else {
@@ -209,7 +209,7 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 	if v, ok := fields["time"]; ok { // time should be nano-second
 		nanots, ok := v.(int64)
 		if !ok {
-			l.Warn("filed `time' should be nano-second, but got `%s'", reflect.TypeOf(v).String())
+			t.tf.log.Warn("filed `time' should be nano-second, but got `%s'", reflect.TypeOf(v).String())
 			err = fmt.Errorf("invalid fileds time")
 			return
 		}
@@ -222,7 +222,7 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 
 	data, err = io.MakeMetric(t.source, t.tags, fields, ts)
 	if err != nil {
-		l.Error(err)
+		t.tf.log.Error(err)
 	}
 
 	return
@@ -230,7 +230,7 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 
 func (t *tailer) feed(buffer *bytes.Buffer) {
 	if err := io.NamedFeed(buffer.Bytes(), io.Logging, t.source); err != nil {
-		l.Error(err)
+		t.tf.log.Error(err)
 	}
 
 	buffer = &bytes.Buffer{}
