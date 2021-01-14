@@ -47,7 +47,7 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
-	val, err  := p.getContentStr(key)
+	val, err := p.getContentStr(key)
 	if err != nil {
 		return p, err
 	}
