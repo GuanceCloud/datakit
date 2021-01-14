@@ -1,36 +1,46 @@
 package aliyunobject
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ons"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
 	onsSampleConfig = `
 # ##(optional)
 #[inputs.aliyunobject.rocketmq]
-    # ##(optional) ignore this object, default is false
-    #disable = false
-
-    # ##(optional) list of rocketmq instanceid
-    #instanceids = []
-
-    # ##(optional) list of excluded rocketmq instanceid
-    #exclude_instanceids = []
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_rocketmq.p"
+	
+	# ##(optional) list of rocketmq instanceid
+	#instanceids = []
+	
+	# ##(optional) list of excluded rocketmq instanceid
+	#exclude_instanceids = []
+`
+	onsPipelineConfig = `
+json(_, InstanceId)
+json(_, InstanceStatus)
+json(_, IndependentNaming)
+json(_, InstanceName)
+json(_, InstanceType)
 `
 )
 
 type Ons struct {
-	Disable            bool              `toml:"disable"`
-	Tags               map[string]string `toml:"tags,omitempty"`
-	InstancesIDs       []string          `toml:"instanceids,omitempty"`
-	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	Disable            bool     `toml:"disable"`
+	InstancesIDs       []string `toml:"instanceids,omitempty"`
+	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string   `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (r *Ons) disabled() bool {
@@ -44,7 +54,12 @@ func (r *Ons) run(ag *objectAgent) {
 
 	var cli *ons.Client
 	var err error
-
+	p, err := newPipeline(r.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] rocketmq new pipeline err:%s", err.Error())
+		return
+	}
+	r.p = p
 	for {
 
 		select {
@@ -85,31 +100,10 @@ func (r *Ons) run(ag *objectAgent) {
 
 func (r *Ons) handleResponse(resp *ons.OnsInstanceInServiceListResponse, ag *objectAgent) {
 
-	var objs []map[string]interface{}
-
 	for _, o := range resp.Data.InstanceVO {
-
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`ons_%s`, o.InstanceId), `aliyun_rocketmq`, o, o.InstanceId, r.ExcludeInstanceIDs, r.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf(`%s_%s`, o.InstanceName, o.InstanceId),
 		}
-	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
-		return
-	}
-	if ag.isDebug() {
-		fmt.Printf("%s\n", string(data))
-	} else {
-		io.NamedFeed(data, io.Object, inputName)
+		ag.parseObject(o, "aliyun_rocketmq", o.InstanceId, r.p, r.ExcludeInstanceIDs, r.InstancesIDs, tags)
 	}
 }
