@@ -2,6 +2,7 @@ package datakit
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/kardianos/service"
 )
@@ -26,13 +27,19 @@ func NewService() (service.Service, error) {
 
 	prog := &program{}
 
-	svc, err := service.New(prog, &service.Config{
+	scfg := &service.Config{
 		Name:        ServiceName,
 		DisplayName: ServiceName,
 		Description: ServiceDescription,
 		Executable:  ServiceExecutable,
 		Arguments:   ServiceArguments,
-	})
+	}
+
+	if runtime.GOOS == "darwin" {
+		scfg.Name = "cn.dataflux.datakit"
+	}
+
+	svc, err := service.New(prog, scfg)
 
 	if err != nil {
 		return nil, err
