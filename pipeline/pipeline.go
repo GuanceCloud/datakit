@@ -185,10 +185,6 @@ func (p *Pipeline) getContent(key interface{}) (interface{}, error) {
 
 func (p *Pipeline) getContentStr(key interface{}) (string, error) {
 	c, err := p.getContent(key)
-
-	fmt.Println("c =====>", c)
-	fmt.Println("string =====>", conv.ToString(c))
-
 	return conv.ToString(c), err
 }
 
