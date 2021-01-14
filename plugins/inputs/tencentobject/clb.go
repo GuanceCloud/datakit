@@ -1,7 +1,6 @@
 package tencentobject
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -9,7 +8,7 @@ import (
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/errors"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
@@ -26,12 +25,22 @@ const (
 #[inputs.tencentobject.clb.tags]
 # key1 = 'val1'
 `
+
+	clbPipelineConfig = `
+json(_, LoadBalancerId);
+json(_, LoadBalancerName);
+json(_, Domain);
+json(_, Status);
+`
 )
 
 type Clb struct {
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string            `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (c *Clb) run(ag *objectAgent) {
@@ -41,6 +50,12 @@ func (c *Clb) run(ag *objectAgent) {
 	cpf.HttpProfile.Endpoint = "clb.tencentcloudapi.com"
 	var client *clb.Client
 	var err error
+
+	c.p, err = newPipeline(c.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] clb new pipeline err:%s", err.Error())
+		return
+	}
 
 	for {
 
@@ -105,27 +120,11 @@ func (c *Clb) handleResponse(resp *clb.DescribeLoadBalancersResponse, ag *object
 
 	moduleLogger.Debugf("CLB TotalCount=%d", *resp.Response.TotalCount)
 
-	var objs []map[string]interface{}
-
 	for _, inst := range resp.Response.LoadBalancerSet {
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s(%s)`, *inst.LoadBalancerName, *inst.LoadBalancerId), `tencent_clb`, inst, *inst.LoadBalancerId, c.ExcludeInstanceIDs, c.InstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
-		}
-	}
 
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		if ag.isTest() {
-			ag.testResult.Result = append(ag.testResult.Result, data...)
-		} else {
-			io.NamedFeed(data, io.Object, inputName)
+		tags := map[string]string{
+			"name": fmt.Sprintf(`%s(%s)`, *inst.LoadBalancerName, *inst.LoadBalancerId),
 		}
-	} else {
-			moduleLogger.Errorf("%s", err)
-			return
-		}
+		ag.parseObject(inst, "tencent_clb", *inst.LoadBalancerId, c.p, c.ExcludeInstanceIDs, c.InstancesIDs, tags)
+	}
 }
