@@ -81,7 +81,6 @@ func (c *HWClient) Request(method string, resPath string, querys map[string]stri
 	if queryString != "" {
 		requestURL += "?" + queryString
 	}
-	//moduleLogger.Debugf("requestURL: %s", requestURL)
 
 	var bodyReader io.Reader
 	if body != nil {
