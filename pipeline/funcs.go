@@ -26,14 +26,14 @@ var (
 		//"datetime":      DateTime,
 		//"group_between": Group,
 		//"group_in":      GroupIn,
-		//
-		//"uppercase":        Uppercase,
-		//"lowercase":        Lowercase,
-		//"drop_key":         Dropkey,
-		//"add_key":          Addkey,
+
+		"uppercase":        Uppercase,
+		"lowercase":        Lowercase,
+		"drop_key":         Dropkey,
+		"add_key":          Addkey,
 		//"nullif":           NullIf,
 		//"default_time":     DefaultTime,
-		//"drop_origin_data": DropOriginData,
+		"drop_origin_data": DropOriginData,
 
 		"add_pattern": AddPattern,
 	}
@@ -590,60 +590,60 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 //		}
 //	}
 //}
-//
-//func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) != 1 {
-//		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
-//	}
-//
-//	var key string
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.Identifier:
-//		key = v.Name
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got %s",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	cont, ok := p.getContentStrByCheck(key)
-//	if !ok {
-//		l.Warnf("key %v not exist", key)
-//		return p, nil
-//	}
-//
-//	v := strings.ToUpper(cont)
-//	p.setContent(key, v)
-//
-//	return p, nil
-//}
-//
-//func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) != 1 {
-//		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
-//	}
-//
-//	var key string
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.Identifier:
-//		key = v.Name
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got %s",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	cont, ok := p.getContentStrByCheck(key)
-//	if !ok {
-//		l.Warnf("key %v not exist", key)
-//		return p, nil
-//	}
-//
-//	v := strings.ToLower(cont)
-//	p.setContent(key, v)
-//
-//	return p, nil
-//}
+
+func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	cont, err := p.getContentStr(key)
+	if err != nil {
+		l.Warn(err)
+		return p, nil
+	}
+
+	v := strings.ToUpper(cont)
+	p.setContent(key, v)
+
+	return p, nil
+}
+
+func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	cont, err := p.getContentStr(key)
+	if err != nil {
+		l.Warn(err)
+		return p, nil
+	}
+
+	v := strings.ToLower(cont)
+	p.setContent(key, v)
+
+	return p, nil
+}
 //
 //func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 //	funcExpr := node.(*parser.FuncExpr)
@@ -690,70 +690,70 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 //
 //	return p, nil
 //}
-//
-//func Dropkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) != 1 {
-//		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
-//	}
-//
-//	var key string
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.Identifier:
-//		key = v.Name
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got %s",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	delete(p.Output, key)
-//
-//	return p, nil
-//}
-//
-//func DropOriginData(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	delete(p.Output, "message")
-//	return p, nil
-//}
-//
-//func Addkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) != 2 {
-//		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
-//	}
-//
-//	var key string
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.Identifier:
-//		key = v.Name
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got %s",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	var val interface{}
-//	switch v := funcExpr.Param[1].(type) {
-//	case *parser.StringLiteral:
-//		val = v.Val
-//
-//	case *parser.NumberLiteral:
-//		if v.IsInt {
-//			val = v.Int
-//		} else {
-//			val = v.Float
-//		}
-//
-//	case *parser.BoolLiteral:
-//		val = v.Val
-//
-//	case *parser.NilLiteral:
-//		val = nil
-//	}
-//
-//	p.setContent(key, val)
-//
-//	return p, nil
-//}
+
+func Dropkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	delete(p.Output, key.String())
+
+	return p, nil
+}
+
+func DropOriginData(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	delete(p.Output, "message")
+	return p, nil
+}
+
+func Addkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	var val interface{}
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		val = v.Val
+
+	case *parser.NumberLiteral:
+		if v.IsInt {
+			val = v.Int
+		} else {
+			val = v.Float
+		}
+
+	case *parser.BoolLiteral:
+		val = v.Val
+
+	case *parser.NilLiteral:
+		val = nil
+	}
+
+	p.setContent(key, val)
+
+	return p, nil
+}
 
 func getGjsonResult(data, id string) interface{} {
 	g := gjson.Get(data, id)
