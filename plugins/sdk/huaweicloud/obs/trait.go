@@ -433,7 +433,7 @@ func setSseHeader(headers map[string][]string, sseHeader ISseHeader, sseCOnly bo
 		} else if sseKmsHeader, ok := sseHeader.(SseKmsHeader); !sseCOnly && ok {
 			sseKmsHeader.isObs = isObs
 			setHeaders(headers, HEADER_SSEKMS_ENCRYPTION, []string{sseKmsHeader.GetEncryption()}, isObs)
-			if sseKmsHeader.GetKey() != ""{
+			if sseKmsHeader.GetKey() != "" {
 				setHeadersNext(headers, HEADER_SSEKMS_KEY_OBS, HEADER_SSEKMS_KEY_AMZ, []string{sseKmsHeader.GetKey()}, isObs)
 			}
 		}
