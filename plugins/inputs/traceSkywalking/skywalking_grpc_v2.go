@@ -17,9 +17,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceSkywalking/v2/register"
 )
 
-type SkywalkingServerV2          struct{}
-type SkywalkingRegisterServerV2  struct{}
-type SkywalkingPingServerV2      struct{}
+type SkywalkingServerV2 struct{}
+type SkywalkingRegisterServerV2 struct{}
+type SkywalkingPingServerV2 struct{}
 type SkywalkingJVMMetricServerV2 struct{}
 
 var (
@@ -36,7 +36,6 @@ var (
 	RegEndpoint    = &sync.Map{} //key: id,           value: endpointName
 	RegEndpointRev = &sync.Map{} //key: endpointName, value: id
 )
-
 
 func SkyWalkingServerRunV2(addr string) {
 	log.Infof("skywalking V2 gRPC starting...")
@@ -143,8 +142,9 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 
 		t.TraceID = fmt.Sprintf("%d", traceId)
 		t.SpanID = fmt.Sprintf("%v%v", sgid, span.SpanId)
+		t.Status = trace.STATUS_OK
 		if span.IsError {
-			t.IsError = "true"
+			t.Status = trace.STATUS_ERR
 		}
 		if span.SpanType == common.SpanType_Entry {
 			t.SpanType = trace.SPAN_TYPE_ENTRY
