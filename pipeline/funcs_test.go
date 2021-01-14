@@ -101,51 +101,54 @@ grok(_, "%{time}")`
 //
 //	assertEqual(t, p.getContentStr("bb"), "45")
 //}
-//
-//func TestDefaultTimeFunc(t *testing.T) {
-//
-//	js := `{"a":{"time":"2014/04/08 22:05","second":2,"thrid":"abc","forth":true},"age":47}`
-//	script := `json(_, a.time);
-//default_time(a.second);
-//`
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//	assertEqual(t, p.lastErr, nil)
-//
-//	r := p.getContent("a.time")
-//
-//	assertEqual(t, r, 1396965900)
-//}
-//
-//func TestUrlencodeFunc(t *testing.T) {
-//	js := `{"url":"http%3A%2F%2Fwww.baidu.com%2Fs%3Fwd%3D%E8%87%AA%E7%94%B1%E5%BA%A6","second":2}`
-//	script := `json(_, url); url_decode(url);`
-//
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//
-//	r := p.getContentStr("url")
-//
-//	assertEqual(t, r, "http://www.baidu.com/s?wd=自由度")
-//}
-//
-//func TestGeoIpFunc(t *testing.T) {
-//	js := `{"a":{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true},"age":47}`
-//	script := `json(_, a.ip); geoip(a.ip);`
-//
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//
-//	r := p.getContentStr("city")
-//	assertEqual(t, r, "Shanghai")
-//}
-//
+
+func TestDefaultTimeFunc(t *testing.T) {
+
+	js := `{"a":{"time":"2014/04/08 22:05","second":2,"thrid":"abc","forth":true},"age":47}`
+	script := `json(_, a.time);
+default_time(a.second);
+`
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+	assertEqual(t, p.lastErr, nil)
+
+	r, err := p.getContent("a.time")
+	assertEqual(t, err, nil)
+
+	assertEqual(t, r, 1396965900)
+}
+
+func TestUrlencodeFunc(t *testing.T) {
+	js := `{"url":"http%3A%2F%2Fwww.baidu.com%2Fs%3Fwd%3D%E8%87%AA%E7%94%B1%E5%BA%A6","second":2}`
+	script := `json(_, url); url_decode(url);`
+
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+
+	r, err := p.getContentStr("url")
+	assertEqual(t, err, nil)
+
+	assertEqual(t, r, "http://www.baidu.com/s?wd=自由度")
+}
+
+func TestGeoIpFunc(t *testing.T) {
+	js := `{"a":{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true},"age":47}`
+	script := `json(_, a.ip); geoip(a.ip);`
+
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+
+	r, err := p.getContentStr("city")
+	assertEqual(t, err, nil)
+	assertEqual(t, r, "Shanghai")
+}
+
 //func TestUserAgentFunc(t *testing.T) {
 //	js := `{"a":{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36","second":2},"age":47}`
 //	script := `json(_, a.userAgent); user_agent(a.userAgent)`
