@@ -1,7 +1,6 @@
 package tencentobject
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -9,7 +8,7 @@ import (
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/errors"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
@@ -26,12 +25,26 @@ const (
 #[inputs.tencentobject.cdb.tags]
 # key1 = 'val1'
 `
+
+	cdbPipelineConfig = `
+json(_, InstanceId);
+json(_, InstanceName);
+json(_, Region);
+json(_, InstanceType);
+json(_, DeviceType);
+json(_, Status);
+json(_, Volume);
+json(_, Memory);
+`
 )
 
 type Cdb struct {
 	Tags                 map[string]string `toml:"tags,omitempty"`
 	DBInstancesIDs       []string          `toml:"db_instanceids,omitempty"`
 	ExcludeDBInstanceIDs []string          `toml:"exclude_db_instanceids,omitempty"`
+	PipelinePath         string            `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
 }
 
 func (c *Cdb) run(ag *objectAgent) {
@@ -41,6 +54,12 @@ func (c *Cdb) run(ag *objectAgent) {
 	cpf.HttpProfile.Endpoint = "cdb.tencentcloudapi.com"
 	var client *cdb.Client
 	var err error
+
+	c.p, err = newPipeline(c.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] cdb new pipeline err:%s", err.Error())
+		return
+	}
 
 	for {
 
@@ -105,32 +124,12 @@ func (c *Cdb) handleResponse(resp *cdb.DescribeDBInstancesResponse, ag *objectAg
 
 	moduleLogger.Debugf("CDB TotalCount=%v", *resp.Response.TotalCount)
 
-	var objs []map[string]interface{}
-
 	for _, db := range resp.Response.Items {
-		if obj, err := datakit.CloudObject2Json(fmt.Sprintf(`%s_%s`, *db.InstanceName, *db.InstanceId), `tencent_cdb`, db, *db.InstanceId, c.ExcludeDBInstanceIDs, c.DBInstancesIDs); obj != nil {
-			objs = append(objs, obj)
-		} else {
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-			}
+
+		tags := map[string]string{
+			"name": fmt.Sprintf(`%s_%s`, *db.InstanceName, *db.InstanceId),
 		}
+		ag.parseObject(db, "tencent_cdb", *db.InstanceId, c.p, c.ExcludeDBInstanceIDs, c.DBInstancesIDs, tags)
 	}
 
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		if ag.isTest() {
-			ag.testResult.Result = append(ag.testResult.Result, data...)
-		} else {
-			io.NamedFeed(data, io.Object, inputName)
-		}
-	} else {
-
-			moduleLogger.Errorf("%s", err)
-			return
-		}
-	}
+}
