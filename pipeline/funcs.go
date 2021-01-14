@@ -46,28 +46,28 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	var key, old parser.Node
 
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.AttrExpr, *parser.Identifier:
+	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		key = v
 	default:
-		return p, fmt.Errorf("expect AttrExpr or Identifier, got %s",
+		return p, fmt.Errorf("expect StringLiteral, AttrExpr or Identifier, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
 	switch v := funcExpr.Param[1].(type) {
-	case *parser.AttrExpr, *parser.Identifier:
+	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		old = v
 	default:
-		return p, fmt.Errorf("expect AttrExpr or Identifier, got %s",
+		return p, fmt.Errorf("expect StringLiteral, AttrExpr or Identifier, got %s",
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
 	newkey := old
 	if len(funcExpr.Param) == 3 {
 		switch v := funcExpr.Param[2].(type) {
-		case *parser.AttrExpr, *parser.Identifier:
+		case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 			newkey = v
 		default:
-			return p, fmt.Errorf("expect AttrExpr or Identifier, got %s",
+			return p, fmt.Errorf("expect StringLiteral, AttrExpr or Identifier, got %s",
 				reflect.TypeOf(funcExpr.Param[2]).String())
 		}
 	}
@@ -96,18 +96,18 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	var old, new parser.Node
 
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.AttrExpr, *parser.Identifier:
+	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		new = v
 	default:
-		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
+		return p, fmt.Errorf("expect StringLiteral, Identifier or AttrExpr, got `%s'",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
 	switch v := funcExpr.Param[1].(type) {
-	case *parser.AttrExpr, *parser.Identifier:
+	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		old = v
 	default:
-		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
+		return p, fmt.Errorf("expect StringLiteral, Identifier or AttrExpr, got `%s'",
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
@@ -299,10 +299,10 @@ func Expr(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	switch v := funcExpr.Param[1].(type) {
-	case *parser.Identifier, *parser.AttrExpr:
+	case *parser.Identifier, *parser.AttrExpr, *parser.StringLiteral:
 		key = v
 	default:
-		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
+		return p, fmt.Errorf("expect StringLiteral, Identifier or AttrExpr, got `%s'",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
@@ -327,10 +327,10 @@ func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	var key parser.Node
 	var fmts string
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.Identifier, *parser.AttrExpr:
+	case *parser.Identifier, *parser.AttrExpr, *parser.StringLiteral:
 		key = v
 	default:
-		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
+		return p, fmt.Errorf("expect StringLiteral, Identifier or AttrExpr, got `%s'",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
@@ -378,10 +378,10 @@ func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	var key parser.Node
 	var castType string
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.Identifier, *parser.AttrExpr:
+	case *parser.Identifier, *parser.AttrExpr, *parser.StringLiteral:
 		key = v
 	default:
-		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
+		return p, fmt.Errorf("expect StringLiteral, Identifier or AttrExpr, got `%s'",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
@@ -600,10 +600,10 @@ func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	var key parser.Node
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.Identifier, *parser.AttrExpr:
+	case *parser.Identifier, *parser.AttrExpr, *parser.StringLiteral:
 		key = v
 	default:
-		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
+		return p, fmt.Errorf("expect StringLiteral, Identifier or AttrExpr, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
@@ -627,10 +627,10 @@ func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	var key parser.Node
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.Identifier, *parser.AttrExpr:
+	case *parser.Identifier, *parser.AttrExpr, *parser.StringLiteral:
 		key = v
 	default:
-		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
+		return p, fmt.Errorf("expect StringLiteral, Identifier or AttrExpr, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
@@ -715,10 +715,10 @@ func Dropkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	var key parser.Node
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.Identifier, *parser.AttrExpr:
+	case *parser.Identifier, *parser.AttrExpr, *parser.StringLiteral:
 		key = v
 	default:
-		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
+		return p, fmt.Errorf("expect StringLiteral, Identifier or AttrExpr, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
@@ -740,10 +740,10 @@ func Addkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	var key parser.Node
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.Identifier, *parser.AttrExpr:
+	case *parser.Identifier, *parser.AttrExpr, *parser.StringLiteral:
 		key = v
 	default:
-		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
+		return p, fmt.Errorf("expect StringLiteral, Identifier or AttrExpr, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
