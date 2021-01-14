@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/influxdata/toml"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -28,15 +27,12 @@ var (
 	l           = logger.DefaultSLogger("inputs")
 	panicInputs = map[string]int{}
 	mtx         = sync.RWMutex{}
-
 )
 
-
 type ConfDetail struct {
-	Path string
-	ConfMd5  []string
+	Path    string
+	ConfMd5 []string
 }
-
 
 type TestResult struct {
 	Result []byte // line protocol or any plugin test result
@@ -57,6 +53,11 @@ type HTTPInput interface {
 	RegHttpHandler()
 }
 
+type PipelineInput interface {
+	Input
+	PipelineConfig() map[string]string
+}
+
 type Creator func() Input
 
 func Add(name string, creator Creator) {
@@ -75,7 +76,6 @@ type inputInfo struct {
 	input Input
 	ti    *tgi.TelegrafInput
 	cfg   string
-
 }
 
 func (ii *inputInfo) Run() {
@@ -91,43 +91,40 @@ func (ii *inputInfo) Run() {
 	}
 }
 
-
-func SetInputsMD5(name string,input interface{}) string {
-	data,err :=  toml.Marshal(input)
+func SetInputsMD5(name string, input interface{}) string {
+	data, err := toml.Marshal(input)
 	if err != nil {
 		l.Errorf("input to toml err")
 		return ""
 	}
-	newName := fmt.Sprintf("%s-%x",name, md5.Sum(data))
+	newName := fmt.Sprintf("%s-%x", name, md5.Sum(data))
 	return newName
 }
 
-
 func AddInput(name string, input Input, fp string) error {
-
 	mtx.Lock()
 	defer mtx.Unlock()
 	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input, cfg: fp})
 	return nil
 }
 
-func ResetInputs() {
+func AddSelf() {
+	self, _ := Inputs["self"]
+	AddInput("self", self(), "no config for `self' input")
+}
 
+func AddTelegrafHTTP() {
+	t, _ := Inputs["telegraf_http"]
+	AddInput("telegraf_http", t(), "no config for `telegraf_http' input")
+}
+
+func ResetInputs() {
 	mtx.Lock()
 	defer mtx.Unlock()
 	InputsInfo = map[string][]*inputInfo{}
 }
 
-func AddSelf(i Input) {
-
-	mtx.Lock()
-	defer mtx.Unlock()
-
-	InputsInfo["self"] = append(InputsInfo["self"], &inputInfo{input: i, cfg: "no config for `self' input"})
-}
-
 func AddTelegrafInput(name, fp string) {
-
 	mtx.Lock()
 	defer mtx.Unlock()
 
@@ -140,7 +137,6 @@ func AddTelegrafInput(name, fp string) {
 }
 
 func StartTelegraf() error {
-
 	if !HaveTelegrafInputs() {
 		l.Info("no telegraf inputs enabled")
 		return nil
@@ -160,7 +156,6 @@ func StartTelegraf() error {
 }
 
 func RunInputs() error {
-
 	l = logger.SLogger("inputs")
 	mtx.RLock()
 	defer mtx.RUnlock()
@@ -212,7 +207,7 @@ func protectRunningInput(name string, ii *inputInfo) {
 
 			if len(crashTime) >= MaxCrash {
 				l.Warnf("input %s crash %d times(at %+#v), exit now.",
-					name, len(crashTime), strings.Join(crashTime, ","))
+					name, len(crashTime), strings.Join(crashTime, "\n"))
 				return
 			}
 		}
