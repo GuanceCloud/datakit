@@ -16,10 +16,10 @@ var (
 	funcsMap = map[string]PipelineFunc{
 		"grok":          Grok,
 		"json":          Json,
-		//"rename":        Rename,
-		//"strfmt":        Strfmt,
-		//"cast":          Cast,
-		//"expr":          Expr,
+		"rename":        Rename,
+		"strfmt":        Strfmt,
+		"cast":          Cast,
+		"expr":          Expr,
 		"user_agent":    UserAgent,
 		"url_decode":    UrlDecode,
 		"geoip":         GeoIp,
@@ -27,13 +27,13 @@ var (
 		"group_between": Group,
 		"group_in":      GroupIn,
 
-		//"uppercase":        Uppercase,
-		//"lowercase":        Lowercase,
-		//"drop_key":         Dropkey,
-		//"add_key":          Addkey,
+		"uppercase":        Uppercase,
+		"lowercase":        Lowercase,
+		"drop_key":         Dropkey,
+		"add_key":          Addkey,
 		"nullif":           NullIf,
 		"default_time":     DefaultTime,
-		//"drop_origin_data": DropOriginData,
+		"drop_origin_data": DropOriginData,
 
 		"add_pattern": AddPattern,
 	}
@@ -87,43 +87,46 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	return p, nil
 }
-//
-//func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) != 2 {
-//		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
-//	}
-//
-//	var old, new *parser.AttrExpr
-//
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.AttrExpr:
-//		new = v
-//	default:
-//		return p, fmt.Errorf("expect AttrExpr, got `%s'",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	switch v := funcExpr.Param[1].(type) {
-//	case *parser.AttrExpr:
-//		old = v
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got `%s'",
-//			reflect.TypeOf(funcExpr.Param[1]).String())
-//	}
-//
-//	v, ok := p.getContent(old.String())
-//	if !ok {
-//		l.Warnf("key `%v' not exist", old)
-//		return p, nil
-//	}
-//
-//	p.setContent(new.String(), v)
-//	delete(p.Output, old.String())
-//
-//	return p, nil
-//}
-//
+
+func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	}
+
+	var old, new parser.Node
+
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.AttrExpr, *parser.Identifier:
+		new = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.AttrExpr, *parser.Identifier:
+		old = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
+			reflect.TypeOf(funcExpr.Param[1]).String())
+	}
+
+	v, err := p.getContent(old)
+	if err != nil {
+		return p, err
+	}
+
+	err = p.setContent(new, v)
+	if err != nil {
+		return p, err
+	}
+
+	delete(p.Output, old.String())
+
+	return p, nil
+}
+
 func UserAgent(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 1 {
@@ -279,116 +282,128 @@ func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	return p, nil
 }
 
-//func Expr(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) != 2 {
-//		return p, fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)
-//	}
-//
-//	var key string
-//	var expr *parser.BinaryExpr
-//
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.BinaryExpr:
-//		expr = v
-//	default:
-//		return p, fmt.Errorf("expect BinaryExpr, got `%s'",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	switch v := funcExpr.Param[1].(type) {
-//	case *parser.Identifier:
-//		key = v.Name
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got `%s'",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	if v, err := Calc(expr, p); err != nil {
-//		return p, err
-//	} else {
-//		p.setContent(key, v)
-//	}
-//
-//	return p, nil
-//}
-//
-//func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	outdata := make([]interface{}, 0)
-//
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) < 2 {
-//		return p, fmt.Errorf("func `%s' expected more than 2 args", funcExpr.Name)
-//	}
-//
-//	var key, fmts string
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.Identifier:
-//		key = v.Name
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got `%s'",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	switch v := funcExpr.Param[1].(type) {
-//	case *parser.StringLiteral:
-//		fmts = v.Val
-//	default:
-//		return p, fmt.Errorf("expect StringLiteral, got `%s'",
-//			reflect.TypeOf(funcExpr.Param[1]).String())
-//	}
-//
-//	for i := 2; i < len(funcExpr.Param); i++ {
-//		switch v := funcExpr.Param[i].(type) {
-//		case *parser.Identifier:
-//			outdata = append(outdata, p.getContent(v.Name))
-//		case *parser.NumberLiteral:
-//			if v.IsInt {
-//				outdata = append(outdata, v.Int)
-//			} else {
-//				outdata = append(outdata, v.Float)
-//			}
-//		case *parser.StringLiteral:
-//			outdata = append(outdata, v.Val)
-//		default:
-//			outdata = append(outdata, v)
-//		}
-//	}
-//
-//	strfmt := fmt.Sprintf(fmts, outdata...)
-//	p.setContent(key, strfmt)
-//
-//	return p, nil
-//}
-//
-//func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) != 2 {
-//		return p, fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)
-//	}
-//
-//	var key, castType string
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.Identifier:
-//		key = v.Name
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got `%s'",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	switch v := funcExpr.Param[1].(type) {
-//	case *parser.StringLiteral:
-//		castType = v.Val
-//	default:
-//		return p, fmt.Errorf("expect StringLiteral, got `%s'",
-//			reflect.TypeOf(funcExpr.Param[1]).String())
-//	}
-//
-//	v := cast(p.getContent(key), castType)
-//	p.setContent(key, v)
-//
-//	return p, nil
-//}
+func Expr(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return p, fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	var expr *parser.BinaryExpr
+
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.BinaryExpr:
+		expr = v
+	default:
+		return p, fmt.Errorf("expect BinaryExpr, got `%s'",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	if v, err := Calc(expr, p); err != nil {
+		l.Warn(err)
+		return p, nil
+	} else {
+		p.setContent(key, v)
+	}
+
+	return p, nil
+}
+
+func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	outdata := make([]interface{}, 0)
+
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) < 2 {
+		return p, fmt.Errorf("func `%s' expected more than 2 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	var fmts string
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		fmts = v.Val
+	default:
+		return p, fmt.Errorf("expect StringLiteral, got `%s'",
+			reflect.TypeOf(funcExpr.Param[1]).String())
+	}
+
+	for i := 2; i < len(funcExpr.Param); i++ {
+		switch v := funcExpr.Param[i].(type) {
+		case *parser.Identifier:
+			data, _ := p.getContent(v)
+			outdata = append(outdata, data)
+		case *parser.AttrExpr:
+			data, _ := p.getContent(v)
+			outdata = append(outdata, data)
+		case *parser.NumberLiteral:
+			if v.IsInt {
+				outdata = append(outdata, v.Int)
+			} else {
+				outdata = append(outdata, v.Float)
+			}
+		case *parser.StringLiteral:
+			outdata = append(outdata, v.Val)
+		default:
+			outdata = append(outdata, v)
+		}
+	}
+
+	strfmt := fmt.Sprintf(fmts, outdata...)
+	p.setContent(key, strfmt)
+
+	return p, nil
+}
+
+func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return p, fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	var castType string
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		castType = v.Val
+	default:
+		return p, fmt.Errorf("expect StringLiteral, got `%s'",
+			reflect.TypeOf(funcExpr.Param[1]).String())
+	}
+
+	cont, err := p.getContent(key)
+	if err != nil {
+		l.Warn(err)
+		return p, nil
+	}
+	val := cast(cont, castType)
+	p.setContent(key, val)
+
+	return p, nil
+}
 
 func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
@@ -578,97 +593,59 @@ func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	return p, nil
 }
 
-//func ParseScript(scriptOrPath string) (*parser.Ast, error) {
-//	data := scriptOrPath
-//
-//	_, err := os.Stat(scriptOrPath)
-//	if err == nil || !os.IsNotExist(err) {
-//		cont, err := ioutil.ReadFile(scriptOrPath)
-//		if err != nil {
-//			return nil, err
-//		}
-//		data = string(cont)
-//	}
-//
-//	node, err := parser.ParsePipeline(string(data))
-//	switch ast := node.(type) {
-//	case *parser.Ast:
-//		for _, f := range ast.Functions {
-//			DebugNodesHelp(f, "")
-//		}
-//
-//		return ast, nil
-//	default:
-//		return nil, fmt.Errorf("should not been here")
-//	}
-//}
-//
-//func DebugNodesHelp(f *parser.FuncExpr, prev string) {
-//	l.Debugf("%v%v", prev, f.Name)
-//
-//	for _, node := range f.Param {
-//		switch v := node.(type) {
-//		case *parser.FuncExpr:
-//			DebugNodesHelp(v, prev+"    ")
-//		default:
-//			l.Debugf("%v%v", prev+"    |", node)
-//		}
-//	}
-//}
-//
-//func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) != 1 {
-//		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
-//	}
-//
-//	var key string
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.Identifier:
-//		key = v.Name
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got %s",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	cont, ok := p.getContentStrByCheck(key)
-//	if !ok {
-//		l.Warnf("key %v not exist", key)
-//		return p, nil
-//	}
-//
-//	v := strings.ToUpper(cont)
-//	p.setContent(key, v)
-//
-//	return p, nil
-//}
-//
-//func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) != 1 {
-//		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
-//	}
-//
-//	var key string
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.Identifier:
-//		key = v.Name
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got %s",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	cont, ok := p.getContentStrByCheck(key)
-//	if !ok {
-//		l.Warnf("key %v not exist", key)
-//		return p, nil
-//	}
-//
-//	v := strings.ToLower(cont)
-//	p.setContent(key, v)
-//
-//	return p, nil
-//}
+func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	cont, err := p.getContentStr(key)
+	if err != nil {
+		l.Warn(err)
+		return p, nil
+	}
+
+	v := strings.ToUpper(cont)
+	p.setContent(key, v)
+
+	return p, nil
+}
+
+func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	cont, err := p.getContentStr(key)
+	if err != nil {
+		l.Warn(err)
+		return p, nil
+	}
+
+	v := strings.ToLower(cont)
+	p.setContent(key, v)
+
+	return p, nil
+}
 
 func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
@@ -731,69 +708,69 @@ func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	return p, nil
 }
 
-//func Dropkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) != 1 {
-//		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
-//	}
-//
-//	var key string
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.Identifier:
-//		key = v.Name
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got %s",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	delete(p.Output, key)
-//
-//	return p, nil
-//}
-//
-//func DropOriginData(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	delete(p.Output, "message")
-//	return p, nil
-//}
-//
-//func Addkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
-//	funcExpr := node.(*parser.FuncExpr)
-//	if len(funcExpr.Param) != 2 {
-//		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
-//	}
-//
-//	var key string
-//	switch v := funcExpr.Param[0].(type) {
-//	case *parser.Identifier:
-//		key = v.Name
-//	default:
-//		return p, fmt.Errorf("expect Identifier, got %s",
-//			reflect.TypeOf(funcExpr.Param[0]).String())
-//	}
-//
-//	var val interface{}
-//	switch v := funcExpr.Param[1].(type) {
-//	case *parser.StringLiteral:
-//		val = v.Val
-//
-//	case *parser.NumberLiteral:
-//		if v.IsInt {
-//			val = v.Int
-//		} else {
-//			val = v.Float
-//		}
-//
-//	case *parser.BoolLiteral:
-//		val = v.Val
-//
-//	case *parser.NilLiteral:
-//		val = nil
-//	}
-//
-//	p.setContent(key, val)
-//
-//	return p, nil
-//}
+func Dropkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	delete(p.Output, key.String())
+
+	return p, nil
+}
+
+func DropOriginData(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	delete(p.Output, "message")
+	return p, nil
+}
+
+func Addkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	var val interface{}
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		val = v.Val
+
+	case *parser.NumberLiteral:
+		if v.IsInt {
+			val = v.Int
+		} else {
+			val = v.Float
+		}
+
+	case *parser.BoolLiteral:
+		val = v.Val
+
+	case *parser.NilLiteral:
+		val = nil
+	}
+
+	p.setContent(key, val)
+
+	return p, nil
+}
 
 func getGjsonResult(data, id string) interface{} {
 	g := gjson.Get(data, id)
