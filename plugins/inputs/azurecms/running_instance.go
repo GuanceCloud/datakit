@@ -2,6 +2,8 @@ package azurecms
 
 import (
 	"context"
+	"fmt"
+	"runtime"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -16,17 +18,31 @@ import (
 func (r *azureInstance) run(ctx context.Context) error {
 
 	defer func() {
-		if e := recover(); e != nil {
-			moduleLogger.Errorf("%v", e)
+		if err := recover(); err != nil {
+			buf := make([]byte, 2048)
+			n := runtime.Stack(buf, false)
+			moduleLogger.Errorf("panic: %s", err)
+			moduleLogger.Errorf("%s", string(buf[:n]))
 		}
 	}()
 
 	if r.EndPoint == "" {
-		r.EndPoint = `https://management.chinacloudapi.cn`
+		r.EndPoint = `https://management.chinacloudapi.cn/`
 	}
 
-	r.metricDefinitionClient = insights.NewMetricDefinitionsClientWithBaseURI(r.EndPoint, r.SubscriptionID)
-	r.metricClient = insights.NewMetricsClientWithBaseURI(r.EndPoint, r.SubscriptionID)
+	ev := azure.PublicCloud
+
+	endPoints := []azure.Environment{
+		azure.ChinaCloud,
+		azure.USGovernmentCloud,
+		azure.GermanCloud,
+	}
+
+	for _, e := range endPoints {
+		if e.ResourceManagerEndpoint == r.EndPoint {
+			ev = e
+		}
+	}
 
 	settings := auth.EnvironmentSettings{
 		Values: map[string]string{},
@@ -35,8 +51,13 @@ func (r *azureInstance) run(ctx context.Context) error {
 	settings.Values[auth.TenantID] = r.TenantID
 	settings.Values[auth.ClientID] = r.ClientID
 	settings.Values[auth.ClientSecret] = r.ClientSecret
-	settings.Environment = azure.ChinaCloud
+	settings.Environment = ev
 	settings.Values[auth.Resource] = settings.Environment.ResourceManagerEndpoint
+
+	moduleLogger.Debugf("ev: %s", ev.ResourceManagerEndpoint)
+
+	r.metricDefinitionClient = insights.NewMetricDefinitionsClientWithBaseURI(ev.ResourceManagerEndpoint, r.SubscriptionID)
+	r.metricClient = insights.NewMetricsClientWithBaseURI(ev.ResourceManagerEndpoint, r.SubscriptionID)
 
 	r.metricDefinitionClient.Authorizer, _ = settings.GetAuthorizer()
 	r.metricClient.Authorizer, _ = settings.GetAuthorizer()
@@ -71,7 +92,7 @@ func (r *azureInstance) run(ctx context.Context) error {
 
 			r.rateLimiter.Wait(ctx)
 			if err := r.fetchMetric(ctx, req); err != nil {
-				moduleLogger.Errorf(`fail to get metric "%s.%s", %s`, req.resourceID, req.metricname)
+				moduleLogger.Errorf("fail to get metric '%s.%s', %s", req.resourceID, req.metricname, err)
 				if r.isTest() {
 					r.testError = err
 					return err
@@ -187,6 +208,9 @@ func (r *azureInstance) fetchMetric(ctx context.Context, info *queryListInfo) er
 				if r.isTest() {
 					data, _ := io.MakeMetric(metricName, tags, fields, metricTime)
 					r.testResult.Result = append(r.testResult.Result, data...)
+				} else if r.isDebug() {
+					data, _ := io.MakeMetric(metricName, tags, fields, metricTime)
+					fmt.Printf("%s\n", string(data))
 				} else {
 					io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields, metricTime)
 				}
