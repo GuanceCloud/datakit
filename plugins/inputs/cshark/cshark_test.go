@@ -1,8 +1,8 @@
 package cshark
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 	"time"
 	// "gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -18,6 +18,7 @@ var msg = `
     }
 }
 `
+
 func TestRun(t *testing.T) {
 	t.Run("case-push-data", func(t *testing.T) {
 		datakit.InstallDir = "."
@@ -30,7 +31,7 @@ func TestRun(t *testing.T) {
 
 		go s.Run()
 
-		time.Sleep(time.Second*10)
+		time.Sleep(time.Second * 10)
 
 		// go func() {
 		// 	if err := SendCmdOpt(msg); err != nil {
@@ -41,10 +42,10 @@ func TestRun(t *testing.T) {
 		// time.Sleep(10*time.Second)
 
 		if err := SendCmdOpt(msg); err != nil {
-		   fmt.Println("err", err)
+			fmt.Println("err", err)
 		}
 
-		time.Sleep(100*time.Second)
+		time.Sleep(100 * time.Second)
 
 		t.Log("ok")
 	})
