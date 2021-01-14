@@ -16,9 +16,9 @@ var (
 	l            = logger.DefaultSLogger("geo")
 )
 
-func Geo(ip string) (ipL.IP2Locationrecord, error) {
+func Geo(ip string) (*ipL.IP2Locationrecord, error) {
 	if Db == nil {
-		return ipL.IP2Locationrecord{}, fmt.Errorf("ip2location db nil")
+		return nil, fmt.Errorf("ip2location db nil")
 	}
 
 	record, err := Db.Get_all(ip)
@@ -35,7 +35,7 @@ func Geo(ip string) (ipL.IP2Locationrecord, error) {
 		record.Country_short = "unknown"
 	}
 
-	return record, err
+	return &record, err
 }
 
 func Init() error {
