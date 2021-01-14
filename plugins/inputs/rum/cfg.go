@@ -1,15 +1,25 @@
 package rum
 
+import "sync"
+
 const (
 	configSample = `
 [[inputs.rum]]
 # ##(optional) tell datakit which http header contains the source ip, if empty use the client ip
 ip_header = 'X-Forwarded-For'
+
+# ##(optional)
+#pipeline = ''
 `
+
+	pipelineSample = ``
 )
 
 type Rum struct {
 	IPHeader string `toml:"ip_header,omitempty"`
+	Pipeline string `toml:"pipeline"`
+
+	pipelinePool *sync.Pool
 }
 
 var metricNames = map[string]bool{
@@ -34,12 +44,12 @@ var esNames = map[string]bool{
 	`freeze`:   true,
 }
 
-func IsMetric(name string) bool {
+func isMetric(name string) bool {
 	_, ok := metricNames[name]
 	return ok
 }
 
-func IsES(name string) bool {
+func isES(name string) bool {
 	_, ok := esNames[name]
 	return ok
 }
