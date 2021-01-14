@@ -44,7 +44,7 @@ func (obsClient ObsClient) CreateSignedUrl(input *CreateSignedUrlInput) (output 
 	if input.Expires <= 0 {
 		input.Expires = 300
 	}
-	
+
 	requestUrl, err := obsClient.doAuthTemporary(string(input.Method), input.Bucket, input.Key, params, headers, int64(input.Expires))
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (obsClient ObsClient) CreateSignedUrl(input *CreateSignedUrlInput) (output 
 	return
 }
 
-func (obsClient ObsClient) isSecurityToken(params map[string]string){
+func (obsClient ObsClient) isSecurityToken(params map[string]string) {
 	if obsClient.conf.securityProvider.securityToken != "" {
 		if obsClient.conf.signature == SignatureObs {
 			params[HEADER_STS_TOKEN_OBS] = obsClient.conf.securityProvider.securityToken
@@ -88,7 +88,7 @@ func (obsClient ObsClient) CreateBrowserBasedSignature(input *CreateBrowserBased
 	}
 
 	expiration := date.Add(time.Second * time.Duration(input.Expires)).Format(ISO8601_DATE_FORMAT)
-	if obsClient.conf.signature == SignatureV4{
+	if obsClient.conf.signature == SignatureV4 {
 		params[PARAM_ALGORITHM_AMZ_CAMEL] = V4_HASH_PREFIX
 		params[PARAM_CREDENTIAL_AMZ_CAMEL] = credential
 		params[PARAM_DATE_AMZ_CAMEL] = longDate
@@ -133,9 +133,9 @@ func (obsClient ObsClient) CreateBrowserBasedSignature(input *CreateBrowserBased
 	originPolicy := strings.Join(originPolicySlice, "")
 	policy := Base64Encode([]byte(originPolicy))
 	var signature string
-	if obsClient.conf.signature == SignatureV4{
+	if obsClient.conf.signature == SignatureV4 {
 		signature = getSignature(policy, obsClient.conf.securityProvider.sk, obsClient.conf.region, shortDate)
-	}else{
+	} else {
 		signature = Base64Encode(HmacSha1([]byte(obsClient.conf.securityProvider.sk), []byte(policy)))
 	}
 
@@ -595,9 +595,9 @@ func (obsClient ObsClient) PutFileWithSignedUrl(signedUrl string, actualSignedRe
 			err = _err
 			return nil, err
 		}
-		defer func(){
+		defer func() {
 			errMsg := fd.Close()
-			if errMsg != nil{
+			if errMsg != nil {
 				doLog(LEVEL_WARN, "Failed to close file with reason: %v", errMsg)
 			}
 		}()

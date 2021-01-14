@@ -1,10 +1,10 @@
 package Goruntime
 
 import (
-    ifxcli "github.com/influxdata/influxdb1-client/v2"
-    "gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-    "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
 const (
@@ -37,19 +37,19 @@ const (
 )
 
 func init() {
-    inputs.Add(inputName, func() inputs.Input {
-        return &prom.Prom{
-            Interval:       datakit.Cfg.MainCfg.Interval,
-            InputName:      inputName,
-            CatalogStr:     inputName,
-            SampleCfg:      sampleCfg,
-            Tags:           make(map[string]string),
-            IgnoreFunc:     ignore,
-            PromToNameFunc: nil,
-        }
-    })
+	inputs.Add(inputName, func() inputs.Input {
+		return &prom.Prom{
+			Interval:       datakit.Cfg.MainCfg.Interval,
+			InputName:      inputName,
+			CatalogStr:     inputName,
+			SampleCfg:      sampleCfg,
+			Tags:           make(map[string]string),
+			IgnoreFunc:     ignore,
+			PromToNameFunc: nil,
+		}
+	})
 }
 
 func ignore(pt *ifxcli.Point) bool {
-    return false
+	return false
 }
