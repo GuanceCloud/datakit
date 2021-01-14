@@ -29,12 +29,13 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	var key, pattern string
+	var key parser.Node
+	var pattern string
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.Identifier:
-		key = v.Name
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
 	default:
-		return p, fmt.Errorf("expect Identifier, got %s",
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
@@ -46,14 +47,21 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
-	val := p.getContentStr(key)
+	val, err  := p.getContentStr(key)
+	if err != nil {
+		return p, err
+	}
+
 	m, err := p.grok.Parse(pattern, val)
 	if err != nil {
 		return p, err
 	}
 
 	for k, v := range m {
-		p.setContent(k, v)
+		err := p.setContent(k, v)
+		if err != nil {
+			return p, err
+		}
 	}
 
 	return p, nil
