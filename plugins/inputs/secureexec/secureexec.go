@@ -10,8 +10,8 @@ import (
 )
 
 type SecureExec struct {
-	ShellPath   string
-	Username    string
+	ShellPath string
+	Username  string
 }
 
 const (
@@ -26,9 +26,9 @@ const (
 )
 
 var (
-	Log *logger.Logger
-	ShellPath    = ""
-	GlobalErr    error = nil
+	Log       *logger.Logger
+	ShellPath       = ""
+	GlobalErr error = nil
 )
 
 func (s *SecureExec) Catalog() string {
@@ -39,7 +39,7 @@ func (s *SecureExec) SampleConfig() string {
 	return secureExecConfSample
 }
 
-func (s *SecureExec) Test() (result *inputs.TestResult,err error) {
+func (s *SecureExec) Test() (result *inputs.TestResult, err error) {
 	return
 }
 
@@ -92,4 +92,3 @@ func init() {
 		return p
 	})
 }
-

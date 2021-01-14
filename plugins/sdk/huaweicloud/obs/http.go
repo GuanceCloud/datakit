@@ -97,7 +97,7 @@ func (obsClient ObsClient) doAction(action, method, bucketName, objectKey string
 	start := GetCurrentTimestamp()
 
 	params, headers, data, err := input.trans(obsClient.conf.signature == SignatureObs)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -110,12 +110,12 @@ func (obsClient ObsClient) doAction(action, method, bucketName, objectKey string
 	}
 
 	for _, extension := range extensions {
-		if extensionHeader, ok := extension.(extensionHeaders);ok{
+		if extensionHeader, ok := extension.(extensionHeaders); ok {
 			_err := extensionHeader(headers, obsClient.conf.signature == SignatureObs)
-			if _err != nil{
+			if _err != nil {
 				doLog(LEVEL_WARN, fmt.Sprintf("set header with error: %v", _err))
 			}
-		}else{
+		} else {
 			doLog(LEVEL_WARN, "Unsupported extensionOptions")
 		}
 	}
@@ -196,11 +196,11 @@ func (obsClient ObsClient) doHttpWithSignedUrl(action, method string, signedUrl 
 	var securityToken string
 	var query []string
 	parmas := strings.Split(signedUrl, "?")
-	if len(parmas) > 1{
-		query = strings.Split(parmas[1],"&")
-		for _, value := range query{
-			if strings.HasPrefix(value, HEADER_STS_TOKEN_AMZ + "=") || strings.HasPrefix(value, HEADER_STS_TOKEN_OBS + "="){
-				if value[len(HEADER_STS_TOKEN_AMZ)+1:] != ""{
+	if len(parmas) > 1 {
+		query = strings.Split(parmas[1], "&")
+		for _, value := range query {
+			if strings.HasPrefix(value, HEADER_STS_TOKEN_AMZ+"=") || strings.HasPrefix(value, HEADER_STS_TOKEN_OBS+"=") {
+				if value[len(HEADER_STS_TOKEN_AMZ)+1:] != "" {
 					securityToken = value[len(HEADER_STS_TOKEN_AMZ)+1:]
 					isSecurityToken = true
 				}
@@ -208,8 +208,8 @@ func (obsClient ObsClient) doHttpWithSignedUrl(action, method string, signedUrl 
 		}
 	}
 	logSignedUrl := signedUrl
-	if isSecurityToken{
-		logSignedUrl = strings.Replace(logSignedUrl,securityToken,"******",-1)
+	if isSecurityToken {
+		logSignedUrl = strings.Replace(logSignedUrl, securityToken, "******", -1)
 	}
 	doLog(LEVEL_INFO, "Do %s with signedUrl %s...", action, logSignedUrl)
 
@@ -302,18 +302,18 @@ func (obsClient ObsClient) doHttp(method, bucketName, objectKey string, params m
 	redirectFlag := false
 	for i, redirectCount := 0, 0; i <= maxRetryCount; i++ {
 		if redirectUrl != "" {
-			if !redirectFlag{
+			if !redirectFlag {
 				parsedRedirectUrl, err := url.Parse(redirectUrl)
 				if err != nil {
 					return nil, err
 				}
 				requestUrl, err = obsClient.doAuth(method, bucketName, objectKey, params, headers, parsedRedirectUrl.Host)
-				if err != nil{
+				if err != nil {
 					return nil, err
 				}
-				if parsedRequestUrl, err := url.Parse(requestUrl); err != nil{
+				if parsedRequestUrl, err := url.Parse(requestUrl); err != nil {
 					return nil, err
-				}else if parsedRequestUrl.RawQuery != "" && parsedRedirectUrl.RawQuery == "" {
+				} else if parsedRequestUrl.RawQuery != "" && parsedRedirectUrl.RawQuery == "" {
 					redirectUrl += "?" + parsedRequestUrl.RawQuery
 				}
 			}
@@ -341,17 +341,17 @@ func (obsClient ObsClient) doHttp(method, bucketName, objectKey string, params m
 
 			var isSecurityToken bool
 			var securityToken []string
-			if securityToken, isSecurityToken = headers[HEADER_STS_TOKEN_AMZ]; isSecurityToken{
+			if securityToken, isSecurityToken = headers[HEADER_STS_TOKEN_AMZ]; isSecurityToken {
 				headers[HEADER_STS_TOKEN_AMZ] = []string{"******"}
-			}else if securityToken, isSecurityToken = headers[HEADER_STS_TOKEN_OBS]; isSecurityToken{
+			} else if securityToken, isSecurityToken = headers[HEADER_STS_TOKEN_OBS]; isSecurityToken {
 				headers[HEADER_STS_TOKEN_OBS] = []string{"******"}
 			}
 			doLog(LEVEL_DEBUG, "Request headers: %v", headers)
 			headers[HEADER_AUTH_CAMEL] = auth
-			if isSecurityToken{
-				if obsClient.conf.signature == SignatureObs{
+			if isSecurityToken {
+				if obsClient.conf.signature == SignatureObs {
 					headers[HEADER_STS_TOKEN_OBS] = securityToken
-				}else{
+				} else {
 					headers[HEADER_STS_TOKEN_AMZ] = securityToken
 				}
 			}
@@ -401,15 +401,15 @@ func (obsClient ObsClient) doHttp(method, bucketName, objectKey string, params m
 				resp = nil
 				break
 			} else if resp.StatusCode >= 300 && resp.StatusCode < 400 {
-				if location := resp.Header.Get(HEADER_LOCATION_CAMEL); location != "" && redirectCount < maxRedirectCount{
+				if location := resp.Header.Get(HEADER_LOCATION_CAMEL); location != "" && redirectCount < maxRedirectCount {
 					redirectUrl = location
 					doLog(LEVEL_WARN, "Redirect request to %s", redirectUrl)
 					msg = resp.Status
 					maxRetryCount++
 					redirectCount++
-					if resp.StatusCode == 302 && method == HTTP_GET{
+					if resp.StatusCode == 302 && method == HTTP_GET {
 						redirectFlag = true
-					}else{
+					} else {
 						redirectFlag = false
 					}
 				} else {
@@ -424,7 +424,7 @@ func (obsClient ObsClient) doHttp(method, bucketName, objectKey string, params m
 		if i != maxRetryCount {
 			if resp != nil {
 				_err := resp.Body.Close()
-				if _err != nil{
+				if _err != nil {
 					doLog(LEVEL_WARN, "Failed to close resp body")
 				}
 				resp = nil
@@ -448,9 +448,9 @@ func (obsClient ObsClient) doHttp(method, bucketName, objectKey string, params m
 				if err != nil {
 					return nil, err
 				}
-				defer func(){
+				defer func() {
 					errMsg := fd.Close()
-					if errMsg != nil{
+					if errMsg != nil {
 						doLog(LEVEL_WARN, "Failed to close with reason: %v", errMsg)
 					}
 				}()
