@@ -1,8 +1,7 @@
 package rum
 
 import (
-	"bytes"
-	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"runtime"
@@ -25,7 +24,6 @@ import (
 )
 
 const (
-	PRECISION         = "precision"
 	DEFAULT_PRECISION = "ns"
 )
 
@@ -68,21 +66,113 @@ func (r *Rum) RegHttpHandler() {
 		}
 	}
 
-	r.pipelinePool = &sync.Pool{
-		New: func() interface{} {
-			if script == "" {
-				return nil
-			}
-			p, err := pipeline.NewPipeline(script)
-			if err != nil {
-				l.Errorf("%s", err)
-			}
-			return p
-		},
+	if script != "" {
+		r.pipelinePool = &sync.Pool{
+			New: func() interface{} {
+				p, err := pipeline.NewPipeline(script)
+				if err != nil {
+					l.Errorf("%s", err)
+				}
+				return p
+			},
+		}
 	}
 
 	ipheaderName = r.IPHeader
 	httpd.RegGinHandler("POST", io.Rum, r.Handle)
+}
+
+func (r *Rum) getPipeline() *pipeline.Pipeline {
+	if r.pipelinePool == nil {
+		return nil
+	}
+
+	pl := r.pipelinePool.Get()
+	if pl == nil {
+		return nil
+	}
+
+	return pl.(*pipeline.Pipeline)
+}
+
+func (r *Rum) handleESData(pt influxm.Point, pl *pipeline.Pipeline) (influxm.Point, error) {
+
+	if pl == nil {
+		return pt, nil
+	}
+
+	pl = pl.RunPoint(pt)
+	if err := pl.LastError(); err != nil {
+		return nil, err
+	}
+
+	res, err := pl.Result()
+	if err != nil {
+		return nil, err
+	}
+
+	// XXX: use origin tag
+	newpt, err := influxm.NewPoint(string(pt.Name()), pt.Tags(), res, pt.Time())
+
+	if err != nil {
+		return nil, err
+	}
+
+	return newpt, nil
+}
+
+func (r *Rum) handleBody(body []byte, precision, srcip string) (influxData, esdata []influxm.Point, err error) {
+
+	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), precision)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pl := r.getPipeline()
+	defer func() {
+		if pl != nil {
+			r.pipelinePool.Put(pl)
+		}
+	}()
+
+	for _, pt := range pts {
+		ptname := string(pt.Name())
+		ipInfo, err := geo.Geo(srcip)
+		if err != nil {
+			l.Errorf("geo failed: %s, ignored", err)
+		} else {
+			// 无脑填充 geo 数据
+			pt.AddTag("city", ipInfo.City)
+			pt.AddTag("province", ipInfo.Region)
+			pt.AddTag("country", ipInfo.Country_short)
+			pt.AddTag("isp", ip2isp.SearchIsp(srcip))
+		}
+
+		if isMetric(ptname) {
+			influxData = append(influxData, pt)
+		} else if isES(ptname) {
+			newpt, err := r.handleESData(pt, pl)
+
+			// XXX: 只是上传 RUM 原始数据，因为 ES 会将所有 tag/field 拉平
+			// 存入 ES，故只是行协议中增加一个长 tag，这个数据不会存入 influxdb。
+			//
+			// 这里只是将 RUM 原始数据转一下行协议即可，便于在 ES 中做全文检索。
+			// NOTE: 如果做了 pipeline，一定不要 drop_origin_data()，即不要删除
+			// `message' 字段，不然 RUM 原始数据无法做分词搜索。
+
+			if err != nil {
+				pt.AddTag("message", pt.String())
+				esdata = append(esdata, pt)
+			} else {
+				newpt.AddTag("message", newpt.String())
+				esdata = append(esdata, newpt)
+			}
+		} else {
+			return nil, nil, fmt.Errorf("unknown RUM metric name `%s'", ptname)
+		}
+	}
+
+	return
 }
 
 func (r *Rum) Handle(c *gin.Context) {
@@ -99,24 +189,24 @@ func (r *Rum) Handle(c *gin.Context) {
 	var precision string = DEFAULT_PRECISION
 	var body []byte
 	var err error
-	sourceIP := ""
+	srcip := ""
 
-	precision, _ = uhttp.GinGetArg(c, "X-Precision", PRECISION)
+	precision, _ = uhttp.GinGetArg(c, "X-Precision", "precision")
 
 	if ipheaderName != "" {
-		sourceIP = c.Request.Header.Get(ipheaderName)
-		if sourceIP != "" {
-			parts := strings.Split(sourceIP, ",")
+		srcip = c.Request.Header.Get(ipheaderName)
+		if srcip != "" {
+			parts := strings.Split(srcip, ",")
 			if len(parts) > 0 {
-				sourceIP = parts[0]
+				srcip = parts[0]
 			}
 		}
 	}
 
-	if sourceIP == "" {
+	if srcip == "" {
 		parts := strings.Split(c.Request.RemoteAddr, ":")
 		if len(parts) > 0 {
-			sourceIP = parts[0]
+			srcip = parts[0]
 		}
 	}
 
@@ -127,118 +217,20 @@ func (r *Rum) Handle(c *gin.Context) {
 		return
 	}
 
-	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), precision)
+	metricpts, espts, err := r.handleBody(body, precision, srcip)
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
 		return
 	}
 
-	l.Debugf("received %d points", len(pts))
-
-	metricsdata := [][]byte{}
-	esdata := [][]byte{}
-
-	pp_ := r.pipelinePool.Get()
-	var pp *pipeline.Pipeline
-	if pp_ != nil {
-		pp = pp_.(*pipeline.Pipeline)
-	}
-	defer func() {
-		if pp != nil {
-			r.pipelinePool.Put(pp)
-		}
-	}()
-
-	for _, pt := range pts {
-		ptname := string(pt.Name())
-
-		ipInfo, err := geo.Geo(sourceIP)
-		if err != nil {
-			l.Errorf("parse ip error: %s", err)
-		} else {
-
-			pt.AddTag("city", ipInfo.City)
-			pt.AddTag("province", ipInfo.Region)
-			pt.AddTag("country", ipInfo.Country_short)
-			pt.AddTag("isp", ip2isp.SearchIsp(sourceIP))
-		}
-
-		if IsMetric(ptname) {
-
-			metricsdata = append(metricsdata, []byte(pt.String()))
-
-		} else if IsES(ptname) {
-
-			if pp == nil {
-				esdata = append(esdata, []byte(pt.String()))
-				continue
-			}
-
-			pipelineInput := map[string]interface{}{}
-
-			rawFields, _ := pt.Fields()
-			for k, v := range rawFields {
-				pipelineInput[k] = v
-			}
-
-			for _, t := range pt.Tags() {
-				pipelineInput[string(t.Key)] = string(t.Value)
-			}
-
-			pipelineInputBytes, err := json.Marshal(&pipelineInput)
-			if err != nil {
-				l.Warnf("%s", err)
-				esdata = append(esdata, []byte(pt.String()))
-				continue
-			}
-
-			l.Debugf("pipeline input: %s", string(pipelineInputBytes))
-			pipelineResult, err := pp.Run(string(pipelineInputBytes)).Result()
-			if err != nil {
-				l.Warnf("%s", err)
-				esdata = append(esdata, []byte(pt.String()))
-				continue
-			} else {
-				l.Debugf("pipeline result: %s", pipelineResult)
-			}
-
-			tags := influxm.Tags{
-				influxm.Tag{
-					Key:   []byte("name"),
-					Value: []byte(ptname),
-				},
-			}
-
-			newPt, err := influxm.NewPoint(ptname, tags, pipelineResult, pt.Time())
-
-			if err != nil {
-				l.Errorf("%s", err)
-				esdata = append(esdata, []byte(pt.String()))
-			} else {
-				esdata = append(esdata, []byte(newPt.String()))
-			}
-		} else {
-			uhttp.HttpErr(c, uhttp.Errorf(httpd.ErrBadReq, "unknown RUM metric name `%s'", ptname))
-			return
-		}
+	if err = io.NamedFeedPoints(metricpts, io.Metric, inputName); err != nil {
+		uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
+		return
 	}
 
-	if len(metricsdata) > 0 {
-		body = bytes.Join(metricsdata, []byte("\n"))
-		if err = io.NamedFeed(body, io.Metric, inputName); err != nil {
-			uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
-			return
-		}
-	}
-
-	if len(esdata) > 0 {
-		body = bytes.Join(esdata, []byte("\n"))
-
-		if err = io.NamedFeed(body, io.Rum, inputName); err != nil {
-			l.Errorf("io.NamedFeed error, %s", err)
-			uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
-			return
-		}
+	if err = io.NamedFeedPoints(espts, io.Rum, inputName); err != nil {
+		uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
+		return
 	}
 
 	httpd.ErrOK.HttpBody(c, nil)
