@@ -26,7 +26,6 @@ var (
 		"datetime":      DateTime,
 		"group_between": Group,
 		"group_in":      GroupIn,
-
 		"uppercase":        Uppercase,
 		"lowercase":        Lowercase,
 		"drop_key":         Dropkey,
@@ -34,7 +33,6 @@ var (
 		"nullif":           NullIf,
 		"default_time":     DefaultTime,
 		"drop_origin_data": DropOriginData,
-
 		"add_pattern": AddPattern,
 	}
 )
@@ -76,7 +74,8 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		return p, err
+		l.Warn(err)
+		return p, nil
 	}
 
 	v, err := GsonGet(cont, old)
