@@ -39,6 +39,10 @@ func LoadCfg(c *datakit.Config, mcp string) error {
 	l.Infof("main cfg: %+#v", c.MainCfg)
 
 	initPluginSamples()
+	if err := initPluginPipeline(); err != nil {
+		l.Fatal(err)
+	}
+
 	initDefaultEnabledPlugins(c)
 
 	if err := LoadInputsConfig(c); err != nil {

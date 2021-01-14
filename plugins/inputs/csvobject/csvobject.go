@@ -7,9 +7,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
-	"strings"
 
 	"github.com/influxdata/toml"
 
@@ -18,14 +18,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-
 type CsvObject struct {
-	PythonEnv string         `toml:"pythonEnv"`
-	File      string         `toml:"file,omitempty"`
-	StartRows int            `toml:"startRows,omitempty"`
-	Interval  string         `toml:"interval,omitempty"`
-	Name      string         `toml:"name,omitempty"`
-	Class     string         `toml:"class,omitempty"`
+	PythonEnv string `toml:"pythonEnv"`
+	File      string `toml:"file,omitempty"`
+	StartRows int    `toml:"startRows,omitempty"`
+	Interval  string `toml:"interval,omitempty"`
+	Name      string `toml:"name,omitempty"`
+	Class     string `toml:"class,omitempty"`
 }
 
 const (
@@ -40,6 +39,7 @@ const (
 `
 	defaultInterval = "0s"
 )
+
 var (
 	l         *logger.Logger
 	inputName = "csvobject"
@@ -75,7 +75,7 @@ func (x *CsvObject) Run() {
 		l.Error(err)
 		return
 	} else {
-		intVal = int(interval)/1E9
+		intVal = int(interval) / 1e9
 	}
 
 	if datakit.Cfg.MainCfg.HTTPBind == "" {
@@ -93,7 +93,7 @@ func (x *CsvObject) Run() {
 		"--log_level", datakit.Cfg.MainCfg.LogLevel,
 	}
 
-	if x.PythonEnv != ""{
+	if x.PythonEnv != "" {
 		startCmd = x.PythonEnv
 	}
 	l.Info("csvobject started")
