@@ -264,7 +264,7 @@ strfmt(bb, "%d %s %v", a.second, a.thrid, a.forth)
 
 	p.Run(js)
 	v, _ := p.getContent("bb")
-	assertEqual(t, v, "2 \"abc\" true")
+	assertEqual(t, v, "2 abc true")
 }
 
 func TestUppercaseFunc(t *testing.T) {
@@ -278,7 +278,7 @@ uppercase(a.thrid)
 	p.Run(js)
 
 	v, _ := p.getContent("a.thrid")
-	assertEqual(t, v, "\"ABC\"")
+	assertEqual(t, v, "ABC")
 }
 
 func TestLowercaseFunc(t *testing.T) {
@@ -292,7 +292,7 @@ lowercase(a.thrid)
 
 	p.Run(js)
 	v, _ := p.getContentStr("a.thrid")
-	assertEqual(t, v, "\"abc\"")
+	assertEqual(t, v, "abc")
 }
 
 func TestAddkeyFunc(t *testing.T) {
