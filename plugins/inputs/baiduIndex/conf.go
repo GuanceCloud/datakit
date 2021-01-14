@@ -20,6 +20,6 @@ type BaiduIndex struct {
 	Kind       string   `toml:"kind"`
 	Interval   string   `toml:"interval"`
 	MetricName string   `toml:"metricName"`
-	test             bool           `toml:"-"`
-	resData          []byte         `toml:"-"`
+	test       bool     `toml:"-"`
+	resData    []byte   `toml:"-"`
 }
