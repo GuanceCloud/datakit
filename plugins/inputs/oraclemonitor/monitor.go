@@ -51,7 +51,7 @@ var (
 	inputName = "oraclemonitor"
 )
 
-type OracleMonitor struct{
+type OracleMonitor struct {
 	external.ExernalInput
 }
 
@@ -59,7 +59,7 @@ func (_ *OracleMonitor) Catalog() string { return "db" }
 
 func (_ *OracleMonitor) SampleConfig() string { return configSample }
 
-func (_ *OracleMonitor) Test() (result *inputs.TestResult,err error) {
+func (_ *OracleMonitor) Test() (result *inputs.TestResult, err error) {
 	return
 }
 
