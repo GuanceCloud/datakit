@@ -2,7 +2,16 @@ package pipeline
 
 import (
 	"testing"
+	"fmt"
 )
+
+type funcCase struct {
+	data     string
+	script   string
+	expected string
+	err      string
+	fail     bool
+}
 
 func assertEqual(t *testing.T, a, b interface{}) {
 	t.Helper()
@@ -99,106 +108,118 @@ expr(a.second*10+(2+3)*5, bb)
 	assertEqual(t, v, "45")
 }
 
-//func TestDefaultTimeFunc(t *testing.T) {
-//
-//	js := `{"a":{"time":"2014/04/08 22:05","second":2,"thrid":"abc","forth":true},"age":47}`
-//	script := `json(_, a.time);
-//default_time(a.second);
-//`
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//	assertEqual(t, p.lastErr, nil)
-//
-//	r := p.getContent("a.time")
-//
-//	assertEqual(t, r, 1396965900)
-//}
-//
-//func TestUrlencodeFunc(t *testing.T) {
-//	js := `{"url":"http%3A%2F%2Fwww.baidu.com%2Fs%3Fwd%3D%E8%87%AA%E7%94%B1%E5%BA%A6","second":2}`
-//	script := `json(_, url); url_decode(url);`
-//
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//
-//	r := p.getContentStr("url")
-//
-//	assertEqual(t, r, "http://www.baidu.com/s?wd=自由度")
-//}
-//
-//func TestGeoIpFunc(t *testing.T) {
-//	js := `{"a":{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true},"age":47}`
-//	script := `json(_, a.ip); geoip(a.ip);`
-//
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//
-//	r := p.getContentStr("city")
-//	assertEqual(t, r, "Shanghai")
-//}
-//
-//func TestUserAgentFunc(t *testing.T) {
-//	js := `{"a":{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36","second":2},"age":47}`
-//	script := `json(_, a.userAgent); user_agent(a.userAgent)`
-//
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//
-//	r := p.getContentStr("os")
-//
-//	assertEqual(t, r, "Windows 7")
-//}
-//
-//func TestDatetimeFunc(t *testing.T) {
-//	js := `{"a":{"timestamp": "1610103765000", "second":2},"age":47}`
-//	script := `json(_, a.timestamp); datetime(a.timestamp, 'ms', 'YYYY-MM-dd hh:mm:ss');`
-//
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//
-//	r := p.getContent("a.timestamp")
-//
-//	fmt.Println("====>", r)
-//
-//	assertEqual(t, r, "2021-01-08 07:02:45")
-//}
-//
-//func TestGroupFunc(t *testing.T) {
-//	js := `{"a":{"status": 200,"age":47}`
-//	script := `json(_, a.status); group_between(a.status, [200, 299], "ok", newkey);`
-//
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//
-//	r := p.getContent("newkey")
-//
-//	assertEqual(t, r, "ok")
-//}
+func TestDefaultTimeFunc(t *testing.T) {
 
-//func TestGroupInFunc(t *testing.T) {
-//	js := `{"a":{"status": "test","age":"47"}`
-//	script := `json(_, a.status); group_in(a.status, [200, 47, "test"], "ok", newkey);`
-//
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//
-//	r := p.getContent("newkey")
-//	assertEqual(t, r, "ok")
-//}
+	js := `{"a":{"time":"2014/04/08 22:05","second":2,"thrid":"abc","forth":true},"age":47}`
+	script := `json(_, a.time)
+default_time(a.second);
+`
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+	assertEqual(t, p.lastErr, nil)
+
+	r, _ := p.getContent("a.time")
+
+	assertEqual(t, r, 1396965900)
+}
+
+func TestUrlencodeFunc(t *testing.T) {
+	var testCase := []*funcCase{
+		{
+			data: ``,
+			script: ``,
+			expected: ``,
+		},
+	}
+	js := `{"url":"http%3A%2F%2Fwww.baidu.com%2Fs%3Fwd%3D%E8%87%AA%E7%94%B1%E5%BA%A6","second":2}`
+	script := `json(_, url) url_decode(url)`
+
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+
+	r, _ := p.getContentStr("url")
+
+	assertEqual(t, r, "http://www.baidu.com/s?wd=自由度")
+}
+
+func TestGeoIpFunc(t *testing.T) {
+	js := `{"a":{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true},"age":47}`
+	script := `json(_, a.ip) geoip(a.ip)`
+
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+
+	r, _ := p.getContentStr("city")
+
+	assertEqual(t, r, "Shanghai")
+}
+
+func TestUserAgentFunc(t *testing.T) {
+	js := `{"a":{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36","second":2},"age":47}`
+	script := `json(_, a.userAgent)
+user_agent(a.userAgent)
+`
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+
+	r, _ := p.getContentStr("os")
+
+	assertEqual(t, r, "Windows 7")
+}
+
+func TestDatetimeFunc(t *testing.T) {
+	js := `{"a":{"timestamp": "1610103765000", "second":2},"age":47}`
+	script := `json(_, a.timestamp)
+datetime(a.timestamp, 'ms', 'YYYY-MM-dd hh:mm:ss')`
+
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+
+	r, _ := p.getContent("a.timestamp")
+
+	fmt.Println("====>", r)
+
+	assertEqual(t, r, "2021-01-08 07:02:45")
+}
+
+func TestGroupFunc(t *testing.T) {
+	js := `{"a":{"status": 200,"age":47}`
+	script := `json(_, a.status)
+group_between(a.status, [200, 299], "ok", newkey)`
+
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+
+	r, _ := p.getContent("newkey")
+
+	assertEqual(t, r, "ok")
+}
+
+func TestGroupInFunc(t *testing.T) {
+	js := `{"a":{"status": "test","age":"47"}`
+	script := `json(_, a.status)
+group_in(a.status, [200, 47, "test"], "ok", newkey)`
+
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+
+	r, _ := p.getContent("newkey")
+	assertEqual(t, r, "ok")
+}
 
 func TestCastFloat2IntFunc(t *testing.T) {
 	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
@@ -300,16 +321,14 @@ drop_key(a.thrid)
 	assertEqual(t, v, "2.3")
 }
 
-//func TestNullIfFunc(t *testing.T) {
-//	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
-//	script := `json(_, a.first);
-//nullif(a.first, 2.3)
-//`
-//	p, err := NewPipeline(script)
-//	assertEqual(t, err, nil)
-//
-//	p.Run(js)
-//
-//	r := p.getContent("a.first")
-//	assertEqual(t, r, nil)
-//}
+func TestNullIfFunc(t *testing.T) {
+	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
+	script := `json(_, a.first) nullif(a.first, 2.3)`
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+
+	r, _ := p.getContent("a.first")
+	assertEqual(t, r, nil)
+}
