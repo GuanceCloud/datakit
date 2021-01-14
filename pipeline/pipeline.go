@@ -110,7 +110,7 @@ func (p *Pipeline) Run(data string) *Pipeline {
 	p.Output["message"] = data
 
 	//防止脚本解析错误
-	if len(p.ast.Functions) == 0 {
+	if p.ast== nil || len(p.ast.Functions) == 0 {
 		return p
 	}
 
