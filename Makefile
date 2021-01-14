@@ -122,8 +122,8 @@ pub_release_img:
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/telegraf/agent-linux-amd64.tar.gz" | tar -xz -C .
 	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t pubrepo.jiagouyun.com/dataflux/datakit:$(VERSION) .
-	@sudo docker push pubrepo.jiagouyun.com/dataflux/datakit:$(VERSION)
+	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit:$(VERSION) .
+	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit:$(VERSION)
 
 pub_agent:
 	@go run cmd/make/make.go -pub-agent -env local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
