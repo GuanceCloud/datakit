@@ -230,6 +230,27 @@ func TestGeoIpFunc(t *testing.T) {
 			key: "city",
 			err: nil,
 		},
+		{
+			data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, "ip") geoip(ip)`,
+			expected: "-",
+			key: "city",
+			err: nil,
+		},
+		{
+			data: `{"ip":"", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, "ip") geoip(ip)`,
+			expected: "-",
+			key: "city",
+			err: nil,
+		},
+		{
+			data: `{"ip":"", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, "ip1") geoip(ip1)`,
+			expected: "-",
+			key: "city",
+			err: nil,
+		},
 	}
 
 	geo.Init()
@@ -240,7 +261,6 @@ func TestGeoIpFunc(t *testing.T) {
 
 		p.Run(tt.data)
 
-		fmt.Println("out ======>", p.Output)
 		r, err := p.getContentStr(tt.key)
 
 		assertEqual(t, r, tt.expected)
