@@ -3,6 +3,7 @@ package pipeline
 import (
 	"testing"
 	"strconv"
+	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 )
 
@@ -170,6 +171,27 @@ func TestUrlencodeFunc(t *testing.T) {
 			key: "url",
 			err: nil,
 		},
+		{
+			data: `{"aa":{"url":"http%3a%2f%2fwww.baidu.com%2fs%3fwd%3d%e6%b5%8b%e8%af%95"},"second":2}`,
+			script: `json(_, aa.url) url_decode(aa.url)`,
+			expected: `http://www.baidu.com/s?wd=测试`,
+			key: "aa.url",
+			err: nil,
+		},
+		{
+			data: `{"aa":{"url":"http%3a%2f%2fwww.baidu.com%2fs%3fwd%3d%e6%b5%8b%e8%af%95"},"second":2}`,
+			script: `json(_, "aa.url") url_decode("aa.url")`,
+			expected: `http://www.baidu.com/s?wd=测试`,
+			key: "aa.url",
+			err: nil,
+		},
+		{
+			data: `{"aa":{"aa.url":"http%3a%2f%2fwww.baidu.com%2fs%3fwd%3d%e6%b5%8b%e8%af%95"},"second":2}`,
+			script: `json(_, aa."aa.url") url_decode("aa.aa.url")`,
+			expected: `http://www.baidu.com/s?wd=测试`,
+			key: "aa.aa.url",
+			err: nil,
+		},
 	}
 
 	for _, tt := range testCase {
@@ -194,6 +216,20 @@ func TestGeoIpFunc(t *testing.T) {
 			key: "city",
 			err: nil,
 		},
+		{
+			data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, ip) geoip(ip)`,
+			expected: "-",
+			key: "city",
+			err: nil,
+		},
+		{
+			data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, "ip") geoip("ip")`,
+			expected: "-",
+			key: "city",
+			err: nil,
+		},
 	}
 
 	geo.Init()
@@ -204,7 +240,8 @@ func TestGeoIpFunc(t *testing.T) {
 
 		p.Run(tt.data)
 
-		r, err := p.getContentStr("city")
+		fmt.Println("out ======>", p.Output)
+		r, err := p.getContentStr(tt.key)
 
 		assertEqual(t, r, tt.expected)
 	}
