@@ -135,7 +135,7 @@ func UserAgent(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	var key parser.Node
 
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.AttrExpr, *parser.Identifier:
+	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		key = v
 	default:
 		return p, fmt.Errorf("expect AttrExpr or Identifier, got %s",
@@ -165,7 +165,7 @@ func UrlDecode(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	var key parser.Node
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.AttrExpr, *parser.Identifier:
+	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		key = v
 	default:
 		return p, fmt.Errorf("expect AttrExpr or Identifier, got %s",
@@ -196,7 +196,7 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	var key parser.Node
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.AttrExpr, *parser.Identifier:
+	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		key = v
 	default:
 		return p, fmt.Errorf("expect AttrExpr or Identifier, got %s",
@@ -232,7 +232,7 @@ func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	var key parser.Node
 	var precision, fmts string
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.AttrExpr, *parser.Identifier:
+	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		key = v
 	default:
 		return p, fmt.Errorf("expect Identifier, got %s",
@@ -416,7 +416,7 @@ func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	var key parser.Node
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.AttrExpr, *parser.Identifier:
+	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		key = v
 	default:
 		return p, fmt.Errorf("expect AttrExpr or Identifier, got %s",
@@ -428,7 +428,7 @@ func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	if len(funcExpr.Param) == 4 {
 		switch v := funcExpr.Param[3].(type) {
-		case *parser.AttrExpr, *parser.Identifier:
+		case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 			newkey = v
 		default:
 			return p, fmt.Errorf("expect AttrExpr or Identifier, got %s",
@@ -496,7 +496,7 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	var key parser.Node
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.AttrExpr, *parser.Identifier:
+	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		key = v
 	default:
 		return p, fmt.Errorf("expect AttrExpr or Identifier, got %s",
@@ -506,7 +506,7 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	newkey := key
 	if len(funcExpr.Param) == 4 {
 		switch v := funcExpr.Param[3].(type) {
-		case *parser.AttrExpr, *parser.Identifier:
+		case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 			newkey = v
 		default:
 			return p, fmt.Errorf("expect AttrExpr or Identifier, got %s",
@@ -570,7 +570,7 @@ func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	var key parser.Node
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.AttrExpr, *parser.Identifier:
+	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		key = v
 	default:
 		return p, fmt.Errorf("expect Identifier, got %s",
@@ -655,7 +655,7 @@ func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	var key parser.Node
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.AttrExpr, *parser.Identifier:
+	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		key = v
 	default:
 		return p, fmt.Errorf("expect AttrExpr or Identifier, got %s",
