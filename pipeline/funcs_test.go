@@ -209,20 +209,20 @@ func TestUrlencodeFunc(t *testing.T) {
 
 func TestGeoIpFunc(t *testing.T) {
 	var testCase = []*funcCase{
-		{
-			data: `{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true}`,
-			script: `json(_, ip) geoip(ip)`,
-			expected: "Shanghai",
-			key: "city",
-			err: nil,
-		},
-		{
-			data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
-			script: `json(_, ip) geoip(ip)`,
-			expected: "-",
-			key: "city",
-			err: nil,
-		},
+		// {
+		// 	data: `{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true}`,
+		// 	script: `json(_, ip) geoip(ip)`,
+		// 	expected: "Shanghai",
+		// 	key: "city",
+		// 	err: nil,
+		// },
+		// {
+		// 	data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
+		// 	script: `json(_, ip) geoip(ip)`,
+		// 	expected: "-",
+		// 	key: "city",
+		// 	err: nil,
+		// },
 		{
 			data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
 			script: `json(_, "ip") geoip("ip")`,
@@ -230,13 +230,13 @@ func TestGeoIpFunc(t *testing.T) {
 			key: "city",
 			err: nil,
 		},
-		{
-			data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
-			script: `json(_, "ip") geoip(ip)`,
-			expected: "-",
-			key: "city",
-			err: nil,
-		},
+		// {
+		// 	data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
+		// 	script: `json(_, "ip") geoip(ip)`,
+		// 	expected: "-",
+		// 	key: "city",
+		// 	err: nil,
+		// },
 	}
 
 	geo.Init()
@@ -249,6 +249,7 @@ func TestGeoIpFunc(t *testing.T) {
 
 		r, err := p.getContentStr(tt.key)
 
+		fmt.Println("=====>", p.Output)
 		assertEqual(t, r, tt.expected)
 	}
 }
