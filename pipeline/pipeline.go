@@ -165,6 +165,8 @@ func (p *Pipeline) getContent(key interface{}) (interface{}, error) {
 		k = t.String()
 	case *parser.AttrExpr:
 		k = t.String()
+	case *parser.StringLiteral:
+		k = t.String()
 	case string:
 		k = t
 	default:
