@@ -79,8 +79,6 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	v, err := GsonGet(cont, old)
-	fmt.Println("old ======>", old)
-	fmt.Println("v ======>", v)
 	if err != nil {
 		return p, err
 	}
@@ -206,6 +204,8 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	cont, err := p.getContentStr(key)
+	fmt.Println("key====>", key)
+	fmt.Println("cont====>", cont)
 	if err != nil {
 		l.Warnf("key `%v' not exist", key)
 		return p, nil
