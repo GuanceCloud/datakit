@@ -196,6 +196,8 @@ func (p *Pipeline) setContent(k, v interface{}) error {
 		key = t.String()
 	case *parser.AttrExpr:
 		key = t.String()
+	case *parser.StringLiteral:
+		key = t.Val
 	case string:
 		key = t
 	default:
