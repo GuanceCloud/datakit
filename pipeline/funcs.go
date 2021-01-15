@@ -79,6 +79,8 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	v, err := GsonGet(cont, old)
+	fmt.Println("old ======>", old)
+	fmt.Println("v ======>", v)
 	if err != nil {
 		return p, err
 	}
