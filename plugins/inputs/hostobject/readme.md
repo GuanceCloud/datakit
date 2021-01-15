@@ -19,7 +19,7 @@
 | --- | ---- | ---- |
 | meta | [meta](#meta) | 主机基础信息 |
 | cpu | [cpu](#cpu)数组 | cpu信息 |
-| mem | [mem](#mem)数组 | 内存 |
+| mem | [mem](#mem) | 内存 |
 | net | [net](#net)数组 | 网络接口 |
 | disk | [disk](#disk)数组 | 磁盘 |
 
