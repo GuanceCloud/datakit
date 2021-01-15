@@ -80,8 +80,6 @@ func getHostMeta() *HostMetaInfo {
 		return nil
 	}
 
-	moduleLogger.Infof("raw host meta info: %s", info)
-
 	return &HostMetaInfo{
 		HostName:        info.Hostname,
 		OS:              info.OS,
@@ -100,8 +98,6 @@ func getCPUInfo() []*CPUInfo {
 		moduleLogger.Errorf("fail to get cpu info, %s", err)
 		return nil
 	}
-
-	moduleLogger.Infof("raw cpu info: %s", infos)
 
 	var objs []*CPUInfo
 
@@ -172,7 +168,8 @@ func getDiskInfo() []*DiskInfo {
 
 	ps, err := diskutil.Partitions(false)
 	if err != nil {
-		moduleLogger.Errorf("%s", err)
+		moduleLogger.Errorf("fail to get disk info, %s", err)
+		return nil
 	}
 	var infos []*DiskInfo
 	for _, p := range ps {
