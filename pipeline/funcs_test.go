@@ -10,7 +10,7 @@ import (
 type funcCase struct {
 	data     string
 	script   string
-	expected string
+	expected interface{}
 	key      string
 	err      error
 	fail     bool
@@ -118,20 +118,34 @@ expr(a.second*10+(2+3)*5, bb)
 }
 
 func TestDefaultTimeFunc(t *testing.T) {
+	var testCase = []*funcCase{
+		{
+			data: `{"a":{"time":"06/Jan/2017:16:16:37 +0000","second":2,"thrid":"abc","forth":true},"age":47}`,
+			script: `json(_, a.time) default_time(a.time)`,
+			expected: "1483719397000000000",
+			key: "a.time",
+			err: nil,
+		},
+		{
+			data: `{"a":{"time":"2014-12-16 06:20:00 UTC","second":2,"thrid":"abc","forth":true},"age":47}`,
+			script: `json(_, a.time) default_time(a.time)`,
+			expected: "1418682000000000000",
+			key: "a.time",
+			err: nil,
+		},
+	}
 
-	js := `{"a":{"time":"2014/04/08 22:05","second":2,"thrid":"abc","forth":true},"age":47}`
-	script := `json(_, a.time)
-default_time(a.second);
-`
-	p, err := NewPipeline(script)
-	assertEqual(t, err, nil)
+	for _, tt := range testCase {
+		p, err := NewPipeline(tt.script)
 
-	p.Run(js)
-	assertEqual(t, p.lastErr, nil)
+		assertEqual(t, err, nil)
 
-	r, _ := p.getContent("a.time")
+		p.Run(tt.data)
 
-	assertEqual(t, r, 1396965900)
+		r, err := p.getContentStr(tt.key)
+
+		assertEqual(t, r, tt.expected)
+	}
 }
 
 func TestUrlencodeFunc(t *testing.T) {
@@ -209,20 +223,20 @@ func TestUrlencodeFunc(t *testing.T) {
 
 func TestGeoIpFunc(t *testing.T) {
 	var testCase = []*funcCase{
-		// {
-		// 	data: `{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true}`,
-		// 	script: `json(_, ip) geoip(ip)`,
-		// 	expected: "Shanghai",
-		// 	key: "city",
-		// 	err: nil,
-		// },
-		// {
-		// 	data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
-		// 	script: `json(_, ip) geoip(ip)`,
-		// 	expected: "-",
-		// 	key: "city",
-		// 	err: nil,
-		// },
+		{
+			data: `{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, ip) geoip(ip)`,
+			expected: "Shanghai",
+			key: "city",
+			err: nil,
+		},
+		{
+			data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, ip) geoip(ip)`,
+			expected: "-",
+			key: "city",
+			err: nil,
+		},
 		{
 			data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
 			script: `json(_, "ip") geoip("ip")`,
@@ -230,13 +244,27 @@ func TestGeoIpFunc(t *testing.T) {
 			key: "city",
 			err: nil,
 		},
-		// {
-		// 	data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
-		// 	script: `json(_, "ip") geoip(ip)`,
-		// 	expected: "-",
-		// 	key: "city",
-		// 	err: nil,
-		// },
+		{
+			data: `{"ip":"", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, "ip") geoip(ip)`,
+			expected: "unknown",
+			key: "city",
+			err: nil,
+		},
+		{
+			data: `{"aa": {"ip":"116.228.89.206"}, "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, aa.ip) geoip("aa.ip")`,
+			expected: "Shanghai",
+			key: "city",
+			err: nil,
+		},
+		{
+			data: `{"aa": {"bb.ip":"116.228.89.206"}, "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, aa.ip) geoip("aa.ip")`,
+			expected: "Shanghai",
+			key: "city",
+			err: nil,
+		},
 	}
 
 	geo.Init()
@@ -255,6 +283,65 @@ func TestGeoIpFunc(t *testing.T) {
 }
 
 func TestUserAgentFunc(t *testing.T) {
+	var testCase = []*funcCase{
+		{
+			data: `{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, ip) geoip(ip)`,
+			expected: "Shanghai",
+			key: "city",
+			err: nil,
+		},
+		{
+			data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, ip) geoip(ip)`,
+			expected: "-",
+			key: "city",
+			err: nil,
+		},
+		{
+			data: `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, "ip") geoip("ip")`,
+			expected: "-",
+			key: "city",
+			err: nil,
+		},
+		{
+			data: `{"ip":"", "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, "ip") geoip(ip)`,
+			expected: "unknown",
+			key: "city",
+			err: nil,
+		},
+		{
+			data: `{"aa": {"ip":"116.228.89.206"}, "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, aa.ip) geoip("aa.ip")`,
+			expected: "Shanghai",
+			key: "city",
+			err: nil,
+		},
+		{
+			data: `{"aa": {"bb.ip":"116.228.89.206"}, "second":2,"thrid":"abc","forth":true}`,
+			script: `json(_, aa.ip) geoip("aa.ip")`,
+			expected: "Shanghai",
+			key: "city",
+			err: nil,
+		},
+	}
+
+	geo.Init()
+
+	for _, tt := range testCase {
+		p, err := NewPipeline(tt.script)
+		assertEqual(t, err, p.lastErr)
+
+		p.Run(tt.data)
+
+		r, err := p.getContentStr(tt.key)
+
+		fmt.Println("=====>", p.Output)
+		assertEqual(t, r, tt.expected)
+	}
+
 	js := `{"a":{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36","second":2},"age":47}`
 	script := `json(_, a.userAgent)
 user_agent(a.userAgent)
