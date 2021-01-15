@@ -204,8 +204,6 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	cont, err := p.getContentStr(key)
-	fmt.Println("key====>", key)
-	fmt.Println("cont====>", cont)
 	if err != nil {
 		l.Warnf("key `%v' not exist", key)
 		return p, nil
