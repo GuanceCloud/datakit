@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -13,70 +12,66 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var moduleLogger *logger.Logger
 
-type (
-	Collector struct {
-		Name  string //deprecated
-		Class string //deprecated
+type objCollector struct {
+	Name  string            //deprecated
+	Class string            //deprecated
+	Tags  map[string]string `toml:"tags,omitempty"`        //deprecated
+	Desc  string            `toml:"description,omitempty"` //deprecated
 
-		Desc     string `toml:"description,omitempty"`
-		Interval datakit.Duration
-		Pipeline string `toml:"pipeline"`
+	Interval datakit.Duration
+	Pipeline string `toml:"pipeline"`
 
-		//deprecated
-		Tags map[string]string `toml:"tags,omitempty"`
+	ctx       context.Context
+	cancelFun context.CancelFunc
 
-		mode string
+	mode string
 
-		testResult *inputs.TestResult
-		testError  error
-	}
+	testResult *inputs.TestResult
+	testError  error
+}
 
-	osInfo struct {
-		Arch    string
-		OSType  string
-		Release string
-	}
-)
-
-func (c *Collector) isTest() bool {
+func (c *objCollector) isTestOnce() bool {
 	return c.mode == "test"
 }
 
-func (c *Collector) isDebug() bool {
+func (c *objCollector) isDebug() bool {
 	return c.mode == "debug"
 }
 
-func (_ *Collector) Catalog() string {
+func (_ *objCollector) Catalog() string {
 	return inputName
 }
 
-func (_ *Collector) SampleConfig() string {
+func (_ *objCollector) SampleConfig() string {
 	return sampleConfig
 }
 
-func (r *Collector) PipelineConfig() map[string]string {
+func (r *objCollector) PipelineConfig() map[string]string {
 	return map[string]string{
 		inputName: pipelineSample,
 	}
 }
 
-func (c *Collector) Test() (*inputs.TestResult, error) {
+func (c *objCollector) Test() (*inputs.TestResult, error) {
 	c.mode = "test"
 	c.testResult = &inputs.TestResult{}
 	c.Run()
 	return c.testResult, c.testError
 }
 
-func (c *Collector) Run() {
+func (c *objCollector) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
+
+	if c.Interval.Duration == 0 {
+		c.Interval.Duration = 5 * time.Minute
+	}
 
 	defer func() {
 		if e := recover(); e != nil {
@@ -89,27 +84,12 @@ func (c *Collector) Run() {
 		}
 	}()
 
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			return
-		default:
-		}
-
-		if err := c.initialize(); err == nil {
-			break
-		} else {
-			moduleLogger.Errorf("%s", err)
-			time.Sleep(time.Second)
-		}
-	}
-
-	ctx, cancelFun := context.WithCancel(context.Background())
-
 	go func() {
 		<-datakit.Exit.Wait()
-		cancelFun()
+		c.cancelFun()
 	}()
+
+	var thePipeline *pipeline.Pipeline
 
 	script := c.Pipeline
 	if script == "" {
@@ -120,92 +100,53 @@ func (c *Collector) Run() {
 		}
 	}
 
-	var pp *pipeline.Pipeline
-
 	if script != "" {
 		p, err := pipeline.NewPipeline(script)
 		if err != nil {
 			moduleLogger.Errorf("%s", err)
 		} else {
-			pp = p
+			thePipeline = p
 		}
 	}
 
 	for {
 
 		select {
-		case <-ctx.Done():
+		case <-c.ctx.Done():
 			return
 		default:
 		}
 
-		className := c.Class
+		message := getHostObjectMessage()
 
-		tags := map[string]string{
-			"name": c.Name,
-		}
-
-		obj := map[string]interface{}{
-			"uuid": datakit.Cfg.MainCfg.UUID,
-		}
-
-		obj["cpus"] = fmt.Sprintf("%d", runtime.NumCPU())
-		obj["host"] = datakit.Cfg.MainCfg.Hostname
-
-		ipval := getIP()
-		if mac, err := getMacAddr(ipval); err == nil && mac != "" {
-			obj["mac"] = mac
-		}
-		obj["ip"] = ipval
-
-		oi := getOSInfo()
-		obj["os_type"] = oi.OSType
-		obj["os"] = oi.Release
-
-		for k, v := range c.Tags {
-			obj[k] = v
-		}
-
-		data, err := json.Marshal(obj)
+		messageData, err := json.Marshal(message)
 		if err != nil {
 			moduleLogger.Errorf("json marshal err:%s", err.Error())
-			datakit.SleepContext(ctx, c.Interval.Duration)
+			datakit.SleepContext(c.ctx, c.Interval.Duration)
 			continue
 		}
 
-		fields := map[string]interface{}{}
-		if pp != nil {
-			if result, err := pp.Run(string(data)).Result(); err == nil {
-				fields = result
+		fields := map[string]interface{}{
+			"message": string(messageData),
+		}
+		if thePipeline != nil {
+			if result, err := thePipeline.Run(string(messageData)).Result(); err == nil {
+				for k, v := range result {
+					fields[k] = v
+				}
 			} else {
 				moduleLogger.Errorf("%s", err)
 			}
 		}
 
-		fields["message"] = string(data)
-		if c.Desc != "" {
-			fields[`description`] = c.Desc
+		tags := map[string]string{
+			"name": message.Host.HostMeta.HostName,
 		}
 
-		name := tags["name"]
-		switch c.Name {
-		case "__mac":
-			name = obj["mac"].(string)
-		case "__ip":
-			name = obj["ip"].(string)
-		case "__uuid":
-			name = obj["uuid"].(string)
-		case "__host":
-			name = obj["host"].(string)
-		case "__os":
-			name = obj["os"].(string)
-		case "__os_type":
-			name = obj["os_type"].(string)
-		}
-		tags["name"] = name
+		tm := time.Now().UTC()
 
-		if c.isTest() {
-			data, err := io.MakeMetric(className, tags, fields, time.Now().UTC())
+		if c.isTestOnce() {
+			data, err := io.MakeMetric(inputName, tags, fields, tm)
 			if err != nil {
 				moduleLogger.Errorf("%s", err)
 				c.testError = err
@@ -217,79 +158,25 @@ func (c *Collector) Run() {
 				moduleLogger.Debugf("%s\n", string(data))
 			}
 			return
-
 		} else if c.isDebug() {
-			data, _ := io.MakeMetric(className, tags, fields, time.Now().UTC())
+			data, _ := io.MakeMetric(inputName, tags, fields, tm)
 			fmt.Printf("%s\n", string(data))
-
 		} else {
-			io.NamedFeedEx(inputName, io.Object, className, tags, fields, time.Now().UTC())
+			io.NamedFeedEx(inputName, io.Object, inputName, tags, fields, tm)
 		}
 
-		datakit.SleepContext(ctx, c.Interval.Duration)
+		datakit.SleepContext(c.ctx, c.Interval.Duration)
 	}
-
 }
 
-func (c *Collector) initialize() error {
-
-	if c.Class == "" {
-		c.Class = "host"
-	}
-
-	if c.Name == "" {
-		c.Name = datakit.Cfg.MainCfg.Hostname
-	}
-	if c.Interval.Duration == 0 {
-		c.Interval.Duration = 3 * time.Minute
-	}
-	return nil
-}
-
-func getMacAddr(targetIP string) (string, error) {
-	ifas, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-	for _, ifs := range ifas {
-		addrs, err := ifs.Addrs()
-		if err != nil {
-			continue
-		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-				if ip.To4() != nil {
-					if ip.To4().String() == targetIP {
-						return ifs.HardwareAddr.String(), nil
-					}
-				}
-			}
-		}
-	}
-	return "", nil
-}
-
-func getIP() string {
-	conn, err := net.Dial("udp", "114.114.114.114:80")
-	if err != nil {
-		conn, err = net.Dial("udp", "8.8.8.8:80")
-		if err != nil {
-			return ""
-		}
-	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-
-	return localAddr.IP.String()
+func newInput() *objCollector {
+	o := &objCollector{}
+	o.ctx, o.cancelFun = context.WithCancel(context.Background())
+	return o
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		ac := &Collector{}
-		return ac
+		return newInput()
 	})
 }
