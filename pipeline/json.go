@@ -33,8 +33,8 @@ func GsonGet(s string, node interface{}) (string, error) {
 
 func jsonGet(val interface{}, node interface{}) (interface{}, error) {
 	switch t := node.(type) {
-	case string:
-		return getByIdentifier(val, &parser.Identifier{Name:t})
+	case *parser.StringLiteral:
+		return getByIdentifier(val, &parser.Identifier{Name:t.Val})
 	case *parser.AttrExpr:
 		return getByAttr(val, t)
 
