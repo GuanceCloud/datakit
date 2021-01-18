@@ -22,37 +22,60 @@ type CloudAuth struct {
 }
 
 func getCloudInfo(auth *CloudAuth, provider string, instanceid string) *cloudInfo {
-	var info cloudInfo
+
+	if instanceid == "" {
+		moduleLogger.Errorf("instanceid cannot be empty")
+		return nil
+	}
 
 	switch provider {
 	case "aliyun":
-		cli, err := ecs.NewClientWithAccessKey(auth.RegionID, auth.AK, auth.SK)
-		if err != nil {
-			moduleLogger.Errorf("%s", err)
-			return nil
-		}
-		_ = cli
-
-		req := ecs.CreateDescribeInstancesRequest()
-		instIDsData, err := json.Marshal([]string{instanceid})
-		if err != nil {
-			moduleLogger.Errorf("%s", err)
-			return nil
-		}
-		req.InstanceIds = string(instIDsData)
-
-		resp, err := cli.DescribeInstances(req)
-
-		if err != nil {
-			moduleLogger.Errorf("%s", err)
-			return nil
-		}
-
-		_ = resp
-
+		return aliyun(auth, instanceid)
 	default:
+		moduleLogger.Errorf("provider '%s' not supported")
 		return nil
 	}
+}
+
+func aliyun(auth *CloudAuth, instanceid string) *cloudInfo {
+
+	var info cloudInfo
+
+	cli, err := ecs.NewClientWithAccessKey(auth.RegionID, auth.AK, auth.SK)
+	if err != nil {
+		moduleLogger.Errorf("%s", err)
+		return nil
+	}
+
+	req := ecs.CreateDescribeInstancesRequest()
+	instIDsData, err := json.Marshal([]string{instanceid})
+	if err != nil {
+		moduleLogger.Errorf("%s", err)
+		return nil
+	}
+	req.InstanceIds = string(instIDsData)
+
+	if auth.STK != "" {
+		req.QueryParams["SecurityToken"] = auth.STK
+		req.FormParams["SecurityToken"] = auth.STK
+	}
+
+	resp, err := cli.DescribeInstances(req)
+
+	if err != nil {
+		moduleLogger.Errorf("%s", err)
+		return nil
+	}
+
+	if len(resp.Instances.Instance) == 0 {
+		moduleLogger.Errorf("instance %s not fount", instanceid)
+		return nil
+	}
+
+	info.InstanceName = resp.Instances.Instance[0].InstanceName
+	info.Region = resp.Instances.Instance[0].RegionId
+	info.InstanceType = resp.Instances.Instance[0].InstanceType
+	info.Status = resp.Instances.Instance[0].Status
 
 	return &info
 }
