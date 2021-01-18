@@ -15,20 +15,21 @@ const (
 	elasticsearchSampleConfig = `
 # ##(optional)
 #[inputs.aliyunobject.elasticsearch]
-    # ##(optional) ignore this object, default is false
-    #disable = false
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
 	#pipeline = "aliyun_elasticsearch.p"
-    # ##(optional) list of elasticsearch instanceid
-    #instanceids = []
-    # ##(optional) list of excluded elasticsearch instanceid
-    #exclude_instanceids = []
+	# ##(optional) list of elasticsearch instanceid
+	#instanceids = []
+	# ##(optional) list of excluded elasticsearch instanceid
+	#exclude_instanceids = []
 `
 	elasticsearchPipelineConifg = `
-json(_, InstanceId);
-json(_, paymentType);
-json(_, Status);
-json(_, dedicateMaster);
-json(_, ResourceGroupId);
+json(_, instanceId)
+json(_, paymentType)
+json(_, status)
+json(_, dedicateMaster)
+json(_, resourceGroupId)
 `
 )
 
