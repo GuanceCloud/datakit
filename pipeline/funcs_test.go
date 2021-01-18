@@ -199,4 +199,3 @@ drop_key(a.thrid)
 	v, _ := p.getContentStr("a.first")
 	assertEqual(t, v, "2.3")
 }
-
