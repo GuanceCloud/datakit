@@ -14,22 +14,23 @@ const (
 	onsSampleConfig = `
 # ##(optional)
 #[inputs.aliyunobject.rocketmq]
-    # ##(optional) ignore this object, default is false
-    #disable = false
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
 	#pipeline = "aliyun_rocketmq.p"
-
-    # ##(optional) list of rocketmq instanceid
-    #instanceids = []
-
-    # ##(optional) list of excluded rocketmq instanceid
-    #exclude_instanceids = []
+	
+	# ##(optional) list of rocketmq instanceid
+	#instanceids = []
+	
+	# ##(optional) list of excluded rocketmq instanceid
+	#exclude_instanceids = []
 `
 	onsPipelineConfig = `
-json(_, InstanceId);
-json(_, InstanceStatus);
-json(_, IndependentNaming);
-json(_, InstanceName);
-json(_, InstanceType);
+json(_, InstanceId)
+json(_, InstanceStatus)
+json(_, IndependentNaming)
+json(_, InstanceName)
+json(_, InstanceType)
 `
 )
 
