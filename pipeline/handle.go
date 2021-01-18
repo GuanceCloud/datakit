@@ -109,7 +109,7 @@ func TimestampHandle(value string) (int64, error) {
 		return 0, err
 	} else if match {
 		// 06/Jan/2017:16:16:37 +0000
-		if tm, err := time.Parse("02/Jan/2006:15:04:05 -0700", "06/Jan/2017:16:16:37 +0000"); err != nil {
+		if tm, err := time.Parse("02/Jan/2006:15:04:05 -0700", value); err != nil {
 			return 0, err
 		} else {
 			unix_time := tm.UnixNano()
