@@ -1,7 +1,6 @@
 package pipeline
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"strconv"
@@ -26,13 +25,13 @@ func (e EscapeError) Error() string {
 
 func TestDefaultTimeFunc(t *testing.T) {
 	var testCase = []*funcCase{
-		{
-			data:     `{"a":{"time":"","second":2,"thrid":"abc","forth":true},"age":47}`,
-			script:   `json(_, a.time) default_time(a.time)`,
-			expected: nil,
-			key:      "a.time",
-			err:      nil,
-		},
+		// {
+		// 	data:     `{"a":{"time":"","second":2,"thrid":"abc","forth":true},"age":47}`,
+		// 	script:   `json(_, a.time) default_time(a.time)`,
+		// 	expected: nil,
+		// 	key:      "a.time",
+		// 	err:      nil,
+		// },
 		{
 			data:     `{"a":{"time":"06/Jan/2017:16:16:37 +0000","second":2,"thrid":"abc","forth":true},"age":47}`,
 			script:   `json(_, a.time) default_time(a.time)`,
@@ -330,8 +329,6 @@ func TestGroupFunc(t *testing.T) {
 
 		r, err := p.getContent(tt.key)
 
-		fmt.Println("out =======>", p.Output)
-
 		assertEqual(t, r, tt.expected)
 	}
 }
@@ -464,4 +461,30 @@ func TestNullIfFunc(t *testing.T) {
 
 		assertEqual(t, r, tt.expected)
 	}
+}
+
+func TestJsonAllFunc(t *testing.T) {
+js := `
+{
+  "name": {"first": "Tom", "last": "Anderson"},
+  "age":37,
+  "children": ["Sara","Alex","Jack"],
+  "fav.movie": "Deer Hunter",
+  "friends": [
+    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
+  ]
+}
+`
+	script := `json_all()`
+
+	p, err := NewPipeline(script)
+	assertEqual(t, err, nil)
+
+	p.Run(js)
+
+	r, err := p.getContent("children[0]")
+
+	assertEqual(t, r, "Sara")
 }
