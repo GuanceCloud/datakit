@@ -3,10 +3,11 @@ package pipeline
 import (
 	"net/url"
 	"reflect"
+	"fmt"
 	"time"
 	"regexp"
 
-	"github.com/GuilhermeCaruso/kair"
+	// "github.com/GuilhermeCaruso/kair"
 	"github.com/araddon/dateparse"
 	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
@@ -60,7 +61,7 @@ func GeoIpHandle(ip string) (map[string]string, error) {
 	return res, nil
 }
 
-func DateFormatHandle(data interface{}, precision string, fmts string, tz int) (interface{}, error) {
+func DateFormatHandle(data interface{}, precision string, fmts string) (interface{}, error) {
 	v := conv.ToInt64(data)
 
 	var t time.Time
@@ -72,16 +73,13 @@ func DateFormatHandle(data interface{}, precision string, fmts string, tz int) (
 		t = time.Unix(0, num)
 	}
 
-	day := t.Day()
-	year := t.Year()
-	mounth := int(t.Month())
-	hour := t.Hour()
-	minute := t.Minute()
-	sec := t.Second()
+	for key, value := range dateFormatStr {
+		if key == fmts {
+			return t.Format(value), nil
+		}
+	}
 
-	datetime := kair.DateTime(day, mounth, year, hour, minute, sec)
-
-	return datetime.CustomFormat(fmts), nil
+	return "", fmt.Errorf("format pattern %v no support", fmts)
 }
 
 func GroupHandle(value interface{}, start, end float64) bool {
@@ -125,4 +123,22 @@ func TimestampHandle(value string) (int64, error) {
 	unix_time := t.UnixNano()
 
 	return unix_time, nil
+}
+
+var dateFormatStr = map[string]string {
+	"ANSIC": time.ANSIC,
+	"UnixDate": time.UnixDate,
+	"RFC822":   time.RFC822,
+	"RFC822Z":  time.RFC822Z,
+	"RFC850":   time.RFC850,
+	"RFC1123":  time.RFC1123,
+	"RFC1123Z": time.RFC1123Z,
+	"RFC3339":  time.RFC3339,
+	"RFC3339Nano": time.RFC3339Nano,
+	"Kitchen": time.Kitchen,
+	"Stamp": time.Stamp,
+	"StampMilli": time.StampMilli,
+	"StampMicro": time.StampMicro,
+	"StampNano": time.StampNano,
+
 }
