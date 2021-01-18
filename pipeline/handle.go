@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
-	"fmt"
-	"time"
 	"regexp"
+	"time"
 
 	// "github.com/GuilhermeCaruso/kair"
 	"github.com/araddon/dateparse"
@@ -127,21 +126,21 @@ func TimestampHandle(value string) (int64, error) {
 	return unix_time, nil
 }
 
-var dateFormatStr = map[string]string {
-	"ANSIC": time.ANSIC,
-	"UnixDate": time.UnixDate,
-	"RFC822":   time.RFC822,
-	"RFC822Z":  time.RFC822Z,
-	"RFC850":   time.RFC850,
-	"RFC1123":  time.RFC1123,
-	"RFC1123Z": time.RFC1123Z,
-	"RFC3339":  time.RFC3339,
+var dateFormatStr = map[string]string{
+	"ANSIC":       time.ANSIC,
+	"UnixDate":    time.UnixDate,
+	"RFC822":      time.RFC822,
+	"RFC822Z":     time.RFC822Z,
+	"RFC850":      time.RFC850,
+	"RFC1123":     time.RFC1123,
+	"RFC1123Z":    time.RFC1123Z,
+	"RFC3339":     time.RFC3339,
 	"RFC3339Nano": time.RFC3339Nano,
-	"Kitchen": time.Kitchen,
-	"Stamp": time.Stamp,
-	"StampMilli": time.StampMilli,
-	"StampMicro": time.StampMicro,
-	"StampNano": time.StampNano,
+	"Kitchen":     time.Kitchen,
+	"Stamp":       time.Stamp,
+	"StampMilli":  time.StampMilli,
+	"StampMicro":  time.StampMicro,
+	"StampNano":   time.StampNano,
 }
 
 func JsonParse(jsonStr string) map[string]interface{} {
