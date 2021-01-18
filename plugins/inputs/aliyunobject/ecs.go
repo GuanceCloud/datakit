@@ -16,21 +16,22 @@ const (
 	ecsSampleConfig = `
 # ##(optional)
 #[inputs.aliyunobject.ecs]
-    # ##(optional) ignore this object, default is false
-    #disable = false
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
 	#pipeline = "aliyun_ecs.p"
-    # ##(optional) list of ecs instanceid
-    #instanceids = ['']
-
-    # ##(optional) list of excluded ecs instanceid
-    #exclude_instanceids = ['']
+	# ##(optional) list of ecs instanceid
+	#instanceids = ['']
+	
+	# ##(optional) list of excluded ecs instanceid
+	#exclude_instanceids = ['']
 `
 	ecsPipelineConfig = `
-json(_, InstanceId);
-json(_, InstanceChargeType);
-json(_, RegionId);
-json(_, InstanceType);
-json(_, VpcId);
+json(_, InstanceId)
+json(_, InstanceChargeType)
+json(_, RegionId)
+json(_, InstanceType)
+json(_, VpcAttributes.VpcId, VpcId)
 `
 )
 
