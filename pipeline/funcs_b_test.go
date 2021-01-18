@@ -27,6 +27,13 @@ func (e EscapeError) Error() string {
 func TestDefaultTimeFunc(t *testing.T) {
 	var testCase = []*funcCase{
 		{
+			data: `{"a":{"time":"","second":2,"thrid":"abc","forth":true},"age":47}`,
+			script: `json(_, a.time) default_time(a.time)`,
+			expected: nil,
+			key: "a.time",
+			err: nil,
+		},
+		{
 			data: `{"a":{"time":"06/Jan/2017:16:16:37 +0000","second":2,"thrid":"abc","forth":true},"age":47}`,
 			script: `json(_, a.time) default_time(a.time)`,
 			expected: "1483719397000000000",
@@ -221,9 +228,16 @@ func TestUserAgentFunc(t *testing.T) {
 func TestDatetimeFunc(t *testing.T) {
 	var testCase = []*funcCase{
 		{
-			data: `{"a":{"timestamp": "1610103765000", "second":2},"age":47}`,
-			script: `json(_, a.timestamp) datetime(a.timestamp, 'ms', 'YYYY-MM-dd hh:mm:ss')`,
-			expected: "2021-01-08 07:02:45",
+			data: `{"a":{"timestamp": "1610960605", "second":2},"age":47}`,
+			script: `json(_, a.timestamp) datetime(a.timestamp, 's', 'RFC3339')`,
+			expected: "2021-01-18T17:03:25+08:00",
+			key: "a.timestamp",
+			err: nil,
+		},
+		{
+			data: `{"a":{"timestamp": "1610960605000", "second":2},"age":47}`,
+			script: `json(_, a.timestamp) datetime(a.timestamp, 'ms', 'RFC3339')`,
+			expected: "2021-01-18T17:03:25+08:00",
 			key: "a.timestamp",
 			err: nil,
 		},
@@ -245,16 +259,51 @@ func TestGroupFunc(t *testing.T) {
 	var testCase = []*funcCase{
 		{
 			data: `{"status": 200,"age":47}`,
-			script: `json(_, status) group_between(status, [299, 200], "ok")`,
+			script: `json(_, status) group_between(status, [200, 400], false, newkey)`,
+			expected: false,
+			key: "newkey",
+			err: nil,
+		},
+		{
+			data: `{"status": 200,"age":47}`,
+			script: `json(_, status) group_between(status, [200, 400], 10, newkey)`,
+			expected: int64(10),
+			key: "newkey",
+			err: nil,
+		},
+		{
+			data: `{"status": 200,"age":47}`,
+			script: `json(_, status) group_between(status, [, 400], "ok", newkey)`,
+			expected: nil,
+			key: "newkey",
+			err: nil,
+		},
+		{
+			data: `{"status": 200,"age":47}`,
+			script: `json(_, status) group_between(status, [200, 400], "ok", newkey)`,
+			expected: "ok",
+			key: "newkey",
+			err: nil,
+		},
+		{
+			data: `{"status": 200,"age":47}`,
+			script: `json(_, status) group_between(status, [200, 299], "ok")`,
 			expected: "ok",
 			key: "status",
 			err: nil,
 		},
 		{
 			data: `{"status": 200,"age":47}`,
+			script: `json(_, status) group_between(status, [299, 200], "ok")`,
+			expected: float64(200),
+			key: "status",
+			err: nil,
+		},
+		{
+			data: `{"status": 200,"age":47}`,
 			script: `json(_, status) group_between(status, [299, 200], "ok", newkey)`,
-			expected: "",
-			key: "newkey",
+			expected: float64(200),
+			key: "status",
 			err: nil,
 		},
 		{
@@ -267,7 +316,7 @@ func TestGroupFunc(t *testing.T) {
 		{
 			data: `{"status": 200,"age":47}`,
 			script: `json(_, status) group_between(status, [300, 400], "ok", newkey)`,
-			expected: "",
+			expected: nil,
 			key: "newkey",
 			err: nil,
 		},
@@ -279,9 +328,9 @@ func TestGroupFunc(t *testing.T) {
 
 		p.Run(tt.data)
 
-		r, err := p.getContentStr(tt.key)
+		r, err := p.getContent(tt.key)
 
-		fmt.Println("=======>", r)
+		fmt.Println("out =======>", p.Output)
 
 		assertEqual(t, r, tt.expected)
 	}
@@ -290,10 +339,45 @@ func TestGroupFunc(t *testing.T) {
 func TestGroupInFunc(t *testing.T) {
 	var testCase = []*funcCase{
 		{
+			data: `{"status": true,"age":"47"}`,
+			script: `json(_, status) group_in(status, [true], "ok", "newkey")`,
+			expected: "ok",
+			key: "newkey",
+			err: nil,
+		},
+		{
+			data: `{"status": true,"age":"47"}`,
+			script: `json(_, status) group_in(status, [true], "ok", "newkey")`,
+			expected: "ok",
+			key: "newkey",
+			err: nil,
+		},
+		{
+			data: `{"status": "aa","age":"47"}`,
+			script: `json(_, status) group_in(status, [], "ok")`,
+			expected: "aa",
+			key: "status",
+			err: nil,
+		},
+		{
+			data: `{"status": "aa","age":"47"}`,
+			script: `json(_, status) group_in(status, ["aa"], "ok", "newkey")`,
+			expected: "ok",
+			key: "newkey",
+			err: nil,
+		},
+		{
 			data: `{"status": "test","age":"47"}`,
 			script: `json(_, status) group_in(status, [200, 47, "test"], "ok", newkey)`,
 			expected: "ok",
 			key: "newkey",
+			err: nil,
+		},
+		{
+			data: `{"status": "test","age":"47"}`,
+			script: `json(_, status) group_in(status, [200, "test"], "ok")`,
+			expected: "ok",
+			key: "status",
 			err: nil,
 		},
 	}
@@ -315,50 +399,57 @@ func TestNullIfFunc(t *testing.T) {
 		{
 			data: `{"a":{"first": 1,"second":2,"thrid":"aBC","forth":true},"age":47}`,
 			script: `json(_, a.first) nullif(a.first, "1")`,
-			expected: "",
+			expected: float64(1),
 			key: "a.first",
 			err: nil,
 		},
 		{
 			data: `{"a":{"first": "1","second":2,"thrid":"aBC","forth":true},"age":47}`,
 			script: `json(_, a.first) nullif(a.first, 1)`,
-			expected: "",
+			expected: "1",
 			key: "a.first",
 			err: nil,
 		},
 		{
 			data: `{"a":{"first": "","second":2,"thrid":"aBC","forth":true},"age":47}`,
 			script: `json(_, a.first) nullif(a.first, "")`,
-			expected: "",
+			expected: nil,
+			key: "a.first",
+			err: nil,
+		},
+		{
+			data: `{"a":{"first": null,"second":2,"thrid":"aBC","forth":true},"age":47}`,
+			script: `json(_, a.first) nullif(a.first, nil)`,
+			expected: nil,
 			key: "a.first",
 			err: nil,
 		},
 		{
 			data: `{"a":{"first": true,"second":2,"thrid":"aBC","forth":true},"age":47}`,
 			script: `json(_, a.first) nullif(a.first, true)`,
-			expected: "",
+			expected: nil,
 			key: "a.first",
 			err: nil,
 		},
 		{
 			data: `{"a":{"first": 2.3, "second":2,"thrid":"aBC","forth":true},"age":47}`,
 			script: `json(_, a.first) nullif(a.first, 2.3)`,
-			expected: "",
+			expected: nil,
 			key: "a.first",
 			err: nil,
 		},
 		{
 			data: `{"a":{"first": 2,"second":2,"thrid":"aBC","forth":true},"age":47}`,
-			script: `json(_, a.first) nullif(a.first, 2)`,
-			expected: "",
-			key: "a.first",
+			script: `json(_, a.first) nullif(a.first, 2, "newkey")`,
+			expected: nil,
+			key: "newkey",
 			err: nil,
 		},
 		{
 			data: `{"a":{"first":"2.3","second":2,"thrid":"aBC","forth":true},"age":47}`,
-			script: `json(_, a.first) nullif(a.first, "2.3")`,
-			expected: "",
-			key: "a.first",
+			script: `json(_, a.first) nullif(a.first, "2.3", "newkey")`,
+			expected: nil,
+			key: "newkey",
 			err: nil,
 		},
 	}
@@ -369,10 +460,7 @@ func TestNullIfFunc(t *testing.T) {
 
 		p.Run(tt.data)
 
-		r, err := p.getContentStr(tt.key)
-
-		fmt.Println("out ======>", p.Output)
-		fmt.Println("======>", r)
+		r, err := p.getContent(tt.key)
 
 		assertEqual(t, r, tt.expected)
 	}
