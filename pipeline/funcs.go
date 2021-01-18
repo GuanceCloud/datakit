@@ -222,12 +222,9 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-
-	if len(funcExpr.Param) < 3 || len(funcExpr.Param) > 4 {
-		return p, fmt.Errorf("func `%s' expected 3 or 4 args", funcExpr.Name)
+	if len(funcExpr.Param) != 3  {
+		return p, fmt.Errorf("func `%s' expected 3 args", funcExpr.Name)
 	}
-
-	var tz = 8
 
 	var key parser.Node
 	var precision, fmts string
@@ -238,6 +235,7 @@ func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("expect Identifier, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
+
 
 	switch v := funcExpr.Param[1].(type) {
 	case *parser.StringLiteral:
@@ -255,25 +253,13 @@ func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 			reflect.TypeOf(funcExpr.Param[2]).String())
 	}
 
-	if len(funcExpr.Param) == 4 {
-		tzStr := funcExpr.Param[3]
-		if v, ok := tzStr.(*parser.NumberLiteral); ok {
-			if v.IsInt {
-				tz = int(v.Int)
-			}
-		} else {
-			return p, fmt.Errorf("expect NumberLiteral, got %s",
-				reflect.TypeOf(funcExpr.Param[3]).String())
-		}
-	}
-
 	cont, err := p.getContent(key)
 	if err != nil {
 		l.Warnf("key `%v' not exist", key)
 		return p, nil
 	}
 
-	if v, err := DateFormatHandle(cont, precision, fmts, tz); err != nil {
+	if v, err := DateFormatHandle(cont, precision, fmts); err != nil {
 		return p, err
 	} else {
 		p.setContent(key, v)
@@ -472,7 +458,7 @@ func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		switch v := value.(type) {
 		case *parser.NumberLiteral:
 			if v.IsInt {
-				p.setContent(newkey, v.IsInt)
+				p.setContent(newkey, v.Int)
 			} else {
 				p.setContent(newkey, v.Float)
 			}
@@ -533,6 +519,8 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 			} else {
 				setdata = append(setdata, v.Float)
 			}
+		case *parser.BoolLiteral:
+			setdata = append(setdata, v.Val)
 		case *parser.StringLiteral:
 			setdata = append(setdata, v.Val)
 		default:
@@ -586,8 +574,8 @@ func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	if v, err := TimestampHandle(cont); err != nil {
-		l.Warnf("time convert fail error %v", err)
-		p.setContent(key, cont)
+		// l.Warnf("time convert fail error %v", err)
+		return p, fmt.Errorf("time convert fail error %v", err)
 	} else {
 		p.setContent(key, v)
 	}
