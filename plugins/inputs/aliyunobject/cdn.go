@@ -15,18 +15,19 @@ const (
 #[inputs.aliyunobject.cdn]
 	# ##(optional) ignore this object, default is false
 	#disable = false
+	# ##(optional) pipeline script path
 	#pipeline = "aliyun_cdn.p"
-    # ##(optional) list of cdn DomainName
-    #domainNames = []
-    # ##(optional) list of excluded cdn exclude_domainNames
-    #exclude_domainNames = []
+	# ##(optional) list of cdn DomainName
+	#domainNames = []
+	# ##(optional) list of excluded cdn exclude_domainNames
+	#exclude_domainNames = []
 `
 	cdnPipelineConifg = `
-json(_, Cname);
-json(_, CdnType);
-json(_, DomainStatus);
-json(_, SslProtocol);
-json(_, ResourceGroupId);
+json(_, Cname)
+json(_, CdnType)
+json(_, DomainStatus)
+json(_, SslProtocol)
+json(_, ResourceGroupId)
 `
 )
 
