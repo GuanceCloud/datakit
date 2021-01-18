@@ -683,11 +683,7 @@ func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	// todo key string
-	fmt.Printf("cont %v =======>%T\n", cont, cont)
-	fmt.Printf("val %v =======>%T\n", val, val)
-
 	if reflect.DeepEqual(cont, val) {
-		fmt.Println("ok======>", val)
 		var k string
 
 		switch t := key.(type) {
@@ -702,7 +698,6 @@ func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 			return p, nil
 		}
 
-		fmt.Println("k=======>", k)
 		delete(p.Output, k)
 	}
 
