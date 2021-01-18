@@ -200,27 +200,3 @@ drop_key(a.thrid)
 	assertEqual(t, v, "2.3")
 }
 
-func TestJsonAllFunc(t *testing.T) {
-	js := `
-{
-  "name": {"first": "Tom", "last": "Anderson"},
-  "age":37,
-  "children": ["Sara","Alex","Jack"],
-  "fav.movie": "Deer Hunter",
-  "friends": [
-    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
-    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
-    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
-  ]
-}
-`
-	script := `json_all();`
-
-	p, err := NewPipeline(script)
-	assertEqual(t, err, nil)
-
-	p.Run(js)
-
-	r := p.getContent("children[0]")
-	assertEqual(t, r, "Sara")
-}
