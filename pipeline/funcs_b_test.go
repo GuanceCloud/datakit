@@ -464,7 +464,7 @@ func TestNullIfFunc(t *testing.T) {
 }
 
 func TestJsonAllFunc(t *testing.T) {
-js := `
+	js := `
 {
   "name": {"first": "Tom", "last": "Anderson"},
   "age":37,
