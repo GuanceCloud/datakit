@@ -3,75 +3,21 @@ package azurecms
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/influxdata/toml"
+	"github.com/influxdata/toml/ast"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
-
-func TestDumpConfig(t *testing.T) {
-	cfg := &azureInstance{
-		ClientID:       "xxx",
-		ClientSecret:   "xxx",
-		TenantID:       "xxx",
-		SubscriptionID: "xxx",
-		EndPoint:       "xxx",
-		Resource: []*azureResource{
-			&azureResource{
-				ResourceID: "xxx",
-				Metrics: []*azureMetric{
-					&azureMetric{
-						MetricName: "xxx",
-						//Interval
-					},
-				},
-			},
-		},
-	}
-
-	data, err := toml.Marshal(cfg)
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-	log.Printf("cfg: %s", string(data))
-}
-
-func TestLoadConfig(t *testing.T) {
-	cfgstr := `
-[[instances]]
- client_id = 'xxx'
- client_secret = 'xxx'
- tenant_id = 'xxx'
- subscription_id = 'xxx'
- end_point = 'https://management.chinacloudapi.cn'
-
-[[instances.resource]]
- resource_id = 'xxx'
-
-[[instances.resource.metrics]]
- metric_name = 'Percentage CPU'
- interval = '1m'
-`
-	var cfg azureInstance
-	if err := toml.Unmarshal([]byte(cfgstr), &cfg); err != nil {
-		log.Fatalf("%s", err)
-	}
-
-	// for _, inst := range cfg.Instances {
-	// 	log.Printf("client_id=%s", inst.ClientID)
-	// 	for _, res := range inst.Resource {
-	// 		log.Printf("resource_id=%s", res.ResourceID)
-	// 		for _, m := range res.Metrics {
-	// 			log.Printf("metric_name=%s，interval=%v", m.MetricName, m.Interval)
-	// 		}
-	// 	}
-	// }
-}
 
 func TestGetMetricMetas(t *testing.T) {
 
@@ -151,24 +97,33 @@ func TestGetMetricMetas(t *testing.T) {
 
 func TestGetMetrics(t *testing.T) {
 
-	cli := insights.NewMetricsClientWithBaseURI(`https://management.chinacloudapi.cn`, `7b9b5f30-1590-4e09-b1d0-90547d257b6b`)
+	ag := loadCfg("test.conf").(*azureInstance)
+
+	ev := azure.PublicCloud
+
+	cli := insights.NewMetricsClientWithBaseURI(ev.ResourceManagerEndpoint, ag.SubscriptionID)
 
 	var err error
 
-	settings, err := auth.GetSettingsFromEnvironment()
-	if err != nil {
-		return
+	settings := auth.EnvironmentSettings{
+		Values: map[string]string{},
 	}
-	settings.Environment = azure.ChinaCloud
+	settings.Values[auth.SubscriptionID] = ag.SubscriptionID
+	settings.Values[auth.TenantID] = ag.TenantID
+	settings.Values[auth.ClientID] = ag.ClientID
+	settings.Values[auth.ClientSecret] = ag.ClientSecret
+
+	settings.Environment = ev
 	settings.Values[auth.Resource] = settings.Environment.ResourceManagerEndpoint
+
 	cli.Authorizer, err = settings.GetAuthorizer()
 	if err != nil {
 		log.Fatalf("auth failed, %s", err)
 	}
 
-	resourceID := `subscriptions/7b9b5f30-1590-4e09-b1d0-90547d257b6b/resourceGroups/gp1/providers/Microsoft.Compute/virtualMachines/aaa`
-	timespan := `2020-03-11T06:38:00Z/2020-03-11T06:39:00Z` //默认最近一小时
-	interval := `PT1H`
+	resourceID := ag.Resource[0].ResourceID
+	timespan := "2021-01-14T09:34:03Z/2021-01-14T10:34:03Z" // `2020-03-11T06:38:00Z/2020-03-11T06:39:00Z` //默认最近一小时
+	interval := `PT1M`
 	metricnames := "Percentage CPU" //`Disk Read Bytes` // `Network In Total` //
 	aggregation := ""
 	//var top int32 = 10
@@ -176,78 +131,164 @@ func TestGetMetrics(t *testing.T) {
 	filter := ""
 	var resultType insights.ResultType = ""
 	//apiVersion := "2018-01-01"
-	metricnamespace := "" // `Microsoft.Compute/virtualMachines`
+	metricnamespace := "Microsoft.Compute/virtualMachines" // `Microsoft.Compute/virtualMachines`
 
-	ctx, cancelfun := context.WithCancel(context.Background())
+	ctx, cancelfun := context.WithTimeout(context.Background(), time.Second*40)
 	_ = cancelfun
+	log.Printf("start list")
 	res, err := cli.List(ctx, resourceID, timespan, &interval, metricnames, aggregation, nil, orderby, filter, resultType, metricnamespace)
 
 	if err != nil {
 		log.Fatalf("%s", err)
-	} else {
-		summary := []string{}
-		if res.Resourceregion != nil {
-			summary = append(summary, fmt.Sprintf("Resourceregion=%s", *res.Resourceregion))
-		}
+	}
 
-		if res.Interval != nil {
-			summary = append(summary, fmt.Sprintf("Interval=%s", *res.Interval))
-		}
-		log.Printf("summary: %s", summary)
+	summary := []string{}
+	if res.Resourceregion != nil {
+		summary = append(summary, fmt.Sprintf("Resourceregion=%s", *res.Resourceregion))
+	}
 
-		for _, m := range *res.Value {
-			metricName := *(*m.Name).Value
-			metricUnit := string(m.Unit)
+	if res.Interval != nil {
+		summary = append(summary, fmt.Sprintf("Interval=%s", *res.Interval))
+	}
+	log.Printf("summary: %s", summary)
 
-			tms := *m.Timeseries
+	for _, m := range *res.Value {
+		metricName := *(*m.Name).Value
+		metricUnit := string(m.Unit)
 
-			log.Printf("Timeseries(%s) length: %v", metricName, len(tms))
+		tms := *m.Timeseries
 
-			for _, tm := range tms {
+		log.Printf("Timeseries(%s) length: %v", metricName, len(tms))
 
-				if tm.Metadatavalues != nil {
-					// log.Printf("Metadatavalues len=%v", len(*tm.Metadatavalues))
+		for _, tm := range tms {
 
-					for _, metaitem := range *tm.Metadatavalues {
-						kv := *(*metaitem.Name).Value
-						kv += "=" + *(metaitem.Value)
-						//line = append(line, kv)
-						log.Printf("Metadatavalues: %s", kv)
-					}
+			if tm.Metadatavalues != nil {
+				// log.Printf("Metadatavalues len=%v", len(*tm.Metadatavalues))
+
+				for _, metaitem := range *tm.Metadatavalues {
+					kv := *(*metaitem.Name).Value
+					kv += "=" + *(metaitem.Value)
+					//line = append(line, kv)
+					log.Printf("Metadatavalues: %s", kv)
 				}
+			}
 
-				if *tm.Data == nil {
-					continue
+			if *tm.Data == nil {
+				continue
+			}
+
+			for _, mv := range *tm.Data {
+
+				line := []string{metricName, "unit:" + metricUnit}
+
+				if mv.Average != nil {
+					line = append(line, fmt.Sprintf("Average=%v", *mv.Average))
 				}
-
-				for _, mv := range *tm.Data {
-
-					line := []string{metricName, "unit:" + metricUnit}
-
-					if mv.Average != nil {
-						line = append(line, fmt.Sprintf("Average=%v", *mv.Average))
-					}
-					if mv.Count != nil {
-						line = append(line, fmt.Sprintf("Count=%v", *mv.Count))
-					}
-					if mv.Total != nil {
-						line = append(line, fmt.Sprintf("Total=%v", *mv.Total))
-					}
-					if mv.Maximum != nil {
-						line = append(line, fmt.Sprintf("Maximum=%v", *mv.Maximum))
-					}
-					if mv.Minimum != nil {
-						line = append(line, fmt.Sprintf("Minimum=%v", *mv.Minimum))
-					}
-					//metricTime := time.Now()
-					if mv.TimeStamp != nil {
-						line = append(line, fmt.Sprintf("TimeStamp=%v", *mv.TimeStamp))
-						//metricTime, _ = time.Parse(`2006-01-02T15:04:05Z`, "2020-03-10T10:30:00Z")
-						//log.Printf("time is %v", metricTime)
-					}
-					log.Printf("%s\n", line)
+				if mv.Count != nil {
+					line = append(line, fmt.Sprintf("Count=%v", *mv.Count))
 				}
+				if mv.Total != nil {
+					line = append(line, fmt.Sprintf("Total=%v", *mv.Total))
+				}
+				if mv.Maximum != nil {
+					line = append(line, fmt.Sprintf("Maximum=%v", *mv.Maximum))
+				}
+				if mv.Minimum != nil {
+					line = append(line, fmt.Sprintf("Minimum=%v", *mv.Minimum))
+				}
+				//metricTime := time.Now()
+				if mv.TimeStamp != nil {
+					line = append(line, fmt.Sprintf("TimeStamp=%v", *mv.TimeStamp))
+					//metricTime, _ = time.Parse(`2006-01-02T15:04:05Z`, "2020-03-10T10:30:00Z")
+					//log.Printf("time is %v", metricTime)
+				}
+				log.Printf("%s\n", line)
 			}
 		}
 	}
+}
+
+func TestInput(t *testing.T) {
+
+	ag := loadCfg("test.conf").(*azureInstance)
+	ag.mode = "debug"
+	ag.Run()
+}
+
+func loadCfg(file string) inputs.Input {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		log.Fatalf("read config file failed: %s", err.Error())
+		return nil
+	}
+
+	tbl, err := toml.Parse(data)
+	if err != nil {
+		log.Fatalf("parse toml file failed, %s", err)
+		return nil
+	}
+
+	creator := func() inputs.Input {
+		ac := &azureInstance{}
+		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
+		return ac
+	}
+
+	for field, node := range tbl.Fields {
+
+		switch field {
+		case "inputs":
+			stbl, ok := node.(*ast.Table)
+			if !ok {
+				log.Fatalf("ignore bad toml node")
+			} else {
+				for inputName, v := range stbl.Fields {
+					input, err := tryUnmarshal(v, inputName, creator)
+					if err != nil {
+						log.Fatalf("unmarshal input %s failed: %s", inputName, err.Error())
+						return nil
+					}
+					return input
+				}
+			}
+
+		default: // compatible with old version: no [[inputs.xxx]] header
+			input, err := tryUnmarshal(node, "aa", creator)
+			if err != nil {
+				log.Fatalf("unmarshal input failed: %s", err.Error())
+				return nil
+			}
+			return input
+		}
+	}
+
+	return nil
+}
+
+func tryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputs.Input, error) {
+
+	tbls := []*ast.Table{}
+
+	switch t := tbl.(type) {
+	case []*ast.Table:
+		tbls = tbl.([]*ast.Table)
+	case *ast.Table:
+		tbls = append(tbls, tbl.(*ast.Table))
+	default:
+		err := fmt.Errorf("invalid toml format: %v", t)
+		return nil, err
+	}
+
+	for _, t := range tbls {
+		input := creator()
+
+		err := toml.UnmarshalTable(t, input)
+		if err != nil {
+			log.Fatalf("toml unmarshal failed: %v", err)
+			return nil, err
+		}
+		return input, nil
+
+	}
+	return nil, nil
 }
