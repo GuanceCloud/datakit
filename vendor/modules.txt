@@ -26,8 +26,6 @@ github.com/Azure/go-autorest/logger
 github.com/Azure/go-autorest/tracing
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
-# github.com/GuilhermeCaruso/kair v0.0.0-20200618030634-2cbc3ec356d4
-github.com/GuilhermeCaruso/kair
 # github.com/Microsoft/go-winio v0.4.16-0.20201130162521-d1ffc52c7331
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
