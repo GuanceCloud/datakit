@@ -12,7 +12,7 @@ func cast(result interface{}, tInfo string) interface{} {
 		return conv.ToBool(result)
 
 	case "int":
-		return conv.ToInt64(result)
+		return conv.ToInt64(conv.ToFloat64(result))
 
 	case "float":
 		return conv.ToFloat64(result)
