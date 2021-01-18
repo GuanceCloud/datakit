@@ -25,7 +25,7 @@ endpoint=""
 `
 	obsPipelineConifg = `
 
-json(_,Location);
+json(_,Location)
 
 `
 )
