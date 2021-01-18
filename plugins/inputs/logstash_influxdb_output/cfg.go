@@ -5,6 +5,7 @@ import "sync"
 const (
 	configSample = `
 #[[inputs.logstash_influxdb_output]]
+# ##(optional)
 #pipeline=''
 `
 
