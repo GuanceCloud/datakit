@@ -458,6 +458,10 @@ func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		} else {
 			end = v.Float
 		}
+
+		if start > end {
+			return p, fmt.Errorf("range value start %v must le end %v", start, end)
+		}
 	}
 
 	cont, err := p.getContent(key)
@@ -688,7 +692,11 @@ func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	// todo key string
+	fmt.Printf("cont %v =======>%T\n", cont, cont)
+	fmt.Printf("val %v =======>%T\n", val, val)
+
 	if reflect.DeepEqual(cont, val) {
+		fmt.Println("ok======>", val)
 		var k string
 
 		switch t := key.(type) {
@@ -696,12 +704,14 @@ func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 			k = t.String()
 		case *parser.AttrExpr:
 			k = t.String()
-		// case string:
-		// 	k = t
+		case *parser.StringLiteral:
+		 	k = t.Val
 		default:
 			l.Warnf("unsupported %v get", reflect.TypeOf(key).String())
 			return p, nil
 		}
+
+		fmt.Println("k=======>", k)
 		delete(p.Output, k)
 	}
 
