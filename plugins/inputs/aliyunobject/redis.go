@@ -15,23 +15,23 @@ const (
 	redisSampleConfig = `
 # ##(optional)
 #[inputs.aliyunobject.redis]
-    # ##(optional) ignore this object, default is false
-    #disable = false
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
 	#pipeline = "aliyun_redis.p"
-    # ##(optional) list of redis instanceid
-    #instanceids = []
-    # ##(optional) list of excluded redis instanceid
-    #exclude_instanceids = []
+	# ##(optional) list of redis instanceid
+	#instanceids = []
+	# ##(optional) list of excluded redis instanceid
+	#exclude_instanceids = []
 	# ## @param - custom tags for redis object - [list of key:value element] - optional
 	
 `
 	redisPipelineConifg = `
-json(_, InstanceName, name);
-json(_, RegionId);
-json(_, InstanceStatus);
-json(_, InstanceId);
-json(_, NetworkType);
-json(_, ChargeType);
+json(_, RegionId)
+json(_, InstanceStatus)
+json(_, InstanceId)
+json(_, NetworkType)
+json(_, ChargeType)
 `
 )
 
