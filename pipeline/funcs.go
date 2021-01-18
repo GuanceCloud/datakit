@@ -14,19 +14,19 @@ type PipelineFunc func(p *Pipeline, node parser.Node) (*Pipeline, error)
 
 var (
 	funcsMap = map[string]PipelineFunc{
-		"grok":          Grok,
-		"json":          Json,
-		"json_all":      JsonAll,
-		"rename":        Rename,
-		"strfmt":        Strfmt,
-		"cast":          Cast,
-		"expr":          Expr,
-		"user_agent":    UserAgent,
-		"url_decode":    UrlDecode,
-		"geoip":         GeoIp,
-		"datetime":      DateTime,
-		"group_between": Group,
-		"group_in":      GroupIn,
+		"grok":             Grok,
+		"json":             Json,
+		"json_all":         JsonAll,
+		"rename":           Rename,
+		"strfmt":           Strfmt,
+		"cast":             Cast,
+		"expr":             Expr,
+		"user_agent":       UserAgent,
+		"url_decode":       UrlDecode,
+		"geoip":            GeoIp,
+		"datetime":         DateTime,
+		"group_between":    Group,
+		"group_in":         GroupIn,
 		"uppercase":        Uppercase,
 		"lowercase":        Lowercase,
 		"drop_key":         Dropkey,
@@ -34,7 +34,7 @@ var (
 		"nullif":           NullIf,
 		"default_time":     DefaultTime,
 		"drop_origin_data": DropOriginData,
-		"add_pattern": AddPattern,
+		"add_pattern":      AddPattern,
 	}
 )
 
@@ -230,7 +230,7 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 3  {
+	if len(funcExpr.Param) != 3 {
 		return p, fmt.Errorf("func `%s' expected 3 args", funcExpr.Name)
 	}
 
@@ -243,7 +243,6 @@ func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("expect Identifier, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
-
 
 	switch v := funcExpr.Param[1].(type) {
 	case *parser.StringLiteral:
@@ -510,8 +509,6 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		}
 	}
 
-
-
 	for _, node := range set {
 		switch v := node.(type) {
 		case *parser.Identifier:
@@ -699,7 +696,7 @@ func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		case *parser.AttrExpr:
 			k = t.String()
 		case *parser.StringLiteral:
-		 	k = t.Val
+			k = t.Val
 		default:
 			l.Warnf("unsupported %v get", reflect.TypeOf(key).String())
 			return p, nil
