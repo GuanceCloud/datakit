@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -20,12 +22,15 @@ var moduleLogger *logger.Logger
 
 type (
 	Collector struct {
-		Name     string
-		Class    string
+		Name  string //deprecated
+		Class string //deprecated
+
 		Desc     string `toml:"description,omitempty"`
 		Interval datakit.Duration
-		Pipeline string            `toml:"pipeline"`
-		Tags     map[string]string `toml:"tags,omitempty"`
+		Pipeline string `toml:"pipeline"`
+
+		//deprecated
+		Tags map[string]string `toml:"tags,omitempty"`
 
 		mode string
 
@@ -44,8 +49,12 @@ func (c *Collector) isTest() bool {
 	return c.mode == "test"
 }
 
+func (c *Collector) isDebug() bool {
+	return c.mode == "debug"
+}
+
 func (_ *Collector) Catalog() string {
-	return "hostobject"
+	return inputName
 }
 
 func (_ *Collector) SampleConfig() string {
@@ -54,7 +63,7 @@ func (_ *Collector) SampleConfig() string {
 
 func (r *Collector) PipelineConfig() map[string]string {
 	return map[string]string{
-		"hostobject": pipelineSample,
+		inputName: pipelineSample,
 	}
 }
 
@@ -71,7 +80,12 @@ func (c *Collector) Run() {
 
 	defer func() {
 		if e := recover(); e != nil {
-			moduleLogger.Errorf("panic error, %v", e)
+			if err := recover(); err != nil {
+				buf := make([]byte, 2048)
+				n := runtime.Stack(buf, false)
+				moduleLogger.Errorf("panic: %s", err)
+				moduleLogger.Errorf("%s", string(buf[:n]))
+			}
 		}
 	}()
 
@@ -97,9 +111,24 @@ func (c *Collector) Run() {
 		cancelFun()
 	}()
 
-	pp, err := pipeline.NewPipeline(c.Pipeline)
-	if err != nil {
-		moduleLogger.Errorf("%s", err)
+	script := c.Pipeline
+	if script == "" {
+		scriptPath := filepath.Join(datakit.PipelineDir, inputName+".p")
+		data, err := ioutil.ReadFile(scriptPath)
+		if err == nil {
+			script = string(data)
+		}
+	}
+
+	var pp *pipeline.Pipeline
+
+	if script != "" {
+		p, err := pipeline.NewPipeline(script)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+		} else {
+			pp = p
+		}
 	}
 
 	for {
@@ -175,7 +204,27 @@ func (c *Collector) Run() {
 		}
 		tags["name"] = name
 
-		io.NamedFeedEx(inputName, io.Object, className, tags, fields, time.Now().UTC())
+		if c.isTest() {
+			data, err := io.MakeMetric(className, tags, fields, time.Now().UTC())
+			if err != nil {
+				moduleLogger.Errorf("%s", err)
+				c.testError = err
+			} else {
+				c.testResult = &inputs.TestResult{
+					Result: data,
+					Desc:   "",
+				}
+				moduleLogger.Debugf("%s\n", string(data))
+			}
+			return
+
+		} else if c.isDebug() {
+			data, _ := io.MakeMetric(className, tags, fields, time.Now().UTC())
+			fmt.Printf("%s\n", string(data))
+
+		} else {
+			io.NamedFeedEx(inputName, io.Object, className, tags, fields, time.Now().UTC())
+		}
 
 		datakit.SleepContext(ctx, c.Interval.Duration)
 	}
@@ -185,7 +234,7 @@ func (c *Collector) Run() {
 func (c *Collector) initialize() error {
 
 	if c.Class == "" {
-		c.Class = "Servers"
+		c.Class = "host"
 	}
 
 	if c.Name == "" {
