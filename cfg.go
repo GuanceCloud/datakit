@@ -577,15 +577,10 @@ func (c *Config) LoadEnvs(mcp string) error {
 		c.MainCfg.LogLevel = loglvl
 	}
 
-	dwcfg := os.Getenv("ENV_DATAWAY")
+	dwWSPort := os.Getenv("ENV_DATAWAY_WSPORT")
+	dwURL := os.Getenv("ENV_DATAWAY")
 	if dwcfg != "" {
-
-		parts := strings.Split(dwcfg, ";")
-		if len(parts) != 2 {
-			return fmt.Errorf("invalid ENV_DATAWAY")
-		}
-
-		dw, err := ParseDataway(parts[0], parts[1])
+		dw, err := ParseDataway(dwURL, dwWSPort)
 		if err != nil {
 			return err
 		}
