@@ -14,22 +14,23 @@ const (
 	ddsSampleConfig = `
 # ##(optional)
 #[inputs.aliyunobject.mongodb]
-    # ##(optional) ignore this object, default is false
-    #disable = false
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
 	#pipeline = "aliyun_mongodb.p"
-
+	
 	# ##(optional) list of mongodb instanceid
-    #db_instanceids = []
-
-    # ##(optional) list of excluded mongodb instanceid
-    #exclude_db_instanceids = []
+	#db_instanceids = []
+	
+	# ##(optional) list of excluded mongodb instanceid
+	#exclude_db_instanceids = []
 `
 	ddsPipelineConfig = `
-json(_, DBInstanceId);
-json(_, ChargeType);
-json(_, RegionId);
-json(_, DBInstanceType);
-json(_, DBInstanceClass);
+json(_, DBInstanceId)
+json(_, ChargeType)
+json(_, RegionId)
+json(_, DBInstanceType)
+json(_, DBInstanceClass)
 `
 )
 
