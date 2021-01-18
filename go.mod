@@ -9,7 +9,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.9.3
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
 	github.com/BurntSushi/toml v0.3.1
-	github.com/GuilhermeCaruso/kair v0.0.0-20200618030634-2cbc3ec356d4
+	github.com/GuilhermeCaruso/kair v0.0.0-20200618030634-2cbc3ec356d4 // indirect
 	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/Microsoft/hcsshim/test v0.0.0-20201218223536-d3e5debf77da // indirect
