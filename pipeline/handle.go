@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"fmt"
 	"net/url"
 	"reflect"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"github.com/araddon/dateparse"
 	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
+	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 )
 
@@ -140,5 +142,57 @@ var dateFormatStr = map[string]string {
 	"StampMilli": time.StampMilli,
 	"StampMicro": time.StampMicro,
 	"StampNano": time.StampNano,
+}
 
+func JsonParse(jsonStr string) map[string]interface{} {
+	res := make(map[string]interface{})
+	jsonObj := gjson.Parse(jsonStr)
+
+	if isObject(jsonObj) {
+		parseJson2Map(jsonObj, res, "")
+	} else if isArray(jsonObj) {
+		for idx, obj := range jsonObj.Array() {
+			key := fmt.Sprintf("%d", idx)
+			parseJson2Map(obj, res, key)
+		}
+	}
+
+	return res
+}
+
+func parseJson2Map(obj gjson.Result, res map[string]interface{}, prefix string) {
+	if isObject(obj) {
+		for key, value := range obj.Map() {
+			if prefix != "" {
+				key = prefix + "." + key
+			}
+			if isObject(value) {
+				parseJson2Map(value, res, key)
+			} else if isArray(value) {
+				for idx, v := range value.Array() {
+					fullkey := key + "[" + fmt.Sprintf("%d", idx) + "]"
+					parseJson2Map(v, res, fullkey)
+				}
+			} else {
+				res[key] = value.Value()
+				continue
+			}
+		}
+	} else {
+		res[prefix] = obj.Value()
+	}
+}
+
+func isObject(obj gjson.Result) bool {
+	if obj.IsObject() {
+		return true
+	}
+	return false
+}
+
+func isArray(obj gjson.Result) bool {
+	if obj.IsArray() {
+		return true
+	}
+	return false
 }
