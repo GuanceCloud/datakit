@@ -36,7 +36,10 @@ func Calc(expr interface{}, p *Pipeline) (interface{}, error) {
 		}
 
 	case *parser.Identifier:
-		return p.getContent(v.Name), nil
+		return p.getContent(v)
+
+	case *parser.AttrExpr:
+		return p.getContent(v)
 
 	default:
 		return nil, fmt.Errorf("unsupported Expr %v", v)
