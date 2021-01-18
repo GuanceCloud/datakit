@@ -4,17 +4,17 @@
 
 package patterns
 
-var GlobalPatterns = map[string][][]string {
-    "aws" : {
+var GlobalPatterns = map[string][][]string{
+	"aws": {
 		{"s3_request_line", `(?:%{word:verb} %{notspace:request}(?: HTTP/%{number:httpversion})?|%{data:rawrequest})`},
 		{"s3_access_log", `%{word:owner} %{notspace:bucket} \[%{httpdate:timestamp}\] %{ip:clientip} %{notspace:requester} %{notspace:request_id} %{notspace:operation} %{notspace:key} (?:"%{s3_request_line}"|-) (?:%{int:response:int}|-) (?:-|%{notspace:error_code}) (?:%{int:bytes:int}|-) (?:%{int:object_size:int}|-) (?:%{int:request_time_ms:int}|-) (?:%{int:turnaround_time_ms:int}|-) (?:%{qs:referrer}|-) (?:"?%{qs:agent}"?|-) (?:-|%{notspace:version_id})`},
 		{"elb_uripathparam", `%{uripath:path}(?:%{uriparam:params})?`},
 		{"elb_uri", `%{uriproto:proto}://(?:%{user}(?::[^@]*)?@)?(?:%{urihost:urihost})?(?:%{elb_uripathparam})?`},
 		{"elb_request_line", `(?:%{word:verb} %{elb_uri:request}(?: HTTP/%{number:httpversion})?|%{data:rawrequest})`},
 		{"elb_access_log", `%{timestamp_iso8601:timestamp} %{notspace:elb} %{ip:clientip}:%{int:clientport:int} (?:(%{ip:backendip}:?:%{int:backendport:int})|-) %{number:request_processing_time:float} %{number:backend_processing_time:float} %{number:response_processing_time:float} %{int:response:int} %{int:backend_response:int} %{int:received_bytes:int} %{int:bytes:int} "%{elb_request_line}"`},
-    },
+	},
 
-    "bacula" : {
+	"bacula": {
 		{"bacula_timestamp", `%{monthday}-%{month} %{hour}:%{minute}`},
 		{"bacula_host", `[a-zA-Z0-9-]+`},
 		{"bacula_volume", `%{user}`},
@@ -62,16 +62,16 @@ var GlobalPatterns = map[string][][]string {
 		{"bacula_log_noprior", `No prior Full backup Job record found.`},
 		{"bacula_log_job", `(Error: )?Bacula %{bacula_host} %{bacula_version} \(%{bacula_version}\):`},
 		{"bacula_logline", `%{bacula_timestamp:bts} %{bacula_host:hostname} JobId %{int:jobid}: (%{bacula_log_max_capacity}|%{bacula_log_end_volume}|%{bacula_log_new_volume}|%{bacula_log_new_label}|%{bacula_log_wrote_label}|%{bacula_log_new_mount}|%{bacula_log_noopen}|%{bacula_log_noopendir}|%{bacula_log_nostat}|%{bacula_log_nojobs}|%{bacula_log_all_records_pruned}|%{bacula_log_begin_prune_jobs}|%{bacula_log_begin_prune_files}|%{bacula_log_pruned_jobs}|%{bacula_log_pruned_files}|%{bacula_log_endprune}|%{bacula_log_startjob}|%{bacula_log_startrestore}|%{bacula_log_usedevice}|%{bacula_log_diff_fs}|%{bacula_log_jobend}|%{bacula_log_noprune_jobs}|%{bacula_log_noprune_files}|%{bacula_log_volume_prevwritten}|%{bacula_log_readyappend}|%{bacula_log_cancelling}|%{bacula_log_markcancel}|%{bacula_log_client_rbj}|%{bacula_log_vss}|%{bacula_log_maxstart}|%{bacula_log_duplicate}|%{bacula_log_nojobstat}|%{bacula_log_fatal_conn}|%{bacula_log_no_connect}|%{bacula_log_no_auth}|%{bacula_log_nosuit}|%{bacula_log_job}|%{bacula_log_noprior})`},
-    },
+	},
 
-    "bro" : {
+	"bro": {
 		{"bro_http", `%{number:ts}\t%{notspace:uid}\t%{ip:orig_h}\t%{int:orig_p}\t%{ip:resp_h}\t%{int:resp_p}\t%{int:trans_depth}\t%{greedydata:method}\t%{greedydata:domain}\t%{greedydata:uri}\t%{greedydata:referrer}\t%{greedydata:user_agent}\t%{number:request_body_len}\t%{number:response_body_len}\t%{greedydata:status_code}\t%{greedydata:status_msg}\t%{greedydata:info_code}\t%{greedydata:info_msg}\t%{greedydata:filename}\t%{greedydata:bro_tags}\t%{greedydata:username}\t%{greedydata:password}\t%{greedydata:proxied}\t%{greedydata:orig_fuids}\t%{greedydata:orig_mime_types}\t%{greedydata:resp_fuids}\t%{greedydata:resp_mime_types}`},
 		{"bro_dns", `%{number:ts}\t%{notspace:uid}\t%{ip:orig_h}\t%{int:orig_p}\t%{ip:resp_h}\t%{int:resp_p}\t%{word:proto}\t%{int:trans_id}\t%{greedydata:query}\t%{greedydata:qclass}\t%{greedydata:qclass_name}\t%{greedydata:qtype}\t%{greedydata:qtype_name}\t%{greedydata:rcode}\t%{greedydata:rcode_name}\t%{greedydata:AA}\t%{greedydata:TC}\t%{greedydata:RD}\t%{greedydata:RA}\t%{greedydata:Z}\t%{greedydata:answers}\t%{greedydata:TTLs}\t%{greedydata:rejected}`},
 		{"bro_conn", `%{number:ts}\t%{notspace:uid}\t%{ip:orig_h}\t%{int:orig_p}\t%{ip:resp_h}\t%{int:resp_p}\t%{word:proto}\t%{greedydata:service}\t%{number:duration}\t%{number:orig_bytes}\t%{number:resp_bytes}\t%{greedydata:conn_state}\t%{greedydata:local_orig}\t%{greedydata:missed_bytes}\t%{greedydata:history}\t%{greedydata:orig_pkts}\t%{greedydata:orig_ip_bytes}\t%{greedydata:resp_pkts}\t%{greedydata:resp_ip_bytes}\t%{greedydata:tunnel_parents}`},
 		{"bro_files", `%{number:ts}\t%{notspace:fuid}\t%{ip:tx_hosts}\t%{ip:rx_hosts}\t%{notspace:conn_uids}\t%{greedydata:source}\t%{greedydata:depth}\t%{greedydata:analyzers}\t%{greedydata:mime_type}\t%{greedydata:filename}\t%{greedydata:duration}\t%{greedydata:local_orig}\t%{greedydata:is_orig}\t%{greedydata:seen_bytes}\t%{greedydata:total_bytes}\t%{greedydata:missing_bytes}\t%{greedydata:overflow_bytes}\t%{greedydata:timedout}\t%{greedydata:parent_fuid}\t%{greedydata:md5}\t%{greedydata:sha1}\t%{greedydata:sha256}\t%{greedydata:extracted}`},
-    },
+	},
 
-    "exim" : {
+	"exim": {
 		{"exim_msgid", `[0-9A-Za-z]{6}-[0-9A-Za-z]{6}-[0-9A-Za-z]{2}`},
 		{"exim_flags", `(<=|[-=>*]>|[*]{2}|==)`},
 		{"exim_date", `%{year:exim_year}-%{monthnum:exim_month}-%{monthday:exim_day} %{time:exim_time}`},
@@ -84,9 +84,9 @@ var GlobalPatterns = map[string][][]string {
 		{"exim_msg_size", `(S=%{number:exim_msg_size})`},
 		{"exim_header_id", `(id=%{notspace:exim_header_id})`},
 		{"exim_subject", `(T=%{qs:exim_subject})`},
-    },
+	},
 
-    "firewalls" : {
+	"firewalls": {
 		{"netscreensessionlog", `%{syslogtimestamp:date} %{iporhost:device} %{iporhost}: NetScreen device_id=%{word:device_id}%{data}: start_time=%{quotedstring:start_time} duration=%{int:duration} policy_id=%{int:policy_id} service=%{data:service} proto=%{int:proto} src zone=%{word:src_zone} dst zone=%{word:dst_zone} action=%{word:action} sent=%{int:sent} rcvd=%{int:rcvd} src=%{iporhost:src_ip} dst=%{iporhost:dst_ip} src_port=%{int:src_port} dst_port=%{int:dst_port} src-xlated ip=%{iporhost:src_xlated_ip} port=%{int:src_xlated_port} dst-xlated ip=%{iporhost:dst_xlated_ip} port=%{int:dst_xlated_port} session_id=%{int:session_id} reason=%{greedydata:reason}`},
 		{"cisco_tagged_syslog", `^<%{posint:syslog_pri}>%{ciscotimestamp:timestamp}( %{sysloghost:sysloghost})? ?: %%{ciscotag:ciscotag}:`},
 		{"ciscotimestamp", `%{month} +%{monthday}(?: %{year})? %{time}`},
@@ -131,9 +131,9 @@ var GlobalPatterns = map[string][][]string {
 		{"ciscofw713172", `Group = %{greedydata:group}, ip = %{ip:src_ip}, Automatic NAT Detection Status:\s+Remote end\s*%{data:is_remote_natted}\s*behind a NAT device\s+This\s+end\s*%{data:is_local_natted}\s*behind a NAT device`},
 		{"ciscofw733100", `\[\s*%{data:drop_type}\s*\] drop %{data:drop_rate_id} exceeded. Current burst rate is %{int:drop_rate_current_burst} per second, max configured rate is %{int:drop_rate_max_burst}; Current average rate is %{int:drop_rate_current_avg} per second, max configured rate is %{int:drop_rate_max_avg}; Cumulative total count is %{int:drop_total_count}`},
 		{"shorewall", `(%{syslogtimestamp:timestamp}) (%{word:nf_host}) kernel:.*Shorewall:(%{word:nf_action1})?:(%{word:nf_action2})?.*IN=(%{username:nf_in_interface})?.*(OUT= *MAC=(%{commonmac:nf_dst_mac}):(%{commonmac:nf_src_mac})?|OUT=%{username:nf_out_interface}).*SRC=(%{ipv4:nf_src_ip}).*DST=(%{ipv4:nf_dst_ip}).*LEN=(%{word:nf_len}).?*TOS=(%{word:nf_tos}).?*PREC=(%{word:nf_prec}).?*TTL=(%{int:nf_ttl}).?*ID=(%{int:nf_id}).?*PROTO=(%{word:nf_protocol}).?*SPT=(%{int:nf_src_port}?.*DPT=%{int:nf_dst_port}?.*)`},
-    },
+	},
 
-    "grok-patterns" : {
+	"grok-patterns": {
 		{"username", `[a-zA-Z0-9._-]+`},
 		{"user", `%{username}`},
 		{"int", `(?:[+-]?(?:[0-9]+))`},
@@ -200,9 +200,9 @@ var GlobalPatterns = map[string][][]string {
 		{"commonapachelog", `%{iporhost:clientip} %{user:ident} %{user:auth} \[%{httpdate:timestamp}\] "(?:%{word:verb} %{notspace:request}(?: HTTP/%{number:httpversion})?|%{data:rawrequest})" %{number:response} (?:%{number:bytes}|-)`},
 		{"combinedapachelog", `%{commonapachelog} %{qs:referrer} %{qs:agent}`},
 		{"loglevel", `([A-a]lert|ALERT|[T|t]race|TRACE|[D|d]ebug|DEBUG|[N|n]otice|NOTICE|[I|i]nfo|INFO|[W|w]arn?(?:ing)?|WARN?(?:ING)?|[E|e]rr?(?:or)?|ERR?(?:OR)?|[C|c]rit?(?:ical)?|CRIT?(?:ICAL)?|[F|f]atal|FATAL|[S|s]evere|SEVERE|EMERG(?:ENCY)?|[Ee]merg(?:ency)?)`},
-    },
+	},
 
-    "haproxy" : {
+	"haproxy": {
 		{"haproxytime", `(?!<[0-9])%{hour:haproxy_hour}:%{minute:haproxy_minute}(?::%{second:haproxy_second})(?![0-9])`},
 		{"haproxydate", `%{monthday:haproxy_monthday}/%{month:haproxy_month}/%{year:haproxy_year}:%{haproxytime:haproxy_time}.%{int:haproxy_milliseconds}`},
 		{"haproxycapturedrequestheaders", `%{data:captured_request_headers}`},
@@ -210,9 +210,9 @@ var GlobalPatterns = map[string][][]string {
 		{"haproxyhttpbase", `%{ip:client_ip}:%{int:client_port} \[%{haproxydate:accept_date}\] %{notspace:frontend_name} %{notspace:backend_name}/%{notspace:server_name} %{int:time_request}/%{int:time_queue}/%{int:time_backend_connect}/%{int:time_backend_response}/%{notspace:time_duration} %{int:http_status_code} %{notspace:bytes_read} %{data:captured_request_cookie} %{data:captured_response_cookie} %{notspace:termination_state} %{int:actconn}/%{int:feconn}/%{int:beconn}/%{int:srvconn}/%{notspace:retries} %{int:srv_queue}/%{int:backend_queue} (\{%{haproxycapturedrequestheaders}\})?( )?(\{%{haproxycapturedresponseheaders}\})?( )?"(<BADREQ>|(%{word:http_verb} (%{uriproto:http_proto}://)?(?:%{user:http_user}(?::[^@]*)?@)?(?:%{urihost:http_host})?(?:%{uripathparam:http_request})?( HTTP/%{number:http_version})?))?"`},
 		{"haproxyhttp", `(?:%{syslogtimestamp:syslog_timestamp}|%{timestamp_iso8601:timestamp8601}) %{iporhost:syslog_server} %{syslogprog}: %{haproxyhttpbase}`},
 		{"haproxytcp", `(?:%{syslogtimestamp:syslog_timestamp}|%{timestamp_iso8601:timestamp8601}) %{iporhost:syslog_server} %{syslogprog}: %{ip:client_ip}:%{int:client_port} \[%{haproxydate:accept_date}\] %{notspace:frontend_name} %{notspace:backend_name}/%{notspace:server_name} %{int:time_queue}/%{int:time_backend_connect}/%{notspace:time_duration} %{notspace:bytes_read} %{notspace:termination_state} %{int:actconn}/%{int:feconn}/%{int:beconn}/%{int:srvconn}/%{notspace:retries} %{int:srv_queue}/%{int:backend_queue}`},
-    },
+	},
 
-    "java" : {
+	"java": {
 		{"javaclass", `(?:[a-zA-Z$_][a-zA-Z$_0-9]*\.)*[a-zA-Z$_][a-zA-Z$_0-9]*`},
 		{"javafile", `(?:[A-Za-z0-9_. -]+)`},
 		{"javamethod", `(?:(<init>)|[a-zA-Z$_][a-zA-Z$_0-9]*)`},
@@ -226,16 +226,16 @@ var GlobalPatterns = map[string][][]string {
 		{"tomcat_datestamp", `20%{year}-%{monthnum}-%{monthday} %{hour}:?%{minute}(?::?%{second}) %{iso8601_timezone}`},
 		{"catalinalog", `%{catalina_datestamp:timestamp} %{javaclass:class} %{javalogmessage:logmessage}`},
 		{"tomcatlog", `%{tomcat_datestamp:timestamp} \| %{loglevel:level} \| %{javaclass:class} - %{javalogmessage:logmessage}`},
-    },
+	},
 
-    "junos" : {
+	"junos": {
 		{"rt_flow_event", `(RT_FLOW_SESSION_CREATE|RT_FLOW_SESSION_CLOSE|RT_FLOW_SESSION_DENY)`},
 		{"rt_flow1", `%{rt_flow_event:event}: %{GREEDYdata:close-reason}: %{IP:src-ip}/%{INT:src-port}->%{IP:dst-ip}/%{INT:dst-port} %{data:service} %{IP:nat-src-ip}/%{INT:nat-src-port}->%{IP:nat-dst-ip}/%{INT:nat-dst-port} %{data:src-nat-rule-name} %{data:dst-nat-rule-name} %{INT:protocol-id} %{data:policy-name} %{data:from-zone} %{data:to-zone} %{INT:session-id} \d+\(%{data:sent}\) \d+\(%{data:received}\) %{INT:elapsed-time} .*`},
 		{"rt_flow2", `%{rt_flow_event:event}: session created %{IP:src-ip}/%{INT:src-port}->%{IP:dst-ip}/%{INT:dst-port} %{data:service} %{IP:nat-src-ip}/%{INT:nat-src-port}->%{IP:nat-dst-ip}/%{INT:nat-dst-port} %{data:src-nat-rule-name} %{data:dst-nat-rule-name} %{INT:protocol-id} %{data:policy-name} %{data:from-zone} %{data:to-zone} %{INT:session-id} .*`},
 		{"rt_flow3", `%{rt_flow_event:event}: session denied %{IP:src-ip}/%{INT:src-port}->%{IP:dst-ip}/%{INT:dst-port} %{data:service} %{INT:protocol-id}\(\d\) %{data:policy-name} %{data:from-zone} %{data:to-zone} .*`},
-    },
+	},
 
-    "linux-syslog" : {
+	"linux-syslog": {
 		{"syslog5424printascii", `[!-~]+`},
 		{"syslogbase2", `(?:%{syslogtimestamp:timestamp}|%{timestamp_iso8601:timestamp8601}) (?:%{syslogfacility} )?%{sysloghost:logsource}+(?: %{syslogprog}:|)`},
 		{"syslogpamsession", `%{syslogbase} (?=%{greedydata:message})%{word:pam_module}\(%{data:pam_caller}\): session %{word:pam_session_state} for user %{username:username}(?: by %{greedydata:pam_by})?`},
@@ -246,18 +246,18 @@ var GlobalPatterns = map[string][][]string {
 		{"syslog5424sd", `\[%{data}\]+`},
 		{"syslog5424base", `%{syslog5424pri}%{nonnegint:syslog5424_ver} +(?:%{timestamp_iso8601:syslog5424_ts}|-) +(?:%{hostname:syslog5424_host}|-) +(-|%{syslog5424printascii:syslog5424_app}) +(-|%{syslog5424printascii:syslog5424_proc}) +(-|%{syslog5424printascii:syslog5424_msgid}) +(?:%{syslog5424sd:syslog5424_sd}|-|)`},
 		{"syslog5424line", `%{syslog5424base} +%{greedydata:syslog5424_msg}`},
-    },
+	},
 
-    "mcollective" : {
+	"mcollective": {
 		{"mcollectiveaudit", `%{timestamp_iso8601:timestamp}:`},
-    },
+	},
 
-    "mcollective-patterns" : {
+	"mcollective-patterns": {
 		{"mcollective", `., \[%{timestamp_iso8601:timestamp} #%{posint:pid}\]%{space}%{loglevel:event_level}`},
 		{"mcollectiveaudit", `%{timestamp_iso8601:timestamp}:`},
-    },
+	},
 
-    "mongodb" : {
+	"mongodb": {
 		{"mongo_log", `%{syslogtimestamp:timestamp} \[%{word:component}\] %{greedydata:message}`},
 		{"mongo_query", `\{ (?<={ ).*(?= } ntoreturn:) \}`},
 		{"mongo_slowquery", `%{word} %{mongo_worddash:database}\.%{mongo_worddash:collection} %{word}: %{mongo_query:query} %{word}:%{nonnegint:ntoreturn} %{word}:%{nonnegint:ntoskip} %{word}:%{nonnegint:nscanned}.*nreturned:%{nonnegint:nreturned}..+ (?<duration>[0-9]+)ms`},
@@ -265,9 +265,9 @@ var GlobalPatterns = map[string][][]string {
 		{"mongo3_severity", `\w`},
 		{"mongo3_component", `%{word}|-`},
 		{"mongo3_log", `%{timestamp_iso8601:timestamp} %{mongo3_severity:severity} %{mongo3_component:component}%{space}(?:\[%{data:context}\])? %{greedydata:message}`},
-    },
+	},
 
-    "nagios" : {
+	"nagios": {
 		{"nagiostime", `\[%{number:nagios_epoch}\]`},
 		{"nagios_type_current_service_state", `CURRENT SERVICE STATE`},
 		{"nagios_type_current_host_state", `CURRENT HOST STATE`},
@@ -329,13 +329,13 @@ var GlobalPatterns = map[string][][]string {
 		{"nagios_ec_line_enable_svc_notifications", `%{nagios_type_external_command:nagios_type}: %{nagios_ec_enable_svc_notifications:nagios_command};%{data:nagios_hostname};%{greedydata:nagios_service}`},
 		{"nagios_ec_line_schedule_host_downtime", `%{nagios_type_external_command:nagios_type}: %{nagios_ec_schedule_host_downtime:nagios_command};%{data:nagios_hostname};%{number:nagios_start_time};%{number:nagios_end_time};%{number:nagios_fixed};%{number:nagios_trigger_id};%{number:nagios_duration};%{data:author};%{data:comment}`},
 		{"nagioslogline", `%{nagiostime} (?:%{nagios_warning}|%{nagios_current_service_state}|%{nagios_current_host_state}|%{nagios_service_notification}|%{nagios_host_notification}|%{nagios_service_alert}|%{nagios_host_alert}|%{nagios_service_flapping_alert}|%{nagios_host_flapping_alert}|%{nagios_service_downtime_alert}|%{nagios_host_downtime_alert}|%{nagios_passive_service_check}|%{nagios_passive_host_check}|%{nagios_service_event_handler}|%{nagios_host_event_handler}|%{nagios_timeperiod_transition}|%{nagios_ec_line_disable_svc_check}|%{nagios_ec_line_enable_svc_check}|%{nagios_ec_line_disable_host_check}|%{nagios_ec_line_enable_host_check}|%{nagios_ec_line_process_host_check_result}|%{nagios_ec_line_process_service_check_result}|%{nagios_ec_line_schedule_host_downtime}|%{nagios_ec_line_disable_host_svc_notifications}|%{nagios_ec_line_enable_host_svc_notifications}|%{nagios_ec_line_disable_host_notifications}|%{nagios_ec_line_enable_host_notifications}|%{nagios_ec_line_disable_svc_notifications}|%{nagios_ec_line_enable_svc_notifications})`},
-    },
+	},
 
-    "postgresql" : {
+	"postgresql": {
 		{"postgresql", `%{datestamp:timestamp} %{tz} %{data:user_id} %{greedydata:connection_id} %{posint:pid}`},
-    },
+	},
 
-    "rails" : {
+	"rails": {
 		{"ruuid", `\h{32}`},
 		{"rcontroller", `(?<controller>[^#]+)#(?<action>\w+)`},
 		{"rails3head", `(?m)Started %{word:verb} "%{uripathparam:request}" for %{iporhost:clientip} at (?<timestamp>%{year}-%{monthnum}-%{monthday} %{hour}:%{minute}:%{second} %{iso8601_timezone})`},
@@ -343,16 +343,15 @@ var GlobalPatterns = map[string][][]string {
 		{"rails3foot", `Completed %{number:response}%{data} in %{number:totalms}ms %{rails3profile}%{greedydata}`},
 		{"rails3profile", `(?:\(Views: %{number:viewms}ms \| ActiveRecord: %{number:activerecordms}ms|\(ActiveRecord: %{number:activerecordms}ms)?`},
 		{"rails3", `%{rails3head}(?:%{rprocessing})?(?<context>(?:%{data}\n)*)(?:%{rails3foot})?`},
-    },
+	},
 
-    "redis" : {
+	"redis": {
 		{"redistimestamp", `%{monthday} %{month} %{time}`},
 		{"redislog", `\[%{posint:pid}\] %{redistimestamp:timestamp} \*`},
-    },
+	},
 
-    "ruby" : {
+	"ruby": {
 		{"ruby_loglevel", `(?:DEBUG|FATAL|ERROR|WARN|INFO)`},
 		{"ruby_logger", `[DFEWI], \[%{timestamp_iso8601:timestamp} #%{posint:pid}\] *%{ruby_loglevel:loglevel} -- +%{data:progname}: %{greedydata:message}`},
-    },
-
+	},
 }
