@@ -46,16 +46,16 @@ func (c *objCollector) isDebug() bool {
 }
 
 func (_ *objCollector) Catalog() string {
-	return "host"
+	return InputCat
 }
 
 func (_ *objCollector) SampleConfig() string {
-	return sampleConfig
+	return SampleConfig
 }
 
 func (r *objCollector) PipelineConfig() map[string]string {
 	return map[string]string{
-		inputName: pipelineSample,
+		InputName: pipelineSample,
 	}
 }
 
@@ -68,7 +68,7 @@ func (c *objCollector) Test() (*inputs.TestResult, error) {
 
 func (c *objCollector) Run() {
 
-	moduleLogger = logger.SLogger(inputName)
+	moduleLogger = logger.SLogger(InputName)
 
 	if c.Interval.Duration == 0 {
 		c.Interval.Duration = 5 * time.Minute
@@ -94,7 +94,7 @@ func (c *objCollector) Run() {
 
 	script := c.Pipeline
 	if script == "" {
-		scriptPath := filepath.Join(datakit.PipelineDir, inputName+".p")
+		scriptPath := filepath.Join(datakit.PipelineDir, InputName+".p")
 		data, err := ioutil.ReadFile(scriptPath)
 		if err == nil {
 			script = string(data)
@@ -155,7 +155,7 @@ func (c *objCollector) Run() {
 		tm := time.Now().UTC()
 
 		if c.isTestOnce() {
-			data, err := io.MakeMetric(inputName, tags, fields, tm)
+			data, err := io.MakeMetric(InputName, tags, fields, tm)
 			if err != nil {
 				moduleLogger.Errorf("%s", err)
 				c.testError = err
@@ -168,10 +168,10 @@ func (c *objCollector) Run() {
 			}
 			return
 		} else if c.isDebug() {
-			data, _ := io.MakeMetric(inputName, tags, fields, tm)
+			data, _ := io.MakeMetric(InputName, tags, fields, tm)
 			fmt.Printf("%s\n", string(data))
 		} else {
-			io.NamedFeedEx(inputName, io.Object, inputName, tags, fields, tm)
+			io.NamedFeedEx(InputName, io.Object, InputName, tags, fields, tm)
 		}
 
 		datakit.SleepContext(c.ctx, c.Interval.Duration)
@@ -185,7 +185,7 @@ func newInput() *objCollector {
 }
 
 func init() {
-	inputs.Add(inputName, func() inputs.Input {
+	inputs.Add(InputName, func() inputs.Input {
 		return newInput()
 	})
 }
