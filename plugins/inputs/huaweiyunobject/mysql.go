@@ -11,7 +11,7 @@ import (
 const (
 	mysqlSampleConfig = `
 #[inputs.huaweiyunobject.mysql]
-endpoint=""
+#endpoint=""
 
 # ## @param - [list of mysql instanceid] - optional
 #instanceids = ['']
@@ -51,12 +51,14 @@ func (e *Mysql) run(ag *objectAgent) {
 	}
 	cli := huaweicloud.NewHWClient(ag.AccessKeyID, ag.AccessKeySecret, e.EndPoint, ag.ProjectID, moduleLogger)
 
-	p, err := pipeline.NewPipelineByScriptPath(e.PipelinePath)
-	if err != nil {
-		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
-		return
+	if e.PipelinePath != `` {
+		p, err := pipeline.NewPipelineByScriptPath(e.PipelinePath)
+		if err != nil {
+			moduleLogger.Errorf("[error] mysql new pipeline err:%s", err.Error())
+			return
+		}
+		e.p = p
 	}
-	e.p = p
 
 	for {
 
