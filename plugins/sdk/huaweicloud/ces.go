@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	cesMestricPath      = "/V1.0/%s/metric-data"
 	cesBatchMestricPath = "/V1.0/%s/batch-query-metric-data"
+	cesMestricPath      = "/V1.0/%s/metric-data"
 )
 
 func (c *HWClient) CESGetMetric(namespace, metricname string, filter string, period int, from, to int64, dims []string) ([]byte, error) {
