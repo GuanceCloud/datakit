@@ -11,6 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -45,7 +46,7 @@ func (c *objCollector) isDebug() bool {
 }
 
 func (_ *objCollector) Catalog() string {
-	return inputName
+	return "host"
 }
 
 func (_ *objCollector) SampleConfig() string {
@@ -73,11 +74,6 @@ func (c *objCollector) Run() {
 		c.Interval.Duration = 5 * time.Minute
 	}
 
-	if datakit.Cfg.MainCfg.DisableHostInput {
-		moduleLogger.Infof("hostobject disabled")
-		return
-	}
-
 	defer func() {
 		if e := recover(); e != nil {
 			if err := recover(); err != nil {
@@ -88,8 +84,6 @@ func (c *objCollector) Run() {
 			}
 		}
 	}()
-
-	moduleLogger.Debugf("start")
 
 	go func() {
 		<-datakit.Exit.Wait()
@@ -136,7 +130,13 @@ func (c *objCollector) Run() {
 		moduleLogger.Debugf("%s", string(messageData))
 
 		fields := map[string]interface{}{
-			"message": string(messageData),
+			"message":     string(messageData),
+			"os":          message.Host.HostMeta.OS,
+			"start_time":  message.Host.HostMeta.BootTime,
+			"datakit_ver": git.Version,
+			"cpu":         message.Host.cpuPercent,
+			"mem":         message.Host.Mem.usedPercent,
+			"load":        message.Host.load15,
 		}
 		if thePipeline != nil {
 			if result, err := thePipeline.Run(string(messageData)).Result(); err == nil {
