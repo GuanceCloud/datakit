@@ -98,7 +98,11 @@ func (t *tailer) receiver() {
 
 		case <-ticker.C:
 			if t.count > 0 {
-				t.feed(&buffer)
+				if err := io.NamedFeed(buffer.Bytes(), io.Logging, t.source); err != nil {
+					t.tf.log.Error(err)
+				}
+				buffer = bytes.Buffer{}
+				t.count = 0
 			}
 			_, statErr := os.Lstat(t.filename)
 			if os.IsNotExist(statErr) {
@@ -132,7 +136,11 @@ func (t *tailer) receiver() {
 		t.count++
 
 		if t.count >= metricFeedCount {
-			t.feed(&buffer)
+			if err := io.NamedFeed(buffer.Bytes(), io.Logging, t.source); err != nil {
+				t.tf.log.Error(err)
+			}
+			buffer = bytes.Buffer{}
+			t.count = 0
 		}
 	}
 }
@@ -226,13 +234,4 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 	}
 
 	return
-}
-
-func (t *tailer) feed(buffer *bytes.Buffer) {
-	if err := io.NamedFeed(buffer.Bytes(), io.Logging, t.source); err != nil {
-		t.tf.log.Error(err)
-	}
-
-	buffer = &bytes.Buffer{}
-	t.count = 0
 }
