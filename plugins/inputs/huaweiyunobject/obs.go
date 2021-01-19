@@ -49,7 +49,7 @@ func (o *Obs) run(ag *objectAgent) {
 
 	p, err := pipeline.NewPipelineByScriptPath(o.PipelinePath)
 	if err != nil {
-		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
+		moduleLogger.Errorf("[error] obs new pipeline err:%s", err.Error())
 		return
 	}
 	o.p = p
