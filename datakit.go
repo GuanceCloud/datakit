@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -39,8 +38,6 @@ var (
 	l    = logger.DefaultSLogger("datakit")
 
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
-
-	MaxLifeCheckInterval time.Duration
 
 	Docker = false
 
