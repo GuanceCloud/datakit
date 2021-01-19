@@ -200,22 +200,21 @@ type SecretCfg struct {
 }
 
 type Config struct {
-	Influx    InfluxCfg            `yaml:"influxdb"`
-	Database  DatabaseCfg          `yaml:"database"`
-	Redis     RedisCfg             `yaml:"redis"`
-	LogConfig LogCfg               `yaml:"log"`
-	RpConfig  map[string][2]string `yaml:"global_rp"`
+	Influx              InfluxCfg            `yaml:"influxdb"`
+	Database            DatabaseCfg          `yaml:"database"`
+	Redis               RedisCfg             `yaml:"redis"`
+	LogConfig           LogCfg               `yaml:"log"`
+	RpConfig            map[string][2]string `yaml:"global_rp"`
 	ShardDurationConfig map[string]string    `yaml:"shard_duration_cfg"`
-	Func      FuncCfg              `yaml:"func"`
-	NSQ       NSQCfg               `yaml:"nsq"`
-	Global    GlobalCfg            `yaml:"global"`
+	Func                FuncCfg              `yaml:"func"`
+	NSQ                 NSQCfg               `yaml:"nsq"`
+	Global              GlobalCfg            `yaml:"global"`
 	DQL                 DQLCfg               `yaml:"dql"`
-	Ck        CkCfg                `yaml:"ck"`
-	Secret    SecretCfg            `yaml:"secret"`
-	Stat      StatCfg              `yaml:"stat"`
-	Es        EsCfg                `yaml:"es"`
-	Ws        WsConfig             `yaml:"ws_server"`
-
+	Ck                  CkCfg                `yaml:"ck"`
+	Secret              SecretCfg            `yaml:"secret"`
+	Stat                StatCfg              `yaml:"stat"`
+	Es                  EsCfg                `yaml:"es"`
+	Ws                  WsConfig             `yaml:"ws_server"`
 }
 
 type EsCfg struct {
@@ -232,9 +231,9 @@ type FuncCfg struct {
 }
 
 type WsConfig struct {
-	Bind string      `yaml:"bind"`
-	Path string		 `yaml:"path"`
-	TimeOut string   `yaml:"time_out"`
+	Bind    string `yaml:"bind"`
+	Path    string `yaml:"path"`
+	TimeOut string `yaml:"time_out"`
 }
 
 func DumpConfig(cfg *Config, f string) error {
