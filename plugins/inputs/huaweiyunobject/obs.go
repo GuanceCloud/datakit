@@ -12,7 +12,7 @@ import (
 const (
 	obsSampleConfig = `
 #[inputs.huaweiyunobject.obs]
-endpoint=""
+#endpoint=""
 
 # ## @param - [list of obs instanceid] - optional
 #buckets = []
@@ -47,12 +47,14 @@ func (o *Obs) run(ag *objectAgent) {
 		o.EndPoint = fmt.Sprintf(`obs.%s.myhuaweicloud.com`, ag.RegionID)
 	}
 
-	p, err := pipeline.NewPipelineByScriptPath(o.PipelinePath)
-	if err != nil {
-		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
-		return
+	if o.PipelinePath != `` {
+		p, err := pipeline.NewPipelineByScriptPath(o.PipelinePath)
+		if err != nil {
+			moduleLogger.Errorf("[error] obs new pipeline err:%s", err.Error())
+			return
+		}
+		o.p = p
 	}
-	o.p = p
 
 	for {
 
