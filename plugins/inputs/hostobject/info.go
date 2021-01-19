@@ -133,7 +133,7 @@ func getCPUInfo() []*CPUInfo {
 func getLoad15() float64 {
 	avgstat, err := loadutil.Avg()
 	if err != nil {
-		moduleLogger.Errorf("fail to get cpu info, %s", err)
+		moduleLogger.Errorf("fail to get load info, %s", err)
 		return 0
 	}
 	return avgstat.Load15
