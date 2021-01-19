@@ -4,8 +4,8 @@ import (
 	"net"
 	"strings"
 
+	diskutil "github.com/shirou/gopsutil/disk"
 	cpuutil "github.com/shirou/gopsutil/v3/cpu"
-	diskutil "github.com/shirou/gopsutil/v3/disk"
 	hostutil "github.com/shirou/gopsutil/v3/host"
 	memutil "github.com/shirou/gopsutil/v3/mem"
 	netutil "github.com/shirou/gopsutil/v3/net"
@@ -177,7 +177,7 @@ func getDiskInfo() []*DiskInfo {
 			Device:     p.Device,
 			Mountpoint: p.Mountpoint,
 			Fstype:     p.Fstype,
-			Opts:       strings.Join(p.Opts, ","),
+			//Opts:       strings.Join(p.Opts, ","),
 		}
 
 		usage, err := diskutil.Usage(p.Mountpoint)
