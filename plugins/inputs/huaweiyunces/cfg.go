@@ -6,10 +6,10 @@ import (
 
 	"golang.org/x/time/rate"
 
+	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud"
-	"fmt"
 )
 
 const (
