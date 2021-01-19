@@ -376,6 +376,8 @@ type MainConfig struct {
 	LogRotate int    `toml:"log_rotate,omitempty"`
 	LogUpload bool   `toml:"log_upload"`
 
+	DisableHostInput bool `toml:"disable_host_input"`
+
 	GinLog               string            `toml:"gin_log"`
 	MaxPostInterval      string            `toml:"max_post_interval"`
 	GlobalTags           map[string]string `toml:"global_tags"`
