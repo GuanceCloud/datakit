@@ -28,7 +28,14 @@ var (
 func DefaultConfig() *Config {
 	return &Config{ //nolint:dupl
 		MainCfg: &MainConfig{
-			GlobalTags:      map[string]string{},
+			GlobalTags: map[string]string{
+				"project":        "",
+				"cluster":        "",
+				"site":           "",
+				"cloud_provider": "",
+				"instanceid":     "",
+			},
+
 			flushInterval:   Duration{Duration: time.Second * 10},
 			Interval:        "10s",
 			MaxPostInterval: "15s", // add 5s plus for network latency
@@ -376,8 +383,6 @@ type MainConfig struct {
 	LogRotate int    `toml:"log_rotate,omitempty"`
 	LogUpload bool   `toml:"log_upload"`
 
-	DisableHostInput bool `toml:"disable_host_input"`
-
 	GinLog               string            `toml:"gin_log"`
 	MaxPostInterval      string            `toml:"max_post_interval"`
 	GlobalTags           map[string]string `toml:"global_tags"`
@@ -448,6 +453,11 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 
 	if c.MainCfg.Hostname == "" {
 		c.setHostname()
+	}
+	if len(c.MainCfg.GlobalTags) == 0 {
+		c.MainCfg.GlobalTags = map[string]string{
+			"host": c.MainCfg.Hostname,
+		}
 	}
 
 	if c.MainCfg.DataWay.URL == "" {
