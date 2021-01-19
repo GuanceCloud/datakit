@@ -22,7 +22,7 @@ const (
 # subscription_id = ''
 
 # ##(optional) default is for china
-# end_point = 'https://management.chinacloudapi.cn'
+# end_point = 'https://management.chinacloudapi.cn/'
 
 # ##(required)
 #[[inputs.azure_monitor.resource]]
