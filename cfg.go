@@ -454,11 +454,11 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 	if c.MainCfg.Hostname == "" {
 		c.setHostname()
 	}
-	if len(c.MainCfg.GlobalTags) == 0 {
-		c.MainCfg.GlobalTags = map[string]string{
-			"host": c.MainCfg.Hostname,
-		}
+	if c.MainCfg.GlobalTags == nil {
+		c.MainCfg.GlobalTags = map[string]string{}
 	}
+
+	c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
 
 	if c.MainCfg.DataWay.URL == "" {
 		l.Fatal("dataway URL not set")
