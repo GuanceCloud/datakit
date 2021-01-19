@@ -128,6 +128,7 @@ func (t *tailer) receiver() {
 
 		data, err := t.pipeline(text)
 		if err != nil {
+			// FIXME: drop the log?
 			continue
 		}
 
@@ -230,7 +231,7 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 
 	data, err = io.MakeMetric(t.source, t.tags, fields, ts)
 	if err != nil {
-		l.Error(err)
+		l.Warnf("%s: ", t.source, err)
 	}
 
 	return
