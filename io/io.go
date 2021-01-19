@@ -260,12 +260,6 @@ func startIO() {
 		Timeout: du,
 	}
 
-	if datakit.MaxLifeCheckInterval > 0 {
-		l.Debugf("max-post-interval: %v", datakit.MaxLifeCheckInterval)
-	} else {
-		l.Debugf("max-post-interval not set")
-	}
-
 	defer ioStop()
 
 	var f rtpanic.RecoverCallback

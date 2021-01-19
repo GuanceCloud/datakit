@@ -168,10 +168,10 @@ func (c *objCollector) Run() {
 			}
 			return
 		} else if c.isDebug() {
-			data, _ := io.MakeMetric(InputName, tags, fields, tm)
+			data, _ := io.MakeMetric("HOST", tags, fields, tm)
 			fmt.Printf("%s\n", string(data))
 		} else {
-			io.NamedFeedEx(InputName, io.Object, InputName, tags, fields, tm)
+			io.NamedFeedEx("HOST", io.Object, InputName, tags, fields, tm)
 		}
 
 		datakit.SleepContext(c.ctx, c.Interval.Duration)
