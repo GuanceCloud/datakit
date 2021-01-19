@@ -7,6 +7,7 @@ import (
 	cpuutil "github.com/shirou/gopsutil/cpu"
 	diskutil "github.com/shirou/gopsutil/disk"
 	hostutil "github.com/shirou/gopsutil/host"
+	loadutil "github.com/shirou/gopsutil/load"
 	memutil "github.com/shirou/gopsutil/mem"
 	netutil "github.com/shirou/gopsutil/net"
 
@@ -38,6 +39,8 @@ type (
 	MemInfo struct {
 		MemoryTotal uint64 `json:"memory_total"`
 		SwapTotal   uint64 `json:"swap_total"`
+
+		usedPercent float64
 	}
 
 	NetInfo struct {
@@ -60,11 +63,13 @@ type (
 	}
 
 	HostInfo struct {
-		HostMeta *HostMetaInfo `json:"meta"`
-		CPU      []*CPUInfo    `json:"cpu"`
-		Mem      *MemInfo      `json:"mem"`
-		Net      []*NetInfo    `json:"net"`
-		Disk     []*DiskInfo   `json:"disk"`
+		HostMeta   *HostMetaInfo `json:"meta"`
+		CPU        []*CPUInfo    `json:"cpu"`
+		Mem        *MemInfo      `json:"mem"`
+		Net        []*NetInfo    `json:"net"`
+		Disk       []*DiskInfo   `json:"disk"`
+		cpuPercent float64
+		load15     float64
 	}
 
 	HostObjectMessage struct {
@@ -92,6 +97,16 @@ func getHostMeta() *HostMetaInfo {
 	}
 }
 
+func getCPUPercent() float64 {
+
+	ps, err := cpuutil.Percent(0, false)
+	if err != nil || len(ps) == 0 {
+		moduleLogger.Errorf("fail to get cpu percent, %s", err)
+		return 0
+	}
+	return ps[0]
+}
+
 func getCPUInfo() []*CPUInfo {
 	infos, err := cpuutil.Info()
 	if err != nil {
@@ -115,6 +130,15 @@ func getCPUInfo() []*CPUInfo {
 	return objs
 }
 
+func getLoad15() float64 {
+	avgstat, err := loadutil.Avg()
+	if err != nil {
+		moduleLogger.Errorf("fail to get cpu info, %s", err)
+		return 0
+	}
+	return avgstat.Load15
+}
+
 func getMemInfo() *MemInfo {
 	minfo, err := memutil.VirtualMemory()
 	if err != nil {
@@ -130,6 +154,7 @@ func getMemInfo() *MemInfo {
 	return &MemInfo{
 		MemoryTotal: minfo.Total,
 		SwapTotal:   vinfo.Total,
+		usedPercent: minfo.UsedPercent,
 	}
 }
 
@@ -217,11 +242,13 @@ func getHostObjectMessage() *HostObjectMessage {
 
 	msg.Collectors = getEnabledInputs()
 	msg.Host = &HostInfo{
-		HostMeta: getHostMeta(),
-		CPU:      getCPUInfo(),
-		Mem:      getMemInfo(),
-		Net:      getNetInfo(),
-		Disk:     getDiskInfo(),
+		HostMeta:   getHostMeta(),
+		CPU:        getCPUInfo(),
+		cpuPercent: getCPUPercent(),
+		load15:     getLoad15(),
+		Mem:        getMemInfo(),
+		Net:        getNetInfo(),
+		Disk:       getDiskInfo(),
 	}
 
 	return &msg
