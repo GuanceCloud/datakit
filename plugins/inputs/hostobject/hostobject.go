@@ -74,6 +74,7 @@ func (c *objCollector) Run() {
 	}
 
 	if datakit.Cfg.MainCfg.DisableHostInput {
+		moduleLogger.Infof("hostobject disabled")
 		return
 	}
 
@@ -87,6 +88,8 @@ func (c *objCollector) Run() {
 			}
 		}
 	}()
+
+	moduleLogger.Debugf("start")
 
 	go func() {
 		<-datakit.Exit.Wait()
@@ -129,6 +132,8 @@ func (c *objCollector) Run() {
 			datakit.SleepContext(c.ctx, c.Interval.Duration)
 			continue
 		}
+
+		moduleLogger.Debugf("%s", string(messageData))
 
 		fields := map[string]interface{}{
 			"message": string(messageData),
