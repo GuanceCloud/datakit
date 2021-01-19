@@ -11,6 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -45,16 +46,16 @@ func (c *objCollector) isDebug() bool {
 }
 
 func (_ *objCollector) Catalog() string {
-	return inputName
+	return InputCat
 }
 
 func (_ *objCollector) SampleConfig() string {
-	return sampleConfig
+	return SampleConfig
 }
 
 func (r *objCollector) PipelineConfig() map[string]string {
 	return map[string]string{
-		inputName: pipelineSample,
+		InputName: pipelineSample,
 	}
 }
 
@@ -67,15 +68,10 @@ func (c *objCollector) Test() (*inputs.TestResult, error) {
 
 func (c *objCollector) Run() {
 
-	moduleLogger = logger.SLogger(inputName)
+	moduleLogger = logger.SLogger(InputName)
 
 	if c.Interval.Duration == 0 {
 		c.Interval.Duration = 5 * time.Minute
-	}
-
-	if datakit.Cfg.MainCfg.DisableHostInput {
-		moduleLogger.Infof("hostobject disabled")
-		return
 	}
 
 	defer func() {
@@ -89,8 +85,6 @@ func (c *objCollector) Run() {
 		}
 	}()
 
-	moduleLogger.Debugf("start")
-
 	go func() {
 		<-datakit.Exit.Wait()
 		c.cancelFun()
@@ -100,7 +94,7 @@ func (c *objCollector) Run() {
 
 	script := c.Pipeline
 	if script == "" {
-		scriptPath := filepath.Join(datakit.PipelineDir, inputName+".p")
+		scriptPath := filepath.Join(datakit.PipelineDir, InputName+".p")
 		data, err := ioutil.ReadFile(scriptPath)
 		if err == nil {
 			script = string(data)
@@ -136,7 +130,13 @@ func (c *objCollector) Run() {
 		moduleLogger.Debugf("%s", string(messageData))
 
 		fields := map[string]interface{}{
-			"message": string(messageData),
+			"message":     string(messageData),
+			"os":          message.Host.HostMeta.OS,
+			"start_time":  message.Host.HostMeta.BootTime,
+			"datakit_ver": git.Version,
+			"cpu":         message.Host.cpuPercent,
+			"mem":         message.Host.Mem.usedPercent,
+			"load":        message.Host.load15,
 		}
 		if thePipeline != nil {
 			if result, err := thePipeline.Run(string(messageData)).Result(); err == nil {
@@ -155,7 +155,7 @@ func (c *objCollector) Run() {
 		tm := time.Now().UTC()
 
 		if c.isTestOnce() {
-			data, err := io.MakeMetric(inputName, tags, fields, tm)
+			data, err := io.MakeMetric(InputName, tags, fields, tm)
 			if err != nil {
 				moduleLogger.Errorf("%s", err)
 				c.testError = err
@@ -168,10 +168,10 @@ func (c *objCollector) Run() {
 			}
 			return
 		} else if c.isDebug() {
-			data, _ := io.MakeMetric(inputName, tags, fields, tm)
+			data, _ := io.MakeMetric(InputName, tags, fields, tm)
 			fmt.Printf("%s\n", string(data))
 		} else {
-			io.NamedFeedEx(inputName, io.Object, inputName, tags, fields, tm)
+			io.NamedFeedEx(InputName, io.Object, InputName, tags, fields, tm)
 		}
 
 		datakit.SleepContext(c.ctx, c.Interval.Duration)
@@ -185,7 +185,7 @@ func newInput() *objCollector {
 }
 
 func init() {
-	inputs.Add(inputName, func() inputs.Input {
+	inputs.Add(InputName, func() inputs.Input {
 		return newInput()
 	})
 }
