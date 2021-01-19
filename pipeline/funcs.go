@@ -81,9 +81,15 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	v, err := GsonGet(cont, old)
 	if err != nil {
-		return p, err
+		l.Warn(err)
+		return p, nil
 	}
-	p.setContent(newkey, v)
+
+	err = p.setContent(newkey, v)
+	if err != nil {
+		l.Warn(err)
+		return p, nil
+	}
 
 	return p, nil
 }
@@ -121,12 +127,14 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	v, err := p.getContent(old)
 	if err != nil {
-		return p, err
+		l.Warn(err)
+		return p, nil
 	}
 
 	err = p.setContent(new, v)
 	if err != nil {
-		return p, err
+		l.Warn(err)
+		return p, nil
 	}
 
 	delete(p.Output, old.String())
@@ -356,7 +364,11 @@ func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	strfmt := fmt.Sprintf(fmts, outdata...)
-	p.setContent(key, strfmt)
+	err := p.setContent(key, strfmt)
+	if err != nil {
+		l.Warn(err)
+		return p, nil
+	}
 
 	return p, nil
 }
@@ -390,8 +402,13 @@ func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		l.Warn(err)
 		return p, nil
 	}
+
 	val := cast(cont, castType)
-	p.setContent(key, val)
+	err = p.setContent(key, val)
+	if err != nil {
+		l.Warn(err)
+		return p, nil
+	}
 
 	return p, nil
 }
@@ -610,7 +627,11 @@ func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	v := strings.ToUpper(cont)
-	p.setContent(key, v)
+	err = p.setContent(key, v)
+	if err != nil {
+		l.Warn(err)
+		return p, nil
+	}
 
 	return p, nil
 }
@@ -637,7 +658,11 @@ func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	v := strings.ToLower(cont)
-	p.setContent(key, v)
+	err = p.setContent(key, v)
+	if err != nil {
+		l.Warn(err)
+		return p, nil
+	}
 
 	return p, nil
 }
@@ -763,7 +788,11 @@ func Addkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		val = nil
 	}
 
-	p.setContent(key, val)
+	err := p.setContent(key, val)
+	if err != nil {
+		l.Warn(err)
+		return p, nil
+	}
 
 	return p, nil
 }
