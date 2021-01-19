@@ -80,6 +80,7 @@ require (
 	github.com/prometheus/procfs v0.1.3
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
+	github.com/shirou/gopsutil v2.20.5+incompatible
 	github.com/shirou/gopsutil/v3 v3.20.12
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
