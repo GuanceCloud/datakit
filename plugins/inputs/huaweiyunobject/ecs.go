@@ -54,7 +54,7 @@ func (e *Ecs) run(ag *objectAgent) {
 
 	p, err := pipeline.NewPipelineByScriptPath(e.PipelinePath)
 	if err != nil {
-		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
+		moduleLogger.Errorf("[error] ecs new pipeline err:%s", err.Error())
 		return
 	}
 	e.p = p
