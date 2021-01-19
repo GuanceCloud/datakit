@@ -4,11 +4,11 @@ import (
 	"net"
 	"strings"
 
+	cpuutil "github.com/shirou/gopsutil/cpu"
 	diskutil "github.com/shirou/gopsutil/disk"
-	cpuutil "github.com/shirou/gopsutil/v3/cpu"
-	hostutil "github.com/shirou/gopsutil/v3/host"
-	memutil "github.com/shirou/gopsutil/v3/mem"
-	netutil "github.com/shirou/gopsutil/v3/net"
+	hostutil "github.com/shirou/gopsutil/host"
+	memutil "github.com/shirou/gopsutil/mem"
+	netutil "github.com/shirou/gopsutil/net"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
