@@ -303,12 +303,13 @@ func initPluginSamples() {
 	}
 }
 
-func InitDefaultEnabledPlugins(names []string) {
-	if len(names) == 0 {
+func initDefaultEnabledPlugins(c *datakit.Config) {
+
+	if len(c.MainCfg.DefaultEnabledInputs) == 0 {
 		return
 	}
 
-	for _, name := range names {
+	for _, name := range c.MainCfg.DefaultEnabledInputs {
 		var fpath, sample string
 
 		if i, ok := tgi.TelegrafInputs[name]; ok {
@@ -336,8 +337,4 @@ func InitDefaultEnabledPlugins(names []string) {
 
 		l.Infof("enable input %s ok", name)
 	}
-}
-
-func initDefaultEnabledPlugins(c *datakit.Config) {
-	InitDefaultEnabledPlugins(c.MainCfg.DefaultEnabledInputs)
 }
