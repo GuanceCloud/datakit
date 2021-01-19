@@ -301,18 +301,22 @@ func Expr(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	switch v := funcExpr.Param[1].(type) {
-	case *parser.Identifier, *parser.AttrExpr:
+	case *parser.Identifier, *parser.AttrExpr, *parser.StringLiteral:
 		key = v
 	default:
 		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
-			reflect.TypeOf(funcExpr.Param[0]).String())
+			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
 	if v, err := Calc(expr, p); err != nil {
 		l.Warn(err)
 		return p, nil
 	} else {
-		p.setContent(key, v)
+		err = p.setContent(key, v)
+		if err != nil {
+			l.Warn(err)
+			return p, nil
+		}
 	}
 
 	return p, nil
