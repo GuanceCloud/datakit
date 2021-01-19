@@ -75,6 +75,10 @@ func (p *Prom) SampleConfig() string {
 }
 
 func (p *Prom) Catalog() string {
+	if p.CatalogStr == "" {
+		return "prom"
+	}
+
 	return p.CatalogStr
 }
 
