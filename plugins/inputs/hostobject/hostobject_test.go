@@ -10,6 +10,7 @@ import (
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -21,6 +22,8 @@ func TestInput(t *testing.T) {
 }
 
 func TestMessageObj(t *testing.T) {
+	moduleLogger = logger.SLogger(inputName)
+
 	msg := getHostObjectMessage()
 	msgdata, _ := json.Marshal(msg)
 	log.Printf("%s", string(msgdata))
