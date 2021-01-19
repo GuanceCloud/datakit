@@ -7,7 +7,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
@@ -216,38 +215,10 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 			return
 		}
 
-		l.Debugf("try set MaxLifeCheckInterval from %s", name)
-		trySetMaxPostInterval(t)
-
 		inputList = append(inputList, input)
-
 	}
 
 	return
-}
-
-func trySetMaxPostInterval(t *ast.Table) {
-	var dur time.Duration
-	var err error
-	node, ok := t.Fields["interval"]
-	if !ok {
-		return
-	}
-
-	if kv, ok := node.(*ast.KeyValue); ok {
-		if str, ok := kv.Value.(*ast.String); ok {
-			dur, err = time.ParseDuration(str.Value)
-			if err != nil {
-				l.Errorf("parse duration(%s) from %+#v failed: %s, ignored", str.Value, t, err.Error())
-				return
-			}
-
-			if datakit.MaxLifeCheckInterval+5*time.Second < dur { // use the max interval from all inputs
-				datakit.MaxLifeCheckInterval = dur
-				l.Debugf("set MaxLifeCheckInterval to %v ok", dur)
-			}
-		}
-	}
 }
 
 func migrateOldCfg(name string, c inputs.Creator) error {
