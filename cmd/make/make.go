@@ -31,7 +31,7 @@ func applyFlags() {
 	if *flagBuildISP {
 		curDir, _ := os.Getwd()
 		inputDir := filepath.Join(curDir, "china-operator-ip")
-		outputFile := filepath.Join(curDir, "process", "ip2isp", "ip2isp.go")
+		outputFile := filepath.Join(curDir, "pipeline", "ip2isp", "ip2isp.go")
 		build.GenIspFile(inputDir, outputFile)
 
 		os.Exit(0)
