@@ -119,7 +119,7 @@ func (ag *ucInstance) fetchMetric(ctx context.Context, info *queryListInfo) erro
 	reqPayload := map[string]interface{}{}
 	reqPayload["ResourceType"] = info.resourceType
 	reqPayload["ResourceId"] = info.resourceID
-	reqPayload["MetricName"] = info.metricname
+	reqPayload["MetricName.0"] = info.metricname
 	reqPayload["BeginTime"] = begin
 	reqPayload["EndTime"] = end
 	req.SetPayload(reqPayload)
