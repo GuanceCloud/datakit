@@ -21,7 +21,7 @@ const (
     source = "ngnixlog"
 
     # grok pipeline script path
-    pipeline_path = ""
+    pipeline_path = "ngnixlog.p"
 
     # read file from beginning
     # if from_begin was false, off auto discovery file
@@ -54,14 +54,25 @@ const (
     # tags1 = "value1"
 `
 	pipelineCfg = `
-grok(_, "%{_iporhost:clientip} - %{_username:remote_user} \\[%{_httpdate:date_timestamp}\\] \"(?:%{_word:method} %{_notspace:request_uri}(?: HTTP/%{_number:httpversion})?|%{_data:raw_request})\" %{_int:status} %{_number:body_bytes_sent} \"%{_data:http_referer}\" \"%{_data:http_user_agent}\"")
+add_pattern("httpversion", "\\d+\\.\\d+")
+add_pattern("date2", "%{year}[./]%{monthnum}[./]%{monthday} %{time}")
 
-grok(_, "(?:%{_ipv4:clientip}|-)(?:,\s[\d.]+)* (?:%{_data:remote_user}|-) (?:%{_data:ident}|-) \\[%{_httpdate:date_timestamp}\\] \"(?:%{_word:method} %{_notspace:request_uri}(?: HTTP/%{_number:httpversion})?|%{_data:raw_request})\" %{_number:status} (?:%{_number:body_bytes_sent}|-) \"%{_data:http_referer}\" \"%{_data:http_user_agent}\" (?:%{_number:request_length}|-) (?:%{_number:bytes_sent}|-) (?:%{_number:request_time}|-")
+grok(_, "%{iporhost:client_ip} %{notspace:http_ident} %{notspace:http_auth} \\[%{httpdate:date}\\] \"%{data:http_method} %{greedydata:http_url} HTTP/%{httpversion:http_version}\" %{int:status_code} %{int:bytes}")
 
-grok(_, "(?<timestamp>%{_year}[./]%{_monthnum}[./]%{_monthday} %{time}) \[%{_loglevel:level}\] %{_posint:pid}#%{_number:threadid}\: \*%{_number:connectionid} %{_greedydata:message}, client: %{_ip:clientip}, server: %{_greedydata:server}, request: "(?<request>%{_word:method} %{_unixpath:path} http/(?<httpversion>[0-9.]*))"(, )?(upstream: "(?<upstream>[^,]*)")?(, )?(host: "(?<host>[^,]*)")?")
+add_pattern("access_common", "%{iporhost:client_ip} %{notspace:http_ident} %{notspace:http_auth} \\[%{httpdate:date}\\] \"%{data:http_method} %{greedydata:http_url} HTTP/%{httpversion:http_version}\" %{int:status_code} %{int:bytes}")
+grok(_, '%{access_common} "%{notspace:referrer}" "%{greedydata:agent}')
 
-cast(body_bytes_sent, "int")
-cast(status, "int")
+user_agent(agent)
+
+grok(_, "%{date2:date} \\[%{loglevel:status}\\] %{greedydata:msg}")
+grok(msg, "request: \"%{data:http_method} %{greedydata:http_url} HTTP/%{httpversion:http_version}\"")
+
+cast(status_code, "int")
+group_between(status_code, [200,299], "ok")
+
+add_key(status, "error")
+nullif(http_ident, "-")
+default_time(date)
 `
 )
 
@@ -71,7 +82,7 @@ func init() {
 			inputName,
 			"log",
 			sampleCfg,
-			map[string]string{"ngnixlog.p": pipelineCfg},
+			map[string]string{"ngnixlog": pipelineCfg},
 		)
 	})
 }
