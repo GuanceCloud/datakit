@@ -155,7 +155,7 @@ func (c *objCollector) Run() {
 		tm := time.Now().UTC()
 
 		if c.isTestOnce() {
-			data, err := io.MakeMetric(InputName, tags, fields, tm)
+			data, err := io.MakeMetric("HOST", tags, fields, tm)
 			if err != nil {
 				moduleLogger.Errorf("%s", err)
 				c.testError = err
@@ -171,7 +171,7 @@ func (c *objCollector) Run() {
 			data, _ := io.MakeMetric("HOST", tags, fields, tm)
 			fmt.Printf("%s\n", string(data))
 		} else {
-			io.NamedFeedEx("HOST", io.Object, InputName, tags, fields, tm)
+			io.NamedFeedEx(InputName, io.Object, "HOST", tags, fields, tm)
 		}
 
 		datakit.SleepContext(c.ctx, c.Interval.Duration)
