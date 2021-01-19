@@ -22,7 +22,7 @@ func TestInput(t *testing.T) {
 }
 
 func TestMessageObj(t *testing.T) {
-	moduleLogger = logger.SLogger(inputName)
+	moduleLogger = logger.SLogger(InputName)
 
 	msg := getHostObjectMessage()
 	msgdata, _ := json.Marshal(msg)
