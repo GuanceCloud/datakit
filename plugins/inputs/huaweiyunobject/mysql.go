@@ -53,7 +53,7 @@ func (e *Mysql) run(ag *objectAgent) {
 
 	p, err := pipeline.NewPipelineByScriptPath(e.PipelinePath)
 	if err != nil {
-		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
+		moduleLogger.Errorf("[error] mysql new pipeline err:%s", err.Error())
 		return
 	}
 	e.p = p
