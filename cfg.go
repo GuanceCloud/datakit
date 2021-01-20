@@ -29,11 +29,9 @@ func DefaultConfig() *Config {
 	return &Config{ //nolint:dupl
 		MainCfg: &MainConfig{
 			GlobalTags: map[string]string{
-				"project":        "",
-				"cluster":        "",
-				"site":           "",
-				"cloud_provider": "",
-				"instanceid":     "",
+				"project": "",
+				"cluster": "",
+				"site":    "",
 			},
 
 			flushInterval: Duration{Duration: time.Second * 10},
