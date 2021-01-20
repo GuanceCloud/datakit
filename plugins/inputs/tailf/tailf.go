@@ -23,22 +23,43 @@ type Tailf struct {
 	Tags              map[string]string `toml:"tags"`
 
 	MultilineConfig MultilineConfig `toml:"multiline"`
+
+	InputName   string            `toml:"-"`
+	CatalogStr  string            `toml:"-"`
+	SampleCfg   string            `toml:"-"`
+	PipelineCfg map[string]string `toml:"-"`
+
 	multiline       *Multiline
-
-	decoder decoder
-
-	tailerConf tail.Config
-
+	decoder         decoder
+	tailerConf      tail.Config
 	runningFileList sync.Map
-	wg              sync.WaitGroup
+
+	wg  sync.WaitGroup
+	log *logger.Logger
 }
 
-func (*Tailf) Catalog() string {
-	return "log"
+func NewTailf(inputName, catalogStr, sampleCfg string, pipelineCfg map[string]string) *Tailf {
+	return &Tailf{
+		InputName:       inputName,
+		CatalogStr:      catalogStr,
+		SampleCfg:       sampleCfg,
+		PipelineCfg:     pipelineCfg,
+		runningFileList: sync.Map{},
+		wg:              sync.WaitGroup{},
+		Tags:            make(map[string]string),
+	}
 }
 
-func (*Tailf) SampleConfig() string {
-	return sampleCfg
+func (t *Tailf) PipelineConfig() map[string]string {
+	return t.PipelineCfg
+}
+
+func (t *Tailf) Catalog() string {
+	return t.CatalogStr
+}
+
+func (t *Tailf) SampleConfig() string {
+	return t.SampleCfg
 }
 
 func (*Tailf) Test() (result *inputs.TestResult, err error) {
@@ -48,13 +69,13 @@ func (*Tailf) Test() (result *inputs.TestResult, err error) {
 }
 
 func (t *Tailf) Run() {
-	l = logger.SLogger(inputName)
+	t.log = logger.SLogger(t.InputName)
 
 	if t.loadcfg() {
 		return
 	}
 
-	l.Infof("tailf input started.")
+	t.log.Infof("tailf input started.")
 
 	ticker := time.NewTicker(defaultDruation)
 	defer ticker.Stop()
@@ -62,13 +83,13 @@ func (t *Tailf) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Infof("waiting for all tailers to exit")
+			t.log.Infof("waiting for all tailers to exit")
 			t.wg.Wait()
-			l.Info("exit")
+			t.log.Info("exit")
 			return
 
 		case <-ticker.C:
-			fileList := getFileList(t.LogFiles, t.Ignore)
+			fileList := t.getFileList(t.LogFiles, t.Ignore)
 
 			for _, file := range fileList {
 				t.tailNewFiles(file)
@@ -92,16 +113,16 @@ func (t *Tailf) loadcfg() bool {
 	}
 
 	if isExist(t.PipelinePath) {
-		l.Debugf("use pipeline %s", t.PipelinePath)
+		t.log.Debugf("use pipeline %s", t.PipelinePath)
 	} else {
 		t.PipelinePath = ""
-		l.Warn("no pipeline applied")
+		t.log.Warn("no pipeline applied")
 	}
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Info("exit")
+			t.log.Info("exit")
 			return true
 		default:
 			// nil
@@ -127,7 +148,7 @@ func (t *Tailf) loadcfg() bool {
 		}
 
 	label:
-		l.Error(err)
+		t.log.Error(err)
 		time.Sleep(time.Second)
 	}
 
@@ -159,7 +180,7 @@ func (t *Tailf) tailNewFiles(file string) {
 
 	t.runningFileList.Store(file, nil)
 
-	l.Debugf("start tail, %s", file)
+	t.log.Debugf("start tail, %s", file)
 
 	t.wg.Add(1)
 	go func() {
@@ -167,7 +188,7 @@ func (t *Tailf) tailNewFiles(file string) {
 
 		t.tailStart(file)
 		t.runningFileList.Delete(file)
-		l.Debugf("remove file %s from the list", file)
+		t.log.Debugf("remove file %s from the list", file)
 	}()
 }
 
