@@ -1,20 +1,35 @@
 package process
 
-import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-)
+import "gitlab.jiagouyun.com/cloudcare-tools/datakit"
 
 const (
-	inputName = "process"
+	inputName = "processes"
 
-	sampleConfig = ``
+	sampleConfig = `
+[[inputs.processes]]
+ ## process name support regexp
+ process_name = [".*datakit.*"]
+ ## period 5m
+ interval     = "5m"  
+ ## process run time default 10m,Collection  the process of running more than ten minutes
+ run_time     = "10m"  
+ ## open collection metric	
+ open_metric = false
+ ## pipeline path 
+ # pipeline = ""
+`
 
 	pipelineSample = ``
 )
 
-type collector struct {
-	testResult *inputs.TestResult
-	testError  error
+type Processes struct {
+	ProcessName []string         `toml:"process_name"`
+	Interval    datakit.Duration `toml:"interval"`
+	RunTime     datakit.Duration `toml:"run_time"`
+	OpenMetric  bool             `toml:"open_metric"`
+	Pipeline    string           `toml:"pipeline"`
 
-	mode string
+	re       string
+	username string
+	state    string
 }
