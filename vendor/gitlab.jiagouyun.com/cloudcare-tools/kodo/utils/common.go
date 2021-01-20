@@ -34,28 +34,29 @@ var (
 	//ck
 	ClusterNameConst = `default`
 
-	EsKeepWorkspaceID = `__workspaceUUID`
-	KeepObjectName    = `__name`
-	KeepObjectUUID    = `__uuid`
-	KeepObjectClass   = `__class`
-	EsKeepLogSource   = `__source`
-	EsKeepCreateTime  = `__esCreateTime`
-	EsLastUpdateTime  = `__esLastUpdateTime`
-	EsMeta            = `__meta`
-	EsKeepTimeStamp   = `__timestampUs`
-	EsKeepTimeStampM  = `__timestampMs`
-	KeepTags          = `__tags`
-	EsKeepEventId     = `__eventId`
-	EsKeepStatus      = `__status`
-	EsKeepTitle       = `__title`
-	EsKeepEventType   = `__type`
-	KeepDescription   = `__description`
+	//对象
+	EsDocId = `__docid`
 
-	RUMType = `type`
+	KeepObjectName   = `name`
+	KeepObjectUUID   = `__uuid`
+	KeepObjectClass  = `class`
+	EsLastUpdateTime = `last_update_time`
+
+	EsKeepLogSource  = `source`
+	EsKeepCreateTime = `create_time`
+
+	//EsMeta           = `meta`
+	//EsKeepTimeStamp  = `timestampUs`
+	EsKeepTimeStampM = `date`
+
+	EsKeepEventId   = `__eventId`
+	EsKeepStatus    = `__status`
+	EsKeepTitle     = `__title`
+	EsKeepEventType = `__type`
+
+	RUMType = `source`
 
 	MaxRetryTimes = int64(3600 * 24)
-
-	EsKeepIsError = `__isError`
 
 	BillState     = `bill_state`
 	VerType       = `version_type`
