@@ -17,7 +17,7 @@ type Tailf struct {
 	LogFiles          []string          `toml:"logfiles"`
 	Ignore            []string          `toml:"ignore"`
 	Source            string            `toml:"source"`
-	PipelinePath      string            `toml:"pipeline_path"`
+	Pipeline          string            `toml:"pipeline"`
 	FromBeginning     bool              `toml:"from_beginning"`
 	CharacterEncoding string            `toml:"character_encoding"`
 	Tags              map[string]string `toml:"tags"`
@@ -106,16 +106,16 @@ func (t *Tailf) Run() {
 func (t *Tailf) loadcfg() bool {
 	var err error
 
-	if t.PipelinePath == "" {
-		t.PipelinePath = filepath.Join(datakit.PipelineDir, t.Source+".p")
+	if t.Pipeline == "" {
+		t.Pipeline = filepath.Join(datakit.PipelineDir, t.Source+".p")
 	} else {
-		t.PipelinePath = filepath.Join(datakit.PipelineDir, t.PipelinePath)
+		t.Pipeline = filepath.Join(datakit.PipelineDir, t.Pipeline)
 	}
 
-	if isExist(t.PipelinePath) {
-		t.log.Debugf("use pipeline %s", t.PipelinePath)
+	if isExist(t.Pipeline) {
+		t.log.Debugf("use pipeline %s", t.Pipeline)
 	} else {
-		t.PipelinePath = ""
+		t.Pipeline = ""
 		t.log.Warn("no pipeline applied")
 	}
 
@@ -141,7 +141,7 @@ func (t *Tailf) loadcfg() bool {
 			goto label
 		}
 
-		if err = checkPipeLine(t.PipelinePath); err != nil {
+		if err = checkPipeLine(t.Pipeline); err != nil {
 			goto label
 		} else {
 			break
