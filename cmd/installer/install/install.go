@@ -17,6 +17,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
+	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 var (
@@ -92,13 +94,6 @@ func InstallNewDatakit(svc service.Service) {
 		datakit.Cfg.MainCfg.GlobalTags = datakit.ParseGlobalTags(GlobalTags)
 	}
 
-	if datakit.Cfg.MainCfg.GlobalTags == nil {
-		datakit.Cfg.MainCfg.GlobalTags = map[string]string{}
-	}
-	datakit.Cfg.MainCfg.GlobalTags["project"] = ""
-	datakit.Cfg.MainCfg.GlobalTags["cluster"] = ""
-	datakit.Cfg.MainCfg.GlobalTags["site"] = ""
-
 	datakit.Cfg.MainCfg.HTTPBind = fmt.Sprintf("0.0.0.0:%d", Port)
 	datakit.Cfg.MainCfg.InstallDate = time.Now()
 
@@ -115,9 +110,44 @@ func InstallNewDatakit(svc service.Service) {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
+	//default enable host inputs when install
+	enabledHostInputs()
+
 	l.Infof("installing service %s...", datakit.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("install service: %s, ignored", err.Error())
+	}
+}
+
+func enabledHostInputs() {
+
+	names := []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject"}
+
+	for _, name := range names {
+		var fpath, sample string
+
+		if i, ok := tgi.TelegrafInputs[name]; ok {
+			sample = i.SampleConfig()
+			fpath = filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf")
+		} else if name == hostobject.InputName {
+			sample = hostobject.SampleConfig
+			fpath = filepath.Join(datakit.ConfdDir, hostobject.InputCat, name+".conf")
+		} else {
+			l.Warnf("input %s not found, ignored", name)
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+			l.Errorf("mkdir failed: %s, ignored", err.Error())
+			continue
+		}
+
+		if err := ioutil.WriteFile(fpath, []byte(sample), 0664); err != nil {
+			l.Errorf("write input %s config failed: %s, ignored", name, err.Error())
+			continue
+		}
+
+		l.Infof("enable input %s ok", name)
 	}
 }
 
