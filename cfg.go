@@ -46,6 +46,14 @@ func DefaultConfig() *Config {
 			GinLog:    filepath.Join(InstallDir, "gin.log"),
 
 			RoundInterval: false,
+
+			BlackList: []*InputHostList{
+				&InputHostList{Hosts: []string{}, Inputs: []string{}},
+			},
+			WhiteList: []*InputHostList{
+				&InputHostList{Hosts: []string{}, Inputs: []string{}},
+			},
+
 			TelegrafAgentCfg: &TelegrafCfg{
 				Interval:                   "10s",
 				RoundInterval:              true,
@@ -389,6 +397,34 @@ type MainConfig struct {
 	DefaultEnabledInputs []string     `toml:"default_enabled_inputs"`
 	InstallDate          time.Time    `toml:"install_date,omitempty"`
 	TelegrafAgentCfg     *TelegrafCfg `toml:"agent"`
+
+	BlackList []*InputHostList `toml:"black_lists,omitempty"`
+	WhiteList []*InputHostList `toml:"white_lists,omitempty"`
+}
+
+type InputHostList struct {
+	Hosts  []string `toml:"hosts"`
+	Inputs []string `toml:"inputs"`
+}
+
+func (i *InputHostList) MatchHost(host string) bool {
+	for _, hostname := range i.Hosts {
+		if hostname == host {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (i *InputHostList) MatchInput(input string) bool {
+	for _, name := range i.Inputs {
+		if name == input {
+			return true
+		}
+	}
+
+	return false
 }
 
 func InitDirs() {
@@ -579,7 +615,7 @@ func (c *Config) LoadEnvs(mcp string) error {
 
 	dwWSPort := os.Getenv("ENV_DATAWAY_WSPORT")
 	dwURL := os.Getenv("ENV_DATAWAY")
-	if dwcfg != "" {
+	if dwURL != "" {
 		dw, err := ParseDataway(dwURL, dwWSPort)
 		if err != nil {
 			return err
