@@ -80,7 +80,7 @@ require (
 	github.com/prometheus/procfs v0.1.3
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
-	github.com/shirou/gopsutil/v3 v3.20.12
+	github.com/shirou/gopsutil v2.20.5+incompatible
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
@@ -98,10 +98,10 @@ require (
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/vjeantet/grok v1.0.0
 	github.com/xanzy/go-gitlab v0.31.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20201227150604-9da64af6b767
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201227150804-d80351eba51f
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210103044601-bf434a6898c5
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210118023115-6ad5eb4e2791
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/net v0.0.0-20200625001655-4c5254603344
+	golang.org/x/net v0.0.0-20201021035429-f5854403a974
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
 	google.golang.org/grpc v1.28.0
@@ -110,7 +110,6 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools/v3 v3.0.2 // indirect
-	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
 	xojoc.pw/useragent v0.0.0-20200116211053-1ec61d55e8fe // indirect
 )
 

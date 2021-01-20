@@ -68,7 +68,7 @@ var (
 		"httpjson":               true,
 		"httpstat":               true,
 		"huaweiyunces":           true,
-		"huaweiyunobject":        false,
+		"huaweiyunobject":        true,
 		"iis":                    true,
 		"influxdb":               true,
 		"internal":               true,
