@@ -1,8 +1,6 @@
 package neo4j
 
 import (
-	ifxcli "github.com/influxdata/influxdb1-client/v2"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
@@ -11,6 +9,7 @@ const (
 	inputName = "neo4j"
 
 	sampleCfg = `
+[[inputs.prom]]
     # neo4j metrics from http(https)://HOST:PORT/metrics
     # usually modify host and port
     # required
@@ -26,30 +25,14 @@ const (
     # tls_cert = "/tmp/peer.crt"
     # tls_key = "/tmp/peer.key"
 
-    ## Internal configuration. Don't modify.
-    name = "neo4j"
-    ## ignore_measurement = []
-
     # [inputs.prom.tags]
-    # from = "127.0.0.1:2379"
+    # from = "127.0.0.1:2004"
     # tags1 = "value1"
 `
 )
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &prom.Prom{
-			Interval:       datakit.Cfg.MainCfg.Interval,
-			InputName:      inputName,
-			CatalogStr:     inputName,
-			SampleCfg:      sampleCfg,
-			Tags:           make(map[string]string),
-			IgnoreFunc:     ignore,
-			PromToNameFunc: nil,
-		}
+		return prom.NewProm(inputName, inputName, sampleCfg, nil)
 	})
-}
-
-func ignore(pt *ifxcli.Point) bool {
-	return false
 }
