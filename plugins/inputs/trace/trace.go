@@ -39,12 +39,14 @@ type TraceAdapter struct {
 
 	ServiceName   string
 	OperationName string
+	Resource      string
 	ParentID      string
 	TraceID       string
 	SpanID        string
 	Status        string
 	SpanType      string
 	EndPoint      string
+	Type          string
 
 	Tags map[string]string
 }
@@ -76,6 +78,7 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags["parent_id"] = tAdpt.ParentID
 	tags["trace_id"] = tAdpt.TraceID
 	tags["span_id"] = tAdpt.SpanID
+	tags["type"] = tAdpt.Type
 
 	for tag, tagV := range tAdpt.Tags {
 		tags[tag] = tagV
@@ -97,6 +100,7 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 
 	fields["duration"] = tAdpt.Duration
 	fields["message"] = tAdpt.Content
+	fields["resource"] = tAdpt.Resource
 
 	ts := time.Unix(tAdpt.TimestampUs/US_PER_SECOND, (tAdpt.TimestampUs%US_PER_SECOND)*1000)
 
