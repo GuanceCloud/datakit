@@ -212,10 +212,10 @@ func parseField(ps *pr.Process) (message, fields map[string]interface{}) {
 func (p *Processes) WriteMetric(ps *pr.Process, fields map[string]interface{}) {
 	name, _ := ps.Name()
 	tags := map[string]string{
-		"username": p.username,
-		"state":    p.state,
-		"pid":      fmt.Sprintf("%d", ps.Pid),
-		"process_name":     name,
+		"username":     p.username,
+		"state":        p.state,
+		"pid":          fmt.Sprintf("%d", ps.Pid),
+		"process_name": name,
 	}
 	io.NamedFeedEx(inputName, io.Metric, "process", tags, fields, time.Now().UTC())
 
