@@ -130,13 +130,13 @@ func (c *objCollector) Run() {
 		moduleLogger.Debugf("%s", string(messageData))
 
 		fields := map[string]interface{}{
-			"message":     string(messageData),
-			"os":          message.Host.HostMeta.OS,
-			"start_time":  message.Host.HostMeta.BootTime,
-			"datakit_ver": git.Version,
-			"cpu":         message.Host.cpuPercent,
-			"mem":         message.Host.Mem.usedPercent,
-			"load":        message.Host.load5,
+			"message":          string(messageData),
+			"os":               message.Host.HostMeta.OS,
+			"start_time":       message.Host.HostMeta.BootTime,
+			"datakit_ver":      git.Version,
+			"cpu_usage":        message.Host.cpuPercent,
+			"mem_used_pencent": message.Host.Mem.usedPercent,
+			"load":             message.Host.load5,
 		}
 		if thePipeline != nil {
 			if result, err := thePipeline.Run(string(messageData)).Result(); err == nil {
