@@ -31,7 +31,7 @@ var (
 	GlobalTags    = ""
 	Port          = 9529
 	DatakitName   = ""
-	EnableInputs  = ""
+	EnableInputs  = "cpu,disk,diskio,mem,swap,system,hostobject"
 )
 
 func readInput(prompt string) string {
@@ -108,109 +108,9 @@ func InstallNewDatakit(svc service.Service) {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
-	//default enable host inputs when install
-	enabledHostInputs()
-
 	l.Infof("installing service %s...", datakit.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("install service: %s, ignored", err.Error())
-	}
-}
-
-func enabledHostInputs() {
-
-	cfgs := map[string]string{
-		`cpu`: `
-[[inputs.cpu]]
-## Whether to report per-cpu stats or not
-percpu = false
-## Whether to report total system cpu stats or not
-totalcpu = true
-## If true, collect raw CPU time metrics.
-collect_cpu_time = false
-## If true, compute and report the sum of all non-idle CPU states.
-report_active = false
-`,
-
-		`disk`: `
-[[inputs.disk]]
-## By default stats will be gathered for all mount points.
-## Set mount_points will restrict the stats to only the specified mount points.
-# mount_points = ["/"]
-	  
-## Ignore mount points by filesystem type.
-ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
-`,
-
-		`diskio`: `# Read metrics about disk IO by device
-[[inputs.diskio]]
-## By default, telegraf will gather stats for all devices including
-## disk partitions.
-## Setting devices will restrict the stats to the specified devices.
-# devices = ["sda", "sdb"]
-## Uncomment the following line if you need disk serial numbers.
-# skip_serial_number = false
-#
-## On systems which support it, device metadata can be added in the form of
-## tags.
-## Currently only Linux is supported via udev properties. You can view
-## available properties for a device by running:
-## 'udevadm info -q property -n /dev/sda'
-## Note: Most, but not all, udev properties can be accessed this way. Properties
-## that are currently inaccessible include DEVTYPE, DEVNAME, and DEVPATH.
-# device_tags = ["ID_FS_TYPE", "ID_FS_USAGE"]
-#
-## Using the same metadata source as device_tags, you can also customize the
-## name of the device via templates.
-## The 'name_templates' parameter is a list of templates to try and apply to
-## the device. The template may contain variables in the form of '$PROPERTY' or
-## '${PROPERTY}'. The first template which does not contain any variables not
-## present for the device is used as the device name tag.
-## The typical use case is for LVM volumes, to get the VG/LV name instead of
-## the near-meaningless DM-0 name.
-# name_templates = ["$ID_FS_LABEL","$DM_VG_NAME/$DM_LV_NAME"]
-`,
-
-		`mem`: `# Read metrics about memory usage
-[[inputs.mem]]
-# no configuration
-`,
-
-		`swap`: `# Read metrics about swap memory usage
-[[inputs.swap]]
-# no configuration
-`,
-
-		`system`: `# Read metrics about system load & uptime
-[[inputs.system]]
-# no configuration
-`,
-
-		`hostobject`: `
-[inputs.hostobject]
-# ##(optional) collect interval, default is 5 miniutes
-interval = '5m'
-
-# ##(optional) 
-#pipeline = ''
-`,
-	}
-
-	for name, sample := range cfgs {
-
-		fpath := filepath.Join(datakit.ConfdDir, "host", name+".conf")
-
-		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
-			l.Errorf("mkdir failed: %s, ignored", err.Error())
-			continue
-		}
-
-		if err := ioutil.WriteFile(fpath, []byte(sample), 0664); err != nil {
-			l.Errorf("write input %s config failed: %s, ignored", name, err.Error())
-			continue
-		}
-
-		l.Infof("enable input %s ok", name)
 	}
 }
 
