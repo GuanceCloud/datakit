@@ -14,27 +14,27 @@ type PipelineFunc func(p *Pipeline, node parser.Node) (*Pipeline, error)
 
 var (
 	funcsMap = map[string]PipelineFunc{
-		"grok":             Grok,
-		"json":             Json,
-		"json_all":         JsonAll,
-		"rename":           Rename,
-		"strfmt":           Strfmt,
+		"add_key":          Addkey,
+		"add_pattern":      AddPattern,
 		"cast":             Cast,
-		"expr":             Expr,
-		"user_agent":       UserAgent,
-		"url_decode":       UrlDecode,
-		"geoip":            GeoIp,
 		"datetime":         DateTime,
+		"default_time":     DefaultTime,
+		"drop_key":         Dropkey,
+		"drop_origin_data": DropOriginData,
+		"expr":             Expr,
+		"geoip":            GeoIp,
+		"grok":             Grok,
 		"group_between":    Group,
 		"group_in":         GroupIn,
-		"uppercase":        Uppercase,
+		"json":             Json,
+		"json_all":         JsonAll,
 		"lowercase":        Lowercase,
-		"drop_key":         Dropkey,
-		"add_key":          Addkey,
 		"nullif":           NullIf,
-		"default_time":     DefaultTime,
-		"drop_origin_data": DropOriginData,
-		"add_pattern":      AddPattern,
+		"rename":           Rename,
+		"strfmt":           Strfmt,
+		"uppercase":        Uppercase,
+		"url_decode":       UrlDecode,
+		"user_agent":       UserAgent,
 	}
 )
 
@@ -301,18 +301,22 @@ func Expr(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	switch v := funcExpr.Param[1].(type) {
-	case *parser.Identifier, *parser.AttrExpr:
+	case *parser.Identifier, *parser.AttrExpr, *parser.StringLiteral:
 		key = v
 	default:
 		return p, fmt.Errorf("expect Identifier or AttrExpr, got `%s'",
-			reflect.TypeOf(funcExpr.Param[0]).String())
+			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
 	if v, err := Calc(expr, p); err != nil {
 		l.Warn(err)
 		return p, nil
 	} else {
-		p.setContent(key, v)
+		err = p.setContent(key, v)
+		if err != nil {
+			l.Warn(err)
+			return p, nil
+		}
 	}
 
 	return p, nil
