@@ -29,7 +29,6 @@ endpoint=""
 json(_,hostId)
 json(_,tenant_id)
 json(_,host_status)
-json(_,OS-EXT-SRV-ATTR:root_device_name, root_device_name)
 
 `
 )
@@ -52,12 +51,14 @@ func (e *Ecs) run(ag *objectAgent) {
 		e.EndPoint = fmt.Sprintf(`ecs.%s.myhuaweicloud.com`, ag.RegionID)
 	}
 
-	p, err := pipeline.NewPipelineByScriptPath(e.PipelinePath)
-	if err != nil {
-		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
-		return
+	if e.PipelinePath != `` {
+		p, err := pipeline.NewPipelineByScriptPath(e.PipelinePath)
+		if err != nil {
+			moduleLogger.Errorf("[error] ecs new pipeline err:%s", err.Error())
+			return
+		}
+		e.p = p
 	}
-	e.p = p
 
 	cli := huaweicloud.NewHWClient(ag.AccessKeyID, ag.AccessKeySecret, e.EndPoint, ag.ProjectID, moduleLogger)
 
