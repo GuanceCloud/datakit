@@ -118,7 +118,17 @@ func TimestampHandle(value string) (int64, error) {
 
 	t, err := dateparse.ParseLocal(value)
 	if err != nil {
-		return 0, err
+		if match, err := regexp.MatchString(`\d{2}/\w+/\d{4}:\d{2}:\d{2}:\d{2} \+\d{4}`, value); err != nil {
+			return 0, err
+		} else if match {
+			// 06/Jan/2017:16:16:37 +0000
+			if tm, err := time.Parse("02/Jan/2006:15:04:05 -0700", value); err != nil {
+				return 0, err
+			} else {
+				unix_time := tm.UnixNano()
+				return unix_time, nil
+			}
+		}
 	}
 
 	unix_time := t.UnixNano()
