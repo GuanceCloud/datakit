@@ -128,6 +128,7 @@ func (t *tailer) receiver() {
 
 		data, err := t.pipeline(text)
 		if err != nil {
+			// FIXME: drop the log?
 			continue
 		}
 
