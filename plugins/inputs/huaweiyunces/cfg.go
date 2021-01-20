@@ -2,11 +2,11 @@ package huaweiyunces
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"golang.org/x/time/rate"
 
+	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud"
@@ -19,6 +19,7 @@ const (
 #access_key_id = ''
 #access_key_secret = ''
 #endpoint = ''
+#ecs_endpoint = ''
 #projectid = ''
 
 # ##(optional) default is 5min
@@ -58,9 +59,6 @@ const (
 # ##(optional) if not set, use the global interval
 #interval = '5m'
 
-# ##(required) you can specify up to 3 dimensions
-#[inputs.huaweiyunces.namespace.property.dimensions]
-#instance_id = 'b5d7b7a3-681d-4c08-8e32-f14******'
 `
 )
 
@@ -92,13 +90,15 @@ type (
 		AccessKeyID     string            `toml:"access_key_id"`
 		AccessKeySecret string            `toml:"access_key_secret"`
 		EndPoint        string            `toml:"endpoint"`
+		EcsEndPoint     string            `toml:"ecs_endpoint"`
 		ProjectID       string            `toml:"projectid"`
 		Interval        datakit.Duration  `toml:"interval"`
 		Delay           datakit.Duration  `toml:"delay"`
 		Tags            map[string]string `toml:"tags,omitempty"`
 		Namespace       []*Namespace      `toml:"namespace"`
 
-		client *huaweicloud.HWClient
+		client    *huaweicloud.HWClient
+		ecsClient *huaweicloud.HWClient
 
 		limiter *rate.Limiter
 
@@ -150,74 +150,60 @@ func (ag *agent) isDebug() bool {
 	return ag.mode == "debug"
 }
 
-func (p *Namespace) genMetricReq(metric string) (*metricsRequest, error) {
-
-	req := &metricsRequest{
-		namespace:     p.Name,
-		metricname:    metric,
-		tryGetMeta:    5,
-		metricSetName: p.MetricSetName,
-	}
-
-	if p.globalMetricProperty == nil {
+func (p *Namespace) genMetricReq(metric string, ecsList []string, ag *agent) ([]*metricsRequest, error) {
+	var request []*metricsRequest
+	for _, id := range ecsList {
+		req := &metricsRequest{
+			namespace:     p.Name,
+			metricname:    metric,
+			tryGetMeta:    5,
+			metricSetName: p.MetricSetName,
+		}
+		var property *Property
 		for _, prop := range p.Property {
+			prop.Dimensions = map[string]string{
+				"instance_id": id,
+			}
 			if prop.Name == "*" {
 				p.globalMetricProperty = prop
-				if prop.Dimensions == nil {
-					return nil, fmt.Errorf("invalid property, dimensions cannot be empty")
-				}
 				break
 			}
-		}
-	}
 
-	var property *Property
-
-	for _, prop := range p.Property {
-		if prop.Name == "*" {
-			continue
-		}
-		if prop.Name == metric {
-			property = prop
-			break
-		}
-	}
-
-	if property == nil {
-		if p.globalMetricProperty == nil {
-			return nil, fmt.Errorf("no property found for %s", metric)
-		}
-		property = p.globalMetricProperty
-	} else {
-		if property.Dimensions == nil {
-			if p.globalMetricProperty != nil && p.globalMetricProperty.Dimensions != nil {
-				property.Dimensions = p.globalMetricProperty.Dimensions
-			} else {
-				return nil, fmt.Errorf("invalid property, dimensions cannot be empty")
+			if prop.Name == metric {
+				property = prop
 			}
 		}
-	}
-
-	req.period = property.Period
-	if req.period == 0 {
-		req.period = 300
-	}
-	req.filter = property.Filter
-	if req.filter == "" {
-		req.filter = "average"
-	}
-	req.interval = property.Interval.Duration
-	req.tags = property.Tags
-
-	dims := []*Dimension{}
-	for k, v := range property.Dimensions {
-		dim := &Dimension{
-			Name:  k,
-			Value: v,
+		if p.globalMetricProperty == nil && property == nil {
+			return nil, fmt.Errorf("conf err : property empty")
 		}
-		dims = append(dims, dim)
-	}
-	req.dimensoions = dims
+		if property == nil {
+			property = p.globalMetricProperty
+		}
+		req.period = property.Period
+		if req.period == 0 {
+			req.period = 300
+		}
+		req.filter = property.Filter
+		if req.filter == "" {
+			req.filter = "average"
+		}
+		req.interval = property.Interval.Duration
+		if req.interval == 0 {
+			req.interval = ag.Interval.Duration
+		}
+		req.tags = property.Tags
 
-	return req, nil
+		dims := []*Dimension{}
+		for k, v := range property.Dimensions {
+			dim := &Dimension{
+				Name:  k,
+				Value: v,
+			}
+			dims = append(dims, dim)
+		}
+		req.dimensoions = dims
+		request = append(request, req)
+
+	}
+	return request, nil
 }
