@@ -13,6 +13,7 @@ import (
 	conv "github.com/spf13/cast"
 	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
 func UrldecodeHandle(path string) (interface{}, error) {
@@ -54,9 +55,9 @@ func GeoIpHandle(ip string) (map[string]string, error) {
 	res := make(map[string]string)
 
 	res["city"] = record.City
-	res["region"] = record.Region
+	res["province"] = record.Region
 	res["country"] = record.Country_short
-	res["isp"] = record.Isp
+	res["isp"] = ip2isp.SearchIsp(ip)
 
 	return res, nil
 }
@@ -128,6 +129,7 @@ func TimestampHandle(value string) (int64, error) {
 var dateFormatStr = map[string]string{
 	"ANSIC":       time.ANSIC,
 	"UnixDate":    time.UnixDate,
+	"RubyDate":    time.RubyDate,
 	"RFC822":      time.RFC822,
 	"RFC822Z":     time.RFC822Z,
 	"RFC850":      time.RFC850,
