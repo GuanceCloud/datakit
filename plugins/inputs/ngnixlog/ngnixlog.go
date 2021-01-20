@@ -1,13 +1,12 @@
-package tailf
+package ngnixlog
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
 )
 
 const (
-	inputName = "tailf"
+	inputName = "ngnixlog"
 
 	sampleCfg = `
 [[inputs.tailf]]
@@ -19,10 +18,10 @@ const (
     ignore = [""]
 
     # required
-    source = ""
+    source = "ngnixlog"
 
     # grok pipeline script path
-    pipeline_path = ""
+    pipeline_path = "ngnixlog.p"
 
     # read file from beginning
     # if from_begin was false, off auto discovery file
@@ -54,18 +53,36 @@ const (
     # [inputs.tailf.tags]
     # tags1 = "value1"
 `
+	pipelineCfg = `
+add_pattern("httpversion", "\\d+\\.\\d+")
+add_pattern("date2", "%{year}[./]%{monthnum}[./]%{monthday} %{time}")
+
+grok(_, "%{iporhost:client_ip} %{notspace:http_ident} %{notspace:http_auth} \\[%{httpdate:date}\\] \"%{data:http_method} %{greedydata:http_url} HTTP/%{httpversion:http_version}\" %{int:status_code} %{int:bytes}")
+
+add_pattern("access_common", "%{iporhost:client_ip} %{notspace:http_ident} %{notspace:http_auth} \\[%{httpdate:date}\\] \"%{data:http_method} %{greedydata:http_url} HTTP/%{httpversion:http_version}\" %{int:status_code} %{int:bytes}")
+grok(_, '%{access_common} "%{notspace:referrer}" "%{greedydata:agent}')
+
+user_agent(agent)
+
+grok(_, "%{date2:date} \\[%{loglevel:status}\\] %{greedydata:msg}")
+grok(msg, "request: \"%{data:http_method} %{greedydata:http_url} HTTP/%{httpversion:http_version}\"")
+
+cast(status_code, "int")
+group_between(status_code, [200,299], "ok")
+
+add_key(status, "error")
+nullif(http_ident, "-")
+default_time(date)
+`
 )
-
-const (
-	defaultDruation = time.Second * 5
-
-	metricFeedCount = 10
-)
-
-// var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return NewTailf(inputName, "log", sampleCfg, nil)
+		return tailf.NewTailf(
+			inputName,
+			"log",
+			sampleCfg,
+			map[string]string{"ngnixlog": pipelineCfg},
+		)
 	})
 }
