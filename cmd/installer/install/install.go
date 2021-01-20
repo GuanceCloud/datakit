@@ -92,6 +92,13 @@ func InstallNewDatakit(svc service.Service) {
 		datakit.Cfg.MainCfg.GlobalTags = datakit.ParseGlobalTags(GlobalTags)
 	}
 
+	if datakit.Cfg.MainCfg.GlobalTags == nil {
+		datakit.Cfg.MainCfg.GlobalTags = map[string]string{}
+	}
+	datakit.Cfg.MainCfg.GlobalTags["project"] = ""
+	datakit.Cfg.MainCfg.GlobalTags["cluster"] = ""
+	datakit.Cfg.MainCfg.GlobalTags["site"] = ""
+
 	datakit.Cfg.MainCfg.HTTPBind = fmt.Sprintf("0.0.0.0:%d", Port)
 	datakit.Cfg.MainCfg.InstallDate = time.Now()
 
