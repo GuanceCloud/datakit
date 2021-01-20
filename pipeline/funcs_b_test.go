@@ -144,13 +144,6 @@ func TestGeoIpFunc(t *testing.T) {
 			err:      nil,
 		},
 		{
-			data:     `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
-			script:   `json(_, "ip") geoip("ip")`,
-			expected: "-",
-			key:      "city",
-			err:      nil,
-		},
-		{
 			data:     `{"ip":"", "second":2,"thrid":"abc","forth":true}`,
 			script:   `json(_, "ip") geoip(ip)`,
 			expected: "unknown",
