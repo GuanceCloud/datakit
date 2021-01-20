@@ -49,18 +49,21 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	val, err := p.getContentStr(key)
 	if err != nil {
-		return p, err
+		l.Warn(err)
+		return p, nil
 	}
 
 	m, err := p.grok.Parse(pattern, val)
 	if err != nil {
-		return p, err
+		l.Warn(err)
+		return p, nil
 	}
 
 	for k, v := range m {
 		err := p.setContent(k, v)
 		if err != nil {
-			return p, err
+			l.Warn(err)
+			return p, nil
 		}
 	}
 
@@ -100,7 +103,8 @@ func AddPattern(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	p.grok = nil
 	g, err := createGrok(p.patterns)
 	if err != nil {
-		return p, err
+		l.Warn(err)
+		return p, nil
 	}
 	p.grok = g
 
