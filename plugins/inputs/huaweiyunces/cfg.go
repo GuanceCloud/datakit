@@ -2,6 +2,7 @@ package huaweiyunces
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -9,7 +10,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud"
-	"fmt"
 )
 
 const (
