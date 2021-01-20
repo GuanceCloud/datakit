@@ -136,7 +136,7 @@ func (c *objCollector) Run() {
 			"datakit_ver": git.Version,
 			"cpu":         message.Host.cpuPercent,
 			"mem":         message.Host.Mem.usedPercent,
-			"load":        message.Host.load15,
+			"load":        message.Host.load5,
 		}
 		if thePipeline != nil {
 			if result, err := thePipeline.Run(string(messageData)).Result(); err == nil {
