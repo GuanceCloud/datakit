@@ -56,7 +56,6 @@ func GeoIpHandle(ip string) (map[string]string, error) {
 	res["city"] = record.City
 	res["region"] = record.Region
 	res["country"] = record.Country_short
-	res["city"] = record.City
 	res["isp"] = record.Isp
 
 	return res, nil
