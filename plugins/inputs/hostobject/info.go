@@ -4,11 +4,12 @@ import (
 	"net"
 	"strings"
 
-	cpuutil "github.com/shirou/gopsutil/v3/cpu"
-	diskutil "github.com/shirou/gopsutil/v3/disk"
-	hostutil "github.com/shirou/gopsutil/v3/host"
-	memutil "github.com/shirou/gopsutil/v3/mem"
-	netutil "github.com/shirou/gopsutil/v3/net"
+	cpuutil "github.com/shirou/gopsutil/cpu"
+	diskutil "github.com/shirou/gopsutil/disk"
+	hostutil "github.com/shirou/gopsutil/host"
+	loadutil "github.com/shirou/gopsutil/load"
+	memutil "github.com/shirou/gopsutil/mem"
+	netutil "github.com/shirou/gopsutil/net"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
@@ -38,6 +39,8 @@ type (
 	MemInfo struct {
 		MemoryTotal uint64 `json:"memory_total"`
 		SwapTotal   uint64 `json:"swap_total"`
+
+		usedPercent float64
 	}
 
 	NetInfo struct {
@@ -60,11 +63,13 @@ type (
 	}
 
 	HostInfo struct {
-		HostMeta *HostMetaInfo `json:"meta"`
-		CPU      []*CPUInfo    `json:"cpu"`
-		Mem      *MemInfo      `json:"mem"`
-		Net      []*NetInfo    `json:"net"`
-		Disk     []*DiskInfo   `json:"disk"`
+		HostMeta   *HostMetaInfo `json:"meta"`
+		CPU        []*CPUInfo    `json:"cpu"`
+		Mem        *MemInfo      `json:"mem"`
+		Net        []*NetInfo    `json:"net"`
+		Disk       []*DiskInfo   `json:"disk"`
+		cpuPercent float64
+		load15     float64
 	}
 
 	HostObjectMessage struct {
@@ -92,6 +97,16 @@ func getHostMeta() *HostMetaInfo {
 	}
 }
 
+func getCPUPercent() float64 {
+
+	ps, err := cpuutil.Percent(0, false)
+	if err != nil || len(ps) == 0 {
+		moduleLogger.Errorf("fail to get cpu percent, %s", err)
+		return 0
+	}
+	return ps[0]
+}
+
 func getCPUInfo() []*CPUInfo {
 	infos, err := cpuutil.Info()
 	if err != nil {
@@ -115,6 +130,15 @@ func getCPUInfo() []*CPUInfo {
 	return objs
 }
 
+func getLoad15() float64 {
+	avgstat, err := loadutil.Avg()
+	if err != nil {
+		moduleLogger.Errorf("fail to get load info, %s", err)
+		return 0
+	}
+	return avgstat.Load15
+}
+
 func getMemInfo() *MemInfo {
 	minfo, err := memutil.VirtualMemory()
 	if err != nil {
@@ -130,6 +154,7 @@ func getMemInfo() *MemInfo {
 	return &MemInfo{
 		MemoryTotal: minfo.Total,
 		SwapTotal:   vinfo.Total,
+		usedPercent: minfo.UsedPercent,
 	}
 }
 
@@ -177,7 +202,7 @@ func getDiskInfo() []*DiskInfo {
 			Device:     p.Device,
 			Mountpoint: p.Mountpoint,
 			Fstype:     p.Fstype,
-			Opts:       strings.Join(p.Opts, ","),
+			//Opts:       strings.Join(p.Opts, ","),
 		}
 
 		usage, err := diskutil.Usage(p.Mountpoint)
@@ -217,11 +242,13 @@ func getHostObjectMessage() *HostObjectMessage {
 
 	msg.Collectors = getEnabledInputs()
 	msg.Host = &HostInfo{
-		HostMeta: getHostMeta(),
-		CPU:      getCPUInfo(),
-		Mem:      getMemInfo(),
-		Net:      getNetInfo(),
-		Disk:     getDiskInfo(),
+		HostMeta:   getHostMeta(),
+		CPU:        getCPUInfo(),
+		cpuPercent: getCPUPercent(),
+		load15:     getLoad15(),
+		Mem:        getMemInfo(),
+		Net:        getNetInfo(),
+		Disk:       getDiskInfo(),
 	}
 
 	return &msg
