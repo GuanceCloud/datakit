@@ -215,7 +215,7 @@ func (p *Processes) WriteMetric(ps *pr.Process, fields map[string]interface{}) {
 		"username": p.username,
 		"state":    p.state,
 		"pid":      fmt.Sprintf("%d", ps.Pid),
-		"name":     name,
+		"process_name":     name,
 	}
 	io.NamedFeedEx(inputName, io.Metric, "process", tags, fields, time.Now().UTC())
 
