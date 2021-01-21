@@ -106,7 +106,6 @@ func TestStringfFunc(t *testing.T) {
 	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
 	script := `json(_, a.second)
 json(_, a.thrid)
-cast(a.second, "int")
 json(_, a.forth)
 strfmt(bb, "%d %s %v", a.second, a.thrid, a.forth)
 `
