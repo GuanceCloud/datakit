@@ -350,6 +350,17 @@ index_expr: identifier LEFT_BRACKET number_literal RIGHT_BRACKET
 							$$ = in
 						}
 					}
+					| LEFT_BRACKET number_literal RIGHT_BRACKET
+					{
+						nl := $2.(*NumberLiteral)
+						if !nl.IsInt {
+							yylex.(*parser).addParseErr(nil,
+								fmt.Errorf("array index should be int, got `%f'", nl.Float))
+							$$ = nil
+						} else {
+							$$ = &IndexExpr{ Index: []int64{nl.Int}}
+						}
+					}
 					;
 
 attr_expr: identifier
@@ -368,5 +379,4 @@ attr_expr: identifier
 				 {
 				 	$$ = &AttrExpr{Obj: $1, Attr: $3}
 				 }
-
 %%
