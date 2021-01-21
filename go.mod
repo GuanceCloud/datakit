@@ -95,6 +95,7 @@ require (
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/ucloud/ucloud-sdk-go v0.14.0
+	github.com/ugorji/go/codec v1.2.2
 	github.com/unrolled/secure v1.0.8
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/vjeantet/grok v1.0.0
