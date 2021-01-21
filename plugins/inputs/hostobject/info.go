@@ -199,7 +199,7 @@ func getNetInfo() []*NetInfo {
 
 func getDiskInfo() []*DiskInfo {
 
-	ps, err := diskutil.Partitions(false)
+	ps, err := diskutil.Partitions(true)
 	if err != nil {
 		moduleLogger.Errorf("fail to get disk info, %s", err)
 		return nil
