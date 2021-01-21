@@ -106,7 +106,7 @@ func (m *MysqlMonitor) gatherServer(serv string) error {
 	if m.GatherGlobalStatus {
 		err = m.gatherGlobalStatuses(db, serv)
 		if err != nil {
-			l.Errorf("gatherGlobalStatuses error, %v", err)
+			l.Warnf("gatherGlobalStatuses error, %v", err)
 		}
 	}
 
@@ -114,98 +114,98 @@ func (m *MysqlMonitor) gatherServer(serv string) error {
 		// Global Variables may be gathered less often
 		err = m.gatherGlobalVariables(db, serv)
 		if err != nil {
-			l.Errorf("gatherGlobalVariables error, %v", err)
+			l.Warnf("gatherGlobalVariables error, %v", err)
 		}
 	}
 
 	if m.GatherBinaryLogs {
 		err = m.gatherBinaryLogs(db, serv)
 		if err != nil {
-			l.Errorf("gatherBinaryLogs error, %v", err)
+			l.Warnf("gatherBinaryLogs error, %v", err)
 		}
 	}
 
 	if m.GatherProcessList {
 		err = m.GatherProcessListStatuses(db, serv)
 		if err != nil {
-			l.Errorf("GatherProcessListStatuses error, %v", err)
+			l.Warnf("GatherProcessListStatuses error, %v", err)
 		}
 	}
 
 	if m.GatherUserStatistics {
 		err = m.GatherUserStatisticsStatuses(db, serv)
 		if err != nil {
-			l.Errorf("gatherUserStatisticsStatuses error, %v", err)
+			l.Warnf("gatherUserStatisticsStatuses error, %v", err)
 		}
 	}
 
 	if m.GatherSlaveStatus {
 		err = m.gatherSlaveStatuses(db, serv)
 		if err != nil {
-			l.Errorf("gatherSlaveStatuses error, %v", err)
+			l.Warnf("gatherSlaveStatuses error, %v", err)
 		}
 	}
 
 	if m.GatherInfoSchemaAutoInc {
 		err = m.gatherInfoSchemaAutoIncStatuses(db, serv)
 		if err != nil {
-			l.Errorf("gatherInfoSchemaAutoIncStatuses error, %v", err)
+			l.Warnf("gatherInfoSchemaAutoIncStatuses error, %v", err)
 		}
 	}
 
 	if m.GatherInnoDBMetrics {
 		err = m.gatherInnoDBMetrics(db, serv)
 		if err != nil {
-			l.Errorf("gatherInnoDBMetrics error, %v", err)
+			l.Warnf("gatherInnoDBMetrics error, %v", err)
 		}
 	}
 
 	if m.GatherTableIOWaits {
 		err = m.gatherPerfTableIOWaits(db, serv)
 		if err != nil {
-			l.Errorf("gatherPerfTableIOWaits error, %v", err)
+			l.Warnf("gatherPerfTableIOWaits error, %v", err)
 		}
 	}
 
 	if m.GatherIndexIOWaits {
 		err = m.gatherPerfIndexIOWaits(db, serv)
 		if err != nil {
-			l.Errorf("gatherPerfIndexIOWaits error, %v", err)
+			l.Warnf("gatherPerfIndexIOWaits error, %v", err)
 		}
 	}
 
 	if m.GatherTableLockWaits {
 		err = m.gatherPerfTableLockWaits(db, serv)
 		if err != nil {
-			l.Errorf("gatherPerfTableLockWaits error, %v", err)
+			l.Warnf("gatherPerfTableLockWaits error, %v", err)
 		}
 	}
 
 	if m.GatherEventWaits {
 		err = m.gatherPerfEventWaits(db, serv)
 		if err != nil {
-			l.Errorf("gatherPerfEventWaits error, %v", err)
+			l.Warnf("gatherPerfEventWaits error, %v", err)
 		}
 	}
 
 	if m.GatherFileEventsStats {
 		err = m.gatherPerfFileEventsStatuses(db, serv)
 		if err != nil {
-			l.Errorf("gatherPerfFileEventsStatuses error, %v", err)
+			l.Warnf("gatherPerfFileEventsStatuses error, %v", err)
 		}
 	}
 
 	if m.GatherPerfEventsStatements {
 		err = m.gatherPerfEventsStatements(db, serv)
 		if err != nil {
-			l.Errorf("gatherPerfEventsStatements error, %v", err)
+			l.Warnf("gatherPerfEventsStatements error, %v", err)
 		}
 	}
 
 	if m.GatherTableSchema {
 		err = m.gatherTableSchema(db, serv)
 		if err != nil {
-			l.Errorf("gatherTableSchema error, %v", err)
+			l.Warnf("gatherTableSchema error, %v", err)
 		}
 	}
 	return nil
