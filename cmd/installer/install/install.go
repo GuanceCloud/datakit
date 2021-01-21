@@ -31,7 +31,7 @@ var (
 	GlobalTags    = ""
 	Port          = 9529
 	DatakitName   = ""
-	EnableInputs  = "cpu,disk,diskio,mem,swap,system,hostobject"
+	EnableInputs  = ""
 )
 
 func readInput(prompt string) string {
@@ -100,6 +100,13 @@ func InstallNewDatakit(svc service.Service) {
 	}
 
 	datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
+
+	defaultHostInputs := "cpu,disk,diskio,mem,swap,system,hostobject"
+	if EnableInputs == "" {
+		EnableInputs = defaultHostInputs
+	} else {
+		EnableInputs = EnableInputs + "," + defaultHostInputs
+	}
 
 	datakit.Cfg.EnableDefaultsInputs(EnableInputs)
 
