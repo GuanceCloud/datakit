@@ -205,7 +205,24 @@ func getDiskInfo() []*DiskInfo {
 		return nil
 	}
 	var infos []*DiskInfo
+
+	fstypeExcludeSet := map[string]bool{
+		"autofs":   true,
+		"tmpfs":    true,
+		"devtmpfs": true,
+		"devfs":    true,
+		"iso9660":  true,
+		"overlay":  true,
+		"aufs":     true,
+		"squashfs": true,
+	}
+
 	for _, p := range ps {
+
+		if _, ok := fstypeExcludeSet[p.Fstype]; ok {
+			continue
+		}
+
 		info := &DiskInfo{
 			Device:     p.Device,
 			Mountpoint: p.Mountpoint,
