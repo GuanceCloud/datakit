@@ -187,7 +187,14 @@ func (p *Pipeline) getContent(key interface{}) (interface{}, error) {
 
 func (p *Pipeline) getContentStr(key interface{}) (string, error) {
 	c, err := p.getContent(key)
-	return conv.ToString(c), err
+
+	switch v := reflect.ValueOf(c); v.Kind() {
+	case reflect.Map:
+		res, err := json.Marshal(v.Interface())
+		return string(res), err
+	default:
+		return conv.ToString(v), err
+	}
 }
 
 func (p *Pipeline) setContent(k, v interface{}) error {
