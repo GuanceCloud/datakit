@@ -35,7 +35,7 @@ const (
 
     ## data source
     # required
-    source = "temp"
+    source = ""
 
     # [inputs.prom.tags]
     # tags1 = "value1"
@@ -223,4 +223,18 @@ func (p *Prom) getMetrics() ([]byte, error) {
 	}
 
 	return buffer.Bytes(), nil
+}
+
+func init() {
+	inputs.Add(inputName, func() inputs.Input {
+		return &Prom{
+			Interval:       datakit.Cfg.MainCfg.Interval,
+			InputName:      inputName,
+			SampleCfg:      sampleCfg,
+			Tags:           make(map[string]string),
+			CatalogStr:     "prom",
+			IgnoreFunc:     defaultIgnoreFunc,
+			PromToNameFunc: defaultPromToNameFunc,
+		}
+	})
 }
