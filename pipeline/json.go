@@ -53,6 +53,10 @@ func getByAttr(val interface{}, i *parser.AttrExpr) (interface{}, error) {
 }
 
 func getByIdentifier(val interface{}, i *parser.Identifier) (interface{}, error) {
+	if i == nil {
+		return val, nil
+	}
+
 	switch v := val.(type) {
 	case map[string]interface{}:
 		if child, ok := v[i.Name]; !ok {
