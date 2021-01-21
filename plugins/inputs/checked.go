@@ -39,6 +39,7 @@ var (
 		"csvmetric":              true,
 		"csvobject":              true,
 		"proxy":                  true,
+		"ddtrace":                false,
 		"disk":                   true,
 		"diskio":                 true,
 		"dns_query":              true,
