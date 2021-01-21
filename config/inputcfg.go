@@ -7,7 +7,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
@@ -102,6 +101,12 @@ func LoadInputsConfig(c *datakit.Config) error {
 
 	for name, available := range availableInput {
 		creator, _ := inputs.Inputs[name]
+
+		if isDisabled(c.MainCfg.WhiteList, c.MainCfg.BlackList, c.MainCfg.Hostname, name) {
+			l.Warnf("input `%s' banned by white/black list on `%s'", name, c.MainCfg.Hostname)
+			continue
+		}
+
 		if err := doLoadInputConf(c, name, creator, available); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
 			return err
@@ -187,11 +192,6 @@ func searchDatakitInputCfg(c *datakit.Config,
 
 			for _, i := range inputlist {
 
-				if isDisabled(c.MainCfg.WhiteList, c.MainCfg.BlackList, c.MainCfg.Hostname, name) {
-					l.Warnf("input %s banned by white/black list on %s", name, c.MainCfg.Hostname)
-					continue
-				}
-
 				if err := inputs.AddInput(name, i, fp); err != nil {
 					l.Error("add %s failed: %v", name, err)
 					continue
@@ -250,38 +250,10 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 			return
 		}
 
-		l.Debugf("try set MaxLifeCheckInterval from %s", name)
-		trySetMaxPostInterval(t)
-
 		inputList = append(inputList, input)
-
 	}
 
 	return
-}
-
-func trySetMaxPostInterval(t *ast.Table) {
-	var dur time.Duration
-	var err error
-	node, ok := t.Fields["interval"]
-	if !ok {
-		return
-	}
-
-	if kv, ok := node.(*ast.KeyValue); ok {
-		if str, ok := kv.Value.(*ast.String); ok {
-			dur, err = time.ParseDuration(str.Value)
-			if err != nil {
-				l.Errorf("parse duration(%s) from %+#v failed: %s, ignored", str.Value, t, err.Error())
-				return
-			}
-
-			if datakit.MaxLifeCheckInterval+5*time.Second < dur { // use the max interval from all inputs
-				datakit.MaxLifeCheckInterval = dur
-				l.Debugf("set MaxLifeCheckInterval to %v ok", dur)
-			}
-		}
-	}
 }
 
 func migrateOldCfg(name string, c inputs.Creator) error {

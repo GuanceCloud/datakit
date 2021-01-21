@@ -116,10 +116,13 @@ func (ag *objectAgent) parseObject(obj interface{}, name, class, id string, pipe
 		return err
 	}
 
-	fields, err := pipeline.Run(string(data)).Result()
-	if err != nil {
-		moduleLogger.Errorf("[error] pipeline run err:%s", err.Error())
-		return err
+	fields := map[string]interface{}{}
+	if pipeline != nil {
+		fields, err = pipeline.Run(string(data)).Result()
+		if err != nil {
+			moduleLogger.Errorf("[error] pipeline run err:%s", err.Error())
+			return err
+		}
 	}
 
 	fields["message"] = string(data)
