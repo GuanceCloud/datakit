@@ -65,7 +65,7 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	newkey := old
 	if len(funcExpr.Param) == 3 {
 		switch v := funcExpr.Param[2].(type) {
-		case *parser.AttrExpr, *parser.Identifier:
+		case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 			newkey = v
 		default:
 			return p, fmt.Errorf("expect AttrExpr or Identifier, got %s",
