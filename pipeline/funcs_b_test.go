@@ -1,11 +1,11 @@
 package pipeline
 
 import (
-	"strconv"
-	"testing"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"strconv"
+	"testing"
 )
 
 type funcCase struct {
@@ -44,7 +44,7 @@ func TestJsonFunc(t *testing.T) {
 		// 	err:      nil,
 		// },
 		{
-			data:     `{
+			data: `{
 			  "name": {"first": "Tom", "last": "Anderson"},
 			  "age":37,
 			  "children": ["Sara","Alex","Jack"],
@@ -61,7 +61,7 @@ func TestJsonFunc(t *testing.T) {
 			err:      nil,
 		},
 		{
-			data:`[
+			data: `[
 				    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
 				    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
 				    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
@@ -524,7 +524,7 @@ func TestNullIfFunc(t *testing.T) {
 func TestJsonAllFunc(t *testing.T) {
 	var testCase = []*funcCase{
 		{
-			data:     `{
+			data: `{
 			  "name": {"first": "Tom", "last": "Anderson"},
 			  "age":37,
 			  "children": ["Sara","Alex","Jack"],
