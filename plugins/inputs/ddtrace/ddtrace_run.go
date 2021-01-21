@@ -79,8 +79,12 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 				tAdpter.Status = trace.STATUS_ERR
 			}
 
-			tAdpter.Duration = span.Duration / 1000
-			tAdpter.TimestampUs = span.Start / 1000
+			tAdpter.Duration = span.Duration
+			tAdpter.Start = span.Start
+
+			if v, ok := span.Metrics["system.pid"]; ok {
+				tAdpter.Pid = fmt.Sprintf("%v", v)
+			}
 
 			js, err := json.Marshal(span)
 			if err != nil {
