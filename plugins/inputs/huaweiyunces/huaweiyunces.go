@@ -54,6 +54,11 @@ func (ag *agent) Run() {
 	}
 
 	ag.client = huaweicloud.NewHWClient(ag.AccessKeyID, ag.AccessKeySecret, ag.EndPoint, ag.ProjectID, moduleLogger)
+	//兼容以前老版本配置
+	if ag.EcsEndPoint == "" {
+		ag.EcsEndPoint = strings.Replace(ag.EndPoint, "ces", "ecs", 1)
+	}
+	ag.ecsClient = huaweicloud.NewHWClient(ag.AccessKeyID, ag.AccessKeySecret, ag.EcsEndPoint, ag.ProjectID, moduleLogger)
 
 	//每秒最多20个请求
 	limit := rate.Every(50 * time.Millisecond)
@@ -73,7 +78,6 @@ func (ag *agent) Run() {
 		}
 		return
 	}
-
 	select {
 	case <-ag.ctx.Done():
 		return
@@ -87,7 +91,6 @@ func (ag *agent) Run() {
 			return
 		default:
 		}
-
 		for _, req := range ag.reqs {
 
 			select {
@@ -148,8 +151,44 @@ func snakeCase(in string) string {
 	return s
 }
 
-func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
+func (ag *agent) getEcsList() ([]string, error) {
+	var cesList []string
 
+	limit := 100
+	offset := 1
+
+	for {
+
+		select {
+		case <-ag.ctx.Done():
+			return cesList, nil
+		default:
+		}
+		opts := map[string]string{
+			"limit":  fmt.Sprintf("%d", limit),
+			"offset": fmt.Sprintf("%d", offset),
+		}
+
+		ecss, err := ag.ecsClient.EcsList(opts)
+		if err != nil {
+			moduleLogger.Errorf("%v", err)
+			return cesList, err
+		}
+		for _, v := range ecss.Servers {
+			cesList = append(cesList, v.ID)
+		}
+
+		if ecss.Count < offset*limit {
+			break
+		}
+		offset++
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
+
+	}
+	return cesList, nil
+}
+
+func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
 	nt := time.Now().Truncate(time.Second)
 	endTime := nt.Unix() * 1000
 	var startTime int64
@@ -181,7 +220,7 @@ func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
 		}
 		return
 	}
-
+	moduleLogger.Debugf("resp %s", string(resData))
 	resp := parseMetricResponse(resData, req.filter)
 
 	moduleLogger.Debugf("get %d datapoints: Namespace=%s, MetricName=%s, Filter=%s, Period=%v, InterVal=%v, StartTime=%v(%s), EndTime=%v(%s), Dimensions=%s", len(resp.datapoints), req.namespace, req.metricname, req.filter, req.period, req.interval, req.from, logStarttime, req.to, logEndtime, req.dimensoions)
@@ -240,6 +279,16 @@ func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
 func (ag *agent) genReqs(ctx context.Context) error {
 
 	//生成所有请求
+
+	ecsList, err := ag.getEcsList()
+	if err != nil {
+		return err
+	}
+	if len(ecsList) == 0 {
+		moduleLogger.Infof("not found ecs")
+		return nil
+	}
+
 	for _, proj := range ag.Namespace {
 
 		for _, metricName := range proj.MetricNames {
@@ -254,17 +303,13 @@ func (ag *agent) genReqs(ctx context.Context) error {
 			default:
 			}
 
-			req, err := proj.genMetricReq(metricName)
+			req, err := proj.genMetricReq(metricName, ecsList, ag)
 			if err != nil {
 				moduleLogger.Errorf("%s", err)
 				return err
 			}
+			ag.reqs = append(ag.reqs, req...)
 
-			if req.interval == 0 {
-				req.interval = ag.Interval.Duration
-			}
-
-			ag.reqs = append(ag.reqs, req)
 		}
 	}
 
