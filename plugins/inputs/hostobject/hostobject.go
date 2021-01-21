@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
 	"runtime"
 	"time"
 
@@ -27,6 +25,8 @@ type objCollector struct {
 
 	Interval datakit.Duration
 	Pipeline string `toml:"pipeline"`
+
+	p *pipeline.Pipeline
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
@@ -90,25 +90,7 @@ func (c *objCollector) Run() {
 		c.cancelFun()
 	}()
 
-	var thePipeline *pipeline.Pipeline
-
-	script := c.Pipeline
-	if script == "" {
-		scriptPath := filepath.Join(datakit.PipelineDir, InputName+".p")
-		data, err := ioutil.ReadFile(scriptPath)
-		if err == nil {
-			script = string(data)
-		}
-	}
-
-	if script != "" {
-		p, err := pipeline.NewPipeline(script)
-		if err != nil {
-			moduleLogger.Errorf("%s", err)
-		} else {
-			thePipeline = p
-		}
-	}
+	c.p = c.getPipeline()
 
 	for {
 
@@ -138,8 +120,8 @@ func (c *objCollector) Run() {
 			"mem_used_pencent": message.Host.Mem.usedPercent,
 			"load":             message.Host.load5,
 		}
-		if thePipeline != nil {
-			if result, err := thePipeline.Run(string(messageData)).Result(); err == nil {
+		if c.p != nil {
+			if result, err := c.p.Run(string(messageData)).Result(); err == nil {
 				for k, v := range result {
 					fields[k] = v
 				}
@@ -176,6 +158,22 @@ func (c *objCollector) Run() {
 
 		datakit.SleepContext(c.ctx, c.Interval.Duration)
 	}
+}
+
+func (c *objCollector) getPipeline() *pipeline.Pipeline {
+
+	fname := c.Pipeline
+	if fname == "" {
+		fname = InputName + ".p"
+	}
+
+	p, err := pipeline.NewPipelineByScriptPath(fname)
+	if err != nil {
+		moduleLogger.Warnf("%s", err)
+		return nil
+	}
+
+	return p
 }
 
 func newInput() *objCollector {
