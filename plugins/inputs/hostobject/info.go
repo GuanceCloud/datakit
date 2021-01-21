@@ -108,7 +108,7 @@ func getCPUPercent() float64 {
 
 	ps, err := cpuutil.Percent(0, false)
 	if err != nil || len(ps) == 0 {
-		moduleLogger.Errorf("fail to get cpu percent, %s", err)
+		moduleLogger.Warnf("fail to get cpu percent: %s", err)
 		return 0
 	}
 	return ps[0]
