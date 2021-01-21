@@ -162,7 +162,7 @@ func JsonParse(jsonStr string) map[string]interface{} {
 		parseJson2Map(jsonObj, res, "")
 	} else if isArray(jsonObj) {
 		for idx, obj := range jsonObj.Array() {
-			key := fmt.Sprintf("%d", idx)
+			key := fmt.Sprintf("[%d]", idx)
 			parseJson2Map(obj, res, key)
 		}
 	}
