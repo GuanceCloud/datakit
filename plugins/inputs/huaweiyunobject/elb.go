@@ -17,10 +17,10 @@ const (
 #[inputs.huaweiyunobject.elb]
 
 ## elb type: 经典型、共享型、共享型_企业项目 - requried
-type=""
+#type=""
 
 ## 地区和终端节点 https://developer.huaweicloud.com/endpoint?ELB
-endpoint=""
+#endpoint=""
 
 # ## @param - [list of Elb instanceid] - optional
 #instanceids = []
@@ -56,12 +56,14 @@ func (e *Elb) run(ag *objectAgent) {
 		e.EndPoint = fmt.Sprintf(`elb.%s.myhuaweicloud.com`, ag.RegionID)
 	}
 
-	p, err := pipeline.NewPipelineByScriptPath(e.PipelinePath)
-	if err != nil {
-		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
-		return
+	if e.PipelinePath != `` {
+		p, err := pipeline.NewPipelineByScriptPath(e.PipelinePath)
+		if err != nil {
+			moduleLogger.Errorf("[error]  elb new pipeline err:%s", err.Error())
+			return
+		}
+		e.p = p
 	}
-	e.p = p
 
 	cli := huaweicloud.NewHWClient(ag.AccessKeyID, ag.AccessKeySecret, e.EndPoint, ag.ProjectID, moduleLogger)
 

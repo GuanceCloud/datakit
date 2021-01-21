@@ -1,10 +1,8 @@
 package tailf
 
 import (
-	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -24,7 +22,7 @@ const (
     source = ""
 
     # grok pipeline script path
-    pipeline_path = ""
+    pipeline = ""
 
     # read file from beginning
     # if from_begin was false, off auto discovery file
@@ -64,14 +62,10 @@ const (
 	metricFeedCount = 10
 )
 
-var l = logger.DefaultSLogger(inputName)
+// var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Tailf{
-			runningFileList: sync.Map{},
-			wg:              sync.WaitGroup{},
-			Tags:            make(map[string]string),
-		}
+		return NewTailf(inputName, "log", sampleCfg, nil)
 	})
 }
