@@ -70,11 +70,27 @@ type Prom struct {
 	log      *logger.Logger
 }
 
+func NewProm(inputName, catalogStr, sampleCfg string, ignoreFunc func(*ifxcli.Point) bool) *Prom {
+	return &Prom{
+		InputName:      inputName,
+		CatalogStr:     inputName,
+		SampleCfg:      sampleCfg,
+		Interval:       datakit.Cfg.MainCfg.Interval,
+		Tags:           make(map[string]string),
+		IgnoreFunc:     ignoreFunc,
+		PromToNameFunc: nil,
+	}
+}
+
 func (p *Prom) SampleConfig() string {
 	return p.SampleCfg
 }
 
 func (p *Prom) Catalog() string {
+	if p.CatalogStr == "" {
+		return "prom"
+	}
+
 	return p.CatalogStr
 }
 
