@@ -52,7 +52,7 @@ type (
 		Flags        []string `json:"flags"` // e.g., FlagUp, FlagLoopback, FlagMulticast
 		IP4          string   `json:"ip4"`
 		IP6          string   `json:"ip6"`
-		Addrs        []string `json:"addrs"`
+		Addrs        []string `json:"-"`
 	}
 
 	DiskInfo struct {
