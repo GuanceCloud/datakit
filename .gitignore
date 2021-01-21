@@ -33,7 +33,6 @@ deps/*
 *.err
 *.test
 *.rpm
-log
 run.s
 cfg.json
 config.json
@@ -49,3 +48,4 @@ plugins/externals/csv/venv
 *.zip
 china-operator-ip
 **build/
+debug/

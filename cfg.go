@@ -28,11 +28,15 @@ var (
 func DefaultConfig() *Config {
 	return &Config{ //nolint:dupl
 		MainCfg: &MainConfig{
-			GlobalTags:      map[string]string{},
-			flushInterval:   Duration{Duration: time.Second * 10},
-			Interval:        "10s",
-			MaxPostInterval: "15s", // add 5s plus for network latency
-			StrictMode:      false,
+			GlobalTags: map[string]string{
+				"project": "",
+				"cluster": "",
+				"site":    "",
+			},
+
+			flushInterval: Duration{Duration: time.Second * 10},
+			Interval:      "10s",
+			StrictMode:    false,
 
 			HTTPBind:  "0.0.0.0:9529",
 			HTTPSPort: 443,
@@ -40,12 +44,10 @@ func DefaultConfig() *Config {
 			TLSKey:    "",
 
 			LogLevel:  "info",
-			Log:       filepath.Join(InstallDir, "datakit.log"),
+			Log:       filepath.Join(InstallDir, "log"),
 			LogRotate: 32,
 			LogUpload: false,
 			GinLog:    filepath.Join(InstallDir, "gin.log"),
-
-			RoundInterval: false,
 
 			BlackList: []*InputHostList{
 				&InputHostList{Hosts: []string{}, Inputs: []string{}},
@@ -385,16 +387,14 @@ type MainConfig struct {
 	LogUpload bool   `toml:"log_upload"`
 
 	GinLog               string            `toml:"gin_log"`
-	MaxPostInterval      string            `toml:"max_post_interval"`
 	GlobalTags           map[string]string `toml:"global_tags"`
-	RoundInterval        bool
-	StrictMode           bool   `toml:"strict_mode,omitempty"`
-	EnablePProf          bool   `toml:"enable_pprof,omitempty"`
-	Interval             string `toml:"interval"`
+	StrictMode           bool              `toml:"strict_mode,omitempty"`
+	EnablePProf          bool              `toml:"enable_pprof,omitempty"`
+	Interval             string            `toml:"interval"`
 	flushInterval        Duration
 	OutputFile           string       `toml:"output_file"`
 	Hostname             string       `toml:"hostname,omitempty"`
-	DefaultEnabledInputs []string     `toml:"default_enabled_inputs"`
+	DefaultEnabledInputs []string     `toml:"default_enabled_inputs,omitempty"`
 	InstallDate          time.Time    `toml:"install_date,omitempty"`
 	TelegrafAgentCfg     *TelegrafCfg `toml:"agent"`
 
@@ -483,6 +483,11 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 	if c.MainCfg.Hostname == "" {
 		c.setHostname()
 	}
+	if c.MainCfg.GlobalTags == nil {
+		c.MainCfg.GlobalTags = map[string]string{}
+	}
+
+	c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
 
 	if c.MainCfg.DataWay.URL == "" {
 		l.Fatal("dataway URL not set")
@@ -513,15 +518,6 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 
 	if c.MainCfg.DataWay.DeprecatedToken != "" { // compatible with old dataway config
 		c.MainCfg.DataWay.addToken(c.MainCfg.DataWay.DeprecatedToken)
-	}
-
-	if c.MainCfg.MaxPostInterval != "" {
-		du, err := time.ParseDuration(c.MainCfg.MaxPostInterval)
-		if err != nil {
-			l.Warnf("parse %s failed: %s, set default to 15s", c.MainCfg.MaxPostInterval)
-			du = time.Second * 15
-		}
-		MaxLifeCheckInterval = du
 	}
 
 	if c.MainCfg.Interval != "" {
