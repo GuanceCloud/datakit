@@ -91,23 +91,37 @@ func TestJsonFunc(t *testing.T) {
 func TestDefaultTimeFunc(t *testing.T) {
 	var testCase = []*funcCase{
 		{
-			data:     `{"a":{"time":"","second":2,"thrid":"abc","forth":true},"age":47}`,
+			data:     `{"a":{"time":"14 May 19:11:40.164","second":2,"thrid":"abc","forth":true},"age":47}`,
 			script:   `json(_, a.time) default_time(a.time)`,
-			expected: nil,
+			expected: int64(1621019500164000000),
 			key:      "a.time",
 			err:      nil,
 		},
 		{
+			data:     `{"a":{"time":"14 May 2019 19:11:40.164","second":2,"thrid":"abc","forth":true},"age":47}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(1557832300164000000),
+			key:      "a.time",
+			err:      nil,
+		},
+		// {
+		// 	data:     `{"a":{"time":"","second":2,"thrid":"abc","forth":true},"age":47}`,
+		// 	script:   `json(_, a.time) default_time(a.time)`,
+		// 	expected: nil,
+		// 	key:      "a.time",
+		// 	err:      nil,
+		// },
+		{
 			data:     `{"a":{"time":"06/Jan/2017:16:16:37 +0000","second":2,"thrid":"abc","forth":true},"age":47}`,
 			script:   `json(_, a.time) default_time(a.time)`,
-			expected: "1483719397000000000",
+			expected: int64(1483719397000000000),
 			key:      "a.time",
 			err:      nil,
 		},
 		{
 			data:     `{"a":{"time":"2014-12-16 06:20:00 UTC","second":2,"thrid":"abc","forth":true},"age":47}`,
 			script:   `json(_, a.time) default_time(a.time)`,
-			expected: "1418682000000000000",
+			expected: int64(1418682000000000000),
 			key:      "a.time",
 			err:      nil,
 		},
@@ -120,7 +134,9 @@ func TestDefaultTimeFunc(t *testing.T) {
 
 		p.Run(tt.data)
 
-		r, err := p.getContentStr(tt.key)
+		r, err := p.getContent(tt.key)
+
+		fmt.Println("out ======>", p.Output)
 
 		assert.Equal(t, r, tt.expected)
 	}
