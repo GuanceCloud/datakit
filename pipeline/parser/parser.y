@@ -1,6 +1,9 @@
 %{
 package parser
 
+import (
+	"fmt"
+)
 %}
 
 %union {
@@ -11,7 +14,7 @@ package parser
 	float      float64
 }
 
-%token <item> SEMICOLON COMMA COMMENT
+%token <item> SEMICOLON COMMA COMMENT DOT
 	EOF ERROR ID LEFT_PAREN LEFT_BRACKET NUMBER
 	RIGHT_PAREN RIGHT_BRACKET SPACE STRING QUOTED_STRING
 
@@ -33,7 +36,7 @@ AND OR NIL NULL RE JP
 
 // start symbols for parser
 %token startSymbolsStart
-%token START_FUNC_EXPRESSION
+%token START_PIPELINE
 %token startSymbolsEnd
 
 ////////////////////////////////////////////////////
@@ -44,7 +47,7 @@ AND OR NIL NULL RE JP
 	function_name
 	identifier
 
-%type<nodes> function_args  function_exprs
+%type<nodes> function_args 
 
 %type <node>
 	array_elem
@@ -55,14 +58,14 @@ AND OR NIL NULL RE JP
 	function_expr
 	paren_expr
 	regex
-	jpath
 	bool_literal
 	string_literal
 	nil_literal
 	number_literal
-	columnref
-
-
+	//columnref
+	index_expr
+	attr_expr
+	pipeline
 
 %start start
 
@@ -76,7 +79,7 @@ AND OR NIL NULL RE JP
 
 %%
 
-start: START_FUNC_EXPRESSION function_exprs
+start: START_PIPELINE pipeline
 		 {
 				yylex.(*parser).parseResult = $2
 		 }
@@ -87,32 +90,21 @@ start: START_FUNC_EXPRESSION function_exprs
 		 }
 		 ;
 
-function_exprs: function_expr
+pipeline: function_expr
 		 {
-			 $$ = Funcs{$1}
+		 	$$ = &Ast{ Functions: []*FuncExpr{$1.(*FuncExpr)} }
 		 }
-		 | function_exprs SEMICOLON function_expr
+		 | pipeline function_expr
 		 {
-			 $1 = append($1, $3)
-			 $$ = $1
-		 }
-		 | function_exprs function_expr
-		 {
-			 $1 = append($1, $2)
-			 $$ = $1
+		 	ast := $1.(*Ast)
+			ast.Functions = append(ast.Functions, $2.(*FuncExpr))
+			$$ = $1
 		 }
 		 ;
 
 /* expression */
-expr:  array_elem | regex | jpath | paren_expr | function_expr | binary_expr
+expr:  array_elem | regex | paren_expr | function_expr | binary_expr | attr_expr
 		;
-
-columnref: identifier
-				 {
-				   $$ = &Identifier{Name: $1.Val}
-				 }
-				 ;
-
 
 unary_op: ADD
 				| SUB
@@ -155,8 +147,6 @@ function_expr: function_name LEFT_PAREN function_args RIGHT_PAREN
 								$$ = yylex.(*parser).newFunc($1.Val, $3)
 							}
 							;
-
-
 
 function_args: function_args COMMA function_arg
 						 {
@@ -202,7 +192,7 @@ array_list: array_list COMMA array_elem
 
 array_elem: number_literal
 					| string_literal
-					| columnref
+					//| columnref
 					| nil_literal
 					| bool_literal
 					;
@@ -324,16 +314,6 @@ regex: RE LEFT_PAREN string_literal RIGHT_PAREN
           		 }
           		 ;
 
-jpath: JP LEFT_PAREN string_literal RIGHT_PAREN
-          		 {
-          		   $$ = &Jspath{Jspath: $3.(*StringLiteral).Val}
-          		 }
-          		 | JP LEFT_PAREN QUOTED_STRING RIGHT_PAREN
-          		 {
-          		   $$ = &Jspath{Jspath: yylex.(*parser).unquoteString($3.Val)}
-          		 }
-          		 ;
-
 identifier: ID
 					| QUOTED_STRING
 					{
@@ -343,5 +323,60 @@ identifier: ID
 					{
 						$$.Val = $3.(*StringLiteral).Val
 					}
+					;
 
+index_expr: identifier LEFT_BRACKET number_literal RIGHT_BRACKET
+					{
+						nl := $3.(*NumberLiteral)
+						if !nl.IsInt {
+							yylex.(*parser).addParseErr(nil,
+								fmt.Errorf("array index should be int, got `%f'", nl.Float))
+							$$ = nil
+						} else {
+							$$ = &IndexExpr{Obj: &Identifier{Name: $1.Val}, Index: []int64{nl.Int}}
+						}
+					}
+					| index_expr LEFT_BRACKET number_literal RIGHT_BRACKET
+					{
+
+						nl := $3.(*NumberLiteral)
+						if !nl.IsInt {
+							yylex.(*parser).addParseErr(nil,
+								fmt.Errorf("array index should be int, got `%f'", nl.Float))
+							$$ = nil
+						} else {
+							in := $1.(*IndexExpr)
+							in.Index = append(in.Index, nl.Int)
+							$$ = in
+						}
+					}
+					| LEFT_BRACKET number_literal RIGHT_BRACKET
+					{
+						nl := $2.(*NumberLiteral)
+						if !nl.IsInt {
+							yylex.(*parser).addParseErr(nil,
+								fmt.Errorf("array index should be int, got `%f'", nl.Float))
+							$$ = nil
+						} else {
+							$$ = &IndexExpr{ Index: []int64{nl.Int}}
+						}
+					}
+					;
+
+attr_expr: identifier
+				 {
+				 	$$ = &AttrExpr{Obj: &Identifier{Name: $1.Val}}
+				 }
+				 | index_expr
+				 {
+				 	$$ = &AttrExpr{Obj: $1}
+				 }
+				 | attr_expr DOT identifier
+				 {
+				 	$$ = &AttrExpr{Obj: $1, Attr: &Identifier{Name: $3.Val}}
+				 }
+				 | attr_expr DOT index_expr
+				 {
+				 	$$ = &AttrExpr{Obj: $1, Attr: $3}
+				 }
 %%
