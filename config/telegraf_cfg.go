@@ -36,6 +36,12 @@ func loadTelegrafInputsConfigs(c *datakit.Config, inputcfgs map[string]*ast.Tabl
 					l.Warnf("ignore bad toml node within %s", fp)
 				} else {
 					for inputName := range stbl.Fields {
+
+						if isDisabled(c.MainCfg.WhiteList, c.MainCfg.BlackList, c.MainCfg.Hostname, inputName) {
+							l.Warnf("input `%s' banned by white/black list on `%s'", inputName, c.MainCfg.Hostname)
+							continue
+						}
+
 						l.Debugf("check if telegraf input name(%s)?", inputName)
 
 						if _, ok := tgi.TelegrafInputs[inputName]; ok {
