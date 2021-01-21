@@ -101,6 +101,13 @@ func InstallNewDatakit(svc service.Service) {
 
 	datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
 
+	defaultHostInputs := "cpu,disk,diskio,mem,swap,system,hostobject"
+	if EnableInputs == "" {
+		EnableInputs = defaultHostInputs
+	} else {
+		EnableInputs = EnableInputs + "," + defaultHostInputs
+	}
+
 	datakit.Cfg.EnableDefaultsInputs(EnableInputs)
 
 	// build datakit main config
