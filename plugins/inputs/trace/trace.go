@@ -33,8 +33,12 @@ type ZipkinTracer struct {
 
 type TraceAdapter struct {
 	Source      string
+
+	//纳秒单位
 	Duration    int64
-	TimestampUs int64
+
+	//纳秒单位
+	Start       int64
 	Content     string
 
 	ServiceName   string
@@ -47,6 +51,7 @@ type TraceAdapter struct {
 	SpanType      string
 	EndPoint      string
 	Type          string
+	Pid           string
 
 	Tags map[string]string
 }
@@ -98,11 +103,12 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 		tags["span_type"] = SPAN_TYPE_ENTRY
 	}
 
-	fields["duration"] = tAdpt.Duration
+	fields["duration"] = tAdpt.Duration/1000
+	fields["start"] = tAdpt.Start/1000
 	fields["message"] = tAdpt.Content
 	fields["resource"] = tAdpt.Resource
 
-	ts := time.Unix(tAdpt.TimestampUs/US_PER_SECOND, (tAdpt.TimestampUs%US_PER_SECOND)*1000)
+	ts := time.Unix(tAdpt.Start/int64(time.Second), tAdpt.Start % int64(time.Second))
 
 	pt, err := dkio.MakeMetric(tAdpt.Source, tags, fields, ts)
 	if err != nil {
