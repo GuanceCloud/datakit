@@ -89,12 +89,8 @@ func (c *HWClient) Request(method string, resPath string, querys map[string]stri
 
 	req, err := http.NewRequest(method, requestURL, bodyReader)
 	if err != nil {
-		err = fmt.Errorf("invalid request url: %s, err:%s", requestURL, err)
+		err = fmt.Errorf("fail for url: %s, %s", requestURL, err)
 		return nil, err
-	}
-
-	if c.logger != nil {
-		c.logger.Debugf("api url: %s", requestURL)
 	}
 
 	req.Header.Add("Content-Length", fmt.Sprintf("%d", len(body)))
