@@ -45,6 +45,9 @@ func (c *wscli) setup() {
 	if err := cli.tryConnect(wsurl.String()); err != nil {
 		return
 	}
+
+	l.Info("ws connect ok")
+
 	go func() {
 		//defer datakit.WG.Done()
 		cli.waitMsg() // blocking reader, do not add to datakit.WG
@@ -106,7 +109,7 @@ func (wc *wscli) tryConnect(wsurl string) error {
 				continue
 			}
 
-			l.Infof("ws connect ok, resp: %+#v", resp)
+			l.Debugf("ws connect ok, resp: %+#v", resp)
 
 			wc.c = c
 			return nil
