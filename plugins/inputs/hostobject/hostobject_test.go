@@ -17,6 +17,8 @@ import (
 func TestInput(t *testing.T) {
 
 	ag := loadCfg("test.conf").(*objCollector)
+	ag.Pipeline = `json(_,host.meta.os,jjos)
+uppercase(jjos)`
 	ag.mode = "debug"
 	ag.Run()
 }
