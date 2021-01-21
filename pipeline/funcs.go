@@ -74,6 +74,7 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	cont, err := p.getContentStr(key)
+
 	if err != nil {
 		l.Warn(err)
 		return p, nil
