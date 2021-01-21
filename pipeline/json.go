@@ -8,7 +8,7 @@ import (
 )
 
 func GsonGet(s string, node interface{}) (interface{}, error) {
-	m := make(map[string]interface{})
+	var m interface{}
 
 	err := json.Unmarshal([]byte(s), &m)
 	if err != nil {
