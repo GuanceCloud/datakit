@@ -56,8 +56,8 @@ func parseJaegerThrift(octets []byte) error {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "jaeger"
 
-		tAdpter.Duration = s.Duration
-		tAdpter.TimestampUs = s.StartTime
+		tAdpter.Duration = s.Duration * 1000
+		tAdpter.Start = s.StartTime * 1000
 		sJson, err := json.Marshal(s)
 		if err != nil {
 			return err
