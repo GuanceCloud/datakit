@@ -45,6 +45,9 @@ func (c *wscli) setup() {
 	if err := cli.tryConnect(wsurl.String()); err != nil {
 		return
 	}
+
+	l.Info("ws connect ok")
+
 	go func() {
 		//defer datakit.WG.Done()
 		cli.waitMsg() // blocking reader, do not add to datakit.WG
@@ -106,7 +109,7 @@ func (wc *wscli) tryConnect(wsurl string) error {
 				continue
 			}
 
-			l.Infof("ws connect ok, resp: %+#v", resp)
+			l.Debugf("ws connect ok, resp: %+#v", resp)
 
 			wc.c = c
 			return nil
@@ -525,12 +528,12 @@ func WriteKeyevent(inputName, title string) {
 		"datakit_version": git.Version,
 		"datakit_os":      runtime.GOOS,
 		"datakit_arch":    runtime.GOARCH,
-		"status":          "info",
+		"__status":        "info",
 	}
 	now := time.Now().Local()
 	fields := map[string]interface{}{
-		"title":      title,
-		"input_name": inputName,
+		"__title":   title,
+		"inputName": inputName,
 	}
 	err := io.NamedFeedEx(name, io.KeyEvent, "__keyevent", tags, fields, now)
 	if err != nil {
