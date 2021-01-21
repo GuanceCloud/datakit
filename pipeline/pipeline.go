@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
@@ -24,7 +25,7 @@ type Pipeline struct {
 	Output   map[string]interface{}
 	lastErr  error
 	patterns map[string]string //存放自定义patterns
-	nodes    []parser.Node
+	ast      *parser.Ast
 	grok     *vgrok.Grok
 }
 
@@ -109,9 +110,10 @@ func (p *Pipeline) Run(data string) *Pipeline {
 	p.Output["message"] = data
 
 	//防止脚本解析错误
-	if len(p.nodes) == 0 {
+	if p.ast == nil || len(p.ast.Functions) == 0 {
 		return p
 	}
+
 	//错误状态复位
 	p.lastErr = nil
 
@@ -127,27 +129,18 @@ func (p *Pipeline) Run(data string) *Pipeline {
 			return
 		}
 
-		for _, node := range p.nodes {
-			switch v := node.(type) {
-			case *parser.FuncExpr:
-				fn := strings.ToLower(v.Name)
-				f, ok := funcsMap[fn]
-				if !ok {
-					err := fmt.Errorf("unsupported func: %v", v.Name)
-					l.Error(err)
-					p.lastErr = err
-					return
-				}
+		for _, fn := range p.ast.Functions {
+			fname := strings.ToLower(fn.Name)
+			plf, ok := funcsMap[fname]
+			if !ok {
+				p.lastErr = fmt.Errorf("unsupported func: `%v'", fn.Name)
+				return
+			}
 
-				_, err = f(p, node)
-				if err != nil {
-					l.Errorf("Run func %v: %v", v.Name, err)
-					p.lastErr = err
-					return
-				}
-
-			default:
-				p.lastErr = fmt.Errorf("%v not function", v.String())
+			_, err = plf(p, fn)
+			if err != nil {
+				p.lastErr = fmt.Errorf("Run func %v: %v", fn.Name, err)
+				return
 			}
 		}
 	}
@@ -164,67 +157,89 @@ func (p *Pipeline) LastError() error {
 	return p.lastErr
 }
 
-func (p *Pipeline) getContent(key string) interface{} {
-	if key == "_" {
-		return p.Content
+func (p *Pipeline) getContent(key interface{}) (interface{}, error) {
+	var k string
+
+	switch t := key.(type) {
+	case *parser.Identifier:
+		k = t.String()
+	case *parser.AttrExpr:
+		k = t.String()
+	case *parser.StringLiteral:
+		k = t.Val
+	case string:
+		k = t
+	default:
+		return nil, fmt.Errorf("unsupported %v get", reflect.TypeOf(key).String())
 	}
 
-	if v, ok := p.Output[key]; ok {
-		return v
+	if k == "_" {
+		return p.Content, nil
 	}
 
-	var m interface{}
-	var nm interface{}
-
-	m = p.Output
-	keys := strings.Split(key, ".")
-	for _, k := range keys {
-		switch m.(type) {
-		case map[string]interface{}:
-			v := m.(map[string]interface{})
-			nm = v[k]
-			m = nm
-		default:
-			nm = nil
-		}
+	v, ok := p.Output[k]
+	if !ok {
+		return nil, fmt.Errorf("%v no found", k)
 	}
 
-	return nm
+	return v, nil
 }
 
-func (p *Pipeline) getContentStr(key string) string {
-	return conv.ToString(p.getContent(key))
+func (p *Pipeline) getContentStr(key interface{}) (string, error) {
+	c, err := p.getContent(key)
+
+	switch v := reflect.ValueOf(c); v.Kind() {
+	case reflect.Map:
+		res, err := json.Marshal(v.Interface())
+		return string(res), err
+	default:
+		return conv.ToString(v), err
+	}
 }
 
-func (p *Pipeline) getContentStrByCheck(key string) (string, bool) {
-	v := p.getContent(key)
-	if v == nil {
-		return "", false
+func (p *Pipeline) setContent(k, v interface{}) error {
+	var key string
+
+	switch t := k.(type) {
+	case *parser.Identifier:
+		key = t.String()
+	case *parser.AttrExpr:
+		key = t.String()
+	case *parser.StringLiteral:
+		key = t.Val
+	case string:
+		key = t
+	default:
+		return fmt.Errorf("unsupported %v set", reflect.TypeOf(key).String())
 	}
 
-	return conv.ToString(v), true
-}
-
-func (p *Pipeline) setContent(k string, v interface{}) {
 	if p.Output == nil {
 		p.Output = make(map[string]interface{})
 	}
 
 	if v == nil {
-		return
+		return nil
 	}
 
-	p.Output[k] = v
+	p.Output[key] = v
+
+	return nil
 }
 
 func (pl *Pipeline) parseScript(script string) error {
 
-	nodes, err := parser.ParseFuncExpr(script)
+	node, err := parser.ParsePipeline(script)
 	if err != nil {
 		return err
 	}
 
-	pl.nodes = nodes
+	switch ast := node.(type) {
+	case *parser.Ast:
+		pl.ast = ast
+	default:
+		return fmt.Errorf("should not been here")
+	}
+
 	return nil
 }
 
