@@ -122,6 +122,7 @@ func (c *objCollector) Run() {
 		}
 		if c.p != nil {
 			if result, err := c.p.Run(string(messageData)).Result(); err == nil {
+				moduleLogger.Debugf("%s", result)
 				for k, v := range result {
 					fields[k] = v
 				}
