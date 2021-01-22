@@ -253,6 +253,7 @@ func run() {
 
 func tryLoadConfig() {
 	datakit.Cfg.InputFilters = inputFilters
+	datakit.MoveDeprecatedMainCfg()
 
 	for {
 		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
