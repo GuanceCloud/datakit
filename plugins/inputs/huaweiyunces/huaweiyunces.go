@@ -3,6 +3,7 @@ package huaweiyunces
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"strings"
 	"time"
 	"unicode"
@@ -13,7 +14,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud"
 )
 
 var (
@@ -40,9 +40,13 @@ func (ag *agent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
 
-	go func() {
-		<-datakit.Exit.Wait()
-		ag.cancelFun()
+	defer func() {
+		if err := recover(); err != nil {
+			buf := make([]byte, 2048)
+			n := runtime.Stack(buf, false)
+			moduleLogger.Errorf("panic: %s", err)
+			moduleLogger.Errorf("%s", string(buf[:n]))
+		}
 	}()
 
 	if ag.Delay.Duration == 0 {
@@ -53,14 +57,19 @@ func (ag *agent) Run() {
 		ag.Interval.Duration = time.Minute * 5
 	}
 
-	ag.client = huaweicloud.NewHWClient(ag.AccessKeyID, ag.AccessKeySecret, ag.EndPoint, ag.ProjectID, moduleLogger)
+	ag.genHWClient()
 
-	//每秒最多20个请求
-	limit := rate.Every(50 * time.Millisecond)
+	go func() {
+		<-datakit.Exit.Wait()
+		ag.cancelFun()
+	}()
+
+	//每分钟最多100个请求
+	limit := rate.Every(600 * time.Millisecond)
 	ag.limiter = rate.NewLimiter(limit, 1)
 
 	if err := ag.genReqs(ag.ctx); err != nil {
-		if ag.isTest() {
+		if ag.isTestOnce() {
 			ag.testError = err
 		}
 		return
@@ -68,17 +77,12 @@ func (ag *agent) Run() {
 
 	if len(ag.reqs) == 0 {
 		moduleLogger.Warnf("no metric found")
-		if ag.isTest() {
+		if ag.isTestOnce() {
 			ag.testError = fmt.Errorf("no metric found")
 		}
 		return
 	}
-
-	select {
-	case <-ag.ctx.Done():
-		return
-	default:
-	}
+	moduleLogger.Debugf("%d reqs", len(ag.reqs))
 
 	for {
 
@@ -96,10 +100,89 @@ func (ag *agent) Run() {
 			default:
 			}
 
-			ag.fetchMetric(ag.ctx, req)
+			resp, err := ag.showMetricData(req)
+			if err != nil {
+				if ag.isTestOnce() {
+					ag.testError = err
+					return
+				}
+				continue
+			}
+
+			if resp == nil || resp.Datapoints == nil {
+				continue
+			}
+
+			metricSetName := req.metricSetName
+			if metricSetName == "" {
+				metricSetName = formatMeasurement(req.namespace)
+			}
+
+			for _, dp := range *resp.Datapoints {
+
+				select {
+				case <-ag.ctx.Done():
+					return
+				default:
+				}
+
+				tags := map[string]string{}
+				extendTags(tags, req.tags, false)
+				extendTags(tags, ag.Tags, false)
+				for _, k := range req.dimensoions {
+					tags[k.Name] = k.Value
+				}
+				tags["unit"] = *dp.Unit
+
+				fields := map[string]interface{}{}
+
+				var val float64
+				switch req.filter {
+				case "max":
+					if dp.Max != nil {
+						val = *dp.Max
+					}
+				case "min":
+					if dp.Min != nil {
+						val = *dp.Min
+					}
+				case "sum":
+					if dp.Sum != nil {
+						val = *dp.Sum
+					}
+				case "variance":
+					if dp.Variance != nil {
+						val = *dp.Variance
+					}
+				default:
+					if dp.Average != nil {
+						val = *dp.Average
+					}
+				}
+
+				fields[fmt.Sprintf("%s_%s", req.metricname, req.filter)] = val
+
+				tm := time.Unix(dp.Timestamp/1000, 0)
+
+				if len(fields) == 0 {
+					moduleLogger.Warnf("skip %s.%s datapoint for no fields, %s", req.namespace, req.metricname, dp.String())
+					continue
+				}
+
+				if ag.isTestOnce() {
+					data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
+					ag.testResult.Result = append(ag.testResult.Result, data...)
+				} else if ag.isDebug() {
+					data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
+					fmt.Printf("%s\n", string(data))
+
+				} else {
+					io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
+				}
+			}
 		}
 
-		if ag.isTest() {
+		if ag.isTestOnce() {
 			break
 		}
 
@@ -127,10 +210,6 @@ func formatMeasurement(project string) string {
 	return fmt.Sprintf("%s_%s", inputName, project)
 }
 
-func formatField(metricName string, statistic string) string {
-	return fmt.Sprintf("%s_%s", metricName, statistic)
-}
-
 func snakeCase(in string) string {
 	runes := []rune(in)
 	length := len(runes)
@@ -148,105 +227,19 @@ func snakeCase(in string) string {
 	return s
 }
 
-func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
-
-	nt := time.Now().Truncate(time.Second)
-	endTime := nt.Unix() * 1000
-	var startTime int64
-	if req.lastTime.IsZero() {
-		startTime = nt.Add(-5*time.Minute).Unix() * 1000
-	} else {
-		if nt.Sub(req.lastTime) < req.interval {
-			return
-		}
-		startTime = req.lastTime.Add(-(ag.Delay.Duration)).Unix() * 1000
-	}
-
-	logEndtime := time.Unix(endTime/int64(1000), 0)
-	logStarttime := time.Unix(startTime/int64(1000), 0)
-
-	req.to = endTime
-	req.from = startTime
-
-	dms := []string{}
-	for _, d := range req.dimensoions {
-		dms = append(dms, fmt.Sprintf("%s,%s", d.Name, d.Value))
-	}
-
-	resData, err := ag.client.CESGetMetric(req.namespace, req.metricname, req.filter, req.period, req.from, req.to, dms)
-	if err != nil {
-		moduleLogger.Errorf("fail to get metric: Namespace=%s, MetricName=%s, Period=%v, StartTime=%v(%s), EndTime=%v(%s), Dimensions=%s", req.namespace, req.metricname, req.period, req.from, logStarttime, req.to, logEndtime, req.dimensoions)
-		if ag.isTest() {
-			ag.testError = err
-		}
-		return
-	}
-
-	resp := parseMetricResponse(resData, req.filter)
-
-	moduleLogger.Debugf("get %d datapoints: Namespace=%s, MetricName=%s, Filter=%s, Period=%v, InterVal=%v, StartTime=%v(%s), EndTime=%v(%s), Dimensions=%s", len(resp.datapoints), req.namespace, req.metricname, req.filter, req.period, req.interval, req.from, logStarttime, req.to, logEndtime, req.dimensoions)
-
-	metricSetName := req.metricSetName
-	if metricSetName == "" {
-		metricSetName = formatMeasurement(req.namespace)
-	}
-
-	req.lastTime = nt
-
-	for _, datapoint := range resp.datapoints {
-
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		tags := map[string]string{}
-		extendTags(tags, req.tags, false)
-		extendTags(tags, ag.Tags, false)
-		for _, k := range req.dimensoions {
-			tags[k.Name] = k.Value
-		}
-		tags["unit"] = datapoint.unit
-
-		fields := map[string]interface{}{}
-		fields[formatField(req.metricname, req.filter)] = datapoint.value
-
-		tm := time.Now()
-		if datapoint.tm != 0 {
-			tm = time.Unix(datapoint.tm/1000, 0)
-		}
-
-		if len(fields) == 0 {
-			moduleLogger.Warnf("skip %s.%s datapoint for no fields, %s", req.namespace, req.metricname, datapoint)
-			continue
-		}
-
-		if ag.isTest() {
-			data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
-			ag.testResult.Result = append(ag.testResult.Result, data...)
-		} else if ag.isDebug() {
-			data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
-			fmt.Printf("%s\n", string(data))
-
-		} else {
-			io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
-		}
-
-	}
-
-}
-
 func (ag *agent) genReqs(ctx context.Context) error {
+
+	ag.ecsInstanceIDs = ag.listServersDetails()
+	moduleLogger.Debugf("%d ecs instances", len(ag.ecsInstanceIDs))
 
 	//生成所有请求
 	for _, proj := range ag.Namespace {
 
-		for _, metricName := range proj.MetricNames {
+		if err := proj.checkProperties(); err != nil {
+			return err
+		}
 
-			if metricName == "*" {
-				continue
-			}
+		for _, metricName := range proj.MetricNames {
 
 			select {
 			case <-ctx.Done():
@@ -254,17 +247,17 @@ func (ag *agent) genReqs(ctx context.Context) error {
 			default:
 			}
 
-			req, err := proj.genMetricReq(metricName)
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-				return err
-			}
-
+			req := proj.genMetricReq(metricName)
 			if req.interval == 0 {
 				req.interval = ag.Interval.Duration
 			}
 
+			adds := proj.applyProperty(req, ag.ecsInstanceIDs)
+
 			ag.reqs = append(ag.reqs, req)
+			if len(adds) > 0 {
+				ag.reqs = append(ag.reqs, adds...)
+			}
 		}
 	}
 
