@@ -199,6 +199,12 @@ func tlsHandler(addr string) gin.HandlerFunc {
 }
 
 func HttpStart(addr string) {
+
+	l.Debugf("set gin mode: %s <> %s", datakit.ReleaseType, datakit.ReleaseCheckedInputs)
+	if datakit.ReleaseType == datakit.ReleaseCheckedInputs {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	router := gin.New()
 
 	gin.DisableConsoleColor()
