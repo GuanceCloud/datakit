@@ -47,6 +47,7 @@ require (
 	github.com/google/gopacket v1.1.17
 	github.com/gorilla/websocket v1.4.2
 	github.com/hpcloud/tail v1.0.0
+	github.com/huaweicloud/huaweicloud-sdk-go-v3 v0.0.30-rc.1
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
 	//github.com/influxdata/telegraf v1.16.1
