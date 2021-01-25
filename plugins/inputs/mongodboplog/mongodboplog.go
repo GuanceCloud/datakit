@@ -89,11 +89,12 @@ func (*Mongodboplog) SampleConfig() string {
 	return sampleCfg
 }
 
-func (m *Mongodboplog) Test() (result *inputs.TestResult, err error) {
+func (m *Mongodboplog) Test() (*inputs.TestResult, error) {
 	l = logger.SLogger(inputName)
 
 	m.initCfg()
 
+	var err error
 	var session *mgo.Session
 	if session, err = mgo.Dial(m.MongodbURL); err != nil {
 		err = fmt.Errorf("failed to connect, err: %s", err.Error())
@@ -104,12 +105,13 @@ func (m *Mongodboplog) Test() (result *inputs.TestResult, err error) {
 		}
 	}()
 
+	var result inputs.TestResult
 	if err != nil {
 		result.Desc = "测试连接MongoDB失败，详情见错误信息"
 	} else {
 		result.Desc = "测试连接MongoDB成功"
 	}
-	return
+	return &result, err
 }
 
 func (m *Mongodboplog) Run() {
