@@ -1,6 +1,7 @@
 package datakit
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -365,7 +366,9 @@ func ParseDataway(httpurl, wsport string) (*DataWayCfg, error) {
 }
 
 type MainConfig struct {
-	UUID      string      `toml:"uuid"`
+	UUID           string `toml:"-"`
+	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
+
 	Name      string      `toml:"name"`
 	DataWay   *DataWayCfg `toml:"dataway,omitempty"`
 	HTTPBind  string      `toml:"http_server_addr"`
@@ -472,6 +475,20 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		return err
 	}
 
+	// load datakit UUID
+	if c.MainCfg.UUIDDeprecated != "" {
+		// dump UUIDDeprecated to .id file
+		if err := CreateUUIDFile(Cfg.MainCfg.UUIDDeprecated); err != nil {
+			l.Fatalf("create datakit id failed: %s", err.Error())
+		}
+		c.MainCfg.UUID = c.MainCfg.UUIDDeprecated
+	} else {
+		c.MainCfg.UUID, err = LoadUUID()
+		if err != nil {
+			l.Fatalf("load datakit id failed: %s", err.Error())
+		}
+	}
+
 	if c.MainCfg.TelegrafAgentCfg.LogTarget == "file" && c.MainCfg.TelegrafAgentCfg.Logfile == "" {
 		c.MainCfg.TelegrafAgentCfg.Logfile = filepath.Join(InstallDir, "embed", "agent.log")
 	}
@@ -487,6 +504,7 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		c.MainCfg.GlobalTags = map[string]string{}
 	}
 
+	// add global tag implicitly
 	c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
 
 	if c.MainCfg.DataWay.URL == "" {
@@ -498,22 +516,20 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		return err
 	}
 
-	heart, err := time.ParseDuration(c.MainCfg.DataWay.Heartbeat)
+	heartbeat, err := time.ParseDuration(c.MainCfg.DataWay.Heartbeat)
 	if err != nil {
 		c.MainCfg.DataWay.Heartbeat = "30s"
 		l.Warnf("ws heartbeat not set, default to %s", c.MainCfg.DataWay.Heartbeat)
 	}
-	maxHeart, _ := time.ParseDuration("5m")
-	minHeart, _ := time.ParseDuration("30s")
-	if heart > maxHeart {
+	// 限制最大/最小心跳
+	if heartbeat > 5*time.Minute {
 		c.MainCfg.DataWay.Heartbeat = "5m"
 	}
-	if heart < minHeart {
+	if heartbeat < 30*time.Second {
 		c.MainCfg.DataWay.Heartbeat = "30s"
 	}
 
 	dw.Heartbeat = c.MainCfg.DataWay.Heartbeat
-
 	c.MainCfg.DataWay = dw
 
 	if c.MainCfg.DataWay.DeprecatedToken != "" { // compatible with old dataway config
@@ -563,6 +579,20 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		default:
 			// pass
 		}
+	}
+
+	// remove deprecated UUID field in main configure
+	if c.MainCfg.UUIDDeprecated != "" {
+		c.MainCfg.UUIDDeprecated = "" // clear deprecated UUID field
+		buf := new(bytes.Buffer)
+		if err := bstoml.NewEncoder(buf).Encode(c.MainCfg); err != nil {
+			l.Fatalf("encode main configure failed: %s", err.Error())
+		}
+		if err := ioutil.WriteFile(MainConfPath, buf.Bytes(), os.ModePerm); err != nil {
+			l.Fatalf("refresh main configure failed: %s", err.Error())
+		}
+
+		l.Info("refresh main configure ok")
 	}
 
 	return nil
@@ -672,4 +702,25 @@ func ParseGlobalTags(s string) map[string]string {
 	}
 
 	return tags
+}
+
+func CreateUUIDFile(uuid string) error {
+	return ioutil.WriteFile(UUIDFile, []byte(uuid), os.ModePerm)
+}
+
+func LoadUUID() (string, error) {
+	if data, err := ioutil.ReadFile(UUIDFile); err != nil {
+		return "", err
+	} else {
+		return string(data), nil
+	}
+}
+
+func MoveDeprecatedMainCfg() {
+	if _, err := os.Stat(MainConfPathDeprecated); err == nil {
+		if err := os.Rename(MainConfPathDeprecated, MainConfPath); err != nil {
+			l.Fatal("move deprecated main configure failed: %s", err.Error())
+		}
+		l.Infof("move %s to %s", MainConfPathDeprecated, MainConfPath)
+	}
 }
