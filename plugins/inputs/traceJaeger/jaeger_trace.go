@@ -115,13 +115,13 @@ func getProject(batch *j.Batch) (project string) {
 func getTagValue(tag *j.Tag) interface{} {
 	switch tag.VType {
 	case j.TagType_STRING:
-		return tag.VStr
+		return *(tag.VStr)
 	case j.TagType_DOUBLE:
-		return tag.VDouble
+		return *(tag.VDouble)
 	case j.TagType_BOOL:
-		return tag.VBool
+		return *(tag.VBool)
 	case j.TagType_LONG:
-		return tag.VLong
+		return *(tag.VLong)
 	case j.TagType_BINARY:
 		return tag.VBinary
 	default:
