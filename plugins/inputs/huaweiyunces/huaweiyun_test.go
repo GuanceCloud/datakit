@@ -1,7 +1,6 @@
 package huaweiyunces
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -13,96 +12,20 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/sdk/huaweicloud"
 )
 
-func genAgent() *agent {
+func TestApi(t *testing.T) {
+	moduleLogger = logger.DefaultSLogger("aaa")
+	moduleLogger.Info(time.Now().Unix())
+	return
 	ag := loadCfg("test.conf").(*agent)
-	return ag
+	rest := ag.listServersDetails()
+	moduleLogger.Infof("%s", rest)
 }
 
-func TestGetMetric(t *testing.T) {
+func TestLocal(t *testing.T) {
 
-	//https://support.huaweicloud.com/api-ces/ces_03_0033.html
-
-	moduleLogger = logger.DefaultSLogger(inputName)
-
-	ag := genAgent()
-
-	cli := huaweicloud.NewHWClient(ag.AccessKeyID, ag.AccessKeySecret, ag.EndPoint, ag.ProjectID, moduleLogger)
-
-	dims := []*Dimension{
-		{
-			Name:  "instance_id",
-			Value: "9a4d6fb6-4de2-422a-b4d3-5d436b79ef09",
-		},
-	}
-	dms := []string{}
-	for _, d := range dims {
-		dms = append(dms, fmt.Sprintf("%s,%s", d.Name, d.Value))
-	}
-
-	now := time.Now().Truncate(time.Minute)
-	from := now.Add(-30*time.Minute).Unix() * 1000
-	to := now.Unix() * 1000
-	resp, err := cli.CESGetMetric("SYS.ECS", "cpu_util", "min", 300, from, to, dms)
-	if err != nil {
-		t.Error(err)
-	}
-	log.Printf("%s", string(resp))
-}
-
-func TestBatchMetrics(t *testing.T) {
-
-	moduleLogger = logger.DefaultSLogger(inputName)
-	ag := genAgent()
-
-	cli := huaweicloud.NewHWClient(ag.AccessKeyID, ag.AccessKeySecret, ag.EndPoint, ag.ProjectID, moduleLogger)
-
-	dims := []*Dimension{
-		{
-			Name:  "instance_id",
-			Value: "b5d7b7a3-681d-4c08-8e32-f14b640b3e12",
-		},
-	}
-
-	items := []*metricItem{
-		{
-			Namespace:  "SYS.ECS",
-			MetricName: "cpu_util",
-			Dimensions: dims,
-		},
-		{
-			Namespace:  "SYS.ECS",
-			MetricName: "disk_write_bytes_rate",
-			Dimensions: dims,
-		},
-	}
-
-	b := &batchReq{
-		Period:  "300",
-		Filter:  "min",
-		From:    time.Now().Add(-1*time.Hour).Unix() * 1000,
-		To:      time.Now().Unix() * 1000,
-		Metrics: items,
-	}
-
-	jdata, _ := json.Marshal(b)
-	resp, err := cli.CESGetBatchMetrics(jdata)
-	if err == nil {
-		result := parseBatchResponse(resp, b.Filter)
-		if result != nil {
-			for _, item := range result.results {
-				log.Printf("%s", item)
-			}
-		}
-	}
-
-}
-
-func TestInput(t *testing.T) {
-
-	ag := genAgent()
+	ag := loadCfg("test.conf").(*agent)
 	ag.mode = "debug"
 	ag.Run()
 }
