@@ -94,24 +94,26 @@ func (p *Prom) Catalog() string {
 	return p.CatalogStr
 }
 
-func (p *Prom) Test() (result *inputs.TestResult, err error) {
+func (p *Prom) Test() (*inputs.TestResult, error) {
 	p.log = logger.SLogger(p.InputName)
-	// default
-	result.Desc = "数据指标获取失败，详情见错误信息"
+
+	var result = inputs.TestResult{Desc: "数据指标获取失败，详情见错误信息"}
+	var err error
 
 	if err = p.loadCfg(); err != nil {
-		return
+		return &result, err
 	}
 
 	var data []byte
 	data, err = p.getMetrics()
 	if err != nil {
-		return
+		return &result, err
 	}
 
 	result.Result = data
 	result.Desc = "数据指标获取成功"
-	return
+
+	return &result, err
 }
 
 func (p *Prom) Run() {
