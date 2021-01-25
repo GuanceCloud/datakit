@@ -59,10 +59,9 @@ func (_ *ConsumerInstance) SampleConfig() string {
 	return aliyunlogConfigSample
 }
 
-func (al *ConsumerInstance) Test() (result *inputs.TestResult, err error) {
+func (al *ConsumerInstance) Test() (*inputs.TestResult, error) {
 	// 被动接受数据，无法进行测试
-	result.Desc = "success"
-	return
+	return &inputs.TestResult{Desc: "success"}, nil
 }
 
 func (al *ConsumerInstance) Run() {

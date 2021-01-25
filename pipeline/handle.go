@@ -104,25 +104,25 @@ func GroupInHandle(value interface{}, set []interface{}) bool {
 }
 
 var datePattern = []struct {
-	desc string
-	pattern string
-	goFmt string
+	desc        string
+	pattern     string
+	goFmt       string
 	defaultYear bool
 }{
 	{
-		desc: "nginx log datetime, 02/Jan/2006:15:04:05 -0700",
+		desc:    "nginx log datetime, 02/Jan/2006:15:04:05 -0700",
 		pattern: `\d{2}/\w+/\d{4}:\d{2}:\d{2}:\d{2} \+\d{4}`,
-		goFmt: "02/Jan/2006:15:04:05 -0700",
+		goFmt:   "02/Jan/2006:15:04:05 -0700",
 	},
 	{
-		desc: "redis log datetime, 14 May 2019 19:11:40.164",
+		desc:    "redis log datetime, 14 May 2019 19:11:40.164",
 		pattern: `\d{2} \w+ \d{4} \d{2}:\d{2}:\d{2}.\d{3}`,
-		goFmt: "02 Jan 2006 15:04:05.000",
+		goFmt:   "02 Jan 2006 15:04:05.000",
 	},
 	{
-		desc: "redis log datetime, 14 May 19:11:40.164",
-		pattern: `\d{2} \w+ \d{2}:\d{2}:\d{2}.\d{3}`,
-		goFmt: "02 Jan 15:04:05.000 2006",
+		desc:        "redis log datetime, 14 May 19:11:40.164",
+		pattern:     `\d{2} \w+ \d{2}:\d{2}:\d{2}.\d{3}`,
+		goFmt:       "02 Jan 15:04:05.000 2006",
 		defaultYear: true,
 	},
 }
