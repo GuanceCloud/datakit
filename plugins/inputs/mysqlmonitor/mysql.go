@@ -22,8 +22,9 @@ const (
 )
 
 var (
-	l    *logger.Logger
-	name = "mysqlMonitor"
+	l             *logger.Logger
+	name          = "mysqlMonitor"
+	mariaDBMetric = "mariaDBMonitor"
 )
 
 func (_ *MysqlMonitor) Catalog() string {
@@ -71,6 +72,10 @@ func (m *MysqlMonitor) checkCfg() {
 	// 指标集名称
 	if m.MetricName == "" {
 		m.MetricName = name
+	}
+
+	if m.Product == "MariaDB" {
+		m.MetricName = mariaDBMetric
 	}
 }
 
