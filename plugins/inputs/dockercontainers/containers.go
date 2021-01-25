@@ -90,25 +90,23 @@ func (*DockerContainers) PipelineConfig() map[string]string {
 func (d *DockerContainers) Test() (*inputs.TestResult, error) {
 	l = logger.SLogger(inputName)
 
+	var result = inputs.TestResult{Desc: "数据指标获取失败，详情见错误信息"}
 	var err error
-	result := inputs.TestResult{
-		Desc: "数据指标获取失败，详情见错误信息",
-	}
 
 	if err = d.loadCfg(); err != nil {
-		return nil, err
+		return &result, err
 	}
 
 	var data []byte
 	data, err = d.gather()
 	if err != nil {
-		fmt.Println("XXXXXXXXXXXXX")
-		return nil, err
+		return &result, err
 	}
 
 	result.Result = data
 	result.Desc = "数据指标获取成功"
-	return &result, nil
+
+	return &result, err
 }
 
 func (d *DockerContainers) Run() {
