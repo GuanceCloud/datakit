@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -16,11 +15,11 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
@@ -37,7 +36,8 @@ var (
 
 	flagCmd      = flag.Bool("cmd", false, "run datakit under command line mode")
 	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText     = flag.String("pltxt", "", "input text for the pipeline(json or raw text)")
+	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagGrokq    = flag.String("grokq", "", "query groks matched for text string")
 
 	ReleaseType = ""
 )
@@ -285,36 +285,12 @@ func runDatakitWithHTTPServer() error {
 
 func runDatakitWithCmd() {
 	if *flagPipeline != "" {
+		cmds.PipelineDebugger(*flagPipeline, *flagText)
+		return
+	}
 
-		if *flagText == "" {
-			l.Fatal("-pltxt required")
-		}
-
-		if err := pipeline.Init(); err != nil {
-			l.Fatalf("pipeline init failed: %s", err.Error())
-		}
-
-		start := time.Now()
-		pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, *flagPipeline))
-		if err != nil {
-			l.Fatalf("new pipeline failed: %s", err.Error())
-		}
-
-		res, err := pl.Run(*flagText).Result()
-		if err != nil {
-			l.Fatalf("run pipeline failed: %s", err.Error())
-		}
-
-		if len(res) == 0 {
-			fmt.Println("No data extracted from pipeline")
-			return
-		}
-
-		if j, err := json.MarshalIndent(res, "", "    "); err != nil {
-			l.Fatal(err)
-		} else {
-			fmt.Printf("Extracted data(cost: %v):\n", time.Since(start))
-			fmt.Printf("%s\n", string(j))
-		}
+	if *flagGrokq != "" {
+		cmds.Grokq(*flagGrokq)
+		return
 	}
 }
