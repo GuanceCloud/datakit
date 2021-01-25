@@ -58,25 +58,27 @@ func (*Systemd) Catalog() string {
 	return "host"
 }
 
-func (s *Systemd) Test() (result *inputs.TestResult, err error) {
+func (s *Systemd) Test() (*inputs.TestResult, error) {
 	l = logger.SLogger(inputName)
-	// default
-	result.Desc = "数据指标获取失败，详情见错误信息"
+
+	var result = inputs.TestResult{Desc: "数据指标获取失败，详情见错误信息"}
+	var err error
 
 	if err = s.loadCfg(); err != nil {
-		return
+		return &result, err
 	}
 	defer s.stop()
 
 	var data []byte
 	data, err = s.getMetrics()
 	if err != nil {
-		return
+		return &result, err
 	}
 
 	result.Result = data
 	result.Desc = "数据指标获取成功"
-	return
+
+	return &result, err
 }
 
 func (s *Systemd) Run() {
