@@ -27,7 +27,7 @@ const (
     # read file from beginning
     # if from_begin was false, off auto discovery file
     from_beginning = false
-    
+
     ## characters are replaced using the unicode replacement character
     ## When set to the empty string the data is not decoded to text.
     ## ex: character_encoding = "utf-8"
