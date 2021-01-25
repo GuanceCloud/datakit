@@ -52,9 +52,15 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 
+	project := getProject(batch)
+	if project == "" {
+		project = trace.GetProjectFromPluginTag(JaegerTags)
+	}
+
 	for _, s := range batch.Spans {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "jaeger"
+		tAdpter.Project = project
 
 		tAdpter.Duration = s.Duration * 1000
 		tAdpter.Start = s.StartTime * 1000
@@ -87,4 +93,38 @@ func parseJaegerThrift(octets []byte) error {
 
 	trace.MkLineProto(adapterGroup, inputName)
 	return nil
+}
+
+func getProject(batch *j.Batch) (project string) {
+	if batch.Process == nil {
+		return
+	}
+	for _, tag := range batch.Process.Tags {
+		if tag == nil {
+			continue
+		}
+
+		if tag.Key == trace.PROJECT {
+			project = fmt.Sprintf("%v", getTagValue(tag))
+			return
+		}
+	}
+	return
+}
+
+func getTagValue(tag *j.Tag) interface{} {
+	switch tag.VType {
+	case j.TagType_STRING:
+		return *(tag.VStr)
+	case j.TagType_DOUBLE:
+		return *(tag.VDouble)
+	case j.TagType_BOOL:
+		return *(tag.VBool)
+	case j.TagType_LONG:
+		return *(tag.VLong)
+	case j.TagType_BINARY:
+		return tag.VBinary
+	default:
+		return nil
+	}
 }
