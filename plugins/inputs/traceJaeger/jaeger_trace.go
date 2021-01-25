@@ -53,6 +53,9 @@ func parseJaegerThrift(octets []byte) error {
 	}
 
 	project := getProject(batch)
+	if project == "" {
+		project = trace.GetProjectFromPluginTag(JaegerTags)
+	}
 
 	for _, s := range batch.Spans {
 		tAdpter := &trace.TraceAdapter{}
@@ -101,7 +104,7 @@ func getProject(batch *j.Batch) (project string) {
 			continue
 		}
 
-		if tag.Key == "project" {
+		if tag.Key == trace.PROJECT {
 			project = fmt.Sprintf("%v", getTagValue(tag))
 			return
 		}
