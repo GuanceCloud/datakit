@@ -243,7 +243,7 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 
 	msg, err := json.Marshal(struct {
 		types.ContainerJSON
-		Process containerTop `json:"process"`
+		Process containerTop `json:"Process"`
 	}{
 		containerJSON,
 		containerProcessList,
@@ -259,7 +259,7 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 	fields["container_id"] = container.ID
 	fields["images_name"] = container.Image
 	fields["created_time"] = container.Created
-	fields["container_name"] = container.Names
+	fields["container_name"] = getContainerName(container.Names)
 
 	fields["restart_count"] = containerJSON.RestartCount
 	fields["status"] = containerJSON.State.Status
@@ -268,7 +268,7 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 	return io.MakeMetric(inputName, nil, fields, time.Now())
 }
 
-func containerName(names []string) string {
+func getContainerName(names []string) string {
 	if len(names) > 0 {
 		return strings.TrimPrefix(names[0], "/")
 	}
