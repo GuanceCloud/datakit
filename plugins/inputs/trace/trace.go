@@ -67,6 +67,8 @@ const (
 	STATUS_INFO     = "info"
 	STATUS_WARN     = "warning"
 	STATUS_CRITICAL = "critical"
+
+	PROJECT = "project"
 )
 
 var (
@@ -192,4 +194,8 @@ func GetInstance() *logger.Logger {
 		log = logger.SLogger("trace")
 	})
 	return log
+}
+
+func GetProjectFromPluginTag(tags map[string]string) string {
+	return tags[PROJECT]
 }
