@@ -37,7 +37,7 @@ var (
 	flagCmd      = flag.Bool("cmd", false, "run datakit under command line mode")
 	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
 	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-	flagGrokq    = flag.String("grokq", "", "query groks matched for text string")
+	flagGrokq    = flag.Bool("grokq", false, "query groks interactively")
 
 	ReleaseType = ""
 )
@@ -289,8 +289,8 @@ func runDatakitWithCmd() {
 		return
 	}
 
-	if *flagGrokq != "" {
-		cmds.Grokq(*flagGrokq)
+	if *flagGrokq {
+		cmds.Grokq()
 		return
 	}
 }
