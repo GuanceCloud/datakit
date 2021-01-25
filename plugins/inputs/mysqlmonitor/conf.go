@@ -14,7 +14,8 @@ const (
 #  e.g.
 #    servers = ["user:passwd@tcp(127.0.0.1:3306)/?tls=false"]
 #    servers = ["user@tcp(127.0.0.1:3306)/?tls=false"]
-
+# product support MySQL and MariaDB, default MySQL
+ product = "MySQL"
 # If no servers are specified, then localhost is used as the host.
  servers = ["tcp(127.0.0.1:3306)/"]
 # scan interval
@@ -63,6 +64,7 @@ const (
 )
 
 type MysqlMonitor struct {
+	Product                             string            `toml:"product"`
 	Servers                             []string          `toml:"servers"`
 	MetricName                          string            `toml:"metricName"`
 	Interval                            string            `toml:"interval"`
