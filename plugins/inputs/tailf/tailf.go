@@ -62,10 +62,9 @@ func (t *Tailf) SampleConfig() string {
 	return t.SampleCfg
 }
 
-func (*Tailf) Test() (result *inputs.TestResult, err error) {
+func (*Tailf) Test() (*inputs.TestResult, error) {
 	// 监听文件变更，无法进行测试
-	result.Desc = "success"
-	return
+	return &inputs.TestResult{Desc: "success"}, nil
 }
 
 func (t *Tailf) Run() {
