@@ -7,8 +7,8 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func TestRun(t *testing.T) {
@@ -45,18 +45,18 @@ func TestRun(t *testing.T) {
 		datakit.GRPCDomainSock = filepath.Join(datakit.InstallDir, "datakit.sock")
 		datakit.Exit = cliutils.NewSem()
 
-		config.Cfg.MainCfg = &config.MainConfig{}
-		config.Cfg.MainCfg.DataWay = &config.DataWayCfg{}
+		// config.Cfg.MainCfg = &config.MainConfig{}
+		// config.Cfg.MainCfg.DataWay = &config.DataWayCfg{}
 
-		config.Cfg.MainCfg.DataWay.Host = "preprod-openway.cloudcare.cn"
-		config.Cfg.MainCfg.DataWay.Token = "tkn_f299ad7b7c0d4acdb8657be8d086f13a"
-		config.Cfg.MainCfg.DataWay.Scheme = "https"
+		// config.Cfg.MainCfg.DataWay.Host = "preprod-openway.cloudcare.cn"
+		// config.Cfg.MainCfg.DataWay.Token = "tkn_f299ad7b7c0d4acdb8657be8d086f13a"
+		// config.Cfg.MainCfg.DataWay.Scheme = "https"
 		datakit.IntervalDuration = time.Second * 10
 
-		io.Start()
+		// io.Start()
 
 		m := MysqlMonitor{}
-		m.Servers = []string{"root:root@tcp(10.200.6.53:3306)/"}
+		m.Servers = []string{"root:123456@tcp(127.0.0.1:3306)/"}
 		// m.GatherProcessList = true
 		// // 无测试数 ok
 		// m.GatherUserStatistics = true
@@ -86,7 +86,7 @@ func TestRun(t *testing.T) {
 		m.GatherGlobalVars = true
 		// fail
 		// m.GatherGlobalStatus = true
-		m.Interval = "10s"
+		m.Interval = "1m"
 		m.MetricName = name
 
 		m.Run()
