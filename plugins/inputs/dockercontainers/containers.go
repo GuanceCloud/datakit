@@ -260,7 +260,6 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 	fields["images_name"] = container.Image
 	fields["created_time"] = container.Created
 	fields["container_name"] = container.Names
-	fields["alias_name"] = container.Names
 
 	fields["restart_count"] = containerJSON.RestartCount
 	fields["status"] = containerJSON.State.Status
