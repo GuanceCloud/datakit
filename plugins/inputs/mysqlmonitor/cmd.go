@@ -1,7 +1,7 @@
 package mysqlmonitor
 
 import (
-	"bytes"
+	// "bytes"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -1507,13 +1507,13 @@ func (m *MysqlMonitor) parseValue(value sql.RawBytes) (interface{}, bool) {
 
 // parseValue can be used to convert values such as "ON","OFF","Yes","No" to 0,1
 func parseValue(value sql.RawBytes) (interface{}, bool) {
-	if bytes.EqualFold(value, []byte("YES")) || bytes.Compare(value, []byte("ON")) == 0 {
-		return 1, true
-	}
+	// if bytes.EqualFold(value, []byte("YES")) || bytes.Compare(value, []byte("ON")) == 0 {
+	// 	return 1, true
+	// }
 
-	if bytes.EqualFold(value, []byte("NO")) || bytes.Compare(value, []byte("OFF")) == 0 {
-		return 0, true
-	}
+	// if bytes.EqualFold(value, []byte("NO")) || bytes.Compare(value, []byte("OFF")) == 0 {
+	// 	return 0, true
+	// }
 
 	if val, err := strconv.ParseInt(string(value), 10, 64); err == nil {
 		return val, true
