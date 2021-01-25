@@ -56,12 +56,16 @@ var (
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
-	AgentLogFile   = filepath.Join(InstallDir, "embed", "agent.log")
-	TelegrafDir    = filepath.Join(InstallDir, "embed")
-	DataDir        = filepath.Join(InstallDir, "data")
-	LuaDir         = filepath.Join(InstallDir, "lua")
-	MainConfPath   = filepath.Join(InstallDir, "datakit.conf")
-	ConfdDir       = filepath.Join(InstallDir, "conf.d")
+	AgentLogFile = filepath.Join(InstallDir, "embed", "agent.log")
+	UUIDFile     = filepath.Join(InstallDir, ".id")
+	TelegrafDir  = filepath.Join(InstallDir, "embed")
+	DataDir      = filepath.Join(InstallDir, "data")
+	LuaDir       = filepath.Join(InstallDir, "lua")
+	ConfdDir     = filepath.Join(InstallDir, "conf.d")
+
+	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
+	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
+
 	PipelineDir    = filepath.Join(InstallDir, "pipeline")
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock       = ""
