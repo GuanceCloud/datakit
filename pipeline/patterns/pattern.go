@@ -337,7 +337,7 @@ var GlobalPatterns = map[string][][]string{
 
 	"rails": {
 		{"ruuid", `\h{32}`},
-		{"rcontroller", `(?<controller>[^#]+)#(?<action>\w+)`},
+		{"rcontroller", `(?P<controller>[^#]+)#(?<action>\w+)`},
 		{"rails3head", `(?m)Started %{word:verb} "%{uripathparam:request}" for %{iporhost:clientip} at (?<timestamp>%{year}-%{monthnum}-%{monthday} %{hour}:%{minute}:%{second} %{iso8601_timezone})`},
 		{"rprocessing", `\W*Processing by %{rcontroller} as (?<format>\S+)(?:\W*Parameters: {%{data:params}}\W*)?`},
 		{"rails3foot", `Completed %{number:response}%{data} in %{number:totalms}ms %{rails3profile}%{greedydata}`},
