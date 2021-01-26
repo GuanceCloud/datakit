@@ -1,10 +1,9 @@
 package mysqlmonitor
 
 import (
+	"database/sql"
 	"sync"
 	"time"
-
-	"database/sql"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
