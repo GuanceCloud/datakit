@@ -60,9 +60,20 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 
 	adapterGroup := []*trace.TraceAdapter{}
 	for _, spans := range dspans {
+		m := getAllSpanId(spans)
 		for _, span := range spans {
 			tAdpter := &trace.TraceAdapter{}
 			tAdpter.Source = "ddtrace"
+
+			if span.ParentID == 0 {
+				tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
+			} else {
+				if _, ok := m[span.ParentID]; ok {
+					tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+				} else {
+					tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
+				}
+			}
 
 			tAdpter.ServiceName = span.Service
 			tAdpter.OperationName = span.Name
@@ -112,4 +123,15 @@ func unmarshalDdtraceMsgpack(body io.ReadCloser) ([][]*Span, error) {
 	dec := codec.NewDecoder(body, &mh)
 	err := dec.Decode(&traces)
 	return traces, err
+}
+
+func getAllSpanId(spans []*Span) map[uint64]bool {
+	m := make(map[uint64]bool)
+	for _, span := range spans {
+		if span == nil {
+			continue
+		}
+		m[span.SpanID] = true
+	}
+	return m
 }
