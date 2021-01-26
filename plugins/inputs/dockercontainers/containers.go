@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -40,6 +39,26 @@ const (
     # tls_key = "/tmp/key.pem"
     ## Use TLS but skip chain & host verification
     # insecure_skip_verify = false
+    
+    ## Use containerID link kubernetes pods
+    # [inputs.docker_containers.kubernetes]
+    #   ## URL for the kubelet
+    #   url = "http://127.0.0.1:10255"
+    #
+    #   ## Use bearer token for authorization. ('bearer_token' takes priority)
+    #   ## If both of these are empty, we'll use the default serviceaccount:
+    #   ## at: /run/secrets/kubernetes.io/serviceaccount/token
+    #   # bearer_token = "/path/to/bearer/token"
+    #   ## OR
+    #   # bearer_token_string = "abc_123"
+    #
+    #   ## Optional TLS Config
+    #   # tls_ca = /path/to/cafile
+    #   # tls_cert = /path/to/certfile
+    #   # tls_key = /path/to/keyfile
+    #   ## Use TLS but skip chain & host verification
+    #   # insecure_skip_verify = false
+
 `
 	defaultEndpoint       = "unix:///var/run/docker.sock"
 	defaultGetherInterval = time.Minute * 5
@@ -73,6 +92,8 @@ type DockerContainers struct {
 
 	client Client
 	opts   types.ContainerListOptions
+
+	Kubernetes *Kubernetes `toml:"kubernetes"`
 }
 
 func (*DockerContainers) SampleConfig() string {
@@ -232,14 +253,11 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(containerJSON)
 
 	containerProcessList, err := d.client.ContainerTop(ctx, container.ID, nil)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
-	fmt.Println(containerProcessList)
 
 	msg, err := json.Marshal(struct {
 		types.ContainerJSON
@@ -253,18 +271,24 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 		return nil, err
 	}
 
-	var fields = make(map[string]interface{})
-
-	fields["message"] = string(msg)
-
+	fields := map[string]interface{}{"message": string(msg)}
 	fields["container_id"] = container.ID
 	fields["images_name"] = container.Image
 	fields["created_time"] = container.Created
 	fields["container_name"] = getContainerName(container.Names)
-
 	fields["restart_count"] = containerJSON.RestartCount
 	fields["status"] = containerJSON.State.Status
 	fields["start_time"] = containerJSON.State.StartedAt
+
+	if d.Kubernetes != nil {
+		m, err := d.Kubernetes.GatherPodInfo(container.ID)
+		if err != nil {
+			l.Warn(err)
+		}
+		for k, v := range m {
+			fields[k] = v
+		}
+	}
 
 	tags := map[string]string{"name": container.ID}
 
