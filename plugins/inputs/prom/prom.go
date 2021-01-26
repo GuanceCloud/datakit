@@ -43,7 +43,7 @@ const (
 )
 
 var (
-	defaultIgnoreFunc     = func(*ifxcli.Point) bool { return true }
+	defaultIgnoreFunc     = func(*ifxcli.Point) bool { return false }
 	defaultPromToNameFunc = func(old string) (string, string, error) { return old, old, nil }
 )
 
