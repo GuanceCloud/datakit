@@ -31,8 +31,9 @@ func (p *Processes) PipelineConfig() map[string]string {
 }
 
 func (p *Processes) Test() (*inputs.TestResult, error) {
-	result := &inputs.TestResult{}
-	return result, nil
+	p.isTest = true
+	p.WriteObject()
+	return p.result, nil
 }
 
 func (p *Processes) Run() {
@@ -209,6 +210,16 @@ func (p *Processes) WriteObject() {
 			l.Warnf("[warning] process get cmd err:%s", err.Error())
 		} else {
 			fields["cmdline"] = cmd
+		}
+		if p.isTest {
+			result, err := io.MakeMetric("host_processes", tags, fields, time.Now().UTC())
+			if err != nil {
+				l.Errorf("make metric err:%s", err.Error())
+				p.result.Result = []byte(err.Error())
+				break
+			}
+			p.result.Result = result
+			break
 		}
 		io.NamedFeedEx(inputName, io.Object, "host_processes", tags, fields, time.Now().UTC())
 	}
