@@ -86,6 +86,11 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 				tAdpter.Pid = fmt.Sprintf("%v", v)
 			}
 
+			tAdpter.Project = span.Meta[trace.PROJECT]
+			if tAdpter.Project == "" {
+				tAdpter.Project = trace.GetProjectFromPluginTag(DdtraceTags)
+			}
+
 			js, err := json.Marshal(span)
 			if err != nil {
 				return err
