@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -81,6 +84,7 @@ Golang Version: %s
       Uploader: %s
 ReleasedInputs: %s
 `, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, ReleaseType)
+		checkOnlineVersion()
 		os.Exit(0)
 	}
 
@@ -292,5 +296,43 @@ func runDatakitWithCmd() {
 	if *flagGrokq != "" {
 		cmds.Grokq(*flagGrokq)
 		return
+	}
+}
+
+func checkOnlineVersion() {
+	nhttp.DefaultTransport.(*nhttp.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	resp, err := nhttp.Get("https://static.dataflux.cn/datakit/version")
+	if err != nil {
+		fmt.Printf("Get online version failed: \n%s\n", err.Error())
+		return
+	}
+
+	defer resp.Body.Close()
+	infobody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Get online version failed: \n%s\n", err.Error())
+		return
+	}
+
+	var ver struct {
+		Version     string `json:"version"`
+		ReleaseDate string `json:"date_utc"`
+	}
+	if err := json.Unmarshal(infobody, &ver); err != nil {
+		fmt.Printf("Get online version failed: \n%s\n", err.Error())
+		return
+	}
+
+	if ver.Version != git.Version {
+		fmt.Printf("\n\nNew version available: %s (release at %s)\n", ver.Version, ver.ReleaseDate)
+		dlurl := fmt.Sprintf("https://static.dataflux.cn/datakit/installer-%s-%s", runtime.GOOS, runtime.GOARCH)
+		cmdWin := fmt.Sprintf(`Import-Module bitstransfer; start-bitstransfer -source %s -destination .\dk-installer.exe; .\dk-installer.exe -upgrade; rm dk-installer.exe`, dlurl)
+		cmd := fmt.Sprintf(`sudo -- sh -c "curl %s -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer`, dlurl)
+		switch runtime.GOOS {
+		case "windows":
+			fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
+		default:
+			fmt.Printf("\nUpgrade:\n\t%s\n\n", cmd)
+		}
 	}
 }
