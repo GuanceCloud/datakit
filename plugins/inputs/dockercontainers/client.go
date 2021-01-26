@@ -1,12 +1,12 @@
-package docker_containers
+package dockercontainers
 
 import (
 	"context"
 	"crypto/tls"
-	"io"
 	"net/http"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	docker "github.com/docker/docker/client"
 )
 
@@ -16,10 +16,12 @@ var (
 	defaultHeaders = map[string]string{"User-Agent": "engine-api-cli-1.0"}
 )
 
+type containerTop = container.ContainerTopOKBody
+
 type Client interface {
 	ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error)
-	ContainerLogs(ctx context.Context, containerID string, options types.ContainerLogsOptions) (io.ReadCloser, error)
 	ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error)
+	ContainerTop(ctx context.Context, containerID string, arguments []string) (containerTop, error)
 }
 
 func NewEnvClient() (Client, error) {
@@ -55,9 +57,10 @@ func (c *SocketClient) ContainerList(ctx context.Context, options types.Containe
 	return c.client.ContainerList(ctx, options)
 }
 
-func (c *SocketClient) ContainerLogs(ctx context.Context, containerID string, options types.ContainerLogsOptions) (io.ReadCloser, error) {
-	return c.client.ContainerLogs(ctx, containerID, options)
-}
 func (c *SocketClient) ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error) {
 	return c.client.ContainerInspect(ctx, containerID)
+}
+
+func (c *SocketClient) ContainerTop(ctx context.Context, containerID string, arguments []string) (container.ContainerTopOKBody, error) {
+	return c.client.ContainerTop(ctx, containerID, arguments)
 }
