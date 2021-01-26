@@ -248,13 +248,14 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 		containerJSON,
 		containerProcessList,
 	})
+
 	if err != nil {
 		return nil, err
 	}
 
 	var fields = make(map[string]interface{})
 
-	fields["message"] = msg
+	fields["message"] = string(msg)
 
 	fields["container_id"] = container.ID
 	fields["images_name"] = container.Image
