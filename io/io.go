@@ -204,16 +204,16 @@ func MakeMetric(name string, tags map[string]string, fields map[string]interface
 		switch v.(type) {
 		case uint64:
 			fields[k] = fmt.Sprintf("%d", v.(uint64)) // convert uint64 to string to avoid overflow
-			l.Warnf("on input `%s', force convert uint64 to string(%d -> %s)", name, v.(uint64), fields[k])
+			l.Debugf("on input `%s', force convert uint64 to string(%d -> %s)", name, v.(uint64), fields[k])
 		case uint32:
 			fields[k] = int64(v.(uint32))
-			l.Warnf("on input `%s', force convert uint32 to int64", name, v.(uint32), fields[k])
+			l.Debugf("on input `%s', force convert uint32 to int64", name, v.(uint32), fields[k])
 		case uint16:
 			fields[k] = int64(v.(uint16))
-			l.Warnf("on input `%s', force convert uint16 to int64", name, v.(uint32), fields[k])
+			l.Debugf("on input `%s', force convert uint16 to int64", name, v.(uint32), fields[k])
 		case uint8:
 			fields[k] = int64(v.(uint8))
-			l.Warnf("on input `%s', force convert uint8 to int64", name, v.(uint32), fields[k])
+			l.Debugf("on input `%s', force convert uint8 to int64", name, v.(uint32), fields[k])
 		default:
 			// pass
 		}
