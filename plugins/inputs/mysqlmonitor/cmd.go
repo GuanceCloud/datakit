@@ -1,7 +1,7 @@
 package mysqlmonitor
 
 import (
-	// "bytes"
+	"bytes"
 	"database/sql"
 	"fmt"
 	"reflect"
