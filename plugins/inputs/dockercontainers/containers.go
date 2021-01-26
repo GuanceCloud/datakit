@@ -29,7 +29,7 @@ const (
 
     # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     # Require. Cannot be less than zero, minimum 5m and maximum 1h.
-    interval = "5s"
+    interval = "5m"
 
     # Is all containers, Return all containers. By default, only running containers are shown.
     all = false
@@ -44,7 +44,7 @@ const (
 	defaultEndpoint       = "unix:///var/run/docker.sock"
 	defaultGetherInterval = time.Minute * 5
 	maxGetherInterval     = time.Hour
-	defaultAPITimeout     = time.Second * 30
+	defaultAPITimeout     = time.Second * 10
 )
 
 var l = logger.DefaultSLogger(inputName)
