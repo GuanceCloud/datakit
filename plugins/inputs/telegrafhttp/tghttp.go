@@ -1,4 +1,4 @@
-package telegraf_http
+package telegrafhttp
 
 import (
 	"io/ioutil"
@@ -57,9 +57,8 @@ func (*TelegrafHTTP) Catalog() string {
 	return inputName
 }
 
-func (*TelegrafHTTP) Test() (result *inputs.TestResult, err error) {
-	result.Desc = "success"
-	return
+func (*TelegrafHTTP) Test() (*inputs.TestResult, error) {
+	return &inputs.TestResult{Desc: "success"}, nil
 }
 
 func (t *TelegrafHTTP) Run() {
