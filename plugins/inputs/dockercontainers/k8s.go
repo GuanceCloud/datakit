@@ -122,13 +122,13 @@ type Pods struct {
 
 type Item struct {
 	Metadata Metadata `json:"metadata"`
+	Status   Status   `json:"status"`
 }
 
 type Metadata struct {
 	Name      string            `json:"name"`
 	Namespace string            `json:"namespace"`
 	Labels    map[string]string `json:"labels"`
-	Status    Status            `json:"status"`
 }
 
 type Status struct {
