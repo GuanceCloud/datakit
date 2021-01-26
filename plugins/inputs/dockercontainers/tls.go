@@ -1,4 +1,4 @@
-package docker_containers
+package dockercontainers
 
 import (
 	"crypto/tls"
