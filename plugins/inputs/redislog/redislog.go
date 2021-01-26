@@ -55,7 +55,7 @@ func init() {
 			map[string]string{inputName: pipelineCfg},
 		)
 		t.Source = inputName
-		t.Pipeline = inputName + ".p"
+		t.Pipeline = "redis.p"
 		return t
 	})
 }
