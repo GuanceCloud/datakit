@@ -10,6 +10,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -113,62 +114,69 @@ func (p *Processes) getProcesses() (processList []*pr.Process) {
 func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields, message map[string]interface{}) {
 	fields = map[string]interface{}{}
 	message = map[string]interface{}{}
-	username, err := ps.Username()
+	name, err := ps.Name()
 	if err != nil {
-		l.Warnf("[warning] process get username err:%s", err.Error())
+		l.Warnf("[warning] process get name err:%s", err.Error())
+	}
+	username, err = ps.Username()
+	if err != nil {
+		l.Warnf("[warning] process:%s,pid:%d get username err:%s", name, ps.Pid, err.Error())
 	}
 	status, err := ps.Status()
 	if err != nil {
-		l.Warnf("[warning] process get state err:%s", err.Error())
+		l.Warnf("[warning] process:%s,pid:%d get state err:%s", name, ps.Pid, err.Error())
+		state = ""
+	} else {
+		state = status[0]
 	}
 	mem, err := ps.MemoryInfo()
 	if err != nil {
-		l.Warnf("[warning] process get memory err:%s", err.Error())
+		l.Warnf("[warning] process:%s,pid:%d get memoryinfo err:%s", name, ps.Pid, err.Error())
 	} else {
 		message["memory"] = mem
 		fields["rss"] = mem.RSS
 	}
 	memPercent, err := ps.MemoryPercent()
 	if err != nil {
-		l.Warnf("[warning] process get mempercent err:%s", err.Error())
+		l.Warnf("[warning] process:%s,pid:%d get mempercent err:%s", name, ps.Pid, err.Error())
 	} else {
 		fields["mem"] = memPercent
 	}
 	cpu, err := ps.Times()
 	if err != nil {
-		l.Warnf("[warning] process get cpu err:%s", err.Error())
+		l.Warnf("[warning] process:%s,pid:%d get cpu err:%s", name, ps.Pid, err.Error())
 	} else {
 		message["cpu"] = cpu
 	}
 	cpuPercent, _ := ps.CPUPercent()
 	if err != nil {
-		l.Warnf("[warning] process get cpu err:%s", err.Error())
+		l.Warnf("[warning] process:%s,pid:%d get cpupercent err:%s", name, ps.Pid, err.Error())
 	} else {
 		fields["cpu"] = cpuPercent
 	}
 	Threads, err := ps.NumThreads()
 	if err != nil {
-		l.Warnf("[warning] process get threads err:%s", err.Error())
+		l.Warnf("[warning] process:%s,pid:%d get threads err:%s", name, ps.Pid, err.Error())
 	} else {
 		fields["threads"] = Threads
 	}
-	OpenFiles, err := ps.OpenFiles()
-	if err != nil {
-		l.Warnf("[warning] process get openfiles err:%s", err.Error())
-	} else {
-		fields["open_files"] = len(OpenFiles)
-		message["open_files"] = OpenFiles
+	if runtime.GOOS == "linux" {
+		OpenFiles, err := ps.OpenFiles()
+		if err != nil {
+			l.Warnf("[warning] process:%s,pid:%d get openfile err:%s", name, ps.Pid, err.Error())
+		} else {
+			fields["open_files"] = len(OpenFiles)
+			message["open_files"] = OpenFiles
+		}
+	}
 
-	}
-	name, err = ps.Name()
-	if err != nil {
-		l.Warnf("[warning] process get name err:%s", err.Error())
-	}
-	return username, status[0], name, fields, message
+	return username, state, name, fields, message
 
 }
 
 func (p *Processes) WriteObject() {
+	times := time.Now().UTC()
+	var points []string
 	for _, ps := range p.getProcesses() {
 		t, _ := ps.CreateTime()
 		username, state, name, fields, message := p.Parse(ps)
@@ -199,30 +207,38 @@ func (p *Processes) WriteObject() {
 		fields["message"] = string(m)
 		fields["pid"] = ps.Pid
 		fields["start_time"] = t
-		dir, err := ps.Cwd()
-		if err != nil {
-			l.Warnf("[warning] process get work_directory err:%s", err.Error())
-		} else {
-			fields["work_directory"] = dir
+		if runtime.GOOS == "linux" {
+			dir, err := ps.Cwd()
+			if err != nil {
+				l.Warnf("[warning] process:%s,pid:%d get work_directory err:%s", name, ps.Pid, err.Error())
+			} else {
+				fields["work_directory"] = dir
+			}
 		}
 		cmd, err := ps.Cmdline()
 		if err != nil {
-			l.Warnf("[warning] process get cmd err:%s", err.Error())
+			l.Warnf("[warning] process:%s,pid:%d get cmd err:%s", name, ps.Pid, err.Error())
 		} else {
 			fields["cmdline"] = cmd
 		}
 		if p.isTest {
-			result, err := io.MakeMetric("host_processes", tags, fields, time.Now().UTC())
+			point, err := io.MakeMetric("host_processes", tags, fields, times)
 			if err != nil {
 				l.Errorf("make metric err:%s", err.Error())
 				p.result.Result = []byte(err.Error())
-				break
+			} else {
+				p.result.Result = point
 			}
-			p.result.Result = result
-			break
+			return
 		}
-		io.NamedFeedEx(inputName, io.Object, "host_processes", tags, fields, time.Now().UTC())
+		point, err := io.MakeMetric("host_processes", tags, fields, times)
+		if err != nil {
+			l.Errorf("[error] make metric err:%s", err.Error())
+			continue
+		}
+		points = append(points, string(point))
 	}
+	io.NamedFeed([]byte(strings.Join(points, "\n")), io.Object, inputName)
 }
 
 func (p *Processes) WriteMetric() {
