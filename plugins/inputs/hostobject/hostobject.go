@@ -117,7 +117,7 @@ func (c *objCollector) Run() {
 			"start_time":       message.Host.HostMeta.BootTime,
 			"datakit_ver":      git.Version,
 			"cpu_usage":        message.Host.cpuPercent,
-			"mem_used_pencent": message.Host.Mem.usedPercent,
+			"mem_used_percent": message.Host.Mem.usedPercent,
 			"load":             message.Host.load5,
 		}
 		if c.p != nil {
