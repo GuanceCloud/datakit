@@ -248,13 +248,14 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 		containerJSON,
 		containerProcessList,
 	})
+
 	if err != nil {
 		return nil, err
 	}
 
 	var fields = make(map[string]interface{})
 
-	fields["message"] = msg
+	fields["message"] = string(msg)
 
 	fields["container_id"] = container.ID
 	fields["images_name"] = container.Image
@@ -265,7 +266,9 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 	fields["status"] = containerJSON.State.Status
 	fields["start_time"] = containerJSON.State.StartedAt
 
-	return io.MakeMetric(inputName, nil, fields, time.Now())
+	tags := map[string]string{"name": container.ID}
+
+	return io.MakeMetric(inputName, tags, fields, time.Now())
 }
 
 func getContainerName(names []string) string {
