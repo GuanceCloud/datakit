@@ -1,6 +1,9 @@
 package host_process
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit"
+import (
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
 
 const (
 	inputName = "host_processes"
@@ -33,5 +36,7 @@ type Processes struct {
 	MetricInterval datakit.Duration `toml:"metric_interval,omitempty"`
 	Pipeline       string           `toml:"pipeline,omitempty"`
 
-	re string
+	re     string
+	isTest bool
+	result *inputs.TestResult
 }
