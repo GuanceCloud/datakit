@@ -61,10 +61,10 @@ func (k *Kubernetes) GatherPodInfo(containerID string) (map[string]string, error
 	var m = make(map[string]string)
 
 	for _, podMetadata := range podApi.Items {
-		if len(podMetadata.Metadata.Status.ContainerStatuses) == 0 {
+		if len(podMetadata.Status.ContainerStatuses) == 0 {
 			continue
 		}
-		for _, containerStauts := range podMetadata.Metadata.Status.ContainerStatuses {
+		for _, containerStauts := range podMetadata.Status.ContainerStatuses {
 			if containerStauts.ContainerID == containerID {
 				m["pod_name"] = podMetadata.Metadata.Name
 				m["pod_namespace"] = podMetadata.Metadata.Namespace
