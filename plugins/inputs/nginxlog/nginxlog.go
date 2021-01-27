@@ -46,7 +46,7 @@ grok(_, '%{access_common} "%{notspace:referrer}" "%{greedydata:agent}')
 user_agent(agent)
 
 # error log
-grok(_, "%{date2:date_access} \\[%{loglevel:level}\\] %{greedydata:msg}, client: %{iporhost:client}, server: %{iporhost:server}, request: \"%{data:http_method} %{greedydata:http_url} HTTP/%{number:http_version}\", host: \"%{iporhost:host}\"")
+grok(_, "%{date2:date_access} \\[%{loglevel:level}\\] %{greedydata:msg}, client: %{iporhost:client_ip}, server: %{iporhost:server}, request: \"%{data:http_method} %{greedydata:http_url} HTTP/%{number:http_version}\", host: \"%{iporhost:host}\"")
 
 cast(status_code, "int")
 cast(bytes, "int")
