@@ -381,6 +381,30 @@ github.com/hpcloud/tail/ratelimiter
 github.com/hpcloud/tail/util
 github.com/hpcloud/tail/watch
 github.com/hpcloud/tail/winfile
+# github.com/huaweicloud/huaweicloud-sdk-go-v3 v0.0.30-rc.1
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/basic
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/env
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/global
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/iam
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/signer
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/config
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/converter
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/def
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/httphandler
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/impl
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/request
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/response
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/sdkerr
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/sdktime
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/region
 # github.com/influxdata/go-syslog/v2 v2.0.1
 github.com/influxdata/go-syslog/v2
 github.com/influxdata/go-syslog/v2/common
