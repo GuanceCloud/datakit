@@ -41,26 +41,15 @@ const (
     ## multiline parser/codec
     #[inputs.tailf.multiline]
     ## The pattern should be a regexp which matches what you believe to be an indicator that the field is part of an event consisting of multiple lines of log data.
-    ## Note the use of '''XXX'''
-    #pattern = '''^\s'''
-
-    ## The field's value must be previous or next and indicates the relation to the multi-line event.
-    #match_which_line = "previous"
-
-    ## The invert_match can be true or false (defaults to false).
-    ## If true, a message not matching the pattern will constitute a match of the multiline filter and the what will be applied. (vice-versa is also true)
-    #invert_match = false
+    ## Note the use of '''XXX''' like: 2021-01-27 XXXXXXX
+    #pattern = '''^\d{4}-\d{2}-\d{2}'''
 
     # [inputs.tailf.tags]
     # tags1 = "value1"
 `
 )
 
-const (
-	defaultDruation = time.Second * 5
-
-	metricFeedCount = 10
-)
+const defaultDruation = time.Second * 5
 
 // var l = logger.DefaultSLogger(inputName)
 
