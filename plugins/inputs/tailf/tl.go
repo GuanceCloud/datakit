@@ -30,7 +30,6 @@ type tailer struct {
 	textLine    bytes.Buffer
 	tailerOpen  bool
 	channelOpen bool
-	count       int64
 }
 
 func newTailer(tl *Tailf, filename string) *tailer {
@@ -80,10 +79,7 @@ func (t *tailer) receiver() {
 	ticker := time.NewTicker(defaultDruation)
 	defer ticker.Stop()
 
-	var (
-		buffer bytes.Buffer
-		line   *tail.Line
-	)
+	var line *tail.Line
 
 	for {
 		line = nil
@@ -99,13 +95,6 @@ func (t *tailer) receiver() {
 			}
 
 		case <-ticker.C:
-			if t.count > 0 {
-				if err := io.NamedFeed(buffer.Bytes(), io.Logging, t.source); err != nil {
-					t.tf.log.Error(err)
-				}
-				buffer = bytes.Buffer{}
-				t.count = 0
-			}
 			_, statErr := os.Lstat(t.filename)
 			if os.IsNotExist(statErr) {
 				t.tf.log.Warnf("check file %s is not exist", t.filename)
@@ -134,16 +123,8 @@ func (t *tailer) receiver() {
 			continue
 		}
 
-		buffer.Write(data)
-		buffer.WriteString("\n")
-		t.count++
-
-		if t.count >= metricFeedCount {
-			if err := io.NamedFeed(buffer.Bytes(), io.Logging, t.source); err != nil {
-				t.tf.log.Error(err)
-			}
-			buffer = bytes.Buffer{}
-			t.count = 0
+		if err := io.NamedFeed(data, io.Logging, t.source); err != nil {
+			t.tf.log.Error(err)
 		}
 	}
 }
