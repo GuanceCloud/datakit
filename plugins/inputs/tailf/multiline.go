@@ -29,9 +29,8 @@ func (m *MultilineConfig) NewMultiline() (*Multiline, error) {
 	var r *regexp.Regexp
 	var err error
 
-	// FIXME: use constant
-	// m.InvertMatch = true
-	// m.MatchWhichLine = "previous"
+	m.InvertMatch = true
+	m.MatchWhichLine = "previous"
 
 	if m.Pattern != "" {
 		enabled = true
