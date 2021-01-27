@@ -15,8 +15,8 @@ const (
  # process_name = [".*datakit.*"]
  ## write object interval
  object_interval     = "5m"  
- ## process run time default 10m,Collection  the process of running more than ten minutes
- run_time     = "10m"  
+ ## process min run time default 10m,Collection  the process of running more than ten minutes
+ min_run_time     = "10m"  
  ## open collection metric	
  open_metric = false
  ## write metric interval 
@@ -31,7 +31,7 @@ const (
 type Processes struct {
 	ProcessName    []string         `toml:"process_name,omitempty"`
 	ObjectInterval datakit.Duration `toml:"object_interval,omitempty"`
-	RunTime        datakit.Duration `toml:"run_time,omitempty"`
+	RunTime        datakit.Duration `toml:"min_run_time,omitempty"`
 	OpenMetric     bool             `toml:"open_metric,omitempty"`
 	MetricInterval datakit.Duration `toml:"metric_interval,omitempty"`
 	Pipeline       string           `toml:"pipeline,omitempty"`
