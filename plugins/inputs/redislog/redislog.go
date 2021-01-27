@@ -52,7 +52,7 @@ func init() {
 			inputName,
 			"log",
 			sampleCfg,
-			map[string]string{inputName: pipelineCfg},
+			map[string]string{"redis": pipelineCfg},
 		)
 		t.Source = inputName
 		t.Pipeline = "redis.p"
