@@ -47,7 +47,10 @@ const (
 `
 )
 
-const defaultDruation = time.Second * 5
+const (
+	findNewFileInterval    = time.Second * 10
+	checkFileExistInterval = time.Minute * 10
+)
 
 // var l = logger.DefaultSLogger(inputName)
 
