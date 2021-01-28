@@ -48,11 +48,7 @@ func TestMain(t *testing.T) {
 		LogFiles:      []string{file.Name()},
 		FromBeginning: true,
 		Source:        "testing",
-		MultilineConfig: MultilineConfig{
-			Pattern:        `^\d.*`,
-			MatchWhichLine: "previous",
-			InvertMatch:    true,
-		},
+		Match:         `^\d.*`,
 	}
 	tailer.log = logger.SLogger(tailer.InputName)
 	if tailer.loadcfg() {
