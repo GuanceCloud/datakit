@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"runtime"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -14,7 +15,6 @@ import (
 )
 
 var (
-	inputName    = `huaweiyunobject`
 	moduleLogger *logger.Logger
 )
 
@@ -28,16 +28,18 @@ func (_ *objectAgent) SampleConfig() string {
 	buf.WriteString(ecsSampleConfig)
 	buf.WriteString(elbSampleConfig)
 	buf.WriteString(obsSampleConfig)
-	buf.WriteString(mysqlSampleConfig)
+	buf.WriteString(rdsSampleConfig)
+	buf.WriteString(vpcSampleConfig)
 	return buf.String()
 }
 
 func (_ *objectAgent) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"huaweiyun_ecs":   ecsPipelineConifg,
-		"huaweiyun_elb":   elbPipelineConfig,
-		"huaweiyun_obs":   obsPipelineConifg,
-		"huaweiyun_mysql": mysqlPipelineConfig,
+		inputName + "_ecs": ecsPipelineConifg,
+		inputName + "_elb": elbPipelineConfig,
+		inputName + "_obs": obsPipelineConifg,
+		inputName + "_rds": rdsPipelineConfig,
+		inputName + "_vpc": vpcPipelineConifg,
 	}
 	return pipelineMap
 }
@@ -54,7 +56,16 @@ func (ag *objectAgent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
 
-	ag.ctx, ag.cancelFun = context.WithCancel(context.Background())
+	defer func() {
+		if e := recover(); e != nil {
+			if err := recover(); err != nil {
+				buf := make([]byte, 2048)
+				n := runtime.Stack(buf, false)
+				moduleLogger.Errorf("panic: %s", err)
+				moduleLogger.Errorf("%s", string(buf[:n]))
+			}
+		}
+	}()
 
 	go func() {
 		<-datakit.Exit.Wait()
@@ -78,8 +89,11 @@ func (ag *objectAgent) Run() {
 	if ag.Obs != nil {
 		ag.addModule(ag.Obs)
 	}
-	if ag.Mysql != nil {
-		ag.addModule(ag.Mysql)
+	if ag.Rds != nil {
+		ag.addModule(ag.Rds)
+	}
+	if ag.Vpc != nil {
+		ag.addModule(ag.Vpc)
 	}
 
 	for _, s := range ag.subModules {
@@ -91,19 +105,17 @@ func (ag *objectAgent) Run() {
 	}
 
 	ag.wg.Wait()
-
-	moduleLogger.Debugf("done")
 }
 
-func newAgent() *objectAgent {
-	ag := &objectAgent{}
-	return ag
-}
+func getPipeline(name string) *pipeline.Pipeline {
 
-func init() {
-	inputs.Add(inputName, func() inputs.Input {
-		return newAgent()
-	})
+	p, err := pipeline.NewPipelineByScriptPath(name)
+	if err != nil {
+		moduleLogger.Warnf("%s", err)
+		return nil
+	}
+
+	return p
 }
 
 func (ag *objectAgent) parseObject(obj interface{}, name, class, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string) error {
@@ -112,7 +124,7 @@ func (ag *objectAgent) parseObject(obj interface{}, name, class, id string, pipe
 	}
 	data, err := json.Marshal(obj)
 	if err != nil {
-		moduleLogger.Errorf("[error] json marshal err:%s", err.Error())
+		moduleLogger.Errorf("json marshal err:%s", err.Error())
 		return err
 	}
 
@@ -120,7 +132,7 @@ func (ag *objectAgent) parseObject(obj interface{}, name, class, id string, pipe
 	if pipeline != nil {
 		fields, err = pipeline.Run(string(data)).Result()
 		if err != nil {
-			moduleLogger.Errorf("[error] pipeline run err:%s", err.Error())
+			moduleLogger.Errorf("pipeline run err:%s", err.Error())
 			return err
 		}
 	}
@@ -131,5 +143,28 @@ func (ag *objectAgent) parseObject(obj interface{}, name, class, id string, pipe
 		"name": name,
 	}
 
-	return io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
+	if ag.IsDebug() {
+		data, err := io.MakeMetric(class, tags, fields, time.Now().UTC())
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+		} else {
+			moduleLogger.Infof("%s", string(data))
+		}
+		return nil
+	} else {
+		return io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
+	}
+}
+
+func newAgent(mode string) *objectAgent {
+	ag := &objectAgent{}
+	ag.mode = mode
+	ag.ctx, ag.cancelFun = context.WithCancel(context.Background())
+	return ag
+}
+
+func init() {
+	inputs.Add(inputName, func() inputs.Input {
+		return newAgent("")
+	})
 }
