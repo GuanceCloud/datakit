@@ -264,14 +264,15 @@ func (ag *agent) genReqs(ctx context.Context) error {
 	return nil
 }
 
-func newAgent() *agent {
+func newAgent(mode string) *agent {
 	ac := &agent{}
+	ac.mode = mode
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 	return ac
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return newAgent()
+		return newAgent("")
 	})
 }
