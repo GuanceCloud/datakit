@@ -12,9 +12,9 @@ type Multiline struct {
 }
 
 type MultilineConfig struct {
-	Pattern        string `toml:"pattern"`
-	MatchWhichLine string `toml:"match_which_line"`
-	InvertMatch    bool   `toml:"invert_match"`
+	Pattern        string
+	MatchWhichLine string
+	InvertMatch    bool
 }
 
 const (
@@ -28,9 +28,6 @@ func (m *MultilineConfig) NewMultiline() (*Multiline, error) {
 	enabled := false
 	var r *regexp.Regexp
 	var err error
-
-	m.InvertMatch = true
-	m.MatchWhichLine = "previous"
 
 	if m.Pattern != "" {
 		enabled = true
