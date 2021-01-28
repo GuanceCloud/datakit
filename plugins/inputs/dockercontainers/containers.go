@@ -141,6 +141,10 @@ func (d *DockerContainers) Run() {
 	defer ticker.Stop()
 
 	l.Info("docker_containers input start")
+
+	// 采集器开启时，先运行一次，然后等待ticker
+	d.do()
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -148,14 +152,18 @@ func (d *DockerContainers) Run() {
 			return
 
 		case <-ticker.C:
-			data, err := d.gather()
-			if err != nil {
-				continue
-			}
-			if err := io.NamedFeed(data, io.Object, inputName); err != nil {
-				l.Error(err)
-			}
+			d.do()
 		}
+	}
+}
+
+func (d *DockerContainers) do() {
+	data, err := d.gather()
+	if err != nil {
+		return
+	}
+	if err := io.NamedFeed(data, io.Object, inputName); err != nil {
+		l.Error(err)
 	}
 }
 
@@ -234,6 +242,8 @@ func (d *DockerContainers) gather() ([]byte, error) {
 	for _, container := range containers {
 		data, err := d.gatherContainer(container)
 		if err != nil {
+			// 忽略某一个container的错误
+			// 继续gather下一个
 			l.Error(err)
 		} else {
 			buffer.Write(data)
