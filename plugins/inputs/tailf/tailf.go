@@ -20,9 +20,8 @@ type Tailf struct {
 	Pipeline          string            `toml:"pipeline"`
 	FromBeginning     bool              `toml:"from_beginning"`
 	CharacterEncoding string            `toml:"character_encoding"`
+	Match             string            `toml:"match"`
 	Tags              map[string]string `toml:"tags"`
-
-	MultilineConfig MultilineConfig `toml:"multiline"`
 
 	InputName   string            `toml:"-"`
 	CatalogStr  string            `toml:"-"`
@@ -118,6 +117,15 @@ func (t *Tailf) loadcfg() bool {
 		t.log.Warn("no pipeline applied")
 	}
 
+	var multilineConfig *MultilineConfig
+	if t.Match != "" {
+		multilineConfig = &MultilineConfig{
+			Pattern:        t.Match,
+			InvertMatch:    true,
+			MatchWhichLine: "previous",
+		}
+	}
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -132,12 +140,16 @@ func (t *Tailf) loadcfg() bool {
 			goto label
 		}
 
+		// FIXME: add t.log.Debuf("check xxx") ?
+
 		if t.decoder, err = NewDecoder(t.CharacterEncoding); err != nil {
 			goto label
 		}
 
-		if t.multiline, err = t.MultilineConfig.NewMultiline(); err != nil {
-			goto label
+		if multilineConfig != nil {
+			if t.multiline, err = multilineConfig.NewMultiline(); err != nil {
+				goto label
+			}
 		}
 
 		if err = checkPipeLine(t.Pipeline); err != nil {
