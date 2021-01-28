@@ -8,45 +8,44 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	"github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/basic"
-	ecs "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2"
-	ecsmodel "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/model"
-	ecsregion "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/region"
+	vpc "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2"
+	vpcmodel "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/model"
+	vpcregion "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/region"
 )
 
 const (
-	ecsSampleConfig = `
-#[inputs.huaweiyunobject.ecs]
+	vpcSampleConfig = `
+#[inputs.huaweiyunobject.vpc]
 
-# ##(optional) list of ecs instanceid
+# ##(optional) list of instanceid
 #instanceids = ['']
 
-# ##(optional) list of excluded ecs instanceid
+# ##(optional) list of excluded instanceid
 #exclude_instanceids = ['']
 
 # ##(optional)
 # pipeline = ''
 `
-	ecsPipelineConifg = `
+	vpcPipelineConifg = `
 
-json(_,hostId)
-json(_,tenant_id)
-json(_,host_status)
+json(_,cidr)
+json(_,status)
 
 `
 )
 
-type Ecs struct {
+type Vpc struct {
 	InstancesIDs       []string `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
 
 	PipelinePath string `toml:"pipeline,omitempty"`
 
-	ecsCli *ecs.EcsClient
+	vpcCli *vpc.VpcClient
 
 	p *pipeline.Pipeline
 }
 
-func (e *Ecs) genClient(ag *objectAgent) {
+func (e *Vpc) genClient(ag *objectAgent) {
 
 	auth := basic.NewCredentialsBuilder().
 		WithAk(ag.AccessKeyID).
@@ -54,17 +53,17 @@ func (e *Ecs) genClient(ag *objectAgent) {
 		WithProjectId(ag.ProjectID).
 		Build()
 
-	cli := ecs.EcsClientBuilder().WithRegion(ecsregion.ValueOf(ag.RegionID)).WithCredential(auth).Build()
-	e.ecsCli = ecs.NewEcsClient(cli)
+	cli := vpc.VpcClientBuilder().WithRegion(vpcregion.ValueOf(ag.RegionID)).WithCredential(auth).Build()
+	e.vpcCli = vpc.NewVpcClient(cli)
 }
 
-func (e *Ecs) getInstances() (*ecsmodel.ListServersDetailsResponse, error) {
+func (e *Vpc) getInstances() (*vpcmodel.ListVpcsResponse, error) {
 
 	var err error
 
 	for i := 0; i < 3; i++ {
-		req := &ecsmodel.ListServersDetailsRequest{}
-		resp, err := e.ecsCli.ListServersDetails(req)
+		req := &vpcmodel.ListVpcsRequest{}
+		resp, err := e.vpcCli.ListVpcs(req)
 		if err != nil {
 			moduleLogger.Error(err)
 			time.Sleep(time.Second * 5)
@@ -76,13 +75,13 @@ func (e *Ecs) getInstances() (*ecsmodel.ListServersDetailsResponse, error) {
 	return nil, err
 }
 
-func (e *Ecs) run(ag *objectAgent) {
+func (e *Vpc) run(ag *objectAgent) {
 
 	e.genClient(ag)
 
 	pipename := e.PipelinePath
 	if pipename == "" {
-		pipename = inputName + "_ecs.p"
+		pipename = inputName + "_vpc.p"
 	}
 	e.p = getPipeline(pipename)
 
@@ -105,18 +104,18 @@ func (e *Ecs) run(ag *objectAgent) {
 	}
 }
 
-func (e *Ecs) handleResponse(resp *ecsmodel.ListServersDetailsResponse, ag *objectAgent) {
+func (e *Vpc) handleResponse(resp *vpcmodel.ListVpcsResponse, ag *objectAgent) {
 
-	if resp.Servers == nil {
+	if resp.Vpcs == nil {
 		return
 	}
 
-	moduleLogger.Debugf("ECS TotalCount=%d", *resp.Count)
+	moduleLogger.Debugf("VPC TotalCount=%d", len(*resp.Vpcs))
 
-	for _, s := range *resp.Servers {
+	for _, s := range *resp.Vpcs {
 
 		name := fmt.Sprintf(`%s(%s)`, s.Name, s.Id)
-		class := `huaweiyun_ecs`
+		class := `huaweiyun_vpc`
 		err := ag.parseObject(s, name, class, s.Id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs)
 		if err != nil {
 			moduleLogger.Errorf("%s", err)
