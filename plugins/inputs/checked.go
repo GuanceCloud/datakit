@@ -105,7 +105,7 @@ var (
 		"netstat":                true,
 		"nfsstat":                true,
 		"nginx":                  true,
-		"nginxlog":               false,
+		"nginxlog":               true,
 		"nginx_plus":             true,
 		"nginx_plus_api":         true,
 		"nginx_upstream_check":   true,
