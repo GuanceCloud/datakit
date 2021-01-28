@@ -75,7 +75,7 @@ func (t *Tailf) Run() {
 
 	t.log.Infof("tailf input started.")
 
-	ticker := time.NewTicker(defaultDruation)
+	ticker := time.NewTicker(findNewFileInterval)
 	defer ticker.Stop()
 
 	for {
