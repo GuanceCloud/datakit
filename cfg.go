@@ -684,6 +684,16 @@ func (c *Config) LoadEnvs(mcp string) error {
 		}
 	}
 
+	dkid := os.Getenv("ENV_UUID")
+	if dkid == "" {
+		return fmt.Errorf("ENV_UUID not set")
+	}
+
+	if err := CreateUUIDFile(dkid); err != nil {
+		l.Errorf("create id file: %s", err.Error())
+		return err
+	}
+
 	return nil
 }
 
