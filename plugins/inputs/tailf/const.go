@@ -36,13 +36,11 @@ const (
     ##     character_encoding = "gbk"
     ##     character_encoding = "gb18030"
     ##     character_encoding = ""
-    #character_encoding = ""
+    # character_encoding = ""
 
-    ## multiline parser/codec
-    #[inputs.tailf.multiline]
-    ## The pattern should be a regexp which matches what you believe to be an indicator that the field is part of an event consisting of multiple lines of log data.
-    ## Note the use of '''XXX''' like: 2021-01-27 XXXXXXX
-    #pattern = '''^\d{4}-\d{2}-\d{2}'''
+    ## The pattern should be a regexp
+    ## Note the use of '''XXX'''
+    # match = '''^\d{4}-\d{2}-\d{2}'''
 
     # [inputs.tailf.tags]
     # tags1 = "value1"
