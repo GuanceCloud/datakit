@@ -14,14 +14,14 @@ const (
 #[inputs.huaweiyunobject.obs]
 #endpoint=""
 
-# ## @param - [list of obs instanceid] - optional
+# ##(optional) ist of obs instanceid
 #buckets = []
 
-# ## @param - [list of excluded obs instanceid] - optional
+# ##(optional) list of excluded obs instanceid
 #exclude_buckets = []
 
-# 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名的脚本，作为其默认 pipeline 配置
-# pipeline = "huaweiyun_obs_object.p"
+# ##(optional)
+# pipeline = ''
 `
 	obsPipelineConifg = `
 
@@ -47,14 +47,11 @@ func (o *Obs) run(ag *objectAgent) {
 		o.EndPoint = fmt.Sprintf(`obs.%s.myhuaweicloud.com`, ag.RegionID)
 	}
 
-	if o.PipelinePath != `` {
-		p, err := pipeline.NewPipelineByScriptPath(o.PipelinePath)
-		if err != nil {
-			moduleLogger.Errorf("[error] obs new pipeline err:%s", err.Error())
-			return
-		}
-		o.p = p
+	pipename := o.PipelinePath
+	if pipename == "" {
+		pipename = inputName + "_obs.p"
 	}
+	o.p = getPipeline(pipename)
 
 	for {
 
