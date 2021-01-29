@@ -146,12 +146,6 @@ func PubDatakit() {
 	}
 
 	renameOssFiles := map[string]string{}
-	var verId string
-
-	// rename installer
-	if curVd != nil {
-		verId = curVd.withoutGitCommit()
-	}
 
 	// tar files and collect OSS upload/backup info
 	for _, arch := range archs {
@@ -172,7 +166,7 @@ func PubDatakit() {
 
 			if curVd != nil && curVd.Version != git.Version {
 				renameOssFiles[path.Join(OSSPath, installerExe)] =
-					path.Join(OSSPath, fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, verId))
+					path.Join(OSSPath, fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, curVd.Version))
 			}
 
 		} else {
@@ -180,7 +174,7 @@ func PubDatakit() {
 
 			if curVd != nil && curVd.Version != git.Version {
 				renameOssFiles[path.Join(OSSPath, installerExe)] =
-					path.Join(OSSPath, fmt.Sprintf("installer-%s-%s-%s", goos, goarch, verId))
+					path.Join(OSSPath, fmt.Sprintf("installer-%s-%s-%s", goos, goarch, curVd.Version))
 			}
 		}
 
