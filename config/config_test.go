@@ -239,3 +239,37 @@ global = "global config"
 func TestInitCfg(t *testing.T) {
 	// TODO
 }
+
+func TestBlackWhiteList(t *testing.T) {
+	wlists := []*datakit.InputHostList{
+		&datakit.InputHostList{
+			Hosts:  []string{"host1", "host2"},
+			Inputs: []string{"input1", "input2"},
+		},
+		&datakit.InputHostList{
+			Hosts:  []string{"hostx", "hosty"},
+			Inputs: []string{"inputx", "inputy"},
+		},
+	}
+
+	blists := []*datakit.InputHostList{
+		&datakit.InputHostList{
+			Hosts:  []string{"host_3", "host_4"},
+			Inputs: []string{"input_3", "input_4"},
+		},
+		&datakit.InputHostList{
+			Hosts:  []string{"host_i", "host_j"},
+			Inputs: []string{"input_i", "input_j"},
+		},
+	}
+
+	t.Logf("host1.inputx on? %v", !isDisabled(wlists, blists, "host1", "inputx"))
+	t.Logf("host2.inputy on? %v", !isDisabled(wlists, blists, "host2", "inputy"))
+	t.Logf("host2.input1 on? %v", !isDisabled(wlists, blists, "host2", "input1"))
+	t.Logf("host2.input_foo on? %v", !isDisabled(wlists, blists, "host2", "input_foo"))
+	t.Logf("host_bar.input_foo on? %v", !isDisabled(wlists, blists, "host_bar", "input_foo"))
+
+	t.Logf("host_3.input_foo on? %v", !isDisabled(wlists, blists, "host_3", "input_foo"))
+	t.Logf("host_3.input_4 on? %v", !isDisabled(wlists, blists, "host_3", "input_4"))
+	t.Logf("host_3.input_j on? %v", !isDisabled(wlists, blists, "host_3", "input_j"))
+}
