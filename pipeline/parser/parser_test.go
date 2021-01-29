@@ -14,8 +14,29 @@ type parseCase struct {
 }
 
 var parseCases = []*parseCase{
-	// case: multi-dim arr
 
+	// case:
+	{
+		in: `f([2].x[3])`,
+		expected: &Ast{
+			Functions: []*FuncExpr{
+				&FuncExpr{
+					Name: `f`,
+					Param: []Node{
+						&AttrExpr{
+							Obj: &IndexExpr{Index: []int64{2}},
+							Attr: &IndexExpr{
+								Obj:   &Identifier{Name: "x"},
+								Index: []int64{3},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+
+	// case: multi-dim arr
 	{
 		in:   `f(x.y[2.5])`,
 		fail: true,
