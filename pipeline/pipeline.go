@@ -17,7 +17,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/patterns"
 )
 
 type Pipeline struct {
@@ -259,10 +258,6 @@ func Init() error {
 	l = logger.SLogger("pipeline")
 
 	if err := geo.Init(); err != nil {
-		return err
-	}
-
-	if err := patterns.InitPatternsFile(); err != nil {
 		return err
 	}
 
