@@ -124,7 +124,7 @@ var (
 		"internal": {name: "internal", Catalog: "internal", Sample: samples["internal"], Input: nil}, // import internal package not allowed
 
 		"ping":            {name: "ping", Catalog: "network", Input: &ping.Ping{}},
-		"net":             {name: "net", Catalog: "network", Input: &net.NetIOStats{}},
+		"net":             {name: "net", Catalog: "host", Input: &net.NetIOStats{}},
 		"netstat":         {name: "netstat", Catalog: "network", Input: &net.NetStats{}},
 		"net_response":    {name: "net_response", Catalog: "network", Input: &net_response.NetResponse{}},
 		"http":            {name: "http", Catalog: "network", Input: &http.HTTP{}},
