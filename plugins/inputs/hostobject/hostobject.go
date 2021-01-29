@@ -177,14 +177,15 @@ func (c *objCollector) getPipeline() *pipeline.Pipeline {
 	return p
 }
 
-func newInput() *objCollector {
+func newInput(mode string) *objCollector {
 	o := &objCollector{}
+	o.mode = mode
 	o.ctx, o.cancelFun = context.WithCancel(context.Background())
 	return o
 }
 
 func init() {
 	inputs.Add(InputName, func() inputs.Input {
-		return newInput()
+		return newInput("")
 	})
 }
