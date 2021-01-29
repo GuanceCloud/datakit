@@ -1,13 +1,14 @@
 package hostobject
 
 const (
-	inputName = "hostobject"
+	InputName = "hostobject"
+	InputCat  = "host"
 
-	sampleConfig = `
-#[inputs.hostobject]
+	SampleConfig = `
+[inputs.hostobject]
 
-# ##(optional) collect interval, default is 3 miniutes
-#interval = '3m'
+# ##(optional) collect interval, default is 5 miniutes
+interval = '5m'
 
 # ##(optional) 
 #pipeline = ''

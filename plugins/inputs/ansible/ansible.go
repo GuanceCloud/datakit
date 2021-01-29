@@ -62,13 +62,6 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch dataType {
-	case "keyevent":
-		if err := io.NamedFeed(body, io.KeyEvent, "ansible"); err != nil {
-			l.Errorf("failed to io Feed, err: %s", err.Error())
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-
 	case "metric":
 		if err := io.NamedFeed(body, io.Metric, "ansible"); err != nil {
 			l.Errorf("failed to io Feed, err: %s", err.Error())
