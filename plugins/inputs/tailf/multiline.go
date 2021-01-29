@@ -3,7 +3,6 @@ package tailf
 import (
 	"bytes"
 	"regexp"
-	"time"
 )
 
 type Multiline struct {
@@ -13,10 +12,9 @@ type Multiline struct {
 }
 
 type MultilineConfig struct {
-	Pattern        string        `toml:"pattern"`
-	MatchWhichLine string        `toml:"match_which_line"`
-	InvertMatch    bool          `toml:-`
-	Timeout        time.Duration `toml:-`
+	Pattern        string
+	MatchWhichLine string
+	InvertMatch    bool
 }
 
 const (
@@ -41,12 +39,12 @@ func (m *MultilineConfig) NewMultiline() (*Multiline, error) {
 			m.MatchWhichLine = Previous
 		}
 	}
-	m.InvertMatch = false
 
 	return &Multiline{
 		config:        m,
 		enabled:       enabled,
-		patternRegexp: r}, nil
+		patternRegexp: r,
+	}, nil
 }
 
 func (m *Multiline) IsEnabled() bool {
