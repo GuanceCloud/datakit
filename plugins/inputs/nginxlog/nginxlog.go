@@ -35,18 +35,18 @@ const (
     # tags1 = "value1"
 `
 	pipelineCfg = `
-add_pattern("date2", "%{year}[./]%{monthnum}[./]%{monthday} %{time}")
+add_pattern("date2", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
 
 # access log
-grok(_, "%{iporhost:client_ip} %{notspace:http_ident} %{notspace:http_auth} \\[%{httpdate:date_access}\\] \"%{data:http_method} %{greedydata:http_url} HTTP/%{number:http_version}\" %{int:status_code} %{int:bytes}")
+grok(_, "%{IPORHOST:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%{HTTPDATE:date_access}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{INT:status_code} %{INT:bytes}")
 
 # access log
-add_pattern("access_common", "%{iporhost:client_ip} %{notspace:http_ident} %{notspace:http_auth} \\[%{httpdate:date_access}\\] \"%{data:http_method} %{greedydata:http_url} HTTP/%{number:http_version}\" %{int:status_code} %{int:bytes}")
-grok(_, '%{access_common} "%{notspace:referrer}" "%{greedydata:agent}')
+add_pattern("access_common", "%{IPORHOST:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%{HTTPDATE:date_access}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{INT:status_code} %{INT:bytes}")
+grok(_, '%{access_common} "%{NOTSPACE:referrer}" "%{GREEDYDATA:agent}')
 user_agent(agent)
 
 # error log
-grok(_, "%{date2:date_access} \\[%{loglevel:level}\\] %{greedydata:msg}, client: %{iporhost:client_ip}, server: %{iporhost:server}, request: \"%{data:http_method} %{greedydata:http_url} HTTP/%{number:http_version}\", host: \"%{iporhost:host}\"")
+grok(_, "%{date2:date_access} \\[%{LOGLEVEL:level}\\] %{GREEDYDATA:msg}, client: %{IPORHOST:client_ip}, server: %{IPORHOST:server}, request: \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\", host: \"%{IPORHOST:host}\"")
 
 cast(status_code, "int")
 cast(bytes, "int")
