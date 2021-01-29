@@ -9,26 +9,27 @@ import (
 )
 
 const (
+	inputName = `huaweiyunobject`
+
 	sampleConfig = `
 #[[inputs.huaweiyunobject]]
-# ## @param - huaweiyun authorization informations - string - required
+# ##(required) authorization informations
 # access_key_id = ''
 # access_key_secret = ''
 # project_id = ''
 # region_id=''
 
-# ## @param - collection interval - string - optional - default: 6h  1h <= interval <= 24h
+# ##(optional) collection interval, default is 6h
 # interval = '6h'
 
-# ## @param - custom tags - [list of key:value element] - optional
+# ##(optional) custom tags
 #[inputs.huaweiyunobject.tags]
 # key1 = 'val1'
-
+# key2 = 'val2'
 `
 )
 
 type objectAgent struct {
-	// EndPoint        string `toml:"endpoint"`
 	RegionID        string `toml:"region_id"`
 	ProjectID       string `toml:"project_id"`
 	AccessKeyID     string `toml:"access_key_id"`
@@ -37,10 +38,11 @@ type objectAgent struct {
 	Interval datakit.Duration  `toml:"interval"`
 	Tags     map[string]string `toml:"tags,omitempty"`
 
-	Ecs   *Ecs   `toml:"ecs,omitempty"`
-	Elb   *Elb   `toml:"elb,omitempty"`
-	Obs   *Obs   `toml:"obs,omitempty"`
-	Mysql *Mysql `toml:"mysql,omitempty"`
+	Ecs *Ecs `toml:"ecs,omitempty"`
+	Elb *Elb `toml:"elb,omitempty"`
+	Obs *Obs `toml:"obs,omitempty"`
+	Rds *Rds `toml:"rds,omitempty"`
+	Vpc *Vpc `toml:"vpc,omitempty"`
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
@@ -57,4 +59,8 @@ type objectAgent struct {
 
 func (ag *objectAgent) addModule(m subModule) {
 	ag.subModules = append(ag.subModules, m)
+}
+
+func (ag *objectAgent) IsDebug() bool {
+	return ag.mode == "debug"
 }
