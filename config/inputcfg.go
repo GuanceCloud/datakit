@@ -85,7 +85,8 @@ func LoadInputsConfig(c *datakit.Config) error {
 			availableTgiInput[fileName] = map[string]*ast.Table{fp: tbl}
 			return nil
 		}
-		l.Errorf("config:%s must name by input.conf example :disk.conf", fp)
+
+		l.Warnf("ignore conf `%s'", fp)
 		return nil
 	}); err != nil {
 		l.Error(err)
