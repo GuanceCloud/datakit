@@ -66,9 +66,10 @@ var (
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
 
-	PipelineDir    = filepath.Join(InstallDir, "pipeline")
-	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
-	GRPCSock       = ""
+	PipelineDir        = filepath.Join(InstallDir, "pipeline")
+	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
+	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
+	GRPCSock           = ""
 )
 
 func Quit() {
