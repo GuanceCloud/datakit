@@ -431,7 +431,12 @@ func (i *InputHostList) MatchInput(input string) bool {
 }
 
 func InitDirs() {
-	for _, dir := range []string{TelegrafDir, DataDir, LuaDir, ConfdDir, PipelineDir} {
+	for _, dir := range []string{TelegrafDir,
+		DataDir,
+		LuaDir,
+		ConfdDir,
+		PipelineDir,
+		PipelinePatternDir} {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
 		}
