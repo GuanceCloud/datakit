@@ -44,6 +44,7 @@ group_in(serverity, ["-"], "verbose", level)
 group_in(serverity, ["*"], "notice", level)
 group_in(serverity, ["#"], "warnning", level)
 
+cast(pid, "int")
 default_time(date_access)
 `
 )
