@@ -82,10 +82,8 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch
 github.com/aliyun/alibaba-cloud-sdk-go/services/ons
 github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore
 github.com/aliyun/alibaba-cloud-sdk-go/services/rds
-github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager
 github.com/aliyun/alibaba-cloud-sdk-go/services/sas
 github.com/aliyun/alibaba-cloud-sdk-go/services/slb
-github.com/aliyun/alibaba-cloud-sdk-go/services/tag
 github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
@@ -411,6 +409,15 @@ github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1/region
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/region
 # github.com/influxdata/go-syslog/v2 v2.0.1
 github.com/influxdata/go-syslog/v2
 github.com/influxdata/go-syslog/v2/common
