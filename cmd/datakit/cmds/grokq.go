@@ -2,7 +2,10 @@ package cmds
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
+	"github.com/c-bata/go-prompt"
 	"github.com/vjeantet/grok"
 )
 
@@ -15,13 +18,19 @@ const (
 	High_
 )
 
-type _grok struct {
+type grokPrevilege struct {
 	g string
 	p int
 }
 
 var (
-	patterns = []*_grok{
+	suggestions = []prompt.Suggest{
+		{Text: "exit", Description: "exit grokq"},
+		{Text: "Q", Description: "exit grokq"},
+	}
+	G *grok.Grok
+
+	patternPrevList = []*grokPrevilege{
 		{g: "TIME", p: High},
 		{g: "DATE_US", p: High},
 		{g: "DATE_EU", p: High},
@@ -32,7 +41,6 @@ var (
 		{g: "DATESTAMP", p: High},
 		{g: "TZ", p: High},
 		{g: "DATESTAMP_RFC822", p: High},
-		{g: "DATESTAMP_RFC2822", p: High},
 		{g: "DATESTAMP_EVENTLOG", p: High},
 		{g: "HTTPDERROR_DATE", p: High},
 		{g: "SYSLOGTIMESTAMP", p: High},
@@ -43,7 +51,6 @@ var (
 		{g: "HTTPD24_ERRORLOG", p: High},
 		{g: "HTTPD_ERRORLOG", p: High},
 		{g: "LOGLEVEL", p: High},
-		//{g: "COMMONENVOYACCESSLOG", p: High},
 		{g: "HOSTPORT", p: High},
 		{g: "TTY", p: High},
 		{g: "WINPATH", p: High},
@@ -58,8 +65,8 @@ var (
 		{g: "WINDOWSMAC", p: High},
 		{g: "COMMONMAC", p: High},
 		{g: "QUOTEDSTRING", p: Med},
-		{g: "IPV6", p: Med},
-		{g: "IPV4", p: Med},
+		{g: "IPV6", p: High_},
+		{g: "IPV4", p: High_},
 		{g: "IP", p: Med},
 		{g: "PATH", p: Med},
 		{g: "UNIXPATH", p: Med},
@@ -75,11 +82,11 @@ var (
 		{g: "SECOND", p: Med},
 		{g: "DATESTAMP_OTHER", p: Med},
 		{g: "QS", p: Med},
-		{g: "INT", p: Low},
-		{g: "POSINT", p: Low},
-		{g: "NUMBER", p: Low},
-		{g: "BASE16NUM", p: Low},
-		{g: "BASE10NUM", p: Low},
+		{g: "INT", p: Low_},
+		{g: "POSINT", p: Low_},
+		{g: "NUMBER", p: Low_},
+		{g: "BASE16NUM", p: Low_},
+		{g: "BASE10NUM", p: Low_},
 		{g: "HTTPDUSER", p: Low},
 		{g: "EMAILLOCALPART", p: High},
 		{g: "USERNAME", p: Low},
@@ -97,41 +104,90 @@ var (
 		{g: "SYSLOGFACILITY", p: Low},
 		{g: "SYSLOGBASE", p: Low},
 		{g: "WORD", p: Low},
-		{g: "GREEDYDATA", p: Low},
 		{g: "DATA", p: Low},
+		{g: "GREEDYDATA", p: Low},
 	}
 )
 
-func Grokq(txt string) {
+type completer struct{}
 
-	g, err := grok.New()
+func newCompleter() (*completer, error) {
+	return &completer{}, nil
+}
+
+func (c *completer) Complete(d prompt.Document) []prompt.Suggest {
+	w := d.GetWordBeforeCursor()
+	switch w {
+	case "":
+		return []prompt.Suggest{}
+	default:
+		return prompt.FilterFuzzy(suggestions, w, true)
+	}
+}
+
+func Grokq() {
+
+	var err error
+	G, err = grok.NewWithConfig(&grok.Config{
+		SkipDefaultPatterns: false,
+	})
+
 	if err != nil {
 		l.Fatalf("grok.NewWithConfig: %s", err)
 	}
 
-	matchedGroks := [High_ + 1][]string{}
-	if txt == "" {
-		l.Fatal("-txt required")
+	c, _ := newCompleter()
+
+	p := prompt.New(
+		run,
+		c.Complete,
+		prompt.OptionTitle("grokq: DataKit grok query"),
+		prompt.OptionPrefix("grokq > "),
+	)
+
+	p.Run()
+}
+
+func run(txt string) {
+	s := strings.Join(strings.Fields(strings.TrimSpace(txt)), " ") // remove dup spaces
+	if s == "" {
+		return
 	}
 
-	for _, ptn := range patterns {
-		res, err := g.Parse("%{"+ptn.g+"}", txt)
+	switch s {
+	case "Q", "exit":
+		fmt.Println("Bye!")
+		os.Exit(0)
+	default:
+		do(s)
+	}
+}
+
+func do(txt string) {
+
+	matchedGroks := [High_ + 1]map[string]interface{}{}
+
+	for _, ptn := range patternPrevList {
+		res, err := G.Parse("%{"+ptn.g+"}", txt)
 		if err != nil {
-			l.Warnf("parse %%{%s} failed: %s", ptn, err.Error())
+			l.Warnf("parse %%{%s} failed: %s", ptn.g, err.Error())
 			continue
 		}
 
 		if len(res) != 0 {
 			for _, v := range res {
 				if v == txt {
-					matchedGroks[ptn.p] = append(matchedGroks[ptn.p], ptn.g)
+					if matchedGroks[ptn.p] == nil {
+						matchedGroks[ptn.p] = map[string]interface{}{}
+					}
+					matchedGroks[ptn.p][ptn.g] = nil
 				}
 			}
 		}
 	}
 
 	for i := High_; i >= 0; i-- {
-		for _, ptn := range matchedGroks[i] {
+		for ptn, _ := range matchedGroks[i] {
 			fmt.Printf("\t%d %%{%s: ?}\n", i, ptn)
 		}
 	}
