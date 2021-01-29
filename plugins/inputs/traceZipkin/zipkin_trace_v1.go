@@ -60,9 +60,9 @@ func getFirstTimestamp(zs *ZipkinSpanV1) int64 {
 	}
 
 	if isFound {
-		return ts
+		return ts * 1000
 	}
-	return time.Now().UnixNano() / 1000
+	return time.Now().UnixNano()
 }
 func parseZipkinJsonV1(octets []byte) error {
 	log.Debugf("->|%v|<-", string(octets))
@@ -77,10 +77,10 @@ func parseZipkinJsonV1(octets []byte) error {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "zipkin"
 
-		tAdpter.Duration = zs.Duration
-		tAdpter.TimestampUs = zs.Timestamp
-		if tAdpter.TimestampUs == 0 {
-			tAdpter.TimestampUs = getFirstTimestamp(zs)
+		tAdpter.Duration = zs.Duration * 1000
+		tAdpter.Start = zs.Timestamp * 1000
+		if tAdpter.Start == 0 {
+			tAdpter.Start = getFirstTimestamp(zs)
 		}
 
 		js, err := json.Marshal(zs)
@@ -234,14 +234,14 @@ func parseZipkinThriftV1(octets []byte) error {
 		tAdpter.Source = "zipkin"
 
 		if zs.Duration != nil {
-			tAdpter.Duration = *zs.Duration
+			tAdpter.Duration = (*zs.Duration) * 1000
 		}
 
 		if zs.Timestamp != nil {
-			tAdpter.TimestampUs = *zs.Timestamp
+			tAdpter.Start = (*zs.Timestamp) * 1000
 		} else {
 			//tAdpter.TimestampUs = time.Now().UnixNano() / 1000
-			tAdpter.TimestampUs = getStartTimestamp(zs)
+			tAdpter.Start = getStartTimestamp(zs)
 		}
 
 		js, err := json.Marshal(z)
@@ -336,9 +336,9 @@ func getStartTimestamp(zs *zipkincore.Span) int64 {
 	}
 
 	if isFound {
-		return ts
+		return ts * 1000
 	}
-	return time.Now().UnixNano() / 1000
+	return time.Now().UnixNano()
 }
 
 func getDurationThriftAno(anos []*zipkincore.Annotation) int64 {
