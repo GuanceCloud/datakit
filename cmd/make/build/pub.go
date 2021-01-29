@@ -148,11 +148,6 @@ func PubDatakit() {
 	renameOssFiles := map[string]string{}
 	var verId string
 
-	if curVd != nil && curVd.Version == git.Version {
-		l.Warnf("Current verison is the newest (%s <=> %s). Exit now.", curVd.Version, git.Version)
-		os.Exit(0)
-	}
-
 	// rename installer
 	if curVd != nil {
 		verId = curVd.withoutGitCommit()
@@ -175,7 +170,7 @@ func PubDatakit() {
 		if goos == "windows" {
 			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
 
-			if curVd != nil {
+			if curVd != nil && curVd.Version != git.Version {
 				renameOssFiles[path.Join(OSSPath, installerExe)] =
 					path.Join(OSSPath, fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, verId))
 			}
@@ -183,7 +178,7 @@ func PubDatakit() {
 		} else {
 			installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
 
-			if curVd != nil {
+			if curVd != nil && curVd.Version != git.Version {
 				renameOssFiles[path.Join(OSSPath, installerExe)] =
 					path.Join(OSSPath, fmt.Sprintf("installer-%s-%s-%s", goos, goarch, verId))
 			}
