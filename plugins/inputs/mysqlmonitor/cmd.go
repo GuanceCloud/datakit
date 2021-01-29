@@ -322,7 +322,7 @@ func (m *MysqlMonitor) gatherGlobalStatuses(db *sql.DB, serv string) error {
 		key = strings.ToLower(key)
 		value, err := ConvertGlobalStatus(key, val)
 		if err != nil {
-			l.Debugf("Error parsing global status: %v", err)
+			l.Warnf("Error parsing global status: %v", err)
 		} else {
 			if value != nil {
 				fields[key] = value
@@ -1298,7 +1298,6 @@ func (m *MysqlMonitor) gatherPerfFileEventsStatuses(db *sql.DB, serv string) err
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
 		}
-
 	}
 	return nil
 }
@@ -1382,12 +1381,14 @@ func (m *MysqlMonitor) gatherPerfEventsStatements(db *sql.DB, serv string) error
 
 		_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
 		if err != nil {
+
 			l.Errorf("[error] : %s", err.Error())
 			return err
 		}
 
 		err = io.NamedFeed([]byte(pt), io.Metric, name)
 		if err != nil {
+
 			l.Errorf("push metric point error %v", err)
 		}
 	}
@@ -1602,7 +1603,7 @@ func (m *MysqlMonitor) gatherExtend(db *sql.DB, serv string) {
 	for key, item := range metricMap {
 		resMap, err := m.query(db, serv, item)
 		if err != nil {
-			l.Errorf("mysql query faild %v", err)
+			l.Warnf("mysql query faild %v", err)
 		}
 
 		servtag := getDSNTag(serv)
