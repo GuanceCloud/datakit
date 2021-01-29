@@ -12,8 +12,6 @@ import (
 
 const (
 	fileHeader = `//此文件由.grok_rule_convert.go文件自动生成，请不要手动修改
-//此文件由grok_rule_convert.go文件自动生成，请不要手动修改
-//此文件由grok_rule_convert.go文件自动生成，请不要手动修改
 
 package patterns
 
