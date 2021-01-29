@@ -49,7 +49,7 @@ func main() {
 		panic(err)
 	}
 
-	logger.SetGlobalRootLogger(*flagLog, *flagLogLevel, logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+	logger.SetGlobalRootLogger(*flagLog, *flagLogLevel, logger.OPT_DEFAULT)
 	l = logger.SLogger("skywalkingGrpcV3")
 	l.Infof("log level: %s", *flagLogLevel)
 
