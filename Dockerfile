@@ -19,6 +19,7 @@ RUN wget -q https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/
     && unzip /usr/local/cloudcare/dataflux/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle
 
 ARG dataway=""
+ARG dataway_ws_port=""
 ARG uuid=""
 ARG loglevel=""
 ARG enable_inputs=""
@@ -30,6 +31,7 @@ ENV ENV_UUID=$uuid \
     ENV_LOG_LEVEL=$loglevel \
     ENV_ENABLE_INPUTS=$enable_inputs \
     ENV_GLOBAL_TAGS=$global_tags \
+		ENV_DATAWAY_WSPORT=$dataway_ws_port \
     ENV_HOSTNAME=$hostname
 
 CMD ["/usr/local/cloudcare/dataflux/datakit/datakit", "-docker"]
