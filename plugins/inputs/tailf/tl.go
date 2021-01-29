@@ -76,7 +76,7 @@ func (t *tailer) run() {
 }
 
 func (t *tailer) receiver() {
-	ticker := time.NewTicker(defaultDruation)
+	ticker := time.NewTicker(checkFileExistInterval)
 	defer ticker.Stop()
 
 	var line *tail.Line
