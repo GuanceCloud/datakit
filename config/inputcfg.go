@@ -344,3 +344,47 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 		l.Infof("enable input %s ok", name)
 	}
 }
+
+func LoadInputConfig(data []byte, creator inputs.Creator) ([]inputs.Input, error) {
+
+	tbl, err := toml.Parse(data)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []inputs.Input
+
+	for field, node := range tbl.Fields {
+		inputlist := []inputs.Input{}
+
+		switch field {
+		case "inputs": //nolint:goconst
+			stbl, ok := node.(*ast.Table)
+			if !ok {
+				return nil, fmt.Errorf("ignore bad toml node")
+			}
+			for inputName, v := range stbl.Fields {
+				//if inputName != name {
+				//	continue
+				//}
+				inputlist, err = TryUnmarshal(v, inputName, creator)
+				if err != nil {
+					return nil, fmt.Errorf("unmarshal input %s failed: %s", inputName, err.Error())
+				}
+			}
+
+		default: // compatible with old version: no [[inputs.xxx]] header
+			inputlist, err = TryUnmarshal(node, "", creator)
+			if err != nil {
+				return nil, fmt.Errorf("unmarshal input failed: %s", err.Error())
+			}
+		}
+
+		for _, i := range inputlist {
+
+			result = append(result, i)
+		}
+	}
+
+	return result, nil
+}
