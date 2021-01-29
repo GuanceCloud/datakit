@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"strconv"
@@ -23,27 +24,51 @@ func (e EscapeError) Error() string {
 	return "invalid URL escape " + strconv.Quote(string(e))
 }
 
-func TestDefaultTimeFunc(t *testing.T) {
+func TestJsonFunc(t *testing.T) {
 	var testCase = []*funcCase{
 		// {
-		// 	data:     `{"a":{"time":"","second":2,"thrid":"abc","forth":true},"age":47}`,
-		// 	script:   `json(_, a.time) default_time(a.time)`,
-		// 	expected: nil,
-		// 	key:      "a.time",
+		// 	data:     `{
+		// 	  "name": {"first": "Tom", "last": "Anderson"},
+		// 	  "age":37,
+		// 	  "children": ["Sara","Alex","Jack"],
+		// 	  "fav.movie": "Deer Hunter",
+		// 	  "friends": [
+		// 	    ["ig", "fb", "tw"],
+		// 	    ["fb", "tw"],
+		// 	    ["ig", "tw"]
+		// 	  ]
+		// 	}`,
+		// 	script:   `json(_, friends[0][0])`,
+		// 	expected: "ig",
+		// 	key:      "friends[0][0]",
 		// 	err:      nil,
 		// },
 		{
-			data:     `{"a":{"time":"06/Jan/2017:16:16:37 +0000","second":2,"thrid":"abc","forth":true},"age":47}`,
-			script:   `json(_, a.time) default_time(a.time)`,
-			expected: "1483719397000000000",
-			key:      "a.time",
+			data: `{
+			  "name": {"first": "Tom", "last": "Anderson"},
+			  "age":37,
+			  "children": ["Sara","Alex","Jack"],
+			  "fav.movie": "Deer Hunter",
+			  "friends": [
+			    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+			    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+			    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
+			  ]
+			}`,
+			script:   `json(_, name) json(name, first)`,
+			expected: "Tom",
+			key:      "first",
 			err:      nil,
 		},
 		{
-			data:     `{"a":{"time":"2014-12-16 06:20:00 UTC","second":2,"thrid":"abc","forth":true},"age":47}`,
-			script:   `json(_, a.time) default_time(a.time)`,
-			expected: "1418682000000000000",
-			key:      "a.time",
+			data: `[
+				    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+				    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+				    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
+				]`,
+			script:   `json(_, [0].nets[-1])`,
+			expected: "tw",
+			key:      "[0].nets[-1]",
 			err:      nil,
 		},
 	}
@@ -56,6 +81,62 @@ func TestDefaultTimeFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContentStr(tt.key)
+
+		fmt.Println("======>", p.Output)
+
+		assert.Equal(t, r, tt.expected)
+	}
+}
+
+func TestDefaultTimeFunc(t *testing.T) {
+	var testCase = []*funcCase{
+		{
+			data:     `{"a":{"time":"14 May 19:11:40.164","second":2,"thrid":"abc","forth":true},"age":47}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(1621019500164000000),
+			key:      "a.time",
+			err:      nil,
+		},
+		{
+			data:     `{"a":{"time":"14 May 2019 19:11:40.164","second":2,"thrid":"abc","forth":true},"age":47}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(1557832300164000000),
+			key:      "a.time",
+			err:      nil,
+		},
+		// {
+		// 	data:     `{"a":{"time":"","second":2,"thrid":"abc","forth":true},"age":47}`,
+		// 	script:   `json(_, a.time) default_time(a.time)`,
+		// 	expected: nil,
+		// 	key:      "a.time",
+		// 	err:      nil,
+		// },
+		{
+			data:     `{"a":{"time":"06/Jan/2017:16:16:37 +0000","second":2,"thrid":"abc","forth":true},"age":47}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(1483719397000000000),
+			key:      "a.time",
+			err:      nil,
+		},
+		{
+			data:     `{"a":{"time":"2014-12-16 06:20:00 UTC","second":2,"thrid":"abc","forth":true},"age":47}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(1418682000000000000),
+			key:      "a.time",
+			err:      nil,
+		},
+	}
+
+	for _, tt := range testCase {
+		p, err := NewPipeline(tt.script)
+
+		assert.Equal(t, err, nil)
+
+		p.Run(tt.data)
+
+		r, err := p.getContent(tt.key)
+
+		fmt.Println("out ======>", p.Output)
 
 		assert.Equal(t, r, tt.expected)
 	}
@@ -139,13 +220,6 @@ func TestGeoIpFunc(t *testing.T) {
 		{
 			data:     `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
 			script:   `json(_, ip) geoip(ip)`,
-			expected: "-",
-			key:      "city",
-			err:      nil,
-		},
-		{
-			data:     `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
-			script:   `json(_, "ip") geoip("ip")`,
 			expected: "-",
 			key:      "city",
 			err:      nil,
@@ -464,6 +538,50 @@ func TestNullIfFunc(t *testing.T) {
 }
 
 func TestJsonAllFunc(t *testing.T) {
+	var testCase = []*funcCase{
+		{
+			data: `{
+			  "name": {"first": "Tom", "last": "Anderson"},
+			  "age":37,
+			  "children": ["Sara","Alex","Jack"],
+			  "fav.movie": "Deer Hunter",
+			  "friends": [
+			    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+			    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+			    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
+			  ]
+			}`,
+			script:   `json_all()`,
+			expected: "Sara",
+			key:      "children[0]",
+			err:      nil,
+		},
+		{
+			data: `[
+			    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+			    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+			    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
+			  ]`,
+			script:   `json_all()`,
+			expected: "Dale",
+			key:      "[0].first",
+			err:      nil,
+		},
+	}
+
+	for _, tt := range testCase {
+		p, err := NewPipeline(tt.script)
+		assertEqual(t, err, p.lastErr)
+
+		p.Run(tt.data)
+
+		r, err := p.getContentStr(tt.key)
+
+		fmt.Println("======>", p.Output)
+
+		assertEqual(t, r, tt.expected)
+	}
+
 	js := `
 {
   "name": {"first": "Tom", "last": "Anderson"},
