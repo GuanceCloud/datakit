@@ -40,7 +40,10 @@ type IndexExpr struct {
 }
 
 func (e *IndexExpr) String() string {
-	x := e.Obj.String()
+	x := ""
+	if e.Obj != nil {
+		x = e.Obj.String()
+	}
 	for i, _ := range e.Index {
 		x += fmt.Sprintf("[%d]", e.Index[i])
 	}
@@ -56,6 +59,9 @@ type AttrExpr struct {
 
 func (e *AttrExpr) String() string {
 	if e.Attr != nil {
+		if e.Obj == nil {
+			return e.Attr.String()
+		}
 		return e.Obj.String() + "." + e.Attr.String()
 	} else {
 		return e.Obj.String()
