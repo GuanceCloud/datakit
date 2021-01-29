@@ -35,14 +35,17 @@ const (
     # tags1 = "value1"
 `
 	pipelineCfg = `
-add_pattern("date2", "%{monthday} %{month} %{time}")
+add_pattern("date2", "%{MONTHDAY} %{MONTH} %{YEAR}?%{TIME}")
 
-grok(_, "%{int:pid}:%{word:role} %{date2:date_access} %{notspace:serverity} %{greedydata:msg}")
+grok(_, "%{INT:pid}:%{WORD:role} %{date2:date_access} %{NOTSPACE:serverity} %{GREEDYDATA:msg}")
 
 group_in(serverity, ["."], "debug", level)
 group_in(serverity, ["-"], "verbose", level)
 group_in(serverity, ["*"], "notice", level)
 group_in(serverity, ["#"], "warnning", level)
+
+cast(pid, "int")
+default_time(date_access)
 `
 )
 
