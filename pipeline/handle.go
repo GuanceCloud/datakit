@@ -13,6 +13,7 @@ import (
 	conv "github.com/spf13/cast"
 	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
 func UrldecodeHandle(path string) (interface{}, error) {
@@ -54,10 +55,9 @@ func GeoIpHandle(ip string) (map[string]string, error) {
 	res := make(map[string]string)
 
 	res["city"] = record.City
-	res["region"] = record.Region
+	res["province"] = record.Region
 	res["country"] = record.Country_short
-	res["city"] = record.City
-	res["isp"] = record.Isp
+	res["isp"] = ip2isp.SearchIsp(ip)
 
 	return res, nil
 }
@@ -103,32 +103,61 @@ func GroupInHandle(value interface{}, set []interface{}) bool {
 	return false
 }
 
+var datePattern = []struct {
+	desc        string
+	pattern     string
+	goFmt       string
+	defaultYear bool
+}{
+	{
+		desc:    "nginx log datetime, 02/Jan/2006:15:04:05 -0700",
+		pattern: `\d{2}/\w+/\d{4}:\d{2}:\d{2}:\d{2} \+\d{4}`,
+		goFmt:   "02/Jan/2006:15:04:05 -0700",
+	},
+	{
+		desc:    "redis log datetime, 14 May 2019 19:11:40.164",
+		pattern: `\d{2} \w+ \d{4} \d{2}:\d{2}:\d{2}.\d{3}`,
+		goFmt:   "02 Jan 2006 15:04:05.000",
+	},
+	{
+		desc:        "redis log datetime, 14 May 19:11:40.164",
+		pattern:     `\d{2} \w+ \d{2}:\d{2}:\d{2}.\d{3}`,
+		goFmt:       "02 Jan 15:04:05.000 2006",
+		defaultYear: true,
+	},
+}
+
 func TimestampHandle(value string) (int64, error) {
-	if match, err := regexp.MatchString(`\d{2}/\w+/\d{4}:\d{2}:\d{2}:\d{2} \+\d{4}`, value); err != nil {
-		return 0, err
-	} else if match {
-		// 06/Jan/2017:16:16:37 +0000
-		if tm, err := time.Parse("02/Jan/2006:15:04:05 -0700", value); err != nil {
-			return 0, err
-		} else {
-			unix_time := tm.UnixNano()
-			return unix_time, nil
+	t, err := dateparse.ParseLocal(value)
+	if err != nil {
+		for _, p := range datePattern {
+			if match, err := regexp.MatchString(p.pattern, value); err != nil {
+				return 0, err
+			} else if match {
+				if p.defaultYear {
+					ty := time.Now()
+					year := ty.Year()
+					value = fmt.Sprintf("%s %d", value, year)
+				}
+
+				if tm, err := time.Parse(p.goFmt, value); err != nil {
+					return 0, err
+				} else {
+					unix_time := tm.UnixNano()
+					return unix_time, nil
+				}
+			}
 		}
 	}
 
-	t, err := dateparse.ParseLocal(value)
-	if err != nil {
-		return 0, err
-	}
-
 	unix_time := t.UnixNano()
-
 	return unix_time, nil
 }
 
 var dateFormatStr = map[string]string{
 	"ANSIC":       time.ANSIC,
 	"UnixDate":    time.UnixDate,
+	"RubyDate":    time.RubyDate,
 	"RFC822":      time.RFC822,
 	"RFC822Z":     time.RFC822Z,
 	"RFC850":      time.RFC850,
@@ -151,7 +180,7 @@ func JsonParse(jsonStr string) map[string]interface{} {
 		parseJson2Map(jsonObj, res, "")
 	} else if isArray(jsonObj) {
 		for idx, obj := range jsonObj.Array() {
-			key := fmt.Sprintf("%d", idx)
+			key := fmt.Sprintf("[%d]", idx)
 			parseJson2Map(obj, res, key)
 		}
 	}
