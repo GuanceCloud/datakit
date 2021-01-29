@@ -32,34 +32,43 @@ type ZipkinTracer struct {
 }
 
 type TraceAdapter struct {
-	Source      string
-	Duration    int64
-	TimestampUs int64
-	Content     string
+	Source string
 
+	//纳秒单位
+	Duration int64
+
+	//纳秒单位
+	Start   int64
+	Content string
+
+	Project       string
 	ServiceName   string
 	OperationName string
+	Resource      string
 	ParentID      string
 	TraceID       string
 	SpanID        string
 	Status        string
 	SpanType      string
 	EndPoint      string
+	Type          string
+	Pid           string
 
 	Tags map[string]string
 }
 
 const (
-	US_PER_SECOND   int64 = 1000000
-	SPAN_TYPE_ENTRY       = "entry"
-	SPAN_TYPE_LOCAL       = "local"
-	SPAN_TYPE_EXIT        = "exit"
+	SPAN_TYPE_ENTRY = "entry"
+	SPAN_TYPE_LOCAL = "local"
+	SPAN_TYPE_EXIT  = "exit"
 
 	STATUS_OK       = "ok"
 	STATUS_ERR      = "error"
 	STATUS_INFO     = "info"
 	STATUS_WARN     = "warning"
 	STATUS_CRITICAL = "critical"
+
+	PROJECT = "project"
 )
 
 var (
@@ -71,11 +80,13 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
+	tags["project"] = tAdpt.Project
 	tags["operation"] = tAdpt.OperationName
 	tags["service"] = tAdpt.ServiceName
 	tags["parent_id"] = tAdpt.ParentID
 	tags["trace_id"] = tAdpt.TraceID
 	tags["span_id"] = tAdpt.SpanID
+	tags["type"] = tAdpt.Type
 
 	for tag, tagV := range tAdpt.Tags {
 		tags[tag] = tagV
@@ -95,10 +106,12 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 		tags["span_type"] = SPAN_TYPE_ENTRY
 	}
 
-	fields["duration"] = tAdpt.Duration
+	fields["duration"] = tAdpt.Duration / 1000
+	fields["start"] = tAdpt.Start / 1000
 	fields["message"] = tAdpt.Content
+	fields["resource"] = tAdpt.Resource
 
-	ts := time.Unix(tAdpt.TimestampUs/US_PER_SECOND, (tAdpt.TimestampUs%US_PER_SECOND)*1000)
+	ts := time.Unix(tAdpt.Start/int64(time.Second), tAdpt.Start%int64(time.Second))
 
 	pt, err := dkio.MakeMetric(tAdpt.Source, tags, fields, ts)
 	if err != nil {
@@ -181,4 +194,8 @@ func GetInstance() *logger.Logger {
 		log = logger.SLogger("trace")
 	})
 	return log
+}
+
+func GetProjectFromPluginTag(tags map[string]string) string {
+	return tags[PROJECT]
 }
