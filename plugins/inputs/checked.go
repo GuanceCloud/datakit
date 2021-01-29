@@ -127,7 +127,7 @@ var (
 		"puppetagent":            true,
 		"rabbitmq":               true,
 		"redis":                  true,
-		"redislog":               false,
+		"redislog":               true,
 		"scanport":               true,
 		"secureexec":             false,
 		"self":                   true,
