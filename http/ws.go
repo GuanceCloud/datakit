@@ -45,6 +45,9 @@ func (c *wscli) setup() {
 	if err := cli.tryConnect(wsurl.String()); err != nil {
 		return
 	}
+
+	l.Info("ws connect ok")
+
 	go func() {
 		//defer datakit.WG.Done()
 		cli.waitMsg() // blocking reader, do not add to datakit.WG
@@ -106,7 +109,7 @@ func (wc *wscli) tryConnect(wsurl string) error {
 				continue
 			}
 
-			l.Infof("ws connect ok, resp: %+#v", resp)
+			l.Debugf("ws connect ok, resp: %+#v", resp)
 
 			wc.c = c
 			return nil
@@ -313,9 +316,6 @@ func (wc *wscli) EnableInputs(wm *wsmsg.WrapMsg) {
 
 	}
 	wc.SetMessage(wm, "ok", "")
-	//inputName := strings.Join(names.Names, "")
-	//title := fmt.Sprintf("uuid 为 %s 的datakit 开启了采集器:%s", wc.id, inputName)
-	//WriteKeyevent(inputName, title)
 
 }
 
@@ -512,31 +512,7 @@ func (wc *wscli) SetInput(wm *wsmsg.WrapMsg) {
 		}
 	}
 	wc.SetMessage(wm, "ok", "")
-	//inputName := strings.Join(names, ",")
-	//title := fmt.Sprintf("uuid 为 %s 的datakit 配置了新采集器:%s", wc.id, inputName)
-	//WriteKeyevent(inputName, title)
-}
 
-func WriteKeyevent(inputName, title string) {
-	name := "self"
-	tags := map[string]string{
-		"datakit_uuid":    datakit.Cfg.MainCfg.UUID,
-		"datakit_name":    datakit.Cfg.MainCfg.Name,
-		"datakit_version": git.Version,
-		"datakit_os":      runtime.GOOS,
-		"datakit_arch":    runtime.GOARCH,
-		"__status":        "info",
-	}
-	now := time.Now().Local()
-	fields := map[string]interface{}{
-		"__title":   title,
-		"inputName": inputName,
-	}
-	err := io.NamedFeedEx(name, io.KeyEvent, "__keyevent", tags, fields, now)
-	if err != nil {
-		l.Errorf("ws write keyevent err:%s", err.Error())
-	}
-	l.Infof("write keyevent ok")
 }
 
 func (wc *wscli) WriteFile(tomlStr, cfgPath string) error {
