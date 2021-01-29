@@ -7,7 +7,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
@@ -102,6 +101,12 @@ func LoadInputsConfig(c *datakit.Config) error {
 
 	for name, available := range availableInput {
 		creator, _ := inputs.Inputs[name]
+
+		if isDisabled(c.MainCfg.WhiteList, c.MainCfg.BlackList, c.MainCfg.Hostname, name) {
+			l.Warnf("input `%s' banned by white/black list on `%s'", name, c.MainCfg.Hostname)
+			continue
+		}
+
 		if err := doLoadInputConf(c, name, creator, available); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
 			return err
@@ -148,7 +153,10 @@ func doLoadInputConf(c *datakit.Config, name string, creator inputs.Creator, inp
 	return nil
 }
 
-func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, name string, creator inputs.Creator) {
+func searchDatakitInputCfg(c *datakit.Config,
+	inputcfgs map[string]*ast.Table,
+	name string,
+	creator inputs.Creator) {
 	var err error
 
 	for fp, tbl := range inputcfgs {
@@ -181,6 +189,7 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 				}
 			}
+
 			for _, i := range inputlist {
 
 				if err := inputs.AddInput(name, i, fp); err != nil {
@@ -192,6 +201,31 @@ func searchDatakitInputCfg(c *datakit.Config, inputcfgs map[string]*ast.Table, n
 			}
 		}
 	}
+}
+
+func isDisabled(wlists, blists []*datakit.InputHostList, hostname, name string) bool {
+
+	for _, bl := range blists {
+		if bl.MatchHost(hostname) && bl.MatchInput(name) {
+			return true // 一旦上榜，无脑屏蔽
+		}
+	}
+
+	// 如果采集器在白名单中，但对应的 host 不在白名单，则屏蔽掉
+	// 如果采集器在白名单中，对应的 host 在白名单，放行
+	// 如果采集器不在白名单中，不管 host 情况，一律放行
+	if len(wlists) > 0 {
+		for _, wl := range wlists {
+			if wl.MatchInput(name) { // 说明@name有白名单限制
+				if wl.MatchHost(hostname) {
+					return false
+				} else { // 不在白名单中的 host，屏蔽掉
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputList []inputs.Input, err error) {
@@ -216,38 +250,10 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 			return
 		}
 
-		l.Debugf("try set MaxLifeCheckInterval from %s", name)
-		trySetMaxPostInterval(t)
-
 		inputList = append(inputList, input)
-
 	}
 
 	return
-}
-
-func trySetMaxPostInterval(t *ast.Table) {
-	var dur time.Duration
-	var err error
-	node, ok := t.Fields["interval"]
-	if !ok {
-		return
-	}
-
-	if kv, ok := node.(*ast.KeyValue); ok {
-		if str, ok := kv.Value.(*ast.String); ok {
-			dur, err = time.ParseDuration(str.Value)
-			if err != nil {
-				l.Errorf("parse duration(%s) from %+#v failed: %s, ignored", str.Value, t, err.Error())
-				return
-			}
-
-			if datakit.MaxLifeCheckInterval+5*time.Second < dur { // use the max interval from all inputs
-				datakit.MaxLifeCheckInterval = dur
-				l.Debugf("set MaxLifeCheckInterval to %v ok", dur)
-			}
-		}
-	}
 }
 
 func migrateOldCfg(name string, c inputs.Creator) error {
@@ -337,4 +343,48 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 
 		l.Infof("enable input %s ok", name)
 	}
+}
+
+func LoadInputConfig(data []byte, creator inputs.Creator) ([]inputs.Input, error) {
+
+	tbl, err := toml.Parse(data)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []inputs.Input
+
+	for field, node := range tbl.Fields {
+		inputlist := []inputs.Input{}
+
+		switch field {
+		case "inputs": //nolint:goconst
+			stbl, ok := node.(*ast.Table)
+			if !ok {
+				return nil, fmt.Errorf("ignore bad toml node")
+			}
+			for inputName, v := range stbl.Fields {
+				//if inputName != name {
+				//	continue
+				//}
+				inputlist, err = TryUnmarshal(v, inputName, creator)
+				if err != nil {
+					return nil, fmt.Errorf("unmarshal input %s failed: %s", inputName, err.Error())
+				}
+			}
+
+		default: // compatible with old version: no [[inputs.xxx]] header
+			inputlist, err = TryUnmarshal(node, "", creator)
+			if err != nil {
+				return nil, fmt.Errorf("unmarshal input failed: %s", err.Error())
+			}
+		}
+
+		for _, i := range inputlist {
+
+			result = append(result, i)
+		}
+	}
+
+	return result, nil
 }
