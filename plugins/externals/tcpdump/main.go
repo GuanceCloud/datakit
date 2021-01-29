@@ -56,7 +56,7 @@ func main() {
 
 	logger.SetGlobalRootLogger(*flagLog,
 		*flagLogLevel,
-		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+		logger.OPT_DEFAULT)
 
 	cfg.NetPacket.run()
 }
