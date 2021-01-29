@@ -150,7 +150,7 @@ func (m *monitor) run() {
 func (m *monitor) handle(ec *ExecCfg) {
 	res, err := m.query(ec)
 	if err != nil {
-		l.Errorf("oracle query `%s' faild: %v, ignored", ec.metricType, err)
+		l.Warnf("oracle query `%s' faild: %v, ignored", ec.metricType, err)
 		return
 	}
 
