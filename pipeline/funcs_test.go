@@ -11,34 +11,6 @@ func assertEqual(t *testing.T, a, b interface{}) {
 	}
 }
 
-func TestJsonFunc(t *testing.T) {
-	script := `json(_, friends[-1])
-json(_, name)
-json(name, last, last_new)`
-	js := `
-{
-  "name": {"first": "Tom", "last": "Anderson"},
-  "age":37,
-  "children": ["Sara","Alex","Jack"],
-  "fav.movie": "Deer Hunter",
-  "friends": [
-    ["ig", "fb", "tw"],
-    ["fb", "tw"],
-    ["ig", "tw"]
-  ]
-}
-`
-	p, err := NewPipeline(script)
-	assertEqual(t, err, nil)
-
-	p.Run(js)
-	t.Log(p.lastErr)
-	//assertEqual(t, p.lastErr, nil)
-	t.Log(p.lastErr)
-	t.Log(p.Output)
-
-}
-
 func TestGrokFunc(t *testing.T) {
 	script := `
 add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)")
@@ -134,7 +106,6 @@ func TestStringfFunc(t *testing.T) {
 	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
 	script := `json(_, a.second)
 json(_, a.thrid)
-cast(a.second, "int")
 json(_, a.forth)
 strfmt(bb, "%d %s %v", a.second, a.thrid, a.forth)
 `
