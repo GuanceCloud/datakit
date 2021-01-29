@@ -75,7 +75,7 @@ var GlobalStatusConversions = map[string]ConversionFunc{
 }
 
 var GlobalVariableConversions = map[string]ConversionFunc{
-	"gtid_mode": ParseGTIDMode,
+	// "gtid_mode": ParseGTIDMode,
 }
 
 func ConvertGlobalStatus(key string, value sql.RawBytes) (interface{}, error) {
