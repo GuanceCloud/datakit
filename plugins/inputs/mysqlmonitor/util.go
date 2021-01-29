@@ -47,21 +47,6 @@ func ParseGTIDMode(value sql.RawBytes) (interface{}, error) {
 }
 
 func ParseValue(value sql.RawBytes) (interface{}, error) {
-	if bytes.EqualFold(value, []byte("YES")) || bytes.Compare(value, []byte("ON")) == 0 {
-		return 1, nil
-	}
-
-	if bytes.EqualFold(value, []byte("NO")) || bytes.Compare(value, []byte("OFF")) == 0 {
-		return 0, nil
-	}
-
-	if val, err := strconv.ParseInt(string(value), 10, 64); err == nil {
-		return val, nil
-	}
-	if val, err := strconv.ParseFloat(string(value), 64); err == nil {
-		return val, nil
-	}
-
 	if len(string(value)) > 0 {
 		return string(value), nil
 	}
