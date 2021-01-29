@@ -60,7 +60,7 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 
 	adapterGroup := []*trace.TraceAdapter{}
 	for _, spans := range dspans {
-		m := getAllSpanId(spans)
+		spanIds, parentIds := getSpanAndParentId(spans)
 		for _, span := range spans {
 			tAdpter := &trace.TraceAdapter{}
 			tAdpter.Source = "ddtrace"
@@ -68,8 +68,12 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			if span.ParentID == 0 {
 				tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
 			} else {
-				if _, ok := m[span.ParentID]; ok {
-					tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+				if _, ok := spanIds[span.ParentID]; ok {
+					if _, ok := parentIds[span.SpanID]; ok {
+						tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+					} else {
+						tAdpter.SpanType = trace.SPAN_TYPE_EXIT
+					}
 				} else {
 					tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
 				}
@@ -125,13 +129,18 @@ func unmarshalDdtraceMsgpack(body io.ReadCloser) ([][]*Span, error) {
 	return traces, err
 }
 
-func getAllSpanId(spans []*Span) map[uint64]bool {
-	m := make(map[uint64]bool)
+func getSpanAndParentId(spans []*Span) (map[uint64]bool, map[uint64]bool) {
+	spanID := make(map[uint64]bool)
+	parentId := make(map[uint64]bool)
 	for _, span := range spans {
 		if span == nil {
 			continue
 		}
-		m[span.SpanID] = true
+		spanID[span.SpanID] = true
+
+		if span.ParentID != 0 {
+			parentId[span.ParentID] = true
+		}
 	}
-	return m
+	return spanID, parentId
 }
