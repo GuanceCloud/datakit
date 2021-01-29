@@ -18,7 +18,9 @@ var (
 	grokCfg *vgrok.Grok
 )
 
-func mergePattners(global, local map[string]string) (p map[string]string) {
+func mergePattners(global, local map[string]string) map[string]string {
+	var p = make(map[string]string)
+
 	for k, v := range global {
 		p[k] = v
 	}
@@ -28,9 +30,12 @@ func mergePattners(global, local map[string]string) (p map[string]string) {
 			p[k] = v
 			continue
 		}
-		l.Warnf("can not overwrite global pattern `%s'", k)
+		// FIXME:
+		// GlobalPatterns 已经在 AddPattern() 添加过一次，此处逻辑重复
+		// l.Warnf("can not overwrite global pattern `%s'", k)
 	}
-	return
+
+	return p
 }
 
 func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
