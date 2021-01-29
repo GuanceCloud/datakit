@@ -27,8 +27,8 @@ func parseZipkinJsonV2(octets []byte) error {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "zipkin"
 
-		tAdpter.Duration = int64(zs.Duration / time.Microsecond)
-		tAdpter.TimestampUs = zs.Timestamp.UnixNano() / 1000
+		tAdpter.Duration = int64(zs.Duration)
+		tAdpter.Start = zs.Timestamp.UnixNano()
 		sJson, err := json.Marshal(zs)
 		if err != nil {
 			return err
@@ -107,8 +107,8 @@ func parseZipkinProtobufV2(octets []byte) error {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "zipkin"
 
-		tAdpter.Duration = int64(zs.Duration / time.Microsecond)
-		tAdpter.TimestampUs = zs.Timestamp.UnixNano() / 1000
+		tAdpter.Duration = int64(zs.Duration)
+		tAdpter.Start = zs.Timestamp.UnixNano()
 		sJson, err := json.Marshal(zs)
 		if err != nil {
 			return err
