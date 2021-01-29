@@ -112,8 +112,8 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 		t := &trace.TraceAdapter{}
 
 		t.Source = "skywalking"
-		t.Duration = (span.EndTime - span.StartTime) * 1000
-		t.TimestampUs = span.StartTime * 1000
+		t.Duration = (span.EndTime - span.StartTime) * 1000000
+		t.Start = span.StartTime * 1000000
 		js, err := json.Marshal(span)
 		if err != nil {
 			return err
