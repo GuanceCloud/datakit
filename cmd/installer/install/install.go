@@ -109,7 +109,7 @@ func InstallNewDatakit(svc service.Service) {
 		datakit.Cfg.MainCfg.UUID = string(data)
 	}
 
-	defaultHostInputs := "cpu,disk,diskio,mem,swap,system,hostobject"
+	defaultHostInputs := "cpu,disk,diskio,mem,swap,system,hostobject,net"
 	if EnableInputs == "" {
 		EnableInputs = defaultHostInputs
 	} else {
