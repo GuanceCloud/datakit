@@ -15,6 +15,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
+const grokTimeFieldName = "date_access"
+
 type tailer struct {
 	tf *Tailf
 
@@ -28,7 +30,6 @@ type tailer struct {
 	textLine    bytes.Buffer
 	tailerOpen  bool
 	channelOpen bool
-	count       int64
 }
 
 func newTailer(tl *Tailf, filename string) *tailer {
@@ -58,15 +59,15 @@ func (t *tailer) run() {
 
 	t.tail, err = tail.TailFile(t.filename, t.tf.tailerConf)
 	if err != nil {
-		l.Error("failed of build tailer, err:%s", err)
+		t.tf.log.Error("failed of build tailer, err:%s", err)
 		return
 	}
 	defer t.tail.Cleanup()
 
-	if t.tf.PipelinePath != "" {
-		t.pipe, err = pipeline.NewPipelineFromFile(t.tf.PipelinePath)
+	if t.tf.Pipeline != "" {
+		t.pipe, err = pipeline.NewPipelineFromFile(t.tf.Pipeline)
 		if err != nil {
-			l.Error("failed of pipeline, err:%s", err)
+			t.tf.log.Error("failed of pipeline, err:%s", err)
 			return
 		}
 	}
@@ -78,17 +79,14 @@ func (t *tailer) receiver() {
 	ticker := time.NewTicker(defaultDruation)
 	defer ticker.Stop()
 
-	var (
-		buffer bytes.Buffer
-		line   *tail.Line
-	)
+	var line *tail.Line
 
 	for {
 		line = nil
 
 		select {
 		case <-datakit.Exit.Wait():
-			l.Debugf("Tailing source:%s, file %s is ending", t.source, t.filename)
+			t.tf.log.Debugf("Tailing source:%s, file %s is ending", t.source, t.filename)
 			return
 
 		case line, t.tailerOpen = <-t.tail.Lines:
@@ -97,16 +95,9 @@ func (t *tailer) receiver() {
 			}
 
 		case <-ticker.C:
-			if t.count > 0 {
-				if err := io.NamedFeed(buffer.Bytes(), io.Logging, t.source); err != nil {
-					l.Error(err)
-				}
-				buffer = bytes.Buffer{}
-				t.count = 0
-			}
 			_, statErr := os.Lstat(t.filename)
 			if os.IsNotExist(statErr) {
-				l.Warnf("check file %s is not exist", t.filename)
+				t.tf.log.Warnf("check file %s is not exist", t.filename)
 				return
 			}
 		}
@@ -128,19 +119,12 @@ func (t *tailer) receiver() {
 
 		data, err := t.pipeline(text)
 		if err != nil {
+			// FIXME: drop the log?
 			continue
 		}
 
-		buffer.Write(data)
-		buffer.WriteString("\n")
-		t.count++
-
-		if t.count >= metricFeedCount {
-			if err := io.NamedFeed(buffer.Bytes(), io.Logging, t.source); err != nil {
-				l.Error(err)
-			}
-			buffer = bytes.Buffer{}
-			t.count = 0
+		if err := io.NamedFeed(data, io.Logging, t.source); err != nil {
+			t.tf.log.Error(err)
 		}
 	}
 }
@@ -172,7 +156,7 @@ func (t *tailer) multiline(line *tail.Line) (text string, status multilineStatus
 		if text += t.tf.multiline.Flush(&t.textLine); text == "" {
 			if !t.channelOpen {
 				status = _return
-				l.Warnf("Tailing %s data channel is closed", t.filename)
+				t.tf.log.Warnf("Tailing %s data channel is closed", t.filename)
 				return
 			}
 
@@ -182,7 +166,7 @@ func (t *tailer) multiline(line *tail.Line) (text string, status multilineStatus
 	}
 
 	if line != nil && line.Err != nil {
-		l.Errorf("Tailing %q: %s", t.filename, line.Err.Error())
+		t.tf.log.Errorf("Tailing %q: %s", t.filename, line.Err.Error())
 		status = _continue
 		return
 	}
@@ -194,7 +178,7 @@ func (t *tailer) multiline(line *tail.Line) (text string, status multilineStatus
 func (t *tailer) decode(text string) (str string, err error) {
 	str, err = t.tf.decoder.String(text)
 	if err != nil {
-		l.Errorf("decode error, %s", err) // only print err
+		t.tf.log.Errorf("decode error, %s", err) // only print err
 	}
 	return
 }
@@ -205,7 +189,7 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 	if t.pipe != nil {
 		fields, err = t.pipe.Run(text).Result()
 		if err != nil {
-			l.Errorf("run pipeline error, %s", err)
+			t.tf.log.Errorf("run pipeline error, %s", err)
 			return
 		}
 	} else {
@@ -214,23 +198,23 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 
 	var ts time.Time
 
-	if v, ok := fields["time"]; ok { // time should be nano-second
+	if v, ok := fields[grokTimeFieldName]; ok { // time should be nano-second
 		nanots, ok := v.(int64)
 		if !ok {
-			l.Warn("filed `time' should be nano-second, but got `%s'", reflect.TypeOf(v).String())
+			t.tf.log.Warnf("filed `%s' should be nano-second, but got `%s'", grokTimeFieldName, reflect.TypeOf(v).String())
 			err = fmt.Errorf("invalid fileds time")
 			return
 		}
 
 		ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
-		delete(fields, "time")
+		delete(fields, grokTimeFieldName)
 	} else {
 		ts = time.Now()
 	}
 
 	data, err = io.MakeMetric(t.source, t.tags, fields, ts)
 	if err != nil {
-		l.Error(err)
+		t.tf.log.Error(err)
 	}
 
 	return
