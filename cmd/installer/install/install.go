@@ -99,7 +99,22 @@ func InstallNewDatakit(svc service.Service) {
 		datakit.Cfg.MainCfg.Name = DatakitName
 	}
 
-	datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
+	// XXX: load old datakit UUID file: reuse datakit UUID installed before
+	if data, err := ioutil.ReadFile(datakit.UUIDFile); err != nil {
+		datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
+		if err := datakit.CreateUUIDFile(datakit.Cfg.MainCfg.UUID); err != nil {
+			l.Fatalf("create datakit id failed: %s", err.Error())
+		}
+	} else {
+		datakit.Cfg.MainCfg.UUID = string(data)
+	}
+
+	defaultHostInputs := "cpu,disk,diskio,mem,swap,system,hostobject"
+	if EnableInputs == "" {
+		EnableInputs = defaultHostInputs
+	} else {
+		EnableInputs = EnableInputs + "," + defaultHostInputs
+	}
 
 	datakit.Cfg.EnableDefaultsInputs(EnableInputs)
 
@@ -150,6 +165,8 @@ func updateLagacyConfig(dir string) {
 }
 
 func upgradeMainConfigure(cfg *datakit.Config, mcp string) {
+
+	datakit.MoveDeprecatedMainCfg()
 
 	mcdata, err := ioutil.ReadFile(mcp)
 	if err != nil {
