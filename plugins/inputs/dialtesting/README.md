@@ -234,27 +234,27 @@
 
 ```sql
 CREATE TABLE IF NOT EXITS net_dial_testing (
-  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增 ID',
-  `uuid` varchar(48) NOT NULL COMMENT '全局唯一 ID，带 scene_',
+		`id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增 ID',
+		`uuid` varchar(48) NOT NULL COMMENT '全局唯一 ID，带 dialt_',
 
-	`location` varchar(48) NOT NULL COMMENT '拨测任务部署区域, 多个 location 之间逗号分割'
+		`location` varchar(48) NOT NULL COMMENT '拨测任务部署区域, 多个 location 之间逗号分割'
 
-  `workspaceUUID` varchar(48) NOT NULL DEFAULT '' COMMENT '工作空间UUID',
+		`workspaceUUID` varchar(48) NOT NULL DEFAULT '' COMMENT '工作空间UUID',
 
-  `status` int(11) NOT NULL DEFAULT '0' COMMENT '状态 0: ok/1: 故障/2: 停用/3: 删除',
+		`status` int(11) NOT NULL DEFAULT '0' COMMENT '状态 0: ok/1: 故障/2: 停用/3: 删除',
 
-  `creator` varchar(64) NOT NULL DEFAULT '' COMMENT '创建者 account-id',
-  `updator` varchar(64) NOT NULL DEFAULT '' COMMENT '更新者 account-id',
+		`creator` varchar(64) NOT NULL DEFAULT '' COMMENT '创建者 account-id',
+		`updator` varchar(64) NOT NULL DEFAULT '' COMMENT '更新者 account-id',
 
-  `createAt` int(11) NOT NULL DEFAULT '-1',
-  `deleteAt` int(11) NOT NULL DEFAULT '-1',
-  `updateAt` int(11) NOT NULL DEFAULT '-1',
+		`createAt` int(11) NOT NULL DEFAULT '-1',
+		`deleteAt` int(11) NOT NULL DEFAULT '-1',
+		`updateAt` int(11) NOT NULL DEFAULT '-1',
 
-	`task` text NOT NULL COMMENT '任务的 json 描述'
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_uuid` (`uuid`) COMMENT 'UUID 做成全局唯一',
-  KEY `k_ws_uuid` (`workspaceUUID`),
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+		`task` text NOT NULL COMMENT '任务的 json 描述'
+		PRIMARY KEY (`id`),
+		UNIQUE KEY `uk_uuid` (`uuid`) COMMENT 'UUID 做成全局唯一',
+		KEY `k_ws_uuid` (`workspaceUUID`),
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
 ### 整体架构设计
