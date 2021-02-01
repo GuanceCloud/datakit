@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"math"
 	"strconv"
 )
 
@@ -55,7 +56,11 @@ func ParseValue(value sql.RawBytes) (interface{}, error) {
 		return 0, nil
 	}
 
-	if val, err := strconv.ParseInt(string(value), 10, 64); err == nil {
+	if val, err := strconv.ParseInt(string(value), 10, 64); err != nil {
+		if err, ok := err.(*strconv.NumError); ok && err.Err == strconv.ErrRange {
+			return math.MaxInt64, nil
+		}
+	} else {
 		return val, nil
 	}
 
