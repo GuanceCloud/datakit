@@ -82,10 +82,8 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch
 github.com/aliyun/alibaba-cloud-sdk-go/services/ons
 github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore
 github.com/aliyun/alibaba-cloud-sdk-go/services/rds
-github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager
 github.com/aliyun/alibaba-cloud-sdk-go/services/sas
 github.com/aliyun/alibaba-cloud-sdk-go/services/slb
-github.com/aliyun/alibaba-cloud-sdk-go/services/tag
 github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
@@ -146,6 +144,12 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 github.com/basgys/goxml2json
 # github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
+# github.com/c-bata/go-prompt v0.2.5 => github.com/coanor/go-prompt v0.2.6
+github.com/c-bata/go-prompt
+github.com/c-bata/go-prompt/internal/bisect
+github.com/c-bata/go-prompt/internal/debug
+github.com/c-bata/go-prompt/internal/strings
+github.com/c-bata/go-prompt/internal/term
 # github.com/cenkalti/backoff v2.2.1+incompatible
 github.com/cenkalti/backoff
 # github.com/containerd/cgroups v0.0.0-20201119153540-4cbc285b3327
@@ -405,6 +409,15 @@ github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1/region
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/region
 # github.com/influxdata/go-syslog/v2 v2.0.1
 github.com/influxdata/go-syslog/v2
 github.com/influxdata/go-syslog/v2/common
@@ -571,8 +584,14 @@ github.com/leodido/ragel-machinery/parser
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
+# github.com/mattn/go-colorable v0.1.8
+github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
+# github.com/mattn/go-runewidth v0.0.10
+github.com/mattn/go-runewidth
+# github.com/mattn/go-tty v0.0.3
+github.com/mattn/go-tty
 # github.com/mattn/go-zglob v0.0.3
 github.com/mattn/go-zglob
 github.com/mattn/go-zglob/fastwalk
@@ -668,6 +687,8 @@ github.com/pingcap/tipb/sharedbytes
 github.com/pkg/errors
 # github.com/pkg/sftp v1.11.0
 github.com/pkg/sftp
+# github.com/pkg/term v1.1.0
+github.com/pkg/term/termios
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_model v0.2.0
@@ -686,6 +707,8 @@ github.com/prometheus/prometheus/util/strutil
 github.com/rcrowley/go-metrics
 # github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237
 github.com/remyoudompheng/bigfft
+# github.com/rivo/uniseg v0.2.0
+github.com/rivo/uniseg
 # github.com/robfig/cron/v3 v3.0.0
 github.com/robfig/cron/v3
 # github.com/rs/xid v1.2.1
@@ -922,7 +945,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20201024232916-9f70ab9862d5
+# golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
