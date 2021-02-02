@@ -431,7 +431,12 @@ func (i *InputHostList) MatchInput(input string) bool {
 }
 
 func InitDirs() {
-	for _, dir := range []string{TelegrafDir, DataDir, LuaDir, ConfdDir, PipelineDir} {
+	for _, dir := range []string{TelegrafDir,
+		DataDir,
+		LuaDir,
+		ConfdDir,
+		PipelineDir,
+		PipelinePatternDir} {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
 		}
@@ -505,7 +510,9 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 	}
 
 	// add global tag implicitly
-	c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
+	if _, ok := c.MainCfg.GlobalTags["host"]; !ok {
+		c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
+	}
 
 	if c.MainCfg.DataWay.URL == "" {
 		l.Fatal("dataway URL not set")
