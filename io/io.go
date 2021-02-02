@@ -36,8 +36,8 @@ var (
 		Tracing:          nil,
 		Rum:              nil,
 	}
-	cacheCnt       = map[string]int{}
-	cacheUploadMax = 100 * 1024 // 100KiB
+
+	curCacheCnt = 0
 
 	categoryURLs map[string]string
 
@@ -46,6 +46,10 @@ var (
 )
 
 const ( // categories
+
+	maxCacheCnt      = 128
+	MaxPostFailCache = 1024
+
 	MetricDeprecated = "/v1/write/metrics"
 	Metric           = "/v1/write/metric"
 	KeyEvent         = "/v1/write/keyevent"
@@ -55,11 +59,6 @@ const ( // categories
 	Rum              = "/v1/write/rum"
 
 	minGZSize = 1024
-
-	httpDiv = 100
-	httpOk  = 2
-	httpBad = 4
-	httpErr = 5
 )
 
 type iodata struct {
@@ -313,12 +312,10 @@ func startIO() {
 						}
 					} else {
 						cache[d.category] = append(cache[d.category], d.data)
-						cacheCnt[d.category] += len(d.data)
+						curCacheCnt++
 
-						for _, cnt := range cacheCnt {
-							if cnt >= cacheUploadMax {
-								flush(cache)
-							}
+						if curCacheCnt > maxCacheCnt {
+							flushAll(cache)
 						}
 					}
 				}
@@ -336,7 +333,7 @@ func startIO() {
 				}
 
 			case <-tick.C:
-				flush(cache)
+				flushAll(cache)
 
 			case <-datakit.Exit.Wait():
 				l.Info("io exit on exit")
@@ -364,48 +361,35 @@ func Start() {
 		defer datakit.WG.Done()
 		GRPCServer()
 	}()
+}
 
+func flushAll(cache map[string][][]byte) {
+	flush(cache)
+
+	if curCacheCnt > 0 {
+		l.Warnf("post failed cache count: %d", curCacheCnt)
+	}
+
+	if curCacheCnt > MaxPostFailCache {
+		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", MaxPostFailCache)
+		for k, _ := range cache {
+			cache[k] = nil
+		}
+		curCacheCnt = 0
+	}
 }
 
 func flush(cache map[string][][]byte) {
 
 	defer httpCli.CloseIdleConnections()
-
-	if err := doFlush(cache[Metric], Metric); err != nil {
-		l.Errorf("post metrics failed, drop %d packages", len(cache[Metric]))
+	for k, v := range cache {
+		if err := doFlush(v, k); err != nil {
+			l.Errorf("post %d to %s failed", len(v), k)
+		} else {
+			curCacheCnt -= len(cache[Metric])
+			cache[k] = nil
+		}
 	}
-	cache[Metric] = nil
-	cacheCnt[Metric] = 0
-
-	if err := doFlush(cache[KeyEvent], KeyEvent); err != nil {
-		l.Errorf("post keyevent failed, drop %d packages", len(cache[KeyEvent]))
-	}
-	cache[KeyEvent] = nil
-	cacheCnt[KeyEvent] = 0
-
-	if err := doFlush(cache[Object], Object); err != nil {
-		l.Errorf("post object failed, drop %d packages", len(cache[Object]))
-	}
-	cache[Object] = nil
-	cacheCnt[Object] = 0
-
-	if err := doFlush(cache[Logging], Logging); err != nil {
-		l.Errorf("post logging failed, drop %d packages", len(cache[Logging]))
-	}
-	cache[Logging] = nil
-	cacheCnt[Logging] = 0
-
-	if err := doFlush(cache[Tracing], Tracing); err != nil {
-		l.Errorf("post tracing failed, drop %d packages", len(cache[Tracing]))
-	}
-	cache[Tracing] = nil
-	cacheCnt[Tracing] = 0
-
-	if err := doFlush(cache[Rum], Rum); err != nil {
-		l.Errorf("post rum failed, drop %d packages", len(cache[Rum]))
-	}
-	cache[Rum] = nil
-	cacheCnt[Rum] = 0
 }
 
 func buildBody(url string, bodies [][]byte) (body []byte, gzon bool, err error) {
@@ -446,8 +430,6 @@ func doFlush(bodies [][]byte, url string) error {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
 
-	l.Debugf("post to %s...", categoryURLs[url])
-
 	postbeg := time.Now()
 
 	resp, err := httpCli.Do(req)
@@ -463,15 +445,20 @@ func doFlush(bodies [][]byte, url string) error {
 		return err
 	}
 
-	l.Debugf("post cost %v", time.Since(postbeg))
+	switch resp.StatusCode / 100 {
+	case 2:
+		l.Debugf("post %d to %s ok(gz: %v), cost %v",
+			len(body), url, gz, time.Since(postbeg))
+		return nil
 
-	switch resp.StatusCode / httpDiv {
-	case httpOk:
-		l.Debugf("post to %s ok", url)
-	case httpBad:
-		l.Errorf("post to %s failed(HTTP: %d): %s, data dropped", url, resp.StatusCode, string(respbody))
-	case httpErr:
-		l.Warnf("post to %s failed(HTTP: %d): %s", url, resp.StatusCode, string(respbody))
+	case 4:
+		l.Debugf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
+			len(body), url, resp.StatusCode, string(respbody), time.Since(postbeg))
+		return nil
+
+	case 5:
+		l.Debugf("post %d to %s failed(HTTP: %s): %s, cost %v",
+			len(body), url, resp.StatusCode, string(respbody), time.Since(postbeg))
 		return fmt.Errorf("dataway internal error")
 	}
 
