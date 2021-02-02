@@ -150,7 +150,7 @@ func getDurationByAno(anos []*Annotation) int64 {
 		}
 	}
 	if stopTs > startTs {
-		return stopTs - startTs
+		return (stopTs - startTs) * 1000
 	}
 	return 0
 }
@@ -361,7 +361,7 @@ func getDurationThriftAno(anos []*zipkincore.Annotation) int64 {
 		}
 	}
 	if stopTs > startTs {
-		return stopTs - startTs
+		return (stopTs - startTs) * 1000
 	}
 	return 0
 }
