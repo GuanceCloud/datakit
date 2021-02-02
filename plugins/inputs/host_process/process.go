@@ -140,7 +140,7 @@ func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields,
 	if err != nil {
 		l.Warnf("[warning] process:%s,pid:%d get mempercent err:%s", name, ps.Pid, err.Error())
 	} else {
-		fields["mem"] = memPercent
+		fields["mem_used_percent"] = memPercent
 	}
 	cpu, err := ps.Times()
 	if err != nil {
@@ -152,7 +152,7 @@ func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields,
 	if err != nil {
 		l.Warnf("[warning] process:%s,pid:%d get cpupercent err:%s", name, ps.Pid, err.Error())
 	} else {
-		fields["cpu"] = cpuPercent
+		fields["cpu_usage"] = cpuPercent
 	}
 	Threads, err := ps.NumThreads()
 	if err != nil {
