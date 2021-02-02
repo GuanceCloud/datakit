@@ -25,7 +25,11 @@ const (
 
 # ## collect interval, will not collect if not set
   account_interval = "24h"
+
   bill_interval = "1h"
+# ##(optional) collect bill by instance
+  by_instance = true
+
   order_interval = "1h"
 
 #  ##history data for last year (optional)
@@ -44,6 +48,7 @@ type (
 		RegionID           string           `toml:"region_id"`
 		AccountInterval    datakit.Duration `toml:"account_interval"`
 		BiilInterval       datakit.Duration `toml:"bill_interval"`
+		ByInstance         bool             `toml:"by_instance"`
 		OrdertInterval     datakit.Duration `toml:"order_interval"`
 		CollectHistoryData bool             `toml:"collect_history_data "`
 
