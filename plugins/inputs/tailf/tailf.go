@@ -75,7 +75,7 @@ func (t *Tailf) Run() {
 
 	t.log.Infof("tailf input started.")
 
-	ticker := time.NewTicker(defaultDruation)
+	ticker := time.NewTicker(findNewFileInterval)
 	defer ticker.Stop()
 
 	for {
@@ -117,13 +117,10 @@ func (t *Tailf) loadcfg() bool {
 		t.log.Warn("no pipeline applied")
 	}
 
-	var multilineConfig *MultilineConfig
-	if t.Match != "" {
-		multilineConfig = &MultilineConfig{
-			Pattern:        t.Match,
-			InvertMatch:    true,
-			MatchWhichLine: "previous",
-		}
+	var multilineConfig = &MultilineConfig{
+		Pattern:        t.Match,
+		InvertMatch:    true,
+		MatchWhichLine: "previous",
 	}
 
 	for {
@@ -146,10 +143,8 @@ func (t *Tailf) loadcfg() bool {
 			goto label
 		}
 
-		if multilineConfig != nil {
-			if t.multiline, err = multilineConfig.NewMultiline(); err != nil {
-				goto label
-			}
+		if t.multiline, err = multilineConfig.NewMultiline(); err != nil {
+			goto label
 		}
 
 		if err = checkPipeLine(t.Pipeline); err != nil {
