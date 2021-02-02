@@ -50,6 +50,12 @@ func (ca *costAccount) getData(ctx context.Context) {
 		//暂停历史数据抓取
 		atomic.AddInt32(&ca.historyFlag, 1)
 
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		start := time.Now().UTC()
 
 		endTime := start.Truncate(time.Minute)
@@ -81,23 +87,14 @@ func (ca *costAccount) getData(ctx context.Context) {
 		default:
 		}
 
-		usage := time.Now().UTC().Sub(start)
-		if ca.interval > usage {
-			atomic.AddInt32(&ca.historyFlag, -1)
-			datakit.SleepContext(ctx, ca.interval-usage)
-		}
-
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
+		atomic.AddInt32(&ca.historyFlag, -1)
+		datakit.SleepContext(ctx, ca.interval)
 	}
 }
 
 func (ca *costAccount) getHistoryData(ctx context.Context) error {
 
-	key := "." + ca.ag.cacheFileKey(`account`)
+	key := "." + ca.ag.cacheFileKey(`accountV2`)
 
 	if !ca.ag.CollectHistoryData {
 		if !ca.ag.isDebug() {
@@ -161,7 +158,7 @@ func (ca *costAccount) getTransactions(ctx context.Context, start, end string, i
 
 	balanceReq := bssopenapi.CreateQueryAccountBalanceRequest()
 	balanceReq.Scheme = "https"
-	balanceResp, err := ca.ag.queryAccountBalanceWrap(ctx, balanceReq)
+	balanceResp, err := ca.ag.queryAccountBalance(ctx, balanceReq)
 	if err != nil {
 		moduleLogger.Errorf("%sfail to get balance, %s", logPrefix, err)
 		return err
@@ -173,7 +170,7 @@ func (ca *costAccount) getTransactions(ctx context.Context, start, end string, i
 	default:
 	}
 
-	moduleLogger.Infof("%sgetting Transactions(%s - %s)", logPrefix, start, end)
+	moduleLogger.Infof("%sTransactions(%s - %s) start", logPrefix, start, end)
 
 	req := bssopenapi.CreateQueryAccountTransactionsRequest()
 	req.CreateTimeStart = start
@@ -187,7 +184,7 @@ func (ca *costAccount) getTransactions(ctx context.Context, start, end string, i
 
 	for { //分页
 		if info != nil {
-			for atomic.LoadInt32(&ca.historyFlag) == 1 {
+			for atomic.LoadInt32(&ca.historyFlag) > 0 {
 				select {
 				case <-ctx.Done():
 					return nil
@@ -203,7 +200,7 @@ func (ca *costAccount) getTransactions(ctx context.Context, start, end string, i
 		default:
 		}
 
-		resp, err := ca.ag.queryAccountTransactionsWrap(ctx, req)
+		resp, err := ca.ag.queryAccountTransactions(ctx, req)
 		select {
 		case <-ctx.Done():
 			return nil
@@ -214,7 +211,7 @@ func (ca *costAccount) getTransactions(ctx context.Context, start, end string, i
 			return fmt.Errorf("%sfail to get transactions from %s to %s", logPrefix, start, end)
 		}
 
-		moduleLogger.Debugf(" %sPage%d: count=%d, TotalCount=%d, PageSize=%d", logPrefix, resp.Data.PageNum, len(resp.Data.AccountTransactionsList.AccountTransactionsListItem), resp.Data.TotalCount, resp.Data.PageSize)
+		moduleLogger.Debugf("%sPage%d: count=%d, TotalCount=%d, PageSize=%d", logPrefix, resp.Data.PageNum, len(resp.Data.AccountTransactionsList.AccountTransactionsListItem), resp.Data.TotalCount, resp.Data.PageSize)
 
 		if err := ca.parseTransactionsResponse(ctx, balanceResp, resp); err != nil {
 			return err
@@ -236,7 +233,7 @@ func (ca *costAccount) getTransactions(ctx context.Context, start, end string, i
 
 	}
 
-	moduleLogger.Debugf("%sfinish Transactions(%s - %s)", logPrefix, start, end)
+	moduleLogger.Infof("%sTransactions(%s - %s) end", logPrefix, start, end)
 
 	if info != nil {
 		info.Statue = 1
@@ -323,8 +320,8 @@ func (ca *costAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 				data, _ := io.MakeMetric(ca.getName(), tags, fields, tm)
 				ca.ag.testResult.Result = append(ca.ag.testResult.Result, data...)
 			} else if ca.ag.isDebug() {
-				//data, _ := io.MakeMetric(ca.getName(), tags, fields, tm)
-				//fmt.Printf("-----%s\n", string(data))
+				data, _ := io.MakeMetric(ca.getName(), tags, fields, tm)
+				fmt.Printf("%s\n", string(data))
 			} else {
 				io.NamedFeedEx(inputName, io.Metric, ca.getName(), tags, fields, tm)
 			}
