@@ -10,7 +10,7 @@ import (
 func TestHandle(t *testing.T) {
 	logger.SetGlobalRootLogger("",
 		"debug",
-		logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+		logger.OPT_DEFAULT)
 	l := logger.SLogger("mysqlmonitor")
 
 	l.Info("start....")
