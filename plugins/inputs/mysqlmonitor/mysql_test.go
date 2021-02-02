@@ -86,7 +86,7 @@ func TestRun(t *testing.T) {
 		m.GatherGlobalVars = true
 		// fail
 		// m.GatherGlobalStatus = true
-		m.Interval = "1m"
+		m.Interval = "10s"
 		m.MetricName = name
 
 		m.Run()
