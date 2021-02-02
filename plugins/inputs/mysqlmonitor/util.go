@@ -58,7 +58,7 @@ func ParseValue(value sql.RawBytes) (interface{}, error) {
 
 	if val, err := strconv.ParseInt(string(value), 10, 64); err != nil {
 		if err, ok := err.(*strconv.NumError); ok && err.Err == strconv.ErrRange {
-			return math.MaxInt64, nil
+			return int64(math.MaxInt64), nil
 		}
 	} else {
 		return val, nil
