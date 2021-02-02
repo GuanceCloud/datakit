@@ -86,6 +86,7 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags["parent_id"] = tAdpt.ParentID
 	tags["trace_id"] = tAdpt.TraceID
 	tags["span_id"] = tAdpt.SpanID
+	tags["pid"] = tAdpt.Pid
 	tags["type"] = tAdpt.Type
 
 	for tag, tagV := range tAdpt.Tags {
