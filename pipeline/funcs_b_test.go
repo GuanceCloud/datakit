@@ -125,6 +125,13 @@ func TestDefaultTimeFunc(t *testing.T) {
 			key:      "a.time",
 			err:      nil,
 		},
+		{
+			data:     `{"a":{"time":"171113 14:14:20","second":2,"thrid":"abc","forth":true},"age":47}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(1510582460000000000),
+			key:      "a.time",
+			err:      nil,
+		},
 	}
 
 	for _, tt := range testCase {
