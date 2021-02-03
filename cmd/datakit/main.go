@@ -327,7 +327,7 @@ func checkOnlineVersion() {
 		fmt.Printf("\n\nNew version available: %s (release at %s)\n", ver.Version, ver.ReleaseDate)
 		dlurl := fmt.Sprintf("https://static.dataflux.cn/datakit/installer-%s-%s", runtime.GOOS, runtime.GOARCH)
 		cmdWin := fmt.Sprintf(`Import-Module bitstransfer; start-bitstransfer -source %s -destination .\dk-installer.exe; .\dk-installer.exe -upgrade; rm dk-installer.exe`, dlurl)
-		cmd := fmt.Sprintf(`sudo -- sh -c "curl %s -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer`, dlurl)
+		cmd := fmt.Sprintf(`sudo -- sh -c "curl %s -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"`, dlurl)
 		switch runtime.GOOS {
 		case "windows":
 			fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
