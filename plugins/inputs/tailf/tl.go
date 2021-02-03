@@ -15,7 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
-const grokTimeFieldName = "date_access"
+const pipelineTimeField = "time"
 
 type tailer struct {
 	tf *Tailf
@@ -198,16 +198,17 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 
 	var ts time.Time
 
-	if v, ok := fields[grokTimeFieldName]; ok { // time should be nano-second
+	if v, ok := fields[pipelineTimeField]; ok { // time should be nano-second
 		nanots, ok := v.(int64)
 		if !ok {
-			t.tf.log.Warnf("filed `%s' should be nano-second, but got `%s'", grokTimeFieldName, reflect.TypeOf(v).String())
-			err = fmt.Errorf("invalid fileds time")
+			t.tf.log.Warnf("filed `%s' should be nano-second, but got `%s'",
+				pipelineTimeField, reflect.TypeOf(v).String())
+			err = fmt.Errorf("invalid filed `%s: %v'", pipelineTimeField, v)
 			return
 		}
 
 		ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
-		delete(fields, grokTimeFieldName)
+		delete(fields, pipelineTimeField)
 	} else {
 		ts = time.Now()
 	}
