@@ -125,6 +125,11 @@ var datePattern = []struct {
 		goFmt:       "02 Jan 15:04:05.000 2006",
 		defaultYear: true,
 	},
+	{
+		desc:    "mysql, 171113 14:14:20",
+		pattern: `\d{6} \d{2}:\d{2}:\d{2}`,
+		goFmt:   "060102 15:04:05",
+	},
 }
 
 func TimestampHandle(value string) (int64, error) {
