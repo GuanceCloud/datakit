@@ -17,6 +17,7 @@ type Tailf struct {
 	LogFiles          []string          `toml:"logfiles"`
 	Ignore            []string          `toml:"ignore"`
 	Source            string            `toml:"source"`
+	Service           string            `toml:"service"`
 	Pipeline          string            `toml:"pipeline"`
 	FromBeginning     bool              `toml:"from_beginning"`
 	CharacterEncoding string            `toml:"character_encoding"`
@@ -175,6 +176,12 @@ func (t *Tailf) loadcfg() bool {
 		Pipe:      false,
 		Logger:    tail.DiscardingLogger,
 	}
+
+	if t.Service == "" {
+		t.Service = t.Source
+	}
+	// 覆盖自定义tags
+	t.Tags["service"] = t.Service
 
 	return false
 }
