@@ -62,7 +62,11 @@ func (p *Processes) Run() {
 	if p.OpenMetric {
 		go func() {
 			if p.MetricInterval.Duration == 0 {
-				p.MetricInterval.Duration = 10 * time.Second
+				p.MetricInterval.Duration = 30 * time.Second
+			}
+			if p.MetricInterval.Duration < 30*time.Second {
+				l.Warnf("process write metric need greater than 30s")
+				p.MetricInterval.Duration = 30 * time.Second
 			}
 			tick := time.NewTicker(p.MetricInterval.Duration)
 			defer tick.Stop()
@@ -116,7 +120,11 @@ func getUser(ps *pr.Process) string {
 
 	username, err := ps.Username()
 	if err != nil {
-		uid, _ := ps.Uids()
+		uid, err := ps.Uids()
+		if err != nil {
+			l.Warnf("[warning] process get uid err:%s",err.Error())
+			return ""
+		}
 		u, err := luser.LookupId(fmt.Sprintf("%d", uid[0]))
 		if err != nil {
 			l.Warnf("[warning] process: pid:%d get username err:%s", ps.Pid, err.Error())
@@ -124,7 +132,6 @@ func getUser(ps *pr.Process) string {
 		}
 		return u.Username
 	}
-
 	return username
 }
 
@@ -256,6 +263,8 @@ func (p *Processes) WriteObject() {
 }
 
 func (p *Processes) WriteMetric() {
+	times := time.Now().UTC()
+	var points []string
 	for _, ps := range p.getProcesses() {
 		username, _, name, fields, _ := p.Parse(ps)
 		tags := map[string]string{
@@ -263,8 +272,14 @@ func (p *Processes) WriteMetric() {
 			"pid":          fmt.Sprintf("%d", ps.Pid),
 			"process_name": name,
 		}
-		io.NamedFeedEx(inputName, io.Metric, "host_processes", tags, fields, time.Now().UTC())
+		point, err := io.MakeMetric("host_processes", tags, fields, times)
+		if err != nil {
+			l.Errorf("[error] make metric err:%s", err.Error())
+			continue
+		}
+		points = append(points, string(point))
 	}
+	io.NamedFeed([]byte(strings.Join(points, "\n")), io.Metric, inputName)
 }
 
 func init() {
