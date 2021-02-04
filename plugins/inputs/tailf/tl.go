@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	pipelineTimeField   = "time"
-	pipelineStatusField = "status"
+	pipelineTimeField = "time"
+	statusField       = "status"
 )
 
 type tailer struct {
@@ -200,6 +200,8 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 		fields["message"] = text
 	}
 
+	// 不使用pipeline功能，也会取time和stauts字段（使用默认值）
+
 	ts, err := t.takeTime(fields)
 	if err != nil {
 		t.tf.log.Errorf("run pipeline error, %s", err)
@@ -237,7 +239,7 @@ func (t *tailer) takeTime(fields map[string]interface{}) (ts time.Time, err erro
 }
 
 func (t *tailer) addStatus(fields map[string]interface{}) {
-	if v, ok := fields[pipelineStatusField]; ok {
+	if v, ok := fields[statusField]; ok {
 		// "status" type should be string
 		if str, ok := v.(string); ok && str != "" {
 			return
