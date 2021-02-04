@@ -17,8 +17,14 @@ const (
     # glob filteer
     ignore = [""]
 
-    # add service tag, if it's empty, use "mysqlog".
-    service = ""
+    # required
+    source = "mysqlog"
+
+    # add service tag, if it's empty, use $source.
+    service = "mysqlog"
+
+    # grok pipeline script path
+    pipeline = "mysql.p"
 
     # read file from beginning
     # if from_begin was false, off auto discovery file
@@ -33,6 +39,10 @@ const (
     ##     character_encoding = "gb18030"
     ##     character_encoding = ""
     #character_encoding = ""
+
+    ## The pattern should be a regexp
+    ## Note the use of '''XXX'''
+    match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
 
     # [inputs.tailf.tags]
     # tags1 = "value1"
@@ -71,6 +81,11 @@ default_time(time)
 `
 )
 
+// match sample:
+//
+// # Time: 2019-11-27T10:43:13.460744Z
+// 2017-12-29T12:04:09.954078Z 0 [Warning] System table 'plugin' is expected to be transactional
+// 171113 14:14:20  InnoDB: Shutdown completed; log sequence number 1595675
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		t := tailf.NewTailf(
@@ -79,13 +94,6 @@ func init() {
 			sampleCfg,
 			map[string]string{"mysql": pipelineCfg},
 		)
-		t.Source = inputName
-		t.Pipeline = "mysql.p"
-
-		// # Time: 2019-11-27T10:43:13.460744Z
-		// 2017-12-29T12:04:09.954078Z 0 [Warning] System table 'plugin' is expected to be transactional
-		// 171113 14:14:20  InnoDB: Shutdown completed; log sequence number 1595675
-		t.Match = `^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*`
 		return t
 	})
 }
