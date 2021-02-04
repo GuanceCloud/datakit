@@ -264,10 +264,9 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 		return nil, err
 	}
 
-	containerProcessList, err := d.client.ContainerTop(ctx, container.ID, nil)
-	if err != nil {
-		return nil, err
-	}
+	// 容器未启动时，无法进行containerTop，此处会得到error
+	// 与 opt.All 冲突，忽略此error即可
+	containerProcessList, _ := d.client.ContainerTop(ctx, container.ID, nil)
 
 	msg, err := json.Marshal(struct {
 		types.ContainerJSON
