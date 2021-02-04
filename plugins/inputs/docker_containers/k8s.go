@@ -1,4 +1,4 @@
-package dockercontainers
+package docker_containers
 
 import (
 	"encoding/json"
