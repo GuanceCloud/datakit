@@ -15,7 +15,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
-const pipelineTimeField = "time"
+const (
+	pipelineTimeField   = "time"
+	pipelineStatusField = "status"
+)
 
 type tailer struct {
 	tf *Tailf
@@ -112,6 +115,8 @@ func (t *tailer) receiver() {
 			//pass
 		}
 
+		// 此处不需要输出 error log，已在函数执行过程中就近输出
+		// 只是为了控制顺序流
 		text, err := t.decode(text)
 		if err != nil {
 			continue
@@ -195,9 +200,25 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 		fields["message"] = text
 	}
 
-	var ts time.Time
+	ts, err := t.takeTime(fields)
+	if err != nil {
+		t.tf.log.Errorf("run pipeline error, %s", err)
+		return nil, err
+	}
 
-	if v, ok := fields[pipelineTimeField]; ok { // time should be nano-second
+	t.addStatus(fields)
+
+	data, err = io.MakeMetric(t.source, t.tags, fields, ts)
+	if err != nil {
+		t.tf.log.Error(err)
+	}
+
+	return
+}
+
+func (t *tailer) takeTime(fields map[string]interface{}) (ts time.Time, err error) {
+	// time should be nano-second
+	if v, ok := fields[pipelineTimeField]; ok {
 		nanots, ok := v.(int64)
 		if !ok {
 			t.tf.log.Warnf("filed `%s' should be nano-second, but got `%s'",
@@ -212,10 +233,15 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 		ts = time.Now()
 	}
 
-	data, err = io.MakeMetric(t.source, t.tags, fields, ts)
-	if err != nil {
-		t.tf.log.Error(err)
-	}
-
 	return
+}
+
+func (t *tailer) addStatus(fields map[string]interface{}) {
+	if v, ok := fields[pipelineStatusField]; ok {
+		// "status" type should be string
+		if str, ok := v.(string); ok && str != "" {
+			return
+		}
+	}
+	fields["status"] = "info"
 }
