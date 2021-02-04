@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -202,19 +204,18 @@ func MakeMetric(name string, tags map[string]string, fields map[string]interface
 	for k, v := range fields { // convert uint to int
 		switch v.(type) {
 		case uint64:
-			fields[k] = fmt.Sprintf("%d", v.(uint64)) // convert uint64 to string to avoid overflow
-			l.Debugf("on input `%s', force convert uint64 to string(%d -> %s)", name, v.(uint64), fields[k])
-		case uint32:
-			fields[k] = int64(v.(uint32))
-			l.Debugf("on input `%s', force convert uint32 to int64", name, v.(uint32), fields[k])
-		case uint16:
-			fields[k] = int64(v.(uint16))
-			l.Debugf("on input `%s', force convert uint16 to int64", name, v.(uint32), fields[k])
-		case uint8:
-			fields[k] = int64(v.(uint8))
-			l.Debugf("on input `%s', force convert uint8 to int64", name, v.(uint32), fields[k])
+			if v.(uint64) > uint64(math.MaxInt64) {
+				l.Warnf("on input `%s', filed %s, get uint64 %d > MaxInt64(%d), dropped", name, k, v.(uint64), math.MaxInt64)
+				delete(fields, k)
+			} else { // convert uint64 -> int64
+				l.Warnf("on input `%s', filed %s, get uint64 %d", name, k, v.(uint64))
+				fields[k] = int64(v.(uint64))
+			}
+		case uint32, uint16, uint8, int64, int32, int16, int8, bool, string, float32, float64:
 		default:
-			// pass
+			l.Errorf("invalid filed type `%s', from `%s', on filed `%s', got value `%+#v'",
+				reflect.TypeOf(v).String(), name, k, fields[k])
+			return nil, fmt.Errorf("invalid field type")
 		}
 	}
 
