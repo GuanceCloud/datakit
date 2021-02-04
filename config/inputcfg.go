@@ -92,6 +92,10 @@ func LoadInputsConfig(c *datakit.Config) error {
 	}
 
 	for name, creator := range inputs.Inputs {
+		if isDisabled(c.MainCfg.WhiteList, c.MainCfg.BlackList, c.MainCfg.Hostname, name) {
+			l.Warnf("input `%s' banned by white/black list on `%s'", name, c.MainCfg.Hostname)
+			continue
+		}
 		if err := doLoadInputConf(c, name, creator, availableInputCfgs); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
 			return err
