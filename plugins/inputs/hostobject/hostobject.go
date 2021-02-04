@@ -119,6 +119,7 @@ func (c *objCollector) Run() {
 			"cpu_usage":        message.Host.cpuPercent,
 			"mem_used_percent": message.Host.Mem.usedPercent,
 			"load":             message.Host.load5,
+			"state":            "online",
 		}
 		if c.p != nil {
 			if result, err := c.p.Run(string(messageData)).Result(); err == nil {
