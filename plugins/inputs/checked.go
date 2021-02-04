@@ -98,6 +98,7 @@ var (
 		"mqtt_consumer":          true,
 		"msexchange":             true,
 		"mysqlMonitor":           true,
+		"mysqlog":                false,
 		"nats":                   true,
 		"neo4j":                  true,
 		"net":                    true,
