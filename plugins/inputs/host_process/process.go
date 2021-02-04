@@ -121,8 +121,8 @@ func getUser(ps *pr.Process) string {
 	username, err := ps.Username()
 	if err != nil {
 		uid, err := ps.Uids()
-		if err != nil || len(uid) == 0 {
-			l.Warnf("[warning] process get uid err")
+		if err != nil {
+			l.Warnf("[warning] process get uid err:%s",err.Error())
 			return ""
 		}
 		u, err := luser.LookupId(fmt.Sprintf("%d", uid[0]))
