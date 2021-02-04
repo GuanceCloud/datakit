@@ -17,6 +17,9 @@ const (
     # glob filteer
     ignore = [""]
 
+    # add service tag, if it's empty, use "redislog".
+    service = ""
+
     # read file from beginning
     # if from_begin was false, off auto discovery file
     from_beginning = false
@@ -39,10 +42,10 @@ add_pattern("date2", "%{MONTHDAY} %{MONTH} %{YEAR}?%{TIME}")
 
 grok(_, "%{INT:pid}:%{WORD:role} %{date2:time} %{NOTSPACE:serverity} %{GREEDYDATA:msg}")
 
-group_in(serverity, ["."], "debug", level)
-group_in(serverity, ["-"], "verbose", level)
-group_in(serverity, ["*"], "notice", level)
-group_in(serverity, ["#"], "warnning", level)
+group_in(serverity, ["."], "debug", status)
+group_in(serverity, ["-"], "verbose", status)
+group_in(serverity, ["*"], "notice", status)
+group_in(serverity, ["#"], "warnning", status)
 
 cast(pid, "int")
 default_time(time)
