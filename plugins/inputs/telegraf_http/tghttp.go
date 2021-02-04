@@ -1,4 +1,4 @@
-package telegrafhttp
+package telegraf_http
 
 import (
 	"io/ioutil"
