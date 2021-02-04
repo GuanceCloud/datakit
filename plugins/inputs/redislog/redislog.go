@@ -17,8 +17,14 @@ const (
     # glob filteer
     ignore = [""]
 
-    # add service tag, if it's empty, use "redislog".
-    service = ""
+    # required
+    source = "redislog"
+
+    # add service tag, if it's empty, use $source.
+    service = "redislog"
+
+    # grok pipeline script path
+    pipeline = "redis.p"
 
     # read file from beginning
     # if from_begin was false, off auto discovery file
@@ -60,8 +66,6 @@ func init() {
 			sampleCfg,
 			map[string]string{"redis": pipelineCfg},
 		)
-		t.Source = inputName
-		t.Pipeline = "redis.p"
 		return t
 	})
 }
