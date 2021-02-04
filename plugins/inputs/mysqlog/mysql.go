@@ -17,6 +17,9 @@ const (
     # glob filteer
     ignore = [""]
 
+    # add service tag, if it's empty, use "mysqlog".
+    service = ""
+
     # read file from beginning
     # if from_begin was false, off auto discovery file
     from_beginning = false
@@ -36,10 +39,10 @@ const (
 `
 	pipelineCfg = `
 grok(_, "%{TIMESTAMP_ISO8601:time}\\s+%{INT:thread_id}\\s+%{WORD:operation}\\s+%{GREEDYDATA:raw_query}")
-grok(_, "%{TIMESTAMP_ISO8601:time} %{INT:thread_id} \\[%{NOTSPACE:serverity}\\] %{GREEDYDATA:msg}")
+grok(_, "%{TIMESTAMP_ISO8601:time} %{INT:thread_id} \\[%{NOTSPACE:status}\\] %{GREEDYDATA:msg}")
 
 add_pattern("date2", "%{YEAR}%{MONTHNUM2}%{MONTHDAY} %{TIME}")
-grok(_, "%{date2:time} \\s+(InnoDB:|\\[%{NOTSPACE:serverity}\\])\\s+%{GREEDYDATA:msg}")
+grok(_, "%{date2:time} \\s+(InnoDB:|\\[%{NOTSPACE:status}\\])\\s+%{GREEDYDATA:msg}")
 
 add_pattern("timeline", "# Time: %{TIMESTAMP_ISO8601:time}")
 add_pattern("userline", "# User@Host: %{NOTSPACE:db_user}\\s+@\\s%{NOTSPACE:db_host}\\s+\\[(%{NOTSPACE:db_ip})?\\](\\s+Id:\\s+%{INT:query_id})?")
@@ -64,7 +67,6 @@ cast(query_timestamp, "int")
 cast(query_time, "float")
 cast(lock_time, "float")
 
-nullif(serverity, "")
 default_time(time)
 `
 )
