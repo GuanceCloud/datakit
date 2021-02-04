@@ -2,13 +2,18 @@
 
 全局定义：
 
-- 所有拨测产生的数据，都以行协议方式，通过 `/write/metric` 接口存为时序数
+- 所有拨测产生的数据，都以行协议方式，通过 `/v1/write/logging` 接口存为日志数据
 
 ## HTTP 拨测任务定义
 
 ```python
 {
 	"url": "http://example.com/some/api", 
+
+	# 拨测数据的存放地址，对 SAAS 而言，是 openway.dataflux.cn
+	# 对 PAAS 而言，需要一个单独的公网可访问的 Dataway
+	"post_url": "https://dataway.cn",
+
 	"name": "give your test a name",
 	"tags": {
 		"tag1": "val1",
@@ -118,6 +123,10 @@
 	"port": "443",
 	"name": "give your test a name",
 
+	# 拨测数据的存放地址，对 SAAS 而言，是 openway.dataflux.cn
+	# 对 PAAS 而言，需要一个单独的公网可访问的 Dataway
+	"post_url": "https://dataway.cn",
+
 	"tags": {
 		"tag1": "val1",
 		"tag2": "val2"
@@ -167,6 +176,10 @@
 	"domain": "www.example.com",
 	"dns_server": "",
 	"name": "give your test a name",
+
+	# 拨测数据的存放地址，对 SAAS 而言，是 openway.dataflux.cn
+	# 对 PAAS 而言，需要一个单独的公网可访问的 Dataway
+	"post_url": "https://dataway.cn",
 
 	"tags": {
 		"tag1": "val1",
