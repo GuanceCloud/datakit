@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"strings"
 	"sync"
 	"testing"
@@ -13,8 +14,8 @@ import (
 )
 
 func TestRCPServer(t *testing.T) {
-	uds := "/tmp/dk.sock"
-	GRPCServer(uds)
+	//uds := "/tmp/dk.sock"
+	GRPCServer()
 }
 
 func TestRPC(t *testing.T) {
@@ -25,7 +26,7 @@ func TestRPC(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		GRPCServer(uds)
+		GRPCServer()
 	}()
 
 	time.Sleep(time.Second)
@@ -83,16 +84,22 @@ func TestMeasurement(t *testing.T) {
 }
 
 func TestMakeMetric(t *testing.T) {
+
 	l, err := MakeMetric("abc", map[string]string{
 		"t1": `c:\\\\\\\\\\\\\`,
 		"t2": `\dddddd`,
 		"t3": "def",
 	},
 		map[string]interface{}{
-			"f1": uint64(time.Now().UnixNano()),
-			"f2": false,
-			"f3": 1.234,
-			"f5": "haha",
+			"uint64_1":               uint64(time.Now().UnixNano()),
+			"uint64_2":               uint64(math.MaxInt64),
+			"max_uint64_should_drop": uint64(math.MaxUint64),
+			"max_uint32":             uint32(math.MaxUint32),
+			"max_uint16":             uint16(math.MaxUint16),
+			"max_uint8":              uint8(math.MaxUint8),
+			"f2":                     false,
+			"f3":                     1.234,
+			"f5":                     "haha",
 		},
 		time.Now())
 
@@ -101,4 +108,21 @@ func TestMakeMetric(t *testing.T) {
 	}
 
 	t.Logf("%s", string(l))
+
+	l, err = MakeMetric("abc", map[string]string{
+		"t1": `c:\\\\\\\\\\\\\`,
+		"t2": `\dddddd`,
+		"t3": "def",
+	},
+		map[string]interface{}{
+			"f2":  false,
+			"arr": []string{"1", "2", "3"},
+			"f3":  1.234,
+			"f5":  "haha",
+		},
+		time.Now())
+
+	if err == nil {
+		t.Fatal(fmt.Errorf("expect error"))
+	}
 }
