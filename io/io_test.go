@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	influxm "github.com/influxdata/influxdb1-client/models"
 	"google.golang.org/grpc"
 )
 
@@ -109,17 +110,24 @@ func TestMakeMetric(t *testing.T) {
 
 	t.Logf("%s", string(l))
 
+	pts, err := influxm.ParsePointsWithPrecision(l, time.Now().UTC(), "ns")
+	if err != nil {
+		t.Error(err)
+	} else {
+		for _, pt := range pts {
+			t.Logf("point: %s", pt.String())
+		}
+	}
+
 	l, err = MakeMetric("abc", map[string]string{
 		"t1": `c:\\\\\\\\\\\\\`,
 		"t2": `\dddddd`,
-		"t3": "def",
-	},
+		"t3": "def"},
 		map[string]interface{}{
 			"f2":  false,
 			"arr": []string{"1", "2", "3"},
 			"f3":  1.234,
-			"f5":  "haha",
-		},
+			"f5":  "haha"},
 		time.Now())
 
 	if err == nil {
