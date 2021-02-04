@@ -17,6 +17,9 @@ const (
     # glob filteer
     ignore = [""]
 
+    # add service tag, if it's empty, use "nginxlog".
+    service = ""
+
     # read file from beginning
     # if from_begin was false, off auto discovery file
     from_beginning = false
