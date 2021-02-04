@@ -19,7 +19,10 @@ const (
     ignore = [""]
 
     # required
-    source = ""
+    source = "abc"
+
+    # add service tag, if it's empty, use $source.
+    service = ""
 
     # grok pipeline script path
     pipeline = ""
@@ -40,7 +43,7 @@ const (
 
     ## The pattern should be a regexp
     ## Note the use of '''XXX'''
-    # match = '''^\d{4}-\d{2}-\d{2}'''
+    # match = '''^\d{4}-\d{2}-\d{2}.*'''
 
     # [inputs.tailf.tags]
     # tags1 = "value1"
