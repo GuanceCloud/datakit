@@ -208,7 +208,6 @@ func MakeMetric(name string, tags map[string]string, fields map[string]interface
 				l.Warnf("on input `%s', filed %s, get uint64 %d > MaxInt64(%d), dropped", name, k, v.(uint64), math.MaxInt64)
 				delete(fields, k)
 			} else { // convert uint64 -> int64
-				l.Warnf("on input `%s', filed %s, get uint64 %d", name, k, v.(uint64))
 				fields[k] = int64(v.(uint64))
 			}
 		case uint32, uint16, uint8, int64, int32, int16, int8, bool, string, float32, float64:
