@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	pr "github.com/shirou/gopsutil/v3/process"
+	"github.com/tweekmonster/luser"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -61,7 +62,7 @@ func (p *Processes) Run() {
 	if p.OpenMetric {
 		go func() {
 			if p.MetricInterval.Duration == 0 {
-				p.MetricInterval.Duration = 5 * time.Minute
+				p.MetricInterval.Duration = 10 * time.Second
 			}
 			tick := time.NewTicker(p.MetricInterval.Duration)
 			defer tick.Stop()
@@ -70,7 +71,7 @@ func (p *Processes) Run() {
 				select {
 				case <-tick.C:
 				case <-datakit.Exit.Wait():
-					l.Info("process exit")
+					l.Info("process write metric exit")
 					return
 				}
 			}
@@ -111,6 +112,22 @@ func (p *Processes) getProcesses() (processList []*pr.Process) {
 	return processList
 }
 
+func getUser(ps *pr.Process) string {
+
+	username, err := ps.Username()
+	if err != nil {
+		uid, _ := ps.Uids()
+		u, err := luser.LookupId(fmt.Sprintf("%d", uid[0]))
+		if err != nil {
+			l.Warnf("[warning] process: pid:%d get username err:%s", ps.Pid, err.Error())
+			return ""
+		}
+		return u.Username
+	}
+
+	return username
+}
+
 func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields, message map[string]interface{}) {
 	fields = map[string]interface{}{}
 	message = map[string]interface{}{}
@@ -118,12 +135,7 @@ func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields,
 	if err != nil {
 		l.Warnf("[warning] process get name err:%s", err.Error())
 	}
-
-	username, err = ps.Username()
-	if err != nil {
-		l.Warnf("[warning] process:%s,pid:%d get username err:%s", name, ps.Pid, err.Error())
-	}
-
+	username = getUser(ps)
 	status, err := ps.Status()
 	if err != nil {
 		l.Warnf("[warning] process:%s,pid:%d get state err:%s", name, ps.Pid, err.Error())
