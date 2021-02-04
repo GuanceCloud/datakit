@@ -17,8 +17,14 @@ const (
     # glob filteer
     ignore = [""]
 
-    # add service tag, if it's empty, use "nginxlog".
-    service = ""
+    # required
+    source = "nginxlog"
+
+    # add service tag, if it's empty, use $source.
+    service = "nginxlog"
+
+    # grok pipeline script path
+    pipeline = "nginx.p"
 
     # read file from beginning
     # if from_begin was false, off auto discovery file
@@ -73,8 +79,6 @@ func init() {
 			sampleCfg,
 			map[string]string{"nginx": pipelineCfg},
 		)
-		t.Source = inputName
-		t.Pipeline = "nginx.p"
 		return t
 	})
 }
