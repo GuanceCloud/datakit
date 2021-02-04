@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	pr "github.com/shirou/gopsutil/v3/process"
+	"github.com/tweekmonster/luser"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -61,7 +62,11 @@ func (p *Processes) Run() {
 	if p.OpenMetric {
 		go func() {
 			if p.MetricInterval.Duration == 0 {
-				p.MetricInterval.Duration = 5 * time.Minute
+				p.MetricInterval.Duration = 30 * time.Second
+			}
+			if p.MetricInterval.Duration < 30*time.Second {
+				l.Warnf("process write metric need greater than 30s")
+				p.MetricInterval.Duration = 30 * time.Second
 			}
 			tick := time.NewTicker(p.MetricInterval.Duration)
 			defer tick.Stop()
@@ -70,7 +75,7 @@ func (p *Processes) Run() {
 				select {
 				case <-tick.C:
 				case <-datakit.Exit.Wait():
-					l.Info("process exit")
+					l.Info("process write metric exit")
 					return
 				}
 			}
@@ -111,6 +116,25 @@ func (p *Processes) getProcesses() (processList []*pr.Process) {
 	return processList
 }
 
+func getUser(ps *pr.Process) string {
+
+	username, err := ps.Username()
+	if err != nil {
+		uid, err := ps.Uids()
+		if err != nil {
+			l.Warnf("[warning] process get uid err:%s", err.Error())
+			return ""
+		}
+		u, err := luser.LookupId(fmt.Sprintf("%d", uid[0]))
+		if err != nil {
+			l.Warnf("[warning] process: pid:%d get username err:%s", ps.Pid, err.Error())
+			return ""
+		}
+		return u.Username
+	}
+	return username
+}
+
 func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields, message map[string]interface{}) {
 	fields = map[string]interface{}{}
 	message = map[string]interface{}{}
@@ -118,10 +142,7 @@ func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields,
 	if err != nil {
 		l.Warnf("[warning] process get name err:%s", err.Error())
 	}
-	username, err = ps.Username()
-	if err != nil {
-		l.Warnf("[warning] process:%s,pid:%d get username err:%s", name, ps.Pid, err.Error())
-	}
+	username = getUser(ps)
 	status, err := ps.Status()
 	if err != nil {
 		l.Warnf("[warning] process:%s,pid:%d get state err:%s", name, ps.Pid, err.Error())
@@ -242,6 +263,8 @@ func (p *Processes) WriteObject() {
 }
 
 func (p *Processes) WriteMetric() {
+	times := time.Now().UTC()
+	var points []string
 	for _, ps := range p.getProcesses() {
 		username, _, name, fields, _ := p.Parse(ps)
 		tags := map[string]string{
@@ -249,8 +272,14 @@ func (p *Processes) WriteMetric() {
 			"pid":          fmt.Sprintf("%d", ps.Pid),
 			"process_name": name,
 		}
-		io.NamedFeedEx(inputName, io.Metric, "host_processes", tags, fields, time.Now().UTC())
+		point, err := io.MakeMetric("host_processes", tags, fields, times)
+		if err != nil {
+			l.Errorf("[error] make metric err:%s", err.Error())
+			continue
+		}
+		points = append(points, string(point))
 	}
+	io.NamedFeed([]byte(strings.Join(points, "\n")), io.Metric, inputName)
 }
 
 func init() {
