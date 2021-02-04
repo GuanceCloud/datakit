@@ -316,6 +316,7 @@ func checkOnlineVersion() {
 
 	var ver struct {
 		Version     string `json:"version"`
+		Commit      string `json:"commit"`
 		ReleaseDate string `json:"date_utc"`
 	}
 	if err := json.Unmarshal(infobody, &ver); err != nil {
@@ -323,8 +324,10 @@ func checkOnlineVersion() {
 		return
 	}
 
-	if ver.Version != git.Version {
-		fmt.Printf("\n\nNew version available: %s (release at %s)\n", ver.Version, ver.ReleaseDate)
+	if ver.Version != git.Version || ver.Commit != git.Commit {
+		fmt.Printf("\n\nNew version available: %s, commit %s (release at %s)\n",
+			ver.Version, ver.Commit, ver.ReleaseDate)
+
 		dlurl := fmt.Sprintf("https://static.dataflux.cn/datakit/installer-%s-%s", runtime.GOOS, runtime.GOARCH)
 		cmdWin := fmt.Sprintf(`Import-Module bitstransfer; start-bitstransfer -source %s -destination .\dk-installer.exe; .\dk-installer.exe -upgrade; rm dk-installer.exe`, dlurl)
 		cmd := fmt.Sprintf(`sudo -- sh -c "curl %s -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"`, dlurl)
