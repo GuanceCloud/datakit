@@ -18,7 +18,7 @@ type Tailf struct {
 	Ignore            []string          `toml:"ignore"`
 	Source            string            `toml:"source"`
 	Service           string            `toml:"service"`
-	Pipeline          string            `toml:"pipeline"`
+	Pipeline          string            `toml:"pipeline,pipeline_path"`
 	FromBeginning     bool              `toml:"from_beginning"`
 	CharacterEncoding string            `toml:"character_encoding"`
 	Match             string            `toml:"match"`
