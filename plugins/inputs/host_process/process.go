@@ -62,7 +62,7 @@ func (p *Processes) Run() {
 	if p.OpenMetric {
 		go func() {
 			if p.MetricInterval.Duration == 0 {
-				p.MetricInterval.Duration = 5 * time.Minute
+				p.MetricInterval.Duration = 10 * time.Second
 			}
 			tick := time.NewTicker(p.MetricInterval.Duration)
 			defer tick.Stop()
@@ -71,7 +71,7 @@ func (p *Processes) Run() {
 				select {
 				case <-tick.C:
 				case <-datakit.Exit.Wait():
-					l.Info("process exit")
+					l.Info("process write metric exit")
 					return
 				}
 			}
