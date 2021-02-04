@@ -274,9 +274,9 @@ CREATE TABLE IF NOT EXITS net_dial_testing (
 
 ![拨测任务整体架构](net-dial-testing-arch.png)
 
-### DataKit 实现
+### DataKit 配置
 
-1. 开启对应拨测采集器，其 conf 如下
+开启对应拨测采集器，其 conf 如下
 
 ```python
 [[inputs.net_dial_testing]]
@@ -292,6 +292,7 @@ CREATE TABLE IF NOT EXITS net_dial_testing (
 		- 如果某个任务已经在运行，跳过
 		- 如果某个任务在运行，但任务有更新（本地缓存的任务跟最新拿到的任务，更新之间不一致），杀掉之前的任务（任务 ID 相同），重新运行
 
-3. Sleep 一段时间，回到步骤 2 -->
-
+3. Sleep 一段时间，回到步骤 2
 由于但各个任务都比较简单，经初步测试，单个 DataKit 上运行上万个任务，基本没问题。
+-->
+
