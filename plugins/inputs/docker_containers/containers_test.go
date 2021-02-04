@@ -1,4 +1,4 @@
-package dockercontainers
+package docker_containers
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
