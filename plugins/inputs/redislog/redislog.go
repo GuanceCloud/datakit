@@ -20,7 +20,7 @@ const (
     # read file from beginning
     # if from_begin was false, off auto discovery file
     from_beginning = false
-    
+
     ## characters are replaced using the unicode replacement character
     ## When set to the empty string the data is not decoded to text.
     ## ex: character_encoding = "utf-8"
@@ -37,7 +37,7 @@ const (
 	pipelineCfg = `
 add_pattern("date2", "%{MONTHDAY} %{MONTH} %{YEAR}?%{TIME}")
 
-grok(_, "%{INT:pid}:%{WORD:role} %{date2:date_access} %{NOTSPACE:serverity} %{GREEDYDATA:msg}")
+grok(_, "%{INT:pid}:%{WORD:role} %{date2:time} %{NOTSPACE:serverity} %{GREEDYDATA:msg}")
 
 group_in(serverity, ["."], "debug", level)
 group_in(serverity, ["-"], "verbose", level)
@@ -45,7 +45,7 @@ group_in(serverity, ["*"], "notice", level)
 group_in(serverity, ["#"], "warnning", level)
 
 cast(pid, "int")
-default_time(date_access)
+default_time(time)
 `
 )
 
