@@ -210,7 +210,7 @@ func MakeMetric(name string, tags map[string]string, fields map[string]interface
 			} else { // convert uint64 -> int64
 				fields[k] = int64(v.(uint64))
 			}
-		case uint32, uint16, uint8, int64, int32, int16, int8, bool, string, float32, float64:
+		case int, uint32, uint16, uint8, int64, int32, int16, int8, bool, string, float32, float64:
 		default:
 			l.Errorf("invalid filed type `%s', from `%s', on filed `%s', got value `%+#v'",
 				reflect.TypeOf(v).String(), name, k, fields[k])
