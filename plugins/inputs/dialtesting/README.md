@@ -8,11 +8,17 @@
 
 ```python
 {
+	"id": "dialt_xxxxxxxxxxxxxxxxx", # 拨测任务 ID
+
 	"url": "http://example.com/some/api", 
+	"method": "POST",
 
 	# 拨测数据的存放地址，对 SAAS 而言，是 openway.dataflux.cn
 	# 对 PAAS 而言，需要一个单独的公网可访问的 Dataway
 	"post_url": "https://dataway.cn",
+
+	# 用于更新任务时，停止执行
+	"stop": false, 
 
 	"name": "give your test a name",
 	"tags": {
@@ -119,6 +125,7 @@
 
 ```python
 {
+	"id": "dialt_xxxxxxxxxxxxxxxxx", # 拨测任务 ID
 	"host": "www.example.com",
 	"port": "443",
 	"name": "give your test a name",
@@ -126,6 +133,9 @@
 	# 拨测数据的存放地址，对 SAAS 而言，是 openway.dataflux.cn
 	# 对 PAAS 而言，需要一个单独的公网可访问的 Dataway
 	"post_url": "https://dataway.cn",
+
+	# 用于更新任务时，停止执行
+	"stop": false, 
 
 	"tags": {
 		"tag1": "val1",
@@ -173,6 +183,7 @@
 
 ```python
 {
+	"id": "dialt_xxxxxxxxxxxxxxxxx", # 拨测任务 ID
 	"domain": "www.example.com",
 	"dns_server": "",
 	"name": "give your test a name",
@@ -180,6 +191,9 @@
 	# 拨测数据的存放地址，对 SAAS 而言，是 openway.dataflux.cn
 	# 对 PAAS 而言，需要一个单独的公网可访问的 Dataway
 	"post_url": "https://dataway.cn",
+
+	# 用于更新任务时，停止执行
+	"stop": false, 
 
 	"tags": {
 		"tag1": "val1",
@@ -279,7 +293,7 @@ CREATE TABLE IF NOT EXITS net_dial_testing (
 开启对应拨测采集器，其 conf 如下
 
 ```python
-[[inputs.net_dial_testing]]
+[[inputs.dialtesting]]
 	location = "hangzhou"
 	server = "dial.dataflux.cn"
 
