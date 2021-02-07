@@ -93,10 +93,12 @@ func (t *tailer) receiver() {
 			return
 
 		case line, t.tailerOpen = <-t.tail.Lines:
-			if t.tailerOpen {
-				t.tf.log.Debugf("get %d bytes from %s.%s", len(line.Text), t.source, t.filename)
-			} else {
+			if !t.tailerOpen {
 				t.channelOpen = false
+			}
+
+			if line != nil {
+				t.tf.log.Debugf("get %d bytes from %s.%s", len(line.Text), t.source, t.filename)
 			}
 
 		case <-ticker.C:
