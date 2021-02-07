@@ -119,21 +119,35 @@ func (t *tailer) receiver() {
 			//pass
 		}
 
-		// 此处不需要输出 error log，已在函数执行过程中就近输出
-		// 只是为了控制顺序流
-		text, err := t.decode(text)
+		var err error
+
+		text, err = t.decode(text)
 		if err != nil {
-			t.tf.log.Errorf("decode error, %s", err) // only print err
+			t.tf.log.Errorf("decode error, %s", err)
 			continue
 		}
 
-		data, err := t.pipeline(text)
-		if err != nil {
-			t.tf.log.Errorf("run pipeline error, %s", err)
-			continue
+		var fields = make(map[string]interface{})
+
+		if t.pipe != nil {
+			fields, err = t.pipe.Run(text).Result()
+			if err != nil {
+				// 当pipe.Run() err不为空时，fields含有message字段
+				// 等同于fields["message"] = text
+				t.tf.log.Errorf("run pipeline error, %s", err)
+			}
+		} else {
+			fields["message"] = text
 		}
 
-		if err := io.NamedFeed(data, io.Logging, t.source); err != nil {
+		ts, err := takeTime(fields)
+		if err != nil {
+			ts = time.Now()
+			t.tf.log.Errorf("%s", err)
+		}
+		addStatus(fields)
+
+		if err := io.NamedFeedEx(inputName, io.Logging, t.source, t.tags, fields, ts); err != nil {
 			t.tf.log.Error(err)
 		}
 	}
@@ -189,43 +203,13 @@ func (t *tailer) decode(text string) (str string, err error) {
 	return t.tf.decoder.String(text)
 }
 
-func (t *tailer) pipeline(text string) (data []byte, err error) {
-	var fields = make(map[string]interface{})
-
-	if t.pipe != nil {
-		fields, err = t.pipe.Run(text).Result()
-		if err != nil {
-			return
-		}
-	} else {
-		fields["message"] = text
-	}
-
-	// 不使用pipeline功能，也会取time和stauts字段（使用默认值）
-
-	ts, err := t.takeTime(fields)
-	if err != nil {
-		return
-	}
-
-	t.addStatus(fields)
-
-	data, err = io.MakeMetric(t.source, t.tags, fields, ts)
-	if err != nil {
-		t.tf.log.Error(err)
-	}
-
-	return
-}
-
-func (t *tailer) takeTime(fields map[string]interface{}) (ts time.Time, err error) {
+func takeTime(fields map[string]interface{}) (ts time.Time, err error) {
 	// time should be nano-second
 	if v, ok := fields[pipelineTimeField]; ok {
 		nanots, ok := v.(int64)
 		if !ok {
-			t.tf.log.Warnf("filed `%s' should be nano-second, but got `%s'",
-				pipelineTimeField, reflect.TypeOf(v).String())
-			err = fmt.Errorf("invalid filed `%s: %v'", pipelineTimeField, v)
+			err = fmt.Errorf("invalid filed `%s: %v', should be nano-second, but got `%s'",
+				pipelineTimeField, v, reflect.TypeOf(v).String())
 			return
 		}
 
@@ -238,7 +222,7 @@ func (t *tailer) takeTime(fields map[string]interface{}) (ts time.Time, err erro
 	return
 }
 
-func (t *tailer) addStatus(fields map[string]interface{}) {
+func addStatus(fields map[string]interface{}) {
 	if v, ok := fields[statusField]; ok {
 		// "status" type should be string
 		if str, ok := v.(string); ok && str != "" {
