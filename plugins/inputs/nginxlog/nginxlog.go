@@ -32,7 +32,7 @@ const (
     #    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
     character_encoding = ""
 
-    # The pattern should be a regexp. Note the use of '''XXX'''
+    # The pattern should be a regexp. Note the use of '''this regexp'''
     match = '''^\S.*'''
 
     [inputs.tailf.tags]
