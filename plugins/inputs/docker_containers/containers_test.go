@@ -6,8 +6,7 @@ import (
 )
 
 /*
- *  go test -v -c
- *  sudo ./dockercontainers.test -test.v -test.run=TestData
+ * go test -v -c && sudo ./docker_containers.test -test.v -test.run=TestData
  */
 
 func TestMain(t *testing.T) {
