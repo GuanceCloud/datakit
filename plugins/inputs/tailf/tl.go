@@ -93,7 +93,9 @@ func (t *tailer) receiver() {
 			return
 
 		case line, t.tailerOpen = <-t.tail.Lines:
-			if !t.tailerOpen {
+			if t.tailerOpen {
+				t.tf.log.Debugf("get %d bytes from %s.%s", len(line.Text), t.source, t.filename)
+			} else {
 				t.channelOpen = false
 			}
 
@@ -119,11 +121,13 @@ func (t *tailer) receiver() {
 		// 只是为了控制顺序流
 		text, err := t.decode(text)
 		if err != nil {
+			t.tf.log.Errorf("decode error, %s", err) // only print err
 			continue
 		}
 
 		data, err := t.pipeline(text)
 		if err != nil {
+			t.tf.log.Errorf("run pipeline error, %s", err)
 			continue
 		}
 
@@ -180,11 +184,7 @@ func (t *tailer) multiline(line *tail.Line) (text string, status multilineStatus
 }
 
 func (t *tailer) decode(text string) (str string, err error) {
-	str, err = t.tf.decoder.String(text)
-	if err != nil {
-		t.tf.log.Errorf("decode error, %s", err) // only print err
-	}
-	return
+	return t.tf.decoder.String(text)
 }
 
 func (t *tailer) pipeline(text string) (data []byte, err error) {
@@ -193,7 +193,6 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 	if t.pipe != nil {
 		fields, err = t.pipe.Run(text).Result()
 		if err != nil {
-			t.tf.log.Errorf("run pipeline error, %s", err)
 			return
 		}
 	} else {
@@ -204,8 +203,7 @@ func (t *tailer) pipeline(text string) (data []byte, err error) {
 
 	ts, err := t.takeTime(fields)
 	if err != nil {
-		t.tf.log.Errorf("run pipeline error, %s", err)
-		return nil, err
+		return
 	}
 
 	t.addStatus(fields)
