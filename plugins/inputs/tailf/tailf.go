@@ -180,6 +180,10 @@ func (t *Tailf) loadcfg() bool {
 	if t.Service == "" {
 		t.Service = t.Source
 	}
+
+	if t.Tags == nil {
+		t.Tags = make(map[string]string)
+	}
 	// 覆盖自定义tags
 	t.Tags["service"] = t.Service
 
