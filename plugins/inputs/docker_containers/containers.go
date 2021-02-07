@@ -190,18 +190,14 @@ func (d *DockerContainers) initCfg() bool {
 func (d *DockerContainers) loadCfg() (err error) {
 	d.intervalDuration, err = time.ParseDuration(d.Interval)
 	if err != nil {
-		l.Warnf("invalid interval, %s", err)
-		l.Warn("Use default interval 5m")
-
+		l.Warnf("invalid interval, %s\nUse default interval 5m", err)
 		d.intervalDuration = defaultGetherInterval
 	} else {
 		if d.intervalDuration <= 0 ||
 			d.intervalDuration < defaultGetherInterval ||
 			maxGetherInterval < d.intervalDuration {
 
-			l.Warn("invalid interval, cannot be less than zero, between 5m and 1h.")
-			l.Warn("Use default interval 5m")
-
+			l.Warn("invalid interval, cannot be less than zero, between 5m and 1h.\nUse default interval 5m")
 			d.intervalDuration = defaultGetherInterval
 		}
 	}
@@ -264,44 +260,103 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 		return nil, err
 	}
 
-	// 容器未启动时，无法进行containerTop，此处会得到error
-	// 与 opt.All 冲突，忽略此error即可
-	containerProcessList, _ := d.client.ContainerTop(ctx, container.ID, nil)
-
-	msg, err := json.Marshal(struct {
-		types.ContainerJSON
-		Process containerTop `json:"Process"`
-	}{
-		containerJSON,
-		containerProcessList,
-	})
-
+	msg, err := d.composeMessage(ctx, container.ID, &containerJSON)
 	if err != nil {
 		return nil, err
 	}
 
-	fields := map[string]interface{}{"message": string(msg)}
-	fields["container_id"] = container.ID
-	fields["images_name"] = container.Image
-	fields["created_time"] = container.Created
-	fields["container_name"] = getContainerName(container.Names)
-	fields["restart_count"] = containerJSON.RestartCount
-	fields["status"] = containerJSON.State.Status
-	fields["start_time"] = containerJSON.State.StartedAt
+	stats, err := d.gatherStats(ctx, container.ID)
+	if err != nil {
+		l.Warnf("gather stats error, %s", err)
+	}
 
-	if d.Kubernetes != nil {
-		m, err := d.Kubernetes.GatherPodInfo(container.ID)
-		if err != nil {
-			l.Warn(err)
-		}
-		for k, v := range m {
-			fields[k] = v
-		}
+	podInfo, err := d.gatherK8sPodInfo(container.ID)
+	if err != nil {
+		l.Warnf("gather k8s pod error, %s", err)
+	}
+
+	fields := map[string]interface{}{
+		"container_id":   container.ID,
+		"images_name":    container.Image,
+		"created_time":   container.Created,
+		"container_name": getContainerName(container.Names),
+		"restart_count":  containerJSON.RestartCount,
+		"status":         containerJSON.State.Status,
+		"start_time":     containerJSON.State.StartedAt,
+		"message":        string(msg),
+	}
+
+	for k, v := range stats {
+		fields[k] = v
+	}
+
+	for k, v := range podInfo {
+		fields[k] = v
 	}
 
 	tags := map[string]string{"name": container.ID}
 
 	return io.MakeMetric(inputName, tags, fields, time.Now())
+}
+
+const streamStats = false
+
+func (d *DockerContainers) gatherStats(ctx context.Context, id string) (map[string]interface{}, error) {
+	resp, err := d.client.ContainerStats(ctx, id, streamStats)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var v *types.StatsJSON
+
+	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
+		return nil, err
+	}
+
+	if resp.OSType == "windows" {
+		return nil, nil
+	}
+
+	cpuPercent := calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage, v.PreCPUStats.SystemUsage, v)
+	mem := calculateMemUsageUnixNoCache(v.MemoryStats)
+	memLimit := float64(v.MemoryStats.Limit)
+	memPercent := calculateMemPercentUnixNoCache(memLimit, mem)
+	netRx, netTx := calculateNetwork(v.Networks)
+	blkRead, blkWrite := calculateBlockIO(v.BlkioStats)
+
+	return map[string]interface{}{
+		"cpu_percentage": cpuPercent,
+		"mem_usage":      mem,
+		"mem_limit":      memLimit,
+		"mem_percentage": memPercent,
+		"network_in":     netRx,
+		"network_out":    netTx,
+		"block_in":       float64(blkRead),
+		"block_out":      float64(blkWrite),
+	}, nil
+}
+
+func (d *DockerContainers) gatherK8sPodInfo(id string) (map[string]string, error) {
+	if d.Kubernetes == nil {
+		return nil, nil
+	}
+
+	return d.Kubernetes.GatherPodInfo(id)
+}
+
+func (d *DockerContainers) composeMessage(ctx context.Context, id string, v *types.ContainerJSON) ([]byte, error) {
+	// 容器未启动时，无法进行containerTop，此处会得到error
+	// 与 opt.All 冲突，忽略此error即可
+	t, _ := d.client.ContainerTop(ctx, id, nil)
+
+	return json.Marshal(struct {
+		types.ContainerJSON
+		Process containerTop `json:"Process"`
+	}{
+		*v,
+		t,
+	})
 }
 
 func getContainerName(names []string) string {
