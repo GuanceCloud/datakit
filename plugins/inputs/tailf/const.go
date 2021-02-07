@@ -12,7 +12,7 @@ const (
 	sampleCfg = `
 [[inputs.tailf]]
     # required, glob logfiles
-    logfiles = ["/usr/local/cloudcare/dataflux/datakit/*.txt"]
+    logfiles = ["/path/to/your/file.log"]
 
     # glob filteer
     ignore = [""]
@@ -30,15 +30,15 @@ const (
     # if from_begin was false, off auto discovery file
     from_beginning = false
 
-    # ex: "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+    # optional encodings:
+    #    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
     character_encoding = ""
 
     # The pattern should be a regexp. Note the use of '''XXX'''
     match = '''^\S.*'''
 
-    # add tags
-    # ex: tags1 = "value1"
     [inputs.tailf.tags]
+    # tags1 = "value1"
 `
 )
 
