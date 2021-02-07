@@ -99,6 +99,8 @@ func (t *tailer) receiver() {
 				t.channelOpen = false
 			}
 
+			t.tf.log.Debugf("get %d bytes from %s.%s", len(line.Text), t.source, t.filename)
+
 		case <-ticker.C:
 			_, statErr := os.Lstat(t.filename)
 			if os.IsNotExist(statErr) {
