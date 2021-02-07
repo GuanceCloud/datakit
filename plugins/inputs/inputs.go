@@ -2,7 +2,6 @@ package inputs
 
 import (
 	"bytes"
-	"crypto/md5"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -89,16 +88,6 @@ func (ii *inputInfo) Run() {
 	default:
 		l.Errorf("invalid input type, cfg: %s", ii.cfg)
 	}
-}
-
-func SetInputsMD5(name string, input interface{}) string {
-	data, err := toml.Marshal(input)
-	if err != nil {
-		l.Errorf("input to toml err")
-		return ""
-	}
-	newName := fmt.Sprintf("%s-%x", name, md5.Sum(data))
-	return newName
 }
 
 func AddInput(name string, input Input, fp string) error {
