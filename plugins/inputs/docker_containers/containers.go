@@ -39,7 +39,7 @@ const (
     # tls_key = "/tmp/key.pem"
     ## Use TLS but skip chain & host verification
     # insecure_skip_verify = false
-    
+
     ## Use containerID link kubernetes pods
     # [inputs.docker_containers.kubernetes]
     #   ## URL for the kubelet
@@ -190,14 +190,14 @@ func (d *DockerContainers) initCfg() bool {
 func (d *DockerContainers) loadCfg() (err error) {
 	d.intervalDuration, err = time.ParseDuration(d.Interval)
 	if err != nil {
-		l.Warnf("invalid interval, %s\nUse default interval 5m", err)
+		l.Warnf("invalid interval: %s, use default interval 5m", err)
 		d.intervalDuration = defaultGetherInterval
 	} else {
 		if d.intervalDuration <= 0 ||
 			d.intervalDuration < defaultGetherInterval ||
 			maxGetherInterval < d.intervalDuration {
 
-			l.Warn("invalid interval, cannot be less than zero, between 5m and 1h.\nUse default interval 5m")
+			l.Warn("invalid interval, cannot be less than zero, between 5m and 1h. Use default interval 5m")
 			d.intervalDuration = defaultGetherInterval
 		}
 	}
@@ -326,14 +326,14 @@ func (d *DockerContainers) gatherStats(ctx context.Context, id string) (map[stri
 	blkRead, blkWrite := calculateBlockIO(v.BlkioStats)
 
 	return map[string]interface{}{
-		"cpu_percentage": cpuPercent,
-		"mem_usage":      mem,
-		"mem_limit":      memLimit,
-		"mem_percentage": memPercent,
-		"network_in":     netRx,
-		"network_out":    netTx,
-		"block_in":       float64(blkRead),
-		"block_out":      float64(blkWrite),
+		"cpu_usage":        cpuPercent,
+		"mem_usage":        mem,
+		"mem_limit":        memLimit,
+		"mem_used_percent": memPercent,
+		"network_in":       netRx,
+		"network_out":      netTx,
+		"block_in":         float64(blkRead),
+		"block_out":        float64(blkWrite),
 	}, nil
 }
 
