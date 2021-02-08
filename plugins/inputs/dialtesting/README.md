@@ -373,7 +373,7 @@ CREATE TABLE IF NOT EXITS aksk (
 
 ```
 POST /v1/push HTTP/1.1
-Authorization: DIALTESTING <AK>:<sign>
+Authorization: DIALTESTING <access_key>:<sign>
 Content-Type: application/json
 
 <具体的 task-json>
@@ -391,8 +391,8 @@ HTTP/1.1 200 OK  # 无 body 返回
 示例：
 
 ```
-POST /v1/pull?region=<region>&from=<id> HTTP/1.1
-Authorization: DIALTESTING <AK>:<sign>
+GET /v1/pull?region=<region>&from=<id> HTTP/1.1
+Authorization: DIALTESTING <access_key>:<sign>
 
 HTTP/1.1 200 OK
 {
@@ -435,7 +435,7 @@ datakit 端任务处理流程
 	- 轮询一遍 clone 下来的所有 commit（如总共 10K 个 commit，其中**有效任务** 1K 个）
 	- datakit 通过 `access_key + id` 确定一个任务 ID，并以此依据来合并多个 commit 为一个具体拨测任务
 	- 取固定几个字段的值，通过一定的 hash 算法，即可判定拨测任务是否更新
-	- hash 算法：`md5(AK + task-json)`: 第三方平台可在 `task-json` 添加任何其它字段（在不破坏现有 task-json 结构的前提下），如工作空间信息、用户信息等，这些都会计入 hash 计算，并以此推断拨测任务是否更新。授信的第三方，应该提交差异化的 `task-json` 以保证拨测任务的正确运转（如果 `task-json` 都相同，亦不影响 dialtesting 以及 datakit 运行）。考虑到计算 hash 的性能开销以及高频率，这里暂用 md5（参见[这里](https://stackoverflow.com/questions/14139727/sha-256-or-md5-for-file-integrity)）
+	- hash 算法：`md5(access_key + task-json)`: 第三方平台可在 `task-json` 添加任何其它字段（在不破坏现有 task-json 结构的前提下），如工作空间信息、用户信息等，这些都会计入 hash 计算，并以此推断拨测任务是否更新。授信的第三方，应该提交差异化的 `task-json` 以保证拨测任务的正确运转（如果 `task-json` 都相同，亦不影响 dialtesting 以及 datakit 运行）。考虑到计算 hash 的性能开销以及高频率，这里暂用 md5（参见[这里](https://stackoverflow.com/questions/14139727/sha-256-or-md5-for-file-integrity)）
 
 2. DataKit 采集器启动运行之后，以一定频率，从中心同步最新的任务。
 	- 对于更新了配置的任务，直接更新执行（将新的任务 json 发给当前运行的 go routine 即可）
