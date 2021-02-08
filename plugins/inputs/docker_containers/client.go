@@ -22,6 +22,7 @@ type Client interface {
 	ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error)
 	ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error)
 	ContainerTop(ctx context.Context, containerID string, arguments []string) (containerTop, error)
+	ContainerStats(ctx context.Context, containerID string, stream bool) (types.ContainerStats, error)
 }
 
 func NewEnvClient() (Client, error) {
@@ -63,4 +64,8 @@ func (c *SocketClient) ContainerInspect(ctx context.Context, containerID string)
 
 func (c *SocketClient) ContainerTop(ctx context.Context, containerID string, arguments []string) (container.ContainerTopOKBody, error) {
 	return c.client.ContainerTop(ctx, containerID, arguments)
+}
+
+func (c *SocketClient) ContainerStats(ctx context.Context, containerID string, stream bool) (types.ContainerStats, error) {
+	return c.client.ContainerStats(ctx, containerID, stream)
 }
