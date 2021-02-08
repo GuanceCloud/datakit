@@ -322,20 +322,12 @@
 
 - dialtesting：拨测服务的中心服务器，它提供一组 HTTP 接口，供授信的第三方推送拨测任务
 - datakit: 实际上是 datakit 中开启了具体的拨测采集器，此处统称 datakit，它跟线上的其它 datakit 没有实质区别
-- commit: 具体任务的 JSON 描述，它可以维护在 DataFlux 的 MySQL 中，也可以是一个简单的 JSON 文件
-- push: 任何授信的第三方（dataflux, curl 等），都能通过 HTTP 接口，往拨测中心**推送**拨测任务，一般而言，一个 commit 对应一个拨测任务，也可能多个 commit 对应的只有一个拨测任务（该任务经过多次修改，每个修改对应一个 commit）
+- commit: 具体任务的 JSON 描述，它可以维护在 DataFlux 的 MySQL 中，也可以是一个简单的 JSON 文件。commit 和拨测任务之间是 N:1 的关系，即一个拨测任务可以有多个 commit
+- push: 任何授信的第三方（dataflux, curl 等），都能通过 HTTP 接口，往 dialtesting **推送**拨测任务
 - clone: datakit 上采集器初次启动时，从中心同步**指定 region 上所有任务的 commit**
-- pull: datakit 以一定的频率，从中心拉取特定 region 上**最新**的服务
+- pull: datakit 以一定的频率，从中心拉取特定 region 上**最新**的 commit
 - region: 拨测服务可能在全球设置 datakit 拨测节点，一个节点就是一个 region。一个节点可能有多个 datakit 参与，此处可设置一定的负载均衡策略（如全量 clone，但等分运行）
 - fork: 每个拨测任务可选择在**一个或多个 region**，假定选择了 3 个 region，实际上是该拨测任务的 3 个 fork
-
-说明：
-
-- 解耦考虑：DataFlux 也好，其它第三方也罢，可以各自维护一套自己的拨测任务逻辑，用以管理其拨测任务。比如，SAAS 某工作空间，新建了一个拨测任务 A，在 SAAS 平台，A 可能是 MySQL 中的一条表记录；对 dialtesting 而言，A 只是 SAAS 本地任务的一个 commit，**尚未** push 到 dialtesting
-- 便于部署：当 PAAS/SAAS 开通了拨测服务之后，即可将这些拨测任务 push 到 dialtesting 服务端。对于未开通拨测服务的平台，push 接口**应当**报错，但不影响具体 PAAS/SAAS 在 Web 前端提交新的拨测任务。一旦配置了 dialtesting 正确的授信信息，即可开通拨测服务（以 DataFlux 为例，可在拨测任务表中新增一列，代表是否 push 成功）
-- 拨测服务暂定域名 `dialtesting.dataflux.cn`，基于跨域的考虑，拨测服务的 API 不会在 Web 页面发起
-- 关于授信，可通过 AK/SK 等 API 签名的方式，故 dialtesting 应该提供完整的授权 API 以及开发文档，并尽可能提供常见语言的 SDK
-- 关于 fork： 逻辑上，单个任务的多 region fork，多个 region 之间相互独立。当第三方关闭某 region 的 fork 时，比如，原来某任务 A 创建了 hangzhou/chengdu 两个 region 的 fork，但用户取消了 chengdu 的拨测任务后，理应会向 chengdu push 一个新的 commit，该 commit 中 task 的 `stop` 字段为 `true`
 
 ### 数据库表定义
 
@@ -424,19 +416,28 @@ HTTP/1.1 200 OK
 
 ### 拨测任务策略
 
-中心任务管理策略
+dialtesting 任务管理策略
 
 - 任何经过认证的第三方，都可以往 dialtesting 推送（push）拨测任务
 - 对任意一个已有任务的更新、删除等操作，都会创建一个新的任务提交（commit），**`id`，`uuud` 等均不同**。但对于同一个任务 commit 的 push，如果 hash 值不变，push 接口直接 200 返回，不会创建新的 任务 commit
 
-datakit 端任务处理策略
+说明：
 
-1. DataKit 采集器启动时，通过指定 region，从中心 clone 所有该 region 的任务。通过一定的合并策略，采集器最终执行合并后的具体的任务。合并策略：
+- 解耦考虑：DataFlux 也好，其它第三方也罢，可以各自维护一套自己的拨测任务逻辑，用以管理其拨测任务。比如，SAAS 某工作空间，新建了一个拨测任务 A，在 SAAS 平台，A 可能是 MySQL 中的一条表记录；对 dialtesting 而言，A 只是 SAAS 本地任务的一个 commit，**尚未** push 到 dialtesting
+- 便于部署：当 PAAS/SAAS 开通了拨测服务之后，即可将这些拨测任务 push 到 dialtesting 服务端。对于未开通拨测服务的平台，push 接口**应当**报错，但不影响具体 PAAS/SAAS 在 Web 前端提交新的拨测任务。一旦配置了 dialtesting 正确的授信信息，即可开通拨测服务（以 DataFlux 为例，可在拨测任务表中新增一列，代表是否 push 成功）
+- 拨测服务暂定域名 `dialtesting.dataflux.cn`，基于跨域的考虑，拨测服务的 API 不会在 Web 页面发起
+- 关于授信，可通过 AK/SK 等 API 签名的方式，故 dialtesting 应该提供完整的授权 API 以及开发文档，并尽可能提供常见语言的 SDK
+- 关于 fork： 逻辑上，单个任务的多 region fork，多个 region 之间相互独立。当第三方关闭某 region 的 fork 时，比如，原来某任务 A 创建了 hangzhou/chengdu 两个 region 的 fork，但用户取消了 chengdu 的拨测任务后，理应会向 chengdu push 一个新的 commit，该 commit 中 task 的 `stop` 字段为 `true`
+
+datakit 端任务处理流程
+
+1. DataKit 采集器启动时，通过指定 region，从中心 clone 所有该 region 的任务。通过一定的合并策略，采集器**最终执行合并后的具体的任务**。合并策略：
 	- 轮询一遍 clone 下来的所有 commit（如总共 10K 个 commit，其中**有效任务** 1K 个）
-	- 取固定几个字段的值，通过一定的 hash 算法，即可判定是否是同一个任务
-	- hash 算法：`md5(AK + task-json)` 除了上述定义的基础字段外，第三方平台可在其中添加任何其它字段，如工作空间信息，这些都会计入 hash 计算。一些不太理智的第三方，可提交全部相同的 task，但这不影响 dialtesting 的正常运转。授信的第三方，应该提交差异化的 `task-json`。考虑到计算 hash 的性能开销以及高频率，这里暂用 md5（参见[这里](https://stackoverflow.com/questions/14139727/sha-256-or-md5-for-file-integrity)）
+	- datakit 通过 `access_key + id` 确定一个任务 ID，并以此依据来合并多个 commit 为一个具体拨测任务
+	- 取固定几个字段的值，通过一定的 hash 算法，即可判定拨测任务是否更新
+	- hash 算法：`md5(AK + task-json)`: 第三方平台可在 `task-json` 添加任何其它字段（在不破坏现有 task-json 结构的前提下），如工作空间信息、用户信息等，这些都会计入 hash 计算，并以此推断拨测任务是否更新。授信的第三方，应该提交差异化的 `task-json` 以保证拨测任务的正确运转（如果 `task-json` 都相同，亦不影响 dialtesting 以及 datakit 运行）。考虑到计算 hash 的性能开销以及高频率，这里暂用 md5（参见[这里](https://stackoverflow.com/questions/14139727/sha-256-or-md5-for-file-integrity)）
 
-2. DataKit 采集器以一定频率，从中心同步最新的任务。
+2. DataKit 采集器启动运行之后，以一定频率，从中心同步最新的任务。
 	- 对于更新了配置的任务，直接更新执行（将新的任务 json 发给当前运行的 go routine 即可）
 	- 对于删除的任务，停止执行
 	- 对于新增的任务，新开任务执行
