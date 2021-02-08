@@ -10,14 +10,12 @@ const (
 
 	sampleCfg = `
 [[inputs.tailf]]
-    # glob logfiles
-    # required
+    # required, glob logfiles
     logfiles = ["/var/log/mysql/*.log"]
 
     # glob filteer
     ignore = [""]
 
-    # required
     source = "mysqlog"
 
     # add service tag, if it's empty, use $source.
@@ -30,21 +28,14 @@ const (
     # if from_begin was false, off auto discovery file
     from_beginning = false
 
-    ## characters are replaced using the unicode replacement character
-    ## When set to the empty string the data is not decoded to text.
-    ## ex: character_encoding = "utf-8"
-    ##     character_encoding = "utf-16le"
-    ##     character_encoding = "utf-16le"
-    ##     character_encoding = "gbk"
-    ##     character_encoding = "gb18030"
-    ##     character_encoding = ""
-    #character_encoding = ""
+    # optional encodings:
+    #    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+    character_encoding = ""
 
-    ## The pattern should be a regexp
-    ## Note the use of '''XXX'''
+    # The pattern should be a regexp. Note the use of '''this regexp'''
     match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
 
-    # [inputs.tailf.tags]
+    [inputs.tailf.tags]
     # tags1 = "value1"
 `
 	pipelineCfg = `
