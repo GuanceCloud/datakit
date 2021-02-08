@@ -386,7 +386,8 @@ func flush(cache map[string][][]byte) {
 		if err := doFlush(v, k); err != nil {
 			l.Errorf("post %d to %s failed", len(v), k)
 		} else {
-			curCacheCnt -= len(cache[Metric])
+			curCacheCnt -= len(cache[k])
+			l.Debugf("clean %d/%d cache on %s", len(cache[k]), curCacheCnt, k)
 			cache[k] = nil
 		}
 	}
