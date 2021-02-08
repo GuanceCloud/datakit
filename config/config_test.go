@@ -1,18 +1,18 @@
 package config
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-
-	"fmt"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/host_process"
-	"io/ioutil"
-	"os"
 )
 
 var tomlParseCases = []struct {
