@@ -1,10 +1,11 @@
 package telegraf_http
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
-	"strings"
 	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
@@ -24,8 +25,10 @@ const (
 	sampleCfg = `
 [inputs.telegraf_http]
 
-    [inputs.telegraf_http.logging_measurements]
-    ## "logging_measurement" = "pipeline.p"
+    # [[inputs.telegraf_http.pipeline_metric]]
+    # metric = "A"
+    # pipeline = "A.p"
+    # categories = ["metric", "logging", "object"]
 `
 )
 
@@ -33,20 +36,28 @@ var (
 	l = logger.DefaultSLogger(inputName)
 )
 
+type pipelineMetric struct {
+	Metric     string   `toml:"metric"`
+	Pipeline   string   `toml:"pipeline"`
+	Categories []string `toml:"categories,omitempty"`
+}
+
+type metric struct {
+	pipeline   *pipeline.Pipeline
+	categories []string
+}
+
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &TelegrafHTTP{
-			LoggingMeas: make(map[string]string),
-			pipelineMap: make(map[string]*pipeline.Pipeline),
+			pipelineMap: make(map[string]*metric),
 		}
 	})
 }
 
 type TelegrafHTTP struct {
-	// map[measurement]pipelinePath
-	LoggingMeas map[string]string `toml:"logging_measurements"`
-	// no required goroutine safe
-	pipelineMap map[string]*pipeline.Pipeline
+	PipelineMetric []*pipelineMetric `toml:"pipeline_metric"`
+	pipelineMap    map[string]*metric
 }
 
 func (*TelegrafHTTP) SampleConfig() string {
@@ -61,16 +72,41 @@ func (*TelegrafHTTP) Test() (*inputs.TestResult, error) {
 	return &inputs.TestResult{Desc: "success"}, nil
 }
 
+// Run() 函数的调用顺序在 RegHttpHandler() 函数之后，
+// 可能会出现 RegHttpHandler() 函数执行完毕，HTTP service 已经开启且在接收数据，但 Run() 函数尚未执行，
+// 在这种极端情况下：
+//     1. 数据会按默认情况处理（即忽略配置文件和 Run() ），
+//     2. HTTP goroutine 和执行 Run() 的 goroutine 对同一个 map 做并发读写。
 func (t *TelegrafHTTP) Run() {
 	l = logger.SLogger(inputName)
 
-	for meas, pipelinePath := range t.LoggingMeas {
-		p, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, pipelinePath))
-		if err != nil {
-			l.Error(err) // 忽略错误，只输出log
+	for _, pl := range t.PipelineMetric {
+		if _, ok := t.pipelineMap[pl.Metric]; ok {
+			l.Warnf("metric '%s' exists", pl.Metric)
+			continue
 		}
-		// 不会触发空指针引用panic
-		t.pipelineMap[meas] = p
+
+		t.pipelineMap[pl.Metric] = &metric{}
+
+		for _, categroy := range pl.Categories {
+
+			// 从 metric 转换成类似 /v1/write/metric
+			c, err := transValidCategory(categroy)
+			if err != nil {
+				l.Error(err)
+				continue
+			}
+
+			// 记录有效的 categroy
+			t.pipelineMap[pl.Metric].categories = append(t.pipelineMap[pl.Metric].categories, c)
+		}
+
+		pipe, err := newPipeline(filepath.Join(datakit.PipelineDir, pl.Pipeline))
+		if err != nil {
+			l.Error(err) // 忽略error，pipeline对象指针为nil
+		} else {
+			t.pipelineMap[pl.Metric].pipeline = pipe
+		}
 	}
 
 	l.Infof("telegraf_http input started...")
@@ -100,53 +136,95 @@ func (t *TelegrafHTTP) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metricFeeds := map[string][]string{}
-	loggingFeeds := map[string][]string{}
+	for _, point := range points {
+		measurement := string(point.Name())
 
-	for idx := range points {
-		meas := string(points[idx].Name())
+		m, ok := t.pipelineMap[measurement]
+		if !ok {
+			// 不对此 measurement 数据做处理，默认发送到 io.Metric
+			if err := feed([]byte(point.String()), io.Metric, measurement); err != nil {
+				l.Error(err)
+			}
+			continue
+		}
 
-		if _, ok := t.LoggingMeas[meas]; ok {
-			result, err := t.pipelineMap[meas].RunPoint(points[idx]).Result()
+		var data []byte
+
+		if m.pipeline != nil {
+			fields, err := point.Fields()
 			if err != nil {
 				l.Error(err)
 				continue
 			}
 
-			pt, err := ifxcli.NewPoint(meas, nil, result, points[idx].Time())
+			// 只对行协议的 fields 执行 pipeline，保留原有 tags
+			jsonStr, err := fieldsToJSON(fields)
 			if err != nil {
 				l.Error(err)
 				continue
 			}
 
-			if _, ok := loggingFeeds[meas]; !ok {
-				loggingFeeds[meas] = []string{}
+			result, err := m.pipeline.Run(jsonStr).Result()
+			if err != nil {
+				l.Error(err)
+				continue
 			}
 
-			loggingFeeds[meas] = append(loggingFeeds[meas], pt.String())
+			pt, err := ifxcli.NewPoint(measurement, point.Tags().Map(), result, point.Time())
+			if err != nil {
+				l.Error(err)
+				continue
+			}
+
+			data = []byte(pt.String())
 
 		} else {
-			if _, ok := metricFeeds[meas]; !ok {
-				metricFeeds[meas] = []string{}
+			data = []byte(point.String())
+		}
+
+		for _, category := range m.categories {
+			if err := feed(data, category, measurement); err != nil {
+				l.Errorf("feed %s, err: %s", category, err.Error())
 			}
-
-			metricFeeds[meas] = append(metricFeeds[meas], points[idx].String())
-		}
-	}
-
-	for k, lines := range metricFeeds {
-		if err := io.NamedFeed([]byte(strings.Join(lines, "\n")), io.Metric, k); err != nil {
-			l.Errorf("feed metric, err: %s", err.Error())
-			return
-		}
-	}
-
-	for k, lines := range loggingFeeds {
-		if err := io.NamedFeed([]byte(strings.Join(lines, "\n")), io.Logging, k); err != nil {
-			l.Errorf("feed logging, err: %s", err.Error())
-			return
 		}
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+var categoriesMap = map[string]string{
+	"metric":   io.Metric,
+	"keyEvent": io.KeyEvent,
+	"object":   io.Object,
+	"logging":  io.Logging,
+	"tracing":  io.Tracing,
+	"rum":      io.Rum,
+}
+
+func transValidCategory(s string) (string, error) {
+	if s == "" {
+		return "", fmt.Errorf("category should not be empty str")
+	}
+
+	if c, ok := categoriesMap[s]; ok {
+		return c, nil
+	}
+
+	return "", fmt.Errorf("invalid category of %s", s)
+}
+
+func feed(data []byte, category, name string) error {
+	return io.NamedFeed(data, category, name)
+}
+
+func newPipeline(pipelinePath string) (*pipeline.Pipeline, error) {
+	return pipeline.NewPipelineFromFile(pipelinePath)
+}
+
+func fieldsToJSON(fields map[string]interface{}) (string, error) {
+	j, err := json.Marshal(fields)
+	if err != nil {
+		return "", err
+	}
+	return string(j), nil
 }
