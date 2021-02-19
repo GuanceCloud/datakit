@@ -243,9 +243,10 @@ func (t *httpTask) Init() error {
 	}
 	t.ticker = time.NewTicker(du)
 
-	// check FollowRedirect
+	// advance options
 	for _, opt := range t.AdvanceOptions {
 		if opt.RequestsOptions != nil {
+			// check FollowRedirect
 			if !opt.RequestsOptions.FollowRedirect { // see https://stackoverflow.com/a/38150816/342348
 				t.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 					return http.ErrUseLastResponse
