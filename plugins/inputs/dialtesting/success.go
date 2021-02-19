@@ -26,13 +26,13 @@ type successOption struct {
 func (s *successOption) check(val, prompt string) error {
 	if s.Is != "" {
 		if s.Is != val {
-			return fmt.Errorf("%s: expect to be %s, got %s", prompt, s.Is, val)
+			return fmt.Errorf("%s: expect to be `%s', got `%s'", prompt, s.Is, val)
 		}
 		return nil
 	}
 
 	if s.IsNot != "" {
-		if s.Is == val {
+		if s.IsNot == val {
 			return fmt.Errorf("%s: shoud not be %s", prompt, s.IsNot)
 		}
 		return nil
@@ -42,11 +42,12 @@ func (s *successOption) check(val, prompt string) error {
 		if !s.matchRe.MatchString(val) {
 			return fmt.Errorf("%s: regex `%s` match `%s' failed", prompt, s.MatchRegex, val)
 		}
+		l.Debugf("`%s' match `%s' ok", s.MatchRegex, val)
 	}
 
 	if s.notMatchRe != nil {
 		if s.notMatchRe.MatchString(val) {
-			return fmt.Errorf("%s: should not match `%s', got `%s'", prompt, s.MatchRegex, val)
+			return fmt.Errorf("%s: regex `%s' should not match `%s'", prompt, s.NotMatchRegex, val)
 		}
 	}
 
