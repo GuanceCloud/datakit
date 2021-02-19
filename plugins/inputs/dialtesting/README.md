@@ -454,7 +454,7 @@ datakit 端任务处理流程
 	region = "hangzhou" 
 
 	# default dialtesting.dataflux.cn
-	server = "dialtesting.dataflux.cn" 
+	server = "https://dialtesting.dataflux.cn" 
 
 	[[inputs.dialtesting.tags]]
 	# 各种可能的 tag
