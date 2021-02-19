@@ -14,6 +14,7 @@ const (
 	name = 'oraclemonitor'
 	cmd  = "/usr/local/cloudcare/dataflux/datakit/externals/oraclemonitor"
 	args = [
+		'-data-type'      , '<Metric/Logging>'          ,
 		'-instance-id'    , '<your-instance-id>'        ,
 		'-metric-name'    , 'oracle_monitor'            ,
 		'-interval'       , '1m'                        ,
