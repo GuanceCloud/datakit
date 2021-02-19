@@ -36,6 +36,7 @@ type httpTask struct {
 
 	cli      *http.Client
 	resp     *http.Response
+	req      *http.Request
 	respBody []byte
 	reqStart time.Time
 	reqCost  time.Duration
@@ -59,13 +60,13 @@ func (t *httpTask) Ticker() *time.Ticker {
 }
 
 type httpSuccess struct {
-	Body string `json:"body"`
+	Body string `json:"body,omitempty"`
 
-	ResponseTime string `json:"response_time"`
+	ResponseTime string `json:"response_time,omitempty"`
 	respTime     time.Duration
 
-	Header     map[string]*successOption `json:"header"`
-	StatusCode *successOption            `json:"status_code"`
+	Header     map[string]*successOption `json:"header,omitempty"`
+	StatusCode *successOption            `json:"status_code,omitempty"`
 }
 
 type httpOptAuth struct {
@@ -112,20 +113,20 @@ func (t *httpTask) Run() error {
 		return err
 	}
 
-	req, err := http.NewRequest(t.Method, reqURL.String(), nil)
+	t.req, err = http.NewRequest(t.Method, reqURL.String(), nil)
 	if err != nil {
 		l.Errorf("http.NewRequest(): %s", err.Error())
 		return err
 	}
 
 	// advance options
-	if err := t.setupAdvanceOpts(req); err != nil {
+	if err := t.setupAdvanceOpts(t.req); err != nil {
 		l.Errorf("setupAdvanceOpts(): %s", err.Error())
 		return err
 	}
 
 	t.reqStart = time.Now()
-	t.resp, err = t.cli.Do(req)
+	t.resp, err = t.cli.Do(t.req)
 	if err != nil {
 		l.Info("cli.Do(): %s", err)
 		return err
@@ -146,8 +147,9 @@ func (t *httpTask) CheckResult() (reasons []string) {
 
 	for _, chk := range t.SuccessWhen {
 		// check headers
+
 		for k, v := range chk.Header {
-			if err := v.check(t.resp.Header.Get(k), fmt.Sprintf("HTTP header %s", k)); err != nil {
+			if err := v.check(t.resp.Header.Get(k), fmt.Sprintf("HTTP header `%s'", k)); err != nil {
 				reasons = append(reasons, err.Error())
 			}
 		}
@@ -155,19 +157,19 @@ func (t *httpTask) CheckResult() (reasons []string) {
 		// check body
 		if chk.Body != "" {
 			if chk.Body != string(t.respBody) {
-				reasons = append(reasons, "body not match: %s <> %s", chk.Body, string(t.respBody))
+				reasons = append(reasons, "body not match: `%s' <> `%s'", chk.Body, string(t.respBody))
 			}
 		}
 
 		// check status code
 		if chk.StatusCode != nil {
-			if err := chk.StatusCode.check(fmt.Sprintf("%s", t.resp.StatusCode), "HTTP status"); err != nil {
+			if err := chk.StatusCode.check(fmt.Sprintf("%d", t.resp.StatusCode), "HTTP status"); err != nil {
 				reasons = append(reasons, err.Error())
 			}
 		}
 
 		// check response time
-		if t.reqCost > chk.respTime {
+		if t.reqCost > chk.respTime && chk.respTime > 0 {
 			reasons = append(reasons,
 				fmt.Sprintf("HTTP response time(%v) larger than %v", t.reqCost, chk.respTime))
 		}
