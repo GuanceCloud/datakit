@@ -23,7 +23,7 @@ var httpCases = []struct {
 	{
 		reasonCnt: 0,
 		t: &httpTask{
-			TID:       cliutils.XID("dtst"),
+			TID:       cliutils.XID("dtst_"),
 			Method:    "GET",
 			URL:       "http://localhost:54321/_test_redirect",
 			Name:      "_test_redirect",
@@ -46,7 +46,7 @@ var httpCases = []struct {
 	{
 		reasonCnt: 0,
 		t: &httpTask{
-			TID:       cliutils.XID("dtst"),
+			TID:       cliutils.XID("dtst_"),
 			Method:    "GET",
 			URL:       "http://localhost:54321/_test_redirect",
 			Name:      "_test_redirect_disabled",
@@ -86,7 +86,7 @@ var httpCases = []struct {
 	{
 		reasonCnt: 2,
 		t: &httpTask{
-			TID:       cliutils.XID("dtst"),
+			TID:       cliutils.XID("dtst_"),
 			Method:    "GET",
 			URL:       "http://localhost:54321/_test_header_checking",
 			Name:      "_test_header_checking",
@@ -95,12 +95,14 @@ var httpCases = []struct {
 			SuccessWhen: []*httpSuccess{
 				&httpSuccess{
 					Header: map[string]*successOption{
-						"Date":            &successOption{Contains: "GMT"},         // Date always use GMT
-						"Cache-Control":   &successOption{MatchRegex: `max-ag=\d`}, // match fail
-						"Server":          &successOption{Is: `Apache`},            // ok
-						"NotExistHeader1": &successOption{NotMatchRegex: `.+`},     // ok
-						"NotExistHeader2": &successOption{IsNot: `abc`},            // ok
-						"NotExistHeader3": &successOption{NotContains: `def`},      // ok
+
+						"Cache-Control": &successOption{MatchRegex: `max-ag=\d`}, // expect fail: max-age
+						"Server":        &successOption{Is: `Apache`},            // expect fail
+
+						"Date":            &successOption{Contains: "GMT"},     // ok: Date always use GMT
+						"NotExistHeader1": &successOption{NotMatchRegex: `.+`}, // ok
+						"NotExistHeader2": &successOption{IsNot: `abc`},        // ok
+						"NotExistHeader3": &successOption{NotContains: `def`},  // ok
 					},
 				},
 			},
