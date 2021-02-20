@@ -24,7 +24,10 @@ var (
 	httpCli    *http.Client
 	baseURL    string
 
-	inputCh    = make(chan *iodata, datakit.CommonChanCap)
+	inputCh               = make(chan *iodata, datakit.CommonChanCap)
+	highFreqInputCh       = make(chan *iodata, datakit.CommonChanCap*8)
+	highFreqCleanInterval = time.Millisecond * 500
+
 	inputstats = map[string]*InputsStat{}
 
 	qstatsCh = make(chan *qstats)
@@ -39,7 +42,9 @@ var (
 		Rum:              nil,
 	}
 
-	curCacheCnt = 0
+	curCacheCnt      = 0
+	maxCacheCnt      = 128
+	MaxPostFailCache = 1024
 
 	categoryURLs map[string]string
 
@@ -48,9 +53,6 @@ var (
 )
 
 const ( // categories
-
-	maxCacheCnt      = 128
-	MaxPostFailCache = 1024
 
 	MetricDeprecated = "/v1/write/metrics"
 	Metric           = "/v1/write/metric"
@@ -85,22 +87,25 @@ func TestOutput() {
 	testAssert = true
 }
 
-func ChanInfo() (l, c int) {
-	l = len(inputCh)
-	c = cap(inputCh)
-	return
+func ChanStat() string {
+	l := len(inputCh)
+	c := cap(inputCh)
+
+	l2 := len(highFreqInputCh)
+	c2 := cap(highFreqInputCh)
+	return fmt.Sprintf("inputCh: %d/%d, highFreqInputCh: %d/%d", l, c, l2, c2)
 }
 
 // Deprecated
 func Feed(data []byte, category string) error {
-	return doFeed(data, category, "")
+	return doFeed(data, category, "", false)
 }
 
 func SetTest() {
 	testAssert = true
 }
 
-func doFeed(data []byte, category, name string) error {
+func doFeed(data []byte, category, name string, highfreq bool) error {
 
 	switch category {
 	case Metric, KeyEvent, Object, Logging, Tracing:
@@ -113,20 +118,28 @@ func doFeed(data []byte, category, name string) error {
 		return fmt.Errorf("invalid category %s", category)
 	}
 
-	if testAssert {
-		l.Infof("[%s] source: `%s', data: %s", category, name, data)
-		return nil
-	}
+	if highfreq {
+		select {
+		case highFreqInputCh <- &iodata{
+			category: category,
+			data:     data,
+			name:     name,
+		}: // XXX: blocking
 
-	select {
-	case inputCh <- &iodata{
-		category: category,
-		data:     data,
-		name:     name,
-	}: // XXX: blocking
+		case <-datakit.Exit.Wait():
+			l.Warnf("%s/%s feed skipped on global exit", category, name)
+		}
+	} else {
+		select {
+		case inputCh <- &iodata{
+			category: category,
+			data:     data,
+			name:     name,
+		}: // XXX: blocking
 
-	case <-datakit.Exit.Wait():
-		l.Warnf("%s/%s feed skipped on global exit", category, name)
+		case <-datakit.Exit.Wait():
+			l.Warnf("%s/%s feed skipped on global exit", category, name)
+		}
 	}
 
 	return nil
@@ -144,7 +157,7 @@ func checkMetric(data []byte) error {
 }
 
 func NamedFeed(data []byte, category, name string) error {
-	return doFeed(data, category, name)
+	return doFeed(data, category, name, false)
 }
 
 func NamedFeedPoints(pts []influxm.Point, category, name string) error {
@@ -157,24 +170,51 @@ func NamedFeedPoints(pts []influxm.Point, category, name string) error {
 		lines = append(lines, p.String())
 	}
 
-	return NamedFeed([]byte(strings.Join(lines, "\n")), category, name)
+	return doFeed([]byte(strings.Join(lines, "\n")), category, name, false)
 }
 
-// Deprecated
-func FeedEx(category, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
-	return doFeedEx("", category, metric, tags, fields, t...)
+func NamedFeedEx(name, category, metric string,
+	tags map[string]string,
+	fields map[string]interface{},
+	t ...time.Time) error {
+	return doFeedEx(name, category, metric, tags, fields, false, t...)
 }
 
-func NamedFeedEx(name, category, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
-	return doFeedEx(name, category, metric, tags, fields, t...)
+func HighFreqFeedEx(name, category, metric string,
+	tags map[string]string,
+	fields map[string]interface{},
+	t ...time.Time) error {
+	return doFeedEx(name, category, metric, tags, fields, true, t...)
 }
 
-func doFeedEx(name, category, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+func HighFreqFeed(data []byte, category, name string) error {
+	return doFeed(data, category, name, true)
+}
+
+func HighFreqFeedPoints(pts []influxm.Point, category, name string) error {
+	if len(pts) == 0 {
+		return nil
+	}
+
+	lines := []string{}
+	for _, p := range pts {
+		lines = append(lines, p.String())
+	}
+
+	return doFeed([]byte(strings.Join(lines, "\n")), category, name, true)
+}
+
+func doFeedEx(name, category, metric string,
+	tags map[string]string,
+	fields map[string]interface{},
+	highfreq bool,
+	t ...time.Time) error {
+
 	data, err := MakeMetric(metric, tags, fields, t...)
 	if err != nil {
 		return err
 	}
-	return doFeed(data, category, name)
+	return doFeed(data, category, name, highfreq)
 }
 
 func MakeMetric(name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) ([]byte, error) {
@@ -233,92 +273,87 @@ func ioStop() {
 	}
 }
 
-func startIO() {
-	categoryURLs = map[string]string{
-		Metric:   datakit.Cfg.MainCfg.DataWay.MetricURL(),
-		KeyEvent: datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
-		Object:   datakit.Cfg.MainCfg.DataWay.ObjectURL(),
-		Logging:  datakit.Cfg.MainCfg.DataWay.LoggingURL(),
-		Tracing:  datakit.Cfg.MainCfg.DataWay.TracingURL(),
-		Rum:      datakit.Cfg.MainCfg.DataWay.RumURL(),
+func cacheData(d *iodata) {
+	if d == nil {
+		l.Warn("get empty data, ignored")
+		return
 	}
 
-	l.Debugf("categoryURLs: %+#v", categoryURLs)
-	var du time.Duration
-	var err error
+	now := time.Now()
 
-	if datakit.Cfg.MainCfg.DataWay.Timeout != "" {
-		du, err = time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Timeout)
-		if err != nil {
-			l.Warnf("parse dataway timeout failed: %s", err.Error())
-			du = time.Second * 30
+	stat, ok := inputstats[d.name]
+	if !ok {
+		inputstats[d.name] = &InputsStat{
+			Name:     d.name,
+			Category: d.category,
+			Total:    int64(len(d.data)),
+			First:    now,
+			Count:    1,
+			Last:     now,
+		}
+	} else {
+		stat.Total += int64(len(d.data))
+		stat.Count++
+		stat.Last = now
+		stat.Category = d.category
+	}
+
+	cache[d.category] = append(cache[d.category], d.data)
+	curCacheCnt++
+}
+
+func tryCleanCache(d *iodata) {
+	// disable cache under proxied mode, to prevent large packages in proxing lua module
+	if datakit.Cfg.MainCfg.DataWay.Proxy {
+		if err := doFlush([][]byte{d.data}, d.category); err != nil {
+			l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
+		}
+	} else {
+		if curCacheCnt > maxCacheCnt {
+			flushAll()
 		}
 	}
+}
 
-	httpCli = &http.Client{
-		Timeout: du,
+func cleanHighFreqIOData() {
+	for {
+		select {
+		case d := <-highFreqInputCh: // eat all cached data
+			cacheData(d)
+			tryCleanCache(d)
+		default:
+			return
+		}
 	}
+}
+
+func startIO(recoverable bool) {
 
 	defer ioStop()
 
 	var f rtpanic.RecoverCallback
 
 	f = func(trace []byte, _ error) {
-		defer rtpanic.Recover(f, nil)
+		if recoverable {
+			defer rtpanic.Recover(f, nil)
+		}
 
 		tick := time.NewTicker(datakit.IntervalDuration)
 		defer tick.Stop()
 		l.Debugf("io interval: %v", datakit.IntervalDuration)
 
+		highFreqRecvTicker := time.NewTicker(highFreqCleanInterval)
+		defer highFreqRecvTicker.Stop()
+
 		if trace != nil {
-			l.Warn("recover ok")
+			l.Warnf("recover from %s", string(trace))
 		}
 
 		for {
 			select {
 			case d := <-inputCh:
-				if d == nil {
-					l.Warn("get empty data, ignored")
-				} else {
-
-					now := time.Now()
-
-					if d.name == "tailf" && datakit.Cfg.MainCfg.LogUpload {
-					} else {
-						l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
-					}
-
-					stat, ok := inputstats[d.name]
-					if !ok {
-						inputstats[d.name] = &InputsStat{
-							Name:     d.name,
-							Category: d.category,
-							Total:    int64(len(d.data)),
-							First:    now,
-							Count:    1,
-							Last:     now,
-						}
-					} else {
-						stat.Total += int64(len(d.data))
-						stat.Count++
-						stat.Last = now
-						stat.Category = d.category
-					}
-
-					// disable cache under proxied mode, to prevent large packages in proxing lua module
-					if datakit.Cfg.MainCfg.DataWay.Proxy {
-						if err := doFlush([][]byte{d.data}, d.category); err != nil {
-							l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
-						}
-					} else {
-						cache[d.category] = append(cache[d.category], d.data)
-						curCacheCnt++
-
-						if curCacheCnt > maxCacheCnt {
-							flushAll(cache)
-						}
-					}
-				}
+				cacheData(d)
+				tryCleanCache(d)
 
 			case q := <-qstatsCh:
 				statRes := []*InputsStat{}
@@ -332,8 +367,12 @@ func startIO() {
 					// pass
 				}
 
+			case <-highFreqRecvTicker.C:
+				cleanHighFreqIOData()
+
 			case <-tick.C:
-				flushAll(cache)
+				l.Debugf("chan stat: %s", ChanStat())
+				flushAll()
 
 			case <-datakit.Exit.Wait():
 				l.Info("io exit on exit")
@@ -350,10 +389,35 @@ func Start() {
 
 	l = logger.SLogger("io")
 
+	categoryURLs = map[string]string{
+		Metric:   datakit.Cfg.MainCfg.DataWay.MetricURL(),
+		KeyEvent: datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
+		Object:   datakit.Cfg.MainCfg.DataWay.ObjectURL(),
+		Logging:  datakit.Cfg.MainCfg.DataWay.LoggingURL(),
+		Tracing:  datakit.Cfg.MainCfg.DataWay.TracingURL(),
+		Rum:      datakit.Cfg.MainCfg.DataWay.RumURL(),
+	}
+
+	l.Debugf("categoryURLs: %+#v", categoryURLs)
+
+	var err error
+	var du time.Duration
+	if datakit.Cfg.MainCfg.DataWay.Timeout != "" {
+		du, err = time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Timeout)
+		if err != nil {
+			l.Warnf("parse dataway timeout failed: %s", err.Error())
+			du = time.Second * 30
+		}
+	}
+
+	httpCli = &http.Client{
+		Timeout: du,
+	}
+
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
-		startIO()
+		startIO(true)
 	}()
 
 	datakit.WG.Add(1)
@@ -363,8 +427,8 @@ func Start() {
 	}()
 }
 
-func flushAll(cache map[string][][]byte) {
-	flush(cache)
+func flushAll() {
+	flush()
 
 	if curCacheCnt > 0 {
 		l.Warnf("post failed cache count: %d", curCacheCnt)
@@ -379,9 +443,12 @@ func flushAll(cache map[string][][]byte) {
 	}
 }
 
-func flush(cache map[string][][]byte) {
+func flush() {
 
-	defer httpCli.CloseIdleConnections()
+	if httpCli != nil {
+		defer httpCli.CloseIdleConnections()
+	}
+
 	for k, v := range cache {
 		if err := doFlush(v, k); err != nil {
 			l.Errorf("post %d to %s failed", len(v), k)
@@ -409,6 +476,10 @@ func buildBody(url string, bodies [][]byte) (body []byte, gzon bool, err error) 
 }
 
 func doFlush(bodies [][]byte, url string) error {
+
+	if testAssert {
+		return nil
+	}
 
 	if bodies == nil {
 		return nil
