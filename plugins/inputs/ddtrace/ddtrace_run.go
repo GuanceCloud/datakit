@@ -68,11 +68,15 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			if span.ParentID == 0 {
 				tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
 			} else {
-				if _, ok := spanIds[span.ParentID]; ok {
-					if _, ok := parentIds[span.SpanID]; ok {
-						tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+				if serviceName, ok := spanIds[span.ParentID]; ok {
+					if serviceName != span.Service {
+						tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
 					} else {
-						tAdpter.SpanType = trace.SPAN_TYPE_EXIT
+						if _, ok := parentIds[span.SpanID]; ok {
+							tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+						} else {
+							tAdpter.SpanType = trace.SPAN_TYPE_EXIT
+						}
 					}
 				} else {
 					tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
@@ -129,17 +133,17 @@ func unmarshalDdtraceMsgpack(body io.ReadCloser) ([][]*Span, error) {
 	return traces, err
 }
 
-func getSpanAndParentId(spans []*Span) (map[uint64]bool, map[uint64]bool) {
-	spanID := make(map[uint64]bool)
-	parentId := make(map[uint64]bool)
+func getSpanAndParentId(spans []*Span) (map[uint64]string, map[uint64]string) {
+	spanID := make(map[uint64]string)
+	parentId := make(map[uint64]string)
 	for _, span := range spans {
 		if span == nil {
 			continue
 		}
-		spanID[span.SpanID] = true
+		spanID[span.SpanID] = span.Service
 
 		if span.ParentID != 0 {
-			parentId[span.ParentID] = true
+			parentId[span.ParentID] = ""
 		}
 	}
 	return spanID, parentId
