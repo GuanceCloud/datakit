@@ -29,6 +29,21 @@ const (
     # metric = "A"
     # pipeline = "A.p"
     # categories = ["metric", "logging", "object"]
+
+    [[inputs.telegraf_http.pipeline_metric]]
+    metric = "kubernetes_pod_container"
+    pipeline = "kubernetes_pod_container_cpu_mem_usage_percent.p"
+    categories = ["metric"]
+
+    [[inputs.telegraf_http.pipeline_metric]]
+    metric = "docker_container_mem"
+    pipeline = "docker_container_mem_usage_percent.p"
+    categories = ["metric"]
+
+    [[inputs.telegraf_http.pipeline_metric]]
+    metric = "docker_container_cpu"
+    pipeline = "docker_container_cpu_usage_percent.p"
+    categories = ["metric"]
 `
 )
 
@@ -60,12 +75,16 @@ type TelegrafHTTP struct {
 	pipelineMap    map[string]*metric
 }
 
-func (*TelegrafHTTP) SampleConfig() string {
-	return sampleCfg
+func (t *TelegrafHTTP) PipelineConfig() map[string]string {
+	return pipelineCfg
 }
 
 func (*TelegrafHTTP) Catalog() string {
 	return inputName
+}
+
+func (*TelegrafHTTP) SampleConfig() string {
+	return sampleCfg
 }
 
 func (*TelegrafHTTP) Test() (*inputs.TestResult, error) {
