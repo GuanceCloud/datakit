@@ -8,7 +8,8 @@
 
 ```python
 {
-	"id": "dialt_xxxxxxxxxxxxxxxxx", # 拨测任务 ID
+	"id": 12345,                       # 拨测任务 SN
+	"uuid": "dialt_xxxxxxxxxxxxxxxxx", # 拨测任务 UUID
 
 	"url": "http://example.com/some/api", 
 	"method": "POST",
@@ -150,7 +151,8 @@
 
 ```python
 {
-	"id": "dialt_xxxxxxxxxxxxxxxxx", # 拨测任务 ID
+	"id": 12345,                       # 拨测任务 SN
+	"uuid": "dialt_xxxxxxxxxxxxxxxxx", # 拨测任务 ID
 	"host": "www.example.com",
 	"port": "443",
 	"name": "give your test a name",
@@ -231,7 +233,8 @@
 
 ```python
 {
-	"id": "dialt_xxxxxxxxxxxxxxxxx", # 拨测任务 ID
+	"id": 12345,                     # 拨测任务 SN
+	"uuid": "dialt_xxxxxxxxxxxxxxxxx", # 拨测任务 ID
 	"domain": "www.example.com",
 	"dns_server": "",
 	"name": "give your test a name",
@@ -333,38 +336,39 @@
 
 ```sql
 -- 存储拨测任务信息
-CREATE TABLE IF NOT EXITS task (
+CREATE TABLE IF NOT EXISTS task (
 		`id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增 ID',
 		`uuid` varchar(48) NOT NULL COMMENT '全局唯一 ID，带 dialt_ 前缀',
-		`region` varchar(48) NOT NULL COMMENT '部署区域（只能有一个区域）'
-
-		`access_key` varchar(20) NOT NULL COMMENT '推送 commit 的 AK'
-
-		`create_at` int(11) NOT NULL DEFAULT '-1',
-
+		`region` varchar(48) NOT NULL COMMENT '部署区域（只能有一个区域）',
+		`accessKey` varchar(20) NOT NULL COMMENT '推送 commit 的 AK',
 		`task` text NOT NULL COMMENT '任务的 json 描述',
-		`hash` varchar(128) NOT NULL COMMENT '任务 hash，md5(access_key+task)',
+		`hash` varchar(128) NOT NULL COMMENT '任务 hash，md5(accessKey+task)',
+		`createAt` int(11) NOT NULL DEFAULT '-1',
+    `updateAt` int(11) NOT NULL DEFAULT '-1',
 
-		INDEX `hash` (`idx_hash`) COMMENT '便于鉴定重复推送',
-
+		INDEX `idx_hash` (`hash`) COMMENT '便于鉴定重复推送',
 		PRIMARY KEY (`id`),
-		UNIQUE KEY `uk_uuid` (`uuid`) COMMENT 'UUID 做成全局唯一',
+		UNIQUE KEY `uk_uuid` (`uuid`) COMMENT 'UUID 做成全局唯一'
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 存储 AK/SK 信息
-CREATE TABLE IF NOT EXITS aksk (
-		`id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增 ID',
-		`uuid` varchar(48) NOT NULL COMMENT '全局唯一 ID，带 aksk_ 前缀',
-		`access_key` varchar(20) NOT NULL COMMENT '推送 commit 的 AK'
-    `secret_key` varchar(40) NOT NULL COMMENT '推送 commit 的 SK'
+ CREATE TABLE IF NOT EXISTS aksk (
+     `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增 ID',
+     `uuid` varchar(48) NOT NULL COMMENT '全局唯一 ID，带 aksk_ 前缀',
+     `accessKey` varchar(20) NOT NULL COMMENT '推送 commit 的 AK',
+     `secretKey` varchar(40) NOT NULL COMMENT '推送 commit 的 SK',
+     `owner` varchar(128) NOT NULL COMMENT 'AK 归属',
+		 `status` enum('OK', 'DISABLED') NOT NULL DEFAULT 'OK' COMMENT 'AK 状态',
 
-		`create_at` int(11) NOT NULL DEFAULT '-1',
-    `status` int(11) NOT NULL DEFAULT '0' COMMENT '状态 0: ok/1: 故障/2: 停用/3: 删除',
-		PRIMARY KEY (`id`),
-		UNIQUE KEY `uk_uuid` (`uuid`) COMMENT 'UUID 做成全局唯一',
-    UNIQUE KEY `uk_ak` (`access_key`) COMMENT 'AK 做成全局唯一',
-    UNIQUE KEY `uk_sk` (`secret_key`) COMMENT 'SK 做成全局唯一',
-		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+     `version` int(11) NOT NULL DEFAULT 1 COMMENT 'AK 版本，便于 AK 验证方式变更（not used）',
+
+     `createAt` int(11) NOT NULL DEFAULT '-1',
+     `updateAt` int(11) NOT NULL DEFAULT '-1',
+     PRIMARY KEY (`id`),
+     UNIQUE KEY `uk_uuid` (`uuid`) COMMENT 'UUID 做成全局唯一',
+     UNIQUE KEY `uk_ak` (`accessKey`) COMMENT 'AK 做成全局唯一',
+     UNIQUE KEY `uk_sk` (`secretKey`) COMMENT 'SK 做成全局唯一'
+     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
 ### API 定义
