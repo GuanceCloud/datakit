@@ -118,7 +118,7 @@ func extract(p *pipeline.Pipeline, body iowrite.Reader, metric string, tags map[
 
 		l.Debug("point data", string(pt))
 
-		err = io.NamedFeed([]byte(pt), io.Logging, "")
+		err = io.HighFreqFeed([]byte(pt), io.Logging, "")
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
 			continue
