@@ -26,7 +26,7 @@ import (
 
 var (
 	fInterval        = flag.String("interval", "5m", "gather interval")
-	fDataType        = flag.String("data-type", "Metric", "data type, Metric/Logging, default metric")
+	fDataType        = flag.String("data-type", "metric", "data type, metric/logging, default metric")
 	fMetric          = flag.String("metric-name", "oracle_monitor", "gathered metric name")
 	fInstance        = flag.String("instance-id", "", "oracle instance ID")
 	fInstanceDesc    = flag.String("instance-desc", "", "oracle description")
@@ -109,7 +109,7 @@ func buildMonitor() *monitor {
 func main() {
 	flag.Parse()
 
-	if *fDataType == "Logging" {
+	if *fDataType == "logging" {
 		datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/logging?name=oraclemonitor", *fDatakitHTTPPort)
 	} else {
 		datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?name=oraclemonitor", *fDatakitHTTPPort)
