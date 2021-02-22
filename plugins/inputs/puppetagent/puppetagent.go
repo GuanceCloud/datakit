@@ -150,7 +150,7 @@ func (pa *PuppetAgent) do() {
 					l.Error(err)
 					continue
 				}
-				if err := io.Feed(data, io.Metric); err != nil {
+				if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
 					l.Error(err)
 					continue
 				}
