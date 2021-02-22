@@ -14,15 +14,16 @@ import (
 )
 
 type Tailf struct {
-	LogFiles          []string          `toml:"logfiles"`
-	Ignore            []string          `toml:"ignore"`
-	Source            string            `toml:"source"`
-	Service           string            `toml:"service"`
-	Pipeline          string            `toml:"pipeline,pipeline_path"`
-	FromBeginning     bool              `toml:"from_beginning"`
-	CharacterEncoding string            `toml:"character_encoding"`
-	Match             string            `toml:"match"`
-	Tags              map[string]string `toml:"tags"`
+	LogFiles           []string          `toml:"logfiles"`
+	Ignore             []string          `toml:"ignore"`
+	Source             string            `toml:"source"`
+	Service            string            `toml:"service"`
+	Pipeline           string            `toml:"pipeline"`
+	DeprecatedPipeline string            `toml:"pipeline_path"`
+	FromBeginning      bool              `toml:"from_beginning"`
+	CharacterEncoding  string            `toml:"character_encoding"`
+	Match              string            `toml:"match"`
+	Tags               map[string]string `toml:"tags"`
 
 	InputName   string            `toml:"-"`
 	CatalogStr  string            `toml:"-"`
@@ -104,6 +105,11 @@ func (t *Tailf) Run() {
 
 func (t *Tailf) loadcfg() bool {
 	var err error
+
+	// compatible
+	if t.Pipeline == "" && t.DeprecatedPipeline != "" {
+		t.Pipeline = t.DeprecatedPipeline
+	}
 
 	if t.Pipeline == "" {
 		t.Pipeline = filepath.Join(datakit.PipelineDir, t.Source+".p")
