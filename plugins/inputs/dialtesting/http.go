@@ -100,10 +100,10 @@ type httpOptProxy struct {
 }
 
 type httpAdvanceOption struct {
-	RequestsOptions *httpOptRequest     `json:"requests_options,omitempty"`
-	RequestBody     *httpOptBody        `json:"request_body,omitempty"`
-	Certificate     *httpOptCertificate `json:"certificate,omitempty"`
-	Proxy           *httpOptProxy       `json:"proxy,omitempty"`
+	RequestOptions *httpOptRequest     `json:"requests_options,omitempty"`
+	RequestBody    *httpOptBody        `json:"request_body,omitempty"`
+	Certificate    *httpOptCertificate `json:"certificate,omitempty"`
+	Proxy          *httpOptProxy       `json:"proxy,omitempty"`
 }
 
 func (t *httpTask) Run() error {
@@ -128,7 +128,7 @@ func (t *httpTask) Run() error {
 	t.reqStart = time.Now()
 	t.resp, err = t.cli.Do(t.req)
 	if err != nil {
-		l.Info("cli.Do(): %s", err)
+		l.Errorf("cli.Do(): %s", err)
 		return err
 	}
 
@@ -144,6 +144,9 @@ func (t *httpTask) Run() error {
 }
 
 func (t *httpTask) CheckResult() (reasons []string) {
+	if t.resp == nil {
+		return nil
+	}
 
 	for _, chk := range t.SuccessWhen {
 		// check headers
@@ -181,35 +184,27 @@ func (t *httpTask) CheckResult() (reasons []string) {
 func (t *httpTask) setupAdvanceOpts(req *http.Request) error {
 	for _, opt := range t.AdvanceOptions {
 		// request options
-		if opt.RequestsOptions != nil {
+		if opt.RequestOptions != nil {
 			// headers
-			for k, v := range opt.RequestsOptions.Headers {
+			for k, v := range opt.RequestOptions.Headers {
 				req.Header.Add(k, v)
 			}
 
 			// cookie
-			if opt.RequestsOptions.Cookies != "" {
-				req.Header.Add("Cookie", opt.RequestsOptions.Cookies)
+			if opt.RequestOptions.Cookies != "" {
+				req.Header.Add("Cookie", opt.RequestOptions.Cookies)
 			}
 
 			// auth
 			// TODO: add more auth options
-			if opt.RequestsOptions.Auth != nil {
-				req.SetBasicAuth(opt.RequestsOptions.Auth.Username, opt.RequestsOptions.Auth.Password)
+			if opt.RequestOptions.Auth != nil {
+				req.SetBasicAuth(opt.RequestOptions.Auth.Username, opt.RequestOptions.Auth.Password)
 			}
 		}
 
 		// body options
 		if opt.RequestBody != nil {
-			switch opt.RequestBody.BodyType {
-			case "text/plain", "application/json", "text/xml":
-				req.Header.Add("Content-Type", opt.RequestBody.BodyType)
-			case "": // do nothing
-			default:
-				return fmt.Errorf("invalid body type: `%s'", opt.RequestBody.BodyType)
-			}
-
-			// setup body
+			req.Header.Add("Content-Type", opt.RequestBody.BodyType)
 			req.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(opt.RequestBody.Body)))
 		}
 
@@ -247,12 +242,21 @@ func (t *httpTask) Init() error {
 
 	// advance options
 	for _, opt := range t.AdvanceOptions {
-		if opt.RequestsOptions != nil {
+		if opt.RequestOptions != nil {
 			// check FollowRedirect
-			if !opt.RequestsOptions.FollowRedirect { // see https://stackoverflow.com/a/38150816/342348
+			if !opt.RequestOptions.FollowRedirect { // see https://stackoverflow.com/a/38150816/342348
 				t.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 					return http.ErrUseLastResponse
 				}
+			}
+		}
+
+		if opt.RequestBody != nil {
+			switch opt.RequestBody.BodyType {
+			case "text/plain", "application/json", "text/xml":
+			case "": // do nothing
+			default:
+				return fmt.Errorf("invalid body type: `%s'", opt.RequestBody.BodyType)
 			}
 		}
 
