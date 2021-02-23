@@ -115,12 +115,17 @@ func LoadInputsConfig(c *datakit.Config) error {
 	}
 
 	inputs.AddSelf()
+
+	// 所有 telegraf 采集器都依赖 telegraf_http，用以通过 http 接收数据和执行 pipeline
 	// 如果开启了 telegraf 的采集器，同时尚未开启 telegraf_http 采集器
 	if inputs.HaveTelegrafInputs() && len(inputs.InputsInfo["telegraf_http"]) == 0 {
 		fp := filepath.Join(datakit.ConfdDir+"/telegraf_http", "telegraf_http.conf")
-		err := addInput("telegraf_http", fp)
-		if err != nil {
-			l.Error(err)
+
+		if err := addInput("telegraf_http", fp); err != nil {
+			// 此处不能简单地只打印错误日志，telegraf_http 开启失败会导致所有 telegraf 采集器无法使用
+			// 必须将错误返回
+			// 错误日志由上层打印
+			return err
 		}
 	}
 
@@ -135,55 +140,33 @@ func doLoadInputConf(c *datakit.Config, name string, creator inputs.Creator, inp
 	}
 
 	l.Debugf("search input cfg for %s", name)
-	searchDatakitInputCfg(c, inputcfgs, name, creator)
+	searchDatakitInputCfg(name, inputcfgs, creator)
 
 	return nil
 }
 
-func searchDatakitInputCfg(c *datakit.Config,
-	inputcfgs map[string]*ast.Table,
-	name string,
-	creator inputs.Creator) {
-	var err error
-
+func searchDatakitInputCfg(name string, inputcfgs map[string]*ast.Table, creator inputs.Creator) {
 	for fp, tbl := range inputcfgs {
 		for field, node := range tbl.Fields {
-			inputlist := []inputs.Input{}
+			d := &datakitInputInfo{
+				name:     name,
+				fp:       fp,
+				tblField: field,
+				tblNode:  node,
+				creator:  creator,
+			}
 
-			switch field {
-			case "inputs": //nolint:goconst
-				stbl, ok := node.(*ast.Table)
-				if !ok {
-					l.Warnf("ignore bad toml node for %s within %s", name, fp)
-				} else {
-					for inputName, v := range stbl.Fields {
-						if inputName != name {
-							continue
-						}
-						inputlist, err = TryUnmarshal(v, inputName, creator)
-						if err != nil {
-							l.Warnf("unmarshal input %s failed within %s: %s", inputName, fp, err.Error())
-							continue
-						}
-
-						l.Infof("load input %s from %s ok", inputName, fp)
-					}
-				}
-
-			default: // compatible with old version: no [[inputs.xxx]] header
-				inputlist, err = TryUnmarshal(node, name, creator)
-				if err != nil {
-					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
-				}
+			inputlist, err := composeDatakitInputs(d)
+			if err != nil {
+				l.Warn(err)
+				continue
 			}
 
 			for _, i := range inputlist {
-
 				if err := inputs.AddInput(name, i, fp); err != nil {
 					l.Error("add %s failed: %v", name, err)
 					continue
 				}
-
 				l.Infof("add input %s(%s) ok", name, fp)
 			}
 		}
@@ -191,7 +174,6 @@ func searchDatakitInputCfg(c *datakit.Config,
 }
 
 func isDisabled(wlists, blists []*datakit.InputHostList, hostname, name string) bool {
-
 	for _, bl := range blists {
 		if bl.MatchHost(hostname) && bl.MatchInput(name) {
 			return true // 一旦上榜，无脑屏蔽
@@ -216,7 +198,6 @@ func isDisabled(wlists, blists []*datakit.InputHostList, hostname, name string) 
 }
 
 func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputList []inputs.Input, err error) {
-
 	tbls := []*ast.Table{}
 
 	switch t := tbl.(type) {
@@ -333,7 +314,6 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 }
 
 func LoadInputConfig(data []byte, creator inputs.Creator) ([]inputs.Input, error) {
-
 	tbl, err := toml.Parse(data)
 	if err != nil {
 		return nil, err
@@ -376,56 +356,84 @@ func LoadInputConfig(data []byte, creator inputs.Creator) ([]inputs.Input, error
 	return result, nil
 }
 
-func addInput(inputName, fp string) error {
-	input, ok := inputs.Inputs[inputName]
+func addInput(name, fp string) error {
+	creator, ok := inputs.Inputs[name]
 	if !ok {
-		return fmt.Errorf("not found %s", inputName)
-
+		return fmt.Errorf("not found %s", name)
 	}
 
-	if err := ioutil.WriteFile(fp, []byte(input().SampleConfig()), 0600); err != nil {
-		l.Errorf("create telegraf_http conf failed: %s", err.Error())
-		return err
+	if err := ioutil.WriteFile(fp, []byte(creator().SampleConfig()), 0600); err != nil {
+		return fmt.Errorf("create %s conf failed: %s", name, err.Error())
 	}
 
 	tbl, err := parseCfgFile(fp)
 	if err != nil {
-		return err
-
+		return fmt.Errorf("parse conf %s failed: %s", fp, err)
 	}
+
 	for field, node := range tbl.Fields {
-		inputlist := []inputs.Input{}
+		d := &datakitInputInfo{
+			name:     name,
+			fp:       fp,
+			tblField: field,
+			tblNode:  node,
+			creator:  creator,
+		}
 
-		switch field {
-		case "inputs": //nolint:goconst
-			stbl, ok := node.(*ast.Table)
-			if !ok {
-				l.Warnf("ignore bad toml node for %s within %s", inputName, fp)
-			} else {
-				for name, v := range stbl.Fields {
-					if name != inputName {
-						continue
-					}
-					inputlist, err = TryUnmarshal(v, inputName, input)
-					if err != nil {
-						l.Warnf("unmarshal input %s failed within %s: %s", inputName, fp, err.Error())
-						continue
-					}
-
-					l.Infof("load input %s from %s ok", inputName, fp)
-				}
-			}
-
+		inputlist, err := composeDatakitInputs(d)
+		if err != nil {
+			return err
 		}
 
 		for _, i := range inputlist {
-			if err := inputs.AddInput(inputName, i, fp); err != nil {
-				l.Error("add %s failed: %v", inputName, err)
-				continue
+			if err := inputs.AddInput(name, i, fp); err != nil {
+				return fmt.Errorf("add %s failed: %v", name, err)
 			}
-			l.Infof("add input %s(%s) ok", inputName, fp)
+			l.Infof("add input %s(%s) ok", name, fp)
 		}
 	}
 
 	return nil
+}
+
+type datakitInputInfo struct {
+	name     string
+	fp       string
+	tblField string
+	tblNode  interface{}
+	creator  inputs.Creator
+}
+
+func composeDatakitInputs(d *datakitInputInfo) ([]inputs.Input, error) {
+	var inputlist []inputs.Input
+	var err error
+
+	switch d.tblField {
+	case "inputs": //nolint:goconst
+		stbl, ok := d.tblNode.(*ast.Table)
+		if !ok {
+			return nil, fmt.Errorf("ignore bad toml node for %s within %s", d.name, d.fp)
+		} else {
+			for inputName, v := range stbl.Fields {
+				if inputName != d.name {
+					continue
+				}
+
+				inputlist, err = TryUnmarshal(v, inputName, d.creator)
+				if err != nil {
+					return nil, fmt.Errorf("unmarshal input %s failed within %s: %s", inputName, d.fp, err.Error())
+				}
+
+				l.Infof("load input %s from %s ok", inputName, d.fp)
+			}
+		}
+
+	default: // compatible with old version: no [[inputs.xxx]] header
+		inputlist, err = TryUnmarshal(d.tblNode, "", d.creator)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal input failed: %s", err.Error())
+		}
+	}
+
+	return inputlist, nil
 }
