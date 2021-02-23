@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -275,6 +276,11 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 		l.Warnf("gather k8s pod error, %s", err)
 	}
 
+	t, err := time.Parse(time.RFC3339Nano, containerJSON.State.StartedAt)
+	if err != nil {
+		return nil, fmt.Errorf("parse start_time error, %s", err)
+	}
+
 	fields := map[string]interface{}{
 		"container_id":   container.ID,
 		"images_name":    container.Image,
@@ -282,7 +288,7 @@ func (d *DockerContainers) gatherContainer(container types.Container) ([]byte, e
 		"container_name": getContainerName(container.Names),
 		"restart_count":  containerJSON.RestartCount,
 		"status":         containerJSON.State.Status,
-		"start_time":     containerJSON.State.StartedAt,
+		"start_time":     t.UnixNano() / int64(time.Millisecond),
 		"message":        string(msg),
 	}
 
