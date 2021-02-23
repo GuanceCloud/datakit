@@ -18,7 +18,7 @@ const (
     ignore = [""]
 
     # required, data source
-    source = "abc"
+    source = "<your-logging-source>"
 
     # add service tag, if it's empty, use $source.
     service = ""
