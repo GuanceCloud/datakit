@@ -26,7 +26,7 @@ func TestData(t *testing.T) {
 	var d = DockerContainers{
 		Endpoint:     defaultEndpoint,
 		All:          false,
-		Interval:     "5s",
+		Interval:     "5m",
 		newEnvClient: NewEnvClient,
 		newClient:    NewClient,
 	}
