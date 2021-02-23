@@ -115,8 +115,13 @@ func LoadInputsConfig(c *datakit.Config) error {
 	}
 
 	inputs.AddSelf()
-	if len(inputs.InputsInfo["telegraf_http"]) == 0 && inputs.HaveTelegrafInputs() {
-		inputs.AddTelegrafHTTP()
+	// 如果开启了 telegraf 的采集器，同时尚未开启 telegraf_http 采集器
+	if inputs.HaveTelegrafInputs() && len(inputs.InputsInfo["telegraf_http"]) == 0 {
+		fp := filepath.Join(datakit.ConfdDir+"/telegraf_http", "telegraf_http.conf")
+		err := addInput("telegraf_http", fp)
+		if err != nil {
+			l.Error(err)
+		}
 	}
 
 	return nil
@@ -369,4 +374,58 @@ func LoadInputConfig(data []byte, creator inputs.Creator) ([]inputs.Input, error
 	}
 
 	return result, nil
+}
+
+func addInput(inputName, fp string) error {
+	input, ok := inputs.Inputs[inputName]
+	if !ok {
+		return fmt.Errorf("not found %s", inputName)
+
+	}
+
+	if err := ioutil.WriteFile(fp, []byte(input().SampleConfig()), 0600); err != nil {
+		l.Errorf("create telegraf_http conf failed: %s", err.Error())
+		return err
+	}
+
+	tbl, err := parseCfgFile(fp)
+	if err != nil {
+		return err
+
+	}
+	for field, node := range tbl.Fields {
+		inputlist := []inputs.Input{}
+
+		switch field {
+		case "inputs": //nolint:goconst
+			stbl, ok := node.(*ast.Table)
+			if !ok {
+				l.Warnf("ignore bad toml node for %s within %s", inputName, fp)
+			} else {
+				for name, v := range stbl.Fields {
+					if name != inputName {
+						continue
+					}
+					inputlist, err = TryUnmarshal(v, inputName, input)
+					if err != nil {
+						l.Warnf("unmarshal input %s failed within %s: %s", inputName, fp, err.Error())
+						continue
+					}
+
+					l.Infof("load input %s from %s ok", inputName, fp)
+				}
+			}
+
+		}
+
+		for _, i := range inputlist {
+			if err := inputs.AddInput(inputName, i, fp); err != nil {
+				l.Error("add %s failed: %v", inputName, err)
+				continue
+			}
+			l.Infof("add input %s(%s) ok", inputName, fp)
+		}
+	}
+
+	return nil
 }
