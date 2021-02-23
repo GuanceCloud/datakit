@@ -104,7 +104,7 @@ func AddSelf() {
 
 func AddTelegrafHTTP() {
 	t, _ := Inputs["telegraf_http"]
-	AddInput("telegraf_http", t(), "no config for `telegraf_http' input")
+	AddInput("telegraf_http", t(), t().SampleConfig())
 }
 
 func ResetInputs() {

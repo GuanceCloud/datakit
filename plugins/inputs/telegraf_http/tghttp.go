@@ -49,6 +49,8 @@ const (
 
 var (
 	l = logger.DefaultSLogger(inputName)
+
+	globalPipelineMap = make(map[string]*metric)
 )
 
 type pipelineMetric struct {
@@ -91,11 +93,6 @@ func (*TelegrafHTTP) Test() (*inputs.TestResult, error) {
 	return &inputs.TestResult{Desc: "success"}, nil
 }
 
-// Run() 函数的调用顺序在 RegHttpHandler() 函数之后，
-// 可能会出现 RegHttpHandler() 函数执行完毕，HTTP service 已经开启且在接收数据，但 Run() 函数尚未执行，
-// 在这种极端情况下：
-//     1. 数据会按默认情况处理（即忽略配置文件和 Run() ），
-//     2. HTTP goroutine 和执行 Run() 的 goroutine 对同一个 map 做并发读写。
 func (t *TelegrafHTTP) Run() {
 	l = logger.SLogger(inputName)
 
