@@ -27,22 +27,27 @@ const (
     mongodb_url="mongodb://127.0.0.1:27017"
     
     # required
-    database="testdb"
+    database="<your-database>"
     
     # required
-    collection="testcollection"
+    collection="<your-collection>"
+
+    # optional categories: "metric", "logging"
+    # if this array is empty, default use "metric"
+    categories = ["metric"]
     
     # tags path
     tagList=[
-    	"/path",
-    	"/a/b/c/e"
+	# "/<path>",
+    	# "/a/b/c/e"
     ]
     
     # fields path. required
-    # type in [int, float, bool, string]
+    # type in ["int", "float", "bool", "string"]
     [inputs.mongodb_oplog.fieldList]
-    	"/a/c/d" = "int"
-    	"/a/c/f[1]/e/f" = "int"
+        # "<path>" = "<type>"
+	# "/a/c/d" = "int"
+    	# "/a/c/f[1]/e/f" = "bool"
     	# "/a/c/f\\[0\\]" = "int"
     
     # [inputs.mongodb_oplog.tags]
@@ -65,13 +70,13 @@ func init() {
 }
 
 type Mongodboplog struct {
-	MongodbURL  string            `toml:"mongodb_url"`
-	Database    string            `toml:"database"`
-	Collection  string            `toml:"collection"`
-	Measurement string            `toml:"measurement"`
-	TagList     []string          `toml:"tagList"`
-	FieldList   map[string]string `toml:"fieldList"`
-	Tags        map[string]string `toml:"tags"`
+	MongodbURL string            `toml:"mongodb_url"`
+	Database   string            `toml:"database"`
+	Collection string            `toml:"collection"`
+	Categories []string          `toml:"categories"`
+	TagList    []string          `toml:"tagList"`
+	FieldList  map[string]string `toml:"fieldList"`
+	Tags       map[string]string `toml:"tags"`
 
 	// mongodb namespace is 'database.collection'
 	namespace string
@@ -165,6 +170,35 @@ func (m *Mongodboplog) initCfg() {
 	for k, v := range m.FieldList {
 		m.pointlist[k] = v
 	}
+
+	m.rewriteCategories()
+}
+
+func (m *Mongodboplog) rewriteCategories() {
+	var categoriesMap = make(map[string]interface{})
+
+	for _, category := range m.Categories {
+		switch category {
+		case "metric":
+			categoriesMap[io.Metric] = nil
+		case "logging":
+			categoriesMap[io.Logging] = nil
+		default:
+			l.Warnf("invalid category '%s', only accept 'metric' and 'logging'", category)
+		}
+	}
+
+	m.Categories = func() []string {
+		var res []string
+		for category := range categoriesMap {
+			res = append(res, category)
+		}
+		return res
+	}()
+
+	if len(m.Categories) == 0 {
+		m.Categories = append(m.Categories, io.Metric)
+	}
 }
 
 func (m *Mongodboplog) runloop() {
@@ -200,11 +234,15 @@ func (m *Mongodboplog) runloop() {
 						l.Error(err)
 						continue
 					}
-					if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
-						l.Error(err)
-						continue
+
+					for _, category := range m.Categories {
+						if err := io.NamedFeed(data, category, inputName); err != nil {
+							l.Errorf("io feed err, category: %s, error: %s", category, err)
+							continue
+						} else {
+							l.Debugf("feed %d bytes to io %s ok", len(data), category)
+						}
 					}
-					l.Debugf("feed %d bytes to io ok", len(data))
 
 				default:
 					// nil
