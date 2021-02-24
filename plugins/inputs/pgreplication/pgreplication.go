@@ -36,15 +36,20 @@ const (
 
     # postgres user (need replication privilege)
     # required
-    user="testuser"
+    user="<your-user>"
 
     # required
-    password="pwd"
+    password="<your-password>"
 
     # required
-    database="testdb"
+    database="<your-database>"
 
-    table="test_table"
+    # if table is empty, default collect all table.
+    table="<your-table>"
+
+    # optional categories: "metric", "logging"
+    # if this array is empty, default use "metric"
+    categories = ["metric"]
 
     # there are 3 events: "INSERT","UPDATE","DELETE"
     # required
@@ -75,16 +80,17 @@ func init() {
 }
 
 type Replication struct {
-	Host      string            `toml:"host"`
-	Port      uint16            `toml:"port"`
-	User      string            `toml:"user"`
-	Password  string            `toml:"password"`
-	Database  string            `toml:"database"`
-	Table     string            `toml:"table"`
-	Events    []string          `toml:"events"`
-	TagList   []string          `toml:"tag_colunms"`
-	FieldList []string          `toml:"field_colunms"`
-	Tags      map[string]string `toml:"tags"`
+	Host       string            `toml:"host"`
+	Port       uint16            `toml:"port"`
+	User       string            `toml:"user"`
+	Password   string            `toml:"password"`
+	Database   string            `toml:"database"`
+	Table      string            `toml:"table"`
+	Categories []string          `toml:"categories"`
+	Events     []string          `toml:"events"`
+	TagList    []string          `toml:"tag_colunms"`
+	FieldList  []string          `toml:"field_colunms"`
+	Tags       map[string]string `toml:"tags"`
 
 	// slice to map cache
 	eventsOperation map[string]interface{}
@@ -218,6 +224,35 @@ func (r *Replication) initCfg() {
 		Password: r.Password,
 	}
 	r.slotName = fmt.Sprintf("datakit_slot_%d", time.Now().UnixNano())
+
+	r.rewriteCategories()
+}
+
+func (r *Replication) rewriteCategories() {
+	var categoriesMap = make(map[string]interface{})
+
+	for _, category := range r.Categories {
+		switch category {
+		case "metric":
+			categoriesMap[io.Metric] = nil
+		case "logging":
+			categoriesMap[io.Logging] = nil
+		default:
+			l.Warnf("invalid category '%s', only accept 'metric' and 'logging'", category)
+		}
+	}
+
+	r.Categories = func() []string {
+		var res []string
+		for category := range categoriesMap {
+			res = append(res, category)
+		}
+		return res
+	}()
+
+	if len(r.Categories) == 0 {
+		r.Categories = append(r.Categories, io.Metric)
+	}
 }
 
 func (r *Replication) checkAndResetConn() error {
@@ -316,10 +351,14 @@ func (r *Replication) replicationMsgHandle(msg *pgx.ReplicationMessage) {
 			return
 		}
 
-		if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
-			l.Errorf("io feed err: %s", err.Error())
-		} else {
-			l.Debugf("feed %d bytes to io ok", len(data))
+		for _, category := range r.Categories {
+			if err := io.NamedFeed(data, category, inputName); err != nil {
+				l.Errorf("io feed err, category: %s, error: %s", category, err)
+				continue
+			} else {
+				l.Debugf("feed %d bytes to io %s ok", len(data), category)
+
+			}
 		}
 	}
 }
