@@ -336,20 +336,20 @@
 
 ```sql
 -- 存储拨测任务信息
-CREATE TABLE IF NOT EXISTS task (
-		`id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增 ID',
-		`uuid` varchar(48) NOT NULL COMMENT '全局唯一 ID，带 dialt_ 前缀',
-		`region` varchar(48) NOT NULL COMMENT '部署区域（只能有一个区域）',
-		`accessKey` varchar(20) NOT NULL COMMENT '推送 commit 的 AK',
-		`task` text NOT NULL COMMENT '任务的 json 描述',
-		`hash` varchar(128) NOT NULL COMMENT '任务 hash，md5(accessKey+task)',
-		`createAt` int(11) NOT NULL DEFAULT '-1',
-    `updateAt` int(11) NOT NULL DEFAULT '-1',
-
-		INDEX `idx_hash` (`hash`) COMMENT '便于鉴定重复推送',
-		PRIMARY KEY (`id`),
-		UNIQUE KEY `uk_uuid` (`uuid`) COMMENT 'UUID 做成全局唯一'
-		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `task` (
+  `id` int(16) NOT NULL AUTO_INCREMENT COMMENT '自增 ID',
+  `uuid` varchar(48) NOT NULL COMMENT '全局唯一 ID，带 dialt_ 前缀',
+  `region` varchar(48) NOT NULL COMMENT '部署区域（只能有一个区域）',
+  `accessKey` varchar(20) NOT NULL COMMENT '推送 commit 的 AK',
+  `task` text NOT NULL COMMENT '任务的 json 描述',
+  `status` enum('OK','DISABLED') NOT NULL DEFAULT 'OK' COMMENT '任务状态',
+  `hash` varchar(128) NOT NULL COMMENT '任务 hash，md5(accessKey+task)',
+  `createAt` bigint(16) NOT NULL DEFAULT '-1',
+  `updateAt` bigint(16) NOT NULL DEFAULT '-1',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_hash` (`hash`) COMMENT '便于鉴定重复推送',
+  UNIQUE KEY `uk_uuid` (`uuid`) COMMENT 'UUID 做成全局唯一'
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4;
 
 -- 存储 AK/SK 信息
  CREATE TABLE IF NOT EXISTS aksk (
