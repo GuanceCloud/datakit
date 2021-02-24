@@ -36,7 +36,7 @@ const (
 
     # The pattern should be a regexp. Note the use of '''this regexp'''
     # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-    match = '''^\S.*'''
+    match = '''^\S'''
 
     [inputs.tailf.tags]
     # tags1 = "value1"
