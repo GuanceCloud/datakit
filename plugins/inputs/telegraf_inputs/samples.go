@@ -20,7 +20,7 @@ report_active = false
 		/////////////////////////////////////////////////////////////////////////////////////////
 
 		"kube_inventory": `
-		[[inputs.kube_inventory]]
+[[inputs.kube_inventory]]
   ## URL for the Kubernetes API
   url = "https://127.0.0.1"
 
@@ -66,7 +66,7 @@ report_active = false
 		/////////////////////////////////////////////////////////////////////////////////////////
 
 		"kubernetes": `
-		[[inputs.kubernetes]]
+[[inputs.kubernetes]]
   ## URL for the kubelet
   url = "http://127.0.0.1:10255"
 
