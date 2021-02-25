@@ -421,7 +421,7 @@ func composeDatakitInputs(d *datakitInputInfo) ([]inputs.Input, error) {
 
 				inputlist, err = TryUnmarshal(v, inputName, d.creator)
 				if err != nil {
-					return nil, fmt.Errorf("unmarshal input %s failed within %s: %s", inputName, d.fp, err.Error())
+					return nil, fmt.Errorf("unmarshal input %s failed within %s: %s", inputName, d.fp, err)
 				}
 
 				l.Infof("load input %s from %s ok", inputName, d.fp)
