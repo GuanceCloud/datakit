@@ -4,22 +4,21 @@ import (
 	"testing"
 )
 
-func TestRewriteCategories(t *testing.T) {
-	testcase := [][]string{
-		{"metric", "logging", "invalid", "metric"},
-		{},
-		{"invalid"},
-		{"metric"},
-		{"logging"},
+func TestRewriteCategory(t *testing.T) {
+	testcase := []string{
+		"metric",
+		"logging",
+		"invalid",
+		"",
 	}
 
 	for _, tc := range testcase {
 		m := &Mongodboplog{
-			Categories: tc,
+			Category: tc,
 		}
-		t.Logf("source: %v\n", m.Categories)
+		t.Logf("source: %v\n", m.Category)
 
-		m.rewriteCategories()
-		t.Logf("valid:  %v\n\n", m.Categories)
+		m.rewriteCategory()
+		t.Logf("valid:  %v\n\n", m.Category)
 	}
 }
