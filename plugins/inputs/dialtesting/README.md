@@ -3,42 +3,33 @@
 全局定义：
 
 - 所有拨测产生的数据，都以行协议方式，通过 `/v1/write/metric` 接口存为指标数据
-
+- 所有标记为 `*` 的字段都是必填字段
 ## HTTP 拨测任务定义
 
 ```python
 {
-	"id": 12345,                       # 拨测任务 SN
-	"uuid": "dialt_xxxxxxxxxxxxxxxxx", # 拨测任务 UUID
-
-	"url": "http://example.com/some/api", 
-	"method": "POST",
+	* "url": "http://example.com/some/api",
+	* "method": "POST",
+	* "external_id": "外部系统中给该任务定义的 ID"
 
 	# 拨测数据的存放地址，对 SAAS 而言，是 openway.dataflux.cn
 	# 对 PAAS 而言，需要一个单独的公网可访问的 Dataway。这里的 token
   # 对 Dataflux SAAS/PASSS 而言，实际上隐含了工作空间信息
-	"post_url": "https://dataway.cn?token=tkn_xxx",
+	* "post_url": "https://dataway.cn?token=tkn_xxx",
 
-	# 用于更新任务时，停止执行
-	"stop": false, 
+	# 任务状态(OK/stopped)
+	"status": "OK", 
 
-	"name": "give your test a name",
+	"name": "任务命名",
 	"tags": {
 		"tag1": "val1",
 		"tag2": "val2"
 	},
 
-	"frequency": "1m",   # 1min ~ 1 week
+	* "frequency": "1m",   # 1min ~ 1 week
 
-  ###############
-	# 区域
-  ###############
-
-	# 对 push 端而言，可多选
-	"regions": ["hangzhou", "beijing", "chengdu"],
-
-	# 对 pull 端而言，只能单选
-	"region": "hangzhou"
+	# 区域：冗余字段，便于调试
+	* "regions": "beijing",
 	
 	"advance_options": {
 		"request_options": {
@@ -70,7 +61,7 @@
 		}
 	},
 
-	"success_when":  [ 
+	* "success_when":  [ 
 		{
 
 			# body|header|response_time|status_code 都是单个判定条件，它们各自出现的时候，表示 AND 的关系
@@ -105,7 +96,7 @@
 }
 ```
 
-### HTTP 拨测行协议定义
+### HTTP 拨测结果数据结构定义
 
 ```python
 {
@@ -338,12 +329,10 @@
 -- 存储拨测任务信息
 CREATE TABLE `task` (
   `id` int(16) NOT NULL AUTO_INCREMENT COMMENT '自增 ID',
-  `uuid` varchar(48) NOT NULL COMMENT '全局唯一 ID，带 dialt_ 前缀',
+  `external_id` varchar(128) NOT NULL COMMENT '外部 ID',
   `region` varchar(48) NOT NULL COMMENT '部署区域（只能有一个区域）',
-  `accessKey` varchar(20) NOT NULL COMMENT '推送 commit 的 AK',
+	`class` enum("HTTP", "TCP", "DNS", "OTHER") NOT NULL DEFAULT "OTHER" COMMENT '任务分类',
   `task` text NOT NULL COMMENT '任务的 json 描述',
-  `status` enum('OK','DISABLED') NOT NULL DEFAULT 'OK' COMMENT '任务状态',
-  `hash` varchar(128) NOT NULL COMMENT '任务 hash，md5(accessKey+task)',
   `createAt` bigint(16) NOT NULL DEFAULT '-1',
   `updateAt` bigint(16) NOT NULL DEFAULT '-1',
   PRIMARY KEY (`id`),
@@ -373,11 +362,30 @@ CREATE TABLE `task` (
 
 ### API 定义
 
-#### `/v1/push | POST`
+#### `/v1/list/region | GET`
+
+获取可用的 region 列表
+
+```
+GET /v1/list/region HTTP/1.1
+Authorization: DIAL_TESTING <access_key>:<sign>
+
+HTTP/1.1 200 OK
+
+{
+	"content": {
+		"regions": ["beijing", "hangzhou"]
+	}
+}
+```
+
+#### `/v1/push/:type | POST`
+
+此处 type 支持 `http/https/tcp/dns` 这几种
 
 ```
 POST /v1/push HTTP/1.1
-Authorization: DIALTESTING <access_key>:<sign>
+Authorization: DIAL_TESTING <access_key>:<sign>
 Content-Type: application/json
 
 <具体的 task-json>
@@ -390,13 +398,13 @@ HTTP/1.1 200 OK  # 无 body 返回
 参数：
 
 - `region`：必填参数，指定拉取区域
-- `from`：可选参数，如不填，则拉取指定区域的所有任务（clone）。否则拉取 `id >= from` 的所有任务（pull）
+- `since`：可选参数，如不填，则拉取指定区域的所有任务（clone）。否则拉取 `update-time >= since` 的所有任务（pull）
 
 示例：
 
 ```
-GET /v1/pull?region=<region>&from=<id> HTTP/1.1
-Authorization: DIALTESTING <access_key>:<sign>
+GET /v1/pull?region=<region>&since=<us-timestamp> HTTP/1.1
+Authorization: DIAL_TESTING <access_key>:<sign>
 
 HTTP/1.1 200 OK
 {
