@@ -1,8 +1,8 @@
 package config
 
 import (
+	"io/ioutil"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -14,14 +14,20 @@ func TestAddInput(t *testing.T) {
 	// 导致 inputs.Inputs 采集器列表中只有这三个
 	// 原因未知，待查
 
-	fp := filepath.Join("/tmp", "tailf")
+	// inputs.Inputs: map[aliyunobject:0x2464880 host_processes:0x24858b0 tailf:0x170d070]
+	// t.Logf("inputs.Inputs: %v\n", inputs.Inputs)
+
+	file, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(file.Name())
 
 	t.Log(inputs.Inputs)
 
-	if err := addInput("tailf", fp); err != nil {
+	if err := addInput("tailf", file.Name()); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(fp)
 
 	t.Log(inputs.InputsInfo)
 }
