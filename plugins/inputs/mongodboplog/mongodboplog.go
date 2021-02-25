@@ -32,9 +32,9 @@ const (
     # required
     collection="<your-collection>"
 
-    # optional categories: "metric", "logging"
-    # if this array is empty, default use "metric"
-    categories = ["metric"]
+    # category only accept "metric" and "logging"
+    # if category is invalid, default use "metric"
+    category = "metric"
     
     # tags path
     tagList=[
@@ -73,7 +73,7 @@ type Mongodboplog struct {
 	MongodbURL string            `toml:"mongodb_url"`
 	Database   string            `toml:"database"`
 	Collection string            `toml:"collection"`
-	Categories []string          `toml:"categories"`
+	Category   string            `toml:"category"`
 	TagList    []string          `toml:"tagList"`
 	FieldList  map[string]string `toml:"fieldList"`
 	Tags       map[string]string `toml:"tags"`
@@ -171,33 +171,18 @@ func (m *Mongodboplog) initCfg() {
 		m.pointlist[k] = v
 	}
 
-	m.rewriteCategories()
+	m.rewriteCategory()
 }
 
-func (m *Mongodboplog) rewriteCategories() {
-	var categoriesMap = make(map[string]interface{})
-
-	for _, category := range m.Categories {
-		switch category {
-		case "metric":
-			categoriesMap[io.Metric] = nil
-		case "logging":
-			categoriesMap[io.Logging] = nil
-		default:
-			l.Warnf("invalid category '%s', only accept 'metric' and 'logging'", category)
-		}
-	}
-
-	m.Categories = func() []string {
-		var res []string
-		for category := range categoriesMap {
-			res = append(res, category)
-		}
-		return res
-	}()
-
-	if len(m.Categories) == 0 {
-		m.Categories = append(m.Categories, io.Metric)
+func (m *Mongodboplog) rewriteCategory() {
+	switch m.Category {
+	case "metric":
+		m.Category = io.Metric
+	case "logging":
+		m.Category = io.Logging
+	default:
+		l.Warnf("invalid category '%s', only accept metric and logging. use default 'metric'", m.Category)
+		m.Category = io.Metric
 	}
 }
 
@@ -235,14 +220,11 @@ func (m *Mongodboplog) runloop() {
 						continue
 					}
 
-					for _, category := range m.Categories {
-						if err := io.NamedFeed(data, category, inputName); err != nil {
-							l.Errorf("io feed err, category: %s, error: %s", category, err)
-							continue
-						} else {
-							l.Debugf("feed %d bytes to io %s ok", len(data), category)
-						}
+					if err := io.NamedFeed(data, m.Category, inputName); err != nil {
+						l.Errorf("io feed err, category: %s, error: %s", m.Category, err)
+						continue
 					}
+					l.Debugf("feed %d bytes to io %s ok", len(data), m.Category)
 
 				default:
 					// nil
@@ -326,6 +308,7 @@ func (md *mgodata) typeAssert(completeKey string, value interface{}) {
 				md.fields[completeKey] = v
 			}
 		default:
+			l.Debugf("invalid fields type, key: %s, type: %s, data: %v", completeKey, typee, value)
 			// nil
 		}
 	}
