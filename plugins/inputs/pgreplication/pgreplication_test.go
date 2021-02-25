@@ -35,3 +35,22 @@ func TestMain(t *testing.T) {
 	r.Run()
 
 }
+
+func TestRewriteCategory(t *testing.T) {
+	testcase := []string{
+		"metric",
+		"logging",
+		"invalid",
+		"",
+	}
+
+	for _, tc := range testcase {
+		m := &Replication{
+			Category: tc,
+		}
+		t.Logf("source: %v\n", m.Category)
+
+		m.rewriteCategory()
+		t.Logf("valid:  %v\n\n", m.Category)
+	}
+}
