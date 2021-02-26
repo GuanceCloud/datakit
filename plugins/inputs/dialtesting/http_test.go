@@ -1,4 +1,3 @@
-package dialtesting
 
 import (
 	"bytes"
@@ -353,44 +352,9 @@ func TestDialHTTP(t *testing.T) {
 	defer close(stopserver)
 	defer cleanTLSData()
 
-	httpServer := func(bind string, https bool) {
-
-		gin.SetMode(gin.ReleaseMode)
-
-		r := gin.New()
-		gin.DisableConsoleColor()
-		r.Use(gin.Recovery())
-
-		addTestingRoutes(r, https, t)
-
-		// start HTTP server
-		srv := &http.Server{
-			Addr:    bind,
-			Handler: r,
-		}
-
-		if https {
-			prepareSSL(t)
-			go func() {
-				if err := srv.ListenAndServeTLS(".crt.pem", ".key.pem"); err != nil {
-					t.Errorf("ListenAndServeTLS(): %s", err)
-				}
-			}()
-		} else {
-			go func() {
-				if err := srv.ListenAndServe(); err != nil {
-					t.Logf("ListenAndServe(): %s", err)
-				}
-			}()
-		}
-
-		<-stopserver
-		_ = srv.Shutdown(context.Background())
-	}
-
 	go proxyServer(t)
-	go httpServer("localhost:54321", false) // http server
-	go httpServer("localhost:54323", true)  // https server
+	go httpServer(t, "localhost:54321", false, stopserver) // http server
+	go httpServer(t, "localhost:54323", true, stopserver)  // https server
 
 	time.Sleep(time.Second) // wait servers ok
 
@@ -425,6 +389,41 @@ func TestDialHTTP(t *testing.T) {
 			}
 		}
 	}
+}
+
+func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
+
+	gin.SetMode(gin.ReleaseMode)
+
+	r := gin.New()
+	gin.DisableConsoleColor()
+	r.Use(gin.Recovery())
+
+	addTestingRoutes(r, https, t)
+
+	// start HTTP server
+	srv := &http.Server{
+		Addr:    bind,
+		Handler: r,
+	}
+
+	if https {
+		prepareSSL(t)
+		go func() {
+			if err := srv.ListenAndServeTLS(".crt.pem", ".key.pem"); err != nil {
+				t.Errorf("ListenAndServeTLS(): %s", err)
+			}
+		}()
+	} else {
+		go func() {
+			if err := srv.ListenAndServe(); err != nil {
+				t.Logf("ListenAndServe(): %s", err)
+			}
+		}()
+	}
+
+	<-exit
+	_ = srv.Shutdown(context.Background())
 }
 
 func proxyServer(t *testing.T) {
