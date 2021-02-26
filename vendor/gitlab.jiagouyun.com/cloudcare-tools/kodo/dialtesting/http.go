@@ -16,24 +16,22 @@ import (
 	"time"
 )
 
-type httpTask struct {
-	TID     string `json:"id"`
-	Method  string `json:"method"`
-	URL     string `json:"url"`
-	PostURL string `json:"post_url"`
-	Name    string `json:"name"`
-
-	CurStatus string `json:"status,omitempty"`
-
-	Frequency string `json:"frequency"`
-	ticker    *time.Ticker
-
-	Locations   []string       `json:"locations"`
-	SuccessWhen []*httpSuccess `json:"success_when"`
-
+type HTTPTask struct {
+	ExternalID     string               `json:"external_id"`
+	Name           string               `json:"name"`
+	AK             string               `json:"access_key"`
+	Method         string               `json:"method"`
+	URL            string               `json:"url"`
+	PostURL        string               `json:"post_url"`
+	CurStatus      string               `json:"status"`
+	Frequency      string               `json:"frequency"`
+	Region         string               `json:"region"` // 冗余进来，便于调试
+	SuccessWhen    []*HTTPSuccess       `json:"success_when"`
 	Tags           map[string]string    `json:"tags,omitempty"`
-	AdvanceOptions []*httpAdvanceOption `json:"advance_options,omitempty"`
+	AdvanceOptions []*HTTPAdvanceOption `json:"advance_options,omitempty"`
+	UpdateTime     int64                `json:"update_time,omitempty"`
 
+	ticker   *time.Ticker
 	cli      *http.Client
 	resp     *http.Response
 	req      *http.Request
@@ -42,99 +40,118 @@ type httpTask struct {
 	reqCost  time.Duration
 }
 
-func (t *httpTask) ID() string {
-	return t.TID
+func (t *HTTPTask) UpdateTimeUs() int64 {
+	return t.UpdateTime
 }
 
-func (t *httpTask) Stop() error {
+func (t *HTTPTask) ID() string {
+	return fmt.Sprintf("%s_%s", t.AK, t.ExternalID)
+}
+
+func (t *HTTPTask) Stop() error {
 	t.cli.CloseIdleConnections()
 	return nil
 }
 
-func (t *httpTask) Status() string {
+func (t *HTTPTask) Status() string {
 	return t.CurStatus
 }
 
-func (t *httpTask) Ticker() *time.Ticker {
+func (t *HTTPTask) Ticker() *time.Ticker {
 	return t.ticker
 }
 
-type httpSuccess struct {
+func (t *HTTPTask) Class() string {
+	return "HTTP"
+}
+
+func (t *HTTPTask) RegionName() string {
+	return t.Region
+}
+
+func (t *HTTPTask) AccessKey() string {
+	return t.AK
+}
+
+func (t *HTTPTask) Check() error {
+	// TODO: check task validity
+	if t.ExternalID == "" {
+		return fmt.Errorf("external ID missing")
+	}
+	return nil
+}
+
+type HTTPSuccess struct {
 	Body string `json:"body,omitempty"`
 
 	ResponseTime string `json:"response_time,omitempty"`
 	respTime     time.Duration
 
-	Header     map[string]*successOption `json:"header,omitempty"`
-	StatusCode *successOption            `json:"status_code,omitempty"`
+	Header     map[string]*SuccessOption `json:"header,omitempty"`
+	StatusCode *SuccessOption            `json:"status_code,omitempty"`
 }
 
-type httpOptAuth struct {
+type HTTPOptAuth struct {
 	// basic auth
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 	// TODO: 支持更多的 auth 选项
 }
 
-type httpOptRequest struct {
+type HTTPOptRequest struct {
 	FollowRedirect bool              `json:"follow_redirect"`
 	Headers        map[string]string `json:"headers"`
 	Cookies        string            `json:"cookies"`
-	Auth           *httpOptAuth      `json:"auth"`
+	Auth           *HTTPOptAuth      `json:"auth"`
 }
 
-type httpOptBody struct {
+type HTTPOptBody struct {
 	BodyType string `json:"body_type"`
 	Body     string `json:"body"`
 }
 
-type httpOptCertificate struct {
+type HTTPOptCertificate struct {
 	IgnoreServerCertificateError bool   `json:ignore_server_certificate_error`
 	PrivateKey                   string `json:"private_key"`
 	Certificate                  string `json:"certificate"`
 }
 
-type httpOptProxy struct {
+type HTTPOptProxy struct {
 	URL     string            `json:"url"`
 	Headers map[string]string `json:"headers"`
 }
 
-type httpAdvanceOption struct {
-	RequestOptions *httpOptRequest     `json:"requests_options,omitempty"`
-	RequestBody    *httpOptBody        `json:"request_body,omitempty"`
-	Certificate    *httpOptCertificate `json:"certificate,omitempty"`
-	Proxy          *httpOptProxy       `json:"proxy,omitempty"`
+type HTTPAdvanceOption struct {
+	RequestOptions *HTTPOptRequest     `json:"requests_options,omitempty"`
+	RequestBody    *HTTPOptBody        `json:"request_body,omitempty"`
+	Certificate    *HTTPOptCertificate `json:"certificate,omitempty"`
+	Proxy          *HTTPOptProxy       `json:"proxy,omitempty"`
 }
 
-func (t *httpTask) Run() error {
+func (t *HTTPTask) Run() error {
 	reqURL, err := url.Parse(t.URL)
 	if err != nil {
-		l.Errorf("url.Parse(%s): %s", t.URL, err.Error())
 		return err
 	}
 
 	t.req, err = http.NewRequest(t.Method, reqURL.String(), nil)
 	if err != nil {
-		l.Errorf("http.NewRequest(): %s", err.Error())
 		return err
 	}
 
 	// advance options
 	if err := t.setupAdvanceOpts(t.req); err != nil {
-		l.Errorf("setupAdvanceOpts(): %s", err.Error())
 		return err
 	}
 
 	t.reqStart = time.Now()
 	t.resp, err = t.cli.Do(t.req)
 	if err != nil {
-		l.Errorf("cli.Do(): %s", err)
 		return err
 	}
 
 	t.respBody, err = ioutil.ReadAll(t.resp.Body)
 	if err != nil {
-		l.Errorf("ioutil.ReadAll(): %s", err)
 		return err
 	}
 	defer t.resp.Body.Close()
@@ -143,7 +160,7 @@ func (t *httpTask) Run() error {
 	return nil
 }
 
-func (t *httpTask) CheckResult() (reasons []string) {
+func (t *HTTPTask) CheckResult() (reasons []string) {
 	if t.resp == nil {
 		return nil
 	}
@@ -181,7 +198,7 @@ func (t *httpTask) CheckResult() (reasons []string) {
 	return
 }
 
-func (t *httpTask) setupAdvanceOpts(req *http.Request) error {
+func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
 	for _, opt := range t.AdvanceOptions {
 		// request options
 		if opt.RequestOptions != nil {
@@ -219,7 +236,7 @@ func (t *httpTask) setupAdvanceOpts(req *http.Request) error {
 	return nil
 }
 
-func (t *httpTask) Init() error {
+func (t *HTTPTask) Init() error {
 
 	if t.CurStatus == StatusStop {
 		return nil
