@@ -10,7 +10,7 @@ func TestOSSUPLoad(t *testing.T) {
 	ak := "LTAI4G1E5j5QX5h1S4kT2qfg"
 	sk := "aud5Bwb6tXExMoh5P1XEAinbZCH4kl"
 	bucketName := "test20210223"
-	cli,err := GetOSSCli(region,ak,sk)
+	cli,err := NewOSSClient(region,ak,sk,bucketName)
 	if err != nil {
 		l.Fatal(err)
 	}
