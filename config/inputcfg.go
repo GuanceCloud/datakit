@@ -121,6 +121,12 @@ func LoadInputsConfig(c *datakit.Config) error {
 	if inputs.HaveTelegrafInputs() && len(inputs.InputsInfo["telegraf_http"]) == 0 {
 		fp := filepath.Join(datakit.ConfdDir+"/telegraf_http", "telegraf_http.conf")
 
+		// FIXME：
+		// telegraf_http 未确定配置文件的正确格式，暂时以空配置开始采集器，后删除该配置文件
+		// 当最终确定以后，删除此行 remove()
+		// 非常丑陋且不完善的做法
+		defer os.Remove(fp)
+
 		if err := addInput("telegraf_http", fp); err != nil {
 			// 此处不能简单地只打印错误日志，telegraf_http 开启失败会导致所有 telegraf 采集器无法使用
 			// 必须将错误返回
