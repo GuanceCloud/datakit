@@ -204,7 +204,7 @@ func (p *Processes) WriteObject() {
 		tags := map[string]string{
 			"username":     username,
 			"state":        state,
-			"name":         fmt.Sprintf("%s_%d_%d", name, ps.Pid, t),
+			"name":         fmt.Sprintf("%s_%d", datakit.Cfg.MainCfg.Hostname, ps.Pid),
 			"process_name": name,
 		}
 		m, _ := json.Marshal(message)
