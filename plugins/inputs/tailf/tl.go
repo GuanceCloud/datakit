@@ -17,7 +17,6 @@ import (
 
 const (
 	pipelineTimeField = "time"
-	statusField       = "status"
 )
 
 type tailer struct {
@@ -222,12 +221,44 @@ func takeTime(fields map[string]interface{}) (ts time.Time, err error) {
 	return
 }
 
+var statusMap = map[string]string{
+	"f":        "emerg",
+	"emerg":    "emerg",
+	"a":        "alert",
+	"alert":    "alert",
+	"c":        "critical",
+	"critical": "critical",
+	"e":        "error",
+	"error":    "error",
+	"w":        "warning",
+	"warning":  "warning",
+	"i":        "info",
+	"info":     "info",
+	"d":        "debug",
+	"debug":    "debug",
+	"o":        "OK",
+	"s":        "OK",
+	"OK":       "OK",
+}
+
 func addStatus(fields map[string]interface{}) {
-	if v, ok := fields[statusField]; ok {
-		// "status" type should be string
-		if str, ok := v.(string); ok && str != "" {
-			return
-		}
+	// map 有 "status" 字段
+	statusField, ok := fields["status"]
+	if !ok {
+		fields["status"] = "info"
+		return
 	}
-	fields["status"] = "info"
+	// "status" 类型必须是 string
+	statusStr, ok := statusField.(string)
+	if !ok {
+		fields["status"] = "info"
+		return
+	}
+
+	// 查询 statusMap 枚举表并替换
+	if v, ok := statusMap[strings.ToLower(statusStr)]; !ok {
+		fields["status"] = "info"
+	} else {
+		fields["status"] = v
+	}
 }
