@@ -18,10 +18,14 @@ const (
 
 	sampleCfg = `
 [inputs.telegraf_http]
-    # [[inputs.telegraf_http.categories]]
-    # metric = "A"
-    # category = "metric"
 `
+
+// telegraf_http 采集器在不确定使用 pipeline 的正确方式前，不提供 sampleCfg，以便后面全量覆盖
+
+// # [[inputs.telegraf_http.categories]]
+// # metric = "A"
+// # category = "metric"
+
 )
 
 var l = logger.DefaultSLogger(inputName)
