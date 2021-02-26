@@ -59,8 +59,7 @@ func (sc *SFTPClient) GetSFTPClient() (*sftp.Client, error) {
 	return sftpClient, nil
 }
 
-func (sc *SFTPClient) SFTPUPLoad(f *os.File, remoteFilePath string) error {
-	defer f.Close()
+func (sc *SFTPClient) SFTPUPLoad(remoteFilePath string, f *os.File) error {
 	dir := filepath.Dir(remoteFilePath)
 	err := sc.Cli.MkdirAll(dir)
 	if err != nil {
