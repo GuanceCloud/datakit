@@ -1,21 +1,15 @@
 package telegraf_http
 
 import (
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
-	ifxcli "github.com/influxdata/influxdb1-client/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -24,61 +18,30 @@ const (
 
 	sampleCfg = `
 [inputs.telegraf_http]
-
-    # [[inputs.telegraf_http.pipeline_metric]]
+    # [[inputs.telegraf_http.categories]]
     # metric = "A"
-    # pipeline = "A.p"
-    # categories = ["metric", "logging", "object"]
-
-    [[inputs.telegraf_http.pipeline_metric]]
-    metric = "kubernetes_pod_container"
-    pipeline = "kubernetes_pod_container_cpu_mem_usage_percent.p"
-    categories = ["metric"]
-
-    [[inputs.telegraf_http.pipeline_metric]]
-    metric = "docker_container_mem"
-    pipeline = "docker_container_mem_usage_percent.p"
-    categories = ["metric"]
-
-    [[inputs.telegraf_http.pipeline_metric]]
-    metric = "docker_container_cpu"
-    pipeline = "docker_container_cpu_usage_percent.p"
-    categories = ["metric"]
+    # category = "metric"
 `
 )
 
-var (
-	l = logger.DefaultSLogger(inputName)
-
-	globalPipelineMap = make(map[string]*metric)
-)
-
-type pipelineMetric struct {
-	Metric     string   `toml:"metric"`
-	Pipeline   string   `toml:"pipeline"`
-	Categories []string `toml:"categories,omitempty"`
-}
-
-type metric struct {
-	pipeline   *pipeline.Pipeline
-	categories []string
-}
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &TelegrafHTTP{
-			pipelineMap: make(map[string]*metric),
+			categoriesMap: make(map[string]string),
 		}
 	})
 }
 
 type TelegrafHTTP struct {
-	PipelineMetric []*pipelineMetric `toml:"pipeline_metric"`
-	pipelineMap    map[string]*metric
-}
+	Categories []struct {
+		Measurement string `toml:"metric"`
+		Category    string `toml:"category"`
+	} `toml:"categories"`
 
-func (t *TelegrafHTTP) PipelineConfig() map[string]string {
-	return pipelineCfg
+	// map[measurement]io.Metric
+	categoriesMap map[string]string
 }
 
 func (*TelegrafHTTP) Catalog() string {
@@ -96,32 +59,15 @@ func (*TelegrafHTTP) Test() (*inputs.TestResult, error) {
 func (t *TelegrafHTTP) Run() {
 	l = logger.SLogger(inputName)
 
-	for _, pl := range t.PipelineMetric {
-		if _, ok := t.pipelineMap[pl.Metric]; ok {
-			l.Warnf("metric '%s' exists", pl.Metric)
-			continue
-		}
-
-		t.pipelineMap[pl.Metric] = &metric{}
-
-		for _, categroy := range pl.Categories {
-
-			// 从 metric 转换成类似 /v1/write/metric
-			c, err := transValidCategory(categroy)
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-
-			// 记录有效的 categroy
-			t.pipelineMap[pl.Metric].categories = append(t.pipelineMap[pl.Metric].categories, c)
-		}
-
-		pipe, err := newPipeline(filepath.Join(datakit.PipelineDir, pl.Pipeline))
-		if err != nil {
-			l.Error(err) // 忽略error，pipeline对象指针为nil
-		} else {
-			t.pipelineMap[pl.Metric].pipeline = pipe
+	for _, c := range t.Categories {
+		switch c.Category {
+		case "metric":
+			t.categoriesMap[c.Measurement] = io.Metric
+		case "logging":
+			t.categoriesMap[c.Measurement] = io.Logging
+		default:
+			l.Warnf("invalid category '%s', only accept metric/logging. use default 'metric'", c.Category)
+			t.categoriesMap[c.Measurement] = io.Metric
 		}
 	}
 
@@ -154,93 +100,29 @@ func (t *TelegrafHTTP) Handle(w http.ResponseWriter, r *http.Request) {
 
 	for _, point := range points {
 		measurement := string(point.Name())
+		data := []byte(point.String())
 
-		m, ok := t.pipelineMap[measurement]
-		if !ok {
-			// 不对此 measurement 数据做处理，默认发送到 io.Metric
-			if err := feed([]byte(point.String()), io.Metric, measurement); err != nil {
-				l.Error(err)
+		// 采集器对指定 measurement 的特殊处理
+		if fn, ok := globalPointHandle[measurement]; ok {
+			if d, err := fn(point); err == nil {
+				data = d
+			} else {
+				l.Warn(err)
+				l.Debugf("point handle err, data: %s", point.String())
 			}
-			continue
 		}
 
-		var data []byte
-
-		if m.pipeline != nil {
-			fields, err := point.Fields()
-			if err != nil {
+		if category, ok := t.categoriesMap[measurement]; !ok {
+			// 没有对此 measurement 指定 category，默认发送到 io.Metric
+			if err := io.NamedFeed(data, io.Metric, measurement); err != nil {
 				l.Error(err)
-				continue
 			}
-
-			// 只对行协议的 fields 执行 pipeline，保留原有 tags
-			jsonStr, err := fieldsToJSON(fields)
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-
-			result, err := m.pipeline.Run(jsonStr).Result()
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-
-			pt, err := ifxcli.NewPoint(measurement, point.Tags().Map(), result, point.Time())
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-
-			data = []byte(pt.String())
-
 		} else {
-			data = []byte(point.String())
-		}
-
-		for _, category := range m.categories {
-			if err := feed(data, category, measurement); err != nil {
-				l.Errorf("feed %s, err: %s", category, err.Error())
+			if err := io.NamedFeed(data, category, measurement); err != nil {
+				l.Error(err)
 			}
 		}
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
-
-var categoriesMap = map[string]string{
-	"metric":   io.Metric,
-	"keyEvent": io.KeyEvent,
-	"object":   io.Object,
-	"logging":  io.Logging,
-	"tracing":  io.Tracing,
-	"rum":      io.Rum,
-}
-
-func transValidCategory(s string) (string, error) {
-	if s == "" {
-		return "", fmt.Errorf("category should not be empty str")
-	}
-
-	if c, ok := categoriesMap[s]; ok {
-		return c, nil
-	}
-
-	return "", fmt.Errorf("invalid category of %s", s)
-}
-
-func feed(data []byte, category, name string) error {
-	return io.NamedFeed(data, category, name)
-}
-
-func newPipeline(pipelinePath string) (*pipeline.Pipeline, error) {
-	return pipeline.NewPipelineFromFile(pipelinePath)
-}
-
-func fieldsToJSON(fields map[string]interface{}) (string, error) {
-	j, err := json.Marshal(fields)
-	if err != nil {
-		return "", err
-	}
-	return string(j), nil
 }
