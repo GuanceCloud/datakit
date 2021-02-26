@@ -74,9 +74,8 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	cont, err := p.getContentStr(key)
-
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return p, nil
 	}
 
@@ -128,7 +127,7 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	v, err := p.getContent(old)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return p, nil
 	}
 
@@ -161,7 +160,7 @@ func UserAgent(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -190,9 +189,8 @@ func UrlDecode(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	cont, err := p.getContentStr(key)
-
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -222,7 +220,7 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -271,7 +269,7 @@ func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContent(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -404,7 +402,7 @@ func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContent(key)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return p, nil
 	}
 
@@ -479,7 +477,7 @@ func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContent(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -536,7 +534,7 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		case *parser.Identifier:
 			cont, err := p.getContent(v.Name)
 			if err != nil {
-				l.Warnf("key `%v' not exist", key)
+				l.Debugf("key `%v' not exist", key)
 				return p, nil
 			}
 			setdata = append(setdata, cont)
@@ -557,7 +555,7 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContent(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -596,7 +594,7 @@ func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -627,7 +625,7 @@ func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return p, nil
 	}
 
@@ -658,7 +656,7 @@ func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return p, nil
 	}
 
@@ -708,7 +706,7 @@ func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContent(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
