@@ -32,7 +32,8 @@ type DialTesting struct {
 	PullInterval string `toml:"pull_interval,omitempty"`
 	Tags         map[string]string
 
-	cli *http.Client
+	cli   *http.Client
+	class string
 
 	curTasks map[string]*dialer
 	wg       sync.WaitGroup
@@ -137,6 +138,8 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 				if err := json.Unmarshal([]byte(j), &t); err != nil {
 					return err
 				}
+
+				d.class = dt.ClassHTTP
 
 				// update dialer pos
 				ts := t.UpdateTimeUs()
