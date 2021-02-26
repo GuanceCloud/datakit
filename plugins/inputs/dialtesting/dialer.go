@@ -1,8 +1,6 @@
 package dialtesting
 
 import (
-	"crypto/md5"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -11,15 +9,13 @@ import (
 )
 
 type dialer struct {
-	task     dt.Task
-	taskMd5  string
-	taskJson []byte
+	task dt.Task
 
 	ticker *time.Ticker
 
-	lastUpdate time.Time
-	initTime   time.Time
-	testCnt    int64
+	initTime time.Time
+	testCnt  int64
+	class    string
 
 	updateCh chan dt.Task
 }
@@ -45,15 +41,8 @@ func (d *dialer) stop() {
 
 func newDialer(t dt.Task) (*dialer, error) {
 
-	j, err := json.Marshal(t)
-	if err != nil {
-		return nil, err
-	}
-
 	return &dialer{
-		task:     t,
-		taskJson: j,
-		taskMd5:  fmt.Sprintf("%x", md5.Sum(j)),
+		task: t,
 
 		updateCh: make(chan dt.Task),
 		initTime: time.Now(),
@@ -63,7 +52,10 @@ func newDialer(t dt.Task) (*dialer, error) {
 func (d *dialer) run() error {
 	d.ticker = d.task.Ticker()
 
+	l.Debugf("dialer: %+#v", d)
+
 	defer d.ticker.Stop()
+	defer close(d.updateCh)
 
 	for {
 		select {
@@ -78,11 +70,21 @@ func (d *dialer) run() error {
 			} else {
 				reasons := d.task.CheckResult()
 				// TODO: post result to d.PostURL
+				l.Debugf("reasons: %+#v", reasons)
 				_ = reasons
 			}
 
 		case t := <-d.updateCh:
 			d.doUpdateTask(t)
+
+			if d.task.Status() == dt.StatusStop {
+				if err := t.Stop(); err != nil {
+					l.Warnf("stop task failed: %s", err.Error())
+				}
+
+				l.Info("task %s stopped", d.task.ID())
+				return nil
+			}
 		}
 	}
 
@@ -91,32 +93,11 @@ func (d *dialer) run() error {
 
 func (d *dialer) doUpdateTask(t dt.Task) {
 
-	j, err := json.Marshal(t)
-	if err != nil {
-		l.Warn(err)
-		return
-	}
-
-	taskMd5 := fmt.Sprintf("%x", md5.Sum(j))
-	if taskMd5 == d.taskMd5 {
-		return
-	}
-
 	if err := t.Init(); err != nil {
 		l.Warn(err)
 		return
 	}
 
-	if t.Status() == dt.StatusStop {
-		d.stop()
-		return
-	}
-
-	if err := d.task.Stop(); err != nil {
-		l.Warn(err)
-	}
-
-	d.lastUpdate = time.Now()
 	d.task = t
 	d.ticker = t.Ticker() // update ticker
 }
