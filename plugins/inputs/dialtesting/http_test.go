@@ -16,10 +16,11 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
 var httpCases = []struct {
-	t         *httpTask
+	t         *dt.HTTPTask
 	fail      bool
 	reasonCnt int
 }{
@@ -28,16 +29,15 @@ var httpCases = []struct {
 	{
 		fail:      false,
 		reasonCnt: 0,
-		t: &httpTask{
-			TID:       cliutils.XID("dtst_"),
-			Method:    "GET",
-			URL:       "https://localhost:54323/_test_with_cert",
-			Name:      "_test_with_cert",
-			Locations: []string{"hangzhou"},
-			Frequency: "1s",
-			AdvanceOptions: []*httpAdvanceOption{
-				&httpAdvanceOption{
-					Certificate: &httpOptCertificate{
+		t: &dt.HTTPTask{
+			ExternalID: cliutils.XID("dtst_"),
+			Method:     "GET",
+			URL:        "https://localhost:54323/_test_with_cert",
+			Name:       "_test_with_cert",
+			Frequency:  "1s",
+			AdvanceOptions: []*dt.HTTPAdvanceOption{
+				&dt.HTTPAdvanceOption{
+					Certificate: &dt.HTTPOptCertificate{
 						IgnoreServerCertificateError: true,
 						PrivateKey:                   string(tlsData["key"]),
 						Certificate:                  string(tlsData["crt"]),
@@ -45,9 +45,9 @@ var httpCases = []struct {
 				},
 			},
 
-			SuccessWhen: []*httpSuccess{
-				&httpSuccess{
-					StatusCode: &successOption{Is: "200"},
+			SuccessWhen: []*dt.HTTPSuccess{
+				&dt.HTTPSuccess{
+					StatusCode: &dt.SuccessOption{Is: "200"},
 				},
 			},
 		},
@@ -55,16 +55,16 @@ var httpCases = []struct {
 	{
 		fail:      true,
 		reasonCnt: 0,
-		t: &httpTask{
-			TID:       cliutils.XID("dtst_"),
-			Method:    "GET",
-			URL:       "https://localhost:54323/_test_with_cert",
-			Name:      "_test_with_cert",
-			Locations: []string{"hangzhou"},
-			Frequency: "1s",
-			AdvanceOptions: []*httpAdvanceOption{
-				&httpAdvanceOption{
-					Certificate: &httpOptCertificate{
+		t: &dt.HTTPTask{
+			ExternalID: cliutils.XID("dtst_"),
+			Method:     "GET",
+			URL:        "https://localhost:54323/_test_with_cert",
+			Name:       "_test_with_cert",
+			Region:     "",
+			Frequency:  "1s",
+			AdvanceOptions: []*dt.HTTPAdvanceOption{
+				&dt.HTTPAdvanceOption{
+					Certificate: &dt.HTTPOptCertificate{
 						IgnoreServerCertificateError: false, // bad certificate, expect fail
 						PrivateKey:                   string(tlsData["key"]),
 						Certificate:                  string(tlsData["crt"]),
@@ -72,9 +72,9 @@ var httpCases = []struct {
 				},
 			},
 
-			SuccessWhen: []*httpSuccess{
-				&httpSuccess{
-					StatusCode: &successOption{Is: "200"},
+			SuccessWhen: []*dt.HTTPSuccess{
+				&dt.HTTPSuccess{
+					StatusCode: &dt.SuccessOption{Is: "200"},
 				},
 			},
 		},
@@ -84,25 +84,24 @@ var httpCases = []struct {
 	{
 		fail:      false,
 		reasonCnt: 0,
-		t: &httpTask{
-			TID:       cliutils.XID("dtst_"),
-			Method:    "POST",
-			URL:       "http://localhost:54321/_test_with_proxy",
-			Name:      "_test_with_proxy",
-			Locations: []string{"hangzhou"},
-			Frequency: "1s",
-			AdvanceOptions: []*httpAdvanceOption{
-				&httpAdvanceOption{
-					Proxy: &httpOptProxy{
+		t: &dt.HTTPTask{
+			ExternalID: cliutils.XID("dtst_"),
+			Method:     "POST",
+			URL:        "http://localhost:54321/_test_with_proxy",
+			Name:       "_test_with_proxy",
+			Frequency:  "1s",
+			AdvanceOptions: []*dt.HTTPAdvanceOption{
+				&dt.HTTPAdvanceOption{
+					Proxy: &dt.HTTPOptProxy{
 						URL:     "http://localhost:54322",
 						Headers: map[string]string{"X-proxy-header": "proxy-foo"},
 					},
 				},
 			},
 
-			SuccessWhen: []*httpSuccess{
-				&httpSuccess{
-					StatusCode: &successOption{Is: "200"},
+			SuccessWhen: []*dt.HTTPSuccess{
+				&dt.HTTPSuccess{
+					StatusCode: &dt.SuccessOption{Is: "200"},
 				},
 			},
 		},
@@ -112,50 +111,48 @@ var httpCases = []struct {
 	{
 		fail:      true,
 		reasonCnt: 0,
-		t: &httpTask{
-			TID:       cliutils.XID("dtst_"),
-			Method:    "POST",
-			URL:       "http://localhost:54321/_test_with_body",
-			Name:      "_test_with_body",
-			Locations: []string{"hangzhou"},
-			Frequency: "1s",
-			AdvanceOptions: []*httpAdvanceOption{
-				&httpAdvanceOption{
-					RequestBody: &httpOptBody{
+		t: &dt.HTTPTask{
+			ExternalID: cliutils.XID("dtst_"),
+			Method:     "POST",
+			URL:        "http://localhost:54321/_test_with_body",
+			Name:       "_test_with_body",
+			Frequency:  "1s",
+			AdvanceOptions: []*dt.HTTPAdvanceOption{
+				&dt.HTTPAdvanceOption{
+					RequestBody: &dt.HTTPOptBody{
 						BodyType: "application/unknown", // XXX: invalid body type
 						Body:     `{"key": "value"}`,
 					},
 				},
 			},
 
-			SuccessWhen: []*httpSuccess{
-				&httpSuccess{
-					StatusCode: &successOption{Is: "200"},
+			SuccessWhen: []*dt.HTTPSuccess{
+				&dt.HTTPSuccess{
+					StatusCode: &dt.SuccessOption{Is: "200"},
 				},
 			},
 		},
 	},
 	{
 		reasonCnt: 0,
-		t: &httpTask{
-			TID:       cliutils.XID("dtst_"),
-			Method:    "POST",
-			URL:       "http://localhost:54321/_test_with_body",
-			Name:      "_test_with_body",
-			Locations: []string{"hangzhou"},
-			Frequency: "1s",
-			AdvanceOptions: []*httpAdvanceOption{
-				&httpAdvanceOption{
-					RequestBody: &httpOptBody{
+		t: &dt.HTTPTask{
+			ExternalID: cliutils.XID("dtst_"),
+			Method:     "POST",
+			URL:        "http://localhost:54321/_test_with_body",
+			Name:       "_test_with_body",
+			Frequency:  "1s",
+			AdvanceOptions: []*dt.HTTPAdvanceOption{
+				&dt.HTTPAdvanceOption{
+					RequestBody: &dt.HTTPOptBody{
 						BodyType: "application/json",
 						Body:     `{"key": "value"}`,
 					},
 				},
 			},
 
-			SuccessWhen: []*httpSuccess{
-				&httpSuccess{
-					StatusCode: &successOption{Is: "200"},
+			SuccessWhen: []*dt.HTTPSuccess{
+				&dt.HTTPSuccess{
+					StatusCode: &dt.SuccessOption{Is: "200"},
 				},
 			},
 		},
@@ -164,16 +161,15 @@ var httpCases = []struct {
 	// test dial with headers
 	{
 		reasonCnt: 0,
-		t: &httpTask{
-			TID:       cliutils.XID("dtst_"),
-			Method:    "GET",
-			URL:       "http://localhost:54321/_test_with_headers",
-			Name:      "_test_with_headers",
-			Locations: []string{"hangzhou"},
-			Frequency: "1s",
-			AdvanceOptions: []*httpAdvanceOption{
-				&httpAdvanceOption{
-					RequestOptions: &httpOptRequest{
+		t: &dt.HTTPTask{
+			ExternalID: cliutils.XID("dtst_"),
+			Method:     "GET",
+			URL:        "http://localhost:54321/_test_with_headers",
+			Name:       "_test_with_headers",
+			Frequency:  "1s",
+			AdvanceOptions: []*dt.HTTPAdvanceOption{
+				&dt.HTTPAdvanceOption{
+					RequestOptions: &dt.HTTPOptRequest{
 						Headers: map[string]string{
 							"X-Header-1": "foo",
 							"X-Header-2": "bar",
@@ -182,9 +178,9 @@ var httpCases = []struct {
 				},
 			},
 
-			SuccessWhen: []*httpSuccess{
-				&httpSuccess{
-					StatusCode: &successOption{Is: "200"},
+			SuccessWhen: []*dt.HTTPSuccess{
+				&dt.HTTPSuccess{
+					StatusCode: &dt.SuccessOption{Is: "200"},
 				},
 			},
 		},
@@ -193,17 +189,16 @@ var httpCases = []struct {
 	// test dial with auth
 	{
 		reasonCnt: 0,
-		t: &httpTask{
-			TID:       cliutils.XID("dtst_"),
-			Method:    "GET",
-			URL:       "http://localhost:54321/_test_with_basic_auth",
-			Name:      "_test_with_basic_auth",
-			Locations: []string{"hangzhou"},
-			Frequency: "1s",
-			AdvanceOptions: []*httpAdvanceOption{
-				&httpAdvanceOption{
-					RequestOptions: &httpOptRequest{
-						Auth: &httpOptAuth{
+		t: &dt.HTTPTask{
+			ExternalID: cliutils.XID("dtst_"),
+			Method:     "GET",
+			URL:        "http://localhost:54321/_test_with_basic_auth",
+			Name:       "_test_with_basic_auth",
+			Frequency:  "1s",
+			AdvanceOptions: []*dt.HTTPAdvanceOption{
+				&dt.HTTPAdvanceOption{
+					RequestOptions: &dt.HTTPOptRequest{
+						Auth: &dt.HTTPOptAuth{
 							Username: "foo",
 							Password: "bar",
 						},
@@ -211,9 +206,9 @@ var httpCases = []struct {
 				},
 			},
 
-			SuccessWhen: []*httpSuccess{
-				&httpSuccess{
-					StatusCode: &successOption{Is: "200"},
+			SuccessWhen: []*dt.HTTPSuccess{
+				&dt.HTTPSuccess{
+					StatusCode: &dt.SuccessOption{Is: "200"},
 				},
 			},
 		},
@@ -222,16 +217,15 @@ var httpCases = []struct {
 	// test dial with cookie
 	{
 		reasonCnt: 0,
-		t: &httpTask{
-			TID:       cliutils.XID("dtst_"),
-			Method:    "GET",
-			URL:       "http://localhost:54321/_test_with_cookie",
-			Name:      "_test_with_cookie",
-			Locations: []string{"hangzhou"},
-			Frequency: "1s",
-			AdvanceOptions: []*httpAdvanceOption{
-				&httpAdvanceOption{
-					RequestOptions: &httpOptRequest{
+		t: &dt.HTTPTask{
+			ExternalID: cliutils.XID("dtst_"),
+			Method:     "GET",
+			URL:        "http://localhost:54321/_test_with_cookie",
+			Name:       "_test_with_cookie",
+			Frequency:  "1s",
+			AdvanceOptions: []*dt.HTTPAdvanceOption{
+				&dt.HTTPAdvanceOption{
+					RequestOptions: &dt.HTTPOptRequest{
 						Cookies: (&http.Cookie{
 							Name:   "_test_with_cookie",
 							Value:  "foo-bar",
@@ -242,9 +236,9 @@ var httpCases = []struct {
 				},
 			},
 
-			SuccessWhen: []*httpSuccess{
-				&httpSuccess{
-					StatusCode: &successOption{Is: "200"},
+			SuccessWhen: []*dt.HTTPSuccess{
+				&dt.HTTPSuccess{
+					StatusCode: &dt.SuccessOption{Is: "200"},
 				},
 			},
 		},
@@ -253,22 +247,21 @@ var httpCases = []struct {
 	// test dial for redirect
 	{
 		reasonCnt: 0,
-		t: &httpTask{
-			TID:       cliutils.XID("dtst_"),
-			Method:    "GET",
-			URL:       "http://localhost:54321/_test_redirect",
-			Name:      "_test_redirect",
-			Locations: []string{"hangzhou"},
-			Frequency: "1s",
-			AdvanceOptions: []*httpAdvanceOption{
-				&httpAdvanceOption{
-					RequestOptions: &httpOptRequest{FollowRedirect: true},
+		t: &dt.HTTPTask{
+			ExternalID: cliutils.XID("dtst_"),
+			Method:     "GET",
+			URL:        "http://localhost:54321/_test_redirect",
+			Name:       "_test_redirect",
+			Frequency:  "1s",
+			AdvanceOptions: []*dt.HTTPAdvanceOption{
+				&dt.HTTPAdvanceOption{
+					RequestOptions: &dt.HTTPOptRequest{FollowRedirect: true},
 				},
 			},
 
-			SuccessWhen: []*httpSuccess{
-				&httpSuccess{
-					StatusCode: &successOption{Is: "200"}, // allow redirect, should be 200
+			SuccessWhen: []*dt.HTTPSuccess{
+				&dt.HTTPSuccess{
+					StatusCode: &dt.SuccessOption{Is: "200"}, // allow redirect, should be 200
 				},
 			},
 		},
@@ -276,22 +269,21 @@ var httpCases = []struct {
 
 	{
 		reasonCnt: 0,
-		t: &httpTask{
-			TID:       cliutils.XID("dtst_"),
-			Method:    "GET",
-			URL:       "http://localhost:54321/_test_redirect",
-			Name:      "_test_redirect_disabled",
-			Locations: []string{"hangzhou"},
-			Frequency: "1s",
-			AdvanceOptions: []*httpAdvanceOption{
-				&httpAdvanceOption{
-					RequestOptions: &httpOptRequest{FollowRedirect: false},
+		t: &dt.HTTPTask{
+			ExternalID: cliutils.XID("dtst_"),
+			Method:     "GET",
+			URL:        "http://localhost:54321/_test_redirect",
+			Name:       "_test_redirect_disabled",
+			Frequency:  "1s",
+			AdvanceOptions: []*dt.HTTPAdvanceOption{
+				&dt.HTTPAdvanceOption{
+					RequestOptions: &dt.HTTPOptRequest{FollowRedirect: false},
 				},
 			},
 
-			SuccessWhen: []*httpSuccess{
-				&httpSuccess{
-					StatusCode: &successOption{Is: "302"}, // disabled redirect, should be 302
+			SuccessWhen: []*dt.HTTPSuccess{
+				&dt.HTTPSuccess{
+					StatusCode: &dt.SuccessOption{Is: "302"}, // disabled redirect, should be 302
 				},
 			},
 		},
@@ -300,15 +292,14 @@ var httpCases = []struct {
 	// test dial with response time checking
 	{
 		reasonCnt: 1,
-		t: &httpTask{
-			TID:       cliutils.XID("dialt_"),
-			Method:    "GET",
-			URL:       "http://localhost:54321/_test_resp_time_less_10ms",
-			Name:      "_test_resp_time_less_10ms",
-			Frequency: "1s",
-			Locations: []string{"hangzhou"},
-			SuccessWhen: []*httpSuccess{
-				&httpSuccess{ResponseTime: "10ms"},
+		t: &dt.HTTPTask{
+			ExternalID: cliutils.XID("dtst_"),
+			Method:     "GET",
+			URL:        "http://localhost:54321/_test_resp_time_less_10ms",
+			Name:       "_test_resp_time_less_10ms",
+			Frequency:  "1s",
+			SuccessWhen: []*dt.HTTPSuccess{
+				&dt.HTTPSuccess{ResponseTime: "10ms"},
 			},
 		},
 	},
@@ -316,24 +307,24 @@ var httpCases = []struct {
 	// test dial with response headers
 	{
 		reasonCnt: 2,
-		t: &httpTask{
-			TID:       cliutils.XID("dtst_"),
-			Method:    "GET",
-			URL:       "http://localhost:54321/_test_header_checking",
-			Name:      "_test_header_checking",
-			Locations: []string{"hangzhou"},
-			Frequency: "1s",
-			SuccessWhen: []*httpSuccess{
-				&httpSuccess{
-					Header: map[string]*successOption{
+		t: &dt.HTTPTask{
+			ExternalID: cliutils.XID("dtst_"),
+			Method:     "GET",
+			URL:        "http://localhost:54321/_test_header_checking",
+			Name:       "_test_header_checking",
+			Region:     "hangzhou",
+			Frequency:  "1s",
+			SuccessWhen: []*dt.HTTPSuccess{
+				&dt.HTTPSuccess{
+					Header: map[string]*dt.SuccessOption{
 
-						"Cache-Control": &successOption{MatchRegex: `max-ag=\d`}, // expect fail: max-age
-						"Server":        &successOption{Is: `Apache`},            // expect fail
+						"Cache-Control": &dt.SuccessOption{MatchRegex: `max-ag=\d`}, // expect fail: max-age
+						"Server":        &dt.SuccessOption{Is: `Apache`},            // expect fail
 
-						"Date":            &successOption{Contains: "GMT"},     // ok: Date always use GMT
-						"NotExistHeader1": &successOption{NotMatchRegex: `.+`}, // ok
-						"NotExistHeader2": &successOption{IsNot: `abc`},        // ok
-						"NotExistHeader3": &successOption{NotContains: `def`},  // ok
+						"Date":            &dt.SuccessOption{Contains: "GMT"},     // ok: Date always use GMT
+						"NotExistHeader1": &dt.SuccessOption{NotMatchRegex: `.+`}, // ok
+						"NotExistHeader2": &dt.SuccessOption{IsNot: `abc`},        // ok
+						"NotExistHeader3": &dt.SuccessOption{NotContains: `def`},  // ok
 					},
 				},
 			},
