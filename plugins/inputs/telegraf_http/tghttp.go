@@ -3,18 +3,13 @@ package telegraf_http
 import (
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
-	"strings"
 	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
-	ifxcli "github.com/influxdata/influxdb1-client/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -23,38 +18,38 @@ const (
 
 	sampleCfg = `
 [inputs.telegraf_http]
-
-    [inputs.telegraf_http.logging_measurements]
-    ## "logging_measurement" = "pipeline.p"
+    # [[inputs.telegraf_http.categories]]
+    # metric = "A"
+    # category = "metric"
 `
 )
 
-var (
-	l = logger.DefaultSLogger(inputName)
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &TelegrafHTTP{
-			LoggingMeas: make(map[string]string),
-			pipelineMap: make(map[string]*pipeline.Pipeline),
+			categoriesMap: make(map[string]string),
 		}
 	})
 }
 
 type TelegrafHTTP struct {
-	// map[measurement]pipelinePath
-	LoggingMeas map[string]string `toml:"logging_measurements"`
-	// no required goroutine safe
-	pipelineMap map[string]*pipeline.Pipeline
-}
+	Categories []struct {
+		Measurement string `toml:"metric"`
+		Category    string `toml:"category"`
+	} `toml:"categories"`
 
-func (*TelegrafHTTP) SampleConfig() string {
-	return sampleCfg
+	// map[measurement]io.Metric
+	categoriesMap map[string]string
 }
 
 func (*TelegrafHTTP) Catalog() string {
 	return inputName
+}
+
+func (*TelegrafHTTP) SampleConfig() string {
+	return sampleCfg
 }
 
 func (*TelegrafHTTP) Test() (*inputs.TestResult, error) {
@@ -64,13 +59,16 @@ func (*TelegrafHTTP) Test() (*inputs.TestResult, error) {
 func (t *TelegrafHTTP) Run() {
 	l = logger.SLogger(inputName)
 
-	for meas, pipelinePath := range t.LoggingMeas {
-		p, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, pipelinePath))
-		if err != nil {
-			l.Error(err) // 忽略错误，只输出log
+	for _, c := range t.Categories {
+		switch c.Category {
+		case "metric":
+			t.categoriesMap[c.Measurement] = io.Metric
+		case "logging":
+			t.categoriesMap[c.Measurement] = io.Logging
+		default:
+			l.Warnf("invalid category '%s', only accept metric/logging. use default 'metric'", c.Category)
+			t.categoriesMap[c.Measurement] = io.Metric
 		}
-		// 不会触发空指针引用panic
-		t.pipelineMap[meas] = p
 	}
 
 	l.Infof("telegraf_http input started...")
@@ -100,51 +98,29 @@ func (t *TelegrafHTTP) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metricFeeds := map[string][]string{}
-	loggingFeeds := map[string][]string{}
+	for _, point := range points {
+		measurement := string(point.Name())
+		data := []byte(point.String())
 
-	for idx := range points {
-		meas := string(points[idx].Name())
+		// 采集器对指定 measurement 的特殊处理
+		if fn, ok := globalPointHandle[measurement]; ok {
+			if d, err := fn(point); err == nil {
+				data = d
+			} else {
+				l.Warn(err)
+				l.Debugf("point handle err, data: %s", point.String())
+			}
+		}
 
-		if _, ok := t.LoggingMeas[meas]; ok {
-			result, err := t.pipelineMap[meas].RunPoint(points[idx]).Result()
-			if err != nil {
+		if category, ok := t.categoriesMap[measurement]; !ok {
+			// 没有对此 measurement 指定 category，默认发送到 io.Metric
+			if err := io.NamedFeed(data, io.Metric, measurement); err != nil {
 				l.Error(err)
-				continue
 			}
-
-			pt, err := ifxcli.NewPoint(meas, nil, result, points[idx].Time())
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-
-			if _, ok := loggingFeeds[meas]; !ok {
-				loggingFeeds[meas] = []string{}
-			}
-
-			loggingFeeds[meas] = append(loggingFeeds[meas], pt.String())
-
 		} else {
-			if _, ok := metricFeeds[meas]; !ok {
-				metricFeeds[meas] = []string{}
+			if err := io.NamedFeed(data, category, measurement); err != nil {
+				l.Error(err)
 			}
-
-			metricFeeds[meas] = append(metricFeeds[meas], points[idx].String())
-		}
-	}
-
-	for k, lines := range metricFeeds {
-		if err := io.NamedFeed([]byte(strings.Join(lines, "\n")), io.Metric, k); err != nil {
-			l.Errorf("feed metric, err: %s", err.Error())
-			return
-		}
-	}
-
-	for k, lines := range loggingFeeds {
-		if err := io.NamedFeed([]byte(strings.Join(lines, "\n")), io.Logging, k); err != nil {
-			l.Errorf("feed logging, err: %s", err.Error())
-			return
 		}
 	}
 
