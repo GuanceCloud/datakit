@@ -87,7 +87,7 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/slb
 github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
-# github.com/aliyun/aliyun-oss-go-sdk v2.1.5+incompatible
+# github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/andygrunwald/go-jira v1.12.0
 github.com/andygrunwald/go-jira
@@ -693,7 +693,7 @@ github.com/pkg/term/termios
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.15.0
+# github.com/prometheus/common v0.17.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
@@ -840,7 +840,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210103044601-bf434a6898c5
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210224030339-aadc56ffd8f3
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript
@@ -848,8 +848,9 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript/module
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210118023115-6ad5eb4e2791
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210226042909-f07a9eac5848
 gitlab.jiagouyun.com/cloudcare-tools/kodo/config
+gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 gitlab.jiagouyun.com/cloudcare-tools/kodo/models
 gitlab.jiagouyun.com/cloudcare-tools/kodo/utils
 gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg
@@ -981,7 +982,7 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
+# golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
