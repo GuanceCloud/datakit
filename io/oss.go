@@ -3,7 +3,6 @@ package io
 import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"os"
-	"fmt"
 )
 
 type OSSClient struct {
@@ -39,15 +38,7 @@ func (oc *OSSClient) GetOSSCli() (*oss.Client, error) {
 }
 
 func (oc *OSSClient) OSSUPLoad(objectName string, f *os.File) error {
-	info, err := f.Stat()
-	if err != nil {
-		return err
-	}
-	if info.Size() >= 5*1024*1024*1024 {
-		return fmt.Errorf("file too large")
-	}
 	bucket, err := oc.Cli.Bucket(oc.BucketName)
-	defer f.Close()
 	if err != nil {
 		return err
 	}
