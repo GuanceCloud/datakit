@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -28,7 +29,7 @@ func DefaultSignOption(authType string, headers []string) *SignOption {
 	}
 }
 
-func (o *SignOption) SignReq(r *http.Request) string {
+func (o *SignOption) SignReq(r *http.Request) (string, error) {
 	signElems := []string{
 		r.Method,
 	}
@@ -43,10 +44,10 @@ func (o *SignOption) SignReq(r *http.Request) string {
 
 	h := hmac.New(sha256.New, []byte(o.SK))
 	if _, err := h.Write([]byte(o.SignStr)); err != nil {
-		panic(err)
+		return "", err
 	}
 
-	return base64.StdEncoding.EncodeToString(h.Sum(nil))
+	return base64.StdEncoding.EncodeToString(h.Sum(nil)), nil
 }
 
 func (o *SignOption) ParseAuth(r *http.Request) error {
@@ -57,12 +58,12 @@ func (o *SignOption) ParseAuth(r *http.Request) error {
 	switch len(parts) {
 	case 2: //nolint:gomnd
 		if parts[0] != o.AuthorizationType {
-			goto failed
+			return fmt.Errorf("unknown authorization type %s, expect %s", parts[0], o.AuthorizationType)
 		}
 
 		signParts := strings.Split(parts[1], `:`)
 		if len(signParts) != 2 { //nolint:gomnd
-			goto failed
+			return fmt.Errorf("invalid Authorization header, expect format `type access_key:sign'")
 		}
 
 		o.AK = signParts[0]
@@ -70,9 +71,6 @@ func (o *SignOption) ParseAuth(r *http.Request) error {
 		return nil
 
 	default:
-		goto failed
+		return fmt.Errorf("invalid Authorization header, expect format `type access_key:sign'")
 	}
-
-failed:
-	return ErrBadAuthHeader
 }

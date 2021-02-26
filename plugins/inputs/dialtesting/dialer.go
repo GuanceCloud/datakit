@@ -7,10 +7,11 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
 type dialer struct {
-	task     Task
+	task     dt.Task
 	taskMd5  string
 	taskJson []byte
 
@@ -20,10 +21,10 @@ type dialer struct {
 	initTime   time.Time
 	testCnt    int64
 
-	updateCh chan Task
+	updateCh chan dt.Task
 }
 
-func (d *dialer) updateTask(t Task) error {
+func (d *dialer) updateTask(t dt.Task) error {
 
 	select {
 	case <-d.updateCh: // if closed?
@@ -42,7 +43,7 @@ func (d *dialer) stop() {
 	}
 }
 
-func newDialer(t Task) (*dialer, error) {
+func newDialer(t dt.Task) (*dialer, error) {
 
 	j, err := json.Marshal(t)
 	if err != nil {
@@ -54,7 +55,7 @@ func newDialer(t Task) (*dialer, error) {
 		taskJson: j,
 		taskMd5:  fmt.Sprintf("%x", md5.Sum(j)),
 
-		updateCh: make(chan Task),
+		updateCh: make(chan dt.Task),
 		initTime: time.Now(),
 	}, nil
 }
@@ -88,7 +89,7 @@ func (d *dialer) run() error {
 	return nil
 }
 
-func (d *dialer) doUpdateTask(t Task) {
+func (d *dialer) doUpdateTask(t dt.Task) {
 
 	j, err := json.Marshal(t)
 	if err != nil {
@@ -106,7 +107,7 @@ func (d *dialer) doUpdateTask(t Task) {
 		return
 	}
 
-	if t.Status() == StatusStop {
+	if t.Status() == dt.StatusStop {
 		d.stop()
 		return
 	}

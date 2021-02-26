@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/kodo/config"
@@ -18,6 +19,7 @@ var (
 	Hbch      = make(chan string)
 	Clich     = make(chan *DatakitClient)
 	Onlinedks = map[string]*DatakitClient{}
+	KodoCli   = &KoDoCli{}
 )
 
 type DatakitClient struct {
@@ -76,6 +78,8 @@ func (wm *WrapMsg) Invalid() bool {
 func (dc *DatakitClient) Online() {
 	Clich <- dc
 	SendOnline(dc)
+	UpdateHostState(dc.Token, dc.HostName, "online")
+
 }
 
 func (wm *WrapMsg) Send() {
@@ -237,6 +241,26 @@ func (m *MsgSetInputConfig) Handle(wm *WrapMsg) error {
 	}
 
 	return json.Unmarshal(data, &m.Configs)
+}
+
+func UpdateHostState(token, name, state string) {
+	class := "HOST"
+	tags := map[string]string{
+		"name": name,
+	}
+	fields := map[string]interface{}{
+		"state": state,
+	}
+	line, err := ifxcli.NewPoint(class, tags, fields, time.Now().UTC())
+
+	if err != nil {
+		l.Errorf("make line err:%s", err.Error())
+		return
+	}
+	header := map[string]string{
+		"X-Token": token,
+	}
+	KodoCli.PostKodo("/v1/update/object", header, []byte(line.PrecisionString("s")))
 }
 
 const (
