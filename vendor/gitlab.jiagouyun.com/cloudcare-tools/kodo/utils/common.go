@@ -49,9 +49,9 @@ var (
 	//EsKeepTimeStamp  = `timestampUs`
 	EsKeepTimeStampM = `date`
 
-	EsKeepEventId   = `__eventId`
-	EsKeepStatus    = `__status`
-	EsKeepTitle     = `__title`
+	EsKeepEventId   = `event_id`
+	EsKeepStatus    = `status`
+	EsKeepTitle     = `title`
 	EsKeepEventType = `__type`
 
 	RUMType = `source`
