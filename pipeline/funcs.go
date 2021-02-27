@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/tidwall/gjson"
 
@@ -35,6 +36,7 @@ var (
 		"uppercase":        Uppercase,
 		"url_decode":       UrlDecode,
 		"user_agent":       UserAgent,
+		"parse_duration":   ParseDuration,
 	}
 )
 
@@ -376,6 +378,50 @@ func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	return p, nil
 }
 
+func ParseDuration(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+
+		l.Warn("parse_duration(): invalid param")
+
+		return nil, fmt.Errorf("func %s expect 1 arg", funcExpr.Name)
+	}
+
+	var key parser.Node
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		err := fmt.Errorf("param expect Identifier, got `%+#v', type `%s'",
+			funcExpr.Param[0], reflect.TypeOf(funcExpr.Param[0]).String())
+
+		l.Warn("parse_duration(): %s", err)
+
+		return p, err
+	}
+
+	cont, err := p.getContent(key)
+	if err != nil {
+		l.Debug(err)
+		return p, nil
+	}
+
+	duStr, ok := cont.(string)
+	if !ok {
+		return p, fmt.Errorf("parse_duration() expect string arg")
+	}
+
+	l.Debugf("parse duration %s", duStr)
+	du, err := time.ParseDuration(duStr)
+	if err != nil {
+		l.Debug(err)
+		return p, nil
+	}
+
+	p.setContent(key, int64(du))
+	return p, nil
+}
+
 func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
@@ -599,7 +645,6 @@ func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	if v, err := TimestampHandle(cont); err != nil {
-		// l.Warnf("time convert fail error %v", err)
 		return p, fmt.Errorf("time convert fail error %v", err)
 	} else {
 		p.setContent(key, v)
