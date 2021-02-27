@@ -6,6 +6,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"strconv"
 	"testing"
+	"time"
 )
 
 type funcCase struct {
@@ -130,6 +131,14 @@ func TestDefaultTimeFunc(t *testing.T) {
 			script:   `json(_, a.time) default_time(a.time)`,
 			expected: int64(1510582460000000000),
 			key:      "a.time",
+			err:      nil,
+		},
+
+		{
+			data:     `{"str":"2021/02/27 - 08:11:46"}`,
+			script:   `json(_, str) default_time(str)`,
+			expected: int64(1614413506000000000),
+			key:      "str",
 			err:      nil,
 		},
 	}
@@ -541,6 +550,79 @@ func TestNullIfFunc(t *testing.T) {
 		r, err := p.getContent(tt.key)
 
 		assertEqual(t, r, tt.expected)
+	}
+}
+
+func TestParseDuration(t *testing.T) {
+	cases := []*funcCase{
+		{
+			data:     `{"str": "1s"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Second),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "1ms"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Millisecond),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "1us"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Microsecond),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "1µs"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Microsecond),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "1m"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Minute),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "1h"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Hour),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "-23h"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: -23 * int64(time.Hour),
+			key:      "str",
+		},
+
+		{
+			data:   `{"str": "1uuus"}`,
+			script: `json(_, str) parse_duration(str)`,
+			key:    "str",
+			fail:   true,
+		},
+	}
+
+	for _, tt := range cases {
+		p, err := NewPipeline(tt.script)
+		assertEqual(t, err, p.lastErr)
+
+		p.Run(tt.data)
+
+		r, err := p.getContent(tt.key)
+
+		if !tt.fail {
+			assertEqual(t, r, tt.expected)
+		}
 	}
 }
 
