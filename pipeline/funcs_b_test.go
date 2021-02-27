@@ -605,6 +605,20 @@ func TestParseDuration(t *testing.T) {
 		},
 
 		{
+			data:     `{"str": "-23ns"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(-23),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "-2.3s"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Second*-2 - 300*time.Millisecond),
+			key:      "str",
+		},
+
+		{
 			data:   `{"str": "1uuus"}`,
 			script: `json(_, str) parse_duration(str)`,
 			key:    "str",
