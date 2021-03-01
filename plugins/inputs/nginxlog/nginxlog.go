@@ -75,6 +75,7 @@ func init() {
 			sampleCfg,
 			map[string]string{"nginx": pipelineCfg},
 		)
+		t.Source = inputName
 		return t
 	})
 }
