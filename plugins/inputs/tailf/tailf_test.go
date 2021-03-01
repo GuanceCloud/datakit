@@ -83,8 +83,10 @@ func TestAddStatus(t *testing.T) {
 	testcase := []map[string]interface{}{
 		// 有效
 		{"status": "i"},
-		// 有效，大写
 		{"status": "DEBUG"},
+		{"status": "OK"},
+		{"status": "error"},
+
 		// 无效，非枚举status
 		{"status": "invalid"},
 		// 无status
