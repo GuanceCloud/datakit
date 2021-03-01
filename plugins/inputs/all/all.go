@@ -31,6 +31,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flink"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/fluentdlog"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ginlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/goruntime"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/harborMonitor"
@@ -80,6 +81,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/wechatminiprogram"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/yarn"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zaplog"
 
 	// removed
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
