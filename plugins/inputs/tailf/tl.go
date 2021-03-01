@@ -270,7 +270,7 @@ var statusMap = map[string]string{
 	"debug":    "debug",
 	"o":        "OK",
 	"s":        "OK",
-	"OK":       "OK",
+	"ok":       "OK",
 }
 
 func addStatus(fields map[string]interface{}) {
