@@ -1,5 +1,4 @@
 import datetime
-import sys
 import requests
 from influxdb.line_protocol import make_line
 
@@ -14,11 +13,14 @@ def get_cluster_info(host, user, password):
     return "", ""
 
 
-def run(host, user, password):
+def run(c):
+    host = c.cfg.get("es_index").get("host")
+    user = c.cfg.get("es_index").get("user")
+    password = c.cfg.get("es_index").get("password")
     es_url = "{}{}".format(host, "/_stats")
     response = requests.get(es_url, auth=(user, password))
     if response.status_code != 200:
-        print(response.status_code, response.json())
+        c.log.error("state_code:%d,resp:%s", response.status_code, response.text)
         return
     resp = response.json()
     lines = []
@@ -40,12 +42,4 @@ def run(host, user, password):
     dk_url = "http://0.0.0.0:9529/v1/write/metric"
     result = requests.post(dk_url, data=body.encode("utf-8"))
     if result.status_code != 200:
-        print(result.status_code, result.content)
-
-
-if __name__ == '__main__':
-    if len(sys.argv) == 4:
-        _, host, user, password = sys.argv
-        run(host, user, password)
-    else:
-        print("bad params")
+        c.log.error("state_code:%d,resp:%s", result.status_code, result.text)
