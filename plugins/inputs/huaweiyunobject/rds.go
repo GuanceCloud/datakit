@@ -30,7 +30,6 @@ const (
 	rdsPipelineConfig = `
 
 json(_,switch_strategy)
-json(_,charge_info)
 json(_,region)
 
 `
