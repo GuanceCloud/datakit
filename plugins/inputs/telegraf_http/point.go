@@ -7,8 +7,17 @@ import (
 var globalPointHandle = map[string]func(influxm.Point) ([]byte, error){
 
 	// 添加新字段 cpu_usage，内容为 cpu_usage_core_nanoseconds 和 cpu_usage_nanocores 计算所得
+	// 添加新字段 mem_usage_percent，内容为 memory_usage_bytes 和 memory_available_bytes 计算所得
 	"kubernetes_node": func(pt influxm.Point) ([]byte, error) {
-		return addK8sCPUUsageHandle(pt)
+		p, err := addK8sCPUUsage(pt)
+		if err != nil {
+			return nil, err
+		}
+		p, err = addK8sMemUsagePercent(p)
+		if err != nil {
+			return nil, err
+		}
+		return []byte(p.String()), nil
 	},
 
 	// 添加新字段 cpu_usage，内容为 cpu_usage_core_nanoseconds 和 cpu_usage_nanocores 计算所得
@@ -54,6 +63,29 @@ func addK8sCPUUsage(pt influxm.Point) (influxm.Point, error) {
 		// source link: https://github.com/kubernetes/heapster/issues/650#issuecomment-147795824
 		// cpu_usage_core_nanoseconds / (cpu_usage_nanocores * 1000000000) * 100
 		return float64(coreNanoseconds) / float64(nanocores*1000000000) * 100
+	}()
+
+	return influxm.NewPoint(string(pt.Name()), pt.Tags(), fields, pt.Time())
+}
+
+func addK8sMemUsagePercent(pt influxm.Point) (influxm.Point, error) {
+	fields, err := pt.Fields()
+	if err != nil {
+		return nil, err
+	}
+
+	fields["mem_usage_percent"] = func() (usage float64) {
+		// 两个值的类型都是 int64
+		usageBytes := fields["memory_usage_bytes"].(int64)
+		if usageBytes == 0 {
+			return
+		}
+		availableBytes := fields["memory_available_bytes"].(int64)
+		if availableBytes == 0 {
+			return
+		}
+		// mem_usage_percent = memory_usage_bytes / (memory_usage_bytes + memory_available_bytes)
+		return float64(usageBytes) / float64(usageBytes+availableBytes)
 	}()
 
 	return influxm.NewPoint(string(pt.Name()), pt.Tags(), fields, pt.Time())
