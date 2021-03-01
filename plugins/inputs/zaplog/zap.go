@@ -1,4 +1,4 @@
-package redislog
+package zaplog
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -6,23 +6,22 @@ import (
 )
 
 const (
-	inputName = "redislog"
+	inputName = "zaplog"
 
 	sampleCfg = `
 [[inputs.tailf]]
-    # required, glob logfiles
-    logfiles = ["/var/log/redis/*.log"]
+
+    logfiles = [""]  # required
+    source = "<your-source>" # required
 
     # glob filteer
     ignore = [""]
 
-    source = "redislog"
-
     # add service tag, if it's empty, use $source.
-    service = "redislog"
+    service = "" # default same as $source
 
     # grok pipeline script path
-    pipeline = "redis.p"
+    pipeline = "zaplog.p"
 
     # read file from beginning
     # if from_begin was false, off auto discovery file
@@ -33,25 +32,21 @@ const (
     character_encoding = ""
 
     # The pattern should be a regexp. Note the use of '''this regexp'''
-    # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
     match = '''^\S.*'''
 
     [inputs.tailf.tags]
     # tags1 = "value1"
 `
 	pipelineCfg = `
-add_pattern("date2", "%{MONTHDAY} %{MONTH} %{YEAR}?%{TIME}")
+add_pattern("zap_date", "%{YEAR}-%{MONTHNUM}-%{MONTHDAY}T%{HOUR}:%{MINUTE}:%{SECOND}\\.%{INT}Z")
+add_pattern("zap_level", "(DEBUG|INFO|WARN|ERROR|FATAL)")
+add_pattern("zap_mod", "%{WORD}")
+add_pattern("zap_source_file", "(/?[\\w_%!$@:.,-]?/?)(\\S+)?")
+add_pattern("zap_msg", "%{GREEDYDATA}")
 
-grok(_, "%{INT:pid}:%{WORD:role} %{date2:time} %{NOTSPACE:serverity} %{GREEDYDATA:msg}")
-
-group_in(serverity, ["."], "debug", status)
-group_in(serverity, ["-"], "verbose", status)
-group_in(serverity, ["*"], "notice", status)
-group_in(serverity, ["#"], "warning", status)
-
-cast(pid, "int")
+grok(_, '%{zap_date:time}%{SPACE}%{zap_level:level}%{SPACE}%{zap_mod:module}%{SPACE}%{zap_source_file:code}%{SPACE}%{zap_msg:msg}')
 default_time(time)
-`
+drop_origin_data()`
 )
 
 func init() {
@@ -60,9 +55,8 @@ func init() {
 			inputName,
 			"log",
 			sampleCfg,
-			map[string]string{"redis": pipelineCfg},
+			map[string]string{"zaplog": pipelineCfg},
 		)
-		t.Source = inputName
 		return t
 	})
 }
