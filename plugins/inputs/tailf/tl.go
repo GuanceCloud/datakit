@@ -235,6 +235,8 @@ var statusMap = map[string]string{
 	"i":        "info",
 	"info":     "info",
 	"d":        "debug",
+	"trace":    "debug",
+	"verbose":  "debug",
 	"debug":    "debug",
 	"o":        "OK",
 	"s":        "OK",
