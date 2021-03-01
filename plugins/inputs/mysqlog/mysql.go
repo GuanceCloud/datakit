@@ -86,6 +86,7 @@ func init() {
 			sampleCfg,
 			map[string]string{"mysql": pipelineCfg},
 		)
+		t.Source = inputName
 		return t
 	})
 }
