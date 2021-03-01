@@ -26,6 +26,8 @@ const (
     # grok pipeline script path
     pipeline = ""
 
+    status_white_list = []
+
     # read file from beginning
     # if from_begin was false, off auto discovery file
     from_beginning = false
