@@ -61,6 +61,7 @@ func init() {
 			sampleCfg,
 			map[string]string{"redis": pipelineCfg},
 		)
+		t.Source = inputName
 		return t
 	})
 }
