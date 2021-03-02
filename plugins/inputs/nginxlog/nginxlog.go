@@ -33,6 +33,7 @@ const (
     character_encoding = ""
 
     # The pattern should be a regexp. Note the use of '''this regexp'''
+    # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
     match = '''^\S.*'''
 
     [inputs.tailf.tags]
@@ -75,6 +76,7 @@ func init() {
 			sampleCfg,
 			map[string]string{"nginx": pipelineCfg},
 		)
+		t.Source = inputName
 		return t
 	})
 }
