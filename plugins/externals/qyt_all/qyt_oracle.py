@@ -45,7 +45,7 @@ def _oracle_slowlog_info_pt (measurement, res, config, cols=None):
 		}
 		line = make_line(measurement, tags, fields, time)
 		lines.append(line)
-		return lines
+	return lines
 
 def run(c, mock=None):
 	c.log.info("oracle starting....")
