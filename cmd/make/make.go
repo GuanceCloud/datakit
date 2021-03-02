@@ -41,6 +41,7 @@ func applyFlags() {
 	build.PubDir = *flagPubDir
 	build.AppName = *flagName
 	build.Archs = *flagArchs
+
 	build.Release = *flagEnv
 	build.MainEntry = *flagMain
 	build.DownloadAddr = *flagDownloadAddr
