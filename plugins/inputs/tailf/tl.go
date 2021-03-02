@@ -17,6 +17,7 @@ import (
 
 const (
 	pipelineTimeField = "time"
+	maxFieldsLength   = 32 * 1024 // 32KiB
 )
 
 type tailer struct {
@@ -144,6 +145,14 @@ func (t *tailer) receiver() {
 			ts = time.Now()
 			t.tf.log.Errorf("%s", err)
 		}
+
+		if err := checkFieldsLength(fields, maxFieldsLength); err != nil {
+			// 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
+			// 防止通过 pipeline 添加巨长字段的恶意行为
+			t.tf.log.Error(err)
+			continue
+		}
+
 		addStatus(fields)
 
 		// use t.source as input-name, make it more distinguishable for multiple tailf instances
@@ -222,6 +231,27 @@ func takeTime(fields map[string]interface{}) (ts time.Time, err error) {
 	return
 }
 
+func checkFieldsLength(fields map[string]interface{}, maxlength int) error {
+	for k, v := range fields {
+		switch vv := v.(type) {
+		// FIXME:
+		// need  "case []byte" ?
+		case string:
+			if len(vv) <= maxlength {
+				continue
+			}
+			if k == "message" {
+				fields[k] = vv[:maxlength]
+			} else {
+				return fmt.Errorf("fields: %s, length=%d, out of maximum length", k, len(vv))
+			}
+		default:
+			// nil
+		}
+	}
+	return nil
+}
+
 var statusMap = map[string]string{
 	"f":        "emerg",
 	"emerg":    "emerg",
@@ -241,7 +271,7 @@ var statusMap = map[string]string{
 	"debug":    "debug",
 	"o":        "OK",
 	"s":        "OK",
-	"OK":       "OK",
+	"ok":       "OK",
 }
 
 func addStatus(fields map[string]interface{}) {
