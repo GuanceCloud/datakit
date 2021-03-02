@@ -27,7 +27,7 @@ def _mysql_schema_size(measurement, res, config, cols=None):
 	time = datetime.datetime.utcnow()
 	for record in res:
 		tags = {
-			"server": f"{config.get('host')}:{config.get('port')}",
+			"server": config.get('host') + ":" + str(config.get('port')),
 			"host": config.get("ip"),
 			"table_schema": record[0],
 		}
@@ -38,14 +38,14 @@ def _mysql_schema_size(measurement, res, config, cols=None):
 		}
 		line = make_line(measurement, tags, fields, time)
 		lines.append(line)
-		return lines
+	return lines
 
 def _mysql_noindex_table(measurement, res, config, cols=None):
 	lines = []
 	time = datetime.datetime.utcnow()
 	for record in res:
 		tags = {
-			"server": f"{config.get('host')}:{config.get('port')}",
+			"server": config.get('host') + ":" + str(config.get('port')),
 			"host": config.get("ip"),
 			"table_schema": record[0],
 			"table_name": record[1],
@@ -55,7 +55,7 @@ def _mysql_noindex_table(measurement, res, config, cols=None):
 		}
 		line = make_line(measurement, tags, fields, time)
 		lines.append(line)
-		return lines
+	return lines
 
 def _mysql_slave_status(measurement, res, config, cols):
 	cols = [c[0] for c in cols]
@@ -63,15 +63,15 @@ def _mysql_slave_status(measurement, res, config, cols):
 	time = datetime.datetime.utcnow()
 	for record in res:
 		tags = {
-			"server": f"{config.get('host')}:{config.get('port')}",
+			"server": config.get('host') + ":" + str(config.get('port')),
 			"host": config.get("hostname", config.get("host")),
-			"name": config.get("name", str(uuid.uuid4())),
 			"class": "mysql"
 		}
+		tags["name"] = config.get("name", tags["server"])
 		fields = {col: val for col, val in zip(cols, record)}
 		line = make_line(measurement, tags, fields, time)
 		lines.append(line)
-		return lines
+	return lines
 
 def run(c, mock=None):
 	c.log.info("mysql starting....")
@@ -145,7 +145,6 @@ def run(c, mock=None):
 
 			except Exception as e:
 				c.log.error(e)
-
 			finally:
 				if cursor:
 					cursor.close()
