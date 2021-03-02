@@ -69,12 +69,14 @@ type iodata struct {
 }
 
 type InputsStat struct {
-	Name     string    `json:"name"`
-	Category string    `json:"category"`
-	Total    int64     `json:"total"`
-	Count    int64     `json:"count"`
-	First    time.Time `json:"first"`
-	Last     time.Time `json:"last"`
+	Name      string    `json:"name"`
+	Category  string    `json:"category"`
+	Frequency string    `json:"frequency,omitempty"`
+	AvgSize   int64     `json:"avg_size"`
+	Total     int64     `json:"total"`
+	Count     int64     `json:"count"`
+	First     time.Time `json:"first"`
+	Last      time.Time `json:"last"`
 }
 
 type qstats struct {
@@ -303,6 +305,10 @@ func startIO() {
 						stat.Count++
 						stat.Last = now
 						stat.Category = d.category
+						if (stat.Last.Unix() - stat.First.Unix()) > 0 {
+							stat.Frequency = fmt.Sprintf("%.02f/min", float64(stat.Count)/(float64(stat.Last.Unix()-stat.First.Unix())/60))
+						}
+						stat.AvgSize = (stat.Total) / stat.Count
 					}
 
 					// disable cache under proxied mode, to prevent large packages in proxing lua module
