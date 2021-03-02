@@ -3,6 +3,7 @@ import datetime
 import requests
 import cx_Oracle
 import pymysql
+import uuid
 from influxdb.line_protocol import make_line
 
 def _write_data(lines, is_object=False):
@@ -64,6 +65,8 @@ def _mysql_slave_status(measurement, res, config, cols):
 		tags = {
 			"server": f"{config.get('host')}:{config.get('port')}",
 			"host": config.get("hostname", config.get("host")),
+			"name": config.get("name", str(uuid.uuid4())),
+			"class": "mysql"
 		}
 		fields = {col: val for col, val in zip(cols, record)}
 		line = make_line(measurement, tags, fields, time)
