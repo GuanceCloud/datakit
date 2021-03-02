@@ -93,6 +93,11 @@ func Compile() {
 	switch Archs {
 	case "all":
 		archs = OSArches
+
+		// read cmd-line env
+		if x := os.Getenv("ALL_ARCHS"); x != "" {
+			archs = strings.Split(x, "|")
+		}
 	case "local":
 		archs = []string{runtime.GOOS + "/" + runtime.GOARCH}
 	default:
