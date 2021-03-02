@@ -12,15 +12,17 @@ const (
 	name = 'qyt_all'  # required
 
 	# 是否以后台方式运行外部采集器
-	daemon = false
-	# 如果以非 daemon 方式运行外部采集器，则以该间隔多次运行外部采集器
-	interval = '30s'
+	daemon = true
 
 	# 外部采集器可执行程序路径(尽可能写绝对路径)
-	cmd = "/usr/local/cloudcare/dataflux/datakit/externals/qyt_all/main.py" # required
+	cmd = "python3" # required
 
-	args = ["/usr/local/cloudcare/dataflux/datakit/externals/qyt_all/config.conf"]
-	
+	args = [
+		"/usr/local/cloudcare/dataflux/datakit/externals/qyt_all/main.py",
+		"/usr/local/cloudcare/dataflux/datakit/externals/qyt_all/config.conf"
+	]
+
+	envs = ['LD_LIBRARY_PATH=/path/to/lib:$LD_LIBRARY_PATH',]
 `
 )
 
