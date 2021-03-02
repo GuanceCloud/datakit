@@ -57,6 +57,7 @@ def _mysql_noindex_table(measurement, res, config, cols=None):
 	return lines
 
 def _mysql_slave_status(measurement, res, config, cols):
+	measurement = "mysql"
 	cols = [c[0] for c in cols]
 	lines = []
 	time = datetime.datetime.utcnow()
@@ -64,7 +65,6 @@ def _mysql_slave_status(measurement, res, config, cols):
 		tags = {
 			"server": config.get('host') + ":" + str(config.get('port')),
 			"host": config.get("hostname", config.get("host")),
-			"class": "mysql"
 		}
 		tags["name"] = config.get("name", tags["server"])
 		fields = {col: val for col, val in zip(cols, record)}
@@ -138,9 +138,12 @@ def run(c, mock=None):
 					continue
 				lines = get_lines_func(measurement, res, config, cols)
 				is_object = metric_info.get("is_object")
-				write_res = _write_data(lines, is_object=is_object)
-				if not write_res['success']:
-					c.log.error("state_code:%d,resp:%s", write_res["result"].status_code, write_res["result"].text)
+				if not any(lines):
+					c.log.info("empty lines")
+				else:
+					write_res = _write_data(lines, is_object=is_object)
+					if not write_res['success']:
+						c.log.error("state_code:%d,resp:%s", write_res["result"].status_code, write_res["result"].text)
 
 			except Exception as e:
 				c.log.error(e)
@@ -162,13 +165,13 @@ def main ():
 			"password": "dbmonitor",
 			"ip": "111.111.111.111"
 		},
-		{
-			"host": "118.178.226.149",
-			"port": 3306,
-			"user": "dbmonitor",
-			"password": "dbmonitor",
-			"ip": "111.111.111.111"
-		}
+		# {
+		# 	"host": "118.178.226.149",
+		# 	"port": 3306,
+		# 	"user": "dbmonitor",
+		# 	"password": "dbmonitor",
+		# 	"ip": "111.111.111.111"
+		# }
 	]
 
 	class Log(object):
