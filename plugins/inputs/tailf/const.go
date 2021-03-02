@@ -26,6 +26,10 @@ const (
     # grok pipeline script path
     pipeline = ""
 
+    # optional status: 
+    #   "emerg","alert","critical","error","warning","info","debug","OK"
+    ignore_status = []
+
     # read file from beginning
     # if from_begin was false, off auto discovery file
     from_beginning = false
@@ -46,6 +50,8 @@ const (
 const (
 	findNewFileInterval    = time.Second * 10
 	checkFileExistInterval = time.Minute * 10
+	pipelineTimeField      = "time"
+	maxFieldsLength        = 32 * 1024 // 32KiB
 )
 
 // var l = logger.DefaultSLogger(inputName)
