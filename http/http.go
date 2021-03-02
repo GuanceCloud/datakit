@@ -344,6 +344,10 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for k := range inputs.Inputs {
+		if !datakit.Enabled(k) {
+			continue
+		}
+
 		n, cfgs := inputs.InputEnabled(k)
 		npanic := inputs.GetPanicCnt(k)
 		if n > 0 {
@@ -352,6 +356,10 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for k := range tgi.TelegrafInputs {
+		if !datakit.Enabled(k) {
+			continue
+		}
+
 		n, cfgs := inputs.InputEnabled(k)
 		if n > 0 {
 			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Cfgs: cfgs})
@@ -359,10 +367,16 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for k := range inputs.Inputs {
+		if !datakit.Enabled(k) {
+			continue
+		}
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", k))
 	}
 
 	for k := range tgi.TelegrafInputs {
+		if !datakit.Enabled(k) {
+			continue
+		}
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[T] %s", k))
 	}
 
