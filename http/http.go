@@ -200,8 +200,7 @@ func tlsHandler(addr string) gin.HandlerFunc {
 
 func HttpStart(addr string) {
 
-	l.Debugf("set gin mode: %s <> %s", datakit.ReleaseType, datakit.ReleaseCheckedInputs)
-	if datakit.ReleaseType == datakit.ReleaseCheckedInputs {
+	if !datakit.EnableUncheckInputs {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
