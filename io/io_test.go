@@ -134,3 +134,42 @@ func TestMakeMetric(t *testing.T) {
 		t.Fatal(fmt.Errorf("expect error"))
 	}
 }
+
+func TestHighFreqChan(t *testing.T) {
+	SetTest()
+	highFreqRecvInterval = time.Second
+	maxCacheCnt = 1024
+
+	go startIO(false)
+
+	tags := map[string]string{
+		"tag1": "val1", "tag2": "val2",
+	}
+	fields := map[string]interface{}{
+		"f1": "abc", "f2": 123,
+	}
+	name := "io-test-case"
+	metric := "HighFreqFeed_xxx"
+
+	for {
+		ts := time.Now()
+		if err := HighFreqFeedEx(name, Metric, metric, tags, fields, ts); err != nil {
+			t.Error(err)
+		}
+
+		data, err := MakeMetric(metric, tags, fields, ts)
+		if err := HighFreqFeed(data, Metric, name); err != nil {
+			t.Error(err)
+		}
+
+		pt, err := influxm.ParsePointsWithPrecision(data, time.Now().UTC(), "n")
+		if err != nil {
+			t.Error(err)
+		}
+		if err := HighFreqFeedPoints(pt, Metric, name); err != nil {
+			t.Error(err)
+		}
+
+		//time.Sleep(time.Millisecond * 10)
+	}
+}
