@@ -3,7 +3,6 @@ import datetime
 import requests
 import cx_Oracle
 import pymysql
-import uuid
 from influxdb.line_protocol import make_line
 
 def _write_data(lines, is_object=False):
