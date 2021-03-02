@@ -3,7 +3,6 @@ package tailf
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -15,13 +14,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
+type notifyType int
+
 const (
-	pipelineTimeField = "time"
-	maxFieldsLength   = 32 * 1024 // 32KiB
+	renameNotify notifyType = iota + 1
+	removeNotify
 )
 
 type tailer struct {
-	tf *Tailf
+	tf         *Tailf
+	notifyChan chan notifyType
 
 	filename string
 	source   string
@@ -36,7 +38,12 @@ type tailer struct {
 }
 
 func newTailer(tl *Tailf, filename string) *tailer {
-	t := tailer{tf: tl, filename: filename, source: tl.Source}
+	t := tailer{
+		tf:         tl,
+		filename:   filename,
+		source:     tl.Source,
+		notifyChan: make(chan notifyType),
+	}
 
 	t.tags = func() map[string]string {
 		var m = make(map[string]string)
@@ -79,9 +86,6 @@ func (t *tailer) run() {
 }
 
 func (t *tailer) receiver() {
-	ticker := time.NewTicker(checkFileExistInterval)
-	defer ticker.Stop()
-
 	var line *tail.Line
 
 	for {
@@ -92,6 +96,18 @@ func (t *tailer) receiver() {
 			t.tf.log.Debugf("Tailing source:%s, file %s is ending", t.source, t.filename)
 			return
 
+		case n := <-t.notifyChan:
+			switch n {
+			case renameNotify:
+				t.tf.log.Warnf("file %s was rename", t.filename)
+				return
+			case removeNotify:
+				t.tf.log.Warnf("file %s is not exist", t.filename)
+				return
+			default:
+				// nil
+			}
+
 		case line, t.tailerOpen = <-t.tail.Lines:
 			if !t.tailerOpen {
 				t.channelOpen = false
@@ -99,13 +115,6 @@ func (t *tailer) receiver() {
 
 			if line != nil {
 				t.tf.log.Debugf("get %d bytes from %s.%s", len(line.Text), t.source, t.filename)
-			}
-
-		case <-ticker.C:
-			_, statErr := os.Lstat(t.filename)
-			if os.IsNotExist(statErr) {
-				t.tf.log.Warnf("check file %s is not exist", t.filename)
-				return
 			}
 		}
 
