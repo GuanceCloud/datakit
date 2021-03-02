@@ -63,7 +63,7 @@ def _mysql_slave_status(measurement, res, config, cols):
 	for record in res:
 		tags = {
 			"server": f"{config.get('host')}:{config.get('port')}",
-			"host": config.get("hostname"),
+			"host": config.get("hostname", config.get("host")),
 		}
 		fields = {col: val for col, val in zip(cols, record)}
 		line = make_line(measurement, tags, fields, time)
