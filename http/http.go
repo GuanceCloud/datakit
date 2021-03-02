@@ -313,7 +313,7 @@ type datakitStats struct {
 	Branch       string    `json:"branch"`
 	Uptime       string    `json:"uptime"`
 	OSArch       string    `json:"os_arch"`
-	Reload       time.Time `json:"reload"`
+	Reload       time.Time `json:"reload,omitempty"`
 	ReloadCnt    int       `json:"reload_cnt"`
 	WithinDocker bool      `json:"docker"`
 	IOChanStat   string    `json:"io_chan_stats"`
@@ -330,9 +330,12 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		Uptime:       fmt.Sprintf("%v", time.Since(uptime)),
 		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		ReloadCnt:    reloadCnt,
-		Reload:       reload,
 		WithinDocker: datakit.Docker,
 		IOChanStat:   io.ChanStat(),
+	}
+
+	if reloadCnt > 0 {
+		stats.Reload = reload
 	}
 
 	var err error
@@ -409,8 +412,6 @@ func apiReload(c *gin.Context) {
 	ErrOK.HttpBody(c, nil)
 
 	go func() {
-		//mutex.Lock()
-		//defer mutex.Unlock()
 		reload = time.Now()
 		reloadCnt++
 
