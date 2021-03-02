@@ -1,8 +1,13 @@
-import yaml
+from gevent import monkey
+
+monkey.patch_all()
+import toml
 import logging
 import os
 import es_index
 import traceback
+import sys
+import gevent
 
 
 class Cfg(object):
@@ -14,9 +19,9 @@ class Cfg(object):
         config = {}
         if os.path.exists(path):
             with open(path) as f:
-                config = yaml.safe_load(f)
+                config = toml.load(f)
 
-        return config
+        return config.get("input", {}).get("quanyuantang", {})
 
     def init_log(self):
         level_relations = {
@@ -27,21 +32,30 @@ class Cfg(object):
             'crit': logging.CRITICAL
         }
         logging.basicConfig(
-            level=level_relations.get(self.cfg.get("log").get("level"), "debug"),
-            filename=self.cfg.get("log").get("path"),
+            level=level_relations.get(self.cfg.get("log_level"), "debug"),
+            filename=self.cfg.get("log_path"),
             format='%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s'
         )
         log = logging.getLogger("quan_yuan_tang")
         return log
 
 
+def run(func, c):
+    try:
+        func(c)
+    except Exception:
+        c.log.error(traceback.format_exc())
+
+
 if __name__ == '__main__':
-    c = Cfg("config.yaml")
+    _, path = sys.argv
+    c = Cfg(path)
     run_dict = {
         "es_index": es_index.run,
     }
-    for k, v in run_dict.items():
-        try:
-            v(c)
-        except Exception as e:
-            c.log.error(traceback.format_exc())
+    func_list = []
+    for k, _ in c.cfg.items():
+        if k not in run_dict:
+            continue
+        func_list.append(gevent.spawn(run, run_dict[k], c))
+    gevent.joinall(func_list)
