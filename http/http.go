@@ -316,6 +316,7 @@ type datakitStats struct {
 	Reload       time.Time `json:"reload"`
 	ReloadCnt    int       `json:"reload_cnt"`
 	WithinDocker bool      `json:"docker"`
+	IOChanStat   string    `json:"io_chan_stats"`
 }
 
 func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
@@ -331,6 +332,7 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		ReloadCnt:    reloadCnt,
 		Reload:       reload,
 		WithinDocker: datakit.Docker,
+		IOChanStat:   io.ChanStat(),
 	}
 
 	var err error
@@ -415,4 +417,6 @@ func apiReload(c *gin.Context) {
 		RestartHttpServer()
 		l.Info("reload HTTP server ok")
 	}()
+
+	c.Redirect(http.StatusFound, "/stats")
 }
