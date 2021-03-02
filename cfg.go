@@ -35,6 +35,8 @@ func DefaultConfig() *Config {
 				"site":    "",
 			},
 
+			DataWay: &DataWayCfg{},
+
 			flushInterval: Duration{Duration: time.Second * 10},
 			Interval:      "10s",
 			StrictMode:    false,
