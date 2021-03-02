@@ -9,6 +9,8 @@ import es_index
 import traceback
 import sys
 import gevent
+import qyt_mysql
+import qyt_oracle
 
 
 class Cfg(object):
@@ -53,6 +55,8 @@ if __name__ == '__main__':
     c = Cfg(path)
     run_dict = {
         "es_index": es_index.run,
+        "oracle": qyt_oracle.run,
+        "mysql": qyt_mysql.run
     }
     func_list = []
     for k, _ in c.cfg.items():
