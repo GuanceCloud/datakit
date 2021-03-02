@@ -1,17 +1,38 @@
-package inputs
+package datakit
+
+func Enabled(name string) bool {
+	if enabled, ok := allInputs[name]; !ok {
+		return false // not exist
+	} else {
+		if EnableUncheckInputs {
+			return true
+		} else {
+			return enabled
+		}
+	}
+}
 
 var (
-	AllInputs = map[string]bool{
+	EnableUncheckInputs = false
+
+	allInputs = map[string]bool{
+		"cshark":     false,
+		"httpPacket": false,
+		"mock":       false,
+		"secureexec": false,
+		"vsphere":    false,
+		"zookeeper":  false,
+
 		"active_directory":       true,
 		"activemq":               true,
 		"aliyunactiontrail":      true,
 		"aliyuncdn":              true,
 		"aliyuncms":              true,
 		"aliyuncost":             true,
-		"aliyunddos":             false,
+		"aliyunddos":             true,
 		"aliyunfc":               true,
 		"aliyunlog":              true,
-		"aliyunobject":           false,
+		"aliyunobject":           true,
 		"aliyunprice":            true,
 		"aliyunrdsslowlog":       true,
 		"aliyunsecurity":         true,
@@ -21,7 +42,7 @@ var (
 		"aspdotnet":              true,
 		"awsbill":                true,
 		"awscloudtrail":          true,
-		"azure_monitor":          false,
+		"azure_monitor":          true,
 		"baiduIndex":             true,
 		"binlog":                 true,
 		"bitbucket":              true,
@@ -38,8 +59,7 @@ var (
 		"cpu":                    true,
 		"csvmetric":              true,
 		"csvobject":              true,
-		"proxy":                  true,
-		"ddtrace":                false,
+		"ddtrace":                true,
 		"disk":                   true,
 		"diskio":                 true,
 		"dns_query":              true,
@@ -56,13 +76,15 @@ var (
 		"external":               true,
 		"flink":                  true,
 		"fluentd":                true,
-		"fluentdlog":             false,
+		"fluentdlog":             true,
+		"ginlog":                 true,
 		"github":                 true,
 		"gitlab":                 true,
 		"goruntime":              true,
 		"hadoop_hdfs":            true,
 		"haproxy":                true,
 		"harborMonitor":          true,
+		"host_processes":         true,
 		"hostobject":             true,
 		"http":                   true,
 		"http_response":          true,
@@ -79,7 +101,7 @@ var (
 		"jira":                   true,
 		"jolokia2_agent":         true,
 		"jvm":                    true,
-		"k8sobject":              false,
+		"k8sobject":              true,
 		"kafka":                  true,
 		"kafka_consumer":         true,
 		"kapacitor":              true,
@@ -91,14 +113,13 @@ var (
 		"lighttpd":               true,
 		"mem":                    true,
 		"memcached":              true,
-		"mock":                   false,
 		"modbus":                 true,
 		"mongodb":                true,
 		"mongodb_oplog":          true,
 		"mqtt_consumer":          true,
 		"msexchange":             true,
 		"mysqlMonitor":           true,
-		"mysqlog":                false,
+		"mysqlog":                true,
 		"nats":                   true,
 		"neo4j":                  true,
 		"net":                    true,
@@ -106,11 +127,11 @@ var (
 		"netstat":                true,
 		"nfsstat":                true,
 		"nginx":                  true,
-		"nginxlog":               true,
 		"nginx_plus":             true,
 		"nginx_plus_api":         true,
 		"nginx_upstream_check":   true,
 		"nginx_vts":              true,
+		"nginxlog":               true,
 		"nsq":                    true,
 		"nsq_consumer":           true,
 		"ntpq":                   true,
@@ -125,14 +146,15 @@ var (
 		"processes":              true,
 		"procstat":               true,
 		"prom":                   true,
+		"proxy":                  true,
 		"puppetagent":            true,
 		"rabbitmq":               true,
 		"redis":                  true,
 		"redislog":               true,
+		"rum":                    true,
 		"scanport":               true,
-		"secureexec":             false,
 		"self":                   true,
-		"smart":                  false,
+		"smart":                  true,
 		"snmp":                   true,
 		"socket_listener":        true, // collectd checked
 		"solr":                   true,
@@ -144,12 +166,12 @@ var (
 		"syslog":                 true,
 		"system":                 true,
 		"systemd":                true,
-		"systemd_units":          false,
+		"systemd_units":          true,
 		"tailf":                  true,
-		"telegraf_http":          false,
+		"telegraf_http":          true,
 		"tencentcms":             true,
 		"tencentcost":            true,
-		"tencentobject":          false,
+		"tencentobject":          true,
 		"tengine":                true,
 		"tidb":                   true,
 		"timezone":               true,
@@ -161,7 +183,6 @@ var (
 		"ucloud_monitor":         true,
 		"uwsgi":                  true,
 		"varnish":                true,
-		"vsphere":                false,
 		"weblogic":               true,
 		"wechatminiprogram":      true,
 		"win_perf_counters":      true,
@@ -170,6 +191,6 @@ var (
 		"x509_cert":              true,
 		"yarn":                   true,
 		"zabbix":                 true,
-		"zookeeper":              false,
+		"zaplog":                 true,
 	}
 )
