@@ -146,7 +146,8 @@ func (t *tailer) receiver() {
 		}
 		addStatus(fields)
 
-		if err := io.NamedFeedEx(inputName, io.Logging, t.source, t.tags, fields, ts); err != nil {
+		// use t.source as input-name, make it more distinguishable for multiple tailf instances
+		if err := io.NamedFeedEx(t.source, io.Logging, t.source, t.tags, fields, ts); err != nil {
 			t.tf.log.Error(err)
 		}
 	}
