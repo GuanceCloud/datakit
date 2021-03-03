@@ -1,4 +1,4 @@
-package fsnotify
+package file_collector
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -7,21 +7,18 @@ import (
 
 const (
 	sampleConfig = `
-[[inputs.fsnotify]]
+[[inputs.file_collector]]
    ### monitor file path
-   path = "" 
-   ### upload file type, in "oss","ft-oss","sftp","" ; oss mean upload to your oss ;
-   ### ft-oss mean upload to dataflux oss ; sftp mean use sftp ; "" or comment out mean not upload
-   # upload_type = "" 
+   path = ""
    ## upload file max size ,unit MB
    # max_upload_size = 32 
    ## your oss  config
-   # [inputs.fsnotify.oss]
+   # [inputs.file_collector.oss]
    #   access_key_id = "" 
    #   access_key_secret = ""
    #   bucket_name = ""
    #   endpoint = "" 
-   # [inputs.fsnotify.sftp]
+   # [inputs.file_collector.sftp]
    #   host = ""
    #   port = 22
    #   user = ""
