@@ -36,22 +36,26 @@
       user = ""                    ## 用户名
       password = ""             ## 密码
     [[input.quanyuantang.mysql]]
-      host = ""
-      port = 3306
-      user = ""
-      password = ""
-      hostname = ""
+      host = ""                  ## 主机地址
+      port = 3306                ## 主机端口 默认：3306 此处填写数字
+      user = ""                  ## 账号
+      password = ""              ## 密码
+      hostname = ""              ## 主机名称
     [[input.quanyuantang.oracle]]
-      connect_string = ""
-      oracle_server = ""
-      oracle_port = ""
-      host = "xxxx"
-      service_name = ""
-      instance_id = ""
-      instance_desc = ""
+      connect_string = ""       ## 连接字符串 例：dbmonitor/dbmonitor@localhost/db
+      oracle_server = ""        ## oracle_server
+      oracle_port = ""          ## oracle_port
+      host = ""                 ## host
+      service_name = ""         ## service_name
+      instance_id = ""          ## instance_id
+      instance_desc = ""        ## instance_desc
 ```
 
 ## python 脚本所依赖的 环境介绍
+### 1. 安装 Oracle Instant Client (linux)
+```
+$ wget -q https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/dataflux-func/resource/oracle-instantclient-basic-linux.x64-19.6.0.0.0dbru.zip  && unzip oracle-instantclient-basic-linux.x64-19.6.0.0.0dbru.zip -d /opt/oracle && sh -c "echo /opt/oracle/instantclient_19_6 > /etc/ld.so.conf.d/oracle-instantclient.conf" && ldconfig
+```
 
 
 
