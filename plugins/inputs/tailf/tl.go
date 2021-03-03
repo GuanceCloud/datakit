@@ -3,6 +3,7 @@ package tailf
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -12,13 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-)
-
-type notifyType int
-
-const (
-	renameNotify notifyType = iota + 1
-	removeNotify
 )
 
 type tailer struct {
@@ -64,6 +58,10 @@ func newTailer(tl *Tailf, filename string) *tailer {
 	return &t
 }
 
+func (t *tailer) getNotifyChan() chan notifyType {
+	return t.notifyChan
+}
+
 func (t *tailer) run() {
 	var err error
 
@@ -82,18 +80,24 @@ func (t *tailer) run() {
 		}
 	}
 
-	t.receiver()
+	t.receiving()
 }
 
-func (t *tailer) receiver() {
+func (t *tailer) receiving() {
+	t.tf.log.Debugf("start recivering data from the file %s", t.filename)
+
+	ticker := time.NewTicker(checkFileExistInterval)
+	defer ticker.Stop()
+
 	var line *tail.Line
 
 	for {
 		line = nil
 
+		// FIXME: 4个case是否过多？
 		select {
 		case <-datakit.Exit.Wait():
-			t.tf.log.Debugf("Tailing source:%s, file %s is ending", t.source, t.filename)
+			t.tf.log.Debugf("tailing source:%s, file %s is ending", t.source, t.filename)
 			return
 
 		case n := <-t.notifyChan:
@@ -101,11 +105,23 @@ func (t *tailer) receiver() {
 			case renameNotify:
 				t.tf.log.Warnf("file %s was rename", t.filename)
 				return
-			case removeNotify:
-				t.tf.log.Warnf("file %s is not exist", t.filename)
-				return
 			default:
 				// nil
+			}
+
+		// 为什么不使用 notify 的方式监控文件删除，反而采用 Lstat() ？
+		//
+		// notify 只有当文件引用计数为 0 时，才会认为此文件已经被删除，从而触发 remove event
+		// 在此处，datakit 打开文件后保存句柄，即使 rm 删除文件，该文件的引用计数依旧是 1，因为 datakit 在占用
+		// 从而导致，datakit 占用文件无法删除，无法删除就收不到 remove event，此 goroutine 就会长久存在
+		// 且极端条件下，长时间运行，可能会导致磁盘容量不够的情况，因为占用容量的文件在此被引用，新数据无法覆盖
+		// 以上结论仅限于 linux
+
+		case <-ticker.C:
+			_, statErr := os.Lstat(t.filename)
+			if os.IsNotExist(statErr) {
+				t.tf.log.Warnf("file %s is not exist", t.filename)
+				return
 			}
 
 		case line, t.tailerOpen = <-t.tail.Lines:
@@ -114,7 +130,7 @@ func (t *tailer) receiver() {
 			}
 
 			if line != nil {
-				t.tf.log.Debugf("get %d bytes from %s.%s", len(line.Text), t.source, t.filename)
+				t.tf.log.Debugf("get %d bytes from source:%s file:%s", len(line.Text), t.source, t.filename)
 			}
 		}
 
@@ -198,7 +214,7 @@ func (t *tailer) multiline(line *tail.Line) (text string, status multilineStatus
 		if text += t.tf.multiline.Flush(&t.textLine); text == "" {
 			if !t.channelOpen {
 				status = _return
-				t.tf.log.Warnf("Tailing %s data channel is closed", t.filename)
+				t.tf.log.Warnf("tailing %s data channel is closed", t.filename)
 				return
 			}
 
@@ -208,7 +224,7 @@ func (t *tailer) multiline(line *tail.Line) (text string, status multilineStatus
 	}
 
 	if line != nil && line.Err != nil {
-		t.tf.log.Errorf("Tailing %q: %s", t.filename, line.Err.Error())
+		t.tf.log.Errorf("tailing %q: %s", t.filename, line.Err.Error())
 		status = _continue
 		return
 	}
@@ -240,6 +256,7 @@ func takeTime(fields map[string]interface{}) (ts time.Time, err error) {
 	return
 }
 
+// checkFieldsLength 指定字段长度 "小于等于" maxlength
 func checkFieldsLength(fields map[string]interface{}, maxlength int) error {
 	for k, v := range fields {
 		switch vv := v.(type) {
