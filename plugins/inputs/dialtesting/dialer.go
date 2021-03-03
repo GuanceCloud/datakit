@@ -67,23 +67,29 @@ func (d *dialer) run() error {
 		case <-d.ticker.C:
 
 			d.testCnt++
-			if err := d.task.Run(); err != nil {
-				// ignore
-			} else {
-				tags := map[string]string{}
-				fields := map[string]interface{}{}
-				tags, fields = d.task.GetResults()
-				reasons := d.task.CheckResult()
 
-				if len(reasons) != 0 {
-					fields[`failed_reason`] = strings.Join(reasons, `;`)
-				}
+			//dialtesting start
+			//无论成功或失败，都要记录测试结果
+			d.task.Run()
 
-				err = io.NameFeedExUrl(inputName, io.Metric, d.task.MetricName(), d.task.PostURLStr(), tags, fields, time.Now())
-				if err != nil {
-					l.Warnf("io feed failed, %s", err.Error())
-				}
+			// 获取此次任务执行的基本信息
+			tags := map[string]string{}
+			fields := map[string]interface{}{}
+			tags, fields = d.task.GetResults()
 
+			reasons := d.task.CheckResult()
+			if len(reasons) != 0 {
+				fields[`failed_reason`] = strings.Join(reasons, `;`)
+			}
+
+			if _, ok := fields[`failed_reason`]; !ok {
+				tags["result"] = "OK"
+				fields["success"] = int64(1)
+			}
+
+			err := io.NameFeedExUrl(inputName, io.Metric, d.task.MetricName(), d.task.PostURLStr(), tags, fields, time.Now())
+			if err != nil {
+				l.Warnf("io feed failed, %s", err.Error())
 			}
 
 		case t := <-d.updateCh:
