@@ -27,7 +27,7 @@ def _mysql_schema_size(measurement, res, config, cols=None):
 	for record in res:
 		tags = {
 			"server": config.get('host') + ":" + str(config.get('port')),
-			"host": config.get("ip"),
+			"host": config.get("hostname", config.get("host")),
 			"table_schema": record[0],
 		}
 		fields = {
@@ -45,7 +45,7 @@ def _mysql_noindex_table(measurement, res, config, cols=None):
 	for record in res:
 		tags = {
 			"server": config.get('host') + ":" + str(config.get('port')),
-			"host": config.get("ip"),
+			"host": config.get("hostname", config.get("host")),
 			"table_schema": record[0],
 			"table_name": record[1],
 		}
@@ -155,40 +155,3 @@ def run(c, mock=None):
 					connection.close()
 
 	c.log.info("mysql ok")
-
-def main ():
-	mysqls = [
-		{
-			"host": "10.0.0.121",
-			"port": 3307,
-			"user": "dbmonitor",
-			"password": "dbmonitor",
-			"ip": "111.111.111.111"
-		},
-		# {
-		# 	"host": "118.178.226.149",
-		# 	"port": 3306,
-		# 	"user": "dbmonitor",
-		# 	"password": "dbmonitor",
-		# 	"ip": "111.111.111.111"
-		# }
-	]
-
-	class Log(object):
-		def error(self, msg):
-			pass
-		def info(self, msg):
-			pass
-
-	class C(object):
-		def __init__(self):
-			self.log = Log()
-			self.cfg = {
-				"mysql": mysqls
-			}
-
-	c = C()
-	run(c)
-
-if __name__ == "__main__":
-	main()
