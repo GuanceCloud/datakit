@@ -80,6 +80,7 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 		"url":    t.URL,
 		"region": t.Region,
 		"proto":  t.req.Proto,
+		"result": "FAIL",
 	}
 
 	if t.resp != nil {
@@ -93,6 +94,11 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 	fields = map[string]interface{}{
 		"response_time":  int64(t.reqCost) / 1000000, // 单位为ms
 		"content_length": int64(len(t.respBody)),
+		"success":        int64(-1),
+	}
+
+	if t.reqError != "" {
+		fields[`failed_reason`] = t.reqError
 	}
 
 	return
@@ -346,6 +352,10 @@ func (t *HTTPTask) Init() error {
 				t.cli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
 			}
 		}
+	}
+
+	if len(t.SuccessWhen) == 0 {
+		return fmt.Errorf(`no any check rule`)
 	}
 
 	// init success checker
