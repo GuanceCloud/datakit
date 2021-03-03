@@ -1,4 +1,4 @@
-package fsnotify
+package file_collector
 
 import (
 	"testing"
@@ -26,8 +26,17 @@ func TestFsnotify(t *testing.T) {
 	}
 
 	go func() {
-		time.Sleep(time.Second*2)
+		time.Sleep(time.Second*1)
+		//ioutil.WriteFile(filepath.Join(dir,"123.txt"),[]byte("hahah"),0666)     # create
+		f,err := os.Create(filepath.Join(dir,"123.txt"))
+		if err != nil {
+			l.Fatal(err)
+		}
+		f.Close()
+		time.Sleep(time.Second*1)
+
 		ioutil.WriteFile(filepath.Join(dir,"123.txt"),[]byte("hahah"),0666)
+
 	}()
 	select {
 	case ev := <- watch.Events:
