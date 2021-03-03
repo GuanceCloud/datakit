@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/hpcloud/tail"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -48,7 +47,7 @@ func (t *Tailf) loadcfg() bool {
 			goto label
 		}
 
-		if t.watcher, err = fsnotify.NewWatcher(); err != nil {
+		if t.watcher, err = NewWatcher(); err != nil {
 			goto label
 		}
 
