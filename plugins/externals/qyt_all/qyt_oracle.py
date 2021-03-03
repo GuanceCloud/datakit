@@ -109,34 +109,3 @@ def run(c, mock=None):
 					connection.close()
 
 	c.log.info("oracle ok")
-
-def main ():
-	oracles = [
-		{
-			"connect_string": "dbmonitor/dbmonitor@118.178.57.79/dfdb",
-			"oracle_server":  "oracle_server",
-			"oracle_port": "oracle_port",
-			"host": "host",
-			"service_name": "service_name",
-			"instance_id": "instance_id",
-			"instance_desc":  "instance_desc"
-		}
-	]
-	class Log(object):
-			def error(self, msg):
-				pass
-			def info(self, msg):
-				pass
-
-	class C(object):
-		def __init__(self):
-			self.log = Log()
-			self.cfg = {
-				"oracle": oracles
-			}
-
-	c = C()
-	run(c)
-
-if __name__ == "__main__":
-	main()
