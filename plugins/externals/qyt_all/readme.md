@@ -13,15 +13,22 @@
 ```
 [[inputs.external]]
 
-	name = 'qyt_all'  # required
-	# 是否以后台方式运行外部采集器
-	daemon = false
-	# 如果以非 daemon 方式运行外部采集器，则以该间隔多次运行外部采集器
-	interval = '30s'
+   name = 'qyt_all'  # required
 
-	# 外部采集器可执行程序路径(尽可能写绝对路径)
-	cmd = "/usr/local/cloudcare/dataflux/datakit/externals/qyt_all/main.py" # python 脚本执行main函数路径 
-	args = ["/usr/local/cloudcare/dataflux/datakit/externals/qyt_all/config.conf"]   # python脚本依赖confg文件
+   # 是否以后台方式运行外部采集器
+   daemon = false
+   # 如果以非 daemon 方式运行外部采集器，则以该间隔多次运行外部采集器
+   interval = '30s'
+
+   # 外部采集器可执行程序路径(尽可能写绝对路径)
+   cmd = "/usr/local/bin/python3" # python3路径
+
+   args = [
+     "/usr/local/cloudcare/dataflux/datakit/externals/qyt_all/main.py",      # python 脚本 入口函数
+     "/usr/local/cloudcare/dataflux/datakit/externals/qyt_all/config.conf"   # python 脚本 依赖配置文件
+   ]
+
+   envs = ['LD_LIBRARY_PATH=/path/to/lib:$LD_LIBRARY_PATH',]  
 ```
 
 ## python 脚本配置说明如下
