@@ -170,5 +170,6 @@ var (
 		"yarn":                   true,
 		"zabbix":                 true,
 		"zookeeper":              false,
+		"dialtesting":            true,
 	}
 )
