@@ -65,6 +65,35 @@ func (t *HTTPTask) Class() string {
 	return "HTTP"
 }
 
+func (t *HTTPTask) MetricName() string {
+	return `http_dial_testing`
+}
+
+func (t *HTTPTask) PostURLStr() string {
+	return t.PostURL
+}
+
+func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
+	tags = map[string]string{
+		"name":        t.Name,
+		"url":         t.URL,
+		"region":      t.Region,
+		"status_code": fmt.Sprintf(`%v`, t.resp.StatusCode),
+		"proto":       t.req.Proto,
+	}
+
+	for k, v := range t.Tags {
+		tags[k] = v
+	}
+
+	fields = map[string]interface{}{
+		"response_time":  int64(t.reqCost) / 1000000, // 单位为ms
+		"content_length": int64(len(t.respBody)),
+	}
+
+	return
+}
+
 func (t *HTTPTask) RegionName() string {
 	return t.Region
 }
