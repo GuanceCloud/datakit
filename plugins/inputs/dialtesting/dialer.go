@@ -2,9 +2,11 @@ package dialtesting
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
@@ -68,10 +70,20 @@ func (d *dialer) run() error {
 			if err := d.task.Run(); err != nil {
 				// ignore
 			} else {
+				tags := map[string]string{}
+				fields := map[string]interface{}{}
+				tags, fields = d.task.GetResults()
 				reasons := d.task.CheckResult()
-				// TODO: post result to d.PostURL
-				l.Debugf("reasons: %+#v", reasons)
-				_ = reasons
+
+				if len(reasons) != 0 {
+					fields[`failed_reason`] = strings.Join(reasons, `;`)
+				}
+
+				err = io.NameFeedExUrl(inputName, io.Metric, d.task.MetricName(), d.task.PostURLStr(), tags, fields, time.Now())
+				if err != nil {
+					l.Warnf("io feed failed, %s", err.Error())
+				}
+
 			}
 
 		case t := <-d.updateCh:
