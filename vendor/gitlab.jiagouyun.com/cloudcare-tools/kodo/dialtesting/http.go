@@ -38,6 +38,7 @@ type HTTPTask struct {
 	respBody []byte
 	reqStart time.Time
 	reqCost  time.Duration
+	reqError string
 }
 
 func (t *HTTPTask) UpdateTimeUs() int64 {
@@ -75,11 +76,14 @@ func (t *HTTPTask) PostURLStr() string {
 
 func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
-		"name":        t.Name,
-		"url":         t.URL,
-		"region":      t.Region,
-		"status_code": fmt.Sprintf(`%v`, t.resp.StatusCode),
-		"proto":       t.req.Proto,
+		"name":   t.Name,
+		"url":    t.URL,
+		"region": t.Region,
+		"proto":  t.req.Proto,
+	}
+
+	if t.resp != nil {
+		tags["status_code"] = fmt.Sprintf(`%v`, t.resp.StatusCode)
 	}
 
 	for k, v := range t.Tags {
@@ -160,33 +164,38 @@ type HTTPAdvanceOption struct {
 func (t *HTTPTask) Run() error {
 	reqURL, err := url.Parse(t.URL)
 	if err != nil {
-		return err
+		goto result
 	}
 
 	t.req, err = http.NewRequest(t.Method, reqURL.String(), nil)
 	if err != nil {
-		return err
+		goto result
 	}
 
 	// advance options
 	if err := t.setupAdvanceOpts(t.req); err != nil {
-		return err
+		goto result
 	}
 
 	t.reqStart = time.Now()
 	t.resp, err = t.cli.Do(t.req)
 	if err != nil {
-		return err
+		goto result
 	}
 
 	t.respBody, err = ioutil.ReadAll(t.resp.Body)
 	if err != nil {
-		return err
+		goto result
 	}
 	defer t.resp.Body.Close()
+
+result:
+	if err != nil {
+		t.reqError = err.Error()
+	}
 	t.reqCost = time.Since(t.reqStart)
 
-	return nil
+	return err
 }
 
 func (t *HTTPTask) CheckResult() (reasons []string) {
