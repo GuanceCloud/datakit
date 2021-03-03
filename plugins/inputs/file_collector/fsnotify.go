@@ -1,4 +1,4 @@
-package fsnotify
+package file_collector
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	inputName  = `fsnotiry`
-	l          = logger.DefaultSLogger("fsnotify")
+	inputName  = `file_collector`
+	l          = logger.DefaultSLogger("file_collector")
 	modifyFile = make(map[string]time.Time)
 )
 
@@ -40,22 +40,24 @@ func (fsn *Fsn) initFsn() {
 	}
 	fsn.watch = watch
 
-	switch fsn.UploadType {
-	case "oss":
+	if fsn.OssClient == nil {
+		fsn.UploadType = "oss"
 		oc, err := fsn.OssClient.GetOSSCli()
 		if err != nil {
 			l.Errorf("[error] oss new client err:%s", err.Error())
 			return
 		}
 		fsn.OssClient.Cli = oc
-	case "ft-oss":
-	case "sftp":
+
+	}else if fsn.SftpClient == nil {
+		fsn.UploadType = "sftp"
 		sc, err := fsn.SftpClient.GetSFTPClient()
 		if err != nil {
 			l.Errorf("[error] sftp new client err:%s", err.Error())
 			return
 		}
 		fsn.SftpClient.Cli = sc
+
 	}
 
 }
@@ -64,6 +66,10 @@ func (fsn *Fsn) Run() {
 	l = logger.SLogger(inputName)
 	if !datakit.FileExist(fsn.Path) {
 		l.Errorf("[error] file:%s not exist", fsn.Path)
+		return
+	}
+	if fsn.Path == datakit.DataDir {
+		l.Errorf("[error] cannot set datakit data path")
 		return
 	}
 	fsn.initFsn()
