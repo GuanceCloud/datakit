@@ -2,8 +2,7 @@
 ## 前置条件
 
 - 已安装 DataKit（[DataKit 安装文档](../../../02-datakit采集器/index.md)）
-- python3 环境 且在 /usr/local/cloudcare/dataflux/datakit/externals/qyt_all 目录下运行 `pip install -r requirement.txt` 
-
+- python3 环境 且在 datakti 安装目录下的 `externals/qyt_all` 运行  `pip install -r requirement.txt` 安装python 脚本所依赖包文件
 
 ## 配置
 
@@ -25,7 +24,8 @@
 	args = ["/usr/local/cloudcare/dataflux/datakit/externals/qyt_all/config.conf"]   # python脚本依赖confg文件
 ```
 
-## 关于 python 脚本配置说明如下
+## python 脚本配置说明如下
+配置路径 : datakit 安装目录下面 `externals/qyt_all/config.conf` 如 `/usr/local/cloudcare/dataflux/datakit/externals/qyt_all/config.conf`
 
 ```
     [input.quanyuantang]
