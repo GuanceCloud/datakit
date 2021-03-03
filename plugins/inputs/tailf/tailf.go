@@ -4,7 +4,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/hpcloud/tail"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -30,12 +29,10 @@ type Tailf struct {
 	SampleCfg   string            `toml:"-"`
 	PipelineCfg map[string]string `toml:"-"`
 
+	watcher    *Watcher
 	multiline  *Multiline
 	decoder    decoder
 	tailerConf tail.Config
-
-	watcher         *fsnotify.Watcher
-	runningInstence sync.Map
 
 	wg  sync.WaitGroup
 	log *logger.Logger
@@ -43,13 +40,11 @@ type Tailf struct {
 
 func NewTailf(inputName, catalogStr, sampleCfg string, pipelineCfg map[string]string) *Tailf {
 	return &Tailf{
-		InputName:       inputName,
-		CatalogStr:      catalogStr,
-		SampleCfg:       sampleCfg,
-		PipelineCfg:     pipelineCfg,
-		runningInstence: sync.Map{},
-		wg:              sync.WaitGroup{},
-		Tags:            make(map[string]string),
+		InputName:   inputName,
+		CatalogStr:  catalogStr,
+		SampleCfg:   sampleCfg,
+		PipelineCfg: pipelineCfg,
+		Tags:        make(map[string]string),
 	}
 }
 
@@ -96,7 +91,7 @@ func (t *Tailf) Run() {
 			fileList := t.getFileList(t.LogFiles, t.Ignore)
 
 			for _, file := range fileList {
-				if _, ok := t.runningInstence.Load(file); ok {
+				if exist := t.watcher.IsExist(file); exist {
 					continue
 				}
 				t.wg.Add(1)
@@ -114,52 +109,22 @@ func (t *Tailf) Run() {
 	}
 }
 
+func (t *Tailf) watching() {
+	t.watcher.Watching(datakit.Exit.Wait())
+}
+
 func (t *Tailf) tailingFile(file string) {
 	t.log.Debugf("start tail, %s", file)
 
 	instence := newTailer(t, file)
-	t.runningInstence.Store(file, instence)
-
-	if err := t.watcher.Add(file); err != nil {
-		t.log.Warnf("add watcher err: %s:", err)
-	}
+	t.watcher.Add(file, instence.getNotifyChan())
 
 	// 阻塞
 	instence.run()
 
-	t.runningInstence.Delete(file)
-	t.log.Debugf("remove file %s from the list", file)
-}
-
-func (t *Tailf) watching() {
-	for {
-		select {
-		case event, ok := <-t.watcher.Events:
-			if !ok {
-				return
-			}
-
-			if event.Op&fsnotify.Rename == fsnotify.Rename {
-				t, ok := t.runningInstence.Load(event.Name)
-				if !ok {
-
-				}
-				t.(tailer).notifyChan <- renameNotify
-			}
-
-			if event.Op&fsnotify.Remove == fsnotify.Remove {
-				t, ok := t.runningInstence.Load(event.Name)
-				if !ok {
-
-				}
-				t.(tailer).notifyChan <- removeNotify
-			}
-
-		case err, ok := <-t.watcher.Errors:
-			if !ok {
-				return
-			}
-			t.log.Error(err)
-		}
+	if err := t.watcher.Remove(file); err != nil {
+		t.log.Warnf("remove watcher file %s err, %s", file, err)
 	}
+
+	t.log.Debugf("remove file %s from the running list", file)
 }
