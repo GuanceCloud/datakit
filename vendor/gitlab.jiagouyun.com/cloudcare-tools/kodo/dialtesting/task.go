@@ -20,6 +20,9 @@ type Task interface {
 	Init() error
 	CheckResult() []string
 	Class() string
+	GetResults() (map[string]string, map[string]interface{})
+	PostURLStr() string
+	MetricName() string
 	Stop() error
 	RegionName() string
 	AccessKey() string
