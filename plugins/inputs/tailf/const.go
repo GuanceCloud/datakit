@@ -48,10 +48,17 @@ const (
 )
 
 const (
-	findNewFileInterval    = time.Second * 10
+	// 定期寻找符合条件的新文件
+	findNewFileInterval = time.Second * 10
+
+	// 定期检查当前文件是否存在
 	checkFileExistInterval = time.Minute * 10
-	pipelineTimeField      = "time"
-	maxFieldsLength        = 32 * 1024 // 32KiB
+
+	// pipeline关键字段
+	pipelineTimeField = "time"
+
+	// ES value can be at most 32766 bytes long
+	maxFieldsLength = 32766
 )
 
 // var l = logger.DefaultSLogger(inputName)
