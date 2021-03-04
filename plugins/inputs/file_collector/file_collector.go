@@ -11,6 +11,8 @@ import (
 	"time"
 	"fmt"
 	"strings"
+	"syscall"
+	goIO "io"
 )
 
 var (
@@ -49,7 +51,7 @@ func (fsn *Fsn) initFsn() {
 		}
 		fsn.OssClient.Cli = oc
 
-	}else if fsn.SftpClient == nil {
+	} else if fsn.SftpClient == nil {
 		fsn.UploadType = "sftp"
 		sc, err := fsn.SftpClient.GetSFTPClient()
 		if err != nil {
@@ -116,8 +118,8 @@ func (fsn *Fsn) Run() {
 func (fsn *Fsn) getRemotePath(name string) string {
 	token := datakit.Cfg.MainCfg.DataWay.GetToken()
 	hostName := datakit.Cfg.MainCfg.Hostname
-	name = strings.ReplaceAll(name,"/","-")
-	name = strings.ReplaceAll(name,"\\","-")
+	name = strings.ReplaceAll(name, "/", "-")
+	name = strings.ReplaceAll(name, "\\", "-")
 	return filepath.Join(token, hostName, name)
 }
 
@@ -154,20 +156,41 @@ func (fsn *Fsn) LoadFile(fi os.FileInfo, ev fsnotify.Event) {
 			l.Errorf("[error] fsnotify openfile err:%s", err.Error())
 			return
 		}
+		tmpPath := filepath.Join(datakit.DataDir,remotePath)
+		if err := fileCopy(f, tmpPath);err != nil {
+			l.Errorf("[error] fileCopy err:%s", err.Error())
+			return
+		}
+		copyF,err := os.Open(tmpPath)
+		if err != nil {
+			return
+		}
 		defer f.Close()
+		defer copyF.Close()
 		switch fsn.UploadType {
-		case "oss", "ft-oss":
-			if err := fsn.OssClient.OSSUPLoad(remotePath, f); err != nil {
+		case "oss":
+			if err := fsn.OssClient.OSSUPLoad(remotePath, copyF); err != nil {
 				l.Errorf("[error] fsnotify ossupload err:%s", err.Error())
-				return
 			}
 		case "sftp":
-			if err := fsn.SftpClient.SFTPUPLoad(remotePath, f); err != nil {
+			if err := fsn.SftpClient.SFTPUPLoad(remotePath, copyF); err != nil {
 				l.Errorf("[error] fsnotify sftpupload err:%s", err.Error())
-				return
 			}
 		}
+		os.Remove(tmpPath)
 	}
+}
+
+func fileCopy(f *os.File, tmpPath string) error {
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+		return err
+	}
+	out := os.NewFile(uintptr(syscall.Stdout), tmpPath)
+	_, err := goIO.Copy(out, f)
+	if err != nil {
+		return err
+	}
+	return syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 }
 
 func (fsn *Fsn) WriteLogByCreate(ev fsnotify.Event) {
@@ -184,7 +207,9 @@ func (fsn *Fsn) WriteLogByCreate(ev fsnotify.Event) {
 		"size":    fi.Size(),
 	}
 	fsn.WriteLog(ev, fields)
-	go fsn.LoadFile(fi, ev)
+	if fsn.UploadType != "" {
+		go fsn.LoadFile(fi, ev)
+	}
 }
 
 func (fsn *Fsn) WriteLogByRemove(ev fsnotify.Event) {
@@ -231,7 +256,9 @@ func (fsn *Fsn) WriteLogByWrite(ev fsnotify.Event) {
 	}
 	modifyFile[ev.Name] = time.Now()
 	fsn.WriteLog(ev, fields)
-	go fsn.LoadFile(fi, ev)
+	if fsn.UploadType != "" {
+		go fsn.LoadFile(fi, ev)
+	}
 }
 
 func (fsn *Fsn) WriteLogByRename(ev fsnotify.Event) {
@@ -246,7 +273,6 @@ func (fsn *Fsn) WriteLogByRename(ev fsnotify.Event) {
 	modifyFile[ev.Name] = time.Now()
 	fsn.WriteLog(ev, fields)
 }
-
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
