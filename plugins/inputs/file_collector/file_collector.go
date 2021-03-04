@@ -157,15 +157,15 @@ func (fsn *Fsn) LoadFile(fi os.FileInfo, ev fsnotify.Event) {
 			return
 		}
 		tmpPath := filepath.Join(datakit.DataDir,remotePath)
-		if err := fileCopy(f, tmpPath);err != nil {
+		if err := FileCopy(f, tmpPath);err != nil {
 			l.Errorf("[error] fileCopy err:%s", err.Error())
 			return
 		}
+		f.Close()
 		copyF,err := os.Open(tmpPath)
 		if err != nil {
 			return
 		}
-		defer f.Close()
 		defer copyF.Close()
 		switch fsn.UploadType {
 		case "oss":
@@ -181,7 +181,7 @@ func (fsn *Fsn) LoadFile(fi os.FileInfo, ev fsnotify.Event) {
 	}
 }
 
-func fileCopy(f *os.File, tmpPath string) error {
+func FileCopy(f *os.File, tmpPath string) error {
 	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
 		return err
 	}
