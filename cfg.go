@@ -35,6 +35,8 @@ func DefaultConfig() *Config {
 				"site":    "",
 			},
 
+			DataWay: &DataWayCfg{},
+
 			flushInterval: Duration{Duration: time.Second * 10},
 			Interval:      "10s",
 			StrictMode:    false,
@@ -403,6 +405,8 @@ type MainConfig struct {
 
 	BlackList []*InputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*InputHostList `toml:"white_lists,omitempty"`
+
+	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
 }
 
 type InputHostList struct {
@@ -478,6 +482,10 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 	if err != nil {
 		l.Errorf("unmarshal main cfg failed %s", err.Error())
 		return err
+	}
+
+	if c.MainCfg.EnableUncheckedInputs {
+		EnableUncheckInputs = true
 	}
 
 	// load datakit UUID
