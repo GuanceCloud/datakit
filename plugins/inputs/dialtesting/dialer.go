@@ -92,6 +92,8 @@ func (d *dialer) run() error {
 				l.Warnf("io feed failed, %s", err.Error())
 			}
 
+			l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, d.task.PostURLStr(), tags, fields)
+
 		case t := <-d.updateCh:
 			d.doUpdateTask(t)
 
