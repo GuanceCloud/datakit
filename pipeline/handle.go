@@ -130,13 +130,21 @@ var datePattern = []struct {
 		pattern: `\d{6} \d{2}:\d{2}:\d{2}`,
 		goFmt:   "060102 15:04:05",
 	},
+
+	{
+		desc:    "gin, 2021/02/27 - 14:14:20",
+		pattern: `\d{4}/\d{2}/\d{2} - \d{2}:\d{2}:\d{2}`,
+		goFmt:   "2006/01/02 - 15:04:05",
+	},
 }
 
 func TimestampHandle(value string) (int64, error) {
 	t, err := dateparse.ParseLocal(value)
+
 	if err != nil {
 		for _, p := range datePattern {
 			if match, err := regexp.MatchString(p.pattern, value); err != nil {
+				l.Errorf("regexp.MatchString: %s", err)
 				return 0, err
 			} else if match {
 				if p.defaultYear {
@@ -146,6 +154,7 @@ func TimestampHandle(value string) (int64, error) {
 				}
 
 				if tm, err := time.Parse(p.goFmt, value); err != nil {
+					l.Errorf("time.Parse(): %s", err)
 					return 0, err
 				} else {
 					unix_time := tm.UnixNano()
@@ -153,6 +162,8 @@ func TimestampHandle(value string) (int64, error) {
 				}
 			}
 		}
+	} else {
+		l.Debugf("parse `%s' -> %d", value, t.UnixNano())
 	}
 
 	unix_time := t.UnixNano()
