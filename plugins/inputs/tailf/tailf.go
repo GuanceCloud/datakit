@@ -1,16 +1,14 @@
 package tailf
 
 import (
-	"fmt"
-	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/hpcloud/tail"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type Tailf struct {
@@ -20,6 +18,7 @@ type Tailf struct {
 	Service            string            `toml:"service"`
 	Pipeline           string            `toml:"pipeline"`
 	DeprecatedPipeline string            `toml:"pipeline_path"`
+	IgnoreStatus       []string          `toml:"ignore_status"`
 	FromBeginning      bool              `toml:"from_beginning"`
 	CharacterEncoding  string            `toml:"character_encoding"`
 	Match              string            `toml:"match"`
@@ -30,10 +29,10 @@ type Tailf struct {
 	SampleCfg   string            `toml:"-"`
 	PipelineCfg map[string]string `toml:"-"`
 
-	multiline       *Multiline
-	decoder         decoder
-	tailerConf      tail.Config
-	runningFileList sync.Map
+	watcher    *Watcher
+	multiline  *Multiline
+	decoder    decoder
+	tailerConf tail.Config
 
 	wg  sync.WaitGroup
 	log *logger.Logger
@@ -41,13 +40,11 @@ type Tailf struct {
 
 func NewTailf(inputName, catalogStr, sampleCfg string, pipelineCfg map[string]string) *Tailf {
 	return &Tailf{
-		InputName:       inputName,
-		CatalogStr:      catalogStr,
-		SampleCfg:       sampleCfg,
-		PipelineCfg:     pipelineCfg,
-		runningFileList: sync.Map{},
-		wg:              sync.WaitGroup{},
-		Tags:            make(map[string]string),
+		InputName:   inputName,
+		CatalogStr:  catalogStr,
+		SampleCfg:   sampleCfg,
+		PipelineCfg: pipelineCfg,
+		Tags:        make(map[string]string),
 	}
 }
 
@@ -80,6 +77,8 @@ func (t *Tailf) Run() {
 	ticker := time.NewTicker(findNewFileInterval)
 	defer ticker.Stop()
 
+	go t.watching()
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -92,7 +91,14 @@ func (t *Tailf) Run() {
 			fileList := t.getFileList(t.LogFiles, t.Ignore)
 
 			for _, file := range fileList {
-				t.tailNewFiles(file)
+				if exist := t.watcher.IsExist(file); exist {
+					continue
+				}
+				t.wg.Add(1)
+				go func(fp string) {
+					defer t.wg.Done()
+					t.tailingFile(fp)
+				}(file)
 			}
 
 			if t.FromBeginning {
@@ -103,118 +109,22 @@ func (t *Tailf) Run() {
 	}
 }
 
-func (t *Tailf) loadcfg() bool {
-	var err error
-
-	// compatible
-	if t.Pipeline == "" && t.DeprecatedPipeline != "" {
-		t.Pipeline = t.DeprecatedPipeline
-	}
-
-	if t.Pipeline == "" {
-		t.Pipeline = filepath.Join(datakit.PipelineDir, t.Source+".p")
-	} else {
-		t.Pipeline = filepath.Join(datakit.PipelineDir, t.Pipeline)
-	}
-
-	if isExist(t.Pipeline) {
-		t.log.Debugf("use pipeline %s", t.Pipeline)
-	} else {
-		t.Pipeline = ""
-		t.log.Warn("no pipeline applied")
-	}
-
-	var multilineConfig = &MultilineConfig{
-		Pattern:        t.Match,
-		InvertMatch:    true,
-		MatchWhichLine: "previous",
-	}
-
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			t.log.Info("exit")
-			return true
-		default:
-			// nil
-		}
-
-		if t.Source == "" {
-			err = fmt.Errorf("tailf source cannot be empty")
-			goto label
-		}
-
-		// FIXME: add t.log.Debuf("check xxx") ?
-
-		if t.decoder, err = NewDecoder(t.CharacterEncoding); err != nil {
-			goto label
-		}
-
-		if t.multiline, err = multilineConfig.NewMultiline(); err != nil {
-			goto label
-		}
-
-		if err = checkPipeLine(t.Pipeline); err != nil {
-			goto label
-		} else {
-			break
-		}
-
-	label:
-		t.log.Error(err)
-		time.Sleep(time.Second)
-	}
-
-	var seek *tail.SeekInfo
-	if !t.FromBeginning {
-		seek = &tail.SeekInfo{
-			Whence: 2, // seek is 2
-			Offset: 0,
-		}
-	}
-
-	t.tailerConf = tail.Config{
-		ReOpen:    true,
-		Follow:    true,
-		Location:  seek,
-		MustExist: true,
-		Poll:      false, // default watch method is "inotify"
-		Pipe:      false,
-		Logger:    tail.DiscardingLogger,
-	}
-
-	if t.Service == "" {
-		t.Service = t.Source
-	}
-
-	if t.Tags == nil {
-		t.Tags = make(map[string]string)
-	}
-	// 覆盖自定义tags
-	t.Tags["service"] = t.Service
-
-	return false
+func (t *Tailf) watching() {
+	t.watcher.Watching(datakit.Exit.Wait())
 }
 
-func (t *Tailf) tailNewFiles(file string) {
-	if _, ok := t.runningFileList.Load(file); ok {
-		return
-	}
-
-	t.runningFileList.Store(file, nil)
-
+func (t *Tailf) tailingFile(file string) {
 	t.log.Debugf("start tail, %s", file)
 
-	t.wg.Add(1)
-	go func() {
-		defer t.wg.Done()
+	instence := newTailer(t, file)
+	t.watcher.Add(file, instence.getNotifyChan())
 
-		t.tailStart(file)
-		t.runningFileList.Delete(file)
-		t.log.Debugf("remove file %s from the list", file)
-	}()
-}
+	// 阻塞
+	instence.run()
 
-func (t *Tailf) tailStart(filename string) {
-	newTailer(t, filename).run()
+	if err := t.watcher.Remove(file); err != nil {
+		t.log.Warnf("remove watcher file %s err, %s", file, err)
+	}
+
+	t.log.Debugf("remove file %s from the running list", file)
 }
