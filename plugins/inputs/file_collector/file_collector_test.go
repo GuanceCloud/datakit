@@ -113,3 +113,10 @@ func TestFsn_Run(t *testing.T) {
 	fsn := newfsn()
 	fsn.Run()
 }
+
+func TestFileCopy(t *testing.T) {
+
+	dir := datakit.InstallDir
+
+	FileCopy()
+}
