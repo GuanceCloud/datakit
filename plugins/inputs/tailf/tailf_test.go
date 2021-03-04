@@ -1,5 +1,3 @@
-// +build !solaris
-
 package tailf
 
 import (
@@ -59,7 +57,8 @@ func TestMain(t *testing.T) {
 		LogFiles:      []string{file.Name()},
 		FromBeginning: true,
 		Source:        "testing",
-		Match:         `^\S.*`,
+		Match:         `^\d{4}-\d{2}-\d{2}`,
+		// Match: `^\S`,
 	}
 	tailer.log = logger.SLogger(tailer.InputName)
 	if tailer.loadcfg() {
