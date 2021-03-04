@@ -47,7 +47,7 @@ const sample = `[[inputs.dialtesting]]
 
 	pull_interval = "1m" # default 1 min
 
-	[[inputs.net_dial_testing.tags]]
+	[inputs.dialtesting.tags]
 	# 各种可能的 tag
 	`
 
@@ -83,9 +83,12 @@ func (d *DialTesting) Run() {
 		select {
 		case <-tick.C:
 			j, err := d.pullTask()
-			if err == nil {
-				_ = d.dispatchTasks(j)
+			if err != nil {
+				l.Warnf(`%s,ignore`, err.Error())
+				continue
 			}
+			l.Debugf(`task: %s`, string(j))
+			d.dispatchTasks(j)
 
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
@@ -117,7 +120,7 @@ func protectedRun(d *dialer) {
 }
 
 type taskPullResp struct {
-	Content map[string][]string `json:"content"`
+	Content map[string][]interface{} `json:"content"`
 }
 
 func (d *DialTesting) dispatchTasks(j []byte) error {
@@ -135,9 +138,11 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 		case dt.ClassHTTP:
 			for _, j := range arr {
 				var t dt.HTTPTask
-				if err := json.Unmarshal([]byte(j), &t); err != nil {
-					return err
-				}
+				//if err := json.Unmarshal([]byte(j), &t); err != nil {
+				//	l.Errorf(`%s`, err.Error())
+				//	return err
+				//}
+				t = j.(dt.HTTPTask)
 
 				//d.class = dt.ClassHTTP
 
@@ -148,13 +153,16 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 				}
 
 				if dialer, ok := d.curTasks[t.ID()]; ok { // update task
+
 					if err := dialer.updateTask(&t); err != nil {
+						l.Warnf(` %s,ignore`, err.Error())
 						delete(d.curTasks, t.ID())
 					}
 				} else { // create new task
 					if err := t.Init(); err == nil {
 						dialer, err := newDialer(&t)
 						if err != nil {
+							l.Errorf(`%s`, err.Error())
 							return err
 						}
 
@@ -187,19 +195,21 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 func (d *DialTesting) pullTask() ([]byte, error) {
 	reqURL, err := url.Parse(d.Server)
 	if err != nil {
+		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
 	switch reqURL.Scheme {
-	case "file": // local json
+	case "http", "https": // task server
+		return d.pullHTTPTask(reqURL, d.pos)
+	default: // local json
 		if data, err := ioutil.ReadFile(reqURL.String()); err != nil {
+			l.Errorf(`%s`, err.Error())
 			return nil, err
 		} else {
 			return data, nil
 		}
 
-	case "http", "https": // task server
-		return d.pullHTTPTask(reqURL, d.pos)
 	}
 
 	return nil, fmt.Errorf("unknown scheme: %s", reqURL.Scheme)
@@ -212,16 +222,19 @@ func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, erro
 
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
+		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
 	resp, err := d.cli.Do(req)
 	if err != nil {
+		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
