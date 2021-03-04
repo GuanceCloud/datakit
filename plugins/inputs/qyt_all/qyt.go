@@ -9,7 +9,7 @@ const (
 	configSample = `
 [[inputs.external]]
 
-	name = 'qyt_all'  # required
+   name = 'qyt_all'  # required
 
 	# 是否以后台方式运行外部采集器
 	daemon = true
