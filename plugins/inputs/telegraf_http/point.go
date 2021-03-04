@@ -50,20 +50,26 @@ func addK8sCPUUsage(pt influxm.Point) (influxm.Point, error) {
 		return nil, err
 	}
 
-	fields["cpu_usage"] = func() (usage float64) {
-		// 两个值的类型都是 int64
-		coreNanoseconds := fields["cpu_usage_core_nanoseconds"].(int64)
-		if coreNanoseconds == 0 {
-			return
-		}
-		nanocores := fields["cpu_usage_nanocores"].(int64)
-		if nanocores == 0 {
-			return
-		}
-		// source link: https://github.com/kubernetes/heapster/issues/650#issuecomment-147795824
-		// cpu_usage_core_nanoseconds / (cpu_usage_nanocores * 1000000000) * 100
-		return float64(coreNanoseconds) / float64(nanocores*1000000000) * 100
-	}()
+	// 如果没有找到所需字段，原样返回
+	// 两个值的类型都是 int64
+
+	var coreNanoseconds int64
+	if v, ok := fields["cpu_usage_core_nanoseconds"]; !ok {
+		return pt, nil
+	} else {
+		coreNanoseconds = v.(int64)
+	}
+
+	var usageNanocores int64
+	if v, ok := fields["cpu_usage_nanocores"]; !ok {
+		return pt, nil
+	} else {
+		usageNanocores = v.(int64)
+	}
+
+	// source link: https://github.com/kubernetes/heapster/issues/650#issuecomment-147795824
+	// cpu_usage_core_nanoseconds / (cpu_usage_nanocores * 1000000000) * 100
+	fields["cpu_usage"] = float64(coreNanoseconds) / float64(usageNanocores*1000000000) * 100
 
 	return influxm.NewPoint(string(pt.Name()), pt.Tags(), fields, pt.Time())
 }
@@ -74,19 +80,25 @@ func addK8sMemUsagePercent(pt influxm.Point) (influxm.Point, error) {
 		return nil, err
 	}
 
-	fields["mem_usage_percent"] = func() (usage float64) {
-		// 两个值的类型都是 int64
-		usageBytes := fields["memory_usage_bytes"].(int64)
-		if usageBytes == 0 {
-			return
-		}
-		availableBytes := fields["memory_available_bytes"].(int64)
-		if availableBytes == 0 {
-			return
-		}
-		// mem_usage_percent = memory_usage_bytes / (memory_usage_bytes + memory_available_bytes)
-		return float64(usageBytes) / float64(usageBytes+availableBytes)
-	}()
+	// 如果没有找到所需字段，原样返回
+	// 两个值的类型都是 int64
+
+	var usageBytes int64
+	if v, ok := fields["memory_usage_bytes"]; !ok {
+		return pt, nil
+	} else {
+		usageBytes = v.(int64)
+	}
+
+	var availableBytes int64
+	if v, ok := fields["memory_available_bytes"]; !ok {
+		return pt, nil
+	} else {
+		usageBytes = v.(int64)
+	}
+
+	// mem_usage_percent = memory_usage_bytes / (memory_usage_bytes + memory_available_bytes)
+	fields["mem_usage_percent"] = float64(usageBytes) / float64(usageBytes+availableBytes)
 
 	return influxm.NewPoint(string(pt.Name()), pt.Tags(), fields, pt.Time())
 }
