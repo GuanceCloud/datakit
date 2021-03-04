@@ -102,9 +102,11 @@ func AddSelf() {
 	AddInput("self", self(), "no config for `self' input")
 }
 
-func AddTelegrafHTTP() {
-	t, _ := Inputs["telegraf_http"]
-	AddInput("telegraf_http", t(), "no config for `telegraf_http' input")
+func AddTelegrafHTTPInput() {
+	if len(InputsInfo["telegraf_http"]) == 0 {
+		i, _ := Inputs["telegraf_http"]
+		AddInput("telegraf_http", i(), "no config for `telegraf_http`")
+	}
 }
 
 func ResetInputs() {
