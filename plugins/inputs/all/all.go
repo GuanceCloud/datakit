@@ -38,6 +38,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/host_process"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpPacket"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpProb"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpstat"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/huaweiyunces"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/huaweiyunobject"
