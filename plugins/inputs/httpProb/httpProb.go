@@ -24,7 +24,7 @@ const (
 [[inputs.httpProb]]
     bind = "0.0.0.0"
 	port = 9530
-	drop_body = false
+
 	# log source(required)
 	source = "xxx-app"
 
@@ -37,11 +37,13 @@ const (
     # uri or uri_regex
     # uri = "/"         # regist all routes
     # uri_regex = "/*"
+    drop_body = false
     # pipeline = "all_route.p" # datakit/pipeline/all_route.p
 
 	[[inputs.httpProb.url]]
     # uri = "/user/info"
     # uri_regex = "/user/info/*"
+    drop_body = false
     # pipeline = "user_info.p" # datakit/pipeline/user_info.p
 `
 )
@@ -57,6 +59,7 @@ func init() {
 type Url struct {
 	Uri          string             `toml:"uri"`
 	UriRegex     string             `toml:"uri_regex"`
+	DropBody     bool               `toml:"drop_body"`
 	Pipeline     *pipeline.Pipeline `toml:"-"`
 	PipelinePath string             `toml:"pipeline"`
 }
@@ -86,7 +89,7 @@ func (h *HttpProb) Run() {
 	l.Infof("HttpProb input started...")
 
 	listen := fmt.Sprintf("%s:%v", h.Bind, h.Port)
-	l.Info("server start...", h.Port)
+	l.Info("HttpProb server start...", h.Port)
 
 	http.ListenAndServe(listen, h)
 }
@@ -141,7 +144,7 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 			}
 
 			// 写入body
-			if req.Body != nil {
+			if item.DropBody && req.Body != nil {
 				_, err := buf.ReadFrom(req.Body)
 				if err != nil {
 					l.Errorf("read body error", err)
@@ -155,19 +158,29 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 				tags[tag] = tagV
 			}
 
+			tags["version"] = req.Proto
+
 			var resData = make(map[string]interface{})
 			resData["method"] = req.Method
 			resData["url"] = req.URL.Path
 
-			if len(query) != 0 {
-				resData["query"] = query
-			}
+			resData["queryParams"] = query
 
 			if len(header) != 0 {
 				resData["header"] = header
 			}
 
-			resData["body"] = buf.String()
+			if item.DropBody && buf != nil {
+				contentType := header["Content-Type"]
+				if strings.Contains(contentType, "application/json") {
+					body, err := json.Marshal(buf.String())
+					if err != nil {
+						l.Errorf("body json parse error %v", err)
+					} else {
+						resData["body"] = body
+					}
+				}
+			}
 
 			data, err := json.Marshal(resData)
 
@@ -178,6 +191,19 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 				}
 			} else {
 				fields = resData
+				delete(fields, "header")
+				delete(fields, "queryParams")
+				delete(fields, "body")
+
+				for k, v := range query {
+					key := "query_param_" + k
+					fields[key] = v
+				}
+
+				for k, v := range header {
+					key := "header_" + k
+					fields[key] = v
+				}
 			}
 
 			pt, err := io.MakeMetric(h.Source, tags, fields, time.Now())
@@ -187,7 +213,7 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 
 			l.Info("point ======>", string(pt))
 
-			err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+			err = io.HighFreqFeed([]byte(pt), io.Logging, inputName)
 			if err != nil {
 				l.Errorf("push metric point error %v", err)
 			}
