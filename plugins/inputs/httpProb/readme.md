@@ -68,9 +68,10 @@ sudo ./gor --input-raw :80 --output-http="http://127.0.0.1:9090"
 ### pipeline处理数据结构
 ```
 {
-	"method": "string",
+	"method": "string",   
+    "version": "string",  // http协议version
 	"uri": "string",
-	"query": {
+	"queryParams": {
 			"key": "value",
 		},
 	"header": {
@@ -79,4 +80,17 @@ sudo ./gor --input-raw :80 --output-http="http://127.0.0.1:9090"
 	"body": "string"
 }
 ```
+
+### 未配置pipline处理脚本上报数据结构
+数据作为日志类型进行上报, 将header和query数据多层结构打平为一层，通过前缀header_ 和query_param_ 进行标记
+
+如：
+```
+GET http://127.0.0.1:9530/test\?key1\=value1
+
+xxx-app,host=liushaobodeMacBook-Pro.local body="",header_Accept="*/*",header_User-Agent="curl/7.54.0",method="GET",query_param_key1="value1",url="/test" 1615191793868382000
+```
+
+
+
 
