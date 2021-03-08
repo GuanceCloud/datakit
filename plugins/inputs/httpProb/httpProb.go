@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -92,6 +92,12 @@ func (h *HttpProb) Run() {
 }
 
 func (h *HttpProb) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "ok")
+
+	go h.handle(w, req)
+}
+
+func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 	var err error
 	for _, item := range h.Url {
 		var filter bool
@@ -104,12 +110,12 @@ func (h *HttpProb) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 		}
 
-		if item.Uri == "/" ||  req.URL.Path == item.Uri {
+		if item.Uri == "/" || req.URL.Path == item.Uri {
 			filter = true
 		}
 
 		// match path
-		if filter  {
+		if filter {
 			if item.PipelinePath != "" {
 				item.Pipeline, err = pipeline.NewPipelineFromFile(item.PipelinePath)
 				if err != nil {
@@ -171,7 +177,7 @@ func (h *HttpProb) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 					l.Errorf("run pipeline error, %s", err)
 				}
 			} else {
-				fields["message"] = string(data)
+				fields = resData
 			}
 
 			pt, err := io.MakeMetric(h.Source, tags, fields, time.Now())
@@ -187,6 +193,4 @@ func (h *HttpProb) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 		}
 	}
-
-	fmt.Fprintf(w, "ok")
 }
