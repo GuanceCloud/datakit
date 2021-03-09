@@ -170,9 +170,8 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 				tags[tag] = tagV
 			}
 
-			tags["version"] = req.Proto
-
 			var resData = make(map[string]interface{})
+			resData["version"] = req.Proto
 			resData["method"] = req.Method
 			resData["url"] = req.URL.Path
 
