@@ -14,6 +14,8 @@ import (
 	"net/url"
 	"regexp"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
 type HTTPTask struct {
@@ -46,6 +48,9 @@ func (t *HTTPTask) UpdateTimeUs() int64 {
 }
 
 func (t *HTTPTask) ID() string {
+	if t.ExternalID == `` {
+		return cliutils.XID("dialt_")
+	}
 	return fmt.Sprintf("%s_%s", t.AK, t.ExternalID)
 }
 
