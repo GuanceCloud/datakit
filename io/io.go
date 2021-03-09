@@ -538,8 +538,8 @@ func doFlush(bodies [][]byte, url string) error {
 		return nil
 
 	case 5:
-		l.Debugf("post %d to %s failed(HTTP: %s): %s, cost %v",
-			len(body), url, resp.StatusCode, string(respbody), time.Since(postbeg))
+		l.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v",
+			len(body), url, resp.Status, string(respbody), time.Since(postbeg))
 		return fmt.Errorf("dataway internal error")
 	}
 
