@@ -319,7 +319,6 @@ func startIO() {
 						d.url = categoryURLs[d.category]
 						isProxy = datakit.Cfg.MainCfg.DataWay.Proxy
 					} else {
-						l.Debugf(`joly url %s`, d.url)
 						u, err := url.Parse(d.url)
 						if err != nil {
 							l.Warn("get invalid url, ignored")
@@ -330,7 +329,6 @@ func startIO() {
 						}
 						u.Path = u.Path + d.category
 						d.url = u.String()
-						l.Debugf(`joly after url %s`, d.url)
 					}
 
 					// disable cache under proxied mode, to prevent large packages in proxing lua module

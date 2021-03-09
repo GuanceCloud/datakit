@@ -1,6 +1,7 @@
 package dialtesting
 
 import (
+	"crypto/md5"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -19,6 +21,13 @@ import (
 )
 
 var (
+	AuthorizationType = `DIAL_TESTING`
+	SignHeaders       = []string{
+		`Content-MD5`,
+		`Content-Type`,
+		`Date`,
+	}
+
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
 )
@@ -30,6 +39,8 @@ const (
 type DialTesting struct {
 	Region       string `toml:"region"`
 	Server       string `toml:"server,omitempty"`
+	AK           string `toml:"ak"`
+	SK           string `toml:"sk"`
 	PullInterval string `toml:"pull_interval,omitempty"`
 	Tags         map[string]string
 
@@ -292,6 +303,22 @@ func (d *DialTesting) pullTask() ([]byte, error) {
 
 }
 
+func signReq(req *http.Request, ak, sk string) {
+
+	so := &uhttp.SignOption{
+		AuthorizationType: AuthorizationType,
+		SignHeaders:       SignHeaders,
+		SK:                sk,
+	}
+
+	reqSign, err := so.SignReq(req)
+	if err != nil {
+		panic(err)
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("DIAL_TESTING %s:%s", ak, reqSign))
+}
+
 func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 
 	reqURL.Path = "/v1/pull"
@@ -302,6 +329,11 @@ func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, erro
 		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
+
+	bodymd5 := fmt.Sprintf("%x", md5.Sum([]byte("")))
+	req.Header.Set("Date", time.Now().Format(http.TimeFormat))
+	req.Header.Set("Content-MD5", bodymd5)
+	signReq(req, d.AK, d.SK)
 
 	resp, err := d.cli.Do(req)
 	if err != nil {
