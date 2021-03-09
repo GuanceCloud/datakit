@@ -105,7 +105,7 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/xanzy/go-gitlab v0.31.0
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210224030339-aadc56ffd8f3
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210303093800-04bd8ef0ef2d
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210309075738-2ca267fa404b
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
