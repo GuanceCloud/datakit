@@ -53,9 +53,13 @@ func Start(bind string) {
 		HttpStart(bind)
 	}()
 
-	go func() {
-		StartWS()
-	}()
+	if !datakit.Cfg.MainCfg.DisableWebsocket {
+		go func() {
+			StartWS()
+		}()
+	} else {
+		l.Warn("websocket disabled")
+	}
 }
 
 func ReloadDatakit() error {
