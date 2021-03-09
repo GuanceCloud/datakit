@@ -88,10 +88,25 @@ func (h *HttpProb) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("HttpProb input started...")
 
+	h.InitPipeline()
+
 	listen := fmt.Sprintf("%s:%v", h.Bind, h.Port)
 	l.Info("HttpProb server start...", h.Port)
 
 	http.ListenAndServe(listen, h)
+}
+
+// init pipeline
+func (h *HttpProb) InitPipeline() {
+	for _, item := range h.Url {
+		if item.PipelinePath != "" {
+			var err error
+			item.Pipeline, err = pipeline.NewPipelineFromFile(item.PipelinePath)
+			if err != nil {
+				l.Errorf("pipline init fail %v", err)
+			}
+		}
+	}
 }
 
 func (h *HttpProb) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -102,6 +117,7 @@ func (h *HttpProb) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 	var err error
+
 	for _, item := range h.Url {
 		var filter bool
 
@@ -119,11 +135,14 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 
 		// match path
 		if filter {
-			if item.PipelinePath != "" {
-				item.Pipeline, err = pipeline.NewPipelineFromFile(item.PipelinePath)
-				if err != nil {
-					l.Errorf("pipline init fail %v", err)
-				}
+			// if item.PipelinePath != "" {
+			// 	item.Pipeline, err = pipeline.NewPipelineFromFile(item.PipelinePath)
+			// 	if err != nil {
+			// 		l.Errorf("pipline init fail %v", err)
+			// 	}
+			// }
+			if item.Pipeline != nil {
+				fmt.Println("===========>", item.Pipeline)
 			}
 
 			var buf = bytes.NewBuffer([]byte{})
@@ -144,7 +163,7 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 			}
 
 			// 写入body
-			if item.DropBody && req.Body != nil {
+			if !item.DropBody && req.Body != nil {
 				_, err := buf.ReadFrom(req.Body)
 				if err != nil {
 					l.Errorf("read body error", err)
@@ -170,10 +189,11 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 				resData["header"] = header
 			}
 
-			if item.DropBody && buf != nil {
+			if !item.DropBody && buf != nil {
 				contentType := header["Content-Type"]
 				if strings.Contains(contentType, "application/json") {
-					body, err := json.Marshal(buf.String())
+					var body interface{}
+					err := json.Unmarshal(buf.Bytes(), &body)
 					if err != nil {
 						l.Errorf("body json parse error %v", err)
 					} else {
@@ -183,7 +203,7 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 			}
 
 			data, err := json.Marshal(resData)
-
+			fmt.Println("========>", string(data))
 			if item.Pipeline != nil {
 				fields, err = item.Pipeline.Run(string(data)).Result()
 				if err != nil {
@@ -196,12 +216,12 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 				delete(fields, "body")
 
 				for k, v := range query {
-					key := "query_param_" + k
+					key := "query_param." + k
 					fields[key] = v
 				}
 
 				for k, v := range header {
-					key := "header_" + k
+					key := "header." + k
 					fields[key] = v
 				}
 			}
