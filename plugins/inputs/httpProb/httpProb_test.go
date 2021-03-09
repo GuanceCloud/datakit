@@ -17,13 +17,14 @@ func TestMain(t *testing.T) {
 			{
 				Uri: "/",
 				DropBody: false,
+				PipelinePath: "./http-test.p",
 			},
 		},
 	}
 
 	data := `
 	   {
-	   	  "data": "test data",
+	   	  "data": "test data"
 	   }
 	`
 
@@ -34,6 +35,8 @@ func TestMain(t *testing.T) {
 	request.Header.Add("Connection", "keep-alive")
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:12.0) Gecko/20100101 Firefox/12.0")
+
+	prob.InitPipeline()
 
 	response := httptest.NewRecorder()
 
