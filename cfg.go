@@ -391,11 +391,13 @@ type MainConfig struct {
 	LogRotate int    `toml:"log_rotate,omitempty"`
 	LogUpload bool   `toml:"log_upload"`
 
-	GinLog               string            `toml:"gin_log"`
-	GlobalTags           map[string]string `toml:"global_tags"`
-	StrictMode           bool              `toml:"strict_mode,omitempty"`
-	EnablePProf          bool              `toml:"enable_pprof,omitempty"`
-	Interval             string            `toml:"interval"`
+	GinLog     string            `toml:"gin_log"`
+	GlobalTags map[string]string `toml:"global_tags"`
+
+	StrictMode  bool `toml:"strict_mode,omitempty"`
+	EnablePProf bool `toml:"enable_pprof,omitempty"`
+
+	Interval             string `toml:"interval"`
 	flushInterval        Duration
 	OutputFile           string       `toml:"output_file"`
 	Hostname             string       `toml:"hostname,omitempty"`
@@ -407,6 +409,7 @@ type MainConfig struct {
 	WhiteList []*InputHostList `toml:"white_lists,omitempty"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
+	DisableWebsocket      bool `toml:"disable_websocket,omitempty"`
 }
 
 type InputHostList struct {
