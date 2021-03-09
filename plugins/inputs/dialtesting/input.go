@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
@@ -220,11 +219,6 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 				ts := t.UpdateTimeUs()
 				if d.pos < ts {
 					d.pos = ts
-				}
-
-				id := t.ID()
-				if id == `` { // 本地json 文件没有ID
-					id = cliutils.XID("dialt_")
 				}
 
 				if dialer, ok := d.curTasks[t.ID()]; ok { // update task
