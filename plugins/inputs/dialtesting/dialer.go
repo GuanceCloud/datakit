@@ -62,7 +62,8 @@ func (d *dialer) run() error {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Info("dial testing %s exit", d.task.ID())
+			l.Infof("dial testing %s exit", d.task.ID())
+			return nil
 
 		case <-d.ticker.C:
 
