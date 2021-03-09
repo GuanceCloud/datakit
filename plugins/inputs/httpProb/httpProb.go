@@ -135,14 +135,7 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 
 		// match path
 		if filter {
-			// if item.PipelinePath != "" {
-			// 	item.Pipeline, err = pipeline.NewPipelineFromFile(item.PipelinePath)
-			// 	if err != nil {
-			// 		l.Errorf("pipline init fail %v", err)
-			// 	}
-			// }
 			if item.Pipeline != nil {
-				fmt.Println("===========>", item.Pipeline)
 			}
 
 			var buf = bytes.NewBuffer([]byte{})
@@ -203,7 +196,6 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 			}
 
 			data, err := json.Marshal(resData)
-			fmt.Println("========>", string(data))
 			if item.Pipeline != nil {
 				fields, err = item.Pipeline.Run(string(data)).Result()
 				if err != nil {
