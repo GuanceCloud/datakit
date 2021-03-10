@@ -1,8 +1,9 @@
 package io
 
 import (
+	"fmt"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"os"
+	"io"
 )
 
 type OSSClient struct {
@@ -10,6 +11,7 @@ type OSSClient struct {
 	AccessKeyID     string `toml:"access_key_id"`
 	AccessKeySecret string `toml:"access_key_secret"`
 	BucketName      string `toml:"bucket_name"`
+	DomainName      string `toml:"domain_name,omitempty"`
 
 	Cli *oss.Client
 }
@@ -37,11 +39,18 @@ func (oc *OSSClient) GetOSSCli() (*oss.Client, error) {
 	return cli, nil
 }
 
-func (oc *OSSClient) OSSUPLoad(objectName string, f *os.File) error {
+func (oc *OSSClient) OSSUPLoad(objectName string, reader io.Reader) error {
 	bucket, err := oc.Cli.Bucket(oc.BucketName)
 	if err != nil {
 		return err
 	}
-	err = bucket.PutObject(objectName, f)
+	err = bucket.PutObject(objectName, reader)
 	return err
+}
+
+func (oc *OSSClient) GetOSSUrl(remotePath string) string {
+	if oc.DomainName == "" {
+		return fmt.Sprintf("https://%s.%s/%s", oc.BucketName, oc.EndPoint, remotePath)
+	}
+	return fmt.Sprintf("https://%s/%s", oc.DomainName, remotePath)
 }
