@@ -19,13 +19,8 @@ const (
 # access_key_id = ''
 # access_key_secret = ''
 
-# ##(optional) collection interval, default is 30m
-# interval = '30m'
-
-# ##(optional) custom tags
-#[inputs.huaweiyunobject.tags]
-# key1 = 'val1'
-# key2 = 'val2'
+# ##(optional) collection interval, default is 15m
+# interval = '15m'
 `
 
 	ecsPipelineConifg = `
