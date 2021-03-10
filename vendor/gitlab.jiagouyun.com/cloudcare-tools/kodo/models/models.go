@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	StatusOK = 0
+	StatusOK  = 0
+	StatusDel = 3
 )
 
 var (
@@ -148,6 +149,19 @@ type ObjectClassCfg struct {
 	Fields    string `json:"fields"`
 }
 
+type KeyConfig struct {
+	UUID    string `json:"uuid,omitempty"`
+	WsUUID  string `json:"workspace_uuid"`
+	KeyCode string `json:"key_code"`
+	Desp    string `json:"description,omitempty"`
+	Value   string `json:"value,omitempty"`
+	Status  int    `json:"status,omitempty"`
+
+	CreateAt int64 `json:"create_at,omitempty"`
+	UpdateAt int64 `json:"update_at,omitempty"`
+	DeleteAt int64 `json:"delete_at,omitempty"`
+}
+
 var (
 	l *logger.Logger
 
@@ -157,7 +171,7 @@ var (
 
 		`qDialTestingAK`:         `SELECT owner, secretKey FROM aksk WHERE accessKey=? AND status='OK' limit 1`,
 		`qCloneDialTestingTasks`: `SELECT task FROM task WHERE region=? ORDER BY id`,
-		`qPullDialTestingTasks`:  `SELECT task, class FROM task WHERE region=? AND updateAt >= ? ORDER BY id`,
+		`qPullDialTestingTasks`:  `SELECT task, class, external_id FROM task WHERE region=? AND updateAt > ? ORDER BY updateAt desc`,
 		`dDropTasks`:             `DELETE FROM task WHERE external_id LIKE concat(?, '%')`,
 	}
 
@@ -255,6 +269,14 @@ var (
 		`qMigInfluxDBInfo`: `SELECT influxdb.DB, influxdb.cqrp, ws.rpName, ws.durationSet from main_workspace AS ws
 						INNER JOIN main_influx_db AS influxdb ON influxdb.uuid=ws.dbUUID
 						WHERE ws.UUID in (?)`,
+
+		`iKeyConfig`: `INSERT INTO main_key_config(uuid,workspaceUUID,keyCode,value,description,status,createAt) VALUES(?,?,?,?,?,?,?)`,
+
+		`uKeyConfig`: `UPDATE main_key_config SET value=?, updateAt=? WHERE workspaceUUID=? AND keyCode=?`,
+
+		`qKeyConfig`: `SELECT uuid,value FROM main_key_config WHERE workspaceUUID=? AND keyCode=? AND status=?`,
+
+		`dKeyConfig`: `UPDATE main_key_config SET status=?, deleteAt=? WHERE workspaceUUID=? AND keyCode=?`,
 	}
 )
 
