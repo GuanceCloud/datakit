@@ -933,6 +933,39 @@ func BatchAddDialTasks(tasks []dt.Task) error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func GetKeyConfig(wsuid, keycode string) (*KeyConfig, error) {
+
+	var value, uuid string
+	err := Stmts[`qKeyConfig`].QueryRow(wsuid, keycode, StatusOK).Scan(&uuid, &value)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, utils.ErrKeyConfigNotFound
+		} else {
+			l.Errorf("DB Error %s, %+#v", err.Error(), DB.Stats())
+			return nil, err
+		}
+	}
+
+	return &KeyConfig{
+		UUID:    uuid,
+		WsUUID:  wsuid,
+		KeyCode: keycode,
+		Value:   value,
+	}, nil
+
+}
+
+func UpdateKeyConfigValue(kc KeyConfig) error {
+
+	now := time.Now().Unix()
+	if _, err := Stmts[`uKeyConfig`].Exec(kc.Value, now, kc.WsUUID, kc.KeyCode); err != nil {
+		l.Errorf("%s, ignored", err.Error())
+		return err
+	}
 	return nil
 }
 
@@ -946,13 +979,20 @@ func PullDialTask(region string, sinceUs int64) (tasks map[string][]string, err 
 
 	tasks = map[string][]string{}
 
+	exids := map[string]bool{}
+
 	for rows.Next() {
-		var task, class string
-		if err = rows.Scan(&task, &class); err != nil {
+		var task, class, external_id string
+		if err = rows.Scan(&task, &class, &external_id); err != nil {
 			return
 		} else {
+			if _, ok := exids[external_id]; ok {
+				continue
+			}
+
 			switch class {
 			case dt.ClassHTTP:
+				exids[external_id] = true
 				tasks["HTTP"] = append(tasks["HTTP"], task)
 
 			case dt.ClassTCP:
@@ -999,4 +1039,25 @@ func CreateDialtestingAK(owner string) (*DialTestingAkInfo, error) {
 	return &DialTestingAkInfo{
 		AK: ak, SK: sk, Owner: owner,
 	}, nil
+}
+
+func NewKeyConfig(kc KeyConfig) error {
+
+	now := time.Now().Unix()
+	//uuid,workspaceUUID,keyCode,value,description,status,createAt
+	if _, err := Stmts[`iKeyConfig`].Exec(kc.UUID, kc.WsUUID, kc.KeyCode, kc.Value, kc.Desp, StatusOK, now); err != nil {
+		l.Errorf("%s, ignored", err.Error())
+		return err
+	}
+	return nil
+}
+
+func DeleteKeyConfig(kc KeyConfig) error {
+
+	now := time.Now().Unix()
+	if _, err := Stmts[`dKeyConfig`].Exec(kc.Status, now, kc.WsUUID, kc.KeyCode); err != nil {
+		l.Errorf("%s, ignored", err.Error())
+		return err
+	}
+	return nil
 }
