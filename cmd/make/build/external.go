@@ -69,6 +69,20 @@ var (
 			buildArgs: []string{"plugins/externals/ansible/build.sh"},
 			buildCmd:  "bash",
 		},
+		&dkexternal{
+			name: "qyt_all",
+			osarchs: map[string]bool{
+				`linux/386`:     true,
+				`linux/amd64`:   true,
+				`linux/arm`:     true,
+				`linux/arm64`:   true,
+				`darwin/amd64`:  true,
+				`windows/amd64`: true,
+				`windows/386`:   true,
+			},
+			buildArgs: []string{"plugins/externals/qyt_all/build.sh"},
+			buildCmd:  "bash",
+		},
 
 		&dkexternal{
 			// requirement: apt-get install gcc-multilib

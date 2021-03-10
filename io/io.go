@@ -71,12 +71,14 @@ type iodata struct {
 }
 
 type InputsStat struct {
-	Name     string    `json:"name"`
-	Category string    `json:"category"`
-	Total    int64     `json:"total"`
-	Count    int64     `json:"count"`
-	First    time.Time `json:"first"`
-	Last     time.Time `json:"last"`
+	Name      string    `json:"name"`
+	Category  string    `json:"category"`
+	Frequency string    `json:"frequency,omitempty"`
+	AvgSize   int64     `json:"avg_size"`
+	Total     int64     `json:"total"`
+	Count     int64     `json:"count"`
+	First     time.Time `json:"first"`
+	Last      time.Time `json:"last"`
 }
 
 type qstats struct {
@@ -296,23 +298,15 @@ func cacheData(d *iodata) {
 		stat.Count++
 		stat.Last = now
 		stat.Category = d.category
+
+		if (stat.Last.Unix() - stat.First.Unix()) > 0 {
+			stat.Frequency = fmt.Sprintf("%.02f/min", float64(stat.Count)/(float64(stat.Last.Unix()-stat.First.Unix())/60))
+		}
+		stat.AvgSize = (stat.Total) / stat.Count
 	}
 
 	cache[d.category] = append(cache[d.category], d.data)
 	curCacheCnt++
-}
-
-func tryCleanCache(d *iodata) {
-	// disable cache under proxied mode, to prevent large packages in proxing lua module
-	if datakit.Cfg.MainCfg.DataWay.Proxy {
-		if err := doFlush([][]byte{d.data}, d.category); err != nil {
-			l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
-		}
-	} else {
-		if curCacheCnt > maxCacheCnt {
-			flushAll()
-		}
-	}
 }
 
 func cleanHighFreqIOData() {
@@ -353,7 +347,6 @@ func startIO(recoverable bool) {
 			select {
 			case d := <-inputCh:
 				cacheData(d)
-				tryCleanCache(d)
 
 			case q := <-qstatsCh:
 				statRes := []*InputsStat{}
@@ -521,8 +514,8 @@ func doFlush(bodies [][]byte, url string) error {
 
 	switch resp.StatusCode / 100 {
 	case 2:
-		l.Debugf("post %d to %s ok(gz: %v), cost %v",
-			len(body), url, gz, time.Since(postbeg))
+		l.Debugf("post %d to %s ok(gz: %v), cost %v, response: %s",
+			len(body), url, gz, time.Since(postbeg), string(respbody))
 		return nil
 
 	case 4:
@@ -531,8 +524,8 @@ func doFlush(bodies [][]byte, url string) error {
 		return nil
 
 	case 5:
-		l.Debugf("post %d to %s failed(HTTP: %s): %s, cost %v",
-			len(body), url, resp.StatusCode, string(respbody), time.Since(postbeg))
+		l.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v",
+			len(body), url, resp.Status, string(respbody), time.Since(postbeg))
 		return fmt.Errorf("dataway internal error")
 	}
 
@@ -591,5 +584,18 @@ func GetStats() ([]*InputsStat, error) {
 		return res, nil
 	case <-tick.C:
 		return nil, fmt.Errorf("get stats timeout")
+	}
+}
+
+func tryCleanCache(d *iodata) {
+	// disable cache under proxied mode, to prevent large packages in proxing lua module
+	if datakit.Cfg.MainCfg.DataWay.Proxy {
+		if err := doFlush([][]byte{d.data}, d.category); err != nil {
+			l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
+		}
+	} else {
+		if curCacheCnt > maxCacheCnt {
+			flushAll()
+		}
 	}
 }
