@@ -43,7 +43,6 @@ func (c *wscli) setup() {
 		cli.waitMsg() // blocking reader, do not add to datakit.WG
 	}()
 	datakit.WG.Add(1)
-
 	go func() {
 		defer datakit.WG.Done()
 		cli.sendHeartbeat()
