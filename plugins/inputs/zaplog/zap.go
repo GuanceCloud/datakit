@@ -45,8 +45,7 @@ add_pattern("zap_source_file", "(/?[\\w_%!$@:.,-]?/?)(\\S+)?")
 add_pattern("zap_msg", "%{GREEDYDATA}")
 
 grok(_, '%{zap_date:time}%{SPACE}%{zap_level:level}%{SPACE}%{zap_mod:module}%{SPACE}%{zap_source_file:code}%{SPACE}%{zap_msg:msg}')
-default_time(time)
-drop_origin_data()`
+default_time(time)`
 )
 
 func init() {
