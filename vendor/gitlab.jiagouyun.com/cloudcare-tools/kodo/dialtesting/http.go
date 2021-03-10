@@ -288,15 +288,6 @@ func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
 
 func (t *HTTPTask) Init() error {
 
-	if strings.ToLower(t.CurStatus) == StatusStop {
-		return nil
-	}
-
-	// setup HTTP client
-	t.cli = &http.Client{
-		Timeout: 30 * time.Second, // default timeout
-	}
-
 	// setup frequency
 	du, err := time.ParseDuration(t.Frequency)
 	if err != nil {
@@ -306,6 +297,15 @@ func (t *HTTPTask) Init() error {
 		t.ticker.Stop()
 	}
 	t.ticker = time.NewTicker(du)
+
+	if strings.ToLower(t.CurStatus) == StatusStop {
+		return nil
+	}
+
+	// setup HTTP client
+	t.cli = &http.Client{
+		Timeout: 30 * time.Second, // default timeout
+	}
 
 	// advance options
 	for _, opt := range t.AdvanceOptions {
