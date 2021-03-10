@@ -51,11 +51,10 @@ default_time(time)
 
 cast(status, "int")
 group_between(status, [200,299], "OK", status)
-group_between(status, [400,499], "warnning", status)
+group_between(status, [400,499], "warning", status)
 group_between(status, [500,599], "error", status)
 parse_duration(cost)
-rename(cost_ns, cost)
-drop_origin_data()`
+rename(cost_ns, cost)`
 )
 
 func init() {
