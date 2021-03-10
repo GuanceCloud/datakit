@@ -29,6 +29,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/expressjs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/file_collector"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flink"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/fluentdlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
