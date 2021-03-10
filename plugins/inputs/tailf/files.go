@@ -6,8 +6,7 @@ import (
 )
 
 // FIXME:
-// 可以不作为 Tailf 成员函数，仅仅是为了打印那两条 Warnning
-
+// 可以不作为 Tailf 成员函数，仅仅是为了打印那两条 Warning
 func (t *Tailf) getFileList(filesGlob, ignoreGlob []string) []string {
 	var matches = make(map[string]interface{})
 
