@@ -15,8 +15,8 @@ func TestMain(t *testing.T) {
 		Source: "test-app",
 		Url: []*Url{
 			{
-				Uri: "/",
-				DropBody: false,
+				Uri:          "/",
+				DropBody:     false,
 				PipelinePath: "./http-test.p",
 			},
 		},
