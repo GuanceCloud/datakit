@@ -1,8 +1,8 @@
 package file_collector
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"github.com/fsnotify/fsnotify"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
@@ -31,7 +31,7 @@ const (
 type Fsn struct {
 	Path          string `toml:"path"`
 	UploadType    string `toml:"upload_type"`
-	MaxUploadSize int64 `toml:"max_upload_size"`
+	MaxUploadSize int64  `toml:"max_upload_size"`
 
 	OssClient  *io.OSSClient  `toml:"oss,omitempty"`
 	SftpClient *io.SFTPClient `toml:"sftp,omitempty"`
