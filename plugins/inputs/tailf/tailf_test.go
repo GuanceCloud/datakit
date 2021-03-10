@@ -1,5 +1,3 @@
-// +build !solaris
-
 package tailf
 
 import (
@@ -30,7 +28,16 @@ Traceback (most recent call last):
 ZeroDivisionError: division by zero`,
 	},
 	{
+		text: ` `,
+	},
+	{
 		text: `2020-10-23 06:41:56,688 INFO demo.py 5.0`,
+	},
+	{
+		text: ` `,
+	},
+	{
+		text: `2020-10-23 06:41:56,688 INFO demo.py 6.0`,
 	},
 }
 
@@ -43,12 +50,15 @@ func TestMain(t *testing.T) {
 	}
 	defer os.Remove(file.Name())
 
+	// 最后一条message只有在新数据产生以后才会发送
+
 	var tailer = Tailf{
 		InputName:     "testing",
 		LogFiles:      []string{file.Name()},
 		FromBeginning: true,
 		Source:        "testing",
-		Match:         `^\d.*`,
+		Match:         `^\d{4}-\d{2}-\d{2}`,
+		// Match: `^\S`,
 	}
 	tailer.log = logger.SLogger(tailer.InputName)
 	if tailer.loadcfg() {
@@ -58,11 +68,11 @@ func TestMain(t *testing.T) {
 	go newTailer(&tailer, file.Name()).run()
 
 	for _, tc := range testcase {
-		time.Sleep(time.Second * 2)
+		time.Sleep(time.Millisecond * 500)
 		file.WriteString(tc.text)
 		file.WriteString("\n")
 	}
 
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 5)
 	datakit.Exit.Close()
 }
