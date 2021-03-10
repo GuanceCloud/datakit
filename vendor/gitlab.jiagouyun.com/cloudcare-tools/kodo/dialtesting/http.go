@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -49,7 +50,7 @@ func (t *HTTPTask) UpdateTimeUs() int64 {
 
 func (t *HTTPTask) ID() string {
 	if t.ExternalID == `` {
-		return cliutils.XID("dialt_")
+		return cliutils.XID("dtst_")
 	}
 	return fmt.Sprintf("%s_%s", t.AK, t.ExternalID)
 }
@@ -287,7 +288,7 @@ func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
 
 func (t *HTTPTask) Init() error {
 
-	if t.CurStatus == StatusStop {
+	if strings.ToLower(t.CurStatus) == StatusStop {
 		return nil
 	}
 
