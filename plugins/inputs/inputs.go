@@ -2,7 +2,6 @@ package inputs
 
 import (
 	"bytes"
-	"crypto/md5"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -91,16 +90,6 @@ func (ii *inputInfo) Run() {
 	}
 }
 
-func SetInputsMD5(name string, input interface{}) string {
-	data, err := toml.Marshal(input)
-	if err != nil {
-		l.Errorf("input to toml err")
-		return ""
-	}
-	newName := fmt.Sprintf("%s-%x", name, md5.Sum(data))
-	return newName
-}
-
 func AddInput(name string, input Input, fp string) error {
 	mtx.Lock()
 	defer mtx.Unlock()
@@ -113,9 +102,11 @@ func AddSelf() {
 	AddInput("self", self(), "no config for `self' input")
 }
 
-func AddTelegrafHTTP() {
-	t, _ := Inputs["telegraf_http"]
-	AddInput("telegraf_http", t(), "no config for `telegraf_http' input")
+func AddTelegrafHTTPInput() {
+	if len(InputsInfo["telegraf_http"]) == 0 {
+		i, _ := Inputs["telegraf_http"]
+		AddInput("telegraf_http", i(), "no config for `telegraf_http`")
+	}
 }
 
 func ResetInputs() {

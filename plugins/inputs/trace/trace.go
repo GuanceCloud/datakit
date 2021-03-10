@@ -69,6 +69,12 @@ const (
 	STATUS_CRITICAL = "critical"
 
 	PROJECT = "project"
+
+	SPAN_SERVICE_APP    = "app"
+	SPAN_SERVICE_DB     = "db"
+	SPAN_SERVICE_WEB    = "web"
+	SPAN_SERVICE_CACHE  = "cache"
+	SPAN_SERVICE_CUSTOM = "custom"
 )
 
 var (
@@ -87,7 +93,12 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags["trace_id"] = tAdpt.TraceID
 	tags["span_id"] = tAdpt.SpanID
 	tags["pid"] = tAdpt.Pid
-	tags["type"] = tAdpt.Type
+
+	if tAdpt.Type != "" {
+		tags["type"] = tAdpt.Type
+	} else {
+		tags["type"] = SPAN_SERVICE_CUSTOM
+	}
 
 	for tag, tagV := range tAdpt.Tags {
 		tags[tag] = tagV
