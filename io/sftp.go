@@ -1,12 +1,12 @@
 package io
 
 import (
+	"fmt"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
-	"time"
-	"fmt"
-	"os"
+	"io"
 	"path/filepath"
+	"time"
 )
 
 type SFTPClient struct {
@@ -59,7 +59,7 @@ func (sc *SFTPClient) GetSFTPClient() (*sftp.Client, error) {
 	return sftpClient, nil
 }
 
-func (sc *SFTPClient) SFTPUPLoad(remoteFilePath string, f *os.File) error {
+func (sc *SFTPClient) SFTPUPLoad(remoteFilePath string, reader io.Reader) error {
 	dir := filepath.Dir(remoteFilePath)
 	err := sc.Cli.MkdirAll(dir)
 	if err != nil {
@@ -70,14 +70,8 @@ func (sc *SFTPClient) SFTPUPLoad(remoteFilePath string, f *os.File) error {
 		return err
 	}
 	defer remoteFile.Close()
-
-	buf := make([]byte, 1024)
-	for {
-		n, _ := f.Read(buf)
-		if n == 0 {
-			break
-		}
-		remoteFile.Write(buf)
+	if _, err := io.Copy(remoteFile, reader); err != nil {
+		return err
 	}
 	return nil
 }
