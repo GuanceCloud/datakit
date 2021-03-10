@@ -412,6 +412,9 @@ github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/region
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/region
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/region
@@ -848,7 +851,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript/module
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210310071151-23ef5550ba2c
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210310094024-7d55e6edff38
 gitlab.jiagouyun.com/cloudcare-tools/kodo/config
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 gitlab.jiagouyun.com/cloudcare-tools/kodo/models
