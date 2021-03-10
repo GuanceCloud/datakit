@@ -28,6 +28,7 @@ var (
 	InfluxdbBizPreifx     = `biz_`
 	InfluxCQPrefix        = `cq_`
 	ObjectClassPrefix     = `objc_`
+	KeyConfigPrefix       = `keycf_`
 
 	//default string aggr
 	InfluxCQDefaultAggr = `last`

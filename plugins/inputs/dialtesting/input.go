@@ -132,7 +132,7 @@ func (d *DialTesting) doServerTask() {
 				l.Warnf(`%s,ignore`, err.Error())
 				continue
 			}
-			l.Debugf(`task: %s`, string(j))
+			l.Debugf(`task: %s %v`, string(j), d.pos)
 			d.dispatchTasks(j)
 
 		case <-datakit.Exit.Wait():
