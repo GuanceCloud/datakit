@@ -390,4 +390,3 @@ func CloudObject2Json(name, class string, obj interface{}, id string, blacklist,
 		`content`: j,
 	}, nil
 }
-
