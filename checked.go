@@ -24,6 +24,9 @@ var (
 		"zookeeper":  false,
 		"qyt_all":    false,
 		"httpProb":   false,
+		"activemqlog": false,
+		"kafkalog":    false,
+		"rabbitmqlog": false,
 
 		"active_directory":       true,
 		"activemq":               true,
