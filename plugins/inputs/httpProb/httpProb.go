@@ -170,10 +170,14 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 				tags[tag] = tagV
 			}
 
+			tags["version"] = req.Proto
+			tags["method"] = req.Method
+			tags["uri"] = req.URL.Path
+
 			var resData = make(map[string]interface{})
 			resData["version"] = req.Proto
 			resData["method"] = req.Method
-			resData["url"] = req.URL.Path
+			resData["uri"] = req.URL.Path
 
 			resData["queryParams"] = query
 
@@ -207,7 +211,7 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 				delete(fields, "body")
 
 				for k, v := range query {
-					key := "query_param." + k
+					key := "query." + k
 					fields[key] = v
 				}
 
