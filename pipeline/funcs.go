@@ -37,6 +37,7 @@ var (
 		"url_decode":       UrlDecode,
 		"user_agent":       UserAgent,
 		"parse_duration":   ParseDuration,
+		"parse_date":       ParseDate,
 	}
 )
 
@@ -419,6 +420,90 @@ func ParseDuration(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	p.setContent(key, int64(du))
+	return p, nil
+}
+
+func ParseDate(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+
+		l.Warn("parse_duration(): invalid param")
+
+		return nil, fmt.Errorf("func %s expect 1 arg", funcExpr.Name)
+	}
+
+	var key parser.Node
+	var yy, mm, dd, hh, mi, ss, zone string
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.AttrExpr, *parser.StringLiteral:
+		key = v
+	default:
+		return p, fmt.Errorf("expect string or AttrExpr, got `%s'",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		yy = v.Val
+	default:
+		return p, fmt.Errorf("param `precision` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[1]).String())
+	}
+
+	switch v := funcExpr.Param[2].(type) {
+	case *parser.StringLiteral:
+		mm = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+	switch v := funcExpr.Param[3].(type) {
+	case *parser.StringLiteral:
+		dd = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+	switch v := funcExpr.Param[4].(type) {
+	case *parser.StringLiteral:
+		hh = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+	switch v := funcExpr.Param[5].(type) {
+	case *parser.StringLiteral:
+		mi = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+	switch v := funcExpr.Param[6].(type) {
+	case *parser.StringLiteral:
+		ss = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+	switch v := funcExpr.Param[7].(type) {
+	case *parser.StringLiteral:
+		zone = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+	// 参数类型判断及转化(todo)
+
+	t := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	res := t.UnixNano()
+
+	p.setContent(key, res)
 	return p, nil
 }
 
