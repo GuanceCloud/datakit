@@ -23,6 +23,7 @@ var (
 		"vsphere":    false,
 		"zookeeper":  false,
 		"qyt_all":    false,
+		"httpProb":   false,
 
 		"active_directory":       true,
 		"activemq":               true,
