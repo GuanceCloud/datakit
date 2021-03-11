@@ -205,11 +205,6 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 					l.Errorf("run pipeline error, %s", err)
 				}
 			} else {
-				fields = resData
-				delete(fields, "header")
-				delete(fields, "queryParams")
-				delete(fields, "body")
-
 				for k, v := range query {
 					key := "query." + k
 					fields[key] = v
