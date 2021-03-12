@@ -627,8 +627,6 @@ github.com/nats-io/nkeys
 github.com/nats-io/nuid
 # github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
 github.com/nickelser/parselogical
-# github.com/nightlyone/lockfile v1.0.0
-github.com/nightlyone/lockfile
 # github.com/nsqio/go-nsq v1.0.8
 github.com/nsqio/go-nsq
 # github.com/opencontainers/go-digest v1.0.0
