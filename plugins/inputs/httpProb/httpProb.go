@@ -1,8 +1,9 @@
 package httpProb
 
 import (
-	"bytes"
+	"io/ioutil"
 	"encoding/json"
+	"compress/gzip"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -138,7 +139,7 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 			if item.Pipeline != nil {
 			}
 
-			var buf = bytes.NewBuffer([]byte{})
+			var body []byte
 			var header = make(map[string]string)
 
 			// 写入header
@@ -157,7 +158,7 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 
 			// 写入body
 			if !item.DropBody && req.Body != nil {
-				_, err := buf.ReadFrom(req.Body)
+				body, err = ioutil.ReadAll(req.Body)
 				if err != nil {
 					l.Errorf("read body error", err)
 				}
@@ -185,22 +186,28 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 				resData["header"] = header
 			}
 
-			if !item.DropBody && buf != nil {
+			message := req.Method + " " + req.URL.Path + " " + req.Proto
+
+			if !item.DropBody && body != nil {
+				var bodyS interface{}
 				contentType := header["Content-Type"]
 				if strings.Contains(contentType, "application/json") {
-					var body interface{}
-					err := json.Unmarshal(buf.Bytes(), &body)
+					err := json.Unmarshal(body, &bodyS)
 					if err != nil {
 						l.Errorf("body json parse error %v", err)
 					} else {
-						resData["body"] = body
+						resData["body"] = bodyS
 					}
+				} else if strings.Contains(contentType, "text/plain") {
+					resData["body"] = bodyS
 				}
 			}
 
 			data, err := json.Marshal(resData)
 			if item.Pipeline != nil {
+				l.Info("pipeline input data ======>", string(data))
 				fields, err = item.Pipeline.Run(string(data)).Result()
+				l.Info("pipeline output data ======>", fields)
 				if err != nil {
 					l.Errorf("run pipeline error, %s", err)
 				}
@@ -216,6 +223,8 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 				}
 			}
 
+			fields["message"] = message
+
 			pt, err := io.MakeMetric(h.Source, tags, fields, time.Now())
 			if err != nil {
 				l.Errorf("make metric point error %v", err)
@@ -228,5 +237,12 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 				l.Errorf("push metric point error %v", err)
 			}
 		}
+	}
+}
+
+
+func uncompress(encoding string, body *string) []byte {
+	switch encoding {
+		case "gzip":
 	}
 }
