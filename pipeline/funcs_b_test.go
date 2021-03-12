@@ -640,6 +640,29 @@ func TestParseDuration(t *testing.T) {
 	}
 }
 
+func TestParseDate(t *testing.T) {
+	cases := []*funcCase{
+		{
+			data:     `{}`,
+			script:   `parse_date(aa, "2021", "May", "12", "10", "10", "34", "", "Asia/Shanghai")`,
+			expected: int64(time.Second),
+			key:      "aa",
+		},
+	}
+
+	for _, tt := range cases {
+		p, err := NewPipeline(tt.script)
+		assertEqual(t, err, p.lastErr)
+
+		p.Run(tt.data)
+		r, err := p.getContent(tt.key)
+
+		if !tt.fail {
+			assertEqual(t, r, tt.expected)
+		}
+	}
+}
+
 func TestJsonAllFunc(t *testing.T) {
 	var testCase = []*funcCase{
 		{
