@@ -1,9 +1,9 @@
 package file_collector
 
 import (
+	"context"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
-	"github.com/nightlyone/lockfile"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -13,13 +13,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 )
 
 var (
-	inputName = `file_collector`
-	l         = logger.DefaultSLogger("file_collector")
-	fc        = &Fsn{}
+	inputName   = `file_collector`
+	l           = logger.DefaultSLogger("file_collector")
+	fc          = &Fsn{}
+	fileInfoMap = map[string]string{}
+	mtx         = sync.RWMutex{}
+	uploadChan  = make(chan UploadInfo)
+	lines       []string
 )
 
 func (_ *Fsn) SampleConfig() string {
@@ -35,20 +41,25 @@ func (_ *Fsn) Test() (*inputs.TestResult, error) {
 	return testResult, nil
 }
 
-func (fsn *Fsn) initFsn() {
+func (fsn *Fsn) initFsn() error {
+	fsn.ctx, fsn.cancelFun = context.WithCancel(context.Background())
+
 	watch, err := fsnotify.NewWatcher()
 	if err != nil {
-		l.Errorf("[error] new watch err:%s", err.Error())
-		return
+
+		return err
 	}
 	fsn.watch = watch
+
+	if fsn.MaxUploadSize == 0 {
+		fsn.MaxUploadSize = 32
+	}
 
 	if fsn.OssClient != nil {
 		fsn.UploadType = "oss"
 		oc, err := fsn.OssClient.GetOSSCli()
 		if err != nil {
-			l.Errorf("[error] oss new client err:%s", err.Error())
-			return
+			return err
 		}
 		fsn.OssClient.Cli = oc
 
@@ -56,12 +67,12 @@ func (fsn *Fsn) initFsn() {
 		fsn.UploadType = "sftp"
 		sc, err := fsn.SftpClient.GetSFTPClient()
 		if err != nil {
-			l.Errorf("[error] sftp new client err:%s", err.Error())
-			return
+			return err
 		}
 		fsn.SftpClient.Cli = sc
 
 	}
+	return nil
 
 }
 
@@ -76,13 +87,17 @@ func (fsn *Fsn) Run() {
 		l.Errorf("[error] cannot set datakit data path")
 		return
 	}
-	fsn.initFsn()
+	if err := fsn.initFsn(); err != nil {
+		l.Errorf("init file collector err :%s", err.Error())
+		return
+	}
 	fc = fsn
 	httpd.RegHttpHandler("POST", "/"+inputName, Handle)
 
 	filepath.Walk(fsn.Path, func(path string, f os.FileInfo, err error) error {
 		if f.IsDir() {
 			err := fsn.watch.Add(path)
+			updateFileInfo(f.Name())
 			if err != nil {
 				l.Errorf("[error] fsnotify add watch err:%s", err.Error())
 				return err
@@ -90,23 +105,54 @@ func (fsn *Fsn) Run() {
 		}
 		return nil
 	})
+	go func() {
+
+		tick := time.Tick(time.Second * 5)
+		for {
+			select {
+			case <-fsn.ctx.Done():
+				return
+			case u := <-uploadChan:
+				if err := fsn.LoadFile(u); err != nil {
+					l.Error(err)
+					continue
+				}
+				fsn.WriteLog(u.filename, u.Fields, u.CreateTime)
+			case <-datakit.Exit.Wait():
+				l.Info("fsnotify upload exit")
+				fsn.watch.Close()
+				return
+			case <-tick:
+				io.NamedFeed([]byte(strings.Join(lines, "\n")), io.Logging, inputName)
+				lines = []string{}
+			}
+		}
+	}()
 
 	for {
 		select {
 		case ev := <-fsn.watch.Events:
-			switch ev.Op {
-			case fsnotify.Create:
-				fsn.WriteLogByCreate(ev)
-			case fsnotify.Remove:
-				fsn.WriteLogByRemove(ev)
-			case fsnotify.Rename:
-				fsn.WriteLogByRename(ev)
-			case fsnotify.Write:
-				fsn.WriteLogByWrite(ev)
+			notifyTime := time.Now()
+			if ev.Op&fsnotify.Write == fsnotify.Write {
+				fsn.WriteLogByWrite(ev, notifyTime)
+				continue
+			}
+			if ev.Op&fsnotify.Create == fsnotify.Create {
+				fsn.WriteLogByCreate(ev, notifyTime)
+				continue
+			}
+			if ev.Op&fsnotify.Remove == fsnotify.Remove {
+				fsn.WriteLogByRemove(ev, notifyTime)
+				continue
+			}
+			if ev.Op&fsnotify.Rename == fsnotify.Write {
+				fsn.WriteLogByRename(ev, notifyTime)
+				continue
 			}
 		case <-datakit.Exit.Wait():
 			l.Info("fsnotify exit")
 			fsn.watch.Close()
+			fsn.cancelFun()
 			return
 		case err := <-fsn.watch.Errors:
 			l.Errorf("[error] fsnotify err:%s", err.Error())
@@ -128,7 +174,7 @@ func (fsn *Fsn) getRemotePath(name string) string {
 	return filepath.Join(token, hostName, name)
 }
 
-func (fsn *Fsn) WriteLog(name string, fields map[string]interface{}) {
+func (fsn *Fsn) WriteLog(name string, fields map[string]interface{}, notifyTime time.Time) {
 	tags := map[string]string{
 		"source":      inputName,
 		"path":        fsn.Path,
@@ -149,55 +195,67 @@ func (fsn *Fsn) WriteLog(name string, fields map[string]interface{}) {
 		tags["remote_host"] = fsn.SftpClient.Host
 	default:
 	}
-	io.NamedFeedEx(inputName, io.Logging, inputName, tags, fields, time.Now())
-}
-
-func (fsn *Fsn) LoadFile(fi os.FileInfo, ev fsnotify.Event) {
-	remotePath := fsn.getRemotePath(ev.Name)
-	if fi.Size() <= fsn.MaxUploadSize*1024*1024 {
-		f, err := os.Open(ev.Name)
-		if err != nil {
-			l.Errorf("[error] fsnotify openfile err:%s", err.Error())
-			return
-		}
-		tmpPath := filepath.Join(datakit.DataDir, remotePath)
-		if err := FileCopy(f, tmpPath); err != nil {
-			l.Errorf("[error] fileCopy err:%s", err.Error())
-			return
-		}
-		defer f.Close()
-		copyF, err := os.Open(tmpPath)
-		if err != nil {
-			return
-		}
-		defer copyF.Close()
-		switch fsn.UploadType {
-		case "oss":
-			if err := fsn.OssClient.OSSUPLoad(remotePath, copyF); err != nil {
-				l.Errorf("[error] fsnotify ossupload err:%s", err.Error())
-			}
-		case "sftp":
-			fmt.Println("start", remotePath)
-			if err := fsn.SftpClient.SFTPUPLoad(remotePath, copyF); err != nil {
-				l.Errorf("[error] fsnotify sftpupload err:%s", err.Error())
-			}
-			fmt.Println("end")
-		}
-		//os.RemoveAll(tmpPath)
+	line, err := io.MakeMetric(inputName, tags, fields, notifyTime)
+	if err != nil {
+		l.Errorf("[error] make metric err:%s", err.Error())
+		return
 	}
+	lines = append(lines, string(line))
 }
 
-func FileCopy(f *os.File, tmpPath string) error {
-	lock, err := lockfile.New(f.Name())
+func (fsn *Fsn) LoadFile(u UploadInfo) error {
+	if u.Size > fsn.MaxUploadSize*1024*1024 {
+		return nil
+	}
+	remotePath := fsn.getRemotePath(u.filename)
+	f, err := os.Open(u.filename)
 	if err != nil {
 		return err
 	}
-	if err = lock.TryLock(); err != nil {
+	MD5, err := getFileMd5(f)
+	if err != nil {
 		return err
 	}
-	defer lock.Unlock()
+	//防止同一个文件重复上传
+	if v, ok := fileInfoMap[u.filename]; ok {
+		if v == MD5 {
+			return nil
+		}
+	}
 
-	err = os.MkdirAll(filepath.Dir(tmpPath), 0777)
+	tmpPath := filepath.Join(datakit.DataDir, remotePath)
+	if err := FileCopy(f, tmpPath); err != nil {
+		return err
+	}
+	f.Close()
+	copyF, err := os.Open(tmpPath)
+	if err != nil {
+		return err
+	}
+	defer copyF.Close()
+	defer os.Remove(tmpPath)
+
+	switch fsn.UploadType {
+	case "oss":
+		if err := fsn.OssClient.OSSUPLoad(remotePath, copyF); err != nil {
+			return err
+
+		}
+	case "sftp":
+		if err := fsn.SftpClient.SFTPUPLoad(remotePath, copyF); err != nil {
+			return err
+		}
+	}
+	u.SuccessMd5 = MD5
+	addFileInfo(u.filename, MD5)
+	return nil
+}
+
+func FileCopy(f *os.File, tmpPath string) error {
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		return err
+	}
+	err := os.MkdirAll(filepath.Dir(tmpPath), 0777)
 	if err != nil {
 		return err
 	}
@@ -210,60 +268,91 @@ func FileCopy(f *os.File, tmpPath string) error {
 	if _, err := goIO.Copy(tmpf, f); err != nil {
 		return fmt.Errorf("copy err :%s", err.Error())
 	}
-	return nil
+
+	return syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 }
 
-func (fsn *Fsn) WriteLogByCreate(ev fsnotify.Event) {
+func (fsn *Fsn) WriteLogByCreate(ev fsnotify.Event, notifyTime time.Time) {
+
 	fi, err := os.Stat(ev.Name)
 	if err != nil {
 		return
 	}
 	if fi.IsDir() {
 		fsn.watch.Add(ev.Name)
+		updateFileInfo(ev.Name)
 		return
 	}
 	fields := map[string]interface{}{
 		"message": fmt.Sprintf("文件夹 %s 内创建了新的文件%s", fsn.Path, ev.Name),
 		"size":    fi.Size(),
 	}
-	fsn.WriteLog(ev.Name, fields)
+	u := UploadInfo{
+		filename:   ev.Name,
+		Size:       fi.Size(),
+		CreateTime: notifyTime,
+		Fields:     fields,
+	}
 	if fsn.UploadType != "" {
-		go fsn.LoadFile(fi, ev)
+		uploadChan <- u
+	} else {
+		fsn.WriteLog(ev.Name, fields, notifyTime)
+		addFileInfo(ev.Name, "")
 	}
 }
 
-func (fsn *Fsn) WriteLogByRemove(ev fsnotify.Event) {
+func (fsn *Fsn) WriteLogByRemove(ev fsnotify.Event, notifyTime time.Time) {
+	if _, ok := fileInfoMap[ev.Name]; !ok {
+		return
+	}
 	dir := filepath.Dir(ev.Name)
 	if !datakit.FileExist(dir) {
 		_ = fsn.watch.Remove(ev.Name)
 	}
 	fields := map[string]interface{}{
-		"message": fmt.Sprintf("文件夹 %s 内删除了文件%s", fsn.Path, ev.Name),
+		"message": fmt.Sprintf("文件夹 %s 中文件 %s 被删除了", fsn.Path, ev.Name),
 	}
-	fsn.WriteLog(ev.Name, fields)
+	delete(fileInfoMap, ev.Name)
+	fsn.WriteLog(ev.Name, fields, notifyTime)
 }
 
-func (fsn *Fsn) WriteLogByWrite(ev fsnotify.Event) {
+func (fsn *Fsn) WriteLogByWrite(ev fsnotify.Event, notifyTime time.Time) {
+	if _, ok := fileInfoMap[ev.Name]; !ok {
+		return
+	}
+	time.Sleep(time.Second)
+
 	fi, err := os.Stat(ev.Name)
 	if err != nil {
-		l.Errorf("[error] fsnotify os.stat err:%s", err.Error())
 		return
 	}
 	fields := map[string]interface{}{
 		"message": fmt.Sprintf("文件夹 %s 中文件 %s 被修改了", fsn.Path, ev.Name),
 		"size":    fi.Size(),
 	}
-	fsn.WriteLog(ev.Name, fields)
+	u := UploadInfo{
+		filename:   ev.Name,
+		Size:       fi.Size(),
+		CreateTime: notifyTime,
+		Fields:     fields,
+	}
 	if fsn.UploadType != "" {
-		go fsn.LoadFile(fi, ev)
+		uploadChan <- u
+	} else {
+		fsn.WriteLog(ev.Name, fields, notifyTime)
+		addFileInfo(ev.Name, "")
 	}
 }
 
-func (fsn *Fsn) WriteLogByRename(ev fsnotify.Event) {
+func (fsn *Fsn) WriteLogByRename(ev fsnotify.Event, notifyTime time.Time) {
+	if _, ok := fileInfoMap[ev.Name]; !ok {
+		return
+	}
 	fields := map[string]interface{}{
 		"message": fmt.Sprintf("文件夹 %s 中 %s 被重命名了", fsn.Path, ev.Name),
 	}
-	fsn.WriteLog(ev.Name, fields)
+	delete(fileInfoMap, ev.Name)
+	fsn.WriteLog(ev.Name, fields, notifyTime)
 }
 
 func init() {
