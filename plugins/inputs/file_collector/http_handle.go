@@ -3,6 +3,7 @@ package file_collector
 import (
 	"fmt"
 	"net/http"
+	"time"
 )
 
 func Handle(w http.ResponseWriter, r *http.Request) {
@@ -40,6 +41,6 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		"message": fmt.Sprintf("http通道 上传了文件 %s", handler.Filename),
 		"size":    handler.Size,
 	}
-	fc.WriteLog(handler.Filename, fields)
+	fc.WriteLog(handler.Filename, fields, time.Now())
 	w.WriteHeader(http.StatusOK)
 }
