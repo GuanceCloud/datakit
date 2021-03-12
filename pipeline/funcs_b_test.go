@@ -640,6 +640,47 @@ func TestParseDuration(t *testing.T) {
 	}
 }
 
+func TestParseDate(t *testing.T) {
+	cases := []*funcCase{
+		{
+			data:     `{}`,
+			script:   `parse_date(aa, "2021", "May", "12", "10", "10", "34", "", "Asia/Shanghai")`,
+			expected: int64(1620785434000000000),
+			key:      "aa",
+		},
+		{
+			data:     `{}`,
+			script:   `parse_date(aa, "2021", "12", "12", "10", "10", "34", "", "Asia/Shanghai")`,
+			expected: int64(1639275034000000000),
+			key:      "aa",
+		},
+		{
+			data:     `{}`,
+			script:   `parse_date(aa, "2021", "12", "12", "10", "10", "34", "100", "Asia/Shanghai")`,
+			expected: int64(1639275034000000100),
+			key:      "aa",
+		},
+		{
+			data:     `{}`,
+			script:   `parse_date(aa, "20", "February", "12", "10", "10", "34", "", "+8")`,
+			expected: int64(1581473434000000000),
+			key:      "aa",
+		},
+	}
+
+	for _, tt := range cases {
+		p, err := NewPipeline(tt.script)
+		assertEqual(t, err, p.lastErr)
+
+		p.Run(tt.data)
+		r, err := p.getContent(tt.key)
+
+		if !tt.fail {
+			assertEqual(t, r, tt.expected)
+		}
+	}
+}
+
 func TestJsonAllFunc(t *testing.T) {
 	var testCase = []*funcCase{
 		{
@@ -679,8 +720,6 @@ func TestJsonAllFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContentStr(tt.key)
-
-		fmt.Println("======>", p.Output)
 
 		assertEqual(t, r, tt.expected)
 	}
