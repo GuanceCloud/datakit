@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/tidwall/gjson"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
@@ -425,7 +424,7 @@ func ParseDuration(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 func ParseDate(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 1 {
+	if len(funcExpr.Param) != 9 {
 
 		l.Warn("parse_duration(): invalid param")
 
@@ -433,7 +432,7 @@ func ParseDate(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	var key parser.Node
-	var yy, mm, dd, hh, mi, ss, zone string
+	var yy, mm, dd, hh, mi, ss, ns, zone string
 	switch v := funcExpr.Param[0].(type) {
 	case *parser.AttrExpr, *parser.StringLiteral:
 		key = v
@@ -463,7 +462,7 @@ func ParseDate(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		dd = v.Val
 	default:
 		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
-			reflect.TypeOf(funcExpr.Param[2]).String())
+			reflect.TypeOf(funcExpr.Param[3]).String())
 	}
 
 	switch v := funcExpr.Param[4].(type) {
@@ -492,16 +491,20 @@ func ParseDate(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	switch v := funcExpr.Param[7].(type) {
 	case *parser.StringLiteral:
-		zone = v.Val
+		ns = v.Val
 	default:
 		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
 			reflect.TypeOf(funcExpr.Param[2]).String())
 	}
 
-	// 参数类型判断及转化(todo)
-
-	t := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
-	res := t.UnixNano()
+	switch v := funcExpr.Param[8].(type) {
+	case *parser.StringLiteral:
+		zone = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+	res := parseDate(yy, mm, dd, hh, mi, ss, ns, zone)
 
 	p.setContent(key, res)
 	return p, nil
