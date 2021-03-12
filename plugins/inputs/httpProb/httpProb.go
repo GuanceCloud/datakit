@@ -1,10 +1,9 @@
 package httpProb
 
 import (
-	"io/ioutil"
 	"encoding/json"
-	"compress/gzip"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
@@ -237,12 +236,5 @@ func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
 				l.Errorf("push metric point error %v", err)
 			}
 		}
-	}
-}
-
-
-func uncompress(encoding string, body *string) []byte {
-	switch encoding {
-		case "gzip":
 	}
 }
