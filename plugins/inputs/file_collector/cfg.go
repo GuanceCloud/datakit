@@ -1,8 +1,10 @@
 package file_collector
 
 import (
+	"context"
 	"github.com/fsnotify/fsnotify"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"time"
 )
 
 const (
@@ -37,4 +39,16 @@ type Fsn struct {
 	SftpClient *io.SFTPClient `toml:"sftp,omitempty"`
 
 	watch *fsnotify.Watcher
+
+	ctx       context.Context
+	cancelFun context.CancelFunc
+}
+
+type UploadInfo struct {
+	filename   string
+	Size       int64
+	CreateTime time.Time
+	Md5        string
+	SuccessMd5 string
+	Fields     map[string]interface{}
 }
