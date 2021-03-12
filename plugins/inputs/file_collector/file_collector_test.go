@@ -108,22 +108,23 @@ func TestFsn_Run(t *testing.T) {
 }
 
 func TestFileCopy(t *testing.T) {
-	dir := filepath.Join(datakit.InstallDir, "log")
+	dir := filepath.Join(datakit.InstallDir, "123.txt")
 	f, err := os.Open(dir)
 	if err != nil {
 		l.Fatal(err)
 	}
-	defer f.Close()
+
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
 	go func() {
 		defer wg.Done()
-		err = FileCopy(f, filepath.Join(datakit.DataDir, "log"))
+		err = FileCopy(f, filepath.Join(datakit.DataDir, "123.txt"))
 		if err != nil {
 			fmt.Printf("file copy err:%s", err.Error())
 			return
 		}
+		f.Close()
 	}()
 
 	wg.Wait()
