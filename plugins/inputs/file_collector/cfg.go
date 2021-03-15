@@ -30,7 +30,7 @@ const (
 `
 )
 
-type Fsn struct {
+type Fc struct {
 	Path          string `toml:"path"`
 	UploadType    string `toml:"upload_type"`
 	MaxUploadSize int64  `toml:"max_upload_size"`
