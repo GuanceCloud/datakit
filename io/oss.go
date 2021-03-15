@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"io"
+	"net/http"
 )
 
 type OSSClient struct {
@@ -53,4 +54,16 @@ func (oc *OSSClient) GetOSSUrl(remotePath string) string {
 		return fmt.Sprintf("https://%s.%s/%s", oc.BucketName, oc.EndPoint, remotePath)
 	}
 	return fmt.Sprintf("https://%s/%s", oc.DomainName, remotePath)
+}
+
+func (oc *OSSClient) ObjectExist(remotePath string) (http.Header, error) {
+	bucket, err := oc.Cli.Bucket(oc.BucketName)
+	if err != nil {
+		return nil, err
+	}
+	header, err := bucket.GetObjectMeta(remotePath)
+	if err != nil {
+		return nil, err
+	}
+	return header, nil
 }
