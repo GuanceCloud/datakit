@@ -13,12 +13,12 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	remotePath := fc.getRemotePath(handler.Filename)
+	remotePath := F.getRemotePath(handler.Filename)
 	defer f.Close()
-	switch fc.UploadType {
+	switch F.UploadType {
 	case "oss":
 		go func() {
-			err = fc.OssClient.OSSUPLoad(remotePath, f)
+			err = F.OssClient.OSSUPLoad(remotePath, f)
 			if err != nil {
 				l.Errorf("http oss upload err:%s", err.Error())
 				return
@@ -27,7 +27,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
 	case "sftp":
 		go func() {
-			err = fc.SftpClient.SFTPUPLoad(remotePath, f)
+			err = F.SftpClient.SFTPUPLoad(remotePath, f)
 			if err != nil {
 				l.Errorf("http sftp upload err:%s", err.Error())
 				return
@@ -38,9 +38,9 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fields := map[string]interface{}{
-		"message": fmt.Sprintf("http通道 上传了文件 %s", handler.Filename),
+		"message": fmt.Sprintf("http 通道 上传了文件 %s", handler.Filename),
 		"size":    handler.Size,
 	}
-	fc.WriteLog(handler.Filename, fields, time.Now())
+	F.WriteLog(handler.Filename, fields, time.Now())
 	w.WriteHeader(http.StatusOK)
 }
