@@ -16,13 +16,17 @@ var (
 	EnableUncheckInputs = false
 
 	allInputs = map[string]bool{
-		"cshark":     false,
-		"httpPacket": false,
-		"mock":       false,
-		"secureexec": false,
-		"vsphere":    false,
-		"zookeeper":  false,
-		"qyt_all":    false,
+		"cshark":      false,
+		"httpPacket":  false,
+		"mock":        false,
+		"secureexec":  false,
+		"vsphere":     false,
+		"zookeeper":   false,
+		"qyt_all":     false,
+		"httpProb":    false,
+		"activemqlog": false,
+		"kafkalog":    false,
+		"rabbitmqlog": false,
 
 		"active_directory":       true,
 		"activemq":               true,
