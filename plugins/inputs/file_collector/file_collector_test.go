@@ -13,9 +13,8 @@ import (
 )
 
 func TestFsnotify(t *testing.T) {
-	dir := "/Users/admin/Desktop/aaa"
+	dir, _ := os.Getwd()
 
-	os.MkdirAll(dir, 0777)
 	watch, err := fsnotify.NewWatcher()
 	if err != nil {
 		l.Fatal(err)
@@ -27,28 +26,25 @@ func TestFsnotify(t *testing.T) {
 
 	go func() {
 		time.Sleep(time.Second * 1)
-		//f,err := os.Create(filepath.Join(dir,"123.txt"))
-		//if err != nil {
-		//	l.Fatal(err)
-		//}
-		//f.Close()
-		//time.Sleep(time.Second*1)
-		//
-		//ioutil.WriteFile(filepath.Join(dir,"123.txt"),[]byte("hahah"),0666)
-		os.Rename(filepath.Join(dir, "222.txt"), filepath.Join(dir, "123.txt"))
+
+		f, err := os.Create(filepath.Join(dir, "123.txt"))
+		if err != nil {
+			l.Fatal(err)
+		}
+		f.Close()
 
 	}()
-	for {
-		select {
-		case ev := <-watch.Events:
-			fmt.Println(ev.String())
-		}
+	select {
+	case ev := <-watch.Events:
+		fmt.Println(ev.String())
 	}
+
+	_ = os.Remove(filepath.Join(dir, "123.txt"))
 
 }
 
 func TestFsn_WriteLogByCreate(t *testing.T) {
-	fsn := newfsn()
+	fsn := newfc()
 	go func() {
 		time.Sleep(time.Second)
 		f, _ := os.Create("123.txt")
@@ -60,7 +56,7 @@ func TestFsn_WriteLogByCreate(t *testing.T) {
 	case ev := <-fsn.watch.Events:
 		switch ev.Op {
 		case fsnotify.Create:
-			fsn.WriteLogByCreate(ev)
+			fsn.WriteLogByCreate(ev, time.Now())
 
 		}
 
@@ -68,19 +64,15 @@ func TestFsn_WriteLogByCreate(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
-func newfsn() *Fsn {
-	dir := "/Users/admin/Desktop/aaa"
-	os.MkdirAll(dir, 0777)
+func newfc() *FileCollector {
+	dir, _ := os.Getwd()
 	dw, _ := datakit.ParseDataway("http://10.100.64.140:9528?token=tkn_12595c1a660711ebb18e46cf65a67f12", "")
 	datakit.Cfg.MainCfg.DataWay = dw
-	region := "oss-cn-shanghai.aliyuncs.com"
-	ak := "LTAI4G1E5j5QX5h1S4kT2qfg"
-	sk := "aud5Bwb6tXExMoh5P1XEAinbZCH4kl"
-	bucketName := "test20210223"
+	region := ""
+	ak := ""
+	sk := ""
+	bucketName := ""
 	cli, err := io.NewOSSClient(region, ak, sk, bucketName)
-
-	//cli,err := io.NewSFTPClient("parallels","hjj940622","10.211.55.6","/home/parallels/Desktop/ccc",22)
-
 	if err != nil {
 		l.Fatal(err)
 	}
@@ -90,10 +82,10 @@ func newfsn() *Fsn {
 		l.Fatal("[error] new watch err:%s", err.Error())
 
 	}
-	var fsn = &Fsn{
+	var fsn = &FileCollector{
 		Path:          dir,
 		UploadType:    "oss",
-		MaxUploadSize: 32,
+		MaxUploadSize: 32 * 1024 * 1024,
 		OssClient:     cli,
 		watch:         watch,
 		//SftpClient:cli,
@@ -103,7 +95,7 @@ func newfsn() *Fsn {
 }
 
 func TestFsn_Run(t *testing.T) {
-	fsn := newfsn()
+	fsn := newfc()
 	fsn.Run()
 }
 
@@ -131,11 +123,16 @@ func TestFileCopy(t *testing.T) {
 }
 
 func TestFsn_LoadFile(t *testing.T) {
-	fsn := newfsn()
+	fsn := newfc()
 	ev := <-fsn.watch.Events
 	f, err := os.Stat(ev.Name)
 	if err != nil {
 		l.Fatal(err)
 	}
-	fsn.LoadFile(f, ev)
+	var u = UploadInfo{
+		filename:   ev.Name,
+		Size:       f.Size(),
+		CreateTime: time.Now(),
+	}
+	fsn.LoadFile(u)
 }
