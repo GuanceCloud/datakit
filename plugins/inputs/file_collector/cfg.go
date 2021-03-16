@@ -14,13 +14,15 @@ const (
    path = ""
    ## upload file max size ,unit MB
    # max_upload_size = 32 
+
    ## your oss  config
   [inputs.file_collector.oss]
       access_key_id = "" 
       access_key_secret = ""
       bucket_name = ""
       endpoint = "" 
-   # [inputs.file_collector.sftp]
+
+  [inputs.file_collector.sftp]
    #   host = ""
    #   port = 22
    #   user = ""
@@ -30,7 +32,7 @@ const (
 `
 )
 
-type Fc struct {
+type FileCollector struct {
 	Path          string `toml:"path"`
 	UploadType    string `toml:"upload_type"`
 	MaxUploadSize int64  `toml:"max_upload_size"`
