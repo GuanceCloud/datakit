@@ -92,10 +92,11 @@ func LoadInputsConfig(c *datakit.Config) error {
 	}
 
 	for name, creator := range inputs.Inputs {
-		if isDisabled(c.MainCfg.WhiteList, c.MainCfg.BlackList, c.MainCfg.Hostname, name) {
-			l.Warnf("input `%s' banned by white/black list on `%s'", name, c.MainCfg.Hostname)
+		if !datakit.Enabled(name) {
+			l.Debugf("LoadInputsConfig: ignore unchecked input %s", name)
 			continue
 		}
+
 		if err := doLoadInputConf(c, name, creator, availableInputCfgs); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
 			return err
@@ -115,9 +116,7 @@ func LoadInputsConfig(c *datakit.Config) error {
 	}
 
 	inputs.AddSelf()
-	if len(inputs.InputsInfo["telegraf_http"]) == 0 && inputs.HaveTelegrafInputs() {
-		inputs.AddTelegrafHTTP()
-	}
+	inputs.AddTelegrafHTTPInput()
 
 	return nil
 }
@@ -238,7 +237,7 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 	return
 }
 
-func migrateOldCfg(name string, c inputs.Creator) error {
+func initDatakitConfSample(name string, c inputs.Creator) error {
 	if name == "self" { //nolint:goconst
 		return nil
 	}
@@ -269,13 +268,24 @@ func migrateOldCfg(name string, c inputs.Creator) error {
 // Creata datakit input plugin's configures if not exists
 func initPluginSamples() {
 	for name, create := range inputs.Inputs {
-		if err := migrateOldCfg(name, create); err != nil {
+
+		if !datakit.Enabled(name) {
+			l.Debugf("initPluginSamples: ignore unchecked input %s", name)
+			continue
+		}
+
+		if err := initDatakitConfSample(name, create); err != nil {
 			l.Fatal(err)
 		}
 	}
 
 	// create telegraf input plugin's configures
 	for name, input := range tgi.TelegrafInputs {
+
+		if !datakit.Enabled(name) {
+			l.Debugf("initPluginSamples: ignore unchecked input %s", name)
+			continue
+		}
 
 		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf.sample")
 		l.Debugf("create telegraf conf path %s", filepath.Join(datakit.ConfdDir, input.Catalog))
@@ -325,48 +335,4 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 
 		l.Infof("enable input %s ok", name)
 	}
-}
-
-func LoadInputConfig(data []byte, creator inputs.Creator) ([]inputs.Input, error) {
-
-	tbl, err := toml.Parse(data)
-	if err != nil {
-		return nil, err
-	}
-
-	var result []inputs.Input
-
-	for field, node := range tbl.Fields {
-		inputlist := []inputs.Input{}
-
-		switch field {
-		case "inputs": //nolint:goconst
-			stbl, ok := node.(*ast.Table)
-			if !ok {
-				return nil, fmt.Errorf("ignore bad toml node")
-			}
-			for inputName, v := range stbl.Fields {
-				//if inputName != name {
-				//	continue
-				//}
-				inputlist, err = TryUnmarshal(v, inputName, creator)
-				if err != nil {
-					return nil, fmt.Errorf("unmarshal input %s failed: %s", inputName, err.Error())
-				}
-			}
-
-		default: // compatible with old version: no [[inputs.xxx]] header
-			inputlist, err = TryUnmarshal(node, "", creator)
-			if err != nil {
-				return nil, fmt.Errorf("unmarshal input failed: %s", err.Error())
-			}
-		}
-
-		for _, i := range inputlist {
-
-			result = append(result, i)
-		}
-	}
-
-	return result, nil
 }
