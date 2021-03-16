@@ -19,35 +19,35 @@ import (
 )
 
 var (
-	inputName   = `file_collector`
-	l           = logger.DefaultSLogger("file_collector")
-	httpPath    = "/upload_file"
-	F           = &Fc{}
-	fileInfoMap = map[string]string{}
-	mtx         = sync.RWMutex{}
-	uploadChan  = make(chan UploadInfo)
-	lines       []string
-	fails       = make(chan UploadInfo)
+	inputName     = `file_collector`
+	l             = logger.DefaultSLogger("file_collector")
+	httpPath      = "/upload_file"
+	fileCollector = &FileCollector{}
+	fileInfoMap   = map[string]string{}
+	mtx           = sync.RWMutex{}
+	uploadChan    = make(chan UploadInfo)
+	lines         []string
+	fails         = make(chan UploadInfo)
 )
 
-func (_ *Fc) SampleConfig() string {
+func (_ *FileCollector) SampleConfig() string {
 	return sampleConfig
 }
 
-func (_ *Fc) Catalog() string {
+func (_ *FileCollector) Catalog() string {
 	return inputName
 }
 
-func (_ *Fc) RegHttpHandler() {
+func (_ *FileCollector) RegHttpHandler() {
 	httpd.RegHttpHandler("POST", httpPath, Handle)
 }
 
-func (_ *Fc) Test() (*inputs.TestResult, error) {
+func (_ *FileCollector) Test() (*inputs.TestResult, error) {
 	testResult := &inputs.TestResult{}
 	return testResult, nil
 }
 
-func (fc *Fc) initFsn() error {
+func (fc *FileCollector) initFileCollector() error {
 	fc.ctx, fc.cancelFun = context.WithCancel(context.Background())
 
 	watch, err := fsnotify.NewWatcher()
@@ -60,6 +60,7 @@ func (fc *Fc) initFsn() error {
 	if fc.MaxUploadSize == 0 {
 		fc.MaxUploadSize = 32
 	}
+	fc.MaxUploadSize = fc.MaxUploadSize * 1024 * 1024
 
 	if fc.OssClient != nil {
 		fc.UploadType = "oss"
@@ -82,7 +83,7 @@ func (fc *Fc) initFsn() error {
 
 }
 
-func (fc *Fc) Run() {
+func (fc *FileCollector) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("file_collector start")
 	if !datakit.FileExist(fc.Path) {
@@ -93,11 +94,11 @@ func (fc *Fc) Run() {
 		l.Errorf("[error] cannot set datakit data path")
 		return
 	}
-	if err := fc.initFsn(); err != nil {
+	if err := fc.initFileCollector(); err != nil {
 		l.Errorf("init file collector err :%s", err.Error())
 		return
 	}
-	F = fc
+	fileCollector = fc
 	filepath.Walk(fc.Path, func(path string, f os.FileInfo, err error) error {
 		if f.IsDir() {
 			err := fc.watch.Add(path)
@@ -117,7 +118,7 @@ func (fc *Fc) Run() {
 		select {
 		case ev := <-fc.watch.Events:
 			notifyTime := time.Now()
-			time.Sleep(time.Second) // 此处sleep一秒 为了剔除那些过渡文件 比如 vim ～结尾文件
+			time.Sleep(time.Second) //Fixme            // 此处sleep一秒 为了剔除那些过渡文件 比如 vim ～结尾文件
 			if ev.Op&fsnotify.Write == fsnotify.Write {
 				fc.WriteLogByWrite(ev, notifyTime)
 				continue
@@ -140,13 +141,13 @@ func (fc *Fc) Run() {
 			fc.cancelFun()
 			return
 		case err := <-fc.watch.Errors:
-			l.Errorf("[error] fsnotify err:%s", err.Error())
-			return
+			l.Errorf("[error] file_collector err:%s", err.Error()) // 此处 error 日志记录即可
+
 		}
 	}
 }
 
-func (fc *Fc) handUpload() {
+func (fc *FileCollector) handUpload() {
 	tick := time.Tick(time.Second * 2)
 	for {
 		select {
@@ -172,7 +173,7 @@ func (fc *Fc) handUpload() {
 	}
 }
 
-func (fc *Fc) handFail() {
+func (fc *FileCollector) handFail() {
 	for {
 		select {
 		case <-fc.ctx.Done():
@@ -193,7 +194,7 @@ func (fc *Fc) handFail() {
 	}
 }
 
-func (fc *Fc) getRemotePath(name string) string {
+func (fc *FileCollector) getRemotePath(name string) string {
 	token := datakit.Cfg.MainCfg.DataWay.GetToken()
 	hostName := datakit.Cfg.MainCfg.Hostname
 	name = strings.ReplaceAll(name, "/", "_")
@@ -204,7 +205,7 @@ func (fc *Fc) getRemotePath(name string) string {
 	return filepath.Join(token, hostName, name)
 }
 
-func (fc *Fc) WriteLog(name string, fields map[string]interface{}, notifyTime time.Time) {
+func (fc *FileCollector) WriteLog(name string, fields map[string]interface{}, notifyTime time.Time) {
 	tags := map[string]string{
 		"source":      inputName,
 		"path":        fc.Path,
@@ -235,8 +236,8 @@ func (fc *Fc) WriteLog(name string, fields map[string]interface{}, notifyTime ti
 	lines = append(lines, string(line))
 }
 
-func (fc *Fc) LoadFile(u UploadInfo) error {
-	if u.Size > fc.MaxUploadSize*1024*1024 {
+func (fc *FileCollector) LoadFile(u UploadInfo) error {
+	if u.Size > fc.MaxUploadSize {
 		return nil
 	}
 	remotePath := fc.getRemotePath(u.filename)
@@ -304,7 +305,7 @@ func FileCopy(f *os.File, tmpPath string) error {
 	return syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 }
 
-func (fc *Fc) WriteLogByCreate(ev fsnotify.Event, notifyTime time.Time) {
+func (fc *FileCollector) WriteLogByCreate(ev fsnotify.Event, notifyTime time.Time) {
 	fi, err := os.Stat(ev.Name)
 	if err != nil {
 		return
@@ -332,7 +333,7 @@ func (fc *Fc) WriteLogByCreate(ev fsnotify.Event, notifyTime time.Time) {
 	}
 }
 
-func (fc *Fc) WriteLogByRemove(ev fsnotify.Event, notifyTime time.Time) {
+func (fc *FileCollector) WriteLogByRemove(ev fsnotify.Event, notifyTime time.Time) {
 	if _, ok := fileInfoMap[ev.Name]; !ok {
 		return
 	}
@@ -349,7 +350,7 @@ func (fc *Fc) WriteLogByRemove(ev fsnotify.Event, notifyTime time.Time) {
 	}
 }
 
-func (fc *Fc) WriteLogByWrite(ev fsnotify.Event, notifyTime time.Time) {
+func (fc *FileCollector) WriteLogByWrite(ev fsnotify.Event, notifyTime time.Time) {
 	if _, ok := fileInfoMap[ev.Name]; !ok {
 		return
 	}
@@ -375,7 +376,7 @@ func (fc *Fc) WriteLogByWrite(ev fsnotify.Event, notifyTime time.Time) {
 	}
 }
 
-func (fc *Fc) WriteLogByRename(ev fsnotify.Event, notifyTime time.Time) {
+func (fc *FileCollector) WriteLogByRename(ev fsnotify.Event, notifyTime time.Time) {
 	if _, ok := fileInfoMap[ev.Name]; !ok {
 		return
 	}
@@ -388,6 +389,6 @@ func (fc *Fc) WriteLogByRename(ev fsnotify.Event, notifyTime time.Time) {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Fc{}
+		return fileCollector
 	})
 }
