@@ -15,23 +15,23 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
-	if handler.Size > F.MaxUploadSize*1024*1024 {
+	if handler.Size > fileCollector.MaxUploadSize {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("file too large"))
 		return
 	}
-	remotePath := F.getRemotePath(handler.Filename)
+	remotePath := fileCollector.getRemotePath(handler.Filename)
 	defer f.Close()
-	switch F.UploadType {
+	switch fileCollector.UploadType {
 	case "oss":
-		err = F.OssClient.OSSUPLoad(remotePath, f)
+		err = fileCollector.OssClient.OSSUPLoad(remotePath, f)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
 		}
 		resp := map[string]string{
-			"url": F.OssClient.GetOSSUrl(remotePath),
+			"url": fileCollector.OssClient.GetOSSUrl(remotePath),
 		}
 		body, err := json.MarshalIndent(resp, "", "    ")
 		if err != nil {
@@ -41,7 +41,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write(body)
 	case "sftp":
-		err = F.SftpClient.SFTPUPLoad(remotePath, f)
+		err = fileCollector.SftpClient.SFTPUPLoad(remotePath, f)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
@@ -52,9 +52,9 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fields := map[string]interface{}{
-		"message": fmt.Sprintf("http 通道 上传了文件 %s", handler.Filename),
+		"message": fmt.Sprintf("http通道上传了文件 %s", handler.Filename),
 		"size":    handler.Size,
 	}
-	F.WriteLog(handler.Filename, fields, time.Now())
+	fileCollector.WriteLog(handler.Filename, fields, time.Now())
 	w.WriteHeader(http.StatusOK)
 }
