@@ -331,14 +331,14 @@ CREATE TABLE `task` (
   `id` int(16) NOT NULL AUTO_INCREMENT COMMENT '自增 ID',
   `external_id` varchar(128) NOT NULL COMMENT '外部 ID',
   `region` varchar(48) NOT NULL COMMENT '部署区域（只能有一个区域）',
-	`class` enum("HTTP", "TCP", "DNS", "OTHER") NOT NULL DEFAULT "OTHER" COMMENT '任务分类',
+  `class` enum("HTTP", "TCP", "DNS", "OTHER") NOT NULL DEFAULT "OTHER" COMMENT '任务分类',
   `task` text NOT NULL COMMENT '任务的 json 描述',
   `createAt` bigint(16) NOT NULL DEFAULT '-1',
   `updateAt` bigint(16) NOT NULL DEFAULT '-1',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_hash` (`hash`) COMMENT '便于鉴定重复推送',
   UNIQUE KEY `uk_uuid` (`uuid`) COMMENT 'UUID 做成全局唯一'
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4;
 
 -- 存储 AK/SK 信息
  CREATE TABLE IF NOT EXISTS aksk (
@@ -347,7 +347,7 @@ CREATE TABLE `task` (
      `accessKey` varchar(20) NOT NULL COMMENT '推送 commit 的 AK',
      `secretKey` varchar(40) NOT NULL COMMENT '推送 commit 的 SK',
      `owner` varchar(128) NOT NULL COMMENT 'AK 归属',
-		 `status` enum('OK', 'DISABLED') NOT NULL DEFAULT 'OK' COMMENT 'AK 状态',
+	 `status` enum('OK', 'DISABLED') NOT NULL DEFAULT 'OK' COMMENT 'AK 状态',
 
      `version` int(11) NOT NULL DEFAULT 1 COMMENT 'AK 版本，便于 AK 验证方式变更（not used）',
 
@@ -360,7 +360,7 @@ CREATE TABLE `task` (
      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
-### API 定义
+### 服务中心 API 定义
 
 #### `/v1/list/region | GET`
 
@@ -404,23 +404,13 @@ HTTP/1.1 200 OK  # 无 body 返回
 
 ```
 GET /v1/pull?region=<region>&since=<us-timestamp> HTTP/1.1
-Authorization: DIAL_TESTING <access_key>:<sign>
+Authorization: DIAL_TESTING <access_key>:<sign>  // 某 PAAS 平台的 AK
 
 HTTP/1.1 200 OK
 {
-	"access_key-1": [ // 某 PAAS 平台的 AK，下面即该平台 push 过来的所有 commit
-		{ "tcp-task" },
-		{ "http-task" },
-		{ "dns-task" },
-		...
-	],
-
-	"access_key-2": [
-		{ "tcp-task" },
-		{ "http-task" },
-		{ "dns-task" },
-		...
-	],
+	"http": [ {"http-task"} ] ,
+	"tcp":  [ {"tcp-task"} ],
+	"dns":  [ {"dns-task"} ]
 }
 ```
 
@@ -446,8 +436,7 @@ datakit 端任务处理流程
 1. DataKit 采集器启动时，通过指定 region，从中心 clone 所有该 region 的任务。通过一定的合并策略，采集器**最终执行合并后的具体的任务**。合并策略：
 	- 轮询一遍 clone 下来的所有 commit（如总共 10K 个 commit，其中**有效任务** 1K 个）
 	- datakit 通过 `access_key + id` 确定一个任务 ID，并以此依据来合并多个 commit 为一个具体拨测任务
-	- 取固定几个字段的值，通过一定的 hash 算法，即可判定拨测任务是否更新
-	- hash 算法：`md5(access_key + task-json)`: 第三方平台可在 `task-json` 添加任何其它字段（在不破坏现有 task-json 结构的前提下），如工作空间信息、用户信息等，这些都会计入 hash 计算，并以此推断拨测任务是否更新。授信的第三方，应该提交差异化的 `task-json` 以保证拨测任务的正确运转（如果 `task-json` 都相同，亦不影响 dialtesting 以及 datakit 运行）。考虑到计算 hash 的性能开销以及高频率，这里暂用 md5（参见[这里](https://stackoverflow.com/questions/14139727/sha-256-or-md5-for-file-integrity)）
+	- 结合ak,externalID，即可判定拨测任务是否更新
 
 2. DataKit 采集器启动运行之后，以一定频率，从中心同步最新的任务。
 	- 对于更新了配置的任务，直接更新执行（将新的任务 json 发给当前运行的 go routine 即可）
