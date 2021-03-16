@@ -57,7 +57,7 @@ var (
 		"flink":                  true,
 		"fluentd":                true,
 		"fluentdlog":             false,
-		"file_collector":         true,
+		"file_collector":         false,
 		"github":                 true,
 		"gitlab":                 true,
 		"goruntime":              true,
