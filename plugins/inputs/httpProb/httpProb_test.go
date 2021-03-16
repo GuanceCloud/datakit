@@ -15,9 +15,9 @@ func TestMain(t *testing.T) {
 		Source: "test-app",
 		Url: []*Url{
 			{
-				Uri:          "/",
-				DropBody:     false,
-				PipelinePath: "./http-test.p",
+				UriRegex: "/user/info/a.*d",
+				DropBody: false,
+				// PipelinePath: "./http-test.p",
 			},
 		},
 	}
@@ -28,7 +28,7 @@ func TestMain(t *testing.T) {
 	   }
 	`
 
-	request, _ := http.NewRequest(http.MethodPost, "/test?key1=value1&key2=value2&key3=value3", bytes.NewBuffer([]byte(data)))
+	request, _ := http.NewRequest(http.MethodPost, "/user/info/aced?key1=value1&key2=value2&key3=value3", bytes.NewBuffer([]byte(data)))
 	request.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	request.Header.Add("Accept-Encoding", "gzip, deflate")
 	request.Header.Add("Accept-Language", "zh-cn,zh;q=0.8,en-us;q=0.5,en;q=0.3")
