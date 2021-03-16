@@ -1,34 +1,28 @@
-package tailf
+package rabbitmqlog
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
 )
 
 const (
-	inputName = "tailf"
+	inputName = "rabbitmqlog"
 
 	sampleCfg = `
 [[inputs.tailf]]
     # required, glob logfiles
-    logfiles = ["/path/to/your/file.log"]
+    logfiles = ["/var/log/rabbitmq/*.log"]
 
     # glob filteer
     ignore = [""]
 
-    # your logging source, if it's empty, use 'default'
-    source = ""
+    source = "rabbitmqlog"
 
     # add service tag, if it's empty, use $source.
-    service = ""
+    service = "rabbitmqlog"
 
     # grok pipeline script path
-    pipeline = ""
-
-    # optional status: 
-    #   "emerg","alert","critical","error","warning","info","debug","OK"
-    ignore_status = []
+    pipeline = "rabbitmqlog.p"
 
     # read file from beginning
     # if from_begin was false, off auto discovery file
@@ -40,31 +34,29 @@ const (
 
     # The pattern should be a regexp. Note the use of '''this regexp'''
     # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-    match = '''^\S'''
+    match = '''^\S.*'''
 
     [inputs.tailf.tags]
     # tags1 = "value1"
 `
+	pipelineCfg = `
+grok(_, "%{LOGLEVEL:status}%{DATA}====%{SPACE}%{DATA:time}%{SPACE}===%{SPACE}%{GREEDYDATA:msg}")
+
+grok(_, "%{DATA:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg}")
+
+default_time(time)
+`
 )
-
-const (
-	// 定期寻找符合条件的新文件
-	findNewFileInterval = time.Second * 10
-
-	// 定期检查当前文件是否存在
-	checkFileExistInterval = time.Minute * 10
-
-	// pipeline关键字段
-	pipelineTimeField = "time"
-
-	// ES value can be at most 32766 bytes long
-	maxFieldsLength = 32766
-)
-
-// var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return NewTailf(inputName, "log", sampleCfg, nil)
+		t := tailf.NewTailf(
+			inputName,
+			"log",
+			sampleCfg,
+			map[string]string{"rabbitmq": pipelineCfg},
+		)
+		t.Source = inputName
+		return t
 	})
 }
