@@ -101,7 +101,7 @@ func (h *HttpProb) InitPipeline() {
 	for _, item := range h.Url {
 		if item.PipelinePath != "" {
 			var err error
-			item.Pipeline, err = pipeline.NewPipelineFromFile(item.PipelinePath)
+			item.Pipeline, err = pipeline.NewPipelineByScriptPath(item.PipelinePath)
 			if err != nil {
 				l.Errorf("pipline init fail %v", err)
 			}
@@ -110,23 +110,19 @@ func (h *HttpProb) InitPipeline() {
 }
 
 func (h *HttpProb) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	h.handle(req)
 	fmt.Fprintf(w, "ok")
-
-	go h.handle(w, req)
 }
 
-func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
+func (h *HttpProb) handle(req *http.Request) {
 	var err error
 
 	for _, item := range h.Url {
 		var filter bool
 
 		if item.Uri == "" && item.UriRegex != "" {
-			filter, err = regexp.MatchString(item.UriRegex, req.URL.Path)
-			if err != nil {
-				l.Errorf("config uri %s regex error %v", item.UriRegex, err)
-				continue
-			}
+			re := regexp.MustCompile(item.UriRegex)
+			filter = re.MatchString(req.URL.Path)
 		}
 
 		if item.Uri == "/" || req.URL.Path == item.Uri {
