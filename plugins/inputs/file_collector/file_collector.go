@@ -106,6 +106,7 @@ func (fc *Fc) Run() {
 				l.Errorf("[error] fsnotify add watch err:%s", err.Error())
 				return err
 			}
+			return nil
 		}
 		addFileInfo(path, "")
 		return nil
@@ -116,6 +117,7 @@ func (fc *Fc) Run() {
 		select {
 		case ev := <-fc.watch.Events:
 			notifyTime := time.Now()
+			time.Sleep(time.Second) // 此处sleep一秒 为了剔除那些过渡文件 比如 vim ～结尾文件
 			if ev.Op&fsnotify.Write == fsnotify.Write {
 				fc.WriteLogByWrite(ev, notifyTime)
 				continue
@@ -128,7 +130,7 @@ func (fc *Fc) Run() {
 				fc.WriteLogByRemove(ev, notifyTime)
 				continue
 			}
-			if ev.Op&fsnotify.Rename == fsnotify.Write {
+			if ev.Op&fsnotify.Rename == fsnotify.Rename {
 				fc.WriteLogByRename(ev, notifyTime)
 				continue
 			}
@@ -303,7 +305,6 @@ func FileCopy(f *os.File, tmpPath string) error {
 }
 
 func (fc *Fc) WriteLogByCreate(ev fsnotify.Event, notifyTime time.Time) {
-	time.Sleep(time.Second)
 	fi, err := os.Stat(ev.Name)
 	if err != nil {
 		return
@@ -349,7 +350,9 @@ func (fc *Fc) WriteLogByRemove(ev fsnotify.Event, notifyTime time.Time) {
 }
 
 func (fc *Fc) WriteLogByWrite(ev fsnotify.Event, notifyTime time.Time) {
-	time.Sleep(time.Second)
+	if _, ok := fileInfoMap[ev.Name]; !ok {
+		return
+	}
 	fi, err := os.Stat(ev.Name)
 	if err != nil {
 		return
