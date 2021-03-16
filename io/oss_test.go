@@ -5,10 +5,10 @@ import (
 )
 
 func TestOSSUPLoad(t *testing.T) {
-	endpoint := "oss-cn-shanghai.aliyuncs.com"
-	ak := "LTAI4G1E5j5QX5h1S4kT2qfg"
-	sk := "aud5Bwb6tXExMoh5P1XEAinbZCH4kl"
-	bucketName := "test20210223"
+	endpoint := ""
+	ak := ""
+	sk := ""
+	bucketName := ""
 	cli, err := NewOSSClient(endpoint, ak, sk, bucketName)
 	if err != nil {
 		l.Fatal(err)
