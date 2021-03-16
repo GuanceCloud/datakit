@@ -13,9 +13,9 @@ import (
 func (t *Tailf) loadcfg() bool {
 	var err error
 
+	t.composeSource()
 	t.composePipeline()
 	t.composeTailerConf()
-	t.composeService()
 	t.composeTags()
 
 	multilineConfig := &MultilineConfig{
@@ -77,9 +77,13 @@ func (t *Tailf) composePipeline() {
 		t.Pipeline = filepath.Join(datakit.PipelineDir, t.Pipeline)
 	}
 
+	t.log.Infof("pipeline filepath %s", t.Pipeline)
+
 	if isExist(t.Pipeline) {
 		t.log.Debugf("use pipeline %s", t.Pipeline)
 	} else {
+		// 如果 pipeline 文件不存在，将 pipeline 变量置空
+		// 避免后续使用无效文件路径创建对象
 		t.Pipeline = ""
 		t.log.Warn("no pipeline applied")
 	}
@@ -105,7 +109,13 @@ func (t *Tailf) composeTailerConf() {
 	}
 }
 
-func (t *Tailf) composeService() {
+func (t *Tailf) composeSource() {
+	const defaultSource = "default"
+
+	if t.Source == "" {
+		t.Source = defaultSource
+	}
+
 	if t.Service == "" {
 		t.Service = t.Source
 	}
