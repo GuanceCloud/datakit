@@ -6,7 +6,7 @@ import (
 )
 
 func TestHandle(t *testing.T) {
-	fc = newfsn()
+	fileCollector = newfc()
 	http.HandleFunc("/test", Handle)
 	if err := http.ListenAndServe(":8888", nil); err != nil {
 		l.Fatal(err)
