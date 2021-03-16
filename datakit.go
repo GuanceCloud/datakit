@@ -25,14 +25,9 @@ const (
 	OSArchDarwinAmd64 = "darwin/amd64"
 
 	CommonChanCap = 32
-
-	ReleaseCheckedInputs = "checked"
-	ReleaseAllInputs     = "all"
 )
 
 var (
-	ReleaseType = "" // default only release checked inputs
-
 	Exit = cliutils.NewSem()
 	WG   = sync.WaitGroup{}
 	l    = logger.DefaultSLogger("datakit")
