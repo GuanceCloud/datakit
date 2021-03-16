@@ -293,15 +293,15 @@ func parseDate(yy, mm, dd, hh, mi, ss, ns, zone string) int64 {
 	}
 
 	tz, err := time.LoadLocation(zone)
-    if err == nil {
-    } else {
-    	if zz, ok := timezoneList[zone]; ok {
-    		tz, err = time.LoadLocation(zz)
-    		if err != nil {
-    			l.Errorf("location time zone error %v", err)
-    		}
-    	}
-    }
+	if err == nil {
+	} else {
+		if zz, ok := timezoneList[zone]; ok {
+			tz, err = time.LoadLocation(zz)
+			if err != nil {
+				l.Errorf("location time zone error %v", err)
+			}
+		}
+	}
 
 	t := time.Date(yyi, mmi, ddi, hi, mii, ssi, nsi, tz)
 	res := t.UnixNano()
@@ -311,79 +311,79 @@ func parseDate(yy, mm, dd, hh, mi, ss, ns, zone string) int64 {
 	return res
 }
 
-func isAlpha(ch int32) bool  {
-	return (ch >= 'a' && ch <= 'z') || (ch>='A' && ch<='Z')
+func isAlpha(ch int32) bool {
+	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
 }
 func isDigit(ch int32) bool {
-	return ch >= '0' && ch <='9'
+	return ch >= '0' && ch <= '9'
 }
 
 var monthLong = map[string]time.Month{
-	"January": time.January,
-	"February": time.February,
-	"March": time.March,
-	"April": time.April,
-	"May": time.May,
-	"June": time.June,
-	"July": time.July,
-	"August": time.August,
+	"January":   time.January,
+	"February":  time.February,
+	"March":     time.March,
+	"April":     time.April,
+	"May":       time.May,
+	"June":      time.June,
+	"July":      time.July,
+	"August":    time.August,
 	"September": time.September,
-	"October": time.October,
-	"November": time.November,
-	"December": time.December,
+	"October":   time.October,
+	"November":  time.November,
+	"December":  time.December,
 }
 
 var monthShort = map[string]time.Month{
-	"jan": time.January,
-	"Feb": time.February,
-	"Mar": time.March,
-	"Apr": time.April,
-	"May": time.May,
-	"Jun": time.June,
-	"Jul": time.July,
-	"Aug": time.August,
+	"jan":  time.January,
+	"Feb":  time.February,
+	"Mar":  time.March,
+	"Apr":  time.April,
+	"May":  time.May,
+	"Jun":  time.June,
+	"Jul":  time.July,
+	"Aug":  time.August,
 	"Sept": time.September,
-	"Oct": time.October,
-	"Nov": time.November,
-	"Dec": time.December,
+	"Oct":  time.October,
+	"Nov":  time.November,
+	"Dec":  time.December,
 }
 
 var timezoneList = map[string]string{
-        "-11":    "Pacific/Midway",
-        "-10":    "Pacific/Honolulu",
-        "-9:30":  "Pacific/Marquesas",
-        "-9":     "America/Anchorage",
-        "-8":     "America/Los_Angeles",
-        "-7":     "America/Phoenix",
-        "-6":     "America/Chicago",
-        "-5":     "America/New_York",
-        "-4":     "America/Santiago",
-        "-3:30":  "America/St_Johns",
-        "-3":     "America/Sao_Paulo",
-        "-2":     "America/Noronha",
-        "-1":     "America/Scoresbysund",
-        "+0":     "Europe/London",
-        "+1":     "Europe/Vatican",
-        "+2":     "Europe/Kiev",
-        "+3":     "Europe/Moscow",
-        "+3:30":  "Asia/Tehran",
-        "+4":     "Asia/Dubai",
-        "+4:30":  "Asia/Kabul",
-        "+5":     "Asia/Samarkand",
-        "+5:30":  "Asia/Kolkata",
-        "+5:45":  "Asia/Kathmandu",
-        "+6":     "Asia/Almaty",
-        "+6:30":  "Asia/Yangon",
-        "+7":     "Asia/Jakarta",
-        "+8":     "Asia/Shanghai",
-        "+8:45":  "Australia/Eucla",
-        "+9":     "Asia/Tokyo",
-        "+9:30":  "Australia/Darwin",
-        "+10":    "Australia/Sydney",
-        "+10:30": "Australia/Lord_Howe",
-        "+11":    "Pacific/Guadalcanal",
-        "+12":    "Pacific/Auckland",
-        "+12:45": "Pacific/Chatham",
-        "+13":    "Pacific/Apia",
-        "+14":    "Pacific/Kiritimati",
+	"-11":    "Pacific/Midway",
+	"-10":    "Pacific/Honolulu",
+	"-9:30":  "Pacific/Marquesas",
+	"-9":     "America/Anchorage",
+	"-8":     "America/Los_Angeles",
+	"-7":     "America/Phoenix",
+	"-6":     "America/Chicago",
+	"-5":     "America/New_York",
+	"-4":     "America/Santiago",
+	"-3:30":  "America/St_Johns",
+	"-3":     "America/Sao_Paulo",
+	"-2":     "America/Noronha",
+	"-1":     "America/Scoresbysund",
+	"+0":     "Europe/London",
+	"+1":     "Europe/Vatican",
+	"+2":     "Europe/Kiev",
+	"+3":     "Europe/Moscow",
+	"+3:30":  "Asia/Tehran",
+	"+4":     "Asia/Dubai",
+	"+4:30":  "Asia/Kabul",
+	"+5":     "Asia/Samarkand",
+	"+5:30":  "Asia/Kolkata",
+	"+5:45":  "Asia/Kathmandu",
+	"+6":     "Asia/Almaty",
+	"+6:30":  "Asia/Yangon",
+	"+7":     "Asia/Jakarta",
+	"+8":     "Asia/Shanghai",
+	"+8:45":  "Australia/Eucla",
+	"+9":     "Asia/Tokyo",
+	"+9:30":  "Australia/Darwin",
+	"+10":    "Australia/Sydney",
+	"+10:30": "Australia/Lord_Howe",
+	"+11":    "Pacific/Guadalcanal",
+	"+12":    "Pacific/Auckland",
+	"+12:45": "Pacific/Chatham",
+	"+13":    "Pacific/Apia",
+	"+14":    "Pacific/Kiritimati",
 }
