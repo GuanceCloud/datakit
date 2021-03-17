@@ -57,7 +57,7 @@ func (fc *FileCollector) initFileCollector() error {
 	}
 	fc.watch = watch
 
-	if fc.MaxUploadSize == 0 {
+	if fc.MaxUploadSize == 0 || fc.MaxUploadSize > 5 * 1024 {
 		fc.MaxUploadSize = 32
 	}
 	fc.MaxUploadSize = fc.MaxUploadSize * 1024 * 1024
@@ -238,14 +238,12 @@ func (fc *FileCollector) WriteLog(name string, fields map[string]interface{}, no
 
 func (fc *FileCollector) LoadFile(u UploadInfo) error {
 	if u.Size > fc.MaxUploadSize {
+		u.Fields["upload_failed_reason"] = fmt.Sprintf("file too large,max support %d byte", fc.MaxUploadSize)
 		return nil
 	}
 	remotePath := fc.getRemotePath(u.filename)
-	f, err := os.Open(u.filename)
-	if err != nil {
-		return err
-	}
-	MD5, err := getFileMd5(f)
+
+	MD5, err := getFileMd5(u.filename)
 	if err != nil {
 		return err
 	}
@@ -255,7 +253,10 @@ func (fc *FileCollector) LoadFile(u UploadInfo) error {
 			return nil
 		}
 	}
-
+	f, err := os.Open(u.filename)
+	if err != nil {
+		return err
+	}
 	tmpPath := filepath.Join(datakit.DataDir, remotePath)
 	if err := FileCopy(f, tmpPath); err != nil {
 		return err
@@ -272,7 +273,6 @@ func (fc *FileCollector) LoadFile(u UploadInfo) error {
 	case "oss":
 		if err := fc.OssClient.OSSUPLoad(remotePath, copyF); err != nil {
 			return err
-
 		}
 	case "sftp":
 		if err := fc.SftpClient.SFTPUPLoad(remotePath, copyF); err != nil {
