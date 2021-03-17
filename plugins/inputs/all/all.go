@@ -23,6 +23,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/coredns"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ddtrace"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dialtesting"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/docker_containers"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dockerlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
