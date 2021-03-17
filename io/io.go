@@ -340,21 +340,6 @@ func cacheData(d *iodata) {
 	curCacheCnt++
 }
 
-func tryCleanCache(d *iodata) {
-
-	// disable cache under proxied mode, to prevent large packages in proxing lua module
-	if d.isProxy {
-		if err := doFlush([][]byte{d.data}, d.url); err != nil {
-			l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
-		}
-	} else {
-		if curCacheCnt > maxCacheCnt {
-			flushAll()
-		}
-	}
-
-}
-
 func cleanHighFreqIOData() {
 	for {
 		select {
@@ -393,7 +378,6 @@ func startIO(recoverable bool) {
 			select {
 			case d := <-inputCh:
 				cacheData(d)
-				tryCleanCache(d)
 
 			case q := <-qstatsCh:
 				statRes := []*InputsStat{}
@@ -561,8 +545,8 @@ func doFlush(bodies [][]byte, url string) error {
 
 	switch resp.StatusCode / 100 {
 	case 2:
-		l.Debugf("post %d to %s ok(gz: %v), cost %v",
-			len(body), url, gz, time.Since(postbeg))
+		l.Debugf("post %d to %s ok(gz: %v), cost %v, response: %s",
+			len(body), url, gz, time.Since(postbeg), string(respbody))
 		return nil
 
 	case 4:
@@ -571,8 +555,8 @@ func doFlush(bodies [][]byte, url string) error {
 		return nil
 
 	case 5:
-		l.Debugf("post %d to %s failed(HTTP: %s): %s, cost %v",
-			len(body), url, resp.StatusCode, string(respbody), time.Since(postbeg))
+		l.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v",
+			len(body), url, resp.Status, string(respbody), time.Since(postbeg))
 		return fmt.Errorf("dataway internal error")
 	}
 
@@ -632,4 +616,19 @@ func GetStats() ([]*InputsStat, error) {
 	case <-tick.C:
 		return nil, fmt.Errorf("get stats timeout")
 	}
+}
+
+func tryCleanCache(d *iodata) {
+
+	// disable cache under proxied mode, to prevent large packages in proxing lua module
+	if d.isProxy {
+		if err := doFlush([][]byte{d.data}, d.url); err != nil {
+			l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
+		}
+	} else {
+		if curCacheCnt > maxCacheCnt {
+			flushAll()
+		}
+	}
+
 }
