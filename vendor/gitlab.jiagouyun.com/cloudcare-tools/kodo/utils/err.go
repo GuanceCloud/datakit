@@ -7,6 +7,7 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 )
 
+// errors for kodo*
 var (
 	ErrOK = newErr(nil, http.StatusOK)
 
@@ -25,6 +26,8 @@ var (
 	ErrAuthFailed                    = newErr(errors.New(`authorization failed`), http.StatusForbidden)
 	ErrInvalidDatawayLocalTime       = newErr(errors.New(`invalid dataway local time`), http.StatusForbidden)
 	ErrRequestTimeOut                = newErr(errors.New(`request timeout`), http.StatusRequestTimeout)
+
+	ErrAKNotFound = newErr(errors.New("AK not found or disabled"), http.StatusForbidden)
 
 	ErrInvalidDuration = newErr(errors.New("invalid duration"), http.StatusBadRequest)
 
@@ -59,8 +62,21 @@ var (
 	ErrBeyoundTracings        = newErr(errors.New(`beyond tracings`), http.StatusForbidden)
 	ErrBeyoundRUM             = newErr(errors.New(`beyond RUMs`), http.StatusForbidden)
 
-	ErrNoCommands = newErr(errors.New(`no any commands`), http.StatusBadRequest)
+	ErrNoCommands        = newErr(errors.New(`no any commands`), http.StatusBadRequest)
+	ErrKeyConfigNotFound = newErr(errors.New(`Key configure not found`), http.StatusForbidden)
 )
+
+// errors for dialtesting
+var (
+	ErrDTInvalidTask         = newDialtestingErr(errors.New("invalid task"), http.StatusBadRequest)
+	ErrDTAuthFailed          = newDialtestingErr(errors.New(`authorization failed`), http.StatusForbidden)
+	ErrDTInvalidParam        = newDialtestingErr(errors.New(`invalid param`), http.StatusBadRequest)
+	ErrDTInternalServerError = newDialtestingErr(errors.New(`internal error`), http.StatusInternalServerError)
+)
+
+func newDialtestingErr(err error, httpCode int) *uhttp.HttpError {
+	return uhttp.NewNamespaceErr(err, httpCode, "dialtesting")
+}
 
 func newErr(err error, httpCode int) *uhttp.HttpError {
 	return uhttp.NewNamespaceErr(err, httpCode, "kodo")
