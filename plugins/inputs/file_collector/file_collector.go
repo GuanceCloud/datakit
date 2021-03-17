@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
+	"github.com/gofrs/flock"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -14,7 +15,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -285,9 +285,14 @@ func (fc *FileCollector) LoadFile(u UploadInfo) error {
 }
 
 func FileCopy(f *os.File, tmpPath string) error {
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+	fileLock := flock.New(f.Name())
+	if fileLock.Locked() {
+		return fmt.Errorf("file lock ,ignore")
+	}
+	if err := fileLock.Lock(); err != nil {
 		return err
 	}
+
 	err := os.MkdirAll(filepath.Dir(tmpPath), 0777)
 	if err != nil {
 		return err
@@ -302,7 +307,7 @@ func FileCopy(f *os.File, tmpPath string) error {
 		return fmt.Errorf("copy err :%s", err.Error())
 	}
 
-	return syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+	return fileLock.Unlock()
 }
 
 func (fc *FileCollector) WriteLogByCreate(ev fsnotify.Event, notifyTime time.Time) {
