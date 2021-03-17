@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	StatusOK = 0
+	StatusOK  = 0
+	StatusDel = 3
 )
 
 var (
@@ -19,12 +20,24 @@ var (
 	Stmts   = map[string]*sql.Stmt{}
 )
 
+type DialTestingAkInfo struct {
+	Owner  string
+	AK     string
+	SK     string
+	Status string
+	UUID   string
+
+	UpdateAt int64
+	//sign     string
+}
+
 type Token struct {
 	WsUUID    string
 	BillState string
 	VerType   string
 	Token     string
 	DBUUID    string
+	Precision string
 	Status    int
 	Creator   string
 
@@ -77,11 +90,12 @@ type InfluxDBInfo struct {
 	InfluxInstanceUUID string `json:"influx_instance_uuid,omitempty"`
 	RPUUID             string `json:"rp_uuid,omitempty"`
 
-	Host string `json:"host,omitempty"`
-	User string `json:"user,omitempty"`
-	Pwd  string `json:"password,omitempty"`
-	RP   string `json:"rp_name,omitempty"`
-	CQRP string `json:"cq_rp,omitempty"`
+	Host     string `json:"host,omitempty"`
+	User     string `json:"user,omitempty"`
+	Pwd      string `json:"password,omitempty"`
+	RP       string `json:"rp_name,omitempty"`
+	Duration string `json:"duration,omitempty"`
+	CQRP     string `json:"cq_rp,omitempty"`
 
 	CreateAt int64 `json:"create_at,omitempty"`
 	UpdateAt int64 `json:"update_at,omitempty"`
@@ -135,36 +149,33 @@ type ObjectClassCfg struct {
 	Fields    string `json:"fields"`
 }
 
+type KeyConfig struct {
+	UUID    string `json:"uuid,omitempty"`
+	WsUUID  string `json:"workspace_uuid"`
+	KeyCode string `json:"key_code"`
+	Desp    string `json:"description,omitempty"`
+	Value   string `json:"value,omitempty"`
+	Status  int    `json:"status,omitempty"`
+
+	CreateAt int64 `json:"create_at,omitempty"`
+	UpdateAt int64 `json:"update_at,omitempty"`
+	DeleteAt int64 `json:"delete_at,omitempty"`
+}
+
 var (
 	l *logger.Logger
-)
 
-func Init(dialect, connStr string) error {
-	l = logger.SLogger("models")
+	DialtestingSQLS = map[string]string{
+		`iDialTestingAKSK`: `insert into aksk(
+			uuid, accessKey, secretKey, owner, status, version, createAt, updateAt) VALUES (?,?,?,?,?,?,?,?)`,
 
-	var err error
-	for {
-		DB, err = sql.Open(dialect, connStr)
-		if err != nil {
-			l.Errorf("%s", err.Error())
-			time.Sleep(time.Second)
-		} else {
-
-			if err := DB.Ping(); err != nil {
-				l.Errorf("ping %s failed: %s", dialect, err.Error())
-				time.Sleep(time.Second)
-			} else {
-				l.Infof("connect to %s ok", dialect)
-				break
-			}
-		}
+		`qDialTestingAK`:         `SELECT owner, secretKey FROM aksk WHERE accessKey=? AND status='OK' limit 1`,
+		`qCloneDialTestingTasks`: `SELECT task FROM task WHERE region=? ORDER BY id`,
+		`qPullDialTestingTasks`:  `SELECT task, class, external_id FROM task WHERE region=? AND updateAt > ? ORDER BY updateAt desc`,
+		`dDropTasks`:             `DELETE FROM task WHERE external_id LIKE concat(?, '%')`,
 	}
 
-	DB.SetMaxOpenConns(MaxConn)
-	DB.SetMaxIdleConns(4)
-	DB.SetConnMaxLifetime(time.Second * 28)
-
-	sqls := map[string]string{
+	KodoSQLs = map[string]string{
 		// get workspace cli token
 		`qWorkspaceCliToken`: `SELECT cliToken FROM main_workspace WHERE uuid=? limit 1`,
 
@@ -250,7 +261,49 @@ func Init(dialect, connStr string) error {
 
 		`qWorkSpacesDBUUID`: `SELECT dbUUID FROM main_workspace
 							 WHERE uuid=?`,
+
+		`qAllInfluxDBInfo`: `SELECT influxdb.DB, influxdb.cqrp, ws.rpName, ws.durationSet from main_workspace AS ws
+							INNER JOIN main_influx_db AS influxdb ON influxdb.uuid=ws.dbUUID
+							WHERE ws.status=?`,
+
+		`qMigInfluxDBInfo`: `SELECT influxdb.DB, influxdb.cqrp, ws.rpName, ws.durationSet from main_workspace AS ws
+						INNER JOIN main_influx_db AS influxdb ON influxdb.uuid=ws.dbUUID
+						WHERE ws.UUID in (?)`,
+
+		`iKeyConfig`: `INSERT INTO main_key_config(uuid,workspaceUUID,keyCode,value,description,status,createAt) VALUES(?,?,?,?,?,?,?)`,
+
+		`uKeyConfig`: `UPDATE main_key_config SET value=?, updateAt=? WHERE workspaceUUID=? AND keyCode=?`,
+
+		`qKeyConfig`: `SELECT uuid,value FROM main_key_config WHERE workspaceUUID=? AND keyCode=? AND status=?`,
+
+		`dKeyConfig`: `UPDATE main_key_config SET status=?, deleteAt=? WHERE workspaceUUID=? AND keyCode=?`,
 	}
+)
+
+func Init(dialect, connStr string, sqls map[string]string) error {
+	l = logger.SLogger("models")
+
+	var err error
+	for {
+		DB, err = sql.Open(dialect, connStr)
+		if err != nil {
+			l.Errorf("%s", err.Error())
+			time.Sleep(time.Second)
+		} else {
+
+			if err := DB.Ping(); err != nil {
+				l.Errorf("ping %s failed: %s", dialect, err.Error())
+				time.Sleep(time.Second)
+			} else {
+				l.Infof("connect to %s ok", dialect)
+				break
+			}
+		}
+	}
+
+	DB.SetMaxOpenConns(MaxConn)
+	DB.SetMaxIdleConns(4)
+	DB.SetConnMaxLifetime(time.Second * 28)
 
 	for k, v := range sqls {
 		stmt, err := prepare(DB, v)
