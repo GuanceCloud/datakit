@@ -13,7 +13,7 @@ const (
    ### monitor file path
    path = ""
    ## upload file max size example  100K 32M 2G 
-   # max_upload_size = "32MB"
+   # max_upload_size = "32M"
 
    ## your oss  config
   [inputs.file_collector.oss]
