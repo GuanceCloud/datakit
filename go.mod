@@ -40,6 +40,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobwas/glob v0.2.3
 	github.com/godror/godror v0.17.0
+	github.com/gofrs/flock v0.8.0
 	github.com/gofrs/uuid v2.1.0+incompatible
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/golang/protobuf v1.4.3
@@ -68,6 +69,7 @@ require (
 	github.com/mssola/user_agent v0.5.2
 	github.com/naoina/toml v0.1.1
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
+	github.com/nightlyone/lockfile v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.12.1 // indirect
 	github.com/onsi/gomega v1.10.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
@@ -108,7 +110,7 @@ require (
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210310094024-7d55e6edff38
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974
-	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
+	golang.org/x/sys v0.0.0-20210316164454-77fc1eacc6aa // indirect
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	google.golang.org/grpc v1.28.0
