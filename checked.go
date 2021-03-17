@@ -197,6 +197,7 @@ var (
 		"x509_cert":              true,
 		"yarn":                   true,
 		"zabbix":                 true,
+		"dialtesting":            true,
 		"zaplog":                 true,
 	}
 )
