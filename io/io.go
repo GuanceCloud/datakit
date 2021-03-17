@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"strings"
@@ -68,6 +69,8 @@ const ( // categories
 type iodata struct {
 	category, name string
 	data           []byte // line-protocol or json or others
+	url            string
+	isProxy        bool
 }
 
 type InputsStat struct {
@@ -100,14 +103,14 @@ func ChanStat() string {
 
 // Deprecated
 func Feed(data []byte, category string) error {
-	return doFeed(data, category, "", false)
+	return doFeed(data, category, "", "", false)
 }
 
 func SetTest() {
 	testAssert = true
 }
 
-func doFeed(data []byte, category, name string, highfreq bool) error {
+func doFeed(data []byte, category, name, url string, highfreq bool) error {
 
 	switch category {
 	case Metric, KeyEvent, Object, Logging, Tracing:
@@ -126,6 +129,7 @@ func doFeed(data []byte, category, name string, highfreq bool) error {
 			category: category,
 			data:     data,
 			name:     name,
+			url:      url,
 		}: // XXX: blocking
 
 		case <-datakit.Exit.Wait():
@@ -137,6 +141,7 @@ func doFeed(data []byte, category, name string, highfreq bool) error {
 			category: category,
 			data:     data,
 			name:     name,
+			url:      url,
 		}: // XXX: blocking
 
 		case <-datakit.Exit.Wait():
@@ -159,7 +164,7 @@ func checkMetric(data []byte) error {
 }
 
 func NamedFeed(data []byte, category, name string) error {
-	return doFeed(data, category, name, false)
+	return doFeed(data, category, name, "", false)
 }
 
 func NamedFeedPoints(pts []influxm.Point, category, name string) error {
@@ -172,25 +177,32 @@ func NamedFeedPoints(pts []influxm.Point, category, name string) error {
 		lines = append(lines, p.String())
 	}
 
-	return doFeed([]byte(strings.Join(lines, "\n")), category, name, false)
+	return doFeed([]byte(strings.Join(lines, "\n")), category, name, "", false)
 }
 
 func NamedFeedEx(name, category, metric string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) error {
-	return doFeedEx(name, category, metric, tags, fields, false, t...)
+	return doFeedEx(name, category, metric, "", tags, fields, false, t...)
+}
+
+func NameFeedExUrl(name, category, metric, url string,
+	tags map[string]string,
+	fields map[string]interface{},
+	t ...time.Time) error {
+	return doFeedEx(name, category, metric, url, tags, fields, false, t...)
 }
 
 func HighFreqFeedEx(name, category, metric string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) error {
-	return doFeedEx(name, category, metric, tags, fields, true, t...)
+	return doFeedEx(name, category, metric, "", tags, fields, true, t...)
 }
 
 func HighFreqFeed(data []byte, category, name string) error {
-	return doFeed(data, category, name, true)
+	return doFeed(data, category, name, "", true)
 }
 
 func HighFreqFeedPoints(pts []influxm.Point, category, name string) error {
@@ -203,10 +215,10 @@ func HighFreqFeedPoints(pts []influxm.Point, category, name string) error {
 		lines = append(lines, p.String())
 	}
 
-	return doFeed([]byte(strings.Join(lines, "\n")), category, name, true)
+	return doFeed([]byte(strings.Join(lines, "\n")), category, name, "", true)
 }
 
-func doFeedEx(name, category, metric string,
+func doFeedEx(name, category, metric, url string,
 	tags map[string]string,
 	fields map[string]interface{},
 	highfreq bool,
@@ -216,7 +228,7 @@ func doFeedEx(name, category, metric string,
 	if err != nil {
 		return err
 	}
-	return doFeed(data, category, name, highfreq)
+	return doFeed(data, category, name, url, highfreq)
 }
 
 func MakeMetric(name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) ([]byte, error) {
@@ -281,6 +293,8 @@ func cacheData(d *iodata) {
 		return
 	}
 
+	l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
+
 	now := time.Now()
 
 	stat, ok := inputstats[d.name]
@@ -305,7 +319,24 @@ func cacheData(d *iodata) {
 		stat.AvgSize = (stat.Total) / stat.Count
 	}
 
-	cache[d.category] = append(cache[d.category], d.data)
+	// 考虑到推送至不同的dataway地址
+	if d.url == "" {
+		d.url = categoryURLs[d.category]
+		d.isProxy = datakit.Cfg.MainCfg.DataWay.Proxy
+	} else {
+		u, err := url.Parse(d.url)
+		if err != nil {
+			l.Warn("get invalid url, ignored")
+			return
+		}
+		if u.Path == "/proxy" {
+			d.isProxy = true
+		}
+		u.Path = u.Path + d.category
+		d.url = u.String()
+	}
+
+	cache[d.url] = append(cache[d.url], d.data)
 	curCacheCnt++
 }
 
@@ -487,7 +518,7 @@ func doFlush(bodies [][]byte, url string) error {
 		return fileOutput(body)
 	}
 
-	req, err := http.NewRequest("POST", categoryURLs[url], bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		l.Error(err)
 		return err
@@ -588,9 +619,10 @@ func GetStats() ([]*InputsStat, error) {
 }
 
 func tryCleanCache(d *iodata) {
+
 	// disable cache under proxied mode, to prevent large packages in proxing lua module
-	if datakit.Cfg.MainCfg.DataWay.Proxy {
-		if err := doFlush([][]byte{d.data}, d.category); err != nil {
+	if d.isProxy {
+		if err := doFlush([][]byte{d.data}, d.url); err != nil {
 			l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
 		}
 	} else {
@@ -598,4 +630,5 @@ func tryCleanCache(d *iodata) {
 			flushAll()
 		}
 	}
+
 }
