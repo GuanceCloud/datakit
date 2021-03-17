@@ -21,6 +21,7 @@ const (
       access_key_secret = ""
       bucket_name = ""
       endpoint = "" 
+      domain_name  = ""
 
   [inputs.file_collector.sftp]
    #   host = ""
