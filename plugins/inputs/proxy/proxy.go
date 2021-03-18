@@ -29,7 +29,6 @@ const (
     ## http server route path
 		## required: don't change
     path = "/proxy"
-	  ws_bind = "0.0.0.0:5588"
 `
 )
 
@@ -43,7 +42,6 @@ func init() {
 
 type Proxy struct {
 	Path   string `toml:"path"`
-	WSBind string `toml:"ws_bind,bind"`
 
 	PointsLuaFiles []string            `toml:"-"`
 	ObjectLuaFiles []string            `toml:"-"`
@@ -156,7 +154,17 @@ func (d *Proxy) initCfg() bool {
 
 func (d *Proxy) RegHttpHandler() {
 	httpd.RegGinHandler("POST", d.Path, d.handle)
+	httpd.RegGinHandler("GET", d.Path, d.handle)
 }
+
+func (d *Proxy)handleHeartbeat(c *gin.Context)  {
+	if !d.enable {
+		l.Warnf("worker does not exist")
+		return
+	}
+}
+
+
 
 func (d *Proxy) handle(c *gin.Context) {
 	if !d.enable {
