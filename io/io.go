@@ -62,7 +62,7 @@ const ( // categories
 	Logging          = "/v1/write/logging"
 	Tracing          = "/v1/write/tracing"
 	Rum              = "/v1/write/rum"
-
+	HeartBeat        = "/v1/heartbeat"
 	minGZSize = 1024
 )
 
@@ -449,6 +449,10 @@ func Start() {
 		defer datakit.WG.Done()
 		GRPCServer()
 	}()
+}
+
+func dkHeartBeat()  {
+	datakit.Cfg.MainCfg.DataWay.KeyEventURL()
 }
 
 func flushAll() {
