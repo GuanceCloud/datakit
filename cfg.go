@@ -19,8 +19,6 @@ import (
 var (
 	IntervalDuration = 10 * time.Second
 
-	DefaultWebsocketPath = "/v1/ws/datakit"
-
 	Cfg = DefaultConfig()
 )
 
@@ -217,6 +215,23 @@ func (dc *DataWayCfg) RumURL() string {
 		"/v1/write/rum",
 		dc.urlValues.Encode())
 }
+
+func (dc *DataWayCfg) HeartBeatURL() string {
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/heartbeat")
+	}
+
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		"/v1/v1/heartbeat",
+		dc.urlValues.Encode())
+}
+
 
 func (dc *DataWayCfg) KeyEventURL() string {
 
