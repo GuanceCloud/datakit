@@ -47,3 +47,4 @@ plugins/externals/csv/venv
 *.zip
 china-operator-ip
 **build/
+*-packr.go
