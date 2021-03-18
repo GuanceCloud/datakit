@@ -90,10 +90,29 @@ import (
 // Note:
 //   codecgen-generated code depends on the variables defined by fast-path.generated.go.
 //   consequently, you cannot run with tags "codecgen notfastpath".
+//
+// Note:
+//   genInternalXXX functions are used for generating fast-path and other internally generated
+//   files, and not for use in codecgen.
+
+// Size of a struct or value is not portable across machines, especially across 32-bit vs 64-bit
+// operating systems. This is due to types like int, uintptr, pointers, (and derived types like slice), etc
+// which use the natural word size on those machines, which may be 4 bytes (on 32-bit) or 8 bytes (on 64-bit).
+//
+// Within decInferLen calls, we may generate an explicit size of the entry.
+// We do this because decInferLen values are expected to be approximate,
+// and serve as a good hint on the size of the elements or key+value entry.
+//
+// Since development is done on 64-bit machines, the sizes will be roughly correctly
+// on 64-bit OS, and slightly larger than expected on 32-bit OS.
+// This is ok.
+//
+// For reference, look for 'Size' in fast-path.go.tmpl, gen-dec-(array|map).go.tmpl and gen.go (this file).
 
 // GenVersion is the current version of codecgen.
 //
 // MARKER: Increment this value each time codecgen changes fundamentally.
+// Also update codecgen/gen.go (minimumCodecVersion, genVersion, etc).
 // Fundamental changes are:
 //   - helper methods change (signature change, new ones added, some removed, etc)
 //   - codecgen command line changes
@@ -119,7 +138,10 @@ import (
 // v18: 20201004 changed definition of genHelper...Extension (to take interface{}) and eliminated I2Rtid method
 // v19: 20201115 updated codecgen cmdline flags and optimized output
 // v20: 20201120 refactored GenHelper to one exported function
-const genVersion = 20
+// v21: 20210104 refactored generated code to honor ZeroCopy=true for more efficiency
+// v22: 20210118 fixed issue in generated code when encoding a type which is also a codec.Selfer
+// v23: 20210203 changed slice/map types for which we generate fast-path functions
+const genVersion = 23
 
 const (
 	genCodecPkg        = "codec1978" // MARKER: keep in sync with codecgen/gen.go
@@ -154,6 +176,11 @@ const (
 )
 
 type genStructMapStyle uint8
+type genStringDecAsBytes string
+type genStringDecZC string
+
+var genStringDecAsBytesTyp = reflect.TypeOf(genStringDecAsBytes(""))
+var genStringDecZCTyp = reflect.TypeOf(genStringDecZC(""))
 
 const (
 	genStructMapStyleConsolidated genStructMapStyle = iota
@@ -848,7 +875,7 @@ func (x *genRunner) enc(varname string, t reflect.Type, isptr bool) {
 	}
 
 	if t == timeTyp {
-		x.linef("%s !z.EncBasicHandle().TimeNotBuiltin { r.EncodeTime(%s%s)", hasIf.c(false), ptrPfx, varname)
+		x.linef("%s z.EncBasicHandle().TimeBuiltin() { r.EncodeTime(%s%s)", hasIf.c(false), ptrPfx, varname)
 		// return
 	}
 	if t == rawTyp {
@@ -862,7 +889,8 @@ func (x *genRunner) enc(varname string, t reflect.Type, isptr bool) {
 	// only check for extensions if extensions are configured,
 	// and the type is named, and has a packagePath,
 	// and this is not the CodecEncodeSelf or CodecDecodeSelf method (i.e. it is not a Selfer)
-	if !x.nx && varname != genTopLevelVarName && genImportPath(t) != "" && t.Name() != "" {
+	if !x.nx && varname != genTopLevelVarName && t != genStringDecAsBytesTyp &&
+		t != genStringDecZCTyp && genImportPath(t) != "" && t.Name() != "" {
 		yy := fmt.Sprintf("%sxt%s", genTempVarPfx, mi)
 		x.linef("%s %s := z.Extension(%s); %s != nil { z.EncExtension(%s, %s) ",
 			hasIf.c(false), yy, varname, yy, varname, yy)
@@ -889,7 +917,7 @@ func (x *genRunner) enc(varname string, t reflect.Type, isptr bool) {
 		if t == t0 {
 			inlist = true
 			if x.checkForSelfer(t, varname) {
-				x.line(varname + ".CodecEncodeSelf(e)")
+				x.linef("%s %s.CodecEncodeSelf(e)", hasIf.c(true), varname)
 				return
 			}
 			break
@@ -929,6 +957,10 @@ func (x *genRunner) enc(varname string, t reflect.Type, isptr bool) {
 		x.line("r.EncodeFloat32(float32(" + varname + "))")
 	case reflect.Float64:
 		x.line("r.EncodeFloat64(float64(" + varname + "))")
+	case reflect.Complex64:
+		x.linef("z.EncEncodeComplex64(complex64(%s))", varname)
+	case reflect.Complex128:
+		x.linef("z.EncEncodeComplex128(complex128(%s))", varname)
 	case reflect.Bool:
 		x.line("r.EncodeBool(bool(" + varname + "))")
 	case reflect.String:
@@ -994,6 +1026,10 @@ func (x *genRunner) encZero(t reflect.Type) {
 		x.line("r.EncodeFloat32(0)")
 	case reflect.Float64:
 		x.line("r.EncodeFloat64(0)")
+	case reflect.Complex64:
+		x.line("z.EncEncodeComplex64(0)")
+	case reflect.Complex128:
+		x.line("z.EncEncodeComplex128(0)")
 	case reflect.Bool:
 		x.line("r.EncodeBool(false)")
 	case reflect.String:
@@ -1072,8 +1108,7 @@ func (x *genRunner) encOmitEmptyLine(t2 reflect.StructField, varname string, buf
 			buf.s(varname2).s(" != ").s(x.genZeroValueR(t2.Type))
 			break
 		}
-		// MARKER: we shouldn't get here at all ...
-		fmt.Printf("???? !!!! We shouldn't get to this point !!!! ????")
+		// fmt.Printf("???? !!!! We shouldn't get to this point !!!! ???? - for type: %v\n", t2.Type)
 		// buf.s("(")
 		buf.s(x.sayFalse()) // buf.s("false")
 		for i, n := 0, t2.Type.NumField(); i < n; i++ {
@@ -1486,7 +1521,7 @@ func (x *genRunner) dec(varname string, t reflect.Type, isptr bool) {
 		addrPfx = "&"
 	}
 	if t == timeTyp {
-		x.linef("%s !z.DecBasicHandle().TimeNotBuiltin { %s%v = r.DecodeTime()", hasIf.c(false), ptrPfx, varname)
+		x.linef("%s z.DecBasicHandle().TimeBuiltin() { %s%v = r.DecodeTime()", hasIf.c(false), ptrPfx, varname)
 		// return
 	}
 	if t == rawTyp {
@@ -1503,7 +1538,8 @@ func (x *genRunner) dec(varname string, t reflect.Type, isptr bool) {
 	// and the type is named, and has a packagePath,
 	// and this is not the CodecEncodeSelf or CodecDecodeSelf method (i.e. it is not a Selfer)
 	// xdebugf("genRunner.dec: varname: %v, t: %v, genImportPath: %v, t.Name: %v", varname, t, genImportPath(t), t.Name())
-	if !x.nx && varname != genTopLevelVarName && genImportPath(t) != "" && t.Name() != "" {
+	if !x.nx && varname != genTopLevelVarName && t != genStringDecAsBytesTyp &&
+		t != genStringDecZCTyp && genImportPath(t) != "" && t.Name() != "" {
 		// first check if extensions are configued, before doing the interface conversion
 		yy := fmt.Sprintf("%sxt%s", genTempVarPfx, mi)
 		x.linef("%s %s := z.Extension(%s); %s != nil { z.DecExtension(%s%s, %s) ", hasIf.c(false), yy, varname, yy, addrPfx, varname, yy)
@@ -1573,7 +1609,7 @@ func (x *genRunner) dec(varname string, t reflect.Type, isptr bool) {
 		// - if elements are primitives or Selfers, call dedicated function on each member.
 		// - else call Encoder.encode(XXX) on it.
 		if rtid == uint8SliceTypId {
-			x.linef("%s%s = r.DecodeBytes(%s(%s[]byte)(%s), false)",
+			x.linef("%s%s = z.DecodeBytesInto(%s(%s[]byte)(%s))",
 				ptrPfx, varname, ptrPfx, ptrPfx, varname)
 		} else if fastpathAvIndex(rtid) != -1 {
 			g := x.newFastpathGenV(t)
@@ -1654,10 +1690,21 @@ func (x *genRunner) decTryAssignPrimitive(varname string, t reflect.Type, isptr 
 	case reflect.Float64:
 		x.linef("%s%s = (%s)(r.DecodeFloat64())", ptr, varname, x.genTypeName(t))
 
+	case reflect.Complex64:
+		x.linef("%s%s = (%s)(complex(z.DecDecodeFloat32(), 0))", ptr, varname, x.genTypeName(t))
+	case reflect.Complex128:
+		x.linef("%s%s = (%s)(complex(r.DecodeFloat64(), 0))", ptr, varname, x.genTypeName(t))
+
 	case reflect.Bool:
 		x.linef("%s%s = (%s)(r.DecodeBool())", ptr, varname, x.genTypeName(t))
 	case reflect.String:
-		x.linef("%s%s = (%s)(string(r.DecodeStringAsBytes()))", ptr, varname, x.genTypeName(t))
+		if t == genStringDecAsBytesTyp {
+			x.linef("%s%s = r.DecodeStringAsBytes()", ptr, varname)
+		} else if t == genStringDecZCTyp {
+			x.linef("%s%s = (string)(z.DecStringZC(r.DecodeStringAsBytes()))", ptr, varname)
+		} else {
+			x.linef("%s%s = (%s)(z.DecStringZC(r.DecodeStringAsBytes()))", ptr, varname, x.genTypeName(t))
+		}
 	default:
 		return false
 	}
@@ -1666,11 +1713,11 @@ func (x *genRunner) decTryAssignPrimitive(varname string, t reflect.Type, isptr 
 
 func (x *genRunner) decListFallback(varname string, rtid uintptr, t reflect.Type) {
 	if t.AssignableTo(uint8SliceTyp) {
-		x.line("*" + varname + " = r.DecodeBytes(*((*[]byte)(" + varname + ")), false)")
+		x.line("*" + varname + " = z.DecodeBytesInto(*((*[]byte)(" + varname + ")))")
 		return
 	}
 	if t.Kind() == reflect.Array && t.Elem().Kind() == reflect.Uint8 {
-		x.linef("r.DecodeBytes( ((*[%d]byte)(%s))[:], true)", t.Len(), varname)
+		x.linef("r.DecodeBytes( ((*[%d]byte)(%s))[:])", t.Len(), varname)
 		return
 	}
 	type tstruc struct {
@@ -1745,6 +1792,14 @@ func (x *genRunner) decMapFallback(varname string, rtid uintptr, t reflect.Type)
 	funcs["decElemKindIntf"] = func() bool {
 		return telem.Kind() == reflect.Interface
 	}
+	funcs["decLineVarKStrBytes"] = func(varname string) string {
+		x.decVar(varname, "", genStringDecAsBytesTyp, false, true)
+		return ""
+	}
+	funcs["decLineVarKStrZC"] = func(varname string) string {
+		x.decVar(varname, "", genStringDecZCTyp, false, true)
+		return ""
+	}
 	funcs["decLineVarK"] = func(varname string) string {
 		x.decVar(varname, "", tkey, false, true)
 		return ""
@@ -1768,7 +1823,7 @@ func (x *genRunner) decMapFallback(varname string, rtid uintptr, t reflect.Type)
 func (x *genRunner) decStructMapSwitch(kName string, varname string, rtid uintptr, t reflect.Type) {
 	ti := x.ti.get(rtid, t)
 	tisfi := ti.sfiSrc // always use sequence from file. decStruct expects same thing.
-	x.line("switch (" + kName + ") {")
+	x.line("switch string(" + kName + ") {")
 	var newbuf, nilbuf genBuf
 	for _, si := range tisfi {
 		x.line("case \"" + si.encName + "\":")
@@ -1785,7 +1840,7 @@ func (x *genRunner) decStructMapSwitch(kName string, varname string, rtid uintpt
 	}
 	x.line("default:")
 	// pass the slice here, so that the string will not escape, and maybe save allocation
-	x.linef("z.DecStructFieldNotFound(-1, %s)", kName)
+	x.linef("z.DecStructFieldNotFound(-1, string(%s))", kName)
 	x.linef("} // end switch %s", kName)
 }
 
@@ -1811,13 +1866,13 @@ func (x *genRunner) decStructMap(varname, lenvarname string, rtid uintptr, t ref
 	// emulate decstructfieldkey
 	switch ti.keyType {
 	case valueTypeInt:
-		x.linef("%s := z.StringView(strconv.AppendInt(z.DecScratchArrayBuffer()[:0], r.DecodeInt64(), 10))", kName)
+		x.linef("%s := strconv.AppendInt(z.DecScratchArrayBuffer()[:0], r.DecodeInt64(), 10)", kName)
 	case valueTypeUint:
-		x.linef("%s := z.StringView(strconv.AppendUint(z.DecScratchArrayBuffer()[:0], r.DecodeUint64(), 10))", kName)
+		x.linef("%s := strconv.AppendUint(z.DecScratchArrayBuffer()[:0], r.DecodeUint64(), 10)", kName)
 	case valueTypeFloat:
-		x.linef("%s := z.StringView(strconv.AppendFloat(z.DecScratchArrayBuffer()[:0], r.DecodeFloat64(), 'f', -1, 64))", kName)
+		x.linef("%s := strconv.AppendFloat(z.DecScratchArrayBuffer()[:0], r.DecodeFloat64(), 'f', -1, 64)", kName)
 	default: // string
-		x.linef("%s := z.StringView(r.DecodeStringAsBytes())", kName)
+		x.linef("%s := r.DecodeStringAsBytes()", kName)
 	}
 
 	x.line("z.DecReadMapElemValue()")
@@ -2096,7 +2151,8 @@ type genInternal struct {
 
 func (x genInternal) FastpathLen() (l int) {
 	for _, v := range x.Values {
-		if v.Primitive == "" && !(v.MapKey == "" && v.Elem == "uint8") {
+		// if v.Primitive == "" && !(v.MapKey == "" && v.Elem == "uint8") {
+		if v.Primitive == "" {
 			l++
 		}
 	}
@@ -2138,7 +2194,7 @@ func genInternalNonZeroValue(s string) string {
 		i = 2
 	case "bytes", "[]byte", "[]uint8":
 		i = 3
-	case "float32", "float64", "float", "double":
+	case "float32", "float64", "float", "double", "complex", "complex64", "complex128":
 		i = 4
 	default:
 		i = 5
@@ -2149,6 +2205,7 @@ func genInternalNonZeroValue(s string) string {
 	return genInternalNonZeroValueStrs[idx%slen][i] // return string, to remove ambiguity
 }
 
+// Note: used for fastpath only
 func genInternalEncCommandAsString(s string, vname string) string {
 	switch s {
 	case "uint64":
@@ -2176,7 +2233,8 @@ func genInternalEncCommandAsString(s string, vname string) string {
 	}
 }
 
-func genInternalDecCommandAsString(s string) string {
+// Note: used for fastpath only
+func genInternalDecCommandAsString(s string, mapkey bool) string {
 	switch s {
 	case "uint":
 		return "uint(chkOvf.UintV(d.d.DecodeUint64(), uintBitsize))"
@@ -2202,13 +2260,21 @@ func genInternalDecCommandAsString(s string) string {
 		return "d.d.DecodeInt64()"
 
 	case "string":
-		return "string(d.d.DecodeStringAsBytes())"
+		// if mapkey {
+		// 	return "d.stringZC(d.d.DecodeStringAsBytes())"
+		// }
+		// return "string(d.d.DecodeStringAsBytes())"
+		return "d.stringZC(d.d.DecodeStringAsBytes())"
 	case "[]byte", "[]uint8", "bytes":
-		return "d.d.DecodeBytes(nil, false)"
+		return "d.d.DecodeBytes([]byte{})"
 	case "float32":
 		return "float32(d.decodeFloat32())"
 	case "float64":
 		return "d.d.DecodeFloat64()"
+	case "complex64":
+		return "complex(d.decodeFloat32(), 0)"
+	case "complex128":
+		return "complex(d.d.DecodeFloat64(), 0)"
 	case "bool":
 		return "d.d.DecodeBool()"
 	default:
@@ -2288,6 +2354,8 @@ func genInternalInit() {
 		"int64":       8,
 		"float32":     4,
 		"float64":     8,
+		"complex64":   8,
+		"complex128":  16,
 		"bool":        1,
 	}
 
@@ -2418,10 +2486,11 @@ func genInternalFastpathSliceTypes() []string {
 		"interface{}",
 		"string",
 		"[]byte",
-		// "float32",
+		"float32",
 		"float64",
 		// "uint",
 		// "uint8", // no need for fastpath of []uint8, as it is handled specially
+		"uint8", // keep fast-path, so it doesn't have to go through reflection
 		// "uint16",
 		// "uint32",
 		"uint64",
@@ -2443,16 +2512,16 @@ func genInternalFastpathMapKeyTypes() []string {
 		// "float32",
 		// "float64",
 		// "uint",
-		"uint8",
+		"uint8", // byte
 		// "uint16",
 		// "uint32",
-		"uint64",
+		"uint64", // used for keys
 		// "uintptr",
-		"int",
+		"int", // default number key
 		// "int8",
 		// "int16",
-		// "int32",
-		"int64",
+		"int32", // rune
+		// "int64",
 		// "bool",
 	}
 }
@@ -2463,16 +2532,16 @@ func genInternalFastpathMapValueTypes() []string {
 		"string",
 		"[]byte",
 		// "uint",
-		"uint8",
+		"uint8", // byte
 		// "uint16",
 		// "uint32",
-		"uint64",
+		"uint64", // used for keys, etc
 		// "uintptr",
-		"int",
+		"int", // default number
 		//"int8",
 		// "int16",
-		// "int32", // rune (mostly used for unicode)
-		"int64",
+		"int32", // rune (mostly used for unicode)
+		// "int64",
 		// "float32",
 		"float64",
 		"bool",
