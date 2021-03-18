@@ -44,6 +44,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/k8sobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kong"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/lighttpd"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mandemo"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mock"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodboplog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysqlmonitor"
