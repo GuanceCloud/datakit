@@ -1,6 +1,7 @@
 package file_collector
 
 import (
+	"code.cloudfoundry.org/bytefmt"
 	"context"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
@@ -57,11 +58,17 @@ func (fc *FileCollector) initFileCollector() error {
 	}
 	fc.watch = watch
 
-	if fc.MaxUploadSize == 0 {
-		fc.MaxUploadSize = 32
+	if fc.MaxUploadSize == "" {
+		fc.MaxUploadSize = "32M"
 	}
-	fc.MaxUploadSize = fc.MaxUploadSize * 1024 * 1024
-
+	size, err := bytefmt.ToBytes(fc.MaxUploadSize)
+	if err != nil {
+		return err
+	}
+	if size > 5*1024*1024*1024 { // 大于 5g
+		size = 32 * 1024 * 1024
+	}
+	fc.maxSize = int64(size)
 	if fc.OssClient != nil {
 		fc.UploadType = "oss"
 		oc, err := fc.OssClient.GetOSSCli()
@@ -237,15 +244,13 @@ func (fc *FileCollector) WriteLog(name string, fields map[string]interface{}, no
 }
 
 func (fc *FileCollector) LoadFile(u UploadInfo) error {
-	if u.Size > fc.MaxUploadSize {
+	if u.Size > fc.maxSize {
+		u.Fields["upload_failed_reason"] = fmt.Sprintf("file too large,max support %s", fc.MaxUploadSize)
 		return nil
 	}
 	remotePath := fc.getRemotePath(u.filename)
-	f, err := os.Open(u.filename)
-	if err != nil {
-		return err
-	}
-	MD5, err := getFileMd5(f)
+
+	MD5, err := getFileMd5(u.filename)
 	if err != nil {
 		return err
 	}
@@ -255,7 +260,10 @@ func (fc *FileCollector) LoadFile(u UploadInfo) error {
 			return nil
 		}
 	}
-
+	f, err := os.Open(u.filename)
+	if err != nil {
+		return err
+	}
 	tmpPath := filepath.Join(datakit.DataDir, remotePath)
 	if err := FileCopy(f, tmpPath); err != nil {
 		return err
@@ -272,7 +280,6 @@ func (fc *FileCollector) LoadFile(u UploadInfo) error {
 	case "oss":
 		if err := fc.OssClient.OSSUPLoad(remotePath, copyF); err != nil {
 			return err
-
 		}
 	case "sftp":
 		if err := fc.SftpClient.SFTPUPLoad(remotePath, copyF); err != nil {
