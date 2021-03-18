@@ -10,6 +10,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
 	github.com/BurntSushi/toml v0.3.1
 	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
+	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/Microsoft/hcsshim/test v0.0.0-20201218223536-d3e5debf77da // indirect
 	github.com/Pallinder/go-randomdata v1.2.0
@@ -38,11 +39,18 @@ require (
 	github.com/go-kit/kit v0.10.0
 	github.com/go-ole/go-ole v1.2.4
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/gobuffalo/envy v1.9.0 // indirect
+	github.com/gobuffalo/genny v0.6.0 // indirect
+	github.com/gobuffalo/gogen v0.2.0 // indirect
+	github.com/gobuffalo/mapi v1.2.1 // indirect
+	github.com/gobuffalo/packr/v2 v2.8.1
+	github.com/gobuffalo/syncx v0.1.0 // indirect
 	github.com/gobwas/glob v0.2.3
 	github.com/godror/godror v0.17.0
-	github.com/gofrs/uuid v2.1.0+incompatible
+	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/golang/protobuf v1.4.3
+	github.com/gomarkdown/markdown v0.0.0-20210208175418-bda154fe17d8
 	github.com/google/gopacket v1.1.17
 	github.com/gorilla/websocket v1.4.2
 	github.com/hpcloud/tail v1.0.0
@@ -57,9 +65,11 @@ require (
 	github.com/jdcloud-api/jdcloud-sdk-go v1.43.0
 	github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5 // indirect
 	github.com/kardianos/service v1.0.0
+	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/klauspost/cpuid v1.2.0 // indirect
 	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
 	github.com/lib/pq v1.8.0
+	github.com/litao91/goldmark-mathjax v0.0.0-20210217064022-a43cf739a50f
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
@@ -81,13 +91,16 @@ require (
 	github.com/prometheus/procfs v0.1.3
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shirou/gopsutil v3.20.12+incompatible
 	github.com/shirou/gopsutil/v3 v3.20.12
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cast v1.3.1
+	github.com/spf13/cobra v1.1.3 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
@@ -98,18 +111,24 @@ require (
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/ucloud/ucloud-sdk-go v0.14.0
-	github.com/ugorji/go/codec v1.2.2
+	github.com/ugorji/go/codec v1.2.4
 	github.com/unrolled/secure v1.0.8
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/vjeantet/grok v1.0.0
 	github.com/xanzy/go-gitlab v0.31.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210103044601-bf434a6898c5
+	github.com/yuin/goldmark v1.3.2
+	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210305070341-c1ed0054aec4
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210118023115-6ad5eb4e2791
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/net v0.0.0-20201021035429-f5854403a974
-	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
+	golang.org/x/crypto v0.0.0-20210317152858-513c2a44f670
+	golang.org/x/mod v0.4.2 // indirect
+	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
+	golang.org/x/sys v0.0.0-20210317225723-c4fcb01b228e // indirect
+	golang.org/x/term v0.0.0-20210317153231-de623e64d2a6 // indirect
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
+	golang.org/x/tools v0.1.0 // indirect
 	google.golang.org/grpc v1.28.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/ini.v1 v1.57.0 // indirect
