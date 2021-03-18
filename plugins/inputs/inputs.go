@@ -57,6 +57,11 @@ type PipelineInput interface {
 	PipelineConfig() map[string]string
 }
 
+type ManualInput interface {
+	Input
+	Man() (string, error)
+}
+
 type Creator func() Input
 
 func Add(name string, creator Creator) {
