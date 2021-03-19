@@ -148,7 +148,7 @@ func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 			continue
 		}
 
-		if err := dkio.NamedFeed(pt, dkio.Tracing, pluginName); err != nil {
+		if err := dkio.HighFreqFeed(pt, dkio.Tracing, pluginName); err != nil {
 			GetInstance().Errorf("io feed err: %s", err)
 		}
 	}
