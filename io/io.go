@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
 	influxm "github.com/influxdata/influxdb1-client/models"
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -62,8 +63,8 @@ const ( // categories
 	Logging          = "/v1/write/logging"
 	Tracing          = "/v1/write/tracing"
 	Rum              = "/v1/write/rum"
-	HeartBeat        = "/v1/heartbeat"
-	minGZSize = 1024
+	HeartBeat        = "/v1/write/heartbeat"
+	minGZSize        = 1024
 )
 
 type iodata struct {
@@ -373,7 +374,8 @@ func startIO(recoverable bool) {
 		if trace != nil {
 			l.Warnf("recover from %s", string(trace))
 		}
-
+		heartBeatTick := time.NewTicker(time.Second * 30)
+		defer heartBeatTick.Stop()
 		for {
 			select {
 			case d := <-inputCh:
@@ -390,6 +392,8 @@ func startIO(recoverable bool) {
 					l.Warn("client canceled")
 					// pass
 				}
+			case <-heartBeatTick.C:
+				dkHeartbeat()
 
 			case <-highFreqRecvTicker.C:
 				cleanHighFreqIOData()
@@ -451,8 +455,30 @@ func Start() {
 	}()
 }
 
-func dkHeartBeat()  {
-	datakit.Cfg.MainCfg.DataWay.KeyEventURL()
+func dkHeartbeat() {
+	body := map[string]interface{}{
+		"dk_uuid":   datakit.Cfg.MainCfg.UUID,
+		"heartbeat": time.Now().Nanosecond(),
+		"host":      datakit.Cfg.MainCfg.Hostname,
+	}
+	bodyByte, err := json.Marshal(body)
+	if err != nil {
+		l.Errorf("[error] heartbeat json marshal err:%s", err.Error())
+		return
+	}
+
+	req, err := http.NewRequest("POST", datakit.Cfg.MainCfg.DataWay.HeartBeatURL(), bytes.NewBuffer(bodyByte))
+	resp, err := httpCli.Do(req)
+	if err != nil {
+		l.Error(err)
+		return
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		l.Errorf("heart beat resp err: %+#v", resp)
+	}
 }
 
 func flushAll() {
