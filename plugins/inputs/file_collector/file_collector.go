@@ -20,15 +20,14 @@ import (
 )
 
 var (
-	inputName     = `file_collector`
-	l             = logger.DefaultSLogger("file_collector")
-	httpPath      = "/upload_file"
-	fileCollector = &FileCollector{}
-	fileInfoMap   = map[string]string{}
-	mtx           = sync.RWMutex{}
-	uploadChan    = make(chan UploadInfo)
-	lines         []string
-	fails         = make(chan UploadInfo)
+	inputName   = `file_collector`
+	l           = logger.DefaultSLogger("file_collector")
+	httpPath    = "/v1/write/upload_file"
+	fileInfoMap = map[string]string{}
+	mtx         = sync.RWMutex{}
+	uploadChan  = make(chan UploadInfo)
+	lines       []string
+	fails       = make(chan UploadInfo)
 )
 
 func (_ *FileCollector) SampleConfig() string {
@@ -40,7 +39,7 @@ func (_ *FileCollector) Catalog() string {
 }
 
 func (_ *FileCollector) RegHttpHandler() {
-	httpd.RegHttpHandler("POST", httpPath, Handle)
+	httpd.RegGinHandler("POST", httpPath, Handle)
 }
 
 func (_ *FileCollector) Test() (*inputs.TestResult, error) {
