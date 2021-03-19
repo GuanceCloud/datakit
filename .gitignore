@@ -43,7 +43,7 @@ run.sh
 *.csv
 *.pyc
 plugins/externals/csv/venv
-*.sh
 *.zip
 china-operator-ip
 **build/
+release.sh
