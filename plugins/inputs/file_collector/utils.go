@@ -26,7 +26,12 @@ func addFileInfo(name, MD5 string) {
 	fileInfoMap[name] = MD5
 }
 
-func getFileMd5(f *os.File) (string, error) {
+func getFileMd5(filename string) (string, error) {
+	f, err := os.Open(filename)
+	defer f.Close()
+	if err != nil {
+		return "", err
+	}
 	fileMd5 := md5.New()
 	if _, err := io.Copy(fileMd5, f); err != nil {
 		return "", err
