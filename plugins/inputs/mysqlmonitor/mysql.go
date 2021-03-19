@@ -38,7 +38,7 @@ func (m *MysqlMonitor) Run() {
 	l = logger.SLogger("mysqlMonitor")
 	l.Info("mysqlMonitor input started...")
 
-	m.checkCfg()
+	m.initCfg()
 
 	tick := time.NewTicker(m.IntervalDuration)
 	defer tick.Stop()
@@ -46,7 +46,6 @@ func (m *MysqlMonitor) Run() {
 	for {
 		select {
 		case <-tick.C:
-			// handle
 			m.handle()
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
@@ -55,7 +54,7 @@ func (m *MysqlMonitor) Run() {
 	}
 }
 
-func (m *MysqlMonitor) checkCfg() {
+func (m *MysqlMonitor) initCfg() {
 	// 采集频度
 	m.IntervalDuration = 10 * time.Minute
 
@@ -73,156 +72,350 @@ func (m *MysqlMonitor) checkCfg() {
 		m.MetricName = name
 	}
 
-	if m.Product == "MariaDB" {
-		m.MetricName = mariaDBMetric
-	}
-}
-
-func (m *MysqlMonitor) handle() {
-	var wg sync.WaitGroup
-
-	// Loop through each server and collect metrics
-	for _, server := range m.Servers {
-		wg.Add(1)
-		go func(s string) {
-			defer wg.Done()
-			m.gatherServer(s)
-		}(server)
+	var timeout time.Time
+	if m.Timeout != "" {
+		timeout, err := time.ParseDuration(m.Timeout)
+		if err != nil {
+			l.Errorf("config timeout value (%v)  error %v ", m.Timeout, err)
+		}
 	}
 
-	wg.Wait()
-}
+	// build dsn string
+	dsnStr := m.getDsnString(timeout)
 
-func (m *MysqlMonitor) gatherServer(serv string) error {
-	serv, err := dsnAddTimeout(serv)
-	if err != nil {
-		return err
-	}
+	l.Infof("db build dsn connect str %s", dsnStr)
 
-	db, err := sql.Open("mysql", serv)
+	db, err := sql.Open("mysql", dsnStr)
 	if err != nil {
 		l.Errorf("sql.Open(): %s", err.Error())
+	}
+}
+
+func (m *MysqlMonitor) getDsnString(timeout time.Duration) string {
+	cfg := mysql.Config{
+	    User:                 m.User,
+	    Passwd:               m.Pass,
+	}
+
+	// set addr
+	if m.Sock != "" {
+		cfg.Net = "unix"
+		cfg.Addr = m.Sock
+	} else {
+		addr := fmt.Sprintf("%s:%d", m.Host, m.Port)
+		cfg.Net = "tcp"
+		cfg.Addr = addr
+	}
+
+	// set timeout
+	if timeout != 0 {
+		m.Timeout = timeout
+	}
+
+	// set Charset
+	if m.Charset != "" {
+		m.Params["charset"] = m.Charset
+	}
+
+	// tls (todo)
+	return cfg.FormatDSN()
+}
+
+func (m *MysqlMonitor) collectMetrics() error {
+	defer m.db.Close()
+	// ping
+	if err := m.Ping(); err != nil {
+		l.Errorf("db connect error %v", err)
 		return err
 	}
 
-	defer db.Close()
+	m.resData = make(map[string]*sql.RawBytes)
 
-	if m.GatherGlobalStatus {
-		err = m.gatherGlobalStatuses(db, serv)
-		if err != nil {
-			l.Warnf("gatherGlobalStatuses error, %v", err)
-		}
+	//STATUS data
+	m.getStatus()
+
+	// VARIABLES data
+	m.getVariables()
+
+	// innodb
+	if m.options.DisableInnodbMetrics && m.innodbEngineEnabled()  {
+		m.getInnodbStatus()
 	}
 
-	if m.GatherGlobalVars {
-		// Global Variables may be gathered less often
-		err = m.gatherGlobalVariables(db, serv)
-		if err != nil {
-			l.Warnf("gatherGlobalVariables error, %v", err)
-		}
-	}
+	// Binary log statistics
+    if _, ok := m.resData["log_bin"]; ok {
+    	metric["INNODB_VARS"].disable = true
+    	m.getLogStats()
+    }
 
-	if m.GatherBinaryLogs {
-		err = m.gatherBinaryLogs(db, serv)
-		if err != nil {
-			l.Warnf("gatherBinaryLogs error, %v", err)
-		}
-	}
+    // Compute key cache utilization metric
+    m.computeCacheUtilization()
 
-	if m.GatherProcessList {
-		err = m.GatherProcessListStatuses(db, serv)
-		if err != nil {
-			l.Warnf("GatherProcessListStatuses error, %v", err)
-		}
-	}
+    if m.options.ExtraStatusMetrics {
+    	// 额外的status metric 设置标志
+    	metric["OPTIONAL_STATUS_VARS"].disable = true
+    	if m.versionCompatible("5.6.6") {
+    		metric["OPTIONAL_STATUS_VARS_5_6_6"].disable = true
+    	}
+    }
 
-	if m.GatherUserStatistics {
-		err = m.GatherUserStatisticsStatuses(db, serv)
-		if err != nil {
-			l.Warnf("gatherUserStatisticsStatuses error, %v", err)
-		}
-	}
+    if m.options.GaleraCluster {
+    	metric["GALERA_VARS"].disable = true
+    }
 
-	if m.GatherSlaveStatus {
-		err = m.gatherSlaveStatuses(db, serv)
-		if err != nil {
-			l.Warnf("gatherSlaveStatuses error, %v", err)
-		}
-	}
+    if m.options.ExtraPerformanceMetrics && m.versionCompatible("5.6.0") {
+    	if _, ok := m.resData["performance_schema"] {
+    		metric["PERFORMANCE_VARS"].disable = true
+    		m.getQueryExecTime95thus()
+            m.queryExecTimePerSchema()
+    	}
+    }
 
-	if m.GatherInfoSchemaAutoInc {
-		err = m.gatherInfoSchemaAutoIncStatuses(db, serv)
-		if err != nil {
-			l.Warnf("gatherInfoSchemaAutoIncStatuses error, %v", err)
-		}
-	}
+    if m.options.SchemaSizeMetrics {
+    	metric["SCHEMA_VARS"].disable = true
+    	m.querySizePerschema()
+    }
 
-	if m.GatherInnoDBMetrics {
-		err = m.gatherInnoDBMetrics(db, serv)
-		if err != nil {
-			l.Warnf("gatherInnoDBMetrics error, %v", err)
-		}
-	}
+    // replication
+    if m.options.Replication {
+    	metric["SCHEMA_VARS"].disable = true
+    	m.collectReplication()
+    }
 
-	if m.GatherTableIOWaits {
-		err = m.gatherPerfTableIOWaits(db, serv)
-		if err != nil {
-			l.Warnf("gatherPerfTableIOWaits error, %v", err)
-		}
-	}
+    m.submitMetrics()
 
-	if m.GatherIndexIOWaits {
-		err = m.gatherPerfIndexIOWaits(db, serv)
-		if err != nil {
-			l.Warnf("gatherPerfIndexIOWaits error, %v", err)
-		}
-	}
-
-	if m.GatherTableLockWaits {
-		err = m.gatherPerfTableLockWaits(db, serv)
-		if err != nil {
-			l.Warnf("gatherPerfTableLockWaits error, %v", err)
-		}
-	}
-
-	if m.GatherEventWaits {
-		err = m.gatherPerfEventWaits(db, serv)
-		if err != nil {
-			l.Warnf("gatherPerfEventWaits error, %v", err)
-		}
-	}
-
-	if m.GatherFileEventsStats {
-		err = m.gatherPerfFileEventsStatuses(db, serv)
-		if err != nil {
-			l.Warnf("gatherPerfFileEventsStatuses error, %v", err)
-		}
-	}
-
-	if m.GatherPerfEventsStatements {
-		err = m.gatherPerfEventsStatements(db, serv)
-		if err != nil {
-			l.Warnf("gatherPerfEventsStatements error, %v", err)
-		}
-	}
-
-	if m.GatherTableSchema {
-		err = m.gatherTableSchema(db, serv)
-		if err != nil {
-			l.Warnf("gatherTableSchema error, %v", err)
-		}
-	}
 	return nil
+}
+
+func (m *MysqlMonitor) submitMetrics() error {
+
+    var (
+    	tags   = make(map[string]string)
+    	fields = make(map[string]interface{})
+    )
+
+    if m.Service != "" {
+    	tags = m.Service
+    }
+
+    for tag, tagV := range m.Tags {
+		tags[tag] = tagV
+	}
+
+    for key, kind := range metric {
+   		if !kind.disable {
+   			for k, item := range kind.metric {
+   				// 数据类型转化(todo)
+   				fields[item.name] = m.resData[k]
+   			}
+   		}
+   	}
+
+   	pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
+	if err != nil {
+		l.Errorf("make metric point error %v", err)
+	}
+
+	_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+	if err != nil {
+		l.Errorf("[error] : %s", err.Error())
+		return err
+	}
+
+	err = io.NamedFeed([]byte(pt), io.Metric, name)
+	if err != nil {
+		l.Errorf("push metric point error %v", err)
+	}
+}
+
+func (m *MysqlMonitor) getQueryExecTime95thus() error {
+
+}
+
+func (m *MysqlMonitor) queryExecTimePerSchema() error {
+
+}
+
+func (m *MysqlMonitor) versionCompatible(version string) bool {
+
+}
+
+// status data
+func (m *MysqlMonitor) getStatus() error {
+	globalStatusSql := "SHOW /*!50002 GLOBAL */ STATUS;"
+	rows, err := db.Query(globalStatusQuery)
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var key string
+		var val *sql.RawBytes
+
+		if err = rows.Scan(&key, val); err != nil {
+			return err
+		}
+
+		m.resData[key] = val
+	}
+}
+
+// variables data
+func (m *MysqlMonitor) getVariables() error {
+	variablesSql := "SHOW GLOBAL VARIABLES;"
+	rows, err := db.Query(variablesSql)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var key string
+		var val *sql.RawBytes
+
+		if err = rows.Scan(&key, val); err != nil {
+			return err
+		}
+
+		m.resData[key] = val
+	}
+}
+
+// innodb_engine_enabled
+func (m *MysqlMonitor) innodbEngineEnabled() bool {
+	innodbEnabledSql := `
+	SELECT engine
+	FROM information_schema.ENGINES
+	WHERE engine='InnoDB' and support != 'no' and support != 'disabled';
+	`
+	result, err := db.Exec(innodbEnabledSql)
+	if err != nil {
+		l.Errorf("")
+		return false
+	}
+
+	count, err := result.RowsAffected()
+	if err != nil {
+		l.Errorf("")
+		return false
+	}
+
+	if count > 0 {
+		return true
+	}
+
+	return false
+}
+
+// innodb status (todo)
+func (m *MysqlMonitor) getInnodbStatus() error {
+	innodbStatusSql := "SHOW /*!50000 ENGINE*/ INNODB STATUS;"
+	rows, err := db.Query(innodbStatusSql)
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var key string
+		var val *sql.RawBytes
+
+		if err = rows.Scan(&key, val); err != nil {
+			return err
+		}
+
+		m.resData[key] = val
+	}
+}
+
+// log stats
+func (m *MysqlMonitor) getLogStats() error {
+	logSql := "SHOW BINARY LOGS;"
+	rows, err := db.Query(logSql)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var binaryLogSpace int
+	for rows.Next() {
+		var key string
+		var val *sql.RawBytes
+
+		if err = rows.Scan(&key, val); err != nil {
+			return err
+		}
+
+		v, err := strconv.ParseInt(string(val), 10, 64)
+		if err != nil {
+			l.Errorf("func getLogStats, parse int %v", string(val))
+			return err
+		}
+
+		binaryLogSpace += v
+
+		m.resData["Binlog_space_usage_bytes"] = binaryLogSpace
+	}
+}
+
+// Compute key cache utilization metric (todo)
+func (m *MysqlMonitor) computeCacheUtilization() error {
+
+}
+
+func (m *MysqlMonitor) querySizePerschema() error {
+	querySizePerschemaSql := `
+	SELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb
+	FROM     information_schema.tables
+	GROUP BY table_schema;
+	`
+	rows, err := m.db.Query(querySizePerschemaSql)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var schemaSize float64
+	for rows.Next() {
+		var key string
+		var val *sql.RawBytes
+
+		if err = rows.Scan(&key, val); err != nil {
+			return err
+		}
+
+		size, err := strconv.ParseFloat(string(val), 64)
+		if err != nil {
+			l.Errorf("func getLogStats, parse int %v", string(val))
+			return err
+		}
+
+		schemaKey := fmt.Sprintf("schema:%s", key)
+		schemaSize[schemaKey] = size
+	}
+}
+
+// replication (todo)
+func (m *MysqlMonitor) collectReplication() error {
+
+}
+
+// "synthetic" metrics
+func (m *MysqlMonitor) computeSynthetic() error {
+
 }
 
 func (m *MysqlMonitor) Test() (*inputs.TestResult, error) {
 	m.test = true
-	m.resData = nil
+	m.testData = nil
 
 	m.handle()
 
 	res := &inputs.TestResult{
-		Result: m.resData,
+		Result: m.testData,
 		Desc:   "success!",
 	}
 
