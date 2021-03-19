@@ -18,9 +18,6 @@ const (
 
 	sampleCfg = `
 [inputs.telegraf_http]
-    # [[inputs.telegraf_http.categories]]
-    # metric = "A"
-    # category = "metric"
 `
 )
 
@@ -28,21 +25,11 @@ var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &TelegrafHTTP{
-			categoriesMap: make(map[string]string),
-		}
+		return &TelegrafHTTP{}
 	})
 }
 
-type TelegrafHTTP struct {
-	Categories []struct {
-		Measurement string `toml:"metric"`
-		Category    string `toml:"category"`
-	} `toml:"categories"`
-
-	// map[measurement]io.Metric
-	categoriesMap map[string]string
-}
+type TelegrafHTTP struct{}
 
 func (*TelegrafHTTP) Catalog() string {
 	return inputName
@@ -58,19 +45,6 @@ func (*TelegrafHTTP) Test() (*inputs.TestResult, error) {
 
 func (t *TelegrafHTTP) Run() {
 	l = logger.SLogger(inputName)
-
-	for _, c := range t.Categories {
-		switch c.Category {
-		case "metric":
-			t.categoriesMap[c.Measurement] = io.Metric
-		case "logging":
-			t.categoriesMap[c.Measurement] = io.Logging
-		default:
-			l.Warnf("invalid category '%s', only accept metric/logging. use default 'metric'", c.Category)
-			t.categoriesMap[c.Measurement] = io.Metric
-		}
-	}
-
 	l.Infof("telegraf_http input started...")
 }
 
@@ -112,15 +86,8 @@ func (t *TelegrafHTTP) Handle(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if category, ok := t.categoriesMap[measurement]; !ok {
-			// 没有对此 measurement 指定 category，默认发送到 io.Metric
-			if err := io.NamedFeed(data, io.Metric, measurement); err != nil {
-				l.Error(err)
-			}
-		} else {
-			if err := io.NamedFeed(data, category, measurement); err != nil {
-				l.Error(err)
-			}
+		if err := io.NamedFeed(data, io.Metric, measurement); err != nil {
+			l.Error(err)
 		}
 	}
 
