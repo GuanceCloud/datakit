@@ -33,6 +33,7 @@ const (
     character_encoding = ""
 
     # The pattern should be a regexp. Note the use of '''this regexp'''
+    # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
     match = '''^\S.*'''
 
     [inputs.tailf.tags]
@@ -57,7 +58,7 @@ cast(bytes, "int")
 
 group_between(status_code, [200,299], "OK", status)
 group_between(status_code, [300,399], "notice", status)
-group_between(status_code, [400,499], "warnning", status)
+group_between(status_code, [400,499], "warning", status)
 group_between(status_code, [500,599], "error", status)
 
 nullif(http_ident, "-")
@@ -75,6 +76,7 @@ func init() {
 			sampleCfg,
 			map[string]string{"nginx": pipelineCfg},
 		)
+		t.Source = inputName
 		return t
 	})
 }
