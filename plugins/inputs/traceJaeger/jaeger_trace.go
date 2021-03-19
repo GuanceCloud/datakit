@@ -52,15 +52,25 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 
-	project := getProject(batch)
+	project, ver, env := getExpandInfo(batch)
 	if project == "" {
-		project = trace.GetProjectFromPluginTag(JaegerTags)
+		project = trace.GetFromPluginTag(JaegerTags, trace.PROJECT)
+	}
+
+	if ver == "" {
+		ver = trace.GetFromPluginTag(JaegerTags, trace.VERSION)
+	}
+
+	if env == "" {
+		env = trace.GetFromPluginTag(JaegerTags, trace.ENV)
 	}
 
 	for _, s := range batch.Spans {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "jaeger"
 		tAdpter.Project = project
+		tAdpter.Version = ver
+		tAdpter.Env = env
 
 		tAdpter.Duration = s.Duration * 1000
 		tAdpter.Start = s.StartTime * 1000
@@ -95,7 +105,7 @@ func parseJaegerThrift(octets []byte) error {
 	return nil
 }
 
-func getProject(batch *j.Batch) (project string) {
+func getExpandInfo(batch *j.Batch) (project, ver, env string) {
 	if batch.Process == nil {
 		return
 	}
@@ -106,7 +116,14 @@ func getProject(batch *j.Batch) (project string) {
 
 		if tag.Key == trace.PROJECT {
 			project = fmt.Sprintf("%v", getTagValue(tag))
-			return
+		}
+
+		if tag.Key == trace.VERSION {
+			ver = fmt.Sprintf("%v", getTagValue(tag))
+		}
+
+		if tag.Key == trace.ENV {
+			env = fmt.Sprintf("%v", getTagValue(tag))
 		}
 	}
 	return
