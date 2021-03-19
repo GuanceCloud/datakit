@@ -33,6 +33,7 @@ const (
     character_encoding = ""
 
     # The pattern should be a regexp. Note the use of '''this regexp'''
+    # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
     match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
 
     [inputs.tailf.tags]
@@ -85,6 +86,7 @@ func init() {
 			sampleCfg,
 			map[string]string{"mysql": pipelineCfg},
 		)
+		t.Source = inputName
 		return t
 	})
 }
