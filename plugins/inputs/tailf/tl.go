@@ -15,13 +15,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
-const (
-	pipelineTimeField = "time"
-	statusField       = "status"
-)
-
 type tailer struct {
-	tf *Tailf
+	tf         *Tailf
+	notifyChan chan notifyType
 
 	filename string
 	source   string
@@ -36,7 +32,12 @@ type tailer struct {
 }
 
 func newTailer(tl *Tailf, filename string) *tailer {
-	t := tailer{tf: tl, filename: filename, source: tl.Source}
+	t := tailer{
+		tf:         tl,
+		filename:   filename,
+		source:     tl.Source,
+		notifyChan: make(chan notifyType),
+	}
 
 	t.tags = func() map[string]string {
 		var m = make(map[string]string)
@@ -57,6 +58,10 @@ func newTailer(tl *Tailf, filename string) *tailer {
 	return &t
 }
 
+func (t *tailer) getNotifyChan() chan notifyType {
+	return t.notifyChan
+}
+
 func (t *tailer) run() {
 	var err error
 
@@ -75,10 +80,12 @@ func (t *tailer) run() {
 		}
 	}
 
-	t.receiver()
+	t.receiving()
 }
 
-func (t *tailer) receiver() {
+func (t *tailer) receiving() {
+	t.tf.log.Debugf("start recivering data from the file %s", t.filename)
+
 	ticker := time.NewTicker(checkFileExistInterval)
 	defer ticker.Stop()
 
@@ -87,10 +94,35 @@ func (t *tailer) receiver() {
 	for {
 		line = nil
 
+		// FIXME: 4个case是否过多？
 		select {
 		case <-datakit.Exit.Wait():
-			t.tf.log.Debugf("Tailing source:%s, file %s is ending", t.source, t.filename)
+			t.tf.log.Debugf("tailing source:%s, file %s is ending", t.source, t.filename)
 			return
+
+		case n := <-t.notifyChan:
+			switch n {
+			case renameNotify:
+				t.tf.log.Warnf("file %s was rename", t.filename)
+				return
+			default:
+				// nil
+			}
+
+		// 为什么不使用 notify 的方式监控文件删除，反而采用 Lstat() ？
+		//
+		// notify 只有当文件引用计数为 0 时，才会认为此文件已经被删除，从而触发 remove event
+		// 在此处，datakit 打开文件后保存句柄，即使 rm 删除文件，该文件的引用计数依旧是 1，因为 datakit 在占用
+		// 从而导致，datakit 占用文件无法删除，无法删除就收不到 remove event，此 goroutine 就会长久存在
+		// 且极端条件下，长时间运行，可能会导致磁盘容量不够的情况，因为占用容量的文件在此被引用，新数据无法覆盖
+		// 以上结论仅限于 linux
+
+		case <-ticker.C:
+			_, statErr := os.Lstat(t.filename)
+			if os.IsNotExist(statErr) {
+				t.tf.log.Warnf("file %s is not exist", t.filename)
+				return
+			}
 
 		case line, t.tailerOpen = <-t.tail.Lines:
 			if !t.tailerOpen {
@@ -98,14 +130,7 @@ func (t *tailer) receiver() {
 			}
 
 			if line != nil {
-				t.tf.log.Debugf("get %d bytes from %s.%s", len(line.Text), t.source, t.filename)
-			}
-
-		case <-ticker.C:
-			_, statErr := os.Lstat(t.filename)
-			if os.IsNotExist(statErr) {
-				t.tf.log.Warnf("check file %s is not exist", t.filename)
-				return
+				t.tf.log.Debugf("get %d bytes from source:%s file:%s", len(line.Text), t.source, t.filename)
 			}
 		}
 
@@ -145,9 +170,18 @@ func (t *tailer) receiver() {
 			ts = time.Now()
 			t.tf.log.Errorf("%s", err)
 		}
+
+		if err := checkFieldsLength(fields, maxFieldsLength); err != nil {
+			// 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
+			// 防止通过 pipeline 添加巨长字段的恶意行为
+			t.tf.log.Error(err)
+			continue
+		}
+
 		addStatus(fields)
 
-		if err := io.NamedFeedEx(inputName, io.Logging, t.source, t.tags, fields, ts); err != nil {
+		// use t.source as input-name, make it more distinguishable for multiple tailf instances
+		if err := io.HighFreqFeedEx(inputName, io.Logging, t.source, t.tags, fields, ts); err != nil {
 			t.tf.log.Error(err)
 		}
 	}
@@ -180,7 +214,7 @@ func (t *tailer) multiline(line *tail.Line) (text string, status multilineStatus
 		if text += t.tf.multiline.Flush(&t.textLine); text == "" {
 			if !t.channelOpen {
 				status = _return
-				t.tf.log.Warnf("Tailing %s data channel is closed", t.filename)
+				t.tf.log.Warnf("tailing %s data channel is closed", t.filename)
 				return
 			}
 
@@ -190,7 +224,7 @@ func (t *tailer) multiline(line *tail.Line) (text string, status multilineStatus
 	}
 
 	if line != nil && line.Err != nil {
-		t.tf.log.Errorf("Tailing %q: %s", t.filename, line.Err.Error())
+		t.tf.log.Errorf("tailing %q: %s", t.filename, line.Err.Error())
 		status = _continue
 		return
 	}
@@ -222,12 +256,68 @@ func takeTime(fields map[string]interface{}) (ts time.Time, err error) {
 	return
 }
 
-func addStatus(fields map[string]interface{}) {
-	if v, ok := fields[statusField]; ok {
-		// "status" type should be string
-		if str, ok := v.(string); ok && str != "" {
-			return
+// checkFieldsLength 指定字段长度 "小于等于" maxlength
+func checkFieldsLength(fields map[string]interface{}, maxlength int) error {
+	for k, v := range fields {
+		switch vv := v.(type) {
+		// FIXME:
+		// need  "case []byte" ?
+		case string:
+			if len(vv) <= maxlength {
+				continue
+			}
+			if k == "message" {
+				fields[k] = vv[:maxlength]
+			} else {
+				return fmt.Errorf("fields: %s, length=%d, out of maximum length", k, len(vv))
+			}
+		default:
+			// nil
 		}
 	}
-	fields["status"] = "info"
+	return nil
+}
+
+var statusMap = map[string]string{
+	"f":        "emerg",
+	"emerg":    "emerg",
+	"a":        "alert",
+	"alert":    "alert",
+	"c":        "critical",
+	"critical": "critical",
+	"e":        "error",
+	"error":    "error",
+	"w":        "warning",
+	"warning":  "warning",
+	"i":        "info",
+	"info":     "info",
+	"d":        "debug",
+	"trace":    "debug",
+	"verbose":  "debug",
+	"debug":    "debug",
+	"o":        "OK",
+	"s":        "OK",
+	"ok":       "OK",
+}
+
+func addStatus(fields map[string]interface{}) {
+	// map 有 "status" 字段
+	statusField, ok := fields["status"]
+	if !ok {
+		fields["status"] = "info"
+		return
+	}
+	// "status" 类型必须是 string
+	statusStr, ok := statusField.(string)
+	if !ok {
+		fields["status"] = "info"
+		return
+	}
+
+	// 查询 statusMap 枚举表并替换
+	if v, ok := statusMap[strings.ToLower(statusStr)]; !ok {
+		fields["status"] = "info"
+	} else {
+		fields["status"] = v
+	}
 }
