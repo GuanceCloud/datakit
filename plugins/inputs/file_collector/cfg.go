@@ -12,8 +12,8 @@ const (
 [[inputs.file_collector]]
    ### monitor file path
    path = ""
-   ## upload file max size ,unit MB
-   # max_upload_size = 32 
+   ## upload file max size example  100K 32M 2G 
+   # max_upload_size = "32M"
 
    ## your oss  config
   [inputs.file_collector.oss]
@@ -21,6 +21,7 @@ const (
       access_key_secret = ""
       bucket_name = ""
       endpoint = "" 
+      domain_name  = ""
 
   [inputs.file_collector.sftp]
    #   host = ""
@@ -35,13 +36,14 @@ const (
 type FileCollector struct {
 	Path          string `toml:"path"`
 	UploadType    string `toml:"upload_type"`
-	MaxUploadSize int64  `toml:"max_upload_size"`
+	MaxUploadSize string `toml:"max_upload_size"`
 
 	OssClient  *io.OSSClient  `toml:"oss,omitempty"`
 	SftpClient *io.SFTPClient `toml:"sftp,omitempty"`
 
 	watch *fsnotify.Watcher
 
+	maxSize   int64
 	ctx       context.Context
 	cancelFun context.CancelFunc
 }
