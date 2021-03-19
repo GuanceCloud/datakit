@@ -96,7 +96,7 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags["parent_id"] = tAdpt.ParentID
 	tags["trace_id"] = tAdpt.TraceID
 	tags["span_id"] = tAdpt.SpanID
-	tags["ver"] = tAdpt.Version
+	tags["version"] = tAdpt.Version
 	tags["env"] = tAdpt.Env
 
 	if tAdpt.Type != "" {
