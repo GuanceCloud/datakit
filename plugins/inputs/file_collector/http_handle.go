@@ -15,7 +15,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
-	if handler.Size > fileCollector.MaxUploadSize {
+	if handler.Size > fileCollector.maxSize {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("file too large"))
 		return
