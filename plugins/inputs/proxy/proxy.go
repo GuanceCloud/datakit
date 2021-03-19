@@ -32,7 +32,10 @@ const (
 `
 )
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l   = logger.DefaultSLogger(inputName)
+	cli = http.Client{}
+)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -41,7 +44,7 @@ func init() {
 }
 
 type Proxy struct {
-	Path   string `toml:"path"`
+	Path string `toml:"path"`
 
 	PointsLuaFiles []string            `toml:"-"`
 	ObjectLuaFiles []string            `toml:"-"`
@@ -154,17 +157,14 @@ func (d *Proxy) initCfg() bool {
 
 func (d *Proxy) RegHttpHandler() {
 	httpd.RegGinHandler("POST", d.Path, d.handle)
-	httpd.RegGinHandler("GET", d.Path, d.handle)
 }
 
-func (d *Proxy)handleHeartbeat(c *gin.Context)  {
+func (d *Proxy) handleHeartbeat(c *gin.Context) {
 	if !d.enable {
 		l.Warnf("worker does not exist")
 		return
 	}
 }
-
-
 
 func (d *Proxy) handle(c *gin.Context) {
 	if !d.enable {
@@ -246,6 +246,20 @@ func (d *Proxy) handle(c *gin.Context) {
 		if err != nil {
 			l.Error(err)
 			goto end
+		}
+
+	case io.HeartBeat:
+		req, err := http.NewRequest("POST", datakit.Cfg.MainCfg.DataWay.HeartBeatURL(), c.Request.Body)
+		resp, err := cli.Do(req)
+		if err != nil {
+			l.Error(err)
+			return
+		}
+
+		defer resp.Body.Close()
+
+		if resp.StatusCode >= 400 {
+			l.Errorf("heart beat resp err: %+#v", resp)
 		}
 
 	default:
