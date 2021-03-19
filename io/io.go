@@ -65,6 +65,7 @@ const ( // categories
 
 type iodata struct {
 	category, name string
+	opt            *Option
 	data           []byte // line-protocol or json or others
 }
 
@@ -75,6 +76,10 @@ type InputsStat struct {
 	Count    int64     `json:"count"`
 	First    time.Time `json:"first"`
 	Last     time.Time `json:"last"`
+
+	totalCost time.Duration `json:"-"`
+
+	AvgCollectCost time.Duration `json:"avg_collect_cost"`
 }
 
 type qstats struct {
@@ -92,15 +97,11 @@ func ChanInfo() (l, c int) {
 }
 
 // Deprecated
-func Feed(data []byte, category string) error {
-	return doFeed(data, category, "")
+func Feed(data []byte, category, name string, opt *Option) error {
+	return doFeed(data, category, name, opt)
 }
 
-func SetTest() {
-	testAssert = true
-}
-
-func doFeed(data []byte, category, name string) error {
+func doFeed(data []byte, category, name string, opt *Option) error {
 
 	switch category {
 	case Metric, KeyEvent, Object, Logging, Tracing:
@@ -121,6 +122,7 @@ func doFeed(data []byte, category, name string) error {
 	select {
 	case inputCh <- &iodata{
 		category: category,
+		opt:      opt,
 		data:     data,
 		name:     name,
 	}: // XXX: blocking
@@ -143,8 +145,13 @@ func checkMetric(data []byte) error {
 	return nil
 }
 
-func NamedFeed(data []byte, category, name string) error {
-	return doFeed(data, category, name)
+type Option struct {
+	CollectCost time.Duration
+}
+
+func NamedFeed(data []byte,
+	category, name string) error {
+	return doFeed(data, category, name, nil)
 }
 
 func NamedFeedPoints(pts []influxm.Point, category, name string) error {
@@ -160,24 +167,27 @@ func NamedFeedPoints(pts []influxm.Point, category, name string) error {
 	return NamedFeed([]byte(strings.Join(lines, "\n")), category, name)
 }
 
-// Deprecated
-func FeedEx(category, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
-	return doFeedEx("", category, metric, tags, fields, t...)
-}
-
-func NamedFeedEx(name, category, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+func NamedFeedEx(name, category, metric string,
+	tags map[string]string,
+	fields map[string]interface{},
+	t ...time.Time) error {
 	return doFeedEx(name, category, metric, tags, fields, t...)
 }
 
-func doFeedEx(name, category, metric string, tags map[string]string, fields map[string]interface{}, t ...time.Time) error {
+func doFeedEx(name, category, metric string,
+	tags map[string]string,
+	fields map[string]interface{}, t ...time.Time) error {
 	data, err := MakeMetric(metric, tags, fields, t...)
 	if err != nil {
 		return err
 	}
-	return doFeed(data, category, name)
+	return doFeed(data, category, name, nil)
 }
 
-func MakeMetric(name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) ([]byte, error) {
+func MakeMetric(name string,
+	tags map[string]string,
+	fields map[string]interface{},
+	t ...time.Time) ([]byte, error) {
 	var tm time.Time
 	if len(t) > 0 {
 		tm = t[0]
@@ -290,7 +300,8 @@ func startIO() {
 
 					stat, ok := inputstats[d.name]
 					if !ok {
-						inputstats[d.name] = &InputsStat{
+
+						stat := &InputsStat{
 							Name:     d.name,
 							Category: d.category,
 							Total:    int64(len(d.data)),
@@ -298,11 +309,23 @@ func startIO() {
 							Count:    1,
 							Last:     now,
 						}
+
+						if d.opt != nil {
+							stat.totalCost = d.opt.CollectCost
+							stat.AvgCollectCost = d.opt.CollectCost
+						}
+						inputstats[d.name] = stat
+
 					} else {
 						stat.Total += int64(len(d.data))
 						stat.Count++
 						stat.Last = now
 						stat.Category = d.category
+
+						if d.opt != nil {
+							stat.totalCost += d.opt.CollectCost
+							stat.AvgCollectCost = (stat.totalCost) / time.Duration(stat.Count)
+						}
 					}
 
 					// disable cache under proxied mode, to prevent large packages in proxing lua module
@@ -521,4 +544,8 @@ func GetStats() ([]*InputsStat, error) {
 	case <-tick.C:
 		return nil, fmt.Errorf("get stats timeout")
 	}
+}
+
+func SetTest() {
+	testAssert = true
 }
