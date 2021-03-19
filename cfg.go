@@ -232,7 +232,6 @@ func (dc *DataWayCfg) HeartBeatURL() string {
 		dc.urlValues.Encode())
 }
 
-
 func (dc *DataWayCfg) KeyEventURL() string {
 
 	if dc.Proxy {
