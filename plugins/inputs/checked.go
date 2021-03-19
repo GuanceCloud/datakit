@@ -2,7 +2,7 @@ package inputs
 
 var (
 	AllInputs = map[string]bool{
-		"mandemo":                false,
+		"demo":                   false,
 		"active_directory":       true,
 		"activemq":               true,
 		"aliyunactiontrail":      true,
