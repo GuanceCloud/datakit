@@ -16,14 +16,14 @@ var (
 	EnableUncheckInputs = false
 
 	allInputs = map[string]bool{
-		"cshark":     false,
-		"httpPacket": false,
-		"mock":       false,
-		"secureexec": false,
-		"vsphere":    false,
-		"zookeeper":  false,
-		"qyt_all":    false,
-		"httpProb":   false,
+		"cshark":      false,
+		"httpPacket":  false,
+		"mock":        false,
+		"secureexec":  false,
+		"vsphere":     false,
+		"zookeeper":   false,
+		"qyt_all":     false,
+		"httpProb":    false,
 		"activemqlog": false,
 		"kafkalog":    false,
 		"rabbitmqlog": false,
@@ -81,7 +81,8 @@ var (
 		"external":               true,
 		"flink":                  true,
 		"fluentd":                true,
-		"fluentdlog":             true,
+		"fluentdlog":             false,
+		"file_collector":         false,
 		"ginlog":                 true,
 		"github":                 true,
 		"gitlab":                 true,
@@ -196,6 +197,7 @@ var (
 		"x509_cert":              true,
 		"yarn":                   true,
 		"zabbix":                 true,
+		"dialtesting":            true,
 		"zaplog":                 true,
 	}
 )
