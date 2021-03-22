@@ -42,6 +42,8 @@ type TraceAdapter struct {
 	Content string
 
 	Project       string
+	Version       string
+	Env           string
 	ServiceName   string
 	OperationName string
 	Resource      string
@@ -69,6 +71,8 @@ const (
 	STATUS_CRITICAL = "critical"
 
 	PROJECT = "project"
+	VERSION = "version"
+	ENV     = "env"
 
 	SPAN_SERVICE_APP    = "app"
 	SPAN_SERVICE_DB     = "db"
@@ -92,7 +96,8 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags["parent_id"] = tAdpt.ParentID
 	tags["trace_id"] = tAdpt.TraceID
 	tags["span_id"] = tAdpt.SpanID
-	tags["pid"] = tAdpt.Pid
+	tags["version"] = tAdpt.Version
+	tags["env"] = tAdpt.Env
 
 	if tAdpt.Type != "" {
 		tags["type"] = tAdpt.Type
@@ -143,7 +148,7 @@ func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 			continue
 		}
 
-		if err := dkio.NamedFeed(pt, dkio.Tracing, pluginName); err != nil {
+		if err := dkio.HighFreqFeed(pt, dkio.Tracing, pluginName); err != nil {
 			GetInstance().Errorf("io feed err: %s", err)
 		}
 	}
@@ -208,6 +213,6 @@ func GetInstance() *logger.Logger {
 	return log
 }
 
-func GetProjectFromPluginTag(tags map[string]string) string {
-	return tags[PROJECT]
+func GetFromPluginTag(tags map[string]string, tagName string) string {
+	return tags[tagName]
 }
