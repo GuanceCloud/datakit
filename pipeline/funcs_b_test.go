@@ -90,60 +90,103 @@ func TestJsonFunc(t *testing.T) {
 }
 
 func TestDefaultTimeFunc(t *testing.T) {
+
+	// {
+	// 	data:     `{"a":{"time":"","second":2,"thrid":"abc","forth":true},"age":47}`,
+	// 	script:   `json(_, a.time) default_time(a.time)`,
+	// 	expected: nil,
+	// 	key:      "a.time",
+	// 	err:      nil,
+	// },
+
 	var testCase = []*funcCase{
-		{
-			data:     `{"a":{"time":"14 May 19:11:40.164","second":2,"thrid":"abc","forth":true},"age":47}`,
-			script:   `json(_, a.time) default_time(a.time)`,
-			expected: int64(1621019500164000000),
-			key:      "a.time",
-			err:      nil,
-		},
-		{
-			data:     `{"a":{"time":"14 May 2019 19:11:40.164","second":2,"thrid":"abc","forth":true},"age":47}`,
-			script:   `json(_, a.time) default_time(a.time)`,
-			expected: int64(1557832300164000000),
-			key:      "a.time",
-			err:      nil,
-		},
-		// {
-		// 	data:     `{"a":{"time":"","second":2,"thrid":"abc","forth":true},"age":47}`,
-		// 	script:   `json(_, a.time) default_time(a.time)`,
-		// 	expected: nil,
-		// 	key:      "a.time",
-		// 	err:      nil,
-		// },
-		{
-			data:     `{"a":{"time":"06/Jan/2017:16:16:37 +0000","second":2,"thrid":"abc","forth":true},"age":47}`,
-			script:   `json(_, a.time) default_time(a.time)`,
-			expected: int64(1483719397000000000),
-			key:      "a.time",
-			err:      nil,
-		},
-		{
-			data:     `{"a":{"time":"2014-12-16 06:20:00 UTC","second":2,"thrid":"abc","forth":true},"age":47}`,
-			script:   `json(_, a.time) default_time(a.time)`,
-			expected: int64(1418682000000000000),
-			key:      "a.time",
-			err:      nil,
-		},
-		{
-			data:     `{"a":{"time":"171113 14:14:20","second":2,"thrid":"abc","forth":true},"age":47}`,
-			script:   `json(_, a.time) default_time(a.time)`,
-			expected: int64(1510582460000000000),
-			key:      "a.time",
-			err:      nil,
-		},
+
+		//{
+		//	data:     `{"a":{"time":"14 May 2019 19:11:40.164","second":2,"thrid":"abc","forth":true},"age":47}`,
+		//	script:   `json(_, a.time) default_time(a.time)`,
+		//	expected: int64(1557832300164000000),
+		//	key:      "a.time",
+		//	err:      nil,
+		//},
+		//{
+		//	data:     `{"a":{"time":"06/Jan/2017:16:16:37 +0000","second":2,"thrid":"abc","forth":true},"age":47}`,
+		//	script:   `json(_, a.time) default_time(a.time)`,
+		//	expected: int64(1483719397000000000),
+		//	key:      "a.time",
+		//	err:      nil,
+		//},
+		//{
+		//	data:     `{"a":{"time":"2014-12-16 06:20:00 UTC","second":2,"thrid":"abc","forth":true},"age":47}`,
+		//	script:   `json(_, a.time) default_time(a.time)`,
+		//	expected: int64(1418682000000000000),
+		//	key:      "a.time",
+		//	err:      nil,
+		//},
+		//{
+		//	data:     `{"a":{"time":"171113 14:14:20","second":2,"thrid":"abc","forth":true},"age":47}`,
+		//	script:   `json(_, a.time) default_time(a.time)`,
+		//	expected: int64(1510582460000000000),
+		//	key:      "a.time",
+		//	err:      nil,
+		//},
+
+		//{
+		//	data:     `{"str":"2021/02/27 - 08:11:46"}`,
+		//	script:   `json(_, str) default_time(str)`,
+		//	expected: int64(1614413506000000000),
+		//	key:      "str",
+		//	err:      nil,
+		//},
+
+		//{
+		//	data:     `{"a":{"time":"2021-03-15 13:50:47,000"}}`,
+		//	script:   `json(_, a.time) default_time(a.time)`,
+		//	expected: int64(1615787447000000000),
+		//	key:      "a.time",
+		//	err:      nil,
+		//},
+
+		//{
+		//	//data:     `{"a":{"time":"2021-03-15 13:50:47,000 UTC"}}`,
+		//	data:     `{"a":{"time":"2021-03-15 13:50:47,000"}}`,
+		//	script:   `json(_, a.time) default_time(a.time)`,
+		//	expected: int64(1615787447000000000),
+		//	key:      "a.time",
+		//	err:      nil,
+		//},
+
+		//{
+		//	data:     `{"a":{"time":"15 Mar 06:20:12.000"}}`,
+		//	script:   `json(_, a.time) default_time(a.time)`,
+		//	expected: int64(time.Second * 1615789212),
+		//	key:      "a.time",
+		//	err:      nil,
+		//},
 
 		{
-			data:     `{"str":"2021/02/27 - 08:11:46"}`,
-			script:   `json(_, str) default_time(str)`,
-			expected: int64(1614413506000000000),
-			key:      "str",
+			//data:     `{"a":{"time":"Tue Mar 16 14:02:37 2021"}}`,
+			//script:   `json(_, a.time) default_time(a.time)`,
+			//expected: int64(time.Second * 1615874557),
+			//key:      "a.time",
+			//err:      nil,
+
+			data:     `{"a":{"time":"Wed Mar 17 15:40:49 CST 2021"}}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(time.Second * 1615966849),
+			key:      "a.time",
+			err:      nil,
+		},
+		{
+			data:     `{"a":{"time":"Wed Mar 17 15:40:49 CST 2021"}}`,
+			script:   `json(_, a.time) default_time(a.time, "Asia/Shanghai")`,
+			expected: int64(time.Second * 1615966849),
+			key:      "a.time",
 			err:      nil,
 		},
 	}
 
-	for _, tt := range testCase {
+	for idx, tt := range testCase {
+		t.Logf("-=-=-=-=-=-=-=-=[ %d ]-=-=-=-=-=-=-=-=-=-=", idx+1)
 		p, err := NewPipeline(tt.script)
 
 		assert.Equal(t, err, nil)
@@ -151,10 +194,9 @@ func TestDefaultTimeFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContent(tt.key)
+		ok := assert.Equal(t, r, tt.expected)
 
-		fmt.Println("out ======>", p.Output)
-
-		assert.Equal(t, r, tt.expected)
+		t.Logf("[passed? %v]out: %s <> %v", ok, tt.data, p.Output)
 	}
 }
 
