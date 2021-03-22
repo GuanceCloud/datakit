@@ -149,6 +149,18 @@ func (p *Pipeline) Run(data string) *Pipeline {
 }
 
 func (p *Pipeline) Result() (map[string]interface{}, error) {
+	for k, v := range p.Output {
+		switch v.(type) {
+		case int, uint64, uint32, uint16, uint8, int64, int32, int16, int8, bool, string, float32, float64:
+		default:
+			str, err := json.Marshal(v)
+			if err != nil {
+				l.Errorf("object type marshal error %v", err)
+			}
+			p.Output[k] = string(str)
+		}
+	}
+
 	return p.Output, p.lastErr
 }
 
