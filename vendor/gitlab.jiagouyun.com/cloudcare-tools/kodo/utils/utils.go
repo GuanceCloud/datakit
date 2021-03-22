@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"os"
@@ -233,4 +234,30 @@ func AppendList(key string, source []string) ([]string, error) {
 
 	return AppendList(keyNew, source)
 
+}
+
+type KeepZero float64
+
+func (f KeepZero) MarshalJSON() ([]byte, error) {
+	if float64(f) == math.Trunc(float64(f)) {
+		return []byte(fmt.Sprintf("%.1f", f)), nil
+	}
+	return []byte(fmt.Sprintf("%f", f)), nil
+}
+
+func KeepZeroMap(source map[string]interface{}) map[string]interface{} {
+	for k, v := range source {
+		switch v.(type) {
+		case float64:
+			source[k] = KeepZero(v.(float64))
+		case float32:
+			source[k] = KeepZero(v.(float32))
+		case map[string]interface{}:
+			source[k] = KeepZeroMap(v.(map[string]interface{}))
+		default:
+
+		}
+	}
+
+	return source
 }
