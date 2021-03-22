@@ -6,6 +6,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"strconv"
 	"testing"
+	"time"
 )
 
 type funcCase struct {
@@ -130,6 +131,14 @@ func TestDefaultTimeFunc(t *testing.T) {
 			script:   `json(_, a.time) default_time(a.time)`,
 			expected: int64(1510582460000000000),
 			key:      "a.time",
+			err:      nil,
+		},
+
+		{
+			data:     `{"str":"2021/02/27 - 08:11:46"}`,
+			script:   `json(_, str) default_time(str)`,
+			expected: int64(1614413506000000000),
+			key:      "str",
 			err:      nil,
 		},
 	}
@@ -544,6 +553,134 @@ func TestNullIfFunc(t *testing.T) {
 	}
 }
 
+func TestParseDuration(t *testing.T) {
+	cases := []*funcCase{
+		{
+			data:     `{"str": "1s"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Second),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "1ms"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Millisecond),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "1us"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Microsecond),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "1µs"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Microsecond),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "1m"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Minute),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "1h"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Hour),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "-23h"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: -23 * int64(time.Hour),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "-23ns"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(-23),
+			key:      "str",
+		},
+
+		{
+			data:     `{"str": "-2.3s"}`,
+			script:   `json(_, str) parse_duration(str)`,
+			expected: int64(time.Second*-2 - 300*time.Millisecond),
+			key:      "str",
+		},
+
+		{
+			data:   `{"str": "1uuus"}`,
+			script: `json(_, str) parse_duration(str)`,
+			key:    "str",
+			fail:   true,
+		},
+	}
+
+	for _, tt := range cases {
+		p, err := NewPipeline(tt.script)
+		assertEqual(t, err, p.lastErr)
+
+		p.Run(tt.data)
+
+		r, err := p.getContent(tt.key)
+
+		if !tt.fail {
+			assertEqual(t, r, tt.expected)
+		}
+	}
+}
+
+func TestParseDate(t *testing.T) {
+	cases := []*funcCase{
+		{
+			data:     `{}`,
+			script:   `parse_date(aa, "2021", "May", "12", "10", "10", "34", "", "Asia/Shanghai")`,
+			expected: int64(1620785434000000000),
+			key:      "aa",
+		},
+		{
+			data:     `{}`,
+			script:   `parse_date(aa, "2021", "12", "12", "10", "10", "34", "", "Asia/Shanghai")`,
+			expected: int64(1639275034000000000),
+			key:      "aa",
+		},
+		{
+			data:     `{}`,
+			script:   `parse_date(aa, "2021", "12", "12", "10", "10", "34", "100", "Asia/Shanghai")`,
+			expected: int64(1639275034000000100),
+			key:      "aa",
+		},
+		{
+			data:     `{}`,
+			script:   `parse_date(aa, "20", "February", "12", "10", "10", "34", "", "+8")`,
+			expected: int64(1581473434000000000),
+			key:      "aa",
+		},
+	}
+
+	for _, tt := range cases {
+		p, err := NewPipeline(tt.script)
+		assertEqual(t, err, p.lastErr)
+
+		p.Run(tt.data)
+		r, err := p.getContent(tt.key)
+
+		if !tt.fail {
+			assertEqual(t, r, tt.expected)
+		}
+	}
+}
+
 func TestJsonAllFunc(t *testing.T) {
 	var testCase = []*funcCase{
 		{
@@ -583,8 +720,6 @@ func TestJsonAllFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContentStr(tt.key)
-
-		fmt.Println("======>", p.Output)
 
 		assertEqual(t, r, tt.expected)
 	}
