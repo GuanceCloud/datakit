@@ -23,6 +23,9 @@ func TestPointHandle(t *testing.T) {
 		// 缺少必要的字段，取得对应的 nil 值，在类型断言时是否会 panic
 		// cpu_usage_core_nanoseconds=1861297536945863i,
 		`kubernetes_node,host=ubuntu_test,node_name=cn-hangzhou.172.16.2.3 cpu_usage_nanocores=401704442i,fs_available_bytes=73116872704i,fs_capacity_bytes=126692048896i,fs_used_bytes=48189890560i,memory_available_bytes=1527259136i,memory_major_page_faults=7883i,memory_page_faults=100640248i,memory_rss_bytes=5999329280i,memory_usage_bytes=7411822592i,memory_working_set_bytes=6673932288i,network_rx_bytes=530490969458i,network_rx_errors=0i,network_tx_bytes=493173160592i,network_tx_errors=0i,runtime_image_fs_available_bytes=73116872704i,runtime_image_fs_capacity_bytes=126692048896i,runtime_image_fs_used_bytes=41885561550i 1614585811000000000`,
+
+		// memory_available_bytes=1527259136i,
+		`kubernetes_node,host=ubuntu_test,node_name=cn-hangzhou.172.16.2.3 cpu_usage_core_nanoseconds=1861297536945863i,cpu_usage_nanocores=401704442i,fs_available_bytes=73116872704i,fs_capacity_bytes=126692048896i,fs_used_bytes=48189890560i,memory_major_page_faults=7883i,memory_page_faults=100640248i,memory_rss_bytes=5999329280i,memory_usage_bytes=7411822592i,memory_working_set_bytes=6673932288i,network_rx_bytes=530490969458i,network_rx_errors=0i,network_tx_bytes=493173160592i,network_tx_errors=0i,runtime_image_fs_available_bytes=73116872704i,runtime_image_fs_capacity_bytes=126692048896i,runtime_image_fs_used_bytes=41885561550i 1614585811000000000`,
 	}
 
 	for _, tc := range testcase {
