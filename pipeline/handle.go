@@ -138,15 +138,18 @@ var datePattern = []struct {
 	},
 }
 
-func TimestampHandle(value string) (int64, error) {
+func TimestampHandle(value, tz string) (int64, error) {
+	var t time.Time
+	var err error
+	var timezone = time.Local
 
-	//loc, err := time.LoadLocation("UTC")
-	//if err != nil {
-	//	panic(err.Error())
-	//}
-	//time.Local = loc
+	if tz != "" {
+		timezone, err = time.LoadLocation(tz)
+	}
 
-	t, err := dateparse.ParseLocal(value)
+	if err == nil {
+		t, err = dateparse.ParseIn(value, timezone)
+	}
 
 	if err != nil {
 		for _, p := range datePattern {
