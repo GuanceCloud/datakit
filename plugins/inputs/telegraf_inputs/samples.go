@@ -2,6 +2,523 @@ package telegraf_inputs
 
 var (
 	samples = map[string]string{
+		/////////////////////////////////////////////////////////////////////////////////////////
+		"http_response": `
+[[inputs.http_response]]
+  ## List of urls to query.
+  # urls = ["http://localhost"]
+
+	interval = "30s"
+
+  ## Set http_proxy (telegraf uses the system wide proxy settings if it's is not set)
+  # http_proxy = "http://localhost:8888"
+
+  ## Set response_timeout (default 5 seconds)
+  # response_timeout = "5s"
+
+  ## HTTP Request Method
+  # method = "GET"
+
+  ## Whether to follow redirects from the server (defaults to false)
+  # follow_redirects = false
+
+  ## Optional file with Bearer token
+  ## file content is added as an Authorization header
+  # bearer_token = "/path/to/file"
+
+  ## Optional HTTP Basic Auth Credentials
+  # username = "username"
+  # password = "pa$$word"
+
+  ## Optional HTTP Request Body
+  # body = '''
+  # {'fake':'data'}
+  # '''
+
+  ## Optional name of the field that will contain the body of the response.
+  ## By default it is set to an empty String indicating that the body's content won't be added
+  # response_body_field = ''
+
+  ## Maximum allowed HTTP response body size in bytes.
+  ## 0 means to use the default of 32MiB.
+  ## If the response body size exceeds this limit a "body_read_error" will be raised
+  # response_body_max_size = "32MiB"
+
+  ## Optional substring or regex match in body of the response
+  # response_string_match = "\"service_status\": \"up\""
+  # response_string_match = "ok"
+  # response_string_match = "\".*_status\".?:.?\"up\""
+
+  ## Optional TLS Config
+  # tls_ca = "/etc/telegraf/ca.pem"
+  # tls_cert = "/etc/telegraf/cert.pem"
+  # tls_key = "/etc/telegraf/key.pem"
+  ## Use TLS but skip chain & host verification
+  # insecure_skip_verify = false
+
+  ## HTTP Request Headers (all values must be strings)
+  # [inputs.http_response.headers]
+  #   Host = "github.com"
+
+  ## Optional setting to map response http headers into tags
+  ## If the http header is not present on the request, no corresponding tag will be added
+  ## If multiple instances of the http header are present, only the first value will be used
+  # http_header_tags = {"HTTP_HEADER" = "TAG_NAME"}
+
+  ## Interface to use when dialing an address
+  # interface = "eth0"
+		`,
+
+		/////////////////////////////////////////////////////////////////////////////////////////
+		"weblogic": `
+[[inputs.jolokia2_agent]]
+  urls = ["http://localhost:8080/jolokia"]
+  name_prefix = "weblogic."
+
+  ### JVM Generic
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "OperatingSystem"
+    mbean = "java.lang:type=OperatingSystem"
+    paths = ["ProcessCpuLoad","SystemLoadAverage","SystemCpuLoad"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "jvm_runtime"
+    mbean = "java.lang:type=Runtime"
+    paths = ["Uptime"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "jvm_memory"
+    mbean = "java.lang:type=Memory"
+    paths = ["HeapMemoryUsage", "NonHeapMemoryUsage", "ObjectPendingFinalizationCount"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name     = "jvm_garbage_collector"
+    mbean    = "java.lang:name=*,type=GarbageCollector"
+    paths    = ["CollectionTime", "CollectionCount"]
+    tag_keys = ["name"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name       = "jvm_memory_pool"
+    mbean      = "java.lang:name=*,type=MemoryPool"
+    paths      = ["Usage", "PeakUsage", "CollectionUsage"]
+    tag_keys   = ["name"]
+    tag_prefix = "pool_"
+
+  ### WLS
+
+  [[inputs.jolokia2_agent.metric]]
+    name       = "JTARuntime"
+    mbean      = "com.bea:Name=JTARuntime,ServerRuntime=*,Type=JTARuntime"
+    paths      = ["SecondsActiveTotalCount","TransactionRolledBackTotalCount","TransactionRolledBackSystemTotalCount","TransactionRolledBackAppTotalCount","TransactionRolledBackResourceTotalCount","TransactionHeuristicsTotalCount","TransactionAbandonedTotalCount","TransactionTotalCount","TransactionRolledBackTimeoutTotalCount","ActiveTransactionsTotalCount","TransactionCommittedTotalCount"]
+    tag_keys   = ["ServerRuntime"]
+    tag_prefix = "wls_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name       = "ThreadPoolRuntime"
+    mbean      = "com.bea:Name=ThreadPoolRuntime,ServerRuntime=*,Type=ThreadPoolRuntime"
+    paths      = ["StuckThreadCount","CompletedRequestCount","ExecuteThreadTotalCount","ExecuteThreadIdleCount","StandbyThreadCount","Throughput","HoggingThreadCount","PendingUserRequestCount"]
+    tag_keys   = ["ServerRuntime"]
+    tag_prefix = "wls_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name       = "JMSRuntime"
+    mbean      = "com.bea:Name=*.jms,ServerRuntime=*,Type=JMSRuntime"
+    paths      = ["ConnectionsCurrentCount","ConnectionsHighCount","ConnectionsTotalCount","JMSServersCurrentCount","JMSServersHighCount","JMSServersTotalCount"]
+    tag_keys   = ["name","ServerRuntime"]
+    tag_prefix = "wls_"
+		`,
+		/////////////////////////////////////////////////////////////////////////////////////////
+		"jvm": `
+[[inputs.jolokia2_agent]]
+  urls = ["http://localhost:8080/jolokia"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "java_runtime"
+    mbean = "java.lang:type=Runtime"
+    paths = ["Uptime"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "java_memory"
+    mbean = "java.lang:type=Memory"
+    paths = ["HeapMemoryUsage", "NonHeapMemoryUsage", "ObjectPendingFinalizationCount"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name     = "java_garbage_collector"
+    mbean    = "java.lang:name=*,type=GarbageCollector"
+    paths    = ["CollectionTime", "CollectionCount"]
+    tag_keys = ["name"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "java_last_garbage_collection"
+    mbean = "java.lang:name=G1 Young Generation,type=GarbageCollector"
+    paths = ["LastGcInfo/duration", "LastGcInfo/GcThreadCount", "LastGcInfo/memoryUsageAfterGc"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "java_threading"
+    mbean = "java.lang:type=Threading"
+    paths = ["TotalStartedThreadCount", "ThreadCount", "DaemonThreadCount", "PeakThreadCount"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "java_class_loading"
+    mbean = "java.lang:type=ClassLoading"
+    paths = ["LoadedClassCount", "UnloadedClassCount", "TotalLoadedClassCount"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name     = "java_memory_pool"
+    mbean    = "java.lang:name=*,type=MemoryPool"
+    paths    = ["Usage", "PeakUsage", "CollectionUsage"]
+    tag_keys = ["name"]
+		`,
+		/////////////////////////////////////////////////////////////////////////////////////////
+		"hadoop_hdfs": `
+
+[[inputs.jolokia2_agent]]
+  urls = ["http://localhost:8778/jolokia"]
+  name_prefix = "hadoop.hdfs.namenode."
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "FSNamesystem"
+    mbean = "Hadoop:name=FSNamesystem,service=NameNode"
+    paths = ["CapacityTotal", "CapacityRemaining", "CapacityUsedNonDFS", "NumLiveDataNodes", "NumDeadDataNodes", "NumInMaintenanceDeadDataNodes", "NumDecomDeadDataNodes"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "FSNamesystemState"
+    mbean = "Hadoop:name=FSNamesystemState,service=NameNode"
+    paths = ["VolumeFailuresTotal", "UnderReplicatedBlocks", "BlocksTotal"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "OperatingSystem"
+    mbean = "java.lang:type=OperatingSystem"
+    paths = ["ProcessCpuLoad", "SystemLoadAverage", "SystemCpuLoad"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "jvm_runtime"
+    mbean = "java.lang:type=Runtime"
+    paths = ["Uptime"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "jvm_memory"
+    mbean = "java.lang:type=Memory"
+    paths = ["HeapMemoryUsage", "NonHeapMemoryUsage", "ObjectPendingFinalizationCount"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "jvm_garbage_collector"
+    mbean = "java.lang:name=*,type=GarbageCollector"
+    paths = ["CollectionTime", "CollectionCount"]
+    tag_keys = ["name"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "jvm_memory_pool"
+    mbean = "java.lang:name=*,type=MemoryPool"
+    paths = ["Usage", "PeakUsage", "CollectionUsage"]
+    tag_keys = ["name"]
+    tag_prefix = "pool_"
+
+################
+# DATANODE     #
+################
+[[inputs.jolokia2_agent]]
+  urls = ["http://localhost:7778/jolokia"]
+  name_prefix = "hadoop.hdfs.datanode."
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "FSDatasetState"
+    mbean = "Hadoop:name=FSDatasetState,service=DataNode"
+    paths = ["Capacity", "DfsUsed", "Remaining", "NumBlocksFailedToUnCache", "NumBlocksFailedToCache", "NumBlocksCached"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "OperatingSystem"
+    mbean = "java.lang:type=OperatingSystem"
+    paths = ["ProcessCpuLoad", "SystemLoadAverage", "SystemCpuLoad"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "jvm_runtime"
+    mbean = "java.lang:type=Runtime"
+    paths = ["Uptime"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "jvm_memory"
+    mbean = "java.lang:type=Memory"
+    paths = ["HeapMemoryUsage", "NonHeapMemoryUsage", "ObjectPendingFinalizationCount"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "jvm_garbage_collector"
+    mbean = "java.lang:name=*,type=GarbageCollector"
+    paths = ["CollectionTime", "CollectionCount"]
+    tag_keys = ["name"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name = "jvm_memory_pool"
+    mbean = "java.lang:name=*,type=MemoryPool"
+    paths = ["Usage", "PeakUsage", "CollectionUsage"]
+    tag_keys = ["name"]
+    tag_prefix = "pool_"
+
+		`,
+
+		/////////////////////////////////////////////////////////////////////////////////////////
+		"jboss": `
+[[inputs.jolokia2_agent]]
+  urls = ["http://localhost:8080/jolokia"]
+  name_prefix = "jboss."
+
+  ### JVM Generic
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "OperatingSystem"
+    mbean = "java.lang:type=OperatingSystem"
+    paths = ["ProcessCpuLoad","SystemLoadAverage","SystemCpuLoad"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "jvm_runtime"
+    mbean = "java.lang:type=Runtime"
+    paths = ["Uptime"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "jvm_memory"
+    mbean = "java.lang:type=Memory"
+    paths = ["HeapMemoryUsage", "NonHeapMemoryUsage", "ObjectPendingFinalizationCount"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name     = "jvm_garbage_collector"
+    mbean    = "java.lang:name=*,type=GarbageCollector"
+    paths    = ["CollectionTime", "CollectionCount"]
+    tag_keys = ["name"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name       = "jvm_memory_pool"
+    mbean      = "java.lang:name=*,type=MemoryPool"
+    paths      = ["Usage", "PeakUsage", "CollectionUsage"]
+    tag_keys   = ["name"]
+    tag_prefix = "pool_"
+
+  ### JBOSS
+
+  [[inputs.jolokia2_agent.metric]]
+    name     = "connectors.http"
+    mbean    = "jboss.as:https-listener=*,server=*,subsystem=undertow"
+    paths    = ["bytesReceived","bytesSent","errorCount","requestCount"]
+    tag_keys = ["server","https-listener"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name     = "connectors.http"
+    mbean    = "jboss.as:http-listener=*,server=*,subsystem=undertow"
+    paths    = ["bytesReceived","bytesSent","errorCount","requestCount"]
+    tag_keys = ["server","http-listener"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name     = "datasource.jdbc"
+    mbean    = "jboss.as:data-source=*,statistics=jdbc,subsystem=datasources"
+    paths    = ["PreparedStatementCacheAccessCount","PreparedStatementCacheHitCount","PreparedStatementCacheMissCount"]
+    tag_keys = ["data-source"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name     = "datasource.pool"
+    mbean    = "jboss.as:data-source=*,statistics=pool,subsystem=datasources"
+    paths    = ["AvailableCount","ActiveCount","MaxUsedCount"]
+    tag_keys = ["data-source"]
+
+		`,
+
+		/////////////////////////////////////////////////////////////////////////////////////////
+		"cassandra": `
+[[inputs.jolokia2_agent]]
+  urls = ["http://localhost:8778/jolokia"]
+  name_prefix = "java_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "Memory"
+    mbean = "java.lang:type=Memory"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "GarbageCollector"
+    mbean = "java.lang:name=*,type=GarbageCollector"
+    tag_keys = ["name"]
+    field_prefix = "$1_"
+
+[[inputs.jolokia2_agent]]
+  urls = ["http://localhost:8778/jolokia"]
+  name_prefix = "cassandra_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "Cache"
+    mbean = "org.apache.cassandra.metrics:name=*,scope=*,type=Cache"
+    tag_keys = ["name", "scope"]
+    field_prefix = "$1_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "Client"
+    mbean = "org.apache.cassandra.metrics:name=*,type=Client"
+    tag_keys = ["name"]
+    field_prefix = "$1_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "ClientRequestMetrics"
+    mbean = "org.apache.cassandra.metrics:name=*,type=ClientRequestMetrics"
+    tag_keys = ["name"]
+    field_prefix = "$1_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "ClientRequest"
+    mbean = "org.apache.cassandra.metrics:name=*,scope=*,type=ClientRequest"
+    tag_keys = ["name", "scope"]
+    field_prefix = "$1_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "ColumnFamily"
+    mbean = "org.apache.cassandra.metrics:keyspace=*,name=*,scope=*,type=ColumnFamily"
+    tag_keys = ["keyspace", "name", "scope"]
+    field_prefix = "$2_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "CommitLog"
+    mbean = "org.apache.cassandra.metrics:name=*,type=CommitLog"
+    tag_keys = ["name"]
+    field_prefix = "$1_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "Compaction"
+    mbean = "org.apache.cassandra.metrics:name=*,type=Compaction"
+    tag_keys = ["name"]
+    field_prefix = "$1_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "CQL"
+    mbean = "org.apache.cassandra.metrics:name=*,type=CQL"
+    tag_keys = ["name"]
+    field_prefix = "$1_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "DroppedMessage"
+    mbean = "org.apache.cassandra.metrics:name=*,scope=*,type=DroppedMessage"
+    tag_keys = ["name", "scope"]
+    field_prefix = "$1_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "FileCache"
+    mbean = "org.apache.cassandra.metrics:name=*,type=FileCache"
+    tag_keys = ["name"]
+    field_prefix = "$1_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "ReadRepair"
+    mbean = "org.apache.cassandra.metrics:name=*,type=ReadRepair"
+    tag_keys = ["name"]
+    field_prefix = "$1_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "Storage"
+    mbean = "org.apache.cassandra.metrics:name=*,type=Storage"
+    tag_keys = ["name"]
+    field_prefix = "$1_"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "ThreadPools"
+    mbean = "org.apache.cassandra.metrics:name=*,path=*,scope=*,type=ThreadPools"
+    tag_keys = ["name", "path", "scope"]
+    field_prefix = "$1_"
+		`,
+
+		/////////////////////////////////////////////////////////////////////////////////////////
+		"bitbucket": `
+[[inputs.jolokia2_agent]]
+  urls = ["http://localhost:8778/jolokia"]
+  name_prefix = "bitbucket."
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "jvm_operatingsystem"
+    mbean = "java.lang:type=OperatingSystem"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "jvm_runtime"
+    mbean = "java.lang:type=Runtime"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "jvm_thread"
+    mbean = "java.lang:type=Threading"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "jvm_memory"
+    mbean = "java.lang:type=Memory"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "jvm_class_loading"
+    mbean = "java.lang:type=ClassLoading"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "jvm_memory_pool"
+    mbean = "java.lang:type=MemoryPool,name=*"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "webhooks"
+    mbean = "com.atlassian.webhooks:name=*"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "atlassian"
+    mbean = "com.atlassian.bitbucket:name=*"
+
+  [[inputs.jolokia2_agent.metric]]
+    name  = "thread_pools"
+    mbean = "com.atlassian.bitbucket.thread-pools:name=*"
+		`,
+		/////////////////////////////////////////////////////////////////////////////////////////
+		"kafka": `
+[[inputs.jolokia2_agent]]
+  name_prefix = "kafka_"
+
+  urls = ["http://localhost:8080/jolokia"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name         = "controller"
+    mbean        = "kafka.controller:name=*,type=*"
+    field_prefix = "$1."
+
+  [[inputs.jolokia2_agent.metric]]
+    name         = "replica_manager"
+    mbean        = "kafka.server:name=*,type=ReplicaManager"
+    field_prefix = "$1."
+
+  [[inputs.jolokia2_agent.metric]]
+    name         = "purgatory"
+    mbean        = "kafka.server:delayedOperation=*,name=*,type=DelayedOperationPurgatory"
+    field_prefix = "$1."
+    field_name   = "$2"
+
+  [[inputs.jolokia2_agent.metric]]
+    name     = "client"
+    mbean    = "kafka.server:client-id=*,type=*"
+    tag_keys = ["client-id", "type"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name         = "request"
+    mbean        = "kafka.network:name=*,request=*,type=RequestMetrics"
+    field_prefix = "$1."
+    tag_keys     = ["request"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name         = "topics"
+    mbean        = "kafka.server:name=*,type=BrokerTopicMetrics"
+    field_prefix = "$1."
+
+  [[inputs.jolokia2_agent.metric]]
+    name         = "topic"
+    mbean        = "kafka.server:name=*,topic=*,type=BrokerTopicMetrics"
+    field_prefix = "$1."
+    tag_keys     = ["topic"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name       = "partition"
+    mbean      = "kafka.log:name=*,partition=*,topic=*,type=Log"
+    field_name = "$1"
+    tag_keys   = ["topic", "partition"]
+
+  [[inputs.jolokia2_agent.metric]]
+    name       = "partition"
+    mbean      = "kafka.cluster:name=UnderReplicated,partition=*,topic=*,type=Partition"
+    field_name = "UnderReplicatedPartitions"
+    tag_keys   = ["topic", "partition"]
+		`,
 
 		/////////////////////////////////////////////////////////////////////////////////////////
 
