@@ -317,6 +317,13 @@ func (dc *DataWayCfg) addToken(tkn string) {
 	}
 }
 
+func (dc *DataWayCfg) GetToken() string {
+	if dc.urlValues == nil {
+		dc.addToken("")
+	}
+	return dc.urlValues.Get("token")
+}
+
 func ParseDataway(httpurl, wsport string) (*DataWayCfg, error) {
 	dwcfg := &DataWayCfg{
 		Timeout: "30s",
