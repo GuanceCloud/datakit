@@ -17,8 +17,8 @@ const (
     # glob filteer
     ignore = [""]
 
-    # required, data source
-    source = "<your-logging-source>"
+    # your logging source, if it's empty, use 'default'
+    source = ""
 
     # add service tag, if it's empty, use $source.
     service = ""
