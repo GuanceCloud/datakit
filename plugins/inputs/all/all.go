@@ -1,6 +1,7 @@
 package inputs
 
 import (
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/activemqlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunactiontrail"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyuncdn"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyuncms"
@@ -22,6 +23,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/coredns"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ddtrace"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dialtesting"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/docker_containers"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dockerlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
@@ -29,19 +31,23 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/expressjs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/file_collector"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flink"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/fluentdlog"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ginlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/goruntime"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/harborMonitor"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/host_process"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpPacket"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpProb"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/httpstat"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/huaweiyunces"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/huaweiyunobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jira"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/k8sobject"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafkalog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kong"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/lighttpd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mandemo"
@@ -56,6 +62,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/proxy"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/puppetagent"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/rabbitmqlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/redislog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/rum"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/scanport"
@@ -81,6 +88,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/wechatminiprogram"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/yarn"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zaplog"
 
 	// removed
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
@@ -96,6 +104,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/csvmetric"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/csvobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/qyt_all"
 	//
 	// Buggy inputs
 	// with dll/so dependencies, and also 32bit disabled
