@@ -170,9 +170,16 @@ func TestDefaultTimeFunc(t *testing.T) {
 			//key:      "a.time",
 			//err:      nil,
 
-			data:     `{"a":{"time":"2021-03-11 13:28:05,000"}}`,
+			data:     `{"a":{"time":"Wed Mar 17 15:40:49 CST 2021"}}`,
 			script:   `json(_, a.time) default_time(a.time)`,
-			expected: int64(time.Second * 1615469285),
+			expected: int64(time.Second * 1615966849),
+			key:      "a.time",
+			err:      nil,
+		},
+		{
+			data:     `{"a":{"time":"Wed Mar 17 15:40:49 CST 2021"}}`,
+			script:   `json(_, a.time) default_time(a.time, "Asia/Shanghai")`,
+			expected: int64(time.Second * 1615966849),
 			key:      "a.time",
 			err:      nil,
 		},
