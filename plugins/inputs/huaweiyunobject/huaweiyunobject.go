@@ -1,11 +1,16 @@
 package huaweiyunobject
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"runtime"
 	"time"
+
+	rmsmodel "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1/model"
+	"golang.org/x/time/rate"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -18,41 +23,31 @@ var (
 	moduleLogger *logger.Logger
 )
 
-type subModule interface {
-	run(*objectAgent)
+func (_ *agent) SampleConfig() string {
+	return sampleConfig
 }
 
-func (_ *objectAgent) SampleConfig() string {
-	var buf bytes.Buffer
-	buf.WriteString(sampleConfig)
-	buf.WriteString(ecsSampleConfig)
-	buf.WriteString(elbSampleConfig)
-	buf.WriteString(obsSampleConfig)
-	buf.WriteString(rdsSampleConfig)
-	buf.WriteString(vpcSampleConfig)
-	return buf.String()
-}
-
-func (_ *objectAgent) PipelineConfig() map[string]string {
+func (_ *agent) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		inputName + "_ecs": ecsPipelineConifg,
 		inputName + "_elb": elbPipelineConfig,
-		inputName + "_obs": obsPipelineConifg,
 		inputName + "_rds": rdsPipelineConfig,
 		inputName + "_vpc": vpcPipelineConifg,
+		inputName + "_evs": evsPipelineConifg,
+		inputName + "_ims": imsPipelineConifg,
 	}
 	return pipelineMap
 }
 
-func (_ *objectAgent) Catalog() string {
+func (_ *agent) Catalog() string {
 	return `huaweiyun`
 }
 
-func (ag *objectAgent) Test() (result *inputs.TestResult, err error) {
+func (ag *agent) Test() (result *inputs.TestResult, err error) {
 	return
 }
 
-func (ag *objectAgent) Run() {
+func (ag *agent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
 
@@ -72,43 +67,23 @@ func (ag *objectAgent) Run() {
 		ag.cancelFun()
 	}()
 
+	//每分钟最多100个请求
+	limit := rate.Every(600 * time.Millisecond)
+	ag.limiter = rate.NewLimiter(limit, 1)
+
 	if ag.Interval.Duration == 0 {
-		ag.Interval.Duration = time.Hour * 6
-	} else if ag.Interval.Duration < time.Hour*1 {
-		ag.Interval.Duration = time.Hour * 1
-	} else if ag.Interval.Duration > time.Hour*24 {
-		ag.Interval.Duration = time.Hour * 24
+		ag.Interval.Duration = time.Minute * 15
 	}
 
-	if ag.Ecs != nil {
-		ag.addModule(ag.Ecs)
-	}
-	if ag.Elb != nil {
-		ag.addModule(ag.Elb)
-	}
-	if ag.Obs != nil {
-		ag.addModule(ag.Obs)
-	}
-	if ag.Rds != nil {
-		ag.addModule(ag.Rds)
-	}
-	if ag.Vpc != nil {
-		ag.addModule(ag.Vpc)
-	}
-
-	for _, s := range ag.subModules {
-		ag.wg.Add(1)
-		go func(s subModule) {
-			defer ag.wg.Done()
-			s.run(ag)
-		}(s)
-	}
-
-	ag.wg.Wait()
+	ag.run()
 }
 
 func getPipeline(name string) *pipeline.Pipeline {
 
+	scriptPath := filepath.Join(datakit.PipelineDir, name)
+	if _, e := os.Stat(scriptPath); e != nil && os.IsNotExist(e) {
+		return nil
+	}
 	p, err := pipeline.NewPipelineByScriptPath(name)
 	if err != nil {
 		moduleLogger.Warnf("%s", err)
@@ -118,29 +93,62 @@ func getPipeline(name string) *pipeline.Pipeline {
 	return p
 }
 
-func (ag *objectAgent) parseObject(obj interface{}, name, class, id string, pipeline *pipeline.Pipeline, blacklist, whitelist []string) error {
-	if datakit.CheckExcluded(id, blacklist, whitelist) {
-		return nil
+func (ag *agent) parseObject(res *rmsmodel.ResourceEntity, pipeline *pipeline.Pipeline) error {
+
+	class := fmt.Sprintf("huaweiyun_%s", *res.Provider)
+
+	resName := ""
+	resID := ""
+	if res.Name != nil {
+		resName = *res.Name
 	}
-	data, err := json.Marshal(obj)
+	if res.Id != nil {
+		resID = *res.Id
+	}
+
+	if res.Properties["id"] == nil {
+		res.Properties["id"] = resID
+	}
+
+	if res.Properties["name"] == nil {
+		res.Properties["name"] = resName
+	}
+
+	data, err := json.Marshal(res.Properties)
 	if err != nil {
 		moduleLogger.Errorf("json marshal err:%s", err.Error())
 		return err
 	}
 
 	fields := map[string]interface{}{}
+
 	if pipeline != nil {
 		fields, err = pipeline.Run(string(data)).Result()
 		if err != nil {
 			moduleLogger.Errorf("pipeline run err:%s", err.Error())
-			return err
 		}
+	}
+
+	if fields["id"] == nil {
+		fields["id"] = resID //默认加上
+	}
+
+	fields["resource_type"] = *res.Type
+
+	if res.RegionId != nil {
+		fields["region"] = *res.RegionId
+	}
+	if res.ProjectId != nil && *res.ProjectId != "" {
+		fields["project_id"] = *res.ProjectId
+	}
+	if res.ProjectName != nil && *res.ProjectName != "" {
+		fields["project_name"] = *res.ProjectName
 	}
 
 	fields["message"] = string(data)
 
 	tags := map[string]string{
-		"name": name,
+		"name": resName,
 	}
 
 	if ag.IsDebug() {
@@ -156,8 +164,8 @@ func (ag *objectAgent) parseObject(obj interface{}, name, class, id string, pipe
 	}
 }
 
-func newAgent(mode string) *objectAgent {
-	ag := &objectAgent{}
+func newAgent(mode string) *agent {
+	ag := &agent{}
 	ag.mode = mode
 	ag.ctx, ag.cancelFun = context.WithCancel(context.Background())
 	return ag
