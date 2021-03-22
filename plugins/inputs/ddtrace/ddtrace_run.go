@@ -138,7 +138,17 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 
 			tAdpter.Project = span.Meta[trace.PROJECT]
 			if tAdpter.Project == "" {
-				tAdpter.Project = trace.GetProjectFromPluginTag(DdtraceTags)
+				tAdpter.Project = trace.GetFromPluginTag(DdtraceTags, trace.PROJECT)
+			}
+
+			tAdpter.Env = span.Meta[trace.ENV]
+			if tAdpter.Env == "" {
+				tAdpter.Env = trace.GetFromPluginTag(DdtraceTags, trace.ENV)
+			}
+
+			tAdpter.Version = span.Meta[trace.VERSION]
+			if tAdpter.Version == "" {
+				tAdpter.Version = trace.GetFromPluginTag(DdtraceTags, trace.VERSION)
 			}
 
 			js, err := json.Marshal(span)
