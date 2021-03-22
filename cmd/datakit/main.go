@@ -201,7 +201,6 @@ func runDatakitWithHTTPServer() error {
 		l.Error("error running inputs: %v", err)
 		return err
 	}
-
 	go func() {
 		http.Start(datakit.Cfg.MainCfg.HTTPBind)
 	}()
