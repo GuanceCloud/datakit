@@ -34,7 +34,6 @@ var (
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
 	flagDocker         = flag.Bool("docker", false, "run within docker")
 
-	flagListCollectors    = flag.Bool("tree", false, `list vailable collectors`)
 	flagDumpConfigSamples = flag.String("dump-samples", "", `dump all config samples`)
 
 	flagCmd      = flag.Bool("cmd", false, "run datakit under command line mode")
@@ -42,13 +41,13 @@ var (
 	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
 	flagGrokq    = flag.Bool("grokq", false, "query groks interactively")
 	flagMan      = flag.Bool("man", false, "read manuals of inputs")
-
-	ReleaseType = ""
 )
 
 var (
 	inputFilters = []string{}
 	l            = logger.DefaultSLogger("main")
+
+	ReleaseType = ""
 )
 
 func main() {
@@ -89,7 +88,7 @@ ReleasedInputs: %s
 		os.Exit(0)
 	}
 
-	datakit.ReleaseType = ReleaseType
+	datakit.EnableUncheckInputs = (ReleaseType == "all")
 
 	if *flagCmd {
 		runDatakitWithCmd()
@@ -106,11 +105,6 @@ ReleasedInputs: %s
 		os.Exit(0)
 	}
 
-	if *flagListCollectors {
-		listCollectors()
-		os.Exit(0)
-	}
-
 	if *flagInputFilters != "" {
 		inputFilters = strings.Split(":"+strings.TrimSpace(*flagInputFilters)+":", ":")
 	}
@@ -118,78 +112,6 @@ ReleasedInputs: %s
 	if *flagDocker {
 		datakit.Docker = true
 	}
-}
-
-func listCollectors() {
-	collectors := map[string][]string{}
-
-	for k, v := range inputs.Inputs {
-		cat := v().Catalog()
-		collectors[cat] = append(collectors[cat], k)
-	}
-
-	star := " * "
-	uncheck := " ? "
-
-	ndk := 0
-	nuncheck := 0
-
-	output := []string{}
-
-	for k, vs := range collectors {
-		output = append(output, k)
-		for _, v := range vs {
-			checked, ok := inputs.AllInputs[v]
-			if !ok {
-				l.Errorf("datakit input %s not exists in check list", v)
-			}
-
-			if !checked && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
-				continue
-			}
-
-			if checked {
-				output = append(output, fmt.Sprintf("  |--[d]%s%s", star, v))
-			} else {
-				nuncheck++
-				output = append(output, fmt.Sprintf("  |--[d]%s%s", uncheck, v))
-			}
-			ndk++
-		}
-	}
-
-	collectors = map[string][]string{}
-	for k, v := range tgi.TelegrafInputs {
-		collectors[v.Catalog] = append(collectors[v.Catalog], k)
-	}
-
-	ntg := 0
-	for k, vs := range collectors {
-		output = append(output, k)
-		for _, v := range vs {
-
-			checked, ok := inputs.AllInputs[v]
-			if !ok {
-				l.Errorf("telegraf input %s not exists in check list", v)
-			}
-
-			if !checked && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
-				continue
-			}
-
-			if checked {
-				output = append(output, fmt.Sprintf("  |--[t]%s%s", star, v))
-			} else {
-				nuncheck++
-				output = append(output, fmt.Sprintf("  |--[t]%s%s", uncheck, v))
-			}
-
-			ntg++
-		}
-	}
-
-	fmt.Println(strings.Join(output, "\n"))
-	fmt.Printf("total %d, datakit: %d, telegraf: %d, uncheck: %d\n", ntg+ndk, ndk, ntg, nuncheck)
 }
 
 func dumpAllConfigSamples(fpath string) {
@@ -280,7 +202,6 @@ func runDatakitWithHTTPServer() error {
 		l.Error("error running inputs: %v", err)
 		return err
 	}
-
 	go func() {
 		http.Start(datakit.Cfg.MainCfg.HTTPBind)
 	}()
