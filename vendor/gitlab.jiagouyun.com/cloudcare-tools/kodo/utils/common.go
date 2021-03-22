@@ -28,6 +28,7 @@ var (
 	InfluxdbBizPreifx     = `biz_`
 	InfluxCQPrefix        = `cq_`
 	ObjectClassPrefix     = `objc_`
+	KeyConfigPrefix       = `keycf_`
 
 	//default string aggr
 	InfluxCQDefaultAggr = `last`
@@ -49,9 +50,9 @@ var (
 	//EsKeepTimeStamp  = `timestampUs`
 	EsKeepTimeStampM = `date`
 
-	EsKeepEventId   = `__eventId`
-	EsKeepStatus    = `__status`
-	EsKeepTitle     = `__title`
+	EsKeepEventId   = `event_id`
+	EsKeepStatus    = `status`
+	EsKeepTitle     = `title`
 	EsKeepEventType = `__type`
 
 	RUMType = `source`
