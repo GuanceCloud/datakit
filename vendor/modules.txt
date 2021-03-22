@@ -1,3 +1,5 @@
+# code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
+code.cloudfoundry.org/bytefmt
 # collectd.org v0.3.0
 collectd.org/api
 collectd.org/cdtime
@@ -125,7 +127,7 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/slb
 github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
-# github.com/aliyun/aliyun-oss-go-sdk v2.1.5+incompatible
+# github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/andygrunwald/go-jira v1.12.0
 github.com/andygrunwald/go-jira
@@ -398,7 +400,13 @@ github.com/godror/godror
 github.com/godror/godror/odpi/embed
 github.com/godror/godror/odpi/include
 github.com/godror/godror/odpi/src
+<<<<<<< HEAD
 # github.com/gofrs/uuid v3.2.0+incompatible
+=======
+# github.com/gofrs/flock v0.8.0
+github.com/gofrs/flock
+# github.com/gofrs/uuid v2.1.0+incompatible
+>>>>>>> dev
 github.com/gofrs/uuid
 # github.com/gogo/googleapis v1.4.0
 github.com/gogo/googleapis/google/rpc
@@ -475,15 +483,27 @@ github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1/region
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/region
+<<<<<<< HEAD
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/region
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/region
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/region
+=======
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1/region
+>>>>>>> dev
 # github.com/influxdata/go-syslog/v2 v2.0.1
 github.com/influxdata/go-syslog/v2
 github.com/influxdata/go-syslog/v2/common
@@ -773,7 +793,7 @@ github.com/pkg/term/termios
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.15.0
+# github.com/prometheus/common v0.18.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
@@ -932,7 +952,11 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
+<<<<<<< HEAD
 # gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210305070341-c1ed0054aec4
+=======
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210224030339-aadc56ffd8f3
+>>>>>>> dev
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript
@@ -940,8 +964,9 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript/module
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210118023115-6ad5eb4e2791
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210310094024-7d55e6edff38
 gitlab.jiagouyun.com/cloudcare-tools/kodo/config
+gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 gitlab.jiagouyun.com/cloudcare-tools/kodo/models
 gitlab.jiagouyun.com/cloudcare-tools/kodo/utils
 gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg
@@ -1049,7 +1074,11 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
+<<<<<<< HEAD
 # golang.org/x/sys v0.0.0-20210317225723-c4fcb01b228e
+=======
+# golang.org/x/sys v0.0.0-20210316164454-77fc1eacc6aa
+>>>>>>> dev
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
@@ -1086,7 +1115,7 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
+# golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
