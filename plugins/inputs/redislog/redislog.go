@@ -33,6 +33,7 @@ const (
     character_encoding = ""
 
     # The pattern should be a regexp. Note the use of '''this regexp'''
+    # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
     match = '''^\S.*'''
 
     [inputs.tailf.tags]
@@ -46,7 +47,7 @@ grok(_, "%{INT:pid}:%{WORD:role} %{date2:time} %{NOTSPACE:serverity} %{GREEDYDAT
 group_in(serverity, ["."], "debug", status)
 group_in(serverity, ["-"], "verbose", status)
 group_in(serverity, ["*"], "notice", status)
-group_in(serverity, ["#"], "warnning", status)
+group_in(serverity, ["#"], "warning", status)
 
 cast(pid, "int")
 default_time(time)
