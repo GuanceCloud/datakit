@@ -222,13 +222,13 @@ func (dc *DataWayCfg) HeartBeatURL() string {
 			dc.scheme,
 			dc.host,
 			"/proxy",
-			"category=/v1/heartbeat")
+			"category=/v1/write/heartbeat")
 	}
 
 	return fmt.Sprintf("%s://%s%s?%s",
 		dc.scheme,
 		dc.host,
-		"/v1/v1/heartbeat",
+		"/v1/write/heartbeat",
 		dc.urlValues.Encode())
 }
 
