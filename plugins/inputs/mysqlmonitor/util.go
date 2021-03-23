@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"strings"
 	"strconv"
 )
 
@@ -106,4 +107,37 @@ func ConvertGlobalVariables(key string, value sql.RawBytes) (interface{}, error)
 	}
 
 	return ParseValue(value)
+}
+
+func atof(str string) float64 {
+	str = strings.Replace(str, ",", "", -1)
+	str = strings.Replace(str, ";", "", -1)
+	str = strings.Replace(str, "/s", "", -1)
+	str = strings.Trim(str, " ")
+	val, err := strconv.ParseFloat(str, 64)
+	if err != nil {
+		l.Debugf("Error occurred when parse %s to float. %s", str, err)
+		val = 0
+	}
+	return val
+}
+
+func makeBigint(hi string, lo string) int64 {
+	if lo == "" {
+		val, _ := strconv.ParseInt(hi, 16, 64)
+		return val
+	}
+
+	var hiVal int64
+	var loVal int64
+	if hi != "" {
+		hiVal, _ = strconv.ParseInt(hi, 10, 64)
+	}
+	if lo != "" {
+		loVal, _ = strconv.ParseInt(lo, 10, 64)
+	}
+
+	val := hiVal * loVal
+
+	return val
 }
