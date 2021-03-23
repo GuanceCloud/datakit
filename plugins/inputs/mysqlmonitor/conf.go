@@ -63,6 +63,12 @@ const (
 `
 )
 
+type tls struct {
+	TlsKey                              string			  `toml:"tls_key"`
+	TlsCert                             string			  `toml:"tls_cert"`
+	TlsCA                               string			  `toml:"tls_ca"`
+}
+
 type options struct {
 	Replication             bool     `toml:"replication"`
 	GaleraCluster           bool	 `toml:"galera_cluster"`
@@ -83,16 +89,15 @@ type MysqlMonitor struct {
 	Sock                                string			  `toml:"sock"`
 	Charset                             string			  `toml:"charset"`
 	Timeout                             string			  `toml:"connect_timeout"`
-	TlsKey                              string			  `toml:"tls_key"`
-	TlsCert                             string			  `toml:"tls_cert"`
-	TlsCA                               string			  `toml:"tls_ca"`
+	TimeoutDuration                     time.Duration     `toml:"-"`
+	Tls									*tls			  `toml:"tls"`
 	Service                             string		  	  `toml:"service"`
 	Interval                            string            `toml:"interval"`
 	IntervalDuration                    time.Duration     `toml:"-"`
 	Tags                                map[string]string `toml:"tags"`
 	options                             *options		  `toml:"options"`
 	db               					*sql.DB
-	resData								map[string]*sql.RawBytes
+	resData								map[string]interface{}
 
 	// 测试相关
 	lastT            time.Time
