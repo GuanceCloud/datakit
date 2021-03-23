@@ -1,5 +1,9 @@
 package mysqlmonitor
 
+import (
+	"github.com/spf13/cast"
+)
+
 type MetricType int
 
 const (
@@ -9,442 +13,567 @@ const (
 	MONOTONIC
 )
 
+type parse func(val interface{}) (interface{})
+
+func parseInt(val interface{}) (interface{}) {
+	return cast.ToInt64(val)
+}
+
+func parseMap(val interface{}) (interface{}) {
+	return cast.ToStringMap(val)
+}
+
+func parseStr(val interface{}) (interface{}) {
+	return cast.ToString(val)
+}
+
+func parseFloat64(val interface{}) (interface{}) {
+	return cast.ToFloat64(val)
+}
+
 type MetricItem struct {
-	name string,
-	metricType MetricType,
+	name string
+	metricType MetricType
 	disable bool
+	desc string
+	parse parse
 }
 
 type CollectType struct{
-	metric map[string]*MetricItem,
-	disable bool,
+	metric map[string]*MetricItem
+	disable bool
 }
 
-var metric = map[string]*Metric{
+var metric = map[string]*CollectType{
 	"STATUS_VARS": &CollectType{
-		# Command Metrics
-	    metric: map[string]&MetricItem{
+		// Command Metrics
+	    metric: map[string]*MetricItem{
 	    	"Slow_queries": &MetricItem{
 	    		name: "mysql.performance.slow_queries",
 	    		metricType: RATE,
+	    		parse: parseInt,
+	    		desc: "The number of queries that have taken more than long_query_time seconds. This counter increments regardless of whether the slow query log is enabled. For information about that log, see Section 5.4.5, “The Slow Query Log”.",
 	    	},
 	    	"Questions": &MetricItem{
 	    		name: "mysql.performance.questions",
 	    		metricType: RATE,
+	    		parse: parseInt,
+	    		desc: `The number of statements executed by the server. This includes only statements sent to the server by clients and not statements executed within stored programs, unlike the Queries variable. This variable does not count COM_PING, COM_STATISTICS, COM_STMT_PREPARE, COM_STMT_CLOSE, or COM_STMT_RESET commands`,
 	    	},
 	    	"Queries": &MetricItem{
 	    		name: "mysql.performance.queries",
 	    		metricType: RATE,
+	    		parse: parseInt,
 	    	},
 	    	"Com_select": &MetricItem{
 		    	name: "mysql.performance.com_select",
 		    	metricType: RATE,
+		    	parse: parseInt,
 	    	},
 		    "Com_insert": &MetricItem{
 		    	name: "mysql.performance.com_insert",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Com_update": &MetricItem{
 		    	name: "mysql.performance.com_update",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Com_delete": &MetricItem{
 		    	name: "mysql.performance.com_delete",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Com_replace": &MetricItem{
 		    	name: "mysql.performance.com_replace",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Com_load": &MetricItem{
 		    	name: "mysql.performance.com_load",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Com_insert_select": &MetricItem{
 		    	name: "mysql.performance.com_insert_select",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Com_update_multi": &MetricItem{
 		    	name: "mysql.performance.com_update_multi",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Com_delete_multi": &MetricItem{
 		    	name: "mysql.performance.com_delete_multi",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Com_replace_select": &MetricItem{
 		    	name: "mysql.performance.com_replace_select",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
-		    # Connection Metrics
+		    // Connection Metrics
 		    "Connections": &MetricItem{
 		    	name: "mysql.net.connections",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Max_used_connections": &MetricItem{
 		    	name: "mysql.net.max_connections",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "Aborted_clients": &MetricItem{
 		    	name: "mysql.net.aborted_clients",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Aborted_connects": &MetricItem{
 		    	name: "mysql.net.aborted_connects",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
-		    # Table Cache Metrics
+		    // Table Cache Metrics
 		    "Open_files": &MetricItem{
 		    	name: "mysql.performance.open_files",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "Open_tables": &MetricItem{
 		    	name: "mysql.performance.open_tables",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
-		    # Network Metrics
+		    // Network Metrics
 		    "Bytes_sent": &MetricItem{
 		    	name: "mysql.performance.bytes_sent",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Bytes_received": &MetricItem{
 		    	name: "mysql.performance.bytes_received",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
-		    # Query Cache Metrics
+		    // Query Cache Metrics
 		    "Qcache_hits": &MetricItem{
 		    	name: "mysql.performance.qcache_hits",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Qcache_inserts": &MetricItem{
 		    	name: "mysql.performance.qcache_inserts",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Qcache_lowmem_prunes": &MetricItem{
 		    	name: "mysql.performance.qcache_lowmem_prunes",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
-		    # Table Lock Metrics
+		    // Table Lock Metrics
 		    "Table_locks_waited": &MetricItem{
 		    	name: "mysql.performance.table_locks_waited",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "Table_locks_waited_rate": &MetricItem{
 		    	name: "mysql.performance.table_locks_waited.rate",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
-		    # Temporary Table Metrics
+		    // Temporary Table Metrics
 		    "Created_tmp_tables": &MetricItem{
 		    	name: "mysql.performance.created_tmp_tables",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Created_tmp_disk_tables": &MetricItem{
 		    	name: "mysql.performance.created_tmp_disk_tables",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Created_tmp_files": &MetricItem{
 		    	name: "mysql.performance.created_tmp_files",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
-		    # Thread Metrics
+		    // Thread Metrics
 		    "Threads_connected": &MetricItem{
 		    	name: "mysql.performance.threads_connected",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "Threads_running": &MetricItem{
 		    	name: "mysql.performance.threads_running",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
-		    # MyISAM Metrics
+		    // MyISAM Metrics
 		    "Key_buffer_bytes_unflushed": &MetricItem{
 		    	name: "mysql.myisam.key_buffer_bytes_unflushed",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
+		    	disable: true,
 		    },
 		    "Key_buffer_bytes_used": &MetricItem{
 		    	name: "mysql.myisam.key_buffer_bytes_used",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
+		    	disable: true,
 		    },
 		    "Key_read_requests": &MetricItem{
 		    	name: "mysql.myisam.key_read_requests",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Key_reads": &MetricItem{
 		    	name: "mysql.myisam.key_reads",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Key_write_requests": &MetricItem{
 		    	name: "mysql.myisam.key_write_requests",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Key_writes": &MetricItem{
 		    	name: "mysql.myisam.key_writes",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		},
-		disable: false,
+		disable: true,
 	},
 	"VARIABLES_VARS": &CollectType{
-		metric: map[string]&MetricItem{
+		metric: map[string]*MetricItem{
 			"Key_buffer_size": &MetricItem{
 				name: "mysql.myisam.key_buffer_size",
 				metricType: GAUGE,
+				parse: parseInt,
+				disable: true,
+				desc: "myisam (todo)",
 			},
 		    "Key_cache_utilization": &MetricItem{
 		    	name: "mysql.performance.key_cache_utilization",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
+		    	disable: true,
+		    	desc: "需要计算",
 		    },
 		    "max_connections": &MetricItem{
 		    	name: "mysql.net.max_connections_available",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "query_cache_size": &MetricItem{
 		    	name: "mysql.performance.qcache_size",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "table_open_cache": &MetricItem{
 		    	name: "mysql.performance.table_open_cache",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "thread_cache_size": &MetricItem{
 		    	name: "mysql.performance.thread_cache_size",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		},
-		disable: true,
+		disable: false,
 	},
 	"INNODB_VARS": &CollectType{
-		metric: map[string]&MetricItem{
+		metric: map[string]*MetricItem{
 			"Innodb_data_reads": &MetricItem{
 				name: "mysql.innodb.data_reads",
 				metricType: RATE,
+				parse: parseStr,
 			},
 		    "Innodb_data_writes": &MetricItem{
 		    	name: "mysql.innodb.data_writes",
 		    	metricType: RATE,
+		    	parse: parseStr,
 		    },
 		    "Innodb_os_log_fsyncs": &MetricItem{
 		    	name: "mysql.innodb.os_log_fsyncs",
 		    	metricType: RATE,
+		    	parse: parseStr,
 		    },
 		    "Innodb_mutex_spin_waits": &MetricItem{
 		    	name: "mysql.innodb.mutex_spin_waits",
 		    	metricType: RATE,
+		    	parse: parseStr,
 		    },
 		    "Innodb_mutex_spin_rounds": &MetricItem{
 		    	name: "mysql.innodb.mutex_spin_rounds",
 		    	metricType: RATE,
+				parse: parseStr,
 		    },
 		    "Innodb_mutex_os_waits": &MetricItem{
 		    	name: "mysql.innodb.mutex_os_waits",
 		    	metricType: RATE,
+				parse: parseStr,
 		    },
 		    "Innodb_row_lock_waits": &MetricItem{
 		    	name: "mysql.innodb.row_lock_waits",
 		    	metricType: RATE,
+				parse: parseStr,
 		    },
 		    "Innodb_row_lock_time": &MetricItem{
 		    	name: "mysql.innodb.row_lock_time",
 		    	metricType: RATE,
+				parse: parseStr,
 		    },
 		    "Innodb_row_lock_current_waits": &MetricItem{
 		    	name: "mysql.innodb.row_lock_current_waits",
 		    	metricType: GAUGE,
+				parse: parseStr,
 		    },
 		    "Innodb_current_row_locks": &MetricItem{
 		    	name: "mysql.innodb.current_row_locks",
 		    	metricType: GAUGE,
+				parse: parseStr,
 		    },
 		    "Innodb_buffer_pool_bytes_dirty": &MetricItem{
 		    	name: "mysql.innodb.buffer_pool_dirty",
 		    	metricType: GAUGE,
+				parse: parseStr,
 		    },
 		    "Innodb_buffer_pool_bytes_free": &MetricItem{
 		    	name: "mysql.innodb.buffer_pool_free",
 		    	metricType: GAUGE,
+				parse: parseStr,
 		    },
 		    "Innodb_buffer_pool_bytes_used": &MetricItem{
 		    	name: "mysql.innodb.buffer_pool_used",
 		    	metricType: GAUGE,
+				parse: parseStr,
 		    },
 		    "Innodb_buffer_pool_bytes_total": &MetricItem{
 		    	name: "mysql.innodb.buffer_pool_total",
 		    	metricType: GAUGE,
+				parse: parseStr,
 		    },
 		    "Innodb_buffer_pool_read_requests": &MetricItem{
 		    	name: "mysql.innodb.buffer_pool_read_requests",
 		    	metricType: RATE,
+				parse: parseStr,
 		    },
 		    "Innodb_buffer_pool_reads": &MetricItem{
 		    	name: "mysql.innodb.buffer_pool_reads",
 		    	metricType: RATE,
+				parse: parseStr,
 		    },
 		    "Innodb_buffer_pool_pages_utilization": &MetricItem{
 		    	name: "mysql.innodb.buffer_pool_utilization",
 		    	metricType: GAUGE,
+				parse: parseStr,
 		    },
 		},
-		disable: true,
+		disable: false,
 	},
 	"BINLOG_VARS": &CollectType{
-		metric: map[string]&MetricItem{
+		metric: map[string]*MetricItem{
 			"Binlog_space_usage_bytes": &MetricItem{
 				name: "mysql.binlog.disk_use",
 				metricType: GAUGE,
+				parse: parseInt,
 			},
-			disable: true,
 		},
+		disable: false,
 	},
 	"OPTIONAL_STATUS_VARS": &CollectType{
-		metric: map[string]&MetricItem{
+		metric: map[string]*MetricItem{
 			"Binlog_cache_disk_use": &MetricItem{
 				name: "mysql.binlog.cache_disk_use",
-				metricType: GAUGE
+				metricType: GAUGE,
+				parse: parseInt,
 			},
 		    "Binlog_cache_use": &MetricItem{
 		    	name: "mysql.binlog.cache_use",
-		    	metricType: GAUGE
+		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "Handler_commit": &MetricItem{
 		    	name: "mysql.performance.handler_commit",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Handler_delete": &MetricItem{
 		    	name: "mysql.performance.handler_delete",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Handler_prepare": &MetricItem{
 		    	name: "mysql.performance.handler_prepare",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Handler_read_first": &MetricItem{
 		    	name: "mysql.performance.handler_read_first",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Handler_read_key": &MetricItem{
 		    	name: "mysql.performance.handler_read_key",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Handler_read_next": &MetricItem{
 		    	name: "mysql.performance.handler_read_next",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Handler_read_prev": &MetricItem{
 		    	name: "mysql.performance.handler_read_prev",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Handler_read_rnd": &MetricItem{
 		    	name: "mysql.performance.handler_read_rnd",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Handler_read_rnd_next": &MetricItem{
 		    	name: "mysql.performance.handler_read_rnd_next",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Handler_rollback": &MetricItem{
 		    	name: "mysql.performance.handler_rollback",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Handler_update": &MetricItem{
 		    	name: "mysql.performance.handler_update",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Handler_write": &MetricItem{
 		    	name: "mysql.performance.handler_write",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Opened_tables": &MetricItem{
 		    	name: "mysql.performance.opened_tables",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Qcache_total_blocks": &MetricItem{
 		    	name: "mysql.performance.qcache_total_blocks",
-		    	metricType: GAUGE
+		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "Qcache_free_blocks": &MetricItem{
 		    	name: "mysql.performance.qcache_free_blocks",
-		    	metricType: GAUGE
+		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "Qcache_free_memory": &MetricItem{
 		    	name: "mysql.performance.qcache_free_memory",
-		    	metricType: GAUGE
+		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "Qcache_not_cached": &MetricItem{
 		    	name: "mysql.performance.qcache_not_cached",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Qcache_queries_in_cache": &MetricItem{
 		    	name: "mysql.performance.qcache_queries_in_cache",
-		    	metricType: GAUGE
+		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "Select_full_join": &MetricItem{
 		    	name: "mysql.performance.select_full_join",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Select_full_range_join": &MetricItem{
 		    	name: "mysql.performance.select_full_range_join",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Select_range": &MetricItem{
 		    	name: "mysql.performance.select_range",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Select_range_check": &MetricItem{
 		    	name: "mysql.performance.select_range_check",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Select_scan": &MetricItem{
 		    	name: "mysql.performance.select_scan",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Sort_merge_passes": &MetricItem{
 		    	name: "mysql.performance.sort_merge_passes",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Sort_range": &MetricItem{
 		    	name: "mysql.performance.sort_range",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Sort_rows": &MetricItem{
 		    	name: "mysql.performance.sort_rows",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Sort_scan": &MetricItem{
 		    	name: "mysql.performance.sort_scan",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Table_locks_immediate": &MetricItem{
 		    	name: "mysql.performance.table_locks_immediate",
-		    	metricType: GAUGE
+		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "Table_locks_immediate_rate": &MetricItem{
 		    	name: "mysql.performance.table_locks_immediate.rate",
-		    	metricType: RATE
+		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Threads_cached": &MetricItem{
 		    	name: "mysql.performance.threads_cached",
-		    	metricType: GAUGE
+		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		    "Threads_created": &MetricItem{
 		    	name: "mysql.performance.threads_created",
-		    	metricType: MONOTONIC
+		    	metricType: MONOTONIC,
+		    	parse: parseInt,
 		    },
 		},
 	    disable: true,
+	},
 	"OPTIONAL_STATUS_VARS_5_6_6": &CollectType{
-		metric: map[string]&MetricItem{
+		metric: map[string]*MetricItem{
 		    "Table_open_cache_hits": &MetricItem{
 		    	name: "mysql.performance.table_cache_hits",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		    "Table_open_cache_misses": &MetricItem{
 		    	name: "mysql.performance.table_cache_misses",
 		    	metricType: RATE,
+		    	parse: parseInt,
 		    },
 		},
-	    disable: true,
+	    disable: false,
 	},
-	"OPTIONAL_INNODB_VARS": {
-		metric: map[string]&MetricItem{
+	"OPTIONAL_INNODB_VARS": &CollectType{
+		metric: map[string]*MetricItem{
 		    "Innodb_active_transactions": &MetricItem{
 		    	name: "mysql.innodb.active_transactions",
 		    	metricType: GAUGE,
@@ -789,7 +918,7 @@ var metric = map[string]*Metric{
 	    disable: true,
 	},
 	"GALERA_VARS": &CollectType{
-		metric: map[string]&MetricItem{
+		metric: map[string]*MetricItem{
 			"wsrep_cluster_size": &MetricItem{
 		    	name: "mysql.galera.wsrep_cluster_size",
 		    	metricType: GAUGE,
@@ -826,29 +955,32 @@ var metric = map[string]*Metric{
 		disable: true,
 	},
 	"PERFORMANCE_VARS": &CollectType{
-		metric: map[string]&MetricItem{
+		metric: map[string]*MetricItem{
 			"query_run_time_avg": &MetricItem{
-		    	name: "mysql.performance.query_run_time.avg",
+		    	name: "mysql.performance.query_run_time.avg.%s",
 		    	metricType: GAUGE,
+		    	parse: parseMap,
 		    },
 		    "perf_digest_95th_percentile_avg_us": &MetricItem{
 		    	name: "mysql.performance.digest_95th_percentile.avg_us",
 		    	metricType: GAUGE,
+		    	parse: parseInt,
 		    },
 		},
-		disable: true,
+		disable: false,
 	},
-	"SCHEMA_VARS": {
-		metric: map[string]&MetricItem{
+	"SCHEMA_VARS": &CollectType{
+		metric: map[string]*MetricItem{
 			"information_schema_size": &MetricItem{
-				name: "mysql.info.schema.size",
+				name: "mysql.info.schema:%s.size",
 				metricType: GAUGE,
+				parse: parseMap,
 			},
 		},
-		disable: true,
+		disable: false,
 	},
-	"REPLICA_VARS": {
-		metric: map[string]&MetricItem{
+	"REPLICA_VARS": &CollectType{
+		metric: map[string]*MetricItem{
 			"Seconds_Behind_Master": &MetricItem{
 	    		name: "mysql.replication.seconds_behind_master",
 	    		metricType: GAUGE,
