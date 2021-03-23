@@ -138,8 +138,18 @@ var datePattern = []struct {
 	},
 }
 
-func TimestampHandle(value string) (int64, error) {
-	t, err := dateparse.ParseLocal(value)
+func TimestampHandle(value, tz string) (int64, error) {
+	var t time.Time
+	var err error
+	var timezone = time.Local
+
+	if tz != "" {
+		timezone, err = time.LoadLocation(tz)
+	}
+
+	if err == nil {
+		t, err = dateparse.ParseIn(value, timezone)
+	}
 
 	if err != nil {
 		for _, p := range datePattern {
@@ -163,7 +173,7 @@ func TimestampHandle(value string) (int64, error) {
 			}
 		}
 	} else {
-		l.Debugf("parse `%s' -> %d", value, t.UnixNano())
+		l.Debugf("parse `%s' -> %v(nano: %d)", value, t, t.UnixNano())
 	}
 
 	unix_time := t.UnixNano()
