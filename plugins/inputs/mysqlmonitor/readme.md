@@ -57,6 +57,7 @@ mysql指标采集，参考datadog提供的指标，提供默认指标收集和�
     ## ca: Path to a CA bundle file.
     #
     ## Optional TLS Config
+    # [inputs.mysqlMonitor.tls]
     # tls_key = "/tmp/peer.key"
     # tls_cert = "/tmp/peer.crt"
     # tls_ca = "/tmp/ca.crt"
