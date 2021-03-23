@@ -41,20 +41,22 @@ type TraceAdapter struct {
 	Start   int64
 	Content string
 
-	Project       string
-	Version       string
-	Env           string
-	ServiceName   string
-	OperationName string
-	Resource      string
-	ParentID      string
-	TraceID       string
-	SpanID        string
-	Status        string
-	SpanType      string
-	EndPoint      string
-	Type          string
-	Pid           string
+	Project        string
+	Version        string
+	Env            string
+	ServiceName    string
+	OperationName  string
+	Resource       string
+	ParentID       string
+	TraceID        string
+	SpanID         string
+	Status         string
+	SpanType       string
+	EndPoint       string
+	Type           string
+	Pid            string
+	HttpMethod     string
+	HttpStatusCode string
 
 	Tags map[string]string
 }
@@ -98,6 +100,8 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags["span_id"] = tAdpt.SpanID
 	tags["version"] = tAdpt.Version
 	tags["env"] = tAdpt.Env
+	tags["http_method"] = tAdpt.HttpMethod
+	tags["http_status_code"] = tAdpt.HttpStatusCode
 
 	if tAdpt.Type != "" {
 		tags["type"] = tAdpt.Type
