@@ -8,6 +8,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 var (
@@ -64,7 +65,10 @@ func (s *ClientStat) ToMetric() *influxdb.Point {
 		"heap_objects":   s.HeapObjects,
 	}
 
-	m, _ := influxdb.NewPoint(measurement, tags, fields, time.Now().UTC())
+	pt, err := io.MakeMetric(measurement, tags, fields)
+	if err != nil {
+		l.Error(err)
+	}
 
-	return m
+	return pt
 }
