@@ -54,7 +54,7 @@ func getDataWayCfg() *datakit.DataWayCfg {
 	if DataWayHTTP == "" {
 		for {
 			dwhttp := readInput("Please set DataWay HTTP URL(http[s]://host:port?token=xxx) > ")
-			dc, err = datakit.ParseDataway(dwhttp, "")
+			dc, err = datakit.ParseDataway(dwhttp)
 			if err != nil {
 				fmt.Printf("%s\n", err.Error())
 				continue
@@ -67,7 +67,7 @@ func getDataWayCfg() *datakit.DataWayCfg {
 
 		}
 	} else {
-		dc, err = datakit.ParseDataway(DataWayHTTP, DataWayWsPort)
+		dc, err = datakit.ParseDataway(DataWayHTTP)
 		if err != nil {
 			l.Fatal(err)
 		}
@@ -148,7 +148,7 @@ func updateLagacyConfig(dir string) {
 	// split origin ftdataway into dataway object
 	var dwcfg *datakit.DataWayCfg
 	if maincfg.DeprecatedFtGateway != "" {
-		if dwcfg, err = datakit.ParseDataway(maincfg.DeprecatedFtGateway, ""); err != nil {
+		if dwcfg, err = datakit.ParseDataway(maincfg.DeprecatedFtGateway); err != nil {
 			l.Fatal(err)
 		} else {
 			maincfg.DeprecatedFtGateway = "" // deprecated
