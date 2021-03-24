@@ -943,6 +943,7 @@ func GetKeyConfig(wsuid, keycode string) (*KeyConfig, error) {
 	err := Stmts[`qKeyConfig`].QueryRow(wsuid, keycode, StatusOK).Scan(&uuid, &value)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			l.Errorf(`%s`, err.Error())
 			return nil, utils.ErrKeyConfigNotFound
 		} else {
 			l.Errorf("DB Error %s, %+#v", err.Error(), DB.Stats())
@@ -954,15 +955,61 @@ func GetKeyConfig(wsuid, keycode string) (*KeyConfig, error) {
 		UUID:    uuid,
 		WsUUID:  wsuid,
 		KeyCode: keycode,
-		Value:   value,
+		Value:   utils.DecipherByAES(value, config.C.Secret.EncryptKey),
 	}, nil
+
+}
+
+func GetKeyConfigs(wsuid string, keycodes []string) ([]*KeyConfig, error) {
+	kcs := []string{}
+	kcvs := []interface{}{}
+	kcvs = append(kcvs, wsuid)
+	kcvs = append(kcvs, StatusOK)
+	for _, kc := range keycodes {
+		kcs = append(kcs, `?`)
+		kcvs = append(kcvs, kc)
+	}
+
+	sqlstr := `SELECT uuid, value, keycode FROM main_key_config WHERE workspaceUUID=? AND status=? AND keyCode IN (` + strings.Join(kcs, `,`) + `)`
+	stmt, err := DB.Prepare(sqlstr)
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return nil, err
+	}
+
+	defer stmt.Close()
+
+	res := []*KeyConfig{}
+	rows, err := stmt.Query(kcvs...)
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return nil, err
+	}
+
+	for rows.Next() {
+		var value, uuid, keycode string
+		if err := rows.Scan(&uuid, &value, &keycode); err != nil {
+			l.Errorf("%s", err.Error())
+			return nil, err
+		}
+
+		res = append(res, &KeyConfig{
+			UUID:    uuid,
+			WsUUID:  wsuid,
+			KeyCode: keycode,
+			Value:   utils.DecipherByAES(value, config.C.Secret.EncryptKey),
+		})
+	}
+
+	return res, nil
 
 }
 
 func UpdateKeyConfigValue(kc KeyConfig) error {
 
+	value := utils.CipherByAES(kc.Value, config.C.Secret.EncryptKey)
 	now := time.Now().Unix()
-	if _, err := Stmts[`uKeyConfig`].Exec(kc.Value, now, kc.WsUUID, kc.KeyCode); err != nil {
+	if _, err := Stmts[`uKeyConfig`].Exec(value, now, kc.WsUUID, kc.KeyCode); err != nil {
 		l.Errorf("%s, ignored", err.Error())
 		return err
 	}
@@ -1043,9 +1090,10 @@ func CreateDialtestingAK(owner string) (*DialTestingAkInfo, error) {
 
 func NewKeyConfig(kc KeyConfig) error {
 
+	value := utils.CipherByAES(kc.Value, config.C.Secret.EncryptKey)
 	now := time.Now().Unix()
-	//uuid,workspaceUUID,keyCode,value,description,status,createAt
-	if _, err := Stmts[`iKeyConfig`].Exec(kc.UUID, kc.WsUUID, kc.KeyCode, kc.Value, kc.Desp, StatusOK, now); err != nil {
+
+	if _, err := Stmts[`iKeyConfig`].Exec(kc.UUID, kc.WsUUID, kc.KeyCode, value, kc.Desp, StatusOK, now); err != nil {
 		l.Errorf("%s, ignored", err.Error())
 		return err
 	}
