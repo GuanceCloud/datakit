@@ -125,17 +125,27 @@ func (x *IO) doFeed(pts []*influxdb.Point, category, name string, opt *Option) e
 		ch = x.in2
 	}
 
-	if opt == nil {
-		select {
-		case ch <- &iodata{
-			category: category,
-			pts:      pts,
-			name:     name,
-			opt:      opt,
-		}:
-		case <-datakit.Exit.Wait():
-			l.Warnf("%s/%s feed skipped on global exit", category, name)
-		}
+	switch category {
+	case MetricDeprecated:
+	case Metric:
+	case KeyEvent:
+	case Object:
+	case Logging:
+	case Tracing:
+	case Rum:
+	default:
+		return fmt.Errorf("invalid category `%s'", category)
+	}
+
+	select {
+	case ch <- &iodata{
+		category: category,
+		pts:      pts,
+		name:     name,
+		opt:      opt,
+	}:
+	case <-datakit.Exit.Wait():
+		l.Warnf("%s/%s feed skipped on global exit", category, name)
 	}
 
 	return nil
@@ -207,11 +217,11 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		return
 	}
 
-	l.Debugf("get iodata(%d bytes) from %s|%s", len(d.pts), d.category, d.name)
+	l.Debugf("get iodata(%d points) from %s|%s", len(d.pts), d.category, d.name)
 
 	x.updateStats(d)
 
-	if d.opt.HTTPHost != "" {
+	if d.opt != nil && d.opt.HTTPHost != "" {
 		x.dynamicCache = append(x.dynamicCache, d)
 	} else {
 		x.cache[d.category] = append(x.cache[d.category], d.pts...)
@@ -225,6 +235,11 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 }
 
 func (x *IO) cleanHighFreqIOData() {
+
+	if len(x.in2) > 0 {
+		l.Debugf("cleanning %d cache on high-freq-chan", len(x.in2))
+	}
+
 	for {
 		select {
 		case d := <-x.in2: // eat all cached data
@@ -438,7 +453,7 @@ func (x *IO) doFlush(pts []*influxdb.Point, url string) error {
 
 	resp, err := x.httpCli.Do(req)
 	if err != nil {
-		l.Error(err)
+		l.Errorf("request url %s failed: %s", url, err)
 		return err
 	}
 
