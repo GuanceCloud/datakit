@@ -6,7 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 	influxm "github.com/influxdata/influxdb1-client/models"
 
+	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -30,7 +32,11 @@ func apiWriteMetric(c *gin.Context) {
 		return
 	}
 
-	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), precision)
+	pts, err := lp.ParsePoints(body, &lp.Option{
+		ExtraTags: datakit.Cfg.MainCfg.GlobalTags,
+		Strict:    true,
+		Precision: precision})
+
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
@@ -38,9 +44,7 @@ func apiWriteMetric(c *gin.Context) {
 
 	l.Debugf("received metric %d points from %s", len(pts), name)
 
-	// TODO: add global tags
-
-	if err = io.NamedFeed(body, io.Metric, name); err != nil {
+	if err = io.Feed(io.Metric, name, nil, pts...); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
