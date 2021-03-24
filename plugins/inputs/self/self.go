@@ -13,7 +13,7 @@ import (
 
 var (
 	inputName = "self"
-	l         *logger.Logger
+	l         = logger.DefaultSLogger("self")
 )
 
 type SelfInfo struct {
@@ -48,8 +48,8 @@ func (s *SelfInfo) Run() {
 			return
 		case <-tick.C:
 			s.stat.Update()
-			statMetric := s.stat.ToMetric()
-			io.NamedFeed([]byte(statMetric.String()), io.Metric, inputName)
+			pt := s.stat.ToMetric()
+			_ = io.Feed(inputName, io.Metric, nil, pt)
 		}
 	}
 }
