@@ -45,6 +45,8 @@ func Start() error {
 		defaultIO.startIO(true)
 	}()
 
+	l.Debugf("io: %+#v", defaultIO)
+
 	return nil
 }
 
