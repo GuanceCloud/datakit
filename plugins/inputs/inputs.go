@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/influxdata/toml"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -42,7 +43,6 @@ type Input interface {
 	Catalog() string
 	Run()
 	SampleConfig() string
-	Test() (*TestResult, error)
 
 	// add more...
 }
