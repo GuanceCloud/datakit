@@ -145,7 +145,6 @@ type MainConfig struct {
 	WhiteList []*InputHostList `toml:"white_lists,omitempty"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
-	DisableWebsocket      bool `toml:"disable_websocket,omitempty"`
 }
 
 type InputHostList struct {
