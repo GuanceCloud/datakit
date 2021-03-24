@@ -22,7 +22,11 @@ func (i *Demo) Run() {
 	tick := time.NewTicker(time.Second * 3)
 	defer tick.Stop()
 
+	n := 0
+
 	for {
+
+		n++
 
 		select {
 		case <-tick.C:
@@ -45,7 +49,7 @@ func (i *Demo) Run() {
 				l.Error(err)
 			} else {
 				time.Sleep(time.Second)
-				io.Feed(io.Metric, "demo", &io.Option{CollectCost: time.Since(start)}, pt)
+				io.Feed("demo", io.Metric, &io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)}, pt)
 			}
 
 		case <-datakit.Exit.Wait():
