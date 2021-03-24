@@ -28,7 +28,7 @@ func (i *Demo) Run() {
 		case <-tick.C:
 			l.Debugf("demo input gathering...")
 			start := time.Now()
-			data, err := io.MakeMetric("demo",
+			pt, err := io.MakeMetric("demo",
 				map[string]string{
 					"tag_a": "a",
 					"tag_b": "b",
@@ -45,7 +45,7 @@ func (i *Demo) Run() {
 				l.Error(err)
 			} else {
 				time.Sleep(time.Second)
-				io.Feed(data, io.Metric, "demo", &io.Option{CollectCost: time.Since(start)})
+				io.Feed(io.Metric, "demo", &io.Option{CollectCost: time.Since(start)}, pt)
 			}
 
 		case <-datakit.Exit.Wait():
@@ -55,9 +55,8 @@ func (i *Demo) Run() {
 	}
 }
 
-func (i *Demo) Catalog() string                   { return "testing" }
-func (i *Demo) SampleConfig() string              { return "[inputs.demo]" }
-func (a *Demo) Test() (*inputs.TestResult, error) { return nil, nil }
+func (i *Demo) Catalog() string      { return "testing" }
+func (i *Demo) SampleConfig() string { return "[inputs.demo]" }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
