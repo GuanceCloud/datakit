@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"net/http"
 	"os"
-	"reflect"
+	"strings"
 	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
-	ifxcli "github.com/influxdata/influxdb1-client/v2"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -49,7 +48,7 @@ type IO struct {
 	inputstats map[string]*InputsStat
 	qstatsCh   chan *qstats
 
-	cache        map[string][][]byte
+	cache        map[string][]*influxdb.Point
 	dynamicCache []*iodata
 
 	cacheCnt       int64
@@ -70,7 +69,7 @@ func NewIO() *IO {
 		inputstats: map[string]*InputsStat{},
 		qstatsCh:   make(chan *qstats), // blocking
 
-		cache:        map[string][][]byte{},
+		cache:        map[string][]*influxdb.Point{},
 		dynamicCache: []*iodata{},
 	}
 }
@@ -90,7 +89,7 @@ const ( // categories
 type iodata struct {
 	category, name string
 	opt            *Option
-	data           []byte // line-protocol or json or others
+	pts            []*influxdb.Point
 	url            string
 	isProxy        bool
 }
@@ -118,19 +117,7 @@ func SetTest() {
 	testAssert = true
 }
 
-func (x *IO) doFeed(data []byte, category, name string, opt *Option) error {
-
-	switch category {
-	case Metric, KeyEvent, Object, Logging, Tracing:
-		// metric line check
-		if err := x.checkMetric(data); err != nil {
-			return fmt.Errorf("invalid line protocol data %v", err)
-		}
-	case Rum: // do not check RUM data structure, too complecated
-
-	default:
-		return fmt.Errorf("invalid category %s", category)
-	}
+func (x *IO) doFeed(pts []*influxdb.Point, category, name string, opt *Option) error {
 
 	ch := x.in
 
@@ -142,7 +129,7 @@ func (x *IO) doFeed(data []byte, category, name string, opt *Option) error {
 		select {
 		case ch <- &iodata{
 			category: category,
-			data:     data,
+			pts:      pts,
 			name:     name,
 			opt:      opt,
 		}:
@@ -167,60 +154,6 @@ func (x *IO) checkMetric(data []byte) error {
 	return err
 }
 
-func MakeMetric(name string, tags map[string]string,
-	fields map[string]interface{}, t ...time.Time) ([]byte, error) {
-
-	var tm time.Time
-	if len(t) > 0 {
-		tm = t[0]
-	} else {
-		tm = time.Now().UTC()
-	}
-
-	if len(datakit.Cfg.MainCfg.GlobalTags) > 0 {
-		if tags == nil {
-			tags = map[string]string{}
-		}
-
-		for k, v := range datakit.Cfg.MainCfg.GlobalTags {
-			if _, ok := tags[k]; !ok { // do not overwrite exists tags
-				tags[k] = v
-			}
-		}
-	}
-
-	for k, v := range tags { // remove any suffix `\` in all tag values
-		tags[k] = datakit.TrimSuffixAll(v, `\`)
-	}
-
-	for k, v := range fields { // convert uint to int
-		switch v.(type) {
-		case uint64:
-			if v.(uint64) > uint64(math.MaxInt64) {
-				l.Warnf("on input `%s', filed %s, get uint64 %d > MaxInt64(%d), dropped", name, k, v.(uint64), uint64(math.MaxInt64))
-				delete(fields, k)
-			} else { // convert uint64 -> int64
-				fields[k] = int64(v.(uint64))
-			}
-		case uint32, uint16, uint8,
-			int, int8, int16, int32, int64,
-			bool,
-			string,
-			float32, float64:
-		default:
-			l.Errorf("invalid filed type `%s', from `%s', on filed `%s', got value `%+#v'",
-				reflect.TypeOf(v).String(), name, k, fields[k])
-			return nil, fmt.Errorf("invalid field type")
-		}
-	}
-
-	pt, err := ifxcli.NewPoint(name, tags, fields, tm)
-	if err != nil {
-		return nil, err
-	}
-	return []byte(pt.String()), nil
-}
-
 func (x *IO) ioStop() {
 	if x.fd != nil {
 		if err := x.fd.Close(); err != nil {
@@ -237,7 +170,7 @@ func (x *IO) updateStats(d *iodata) {
 		stat := &InputsStat{
 			Name:     d.name,
 			Category: d.category,
-			Total:    int64(len(d.data)),
+			Total:    int64(len(d.pts)),
 			First:    now,
 			Count:    1,
 			Last:     now,
@@ -249,7 +182,7 @@ func (x *IO) updateStats(d *iodata) {
 		}
 		x.inputstats[d.name] = stat
 	} else {
-		stat.Total += int64(len(d.data))
+		stat.Total += int64(len(d.pts))
 		stat.Count++
 		stat.Last = now
 		stat.Category = d.category
@@ -274,14 +207,14 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		return
 	}
 
-	l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
+	l.Debugf("get iodata(%d bytes) from %s|%s", len(d.pts), d.category, d.name)
 
 	x.updateStats(d)
 
 	if d.opt.HTTPHost != "" {
 		x.dynamicCache = append(x.dynamicCache, d)
 	} else {
-		x.cache[d.category] = append(x.cache[d.category], d.data)
+		x.cache[d.category] = append(x.cache[d.category], d.pts...)
 	}
 
 	x.cacheCnt++
@@ -435,14 +368,14 @@ func (x *IO) flush() {
 	// flush dynamic cache: __not__ post to default dataway
 	left := []*iodata{}
 	for _, v := range x.dynamicCache {
-		if err := x.doFlush([][]byte{v.data}, v.url); err != nil {
-			l.Errorf("post %d to %s failed", len(v.data), v.url)
+		if err := x.doFlush(v.pts, v.url); err != nil {
+			l.Errorf("post %d to %s failed", len(v.pts), v.url)
 			left = append(left, v)
 			continue
 		}
 
-		if len(v.data) > 0 {
-			x.cacheCnt -= int64(len(v.data))
+		if len(v.pts) > 0 {
+			x.cacheCnt -= int64(len(v.pts))
 		}
 	}
 
@@ -451,30 +384,38 @@ func (x *IO) flush() {
 	x.dynamicCache = left
 }
 
-func buildBody(bodies [][]byte) (body []byte, gzon bool, err error) {
-	body = bytes.Join(bodies, []byte("\n"))
-	if len(body) > minGZSize && datakit.OutputFile == "" { // should not gzip on file output
-		if body, err = datakit.GZip(body); err != nil {
+func (x *IO) buildBody(pts []*influxdb.Point) (body []byte, gzon bool, err error) {
+
+	lines := []string{}
+	for _, pt := range pts {
+		lines = append(lines, pt.String())
+	}
+
+	raw := strings.Join(lines, "\n")
+	if len(raw) > minGZSize && x.OutputFile == "" { // should not gzip on file output
+		if body, err = datakit.GZipStr(raw); err != nil {
 			l.Errorf("gz: %s", err.Error())
 			return
 		}
 		gzon = true
+	} else {
+		body = []byte(raw)
 	}
 
 	return
 }
 
-func (x *IO) doFlush(bodies [][]byte, url string) error {
+func (x *IO) doFlush(pts []*influxdb.Point, url string) error {
 
 	if testAssert {
 		return nil
 	}
 
-	if bodies == nil {
+	if pts == nil {
 		return nil
 	}
 
-	body, gz, err := buildBody(bodies)
+	body, gz, err := x.buildBody(pts)
 	if err != nil {
 		return err
 	}
