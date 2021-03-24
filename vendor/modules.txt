@@ -127,7 +127,7 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/slb
 github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
-# github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible
+# github.com/aliyun/aliyun-oss-go-sdk v2.1.7+incompatible
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/andygrunwald/go-jira v1.12.0
 github.com/andygrunwald/go-jira
@@ -400,13 +400,9 @@ github.com/godror/godror
 github.com/godror/godror/odpi/embed
 github.com/godror/godror/odpi/include
 github.com/godror/godror/odpi/src
-<<<<<<< HEAD
-# github.com/gofrs/uuid v3.2.0+incompatible
-=======
 # github.com/gofrs/flock v0.8.0
 github.com/gofrs/flock
-# github.com/gofrs/uuid v2.1.0+incompatible
->>>>>>> dev
+# github.com/gofrs/uuid v3.2.0+incompatible
 github.com/gofrs/uuid
 # github.com/gogo/googleapis v1.4.0
 github.com/gogo/googleapis/google/rpc
@@ -422,7 +418,7 @@ github.com/golang-sql/civil
 github.com/golang/glog
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 github.com/golang/groupcache/lru
-# github.com/golang/protobuf v1.4.3
+# github.com/golang/protobuf v1.5.1
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
@@ -483,27 +479,12 @@ github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1/region
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/region
-<<<<<<< HEAD
-github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2
-github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/model
-github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/region
-github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3
-github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/model
-github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/region
-github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3
-github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/model
-github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/region
-github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2
-github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/model
-github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/region
-=======
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/region
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1/region
->>>>>>> dev
 # github.com/influxdata/go-syslog/v2 v2.0.1
 github.com/influxdata/go-syslog/v2
 github.com/influxdata/go-syslog/v2/common
@@ -793,7 +774,7 @@ github.com/pkg/term/termios
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.18.0
+# github.com/prometheus/common v0.20.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
@@ -952,19 +933,16 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-<<<<<<< HEAD
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210305070341-c1ed0054aec4
-=======
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210224030339-aadc56ffd8f3
->>>>>>> dev
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210324073926-757534a0db91
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript/module
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210310094024-7d55e6edff38
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210324054101-fdb22dffb394
 gitlab.jiagouyun.com/cloudcare-tools/kodo/config
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 gitlab.jiagouyun.com/cloudcare-tools/kodo/models
@@ -1074,11 +1052,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-<<<<<<< HEAD
 # golang.org/x/sys v0.0.0-20210317225723-c4fcb01b228e
-=======
-# golang.org/x/sys v0.0.0-20210316164454-77fc1eacc6aa
->>>>>>> dev
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
@@ -1170,7 +1144,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.25.0
+# google.golang.org/protobuf v1.26.0
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
@@ -1181,22 +1155,23 @@ google.golang.org/protobuf/internal/encoding/messageset
 google.golang.org/protobuf/internal/encoding/tag
 google.golang.org/protobuf/internal/encoding/text
 google.golang.org/protobuf/internal/errors
-google.golang.org/protobuf/internal/fieldsort
 google.golang.org/protobuf/internal/filedesc
 google.golang.org/protobuf/internal/filetype
 google.golang.org/protobuf/internal/flags
 google.golang.org/protobuf/internal/genid
 google.golang.org/protobuf/internal/impl
-google.golang.org/protobuf/internal/mapsort
+google.golang.org/protobuf/internal/order
 google.golang.org/protobuf/internal/pragma
 google.golang.org/protobuf/internal/set
 google.golang.org/protobuf/internal/strs
 google.golang.org/protobuf/internal/version
 google.golang.org/protobuf/proto
+google.golang.org/protobuf/reflect/protodesc
 google.golang.org/protobuf/reflect/protoreflect
 google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
+google.golang.org/protobuf/types/descriptorpb
 google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/timestamppb
