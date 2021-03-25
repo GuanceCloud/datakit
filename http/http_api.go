@@ -44,7 +44,7 @@ func apiWriteMetric(c *gin.Context) {
 
 	l.Debugf("received metric %d points from %s", len(pts), name)
 
-	if err = io.Feed(io.Metric, name, nil, pts...); err != nil {
+	if err = io.Feed(io.Metric, name, pts, nil); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}

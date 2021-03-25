@@ -85,7 +85,7 @@ func ChanStat() string {
 	return fmt.Sprintf("inputCh: %d/%d, highFreqInputCh: %d/%d", l, c, l2, c2)
 }
 
-func Feed(name, category string, opt *Option, pts ...*influxdb.Point) error {
+func Feed(name, category string, pts Points, opt *Option) error {
 	if len(pts) == 0 {
 		return fmt.Errorf("no points")
 	}
@@ -96,7 +96,7 @@ func Feed(name, category string, opt *Option, pts ...*influxdb.Point) error {
 func MakeMetric(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	t ...time.Time) (*influxdb.Point, error) {
+	t ...time.Time) (Point, error) {
 
 	var ts time.Time
 	if len(t) > 0 {
