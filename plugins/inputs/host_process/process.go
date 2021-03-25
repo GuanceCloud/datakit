@@ -144,6 +144,9 @@ func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields,
 		l.Warnf("[warning] process get name err:%s", err.Error())
 	}
 	username = getUser(ps)
+	if username == "" {
+		username = "nobody"
+	}
 	status, err := ps.Status()
 	if err != nil {
 		l.Warnf("[warning] process:%s,pid:%d get state err:%s", name, ps.Pid, err.Error())
