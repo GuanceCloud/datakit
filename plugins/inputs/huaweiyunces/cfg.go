@@ -200,7 +200,6 @@ func (ag *agent) parseConfig() {
 				}
 			}
 		}
-
 	}
 
 	if len(ag.ExcludeMetrics) > 0 {
@@ -271,8 +270,6 @@ func (ag *agent) checkProjectIgnore(projectid string) bool {
 			if pid == projectid {
 				return false
 			}
-		} else {
-			return nil
 		}
 		return true
 	}
