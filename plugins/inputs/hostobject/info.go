@@ -4,12 +4,14 @@ import (
 	"net"
 	"strings"
 
-	cpuutil "github.com/shirou/gopsutil/v3/cpu"
-	diskutil "github.com/shirou/gopsutil/v3/disk"
-	hostutil "github.com/shirou/gopsutil/v3/host"
-	memutil "github.com/shirou/gopsutil/v3/mem"
-	netutil "github.com/shirou/gopsutil/v3/net"
+	cpuutil "github.com/shirou/gopsutil/cpu"
+	diskutil "github.com/shirou/gopsutil/disk"
+	hostutil "github.com/shirou/gopsutil/host"
+	loadutil "github.com/shirou/gopsutil/load"
+	memutil "github.com/shirou/gopsutil/mem"
+	netutil "github.com/shirou/gopsutil/net"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
@@ -38,6 +40,8 @@ type (
 	MemInfo struct {
 		MemoryTotal uint64 `json:"memory_total"`
 		SwapTotal   uint64 `json:"swap_total"`
+
+		usedPercent float64
 	}
 
 	NetInfo struct {
@@ -48,7 +52,7 @@ type (
 		Flags        []string `json:"flags"` // e.g., FlagUp, FlagLoopback, FlagMulticast
 		IP4          string   `json:"ip4"`
 		IP6          string   `json:"ip6"`
-		Addrs        []string `json:"addrs"`
+		Addrs        []string `json:"-"`
 	}
 
 	DiskInfo struct {
@@ -60,16 +64,24 @@ type (
 	}
 
 	HostInfo struct {
-		HostMeta *HostMetaInfo `json:"meta"`
-		CPU      []*CPUInfo    `json:"cpu"`
-		Mem      *MemInfo      `json:"mem"`
-		Net      []*NetInfo    `json:"net"`
-		Disk     []*DiskInfo   `json:"disk"`
+		HostMeta   *HostMetaInfo `json:"meta"`
+		CPU        []*CPUInfo    `json:"cpu"`
+		Mem        *MemInfo      `json:"mem"`
+		Net        []*NetInfo    `json:"net"`
+		Disk       []*DiskInfo   `json:"disk"`
+		cpuPercent float64
+		load5      float64
 	}
 
 	HostObjectMessage struct {
-		Host       *HostInfo `json:"host"`
-		Collectors []string  `json:"collectors"`
+		Host       *HostInfo          `json:"host"`
+		Collectors []*CollectorStatus `json:"collectors"`
+	}
+
+	CollectorStatus struct {
+		Name     string `json:"name"`
+		Count    int64  `json:"count"`
+		LastTime int64  `json:"last_time"`
 	}
 )
 
@@ -90,6 +102,16 @@ func getHostMeta() *HostMetaInfo {
 		Kernel:          info.KernelVersion,
 		Arch:            info.KernelArch,
 	}
+}
+
+func getCPUPercent() float64 {
+
+	ps, err := cpuutil.Percent(0, false)
+	if err != nil || len(ps) == 0 {
+		moduleLogger.Warnf("fail to get cpu percent: %s", err)
+		return 0
+	}
+	return ps[0]
 }
 
 func getCPUInfo() []*CPUInfo {
@@ -115,6 +137,16 @@ func getCPUInfo() []*CPUInfo {
 	return objs
 }
 
+func getLoad5() float64 {
+	avgstat, err := loadutil.Avg()
+	if err != nil {
+		moduleLogger.Errorf("fail to get load info, %s", err)
+		return 0
+	}
+
+	return avgstat.Load5
+}
+
 func getMemInfo() *MemInfo {
 	minfo, err := memutil.VirtualMemory()
 	if err != nil {
@@ -130,6 +162,7 @@ func getMemInfo() *MemInfo {
 	return &MemInfo{
 		MemoryTotal: minfo.Total,
 		SwapTotal:   vinfo.Total,
+		usedPercent: minfo.UsedPercent,
 	}
 }
 
@@ -166,18 +199,35 @@ func getNetInfo() []*NetInfo {
 
 func getDiskInfo() []*DiskInfo {
 
-	ps, err := diskutil.Partitions(false)
+	ps, err := diskutil.Partitions(true)
 	if err != nil {
 		moduleLogger.Errorf("fail to get disk info, %s", err)
 		return nil
 	}
 	var infos []*DiskInfo
+
+	fstypeExcludeSet := map[string]bool{
+		"autofs":   true,
+		"tmpfs":    true,
+		"devtmpfs": true,
+		"devfs":    true,
+		"iso9660":  true,
+		"overlay":  true,
+		"aufs":     true,
+		"squashfs": true,
+	}
+
 	for _, p := range ps {
+
+		if _, ok := fstypeExcludeSet[p.Fstype]; ok {
+			continue
+		}
+
 		info := &DiskInfo{
 			Device:     p.Device,
 			Mountpoint: p.Mountpoint,
 			Fstype:     p.Fstype,
-			Opts:       strings.Join(p.Opts, ","),
+			//Opts:       strings.Join(p.Opts, ","),
 		}
 
 		usage, err := diskutil.Usage(p.Mountpoint)
@@ -191,25 +241,61 @@ func getDiskInfo() []*DiskInfo {
 	return infos
 }
 
-func getEnabledInputs() []string {
+func getEnabledInputs() []*CollectorStatus {
 
-	var names []string
+	var sts []*CollectorStatus
+
+	inputsStats, err := io.GetStats() // get all inputs stats
+	if err != nil {
+		moduleLogger.Errorf("fail to get inputs stats, %s", err)
+	}
 
 	for k := range inputs.Inputs {
 		n, _ := inputs.InputEnabled(k)
 		if n > 0 {
-			names = append(names, k)
+			var count int64
+			var last int64
+
+			for _, s := range inputsStats {
+				if s.Name == k {
+					count = s.Count
+					last = s.Last.Unix()
+					break
+				}
+			}
+
+			sts = append(sts, &CollectorStatus{
+				Name:     k,
+				Count:    count,
+				LastTime: last,
+			})
+
 		}
 	}
 
 	for k := range tgi.TelegrafInputs {
 		n, _ := inputs.InputEnabled(k)
 		if n > 0 {
-			names = append(names, k)
+			var count int64
+			var last int64
+
+			for _, s := range inputsStats {
+				if s.Name == k {
+					count = s.Count
+					last = s.Last.Unix()
+					break
+				}
+			}
+
+			sts = append(sts, &CollectorStatus{
+				Name:     k,
+				Count:    count,
+				LastTime: last,
+			})
 		}
 	}
 
-	return names
+	return sts
 }
 
 func getHostObjectMessage() *HostObjectMessage {
@@ -217,11 +303,13 @@ func getHostObjectMessage() *HostObjectMessage {
 
 	msg.Collectors = getEnabledInputs()
 	msg.Host = &HostInfo{
-		HostMeta: getHostMeta(),
-		CPU:      getCPUInfo(),
-		Mem:      getMemInfo(),
-		Net:      getNetInfo(),
-		Disk:     getDiskInfo(),
+		HostMeta:   getHostMeta(),
+		CPU:        getCPUInfo(),
+		cpuPercent: getCPUPercent(),
+		load5:      getLoad5(),
+		Mem:        getMemInfo(),
+		Net:        getNetInfo(),
+		Disk:       getDiskInfo(),
 	}
 
 	return &msg

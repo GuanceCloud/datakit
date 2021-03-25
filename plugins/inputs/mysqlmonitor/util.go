@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"math"
 	"strconv"
 )
 
@@ -55,9 +56,14 @@ func ParseValue(value sql.RawBytes) (interface{}, error) {
 		return 0, nil
 	}
 
-	if val, err := strconv.ParseInt(string(value), 10, 64); err == nil {
+	if val, err := strconv.ParseInt(string(value), 10, 64); err != nil {
+		if err, ok := err.(*strconv.NumError); ok && err.Err == strconv.ErrRange {
+			return int64(math.MaxInt64), nil
+		}
+	} else {
 		return val, nil
 	}
+
 	if val, err := strconv.ParseFloat(string(value), 64); err == nil {
 		return val, nil
 	}
@@ -75,7 +81,7 @@ var GlobalStatusConversions = map[string]ConversionFunc{
 }
 
 var GlobalVariableConversions = map[string]ConversionFunc{
-	"gtid_mode": ParseGTIDMode,
+	// "gtid_mode": ParseGTIDMode,
 }
 
 func ConvertGlobalStatus(key string, value sql.RawBytes) (interface{}, error) {

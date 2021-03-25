@@ -137,14 +137,15 @@ func (c *CMS) Run() {
 	c.run(c.ctx)
 }
 
-func NewAgent() *CMS {
+func NewAgent(mode string) *CMS {
 	ac := &CMS{}
+	ac.mode = mode
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 	return ac
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return NewAgent()
+		return NewAgent("")
 	})
 }

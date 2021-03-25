@@ -2,7 +2,6 @@ package huaweiyunces
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -12,16 +11,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	ces "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1"
+	iammodel "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/model"
 )
 
 const (
 	sampleConfig = `
 #[[inputs.huaweiyunces]]
-# ##(required) the following 4 configurations are required for authentication
+# ##(required)
 #access_key_id = ''
 #access_key_secret = ''
-#region = ''
-#projectid = ''
 
 # ##(optional) default is 5min
 #interval = '5m'
@@ -29,122 +27,150 @@ const (
 # ##(optional) default is 1min, should not more then interval
 #delay = '1m'
 
+# ##(optional) specify the project ids to collect. default will apply to all projects
+#projectids = [
+#	'614439cb10ad4bdc9f3b0bc8xxx',
+#	'214439cb10ad4bdc9f3b0bc8xxx'
+#]
+
+# ##(optional) defaultly will collect all available metrics, you can specify the metrics of namespaces
+# ##each string specify the metric names of one namespace, separate by ':', if no metric name, collect all metrics of this namespace
+# metrics = [
+#'SYS.ECS',	
+#'SYS.OBS:download_bytes,upload_bytes',
+# ]
+
+# ##(optional) exclude some metrics that you not want
+# exclude_metrics = [
+#'SYS.ECS',	
+#'SYS.OBS:download_bytes,upload_bytes',
+# ]
+
+
 # ##(optional) custom tags
 #[inputs.huaweiyunces.tags]
 #key1 = 'val1'
 
-# ##(required)
-#[[inputs.huaweiyunces.namespace]]
-
-# ##(required) namespace's name
-#name = 'SYS.ECS'
-
-# ##(optional) metric set name, default is 'huaweiyunces_{namespace}'
-#metric_set_name = ''
-
-# ##(required) metric names
-#metric_names = ['cpu_util', 'disk_write_bytes_rate']
-
-# ##(required) you must specify for each metric, or you can set a gloabl configuration from all metrics
-#[[inputs.huaweiyunces.namespace.property]]
-
-# ##(required)
-#name = '*'
-
-# ##(optional) defalt is 300
-#period = 0
-
-# ##(optional) default is average, support values are: max, min, average, sum, variance
-#filter = ''
-
-# ##(optional) if not set, use the global interval
-#interval = '5m'
-
-# ##(required) you can specify up to 4 dimensions
-#[inputs.huaweiyunces.namespace.property.dimensions]
-#instance_id = 'b5d7b7a3-681d-4c08-8e32-f14******'
+# ##(optional) specify the collect option for some metrics
+#[[inputs.huaweiyunces.property]]
+#metric = 'SYS.ECS'
+#interval = '10m'
+#delay = '5m'
+#period = 300
+#filter = 'max'
+#dimension = [
+#     'instance_id,694244a4-659e-4931-8e72-9e90993xxxx'
+#]
 `
 )
 
 type (
-	Dimension struct {
-		Name  string `toml:"name" json:"name"`
-		Value string `toml:"value" json:"value"`
-	}
-
 	Property struct {
-		Name       string            `toml:"name"`
-		Period     int               `toml:"period"`
-		Filter     string            `toml:"filter"`
-		Interval   datakit.Duration  `toml:"interval"`
-		Dimensions map[string]string `toml:"dimensions"`
-		Tags       map[string]string `toml:"tags,omitempty"`
-	}
+		Metric string `toml:"metric"`
 
-	Namespace struct {
-		Name          string      `toml:"name"`
-		MetricSetName string      `toml:"metric_set_name"`
-		MetricNames   []string    `toml:"metric_names"`
-		Property      []*Property `toml:"property"`
+		Name string `toml:"name"` //deprated
 
-		properties map[string]*Property
+		Period   int              `toml:"period"`
+		Filter   string           `toml:"filter"`
+		Interval datakit.Duration `toml:"interval"`
+		Delay    datakit.Duration `toml:"delay"`
+
+		Dimension []string `toml:"dimension,omitempty"`
+
+		Dimensions map[string]string `toml:"dimensions,omitempty"` //deprated
+
+		Tags map[string]string `toml:"tags,omitempty"`
+
+		namespace   string
+		metricNames []string
+		dimensions  []MetricsDimension
 	}
 
 	agent struct {
-		AccessKeyID     string            `toml:"access_key_id"`
-		AccessKeySecret string            `toml:"access_key_secret"`
-		EndPoint        string            `toml:"endpoint"` //deprated
-		RegionID        string            `toml:"region"`
-		ProjectID       string            `toml:"projectid"`
-		Interval        datakit.Duration  `toml:"interval"`
-		Delay           datakit.Duration  `toml:"delay"`
-		Tags            map[string]string `toml:"tags,omitempty"`
-		Namespace       []*Namespace      `toml:"namespace"`
+		AccessKeyID     string `toml:"access_key_id"`
+		AccessKeySecret string `toml:"access_key_secret"`
 
-		ecsInstanceIDs []string
+		Interval datakit.Duration `toml:"interval"`
+		Delay    datakit.Duration `toml:"delay"`
 
-		client *ces.CesClient
+		IncludeProjectIDs []string `toml:"projectids,omitempty"`
+		ExcludeProjectIDs []string `toml:"exclude_projectids,omitempty"`
+
+		IncludeMetrics []string `toml:"metrics,omitempty"`
+		ExcludeMetrics []string `toml:"exclude_metrics,omitempty"`
+
+		Properties []*Property `toml:"property,omitempty"`
+
+		EndPoint  string `toml:"endpoint"`  //deprated
+		RegionID  string `toml:"region"`    //deprated
+		ProjectID string `toml:"projectid"` //deprated
+
+		Namespace []*Namespace `toml:"namespace"` //deprated
+
+		Tags map[string]string `toml:"tags,omitempty"`
+
+		ecsInstanceIDs []string          //deprated
+		cesClient      *ces.CesClient    //deprated
+		reqs           []*metricsRequest //deprated
+
+		includeMetrics map[string][]string
+		excludeMetrics map[string][]string
+
+		clients []*cesCli
 
 		limiter *rate.Limiter
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
 
-		reqs []*metricsRequest
-
 		mode string
 
 		testResult *inputs.TestResult
 		testError  error
+
+		reloadCloudTime time.Time
+	}
+
+	cesCli struct {
+		proj iammodel.AuthProjectResult
+		cli  *ces.CesClient
+
+		requests map[string]*requestsOfNamespace
 	}
 
 	metricsRequest struct {
 		tags map[string]string
 
-		//meta *MetricMeta
+		namespace  string
+		metricname string
 
-		namespace   string
-		metricname  string
-		period      int
-		filter      string
-		from        int64
-		to          int64
-		dimensoions []*Dimension
+		originalMetricName string
+		prefix             string
 
-		metricSetName string
+		period int
+		filter string
+		unit   string
+
+		from int64
+		to   int64
 
 		//每个指标可单独配置interval，默认使用全局的配置
 		interval time.Duration
+		delay    time.Duration
 
 		lastTime time.Time
+
+		dimsOld []*Dimension //deprated
+
+		dimensoions   []MetricsDimension
+		fixDimensions bool //配置文件中显式指定了dimension
+	}
+
+	requestsOfNamespace struct {
+		namespace string
+		requests  map[string]*metricsRequest
 	}
 )
-
-func (r *metricsRequest) copy() *metricsRequest {
-	var m metricsRequest
-	m = *r
-	return &m
-}
 
 func (ag *agent) isTestOnce() bool {
 	return ag.mode == "test"
@@ -154,121 +180,194 @@ func (ag *agent) isDebug() bool {
 	return ag.mode == "debug"
 }
 
-func (p *Namespace) checkProperties() error {
-	p.properties = make(map[string]*Property)
-
-	for _, prop := range p.Property {
-
-		if prop.Dimensions == nil && p.Name != "SYS.ECS" {
-			err := fmt.Errorf("invalid property, dimensions cannot be empty")
-			moduleLogger.Errorf("%s", err)
-			return err
-		}
-
-		if prop.Name == "" {
-			p.properties["*"] = prop
-		} else {
-			parts := strings.Split(prop.Name, ",")
+func (ag *agent) parseConfig() {
+	if len(ag.IncludeMetrics) > 0 {
+		ag.includeMetrics = map[string][]string{}
+		for _, item := range ag.IncludeMetrics {
+			//每项格式为 namespace:metrcinames, AGT.ECS:cpu_util,disk_util...
+			parts := strings.Split(item, ":")
+			if len(parts) == 0 {
+				continue
+			}
+			namespace := strings.TrimSpace(parts[0])
+			if ag.includeMetrics[namespace] == nil {
+				ag.includeMetrics[namespace] = []string{}
+			}
 			if len(parts) > 1 {
-				for _, sn := range parts {
-					sn = strings.TrimSpace(sn)
-					np := &Property{}
-					np.Dimensions = prop.Dimensions
-					np.Interval = prop.Interval
-					np.Period = prop.Period
-					np.Name = sn
-					np.Tags = prop.Tags
-					np.Filter = prop.Filter
-					p.properties[sn] = np
+				metrics := strings.Split(parts[1], ",")
+				for _, name := range metrics {
+					ag.includeMetrics[namespace] = append(ag.includeMetrics[namespace], strings.TrimSpace(name))
 				}
-			} else if len(parts) == 1 {
-				p.properties[prop.Name] = prop
 			}
 		}
 
 	}
 
-	return nil
-}
-
-func (p *Namespace) applyProperty(req *metricsRequest, instanceIDs []string) (adds []*metricsRequest) {
-
-	ecs := (p.Name == "SYS.ECS")
-
-	metricName := req.metricname
-
-	var property *Property
-	property = p.properties[metricName]
-	if property == nil {
-		property = p.properties["*"]
+	if len(ag.ExcludeMetrics) > 0 {
+		ag.excludeMetrics = map[string][]string{}
+		for _, item := range ag.ExcludeMetrics {
+			//每项格式为 namespace:metrcinames, AGT.ECS:cpu_util,disk_util...
+			parts := strings.Split(item, ":")
+			if len(parts) == 0 {
+				continue
+			}
+			namespace := strings.TrimSpace(parts[0])
+			if ag.excludeMetrics[namespace] == nil {
+				ag.excludeMetrics[namespace] = []string{}
+			}
+			if len(parts) > 1 {
+				metrics := strings.Split(parts[1], ",")
+				for _, name := range metrics {
+					ag.excludeMetrics[namespace] = append(ag.excludeMetrics[namespace], strings.TrimSpace(name))
+				}
+			}
+		}
 	}
 
-	if property == nil {
-		if ecs {
-			property = &Property{
-				Name: metricName,
+	for _, p := range ag.Properties {
+		if p.Metric == "" {
+			continue
+		}
+		parts := strings.Split(p.Metric, ":")
+		p.namespace = strings.TrimSpace(parts[0])
+		if len(parts) > 1 {
+			p.metricNames = strings.Split(parts[1], ",")
+		}
+
+		for _, dm := range p.Dimension {
+			projID := ""
+			kv := dm
+			parts := strings.Split(dm, ":")
+			if len(parts) > 1 {
+				projID = strings.TrimSpace(parts[1])
+				kv = strings.TrimSpace(parts[0])
+			}
+			parts = strings.Split(kv, ",")
+			if len(parts) != 2 {
+				continue
+			}
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			if key == "" || value == "" {
+				continue
+			}
+			p.dimensions = append(p.dimensions, MetricsDimension{
+				Name:      &key,
+				Value:     &value,
+				projectID: projID,
+			})
+		}
+	}
+}
+
+func (ag *agent) checkProjectIgnore(projectid string) bool {
+	for _, pid := range ag.ExcludeProjectIDs {
+		if projectid == pid {
+			return true
+		}
+	}
+	if len(ag.IncludeProjectIDs) > 0 {
+		for _, pid := range ag.IncludeProjectIDs {
+			if pid == projectid {
+				return false
 			}
 		} else {
 			return nil
 		}
+		return true
 	}
+	return false
+}
 
-	if property.Period > 0 {
-		req.period = property.Period
-	}
-	if property.Filter != "" {
-		req.filter = property.Filter
-	}
-	if property.Interval.Duration != 0 {
-		req.interval = property.Interval.Duration
-	}
-	req.tags = property.Tags
+func (ag *agent) checkMetricIgnore(namespace, metricname string) bool {
 
-	if len(property.Dimensions) == 0 && ecs {
-		//如果是ecs且没有设置dimension，则默认拿所有instance
-		for idx, inst := range instanceIDs {
-			if idx == 0 {
-				req.dimensoions = []*Dimension{
-					&Dimension{
-						Name:  "instance_id",
-						Value: inst,
-					},
+	if ag.excludeMetrics != nil {
+		if names, ok := ag.excludeMetrics[namespace]; ok {
+			if len(names) == 0 {
+				return true
+			}
+			for _, name := range names {
+				if name == metricname {
+					return true
 				}
-			} else {
-				newreq := req.copy()
-				newreq.dimensoions = []*Dimension{
-					&Dimension{
-						Name:  "instance_id",
-						Value: inst,
-					},
-				}
-				adds = append(adds, newreq)
 			}
 		}
-
-	} else {
-		dims := []*Dimension{}
-		for k, v := range property.Dimensions {
-			dim := &Dimension{
-				Name:  k,
-				Value: v,
-			}
-			dims = append(dims, dim)
-		}
-		req.dimensoions = dims
 	}
+
+	if ag.includeMetrics != nil {
+		if names, ok := ag.includeMetrics[namespace]; ok {
+			if len(names) == 0 {
+				return false
+			}
+			for _, name := range names {
+				if name == metricname {
+					return false
+				}
+			}
+		}
+		return true
+	}
+
+	return false
+}
+
+func (ag *agent) applyProperty(req *metricsRequest, projectID string) (fixDimensions bool) {
+	fixDimensions = false
+	var prop *Property
+	for _, p := range ag.Properties {
+		if p.namespace != req.namespace {
+			continue
+		}
+		if len(p.metricNames) == 0 {
+			prop = p
+			break
+		} else {
+			for _, name := range p.metricNames {
+				if name == req.metricname {
+					prop = p
+					break
+				}
+			}
+		}
+	}
+	if prop == nil {
+		return
+	}
+	if prop.Filter != "" {
+		req.filter = prop.Filter
+	}
+	if prop.Interval.Duration > 0 {
+		req.interval = prop.Interval.Duration
+	}
+	if prop.Delay.Duration > 0 {
+		req.delay = prop.Delay.Duration
+	}
+	if prop.Period > 0 {
+		req.period = prop.Period
+	}
+	if len(prop.dimensions) > 0 {
+		for _, d := range prop.dimensions {
+			if d.projectID != "" {
+				if d.projectID != projectID {
+					continue
+				}
+			}
+			req.dimensoions = append(req.dimensoions, d)
+		}
+		fixDimensions = len(req.dimensoions) > 0
+	}
+	req.tags = prop.Tags
 
 	return
 }
 
-func (p *Namespace) genMetricReq(metric string) *metricsRequest {
+func newMetricReq(namespace, metricname, unit string) *metricsRequest {
 
 	req := &metricsRequest{
-		namespace:     p.Name,
-		metricname:    metric,
-		metricSetName: p.MetricSetName,
-		filter:        "average",
-		period:        300,
+		namespace:  namespace,
+		metricname: metricname,
+		filter:     "average",
+		period:     300,
 	}
 
 	return req
