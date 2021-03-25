@@ -52,12 +52,28 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 
+	project, ver, env := getExpandInfo(batch)
+	if project == "" {
+		project = trace.GetFromPluginTag(JaegerTags, trace.PROJECT)
+	}
+
+	if ver == "" {
+		ver = trace.GetFromPluginTag(JaegerTags, trace.VERSION)
+	}
+
+	if env == "" {
+		env = trace.GetFromPluginTag(JaegerTags, trace.ENV)
+	}
+
 	for _, s := range batch.Spans {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "jaeger"
+		tAdpter.Project = project
+		tAdpter.Version = ver
+		tAdpter.Env = env
 
-		tAdpter.Duration = s.Duration
-		tAdpter.TimestampUs = s.StartTime
+		tAdpter.Duration = s.Duration * 1000
+		tAdpter.Start = s.StartTime * 1000
 		sJson, err := json.Marshal(s)
 		if err != nil {
 			return err
@@ -87,4 +103,45 @@ func parseJaegerThrift(octets []byte) error {
 
 	trace.MkLineProto(adapterGroup, inputName)
 	return nil
+}
+
+func getExpandInfo(batch *j.Batch) (project, ver, env string) {
+	if batch.Process == nil {
+		return
+	}
+	for _, tag := range batch.Process.Tags {
+		if tag == nil {
+			continue
+		}
+
+		if tag.Key == trace.PROJECT {
+			project = fmt.Sprintf("%v", getTagValue(tag))
+		}
+
+		if tag.Key == trace.VERSION {
+			ver = fmt.Sprintf("%v", getTagValue(tag))
+		}
+
+		if tag.Key == trace.ENV {
+			env = fmt.Sprintf("%v", getTagValue(tag))
+		}
+	}
+	return
+}
+
+func getTagValue(tag *j.Tag) interface{} {
+	switch tag.VType {
+	case j.TagType_STRING:
+		return *(tag.VStr)
+	case j.TagType_DOUBLE:
+		return *(tag.VDouble)
+	case j.TagType_BOOL:
+		return *(tag.VBool)
+	case j.TagType_LONG:
+		return *(tag.VLong)
+	case j.TagType_BINARY:
+		return tag.VBinary
+	default:
+		return nil
+	}
 }
