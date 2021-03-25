@@ -61,7 +61,7 @@ func (fc *FileCollector) initFileCollector() error {
 		fc.MaxUploadSize = "32M"
 	}
 
-	switch fc.Status {
+	switch strings.ToLower(fc.Status) {
 	case "info", "alert", "notice":
 	default:
 		fc.Status = "info"
