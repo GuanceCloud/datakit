@@ -3,6 +3,7 @@ package demo
 import (
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -40,7 +41,7 @@ func (i *Demo) Run() {
 				map[string]interface{}{
 					"f1": 123,
 					"f2": 456.0,
-					"f3": "abc",
+					"f3": cliutils.CreateRandomString(1024),
 					"f5": true,
 				},
 			)
@@ -49,7 +50,8 @@ func (i *Demo) Run() {
 				l.Error(err)
 			} else {
 				time.Sleep(time.Second)
-				io.Feed("demo", io.Metric, &io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)}, pt)
+				io.Feed("demo", io.Metric, io.Points{pt},
+					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)})
 			}
 
 		case <-datakit.Exit.Wait():
