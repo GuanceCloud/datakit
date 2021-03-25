@@ -15,13 +15,39 @@ import (
 )
 
 var (
-	grokCfg        *vgrok.Grok
-	globalPatterns map[string]string
+	grokCfg *vgrok.Grok
 )
+
+func mergePattners(global, local map[string]string) map[string]string {
+	var p = make(map[string]string)
+
+	for k, v := range global {
+		p[k] = v
+	}
+
+	for k, v := range local {
+		if _, ok := p[k]; !ok {
+			p[k] = v
+			continue
+		}
+		// FIXME:
+		// GlobalPatterns 已经在 AddPattern() 添加过一次，此处逻辑重复
+		// l.Warnf("can not overwrite global pattern `%s'", k)
+	}
+
+	return p
+}
 
 func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	if p.grok == nil {
-		return p, fmt.Errorf("grok not init")
+		curPattners := mergePattners(GlobalPatterns, p.patterns)
+
+		g, err := createGrok(curPattners)
+		if err != nil {
+			l.Warn(err)
+			return p, nil
+		}
+		p.grok = g
 	}
 
 	funcExpr := node.(*parser.FuncExpr)
@@ -29,12 +55,13 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
 
-	var key, pattern string
+	var key parser.Node
+	var pattern string
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.Identifier:
-		key = v.Name
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
 	default:
-		return p, fmt.Errorf("expect Identifier, got %s",
+		return p, fmt.Errorf("expect Identifier or AttrExpr, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
@@ -46,14 +73,24 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
-	val := p.getContentStr(key)
+	val, err := p.getContentStr(key)
+	if err != nil {
+		l.Warn(err)
+		return p, nil
+	}
+
 	m, err := p.grok.Parse(pattern, val)
 	if err != nil {
-		return p, err
+		l.Warn(err)
+		return p, nil
 	}
 
 	for k, v := range m {
-		p.setContent(k, v)
+		err := p.setContent(k, v)
+		if err != nil {
+			l.Warn(err)
+			return p, nil
+		}
 	}
 
 	return p, nil
@@ -84,29 +121,39 @@ func AddPattern(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	if p.patterns == nil {
 		p.patterns = make(map[string]string)
-		for n, pat := range globalPatterns {
+		for n, pat := range GlobalPatterns {
 			p.patterns[n] = pat
 		}
 	}
+
 	p.patterns[name] = pattern
 	p.grok = nil
-	g, err := createGrok(p.patterns)
-	if err != nil {
-		return p, err
-	}
-	p.grok = g
+
+	//g, err := createGrok(p.patterns)
+	//if err != nil {
+	//	l.Warn(err)
+	//	return p, nil
+	//}
+	//p.grok = g
 
 	return p, nil
 }
 
 func loadPatterns() error {
-	p, err := readPatternsFromDir(filepath.Join(datakit.InstallDir, "pattern"))
+	loadedPatterns, err := readPatternsFromDir(datakit.PipelinePatternDir)
 	if err != nil {
 		return err
 	}
-	globalPatterns = p
 
-	g, err := createGrok(p)
+	for k, v := range loadedPatterns {
+		if _, ok := GlobalPatterns[k]; !ok {
+			GlobalPatterns[k] = v
+		} else {
+			l.Warnf("can not overwrite internal pattern `%s', skipped `%s'", k, k)
+		}
+	}
+
+	g, err := createGrok(GlobalPatterns)
 	if err != nil {
 		return err
 	}
