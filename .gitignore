@@ -12,7 +12,6 @@ dist/
 old/
 *.tar.gz
 git/git.go
-oss/*
 install.sh
 *.log
 config.d/
@@ -33,7 +32,6 @@ deps/*
 *.err
 *.test
 *.rpm
-log
 run.s
 cfg.json
 config.json
@@ -45,7 +43,7 @@ run.sh
 *.csv
 *.pyc
 plugins/externals/csv/venv
-*.sh
 *.zip
 china-operator-ip
 **build/
+release.sh
