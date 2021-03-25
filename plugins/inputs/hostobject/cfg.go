@@ -12,6 +12,10 @@ interval = '5m'
 
 # ##(optional) 
 #pipeline = ''
+
+#[inputs.hostobject.tags]
+#  key1 = "value1"
+#  key2 = "value2"
 `
 
 	pipelineSample = ``
