@@ -63,24 +63,26 @@ func (*NFSstat) Catalog() string {
 	return inputName
 }
 
-func (n *NFSstat) Test() (result *inputs.TestResult, err error) {
+func (n *NFSstat) Test() (*inputs.TestResult, error) {
 	l = logger.SLogger(inputName)
-	// default
-	result.Desc = "数据指标获取失败，详情见错误信息"
+
+	var result = inputs.TestResult{Desc: "数据指标获取失败，详情见错误信息"}
+	var err error
 
 	if err = n.loadCfg(); err != nil {
-		return nil, err
+		return &result, err
 	}
 
 	var data []byte
 	data, err = buildPoint(n.Location, n.Tags)
 	if err != nil {
-		return nil, err
+		return &result, err
 	}
 
 	result.Result = data
 	result.Desc = "数据指标获取成功"
-	return
+
+	return &result, err
 }
 
 func (n *NFSstat) Run() {

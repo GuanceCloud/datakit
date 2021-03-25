@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
 )
 
@@ -31,7 +30,7 @@ func applyFlags() {
 	if *flagBuildISP {
 		curDir, _ := os.Getwd()
 		inputDir := filepath.Join(curDir, "china-operator-ip")
-		outputFile := filepath.Join(curDir, "process", "ip2isp", "ip2isp.go")
+		outputFile := filepath.Join(curDir, "pipeline", "ip2isp", "ip2isp.go")
 		build.GenIspFile(inputDir, outputFile)
 
 		os.Exit(0)
@@ -42,6 +41,7 @@ func applyFlags() {
 	build.PubDir = *flagPubDir
 	build.AppName = *flagName
 	build.Archs = *flagArchs
+
 	build.Release = *flagEnv
 	build.MainEntry = *flagMain
 	build.DownloadAddr = *flagDownloadAddr
@@ -49,10 +49,10 @@ func applyFlags() {
 	switch *flagEnv {
 	case "release":
 		l.Debug("under release, only checked inputs released")
-		build.ReleaseType = datakit.ReleaseCheckedInputs
+		build.ReleaseType = "checked"
 	default:
 		l.Debug("under non-release, all inputs released")
-		build.ReleaseType = datakit.ReleaseAllInputs
+		build.ReleaseType = "all"
 	}
 
 	if *flagPubAgent {
