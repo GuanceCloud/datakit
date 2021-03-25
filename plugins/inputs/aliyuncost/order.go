@@ -99,7 +99,7 @@ func (co *costOrder) getData(ctx context.Context) {
 
 func (co *costOrder) getHistoryData(ctx context.Context) {
 
-	key := "." + co.ag.cacheFileKey(`orders`)
+	key := "." + co.ag.cacheFileKey(`ordersV2`)
 
 	if !co.ag.CollectHistoryData {
 		return
@@ -148,7 +148,7 @@ func (co *costOrder) getOrders(ctx context.Context, start, end string, info *his
 		logPrefix = "(history) "
 	}
 
-	moduleLogger.Infof("%sgetting Orders(%s - %s)", logPrefix, start, end)
+	moduleLogger.Infof("%sOrders(%s - %s) start", logPrefix, start, end)
 
 	req := bssopenapi.CreateQueryOrdersRequest()
 	req.Scheme = "https"
@@ -167,7 +167,7 @@ func (co *costOrder) getOrders(ctx context.Context, start, end string, info *his
 
 	for {
 		if info != nil {
-			for atomic.LoadInt32(&co.historyFlag) == 1 {
+			for atomic.LoadInt32(&co.historyFlag) > 0 {
 				select {
 				case <-ctx.Done():
 					return nil
@@ -183,7 +183,7 @@ func (co *costOrder) getOrders(ctx context.Context, start, end string, info *his
 		default:
 		}
 
-		resp, err := co.ag.queryOrdersWrap(ctx, req)
+		resp, err := co.ag.queryOrders(ctx, req)
 		if err != nil {
 			moduleLogger.Errorf("%s", err)
 			return fmt.Errorf("%sfail to get Orders(%s - %s)", logPrefix, start, end)
@@ -208,7 +208,7 @@ func (co *costOrder) getOrders(ctx context.Context, start, end string, info *his
 		}
 	}
 
-	moduleLogger.Debugf("%sfinish Orders(%s - %s)", logPrefix, start, end)
+	moduleLogger.Debugf("%sOrders(%s - %s) end", logPrefix, start, end)
 
 	if info != nil {
 		info.Statue = 1

@@ -1,0 +1,304 @@
+{
+  "kind": "PodList",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "metadata": {
+        "name": "cattle-node-agent-krn67",
+        "generateName": "cattle-node-agent-",
+        "namespace": "cattle-system",
+        "selfLink": "/api/v1/namespaces/cattle-system/pods/cattle-node-agent-krn67",
+        "uid": "3d675b04-2550-4347-bb5c-aec23c6f0d39",
+        "resourceVersion": "28596906",
+        "creationTimestamp": "2020-08-07T10:26:58Z",
+        "labels": {
+          "app": "cattle-agent",
+          "controller-revision-hash": "67d8fc4dc9",
+          "pod-template-generation": "2"
+        },
+        "annotations": {
+          "kubernetes.io/config.seen": "2020-12-31T00:24:50.535051788Z",
+          "kubernetes.io/config.source": "api"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "DaemonSet",
+            "name": "cattle-node-agent",
+            "uid": "e40abc2b-ae98-465c-bbfa-9d1f4f2ebfa0",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2020-08-29T00:11:20Z",
+            "fieldsType": "FieldsV1"
+          },
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2020-12-23T00:20:08Z",
+            "fieldsType": "FieldsV1"
+          }
+        ]
+      },
+      "spec": {
+        "volumes": [
+          {
+            "name": "k8s-ssl",
+            "hostPath": {
+              "path": "/etc/kubernetes",
+              "type": "DirectoryOrCreate"
+            }
+          },
+          {
+            "name": "var-run",
+            "hostPath": {
+              "path": "/var/run",
+              "type": "DirectoryOrCreate"
+            }
+          },
+          {
+            "name": "run",
+            "hostPath": {
+              "path": "/run",
+              "type": "DirectoryOrCreate"
+            }
+          },
+          {
+            "name": "cattle-credentials",
+            "secret": {
+              "secretName": "cattle-credentials-1aa94ff",
+              "defaultMode": 320
+            }
+          },
+          {
+            "name": "docker-certs",
+            "hostPath": {
+              "path": "/etc/docker/certs.d",
+              "type": "DirectoryOrCreate"
+            }
+          },
+          {
+            "name": "cattle-token-xwd8b",
+            "secret": {
+              "secretName": "cattle-token-xwd8b",
+              "defaultMode": 420
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "agent",
+            "image": "rancher/rancher-agent:v2.4.5",
+            "env": [
+              {
+                "name": "CATTLE_NODE_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "spec.nodeName"
+                  }
+                }
+              },
+              {
+                "name": "CATTLE_SERVER",
+                "value": "https://10.100.68.150"
+              },
+              {
+                "name": "CATTLE_CA_CHECKSUM",
+                "value": "f4197cdd75af8970c383f695943518c52ec6d1140a8d68506d8d0ae748ffad25"
+              },
+              {
+                "name": "CATTLE_CLUSTER",
+                "value": "false"
+              },
+              {
+                "name": "CATTLE_K8S_MANAGED",
+                "value": "true"
+              },
+              {
+                "name": "CATTLE_AGENT_CONNECT",
+                "value": "true"
+              }
+            ],
+            "resources": {},
+            "volumeMounts": [
+              {
+                "name": "cattle-credentials",
+                "readOnly": true,
+                "mountPath": "/cattle-credentials"
+              },
+              {
+                "name": "k8s-ssl",
+                "mountPath": "/etc/kubernetes"
+              },
+              {
+                "name": "var-run",
+                "mountPath": "/var/run"
+              },
+              {
+                "name": "run",
+                "mountPath": "/run"
+              },
+              {
+                "name": "docker-certs",
+                "mountPath": "/etc/docker/certs.d"
+              },
+              {
+                "name": "cattle-token-xwd8b",
+                "readOnly": true,
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+              }
+            ],
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "imagePullPolicy": "IfNotPresent",
+            "securityContext": {
+              "privileged": true
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "terminationGracePeriodSeconds": 30,
+        "dnsPolicy": "ClusterFirst",
+        "serviceAccountName": "cattle",
+        "serviceAccount": "cattle",
+        "nodeName": "ubuntu-power-server",
+        "hostNetwork": true,
+        "securityContext": {},
+        "affinity": {
+          "nodeAffinity": {
+            "requiredDuringSchedulingIgnoredDuringExecution": {
+              "nodeSelectorTerms": [
+                {
+                  "matchFields": [
+                    {
+                      "key": "metadata.name",
+                      "operator": "In",
+                      "values": [
+                        "ubuntu-power-server"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "schedulerName": "default-scheduler",
+        "tolerations": [
+          {
+            "operator": "Exists"
+          },
+          {
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "effect": "NoExecute"
+          },
+          {
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "effect": "NoExecute"
+          },
+          {
+            "key": "node.kubernetes.io/disk-pressure",
+            "operator": "Exists",
+            "effect": "NoSchedule"
+          },
+          {
+            "key": "node.kubernetes.io/memory-pressure",
+            "operator": "Exists",
+            "effect": "NoSchedule"
+          },
+          {
+            "key": "node.kubernetes.io/pid-pressure",
+            "operator": "Exists",
+            "effect": "NoSchedule"
+          },
+          {
+            "key": "node.kubernetes.io/unschedulable",
+            "operator": "Exists",
+            "effect": "NoSchedule"
+          },
+          {
+            "key": "node.kubernetes.io/network-unavailable",
+            "operator": "Exists",
+            "effect": "NoSchedule"
+          }
+        ],
+        "priority": 0,
+        "enableServiceLinks": true
+      },
+      "status": {
+        "phase": "Running",
+        "conditions": [
+          {
+            "type": "Initialized",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2020-08-07T10:26:58Z"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2021-01-26T07:31:59Z"
+          },
+          {
+            "type": "ContainersReady",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2021-01-26T07:31:59Z"
+          },
+          {
+            "type": "PodScheduled",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2020-08-07T10:26:58Z"
+          }
+        ],
+        "hostIP": "10.200.6.58",
+        "podIP": "10.200.6.58",
+        "podIPs": [
+          {
+            "ip": "10.200.6.58"
+          }
+        ],
+        "startTime": "2020-08-07T10:26:58Z",
+        "containerStatuses": [
+          {
+            "name": "agent",
+            "state": {
+              "running": {
+                "startedAt": "2021-01-26T07:31:59Z"
+              }
+            },
+            "lastState": {
+              "terminated": {
+                "exitCode": 1,
+                "reason": "Error",
+                "startedAt": "2021-01-26T07:24:40Z",
+                "finishedAt": "2021-01-26T07:26:51Z",
+                "containerID": "docker://48d345ad8592d542aad871227772e9a70762e4c590691b611e2a622d49a0025b"
+              }
+            },
+            "ready": true,
+            "restartCount": 28315,
+            "image": "rancher/rancher-agent:v2.4.5",
+            "imageID": "docker-pullable://rancher/rancher-agent@sha256:f263b6df0dccfafe5249618498287cae19673999face1a1555ac58f665974418",
+            "containerID": "docker://12f83c6a900522107ec99310ef8ce3f80f56eb410b04fa68ac54a0b82a224d2b",
+            "started": true
+          }
+        ],
+        "qosClass": "BestEffort"
+      }
+    }
+  ]
+}
