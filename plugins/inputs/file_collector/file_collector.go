@@ -60,6 +60,13 @@ func (fc *FileCollector) initFileCollector() error {
 	if fc.MaxUploadSize == "" {
 		fc.MaxUploadSize = "32M"
 	}
+
+	switch fc.Status {
+	case "info", "alert", "notice":
+	default:
+		fc.Status = "info"
+	}
+
 	size, err := bytefmt.ToBytes(fc.MaxUploadSize)
 	if err != nil {
 		return err
@@ -217,6 +224,7 @@ func (fc *FileCollector) WriteLog(name string, fields map[string]interface{}, no
 		"path":        fc.Path,
 		"filename":    name,
 		"upload_type": fc.UploadType,
+		"status":      fc.Status,
 	}
 
 	remotePath := fc.getRemotePath(name)
