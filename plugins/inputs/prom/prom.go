@@ -35,7 +35,7 @@ const (
 
     ## data source
     # required
-    source = "temp"
+    source = ""
 
     # [inputs.prom.tags]
     # tags1 = "value1"
@@ -43,7 +43,7 @@ const (
 )
 
 var (
-	defaultIgnoreFunc     = func(*ifxcli.Point) bool { return true }
+	defaultIgnoreFunc     = func(*ifxcli.Point) bool { return false }
 	defaultPromToNameFunc = func(old string) (string, string, error) { return old, old, nil }
 )
 
@@ -70,32 +70,50 @@ type Prom struct {
 	log      *logger.Logger
 }
 
+func NewProm(inputName, catalogStr, sampleCfg string, ignoreFunc func(*ifxcli.Point) bool) *Prom {
+	return &Prom{
+		InputName:      inputName,
+		CatalogStr:     inputName,
+		SampleCfg:      sampleCfg,
+		Interval:       datakit.Cfg.MainCfg.Interval,
+		Tags:           make(map[string]string),
+		IgnoreFunc:     ignoreFunc,
+		PromToNameFunc: nil,
+	}
+}
+
 func (p *Prom) SampleConfig() string {
 	return p.SampleCfg
 }
 
 func (p *Prom) Catalog() string {
+	if p.CatalogStr == "" {
+		return "prom"
+	}
+
 	return p.CatalogStr
 }
 
-func (p *Prom) Test() (result *inputs.TestResult, err error) {
+func (p *Prom) Test() (*inputs.TestResult, error) {
 	p.log = logger.SLogger(p.InputName)
-	// default
-	result.Desc = "数据指标获取失败，详情见错误信息"
+
+	var result = inputs.TestResult{Desc: "数据指标获取失败，详情见错误信息"}
+	var err error
 
 	if err = p.loadCfg(); err != nil {
-		return
+		return &result, err
 	}
 
 	var data []byte
 	data, err = p.getMetrics()
 	if err != nil {
-		return
+		return &result, err
 	}
 
 	result.Result = data
 	result.Desc = "数据指标获取成功"
-	return
+
+	return &result, err
 }
 
 func (p *Prom) Run() {
@@ -219,4 +237,18 @@ func (p *Prom) getMetrics() ([]byte, error) {
 	}
 
 	return buffer.Bytes(), nil
+}
+
+func init() {
+	inputs.Add(inputName, func() inputs.Input {
+		return &Prom{
+			Interval:       datakit.Cfg.MainCfg.Interval,
+			InputName:      inputName,
+			SampleCfg:      sampleCfg,
+			Tags:           make(map[string]string),
+			CatalogStr:     "prom",
+			IgnoreFunc:     defaultIgnoreFunc,
+			PromToNameFunc: defaultPromToNameFunc,
+		}
+	})
 }

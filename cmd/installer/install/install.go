@@ -23,6 +23,8 @@ var (
 	l                = logger.DefaultSLogger("install")
 	lagacyInstallDir = ""
 
+	DefaultHostInputs = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net"}
+
 	OSArch = runtime.GOOS + "/" + runtime.GOARCH
 
 	InstallDir    = ""
@@ -99,7 +101,21 @@ func InstallNewDatakit(svc service.Service) {
 		datakit.Cfg.MainCfg.Name = DatakitName
 	}
 
-	datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
+	// XXX: load old datakit UUID file: reuse datakit UUID installed before
+	if data, err := ioutil.ReadFile(datakit.UUIDFile); err != nil {
+		datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
+		if err := datakit.CreateUUIDFile(datakit.Cfg.MainCfg.UUID); err != nil {
+			l.Fatalf("create datakit id failed: %s", err.Error())
+		}
+	} else {
+		datakit.Cfg.MainCfg.UUID = string(data)
+	}
+
+	if EnableInputs == "" {
+		EnableInputs = strings.Join(DefaultHostInputs, ",")
+	} else {
+		EnableInputs = EnableInputs + "," + strings.Join(DefaultHostInputs, ",")
+	}
 
 	datakit.Cfg.EnableDefaultsInputs(EnableInputs)
 
@@ -115,6 +131,7 @@ func InstallNewDatakit(svc service.Service) {
 }
 
 func updateLagacyConfig(dir string) {
+
 	cfgdata, err := ioutil.ReadFile(filepath.Join(dir, "datakit.conf"))
 	if err != nil {
 		l.Fatalf("read lagacy datakit.conf failed: %s", err.Error())
@@ -139,6 +156,23 @@ func updateLagacyConfig(dir string) {
 		}
 	}
 
+	for _, v := range DefaultHostInputs {
+		exists := false
+		for _, iv := range maincfg.DefaultEnabledInputs {
+			if v == iv {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			maincfg.DefaultEnabledInputs = append(maincfg.DefaultEnabledInputs, v)
+		}
+	}
+
+	//backup datakit.conf
+	backupfile := filepath.Join(dir, "datakit.conf", fmt.Sprintf(".bkp.%v", time.Now().Unix()))
+	ioutil.WriteFile(backupfile, cfgdata, 0664)
+
 	cfgdata, err = datakit.TomlMarshal(maincfg)
 	if err != nil {
 		l.Fatal(err)
@@ -150,6 +184,8 @@ func updateLagacyConfig(dir string) {
 }
 
 func upgradeMainConfigure(cfg *datakit.Config, mcp string) {
+
+	datakit.MoveDeprecatedMainCfg()
 
 	mcdata, err := ioutil.ReadFile(mcp)
 	if err != nil {
@@ -174,6 +210,23 @@ func upgradeMainConfigure(cfg *datakit.Config, mcp string) {
 	mc.DataWay.DeprecatedToken = ""
 	mc.DataWay.DeprecatedHost = ""
 	mc.DataWay.DeprecatedScheme = ""
+
+	for _, v := range DefaultHostInputs {
+		exists := false
+		for _, iv := range mc.DefaultEnabledInputs {
+			if v == iv {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			mc.DefaultEnabledInputs = append(mc.DefaultEnabledInputs, v)
+		}
+	}
+
+	//backup datakit.conf
+	backfile := mcp + fmt.Sprintf(".bkp.%v", time.Now().Unix())
+	ioutil.WriteFile(backfile, mcdata, 0664)
 
 	if err := cfg.InitCfg(mcp); err != nil {
 		l.Fatal(err)

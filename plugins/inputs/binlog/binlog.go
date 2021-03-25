@@ -48,10 +48,9 @@ func (_ *Binlog) SampleConfig() string {
 	return binlogConfigSample
 }
 
-func (_ *Binlog) Test() (result *inputs.TestResult, err error) {
+func (_ *Binlog) Test() (*inputs.TestResult, error) {
 	// 被动接受数据，无法进行测试
-	result.Desc = "success"
-	return
+	return &inputs.TestResult{Desc: "success"}, nil
 }
 
 type adapterLogWriter struct {
