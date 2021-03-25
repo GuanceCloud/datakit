@@ -37,3 +37,42 @@
 默认使用此条日志采集到的时间。
 
 如果使用pipeline对日志文本进行切割，且切割后的`time`字段符合转换规则，会将`time`字段转换为标准时间应用在此。
+
+
+## Tracing 行协议文档
+
+### measurement
+
+根据 Tracing 数据来源决定，目前支持 `jeager`，`zipkin`，`skywalking`与`ddtrace`。
+
+
+### tags
+
+| 指标     | 描述  | 数据类型 |  可选值 |
+| :--      | ---    | ---      |   ---    |
+| project           | 项目名         | String   |   -    |
+| operation         | span名         | String   |   -    |
+| service           | 服务名         | String   |   -    |
+| parent_id         | 父span编号     | String   |   -    |
+| trace_id          | 链路编号       | String   |   -    |
+| span_id           | span编号       | String   |   -    |
+| version           | 版本号         | String   |   -    |
+| http_method       | http请求方法   | String   |   -    |
+| http_status_code  | http请求状态码 | String   |   -    |
+| type              | span请求类型   | String   |   app，db，web，cache，custom    |
+| status            | span状态       | String   |   ok，error    |
+| span_type         | span类型       | String   |   entry，local，exit    |
+
+
+### fields
+
+| 指标     | 描述           | 数据类型 | 单位 |
+| :--      | ---           | ---     | ---  |
+| duration | span持续时间   | Int     |  毫秒 |
+| start    | span开始时间戳 | Int     |  毫秒 |
+| message  | span原始数据   | String  |  -   |
+| resource | 资源名         | String  |  -   |
+
+### time
+
+使用 trace 原始数据中时间戳。
