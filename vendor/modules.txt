@@ -1,3 +1,5 @@
+# code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
+code.cloudfoundry.org/bytefmt
 # collectd.org v0.3.0
 collectd.org/api
 collectd.org/cdtime
@@ -26,8 +28,6 @@ github.com/Azure/go-autorest/logger
 github.com/Azure/go-autorest/tracing
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
-# github.com/GuilhermeCaruso/kair v0.0.0-20200618030634-2cbc3ec356d4
-github.com/GuilhermeCaruso/kair
 # github.com/Microsoft/go-winio v0.4.16-0.20201130162521-d1ffc52c7331
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
@@ -59,7 +59,7 @@ github.com/Shopify/sarama
 github.com/StackExchange/wmi
 # github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 github.com/aeden/traceroute
-# github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
+# github.com/alecthomas/units v0.0.0-20201120081800-1786d5ef83d4
 github.com/alecthomas/units
 # github.com/aliyun/alibaba-cloud-sdk-go v1.61.391
 github.com/aliyun/alibaba-cloud-sdk-go/sdk
@@ -84,14 +84,12 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch
 github.com/aliyun/alibaba-cloud-sdk-go/services/ons
 github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore
 github.com/aliyun/alibaba-cloud-sdk-go/services/rds
-github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager
 github.com/aliyun/alibaba-cloud-sdk-go/services/sas
 github.com/aliyun/alibaba-cloud-sdk-go/services/slb
-github.com/aliyun/alibaba-cloud-sdk-go/services/tag
 github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
-# github.com/aliyun/aliyun-oss-go-sdk v2.1.5+incompatible
+# github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/andygrunwald/go-jira v1.12.0
 github.com/andygrunwald/go-jira
@@ -148,6 +146,12 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 github.com/basgys/goxml2json
 # github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
+# github.com/c-bata/go-prompt v0.2.5 => github.com/coanor/go-prompt v0.2.6
+github.com/c-bata/go-prompt
+github.com/c-bata/go-prompt/internal/bisect
+github.com/c-bata/go-prompt/internal/debug
+github.com/c-bata/go-prompt/internal/strings
+github.com/c-bata/go-prompt/internal/term
 # github.com/cenkalti/backoff v2.2.1+incompatible
 github.com/cenkalti/backoff
 # github.com/containerd/cgroups v0.0.0-20201119153540-4cbc285b3327
@@ -335,6 +339,8 @@ github.com/godror/godror
 github.com/godror/godror/odpi/embed
 github.com/godror/godror/odpi/include
 github.com/godror/godror/odpi/src
+# github.com/gofrs/flock v0.8.0
+github.com/gofrs/flock
 # github.com/gofrs/uuid v2.1.0+incompatible
 github.com/gofrs/uuid
 # github.com/gogo/googleapis v1.4.0
@@ -383,6 +389,51 @@ github.com/hpcloud/tail/ratelimiter
 github.com/hpcloud/tail/util
 github.com/hpcloud/tail/watch
 github.com/hpcloud/tail/winfile
+# github.com/huaweicloud/huaweicloud-sdk-go-v3 v0.0.30-rc.1
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/basic
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/env
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/global
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/iam
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/signer
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/config
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/converter
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/def
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/httphandler
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/impl
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/request
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/response
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/sdkerr
+github.com/huaweicloud/huaweicloud-sdk-go-v3/core/sdktime
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/region
+<<<<<<< HEAD
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/region
+=======
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1/region
+>>>>>>> dev
 # github.com/influxdata/go-syslog/v2 v2.0.1
 github.com/influxdata/go-syslog/v2
 github.com/influxdata/go-syslog/v2/common
@@ -549,8 +600,14 @@ github.com/leodido/ragel-machinery/parser
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
+# github.com/mattn/go-colorable v0.1.8
+github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
+# github.com/mattn/go-runewidth v0.0.10
+github.com/mattn/go-runewidth
+# github.com/mattn/go-tty v0.0.3
+github.com/mattn/go-tty
 # github.com/mattn/go-zglob v0.0.3
 github.com/mattn/go-zglob
 github.com/mattn/go-zglob/fastwalk
@@ -646,11 +703,13 @@ github.com/pingcap/tipb/sharedbytes
 github.com/pkg/errors
 # github.com/pkg/sftp v1.11.0
 github.com/pkg/sftp
+# github.com/pkg/term v1.1.0
+github.com/pkg/term/termios
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.15.0
+# github.com/prometheus/common v0.18.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
@@ -664,13 +723,15 @@ github.com/prometheus/prometheus/util/strutil
 github.com/rcrowley/go-metrics
 # github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237
 github.com/remyoudompheng/bigfft
+# github.com/rivo/uniseg v0.2.0
+github.com/rivo/uniseg
 # github.com/robfig/cron/v3 v3.0.0
 github.com/robfig/cron/v3
 # github.com/rs/xid v1.2.1
 github.com/rs/xid
 # github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 github.com/satori/go.uuid
-# github.com/shirou/gopsutil v2.20.5+incompatible
+# github.com/shirou/gopsutil v3.20.12+incompatible
 github.com/shirou/gopsutil/cpu
 github.com/shirou/gopsutil/disk
 github.com/shirou/gopsutil/host
@@ -679,6 +740,12 @@ github.com/shirou/gopsutil/load
 github.com/shirou/gopsutil/mem
 github.com/shirou/gopsutil/net
 github.com/shirou/gopsutil/process
+# github.com/shirou/gopsutil/v3 v3.20.12
+github.com/shirou/gopsutil/v3/cpu
+github.com/shirou/gopsutil/v3/internal/common
+github.com/shirou/gopsutil/v3/mem
+github.com/shirou/gopsutil/v3/net
+github.com/shirou/gopsutil/v3/process
 # github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
 github.com/shopspring/decimal
 # github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
@@ -733,6 +800,8 @@ github.com/tidwall/pretty
 # github.com/trivago/tgo v1.0.1
 github.com/trivago/tgo/tcontainer
 github.com/trivago/tgo/treflect
+# github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
+github.com/tweekmonster/luser
 # github.com/uber/jaeger-client-go v2.22.1+incompatible
 github.com/uber/jaeger-client-go/thrift
 github.com/uber/jaeger-client-go/thrift-gen/jaeger
@@ -787,7 +856,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20201227150604-9da64af6b767
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210224030339-aadc56ffd8f3
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript
@@ -795,8 +864,9 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript/module
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20201227150804-d80351eba51f
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210310094024-7d55e6edff38
 gitlab.jiagouyun.com/cloudcare-tools/kodo/config
+gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 gitlab.jiagouyun.com/cloudcare-tools/kodo/models
 gitlab.jiagouyun.com/cloudcare-tools/kodo/utils
 gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg
@@ -867,7 +937,7 @@ golang.org/x/crypto/poly1305
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
-# golang.org/x/net v0.0.0-20200625001655-4c5254603344
+# golang.org/x/net v0.0.0-20201021035429-f5854403a974
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -894,7 +964,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
+# golang.org/x/sys v0.0.0-20210316164454-77fc1eacc6aa
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
@@ -928,7 +998,7 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
+# golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
