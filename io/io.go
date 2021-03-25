@@ -11,6 +11,7 @@ import (
 
 	influxm "github.com/influxdata/influxdb1-client/models"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -22,6 +23,9 @@ var (
 
 	highFreqCleanInterval = time.Millisecond * 500
 )
+
+type Point *influxdb.Point
+type Points []*influxdb.Point
 
 type Option struct {
 	CollectCost time.Duration
@@ -48,7 +52,7 @@ type IO struct {
 	inputstats map[string]*InputsStat
 	qstatsCh   chan *qstats
 
-	cache        map[string][]*influxdb.Point
+	cache        map[string]Points
 	dynamicCache []*iodata
 
 	cacheCnt       int64
@@ -69,7 +73,7 @@ func NewIO() *IO {
 		inputstats: map[string]*InputsStat{},
 		qstatsCh:   make(chan *qstats), // blocking
 
-		cache:        map[string][]*influxdb.Point{},
+		cache:        map[string]Points{},
 		dynamicCache: []*iodata{},
 	}
 }
@@ -89,7 +93,7 @@ const ( // categories
 type iodata struct {
 	category, name string
 	opt            *Option
-	pts            []*influxdb.Point
+	pts            Points
 	url            string
 	isProxy        bool
 }
@@ -117,7 +121,7 @@ func SetTest() {
 	testAssert = true
 }
 
-func (x *IO) doFeed(pts []*influxdb.Point, category, name string, opt *Option) error {
+func (x *IO) doFeed(pts Points, category, name string, opt *Option) error {
 
 	ch := x.in
 
@@ -399,7 +403,7 @@ func (x *IO) flush() {
 	x.dynamicCache = left
 }
 
-func (x *IO) buildBody(pts []*influxdb.Point) (body []byte, gzon bool, err error) {
+func (x *IO) buildBody(pts Points) (body []byte, gzon bool, err error) {
 
 	lines := []string{}
 	for _, pt := range pts {
@@ -420,7 +424,7 @@ func (x *IO) buildBody(pts []*influxdb.Point) (body []byte, gzon bool, err error
 	return
 }
 
-func (x *IO) doFlush(pts []*influxdb.Point, url string) error {
+func (x *IO) doFlush(pts Points, url string) error {
 
 	if testAssert {
 		return nil
