@@ -4,17 +4,19 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	influxm "github.com/influxdata/influxdb1-client/models"
 	"google.golang.org/grpc"
 )
 
 func TestRCPServer(t *testing.T) {
-	uds := "/tmp/dk.sock"
-	GRPCServer(uds)
+	//uds := "/tmp/dk.sock"
+	GRPCServer()
 }
 
 func TestRPC(t *testing.T) {
@@ -25,7 +27,7 @@ func TestRPC(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		GRPCServer(uds)
+		GRPCServer()
 	}()
 
 	time.Sleep(time.Second)
@@ -83,16 +85,22 @@ func TestMeasurement(t *testing.T) {
 }
 
 func TestMakeMetric(t *testing.T) {
+
 	l, err := MakeMetric("abc", map[string]string{
 		"t1": `c:\\\\\\\\\\\\\`,
 		"t2": `\dddddd`,
 		"t3": "def",
 	},
 		map[string]interface{}{
-			"f1": uint64(time.Now().UnixNano()),
-			"f2": false,
-			"f3": 1.234,
-			"f5": "haha",
+			"uint64_1":               uint64(time.Now().UnixNano()),
+			"uint64_2":               uint64(math.MaxInt64),
+			"max_uint64_should_drop": uint64(math.MaxUint64),
+			"max_uint32":             uint32(math.MaxUint32),
+			"max_uint16":             uint16(math.MaxUint16),
+			"max_uint8":              uint8(math.MaxUint8),
+			"f2":                     false,
+			"f3":                     1.234,
+			"f5":                     "haha",
 		},
 		time.Now())
 
@@ -101,4 +109,67 @@ func TestMakeMetric(t *testing.T) {
 	}
 
 	t.Logf("%s", string(l))
+
+	pts, err := influxm.ParsePointsWithPrecision(l, time.Now().UTC(), "ns")
+	if err != nil {
+		t.Error(err)
+	} else {
+		for _, pt := range pts {
+			t.Logf("point: %s", pt.String())
+		}
+	}
+
+	l, err = MakeMetric("abc", map[string]string{
+		"t1": `c:\\\\\\\\\\\\\`,
+		"t2": `\dddddd`,
+		"t3": "def"},
+		map[string]interface{}{
+			"f2":  false,
+			"arr": []string{"1", "2", "3"},
+			"f3":  1.234,
+			"f5":  "haha"},
+		time.Now())
+
+	if err == nil {
+		t.Fatal(fmt.Errorf("expect error"))
+	}
+}
+
+func TestHighFreqChan(t *testing.T) {
+	SetTest()
+	highFreqRecvInterval = time.Second
+	maxCacheCnt = 1024
+
+	go startIO(false)
+
+	tags := map[string]string{
+		"tag1": "val1", "tag2": "val2",
+	}
+	fields := map[string]interface{}{
+		"f1": "abc", "f2": 123,
+	}
+	name := "io-test-case"
+	metric := "HighFreqFeed_xxx"
+
+	for {
+		ts := time.Now()
+		if err := HighFreqFeedEx(name, Metric, metric, tags, fields, ts); err != nil {
+			t.Error(err)
+		}
+
+		data, err := MakeMetric(metric, tags, fields, ts)
+		if err := HighFreqFeed(data, Metric, name); err != nil {
+			t.Error(err)
+		}
+
+		pt, err := influxm.ParsePointsWithPrecision(data, time.Now().UTC(), "n")
+		if err != nil {
+			t.Error(err)
+		}
+		if err := HighFreqFeedPoints(pt, Metric, name); err != nil {
+			t.Error(err)
+		}
+
+		//time.Sleep(time.Millisecond * 10)
+	}
 }
