@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -47,7 +48,7 @@ func newTailer(tl *Tailf, filename string) *tailer {
 		}
 
 		if _, ok := m["filename"]; !ok {
-			m["filename"] = filename
+			m["filename"] = filepath.Base(filename)
 		}
 		return m
 	}()
@@ -181,7 +182,7 @@ func (t *tailer) receiving() {
 		addStatus(fields)
 
 		// use t.source as input-name, make it more distinguishable for multiple tailf instances
-		if err := io.HighFreqFeedEx(inputName, io.Logging, t.source, t.tags, fields, ts); err != nil {
+		if err := io.HighFreqFeedEx(t.source, io.Logging, t.source, t.tags, fields, ts); err != nil {
 			t.tf.log.Error(err)
 		}
 	}
