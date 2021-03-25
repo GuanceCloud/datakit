@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -16,10 +15,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-)
-
-const (
-	apiRetryCount = 5
 )
 
 var (
@@ -72,7 +67,11 @@ func (ag *agent) Run() {
 		if ag.BiilInterval.Duration < time.Minute {
 			ag.BiilInterval.Duration = time.Minute
 		}
-		ag.subModules = append(ag.subModules, newCostBill(ag))
+		if ag.ByInstance {
+			ag.subModules = append(ag.subModules, newCostInstanceBill(ag))
+		} else {
+			ag.subModules = append(ag.subModules, newCostBill(ag))
+		}
 	}
 
 	if ag.OrdertInterval.Duration > 0 {
@@ -104,7 +103,7 @@ func (ag *agent) Run() {
 	}
 
 	//先获取account name
-	ag.getAccountInfo()
+	ag.queryBillOverview(ag.ctx)
 
 	var wg sync.WaitGroup
 	for _, m := range ag.subModules {
@@ -127,106 +126,15 @@ func (ag *agent) cacheFileKey(subname string) string {
 	return hex.EncodeToString(m.Sum(nil))
 }
 
-func (ag *agent) getAccountInfo() {
-	req := bssopenapi.CreateQueryBillOverviewRequest()
-	req.BillingCycle = fmt.Sprintf("%d-%d", time.Now().Year(), 1)
-
-	resp, err := ag.client.QueryBillOverview(req)
-	if err != nil {
-		moduleLogger.Errorf("fail to get account info, %s", err)
-		return
-	}
-
-	ag.accountName = resp.Data.AccountName
-	ag.accountID = resp.Data.AccountID
-}
-
-func (ag *agent) queryAccountTransactionsWrap(ctx context.Context, request *bssopenapi.QueryAccountTransactionsRequest) (response *bssopenapi.QueryAccountTransactionsResponse, err error) {
-	for i := 0; i < 5; i++ {
-		ag.rateLimiter.Wait(ctx)
-		response, err = ag.client.QueryAccountTransactions(request)
-		if err == nil && !response.Success {
-			err = fmt.Errorf("%s", response.String())
-		}
-
-		if err == nil {
-			return
-		}
-		datakit.SleepContext(ctx, time.Millisecond*200)
-	}
-
-	return
-}
-
-func (ag *agent) queryAccountBalanceWrap(ctx context.Context, request *bssopenapi.QueryAccountBalanceRequest) (response *bssopenapi.QueryAccountBalanceResponse, err error) {
-	for i := 0; i < 5; i++ {
-		ag.rateLimiter.Wait(ctx)
-		response, err = ag.client.QueryAccountBalance(request)
-		if err == nil && !response.Success {
-			err = fmt.Errorf("%s", response.String())
-		}
-		if err == nil {
-			return
-		}
-		datakit.SleepContext(ctx, time.Millisecond*200)
-	}
-
-	return
-}
-
-func (ag *agent) queryBillWrap(ctx context.Context, request *bssopenapi.QueryBillRequest) (response *bssopenapi.QueryBillResponse, err error) {
-	for i := 0; i < apiRetryCount; i++ {
-		ag.rateLimiter.Wait(ctx)
-		response, err = ag.client.QueryBill(request)
-		if err == nil && !response.Success {
-			err = fmt.Errorf("%s", response.String())
-		}
-		if err == nil {
-			return
-		}
-		datakit.SleepContext(ctx, time.Millisecond*200)
-	}
-
-	return
-}
-
-// func (r *runningInstance) QueryInstanceBillWrap(ctx context.Context, request *bssopenapi.QueryInstanceBillRequest) (response *bssopenapi.QueryInstanceBillResponse, err error) {
-// 	for i := 0; i < 5; i++ {
-// 		r.rateLimiter.Wait(ctx)
-// 		response, err = r.client.QueryInstanceBill(request)
-// 		if err == nil {
-// 			return
-// 		}
-// 		datakit.SleepContext(ctx, time.Millisecond*200)
-// 	}
-
-// 	return
-// }
-
-func (ag *agent) queryOrdersWrap(ctx context.Context, request *bssopenapi.QueryOrdersRequest) (response *bssopenapi.QueryOrdersResponse, err error) {
-	for i := 0; i < apiRetryCount; i++ {
-		ag.rateLimiter.Wait(ctx)
-		response, err = ag.client.QueryOrders(request)
-		if err == nil && !response.Success {
-			err = fmt.Errorf("%s", response.String())
-		}
-		if err == nil {
-			return
-		}
-		datakit.SleepContext(ctx, time.Millisecond*200)
-	}
-
-	return
-}
-
-func newAgent() *agent {
+func newAgent(mode string) *agent {
 	ag := &agent{}
+	ag.mode = mode
 	ag.ctx, ag.cancelFun = context.WithCancel(context.Background())
 	return ag
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return newAgent()
+		return newAgent("")
 	})
 }
