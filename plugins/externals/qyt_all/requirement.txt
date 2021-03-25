@@ -1,0 +1,6 @@
+influxdb==5.3.0
+requests==2.24.0
+gevent==21.1.2
+toml==0.10.2
+PyMySQL==1.0.2
+cx-Oracle==8.1.0
