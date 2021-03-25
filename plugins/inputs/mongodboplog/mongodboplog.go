@@ -27,22 +27,27 @@ const (
     mongodb_url="mongodb://127.0.0.1:27017"
     
     # required
-    database="testdb"
+    database="<your-database>"
     
     # required
-    collection="testcollection"
+    collection="<your-collection>"
+
+    # category only accept "metric" and "logging"
+    # if category is invalid, default use "metric"
+    category = "metric"
     
     # tags path
     tagList=[
-    	"/path",
-    	"/a/b/c/e"
+	# "/<path>",
+    	# "/a/b/c/e"
     ]
     
     # fields path. required
-    # type in [int, float, bool, string]
+    # type in ["int", "float", "bool", "string"]
     [inputs.mongodb_oplog.fieldList]
-    	"/a/c/d" = "int"
-    	"/a/c/f[1]/e/f" = "int"
+        # "<path>" = "<type>"
+	# "/a/c/d" = "int"
+    	# "/a/c/f[1]/e/f" = "bool"
     	# "/a/c/f\\[0\\]" = "int"
     
     # [inputs.mongodb_oplog.tags]
@@ -65,13 +70,13 @@ func init() {
 }
 
 type Mongodboplog struct {
-	MongodbURL  string            `toml:"mongodb_url"`
-	Database    string            `toml:"database"`
-	Collection  string            `toml:"collection"`
-	Measurement string            `toml:"measurement"`
-	TagList     []string          `toml:"tagList"`
-	FieldList   map[string]string `toml:"fieldList"`
-	Tags        map[string]string `toml:"tags"`
+	MongodbURL string            `toml:"mongodb_url"`
+	Database   string            `toml:"database"`
+	Collection string            `toml:"collection"`
+	Category   string            `toml:"category"`
+	TagList    []string          `toml:"tagList"`
+	FieldList  map[string]string `toml:"fieldList"`
+	Tags       map[string]string `toml:"tags"`
 
 	// mongodb namespace is 'database.collection'
 	namespace string
@@ -89,11 +94,12 @@ func (*Mongodboplog) SampleConfig() string {
 	return sampleCfg
 }
 
-func (m *Mongodboplog) Test() (result *inputs.TestResult, err error) {
+func (m *Mongodboplog) Test() (*inputs.TestResult, error) {
 	l = logger.SLogger(inputName)
 
 	m.initCfg()
 
+	var err error
 	var session *mgo.Session
 	if session, err = mgo.Dial(m.MongodbURL); err != nil {
 		err = fmt.Errorf("failed to connect, err: %s", err.Error())
@@ -104,12 +110,13 @@ func (m *Mongodboplog) Test() (result *inputs.TestResult, err error) {
 		}
 	}()
 
+	var result inputs.TestResult
 	if err != nil {
 		result.Desc = "测试连接MongoDB失败，详情见错误信息"
 	} else {
 		result.Desc = "测试连接MongoDB成功"
 	}
-	return
+	return &result, err
 }
 
 func (m *Mongodboplog) Run() {
@@ -163,6 +170,20 @@ func (m *Mongodboplog) initCfg() {
 	for k, v := range m.FieldList {
 		m.pointlist[k] = v
 	}
+
+	m.rewriteCategory()
+}
+
+func (m *Mongodboplog) rewriteCategory() {
+	switch m.Category {
+	case "metric":
+		m.Category = io.Metric
+	case "logging":
+		m.Category = io.Logging
+	default:
+		l.Warnf("invalid category '%s', only accept metric and logging. use default 'metric'", m.Category)
+		m.Category = io.Metric
+	}
 }
 
 func (m *Mongodboplog) runloop() {
@@ -198,11 +219,12 @@ func (m *Mongodboplog) runloop() {
 						l.Error(err)
 						continue
 					}
-					if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
-						l.Error(err)
+
+					if err := io.NamedFeed(data, m.Category, inputName); err != nil {
+						l.Errorf("io feed err, category: %s, error: %s", m.Category, err)
 						continue
 					}
-					l.Debugf("feed %d bytes to io ok", len(data))
+					l.Debugf("feed %d bytes to io %s ok", len(data), m.Category)
 
 				default:
 					// nil
@@ -286,6 +308,7 @@ func (md *mgodata) typeAssert(completeKey string, value interface{}) {
 				md.fields[completeKey] = v
 			}
 		default:
+			l.Debugf("invalid fields type, key: %s, type: %s, data: %v", completeKey, typee, value)
 			// nil
 		}
 	}
