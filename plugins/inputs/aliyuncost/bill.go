@@ -69,13 +69,6 @@ func (cb *costBill) getData(ctx context.Context) {
 		default:
 		}
 
-		/*
-			//实例账单: 实例 + 按天
-			if err := cb.getInstnceBills(ctx, start.Year(), int(start.Month())); err != nil && err != context.Canceled {
-				moduleLogger.Errorf("%s", err)
-			}
-		*/
-
 		atomic.AddInt32(&cb.historyFlag, -1)
 
 		if cb.ag.isTest() {
@@ -95,7 +88,7 @@ func (cb *costBill) getData(ctx context.Context) {
 
 func (cb *costBill) getHistoryData(ctx context.Context) {
 
-	key := "." + cb.ag.cacheFileKey(`bill`)
+	key := "." + cb.ag.cacheFileKey(`billV2`)
 
 	if !cb.ag.CollectHistoryData {
 		delAliyunCostHistory(key)
@@ -168,7 +161,7 @@ func (cb *costBill) getBills(ctx context.Context, cycle string, info *historyInf
 		logPrefix = "(history) "
 	}
 
-	moduleLogger.Infof("%sgetting Bills of %s", logPrefix, cycle)
+	moduleLogger.Infof("%sBills of %s start", logPrefix, cycle)
 
 	req := bssopenapi.CreateQueryBillRequest()
 	req.BillingCycle = cycle
@@ -179,7 +172,7 @@ func (cb *costBill) getBills(ctx context.Context, cycle string, info *historyInf
 	for {
 
 		if info != nil {
-			for atomic.LoadInt32(&cb.historyFlag) == 1 {
+			for atomic.LoadInt32(&cb.historyFlag) > 0 {
 				select {
 				case <-ctx.Done():
 					return nil
@@ -195,7 +188,7 @@ func (cb *costBill) getBills(ctx context.Context, cycle string, info *historyInf
 		default:
 		}
 
-		resp, err := cb.ag.queryBillWrap(ctx, req)
+		resp, err := cb.ag.queryBill(ctx, req)
 		if err != nil {
 			moduleLogger.Errorf("%s", err)
 			return fmt.Errorf("fail to get bill of %s", cycle)
@@ -220,59 +213,10 @@ func (cb *costBill) getBills(ctx context.Context, cycle string, info *historyInf
 		}
 	}
 
+	moduleLogger.Infof("%sBills of %s end", logPrefix, cycle)
+
 	return nil
 }
-
-// func (cb *costBill) getInstnceBills(ctx context.Context, year, month int) error {
-
-// 	start := time.Now().Truncate(time.Hour)
-
-// 	for d := 1; d <= start.Day(); d++ {
-
-// 		req := bssopenapi.CreateQueryInstanceBillRequest()
-// 		req.BillingCycle = fmt.Sprintf("%d-%02d", year, month)
-// 		req.Scheme = "https"
-// 		req.Granularity = "DAILY"
-// 		req.IsBillingItem = requests.NewBoolean(false) //按实例
-// 		req.PageSize = requests.NewInteger(300)
-// 		req.BillingDate = fmt.Sprintf("%d-%02d-%02d", year, month, d)
-
-// 		for {
-
-// 			select {
-// 			case <-ctx.Done():
-// 				return context.Canceled
-// 			default:
-// 			}
-
-// 			resp, err := cb.runningInstance.QueryInstanceBillWrap(ctx, req)
-
-// 			select {
-// 			case <-ctx.Done():
-// 				return context.Canceled
-// 			default:
-// 			}
-
-// 			if err != nil {
-// 				return fmt.Errorf("fail to get instance bill of %s: %s", req.BillingDate, err)
-// 			} else {
-// 				cb.logger.Debugf("InstnceBills(%s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", req.BillingDate, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
-
-// 				if err := cb.parseInstanceBillResponse(ctx, resp); err != nil {
-// 					return err
-// 				}
-
-// 				if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
-// 					req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
-// 				} else {
-// 					break
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	return nil
-// }
 
 func (cb *costBill) parseBillResponse(ctx context.Context, resp *bssopenapi.QueryBillResponse) error {
 
@@ -299,6 +243,7 @@ func (cb *costBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		tags["Status"] = item.Status
 		tags[`Currency`] = item.Currency
 		tags[`CostUnit`] = item.CostUnit
+		tags[`Region`] = item.Region
 
 		fields := map[string]interface{}{}
 
@@ -327,8 +272,8 @@ func (cb *costBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 				data, _ := io.MakeMetric(cb.getName(), tags, fields, t)
 				cb.ag.testResult.Result = append(cb.ag.testResult.Result, data...)
 			} else if cb.ag.isDebug() {
-				//data, _ := io.MakeMetric(cb.getName(), tags, fields, t)
-				//fmt.Printf("-----%s\n", string(data))
+				data, _ := io.MakeMetric(cb.getName(), tags, fields, t)
+				fmt.Printf("%s\n", string(data))
 			} else {
 				io.NamedFeedEx(inputName, io.Metric, cb.getName(), tags, fields, t)
 			}
@@ -337,71 +282,6 @@ func (cb *costBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 
 	return nil
 }
-
-// func (cb *costBill) parseInstanceBillResponse(ctx context.Context, resp *bssopenapi.QueryInstanceBillResponse) error {
-// 	for _, item := range resp.Data.Items.Item {
-// 		tags := map[string]string{
-// 			"AccountID":    resp.Data.AccountID,
-// 			"AccountName":  resp.Data.AccountName,
-// 			"OwnerID":      item.OwnerID,
-// 			"BillingCycle": resp.Data.BillingCycle,
-// 		}
-
-// 		tags[`CostUnit`] = item.CostUnit
-// 		tags[`SubscriptionType`] = item.SubscriptionType
-// 		tags[`Item`] = item.Item
-// 		tags[`ProductCode`] = item.ProductCode
-// 		tags[`ProductName`] = item.ProductName
-// 		tags[`ProductType`] = item.ProductType
-// 		tags[`InstanceID`] = item.InstanceID
-// 		tags[`NickName`] = item.NickName
-// 		tags[`InstanceSpec`] = item.InstanceSpec
-// 		tags[`InternetIP`] = item.InternetIP
-// 		tags[`Region`] = item.Region
-// 		tags[`Zone`] = item.Zone
-// 		tags[`BillingItem`] = item.BillingItem
-// 		tags[`Currency`] = item.Currency
-
-// 		if item.Tag != "" {
-// 			kvs := strings.Split(item.Tag, `;`)
-// 			for _, kv := range kvs {
-// 				parts := strings.Split(kv, ` `)
-// 				if len(parts) != 2 {
-// 					continue
-// 				}
-// 				k := parts[0]
-// 				v := parts[1]
-// 				var key, val string
-// 				pos := strings.Index(k, `key:`)
-// 				if pos != -1 {
-// 					key = k[4:]
-// 				}
-// 				pos = strings.Index(v, `value:`)
-// 				if pos != -1 {
-// 					val = v[6:]
-// 				}
-// 				if key != "" {
-// 					tags[key] = val
-// 				}
-// 			}
-// 		}
-
-// 		fields := map[string]interface{}{}
-
-// 		fields[`PretaxGrossAmount`] = item.PretaxGrossAmount
-// 		fields[`InvoiceDiscount`] = item.InvoiceDiscount
-// 		fields[`DeductedByCoupons`] = item.DeductedByCoupons
-// 		fields[`PretaxAmount`] = item.PretaxAmount
-// 		fields[`DeductedByCashCoupons`] = item.DeductedByCashCoupons
-// 		fields[`DeductedByPrepaidCard`] = item.DeductedByPrepaidCard
-// 		fields[`PaymentAmount`] = item.PaymentAmount
-// 		fields[`OutstandingAmount`] = item.OutstandingAmount
-// 		fields[`BillingDate`] = item.BillingDate
-
-// 		io.NamedFeedEx(inputName, io.Metric, cb.getName(), tags, fields)
-// 	}
-// 	return nil
-// }
 
 func (cb *costBill) getInterval() time.Duration {
 	return cb.interval
