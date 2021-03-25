@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/kodo/config"
@@ -13,30 +14,28 @@ import (
 )
 
 var (
-	l     = logger.DefaultSLogger("kodows/msg")
-	Msgch = make(chan *WrapMsg)
-	Hbch  = make(chan string)
-	Clich = make(chan *DatakitClient)
+	l         = logger.DefaultSLogger("kodows/msg")
+	Msgch     = make(chan *WrapMsg)
+	Hbch      = make(chan string)
+	Clich     = make(chan *DatakitClient)
 	Onlinedks = map[string]*DatakitClient{}
-
-
+	KodoCli   = &KoDoCli{}
 )
 
-
 type DatakitClient struct {
-	UUID    string
-	Version string
-	OS      string
-	Arch    string
-	Docker  bool
-	Token   string
+	UUID     string
+	Version  string
+	OS       string
+	Arch     string
+	Docker   bool
+	Token    string
 	HostName string
 	Ip       string
-	Conn    net.Conn
+	Conn     net.Conn
 
 	HeartbeatConf string
-	Heartbeat time.Time
-	Status  string
+	Heartbeat     time.Time
+	Status        string
 }
 
 type WrapMsg struct {
@@ -45,25 +44,22 @@ type WrapMsg struct {
 	Dest    []string `json:"dest,omitempty"`
 	B64Data string   `json:"b64data,omitempty"`
 
-	Code string      `json:"code"`
+	Code string `json:"code"`
 	Raw  []byte
 }
 
-
-
-func SendOnline(dk *DatakitClient){
+func SendOnline(dk *DatakitClient) {
 	var m MsgDatakitOnline
-	wm,err:= BuildMsg(m,dk.UUID)
-	if err !=nil{
+	wm, err := BuildMsg(m, dk.UUID)
+	if err != nil {
 		l.Error(err)
 	}
-	b,err:= json.Marshal(wm)
-	if err !=nil{
+	b, err := json.Marshal(wm)
+	if err != nil {
 		l.Error(err)
 	}
 	SendToDatakit(b)
 }
-
 
 func ParseWrapMsg(data []byte) (*WrapMsg, error) {
 
@@ -82,6 +78,8 @@ func (wm *WrapMsg) Invalid() bool {
 func (dc *DatakitClient) Online() {
 	Clich <- dc
 	SendOnline(dc)
+	UpdateHostState(dc.Token, dc.HostName, "online")
+
 }
 
 func (wm *WrapMsg) Send() {
@@ -117,65 +115,59 @@ func (wm *WrapMsg) Handle() error {
 		wm.SetRedis()
 		SetDatakitOnline(wm)
 		return nil
-	case MtypeModifyDKStatus :
-		Onlinedks[wm.Dest[0]].Status = "reload"
-		return nil
 	default:
 		wm.SetRedis()
 		return nil
 	}
 }
 
-func SetDatakitOnline(wm *WrapMsg){
-	if wm.Code != "ok"{
-		l.Errorf("online err:%s",wm)
+func SetDatakitOnline(wm *WrapMsg) {
+	if wm.Code != "ok" {
+		l.Errorf("online err:%s", wm)
 		return
 	}
-	data,err := base64.StdEncoding.DecodeString(wm.B64Data)
-	if err != nil{
-		l.Errorf("ws return err:%s",err)
+	data, err := base64.StdEncoding.DecodeString(wm.B64Data)
+	if err != nil {
+		l.Errorf("ws return err:%s", err)
 		return
 	}
 	var dk MsgDatakitOnline
 
-	err = json.Unmarshal(data,&dk)
-	if err != nil{
-		l.Errorf("ws online parse err : %s",err)
+	err = json.Unmarshal(data, &dk)
+	if err != nil {
+		l.Errorf("ws online parse err : %s", err)
 		return
 	}
 	now := time.Now().Unix()
-	info,_ := json.Marshal(dk.InputInfo)
+	info, _ := json.Marshal(dk.InputInfo)
 
-	var count  = 0
+	var count = 0
 	err = models.Stmts["existDK"].QueryRow(dk.UUID).Scan(&count)
-	if count == 1{
-		_,err = models.Stmts["updateDKOnline"].Exec(dk.Name,Onlinedks[dk.UUID].Token,Onlinedks[dk.UUID].HostName,Onlinedks[dk.UUID].Ip,dk.Version,dk.OS,dk.Arch,info,now,now,0,dk.UUID)
+	if count == 1 {
+		_, err = models.Stmts["updateDKOnline"].Exec(dk.Name, Onlinedks[dk.UUID].Token, Onlinedks[dk.UUID].HostName, Onlinedks[dk.UUID].Ip, dk.Version, dk.OS, dk.Arch, info, now, now, 0, dk.UUID)
 
-	}else {
+	} else {
 		uuid := cliutils.XID("dkol_")
-		_, err = models.Stmts[`setDKOnline`].Exec(uuid,dk.Name,Onlinedks[dk.UUID].Token,Onlinedks[dk.UUID].HostName,Onlinedks[dk.UUID].Ip,dk.UUID,dk.Version,dk.OS,dk.Arch,info,now,now,models.StatusOK,now,now)
+		_, err = models.Stmts[`setDKOnline`].Exec(uuid, dk.Name, Onlinedks[dk.UUID].Token, Onlinedks[dk.UUID].HostName, Onlinedks[dk.UUID].Ip, dk.UUID, dk.Version, dk.OS, dk.Arch, info, now, now, models.StatusOK, now, now)
 	}
 
-	if err != nil{
-		l.Errorf("set online run mysql err:%s",err)
+	if err != nil {
+		l.Errorf("set online run mysql err:%s", err)
 	}
 }
 
+func (wm *WrapMsg) SetRedis() {
 
-func (wm *WrapMsg)SetRedis(){
-	//dkId := wm.Dest[0]
-	//token := Onlinedks[dkId].Token
-	b,err := json.Marshal(&wm)
-	if err != nil{
-		l.Errorf("set redis parse wm err:%s",err)
+	b, err := json.Marshal(&wm)
+	if err != nil {
+		l.Errorf("set redis parse wm err:%s", err)
 	}
-	if err := config.Redis.Publish(wm.Type,b).Err(); err != nil{
-		l.Errorf("redis publish err:%s",err.Error())
+	if err := config.Redis.Publish(wm.Type, b).Err(); err != nil {
+		l.Errorf("redis publish err:%s", err.Error())
 	}
 	l.Debugf("set redis ok")
 
 }
-
 
 func BuildMsg(m interface{}, dest ...string) (*WrapMsg, error) {
 	j, err := json.Marshal(m)
@@ -198,7 +190,6 @@ func BuildMsg(m interface{}, dest ...string) (*WrapMsg, error) {
 	return wm, nil
 }
 
-
 // datakit heartbeat
 type MsgDatakitHeartbeat struct {
 	UUID string `json:"id"`
@@ -210,57 +201,37 @@ func (m *MsgDatakitHeartbeat) Handle(_ *WrapMsg) error {
 }
 
 type MsgDatakitOnline struct {
-	UUID            string
-	Version         string
-	OS              string
-	Arch            string
-	Name            string
-	Heartbeat       string
-	InputInfo       map[string]interface{}
+	UUID      string
+	Version   string
+	OS        string
+	Arch      string
+	Name      string
+	Heartbeat string
+	InputInfo map[string]interface{}
 }
 
-// get datakit input config
-type MsgGetInputConfig struct {
-	Names []string `json:"names"`
-}
-
-func (m *MsgGetInputConfig) Handle(wm *WrapMsg) error {
-	data, err := base64.StdEncoding.DecodeString(wm.B64Data)
-	if err != nil {
-		l.Errorf("get inputs config err %s", err)
-		return err
+func UpdateHostState(token, name, state string) {
+	class := "HOST"
+	tags := map[string]string{
+		"name": name,
 	}
-
-	return json.Unmarshal(data,&m.Names)
-}
-
-
-type MsgSetInputConfig struct {
-	Configs map[string]map[string]string `json:"configs"`
-}
-
-func (m *MsgSetInputConfig) Handle(wm *WrapMsg) error {
-	data, err := base64.StdEncoding.DecodeString(wm.B64Data)
-	if err != nil {
-		l.Errorf("get inputs config err %s", err)
-		return err
+	fields := map[string]interface{}{
+		"state": state,
 	}
+	line, err := ifxcli.NewPoint(class, tags, fields, time.Now().UTC())
 
-	return json.Unmarshal(data,&m.Configs)
+	if err != nil {
+		l.Errorf("make line err:%s", err.Error())
+		return
+	}
+	header := map[string]string{
+		"X-Token": token,
+	}
+	KodoCli.PostKodo("/v1/update/object", header, []byte(line.PrecisionString("s")))
 }
 
 const (
-	MTypeOnline            string = "online"
-	MTypeHeartbeat         string = "heartbeat"
-	MTypeGetInput          string = "get_input_config"
-	MTypeGetEnableInput    string = "get_enabled_input_config"
-	MTypeSetInput          string = "set_input_config"
-	MTypeDisableInput      string = "disable_input_config"
-	MTypeReload            string = "reload"
-	MTypeTestInput         string = "test_input_config"
-	MTypeEnableInput       string = "enable_input_config"
-	MTypeCMD               string = "cmd"
-	MtypeCsharkCmd         string = "csharkCmd"
-	MtypeModifyDKStatus   string = "modifyStatus"
-
+	MTypeOnline    string = "online"
+	MTypeHeartbeat string = "heartbeat"
+	MtypeCsharkCmd string = "csharkCmd"
 )
