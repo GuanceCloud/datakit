@@ -29,6 +29,8 @@ var (
 
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
+
+	x *IO
 )
 
 const (
@@ -78,6 +80,9 @@ func (d *DialTesting) Run() {
 
 	l = logger.SLogger(inputName)
 
+	x = NewIO()
+	go x.startIO()
+
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
 	// 若为本地json文件，则读取任务
 
@@ -91,8 +96,8 @@ func (d *DialTesting) Run() {
 	case "http", "https":
 		d.doServerTask() // task server
 
-	default: // local json
-		data, err := ioutil.ReadFile(reqURL.String())
+	case "file":
+		data, err := ioutil.ReadFile(reqURL.Path)
 		if err != nil {
 			l.Errorf(`%s`, err.Error())
 			return
@@ -107,6 +112,8 @@ func (d *DialTesting) Run() {
 		d.dispatchTasks(j)
 
 		<-datakit.Exit.Wait()
+	default:
+		l.Warnf(`no invalid scheme`)
 	}
 }
 
