@@ -124,11 +124,11 @@ var (
 		"internal": {name: "internal", Catalog: "internal", Sample: samples["internal"], Input: nil}, // import internal package not allowed
 
 		"ping":            {name: "ping", Catalog: "network", Input: &ping.Ping{}},
-		"net":             {name: "net", Catalog: "network", Input: &net.NetIOStats{}},
+		"net":             {name: "net", Catalog: "host", Input: &net.NetIOStats{}},
 		"netstat":         {name: "netstat", Catalog: "network", Input: &net.NetStats{}},
 		"net_response":    {name: "net_response", Catalog: "network", Input: &net_response.NetResponse{}},
 		"http":            {name: "http", Catalog: "network", Input: &http.HTTP{}},
-		"http_response":   {name: "http_response", Catalog: "network", Input: &http_response.HTTPResponse{}},
+		"http_response":   {name: "http_response", Catalog: "network", Sample: samples["http_response"], Input: &http_response.HTTPResponse{}},
 		"httpjson":        {name: "httpjson", Catalog: "network", Input: &httpjson.HttpJson{}},
 		"socket_listener": {name: "socket_listener", Catalog: "network", Input: &socket_listener.SocketListener{}},
 
@@ -191,14 +191,14 @@ var (
 		`modbus`:        {name: "modbus", Catalog: "modbus", Input: &modbus.Modbus{}},
 
 		// jolokia2 related
-		`weblogic`:       {name: "jolokia2_agent", Catalog: "weblogic", Input: &jolokia2.JolokiaAgent{}},
-		`jvm`:            {name: "jolokia2_agent", Catalog: "jvm", Input: &jolokia2.JolokiaAgent{}},
-		`hadoop_hdfs`:    {name: "jolokia2_agent", Catalog: "hadoop_hdfs", Input: &jolokia2.JolokiaAgent{}},
+		`weblogic`:       {name: "jolokia2_agent", Catalog: "weblogic", Sample: samples["weblogic"], Input: &jolokia2.JolokiaAgent{}},
+		`jvm`:            {name: "jolokia2_agent", Catalog: "jvm", Sample: samples["jvm"], Input: &jolokia2.JolokiaAgent{}},
+		`hadoop_hdfs`:    {name: "jolokia2_agent", Catalog: "hadoop_hdfs", Sample: samples["hadoop_hdfs"], Input: &jolokia2.JolokiaAgent{}},
 		"jolokia2_agent": {name: "jolokia2_agent", Catalog: "jolokia2_agent", Input: &jolokia2.JolokiaAgent{}},
-		"jboss":          {name: "jolokia2_agent", Catalog: "jboss", Input: &jolokia2.JolokiaAgent{}},
-		"cassandra":      {name: "jolokia2_agent", Catalog: "cassandra", Input: &jolokia2.JolokiaAgent{}},
-		"bitbucket":      {name: "jolokia2_agent", Catalog: "bitbucket", Input: &jolokia2.JolokiaAgent{}},
-		"kafka":          {name: "jolokia2_agent", Catalog: "kafka", Input: &jolokia2.JolokiaAgent{}},
+		"jboss":          {name: "jolokia2_agent", Catalog: "jboss", Sample: samples["jboss"], Input: &jolokia2.JolokiaAgent{}},
+		"cassandra":      {name: "jolokia2_agent", Catalog: "cassandra", Sample: samples["cassandra"], Input: &jolokia2.JolokiaAgent{}},
+		"bitbucket":      {name: "jolokia2_agent", Catalog: "bitbucket", Sample: samples["bitbucket"], Input: &jolokia2.JolokiaAgent{}},
+		"kafka":          {name: "jolokia2_agent", Catalog: "kafka", Sample: samples["kafka"], Input: &jolokia2.JolokiaAgent{}},
 
 		// ambiguous import
 		`consul`: {name: "consul", Catalog: "consul", Sample: samples["consul"], Input: nil},

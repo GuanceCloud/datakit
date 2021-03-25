@@ -26,7 +26,6 @@ log_rotate = 32
 log_upload = false
 gin_log = "/usr/local/cloudcare/dataflux/datakit/gin.log"
 max_post_interval = "15s"
-RoundInterval = false
 interval = "10s"
 output_file = ""
 hostname = "ubt-server"
