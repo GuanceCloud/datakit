@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
@@ -88,7 +87,8 @@ func (d *dialer) run() error {
 				fields["success"] = int64(1)
 			}
 
-			err := io.NameFeedExUrl(inputName, io.Metric, d.task.MetricName(), d.task.PostURLStr(), tags, fields, time.Now())
+			data, err := MakeMetric(d.task.MetricName(), tags, fields, time.Now())
+			x.doFeed(inputName, data, d.task.PostURLStr())
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
 			}
