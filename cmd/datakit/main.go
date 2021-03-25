@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -10,17 +11,18 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
@@ -32,19 +34,19 @@ var (
 	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
 	flagDocker         = flag.Bool("docker", false, "run within docker")
 
-	flagListCollectors    = flag.Bool("tree", false, `list vailable collectors`)
 	flagDumpConfigSamples = flag.String("dump-samples", "", `dump all config samples`)
 
 	flagCmd      = flag.Bool("cmd", false, "run datakit under command line mode")
 	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText     = flag.String("pltxt", "", "input text for the pipeline(json or raw text)")
-
-	ReleaseType = ""
+	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagGrokq    = flag.Bool("grokq", false, "query groks interactively")
 )
 
 var (
 	inputFilters = []string{}
 	l            = logger.DefaultSLogger("main")
+
+	ReleaseType = ""
 )
 
 func main() {
@@ -81,10 +83,11 @@ Golang Version: %s
       Uploader: %s
 ReleasedInputs: %s
 `, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, ReleaseType)
+		checkOnlineVersion()
 		os.Exit(0)
 	}
 
-	datakit.ReleaseType = ReleaseType
+	datakit.EnableUncheckInputs = (ReleaseType == "all")
 
 	if *flagCmd {
 		runDatakitWithCmd()
@@ -101,11 +104,6 @@ ReleasedInputs: %s
 		os.Exit(0)
 	}
 
-	if *flagListCollectors {
-		listCollectors()
-		os.Exit(0)
-	}
-
 	if *flagInputFilters != "" {
 		inputFilters = strings.Split(":"+strings.TrimSpace(*flagInputFilters)+":", ":")
 	}
@@ -113,78 +111,6 @@ ReleasedInputs: %s
 	if *flagDocker {
 		datakit.Docker = true
 	}
-}
-
-func listCollectors() {
-	collectors := map[string][]string{}
-
-	for k, v := range inputs.Inputs {
-		cat := v().Catalog()
-		collectors[cat] = append(collectors[cat], k)
-	}
-
-	star := " * "
-	uncheck := " ? "
-
-	ndk := 0
-	nuncheck := 0
-
-	output := []string{}
-
-	for k, vs := range collectors {
-		output = append(output, k)
-		for _, v := range vs {
-			checked, ok := inputs.AllInputs[v]
-			if !ok {
-				l.Errorf("datakit input %s not exists in check list", v)
-			}
-
-			if !checked && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
-				continue
-			}
-
-			if checked {
-				output = append(output, fmt.Sprintf("  |--[d]%s%s", star, v))
-			} else {
-				nuncheck++
-				output = append(output, fmt.Sprintf("  |--[d]%s%s", uncheck, v))
-			}
-			ndk++
-		}
-	}
-
-	collectors = map[string][]string{}
-	for k, v := range tgi.TelegrafInputs {
-		collectors[v.Catalog] = append(collectors[v.Catalog], k)
-	}
-
-	ntg := 0
-	for k, vs := range collectors {
-		output = append(output, k)
-		for _, v := range vs {
-
-			checked, ok := inputs.AllInputs[v]
-			if !ok {
-				l.Errorf("telegraf input %s not exists in check list", v)
-			}
-
-			if !checked && datakit.ReleaseType == datakit.ReleaseCheckedInputs {
-				continue
-			}
-
-			if checked {
-				output = append(output, fmt.Sprintf("  |--[t]%s%s", star, v))
-			} else {
-				nuncheck++
-				output = append(output, fmt.Sprintf("  |--[t]%s%s", uncheck, v))
-			}
-
-			ntg++
-		}
-	}
-
-	fmt.Println(strings.Join(output, "\n"))
-	fmt.Printf("total %d, datakit: %d, telegraf: %d, uncheck: %d\n", ntg+ndk, ndk, ntg, nuncheck)
 }
 
 func dumpAllConfigSamples(fpath string) {
@@ -253,6 +179,7 @@ func run() {
 
 func tryLoadConfig() {
 	datakit.Cfg.InputFilters = inputFilters
+	datakit.MoveDeprecatedMainCfg()
 
 	for {
 		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
@@ -274,7 +201,6 @@ func runDatakitWithHTTPServer() error {
 		l.Error("error running inputs: %v", err)
 		return err
 	}
-
 	go func() {
 		http.Start(datakit.Cfg.MainCfg.HTTPBind)
 	}()
@@ -284,36 +210,53 @@ func runDatakitWithHTTPServer() error {
 
 func runDatakitWithCmd() {
 	if *flagPipeline != "" {
+		cmds.PipelineDebugger(*flagPipeline, *flagText)
+		return
+	}
 
-		if *flagText == "" {
-			l.Fatal("-pltxt required")
-		}
+	if *flagGrokq {
+		cmds.Grokq()
+		return
+	}
+}
 
-		if err := pipeline.Init(); err != nil {
-			l.Fatalf("pipeline init failed: %s", err.Error())
-		}
+func checkOnlineVersion() {
+	nhttp.DefaultTransport.(*nhttp.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	resp, err := nhttp.Get("https://static.dataflux.cn/datakit/version")
+	if err != nil {
+		fmt.Printf("Get online version failed: \n%s\n", err.Error())
+		return
+	}
 
-		start := time.Now()
-		pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, *flagPipeline))
-		if err != nil {
-			l.Fatalf("new pipeline failed: %s", err.Error())
-		}
+	defer resp.Body.Close()
+	infobody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Get online version failed: \n%s\n", err.Error())
+		return
+	}
 
-		res, err := pl.Run(*flagText).Result()
-		if err != nil {
-			l.Fatalf("run pipeline failed: %s", err.Error())
-		}
+	var ver struct {
+		Version     string `json:"version"`
+		Commit      string `json:"commit"`
+		ReleaseDate string `json:"date_utc"`
+	}
+	if err := json.Unmarshal(infobody, &ver); err != nil {
+		fmt.Printf("Get online version failed: \n%s\n", err.Error())
+		return
+	}
 
-		if len(res) == 0 {
-			fmt.Println("No data extracted from pipeline")
-			return
-		}
+	if ver.Version != git.Version || ver.Commit != git.Commit {
+		fmt.Printf("\n\nNew version available: %s, commit %s (release at %s)\n",
+			ver.Version, ver.Commit, ver.ReleaseDate)
 
-		if j, err := json.MarshalIndent(res, "", "    "); err != nil {
-			l.Fatal(err)
-		} else {
-			fmt.Printf("Extracted data(cost: %v):\n", time.Since(start))
-			fmt.Printf("%s\n", string(j))
+		dlurl := fmt.Sprintf("https://static.dataflux.cn/datakit/installer-%s-%s", runtime.GOOS, runtime.GOARCH)
+		cmdWin := fmt.Sprintf(`Import-Module bitstransfer; start-bitstransfer -source %s -destination .\dk-installer.exe; .\dk-installer.exe -upgrade; rm dk-installer.exe`, dlurl)
+		cmd := fmt.Sprintf(`sudo -- sh -c "curl %s -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"`, dlurl)
+		switch runtime.GOOS {
+		case "windows":
+			fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
+		default:
+			fmt.Printf("\nUpgrade:\n\t%s\n\n", cmd)
 		}
 	}
 }
