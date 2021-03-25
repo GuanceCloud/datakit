@@ -125,6 +125,13 @@ func (c *objCollector) Run() {
 			"load":             message.Host.load5,
 			"state":            "online",
 		}
+
+		for k, v := range c.Tags {
+			if _, ok := fields[k]; !ok {
+				fields[k] = v
+			}
+		}
+
 		if c.p != nil {
 			if result, err := c.p.Run(string(messageData)).Result(); err == nil {
 				moduleLogger.Debugf("%s", result)
