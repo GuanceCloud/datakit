@@ -18,13 +18,13 @@ import (
 var moduleLogger *logger.Logger
 
 type objCollector struct {
-	Name  string            //deprecated
-	Class string            //deprecated
-	Tags  map[string]string `toml:"tags,omitempty"`        //deprecated
-	Desc  string            `toml:"description,omitempty"` //deprecated
+	Name  string //deprecated
+	Class string //deprecated
+	Desc  string `toml:"description,omitempty"` //deprecated
 
 	Interval datakit.Duration
-	Pipeline string `toml:"pipeline"`
+	Pipeline string            `toml:"pipeline"`
+	Tags     map[string]string `toml:"tags,omitempty"`
 
 	p *pipeline.Pipeline
 
