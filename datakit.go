@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -26,21 +25,14 @@ const (
 	OSArchDarwinAmd64 = "darwin/amd64"
 
 	CommonChanCap = 32
-
-	ReleaseCheckedInputs = "checked"
-	ReleaseAllInputs     = "all"
 )
 
 var (
-	ReleaseType = "" // default only release checked inputs
-
 	Exit = cliutils.NewSem()
 	WG   = sync.WaitGroup{}
 	l    = logger.DefaultSLogger("datakit")
 
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
-
-	MaxLifeCheckInterval time.Duration
 
 	Docker = false
 
@@ -59,15 +51,20 @@ var (
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
-	AgentLogFile   = filepath.Join(InstallDir, "embed", "agent.log")
-	TelegrafDir    = filepath.Join(InstallDir, "embed")
-	DataDir        = filepath.Join(InstallDir, "data")
-	LuaDir         = filepath.Join(InstallDir, "lua")
-	MainConfPath   = filepath.Join(InstallDir, "datakit.conf")
-	ConfdDir       = filepath.Join(InstallDir, "conf.d")
-	PipelineDir    = filepath.Join(InstallDir, "pipeline")
-	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
-	GRPCSock       = ""
+	AgentLogFile = filepath.Join(InstallDir, "embed", "agent.log")
+	UUIDFile     = filepath.Join(InstallDir, ".id")
+	TelegrafDir  = filepath.Join(InstallDir, "embed")
+	DataDir      = filepath.Join(InstallDir, "data")
+	LuaDir       = filepath.Join(InstallDir, "lua")
+	ConfdDir     = filepath.Join(InstallDir, "conf.d")
+
+	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
+	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
+
+	PipelineDir        = filepath.Join(InstallDir, "pipeline")
+	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
+	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
+	GRPCSock           = ""
 )
 
 func Quit() {
