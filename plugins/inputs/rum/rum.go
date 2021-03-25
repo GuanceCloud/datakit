@@ -21,6 +21,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	influxm "github.com/influxdata/influxdb1-client/models"
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
+	ipL "github.com/ip2location/ip2location-go"
 )
 
 const (
@@ -121,6 +123,92 @@ func (r *Rum) handleESData(pt influxm.Point, pl *pipeline.Pipeline) (influxm.Poi
 	return newpt, nil
 }
 
+func (r *Rum) doHandleBody(pt influxm.Point, srcip string, pl *pipeline.Pipeline) (influxData, esdata influxm.Point, err error) {
+
+	ptname := string(pt.Name())
+
+	var ipInfo *ipL.IP2Locationrecord
+	var newpt influxm.Point
+
+	ipInfo, err = geo.Geo(srcip)
+	if err != nil {
+		l.Errorf("geo failed: %s, ignored", err)
+	} else {
+		// 无脑填充 geo 数据
+		pt.AddTag("city", ipInfo.City)
+		pt.AddTag("province", ipInfo.Region)
+		pt.AddTag("country", ipInfo.Country_short)
+		pt.AddTag("isp", ip2isp.SearchIsp(srcip))
+	}
+
+	if isMetric(ptname) {
+		influxData = pt
+		return
+	} else if isES(ptname) {
+
+		// for ES data, add IP as tag to point
+		pt.AddTag("ip", srcip)
+
+		newpt, err = r.handleESData(pt, pl)
+
+		// XXX: 只是上传 RUM 原始数据，因为 ES 会将所有 tag/field 拉平
+		// 存入 ES，故只是行协议中增加一个长 tag，这个数据不会存入 influxdb。
+		//
+		// 这里只是将 RUM 原始数据转一下行协议即可，便于在 ES 中做全文检索。
+		// NOTE: 如果做了 pipeline，一定不要 drop_origin_data()，即不要删除
+		// `message' 字段，不然 RUM 原始数据无法做分词搜索。
+
+		if err != nil { // XXX: use origin point if error
+			newpt = pt
+		}
+
+		newpt, err = addMessageField(newpt)
+		if err != nil {
+			return
+		}
+
+		esdata = newpt
+		return
+	} else {
+		err = fmt.Errorf("unknown RUM metric name `%s'", ptname)
+		return
+	}
+}
+
+func addMessageField(pt influxm.Point) (influxm.Point, error) {
+	fields, err := pt.Fields()
+	if err != nil {
+		return nil, err
+	}
+
+	if fields == nil {
+		return nil, fmt.Errorf("fields should not be nil")
+	}
+
+	fields["message"] = pt.String()
+
+	tags := map[string]string{}
+	for _, t := range pt.Tags() {
+		tags[string(t.Key)] = string(t.Value)
+	}
+
+	newpt, err := ifxcli.NewPoint(string(pt.Name()), tags, fields, pt.Time())
+	if err != nil {
+		return nil, err
+	}
+
+	pts, err := influxm.ParsePointsWithPrecision([]byte(newpt.String()), pt.Time(), "ns")
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pts) != 1 {
+		return nil, fmt.Errorf("should be only 1 point")
+	}
+
+	return pts[0], nil
+}
+
 func (r *Rum) handleBody(body []byte, precision, srcip string) (influxData, esdata []influxm.Point, err error) {
 
 	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), precision)
@@ -135,40 +223,18 @@ func (r *Rum) handleBody(body []byte, precision, srcip string) (influxData, esda
 		}
 	}()
 
+	var influxp, esp influxm.Point
+
 	for _, pt := range pts {
-		ptname := string(pt.Name())
-		ipInfo, err := geo.Geo(srcip)
+		influxp, esp, err = r.doHandleBody(pt, srcip, pl)
 		if err != nil {
-			l.Errorf("geo failed: %s, ignored", err)
-		} else {
-			// 无脑填充 geo 数据
-			pt.AddTag("city", ipInfo.City)
-			pt.AddTag("province", ipInfo.Region)
-			pt.AddTag("country", ipInfo.Country_short)
-			pt.AddTag("isp", ip2isp.SearchIsp(srcip))
+			return
 		}
 
-		if isMetric(ptname) {
-			influxData = append(influxData, pt)
-		} else if isES(ptname) {
-			newpt, err := r.handleESData(pt, pl)
-
-			// XXX: 只是上传 RUM 原始数据，因为 ES 会将所有 tag/field 拉平
-			// 存入 ES，故只是行协议中增加一个长 tag，这个数据不会存入 influxdb。
-			//
-			// 这里只是将 RUM 原始数据转一下行协议即可，便于在 ES 中做全文检索。
-			// NOTE: 如果做了 pipeline，一定不要 drop_origin_data()，即不要删除
-			// `message' 字段，不然 RUM 原始数据无法做分词搜索。
-
-			if err != nil {
-				pt.AddTag("message", pt.String())
-				esdata = append(esdata, pt)
-			} else {
-				newpt.AddTag("message", newpt.String())
-				esdata = append(esdata, newpt)
-			}
+		if influxp != nil {
+			influxData = append(influxData, influxp)
 		} else {
-			return nil, nil, fmt.Errorf("unknown RUM metric name `%s'", ptname)
+			esdata = append(esdata, esp)
 		}
 	}
 
