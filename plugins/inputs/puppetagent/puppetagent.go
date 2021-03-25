@@ -57,10 +57,9 @@ func (*PuppetAgent) Catalog() string {
 	return "puppet"
 }
 
-func (pa *PuppetAgent) Test() (result *inputs.TestResult, err error) {
+func (pa *PuppetAgent) Test() (*inputs.TestResult, error) {
 	// 监听文件变更，无法进行测试
-	result.Desc = "success"
-	return
+	return &inputs.TestResult{Desc: "success"}, nil
 }
 
 func (pa *PuppetAgent) Run() {
@@ -151,7 +150,7 @@ func (pa *PuppetAgent) do() {
 					l.Error(err)
 					continue
 				}
-				if err := io.Feed(data, io.Metric); err != nil {
+				if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
 					l.Error(err)
 					continue
 				}

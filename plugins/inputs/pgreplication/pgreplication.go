@@ -36,15 +36,20 @@ const (
 
     # postgres user (need replication privilege)
     # required
-    user="testuser"
+    user="<your-user>"
 
     # required
-    password="pwd"
+    password="<your-password>"
 
     # required
-    database="testdb"
+    database="<your-database>"
 
-    table="test_table"
+    # if table is empty, default collect all table.
+    table="<your-table>"
+
+    # category only accept "metric" and "logging"
+    # if category is invalid, default use "metric"
+    category = "metric"
 
     # there are 3 events: "INSERT","UPDATE","DELETE"
     # required
@@ -81,6 +86,7 @@ type Replication struct {
 	Password  string            `toml:"password"`
 	Database  string            `toml:"database"`
 	Table     string            `toml:"table"`
+	Category  string            `toml:"category"`
 	Events    []string          `toml:"events"`
 	TagList   []string          `toml:"tag_colunms"`
 	FieldList []string          `toml:"field_colunms"`
@@ -110,8 +116,10 @@ func (*Replication) SampleConfig() string {
 	return sampleCfg
 }
 
-func (r *Replication) Test() (result *inputs.TestResult, err error) {
+func (r *Replication) Test() (*inputs.TestResult, error) {
 	l = logger.SLogger(inputName)
+
+	var err error
 
 	r.initCfg()
 
@@ -121,12 +129,14 @@ func (r *Replication) Test() (result *inputs.TestResult, err error) {
 	}
 	r.closeConn()
 
+	var result inputs.TestResult
 	if err != nil {
 		result.Desc = "测试连接postgresql失败，详情见错误信息"
 	} else {
 		result.Desc = "测试连接postgresql成功"
 	}
-	return
+
+	return &result, err
 }
 
 func (r *Replication) Run() {
@@ -214,6 +224,20 @@ func (r *Replication) initCfg() {
 		Password: r.Password,
 	}
 	r.slotName = fmt.Sprintf("datakit_slot_%d", time.Now().UnixNano())
+
+	r.rewriteCategory()
+}
+
+func (r *Replication) rewriteCategory() {
+	switch r.Category {
+	case "metric":
+		r.Category = io.Metric
+	case "logging":
+		r.Category = io.Logging
+	default:
+		l.Warnf("invalid category '%s', only accept metric and logging. use default 'metric'", r.Category)
+		r.Category = io.Metric
+	}
 }
 
 func (r *Replication) checkAndResetConn() error {
@@ -312,11 +336,12 @@ func (r *Replication) replicationMsgHandle(msg *pgx.ReplicationMessage) {
 			return
 		}
 
-		if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
-			l.Errorf("io feed err: %s", err.Error())
-		} else {
-			l.Debugf("feed %d bytes to io ok", len(data))
+		if err := io.NamedFeed(data, r.Category, inputName); err != nil {
+			l.Errorf("io feed err, category: %s, error: %s", r.Category, err)
+			return
 		}
+
+		l.Debugf("feed %d bytes to io %s ok", len(data), r.Category)
 	}
 }
 

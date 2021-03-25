@@ -4,13 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
 	"runtime"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -26,6 +25,8 @@ type objCollector struct {
 
 	Interval datakit.Duration
 	Pipeline string `toml:"pipeline"`
+
+	p *pipeline.Pipeline
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
@@ -45,16 +46,16 @@ func (c *objCollector) isDebug() bool {
 }
 
 func (_ *objCollector) Catalog() string {
-	return inputName
+	return InputCat
 }
 
 func (_ *objCollector) SampleConfig() string {
-	return sampleConfig
+	return SampleConfig
 }
 
 func (r *objCollector) PipelineConfig() map[string]string {
 	return map[string]string{
-		inputName: pipelineSample,
+		InputName: pipelineSample,
 	}
 }
 
@@ -67,7 +68,11 @@ func (c *objCollector) Test() (*inputs.TestResult, error) {
 
 func (c *objCollector) Run() {
 
-	moduleLogger = logger.SLogger(inputName)
+	moduleLogger = logger.SLogger(InputName)
+
+	if c.Interval.Duration == 0 {
+		c.Interval.Duration = 5 * time.Minute
+	}
 
 	if c.Interval.Duration == 0 {
 		c.Interval.Duration = 5 * time.Minute
@@ -89,25 +94,7 @@ func (c *objCollector) Run() {
 		c.cancelFun()
 	}()
 
-	var thePipeline *pipeline.Pipeline
-
-	script := c.Pipeline
-	if script == "" {
-		scriptPath := filepath.Join(datakit.PipelineDir, inputName+".p")
-		data, err := ioutil.ReadFile(scriptPath)
-		if err == nil {
-			script = string(data)
-		}
-	}
-
-	if script != "" {
-		p, err := pipeline.NewPipeline(script)
-		if err != nil {
-			moduleLogger.Errorf("%s", err)
-		} else {
-			thePipeline = p
-		}
-	}
+	c.p = c.getPipeline()
 
 	for {
 
@@ -126,11 +113,21 @@ func (c *objCollector) Run() {
 			continue
 		}
 
+		moduleLogger.Debugf("%s", string(messageData))
+
 		fields := map[string]interface{}{
-			"message": string(messageData),
+			"message":          string(messageData),
+			"os":               message.Host.HostMeta.OS,
+			"start_time":       message.Host.HostMeta.BootTime,
+			"datakit_ver":      git.Version,
+			"cpu_usage":        message.Host.cpuPercent,
+			"mem_used_percent": message.Host.Mem.usedPercent,
+			"load":             message.Host.load5,
+			"state":            "online",
 		}
-		if thePipeline != nil {
-			if result, err := thePipeline.Run(string(messageData)).Result(); err == nil {
+		if c.p != nil {
+			if result, err := c.p.Run(string(messageData)).Result(); err == nil {
+				moduleLogger.Debugf("%s", result)
 				for k, v := range result {
 					fields[k] = v
 				}
@@ -146,7 +143,7 @@ func (c *objCollector) Run() {
 		tm := time.Now().UTC()
 
 		if c.isTestOnce() {
-			data, err := io.MakeMetric(inputName, tags, fields, tm)
+			data, err := io.MakeMetric("HOST", tags, fields, tm)
 			if err != nil {
 				moduleLogger.Errorf("%s", err)
 				c.testError = err
@@ -159,24 +156,41 @@ func (c *objCollector) Run() {
 			}
 			return
 		} else if c.isDebug() {
-			data, _ := io.MakeMetric(inputName, tags, fields, tm)
+			data, _ := io.MakeMetric("HOST", tags, fields, tm)
 			fmt.Printf("%s\n", string(data))
 		} else {
-			io.NamedFeedEx(inputName, io.Object, inputName, tags, fields, tm)
+			io.NamedFeedEx(InputName, io.Object, "HOST", tags, fields, tm)
 		}
 
 		datakit.SleepContext(c.ctx, c.Interval.Duration)
 	}
 }
 
-func newInput() *objCollector {
+func (c *objCollector) getPipeline() *pipeline.Pipeline {
+
+	fname := c.Pipeline
+	if fname == "" {
+		fname = InputName + ".p"
+	}
+
+	p, err := pipeline.NewPipelineByScriptPath(fname)
+	if err != nil {
+		moduleLogger.Warnf("%s", err)
+		return nil
+	}
+
+	return p
+}
+
+func newInput(mode string) *objCollector {
 	o := &objCollector{}
+	o.mode = mode
 	o.ctx, o.cancelFun = context.WithCancel(context.Background())
 	return o
 }
 
 func init() {
-	inputs.Add(inputName, func() inputs.Input {
-		return newInput()
+	inputs.Add(InputName, func() inputs.Input {
+		return newInput("")
 	})
 }
