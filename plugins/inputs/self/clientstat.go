@@ -51,12 +51,12 @@ func (s *ClientStat) ToMetric() *influxdb.Point {
 		"vserion": git.Version,
 		"os":      s.OS,
 		"arch":    s.Arch,
+		"host":    s.HostName,
 	}
 
 	fields := map[string]interface{}{
-		"hostname": s.HostName,
-		"pid":      s.PID,
-		"uptime":   s.Uptime,
+		"pid":    s.PID,
+		"uptime": s.Uptime,
 
 		"num_goroutines": s.NumGoroutines,
 		"heap_alloc":     s.HeapAlloc,

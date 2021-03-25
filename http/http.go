@@ -53,9 +53,13 @@ func Start(bind string) {
 		HttpStart(bind)
 	}()
 
-	go func() {
-		StartWS()
-	}()
+	if !datakit.Cfg.MainCfg.DisableWebsocket {
+		go func() {
+			StartWS()
+		}()
+	} else {
+		l.Warn("websocket disabled")
+	}
 }
 
 func ReloadDatakit() error {
@@ -199,6 +203,11 @@ func tlsHandler(addr string) gin.HandlerFunc {
 }
 
 func HttpStart(addr string) {
+
+	if !datakit.EnableUncheckInputs {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	router := gin.New()
 
 	gin.DisableConsoleColor()
@@ -308,9 +317,10 @@ type datakitStats struct {
 	Branch       string    `json:"branch"`
 	Uptime       string    `json:"uptime"`
 	OSArch       string    `json:"os_arch"`
-	Reload       time.Time `json:"reload"`
+	Reload       time.Time `json:"reload,omitempty"`
 	ReloadCnt    int       `json:"reload_cnt"`
 	WithinDocker bool      `json:"docker"`
+	IOChanStat   string    `json:"io_chan_stats"`
 }
 
 func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
@@ -324,8 +334,12 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		Uptime:       fmt.Sprintf("%v", time.Since(uptime)),
 		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		ReloadCnt:    reloadCnt,
-		Reload:       reload,
 		WithinDocker: datakit.Docker,
+		IOChanStat:   io.ChanStat(),
+	}
+
+	if reloadCnt > 0 {
+		stats.Reload = reload
 	}
 
 	var err error
@@ -339,6 +353,10 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for k := range inputs.Inputs {
+		if !datakit.Enabled(k) {
+			continue
+		}
+
 		n, cfgs := inputs.InputEnabled(k)
 		npanic := inputs.GetPanicCnt(k)
 		if n > 0 {
@@ -347,6 +365,10 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for k := range tgi.TelegrafInputs {
+		if !datakit.Enabled(k) {
+			continue
+		}
+
 		n, cfgs := inputs.InputEnabled(k)
 		if n > 0 {
 			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Cfgs: cfgs})
@@ -354,10 +376,16 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for k := range inputs.Inputs {
+		if !datakit.Enabled(k) {
+			continue
+		}
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", k))
 	}
 
 	for k := range tgi.TelegrafInputs {
+		if !datakit.Enabled(k) {
+			continue
+		}
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[T] %s", k))
 	}
 
@@ -388,12 +416,12 @@ func apiReload(c *gin.Context) {
 	ErrOK.HttpBody(c, nil)
 
 	go func() {
-		//mutex.Lock()
-		//defer mutex.Unlock()
 		reload = time.Now()
 		reloadCnt++
 
 		RestartHttpServer()
 		l.Info("reload HTTP server ok")
 	}()
+
+	c.Redirect(http.StatusFound, "/stats")
 }
