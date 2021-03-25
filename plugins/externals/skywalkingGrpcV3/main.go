@@ -49,7 +49,7 @@ func main() {
 		panic(err)
 	}
 
-	logger.SetGlobalRootLogger(*flagLog, *flagLogLevel, logger.OPT_ENC_CONSOLE|logger.OPT_SHORT_CALLER)
+	logger.SetGlobalRootLogger(*flagLog, *flagLogLevel, logger.OPT_DEFAULT)
 	l = logger.SLogger("skywalkingGrpcV3")
 	l.Infof("log level: %s", *flagLogLevel)
 
@@ -97,8 +97,8 @@ func skywalkGrpcToLineProto(sg *lang.SegmentObject) error {
 
 		t.Source = "skywalking"
 
-		t.Duration = (span.EndTime - span.StartTime) * 1000
-		t.TimestampUs = span.StartTime * 1000
+		t.Duration = (span.EndTime - span.StartTime) * 1000000
+		t.Start = span.StartTime * 1000000
 		js, err := json.Marshal(span)
 		if err != nil {
 			return err
