@@ -1,3 +1,4 @@
+package dialtesting
 
 import (
 	"bytes"
