@@ -1,3 +1,5 @@
+# code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
+code.cloudfoundry.org/bytefmt
 # collectd.org v0.3.0
 collectd.org/api
 collectd.org/cdtime
@@ -337,6 +339,8 @@ github.com/godror/godror
 github.com/godror/godror/odpi/embed
 github.com/godror/godror/odpi/include
 github.com/godror/godror/odpi/src
+# github.com/gofrs/flock v0.8.0
+github.com/gofrs/flock
 # github.com/gofrs/uuid v2.1.0+incompatible
 github.com/gofrs/uuid
 # github.com/gogo/googleapis v1.4.0
@@ -409,15 +413,27 @@ github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1/region
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ecs/v2/region
+<<<<<<< HEAD
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/elb/v2/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/region
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rds/v3/region
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/model
 github.com/huaweicloud/huaweicloud-sdk-go-v3/services/vpc/v2/region
+=======
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/region
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1/model
+github.com/huaweicloud/huaweicloud-sdk-go-v3/services/rms/v1/region
+>>>>>>> dev
 # github.com/influxdata/go-syslog/v2 v2.0.1
 github.com/influxdata/go-syslog/v2
 github.com/influxdata/go-syslog/v2/common
@@ -848,7 +864,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript/module
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210303030605-4a9923247f4d
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210310094024-7d55e6edff38
 gitlab.jiagouyun.com/cloudcare-tools/kodo/config
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 gitlab.jiagouyun.com/cloudcare-tools/kodo/models
@@ -948,7 +964,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
+# golang.org/x/sys v0.0.0-20210316164454-77fc1eacc6aa
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
