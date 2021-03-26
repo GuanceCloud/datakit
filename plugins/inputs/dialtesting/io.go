@@ -30,9 +30,10 @@ var (
 )
 
 type iodata struct {
-	name string
-	data []byte // line-protocol or json or others
-	url  string
+	name     string
+	data     []byte // line-protocol or json or others
+	url      string
+	category string
 }
 
 type IO struct {
@@ -101,7 +102,7 @@ func (i *IO) startIO() {
 					if u.Path == "/proxy" {
 						isProxy = true
 					}
-					u.Path = u.Path + `/v1/write/metric`
+					u.Path = u.Path + d.category // `/v1/write/metric`
 					d.url = u.String()
 
 					// disable cache under proxied mode, to prevent large packages in proxing lua module
@@ -271,7 +272,7 @@ func (i *IO) flushAll() {
 	}
 }
 
-func (i *IO) doFeed(inputName string, data []byte, url string) error {
+func (i *IO) doFeed(category string, data []byte, url string) error {
 
 	if err := checkMetric(data); err != nil {
 		return fmt.Errorf("invalid line protocol data %v", err)
@@ -279,9 +280,10 @@ func (i *IO) doFeed(inputName string, data []byte, url string) error {
 
 	select {
 	case i.inputCh <- &iodata{
-		data: data,
-		name: inputName,
-		url:  url,
+		data:     data,
+		name:     inputName,
+		url:      url,
+		category: category,
 	}: // XXX: blocking
 
 	case <-datakit.Exit.Wait():
