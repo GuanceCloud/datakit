@@ -41,18 +41,22 @@ type TraceAdapter struct {
 	Start   int64
 	Content string
 
-	Project       string
-	ServiceName   string
-	OperationName string
-	Resource      string
-	ParentID      string
-	TraceID       string
-	SpanID        string
-	Status        string
-	SpanType      string
-	EndPoint      string
-	Type          string
-	Pid           string
+	Project        string
+	Version        string
+	Env            string
+	ServiceName    string
+	OperationName  string
+	Resource       string
+	ParentID       string
+	TraceID        string
+	SpanID         string
+	Status         string
+	SpanType       string
+	EndPoint       string
+	Type           string
+	Pid            string
+	HttpMethod     string
+	HttpStatusCode string
 
 	Tags map[string]string
 }
@@ -69,6 +73,14 @@ const (
 	STATUS_CRITICAL = "critical"
 
 	PROJECT = "project"
+	VERSION = "version"
+	ENV     = "env"
+
+	SPAN_SERVICE_APP    = "app"
+	SPAN_SERVICE_DB     = "db"
+	SPAN_SERVICE_WEB    = "web"
+	SPAN_SERVICE_CACHE  = "cache"
+	SPAN_SERVICE_CUSTOM = "custom"
 )
 
 var (
@@ -86,8 +98,16 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags["parent_id"] = tAdpt.ParentID
 	tags["trace_id"] = tAdpt.TraceID
 	tags["span_id"] = tAdpt.SpanID
-	tags["pid"] = tAdpt.Pid
-	tags["type"] = tAdpt.Type
+	tags["version"] = tAdpt.Version
+	tags["env"] = tAdpt.Env
+	tags["http_method"] = tAdpt.HttpMethod
+	tags["http_status_code"] = tAdpt.HttpStatusCode
+
+	if tAdpt.Type != "" {
+		tags["type"] = tAdpt.Type
+	} else {
+		tags["type"] = SPAN_SERVICE_CUSTOM
+	}
 
 	for tag, tagV := range tAdpt.Tags {
 		tags[tag] = tagV
@@ -132,7 +152,7 @@ func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 			continue
 		}
 
-		if err := dkio.NamedFeed(pt, dkio.Tracing, pluginName); err != nil {
+		if err := dkio.HighFreqFeed(pt, dkio.Tracing, pluginName); err != nil {
 			GetInstance().Errorf("io feed err: %s", err)
 		}
 	}
@@ -197,6 +217,6 @@ func GetInstance() *logger.Logger {
 	return log
 }
 
-func GetProjectFromPluginTag(tags map[string]string) string {
-	return tags[PROJECT]
+func GetFromPluginTag(tags map[string]string, tagName string) string {
+	return tags[tagName]
 }
