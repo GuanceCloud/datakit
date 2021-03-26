@@ -103,9 +103,29 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 		"success":        int64(-1),
 	}
 
-	if t.reqError != "" {
-		fields[`failed_reason`] = t.reqError
+	message := map[string]interface{}{}
+
+	reasons := t.CheckResult()
+	if len(reasons) != 0 {
+		message[`failed_reason`] = strings.Join(reasons, `;`)
 	}
+
+	if t.reqError == "" && len(reasons) == 0 {
+		tags["result"] = "OK"
+		fields["success"] = int64(1)
+	}
+
+	if t.reqError != "" {
+		message[`failed_reason`] = t.reqError
+	}
+
+	message[`resp_body`] = string(t.respBody)
+
+	if t.resp != nil {
+		message[`resp_header`] = t.resp.Header
+	}
+
+	fields[`message`] = message
 
 	return
 }
