@@ -328,6 +328,11 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 			continue
 		}
 
+		//check exist
+		if _, err := os.Stat(fpath); err == nil {
+			continue
+		}
+
 		if err := ioutil.WriteFile(fpath, []byte(sample), os.ModePerm); err != nil {
 			l.Errorf("write input %s config failed: %s, ignored", name, err.Error())
 			continue
