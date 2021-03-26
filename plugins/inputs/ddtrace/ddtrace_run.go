@@ -28,6 +28,37 @@ type Span struct {
 	Sampled  bool               `json:"-"`                 // if this span is sampled (and should be kept/recorded) or not
 }
 
+var ddtraceSpanType = map[string]string{
+	"cache":         trace.SPAN_SERVICE_CACHE,
+	"cassandra":     trace.SPAN_SERVICE_DB,
+	"elasticsearch": trace.SPAN_SERVICE_DB,
+	"grpc":          trace.SPAN_SERVICE_CUSTOM,
+	"http":          trace.SPAN_SERVICE_WEB,
+	"mongodb":       trace.SPAN_SERVICE_DB,
+	"redis":         trace.SPAN_SERVICE_CACHE,
+	"sql":           trace.SPAN_SERVICE_DB,
+	"template":      trace.SPAN_SERVICE_CUSTOM,
+	"test":          trace.SPAN_SERVICE_CUSTOM,
+	"web":           trace.SPAN_SERVICE_WEB,
+	"worker":        trace.SPAN_SERVICE_CUSTOM,
+	"memcached":     trace.SPAN_SERVICE_CACHE,
+	"leveldb":       trace.SPAN_SERVICE_DB,
+	"dns":           trace.SPAN_SERVICE_CUSTOM,
+	"queue":         trace.SPAN_SERVICE_CUSTOM,
+	"consul":        trace.SPAN_SERVICE_APP,
+	"rpc":           trace.SPAN_SERVICE_CUSTOM,
+	"soap":          trace.SPAN_SERVICE_CUSTOM,
+	"db":            trace.SPAN_SERVICE_DB,
+	"hibernate":     trace.SPAN_SERVICE_CUSTOM,
+	"aerospike":     trace.SPAN_SERVICE_DB,
+	"datanucleus":   trace.SPAN_SERVICE_CUSTOM,
+	"graphql":       trace.SPAN_SERVICE_CUSTOM,
+	"custom":        trace.SPAN_SERVICE_CUSTOM,
+	"benchmark":     trace.SPAN_SERVICE_CUSTOM,
+	"build":         trace.SPAN_SERVICE_CUSTOM,
+	"":              trace.SPAN_SERVICE_CUSTOM,
+}
+
 func DdtraceTraceHandle(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("trace handle with path: %s", r.URL.Path)
 	defer func() {
@@ -68,11 +99,15 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			if span.ParentID == 0 {
 				tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
 			} else {
-				if _, ok := spanIds[span.ParentID]; ok {
-					if _, ok := parentIds[span.SpanID]; ok {
-						tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+				if serviceName, ok := spanIds[span.ParentID]; ok {
+					if serviceName != span.Service {
+						tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
 					} else {
-						tAdpter.SpanType = trace.SPAN_TYPE_EXIT
+						if _, ok := parentIds[span.SpanID]; ok {
+							tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+						} else {
+							tAdpter.SpanType = trace.SPAN_TYPE_EXIT
+						}
 					}
 				} else {
 					tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
@@ -87,7 +122,7 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			tAdpter.TraceID = fmt.Sprintf("%d", span.TraceID)
 			tAdpter.SpanID = fmt.Sprintf("%d", span.SpanID)
 
-			tAdpter.Type = span.Type
+			tAdpter.Type = ddtraceSpanType[span.Type]
 			if span.Error == 0 {
 				tAdpter.Status = trace.STATUS_OK
 			} else {
@@ -103,9 +138,21 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 
 			tAdpter.Project = span.Meta[trace.PROJECT]
 			if tAdpter.Project == "" {
-				tAdpter.Project = trace.GetProjectFromPluginTag(DdtraceTags)
+				tAdpter.Project = trace.GetFromPluginTag(DdtraceTags, trace.PROJECT)
 			}
 
+			tAdpter.Env = span.Meta[trace.ENV]
+			if tAdpter.Env == "" {
+				tAdpter.Env = trace.GetFromPluginTag(DdtraceTags, trace.ENV)
+			}
+
+			tAdpter.Version = span.Meta[trace.VERSION]
+			if tAdpter.Version == "" {
+				tAdpter.Version = trace.GetFromPluginTag(DdtraceTags, trace.VERSION)
+			}
+
+			tAdpter.HttpMethod = span.Meta["http.method"]
+			tAdpter.HttpStatusCode = span.Meta["http.status_code"]
 			js, err := json.Marshal(span)
 			if err != nil {
 				return err
@@ -129,17 +176,17 @@ func unmarshalDdtraceMsgpack(body io.ReadCloser) ([][]*Span, error) {
 	return traces, err
 }
 
-func getSpanAndParentId(spans []*Span) (map[uint64]bool, map[uint64]bool) {
-	spanID := make(map[uint64]bool)
-	parentId := make(map[uint64]bool)
+func getSpanAndParentId(spans []*Span) (map[uint64]string, map[uint64]string) {
+	spanID := make(map[uint64]string)
+	parentId := make(map[uint64]string)
 	for _, span := range spans {
 		if span == nil {
 			continue
 		}
-		spanID[span.SpanID] = true
+		spanID[span.SpanID] = span.Service
 
 		if span.ParentID != 0 {
-			parentId[span.ParentID] = true
+			parentId[span.ParentID] = ""
 		}
 	}
 	return spanID, parentId
