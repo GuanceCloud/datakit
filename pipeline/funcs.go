@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/tidwall/gjson"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
@@ -35,6 +35,8 @@ var (
 		"uppercase":        Uppercase,
 		"url_decode":       UrlDecode,
 		"user_agent":       UserAgent,
+		"parse_duration":   ParseDuration,
+		"parse_date":       ParseDate,
 	}
 )
 
@@ -74,9 +76,8 @@ func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	cont, err := p.getContentStr(key)
-
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return p, nil
 	}
 
@@ -128,7 +129,7 @@ func Rename(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	v, err := p.getContent(old)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return p, nil
 	}
 
@@ -161,7 +162,7 @@ func UserAgent(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -190,9 +191,8 @@ func UrlDecode(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	cont, err := p.getContentStr(key)
-
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -222,7 +222,7 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -271,7 +271,7 @@ func DateTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContent(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -378,6 +378,138 @@ func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	return p, nil
 }
 
+func ParseDuration(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 1 {
+
+		l.Warn("parse_duration(): invalid param")
+
+		return nil, fmt.Errorf("func %s expect 1 arg", funcExpr.Name)
+	}
+
+	var key parser.Node
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.Identifier, *parser.AttrExpr:
+		key = v
+	default:
+		err := fmt.Errorf("param expect Identifier, got `%+#v', type `%s'",
+			funcExpr.Param[0], reflect.TypeOf(funcExpr.Param[0]).String())
+
+		l.Warn("parse_duration(): %s", err)
+
+		return p, err
+	}
+
+	cont, err := p.getContent(key)
+	if err != nil {
+		l.Debug(err)
+		return p, nil
+	}
+
+	duStr, ok := cont.(string)
+	if !ok {
+		return p, fmt.Errorf("parse_duration() expect string arg")
+	}
+
+	l.Debugf("parse duration %s", duStr)
+	du, err := time.ParseDuration(duStr)
+	if err != nil {
+		l.Debug(err)
+		return p, nil
+	}
+
+	p.setContent(key, int64(du))
+	return p, nil
+}
+
+func ParseDate(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 9 {
+
+		l.Warn("parse_duration(): invalid param")
+
+		return nil, fmt.Errorf("func %s expect 1 arg", funcExpr.Name)
+	}
+
+	var key parser.Node
+	var yy, mm, dd, hh, mi, ss, ns, zone string
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.AttrExpr, *parser.StringLiteral:
+		key = v
+	default:
+		return p, fmt.Errorf("expect string or AttrExpr, got `%s'",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		yy = v.Val
+	default:
+		return p, fmt.Errorf("param `precision` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[1]).String())
+	}
+
+	switch v := funcExpr.Param[2].(type) {
+	case *parser.StringLiteral:
+		mm = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+	switch v := funcExpr.Param[3].(type) {
+	case *parser.StringLiteral:
+		dd = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[3]).String())
+	}
+
+	switch v := funcExpr.Param[4].(type) {
+	case *parser.StringLiteral:
+		hh = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+	switch v := funcExpr.Param[5].(type) {
+	case *parser.StringLiteral:
+		mi = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+	switch v := funcExpr.Param[6].(type) {
+	case *parser.StringLiteral:
+		ss = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+	switch v := funcExpr.Param[7].(type) {
+	case *parser.StringLiteral:
+		ns = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+	switch v := funcExpr.Param[8].(type) {
+	case *parser.StringLiteral:
+		zone = v.Val
+	default:
+		return p, fmt.Errorf("param `fmt` expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+	res := parseDate(yy, mm, dd, hh, mi, ss, ns, zone)
+
+	p.setContent(key, res)
+	return p, nil
+}
+
 func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 2 {
@@ -404,7 +536,7 @@ func Cast(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContent(key)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return p, nil
 	}
 
@@ -479,7 +611,7 @@ func Group(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContent(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -536,7 +668,7 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		case *parser.Identifier:
 			cont, err := p.getContent(v.Name)
 			if err != nil {
-				l.Warnf("key `%v' not exist", key)
+				l.Debugf("key `%v' not exist", key)
 				return p, nil
 			}
 			setdata = append(setdata, cont)
@@ -557,7 +689,7 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContent(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
@@ -581,8 +713,8 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 1 {
-		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	if len(funcExpr.Param) < 1 {
+		return p, fmt.Errorf("func %s expected more than 1 args", funcExpr.Name)
 	}
 
 	var key parser.Node
@@ -594,14 +726,24 @@ func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
+	var tz string
+	if len(funcExpr.Param) > 1 {
+		switch v := funcExpr.Param[1].(type) {
+		case *parser.StringLiteral:
+			tz = v.Val
+		default:
+			return p, fmt.Errorf("param key expect StringLiteral, got %s",
+				reflect.TypeOf(funcExpr.Param[1]).String())
+		}
+	}
+
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
-	if v, err := TimestampHandle(cont); err != nil {
-		// l.Warnf("time convert fail error %v", err)
+	if v, err := TimestampHandle(cont, tz); err != nil {
 		return p, fmt.Errorf("time convert fail error %v", err)
 	} else {
 		p.setContent(key, v)
@@ -627,7 +769,7 @@ func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return p, nil
 	}
 
@@ -658,7 +800,7 @@ func Lowercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		l.Warn(err)
+		l.Debug(err)
 		return p, nil
 	}
 
@@ -708,7 +850,7 @@ func NullIf(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContent(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist", key)
+		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
