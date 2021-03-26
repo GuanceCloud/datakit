@@ -1,24 +1,14 @@
 package hostobject
 
 import (
-	"io/ioutil"
 	"testing"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func TestInput(t *testing.T) {
 
-	data, err := ioutil.ReadFile("test.conf")
-	if err != nil {
-		t.Error(err)
-		return
+	ag := newInput("debug")
+	ag.Tags = map[string]string{
+		"k1": "v1",
 	}
-	ag, err := config.LoadInputConfig(data, func() inputs.Input { return newInput("debug") })
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	ag[0].Run()
+	ag.Run()
 }
