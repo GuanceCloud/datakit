@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -46,8 +45,7 @@ func LoadInputsConfig(c *datakit.Config) error {
 		}
 	}
 
-	availableInput := map[string]map[string]*ast.Table{}
-	availableTgiInput := map[string]map[string]*ast.Table{}
+	availableInputCfgs := map[string]*ast.Table{}
 
 	if err := filepath.Walk(datakit.ConfdDir, func(fp string, f os.FileInfo, err error) error {
 		if err != nil {
@@ -59,10 +57,14 @@ func LoadInputsConfig(c *datakit.Config) error {
 			return nil
 		}
 
+		if f.Name() == "datakit.conf" {
+			return nil
+		}
 		if !strings.HasSuffix(f.Name(), ".conf") {
 			l.Debugf("ignore non-conf %s", fp)
 			return nil
 		}
+
 		tbl, err := parseCfgFile(fp)
 		if err != nil {
 			l.Warnf("[error] parse conf %s failed: %s, ignored", fp, err)
@@ -72,21 +74,10 @@ func LoadInputsConfig(c *datakit.Config) error {
 		if len(tbl.Fields) == 0 {
 			l.Debugf("no conf available on %s", fp)
 			return nil
-
 		}
 
-		fileName := strings.TrimSuffix(filepath.Base(fp), path.Ext(fp))
-
-		if _, ok := inputs.Inputs[fileName]; ok {
-			availableInput[fileName] = map[string]*ast.Table{fp: tbl}
-			return nil
-		}
-		if _, ok := tgi.TelegrafInputs[fileName]; ok {
-			availableTgiInput[fileName] = map[string]*ast.Table{fp: tbl}
-			return nil
-		}
-
-		l.Warnf("ignore conf `%s'", fp)
+		l.Debugf("parse %s ok", fp)
+		availableInputCfgs[fp] = tbl
 		return nil
 	}); err != nil {
 		l.Error(err)
@@ -100,32 +91,23 @@ func LoadInputsConfig(c *datakit.Config) error {
 		addTailfInputs(c.MainCfg)
 	}
 
-	for name, available := range availableInput {
-		creator, _ := inputs.Inputs[name]
-
-		if isDisabled(c.MainCfg.WhiteList, c.MainCfg.BlackList, c.MainCfg.Hostname, name) {
-			l.Warnf("input `%s' banned by white/black list on `%s'", name, c.MainCfg.Hostname)
+	for name, creator := range inputs.Inputs {
+		if !datakit.Enabled(name) {
+			l.Debugf("LoadInputsConfig: ignore unchecked input %s", name)
 			continue
 		}
 
-		if err := doLoadInputConf(c, name, creator, available); err != nil {
+		if err := doLoadInputConf(c, name, creator, availableInputCfgs); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
 			return err
 		}
 	}
 
-	tgiInput := map[string]*ast.Table{}
-
-	for _, v := range availableTgiInput {
-		for fp, tbl := range v {
-			tgiInput[fp] = tbl
-		}
-	}
-
-	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, tgiInput, c.InputFilters)
+	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, availableInputCfgs, c.InputFilters)
 	if err != nil {
 		return err
 	}
+
 	if telegrafRawCfg != "" {
 		if err := ioutil.WriteFile(filepath.Join(datakit.TelegrafDir, "agent.conf"), []byte(telegrafRawCfg), os.ModePerm); err != nil {
 			l.Errorf("create telegraf conf failed: %s", err.Error())
@@ -134,9 +116,7 @@ func LoadInputsConfig(c *datakit.Config) error {
 	}
 
 	inputs.AddSelf()
-	if len(inputs.InputsInfo["telegraf_http"]) == 0 && inputs.HaveTelegrafInputs() {
-		inputs.AddTelegrafHTTP()
-	}
+	inputs.AddTelegrafHTTPInput()
 
 	return nil
 }
@@ -171,9 +151,9 @@ func searchDatakitInputCfg(c *datakit.Config,
 					l.Warnf("ignore bad toml node for %s within %s", name, fp)
 				} else {
 					for inputName, v := range stbl.Fields {
-						//if inputName != name {
-						//	continue
-						//}
+						if inputName != name {
+							continue
+						}
 						inputlist, err = TryUnmarshal(v, inputName, creator)
 						if err != nil {
 							l.Warnf("unmarshal input %s failed within %s: %s", inputName, fp, err.Error())
@@ -248,7 +228,7 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 		err = toml.UnmarshalTable(t, input)
 		if err != nil {
 			l.Errorf("toml unmarshal %s failed: %v", name, err)
-			return
+			continue
 		}
 
 		inputList = append(inputList, input)
@@ -257,7 +237,7 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 	return
 }
 
-func migrateOldCfg(name string, c inputs.Creator) error {
+func initDatakitConfSample(name string, c inputs.Creator) error {
 	if name == "self" { //nolint:goconst
 		return nil
 	}
@@ -288,13 +268,24 @@ func migrateOldCfg(name string, c inputs.Creator) error {
 // Creata datakit input plugin's configures if not exists
 func initPluginSamples() {
 	for name, create := range inputs.Inputs {
-		if err := migrateOldCfg(name, create); err != nil {
+
+		if !datakit.Enabled(name) {
+			l.Debugf("initPluginSamples: ignore unchecked input %s", name)
+			continue
+		}
+
+		if err := initDatakitConfSample(name, create); err != nil {
 			l.Fatal(err)
 		}
 	}
 
 	// create telegraf input plugin's configures
 	for name, input := range tgi.TelegrafInputs {
+
+		if !datakit.Enabled(name) {
+			l.Debugf("initPluginSamples: ignore unchecked input %s", name)
+			continue
+		}
 
 		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf.sample")
 		l.Debugf("create telegraf conf path %s", filepath.Join(datakit.ConfdDir, input.Catalog))
@@ -344,48 +335,4 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 
 		l.Infof("enable input %s ok", name)
 	}
-}
-
-func LoadInputConfig(data []byte, creator inputs.Creator) ([]inputs.Input, error) {
-
-	tbl, err := toml.Parse(data)
-	if err != nil {
-		return nil, err
-	}
-
-	var result []inputs.Input
-
-	for field, node := range tbl.Fields {
-		inputlist := []inputs.Input{}
-
-		switch field {
-		case "inputs": //nolint:goconst
-			stbl, ok := node.(*ast.Table)
-			if !ok {
-				return nil, fmt.Errorf("ignore bad toml node")
-			}
-			for inputName, v := range stbl.Fields {
-				//if inputName != name {
-				//	continue
-				//}
-				inputlist, err = TryUnmarshal(v, inputName, creator)
-				if err != nil {
-					return nil, fmt.Errorf("unmarshal input %s failed: %s", inputName, err.Error())
-				}
-			}
-
-		default: // compatible with old version: no [[inputs.xxx]] header
-			inputlist, err = TryUnmarshal(node, "", creator)
-			if err != nil {
-				return nil, fmt.Errorf("unmarshal input failed: %s", err.Error())
-			}
-		}
-
-		for _, i := range inputlist {
-
-			result = append(result, i)
-		}
-	}
-
-	return result, nil
 }
