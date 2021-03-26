@@ -13,7 +13,10 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
 type HTTPTask struct {
@@ -38,6 +41,7 @@ type HTTPTask struct {
 	respBody []byte
 	reqStart time.Time
 	reqCost  time.Duration
+	reqError string
 }
 
 func (t *HTTPTask) UpdateTimeUs() int64 {
@@ -45,6 +49,9 @@ func (t *HTTPTask) UpdateTimeUs() int64 {
 }
 
 func (t *HTTPTask) ID() string {
+	if t.ExternalID == `` {
+		return cliutils.XID("dtst_")
+	}
 	return fmt.Sprintf("%s_%s", t.AK, t.ExternalID)
 }
 
@@ -75,11 +82,15 @@ func (t *HTTPTask) PostURLStr() string {
 
 func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
-		"name":        t.Name,
-		"url":         t.URL,
-		"region":      t.Region,
-		"status_code": fmt.Sprintf(`%v`, t.resp.StatusCode),
-		"proto":       t.req.Proto,
+		"name":   t.Name,
+		"url":    t.URL,
+		"region": t.Region,
+		"proto":  t.req.Proto,
+		"result": "FAIL",
+	}
+
+	if t.resp != nil {
+		tags["status_code"] = fmt.Sprintf(`%v`, t.resp.StatusCode)
 	}
 
 	for k, v := range t.Tags {
@@ -89,6 +100,11 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 	fields = map[string]interface{}{
 		"response_time":  int64(t.reqCost) / 1000000, // 单位为ms
 		"content_length": int64(len(t.respBody)),
+		"success":        int64(-1),
+	}
+
+	if t.reqError != "" {
+		fields[`failed_reason`] = t.reqError
 	}
 
 	return
@@ -160,33 +176,38 @@ type HTTPAdvanceOption struct {
 func (t *HTTPTask) Run() error {
 	reqURL, err := url.Parse(t.URL)
 	if err != nil {
-		return err
+		goto result
 	}
 
 	t.req, err = http.NewRequest(t.Method, reqURL.String(), nil)
 	if err != nil {
-		return err
+		goto result
 	}
 
 	// advance options
 	if err := t.setupAdvanceOpts(t.req); err != nil {
-		return err
+		goto result
 	}
 
 	t.reqStart = time.Now()
 	t.resp, err = t.cli.Do(t.req)
 	if err != nil {
-		return err
+		goto result
 	}
 
 	t.respBody, err = ioutil.ReadAll(t.resp.Body)
 	if err != nil {
-		return err
+		goto result
 	}
 	defer t.resp.Body.Close()
+
+result:
+	if err != nil {
+		t.reqError = err.Error()
+	}
 	t.reqCost = time.Since(t.reqStart)
 
-	return nil
+	return err
 }
 
 func (t *HTTPTask) CheckResult() (reasons []string) {
@@ -267,15 +288,6 @@ func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
 
 func (t *HTTPTask) Init() error {
 
-	if t.CurStatus == StatusStop {
-		return nil
-	}
-
-	// setup HTTP client
-	t.cli = &http.Client{
-		Timeout: 30 * time.Second, // default timeout
-	}
-
 	// setup frequency
 	du, err := time.ParseDuration(t.Frequency)
 	if err != nil {
@@ -285,6 +297,15 @@ func (t *HTTPTask) Init() error {
 		t.ticker.Stop()
 	}
 	t.ticker = time.NewTicker(du)
+
+	if strings.ToLower(t.CurStatus) == StatusStop {
+		return nil
+	}
+
+	// setup HTTP client
+	t.cli = &http.Client{
+		Timeout: 30 * time.Second, // default timeout
+	}
 
 	// advance options
 	for _, opt := range t.AdvanceOptions {
@@ -337,6 +358,10 @@ func (t *HTTPTask) Init() error {
 				t.cli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
 			}
 		}
+	}
+
+	if len(t.SuccessWhen) == 0 {
+		return fmt.Errorf(`no any check rule`)
 	}
 
 	// init success checker
