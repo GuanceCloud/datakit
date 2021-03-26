@@ -1,6 +1,7 @@
 package dialtesting
 
 import (
+	"crypto/md5"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -18,6 +20,13 @@ import (
 )
 
 var (
+	AuthorizationType = `DIAL_TESTING`
+	SignHeaders       = []string{
+		`Content-MD5`,
+		`Content-Type`,
+		`Date`,
+	}
+
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
 )
@@ -29,11 +38,13 @@ const (
 type DialTesting struct {
 	Region       string `toml:"region"`
 	Server       string `toml:"server,omitempty"`
+	AK           string `toml:"ak"`
+	SK           string `toml:"sk"`
 	PullInterval string `toml:"pull_interval,omitempty"`
 	Tags         map[string]string
 
-	cli   *http.Client
-	class string
+	cli *http.Client
+	//class string
 
 	curTasks map[string]*dialer
 	wg       sync.WaitGroup
@@ -47,7 +58,7 @@ const sample = `[[inputs.dialtesting]]
 
 	pull_interval = "1m" # default 1 min
 
-	[[inputs.net_dial_testing.tags]]
+	[inputs.dialtesting.tags]
 	# 各种可能的 tag
 	`
 
@@ -67,6 +78,40 @@ func (d *DialTesting) Run() {
 
 	l = logger.SLogger(inputName)
 
+	// 根据Server配置，若为服务地址则定时拉取任务数据；
+	// 若为本地json文件，则读取任务
+
+	reqURL, err := url.Parse(d.Server)
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return
+	}
+
+	switch reqURL.Scheme {
+	case "http", "https":
+		d.doServerTask() // task server
+
+	default: // local json
+		data, err := ioutil.ReadFile(reqURL.String())
+		if err != nil {
+			l.Errorf(`%s`, err.Error())
+			return
+		}
+
+		j, err := d.getLocalJsonTasks(data)
+		if err != nil {
+			l.Errorf(`%s`, err.Error())
+			return
+		}
+
+		d.dispatchTasks(j)
+
+		<-datakit.Exit.Wait()
+	}
+}
+
+func (d *DialTesting) doServerTask() {
+
 	du, err := time.ParseDuration(d.PullInterval)
 	if err != nil {
 		l.Warnf("invalid frequency: %s, use default", d.PullInterval)
@@ -83,9 +128,12 @@ func (d *DialTesting) Run() {
 		select {
 		case <-tick.C:
 			j, err := d.pullTask()
-			if err == nil {
-				_ = d.dispatchTasks(j)
+			if err != nil {
+				l.Warnf(`%s,ignore`, err.Error())
+				continue
 			}
+			l.Debugf(`task: %s %v`, string(j), d.pos)
+			d.dispatchTasks(j)
 
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
@@ -94,6 +142,31 @@ func (d *DialTesting) Run() {
 			// TODO: 调接口发送每个任务的执行情况，便于中心对任务的管理
 		}
 	}
+
+}
+
+func (d *DialTesting) newHttpTaskRun(t dt.HTTPTask) (*dialer, error) {
+
+	if err := t.Init(); err != nil {
+		l.Errorf(`%s`, err.Error())
+		return nil, err
+	}
+
+	dialer, err := newDialer(&t)
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return nil, err
+	}
+
+	d.wg.Add(1)
+	go func(id string) {
+		defer d.wg.Done()
+		protectedRun(dialer)
+		l.Infof("input %s exited", id)
+	}(t.ID())
+
+	return dialer, nil
+
 }
 
 func protectedRun(d *dialer) {
@@ -136,10 +209,11 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 			for _, j := range arr {
 				var t dt.HTTPTask
 				if err := json.Unmarshal([]byte(j), &t); err != nil {
+					l.Errorf(`%s`, err.Error())
 					return err
 				}
 
-				d.class = dt.ClassHTTP
+				//d.class = dt.ClassHTTP
 
 				// update dialer pos
 				ts := t.UpdateTimeUs()
@@ -148,25 +222,19 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 				}
 
 				if dialer, ok := d.curTasks[t.ID()]; ok { // update task
+
 					if err := dialer.updateTask(&t); err != nil {
+						l.Warnf(` %s,ignore`, err.Error())
 						delete(d.curTasks, t.ID())
 					}
 				} else { // create new task
-					if err := t.Init(); err == nil {
-						dialer, err := newDialer(&t)
-						if err != nil {
-							return err
-						}
-
-						d.wg.Add(1)
-						go func(id string) {
-							defer d.wg.Done()
-							protectedRun(dialer)
-							l.Infof("input %s exited", id)
-						}(t.ID())
-
+					dialer, err := d.newHttpTaskRun(t)
+					if err != nil {
+						l.Warnf(`%s, ignore`, err.Error())
+					} else {
 						d.curTasks[t.ID()] = dialer
 					}
+
 				}
 			}
 
@@ -184,25 +252,65 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 	return nil
 }
 
-func (d *DialTesting) pullTask() ([]byte, error) {
-	reqURL, err := url.Parse(d.Server)
-	if err != nil {
+func (d *DialTesting) getLocalJsonTasks(data []byte) ([]byte, error) {
+
+	//转化结构，json结构转成与kodo服务一样的格式
+	var resp map[string][]interface{}
+	if err := json.Unmarshal(data, &resp); err != nil {
+		l.Error(err)
 		return nil, err
 	}
 
-	switch reqURL.Scheme {
-	case "file": // local json
-		if data, err := ioutil.ReadFile(reqURL.String()); err != nil {
-			return nil, err
-		} else {
-			return data, nil
-		}
+	res := map[string][]string{}
+	for k, v := range resp {
+		for _, v1 := range v {
+			dt, err := json.Marshal(v1)
+			if err != nil {
+				l.Error(err)
+				return nil, err
+			}
 
-	case "http", "https": // task server
-		return d.pullHTTPTask(reqURL, d.pos)
+			res[k] = append(res[k], string(dt))
+		}
 	}
 
-	return nil, fmt.Errorf("unknown scheme: %s", reqURL.Scheme)
+	tasks := taskPullResp{
+		Content: res,
+	}
+	rs, err := json.Marshal(tasks)
+	if err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	return rs, nil
+}
+
+func (d *DialTesting) pullTask() ([]byte, error) {
+	reqURL, err := url.Parse(d.Server)
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return nil, err
+	}
+
+	return d.pullHTTPTask(reqURL, d.pos)
+
+}
+
+func signReq(req *http.Request, ak, sk string) {
+
+	so := &uhttp.SignOption{
+		AuthorizationType: AuthorizationType,
+		SignHeaders:       SignHeaders,
+		SK:                sk,
+	}
+
+	reqSign, err := so.SignReq(req)
+	if err != nil {
+		panic(err)
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("DIAL_TESTING %s:%s", ak, reqSign))
 }
 
 func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
@@ -212,16 +320,24 @@ func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, erro
 
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
+		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
+	bodymd5 := fmt.Sprintf("%x", md5.Sum([]byte("")))
+	req.Header.Set("Date", time.Now().Format(http.TimeFormat))
+	req.Header.Set("Content-MD5", bodymd5)
+	signReq(req, d.AK, d.SK)
+
 	resp, err := d.cli.Do(req)
 	if err != nil {
+		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
@@ -234,7 +350,6 @@ func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, erro
 		return nil, fmt.Errorf("pull task failed")
 	}
 
-	return nil, fmt.Errorf("should not been here")
 }
 
 func init() {
