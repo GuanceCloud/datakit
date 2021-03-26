@@ -2,8 +2,12 @@
 
 全局定义：
 
-- 所有拨测产生的数据，都以行协议方式，通过 `/v1/write/metric` 接口存为指标数据
+- 所有拨测产生的 **数值数据**，都以行协议方式，通过 `/v1/write/metric` 接口存为指标数据
+- 所有拨测产生的 **描述数据**，都以行协议方式，通过 `/v1/write/logging` 接口存为日志数据
+	- 所有日志数据均需要一个 `status` 字段，故建议按照不同的协议（HTTP/TCP等），依据拨测结果，来确定 `status` 字段
+	- `status` 可用列表，参见[这里](https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/blob/dev/plugins/inputs/dev.md#fields)
 - 所有标记为 `*` 的字段都是必填字段
+
 ## HTTP 拨测任务定义
 
 ```python
@@ -98,6 +102,8 @@
 
 ### HTTP 拨测结果数据结构定义
 
+#### 指标
+
 ```python
 {
 	"measurement": "http_dial_testing",
@@ -118,9 +124,6 @@
 	},
 
 	"fields": {
-		# 如失败，如实描述。如成功，无此指标
-		"fail_reason": "字符串描述失败原因"
-
 		# HTTP 相应时间, 单位 ms
 		"response_time": 300,
 
@@ -132,7 +135,51 @@
 
 		# 其它指标可再增加...
 	},
-	"time": time.Now()
+	"time": time.Now() 
+}
+```
+
+#### 日志
+
+```python
+{
+	"measurement": "http_dial_testing",
+	"tags": { # 基本跟指标数据一样
+		"name": "",
+		"url": "",
+		"用户额外指定的各种": "tags",
+
+		# 每个具体的 datakit 只会在一个 region，故这里只有单个值
+		"region": "",
+
+		"result": "OK", # 只有 OK/FAIL 两种状态，便于分组以及过滤查找
+
+		"status_code": "200/OK" # 便于分组以及过滤
+
+		# HTTP 协议版本，HTTP/1.0 HTTP/1.1 等
+		"proto": "HTTP/1.0"
+	},
+
+	"fields": {
+		# HTTP 相应时间, 单位 ms
+		"response_time": 300,
+
+		# 返回 body 长度，单位字节。如无 body，则无此指标，或者填 0
+		"content_length": 1024,
+
+		# 只有 1/-1 两种状态, 1 表示成功, -1 表示失败, 便于 UI 绘制状态跃迁图（TODO: 现在前端图标支持负数么）
+		"success": 1,
+
+		"status": "根据拨测结果，给出各种不同的 level",
+
+		# 其它指标可再增加...
+
+		### 在指标数据的基础上，增加如下数据
+		"message": "便于做全文: 包括请求头(request_header)/请求体(request_body)/返回头(response_header)/返回体(response_body)/fail_reason 冗余一份",
+		"fail_reason": "拨测失败原因(此处无需做全文)",
+	},
+
+	"time": time.Now() 
 }
 ```
 
@@ -331,14 +378,14 @@ CREATE TABLE `task` (
   `id` int(16) NOT NULL AUTO_INCREMENT COMMENT '自增 ID',
   `external_id` varchar(128) NOT NULL COMMENT '外部 ID',
   `region` varchar(48) NOT NULL COMMENT '部署区域（只能有一个区域）',
-	`class` enum("HTTP", "TCP", "DNS", "OTHER") NOT NULL DEFAULT "OTHER" COMMENT '任务分类',
+  `class` enum("HTTP", "TCP", "DNS", "OTHER") NOT NULL DEFAULT "OTHER" COMMENT '任务分类',
   `task` text NOT NULL COMMENT '任务的 json 描述',
   `createAt` bigint(16) NOT NULL DEFAULT '-1',
   `updateAt` bigint(16) NOT NULL DEFAULT '-1',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_hash` (`hash`) COMMENT '便于鉴定重复推送',
   UNIQUE KEY `uk_uuid` (`uuid`) COMMENT 'UUID 做成全局唯一'
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4;
 
 -- 存储 AK/SK 信息
  CREATE TABLE IF NOT EXISTS aksk (
@@ -347,7 +394,7 @@ CREATE TABLE `task` (
      `accessKey` varchar(20) NOT NULL COMMENT '推送 commit 的 AK',
      `secretKey` varchar(40) NOT NULL COMMENT '推送 commit 的 SK',
      `owner` varchar(128) NOT NULL COMMENT 'AK 归属',
-		 `status` enum('OK', 'DISABLED') NOT NULL DEFAULT 'OK' COMMENT 'AK 状态',
+	 `status` enum('OK', 'DISABLED') NOT NULL DEFAULT 'OK' COMMENT 'AK 状态',
 
      `version` int(11) NOT NULL DEFAULT 1 COMMENT 'AK 版本，便于 AK 验证方式变更（not used）',
 
@@ -360,7 +407,7 @@ CREATE TABLE `task` (
      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
-### API 定义
+### 服务中心 API 定义
 
 #### `/v1/list/region | GET`
 
@@ -404,23 +451,13 @@ HTTP/1.1 200 OK  # 无 body 返回
 
 ```
 GET /v1/pull?region=<region>&since=<us-timestamp> HTTP/1.1
-Authorization: DIAL_TESTING <access_key>:<sign>
+Authorization: DIAL_TESTING <access_key>:<sign>  // 某 PAAS 平台的 AK
 
 HTTP/1.1 200 OK
 {
-	"access_key-1": [ // 某 PAAS 平台的 AK，下面即该平台 push 过来的所有 commit
-		{ "tcp-task" },
-		{ "http-task" },
-		{ "dns-task" },
-		...
-	],
-
-	"access_key-2": [
-		{ "tcp-task" },
-		{ "http-task" },
-		{ "dns-task" },
-		...
-	],
+	"http": [ {"http-task"} ] ,
+	"tcp":  [ {"tcp-task"} ],
+	"dns":  [ {"dns-task"} ]
 }
 ```
 
@@ -446,8 +483,7 @@ datakit 端任务处理流程
 1. DataKit 采集器启动时，通过指定 region，从中心 clone 所有该 region 的任务。通过一定的合并策略，采集器**最终执行合并后的具体的任务**。合并策略：
 	- 轮询一遍 clone 下来的所有 commit（如总共 10K 个 commit，其中**有效任务** 1K 个）
 	- datakit 通过 `access_key + id` 确定一个任务 ID，并以此依据来合并多个 commit 为一个具体拨测任务
-	- 取固定几个字段的值，通过一定的 hash 算法，即可判定拨测任务是否更新
-	- hash 算法：`md5(access_key + task-json)`: 第三方平台可在 `task-json` 添加任何其它字段（在不破坏现有 task-json 结构的前提下），如工作空间信息、用户信息等，这些都会计入 hash 计算，并以此推断拨测任务是否更新。授信的第三方，应该提交差异化的 `task-json` 以保证拨测任务的正确运转（如果 `task-json` 都相同，亦不影响 dialtesting 以及 datakit 运行）。考虑到计算 hash 的性能开销以及高频率，这里暂用 md5（参见[这里](https://stackoverflow.com/questions/14139727/sha-256-or-md5-for-file-integrity)）
+	- 结合ak,externalID，即可判定拨测任务是否更新
 
 2. DataKit 采集器启动运行之后，以一定频率，从中心同步最新的任务。
 	- 对于更新了配置的任务，直接更新执行（将新的任务 json 发给当前运行的 go routine 即可）
