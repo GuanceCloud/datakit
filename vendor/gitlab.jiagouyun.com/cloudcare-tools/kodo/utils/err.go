@@ -62,7 +62,8 @@ var (
 	ErrBeyoundTracings        = newErr(errors.New(`beyond tracings`), http.StatusForbidden)
 	ErrBeyoundRUM             = newErr(errors.New(`beyond RUMs`), http.StatusForbidden)
 
-	ErrNoCommands = newErr(errors.New(`no any commands`), http.StatusBadRequest)
+	ErrNoCommands        = newErr(errors.New(`no any commands`), http.StatusBadRequest)
+	ErrKeyConfigNotFound = newErr(errors.New(`Key configure not found`), http.StatusForbidden)
 )
 
 // errors for dialtesting
