@@ -2,9 +2,11 @@ package dialtesting
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
@@ -60,24 +62,43 @@ func (d *dialer) run() error {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Info("dial testing %s exit", d.task.ID())
+			l.Infof("dial testing %s exit", d.task.ID())
+			return nil
 
 		case <-d.ticker.C:
 
 			d.testCnt++
-			if err := d.task.Run(); err != nil {
-				// ignore
-			} else {
-				reasons := d.task.CheckResult()
-				// TODO: post result to d.PostURL
-				l.Debugf("reasons: %+#v", reasons)
-				_ = reasons
+
+			//dialtesting start
+			//无论成功或失败，都要记录测试结果
+			d.task.Run()
+
+			// 获取此次任务执行的基本信息
+			tags := map[string]string{}
+			fields := map[string]interface{}{}
+			tags, fields = d.task.GetResults()
+
+			reasons := d.task.CheckResult()
+			if len(reasons) != 0 {
+				fields[`failed_reason`] = strings.Join(reasons, `;`)
 			}
+
+			if _, ok := fields[`failed_reason`]; !ok {
+				tags["result"] = "OK"
+				fields["success"] = int64(1)
+			}
+
+			err := io.NameFeedExUrl(inputName, io.Metric, d.task.MetricName(), d.task.PostURLStr(), tags, fields, time.Now())
+			if err != nil {
+				l.Warnf("io feed failed, %s", err.Error())
+			}
+
+			l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, d.task.PostURLStr(), tags, fields)
 
 		case t := <-d.updateCh:
 			d.doUpdateTask(t)
 
-			if d.task.Status() == dt.StatusStop {
+			if strings.ToLower(d.task.Status()) == dt.StatusStop {
 				if err := t.Stop(); err != nil {
 					l.Warnf("stop task failed: %s", err.Error())
 				}
