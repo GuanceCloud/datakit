@@ -10,28 +10,33 @@ const (
 
 	sampleCfg = `
 [[inputs.tailf]]
-    # glob logfiles
-    # required
+    # required, glob logfiles
     logfiles = ["/var/log/nginx/*.log"]
 
     # glob filteer
     ignore = [""]
 
+    source = "nginxlog"
+
+    # add service tag, if it's empty, use $source.
+    service = "nginxlog"
+
+    # grok pipeline script path
+    pipeline = "nginx.p"
+
     # read file from beginning
     # if from_begin was false, off auto discovery file
     from_beginning = false
 
-    ## characters are replaced using the unicode replacement character
-    ## When set to the empty string the data is not decoded to text.
-    ## ex: character_encoding = "utf-8"
-    ##     character_encoding = "utf-16le"
-    ##     character_encoding = "utf-16le"
-    ##     character_encoding = "gbk"
-    ##     character_encoding = "gb18030"
-    ##     character_encoding = ""
-    #character_encoding = ""
+    # optional encodings:
+    #    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+    character_encoding = ""
 
-    # [inputs.tailf.tags]
+    # The pattern should be a regexp. Note the use of '''this regexp'''
+    # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+    match = '''^\S.*'''
+
+    [inputs.tailf.tags]
     # tags1 = "value1"
 `
 	pipelineCfg = `
@@ -46,18 +51,19 @@ grok(_, '%{access_common} "%{NOTSPACE:referrer}" "%{GREEDYDATA:agent}')
 user_agent(agent)
 
 # error log
-grok(_, "%{date2:time} \\[%{LOGLEVEL:level}\\] %{GREEDYDATA:msg}, client: %{IPORHOST:client_ip}, server: %{IPORHOST:server}, request: \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\", host: \"%{IPORHOST:host}\"")
+grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg}, client: %{IPORHOST:client_ip}, server: %{IPORHOST:server}, request: \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\", (upstream: \"%{GREEDYDATA:upstream}\", )?host: \"%{IPORHOST:host}\"")
 
 cast(status_code, "int")
 cast(bytes, "int")
 
 group_between(status_code, [200,299], "OK", status)
 group_between(status_code, [300,399], "notice", status)
-group_between(status_code, [400,499], "warnning", status)
+group_between(status_code, [400,499], "warning", status)
 group_between(status_code, [500,599], "error", status)
 
 nullif(http_ident, "-")
 nullif(http_auth, "-")
+nullif(upstream, "")
 default_time(time)
 `
 )
@@ -71,7 +77,6 @@ func init() {
 			map[string]string{"nginx": pipelineCfg},
 		)
 		t.Source = inputName
-		t.Pipeline = "nginx.p"
 		return t
 	})
 }
