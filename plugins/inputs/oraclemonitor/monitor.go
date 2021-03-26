@@ -14,6 +14,7 @@ const (
 	name = 'oraclemonitor'
 	cmd  = "/usr/local/cloudcare/dataflux/datakit/externals/oraclemonitor"
 	args = [
+		'-data-type'      , '<metric/logging>'          ,
 		'-instance-id'    , '<your-instance-id>'        ,
 		'-metric-name'    , 'oracle_monitor'            ,
 		'-interval'       , '1m'                        ,
@@ -34,6 +35,7 @@ const (
 	# 参数说明(标 * 为必选项)
 	#############################
 	# *-interval       : 采集的频度，最小粒度5m
+	#  -data-type      : 数据类型，默认值metric
 	#  -metric-name    : 指标集名称，默认值oracle_monitor
 	#  -instance-id    : 实例ID
 	#  -instance-desc  : 实例描述
