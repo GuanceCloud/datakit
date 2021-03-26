@@ -53,8 +53,8 @@ func (m *Multiline) IsEnabled() bool {
 
 func (m *Multiline) ProcessLine(text string, buffer *bytes.Buffer) string {
 	if m.matchString(text) {
-		buffer.WriteString(text)
 		buffer.WriteString("\n")
+		buffer.WriteString(text)
 		return ""
 	}
 
