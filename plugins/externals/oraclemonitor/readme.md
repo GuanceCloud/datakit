@@ -39,7 +39,7 @@ oracle指标采集，参考datadog提供的指标
 
 ### [Metrics]
 
-systemMetrics
+system metrics
 
 | 指标  | 单位 | 类型 | 标签 | 描述  | 指标源 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -66,14 +66,16 @@ systemMetrics
 | **session_limit_usage** | - |  |addr  | session limit usage |
 | **session_count** | - |  |addr  | session count |
 
-processMetrics
+process metrics
+
 | 指标  | 单位 | 类型 | 标签 | 描述  | 指标源 | 状态 |
 | **process_pga_used_memory** | - |  |addr, program  | PGA memory used by process |
 | **process_pga_allocated_memory** | - |  |addr, program  | PGA memory allocated by process |
 | **process_pga_freeable_memory** | - |  |addr, program  | PGA memory freeable by process |
 | **process_pga_maximum_memory** | - |  |addr, program  | PGA maximum memory ever allocated by process |
 
-tableSpaceMetrics
+tableSpace metrics
+
 | **temp_space_used** | - |  |addr, tablespace  | temp space used |
 | **tablespace_used** | - |  |addr, tablespace  | tablespace used |
 | **tablespace_size** | - |  |addr, tablespace  | tablespace size |
