@@ -16,7 +16,7 @@ docker采集器有5个数据源。其中，docker自身服务数据2个，容器
 
     # 采集间隔
     # 指标采集和对象采集周期不同
-    # 如果interval配置小于0，则不开启对应的采集
+    # 如果interval配置为空，则不开启对应的采集
     collect_metrics_interval = "10s"
     collect_object_interval = "5m"
 
