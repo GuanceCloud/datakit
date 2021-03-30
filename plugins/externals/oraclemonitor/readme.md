@@ -69,6 +69,7 @@ system metrics
 process metrics
 
 | 指标  | 单位 | 类型 | 标签 | 描述  | 指标源 | 状态 |
+| --- | --- | --- | --- | --- | --- | --- |
 | **process_pga_used_memory** | - |  |addr, program  | PGA memory used by process |
 | **process_pga_allocated_memory** | - |  |addr, program  | PGA memory allocated by process |
 | **process_pga_freeable_memory** | - |  |addr, program  | PGA memory freeable by process |
@@ -76,6 +77,8 @@ process metrics
 
 tableSpace metrics
 
+| 指标  | 单位 | 类型 | 标签 | 描述  | 指标源 | 状态 |
+| --- | --- | --- | --- | --- | --- | --- |
 | **temp_space_used** | - |  |addr, tablespace  | temp space used |
 | **tablespace_used** | - |  |addr, tablespace  | tablespace used |
 | **tablespace_size** | - |  |addr, tablespace  | tablespace size |
