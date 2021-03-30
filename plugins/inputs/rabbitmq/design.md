@@ -1,0 +1,56 @@
+
+rabbitmq 采集器调研
+
+采集指标如下：
+
+
+- rabbitmq_overview （通过 API `/api/overview` 采集 ）
+
+  | fields        | type   | unit     |description |  
+  | :----:        | :----: | :----:   |  :----: | 
+  |   object_totals_channels      |   int  |   count  | Total number of channels | 
+  |   object_totals_connections      |   int  |   count  | Total number of connections | 
+  |   object_totals_consumers      |   int  |   count  | Total number of consumers | 
+  |   object_totals_queues      |   int  |   count  | Total number of queues | 
+  |   object_totals_queues      |   int  |   count  | Total number of queues | 
+  |   message_ack_count      |   int  |   count  | Number of messages delivered to clients and acknowledged | 
+  |   message_ack_rate      |   float  |   rate  | Rate of messages delivered to clients and acknowledged per second | 
+  |   message_deliver_get_count     |   int  |   count  | Sum of messages delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get | 
+  |   message_deliver_get_rate     |   float  |   rate  | Rate per second of the sum of messages delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get | 
+  |   message_publish_count     |   int  |   count  | Count of messages published | 
+  |   message_publish_rate     |   float  |   rate | Rate of messages published per second | 
+  |   message_publish_in_rate     |   float  |   rate | Rate of messages published from channels into this overview per sec | 
+  |   message_publish_in_count     |   int  |   count | Count of messages published from channels into this overview | 
+  |   message_publish_out_count     |   int  |   count | Count of messages published from this overview into queues| 
+  |   message_publish_out_rate     |   float  |   rate | Rate of messages published from this overview into queues per second | 
+  |   message_redeliver_count     |   int  |   count | Count of subset of messages in deliver_get which had the redelivered flag set | 
+  |   message_redeliver_rate     |   float  |   rate | Rate of subset of messages in deliver_get which had the redelivered flag set per second | 
+  |   message_return_unroutable_count_rate     |   float  |   rate | Rate of messages returned to publisher as unroutable per second | 
+  |   message_return_unroutable_count    |   int  |   count | Count of messages returned to publisher as unroutable | 
+  |   queue_totals_messages_count    |   int  |   count | Total number of messages (ready plus unacknowledged) | 
+  |   queue_totals_messages_rate    |   float  |   rate | Total number of messages (ready plus unacknowledged) | 
+  |   queue_totals_messages_ready    |   int  |   count | Number of messages ready for delivery | 
+  |   queue_totals_messages_unacknowledged   |   int  |   count | Number of unacknowledged messages | 
+
+
+- rabbitmq_exchange （通过 API `/api/exchanges` 采集 ）
+
+    | fields        | type   | unit     |description |  
+    | :----:        | :----: | :----:   |  :----: | 
+    |   messages_ack_count      |   int  |   count  | Number of messages in exchanges delivered to clients and acknowledged | 
+    |   messages_ack_rate      |   float  |   rate  | Rate of messages in exchanges delivered to clients and acknowledged per second | 
+    |   message_deliver_get_count     |   int  |   count  | Sum of messages in exchanges delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get | 
+    |   message_deliver_get_rate     |   float  |   rate  | Rate per second of the sum of exchange messages delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get | 
+    |   messages_confirm_count      |   int  |   count  | Count of messages in exchanges confirmed | 
+    |   messages_confirm_rate      |   float  |   rate  | Rate of messages in exchanges confirmed per second | 
+    |   message_publish_count     |   int  |   count  | Count of messages in exchanges published | 
+    |   message_publish_rate     |   float  |   rate | Rate of messages in exchanges published per second | 
+    |   message_publish_in_rate     |   float  |   rate | Rate of messages published from channels into this overview per sec | 
+    |   message_publish_in_count     |   int  |   count | Count of messages published from channels into this exchange
+ | 
+    |   message_publish_out_count     |   int  |   rate | Count of messages published from this overview into queues| 
+    |   message_publish_out_rate     |   float  |   rate | Rate of messages published from this overview into queues per second | 
+    |   message_redeliver_count     |   int  |   count | Count of subset of messages in deliver_get which had the redelivered flag set | 
+    |   message_redeliver_rate     |   float  |   count | Rate of subset of messages in deliver_get which had the redelivered flag set per second | 
+    |   message_return_unroutable_count_rate     |   float  |   rate | Rate of messages returned to publisher as unroutable per second | 
+    |   message_return_unroutable_count    |   int  |   count | Count of messages returned to publisher as unroutable | 
