@@ -1,18 +1,19 @@
 package redis
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"time"
+	"bufio"
+	"strings"
+	sysio "io"
 
-	"github.com/tidwall/gjson"
-
-	"github.com/go-redis/redis"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
+	"github.com/go-redis/redis"
+	influxm "github.com/influxdata/influxdb1-client/models"
 )
 
 var (
@@ -36,10 +37,6 @@ func (_ *Redis) Gather() error {
 	return nil
 }
 
-func (_ *Redis) Init() error {
-	return nil
-}
-
 func (r *Redis) Run() {
 	l = logger.SLogger("redis")
 
@@ -48,7 +45,7 @@ func (r *Redis) Run() {
 	r.IntervalDuration = 10 * time.Minute
 
 	if r.Interval != "" {
-		du, err := time.ParseDuration(r.IntervalDuration)
+		du, err := time.ParseDuration(r.Interval)
 		if err != nil {
 			l.Errorf("bad interval %s: %s, use default: 10m", r.Interval, err.Error())
 		} else {
@@ -61,7 +58,7 @@ func (r *Redis) Run() {
 		r.MetricName = inputName
 	}
 
-	tick := time.NewTicker(interval)
+	tick := time.NewTicker(r.IntervalDuration)
 	defer tick.Stop()
 
 	for {
@@ -75,88 +72,219 @@ func (r *Redis) Run() {
 	}
 }
 
+func (r *Redis) Init() error {
+	client := redis.NewClient(&redis.Options{
+        Addr:     "localhost:6379",
+        Password: "dev", // no password set
+        DB:       0,  // use default DB
+    })
+
+    r.client = client
+
+    return nil
+}
+
+// 获取tags
+func (r *Redis) getTags() map[string]string {
+	return nil
+}
+
 func (r *Redis) collectMetrics() error {
 	err := r.collectInfoMetrics()
 	if err != nil {
 		return err
 	}
 
-	r.collectKeysLength()
+	// r.collectKeysLength()
 
-	err = r.collectSlowlog()
-	if err != nil {
-		return err
-	}
+	// err = r.collectSlowlog()
+	// if err != nil {
+	// 	return err
+	// }
 	return nil
 }
 
 func (r *Redis) collectInfoMetrics() error {
+	start := time.Now()
 	info, err := r.client.Info("ALL").Result()
 	if err != nil {
 		return err
 	}
+	elapsed := time.Since(start)
+
+	latencyMs := Round(float64(elapsed)/float64(time.Millisecond), 2)
+
+	metrics["info"].metricSet["info_latency_ms"].value = latencyMs
 
 	rdr := strings.NewReader(info)
 
-	fmt.Println("======>", rdr)
+	r.parseInfo(rdr)
+
+	return nil
 }
 
-// func (r *Redis) collectInfoMetrics() error {
-// 	start := time.Now()
-// 	info, err := redis.String(r.db.Do("INFO", "ALL"))
-// 	if err != nil {
-// 		l.Errorf("Failed to run info command. %s", err.Error())
-// 		return err
-// 	}
-// 	elapsed := time.Since(start)
-// 	latencyMs := util.Round(float64(elapsed)/float64(time.Millisecond), 2)
+// gatherInfoOutput gathers
+func (r *Redis) parseInfo(rdr sysio.Reader) error {
+	scanner := bufio.NewScanner(rdr)
+	for scanner.Scan() {
+		line := scanner.Text()
 
-// 	fields := map[string]interface{}
+		if len(line) == 0 || line[0] == '#' {
+			continue
+		}
 
-// 	fields["latency_ms"] = latencyMs
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) < 2 {
+			continue
+		}
 
-// 	lines := strings.Split(info, "\r\n")
-// 	// Compatible with the raw string literals for test reason.
-// 	if len(lines) == 1 {
-// 		lines = strings.Split(info, "\n")
-// 	}
+		key := parts[0]
+		val := strings.TrimSpace(parts[1])
 
-// 	for _, line := range lines {
-// 		if line == "" {
-// 			continue
-// 		}
-// 		if re, _ := regexp.MatchString("^#", line); re {
-// 			continue
-// 		}
+		for kk, _ := range metrics["info"].metricSet {
+			if key == kk {
+				parse := metrics["info"].metricSet[key].parse
+				metrics["info"].metricSet[key].value = parse(val)
+			}
+		}
+	}
 
-// 		record := strings.SplitN(line, ":", 2)
-// 		if len(record) < 2 {
-// 			continue
-// 		}
-// 		key, value := record[0], record[1]
+	return nil
+}
 
-// 		if re, _ := regexp.MatchString(`^db\d+`, key); re {
-// 			r.collectDBMetrics(key, value)
-// 			continue
-// 		}
+func (r *Redis) collectDBMetrics() error {
+	info, err := r.client.Info("DB").Result()
+	if err != nil {
+		return err
+	}
+	elapsed := time.Since(start)
 
-// 		val, err := strconv.ParseFloat(value, 64)
-// 		if err != nil {
-// 			continue
-// 		}
+	latencyMs := Round(float64(elapsed)/float64(time.Millisecond), 2)
 
-// 		if name, ok := GAUGES[key]; ok {
-// 			fields[name] = val
-// 		}
+	rdr := strings.NewReader(info)
 
-// 		if name, ok := RATES[key]; ok {
-// 			fields[name] = val
-// 		}
-// 	}
+	r.parseDB(rdr)
 
-// 	r.collectReplicaMetrics(lines)
-// 	return nil
-// }
+	return nil
+}
+
+func (r *Redis) parseDB(rdr sysio.Reader) error {
+	scanner := bufio.NewScanner(rdr)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if len(line) == 0 || line[0] == '#' {
+			continue
+		}
+
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) < 2 {
+			continue
+		}
+
+		key := parts[0]
+		val := strings.TrimSpace(parts[1])
+
+		if re, _ := regexp.MatchString(`^db\d+`, key); re {
+			kv := strings.SplitN(val, ",", 3)
+			if len(kv) != 3 {
+				return
+			}
+			keys, expired := kv[0], kv[1]
+
+			totalKeys, err := extractVal(keys)
+			if err != nil {
+				l.Warnf("Failed to parse db keys. %s", err)
+			}
+
+			expiredKeys, err := extractVal(expired)
+			if err != nil {
+				l.Warnf("Failed to parse db expired. %s", err)
+			}
+
+			persistKeys := totalKeys - expiredKeys
+			fields := map[string]interface{}{
+				"persist":         persistKeys,
+				"persist.percent": 100 * persistKeys / totalKeys,
+				"expires.percent": 100 * expiredKeys / totalKeys,
+			}
+
+			for kk, _ := range metrics["keyspace"].metricSet {
+				if key == kk {
+					parse := metrics["info"].metricSet[key].parse
+					metrics["info"].metricSet[key].value = parse(val)
+				}
+			}
+			continue
+		}
+
+		for kk, _ := range metrics["info"].metricSet {
+			if key == kk {
+				parse := metrics["info"].metricSet[key].parse
+				metrics["info"].metricSet[key].value = parse(val)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (r *Redis) extendInfoMetrics() error {
+	return nil
+}
+
+func (r *Redis) submit() error {
+	var (
+    	tags   = make(map[string]string)
+    	fields = make(map[string]interface{})
+    )
+
+    if r.Service != "" {
+    	tags["service"] = r.Service
+    }
+
+    for tag, tagV := range r.Tags {
+		tags[tag] = tagV
+	}
+
+	for _, kind := range metrics {
+   		if !kind.disable {
+   			for _, item := range kind.metricSet {
+   				if !item.disable {
+   					if item.value != nil {
+						fields[item.name] = item.value
+						item.value = nil
+   					}
+   				}
+   			}
+   		}
+   	}
+
+	pt, err := io.MakeMetric(r.MetricName, tags, fields, time.Now())
+	if err != nil {
+		l.Errorf("make metric point error %v", err)
+	}
+
+	fmt.Println("pt=======>", string(pt))
+
+	_, err = influxm.ParsePointsWithPrecision(pt, time.Now().UTC(), "")
+	if err != nil {
+		l.Errorf("[error] : %s", err.Error())
+		return err
+	}
+
+	err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+	if err != nil {
+		l.Errorf("push metric point error %v", err)
+	}
+
+	return nil
+}
+
+// 提交数据
+func (r *Redis) FeedIO() error {
+	return nil
+}
 
 // func (r *Redis) collectDBMetrics(key, value string) {
 // 	kv := strings.SplitN(value, ",", 3)
@@ -370,17 +498,7 @@ func (r *Redis) collectInfoMetrics() error {
 // }
 
 func (r *Redis) Test() (*inputs.TestResult, error) {
-	b.test = true
-	b.resData = nil
-
-	b.command()
-
-	res := &inputs.TestResult{
-		Result: b.resData,
-		Desc:   "success!",
-	}
-
-	return res, nil
+	return nil, nil
 }
 
 func init() {
