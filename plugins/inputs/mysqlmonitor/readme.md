@@ -179,7 +179,6 @@ mysql指标采集，参考datadog提供的指标，提供默认指标收集和�
 | created_tmp_disk_tables |  |  |  | The rate of internal on-disk temporary tables created by second by the server while executing statements. |  |  |
 | created_tmp_files |  |  |  | The rate of temporary files created by second. |  |  |
 | created_tmp_tables |  |  |  | The rate of internal temporary tables created by second by the server while executing statements. |  |  |
-| mysql.performance.kernel_time | Percentage of CPU time spent in kernel space by MySQL. |  |  |  |  |  |
 | key_cache_utilization |  |  |  | The key cache utilization ratio. |  |  |
 | open_files |  |  |  | The number of open files. |  |  |
 | open_tables |  |  |  | The number of of tables that are open. |  |  |
