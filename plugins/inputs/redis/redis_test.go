@@ -2,19 +2,16 @@ package redis
 
 import (
 	"testing"
-	"github.com/stretchr/testify/assert"
+	// "github.com/stretchr/testify/assert"
 )
 
 func TestCollectInfoMetrics(t *testing.T) {
-	r := Reids{}
+	r := &Redis{}
+	r.MetricName= "test"
 
-	r.client = redis.NewClient(
-			&redis.Options{
-				Addr:      "127.0.0.1",
-				Password:  "dev",
-				PoolSize:  1,
-		},
-	)
+	r.Init()
 
 	r.collectInfoMetrics()
+
+	r.submit()
 }
