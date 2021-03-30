@@ -81,7 +81,12 @@ func (d *DialTesting) Run() {
 	l = logger.SLogger(inputName)
 
 	x = NewIO()
-	go x.startIO()
+
+	datakit.WG.Add(1)
+	go func() {
+		defer datakit.WG.Done()
+		x.startIO()
+	}()
 
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
 	// 若为本地json文件，则读取任务
@@ -97,21 +102,11 @@ func (d *DialTesting) Run() {
 		d.doServerTask() // task server
 
 	case "file":
-		data, err := ioutil.ReadFile(reqURL.Path)
-		if err != nil {
-			l.Errorf(`%s`, err.Error())
-			return
-		}
+		d.doLocalTask(reqURL.Path)
 
-		j, err := d.getLocalJsonTasks(data)
-		if err != nil {
-			l.Errorf(`%s`, err.Error())
-			return
-		}
+	case "":
+		d.doLocalTask(reqURL.String())
 
-		d.dispatchTasks(j)
-
-		<-datakit.Exit.Wait()
 	default:
 		l.Warnf(`no invalid scheme`)
 	}
@@ -150,6 +145,19 @@ func (d *DialTesting) doServerTask() {
 		}
 	}
 
+}
+
+func (d *DialTesting) doLocalTask(path string) {
+
+	j, err := d.getLocalJsonTasks(path)
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return
+	}
+
+	d.dispatchTasks(j)
+
+	<-datakit.Exit.Wait()
 }
 
 func (d *DialTesting) newHttpTaskRun(t dt.HTTPTask) (*dialer, error) {
@@ -259,7 +267,13 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 	return nil
 }
 
-func (d *DialTesting) getLocalJsonTasks(data []byte) ([]byte, error) {
+func (d *DialTesting) getLocalJsonTasks(path string) ([]byte, error) {
+
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return nil, err
+	}
 
 	//转化结构，json结构转成与kodo服务一样的格式
 	var resp map[string][]interface{}
