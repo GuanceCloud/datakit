@@ -9,6 +9,8 @@ docker采集器有5个数据源。其中，docker自身服务数据2个，容器
     # 指定连接方式，基础配置
     endpoint = "unix:///var/run/docker.sock"
 
+    timeout = "5s"
+    
     # 是否采集所有容器，默认为false时只采集正在运行的容器（running）
     all = false
 
