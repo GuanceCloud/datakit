@@ -1,5 +1,10 @@
 package redis
 
+import (
+	"time"
+	"github.com/go-redis/redis"
+)
+
 const (
 	configSample = `
 [[inputs.redis]]
@@ -14,7 +19,7 @@ const (
     port = 6379
 
     ## @param unix_socket_path - string - optional
-    ## Connect through a unix socket instead of using a `host` and `port`.
+    ## Connect through a unix socket instead of using a host and port.
     #
     # unix_socket_path = "/var/run/redis/redis.sock"
 
@@ -37,17 +42,17 @@ const (
     # password = "<PASSWORD>"
 
 	## @param service - string - optional
-    ## Attach the tag `service:<SERVICE>` to every metric
+    ## Attach the tag service:<SERVICE> to every metric
     ##
     # service = "<SERVICE>"
 
-    ## @param min_collection_interval - number - optional - default: 15
+    ## @param interval - number - optional - default: 15
     ## This changes the collection interval of the check. For more information, see:
     #
-    # min_collection_interval = "15s"
+    # interval = "15s"
 
     ## @param collect_client_metrics - boolean - optional - default: false
-    ## Collects metrics using the `CLIENT` command.
+    ## Collects metrics using the CLIENT command.
     ## This requires the Redis CLIENT command to be available on your servers.
     #
     # collect_client_metrics = false
@@ -128,14 +133,18 @@ const (
 type Redis struct {
 	Host              string
 	Port              int
-	UnixSocketPath    string `yaml:"unix_socket_path"`
+	UnixSocketPath    string        `toml:"unix_socket_path"`
 	DB                int
 	Password          string
-	SocketTimeout     int `yaml:"socket_timeout"`
-	Tags              []string
+	MetricName        string
+	Service           string		`toml:"service"`
+	SocketTimeout     int           `toml:"socket_timeout"`
+	Interval          string        `toml:"interval"`
+	IntervalDuration  time.Duration `toml:"-"`
 	Keys              []string
-	WarnOnMissingKeys bool    `yaml:"warn_on_missing_keys"`
-	SlowlogMaxLen     float64 `yaml:"slowlog-max-len"`
+	WarnOnMissingKeys bool          `toml:"warn_on_missing_keys"`
+	SlowlogMaxLen     float64       `toml:"slowlog-max-len"`
+	Tags              map[string]string `toml:"tags"`
 	client           *redis.Client
 	//lastTimestampSeen map[instance]int64
 	resData          map[string]interface{}
