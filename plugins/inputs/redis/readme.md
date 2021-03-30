@@ -83,28 +83,34 @@ redis指标采集，参考datadog提供的指标
 
 
 db维度key使用指标
+
 | 指标  | 单位 | 类型 | 标签 | 描述  | 指标源 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
-| **persist_keys** | int | - | addr, customTag, db | The number of keys persisted (keys - expires). |
-| **persist_percent** | float | % | addr, customTag, db | Percentage of total keys that are persisted. |
-| **expires_percent** | float | % | addr, customTag, db | Percentage of total keys with an expiration. | 
+| **persist_keys** | -  | int | addr, customTag, db | The number of keys persisted (keys - expires). |
+| **persist_percent** | % | float | addr, customTag, db | Percentage of total keys that are persisted. |
+| **expires_percent** | % | float | addr, customTag, db | Percentage of total keys with an expiration. | 
 
 db维度key使用指标
+
 | 指标  | 单位 | 类型 | 标签 | 描述  | 指标源 | 状态 |
+| --- | --- | --- | --- | --- | --- | --- |
 | **command_calls** | - | - | addr, customTag | The number of times a redis command has been called, tagged by 'command', e.g. 'command:append'. Enable in Agent's redisdb.yaml with the command_stats option. |
 | **command_usec_per_call** |  - | - | addr, customTag | The CPU time consumed per redis command call, tagged by 'command', e.g. 'command:append'. Enable in Agent's redisdb.yaml with the command_stats option. |
 
 sloglog采集
+
 | 指标  | 单位 | 类型 | 标签 | 描述  | 指标源 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
 | **slowlog_micros** | int | - | addr, customTag, command | slow log info |
 
 key length
+
 | 指标  | 单位 | 类型 | 标签 | 描述  | 指标源 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
-| **key_length** | int | - | addr, customTag, keyName | The key length, scan find bigkey |
+| **key_length** | - | int | addr, customTag, keyName | The key length, scan find bigkey |
 
 主从指标采集
+
 | 指标  | 单位 | 类型 | 标签 | 描述  | 指标源 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
 | **repl_delay** | - | - | addr, customTag, slave_addr, slave_id | The key length, scan find bigkey |
