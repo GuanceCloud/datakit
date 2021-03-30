@@ -93,7 +93,6 @@ func (i *IO) startIO() {
 					var isProxy bool
 
 					// 考虑到推送至不同的dataway地址
-
 					u, err := url.Parse(d.url)
 					if err != nil {
 						l.Warn("get invalid url, ignored")
