@@ -343,3 +343,12 @@ mysql指标采集，参考datadog提供的指标，提供默认指标收集和�
 | mysql.queries.rows_affected |  |  |  | The number of rows mutated per query per schema. This metric is only available as part of the Deep Database Monitoring ALPHA. |  |  |
 | mysql.queries.rows_sent |  |  |  | The number of rows sent per query per schema. This metric is only available as part of the Deep Database Monitoring ALPHA. |  |  |
 | mysql.queries.rows_examined |  |  |  | The number of rows examined per query per schema. This metric is only available as part of the Deep Database Monitoring ALPHA. |  |  |
+
+db size
+| 指标 | 单位 | 类型 | 标签 | 描述 | 指标源 | 状态 |
+| --- | --- | --- | --- | --- | --- | --- |
+| information_schema_size |  | float | dbName | db size |  |  |
+
+主从相关
+
+
