@@ -9,9 +9,6 @@ import (
 	"strings"
 	"time"
 
-	influxm "github.com/influxdata/influxdb1-client/models"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -23,9 +20,6 @@ var (
 
 	highFreqCleanInterval = time.Millisecond * 500
 )
-
-type Point *influxdb.Point
-type Points []*influxdb.Point
 
 type Option struct {
 	CollectCost time.Duration
@@ -153,19 +147,6 @@ func (x *IO) doFeed(pts Points, category, name string, opt *Option) error {
 	}
 
 	return nil
-}
-
-func (x *IO) checkMetric(data []byte) error {
-	if !x.StrictMode {
-		return nil
-	}
-
-	_, err := influxm.ParsePointsWithPrecision(data, time.Now().UTC(), "n")
-	if err != nil {
-		l.Errorf("[error] : %s", err.Error())
-	}
-
-	return err
 }
 
 func (x *IO) ioStop() {
