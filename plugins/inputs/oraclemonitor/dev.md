@@ -3,6 +3,7 @@ oracle指标采集，参考datadog提供的指标
 
 ### 配置
 ```
+再扩展自定义sql,数据采集功能
 [[inputs.oracle]]
     ## @param server - string - required
     ## The IP address or hostname of the Oracle Database Server.
