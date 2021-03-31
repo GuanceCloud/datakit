@@ -28,10 +28,6 @@ func (_ *SelfInfo) SampleConfig() string {
 	return ``
 }
 
-func (_ *SelfInfo) Test() (*inputs.TestResult, error) {
-	return nil, nil
-}
-
 func (s *SelfInfo) Run() {
 
 	tick := time.NewTicker(time.Second * 10)
@@ -52,6 +48,10 @@ func (s *SelfInfo) Run() {
 			_ = io.Feed(inputName, io.Metric, io.Points{pt}, nil)
 		}
 	}
+}
+
+func (s *SelfInfo) SampleMeasurement() []inputs.Measurement {
+	return nil
 }
 
 func init() {
