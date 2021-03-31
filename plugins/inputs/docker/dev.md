@@ -71,7 +71,7 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 - container
 - images
 
-如果该容器名符合 k8s 容器命名规则，则默认访问本机 k8s node，查找对应的容器信息，获取和补充以下数据：
+如果该容器名符合 k8s 容器命名规则，则默认访问本机 k8s 服务，查找对应的容器信息，获取和补充以下数据：
 
 - kube_container_name
 - kube_daemon_set
@@ -82,9 +82,6 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 - kube_replica_set
 - pod_name
 - pod_phase
-
-
-比如配置项名为 `ignore_k8s_container = true`。
 
 ### docker容器对象
 
