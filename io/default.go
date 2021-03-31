@@ -119,6 +119,7 @@ func NamedFeed(data []byte, category, name string) error {
 	if err != nil {
 		return err
 	}
+
 	return defaultIO.doFeed(pts, category, name, nil)
 }
 
