@@ -26,9 +26,14 @@ docker采集器有5个数据源。其中，docker自身服务数据2个，容器
 
     # 日志相关，见后文
     [[inputs.docker.log_pipeline]]
+        container_name_match = "<regexp-container-name>"
+        source = "<your-source>"
+        service = "<your-service>"
+        pipeline = "<this-is-pipeline>"
+
+    # [inputs.docker.tags]
+    # tags1 = "tags1"
 ```
-
-
 
 ### docker服务本身的指标
 
@@ -54,9 +59,28 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 
 ### docker容器指标
 
-调用 docker API 获取容器数据，将其转换为指标。
+调用 docker API 获取容器数据，将其转换为指标。需要采集以下几种数据：
 
-需要在配置文件中指定，是否采集 k8s 容器指标，如果该容器名符合 k8s 容器命名规则，则根据配置选择是否采集。
+- cpu
+- mem
+- kmen
+- io
+- net
+- container
+- images
+
+如果该容器名符合 k8s 容器命名规则，则默认访问本机 k8s node，查找对应的容器信息，获取和补充以下数据：
+
+- kube_container_name
+- kube_daemon_set
+- kube_deployment
+- kube_namespace
+- kube_ownerref_kind
+- kube_ownerref_name
+- kube_replica_set
+- pod_name
+- pod_phase
+
 
 ### docker容器对象
 
@@ -86,4 +110,112 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 
 ### 指标数据
 
-待补充。
+指标集 docker（docker服务指标，待补充）
+
+| 名称           | 描述                       | 类型   | 单位 |
+| :--            | ---                        | ---    | --- |
+
+指标集 docker_container（docker容器指标）
+
+| 名称                   | 描述   | 类型   | 单位 |
+| :--                    | ---    | ---    | ---  |
+| container_id           | tags   | string |      |
+| container_name         | tags   | string |      |
+| display_container_name | tags   | string |      |
+| docker_image           | tags   | string |      |
+| docker_swarm_node_role | tags   | string |      |
+| image_name             | tags   | string |      |
+| image_tag              | tags   | string |      |
+| kube_container_name    | tags   | string |      |
+| kube_daemon_set        | tags   | string |      |
+| kube_deployment        | tags   | string |      |
+| kube_namespace         | tags   | string |      |
+| kube_ownerref_kind     | tags   | string |      |
+| kube_ownerref_name     | tags   | string |      |
+| kube_replica_set       | tags   | string |      |
+| pod_name               | tags   | string |      |
+| pod_phase              | tags   | string |      |
+| short_image            | tags   | string |      |
+| swarm_namespace        | tags   | string |      |
+| swarm_service          | tags   | string |      |
+| host                   | tags   | string |      |
+| cpu_user               | fields |        |      |
+| cpu_limit              | fields |        |      |
+| cpu_usage              | fields |        |      |
+| cpu_shares             | fields |        |      |
+| cpu_system             | fields |        |      |
+| cpu_throttled          | fields |        |      |
+| cpu_throttled_time     | fields |        |      |
+| mem_rss                | fields |        |      |
+| kmem_usage             | fields |        |      |
+| io_read_byte           | fields |        |      |
+| io_write_byte          | fields |        |      |
+| io_read_operations     | fields |        |      |
+| io_write_operations    | fields |        |      |
+| container_open_fds     | fields |        |      |
+| thread_count           | fields |        |      |
+
+指标集 docker_container_mem（docker容器mem指标，与docker_container指标集相比，少了`docker_swarm_node_role`、`swarm_service`和`swarm_namespace` 3个tag）
+
+| 名称                   | 描述   | 类型   | 单位 |
+| :--                    | ---    | ---    | ---  |
+| container_id           | tags   | string |      |
+| container_name         | tags   | string |      |
+| display_container_name | tags   | string |      |
+| docker_image           | tags   | string |      |
+| image_name             | tags   | string |      |
+| image_tag              | tags   | string |      |
+| kube_container_name    | tags   | string |      |
+| kube_daemon_set        | tags   | string |      |
+| kube_deployment        | tags   | string |      |
+| kube_namespace         | tags   | string |      |
+| kube_ownerref_kind     | tags   | string |      |
+| kube_ownerref_name     | tags   | string |      |
+| kube_replica_set       | tags   | string |      |
+| pod_name               | tags   | string |      |
+| pod_phase              | tags   | string |      |
+| short_image            | tags   | string |      |
+| host                   | tags   | string |      |
+| mem_swap               | fields |        |      |
+| mem_cache              | fields |        |      |
+| mem_limit              | fields |        |      |
+| mem_in_use             | fields |        |      |
+| mem_sw_limit           | fields |        |      |
+| mem_sw_in_use          | fields |        |      |
+| mem_failed_count       | fields |        |      |
+
+指标集 docker_container_net（docker容器net指标，与docker_container指标集相比，多了`docker_network` 1个tag）
+
+| 名称                   | 描述   | 类型   | 单位 |
+| :--                    | ---    | ---    | ---  |
+| container_id           | tags   | string |      |
+| container_name         | tags   | string |      |
+| display_container_name | tags   | string |      |
+| docker_image           | tags   | string |      |
+| docker_network         | tags   | string |      |
+| image_name             | tags   | string |      |
+| image_tag              | tags   | string |      |
+| kube_container_name    | tags   | string |      |
+| kube_daemon_set        | tags   | string |      |
+| kube_deployment        | tags   | string |      |
+| kube_namespace         | tags   | string |      |
+| kube_ownerref_kind     | tags   | string |      |
+| kube_ownerref_name     | tags   | string |      |
+| kube_replica_set       | tags   | string |      |
+| pod_name               | tags   | string |      |
+| pod_phase              | tags   | string |      |
+| short_image            | tags   | string |      |
+| host                   | tags   | string |      |
+| net_bytes_rcvd         | fields |        |      |
+| net_bytes_sent         | fields |        |      |
+
+补充：有以下指标尚未确定指标集名称，待定中：
+
+- container_size_rw
+- containers_running
+- containers_stopped
+- container_size_rootfs
+- containers_running_total
+- containers_stopped_total
+- images_available
+- images_intermediate
