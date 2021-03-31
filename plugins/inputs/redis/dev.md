@@ -87,7 +87,7 @@ db维度key使用指标
 tag: db
 
 | 指标  | 单位 | 类型 |  描述  | 指标源 | 状态 |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | 
 | **persist_keys** | -  | int | The number of keys persisted (keys - expires). |
 | **persist_percent** | % | float | Percentage of total keys that are persisted. |
 | **expires_percent** | % | float | Percentage of total keys with an expiration. | 
@@ -96,28 +96,28 @@ command统计
 tag: method
 
 | 指标  | 单位 | 类型 |  描述  | 指标源 | 状态 |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | 
 | **command_calls** | - | - | The number of times a redis command has been called, tagged by 'command', e.g. 'command:append'. Enable in Agent's redisdb.yaml with the command_stats option. |
 | **command_usec_per_call** |  - | - | The CPU time consumed per redis command call, tagged by 'command', e.g. 'command:append'. Enable in Agent's redisdb.yaml with the command_stats option. |
 
 sloglog采集
 
 | 指标  | 单位 | 类型 |  描述  | 指标源 | 状态 |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | 
 | **slowlog_micros** | int | - | slow log info |
 
 key length
 tag: keyName
 
 | 指标  | 单位 | 类型 | 描述  | 指标源 | 状态 |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | 
 | **key_length** | - | int | The key length, scan find bigkey |
 
 主从指标采集
 tag: slave_addr, slave_id
 
 | 指标  | 单位 | 类型 | 描述  | 指标源 | 状态 |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | 
 | **repl_delay** | - | - | The key length, scan find bigkey |
 | **master_link_down_since_seconds** | - | - | Amount of time that the master link has been down. | info all | todo |
 
