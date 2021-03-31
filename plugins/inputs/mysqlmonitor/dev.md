@@ -2,6 +2,7 @@
 mysql指标采集，参考datadog提供的指标，提供默认指标收集和用户自定义查询
 
 ### 配置
+再扩展自定义sql,数据采集功能
 ```
 [[inputs.mysqlMonitor]]
     ## @param host - string - optional
