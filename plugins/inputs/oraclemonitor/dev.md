@@ -71,7 +71,7 @@ process metrics
 tag: addr, program  
 
 | 指标  | 单位 | 类型 | 描述  | 指标源 | 状态 |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | 
 | **process_pga_used_memory** | - |  |PGA memory used by process |
 | **process_pga_allocated_memory** | - |  |PGA memory allocated by process |
 | **process_pga_freeable_memory** | - |  |PGA memory freeable by process |
@@ -81,7 +81,7 @@ tableSpace metrics
 tag: addr, tablespace
 
 | 指标  | 单位 | 类型 | 描述  | 指标源 | 状态 |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | 
 | **temp_space_used** | - |  | temp space used |
 | **tablespace_used** | - |  |tablespace used |
 | **tablespace_size** | - |  |tablespace size |
