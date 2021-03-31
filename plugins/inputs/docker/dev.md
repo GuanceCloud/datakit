@@ -9,12 +9,14 @@ docker采集器有5个数据源。其中，docker自身服务数据2个，容器
     # 指定连接方式，基础配置
     endpoint = "unix:///var/run/docker.sock"
 
+    timeout = "5s"
+    
     # 是否采集所有容器，默认为false时只采集正在运行的容器（running）
     all = false
 
     # 采集间隔
     # 指标采集和对象采集周期不同
-    # 如果interval配置小于0，则不开启对应的采集
+    # 如果interval配置为空，则不开启对应的采集
     collect_metrics_interval = "10s"
     collect_object_interval = "5m"
 
@@ -82,6 +84,8 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 - pod_phase
 
 
+比如配置项名为 `ignore_k8s_container = true`。
+
 ### docker容器对象
 
 跟docker容器指标大致相同，只是数据发送到对象接口。
@@ -110,6 +114,7 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 
 ### 指标数据
 
+<<<<<<< HEAD
 指标集 docker（docker服务指标，待补充）
 
 | 名称           | 描述                       | 类型   | 单位 |
