@@ -115,6 +115,7 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 
 | 名称           | 描述                       | 类型   | 单位 |
 | :--            | ---                        | ---    | --- |
+| NULL          | tags   | string |      |
 
 指标集 docker_container（docker容器指标）
 
