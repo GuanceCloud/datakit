@@ -113,9 +113,9 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 
 指标集 docker（docker服务指标，待补充）
 
-| 名称           | 描述                       | 类型   | 单位 |
-| :--            | ---                        | ---    | --- |
-| NULL          | tags   | string |      |
+| 名称 | 描述 | 类型 | 单位 |
+| :--  | ---  | ---  | ---  |
+| NULL |      |      |      |
 
 指标集 docker_container（docker容器指标）
 
@@ -125,7 +125,6 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 | container_name         | tags   | string |      |
 | display_container_name | tags   | string |      |
 | docker_image           | tags   | string |      |
-| docker_swarm_node_role | tags   | string |      |
 | image_name             | tags   | string |      |
 | image_tag              | tags   | string |      |
 | kube_container_name    | tags   | string |      |
@@ -138,8 +137,6 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 | pod_name               | tags   | string |      |
 | pod_phase              | tags   | string |      |
 | short_image            | tags   | string |      |
-| swarm_namespace        | tags   | string |      |
-| swarm_service          | tags   | string |      |
 | host                   | tags   | string |      |
 | cpu_user               | fields |        |      |
 | cpu_limit              | fields |        |      |
@@ -149,35 +146,6 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 | cpu_throttled          | fields |        |      |
 | cpu_throttled_time     | fields |        |      |
 | mem_rss                | fields |        |      |
-| kmem_usage             | fields |        |      |
-| io_read_byte           | fields |        |      |
-| io_write_byte          | fields |        |      |
-| io_read_operations     | fields |        |      |
-| io_write_operations    | fields |        |      |
-| container_open_fds     | fields |        |      |
-| thread_count           | fields |        |      |
-
-指标集 docker_container_mem（docker容器mem指标，与docker_container指标集相比，少了`docker_swarm_node_role`、`swarm_service`和`swarm_namespace` 3个tag）
-
-| 名称                   | 描述   | 类型   | 单位 |
-| :--                    | ---    | ---    | ---  |
-| container_id           | tags   | string |      |
-| container_name         | tags   | string |      |
-| display_container_name | tags   | string |      |
-| docker_image           | tags   | string |      |
-| image_name             | tags   | string |      |
-| image_tag              | tags   | string |      |
-| kube_container_name    | tags   | string |      |
-| kube_daemon_set        | tags   | string |      |
-| kube_deployment        | tags   | string |      |
-| kube_namespace         | tags   | string |      |
-| kube_ownerref_kind     | tags   | string |      |
-| kube_ownerref_name     | tags   | string |      |
-| kube_replica_set       | tags   | string |      |
-| pod_name               | tags   | string |      |
-| pod_phase              | tags   | string |      |
-| short_image            | tags   | string |      |
-| host                   | tags   | string |      |
 | mem_swap               | fields |        |      |
 | mem_cache              | fields |        |      |
 | mem_limit              | fields |        |      |
@@ -185,33 +153,17 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 | mem_sw_limit           | fields |        |      |
 | mem_sw_in_use          | fields |        |      |
 | mem_failed_count       | fields |        |      |
-
-指标集 docker_container_net（docker容器net指标，与docker_container指标集相比，多了`docker_network` 1个tag）
-
-| 名称                   | 描述   | 类型   | 单位 |
-| :--                    | ---    | ---    | ---  |
-| container_id           | tags   | string |      |
-| container_name         | tags   | string |      |
-| display_container_name | tags   | string |      |
-| docker_image           | tags   | string |      |
-| docker_network         | tags   | string |      |
-| image_name             | tags   | string |      |
-| image_tag              | tags   | string |      |
-| kube_container_name    | tags   | string |      |
-| kube_daemon_set        | tags   | string |      |
-| kube_deployment        | tags   | string |      |
-| kube_namespace         | tags   | string |      |
-| kube_ownerref_kind     | tags   | string |      |
-| kube_ownerref_name     | tags   | string |      |
-| kube_replica_set       | tags   | string |      |
-| pod_name               | tags   | string |      |
-| pod_phase              | tags   | string |      |
-| short_image            | tags   | string |      |
-| host                   | tags   | string |      |
+| kmem_usage             | fields |        |      |
+| io_read_byte           | fields |        |      |
+| io_write_byte          | fields |        |      |
+| io_read_operations     | fields |        |      |
+| io_write_operations    | fields |        |      |
 | net_bytes_rcvd         | fields |        |      |
 | net_bytes_sent         | fields |        |      |
+| container_open_fds     | fields |        |      |
+| thread_count           | fields |        |      |
 
-补充：有以下指标尚未确定指标集名称，待定中：
+补充：有以下指标尚未确定指标集名称，待定：
 
 - container_size_rw
 - containers_running
