@@ -1,18 +1,10 @@
 package inputs
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/influxdata/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
@@ -29,21 +21,11 @@ var (
 	mtx         = sync.RWMutex{}
 )
 
-type ConfDetail struct {
-	Path    string
-	ConfMd5 []string
-}
-
-type TestResult struct {
-	Result []byte // line protocol or any plugin test result
-	Desc   string // description of Result
-}
-
 type Input interface {
 	Catalog() string
 	Run()
 	SampleConfig() string
-
+	SampleMeasurement() []Measurement
 	// add more...
 }
 
@@ -272,64 +254,4 @@ func GetSample(name string) (sample string, err error) {
 	}
 
 	return "", fmt.Errorf("input not found")
-}
-
-func TestTelegrafInput(cfg []byte) (*TestResult, error) {
-
-	telegrafDir := datakit.TelegrafDir
-
-	filename := fmt.Sprintf("tlcfg-%v", time.Now().UnixNano())
-	cfgpath := filepath.Join(telegrafDir, filename)
-
-	agentgentCfg := &datakit.TelegrafCfg{
-		Interval:                   "10s",
-		RoundInterval:              true,
-		MetricBatchSize:            1000,
-		MetricBufferLimit:          100000,
-		CollectionJitter:           "0s",
-		FlushInterval:              "10s",
-		FlushJitter:                "0s",
-		Precision:                  "ns",
-		Debug:                      false,
-		Quiet:                      false,
-		LogTarget:                  "file",
-		Logfile:                    filepath.Join(telegrafDir, "agent.log"),
-		LogfileRotationMaxArchives: 5,
-		LogfileRotationMaxSize:     "32MB",
-		OmitHostname:               true, // do not append host tag
-	}
-
-	agdata, _ := toml.Marshal(agentgentCfg)
-
-	telegrafConfig := ("\n[agent]\n" + string(agdata) + "\n")
-	telegrafConfig += string(cfg)
-
-	if err := ioutil.WriteFile(cfgpath, []byte(telegrafConfig), 0664); err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		recover()
-		os.Remove(cfgpath)
-	}()
-
-	agentpath := filepath.Join(telegrafDir, runtime.GOOS+"-"+runtime.GOARCH, "agent")
-	if runtime.GOOS == datakit.OSWindows {
-		agentpath += ".exe"
-	}
-
-	buf := bytes.NewBuffer([]byte{})
-	cmd := exec.Command(agentpath, "-config", cfgpath, "-test")
-	cmd.Env = os.Environ()
-	cmd.Stderr = buf
-	cmd.Stdout = buf
-	if err := cmd.Run(); err != nil {
-		return nil, err
-	}
-
-	result := &TestResult{
-		Result: buf.Bytes(),
-	}
-
-	return result, nil
 }
