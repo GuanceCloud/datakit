@@ -65,11 +65,6 @@ func (*Proxy) Catalog() string {
 	return inputName
 }
 
-func (*Proxy) Test() (*inputs.TestResult, error) {
-	test := &inputs.TestResult{}
-	return test, nil
-}
-
 func (d *Proxy) Run() {
 	l = logger.SLogger(inputName)
 
