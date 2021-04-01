@@ -32,13 +32,6 @@ func (_ *AliyunActiontrail) SampleConfig() string {
 	return configSample
 }
 
-func (a *AliyunActiontrail) Test() (*inputs.TestResult, error) {
-	a.mode = "test"
-	a.testResult = &inputs.TestResult{}
-	a.Run()
-	return a.testResult, a.testError
-}
-
 func (a *AliyunActiontrail) PipelineConfig() map[string]string {
 	return map[string]string{
 		inputName: pipelineSample,
@@ -320,8 +313,7 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 		fields["message"] = string(evdata)
 
 		if r.isTest() {
-			data, _ := io.MakeMetric(r.MetricName, tags, fields, evtm)
-			r.testResult.Result = append(r.testResult.Result, data...)
+			// pass
 		} else if r.isDebug() {
 			data, _ := io.MakeMetric(r.MetricName, tags, fields, evtm)
 			fmt.Printf("-----%s\n", string(data))
