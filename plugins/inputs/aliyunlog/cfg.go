@@ -2,8 +2,6 @@ package aliyunlog
 
 import (
 	"sync"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -13,11 +11,11 @@ const (
 #endpoint = ''
 #access_key_id = ''
 #access_key_secret = ''
-	
+
 #[[inputs.aliyunlog.projects]]
-# ##(required) project name 
+# ##(required) project name
 #name = ''
-	
+
 #[[inputs.aliyunlog.projects.stores]]
 # ##(required) name of log store
 #name = ''
@@ -28,10 +26,10 @@ const (
 # ##specify tag alias, eg., tags=["status_code::status"]
 # ##both as tag and field，and specify tag alias: tags=["status_code:*:status"]
 #tags = []
-	
+
 # # ##(optional) the data type of fields, default is string, can be int or float
 # # ##eg., fields = ["int:status,request_length", "float:cpuUsage"]
-#fields = []	
+#fields = []
 `
 )
 
@@ -60,7 +58,6 @@ type (
 
 		mode string
 
-		testResult *inputs.TestResult
-		testError  error
+		testError error
 	}
 )
