@@ -181,20 +181,6 @@ func (r *CDN) exec(action string) error {
 	return nil
 }
 
-func (c *CDN) Test() (*inputs.TestResult, error) {
-	c.test = true
-	c.resData = nil
-
-	c.run()
-
-	res := &inputs.TestResult{
-		Result: c.resData,
-		Desc:   "success!",
-	}
-
-	return res, nil
-}
-
 func (run *RunningProject) commond(action string) {
 	switch action {
 	case "describeDomainBpsData":
