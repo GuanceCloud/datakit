@@ -1,10 +1,5 @@
 package redis
 
-import (
-	"time"
-	"github.com/go-redis/redis"
-)
-
 const (
 	configSample = `
 [[inputs.redis]]
