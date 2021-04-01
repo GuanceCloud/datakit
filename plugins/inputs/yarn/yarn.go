@@ -182,14 +182,6 @@ func (y *Yarn) Run() {
 	p.gather()
 }
 
-func (y *Yarn) Test() (*inputs.TestResult, error) {
-	tRst := &inputs.TestResult{}
-	para := y.genParam()
-	pt, err := para.getMetrics(true)
-	tRst.Result = pt
-	return tRst, err
-}
-
 func (y *Yarn) genParam() *YarnParam {
 	if y.MetricsName != "" {
 		y.MetricsName = defaultMetricName
