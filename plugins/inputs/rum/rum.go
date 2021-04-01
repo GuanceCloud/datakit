@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"time"
 
+	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -21,8 +21,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	influxm "github.com/influxdata/influxdb1-client/models"
-	ifxcli "github.com/influxdata/influxdb1-client/v2"
-	ipL "github.com/ip2location/ip2location-go"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 const (
@@ -93,7 +92,7 @@ func (r *Rum) getPipeline() *pipeline.Pipeline {
 	return pl.(*pipeline.Pipeline)
 }
 
-func (r *Rum) handleESData(pt influxm.Point, pl *pipeline.Pipeline) (influxm.Point, error) {
+func pipelineRUMPoint(pt influxm.Point, pl *pipeline.Pipeline) (influxm.Point, error) {
 
 	if pl == nil {
 		return pt, nil
@@ -119,96 +118,46 @@ func (r *Rum) handleESData(pt influxm.Point, pl *pipeline.Pipeline) (influxm.Poi
 	return newpt, nil
 }
 
-func (r *Rum) doHandleBody(pt influxm.Point, srcip string, pl *pipeline.Pipeline) (influxData, esdata influxm.Point, err error) {
+func geoTags(srcip string) (tags map[string]string) {
+	tags = map[string]string{}
 
-	ptname := string(pt.Name())
-
-	var ipInfo *ipL.IP2Locationrecord
-	var newpt influxm.Point
-
-	ipInfo, err = geo.Geo(srcip)
+	ipInfo, err := geo.Geo(srcip)
 	if err != nil {
 		l.Errorf("geo failed: %s, ignored", err)
+		return
 	} else {
 		// 无脑填充 geo 数据
-		pt.AddTag("city", ipInfo.City)
-		pt.AddTag("province", ipInfo.Region)
-		pt.AddTag("country", ipInfo.Country_short)
-		pt.AddTag("isp", ip2isp.SearchIsp(srcip))
+		tags["city"] = ipInfo.City
+		tags["province"] = ipInfo.Region
+		tags["country"] = ipInfo.Country_short
+		tags["isp"] = ip2isp.SearchIsp(srcip)
 	}
 
-	if isMetric(ptname) {
-		influxData = pt
-		return
-	} else if isES(ptname) {
-
-		// for ES data, add IP as tag to point
-		pt.AddTag("ip", srcip)
-
-		newpt, err = r.handleESData(pt, pl)
-
-		// XXX: 只是上传 RUM 原始数据，因为 ES 会将所有 tag/field 拉平
-		// 存入 ES，故只是行协议中增加一个长 tag，这个数据不会存入 influxdb。
-		//
-		// 这里只是将 RUM 原始数据转一下行协议即可，便于在 ES 中做全文检索。
-		// NOTE: 如果做了 pipeline，一定不要 drop_origin_data()，即不要删除
-		// `message' 字段，不然 RUM 原始数据无法做分词搜索。
-
-		if err != nil { // XXX: use origin point if error
-			newpt = pt
-		}
-
-		newpt, err = addMessageField(newpt)
-		if err != nil {
-			return
-		}
-
-		esdata = newpt
-		return
-	} else {
-		err = fmt.Errorf("unknown RUM metric name `%s'", ptname)
-		return
-	}
+	return
 }
 
-func addMessageField(pt influxm.Point) (influxm.Point, error) {
-	fields, err := pt.Fields()
+func (r *Rum) handleBody(body []byte, precision, srcip string) (mpts, rumpts []*influxdb.Point, err error) {
+	extraTags := geoTags(srcip)
+
+	mpts, err = lp.ParsePoints(body, &lp.Option{
+		ExtraTags: extraTags,
+		Strict:    true,
+		Callback: func(p influxm.Point) (influxm.Point, error) {
+			name := string(p.Name())
+			if isRUMData(name) { // ignore RUM data
+				return nil, nil
+			}
+
+			if !isMetricData(name) {
+				return nil, fmt.Errorf("unknow metric name %s", name)
+			}
+
+			return p, nil
+		},
+	})
+
 	if err != nil {
-		return nil, err
-	}
-
-	if fields == nil {
-		return nil, fmt.Errorf("fields should not be nil")
-	}
-
-	fields["message"] = pt.String()
-
-	tags := map[string]string{}
-	for _, t := range pt.Tags() {
-		tags[string(t.Key)] = string(t.Value)
-	}
-
-	newpt, err := ifxcli.NewPoint(string(pt.Name()), tags, fields, pt.Time())
-	if err != nil {
-		return nil, err
-	}
-
-	pts, err := influxm.ParsePointsWithPrecision([]byte(newpt.String()), pt.Time(), "ns")
-	if err != nil {
-		return nil, err
-	}
-
-	if len(pts) != 1 {
-		return nil, fmt.Errorf("should be only 1 point")
-	}
-
-	return pts[0], nil
-}
-
-func (r *Rum) handleBody(body []byte, precision, srcip string) (influxData, esdata []influxm.Point, err error) {
-
-	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), precision)
-	if err != nil {
+		l.Error(err)
 		return nil, nil, err
 	}
 
@@ -218,23 +167,38 @@ func (r *Rum) handleBody(body []byte, precision, srcip string) (influxData, esda
 			r.pipelinePool.Put(pl)
 		}
 	}()
+	// add extra ip tag for RUM data
+	extraTags["ip"] = srcip
 
-	var influxp, esp influxm.Point
+	rumpts, err = lp.ParsePoints(body, &lp.Option{
+		ExtraTags: extraTags,
+		Strict:    true,
+		Callback: func(p influxm.Point) (influxm.Point, error) {
+			name := string(p.Name())
+			if isMetricData(name) { // ignore Metric data
+				return nil, nil
+			}
 
-	for _, pt := range pts {
-		influxp, esp, err = r.doHandleBody(pt, srcip, pl)
-		if err != nil {
-			return
-		}
+			if !isRUMData(name) {
+				return nil, fmt.Errorf("unknow metric name %s", name)
+			}
 
-		if influxp != nil {
-			influxData = append(influxData, influxp)
-		} else {
-			esdata = append(esdata, esp)
-		}
+			newPoint, err := pipelineRUMPoint(p, pl)
+			if err != nil { // XXX: ignore pipeline error, use origin point if error
+				newPoint = p
+			}
+
+			// add extra `message' tag
+			newPoint.AddTag("message", newPoint.String())
+			return newPoint, nil
+		},
+	})
+	if err != nil {
+		l.Error(err)
+		return nil, nil, err
 	}
 
-	return
+	return mpts, rumpts, nil
 }
 
 func (r *Rum) Handle(c *gin.Context) {
@@ -285,14 +249,26 @@ func (r *Rum) Handle(c *gin.Context) {
 		return
 	}
 
-	if err = io.NamedFeedPoints(metricpts, io.Metric, inputName); err != nil {
-		uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
-		return
+	var x, y []*io.Point
+	for _, pt := range metricpts {
+		x = append(x, &io.Point{pt})
+	}
+	for _, pt := range espts {
+		y = append(y, &io.Point{pt})
 	}
 
-	if err = io.NamedFeedPoints(espts, io.Rum, inputName); err != nil {
-		uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
-		return
+	if len(x) > 0 {
+		if err = io.Feed(inputName, io.Metric, x, &io.Option{HighFreq: true}); err != nil {
+			uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
+			return
+		}
+	}
+
+	if len(y) > 0 {
+		if err = io.Feed(inputName, io.Rum, y, &io.Option{HighFreq: true}); err != nil {
+			uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
+			return
+		}
 	}
 
 	httpd.ErrOK.HttpBody(c, nil)
