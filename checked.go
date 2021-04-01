@@ -23,6 +23,7 @@ var (
 		"secureexec": false,
 		"vsphere":    false,
 		"zookeeper":  false,
+		"demo":       false,
 
 		"active_directory":       true,
 		"activemq":               true,
