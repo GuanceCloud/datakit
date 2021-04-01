@@ -441,8 +441,6 @@ github.com/google/gopacket/layers
 github.com/google/gopacket/pcap
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
-# github.com/gorilla/websocket v1.4.2
-github.com/gorilla/websocket
 # github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-retryablehttp v0.6.4
@@ -640,8 +638,6 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c => github.com/1157987916/websocketproxy v0.0.0-20201229082103-cfa96d57158c
-github.com/koding/websocketproxy
 # github.com/kr/fs v0.1.0
 github.com/kr/fs
 # github.com/kyokomi/emoji v2.1.0+incompatible
@@ -933,7 +929,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210401030835-2eccd87d69f4
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210401072947-bb2a050fa753
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
