@@ -41,7 +41,7 @@
 
 注意：
 
-- _<input-name>.md_ 必须跟对应采集器名字必须严格对应
+- _<input-name>.md_ 必须跟对应采集器名字**严格对应**
 - 对应采采集器需实现 `SampleMeasurement()` 接口（参见 `plugins/inputs/measurement.go`）
 - 需安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2#binary-installation) 工具将 Markdown 模板打包进 DataKit 二进制中
 
