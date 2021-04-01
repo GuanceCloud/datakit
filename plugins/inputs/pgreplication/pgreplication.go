@@ -116,29 +116,6 @@ func (*Replication) SampleConfig() string {
 	return sampleCfg
 }
 
-func (r *Replication) Test() (*inputs.TestResult, error) {
-	l = logger.SLogger(inputName)
-
-	var err error
-
-	r.initCfg()
-
-	// test connect
-	if err = r.checkAndResetConn(); err != nil {
-		err = fmt.Errorf("failed to connect, err: %s", err.Error())
-	}
-	r.closeConn()
-
-	var result inputs.TestResult
-	if err != nil {
-		result.Desc = "测试连接postgresql失败，详情见错误信息"
-	} else {
-		result.Desc = "测试连接postgresql成功"
-	}
-
-	return &result, err
-}
-
 func (r *Replication) Run() {
 	l = logger.SLogger(inputName)
 
