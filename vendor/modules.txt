@@ -418,7 +418,7 @@ github.com/golang-sql/civil
 github.com/golang/glog
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 github.com/golang/groupcache/lru
-# github.com/golang/protobuf v1.5.1
+# github.com/golang/protobuf v1.5.2
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
@@ -792,7 +792,7 @@ github.com/remyoudompheng/bigfft
 github.com/rivo/uniseg
 # github.com/robfig/cron/v3 v3.0.0
 github.com/robfig/cron/v3
-# github.com/rs/xid v1.2.1
+# github.com/rs/xid v1.3.0
 github.com/rs/xid
 # github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 github.com/satori/go.uuid
@@ -933,7 +933,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210324073926-757534a0db91
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210401030835-2eccd87d69f4
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
@@ -943,11 +943,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
 # gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210324054101-fdb22dffb394
-gitlab.jiagouyun.com/cloudcare-tools/kodo/config
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
-gitlab.jiagouyun.com/cloudcare-tools/kodo/models
-gitlab.jiagouyun.com/cloudcare-tools/kodo/utils
-gitlab.jiagouyun.com/cloudcare-tools/kodo/wsmsg
 # go.mongodb.org/mongo-driver v1.4.1
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec

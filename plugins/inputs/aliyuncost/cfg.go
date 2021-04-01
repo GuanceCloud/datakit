@@ -5,11 +5,9 @@ import (
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
+	"golang.org/x/time/rate"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
-	"golang.org/x/time/rate"
 )
 
 const (
@@ -37,10 +35,6 @@ const (
 `
 )
 
-// var (
-// 	Cfg AliyunBoaCfg
-// )
-
 type (
 	agent struct {
 		AccessKeyID        string           `toml:"access_key_id"`
@@ -66,8 +60,7 @@ type (
 
 		mode string
 
-		testResult *inputs.TestResult
-		testError  error
+		testError error
 	}
 
 	subModule interface {
