@@ -165,7 +165,7 @@ const (
 [[inputs.k8sobject]]
   ## URL for the kubelet
   url = "http://127.0.0.1:10255"
-  
+
   ## Monitor interval
   interval = "60s"
 
@@ -198,10 +198,6 @@ var (
 
 func (k *K8sObject) Catalog() string {
 	return pluginName
-}
-
-func (k *K8sObject) Test() (result *inputs.TestResult, err error) {
-	return
 }
 
 func (k *K8sObject) SampleConfig() string {

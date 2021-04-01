@@ -1,7 +1,6 @@
 package gitlab
 
 import (
-	"github.com/xanzy/go-gitlab"
 	"os"
 	"path/filepath"
 	"strings"
@@ -109,18 +108,6 @@ func (g *Gitlab) Run() {
 	p.log.Debugf("%#v", p)
 	p.mkGitlabDataDir()
 	p.gather()
-}
-
-func (g *Gitlab) Test() (*inputs.TestResult, error) {
-	tRst := &inputs.TestResult{}
-	para := g.genParam()
-	_, err := gitlab.NewClient(para.input.Token, gitlab.WithBaseURL(para.input.Host))
-	if err != nil {
-		tRst.Desc = "链接gitlab服务器错误"
-	} else {
-		tRst.Desc = "链接gitlab正常"
-	}
-	return tRst, err
 }
 
 func (g *Gitlab) genParam() *GitlabParam {
