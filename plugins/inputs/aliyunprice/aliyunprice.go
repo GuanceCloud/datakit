@@ -69,8 +69,7 @@ type (
 
 		mode string
 
-		testResult *inputs.TestResult
-		testError  error
+		testError error
 	}
 )
 
@@ -92,13 +91,6 @@ func (_ *AliyunPriceAgent) Catalog() string {
 
 func (_ *AliyunPriceAgent) SampleConfig() string {
 	return globalConfig + ecsSampleConfig + rdsSampleConfig + eipSampleConfig + slbSampleConfig
-}
-
-func (a *AliyunPriceAgent) Test() (*inputs.TestResult, error) {
-	a.mode = "test"
-	a.testResult = &inputs.TestResult{}
-	a.Run()
-	return a.testResult, a.testError
 }
 
 func (a *AliyunPriceAgent) Run() {
@@ -372,8 +364,7 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 		}
 
 		if a.isTest() {
-			data, _ := io.MakeMetric(metricName, tags, fields, time.Now().UTC())
-			a.testResult.Result = append(a.testResult.Result, data...)
+			// pass
 		} else {
 			io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields)
 		}
