@@ -59,10 +59,6 @@ func (t *TraceZipkin) Run() {
 	log.Infof("%s input exit", inputName)
 }
 
-func (t *TraceZipkin) Test() (*inputs.TestResult, error) {
-	return nil, nil
-}
-
 func (t *TraceZipkin) RegHttpHandler() {
 	if t.PathV1 == "" {
 		t.PathV1 = defaultZipkinPathV1
