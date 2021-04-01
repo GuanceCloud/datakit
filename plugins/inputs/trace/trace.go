@@ -41,18 +41,22 @@ type TraceAdapter struct {
 	Start   int64
 	Content string
 
-	Project       string
-	ServiceName   string
-	OperationName string
-	Resource      string
-	ParentID      string
-	TraceID       string
-	SpanID        string
-	Status        string
-	SpanType      string
-	EndPoint      string
-	Type          string
-	Pid           string
+	Project        string
+	Version        string
+	Env            string
+	ServiceName    string
+	OperationName  string
+	Resource       string
+	ParentID       string
+	TraceID        string
+	SpanID         string
+	Status         string
+	SpanType       string
+	EndPoint       string
+	Type           string
+	Pid            string
+	HttpMethod     string
+	HttpStatusCode string
 
 	Tags map[string]string
 }
@@ -69,6 +73,8 @@ const (
 	STATUS_CRITICAL = "critical"
 
 	PROJECT = "project"
+	VERSION = "version"
+	ENV     = "env"
 
 	SPAN_SERVICE_APP    = "app"
 	SPAN_SERVICE_DB     = "db"
@@ -92,7 +98,10 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags["parent_id"] = tAdpt.ParentID
 	tags["trace_id"] = tAdpt.TraceID
 	tags["span_id"] = tAdpt.SpanID
-	tags["pid"] = tAdpt.Pid
+	tags["version"] = tAdpt.Version
+	tags["env"] = tAdpt.Env
+	tags["http_method"] = tAdpt.HttpMethod
+	tags["http_status_code"] = tAdpt.HttpStatusCode
 
 	if tAdpt.Type != "" {
 		tags["type"] = tAdpt.Type
@@ -208,6 +217,6 @@ func GetInstance() *logger.Logger {
 	return log
 }
 
-func GetProjectFromPluginTag(tags map[string]string) string {
-	return tags[PROJECT]
+func GetFromPluginTag(tags map[string]string, tagName string) string {
+	return tags[tagName]
 }
