@@ -7,6 +7,7 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"reflect"
@@ -186,6 +187,19 @@ func NumberFormat(str string) string {
 	}
 
 	return n
+}
+
+func GZipStr(str string) ([]byte, error) {
+
+	var z bytes.Buffer
+	zw := gzip.NewWriter(&z)
+	_, err := io.WriteString(zw, str)
+	if err != nil {
+		return nil, err
+	}
+	zw.Flush()
+	zw.Close()
+	return z.Bytes(), nil
 }
 
 func GZip(data []byte) ([]byte, error) {
