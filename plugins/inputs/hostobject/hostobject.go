@@ -33,8 +33,7 @@ type objCollector struct {
 
 	mode string
 
-	testResult *inputs.TestResult
-	testError  error
+	testError error
 }
 
 func (c *objCollector) isTestOnce() bool {
@@ -57,13 +56,6 @@ func (r *objCollector) PipelineConfig() map[string]string {
 	return map[string]string{
 		InputName: pipelineSample,
 	}
-}
-
-func (c *objCollector) Test() (*inputs.TestResult, error) {
-	c.mode = "test"
-	c.testResult = &inputs.TestResult{}
-	c.Run()
-	return c.testResult, c.testError
 }
 
 func (c *objCollector) Run() {
@@ -139,18 +131,7 @@ func (c *objCollector) Run() {
 		tm := time.Now().UTC()
 
 		if c.isTestOnce() {
-			data, err := io.MakeMetric("HOST", tags, fields, tm)
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-				c.testError = err
-			} else {
-				c.testResult = &inputs.TestResult{
-					Result: data,
-					Desc:   "",
-				}
-				moduleLogger.Debugf("%s\n", string(data))
-			}
-			return
+			// pass
 		} else if c.isDebug() {
 			data, _ := io.MakeMetric("HOST", tags, fields, tm)
 			fmt.Printf("%s\n", string(data))
