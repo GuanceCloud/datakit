@@ -4,57 +4,75 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"net/http"
-	"net/url"
 	"os"
-	"reflect"
 	"strings"
 	"time"
 
-	influxm "github.com/influxdata/influxdb1-client/models"
-	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var (
-	l          = logger.DefaultSLogger("io")
 	testAssert = false
-	httpCli    *http.Client
-	baseURL    string
+	l          = logger.DefaultSLogger("io")
 
-	inputCh               = make(chan *iodata, datakit.CommonChanCap)
-	highFreqInputCh       = make(chan *iodata, datakit.CommonChanCap*8)
 	highFreqCleanInterval = time.Millisecond * 500
-
-	inputstats = map[string]*InputsStat{}
-
-	qstatsCh = make(chan *qstats)
-
-	cache = map[string][][]byte{
-		MetricDeprecated: nil,
-		Metric:           nil,
-		KeyEvent:         nil,
-		Object:           nil,
-		Logging:          nil,
-		Tracing:          nil,
-		Rum:              nil,
-	}
-
-	curCacheCnt      = 0
-	maxCacheCnt      = 128
-	MaxPostFailCache = 1024
-
-	categoryURLs map[string]string
-
-	outputFile     *os.File
-	outputFileSize int64
 )
 
-const ( // categories
+type Option struct {
+	CollectCost time.Duration
+	HighFreq    bool
 
+	HTTPHost    string
+	PostTimeout time.Duration
+}
+
+type IO struct {
+	DatawayHost   string
+	HTTPTimeout   time.Duration
+	MaxCacheCnt   int64
+	OutputFile    string
+	StrictMode    bool
+	FlushInterval time.Duration
+
+	httpCli *http.Client
+	dw      *datakit.DataWayCfg
+
+	in  chan *iodata
+	in2 chan *iodata // high-freq chan
+
+	inputstats map[string]*InputsStat
+	qstatsCh   chan *qstats
+
+	cache        map[string][]*Point
+	dynamicCache []*iodata
+
+	cacheCnt       int64
+	fd             *os.File
+	outputFileSize int64
+	categoryURLs   map[string]string
+}
+
+func NewIO() *IO {
+	return &IO{
+		HTTPTimeout:   30 * time.Second,
+		MaxCacheCnt:   1024,
+		FlushInterval: time.Second * 10,
+
+		in:  make(chan *iodata, 128),
+		in2: make(chan *iodata, 128*8),
+
+		inputstats: map[string]*InputsStat{},
+		qstatsCh:   make(chan *qstats), // blocking
+
+		cache:        map[string][]*Point{},
+		dynamicCache: []*iodata{},
+	}
+}
+
+const ( // categories
 	MetricDeprecated = "/v1/write/metrics"
 	Metric           = "/v1/write/metric"
 	KeyEvent         = "/v1/write/keyevent"
@@ -68,7 +86,8 @@ const ( // categories
 
 type iodata struct {
 	category, name string
-	data           []byte // line-protocol or json or others
+	opt            *Option
+	pts            []*Point
 	url            string
 	isProxy        bool
 }
@@ -82,279 +101,180 @@ type InputsStat struct {
 	Count     int64     `json:"count"`
 	First     time.Time `json:"first"`
 	Last      time.Time `json:"last"`
-}
 
-type qstats struct {
-	ch chan []*InputsStat
+	totalCost time.Duration `json:"-"`
+
+	AvgCollectCost time.Duration `json:"avg_collect_cost"`
 }
 
 func TestOutput() {
 	testAssert = true
 }
 
-func ChanStat() string {
-	l := len(inputCh)
-	c := cap(inputCh)
-
-	l2 := len(highFreqInputCh)
-	c2 := cap(highFreqInputCh)
-	return fmt.Sprintf("inputCh: %d/%d, highFreqInputCh: %d/%d", l, c, l2, c2)
-}
-
-// Deprecated
-func Feed(data []byte, category string) error {
-	return doFeed(data, category, "", "", false)
-}
-
 func SetTest() {
 	testAssert = true
 }
 
-func doFeed(data []byte, category, name, url string, highfreq bool) error {
+func (x *IO) doFeed(pts []*Point, category, name string, opt *Option) error {
+
+	ch := x.in
+
+	if opt != nil && opt.HighFreq {
+		ch = x.in2
+	}
 
 	switch category {
-	case Metric, KeyEvent, Object, Logging, Tracing:
-		// metric line check
-		if err := checkMetric(data); err != nil {
-			return fmt.Errorf("invalid line protocol data %v", err)
-		}
-	case Rum: // do not check RUM data structure, too complecated
+	case MetricDeprecated:
+	case Metric:
+	case KeyEvent:
+	case Object:
+	case Logging:
+	case Tracing:
+	case Rum:
 	default:
-		return fmt.Errorf("invalid category %s", category)
+		return fmt.Errorf("invalid category `%s'", category)
 	}
 
-	if highfreq {
-		select {
-		case highFreqInputCh <- &iodata{
-			category: category,
-			data:     data,
-			name:     name,
-			url:      url,
-		}: // XXX: blocking
-
-		case <-datakit.Exit.Wait():
-			l.Warnf("%s/%s feed skipped on global exit", category, name)
-		}
-	} else {
-		select {
-		case inputCh <- &iodata{
-			category: category,
-			data:     data,
-			name:     name,
-			url:      url,
-		}: // XXX: blocking
-
-		case <-datakit.Exit.Wait():
-			l.Warnf("%s/%s feed skipped on global exit", category, name)
-		}
+	select {
+	case ch <- &iodata{
+		category: category,
+		pts:      pts,
+		name:     name,
+		opt:      opt,
+	}:
+	case <-datakit.Exit.Wait():
+		l.Warnf("%s/%s feed skipped on global exit", category, name)
 	}
 
 	return nil
 }
 
-func checkMetric(data []byte) error {
-	if datakit.Cfg.MainCfg.StrictMode {
-		_, err := influxm.ParsePointsWithPrecision(data, time.Now().UTC(), "n")
-		if err != nil {
-			l.Errorf("[error] : %s", err.Error())
-			return err
-		}
-	}
-	return nil
-}
-
-func NamedFeed(data []byte, category, name string) error {
-	return doFeed(data, category, name, "", false)
-}
-
-func NamedFeedPoints(pts []influxm.Point, category, name string) error {
-	if len(pts) == 0 {
-		return nil
-	}
-
-	lines := []string{}
-	for _, p := range pts {
-		lines = append(lines, p.String())
-	}
-
-	return doFeed([]byte(strings.Join(lines, "\n")), category, name, "", false)
-}
-
-func NamedFeedEx(name, category, metric string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) error {
-	return doFeedEx(name, category, metric, "", tags, fields, false, t...)
-}
-
-func NameFeedExUrl(name, category, metric, url string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) error {
-	return doFeedEx(name, category, metric, url, tags, fields, false, t...)
-}
-
-func HighFreqFeedEx(name, category, metric string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) error {
-	return doFeedEx(name, category, metric, "", tags, fields, true, t...)
-}
-
-func HighFreqFeed(data []byte, category, name string) error {
-	return doFeed(data, category, name, "", true)
-}
-
-func HighFreqFeedPoints(pts []influxm.Point, category, name string) error {
-	if len(pts) == 0 {
-		return nil
-	}
-
-	lines := []string{}
-	for _, p := range pts {
-		lines = append(lines, p.String())
-	}
-
-	return doFeed([]byte(strings.Join(lines, "\n")), category, name, "", true)
-}
-
-func doFeedEx(name, category, metric, url string,
-	tags map[string]string,
-	fields map[string]interface{},
-	highfreq bool,
-	t ...time.Time) error {
-
-	data, err := MakeMetric(metric, tags, fields, t...)
-	if err != nil {
-		return err
-	}
-	return doFeed(data, category, name, url, highfreq)
-}
-
-func MakeMetric(name string, tags map[string]string, fields map[string]interface{}, t ...time.Time) ([]byte, error) {
-	var tm time.Time
-	if len(t) > 0 {
-		tm = t[0]
-	} else {
-		tm = time.Now().UTC()
-	}
-
-	if len(datakit.Cfg.MainCfg.GlobalTags) > 0 {
-		if tags == nil {
-			tags = map[string]string{}
-		}
-
-		for k, v := range datakit.Cfg.MainCfg.GlobalTags {
-			if _, ok := tags[k]; !ok { // do not overwrite exists tags
-				tags[k] = v
-			}
-		}
-	}
-
-	for k, v := range tags { // remove any suffix `\` in all tag values
-		tags[k] = datakit.TrimSuffixAll(v, `\`)
-	}
-
-	for k, v := range fields { // convert uint to int
-		switch v.(type) {
-		case uint64:
-			if v.(uint64) > uint64(math.MaxInt64) {
-				l.Warnf("on input `%s', filed %s, get uint64 %d > MaxInt64(%d), dropped", name, k, v.(uint64), uint64(math.MaxInt64))
-				delete(fields, k)
-			} else { // convert uint64 -> int64
-				fields[k] = int64(v.(uint64))
-			}
-		case int, uint32, uint16, uint8, int64, int32, int16, int8, bool, string, float32, float64:
-		default:
-			l.Errorf("invalid filed type `%s', from `%s', on filed `%s', got value `%+#v'",
-				reflect.TypeOf(v).String(), name, k, fields[k])
-			return nil, fmt.Errorf("invalid field type")
-		}
-	}
-
-	pt, err := ifxcli.NewPoint(name, tags, fields, tm)
-	if err != nil {
-		return nil, err
-	}
-	return []byte(pt.String()), nil
-}
-
-func ioStop() {
-	if outputFile != nil {
-		if err := outputFile.Close(); err != nil {
+func (x *IO) ioStop() {
+	if x.fd != nil {
+		if err := x.fd.Close(); err != nil {
 			l.Error(err)
 		}
 	}
 }
 
-func cacheData(d *iodata) {
-	if d == nil {
-		l.Warn("get empty data, ignored")
-		return
-	}
-
-	l.Debugf("get iodata(%d bytes) from %s|%s", len(d.data), d.category, d.name)
-
+func (x *IO) updateStats(d *iodata) {
 	now := time.Now()
+	stat, ok := x.inputstats[d.name]
 
-	stat, ok := inputstats[d.name]
 	if !ok {
-		inputstats[d.name] = &InputsStat{
+		stat := &InputsStat{
 			Name:     d.name,
 			Category: d.category,
-			Total:    int64(len(d.data)),
+			Total:    int64(len(d.pts)),
 			First:    now,
 			Count:    1,
 			Last:     now,
 		}
+
+		if d.opt != nil {
+			stat.totalCost = d.opt.CollectCost
+			stat.AvgCollectCost = d.opt.CollectCost
+		}
+		x.inputstats[d.name] = stat
 	} else {
-		stat.Total += int64(len(d.data))
+		stat.Total += int64(len(d.pts))
 		stat.Count++
 		stat.Last = now
 		stat.Category = d.category
 
 		if (stat.Last.Unix() - stat.First.Unix()) > 0 {
-			stat.Frequency = fmt.Sprintf("%.02f/min", float64(stat.Count)/(float64(stat.Last.Unix()-stat.First.Unix())/60))
+			stat.Frequency = fmt.Sprintf("%.02f/min",
+				float64(stat.Count)/(float64(stat.Last.Unix()-stat.First.Unix())/60))
 		}
 		stat.AvgSize = (stat.Total) / stat.Count
-	}
 
-	// 考虑到推送至不同的dataway地址
-	if d.url == "" {
-		d.url = categoryURLs[d.category]
-		d.isProxy = datakit.Cfg.MainCfg.DataWay.Proxy
-	} else {
-		u, err := url.Parse(d.url)
-		if err != nil {
-			l.Warn("get invalid url, ignored")
-			return
+		if d.opt != nil {
+			stat.totalCost += d.opt.CollectCost
+			stat.AvgCollectCost = (stat.totalCost) / time.Duration(stat.Count)
 		}
-		if u.Path == "/proxy" {
-			d.isProxy = true
-		}
-		u.Path = u.Path + d.category
-		d.url = u.String()
 	}
-
-	cache[d.url] = append(cache[d.url], d.data)
-	curCacheCnt++
 }
 
-func cleanHighFreqIOData() {
+func (x *IO) cacheData(d *iodata, tryClean bool) {
+
+	if d == nil {
+		l.Warn("get empty data, ignored")
+		return
+	}
+
+	l.Debugf("get iodata(%d points) from %s|%s", len(d.pts), d.category, d.name)
+
+	x.updateStats(d)
+
+	if d.opt != nil && d.opt.HTTPHost != "" {
+		x.dynamicCache = append(x.dynamicCache, d)
+	} else {
+		x.cache[d.category] = append(x.cache[d.category], d.pts...)
+	}
+
+	x.cacheCnt++
+
+	if x.cacheCnt > x.MaxCacheCnt && tryClean {
+		x.flushAll()
+	}
+}
+
+func (x *IO) cleanHighFreqIOData() {
+
+	if len(x.in2) > 0 {
+		l.Debugf("cleanning %d cache on high-freq-chan", len(x.in2))
+	}
+
 	for {
 		select {
-		case d := <-highFreqInputCh: // eat all cached data
-			cacheData(d)
-			tryCleanCache(d)
+		case d := <-x.in2: // eat all cached data
+			x.cacheData(d, false)
 		default:
 			return
 		}
 	}
 }
 
-func startIO(recoverable bool) {
+func (x *IO) init() error {
+	if x.OutputFile != "" {
+		f, err := os.OpenFile(datakit.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		if err != nil {
+			l.Error(err)
+			return err
+		}
 
-	defer ioStop()
+		x.fd = f
+	}
+
+	x.httpCli = &http.Client{
+		Timeout: x.HTTPTimeout,
+	}
+
+	dw, err := datakit.ParseDataway(x.DatawayHost)
+	if err != nil {
+		return err
+	}
+
+	x.dw = dw
+	x.categoryURLs = map[string]string{
+		Metric:   x.dw.MetricURL(),
+		KeyEvent: x.dw.KeyEventURL(),
+		Object:   x.dw.ObjectURL(),
+		Logging:  x.dw.LoggingURL(),
+		Tracing:  x.dw.TracingURL(),
+		Rum:      x.dw.RumURL(),
+	}
+
+	return nil
+}
+
+func (x *IO) startIO(recoverable bool) {
+
+	if err := x.init(); err != nil {
+		return
+	}
+
+	defer x.ioStop()
 
 	var f rtpanic.RecoverCallback
 
@@ -363,9 +283,8 @@ func startIO(recoverable bool) {
 			defer rtpanic.Recover(f, nil)
 		}
 
-		tick := time.NewTicker(datakit.IntervalDuration)
+		tick := time.NewTicker(x.FlushInterval)
 		defer tick.Stop()
-		l.Debugf("io interval: %v", datakit.IntervalDuration)
 
 		highFreqRecvTicker := time.NewTicker(highFreqCleanInterval)
 		defer highFreqRecvTicker.Stop()
@@ -376,12 +295,12 @@ func startIO(recoverable bool) {
 
 		for {
 			select {
-			case d := <-inputCh:
-				cacheData(d)
+			case d := <-x.in:
+				x.cacheData(d, true)
 
-			case q := <-qstatsCh:
+			case q := <-x.qstatsCh:
 				statRes := []*InputsStat{}
-				for _, v := range inputstats {
+				for _, v := range x.inputstats {
 					statRes = append(statRes, v)
 				}
 				select {
@@ -392,11 +311,11 @@ func startIO(recoverable bool) {
 				}
 
 			case <-highFreqRecvTicker.C:
-				cleanHighFreqIOData()
+				x.cleanHighFreqIOData()
 
 			case <-tick.C:
 				l.Debugf("chan stat: %s", ChanStat())
-				flushAll()
+				x.flushAll()
 
 			case <-datakit.Exit.Wait():
 				l.Info("io exit on exit")
@@ -409,113 +328,100 @@ func startIO(recoverable bool) {
 	f(nil, nil)
 }
 
-func Start() {
+func (x *IO) flushAll() {
+	x.flush()
 
-	l = logger.SLogger("io")
-
-	categoryURLs = map[string]string{
-		Metric:   datakit.Cfg.MainCfg.DataWay.MetricURL(),
-		KeyEvent: datakit.Cfg.MainCfg.DataWay.KeyEventURL(),
-		Object:   datakit.Cfg.MainCfg.DataWay.ObjectURL(),
-		Logging:  datakit.Cfg.MainCfg.DataWay.LoggingURL(),
-		Tracing:  datakit.Cfg.MainCfg.DataWay.TracingURL(),
-		Rum:      datakit.Cfg.MainCfg.DataWay.RumURL(),
+	if x.cacheCnt > 0 {
+		l.Warnf("post failed cache count: %d", x.cacheCnt)
 	}
 
-	l.Debugf("categoryURLs: %+#v", categoryURLs)
-
-	var err error
-	var du time.Duration
-	if datakit.Cfg.MainCfg.DataWay.Timeout != "" {
-		du, err = time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Timeout)
-		if err != nil {
-			l.Warnf("parse dataway timeout failed: %s", err.Error())
-			du = time.Second * 30
+	if x.cacheCnt > x.MaxCacheCnt {
+		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCnt)
+		for k, _ := range x.cache {
+			x.cache[k] = nil
 		}
-	}
-
-	httpCli = &http.Client{
-		Timeout: du,
-	}
-
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		startIO(true)
-	}()
-
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		GRPCServer()
-	}()
-}
-
-func flushAll() {
-	flush()
-
-	if curCacheCnt > 0 {
-		l.Warnf("post failed cache count: %d", curCacheCnt)
-	}
-
-	if curCacheCnt > MaxPostFailCache {
-		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", MaxPostFailCache)
-		for k, _ := range cache {
-			cache[k] = nil
-		}
-		curCacheCnt = 0
+		x.cacheCnt = 0
 	}
 }
 
-func flush() {
+func (x *IO) flush() {
 
-	if httpCli != nil {
-		defer httpCli.CloseIdleConnections()
+	if x.httpCli != nil {
+		defer x.httpCli.CloseIdleConnections()
 	}
 
-	for k, v := range cache {
-		if err := doFlush(v, k); err != nil {
+	for k, v := range x.cache {
+
+		if err := x.doFlush(v, x.categoryURLs[k]); err != nil {
 			l.Errorf("post %d to %s failed", len(v), k)
-		} else {
-			if len(v) > 0 {
-				curCacheCnt -= len(v)
-				l.Debugf("clean %d/%d cache on %s", len(v), curCacheCnt, k)
-				cache[k] = nil
-			}
+			continue
+		}
+
+		if len(v) > 0 {
+			x.cacheCnt -= int64(len(v))
+			l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
+			x.cache[k] = nil
+		}
+		l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
+	}
+
+	// flush dynamic cache: __not__ post to default dataway
+	left := []*iodata{}
+	for _, v := range x.dynamicCache {
+		if err := x.doFlush(v.pts, v.url); err != nil {
+			l.Errorf("post %d to %s failed", len(v.pts), v.url)
+			left = append(left, v)
+			continue
+		}
+
+		if len(v.pts) > 0 {
+			x.cacheCnt -= int64(len(v.pts))
 		}
 	}
+
+	l.Debugf("clean %d/%d dynamic cache", len(x.dynamicCache), len(left))
+
+	x.dynamicCache = left
 }
 
-func buildBody(url string, bodies [][]byte) (body []byte, gzon bool, err error) {
-	body = bytes.Join(bodies, []byte("\n"))
-	if len(body) > minGZSize && datakit.OutputFile == "" { // should not gzip on file output
-		if body, err = datakit.GZip(body); err != nil {
+func (x *IO) buildBody(pts []*Point) (body []byte, gzon bool, err error) {
+
+	lines := []string{}
+	for _, pt := range pts {
+		lines = append(lines, pt.String())
+	}
+
+	raw := strings.Join(lines, "\n")
+	if len(raw) > minGZSize && x.OutputFile == "" { // should not gzip on file output
+		if body, err = datakit.GZipStr(raw); err != nil {
 			l.Errorf("gz: %s", err.Error())
 			return
 		}
 		gzon = true
+	} else {
+		body = []byte(raw)
 	}
 
 	return
 }
 
-func doFlush(bodies [][]byte, url string) error {
+func (x *IO) doFlush(pts []*Point, url string) error {
 
 	if testAssert {
 		return nil
 	}
 
-	if bodies == nil {
+	if pts == nil {
 		return nil
 	}
 
-	body, gz, err := buildBody(url, bodies)
+	body, gz, err := x.buildBody(pts)
 	if err != nil {
 		return err
 	}
 
-	if datakit.OutputFile != "" {
-		return fileOutput(body)
+	if x.OutputFile != "" {
+		return x.fileOutput(body)
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
@@ -530,9 +436,9 @@ func doFlush(bodies [][]byte, url string) error {
 
 	postbeg := time.Now()
 
-	resp, err := httpCli.Do(req)
+	resp, err := x.httpCli.Do(req)
 	if err != nil {
-		l.Error(err)
+		l.Errorf("request url %s failed: %s", url, err)
 		return err
 	}
 
@@ -563,72 +469,21 @@ func doFlush(bodies [][]byte, url string) error {
 	return nil
 }
 
-func fileOutput(body []byte) error {
+func (x *IO) fileOutput(body []byte) error {
 
-	if outputFile == nil {
-		f, err := os.OpenFile(datakit.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-		if err != nil {
-			l.Error(err)
-			return err
-		}
-
-		outputFile = f
-	}
-
-	if _, err := outputFile.Write(append(body, '\n')); err != nil {
+	if _, err := x.fd.Write(append(body, '\n')); err != nil {
 		l.Error(err)
 		return err
 	}
 
-	outputFileSize += int64(len(body))
-	if outputFileSize > 4*1024*1024 {
-		if err := outputFile.Truncate(0); err != nil {
+	x.outputFileSize += int64(len(body))
+	if x.outputFileSize > 4*1024*1024 {
+		if err := x.fd.Truncate(0); err != nil {
 			l.Error(err)
 			return err
 		}
-		outputFileSize = 0
+		x.outputFileSize = 0
 	}
 
 	return nil
-}
-
-var (
-	statsTimeout = time.Second * 3
-)
-
-func GetStats() ([]*InputsStat, error) {
-	q := &qstats{
-		ch: make(chan []*InputsStat),
-	}
-
-	tick := time.NewTicker(statsTimeout)
-	defer tick.Stop()
-
-	select {
-	case qstatsCh <- q:
-	case <-tick.C:
-		return nil, fmt.Errorf("send stats request timeout")
-	}
-
-	select {
-	case res := <-q.ch:
-		return res, nil
-	case <-tick.C:
-		return nil, fmt.Errorf("get stats timeout")
-	}
-}
-
-func tryCleanCache(d *iodata) {
-
-	// disable cache under proxied mode, to prevent large packages in proxing lua module
-	if d.isProxy {
-		if err := doFlush([][]byte{d.data}, d.url); err != nil {
-			l.Errorf("post %s failed, drop %d packages", d.category, len(d.data))
-		}
-	} else {
-		if curCacheCnt > maxCacheCnt {
-			flushAll()
-		}
-	}
-
 }
