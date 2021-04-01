@@ -36,8 +36,7 @@ type Binlog struct {
 
 	mode string
 
-	testResult *inputs.TestResult
-	testError  error
+	testError error
 }
 
 func (_ *Binlog) Catalog() string {
@@ -46,11 +45,6 @@ func (_ *Binlog) Catalog() string {
 
 func (_ *Binlog) SampleConfig() string {
 	return binlogConfigSample
-}
-
-func (_ *Binlog) Test() (*inputs.TestResult, error) {
-	// 被动接受数据，无法进行测试
-	return &inputs.TestResult{Desc: "success"}, nil
 }
 
 type adapterLogWriter struct {
