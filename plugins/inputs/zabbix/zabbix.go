@@ -62,21 +62,6 @@ func (z *Zabbix) Run() {
 	p.gather()
 }
 
-func (z *Zabbix) Test() (*inputs.TestResult, error) {
-	tRst := &inputs.TestResult{}
-	para := z.genParam()
-	start := para.getStartDate()
-	stop := para.getStopDate(start)
-	for _, tbl := range tbls {
-		pt, err := para.gatherData(start, stop, tbl, true)
-		if err != nil || len(pt) > 0 {
-			tRst.Result = pt
-			return tRst, err
-		}
-	}
-	return tRst, nil
-}
-
 func (z *Zabbix) genParam() *ZabbixParam {
 	regPath := filepath.Join(datakit.InstallDir, defaultDataDir, defaultZabbixDir, z.Registry)
 	z.Registry = regPath
