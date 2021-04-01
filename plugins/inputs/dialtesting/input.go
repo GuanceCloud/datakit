@@ -70,10 +70,6 @@ func (dt *DialTesting) Catalog() string {
 	return "network"
 }
 
-func (d *DialTesting) Test() (*inputs.TestResult, error) {
-	return nil, nil
-}
-
 func (d *DialTesting) Run() {
 
 	l = logger.SLogger(inputName)
