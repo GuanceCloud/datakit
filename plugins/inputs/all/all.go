@@ -1,6 +1,9 @@
 package inputs
 
 import (
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/demo"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
+
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/activemqlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunactiontrail"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyuncdn"
@@ -66,7 +69,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/rum"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/scanport"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/secureexec"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/squid"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ssh"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
