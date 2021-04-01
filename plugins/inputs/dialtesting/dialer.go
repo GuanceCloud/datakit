@@ -88,9 +88,16 @@ func (d *dialer) run() error {
 				fields["success"] = int64(1)
 			}
 
-			err := io.NameFeedExUrl(inputName, io.Metric, d.task.MetricName(), d.task.PostURLStr(), tags, fields, time.Now())
+			pt, err := io.MakePoint(d.task.MetricName(), tags, fields, time.Now())
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
+			} else {
+				if err := io.Feed(inputName,
+					io.Metric,
+					[]*io.Point{pt},
+					&io.Option{HTTPHost: d.task.PostURLStr()}); err != nil {
+					l.Warnf("io feed failed, %s", err.Error())
+				}
 			}
 
 			l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, d.task.PostURLStr(), tags, fields)

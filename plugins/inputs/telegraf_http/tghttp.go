@@ -39,10 +39,6 @@ func (*TelegrafHTTP) SampleConfig() string {
 	return sampleCfg
 }
 
-func (*TelegrafHTTP) Test() (*inputs.TestResult, error) {
-	return &inputs.TestResult{Desc: "success"}, nil
-}
-
 func (t *TelegrafHTTP) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("telegraf_http input started...")
