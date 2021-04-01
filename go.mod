@@ -84,8 +84,6 @@ require (
 	github.com/naoina/toml v0.1.1
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
 	github.com/nightlyone/lockfile v1.0.0 // indirect
-	github.com/onsi/ginkgo v1.12.1 // indirect
-	github.com/onsi/gomega v1.10.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/selinux v1.5.1 // indirect
@@ -107,8 +105,8 @@ require (
 	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cast v1.3.1
-	github.com/stretchr/testify v1.7.0
 	github.com/spf13/cobra v1.1.3 // indirect
+	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.7
@@ -123,11 +121,6 @@ require (
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/vjeantet/grok v1.0.0
 	github.com/xanzy/go-gitlab v0.31.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210103044601-bf434a6898c5
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210118023115-6ad5eb4e2791
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
-	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210324073926-757534a0db91
