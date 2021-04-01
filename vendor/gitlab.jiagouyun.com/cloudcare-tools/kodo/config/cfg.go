@@ -51,18 +51,20 @@ var (
 		},
 
 		Global: GlobalCfg{
-			EnableInnerApi: true,
-			StatsOn:        256,
-			Listen:         `:9527`,
-			Workers:        8,
-			LogWorkers:     8,
-			Dataway:        "http://internal-dataway.utils:9528",
-			EsConsumer:     false,
-			RetryTimes:     3600 * 24,
-			MaxWrites:      1000,
-			MeterInterval:  60, //minute
-			SysWsUUID:      `wksp_system`,
-			DataMigration:  false,
+			EnableInnerApi:      true,
+			StatsOn:             256,
+			Listen:              `:9527`,
+			Workers:             8,
+			LogWorkers:          8,
+			Dataway:             "http://internal-dataway.utils:9528",
+			EsConsumer:          false,
+			RetryTimes:          3600 * 24,
+			MaxWrites:           1000,
+			MeterInterval:       60, //minute
+			SysWsUUID:           `wksp_system`,
+			DataMigration:       false,
+			ObjectRetentionTime: "48h",
+			DeleteObjectsFlag:   false,
 		},
 
 		DQL: DQLCfg{
@@ -186,6 +188,10 @@ type GlobalCfg struct {
 	SysDBUUID      string `yaml:"sys_db_uuid,omitempty"`
 	SysWsUUID      string `yaml:"sys_ws_uuid,omitempty"`
 	MeterInterval  int    `yaml:"meter_interval,omitempty"`
+
+	ObjectRetentionTime string `yaml:"object_retention_time,omitempty"` // 单位为小时
+
+	DeleteObjectsFlag bool `yaml:"delete_object_flag,omitempty"`
 
 	MaxWrites int `yaml:"max_writes"`
 
