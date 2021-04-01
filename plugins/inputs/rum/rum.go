@@ -46,10 +46,6 @@ func (_ *Rum) SampleConfig() string {
 func (r *Rum) Run() {
 }
 
-func (r *Rum) Test() (result *inputs.TestResult, err error) {
-	return
-}
-
 func (r *Rum) PipelineConfig() map[string]string {
 	return map[string]string{
 		inputName: pipelineSample,
