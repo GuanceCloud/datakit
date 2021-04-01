@@ -51,10 +51,11 @@ func (p *Processes) Run() {
 		}
 		p.re = re
 	}
-	if p.ObjectInterval.Duration == 0 {
+
+	if p.ObjectInterval.Duration < 5*time.Minute {
 		p.ObjectInterval.Duration = 5 * time.Minute
 	}
-	if p.RunTime.Duration == 0 || p.RunTime.Duration < 10*time.Minute {
+	if p.RunTime.Duration < 10*time.Minute {
 		p.RunTime.Duration = 10 * time.Minute
 	}
 	tick := time.NewTicker(p.ObjectInterval.Duration)
@@ -143,6 +144,9 @@ func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields,
 		l.Warnf("[warning] process get name err:%s", err.Error())
 	}
 	username = getUser(ps)
+	if username == "" {
+		username = "nobody"
+	}
 	status, err := ps.Status()
 	if err != nil {
 		l.Warnf("[warning] process:%s,pid:%d get state err:%s", name, ps.Pid, err.Error())
@@ -150,6 +154,11 @@ func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields,
 	} else {
 		state = status[0]
 	}
+	stateZombie := false
+	if state == "zombie" {
+		stateZombie = true
+	}
+	fields["state_zombie"] = stateZombie
 	mem, err := ps.MemoryInfo()
 	if err != nil {
 		l.Warnf("[warning] process:%s,pid:%d get memoryinfo err:%s", name, ps.Pid, err.Error())
@@ -239,9 +248,12 @@ func (p *Processes) WriteObject() {
 		cmd, err := ps.Cmdline()
 		if err != nil {
 			l.Warnf("[warning] process:%s,pid:%d get cmd err:%s", name, ps.Pid, err.Error())
-		} else {
-			fields["cmdline"] = cmd
+			cmd = ""
 		}
+		if cmd == "" {
+			cmd = fmt.Sprintf("(%s)", name)
+		}
+		fields["cmdline"] = cmd
 		if p.isTest {
 			point, err := io.MakeMetric("host_processes", tags, fields, times)
 			if err != nil {
