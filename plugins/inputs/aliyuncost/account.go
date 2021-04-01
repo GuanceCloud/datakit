@@ -317,8 +317,7 @@ func (ca *costAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 			tm = tm.Add(-8 * time.Hour) //返回的不是unix时间字符串
 
 			if ca.ag.isTest() {
-				data, _ := io.MakeMetric(ca.getName(), tags, fields, tm)
-				ca.ag.testResult.Result = append(ca.ag.testResult.Result, data...)
+				// pass
 			} else if ca.ag.isDebug() {
 				data, _ := io.MakeMetric(ca.getName(), tags, fields, tm)
 				fmt.Printf("%s\n", string(data))
