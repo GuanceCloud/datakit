@@ -55,28 +55,6 @@ func (wx *WxClient) Catalog() string {
 	return "wechat"
 }
 
-func (wx *WxClient) Test() (*inputs.TestResult, error) {
-	wx.isTest = true
-	token, err := wx.GetAccessToken()
-	if err != nil {
-		return nil, err
-	}
-	wxClient := reflect.ValueOf(wx)
-	params := []reflect.Value{
-		reflect.ValueOf(token),
-	}
-	for _, c := range wx.Analysis.Name {
-		if wxClient.MethodByName(c).IsValid() {
-			wxClient.MethodByName(c).Call(params)
-		}
-	}
-	var result = inputs.TestResult{}
-	result.Result = wx.result.Bytes()
-	result.Desc = "wechta example"
-	return &result, nil
-
-}
-
 func (an *Analysis) run(wx *WxClient) {
 	interval, err := time.ParseDuration("24h")
 	if err != nil {
