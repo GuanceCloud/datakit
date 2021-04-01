@@ -38,10 +38,6 @@ func (_ *Qyt) Catalog() string { return "qyt_all" }
 
 func (_ *Qyt) SampleConfig() string { return configSample }
 
-func (_ *Qyt) Test() (result *inputs.TestResult, err error) {
-	return
-}
-
 func (o *Qyt) Run() {
 	o.ExernalInput.Run()
 }
