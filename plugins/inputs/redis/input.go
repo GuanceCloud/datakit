@@ -3,6 +3,8 @@ package redis
 import (
 	"time"
 
+	"github.com/go-redis/redis"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -33,14 +35,14 @@ type Input struct {
 	collectCache []inputs.Measurement   `toml:"-"`
 }
 
-func (r *Redis) Init() error {
+func (i *Input) Init() error {
 	client := redis.NewClient(&redis.Options{
         Addr:     "localhost:6379",
         Password: "dev", // no password set
         DB:       0,  // use default DB
     })
 
-    r.client = client
+    i.client = client
 
     return nil
 }
@@ -98,7 +100,7 @@ func (i *Input) SampleConfig() string { return "[inputs.demo]" }
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&demoMeasurement{},
-		&infoMeasurement{}
+		&infoMeasurement{},
 	}
 }
 
