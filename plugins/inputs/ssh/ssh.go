@@ -104,19 +104,6 @@ func (s *Ssh) Run() {
 	p.gather()
 }
 
-func (s *Ssh) Test() (*inputs.TestResult, error) {
-	tRst := &inputs.TestResult{}
-	para := s.genParam()
-	clientCfg, err := para.getSshClientConfig()
-	if err != nil {
-		tRst.Desc = "链接ssh服务器错误"
-		return tRst, err
-	}
-	pt, err := para.getMetrics(clientCfg, true)
-	tRst.Result = pt
-	return tRst, err
-}
-
 func (s *Ssh) genParam() *SshParam {
 	reg, _ := regexp.Compile(`:\d{1,5}$`)
 
