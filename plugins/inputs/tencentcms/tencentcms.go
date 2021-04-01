@@ -49,13 +49,6 @@ func (_ *CMS) SampleConfig() string {
 	return cmsConfigSample
 }
 
-func (c *CMS) Test() (*inputs.TestResult, error) {
-	c.mode = "test"
-	c.testResult = &inputs.TestResult{}
-	c.Run()
-	return c.testResult, c.testError
-}
-
 func (c *CMS) initialize() error {
 
 	var err error
@@ -267,8 +260,7 @@ func (c *CMS) fetchMetrics(req *MetricsRequest) error {
 			fields[*req.q.MetricName] = *val
 
 			if c.isTest() {
-				data, _ := io.MakeMetric(foramtNamespaceName(*req.q.Namespace), tags, fields)
-				c.testResult.Result = append(c.testResult.Result, data...)
+				// pass
 			} else {
 				io.NamedFeedEx(inputName, io.Metric, foramtNamespaceName(*req.q.Namespace), tags, fields)
 			}
