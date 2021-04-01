@@ -86,7 +86,7 @@ var (
 	once sync.Once
 )
 
-func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
+func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
@@ -130,27 +130,28 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 
 	ts := time.Unix(tAdpt.Start/int64(time.Second), tAdpt.Start%int64(time.Second))
 
-	pt, err := dkio.MakeMetric(tAdpt.Source, tags, fields, ts)
+	pt, err := dkio.MakePoint(tAdpt.Source, tags, fields, ts)
 	if err != nil {
 		GetInstance().Errorf("build metric err: %s", err)
 		return nil, err
 	}
 
-	lineProtoStr := string(pt)
-	GetInstance().Debugf(lineProtoStr)
 	return pt, err
 }
 
 func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
+	var pts []*dkio.Point
 	for _, tAdpt := range adapterGroup {
 		pt, err := BuildLineProto(tAdpt)
 		if err != nil {
 			continue
 		}
+		pts = append(pts, pt)
 
-		if err := dkio.HighFreqFeed(pt, dkio.Tracing, pluginName); err != nil {
-			GetInstance().Errorf("io feed err: %s", err)
-		}
+	}
+
+	if err := dkio.Feed(pluginName, dkio.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
+		GetInstance().Errorf("io feed err: %s", err)
 	}
 }
 
