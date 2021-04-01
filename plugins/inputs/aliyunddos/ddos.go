@@ -421,20 +421,6 @@ func (r *DDoS) describeNetworkRules(instanceID, region string) error {
 	return nil
 }
 
-func (d *DDoS) Test() (*inputs.TestResult, error) {
-	d.test = true
-	d.resData = nil
-
-	d.command()
-
-	res := &inputs.TestResult{
-		Result: d.resData,
-		Desc:   "success!",
-	}
-
-	return res, nil
-}
-
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &DDoS{}
