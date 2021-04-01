@@ -12,7 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -20,6 +20,14 @@ var (
 	tocTemplate *template.Template
 	l           = logger.DefaultSLogger("man")
 )
+
+type Input struct {
+	InputName    string
+	InputSample  string
+	Version      string
+	ReleaseDate  string
+	Measurements []*inputs.MeasurementInfo
+}
 
 func Get(name string) (string, error) {
 	return ManualBox.FindString(name + ".md")
