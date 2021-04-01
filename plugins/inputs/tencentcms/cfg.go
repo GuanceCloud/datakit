@@ -8,8 +8,6 @@ import (
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	monitor "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/monitor/v20180724"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type (
@@ -47,8 +45,7 @@ type (
 
 		mode string
 
-		testResult *inputs.TestResult
-		testError  error
+		testError error
 	}
 
 	MetricsRequest struct {
@@ -81,7 +78,7 @@ const (
 #		"CPUUsage",
 #	]
 
-#     ## dimensions can be used to query the specified resource, which is a collection of key-value forms. 
+#     ## dimensions can be used to query the specified resource, which is a collection of key-value forms.
 #     ## each metric may have its own dimensions, See: https://cloud.tencent.com/document/api/248/30384
 #     ## name is metric name, value is json
 #	[[inputs.tencentcms.namespace.metrics.dimensions]]
