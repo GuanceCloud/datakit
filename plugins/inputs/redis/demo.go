@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -54,20 +55,21 @@ func (m *demoMeasurement) Info() *inputs.MeasurementInfo {
 func CollectDemoMeasurement() *demoMeasurement {
 	m := &demoMeasurement{}
 	m.collect()
+
+	return m
 }
 
 func (m *demoMeasurement) collect() *demoMeasurement {
 	demo := &demoMeasurement{
-			name: "demo",
-			tags: map[string]string{"tag_a": "a", "tag_b": "b"},
-			fields: map[string]interface{}{
-				"usage":       "12.3",
-				"disk_size":   5e9,
-				"some_string": "hello world",
-				"ok":          true,
-			},
-			ts: time.Now(),
+		name: "demo",
+		tags: map[string]string{"tag_a": "a", "tag_b": "b"},
+		fields: map[string]interface{}{
+			"usage":       "12.3",
+			"disk_size":   5e9,
+			"some_string": "hello world",
+			"ok":          true,
 		},
+		ts: time.Now(),
 	}
 
 	return demo
