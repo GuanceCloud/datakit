@@ -46,7 +46,7 @@ type IO struct {
 	inputstats map[string]*InputsStat
 	qstatsCh   chan *qstats
 
-	cache        map[string]Points
+	cache        map[string][]*Point
 	dynamicCache []*iodata
 
 	cacheCnt       int64
@@ -67,7 +67,7 @@ func NewIO() *IO {
 		inputstats: map[string]*InputsStat{},
 		qstatsCh:   make(chan *qstats), // blocking
 
-		cache:        map[string]Points{},
+		cache:        map[string][]*Point{},
 		dynamicCache: []*iodata{},
 	}
 }
@@ -87,7 +87,7 @@ const ( // categories
 type iodata struct {
 	category, name string
 	opt            *Option
-	pts            Points
+	pts            []*Point
 	url            string
 	isProxy        bool
 }
@@ -115,7 +115,7 @@ func SetTest() {
 	testAssert = true
 }
 
-func (x *IO) doFeed(pts Points, category, name string, opt *Option) error {
+func (x *IO) doFeed(pts []*Point, category, name string, opt *Option) error {
 
 	ch := x.in
 
@@ -384,7 +384,7 @@ func (x *IO) flush() {
 	x.dynamicCache = left
 }
 
-func (x *IO) buildBody(pts Points) (body []byte, gzon bool, err error) {
+func (x *IO) buildBody(pts []*Point) (body []byte, gzon bool, err error) {
 
 	lines := []string{}
 	for _, pt := range pts {
@@ -405,7 +405,7 @@ func (x *IO) buildBody(pts Points) (body []byte, gzon bool, err error) {
 	return
 }
 
-func (x *IO) doFlush(pts Points, url string) error {
+func (x *IO) doFlush(pts []*Point, url string) error {
 
 	if testAssert {
 		return nil

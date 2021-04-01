@@ -175,11 +175,11 @@ func (t *tailer) receiving() {
 		addStatus(fields)
 
 		// use t.source as input-name, make it more distinguishable for multiple tailf instances
-		pt, err := io.MakeMetric(t.source, t.tags, fields)
+		pt, err := io.MakePoint(t.source, t.tags, fields)
 		if err != nil {
 			t.tf.log.Error(err)
 		} else {
-			if err := io.Feed(inputName, io.Logging, &io.Option{HighFreq: true}, pt); err != nil {
+			if err := io.Feed(inputName, io.Logging, []*io.Point{pt}, &io.Option{HighFreq: true}); err != nil {
 				t.tf.log.Error(err)
 			}
 		}
