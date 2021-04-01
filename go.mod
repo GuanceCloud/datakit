@@ -17,7 +17,7 @@ require (
 	github.com/aeden/traceroute v0.0.0-20181124220833-147686d9cb0f
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.391
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
-	github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible
+	github.com/aliyun/aliyun-oss-go-sdk v2.1.7+incompatible
 	github.com/andygrunwald/go-jira v1.12.0
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/apache/thrift v0.13.0
@@ -45,7 +45,7 @@ require (
 	github.com/gofrs/flock v0.8.0
 	github.com/gofrs/uuid v2.1.0+incompatible
 	github.com/gogo/googleapis v1.4.0 // indirect
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.5.2
 	github.com/google/gopacket v1.1.17
 	github.com/gorilla/websocket v1.4.2
 	github.com/hpcloud/tail v1.0.0
@@ -82,10 +82,11 @@ require (
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
 	github.com/pkg/sftp v1.11.0
-	github.com/prometheus/common v0.18.0 // indirect
+	github.com/prometheus/common v0.20.0 // indirect
 	github.com/prometheus/procfs v0.1.3
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/rs/xid v1.3.0 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shirou/gopsutil v3.20.12+incompatible
 	github.com/shirou/gopsutil/v3 v3.20.12
@@ -109,14 +110,14 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/xanzy/go-gitlab v0.31.0
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210224030339-aadc56ffd8f3
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210326075310-d72d13022957
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210401053753-cb42bc5e95c7
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974
 	golang.org/x/sys v0.0.0-20210316164454-77fc1eacc6aa // indirect
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	google.golang.org/grpc v1.28.0
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/protobuf v1.26.0
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
