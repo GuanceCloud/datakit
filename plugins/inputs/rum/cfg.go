@@ -44,12 +44,12 @@ var esNames = map[string]bool{
 	`freeze`:   true,
 }
 
-func isMetric(name string) bool {
+func isMetricData(name string) bool {
 	_, ok := metricNames[name]
 	return ok
 }
 
-func isES(name string) bool {
+func isRUMData(name string) bool {
 	_, ok := esNames[name]
 	return ok
 }

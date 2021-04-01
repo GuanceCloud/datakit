@@ -276,8 +276,7 @@ func (cli *cesCli) handleResponse(ag *agent, response []cesmodel.BatchMetricData
 			}
 
 			if ag.isTestOnce() {
-				data, _ := io.MakeMetric(measurement, tags, fields, tm)
-				ag.testResult.Result = append(ag.testResult.Result, data...)
+				// pass
 			} else if ag.isDebug() {
 				data, _ := io.MakeMetric(measurement, tags, fields, tm)
 				fmt.Printf("%s\n", string(data))

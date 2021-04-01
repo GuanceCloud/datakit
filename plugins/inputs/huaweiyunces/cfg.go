@@ -8,7 +8,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	ces "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1"
 	iammodel "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/iam/v3/model"
@@ -36,13 +35,13 @@ const (
 # ##(optional) defaultly will collect all available metrics, you can specify the metrics of namespaces
 # ##each string specify the metric names of one namespace, separate by ':', if no metric name, collect all metrics of this namespace
 # metrics = [
-#'SYS.ECS',	
+#'SYS.ECS',
 #'SYS.OBS:download_bytes,upload_bytes',
 # ]
 
 # ##(optional) exclude some metrics that you not want
 # exclude_metrics = [
-#'SYS.ECS',	
+#'SYS.ECS',
 #'SYS.OBS:download_bytes,upload_bytes',
 # ]
 
@@ -125,8 +124,7 @@ type (
 
 		mode string
 
-		testResult *inputs.TestResult
-		testError  error
+		testError error
 
 		reloadCloudTime time.Time
 	}
