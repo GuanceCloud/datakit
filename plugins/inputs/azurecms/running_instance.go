@@ -206,8 +206,7 @@ func (r *azureInstance) fetchMetric(ctx context.Context, info *queryListInfo) er
 				}
 
 				if r.isTest() {
-					data, _ := io.MakeMetric(metricName, tags, fields, metricTime)
-					r.testResult.Result = append(r.testResult.Result, data...)
+					// pass
 				} else if r.isDebug() {
 					data, _ := io.MakeMetric(metricName, tags, fields, metricTime)
 					fmt.Printf("%s\n", string(data))

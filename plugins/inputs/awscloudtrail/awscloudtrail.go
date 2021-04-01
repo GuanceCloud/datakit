@@ -32,13 +32,6 @@ func (*AwsInstance) SampleConfig() string {
 	return sampleConfig
 }
 
-func (a *AwsInstance) Test() (*inputs.TestResult, error) {
-	a.mode = "test"
-	a.testResult = &inputs.TestResult{}
-	a.Run()
-	return a.testResult, a.testError
-}
-
 func (a *AwsInstance) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
@@ -175,8 +168,7 @@ func (r *AwsInstance) run(ctx context.Context) {
 				fields["Resources"] = strings.Join(resources, ",")
 
 				if r.isTest() {
-					data, _ := io.MakeMetric(measurement, tags, fields, *evt.EventTime)
-					r.testResult.Result = append(r.testResult.Result, data...)
+					// pass
 				} else if r.isDebug() {
 					data, _ := io.MakeMetric(measurement, tags, fields, *evt.EventTime)
 					fmt.Printf("%s\n", string(data))
