@@ -16,6 +16,7 @@ type Option struct {
 	Precision string
 	ExtraTags map[string]string
 	Strict    bool
+	Callback  func(models.Point) (models.Point, error)
 }
 
 var (
@@ -59,7 +60,17 @@ func ParsePoints(data []byte, opt *Option) ([]*influxdb.Point, error) {
 			}
 		}
 
-		res = append(res, influxdb.NewPointFrom(point))
+		if opt.Callback != nil {
+			newPoint, err := opt.Callback(point)
+			if err != nil {
+				return nil, err
+			}
+			point = newPoint
+		}
+
+		if point != nil {
+			res = append(res, influxdb.NewPointFrom(point))
+		}
 	}
 
 	return res, nil
