@@ -165,12 +165,6 @@ func (t *tailer) receiving() {
 			fields["message"] = text
 		}
 
-		ts, err := takeTime(fields)
-		if err != nil {
-			ts = time.Now()
-			t.tf.log.Errorf("%s", err)
-		}
-
 		if err := checkFieldsLength(fields, maxFieldsLength); err != nil {
 			// 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
 			// 防止通过 pipeline 添加巨长字段的恶意行为
@@ -181,8 +175,13 @@ func (t *tailer) receiving() {
 		addStatus(fields)
 
 		// use t.source as input-name, make it more distinguishable for multiple tailf instances
-		if err := io.HighFreqFeedEx(inputName, io.Logging, t.source, t.tags, fields, ts); err != nil {
+		pt, err := io.MakeMetric(t.source, t.tags, fields)
+		if err != nil {
 			t.tf.log.Error(err)
+		} else {
+			if err := io.Feed(inputName, io.Logging, &io.Option{HighFreq: true}, pt); err != nil {
+				t.tf.log.Error(err)
+			}
 		}
 	}
 }

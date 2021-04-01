@@ -1,4 +1,4 @@
-.PHONY: default test local
+.PHONY: default test local man
 
 default: local
 
@@ -197,6 +197,10 @@ agent:
 
 ip2isp:
 	$(call build_ip2isp)
+
+man:
+	packr2 clean
+	packr2
 
 clean:
 	rm -rf build/*
