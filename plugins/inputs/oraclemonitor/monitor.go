@@ -61,10 +61,6 @@ func (_ *OracleMonitor) Catalog() string { return "db" }
 
 func (_ *OracleMonitor) SampleConfig() string { return configSample }
 
-func (_ *OracleMonitor) Test() (result *inputs.TestResult, err error) {
-	return
-}
-
 func (o *OracleMonitor) Run() {
 	// FIXME: 如果改成松散配置读取方式（只要是 .conf，直接读取并启动之）
 	// 这里得到 .Run() 方法要去掉。

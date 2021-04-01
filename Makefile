@@ -90,17 +90,16 @@ vet:
 test:
 	@GO111MODULE=off go test ./...
 
-local:
-	@GO111MODULE=off go fmt ./...
+local: man gofmt
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
-testing:
+testing: man
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
-preprod:
+preprod: man
 	$(call build,preprod, $(DEFAULT_ARCHS), $(PRE_DOWNLOAD_ADDR))
 
-release:
+release: man
 	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
 pub_local:
@@ -199,8 +198,11 @@ ip2isp:
 	$(call build_ip2isp)
 
 man:
-	packr2 clean
-	packr2
+	@packr2 clean
+	@packr2
+
+gofmt:
+	@GO111MODULE=off go fmt ./...
 
 clean:
 	rm -rf build/*
