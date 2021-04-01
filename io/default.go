@@ -7,8 +7,6 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-
-	influxm "github.com/influxdata/influxdb1-client/models"
 )
 
 var (
@@ -170,10 +168,4 @@ func NamedFeedEx(name, category, metric string,
 	}
 
 	return defaultIO.doFeed([]*Point{&Point{pt}}, category, name, nil)
-}
-
-// Deprecated
-func NamedFeedPoints(pts []influxm.Point, category, name string) error {
-	// TODO: convert pts to []*io.Point
-	return nil
 }
