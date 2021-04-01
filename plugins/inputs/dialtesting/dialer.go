@@ -1,6 +1,7 @@
 package dialtesting
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -78,17 +79,29 @@ func (d *dialer) run() error {
 			fields := map[string]interface{}{}
 			tags, fields = d.task.GetResults()
 
-			reasons := d.task.CheckResult()
-			if len(reasons) != 0 {
-				fields[`failed_reason`] = strings.Join(reasons, `;`)
+			lfields := map[string]interface{}{}
+			mfields := map[string]interface{}{}
+			for k, v := range fields {
+				if k == `message` {
+					data, err := json.Marshal(v)
+					if err != nil {
+						l.Errorf(`%s`, err.Error())
+						continue
+					}
+					lfields[k] = string(data)
+				} else {
+					mfields[k] = v
+				}
 			}
 
-			if _, ok := fields[`failed_reason`]; !ok {
-				tags["result"] = "OK"
-				fields["success"] = int64(1)
+			data, err := MakeMetric(d.task.MetricName(), tags, mfields, time.Now())
+			x.doFeed(io.Metric, data, d.task.PostURLStr())
+			if err != nil {
+				l.Warnf("io feed failed, %s", err.Error())
 			}
 
-			err := io.NameFeedExUrl(inputName, io.Metric, d.task.MetricName(), d.task.PostURLStr(), tags, fields, time.Now())
+			data, err = MakeMetric(d.task.MetricName(), tags, lfields, time.Now())
+			x.doFeed(io.Logging, data, d.task.PostURLStr())
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
 			}
