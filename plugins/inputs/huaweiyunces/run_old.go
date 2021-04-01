@@ -128,8 +128,7 @@ func (ag *agent) runOld() {
 				}
 
 				if ag.isTestOnce() {
-					data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
-					ag.testResult.Result = append(ag.testResult.Result, data...)
+					// pass
 				} else if ag.isDebug() {
 					data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
 					fmt.Printf("%s\n", string(data))
