@@ -25,13 +25,6 @@ func (_ *Instance) Catalog() string {
 	return `windows`
 }
 
-func (ag *Instance) Test() (*inputs.TestResult, error) {
-	ag.mode = "test"
-	ag.testResult = &inputs.TestResult{}
-	ag.Run()
-	return ag.testResult, ag.testError
-}
-
 func (ag *Instance) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
@@ -109,8 +102,7 @@ func (r *Instance) run(ctx context.Context) error {
 
 			for _, fields := range fieldsArr {
 				if r.isTest() {
-					data, _ := io.MakeMetric(r.MetricName, tags, fields)
-					r.testResult.Result = append(r.testResult.Result, data...)
+					// pass
 				} else {
 					io.NamedFeedEx(inputName, io.Metric, r.MetricName, tags, fields)
 				}
