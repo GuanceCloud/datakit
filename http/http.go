@@ -79,7 +79,6 @@ func ReloadDatakit() error {
 	l.Info("reloading telegraf...")
 	inputs.StartTelegraf()
 
-
 	resetHttpRoute()
 	l.Info("reloading inputs...")
 	if err := inputs.RunInputs(); err != nil {
