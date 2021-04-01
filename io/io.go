@@ -458,7 +458,7 @@ func Start() {
 func dkHeartbeat() {
 	body := map[string]interface{}{
 		"dk_uuid":   datakit.Cfg.MainCfg.UUID,
-		"heartbeat": time.Now().Nanosecond(),
+		"heartbeat": time.Now().Unix(),
 		"host":      datakit.Cfg.MainCfg.Hostname,
 	}
 	bodyByte, err := json.Marshal(body)
