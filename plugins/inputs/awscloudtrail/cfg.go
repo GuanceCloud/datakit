@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -40,8 +39,7 @@ type AwsInstance struct {
 
 	mode string
 
-	testResult *inputs.TestResult
-	testError  error
+	testError error
 }
 
 func (ag *AwsInstance) isTest() bool {
