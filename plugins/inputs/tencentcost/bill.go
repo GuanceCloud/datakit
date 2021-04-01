@@ -349,8 +349,7 @@ func (b *bill) handleResponse(ctx context.Context, response *billing.DescribeBil
 			}
 
 			if b.agent.isTest() {
-				data, _ := io.MakeMetric(b.getName(), tags, fields, metrictime)
-				b.agent.testResult.Result = append(b.agent.testResult.Result, data...)
+				// pass
 			} else {
 				io.NamedFeedEx(inputName, io.Metric, b.getName(), tags, fields, metrictime)
 			}
