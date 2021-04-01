@@ -117,12 +117,17 @@ func (client Client) CreateBucket(bucketName string, options ...Option) error {
 
 	isStorageSet, valStroage, _ := IsOptionSet(options, storageClass)
 	isRedundancySet, valRedundancy, _ := IsOptionSet(options, redundancyType)
+	isObjectHashFuncSet, valHashFunc, _ := IsOptionSet(options, objectHashFunc)
 	if isStorageSet {
 		cbConfig.StorageClass = valStroage.(StorageClassType)
 	}
 
 	if isRedundancySet {
 		cbConfig.DataRedundancyType = valRedundancy.(DataRedundancyType)
+	}
+
+	if isObjectHashFuncSet {
+		cbConfig.ObjectHashFunction = valHashFunc.(ObjecthashFuncType)
 	}
 
 	bs, err := xml.Marshal(cbConfig)
@@ -643,6 +648,28 @@ func (client Client) GetBucketWebsite(bucketName string) (GetBucketWebsiteResult
 	defer resp.Body.Close()
 
 	err = xmlUnmarshal(resp.Body, &out)
+	return out, err
+}
+
+// GetBucketWebsiteXml gets the bucket's website config xml config.
+//
+// bucketName    the bucket name
+//
+// string   the bucket's xml config, It's only valid when error is nil.
+// error    it's nil if no error, otherwise it's an error object.
+//
+func (client Client) GetBucketWebsiteXml(bucketName string) (string, error) {
+	params := map[string]interface{}{}
+	params["website"] = nil
+	resp, err := client.do("GET", bucketName, params, nil, nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	out := string(body)
 	return out, err
 }
 
