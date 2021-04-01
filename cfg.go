@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +12,8 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"net/url"
+	"net"
 )
 
 var (
@@ -45,7 +45,6 @@ func DefaultConfig() *Config {
 			LogLevel:  "info",
 			Log:       filepath.Join(InstallDir, "log"),
 			LogRotate: 32,
-			LogUpload: false,
 			GinLog:    filepath.Join(InstallDir, "gin.log"),
 
 			BlackList: []*InputHostList{
@@ -333,6 +332,7 @@ func ParseDataway(httpurl string) (*DataWayCfg, error) {
 	return dwcfg, nil
 }
 
+
 type MainConfig struct {
 	UUID           string `toml:"-"`
 	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
@@ -355,7 +355,6 @@ type MainConfig struct {
 	Log       string `toml:"log"`
 	LogLevel  string `toml:"log_level"`
 	LogRotate int    `toml:"log_rotate,omitempty"`
-	LogUpload bool   `toml:"log_upload"`
 
 	GinLog     string            `toml:"gin_log"`
 	GlobalTags map[string]string `toml:"global_tags"`
