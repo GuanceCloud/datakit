@@ -129,24 +129,5 @@ const (
 `
 )
 
-// Redis
-type Redis struct {
-	Host              string
-	Port              int
-	UnixSocketPath    string        `toml:"unix_socket_path"`
-	DB                int
-	Password          string
-	MetricName        string
-	Service           string		`toml:"service"`
-	SocketTimeout     int           `toml:"socket_timeout"`
-	Interval          string        `toml:"interval"`
-	IntervalDuration  time.Duration `toml:"-"`
-	Keys              []string
-	WarnOnMissingKeys bool          `toml:"warn_on_missing_keys"`
-	SlowlogMaxLen     float64       `toml:"slowlog-max-len"`
-	Tags              map[string]string `toml:"tags"`
-	client           *redis.Client
-	//lastTimestampSeen map[instance]int64
-	resData          map[string]interface{}
-}
+
 
