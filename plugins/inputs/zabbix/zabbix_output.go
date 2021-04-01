@@ -28,7 +28,6 @@ func (z *ZabbixParam) ProcessPts(pts []*influxdb.Point) error {
 		if err != nil {
 			return err
 		}
-		z.log.Debug(string(ps))
 		err = z.output.IoFeed(ps, io.Metric, inputName)
 		if err != nil {
 			return err
