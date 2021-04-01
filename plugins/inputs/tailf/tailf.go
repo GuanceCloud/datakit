@@ -8,7 +8,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type Tailf struct {
@@ -58,11 +57,6 @@ func (t *Tailf) Catalog() string {
 
 func (t *Tailf) SampleConfig() string {
 	return t.SampleCfg
-}
-
-func (*Tailf) Test() (*inputs.TestResult, error) {
-	// 监听文件变更，无法进行测试
-	return &inputs.TestResult{Desc: "success"}, nil
 }
 
 func (t *Tailf) Run() {
