@@ -145,11 +145,6 @@ func (*DockerLogs) Catalog() string {
 	return "docker"
 }
 
-func (d *DockerLogs) Test() (*inputs.TestResult, error) {
-	// 主动请求变更数据，拥有不确定性，无法进行测试
-	return &inputs.TestResult{Desc: "success"}, nil
-}
-
 func (d *DockerLogs) Run() {
 	l = logger.SLogger(inputName)
 
@@ -407,6 +402,8 @@ func tailStream(measurement string, baseTags map[string]string, containerID stri
 
 	r := bufio.NewReaderSize(reader, maxLineBytes)
 
+	var pts []*iod.Point
+
 	for {
 		line, err := r.ReadBytes('\n')
 		if err != nil {
@@ -453,16 +450,19 @@ func tailStream(measurement string, baseTags map[string]string, containerID stri
 			delete(fields, "time")
 		}
 
-		data, err := iod.MakeMetric(measurement, tags, fields, ts)
+		pt, err := iod.MakePoint(measurement, tags, fields, ts)
 		if err != nil {
 			l.Error(err)
 		} else {
-			if err := iod.HighFreqFeed(data, iod.Logging, inputName); err != nil {
-				l.Error(err)
-			}
+			pts = append(pts, pt)
 		}
 	}
 
+	if err := iod.Feed(inputName, iod.Logging, pts, &iod.Option{HighFreq: true}); err != nil {
+		l.Error(err)
+		return err
+	}
+	return nil
 }
 
 func tailMultiplexed(measurement string, tags map[string]string, containerID string, src io.ReadCloser, pipe *pipeline.Pipeline) error {
