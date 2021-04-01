@@ -79,8 +79,6 @@ func ReloadDatakit() error {
 	l.Info("reloading telegraf...")
 	inputs.StartTelegraf()
 
-	l.Info("reload ws...")
-	datakit.WG.Add(1)
 
 	resetHttpRoute()
 	l.Info("reloading inputs...")
