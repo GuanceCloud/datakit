@@ -45,7 +45,7 @@ func (s *SelfInfo) Run() {
 		case <-tick.C:
 			s.stat.Update()
 			pt := s.stat.ToMetric()
-			_ = io.Feed(inputName, io.Metric, io.Points{pt}, nil)
+			_ = io.Feed(inputName, io.Metric, []*io.Point{pt}, nil)
 		}
 	}
 }

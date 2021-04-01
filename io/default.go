@@ -8,7 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
+	influxm "github.com/influxdata/influxdb1-client/models"
 )
 
 var (
@@ -85,7 +85,7 @@ func ChanStat() string {
 	return fmt.Sprintf("inputCh: %d/%d, highFreqInputCh: %d/%d", l, c, l2, c2)
 }
 
-func Feed(name, category string, pts Points, opt *Option) error {
+func Feed(name, category string, pts []*Point, opt *Option) error {
 	if len(pts) == 0 {
 		return fmt.Errorf("no points")
 	}
@@ -93,10 +93,10 @@ func Feed(name, category string, pts Points, opt *Option) error {
 	return defaultIO.doFeed(pts, category, name, opt)
 }
 
-func MakeMetric(name string,
+func MakePoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	t ...time.Time) (Point, error) {
+	t ...time.Time) (*Point, error) {
 
 	var ts time.Time
 	if len(t) > 0 {
@@ -105,12 +105,30 @@ func MakeMetric(name string,
 		ts = time.Now().UTC()
 	}
 
-	return lp.MakeLineProtoPoint(name, tags, fields,
+	p, err := lp.MakeLineProtoPoint(name, tags, fields,
 		&lp.Option{
 			ExtraTags: datakit.Cfg.MainCfg.GlobalTags,
 			Strict:    true,
 			Time:      ts,
 			Precision: "n"})
+	if err != nil {
+		return nil, err
+	}
+
+	return &Point{Point: p}, nil
+}
+
+// Deprecated
+func MakeMetric(name string,
+	tags map[string]string,
+	fields map[string]interface{},
+	t ...time.Time) ([]byte, error) {
+	p, err := MakePoint(name, tags, fields, t...)
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(p.Point.String()), nil
 }
 
 // Deprecated
@@ -120,7 +138,12 @@ func NamedFeed(data []byte, category, name string) error {
 		return err
 	}
 
-	return defaultIO.doFeed(pts, category, name, nil)
+	x := []*Point{}
+	for _, pt := range pts {
+		x = append(x, &Point{Point: pt})
+	}
+
+	return defaultIO.doFeed(x, category, name, nil)
 }
 
 // Deprecated
@@ -146,5 +169,11 @@ func NamedFeedEx(name, category, metric string,
 		return err
 	}
 
-	return defaultIO.doFeed([]*influxdb.Point{pt}, category, name, nil)
+	return defaultIO.doFeed([]*Point{&Point{pt}}, category, name, nil)
+}
+
+// Deprecated
+func NamedFeedPoints(pts []influxm.Point, category, name string) error {
+	// TODO: convert pts to []*io.Point
+	return nil
 }
