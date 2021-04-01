@@ -9,14 +9,13 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
 	configSample = `
 #[[inputs.aliyunactiontrail]]
 
-# ##(required) 
+# ##(required)
 #region = 'cn-hangzhou'
 #access_id = ''
 #access_key = ''
@@ -58,8 +57,7 @@ type (
 
 		mode string
 
-		testResult *inputs.TestResult
-		testError  error
+		testError error
 	}
 )
 
