@@ -3,13 +3,11 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/koding/websocketproxy"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -66,11 +64,6 @@ func (*Proxy) Catalog() string {
 	return inputName
 }
 
-func (*Proxy) Test() (*inputs.TestResult, error) {
-	test := &inputs.TestResult{}
-	return test, nil
-}
-
 func (d *Proxy) Run() {
 	l = logger.SLogger(inputName)
 
@@ -88,27 +81,7 @@ func (d *Proxy) Run() {
 
 	d.enable = true
 
-	wsurl := datakit.Cfg.MainCfg.DataWay.BuildWSURL(datakit.Cfg.MainCfg)
-	wsurl.RawQuery = ""
-	server := &http.Server{Addr: d.WSBind, Handler: websocketproxy.NewProxy(wsurl)}
-	l.Infof("[info] starting WebSocket proxy on %s, remote: %s", d.WSBind, wsurl.String())
-	go func() {
-		if err := server.ListenAndServe(); err != nil {
-			l.Error(err.Error())
-			return
-		}
-	}()
 	l.Infof("proxy input started...")
-
-	select {
-	case <-datakit.Exit.Wait():
-		d.stop()
-		if err := server.Shutdown(context.Background()); err != nil {
-			l.Errorf("[error] shutdown websocket server: %s", err.Error())
-		}
-		l.Infof("[info] websocketproxy closed ")
-		return
-	}
 }
 
 func (d *Proxy) stop() {
