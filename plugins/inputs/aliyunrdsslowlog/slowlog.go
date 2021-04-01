@@ -219,29 +219,6 @@ func (r *AliyunRDS) handleResponse(response *rds.DescribeSlowLogsResponse, produ
 	return nil
 }
 
-func (a *AliyunRDS) Test() (*inputs.TestResult, error) {
-	a.test = true
-	a.resData = nil
-
-	cli, err := rds.NewClientWithAccessKey(a.RegionID, a.AccessKeyID, a.AccessKeySecret)
-	if err != nil {
-		l.Errorf("create client failed, %s", err)
-	}
-
-	a.client = cli
-
-	for _, val := range a.Product {
-		a.exec(val)
-	}
-
-	res := &inputs.TestResult{
-		Result: a.resData,
-		Desc:   "success!",
-	}
-
-	return res, nil
-}
-
 func unixTimeStrISO8601(t time.Time) string {
 	_, zoff := t.Zone()
 	nt := t.Add(-(time.Duration(zoff) * time.Second))

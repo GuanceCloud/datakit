@@ -1,7 +1,6 @@
 package csvmetric
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -49,7 +48,7 @@ const (
 #  startRows = 0
 #  interval  = "60s"
 #  metric    = "metric-name"
-#  tags      = ["column-name1","column-name2"] 
+#  tags      = ["column-name1","column-name2"]
 #  [inputs.csvmetric.timestamp]
 #    column     = "column"
 #    timeFormat = "15/08/27 10:20:06"
@@ -168,29 +167,6 @@ func (x *CsvMetric) Run() {
 			return
 		}
 	}
-}
-
-func (x *CsvMetric) Test() (*inputs.TestResult, error) {
-	var out bytes.Buffer
-	tRst := &inputs.TestResult{}
-
-	if x.PythonEnv == "" {
-		x.PythonEnv = "python"
-	}
-
-	args := []string{
-		filepath.Join(datakit.InstallDir, "externals", "csv", "test.py"),
-	}
-
-	cmd := exec.Command(x.PythonEnv, args...)
-	cmd.Stderr = &out
-
-	err := cmd.Run()
-	if err != nil {
-		return tRst, fmt.Errorf("%s", out.String())
-	}
-	tRst.Desc = "Python环境及依赖包均已具备"
-	return tRst, nil
 }
 
 func init() {
