@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -52,8 +51,7 @@ type objectAgent struct {
 
 	mode string
 
-	testResult *inputs.TestResult
-	testError  error
+	testError error
 }
 
 func (ag *objectAgent) isTest() bool {
