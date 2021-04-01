@@ -4,18 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"net"
-	"net/url"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
@@ -49,7 +45,6 @@ func DefaultConfig() *Config {
 			LogLevel:  "info",
 			Log:       filepath.Join(InstallDir, "log"),
 			LogRotate: 32,
-			LogUpload: false,
 			GinLog:    filepath.Join(InstallDir, "gin.log"),
 
 			BlackList: []*InputHostList{
@@ -107,273 +102,6 @@ type Config struct {
 	InputFilters []string
 }
 
-type DataWayCfg struct {
-	URL       string `toml:"url"`
-	Proxy     bool   `toml:"proxy,omitempty"`
-	WsPort    string `toml:"ws_port"`
-	Timeout   string `toml:"timeout"`
-	Heartbeat string `toml:"heartbeat"`
-
-	DeprecatedHost   string `toml:"host,omitempty"`
-	DeprecatedScheme string `toml:"scheme,omitempty"`
-	DeprecatedToken  string `toml:"token,omitempty"`
-
-	host      string
-	scheme    string
-	urlValues url.Values
-
-	wspath   string
-	wshost   string
-	wsscheme string
-}
-
-func (dc *DataWayCfg) DeprecatedMetricURL() string {
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/metric")
-	}
-
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/metrics",
-		dc.urlValues.Encode())
-}
-
-func (dc *DataWayCfg) MetricURL() string {
-
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/metric")
-	}
-
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/metric",
-		dc.urlValues.Encode())
-}
-
-func (dc *DataWayCfg) ObjectURL() string {
-
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/object")
-	}
-
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/object",
-		dc.urlValues.Encode())
-}
-
-func (dc *DataWayCfg) LoggingURL() string {
-
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/logging")
-	}
-
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/logging",
-		dc.urlValues.Encode())
-}
-
-func (dc *DataWayCfg) TracingURL() string {
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/tracing")
-	}
-
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/tracing",
-		dc.urlValues.Encode())
-}
-
-func (dc *DataWayCfg) RumURL() string {
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/rum")
-	}
-
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/rum",
-		dc.urlValues.Encode())
-}
-
-func (dc *DataWayCfg) KeyEventURL() string {
-
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/keyevent")
-	}
-
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/keyevent",
-		dc.urlValues.Encode())
-}
-
-func (dc *DataWayCfg) BuildWSURL(mc *MainConfig) *url.URL {
-	ip, err := LocalIP()
-	if err != nil {
-		ip = ""
-	}
-	token := dc.urlValues.Get("token")
-	rawQuery := fmt.Sprintf("id=%s&version=%s&os=%s&arch=%s&token=%s&heartbeatconf=%s&hostname=%s&ip=%s",
-		mc.UUID, git.Version, runtime.GOOS, runtime.GOARCH, token, dc.Heartbeat, mc.Hostname, ip)
-
-	return &url.URL{
-		Scheme:   dc.wsscheme,
-		Host:     dc.wshost,
-		Path:     dc.wspath,
-		RawQuery: rawQuery,
-	}
-}
-
-func (dc *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
-	tcpaddr := addr
-	if _, _, err := net.SplitHostPort(tcpaddr); err != nil {
-		switch scheme {
-		case "http", "ws":
-			tcpaddr += ":80"
-		case "https", "wss":
-			tcpaddr += ":443"
-		}
-
-		if _, _, err := net.SplitHostPort(tcpaddr); err != nil {
-			l.Errorf("net.SplitHostPort(): %s", err)
-			return "", err
-		}
-	}
-
-	return tcpaddr, nil
-}
-
-func (dc *DataWayCfg) Test() error {
-
-	wsaddr, err := dc.tcpaddr(dc.wsscheme, dc.wshost)
-	if err != nil {
-		return err
-	}
-
-	httpaddr, err := dc.tcpaddr(dc.scheme, dc.host)
-	if err != nil {
-		return err
-	}
-
-	for _, h := range []string{wsaddr, httpaddr} {
-		conn, err := net.DialTimeout("tcp", h, time.Second*5)
-		if err != nil {
-			l.Errorf("TCP dial host `%s' failed: %s", dc.host, err.Error())
-			return err
-		}
-
-		if err := conn.Close(); err != nil {
-			l.Errorf("Close(): %s, ignored", err.Error())
-		}
-	}
-
-	return nil
-}
-
-func (dc *DataWayCfg) addToken(tkn string) {
-	if dc.urlValues == nil {
-		dc.urlValues = url.Values{}
-	}
-
-	if dc.urlValues.Get("token") == "" {
-		l.Debugf("use old token %s", dc.DeprecatedToken)
-		dc.urlValues.Set("token", dc.DeprecatedToken)
-	}
-}
-
-func (dc *DataWayCfg) GetToken() string {
-	if dc.urlValues == nil {
-		dc.addToken("")
-	}
-	return dc.urlValues.Get("token")
-}
-
-func ParseDataway(httpurl, wsport string) (*DataWayCfg, error) {
-	dwcfg := &DataWayCfg{
-		Timeout: "30s",
-		WsPort:  wsport,
-	}
-	if httpurl == "" {
-		return nil, fmt.Errorf("empty dataway HTTP endpoint")
-	}
-	u, err := url.Parse(httpurl)
-	if err == nil {
-		dwcfg.scheme = u.Scheme
-		dwcfg.urlValues = u.Query()
-		dwcfg.host = u.Host
-		if u.Path == "/proxy" {
-			l.Debugf("datakit proxied by %s", u.Host)
-			dwcfg.Proxy = true
-		} else {
-			u.Path = ""
-		}
-	} else {
-		l.Errorf("parse url %s failed: %s", httpurl, err.Error())
-		return nil, err
-	}
-	dwcfg.URL = u.String()
-	dwcfg.wspath = DefaultWebsocketPath
-
-	//此处判断 如果 不填 ws_port 并且填写了 http_port 默认为 9530
-	if wsport == "" && u.Port() != "" {
-		wsport = "9530"
-	}
-	switch u.Scheme {
-	case "http":
-		dwcfg.wsscheme = "ws"
-		if wsport == "" {
-			wsport = "80"
-		}
-	case "https":
-		dwcfg.wsscheme = "wss"
-		if wsport == "" {
-			wsport = "443"
-		}
-	default:
-		l.Errorf("unknown scheme %s", u.Scheme)
-		return nil, fmt.Errorf("unknown scheme")
-	}
-	dwcfg.WsPort = wsport
-	dwcfg.wshost = fmt.Sprintf("%s:%s", u.Hostname(), dwcfg.WsPort)
-	return dwcfg, nil
-}
-
 type MainConfig struct {
 	UUID           string `toml:"-"`
 	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
@@ -396,7 +124,6 @@ type MainConfig struct {
 	Log       string `toml:"log"`
 	LogLevel  string `toml:"log_level"`
 	LogRotate int    `toml:"log_rotate,omitempty"`
-	LogUpload bool   `toml:"log_upload"`
 
 	GinLog     string            `toml:"gin_log"`
 	GlobalTags map[string]string `toml:"global_tags"`
@@ -416,7 +143,6 @@ type MainConfig struct {
 	WhiteList []*InputHostList `toml:"white_lists,omitempty"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
-	DisableWebsocket      bool `toml:"disable_websocket,omitempty"`
 }
 
 type InputHostList struct {
@@ -536,7 +262,7 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		l.Fatal("dataway URL not set")
 	}
 
-	dw, err := ParseDataway(c.MainCfg.DataWay.URL, c.MainCfg.DataWay.WsPort)
+	dw, err := ParseDataway(c.MainCfg.DataWay.URL)
 	if err != nil {
 		return err
 	}
@@ -664,10 +390,9 @@ func (c *Config) LoadEnvs(mcp string) error {
 		c.MainCfg.LogLevel = loglvl
 	}
 
-	dwWSPort := os.Getenv("ENV_DATAWAY_WSPORT")
 	dwURL := os.Getenv("ENV_DATAWAY")
 	if dwURL != "" {
-		dw, err := ParseDataway(dwURL, dwWSPort)
+		dw, err := ParseDataway(dwURL)
 		if err != nil {
 			return err
 		}
