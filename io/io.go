@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"encoding/json"
 )
 
 var (
@@ -320,7 +320,6 @@ func (x *IO) startIO(recoverable bool) {
 
 			case <-heartBeatTick.C:
 				x.dkHeartbeat()
-
 
 			case <-tick.C:
 				l.Debugf("chan stat: %s", ChanStat())
