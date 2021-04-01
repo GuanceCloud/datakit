@@ -52,14 +52,6 @@ func Start(bind string) {
 	go func() {
 		HttpStart(bind)
 	}()
-
-	if !datakit.Cfg.MainCfg.DisableWebsocket {
-		go func() {
-			StartWS()
-		}()
-	} else {
-		l.Warn("websocket disabled")
-	}
 }
 
 func ReloadDatakit() error {
@@ -87,12 +79,6 @@ func ReloadDatakit() error {
 	l.Info("reloading telegraf...")
 	inputs.StartTelegraf()
 
-	l.Info("reload ws...")
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		StartWS()
-	}()
 	resetHttpRoute()
 	l.Info("reloading inputs...")
 	if err := inputs.RunInputs(); err != nil {
