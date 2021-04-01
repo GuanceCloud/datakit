@@ -70,7 +70,7 @@ require (
 	github.com/kardianos/service v1.0.0
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/klauspost/cpuid v1.2.0 // indirect
-	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
+	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c // indirect
 	github.com/lib/pq v1.8.0
 	github.com/litao91/goldmark-mathjax v0.0.0-20210217064022-a43cf739a50f
 	github.com/mattn/go-colorable v0.1.8 // indirect
@@ -124,7 +124,7 @@ require (
 	github.com/xanzy/go-gitlab v0.31.0
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210401030835-2eccd87d69f4
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210401072947-bb2a050fa753
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210324054101-fdb22dffb394
 	golang.org/x/crypto v0.0.0-20210317152858-513c2a44f670
 	golang.org/x/mod v0.4.2 // indirect
