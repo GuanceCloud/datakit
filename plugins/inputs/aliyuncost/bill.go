@@ -269,8 +269,7 @@ func (cb *costBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 			//返回的不是utc
 			t = t.Add(-8 * time.Hour)
 			if cb.ag.isTest() {
-				data, _ := io.MakeMetric(cb.getName(), tags, fields, t)
-				cb.ag.testResult.Result = append(cb.ag.testResult.Result, data...)
+				// pass
 			} else if cb.ag.isDebug() {
 				data, _ := io.MakeMetric(cb.getName(), tags, fields, t)
 				fmt.Printf("%s\n", string(data))
