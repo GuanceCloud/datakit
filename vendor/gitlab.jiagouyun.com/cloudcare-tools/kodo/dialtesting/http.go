@@ -179,6 +179,7 @@ type HTTPOptCertificate struct {
 	IgnoreServerCertificateError bool   `json:ignore_server_certificate_error`
 	PrivateKey                   string `json:"private_key"`
 	Certificate                  string `json:"certificate"`
+	CaCert                       string `json:"ca"`
 }
 
 type HTTPOptProxy struct {
@@ -350,7 +351,7 @@ func (t *HTTPTask) Init() error {
 		// TLS opotions
 		if opt.Certificate != nil { // see https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go
 			caCertPool := x509.NewCertPool()
-			caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.Certificate))
+			caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.CaCert))
 
 			cert, err := tls.X509KeyPair([]byte(opt.Certificate.Certificate), []byte(opt.Certificate.PrivateKey))
 			if err != nil {
