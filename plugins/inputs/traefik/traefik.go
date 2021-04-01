@@ -88,14 +88,6 @@ func (t *Traefik) Run() {
 	p.gather()
 }
 
-func (t *Traefik) Test() (*inputs.TestResult, error) {
-	tRst := &inputs.TestResult{}
-	para := t.genParam()
-	pt, err := para.getMetrics(true)
-	tRst.Result = pt
-	return tRst, err
-}
-
 func (t *Traefik) genParam() *TraefikParam {
 	if t.MetricsName == "" {
 		t.MetricsName = defaultMetricName
