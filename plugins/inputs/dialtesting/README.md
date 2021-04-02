@@ -102,43 +102,6 @@
 
 ### HTTP 拨测结果数据结构定义
 
-#### 指标
-
-```python
-{
-	"measurement": "http_dial_testing",
-	"tags": {
-		"name": "",
-		"url": "",
-		"用户额外指定的各种": "tags",
-
-		# 每个具体的 datakit 只会在一个 region，故这里只有单个值
-		"region": "",
-
-		"result": "OK", # 只有 OK/FAIL 两种状态，便于分组以及过滤查找
-
-		"status_code": "200/OK" # 便于分组以及过滤
-
-		# HTTP 协议版本，HTTP/1.0 HTTP/1.1 等
-		"proto": "HTTP/1.0"
-	},
-
-	"fields": {
-		# HTTP 相应时间, 单位 ms
-		"response_time": 300,
-
-		# 返回 body 长度，单位字节。如无 body，则无此指标，或者填 0
-		"content_length": 1024,
-
-		# 只有 1/-1 两种状态, 1 表示成功, -1 表示失败, 便于 UI 绘制状态跃迁图（TODO: 现在前端图标支持负数么）
-		"success": 1, 
-
-		# 其它指标可再增加...
-	},
-	"time": time.Now() 
-}
-```
-
 #### 日志
 
 ```python
@@ -152,17 +115,19 @@
 		# 每个具体的 datakit 只会在一个 region，故这里只有单个值
 		"region": "",
 
-		"result": "OK", # 只有 OK/FAIL 两种状态，便于分组以及过滤查找
+		"status": "ok", # 只有 ok/fail 两种状态，便于分组以及过滤查找
 
-		"status_code": "200/OK" # 便于分组以及过滤
-
-		# HTTP 协议版本，HTTP/1.0 HTTP/1.1 等
-		"proto": "HTTP/1.0"
+		"status_code_class": "2xx",
+		"status_code_string": "OK"
+		"status_code": "200"
 	},
 
 	"fields": {
 		# HTTP 相应时间, 单位 ms
 		"response_time": 300,
+		
+		# HTTP 协议版本，HTTP/1.0 HTTP/1.1 等
+		"proto": "HTTP/1.0"
 
 		# 返回 body 长度，单位字节。如无 body，则无此指标，或者填 0
 		"content_length": 1024,
@@ -184,6 +149,9 @@
 ```
 
 注意，这里的 `fail_reason` 要描述 `body/header/response_time/status_code` 各自失败的原因。如果可以，所有原因都描述一遍，如 `response time larger than 100ms; status code match regex 4*`
+
+- 请求失败才记录 header/body，body 可截断（最大 32KB）
+- 请求成功只记录 body size（如果有 body）
 
 ## TCP 拨测任务定义
 
