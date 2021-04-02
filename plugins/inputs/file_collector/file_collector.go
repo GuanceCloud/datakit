@@ -42,11 +42,6 @@ func (_ *FileCollector) RegHttpHandler() {
 	httpd.RegGinHandler("POST", httpPath, Handle)
 }
 
-func (_ *FileCollector) Test() (*inputs.TestResult, error) {
-	testResult := &inputs.TestResult{}
-	return testResult, nil
-}
-
 func (fc *FileCollector) initFileCollector() error {
 	fc.ctx, fc.cancelFun = context.WithCancel(context.Background())
 
@@ -60,6 +55,13 @@ func (fc *FileCollector) initFileCollector() error {
 	if fc.MaxUploadSize == "" {
 		fc.MaxUploadSize = "32M"
 	}
+
+	switch strings.ToLower(fc.Status) {
+	case "info", "alert", "notice":
+	default:
+		fc.Status = "info"
+	}
+
 	size, err := bytefmt.ToBytes(fc.MaxUploadSize)
 	if err != nil {
 		return err
@@ -217,6 +219,7 @@ func (fc *FileCollector) WriteLog(name string, fields map[string]interface{}, no
 		"path":        fc.Path,
 		"filename":    name,
 		"upload_type": fc.UploadType,
+		"status":      fc.Status,
 	}
 
 	remotePath := fc.getRemotePath(name)
