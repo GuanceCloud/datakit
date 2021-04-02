@@ -32,12 +32,6 @@ func (p *Processes) PipelineConfig() map[string]string {
 	}
 }
 
-func (p *Processes) Test() (*inputs.TestResult, error) {
-	p.isTest = true
-	p.WriteObject()
-	return p.result, nil
-}
-
 func (p *Processes) Run() {
 	l = logger.SLogger(inputName)
 
@@ -216,25 +210,7 @@ func (p *Processes) WriteObject() {
 			"name":         fmt.Sprintf("%s_%d", datakit.Cfg.MainCfg.Hostname, ps.Pid),
 			"process_name": name,
 		}
-		m, _ := json.Marshal(message)
-		if p.Pipeline != "" {
-			pipe, err := pipeline.NewPipelineByScriptPath(p.Pipeline)
-			if err == nil {
-				pipeMap, err := pipe.Run(string(m)).Result()
-				if err == nil {
-					for k, v := range pipeMap {
-						fields[k] = v
-					}
-				} else {
-					l.Errorf("[error] process run pipeline err:%s", err.Error())
-				}
 
-			} else {
-				l.Errorf("[error] process new pipeline err:%s", err.Error())
-			}
-		}
-
-		fields["message"] = string(m)
 		fields["pid"] = ps.Pid
 		fields["start_time"] = t
 		if runtime.GOOS == "linux" {
@@ -255,15 +231,40 @@ func (p *Processes) WriteObject() {
 		}
 		fields["cmdline"] = cmd
 		if p.isTest {
-			point, err := io.MakeMetric("host_processes", tags, fields, times)
-			if err != nil {
-				l.Errorf("make metric err:%s", err.Error())
-				p.result.Result = []byte(err.Error())
-			} else {
-				p.result.Result = point
-			}
 			return
 		}
+		// 此处为了全文检索 需要冗余一份数据 将tag field字段全部塞入 message
+		for k, v := range tags {
+			message[k] = v
+		}
+
+		for k, v := range fields {
+			message[k] = v
+		}
+		m, err := json.Marshal(message)
+		if err == nil {
+			fields["message"] = string(m)
+		} else {
+			l.Errorf("marshal message err:%s", err.Error())
+		}
+
+		if p.Pipeline != "" {
+			pipe, err := pipeline.NewPipelineByScriptPath(p.Pipeline)
+			if err == nil {
+				pipeMap, err := pipe.Run(string(m)).Result()
+				if err == nil {
+					for k, v := range pipeMap {
+						fields[k] = v
+					}
+				} else {
+					l.Errorf("[error] process run pipeline err:%s", err.Error())
+				}
+
+			} else {
+				l.Errorf("[error] process new pipeline err:%s", err.Error())
+			}
+		}
+
 		point, err := io.MakeMetric("host_processes", tags, fields, times)
 		if err != nil {
 			l.Errorf("[error] make metric err:%s", err.Error())
