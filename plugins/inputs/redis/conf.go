@@ -42,7 +42,6 @@ const (
     # service = "<SERVICE>"
 
     ## @param interval - number - optional - default: 15
-    ## This changes the collection interval of the check. For more information, see:
     #
     # interval = "15s"
 
