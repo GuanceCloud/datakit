@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -46,7 +47,7 @@ type IO struct {
 	inputstats map[string]*InputsStat
 	qstatsCh   chan *qstats
 
-	cache        map[string]Points
+	cache        map[string][]*Point
 	dynamicCache []*iodata
 
 	cacheCnt       int64
@@ -67,7 +68,7 @@ func NewIO() *IO {
 		inputstats: map[string]*InputsStat{},
 		qstatsCh:   make(chan *qstats), // blocking
 
-		cache:        map[string]Points{},
+		cache:        map[string][]*Point{},
 		dynamicCache: []*iodata{},
 	}
 }
@@ -80,6 +81,7 @@ const ( // categories
 	Logging          = "/v1/write/logging"
 	Tracing          = "/v1/write/tracing"
 	Rum              = "/v1/write/rum"
+	HeartBeat        = "/v1/write/heartbeat"
 
 	minGZSize = 1024
 )
@@ -87,7 +89,7 @@ const ( // categories
 type iodata struct {
 	category, name string
 	opt            *Option
-	pts            Points
+	pts            []*Point
 	url            string
 	isProxy        bool
 }
@@ -115,7 +117,7 @@ func SetTest() {
 	testAssert = true
 }
 
-func (x *IO) doFeed(pts Points, category, name string, opt *Option) error {
+func (x *IO) doFeed(pts []*Point, category, name string, opt *Option) error {
 
 	ch := x.in
 
@@ -289,6 +291,9 @@ func (x *IO) startIO(recoverable bool) {
 		highFreqRecvTicker := time.NewTicker(highFreqCleanInterval)
 		defer highFreqRecvTicker.Stop()
 
+		heartBeatTick := time.NewTicker(time.Second * 30)
+		defer heartBeatTick.Stop()
+
 		if trace != nil {
 			l.Warnf("recover from %s", string(trace))
 		}
@@ -313,6 +318,9 @@ func (x *IO) startIO(recoverable bool) {
 			case <-highFreqRecvTicker.C:
 				x.cleanHighFreqIOData()
 
+			case <-heartBeatTick.C:
+				x.dkHeartbeat()
+
 			case <-tick.C:
 				l.Debugf("chan stat: %s", ChanStat())
 				x.flushAll()
@@ -326,6 +334,33 @@ func (x *IO) startIO(recoverable bool) {
 
 	l.Info("starting...")
 	f(nil, nil)
+}
+
+func (x *IO) dkHeartbeat() {
+	body := map[string]interface{}{
+		"dk_uuid":   datakit.Cfg.MainCfg.UUID,
+		"heartbeat": time.Now().Unix(),
+		"host":      datakit.Cfg.MainCfg.Hostname,
+		"token":     datakit.Cfg.MainCfg.DataWay.GetToken(),
+	}
+	bodyByte, err := json.Marshal(body)
+	if err != nil {
+		l.Errorf("[error] heartbeat json marshal err:%s", err.Error())
+		return
+	}
+
+	req, err := http.NewRequest("POST", datakit.Cfg.MainCfg.DataWay.HeartBeatURL(), bytes.NewBuffer(bodyByte))
+	resp, err := x.httpCli.Do(req)
+	if err != nil {
+		l.Error(err)
+		return
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		l.Errorf("heart beat resp err: %+#v", resp)
+	}
 }
 
 func (x *IO) flushAll() {
@@ -384,7 +419,7 @@ func (x *IO) flush() {
 	x.dynamicCache = left
 }
 
-func (x *IO) buildBody(pts Points) (body []byte, gzon bool, err error) {
+func (x *IO) buildBody(pts []*Point) (body []byte, gzon bool, err error) {
 
 	lines := []string{}
 	for _, pt := range pts {
@@ -405,7 +440,7 @@ func (x *IO) buildBody(pts Points) (body []byte, gzon bool, err error) {
 	return
 }
 
-func (x *IO) doFlush(pts Points, url string) error {
+func (x *IO) doFlush(pts []*Point, url string) error {
 
 	if testAssert {
 		return nil
