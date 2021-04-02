@@ -219,32 +219,6 @@ func (r *Security) describeRiskCheckSummary(region string) {
 	}
 }
 
-func (s *Security) Test() (*inputs.TestResult, error) {
-	s.test = true
-	s.resData = nil
-
-	cli, err := sas.NewClientWithAccessKey(s.RegionID, s.AccessKeyID, s.AccessKeySecret)
-	if err != nil {
-		l.Errorf("create client failed, %s", err)
-	}
-	cli2, err := aegis.NewClientWithAccessKey(s.RegionID, s.AccessKeyID, s.AccessKeySecret)
-	if err != nil {
-		l.Errorf("create client failed, %s", err)
-	}
-
-	s.client = cli
-	s.aclient = cli2
-
-	s.command()
-
-	res := &inputs.TestResult{
-		Result: s.resData,
-		Desc:   "success!",
-	}
-
-	return res, nil
-}
-
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Security{}
