@@ -18,6 +18,7 @@ const (
 	// DataDog metricc types: https://docs.datadoghq.com/developers/metrics/types/?tab=count#metric-types
 	Gauge = iota
 	Count
+	Rate
 	// add more...
 )
 
