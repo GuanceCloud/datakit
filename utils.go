@@ -1,7 +1,6 @@
 package datakit
 
 import (
-	"bufio"
 	"bytes"
 	"compress/gzip"
 	"context"
@@ -9,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"reflect"
@@ -189,6 +187,19 @@ func NumberFormat(str string) string {
 	}
 
 	return n
+}
+
+func GZipStr(str string) ([]byte, error) {
+
+	var z bytes.Buffer
+	zw := gzip.NewWriter(&z)
+	_, err := io.WriteString(zw, str)
+	if err != nil {
+		return nil, err
+	}
+	zw.Flush()
+	zw.Close()
+	return z.Bytes(), nil
 }
 
 func GZip(data []byte) ([]byte, error) {
@@ -392,29 +403,4 @@ func CloudObject2Json(name, class string, obj interface{}, id string, blacklist,
 		`class`:   class,
 		`content`: j,
 	}, nil
-}
-
-func AnnotationConf(path, handle string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	br := bufio.NewReader(f)
-	var buf bytes.Buffer
-
-	for {
-		s, _, c := br.ReadLine()
-		if c == io.EOF {
-			break
-		}
-		if handle == "add" {
-			buf.WriteString(fmt.Sprintln("#" + string(s)))
-		} else {
-			buf.WriteString(fmt.Sprintln(strings.Replace(string(s), "#", "", 1)))
-		}
-	}
-	err = ioutil.WriteFile(path, buf.Bytes(), 0777)
-	return err
 }
