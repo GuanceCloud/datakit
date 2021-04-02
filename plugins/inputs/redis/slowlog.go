@@ -1,21 +1,21 @@
 package redis
 
 import (
-	"time"
 	"errors"
+	"time"
 
-    "github.com/go-redis/redis"
+	"github.com/go-redis/redis"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type slowlogMeasurement struct {
-	client *redis.Client
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	client            *redis.Client
+	name              string
+	tags              map[string]string
+	fields            map[string]interface{}
+	ts                time.Time
 	lastTimestampSeen map[string]int64
 }
 
@@ -29,13 +29,13 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]*inputs.FieldInfo{
 			"command": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type: inputs.Gauge,
-				Desc: "slow command",
+				Type:     inputs.Gauge,
+				Desc:     "slow command",
 			},
 			"slowlog_micros": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "cost time",
+				Type:     inputs.Gauge,
+				Desc:     "cost time",
 			},
 		},
 	}
@@ -43,9 +43,9 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 
 func CollectSlowlogMeasurement(input *Input) *slowlogMeasurement {
 	m := &slowlogMeasurement{
-		client: input.client,
-		tags: make(map[string]string),
-		fields: make(map[string]interface{}),
+		client:            input.client,
+		tags:              make(map[string]string),
+		fields:            make(map[string]interface{}),
 		lastTimestampSeen: make(map[string]int64),
 	}
 
@@ -100,6 +100,3 @@ func (m *slowlogMeasurement) getData() error {
 	m.lastTimestampSeen[addr] = maxTs
 	return nil
 }
-
-
-

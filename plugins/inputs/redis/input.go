@@ -1,8 +1,8 @@
 package redis
 
 import (
-	"time"
 	"fmt"
+	"time"
 
 	"github.com/go-redis/redis"
 
@@ -19,22 +19,22 @@ var (
 )
 
 type Input struct {
-	Host              string		    `toml:"host"`
-	Port              int			    `toml:"port"`
-	UnixSocketPath    string            `toml:"unix_socket_path"`
-	DB                int			    `toml:"db"`
-	Password          string		    `toml:"password"`
-	Service           string		    `toml:"service"`
-	SocketTimeout     int               `toml:"socket_timeout"`
-	Interval          string            `toml:"interval"`
-	IntervalDuration  time.Duration     `toml:"-"`
-	Keys              []string		    `toml:"keys"`
-	WarnOnMissingKeys bool              `toml:"warn_on_missing_keys"`
-	SlowlogMaxLen     float64           `toml:"slowlog-max-len"`
-	Tags              map[string]string `toml:"tags"`
-	client           *redis.Client      `toml:"-"`
-	collectCache []inputs.Measurement   `toml:"-"`
-	Addr              string            `toml:"-"`
+	Host              string               `toml:"host"`
+	Port              int                  `toml:"port"`
+	UnixSocketPath    string               `toml:"unix_socket_path"`
+	DB                int                  `toml:"db"`
+	Password          string               `toml:"password"`
+	Service           string               `toml:"service"`
+	SocketTimeout     int                  `toml:"socket_timeout"`
+	Interval          string               `toml:"interval"`
+	IntervalDuration  time.Duration        `toml:"-"`
+	Keys              []string             `toml:"keys"`
+	WarnOnMissingKeys bool                 `toml:"warn_on_missing_keys"`
+	SlowlogMaxLen     float64              `toml:"slowlog-max-len"`
+	Tags              map[string]string    `toml:"tags"`
+	client            *redis.Client        `toml:"-"`
+	collectCache      []inputs.Measurement `toml:"-"`
+	Addr              string               `toml:"-"`
 }
 
 func (i *Input) initCfg() {
@@ -52,14 +52,14 @@ func (i *Input) initCfg() {
 
 	i.Addr = fmt.Sprintf("%s:%d", i.Host, i.Port)
 	client := redis.NewClient(&redis.Options{
-        Addr:     i.Addr,
-        Password: i.Password, // no password set
-        DB:       i.DB,  // use default DB
-    })
+		Addr:     i.Addr,
+		Password: i.Password, // no password set
+		DB:       i.DB,       // use default DB
+	})
 
-    i.client = client
+	i.client = client
 
-    i.globalTag()
+	i.globalTag()
 }
 
 func (i *Input) globalTag() {
@@ -123,7 +123,7 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) Catalog() string      { return catalogName }
+func (i *Input) Catalog() string { return catalogName }
 
 func (i *Input) SampleConfig() string { return configSample }
 
