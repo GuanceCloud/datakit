@@ -129,12 +129,6 @@ var (
 		// collectd use socket_listener to gather data
 		"collectd": {name: "socket_listener", Catalog: "collectd", Input: &socket_listener.SocketListener{}},
 
-		//"nginx":                {name: "nginx", Catalog: "nginx", Sample: samples["nginx"], Input: &nginx.Nginx{}},
-		//"nginx_upstream_check": {name: "nginx_upstream_check", Catalog: "nginx", Input: &nginx_upstream_check.NginxUpstreamCheck{}},
-		//"nginx_plus_api":       {name: "nginx_plus_api", Catalog: "nginx", Input: &nginx_plus_api.NginxPlusApi{}},
-		//"nginx_plus":           {name: "nginx_plus", Catalog: "nginx", Input: &nginx_plus.NginxPlus{}},
-		//"nginx_vts":            {name: "nginx_vts", Catalog: "nginx", Input: &nginx_vts.NginxVTS{}},
-
 		"tengine": {name: "tengine", Catalog: "tengine", Input: &tengine.Tengine{}},
 		"apache":  {name: "apache", Catalog: "apache", Input: &apache.Apache{}},
 
