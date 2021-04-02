@@ -341,6 +341,7 @@ func (x *IO) dkHeartbeat() {
 		"dk_uuid":   datakit.Cfg.MainCfg.UUID,
 		"heartbeat": time.Now().Unix(),
 		"host":      datakit.Cfg.MainCfg.Hostname,
+		"token":     datakit.Cfg.MainCfg.DataWay.GetToken(),
 	}
 	bodyByte, err := json.Marshal(body)
 	if err != nil {
