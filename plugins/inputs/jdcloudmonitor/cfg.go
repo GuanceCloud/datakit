@@ -95,8 +95,7 @@ type (
 
 		mode string
 
-		testResult *inputs.TestResult
-		testError  error
+		testError error
 	}
 
 	metricsRequest struct {
