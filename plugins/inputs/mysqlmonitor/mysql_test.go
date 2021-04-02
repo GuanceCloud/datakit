@@ -1,8 +1,8 @@
 package mysqlmonitor
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestGetDsnString(t *testing.T) {
@@ -129,5 +129,3 @@ func TestGetQueryExecTime95th(t *testing.T) {
 	m.getQueryExecTime95th()
 	m.submitMetrics()
 }
-
-
