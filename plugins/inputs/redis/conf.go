@@ -122,6 +122,3 @@ const (
     # empty_default_hostname = false
 `
 )
-
-
-
