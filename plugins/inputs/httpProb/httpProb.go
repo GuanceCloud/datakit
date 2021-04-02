@@ -1,9 +1,9 @@
 package httpProb
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
@@ -80,10 +80,6 @@ func (*HttpProb) Catalog() string {
 	return "network"
 }
 
-func (HttpProb) Test() (result *inputs.TestResult, err error) {
-	return
-}
-
 func (h *HttpProb) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("HttpProb input started...")
@@ -101,7 +97,7 @@ func (h *HttpProb) InitPipeline() {
 	for _, item := range h.Url {
 		if item.PipelinePath != "" {
 			var err error
-			item.Pipeline, err = pipeline.NewPipelineFromFile(item.PipelinePath)
+			item.Pipeline, err = pipeline.NewPipelineByScriptPath(item.PipelinePath)
 			if err != nil {
 				l.Errorf("pipline init fail %v", err)
 			}
@@ -110,123 +106,129 @@ func (h *HttpProb) InitPipeline() {
 }
 
 func (h *HttpProb) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	h.handle(req)
 	fmt.Fprintf(w, "ok")
-
-	go h.handle(w, req)
 }
 
-func (h *HttpProb) handle(w http.ResponseWriter, req *http.Request) {
+func (h *HttpProb) handle(req *http.Request) {
 	var err error
+
+	var pts []*io.Point
 
 	for _, item := range h.Url {
 		var filter bool
 
 		if item.Uri == "" && item.UriRegex != "" {
-			filter, err = regexp.MatchString(item.UriRegex, req.URL.Path)
-			if err != nil {
-				l.Errorf("config uri %s regex error %v", item.UriRegex, err)
-				continue
-			}
+			re := regexp.MustCompile(item.UriRegex)
+			filter = re.MatchString(req.URL.Path)
 		}
 
 		if item.Uri == "/" || req.URL.Path == item.Uri {
 			filter = true
 		}
 
+		if !filter {
+			continue
+		}
+
 		// match path
-		if filter {
-			if item.Pipeline != nil {
-			}
+		if item.Pipeline != nil {
+		}
 
-			var buf = bytes.NewBuffer([]byte{})
-			var header = make(map[string]string)
+		var body []byte
+		var header = make(map[string]string)
 
-			// 写入header
-			for key, item := range req.Header {
-				header[key] = strings.Join(item, ",")
-			}
+		// 写入header
+		for key, item := range req.Header {
+			header[key] = strings.Join(item, ",")
+		}
 
-			query := make(map[string]interface{})
-			for k, v := range req.URL.Query() {
-				if len(v) == 1 && len(v[0]) != 0 {
-					query[k] = v[0]
-				} else {
-					break
-				}
-			}
-
-			// 写入body
-			if !item.DropBody && req.Body != nil {
-				_, err := buf.ReadFrom(req.Body)
-				if err != nil {
-					l.Errorf("read body error", err)
-				}
-			}
-
-			tags := make(map[string]string)
-			fields := make(map[string]interface{})
-
-			for tag, tagV := range h.Tags {
-				tags[tag] = tagV
-			}
-
-			tags["version"] = req.Proto
-			tags["method"] = req.Method
-			tags["uri"] = req.URL.Path
-
-			var resData = make(map[string]interface{})
-			resData["version"] = req.Proto
-			resData["method"] = req.Method
-			resData["uri"] = req.URL.Path
-
-			resData["queryParams"] = query
-
-			if len(header) != 0 {
-				resData["header"] = header
-			}
-
-			if !item.DropBody && buf != nil {
-				contentType := header["Content-Type"]
-				if strings.Contains(contentType, "application/json") {
-					var body interface{}
-					err := json.Unmarshal(buf.Bytes(), &body)
-					if err != nil {
-						l.Errorf("body json parse error %v", err)
-					} else {
-						resData["body"] = body
-					}
-				}
-			}
-
-			data, err := json.Marshal(resData)
-			if item.Pipeline != nil {
-				fields, err = item.Pipeline.Run(string(data)).Result()
-				if err != nil {
-					l.Errorf("run pipeline error, %s", err)
-				}
+		query := make(map[string]interface{})
+		for k, v := range req.URL.Query() {
+			if len(v) == 1 && len(v[0]) != 0 {
+				query[k] = v[0]
 			} else {
-				for k, v := range query {
-					key := "query." + k
-					fields[key] = v
-				}
-
-				for k, v := range header {
-					key := "header." + k
-					fields[key] = v
-				}
-			}
-
-			pt, err := io.MakeMetric(h.Source, tags, fields, time.Now())
-			if err != nil {
-				l.Errorf("make metric point error %v", err)
-			}
-
-			l.Info("point ======>", string(pt))
-
-			err = io.HighFreqFeed([]byte(pt), io.Logging, inputName)
-			if err != nil {
-				l.Errorf("push metric point error %v", err)
+				break
 			}
 		}
+
+		// 写入body
+		if !item.DropBody && req.Body != nil {
+			body, err = ioutil.ReadAll(req.Body)
+			if err != nil {
+				l.Errorf("read body error", err)
+			}
+		}
+
+		tags := make(map[string]string)
+		fields := make(map[string]interface{})
+
+		for tag, tagV := range h.Tags {
+			tags[tag] = tagV
+		}
+
+		tags["version"] = req.Proto
+		tags["method"] = req.Method
+		tags["uri"] = req.URL.Path
+
+		var resData = make(map[string]interface{})
+		resData["version"] = req.Proto
+		resData["method"] = req.Method
+		resData["uri"] = req.URL.Path
+
+		resData["queryParams"] = query
+
+		if len(header) != 0 {
+			resData["header"] = header
+		}
+
+		message := req.Method + " " + req.URL.Path + " " + req.Proto
+
+		if !item.DropBody && body != nil {
+			var bodyS interface{}
+			contentType := header["Content-Type"]
+			if strings.Contains(contentType, "application/json") {
+				err := json.Unmarshal(body, &bodyS)
+				if err != nil {
+					l.Errorf("body json parse error %v", err)
+				} else {
+					resData["body"] = bodyS
+				}
+			} else if strings.Contains(contentType, "text/plain") {
+				resData["body"] = bodyS
+			}
+		}
+
+		data, err := json.Marshal(resData)
+		if item.Pipeline != nil {
+			l.Info("pipeline input data ======>", string(data))
+			fields, err = item.Pipeline.Run(string(data)).Result()
+			l.Info("pipeline output data ======>", fields)
+			if err != nil {
+				l.Errorf("run pipeline error, %s", err)
+			}
+		} else {
+			for k, v := range query {
+				key := "query." + k
+				fields[key] = v
+			}
+
+			for k, v := range header {
+				key := "header." + k
+				fields[key] = v
+			}
+		}
+
+		fields["message"] = message
+
+		pt, err := io.MakePoint(h.Source, tags, fields, time.Now())
+		if err != nil {
+			l.Errorf("make metric point error %v", err)
+		}
+		pts = append(pts, pt)
+	}
+
+	if err = io.Feed(inputName, io.Logging, pts, &io.Option{HighFreq: true}); err != nil {
+		l.Errorf("push metric point error %v", err)
 	}
 }
