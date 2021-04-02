@@ -62,7 +62,6 @@ type MeasurementInfo struct {
 	Name   string
 	Fields map[string]*FieldInfo
 	Tags   map[string]*TagInfo
-	// tags ingored
 }
 
 func (m *MeasurementInfo) FieldsMarkdownTable() string {
