@@ -62,7 +62,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/sqlserver"
 	"github.com/influxdata/telegraf/plugins/inputs/swap"
 	"github.com/influxdata/telegraf/plugins/inputs/syslog"
-	"github.com/influxdata/telegraf/plugins/inputs/system"
 	"github.com/influxdata/telegraf/plugins/inputs/tengine"
 	"github.com/influxdata/telegraf/plugins/inputs/uwsgi"
 	"github.com/influxdata/telegraf/plugins/inputs/vsphere"
@@ -115,7 +114,7 @@ var (
 		"diskio": {name: "diskio", Catalog: "host", Input: &diskio.DiskIO{}},
 		"mem":    {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
 		"swap":   {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
-		"system": {name: "system", Catalog: "host", Input: &system.SystemStats{}},
+		// "system": {name: "system", Catalog: "host", Input: &system.SystemStats{}},
 		//"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
 		"cpu":      {name: "cpu", Catalog: "host", Sample: samples["cpu"], Input: nil},
 		"procstat": {name: "procstat", Catalog: "host", Input: &procstat.Procstat{}},
