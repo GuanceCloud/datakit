@@ -25,7 +25,6 @@ type Input interface {
 	Catalog() string
 	Run()
 	SampleConfig() string
-	SampleMeasurement() []Measurement
 	// add more...
 }
 
@@ -41,7 +40,7 @@ type PipelineInput interface {
 
 type ManualInput interface {
 	Input
-	Man() (string, error)
+	SampleMeasurement() []Measurement
 }
 
 type Creator func() Input
