@@ -1,10 +1,10 @@
 package redis
 
 import (
+	"bufio"
+	"fmt"
+	"strings"
 	"time"
-    "strings"
-    "bufio"
-    "fmt"
 
 	"github.com/go-redis/redis"
 
@@ -13,11 +13,11 @@ import (
 )
 
 type infoMeasurement struct {
-	client *redis.Client
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	client  *redis.Client
+	name    string
+	tags    map[string]string
+	fields  map[string]interface{}
+	ts      time.Time
 	resData map[string]interface{}
 }
 
@@ -33,268 +33,268 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]*inputs.FieldInfo{
 			"info_latency_ms": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.DurationMS,
-				Desc: "The latency of the redis INFO command.",
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationMS,
+				Desc:     "The latency of the redis INFO command.",
 			},
-	        "active_defrag_running": &inputs.FieldInfo{
+			"active_defrag_running": &inputs.FieldInfo{
 				DataType: inputs.Bool,
-				Type: inputs.Gauge,
-				Desc: "Flag indicating if active defragmentation is active",
+				Type:     inputs.Gauge,
+				Desc:     "Flag indicating if active defragmentation is active",
 			},
 			"redis_version": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type: inputs.Gauge,
-				Desc: "Version of the Redis server",
+				Type:     inputs.Gauge,
+				Desc:     "Version of the Redis server",
 			},
-	        "active_defrag_hits": &inputs.FieldInfo{
+			"active_defrag_hits": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Number of value reallocations performed by active the defragmentation process",
+				Type:     inputs.Gauge,
+				Desc:     "Number of value reallocations performed by active the defragmentation process",
 			},
-	        "active_defrag_misses": &inputs.FieldInfo{
+			"active_defrag_misses": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Number of aborted value reallocations started by the active defragmentation process",
+				Type:     inputs.Gauge,
+				Desc:     "Number of aborted value reallocations started by the active defragmentation process",
 			},
-	        "active_defrag_key_hits": &inputs.FieldInfo{
+			"active_defrag_key_hits": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Number of keys that were actively defragmented",
+				Type:     inputs.Gauge,
+				Desc:     "Number of keys that were actively defragmented",
 			},
-	        "active_defrag_key_misses": &inputs.FieldInfo{
+			"active_defrag_key_misses": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Number of keys that were skipped by the active defragmentation process",
+				Type:     inputs.Gauge,
+				Desc:     "Number of keys that were skipped by the active defragmentation process",
 			},
-	        "aof_last_rewrite_time_sec": &inputs.FieldInfo{
+			"aof_last_rewrite_time_sec": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Duration of the last AOF rewrite operation in seconds",
+				Type:     inputs.Gauge,
+				Desc:     "Duration of the last AOF rewrite operation in seconds",
 			},
-	        "aof_rewrite_in_progress": &inputs.FieldInfo{
+			"aof_rewrite_in_progress": &inputs.FieldInfo{
 				DataType: inputs.Bool,
-				Type: inputs.Gauge,
-				Desc: "Flag indicating a AOF rewrite operation is on-going",
+				Type:     inputs.Gauge,
+				Desc:     "Flag indicating a AOF rewrite operation is on-going",
 			},
-	        "aof_current_size": &inputs.FieldInfo{
+			"aof_current_size": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
-				Desc: "AOF current file size",
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "AOF current file size",
 			},
-	        "aof_buffer_length": &inputs.FieldInfo{
+			"aof_buffer_length": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
-				Desc: "Size of the AOF buffer",
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Size of the AOF buffer",
 			},
-	        "loading_total_bytes": &inputs.FieldInfo{
+			"loading_total_bytes": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
-				Desc: "Total file size",
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Total file size",
 			},
-	        "loading_loaded_bytes": &inputs.FieldInfo{
+			"loading_loaded_bytes": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
-				Desc: "Number of bytes already loaded",
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Number of bytes already loaded",
 			},
-	        "loading_loaded_perc": &inputs.FieldInfo{
+			"loading_loaded_perc": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.Percent,
-				Desc: "Same value expressed as a percentage",
+				Type:     inputs.Gauge,
+				Unit:     inputs.Percent,
+				Desc:     "Same value expressed as a percentage",
 			},
-	        "loading_eta_seconds": &inputs.FieldInfo{
+			"loading_eta_seconds": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Unit: inputs.DurationSecond,
-				Desc: "ETA in seconds for the load to be complete",
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationSecond,
+				Desc:     "ETA in seconds for the load to be complete",
 			},
-	        "connected_clients": &inputs.FieldInfo{
+			"connected_clients": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: " Number of client connections (excluding connections from replicas)",
+				Type:     inputs.Gauge,
+				Desc:     " Number of client connections (excluding connections from replicas)",
 			},
-	        "connected_slaves": &inputs.FieldInfo{
+			"connected_slaves": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "and cluster_connections.",
+				Type:     inputs.Gauge,
+				Desc:     "and cluster_connections.",
 			},
-	        "rejected_connections": &inputs.FieldInfo{
+			"rejected_connections": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Number of connections rejected because of maxclients limit",
+				Type:     inputs.Gauge,
+				Desc:     "Number of connections rejected because of maxclients limit",
 			},
-	        "blocked_clients": &inputs.FieldInfo{
+			"blocked_clients": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Number of clients pending on a blocking call (BLPOP, BRPOP, BRPOPLPUSH, BLMOVE, BZPOPMIN, BZPOPMAX)",
+				Type:     inputs.Gauge,
+				Desc:     "Number of clients pending on a blocking call (BLPOP, BRPOP, BRPOPLPUSH, BLMOVE, BZPOPMIN, BZPOPMAX)",
 			},
-	        "client_biggest_input_buf": &inputs.FieldInfo{
+			"client_biggest_input_buf": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Biggest input buffer among current client connections",
+				Type:     inputs.Gauge,
+				Desc:     "Biggest input buffer among current client connections",
 			},
-	        "client_longest_output_list": &inputs.FieldInfo{
+			"client_longest_output_list": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Longest output list among current client connections",
+				Type:     inputs.Gauge,
+				Desc:     "Longest output list among current client connections",
 			},
-	        "evicted_keys": &inputs.FieldInfo{
+			"evicted_keys": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Number of evicted keys due to maxmemory limit",
+				Type:     inputs.Gauge,
+				Desc:     "Number of evicted keys due to maxmemory limit",
 			},
-	        "expired_keys": &inputs.FieldInfo{
+			"expired_keys": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Total number of key expiration events",
+				Type:     inputs.Gauge,
+				Desc:     "Total number of key expiration events",
 			},
-	        "latest_fork_usec": &inputs.FieldInfo{
+			"latest_fork_usec": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Unit: inputs.DurationMS,
-				Desc: "Duration of the latest fork operation in microseconds",
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationMS,
+				Desc:     "Duration of the latest fork operation in microseconds",
 			},
-	        "pubsub_channels": &inputs.FieldInfo{
+			"pubsub_channels": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Global number of pub/sub channels with client subscriptions",
+				Type:     inputs.Gauge,
+				Desc:     "Global number of pub/sub channels with client subscriptions",
 			},
-	        "pubsub_patterns": &inputs.FieldInfo{
+			"pubsub_patterns": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Global number of pub/sub pattern with client subscriptions",
+				Type:     inputs.Gauge,
+				Desc:     "Global number of pub/sub pattern with client subscriptions",
 			},
-	        "rdb_bgsave_in_progress": &inputs.FieldInfo{
+			"rdb_bgsave_in_progress": &inputs.FieldInfo{
 				DataType: inputs.Bool,
-				Type: inputs.Gauge,
-				Desc: "Flag indicating a RDB save is on-going",
+				Type:     inputs.Gauge,
+				Desc:     "Flag indicating a RDB save is on-going",
 			},
-	        "rdb_changes_since_last_save": &inputs.FieldInfo{
+			"rdb_changes_since_last_save": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "refers to the number of operations that produced some kind of changes in the dataset since the last time either SAVE or BGSAVE was called.",
+				Type:     inputs.Gauge,
+				Desc:     "refers to the number of operations that produced some kind of changes in the dataset since the last time either SAVE or BGSAVE was called.",
 			},
-	        "rdb_last_bgsave_time_sec": &inputs.FieldInfo{
+			"rdb_last_bgsave_time_sec": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Unit: inputs.DurationSecond,
-				Desc: "Duration of the last RDB save operation in seconds",
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationSecond,
+				Desc:     "Duration of the last RDB save operation in seconds",
 			},
-	        "mem_fragmentation_ratio": &inputs.FieldInfo{
+			"mem_fragmentation_ratio": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.Percent,
-				Desc: "Ratio between used_memory_rss and used_memory",
+				Type:     inputs.Gauge,
+				Unit:     inputs.Percent,
+				Desc:     "Ratio between used_memory_rss and used_memory",
 			},
-	        "used_memory": &inputs.FieldInfo{
+			"used_memory": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
-				Desc: "Total number of bytes allocated by Redis using its allocator (either standard libc, jemalloc, or an alternative allocator such as tcmalloc)",
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Total number of bytes allocated by Redis using its allocator (either standard libc, jemalloc, or an alternative allocator such as tcmalloc)",
 			},
-	        "used_memory_lua": &inputs.FieldInfo{
+			"used_memory_lua": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
-				Desc: "Number of bytes used by the Lua engine",
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Number of bytes used by the Lua engine",
 			},
-	        "used_memory_peak": &inputs.FieldInfo{
+			"used_memory_peak": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
-				Desc: "Peak memory consumed by Redis (in bytes)",
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Peak memory consumed by Redis (in bytes)",
 			},
-	        "used_memory_rss": &inputs.FieldInfo{
+			"used_memory_rss": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
-				Desc: "Number of bytes that Redis allocated as seen by the operating system (a.k.a resident set size)",
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Number of bytes that Redis allocated as seen by the operating system (a.k.a resident set size)",
 			},
-	        "used_memory_startup": &inputs.FieldInfo{
+			"used_memory_startup": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
-				Desc: "Initial amount of memory consumed by Redis at startup in bytes",
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Initial amount of memory consumed by Redis at startup in bytes",
 			},
-	        "used_memory_overhead": &inputs.FieldInfo{
+			"used_memory_overhead": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
 				Desc: `The sum in bytes of all overheads that the server allocated for managing its internal data structures
                        used_memory_startup: Initial amount of memory consumed by Redis at startup in bytes`,
 			},
-	        "maxmemory": &inputs.FieldInfo{
+			"maxmemory": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
-				Desc: "The value of the maxmemory configuration directive",
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The value of the maxmemory configuration directive",
 			},
-	        "master_last_io_seconds_ago": &inputs.FieldInfo{
+			"master_last_io_seconds_ago": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "",
+				Type:     inputs.Gauge,
+				Desc:     "",
 			},
-	        "master_sync_in_progress": &inputs.FieldInfo{
+			"master_sync_in_progress": &inputs.FieldInfo{
 				DataType: inputs.Bool,
-				Type: inputs.Gauge,
-				Desc: "ndicate the master is syncing to the replica",
+				Type:     inputs.Gauge,
+				Desc:     "ndicate the master is syncing to the replica",
 			},
-	        "master_sync_left_bytes": &inputs.FieldInfo{
+			"master_sync_left_bytes": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
-				Desc: "Number of bytes left before syncing is complete (may be negative when master_sync_total_bytes is 0)",
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Number of bytes left before syncing is complete (may be negative when master_sync_total_bytes is 0)",
 			},
-	        "repl_backlog_histlen": &inputs.FieldInfo{
+			"repl_backlog_histlen": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Unit: inputs.SizeByte,
-				Desc: "Size in bytes of the data in the replication backlog buffer",
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Size in bytes of the data in the replication backlog buffer",
 			},
-	        "master_repl_offset": &inputs.FieldInfo{
+			"master_repl_offset": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "The server's current replication offset",
+				Type:     inputs.Gauge,
+				Desc:     "The server's current replication offset",
 			},
-	        "slave_repl_offset": &inputs.FieldInfo{
+			"slave_repl_offset": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "The replication offset of the replica instance",
+				Type:     inputs.Gauge,
+				Desc:     "The replication offset of the replica instance",
 			},
-	        "used_cpu_sys": &inputs.FieldInfo{
+			"used_cpu_sys": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Rate,
-				Desc: "System CPU consumed by the Redis server, which is the sum of system CPU consumed by all threads of the server process (main thread and background threads)",
+				Type:     inputs.Rate,
+				Desc:     "System CPU consumed by the Redis server, which is the sum of system CPU consumed by all threads of the server process (main thread and background threads)",
 			},
-	        "used_cpu_sys_children": &inputs.FieldInfo{
+			"used_cpu_sys_children": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Rate,
-				Desc: "System CPU consumed by the background processes",
+				Type:     inputs.Rate,
+				Desc:     "System CPU consumed by the background processes",
 			},
-	        "used_cpu_user": &inputs.FieldInfo{
+			"used_cpu_user": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Rate,
-				Desc: "User CPU consumed by the Redis server, which is the sum of user CPU consumed by all threads of the server process (main thread and background threads)",
+				Type:     inputs.Rate,
+				Desc:     "User CPU consumed by the Redis server, which is the sum of user CPU consumed by all threads of the server process (main thread and background threads)",
 			},
-	        "used_cpu_user_children": &inputs.FieldInfo{
+			"used_cpu_user_children": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Rate,
-				Desc: "User CPU consumed by the background processes",
+				Type:     inputs.Rate,
+				Desc:     "User CPU consumed by the background processes",
 			},
-	        "keyspace_hits": &inputs.FieldInfo{
+			"keyspace_hits": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Number of successful lookup of keys in the main dictionary",
+				Type:     inputs.Gauge,
+				Desc:     "Number of successful lookup of keys in the main dictionary",
 			},
-	        "keyspace_misses": &inputs.FieldInfo{
+			"keyspace_misses": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "Number of failed lookup of keys in the main dictionary",
+				Type:     inputs.Gauge,
+				Desc:     "Number of failed lookup of keys in the main dictionary",
 			},
 		},
 	}
@@ -302,10 +302,10 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 
 func CollectInfoMeasurement(cli *redis.Client, tags map[string]string) *infoMeasurement {
 	m := &infoMeasurement{
-		client: cli,
+		client:  cli,
 		resData: make(map[string]interface{}),
-		tags: make(map[string]string),
-		fields: make(map[string]interface{}),
+		tags:    make(map[string]string),
+		fields:  make(map[string]interface{}),
 	}
 
 	m.name = "redis_info"
@@ -378,4 +378,3 @@ func (m *infoMeasurement) submit() error {
 
 	return nil
 }
-
