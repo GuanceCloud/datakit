@@ -39,6 +39,7 @@ func (_ *Input) Catalog() string {
 }
 
 func (n *Input) Run() {
+	l.Info("nginx start")
 	client, err := n.createHttpClient()
 	if err != nil {
 		l.Errorf("[error] nginx init client err:%s", err.Error())
