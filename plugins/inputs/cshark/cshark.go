@@ -453,21 +453,6 @@ func (s *Shark) parseLine(line string) []byte {
 	return pt
 }
 
-func (s *Shark) Test() (*inputs.TestResult, error) {
-	res := &inputs.TestResult{}
-
-	if version, err := TSharkVersion(s.TsharkPath); err != nil {
-		l.Errorf("tshark not install or Env path config error %v", err)
-		res.Result = nil
-		res.Desc = "tshark not install or Env path config error"
-	} else {
-		res.Result = []byte(version.String())
-		res.Desc = "success"
-	}
-
-	return res, nil
-}
-
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Shark{}
