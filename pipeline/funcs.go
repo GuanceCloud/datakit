@@ -713,8 +713,8 @@ func GroupIn(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 1 {
-		return p, fmt.Errorf("func %s expected 1 args", funcExpr.Name)
+	if len(funcExpr.Param) < 1 {
+		return p, fmt.Errorf("func %s expected more than 1 args", funcExpr.Name)
 	}
 
 	var key parser.Node
@@ -726,13 +726,24 @@ func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
+	var tz string
+	if len(funcExpr.Param) > 1 {
+		switch v := funcExpr.Param[1].(type) {
+		case *parser.StringLiteral:
+			tz = v.Val
+		default:
+			return p, fmt.Errorf("param key expect StringLiteral, got %s",
+				reflect.TypeOf(funcExpr.Param[1]).String())
+		}
+	}
+
 	cont, err := p.getContentStr(key)
 	if err != nil {
 		l.Debugf("key `%v' not exist", key)
 		return p, nil
 	}
 
-	if v, err := TimestampHandle(cont); err != nil {
+	if v, err := TimestampHandle(cont, tz); err != nil {
 		return p, fmt.Errorf("time convert fail error %v", err)
 	} else {
 		p.setContent(key, v)
