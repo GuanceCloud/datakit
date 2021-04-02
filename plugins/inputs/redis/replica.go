@@ -1,25 +1,25 @@
 package redis
 
 import (
+	"bufio"
+	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
-    "strings"
-    "bufio"
-    "strconv"
-    "regexp"
-    "fmt"
 
-    "github.com/go-redis/redis"
+	"github.com/go-redis/redis"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type replicaMeasurement struct {
-	client *redis.Client
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	client  *redis.Client
+	name    string
+	tags    map[string]string
+	fields  map[string]interface{}
+	ts      time.Time
 	resData map[string]interface{}
 }
 
@@ -33,18 +33,18 @@ func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]*inputs.FieldInfo{
 			"calls": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 			"usec": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 			"usec_per_call": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 		},
 	}
@@ -52,10 +52,10 @@ func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 
 func CollectReplicaMeasurement(cli *redis.Client) *replicaMeasurement {
 	m := &replicaMeasurement{
-		client: cli,
+		client:  cli,
 		resData: make(map[string]interface{}),
-		tags: make(map[string]string),
-		fields: make(map[string]interface{}),
+		tags:    make(map[string]string),
+		fields:  make(map[string]interface{}),
 	}
 
 	m.getData()
@@ -171,4 +171,3 @@ func (m *replicaMeasurement) submit() error {
 
 	return nil
 }
-
