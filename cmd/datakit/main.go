@@ -40,6 +40,7 @@ var (
 	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
 	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
 	flagGrokq    = flag.Bool("grokq", false, "query groks interactively")
+	flagMan      = flag.Bool("man", false, "read manuals of inputs")
 )
 
 var (
@@ -201,7 +202,6 @@ func runDatakitWithHTTPServer() error {
 		l.Error("error running inputs: %v", err)
 		return err
 	}
-
 	go func() {
 		http.Start(datakit.Cfg.MainCfg.HTTPBind)
 	}()
@@ -217,6 +217,11 @@ func runDatakitWithCmd() {
 
 	if *flagGrokq {
 		cmds.Grokq()
+		return
+	}
+
+	if *flagMan {
+		cmds.Man()
 		return
 	}
 }

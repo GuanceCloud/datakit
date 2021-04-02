@@ -14,8 +14,6 @@ import (
 var (
 	DefaultNamespace                 = ""
 	ErrUnexpectedInternalServerError = NewErr(errors.New(`unexpected internal server error`), nhttp.StatusInternalServerError)
-	ErrBadAuthHeader                 = NewErr(errors.New("invalid http Authorization header"), nhttp.StatusForbidden)
-	ErrAuthFailed                    = NewErr(errors.New("http Authorization failed"), nhttp.StatusForbidden)
 )
 
 type HttpError struct {
@@ -58,6 +56,27 @@ func (he *HttpError) Error() string {
 	} else {
 		return he.Err.Error()
 	}
+}
+
+func (he *HttpError) HttpBodyPretty(c *gin.Context, body interface{}) {
+
+	if body == nil {
+		c.Status(he.HttpCode)
+		return
+	}
+
+	resp := &bodyResp{
+		HttpError: he,
+		Content:   body,
+	}
+
+	j, err := json.MarshalIndent(resp, "", "    ")
+	if err != nil {
+		undefinedErr(err).httpResp(c, "%s: %+#v", "json.Marshal() failed", resp)
+		return
+	}
+
+	c.Data(he.HttpCode, `application/json`, j)
 }
 
 func (he *HttpError) HttpBody(c *gin.Context, body interface{}) {

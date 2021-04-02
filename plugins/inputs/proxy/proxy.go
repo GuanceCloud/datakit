@@ -3,13 +3,11 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/koding/websocketproxy"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -31,11 +29,13 @@ const (
     ## http server route path
 		## required: don't change
     path = "/proxy"
-	  ws_bind = "0.0.0.0:5588"
 `
 )
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l   = logger.DefaultSLogger(inputName)
+	cli = http.Client{}
+)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -44,8 +44,7 @@ func init() {
 }
 
 type Proxy struct {
-	Path   string `toml:"path"`
-	WSBind string `toml:"ws_bind,bind"`
+	Path string `toml:"path"`
 
 	PointsLuaFiles []string            `toml:"-"`
 	ObjectLuaFiles []string            `toml:"-"`
@@ -66,11 +65,6 @@ func (*Proxy) Catalog() string {
 	return inputName
 }
 
-func (*Proxy) Test() (*inputs.TestResult, error) {
-	test := &inputs.TestResult{}
-	return test, nil
-}
-
 func (d *Proxy) Run() {
 	l = logger.SLogger(inputName)
 
@@ -88,26 +82,12 @@ func (d *Proxy) Run() {
 
 	d.enable = true
 
-	wsurl := datakit.Cfg.MainCfg.DataWay.BuildWSURL(datakit.Cfg.MainCfg)
-	wsurl.RawQuery = ""
-	server := &http.Server{Addr: d.WSBind, Handler: websocketproxy.NewProxy(wsurl)}
-	l.Infof("[info] starting WebSocket proxy on %s, remote: %s", d.WSBind, wsurl.String())
-	go func() {
-		if err := server.ListenAndServe(); err != nil {
-			l.Error(err.Error())
-			return
-		}
-	}()
 	l.Infof("proxy input started...")
 
 	select {
 	case <-datakit.Exit.Wait():
 		d.stop()
-		if err := server.Shutdown(context.Background()); err != nil {
-			l.Errorf("[error] shutdown websocket server: %s", err.Error())
-		}
-		l.Infof("[info] websocketproxy closed ")
-		return
+
 	}
 }
 
@@ -172,6 +152,13 @@ func (d *Proxy) initCfg() bool {
 
 func (d *Proxy) RegHttpHandler() {
 	httpd.RegGinHandler("POST", d.Path, d.handle)
+}
+
+func (d *Proxy) handleHeartbeat(c *gin.Context) {
+	if !d.enable {
+		l.Warnf("worker does not exist")
+		return
+	}
 }
 
 func (d *Proxy) handle(c *gin.Context) {
@@ -254,6 +241,20 @@ func (d *Proxy) handle(c *gin.Context) {
 		if err != nil {
 			l.Error(err)
 			goto end
+		}
+
+	case io.HeartBeat:
+		req, err := http.NewRequest("POST", datakit.Cfg.MainCfg.DataWay.HeartBeatURL(), c.Request.Body)
+		resp, err := cli.Do(req)
+		if err != nil {
+			l.Error(err)
+			return
+		}
+
+		defer resp.Body.Close()
+
+		if resp.StatusCode >= 400 {
+			l.Errorf("heart beat resp err: %+#v", resp)
 		}
 
 	default:
