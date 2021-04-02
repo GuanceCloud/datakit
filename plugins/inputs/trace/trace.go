@@ -41,18 +41,22 @@ type TraceAdapter struct {
 	Start   int64
 	Content string
 
-	Project       string
-	ServiceName   string
-	OperationName string
-	Resource      string
-	ParentID      string
-	TraceID       string
-	SpanID        string
-	Status        string
-	SpanType      string
-	EndPoint      string
-	Type          string
-	Pid           string
+	Project        string
+	Version        string
+	Env            string
+	ServiceName    string
+	OperationName  string
+	Resource       string
+	ParentID       string
+	TraceID        string
+	SpanID         string
+	Status         string
+	SpanType       string
+	EndPoint       string
+	Type           string
+	Pid            string
+	HttpMethod     string
+	HttpStatusCode string
 
 	Tags map[string]string
 }
@@ -69,6 +73,8 @@ const (
 	STATUS_CRITICAL = "critical"
 
 	PROJECT = "project"
+	VERSION = "version"
+	ENV     = "env"
 
 	SPAN_SERVICE_APP    = "app"
 	SPAN_SERVICE_DB     = "db"
@@ -82,7 +88,7 @@ var (
 	once sync.Once
 )
 
-func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
+func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
@@ -92,7 +98,10 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 	tags["parent_id"] = tAdpt.ParentID
 	tags["trace_id"] = tAdpt.TraceID
 	tags["span_id"] = tAdpt.SpanID
-	tags["pid"] = tAdpt.Pid
+	tags["version"] = tAdpt.Version
+	tags["env"] = tAdpt.Env
+	tags["http_method"] = tAdpt.HttpMethod
+	tags["http_status_code"] = tAdpt.HttpStatusCode
 
 	if tAdpt.Type != "" {
 		tags["type"] = tAdpt.Type
@@ -125,27 +134,28 @@ func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
 
 	ts := time.Unix(tAdpt.Start/int64(time.Second), tAdpt.Start%int64(time.Second))
 
-	pt, err := dkio.MakeMetric(tAdpt.Source, tags, fields, ts)
+	pt, err := dkio.MakePoint(tAdpt.Source, tags, fields, ts)
 	if err != nil {
 		GetInstance().Errorf("build metric err: %s", err)
 		return nil, err
 	}
 
-	lineProtoStr := string(pt)
-	GetInstance().Debugf(lineProtoStr)
 	return pt, err
 }
 
 func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
+	var pts []*dkio.Point
 	for _, tAdpt := range adapterGroup {
 		pt, err := BuildLineProto(tAdpt)
 		if err != nil {
 			continue
 		}
+		pts = append(pts, pt)
 
-		if err := dkio.HighFreqFeed(pt, dkio.Tracing, pluginName); err != nil {
-			GetInstance().Errorf("io feed err: %s", err)
-		}
+	}
+
+	if err := dkio.Feed(pluginName, dkio.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
+		GetInstance().Errorf("io feed err: %s", err)
 	}
 }
 
@@ -208,6 +218,6 @@ func GetInstance() *logger.Logger {
 	return log
 }
 
-func GetProjectFromPluginTag(tags map[string]string) string {
-	return tags[PROJECT]
+func GetFromPluginTag(tags map[string]string, tagName string) string {
+	return tags[tagName]
 }
