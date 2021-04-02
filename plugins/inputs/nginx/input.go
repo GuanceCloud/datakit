@@ -100,7 +100,7 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (n *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&NginxMeasurement{},
 		&ServerZoneMeasurement{},
