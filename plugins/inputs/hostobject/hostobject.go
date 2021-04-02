@@ -18,13 +18,13 @@ import (
 var moduleLogger *logger.Logger
 
 type objCollector struct {
-	Name  string            //deprecated
-	Class string            //deprecated
-	Tags  map[string]string `toml:"tags,omitempty"`        //deprecated
-	Desc  string            `toml:"description,omitempty"` //deprecated
+	Name  string //deprecated
+	Class string //deprecated
+	Desc  string `toml:"description,omitempty"` //deprecated
 
 	Interval datakit.Duration
-	Pipeline string `toml:"pipeline"`
+	Pipeline string            `toml:"pipeline"`
+	Tags     map[string]string `toml:"tags,omitempty"`
 
 	p *pipeline.Pipeline
 
@@ -33,8 +33,7 @@ type objCollector struct {
 
 	mode string
 
-	testResult *inputs.TestResult
-	testError  error
+	testError error
 }
 
 func (c *objCollector) isTestOnce() bool {
@@ -59,16 +58,13 @@ func (r *objCollector) PipelineConfig() map[string]string {
 	}
 }
 
-func (c *objCollector) Test() (*inputs.TestResult, error) {
-	c.mode = "test"
-	c.testResult = &inputs.TestResult{}
-	c.Run()
-	return c.testResult, c.testError
-}
-
 func (c *objCollector) Run() {
 
 	moduleLogger = logger.SLogger(InputName)
+
+	if c.Interval.Duration == 0 {
+		c.Interval.Duration = 5 * time.Minute
+	}
 
 	if c.Interval.Duration == 0 {
 		c.Interval.Duration = 5 * time.Minute
@@ -121,6 +117,13 @@ func (c *objCollector) Run() {
 			"load":             message.Host.load5,
 			"state":            "online",
 		}
+
+		for k, v := range c.Tags {
+			if _, ok := fields[k]; !ok {
+				fields[k] = v
+			}
+		}
+
 		if c.p != nil {
 			if result, err := c.p.Run(string(messageData)).Result(); err == nil {
 				moduleLogger.Debugf("%s", result)
@@ -139,18 +142,7 @@ func (c *objCollector) Run() {
 		tm := time.Now().UTC()
 
 		if c.isTestOnce() {
-			data, err := io.MakeMetric("HOST", tags, fields, tm)
-			if err != nil {
-				moduleLogger.Errorf("%s", err)
-				c.testError = err
-			} else {
-				c.testResult = &inputs.TestResult{
-					Result: data,
-					Desc:   "",
-				}
-				moduleLogger.Debugf("%s\n", string(data))
-			}
-			return
+			// pass
 		} else if c.isDebug() {
 			data, _ := io.MakeMetric("HOST", tags, fields, tm)
 			fmt.Printf("%s\n", string(data))
