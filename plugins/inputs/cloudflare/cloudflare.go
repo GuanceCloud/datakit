@@ -27,19 +27,19 @@ const (
     # cloudflare login email
     # required
     email = ""
-    
+
     # service zone id
     # required
     zone_id = ""
-    
+
     # api key
     # required
     api_key = ""
-    
+
     # valid time units are "m", "h"
     # required
     interval = "24h"
-    
+
     # [inputs.cloudflare.tags]
     # tags1 = "value1"
 `
@@ -72,28 +72,6 @@ func (*Cloudflare) SampleConfig() string {
 
 func (*Cloudflare) Catalog() string {
 	return inputName
-}
-
-func (h *Cloudflare) Test() (*inputs.TestResult, error) {
-	l = logger.SLogger(inputName)
-
-	var result = inputs.TestResult{Desc: "数据指标获取失败，详情见错误信息"}
-	var err error
-
-	if err = h.loadCfg(); err != nil {
-		return &result, err
-	}
-
-	var data []byte
-	data, err = h.getMetrics()
-	if err != nil {
-		return &result, err
-	}
-
-	result.Result = data
-	result.Desc = "数据指标获取成功"
-
-	return &result, err
 }
 
 func (h *Cloudflare) Run() {
