@@ -21,8 +21,8 @@ type bigKeyMeasurement struct {
 	WarnOnMissingKeys bool
 }
 
-func (m *bigKeyMeasurement) LineProto() (io.Point, error) {
-	return io.MakeMetric(m.name, m.tags, m.fields, m.ts)
+func (m *bigKeyMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
 func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
