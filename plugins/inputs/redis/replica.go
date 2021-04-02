@@ -23,8 +23,8 @@ type replicaMeasurement struct {
 	resData map[string]interface{}
 }
 
-func (m *replicaMeasurement) LineProto() (io.Point, error) {
-	return io.MakeMetric(m.name, m.tags, m.fields, m.ts)
+func (m *replicaMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
 func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
