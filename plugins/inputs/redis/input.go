@@ -30,6 +30,7 @@ type Input struct {
 	IntervalDuration  time.Duration        `toml:"-"`
 	Keys              []string             `toml:"keys"`
 	WarnOnMissingKeys bool                 `toml:"warn_on_missing_keys"`
+	CommandStats    bool                   `toml:"command_stats"`
 	SlowlogMaxLen     float64              `toml:"slowlog-max-len"`
 	Tags              map[string]string    `toml:"tags"`
 	client            *redis.Client        `toml:"-"`
@@ -79,16 +80,20 @@ func (i *Input) Collect() error {
 	i.collectCache = append(i.collectCache, clientMeasurement)
 
 	// db command
-	commandMeasurement := CollectCommandMeasurement(i.client, i.Tags)
-	i.collectCache = append(i.collectCache, commandMeasurement)
+	if i.CommandStats {
+		commandMeasurement := CollectCommandMeasurement(i.client, i.Tags)
+		i.collectCache = append(i.collectCache, commandMeasurement)
+	}
 
 	// slowlog
 	slowlogMeasurement := CollectSlowlogMeasurement(i)
 	i.collectCache = append(i.collectCache, slowlogMeasurement)
 
 	// bigkey
-	bigKeyMeasurement := CollectBigKeyMeasurement(i)
-	i.collectCache = append(i.collectCache, bigKeyMeasurement)
+	if len(m.Keys) > 0 {
+		bigKeyMeasurement := CollectBigKeyMeasurement(i)
+		i.collectCache = append(i.collectCache, bigKeyMeasurement)
+	}
 
 	return nil
 }
