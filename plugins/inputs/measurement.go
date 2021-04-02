@@ -2,16 +2,17 @@ package inputs
 
 import (
 	"fmt"
+	"strings"
 	//"reflect"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
-	Int = iota
-	Float
-	String
-	Bool
+	Int    = "int"
+	Float  = "float"
+	String = "string"
+	Bool   = "bool"
 
 	// TODO:
 	// Prometheus metric types: https://prometheus.io/docs/concepts/metric_types/
@@ -42,22 +43,51 @@ const (
 )
 
 type Measurement interface {
-	LineProto() (io.Point, error)
+	LineProto() (*io.Point, error)
 	Info() *MeasurementInfo
 }
 
 type FieldInfo struct {
-	Type     int // gauge/count/...
-	DataType int // int/float/bool/...
+	Type     string // gauge/count/...
+	DataType string // int/float/bool/...
 	Unit     string
 	Desc     string // markdown string
 	Disabled bool
 }
 
+type TagInfo struct {
+	Desc string
+}
+
 type MeasurementInfo struct {
 	Name   string
 	Fields map[string]*FieldInfo
+	Tags   map[string]*TagInfo
 	// tags ingored
+}
+
+func (m *MeasurementInfo) FieldsMarkdownTable() string {
+	tableHeader := `
+| 指标 | 描述   | 类型 | 单位 |
+| ---: | :----: | ---  | ---- |`
+
+	rows := []string{tableHeader}
+	for k, f := range m.Fields {
+		rows = append(rows, fmt.Sprintf("|`%s`|%s|%s|%s|", k, f.Desc, f.DataType, f.Unit))
+	}
+	return strings.Join(rows, "\n")
+}
+
+func (m *MeasurementInfo) TagsMarkdownTable() string {
+	tableHeader := `
+| 标签名  | 描述    |
+|---:     |---------|`
+
+	rows := []string{tableHeader}
+	for k, t := range m.Tags {
+		rows = append(rows, fmt.Sprintf("|`%s`|%s|", k, t.Desc))
+	}
+	return strings.Join(rows, "\n")
 }
 
 func FeedMeasurement(name, category string, measurements []Measurement, opt *io.Option) error {
@@ -65,7 +95,7 @@ func FeedMeasurement(name, category string, measurements []Measurement, opt *io.
 		return fmt.Errorf("no points")
 	}
 
-	var pts io.Points
+	var pts []*io.Point
 	for _, m := range measurements {
 		if pt, err := m.LineProto(); err != nil {
 			return err
