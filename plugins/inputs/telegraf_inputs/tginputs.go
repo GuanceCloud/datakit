@@ -143,8 +143,8 @@ var (
 		"tengine": {name: "tengine", Catalog: "tengine", Input: &tengine.Tengine{}},
 		"apache":  {name: "apache", Catalog: "apache", Input: &apache.Apache{}},
 
-		"postgresql":    {name: "postgresql", Catalog: "db", Input: &postgresql.Postgresql{}},
-		"mongodb":       {name: "mongodb", Catalog: "db", Input: &mongodb.MongoDB{}},
+		"postgresql": {name: "postgresql", Catalog: "db", Input: &postgresql.Postgresql{}},
+		"mongodb":    {name: "mongodb", Catalog: "db", Input: &mongodb.MongoDB{}},
 		// "redis":         {name: "redis", Catalog: "db", Input: &redis.Redis{}},
 		"elasticsearch": {name: "elasticsearch", Catalog: "db", Input: &elasticsearch.Elasticsearch{}},
 		"sqlserver":     {name: "sqlserver", Catalog: "db", Input: &sqlserver.SQLServer{}},
