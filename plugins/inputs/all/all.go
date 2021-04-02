@@ -1,6 +1,9 @@
 package inputs
 
 import (
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/demo"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
+
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/activemqlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunactiontrail"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyuncdn"
@@ -23,6 +26,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/coredns"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ddtrace"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dialtesting"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/docker_containers"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dockerlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
@@ -30,6 +34,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/expressjs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/file_collector"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flink"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/fluentdlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ginlog"
@@ -64,10 +69,10 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/rum"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/scanport"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/secureexec"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/squid"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ssh"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/system"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/systemd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_http"
