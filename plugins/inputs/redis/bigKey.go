@@ -4,20 +4,20 @@ import (
 	"time"
 	// "fmt"
 
-    "github.com/go-redis/redis"
+	"github.com/go-redis/redis"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type bigKeyMeasurement struct {
-	client *redis.Client
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	client            *redis.Client
+	name              string
+	tags              map[string]string
+	fields            map[string]interface{}
+	ts                time.Time
 	lastTimestampSeen map[string]int64
-	keys   []string
+	keys              []string
 	WarnOnMissingKeys bool
 }
 
@@ -31,8 +31,8 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]*inputs.FieldInfo{
 			"key_length": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "key length",
+				Type:     inputs.Gauge,
+				Desc:     "key length",
 			},
 		},
 	}
@@ -40,11 +40,11 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 
 func CollectBigKeyMeasurement(input *Input) *bigKeyMeasurement {
 	m := &bigKeyMeasurement{
-		client: input.client,
-		tags: make(map[string]string),
-		fields: make(map[string]interface{}),
+		client:            input.client,
+		tags:              make(map[string]string),
+		fields:            make(map[string]interface{}),
 		lastTimestampSeen: make(map[string]int64),
-		keys: input.Keys,
+		keys:              input.Keys,
 		WarnOnMissingKeys: input.WarnOnMissingKeys,
 	}
 
@@ -88,4 +88,3 @@ func (m *bigKeyMeasurement) getData() error {
 
 	return nil
 }
-
