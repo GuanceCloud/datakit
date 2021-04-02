@@ -1,22 +1,22 @@
 package redis
 
 import (
+	"bufio"
+	"strings"
 	"time"
-    "strings"
-    "bufio"
 
-    "github.com/go-redis/redis"
+	"github.com/go-redis/redis"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type commandMeasurement struct {
-	client *redis.Client
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	client  *redis.Client
+	name    string
+	tags    map[string]string
+	fields  map[string]interface{}
+	ts      time.Time
 	resData map[string]interface{}
 }
 
@@ -30,18 +30,18 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]*inputs.FieldInfo{
 			"calls": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 			"usec": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 			"usec_per_call": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 		},
 	}
@@ -49,10 +49,10 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 
 func CollectCommandMeasurement(cli *redis.Client, tags map[string]string) *commandMeasurement {
 	m := &commandMeasurement{
-		client: cli,
+		client:  cli,
 		resData: make(map[string]interface{}),
-		tags: make(map[string]string),
-		fields: make(map[string]interface{}),
+		tags:    make(map[string]string),
+		fields:  make(map[string]interface{}),
 	}
 
 	m.name = "redis_command_stat"
@@ -127,4 +127,3 @@ func (m *commandMeasurement) submit() error {
 
 	return nil
 }
-
