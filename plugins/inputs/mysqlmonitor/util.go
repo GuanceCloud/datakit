@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 type ConversionFunc func(value sql.RawBytes) (interface{}, error)
