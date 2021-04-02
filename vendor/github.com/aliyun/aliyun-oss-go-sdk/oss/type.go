@@ -746,6 +746,7 @@ type createBucketConfiguration struct {
 	XMLName            xml.Name           `xml:"CreateBucketConfiguration"`
 	StorageClass       StorageClassType   `xml:"StorageClass,omitempty"`
 	DataRedundancyType DataRedundancyType `xml:"DataRedundancyType,omitempty"`
+	ObjectHashFunction ObjecthashFuncType `xml:"ObjectHashFunction,omitempty"`
 }
 
 // LiveChannelConfiguration defines the configuration for live-channel
@@ -1223,4 +1224,25 @@ type AsyncTaskInfo struct {
 	Callback      string   `xml:"Callback,omitempty"`
 	StorageClass  string   `xml:"StorageClass,omitempty"`
 	IgnoreSameKey bool     `xml:"IgnoreSameKey"`
+}
+
+// InitiateWormConfiguration define InitiateBucketWorm configuration
+type InitiateWormConfiguration struct {
+	XMLName               xml.Name `xml:"InitiateWormConfiguration"`
+	RetentionPeriodInDays int      `xml:"RetentionPeriodInDays"` // specify retention days
+}
+
+// ExtendWormConfiguration define ExtendWormConfiguration configuration
+type ExtendWormConfiguration struct {
+	XMLName               xml.Name `xml:"ExtendWormConfiguration"`
+	RetentionPeriodInDays int      `xml:"RetentionPeriodInDays"` // specify retention days
+}
+
+// WormConfiguration define WormConfiguration
+type WormConfiguration struct {
+	XMLName               xml.Name `xml:"WormConfiguration"`
+	WormId                string   `xml:"WormId,omitempty"`
+	State                 string   `xml:"State,omitempty"`
+	RetentionPeriodInDays int      `xml:"RetentionPeriodInDays"` // specify retention days
+	CreationDate          string   `xml:"CreationDate,omitempty"`
 }
