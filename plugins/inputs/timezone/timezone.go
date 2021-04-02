@@ -70,14 +70,6 @@ func (t *Timezone) Run() {
 	p.gather()
 }
 
-func (t *Timezone) Test() (*inputs.TestResult, error) {
-	tRst := &inputs.TestResult{}
-	para := t.genParams()
-	pt, err := para.getMetrics(true)
-	tRst.Result = pt
-	return tRst, err
-}
-
 func (t *Timezone) genParams() *TzParams {
 	if t.Interval == nil {
 		t.Interval = defaultInterval
