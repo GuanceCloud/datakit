@@ -215,20 +215,6 @@ func (m *MysqlMonitor) gatherServer(serv string) error {
 	return nil
 }
 
-func (m *MysqlMonitor) Test() (*inputs.TestResult, error) {
-	m.test = true
-	m.resData = nil
-
-	m.handle()
-
-	res := &inputs.TestResult{
-		Result: m.resData,
-		Desc:   "success!",
-	}
-
-	return res, nil
-}
-
 func init() {
 	inputs.Add(name, func() inputs.Input {
 		return &MysqlMonitor{}

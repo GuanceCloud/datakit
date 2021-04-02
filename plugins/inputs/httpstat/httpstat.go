@@ -281,28 +281,6 @@ func (h *httpPing) setTransport() {
 	}
 }
 
-func (h *Httpstat) Test() (*inputs.TestResult, error) {
-	h.test = true
-	h.resData = nil
-
-	for _, c := range h.Actions {
-		p := &httpPing{
-			cfg:        c,
-			metricName: h.MetricName,
-		}
-		p.run()
-
-		h.resData = p.resData
-	}
-
-	res := &inputs.TestResult{
-		Result: h.resData,
-		Desc:   "success!",
-	}
-
-	return res, nil
-}
-
 // Normalize fixes scheme
 func Normalize(URL string) string {
 	re := regexp.MustCompile(`(?i)https{0,1}://`)
