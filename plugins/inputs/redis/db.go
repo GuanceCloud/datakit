@@ -1,22 +1,22 @@
 package redis
 
 import (
+	"bufio"
+	"strings"
 	"time"
-    "strings"
-    "bufio"
 
-    "github.com/go-redis/redis"
+	"github.com/go-redis/redis"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type dbMeasurement struct {
-	client *redis.Client
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	client  *redis.Client
+	name    string
+	tags    map[string]string
+	fields  map[string]interface{}
+	ts      time.Time
 	resData map[string]interface{}
 }
 
@@ -30,18 +30,18 @@ func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]*inputs.FieldInfo{
 			"keys": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 			"expires": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 			"avg_ttl": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 		},
 	}
@@ -49,10 +49,10 @@ func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
 
 func CollectDBMeasurement(cli *redis.Client) *dbMeasurement {
 	m := &dbMeasurement{
-		client: cli,
+		client:  cli,
 		resData: make(map[string]interface{}),
-		tags: make(map[string]string),
-		fields: make(map[string]interface{}),
+		tags:    make(map[string]string),
+		fields:  make(map[string]interface{}),
 	}
 
 	m.getData()
@@ -124,4 +124,3 @@ func (m *dbMeasurement) submit() error {
 
 	return nil
 }
-
