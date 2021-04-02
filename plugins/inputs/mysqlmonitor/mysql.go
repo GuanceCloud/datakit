@@ -2,18 +2,18 @@ package mysqlmonitor
 
 import (
 	"database/sql"
-	"time"
 	"fmt"
 	"strings"
+	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"github.com/go-sql-driver/mysql"
 	influxm "github.com/influxdata/influxdb1-client/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 
 	"github.com/spf13/cast"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -25,8 +25,8 @@ const (
 )
 
 var (
-	l             *logger.Logger
-	name          = "mysqlMonitor"
+	l    *logger.Logger
+	name = "mysqlMonitor"
 )
 
 func (_ *MysqlMonitor) Catalog() string {
@@ -104,8 +104,8 @@ func (m *MysqlMonitor) getDsnString() string {
 	cfg := mysql.Config{
 		AllowNativePasswords: true,
 		CheckConnLiveness:    true,
-	    User:                 m.User,
-	    Passwd:               m.Pass,
+		User:                 m.User,
+		Passwd:               m.Pass,
 	}
 
 	// set addr
@@ -154,89 +154,89 @@ func (m *MysqlMonitor) collectMetrics() error {
 	m.getVariables()
 
 	// innodb
-	if m.options.DisableInnodbMetrics && m.innodbEngineEnabled()  {
+	if m.options.DisableInnodbMetrics && m.innodbEngineEnabled() {
 		m.getInnodbStatus()
 	}
 
 	// Binary log statistics
-    if _, ok := m.resData["log_bin"]; ok {
-    	metric["INNODB_VARS"].disable = true
-    	m.getLogStats()
-    }
+	if _, ok := m.resData["log_bin"]; ok {
+		metric["INNODB_VARS"].disable = true
+		m.getLogStats()
+	}
 
-    // Compute key cache utilization metric
-    m.computeCacheUtilization()
+	// Compute key cache utilization metric
+	m.computeCacheUtilization()
 
-    if m.options.ExtraStatusMetrics {
-    	// 额外的status metric 设置标志
-    	metric["OPTIONAL_STATUS_VARS"].disable = true
-    	if m.versionCompatible("5.6.6") {
-    		metric["OPTIONAL_STATUS_VARS_5_6_6"].disable = true
-    	}
-    }
+	if m.options.ExtraStatusMetrics {
+		// 额外的status metric 设置标志
+		metric["OPTIONAL_STATUS_VARS"].disable = true
+		if m.versionCompatible("5.6.6") {
+			metric["OPTIONAL_STATUS_VARS_5_6_6"].disable = true
+		}
+	}
 
-    if m.options.GaleraCluster {
-    	metric["GALERA_VARS"].disable = true
-    }
+	if m.options.GaleraCluster {
+		metric["GALERA_VARS"].disable = true
+	}
 
-    if m.options.ExtraPerformanceMetrics && m.versionCompatible("5.6.0") {
-    	// if _, ok := m.resData["performance_schema"] {
-    	// 	metric["PERFORMANCE_VARS"].disable = true
-    	// 	m.getQueryExecTime95thus()
-     //        m.queryExecTimePerSchema()
-    	// }
-    }
+	if m.options.ExtraPerformanceMetrics && m.versionCompatible("5.6.0") {
+		// if _, ok := m.resData["performance_schema"] {
+		// 	metric["PERFORMANCE_VARS"].disable = true
+		// 	m.getQueryExecTime95thus()
+		//        m.queryExecTimePerSchema()
+		// }
+	}
 
-    if m.options.SchemaSizeMetrics {
-    	metric["SCHEMA_VARS"].disable = true
-    	m.querySizePerschema()
-    }
+	if m.options.SchemaSizeMetrics {
+		metric["SCHEMA_VARS"].disable = true
+		m.querySizePerschema()
+	}
 
-    // replication
-    if m.options.Replication {
-    	metric["SCHEMA_VARS"].disable = true
-    	m.collectReplication()
-    }
+	// replication
+	if m.options.Replication {
+		metric["SCHEMA_VARS"].disable = true
+		m.collectReplication()
+	}
 
-    m.submitMetrics()
+	m.submitMetrics()
 
 	return nil
 }
 
 func (m *MysqlMonitor) submitMetrics() error {
-    var (
-    	tags   = make(map[string]string)
-    	fields = make(map[string]interface{})
-    )
+	var (
+		tags   = make(map[string]string)
+		fields = make(map[string]interface{})
+	)
 
-    if m.Service != "" {
-    	tags["service"] = m.Service
-    }
+	if m.Service != "" {
+		tags["service"] = m.Service
+	}
 
-    for tag, tagV := range m.Tags {
+	for tag, tagV := range m.Tags {
 		tags[tag] = tagV
 	}
 
 	m.dupedMetrics()
 
-    for _, kind := range metric {
-   		if !kind.disable {
-   			for k, item := range kind.metric {
-   				if m.resData[k] != "" && !item.disable {
-   					if item.parse != nil {
-   						// error check (todo)
-   						value, ok  := m.resData[k]
-   						if !ok {
-   							continue
-   						}
-   						var val interface{}
-   						switch v := value.(type)  {
+	for _, kind := range metric {
+		if !kind.disable {
+			for k, item := range kind.metric {
+				if m.resData[k] != "" && !item.disable {
+					if item.parse != nil {
+						// error check (todo)
+						value, ok := m.resData[k]
+						if !ok {
+							continue
+						}
+						var val interface{}
+						switch v := value.(type) {
 						case int64:
-						    val = item.parse(v)
-						    fields[item.name] = val
+							val = item.parse(v)
+							fields[item.name] = val
 						case string:
-						    val = item.parse(v)
-						    fields[item.name] = val
+							val = item.parse(v)
+							fields[item.name] = val
 						case map[string]float64:
 							for kk, vv := range v {
 								itemKey := fmt.Sprintf(item.name, kk)
@@ -249,13 +249,13 @@ func (m *MysqlMonitor) submitMetrics() error {
 							}
 						default:
 						}
-   					}
-   				}
-   			}
-   		}
-   	}
+					}
+				}
+			}
+		}
+	}
 
-   	pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
+	pt, err := io.MakeMetric(m.MetricName, tags, fields, time.Now())
 	if err != nil {
 		l.Errorf("make metric point error %v", err)
 	}
@@ -321,8 +321,8 @@ func (m *MysqlMonitor) getStatus() error {
 
 func (m *MysqlMonitor) dupedMetrics() {
 	dic := map[string]string{
-		"Table_locks_waited": "Table_locks_waited_rate",
-        "Table_locks_immediate": "Table_locks_immediate_rate",
+		"Table_locks_waited":    "Table_locks_waited_rate",
+		"Table_locks_immediate": "Table_locks_immediate_rate",
 	}
 
 	for src, dst := range dic {
