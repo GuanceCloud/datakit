@@ -4,9 +4,9 @@ import (
 	"time"
     "strings"
     "bufio"
+    "fmt"
 
 	"github.com/go-redis/redis"
-	"github.com/spf13/cast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -267,23 +267,23 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 				Desc: "The replication offset of the replica instance",
 			},
 	        "used_cpu_sys": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type: inputs.Gauge,
+				DataType: inputs.Float,
+				Type: inputs.Rate,
 				Desc: "System CPU consumed by the Redis server, which is the sum of system CPU consumed by all threads of the server process (main thread and background threads)",
 			},
 	        "used_cpu_sys_children": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type: inputs.Gauge,
+				DataType: inputs.Float,
+				Type: inputs.Rate,
 				Desc: "System CPU consumed by the background processes",
 			},
 	        "used_cpu_user": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type: inputs.Gauge,
+				DataType: inputs.Float,
+				Type: inputs.Rate,
 				Desc: "User CPU consumed by the Redis server, which is the sum of user CPU consumed by all threads of the server process (main thread and background threads)",
 			},
 	        "used_cpu_user_children": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type: inputs.Gauge,
+				DataType: inputs.Float,
+				Type: inputs.Rate,
 				Desc: "User CPU consumed by the background processes",
 			},
 	        "keyspace_hits": &inputs.FieldInfo{
@@ -300,7 +300,7 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func CollectInfoMeasurement(cli *redis.Client) *infoMeasurement {
+func CollectInfoMeasurement(cli *redis.Client, tags map[string]string) *infoMeasurement {
 	m := &infoMeasurement{
 		client: cli,
 		resData: make(map[string]interface{}),
@@ -308,8 +308,13 @@ func CollectInfoMeasurement(cli *redis.Client) *infoMeasurement {
 		fields: make(map[string]interface{}),
 	}
 
+	m.name = "redis_info"
+	m.tags = tags
+
 	m.getData()
 	m.submit()
+
+	fmt.Println("redis info", m)
 
 	return m
 }
@@ -362,26 +367,15 @@ func (m *infoMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {
 		if value, ok := m.resData[key]; ok {
-
-			m.fields[key] = val
+			val, err := Conv(value, item.DataType)
+			if err != nil {
+				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
+			} else {
+				m.fields[key] = val
+			}
 		}
 	}
 
 	return nil
 }
 
-func Conv(val interface{}, Datatype int) (interface{}, error) {
-	var val interface{}
-	switch Datatype {
-		case inputs.Float:
-			val = cast.ToFloat64(value)
-		case inputs.Int:
-			val = cast.ToInt64(value)
-		case inputs.Bool:
-			val = cast.ToBool(value)
-		case inputs.String:
-			val = cast.ToString(value)
-	}
-
-	return val, nil
-}
