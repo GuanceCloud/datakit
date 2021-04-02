@@ -17,21 +17,21 @@ func Cast(num float64) int {
 	return int(num + math.Copysign(0.5, num))
 }
 
-func Conv(val interface{}, Datatype int) (interface{}, error) {
+func Conv(val interface{}, Datatype string) (interface{}, error) {
 	var (
 		res interface{}
 		err error
 	)
 
 	switch Datatype {
-		case inputs.Float:
-			res, err = cast.ToFloat64E(val)
-		case inputs.Int:
-			res, err = cast.ToInt64E(val)
-		case inputs.Bool:
-			res, err = cast.ToBoolE(val)
-		case inputs.String:
-			res, err = cast.ToStringE(val)
+	case inputs.Float:
+		res, err = cast.ToFloat64E(val)
+	case inputs.Int:
+		res, err = cast.ToInt64E(val)
+	case inputs.Bool:
+		res, err = cast.ToBoolE(val)
+	case inputs.String:
+		res, err = cast.ToStringE(val)
 	}
 
 	return res, err
