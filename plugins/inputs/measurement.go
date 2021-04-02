@@ -17,9 +17,9 @@ const (
 	// TODO:
 	// Prometheus metric types: https://prometheus.io/docs/concepts/metric_types/
 	// DataDog metricc types: https://docs.datadoghq.com/developers/metrics/types/?tab=count#metric-types
-	Gauge = iota
-	Count
-	Rate
+	Gauge = "gauge"
+	Count = "count"
+	Rate  = "rate"
 	// add more...
 )
 
@@ -48,7 +48,7 @@ type Measurement interface {
 }
 
 type FieldInfo struct {
-	Type     int    // gauge/count/...
+	Type     string // gauge/count/...
 	DataType string // int/float/bool/...
 	Unit     string
 	Desc     string // markdown string
