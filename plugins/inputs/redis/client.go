@@ -20,8 +20,8 @@ type clientMeasurement struct {
 	resData map[string]interface{}
 }
 
-func (m *clientMeasurement) LineProto() (io.Point, error) {
-	return io.MakeMetric(m.name, m.tags, m.fields, m.ts)
+func (m *clientMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
 func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
