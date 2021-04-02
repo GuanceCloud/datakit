@@ -7,14 +7,14 @@ import (
 	// "github.com/stretchr/testify/assert"
 )
 
-func TestCollectInfoMetrics(t *testing.T) {
+func TestDBMeasurement(t *testing.T) {
 	cli := redis.NewClient(&redis.Options{
         Addr:     "localhost:6379",
         Password: "dev", // no password set
         DB:       0,  // use default DB
     })
 
-	info := CollectInfoMeasurement(cli)
+	info := CollectDBMeasurement(cli)
 
 	fmt.Println(info.fields)
 }
