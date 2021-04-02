@@ -26,11 +26,6 @@ const (
     #
     # db = 0
 
-    ## @param username - string - optional
-    ## The username for the connection. Redis 6+ only.
-    #
-    # username = "<USERNAME>"
-
     ## @param password - string - optional
     ## The password for the connection.
     #
@@ -43,33 +38,13 @@ const (
 
     ## @param interval - number - optional - default: 15
     #
-    # interval = "15s"
+    interval = "15s"
 
     ## @param collect_client_metrics - boolean - optional - default: false
     ## Collects metrics using the CLIENT command.
     ## This requires the Redis CLIENT command to be available on your servers.
     #
-    # collect_client_metrics = false
-
-    ## @param ssl - boolean - optional - default: false
-    ## Enable SSL/TLS encryption for the check.
-    #
-    # ssl: false
-
-    ## @param ssl_keyfile - string - optional
-    ## The path to the client-side private keyfile.
-    #
-    # ssl_keyfile = <CERT_KEY_PATH>
-
-    ## @param ssl_certfile - string - optional
-    ## The path to the client-side certificate file.
-    #
-    # ssl_certfile = <CERT_PEM_PATH>
-
-    ## @param ssl_ca_certs - string - optional
-    ## The path to the ca_certs file.
-    #
-    # ssl_ca_certs = <CERT_PATH>
+    collect_client_metrics = false
 
     ## @param keys - list of strings - optional
     ## Enter the list of keys to collect the lengths from.
@@ -77,9 +52,7 @@ const (
     ## The length is zero for keys that have a type other than list, set, hash, or sorted set.
     ## Note: Keys can be expressed as patterns, see https://redis.io/commands/keys.
     #
-    # keys:
-    #   - <KEY_1>
-    #   - <KEY_PATTERN>
+    # keys = ["KEY_1", "KEY_PATTERN"]
 
     ## @param warn_on_missing_keys - boolean - optional - default: true
     ## If you provide a list of 'keys', set this to true to have the Agent log a warning
@@ -94,31 +67,18 @@ const (
     ## Set a custom value here if you need to get more than 128 slowlog entries every 15 seconds.
     ## Warning: Higher values may impact the performance of your Redis instance.
     #
-    # slowlog-max-len = 128
+    slowlog-max-len = 128
 
     ## @param command_stats - boolean - optional - default: false
     ## Collect INFO COMMANDSTATS output as metrics.
     #
     # command_stats = false
 
-    ## @param disable_connection_cache - boolean - optional - default: false
-    ## Enable the connections cache so the check attempts to reuse the same Redis connections
-    ## at every collection cycle. If disabled, this prevents stale connections.
-    #
-    # disable_connection_cache = false
-
     ## @param tags - list of strings - optional
     ## A list of tags to attach to every metric and service check emitted by this instance.
     ##
-    # tags:
-    #   - <KEY_1> = <VALUE_1>
-    #   - <KEY_2> = <VALUE_2>
-
-    ## @param empty_default_hostname - boolean - optional - default: false
-    ## This forces the check to send metrics with no hostname.
-    ##
-    ## This is useful for cluster-level checks.
-    #
-    # empty_default_hostname = false
+    [inputs.httpProb.tags]
+    # tag1 = val1
+    # tag2 = val2
 `
 )
