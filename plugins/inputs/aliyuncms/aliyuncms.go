@@ -113,10 +113,6 @@ func (_ *CMS) Catalog() string {
 	return `aliyun`
 }
 
-func (_ *CMS) Test() (*inputs.TestResult, error) {
-	return nil, nil
-}
-
 func (c *CMS) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
