@@ -19,8 +19,8 @@ type slowlogMeasurement struct {
 	lastTimestampSeen map[string]int64
 }
 
-func (m *slowlogMeasurement) LineProto() (io.Point, error) {
-	return io.MakeMetric(m.name, m.tags, m.fields, m.ts)
+func (m *slowlogMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
 func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
