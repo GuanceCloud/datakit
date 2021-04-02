@@ -354,23 +354,6 @@ func parseCIDR(cidr string) ([]string, error) {
 	return ips[1 : len(ips)-1], nil
 }
 
-func (s *Scanport) Test() (*inputs.TestResult, error) {
-	s.test = true
-	s.resData = nil
-
-	s.Targets = "127.0.0.1"
-	s.Port = "1000-3000"
-
-	s.handle()
-
-	res := &inputs.TestResult{
-		Result: s.resData,
-		Desc:   "success!",
-	}
-
-	return res, nil
-}
-
 func inc(ip net.IP) {
 	for j := len(ip) - 1; j >= 0; j-- {
 		ip[j]++
