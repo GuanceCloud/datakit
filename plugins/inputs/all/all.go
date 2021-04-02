@@ -59,6 +59,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysqlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/neo4j"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nfsstat"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nginx"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nginxlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pgreplication"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
