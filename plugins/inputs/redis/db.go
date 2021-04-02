@@ -20,8 +20,8 @@ type dbMeasurement struct {
 	resData map[string]interface{}
 }
 
-func (m *dbMeasurement) LineProto() (io.Point, error) {
-	return io.MakeMetric(m.name, m.tags, m.fields, m.ts)
+func (m *dbMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
 func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
