@@ -53,11 +53,6 @@ func (*Druid) Catalog() string {
 	return inputName
 }
 
-func (*Druid) Test() (*inputs.TestResult, error) {
-	// 被动接受 http 数据，无法进行测试
-	return &inputs.TestResult{Desc: "success"}, nil
-}
-
 func (d *Druid) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("druid input started...")
