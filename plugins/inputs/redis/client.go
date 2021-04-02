@@ -1,22 +1,22 @@
 package redis
 
 import (
+	"bufio"
+	"strings"
 	"time"
-    "strings"
-    "bufio"
 
-    "github.com/go-redis/redis"
+	"github.com/go-redis/redis"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type clientMeasurement struct {
-	client *redis.Client
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	client  *redis.Client
+	name    string
+	tags    map[string]string
+	fields  map[string]interface{}
+	ts      time.Time
 	resData map[string]interface{}
 }
 
@@ -30,38 +30,38 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]*inputs.FieldInfo{
 			"id": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 			"addr": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 			"fd": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 			"age": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 			"idle": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 			"sub": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 			"psub": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type: inputs.Gauge,
-				Desc: "this is CPU usage",
+				Type:     inputs.Gauge,
+				Desc:     "this is CPU usage",
 			},
 		},
 	}
@@ -69,10 +69,10 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 
 func CollectClientMeasurement(cli *redis.Client, tags map[string]string) *clientMeasurement {
 	m := &clientMeasurement{
-		client: cli,
+		client:  cli,
 		resData: make(map[string]interface{}),
-		tags: make(map[string]string),
-		fields: make(map[string]interface{}),
+		tags:    make(map[string]string),
+		fields:  make(map[string]interface{}),
 	}
 	m.name = "redis_client_list"
 	m.tags = tags
@@ -149,4 +149,3 @@ func (m *clientMeasurement) submit() error {
 
 	return nil
 }
-
