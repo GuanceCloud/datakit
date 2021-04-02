@@ -542,11 +542,6 @@ github.com/influxdata/telegraf/plugins/inputs/mqtt_consumer
 github.com/influxdata/telegraf/plugins/inputs/nats
 github.com/influxdata/telegraf/plugins/inputs/net
 github.com/influxdata/telegraf/plugins/inputs/net_response
-github.com/influxdata/telegraf/plugins/inputs/nginx
-github.com/influxdata/telegraf/plugins/inputs/nginx_plus
-github.com/influxdata/telegraf/plugins/inputs/nginx_plus_api
-github.com/influxdata/telegraf/plugins/inputs/nginx_upstream_check
-github.com/influxdata/telegraf/plugins/inputs/nginx_vts
 github.com/influxdata/telegraf/plugins/inputs/nsq
 github.com/influxdata/telegraf/plugins/inputs/nsq_consumer
 github.com/influxdata/telegraf/plugins/inputs/ntpq
@@ -990,7 +985,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20210317152858-513c2a44f670
+# golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
@@ -1044,7 +1039,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210317225723-c4fcb01b228e
+# golang.org/x/sys v0.0.0-20210331175145-43e1dd70ce54
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
