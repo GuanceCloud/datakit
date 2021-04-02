@@ -22,8 +22,8 @@ type infoMeasurement struct {
 }
 
 // 生成行协议
-func (m *infoMeasurement) LineProto() (io.Point, error) {
-	return io.MakeMetric(m.name, m.tags, m.fields, m.ts)
+func (m *infoMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
 // 指定指标
