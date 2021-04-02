@@ -103,3 +103,9 @@ func FeedMeasurement(name, category string, measurements []Measurement, opt *io.
 	}
 	return io.Feed(name, category, pts, opt)
 }
+
+func NewTagInfo(desc string) *TagInfo {
+	return &TagInfo{
+		Desc: desc,
+	}
+}
