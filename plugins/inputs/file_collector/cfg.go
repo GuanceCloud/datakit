@@ -10,11 +10,12 @@ import (
 const (
 	sampleConfig = `
 [[inputs.file_collector]]
-   ### monitor file path
+   ### monitor file path ,required
    path = ""
    ## upload file max size example  100K 32M 2G 
    # max_upload_size = "32M"
-
+   # log status , alert/notice/info ,default info
+   # status = "info"
    ## your oss  config
   [inputs.file_collector.oss]
       access_key_id = "" 
@@ -37,6 +38,7 @@ type FileCollector struct {
 	Path          string `toml:"path"`
 	UploadType    string `toml:"upload_type"`
 	MaxUploadSize string `toml:"max_upload_size"`
+	Status        string `toml:"status"`
 
 	OssClient  *io.OSSClient  `toml:"oss,omitempty"`
 	SftpClient *io.SFTPClient `toml:"sftp,omitempty"`
