@@ -903,20 +903,6 @@ func (m *MysqlMonitor) computeSynthetic() error {
 	return nil
 }
 
-func (m *MysqlMonitor) Test() (*inputs.TestResult, error) {
-	m.test = true
-	m.testData = nil
-
-	m.collectMetrics()
-
-	res := &inputs.TestResult{
-		Result: m.testData,
-		Desc:   "success!",
-	}
-
-	return res, nil
-}
-
 func init() {
 	inputs.Add(name, func() inputs.Input {
 		return &MysqlMonitor{}
