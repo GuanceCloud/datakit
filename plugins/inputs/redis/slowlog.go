@@ -16,6 +16,7 @@ type slowlogMeasurement struct {
 	tags              map[string]string
 	fields            map[string]interface{}
 	ts                time.Time
+	slowlogMaxLen     int
 	lastTimestampSeen map[string]int64
 }
 
@@ -47,6 +48,7 @@ func CollectSlowlogMeasurement(input *Input) *slowlogMeasurement {
 		tags:              make(map[string]string),
 		fields:            make(map[string]interface{}),
 		lastTimestampSeen: make(map[string]int64),
+		slowlogMaxLen: input.SlowlogMaxLen,
 	}
 
 	m.name = "redis_slowlog"
@@ -59,7 +61,7 @@ func CollectSlowlogMeasurement(input *Input) *slowlogMeasurement {
 // 数据源获取数据
 func (m *slowlogMeasurement) getData() error {
 	var maxSlowEntries, defaultMaxSlowEntries float64
-	defaultMaxSlowEntries = 128
+	defaultMaxSlowEntries = m.slowlogMaxLen
 
 	maxSlowEntries = defaultMaxSlowEntries
 
