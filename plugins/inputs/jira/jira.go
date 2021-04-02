@@ -95,20 +95,6 @@ func (j *Jira) Run() {
 	p.active()
 }
 
-func (j *Jira) Test() (*inputs.TestResult, error) {
-	tRst := &inputs.TestResult{}
-
-	para := j.genParam()
-	_, err := para.makeJiraClient()
-	if err != nil {
-		tRst.Desc = "链接Jira服务器错误"
-	} else {
-		tRst.Desc = "链接Jira正常"
-	}
-
-	return tRst, err
-}
-
 func (j *Jira) genParam() *JiraParam {
 	if j.MetricsName == "" {
 		j.MetricsName = defaultMetricName
