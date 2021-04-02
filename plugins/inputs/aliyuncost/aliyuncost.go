@@ -32,13 +32,6 @@ func (*agent) SampleConfig() string {
 	return sampleConfig
 }
 
-func (ag *agent) Test() (*inputs.TestResult, error) {
-	ag.mode = "test"
-	ag.testResult = &inputs.TestResult{}
-	ag.Run()
-	return ag.testResult, ag.testError
-}
-
 func (ag *agent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
