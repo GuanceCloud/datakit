@@ -20,15 +20,15 @@ const (
     # lighttpd status url
     # required
     url = "http://127.0.0.1:8080/server-status"
-    
+
     # lighttpd version is "v1" or "v2"
     # required
     version = "v1"
-    
+
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     # required, cannot be less than zero
     interval = "10s"
-    
+
     # [inputs.lighttpd.tags]
     # from = "127.0.0.1:8080"
     # tags1 = "value1"
@@ -64,28 +64,6 @@ func (*Lighttpd) SampleConfig() string {
 
 func (*Lighttpd) Catalog() string {
 	return inputName
-}
-
-func (h *Lighttpd) Test() (*inputs.TestResult, error) {
-	l = logger.SLogger(inputName)
-
-	var result = inputs.TestResult{Desc: "数据指标获取失败，详情见错误信息"}
-	var err error
-
-	if err = h.loadCfg(); err != nil {
-		return &result, err
-	}
-
-	var data []byte
-	data, err = h.getMetrics()
-	if err != nil {
-		return &result, err
-	}
-
-	result.Result = data
-	result.Desc = "数据指标获取成功"
-
-	return &result, err
 }
 
 func (h *Lighttpd) Run() {

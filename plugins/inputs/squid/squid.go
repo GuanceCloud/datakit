@@ -74,22 +74,6 @@ func (s *Squid) Run() {
 	p.gather()
 }
 
-func (s *Squid) Test() (*inputs.TestResult, error) {
-	tRst := &inputs.TestResult{}
-
-	para := s.genParam()
-	pt, err := para.getMetrics(true)
-
-	tRst.Result = pt
-	if err != nil {
-		tRst.Desc = "链接squid服务器错误"
-	} else {
-		tRst.Desc = "链接squid服务正常"
-	}
-
-	return tRst, err
-}
-
 func (s *Squid) genParam() *SquidParam {
 	if s.MetricsName == "" {
 		s.MetricsName = defaultMetricName
