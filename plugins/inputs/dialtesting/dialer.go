@@ -1,7 +1,6 @@
 package dialtesting
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -20,6 +19,7 @@ type dialer struct {
 	testCnt  int64
 	class    string
 
+	tags     map[string]string
 	updateCh chan dt.Task
 }
 
@@ -42,13 +42,14 @@ func (d *dialer) stop() {
 	}
 }
 
-func newDialer(t dt.Task) (*dialer, error) {
+func newDialer(t dt.Task, ts map[string]string) (*dialer, error) {
 
 	return &dialer{
 		task: t,
 
 		updateCh: make(chan dt.Task),
 		initTime: time.Now(),
+		tags:     ts,
 	}, nil
 }
 
@@ -79,29 +80,17 @@ func (d *dialer) run() error {
 			fields := map[string]interface{}{}
 			tags, fields = d.task.GetResults()
 
-			lfields := map[string]interface{}{}
-			mfields := map[string]interface{}{}
-			for k, v := range fields {
-				if k == `message` {
-					data, err := json.Marshal(v)
-					if err != nil {
-						l.Errorf(`%s`, err.Error())
-						continue
-					}
-					lfields[k] = string(data)
-				} else {
-					mfields[k] = v
-				}
+			for k, v := range d.tags {
+				tags[k] = v
 			}
 
-			data, err := MakeMetric(d.task.MetricName(), tags, mfields, time.Now())
-			x.doFeed(io.Metric, data, d.task.PostURLStr())
+			data, err := MakeMetric(d.task.MetricName(), tags, fields, time.Now())
 			if err != nil {
-				l.Warnf("io feed failed, %s", err.Error())
+				l.Warnf("make metric failed: %s", err.Error)
+				continue
 			}
 
-			data, err = MakeMetric(d.task.MetricName(), tags, lfields, time.Now())
-			x.doFeed(io.Logging, data, d.task.PostURLStr())
+			err = x.doFeed(io.Logging, data, d.task.PostURLStr())
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
 			}
