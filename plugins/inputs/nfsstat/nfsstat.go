@@ -27,11 +27,11 @@ const (
     # nfsstat file location. default "/proc/net/rpc/nfsd"
     # required
     location = "/proc/net/rpc/nfsd"
-    
+
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     # required
     interval = "10s"
-    
+
     # [inputs.nfsstat.tags]
     # tags1 = "value1"
 `
@@ -61,28 +61,6 @@ func (*NFSstat) SampleConfig() string {
 
 func (*NFSstat) Catalog() string {
 	return inputName
-}
-
-func (n *NFSstat) Test() (*inputs.TestResult, error) {
-	l = logger.SLogger(inputName)
-
-	var result = inputs.TestResult{Desc: "数据指标获取失败，详情见错误信息"}
-	var err error
-
-	if err = n.loadCfg(); err != nil {
-		return &result, err
-	}
-
-	var data []byte
-	data, err = buildPoint(n.Location, n.Tags)
-	if err != nil {
-		return &result, err
-	}
-
-	result.Result = data
-	result.Desc = "数据指标获取成功"
-
-	return &result, err
 }
 
 func (n *NFSstat) Run() {
