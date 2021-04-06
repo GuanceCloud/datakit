@@ -167,7 +167,7 @@ func (d *DialTesting) newHttpTaskRun(t dt.HTTPTask) (*dialer, error) {
 		return nil, err
 	}
 
-	dialer, err := newDialer(&t)
+	dialer, err := newDialer(&t, d.Tags)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -245,7 +245,7 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 				} else { // create new task
 					dialer, err := d.newHttpTaskRun(t)
 					if err != nil {
-						l.Warnf(`%s, ignore`, err.Error())
+						l.Errorf(`%s, ignore`, err.Error())
 					} else {
 						d.curTasks[t.ID()] = dialer
 					}
