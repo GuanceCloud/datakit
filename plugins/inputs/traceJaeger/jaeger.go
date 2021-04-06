@@ -52,10 +52,6 @@ func (t *JaegerTrace) Run() {
 	log.Infof("%s input exit", inputName)
 }
 
-func (t *JaegerTrace) Test() (*inputs.TestResult, error) {
-	return nil, nil
-}
-
 func (t *JaegerTrace) RegHttpHandler() {
 	if t.Path == "" {
 		t.Path = defaultJeagerPath
