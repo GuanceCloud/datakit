@@ -32,13 +32,6 @@ func (_ *agent) SampleConfig() string {
 	return sampleConfig
 }
 
-func (ag *agent) Test() (*inputs.TestResult, error) {
-	ag.mode = "test"
-	ag.testResult = &inputs.TestResult{}
-	ag.Run()
-	return ag.testResult, ag.testError
-}
-
 func (ag *agent) Run() {
 	moduleLogger = logger.SLogger(inputName)
 
@@ -211,8 +204,7 @@ func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
 			}
 
 			if ag.isTest() {
-				data, _ := io.MakeMetric(measurement, tags, fields)
-				ag.testResult.Result = append(ag.testResult.Result, data...)
+				// pass
 			} else if ag.isDebug() {
 				data, err := io.MakeMetric(measurement, tags, fields)
 				if err != nil {
