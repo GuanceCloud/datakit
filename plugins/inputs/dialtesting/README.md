@@ -35,7 +35,7 @@
 	# 区域：冗余字段，便于调试
 	* "regions": "beijing",
 	
-	"advance_options": {
+	"advance_options": [{
 		"request_options": {
 			"follow_redirect": true,
 			"headers": {
@@ -48,8 +48,8 @@
 				"password": ""
 			}
 		},
-		"request_body": { # 以下几个类型只能单选
-			"body_type": "text/plain|application/json|text/xml|None",
+		"request_body": { 
+			"body_type": "text/plain|application/json|text/xml", # 以下几个类型只能单选 或者为空
 			"body": ""
 		},
 		"certificate": {
@@ -63,7 +63,7 @@
 				"header1": "value1"
 			}
 		}
-	},
+	}],
 
 	* "success_when":  [ 
 		{
@@ -74,20 +74,18 @@
 			"header": {
 				"header-name":{ # 以下几个条件只能单选
 					"contains":"",
-					"does_not_contains": "",
+					"not_contains": "",
 					"is": "",
 					"is_not": "",
 					"match_regex": "",
-					"does_not_match_regex": ""
+					"not_match_regex": ""
 				},
-				"another-header-name": "...",
+				"another-header-name": {"..."},
 			},
-			"response_time": {
-				"less_than": "100ms"
-			},
+			"response_time":  "100ms",
 			"status_code": { # 以下几个条件只能单选
-				"is": 200,
-				"is_not": 400,
+				"is": "200",
+				"is_not": "400",
 				"match_regex": "ok*",
 				"not_match_regex": "*bad"
 			}
@@ -102,43 +100,6 @@
 
 ### HTTP 拨测结果数据结构定义
 
-#### 指标
-
-```python
-{
-	"measurement": "http_dial_testing",
-	"tags": {
-		"name": "",
-		"url": "",
-		"用户额外指定的各种": "tags",
-
-		# 每个具体的 datakit 只会在一个 region，故这里只有单个值
-		"region": "",
-
-		"result": "OK", # 只有 OK/FAIL 两种状态，便于分组以及过滤查找
-
-		"status_code": "200/OK" # 便于分组以及过滤
-
-		# HTTP 协议版本，HTTP/1.0 HTTP/1.1 等
-		"proto": "HTTP/1.0"
-	},
-
-	"fields": {
-		# HTTP 相应时间, 单位 ms
-		"response_time": 300,
-
-		# 返回 body 长度，单位字节。如无 body，则无此指标，或者填 0
-		"content_length": 1024,
-
-		# 只有 1/-1 两种状态, 1 表示成功, -1 表示失败, 便于 UI 绘制状态跃迁图（TODO: 现在前端图标支持负数么）
-		"success": 1, 
-
-		# 其它指标可再增加...
-	},
-	"time": time.Now() 
-}
-```
-
 #### 日志
 
 ```python
@@ -152,25 +113,31 @@
 		# 每个具体的 datakit 只会在一个 region，故这里只有单个值
 		"region": "",
 
-		"result": "OK", # 只有 OK/FAIL 两种状态，便于分组以及过滤查找
-
-		"status_code": "200/OK" # 便于分组以及过滤
+		"status": "OK", # 只有 OK/FAIL 两种状态，便于分组以及过滤查找
 
 		# HTTP 协议版本，HTTP/1.0 HTTP/1.1 等
-		"proto": "HTTP/1.0"
+		"response_dns":  1000 #DNS解析时间,单位 us
+		"response_connection": 1000#连接时间（TCP连接）,单位 us
+		"response_ssl":  1000#SSL连接时间,单位 us
+		"response_ttfb": 1000 #首次回包时间（请求响应时间）,单位 us
+		"response_download": 1000 #下载时间,单位 us
+		
+		"status_code_class": "2xx",
+		"status_code_string": "OK"
+		"status_code": "200"
+		
 	},
 
 	"fields": {
 		# HTTP 相应时间, 单位 ms
 		"response_time": 300,
+		"proto": "HTTP/1.0"
 
 		# 返回 body 长度，单位字节。如无 body，则无此指标，或者填 0
-		"content_length": 1024,
+		"response_body_size": 1024,
 
 		# 只有 1/-1 两种状态, 1 表示成功, -1 表示失败, 便于 UI 绘制状态跃迁图（TODO: 现在前端图标支持负数么）
 		"success": 1,
-
-		"status": "根据拨测结果，给出各种不同的 level",
 
 		# 其它指标可再增加...
 
