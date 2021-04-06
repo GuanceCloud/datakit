@@ -44,10 +44,6 @@ func (r *logstashInfluxdbOutput) PipelineConfig() map[string]string {
 func (r *logstashInfluxdbOutput) Run() {
 }
 
-func (r *logstashInfluxdbOutput) Test() (result *inputs.TestResult, err error) {
-	return
-}
-
 func (r *logstashInfluxdbOutput) RegHttpHandler() {
 	moduleLogger = logger.SLogger(inputName)
 
