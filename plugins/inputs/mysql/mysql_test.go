@@ -129,6 +129,11 @@ func TestCollect(t *testing.T) {
 	input.Collect()
 
 	for _, obj := range input.collectCache {
-		fmt.Println("obj =====>", obj)
+		point, err := obj.LineProto()
+		if err != nil {
+			fmt.Println("error =======>", err)
+		} else {
+			fmt.Println("point line =====>", point.String())
+		}
 	}
 }
