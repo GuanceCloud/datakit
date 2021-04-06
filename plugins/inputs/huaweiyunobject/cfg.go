@@ -7,7 +7,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -91,8 +90,7 @@ type agent struct {
 
 	mode string
 
-	testResult *inputs.TestResult
-	testError  error
+	testError error
 }
 
 func (ag *agent) IsDebug() bool {
