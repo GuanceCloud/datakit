@@ -12,7 +12,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"syscall"
 	"time"
 
@@ -29,22 +28,20 @@ import (
 )
 
 var (
-	flagVersion        = flag.Bool("version", false, `show version info`)
-	flagCheckConfigDir = flag.Bool("check-config-dir", false, `check datakit conf.d, list configired and mis-configured collectors`)
-	flagInputFilters   = flag.String("input-filter", "", "filter the inputs to enable, separator is :")
-	flagDocker         = flag.Bool("docker", false, "run within docker")
+	flagVersion = flag.Bool("version", false, `show version info`)
+	flagDocker  = flag.Bool("docker", false, "run within docker")
 
-	flagDumpConfigSamples = flag.String("dump-samples", "", `dump all config samples`)
-
-	flagCmd      = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-	flagGrokq    = flag.Bool("grokq", false, "query groks interactively")
+	// tool-commands supported in datakit
+	flagCmd       = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline  = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText      = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagGrokq     = flag.Bool("grokq", false, "query groks interactively")
+	flagMan       = flag.Bool("man", false, "read manuals of inputs")
+	flagExportMan = flag.String("export-man", "", "export all inputs and related manuals to specified path")
 )
 
 var (
-	inputFilters = []string{}
-	l            = logger.DefaultSLogger("main")
+	l = logger.DefaultSLogger("main")
 
 	ReleaseType = ""
 )
@@ -92,20 +89,6 @@ ReleasedInputs: %s
 	if *flagCmd {
 		runDatakitWithCmd()
 		os.Exit(0)
-	}
-
-	if *flagDumpConfigSamples != "" {
-		dumpAllConfigSamples(*flagDumpConfigSamples)
-		os.Exit(0)
-	}
-
-	if *flagCheckConfigDir {
-		config.CheckConfd()
-		os.Exit(0)
-	}
-
-	if *flagInputFilters != "" {
-		inputFilters = strings.Split(":"+strings.TrimSpace(*flagInputFilters)+":", ":")
 	}
 
 	if *flagDocker {
@@ -178,7 +161,6 @@ func run() {
 }
 
 func tryLoadConfig() {
-	datakit.Cfg.InputFilters = inputFilters
 	datakit.MoveDeprecatedMainCfg()
 
 	for {
@@ -216,6 +198,18 @@ func runDatakitWithCmd() {
 
 	if *flagGrokq {
 		cmds.Grokq()
+		return
+	}
+
+	if *flagMan {
+		cmds.Man()
+		return
+	}
+
+	if *flagExportMan != "" {
+		if err := cmds.ExportMan(*flagExportMan); err != nil {
+			l.Error(err)
+		}
 		return
 	}
 }
