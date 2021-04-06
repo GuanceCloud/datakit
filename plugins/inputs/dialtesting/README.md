@@ -152,6 +152,9 @@
 
 注意，这里的 `fail_reason` 要描述 `body/header/response_time/status_code` 各自失败的原因。如果可以，所有原因都描述一遍，如 `response time larger than 100ms; status code match regex 4*`
 
+- 请求失败才记录 header/body，body 可截断（最大 32KB）
+- 请求成功只记录 body size（如果有 body）
+
 ## TCP 拨测任务定义
 
 ```python
