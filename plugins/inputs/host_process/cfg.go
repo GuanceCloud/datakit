@@ -2,7 +2,6 @@ package host_process
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -14,10 +13,10 @@ const (
  ## process name support regexp
  # process_name = [".*datakit.*"]
  ## process min run time default 10m,Collection  the process of running more than ten minutes
- min_run_time     = "10m"  
- ## open collection metric	
+ min_run_time     = "10m"
+ ## open collection metric
  open_metric = false
- ## pipeline path 
+ ## pipeline path
  # pipeline = ""
 `
 
@@ -34,5 +33,4 @@ type Processes struct {
 
 	re     string
 	isTest bool
-	result *inputs.TestResult
 }
