@@ -1,3 +1,0 @@
-mysql.myisam.key_buffer_bytes_unflushed
-mysql.myisam.key_buffer_bytes_used
-mysql.performance.table_locks_waited.rate
