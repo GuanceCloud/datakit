@@ -434,69 +434,6 @@ func (m *MysqlMonitor) parseInnodbStatus(str string) error {
 			continue
 		}
 
-		// if strings.Index(line, "seconds the semaphore:") > 0 {
-		// 	increaseMap(p, "Innodb_semaphore_waits", "1")
-		// 	wait := atof(record[9])
-		// 	wait = wait * 1000
-		// 	increaseMap(p, "Innodb_mutex_spin_waits", fmt.Sprintf("%.f", wait))
-		// 	continue
-		// }
-
-		// // Innodb Transactions
-		// if strings.Index(line, "Trx id counter") == 0 {
-		// 	// The beginning of the TRANSACTIONS section: start counting
-		// 	// transactions
-		// 	// Trx id counter 0 1170664159
-		// 	// Trx id counter 861B144C
-		// 	isTransaction = true
-		// 	continue
-		// }
-		// if strings.Index(line, "History list length") == 0 {
-		// 	// History list length 132
-		// 	increaseMap(p, "Innodb_history_list_length", record[3])
-		// 	continue
-		// }
-		// if isTransaction && strings.Index(line, "---TRANSACTION") == 0 {
-		// 	// ---TRANSACTION 0, not started, process no 13510, OS thread id 1170446656
-		// 	increaseMap(p, "Innodb_current_transactions", "1")
-		// 	if strings.Index(line, "ACTIVE") > 0 {
-		// 		increaseMap(p, "Innodb_active_transactions", "1")
-		// 	}
-		// 	continue
-		// }
-		// if isTransaction && strings.Index(line, "------- TRX HAS BEEN") == 0 {
-		// 	// ------- TRX HAS BEEN WAITING 32 SEC FOR THIS LOCK TO BE GRANTED:
-		// 	increaseMap(p, "Innodb_row_lock_time", "1")
-		// 	continue
-		// }
-		// if strings.Index(line, "read views open inside InnoDB") > 0 {
-		// 	// 1 read views open inside InnoDB
-		// 	m.resData["Innodb_read_views"] = atof(record[0])
-		// 	continue
-		// }
-		// if strings.Index(line, "mysql tables in use") == 0 {
-		// 	// mysql tables in use 2, locked 2
-		// 	increaseMap(p, "Innodb_tables_in_use", record[4])
-		// 	increaseMap(p, "Innodb_locked_tables", record[6])
-		// 	continue
-		// }
-		// if isTransaction && strings.Index(line, "lock struct(s)") == 0 {
-		// 	// 23 lock struct(s), heap size 3024, undo log entries 27
-		// 	// LOCK WAIT 12 lock struct(s), heap size 3024, undo log entries 5
-		// 	// LOCK WAIT 2 lock struct(s), heap size 368
-		// 	if strings.Index(line, "LOCK WAIT") > 0 {
-		// 		increaseMap(p, "Innodb_lock_structs", record[2])
-		// 		increaseMap(p, "Innodb_locked_transactions", "1")
-		// 	} else if strings.Index(line, "ROLLING BACK") > 0 {
-		// 		// ROLLING BACK 127539 lock struct(s), heap size 15201832,
-		// 		// 4411492 row lock(s), undo log entries 1042488
-		// 		increaseMap(p, "Innodb_lock_structs", record[0])
-		// 	} else {
-		// 		increaseMap(p, "Innodb_lock_structs", record[0])
-		// 	}
-		// 	continue
-		// }
-
 		// File I/O
 		if strings.Index(line, " OS file reads, ") > 0 {
 			// 8782182 OS file reads, 15635445 OS file writes, 947800 OS
