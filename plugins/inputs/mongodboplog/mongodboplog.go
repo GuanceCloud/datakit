@@ -1,7 +1,6 @@
 package mongodboplog
 
 import (
-	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -25,23 +24,23 @@ const (
     # MongoDB URL: mongodb://user:password@host:port/database
     # required
     mongodb_url="mongodb://127.0.0.1:27017"
-    
+
     # required
     database="<your-database>"
-    
+
     # required
     collection="<your-collection>"
 
     # category only accept "metric" and "logging"
     # if category is invalid, default use "metric"
     category = "metric"
-    
+
     # tags path
     tagList=[
 	# "/<path>",
     	# "/a/b/c/e"
     ]
-    
+
     # fields path. required
     # type in ["int", "float", "bool", "string"]
     [inputs.mongodb_oplog.fieldList]
@@ -49,7 +48,7 @@ const (
 	# "/a/c/d" = "int"
     	# "/a/c/f[1]/e/f" = "bool"
     	# "/a/c/f\\[0\\]" = "int"
-    
+
     # [inputs.mongodb_oplog.tags]
     # tags1 = "value1"
 `
@@ -92,31 +91,6 @@ func (*Mongodboplog) Catalog() string {
 
 func (*Mongodboplog) SampleConfig() string {
 	return sampleCfg
-}
-
-func (m *Mongodboplog) Test() (*inputs.TestResult, error) {
-	l = logger.SLogger(inputName)
-
-	m.initCfg()
-
-	var err error
-	var session *mgo.Session
-	if session, err = mgo.Dial(m.MongodbURL); err != nil {
-		err = fmt.Errorf("failed to connect, err: %s", err.Error())
-	}
-	defer func() {
-		if session != nil {
-			session.Close()
-		}
-	}()
-
-	var result inputs.TestResult
-	if err != nil {
-		result.Desc = "测试连接MongoDB失败，详情见错误信息"
-	} else {
-		result.Desc = "测试连接MongoDB成功"
-	}
-	return &result, err
 }
 
 func (m *Mongodboplog) Run() {
