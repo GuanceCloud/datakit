@@ -28,13 +28,6 @@ func (_ *ucInstance) Catalog() string {
 	return "ucloud"
 }
 
-func (ag *ucInstance) Test() (*inputs.TestResult, error) {
-	ag.mode = "test"
-	ag.testResult = &inputs.TestResult{}
-	ag.Run()
-	return ag.testResult, ag.testError
-}
-
 func (ag *ucInstance) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
@@ -172,11 +165,10 @@ func (ag *ucInstance) fetchMetric(ctx context.Context, info *queryListInfo) erro
 						}
 
 						if ag.isTest() {
-							data, _ := io.MakeMetric(measurement, tags, fields, metricTime)
-							ag.testResult.Result = append(ag.testResult.Result, data...)
+							// pass
 						} else if ag.isDebug() {
 							data, _ := io.MakeMetric(measurement, tags, fields, metricTime)
-							fmt.Printf("-----%s\n", string(data))
+							fmt.Printf("-----%s\n", data)
 						} else {
 							io.NamedFeedEx(inputName, io.Metric, measurement, tags, fields, metricTime)
 						}
