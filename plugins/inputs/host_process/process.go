@@ -32,12 +32,6 @@ func (p *Processes) PipelineConfig() map[string]string {
 	}
 }
 
-func (p *Processes) Test() (*inputs.TestResult, error) {
-	p.isTest = true
-	p.WriteObject()
-	return p.result, nil
-}
-
 func (p *Processes) Run() {
 	l = logger.SLogger(inputName)
 
@@ -237,13 +231,6 @@ func (p *Processes) WriteObject() {
 		}
 		fields["cmdline"] = cmd
 		if p.isTest {
-			point, err := io.MakeMetric("host_processes", tags, fields, times)
-			if err != nil {
-				l.Errorf("make metric err:%s", err.Error())
-				p.result.Result = []byte(err.Error())
-			} else {
-				p.result.Result = point
-			}
 			return
 		}
 		// 此处为了全文检索 需要冗余一份数据 将tag field字段全部塞入 message
