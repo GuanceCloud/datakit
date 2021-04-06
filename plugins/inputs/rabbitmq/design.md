@@ -12,7 +12,6 @@ rabbitmq 采集器调研
   |   object_totals_connections      |   int  |   count  | Total number of connections | 
   |   object_totals_consumers      |   int  |   count  | Total number of consumers | 
   |   object_totals_queues      |   int  |   count  | Total number of queues | 
-  |   object_totals_queues      |   int  |   count  | Total number of queues | 
   |   message_ack_count      |   int  |   count  | Number of messages delivered to clients and acknowledged | 
   |   message_ack_rate      |   float  |   rate  | Rate of messages delivered to clients and acknowledged per second | 
   |   message_deliver_get_count     |   int  |   count  | Sum of messages delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get | 
@@ -28,9 +27,11 @@ rabbitmq 采集器调研
   |   message_return_unroutable_count_rate     |   float  |   rate | Rate of messages returned to publisher as unroutable per second | 
   |   message_return_unroutable_count    |   int  |   count | Count of messages returned to publisher as unroutable | 
   |   queue_totals_messages_count    |   int  |   count | Total number of messages (ready plus unacknowledged) | 
-  |   queue_totals_messages_rate    |   float  |   rate | Total number of messages (ready plus unacknowledged) | 
+  |   queue_totals_messages_rate    |   float  |   rate | Total rate of messages (ready plus unacknowledged) | 
   |   queue_totals_messages_ready    |   int  |   count | Number of messages ready for delivery | 
+  |   queue_totals_messages_ready_rate    |   int  |   count | Rate of number of messages ready for delivery| 
   |   queue_totals_messages_unacknowledged   |   int  |   count | Number of unacknowledged messages | 
+  |   queue_totals_messages_unacknowledged_rate   |   int  |   count | Rate of number of unacknowledged messages | 
 
 - rabbitmq_exchange （通过 API `/api/exchanges` 采集 ）
 
