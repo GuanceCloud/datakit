@@ -134,17 +134,6 @@ func (r *HarborMonitor) getHealth(baseUrl string) string {
 	return resp
 }
 
-func (r *HarborMonitor) Test() (*inputs.TestResult, error) {
-	r.test = true
-
-	res := &inputs.TestResult{
-		Result: r.resData,
-		Desc:   "success!",
-	}
-
-	return res, nil
-}
-
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &HarborMonitor{}
