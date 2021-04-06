@@ -30,10 +30,6 @@ func (*agent) SampleConfig() string {
 	return sampleConfig
 }
 
-func (ag *agent) Test() (*inputs.TestResult, error) {
-	return nil, nil
-}
-
 func createAwsClient(ak, sk, region string) (*health.Health, error) {
 
 	cred := credentials.NewStaticCredentials(ak, sk, "")
