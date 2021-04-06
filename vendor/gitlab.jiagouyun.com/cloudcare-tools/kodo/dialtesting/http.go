@@ -116,7 +116,6 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 		tags[k] = v
 	}
 
-<<<<<<< HEAD
 	message := map[string]interface{}{}
 
 	reasons := t.CheckResult()
@@ -157,18 +156,6 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 		fields[`message`] = string(data)
 	}
 
-=======
-	fields = map[string]interface{}{
-		"response_time":  int64(t.reqCost) / 1000000, // 单位为ms
-		"content_length": int64(len(t.respBody)),
-		"success":        int64(-1),
-	}
-
-	if t.reqError != "" {
-		fields[`failed_reason`] = t.reqError
-	}
-
->>>>>>> dev
 	return
 }
 
@@ -221,6 +208,7 @@ type HTTPOptCertificate struct {
 	IgnoreServerCertificateError bool   `json:ignore_server_certificate_error`
 	PrivateKey                   string `json:"private_key"`
 	Certificate                  string `json:"certificate"`
+	CaCert                       string `json:"ca"`
 }
 
 type HTTPOptProxy struct {
@@ -423,7 +411,7 @@ func (t *HTTPTask) Init() error {
 		// TLS opotions
 		if opt.Certificate != nil { // see https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go
 			caCertPool := x509.NewCertPool()
-			caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.Certificate))
+			caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.CaCert))
 
 			cert, err := tls.X509KeyPair([]byte(opt.Certificate.Certificate), []byte(opt.Certificate.PrivateKey))
 			if err != nil {
