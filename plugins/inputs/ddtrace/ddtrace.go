@@ -56,10 +56,6 @@ func (d *Ddtrace) Run() {
 	log.Infof("%s input exit", inputName)
 }
 
-func (_ *Ddtrace) Test() (*inputs.TestResult, error) {
-	return nil, nil
-}
-
 func (d *Ddtrace) RegHttpHandler() {
 	if d.Path == "" {
 		d.Path = defaultDdtracePath
