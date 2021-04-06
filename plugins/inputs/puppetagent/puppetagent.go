@@ -27,7 +27,7 @@ const (
     # puppetagent location of lastrunfile
     # required
     location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
-    
+
     # [inputs.puppetagent.tags]
     # tags1 = "value1"
 `
@@ -55,11 +55,6 @@ func (*PuppetAgent) SampleConfig() string {
 
 func (*PuppetAgent) Catalog() string {
 	return "puppet"
-}
-
-func (pa *PuppetAgent) Test() (*inputs.TestResult, error) {
-	// 监听文件变更，无法进行测试
-	return &inputs.TestResult{Desc: "success"}, nil
 }
 
 func (pa *PuppetAgent) Run() {
