@@ -12,10 +12,10 @@ _tests() {
         *) return 1
     esac
     # note that codecgen requires fastpath, so you cannot do "codecgen notfastpath"
-    # we test the following permutations: fastpath/unsafe, !fastpath/!unsafe, codecgen/unsafe
-    ## local a=( "" "safe"  "notfastpath safe" "codecgen" )
-    echo "TestCodecSuite: (fastpath/unsafe), (!fastpath/!unsafe), (codecgen/unsafe)"
-    local a=( "" "notfastpath safe"  "codecgen" )
+    # we test the following permutations wnich all execute different code paths as below.
+    echo "TestCodecSuite: (fastpath/unsafe), (fastpath/!unsafe), (!fastpath/!unsafe), (codecgen/unsafe)"
+    local nc=1 # count
+    local a=( "" "safe" "notfastpath safe"  "codecgen" )
     local b=()
     local c=()
     for i in "${a[@]}"
@@ -25,7 +25,7 @@ _tests() {
         [[ "$zcover" == "1" ]] && c=( -coverprofile "${i2// /-}.cov.out" )
         true &&
             ${gocmd} vet -printfuncs "errorf" "$@" &&
-            ${gocmd} test ${zargs[*]} ${ztestargs[*]} -vet "$vet" -tags "alltests $i" -run "TestCodecSuite" "${c[@]}" "$@" &
+            ${gocmd} test ${zargs[*]} ${ztestargs[*]} -vet "$vet" -tags "alltests $i" -count $nc -run "TestCodecSuite" "${c[@]}" "$@" &
         b+=("${i2// /-}.cov.out")
         [[ "$zwait" == "1" ]] && wait
             
@@ -34,7 +34,7 @@ _tests() {
     if [[ "$zextra" == "1" ]]; then
         [[ "$zwait" == "1" ]] && echo ">>>> TAGS: 'notfastpath x'; RUN: 'Test.*X$'"
         [[ "$zcover" == "1" ]] && c=( -coverprofile "x.cov.out" )
-        ${gocmd} test ${zargs[*]} ${ztestargs[*]} -vet "$vet" -tags "notfastpath x" -run 'Test.*X$' "${c[@]}" &
+        ${gocmd} test ${zargs[*]} ${ztestargs[*]} -vet "$vet" -tags "notfastpath x" -count $nc -run 'Test.*X$' "${c[@]}" &
         b+=("x.cov.out")
         [[ "$zwait" == "1" ]] && wait
     fi
