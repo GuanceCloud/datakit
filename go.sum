@@ -1400,6 +1400,8 @@ github.com/yvasiyarov/gorelic v0.0.0-20141212073537-a9bba5b9ab50/go.mod h1:NUSPS
 github.com/yvasiyarov/newrelic_platform_go v0.0.0-20140908184405-b21fdbd4370f/go.mod h1:GlGEuHIJweS1mbCqG+7vt2nvWLzLLnRHbXz5JKd/Qbg=
 github.com/zmb3/gogetdoc v0.0.0-20190228002656-b37376c5da6a/go.mod h1:ofmGw6LrMypycsiWcyug6516EXpIxSbZ+uI9ppGypfY=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210224030339-aadc56ffd8f3/go.mod h1:lUkihh8t0WmSjE2ZFs5OaA9bQ6hXNbkKc1DiSEmEiGM=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210401072947-bb2a050fa753 h1:h4jSz3VAcO/icUFN/sLD+HxeMe/HN+FmkmX3MbEJ6VQ=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210401072947-bb2a050fa753/go.mod h1:lUkihh8t0WmSjE2ZFs5OaA9bQ6hXNbkKc1DiSEmEiGM=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210118023115-6ad5eb4e2791 h1:5FflPzYXnRiudOjEBrNcLI3z0BQ5PuA2lI2IL4caNX0=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210118023115-6ad5eb4e2791/go.mod h1:JS8nwl1JfQajTvqMB5fgP22KW/cPm0IYPX15vZgvX2k=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210226030404-c5f11d73a927 h1:ODMGXMTjsMn0sf+vK1vxTtRf/sdbDdI2Z/SZ4uPZ9Ns=
@@ -1430,6 +1432,7 @@ gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210406013709-683e49b44d7f h1:
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210406013709-683e49b44d7f/go.mod h1:soplb9B6mzDJmxT8zFHMX+Fmhjy29wuzZCsqjmf67A8=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210406092021-eb74aa55f68c h1:q8Ck5R4stcmPYs0PwAsQvMmcmWJKg8DMiSjCGG4VPWM=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210406092021-eb74aa55f68c/go.mod h1:soplb9B6mzDJmxT8zFHMX+Fmhjy29wuzZCsqjmf67A8=
+go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738/go.mod h1:dnLIgRNXwCJa5e+c6mIZCrds/GIG4ncV9HhK5PX7jPg=
