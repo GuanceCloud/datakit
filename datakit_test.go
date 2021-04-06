@@ -6,77 +6,52 @@ import (
 	t2 "github.com/BurntSushi/toml"
 
 	"github.com/influxdata/toml"
-	"github.com/kardianos/service"
+	//"github.com/kardianos/service"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 func TestParseDataWay(t *testing.T) {
 
-	type tcase struct {
-		url        string
-		wsurl      string
-		assertTrue bool
+	cases := []struct {
+		url  string
+		fail bool
+	}{
+
+		{
+			url: "http://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
+		},
+		{
+			url: "https://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
+		},
+
+		{
+			url: "http://preprod-openway.cloudcare.cn:80?token=123&a=b&d=e&c=123_456",
+		},
+		{
+			url: "https://preprod-openway.cloudcare.cn:443?token=123&a=b&d=e&c=123_456",
+		},
+		//
+		//		{ // dial timeout
+		//			url:  "http://1.2.3?token=123&a=b&d=e&c=123_456",
+		//			fail: true,
+		//		},
+
+		{
+			url:  "",
+			fail: true,
+		}, // empty dataway url
 	}
 
-	for _, url := range []*tcase{
+	for idx, tc := range cases {
 
-		&tcase{
-			url:        "http://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
-			wsurl:      "ws://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
-			assertTrue: true,
-		},
-		&tcase{
-			url:        "https://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
-			wsurl:      "wss://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
-			assertTrue: true,
-		},
+		dw, err := ParseDataway(tc.url)
 
-		&tcase{
-			url:        "http://preprod-openway.cloudcare.cn:80?token=123&a=b&d=e&c=123_456",
-			wsurl:      "ws://preprod-openway.cloudcare.cn:80?token=123&a=b&d=e&c=123_456",
-			assertTrue: true,
-		},
-		&tcase{
-			url:        "https://preprod-openway.cloudcare.cn:443?token=123&a=b&d=e&c=123_456",
-			wsurl:      "ws://preprod-openway.cloudcare.cn:443?token=123&a=b&d=e&c=123_456",
-			assertTrue: true,
-		},
-
-		&tcase{
-			url:        "http://1.2.3?token=123&a=b&d=e&c=123_456",
-			wsurl:      "ws://1.2.3?token=123&a=b&d=e&c=123_456",
-			assertTrue: false,
-		}, // dial timeout
-
-		&tcase{
-			url:        "",
-			wsurl:      "",
-			assertTrue: false,
-		}, // empty dataway url
-
-		&tcase{
-			url:        "http://1.2.3?token=123&a=b&d=e&c=123_456",
-			assertTrue: false,
-			// empty ws url
-		},
-	} {
-
-		dw, err := ParseDataway(url.url, url.wsurl)
-		if err != nil {
-			if url.assertTrue {
-				t.Fatal(err)
-			}
-			t.Log(err)
+		if tc.fail {
+			tu.NotOk(t, err, "")
 		} else {
-			if err := dw.Test(); err != nil {
-				if url.assertTrue {
-					t.Fatal(err)
-				}
-				t.Log(err)
-			}
-
-			if dw != nil {
-				t.Logf("%+#v", dw)
-			}
+			tu.Ok(t, err)
+			t.Logf("[%d] %+#v", idx, dw)
 		}
 	}
 }
@@ -189,6 +164,7 @@ func TestGetFirstGlobalUnicastIP(t *testing.T) {
 	t.Logf("IP: %s", ip)
 }
 
+/*
 func TestServiceInstall(t *testing.T) {
 	svc, err := NewService()
 	if err != nil {
@@ -206,4 +182,4 @@ func TestServiceInstall(t *testing.T) {
 	if err := service.Control(svc, "uninstall"); err != nil {
 		t.Fatal(err)
 	}
-}
+} */
