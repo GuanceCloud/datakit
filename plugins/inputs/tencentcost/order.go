@@ -309,8 +309,7 @@ func (o *order) handleResponse(ctx context.Context, response *billing.DescribeDe
 		}
 
 		if o.agent.isTest() {
-			data, _ := io.MakeMetric(o.getName(), tags, fields, metrictime)
-			o.agent.testResult.Result = append(o.agent.testResult.Result, data...)
+			// pass
 		} else {
 			io.NamedFeedEx(inputName, io.Metric, o.getName(), tags, fields, metrictime)
 		}
