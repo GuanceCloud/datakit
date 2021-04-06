@@ -58,13 +58,6 @@ func (ag *objectAgent) getCredential() *common.Credential {
 	return credential
 }
 
-func (ag *objectAgent) Test() (*inputs.TestResult, error) {
-	ag.mode = "test"
-	ag.testResult = &inputs.TestResult{}
-	ag.Run()
-	return ag.testResult, ag.testError
-}
-
 func newPipeline(pipelinePath string) (*pipeline.Pipeline, error) {
 	scriptPath := filepath.Join(datakit.PipelineDir, pipelinePath)
 	data, err := ioutil.ReadFile(scriptPath)
