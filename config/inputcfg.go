@@ -12,28 +12,8 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
-
-func addTailfInputs(mc *datakit.MainConfig) {
-
-	src := mc.Name
-	if src == "" {
-		src = mc.UUID
-	}
-
-	tailfDatakitLog := &tailf.Tailf{
-		LogFiles: []string{
-			mc.Log,
-			datakit.AgentLogFile,
-		},
-		Source: src,
-	}
-
-	l.Infof("add input %+#v", tailfDatakitLog)
-	_ = inputs.AddInput("tailf", tailfDatakitLog, "no-config-available")
-}
 
 // load all inputs under @InstallDir/conf.d
 func LoadInputsConfig(c *datakit.Config) error {
@@ -87,9 +67,6 @@ func LoadInputsConfig(c *datakit.Config) error {
 	// reset inputs(for reloading)
 	l.Debug("reset inputs")
 	inputs.ResetInputs()
-	if c.MainCfg.LogUpload { // re-add tailf on datakit log
-		addTailfInputs(c.MainCfg)
-	}
 
 	for name, creator := range inputs.Inputs {
 		if !datakit.Enabled(name) {
@@ -103,7 +80,7 @@ func LoadInputsConfig(c *datakit.Config) error {
 		}
 	}
 
-	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, availableInputCfgs, c.InputFilters)
+	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, availableInputCfgs, nil)
 	if err != nil {
 		return err
 	}
@@ -122,11 +99,6 @@ func LoadInputsConfig(c *datakit.Config) error {
 }
 
 func doLoadInputConf(c *datakit.Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
-	if len(c.InputFilters) > 0 {
-		if !sliceContains(name, c.InputFilters) {
-			return nil
-		}
-	}
 
 	l.Debugf("search input cfg for %s", name)
 	searchDatakitInputCfg(c, inputcfgs, name, creator)
