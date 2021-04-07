@@ -85,7 +85,7 @@ type indexStat struct {
 const sampleConfig = `
 	[[inputs.elasticsearch]]
 	## log file path
-	#logFiles = ["/path/to/your/file.log"]
+	#log_files = ["/path/to/your/file.log"]
 
   ## specify a list of one or more Elasticsearch servers
   # you can add username and password to your url to use basic authentication:
@@ -157,7 +157,7 @@ type Input struct {
 	NodeStats                  []string `toml:"node_stats"`
 	Username                   string   `toml:"username"`
 	Password                   string   `toml:"password"`
-	LogFiles           				 []string  `toml:"logfiles"`
+	LogFiles                   []string `toml:"log_files"`
 
 	TLSOpen    bool   `toml:"tls_open"`
 	CacertFile string `toml:"tls_ca"`
@@ -227,7 +227,7 @@ func mapShardStatusToCode(s string) int {
 
 var (
 	inputName = "elasticsearch"
-	l         = logger.DefaultSLogger("demo")
+	l         = logger.DefaultSLogger("elasticsearch")
 )
 
 func (_ *Input) Catalog() string {
@@ -377,20 +377,20 @@ func (i *Input) Collect() error {
 }
 
 func (i *Input) Run() {
-	go func () {
-		option := inputs.TailerOption {
-			Source: inputName,
-			Service: inputName
+	// collect logs
+	go func() {
+		option := inputs.TailerOption{
+			Source:  inputName,
+			Service: inputName,
 		}
 		tailer, err := inputs.NewTailer(inputName, i.LogFiles, &option)
 		if err != nil {
 			l.Error(err)
 			return
 		}
-	
+
 		tailer.Run()
 	}()
-
 
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
@@ -424,7 +424,6 @@ func (i *Input) Run() {
 			return
 
 		case <-tick.C:
-			l.Debugf("elasticsearchs input gathering...")
 			start := time.Now()
 			if err := i.Collect(); err != nil {
 				l.Error(err)
@@ -617,7 +616,7 @@ func (i *Input) gatherClusterStats(url string) error {
 		if err != nil {
 			return err
 		}
-		for k, v := range(f.Fields) {
+		for k, v := range f.Fields {
 			allFields[k] = v
 		}
 
