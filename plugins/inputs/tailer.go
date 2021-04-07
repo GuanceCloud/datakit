@@ -99,6 +99,9 @@ type TailerOption struct {
 	// 是否关闭添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
 	DisableAddStatusField bool
 
+	// 是否关闭高频IO
+	DisableHighFreqIODdata bool
+
 	// TODO:
 	// 上传到该category，默认是 OPT_LOGGING
 	Category int
@@ -429,8 +432,18 @@ func (t *tailerSingle) receiving() {
 		}
 
 		// use t.source as input-name, make it more distinguishable for multiple tailf instances
-		if err := io.HighFreqFeedEx(t.tl.opt.Source, io.Logging, t.tl.opt.Source, t.tl.opt.Tags, fields, ts); err != nil {
+		pt, err := io.MakePoint(t.tl.opt.Source, t.tags, fields, ts)
+		if err != nil {
 			t.tl.log.Error(err)
+		} else {
+			if err := io.Feed(
+				t.tl.opt.Source,
+				io.Logging,
+				[]*io.Point{pt},
+				&io.Option{HighFreq: !t.tl.opt.DisableHighFreqIODdata},
+			); err != nil {
+				t.tl.log.Error(err)
+			}
 		}
 	}
 }
