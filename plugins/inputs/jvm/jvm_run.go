@@ -8,8 +8,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func (j *JVM) gather() {
-	duration, err := time.ParseDuration(j.Interval)
+func (i *Input) gather() {
+	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
 		l.Error(err)
 		return
@@ -22,13 +22,13 @@ func (j *JVM) gather() {
 		select {
 		case <-tick.C:
 			start := time.Now()
-			if err := j.Collect(); err != nil {
+			if err := i.Collect(); err != nil {
 				l.Error(err)
 			} else {
-				inputs.FeedMeasurement(j.MetricName, io.Metric, j.collectCache,
+				inputs.FeedMeasurement(i.MetricName, io.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start), HighFreq: false})
 
-				j.collectCache = j.collectCache[:] // NOTE: do not forget to clean cache
+				i.collectCache = i.collectCache[:] // NOTE: do not forget to clean cache
 			}
 
 		case <-datakit.Exit.Wait():
@@ -38,16 +38,16 @@ func (j *JVM) gather() {
 	}
 }
 
-func (j *JVM) Collect() error {
-	if j.client == nil {
-		client, err := j.createClient(j.URLs)
+func (i *Input) Collect() error {
+	if i.client == nil {
+		client, err := i.createClient(i.URLs)
 		if err != nil {
 			return err
 		}
-		j.client = client
+		i.client = client
 	}
 
-	repObjs, err := j.client.read()
+	repObjs, err := i.client.read()
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (j *JVM) Collect() error {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
-	tags["urls"] = j.URLs
+	tags["urls"] = i.URLs
 	for _, obj := range repObjs {
 		if obj.Status != 200 {
 			l.Errorf("%s with err code %d", obj.Request, obj.Status)
@@ -69,7 +69,7 @@ func (j *JVM) Collect() error {
 	}
 
 	l.Error(fields)
-	j.collectCache = append(j.collectCache, &JvmMeasurement{
+	i.collectCache = append(i.collectCache, &JvmMeasurement{
 		inputName,
 		tags,
 		fields,
