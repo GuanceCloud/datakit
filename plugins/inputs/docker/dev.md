@@ -119,57 +119,29 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 
 指标集 docker_container（docker容器指标）
 
-| 名称                   | 描述   | 类型   | 单位 |
-| :--                    | ---    | ---    | ---  |
-| container_id           | tags   | string |      |
-| container_name         | tags   | string |      |
-| display_container_name | tags   | string |      |
-| docker_image           | tags   | string |      |
-| image_name             | tags   | string |      |
-| image_tag              | tags   | string |      |
-| kube_container_name    | tags   | string |      |
-| kube_daemon_set        | tags   | string |      |
-| kube_deployment        | tags   | string |      |
-| kube_namespace         | tags   | string |      |
-| kube_ownerref_kind     | tags   | string |      |
-| kube_ownerref_name     | tags   | string |      |
-| kube_replica_set       | tags   | string |      |
-| pod_name               | tags   | string |      |
-| pod_phase              | tags   | string |      |
-| short_image            | tags   | string |      |
-| host                   | tags   | string |      |
-| cpu_user               | fields |        |      |
-| cpu_limit              | fields |        |      |
-| cpu_usage              | fields |        |      |
-| cpu_shares             | fields |        |      |
-| cpu_system             | fields |        |      |
-| cpu_throttled          | fields |        |      |
-| cpu_throttled_time     | fields |        |      |
-| mem_rss                | fields |        |      |
-| mem_swap               | fields |        |      |
-| mem_cache              | fields |        |      |
-| mem_limit              | fields |        |      |
-| mem_in_use             | fields |        |      |
-| mem_sw_limit           | fields |        |      |
-| mem_sw_in_use          | fields |        |      |
-| mem_failed_count       | fields |        |      |
-| kmem_usage             | fields |        |      |
-| io_read_byte           | fields |        |      |
-| io_write_byte          | fields |        |      |
-| io_read_operations     | fields |        |      |
-| io_write_operations    | fields |        |      |
-| net_bytes_rcvd         | fields |        |      |
-| net_bytes_sent         | fields |        |      |
-| container_open_fds     | fields |        |      |
-| thread_count           | fields |        |      |
-
-补充：有以下指标尚未确定指标集名称，待定：
-
-- container_size_rw
-- containers_running
-- containers_stopped
-- container_size_rootfs
-- containers_running_total
-- containers_stopped_total
-- images_available
-- images_intermediate
+| 名称                | 描述   | 类型     | 单位 |
+| :--                 | ---    | ---      | ---  |
+| container_id        | tags   | string   |      |
+| container_name      | tags   | string   |      |
+| docker_image        | tags   | string   |      |
+| image_name          | tags   | string   |      |
+| host                | tags   | string   |      |
+| stats               | tags   | string   |      |
+| kube_container_name | tags   | string   |      |
+| kube_daemon_set     | tags   | string   |      |
+| kube_deployment     | tags   | string   |      |
+| kube_namespace      | tags   | string   |      |
+| kube_ownerref_kind  | tags   | string   |      |
+| kube_ownerref_name  | tags   | string   |      |
+| kube_replica_set    | tags   | string   |      |
+| pod_name            | tags   | string   |      |
+| pod_phase           | tags   | string   |      |
+| cpu_usage_percent   | fields | float    |      |
+| mem_limit           | fields | integer  |      |
+| mem_usage           | fields | integer  |      |
+| mem_usage_percent   | fields | float    |      |
+| mem_failed_count    | fields | integer  |      |
+| network_bytes_rcvd  | fields | integer  |      |
+| network_bytes_sent  | fields | integer  |      |
+| block_read_byte     | fields | integer  |      |
+| block_write_byte    | fields | integer  |      |
