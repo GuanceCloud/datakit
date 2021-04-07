@@ -108,6 +108,8 @@ type TailerOption struct {
 
 	// 自定义添加tag，默认会添加 "filename"
 	Tags map[string]string
+
+	StopChan <-chan interface{}
 }
 
 func fillTailerOption(opt *TailerOption) *TailerOption {
@@ -131,6 +133,8 @@ func fillTailerOption(opt *TailerOption) *TailerOption {
 		opt.Tags = make(map[string]string)
 	}
 	opt.Tags["service"] = opt.Service
+
+	opt.StopChan = datakit.Exit.Wait()
 
 	return opt
 }
@@ -212,7 +216,8 @@ func (t *Tailer) Run() {
 
 	for {
 		select {
-		case <-datakit.Exit.Wait():
+
+		case <-t.opt.StopChan:
 			t.log.Infof("waiting for all tailers to exit")
 			t.wg.Wait()
 			t.log.Info("exit")
@@ -241,7 +246,7 @@ func (t *Tailer) Run() {
 }
 
 func (t *Tailer) watching() {
-	t.watcher.Watching(datakit.Exit.Wait())
+	t.watcher.Watching(t.opt.StopChan)
 }
 
 func (t *Tailer) tailingFile(file string) {
@@ -306,7 +311,7 @@ func (t *tailerSingle) run() {
 
 	t.tail, err = tail.TailFile(t.filename, t.tl.tailConf)
 	if err != nil {
-		t.tl.log.Error("failed of build tailer, err:%s", err)
+		t.tl.log.Errorf("failed of build tailer, err:%s", err)
 		return
 	}
 	defer t.tail.Cleanup()
@@ -314,8 +319,7 @@ func (t *tailerSingle) run() {
 	if t.tl.opt.Pipeline != "" {
 		t.pipe, err = pipeline.NewPipelineFromFile(t.tl.opt.Pipeline)
 		if err != nil {
-			t.tl.log.Error("failed of pipeline, err:%s", err)
-			return
+			t.tl.log.Errorf("failed of pipeline, err: %s", err)
 		}
 	}
 
@@ -339,7 +343,8 @@ func (t *tailerSingle) receiving() {
 
 		// FIXME: 4个case是否过多？
 		select {
-		case <-datakit.Exit.Wait():
+
+		case <-t.tl.opt.StopChan:
 			t.tl.log.Debugf("tailing source:%s, file %s is ending", t.tl.opt.Source, t.filename)
 			return
 
