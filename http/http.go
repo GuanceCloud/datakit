@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	iowrite "io"
 	"net/http"
 	"os"
@@ -12,11 +13,22 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
 	"github.com/unrolled/secure"
+
+	/*
+		mathjax "github.com/litao91/goldmark-mathjax"
+		"github.com/yuin/goldmark"
+		"github.com/yuin/goldmark-highlighting"
+		"github.com/yuin/goldmark/extension"
+		gparser "github.com/yuin/goldmark/parser"
+		ghtml "github.com/yuin/goldmark/renderer/html" */
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -25,6 +37,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
@@ -227,6 +240,7 @@ func HttpStart(addr string) {
 
 	// internal datakit stats API
 	router.GET("/stats", func(c *gin.Context) { apiGetInputsStats(c.Writer, c.Request) })
+	router.GET("/man", func(c *gin.Context) { apiManual(c) })
 	// ansible api
 	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
 
@@ -410,4 +424,98 @@ func apiReload(c *gin.Context) {
 	}()
 
 	c.Redirect(http.StatusFound, "/stats")
+}
+
+var (
+	manualTOCTemplate = `
+<h1>{{.PageTitle}}</h1>
+
+{{ $server := .Server }}
+
+<ul>
+	{{ range $name := .InputNames}}
+	<p><a href="http://{{$server}}/man?input={{$name}}">
+			{{$name}} </a> </p>
+	{{end}}
+</ul>
+	`
+)
+
+type manualTOC struct {
+	PageTitle  string
+	Server     string
+	InputNames []string
+}
+
+func apiManual(c *gin.Context) {
+	name := c.Query("input")
+	if name == "" { // request toc
+		toc := &manualTOC{
+			PageTitle: "datakit manuals",
+			Server:    "localhost:9529",
+		}
+
+		for k, v := range inputs.Inputs {
+			switch v().(type) {
+			case inputs.ManualInput:
+				toc.InputNames = append(toc.InputNames, k)
+			}
+		}
+
+		t := template.New("man-toc")
+
+		tmpl, err := t.Parse(manualTOCTemplate)
+		if err != nil {
+			l.Error(err)
+			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+			return
+		}
+
+		if err := tmpl.Execute(c.Writer, toc); err != nil {
+			l.Error(err)
+			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+			return
+		}
+		return
+	}
+
+	mdtxt, err := man.BuildMarkdownManual(name)
+	if err != nil {
+		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+		return
+	}
+
+	// render markdown as HTML
+	mdext := parser.CommonExtensions
+	psr := parser.NewWithExtensions(mdext)
+
+	htmlFlags := html.CommonFlags | html.HrefTargetBlank | html.TOC | html.CompletePage
+	opts := html.RendererOptions{Flags: htmlFlags}
+	renderer := html.NewRenderer(opts)
+
+	//out := markdown.ToHTML(mdtxt, psr, renderer)
+	out := markdown.ToHTML(mdtxt, psr, renderer)
+	c.Data(http.StatusOK, "text/html; charset=UTF-8", out)
+
+	/*
+		var buf bytes.Buffer
+
+		md := goldmark.New(
+			goldmark.WithExtensions(highlighting.Highlighting),
+			goldmark.WithExtensions(extension.GFM),
+			goldmark.WithExtensions(mathjax.MathJax),
+			goldmark.WithParserOptions(
+				gparser.WithAutoHeadingID(),
+			),
+			goldmark.WithRendererOptions(
+				ghtml.WithHardWraps(),
+				ghtml.WithXHTML(),
+			),
+		)
+
+		if err := md.Convert(mdtxt, &buf); err != nil {
+			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+		}
+
+		c.Data(http.StatusOK, "text/html; charset=UTF-8", buf.Bytes()) */
 }
