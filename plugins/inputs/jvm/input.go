@@ -19,7 +19,7 @@ const (
 	defaultInterval = "60s"
 )
 
-type JVM struct {
+type Input struct {
 	URLs            string `toml:"urls"`
 	Username        string
 	Password        string
@@ -68,24 +68,24 @@ func (j *JvmMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *JVM) Run() {
+func (i *Input) Run() {
 	l = logger.DefaultSLogger(inputName)
 	l.Infof("%s input started...", inputName)
 
-	if j.Interval == "" {
-		j.Interval = defaultInterval
+	if i.Interval == "" {
+		i.Interval = defaultInterval
 	}
 
-	if j.MetricName == "" {
-		j.MetricName = inputName
+	if i.MetricName == "" {
+		i.MetricName = inputName
 	}
 
-	j.gather()
+	i.gather()
 }
 
-func (j *JVM) Catalog() string      { return inputName }
-func (j *JVM) SampleConfig() string { return javaConfSample }
-func (j *JVM) SampleMeasurement() []inputs.Measurement {
+func (i *Input) Catalog() string      { return inputName }
+func (i *Input) SampleConfig() string { return javaConfSample }
+func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&JvmMeasurement{},
 	}
@@ -95,6 +95,6 @@ func init() {
 	initConvertDict()
 
 	inputs.Add(inputName, func() inputs.Input {
-		return &JVM{}
+		return &Input{}
 	})
 }
