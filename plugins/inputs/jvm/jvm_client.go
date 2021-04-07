@@ -120,12 +120,12 @@ func NewClient(url string, config *ClientConfig) (*Client, error) {
 	}, nil
 }
 
-func (j *JVM) createClient(url string) (*Client, error) {
+func (i *Input) createClient(url string) (*Client, error) {
 	return NewClient(url, &ClientConfig{
-		Username:        j.Username,
-		Password:        j.Password,
-		ResponseTimeout: j.ResponseTimeout,
-		ClientConfig:    j.ClientConfig,
+		Username:        i.Username,
+		Password:        i.Password,
+		ResponseTimeout: i.ResponseTimeout,
+		ClientConfig:    i.ClientConfig,
 	})
 }
 
