@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	url = "http://example.com:9200"
+	url         = "http://example.com:9200"
 	clusterName = "elasticsearch_cluster"
 )
 
@@ -229,10 +229,10 @@ func AssertContainsTaggedFields(t *testing.T, measurement string, fields map[str
 }
 
 func AssertDoesNotContainsTaggedFields(
-	t *testing.T, 
-	measurement string, 
-	fields map[string]interface{}, 
-	tags map[string]string, 
+	t *testing.T,
+	measurement string,
+	fields map[string]interface{},
+	tags map[string]string,
 	collectCache []inputs.Measurement,
 ) {
 	for _, metric := range collectCache {
