@@ -180,7 +180,7 @@ var (
 
 		// jolokia2 related
 		`weblogic`:       {name: "jolokia2_agent", Catalog: "weblogic", Sample: samples["weblogic"], Input: &jolokia2.JolokiaAgent{}},
-		`jvm`:            {name: "jolokia2_agent", Catalog: "jvm", Sample: samples["jvm"], Input: &jolokia2.JolokiaAgent{}},
+		//`jvm`:            {name: "jolokia2_agent", Catalog: "jvm", Sample: samples["jvm"], Input: &jolokia2.JolokiaAgent{}},
 		`hadoop_hdfs`:    {name: "jolokia2_agent", Catalog: "hadoop_hdfs", Sample: samples["hadoop_hdfs"], Input: &jolokia2.JolokiaAgent{}},
 		"jolokia2_agent": {name: "jolokia2_agent", Catalog: "jolokia2_agent", Input: &jolokia2.JolokiaAgent{}},
 		"jboss":          {name: "jolokia2_agent", Catalog: "jboss", Sample: samples["jboss"], Input: &jolokia2.JolokiaAgent{}},
