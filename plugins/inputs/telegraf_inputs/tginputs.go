@@ -16,7 +16,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/disk"
 	"github.com/influxdata/telegraf/plugins/inputs/diskio"
 	"github.com/influxdata/telegraf/plugins/inputs/dns_query"
-	"github.com/influxdata/telegraf/plugins/inputs/docker"
+	// "github.com/influxdata/telegraf/plugins/inputs/docker"
 	"github.com/influxdata/telegraf/plugins/inputs/elasticsearch"
 	"github.com/influxdata/telegraf/plugins/inputs/exec"
 	"github.com/influxdata/telegraf/plugins/inputs/fluentd"
@@ -148,7 +148,7 @@ var (
 		"ceph":      {name: "ceph", Catalog: "ceph", Input: &ceph.Ceph{}},
 		"dns_query": {name: "dns_query", Catalog: "dns_query", Input: &dns_query.DnsQuery{}},
 
-		"docker": {name: "docker", Catalog: "docker", Input: &docker.Docker{}},
+		// "docker": {name: "docker", Catalog: "docker", Input: &docker.Docker{}},
 
 		"activemq":       {name: "activemq", Catalog: "activemq", Input: &activemq.ActiveMQ{}},
 		"rabbitmq":       {name: "rabbitmq", Catalog: "rabbitmq", Input: &rabbitmq.RabbitMQ{}},
