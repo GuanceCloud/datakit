@@ -8,16 +8,16 @@
 
 ## 前置条件
 
-- `nginx` 默认采集开源版本 `nginx` 的 `http_stub_status_module`模块的数据， 开启 `http_stub_status_module`模块 [参见](http://nginx.org/en/docs/http/ngx_http_stub_status_module.html) ，
-开启了以后会上报  `nginx` 指标集的数据，
-- 如果您正在使用 `virtual host traffic status module` 或者想监控更多数据,建议开启 `vts` 相关数据采集,conf 参数 `use_vts` 设置为 `true`，开启 `vts` [参见](https://github.com/vozlt/nginx-module-vts#synopsis)
+- `nginx` 默认采集开源版本 `nginx` 的 `http_stub_status_module`模块的数据， 开启 `http_stub_status_module`模块参见[这里](http://nginx.org/en/docs/http/ngx_http_stub_status_module.html)，
+开启了以后会上报  `nginx` 指标集的数据
+- 如果您正在使用 `virtual host traffic status module` 或者想监控更多数据,建议开启 `vts` 相关数据采集,conf 参数 `use_vts` 设置为 `true`，开启 `vts` 参见[这里](https://github.com/vozlt/nginx-module-vts#synopsis)。
 开启 `vts` 会产生  `nginx`, `nginx_server_zone`, `nginx_upstream_zone`, `nginx_cache_zone` 等指标集
 
 ## 配置
 
 进入 DataKit 安装目录下的 `conf.d/{{.InputName}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
-```
+```python
 {{.InputSample}}
 ```
 
