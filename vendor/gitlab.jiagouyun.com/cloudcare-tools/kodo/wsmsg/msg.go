@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/kodo/config"
@@ -18,6 +19,7 @@ var (
 	Hbch      = make(chan string)
 	Clich     = make(chan *DatakitClient)
 	Onlinedks = map[string]*DatakitClient{}
+	KodoCli   = &KoDoCli{}
 )
 
 type DatakitClient struct {
@@ -76,6 +78,8 @@ func (wm *WrapMsg) Invalid() bool {
 func (dc *DatakitClient) Online() {
 	Clich <- dc
 	SendOnline(dc)
+	UpdateHostState(dc.Token, dc.HostName, "online")
+
 }
 
 func (wm *WrapMsg) Send() {
@@ -110,9 +114,6 @@ func (wm *WrapMsg) Handle() error {
 	case MTypeOnline:
 		wm.SetRedis()
 		SetDatakitOnline(wm)
-		return nil
-	case MtypeModifyDKStatus:
-		Onlinedks[wm.Dest[0]].Status = "reload"
 		return nil
 	default:
 		wm.SetRedis()
@@ -156,8 +157,7 @@ func SetDatakitOnline(wm *WrapMsg) {
 }
 
 func (wm *WrapMsg) SetRedis() {
-	//dkId := wm.Dest[0]
-	//token := Onlinedks[dkId].Token
+
 	b, err := json.Marshal(&wm)
 	if err != nil {
 		l.Errorf("set redis parse wm err:%s", err)
@@ -210,46 +210,28 @@ type MsgDatakitOnline struct {
 	InputInfo map[string]interface{}
 }
 
-// get datakit input config
-type MsgGetInputConfig struct {
-	Names []string `json:"names"`
-}
-
-func (m *MsgGetInputConfig) Handle(wm *WrapMsg) error {
-	data, err := base64.StdEncoding.DecodeString(wm.B64Data)
-	if err != nil {
-		l.Errorf("get inputs config err %s", err)
-		return err
+func UpdateHostState(token, name, state string) {
+	class := "HOST"
+	tags := map[string]string{
+		"name": name,
 	}
-
-	return json.Unmarshal(data, &m.Names)
-}
-
-type MsgSetInputConfig struct {
-	Configs map[string]map[string]string `json:"configs"`
-}
-
-func (m *MsgSetInputConfig) Handle(wm *WrapMsg) error {
-	data, err := base64.StdEncoding.DecodeString(wm.B64Data)
-	if err != nil {
-		l.Errorf("get inputs config err %s", err)
-		return err
+	fields := map[string]interface{}{
+		"state": state,
 	}
+	line, err := ifxcli.NewPoint(class, tags, fields, time.Now().UTC())
 
-	return json.Unmarshal(data, &m.Configs)
+	if err != nil {
+		l.Errorf("make line err:%s", err.Error())
+		return
+	}
+	header := map[string]string{
+		"X-Token": token,
+	}
+	KodoCli.PostKodo("/v1/update/object", header, []byte(line.PrecisionString("s")))
 }
 
 const (
-	MTypeOnline         string = "online"
-	MTypeHeartbeat      string = "heartbeat"
-	MTypeGetInput       string = "get_input_config"
-	MTypeGetEnableInput string = "get_enabled_input_config"
-	MTypeSetInput       string = "set_input_config"
-	MTypeDisableInput   string = "disable_input_config"
-	MTypeReload         string = "reload"
-	MTypeTestInput      string = "test_input_config"
-	MTypeEnableInput    string = "enable_input_config"
-	MTypeCMD            string = "cmd"
-	MtypeCsharkCmd      string = "csharkCmd"
-	MtypeModifyDKStatus string = "modifyStatus"
+	MTypeOnline    string = "online"
+	MTypeHeartbeat string = "heartbeat"
+	MtypeCsharkCmd string = "csharkCmd"
 )
