@@ -1,9 +1,9 @@
 package rabbitmq
 
 import (
-	"time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"time"
 )
 
 func getOverview(n *Input) {
@@ -14,7 +14,7 @@ func getOverview(n *Input) {
 		l.Errorf(err.Error())
 		return
 	}
-
+	ts := time.Now()
 	if overview.QueueTotals == nil || overview.ObjectTotals == nil || overview.MessageStats == nil {
 		l.Errorf("Wrong answer from rabbitmq. Probably auth issue")
 		return
@@ -53,12 +53,12 @@ func getOverview(n *Input) {
 		"queue_totals_messages_unacknowledged_rate":  overview.QueueTotals.MessagesUnacknowledgedDetail.Rate,
 	}
 	metric := &OverviewMeasurement{
-		name:   "rabbitmq_overview",
+		name:   OverviewMetric,
 		tags:   tags,
 		fields: fields,
-		ts:     time.Now(),
+		ts:     ts,
 	}
-	collectCache = append(collectCache, metric)
+	metricAppend(metric)
 }
 
 type OverviewMeasurement struct {
@@ -74,7 +74,7 @@ func (m *OverviewMeasurement) LineProto() (*io.Point, error) {
 
 func (m *OverviewMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "",
+		Name: OverviewMetric,
 		Fields: map[string]*inputs.FieldInfo{
 			"object_totals_channels":    newCountFieldInfo("Total number of channels"),
 			"object_totals_connections": newCountFieldInfo("Total number of connections"),
