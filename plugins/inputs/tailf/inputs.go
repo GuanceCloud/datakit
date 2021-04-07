@@ -1,7 +1,10 @@
 package tailf
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"fmt"
+	"path/filepath"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -25,7 +28,7 @@ const (
     # grok pipeline script path
     pipeline = ""
 
-    # optional status: 
+    # optional status:
     #   "emerg","alert","critical","error","warning","info","debug","OK"
     ignore_status = []
 
@@ -46,7 +49,7 @@ const (
 `
 )
 
-type Tailf struct {
+type Inputs struct {
 	LogFiles           []string          `toml:"logfiles"`
 	Ignore             []string          `toml:"ignore"`
 	Source             string            `toml:"source"`
@@ -58,6 +61,59 @@ type Tailf struct {
 	CharacterEncoding  string            `toml:"character_encoding"`
 	Match              string            `toml:"match"`
 	Tags               map[string]string `toml:"tags"`
+}
 
-	log *logger.Logger
+func (this *Inputs) Run() {
+	// 兼容旧版配置 pipeline_path
+	if this.Pipeline == "" && this.DeprecatedPipeline != "" {
+		this.Pipeline = this.DeprecatedPipeline
+	}
+
+	if this.Pipeline == "" {
+		this.Pipeline = filepath.Join(datakit.PipelineDir, this.Source+".p")
+	} else {
+		this.Pipeline = filepath.Join(datakit.PipelineDir, this.Pipeline)
+	}
+
+	option := inputs.TailerOption{
+		IgnoreFiles:       this.Ignore,
+		Source:            this.Source,
+		Service:           this.Service,
+		Pipeline:          this.Pipeline,
+		IgnoreStatus:      this.IgnoreStatus,
+		FromBeginning:     this.FromBeginning,
+		CharacterEncoding: this.CharacterEncoding,
+		Match:             this.Match,
+		Tags:              this.Tags,
+	}
+
+	tailer, err := inputs.NewTailer(inputName, this.LogFiles, &option)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	tailer.Run()
+}
+
+func (this *Inputs) PipelineConfig() map[string]string {
+	return nil
+}
+
+func (this *Inputs) Catalog() string {
+	return "log"
+}
+
+func (this *Inputs) SampleConfig() string {
+	return sampleCfg
+}
+
+func (*Inputs) Test() (*inputs.TestResult, error) {
+	return &inputs.TestResult{Desc: "success"}, nil
+}
+
+func init() {
+	inputs.Add(inputName, func() inputs.Input {
+		return &Inputs{}
+	})
 }
