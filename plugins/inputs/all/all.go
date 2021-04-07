@@ -91,6 +91,8 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zaplog"
 
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/elasticsearch"
+
 	// removed
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
 
