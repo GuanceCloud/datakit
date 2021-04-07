@@ -3,10 +3,10 @@ package tailf
 import (
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -42,7 +42,7 @@ ZeroDivisionError: division by zero`,
 }
 
 func TestMain(t *testing.T) {
-	io.TestOutput()
+	io.SetTest()
 
 	file, err := ioutil.TempFile("", "")
 	if err != nil {
@@ -52,20 +52,20 @@ func TestMain(t *testing.T) {
 
 	// 最后一条message只有在新数据产生以后才会发送
 
-	var tailer = Tailf{
-		InputName:     "testing",
+	var tailer = Inputs{
 		LogFiles:      []string{file.Name()},
 		FromBeginning: true,
 		Source:        "testing",
 		Match:         `^\d{4}-\d{2}-\d{2}`,
 		// Match: `^\S`,
 	}
-	tailer.log = logger.SLogger(tailer.InputName)
-	if tailer.loadcfg() {
-		return
-	}
 
-	go newTailer(&tailer, file.Name()).run()
+	var wg sync.WaitGroup
+	go func() {
+		wg.Add(1)
+		tailer.Run()
+		wg.Done()
+	}()
 
 	for _, tc := range testcase {
 		time.Sleep(time.Millisecond * 500)
@@ -73,6 +73,11 @@ func TestMain(t *testing.T) {
 		file.WriteString("\n")
 	}
 
-	time.Sleep(time.Second * 5)
+	// FIXME:
+	// tailf 默认每隔 10 秒扫描一次文件路径，导致程序运行时，前 10 秒是荒废的
+	//
+	time.Sleep(time.Second * 15)
 	datakit.Exit.Close()
+
+	wg.Wait()
 }
