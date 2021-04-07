@@ -17,7 +17,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -26,21 +25,6 @@ var (
 
 	retryCount = 5
 )
-
-type demoMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-func (m *demoMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
-}
-
-func (m *demoMeasurement) Info() *inputs.MeasurementInfo {
-	return nil
-}
 
 func (s *CMS) run(ctx context.Context) {
 
@@ -531,30 +515,11 @@ func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 				data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
 				fmt.Printf("%s\n", string(data))
 			} else {
-				//io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
-
-				s.collectCache = append(s.collectCache,
-					&demoMeasurement{
-						name:   metricSetName,
-						tags:   tags,
-						fields: fields,
-						ts:     tm,
-					})
-
+				io.HighFreqFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
 			}
 		} else {
 			moduleLogger.Warnf("skip %s.%s datapoint for no value, %s", req.q.Namespace, metricName, datapoint)
 		}
-	}
-
-	if len(s.collectCache) > 0 {
-		moduleLogger.Debugf("batch send, %s-%s\n", req.q.Namespace, req.q.MetricName)
-		start := time.Now()
-		inputs.FeedMeasurement(inputName, io.Metric, s.collectCache, &io.Option{
-			CollectCost: time.Since(start),
-			HighFreq:    true,
-		})
-		s.collectCache = s.collectCache[:]
 	}
 
 	return nil
