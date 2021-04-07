@@ -102,6 +102,13 @@ func AddSelf() {
 	AddInput("self", self(), "no config for `self' input")
 }
 
+func AddTelegrafHTTPInput() {
+	if len(InputsInfo["telegraf_http"]) == 0 {
+		i, _ := Inputs["telegraf_http"]
+		AddInput("telegraf_http", i(), "no config for `telegraf_http`")
+	}
+}
+
 func ResetInputs() {
 	mtx.Lock()
 	defer mtx.Unlock()
