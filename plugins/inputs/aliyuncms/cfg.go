@@ -12,7 +12,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
@@ -130,8 +129,6 @@ type (
 		limiter *rate.Limiter
 
 		mode string
-
-		collectCache []inputs.Measurement
 	}
 
 	MetricMeta struct {
