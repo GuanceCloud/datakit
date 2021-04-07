@@ -19,9 +19,7 @@ type CPUInfoTest struct {
 	index    int
 }
 
-/*
-collect cpu time
-*/
+// collect cpu time
 func (c *CPUInfo) CPUTimes(perCPU, totalCPU bool) ([]cpu.TimesStat, error) {
 	var cpuTimes []cpu.TimesStat
 	PerTotal := [2]bool{perCPU, totalCPU}
@@ -46,9 +44,7 @@ func (c *CPUInfoTest) CPUTimes(perCPU, totalCPU bool) ([]cpu.TimesStat, error) {
 	return nil, fmt.Errorf("")
 }
 
-/*
-cpu usage stat
-*/
+// cpu usage stat
 type UsageStat struct {
 	CPU       string
 	User      float64
@@ -63,9 +59,7 @@ type UsageStat struct {
 	GuestNice float64
 }
 
-/*
-calculate cpu usage
-*/
+// calculate cpu usage
 func CalculateUsage(nowT cpu.TimesStat, lastT cpu.TimesStat, totalDelta float64) (*UsageStat, error) {
 	if nowT.CPU != lastT.CPU {
 		err := fmt.Errorf("warning. Not the same CPU. CPU:%s %s", nowT.CPU, lastT.CPU)
@@ -87,22 +81,18 @@ func CalculateUsage(nowT cpu.TimesStat, lastT cpu.TimesStat, totalDelta float64)
 	return c, nil
 }
 
-/*
-return cpu active, total time
-*/
+// return cpu active, total time
 func CpuActiveTotalTime(t cpu.TimesStat) (float64, float64) {
 	total := t.Total()
 	active := total - t.Idle
 	return active, total
 }
 
-/*
-Hump to underline.
-such as:
-SaRRdDD --> sa_r_rd_dd
-UserAgent --> user_agent
-userAgent --> user_agent
-*/
+// Hump to underline.
+// such as:
+// SaRRdDD --> sa_r_rd_dd |
+// UserAgent --> user_agent |
+// userAgent --> user_agent |
 func HumpToUnderline(s string) string {
 	lenStrAscii := len(s)
 	var upperIndex [][2]int
@@ -147,15 +137,11 @@ func HumpToUnderline(s string) string {
 	return strings.ToLower(r)
 }
 
-/*
-struct -> map
-*/
+// struct -> map
 func CPUStatStructToMap(m map[string]interface{}, s interface{}, prefix string) bool {
 	ok := true
 	defer func() {
 		recover()
-		// err := recover()
-		// fmt.Println(err, ok)
 		ok = false
 	}()
 	t := reflect.TypeOf(s)
