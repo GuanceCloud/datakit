@@ -26,6 +26,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
+// example:
+//
+//     tailer, err := NewTailer(inputName_str, files_strArray, tailerOption_point)
+//     if err != nil {
+//         return
+//     }
+//     go tailer.Run()
+//
+// 详见 tailf/inputs.go
+
 const (
 	// 定期寻找符合条件的新文件
 	findNewFileInterval = time.Second * 10
@@ -117,6 +127,7 @@ func fillTailerOption(opt *TailerOption) *TailerOption {
 	if opt.Tags == nil {
 		opt.Tags = make(map[string]string)
 	}
+	opt.Tags["service"] = opt.Service
 
 	return opt
 }
