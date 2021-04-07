@@ -1,3 +1,5 @@
+// +build !darwin
+
 package cpu
 
 import (
@@ -17,14 +19,14 @@ const (
 	metricName   = inputName
 	sampleCfg    = `
 [[inputs.cpu]]
-
+# no sample need here, just open the input
 	`
 )
 
 type Input struct {
 	// 在配置文件中移除可配置项 percpu, totalcpu, collect_cpu_time
 	// 简化为只上报 cpu-total 的 usage stat (% CPU time)
-	// 移除 tag: `cpu`， 前缀: `usage_`
+	// 移除前缀: `usage_`
 	PerCPU   bool `toml:"percpu"`   // deprecated
 	TotalCPU bool `toml:"totalcpu"` // deprecated
 
@@ -179,7 +181,7 @@ func (i *Input) Run() {
 				i.logger.Error(err)
 			}
 		case <-datakit.Exit.Wait():
-			i.logger.Infof("system input exit")
+			i.logger.Infof("cpu input exit")
 			return
 		}
 	}
