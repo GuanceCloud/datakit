@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -53,19 +52,14 @@ func TestMain(t *testing.T) {
 	// 最后一条message只有在新数据产生以后才会发送
 
 	var tailer = Tailf{
-		InputName:     "testing",
 		LogFiles:      []string{file.Name()},
 		FromBeginning: true,
 		Source:        "testing",
 		Match:         `^\d{4}-\d{2}-\d{2}`,
 		// Match: `^\S`,
 	}
-	tailer.log = logger.SLogger(tailer.InputName)
-	if tailer.loadcfg() {
-		return
-	}
 
-	go newTailer(&tailer, file.Name()).run()
+	go tailer.Run()
 
 	for _, tc := range testcase {
 		time.Sleep(time.Millisecond * 500)
@@ -73,6 +67,7 @@ func TestMain(t *testing.T) {
 		file.WriteString("\n")
 	}
 
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 20)
 	datakit.Exit.Close()
+	time.Sleep(time.Second * 2)
 }
