@@ -27,13 +27,12 @@ var (
 
 	OSArch = runtime.GOOS + "/" + runtime.GOARCH
 
-	InstallDir    = ""
-	DataWayHTTP   = ""
-	DataWayWsPort = ""
-	GlobalTags    = ""
-	Port          = 9529
-	DatakitName   = ""
-	EnableInputs  = ""
+	InstallDir   = ""
+	DataWayHTTP  = ""
+	GlobalTags   = ""
+	Port         = 9529
+	DatakitName  = ""
+	EnableInputs = ""
 )
 
 func readInput(prompt string) string {
