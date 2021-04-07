@@ -62,12 +62,19 @@ var (
 			MaxWrites:      1000,
 			MeterInterval:  60, //minute
 			SysWsUUID:      `wksp_system`,
+			DataMigration:  false,
 		},
 
 		DQL: DQLCfg{
-			MaxDuration:  365 * 24 * time.Hour,
+			MaxDuration:  366*24*time.Hour + time.Hour, // 366 day + 1 hour
 			MaxLimit:     5000,
 			DefaultLimit: 1000,
+		},
+
+		SourceEs: SourceEsCfg{
+			Host:   ``,
+			User:   ``,
+			Passwd: ``,
 		},
 
 		Ck: CkCfg{
@@ -87,29 +94,38 @@ var (
 		},
 
 		RpConfig: map[string][2]string{
-			`rp6`:      [2]string{`25920h`, `720h`}, // 3 year
-			`rp5`:      [2]string{`8640h`, `720h`},  // 1 year
-			`rp4`:      [2]string{`4320h`, `720h`},  // 6 month
-			`rp3`:      [2]string{`2160h`, `1w`},    // 3 month
-			`rp2`:      [2]string{`720h`, `1w`},     // 1 month
-			`rp1`:      [2]string{`168h`, `1d`},     // 1 week
-			`rp0`:      [2]string{`24h`, `6h`},      // 1 day
-			`rp_2160h`: [2]string{`2160h`, `1w`},
-			`autogen`:  [2]string{`25920h`, `720h`},
+			`rp6`:      {`25920h`, `720h`}, // 3 year
+			`rp5`:      {`8640h`, `720h`},  // 1 year
+			`rp4`:      {`4320h`, `720h`},  // 6 month
+			`rp3`:      {`2160h`, `1w`},    // 3 month
+			`rp2`:      {`720h`, `1w`},     // 1 month
+			`rp1`:      {`168h`, `1d`},     // 1 week
+			`rp0`:      {`24h`, `6h`},      // 1 day
+			`rp_2160h`: {`2160h`, `1w`},
+			`autogen`:  {`25920h`, `720h`},
 		},
 		Ws: WsConfig{
 			Path: "/v1/ws/datakit",
 		},
-
 		ShardDurationConfig: map[string]string{
-			`25920h`: `720h`, // 3 year
-			`8640h`:  `720h`, // 1 year
-			`4320h`:  `720h`, // 6 month
-			`2160h`:  `1w`,   // 3 month
-			`720h`:   `1w`,   // 1 month
-			`336h`:   `2d`,   // 2 weeks
-			`168h`:   `1d`,   // 1 week
-			`24h`:    `6h`,   // 1 day
+			`25920h`:  `720h`, // 3 year
+			`8640h`:   `720h`, // 1 year
+			`4320h`:   `720h`, // 6 month
+			`2160h`:   `1w`,   // 3 month
+			`720h`:    `1w`,   // 1 month
+			`336h`:    `2d`,   // 2 weeks
+			`168h`:    `1d`,   // 1 week
+			`24h`:     `6h`,   // 1 day
+			`8760h`:   `720h`,
+			`262800h`: `720h`,
+			// `1095d`:  `720h`, // 3 year
+			// `365d`:   `720h`, // 1 year
+			// `180d`:   `720h`, // 6 month
+			// `90d`:    `1w`,   // 3 month
+			// `30d`:    `1w`,   // 1 month
+			// `14d`:    `2d`,   // 2 weeks
+			// `7d`:     `1d`,   // 1 week
+			// `1d`:     `6h`,   // 1 day
 		},
 	}
 
@@ -145,10 +161,10 @@ type InfluxCfg struct {
 
 type LogCfg struct {
 	LogFile    string `yaml:"log_file"`
-	Level      string `yaml:"level"`
-	JSONFormat bool   `yaml:"json_format"`
-	ShortFile  bool   `yaml:"short_file"`
-	GinLogFile string `yaml:"gin_log_file"`
+	Level      string `yaml:"level,omitempty"`
+	JSONFormat bool   `yaml:"json_format,omitempty"`
+	ShortFile  bool   `yaml:"short_file,omitempty"`
+	GinLogFile string `yaml:"gin_log_file,omitempty"`
 	Rl         *zap.Logger
 }
 
@@ -159,19 +175,21 @@ type StatCfg struct {
 }
 
 type GlobalCfg struct {
-	EnableInnerApi bool   `yaml:"enable_inner_api"`
-	StatsOn        int    `yaml:"stats_on"`
+	EnableInnerApi bool   `yaml:"enable_inner_api,omitempty"`
+	StatsOn        int    `yaml:"stats_on,omitempty"`
 	Listen         string `yaml:"listen"`
-	Workers        int    `yaml:"workers"`
-	LogWorkers     int    `yaml:"log_workers"`
-	Dataway        string `yaml:"dataway"`
-	EsConsumer     bool   `yaml:"es_consumer"`
-	RetryTimes     int64  `yaml:"retry_time_seconds"`
-	SysDBUUID      string `yaml:"sys_db_uuid"`
-	SysWsUUID      string `yaml:"sys_ws_uuid"`
-	MeterInterval  int    `yaml:"meter_interval"`
+	Workers        int    `yaml:"workers,omitempty"`
+	LogWorkers     int    `yaml:"log_workers,omitempty"`
+	Dataway        string `yaml:"dataway,omitempty"`
+	EsConsumer     bool   `yaml:"es_consumer,omitempty"`
+	RetryTimes     int64  `yaml:"retry_time_seconds,omitempty"`
+	SysDBUUID      string `yaml:"sys_db_uuid,omitempty"`
+	SysWsUUID      string `yaml:"sys_ws_uuid,omitempty"`
+	MeterInterval  int    `yaml:"meter_interval,omitempty"`
 
 	MaxWrites int `yaml:"max_writes"`
+
+	DataMigration bool `yaml:"data_migration"`
 
 	// each license should only used on 1 dataway, if any dataway mis-configured
 	// license(legal) used on other dataway, kodo will refuse it's request.
@@ -215,6 +233,8 @@ type Config struct {
 	Stat                StatCfg              `yaml:"stat"`
 	Es                  EsCfg                `yaml:"es"`
 	Ws                  WsConfig             `yaml:"ws_server"`
+	WsKoDo              WsKoDo               `yaml:"kodo"`
+	SourceEs            SourceEsCfg          `yaml:"source_es,omitempty"`
 }
 
 type EsCfg struct {
@@ -236,22 +256,44 @@ type WsConfig struct {
 	TimeOut string `yaml:"time_out"`
 }
 
-func DumpConfig(cfg *Config, f string) error {
-	c, err := yaml.Marshal(&cfg)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(f, c, 0644)
+type WsKoDo struct {
+	Host    string `yaml:"remote_host"`
+	TimeOut string `yaml:"time_out"`
 }
 
-func LoadConfig(f string) error {
+type SourceEsCfg struct {
+	Host   string `yaml:"host"`
+	User   string `yaml:"user"`
+	Passwd string `yaml:"password"`
+}
+
+type SourceInfluxCfg struct {
+	Host   string `yaml:"host"`
+	User   string `yaml:"user"`
+	Passwd string `yaml:"password"`
+}
+
+type SourceMysqlCfg struct {
+	Dialect    string `yaml:"db_dialect"`
+	Connection string `yaml:"connection"`
+}
+
+func DumpConfig(cfg interface{}) ([]byte, error) {
+	data, err := yaml.Marshal(&cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func LoadConfig(f string, cfg interface{}) error {
 	data, err := ioutil.ReadFile(f)
 	if err != nil {
 		return err
 	}
 
-	if err := yaml.Unmarshal(data, &C); err != nil {
+	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return err
 	}
 
@@ -313,5 +355,4 @@ func ApplyConfig() {
 			break
 		}
 	}
-
 }
