@@ -145,7 +145,6 @@ var (
 		"docker": {name: "docker", Catalog: "docker", Input: &docker.Docker{}},
 
 		"activemq": {name: "activemq", Catalog: "activemq", Input: &activemq.ActiveMQ{}},
-		//"rabbitmq":       {name: "rabbitmq", Catalog: "rabbitmq", Input: &rabbitmq.RabbitMQ{}},
 		"nsq":            {name: "nsq", Catalog: "nsq", Input: &nsq.NSQ{}},
 		"nsq_consumer":   {name: "nsq_consumer", Catalog: "nsq", Input: &nsq_consumer.NSQConsumer{}},
 		"kafka_consumer": {name: "kafka_consumer", Catalog: "kafka", Input: &kafka_consumer.KafkaConsumer{}},
