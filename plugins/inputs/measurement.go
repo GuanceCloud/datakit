@@ -66,8 +66,8 @@ type MeasurementInfo struct {
 
 func (m *MeasurementInfo) FieldsMarkdownTable() string {
 	tableHeader := `
-| 指标 | 描述   | 类型 | 单位 |
-| ---: | :----: | ---  | ---- |`
+| 指标 | 描述  | 类型 | 单位 |
+| ---: | :---- | ---  | ---- |`
 
 	rows := []string{tableHeader}
 	for k, f := range m.Fields {
@@ -79,7 +79,7 @@ func (m *MeasurementInfo) FieldsMarkdownTable() string {
 func (m *MeasurementInfo) TagsMarkdownTable() string {
 	tableHeader := `
 | 标签名  | 描述    |
-|---:     |---------|`
+|---:     |:--------|`
 
 	rows := []string{tableHeader}
 	for k, t := range m.Tags {
