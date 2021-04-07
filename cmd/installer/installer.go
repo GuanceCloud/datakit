@@ -31,13 +31,14 @@ var (
 
 	ip2locUrl = "https://" + path.Join(DataKitBaseURL, "iploc/iploc.tar.gz")
 
+	jolokiaUrl = "https://" + path.Join(DataKitBaseURL, "utils/jolokia-jvm-agent.jar.tar.gz")
+
 	l *logger.Logger
 )
 
 var (
 	flagUpgrade     = flag.Bool("upgrade", false, ``)
 	flagDatawayHTTP = flag.String("dataway", "", `address of dataway(http://IP:Port?token=xxx), port default 9528`)
-	flagDatawayWS   = flag.String("dataway-ws", "", `ws port,defalut ws 80 wss 443`)
 
 	flagInfo         = flag.Bool("info", false, "show installer info")
 	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
@@ -60,6 +61,7 @@ const (
 	dlDatakit  = "datakit"
 	dlAgent    = "agent"
 	dlIp2Loc   = "ip2loc"
+	dlJolokia  = "jolokia"
 )
 
 func main() {
@@ -109,6 +111,9 @@ func main() {
 
 		install.CurDownloading = dlIp2Loc
 		install.Download(ip2locUrl, path.Join(install.InstallDir, "data"))
+
+		install.CurDownloading = dlIp2Loc
+		install.Download(jolokiaUrl, path.Join(install.InstallDir, "data"))
 	}
 
 	if *flagUpgrade { // upgrade new version
@@ -190,7 +195,6 @@ Golang Version: %s
 	}
 
 	install.DataWayHTTP = *flagDatawayHTTP
-	install.DataWayWsPort = *flagDatawayWS
 	install.GlobalTags = *flagGlobalTags
 	install.Port = *flagPort
 	install.DatakitName = *flagDatakitName
