@@ -31,7 +31,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/kapacitor"
 	"github.com/influxdata/telegraf/plugins/inputs/kibana"
 	"github.com/influxdata/telegraf/plugins/inputs/kubernetes"
-	"github.com/influxdata/telegraf/plugins/inputs/mem"
 	"github.com/influxdata/telegraf/plugins/inputs/memcached"
 	"github.com/influxdata/telegraf/plugins/inputs/modbus"
 	"github.com/influxdata/telegraf/plugins/inputs/mongodb"
@@ -102,8 +101,8 @@ var (
 	TelegrafInputs = map[string]*TelegrafInput{ // Name: Catalog
 		"disk":   {name: "disk", Catalog: "host", Input: &disk.DiskStats{}},
 		"diskio": {name: "diskio", Catalog: "host", Input: &diskio.DiskIO{}},
-		"mem":    {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
-		"swap":   {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
+		// "mem":    {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
+		"swap": {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
 		// "system": {name: "system", Catalog: "host", Input: &system.SystemStats{}},
 		//"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
 		"cpu":      {name: "cpu", Catalog: "host", Sample: samples["cpu"], Input: nil},
@@ -174,8 +173,8 @@ var (
 		`modbus`:        {name: "modbus", Catalog: "modbus", Input: &modbus.Modbus{}},
 
 		// jolokia2 related
-		`weblogic`:       {name: "jolokia2_agent", Catalog: "weblogic", Sample: samples["weblogic"], Input: &jolokia2.JolokiaAgent{}},
-		`jvm`:            {name: "jolokia2_agent", Catalog: "jvm", Sample: samples["jvm"], Input: &jolokia2.JolokiaAgent{}},
+		`weblogic`: {name: "jolokia2_agent", Catalog: "weblogic", Sample: samples["weblogic"], Input: &jolokia2.JolokiaAgent{}},
+		//`jvm`:            {name: "jolokia2_agent", Catalog: "jvm", Sample: samples["jvm"], Input: &jolokia2.JolokiaAgent{}},
 		`hadoop_hdfs`:    {name: "jolokia2_agent", Catalog: "hadoop_hdfs", Sample: samples["hadoop_hdfs"], Input: &jolokia2.JolokiaAgent{}},
 		"jolokia2_agent": {name: "jolokia2_agent", Catalog: "jolokia2_agent", Input: &jolokia2.JolokiaAgent{}},
 		"jboss":          {name: "jolokia2_agent", Catalog: "jboss", Sample: samples["jboss"], Input: &jolokia2.JolokiaAgent{}},
