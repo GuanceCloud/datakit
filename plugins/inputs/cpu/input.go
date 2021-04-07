@@ -32,8 +32,8 @@ type Input struct {
 
 	ReportActive bool `toml:"report_active"`
 
-	collectCache []inputs.Measurement
-	_ptr         *cpuMeasurement
+	collectCache         []inputs.Measurement
+	collectCacheLast1Ptr *cpuMeasurement
 
 	logger    *logger.Logger
 	lastStats map[string]cpu.TimesStat
@@ -94,14 +94,14 @@ func (m *cpuMeasurement) LineProto() (*io.Point, error) {
 func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
 	tmp := &cpuMeasurement{name: name, tags: tags, fields: fields, ts: ts}
 	i.collectCache = append(i.collectCache, tmp)
-	i._ptr = tmp
+	i.collectCacheLast1Ptr = tmp
 }
 
 // func (i *Input) addField(field string, value interface{}) error {
-// 	if i._ptr == nil {
-// 		return fmt.Errorf("error: append one before adding")
+// 	if i.collectCacheLast1Ptr == nil {
+// 		return fmt.Errorf("error: please append one to collect cache before adding")
 // 	}
-// 	i._ptr.fields[field] = value
+// 	i.collectCacheLast1Ptr.fields[field] = value
 // 	return nil
 // }
 
