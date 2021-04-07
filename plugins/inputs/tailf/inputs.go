@@ -1,9 +1,9 @@
 package tailf
 
 import (
-	"fmt"
 	"path/filepath"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -63,7 +63,11 @@ type Inputs struct {
 	Tags               map[string]string `toml:"tags"`
 }
 
+var l = logger.DefaultSLogger(inputName)
+
 func (this *Inputs) Run() {
+	l = logger.SLogger(inputName)
+
 	// 兼容旧版配置 pipeline_path
 	if this.Pipeline == "" && this.DeprecatedPipeline != "" {
 		this.Pipeline = this.DeprecatedPipeline
@@ -89,7 +93,7 @@ func (this *Inputs) Run() {
 
 	tailer, err := inputs.NewTailer(inputName, this.LogFiles, &option)
 	if err != nil {
-		fmt.Println(err)
+		l.Error(err)
 		return
 	}
 
