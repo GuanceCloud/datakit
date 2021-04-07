@@ -84,6 +84,9 @@ type indexStat struct {
 
 const sampleConfig = `
 	[[inputs.elasticsearch]]
+	## log file path
+	#logFiles = ["/path/to/your/file.log"]
+
   ## specify a list of one or more Elasticsearch servers
   # you can add username and password to your url to use basic authentication:
   # servers = ["http://user:pass@localhost:9200"]
@@ -154,6 +157,7 @@ type Input struct {
 	NodeStats                  []string `toml:"node_stats"`
 	Username                   string   `toml:"username"`
 	Password                   string   `toml:"password"`
+	LogFiles           				 []string  `toml:"logfiles"`
 
 	TLSOpen    bool   `toml:"tls_open"`
 	CacertFile string `toml:"tls_ca"`
@@ -373,6 +377,21 @@ func (i *Input) Collect() error {
 }
 
 func (i *Input) Run() {
+	go func () {
+		option := inputs.TailerOption {
+			Source: inputName,
+			Service: inputName
+		}
+		tailer, err := inputs.NewTailer(inputName, i.LogFiles, &option)
+		if err != nil {
+			l.Error(err)
+			return
+		}
+	
+		tailer.Run()
+	}()
+
+
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
 		l.Error(fmt.Errorf("invalid interval, %s", err.Error()))
