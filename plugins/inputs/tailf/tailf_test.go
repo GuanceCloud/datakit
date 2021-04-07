@@ -1,5 +1,3 @@
-// +build !solaris
-
 package tailf
 
 import (
@@ -77,30 +75,4 @@ func TestMain(t *testing.T) {
 
 	time.Sleep(time.Second * 5)
 	datakit.Exit.Close()
-}
-
-func TestAddStatus(t *testing.T) {
-	testcase := []map[string]interface{}{
-		// 有效
-		{"status": "i"},
-		{"status": "DEBUG"},
-		{"status": "OK"},
-		{"status": "error"},
-
-		// 无效，非枚举status
-		{"status": "invalid"},
-		// 无status
-		{"invalidKey": "XX"},
-		// status不是str类型
-		{"status": 123},
-		// nil
-		{},
-	}
-
-	for idx, tc := range testcase {
-
-		t.Logf("[%d]source: %v\n", idx, tc)
-		addStatus(tc)
-		t.Logf("[%d]ending: %v\n\n", idx, tc)
-	}
 }
