@@ -18,13 +18,13 @@ import (
 var moduleLogger *logger.Logger
 
 type objCollector struct {
-	Name  string            //deprecated
-	Class string            //deprecated
-	Tags  map[string]string `toml:"tags,omitempty"`        //deprecated
-	Desc  string            `toml:"description,omitempty"` //deprecated
+	Name  string //deprecated
+	Class string //deprecated
+	Desc  string `toml:"description,omitempty"` //deprecated
 
 	Interval datakit.Duration
-	Pipeline string `toml:"pipeline"`
+	Pipeline string            `toml:"pipeline"`
+	Tags     map[string]string `toml:"tags,omitempty"`
 
 	p *pipeline.Pipeline
 
@@ -69,6 +69,10 @@ func (c *objCollector) Test() (*inputs.TestResult, error) {
 func (c *objCollector) Run() {
 
 	moduleLogger = logger.SLogger(InputName)
+
+	if c.Interval.Duration == 0 {
+		c.Interval.Duration = 5 * time.Minute
+	}
 
 	if c.Interval.Duration == 0 {
 		c.Interval.Duration = 5 * time.Minute
@@ -121,6 +125,13 @@ func (c *objCollector) Run() {
 			"load":             message.Host.load5,
 			"state":            "online",
 		}
+
+		for k, v := range c.Tags {
+			if _, ok := fields[k]; !ok {
+				fields[k] = v
+			}
+		}
+
 		if c.p != nil {
 			if result, err := c.p.Run(string(messageData)).Result(); err == nil {
 				moduleLogger.Debugf("%s", result)
