@@ -17,8 +17,6 @@ import (
 var (
 	IntervalDuration = 10 * time.Second
 
-	DefaultWebsocketPath = "/v1/ws/datakit"
-
 	Cfg = DefaultConfig()
 )
 
@@ -98,8 +96,7 @@ type TelegrafCfg struct {
 }
 
 type Config struct {
-	MainCfg      *MainConfig
-	InputFilters []string
+	MainCfg *MainConfig
 }
 
 type MainConfig struct {
@@ -267,20 +264,6 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		return err
 	}
 
-	heartbeat, err := time.ParseDuration(c.MainCfg.DataWay.Heartbeat)
-	if err != nil {
-		c.MainCfg.DataWay.Heartbeat = "30s"
-		l.Warnf("ws heartbeat not set, default to %s", c.MainCfg.DataWay.Heartbeat)
-	}
-	// 限制最大/最小心跳
-	if heartbeat > 5*time.Minute {
-		c.MainCfg.DataWay.Heartbeat = "5m"
-	}
-	if heartbeat < 30*time.Second {
-		c.MainCfg.DataWay.Heartbeat = "30s"
-	}
-
-	dw.Heartbeat = c.MainCfg.DataWay.Heartbeat
 	c.MainCfg.DataWay = dw
 
 	if c.MainCfg.DataWay.DeprecatedToken != "" { // compatible with old dataway config
