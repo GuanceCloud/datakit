@@ -1,10 +1,11 @@
 package rabbitmq
 
 import (
-	"time"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"time"
 )
 
 func (_ *Input) SampleConfig() string {
@@ -16,10 +17,11 @@ func (_ *Input) Catalog() string {
 }
 
 func (n *Input) Run() {
+	l = logger.SLogger(inputName)
 	l.Info("rabbitmq start")
 	client, err := n.createHttpClient()
 	if err != nil {
-		l.Errorf("[error] nginx init client err:%s", err.Error())
+		l.Errorf("[error] rabbitmq init client err:%s", err.Error())
 		return
 	}
 	n.client = client
@@ -37,28 +39,43 @@ func (n *Input) Run() {
 		case <-tick.C:
 			n.getMetric()
 		case <-cleanCacheTick.C:
-			if len(n.collectCache) > 0 {
-				inputs.FeedMeasurement(inputName, io.Metric, n.collectCache, &io.Option{CollectCost: time.Since(n.start)})
-				n.collectCache = n.collectCache[:]
+			if len(collectCache) > 0 {
+				err := inputs.FeedMeasurement(inputName, io.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
+				collectCache = collectCache[:]
+				if err != nil {
+					l.Errorf(err.Error())
+					continue
+				}
 			}
 		case <-datakit.Exit.Wait():
-			l.Info("nginx exit")
+			l.Info("rabbitmq exit")
 			return
 		}
 	}
 }
 
+type MetricFunc func(n *Input)
 
+func (n *Input) getMetric() {
+	getFunc := []MetricFunc{getOverview, getNode, getQueues, getExchange}
+	n.wg.Add(len(getFunc))
+	for _, v := range getFunc {
+		go func(gf MetricFunc) {
+			defer n.wg.Done()
+			gf(n)
+		}(v)
+	}
+	n.wg.Wait()
+}
 
 func (n *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-
+		&OverviewMeasurement{},
+		&QueueMeasurement{},
+		&ExchangeMeasurement{},
+		&NodeMeasurement{},
 	}
 }
-
-
-
-
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
