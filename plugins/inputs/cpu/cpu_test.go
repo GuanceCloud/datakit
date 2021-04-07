@@ -172,10 +172,10 @@ func TestCollect(t *testing.T) {
 	// tags
 	tags := i.collectCache[0].(*cpuMeasurement).tags
 	if tags["cpu"] != "cpu-total" {
-		t.Errorf("cpu:%s except: cpu-total", tags["cpu"])
+		t.Errorf("cpu:%s expected: cpu-total", tags["cpu"])
 	}
 	if tags["host"] != datakit.Cfg.MainCfg.Hostname {
-		t.Errorf("host name:%s except: %s", tags["cpu"], datakit.Cfg.MainCfg.Hostname)
+		t.Errorf("host name:%s expected: %s", tags["cpu"], datakit.Cfg.MainCfg.Hostname)
 	}
 
 	// fields
