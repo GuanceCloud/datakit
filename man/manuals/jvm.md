@@ -9,9 +9,9 @@
 ## 前置条件
 
 - 已安装 DataKit（[DataKit 安装文档](../../../02-datakit采集器/index.md)）
-- 已安装或下载 [jolokia](https://jolokia.org/download.html)，datakit 安装目录下 `data` 目录下已经下载好 jolokia 的 jar 包，并通过如下方式开启 Java 应用。 
+- 已安装或下载[jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar)，datakit 安装目录下 `data` 目录下已经下载好 [jolokia](https://jolokia.org/) 的 jar 包，并通过如下方式开启 Java 应用。 
 ```
- java -javaagent:/path/to/jolokia-jvm-<version>-agent.jar -jar your_app.jar
+ java -javaagent:/path/to/jolokia-jvm-agent.jar=port=7777,host=localhost -jar your_app.jar
 ```
 
 ## 配置
