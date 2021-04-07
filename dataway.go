@@ -8,10 +8,9 @@ import (
 )
 
 type DataWayCfg struct {
-	URL       string `toml:"url"`
-	Proxy     bool   `toml:"proxy,omitempty"`
-	Timeout   string `toml:"timeout"`
-	Heartbeat string `toml:"heartbeat"`
+	URL     string `toml:"url"`
+	Proxy   bool   `toml:"proxy,omitempty"`
+	Timeout string `toml:"timeout"`
 
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
@@ -20,10 +19,6 @@ type DataWayCfg struct {
 	host      string
 	scheme    string
 	urlValues url.Values
-
-	wspath   string
-	wshost   string
-	wsscheme string
 }
 
 func (dc *DataWayCfg) DeprecatedMetricURL() string {
@@ -142,13 +137,29 @@ func (dc *DataWayCfg) KeyEventURL() string {
 		dc.urlValues.Encode())
 }
 
+func (dc *DataWayCfg) HeartBeatURL() string {
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/heartbeat")
+	}
+
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		"/v1/write/heartbeat",
+		dc.urlValues.Encode())
+}
+
 func (dc *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
 	tcpaddr := addr
 	if _, _, err := net.SplitHostPort(tcpaddr); err != nil {
 		switch scheme {
-		case "http", "ws":
+		case "http":
 			tcpaddr += ":80"
-		case "https", "wss":
+		case "https":
 			tcpaddr += ":443"
 		}
 
@@ -163,26 +174,19 @@ func (dc *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
 
 func (dc *DataWayCfg) Test() error {
 
-	wsaddr, err := dc.tcpaddr(dc.wsscheme, dc.wshost)
-	if err != nil {
-		return err
-	}
-
 	httpaddr, err := dc.tcpaddr(dc.scheme, dc.host)
 	if err != nil {
 		return err
 	}
 
-	for _, h := range []string{wsaddr, httpaddr} {
-		conn, err := net.DialTimeout("tcp", h, time.Second*5)
-		if err != nil {
-			l.Errorf("TCP dial host `%s' failed: %s", dc.host, err.Error())
-			return err
-		}
+	conn, err := net.DialTimeout("tcp", httpaddr, time.Second*5)
+	if err != nil {
+		l.Errorf("TCP dial host `%s' failed: %s", dc.host, err.Error())
+		return err
+	}
 
-		if err := conn.Close(); err != nil {
-			l.Errorf("Close(): %s, ignored", err.Error())
-		}
+	if err := conn.Close(); err != nil {
+		l.Errorf("Close(): %s, ignored", err.Error())
 	}
 
 	return nil
@@ -229,7 +233,6 @@ func ParseDataway(httpurl string) (*DataWayCfg, error) {
 		return nil, err
 	}
 	dwcfg.URL = u.String()
-	dwcfg.wspath = DefaultWebsocketPath
 
 	return dwcfg, nil
 }
