@@ -1,4 +1,10 @@
 
+
+
+
+
+
+
 rabbitmq 采集器调研
 
 采集指标如下：
@@ -41,8 +47,6 @@ rabbitmq 采集器调研
   |   messages_ack_rate      |   float  |   rate  | Rate of messages in exchanges delivered to clients and acknowledged per second | 
   |   message_deliver_get_count     |   int  |   count  | Sum of messages in exchanges delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get | 
   |   message_deliver_get_rate     |   float  |   rate  | Rate per second of the sum of exchange messages delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get |
-  |   messages_confirm_count      |   int  |   count  | Count of messages in exchanges confirmed | 
-  |   messages_confirm_rate      |   float  |   rate  | Rate of messages in exchanges confirmed per second | 
   |   message_publish_count     |   int  |   count  | Count of messages in exchanges published | 
   |   message_publish_rate     |   float  |   rate | Rate of messages in exchanges published per second | 
   |   message_publish_in_rate     |   float  |   rate | Rate of messages published from channels into this exchange per sec | 
@@ -58,13 +62,12 @@ rabbitmq 采集器调研
 
   | fields        | type   | unit     |description | 
   | :----:        | :----: | :----:   |  :----: | 
-  |   disk_alarm      |   bool  |   -  | Does the node have disk alarm｜
+  |   disk_free_alarm      |   bool  |   -  | Does the node have disk alarm｜
   |   disk_free      |   int  |   bytes  | Current free disk space｜
   |   fd_used      |   int  |   -  | Used file descriptors｜
   |   mem_alarm      |   bool  |   -  | Does the host has memory alarm｜
   |   mem_limit      |   int  |   bytes  | Memory usage high watermark in bytes｜
   |   mem_used       |   int  |   bytes  | Memory used in bytes｜
-  |   partitions       |   int  |   count  | Number of network partitions this node is seeing｜
   |   run_queue       |   int  |   count  | Average number of Erlang processes waiting to run｜
   |   running       |   bool  |   -  | Is the node running or not｜
   |   sockets_used       |   int  |   count  | Number of file descriptors used as sockets｜
@@ -73,8 +76,6 @@ rabbitmq 采集器调研
 
   | fields        | type   | unit     |description | 
   | :----:        | :----: | :----:   |  :----: | 
-  |   active_consumers      |   int  |   count  | Number of active consumers, consumers that can immediately receive any messages sent to the queue｜
-  |   bindings_count     |   int  |   count  | Number of bindings for a specific queue｜
   |   consumer_utilisation     |   float  |   rate  | The ratio of time that a queue's consumers can take new messages｜
   |   consumers     |   float  |   rate  | Number of consumers｜
   |   memory     |   int  |   bytes  | Bytes of memory consumed by the Erlang process associated with the queue, including stack, heap and internal structures｜
