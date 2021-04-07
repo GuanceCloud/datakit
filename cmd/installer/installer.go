@@ -31,6 +31,8 @@ var (
 
 	ip2locUrl = "https://" + path.Join(DataKitBaseURL, "iploc/iploc.tar.gz")
 
+	jolokiaUrl = "https://" + path.Join(DataKitBaseURL, "jolokia/jolokia.tar.gz")
+
 	l *logger.Logger
 )
 
@@ -59,6 +61,7 @@ const (
 	dlDatakit  = "datakit"
 	dlAgent    = "agent"
 	dlIp2Loc   = "ip2loc"
+	dlJolokia  = "jolokia"
 )
 
 func main() {
@@ -108,6 +111,9 @@ func main() {
 
 		install.CurDownloading = dlIp2Loc
 		install.Download(ip2locUrl, path.Join(install.InstallDir, "data"))
+
+		install.CurDownloading = dlIp2Loc
+		install.Download(jolokiaUrl, path.Join(install.InstallDir, "data"))
 	}
 
 	if *flagUpgrade { // upgrade new version
