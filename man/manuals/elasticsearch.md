@@ -16,7 +16,7 @@ elasticsearch采集器主要采集节点运行情况、集群健康、JVM性能�
 ```
 [[inputs.elasticsearch]]
   ## log file path
-	#logFiles = ["/path/to/your/file.log"]
+	#log_files = ["/path/to/your/file.log"]
 
   ## specify a list of one or more Elasticsearch servers
   # you can add username and password to your url to use basic authentication:
