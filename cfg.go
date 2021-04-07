@@ -35,6 +35,8 @@ func DefaultConfig() *Config {
 				"site":    "",
 			},
 
+			DataWay: &DataWayCfg{},
+
 			flushInterval: Duration{Duration: time.Second * 10},
 			Interval:      "10s",
 			StrictMode:    false,
@@ -315,6 +317,13 @@ func (dc *DataWayCfg) addToken(tkn string) {
 	}
 }
 
+func (dc *DataWayCfg) GetToken() string {
+	if dc.urlValues == nil {
+		dc.addToken("")
+	}
+	return dc.urlValues.Get("token")
+}
+
 func ParseDataway(httpurl, wsport string) (*DataWayCfg, error) {
 	dwcfg := &DataWayCfg{
 		Timeout: "30s",
@@ -389,11 +398,13 @@ type MainConfig struct {
 	LogRotate int    `toml:"log_rotate,omitempty"`
 	LogUpload bool   `toml:"log_upload"`
 
-	GinLog               string            `toml:"gin_log"`
-	GlobalTags           map[string]string `toml:"global_tags"`
-	StrictMode           bool              `toml:"strict_mode,omitempty"`
-	EnablePProf          bool              `toml:"enable_pprof,omitempty"`
-	Interval             string            `toml:"interval"`
+	GinLog     string            `toml:"gin_log"`
+	GlobalTags map[string]string `toml:"global_tags"`
+
+	StrictMode  bool `toml:"strict_mode,omitempty"`
+	EnablePProf bool `toml:"enable_pprof,omitempty"`
+
+	Interval             string `toml:"interval"`
 	flushInterval        Duration
 	OutputFile           string       `toml:"output_file"`
 	Hostname             string       `toml:"hostname,omitempty"`
@@ -403,6 +414,9 @@ type MainConfig struct {
 
 	BlackList []*InputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*InputHostList `toml:"white_lists,omitempty"`
+
+	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
+	DisableWebsocket      bool `toml:"disable_websocket,omitempty"`
 }
 
 type InputHostList struct {
@@ -478,6 +492,10 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 	if err != nil {
 		l.Errorf("unmarshal main cfg failed %s", err.Error())
 		return err
+	}
+
+	if c.MainCfg.EnableUncheckedInputs {
+		EnableUncheckInputs = true
 	}
 
 	// load datakit UUID
