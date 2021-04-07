@@ -110,8 +110,6 @@ var (
 		"mem":    {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
 		"swap":   {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
 		// "system": {name: "system", Catalog: "host", Input: &system.SystemStats{}},
-		//"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
-		// "cpu":      {name: "cpu", Catalog: "host", Sample: samples["cpu"], Input: nil},
 		"procstat": {name: "procstat", Catalog: "host", Input: &procstat.Procstat{}},
 		"smart":    {name: "smart", Catalog: "host", Input: &smart.Smart{}},
 
