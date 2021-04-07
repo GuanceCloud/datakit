@@ -1,7 +1,6 @@
 package elasticsearch
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -141,7 +140,7 @@ const sampleConfig = `
   # insecure_skip_verify = false
 `
 
-type Elasticsearch struct {
+type Input struct {
 	Interval                   string   `toml:"interval"`
 	Local                      bool     `toml:"local"`
 	Servers                    []string `toml:"servers"`
@@ -166,6 +165,8 @@ type Elasticsearch struct {
 	serverInfoMutex sync.Mutex
 	log             *logger.Logger
 	duration        time.Duration
+
+	collectCache []inputs.Measurement
 }
 
 type serverInfo struct {
@@ -180,31 +181,12 @@ type metric struct {
 	Time        time.Time
 }
 
-var metrics []metric
-
-func addFields(measurement string, fields map[string]interface{}, tags map[string]string, t ...time.Time) {
-	var tm time.Time
-	if len(t) > 0 {
-		tm = t[0]
-	} else {
-		tm = time.Now().UTC()
-	}
-
-	var metricNew = metric{
-		Measurement: measurement,
-		Fields:      fields,
-		Tags:        tags,
-		Time:        tm,
-	}
-	metrics = append(metrics, metricNew)
-}
-
 func (i serverInfo) isMaster() bool {
 	return i.nodeID == i.masterID
 }
 
-func NewElasticsearch() *Elasticsearch {
-	return &Elasticsearch{
+func NewElasticsearch() *Input {
+	return &Input{
 		HTTPTimeout:                Duration{Duration: time.Second * 5},
 		ClusterStatsOnlyFromMaster: true,
 		ClusterHealthLevel:         "indices",
@@ -241,73 +223,74 @@ func mapShardStatusToCode(s string) int {
 
 var (
 	inputName = "elasticsearch"
+	l         = logger.DefaultSLogger("demo")
 )
 
-func (_ *Elasticsearch) Catalog() string {
+func (_ *Input) Catalog() string {
 	return inputName
 }
 
-func (_ *Elasticsearch) SampleConfig() string {
+func (_ *Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (_ *Elasticsearch) Test() (result *inputs.TestResult, err error) {
+func (_ *Input) Test() {
 	return
 }
 
-func (e *Elasticsearch) Run() {
-	e.log = logger.SLogger(inputName)
-	duration, err := time.ParseDuration(e.Interval)
-	if err != nil {
-		e.log.Error(fmt.Errorf("invalid interval, %s", err.Error()))
-		return
-	} else if duration <= 0 {
-		e.log.Error(fmt.Errorf("invalid interval, cannot be less than zero"))
-		return
-	}
-	e.duration = duration
-	client, err := e.createHTTPClient()
-	if err != nil {
-		e.log.Error(err)
-		return
-	}
-	e.client = client
+type elasticsearchMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
 
-	defer e.stop()
+func (m *elasticsearchMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+}
 
-	ticker := time.NewTicker(e.duration)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			e.log.Info("elasticsearch exit")
-			return
-
-		case <-ticker.C:
-			data, err := e.getMetrics()
-			if err != nil {
-				e.log.Error(err)
-				continue
-			}
-			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
-				e.log.Error(err)
-				continue
-			}
-			e.log.Debugf("feed %d bytes to io ok", len(data))
-		}
+func (m *elasticsearchMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "elasticsearch",
+		Fields: map[string]*inputs.FieldInfo{
+			"active_shards_percent_as_number": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "active shards percent"},
+			"active_primary_shards":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "active primary shards"},
+			"status":                          &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "status"},
+			"timed_out":                       &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "timed_out"},
+		},
 	}
 }
 
-func (e *Elasticsearch) getMetrics() ([]byte, error) {
-	var buffer = bytes.Buffer{}
+func (i *Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&elasticsearchMeasurement{},
+	}
+}
 
-	if e.ClusterStats || len(e.IndicesInclude) > 0 || len(e.IndicesLevel) > 0 {
+func (i *Input) addFields(measurement string, fields map[string]interface{}, tags map[string]string, t ...time.Time) {
+	var tm time.Time
+	if len(t) > 0 {
+		tm = t[0]
+	} else {
+		tm = time.Now()
+	}
+
+	i.collectCache = append(i.collectCache, &elasticsearchMeasurement{
+		name:   measurement,
+		tags:   tags,
+		fields: fields,
+		ts:     tm,
+	})
+}
+
+func (i *Input) Collect() error {
+	// 获取nodeID和masterID
+	if i.ClusterStats || len(i.IndicesInclude) > 0 || len(i.IndicesLevel) > 0 {
 		var wgC sync.WaitGroup
-		wgC.Add(len(e.Servers))
+		wgC.Add(len(i.Servers))
 
-		e.serverInfo = make(map[string]serverInfo)
-		for _, serv := range e.Servers {
+		i.serverInfo = make(map[string]serverInfo)
+		for _, serv := range i.Servers {
 			go func(s string) {
 				defer wgC.Done()
 				info := serverInfo{}
@@ -315,21 +298,21 @@ func (e *Elasticsearch) getMetrics() ([]byte, error) {
 				var err error
 
 				// Gather node ID
-				if info.nodeID, err = e.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
-					e.log.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
+				if info.nodeID, err = i.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
+					l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
 					return
 				}
 
 				// get cat/master information here so NodeStats can determine
 				// whether this node is the Master
-				if info.masterID, err = e.getCatMaster(s + "/_cat/master"); err != nil {
-					e.log.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
+				if info.masterID, err = i.getCatMaster(s + "/_cat/master"); err != nil {
+					l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
 					return
 				}
 
-				e.serverInfoMutex.Lock()
-				e.serverInfo[s] = info
-				e.serverInfoMutex.Unlock()
+				i.serverInfoMutex.Lock()
+				i.serverInfo[s] = info
+				i.serverInfoMutex.Unlock()
 
 			}(serv)
 		}
@@ -337,46 +320,46 @@ func (e *Elasticsearch) getMetrics() ([]byte, error) {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(len(e.Servers))
+	wg.Add(len(i.Servers))
 
-	for _, serv := range e.Servers {
+	for _, serv := range i.Servers {
 		go func(s string) {
 			defer wg.Done()
-			url := e.nodeStatsURL(s)
+			url := i.nodeStatsURL(s)
 
 			// Always gather node stats
-			if err := e.gatherNodeStats(url); err != nil {
-				e.log.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
+			if err := i.gatherNodeStats(url); err != nil {
+				l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
 				return
 			}
 
-			if e.ClusterHealth {
+			if i.ClusterHealth {
 				url = s + "/_cluster/health"
-				if e.ClusterHealthLevel != "" {
-					url = url + "?level=" + e.ClusterHealthLevel
+				if i.ClusterHealthLevel != "" {
+					url = url + "?level=" + i.ClusterHealthLevel
 				}
-				if err := e.gatherClusterHealth(url); err != nil {
-					e.log.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
+				if err := i.gatherClusterHealth(url); err != nil {
+					l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
 					return
 				}
 			}
 
-			if e.ClusterStats && (e.serverInfo[s].isMaster() || !e.ClusterStatsOnlyFromMaster || !e.Local) {
-				if err := e.gatherClusterStats(s + "/_cluster/stats"); err != nil {
-					e.log.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
+			if i.ClusterStats && (i.serverInfo[s].isMaster() || !i.ClusterStatsOnlyFromMaster || !i.Local) {
+				if err := i.gatherClusterStats(s + "/_cluster/stats"); err != nil {
+					l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
 					return
 				}
 			}
 
-			if len(e.IndicesInclude) > 0 && (e.serverInfo[s].isMaster() || !e.ClusterStatsOnlyFromMaster || !e.Local) {
-				if e.IndicesLevel != "shards" {
-					if err := e.gatherIndicesStats(s + "/" + strings.Join(e.IndicesInclude, ",") + "/_stats"); err != nil {
-						e.log.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
+			if len(i.IndicesInclude) > 0 && (i.serverInfo[s].isMaster() || !i.ClusterStatsOnlyFromMaster || !i.Local) {
+				if i.IndicesLevel != "shards" {
+					if err := i.gatherIndicesStats(s + "/" + strings.Join(i.IndicesInclude, ",") + "/_stats"); err != nil {
+						l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
 						return
 					}
 				} else {
-					if err := e.gatherIndicesStats(s + "/" + strings.Join(e.IndicesInclude, ",") + "/_stats?level=shards"); err != nil {
-						e.log.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
+					if err := i.gatherIndicesStats(s + "/" + strings.Join(i.IndicesInclude, ",") + "/_stats?level=shards"); err != nil {
+						l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
 						return
 					}
 				}
@@ -386,26 +369,62 @@ func (e *Elasticsearch) getMetrics() ([]byte, error) {
 
 	wg.Wait()
 
-	for _, metricItem := range metrics {
-		data, err := io.MakeMetric(metricItem.Measurement, metricItem.Tags, metricItem.Fields, metricItem.Time)
-		if err != nil {
-			continue
-		}
-		buffer.Write(data)
-		buffer.WriteString("\n")
-	}
-
-	return buffer.Bytes(), nil
+	return nil
 }
 
-func (e *Elasticsearch) gatherIndicesStats(url string) error {
+func (i *Input) Run() {
+	duration, err := time.ParseDuration(i.Interval)
+	if err != nil {
+		l.Error(fmt.Errorf("invalid interval, %s", err.Error()))
+		return
+	} else if duration <= 0 {
+		l.Error(fmt.Errorf("invalid interval, cannot be less than zero"))
+		return
+	}
+
+	i.duration = duration
+	client, err := i.createHTTPClient()
+	if err != nil {
+		l.Error(err)
+		return
+	}
+	i.client = client
+
+	defer i.stop()
+
+	tick := time.NewTicker(i.duration)
+	defer tick.Stop()
+
+	n := 0
+
+	for {
+		n++
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("elasticsearch exit")
+			return
+
+		case <-tick.C:
+			l.Debugf("elasticsearchs input gathering...")
+			start := time.Now()
+			if err := i.Collect(); err != nil {
+				l.Error(err)
+			} else {
+				inputs.FeedMeasurement("elasticsearch", io.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)})
+				i.collectCache = i.collectCache[:0]
+			}
+		}
+	}
+}
+
+func (i *Input) gatherIndicesStats(url string) error {
 	indicesStats := &struct {
 		Shards  map[string]interface{} `json:"_shards"`
 		All     map[string]interface{} `json:"_all"`
 		Indices map[string]indexStat   `json:"indices"`
 	}{}
 
-	if err := e.gatherJSONData(url, indicesStats); err != nil {
+	if err := i.gatherJSONData(url, indicesStats); err != nil {
 		return err
 	}
 	now := time.Now()
@@ -415,17 +434,17 @@ func (e *Elasticsearch) gatherIndicesStats(url string) error {
 	for k, v := range indicesStats.Shards {
 		shardsStats[k] = v
 	}
-	addFields("elasticsearch_indices_stats_shards_total", shardsStats, map[string]string{}, now)
+	i.addFields("elasticsearch_indices_stats_shards_total", shardsStats, map[string]string{}, now)
 
 	// All Stats
 	for m, s := range indicesStats.All {
 		// parse Json, ignoring strings and bools
 		jsonParser := JSONFlattener{}
-		err := jsonParser.FullFlattenJSON("_", s, true, true)
+		err := jsonParser.FullFlattenJSON(m+"_", s, true, true)
 		if err != nil {
 			return err
 		}
-		addFields("elasticsearch_indices_stats_"+m, jsonParser.Fields, map[string]string{"index_name": "_all"}, now)
+		i.addFields("elasticsearch_indices_stats", jsonParser.Fields, map[string]string{"index_name": "_all"}, now)
 	}
 
 	// Individual Indices stats
@@ -438,14 +457,14 @@ func (e *Elasticsearch) gatherIndicesStats(url string) error {
 		for m, s := range stats {
 			f := JSONFlattener{}
 			// parse Json, getting strings and bools
-			err := f.FullFlattenJSON("", s, true, true)
+			err := f.FullFlattenJSON(m, s, true, true)
 			if err != nil {
 				return err
 			}
-			addFields("elasticsearch_indices_stats_"+m, f.Fields, indexTag, now)
+			i.addFields("elasticsearch_indices_stats", f.Fields, indexTag, now)
 		}
 
-		if e.IndicesLevel == "shards" {
+		if i.IndicesLevel == "shards" {
 			for shardNumber, shards := range index.Shards {
 				for _, shard := range shards {
 
@@ -483,7 +502,7 @@ func (e *Elasticsearch) gatherIndicesStats(url string) error {
 						}
 					}
 
-					addFields("elasticsearch_indices_stats_shards",
+					i.addFields("elasticsearch_indices_stats_shards",
 						flattened.Fields,
 						shardTags,
 						now)
@@ -495,13 +514,13 @@ func (e *Elasticsearch) gatherIndicesStats(url string) error {
 	return nil
 }
 
-func (e *Elasticsearch) gatherNodeStats(url string) error {
+func (i *Input) gatherNodeStats(url string) error {
 	nodeStats := &struct {
 		ClusterName string               `json:"cluster_name"`
 		Nodes       map[string]*nodeStat `json:"nodes"`
 	}{}
 
-	if err := e.gatherJSONData(url, nodeStats); err != nil {
+	if err := i.gatherJSONData(url, nodeStats); err != nil {
 		return err
 	}
 
@@ -532,6 +551,7 @@ func (e *Elasticsearch) gatherNodeStats(url string) error {
 		}
 
 		now := time.Now()
+		allFields := make(map[string]interface{})
 		for p, s := range stats {
 			// if one of the individual node stats is not even in the
 			// original result
@@ -540,19 +560,22 @@ func (e *Elasticsearch) gatherNodeStats(url string) error {
 			}
 			f := JSONFlattener{}
 			// parse Json, ignoring strings and bools
-			err := f.FlattenJSON("", s)
+			err := f.FlattenJSON(p, s)
 			if err != nil {
 				return err
 			}
-			addFields("elasticsearch_"+p, f.Fields, tags, now)
+			for k, v := range f.Fields {
+				allFields[k] = v
+			}
 		}
+		i.addFields("elasticsearch_node_stats", allFields, tags, now)
 	}
 	return nil
 }
 
-func (e *Elasticsearch) gatherClusterStats(url string) error {
+func (i *Input) gatherClusterStats(url string) error {
 	clusterStats := &clusterStats{}
-	if err := e.gatherJSONData(url, clusterStats); err != nil {
+	if err := i.gatherJSONData(url, clusterStats); err != nil {
 		return err
 	}
 	now := time.Now()
@@ -567,22 +590,27 @@ func (e *Elasticsearch) gatherClusterStats(url string) error {
 		"indices": clusterStats.Indices,
 	}
 
+	allFields := make(map[string]interface{})
 	for p, s := range stats {
 		f := JSONFlattener{}
 		// parse json, including bools and strings
-		err := f.FullFlattenJSON("", s, true, true)
+		err := f.FullFlattenJSON(p, s, true, true)
 		if err != nil {
 			return err
 		}
-		addFields("elasticsearch_clusterstats_"+p, f.Fields, tags, now)
+		for k, v := range(f.Fields) {
+			allFields[k] = v
+		}
+
 	}
+	i.addFields("elasticsearch_cluster_stats", allFields, tags, now)
 
 	return nil
 }
 
-func (e *Elasticsearch) gatherClusterHealth(url string) error {
+func (i *Input) gatherClusterHealth(url string) error {
 	healthStats := &clusterHealth{}
-	if err := e.gatherJSONData(url, healthStats); err != nil {
+	if err := i.gatherJSONData(url, healthStats); err != nil {
 		return err
 	}
 	measurementTime := time.Now()
@@ -603,7 +631,7 @@ func (e *Elasticsearch) gatherClusterHealth(url string) error {
 		"timed_out":                        healthStats.TimedOut,
 		"unassigned_shards":                healthStats.UnassignedShards,
 	}
-	addFields(
+	i.addFields(
 		"elasticsearch_cluster_health",
 		clusterFields,
 		map[string]string{"name": healthStats.ClusterName},
@@ -622,7 +650,7 @@ func (e *Elasticsearch) gatherClusterHealth(url string) error {
 			"status_code":           mapHealthStatusToCode(health.Status),
 			"unassigned_shards":     health.UnassignedShards,
 		}
-		addFields(
+		i.addFields(
 			"elasticsearch_cluster_health_indices",
 			indexFields,
 			map[string]string{"index": name, "name": healthStats.ClusterName},
@@ -632,12 +660,12 @@ func (e *Elasticsearch) gatherClusterHealth(url string) error {
 	return nil
 }
 
-func (e *Elasticsearch) gatherNodeID(url string) (string, error) {
+func (i *Input) gatherNodeID(url string) (string, error) {
 	nodeStats := &struct {
 		ClusterName string               `json:"cluster_name"`
 		Nodes       map[string]*nodeStat `json:"nodes"`
 	}{}
-	if err := e.gatherJSONData(url, nodeStats); err != nil {
+	if err := i.gatherJSONData(url, nodeStats); err != nil {
 		return "", err
 	}
 
@@ -648,37 +676,37 @@ func (e *Elasticsearch) gatherNodeID(url string) (string, error) {
 	return "", nil
 }
 
-func (e *Elasticsearch) nodeStatsURL(baseURL string) string {
+func (i *Input) nodeStatsURL(baseURL string) string {
 	var url string
 
-	if e.Local {
+	if i.Local {
 		url = baseURL + statsPathLocal
 	} else {
 		url = baseURL + statsPath
 	}
 
-	if len(e.NodeStats) == 0 {
+	if len(i.NodeStats) == 0 {
 		return url
 	}
 
-	return fmt.Sprintf("%s/%s", url, strings.Join(e.NodeStats, ","))
+	return fmt.Sprintf("%s/%s", url, strings.Join(i.NodeStats, ","))
 }
 
-func (e *Elasticsearch) stop() {
-	e.client.CloseIdleConnections()
+func (i *Input) stop() {
+	i.client.CloseIdleConnections()
 }
 
-func (e *Elasticsearch) createHTTPClient() (*http.Client, error) {
+func (i *Input) createHTTPClient() (*http.Client, error) {
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
 
-	if e.TLSOpen {
-		tc, err := TLSConfig(e.CacertFile, e.CertFile, e.KeyFile)
+	if i.TLSOpen {
+		tc, err := TLSConfig(i.CacertFile, i.CertFile, i.KeyFile)
 		if err != nil {
 			return nil, err
 		} else {
-			e.client.Transport = &http.Transport{
+			i.client.Transport = &http.Transport{
 				TLSClientConfig: tc,
 			}
 		}
@@ -687,17 +715,17 @@ func (e *Elasticsearch) createHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (e *Elasticsearch) gatherJSONData(url string, v interface{}) error {
+func (i *Input) gatherJSONData(url string, v interface{}) error {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
 	}
 
-	if e.Username != "" || e.Password != "" {
-		req.SetBasicAuth(e.Username, e.Password)
+	if i.Username != "" || i.Password != "" {
+		req.SetBasicAuth(i.Username, i.Password)
 	}
 
-	r, err := e.client.Do(req)
+	r, err := i.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -717,17 +745,17 @@ func (e *Elasticsearch) gatherJSONData(url string, v interface{}) error {
 	return nil
 }
 
-func (e *Elasticsearch) getCatMaster(url string) (string, error) {
+func (i *Input) getCatMaster(url string) (string, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", err
 	}
 
-	if e.Username != "" || e.Password != "" {
-		req.SetBasicAuth(e.Username, e.Password)
+	if i.Username != "" || i.Password != "" {
+		req.SetBasicAuth(i.Username, i.Password)
 	}
 
-	r, err := e.client.Do(req)
+	r, err := i.client.Do(req)
 	if err != nil {
 		return "", err
 	}
