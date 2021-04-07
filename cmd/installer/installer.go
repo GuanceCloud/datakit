@@ -31,7 +31,7 @@ var (
 
 	ip2locUrl = "https://" + path.Join(DataKitBaseURL, "iploc/iploc.tar.gz")
 
-	jolokiaUrl = "https://" + path.Join(DataKitBaseURL, "jolokia/jolokia.tar.gz")
+	jolokiaUrl = "https://" + path.Join(DataKitBaseURL, "utils/jolokia-jvm-agent.jar.tar.gz")
 
 	l *logger.Logger
 )
