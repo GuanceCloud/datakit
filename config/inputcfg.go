@@ -23,7 +23,7 @@ func addTailfInputs(mc *datakit.MainConfig) {
 		src = mc.UUID
 	}
 
-	tailfDatakitLog := &tailf.Tailf{
+	tailfDatakitLog := &tailf.Inputs{
 		LogFiles: []string{
 			mc.Log,
 			datakit.AgentLogFile,
