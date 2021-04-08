@@ -16,19 +16,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 	"github.com/unrolled/secure"
-
-	/*
-		mathjax "github.com/litao91/goldmark-mathjax"
-		"github.com/yuin/goldmark"
-		"github.com/yuin/goldmark-highlighting"
-		"github.com/yuin/goldmark/extension"
-		gparser "github.com/yuin/goldmark/parser"
-		ghtml "github.com/yuin/goldmark/renderer/html" */
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -428,13 +419,35 @@ func apiReload(c *gin.Context) {
 
 var (
 	manualTOCTemplate = `
-<h1>{{.PageTitle}}</h1>
+<style>
+div {
+  border: 1px solid gray;
+  padding: 8px;
+}
 
-{{ $server := .Server }}
+h1 {
+  text-align: center;
+  text-transform: uppercase;
+  color: #4CAF50;
+}
+
+p {
+  text-indent: 50px;
+  text-align: justify;
+  letter-spacing: 3px;
+}
+
+a {
+  text-decoration: none;
+  color: #008CBA;
+}
+</style>
+
+<h1>{{.PageTitle}}</h1>
 
 <ul>
 	{{ range $name := .InputNames}}
-	<p><a href="http://{{$server}}/man?input={{$name}}">
+	<p><a href="/man?input={{$name}}">
 			{{$name}} </a> </p>
 	{{end}}
 </ul>
@@ -443,7 +456,6 @@ var (
 
 type manualTOC struct {
 	PageTitle  string
-	Server     string
 	InputNames []string
 }
 
@@ -452,7 +464,6 @@ func apiManual(c *gin.Context) {
 	if name == "" { // request toc
 		toc := &manualTOC{
 			PageTitle: "datakit manuals",
-			Server:    "localhost:9529",
 		}
 
 		for k, v := range inputs.Inputs {
@@ -493,29 +504,6 @@ func apiManual(c *gin.Context) {
 	opts := html.RendererOptions{Flags: htmlFlags}
 	renderer := html.NewRenderer(opts)
 
-	//out := markdown.ToHTML(mdtxt, psr, renderer)
 	out := markdown.ToHTML(mdtxt, psr, renderer)
 	c.Data(http.StatusOK, "text/html; charset=UTF-8", out)
-
-	/*
-		var buf bytes.Buffer
-
-		md := goldmark.New(
-			goldmark.WithExtensions(highlighting.Highlighting),
-			goldmark.WithExtensions(extension.GFM),
-			goldmark.WithExtensions(mathjax.MathJax),
-			goldmark.WithParserOptions(
-				gparser.WithAutoHeadingID(),
-			),
-			goldmark.WithRendererOptions(
-				ghtml.WithHardWraps(),
-				ghtml.WithXHTML(),
-			),
-		)
-
-		if err := md.Convert(mdtxt, &buf); err != nil {
-			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
-		}
-
-		c.Data(http.StatusOK, "text/html; charset=UTF-8", buf.Bytes()) */
 }
