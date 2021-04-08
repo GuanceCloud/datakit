@@ -27,7 +27,7 @@ func (m *commandMeasurement) LineProto() (*io.Point, error) {
 func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_command_stat",
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"calls": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
@@ -44,7 +44,7 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "this is CPU usage",
 			},
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server addr",
 			},
@@ -123,7 +123,7 @@ func (m *commandMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {
 		if value, ok := m.resData[key]; ok {
-			val, err := Conv(value, item.DataType)
+			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
 				l.Errorf("commandMeasurement metric %v value %v parse error %v", key, value, err)
 			} else {
