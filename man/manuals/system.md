@@ -3,7 +3,7 @@
 
 # 简介
 
-`system` 采集器
+system 采集器
 
 ## 前置条件
 
@@ -11,7 +11,7 @@
 
 ## 配置
 
-进入 DataKit 安装目录下的 `conf.d/{{.InputName}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+进入 DataKit 安装目录下的 `conf.d/host` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
 ```
 {{.InputSample}}
