@@ -89,7 +89,7 @@ func (this *Inputs) Run() {
 		Tags:              this.Tags,
 	}
 
-	tailer, err := inputs.NewTailer(inputName, this.LogFiles, &option)
+	tailer, err := inputs.NewTailer(this.LogFiles, &option)
 	if err != nil {
 		l.Error(err)
 		return
