@@ -21,7 +21,7 @@ const (
 	metricName   = inputName
 	sampleCfg    = `
 [[inputs.system]]
-
+# no sample need here, just open the input
 	`
 )
 
@@ -74,7 +74,7 @@ func (m *systemMeasurement) LineProto() (*io.Point, error) {
 }
 
 func (i *Input) Catalog() string {
-	return "system"
+	return "host"
 }
 
 func (i *Input) SampleConfig() string {
