@@ -29,8 +29,8 @@ type Input struct {
 	Fielddrop []string
 	logger    *logger.Logger
 
-	collectCache []inputs.Measurement
-	_ptr         *systemMeasurement
+	collectCache         []inputs.Measurement
+	collectCacheLast1Ptr *systemMeasurement
 }
 
 type systemMeasurement struct {
@@ -43,14 +43,14 @@ type systemMeasurement struct {
 func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
 	tmp := &systemMeasurement{name: name, tags: tags, fields: fields, ts: ts}
 	i.collectCache = append(i.collectCache, tmp)
-	i._ptr = tmp
+	i.collectCacheLast1Ptr = tmp
 }
 
 func (i *Input) addField(field string, value interface{}) error {
-	if i._ptr == nil {
+	if i.collectCacheLast1Ptr == nil {
 		return fmt.Errorf("error: append one before adding")
 	}
-	i._ptr.fields[field] = value
+	i.collectCacheLast1Ptr.fields[field] = value
 	return nil
 }
 
