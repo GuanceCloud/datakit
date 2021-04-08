@@ -17,7 +17,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/diskio"
 	"github.com/influxdata/telegraf/plugins/inputs/dns_query"
 	"github.com/influxdata/telegraf/plugins/inputs/docker"
-	"github.com/influxdata/telegraf/plugins/inputs/elasticsearch"
+	_ "github.com/influxdata/telegraf/plugins/inputs/elasticsearch"
 	"github.com/influxdata/telegraf/plugins/inputs/exec"
 	"github.com/influxdata/telegraf/plugins/inputs/fluentd"
 	"github.com/influxdata/telegraf/plugins/inputs/github"
@@ -131,15 +131,15 @@ var (
 		"tengine": {name: "tengine", Catalog: "tengine", Input: &tengine.Tengine{}},
 		"apache":  {name: "apache", Catalog: "apache", Input: &apache.Apache{}},
 
-		"postgresql":    {name: "postgresql", Catalog: "db", Input: &postgresql.Postgresql{}},
-		"mongodb":       {name: "mongodb", Catalog: "db", Input: &mongodb.MongoDB{}},
-		"redis":         {name: "redis", Catalog: "db", Input: &redis.Redis{}},
-		"elasticsearch": {name: "elasticsearch", Catalog: "db", Input: &elasticsearch.Elasticsearch{}},
-		"sqlserver":     {name: "sqlserver", Catalog: "db", Input: &sqlserver.SQLServer{}},
-		"memcached":     {name: "memcached", Catalog: "db", Input: &memcached.Memcached{}},
-		"solr":          {name: "solr", Catalog: "db", Input: &solr.Solr{}},
-		"clickhouse":    {name: "clickhouse", Catalog: "db", Input: &clickhouse.ClickHouse{}},
-		`influxdb`:      {name: "influxdb", Catalog: "db", Input: &influxdb.InfluxDB{}},
+		"postgresql": {name: "postgresql", Catalog: "db", Input: &postgresql.Postgresql{}},
+		"mongodb":    {name: "mongodb", Catalog: "db", Input: &mongodb.MongoDB{}},
+		"redis":      {name: "redis", Catalog: "db", Input: &redis.Redis{}},
+		// "elasticsearch": {name: "elasticsearch", Catalog: "db", Input: &elasticsearch.Elasticsearch{}},
+		"sqlserver":  {name: "sqlserver", Catalog: "db", Input: &sqlserver.SQLServer{}},
+		"memcached":  {name: "memcached", Catalog: "db", Input: &memcached.Memcached{}},
+		"solr":       {name: "solr", Catalog: "db", Input: &solr.Solr{}},
+		"clickhouse": {name: "clickhouse", Catalog: "db", Input: &clickhouse.ClickHouse{}},
+		`influxdb`:   {name: "influxdb", Catalog: "db", Input: &influxdb.InfluxDB{}},
 
 		"openldap": {name: "openldap", Catalog: "openldap", Input: &openldap.Openldap{}},
 
