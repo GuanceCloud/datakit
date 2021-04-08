@@ -847,11 +847,11 @@ github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/redis/v20180412
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sqlserver/v20180328
 # github.com/tencentyun/cos-go-sdk-v5 v0.7.7
 github.com/tencentyun/cos-go-sdk-v5
-# github.com/tidwall/gjson v1.6.1
+# github.com/tidwall/gjson v1.7.4
 github.com/tidwall/gjson
-# github.com/tidwall/match v1.0.1
+# github.com/tidwall/match v1.0.3
 github.com/tidwall/match
-# github.com/tidwall/pretty v1.0.2
+# github.com/tidwall/pretty v1.1.0
 github.com/tidwall/pretty
 # github.com/trivago/tgo v1.0.1
 github.com/trivago/tgo/tcontainer
@@ -933,7 +933,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript/module
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210406092021-eb74aa55f68c
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210408024520-d80a52a487b8
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 # go.mongodb.org/mongo-driver v1.4.1
 go.mongodb.org/mongo-driver/bson
