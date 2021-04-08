@@ -103,4 +103,3 @@ func init() {
 		return &Input{}
 	})
 }
-

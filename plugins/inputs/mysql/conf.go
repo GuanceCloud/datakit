@@ -2,7 +2,7 @@ package mysql
 
 const (
 	configSample = `
-[[inputs.mysqlMonitor]]
+[[inputs.mysql]]
 	## @param host - string - optional
     ## MySQL host to connect to.
     ## NOTE: Even if the host is "localhost", the agent connects to MySQL using TCP/IP, unless you also
@@ -46,26 +46,11 @@ const (
     ##
     # service = "<SERVICE>"
 
-    ## @param ssl - mapping - optional
-    ## Use this section to configure a TLS connection between the Agent and MySQL.
-    ##
-    ## The following fields are supported:
-    ##
-    ## key: Path to a key file.
-    ## cert: Path to a cert file.
-    ## ca: Path to a CA bundle file.
-    #
-    # ssl:
-    #   key: <KEY_FILE_PATH>
-    #   cert: <CERT_FILE_PATH>
-    #   ca: <CA_PATH_FILE>
-
-
     ## Enable options to collect extra metrics from your MySQL integration.
     #
-    options:
+    [inputs.mysql.options]:
         ## @param disable_innodb_metrics - boolean - optional - default: false
-        ## Set to `true` only if experiencing issues with older (unsupported) versions of MySQL
+        ## Set to true only if experiencing issues with older (unsupported) versions of MySQL
         ## that do not run or have InnoDB engine support.
         ##
         ## If this flag is enabled, you will only receive a small subset of metrics.
@@ -74,14 +59,20 @@ const (
         #
         # disable_innodb_metrics = false
 
+    # [inputs.mysql.custom_queries]
+    # [inputs.mysql.custom_queries.item]
+    #     query = "SELECT foo, COUNT(*) FROM table.events GROUP BY foo"
+    #     [inputs.mysql.custom_queries.item.columns]
+    #       name: foo
+    #     - name: event.total
+    #     tags:
+    #     - test:mysql
+
     ## @param tags - list of strings - optional
     ## A list of tags to attach to every metric and service check emitted by this instance.
     ##
-    [inputs.httpProb.tags]
+    [inputs.mysql.tags]
     # tag1 = val1
     # tag2 = val2
 `
 )
-
-
-
