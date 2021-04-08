@@ -31,71 +31,63 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 			"id": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Desc:     "an unique 64-bit client ID",
 			},
 			"addr": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Desc:     "address/port of the client",
 			},
 			"fd": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Desc:     "file descriptor corresponding to the socket",
 			},
 			"age": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Desc:     " total duration of the connection in seconds",
 			},
 			"idle": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Desc:     "idle time of the connection in seconds",
 			},
 			"sub": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Desc:     "number of channel subscriptions",
 			},
 			"psub": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Desc:     "number of pattern matching subscriptions",
+			},
+		},
+		Tags: map[string]*inputs.TagInfo{
+			"server": &inputs.TagInfo{
+				Desc: "server addr",
+			},
+			"name": &inputs.TagInfo{
+				Desc: "the name set by the client with CLIENT SETNAME, default unknown",
 			},
 		},
 	}
 }
 
-func CollectClientMeasurement(cli *redis.Client, tags map[string]string) *clientMeasurement {
-	m := &clientMeasurement{
-		client:  cli,
-		resData: make(map[string]interface{}),
-		tags:    make(map[string]string),
-		fields:  make(map[string]interface{}),
-	}
-	m.name = "redis_client_list"
-	m.tags = tags
-
-	m.getData()
-	m.submit()
-
-	return m
-}
-
 // 数据源获取数据
-func (m *clientMeasurement) getData() error {
-	list, err := m.client.ClientList().Result()
+func (i *Input) getClientData() error {
+	list, err := i.client.ClientList().Result()
 	if err != nil {
 		return err
 	}
-	m.parseInfoData(list)
+	i.parseClientData(list)
 
 	return nil
 }
 
 // 解析返回结果
-func (m *clientMeasurement) parseInfoData(list string) error {
+func (i *Input) parseClientData(list string) error {
 	rdr := strings.NewReader(list)
 
 	scanner := bufio.NewScanner(rdr)
@@ -109,6 +101,17 @@ func (m *clientMeasurement) parseInfoData(list string) error {
 		parts := strings.SplitN(line, " ", 18)
 		if len(parts) < 18 {
 			continue
+		}
+
+		m := &clientMeasurement{
+			name:    "redis_client_list",
+			tags:    make(map[string]string),
+			fields:  make(map[string]interface{}),
+			resData: make(map[string]interface{}),
+		}
+
+		for key, value := range i.Tags {
+			m.tags[key] = value
 		}
 
 		for _, part := range parts {
@@ -128,6 +131,11 @@ func (m *clientMeasurement) parseInfoData(list string) error {
 				m.resData[key] = val
 			}
 		}
+
+		m.ts = time.Now()
+		m.submit()
+
+		i.collectCache = append(i.collectCache, m)
 	}
 
 	return nil
