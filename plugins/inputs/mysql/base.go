@@ -28,7 +28,7 @@ func (m *baseMeasurement) LineProto() (*io.Point, error) {
 func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mysql_base",
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			// status
 			"Slow_queries": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -425,7 +425,7 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "The number of threads created to handle connections. If Threads_created is big, you may want to increase the thread_cache_size value.",
 			},
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server addr",
 			},
@@ -518,7 +518,7 @@ func (m *baseMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {
 		if value, ok := m.resData[key]; ok {
-			val, err := Conv(value, item.DataType)
+			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
 				l.Errorf("baseMeasurement metric %v value %v parse error %v", key, value, err)
 			} else {
