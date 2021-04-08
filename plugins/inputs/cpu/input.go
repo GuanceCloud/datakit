@@ -108,7 +108,7 @@ func (i *Input) appendMeasurement(name string, tags map[string]string, fields ma
 // }
 
 func (i *Input) Catalog() string {
-	return "cpu"
+	return "host"
 }
 
 func (i *Input) SampleConfig() string {
