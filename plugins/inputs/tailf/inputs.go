@@ -93,7 +93,10 @@ func (this *Inputs) Run() {
 
 	tailer, err := inputs.NewTailer(inputName, this.LogFiles, &option)
 	if err != nil {
+<<<<<<< Updated upstream
 		l.Error(err)
+=======
+>>>>>>> Stashed changes
 		return
 	}
 
