@@ -80,7 +80,7 @@ func LoadInputsConfig(c *datakit.Config) error {
 		}
 	}
 
-	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, availableInputCfgs, c.InputFilters)
+	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, availableInputCfgs, nil)
 	if err != nil {
 		return err
 	}
@@ -99,11 +99,6 @@ func LoadInputsConfig(c *datakit.Config) error {
 }
 
 func doLoadInputConf(c *datakit.Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
-	if len(c.InputFilters) > 0 {
-		if !sliceContains(name, c.InputFilters) {
-			return nil
-		}
-	}
 
 	l.Debugf("search input cfg for %s", name)
 	searchDatakitInputCfg(c, inputcfgs, name, creator)
@@ -302,6 +297,11 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 
 		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
 			l.Errorf("mkdir failed: %s, ignored", err.Error())
+			continue
+		}
+
+		//check exist
+		if _, err := os.Stat(fpath); err == nil {
 			continue
 		}
 
