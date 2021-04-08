@@ -53,7 +53,7 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 	// see https://man7.org/linux/man-pages/man5/proc.5.html
 	return &inputs.MeasurementInfo{
 		Name: metricName,
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			// "active": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 			// 	Desc: "% CPU usage."},
 			"user": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
