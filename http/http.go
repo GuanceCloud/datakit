@@ -422,7 +422,7 @@ var (
 <style>
 div {
   border: 1px solid gray;
-  padding: 8px;
+  /* padding: 8px; */
 }
 
 h1 {
@@ -432,38 +432,54 @@ h1 {
 }
 
 p {
-  text-indent: 50px;
+  /* text-indent: 50px; */
   text-align: justify;
-  letter-spacing: 3px;
+  /* letter-spacing: 3px; */
 }
 
 a {
   text-decoration: none;
-  color: #008CBA;
+  /* color: #008CBA; */
+}
+
+ul.a {
+  list-style-type: square;
 }
 </style>
 
 <h1>{{.PageTitle}}</h1>
-
-<ul>
+采集器文档列表
+<ul class="a">
 	{{ range $name := .InputNames}}
+	<li>
 	<p><a href="/man?input={{$name}}">
-			{{$name}} </a> </p>
+			{{$name}} </a> </p> </li>
 	{{end}}
 </ul>
-	`
+
+其它文档集合
+
+<ul class="a">
+	{{ range $name := .OtherDocs}}
+	<li>
+	<p><a href="/man?input={{$name}}">
+			{{$name}} </a> </p> </li>
+	{{end}}
+</ul>
+`
 )
 
 type manualTOC struct {
 	PageTitle  string
 	InputNames []string
+	OtherDocs  []string
 }
 
 func apiManual(c *gin.Context) {
 	name := c.Query("input")
 	if name == "" { // request toc
 		toc := &manualTOC{
-			PageTitle: "datakit manuals",
+			PageTitle: "DataKit文档列表",
 		}
 
 		for k, v := range inputs.Inputs {
@@ -471,6 +487,10 @@ func apiManual(c *gin.Context) {
 			case inputs.ManualInput:
 				toc.InputNames = append(toc.InputNames, k)
 			}
+		}
+
+		for k, _ := range man.OtherDocs {
+			toc.OtherDocs = append(toc.OtherDocs, k)
 		}
 
 		t := template.New("man-toc")
