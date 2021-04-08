@@ -26,7 +26,7 @@ func (m *commandMeasurement) LineProto() (*io.Point, error) {
 
 func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_client",
+		Name: "redis_command_stat",
 		Fields: map[string]*inputs.FieldInfo{
 			"calls": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -44,45 +44,36 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "this is CPU usage",
 			},
 		},
+		Tags: map[string]*inputs.TagInfo{
+			"server": &inputs.TagInfo{
+				Desc: "server addr",
+			},
+			"method": &inputs.TagInfo{
+				Desc: "command type",
+			},
+		},
 	}
-}
-
-func CollectCommandMeasurement(cli *redis.Client, tags map[string]string) *commandMeasurement {
-	m := &commandMeasurement{
-		client:  cli,
-		resData: make(map[string]interface{}),
-		tags:    make(map[string]string),
-		fields:  make(map[string]interface{}),
-	}
-
-	m.name = "redis_command_stat"
-	m.tags = tags
-
-	m.getData()
-	m.submit()
-
-	return m
 }
 
 // 数据源获取数据
-func (m *commandMeasurement) getData() error {
-	list, err := m.client.Info("commandstats").Result()
+func (i *Input) getCommandData() error {
+	list, err := i.client.Info("commandstats").Result()
 	if err != nil {
 		return err
 	}
-	m.parseInfoData(list)
+
+	i.parseCommandData(list)
 
 	return nil
 }
 
 // 解析返回结果
-func (m *commandMeasurement) parseInfoData(list string) error {
+func (i *Input) parseCommandData(list string) error {
 	rdr := strings.NewReader(list)
 
 	scanner := bufio.NewScanner(rdr)
 	for scanner.Scan() {
 		line := scanner.Text()
-
 		if len(line) == 0 || line[0] == '#' {
 			continue
 		}
@@ -90,6 +81,17 @@ func (m *commandMeasurement) parseInfoData(list string) error {
 		parts := strings.SplitN(line, ":", 2)
 		if len(parts) < 2 {
 			continue
+		}
+
+		m := &commandMeasurement{
+			name:    "redis_command_stat",
+			tags:    make(map[string]string),
+			fields:  make(map[string]interface{}),
+			resData: make(map[string]interface{}),
+		}
+
+		for key, value := range i.Tags {
+			m.tags[key] = value
 		}
 
 		//cmdstat_get:calls=2,usec=16,usec_per_call=8.00
@@ -106,6 +108,11 @@ func (m *commandMeasurement) parseInfoData(list string) error {
 
 			m.resData[key] = val
 		}
+
+		m.submit()
+		m.ts = time.Now()
+
+		i.collectCache = append(i.collectCache, m)
 	}
 
 	return nil
@@ -118,7 +125,7 @@ func (m *commandMeasurement) submit() error {
 		if value, ok := m.resData[key]; ok {
 			val, err := Conv(value, item.DataType)
 			if err != nil {
-				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
+				l.Errorf("commandMeasurement metric %v value %v parse error %v", key, value, err)
 			} else {
 				m.fields[key] = val
 			}
