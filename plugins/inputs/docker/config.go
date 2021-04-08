@@ -20,6 +20,8 @@ const (
     collect_metric_interval = "10s"
     collect_object_interval = "5m"
 
+    collect_logging = true
+
     # Is all containers, Return all containers. By default, only running containers are shown.
     include_exited = false
 
