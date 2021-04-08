@@ -48,7 +48,7 @@ func CollectSlowlogMeasurement(input *Input) *slowlogMeasurement {
 		tags:              make(map[string]string),
 		fields:            make(map[string]interface{}),
 		lastTimestampSeen: make(map[string]int64),
-		slowlogMaxLen: input.SlowlogMaxLen,
+		slowlogMaxLen:     input.SlowlogMaxLen,
 	}
 
 	m.name = "redis_slowlog"
@@ -60,10 +60,9 @@ func CollectSlowlogMeasurement(input *Input) *slowlogMeasurement {
 
 // 数据源获取数据
 func (m *slowlogMeasurement) getData() error {
-	var maxSlowEntries, defaultMaxSlowEntries float64
-	defaultMaxSlowEntries = m.slowlogMaxLen
+	var maxSlowEntries int
 
-	maxSlowEntries = defaultMaxSlowEntries
+	maxSlowEntries = m.slowlogMaxLen
 
 	slowlogs, err := m.client.Do("SLOWLOG", "GET", maxSlowEntries).Result()
 	if err != nil {
