@@ -1,10 +1,10 @@
 package oracle
 
 type processMeasurement struct {
-	name    string
-	tags    map[string]string
-	fields  map[string]interface{}
-	ts      time.Time
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
 }
 
 // 生成行协议
@@ -44,10 +44,10 @@ func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type tablespaceMeasurement struct {
-	name    string
-	tags    map[string]string
-	fields  map[string]interface{}
-	ts      time.Time
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
 }
 
 // 生成行协议
@@ -85,4 +85,3 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 		},
 	}
 }
-

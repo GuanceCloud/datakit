@@ -558,7 +558,6 @@ github.com/influxdata/telegraf/plugins/inputs/postgresql
 github.com/influxdata/telegraf/plugins/inputs/processes
 github.com/influxdata/telegraf/plugins/inputs/procstat
 github.com/influxdata/telegraf/plugins/inputs/rabbitmq
-github.com/influxdata/telegraf/plugins/inputs/redis
 github.com/influxdata/telegraf/plugins/inputs/smart
 github.com/influxdata/telegraf/plugins/inputs/snmp
 github.com/influxdata/telegraf/plugins/inputs/socket_listener
@@ -830,7 +829,7 @@ github.com/spf13/cast
 github.com/streadway/amqp
 # github.com/stretchr/objx v0.2.0
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.6.1
+# github.com/stretchr/testify v1.7.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 # github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
@@ -990,7 +989,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20210317152858-513c2a44f670
+# golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
@@ -1044,7 +1043,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210317225723-c4fcb01b228e
+# golang.org/x/sys v0.0.0-20210331175145-43e1dd70ce54
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
