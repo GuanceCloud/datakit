@@ -24,7 +24,7 @@ var (
 	# tls_key = "/xxx/key.key"
 	## Use TLS but skip chain & host verification
 	insecure_skip_verify = false
-	
+
 	# HTTP response timeout (default: 5s)
 	response_timeout = "20s"
 `
