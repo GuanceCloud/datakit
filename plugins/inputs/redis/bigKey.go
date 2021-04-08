@@ -35,6 +35,11 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "key length",
 			},
 		},
+		Tags: map[string]*inputs.TagInfo{
+			"server": &inputs.TagInfo{
+				Desc: "server addr",
+			},
+		},
 	}
 }
 
