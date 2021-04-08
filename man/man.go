@@ -14,11 +14,14 @@ import (
 
 var (
 	ManualBox = packr.New("manulas", "./manuals")
+	OtherDocs = map[string]interface{}{
+		"pipeline": nil,
+	}
 
 	l = logger.DefaultSLogger("man")
 )
 
-type Input struct {
+type Params struct {
 	InputName    string
 	Catalog      string
 	InputSample  string
@@ -34,42 +37,53 @@ func Get(name string) (string, error) {
 
 func BuildMarkdownManual(name string) ([]byte, error) {
 
-	x, ok := inputs.Inputs[name]
-	if !ok {
-		return nil, fmt.Errorf("intput %s not found", name)
-	}
+	var p *Params
 
-	input := x()
-	switch i := input.(type) {
-	case inputs.ManualInput: // pass
-		sampleMeasurements := i.SampleMeasurement()
-		x := Input{
-			InputName:   name,
-			InputSample: i.SampleConfig(),
-			Catalog:     i.Catalog(),
+	if _, ok := OtherDocs[name]; ok {
+		p = &Params{
 			Version:     git.Version,
 			ReleaseDate: git.BuildAt,
 			CSS:         css,
 		}
-		for _, m := range sampleMeasurements {
-			x.Measurements = append(x.Measurements, m.Info())
+	} else {
+		c, ok := inputs.Inputs[name]
+		if !ok {
+			return nil, fmt.Errorf("intput %s not found", name)
 		}
 
-		md, err := Get(name)
-		if err != nil {
-			return nil, err
-		}
-		temp, err := template.New(name).Parse(md)
-		if err != nil {
-			return nil, err
-		}
+		input := c()
+		switch i := input.(type) {
+		case inputs.ManualInput: // pass
+			sampleMeasurements := i.SampleMeasurement()
+			p = &Params{
+				InputName:   name,
+				InputSample: i.SampleConfig(),
+				Catalog:     i.Catalog(),
+				Version:     git.Version,
+				ReleaseDate: git.BuildAt,
+				CSS:         css,
+			}
+			for _, m := range sampleMeasurements {
+				p.Measurements = append(p.Measurements, m.Info())
+			}
 
-		var buf bytes.Buffer
-		if err := temp.Execute(&buf, x); err != nil {
-			return nil, err
+		default:
+			return nil, nil
 		}
-		return buf.Bytes(), nil
-	default:
-		return nil, nil
 	}
+
+	md, err := Get(name)
+	if err != nil {
+		return nil, err
+	}
+	temp, err := template.New(name).Parse(md)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	if err := temp.Execute(&buf, p); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
