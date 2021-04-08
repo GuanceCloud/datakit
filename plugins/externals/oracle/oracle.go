@@ -65,14 +65,14 @@ type monitor struct {
 
 func buildMonitor() *monitor {
 	m := &monitor{
-		metric:        *fMetric,
-		interval:      *fInterval,
-		user:          *fUsername,
-		password:      *fPassword,
-		desc:          *fInstanceDesc,
-		host:          *fHost,
-		port:          *fPort,
-		serviceName:   *fServiceName,
+		metric:      *fMetric,
+		interval:    *fInterval,
+		user:        *fUsername,
+		password:    *fPassword,
+		desc:        *fInstanceDesc,
+		host:        *fHost,
+		port:        *fPort,
+		serviceName: *fServiceName,
 	}
 
 	if m.interval != "" {
@@ -344,11 +344,11 @@ const (
     SELECT PROGRAM, PGA_USED_MEM, PGA_ALLOC_MEM, PGA_FREEABLE_MEM, PGA_MAX_MEM FROM GV$PROCESS
     `
 
-    oracle_system_sql = `
+	oracle_system_sql = `
     SELECT VALUE, METRIC_NAME FROM GV$SYSMETRIC ORDER BY BEGIN_TIME
     `
 
-    oracle_tablespace_sql = `
+	oracle_tablespace_sql = `
     SELECT
 	  m.tablespace_name,
 	  NVL(m.used_space * t.block_size, 0),
