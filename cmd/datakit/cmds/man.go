@@ -3,7 +3,9 @@ package cmds
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -36,6 +38,29 @@ func Man() {
 	p.Run()
 }
 
+func ExportMan(to string) error {
+	if err := os.MkdirAll(to, os.ModePerm); err != nil {
+		return err
+	}
+
+	for k, _ := range inputs.Inputs {
+		data, err := GetMan(k)
+		if err != nil {
+			return err
+		}
+
+		if len(data) == 0 {
+			continue
+		}
+
+		if err := ioutil.WriteFile(filepath.Join(to, k+".md"), []byte(data), os.ModePerm); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func runMan(txt string) {
 	s := strings.Join(strings.Fields(strings.TrimSpace(txt)), " ")
 	if s == "" {
@@ -47,15 +72,24 @@ func runMan(txt string) {
 		fmt.Println("Bye!")
 		os.Exit(0)
 	default:
-		getMan(s)
+		x, err := GetMan(s)
+		if err != nil {
+			fmt.Printf("[E] %s\n", err.Error())
+		} else {
+			if len(x) == 0 {
+				fmt.Printf("[E] intput %s got no manual", s)
+			} else {
+				result := markdown.Render(x, 80, 6)
+				fmt.Println(string(result))
+			}
+		}
 	}
 }
 
-func getMan(inputName string) {
+func GetMan(inputName string) (string, error) {
 	c, ok := inputs.Inputs[inputName]
 	if !ok {
-		fmt.Printf("[E] intput %s not found: %s\n", inputName)
-		return
+		return "", fmt.Errorf("intput %s not found: %s", inputName)
 	}
 
 	input := c() // construct input
@@ -65,20 +99,17 @@ func getMan(inputName string) {
 	case inputs.ManualInput:
 		sampleMeasurements = i.SampleMeasurement()
 	default:
-		fmt.Printf("[E] intput %s not implement SampleMeasurement()\n", inputName)
-		return
+		return "", nil
 	}
 
 	md, err := man.Get(inputName)
 	if err != nil {
-		fmt.Printf("[E] get manual failed: %s\n", err.Error())
-		return
+		return "", err
 	}
 
 	temp, err := template.New(inputName).Parse(md)
 	if err != nil {
-		fmt.Printf("[E] invalid markdown template in %s: %s\n", inputName, err.Error())
-		return
+		return "", err
 	}
 
 	x := man.Input{
@@ -93,8 +124,8 @@ func getMan(inputName string) {
 	}
 
 	var buf bytes.Buffer
-	temp.Execute(&buf, x)
-
-	result := markdown.Render(buf.String(), 80, 6)
-	fmt.Println(string(result))
+	if err := temp.Execute(&buf, x); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
