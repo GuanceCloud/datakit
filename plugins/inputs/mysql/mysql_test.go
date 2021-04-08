@@ -1,8 +1,8 @@
 package mysql
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 // func TestGetDsnString(t *testing.T) {
@@ -114,14 +114,13 @@ import (
 // 	m.submitMetrics()
 // }
 
-
 func TestCollect(t *testing.T) {
 	input := &Input{
-		Host : "127.0.0.1",
-		Port : 3306,
-		User : "root",
-		Pass : "test",
-		Tags:     make(map[string]string),
+		Host: "127.0.0.1",
+		Port: 3306,
+		User: "root",
+		Pass: "test",
+		Tags: make(map[string]string),
 	}
 
 	input.initCfg()
