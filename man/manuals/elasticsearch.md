@@ -1,9 +1,11 @@
+{{.CSS}}
+
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
 
 # 简介
 
-elasticsearch采集器主要采集节点运行情况、集群健康、JVM性能状况、索引性能、检索性能等。
+ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性能状况、索引性能、检索性能等。
 
 ## 前置条件
 
@@ -11,67 +13,10 @@ elasticsearch采集器主要采集节点运行情况、集群健康、JVM性能�
 
 ## 配置
 
-进入 DataKit 安装目录下的 `conf.d/elasticsearch` 目录，复制 `elasticsearch.conf.sample` 并命名为 `elasticsearch.conf`。示例如下：
+进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
-```
-[[inputs.elasticsearch]]
-  ## log file path
-	#log_files = ["/path/to/your/file.log"]
-
-  ## specify a list of one or more Elasticsearch servers
-  # you can add username and password to your url to use basic authentication:
-  # servers = ["http://user:pass@localhost:9200"]
-  servers = ["http://localhost:9200"]
-
-  ## valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-  ## required
-  interval = "10s"
-
-  ## Timeout for HTTP requests to the elastic search server(s)
-  http_timeout = "5s"
-
-  ## When local is true (the default), the node will read only its own stats.
-  ## Set local to false when you want to read the node stats from all nodes
-  ## of the cluster.
-  local = true
-
-  ## Set cluster_health to true when you want to also obtain cluster health stats
-  cluster_health = false
-
-  ## Adjust cluster_health_level when you want to also obtain detailed health stats
-  ## The options are
-  ##  - indices (default)
-  ##  - cluster
-  # cluster_health_level = "indices"
-
-  ## Set cluster_stats to true when you want to also obtain cluster stats.
-  cluster_stats = false
-
-  ## Only gather cluster_stats from the master node. To work this require local = true
-  cluster_stats_only_from_master = true
-
-  ## Indices to collect; can be one or more indices names or _all
-  indices_include = ["_all"]
-
-  ## One of "shards", "cluster", "indices"
-  indices_level = "shards"
-
-  ## node_stats is a list of sub-stats that you want to have gathered. Valid options
-  ## are "indices", "os", "process", "jvm", "thread_pool", "fs", "transport", "http",
-  ## "breaker". Per default, all stats are gathered.
-  # node_stats = ["jvm", "http"]
-
-  ## HTTP Basic Authentication username and password.
-  # username = ""
-  # password = ""
-
-  ## Optional TLS Config
-	tls_open = false
-  # tls_ca = "/etc/telegraf/ca.pem"
-  # tls_cert = "/etc/telegraf/cert.pem"
-  # tls_key = "/etc/telegraf/key.pem"
-  ## Use TLS but skip chain & host verification
-  # insecure_skip_verify = false
+```python
+{{.InputSample}}
 ```
 
 配置好后，重启 DataKit 即可。
