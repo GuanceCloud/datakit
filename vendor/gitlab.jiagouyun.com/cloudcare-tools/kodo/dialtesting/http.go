@@ -172,7 +172,8 @@ func (t *HTTPTask) Check() error {
 	if t.ExternalID == "" {
 		return fmt.Errorf("external ID missing")
 	}
-	return nil
+
+	return t.Init()
 }
 
 type HTTPSuccess struct {
@@ -402,7 +403,7 @@ func (t *HTTPTask) Init() error {
 		if opt.RequestBody != nil {
 			switch opt.RequestBody.BodyType {
 			case "text/plain", "application/json", "text/xml", "application/x-www-form-urlencoded":
-			case "text/html", "multipart/form-data", "": // do nothing
+			case "text/html", "multipart/form-data", "", "None": // do nothing
 			default:
 				return fmt.Errorf("invalid body type: `%s'", opt.RequestBody.BodyType)
 			}
