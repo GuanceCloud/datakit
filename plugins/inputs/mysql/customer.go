@@ -1,12 +1,23 @@
 package mysql
 
+import (
+	"time"
+	"reflect"
+	"strconv"
+	"strings"
+	"fmt"
+
+	"github.com/spf13/cast"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
+
 type customerMeasurement struct {
-	client  *sql.DB
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
 	ts      time.Time
-	resData map[string]interface{}
 }
 
 // 生成行协议
@@ -27,21 +38,21 @@ func (m *customerMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) exec() {
-	for key, item := range metricMap {
-		resMap, err := i.query(item)
+func (i *Input) customSchemaMeasurement() {
+	for _, item := range i.Query {
+		resMap, err := i.query(item.sql)
 		if err != nil {
-			l.Warnf("mysql query faild %v", err)
+			l.Errorf("custom sql %v query faild %v", item.sql, err)
 		}
 
-		m.handleResponse(servtag, resMap)
+		i.handleResponse(item, resMap)
 	}
 }
 
-func (i *Input) handleResponse() error {
-	for _, item := range i.response {
+func (i *Input) handleResponse(qy *customQuery, resMap []map[string]interface{}) error {
+	for _, item := range resMap {
 		m := &customerMeasurement{
-			name:   "mysql_customer",
+			name:   qy.metric,
 			tags:   make(map[string]string),
 			fields: make(map[string]interface{}),
 		}
@@ -50,7 +61,34 @@ func (i *Input) handleResponse() error {
 			m.tags[key] = value
 		}
 
-		m.fields = item
+		if len(qy.tags) > 0 && len(qy.fields) == 0 {
+			for _, tgKey := range qy.tags {
+				if value , ok := item[tgKey]; ok {
+					m.tags[tgKey] = cast.ToString(value)
+					delete(item, tgKey)
+				}
+			}
+			m.fields = item
+		}
+
+		if len(qy.tags) > 0 && len(qy.fields) > 0 {
+			for _, tgKey := range qy.tags {
+				if value , ok := item[tgKey]; ok {
+					m.tags[tgKey] = cast.ToString(value)
+					delete(item, tgKey)
+				}
+			}
+
+			for _, fdKey := range qy.fields {
+				if value , ok := item[fdKey]; ok {
+					m.fields[fdKey] = value
+				}
+			}
+		}
+
+		if len(qy.tags) == 0 && len(qy.fields) == 0 {
+			m.fields = item
+		}
 		m.ts = time.Now()
 
 		i.collectCache = append(i.collectCache, m)
@@ -60,7 +98,7 @@ func (i *Input) handleResponse() error {
 }
 
 func (i *Input) query(sql string) ([]map[string]interface{}, error) {
-	rows, err := i.client.Query(sql)
+	rows, err := i.db.Query(sql)
 	if err != nil {
 		return nil, err
 	}
