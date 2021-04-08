@@ -12,12 +12,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-func (d *DockerUtil) gather() ([]byte, error) {
+func (this *Inputs) gather() ([]byte, error) {
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, defaultAPITimeout)
+	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
 	defer cancel()
 
-	cList, err := d.client.ContainerList(ctx, types.ContainerListOptions{All: d.IncludeExited})
+	cList, err := this.client.ContainerList(ctx, this.opts)
 	if err != nil {
 		l.Error(err)
 		return nil, err
@@ -26,7 +26,7 @@ func (d *DockerUtil) gather() ([]byte, error) {
 	var buffer bytes.Buffer
 
 	for _, container := range cList {
-		data, err := d.gatherContainer(container)
+		data, err := this.gatherContainer(container)
 		if err != nil {
 			// 忽略某一个container的错误
 			// 继续gather下一个
@@ -40,9 +40,9 @@ func (d *DockerUtil) gather() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func (d *DockerUtil) gatherContainer(container types.Container) ([]byte, error) {
+func (this *Inputs) gatherContainer(container types.Container) ([]byte, error) {
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, defaultAPITimeout)
+	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
 	defer cancel()
 
 	tags := map[string]string{
@@ -62,7 +62,7 @@ func (d *DockerUtil) gatherContainer(container types.Container) ([]byte, error) 
 		"stats": container.State,
 	}
 
-	fields, err := d.gatherStats(ctx, container.ID)
+	fields, err := this.gatherStats(ctx, container.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +72,8 @@ func (d *DockerUtil) gatherContainer(container types.Container) ([]byte, error) 
 
 const streamStats = false
 
-func (d *DockerUtil) gatherStats(ctx context.Context, id string) (map[string]interface{}, error) {
-	resp, err := d.client.ContainerStats(ctx, id, streamStats)
+func (this *Inputs) gatherStats(ctx context.Context, id string) (map[string]interface{}, error) {
+	resp, err := this.client.ContainerStats(ctx, id, streamStats)
 	if err != nil {
 		return nil, err
 	}
@@ -107,10 +107,10 @@ func (d *DockerUtil) gatherStats(ctx context.Context, id string) (map[string]int
 	}, nil
 }
 
-func (d *DockerUtil) composeMessage(ctx context.Context, id string, v *types.ContainerJSON) ([]byte, error) {
+func (this *Inputs) composeMessage(ctx context.Context, id string, v *types.ContainerJSON) ([]byte, error) {
 	// 容器未启动时，无法进行containerTop，此处会得到error
 	// 与 opt.All 冲突，忽略此error即可
-	t, _ := d.client.ContainerTop(ctx, id, nil)
+	t, _ := this.client.ContainerTop(ctx, id, nil)
 
 	return json.Marshal(struct {
 		types.ContainerJSON
