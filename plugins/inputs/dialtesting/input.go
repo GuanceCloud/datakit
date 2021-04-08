@@ -15,6 +15,7 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
@@ -30,7 +31,7 @@ var (
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
 
-	x *IO
+	x *io.IO
 )
 
 const (
@@ -54,11 +55,11 @@ type DialTesting struct {
 }
 
 const sample = `[[inputs.dialtesting]]
-	region = "" # required
+	# require，默认值为default
+	region = "default" 
 
-	server = "dialtesting.dataflux.cn"
-
-	pull_interval = "1m" # default 1 min
+	#  中心任务存储的服务地址，或本地json 文件全路径 
+	server = "files:///your/dir/json-file-name" 
 
 	[inputs.dialtesting.tags]
 	# 各种可能的 tag
@@ -76,12 +77,12 @@ func (d *DialTesting) Run() {
 
 	l = logger.SLogger(inputName)
 
-	x = NewIO()
+	x = io.NewIO()
 
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
-		x.startIO()
+		x.StartIO(true)
 	}()
 
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
