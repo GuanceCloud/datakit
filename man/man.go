@@ -14,15 +14,56 @@ import (
 
 var (
 	ManualBox = packr.New("manulas", "./manuals")
-	l         = logger.DefaultSLogger("man")
+
+	l   = logger.DefaultSLogger("man")
+	css = `
+<style>
+div {
+  border: 1px solid gray;
+  padding: 8px;
+}
+
+/*h1 {
+  text-transform: uppercase;
+  color: #4CAF50;
+} */
+
+p {
+  /* text-indent: 50px; */
+  text-align: justify;
+  letter-spacing: 3px;
+}
+
+table {
+ width: 80%;
+ border: 1px solid #ddd;
+ border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  border-collapse: collapse;
+
+  padding: 4px;
+}
+
+tr:hover {background-color: #f2f2f2;}
+
+a {
+  text-decoration: none;
+  color: #008CBA;
+}
+</style>`
 )
 
 type Input struct {
 	InputName    string
+	Catalog      string
 	InputSample  string
 	Version      string
 	ReleaseDate  string
 	Measurements []*inputs.MeasurementInfo
+	CSS          string
 }
 
 func Get(name string) (string, error) {
@@ -43,8 +84,10 @@ func BuildMarkdownManual(name string) ([]byte, error) {
 		x := Input{
 			InputName:   name,
 			InputSample: i.SampleConfig(),
+			Catalog:     i.Catalog(),
 			Version:     git.Version,
 			ReleaseDate: git.BuildAt,
+			CSS:         css,
 		}
 		for _, m := range sampleMeasurements {
 			x.Measurements = append(x.Measurements, m.Info())
