@@ -14,7 +14,7 @@ stages:
 build-dev:
   stage: deploy
   only:
-    - dev
+    - testing
   script:
     - make ci_notify
     #- make check
