@@ -20,7 +20,7 @@ func (m *ServerZoneMeasurement) LineProto() (*io.Point, error) {
 func (m *ServerZoneMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: ServerZone,
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"request_count": newCountFieldInfo("The total number of client requests received from clients."),
 			"received":      newByteFieldInfo("The total amount of data received from clients."),
 			"sent":          newByteFieldInfo("The total amount of data sent to clients."),
@@ -30,7 +30,7 @@ func (m *ServerZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"response_4xx":  newCountFieldInfo("The number of responses with status codes 4xx"),
 			"response_5xx":  newCountFieldInfo("The number of responses with status codes 5xx"),
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"nginx_server": inputs.NewTagInfo("nginx server host"),
 			"nginx_port":   inputs.NewTagInfo("nginx server port"),
 			"server_zone":  inputs.NewTagInfo("server zone"),
@@ -52,7 +52,7 @@ func (m *UpstreamZoneMeasurement) LineProto() (*io.Point, error) {
 func (m *UpstreamZoneMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: UpstreamZone,
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"request_count": newCountFieldInfo("The total number of client requests received from server."),
 			"received":      newByteFieldInfo("The total number of bytes received from this server."),
 			"sent":          newByteFieldInfo("The total number of bytes sent to clients."),
@@ -62,7 +62,7 @@ func (m *UpstreamZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"response_4xx":  newCountFieldInfo("The number of responses with status codes 4xx"),
 			"response_5xx":  newCountFieldInfo("The number of responses with status codes 5xx"),
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"nginx_server":    inputs.NewTagInfo("nginx server host"),
 			"nginx_port":      inputs.NewTagInfo("nginx server port"),
 			"upstream_zone":   inputs.NewTagInfo("upstream zone"),
@@ -85,7 +85,7 @@ func (m *CacheZoneMeasurement) LineProto() (*io.Point, error) {
 func (m *CacheZoneMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: CacheZone,
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"max_size":              newByteFieldInfo("The limit on the maximum size of the cache specified in the configuration"),
 			"used_size":             newByteFieldInfo("The current size of the cache."),
 			"receive":               newByteFieldInfo("The total number of bytes received from the cache."),
@@ -99,7 +99,7 @@ func (m *CacheZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"responses_hit":         newCountFieldInfo("The number of cache hit"),
 			"responses_scarce":      newCountFieldInfo("The number of cache scarce"),
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"nginx_server": inputs.NewTagInfo("nginx server host"),
 			"nginx_port":   inputs.NewTagInfo("nginx server port"),
 			"cache_zone":   inputs.NewTagInfo("cache zone"),
