@@ -27,7 +27,7 @@ func (m *schemaMeasurement) LineProto() (*io.Point, error) {
 func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_schema",
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			// status
 			"schema_size": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -40,7 +40,7 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "Avg query response time per schema.",
 			},
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server addr",
 			},
