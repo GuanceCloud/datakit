@@ -27,7 +27,7 @@ func (m *dbMeasurement) LineProto() (*io.Point, error) {
 func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_client",
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"keys": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
@@ -113,7 +113,7 @@ func (m *dbMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {
 		if value, ok := m.resData[key]; ok {
-			val, err := Conv(value, item.DataType)
+			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
 				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
 			} else {
