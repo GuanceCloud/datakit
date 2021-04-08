@@ -11,15 +11,15 @@ docker采集器有5个数据源。其中，docker自身服务数据2个，容器
     # To use environment variables (ie, docker-machine), set endpoint = "ENV"
     endpoint = "unix:///var/run/docker.sock"
 
-    # Is all containers, Return all containers. By default, only running containers are shown.
-    include_exited = false
-
     # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     collect_metrics_interval = "10s"
     collect_object_interval = "5m"
     
     collect_logging = true
     collect_logging_from_beginning = false
+
+    # Is all containers, Return all containers. By default, only running containers are shown.
+    include_exited = false
 
     ## Optional TLS Config
     # tls_ca = "/tmp/ca.pem"
