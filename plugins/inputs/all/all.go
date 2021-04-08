@@ -49,6 +49,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/huaweiyunces"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/huaweiyunobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jira"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jvm"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/k8sobject"
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafkalog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kong"
@@ -93,6 +94,8 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/yarn"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zabbix"
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zaplog"
+
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/elasticsearch"
 
 	// removed
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
