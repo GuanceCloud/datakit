@@ -11,7 +11,7 @@ import (
 
 func TestMain(t *testing.T) {
 	var err error
-	var d = DockerUtil{
+	var d = Inputs{
 		Endpoint:     defaultEndpoint,
 		newEnvClient: NewEnvClient,
 		newClient:    NewClient,
