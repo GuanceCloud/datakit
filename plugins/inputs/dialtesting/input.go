@@ -187,7 +187,7 @@ func protectedRun(d *dialer) {
 	f = func(trace []byte, err error) {
 		defer rtpanic.Recover(f, nil)
 		if trace != nil {
-			l.Warnf("task %s panic: %s", d.task.ID(), err)
+			l.Warnf("task %s panic: %+#v", d.task.ID(), err)
 			crashcnt++
 			if crashcnt > maxCrashCnt {
 				l.Warnf("task %s crashed %d times, exit now", d.task.ID(), crashcnt)
@@ -332,7 +332,7 @@ func signReq(req *http.Request, ak, sk string) {
 
 func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 
-	reqURL.Path = "/v1/pull"
+	reqURL.Path = "/v1/task/pull"
 	reqURL.RawQuery = fmt.Sprintf("region=%s&since=%d", d.Region, sinceUs)
 
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
