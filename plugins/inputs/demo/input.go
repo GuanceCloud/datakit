@@ -32,7 +32,7 @@ func (m *demoMeasurement) LineProto() (*io.Point, error) {
 func (m *demoMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "demo",
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"usage":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "this is CPU usage"},
 			"disk_size":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeIByte, Desc: "this is disk size"},
 			"some_string": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "some string field"},
