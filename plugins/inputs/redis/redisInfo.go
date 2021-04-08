@@ -2,7 +2,6 @@ package redis
 
 import (
 	"bufio"
-	"fmt"
 	"strings"
 	"time"
 
@@ -225,8 +224,7 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
-				Desc: `The sum in bytes of all overheads that the server allocated for managing its internal data structures
-                       used_memory_startup: Initial amount of memory consumed by Redis at startup in bytes`,
+				Desc:     "The sum in bytes of all overheads that the server allocated for managing its internal data structures",
 			},
 			"maxmemory": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -297,6 +295,11 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "Number of failed lookup of keys in the main dictionary",
 			},
 		},
+		Tags: map[string]*inputs.TagInfo{
+			"server": &inputs.TagInfo{
+				Desc: "server addr",
+			},
+		},
 	}
 }
 
@@ -313,8 +316,6 @@ func CollectInfoMeasurement(cli *redis.Client, tags map[string]string) *infoMeas
 
 	m.getData()
 	m.submit()
-
-	fmt.Println("redis info", m)
 
 	return m
 }

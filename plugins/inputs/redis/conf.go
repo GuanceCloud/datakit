@@ -60,6 +60,11 @@ const (
     #
     # warn_on_missing_keys = true
 
+    ## @param slow_log - boolean - optional - default: false
+    ## Collect 'slowlog Get' output as metrics.
+    #
+    # slow_log = false
+
     ## @param slowlog-max-len - integer - optional - default: 128
     ## Set the maximum number of entries to fetch from the slow query log.
     ## By default, the check reads this value from the redis config, but is limited to 128.
