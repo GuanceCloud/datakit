@@ -8,20 +8,9 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
-	// "github.com/luci/go-render/render"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
-
-// func (d *DockerUtil) do() {
-// 	data, err := d.gather()
-// 	if err != nil {
-// 		return
-// 	}
-// 	if err := io.NamedFeed(data, io.Object, inputName); err != nil {
-// 		l.Error(err)
-// 	}
-// }
 
 func (d *DockerUtil) gather() ([]byte, error) {
 	ctx := context.Background()
@@ -73,7 +62,10 @@ func (d *DockerUtil) gatherContainer(container types.Container) ([]byte, error) 
 		"stats": container.State,
 	}
 
-	fields, _ := d.gatherStats(ctx, container.ID)
+	fields, err := d.gatherStats(ctx, container.ID)
+	if err != nil {
+		return nil, err
+	}
 
 	return io.MakeMetric(inputName, tags, fields, time.Now())
 }

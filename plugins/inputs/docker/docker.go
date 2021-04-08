@@ -6,6 +6,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -23,6 +24,7 @@ type DockerUtil struct {
 	Endpoint              string               `toml:"endpoint"`
 	CollectMetricInterval string               `toml:"collect_metric_interval"`
 	CollectObjectInterval string               `toml:"collect_object_interval"`
+	CollectLogging        bool                 `toml:"collect_logging"`
 	IncludeExited         bool                 `toml:"include_exited"`
 	ClientConfig                               // tls config
 	LogsPipeline          []*DockerLogPipeline `toml:"logs_pipeline"`
@@ -49,34 +51,37 @@ func (*DockerUtil) PipelineConfig() map[string]string {
 	return nil
 }
 
-func (d *DockerUtil) Test() (*inputs.TestResult, error) {
-	l = logger.SLogger(inputName)
-
-	var result = inputs.TestResult{Desc: "数据指标获取失败，详情见错误信息"}
-	var err error
-
-	if err = d.loadCfg(); err != nil {
-		return &result, err
-	}
-
-	var data []byte
-	data, err = d.gather()
-	if err != nil {
-		return &result, err
-	}
-
-	result.Result = data
-	result.Desc = "数据指标获取成功"
-
-	return &result, err
-}
-
 func (d *DockerUtil) Run() {
 	l = logger.SLogger(inputName)
 	if d.initCfg() {
 		return
 	}
 	l.Info("docker input start")
+
+	gatherTick := time.NewTicker(d.collectMetricDuration)
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+
+		case <-gatherTick.C:
+			data, err := d.gather()
+			if err != nil {
+			}
+			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+				l.Error(err)
+			}
+
+		case <-time.After(d.collectObjectDuration):
+			data, err := d.gather()
+			if err != nil {
+			}
+			if err := io.NamedFeed(data, io.Object, inputName); err != nil {
+				l.Error(err)
+			}
+		}
+	}
 }
 
 func (d *DockerUtil) initCfg() bool {
