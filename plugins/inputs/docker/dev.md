@@ -19,6 +19,9 @@ docker采集器有5个数据源。其中，docker自身服务数据2个，容器
     # 如果interval配置为空，则不开启对应的采集
     collect_metrics_interval = "10s"
     collect_object_interval = "5m"
+    
+    collect_logging = true
+    collect_logging_from_beginning = false
 
     ## tls配置相关
     # tls_ca = "/tmp/ca.pem"
@@ -127,13 +130,12 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 | image_name          | tags   | string   |      |
 | host                | tags   | string   |      |
 | stats               | tags   | string   |      |
+| from_kube           | tags   | booler   |      |
 | kube_container_name | tags   | string   |      |
 | kube_daemon_set     | tags   | string   |      |
 | kube_deployment     | tags   | string   |      |
 | kube_namespace      | tags   | string   |      |
 | kube_ownerref_kind  | tags   | string   |      |
-| kube_ownerref_name  | tags   | string   |      |
-| kube_replica_set    | tags   | string   |      |
 | pod_name            | tags   | string   |      |
 | pod_phase           | tags   | string   |      |
 | cpu_usage_percent   | fields | float    |      |
