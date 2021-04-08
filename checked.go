@@ -125,7 +125,7 @@ var (
 		"mongodb_oplog":          true,
 		"mqtt_consumer":          true,
 		"msexchange":             true,
-		"mysql":           		  true,
+		"mysql":                  true,
 		"mysqlog":                true,
 		"nats":                   true,
 		"neo4j":                  true,
