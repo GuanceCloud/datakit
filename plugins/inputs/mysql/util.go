@@ -1,11 +1,14 @@
-package mysqlmonitor
+package mysql
 
 import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/spf13/cast"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"math"
 	"strconv"
+	"strings"
 )
 
 type ConversionFunc func(value sql.RawBytes) (interface{}, error)
@@ -106,4 +109,57 @@ func ConvertGlobalVariables(key string, value sql.RawBytes) (interface{}, error)
 	}
 
 	return ParseValue(value)
+}
+
+func atof(str string) float64 {
+	str = strings.Replace(str, ",", "", -1)
+	str = strings.Replace(str, ";", "", -1)
+	str = strings.Replace(str, "/s", "", -1)
+	str = strings.Trim(str, " ")
+	val, err := strconv.ParseFloat(str, 64)
+	if err != nil {
+		l.Debugf("Error occurred when parse %s to float. %s", str, err)
+		val = 0
+	}
+	return val
+}
+
+func makeBigint(hi string, lo string) int64 {
+	if lo == "" {
+		val, _ := strconv.ParseInt(hi, 16, 64)
+		return val
+	}
+
+	var hiVal int64
+	var loVal int64
+	if hi != "" {
+		hiVal, _ = strconv.ParseInt(hi, 10, 64)
+	}
+	if lo != "" {
+		loVal, _ = strconv.ParseInt(lo, 10, 64)
+	}
+
+	val := hiVal * loVal
+
+	return val
+}
+
+func Conv(val interface{}, Datatype string) (interface{}, error) {
+	var (
+		res interface{}
+		err error
+	)
+
+	switch Datatype {
+	case inputs.Float:
+		res, err = cast.ToFloat64E(val)
+	case inputs.Int:
+		res, err = cast.ToInt64E(val)
+	case inputs.Bool:
+		res, err = cast.ToBoolE(val)
+	case inputs.String:
+		res, err = cast.ToStringE(val)
+	}
+
+	return res, err
 }
