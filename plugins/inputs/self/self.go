@@ -50,10 +50,6 @@ func (s *SelfInfo) Run() {
 	}
 }
 
-func (s *SelfInfo) SampleMeasurement() []inputs.Measurement {
-	return nil
-}
-
 func init() {
 	StartTime = time.Now()
 	inputs.Add(inputName, func() inputs.Input {
