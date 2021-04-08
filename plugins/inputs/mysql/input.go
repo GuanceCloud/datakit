@@ -36,23 +36,24 @@ type options struct {
 }
 
 type Input struct {
-	Host             string            `toml:"host"`
-	Port             int               `toml:"port"`
-	User             string            `toml:"user"`
-	Pass             string            `toml:"pass"`
-	Sock             string            `toml:"sock"`
-	Charset          string            `toml:"charset"`
-	Timeout          string            `toml:"connect_timeout"`
-	TimeoutDuration  time.Duration     `toml:"-"`
-	Tls              *tls              `toml:"tls"`
-	Service          string            `toml:"service"`
-	Interval         string            `toml:"interval"`
-	IntervalDuration time.Duration     `toml:"-"`
-	Tags             map[string]string `toml:"tags"`
-	options          *options          `toml:"options"`
-	db               *sql.DB		   `toml:"-"`
-	Addr             string	           `toml:"-"`
-	collectCache     []inputs.Measurement `toml:"-"`
+	Host             string                   `toml:"host"`
+	Port             int                      `toml:"port"`
+	User             string                   `toml:"user"`
+	Pass             string                   `toml:"pass"`
+	Sock             string                   `toml:"sock"`
+	Charset          string                   `toml:"charset"`
+	Timeout          string                   `toml:"connect_timeout"`
+	TimeoutDuration  time.Duration            `toml:"-"`
+	Tls              *tls                     `toml:"tls"`
+	Service          string                   `toml:"service"`
+	Interval         string                   `toml:"interval"`
+	IntervalDuration time.Duration            `toml:"-"`
+	Tags             map[string]string        `toml:"tags"`
+	options          *options                 `toml:"options"`
+	db               *sql.DB                  `toml:"-"`
+	Addr             string                   `toml:"-"`
+	collectCache     []inputs.Measurement     `toml:"-"`
+	response         []map[string]interface{} `toml:"-"`
 }
 
 func (i *Input) getDsnString() string {
@@ -126,11 +127,39 @@ func (i *Input) globalTag() {
 func (i *Input) Collect() error {
 	i.collectCache = []inputs.Measurement{}
 
-	// 获取info指标
-	baseMeasurement := CollectBaseMeasurement(i.db, i.Tags)
-	i.collectCache = append(i.collectCache, baseMeasurement)
+	i.collectBaseMeasurement()
+	i.collectSchemaMeasurement()
 
 	return nil
+}
+
+// 获取base指标
+func (i *Input) collectBaseMeasurement() {
+	m := &baseMeasurement{
+		client:  i.db,
+		resData: make(map[string]interface{}),
+		tags:    make(map[string]string),
+		fields:  make(map[string]interface{}),
+	}
+
+	m.name = "mysql_base"
+	for key, value := range i.Tags {
+		m.tags[key] = value
+	}
+
+	m.getStatus()
+	m.getVariables()
+	m.getLogStats()
+
+	m.submit()
+
+	i.collectCache = append(i.collectCache, m)
+}
+
+// 获取schema指标
+func (i *Input) collectSchemaMeasurement() {
+	i.getSchemaSize()
+	i.getQueryExecTimePerSchema()
 }
 
 func (i *Input) Run() {
@@ -170,6 +199,7 @@ func (i *Input) SampleConfig() string { return configSample }
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&baseMeasurement{},
+		&schemaMeasurement{},
 	}
 }
 
