@@ -40,6 +40,8 @@ require (
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-kit/kit v0.10.0
 	github.com/go-ole/go-ole v1.2.4
+	github.com/go-redis/redis v6.15.9+incompatible
+	github.com/go-redis/redis/v8 v8.8.0 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/envy v1.9.0 // indirect
 	github.com/gobuffalo/genny v0.6.0 // indirect
@@ -80,8 +82,6 @@ require (
 	github.com/naoina/toml v0.1.1
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
 	github.com/nightlyone/lockfile v1.0.0 // indirect
-	github.com/onsi/ginkgo v1.12.1 // indirect
-	github.com/onsi/gomega v1.10.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/selinux v1.5.1 // indirect
@@ -105,11 +105,11 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.3 // indirect
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.7
-	github.com/tidwall/gjson v1.6.1
+	github.com/tidwall/gjson v1.7.4
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
@@ -122,7 +122,7 @@ require (
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210401072947-bb2a050fa753
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210324054101-fdb22dffb394
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210408024520-d80a52a487b8
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
@@ -131,7 +131,6 @@ require (
 	golang.org/x/term v0.0.0-20210317153231-de623e64d2a6 // indirect
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
-	golang.org/x/tools v0.1.0 // indirect
 	google.golang.org/grpc v1.28.0
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/ini.v1 v1.57.0 // indirect
