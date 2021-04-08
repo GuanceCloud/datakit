@@ -20,16 +20,16 @@ func (m *NginxMeasurement) LineProto() (*io.Point, error) {
 func (m *NginxMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nginx,
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"load_timestamp":      newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationMS, "Loaded process time in milliseconds, when exist by open vts"),
 			"connection_active":   newCountFieldInfo("The current number of active client connections"),
-			"connection_reading":  newCountFieldInfo("The total  number of reading client connections"),
-			"connection_writing":  newCountFieldInfo("The total  number of writing client connections"),
-			"connection_waiting":  newCountFieldInfo("The total  number of waiting client connections"),
-			"connection_handled":  newCountFieldInfo("The total  number of handled client connections"),
-			"connection_requests": newCountFieldInfo("The total  number of requests client connections"),
+			"connection_reading":  newCountFieldInfo("The total number of reading client connections"),
+			"connection_writing":  newCountFieldInfo("The total number of writing client connections"),
+			"connection_waiting":  newCountFieldInfo("The total number of waiting client connections"),
+			"connection_handled":  newCountFieldInfo("The total number of handled client connections"),
+			"connection_requests": newCountFieldInfo("The total number of requests client connections"),
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"nginx_server": inputs.NewTagInfo("nginx server host"),
 			"nginx_port":   inputs.NewTagInfo("nginx server port"),
 		},
