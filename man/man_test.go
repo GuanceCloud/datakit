@@ -33,10 +33,12 @@ import (
 
 func TestMarkdownToHTML(t *testing.T) {
 
-	source, err := ioutil.ReadFile("./test.md")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := `
+| col    | col2  | col3 | col4 |
+| ---:   | :---- | ---  | ---- |
+| row1 | xxx   | int  | none |
+| row2 | yyy   | int  | none |
+	`
 
 	opt := &testutil.HTTPServerOptions{
 		Bind: ":12345",
@@ -59,7 +61,7 @@ func TestMarkdownToHTML(t *testing.T) {
 					),
 				)
 
-				if err := md.Convert(source, &buf); err != nil {
+				if err := md.Convert([]byte(source), &buf); err != nil {
 					t.Error(err)
 				}
 
@@ -75,8 +77,9 @@ func TestMarkdownToHTML(t *testing.T) {
 				opts := html.RendererOptions{Flags: htmlFlags}
 				renderer := html.NewRenderer(opts)
 
-				out := markdown.ToHTML(source, psr, renderer)
-				c.Data(http.StatusOK, "text/html; charset=UTF-8", out)
+				out := markdown.ToHTML([]byte(source), psr, renderer)
+				//c.Data(http.StatusOK, "text/html; charset=UTF-8", out)
+				c.Data(http.StatusOK, "", out)
 			},
 		},
 	}
