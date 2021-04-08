@@ -117,7 +117,7 @@ func SetTest() {
 	testAssert = true
 }
 
-func (x *IO) doFeed(pts []*Point, category, name string, opt *Option) error {
+func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 
 	ch := x.in
 
@@ -270,7 +270,7 @@ func (x *IO) init() error {
 	return nil
 }
 
-func (x *IO) startIO(recoverable bool) {
+func (x *IO) StartIO(recoverable bool) {
 
 	if err := x.init(); err != nil {
 		return
@@ -403,6 +403,7 @@ func (x *IO) flush() {
 	// flush dynamic cache: __not__ post to default dataway
 	left := []*iodata{}
 	for _, v := range x.dynamicCache {
+		v.url = v.opt.HTTPHost
 		if err := x.doFlush(v.pts, v.url); err != nil {
 			l.Errorf("post %d to %s failed", len(v.pts), v.url)
 			left = append(left, v)
