@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"crypto/tls"
+	"io"
 	"net/http"
 
 	"github.com/docker/docker/api/types"
@@ -23,6 +24,7 @@ type Client interface {
 	ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error)
 	ContainerTop(ctx context.Context, containerID string, arguments []string) (containerTop, error)
 	ContainerStats(ctx context.Context, containerID string, stream bool) (types.ContainerStats, error)
+	ContainerLogs(ctx context.Context, containerID string, options types.ContainerLogsOptions) (io.ReadCloser, error)
 }
 
 func NewEnvClient() (Client, error) {
@@ -68,4 +70,8 @@ func (c *SocketClient) ContainerTop(ctx context.Context, containerID string, arg
 
 func (c *SocketClient) ContainerStats(ctx context.Context, containerID string, stream bool) (types.ContainerStats, error) {
 	return c.client.ContainerStats(ctx, containerID, stream)
+}
+
+func (c *SocketClient) ContainerLogs(ctx context.Context, containerID string, options types.ContainerLogsOptions) (io.ReadCloser, error) {
+	return c.client.ContainerLogs(ctx, containerID, options)
 }
