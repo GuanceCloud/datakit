@@ -96,8 +96,7 @@ type TelegrafCfg struct {
 }
 
 type Config struct {
-	MainCfg      *MainConfig
-	InputFilters []string
+	MainCfg *MainConfig
 }
 
 type MainConfig struct {
