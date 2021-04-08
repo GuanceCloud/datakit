@@ -45,7 +45,14 @@
 - 对应采采集器需实现 `SampleMeasurement()` 接口（参见 `plugins/inputs/measurement.go`）
 - 需安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2#binary-installation) 工具将 Markdown 模板打包进 DataKit 二进制中
 
-编译完 datakit 后，即可运行
+编译完 datakit 后，可一键导出所有文档：
+
+```shell
+# 将采集器文档导出到指定的目录
+./dist/datakit-darwin-amd64/datakit -cmd -export-man "path/to/man"
+```
+
+交互式方式查看文档
 
 ```shell
 ./dist/datakit-darwin-amd64/datakit -cmd -man
@@ -54,3 +61,4 @@
 进入交互式界面，输入采集器名字，即可看到对应的 markdown 输出：
 
 ![输出示例](demo-markdown.png)
+
