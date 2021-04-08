@@ -1,18 +1,15 @@
 package cmds
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 
 	markdown "github.com/MichaelMure/go-term-markdown"
 	"github.com/c-bata/go-prompt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -44,7 +41,7 @@ func ExportMan(to string) error {
 	}
 
 	for k, _ := range inputs.Inputs {
-		data, err := GetMan(k)
+		data, err := man.BuildMarkdownManual(k)
 		if err != nil {
 			return err
 		}
@@ -53,7 +50,7 @@ func ExportMan(to string) error {
 			continue
 		}
 
-		if err := ioutil.WriteFile(filepath.Join(to, k+".md"), []byte(data), os.ModePerm); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(to, k+".md"), data, os.ModePerm); err != nil {
 			return err
 		}
 	}
@@ -72,60 +69,16 @@ func runMan(txt string) {
 		fmt.Println("Bye!")
 		os.Exit(0)
 	default:
-		x, err := GetMan(s)
+		x, err := man.BuildMarkdownManual(s)
 		if err != nil {
 			fmt.Printf("[E] %s\n", err.Error())
 		} else {
 			if len(x) == 0 {
 				fmt.Printf("[E] intput %s got no manual", s)
 			} else {
-				result := markdown.Render(x, 80, 6)
+				result := markdown.Render(string(x), 80, 6)
 				fmt.Println(string(result))
 			}
 		}
 	}
-}
-
-func GetMan(inputName string) (string, error) {
-	c, ok := inputs.Inputs[inputName]
-	if !ok {
-		return "", fmt.Errorf("intput %s not found: %s", inputName)
-	}
-
-	input := c() // construct input
-
-	var sampleMeasurements []inputs.Measurement
-	switch i := input.(type) {
-	case inputs.ManualInput:
-		sampleMeasurements = i.SampleMeasurement()
-	default:
-		return "", nil
-	}
-
-	md, err := man.Get(inputName)
-	if err != nil {
-		return "", err
-	}
-
-	temp, err := template.New(inputName).Parse(md)
-	if err != nil {
-		return "", err
-	}
-
-	x := man.Input{
-		InputName:   inputName,
-		InputSample: input.SampleConfig(),
-		Version:     git.Version,
-		ReleaseDate: git.BuildAt,
-	}
-
-	for _, m := range sampleMeasurements {
-		x.Measurements = append(x.Measurements, m.Info())
-	}
-
-	var buf bytes.Buffer
-	if err := temp.Execute(&buf, x); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
 }
