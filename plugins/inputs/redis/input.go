@@ -30,8 +30,9 @@ type Input struct {
 	IntervalDuration  time.Duration        `toml:"-"`
 	Keys              []string             `toml:"keys"`
 	WarnOnMissingKeys bool                 `toml:"warn_on_missing_keys"`
-	CommandStats    bool                   `toml:"command_stats"`
-	SlowlogMaxLen     float64              `toml:"slowlog-max-len"`
+	CommandStats      bool                 `toml:"command_stats"`
+	Slowlog           bool                 `toml:"slow_log"`
+	SlowlogMaxLen     int                  `toml:"slowlog-max-len"`
 	Tags              map[string]string    `toml:"tags"`
 	client            *redis.Client        `toml:"-"`
 	collectCache      []inputs.Measurement `toml:"-"`
@@ -71,31 +72,56 @@ func (i *Input) globalTag() {
 func (i *Input) Collect() error {
 	i.collectCache = []inputs.Measurement{}
 
-	// 获取info指标
-	infoMeasurement := CollectInfoMeasurement(i.client, i.Tags)
-	i.collectCache = append(i.collectCache, infoMeasurement)
+	i.collectInfoMeasurement()
 
 	// 获取客户端信息
-	clientMeasurement := CollectClientMeasurement(i.client, i.Tags)
-	i.collectCache = append(i.collectCache, clientMeasurement)
+	i.collectClientMeasurement()
 
 	// db command
 	if i.CommandStats {
-		commandMeasurement := CollectCommandMeasurement(i.client, i.Tags)
-		i.collectCache = append(i.collectCache, commandMeasurement)
+		i.collectCommandMeasurement()
 	}
 
 	// slowlog
-	slowlogMeasurement := CollectSlowlogMeasurement(i)
-	i.collectCache = append(i.collectCache, slowlogMeasurement)
+	if i.Slowlog {
+		slowlogMeasurement := CollectSlowlogMeasurement(i)
+		i.collectCache = append(i.collectCache, slowlogMeasurement)
+	}
 
 	// bigkey
-	if len(m.Keys) > 0 {
+	if len(i.Keys) > 0 {
 		bigKeyMeasurement := CollectBigKeyMeasurement(i)
 		i.collectCache = append(i.collectCache, bigKeyMeasurement)
 	}
 
 	return nil
+}
+
+func (i *Input) collectInfoMeasurement() {
+	m := &infoMeasurement{
+		client:  i.client,
+		resData: make(map[string]interface{}),
+		tags:    make(map[string]string),
+		fields:  make(map[string]interface{}),
+	}
+
+	m.name = "redis_info"
+	for key, value := range i.Tags {
+		m.tags[key] = value
+	}
+
+	m.getData()
+	m.submit()
+
+	i.collectCache = append(i.collectCache, m)
+}
+
+func (i *Input) collectClientMeasurement() {
+	i.getClientData()
+}
+
+func (i *Input) collectCommandMeasurement() {
+	i.getCommandData()
 }
 
 func (i *Input) Run() {
