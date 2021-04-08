@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/spf13/cast"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"math"
 	"strconv"
 	"strings"
-	"github.com/spf13/cast"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type ConversionFunc func(value sql.RawBytes) (interface{}, error)

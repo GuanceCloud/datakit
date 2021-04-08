@@ -3,16 +3,17 @@
 
 # 简介
 
-redis监控指标采集，参考datadog提供的指标，包含以下维度数据
-- info
-- commandStat
-- db size
-- slow log
-- bigkey scan
-- replication
+redis监控指标采集，参考datadog提供的指标，具有以下数据收集功能
+- 开启AOF数据持久化，会收集相关指标
+- RDB数据持久化指标
+- Slowlog监控指标
+- bigkey scan监控
+- 主从replication
+
+备注：
+redis开发测试版本为v5.04, v6.0+待支持
 
 ## 前置条件
-
 暂无
 
 ## 配置
