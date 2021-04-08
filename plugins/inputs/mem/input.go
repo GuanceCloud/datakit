@@ -16,8 +16,8 @@ const (
 	metricName   = inputName
 	collectCycle = time.Second * 10
 	sampleCfg    = `
-	[[inputs.mem]]
-
+[[inputs.mem]]
+# no sample need here, just open the input
 `
 )
 
@@ -180,7 +180,7 @@ func (i *Input) Run() {
 }
 
 func (i *Input) Catalog() string {
-	return "mem"
+	return "host"
 }
 
 func (i *Input) SampleConfig() string {
