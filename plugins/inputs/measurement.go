@@ -62,7 +62,6 @@ type MeasurementInfo struct {
 	Name   string
 	Fields map[string]*FieldInfo
 	Tags   map[string]*TagInfo
-	// tags ingored
 }
 
 func (m *MeasurementInfo) FieldsMarkdownTable() string {
@@ -103,4 +102,10 @@ func FeedMeasurement(name, category string, measurements []Measurement, opt *io.
 		}
 	}
 	return io.Feed(name, category, pts, opt)
+}
+
+func NewTagInfo(desc string) *TagInfo {
+	return &TagInfo{
+		Desc: desc,
+	}
 }
