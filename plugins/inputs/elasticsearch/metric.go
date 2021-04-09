@@ -14,11 +14,11 @@ type elasticsearchMeasurement struct {
 	ts     time.Time
 }
 
-func (m *elasticsearchMeasurement) LineProto() (*io.Point, error) {
+func (m elasticsearchMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-func (m *elasticsearchMeasurement) Info() *inputs.MeasurementInfo {
+func (m elasticsearchMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "elasticsearch",
 		Fields: map[string]interface{}{
@@ -34,7 +34,7 @@ type nodeStatsMeasurement struct {
 	elasticsearchMeasurement
 }
 
-func (m *nodeStatsMeasurement) Info() *inputs.MeasurementInfo {
+func (m nodeStatsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_node_stats",
 		Fields: nodeStatsFields,
@@ -55,7 +55,7 @@ type clusterStatsMeasurement struct {
 	elasticsearchMeasurement
 }
 
-func (m *clusterStatsMeasurement) Info() *inputs.MeasurementInfo {
+func (m clusterStatsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_cluster_stats",
 		Fields: clusterStatsFields,
@@ -71,7 +71,7 @@ type clusterHealthMeasurement struct {
 	elasticsearchMeasurement
 }
 
-func (m *clusterHealthMeasurement) Info() *inputs.MeasurementInfo {
+func (m clusterHealthMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_cluster_health",
 		Fields: clusterHealthFields,
@@ -85,7 +85,7 @@ type clusterHealthIndicesMeasurement struct {
 	elasticsearchMeasurement
 }
 
-func (m *clusterHealthIndicesMeasurement) Info() *inputs.MeasurementInfo {
+func (m clusterHealthIndicesMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_cluster_health",
 		Fields: clusterHealthIndicesFields,
@@ -100,7 +100,7 @@ type indicesStatsShardsTotalMeasurement struct {
 	elasticsearchMeasurement
 }
 
-func (m *indicesStatsShardsTotalMeasurement) Info() *inputs.MeasurementInfo {
+func (m indicesStatsShardsTotalMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_indices_stats_shards_total",
 		Fields: indicesStatsShardsTotalFields,
@@ -111,7 +111,7 @@ type indicesStatsMeasurement struct {
 	elasticsearchMeasurement
 }
 
-func (m *indicesStatsMeasurement) Info() *inputs.MeasurementInfo {
+func (m indicesStatsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_indices_stats",
 		Fields: indicesStatsFields,
@@ -125,7 +125,7 @@ type indicesStatsShardsMeasurement struct {
 	elasticsearchMeasurement
 }
 
-func (m *indicesStatsShardsMeasurement) Info() *inputs.MeasurementInfo {
+func (m indicesStatsShardsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_indices_stats_shards",
 		Fields: indicesStatsShardsFields,
