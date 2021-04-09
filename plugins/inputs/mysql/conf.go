@@ -3,12 +3,12 @@ package mysql
 const (
 	configSample = `
 [[inputs.mysql]]
-	## @param host - string - optional
+    ## @param host - string - optional
     ## MySQL host to connect to.
     ## NOTE: Even if the host is "localhost", the agent connects to MySQL using TCP/IP, unless you also
     ## provide a value for the sock key (below).
     #
-  	host = "localhost"
+    host = "localhost"
 
     ## @param user - string - optional
     ## Username used to connect to MySQL.
@@ -59,14 +59,12 @@ const (
         #
         # disable_innodb_metrics = false
 
-    # [inputs.mysql.custom_queries]
-    # [inputs.mysql.custom_queries.item]
-    #     query = "SELECT foo, COUNT(*) FROM table.events GROUP BY foo"
-    #     [inputs.mysql.custom_queries.item.columns]
-    #       name: foo
-    #     - name: event.total
-    #     tags:
-    #     - test:mysql
+    # [[inputs.mysql.custom_queries]]
+    #     sql = "SELECT foo, COUNT(*) FROM table.events GROUP BY foo"
+    #     metric = "xxxx"
+    #     tagKeys = ["column1", "column1"]
+    #     fieldKeys = ["column3", "column1"]
+
 
     ## @param tags - list of strings - optional
     ## A list of tags to attach to every metric and service check emitted by this instance.
