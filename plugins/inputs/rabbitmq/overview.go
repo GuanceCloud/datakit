@@ -75,7 +75,7 @@ func (m *OverviewMeasurement) LineProto() (*io.Point, error) {
 func (m *OverviewMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: OverviewMetric,
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"object_totals_channels":    newCountFieldInfo("Total number of channels"),
 			"object_totals_connections": newCountFieldInfo("Total number of connections"),
 			"object_totals_consumers":   newCountFieldInfo("Total number of consumers"),
@@ -103,7 +103,7 @@ func (m *OverviewMeasurement) Info() *inputs.MeasurementInfo {
 			"queue_totals_messages_unacknowledged_count": newCountFieldInfo("Number of unacknowledged messages"),
 			"queue_totals_messages_unacknowledged_rate":  newRateFieldInfo("Rate of number of unacknowledged messages"),
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"url":              inputs.NewTagInfo("rabbitmq url"),
 			"rabbitmq_version": inputs.NewTagInfo("rabbitmq version"),
 			"cluster_name":     inputs.NewTagInfo("rabbitmq cluster name"),
