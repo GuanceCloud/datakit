@@ -17,7 +17,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/diskio"
 	"github.com/influxdata/telegraf/plugins/inputs/dns_query"
 	"github.com/influxdata/telegraf/plugins/inputs/docker"
-	"github.com/influxdata/telegraf/plugins/inputs/elasticsearch"
+	_ "github.com/influxdata/telegraf/plugins/inputs/elasticsearch"
 	"github.com/influxdata/telegraf/plugins/inputs/exec"
 	"github.com/influxdata/telegraf/plugins/inputs/fluentd"
 	"github.com/influxdata/telegraf/plugins/inputs/github"
@@ -47,7 +47,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/ping"
 	"github.com/influxdata/telegraf/plugins/inputs/postgresql"
 	"github.com/influxdata/telegraf/plugins/inputs/procstat"
-	"github.com/influxdata/telegraf/plugins/inputs/redis"
+	// "github.com/influxdata/telegraf/plugins/inputs/redis"
 	"github.com/influxdata/telegraf/plugins/inputs/smart"
 	"github.com/influxdata/telegraf/plugins/inputs/snmp"
 	"github.com/influxdata/telegraf/plugins/inputs/socket_listener"
@@ -104,8 +104,6 @@ var (
 		// "mem":    {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
 		"swap": {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
 		// "system": {name: "system", Catalog: "host", Input: &system.SystemStats{}},
-		//"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
-		"cpu":      {name: "cpu", Catalog: "host", Sample: samples["cpu"], Input: nil},
 		"procstat": {name: "procstat", Catalog: "host", Input: &procstat.Procstat{}},
 		"smart":    {name: "smart", Catalog: "host", Input: &smart.Smart{}},
 
@@ -126,15 +124,15 @@ var (
 		"tengine": {name: "tengine", Catalog: "tengine", Input: &tengine.Tengine{}},
 		"apache":  {name: "apache", Catalog: "apache", Input: &apache.Apache{}},
 
-		"postgresql":    {name: "postgresql", Catalog: "db", Input: &postgresql.Postgresql{}},
-		"mongodb":       {name: "mongodb", Catalog: "db", Input: &mongodb.MongoDB{}},
-		"redis":         {name: "redis", Catalog: "db", Input: &redis.Redis{}},
-		"elasticsearch": {name: "elasticsearch", Catalog: "db", Input: &elasticsearch.Elasticsearch{}},
-		"sqlserver":     {name: "sqlserver", Catalog: "db", Input: &sqlserver.SQLServer{}},
-		"memcached":     {name: "memcached", Catalog: "db", Input: &memcached.Memcached{}},
-		"solr":          {name: "solr", Catalog: "db", Input: &solr.Solr{}},
-		"clickhouse":    {name: "clickhouse", Catalog: "db", Input: &clickhouse.ClickHouse{}},
-		`influxdb`:      {name: "influxdb", Catalog: "db", Input: &influxdb.InfluxDB{}},
+		"postgresql": {name: "postgresql", Catalog: "db", Input: &postgresql.Postgresql{}},
+		"mongodb":    {name: "mongodb", Catalog: "db", Input: &mongodb.MongoDB{}},
+		// "redis":         {name: "redis", Catalog: "db", Input: &redis.Redis{}},
+		// "elasticsearch": {name: "elasticsearch", Catalog: "db", Input: &elasticsearch.Elasticsearch{}},
+		"sqlserver":  {name: "sqlserver", Catalog: "db", Input: &sqlserver.SQLServer{}},
+		"memcached":  {name: "memcached", Catalog: "db", Input: &memcached.Memcached{}},
+		"solr":       {name: "solr", Catalog: "db", Input: &solr.Solr{}},
+		"clickhouse": {name: "clickhouse", Catalog: "db", Input: &clickhouse.ClickHouse{}},
+		`influxdb`:   {name: "influxdb", Catalog: "db", Input: &influxdb.InfluxDB{}},
 
 		"openldap": {name: "openldap", Catalog: "openldap", Input: &openldap.Openldap{}},
 
