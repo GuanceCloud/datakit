@@ -7,7 +7,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-
 type processMeasurement struct {
 	name   string
 	tags   map[string]string
@@ -49,6 +48,14 @@ func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
 				Desc:     "PGA maximum memory ever allocated by process",
+			},
+		},
+		Tags: map[string]*inputs.TagInfo{
+			"server": &inputs.TagInfo{
+				Desc: "server addr",
+			},
+			"program": &inputs.TagInfo{
+				Desc: "program",
 			},
 		},
 	}
@@ -93,10 +100,18 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "tablespace offline",
 			},
 		},
+		Tags: map[string]*inputs.TagInfo{
+			"server": &inputs.TagInfo{
+				Desc: "server addr",
+			},
+			"tablespace": &inputs.TagInfo{
+				Desc: "table space",
+			},
+		},
 	}
 }
 
-type SystemMeasurement struct {
+type systemMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
@@ -104,12 +119,12 @@ type SystemMeasurement struct {
 }
 
 // 生成行协议
-func (m *SystemMeasurement) LineProto() (*io.Point, error) {
+func (m *systemMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
 // 指定指标
-func (m *SystemMeasurement) Info() *inputs.MeasurementInfo {
+func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oracle_system",
 		Fields: map[string]*inputs.FieldInfo{
@@ -218,6 +233,11 @@ func (m *SystemMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Desc:     "temp space used",
+			},
+		},
+		Tags: map[string]*inputs.TagInfo{
+			"server": &inputs.TagInfo{
+				Desc: "server addr",
 			},
 		},
 	}
