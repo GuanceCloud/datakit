@@ -1,8 +1,8 @@
 package dialtesting
 
 import (
-	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -20,6 +20,7 @@ type dialer struct {
 	testCnt  int64
 	class    string
 
+	tags     map[string]string
 	updateCh chan dt.Task
 }
 
@@ -42,13 +43,14 @@ func (d *dialer) stop() {
 	}
 }
 
-func newDialer(t dt.Task) (*dialer, error) {
+func newDialer(t dt.Task, ts map[string]string) (*dialer, error) {
 
 	return &dialer{
 		task: t,
 
 		updateCh: make(chan dt.Task),
 		initTime: time.Now(),
+		tags:     ts,
 	}, nil
 }
 
@@ -69,44 +71,13 @@ func (d *dialer) run() error {
 		case <-d.ticker.C:
 
 			d.testCnt++
-
 			//dialtesting start
 			//无论成功或失败，都要记录测试结果
 			d.task.Run()
-
-			// 获取此次任务执行的基本信息
-			tags := map[string]string{}
-			fields := map[string]interface{}{}
-			tags, fields = d.task.GetResults()
-
-			lfields := map[string]interface{}{}
-			mfields := map[string]interface{}{}
-			for k, v := range fields {
-				if k == `message` {
-					data, err := json.Marshal(v)
-					if err != nil {
-						l.Errorf(`%s`, err.Error())
-						continue
-					}
-					lfields[k] = string(data)
-				} else {
-					mfields[k] = v
-				}
-			}
-
-			data, err := MakeMetric(d.task.MetricName(), tags, mfields, time.Now())
-			x.doFeed(io.Metric, data, d.task.PostURLStr())
+			err := d.feedIo()
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
 			}
-
-			data, err = MakeMetric(d.task.MetricName(), tags, lfields, time.Now())
-			x.doFeed(io.Logging, data, d.task.PostURLStr())
-			if err != nil {
-				l.Warnf("io feed failed, %s", err.Error())
-			}
-
-			l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, d.task.PostURLStr(), tags, fields)
 
 		case t := <-d.updateCh:
 			d.doUpdateTask(t)
@@ -123,6 +94,42 @@ func (d *dialer) run() error {
 	}
 
 	return nil
+}
+
+func (d *dialer) feedIo() error {
+	// 获取此次任务执行的基本信息
+	tags := map[string]string{}
+	fields := map[string]interface{}{}
+	tags, fields = d.task.GetResults()
+
+	for k, v := range d.tags {
+		tags[k] = v
+	}
+
+	data, err := io.MakePoint(d.task.MetricName(), tags, fields, time.Now())
+	if err != nil {
+		l.Warnf("make metric failed: %s", err.Error)
+		return err
+	}
+
+	// 考虑到推送至不同的dataway地址
+	u, err := url.Parse(d.task.PostURLStr())
+	if err != nil {
+		l.Warn("get invalid url, ignored")
+		return err
+	}
+
+	u.Path = u.Path + io.Logging // `/v1/write/logging`
+
+	// pts := []*io.Point{}
+	// pts = append(pts, data)
+	err = Feed(inputName, io.Logging, data, &io.Option{
+		HTTPHost: u.String(),
+	})
+
+	l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, u.String(), tags, fields)
+
+	return err
 }
 
 func (d *dialer) doUpdateTask(t dt.Task) {
