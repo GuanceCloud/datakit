@@ -73,17 +73,17 @@ func (dt *DialTesting) Catalog() string {
 	return "network"
 }
 
+func (dt *DialTesting) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{}
+}
+
 func (d *DialTesting) Run() {
 
 	l = logger.SLogger(inputName)
 
 	x = io.NewIO()
 
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		x.StartIO(true)
-	}()
+	StartCollect()
 
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
 	// 若为本地json文件，则读取任务
