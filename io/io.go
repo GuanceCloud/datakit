@@ -137,6 +137,8 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 		return fmt.Errorf("invalid category `%s'", category)
 	}
 
+	l.Debugf("io feed %s", name)
+
 	select {
 	case ch <- &iodata{
 		category: category,
@@ -409,6 +411,8 @@ func (x *IO) flush() {
 			left = append(left, v)
 			continue
 		}
+
+		l.Debugf("dynamic Cache %s", v.url)
 
 		if len(v.pts) > 0 {
 			x.cacheCnt -= int64(len(v.pts))
