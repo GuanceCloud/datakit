@@ -23,7 +23,7 @@ func (m *processMeasurement) LineProto() (*io.Point, error) {
 func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oracle_process",
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			// status
 			"pga_used_memory": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -50,7 +50,7 @@ func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "PGA maximum memory ever allocated by process",
 			},
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server addr",
 			},
@@ -77,7 +77,7 @@ func (m *tablespaceMeasurement) LineProto() (*io.Point, error) {
 func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oracle_tablespace",
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			// status
 			"used_space": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -100,7 +100,7 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "tablespace offline",
 			},
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server addr",
 			},
@@ -127,7 +127,7 @@ func (m *systemMeasurement) LineProto() (*io.Point, error) {
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oracle_system",
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			// status
 			"buffer_cachehit_ratio": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -235,7 +235,7 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "temp space used",
 			},
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server addr",
 			},
