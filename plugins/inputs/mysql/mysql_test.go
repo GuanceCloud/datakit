@@ -125,9 +125,9 @@ func TestCollect(t *testing.T) {
 
 	input.Query = []*customQuery{
 		&customQuery{
-			sql: "select id, namespace,email, username, value from core_stone.biz_main_account",
+			sql:    "select id, namespace,email, username, value from core_stone.biz_main_account",
 			metric: "cutomer-metric",
-			tags: []string{"id"},
+			tags:   []string{"id"},
 			fields: []string{},
 		},
 	}
@@ -145,4 +145,3 @@ func TestCollect(t *testing.T) {
 		}
 	}
 }
-
