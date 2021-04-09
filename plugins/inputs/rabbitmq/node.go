@@ -54,7 +54,7 @@ func (m *NodeMeasurement) LineProto() (*io.Point, error) {
 func (m *NodeMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: NodeMetric,
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"disk_free_alarm": newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.UnknownUnit, "Does the node have disk alarm"),
 			"disk_free":       newByteFieldInfo("Current free disk space"),
 			"fd_used":         newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.UnknownUnit, "Used file descriptors"),
@@ -66,7 +66,7 @@ func (m *NodeMeasurement) Info() *inputs.MeasurementInfo {
 			"sockets_used":    newCountFieldInfo("Number of file descriptors used as sockets"),
 		},
 
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"url":       inputs.NewTagInfo("rabbitmq url"),
 			"node_name": inputs.NewTagInfo("rabbitmq node name"),
 		},
