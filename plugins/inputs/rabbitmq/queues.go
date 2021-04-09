@@ -66,7 +66,7 @@ func (m *QueueMeasurement) LineProto() (*io.Point, error) {
 func (m *QueueMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: QueueMetric,
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"consumers":                    newCountFieldInfo("The ratio of time that a queue's consumers can take new messages"),
 			"consumer_utilisation":         newRateFieldInfo("Number of consumers"),
 			"head_message_timestamp":       newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationMS, "Timestamp of the head message of the queue Shown as millisecond"),
@@ -89,7 +89,7 @@ func (m *QueueMeasurement) Info() *inputs.MeasurementInfo {
 			"message_redeliver_rate":       newRateFieldInfo("Rate per second of subset of messages in deliver_get which had the redelivered flag set"),
 		},
 
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"url":        inputs.NewTagInfo("rabbitmq url"),
 			"node_name":  inputs.NewTagInfo("rabbitmq node name"),
 			"queue_name": inputs.NewTagInfo("rabbitmq queue name"),
