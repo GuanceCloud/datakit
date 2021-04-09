@@ -1,5 +1,13 @@
 package oracle
 
+import (
+	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
+
+
 type processMeasurement struct {
 	name   string
 	tags   map[string]string
@@ -19,25 +27,28 @@ func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]*inputs.FieldInfo{
 			// status
 			"pga_used_memory": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Unit:     inputs.DurationMS,
-				Desc:     "The latency of the redis INFO command.",
+				Unit:     inputs.SizeByte,
+				Desc:     "PGA memory used by process",
 			},
 			"pga_allocated_memory": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Desc:     "",
+				Unit:     inputs.SizeByte,
+				Desc:     "PGA memory allocated by process",
 			},
 			"pga_freeable_memory": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Desc:     "",
+				Unit:     inputs.SizeByte,
+				Desc:     "PGA memory freeable by process",
 			},
 			"pga_maximum_memory": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Desc:     "",
+				Unit:     inputs.SizeByte,
+				Desc:     "PGA maximum memory ever allocated by process",
 			},
 		},
 	}
@@ -61,26 +72,152 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 		Name: "oracle_tablespace",
 		Fields: map[string]*inputs.FieldInfo{
 			// status
-			"used": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"used_space": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Unit:     inputs.DurationMS,
 				Desc:     "The latency of the redis INFO command.",
 			},
-			"size": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"ts_size": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Desc:     "",
+				Desc:     "tablespace size",
 			},
 			"in_use": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Desc:     "",
+				Desc:     "tablespace in-use",
 			},
-			"offline": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"off_use": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Desc:     "",
+				Desc:     "tablespace offline",
+			},
+		},
+	}
+}
+
+type SystemMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
+// 生成行协议
+func (m *SystemMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+}
+
+// 指定指标
+func (m *SystemMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "oracle_system",
+		Fields: map[string]*inputs.FieldInfo{
+			// status
+			"buffer_cachehit_ratio": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "Ratio of buffer cache hits",
+			},
+			"cursor_cachehit_ratio": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "Ratio of cursor cache hits",
+			},
+			"library_cachehit_ratio": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "Ratio of library cache hits",
+			},
+			"shared_pool_free": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "shared pool free memory %",
+			},
+			"physical_reads": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "physical reads per sec",
+			},
+			"physical_writes": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "physical writes per sec",
+			},
+			"enqueue_timeouts": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "enqueue timeouts per sec",
+			},
+			"gc_cr_block_received": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "GC CR block received",
+			},
+			"cache_blocks_corrupt": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "corrupt cache blocks",
+			},
+			"cache_blocks_lost": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "lost cache blocks",
+			},
+			"active_sessions": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "number of active sessions",
+			},
+			"service_response_time": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "service response time",
+			},
+			"user_rollbacks": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "number of user rollbacks",
+			},
+			"sorts_per_user_call": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "sorts per user call",
+			},
+			"rows_per_sort": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "rows per sort",
+			},
+			"disk_sorts": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "disk sorts per second",
+			},
+			"memory_sorts_ratio": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "memory sorts ratio",
+			},
+			"database_wait_time_ratio": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "memory sorts per second",
+			},
+			"session_limit_usage": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "session limit usage",
+			},
+			"session_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "session count",
+			},
+			"temp_space_used": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Desc:     "temp space used",
 			},
 		},
 	}
