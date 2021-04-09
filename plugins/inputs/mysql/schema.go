@@ -40,7 +40,7 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "Avg query response time per schema.",
 			},
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server addr",
 			},
