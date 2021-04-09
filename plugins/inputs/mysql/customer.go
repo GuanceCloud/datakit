@@ -28,9 +28,8 @@ func (m *customerMeasurement) LineProto() (*io.Point, error) {
 // 指定指标
 func (m *customerMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   "mysql_customer",
-		Fields: map[string]*inputs.FieldInfo{},
-		Tags: map[string]*inputs.TagInfo{
+		Name: "mysql_customer",
+		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server addr",
 			},
