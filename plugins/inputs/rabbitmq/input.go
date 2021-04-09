@@ -5,8 +5,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"time"
 	"path/filepath"
+	"time"
 )
 
 func (_ *Input) SampleConfig() string {
@@ -19,29 +19,28 @@ func (_ *Input) Catalog() string {
 
 func (_ *Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"rabbitmq":           pipelineCfg,
+		"rabbitmq": pipelineCfg,
 	}
 	return pipelineMap
 }
-
 
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("rabbitmq start")
 
-	if n.TailF != nil {
+	if n.log != nil {
 		go func() {
-			if err := n.TailF.Init(); err != nil {
-				l.Errorf("nginx init tailf err:%s", err.Error())
+			if err := n.log.Init(); err != nil {
+				l.Errorf("rabbitmq init tailf err:%s", err.Error())
 				return
 			}
-			if n.TailF.Option.Pipeline != "" {
-				n.TailF.Option.Pipeline = filepath.Join(datakit.PipelineDir, n.TailF.Option.Pipeline)
-			}else {
-				n.TailF.Option.Pipeline = filepath.Join(datakit.PipelineDir, "nginx.p")
+			if n.log.Option.Pipeline != "" {
+				n.log.Option.Pipeline = filepath.Join(datakit.PipelineDir, n.log.Option.Pipeline)
+			} else {
+				n.log.Option.Pipeline = filepath.Join(datakit.PipelineDir, "rabbitmq.p")
 			}
 
-			n.TailF.Run()
+			n.log.Run()
 		}()
 	}
 
