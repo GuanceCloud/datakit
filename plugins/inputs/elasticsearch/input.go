@@ -83,59 +83,53 @@ type indexStat struct {
 }
 
 const sampleConfig = `
-	[[inputs.elasticsearch]]
-	## log file path
-	#log_files = ["/path/to/your/file.log"]
-
-  ## specify a list of one or more Elasticsearch servers
-  # you can add username and password to your url to use basic authentication:
+[[inputs.elasticsearch]]
+  ## 采集日志文件配置，可配置多个
+  #log_files = ["/path/to/your/file.log"]
+  
+  ## Elasticsearch服务器配置
+  # 支持Basic认证:
   # servers = ["http://user:pass@localhost:9200"]
   servers = ["http://localhost:9200"]
-
-	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	# required
-	interval = "10s"
-
-  ## Timeout for HTTP requests to the elastic search server(s)
+  
+  ## 采集间隔
+  # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  interval = "10s"
+  
+  ## HTTP超时设置
   http_timeout = "5s"
-
-  ## When local is true (the default), the node will read only its own stats.
-  ## Set local to false when you want to read the node stats from all nodes
-  ## of the cluster.
+  
+  ## 默认local是开启的，只采集当前Node自身指标，如果需要采集集群所有Node，需要将local设置为false
   local = true
-
-  ## Set cluster_health to true when you want to also obtain cluster health stats
+  
+  ## 设置为true可以采集cluster health
   cluster_health = false
-
-  ## Adjust cluster_health_level when you want to also obtain detailed health stats
-  ## The options are
-  ##  - indices (default)
-  ##  - cluster
+  
+  ## cluster health level 设置，indices (默认) 和 cluster
   # cluster_health_level = "indices"
-
-  ## Set cluster_stats to true when you want to also obtain cluster stats.
+  
+  ## 设置为true时可以采集cluster stats.
   cluster_stats = false
-
-  ## Only gather cluster_stats from the master node. To work this require local = true
+  
+  ## 只从master Node获取cluster_stats，这个前提是需要设置 local = true
   cluster_stats_only_from_master = true
-
-  ## Indices to collect; can be one or more indices names or _all
+  
+  ## 需要采集的Indices, 默认为 _all
   indices_include = ["_all"]
-
-  ## One of "shards", "cluster", "indices"
+  
+  ## indices级别，可取值："shards", "cluster", "indices"
   indices_level = "shards"
-
-  ## node_stats is a list of sub-stats that you want to have gathered. Valid options
-  ## are "indices", "os", "process", "jvm", "thread_pool", "fs", "transport", "http",
-  ## "breaker". Per default, all stats are gathered.
+  
+  ## node_stats可支持配置选项有"indices", "os", "process", "jvm", "thread_pool", "fs", "transport", "http", "breaker"
+  # 默认是所有
   # node_stats = ["jvm", "http"]
-
-  ## HTTP Basic Authentication username and password.
+  
+  ## HTTP Basic Authentication 用户名和密码
   # username = ""
   # password = ""
-
-  ## Optional TLS Config
-	tls_open = false
+  
+  ## TLS Config
+  tls_open = false
   # tls_ca = "/etc/telegraf/ca.pem"
   # tls_cert = "/etc/telegraf/cert.pem"
   # tls_key = "/etc/telegraf/key.pem"
@@ -242,49 +236,16 @@ func (_ *Input) Test() {
 	return
 }
 
-type elasticsearchMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-func (m *elasticsearchMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
-}
-
-func (m *elasticsearchMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: "elasticsearch",
-		Fields: map[string]interface{}{
-			"active_shards_percent_as_number": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "active shards percent"},
-			"active_primary_shards":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "active primary shards"},
-			"status":                          &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "status"},
-			"timed_out":                       &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "timed_out"},
-		},
-	}
-}
-
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&elasticsearchMeasurement{},
+		&nodeStatsMeasurement{},
+		&indicesStatsMeasurement{},
+		&indicesStatsShardsMeasurement{},
+		&indicesStatsShardsTotalMeasurement{},
+		&clusterStatsMeasurement{},
+		&clusterHealthMeasurement{},
+		&clusterHealthIndicesMeasurement{},
 	}
-}
-
-func (i *Input) addFields(measurement string, fields map[string]interface{}, tags map[string]string, t ...time.Time) {
-	var tm time.Time
-	if len(t) > 0 {
-		tm = t[0]
-	} else {
-		tm = time.Now()
-	}
-
-	i.collectCache = append(i.collectCache, &elasticsearchMeasurement{
-		name:   measurement,
-		tags:   tags,
-		fields: fields,
-		ts:     tm,
-	})
 }
 
 func (i *Input) Collect() error {
@@ -452,7 +413,17 @@ func (i *Input) gatherIndicesStats(url string) error {
 	for k, v := range indicesStats.Shards {
 		shardsStats[k] = v
 	}
-	i.addFields("elasticsearch_indices_stats_shards_total", shardsStats, map[string]string{}, now)
+
+	metric := &indicesStatsShardsTotalMeasurement{
+		elasticsearchMeasurement: elasticsearchMeasurement{
+			name:   "elasticsearch_indices_stats_shards_total",
+			tags:   map[string]string{},
+			fields: shardsStats,
+			ts:     now,
+		},
+	}
+
+	i.collectCache = append(i.collectCache, metric)
 
 	// All Stats
 	for m, s := range indicesStats.All {
@@ -462,7 +433,16 @@ func (i *Input) gatherIndicesStats(url string) error {
 		if err != nil {
 			return err
 		}
-		i.addFields("elasticsearch_indices_stats", jsonParser.Fields, map[string]string{"index_name": "_all"}, now)
+		metric := &indicesStatsMeasurement{
+			elasticsearchMeasurement: elasticsearchMeasurement{
+				name:   "elasticsearch_indices_stats",
+				tags:   map[string]string{"index_name": "_all"},
+				fields: jsonParser.Fields,
+				ts:     now,
+			},
+		}
+
+		i.collectCache = append(i.collectCache, metric)
 	}
 
 	// Individual Indices stats
@@ -479,7 +459,17 @@ func (i *Input) gatherIndicesStats(url string) error {
 			if err != nil {
 				return err
 			}
-			i.addFields("elasticsearch_indices_stats", f.Fields, indexTag, now)
+
+			metric := &indicesStatsMeasurement{
+				elasticsearchMeasurement: elasticsearchMeasurement{
+					name:   "elasticsearch_indices_stats",
+					tags:   indexTag,
+					fields: f.Fields,
+					ts:     now,
+				},
+			}
+
+			i.collectCache = append(i.collectCache, metric)
 		}
 
 		if i.IndicesLevel == "shards" {
@@ -520,10 +510,16 @@ func (i *Input) gatherIndicesStats(url string) error {
 						}
 					}
 
-					i.addFields("elasticsearch_indices_stats_shards",
-						flattened.Fields,
-						shardTags,
-						now)
+					metric := &indicesStatsShardsMeasurement{
+						elasticsearchMeasurement: elasticsearchMeasurement{
+							name:   "elasticsearch_indices_stats_shards",
+							tags:   shardTags,
+							fields: flattened.Fields,
+							ts:     now,
+						},
+					}
+
+					i.collectCache = append(i.collectCache, metric)
 				}
 			}
 		}
@@ -586,8 +582,19 @@ func (i *Input) gatherNodeStats(url string) error {
 				allFields[k] = v
 			}
 		}
-		i.addFields("elasticsearch_node_stats", allFields, tags, now)
+
+		metric := &nodeStatsMeasurement{
+			elasticsearchMeasurement: elasticsearchMeasurement{
+				name:   "elasticsearch_node_stats",
+				tags:   tags,
+				fields: allFields,
+				ts:     now,
+			},
+		}
+
+		i.collectCache = append(i.collectCache, metric)
 	}
+
 	return nil
 }
 
@@ -621,8 +628,17 @@ func (i *Input) gatherClusterStats(url string) error {
 		}
 
 	}
-	i.addFields("elasticsearch_cluster_stats", allFields, tags, now)
 
+	metric := &clusterStatsMeasurement{
+		elasticsearchMeasurement: elasticsearchMeasurement{
+			name:   "elasticsearch_cluster_stats",
+			tags:   tags,
+			fields: allFields,
+			ts:     now,
+		},
+	}
+
+	i.collectCache = append(i.collectCache, metric)
 	return nil
 }
 
@@ -631,7 +647,7 @@ func (i *Input) gatherClusterHealth(url string) error {
 	if err := i.gatherJSONData(url, healthStats); err != nil {
 		return err
 	}
-	measurementTime := time.Now()
+	now := time.Now()
 	clusterFields := map[string]interface{}{
 		"active_primary_shards":            healthStats.ActivePrimaryShards,
 		"active_shards":                    healthStats.ActiveShards,
@@ -649,12 +665,17 @@ func (i *Input) gatherClusterHealth(url string) error {
 		"timed_out":                        healthStats.TimedOut,
 		"unassigned_shards":                healthStats.UnassignedShards,
 	}
-	i.addFields(
-		"elasticsearch_cluster_health",
-		clusterFields,
-		map[string]string{"name": healthStats.ClusterName},
-		measurementTime,
-	)
+
+	metric := &clusterHealthMeasurement{
+		elasticsearchMeasurement: elasticsearchMeasurement{
+			name:   "elasticsearch_cluster_health",
+			tags:   map[string]string{"name": healthStats.ClusterName},
+			fields: clusterFields,
+			ts:     now,
+		},
+	}
+
+	i.collectCache = append(i.collectCache, metric)
 
 	for name, health := range healthStats.Indices {
 		indexFields := map[string]interface{}{
@@ -668,12 +689,17 @@ func (i *Input) gatherClusterHealth(url string) error {
 			"status_code":           mapHealthStatusToCode(health.Status),
 			"unassigned_shards":     health.UnassignedShards,
 		}
-		i.addFields(
-			"elasticsearch_cluster_health_indices",
-			indexFields,
-			map[string]string{"index": name, "name": healthStats.ClusterName},
-			measurementTime,
-		)
+
+		metric := &clusterHealthIndicesMeasurement{
+			elasticsearchMeasurement: elasticsearchMeasurement{
+				name:   "elasticsearch_cluster_health_indices",
+				tags:   map[string]string{"index": name, "name": healthStats.ClusterName},
+				fields: indexFields,
+				ts:     now,
+			},
+		}
+
+		i.collectCache = append(i.collectCache, metric)
 	}
 	return nil
 }
