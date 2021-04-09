@@ -219,6 +219,27 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 	for k, arr := range resp.Content {
 
 		switch k {
+		case RegionInfo:
+			for k, v := range arr.(map[string]interface{}) {
+				switch v.(type) {
+				case bool:
+					if v.(bool) {
+						d.Tags[k] = `true`
+					} else {
+						d.Tags[k] = `false`
+					}
+				default:
+					d.Tags[k] = v.(string)
+				}
+			}
+
+		default:
+		}
+	}
+
+	for k, arr := range resp.Content {
+
+		switch k {
 
 		case dt.ClassHTTP:
 			for _, j := range arr.([]interface{}) {
@@ -265,19 +286,6 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 			// TODO
 		case dt.ClassOther:
 			// TODO
-		case RegionInfo:
-			for k, v := range arr.(map[string]interface{}) {
-				switch v.(type) {
-				case bool:
-					if v.(bool) {
-						d.Tags[k] = `true`
-					} else {
-						d.Tags[k] = `false`
-					}
-				default:
-					d.Tags[k] = v.(string)
-				}
-			}
 
 		default:
 			return fmt.Errorf("unknown task type: %s", k)
