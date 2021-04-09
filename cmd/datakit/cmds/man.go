@@ -21,6 +21,10 @@ func Man() {
 		suggestions = append(suggestions, prompt.Suggest{Text: k, Description: ""})
 	}
 
+	for k, _ := range man.OtherDocs {
+		suggestions = append(suggestions, prompt.Suggest{Text: k, Description: ""})
+	}
+
 	// TODO: add suggestions for pipeline
 
 	c, _ := newCompleter()
@@ -41,6 +45,21 @@ func ExportMan(to string) error {
 	}
 
 	for k, _ := range inputs.Inputs {
+		data, err := man.BuildMarkdownManual(k)
+		if err != nil {
+			return err
+		}
+
+		if len(data) == 0 {
+			continue
+		}
+
+		if err := ioutil.WriteFile(filepath.Join(to, k+".md"), data, os.ModePerm); err != nil {
+			return err
+		}
+	}
+
+	for k, _ := range man.OtherDocs {
 		data, err := man.BuildMarkdownManual(k)
 		if err != nil {
 			return err
