@@ -1,24 +1,25 @@
+{{.CSS}}
+
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
 
 # 简介
 
-`jvm` 采集器 可以从 `JMX` 中采取很多指标，并将指标采集到 `dataflux` ，帮助你监控分析 `java` 运行情况
-
+JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到 DataFlux，帮助分析 Java 运行情况。
 
 ## 前置条件
 
-- 已安装 DataKit（[DataKit 安装文档](../../../02-datakit采集器/index.md)）
-- 已安装或下载[jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar)，datakit 安装目录下 `data` 目录下已经下载好 [jolokia](https://jolokia.org/) 的 jar 包，并通过如下方式开启 Java 应用。 
-```
- java -javaagent:/path/to/jolokia-jvm-agent.jar=port=7777,host=localhost -jar your_app.jar
+安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar)。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。通过如下方式开启 Java 应用： 
+
+```shell
+java -javaagent:/path/to/jolokia-jvm-agent.jar=port=7777,host=localhost -jar your_app.jar
 ```
 
 ## 配置
 
-进入 DataKit 安装目录下的 `conf.d/{{.InputName}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
-```
+```python
 {{.InputSample}}
 ```
 
