@@ -33,11 +33,11 @@ var (
 	#[inputs.nginx.log.option]
 	#	ignore = [""]
 	#	# your logging source, if it's empty, use 'default'
-	#	source = ""
+	#	source = "nginx"
 	#	# add service tag, if it's empty, use $source.
 	#	service = ""
 	#	# grok pipeline script path
-	#	pipeline = ""
+	#	pipeline = "nginx.p"
 	#	# optional status:
 	#	#   "emerg","alert","critical","error","warning","info","debug","OK"
 	#	ignore_status = []
@@ -78,7 +78,6 @@ nullif(http_auth, "-")
 nullif(upstream, "")
 default_time(time)
 `
-
 )
 
 func (_ *Input) SampleConfig() string {
@@ -91,11 +90,10 @@ func (_ *Input) Catalog() string {
 
 func (_ *Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"nginx":           pipelineCfg,
+		"nginx": pipelineCfg,
 	}
 	return pipelineMap
 }
-
 
 func (n *Input) Run() {
 	l.Info("nginx start")
@@ -107,6 +105,20 @@ func (n *Input) Run() {
 	n.client = client
 	if n.Interval.Duration == 0 {
 		n.Interval.Duration = time.Second * 30
+	}
+	if len(n.TailF.Files) > 0 {
+		go func() {
+			if err := n.TailF.Init(); err != nil {
+				l.Errorf("nginx init tailf err:%s", err.Error())
+				return
+			}
+			if n.TailF.Option.Pipeline == "" {
+				n.TailF.Option.Pipeline = "nginx.p"
+			}
+			n.TailF.Option.FromBeginning = true
+			n.TailF.Run()
+		}()
+
 	}
 
 	tick := time.NewTicker(n.Interval.Duration)
