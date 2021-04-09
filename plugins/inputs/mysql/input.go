@@ -36,10 +36,10 @@ type options struct {
 }
 
 type customQuery struct {
-	sql    string    `toml:"sql"`
-	metric string    `toml:"metric"`
-	tags []string    `toml:"tags"`
-	fields []string  `toml:"fields"`
+	sql    string   `toml:"sql"`
+	metric string   `toml:"metric"`
+	tags   []string `toml:"tags"`
+	fields []string `toml:"fields"`
 }
 
 type Input struct {
