@@ -1,12 +1,13 @@
 package rabbitmq
 
 import (
+	"path/filepath"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"path/filepath"
-	"time"
 )
 
 func (_ *Input) SampleConfig() string {
