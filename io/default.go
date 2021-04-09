@@ -88,6 +88,10 @@ func Feed(name, category string, pts []*Point, opt *Option) error {
 		return fmt.Errorf("no points")
 	}
 
+	if testAssert {
+		return nil
+	}
+
 	return defaultIO.doFeed(pts, category, name, opt)
 }
 
