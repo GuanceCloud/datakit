@@ -26,6 +26,10 @@ const (
 	maxLineBytes = 16 * 1024
 )
 
+func (this *Inputs) Stop() {
+	this.wg.Wait()
+}
+
 func (this *Inputs) gatherLog() {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
@@ -38,6 +42,7 @@ func (this *Inputs) gatherLog() {
 	}
 
 	for _, container := range cList {
+		ctx := context.Background()
 		// Start a new goroutine for every new container that has logs to collect
 		this.wg.Add(1)
 		go func(container types.Container) {
@@ -72,6 +77,7 @@ func (this *Inputs) tailContainerLogs(ctx context.Context, container types.Conta
 
 	logReader, err := this.client.ContainerLogs(ctx, container.ID, this.containerLogsOptions)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
@@ -113,6 +119,8 @@ func (this *Inputs) hasTTY(ctx context.Context, container types.Container) (bool
 func tailStream(reader io.ReadCloser, stream string, container types.Container, opt *LogOption, baseTags map[string]string) error {
 	defer reader.Close()
 
+	fmt.Println(stream)
+
 	tags := make(map[string]string, len(baseTags)+1)
 	for k, v := range baseTags {
 		tags[k] = v
@@ -139,16 +147,17 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 			l.Error(err)
 			continue
 		}
+		fmt.Println(string(message))
 
 		var fields = make(map[string]interface{})
-
 		measurement := getContainerName(container.Names)
+		// l.Debugf("get %d bytes from source: %s", len(message), measurement)
+
 		if opt != nil {
 			if pipe := opt.pipelinePool.Get(); pipe != nil {
 				fields, err = pipe.(*pipeline.Pipeline).Run(message).Result()
 				if err != nil {
 					l.Errorf("run pipeline error, %s", err)
-					continue
 				}
 			}
 			fields["service"] = opt.Service
