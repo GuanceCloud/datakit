@@ -3,13 +3,15 @@ package rabbitmq
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/influxdata/telegraf/plugins/common/tls"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/influxdata/telegraf/plugins/common/tls"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -82,7 +84,7 @@ type Input struct {
 	Username string           `toml:"username"`
 	Password string           `toml:"password"`
 	Interval datakit.Duration `toml:"interval"`
-	log    *inputs.Tailer   `toml:"log"`
+	log      *inputs.Tailer   `toml:"log"`
 
 	tls.ClientConfig
 
