@@ -1,8 +1,7 @@
-// +build linux
-
 package oracle
 
 import (
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 )
@@ -64,6 +63,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&processMeasurement{},
 		&tablespaceMeasurement{},
+		&systemMeasurement{},
 	}
 }
 
