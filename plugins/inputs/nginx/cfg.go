@@ -20,7 +20,7 @@ type Input struct {
 	Interval        datakit.Duration `toml:"interval"`
 	ResponseTimeout datakit.Duration `toml:"response_timeout"`
 	UseVts          bool             `toml:"use_vts"`
-	TailF           inputs.Tailer    `toml:"log"`
+	TailF           *inputs.Tailer   `toml:"log"`
 	tls.ClientConfig
 
 	// HTTP client
