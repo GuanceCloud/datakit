@@ -28,14 +28,14 @@ func (m *bigKeyMeasurement) LineProto() (*io.Point, error) {
 func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_bigkey_scan",
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"key_length": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Desc:     "key length",
 			},
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server addr",
 			},
