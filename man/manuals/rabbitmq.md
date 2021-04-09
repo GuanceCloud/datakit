@@ -1,13 +1,15 @@
+{{.CSS}}
+
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
 
 # 简介
 
-`rabbitmq` 采集器 是通过 插件`rabbitmq-management` 采集数据监控 `rabbitmq` ,它能够：
-- 展示 `rabbitmq` 基础数据，比如 连接数 ，队列数，消息总数等
-- 跟踪`queue`信息,比如队列大小，消费者计数等
-- 跟踪`node`信息，比如使用的 `socket` `mem` 等
-- 跟踪 `exchange`信息 ，比如 `message_publish_count` 等`
+RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 RabbitMQ ,它能够：
+- RabbitMQ overview 总览，比如连接数、队列数、消息总数等
+- 跟踪 RabbitMQ queue 信息，比如队列大小，消费者计数等
+- 跟踪 RabbitMQ node 信息，比如使用的 `socket` `mem` 等
+- 跟踪 RabbitMQ exchange 信息 ，比如 `message_publish_count` 等
 
 
 ## 前置条件
