@@ -82,7 +82,7 @@ type Input struct {
 	Username string           `toml:"username"`
 	Password string           `toml:"password"`
 	Interval datakit.Duration `toml:"interval"`
-	TailF    *inputs.Tailer   `toml:"log"`
+	log    *inputs.Tailer   `toml:"log"`
 
 	tls.ClientConfig
 
