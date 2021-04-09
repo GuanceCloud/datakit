@@ -32,10 +32,13 @@ var (
 	l         = logger.DefaultSLogger(inputName)
 
 	x *io.IO
+
+	MaxFails = 100
 )
 
 const (
 	maxCrashCnt = 6
+	RegionInfo  = "region"
 )
 
 type DialTesting struct {
@@ -202,7 +205,7 @@ func protectedRun(d *dialer) {
 }
 
 type taskPullResp struct {
-	Content map[string][]string `json:"content"`
+	Content map[string]interface{} `json:"content"`
 }
 
 func (d *DialTesting) dispatchTasks(j []byte) error {
@@ -218,7 +221,7 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 		switch k {
 
 		case dt.ClassHTTP:
-			for _, j := range arr {
+			for _, j := range arr.([]string) {
 				var t dt.HTTPTask
 				if err := json.Unmarshal([]byte(j), &t); err != nil {
 					l.Errorf(`%s`, err.Error())
@@ -234,6 +237,12 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 				}
 
 				if dialer, ok := d.curTasks[t.ID()]; ok { // update task
+
+					if dialer.failCnt >= MaxFails {
+						l.Warnf(`failed %d times,ignore`, dialer.failCnt)
+						delete(d.curTasks, t.ID())
+						continue
+					}
 
 					if err := dialer.updateTask(&t); err != nil {
 						l.Warnf(` %s,ignore`, err.Error())
@@ -256,6 +265,10 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 			// TODO
 		case dt.ClassOther:
 			// TODO
+		case RegionInfo:
+			for k, v := range arr.(map[string]interface{}) {
+				d.Tags[k] = v.(string)
+			}
 
 		default:
 			return fmt.Errorf("unknown task type: %s", k)
@@ -279,8 +292,9 @@ func (d *DialTesting) getLocalJsonTasks(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	res := map[string][]string{}
+	res := map[string]interface{}{}
 	for k, v := range resp {
+		vs := []string{}
 		for _, v1 := range v {
 			dt, err := json.Marshal(v1)
 			if err != nil {
@@ -288,8 +302,10 @@ func (d *DialTesting) getLocalJsonTasks(path string) ([]byte, error) {
 				return nil, err
 			}
 
-			res[k] = append(res[k], string(dt))
+			vs = append(vs, string(dt))
 		}
+
+		res[k] = vs
 	}
 
 	tasks := taskPullResp{
