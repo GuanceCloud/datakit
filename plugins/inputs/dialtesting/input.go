@@ -221,9 +221,9 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 		switch k {
 
 		case dt.ClassHTTP:
-			for _, j := range arr.([]string) {
+			for _, j := range arr.([]interface{}) {
 				var t dt.HTTPTask
-				if err := json.Unmarshal([]byte(j), &t); err != nil {
+				if err := json.Unmarshal([]byte(j.(string)), &t); err != nil {
 					l.Errorf(`%s`, err.Error())
 					return err
 				}
@@ -267,7 +267,16 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 			// TODO
 		case RegionInfo:
 			for k, v := range arr.(map[string]interface{}) {
-				d.Tags[k] = v.(string)
+				switch v.(type) {
+				case bool:
+					if v.(bool) {
+						d.Tags[k] = `true`
+					} else {
+						d.Tags[k] = `false`
+					}
+				default:
+					d.Tags[k] = v.(string)
+				}
 			}
 
 		default:
