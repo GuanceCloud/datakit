@@ -69,7 +69,7 @@ func (m *ExchangeMeasurement) LineProto() (*io.Point, error) {
 func (m *ExchangeMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: ExchangeMetric,
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"message_ack_count":                    newCountFieldInfo("Number of messages in exchanges delivered to clients and acknowledged"),
 			"message_ack_rate":                     newRateFieldInfo("Rate of messages in exchanges delivered to clients and acknowledged per second"),
 			"message_deliver_get_count":            newCountFieldInfo("Sum of messages in exchanges delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get"),
@@ -86,7 +86,7 @@ func (m *ExchangeMeasurement) Info() *inputs.MeasurementInfo {
 			"message_return_unroutable_count":      newCountFieldInfo("Count of messages in exchanges returned to publisher as unroutable"),
 		},
 
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"url":           inputs.NewTagInfo("rabbitmq url"),
 			"exchange_name": inputs.NewTagInfo("rabbitmq exchange name"),
 			"type":          inputs.NewTagInfo("rabbitmq exchange type"),
