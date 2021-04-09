@@ -1,11 +1,11 @@
 package mysql
 
 import (
-	"time"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
-	"fmt"
+	"time"
 
 	"github.com/spf13/cast"
 
@@ -14,10 +14,10 @@ import (
 )
 
 type customerMeasurement struct {
-	name    string
-	tags    map[string]string
-	fields  map[string]interface{}
-	ts      time.Time
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
 }
 
 // 生成行协议
@@ -63,7 +63,7 @@ func (i *Input) handleResponse(qy *customQuery, resMap []map[string]interface{})
 
 		if len(qy.tags) > 0 && len(qy.fields) == 0 {
 			for _, tgKey := range qy.tags {
-				if value , ok := item[tgKey]; ok {
+				if value, ok := item[tgKey]; ok {
 					m.tags[tgKey] = cast.ToString(value)
 					delete(item, tgKey)
 				}
@@ -73,14 +73,14 @@ func (i *Input) handleResponse(qy *customQuery, resMap []map[string]interface{})
 
 		if len(qy.tags) > 0 && len(qy.fields) > 0 {
 			for _, tgKey := range qy.tags {
-				if value , ok := item[tgKey]; ok {
+				if value, ok := item[tgKey]; ok {
 					m.tags[tgKey] = cast.ToString(value)
 					delete(item, tgKey)
 				}
 			}
 
 			for _, fdKey := range qy.fields {
-				if value , ok := item[fdKey]; ok {
+				if value, ok := item[fdKey]; ok {
 					m.fields[fdKey] = value
 				}
 			}
