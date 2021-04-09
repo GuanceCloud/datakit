@@ -71,7 +71,6 @@ func (d *dialer) run() error {
 		case <-d.ticker.C:
 
 			d.testCnt++
-
 			//dialtesting start
 			//无论成功或失败，都要记录测试结果
 			d.task.Run()
@@ -122,9 +121,9 @@ func (d *dialer) feedIo() error {
 
 	u.Path = u.Path + io.Logging // `/v1/write/logging`
 
-	pts := []*io.Point{}
-	pts = append(pts, data)
-	err = x.DoFeed(pts, io.Logging, inputName, &io.Option{
+	// pts := []*io.Point{}
+	// pts = append(pts, data)
+	err = Feed(inputName, io.Logging, data, &io.Option{
 		HTTPHost: u.String(),
 	})
 
