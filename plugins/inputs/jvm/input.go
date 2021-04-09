@@ -48,7 +48,7 @@ func (j *JvmMeasurement) LineProto() (*io.Point, error) {
 func (j *JvmMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"heap_memory_init":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java heap memory allocated."},
 			"heap_memory_committed": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory committed to be used."},
 			"heap_memory_max":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum Java heap memory available."},
