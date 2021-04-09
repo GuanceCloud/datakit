@@ -95,7 +95,6 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 	tags = map[string]string{
 		"name":   t.Name,
 		"url":    t.URL,
-		"region": t.Region,
 		"proto":  t.req.Proto,
 		"status": "FAIL",
 		"method": t.Method,
