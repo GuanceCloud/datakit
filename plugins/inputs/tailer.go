@@ -26,11 +26,18 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
-// example:
+// // example_01:
 //
-//     tailer, err := NewTailer(inputName_str, files_strArray, tailerOption_point)
+//     tailer, err := NewTailer(files_strArray, tailerOption_point)
 //     if err != nil {
-//         return
+//         return err
+//     }
+//     go tailer.Run()
+//
+// //example_02:
+//     tailer := Tailer{}
+//     if err := tailer.Init(); err != nil {
+//         return err
 //     }
 //     go tailer.Run()
 //
@@ -140,10 +147,11 @@ func fillTailerOption(opt *TailerOption) *TailerOption {
 }
 
 type Tailer struct {
-	inputName string
-	files     []string
+	Option *TailerOption
+	Files  []string
 
-	opt      *TailerOption
+	InputName string
+
 	tailConf tail.Config
 
 	decoder           *encoding.Decoder
@@ -154,30 +162,32 @@ type Tailer struct {
 	log *logger.Logger
 }
 
-func NewTailer(inputName string, files []string, opt *TailerOption) (*Tailer, error) {
+func NewTailer(files []string, opt *TailerOption) (*Tailer, error) {
+	var tailer = Tailer{
+		Option: opt,
+		Files:  files,
+	}
+
+	if err := tailer.Init(); err != nil {
+		return nil, err
+	}
+
+	return &tailer, nil
+}
+
+func (t *Tailer) Init() error {
 	var err error
 
-	if inputName == "" {
-		return nil, fmt.Errorf("option inputName is empty")
-	}
-
-	opt = fillTailerOption(opt)
-
-	var tailer = &Tailer{
-		inputName: inputName,
-		files:     files,
-		log:       logger.SLogger(inputName),
-		opt:       opt,
-	}
+	t.Option = fillTailerOption(t.Option)
 
 	var seek *tail.SeekInfo
-	if !opt.FromBeginning {
+	if !t.Option.FromBeginning {
 		seek = &tail.SeekInfo{
 			Whence: 2, // seek is 2
 			Offset: 0,
 		}
 	}
-	tailer.tailConf = tail.Config{
+	t.tailConf = tail.Config{
 		ReOpen:    true,
 		Follow:    true,
 		Location:  seek,
@@ -186,28 +196,34 @@ func NewTailer(inputName string, files []string, opt *TailerOption) (*Tailer, er
 		Logger:    tail.DiscardingLogger,
 	}
 
-	if tailer.decoder, err = NewDecoder(opt.CharacterEncoding); err != nil {
-		return nil, err
+	if t.decoder, err = NewDecoder(t.Option.CharacterEncoding); err != nil {
+		return err
 	}
 
 	multilineConfig := &MultilineConfig{
-		Pattern:        opt.Match,
+		Pattern:        t.Option.Match,
 		InvertMatch:    true,
 		MatchWhichLine: "previous",
 	}
-	if tailer.multilineInstance, err = multilineConfig.NewMultiline(); err != nil {
-		return nil, err
+	if t.multilineInstance, err = multilineConfig.NewMultiline(); err != nil {
+		return err
 	}
 
-	if tailer.watcher, err = NewWatcher(); err != nil {
-		return nil, err
+	if t.watcher, err = NewWatcher(); err != nil {
+		return err
 	}
 
-	return tailer, nil
+	if t.InputName == "" {
+		t.InputName = t.Option.Source + "_log"
+	}
+
+	t.log = logger.SLogger(t.InputName)
+
+	return nil
 }
 
 func (t *Tailer) Run() {
-	t.log.Infof("tail %s input started", t.inputName)
+	t.log.Infof("tail %s input started", t.InputName)
 
 	ticker := time.NewTicker(findNewFileInterval)
 	defer ticker.Stop()
@@ -216,14 +232,16 @@ func (t *Tailer) Run() {
 
 	for {
 		select {
-		case <-t.opt.StopChan:
+		case <-t.Option.StopChan:
 			t.log.Infof("waiting for all tailers to exit")
 			t.wg.Wait()
 			t.log.Info("exit")
 			return
 
 		case <-ticker.C:
-			fileList := getFileList(t.files, t.opt.IgnoreFiles)
+			// FIXME:
+			// 程序启动到 ticker.C 中间一段时间是荒废的
+			fileList := getFileList(t.Files, t.Option.IgnoreFiles)
 
 			for _, file := range fileList {
 				if exist := t.watcher.IsExist(file); exist {
@@ -236,7 +254,7 @@ func (t *Tailer) Run() {
 				}(file)
 			}
 
-			if t.opt.FromBeginning {
+			if t.Option.FromBeginning {
 				// disable auto-discovery, ticker was unreachable
 				ticker.Stop()
 			}
@@ -245,7 +263,7 @@ func (t *Tailer) Run() {
 }
 
 func (t *Tailer) watching() {
-	t.watcher.Watching(t.opt.StopChan)
+	t.watcher.Watching(t.Option.StopChan)
 }
 
 func (t *Tailer) tailingFile(file string) {
@@ -289,7 +307,7 @@ func newTailerSingle(tl *Tailer, filename string) *tailerSingle {
 	t.tags = func() map[string]string {
 		var m = make(map[string]string)
 
-		for k, v := range tl.opt.Tags {
+		for k, v := range tl.Option.Tags {
 			m[k] = v
 		}
 
@@ -315,8 +333,8 @@ func (t *tailerSingle) run() {
 	}
 	defer t.tail.Cleanup()
 
-	if t.tl.opt.Pipeline != "" {
-		t.pipe, err = pipeline.NewPipelineFromFile(t.tl.opt.Pipeline)
+	if t.tl.Option.Pipeline != "" {
+		t.pipe, err = pipeline.NewPipelineFromFile(t.tl.Option.Pipeline)
 		if err != nil {
 			t.tl.log.Errorf("failed of pipeline, err: %s", err)
 		}
@@ -342,8 +360,8 @@ func (t *tailerSingle) receiving() {
 
 		// FIXME: 4个case是否过多？
 		select {
-		case <-t.tl.opt.StopChan:
-			t.tl.log.Debugf("tailing source:%s, file %s is ending", t.tl.opt.Source, t.filename)
+		case <-t.tl.Option.StopChan:
+			t.tl.log.Debugf("tailing source:%s, file %s is ending", t.tl.Option.Source, t.filename)
 			return
 
 		case n := <-t.notifyChan:
@@ -376,7 +394,7 @@ func (t *tailerSingle) receiving() {
 			}
 
 			if line != nil {
-				t.tl.log.Debugf("get %d bytes from source:%s file:%s", len(line.Text), t.tl.opt.Source, t.filename)
+				t.tl.log.Debugf("get %d bytes from source:%s file:%s", len(line.Text), t.tl.Option.Source, t.filename)
 			}
 		}
 
@@ -418,12 +436,12 @@ func (t *tailerSingle) receiving() {
 			continue
 		}
 
-		if !t.tl.opt.DisableAddStatusField {
+		if !t.tl.Option.DisableAddStatusField {
 			addStatus(fields)
 		}
 
 		if status, ok := fields["status"].(string); ok {
-			if contains(t.tl.opt.IgnoreStatus, status) {
+			if contains(t.tl.Option.IgnoreStatus, status) {
 				continue
 			}
 		}
@@ -435,15 +453,15 @@ func (t *tailerSingle) receiving() {
 		}
 
 		// use t.source as input-name, make it more distinguishable for multiple tailf instances
-		pt, err := io.MakePoint(t.tl.opt.Source, t.tags, fields, ts)
+		pt, err := io.MakePoint(t.tl.Option.Source, t.tags, fields, ts)
 		if err != nil {
 			t.tl.log.Error(err)
 		} else {
 			if err := io.Feed(
-				t.tl.opt.Source,
+				t.tl.InputName,
 				io.Logging,
 				[]*io.Point{pt},
-				&io.Option{HighFreq: !t.tl.opt.DisableHighFreqIODdata},
+				&io.Option{HighFreq: !t.tl.Option.DisableHighFreqIODdata},
 			); err != nil {
 				t.tl.log.Error(err)
 			}
