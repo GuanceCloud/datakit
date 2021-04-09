@@ -128,7 +128,7 @@ func (d *dialer) feedIo() error {
 		HTTPHost: u.String(),
 	})
 
-	l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, d.task.PostURLStr(), tags, fields)
+	l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, u.String(), tags, fields)
 
 	return err
 }
