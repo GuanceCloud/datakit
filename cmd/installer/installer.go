@@ -112,7 +112,7 @@ func main() {
 		install.CurDownloading = dlIp2Loc
 		install.Download(ip2locUrl, path.Join(install.InstallDir, "data"))
 
-		install.CurDownloading = dlIp2Loc
+		install.CurDownloading = dlJolokia
 		install.Download(jolokiaUrl, path.Join(install.InstallDir, "data"))
 	}
 
@@ -144,8 +144,8 @@ func main() {
 	if err != nil {
 		l.Info("get local IP failed: %s", err.Error())
 	} else {
-		fmt.Printf("\n\tVisit http://%s:%d/stats to see DataKit running status.\n\n", localIP, *flagPort)
-		fmt.Printf("\n\tVisit http://%s:%d/man to see DataKit manuals.\n\n", localIP, *flagPort)
+		fmt.Printf("\n\tVisit http://%s:%d/stats to see DataKit running status.\n", localIP, *flagPort)
+		fmt.Printf("\tVisit http://%s:%d/man to see DataKit manuals.\n\n", localIP, *flagPort)
 	}
 }
 
