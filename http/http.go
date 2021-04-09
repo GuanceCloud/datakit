@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	iowrite "io"
 	"net/http"
 	"os"
@@ -12,10 +13,12 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
 	"github.com/unrolled/secure"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -25,6 +28,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
@@ -227,6 +231,7 @@ func HttpStart(addr string) {
 
 	// internal datakit stats API
 	router.GET("/stats", func(c *gin.Context) { apiGetInputsStats(c.Writer, c.Request) })
+	router.GET("/man", func(c *gin.Context) { apiManual(c) })
 	// ansible api
 	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
 
@@ -410,4 +415,115 @@ func apiReload(c *gin.Context) {
 	}()
 
 	c.Redirect(http.StatusFound, "/stats")
+}
+
+var (
+	manualTOCTemplate = `
+<style>
+div {
+  border: 1px solid gray;
+  /* padding: 8px; */
+}
+
+h1 {
+  text-align: center;
+  text-transform: uppercase;
+  color: #4CAF50;
+}
+
+p {
+  /* text-indent: 50px; */
+  text-align: justify;
+  /* letter-spacing: 3px; */
+}
+
+a {
+  text-decoration: none;
+  /* color: #008CBA; */
+}
+
+ul.a {
+  list-style-type: square;
+}
+</style>
+
+<h1>{{.PageTitle}}</h1>
+采集器文档列表
+<ul class="a">
+	{{ range $name := .InputNames}}
+	<li>
+	<p><a href="/man?input={{$name}}">
+			{{$name}} </a> </p> </li>
+	{{end}}
+</ul>
+
+其它文档集合
+
+<ul class="a">
+	{{ range $name := .OtherDocs}}
+	<li>
+	<p><a href="/man?input={{$name}}">
+			{{$name}} </a> </p> </li>
+	{{end}}
+</ul>
+`
+)
+
+type manualTOC struct {
+	PageTitle  string
+	InputNames []string
+	OtherDocs  []string
+}
+
+func apiManual(c *gin.Context) {
+	name := c.Query("input")
+	if name == "" { // request toc
+		toc := &manualTOC{
+			PageTitle: "DataKit文档列表",
+		}
+
+		for k, v := range inputs.Inputs {
+			switch v().(type) {
+			case inputs.ManualInput:
+				toc.InputNames = append(toc.InputNames, k)
+			}
+		}
+
+		for k, _ := range man.OtherDocs {
+			toc.OtherDocs = append(toc.OtherDocs, k)
+		}
+
+		t := template.New("man-toc")
+
+		tmpl, err := t.Parse(manualTOCTemplate)
+		if err != nil {
+			l.Error(err)
+			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+			return
+		}
+
+		if err := tmpl.Execute(c.Writer, toc); err != nil {
+			l.Error(err)
+			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+			return
+		}
+		return
+	}
+
+	mdtxt, err := man.BuildMarkdownManual(name)
+	if err != nil {
+		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+		return
+	}
+
+	// render markdown as HTML
+	mdext := parser.CommonExtensions
+	psr := parser.NewWithExtensions(mdext)
+
+	htmlFlags := html.CommonFlags | html.HrefTargetBlank | html.TOC | html.CompletePage
+	opts := html.RendererOptions{Flags: htmlFlags}
+	renderer := html.NewRenderer(opts)
+
+	out := markdown.ToHTML(mdtxt, psr, renderer)
+	c.Data(http.StatusOK, "text/html; charset=UTF-8", out)
 }
