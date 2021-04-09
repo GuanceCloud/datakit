@@ -163,7 +163,7 @@ func (d *DialTesting) newHttpTaskRun(t dt.HTTPTask) (*dialer, error) {
 		return nil, err
 	}
 
-	dialer, err := newDialer(&t)
+	dialer, err := newDialer(&t, d.Tags)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -187,7 +187,7 @@ func protectedRun(d *dialer) {
 	f = func(trace []byte, err error) {
 		defer rtpanic.Recover(f, nil)
 		if trace != nil {
-			l.Warnf("task %s panic: %s", d.task.ID(), err)
+			l.Warnf("task %s panic: %+#v", d.task.ID(), err)
 			crashcnt++
 			if crashcnt > maxCrashCnt {
 				l.Warnf("task %s crashed %d times, exit now", d.task.ID(), crashcnt)
@@ -241,7 +241,7 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 				} else { // create new task
 					dialer, err := d.newHttpTaskRun(t)
 					if err != nil {
-						l.Warnf(`%s, ignore`, err.Error())
+						l.Errorf(`%s, ignore`, err.Error())
 					} else {
 						d.curTasks[t.ID()] = dialer
 					}
@@ -332,7 +332,7 @@ func signReq(req *http.Request, ak, sk string) {
 
 func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 
-	reqURL.Path = "/v1/pull"
+	reqURL.Path = "/v1/task/pull"
 	reqURL.RawQuery = fmt.Sprintf("region=%s&since=%d", d.Region, sinceUs)
 
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
