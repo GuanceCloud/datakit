@@ -24,15 +24,14 @@ func init() {
 }
 
 type Inputs struct {
-	Endpoint                    string            `toml:"endpoint"`
-	CollectMetricInterval       string            `toml:"collect_metric_interval"`
-	CollectObjectInterval       string            `toml:"collect_object_interval"`
-	CollectLogging              bool              `toml:"collect_logging"`
-	CollectLoggingFromBeginning bool              `toml:"collect_logging_from_beginning"`
-	IncludeExited               bool              `toml:"include_exited"`
-	ClientConfig                                  // tls config
-	LogOption                   []*LogOption      `toml:"log_option"`
-	Tags                        map[string]string `toml:"tags"`
+	Endpoint              string            `toml:"endpoint"`
+	CollectMetricInterval string            `toml:"collect_metric_interval"`
+	CollectObjectInterval string            `toml:"collect_object_interval"`
+	CollectLogging        bool              `toml:"collect_logging"`
+	IncludeExited         bool              `toml:"include_exited"`
+	ClientConfig                            // tls config
+	LogOption             []*LogOption      `toml:"log_option"`
+	Tags                  map[string]string `toml:"tags"`
 
 	collectMetricDuration time.Duration
 	collectObjectDuration time.Duration
@@ -41,20 +40,6 @@ type Inputs struct {
 	newEnvClient         func() (Client, error)
 	newClient            func(string, *tls.Config) (Client, error)
 	containerLogsOptions types.ContainerLogsOptions
-
-	// tail := "0"
-	// if this.CollectLoggingFromBeginning {
-	// 	tail = "all"
-	// }
-
-	// logOptions := types.ContainerLogsOptions{
-	// 	ShowStdout: true,
-	// 	ShowStderr: true,
-	// 	Timestamps: true,
-	// 	Details:    false,
-	// 	Follow:     true,
-	// 	Tail:       tail,
-	// }
 
 	client Client
 
@@ -95,6 +80,7 @@ func (this *Inputs) Run() {
 			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
 				l.Error(err)
 			}
+			this.gatherLog()
 
 		case <-time.After(this.collectObjectDuration):
 			data, err := this.gather()
