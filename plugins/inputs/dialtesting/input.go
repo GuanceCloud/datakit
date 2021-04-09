@@ -15,6 +15,7 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
@@ -30,7 +31,7 @@ var (
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
 
-	x *IO
+	x *io.IO
 )
 
 const (
@@ -54,11 +55,11 @@ type DialTesting struct {
 }
 
 const sample = `[[inputs.dialtesting]]
-	region = "" # required
+	# require，默认值为default
+	region = "default" 
 
-	server = "dialtesting.dataflux.cn"
-
-	pull_interval = "1m" # default 1 min
+	#  中心任务存储的服务地址，或本地json 文件全路径 
+	server = "files:///your/dir/json-file-name" 
 
 	[inputs.dialtesting.tags]
 	# 各种可能的 tag
@@ -72,17 +73,17 @@ func (dt *DialTesting) Catalog() string {
 	return "network"
 }
 
+func (dt *DialTesting) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{}
+}
+
 func (d *DialTesting) Run() {
 
 	l = logger.SLogger(inputName)
 
-	x = NewIO()
+	x = io.NewIO()
 
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		x.startIO()
-	}()
+	StartCollect()
 
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
 	// 若为本地json文件，则读取任务
@@ -163,7 +164,7 @@ func (d *DialTesting) newHttpTaskRun(t dt.HTTPTask) (*dialer, error) {
 		return nil, err
 	}
 
-	dialer, err := newDialer(&t)
+	dialer, err := newDialer(&t, d.Tags)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -187,7 +188,7 @@ func protectedRun(d *dialer) {
 	f = func(trace []byte, err error) {
 		defer rtpanic.Recover(f, nil)
 		if trace != nil {
-			l.Warnf("task %s panic: %s", d.task.ID(), err)
+			l.Warnf("task %s panic: %+#v", d.task.ID(), err)
 			crashcnt++
 			if crashcnt > maxCrashCnt {
 				l.Warnf("task %s crashed %d times, exit now", d.task.ID(), crashcnt)
@@ -241,7 +242,7 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 				} else { // create new task
 					dialer, err := d.newHttpTaskRun(t)
 					if err != nil {
-						l.Warnf(`%s, ignore`, err.Error())
+						l.Errorf(`%s, ignore`, err.Error())
 					} else {
 						d.curTasks[t.ID()] = dialer
 					}
@@ -332,7 +333,7 @@ func signReq(req *http.Request, ak, sk string) {
 
 func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 
-	reqURL.Path = "/v1/pull"
+	reqURL.Path = "/v1/task/pull"
 	reqURL.RawQuery = fmt.Sprintf("region=%s&since=%d", d.Region, sinceUs)
 
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
