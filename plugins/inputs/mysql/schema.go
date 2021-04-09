@@ -26,9 +26,8 @@ func (m *schemaMeasurement) LineProto() (*io.Point, error) {
 // 指定指标
 func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_schema",
+		Name: "mysql_schema",
 		Fields: map[string]interface{}{
-			// status
 			"schema_size": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
