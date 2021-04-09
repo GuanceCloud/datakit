@@ -17,32 +17,32 @@ import (
 
 	_ "github.com/godror/godror"
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
-	"golang.org/x/net/context/ctxhttp"
 	"github.com/jessevdk/go-flags"
+	"golang.org/x/net/context/ctxhttp"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 type Option struct {
-    Interval  string   `long:"interval" description:"gather interval" default:"10s"`
-	Metric    string   `long:"metric-name" description:"gathered metric name" default:"oracle_monitor"`
-	InstanceDesc string `long:"instance-desc" description:"oracle description"`
-	Host      string    `long:"host" description:"oracle host"`
-	Port      string    `long:"port" description:"oracle port" default:"1521"`
-	Username  string    `long:"username" description:"oracle username"`
-	Password  string    `long:"password" description:"oracle password"`
-	ServiceName string  `long:"service-name" description:"oracle service name"`
-	Tags       string   `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
-	DatakitHTTPPort int `long:"datakit-http-port" description:"DataKit HTTP server port" default:"9529"`
+	Interval        string `long:"interval" description:"gather interval" default:"10s"`
+	Metric          string `long:"metric-name" description:"gathered metric name" default:"oracle_monitor"`
+	InstanceDesc    string `long:"instance-desc" description:"oracle description"`
+	Host            string `long:"host" description:"oracle host"`
+	Port            string `long:"port" description:"oracle port" default:"1521"`
+	Username        string `long:"username" description:"oracle username"`
+	Password        string `long:"password" description:"oracle password"`
+	ServiceName     string `long:"service-name" description:"oracle service name"`
+	Tags            string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
+	DatakitHTTPPort int    `long:"datakit-http-port" description:"DataKit HTTP server port" default:"9529"`
 
-	Log  string   `long:"log" description:"log path"`
-	LogLevel string `long:"log-level" description:"log file" default:"info"`
-	Query []string `long:"query" description:"custom query arrary"`
+	Log      string   `long:"log" description:"log path"`
+	LogLevel string   `long:"log-level" description:"log file" default:"info"`
+	Query    []string `long:"query" description:"custom query arrary"`
 }
 
 var (
-    opt            Option
+	opt            Option
 	l              *logger.Logger
 	datakitPostURL = ""
 )
@@ -104,9 +104,9 @@ func buildMonitor() *monitor {
 		l.Info("custom query ======>", query)
 		arr := strings.Split(query, ":")
 		customCfg := &ExecCfg{
-			sql:       arr[0],
+			sql:        arr[0],
 			metricName: arr[1],
-			tagsMap:   strings.Split(arr[2], ","),
+			tagsMap:    strings.Split(arr[2], ","),
 		}
 		execCfgs = append(execCfgs, customCfg)
 	}
@@ -115,15 +115,15 @@ func buildMonitor() *monitor {
 }
 
 func main() {
-  	_, err := flags.Parse(&opt)
-  	if err != nil {
-    	fmt.Println("Parse error:", err)
-    	return
- 	}
+	_, err := flags.Parse(&opt)
+	if err != nil {
+		fmt.Println("Parse error:", err)
+		return
+	}
 
-  	if opt.Log == "" {
-  		opt.Log = filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log")
-  	}
+	if opt.Log == "" {
+		opt.Log = filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log")
+	}
 
 	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?name=oraclemonitor", opt.DatakitHTTPPort)
 
@@ -184,7 +184,7 @@ func (m *monitor) handle(ec *ExecCfg) {
 func handleResponse(m *monitor, metricName string, tagsKeys []string, response []map[string]interface{}) error {
 	lines := [][]byte{}
 	var (
-		pt *ifxcli.Point
+		pt  *ifxcli.Point
 		err error
 	)
 
@@ -210,7 +210,6 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 		for k, v := range m.tags {
 			tags[k] = v
 		}
-
 
 		pt, err = ifxcli.NewPoint(metricName, tags, item, time.Now())
 		if err != nil {
@@ -252,7 +251,7 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 		}
 
 		fieldName := String(item["metric_name"])
-		value     := item["value"]
+		value := item["value"]
 
 		fieldName = strings.ToLower(strings.Replace(fieldName, " ", "_", -1))
 
@@ -283,7 +282,6 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 
 	return nil
 }
-
 
 func (m *monitor) query(obj *ExecCfg) ([]map[string]interface{}, error) {
 	rows, err := m.db.Query(obj.sql)
@@ -465,27 +463,27 @@ var execCfgs = []*ExecCfg{
 	},
 }
 
-var dic =map[string]string{
-	"buffer_cache_hit_ratio": "buffer_cachehit_ratio",
-	"cursor_cache_hit_ratio": "cursor_cachehit_ratio",
-	"library_cache_hit_ratio": "library_cachehit_ratio",
-	"shared_pool_free_%": "shared_pool_free",
-	"physical_read_bytes_per_sec": "physical_reads",
+var dic = map[string]string{
+	"buffer_cache_hit_ratio":       "buffer_cachehit_ratio",
+	"cursor_cache_hit_ratio":       "cursor_cachehit_ratio",
+	"library_cache_hit_ratio":      "library_cachehit_ratio",
+	"shared_pool_free_%":           "shared_pool_free",
+	"physical_read_bytes_per_sec":  "physical_reads",
 	"physical_write_bytes_per_sec": "physical_writes",
-	"enqueue_timeouts_per_sec": "enqueue_timeouts",
+	"enqueue_timeouts_per_sec":     "enqueue_timeouts",
 
 	"gc_cr_block_received_per_second": "gc_cr_block_received",
-	"global_cache_blocks_corrupted": "cache_blocks_corrupt",
-	"global_cache_blocks_lost": "cache_blocks_lost",
-	"average_active_sessions": "active_sessions",
-	"sql_service_response_time": "service_response_time",
-	"user_rollbacks_per_sec": "user_rollbacks",
-	"total_sorts_per_user_call": "sorts_per_user_call",
-	"rows_per_sort": "rows_per_sort",
-	"disk_sort_per_sec": "disk_sorts",
-	"memory_sorts_ratio": "memory_sorts_ratio",
-	"database_wait_time_ratio": "database_wait_time_ratio",
-	"session_limit_%": "session_limit_usage",
-	"session_count": "session_count",
-	"temp_space_used": "temp_space_used",
+	"global_cache_blocks_corrupted":   "cache_blocks_corrupt",
+	"global_cache_blocks_lost":        "cache_blocks_lost",
+	"average_active_sessions":         "active_sessions",
+	"sql_service_response_time":       "service_response_time",
+	"user_rollbacks_per_sec":          "user_rollbacks",
+	"total_sorts_per_user_call":       "sorts_per_user_call",
+	"rows_per_sort":                   "rows_per_sort",
+	"disk_sort_per_sec":               "disk_sorts",
+	"memory_sorts_ratio":              "memory_sorts_ratio",
+	"database_wait_time_ratio":        "database_wait_time_ratio",
+	"session_limit_%":                 "session_limit_usage",
+	"session_count":                   "session_count",
+	"temp_space_used":                 "temp_space_used",
 }
