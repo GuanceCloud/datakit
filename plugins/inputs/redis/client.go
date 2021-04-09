@@ -27,7 +27,7 @@ func (m *clientMeasurement) LineProto() (*io.Point, error) {
 func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_client",
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"id": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
@@ -64,7 +64,7 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "number of pattern matching subscriptions",
 			},
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server addr",
 			},
@@ -146,7 +146,7 @@ func (m *clientMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {
 		if value, ok := m.resData[key]; ok {
-			val, err := Conv(value, item.DataType)
+			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
 				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
 			} else {
