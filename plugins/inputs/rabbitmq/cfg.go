@@ -37,7 +37,36 @@ var (
 	# tls_key = "/xxx/key.key"
 	## Use TLS but skip chain & host verification
 	insecure_skip_verify = false
+	[inputs.rabbitmq.log]
+	#	files = []
+	#[inputs.rabbitmq.log.option]
+	#	ignore = [""]
+	#	# your logging source, if it's empty, use 'default'
+	#	source = "rabbitmq"
+	#	# add service tag, if it's empty, use $source.
+	#	service = ""
+	#	# grok pipeline script path
+	#	pipeline = "rabbitmq.p"
+	#	# optional status:
+	#	#   "emerg","alert","critical","error","warning","info","debug","OK"
+	#	ignore_status = []
+	#	# read file from beginning
+	#	# if from_begin was false, off auto discovery file
+	#	from_beginning = false
+	#	# optional encodings:
+	#	#    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+	#	character_encoding = ""
+	#	# The pattern should be a regexp. Note the use of '''this regexp'''
+	#	# regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+	#	match = '''^\S'''
 
+`
+	pipelineCfg = `
+grok(_, "%{LOGLEVEL:status}%{DATA}====%{SPACE}%{DATA:time}%{SPACE}===%{SPACE}%{GREEDYDATA:msg}")
+
+grok(_, "%{DATA:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg}")
+
+default_time(time)
 `
 )
 
@@ -53,6 +82,8 @@ type Input struct {
 	Username string           `toml:"username"`
 	Password string           `toml:"password"`
 	Interval datakit.Duration `toml:"interval"`
+	TailF    *inputs.Tailer   `toml:"log"`
+
 	tls.ClientConfig
 
 	// HTTP client
