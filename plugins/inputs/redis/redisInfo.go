@@ -29,7 +29,7 @@ func (m *infoMeasurement) LineProto() (*io.Point, error) {
 func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_info",
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"info_latency_ms": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
@@ -295,7 +295,7 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "Number of failed lookup of keys in the main dictionary",
 			},
 		},
-		Tags: map[string]*inputs.TagInfo{
+		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server addr",
 			},
@@ -368,7 +368,7 @@ func (m *infoMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {
 		if value, ok := m.resData[key]; ok {
-			val, err := Conv(value, item.DataType)
+			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
 				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
 			} else {

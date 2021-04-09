@@ -534,7 +534,6 @@ github.com/influxdata/telegraf/plugins/inputs/kernel
 github.com/influxdata/telegraf/plugins/inputs/kibana
 github.com/influxdata/telegraf/plugins/inputs/kubernetes
 github.com/influxdata/telegraf/plugins/inputs/linux_sysctl_fs
-github.com/influxdata/telegraf/plugins/inputs/mem
 github.com/influxdata/telegraf/plugins/inputs/memcached
 github.com/influxdata/telegraf/plugins/inputs/modbus
 github.com/influxdata/telegraf/plugins/inputs/mongodb
@@ -846,11 +845,11 @@ github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/redis/v20180412
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sqlserver/v20180328
 # github.com/tencentyun/cos-go-sdk-v5 v0.7.7
 github.com/tencentyun/cos-go-sdk-v5
-# github.com/tidwall/gjson v1.6.1
+# github.com/tidwall/gjson v1.7.4
 github.com/tidwall/gjson
-# github.com/tidwall/match v1.0.1
+# github.com/tidwall/match v1.0.3
 github.com/tidwall/match
-# github.com/tidwall/pretty v1.0.2
+# github.com/tidwall/pretty v1.1.0
 github.com/tidwall/pretty
 # github.com/trivago/tgo v1.0.1
 github.com/trivago/tgo/tcontainer
@@ -932,7 +931,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript/module
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210324054101-fdb22dffb394
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210409040946-7e07a5ca0e30
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 # go.mongodb.org/mongo-driver v1.4.1
 go.mongodb.org/mongo-driver/bson
