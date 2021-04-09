@@ -1,9 +1,11 @@
+{{.CSS}}
+
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
 
 # 简介
 
-`system` 采集器
+system 采集器收集系统负载、正常运行时间、CPU 核心数量以及登录的用户数。
 
 ## 前置条件
 
@@ -11,9 +13,9 @@
 
 ## 配置
 
-进入 DataKit 安装目录下的 `conf.d/{{.InputName}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
-```
+```python
 {{.InputSample}}
 ```
 
