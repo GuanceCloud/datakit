@@ -99,19 +99,19 @@ func (_ *Input) PipelineConfig() map[string]string {
 func (n *Input) Run() {
 	l.Info("nginx start")
 
-	if n.TailF != nil {
+	if n.log != nil {
 		go func() {
-			if err := n.TailF.Init(); err != nil {
+			if err := n.log.Init(); err != nil {
 				l.Errorf("nginx init tailf err:%s", err.Error())
 				return
 			}
-			if n.TailF.Option.Pipeline != "" {
-				n.TailF.Option.Pipeline = filepath.Join(datakit.PipelineDir, n.TailF.Option.Pipeline)
+			if n.log.Option.Pipeline != "" {
+				n.log.Option.Pipeline = filepath.Join(datakit.PipelineDir, n.log.Option.Pipeline)
 			}else {
-				n.TailF.Option.Pipeline = filepath.Join(datakit.PipelineDir, "nginx.p")
+				n.log.Option.Pipeline = filepath.Join(datakit.PipelineDir, "nginx.p")
 			}
 
-			n.TailF.Run()
+			n.log.Run()
 		}()
 	}
 
