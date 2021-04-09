@@ -6,6 +6,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"net/http"
+	"path/filepath"
 	"time"
 )
 
@@ -97,6 +98,23 @@ func (_ *Input) PipelineConfig() map[string]string {
 
 func (n *Input) Run() {
 	l.Info("nginx start")
+
+	if n.TailF != nil {
+		go func() {
+			if err := n.TailF.Init(); err != nil {
+				l.Errorf("nginx init tailf err:%s", err.Error())
+				return
+			}
+			if n.TailF.Option.Pipeline != "" {
+				n.TailF.Option.Pipeline = filepath.Join(datakit.PipelineDir, n.TailF.Option.Pipeline)
+			}else {
+				n.TailF.Option.Pipeline = filepath.Join(datakit.PipelineDir, "nginx.p")
+			}
+
+			n.TailF.Run()
+		}()
+	}
+
 	client, err := n.createHttpClient()
 	if err != nil {
 		l.Errorf("[error] nginx init client err:%s", err.Error())
@@ -105,20 +123,6 @@ func (n *Input) Run() {
 	n.client = client
 	if n.Interval.Duration == 0 {
 		n.Interval.Duration = time.Second * 30
-	}
-	if len(n.TailF.Files) > 0 {
-		go func() {
-			if err := n.TailF.Init(); err != nil {
-				l.Errorf("nginx init tailf err:%s", err.Error())
-				return
-			}
-			if n.TailF.Option.Pipeline == "" {
-				n.TailF.Option.Pipeline = "nginx.p"
-			}
-			n.TailF.Option.FromBeginning = true
-			n.TailF.Run()
-		}()
-
 	}
 
 	tick := time.NewTicker(n.Interval.Duration)
