@@ -111,7 +111,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ansible"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/csvmetric"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/csvobject"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oraclemonitor"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oracle"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/qyt_all"
 	//
 	// Buggy inputs
