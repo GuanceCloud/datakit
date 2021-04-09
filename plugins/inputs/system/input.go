@@ -21,7 +21,7 @@ const (
 	metricName   = inputName
 	sampleCfg    = `
 [[inputs.system]]
-
+# no sample need here, just open the input
 	`
 )
 
