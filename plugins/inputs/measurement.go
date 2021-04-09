@@ -25,20 +25,20 @@ const (
 
 // units
 const (
-	UnknownUnit = ""
-	SizeByte    = "byte"  // 1000
-	SizeIByte   = "ibyte" // 1024
+	UnknownUnit = "-"
+	SizeByte    = "byte(1k=1000)"  // 1000
+	SizeIByte   = "ibyte(1k=1024)" // 1024
 
 	NCount = "count"
 
 	// time units
-	DurationNS     = "ns"
-	DurationUS     = "us"
-	DurationMS     = "ms"
-	DurationSecond = "s"
-	DurationMinute = "m"
-	DurationHour   = "h"
-	DurationDay    = "d"
+	DurationNS     = "nsec"
+	DurationUS     = "usec"
+	DurationMS     = "msec"
+	DurationSecond = "second"
+	DurationMinute = "minute"
+	DurationHour   = "hour"
+	DurationDay    = "day"
 
 	Percent = "%"
 
