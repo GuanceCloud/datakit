@@ -21,12 +21,13 @@ const (
     # To use environment variables (ie, docker-machine), set endpoint = "ENV"
     endpoint = "unix:///var/run/docker.sock"
 
+    collect_metric = true
+    collect_object = true
+    collect_logging = true
+
     # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     collect_metric_interval = "10s"
     collect_object_interval = "5m"
-
-    collect_logging = true
-    collect_logging_from_beginning = false
 
     # Is all containers, Return all containers. By default, only running containers are shown.
     include_exited = false
@@ -109,6 +110,27 @@ func (this *Inputs) loadCfg() (err error) {
 		this.Tags = make(map[string]string)
 	}
 
+	if err = this.initLogOption(); err != nil {
+		return
+	}
+
+	this.timeoutDuration = defaultAPITimeout
+
+	return
+}
+
+func (this *Inputs) initLogOption() (err error) {
+	this.opts = types.ContainerListOptions{All: this.IncludeExited}
+
+	this.containerLogsOptions = types.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Timestamps: true,
+		Details:    false,
+		Follow:     true,
+		Tail:       "0", // 默认关闭FromBeginning，避免数据量巨大。开启为 'all'
+	}
+
 	for _, opt := range this.LogOption {
 		// FIXME:
 		//   source 为空时，应该使用 defalut，还是 container_name ?
@@ -125,20 +147,20 @@ func (this *Inputs) loadCfg() (err error) {
 		if err != nil {
 			return
 		}
-		opt.pipelinePool = sync.Pool{
-			New: func() interface{} {
-				p, err := pipeline.NewPipelineFromFile(opt.Pipeline)
-				if err != nil {
-					l.Error(err)
-					return nil
-				}
-				return p
-			},
-		}
-	}
 
-	this.timeoutDuration = defaultAPITimeout
-	this.opts = types.ContainerListOptions{All: this.IncludeExited}
+		func(pipelinePath string) {
+			opt.pipelinePool = sync.Pool{
+				New: func() interface{} {
+					p, err := pipeline.NewPipelineFromFile(pipelinePath)
+					if err != nil {
+						l.Error(err)
+						return nil
+					}
+					return p
+				},
+			}
+		}(opt.Pipeline)
+	}
 
 	return
 }
