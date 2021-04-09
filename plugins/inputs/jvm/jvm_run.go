@@ -68,7 +68,6 @@ func (i *Input) Collect() error {
 		}
 	}
 
-	l.Error(fields)
 	i.collectCache = append(i.collectCache, &JvmMeasurement{
 		inputName,
 		tags,
