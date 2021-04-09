@@ -163,7 +163,6 @@ func (c *Client) read() ([]jolokiaResponse, error) {
 		return nil, err
 	}
 
-	l.Error(string(responseBody))
 	var jResponses []jolokiaResponse
 	if err = json.Unmarshal(responseBody, &jResponses); err != nil {
 		return nil, fmt.Errorf("decoding JSON response: %s: %s", err, responseBody)
