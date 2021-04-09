@@ -238,12 +238,13 @@ func (_ *Input) Test() {
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&elasticsearchMeasurement{},
 		&nodeStatsMeasurement{},
+		&indicesStatsMeasurement{},
 		&indicesStatsShardsMeasurement{},
 		&indicesStatsShardsTotalMeasurement{},
-		&clusterHealthIndicesMeasurement{},
+		&clusterStatsMeasurement{},
 		&clusterHealthMeasurement{},
+		&clusterHealthIndicesMeasurement{},
 	}
 }
 
@@ -343,7 +344,7 @@ func (i *Input) Run() {
 			Source:  inputName,
 			Service: inputName,
 		}
-		tailer, err := inputs.NewTailer(inputName, i.LogFiles, &option)
+		tailer, err := inputs.NewTailer(i.LogFiles, &option)
 		if err != nil {
 			l.Error(err)
 			return
