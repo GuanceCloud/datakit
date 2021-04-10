@@ -13,6 +13,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/configtemplate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
@@ -100,20 +101,20 @@ func main() {
 
 	if *flagOffline && *flagSrcs != "" {
 		for _, f := range strings.Split(*flagSrcs, ",") {
-			install.ExtractDatakit(f, install.InstallDir)
+			cmd.ExtractDatakit(f, install.InstallDir)
 		}
 	} else {
-		install.CurDownloading = dlDatakit
-		install.Download(datakitUrl, install.InstallDir)
+		cmd.CurDownloading = dlDatakit
+		cmd.Download(datakitUrl, install.InstallDir)
 
-		install.CurDownloading = dlAgent
-		install.Download(telegrafUrl, install.InstallDir)
+		cmd.CurDownloading = dlAgent
+		cmd.Download(telegrafUrl, install.InstallDir)
 
-		install.CurDownloading = dlIp2Loc
-		install.Download(ip2locUrl, path.Join(install.InstallDir, "data"))
+		cmd.CurDownloading = dlIp2Loc
+		cmd.Download(ip2locUrl, path.Join(install.InstallDir, "data"))
 
-		install.CurDownloading = dlJolokia
-		install.Download(jolokiaUrl, path.Join(install.InstallDir, "data"))
+		cmd.CurDownloading = dlJolokia
+		cmd.Download(jolokiaUrl, path.Join(install.InstallDir, "data"))
 	}
 
 	if *flagUpgrade { // upgrade new version
