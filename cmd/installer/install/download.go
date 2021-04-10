@@ -1,4 +1,4 @@
-package cmd
+package install
 
 import (
 	"archive/tar"
@@ -12,15 +12,11 @@ import (
 	"strings"
 
 	"github.com/dustin/go-humanize"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var (
-	CurDownloading = ""
-
-	l            = logger.DefaultSLogger("install")
-	DownloadOnly = false
+	CurDownloading string
+	DownloadOnly   = false
 )
 
 type writeCounter struct {
