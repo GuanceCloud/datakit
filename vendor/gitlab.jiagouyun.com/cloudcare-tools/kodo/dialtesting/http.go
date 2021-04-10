@@ -95,9 +95,9 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 	tags = map[string]string{
 		"name":   t.Name,
 		"url":    t.URL,
-		"region": t.Region,
 		"proto":  t.req.Proto,
-		"result": "FAIL",
+		"status": "FAIL",
+		"method": t.Method,
 	}
 
 	fields = map[string]interface{}{
@@ -118,6 +118,11 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 
 	message := map[string]interface{}{}
 
+	if t.req != nil {
+		message[`request_body`] = t.req.Body
+		message[`request_header`] = t.req.Header
+	}
+
 	reasons := t.CheckResult()
 	if len(reasons) != 0 {
 		message[`failed_reason`] = strings.Join(reasons, `;`)
@@ -125,7 +130,7 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 	}
 
 	if t.reqError == "" && len(reasons) == 0 {
-		tags["result"] = "OK"
+		tags["status"] = "OK"
 		fields["success"] = int64(1)
 	}
 
@@ -134,9 +139,17 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 		fields[`failed_reason`] = t.reqError
 	}
 
-	if v, ok := fields[`failed_reason`]; ok && len(v.(string)) != 0 && t.resp != nil {
-		message[`resp_header`] = t.resp.Header
-		message[`resp_body`] = string(t.respBody)
+	notSave := false
+	for _, opt := range t.AdvanceOptions {
+		if opt.Secret != nil && opt.Secret.NoSaveResponseBody {
+			notSave = true
+			break
+		}
+	}
+
+	if v, ok := fields[`failed_reason`]; ok && !notSave && len(v.(string)) != 0 && t.resp != nil {
+		message[`response_header`] = t.resp.Header
+		message[`response_body`] = string(t.respBody)
 	}
 
 	fields[`response_dns`] = t.dnsParseTime
@@ -222,6 +235,11 @@ type HTTPAdvanceOption struct {
 	RequestBody    *HTTPOptBody        `json:"request_body,omitempty"`
 	Certificate    *HTTPOptCertificate `json:"certificate,omitempty"`
 	Proxy          *HTTPOptProxy       `json:"proxy,omitempty"`
+	Secret         *HTTPSecret         `json:"secret,omitempty"`
+}
+
+type HTTPSecret struct {
+	NoSaveResponseBody bool `json:"not_save,omitempty"`
 }
 
 func (t *HTTPTask) Run() error {
