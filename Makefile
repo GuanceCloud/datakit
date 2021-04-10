@@ -89,7 +89,7 @@ vet:
 test:
 	@GO111MODULE=off go test ./...
 
-local: man gofmt
+local: gofmt #man 
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
 testing: man
