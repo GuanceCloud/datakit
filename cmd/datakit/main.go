@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -32,13 +33,14 @@ var (
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
 	// tool-commands supported in datakit
-	flagCmd       = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline  = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText      = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-	flagGrokq     = flag.Bool("grokq", false, "query groks interactively")
-	flagMan       = flag.Bool("man", false, "read manuals of inputs")
-	flagOTA       = flag.Bool("ota", false, "update datakit new version if available")
-	flagExportMan = flag.String("export-man", "", "export all inputs and related manuals to specified path")
+	flagCmd             = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline        = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText            = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
+	flagMan             = flag.Bool("man", false, "read manuals of inputs")
+	flagCheckUpdate     = flag.Bool("check-update", false, "update datakit new version if available")
+	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "accept RC version if available")
+	flagExportMan       = flag.String("export-man", "", "export all inputs and related manuals to specified path")
 )
 
 var (
@@ -94,7 +96,7 @@ ReleasedInputs: %s
 
 		switch runtime.GOOS {
 		case "windows":
-			cmdWin := fmt.Sprintf(`Import-Module bitstransfer; start-bitstransfer -source %s -destination .\dk-installer.exe; .\dk-installer.exe -upgrade; rm dk-installer.exe`, ver.downloadURL)
+			cmdWin := fmt.Sprintf(`Import-Module bitstransfer; start-bitstransfer -source %s -destination .\dk-installer.exe; .\dk-installer.exe -upgrade; rm .dk-installer.exe`, ver.downloadURL+".exe")
 			fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
 		default:
 			cmd := fmt.Sprintf(`sudo -- sh -c "curl %s -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"`, ver.downloadURL)
@@ -111,11 +113,20 @@ ReleasedInputs: %s
 		}
 
 		if ver.Version != git.Version || ver.Commit != git.Commit {
-			l.Debugf("new verson: %s, commit: %s", ver.Version, ver.Commit)
-			os.Exit(-1) // need upgrade
-		} else {
-			l.Infof("update to date: %s/%s", git.Version, git.Commit)
+			if strings.Contains(ver.Version, "rc") { // check if RC version, such as 1.1.4-rc3
+				if *flagAcceptRCVersion {
+					l.Debugf("new RC verson: %s, commit: %s", ver.Version, ver.Commit)
+					os.Exit(-1) // need upgrade
+				} else {
+					l.Debugf("skip RC version: %s/%s", ver.Version, ver.Commit)
+				}
+			} else {
+				l.Debugf("new verson: %s, commit: %s", ver.Version, ver.Commit)
+				os.Exit(-1) // need upgrade
+			}
 		}
+
+		l.Infof("update to date: %s/%s", git.Version, git.Commit)
 		os.Exit(0)
 	}
 
