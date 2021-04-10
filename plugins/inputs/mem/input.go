@@ -180,7 +180,7 @@ func (i *Input) Run() {
 }
 
 func (i *Input) Catalog() string {
-	return "mem"
+	return "host"
 }
 
 func (i *Input) SampleConfig() string {
