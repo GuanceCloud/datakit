@@ -32,13 +32,13 @@ var (
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
 	// tool-commands supported in datakit
-	flagCmd         = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline    = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText        = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-	flagGrokq       = flag.Bool("grokq", false, "query groks interactively")
-	flagMan         = flag.Bool("man", false, "read manuals of inputs")
-	flagCheckUpdate = flag.Bool("check-update", false, "check datakit new version")
-	flagExportMan   = flag.String("export-man", "", "export all inputs and related manuals to specified path")
+	flagCmd       = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline  = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText      = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagGrokq     = flag.Bool("grokq", false, "query groks interactively")
+	flagMan       = flag.Bool("man", false, "read manuals of inputs")
+	flagOTA       = flag.Bool("ota", false, "update datakit new version if available")
+	flagExportMan = flag.String("export-man", "", "export all inputs and related manuals to specified path")
 )
 
 var (
