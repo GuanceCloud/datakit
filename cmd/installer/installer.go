@@ -13,7 +13,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/configtemplate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
@@ -30,8 +29,7 @@ var (
 		"telegraf",
 		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
 
-	ip2locUrl = "https://" + path.Join(DataKitBaseURL, "iploc/iploc.tar.gz")
-
+	ip2locUrl  = "https://" + path.Join(DataKitBaseURL, "iploc/iploc.tar.gz")
 	jolokiaUrl = "https://" + path.Join(DataKitBaseURL, "utils/jolokia-jvm-agent.jar.tar.gz")
 
 	l *logger.Logger
@@ -101,20 +99,17 @@ func main() {
 
 	if *flagOffline && *flagSrcs != "" {
 		for _, f := range strings.Split(*flagSrcs, ",") {
-			cmd.ExtractDatakit(f, install.InstallDir)
+			install.ExtractDatakit(f, install.InstallDir)
 		}
 	} else {
-		cmd.CurDownloading = dlDatakit
-		cmd.Download(datakitUrl, install.InstallDir)
-
-		cmd.CurDownloading = dlAgent
-		cmd.Download(telegrafUrl, install.InstallDir)
-
-		cmd.CurDownloading = dlIp2Loc
-		cmd.Download(ip2locUrl, path.Join(install.InstallDir, "data"))
-
-		cmd.CurDownloading = dlJolokia
-		cmd.Download(jolokiaUrl, path.Join(install.InstallDir, "data"))
+		install.CurDownloading = dlDatakit
+		install.Download(datakitUrl, install.InstallDir)
+		install.CurDownloading = dlAgent
+		install.Download(telegrafUrl, install.InstallDir)
+		install.CurDownloading = dlIp2Loc
+		install.Download(ip2locUrl, path.Join(install.InstallDir, "data"))
+		install.CurDownloading = dlJolokia
+		install.Download(jolokiaUrl, path.Join(install.InstallDir, "data"))
 	}
 
 	if *flagUpgrade { // upgrade new version
@@ -168,11 +163,20 @@ Golang Version: %s
 		install.DownloadOnly = true
 
 		install.CurDownloading = dlDatakit
-		install.Download(datakitUrl, fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
-			runtime.GOOS, runtime.GOARCH, DataKitVersion))
+		install.Download(datakitUrl,
+			fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
+				runtime.GOOS, runtime.GOARCH, DataKitVersion))
 
 		install.CurDownloading = dlAgent
-		install.Download(telegrafUrl, fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
+		install.Download(telegrafUrl,
+			fmt.Sprintf("agent-%s-%s.tar.gz",
+				runtime.GOOS, runtime.GOARCH))
+
+		install.CurDownloading = dlIp2Loc
+		install.Download(ip2locUrl, "iploc.tar.gz")
+
+		install.CurDownloading = dlJolokia
+		install.Download(jolokiaUrl, "jolokia-jvm-agent.jar.tar.gz")
 
 		os.Exit(0)
 	}
