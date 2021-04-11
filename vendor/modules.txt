@@ -184,6 +184,8 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 github.com/basgys/goxml2json
 # github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
+# github.com/blang/semver/v4 v4.0.0
+github.com/blang/semver/v4
 # github.com/c-bata/go-prompt v0.2.5 => github.com/coanor/go-prompt v0.2.6
 github.com/c-bata/go-prompt
 github.com/c-bata/go-prompt/internal/bisect
@@ -613,6 +615,8 @@ github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis
 github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client
 github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models
 github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models
+# github.com/jessevdk/go-flags v1.5.0
+github.com/jessevdk/go-flags
 # github.com/jmespath/go-jmespath v0.4.0
 github.com/jmespath/go-jmespath
 # github.com/json-iterator/go v1.1.10
@@ -1037,7 +1041,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210331175145-43e1dd70ce54
+# golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
@@ -1047,7 +1051,7 @@ golang.org/x/sys/windows/registry
 golang.org/x/sys/windows/svc
 golang.org/x/sys/windows/svc/eventlog
 golang.org/x/sys/windows/svc/mgr
-# golang.org/x/term v0.0.0-20210317153231-de623e64d2a6
+# golang.org/x/term v0.0.0-20210406210042-72f3dc4e9b72
 golang.org/x/term
 # golang.org/x/text v0.3.3
 golang.org/x/text/cases
