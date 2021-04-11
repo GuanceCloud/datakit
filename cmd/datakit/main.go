@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/blang/semver/v4"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
@@ -71,6 +73,18 @@ func main() {
 	l.Info("datakit exited")
 }
 
+const (
+	winUpgradeCmd = `Import-Module bitstransfer; ` +
+		`start-bitstransfer -source %s -destination .dk-installer.exe; ` +
+		`.dk-installer.exe -upgrade; ` +
+		`rm .dk-installer.exe`
+	unixUpgradeCmd = `sudo -- sh -c ` +
+		`"curl %s -o dk-installer ` +
+		`&& chmod +x ./dk-installer ` +
+		`&& ./dk-installer -upgrade ` +
+		`&& rm -rf ./dk-installer"`
+)
+
 func applyFlags() {
 
 	if *flagVersion {
@@ -88,45 +102,50 @@ ReleasedInputs: %s
 			fmt.Printf("Get online version failed: \n%s\n", err.Error())
 			os.Exit(-1)
 		}
+		curver, err := getLocalVersion()
+		if err != nil {
+			fmt.Printf("Get online version failed: \n%s\n", err.Error())
+			os.Exit(-1)
+		}
 
-		if ver.Version != git.Version || ver.Commit != git.Commit {
+		if isNewVersion(ver, curver, true) {
 			fmt.Printf("\n\nNew version available: %s, commit %s (release at %s)\n",
-				ver.Version, ver.Commit, ver.ReleaseDate)
+				ver.version, ver.Commit, ver.ReleaseDate)
+			switch runtime.GOOS {
+			case "windows":
+				cmdWin := fmt.Sprintf(winUpgradeCmd, ver.downloadURL)
+				fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
+			default:
+				cmd := fmt.Sprintf(unixUpgradeCmd, ver.downloadURL)
+				fmt.Printf("\nUpgrade:\n\t%s\n\n", cmd)
+			}
 		}
 
-		switch runtime.GOOS {
-		case "windows":
-			cmdWin := fmt.Sprintf(`Import-Module bitstransfer; start-bitstransfer -source %s -destination .\dk-installer.exe; .\dk-installer.exe -upgrade; rm .dk-installer.exe`, ver.downloadURL+".exe")
-			fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
-		default:
-			cmd := fmt.Sprintf(`sudo -- sh -c "curl %s -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"`, ver.downloadURL)
-			fmt.Printf("\nUpgrade:\n\t%s\n\n", cmd)
-		}
 		os.Exit(0)
 	}
 
 	if *flagCheckUpdate {
+
+		logger.SetGlobalRootLogger(datakit.OTALogFile, logger.DEBUG, logger.OPT_DEFAULT)
+		l = logger.SLogger("ota")
+
 		ver, err := getOnlineVersion()
+		if err != nil {
+			l.Errorf("Get online version failed: \n%s\n", err.Error())
+			os.Exit(0)
+		}
+		curver, err := getLocalVersion()
 		if err != nil {
 			l.Errorf("Get online version failed: \n%s\n", err.Error())
 			os.Exit(-1)
 		}
 
-		if ver.Version != git.Version || ver.Commit != git.Commit {
-			if strings.Contains(ver.Version, "rc") { // check if RC version, such as 1.1.4-rc3
-				if *flagAcceptRCVersion {
-					l.Debugf("new RC verson: %s, commit: %s", ver.Version, ver.Commit)
-					os.Exit(-1) // need upgrade
-				} else {
-					l.Debugf("skip RC version: %s/%s", ver.Version, ver.Commit)
-				}
-			} else {
-				l.Debugf("new verson: %s, commit: %s", ver.Version, ver.Commit)
-				os.Exit(-1) // need upgrade
-			}
+		if isNewVersion(ver, curver, *flagAcceptRCVersion) {
+			l.Infof("New version available: %s, commit %s (release at %s)",
+				ver.version, ver.Commit, ver.ReleaseDate)
+			os.Exit(-1)
 		}
 
-		l.Infof("update to date: %s/%s", git.Version, git.Commit)
 		os.Exit(0)
 	}
 
@@ -261,10 +280,26 @@ func runDatakitWithCmd() {
 }
 
 type datakitVerInfo struct {
-	Version     string `json:"version"`
-	Commit      string `json:"commit"`
-	ReleaseDate string `json:"date_utc"`
-	downloadURL string `json:"-"`
+	VersionString string `json:"version"`
+	Commit        string `json:"commit"`
+	ReleaseDate   string `json:"date_utc"`
+	downloadURL   string `json:"-"`
+
+	version *semver.Version
+}
+
+func (vi *datakitVerInfo) String() string {
+	return fmt.Sprintf("datakit %s/%s", vi.VersionString, vi.Commit)
+}
+
+func (vi *datakitVerInfo) parse() error {
+	vi.VersionString = strings.TrimPrefix(vi.VersionString, "v") // older version has prefix `v'
+	v, err := semver.Parse(vi.VersionString)
+	if err != nil {
+		return err
+	}
+	vi.version = &v
+	return nil
 }
 
 func getOnlineVersion() (*datakitVerInfo, error) {
@@ -285,6 +320,36 @@ func getOnlineVersion() (*datakitVerInfo, error) {
 		return nil, err
 	}
 
+	if err := ver.parse(); err != nil {
+		return nil, err
+	}
+
 	ver.downloadURL = fmt.Sprintf("https://static.dataflux.cn/datakit/installer-%s-%s", runtime.GOOS, runtime.GOARCH)
+	if runtime.GOOS == "windows" {
+		ver.downloadURL += ".exe"
+	}
 	return &ver, nil
+}
+
+func getLocalVersion() (*datakitVerInfo, error) {
+	v := &datakitVerInfo{VersionString: strings.TrimPrefix(git.Version, "v"), Commit: git.Commit, ReleaseDate: git.BuildAt}
+	if err := v.parse(); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func isNewVersion(newVer, curVer *datakitVerInfo, acceptRC bool) bool {
+
+	if newVer.version.Compare(*curVer.version) > 0 { // new version
+		if len(newVer.version.Pre) == 0 {
+			return true
+		}
+
+		if acceptRC {
+			return true
+		}
+	}
+
+	return false
 }
