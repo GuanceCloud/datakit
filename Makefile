@@ -52,13 +52,14 @@ all: testing release preprod local
 define GIT_INFO
 //nolint
 package git
+
 const (
-	BuildAt string="$(DATE)"
-	Version string="$(VERSION)"
-	Golang string="$(GOVERSION)"
-	Commit string="$(COMMIT)"
-	Branch string="$(BRANCH)"
-	Uploader string="$(UPLOADER)"
+	BuildAt  string = "$(DATE)"
+	Version  string = "$(VERSION)"
+	Golang   string = "$(GOVERSION)"
+	Commit   string = "$(COMMIT)"
+	Branch   string = "$(BRANCH)"
+	Uploader string = "$(UPLOADER)"
 );
 endef
 export GIT_INFO
@@ -89,8 +90,8 @@ vet:
 test:
 	@GO111MODULE=off go test ./...
 
-local: gofmt man 
-	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
+local: man gofmt
+	#$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
 testing: man
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
