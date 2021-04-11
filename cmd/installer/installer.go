@@ -32,7 +32,7 @@ var (
 	ip2locUrl  = "https://" + path.Join(DataKitBaseURL, "iploc/iploc.tar.gz")
 	jolokiaUrl = "https://" + path.Join(DataKitBaseURL, "utils/jolokia-jvm-agent.jar.tar.gz")
 
-	l *logger.Logger
+	l = logger.DefaultSLogger("installer")
 )
 
 var (
@@ -41,6 +41,8 @@ var (
 
 	flagInfo         = flag.Bool("info", false, "show installer info")
 	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
+	flagOTA          = flag.Bool("ota", false, "upgraded by OTA")
+	flagInstallOnly  = flag.Bool("install-only", false, "install only, not start")
 
 	flagEnableInputs = flag.String("enable-inputs", "", `default enable inputs(comma splited, example: cpu,mem,disk)`)
 	flagDatakitName  = flag.String("name", "", `specify DataKit name, example: prod-env-datakit`)
@@ -70,7 +72,6 @@ func main() {
 	}
 
 	logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
-	l = logger.SLogger("installer")
 
 	flag.Parse()
 	datakit.InitDirs()
@@ -113,6 +114,10 @@ func main() {
 	}
 
 	if *flagUpgrade { // upgrade new version
+
+		logger.SetGlobalRootLogger(datakit.OTALogFile, logger.DEBUG, logger.OPT_DEFAULT)
+		l = logger.SLogger("ota")
+
 		l.Infof("Upgrading to version %s...", DataKitVersion)
 		install.UpgradeDatakit(svc)
 	} else { // install new datakit
@@ -125,9 +130,11 @@ func main() {
 		l.Fatalf("fail to intsall config template, %s", err)
 	}
 
-	l.Infof("starting service %s...", datakit.ServiceName)
-	if err = service.Control(svc, "start"); err != nil {
-		l.Fatalf("star service: %s", err.Error())
+	if !*flagInstallOnly {
+		l.Infof("starting service %s...", datakit.ServiceName)
+		if err = service.Control(svc, "start"); err != nil {
+			l.Fatalf("star service: %s", err.Error())
+		}
 	}
 
 	if *flagUpgrade { // upgrade new version
