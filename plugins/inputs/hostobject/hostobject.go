@@ -3,7 +3,6 @@ package hostobject
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"runtime"
 	"time"
 
@@ -143,9 +142,6 @@ func (c *objCollector) Run() {
 
 		if c.isTestOnce() {
 			// pass
-		} else if c.isDebug() {
-			data, _ := io.MakeMetric("HOST", tags, fields, tm)
-			fmt.Printf("%s\n", string(data))
 		} else {
 			io.NamedFeedEx(InputName, io.Object, "HOST", tags, fields, tm)
 		}

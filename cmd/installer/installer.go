@@ -29,11 +29,9 @@ var (
 		"telegraf",
 		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
 
-	ip2locUrl = "https://" + path.Join(DataKitBaseURL, "iploc/iploc.tar.gz")
+	dataUrl = "https://" + path.Join(DataKitBaseURL, "data.tar.gz")
 
-	jolokiaUrl = "https://" + path.Join(DataKitBaseURL, "utils/jolokia-jvm-agent.jar.tar.gz")
-
-	l *logger.Logger
+	l = logger.DefaultSLogger("installer")
 )
 
 var (
@@ -42,6 +40,8 @@ var (
 
 	flagInfo         = flag.Bool("info", false, "show installer info")
 	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
+	flagOTA          = flag.Bool("ota", false, "upgraded by OTA")
+	flagInstallOnly  = flag.Bool("install-only", false, "install only, not start")
 
 	flagEnableInputs = flag.String("enable-inputs", "", `default enable inputs(comma splited, example: cpu,mem,disk)`)
 	flagDatakitName  = flag.String("name", "", `specify DataKit name, example: prod-env-datakit`)
@@ -58,10 +58,10 @@ var (
 
 const (
 	datakitBin = "datakit"
-	dlDatakit  = "datakit"
-	dlAgent    = "agent"
-	dlIp2Loc   = "ip2loc"
-	dlJolokia  = "jolokia"
+
+	dlDatakit = "datakit"
+	dlAgent   = "agent"
+	dlData    = "data"
 )
 
 func main() {
@@ -71,18 +71,17 @@ func main() {
 	}
 
 	logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
-	l = logger.SLogger("installer")
 
 	flag.Parse()
 	datakit.InitDirs()
 	applyFlags()
 
 	// create install dir if not exists
-	if err := os.MkdirAll(install.InstallDir, 0775); err != nil {
+	if err := os.MkdirAll(datakit.InstallDir, 0775); err != nil {
 		l.Fatal(err)
 	}
 
-	datakit.ServiceExecutable = filepath.Join(install.InstallDir, datakitBin)
+	datakit.ServiceExecutable = filepath.Join(datakit.InstallDir, datakitBin)
 	if runtime.GOOS == datakit.OSWindows {
 		datakit.ServiceExecutable += ".exe"
 	}
@@ -100,38 +99,44 @@ func main() {
 
 	if *flagOffline && *flagSrcs != "" {
 		for _, f := range strings.Split(*flagSrcs, ",") {
-			install.ExtractDatakit(f, install.InstallDir)
+			_ = install.ExtractDatakit(f, datakit.InstallDir)
 		}
 	} else {
 		install.CurDownloading = dlDatakit
-		install.Download(datakitUrl, install.InstallDir)
-
+		install.Download(datakitUrl, datakit.InstallDir, true)
+		fmt.Printf("\n")
 		install.CurDownloading = dlAgent
-		install.Download(telegrafUrl, install.InstallDir)
-
-		install.CurDownloading = dlIp2Loc
-		install.Download(ip2locUrl, path.Join(install.InstallDir, "data"))
-
-		install.CurDownloading = dlIp2Loc
-		install.Download(jolokiaUrl, path.Join(install.InstallDir, "data"))
+		install.Download(telegrafUrl, datakit.InstallDir, true)
+		fmt.Printf("\n")
+		install.CurDownloading = dlData
+		install.Download(dataUrl, datakit.InstallDir, true)
+		fmt.Printf("\n")
 	}
 
 	if *flagUpgrade { // upgrade new version
+
+		//logger.SetGlobalRootLogger(datakit.OTALogFile, logger.DEBUG, logger.OPT_DEFAULT)
+		//l = logger.SLogger("ota")
+
 		l.Infof("Upgrading to version %s...", DataKitVersion)
-		install.UpgradeDatakit(svc)
+		if err := install.UpgradeDatakit(svc); err != nil {
+			l.Fatalf("upgrade datakit failed: %s", err.Error())
+		}
 	} else { // install new datakit
 		l.Infof("Installing version %s...", DataKitVersion)
 		install.InstallNewDatakit(svc)
 	}
 
-	ct := configtemplate.NewCfgTemplate(install.InstallDir)
+	ct := configtemplate.NewCfgTemplate(datakit.InstallDir)
 	if err = ct.InstallConfigs(*flagCfgTemplate); err != nil {
 		l.Fatalf("fail to intsall config template, %s", err)
 	}
 
-	l.Infof("starting service %s...", datakit.ServiceName)
-	if err = service.Control(svc, "start"); err != nil {
-		l.Fatalf("star service: %s", err.Error())
+	if !*flagInstallOnly {
+		l.Infof("starting service %s...", datakit.ServiceName)
+		if err = service.Control(svc, "start"); err != nil {
+			l.Fatalf("star service: %s", err.Error())
+		}
 	}
 
 	if *flagUpgrade { // upgrade new version
@@ -144,8 +149,8 @@ func main() {
 	if err != nil {
 		l.Info("get local IP failed: %s", err.Error())
 	} else {
-		fmt.Printf("\n\tVisit http://%s:%d/stats to see DataKit running status.\n\n", localIP, *flagPort)
-		fmt.Printf("\n\tVisit http://%s:%d/man to see DataKit manuals.\n\n", localIP, *flagPort)
+		fmt.Printf("\n\tVisit http://%s:%d/stats to see DataKit running status.\n", localIP, *flagPort)
+		fmt.Printf("\tVisit http://%s:%d/man to see DataKit manuals.\n\n", localIP, *flagPort)
 	}
 }
 
@@ -167,32 +172,22 @@ Golang Version: %s
 		install.DownloadOnly = true
 
 		install.CurDownloading = dlDatakit
-		install.Download(datakitUrl, fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
-			runtime.GOOS, runtime.GOARCH, DataKitVersion))
+		install.Download(datakitUrl,
+			fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
+				runtime.GOOS, runtime.GOARCH, DataKitVersion), true)
+		fmt.Printf("\n")
 
 		install.CurDownloading = dlAgent
-		install.Download(telegrafUrl, fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
+		install.Download(telegrafUrl,
+			fmt.Sprintf("agent-%s-%s.tar.gz",
+				runtime.GOOS, runtime.GOARCH), true)
+		fmt.Printf("\n")
+
+		install.CurDownloading = dlData
+		install.Download(dataUrl, "data.tar.gz", true)
+		fmt.Printf("\n")
 
 		os.Exit(0)
-	}
-
-	switch install.OSArch {
-
-	case datakit.OSArchWinAmd64:
-		install.InstallDir = `C:\Program Files\dataflux\datakit`
-
-	case datakit.OSArchWin386:
-		install.InstallDir = `C:\Program Files (x86)\dataflux\datakit`
-
-	case datakit.OSArchLinuxArm,
-		datakit.OSArchLinuxArm64,
-		datakit.OSArchLinux386,
-		datakit.OSArchLinuxAmd64,
-		datakit.OSArchDarwinAmd64:
-		install.InstallDir = `/usr/local/cloudcare/dataflux/datakit`
-
-	default:
-		// TODO: more os/arch support
 	}
 
 	install.DataWayHTTP = *flagDatawayHTTP
