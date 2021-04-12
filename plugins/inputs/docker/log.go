@@ -26,8 +26,34 @@ const (
 	maxLineBytes = 16 * 1024
 )
 
-func (this *Inputs) Stop() {
-	this.wg.Wait()
+func (this *Inputs) addToContainerList(containerID string, cancel context.CancelFunc) error {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+	this.containerLogList[containerID] = cancel
+	return nil
+}
+
+func (this *Inputs) removeFromContainerList(containerID string) error {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+	delete(this.containerLogList, containerID)
+	return nil
+}
+
+func (this *Inputs) containerInContainerList(containerID string) bool {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+	_, ok := this.containerLogList[containerID]
+	return ok
+}
+
+func (this *Inputs) cancelTails() error {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+	for _, cancel := range this.containerLogList {
+		cancel()
+	}
+	return nil
 }
 
 func (this *Inputs) gatherLog() {
@@ -42,11 +68,18 @@ func (this *Inputs) gatherLog() {
 	}
 
 	for _, container := range cList {
-		ctx := context.Background()
+		if this.containerInContainerList(container.ID) {
+			continue
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		this.addToContainerList(container.ID, cancel)
+
 		// Start a new goroutine for every new container that has logs to collect
 		this.wg.Add(1)
 		go func(container types.Container) {
 			defer this.wg.Done()
+			defer this.removeFromContainerList(container.ID)
 
 			err = this.tailContainerLogs(ctx, container)
 			if err != nil && err != context.Canceled {
@@ -77,7 +110,6 @@ func (this *Inputs) tailContainerLogs(ctx context.Context, container types.Conta
 
 	logReader, err := this.client.ContainerLogs(ctx, container.ID, this.containerLogsOptions)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -119,8 +151,6 @@ func (this *Inputs) hasTTY(ctx context.Context, container types.Container) (bool
 func tailStream(reader io.ReadCloser, stream string, container types.Container, opt *LogOption, baseTags map[string]string) error {
 	defer reader.Close()
 
-	fmt.Println(stream)
-
 	tags := make(map[string]string, len(baseTags)+1)
 	for k, v := range baseTags {
 		tags[k] = v
@@ -147,7 +177,6 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 			l.Error(err)
 			continue
 		}
-		fmt.Println(string(message))
 
 		var fields = make(map[string]interface{})
 		measurement := getContainerName(container.Names)
