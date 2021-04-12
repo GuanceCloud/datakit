@@ -97,36 +97,36 @@
 
 -  标签
 
-| 名称                | 类型   | 描述                             |
-| :--                 | ---    | ---                              |
-| container_id        | string | 容器id                           |
-| container_name      | string | 容器名称                         |
-| image_name          | string | 容器镜像名称                     |
-| docker_image        | string | 镜像名称+版本号                  |
-| host                | string | 主机名                           |
-| stats               | string | 运行状态，running/exited/removed |
-| kube_container_name | string | kube容器名称                     |
-| kube_daemon_set     | string |                                  |
-| kube_deployment     | string |                                  |
-| kube_namespace      | string |                                  |
-| kube_ownerref_kind  | string |                                  |
-| pod_name            | string |                                  |
-| pod_phase           | string |                                  |
+| 名称                | 描述                             |
+| :--                 | ---                              |
+| container_id        | 容器id                           |
+| container_name      | 容器名称                         |
+| image_name          | 容器镜像名称                     |
+| docker_image        | 镜像名称+版本号                  |
+| host                | 主机名                           |
+| stats               | 运行状态，running/exited/removed |
+| kube_container_name | TODO                             |
+| kube_daemon_set     | TODO                             |
+| kube_deployment     | TODO                             |
+| kube_namespace      | TODO                             |
+| kube_ownerref_kind  | TODO                             |
+| pod_name            | pod名称                          |
+| pod_phase           | pod生命周期                      |
 
 - 指标列表
 
-| 名称               | 类型    | 单位    |
-| :--                | ---     | ---     |
-| from_kubernetes    | booler  |         |
-| cpu_usage_percent  | float   | percent |
-| mem_limit          | integer | bytes   |
-| mem_usage          | integer | bytes   |
-| mem_usage_percent  | float   | percent |
-| mem_failed_count   | integer | bytes   |
-| network_bytes_rcvd | integer | bytes   |
-| network_bytes_sent | integer | bytes   |
-| block_read_byte    | integer | bytes   |
-| block_write_byte   | integer | bytes   |
+| 名称               | 描述 | 类型  | 单位    |
+| :--                | ---  | :-:   | :-:     |
+| from_kubernetes    | TODO | bool  | -       |
+| cpu_usage_percent  | TODO | float | percent |
+| mem_limit          | TODO | int   | bytes   |
+| mem_usage          | TODO | int   | bytes   |
+| mem_usage_percent  | TODO | float | percent |
+| mem_failed_count   | TODO | int   | bytes   |
+| network_bytes_rcvd | TODO | int   | bytes   |
+| network_bytes_sent | TODO | int   | bytes   |
+| block_read_byte    | TODO | int   | bytes   |
+| block_write_byte   | TODO | int   | bytes   |
 
 #### Docker容器日志
 
@@ -146,17 +146,17 @@
 
 -  标签
 
-| 名称           | 类型   | 描述                          |
-| :--            | ---    | ---                           |
-| container_name | string | 容器名称                      |
-| image_name     | string | 容器镜像名称                  |
-| stream         | string | 数据流方式，stdout/stderr/tty |
+| 名称           | 描述                          |
+| :--            | ---                           |
+| container_name | 容器名称                      |
+| image_name     | 容器镜像名称                  |
+| stream         | 数据流方式，stdout/stderr/tty |
 
 - 指标列表
 
-| 名称            | 类型   |
-| :--             | ---    |
-| from_kubernetes | booler |
-| service         | string |
-| status          | string |
-| message         | string |
+| 名称            | 描述 | 类型   | 单位 |
+| :--             | ---  | :-:    | :-:  |
+| from_kubernetes | TODO | bool   | -    |
+| service         | TODO | string | -    |
+| status          | TODO | string | -    |
+| message         | TODO | string | -    |
