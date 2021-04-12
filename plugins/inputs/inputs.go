@@ -38,9 +38,11 @@ type PipelineInput interface {
 	PipelineConfig() map[string]string
 }
 
-type ManualInput interface {
+// new input interface got extra interfaces, for better documentation
+type InputV2 interface {
 	Input
 	SampleMeasurement() []Measurement
+	AvailableArchs() []string
 }
 
 type Creator func() Input
