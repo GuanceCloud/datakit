@@ -34,8 +34,6 @@ var (
 	#	files = []
 	#[inputs.nginx.log.option]
 	#	ignore = [""]
-	#	# your logging source, if it's empty, use 'default'
-	#	source = "nginx"
 	#	# add service tag, if it's empty, use $source.
 	#	service = ""
 	#	# grok pipeline script path
@@ -43,8 +41,6 @@ var (
 	#	# optional status:
 	#	#   "emerg","alert","critical","error","warning","info","debug","OK"
 	#	ignore_status = []
-	#	# read file from beginning
-	
 	#	# optional encodings:
 	#	#    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
 	#	character_encoding = ""
@@ -110,6 +106,7 @@ func (n *Input) Run() {
 			} else {
 				n.Log.Option.Pipeline = filepath.Join(datakit.PipelineDir, "nginx.p")
 			}
+			n.Log.Option.Source = inputName
 			n.Log.Run()
 		}()
 	}
@@ -178,8 +175,8 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (i *Input) AvailableArchs() []string {
-	return datakit.UnknownArch
+func (_ *Input) AvailableArchs() []string {
+	return datakit.AllArch
 }
 
 func (n *Input) SampleMeasurement() []inputs.Measurement {
