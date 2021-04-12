@@ -26,11 +26,18 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
-// example:
+// // example_01:
 //
-//     tailer, err := NewTailer(inputName_str, files_strArray, tailerOption_point)
+//     tailer, err := NewTailer(files_strArray, tailerOption_point)
 //     if err != nil {
-//         return
+//         return err
+//     }
+//     go tailer.Run()
+//
+// //example_02:
+//     tailer := Tailer{}
+//     if err := tailer.Init(); err != nil {
+//         return err
 //     }
 //     go tailer.Run()
 //
@@ -60,25 +67,25 @@ const (
 
 type TailerOption struct {
 	// glob 忽略的文件路径
-	IgnoreFiles []string
+	IgnoreFiles []string `toml:"ignore"`
 
 	// 数据来源，默认值为'default'
-	Source string
+	Source string `toml:"source"`
 
 	// service，默认值为 $Source
-	Service string
+	Service string `toml:"service"`
 
 	// pipeline脚本路径，如果为空则不使用pipeline
-	Pipeline string
+	Pipeline string `toml:"pipeline"`
 
 	// 忽略这些status，如果数据的status在此列表中，数据将不再上传
 	// ex: "info"
 	//     "debug"
-	IgnoreStatus []string
+	IgnoreStatus []string `toml:"ignore_status"`
 
 	// 是否从文件起始处开始读取
 	// 注意，如果打开此项，可能会导致大量数据重复
-	FromBeginning bool
+	FromBeginning bool `toml:"-"`
 
 	// 解释文件内容时所使用的的字符编码，如果设置为空，将不进行转码处理
 	// ex: "utf-8"
@@ -87,14 +94,14 @@ type TailerOption struct {
 	//     "gbk"
 	//     "gb18030"
 	//     ""
-	CharacterEncoding string
+	CharacterEncoding string `toml:"character_encoding"`
 
 	// 匹配正则表达式
 	// 符合此正则匹配的数据，将被认定为有效数据。否则会累积追加到上一条有效数据的末尾
 	// 例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
 	//
 	// 如果为空，则默认使用 ^\S 即匹配每行开始处非空白字符
-	Match string
+	Match string `toml:"match"`
 
 	// 是否关闭添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
 	DisableAddStatusField bool
@@ -140,10 +147,11 @@ func fillTailerOption(opt *TailerOption) *TailerOption {
 }
 
 type Tailer struct {
-	inputName string
-	files     []string
+	Option *TailerOption
+	Files  []string
 
-	opt      *TailerOption
+	InputName string
+
 	tailConf tail.Config
 
 	decoder           *encoding.Decoder
@@ -154,30 +162,32 @@ type Tailer struct {
 	log *logger.Logger
 }
 
-func NewTailer(inputName string, files []string, opt *TailerOption) (*Tailer, error) {
+func NewTailer(files []string, opt *TailerOption) (*Tailer, error) {
+	var tailer = Tailer{
+		Option: opt,
+		Files:  files,
+	}
+
+	if err := tailer.Init(); err != nil {
+		return nil, err
+	}
+
+	return &tailer, nil
+}
+
+func (t *Tailer) Init() error {
 	var err error
 
-	if inputName == "" {
-		return nil, fmt.Errorf("option inputName is empty")
-	}
-
-	opt = fillTailerOption(opt)
-
-	var tailer = &Tailer{
-		inputName: inputName,
-		files:     files,
-		log:       logger.SLogger(inputName),
-		opt:       opt,
-	}
+	t.Option = fillTailerOption(t.Option)
 
 	var seek *tail.SeekInfo
-	if !opt.FromBeginning {
+	if !t.Option.FromBeginning {
 		seek = &tail.SeekInfo{
 			Whence: 2, // seek is 2
 			Offset: 0,
 		}
 	}
-	tailer.tailConf = tail.Config{
+	t.tailConf = tail.Config{
 		ReOpen:    true,
 		Follow:    true,
 		Location:  seek,
@@ -186,28 +196,34 @@ func NewTailer(inputName string, files []string, opt *TailerOption) (*Tailer, er
 		Logger:    tail.DiscardingLogger,
 	}
 
-	if tailer.decoder, err = NewDecoder(opt.CharacterEncoding); err != nil {
-		return nil, err
+	if t.decoder, err = NewDecoder(t.Option.CharacterEncoding); err != nil {
+		return err
 	}
 
 	multilineConfig := &MultilineConfig{
-		Pattern:        opt.Match,
+		Pattern:        t.Option.Match,
 		InvertMatch:    true,
 		MatchWhichLine: "previous",
 	}
-	if tailer.multilineInstance, err = multilineConfig.NewMultiline(); err != nil {
-		return nil, err
+	if t.multilineInstance, err = multilineConfig.NewMultiline(); err != nil {
+		return err
 	}
 
-	if tailer.watcher, err = NewWatcher(); err != nil {
-		return nil, err
+	if t.watcher, err = NewWatcher(); err != nil {
+		return err
 	}
 
-	return tailer, nil
+	if t.InputName == "" {
+		t.InputName = t.Option.Source + "_log"
+	}
+
+	t.log = logger.SLogger(t.InputName)
+
+	return nil
 }
 
 func (t *Tailer) Run() {
-	t.log.Infof("tail %s input started", t.inputName)
+	t.log.Infof("tail %s input started", t.InputName)
 
 	ticker := time.NewTicker(findNewFileInterval)
 	defer ticker.Stop()
@@ -216,15 +232,16 @@ func (t *Tailer) Run() {
 
 	for {
 		select {
-
-		case <-t.opt.StopChan:
+		case <-t.Option.StopChan:
 			t.log.Infof("waiting for all tailers to exit")
 			t.wg.Wait()
 			t.log.Info("exit")
 			return
 
 		case <-ticker.C:
-			fileList := getFileList(t.files, t.opt.IgnoreFiles)
+			// FIXME:
+			// 程序启动到 ticker.C 中间一段时间是荒废的
+			fileList := getFileList(t.Files, t.Option.IgnoreFiles)
 
 			for _, file := range fileList {
 				if exist := t.watcher.IsExist(file); exist {
@@ -237,7 +254,7 @@ func (t *Tailer) Run() {
 				}(file)
 			}
 
-			if t.opt.FromBeginning {
+			if t.Option.FromBeginning {
 				// disable auto-discovery, ticker was unreachable
 				ticker.Stop()
 			}
@@ -245,8 +262,13 @@ func (t *Tailer) Run() {
 	}
 }
 
+func (t *Tailer) Close() error {
+	// TODO:
+	return nil
+}
+
 func (t *Tailer) watching() {
-	t.watcher.Watching(t.opt.StopChan)
+	t.watcher.Watching(t.Option.StopChan)
 }
 
 func (t *Tailer) tailingFile(file string) {
@@ -290,7 +312,7 @@ func newTailerSingle(tl *Tailer, filename string) *tailerSingle {
 	t.tags = func() map[string]string {
 		var m = make(map[string]string)
 
-		for k, v := range tl.opt.Tags {
+		for k, v := range tl.Option.Tags {
 			m[k] = v
 		}
 
@@ -316,8 +338,8 @@ func (t *tailerSingle) run() {
 	}
 	defer t.tail.Cleanup()
 
-	if t.tl.opt.Pipeline != "" {
-		t.pipe, err = pipeline.NewPipelineFromFile(t.tl.opt.Pipeline)
+	if t.tl.Option.Pipeline != "" {
+		t.pipe, err = pipeline.NewPipelineFromFile(t.tl.Option.Pipeline)
 		if err != nil {
 			t.tl.log.Errorf("failed of pipeline, err: %s", err)
 		}
@@ -343,9 +365,8 @@ func (t *tailerSingle) receiving() {
 
 		// FIXME: 4个case是否过多？
 		select {
-
-		case <-t.tl.opt.StopChan:
-			t.tl.log.Debugf("tailing source:%s, file %s is ending", t.tl.opt.Source, t.filename)
+		case <-t.tl.Option.StopChan:
+			t.tl.log.Debugf("tailing source:%s, file %s is ending", t.tl.Option.Source, t.filename)
 			return
 
 		case n := <-t.notifyChan:
@@ -378,7 +399,7 @@ func (t *tailerSingle) receiving() {
 			}
 
 			if line != nil {
-				t.tl.log.Debugf("get %d bytes from source:%s file:%s", len(line.Text), t.tl.opt.Source, t.filename)
+				t.tl.log.Debugf("get %d bytes from source:%s file:%s", len(line.Text), t.tl.Option.Source, t.filename)
 			}
 		}
 
@@ -420,12 +441,12 @@ func (t *tailerSingle) receiving() {
 			continue
 		}
 
-		if !t.tl.opt.DisableAddStatusField {
+		if !t.tl.Option.DisableAddStatusField {
 			addStatus(fields)
 		}
 
 		if status, ok := fields["status"].(string); ok {
-			if contains(t.tl.opt.IgnoreStatus, status) {
+			if contains(t.tl.Option.IgnoreStatus, status) {
 				continue
 			}
 		}
@@ -437,15 +458,15 @@ func (t *tailerSingle) receiving() {
 		}
 
 		// use t.source as input-name, make it more distinguishable for multiple tailf instances
-		pt, err := io.MakePoint(t.tl.opt.Source, t.tags, fields, ts)
+		pt, err := io.MakePoint(t.tl.Option.Source, t.tags, fields, ts)
 		if err != nil {
 			t.tl.log.Error(err)
 		} else {
 			if err := io.Feed(
-				t.tl.opt.Source,
+				t.tl.InputName,
 				io.Logging,
 				[]*io.Point{pt},
-				&io.Option{HighFreq: !t.tl.opt.DisableHighFreqIODdata},
+				&io.Option{HighFreq: !t.tl.Option.DisableHighFreqIODdata},
 			); err != nil {
 				t.tl.log.Error(err)
 			}
