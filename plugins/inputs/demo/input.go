@@ -32,11 +32,41 @@ func (m *demoMeasurement) LineProto() (*io.Point, error) {
 func (m *demoMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "demo",
-		Fields: map[string]*inputs.FieldInfo{
-			"usage":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "this is CPU usage"},
-			"disk_size":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeIByte, Desc: "this is disk size"},
-			"some_string": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "some string field"},
-			"ok":          &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "some boolean field"},
+		Tags: map[string]interface{}{
+			"tag_a": &inputs.TagInfo{Desc: "示例 tag A"},
+			"tag_b": &inputs.TagInfo{Desc: "示例 tag B"},
+		},
+		Fields: map[string]interface{}{
+			"usage": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Percent,
+				Desc:     "this is CPU usage",
+			},
+			"disk_size": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "this is disk size",
+			},
+			"mem_size": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeIByte,
+				Desc:     "this is memory size",
+			},
+			"some_string": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "some string field",
+			},
+			"ok": &inputs.FieldInfo{
+				DataType: inputs.Bool,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "some boolean field",
+			},
 		},
 	}
 }
@@ -95,8 +125,13 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) Catalog() string      { return "testing" }
-func (i *Input) SampleConfig() string { return "[inputs.demo]" }
+func (i *Input) Catalog() string { return "testing" }
+func (i *Input) SampleConfig() string {
+	return `
+[inputs.demo]
+# 这里无需任何配置
+`
+}
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&demoMeasurement{},
