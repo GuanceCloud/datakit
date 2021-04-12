@@ -83,6 +83,10 @@ func (i *Input) SampleConfig() string {
 	return sampleCfg
 }
 
+func (i *Input) AvailableArchs() []string {
+	return datakit.UnknownArch
+}
+
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&systemMeasurement{},
