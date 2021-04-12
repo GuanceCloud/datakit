@@ -17,9 +17,9 @@ build-dev:
     - dev
   script:
     # only check building, not publish
-    - make ci_notify
-    - make testing
-    - make test_notify
+    #- make ci_notify
+    #- make testing
+    #- make test_notify
   tags:
     - cloudcare-ft
 
