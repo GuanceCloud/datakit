@@ -40,7 +40,7 @@ func Start() error {
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
-		defaultIO.startIO(true)
+		defaultIO.StartIO(true)
 	}()
 
 	l.Debugf("io: %+#v", defaultIO)
@@ -88,7 +88,7 @@ func Feed(name, category string, pts []*Point, opt *Option) error {
 		return fmt.Errorf("no points")
 	}
 
-	return defaultIO.doFeed(pts, category, name, opt)
+	return defaultIO.DoFeed(pts, category, name, opt)
 }
 
 func MakePoint(name string,
@@ -141,7 +141,7 @@ func NamedFeed(data []byte, category, name string) error {
 		x = append(x, &Point{Point: pt})
 	}
 
-	return defaultIO.doFeed(x, category, name, nil)
+	return defaultIO.DoFeed(x, category, name, nil)
 }
 
 // Deprecated
@@ -157,7 +157,7 @@ func NamedFeedEx(name, category, metric string,
 		ts = time.Now().UTC()
 	}
 
-	pt, err := lp.MakeLineProtoPoint(name, tags, fields,
+	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
 		&lp.Option{
 			ExtraTags: datakit.Cfg.MainCfg.GlobalTags,
 			Strict:    true,
@@ -167,5 +167,5 @@ func NamedFeedEx(name, category, metric string,
 		return err
 	}
 
-	return defaultIO.doFeed([]*Point{&Point{pt}}, category, name, nil)
+	return defaultIO.DoFeed([]*Point{&Point{pt}}, category, name, nil)
 }
