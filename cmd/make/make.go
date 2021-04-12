@@ -64,7 +64,6 @@ func applyFlags() {
 		build.PubDatakit()
 		os.Exit(0)
 	}
-
 }
 
 func main() {
