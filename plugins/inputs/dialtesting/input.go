@@ -15,6 +15,7 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
@@ -30,11 +31,14 @@ var (
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
 
-	x *IO
+	x *io.IO
+
+	MaxFails = 100
 )
 
 const (
 	maxCrashCnt = 6
+	RegionInfo  = "region"
 )
 
 type DialTesting struct {
@@ -54,11 +58,11 @@ type DialTesting struct {
 }
 
 const sample = `[[inputs.dialtesting]]
-	region = "" # required
+	# require，默认值为default
+	region = "default" 
 
-	server = "dialtesting.dataflux.cn"
-
-	pull_interval = "1m" # default 1 min
+	#  中心任务存储的服务地址，或本地json 文件全路径 
+	server = "files:///your/dir/json-file-name" 
 
 	[inputs.dialtesting.tags]
 	# 各种可能的 tag
@@ -72,17 +76,20 @@ func (dt *DialTesting) Catalog() string {
 	return "network"
 }
 
+func (dt *DialTesting) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&httpMeasurement{},
+	}
+
+}
+
 func (d *DialTesting) Run() {
 
 	l = logger.SLogger(inputName)
 
-	x = NewIO()
+	x = io.NewIO()
 
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		x.startIO()
-	}()
+	StartCollect()
 
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
 	// 若为本地json文件，则读取任务
@@ -201,7 +208,7 @@ func protectedRun(d *dialer) {
 }
 
 type taskPullResp struct {
-	Content map[string][]string `json:"content"`
+	Content map[string]interface{} `json:"content"`
 }
 
 func (d *DialTesting) dispatchTasks(j []byte) error {
@@ -215,11 +222,32 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 	for k, arr := range resp.Content {
 
 		switch k {
+		case RegionInfo:
+			for k, v := range arr.(map[string]interface{}) {
+				switch v.(type) {
+				case bool:
+					if v.(bool) {
+						d.Tags[k] = `true`
+					} else {
+						d.Tags[k] = `false`
+					}
+				default:
+					d.Tags[k] = v.(string)
+				}
+			}
+
+		default:
+		}
+	}
+
+	for k, arr := range resp.Content {
+
+		switch k {
 
 		case dt.ClassHTTP:
-			for _, j := range arr {
+			for _, j := range arr.([]interface{}) {
 				var t dt.HTTPTask
-				if err := json.Unmarshal([]byte(j), &t); err != nil {
+				if err := json.Unmarshal([]byte(j.(string)), &t); err != nil {
 					l.Errorf(`%s`, err.Error())
 					return err
 				}
@@ -233,6 +261,12 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 				}
 
 				if dialer, ok := d.curTasks[t.ID()]; ok { // update task
+
+					if dialer.failCnt >= MaxFails {
+						l.Warnf(`failed %d times,ignore`, dialer.failCnt)
+						delete(d.curTasks, t.ID())
+						continue
+					}
 
 					if err := dialer.updateTask(&t); err != nil {
 						l.Warnf(` %s,ignore`, err.Error())
@@ -278,8 +312,9 @@ func (d *DialTesting) getLocalJsonTasks(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	res := map[string][]string{}
+	res := map[string]interface{}{}
 	for k, v := range resp {
+		vs := []string{}
 		for _, v1 := range v {
 			dt, err := json.Marshal(v1)
 			if err != nil {
@@ -287,8 +322,10 @@ func (d *DialTesting) getLocalJsonTasks(path string) ([]byte, error) {
 				return nil, err
 			}
 
-			res[k] = append(res[k], string(dt))
+			vs = append(vs, string(dt))
 		}
+
+		res[k] = vs
 	}
 
 	tasks := taskPullResp{
