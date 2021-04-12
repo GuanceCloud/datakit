@@ -32,10 +32,6 @@ const (
     #   "emerg","alert","critical","error","warning","info","debug","OK"
     ignore_status = []
 
-    # read file from beginning
-    # if from_begin was false, off auto discovery file
-    from_beginning = false
-
     # optional encodings:
     #    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
     character_encoding = ""
@@ -57,10 +53,10 @@ type Inputs struct {
 	Pipeline           string            `toml:"pipeline"`
 	DeprecatedPipeline string            `toml:"pipeline_path"`
 	IgnoreStatus       []string          `toml:"ignore_status"`
-	FromBeginning      bool              `toml:"from_beginning"`
 	CharacterEncoding  string            `toml:"character_encoding"`
 	Match              string            `toml:"match"`
 	Tags               map[string]string `toml:"tags"`
+	FromBeginning      bool              `toml:"-"`
 }
 
 var l = logger.DefaultSLogger(inputName)
@@ -91,7 +87,7 @@ func (this *Inputs) Run() {
 		Tags:              this.Tags,
 	}
 
-	tailer, err := inputs.NewTailer(inputName, this.LogFiles, &option)
+	tailer, err := inputs.NewTailer(this.LogFiles, &option)
 	if err != nil {
 		l.Error(err)
 		return
