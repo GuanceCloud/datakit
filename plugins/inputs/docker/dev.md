@@ -6,27 +6,28 @@ docker采集器有5个数据源。其中，docker自身服务数据2个，容器
 
 ```
 [inputs.docker]
-    # 指定连接方式，基础配置
+    # Docker Endpoint
+    # To use TCP, set endpoint = "tcp://[ip]:[port]"
+    # To use environment variables (ie, docker-machine), set endpoint = "ENV"
     endpoint = "unix:///var/run/docker.sock"
 
-    timeout = "5s"
-    
-    # 是否采集所有容器，默认为false时只采集正在运行的容器（running）
-    all = false
-
-    # 采集间隔
-    # 指标采集和对象采集周期不同
-    # 如果interval配置为空，则不开启对应的采集
+    # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     collect_metrics_interval = "10s"
     collect_object_interval = "5m"
+    
+    collect_logging = true
+    collect_logging_from_beginning = false
 
-    ## tls配置相关
+    # Is all containers, Return all containers. By default, only running containers are shown.
+    include_exited = false
+
+    ## Optional TLS Config
     # tls_ca = "/tmp/ca.pem"
     # tls_cert = "/tmp/cert.pem"
     # tls_key = "/tmp/key.pem"
     # insecure_skip_verify = false
 
-    # 日志相关，见后文
+    # About logging
     [[inputs.docker.log_pipeline]]
         container_name_match = "<regexp-container-name>"
         source = "<your-source>"
@@ -119,57 +120,28 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 
 指标集 docker_container（docker容器指标）
 
-| 名称                   | 描述   | 类型   | 单位 |
-| :--                    | ---    | ---    | ---  |
-| container_id           | tags   | string |      |
-| container_name         | tags   | string |      |
-| display_container_name | tags   | string |      |
-| docker_image           | tags   | string |      |
-| image_name             | tags   | string |      |
-| image_tag              | tags   | string |      |
-| kube_container_name    | tags   | string |      |
-| kube_daemon_set        | tags   | string |      |
-| kube_deployment        | tags   | string |      |
-| kube_namespace         | tags   | string |      |
-| kube_ownerref_kind     | tags   | string |      |
-| kube_ownerref_name     | tags   | string |      |
-| kube_replica_set       | tags   | string |      |
-| pod_name               | tags   | string |      |
-| pod_phase              | tags   | string |      |
-| short_image            | tags   | string |      |
-| host                   | tags   | string |      |
-| cpu_user               | fields |        |      |
-| cpu_limit              | fields |        |      |
-| cpu_usage              | fields |        |      |
-| cpu_shares             | fields |        |      |
-| cpu_system             | fields |        |      |
-| cpu_throttled          | fields |        |      |
-| cpu_throttled_time     | fields |        |      |
-| mem_rss                | fields |        |      |
-| mem_swap               | fields |        |      |
-| mem_cache              | fields |        |      |
-| mem_limit              | fields |        |      |
-| mem_in_use             | fields |        |      |
-| mem_sw_limit           | fields |        |      |
-| mem_sw_in_use          | fields |        |      |
-| mem_failed_count       | fields |        |      |
-| kmem_usage             | fields |        |      |
-| io_read_byte           | fields |        |      |
-| io_write_byte          | fields |        |      |
-| io_read_operations     | fields |        |      |
-| io_write_operations    | fields |        |      |
-| net_bytes_rcvd         | fields |        |      |
-| net_bytes_sent         | fields |        |      |
-| container_open_fds     | fields |        |      |
-| thread_count           | fields |        |      |
-
-补充：有以下指标尚未确定指标集名称，待定：
-
-- container_size_rw
-- containers_running
-- containers_stopped
-- container_size_rootfs
-- containers_running_total
-- containers_stopped_total
-- images_available
-- images_intermediate
+| 名称                | 字段类型 | 类型    | 单位    | 描述                             |
+| :--                 | ---      | ---     | ---     | --                               |
+| container_id        | tags     | string  |         | 容器id                           |
+| container_name      | tags     | string  |         | 容器名称                         |
+| image_name          | tags     | string  |         | 容器镜像名称                     |
+| docker_image        | tags     | string  |         | 镜像名称+版本号                  |
+| host                | tags     | string  |         | 主机名                           |
+| stats               | tags     | string  |         | 运行状态，running/exited/removed |
+| kube_container_name | tags     | string  |         |                                  |
+| kube_daemon_set     | tags     | string  |         |                                  |
+| kube_deployment     | tags     | string  |         |                                  |
+| kube_namespace      | tags     | string  |         |                                  |
+| kube_ownerref_kind  | tags     | string  |         |                                  |
+| pod_name            | tags     | string  |         |                                  |
+| pod_phase           | tags     | string  |         |                                  |
+| from_kubernetes     | tags     | booler  |         | 是否由k8s创建                    |
+| cpu_usage_percent   | fields   | float   | percent |                                  |
+| mem_limit           | fields   | integer | bytes   |                                  |
+| mem_usage           | fields   | integer | bytes   |                                  |
+| mem_usage_percent   | fields   | float   | percent |                                  |
+| mem_failed_count    | fields   | integer | bytes   |                                  |
+| network_bytes_rcvd  | fields   | integer | bytes   |                                  |
+| network_bytes_sent  | fields   | integer | bytes   |                                  |
+| block_read_byte     | fields   | integer | bytes   |                                  |
+| block_write_byte    | fields   | integer | bytes   |                                  |
