@@ -52,9 +52,6 @@ var (
 	#	# optional status:
 	#	#   "emerg","alert","critical","error","warning","info","debug","OK"
 	#	ignore_status = []
-	#	# read file from beginning
-	#	# if from_begin was false, off auto discovery file
-	#	from_beginning = false
 	#	# optional encodings:
 	#	#    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
 	#	character_encoding = ""
@@ -84,7 +81,7 @@ type Input struct {
 	Username string           `toml:"username"`
 	Password string           `toml:"password"`
 	Interval datakit.Duration `toml:"interval"`
-	log      *inputs.Tailer   `toml:"log"`
+	Log      *inputs.Tailer   `toml:"log"`
 
 	tls.ClientConfig
 
