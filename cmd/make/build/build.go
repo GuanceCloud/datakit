@@ -100,6 +100,9 @@ func Compile() {
 		}
 	case "local":
 		archs = []string{runtime.GOOS + "/" + runtime.GOARCH}
+		if x := os.Getenv("LOCAL"); x != "" {
+			archs = strings.Split(x, "|")
+		}
 	default:
 		archs = strings.Split(Archs, "|")
 	}
