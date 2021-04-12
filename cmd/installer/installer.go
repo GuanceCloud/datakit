@@ -29,8 +29,7 @@ var (
 		"telegraf",
 		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
 
-	ip2locUrl  = "https://" + path.Join(DataKitBaseURL, "iploc/iploc.tar.gz")
-	jolokiaUrl = "https://" + path.Join(DataKitBaseURL, "utils/jolokia-jvm-agent.jar.tar.gz")
+	dataUrl = "https://" + path.Join(DataKitBaseURL, "data.tar.gz")
 
 	l = logger.DefaultSLogger("installer")
 )
@@ -59,10 +58,10 @@ var (
 
 const (
 	datakitBin = "datakit"
-	dlDatakit  = "datakit"
-	dlAgent    = "agent"
-	dlIp2Loc   = "ip2loc"
-	dlJolokia  = "jolokia"
+
+	dlDatakit = "datakit"
+	dlAgent   = "agent"
+	dlData    = "data"
 )
 
 func main() {
@@ -78,11 +77,11 @@ func main() {
 	applyFlags()
 
 	// create install dir if not exists
-	if err := os.MkdirAll(install.InstallDir, 0775); err != nil {
+	if err := os.MkdirAll(datakit.InstallDir, 0775); err != nil {
 		l.Fatal(err)
 	}
 
-	datakit.ServiceExecutable = filepath.Join(install.InstallDir, datakitBin)
+	datakit.ServiceExecutable = filepath.Join(datakit.InstallDir, datakitBin)
 	if runtime.GOOS == datakit.OSWindows {
 		datakit.ServiceExecutable += ".exe"
 	}
@@ -100,32 +99,35 @@ func main() {
 
 	if *flagOffline && *flagSrcs != "" {
 		for _, f := range strings.Split(*flagSrcs, ",") {
-			install.ExtractDatakit(f, install.InstallDir)
+			_ = install.ExtractDatakit(f, datakit.InstallDir)
 		}
 	} else {
 		install.CurDownloading = dlDatakit
-		install.Download(datakitUrl, install.InstallDir)
+		install.Download(datakitUrl, datakit.InstallDir, true)
+		fmt.Printf("\n")
 		install.CurDownloading = dlAgent
-		install.Download(telegrafUrl, install.InstallDir)
-		install.CurDownloading = dlIp2Loc
-		install.Download(ip2locUrl, path.Join(install.InstallDir, "data"))
-		install.CurDownloading = dlJolokia
-		install.Download(jolokiaUrl, path.Join(install.InstallDir, "data"))
+		install.Download(telegrafUrl, datakit.InstallDir, true)
+		fmt.Printf("\n")
+		install.CurDownloading = dlData
+		install.Download(dataUrl, datakit.InstallDir, true)
+		fmt.Printf("\n")
 	}
 
 	if *flagUpgrade { // upgrade new version
 
-		logger.SetGlobalRootLogger(datakit.OTALogFile, logger.DEBUG, logger.OPT_DEFAULT)
-		l = logger.SLogger("ota")
+		//logger.SetGlobalRootLogger(datakit.OTALogFile, logger.DEBUG, logger.OPT_DEFAULT)
+		//l = logger.SLogger("ota")
 
 		l.Infof("Upgrading to version %s...", DataKitVersion)
-		install.UpgradeDatakit(svc)
+		if err := install.UpgradeDatakit(svc); err != nil {
+			l.Fatalf("upgrade datakit failed: %s", err.Error())
+		}
 	} else { // install new datakit
 		l.Infof("Installing version %s...", DataKitVersion)
 		install.InstallNewDatakit(svc)
 	}
 
-	ct := configtemplate.NewCfgTemplate(install.InstallDir)
+	ct := configtemplate.NewCfgTemplate(datakit.InstallDir)
 	if err = ct.InstallConfigs(*flagCfgTemplate); err != nil {
 		l.Fatalf("fail to intsall config template, %s", err)
 	}
@@ -172,39 +174,20 @@ Golang Version: %s
 		install.CurDownloading = dlDatakit
 		install.Download(datakitUrl,
 			fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
-				runtime.GOOS, runtime.GOARCH, DataKitVersion))
+				runtime.GOOS, runtime.GOARCH, DataKitVersion), true)
+		fmt.Printf("\n")
 
 		install.CurDownloading = dlAgent
 		install.Download(telegrafUrl,
 			fmt.Sprintf("agent-%s-%s.tar.gz",
-				runtime.GOOS, runtime.GOARCH))
+				runtime.GOOS, runtime.GOARCH), true)
+		fmt.Printf("\n")
 
-		install.CurDownloading = dlIp2Loc
-		install.Download(ip2locUrl, "iploc.tar.gz")
-
-		install.CurDownloading = dlJolokia
-		install.Download(jolokiaUrl, "jolokia-jvm-agent.jar.tar.gz")
+		install.CurDownloading = dlData
+		install.Download(dataUrl, "data.tar.gz", true)
+		fmt.Printf("\n")
 
 		os.Exit(0)
-	}
-
-	switch install.OSArch {
-
-	case datakit.OSArchWinAmd64:
-		install.InstallDir = `C:\Program Files\dataflux\datakit`
-
-	case datakit.OSArchWin386:
-		install.InstallDir = `C:\Program Files (x86)\dataflux\datakit`
-
-	case datakit.OSArchLinuxArm,
-		datakit.OSArchLinuxArm64,
-		datakit.OSArchLinux386,
-		datakit.OSArchLinuxAmd64,
-		datakit.OSArchDarwinAmd64:
-		install.InstallDir = `/usr/local/cloudcare/dataflux/datakit`
-
-	default:
-		// TODO: more os/arch support
 	}
 
 	install.DataWayHTTP = *flagDatawayHTTP
