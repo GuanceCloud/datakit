@@ -85,7 +85,7 @@ type TailerOption struct {
 
 	// 是否从文件起始处开始读取
 	// 注意，如果打开此项，可能会导致大量数据重复
-	FromBeginning bool `toml:"from_beginning"`
+	FromBeginning bool `toml:"-"`
 
 	// 解释文件内容时所使用的的字符编码，如果设置为空，将不进行转码处理
 	// ex: "utf-8"
@@ -260,6 +260,11 @@ func (t *Tailer) Run() {
 			}
 		}
 	}
+}
+
+func (t *Tailer) Close() error {
+	// TODO:
+	return nil
 }
 
 func (t *Tailer) watching() {
