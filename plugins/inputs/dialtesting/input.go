@@ -41,7 +41,7 @@ const (
 	RegionInfo  = "region"
 )
 
-type DialTesting struct {
+type Input struct {
 	Region       string `toml:"region"`
 	Server       string `toml:"server,omitempty"`
 	AK           string `toml:"ak"`
@@ -68,22 +68,22 @@ const sample = `[[inputs.dialtesting]]
 	# 各种可能的 tag
 	`
 
-func (dt *DialTesting) SampleConfig() string {
+func (dt *Input) SampleConfig() string {
 	return sample
 }
 
-func (dt *DialTesting) Catalog() string {
+func (dt *Input) Catalog() string {
 	return "network"
 }
 
-func (dt *DialTesting) SampleMeasurement() []inputs.Measurement {
+func (dt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&httpMeasurement{},
 	}
 
 }
 
-func (d *DialTesting) Run() {
+func (d *Input) Run() {
 
 	l = logger.SLogger(inputName)
 
@@ -115,7 +115,7 @@ func (d *DialTesting) Run() {
 	}
 }
 
-func (d *DialTesting) doServerTask() {
+func (d *Input) doServerTask() {
 
 	du, err := time.ParseDuration(d.PullInterval)
 	if err != nil {
@@ -150,7 +150,7 @@ func (d *DialTesting) doServerTask() {
 
 }
 
-func (d *DialTesting) doLocalTask(path string) {
+func (d *Input) doLocalTask(path string) {
 
 	j, err := d.getLocalJsonTasks(path)
 	if err != nil {
@@ -163,7 +163,7 @@ func (d *DialTesting) doLocalTask(path string) {
 	<-datakit.Exit.Wait()
 }
 
-func (d *DialTesting) newHttpTaskRun(t dt.HTTPTask) (*dialer, error) {
+func (d *Input) newHttpTaskRun(t dt.HTTPTask) (*dialer, error) {
 
 	if err := t.Init(); err != nil {
 		l.Errorf(`%s`, err.Error())
@@ -211,7 +211,7 @@ type taskPullResp struct {
 	Content map[string]interface{} `json:"content"`
 }
 
-func (d *DialTesting) dispatchTasks(j []byte) error {
+func (d *Input) dispatchTasks(j []byte) error {
 	var resp taskPullResp
 
 	if err := json.Unmarshal(j, &resp); err != nil {
@@ -297,7 +297,7 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 	return nil
 }
 
-func (d *DialTesting) getLocalJsonTasks(path string) ([]byte, error) {
+func (d *Input) getLocalJsonTasks(path string) ([]byte, error) {
 
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -340,7 +340,7 @@ func (d *DialTesting) getLocalJsonTasks(path string) ([]byte, error) {
 	return rs, nil
 }
 
-func (d *DialTesting) pullTask() ([]byte, error) {
+func (d *Input) pullTask() ([]byte, error) {
 	reqURL, err := url.Parse(d.Server)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
@@ -367,7 +367,7 @@ func signReq(req *http.Request, ak, sk string) {
 	req.Header.Set("Authorization", fmt.Sprintf("DIAL_TESTING %s:%s", ak, reqSign))
 }
 
-func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
+func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 
 	reqURL.Path = "/v1/task/pull"
 	reqURL.RawQuery = fmt.Sprintf("region=%s&since=%d", d.Region, sinceUs)
@@ -408,7 +408,7 @@ func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, erro
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &DialTesting{
+		return &Input{
 			Tags:     map[string]string{},
 			curTasks: map[string]*dialer{},
 			wg:       sync.WaitGroup{},
