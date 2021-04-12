@@ -3,6 +3,7 @@ package man
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/gobuffalo/packr/v2"
@@ -23,13 +24,14 @@ var (
 )
 
 type Params struct {
-	InputName    string
-	Catalog      string
-	InputSample  string
-	Version      string
-	ReleaseDate  string
-	Measurements []*inputs.MeasurementInfo
-	CSS          string
+	InputName      string
+	Catalog        string
+	InputSample    string
+	Version        string
+	ReleaseDate    string
+	Measurements   []*inputs.MeasurementInfo
+	CSS            string
+	AvailableArchs string
 }
 
 func Get(name string) (string, error) {
@@ -54,15 +56,16 @@ func BuildMarkdownManual(name string) ([]byte, error) {
 
 		input := c()
 		switch i := input.(type) {
-		case inputs.ManualInput: // pass
+		case inputs.InputV2: // pass
 			sampleMeasurements := i.SampleMeasurement()
 			p = &Params{
-				InputName:   name,
-				InputSample: i.SampleConfig(),
-				Catalog:     i.Catalog(),
-				Version:     git.Version,
-				ReleaseDate: git.BuildAt,
-				CSS:         css,
+				InputName:      name,
+				InputSample:    i.SampleConfig(),
+				Catalog:        i.Catalog(),
+				Version:        git.Version,
+				ReleaseDate:    git.BuildAt,
+				CSS:            css,
+				AvailableArchs: strings.Join(i.AvailableArchs(), ","),
 			}
 			for _, m := range sampleMeasurements {
 				p.Measurements = append(p.Measurements, m.Info())
