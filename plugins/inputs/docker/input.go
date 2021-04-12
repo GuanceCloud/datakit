@@ -16,7 +16,7 @@ import (
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Inputs{
+		return &Input{
 			newEnvClient: NewEnvClient,
 			newClient:    NewClient,
 			Tags:         make(map[string]string),
@@ -24,7 +24,7 @@ func init() {
 	})
 }
 
-type Inputs struct {
+type Input struct {
 	Endpoint              string            `toml:"endpoint"`
 	CollectMetric         bool              `toml:"collect_metric"`
 	CollectObject         bool              `toml:"collect_object"`
@@ -53,19 +53,19 @@ type Inputs struct {
 	mu   sync.Mutex
 }
 
-func (*Inputs) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleCfg
 }
 
-func (*Inputs) Catalog() string {
+func (*Input) Catalog() string {
 	return "docker"
 }
 
-func (*Inputs) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	return nil
 }
 
-func (this *Inputs) Run() {
+func (this *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	if this.initCfg() {
@@ -131,12 +131,15 @@ func (this *Inputs) Run() {
 	}
 }
 
-func (this *Inputs) Stop() {
+func (this *Input) Stop() {
 	this.cancelTails()
 	this.wg.Wait()
 }
 
-func (this *Inputs) initCfg() bool {
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return nil
+}
+func (this *Input) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
