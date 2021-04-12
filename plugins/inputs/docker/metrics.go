@@ -50,6 +50,18 @@ func (this *Inputs) gatherContainer(container types.Container) ([]byte, error) {
 		"container_name": getContainerName(container.Names),
 		"docker_image":   container.ImageID,
 		"image_name":     container.Image,
+		"stats":          container.State,
+	}
+
+	podInfo, err := this.gatherK8sPodInfo(container.ID)
+	if err != nil {
+		l.Warnf("gather k8s pod error, %s", err)
+	}
+
+	for k, v := range podInfo {
+		// "pod_name":            "",
+		// "pod_phase":           "",
+		// TODO:
 		// "kube_container_name": "",
 		// "kube_daemon_set":     "",
 		// "kube_deployment":     "",
@@ -57,14 +69,18 @@ func (this *Inputs) gatherContainer(container types.Container) ([]byte, error) {
 		// "kube_ownerref_kind ": "",
 		// "kube_ownerref_name ": "",
 		// "kube_replica_set":    "",
-		// "pod_name":            "",
-		// "pod_phase":           "",
-		"stats": container.State,
+		tags[k] = v
 	}
 
 	fields, err := this.gatherStats(ctx, container.ID)
 	if err != nil {
 		return nil, err
+	}
+
+	if podInfo == nil {
+		fields["from_kubernetes"] = false
+	} else {
+		fields["from_kubernetes"] = true
 	}
 
 	return io.MakeMetric(inputName, tags, fields, time.Now())
@@ -119,6 +135,13 @@ func (this *Inputs) composeMessage(ctx context.Context, id string, v *types.Cont
 		*v,
 		t,
 	})
+}
+
+func (this *Inputs) gatherK8sPodInfo(id string) (map[string]string, error) {
+	if this.kubernetes == nil {
+		return nil, nil
+	}
+	return this.kubernetes.GatherPodInfo(id)
 }
 
 func getContainerName(names []string) string {
