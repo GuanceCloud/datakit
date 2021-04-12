@@ -43,8 +43,6 @@ var (
 	#	files = []
 	#[inputs.rabbitmq.log.option]
 	#	ignore = [""]
-	#	# your logging source, if it's empty, use 'default'
-	#	source = "rabbitmq"
 	#	# add service tag, if it's empty, use $source.
 	#	service = ""
 	#	# grok pipeline script path
@@ -281,7 +279,7 @@ func newByteFieldInfo(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
-		Unit:     inputs.SizeByte,
+		Unit:     inputs.SizeIByte,
 		Desc:     desc,
 	}
 }
