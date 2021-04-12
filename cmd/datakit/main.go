@@ -228,11 +228,13 @@ func run() {
 			// TODO: reload configures
 		} else {
 			l.Infof("get signal %v, wait & exit", sig)
+			http.HttpStop()
 			datakit.Quit()
 		}
 
 	case <-datakit.StopCh:
 		l.Infof("service stopping")
+		http.HttpStop()
 		datakit.Quit()
 	}
 
@@ -262,9 +264,8 @@ func runDatakitWithHTTPServer() error {
 		l.Error("error running inputs: %v", err)
 		return err
 	}
-	go func() {
-		http.Start(datakit.Cfg.MainCfg.HTTPBind)
-	}()
+
+	http.Start(datakit.Cfg.MainCfg.HTTPBind)
 
 	return nil
 }
