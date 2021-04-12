@@ -86,48 +86,48 @@ const sampleConfig = `
 [[inputs.elasticsearch]]
   ## 采集日志文件配置，可配置多个
   #log_files = ["/path/to/your/file.log"]
-  
+
   ## Elasticsearch服务器配置
   # 支持Basic认证:
   # servers = ["http://user:pass@localhost:9200"]
   servers = ["http://localhost:9200"]
-  
+
   ## 采集间隔
   # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
-  
+
   ## HTTP超时设置
   http_timeout = "5s"
-  
+
   ## 默认local是开启的，只采集当前Node自身指标，如果需要采集集群所有Node，需要将local设置为false
   local = true
-  
+
   ## 设置为true可以采集cluster health
   cluster_health = false
-  
+
   ## cluster health level 设置，indices (默认) 和 cluster
   # cluster_health_level = "indices"
-  
+
   ## 设置为true时可以采集cluster stats.
   cluster_stats = false
-  
+
   ## 只从master Node获取cluster_stats，这个前提是需要设置 local = true
   cluster_stats_only_from_master = true
-  
+
   ## 需要采集的Indices, 默认为 _all
   indices_include = ["_all"]
-  
+
   ## indices级别，可取值："shards", "cluster", "indices"
   indices_level = "shards"
-  
+
   ## node_stats可支持配置选项有"indices", "os", "process", "jvm", "thread_pool", "fs", "transport", "http", "breaker"
   # 默认是所有
   # node_stats = ["jvm", "http"]
-  
+
   ## HTTP Basic Authentication 用户名和密码
   # username = ""
   # password = ""
-  
+
   ## TLS Config
   tls_open = false
   # tls_ca = "/etc/telegraf/ca.pem"
@@ -234,6 +234,10 @@ func (_ *Input) SampleConfig() string {
 
 func (_ *Input) Test() {
 	return
+}
+
+func (i *Input) AvailableArchs() []string {
+	return datakit.UnknownArch
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
