@@ -1,9 +1,10 @@
 package nginx
 
 import (
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"time"
 )
 
 type ServerZoneMeasurement struct {
