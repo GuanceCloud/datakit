@@ -41,6 +41,7 @@ type PipelineInput interface {
 type ManualInput interface {
 	Input
 	SampleMeasurement() []Measurement
+	AvailableArchs() []string
 }
 
 type Creator func() Input
