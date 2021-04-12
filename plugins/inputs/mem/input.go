@@ -43,7 +43,7 @@ func (m *memMeasurement) LineProto() (*io.Point, error) {
 func (m *memMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
-		Fields: map[string]*inputs.FieldInfo{
+		Fields: map[string]interface{}{
 			"active":            NewFieldInfoB("active (integer, Darwin, FreeBSD, Linux, OpenBSD)"),
 			"available":         NewFieldInfoB("integer"),
 			"available_percent": NewFieldInfoP("available_percent (float)"),
