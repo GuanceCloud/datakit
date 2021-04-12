@@ -325,7 +325,6 @@ func (d *DockerContainers) gatherK8sPodInfo(id string) (map[string]string, error
 	if d.Kubernetes == nil {
 		return nil, nil
 	}
-
 	return d.Kubernetes.GatherPodInfo(id)
 }
 
