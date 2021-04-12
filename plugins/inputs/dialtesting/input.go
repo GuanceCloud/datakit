@@ -77,7 +77,10 @@ func (dt *DialTesting) Catalog() string {
 }
 
 func (dt *DialTesting) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{}
+	return []inputs.Measurement{
+		&httpMeasurement{},
+	}
+
 }
 
 func (d *DialTesting) Run() {
