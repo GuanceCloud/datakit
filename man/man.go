@@ -15,7 +15,8 @@ import (
 var (
 	ManualBox = packr.New("manulas", "./manuals")
 	OtherDocs = map[string]interface{}{
-		"pipeline": nil,
+		// value not used, just document the markdown relative path
+		"pipeline": "man/manuals/pipeline.md",
 	}
 
 	l = logger.DefaultSLogger("man")
