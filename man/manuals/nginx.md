@@ -21,6 +21,10 @@ NGINX 采集器 可以从 NGINX 实例中采取很多指标，比如请求总数
 - `nginx_upstream_zone`
 - `nginx_cache_zone`
 
+
+- 如需采集 NGINX 的日志，可在 nginx.conf 中 将 `files` 打开并写入 NGINX 日志文件的绝对路径。目前仅支持在 DataKit 安装主机上面的日志采集
+
+
 ## 配置
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
