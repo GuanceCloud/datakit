@@ -3,6 +3,7 @@ package man
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/gobuffalo/packr/v2"
@@ -55,7 +56,7 @@ func BuildMarkdownManual(name string) ([]byte, error) {
 
 		input := c()
 		switch i := input.(type) {
-		case inputs.ManualInput: // pass
+		case inputs.InputV2: // pass
 			sampleMeasurements := i.SampleMeasurement()
 			p = &Params{
 				InputName:      name,
@@ -64,7 +65,7 @@ func BuildMarkdownManual(name string) ([]byte, error) {
 				Version:        git.Version,
 				ReleaseDate:    git.BuildAt,
 				CSS:            css,
-				AvailableArchs: strings.Join(i.AvailableArchs, ","),
+				AvailableArchs: strings.Join(i.AvailableArchs(), ","),
 			}
 			for _, m := range sampleMeasurements {
 				p.Measurements = append(p.Measurements, m.Info())
