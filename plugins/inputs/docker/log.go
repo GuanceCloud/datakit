@@ -24,30 +24,35 @@ const (
 	// docker code:
 	// https://github.com/moby/moby/blob/master/daemon/logger/copier.go#L21
 	maxLineBytes = 16 * 1024
+
+	// ES value can be at most 32766 bytes long
+	maxFieldsLength = 32766
+
+	pipelineTimeField = "time"
 )
 
-func (this *Inputs) addToContainerList(containerID string, cancel context.CancelFunc) error {
+func (this *Input) addToContainerList(containerID string, cancel context.CancelFunc) error {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 	this.containerLogList[containerID] = cancel
 	return nil
 }
 
-func (this *Inputs) removeFromContainerList(containerID string) error {
+func (this *Input) removeFromContainerList(containerID string) error {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 	delete(this.containerLogList, containerID)
 	return nil
 }
 
-func (this *Inputs) containerInContainerList(containerID string) bool {
+func (this *Input) containerInContainerList(containerID string) bool {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 	_, ok := this.containerLogList[containerID]
 	return ok
 }
 
-func (this *Inputs) cancelTails() error {
+func (this *Input) cancelTails() error {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 	for _, cancel := range this.containerLogList {
@@ -56,7 +61,7 @@ func (this *Inputs) cancelTails() error {
 	return nil
 }
 
-func (this *Inputs) gatherLog() {
+func (this *Input) gatherLog() {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
 	defer cancel()
@@ -89,15 +94,14 @@ func (this *Inputs) gatherLog() {
 	}
 }
 
-func (this *Inputs) tailContainerLogs(ctx context.Context, container types.Container) error {
-	imageName, imageVersion := ParseImage(container.Image)
+func (this *Input) tailContainerLogs(ctx context.Context, container types.Container) error {
+	// ignore imageVersion
+	imageName, _ := ParseImage(container.Image)
 	containerName := getContainerName(container.Names)
 
 	tags := map[string]string{
-		"container_name":    containerName,
-		"container_image":   imageName,
-		"container_version": imageVersion,
-		"endpoint":          this.Endpoint,
+		"container_name": containerName,
+		"image_name":     imageName,
 	}
 	for k, v := range this.Tags {
 		tags[k] = v
@@ -138,7 +142,7 @@ func (this *Inputs) tailContainerLogs(ctx context.Context, container types.Conta
 
 }
 
-func (this *Inputs) hasTTY(ctx context.Context, container types.Container) (bool, error) {
+func (this *Input) hasTTY(ctx context.Context, container types.Container) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
 	defer cancel()
 	c, err := this.client.ContainerInspect(ctx, container.ID)
@@ -178,31 +182,49 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 			continue
 		}
 
-		var fields = make(map[string]interface{})
-		measurement := getContainerName(container.Names)
-		// l.Debugf("get %d bytes from source: %s", len(message), measurement)
+		containerName := getContainerName(container.Names)
+		// default measurement is containerName, if source not empty use $source.
+		var measurement = containerName
+		var fields = map[string]interface{}{
+			"service":         containerName,
+			"from_kubernetes": contianerIsFromKubernetes(containerName),
+		}
 
+		// l.Debugf("get %d bytes from source: %s", len(message), measurement)
 		if opt != nil {
 			if pipe := opt.pipelinePool.Get(); pipe != nil {
 				fields, err = pipe.(*pipeline.Pipeline).Run(message).Result()
 				if err != nil {
 					l.Errorf("run pipeline error, %s", err)
 				}
+			} else {
+				// 当 opt 存在但 pipeline 不存在时，执行默认操作
+				// 与经过 pipeline 处理但是失败后，返回的 fields 相同，只有一个 message
+				fields["message"] = message
 			}
-			fields["service"] = opt.Service
+			if opt.Source != "" {
+				measurement = opt.Source
+			}
+			if opt.Service != "" {
+				fields["service"] = opt.Service
+			}
 		} else {
 			fields["message"] = message
 		}
 
-		if v, ok := fields["time"]; ok { // time should be nano-second
-			nanots, ok := v.(int64)
-			if !ok {
-				l.Warn("filed `time' should be nano-second, but got `%s'", reflect.TypeOf(v).String())
-				continue
-			}
+		if err := checkFieldsLength(fields, maxFieldsLength); err != nil {
+			// 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
+			// 防止通过 pipeline 添加巨长字段的恶意行为
+			l.Error(err)
+			continue
+		}
 
-			ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
-			delete(fields, "time")
+		addStatus(fields)
+
+		ts, err = takeTime(fields)
+		if err != nil {
+			ts = time.Now()
+			l.Error(err)
 		}
 
 		pt, err := iod.MakePoint(measurement, tags, fields, ts)
@@ -302,4 +324,89 @@ func ParseImage(image string) (string, string) {
 	}
 
 	return imageName, imageVersion
+}
+
+func takeTime(fields map[string]interface{}) (ts time.Time, err error) {
+	// time should be nano-second
+	if v, ok := fields[pipelineTimeField]; ok {
+		nanots, ok := v.(int64)
+		if !ok {
+			err = fmt.Errorf("invalid filed `%s: %v', should be nano-second, but got `%s'",
+				pipelineTimeField, v, reflect.TypeOf(v).String())
+			return
+		}
+
+		ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
+		delete(fields, pipelineTimeField)
+	} else {
+		ts = time.Now()
+	}
+
+	return
+}
+
+// checkFieldsLength 指定字段长度 "小于等于" maxlength
+func checkFieldsLength(fields map[string]interface{}, maxlength int) error {
+	for k, v := range fields {
+		switch vv := v.(type) {
+		// FIXME:
+		// need  "case []byte" ?
+		case string:
+			if len(vv) <= maxlength {
+				continue
+			}
+			if k == "message" {
+				fields[k] = vv[:maxlength]
+			} else {
+				return fmt.Errorf("fields: %s, length=%d, out of maximum length", k, len(vv))
+			}
+		default:
+			// nil
+		}
+	}
+	return nil
+}
+
+var statusMap = map[string]string{
+	"f":        "emerg",
+	"emerg":    "emerg",
+	"a":        "alert",
+	"alert":    "alert",
+	"c":        "critical",
+	"critical": "critical",
+	"e":        "error",
+	"error":    "error",
+	"w":        "warning",
+	"warning":  "warning",
+	"i":        "info",
+	"info":     "info",
+	"d":        "debug",
+	"trace":    "debug",
+	"verbose":  "debug",
+	"debug":    "debug",
+	"o":        "OK",
+	"s":        "OK",
+	"ok":       "OK",
+}
+
+func addStatus(fields map[string]interface{}) {
+	// map 有 "status" 字段
+	statusField, ok := fields["status"]
+	if !ok {
+		fields["status"] = "info"
+		return
+	}
+	// "status" 类型必须是 string
+	statusStr, ok := statusField.(string)
+	if !ok {
+		fields["status"] = "info"
+		return
+	}
+
+	// 查询 statusMap 枚举表并替换
+	if v, ok := statusMap[strings.ToLower(statusStr)]; !ok {
+		fields["status"] = "info"
+	} else {
+		fields["status"] = v
+	}
 }
