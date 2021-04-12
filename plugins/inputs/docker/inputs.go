@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"crypto/tls"
 	"sync"
 	"time"
@@ -25,9 +26,11 @@ func init() {
 
 type Inputs struct {
 	Endpoint              string            `toml:"endpoint"`
+	CollectMetric         bool              `toml:"collect_metric"`
+	CollectObject         bool              `toml:"collect_object"`
+	CollectLogging        bool              `toml:"collect_logging"`
 	CollectMetricInterval string            `toml:"collect_metric_interval"`
 	CollectObjectInterval string            `toml:"collect_object_interval"`
-	CollectLogging        bool              `toml:"collect_logging"`
 	IncludeExited         bool              `toml:"include_exited"`
 	ClientConfig                            // tls config
 	LogOption             []*LogOption      `toml:"log_option"`
@@ -40,11 +43,14 @@ type Inputs struct {
 	newEnvClient         func() (Client, error)
 	newClient            func(string, *tls.Config) (Client, error)
 	containerLogsOptions types.ContainerLogsOptions
+	containerLogList     map[string]context.CancelFunc
 
-	client Client
+	client     Client
+	kubernetes *Kubernetes
 
 	opts types.ContainerListOptions
 	wg   sync.WaitGroup
+	mu   sync.Mutex
 }
 
 func (*Inputs) SampleConfig() string {
@@ -61,36 +67,73 @@ func (*Inputs) PipelineConfig() map[string]string {
 
 func (this *Inputs) Run() {
 	l = logger.SLogger(inputName)
+
 	if this.initCfg() {
 		return
 	}
 	l.Info("docker input start")
 
-	gatherTick := time.NewTicker(this.collectMetricDuration)
+	if this.CollectMetric {
+		go func() {
+			gatherTick := time.NewTicker(this.collectMetricDuration)
+			defer gatherTick.Stop()
+			for {
+				select {
+				case <-datakit.Exit.Wait():
+					return
 
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			return
-
-		case <-gatherTick.C:
-			data, err := this.gather()
-			if err != nil {
+				case <-gatherTick.C:
+					data, err := this.gather()
+					if err != nil {
+					}
+					if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+						l.Error(err)
+					}
+				}
 			}
-			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
-				l.Error(err)
-			}
-			this.gatherLog()
-
-		case <-time.After(this.collectObjectDuration):
-			data, err := this.gather()
-			if err != nil {
-			}
-			if err := io.NamedFeed(data, io.Object, inputName); err != nil {
-				l.Error(err)
-			}
-		}
+		}()
 	}
+
+	if this.CollectLogging {
+		go func() {
+			gatherTick := time.NewTicker(this.collectMetricDuration)
+			defer gatherTick.Stop()
+			for {
+				select {
+				case <-datakit.Exit.Wait():
+					this.Stop()
+					return
+
+				case <-gatherTick.C:
+					this.gatherLog()
+				}
+			}
+		}()
+	}
+
+	if this.CollectObject {
+		go func() {
+			for {
+				select {
+				case <-datakit.Exit.Wait():
+					return
+
+				case <-time.After(this.collectObjectDuration):
+					data, err := this.gather()
+					if err != nil {
+					}
+					if err := io.NamedFeed(data, io.Object, inputName); err != nil {
+						l.Error(err)
+					}
+				}
+			}
+		}()
+	}
+}
+
+func (this *Inputs) Stop() {
+	this.cancelTails()
+	this.wg.Wait()
 }
 
 func (this *Inputs) initCfg() bool {
