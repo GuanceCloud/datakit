@@ -38,7 +38,8 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
     rabbitmqctl set_permissions  -p / dataflux "^aliveness-test$" "^amq\.default$" ".*"
     rabbitmqctl set_user_tags dataflux monitoring
     ```
-- 如需采集 rabbitmq 的日志，可在 rabbitmq.conf 中 将 `files` 打开并写入 rabbitmq 日志文件的绝对路径。目前仅支持在 DataKit 安装主机上面的日志采集 
+  
+- 如需采集 RabbitMQ 的日志，可在 rabbitmq.conf 中 将 `files` 打开并写入 RabbitMQ 日志文件的绝对路径。目前仅支持在 DataKit 安装主机上面的日志采集 
 
 ## 配置
 
