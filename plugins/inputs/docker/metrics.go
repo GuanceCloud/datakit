@@ -12,7 +12,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-func (this *Inputs) gather() ([]byte, error) {
+const (
+	dockerContainerMeasurement = "docker_containers"
+)
+
+func (this *Input) gather() ([]byte, error) {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
 	defer cancel()
@@ -40,7 +44,7 @@ func (this *Inputs) gather() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func (this *Inputs) gatherContainer(container types.Container) ([]byte, error) {
+func (this *Input) gatherContainer(container types.Container) ([]byte, error) {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
 	defer cancel()
@@ -77,18 +81,14 @@ func (this *Inputs) gatherContainer(container types.Container) ([]byte, error) {
 		return nil, err
 	}
 
-	if podInfo == nil {
-		fields["from_kubernetes"] = false
-	} else {
-		fields["from_kubernetes"] = true
-	}
+	fields["from_kubernetes"] = contianerIsFromKubernetes(getContainerName(container.Names))
 
-	return io.MakeMetric(inputName, tags, fields, time.Now())
+	return io.MakeMetric(dockerContainerMeasurement, tags, fields, time.Now())
 }
 
 const streamStats = false
 
-func (this *Inputs) gatherStats(ctx context.Context, id string) (map[string]interface{}, error) {
+func (this *Input) gatherStats(ctx context.Context, id string) (map[string]interface{}, error) {
 	resp, err := this.client.ContainerStats(ctx, id, streamStats)
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func (this *Inputs) gatherStats(ctx context.Context, id string) (map[string]inte
 	}, nil
 }
 
-func (this *Inputs) composeMessage(ctx context.Context, id string, v *types.ContainerJSON) ([]byte, error) {
+func (this *Input) composeMessage(ctx context.Context, id string, v *types.ContainerJSON) ([]byte, error) {
 	// 容器未启动时，无法进行containerTop，此处会得到error
 	// 与 opt.All 冲突，忽略此error即可
 	t, _ := this.client.ContainerTop(ctx, id, nil)
@@ -137,7 +137,7 @@ func (this *Inputs) composeMessage(ctx context.Context, id string, v *types.Cont
 	})
 }
 
-func (this *Inputs) gatherK8sPodInfo(id string) (map[string]string, error) {
+func (this *Input) gatherK8sPodInfo(id string) (map[string]string, error) {
 	if this.kubernetes == nil {
 		return nil, nil
 	}
@@ -149,4 +149,12 @@ func getContainerName(names []string) string {
 		return strings.TrimPrefix(names[0], "/")
 	}
 	return ""
+}
+
+// contianerIsFromKubernetes 判断该容器是否由kubernetes创建
+// 所有kubernetes启动的容器的containerNamePrefix都是k8s，依据链接如下
+// https://github.com/rootsongjc/kubernetes-handbook/blob/master/practice/monitor.md#%E5%AE%B9%E5%99%A8%E7%9A%84%E5%91%BD%E5%90%8D%E8%A7%84%E5%88%99
+func contianerIsFromKubernetes(containerName string) bool {
+	const kubernetesContainerNamePrefix = "k8s"
+	return strings.HasPrefix(containerName, kubernetesContainerNamePrefix)
 }
