@@ -6,8 +6,7 @@ import (
 	"testing"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-		"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func TestCollect(t *testing.T) {
@@ -44,5 +43,5 @@ func TestLoadCfg(t *testing.T) {
 		log.Fatalf("%s", err)
 	}
 
-    arr[0].(*Input).Run()
+	arr[0].(*Input).Run()
 }
