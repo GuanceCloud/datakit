@@ -2,6 +2,7 @@ package dialtesting
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -21,6 +22,8 @@ type dialer struct {
 
 	tags     map[string]string
 	updateCh chan dt.Task
+
+	failCnt int
 }
 
 func (d *dialer) updateTask(t dt.Task) error {
@@ -70,32 +73,13 @@ func (d *dialer) run() error {
 		case <-d.ticker.C:
 
 			d.testCnt++
-
 			//dialtesting start
 			//无论成功或失败，都要记录测试结果
 			d.task.Run()
-
-			// 获取此次任务执行的基本信息
-			tags := map[string]string{}
-			fields := map[string]interface{}{}
-			tags, fields = d.task.GetResults()
-
-			for k, v := range d.tags {
-				tags[k] = v
-			}
-
-			data, err := MakeMetric(d.task.MetricName(), tags, fields, time.Now())
-			if err != nil {
-				l.Warnf("make metric failed: %s", err.Error)
-				continue
-			}
-
-			err = x.doFeed(io.Logging, data, d.task.PostURLStr())
+			err := d.feedIo()
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
 			}
-
-			l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, d.task.PostURLStr(), tags, fields)
 
 		case t := <-d.updateCh:
 			d.doUpdateTask(t)
@@ -112,6 +96,40 @@ func (d *dialer) run() error {
 	}
 
 	return nil
+}
+
+func (d *dialer) feedIo() error {
+	// 获取此次任务执行的基本信息
+	tags := map[string]string{}
+	fields := map[string]interface{}{}
+	tags, fields = d.task.GetResults()
+
+	for k, v := range d.tags {
+		tags[k] = v
+	}
+
+	data, err := io.MakePoint(d.task.MetricName(), tags, fields, time.Now())
+	if err != nil {
+		l.Warnf("make metric failed: %s", err.Error)
+		return err
+	}
+
+	// 考虑到推送至不同的dataway地址
+	u, err := url.Parse(d.task.PostURLStr())
+	if err != nil {
+		l.Warn("get invalid url, ignored")
+		return err
+	}
+
+	u.Path = u.Path + io.Logging // `/v1/write/logging`
+
+	err = Feed(inputName, io.Logging, data, &io.Option{
+		HTTPHost: u.String(),
+	})
+
+	l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, u.String(), tags, fields)
+
+	return err
 }
 
 func (d *dialer) doUpdateTask(t dt.Task) {
