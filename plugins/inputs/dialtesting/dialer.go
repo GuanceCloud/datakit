@@ -22,6 +22,8 @@ type dialer struct {
 
 	tags     map[string]string
 	updateCh chan dt.Task
+
+	failCnt int
 }
 
 func (d *dialer) updateTask(t dt.Task) error {
@@ -121,8 +123,6 @@ func (d *dialer) feedIo() error {
 
 	u.Path = u.Path + io.Logging // `/v1/write/logging`
 
-	// pts := []*io.Point{}
-	// pts = append(pts, data)
 	err = Feed(inputName, io.Logging, data, &io.Option{
 		HTTPHost: u.String(),
 	})
