@@ -6,6 +6,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/common/tls"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -89,6 +90,10 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&JvmMeasurement{},
 	}
+}
+
+func (i *Input) AvailableArchs() []string {
+	return datakit.UnknownArch
 }
 
 func init() {
