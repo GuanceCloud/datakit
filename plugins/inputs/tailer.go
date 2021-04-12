@@ -67,25 +67,25 @@ const (
 
 type TailerOption struct {
 	// glob 忽略的文件路径
-	IgnoreFiles []string
+	IgnoreFiles []string `toml:"ignore"`
 
 	// 数据来源，默认值为'default'
-	Source string
+	Source string `toml:"source"`
 
 	// service，默认值为 $Source
-	Service string
+	Service string `toml:"service"`
 
 	// pipeline脚本路径，如果为空则不使用pipeline
-	Pipeline string
+	Pipeline string `toml:"pipeline"`
 
 	// 忽略这些status，如果数据的status在此列表中，数据将不再上传
 	// ex: "info"
 	//     "debug"
-	IgnoreStatus []string
+	IgnoreStatus []string `toml:"ignore_status"`
 
 	// 是否从文件起始处开始读取
 	// 注意，如果打开此项，可能会导致大量数据重复
-	FromBeginning bool
+	FromBeginning bool `toml:"-"`
 
 	// 解释文件内容时所使用的的字符编码，如果设置为空，将不进行转码处理
 	// ex: "utf-8"
@@ -94,14 +94,14 @@ type TailerOption struct {
 	//     "gbk"
 	//     "gb18030"
 	//     ""
-	CharacterEncoding string
+	CharacterEncoding string `toml:"character_encoding"`
 
 	// 匹配正则表达式
 	// 符合此正则匹配的数据，将被认定为有效数据。否则会累积追加到上一条有效数据的末尾
 	// 例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
 	//
 	// 如果为空，则默认使用 ^\S 即匹配每行开始处非空白字符
-	Match string
+	Match string `toml:"match"`
 
 	// 是否关闭添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
 	DisableAddStatusField bool
@@ -147,8 +147,8 @@ func fillTailerOption(opt *TailerOption) *TailerOption {
 }
 
 type Tailer struct {
-	Option *TailerOption
-	Files  []string
+	Option *TailerOption `toml:"option"`
+	Files  []string      `toml:"files"`
 
 	InputName string
 
@@ -260,6 +260,11 @@ func (t *Tailer) Run() {
 			}
 		}
 	}
+}
+
+func (t *Tailer) Close() error {
+	// TODO:
+	return nil
 }
 
 func (t *Tailer) watching() {
