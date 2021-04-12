@@ -484,7 +484,7 @@ func apiManual(c *gin.Context) {
 
 		for k, v := range inputs.Inputs {
 			switch v().(type) {
-			case inputs.ManualInput:
+			case inputs.InputV2:
 				toc.InputNames = append(toc.InputNames, k)
 			}
 		}
