@@ -184,6 +184,8 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 github.com/basgys/goxml2json
 # github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
+# github.com/blang/semver/v4 v4.0.0
+github.com/blang/semver/v4
 # github.com/c-bata/go-prompt v0.2.5 => github.com/coanor/go-prompt v0.2.6
 github.com/c-bata/go-prompt
 github.com/c-bata/go-prompt/internal/bisect
@@ -554,7 +556,6 @@ github.com/influxdata/telegraf/plugins/inputs/snmp
 github.com/influxdata/telegraf/plugins/inputs/socket_listener
 github.com/influxdata/telegraf/plugins/inputs/solr
 github.com/influxdata/telegraf/plugins/inputs/sqlserver
-github.com/influxdata/telegraf/plugins/inputs/swap
 github.com/influxdata/telegraf/plugins/inputs/syslog
 github.com/influxdata/telegraf/plugins/inputs/system
 github.com/influxdata/telegraf/plugins/inputs/systemd_units
