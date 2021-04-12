@@ -207,9 +207,73 @@ func TestGatherClusterStatsMaster(t *testing.T) {
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_stats", clusterstatsExpected, tags, es.collectCache)
 }
 
+func getMeasurement(t *testing.T, metric inputs.Measurement) *elasticsearchMeasurement {
+	switch metricType := metric.(type) {
+	case *nodeStatsMeasurement:
+		m := metric.(*nodeStatsMeasurement)
+		return &elasticsearchMeasurement{
+			name:   m.name,
+			tags:   m.tags,
+			fields: m.fields,
+			ts:     m.ts,
+		}
+	case *indicesStatsMeasurement:
+		m := metric.(*indicesStatsMeasurement)
+		return &elasticsearchMeasurement{
+			name:   m.name,
+			tags:   m.tags,
+			fields: m.fields,
+			ts:     m.ts,
+		}
+	case *indicesStatsShardsMeasurement:
+		m := metric.(*indicesStatsShardsMeasurement)
+		return &elasticsearchMeasurement{
+			name:   m.name,
+			tags:   m.tags,
+			fields: m.fields,
+			ts:     m.ts,
+		}
+	case *indicesStatsShardsTotalMeasurement:
+		m := metric.(*indicesStatsShardsTotalMeasurement)
+		return &elasticsearchMeasurement{
+			name:   m.name,
+			tags:   m.tags,
+			fields: m.fields,
+			ts:     m.ts,
+		}
+	case *clusterStatsMeasurement:
+		m := metric.(*clusterStatsMeasurement)
+		return &elasticsearchMeasurement{
+			name:   m.name,
+			tags:   m.tags,
+			fields: m.fields,
+			ts:     m.ts,
+		}
+	case *clusterHealthMeasurement:
+		m := metric.(*clusterHealthMeasurement)
+		return &elasticsearchMeasurement{
+			name:   m.name,
+			tags:   m.tags,
+			fields: m.fields,
+			ts:     m.ts,
+		}
+	case *clusterHealthIndicesMeasurement:
+		m := metric.(*clusterHealthIndicesMeasurement)
+		return &elasticsearchMeasurement{
+			name:   m.name,
+			tags:   m.tags,
+			fields: m.fields,
+			ts:     m.ts,
+		}
+	default:
+		t.Fatal("Invalid metric type", metricType)
+	}
+	return nil
+}
+
 func AssertContainsTaggedFields(t *testing.T, measurement string, fields map[string]interface{}, tags map[string]string, collectCache []inputs.Measurement) {
 	for _, metric := range collectCache {
-		m := metric.(*elasticsearchMeasurement)
+		m := getMeasurement(t, metric)
 		if !reflect.DeepEqual(tags, m.tags) {
 			continue
 		}
@@ -219,7 +283,7 @@ func AssertContainsTaggedFields(t *testing.T, measurement string, fields map[str
 	}
 
 	for _, metric := range collectCache {
-		m := metric.(*elasticsearchMeasurement)
+		m := getMeasurement(t, metric)
 		if m.name == measurement {
 			t.Log("measurement", m.name, "tags", m.tags, "fields", m.fields)
 		}
@@ -236,7 +300,7 @@ func AssertDoesNotContainsTaggedFields(
 	collectCache []inputs.Measurement,
 ) {
 	for _, metric := range collectCache {
-		m := metric.(*elasticsearchMeasurement)
+		m := getMeasurement(t, metric)
 		if !reflect.DeepEqual(tags, m.tags) {
 			continue
 		}
