@@ -1,0 +1,10 @@
+{
+	"iploc" : {
+		"update_date": "Tue Dec  8 10:53:08 CST 2020",
+		"origin": "IP2LOCATION-LITE-DB11.BIN.tar.gz"
+	},
+
+	"jolokia": {
+		"version": "1.6.2"
+	}
+}
