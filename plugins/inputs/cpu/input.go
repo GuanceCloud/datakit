@@ -121,6 +121,10 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func (i *Input) AvailableArchs() []string {
+	return datakit.UnknownArch
+}
+
 func (i *Input) Collect() error {
 	// totalCPU only
 	cpuTimes, err := i.ps.CPUTimes(false, true)
