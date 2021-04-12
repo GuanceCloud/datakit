@@ -157,7 +157,7 @@ func NamedFeedEx(name, category, metric string,
 		ts = time.Now().UTC()
 	}
 
-	pt, err := lp.MakeLineProtoPoint(name, tags, fields,
+	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
 		&lp.Option{
 			ExtraTags: datakit.Cfg.MainCfg.GlobalTags,
 			Strict:    true,
