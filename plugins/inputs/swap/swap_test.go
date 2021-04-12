@@ -8,8 +8,15 @@ import (
 
 func TestCollec(t *testing.T) {
 	i := &Input{swapStat: PSSwapStat4Test}
-	if err := i.Collect(); err != nil {
-		t.Errorf("collect swap stat error:%s", err)
+
+	for x := 0; x < 6; x++ {
+		if err := i.Collect(); err != nil {
+			t.Errorf("collect swap stat error:%s", err)
+		}
+	}
+
+	if len(i.collectCache) != 1 {
+		t.Errorf("Need to clear collectCache")
 	}
 
 	expected := map[string]interface{}{
