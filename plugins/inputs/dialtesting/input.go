@@ -59,10 +59,10 @@ type DialTesting struct {
 
 const sample = `[[inputs.dialtesting]]
 	# require，默认值为default
-	region = "default" 
+	region = "default"
 
-	#  中心任务存储的服务地址，或本地json 文件全路径 
-	server = "files:///your/dir/json-file-name" 
+	#  中心任务存储的服务地址，或本地json 文件全路径
+	server = "files:///your/dir/json-file-name"
 
 	[inputs.dialtesting.tags]
 	# 各种可能的 tag
@@ -81,6 +81,10 @@ func (dt *DialTesting) SampleMeasurement() []inputs.Measurement {
 		&httpMeasurement{},
 	}
 
+}
+
+func (i *DialTesting) AvailableArchs() []string {
+	return datakit.UnknownArch
 }
 
 func (d *DialTesting) Run() {
