@@ -158,6 +158,10 @@ func (i *Input) Catalog() string { return catalogName }
 
 func (i *Input) SampleConfig() string { return configSample }
 
+func (i *Input) AvailableArchs() []string {
+	return datakit.UnknownArch
+}
+
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&infoMeasurement{},
