@@ -17,37 +17,37 @@ const (
 
 	sampleCfg = `
 [inputs.docker]
-    # Docker Endpoint
-    # To use TCP, set endpoint = "tcp://[ip]:[port]"
-    # To use environment variables (ie, docker-machine), set endpoint = "ENV"
-    endpoint = "unix:///var/run/docker.sock"
-
-    collect_metric = true
-    collect_object = true
-    collect_logging = true
-
-    # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-    collect_metric_interval = "10s"
-    collect_object_interval = "5m"
-
-    # Is all containers, Return all containers. By default, only running containers are shown.
-    include_exited = false
-
-    ## Optional TLS Config
-    # tls_ca = "/path/to/ca.pem"
-    # tls_cert = "/path/to/cert.pem"
-    # tls_key = "/path/to/key.pem"
-    ## Use TLS but skip chain & host verification
-    # insecure_skip_verify = false
-
-    #[[inputs.docker.log_option]]
-	# container_name_match = "<regexp-container-name>"
-        # source = "<your-source>"
-        # service = "<your-service>"
-        # pipeline = "<this-is-pipeline>"
-
-    [inputs.docker.tags]
-        # tags1 = "value1"
+  # Docker Endpoint
+  # To use TCP, set endpoint = "tcp://[ip]:[port]"
+  # To use environment variables (ie, docker-machine), set endpoint = "ENV"
+  endpoint = "unix:///var/run/docker.sock"
+  
+  collect_metric = true
+  collect_object = true
+  collect_logging = true
+  
+  # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  collect_metric_interval = "10s"
+  collect_object_interval = "5m"
+  
+  # Is all containers, Return all containers. By default, only running containers are shown.
+  include_exited = false
+  
+  ## Optional TLS Config
+  # tls_ca = "/path/to/ca.pem"
+  # tls_cert = "/path/to/cert.pem"
+  # tls_key = "/path/to/key.pem"
+  ## Use TLS but skip chain & host verification
+  # insecure_skip_verify = false
+  
+  [[inputs.docker.log_option]]
+    # container_name_match = "<regexp-container-name>"
+    # source = "<your-source>"
+    # service = "<your-service>"
+    # pipeline = "<this-is-pipeline>"
+  
+  [inputs.docker.tags]
+    # tags1 = "value1"
 `
 	defaultEndpoint              = "unix:///var/run/docker.sock"
 	defaultAPITimeout            = time.Second * 5
@@ -67,7 +67,7 @@ type LogOption struct {
 	nameCompile  *regexp.Regexp
 }
 
-func (this *Inputs) loadCfg() (err error) {
+func (this *Input) loadCfg() (err error) {
 	// new docker client
 	if this.Endpoint == "ENV" {
 		this.client, err = this.newEnvClient()
@@ -133,7 +133,7 @@ func (this *Inputs) loadCfg() (err error) {
 	return
 }
 
-func (this *Inputs) initLogOption() (err error) {
+func (this *Input) initLogOption() (err error) {
 	this.opts = types.ContainerListOptions{All: this.IncludeExited}
 	this.containerLogList = make(map[string]context.CancelFunc)
 
@@ -147,13 +147,8 @@ func (this *Inputs) initLogOption() (err error) {
 	}
 
 	for _, opt := range this.LogOption {
-		// FIXME:
-		//   source 为空时，应该使用 defalut，还是 container_name ?
-		//   偏向后者。此处使用 default
-		if opt.Source == "" {
-			opt.Source = "default"
-		}
-
+		// opt.Source为空时，会默认使用 container_name
+		// opt.Service为空时，会默认使用 container_name
 		if opt.Service == "" {
 			opt.Service = opt.Source
 		}
