@@ -212,6 +212,10 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func (i *Input) AvailableArchs() []string {
+	return datakit.UnknownArch
+}
+
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
