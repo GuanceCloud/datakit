@@ -14,10 +14,22 @@ stages:
 build-dev:
   stage: deploy
   only:
+    - dev
+  script:
+    # only check building, not publish
+    - make ci_notify
+    - make testing
+    - make test_notify
+  tags:
+    - cloudcare-ft
+
+build-testing:
+  stage: deploy
+  only:
     - testing
   script:
+    # building && publish testing
     - make ci_notify
-    #- make check
     - make testing
     - make pub_testing
     - make pub_testing_img
@@ -31,7 +43,6 @@ build-release:
     - master
   script:
     - make ci_notify
-    #- make check
     - make release
     - make pub_release
     - make pub_release_img
