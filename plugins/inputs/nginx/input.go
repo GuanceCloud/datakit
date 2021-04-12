@@ -43,8 +43,7 @@ var (
 	#	#   "emerg","alert","critical","error","warning","info","debug","OK"
 	#	ignore_status = []
 	#	# read file from beginning
-	#	# if from_begin was false, off auto discovery file
-	#	from_beginning = false
+	
 	#	# optional encodings:
 	#	#    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
 	#	character_encoding = ""
@@ -99,19 +98,18 @@ func (_ *Input) PipelineConfig() map[string]string {
 func (n *Input) Run() {
 	l.Info("nginx start")
 
-	if n.log != nil {
+	if n.Log != nil {
 		go func() {
-			if err := n.log.Init(); err != nil {
+			if err := n.Log.Init(); err != nil {
 				l.Errorf("nginx init tailf err:%s", err.Error())
 				return
 			}
-			if n.log.Option.Pipeline != "" {
-				n.log.Option.Pipeline = filepath.Join(datakit.PipelineDir, n.log.Option.Pipeline)
-			}else {
-				n.log.Option.Pipeline = filepath.Join(datakit.PipelineDir, "nginx.p")
+			if n.Log.Option.Pipeline != "" {
+				n.Log.Option.Pipeline = filepath.Join(datakit.PipelineDir, n.Log.Option.Pipeline)
+			} else {
+				n.Log.Option.Pipeline = filepath.Join(datakit.PipelineDir, "nginx.p")
 			}
-
-			n.log.Run()
+			n.Log.Run()
 		}()
 	}
 
@@ -140,6 +138,10 @@ func (n *Input) Run() {
 				n.collectCache = n.collectCache[:]
 			}
 		case <-datakit.Exit.Wait():
+			if n.Log != nil {
+				n.Log.Close()
+				l.Info("nginx log exit")
+			}
 			l.Info("nginx exit")
 			return
 		}
