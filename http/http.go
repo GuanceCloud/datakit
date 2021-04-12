@@ -488,10 +488,12 @@ func apiManual(c *gin.Context) {
 				toc.InputNames = append(toc.InputNames, k)
 			}
 		}
+		sort.Strings(toc.InputNames)
 
 		for k, _ := range man.OtherDocs {
 			toc.OtherDocs = append(toc.OtherDocs, k)
 		}
+		sort.Strings(toc.OtherDocs)
 
 		t := template.New("man-toc")
 
