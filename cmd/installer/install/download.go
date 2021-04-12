@@ -15,9 +15,8 @@ import (
 )
 
 var (
-	CurDownloading = ""
-
-	DownloadOnly = false
+	CurDownloading string
+	DownloadOnly   = false
 )
 
 type writeCounter struct {
@@ -42,44 +41,57 @@ func (wc *writeCounter) PrintProgress() {
 	}
 }
 
-func Download(from, to string) {
+func Download(from, to string, progress bool) error {
 
 	// disable SSL verify for some bad client
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	cli := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 
-	resp, err := http.Get(from) //nolint:gosec
+	req, err := http.NewRequest("GET", from, nil)
 	if err != nil {
-		l.Fatalf("failed to download %s: %s", from, err)
+		l.Error(err)
+		return err
+	}
+
+	req.Header.Add("Accept-Encoding", "gzip")
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return err
 	}
 
 	defer resp.Body.Close()
-	cnt := &writeCounter{
+	progbar := &writeCounter{
 		total: uint64(resp.ContentLength),
 	}
 
 	if DownloadOnly {
-		doDownload(io.TeeReader(resp.Body, cnt), to)
+		return doDownload(io.TeeReader(resp.Body, progbar), to)
 	} else {
-		doExtract(io.TeeReader(resp.Body, cnt), to)
+		if !progress {
+			return doExtract(resp.Body, to)
+		} else {
+			return doExtract(io.TeeReader(resp.Body, progbar), to)
+		}
 	}
-	fmt.Printf("\n")
+
+	return nil
 }
 
-func doDownload(r io.Reader, to string) {
+func doDownload(r io.Reader, to string) error {
 
 	f, err := os.OpenFile(to, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
-		l.Fatal(err)
+		return err
 	}
 
 	if _, err := io.Copy(f, r); err != nil { //nolint:gosec
-		l.Fatal(err)
+		return err
 	}
 
-	f.Close()
+	return f.Close()
 }
 
-func ExtractDatakit(gz, to string) {
+func ExtractDatakit(gz, to string) error {
 	data, err := os.Open(gz)
 	if err != nil {
 		l.Fatalf("open file %s failed: %s", gz, err)
@@ -87,13 +99,14 @@ func ExtractDatakit(gz, to string) {
 
 	defer data.Close()
 
-	doExtract(data, to)
+	return doExtract(data, to)
 }
 
-func doExtract(r io.Reader, to string) {
+func doExtract(r io.Reader, to string) error {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
-		l.Fatal(err)
+		l.Error(err)
+		return err
 	}
 
 	defer gzr.Close()
@@ -102,39 +115,57 @@ func doExtract(r io.Reader, to string) {
 		hdr, err := tr.Next()
 		switch {
 		case err == io.EOF:
-			return
+			return nil
 		case err != nil:
-			l.Fatal(err)
+			l.Error(err)
+			return err
 		case hdr == nil:
 			continue
 		}
 
 		target := filepath.Join(to, hdr.Name)
+
 		switch hdr.Typeflag {
 		case tar.TypeDir:
+
+			l.Debugf("extracting dir %s...", target)
+
 			if _, err := os.Stat(target); err != nil {
 				if err := os.MkdirAll(target, 0755); err != nil {
-					l.Fatal(err)
+					l.Error(err)
+					return err
 				}
 			}
 
 		case tar.TypeReg:
 
+			l.Debugf("extracting file %s...", target)
+
 			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
-				l.Fatal(err)
+				l.Error(err)
+				return err
 			}
 
 			// TODO: lock file before extracting, to avoid `text file busy` error
 			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
 			if err != nil {
-				l.Fatal(err)
+				l.Error(err)
+				return err
 			}
 
 			if _, err := io.Copy(f, tr); err != nil { //nolint:gosec
-				l.Fatal(err)
+				l.Error(err)
+				return err
 			}
 
-			f.Close()
+			if err := f.Close(); err != nil {
+				l.Warnf("f.Close(): %v, ignored", err)
+			}
+
+		default:
+			l.Warnf("unexpected file %s", target)
 		}
 	}
+
+	return nil
 }
