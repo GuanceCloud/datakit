@@ -29,19 +29,18 @@ func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("rabbitmq start")
 
-	if n.log != nil {
+	if n.Log != nil {
 		go func() {
-			if err := n.log.Init(); err != nil {
+			if err := n.Log.Init(); err != nil {
 				l.Errorf("rabbitmq init tailf err:%s", err.Error())
 				return
 			}
-			if n.log.Option.Pipeline != "" {
-				n.log.Option.Pipeline = filepath.Join(datakit.PipelineDir, n.log.Option.Pipeline)
+			if n.Log.Option.Pipeline != "" {
+				n.Log.Option.Pipeline = filepath.Join(datakit.PipelineDir, n.Log.Option.Pipeline)
 			} else {
-				n.log.Option.Pipeline = filepath.Join(datakit.PipelineDir, "rabbitmq.p")
+				n.Log.Option.Pipeline = filepath.Join(datakit.PipelineDir, "rabbitmq.p")
 			}
-
-			n.log.Run()
+			n.Log.Run()
 		}()
 	}
 
@@ -74,6 +73,10 @@ func (n *Input) Run() {
 				}
 			}
 		case <-datakit.Exit.Wait():
+			if n.Log != nil {
+				n.Log.Close()
+				l.Info("rabbitmq log exit")
+			}
 			l.Info("rabbitmq exit")
 			return
 		}
