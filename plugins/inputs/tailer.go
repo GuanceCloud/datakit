@@ -147,8 +147,8 @@ func fillTailerOption(opt *TailerOption) *TailerOption {
 }
 
 type Tailer struct {
-	Option *TailerOption
-	Files  []string
+	Option *TailerOption `toml:"option"`
+	Files  []string      `toml:"files"`
 
 	InputName string
 
