@@ -18,6 +18,10 @@ func (_ *Input) Catalog() string {
 	return inputName
 }
 
+func (_ *Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
 func (_ *Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		"rabbitmq": pipelineCfg,
@@ -40,6 +44,7 @@ func (n *Input) Run() {
 			} else {
 				n.Log.Option.Pipeline = filepath.Join(datakit.PipelineDir, "rabbitmq.p")
 			}
+			n.Log.Option.Source = inputName
 			n.Log.Run()
 		}()
 	}
