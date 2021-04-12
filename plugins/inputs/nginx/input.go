@@ -1,13 +1,14 @@
 package nginx
 
 import (
+	"net/http"
+	"path/filepath"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"net/http"
-	"path/filepath"
-	"time"
 )
 
 var (
