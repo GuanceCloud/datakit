@@ -10,14 +10,19 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
+
+	"github.com/blang/semver/v4"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -32,12 +37,14 @@ var (
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
 	// tool-commands supported in datakit
-	flagCmd       = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline  = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText      = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-	flagGrokq     = flag.Bool("grokq", false, "query groks interactively")
-	flagMan       = flag.Bool("man", false, "read manuals of inputs")
-	flagExportMan = flag.String("export-man", "", "export all inputs and related manuals to specified path")
+	flagCmd             = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline        = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText            = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
+	flagMan             = flag.Bool("man", false, "read manuals of inputs")
+	flagOTA             = flag.Bool("ota", false, "update datakit new version if available")
+	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "accept RC version if available")
+	flagExportMan       = flag.String("export-man", "", "export all inputs and related manuals to specified path")
 )
 
 var (
@@ -68,6 +75,18 @@ func main() {
 	l.Info("datakit exited")
 }
 
+const (
+	winUpgradeCmd = `Import-Module bitstransfer; ` +
+		`start-bitstransfer -source %s -destination .dk-installer.exe; ` +
+		`.dk-installer.exe -upgrade; ` +
+		`rm .dk-installer.exe`
+	unixUpgradeCmd = `sudo -- sh -c ` +
+		`"curl %s -o dk-installer ` +
+		`&& chmod +x ./dk-installer ` +
+		`&& ./dk-installer -upgrade ` +
+		`&& rm -rf ./dk-installer"`
+)
+
 func applyFlags() {
 
 	if *flagVersion {
@@ -80,7 +99,67 @@ Golang Version: %s
       Uploader: %s
 ReleasedInputs: %s
 `, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, ReleaseType)
-		checkOnlineVersion()
+		ver, err := getOnlineVersion()
+		if err != nil {
+			fmt.Printf("Get online version failed: \n%s\n", err.Error())
+			os.Exit(-1)
+		}
+		curver, err := getLocalVersion()
+		if err != nil {
+			fmt.Printf("Get online version failed: \n%s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		if isNewVersion(ver, curver, true) {
+			fmt.Printf("\n\nNew version available: %s, commit %s (release at %s)\n",
+				ver.version, ver.Commit, ver.ReleaseDate)
+			switch runtime.GOOS {
+			case "windows":
+				cmdWin := fmt.Sprintf(winUpgradeCmd, ver.downloadURL)
+				fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
+			default:
+				cmd := fmt.Sprintf(unixUpgradeCmd, ver.downloadURL)
+				fmt.Printf("\nUpgrade:\n\t%s\n\n", cmd)
+			}
+		}
+
+		os.Exit(0)
+	}
+
+	if *flagOTA {
+
+		logger.SetGlobalRootLogger(datakit.OTALogFile, logger.DEBUG, logger.OPT_DEFAULT)
+		l = logger.SLogger("ota")
+
+		install.Init()
+
+		l.Debugf("get online version...")
+		ver, err := getOnlineVersion()
+		if err != nil {
+			l.Errorf("Get online version failed: \n%s\n", err.Error())
+			os.Exit(0)
+		}
+
+		l.Debugf("online version: %s", ver)
+
+		curver, err := getLocalVersion()
+		if err != nil {
+			l.Errorf("Get online version failed: \n%s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		if isNewVersion(ver, curver, *flagAcceptRCVersion) {
+			l.Infof("New version available: %s, commit %s (release at %s)",
+				ver.version, ver.Commit, ver.ReleaseDate)
+			if err := tryOTAUpdate(ver.VersionString); err != nil {
+				l.Errorf("OTA failed: %s", err.Error())
+				os.Exit(-1)
+			}
+			l.Infof("OTA success, new verison is %s", ver.VersionString)
+		} else {
+			l.Infof("OTA up to date(%s)", curver.VersionString)
+		}
+
 		os.Exit(0)
 	}
 
@@ -214,43 +293,115 @@ func runDatakitWithCmd() {
 	}
 }
 
-func checkOnlineVersion() {
+type datakitVerInfo struct {
+	VersionString string `json:"version"`
+	Commit        string `json:"commit"`
+	ReleaseDate   string `json:"date_utc"`
+	downloadURL   string `json:"-"`
+
+	version *semver.Version
+}
+
+func (vi *datakitVerInfo) String() string {
+	return fmt.Sprintf("datakit %s/%s", vi.VersionString, vi.Commit)
+}
+
+func (vi *datakitVerInfo) parse() error {
+	verstr := strings.TrimPrefix(vi.VersionString, "v") // older version has prefix `v', this crash semver.Parse()
+	v, err := semver.Parse(verstr)
+	if err != nil {
+		return err
+	}
+	vi.version = &v
+	return nil
+}
+
+func getOnlineVersion() (*datakitVerInfo, error) {
 	nhttp.DefaultTransport.(*nhttp.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	resp, err := nhttp.Get("https://static.dataflux.cn/datakit/version")
 	if err != nil {
-		fmt.Printf("Get online version failed: \n%s\n", err.Error())
-		return
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 	infobody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Get online version failed: \n%s\n", err.Error())
-		return
+		return nil, err
 	}
 
-	var ver struct {
-		Version     string `json:"version"`
-		Commit      string `json:"commit"`
-		ReleaseDate string `json:"date_utc"`
-	}
-	if err := json.Unmarshal(infobody, &ver); err != nil {
-		fmt.Printf("Get online version failed: \n%s\n", err.Error())
-		return
+	var ver datakitVerInfo
+	if err = json.Unmarshal(infobody, &ver); err != nil {
+		return nil, err
 	}
 
-	if ver.Version != git.Version || ver.Commit != git.Commit {
-		fmt.Printf("\n\nNew version available: %s, commit %s (release at %s)\n",
-			ver.Version, ver.Commit, ver.ReleaseDate)
+	if err := ver.parse(); err != nil {
+		return nil, err
+	}
 
-		dlurl := fmt.Sprintf("https://static.dataflux.cn/datakit/installer-%s-%s", runtime.GOOS, runtime.GOARCH)
-		cmdWin := fmt.Sprintf(`Import-Module bitstransfer; start-bitstransfer -source %s -destination .\dk-installer.exe; .\dk-installer.exe -upgrade; rm dk-installer.exe`, dlurl)
-		cmd := fmt.Sprintf(`sudo -- sh -c "curl %s -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"`, dlurl)
-		switch runtime.GOOS {
-		case "windows":
-			fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
-		default:
-			fmt.Printf("\nUpgrade:\n\t%s\n\n", cmd)
+	ver.downloadURL = fmt.Sprintf("https://static.dataflux.cn/datakit/installer-%s-%s", runtime.GOOS, runtime.GOARCH)
+	if runtime.GOOS == "windows" {
+		ver.downloadURL += ".exe"
+	}
+	return &ver, nil
+}
+
+func getLocalVersion() (*datakitVerInfo, error) {
+	v := &datakitVerInfo{VersionString: strings.TrimPrefix(git.Version, "v"), Commit: git.Commit, ReleaseDate: git.BuildAt}
+	if err := v.parse(); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func isNewVersion(newVer, curver *datakitVerInfo, acceptRC bool) bool {
+
+	if newVer.version.Compare(*curver.version) > 0 { // new version
+		if len(newVer.version.Pre) == 0 {
+			return true
+		}
+
+		l.Debugf("find RC version %s", newVer.version)
+
+		if acceptRC {
+			return true
 		}
 	}
+
+	return false
+}
+
+func tryOTAUpdate(ver string) error {
+	baseURL := "static.dataflux.cn/datakit"
+
+	datakitUrl := "https://" + path.Join(baseURL,
+		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, ver))
+
+	telegrafUrl := "https://" + path.Join(baseURL,
+		"telegraf",
+		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
+
+	dataUrl := "https://" + path.Join(baseURL, "data.tar.gz")
+
+	l.Debugf("downloading %s to %s...", datakitUrl, datakit.InstallDir)
+	if err := install.Download(datakitUrl, datakit.InstallDir, false); err != nil {
+		return err
+	}
+
+	l.Debugf("downloading %s to %s...", telegrafUrl, datakit.InstallDir)
+	if err := install.Download(telegrafUrl, datakit.InstallDir, false); err != nil {
+		return err
+	}
+
+	l.Debugf("downloading %s to %s...", dataUrl, datakit.InstallDir)
+	if err := install.Download(dataUrl, datakit.InstallDir, false); err != nil {
+		l.Errorf("download %s failed: %v, ignored", dataUrl, err)
+	}
+
+	svc, err := datakit.NewService()
+	if err != nil {
+		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
+		return err
+	}
+
+	return install.UpgradeDatakit(svc)
 }
