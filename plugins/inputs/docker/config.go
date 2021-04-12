@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"regexp"
 	"sync"
 	"time"
@@ -39,7 +40,7 @@ const (
     ## Use TLS but skip chain & host verification
     # insecure_skip_verify = false
 
-    [[inputs.docker.log_option]]
+    #[[inputs.docker.log_option]]
 	# container_name_match = "<regexp-container-name>"
         # source = "<your-source>"
         # service = "<your-service>"
@@ -83,14 +84,27 @@ func (this *Inputs) loadCfg() (err error) {
 		return
 	}
 
-	this.collectMetricDuration, err = time.ParseDuration(this.CollectMetricInterval)
-	if err != nil {
-		return
+	this.kubernetes = func() *Kubernetes {
+		k := Kubernetes{URL: defaultKubernetesURL}
+		if err := k.Init(); err != nil {
+			l.Warn(err)
+			return nil
+		}
+		return &k
+	}()
+
+	if this.CollectMetric {
+		this.collectMetricDuration, err = time.ParseDuration(this.CollectMetricInterval)
+		if err != nil {
+			return
+		}
 	}
 
-	this.collectObjectDuration, err = time.ParseDuration(this.CollectObjectInterval)
-	if err != nil {
-		return
+	if this.CollectObject {
+		this.collectObjectDuration, err = time.ParseDuration(this.CollectObjectInterval)
+		if err != nil {
+			return
+		}
 	}
 
 	// 限制最小采集间隔
@@ -121,6 +135,7 @@ func (this *Inputs) loadCfg() (err error) {
 
 func (this *Inputs) initLogOption() (err error) {
 	this.opts = types.ContainerListOptions{All: this.IncludeExited}
+	this.containerLogList = make(map[string]context.CancelFunc)
 
 	this.containerLogsOptions = types.ContainerLogsOptions{
 		ShowStdout: true,
