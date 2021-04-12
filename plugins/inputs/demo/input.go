@@ -132,10 +132,15 @@ func (i *Input) SampleConfig() string {
 # 这里无需任何配置
 `
 }
+
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&demoMeasurement{},
 	}
+}
+
+func (i *Input) AvailableArchs() []string {
+	return datakit.AllArch
 }
 
 func init() {
