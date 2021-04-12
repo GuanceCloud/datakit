@@ -178,6 +178,10 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 	return client, nil
 }
 
+func (i *Input) AvailableArchs() []string {
+	return datakit.UnknownArch
+}
+
 func (n *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&NginxMeasurement{},
