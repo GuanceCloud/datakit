@@ -4,38 +4,39 @@ docker采集器有5个数据源。其中，docker自身服务数据2个，容器
 
 在使用方面，简化了配置文件，删除一些精细控制（比如忽略指定label的容器），示例配置：
 
-```
+```toml
 [inputs.docker]
     # Docker Endpoint
     # To use TCP, set endpoint = "tcp://[ip]:[port]"
     # To use environment variables (ie, docker-machine), set endpoint = "ENV"
     endpoint = "unix:///var/run/docker.sock"
-
+    
+    collect_metric = true
+    collect_object = true
+    collect_logging = true
+    
     # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-    collect_metrics_interval = "10s"
+    collect_metric_interval = "10s"
     collect_object_interval = "5m"
     
-    collect_logging = true
-    collect_logging_from_beginning = false
-
     # Is all containers, Return all containers. By default, only running containers are shown.
     include_exited = false
-
+    
     ## Optional TLS Config
-    # tls_ca = "/tmp/ca.pem"
-    # tls_cert = "/tmp/cert.pem"
-    # tls_key = "/tmp/key.pem"
+    # tls_ca = "/path/to/ca.pem"
+    # tls_cert = "/path/to/cert.pem"
+    # tls_key = "/path/to/key.pem"
+    ## Use TLS but skip chain & host verification
     # insecure_skip_verify = false
-
-    # About logging
-    [[inputs.docker.log_pipeline]]
-        container_name_match = "<regexp-container-name>"
-        source = "<your-source>"
-        service = "<your-service>"
-        pipeline = "<this-is-pipeline>"
-
-    # [inputs.docker.tags]
-    # tags1 = "tags1"
+    
+    [[inputs.docker.log_option]]
+        # container_name_match = "<regexp-container-name>"
+        # source = "<your-source>"
+        # service = "<your-service>"
+        # pipeline = "<this-is-pipeline>"
+    
+    [inputs.docker.tags]
+        # tags1 = "value1"
 ```
 
 ### docker服务本身的指标
@@ -112,36 +113,77 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 
 ### 指标数据
 
-指标集 docker（docker服务指标，待补充）
+#### `docker`（docker服务指标，待补充）
 
 | 名称 | 描述 | 类型 | 单位 |
 | :--  | ---  | ---  | ---  |
 | NULL |      |      |      |
 
-指标集 docker_container（docker容器指标）
+#### `docker_containers`（docker容器指标）
 
-| 名称                | 字段类型 | 类型    | 单位    | 描述                             |
-| :--                 | ---      | ---     | ---     | --                               |
-| container_id        | tags     | string  |         | 容器id                           |
-| container_name      | tags     | string  |         | 容器名称                         |
-| image_name          | tags     | string  |         | 容器镜像名称                     |
-| docker_image        | tags     | string  |         | 镜像名称+版本号                  |
-| host                | tags     | string  |         | 主机名                           |
-| stats               | tags     | string  |         | 运行状态，running/exited/removed |
-| kube_container_name | tags     | string  |         |                                  |
-| kube_daemon_set     | tags     | string  |         |                                  |
-| kube_deployment     | tags     | string  |         |                                  |
-| kube_namespace      | tags     | string  |         |                                  |
-| kube_ownerref_kind  | tags     | string  |         |                                  |
-| pod_name            | tags     | string  |         |                                  |
-| pod_phase           | tags     | string  |         |                                  |
-| from_kubernetes     | tags     | booler  |         | 是否由k8s创建                    |
-| cpu_usage_percent   | fields   | float   | percent |                                  |
-| mem_limit           | fields   | integer | bytes   |                                  |
-| mem_usage           | fields   | integer | bytes   |                                  |
-| mem_usage_percent   | fields   | float   | percent |                                  |
-| mem_failed_count    | fields   | integer | bytes   |                                  |
-| network_bytes_rcvd  | fields   | integer | bytes   |                                  |
-| network_bytes_sent  | fields   | integer | bytes   |                                  |
-| block_read_byte     | fields   | integer | bytes   |                                  |
-| block_write_byte    | fields   | integer | bytes   |                                  |
+-  标签
+
+| 名称                | 类型   | 描述                             |
+| :--                 | ---    | --                               |
+| container_id        | string | 容器id                           |
+| container_name      | string | 容器名称                         |
+| image_name          | string | 容器镜像名称                     |
+| docker_image        | string | 镜像名称+版本号                  |
+| host                | string | 主机名                           |
+| stats               | string | 运行状态，running/exited/removed |
+| kube_container_name | string | kube容器名称                     |
+| kube_daemon_set     | string |                                  |
+| kube_deployment     | string |                                  |
+| kube_namespace      | string |                                  |
+| kube_ownerref_kind  | string |                                  |
+| pod_name            | string |                                  |
+| pod_phase           | string |                                  |
+
+- 指标列表
+
+| 名称               | 类型    | 单位    |
+| :--                | ---     | ---     |
+| from_kubernetes    | booler  |         |
+| cpu_usage_percent  | float   | percent |
+| mem_limit          | integer | bytes   |
+| mem_usage          | integer | bytes   |
+| mem_usage_percent  | float   | percent |
+| mem_failed_count   | integer | bytes   |
+| network_bytes_rcvd | integer | bytes   |
+| network_bytes_sent | integer | bytes   |
+| block_read_byte    | integer | bytes   |
+| block_write_byte   | integer | bytes   |
+
+#### docker容器日志
+
+指标集为配置文件 `inputs.docker.log_option` 字段 `source`，比如配置如下：
+
+```toml
+[[inputs.docker.log_option]]
+    container_name_match = "nginx-version-*"
+    source = "nginx"
+    service = "nginx"
+    pipeline = "nginx.p"
+```
+
+如果日志来源的容器，容器名能够匹配 `container_name_match` 正则，该容器日志的指标集为 `source` 字段。
+
+如果没有匹配到或 `source` 为空，指标集为容器名
+
+-  标签
+
+| 名称           | 类型   | 描述         |
+| :--            | ---    | --           |
+| container_name | string | 容器名称     |
+| image_name     | string | 容器镜像名称 |
+
+- 指标列表
+
+| 名称            | 类型   | 单位 |
+| :--             | ---    | ---  |
+| from_kubernetes | booler |      |
+| service         | string |      |
+| status          | string |      |
+| message         | string |      |
+
+{{ end }}
