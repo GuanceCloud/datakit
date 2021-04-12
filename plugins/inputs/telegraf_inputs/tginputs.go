@@ -48,7 +48,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/postgresql"
 	"github.com/influxdata/telegraf/plugins/inputs/procstat"
 	"github.com/influxdata/telegraf/plugins/inputs/rabbitmq"
-	"github.com/influxdata/telegraf/plugins/inputs/redis"
+	// "github.com/influxdata/telegraf/plugins/inputs/redis"
 	"github.com/influxdata/telegraf/plugins/inputs/smart"
 	"github.com/influxdata/telegraf/plugins/inputs/snmp"
 	"github.com/influxdata/telegraf/plugins/inputs/socket_listener"
@@ -109,8 +109,6 @@ var (
 		// "mem":    {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
 		"swap": {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
 		// "system": {name: "system", Catalog: "host", Input: &system.SystemStats{}},
-		//"cpu":      {name: "cpu", Catalog: "host", input: &cpu.CPUStats{}},
-		"cpu":      {name: "cpu", Catalog: "host", Sample: samples["cpu"], Input: nil},
 		"procstat": {name: "procstat", Catalog: "host", Input: &procstat.Procstat{}},
 		"smart":    {name: "smart", Catalog: "host", Input: &smart.Smart{}},
 
@@ -133,7 +131,7 @@ var (
 
 		"postgresql": {name: "postgresql", Catalog: "db", Input: &postgresql.Postgresql{}},
 		"mongodb":    {name: "mongodb", Catalog: "db", Input: &mongodb.MongoDB{}},
-		"redis":      {name: "redis", Catalog: "db", Input: &redis.Redis{}},
+		// "redis":         {name: "redis", Catalog: "db", Input: &redis.Redis{}},
 		// "elasticsearch": {name: "elasticsearch", Catalog: "db", Input: &elasticsearch.Elasticsearch{}},
 		"sqlserver":  {name: "sqlserver", Catalog: "db", Input: &sqlserver.SQLServer{}},
 		"memcached":  {name: "memcached", Catalog: "db", Input: &memcached.Memcached{}},
