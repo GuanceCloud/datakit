@@ -128,7 +128,6 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 | docker_image        | tags     | string  |         | 镜像名称+版本号                  |
 | host                | tags     | string  |         | 主机名                           |
 | stats               | tags     | string  |         | 运行状态，running/exited/removed |
-| from_kubernetes     | tags     | booler  |         | 是否由k8s创建                    |
 | kube_container_name | tags     | string  |         |                                  |
 | kube_daemon_set     | tags     | string  |         |                                  |
 | kube_deployment     | tags     | string  |         |                                  |
@@ -136,6 +135,7 @@ Jun 12 16:33:15 ubuntu-server dockerd[1126]: time="2020-06-12T08:33:15.336971602
 | kube_ownerref_kind  | tags     | string  |         |                                  |
 | pod_name            | tags     | string  |         |                                  |
 | pod_phase           | tags     | string  |         |                                  |
+| from_kubernetes     | tags     | booler  |         | 是否由k8s创建                    |
 | cpu_usage_percent   | fields   | float   | percent |                                  |
 | mem_limit           | fields   | integer | bytes   |                                  |
 | mem_usage           | fields   | integer | bytes   |                                  |
