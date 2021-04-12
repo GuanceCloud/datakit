@@ -45,7 +45,7 @@ const (
 `
 )
 
-type Inputs struct {
+type Input struct {
 	LogFiles           []string          `toml:"logfiles"`
 	Ignore             []string          `toml:"ignore"`
 	Source             string            `toml:"source"`
@@ -61,7 +61,7 @@ type Inputs struct {
 
 var l = logger.DefaultSLogger(inputName)
 
-func (this *Inputs) Run() {
+func (this *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	// 兼容旧版配置 pipeline_path
@@ -96,20 +96,20 @@ func (this *Inputs) Run() {
 	tailer.Run()
 }
 
-func (this *Inputs) PipelineConfig() map[string]string {
+func (this *Input) PipelineConfig() map[string]string {
 	return nil
 }
 
-func (this *Inputs) Catalog() string {
+func (this *Input) Catalog() string {
 	return "log"
 }
 
-func (this *Inputs) SampleConfig() string {
+func (this *Input) SampleConfig() string {
 	return sampleCfg
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Inputs{}
+		return &Input{}
 	})
 }
