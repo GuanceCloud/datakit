@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 )
@@ -65,6 +66,10 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 		&tablespaceMeasurement{},
 		&systemMeasurement{},
 	}
+}
+
+func (i *Input) AvailableArchs() []string {
+	return datakit.UnknownArch
 }
 
 func init() {
