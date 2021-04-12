@@ -67,6 +67,7 @@ require (
 	github.com/ip2location/ip2location-go v8.3.0+incompatible
 	github.com/jackc/pgx v3.6.0+incompatible
 	github.com/jdcloud-api/jdcloud-sdk-go v1.43.0
+	github.com/jessevdk/go-flags v1.4.0
 	github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5 // indirect
 	github.com/kardianos/service v1.0.0
 	github.com/karrick/godirwalk v1.16.1 // indirect
