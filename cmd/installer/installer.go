@@ -145,6 +145,7 @@ func main() {
 		l.Info("get local IP failed: %s", err.Error())
 	} else {
 		fmt.Printf("\n\tVisit http://%s:%d/stats to see DataKit running status.\n\n", localIP, *flagPort)
+		fmt.Printf("\n\tVisit http://%s:%d/man to see DataKit manuals.\n\n", localIP, *flagPort)
 	}
 }
 
