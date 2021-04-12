@@ -173,10 +173,10 @@ func (i *Input) collectSchemaMeasurement() {
 
 func (i *Input) Run() {
 	l = logger.SLogger("mysql")
+	i.initCfg()
+
 	tick := time.NewTicker(i.IntervalDuration)
 	defer tick.Stop()
-
-	i.initCfg()
 
 	n := 0
 
