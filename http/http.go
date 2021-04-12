@@ -53,7 +53,9 @@ func Start(bind string) {
 	httpBind = bind
 
 	// start HTTP server
+	datakit.WG.Add(1)
 	go func() {
+		defer datakit.WG.Done()
 		HttpStart(bind)
 	}()
 }
@@ -94,8 +96,7 @@ func ReloadDatakit() error {
 }
 
 func RestartHttpServer() {
-	l.Info("trigger HTTP server to stopping...")
-	stopCh <- nil // trigger HTTP server to stopping
+	HttpStop()
 
 	l.Info("wait HTTP server to stopping...")
 	<-stopOkCh // wait HTTP server stop ok
@@ -213,14 +214,7 @@ func HttpStart(addr string) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	httpsAddr := ""
-	if datakit.Cfg.MainCfg.TLSCert != "" && datakit.Cfg.MainCfg.TLSKey != "" {
-		parts := strings.Split(addr, ":")
-		httpsAddr = parts[0] + fmt.Sprintf(":%v", datakit.Cfg.MainCfg.HTTPSPort)
-		//router.Use(tlsHandler(httpsAddr))
-	}
-
-	l.Debugf("addr:%s, httpsAddr: %s", addr, httpsAddr)
+	l.Debugf("HTTP bind addr:%s", addr)
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -245,14 +239,6 @@ func HttpStart(addr string) {
 		Handler: router,
 	}
 
-	if httpsAddr != "" {
-		go func() {
-			if err := router.RunTLS(httpsAddr, datakit.Cfg.MainCfg.TLSCert, datakit.Cfg.MainCfg.TLSKey); err != nil {
-				l.Errorf("fail to start https on %s, %s", httpsAddr, err)
-			}
-		}()
-	}
-
 	go func() {
 		tryStartHTTPServer(srv)
 		l.Info("http server exit")
@@ -269,6 +255,11 @@ func HttpStart(addr string) {
 	}
 }
 
+func HttpStop() {
+	l.Info("trigger HTTP server to stopping...")
+	stopCh <- nil
+}
+
 func tryStartHTTPServer(srv *http.Server) {
 
 	retryCnt := 0
@@ -277,7 +268,6 @@ func tryStartHTTPServer(srv *http.Server) {
 		if err := srv.ListenAndServe(); err != nil {
 
 			if err != http.ErrServerClosed {
-				time.Sleep(time.Second)
 				retryCnt++
 				l.Warnf("start HTTP server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
 				continue
@@ -286,6 +276,8 @@ func tryStartHTTPServer(srv *http.Server) {
 				break
 			}
 		}
+
+		time.Sleep(time.Second)
 	}
 
 	stopOkCh <- nil
