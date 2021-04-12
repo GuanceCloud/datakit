@@ -40,10 +40,7 @@ type Input struct {
 }
 
 func (i *Input) initCfg() {
-	// 采集频度
-	if i.Interval == "" {
-		i.Interval = "1m"
-	}
+	i.IntervalDuration = 1 * time.Minute
 
 	if i.Interval != "" {
 		du, err := time.ParseDuration(i.Interval)
