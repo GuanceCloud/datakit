@@ -16,7 +16,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/disk"
 	"github.com/influxdata/telegraf/plugins/inputs/diskio"
 	"github.com/influxdata/telegraf/plugins/inputs/dns_query"
-	"github.com/influxdata/telegraf/plugins/inputs/docker"
+	// "github.com/influxdata/telegraf/plugins/inputs/docker"
 	_ "github.com/influxdata/telegraf/plugins/inputs/elasticsearch"
 	"github.com/influxdata/telegraf/plugins/inputs/exec"
 	"github.com/influxdata/telegraf/plugins/inputs/fluentd"
@@ -53,7 +53,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/socket_listener"
 	"github.com/influxdata/telegraf/plugins/inputs/solr"
 	"github.com/influxdata/telegraf/plugins/inputs/sqlserver"
-	"github.com/influxdata/telegraf/plugins/inputs/swap"
 	"github.com/influxdata/telegraf/plugins/inputs/syslog"
 	"github.com/influxdata/telegraf/plugins/inputs/tengine"
 	"github.com/influxdata/telegraf/plugins/inputs/uwsgi"
@@ -99,11 +98,8 @@ func (ti *TelegrafInput) SampleConfig() string {
 
 var (
 	TelegrafInputs = map[string]*TelegrafInput{ // Name: Catalog
-		"disk":   {name: "disk", Catalog: "host", Input: &disk.DiskStats{}},
-		"diskio": {name: "diskio", Catalog: "host", Input: &diskio.DiskIO{}},
-		// "mem":    {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
-		"swap": {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
-		// "system": {name: "system", Catalog: "host", Input: &system.SystemStats{}},
+		"disk":     {name: "disk", Catalog: "host", Input: &disk.DiskStats{}},
+		"diskio":   {name: "diskio", Catalog: "host", Input: &diskio.DiskIO{}},
 		"procstat": {name: "procstat", Catalog: "host", Input: &procstat.Procstat{}},
 		"smart":    {name: "smart", Catalog: "host", Input: &smart.Smart{}},
 
@@ -140,7 +136,7 @@ var (
 		"ceph":      {name: "ceph", Catalog: "ceph", Input: &ceph.Ceph{}},
 		"dns_query": {name: "dns_query", Catalog: "dns_query", Input: &dns_query.DnsQuery{}},
 
-		"docker": {name: "docker", Catalog: "docker", Input: &docker.Docker{}},
+		// "docker": {name: "docker", Catalog: "docker", Input: &docker.Docker{}},
 
 		"activemq":       {name: "activemq", Catalog: "activemq", Input: &activemq.ActiveMQ{}},
 		"nsq":            {name: "nsq", Catalog: "nsq", Input: &nsq.NSQ{}},
