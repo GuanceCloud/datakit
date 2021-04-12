@@ -29,11 +29,11 @@ var (
 			name: "oracle",
 			lang: "go",
 
-			entry: "main.go",
+			entry: "oracle.go",
 			osarchs: map[string]bool{
-				"linux/amd64": true,
-				"linux/386":   true,
-				// `darwin/amd64`: true,
+				"linux/amd64":  true,
+				"linux/386":    true,
+				`darwin/amd64`: true,
 			},
 
 			buildArgs: nil,
