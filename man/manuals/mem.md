@@ -6,7 +6,7 @@
 
 # 简介
 
-`mem` 采集器
+mem 采集器用于收集系统内存信息，一些通用的指标：total, available, available_percent, used, used_percent
 
 ## 前置条件
 
