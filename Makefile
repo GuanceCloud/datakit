@@ -91,7 +91,7 @@ test:
 	@GO111MODULE=off go test ./...
 
 local: man gofmt
-	#$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
+	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
 testing: man
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
