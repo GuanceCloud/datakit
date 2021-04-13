@@ -28,6 +28,7 @@ type Task interface {
 	AccessKey() string
 	Check() error
 	UpdateTimeUs() int64
+	GetFrequency() string
 
 	Ticker() *time.Ticker
 }
