@@ -237,7 +237,7 @@ func (_ *Input) Test() {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.UnknownArch
+	return datakit.AllArch
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
