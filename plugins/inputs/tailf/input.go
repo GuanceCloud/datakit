@@ -76,6 +76,7 @@ func (this *Input) Run() {
 	}
 
 	option := inputs.TailerOption{
+		Files:             this.LogFiles,
 		IgnoreFiles:       this.Ignore,
 		Source:            this.Source,
 		Service:           this.Service,
@@ -87,7 +88,7 @@ func (this *Input) Run() {
 		Tags:              this.Tags,
 	}
 
-	tailer, err := inputs.NewTailer(this.LogFiles, &option)
+	tailer, err := inputs.NewTailer(&option)
 	if err != nil {
 		l.Error(err)
 		return
