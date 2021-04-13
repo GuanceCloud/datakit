@@ -10,7 +10,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -65,6 +64,10 @@ func (*Input) PipelineConfig() map[string]string {
 	return nil
 }
 
+func (*Input) AvailableArchs() []string {
+	return []string{datakit.OSLinux}
+}
+
 func (this *Input) Run() {
 	l = logger.SLogger(inputName)
 
@@ -74,66 +77,17 @@ func (this *Input) Run() {
 	l.Info("docker input start")
 
 	if this.CollectMetric {
-		go func() {
-			gatherTick := time.NewTicker(this.collectMetricDuration)
-			defer gatherTick.Stop()
-			for {
-				select {
-				case <-datakit.Exit.Wait():
-					return
-
-				case <-gatherTick.C:
-					data, err := this.gather()
-					if err != nil {
-					}
-					if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
-						l.Error(err)
-					}
-				}
-			}
-		}()
-	}
-
-	if this.CollectLogging {
-		go func() {
-			gatherTick := time.NewTicker(this.collectMetricDuration)
-			defer gatherTick.Stop()
-			for {
-				select {
-				case <-datakit.Exit.Wait():
-					this.Stop()
-					return
-
-				case <-gatherTick.C:
-					this.gatherLog()
-				}
-			}
-		}()
+		go this.gatherMetric(this.collectMetricDuration)
 	}
 
 	if this.CollectObject {
-		go func() {
-			for {
-				select {
-				case <-datakit.Exit.Wait():
-					return
-
-				case <-time.After(this.collectObjectDuration):
-					data, err := this.gather()
-					if err != nil {
-					}
-					if err := io.NamedFeed(data, io.Object, inputName); err != nil {
-						l.Error(err)
-					}
-				}
-			}
-		}()
+		go this.gatherObject(this.collectObjectDuration)
 	}
-}
 
-func (this *Input) Stop() {
-	this.cancelTails()
-	this.wg.Wait()
+	if this.CollectLogging {
+		// 共用同一个interval
+		go this.gatherLoggoing(this.collectMetricDuration)
+	}
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
