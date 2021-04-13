@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jvm"
 )
@@ -30,6 +31,9 @@ func (i *Input) Run() {
 func (i *Input) Catalog() string      { return inputName }
 func (i *Input) SampleConfig() string { return kafkaConfSample }
 
+func (i *Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
 //func (i *Input) SampleMeasurement() []inputs.Measurement {
 //	return []inputs.Measurement{
 //		&JvmMeasurement{},
