@@ -47,8 +47,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/ping"
 	"github.com/influxdata/telegraf/plugins/inputs/postgresql"
 	"github.com/influxdata/telegraf/plugins/inputs/procstat"
-	"github.com/influxdata/telegraf/plugins/inputs/rabbitmq"
-
 	// "github.com/influxdata/telegraf/plugins/inputs/redis"
 	"github.com/influxdata/telegraf/plugins/inputs/smart"
 	"github.com/influxdata/telegraf/plugins/inputs/snmp"
@@ -61,10 +59,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/vsphere"
 	"github.com/influxdata/telegraf/plugins/inputs/x509_cert"
 	"github.com/influxdata/telegraf/plugins/inputs/zookeeper"
-	//"github.com/influxdata/telegraf/plugins/inputs/consul" // get ambiguous import error
-	//"github.com/influxdata/telegraf/plugins/inputs/phpfpm" // not exported
-	//"github.com/influxdata/telegraf/plugins/inputs/haproxy" // not exported
-	//"github.com/influxdata/telegraf/plugins/inputs/kube_inventory" // runtime crash
 )
 
 type TelegrafInput struct {
@@ -145,7 +139,6 @@ var (
 		// "docker": {name: "docker", Catalog: "docker", Input: &docker.Docker{}},
 
 		"activemq":       {name: "activemq", Catalog: "activemq", Input: &activemq.ActiveMQ{}},
-		"rabbitmq":       {name: "rabbitmq", Catalog: "rabbitmq", Input: &rabbitmq.RabbitMQ{}},
 		"nsq":            {name: "nsq", Catalog: "nsq", Input: &nsq.NSQ{}},
 		"nsq_consumer":   {name: "nsq_consumer", Catalog: "nsq", Input: &nsq_consumer.NSQConsumer{}},
 		"kafka_consumer": {name: "kafka_consumer", Catalog: "kafka", Input: &kafka_consumer.KafkaConsumer{}},
