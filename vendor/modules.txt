@@ -551,7 +551,6 @@ github.com/influxdata/telegraf/plugins/inputs/ping
 github.com/influxdata/telegraf/plugins/inputs/postgresql
 github.com/influxdata/telegraf/plugins/inputs/processes
 github.com/influxdata/telegraf/plugins/inputs/procstat
-github.com/influxdata/telegraf/plugins/inputs/rabbitmq
 github.com/influxdata/telegraf/plugins/inputs/smart
 github.com/influxdata/telegraf/plugins/inputs/snmp
 github.com/influxdata/telegraf/plugins/inputs/socket_listener
