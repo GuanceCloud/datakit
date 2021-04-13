@@ -5,15 +5,7 @@
 
 # 简介
 
-mem 采集器用于收集系统内存信息，一些通用的指标：
-
-|字段|描述|
-|:---|:---|
-|total|主机中 RAM 的总量|
-|available|可供程序分配的RAM|  
-|available_percent|可供程序分配的RAM百分比|
-|used|被程序使用的RAM|  
-|used_percent|被程序使用的RAM百分比|
+mem 采集器用于收集系统内存信息，一些通用的指标：total, available, available_percent, used, used_percent
 
 ## 前置条件
 
