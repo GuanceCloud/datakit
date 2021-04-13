@@ -31,8 +31,8 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 			"schema_size": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
-				Desc:     "Size of schemas",
+				Unit:     inputs.SizeMiB,
+				Desc:     "Size of schemas(MiB)",
 			},
 			"query_run_time_avg": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -85,7 +85,7 @@ func (i *Input) getSchemaSize() error {
 
 		size := cast.ToFloat64(string(*val))
 
-		m.fields["schema_size"] = size * 1000000
+		m.fields["schema_size"] = size
 		m.tags["schema_name"] = key
 		m.ts = time.Now()
 
