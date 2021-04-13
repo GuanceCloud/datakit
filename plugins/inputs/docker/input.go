@@ -65,6 +65,10 @@ func (*Input) PipelineConfig() map[string]string {
 	return nil
 }
 
+func (*Input) AvailableArchs() []string {
+	return []string{datakit.OSLinux}
+}
+
 func (this *Input) Run() {
 	l = logger.SLogger(inputName)
 
