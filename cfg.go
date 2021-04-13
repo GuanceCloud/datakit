@@ -35,10 +35,7 @@ func DefaultConfig() *Config {
 			Interval:      "10s",
 			StrictMode:    false,
 
-			HTTPBind:  "0.0.0.0:9529",
-			HTTPSPort: 443,
-			TLSCert:   "",
-			TLSKey:    "",
+			HTTPBind: "0.0.0.0:9529",
 
 			LogLevel:  "info",
 			Log:       filepath.Join(InstallDir, "log"),
@@ -103,13 +100,10 @@ type MainConfig struct {
 	UUID           string `toml:"-"`
 	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
 
-	Name      string      `toml:"name"`
-	DataWay   *DataWayCfg `toml:"dataway,omitempty"`
-	HTTPBind  string      `toml:"http_server_addr"`
-	HTTPSPort int         `toml:"https_port,omitempty"`
-	TLSCert   string      `toml:"tls_cert,omitempty"`
-	TLSKey    string      `toml:"tls_key,omitempty"`
-	GrpcPort  int         `toml:"inner_grpc_port"`
+	Name     string      `toml:"name"`
+	DataWay  *DataWayCfg `toml:"dataway,omitempty"`
+	HTTPBind string      `toml:"http_server_addr"`
+	GrpcPort int         `toml:"inner_grpc_port"`
 
 	// For old datakit verison conf, there may exist these fields,
 	// if these tags missing, TOML will parse error
