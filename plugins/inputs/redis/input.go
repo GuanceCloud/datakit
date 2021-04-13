@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -37,6 +38,8 @@ type Input struct {
 	client            *redis.Client        `toml:"-"`
 	collectCache      []inputs.Measurement `toml:"-"`
 	Addr              string               `toml:"-"`
+	Log               *inputs.TailerOption `toml:"log"`
+	tailer            *inputs.Tailer       `toml:"-"`
 }
 
 func (i *Input) initCfg() {
@@ -66,6 +69,13 @@ func (i *Input) initCfg() {
 func (i *Input) globalTag() {
 	i.Tags["server"] = i.Addr
 	i.Tags["service_name"] = i.Service
+}
+
+func (i *Input) PipelineConfig() map[string]string {
+	pipelineMap := map[string]string{
+		"redis": pipelineCfg,
+	}
+	return pipelineMap
 }
 
 func (i *Input) Collect() error {
@@ -127,6 +137,29 @@ func (i *Input) Run() {
 	l = logger.SLogger("redis")
 	i.initCfg()
 
+	if i.Log != nil {
+		go func() {
+			pfile := "redis.p"
+			if i.Log.Pipeline != "" {
+				pfile = i.Log.Pipeline
+			}
+
+			i.Log.Pipeline = filepath.Join(datakit.PipelineDir, pfile)
+
+			i.Log.Source = inputName
+			for k, v := range i.Tags {
+				i.Log.Tags[k] = v
+			}
+			tailer, err := inputs.NewTailer(i.Log)
+			if err != nil {
+				l.Errorf("init tailf err:%s", err.Error())
+				return
+			}
+			i.tailer = tailer
+			tailer.Run()
+		}()
+	}
+
 	tick := time.NewTicker(i.IntervalDuration)
 	defer tick.Stop()
 
@@ -148,6 +181,11 @@ func (i *Input) Run() {
 			}
 
 		case <-datakit.Exit.Wait():
+			if i.tailer != nil {
+				i.tailer.Close()
+				l.Info("redis log exit")
+			}
+			l.Info("redis exit")
 			return
 		}
 	}
