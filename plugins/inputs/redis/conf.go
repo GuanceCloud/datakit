@@ -45,17 +45,8 @@ const (
     # glob filteer
     ignore = [""]
 
-    source = "redislog"
-
-    # add service tag, if it's empty, use $source.
-    service = "redislog"
-
     # grok pipeline script path
     pipeline = "redis.p"
-
-    # read file from beginning
-    # if from_begin was false, off auto discovery file
-    from_beginning = false
 
     # optional encodings:
     #    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
