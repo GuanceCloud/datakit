@@ -16,7 +16,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/disk"
 	"github.com/influxdata/telegraf/plugins/inputs/diskio"
 	"github.com/influxdata/telegraf/plugins/inputs/dns_query"
-	"github.com/influxdata/telegraf/plugins/inputs/docker"
+	// "github.com/influxdata/telegraf/plugins/inputs/docker"
 	_ "github.com/influxdata/telegraf/plugins/inputs/elasticsearch"
 	"github.com/influxdata/telegraf/plugins/inputs/exec"
 	"github.com/influxdata/telegraf/plugins/inputs/fluentd"
@@ -47,24 +47,18 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/ping"
 	"github.com/influxdata/telegraf/plugins/inputs/postgresql"
 	"github.com/influxdata/telegraf/plugins/inputs/procstat"
-	"github.com/influxdata/telegraf/plugins/inputs/rabbitmq"
 	// "github.com/influxdata/telegraf/plugins/inputs/redis"
 	"github.com/influxdata/telegraf/plugins/inputs/smart"
 	"github.com/influxdata/telegraf/plugins/inputs/snmp"
 	"github.com/influxdata/telegraf/plugins/inputs/socket_listener"
 	"github.com/influxdata/telegraf/plugins/inputs/solr"
 	"github.com/influxdata/telegraf/plugins/inputs/sqlserver"
-	"github.com/influxdata/telegraf/plugins/inputs/swap"
 	"github.com/influxdata/telegraf/plugins/inputs/syslog"
 	"github.com/influxdata/telegraf/plugins/inputs/tengine"
 	"github.com/influxdata/telegraf/plugins/inputs/uwsgi"
 	"github.com/influxdata/telegraf/plugins/inputs/vsphere"
 	"github.com/influxdata/telegraf/plugins/inputs/x509_cert"
 	"github.com/influxdata/telegraf/plugins/inputs/zookeeper"
-	//"github.com/influxdata/telegraf/plugins/inputs/consul" // get ambiguous import error
-	//"github.com/influxdata/telegraf/plugins/inputs/phpfpm" // not exported
-	//"github.com/influxdata/telegraf/plugins/inputs/haproxy" // not exported
-	//"github.com/influxdata/telegraf/plugins/inputs/kube_inventory" // runtime crash
 )
 
 type TelegrafInput struct {
@@ -104,11 +98,8 @@ func (ti *TelegrafInput) SampleConfig() string {
 
 var (
 	TelegrafInputs = map[string]*TelegrafInput{ // Name: Catalog
-		"disk":   {name: "disk", Catalog: "host", Input: &disk.DiskStats{}},
-		"diskio": {name: "diskio", Catalog: "host", Input: &diskio.DiskIO{}},
-		// "mem":    {name: "mem", Catalog: "host", Input: &mem.MemStats{}},
-		"swap": {name: "swap", Catalog: "host", Input: &swap.SwapStats{}},
-		// "system": {name: "system", Catalog: "host", Input: &system.SystemStats{}},
+		"disk":     {name: "disk", Catalog: "host", Input: &disk.DiskStats{}},
+		"diskio":   {name: "diskio", Catalog: "host", Input: &diskio.DiskIO{}},
 		"procstat": {name: "procstat", Catalog: "host", Input: &procstat.Procstat{}},
 		"smart":    {name: "smart", Catalog: "host", Input: &smart.Smart{}},
 
@@ -145,10 +136,9 @@ var (
 		"ceph":      {name: "ceph", Catalog: "ceph", Input: &ceph.Ceph{}},
 		"dns_query": {name: "dns_query", Catalog: "dns_query", Input: &dns_query.DnsQuery{}},
 
-		"docker": {name: "docker", Catalog: "docker", Input: &docker.Docker{}},
+		// "docker": {name: "docker", Catalog: "docker", Input: &docker.Docker{}},
 
 		"activemq":       {name: "activemq", Catalog: "activemq", Input: &activemq.ActiveMQ{}},
-		"rabbitmq":       {name: "rabbitmq", Catalog: "rabbitmq", Input: &rabbitmq.RabbitMQ{}},
 		"nsq":            {name: "nsq", Catalog: "nsq", Input: &nsq.NSQ{}},
 		"nsq_consumer":   {name: "nsq_consumer", Catalog: "nsq", Input: &nsq_consumer.NSQConsumer{}},
 		"kafka_consumer": {name: "kafka_consumer", Catalog: "kafka", Input: &kafka_consumer.KafkaConsumer{}},
