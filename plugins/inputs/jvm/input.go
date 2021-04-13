@@ -2,9 +2,9 @@ package jvm
 
 import (
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -76,6 +76,16 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func (i *Input) AvailableArchs() []string {
+	return datakit.UnknownArch
+}
+
+func init() {
+	inputs.Add(inputName, func() inputs.Input {
+		return &Input{}
+	})
+}
+
 func (j *JolokiaAgent) Collect() {
 	j.l = logger.DefaultSLogger(j.PluginName)
 	j.l.Infof("%s input started...", j.PluginName)
@@ -109,8 +119,4 @@ func (j *JolokiaAgent) Collect() {
 	}
 }
 
-func init() {
-	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
-	})
-}
+
