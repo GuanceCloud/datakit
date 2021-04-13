@@ -9,6 +9,8 @@ import (
 )
 
 const (
+	TODO = "TODO" // global todo string
+
 	Int    = "int"
 	Float  = "float"
 	String = "string"
@@ -26,8 +28,9 @@ const (
 // units
 const (
 	UnknownUnit = "-"
-	SizeByte    = "byte(1k=1000)"  // 1000
-	SizeIByte   = "ibyte(1k=1024)" // 1024
+
+	SizeByte  = "byte(1k=1000)"  // 1000
+	SizeIByte = "ibyte(1k=1024)" // 1024
 
 	NCount = "count"
 
