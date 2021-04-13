@@ -345,10 +345,11 @@ func (i *Input) Run() {
 	// collect logs
 	go func() {
 		option := inputs.TailerOption{
+			Files:   i.LogFiles,
 			Source:  inputName,
 			Service: inputName,
 		}
-		tailer, err := inputs.NewTailer(i.LogFiles, &option)
+		tailer, err := inputs.NewTailer(&option)
 		if err != nil {
 			l.Error(err)
 			return
