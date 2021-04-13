@@ -91,6 +91,10 @@ func (t *HTTPTask) PostURLStr() string {
 	return t.PostURL
 }
 
+func (t *HTTPTask) GetFrequency() string {
+	return t.Frequency
+}
+
 func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
 		"name":   t.Name,
@@ -204,27 +208,27 @@ type HTTPOptAuth struct {
 }
 
 type HTTPOptRequest struct {
-	FollowRedirect bool              `json:"follow_redirect"`
-	Headers        map[string]string `json:"headers"`
-	Cookies        string            `json:"cookies"`
-	Auth           *HTTPOptAuth      `json:"auth"`
+	FollowRedirect bool              `json:"follow_redirect,omitempty"`
+	Headers        map[string]string `json:"headers,omitempty"`
+	Cookies        string            `json:"cookies,omitempty"`
+	Auth           *HTTPOptAuth      `json:"auth,omitempty"`
 }
 
 type HTTPOptBody struct {
-	BodyType string `json:"body_type"`
-	Body     string `json:"body"`
+	BodyType string `json:"body_type,omitempty"`
+	Body     string `json:"body,omitempty"`
 }
 
 type HTTPOptCertificate struct {
-	IgnoreServerCertificateError bool   `json:ignore_server_certificate_error`
-	PrivateKey                   string `json:"private_key"`
-	Certificate                  string `json:"certificate"`
-	CaCert                       string `json:"ca"`
+	IgnoreServerCertificateError bool   `json:ignore_server_certificate_error,omitempty`
+	PrivateKey                   string `json:"private_key,omitempty"`
+	Certificate                  string `json:"certificate,omitempty"`
+	CaCert                       string `json:"ca,omitempty"`
 }
 
 type HTTPOptProxy struct {
-	URL     string            `json:"url"`
-	Headers map[string]string `json:"headers"`
+	URL     string            `json:"url,omitempty"`
+	Headers map[string]string `json:"headers,omitempty"`
 }
 
 type HTTPAdvanceOption struct {
