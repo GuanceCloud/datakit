@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -63,6 +64,12 @@ const sample = `[[inputs.dialtesting]]
 
 	#  中心任务存储的服务地址，或本地json 文件全路径
 	server = "files:///your/dir/json-file-name"
+
+	# 若server配为中心任务服务地址时，需要配置相应的ak或者sk
+	ak = ""
+	sk = ""
+
+	pull_interval = "1m"
 
 	[inputs.dialtesting.tags]
 	# 各种可能的 tag
@@ -256,13 +263,13 @@ func (d *Input) dispatchTasks(j []byte) error {
 					return err
 				}
 
-				//d.class = dt.ClassHTTP
-
 				// update dialer pos
 				ts := t.UpdateTimeUs()
 				if d.pos < ts {
 					d.pos = ts
 				}
+
+				l.Debugf(`%+#v`, d.curTasks[t.ID()])
 
 				if dialer, ok := d.curTasks[t.ID()]; ok { // update task
 
@@ -273,10 +280,16 @@ func (d *Input) dispatchTasks(j []byte) error {
 					}
 
 					if err := dialer.updateTask(&t); err != nil {
-						l.Warnf(` %s,ignore`, err.Error())
+						l.Warnf(`%s,ignore`, err.Error())
+					}
+
+					if strings.ToLower(t.Status()) == dt.StatusStop {
 						delete(d.curTasks, t.ID())
 					}
+
 				} else { // create new task
+
+					l.Debugf(`create new task %+#v`, t)
 					dialer, err := d.newHttpTaskRun(t)
 					if err != nil {
 						l.Errorf(`%s, ignore`, err.Error())
