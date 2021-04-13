@@ -21,6 +21,9 @@ func getQueues(n *Input) {
 			"queue_name": queue.Name,
 			"node_name":  queue.Node,
 		}
+		for k, v := range n.Tags {
+			tags[k] = v
+		}
 		fields := map[string]interface{}{
 			"consumers":                    queue.Consumers,
 			"consumer_utilisation":         queue.ConsumerUtilisation,
