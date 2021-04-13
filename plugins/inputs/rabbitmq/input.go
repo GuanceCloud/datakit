@@ -1,7 +1,6 @@
 package rabbitmq
 
 import (
-	"path/filepath"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -35,17 +34,19 @@ func (n *Input) Run() {
 
 	if n.Log != nil {
 		go func() {
-			if err := n.Log.Init(); err != nil {
-				l.Errorf("rabbitmq init tailf err:%s", err.Error())
+			inputs.JoinPipelinePath(n.Log, "rabbitmq.p")
+			n.Log.Source = inputName
+			for k, v := range n.Tags {
+				n.Log.Tags[k] = v
+			}
+
+			tail, err := inputs.NewTailer(n.Log)
+			if err != nil {
+				l.Errorf("init tailf err:%s", err.Error())
 				return
 			}
-			if n.Log.Option.Pipeline != "" {
-				n.Log.Option.Pipeline = filepath.Join(datakit.PipelineDir, n.Log.Option.Pipeline)
-			} else {
-				n.Log.Option.Pipeline = filepath.Join(datakit.PipelineDir, "rabbitmq.p")
-			}
-			n.Log.Option.Source = inputName
-			n.Log.Run()
+			n.tail = tail
+			tail.Run()
 		}()
 	}
 
@@ -78,8 +79,8 @@ func (n *Input) Run() {
 				}
 			}
 		case <-datakit.Exit.Wait():
-			if n.Log != nil {
-				n.Log.Close()
+			if n.tail != nil {
+				n.tail.Close()
 				l.Info("rabbitmq log exit")
 			}
 			l.Info("rabbitmq exit")
