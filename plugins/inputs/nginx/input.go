@@ -2,7 +2,6 @@ package nginx
 
 import (
 	"net/http"
-	"path/filepath"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -26,31 +25,17 @@ var (
 	# tls_key = "/xxx/key.key"
 	## Use TLS but skip chain & host verification
 	insecure_skip_verify = false
-
 	# HTTP response timeout (default: 5s)
 	response_timeout = "20s"
 
     [inputs.nginx.log]
 	#	files = []
-	#[inputs.nginx.log.option]
-	#	ignore = [""]
-	#	# your logging source, if it's empty, use 'default'
-	#	source = "nginx"
-	#	# add service tag, if it's empty, use $source.
-	#	service = ""
 	#	# grok pipeline script path
 	#	pipeline = "nginx.p"
-	#	# optional status:
-	#	#   "emerg","alert","critical","error","warning","info","debug","OK"
-	#	ignore_status = []
-	#	# read file from beginning
+	[inputs.nginx.tags]
+    # a = "b"
+
 	
-	#	# optional encodings:
-	#	#    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
-	#	character_encoding = ""
-	#	# The pattern should be a regexp. Note the use of '''this regexp'''
-	#	# regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-	#	match = '''^\S'''
 `
 	pipelineCfg = `
 add_pattern("date2", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
@@ -101,16 +86,18 @@ func (n *Input) Run() {
 
 	if n.Log != nil {
 		go func() {
-			if err := n.Log.Init(); err != nil {
-				l.Errorf("nginx init tailf err:%s", err.Error())
+			inputs.JoinPipelinePath(n.Log, "nginx.p")
+			n.Log.Source = nginx
+			for k, v := range n.Tags {
+				n.Log.Tags[k] = v
+			}
+			tail, err := inputs.NewTailer(n.Log)
+			if err != nil {
+				l.Errorf("init tailf err:%s", err.Error())
 				return
 			}
-			if n.Log.Option.Pipeline != "" {
-				n.Log.Option.Pipeline = filepath.Join(datakit.PipelineDir, n.Log.Option.Pipeline)
-			} else {
-				n.Log.Option.Pipeline = filepath.Join(datakit.PipelineDir, "nginx.p")
-			}
-			n.Log.Run()
+			n.tail = tail
+			tail.Run()
 		}()
 	}
 
@@ -139,8 +126,8 @@ func (n *Input) Run() {
 				n.collectCache = n.collectCache[:]
 			}
 		case <-datakit.Exit.Wait():
-			if n.Log != nil {
-				n.Log.Close()
+			if n.tail != nil {
+				n.tail.Close()
 				l.Info("nginx log exit")
 			}
 			l.Info("nginx exit")
@@ -178,8 +165,8 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (i *Input) AvailableArchs() []string {
-	return datakit.UnknownArch
+func (_ *Input) AvailableArchs() []string {
+	return datakit.AllArch
 }
 
 func (n *Input) SampleMeasurement() []inputs.Measurement {
