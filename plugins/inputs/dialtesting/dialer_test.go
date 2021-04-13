@@ -31,7 +31,7 @@ func TestDialer(t *testing.T) {
 		t.Error(err)
 	}
 
-	dialer, err := newDialer(task)
+	dialer, err := newDialer(task, nil)
 	if err != nil {
 		t.Error(err)
 	}
