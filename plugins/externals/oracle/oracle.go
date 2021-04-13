@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -18,28 +17,32 @@ import (
 
 	_ "github.com/godror/godror"
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
+	"github.com/jessevdk/go-flags"
 	"golang.org/x/net/context/ctxhttp"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
+type Option struct {
+	Interval        string `long:"interval" description:"gather interval" default:"10s"`
+	Metric          string `long:"metric-name" description:"gathered metric name" default:"oracle_monitor"`
+	InstanceDesc    string `long:"instance-desc" description:"oracle description"`
+	Host            string `long:"host" description:"oracle host"`
+	Port            string `long:"port" description:"oracle port" default:"1521"`
+	Username        string `long:"username" description:"oracle username"`
+	Password        string `long:"password" description:"oracle password"`
+	ServiceName     string `long:"service-name" description:"oracle service name"`
+	Tags            string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
+	DatakitHTTPPort int    `long:"datakit-http-port" description:"DataKit HTTP server port" default:"9529"`
+
+	Log      string   `long:"log" description:"log path"`
+	LogLevel string   `long:"log-level" description:"log file" default:"info"`
+	Query    []string `long:"query" description:"custom query arrary"`
+}
+
 var (
-	fInterval        = flag.String("interval", "5m", "gather interval")
-	fDataType        = flag.String("data-type", "metric", "data type, metric/logging, default metric")
-	fMetric          = flag.String("metric-name", "oracle_monitor", "gathered metric name")
-	fInstanceDesc    = flag.String("instance-desc", "", "oracle description")
-	fHost            = flag.String("host", "", "oracle host")
-	fPort            = flag.String("port", "1521", "oracle port")
-	fUsername        = flag.String("username", "", "oracle username")
-	fPassword        = flag.String("password", "", "oracle password")
-	fServiceName     = flag.String("service-name", "", "oracle service name")
-	fTags            = flag.String("tags", "", `additional tags in 'a=b,c=d,...' format`)
-	fDatakitHTTPPort = flag.Int("datakit-http-port", 9529, "DataKit HTTP server port")
-
-	fLog      = flag.String("log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"), "log path")
-	fLogLevel = flag.String("log-level", "info", "log file")
-
+	opt            Option
 	l              *logger.Logger
 	datakitPostURL = ""
 )
@@ -65,14 +68,14 @@ type monitor struct {
 
 func buildMonitor() *monitor {
 	m := &monitor{
-		metric:      *fMetric,
-		interval:    *fInterval,
-		user:        *fUsername,
-		password:    *fPassword,
-		desc:        *fInstanceDesc,
-		host:        *fHost,
-		port:        *fPort,
-		serviceName: *fServiceName,
+		metric:      opt.Metric,
+		interval:    opt.Interval,
+		user:        opt.Username,
+		password:    opt.Password,
+		desc:        opt.InstanceDesc,
+		host:        opt.Host,
+		port:        opt.Port,
+		serviceName: opt.ServiceName,
 	}
 
 	if m.interval != "" {
@@ -97,17 +100,36 @@ func buildMonitor() *monitor {
 		continue
 	}
 
+	for _, query := range opt.Query {
+		l.Info("custom query ======>", query)
+		arr := strings.Split(query, ":")
+		customCfg := &ExecCfg{
+			sql:        arr[0],
+			metricName: arr[1],
+			tagsMap:    strings.Split(arr[2], ","),
+		}
+		execCfgs = append(execCfgs, customCfg)
+	}
+
 	return m
 }
 
 func main() {
-	flag.Parse()
+	_, err := flags.Parse(&opt)
+	if err != nil {
+		fmt.Println("Parse error:", err)
+		return
+	}
 
-	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?name=oraclemonitor", *fDatakitHTTPPort)
+	if opt.Log == "" {
+		opt.Log = filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log")
+	}
 
-	logger.SetGlobalRootLogger(*fLog, *fLogLevel, logger.OPT_DEFAULT)
-	if *fInstanceDesc != "" { // add description to logger
-		l = logger.SLogger("oracle-" + *fInstanceDesc)
+	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?name=oraclemonitor", opt.DatakitHTTPPort)
+
+	logger.SetGlobalRootLogger(opt.Log, opt.LogLevel, logger.OPT_DEFAULT)
+	if opt.InstanceDesc != "" { // add description to logger
+		l = logger.SLogger("oracle-" + opt.InstanceDesc)
 	} else {
 		l = logger.SLogger("oracle")
 	}
@@ -145,6 +167,7 @@ func (m *monitor) run() {
 func (m *monitor) handle(ec *ExecCfg) {
 	res, err := m.query(ec)
 	if err != nil {
+		fmt.Printf("oracle query `%s' faild: %v, ignored \n", ec.sql, err)
 		l.Warnf("oracle query `%s' faild: %v, ignored", ec.sql, err)
 		return
 	}
@@ -160,17 +183,25 @@ func (m *monitor) handle(ec *ExecCfg) {
 
 func handleResponse(m *monitor, metricName string, tagsKeys []string, response []map[string]interface{}) error {
 	lines := [][]byte{}
+	var (
+		pt  *ifxcli.Point
+		err error
+	)
+
+	if metricName == "oracle_system" {
+		handleSystem(m, metricName, response)
+		return nil
+	}
 
 	for _, item := range response {
 
 		tags := map[string]string{}
 
 		tags["oracle_service"] = m.serviceName
-		tags["oracle_server"] = fmt.Spprintf("%s:%s", m.host, m.port)
-		tags["host"] = m.host
+		tags["oracle_server"] = fmt.Sprintf("%s:%s", m.host, m.port)
 
 		for _, tagKey := range tagsKeys {
-			tags[tagKey] = String(item[tagKey])
+			tags[tagKey] = strings.Replace(String(item[tagKey]), " ", "_", -1)
 			delete(item, tagKey)
 		}
 
@@ -180,7 +211,7 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 			tags[k] = v
 		}
 
-		pt, err := ifxcli.NewPoint(metricName, tags, item, time.Now())
+		pt, err = ifxcli.NewPoint(metricName, tags, item, time.Now())
 		if err != nil {
 			l.Error("NewPoint(): %s", err.Error())
 			return err
@@ -190,6 +221,54 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 
 		lines = append(lines, []byte(pt.String()))
 	}
+
+	if len(lines) == 0 {
+		l.Debugf("no metric collected on %s", metricName)
+		return nil
+	}
+
+	// io 输出
+	if err := WriteData(bytes.Join(lines, []byte("\n")), datakitPostURL); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func handleSystem(m *monitor, metricName string, response []map[string]interface{}) error {
+	lines := [][]byte{}
+	tags := make(map[string]string)
+	fields := make(map[string]interface{})
+	// resData := make(map[string]interface{})
+	for _, item := range response {
+		tags["oracle_service"] = m.serviceName
+		tags["oracle_server"] = fmt.Sprintf("%s:%s", m.host, m.port)
+
+		// add user-added tags
+		// XXX: this may overwrite tags within @tags
+		for k, v := range m.tags {
+			tags[k] = v
+		}
+
+		fieldName := String(item["metric_name"])
+		value := item["value"]
+
+		fieldName = strings.ToLower(strings.Replace(fieldName, " ", "_", -1))
+
+		if newName, ok := dic[fieldName]; ok {
+			fields[newName] = value
+		}
+	}
+
+	pt, err := ifxcli.NewPoint(metricName, tags, fields, time.Now())
+	if err != nil {
+		l.Error("NewPoint(): %s", err.Error())
+		return err
+	}
+
+	fmt.Println("point ======>", pt.String())
+
+	lines = append(lines, []byte(pt.String()))
 
 	if len(lines) == 0 {
 		l.Debugf("no metric collected on %s", metricName)
@@ -226,7 +305,6 @@ func (m *monitor) query(obj *ExecCfg) ([]map[string]interface{}, error) {
 		for i, data := range cache {
 			key := strings.ToLower(columns[i])
 			val := *data.(*interface{})
-
 			if val != nil {
 				vType := reflect.TypeOf(val)
 
@@ -350,14 +428,14 @@ const (
 
 	oracle_tablespace_sql = `
     SELECT
-	  m.tablespace_name,
-	  NVL(m.used_space * t.block_size, 0),
-	  m.tablespace_size * t.block_size,
-	  NVL(m.used_percent, 0),
-	  NVL2(m.used_space, 0, 1)
-	FROM
-	  dba_tablespace_usage_metrics m
-	  join dba_tablespaces t on m.tablespace_name = t.tablespace_name
+    m.tablespace_name,
+    NVL(m.used_space * t.block_size, 0) as used_space,
+    m.tablespace_size * t.block_size as ts_size,
+    NVL(m.used_percent, 0) as in_use,
+    NVL2(m.used_space, 0, 1) as off_use
+  FROM
+    dba_tablespace_usage_metrics m
+    join dba_tablespaces t on m.tablespace_name = t.tablespace_name
     `
 )
 
@@ -383,4 +461,29 @@ var execCfgs = []*ExecCfg{
 		metricName: "oracle_tablespace",
 		tagsMap:    []string{"tablespace"},
 	},
+}
+
+var dic = map[string]string{
+	"buffer_cache_hit_ratio":       "buffer_cachehit_ratio",
+	"cursor_cache_hit_ratio":       "cursor_cachehit_ratio",
+	"library_cache_hit_ratio":      "library_cachehit_ratio",
+	"shared_pool_free_%":           "shared_pool_free",
+	"physical_read_bytes_per_sec":  "physical_reads",
+	"physical_write_bytes_per_sec": "physical_writes",
+	"enqueue_timeouts_per_sec":     "enqueue_timeouts",
+
+	"gc_cr_block_received_per_second": "gc_cr_block_received",
+	"global_cache_blocks_corrupted":   "cache_blocks_corrupt",
+	"global_cache_blocks_lost":        "cache_blocks_lost",
+	"average_active_sessions":         "active_sessions",
+	"sql_service_response_time":       "service_response_time",
+	"user_rollbacks_per_sec":          "user_rollbacks",
+	"total_sorts_per_user_call":       "sorts_per_user_call",
+	"rows_per_sort":                   "rows_per_sort",
+	"disk_sort_per_sec":               "disk_sorts",
+	"memory_sorts_ratio":              "memory_sorts_ratio",
+	"database_wait_time_ratio":        "database_wait_time_ratio",
+	"session_limit_%":                 "session_limit_usage",
+	"session_count":                   "session_count",
+	"temp_space_used":                 "temp_space_used",
 }
