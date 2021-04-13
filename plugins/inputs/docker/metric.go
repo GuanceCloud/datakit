@@ -16,7 +16,7 @@ const (
 	dockerContainerMeasurement = "docker_containers"
 )
 
-func (this *Input) gather() ([]byte, error) {
+func (this *Input) gather(opt *gatherOption) ([]byte, error) {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
 	defer cancel()
@@ -30,25 +30,31 @@ func (this *Input) gather() ([]byte, error) {
 	var buffer bytes.Buffer
 
 	for _, container := range cList {
-		data, err := this.gatherContainer(container)
-		if err != nil {
-			// 忽略某一个container的错误
-			// 继续gather下一个
-			l.Error(err)
-		} else {
-			buffer.Write(data)
-			buffer.WriteString("\n")
+		tags := this.gatherContainerInfo(container)
+		if opt.IsObjectCategory {
+			tags["name"] = container.ID
 		}
+
+		fields, err := this.gatherStats(container)
+		if err != nil {
+			l.Error(err)
+			continue
+		}
+
+		data, err := io.MakeMetric(dockerContainerMeasurement, tags, fields, time.Now())
+		if err != nil {
+			l.Error(err)
+			continue
+		}
+
+		buffer.Write(data)
+		buffer.WriteString("\n")
 	}
 
 	return buffer.Bytes(), nil
 }
 
-func (this *Input) gatherContainer(container types.Container) ([]byte, error) {
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
-	defer cancel()
-
+func (this *Input) gatherContainerInfo(container types.Container) map[string]string {
 	tags := map[string]string{
 		"container_id":   container.ID,
 		"container_name": getContainerName(container.Names),
@@ -57,39 +63,33 @@ func (this *Input) gatherContainer(container types.Container) ([]byte, error) {
 		"stats":          container.State,
 	}
 
+	// 内置tags优先
+	for k, v := range this.Tags {
+		if _, ok := tags[k]; !ok {
+			tags[k] = v
+		}
+	}
+
 	podInfo, err := this.gatherK8sPodInfo(container.ID)
 	if err != nil {
 		l.Warnf("gather k8s pod error, %s", err)
 	}
 
 	for k, v := range podInfo {
-		// "pod_name":            "",
-		// "pod_phase":           "",
-		// TODO:
-		// "kube_container_name": "",
-		// "kube_daemon_set":     "",
-		// "kube_deployment":     "",
-		// "kube_namespace":      "",
-		// "kube_ownerref_kind ": "",
-		// "kube_ownerref_name ": "",
-		// "kube_replica_set":    "",
 		tags[k] = v
 	}
 
-	fields, err := this.gatherStats(ctx, container.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	fields["from_kubernetes"] = contianerIsFromKubernetes(getContainerName(container.Names))
-
-	return io.MakeMetric(dockerContainerMeasurement, tags, fields, time.Now())
+	return tags
 }
 
 const streamStats = false
 
-func (this *Input) gatherStats(ctx context.Context, id string) (map[string]interface{}, error) {
-	resp, err := this.client.ContainerStats(ctx, id, streamStats)
+func (this *Input) gatherStats(container types.Container) (map[string]interface{}, error) {
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
+	defer cancel()
+
+	resp, err := this.client.ContainerStats(ctx, container.ID, streamStats)
 	if err != nil {
 		return nil, err
 	}
@@ -120,21 +120,8 @@ func (this *Input) gatherStats(ctx context.Context, id string) (map[string]inter
 		"network_bytes_sent": int64(netTx),
 		"block_read_byte":    int64(blkRead),
 		"block_write_byte":   int64(blkWrite),
+		"from_kubernetes":    contianerIsFromKubernetes(getContainerName(container.Names)),
 	}, nil
-}
-
-func (this *Input) composeMessage(ctx context.Context, id string, v *types.ContainerJSON) ([]byte, error) {
-	// 容器未启动时，无法进行containerTop，此处会得到error
-	// 与 opt.All 冲突，忽略此error即可
-	t, _ := this.client.ContainerTop(ctx, id, nil)
-
-	return json.Marshal(struct {
-		types.ContainerJSON
-		Process containerTop `json:"Process"`
-	}{
-		*v,
-		t,
-	})
 }
 
 func (this *Input) gatherK8sPodInfo(id string) (map[string]string, error) {
