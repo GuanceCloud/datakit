@@ -45,8 +45,6 @@ func StartCollect() error {
 
 func Feed(name, category string, pt *io.Point, opt *io.Option) error {
 
-	l.Debugf("feed start..")
-
 	pts := []*io.Point{}
 	pts = append(pts, pt)
 
