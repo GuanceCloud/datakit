@@ -66,7 +66,7 @@ func doStart() (*os.Process, error) {
 			var err error
 			out, err := cmd.CombinedOutput()
 			if err != nil {
-				l.Errorf("start telegraf failed: %s, %s", err.Error(), string(out))
+				l.Warnf("%s, %s", err.Error(), string(out))
 			}
 		}()
 		time.Sleep(time.Second)
