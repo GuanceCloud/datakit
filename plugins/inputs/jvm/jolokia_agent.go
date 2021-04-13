@@ -92,6 +92,8 @@ type JolokiaAgent struct {
 	collectCache []inputs.Measurement
 	PluginName   string `toml:"-"`
 	l            *logger.Logger
+
+	Tags map[string]string `toml:"-"`
 }
 
 func (ja *JolokiaAgent) Gather() error {
