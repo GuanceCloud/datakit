@@ -34,7 +34,7 @@ UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 
 NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(VERSION))"}}')
 NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(VERSION))"}}')
-NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支(dev/master)提交代码，以免 CI 任务失败"}}')
+NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支($(BRANCH))提交代码，以免 CI 任务失败"}}')
 
 ###################################
 # Detect telegraf update info
@@ -52,13 +52,14 @@ all: testing release preprod local
 define GIT_INFO
 //nolint
 package git
+
 const (
-	BuildAt string="$(DATE)"
-	Version string="$(VERSION)"
-	Golang string="$(GOVERSION)"
-	Commit string="$(COMMIT)"
-	Branch string="$(BRANCH)"
-	Uploader string="$(UPLOADER)"
+	BuildAt  string = "$(DATE)"
+	Version  string = "$(VERSION)"
+	Golang   string = "$(GOVERSION)"
+	Commit   string = "$(COMMIT)"
+	Branch   string = "$(BRANCH)"
+	Uploader string = "$(UPLOADER)"
 );
 endef
 export GIT_INFO
@@ -78,7 +79,6 @@ define pub
 	@echo "publish $(1) $(NAME) ..."
 	@GO111MODULE=off go run cmd/make/make.go -pub -env $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) \
 		-build-dir $(BUILD_DIR) -archs $(3)
-	@tree -Csh -L 3 $(PUB_DIR)
 endef
 
 lint:
