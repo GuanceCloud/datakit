@@ -118,5 +118,3 @@ func (j *JolokiaAgent) Collect() {
 		}
 	}
 }
-
-
