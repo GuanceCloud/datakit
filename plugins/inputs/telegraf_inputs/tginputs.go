@@ -173,7 +173,7 @@ var (
 		"jboss":          {name: "jolokia2_agent", Catalog: "jboss", Sample: samples["jboss"], Input: &jolokia2.JolokiaAgent{}},
 		"cassandra":      {name: "jolokia2_agent", Catalog: "cassandra", Sample: samples["cassandra"], Input: &jolokia2.JolokiaAgent{}},
 		"bitbucket":      {name: "jolokia2_agent", Catalog: "bitbucket", Sample: samples["bitbucket"], Input: &jolokia2.JolokiaAgent{}},
-		"kafka":          {name: "jolokia2_agent", Catalog: "kafka", Sample: samples["kafka"], Input: &jolokia2.JolokiaAgent{}},
+		//"kafka":          {name: "jolokia2_agent", Catalog: "kafka", Sample: samples["kafka"], Input: &jolokia2.JolokiaAgent{}},
 
 		// ambiguous import
 		`consul`: {name: "consul", Catalog: "consul", Sample: samples["consul"], Input: nil},
