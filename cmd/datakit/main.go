@@ -112,9 +112,9 @@ ReleasedInputs: %s
 		}
 
 		for k, v := range vers {
-			fmt.Println("---------------------------------------------------")
 
 			if isNewVersion(v, curver, true) { // show version info, also show RC verison info
+				fmt.Println("---------------------------------------------------")
 				fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n",
 					k, v.version, v.Commit, v.ReleaseDate)
 				switch runtime.GOOS {
