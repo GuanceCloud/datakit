@@ -3,6 +3,7 @@ package mysql
 import (
 	"database/sql"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -62,6 +63,8 @@ type Input struct {
 	Addr             string                   `toml:"-"`
 	collectCache     []inputs.Measurement     `toml:"-"`
 	response         []map[string]interface{} `toml:"-"`
+	Log              *inputs.TailerOption     `toml:"log"`
+	tailer           *inputs.Tailer           `toml:"-"`
 }
 
 func (i *Input) getDsnString() string {
@@ -100,6 +103,13 @@ func (i *Input) getDsnString() string {
 
 	// tls (todo)
 	return cfg.FormatDSN()
+}
+
+func (i *Input) PipelineConfig() map[string]string {
+	pipelineMap := map[string]string{
+		"mysql": pipelineCfg,
+	}
+	return pipelineMap
 }
 
 func (i *Input) initCfg() {
@@ -175,6 +185,29 @@ func (i *Input) Run() {
 	l = logger.SLogger("mysql")
 	i.initCfg()
 
+	if i.Log != nil {
+		go func() {
+			pfile := "redis.p"
+			if i.Log.Pipeline != "" {
+				pfile = i.Log.Pipeline
+			}
+
+			i.Log.Pipeline = filepath.Join(datakit.PipelineDir, pfile)
+
+			i.Log.Source = inputName
+			for k, v := range i.Tags {
+				i.Log.Tags[k] = v
+			}
+			tailer, err := inputs.NewTailer(i.Log)
+			if err != nil {
+				l.Errorf("init tailf err:%s", err.Error())
+				return
+			}
+			i.tailer = tailer
+			tailer.Run()
+		}()
+	}
+
 	tick := time.NewTicker(i.IntervalDuration)
 	defer tick.Stop()
 
@@ -196,6 +229,11 @@ func (i *Input) Run() {
 			}
 
 		case <-datakit.Exit.Wait():
+			if i.tailer != nil {
+				i.tailer.Close()
+				l.Info("mysql log exit")
+			}
+			l.Info("mysql exit")
 			return
 		}
 	}
