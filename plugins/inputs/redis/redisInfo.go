@@ -39,41 +39,49 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 			"active_defrag_running": &inputs.FieldInfo{
 				DataType: inputs.Bool,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Flag indicating if active defragmentation is active",
 			},
 			"redis_version": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
 				Desc:     "Version of the Redis server",
 			},
 			"active_defrag_hits": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Number of value reallocations performed by active the defragmentation process",
 			},
 			"active_defrag_misses": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Number of aborted value reallocations started by the active defragmentation process",
 			},
 			"active_defrag_key_hits": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Number of keys that were actively defragmented",
 			},
 			"active_defrag_key_misses": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Number of keys that were skipped by the active defragmentation process",
 			},
 			"aof_last_rewrite_time_sec": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Duration of the last AOF rewrite operation in seconds",
 			},
 			"aof_rewrite_in_progress": &inputs.FieldInfo{
 				DataType: inputs.Bool,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Flag indicating a AOF rewrite operation is on-going",
 			},
 			"aof_current_size": &inputs.FieldInfo{
@@ -115,41 +123,49 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 			"connected_clients": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     " Number of client connections (excluding connections from replicas)",
 			},
 			"connected_slaves": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "and cluster_connections.",
+				Unit:     inputs.NCount,
+				Desc:     "Number of connected replicas",
 			},
 			"rejected_connections": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Number of connections rejected because of maxclients limit",
 			},
 			"blocked_clients": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Number of clients pending on a blocking call (BLPOP, BRPOP, BRPOPLPUSH, BLMOVE, BZPOPMIN, BZPOPMAX)",
 			},
 			"client_biggest_input_buf": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
 				Desc:     "Biggest input buffer among current client connections",
 			},
 			"client_longest_output_list": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Longest output list among current client connections",
 			},
 			"evicted_keys": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Number of evicted keys due to maxmemory limit",
 			},
 			"expired_keys": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Total number of key expiration events",
 			},
 			"latest_fork_usec": &inputs.FieldInfo{
@@ -161,22 +177,26 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 			"pubsub_channels": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Global number of pub/sub channels with client subscriptions",
 			},
 			"pubsub_patterns": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Global number of pub/sub pattern with client subscriptions",
 			},
 			"rdb_bgsave_in_progress": &inputs.FieldInfo{
 				DataType: inputs.Bool,
 				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
 				Desc:     "Flag indicating a RDB save is on-going",
 			},
 			"rdb_changes_since_last_save": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "refers to the number of operations that produced some kind of changes in the dataset since the last time either SAVE or BGSAVE was called.",
+				Unit:     inputs.NCount,
+				Desc:     "Refers to the number of operations that produced some kind of changes in the dataset since the last time either SAVE or BGSAVE was called.",
 			},
 			"rdb_last_bgsave_time_sec": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -235,12 +255,14 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 			"master_last_io_seconds_ago": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "",
+				Unit:     inputs.DurationSecond,
+				Desc:     "Number of seconds since the last interaction with master",
 			},
 			"master_sync_in_progress": &inputs.FieldInfo{
 				DataType: inputs.Bool,
 				Type:     inputs.Gauge,
-				Desc:     "ndicate the master is syncing to the replica",
+				Unit:     inputs.UnknownUnit,
+				Desc:     "Indicate the master is syncing to the replica",
 			},
 			"master_sync_left_bytes": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -257,47 +279,55 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 			"master_repl_offset": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "The server's current replication offset",
 			},
 			"slave_repl_offset": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "The replication offset of the replica instance",
 			},
 			"used_cpu_sys": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Rate,
+				Unit:     inputs.Percent,
 				Desc:     "System CPU consumed by the Redis server, which is the sum of system CPU consumed by all threads of the server process (main thread and background threads)",
 			},
 			"used_cpu_sys_children": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Rate,
+				Unit:     inputs.Percent,
 				Desc:     "System CPU consumed by the background processes",
 			},
 			"used_cpu_user": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Rate,
+				Unit:     inputs.Percent,
 				Desc:     "User CPU consumed by the Redis server, which is the sum of user CPU consumed by all threads of the server process (main thread and background threads)",
 			},
 			"used_cpu_user_children": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Rate,
+				Unit:     inputs.Percent,
 				Desc:     "User CPU consumed by the background processes",
 			},
 			"keyspace_hits": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Number of successful lookup of keys in the main dictionary",
 			},
 			"keyspace_misses": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Number of failed lookup of keys in the main dictionary",
 			},
 		},
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
-				Desc: "server addr",
+				Desc: "Server addr",
 			},
 		},
 	}
