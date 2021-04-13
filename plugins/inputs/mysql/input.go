@@ -35,6 +35,13 @@ type options struct {
 	ExtraPerformanceMetrics bool `toml:"extra_performance_metrics"`
 }
 
+type customQuery struct {
+	sql    string   `toml:"sql"`
+	metric string   `toml:"metric"`
+	tags   []string `toml:"tags"`
+	fields []string `toml:"fields"`
+}
+
 type Input struct {
 	Host             string                   `toml:"host"`
 	Port             int                      `toml:"port"`
@@ -50,6 +57,7 @@ type Input struct {
 	IntervalDuration time.Duration            `toml:"-"`
 	Tags             map[string]string        `toml:"tags"`
 	options          *options                 `toml:"options"`
+	Query            []*customQuery           `toml:"custom_queries"`
 	db               *sql.DB                  `toml:"-"`
 	Addr             string                   `toml:"-"`
 	collectCache     []inputs.Measurement     `toml:"-"`
@@ -129,6 +137,7 @@ func (i *Input) Collect() error {
 
 	i.collectBaseMeasurement()
 	i.collectSchemaMeasurement()
+	i.customSchemaMeasurement()
 
 	return nil
 }
@@ -164,10 +173,10 @@ func (i *Input) collectSchemaMeasurement() {
 
 func (i *Input) Run() {
 	l = logger.SLogger("mysql")
+	i.initCfg()
+
 	tick := time.NewTicker(i.IntervalDuration)
 	defer tick.Stop()
-
-	i.initCfg()
 
 	n := 0
 
@@ -201,6 +210,10 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 		&baseMeasurement{},
 		&schemaMeasurement{},
 	}
+}
+
+func (i *Input) AvailableArchs() []string {
+	return datakit.UnknownArch
 }
 
 func init() {
