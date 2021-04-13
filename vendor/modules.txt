@@ -127,7 +127,7 @@ github.com/aliyun/alibaba-cloud-sdk-go/services/slb
 github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi
 # github.com/aliyun/aliyun-log-go-sdk v0.1.5
 github.com/aliyun/aliyun-log-go-sdk
-# github.com/aliyun/aliyun-oss-go-sdk v2.1.7+incompatible
+# github.com/aliyun/aliyun-oss-go-sdk v2.1.8+incompatible
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/andygrunwald/go-jira v1.12.0
 github.com/andygrunwald/go-jira
@@ -184,6 +184,8 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 github.com/basgys/goxml2json
 # github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
+# github.com/blang/semver/v4 v4.0.0
+github.com/blang/semver/v4
 # github.com/c-bata/go-prompt v0.2.5 => github.com/coanor/go-prompt v0.2.6
 github.com/c-bata/go-prompt
 github.com/c-bata/go-prompt/internal/bisect
@@ -498,7 +500,6 @@ github.com/influxdata/telegraf
 github.com/influxdata/telegraf/config/aws
 github.com/influxdata/telegraf/filter
 github.com/influxdata/telegraf/internal
-github.com/influxdata/telegraf/internal/docker
 github.com/influxdata/telegraf/internal/limiter
 github.com/influxdata/telegraf/internal/snmp
 github.com/influxdata/telegraf/internal/syslog
@@ -516,7 +517,6 @@ github.com/influxdata/telegraf/plugins/inputs/cloudwatch
 github.com/influxdata/telegraf/plugins/inputs/disk
 github.com/influxdata/telegraf/plugins/inputs/diskio
 github.com/influxdata/telegraf/plugins/inputs/dns_query
-github.com/influxdata/telegraf/plugins/inputs/docker
 github.com/influxdata/telegraf/plugins/inputs/elasticsearch
 github.com/influxdata/telegraf/plugins/inputs/exec
 github.com/influxdata/telegraf/plugins/inputs/fluentd
@@ -551,13 +551,11 @@ github.com/influxdata/telegraf/plugins/inputs/ping
 github.com/influxdata/telegraf/plugins/inputs/postgresql
 github.com/influxdata/telegraf/plugins/inputs/processes
 github.com/influxdata/telegraf/plugins/inputs/procstat
-github.com/influxdata/telegraf/plugins/inputs/rabbitmq
 github.com/influxdata/telegraf/plugins/inputs/smart
 github.com/influxdata/telegraf/plugins/inputs/snmp
 github.com/influxdata/telegraf/plugins/inputs/socket_listener
 github.com/influxdata/telegraf/plugins/inputs/solr
 github.com/influxdata/telegraf/plugins/inputs/sqlserver
-github.com/influxdata/telegraf/plugins/inputs/swap
 github.com/influxdata/telegraf/plugins/inputs/syslog
 github.com/influxdata/telegraf/plugins/inputs/system
 github.com/influxdata/telegraf/plugins/inputs/systemd_units
@@ -613,6 +611,8 @@ github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis
 github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client
 github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models
 github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models
+# github.com/jessevdk/go-flags v1.4.0
+github.com/jessevdk/go-flags
 # github.com/jmespath/go-jmespath v0.4.0
 github.com/jmespath/go-jmespath
 # github.com/json-iterator/go v1.1.10
@@ -931,7 +931,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript/module
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210409040946-7e07a5ca0e30
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210412064724-3dba58994f3c
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 # go.mongodb.org/mongo-driver v1.4.1
 go.mongodb.org/mongo-driver/bson
@@ -1037,7 +1037,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210331175145-43e1dd70ce54
+# golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
@@ -1047,7 +1047,7 @@ golang.org/x/sys/windows/registry
 golang.org/x/sys/windows/svc
 golang.org/x/sys/windows/svc/eventlog
 golang.org/x/sys/windows/svc/mgr
-# golang.org/x/term v0.0.0-20210317153231-de623e64d2a6
+# golang.org/x/term v0.0.0-20210406210042-72f3dc4e9b72
 golang.org/x/term
 # golang.org/x/text v0.3.3
 golang.org/x/text/cases
