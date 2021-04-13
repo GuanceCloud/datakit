@@ -63,7 +63,6 @@ func (this *Input) gatherContainerInfo(container types.Container) map[string]str
 		"stats":          container.State,
 	}
 
-	// 内置tags优先
 	for k, v := range this.Tags {
 		if _, ok := tags[k]; !ok {
 			tags[k] = v
