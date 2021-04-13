@@ -43,7 +43,7 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 
 ## 配置
 
-进入 DataKit 安装目录下的 `conf.d/{{.InputName}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
 ```
 {{.InputSample}}
