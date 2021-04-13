@@ -133,17 +133,15 @@ func (i *Input) collectCommandMeasurement() {
 	i.getCommandData()
 }
 
-func (i *Input) Run() {
-	l = logger.SLogger("redis")
-	i.initCfg()
-
+func (i *Input) runLog(defaultPile string) {
 	if i.Log != nil {
 		go func() {
-			pfile := "redis.p"
+			pfile := defaultPile
 			if i.Log.Pipeline != "" {
 				pfile = i.Log.Pipeline
 			}
 
+			i.Log.Service = i.Service
 			i.Log.Pipeline = filepath.Join(datakit.PipelineDir, pfile)
 
 			i.Log.Source = inputName
@@ -159,6 +157,13 @@ func (i *Input) Run() {
 			tailer.Run()
 		}()
 	}
+}
+
+func (i *Input) Run() {
+	l = logger.SLogger("redis")
+	i.initCfg()
+
+	i.runLog("redis.p")
 
 	tick := time.NewTicker(i.IntervalDuration)
 	defer tick.Stop()
