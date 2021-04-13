@@ -1,9 +1,10 @@
 package nginx
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"net"
 	"net/url"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func getTags(urlString string) map[string]string {
