@@ -50,3 +50,22 @@ NGINX 采集器 可以从 NGINX 实例中采取很多指标，比如请求总数
 {{$m.FieldsMarkdownTable}}
 
 {{ end }} 
+
+
+## 日志采集
+
+如需采集 NGINX 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 NGINX 日志文件的绝对路径。比如：
+
+```
+    [[inputs.nginx]]
+      ...
+      [inputs.nginx.log]
+		files = ["/usr/local/var/log/nginx/error.log","/usr/local/var/log/nginx/access.log"]
+```
+
+
+开启日志采集以后，默认会产生日志来源（`source`）为 `nginx` 的日志。
+
+**注意**
+
+- 日志采集仅支持采集已安装 DataKit 主机上的日志
