@@ -20,6 +20,9 @@ func getNode(n *Input) {
 			"url":       n.Url,
 			"node_name": node.Name,
 		}
+		for k, v := range n.Tags {
+			tags[k] = v
+		}
 		fields := map[string]interface{}{
 			"disk_free_alarm": node.DiskFreeAlarm,
 			"disk_free":       node.DiskFree,
