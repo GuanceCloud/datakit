@@ -99,14 +99,6 @@ func (i *Input) appendMeasurement(name string, tags map[string]string, fields ma
 	i.collectCacheLast1Ptr = tmp
 }
 
-// func (i *Input) addField(field string, value interface{}) error {
-// 	if i.collectCacheLast1Ptr == nil {
-// 		return fmt.Errorf("error: please append one to collect cache before adding")
-// 	}
-// 	i.collectCacheLast1Ptr.fields[field] = value
-// 	return nil
-// }
-
 func (i *Input) Catalog() string {
 	return "host"
 }
@@ -181,6 +173,7 @@ func (i *Input) Run() {
 			if err := i.Collect(); err == nil {
 				inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since((start))})
+				i.collectCache = make([]inputs.Measurement, 0)
 			} else {
 				i.logger.Error(err)
 			}
