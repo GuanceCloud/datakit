@@ -24,12 +24,14 @@ func NewGatherer(metrics []Metric) *Gatherer {
 // Gather adds points to an accumulator from responses returned
 // by a Jolokia agent.
 func (g *Gatherer) Gather(client *Client, ja *JolokiaAgent) error {
-	var tags map[string]string
+	if ja.Tags == nil {
+		ja.Tags = make(map[string]string)
+	}
 
 	if client.config.ProxyConfig != nil {
-		tags = map[string]string{"jolokia_proxy_url": client.URL}
+		ja.Tags["jolokia_proxy_url"] = client.URL
 	} else {
-		tags = map[string]string{"jolokia_agent_url": client.URL}
+		ja.Tags["jolokia_agent_url"] = client.URL
 	}
 
 	requests := makeReadRequests(g.metrics)
@@ -38,7 +40,7 @@ func (g *Gatherer) Gather(client *Client, ja *JolokiaAgent) error {
 		return err
 	}
 
-	g.gatherResponses(responses, tags, ja)
+	g.gatherResponses(responses, ja.Tags, ja)
 
 	return nil
 }
