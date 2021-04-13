@@ -31,20 +31,22 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 			"schema_size": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Desc:     "Size of schemas in MiB",
+				Unit:     inputs.SizeIByte,
+				Desc:     "Size of schemas",
 			},
 			"query_run_time_avg": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
+				Unit:     inputs.DurationNS,
 				Desc:     "Avg query response time per schema.",
 			},
 		},
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
-				Desc: "server addr",
+				Desc: "Server addr",
 			},
 			"schema_name": &inputs.TagInfo{
-				Desc: "schema name",
+				Desc: "Schema name",
 			},
 		},
 	}
@@ -83,7 +85,7 @@ func (i *Input) getSchemaSize() error {
 
 		size := cast.ToFloat64(string(*val))
 
-		m.fields["schema_size"] = size
+		m.fields["schema_size"] = size * 1000000
 		m.tags["schema_name"] = key
 		m.ts = time.Now()
 
