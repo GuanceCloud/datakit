@@ -40,7 +40,6 @@ type Input struct {
 }
 
 func (i *Input) initCfg() {
-	// 采集频度
 	i.IntervalDuration = 1 * time.Minute
 
 	if i.Interval != "" {
@@ -126,10 +125,10 @@ func (i *Input) collectCommandMeasurement() {
 
 func (i *Input) Run() {
 	l = logger.SLogger("redis")
+	i.initCfg()
+
 	tick := time.NewTicker(i.IntervalDuration)
 	defer tick.Stop()
-
-	i.initCfg()
 
 	n := 0
 
