@@ -39,7 +39,6 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
     rabbitmqctl set_user_tags dataflux monitoring
     ```
   
-- 如需采集 RabbitMQ 的日志，可在 rabbitmq.conf 中 将 `files` 打开并写入 RabbitMQ 日志文件的绝对路径。目前仅支持在 DataKit 安装主机上面的日志采集 
 
 ## 配置
 
@@ -66,3 +65,22 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+
+## 日志采集
+
+如需采集 RabbitMQ 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 RabbitMQ 日志文件的绝对路径。比如：
+
+```
+    [[inputs.rabbitmq]]
+      ...
+      [inputs.rabbitmq.log]
+        files = ["/var/log/rabbitmq/rabbit@your-hostname.log"]
+```
+
+  
+开启日志采集以后，默认会产生日志来源（`source`）为 `rabbitmq` 的日志。
+
+**注意**
+
+- 日志采集仅支持采集已安装 DataKit 主机上的日志
