@@ -28,15 +28,8 @@ import (
 
 // // example_01:
 //
-//     tailer, err := NewTailer(files_strArray, tailerOption_point)
+//     tailer, err := NewTailer(tailerOption_point)
 //     if err != nil {
-//         return err
-//     }
-//     go tailer.Run()
-//
-// //example_02:
-//     tailer := Tailer{}
-//     if err := tailer.Init(); err != nil {
 //         return err
 //     }
 //     go tailer.Run()
@@ -66,6 +59,9 @@ const (
 )
 
 type TailerOption struct {
+	// 需要采集的文件路径列表
+	Files []string `toml:"files"`
+
 	// glob 忽略的文件路径
 	IgnoreFiles []string `toml:"ignore"`
 
@@ -148,7 +144,6 @@ func fillTailerOption(opt *TailerOption) *TailerOption {
 
 type Tailer struct {
 	Option *TailerOption `toml:"option"`
-	Files  []string      `toml:"files"`
 
 	InputName string
 
@@ -162,21 +157,22 @@ type Tailer struct {
 	log *logger.Logger
 }
 
-func NewTailer(files []string, opt *TailerOption) (*Tailer, error) {
-	var tailer = Tailer{
-		Option: opt,
-		Files:  files,
-	}
+func NewTailer(opt *TailerOption) (*Tailer, error) {
+	var tailer = Tailer{Option: opt}
 
-	if err := tailer.Init(); err != nil {
+	if err := tailer.init(); err != nil {
 		return nil, err
 	}
 
 	return &tailer, nil
 }
 
-func (t *Tailer) Init() error {
+func (t *Tailer) init() error {
 	var err error
+
+	if len(t.Option.Files) == 0 {
+		return fmt.Errorf("cannot files is nil")
+	}
 
 	t.Option = fillTailerOption(t.Option)
 
@@ -241,7 +237,7 @@ func (t *Tailer) Run() {
 		case <-ticker.C:
 			// FIXME:
 			// 程序启动到 ticker.C 中间一段时间是荒废的
-			fileList := getFileList(t.Files, t.Option.IgnoreFiles)
+			fileList := getFileList(t.Option.Files, t.Option.IgnoreFiles)
 
 			for _, file := range fileList {
 				if exist := t.watcher.IsExist(file); exist {
