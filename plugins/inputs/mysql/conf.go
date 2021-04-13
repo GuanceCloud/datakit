@@ -25,18 +25,6 @@ const (
     # glob filteer
     ignore = [""]
 
-    source = "mysqlog"
-
-    # add service tag, if it's empty, use $source.
-    service = "mysqlog"
-
-    # grok pipeline script path
-    pipeline = "mysql.p"
-
-    # read file from beginning
-    # if from_begin was false, off auto discovery file
-    from_beginning = false
-
     # optional encodings:
     #    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
     character_encoding = ""
@@ -44,6 +32,9 @@ const (
     # The pattern should be a regexp. Note the use of '''this regexp'''
     # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
     match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
+
+    # grok pipeline script path
+    pipeline = "mysql.p"
 
     # [[inputs.mysql.custom_queries]]
     #     sql = "SELECT foo, COUNT(*) FROM table.events GROUP BY foo"
