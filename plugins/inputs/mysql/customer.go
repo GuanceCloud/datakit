@@ -31,7 +31,7 @@ func (m *customerMeasurement) Info() *inputs.MeasurementInfo {
 		Name: "mysql_customer",
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
-				Desc: "server addr",
+				Desc: "Server addr",
 			},
 		},
 	}
