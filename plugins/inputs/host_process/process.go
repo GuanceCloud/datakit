@@ -3,6 +3,7 @@ package host_process
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/shirou/gopsutil/host"
 	pr "github.com/shirou/gopsutil/v3/process"
 	"github.com/tweekmonster/luser"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -130,6 +131,17 @@ func getUser(ps *pr.Process) string {
 	return username
 }
 
+func getStartTime(ps *pr.Process) int64 {
+	start, err := ps.CreateTime()
+	if err != nil {
+		l.Warnf("get start time err:%s", err.Error())
+		if bootTime, err := host.BootTime(); err != nil {
+			return int64(bootTime)
+		}
+	}
+	return start
+}
+
 func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields, message map[string]interface{}) {
 	fields = map[string]interface{}{}
 	message = map[string]interface{}{}
@@ -202,7 +214,6 @@ func (p *Processes) WriteObject() {
 	times := time.Now().UTC()
 	var points []string
 	for _, ps := range p.getProcesses() {
-		t, _ := ps.CreateTime()
 		username, state, name, fields, message := p.Parse(ps)
 		tags := map[string]string{
 			"username":     username,
@@ -212,7 +223,7 @@ func (p *Processes) WriteObject() {
 		}
 
 		fields["pid"] = ps.Pid
-		fields["start_time"] = t
+		fields["start_time"] = getStartTime(ps)
 		if runtime.GOOS == "linux" {
 			dir, err := ps.Cwd()
 			if err != nil {
