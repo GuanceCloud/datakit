@@ -313,3 +313,37 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 		l.Infof("enable input %s ok", name)
 	}
 }
+
+func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, error) {
+
+	tbl, err := parseCfgFile(f)
+	if err != nil {
+		return nil, fmt.Errorf("[error] parse conf failed: %s", err)
+	}
+
+	inputlist := []inputs.Input{}
+
+	for field, node := range tbl.Fields {
+
+		switch field {
+		case "inputs": //nolint:goconst
+			stbl, ok := node.(*ast.Table)
+			if ok {
+				for inputName, v := range stbl.Fields {
+					inputlist, err = TryUnmarshal(v, inputName, creator)
+					if err != nil {
+						return nil, fmt.Errorf("unmarshal input failed, %s", err.Error())
+					}
+				}
+			}
+
+		default: // compatible with old version: no [[inputs.xxx]] header
+			inputlist, err = TryUnmarshal(node, "", creator)
+			if err != nil {
+				return nil, fmt.Errorf("unmarshal input failed: %s", err.Error())
+			}
+		}
+	}
+
+	return inputlist, nil
+}
