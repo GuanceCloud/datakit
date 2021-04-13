@@ -37,14 +37,15 @@ var (
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
 	// tool-commands supported in datakit
-	flagCmd             = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline        = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText            = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
-	flagMan             = flag.Bool("man", false, "read manuals of inputs")
-	flagOTA             = flag.Bool("ota", false, "update datakit new version if available")
-	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "accept RC version if available")
-	flagExportMan       = flag.String("export-man", "", "export all inputs and related manuals to specified path")
+	flagCmd                 = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline            = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText                = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagGrokq               = flag.Bool("grokq", false, "query groks interactively")
+	flagMan                 = flag.Bool("man", false, "read manuals of inputs")
+	flagOTA                 = flag.Bool("ota", false, "update datakit new version if available")
+	flagAcceptRCVersion     = flag.Bool("accept-rc-version", false, "accept RC version if available")
+	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
+	flagExportMan           = flag.String("export-man", "", "export all inputs and related manuals to specified path")
 )
 
 var (
@@ -99,27 +100,31 @@ Golang Version: %s
       Uploader: %s
 ReleasedInputs: %s
 `, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, ReleaseType)
-		ver, err := getOnlineVersion()
+		vers, err := getOnlineVersions()
 		if err != nil {
 			fmt.Printf("Get online version failed: \n%s\n", err.Error())
 			os.Exit(-1)
 		}
 		curver, err := getLocalVersion()
 		if err != nil {
-			fmt.Printf("Get online version failed: \n%s\n", err.Error())
+			fmt.Printf("Get local version failed: \n%s\n", err.Error())
 			os.Exit(-1)
 		}
 
-		if isNewVersion(ver, curver, true) {
-			fmt.Printf("\n\nNew version available: %s, commit %s (release at %s)\n",
-				ver.version, ver.Commit, ver.ReleaseDate)
-			switch runtime.GOOS {
-			case "windows":
-				cmdWin := fmt.Sprintf(winUpgradeCmd, ver.downloadURL)
-				fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
-			default:
-				cmd := fmt.Sprintf(unixUpgradeCmd, ver.downloadURL)
-				fmt.Printf("\nUpgrade:\n\t%s\n\n", cmd)
+		for k, v := range vers {
+
+			if isNewVersion(v, curver, true) { // show version info, also show RC verison info
+				fmt.Println("---------------------------------------------------")
+				fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n",
+					k, v.version, v.Commit, v.ReleaseDate)
+				switch runtime.GOOS {
+				case "windows":
+					cmdWin := fmt.Sprintf(winUpgradeCmd, v.downloadURL)
+					fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
+				default:
+					cmd := fmt.Sprintf(unixUpgradeCmd, v.downloadURL)
+					fmt.Printf("\nUpgrade:\n\t%s\n\n", cmd)
+				}
 			}
 		}
 
@@ -134,13 +139,15 @@ ReleasedInputs: %s
 		install.Init()
 
 		l.Debugf("get online version...")
-		ver, err := getOnlineVersion()
+		vers, err := getOnlineVersions()
 		if err != nil {
 			l.Errorf("Get online version failed: \n%s\n", err.Error())
 			os.Exit(0)
 		}
 
-		l.Debugf("online version: %s", ver)
+		ver := vers["Online"]
+
+		l.Debugf("online version: %v", ver)
 
 		curver, err := getLocalVersion()
 		if err != nil {
@@ -148,8 +155,8 @@ ReleasedInputs: %s
 			os.Exit(-1)
 		}
 
-		if isNewVersion(ver, curver, *flagAcceptRCVersion) {
-			l.Infof("New version available: %s, commit %s (release at %s)",
+		if ver != nil && isNewVersion(ver, curver, *flagAcceptRCVersion) {
+			l.Infof("New online version available: %s, commit %s (release at %s)",
 				ver.version, ver.Commit, ver.ReleaseDate)
 			if err := tryOTAUpdate(ver.VersionString); err != nil {
 				l.Errorf("OTA failed: %s", err.Error())
@@ -228,11 +235,13 @@ func run() {
 			// TODO: reload configures
 		} else {
 			l.Infof("get signal %v, wait & exit", sig)
+			http.HttpStop()
 			datakit.Quit()
 		}
 
 	case <-datakit.StopCh:
 		l.Infof("service stopping")
+		http.HttpStop()
 		datakit.Quit()
 	}
 
@@ -262,9 +271,8 @@ func runDatakitWithHTTPServer() error {
 		l.Error("error running inputs: %v", err)
 		return err
 	}
-	go func() {
-		http.Start(datakit.Cfg.MainCfg.HTTPBind)
-	}()
+
+	http.Start(datakit.Cfg.MainCfg.HTTPBind)
 
 	return nil
 }
@@ -297,7 +305,9 @@ type datakitVerInfo struct {
 	VersionString string `json:"version"`
 	Commit        string `json:"commit"`
 	ReleaseDate   string `json:"date_utc"`
-	downloadURL   string `json:"-"`
+
+	downloadURL        string `json:"-"`
+	downloadURLTesting string `json:"-"`
 
 	version *semver.Version
 }
@@ -316,9 +326,8 @@ func (vi *datakitVerInfo) parse() error {
 	return nil
 }
 
-func getOnlineVersion() (*datakitVerInfo, error) {
-	nhttp.DefaultTransport.(*nhttp.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	resp, err := nhttp.Get("https://static.dataflux.cn/datakit/version")
+func getVersion(addr string) (*datakitVerInfo, error) {
+	resp, err := nhttp.Get("http://" + filepath.Join(addr, "version"))
 	if err != nil {
 		return nil, err
 	}
@@ -337,12 +346,34 @@ func getOnlineVersion() (*datakitVerInfo, error) {
 	if err := ver.parse(); err != nil {
 		return nil, err
 	}
-
-	ver.downloadURL = fmt.Sprintf("https://static.dataflux.cn/datakit/installer-%s-%s", runtime.GOOS, runtime.GOARCH)
+	ver.downloadURL = fmt.Sprintf("https://%s/installer-%s-%s",
+		addr, runtime.GOOS, runtime.GOARCH)
 	if runtime.GOOS == "windows" {
 		ver.downloadURL += ".exe"
 	}
 	return &ver, nil
+}
+
+func getOnlineVersions() (res map[string]*datakitVerInfo, err error) {
+
+	nhttp.DefaultTransport.(*nhttp.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	res = map[string]*datakitVerInfo{}
+
+	onlineVer, err := getVersion("static.dataflux.cn/datakit")
+	if err != nil {
+		return nil, err
+	}
+	res["Online"] = onlineVer
+
+	if *flagShowTestingVersions {
+		testVer, err := getVersion("zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit")
+		if err != nil {
+			return nil, err
+		}
+		res["Testing"] = testVer
+	}
+
+	return
 }
 
 func getLocalVersion() (*datakitVerInfo, error) {
@@ -359,8 +390,6 @@ func isNewVersion(newVer, curver *datakitVerInfo, acceptRC bool) bool {
 		if len(newVer.version.Pre) == 0 {
 			return true
 		}
-
-		l.Debugf("find RC version %s", newVer.version)
 
 		if acceptRC {
 			return true
