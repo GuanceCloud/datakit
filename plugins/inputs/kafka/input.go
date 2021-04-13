@@ -33,6 +33,7 @@ func (i *Input) Run() {
 	l = logger.DefaultSLogger(inputName)
 
 	i.PluginName = inputName
+	i.JolokiaAgent.Tags = i.Tags
 
 	if i.Log != nil {
 		go i.runLog()
