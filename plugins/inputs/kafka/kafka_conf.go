@@ -72,5 +72,28 @@ const (
   #  mbean      = "kafka.cluster:name=UnderReplicated,partition=*,topic=*,type=Partition"
   #  field_name = "UnderReplicatedPartitions"
   #  tag_keys   = ["topic", "partition"]
+
+  #[inputs.kafka.log]
+  #  files = []
+  ## grok pipeline script path
+  #  pipeline = "kafka.p"
+
+  #[inputs.nginx.tags]
+  #  a = "b"
+`
+	pipelineCfg = `
+grok(_, "%{DATA:time} \\[%{WORD:thread_name}\\] %{WORD:status}  %{WORD:name} - %{GREEDYDATA:msg}")
+
+
+grok(_, "^%{INT:duration} \\[%{WORD:thread_name}\\] %{LOGLEVEL:status} %{GREEDYDATA:name} - %{GREEDYDATA:msg}")
+
+add_pattern("date", "%{INT}-%{INT}-%{INT} %{INT}:%{INT}:%{INT}")
+grok(_, "^%{date:time} %{LOGLEVEL:status} %{DATA:name}:%{INT:line} - %{GREEDYDATA:msg}")
+
+
+add_pattern("date1", "%{INT}-%{INT}-%{INT} %{INT}:%{INT}:%{INT},%{INT}")
+grok(_, "^\\[%{date1:time}\\] %{WORD:status} %{DATA:msg} \\(%{DATA:name}\\)")
+
+default_time(time)
 `
 )
