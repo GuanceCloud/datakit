@@ -54,7 +54,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jira"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jvm"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/k8sobject"
-
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafka"
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafkalog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kong"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/lighttpd"
