@@ -123,7 +123,7 @@ func (n *Input) Run() {
 		case <-cleanCacheTick.C:
 			if len(n.collectCache) > 0 {
 				inputs.FeedMeasurement(inputName, io.Metric, n.collectCache, &io.Option{CollectCost: time.Since(n.start)})
-				n.collectCache = n.collectCache[:]
+				n.collectCache = n.collectCache[:0]
 			}
 		case <-datakit.Exit.Wait():
 			if n.tail != nil {
