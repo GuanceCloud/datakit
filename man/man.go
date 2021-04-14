@@ -17,7 +17,8 @@ var (
 	ManualBox = packr.New("manulas", "./manuals")
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
-		"pipeline": "man/manuals/pipeline.md",
+		"pipeline":  "man/manuals/pipeline.md",
+		"changelog": "man/manuals/changelog.md",
 	}
 
 	l = logger.DefaultSLogger("man")
