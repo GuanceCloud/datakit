@@ -57,6 +57,8 @@ type Input struct {
 	Match              string            `toml:"match"`
 	Tags               map[string]string `toml:"tags"`
 	FromBeginning      bool              `toml:"-"`
+
+	tailer *inputs.Tailer
 }
 
 var l = logger.DefaultSLogger(inputName)
@@ -88,13 +90,18 @@ func (this *Input) Run() {
 		Tags:              this.Tags,
 	}
 
-	tailer, err := inputs.NewTailer(&option)
+	var err error
+	this.tailer, err = inputs.NewTailer(&option)
 	if err != nil {
 		l.Error(err)
 		return
 	}
 
-	tailer.Run()
+	this.tailer.Run()
+}
+
+func (this *Input) Stop() {
+	this.tailer.Close()
 }
 
 func (this *Input) PipelineConfig() map[string]string {
