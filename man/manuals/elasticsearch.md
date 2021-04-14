@@ -45,3 +45,21 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 {{$m.FieldsMarkdownTable}}
 
 {{ end }} 
+
+
+## 日志采集
+
+如需采集 ElasticSearch 的日志，可在 {{.InputName}}.conf 中 将 `log_file` 打开，并写入 ElasticSearch 日志文件的绝对路径。比如：
+
+```
+[[inputs.elasticsearch]]
+  ...
+  log_files = ["/path/to/your/file.log"]
+```
+
+
+开启日志采集以后，默认会产生日志来源（`source`）为 `elasticsearch` 的日志。
+
+**注意**
+
+- 日志采集仅支持采集已安装 DataKit 主机上的日志
