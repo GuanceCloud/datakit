@@ -6,7 +6,7 @@
 
 # 简介
 
-NGINX 采集器 可以从 NGINX 实例中采取很多指标，比如请求总数连接数，缓存等多种指标，并将指标采集到 DataFlux ，帮助你监控分析 NGINX 各种异常情况
+NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数连接数、缓存等多种指标，并将指标采集到 DataFlux ，帮助你监控分析 NGINX 各种异常情况
 
 ## 前置条件
 
@@ -21,8 +21,6 @@ NGINX 采集器 可以从 NGINX 实例中采取很多指标，比如请求总数
 - `nginx_upstream_zone`
 - `nginx_cache_zone`
 
-
-- 如需采集 NGINX 的日志，可在 nginx.conf 中 将 `files` 打开并写入 NGINX 日志文件的绝对路径。目前仅支持在 DataKit 安装主机上面的日志采集
 
 
 ## 配置
@@ -50,3 +48,22 @@ NGINX 采集器 可以从 NGINX 实例中采取很多指标，比如请求总数
 {{$m.FieldsMarkdownTable}}
 
 {{ end }} 
+
+
+## 日志采集
+
+如需采集 NGINX 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 NGINX 日志文件的绝对路径。比如：
+
+```
+    [[inputs.nginx]]
+      ...
+      [inputs.nginx.log]
+		files = ["/usr/local/var/log/nginx/error.log","/usr/local/var/log/nginx/access.log"]
+```
+
+
+开启日志采集以后，默认会产生日志来源（`source`）为 `nginx` 的日志。
+
+**注意**
+
+- 日志采集仅支持采集已安装 DataKit 主机上的日志
