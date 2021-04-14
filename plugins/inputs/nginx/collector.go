@@ -95,6 +95,10 @@ func (n *Input) getStubStatusModuleMetric() {
 	}
 
 	tags := getTags(n.Url)
+	for k, v := range n.Tags {
+		tags[k] = v
+	}
+
 	fields := map[string]interface{}{
 		"connection_active":   active,
 		"connection_accepts":  accepts,
@@ -152,6 +156,10 @@ func (n *Input) handVTSResponse(r io.Reader) {
 
 	vtsResp.tags["host_name"] = vtsResp.HostName
 	vtsResp.tags["nginx_version"] = vtsResp.Version
+
+	for k, v := range n.Tags {
+		vtsResp.tags[k] = v
+	}
 
 	n.makeConnectionsLine(vtsResp, t)
 	n.makeServerZoneLine(vtsResp, t)
