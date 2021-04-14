@@ -72,7 +72,7 @@ func (n *Input) Run() {
 		case <-cleanCacheTick.C:
 			if len(collectCache) > 0 {
 				err := inputs.FeedMeasurement(inputName, io.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
-				collectCache = collectCache[:]
+				collectCache = collectCache[:0]
 				if err != nil {
 					l.Errorf(err.Error())
 					continue
