@@ -276,7 +276,7 @@ func (p *Processes) WriteObject() {
 			}
 		}
 
-		point, err := io.MakeMetric("host_processes", tags, fields, times)
+		point, err := io.MakeMetric("process", tags, fields, times)
 		if err != nil {
 			l.Errorf("[error] make metric err:%s", err.Error())
 			continue
@@ -296,7 +296,7 @@ func (p *Processes) WriteMetric() {
 			"pid":          fmt.Sprintf("%d", ps.Pid),
 			"process_name": name,
 		}
-		point, err := io.MakeMetric("host_processes", tags, fields, times)
+		point, err := io.MakeMetric("process", tags, fields, times)
 		if err != nil {
 			l.Errorf("[error] make metric err:%s", err.Error())
 			continue
