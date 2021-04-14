@@ -66,8 +66,14 @@
     [inputs.docker.tags]
         # tags1 = "value1"
 ```
-
 - 通过对 `collect_metric` 等三个配置项的开关，选择是否要开启此类数据的采集
+- datkait 在连接 kubernetes 时，可能会因为 kubernetes 配置问题报错。以下是这两种报错的解决办法
+    - `/run/secrets/kubernetes.io/serviceaccount/token: no such file or directory`。执行如下两个命令：
+        - `mkdir -p /run/secrets/kubernetes.io/serviceaccount`
+        - `touch /run/secrets/kubernetes.io/serviceaccount/token`
+    - `error making HTTP request to http://<k8s-host>/stats/summary: dial tcp <k8s-hosst>:10255: connect: connect refused`，按如下方式调整 k8s 配置：
+        - 编辑所有节点的 `/var/lib/kubelet/config.yaml` 文件，加入`readOnlyPort` 这个参数：`readOnlyPort: 10255`
+        - 重启kubelet 服务：`systemctl restart kubelet.service`
 - 当 `include_exited` 为 `true` 会采集非运行状态的容器
 - `log_option` 为数组配置，可以有多个。`container_name_match` 为正则表达式，如果容器名能匹配该正则，将使用 `source` 和 `service` 以及 `pipeline`
 - 当 `pipeline` 为空值或该文件不存在时，将不使用 pipeline 功能
