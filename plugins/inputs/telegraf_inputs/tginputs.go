@@ -16,6 +16,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/disk"
 	"github.com/influxdata/telegraf/plugins/inputs/diskio"
 	"github.com/influxdata/telegraf/plugins/inputs/dns_query"
+
 	// "github.com/influxdata/telegraf/plugins/inputs/docker"
 	_ "github.com/influxdata/telegraf/plugins/inputs/elasticsearch"
 	"github.com/influxdata/telegraf/plugins/inputs/exec"
@@ -47,6 +48,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/ping"
 	"github.com/influxdata/telegraf/plugins/inputs/postgresql"
 	"github.com/influxdata/telegraf/plugins/inputs/procstat"
+
 	// "github.com/influxdata/telegraf/plugins/inputs/redis"
 	"github.com/influxdata/telegraf/plugins/inputs/smart"
 	"github.com/influxdata/telegraf/plugins/inputs/snmp"
@@ -105,8 +107,8 @@ var (
 
 		"internal": {name: "internal", Catalog: "internal", Sample: samples["internal"], Input: nil}, // import internal package not allowed
 
-		"ping":            {name: "ping", Catalog: "network", Input: &ping.Ping{}},
-		"net":             {name: "net", Catalog: "host", Input: &net.NetIOStats{}},
+		"ping": {name: "ping", Catalog: "network", Input: &ping.Ping{}},
+		// "net":             {name: "net", Catalog: "host", Input: &net.NetIOStats{}},
 		"netstat":         {name: "netstat", Catalog: "network", Input: &net.NetStats{}},
 		"net_response":    {name: "net_response", Catalog: "network", Input: &net_response.NetResponse{}},
 		"http":            {name: "http", Catalog: "network", Input: &http.HTTP{}},
