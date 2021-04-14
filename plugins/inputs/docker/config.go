@@ -114,11 +114,11 @@ func (this *Input) loadCfg() (err error) {
 		this.collectMetricDuration = minimumCollectMetricDuration
 	}
 
-	// if 0 < this.collectObjectDuration &&
-	// 	this.collectObjectDuration < minimumCollectObjectDuration {
-	// 	l.Warn("invalid collect_object_interval, cannot be less than 5m. Use default interval 5m")
-	// 	this.collectObjectDuration = minimumCollectObjectDuration
-	// }
+	if 0 < this.collectObjectDuration &&
+		this.collectObjectDuration < minimumCollectObjectDuration {
+		l.Warn("invalid collect_object_interval, cannot be less than 5m. Use default interval 5m")
+		this.collectObjectDuration = minimumCollectObjectDuration
+	}
 
 	if this.Tags == nil {
 		this.Tags = make(map[string]string)
