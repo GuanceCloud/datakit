@@ -45,3 +45,15 @@ Redis 指标采集器，采集以下数据：
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## 日志采集
+需要采集redis日志，需要开启Redis `redis.config`中日志文件输出配置
+```
+logfile "/usr/redis/log/redis.log"
+```
+
+如需采集 redis 的日志，可在 {{.InputName}}.conf 中log相关的配置打开
+
+**注意**
+- 日志路径需要填入绝对路径
+- 在使用日志采集时，需要将datakit安装在redis服务同一台主机中，或使用其它方式将日志挂载到外部系统中
