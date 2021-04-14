@@ -12,8 +12,8 @@ func Enabled(name string) bool {
 	}
 }
 
-func Depercated(name string) (desc string, exist bool) {
-	desc, exist = deprecatedInputs[name]
+func Depercated(name string) (target string, exist bool) {
+	target, exist = deprecatedInputs[name]
 	return
 }
 
@@ -208,7 +208,7 @@ var (
 	}
 
 	deprecatedInputs = map[string]string{
-		"dockerlog":         "merged to docker input",
-		"docker_containers": "merged to docker input",
+		"dockerlog":         "docker",
+		"docker_containers": "docker",
 	}
 )
