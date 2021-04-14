@@ -15,6 +15,7 @@ oracle监控指标采集，参考datadog提供的指标，具有以下数据收�
 
 ## 前置条件
 
+
 - 创建监控账号
 
 ```
@@ -37,6 +38,19 @@ GRANT SELECT ON sys.dba_tablespace_usage_metrics TO datakit;
 
 ```
 ALTER SESSION SET "_ORACLE_SCRIPT"=true;
+```
+
+- 安装依赖包
+
+根据操作系统和oracle版本选择安装对应的安装包,参考[这里](https://oracle.github.io/odpi/doc/installation.html)，如：
+
+```
+$ cat /etc/redhat-release
+$ rpm -ivh oracle-instantclient11.2-basic-11.2.0.4.0-1.x86_64.rpm
+$ echo /usr/lib/oracle/11.2/client64/lib > /etc/ld.so.conf.d/oracle-instantclient.conf
+$ ldconfig
+
+$ yum install libaio # 对应 ubuntu: apt-get install libaio1
 ```
 
 ## 配置
