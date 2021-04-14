@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -77,7 +76,8 @@ func TestMain(t *testing.T) {
 	// tailf 默认每隔 10 秒扫描一次文件路径，导致程序运行时，前 10 秒是荒废的
 	//
 	time.Sleep(time.Second * 15)
-	datakit.Exit.Close()
+
+	tailer.Stop()
 
 	wg.Wait()
 }
