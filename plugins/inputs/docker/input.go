@@ -88,6 +88,8 @@ func (this *Input) Run() {
 		// 共用同一个interval
 		go this.gatherLoggoing(this.collectMetricDuration)
 	}
+
+	l.Info("docker exit success")
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
