@@ -361,10 +361,10 @@ func removeDepercatedInputs(tbl *ast.Table) {
 		// 会导致有效的 input（例如bb）被牵连
 		// 所以此处是对此部分 AST 进行匹配剪枝，剔除无效的 input
 		for inputName := range stbl.Fields {
-			desc, exist := datakit.Depercated(inputName)
+			target, exist := datakit.Depercated(inputName)
 			if exist {
 				delete(stbl.Fields, inputName)
-				l.Warnf("input %s is deprecated, %s", inputName, desc)
+				l.Warnf("input %s removed, please use %s", inputName, target)
 			}
 		}
 	}
