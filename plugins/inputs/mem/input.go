@@ -16,8 +16,8 @@ const (
 	metricName   = inputName
 	collectCycle = time.Second * 10
 	sampleCfg    = `
-	[[inputs.mem]]
-
+[[inputs.mem]]
+# no sample need here, just open the input
 `
 )
 
@@ -40,46 +40,48 @@ func (m *memMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+// TODO
 func (m *memMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
 		Fields: map[string]interface{}{
-			"active":            NewFieldInfoB("active (integer, Darwin, FreeBSD, Linux, OpenBSD)"),
-			"available":         NewFieldInfoB("integer"),
-			"available_percent": NewFieldInfoP("available_percent (float)"),
-			"buffered":          NewFieldInfoB("buffered (integer, FreeBSD, Linux)"),
-			"cached":            NewFieldInfoB("cached (integer, FreeBSD, Linux, OpenBSD)"),
-			"commit_limit":      NewFieldInfoB("commit_limit (integer, Linux)"),
-			"committed_as":      NewFieldInfoB("committed_as (integer, Linux)"),
-			"dirty":             NewFieldInfoB("dirty (integer, Linux)"),
-			"free":              NewFieldInfoB("free (integer, Darwin, FreeBSD, Linux, OpenBSD)"),
-			"high_free":         NewFieldInfoB("high_free (integer, Linux)"),
-			"high_total":        NewFieldInfoB("high_total (integer, Linux)"),
-			"huge_pages_free":   NewFieldInfoB("huge_pages_free (integer, Linux)"),
-			"huge_page_size":    NewFieldInfoB("huge_page_size (integer, Linux)"),
-			"huge_page_total":   NewFieldInfoB("huge_pages_total (integer, Linux)"),
-			"inactive":          NewFieldInfoB("inactive (integer, Darwin, FreeBSD, Linux, OpenBSD)"),
-			"laundry":           NewFieldInfoB("laundry (integer, FreeBSD)"),
-			"low_free":          NewFieldInfoB("low_free (integer, Linux)"),
-			"low_total":         NewFieldInfoB("low_total (integer, Linux)"),
-			"mapped":            NewFieldInfoB("mapped (integer, Linux)"),
-			"page_tables":       NewFieldInfoB("page_tables (integer, Linux)"),
-			"shared":            NewFieldInfoB("shared (integer, Linux)"),
-			"slab":              NewFieldInfoB("slab (integer, Linux)"),
-			"sreclaimable":      NewFieldInfoB("sreclaimable (integer, Linux)"),
-			"sunreclaim":        NewFieldInfoB("sunreclaim (integer, Linux)"),
-			"swap_cached":       NewFieldInfoB("swap_cached (integer, Linux)"),
-			"swap_free":         NewFieldInfoB("swap_free (integer, Linux)"),
-			"swap_total":        NewFieldInfoB("swap_total (integer, Linux)"),
-			"total":             NewFieldInfoB("total (integer)"),
-			"used":              NewFieldInfoB("used (integer)"),
-			"used_percent":      NewFieldInfoP("used_percent (float)"),
-			"vmalloc_chunk":     NewFieldInfoB("vmalloc_chunk (integer, Linux)"),
-			"vmalloc_total":     NewFieldInfoB("vmalloc_total (integer, Linux)"),
-			"vmalloc_used":      NewFieldInfoB("vmalloc_used (integer, Linux)"),
-			"wired":             NewFieldInfoB("wired (integer, Darwin, FreeBSD, OpenBSD)"),
-			"write_back":        NewFieldInfoB("write_back (integer, Linux)"),
-			"write_back_tmp":    NewFieldInfoB("write_back_tmp (integer, Linux)"),
+			"total":             NewFieldInfoB("total"),
+			"available":         NewFieldInfoB("available"),
+			"available_percent": NewFieldInfoP("available_percent"),
+			"used":              NewFieldInfoB("used"),
+			"used_percent":      NewFieldInfoP("used_percent"),
+
+			"active":   NewFieldInfoB("active (Darwin, Linux)"),
+			"free":     NewFieldInfoB("free (Darwin, Linux)"),
+			"inactive": NewFieldInfoB("inactive (Darwin, Linux)"),
+			"wired":    NewFieldInfoB("wired (Darwin)"),
+
+			"buffered":        NewFieldInfoB("buffered (Linux)"),
+			"cached":          NewFieldInfoB("cached (Linux)"),
+			"commit_limit":    NewFieldInfoB("commit_limit (Linux)"),
+			"committed_as":    NewFieldInfoB("committed_as (Linux)"),
+			"dirty":           NewFieldInfoB("dirty (Linux)"),
+			"high_free":       NewFieldInfoB("high_free (Linux)"),
+			"high_total":      NewFieldInfoB("high_total (Linux)"),
+			"huge_pages_free": NewFieldInfoB("huge_pages_free (Linux)"),
+			"huge_page_size":  NewFieldInfoB("huge_page_size (Linux)"),
+			"huge_page_total": NewFieldInfoB("huge_pages_total (Linux)"),
+			"low_free":        NewFieldInfoB("low_free (Linux)"),
+			"low_total":       NewFieldInfoB("low_total (Linux)"),
+			"mapped":          NewFieldInfoB("mapped (Linux)"),
+			"page_tables":     NewFieldInfoB("page_tables (Linux)"),
+			"shared":          NewFieldInfoB("shared (Linux)"),
+			"slab":            NewFieldInfoB("slab (Linux)"),
+			"sreclaimable":    NewFieldInfoB("sreclaimable (Linux)"),
+			"sunreclaim":      NewFieldInfoB("sunreclaim (Linux)"),
+			"swap_cached":     NewFieldInfoB("swap_cached (Linux)"),
+			"swap_free":       NewFieldInfoB("swap_free (Linux)"),
+			"swap_total":      NewFieldInfoB("swap_total (Linux)"),
+			"vmalloc_chunk":   NewFieldInfoB("vmalloc_chunk (Linux)"),
+			"vmalloc_total":   NewFieldInfoB("vmalloc_total (Linux)"),
+			"vmalloc_used":    NewFieldInfoB("vmalloc_used (Linux)"),
+			"write_back":      NewFieldInfoB("write_back (Linux)"),
+			"write_back_tmp":  NewFieldInfoB("write_back_tmp (Linux)"),
 		},
 	}
 }
@@ -104,20 +106,6 @@ func (i *Input) Collect() error {
 		fields["active"] = vm.Active
 		fields["free"] = vm.Free
 		fields["inactive"] = vm.Inactive
-		fields["wired"] = vm.Wired
-	case "openbsd":
-		fields["active"] = vm.Active
-		fields["cached"] = vm.Cached
-		fields["free"] = vm.Free
-		fields["inactive"] = vm.Inactive
-		fields["wired"] = vm.Wired
-	case "freebsd":
-		fields["active"] = vm.Active
-		fields["buffered"] = vm.Buffers
-		fields["cached"] = vm.Cached
-		fields["free"] = vm.Free
-		fields["inactive"] = vm.Inactive
-		fields["laundry"] = vm.Laundry
 		fields["wired"] = vm.Wired
 	case "linux":
 		fields["active"] = vm.Active
