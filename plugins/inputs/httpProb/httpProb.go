@@ -89,6 +89,11 @@ func (h *HttpProb) Run() {
 	listen := fmt.Sprintf("%s:%v", h.Bind, h.Port)
 	l.Info("HttpProb server start...", h.Port)
 
+	// go func() {
+	// 	<-datakit.Exit.Wait()
+	// 	// todo
+	// }
+
 	http.ListenAndServe(listen, h)
 }
 
