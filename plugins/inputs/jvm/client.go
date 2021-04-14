@@ -68,8 +68,6 @@ type jolokiaRequest struct {
 	Attribute interface{}    `json:"attribute,omitempty"`
 	Path      string         `json:"path,omitempty"`
 	Target    *jolokiaTarget `json:"target,omitempty"`
-
-	name string
 }
 
 type jolokiaTarget struct {
@@ -120,28 +118,21 @@ func NewClient(url string, config *ClientConfig) (*Client, error) {
 	}, nil
 }
 
-func (i *Input) createClient(url string) (*Client, error) {
-	return NewClient(url, &ClientConfig{
-		Username:        i.Username,
-		Password:        i.Password,
-		ResponseTimeout: i.ResponseTimeout,
-		ClientConfig:    i.ClientConfig,
-	})
-}
+func (c *Client) read(requests []ReadRequest) ([]ReadResponse, error) {
+	jRequests := makeJolokiaRequests(requests, c.config.ProxyConfig)
+	requestBody, err := json.Marshal(jRequests)
+	if err != nil {
+		return nil, err
+	}
 
-func (c *Client) read() ([]jolokiaResponse, error) {
 	requestURL, err := formatReadURL(c.URL, c.config.Username, c.config.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	reqBody, err := json.Marshal(reqObjs)
+	req, err := http.NewRequest("POST", requestURL, bytes.NewBuffer(requestBody))
 	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", requestURL, bytes.NewBuffer(reqBody))
-	if err != nil {
+		//err is not contained in returned error - it may contain sensitive data (password) which should not be logged
 		return nil, fmt.Errorf("unable to create new request for: '%s'", c.URL)
 	}
 
@@ -168,7 +159,95 @@ func (c *Client) read() ([]jolokiaResponse, error) {
 		return nil, fmt.Errorf("decoding JSON response: %s: %s", err, responseBody)
 	}
 
-	return jResponses, nil
+	return makeReadResponses(jResponses), nil
+}
+
+func makeJolokiaRequests(rrequests []ReadRequest, proxyConfig *ProxyConfig) []jolokiaRequest {
+	jrequests := make([]jolokiaRequest, 0)
+	if proxyConfig == nil {
+		for _, rr := range rrequests {
+			jrequests = append(jrequests, makeJolokiaRequest(rr, nil))
+		}
+	} else {
+		for _, t := range proxyConfig.Targets {
+			if t.Username == "" {
+				t.Username = proxyConfig.DefaultTargetUsername
+			}
+			if t.Password == "" {
+				t.Password = proxyConfig.DefaultTargetPassword
+			}
+
+			for _, rr := range rrequests {
+				jtarget := &jolokiaTarget{
+					URL:      t.URL,
+					User:     t.Username,
+					Password: t.Password,
+				}
+
+				jrequests = append(jrequests, makeJolokiaRequest(rr, jtarget))
+			}
+		}
+	}
+
+	return jrequests
+}
+
+func makeJolokiaRequest(rrequest ReadRequest, jtarget *jolokiaTarget) jolokiaRequest {
+	jrequest := jolokiaRequest{
+		Type:   "read",
+		Mbean:  rrequest.Mbean,
+		Path:   rrequest.Path,
+		Target: jtarget,
+	}
+
+	if len(rrequest.Attributes) == 1 {
+		jrequest.Attribute = rrequest.Attributes[0]
+	}
+	if len(rrequest.Attributes) > 1 {
+		jrequest.Attribute = rrequest.Attributes
+	}
+
+	return jrequest
+}
+
+func makeReadResponses(jresponses []jolokiaResponse) []ReadResponse {
+	rresponses := make([]ReadResponse, 0)
+
+	for _, jr := range jresponses {
+		rrequest := ReadRequest{
+			Mbean:      jr.Request.Mbean,
+			Path:       jr.Request.Path,
+			Attributes: []string{},
+		}
+
+		attrValue := jr.Request.Attribute
+		if attrValue != nil {
+			attribute, ok := attrValue.(string)
+			if ok {
+				rrequest.Attributes = []string{attribute}
+			} else {
+				attributes, _ := attrValue.([]interface{})
+				rrequest.Attributes = make([]string, len(attributes))
+				for i, attr := range attributes {
+					rrequest.Attributes[i] = attr.(string)
+				}
+			}
+		}
+		rresponse := ReadResponse{
+			Value:             jr.Value,
+			Status:            jr.Status,
+			RequestMbean:      rrequest.Mbean,
+			RequestAttributes: rrequest.Attributes,
+			RequestPath:       rrequest.Path,
+		}
+		if jtarget := jr.Request.Target; jtarget != nil {
+			rresponse.RequestTarget = jtarget.URL
+		}
+
+		rresponses = append(rresponses, rresponse)
+	}
+
+	return rresponses
 }
 
 func formatReadURL(configURL, username, password string) (string, error) {
