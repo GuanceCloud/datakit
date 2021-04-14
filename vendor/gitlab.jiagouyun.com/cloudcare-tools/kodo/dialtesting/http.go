@@ -128,6 +128,10 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 	}
 
 	reasons := t.CheckResult()
+	if t.reqError != "" {
+		reasons = append(reasons, t.reqError)
+	}
+
 	if len(reasons) != 0 {
 		message[`failed_reason`] = strings.Join(reasons, `;`)
 		fields[`failed_reason`] = strings.Join(reasons, `;`)
@@ -136,11 +140,6 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 	if t.reqError == "" && len(reasons) == 0 {
 		tags["status"] = "OK"
 		fields["success"] = int64(1)
-	}
-
-	if t.reqError != "" {
-		message[`failed_reason`] = t.reqError
-		fields[`failed_reason`] = t.reqError
 	}
 
 	notSave := false
@@ -245,6 +244,9 @@ type HTTPSecret struct {
 
 func (t *HTTPTask) Run() error {
 
+	t.resp = nil
+	t.respBody = []byte(``)
+
 	var t1, connect, dns, tlsHandshake time.Time
 
 	trace := &httptrace.ClientTrace{
@@ -300,13 +302,12 @@ func (t *HTTPTask) Run() error {
 	}
 	defer t.resp.Body.Close()
 
-	t.downloadTime = int64(time.Since(t1) / time.Microsecond)
-
 result:
 	if err != nil {
 		t.reqError = err.Error()
 	}
 	t.reqCost = time.Since(t.reqStart)
+	t.downloadTime = int64(time.Since(t1) / time.Microsecond)
 
 	return err
 }
