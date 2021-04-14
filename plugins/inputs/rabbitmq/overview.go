@@ -25,6 +25,9 @@ func getOverview(n *Input) {
 		"cluster_name":     overview.ClusterName,
 		"rabbitmq_version": overview.Version,
 	}
+	for k, v := range n.Tags {
+		tags[k] = v
+	}
 	fields := map[string]interface{}{
 		"object_totals_channels":    overview.ObjectTotals.Channels,
 		"object_totals_connections": overview.ObjectTotals.Connections,

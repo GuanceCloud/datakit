@@ -30,6 +30,10 @@ func getExchange(n *Input) {
 			"durable":       strconv.FormatBool(exchange.Durable),
 			"auto_delete":   strconv.FormatBool(exchange.AutoDelete),
 		}
+		for k, v := range n.Tags {
+			tags[k] = v
+		}
+
 		fields := map[string]interface{}{
 			"message_ack_count":                    exchange.MessageStats.Ack,
 			"message_ack_rate":                     exchange.MessageStats.AckDetails.Rate,

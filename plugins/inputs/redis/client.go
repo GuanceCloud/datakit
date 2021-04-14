@@ -31,45 +31,51 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 			"id": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Desc:     "an unique 64-bit client ID",
+				Unit:     inputs.UnknownUnit,
+				Desc:     "AN unique 64-bit client ID",
 			},
 			"addr": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Desc:     "address/port of the client",
+				Unit:     inputs.UnknownUnit,
+				Desc:     "Address/port of the client",
 			},
 			"fd": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "file descriptor corresponding to the socket",
+				Unit:     inputs.NCount,
+				Desc:     "File descriptor corresponding to the socket",
 			},
 			"age": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     " total duration of the connection in seconds",
+				Unit:     inputs.NCount,
+				Desc:     "Total duration of the connection in seconds",
 			},
 			"idle": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "idle time of the connection in seconds",
+				Unit:     inputs.NCount,
+				Desc:     "Idle time of the connection in seconds",
 			},
 			"sub": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "number of channel subscriptions",
+				Unit:     inputs.NCount,
+				Desc:     "Number of channel subscriptions",
 			},
 			"psub": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "number of pattern matching subscriptions",
+				Desc:     "Number of pattern matching subscriptions",
 			},
 		},
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
-				Desc: "server addr",
+				Desc: "Server addr",
 			},
 			"name": &inputs.TagInfo{
-				Desc: "the name set by the client with CLIENT SETNAME, default unknown",
+				Desc: "The name set by the client with CLIENT SETNAME, default unknown",
 			},
 		},
 	}
