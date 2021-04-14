@@ -41,21 +41,10 @@ var (
 	insecure_skip_verify = false
 	[inputs.rabbitmq.log]
 	#	files = []
-	#[inputs.rabbitmq.log.option]
-	#	ignore = [""]
-	#	# add service tag, if it's empty, use $source.
-	#	service = ""
 	#	# grok pipeline script path
 	#	pipeline = "rabbitmq.p"
-	#	# optional status:
-	#	#   "emerg","alert","critical","error","warning","info","debug","OK"
-	#	ignore_status = []
-	#	# optional encodings:
-	#	#    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
-	#	character_encoding = ""
-	#	# The pattern should be a regexp. Note the use of '''this regexp'''
-	#	# regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-	#	match = '''^\S'''
+	[inputs.rabbitmq.tags]
+	# a = "b"
 
 `
 	pipelineCfg = `
@@ -75,16 +64,19 @@ const (
 )
 
 type Input struct {
-	Url      string           `toml:"url"`
-	Username string           `toml:"username"`
-	Password string           `toml:"password"`
-	Interval datakit.Duration `toml:"interval"`
-	Log      *inputs.Tailer   `toml:"log"`
+	Url      string               `toml:"url"`
+	Username string               `toml:"username"`
+	Password string               `toml:"password"`
+	Interval datakit.Duration     `toml:"interval"`
+	Log      *inputs.TailerOption `toml:"log"`
+	Tags     map[string]string    `toml:"tags"`
 
 	tls.ClientConfig
 
 	// HTTP client
 	client *http.Client
+
+	tail *inputs.Tailer
 
 	start time.Time
 	wg    sync.WaitGroup
