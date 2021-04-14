@@ -140,8 +140,12 @@ func (d *dialer) doUpdateTask(t dt.Task) {
 		return
 	}
 
+	if d.task.GetFrequency() != t.GetFrequency() {
+		d.ticker = t.Ticker() // update ticker
+	}
+
 	d.task = t
-	d.ticker = t.Ticker() // update ticker
+
 }
 
 type httpMeasurement struct {
