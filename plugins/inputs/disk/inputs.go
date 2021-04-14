@@ -107,7 +107,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return []string{datakit.OSLinux}
+	return datakit.AllArch
 }
 
 func (i *Input) Collect() error {
