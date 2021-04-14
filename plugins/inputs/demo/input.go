@@ -116,7 +116,7 @@ func (i *Input) Run() {
 				inputs.FeedMeasurement("demo", io.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)})
 
-				i.collectCache = i.collectCache[:] // NOTE: do not forget to clean cache
+				i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache
 			}
 
 		case <-datakit.Exit.Wait():
