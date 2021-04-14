@@ -219,7 +219,7 @@ type HTTPOptBody struct {
 }
 
 type HTTPOptCertificate struct {
-	IgnoreServerCertificateError bool   `json:ignore_server_certificate_error,omitempty`
+	IgnoreServerCertificateError bool   `json:"ignore_server_certificate_error,omitempty"`
 	PrivateKey                   string `json:"private_key,omitempty"`
 	Certificate                  string `json:"certificate,omitempty"`
 	CaCert                       string `json:"ca,omitempty"`
@@ -487,26 +487,53 @@ func (t *HTTPTask) Init() error {
 
 		for _, vs := range checker.Header {
 			for _, v := range vs {
-				if v.MatchRegex != "" {
-					if re, err := regexp.Compile(v.MatchRegex); err != nil {
-						return err
-					} else {
-						v.matchRe = re
-					}
+				err := genReg(v)
+				if err != nil {
+					return err
 				}
 
-				if v.NotMatchRegex != "" {
-					if re, err := regexp.Compile(v.NotMatchRegex); err != nil {
-						return err
-					} else {
-						v.notMatchRe = re
-					}
-				}
 			}
 		}
+
+		// body
+		for _, v := range checker.Body {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+		}
+
+		// status_code
+		for _, v := range checker.StatusCode {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+		}
+
 	}
 
 	// TODO: more checking on task validity
+
+	return nil
+}
+
+func genReg(v *SuccessOption) error {
+	if v.MatchRegex != "" {
+		if re, err := regexp.Compile(v.MatchRegex); err != nil {
+			return err
+		} else {
+			v.matchRe = re
+		}
+	}
+
+	if v.NotMatchRegex != "" {
+		if re, err := regexp.Compile(v.NotMatchRegex); err != nil {
+			return err
+		} else {
+			v.notMatchRe = re
+		}
+	}
 
 	return nil
 }
