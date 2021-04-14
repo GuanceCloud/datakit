@@ -97,7 +97,15 @@ func (this *Input) Run() {
 		return
 	}
 
-	this.tailer.Run()
+	go this.tailer.Run()
+
+	for {
+		// 阻塞在此，用以关闭 tailer 资源
+		select {
+		case <-datakit.Exit.Wait():
+			this.Stop()
+		}
+	}
 }
 
 func (this *Input) Stop() {
