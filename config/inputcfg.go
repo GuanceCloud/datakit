@@ -51,6 +51,8 @@ func LoadInputsConfig(c *datakit.Config) error {
 			return nil
 		}
 
+		removeDepercatedInputs(tbl)
+
 		if len(tbl.Fields) == 0 {
 			l.Debugf("no conf available on %s", fp)
 			return nil
@@ -346,4 +348,24 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 	}
 
 	return inputlist, nil
+}
+
+func removeDepercatedInputs(tbl *ast.Table) {
+	for _, node := range tbl.Fields {
+		stbl, ok := node.(*ast.Table)
+		if !ok {
+			continue
+		}
+		// stbl.Fields 可能有多个对象，例如一个配置文件中同时存在 [inputs.aa] 和 [inputs.bb]
+		// 如果只是匹配 inputName（例如aa）是否被弃用，盲目将 true/false 返回上层
+		// 会导致有效的 input（例如bb）被牵连
+		// 所以此处是对此部分 AST 进行匹配剪枝，剔除无效的 input
+		for inputName := range stbl.Fields {
+			desc, exist := datakit.Depercated(inputName)
+			if exist {
+				delete(stbl.Fields, inputName)
+				l.Warnf("input %s is deprecated, %s", inputName, desc)
+			}
+		}
+	}
 }
