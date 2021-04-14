@@ -60,3 +60,18 @@ GRANT SELECT ON performance_schema.* TO 'datakitMonitor'@'localhost';
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## 日志采集
+
+如需采集 `mysql` 的日志，将配置中`log`相关的配置打开，如需要开启msql慢查询日志，需要开启慢查询日志
+```
+SET GLOBAL slow_query_log = 'ON';
+
+-- 未使用索引的查询也认为是一个可能的慢查询
+set global log_queries_not_using_indexes = 'ON';
+```
+
+**注意**
+- 日志路径需要填入绝对路径
+- 在使用日志采集时，需要将datakit安装在redis服务同一台主机中，或使用其它方式将日志挂载到外部系统中
+
