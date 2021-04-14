@@ -533,7 +533,6 @@ github.com/influxdata/telegraf/plugins/inputs/kapacitor
 github.com/influxdata/telegraf/plugins/inputs/kernel
 github.com/influxdata/telegraf/plugins/inputs/kibana
 github.com/influxdata/telegraf/plugins/inputs/kubernetes
-github.com/influxdata/telegraf/plugins/inputs/linux_sysctl_fs
 github.com/influxdata/telegraf/plugins/inputs/memcached
 github.com/influxdata/telegraf/plugins/inputs/modbus
 github.com/influxdata/telegraf/plugins/inputs/mongodb
@@ -549,7 +548,6 @@ github.com/influxdata/telegraf/plugins/inputs/openldap
 github.com/influxdata/telegraf/plugins/inputs/openntpd
 github.com/influxdata/telegraf/plugins/inputs/ping
 github.com/influxdata/telegraf/plugins/inputs/postgresql
-github.com/influxdata/telegraf/plugins/inputs/processes
 github.com/influxdata/telegraf/plugins/inputs/procstat
 github.com/influxdata/telegraf/plugins/inputs/smart
 github.com/influxdata/telegraf/plugins/inputs/snmp
