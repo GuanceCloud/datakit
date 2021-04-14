@@ -39,14 +39,14 @@ func (m nodeStatsMeasurement) Info() *inputs.MeasurementInfo {
 		Name:   "elasticsearch_node_stats",
 		Fields: nodeStatsFields,
 		Tags: map[string]interface{}{
-			"cluster_name":                     inputs.NewTagInfo("cluster name"),
-			"node_attribute_ml.enabled":        inputs.NewTagInfo("machine learning enabled"),
-			"node_attribute_ml.machine_memory": inputs.NewTagInfo("machine learning memory"),
-			"node_attribute_ml.max_open_jobs":  inputs.NewTagInfo("The maximum number of jobs that can run simultaneously on a node"),
-			"node_attribute_xpack.installed":   inputs.NewTagInfo("xpack installed"),
-			"node_host":                        inputs.NewTagInfo("node host"),
-			"node_id":                          inputs.NewTagInfo("node id"),
-			"node_name":                        inputs.NewTagInfo("node name"),
+			"cluster_name":                     inputs.NewTagInfo("Name of the cluster, based on the Cluster name setting setting."),
+			"node_attribute_ml.enabled":        inputs.NewTagInfo("Set to true (default) to enable machine learning APIs on the node."),
+			"node_attribute_ml.machine_memory": inputs.NewTagInfo("The machine’s memory that machine learning may use for running analytics processes."),
+			"node_attribute_ml.max_open_jobs":  inputs.NewTagInfo("The maximum number of jobs that can run simultaneously on a node."),
+			"node_attribute_xpack.installed":   inputs.NewTagInfo("Show whether xpack is installed."),
+			"node_host":                        inputs.NewTagInfo("Network host for the node, based on the network.host setting."),
+			"node_id":                          inputs.NewTagInfo("The id for the node."),
+			"node_name":                        inputs.NewTagInfo("Human-readable identifier for the node."),
 		},
 	}
 }
@@ -60,9 +60,9 @@ func (m clusterStatsMeasurement) Info() *inputs.MeasurementInfo {
 		Name:   "elasticsearch_cluster_stats",
 		Fields: clusterStatsFields,
 		Tags: map[string]interface{}{
-			"cluster_name": inputs.NewTagInfo("cluster name"),
-			"node_name":    inputs.NewTagInfo("node name"),
-			"status":       inputs.NewTagInfo("status"),
+			"cluster_name": inputs.NewTagInfo("Name of the cluster, based on the cluster.name setting."),
+			"node_name":    inputs.NewTagInfo("Name of the node."),
+			"status":       inputs.NewTagInfo("Health status of the cluster, based on the state of its primary and replica shards."),
 		},
 	}
 }
@@ -76,7 +76,7 @@ func (m clusterHealthMeasurement) Info() *inputs.MeasurementInfo {
 		Name:   "elasticsearch_cluster_health",
 		Fields: clusterHealthFields,
 		Tags: map[string]interface{}{
-			"name": inputs.NewTagInfo("cluster name"),
+			"name": inputs.NewTagInfo("Name of the cluster."),
 		},
 	}
 }
@@ -87,11 +87,11 @@ type clusterHealthIndicesMeasurement struct {
 
 func (m clusterHealthIndicesMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   "elasticsearch_cluster_health",
+		Name:   "elasticsearch_cluster_health_indices",
 		Fields: clusterHealthIndicesFields,
 		Tags: map[string]interface{}{
-			"name":  inputs.NewTagInfo("cluster name"),
-			"index": inputs.NewTagInfo("index"),
+			"name":  inputs.NewTagInfo("Name of the cluster."),
+			"index": inputs.NewTagInfo("Name of the index."),
 		},
 	}
 }
@@ -116,7 +116,7 @@ func (m indicesStatsMeasurement) Info() *inputs.MeasurementInfo {
 		Name:   "elasticsearch_indices_stats",
 		Fields: indicesStatsFields,
 		Tags: map[string]interface{}{
-			"index_name": inputs.NewTagInfo("index name"),
+			"index_name": inputs.NewTagInfo("Name of the index."),
 		},
 	}
 }
@@ -130,10 +130,10 @@ func (m indicesStatsShardsMeasurement) Info() *inputs.MeasurementInfo {
 		Name:   "elasticsearch_indices_stats_shards",
 		Fields: indicesStatsShardsFields,
 		Tags: map[string]interface{}{
-			"index_name": inputs.NewTagInfo("index name"),
-			"node_name":  inputs.NewTagInfo("node name"),
-			"shard_name": inputs.NewTagInfo("shard name"),
-			"type":       inputs.NewTagInfo("type"),
+			"index_name": inputs.NewTagInfo("Name of the index."),
+			"node_name":  inputs.NewTagInfo("Name of the node."),
+			"shard_name": inputs.NewTagInfo("Name of the shard."),
+			"type":       inputs.NewTagInfo("Type of the shard."),
 		},
 	}
 }
