@@ -133,8 +133,8 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 	}
 
 	if len(reasons) != 0 {
-		message[`failed_reason`] = strings.Join(reasons, `;`)
-		fields[`failed_reason`] = strings.Join(reasons, `;`)
+		message[`fail_reason`] = strings.Join(reasons, `;`)
+		fields[`fail_reason`] = strings.Join(reasons, `;`)
 	}
 
 	if t.reqError == "" && len(reasons) == 0 {
@@ -147,7 +147,7 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 		notSave = true
 	}
 
-	if v, ok := fields[`failed_reason`]; ok && !notSave && len(v.(string)) != 0 && t.resp != nil {
+	if v, ok := fields[`fail_reason`]; ok && !notSave && len(v.(string)) != 0 && t.resp != nil {
 		message[`response_header`] = t.resp.Header
 		message[`response_body`] = string(t.respBody)
 	}
