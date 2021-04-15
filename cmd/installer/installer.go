@@ -114,10 +114,6 @@ func main() {
 	}
 
 	if *flagUpgrade { // upgrade new version
-
-		//logger.SetGlobalRootLogger(datakit.OTALogFile, logger.DEBUG, logger.OPT_DEFAULT)
-		//l = logger.SLogger("ota")
-
 		l.Infof("Upgrading to version %s...", DataKitVersion)
 		if err := install.UpgradeDatakit(svc); err != nil {
 			l.Fatalf("upgrade datakit failed: %s", err.Error())
