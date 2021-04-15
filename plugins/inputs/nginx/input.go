@@ -113,17 +113,17 @@ func (n *Input) Run() {
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
-	cleanCacheTick := time.NewTicker(time.Second * 5)
-	defer cleanCacheTick.Stop()
 
 	for {
 		select {
 		case <-tick.C:
 			n.getMetric()
-		case <-cleanCacheTick.C:
 			if len(n.collectCache) > 0 {
-				inputs.FeedMeasurement(inputName, io.Metric, n.collectCache, &io.Option{CollectCost: time.Since(n.start)})
+				err := inputs.FeedMeasurement(inputName, io.Metric, n.collectCache, &io.Option{CollectCost: time.Since(n.start)})
 				n.collectCache = n.collectCache[:0]
+				if err != nil {
+					l.Errorf(err.Error())
+				}
 			}
 		case <-datakit.Exit.Wait():
 			if n.tail != nil {
