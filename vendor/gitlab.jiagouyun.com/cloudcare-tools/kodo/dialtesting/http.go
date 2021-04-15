@@ -46,11 +46,11 @@ type HTTPTask struct {
 	reqCost  time.Duration
 	reqError string
 
-	dnsParseTime   int64
-	connectionTime int64
-	sslTime        int64
-	ttfbTime       int64
-	downloadTime   int64
+	dnsParseTime   float64
+	connectionTime float64
+	sslTime        float64
+	ttfbTime       float64
+	downloadTime   float64
 }
 
 const MaxMsgSize = 15 * 1024 * 1024
@@ -252,22 +252,22 @@ func (t *HTTPTask) Run() error {
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(dsi httptrace.DNSStartInfo) { dns = time.Now() },
 		DNSDone: func(ddi httptrace.DNSDoneInfo) {
-			t.dnsParseTime = int64(time.Since(dns) / time.Microsecond)
+			t.dnsParseTime = float64(time.Since(dns)) / float64(time.Microsecond)
 		},
 
 		TLSHandshakeStart: func() { tlsHandshake = time.Now() },
 		TLSHandshakeDone: func(cs tls.ConnectionState, err error) {
-			t.sslTime = int64(time.Since(tlsHandshake) / time.Microsecond)
+			t.sslTime = float64(time.Since(tlsHandshake)) / float64(time.Microsecond)
 		},
 
 		ConnectStart: func(network, addr string) { connect = time.Now() },
 		ConnectDone: func(network, addr string, err error) {
-			t.connectionTime = int64(time.Since(connect) / time.Microsecond)
+			t.connectionTime = float64(time.Since(connect)) / float64(time.Microsecond)
 		},
 
 		GotFirstResponseByte: func() {
 			t1 = time.Now()
-			t.ttfbTime = int64(time.Since(t.reqStart) / time.Microsecond)
+			t.ttfbTime = float64(time.Since(t.reqStart)) / float64(time.Microsecond)
 		},
 	}
 
@@ -296,6 +296,7 @@ func (t *HTTPTask) Run() error {
 		goto result
 	}
 
+	t.downloadTime = float64(time.Since(t1)) / float64(time.Microsecond)
 	t.respBody, err = ioutil.ReadAll(t.resp.Body)
 	if err != nil {
 		goto result
@@ -307,7 +308,6 @@ result:
 		t.reqError = err.Error()
 	}
 	t.reqCost = time.Since(t.reqStart)
-	t.downloadTime = int64(time.Since(t1) / time.Microsecond)
 
 	return err
 }
