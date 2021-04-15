@@ -20,11 +20,14 @@ func (this *Input) gatherMetric(interval time.Duration) {
 			return
 
 		case <-tick.C:
-			data, err := this.gather(&gatherOption{})
+			startTime := time.Now()
+			pts, err := this.gather()
 			if err != nil {
 				l.Error(err)
+				continue
 			}
-			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+			cost := time.Since(startTime)
+			if err := io.Feed(inputName, io.Metric, pts, &io.Option{CollectCost: cost}); err != nil {
 				l.Error(err)
 			}
 		}
@@ -40,11 +43,14 @@ func (this *Input) gatherObject(interval time.Duration) {
 			return
 
 		case <-tick.C:
-			data, err := this.gather(&gatherOption{IsObjectCategory: true})
+			startTime := time.Now()
+			pts, err := this.gather(&gatherOption{IsObjectCategory: true})
 			if err != nil {
 				l.Error(err)
+				continue
 			}
-			if err := io.NamedFeed(data, io.Object, inputName); err != nil {
+			cost := time.Since(startTime)
+			if err := io.Feed(inputName, io.Metric, pts, &io.Option{CollectCost: cost}); err != nil {
 				l.Error(err)
 			}
 		}
