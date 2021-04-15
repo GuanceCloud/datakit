@@ -13,7 +13,7 @@ JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到 Data
 安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar)。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。通过如下方式开启 Java 应用： 
 
 ```shell
-java -javaagent:/path/to/jolokia-jvm-agent.jar=port=7777,host=localhost -jar your_app.jar
+java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar your_app.jar
 ```
 
 ## 配置
