@@ -31,20 +31,22 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 			"schema_size": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Desc:     "Size of schemas in MiB",
+				Unit:     inputs.SizeMiB,
+				Desc:     "Size of schemas(MiB)",
 			},
 			"query_run_time_avg": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
+				Unit:     inputs.DurationNS,
 				Desc:     "Avg query response time per schema.",
 			},
 		},
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
-				Desc: "server addr",
+				Desc: "Server addr",
 			},
 			"schema_name": &inputs.TagInfo{
-				Desc: "schema name",
+				Desc: "Schema name",
 			},
 		},
 	}
