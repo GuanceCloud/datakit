@@ -140,6 +140,7 @@ func (r *Rum) handleBody(body []byte, precision, srcip string) (mpts, rumpts []*
 	extraTags := geoTags(srcip)
 
 	mpts, err = lp.ParsePoints(body, &lp.Option{
+		Precision: precision,
 		ExtraTags: extraTags,
 		Strict:    true,
 		Callback: func(p influxm.Point) (influxm.Point, error) {
