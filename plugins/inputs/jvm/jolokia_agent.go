@@ -50,11 +50,6 @@ const (
     tag_keys = ["name"]
 
   [[inputs.jvm.metric]]
-    name  = "java_last_garbage_collection"
-    mbean = "java.lang:name=G1 Young Generation,type=GarbageCollector"
-    paths = ["LastGcInfo/duration", "LastGcInfo/GcThreadCount", "LastGcInfo/memoryUsageAfterGc"]
-
-  [[inputs.jvm.metric]]
     name  = "java_threading"
     mbean = "java.lang:type=Threading"
     paths = ["TotalStartedThreadCount", "ThreadCount", "DaemonThreadCount", "PeakThreadCount"]
