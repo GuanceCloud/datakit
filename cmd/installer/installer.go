@@ -131,7 +131,7 @@ func main() {
 	if !*flagInstallOnly {
 		l.Infof("starting service %s...", datakit.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
-			l.Fatalf("star service: %s", err.Error())
+			l.Warnf("star service: %s, ignored", err.Error())
 		}
 	}
 
