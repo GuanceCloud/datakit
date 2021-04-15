@@ -272,7 +272,7 @@ func runDatakitWithHTTPServer() error {
 		return err
 	}
 
-	http.Start(datakit.Cfg.MainCfg.HTTPBind)
+	http.Start(datakit.Cfg.MainCfg.HTTPListen)
 
 	return nil
 }
