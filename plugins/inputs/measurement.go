@@ -138,11 +138,9 @@ func NewTagInfo(desc string) *TagInfo {
 }
 
 func sortMapKey(m map[string]interface{}) (res []string) {
-
-	for k, _ := range m {
+	for k := range m {
 		res = append(res, k)
 	}
-
 	sort.Strings(res)
 	return
 }
