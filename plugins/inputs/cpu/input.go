@@ -19,7 +19,9 @@ const (
 	metricName   = inputName
 	sampleCfg    = `
 [[inputs.cpu]]
-# no sample need here, just open the input
+	# no sample need here
+    [inputs.cpu.tags]
+	# tag1 = "a"
 	`
 )
 
