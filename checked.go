@@ -146,6 +146,7 @@ var (
 		"openldap":               true,
 		"openntpd":               true,
 		"oraclemonitor":          true,
+		"oracle":                 true,
 		"phpfpm":                 true,
 		"ping":                   true,
 		"postgresql":             true,
