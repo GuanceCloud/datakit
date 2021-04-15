@@ -34,6 +34,8 @@ type Input struct {
 
 	ReportActive bool `toml:"report_active"`
 
+	Tags map[string]string
+
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr *cpuMeasurement
 
@@ -114,7 +116,9 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.UnknownArch
+	return []string{
+		datakit.OSLinux, datakit.OSWindows,
+	}
 }
 
 func (i *Input) Collect() error {
@@ -128,6 +132,9 @@ func (i *Input) Collect() error {
 		tags := map[string]string{
 			"cpu":  cts.CPU,
 			"host": datakit.Cfg.MainCfg.Hostname,
+		}
+		for k, v := range i.Tags {
+			tags[k] = v
 		}
 		fields := make(map[string]interface{})
 
