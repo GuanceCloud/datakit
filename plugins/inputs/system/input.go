@@ -21,13 +21,17 @@ const (
 	metricName   = inputName
 	sampleCfg    = `
 [[inputs.system]]
-# no sample need here, just open the input
+# no sample need here
+    [inputs.system.tags]
+	# tag1 = "a"
 	`
 )
 
 type Input struct {
 	Fielddrop []string
-	logger    *logger.Logger
+	Tags      map[string]string
+
+	logger *logger.Logger
 
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr *systemMeasurement
@@ -84,7 +88,7 @@ func (i *Input) SampleConfig() string {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.UnknownArch
+	return datakit.AllArch
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
@@ -104,9 +108,15 @@ func (i *Input) Collect() error {
 	if err != nil {
 		return err
 	}
+
+	tags := map[string]string{"host": datakit.Cfg.MainCfg.Hostname}
+	for k, v := range i.Tags {
+		tags[k] = v
+	}
+
 	i.appendMeasurement(
 		metricName,
-		map[string]string{"host": datakit.Cfg.MainCfg.Hostname},
+		tags,
 		map[string]interface{}{
 			"load1":  loadAvg.Load1,
 			"load5":  loadAvg.Load5,
