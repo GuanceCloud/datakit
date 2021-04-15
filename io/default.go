@@ -31,10 +31,6 @@ func Start() error {
 		defaultIO.OutputFile = datakit.OutputFile
 	}
 
-	if datakit.Cfg.MainCfg.StrictMode {
-		defaultIO.StrictMode = true
-	}
-
 	defaultIO.FlushInterval = datakit.IntervalDuration
 
 	datakit.WG.Add(1)
