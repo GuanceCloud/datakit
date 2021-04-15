@@ -17,7 +17,9 @@ var (
 	swapLogger   = logger.SLogger(inputName)
 	sampleCfg    = `
 [[inputs.swap]]
-# no sample need here, just open the input	
+# no sample need here
+    [inputs.swap.tags]
+	# tag1 = "a"
 `
 )
 
@@ -53,6 +55,7 @@ func (m *swapMeasurement) LineProto() (*io.Point, error) {
 }
 
 type Input struct {
+	Tags                 map[string]string
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr inputs.Measurement
 	swapStat             SwapStat
@@ -62,6 +65,10 @@ func (i *Input) appendMeasurement(name string, tags map[string]string, fields ma
 	tmp := &swapMeasurement{name: name, tags: tags, fields: fields, ts: ts}
 	i.collectCache = append(i.collectCache, tmp)
 	i.collectCacheLast1Ptr = tmp
+}
+
+func (i *Input) AvailableArchs() []string {
+	return datakit.AllArch
 }
 
 func (i *Input) Catalog() string {
@@ -95,7 +102,11 @@ func (i *Input) Collect() error {
 		"in":  swap.Sin,
 		"out": swap.Sout,
 	}
-	i.appendMeasurement(metricName, nil, fields, ts)
+	tags := map[string]string{}
+	for k, v := range i.Tags {
+		tags[k] = v
+	}
+	i.appendMeasurement(metricName, tags, fields, ts)
 
 	return nil
 }
