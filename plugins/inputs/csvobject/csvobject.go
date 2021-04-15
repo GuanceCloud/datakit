@@ -77,12 +77,12 @@ func (x *CsvObject) Run() {
 		intVal = int(interval) / 1e9
 	}
 
-	if datakit.Cfg.MainCfg.HTTPBind == "" {
+	if datakit.Cfg.MainCfg.HTTPListen == "" {
 		l.Errorf("missed http_server_addr configuration in datakit.conf")
 		return
 	}
 
-	port := strings.Split(datakit.Cfg.MainCfg.HTTPBind, ":")[1]
+	port := strings.Split(datakit.Cfg.MainCfg.HTTPListen, ":")[1]
 	args := []string{
 		filepath.Join(datakit.InstallDir, "externals", "csv", "main.py"),
 		"--object", encodeStr,
