@@ -131,11 +131,11 @@ func (d *Input) doServerTask() {
 	du, err := time.ParseDuration(d.PullInterval)
 	if err != nil {
 		l.Warnf("invalid frequency: %s, use default", d.PullInterval)
-		du = time.Second * 5
+		du = time.Minute
 	}
-	if du > 30*time.Second || du < time.Second {
+	if du > 24*time.Hour || du < time.Minute {
 		l.Warnf("invalid frequency: %s, use default", d.PullInterval)
-		du = time.Second * 5
+		du = time.Minute
 	}
 
 	tick := time.NewTicker(du)

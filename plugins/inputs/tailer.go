@@ -2,6 +2,7 @@ package inputs
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -21,7 +22,6 @@ import (
 	"golang.org/x/text/encoding/unicode"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
@@ -100,19 +100,19 @@ type TailerOption struct {
 	Match string `toml:"match"`
 
 	// 是否关闭添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
-	DisableAddStatusField bool
+	DisableAddStatusField bool `toml:"-"`
 
 	// 是否关闭高频IO
-	DisableHighFreqIODdata bool
+	DisableHighFreqIODdata bool `toml:"-"`
 
 	// TODO:
 	// 上传到该category，默认是 OPT_LOGGING
-	Category int
+	Category int `toml:"-"`
 
 	// 自定义添加tag，默认会添加 "filename"
 	Tags map[string]string
 
-	StopChan <-chan interface{}
+	StopChan chan interface{} `toml:"-"`
 }
 
 func fillTailerOption(opt *TailerOption) *TailerOption {
@@ -137,14 +137,15 @@ func fillTailerOption(opt *TailerOption) *TailerOption {
 	}
 	opt.Tags["service"] = opt.Service
 
-	opt.StopChan = datakit.Exit.Wait()
+	if opt.StopChan == nil {
+		opt.StopChan = make(chan interface{})
+	}
 
 	return opt
 }
 
 type Tailer struct {
-	Option *TailerOption `toml:"option"`
-
+	Option    *TailerOption
 	InputName string
 
 	tailConf tail.Config
@@ -153,8 +154,8 @@ type Tailer struct {
 	multilineInstance *Multiline
 	watcher           *Watcher
 
-	wg  sync.WaitGroup
 	log *logger.Logger
+	wg  sync.WaitGroup
 }
 
 func NewTailer(opt *TailerOption) (*Tailer, error) {
@@ -171,7 +172,7 @@ func (t *Tailer) init() error {
 	var err error
 
 	if len(t.Option.Files) == 0 {
-		return fmt.Errorf("cannot files is nil")
+		return fmt.Errorf("files is nil")
 	}
 
 	t.Option = fillTailerOption(t.Option)
@@ -224,12 +225,13 @@ func (t *Tailer) Run() {
 	ticker := time.NewTicker(findNewFileInterval)
 	defer ticker.Stop()
 
-	go t.watching()
+	go t.watcher.Watching(context.Background())
 
 	for {
 		select {
 		case <-t.Option.StopChan:
 			t.log.Infof("waiting for all tailers to exit")
+			t.watcher.Close()
 			t.wg.Wait()
 			t.log.Info("exit")
 			return
@@ -239,19 +241,19 @@ func (t *Tailer) Run() {
 			// 程序启动到 ticker.C 中间一段时间是荒废的
 			fileList := getFileList(t.Option.Files, t.Option.IgnoreFiles)
 
-			for _, file := range fileList {
-				if exist := t.watcher.IsExist(file); exist {
+			for _, filename := range fileList {
+				if exist := t.watcher.IsExist(filename); exist {
 					continue
 				}
 				t.wg.Add(1)
-				go func(fp string) {
+				go func(fn string) {
 					defer t.wg.Done()
-					t.tailingFile(fp)
-				}(file)
+					t.tailingFile(fn)
+				}(filename)
 			}
 
+			// 如果开启 FromBeginning 选项，将停止 ticker，此 case 分支将不再进入，也不再发现新文件
 			if t.Option.FromBeginning {
-				// disable auto-discovery, ticker was unreachable
 				ticker.Stop()
 			}
 		}
@@ -259,33 +261,37 @@ func (t *Tailer) Run() {
 }
 
 func (t *Tailer) Close() error {
-	// TODO:
+	close(t.Option.StopChan)
 	return nil
 }
 
-func (t *Tailer) watching() {
-	t.watcher.Watching(t.Option.StopChan)
-}
+func (t *Tailer) tailingFile(filename string) {
+	t.log.Debugf("start tail, %s", filename)
 
-func (t *Tailer) tailingFile(file string) {
-	t.log.Debugf("start tail, %s", file)
+	instence, err := newTailerSingle(t, filename)
+	if err != nil {
+		t.log.Errorf("new tailer %s error: %s", filename, err)
+	}
+	defer instence.clean()
 
-	instence := newTailerSingle(t, file)
-	t.watcher.Add(file, instence.getNotifyChan())
+	ctx, cancel := context.WithCancel(context.Background())
+	t.watcher.Add(filename, cancel)
 
 	// 阻塞
-	instence.run()
+	instence.receiving(ctx)
 
-	if err := t.watcher.Remove(file); err != nil {
-		t.log.Warnf("remove watcher file %s err, %s", file, err)
+	if err := t.watcher.Remove(filename); err != nil {
+		t.log.Warnf("remove watcher file %s err, %s", filename, err)
 	}
 
-	t.log.Debugf("remove file %s from the running list", file)
+	t.log.Debugf("remove file %s from the running list", filename)
 }
 
+// tailerSingle
+// 每一个文件有自己独立的tailerSingle
+// tailerSingle 共用来自父类 Tailer 的成员变量，包括 Option、Multiline 等
 type tailerSingle struct {
-	tl         *Tailer
-	notifyChan chan notifyType
+	tl *Tailer
 
 	filename string
 	tags     map[string]string
@@ -298,11 +304,12 @@ type tailerSingle struct {
 	channelOpen bool
 }
 
-func newTailerSingle(tl *Tailer, filename string) *tailerSingle {
+func newTailerSingle(tl *Tailer, filename string) (*tailerSingle, error) {
 	t := &tailerSingle{
-		tl:         tl,
-		filename:   filename,
-		notifyChan: make(chan notifyType),
+		tl:          tl,
+		filename:    filename,
+		tailerOpen:  true,
+		channelOpen: true,
 	}
 
 	t.tags = func() map[string]string {
@@ -318,21 +325,12 @@ func newTailerSingle(tl *Tailer, filename string) *tailerSingle {
 		return m
 	}()
 
-	t.tailerOpen = true
-	t.channelOpen = true
-
-	return t
-}
-
-func (t *tailerSingle) run() {
 	var err error
 
 	t.tail, err = tail.TailFile(t.filename, t.tl.tailConf)
 	if err != nil {
-		t.tl.log.Errorf("failed of build tailer, err:%s", err)
-		return
+		return nil, err
 	}
-	defer t.tail.Cleanup()
 
 	if t.tl.Option.Pipeline != "" {
 		t.pipe, err = pipeline.NewPipelineFromFile(t.tl.Option.Pipeline)
@@ -341,53 +339,27 @@ func (t *tailerSingle) run() {
 		}
 	}
 
-	t.receiving()
+	return t, nil
 }
 
-func (t *tailerSingle) getNotifyChan() chan notifyType {
-	return t.notifyChan
+func (t *tailerSingle) clean() {
+	if t.tail != nil {
+		t.tail.Cleanup()
+	}
 }
 
-func (t *tailerSingle) receiving() {
+func (t *tailerSingle) receiving(ctx context.Context) {
 	t.tl.log.Debugf("start recivering data from the file %s", t.filename)
-
-	ticker := time.NewTicker(checkFileExistInterval)
-	defer ticker.Stop()
 
 	var line *tail.Line
 
 	for {
 		line = nil
 
-		// FIXME: 4个case是否过多？
 		select {
-		case <-t.tl.Option.StopChan:
+		case <-ctx.Done():
 			t.tl.log.Debugf("tailing source:%s, file %s is ending", t.tl.Option.Source, t.filename)
 			return
-
-		case n := <-t.notifyChan:
-			switch n {
-			case renameNotify:
-				t.tl.log.Warnf("file %s was rename", t.filename)
-				return
-			default:
-				// nil
-			}
-
-		// 为什么不使用 notify 的方式监控文件删除，反而采用 Lstat() ？
-		//
-		// notify 只有当文件引用计数为 0 时，才会认为此文件已经被删除，从而触发 remove event
-		// 在此处，datakit 打开文件后保存句柄，即使 rm 删除文件，该文件的引用计数依旧是 1，因为 datakit 在占用
-		// 从而导致，datakit 占用文件无法删除，无法删除就收不到 remove event，此 goroutine 就会长久存在
-		// 且极端条件下，长时间运行，可能会导致磁盘容量不够的情况，因为占用容量的文件在此被引用，新数据无法覆盖
-		// 以上结论仅限于 linux
-
-		case <-ticker.C:
-			_, statErr := os.Lstat(t.filename)
-			if os.IsNotExist(statErr) {
-				t.tl.log.Warnf("file %s is not exist", t.filename)
-				return
-			}
 
 		case line, t.tailerOpen = <-t.tail.Lines:
 			if !t.tailerOpen {
@@ -430,30 +402,35 @@ func (t *tailerSingle) receiving() {
 			fields["message"] = text
 		}
 
+		// 检查数据是否过长
+		// 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
+		// 防止通过 pipeline 添加巨长字段的恶意行为
 		if err := checkFieldsLength(fields, maxFieldsLength); err != nil {
-			// 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
-			// 防止通过 pipeline 添加巨长字段的恶意行为
 			t.tl.log.Error(err)
 			continue
 		}
 
+		// 添加默认 status 和 status 映射
 		if !t.tl.Option.DisableAddStatusField {
 			addStatus(fields)
 		}
 
+		// 过滤指定status
 		if status, ok := fields["status"].(string); ok {
 			if contains(t.tl.Option.IgnoreStatus, status) {
 				continue
 			}
 		}
 
+		// 提取 time 字段
 		ts, err := takeTime(fields)
 		if err != nil {
 			ts = time.Now()
 			t.tl.log.Error(err)
 		}
 
-		// use t.source as input-name, make it more distinguishable for multiple tailf instances
+		// 使用 source 当做行协议的 measurement
+		// 使用 inputName 用作 io 上传来源，Tailer inputName 默认为 source+"_log"
 		pt, err := io.MakePoint(t.tl.Option.Source, t.tags, fields, ts)
 		if err != nil {
 			t.tl.log.Error(err)
@@ -691,14 +668,8 @@ func (m *Multiline) matchString(text string) bool {
 }
 
 //
-// ============================= watcher ==================================
+// ========================== watcher =========================
 //
-
-type notifyType int
-
-const (
-	renameNotify notifyType = iota + 1
-)
 
 type Watcher struct {
 	watcher *fsnotify.Watcher
@@ -718,59 +689,86 @@ func NewWatcher() (*Watcher, error) {
 }
 
 func (w *Watcher) Close() error {
+	w.list.Range(func(key, value interface{}) bool {
+		if cancel, ok := value.(context.CancelFunc); ok {
+			cancel()
+		}
+		return true
+	})
 	return w.watcher.Close()
 }
 
-func (w *Watcher) Add(file string, notifyCh chan notifyType) error {
-	// FIXME:
-	// if w.watcher == nil {
-	// 	return fmt.Errorf("invalid Watcher instance, should use NewWatcher()")
-	// }
-
-	if ok := w.IsExist(file); ok {
-		return nil
-	}
-
-	err := w.watcher.Add(file)
-	if err != nil {
+func (w *Watcher) Add(filename string, cancel context.CancelFunc) error {
+	if err := w.watcher.Add(filename); err != nil {
 		return err
 	}
-
-	w.list.Store(file, notifyCh)
+	w.list.Store(filename, cancel)
 	return nil
 }
-func (w *Watcher) Remove(file string) error {
-	err := w.watcher.Remove(file)
-	if err != nil {
-		return err
+
+func (w *Watcher) Remove(filename string) error {
+	w.list.Delete(filename)
+	return w.watcher.Remove(filename)
+}
+
+func (w *Watcher) cancelCtx(filename string) {
+	value, ok := w.list.Load(filename)
+	if !ok {
+		return
 	}
 
-	w.list.Delete(file)
-	return nil
+	if cancel, ok := value.(context.CancelFunc); ok {
+		cancel()
+	}
 }
 
 func (w *Watcher) IsExist(file string) bool {
 	_, ok := w.list.Load(file)
 	return ok
 }
-func (w *Watcher) Watching(done <-chan interface{}) {
+
+func (w *Watcher) Watching(ctx context.Context) {
+	var checkFileExistInterval = time.Second * 5
+	tick := time.NewTicker(checkFileExistInterval)
+	defer tick.Stop()
+
 	for {
 		select {
-		case <-done:
+		case <-ctx.Done():
 			return
 
 		case event, ok := <-w.watcher.Events:
 			if !ok {
 				continue
 			}
-
 			if event.Op&fsnotify.Rename == fsnotify.Rename {
-				notifyCh, ok := w.list.Load(event.Name)
-				if !ok {
-					continue
-				}
-				notifyCh.(chan notifyType) <- renameNotify
+				w.cancelCtx(event.Name)
 			}
+
+		case <-tick.C:
+			// 为什么不使用 notify 的方式监控文件删除，反而采用 Lstat() ？
+			//
+			// notify 只有当文件引用计数为 0 时，才会认为此文件已经被删除，从而触发 remove event
+			// 在此处，datakit 打开文件后保存句柄，即使 rm 删除文件，该文件的引用计数依旧是 1，因为 datakit 在占用
+			// 从而导致，datakit 占用文件无法删除，无法删除就收不到 remove event，此 goroutine 就会长久存在
+			// 且极端条件下，长时间运行，可能会导致磁盘容量不够的情况，因为占用容量的文件在此被引用，新数据无法覆盖
+			// 以上结论仅限于 linux
+			w.list.Range(func(key, value interface{}) bool {
+				filename, ok := key.(string)
+				if !ok {
+					return true
+				}
+
+				_, statErr := os.Lstat(filename)
+				if os.IsNotExist(statErr) {
+					if cancel, ok := value.(context.CancelFunc); ok {
+						cancel()
+					}
+					return true
+				}
+
+				return true
+			})
 
 		case _, ok := <-w.watcher.Errors:
 			if !ok {
