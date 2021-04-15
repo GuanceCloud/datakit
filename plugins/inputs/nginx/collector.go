@@ -95,7 +95,7 @@ func (n *Input) getStubStatusModuleMetric() {
 	}
 
 	tags := getTags(n.Url)
-	for k,v := range n.Tags {
+	for k, v := range n.Tags {
 		tags[k] = v
 	}
 
@@ -157,7 +157,7 @@ func (n *Input) handVTSResponse(r io.Reader) {
 	vtsResp.tags["host_name"] = vtsResp.HostName
 	vtsResp.tags["nginx_version"] = vtsResp.Version
 
-	for k,v := range n.Tags {
+	for k, v := range n.Tags {
 		vtsResp.tags[k] = v
 	}
 
