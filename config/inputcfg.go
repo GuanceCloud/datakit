@@ -51,6 +51,13 @@ func LoadInputsConfig(c *datakit.Config) error {
 			return nil
 		}
 
+		deprecates := checkDepercatedInputs(tbl, deprecatedInputs)
+		if len(deprecates) > 0 {
+			for k, v := range deprecates {
+				l.Warnf("input `%s' removed, please use %s instead", k, v)
+			}
+		}
+
 		if len(tbl.Fields) == 0 {
 			l.Debugf("no conf available on %s", fp)
 			return nil
@@ -346,4 +353,29 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 	}
 
 	return inputlist, nil
+}
+
+var (
+	deprecatedInputs = map[string]string{
+		"dockerlog":         "docker",
+		"docker_containers": "docker",
+	}
+)
+
+func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[string]string) {
+
+	res = map[string]string{}
+
+	for _, node := range tbl.Fields {
+		stbl, ok := node.(*ast.Table)
+		if !ok {
+			continue
+		}
+		for inputName := range stbl.Fields {
+			if x, ok := entries[inputName]; ok {
+				res[inputName] = x
+			}
+		}
+	}
+	return
 }
