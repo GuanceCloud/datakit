@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	bstoml "github.com/BurntSushi/toml"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
@@ -16,51 +17,80 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/host_process"
 )
 
-var tomlParseCases = []struct {
-	in string
-}{
-	{
-		in: `
+func TestTomlSerialization(t *testing.T) {
+	type X struct {
+		A int    `toml:"a,___a"`
+		B string `toml:"b,__b"`
+	}
+
+	cases := []string{
+		`a = 123
+		b = "xyz"`,
+
+		`___a = 123
+		__b = "xyz"`,
+	}
+
+	for _, tc := range cases {
+		var x X
+
+		if err := toml.Unmarshal([]byte(tc), &x); err != nil {
+			t.Error(err)
+		}
+		t.Logf("bstoml: %+#v", x)
+
+		if _, err := bstoml.Decode(tc, &x); err != nil {
+			t.Error(err)
+		}
+		t.Logf("bstoml: %+#v", x)
+	}
+}
+
+func TestTomlParse(t *testing.T) {
+
+	tomlParseCases := []struct {
+		in string
+	}{
+		{
+			in: `
 		[[inputs.abc]]
 			key1 = "1-line-string"
 			key2 = '''multili
 			string
 			'''`,
-	},
+		},
 
-	{
-		in: `
+		{
+			in: `
 [[inputs.abc]]
 	key1 = 1
 	key2 = "a"
 	key3 = 3.14`,
-	},
+		},
 
-	{
-		in: `
+		{
+			in: `
 [[inputs.abc]]
 	key1 = 11
 	key2 = "aa"
 	key3 = 6.28`,
-	},
+		},
 
-	{
-		in: `
+		{
+			in: `
 [[inputs.abc]]
 	key1 = 22
 	key2 = "aaa"
 	key3 = 6.18`,
-	},
-	{
-		in: `
+		},
+		{
+			in: `
 [[inputs.def]]
 	key1 = 22
 	key2 = "aaa"
 	key3 = 6.18`,
-	},
-}
-
-func TestTomlParse(t *testing.T) {
+		},
+	}
 
 	type obj struct {
 		Key1 int     `toml:"key1"`
@@ -172,6 +202,7 @@ func TestBuildInputCfg(t *testing.T) {
 //	}
 //}
 //
+
 func TestTomlUnmarshal(t *testing.T) {
 	x := []byte(`
 global = "global config"
@@ -416,7 +447,7 @@ func TestRemoveDepercatedInputs(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		res := removeDepercatedInputs(tbl, tc.entries)
+		res := checkDepercatedInputs(tbl, tc.entries)
 		t.Logf("res: %+#v", res)
 		tu.Assert(t,
 			len(res) == len(tc.res),
