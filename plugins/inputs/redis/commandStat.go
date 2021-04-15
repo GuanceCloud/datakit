@@ -31,25 +31,27 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 			"calls": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Desc:     "The number of calls that reached command execution",
 			},
 			"usec": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Unit:     inputs.DurationUS,
+				Desc:     "The total CPU time consumed by these commands",
 			},
 			"usec_per_call": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Unit:     inputs.DurationUS,
+				Desc:     "The average CPU consumed per command execution",
 			},
 		},
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
-				Desc: "server addr",
+				Desc: "Server addr",
 			},
 			"method": &inputs.TagInfo{
-				Desc: "command type",
+				Desc: "Command type",
 			},
 		},
 	}
