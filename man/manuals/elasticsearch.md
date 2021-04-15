@@ -49,12 +49,13 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 
 ## 日志采集
 
-如需采集 ElasticSearch 的日志，可在 {{.InputName}}.conf 中 将 `log_file` 打开，并写入 ElasticSearch 日志文件的绝对路径。比如：
+如需采集 ElasticSearch 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 ElasticSearch 日志文件的绝对路径。比如：
 
 ```
 [[inputs.elasticsearch]]
   ...
-  log_files = ["/path/to/your/file.log"]
+[inputs.elasticsearch.log]
+files = ["/path/to/your/file.log"]
 ```
 
 
