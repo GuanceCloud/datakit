@@ -114,10 +114,6 @@ func main() {
 	}
 
 	if *flagUpgrade { // upgrade new version
-
-		//logger.SetGlobalRootLogger(datakit.OTALogFile, logger.DEBUG, logger.OPT_DEFAULT)
-		//l = logger.SLogger("ota")
-
 		l.Infof("Upgrading to version %s...", DataKitVersion)
 		if err := install.UpgradeDatakit(svc); err != nil {
 			l.Fatalf("upgrade datakit failed: %s", err.Error())
@@ -135,7 +131,7 @@ func main() {
 	if !*flagInstallOnly {
 		l.Infof("starting service %s...", datakit.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
-			l.Fatalf("star service: %s", err.Error())
+			l.Warnf("star service: %s, ignored", err.Error())
 		}
 	}
 
