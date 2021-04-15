@@ -61,7 +61,7 @@ func (this *Input) gatherContainerInfo(container types.Container) map[string]str
 		"container_name": getContainerName(container.Names),
 		"docker_image":   container.ImageID,
 		"image_name":     container.Image,
-		"stats":          container.State,
+		"state":          container.State,
 	}
 
 	for k, v := range this.Tags {
