@@ -12,11 +12,6 @@ func Enabled(name string) bool {
 	}
 }
 
-func Depercated(name string) (target string, exist bool) {
-	target, exist = deprecatedInputs[name]
-	return
-}
-
 var (
 	EnableUncheckInputs = false
 
@@ -206,10 +201,5 @@ var (
 		"yarn":                   true,
 		"zabbix":                 true,
 		"zaplog":                 true,
-	}
-
-	deprecatedInputs = map[string]string{
-		"dockerlog":         "docker",
-		"docker_containers": "docker",
 	}
 )
