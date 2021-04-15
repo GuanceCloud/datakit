@@ -28,9 +28,11 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cshark"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ddtrace"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dialtesting"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/disk"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/docker"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/docker_containers"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dockerlog"
+
+	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/docker_containers"
+	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dockerlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/druid"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/envoy"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
@@ -55,6 +57,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jvm"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/k8sobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafka"
+
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafkalog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kong"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/lighttpd"
@@ -65,6 +68,7 @@ import (
 
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysqlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/neo4j"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/net"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nfsstat"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nginx"
 
@@ -74,6 +78,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/proxy"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/puppetagent"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/rabbitmq"
+
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/rabbitmqlog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/redis"
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/redislog"
