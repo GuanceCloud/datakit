@@ -84,9 +84,6 @@ type indexStat struct {
 
 const sampleConfig = `
 [[inputs.elasticsearch]]
-  ## 采集日志文件配置，可配置多个
-  #log_files = ["/path/to/your/file.log"]
-
   ## Elasticsearch服务器配置
   # 支持Basic认证:
   # servers = ["http://user:pass@localhost:9200"]
@@ -135,23 +132,52 @@ const sampleConfig = `
   # tls_key = "/etc/telegraf/key.pem"
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
+
+[inputs.elasticsearch.log]
+  #	files = []
+  ## grok pipeline script path
+  #	pipeline = "elasticsearch.p"
+	
+  [inputs.elasticsearch.tags]
+   # a = "b"
+`
+
+const pipelineCfg = `
+# Elasticsearch_search_query
+grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[index.search.slowlog.%{WORD:operator}\\] (\\[%{HOSTNAME:nodeId}\\] )?\\[%{NOTSPACE:index}\\]\\[%{INT:shard}\\] took\\[.*\\], took_millis\\[%{INT:duration}\\].*")
+
+# Elasticsearch_slow_indexing
+grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[index.search.slowlog.%{WORD:operator}\\] (\\[%{HOSTNAME:nodeId}\\] )?\\[%{NOTSPACE:index}\\] took\\[.*\\], took_millis\\[%{INT:duration}\\].*")
+
+# Elasticsearch_default
+grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[%{NOTSPACE:name}%{SPACE}\\]%{SPACE}(\\[%{HOSTNAME:nodeId}\\])?.*")
+
+cast(shard, "int")
+cast(duration, "int")
+
+# why duration * 1000000
+expr(duration*1000000, duration)
+
+nullif(nodeId, "")
+default_time(time)
 `
 
 type Input struct {
-	Interval                   string   `toml:"interval"`
-	Local                      bool     `toml:"local"`
-	Servers                    []string `toml:"servers"`
-	HTTPTimeout                Duration `toml:"http_timeout"`
-	ClusterHealth              bool     `toml:"cluster_health"`
-	ClusterHealthLevel         string   `toml:"cluster_health_level"`
-	ClusterStats               bool     `toml:"cluster_stats"`
-	ClusterStatsOnlyFromMaster bool     `toml:"cluster_stats_only_from_master"`
-	IndicesInclude             []string `toml:"indices_include"`
-	IndicesLevel               string   `toml:"indices_level"`
-	NodeStats                  []string `toml:"node_stats"`
-	Username                   string   `toml:"username"`
-	Password                   string   `toml:"password"`
-	LogFiles                   []string `toml:"log_files"`
+	Interval                   string               `toml:"interval"`
+	Local                      bool                 `toml:"local"`
+	Servers                    []string             `toml:"servers"`
+	HTTPTimeout                Duration             `toml:"http_timeout"`
+	ClusterHealth              bool                 `toml:"cluster_health"`
+	ClusterHealthLevel         string               `toml:"cluster_health_level"`
+	ClusterStats               bool                 `toml:"cluster_stats"`
+	ClusterStatsOnlyFromMaster bool                 `toml:"cluster_stats_only_from_master"`
+	IndicesInclude             []string             `toml:"indices_include"`
+	IndicesLevel               string               `toml:"indices_level"`
+	NodeStats                  []string             `toml:"node_stats"`
+	Username                   string               `toml:"username"`
+	Password                   string               `toml:"password"`
+	Log                        *inputs.TailerOption `toml:"log"`
+	Tags                       map[string]string    `toml:"tags"`
 
 	TLSOpen    bool   `toml:"tls_open"`
 	CacertFile string `toml:"tls_ca"`
@@ -161,8 +187,8 @@ type Input struct {
 	client          *http.Client
 	serverInfo      map[string]serverInfo
 	serverInfoMutex sync.Mutex
-	log             *logger.Logger
 	duration        time.Duration
+	tail            *inputs.Tailer
 
 	collectCache []inputs.Measurement
 }
@@ -232,12 +258,19 @@ func (_ *Input) SampleConfig() string {
 	return sampleConfig
 }
 
+func (_ *Input) PipelineConfig() map[string]string {
+	pipelineMap := map[string]string{
+		"elasticsearch": pipelineCfg,
+	}
+	return pipelineMap
+}
+
 func (_ *Input) Test() {
 	return
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.UnknownArch
+	return datakit.AllArch
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
@@ -343,20 +376,23 @@ func (i *Input) Collect() error {
 
 func (i *Input) Run() {
 	// collect logs
-	go func() {
-		option := inputs.TailerOption{
-			Files:   i.LogFiles,
-			Source:  inputName,
-			Service: inputName,
-		}
-		tailer, err := inputs.NewTailer(&option)
-		if err != nil {
-			l.Error(err)
-			return
-		}
-
-		tailer.Run()
-	}()
+	if i.Log != nil {
+		go func() {
+			inputs.JoinPipelinePath(i.Log, "elasticsearch.p")
+			i.Log.Source = inputName
+			i.Log.Tags = make(map[string]string)
+			for k, v := range i.Tags {
+				i.Log.Tags[k] = v
+			}
+			tail, err := inputs.NewTailer(i.Log)
+			if err != nil {
+				l.Errorf("init tailf err:%s", err.Error())
+				return
+			}
+			i.tail = tail
+			tail.Run()
+		}()
+	}
 
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
@@ -386,6 +422,10 @@ func (i *Input) Run() {
 		n++
 		select {
 		case <-datakit.Exit.Wait():
+			if i.tail != nil {
+				i.tail.Close()
+				l.Info("elasticsearch log exit")
+			}
 			l.Info("elasticsearch exit")
 			return
 
