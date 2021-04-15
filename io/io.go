@@ -35,7 +35,6 @@ type IO struct {
 	HTTPTimeout   time.Duration
 	MaxCacheCnt   int64
 	OutputFile    string
-	StrictMode    bool
 	FlushInterval time.Duration
 
 	httpCli *http.Client
