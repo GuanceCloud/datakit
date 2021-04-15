@@ -514,7 +514,6 @@ github.com/influxdata/telegraf/plugins/inputs/apache
 github.com/influxdata/telegraf/plugins/inputs/ceph
 github.com/influxdata/telegraf/plugins/inputs/clickhouse
 github.com/influxdata/telegraf/plugins/inputs/cloudwatch
-github.com/influxdata/telegraf/plugins/inputs/disk
 github.com/influxdata/telegraf/plugins/inputs/diskio
 github.com/influxdata/telegraf/plugins/inputs/dns_query
 github.com/influxdata/telegraf/plugins/inputs/elasticsearch
@@ -929,7 +928,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript/module
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210414095647-7bb10efcc68b
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210415025432-c3883d5e6e8e
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 # go.mongodb.org/mongo-driver v1.4.1
 go.mongodb.org/mongo-driver/bson
