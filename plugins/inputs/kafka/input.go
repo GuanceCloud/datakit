@@ -69,11 +69,18 @@ func (i *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-//func (i *Input) SampleMeasurement() []inputs.Measurement {
-//	return []inputs.Measurement{
-//		&JvmMeasurement{},
-//	}
-//}
+func (i *Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&KafkaControllerMment{},
+		&KafkaReplicaMment{},
+		&KafkaPurgatoryMment{},
+		&KafkaClientMment{},
+		&KafkaRequestMment{},
+		&KafkaTopicsMment{},
+		&KafkaTopicMment{},
+		&KafkaPartitionMment{},
+	}
+}
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
