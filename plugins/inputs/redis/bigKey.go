@@ -32,12 +32,12 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 			"key_length": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "key length",
+				Desc:     "Key length",
 			},
 		},
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
-				Desc: "server addr",
+				Desc: "Server addr",
 			},
 		},
 	}
