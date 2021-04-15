@@ -35,7 +35,7 @@ func DefaultConfig() *Config {
 			Interval:      "10s",
 			StrictMode:    false,
 
-			HTTPBind: "0.0.0.0:9529",
+			HTTPBind: "localhost:9529",
 
 			LogLevel:  "info",
 			Log:       filepath.Join(InstallDir, "log"),
