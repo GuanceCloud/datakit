@@ -4,6 +4,20 @@ import (
 	"github.com/docker/docker/api/types"
 )
 
+// https://docs.docker.com/engine/api/v1.41/#operation/ContainerStats
+
+func calculateCPUDelta(v *types.StatsJSON) int64 {
+	return int64(v.CPUStats.CPUUsage.TotalUsage - v.PreCPUStats.CPUUsage.TotalUsage)
+}
+
+func calculateCPUSystemDelta(v *types.StatsJSON) int64 {
+	return int64(v.CPUStats.SystemUsage - v.PreCPUStats.SystemUsage)
+}
+
+func calculateCPUNumbers(v *types.StatsJSON) int64 {
+	return int64(v.CPUStats.OnlineCPUs)
+}
+
 func calculateCPUPercentUnix(previousCPU, previousSystem uint64, v *types.StatsJSON) float64 {
 	var (
 		cpuPercent = 0.0
@@ -23,28 +37,28 @@ func calculateCPUPercentUnix(previousCPU, previousSystem uint64, v *types.StatsJ
 	return cpuPercent
 }
 
-func calculateBlockIO(blkio types.BlkioStats) (uint64, uint64) {
-	var blkRead, blkWrite uint64
+func calculateBlockIO(blkio types.BlkioStats) (int64, int64) {
+	var blkRead, blkWrite int64
 	for _, bioEntry := range blkio.IoServiceBytesRecursive {
 		if len(bioEntry.Op) == 0 {
 			continue
 		}
 		switch bioEntry.Op[0] {
 		case 'r', 'R':
-			blkRead = blkRead + bioEntry.Value
+			blkRead = blkRead + int64(bioEntry.Value)
 		case 'w', 'W':
-			blkWrite = blkWrite + bioEntry.Value
+			blkWrite = blkWrite + int64(bioEntry.Value)
 		}
 	}
 	return blkRead, blkWrite
 }
 
-func calculateNetwork(network map[string]types.NetworkStats) (float64, float64) {
-	var rx, tx float64
+func calculateNetwork(network map[string]types.NetworkStats) (int64, int64) {
+	var rx, tx int64
 
 	for _, v := range network {
-		rx += float64(v.RxBytes)
-		tx += float64(v.TxBytes)
+		rx += int64(v.RxBytes)
+		tx += int64(v.TxBytes)
 	}
 	return rx, tx
 }
@@ -61,16 +75,16 @@ func calculateNetwork(network map[string]types.NetworkStats) (float64, float64) 
 //
 // On Docker 19.03 and older, the result was `mem.Usage - mem.Stats["cache"]`.
 // See https://github.com/moby/moby/issues/40727 for the background.
-func calculateMemUsageUnixNoCache(mem types.MemoryStats) float64 {
+func calculateMemUsageUnixNoCache(mem types.MemoryStats) int64 {
 	// cgroup v1
 	if v, isCgroup1 := mem.Stats["total_inactive_file"]; isCgroup1 && v < mem.Usage {
-		return float64(mem.Usage - v)
+		return int64(mem.Usage - v)
 	}
 	// cgroup v2
 	if v := mem.Stats["inactive_file"]; v < mem.Usage {
-		return float64(mem.Usage - v)
+		return int64(mem.Usage - v)
 	}
-	return float64(mem.Usage)
+	return int64(mem.Usage)
 }
 
 func calculateMemPercentUnixNoCache(limit float64, usedNoCache float64) float64 {
