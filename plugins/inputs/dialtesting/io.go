@@ -26,10 +26,6 @@ func StartCollect() error {
 		x.OutputFile = datakit.OutputFile
 	}
 
-	if datakit.Cfg.MainCfg.StrictMode {
-		x.StrictMode = true
-	}
-
 	x.FlushInterval = datakit.IntervalDuration
 
 	datakit.WG.Add(1)
