@@ -9,6 +9,7 @@ import (
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunobject"
@@ -375,5 +376,95 @@ func TestLoadTelegrafCfg(t *testing.T) {
 	fmt.Println(cfg, err)
 	for k, _ := range conf {
 		os.Remove(k)
+	}
+}
+
+func TestRemoveDepercatedInputs(t *testing.T) {
+	cases := []struct {
+		tomlStr      string
+		res, entries map[string]string
+	}{
+		{
+			tomlStr: `[[intputs.abc]]`,
+			entries: map[string]string{"abc": "cba"},
+			res:     map[string]string{"abc": "cba"},
+		},
+
+		{
+			tomlStr: `[intputs.abc]`,
+			entries: map[string]string{"abc": "cba"},
+			res:     map[string]string{"abc": "cba"},
+		},
+
+		{
+			tomlStr: `[intputs.def]`,
+			entries: map[string]string{"abc": "cba"},
+			res:     nil,
+		},
+
+		{
+			tomlStr: `[intputs.abc.xyz]`,
+			entries: map[string]string{"abc": "cba"},
+			res:     map[string]string{"abc": "cba"},
+		},
+	}
+
+	for _, tc := range cases {
+
+		tbl, err := toml.Parse([]byte(tc.tomlStr))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		res := removeDepercatedInputs(tbl, tc.entries)
+		t.Logf("res: %+#v", res)
+		tu.Assert(t,
+			len(res) == len(tc.res),
+			"got %+#v", res)
+	}
+}
+
+func TestFeedEnvs(t *testing.T) {
+	cases := []struct {
+		str    string
+		expect string
+		env    map[string]string
+	}{
+		{
+			str: "this is env from os:  $TEST_ENV",
+
+			env: map[string]string{
+				"TEST_ENV":  "test-data",
+				"TEST_ENV2": "test-data2",
+			},
+			expect: "this is env from os:  test-data",
+		},
+
+		{
+			str: "this is env from os:  $$TEST_ENV$$",
+			env: map[string]string{
+				"TEST_ENV":  "test-data",
+				"TEST_ENV2": "test-data2",
+			},
+			expect: "this is env from os:  $test-data$$",
+		},
+
+		{
+			str: "this is env from os:  $$TEST_ENVxxx",
+			env: map[string]string{
+				"TEST_ENV":  "test-data",
+				"TEST_ENV2": "test-data2",
+			},
+			expect: "this is env from os:  $$TEST_ENVxxx",
+		},
+	}
+
+	for idx, tc := range cases {
+		for k, v := range tc.env {
+			os.Setenv(k, v)
+		}
+
+		data := feedEnvs([]byte(tc.str))
+		tu.Assert(t, tc.expect == string(data), "[%d] epxect `%s', got `%s'", idx, tc.expect, string(data))
 	}
 }
