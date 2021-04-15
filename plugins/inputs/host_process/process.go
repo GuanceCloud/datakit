@@ -281,7 +281,7 @@ func (p *Input) WriteObject() {
 			}
 		}
 		obj := &ProcessObject{
-			name:   "process",
+			name:   "host_process",
 			tags:   tags,
 			fields: fields,
 			ts:     t,
@@ -305,7 +305,7 @@ func (p *Input) WriteMetric() {
 			"process_name": name,
 		}
 		metric := &ProcessMetric{
-			name:   "process",
+			name:   "host_process",
 			tags:   tags,
 			fields: fields,
 			ts:     t,
