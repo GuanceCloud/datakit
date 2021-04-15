@@ -29,6 +29,8 @@ const (
 	maxFieldsLength = 32766
 
 	pipelineTimeField = "time"
+
+	useIOHighFreq = true
 )
 
 type containerLog struct {
@@ -234,7 +236,7 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 		if err != nil {
 			l.Error(err)
 		} else {
-			if err := iod.Feed(inputName, iod.Logging, []*iod.Point{pt}, &iod.Option{HighFreq: true}); err != nil {
+			if err := iod.Feed(inputName, iod.Logging, []*iod.Point{pt}, &iod.Option{HighFreq: useIOHighFreq}); err != nil {
 				l.Error(err)
 			}
 		}
