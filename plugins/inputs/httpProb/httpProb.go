@@ -1,6 +1,7 @@
 package httpProb
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -89,7 +91,31 @@ func (h *HttpProb) Run() {
 	listen := fmt.Sprintf("%s:%v", h.Bind, h.Port)
 	l.Info("HttpProb server start...", h.Port)
 
-	http.ListenAndServe(listen, h)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		h.handle(req)
+		fmt.Fprintf(w, "ok")
+	})
+
+	// server
+	srv := http.Server{
+		Addr:    listen,
+		Handler: handler,
+	}
+
+	go func() {
+		<-datakit.Exit.Wait()
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); nil != err {
+			l.Fatalf("server shutdown failed, err: %v\n", err)
+		}
+		l.Info("server gracefully shutdown")
+	}()
+
+	err := srv.ListenAndServe()
+	if http.ErrServerClosed != err {
+		l.Fatalf("server not gracefully shutdown, err :%v\n", err)
+	}
 }
 
 // init pipeline
@@ -103,11 +129,6 @@ func (h *HttpProb) InitPipeline() {
 			}
 		}
 	}
-}
-
-func (h *HttpProb) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	h.handle(req)
-	fmt.Fprintf(w, "ok")
 }
 
 func (h *HttpProb) handle(req *http.Request) {
