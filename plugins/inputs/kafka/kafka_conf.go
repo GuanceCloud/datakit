@@ -24,51 +24,51 @@ urls = ["http://localhost:8080/jolokia"]
 
 ## Add metrics to read
 [[inputs.kafka.metric]]
-  name         = "controller"
+  name         = "kafka_controller"
   mbean        = "kafka.controller:name=*,type=*"
   field_prefix = "$1."
 
 [[inputs.kafka.metric]]
-  name         = "replica_manager"
+  name         = "kafka_replica_manager"
   mbean        = "kafka.server:name=*,type=ReplicaManager"
   field_prefix = "$1."
 
 [[inputs.kafka.metric]]
-  name         = "purgatory"
+  name         = "kafka_purgatory"
   mbean        = "kafka.server:delayedOperation=*,name=*,type=DelayedOperationPurgatory"
   field_prefix = "$1."
   field_name   = "$2"
 
 [[inputs.kafka.metric]]
-  name     = "client"
+  name     = "kafka_client"
   mbean    = "kafka.server:client-id=*,type=*"
   tag_keys = ["client-id", "type"]
 
 [[inputs.kafka.metric]]
-  name         = "request"
+  name         = "kafka_request"
   mbean        = "kafka.network:name=*,request=*,type=RequestMetrics"
   field_prefix = "$1."
   tag_keys     = ["request"]
 
 [[inputs.kafka.metric]]
-  name         = "topics"
+  name         = "kafka_topics"
   mbean        = "kafka.server:name=*,type=BrokerTopicMetrics"
   field_prefix = "$1."
 
 [[inputs.kafka.metric]]
-  name         = "topic"
+  name         = "kafka_topic"
   mbean        = "kafka.server:name=*,topic=*,type=BrokerTopicMetrics"
   field_prefix = "$1."
   tag_keys     = ["topic"]
 
 [[inputs.kafka.metric]]
-  name       = "partition"
+  name       = "kafka_partition"
   mbean      = "kafka.log:name=*,partition=*,topic=*,type=Log"
   field_name = "$1"
   tag_keys   = ["topic", "partition"]
 
 [[inputs.kafka.metric]]
-  name       = "partition"
+  name       = "kafka_partition"
   mbean      = "kafka.cluster:name=UnderReplicated,partition=*,topic=*,type=Partition"
   field_name = "UnderReplicatedPartitions"
   tag_keys   = ["topic", "partition"]
