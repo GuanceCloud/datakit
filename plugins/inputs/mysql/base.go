@@ -27,7 +27,7 @@ func (m *baseMeasurement) LineProto() (*io.Point, error) {
 // 指定指标
 func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "mysql_base",
+		Name: "mysql",
 		Fields: map[string]interface{}{
 			// status
 			"Slow_queries": &inputs.FieldInfo{
