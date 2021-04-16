@@ -62,17 +62,14 @@ func (n *Input) Run() {
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
-	cleanCacheTick := time.NewTicker(time.Second * 5)
-	defer cleanCacheTick.Stop()
 
 	for {
 		select {
 		case <-tick.C:
 			n.getMetric()
-		case <-cleanCacheTick.C:
 			if len(collectCache) > 0 {
 				err := inputs.FeedMeasurement(inputName, io.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
-				collectCache = collectCache[:]
+				collectCache = collectCache[:0]
 				if err != nil {
 					l.Errorf(err.Error())
 					continue
@@ -92,6 +89,7 @@ func (n *Input) Run() {
 type MetricFunc func(n *Input)
 
 func (n *Input) getMetric() {
+	n.start = time.Now()
 	getFunc := []MetricFunc{getOverview, getNode, getQueues, getExchange}
 	n.wg.Add(len(getFunc))
 	for _, v := range getFunc {

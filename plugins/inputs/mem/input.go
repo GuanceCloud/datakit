@@ -17,11 +17,14 @@ const (
 	collectCycle = time.Second * 10
 	sampleCfg    = `
 [[inputs.mem]]
-# no sample need here, just open the input
-`
+	# no sample need here
+    [inputs.mem.tags]
+	# tag1 = "a"
+	`
 )
 
 type Input struct {
+	Tags         map[string]string
 	collectCache []inputs.Measurement
 
 	logger   *logger.Logger
@@ -40,49 +43,53 @@ func (m *memMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// TODO
+// https://man7.org/linux/man-pages/man5/proc.5.html
+
 func (m *memMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
 		Fields: map[string]interface{}{
-			"total":             NewFieldInfoB("total"),
-			"available":         NewFieldInfoB("available"),
-			"available_percent": NewFieldInfoP("available_percent"),
-			"used":              NewFieldInfoB("used"),
-			"used_percent":      NewFieldInfoP("used_percent"),
-
-			"active":   NewFieldInfoB("active (Darwin, Linux)"),
-			"free":     NewFieldInfoB("free (Darwin, Linux)"),
-			"inactive": NewFieldInfoB("inactive (Darwin, Linux)"),
+			"total":             NewFieldInfoB("Total amount of memory"),
+			"available":         NewFieldInfoB("Amount of available memory"),
+			"available_percent": NewFieldInfoP("Available memory percent"),
+			"used":              NewFieldInfoB("Amount of used memory"),
+			"used_percent":      NewFieldInfoP("Used memory percent"),
+			"active": NewFieldInfoB("Memory that has been used more recently and usually " +
+				"not reclaimed unless absolutely necessary. (Darwin, Linux)"),
+			"free": NewFieldInfoB("Amount of free memory(Darwin, Linux)"),
+			"inactive": NewFieldInfoB("Memory which has been less recently used.  It is " +
+				"more eligible to be reclaimed for other purposes. (Darwin, Linux)"),
 			"wired":    NewFieldInfoB("wired (Darwin)"),
-
-			"buffered":        NewFieldInfoB("buffered (Linux)"),
-			"cached":          NewFieldInfoB("cached (Linux)"),
-			"commit_limit":    NewFieldInfoB("commit_limit (Linux)"),
-			"committed_as":    NewFieldInfoB("committed_as (Linux)"),
-			"dirty":           NewFieldInfoB("dirty (Linux)"),
-			"high_free":       NewFieldInfoB("high_free (Linux)"),
-			"high_total":      NewFieldInfoB("high_total (Linux)"),
-			"huge_pages_free": NewFieldInfoB("huge_pages_free (Linux)"),
-			"huge_page_size":  NewFieldInfoB("huge_page_size (Linux)"),
-			"huge_page_total": NewFieldInfoB("huge_pages_total (Linux)"),
-			"low_free":        NewFieldInfoB("low_free (Linux)"),
-			"low_total":       NewFieldInfoB("low_total (Linux)"),
-			"mapped":          NewFieldInfoB("mapped (Linux)"),
-			"page_tables":     NewFieldInfoB("page_tables (Linux)"),
-			"shared":          NewFieldInfoB("shared (Linux)"),
-			"slab":            NewFieldInfoB("slab (Linux)"),
-			"sreclaimable":    NewFieldInfoB("sreclaimable (Linux)"),
-			"sunreclaim":      NewFieldInfoB("sunreclaim (Linux)"),
-			"swap_cached":     NewFieldInfoB("swap_cached (Linux)"),
-			"swap_free":       NewFieldInfoB("swap_free (Linux)"),
-			"swap_total":      NewFieldInfoB("swap_total (Linux)"),
-			"vmalloc_chunk":   NewFieldInfoB("vmalloc_chunk (Linux)"),
-			"vmalloc_total":   NewFieldInfoB("vmalloc_total (Linux)"),
-			"vmalloc_used":    NewFieldInfoB("vmalloc_used (Linux)"),
-			"write_back":      NewFieldInfoB("write_back (Linux)"),
-			"write_back_tmp":  NewFieldInfoB("write_back_tmp (Linux)"),
+			"buffered": NewFieldInfoB("buffered (Linux)"),
+			"cached":   NewFieldInfoB("In-memory cache for files read from the disk. (Linux)"),
+			"commit_limit": NewFieldInfoB("This is the total amount of memory currently " +
+				"available to be allocated on the system. (Linux)"),
+			"committed_as":    NewFieldInfoB("The amount of memory presently allocated on the system. (Linux)"),
+			"dirty":           NewFieldInfoB("Memory which is waiting to get written back to the disk. (Linux)"),
+			"high_free":       NewFieldInfoB("Amount of free highmem. (Linux)"),
+			"high_total":      NewFieldInfoB("Total amount of highmem. (Linux)"),
+			"huge_pages_free": NewFieldInfoC("The number of huge pages in the pool that are not yet allocated. (Linux)"),
+			"huge_page_size":  NewFieldInfoB("The size of huge pages. (Linux)"),
+			"huge_page_total": NewFieldInfoC("The size of the pool of huge pages. (Linux)"),
+			"low_free":        NewFieldInfoB("Amount of free lowmem. (Linux)"),
+			"low_total":       NewFieldInfoB("Total amount of lowmem. (Linux)"),
+			"mapped":          NewFieldInfoB("Files which have been mapped into memory, such as libraries. (Linux)"),
+			"page_tables":     NewFieldInfoB("Amount of memory dedicated to the lowest level of page tables. (Linux)"),
+			"shared":          NewFieldInfoB("Amount of shared memory (Linux)"),
+			"slab":            NewFieldInfoB("In-kernel data structures cache. (Linux)"),
+			"sreclaimable":    NewFieldInfoB("Part of Slab, that might be reclaimed, such as caches. (Linux)"),
+			"sunreclaim":      NewFieldInfoB("Part of Slab, that cannot be reclaimed on memory pressure. (Linux)"),
+			"swap_cached":     NewFieldInfoB("Memory that once was swapped out, is swapped back in but still also is in the swap file. (Linux)"),
+			"swap_free":       NewFieldInfoB("Amount of swap space that is currently unused. (Linux)"),
+			"swap_total":      NewFieldInfoB("Total amount of swap space available. (Linux)"),
+			"vmalloc_chunk":   NewFieldInfoB("Largest contiguous block of vmalloc area which is free. (Linux)"),
+			"vmalloc_total":   NewFieldInfoB("Total size of vmalloc memory area. (Linux)"),
+			"vmalloc_used":    NewFieldInfoB("Amount of vmalloc area which is used. (Linux)"),
+			"write_back":      NewFieldInfoB("Memory which is actively being written back to the disk. (Linux)"),
+			"write_back_tmp":  NewFieldInfoB("Memory used by FUSE for temporary writeback buffers. (Linux)"),
 		},
+		Tags: map[string]interface{}{
+			"host": &inputs.TagInfo{Desc: "主机名"}},
 	}
 }
 
@@ -138,9 +145,13 @@ func (i *Input) Collect() error {
 		fields["write_back_tmp"] = vm.WritebackTmp
 		fields["write_back"] = vm.Writeback
 	}
+	tags := map[string]string{}
+	for k, v := range i.Tags {
+		tags[k] = v
+	}
 	i.collectCache = append(i.collectCache, &memMeasurement{
 		name:   inputName,
-		tags:   map[string]string{"host": datakit.Cfg.MainCfg.Hostname},
+		tags:   tags,
 		fields: fields,
 	})
 	return err
@@ -176,7 +187,7 @@ func (i *Input) SampleConfig() string {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.UnknownArch
+	return datakit.AllArch
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
