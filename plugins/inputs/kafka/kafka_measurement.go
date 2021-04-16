@@ -56,7 +56,7 @@ func (j *KafkaControllerMment) LineProto() (*io.Point, error) {
 
 func (j *KafkaControllerMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   "controller",
+		Name:   "kafka_controller",
 		Fields: nil,
 		Tags:   nil,
 	}
@@ -68,7 +68,7 @@ func (j *KafkaReplicaMment) LineProto() (*io.Point, error) {
 
 func (j *KafkaReplicaMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   "replica_manager",
+		Name:   "kafka_replica_manager",
 		Fields: nil,
 		Tags:   nil,
 	}
@@ -80,7 +80,7 @@ func (j *KafkaPurgatoryMment) LineProto() (*io.Point, error) {
 
 func (j *KafkaPurgatoryMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   "purgatory",
+		Name:   "kafka_purgatory",
 		Fields: nil,
 		Tags:   nil,
 	}
@@ -92,7 +92,7 @@ func (j *KafkaClientMment) LineProto() (*io.Point, error) {
 
 func (j *KafkaClientMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   "client",
+		Name:   "kafka_client",
 		Fields: nil,
 		Tags:   nil,
 	}
@@ -104,7 +104,7 @@ func (j *KafkaRequestMment) LineProto() (*io.Point, error) {
 
 func (j *KafkaRequestMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   "request",
+		Name:   "kafka_request",
 		Fields: nil,
 		Tags:   nil,
 	}
@@ -116,7 +116,7 @@ func (j *KafkaTopicsMment) LineProto() (*io.Point, error) {
 
 func (j *KafkaTopicsMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   "topics",
+		Name:   "kafka_topics",
 		Fields: nil,
 		Tags:   nil,
 	}
@@ -128,7 +128,7 @@ func (j *KafkaTopicMment) LineProto() (*io.Point, error) {
 
 func (j *KafkaTopicMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   "topic",
+		Name:   "kafka_topic",
 		Fields: nil,
 		Tags:   nil,
 	}
@@ -140,7 +140,7 @@ func (j *KafkaPartitionMment) LineProto() (*io.Point, error) {
 
 func (j *KafkaPartitionMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   "partition",
+		Name:   "kafka_partition",
 		Fields: nil,
 		Tags:   nil,
 	}
