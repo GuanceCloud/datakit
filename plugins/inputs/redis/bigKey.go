@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"fmt"
 	"github.com/go-redis/redis"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -21,9 +22,9 @@ func (m *bigKeyMeasurement) LineProto() (*io.Point, error) {
 
 func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_bigkey_scan",
+		Name: "redis_bigkey",
 		Fields: map[string]interface{}{
-			"key_length": &inputs.FieldInfo{
+			"value_length": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Desc:     "Key length",
@@ -32,6 +33,12 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "Server addr",
+			},
+			"db_name": &inputs.TagInfo{
+				Desc: "db",
+			},
+			"key": &inputs.TagInfo{
+				Desc: "monitor key",
 			},
 		},
 	}
@@ -71,6 +78,7 @@ func (i *Input) getData() error {
 			m.tags[key] = value
 		}
 
+		m.tags["db_name"] = fmt.Sprintf("%s", i.DB)
 		m.tags["key"] = key
 
 		for _, op := range []string{
