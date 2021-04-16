@@ -30,3 +30,13 @@ func NewFieldInfoP(desc string) *inputs.FieldInfo {
 		Desc:     desc,
 	}
 }
+
+// count
+func NewFieldInfoC(desc string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		Type:     inputs.Gauge,
+		DataType: inputs.Int,
+		Unit:     inputs.Count,
+		Desc:     desc,
+	}
+}
