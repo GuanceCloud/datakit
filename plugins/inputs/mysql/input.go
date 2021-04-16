@@ -161,7 +161,7 @@ func (i *Input) collectBaseMeasurement() {
 		fields:  make(map[string]interface{}),
 	}
 
-	m.name = "mysql_base"
+	m.name = "mysql"
 	for key, value := range i.Tags {
 		m.tags[key] = value
 	}
