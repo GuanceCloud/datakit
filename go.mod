@@ -88,6 +88,7 @@ require (
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/selinux v1.5.1 // indirect
 	github.com/openzipkin/zipkin-go v0.2.2
+	github.com/pelletier/go-toml v1.9.0
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
@@ -124,7 +125,7 @@ require (
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210401072947-bb2a050fa753
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210414025948-6b572a752aed
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210415060021-68e4038d228a
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
