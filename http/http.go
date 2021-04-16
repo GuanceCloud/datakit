@@ -53,9 +53,7 @@ func Start(bind string) {
 	httpBind = bind
 
 	// start HTTP server
-	datakit.WG.Add(1)
 	go func() {
-		defer datakit.WG.Done()
 		HttpStart(bind)
 	}()
 }
