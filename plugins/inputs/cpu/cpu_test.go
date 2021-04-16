@@ -37,21 +37,21 @@ func TestCPUStatStructToMap(t *testing.T) {
 
 	sU := UsageStat{}
 
-	if ok := CPUStatStructToMap(mU, sU, ""); !ok {
+	if ok := CPUStatStructToMap(mU, sU, "usage_"); !ok {
 		t.Errorf("Failed to convert cpu usage stat struct to map. There may be private variables in struct")
 	}
 
 	mUe := map[string]interface{}{
-		"user":       0,
-		"system":     0,
-		"idle":       0,
-		"nice":       0,
-		"iowait":     0,
-		"irq":        0,
-		"softirq":    0,
-		"steal":      0,
-		"guest":      0,
-		"guest_nice": 0,
+		"usage_user":       0,
+		"usage_system":     0,
+		"usage_idle":       0,
+		"usage_nice":       0,
+		"usage_iowait":     0,
+		"usage_irq":        0,
+		"usage_softirq":    0,
+		"usage_steal":      0,
+		"usage_guest":      0,
+		"usage_guest_nice": 0,
 	}
 
 	for k := range mU {
@@ -113,16 +113,16 @@ func TestCalculateUsage(t *testing.T) {
 		t.Error("error: Use data of different CPUs to calculate CPU utilization should be disabled.")
 	}
 	uSt, _ := CalculateUsage(nowT, lastT, totalDelta)
-	assertEqualFloat64(t, 100*(nowT.User-lastT.User-(nowT.Guest-lastT.Guest))/totalDelta, uSt.User, "user")
-	assertEqualFloat64(t, 100*(nowT.System-lastT.System)/totalDelta, uSt.System, "system")
-	assertEqualFloat64(t, 100*(nowT.Idle-lastT.Idle)/totalDelta, uSt.Idle, "idle")
-	assertEqualFloat64(t, 100*(nowT.Nice-lastT.Nice-(nowT.GuestNice-lastT.GuestNice))/totalDelta, uSt.Nice, "nice")
-	assertEqualFloat64(t, 100*(nowT.Iowait-lastT.Iowait)/totalDelta, uSt.Iowait, "iowait")
-	assertEqualFloat64(t, 100*(nowT.Irq-lastT.Irq)/totalDelta, uSt.Irq, "irq")
-	assertEqualFloat64(t, 100*(nowT.Softirq-lastT.Softirq)/totalDelta, uSt.Softirq, "softirq")
-	assertEqualFloat64(t, 100*(nowT.Steal-lastT.Steal)/totalDelta, uSt.Steal, "steal")
-	assertEqualFloat64(t, 100*(nowT.Guest-lastT.Guest)/totalDelta, uSt.Guest, "guest")
-	assertEqualFloat64(t, 100*(nowT.GuestNice-lastT.GuestNice)/totalDelta, uSt.GuestNice, "guest_nice")
+	assertEqualFloat64(t, 100*(nowT.User-lastT.User-(nowT.Guest-lastT.Guest))/totalDelta, uSt.User, "usage_user")
+	assertEqualFloat64(t, 100*(nowT.System-lastT.System)/totalDelta, uSt.System, "usage_system")
+	assertEqualFloat64(t, 100*(nowT.Idle-lastT.Idle)/totalDelta, uSt.Idle, "usage_idle")
+	assertEqualFloat64(t, 100*(nowT.Nice-lastT.Nice-(nowT.GuestNice-lastT.GuestNice))/totalDelta, uSt.Nice, "usage_nice")
+	assertEqualFloat64(t, 100*(nowT.Iowait-lastT.Iowait)/totalDelta, uSt.Iowait, "usage_iowait")
+	assertEqualFloat64(t, 100*(nowT.Irq-lastT.Irq)/totalDelta, uSt.Irq, "usage_irq")
+	assertEqualFloat64(t, 100*(nowT.Softirq-lastT.Softirq)/totalDelta, uSt.Softirq, "usage_softirq")
+	assertEqualFloat64(t, 100*(nowT.Steal-lastT.Steal)/totalDelta, uSt.Steal, "usage_steal")
+	assertEqualFloat64(t, 100*(nowT.Guest-lastT.Guest)/totalDelta, uSt.Guest, "usage_guest")
+	assertEqualFloat64(t, 100*(nowT.GuestNice-lastT.GuestNice)/totalDelta, uSt.GuestNice, "usage_guest_nice")
 }
 
 func TestCollect(t *testing.T) {
@@ -187,16 +187,16 @@ func TestCollect(t *testing.T) {
 	// active, _ := CpuActiveTotalTime(nowT)
 	// lastActive, _ := CpuActiveTotalTime(lastT)
 
-	assertEqualFloat64(t, 100*(nowT.User-lastT.User-(nowT.Guest-lastT.Guest))/totalDelta, fields["user"].(float64), "user")
-	assertEqualFloat64(t, 100*(nowT.System-lastT.System)/totalDelta, fields["system"].(float64), "system")
-	assertEqualFloat64(t, 100*(nowT.Idle-lastT.Idle)/totalDelta, fields["idle"].(float64), "idle")
-	assertEqualFloat64(t, 100*(nowT.Nice-lastT.Nice-(nowT.GuestNice-lastT.GuestNice))/totalDelta, fields["nice"].(float64), "nice")
-	assertEqualFloat64(t, 100*(nowT.Iowait-lastT.Iowait)/totalDelta, fields["iowait"].(float64), "iowait")
-	assertEqualFloat64(t, 100*(nowT.Irq-lastT.Irq)/totalDelta, fields["irq"].(float64), "irq")
-	assertEqualFloat64(t, 100*(nowT.Softirq-lastT.Softirq)/totalDelta, fields["softirq"].(float64), "softirq")
-	assertEqualFloat64(t, 100*(nowT.Steal-lastT.Steal)/totalDelta, fields["steal"].(float64), "steal")
-	assertEqualFloat64(t, 100*(nowT.Guest-lastT.Guest)/totalDelta, fields["guest"].(float64), "guest")
-	assertEqualFloat64(t, 100*(nowT.GuestNice-lastT.GuestNice)/totalDelta, fields["guest_nice"].(float64), "guest_nice")
+	assertEqualFloat64(t, 100*(nowT.User-lastT.User-(nowT.Guest-lastT.Guest))/totalDelta, fields["usage_user"].(float64), "usage_user")
+	assertEqualFloat64(t, 100*(nowT.System-lastT.System)/totalDelta, fields["usage_system"].(float64), "usage_system")
+	assertEqualFloat64(t, 100*(nowT.Idle-lastT.Idle)/totalDelta, fields["usage_idle"].(float64), "usage_idle")
+	assertEqualFloat64(t, 100*(nowT.Nice-lastT.Nice-(nowT.GuestNice-lastT.GuestNice))/totalDelta, fields["usage_nice"].(float64), "usage_nice")
+	assertEqualFloat64(t, 100*(nowT.Iowait-lastT.Iowait)/totalDelta, fields["usage_iowait"].(float64), "usage_iowait")
+	assertEqualFloat64(t, 100*(nowT.Irq-lastT.Irq)/totalDelta, fields["usage_irq"].(float64), "usage_irq")
+	assertEqualFloat64(t, 100*(nowT.Softirq-lastT.Softirq)/totalDelta, fields["usage_softirq"].(float64), "usage_softirq")
+	assertEqualFloat64(t, 100*(nowT.Steal-lastT.Steal)/totalDelta, fields["usage_steal"].(float64), "usage_steal")
+	assertEqualFloat64(t, 100*(nowT.Guest-lastT.Guest)/totalDelta, fields["usage_guest"].(float64), "usage_guest")
+	assertEqualFloat64(t, 100*(nowT.GuestNice-lastT.GuestNice)/totalDelta, fields["usage_guest_nice"].(float64), "usage_guest_nice")
 	// assertEqualFloat64(t, 100*(active-lastActive)/totalDelta, fields["active"].(float64), "active")
 }
 
