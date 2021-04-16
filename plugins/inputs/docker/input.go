@@ -16,11 +16,7 @@ import (
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			newEnvClient: NewEnvClient,
-			newClient:    NewClient,
-			Tags:         make(map[string]string),
-		}
+		return newInput()
 	})
 }
 
@@ -51,6 +47,19 @@ type Input struct {
 	opts types.ContainerListOptions
 	wg   sync.WaitGroup
 	mu   sync.Mutex
+}
+
+func newInput() *Input {
+	return &Input{
+		Endpoint:              defaultEndpoint,
+		Tags:                  make(map[string]string),
+		newEnvClient:          NewEnvClient,
+		newClient:             NewClient,
+		collectMetricDuration: minimumCollectMetricDuration,
+		collectObjectDuration: minimumCollectObjectDuration,
+		timeoutDuration:       defaultAPITimeout,
+		containerLogList:      make(map[string]context.CancelFunc),
+	}
 }
 
 func (*Input) SampleConfig() string {
