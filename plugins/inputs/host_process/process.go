@@ -37,6 +37,17 @@ func (p *Input) PipelineConfig() map[string]string {
 	}
 }
 
+func (_ *Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (_ *Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&ProcessMetric{},
+		&ProcessObject{},
+	}
+}
+
 func (p *Input) Run() {
 	l = logger.SLogger(inputName)
 
@@ -281,7 +292,7 @@ func (p *Input) WriteObject() {
 			}
 		}
 		obj := &ProcessObject{
-			name:   "process",
+			name:   inputName,
 			tags:   tags,
 			fields: fields,
 			ts:     t,
@@ -305,7 +316,7 @@ func (p *Input) WriteMetric() {
 			"process_name": name,
 		}
 		metric := &ProcessMetric{
-			name:   "process",
+			name:   inputName,
 			tags:   tags,
 			fields: fields,
 			ts:     t,
