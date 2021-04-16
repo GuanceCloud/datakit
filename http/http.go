@@ -274,7 +274,6 @@ func tryStartHTTPServer(srv *http.Server) {
 				break
 			}
 		}
-
 		time.Sleep(time.Second)
 	}
 
@@ -480,7 +479,7 @@ func apiManual(c *gin.Context) {
 		}
 		sort.Strings(toc.InputNames)
 
-		for k, _ := range man.OtherDocs {
+		for k := range man.OtherDocs {
 			toc.OtherDocs = append(toc.OtherDocs, k)
 		}
 		sort.Strings(toc.OtherDocs)
