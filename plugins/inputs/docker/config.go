@@ -1,7 +1,6 @@
 package docker
 
 import (
-	"context"
 	"regexp"
 	"sync"
 	"time"
@@ -108,34 +107,27 @@ func (this *Input) loadCfg() (err error) {
 	}
 
 	// 限制最小采集间隔
-	if 0 < this.collectMetricDuration &&
-		this.collectMetricDuration < minimumCollectMetricDuration {
-		l.Warn("invalid collect_metric_interval, cannot be less than 5s. Use default interval 5s")
-		this.collectMetricDuration = minimumCollectMetricDuration
-	}
+	// if 0 < this.collectMetricDuration &&
+	// 	this.collectMetricDuration < minimumCollectMetricDuration {
+	// 	l.Warn("invalid collect_metric_interval, cannot be less than 5s. Use default interval 5s")
+	// 	this.collectMetricDuration = minimumCollectMetricDuration
+	// }
 
-	if 0 < this.collectObjectDuration &&
-		this.collectObjectDuration < minimumCollectObjectDuration {
-		l.Warn("invalid collect_object_interval, cannot be less than 5m. Use default interval 5m")
-		this.collectObjectDuration = minimumCollectObjectDuration
-	}
-
-	if this.Tags == nil {
-		this.Tags = make(map[string]string)
-	}
+	// if 0 < this.collectObjectDuration &&
+	// 	this.collectObjectDuration < minimumCollectObjectDuration {
+	// 	l.Warn("invalid collect_object_interval, cannot be less than 5m. Use default interval 5m")
+	// 	this.collectObjectDuration = minimumCollectObjectDuration
+	// }
 
 	if err = this.initLogOption(); err != nil {
 		return
 	}
-
-	this.timeoutDuration = defaultAPITimeout
 
 	return
 }
 
 func (this *Input) initLogOption() (err error) {
 	this.opts = types.ContainerListOptions{All: this.IncludeExited}
-	this.containerLogList = make(map[string]context.CancelFunc)
 
 	this.containerLogsOptions = types.ContainerLogsOptions{
 		ShowStdout: true,
