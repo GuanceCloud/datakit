@@ -18,26 +18,26 @@ oracle监控指标采集，参考datadog提供的指标，具有以下数据收�
 
 - 创建监控账号
 
-```
+```sql
 -- Enable Oracle Script.
-ALTER SESSION SET "_ORACLE_SCRIPT"=true;
-
--- Create the datakit user. Replace the password placeholder with a secure password.
-CREATE USER datakit IDENTIFIED BY <PASSWORD>;
-
--- Grant access to the datakit user.
-GRANT CONNECT TO datakit;
-GRANT SELECT ON GV_$PROCESS TO datakit;
-GRANT SELECT ON gv_$sysmetric TO datakit;
-GRANT SELECT ON sys.dba_data_files TO datakit;
-GRANT SELECT ON sys.dba_tablespaces TO datakit;
-GRANT SELECT ON sys.dba_tablespace_usage_metrics TO datakit;
+    ALTER SESSION SET "_ORACLE_SCRIPT"=true;
+    
+    -- Create the datakit user. Replace the password placeholder with a secure password.
+    CREATE USER datakit IDENTIFIED BY <PASSWORD>;
+    
+    -- Grant access to the datakit user.
+    GRANT CONNECT TO datakit;
+    GRANT SELECT ON GV_$PROCESS TO datakit;
+    GRANT SELECT ON gv_$sysmetric TO datakit;
+    GRANT SELECT ON sys.dba_data_files TO datakit;
+    GRANT SELECT ON sys.dba_tablespaces TO datakit;
+    GRANT SELECT ON sys.dba_tablespace_usage_metrics TO datakit;
 ```
 
 备注：oracle 11g, 需要以下设定
 
-```
-ALTER SESSION SET "_ORACLE_SCRIPT"=true;
+```sql
+    ALTER SESSION SET "_ORACLE_SCRIPT"=true;
 ```
 
 - 安装依赖包
