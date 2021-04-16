@@ -82,8 +82,8 @@ func (_ *Input) PipelineConfig() map[string]string {
 }
 
 func (n *Input) Run() {
+	l = logger.SLogger(inputName)
 	l.Info("nginx start")
-
 	if n.Log != nil {
 		go func() {
 			inputs.JoinPipelinePath(n.Log, "nginx.p")
