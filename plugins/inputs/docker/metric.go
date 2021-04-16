@@ -1,7 +1,6 @@
 package docker
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"strings"
@@ -12,11 +11,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-const (
-	dockerContainerMeasurement = "docker_containers"
-)
+func (this *Input) gather(option ...*gatherOption) ([]*io.Point, error) {
+	var opt *gatherOption
+	if len(option) >= 1 {
+		opt = option[0]
+	}
 
-func (this *Input) gather(opt *gatherOption) ([]byte, error) {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
 	defer cancel()
@@ -27,11 +27,14 @@ func (this *Input) gather(opt *gatherOption) ([]byte, error) {
 		return nil, err
 	}
 
-	var buffer bytes.Buffer
+	var pts []*io.Point
 
 	for _, container := range cList {
 		tags := this.gatherContainerInfo(container)
-		if opt.IsObjectCategory {
+
+		// 区分指标和对象
+		// 对象数据需要有 name 标签
+		if opt != nil && opt.IsObjectCategory {
 			tags["name"] = container.ID
 		}
 
@@ -41,17 +44,15 @@ func (this *Input) gather(opt *gatherOption) ([]byte, error) {
 			continue
 		}
 
-		data, err := io.MakeMetric(dockerContainerMeasurement, tags, fields, time.Now())
+		pt, err := io.MakePoint(dockerContainersName, tags, fields, time.Now())
 		if err != nil {
 			l.Error(err)
 			continue
 		}
-
-		buffer.Write(data)
-		buffer.WriteString("\n")
+		pts = append(pts, pt)
 	}
 
-	return buffer.Bytes(), nil
+	return pts, nil
 }
 
 func (this *Input) gatherContainerInfo(container types.Container) map[string]string {
@@ -60,7 +61,7 @@ func (this *Input) gatherContainerInfo(container types.Container) map[string]str
 		"container_name": getContainerName(container.Names),
 		"docker_image":   container.ImageID,
 		"image_name":     container.Image,
-		"stats":          container.State,
+		"state":          container.State,
 	}
 
 	for k, v := range this.Tags {
@@ -103,22 +104,24 @@ func (this *Input) gatherStats(container types.Container) (map[string]interface{
 		return nil, err
 	}
 
-	cpuPercent := calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage, v.PreCPUStats.SystemUsage, v)
 	mem := calculateMemUsageUnixNoCache(v.MemoryStats)
-	memPercent := calculateMemPercentUnixNoCache(float64(v.MemoryStats.Limit), mem)
+	memPercent := calculateMemPercentUnixNoCache(float64(v.MemoryStats.Limit), float64(mem))
 	netRx, netTx := calculateNetwork(v.Networks)
 	blkRead, blkWrite := calculateBlockIO(v.BlkioStats)
 
 	return map[string]interface{}{
-		"cpu_usage_percent":  cpuPercent,
-		"mem_limit":          int64(v.MemoryStats.Limit),
-		"mem_usage":          int64(mem),
-		"mem_usage_percent":  memPercent,
+		"cpu_usage_percent":  calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage, v.PreCPUStats.SystemUsage, v), /*float64*/
+		"cpu_delta":          calculateCPUDelta(v),
+		"cpu_system_delta":   calculateCPUSystemDelta(v),
+		"cpu_numbers":        calculateCPUNumbers(v),
+		"mem_available":      int64(v.MemoryStats.Limit),
+		"mem_used":           mem,
+		"mem_usage_percent":  memPercent, /*float64*/
 		"mem_failed_count":   int64(v.MemoryStats.Failcnt),
-		"network_bytes_rcvd": int64(netRx),
-		"network_bytes_sent": int64(netTx),
-		"block_read_byte":    int64(blkRead),
-		"block_write_byte":   int64(blkWrite),
+		"network_bytes_rcvd": netRx,
+		"network_bytes_sent": netTx,
+		"block_read_byte":    blkRead,
+		"block_write_byte":   blkWrite,
 		"from_kubernetes":    contianerIsFromKubernetes(getContainerName(container.Names)),
 	}, nil
 }
