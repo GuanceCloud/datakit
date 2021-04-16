@@ -85,10 +85,10 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 				Desc: "% CPU spent in other operating systems when running in a virtualized environment."},
 
 			"usage_guest": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "% CPU spent running a virtual CPU forguest operating systems under the control of the Linux kernel."},
+				Desc: "% CPU spent running a virtual CPU for guest operating systems."},
 
 			"usage_guest_nice": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "% CPU spent running a niced guest(virtual CPU for guest operating systems under the control of the Linux kernel)."},
+				Desc: "% CPU spent running a niced guest(virtual CPU for guest operating systems)."},
 		},
 	}
 }
