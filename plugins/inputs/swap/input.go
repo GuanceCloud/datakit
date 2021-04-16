@@ -47,6 +47,9 @@ func (m *swapMeasurement) Info() *inputs.MeasurementInfo {
 			"out": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
 				Desc: "Moving main memory contents to swap disk when main memory space fills up"},
 		},
+		Tags: map[string]interface{}{
+			"host": &inputs.TagInfo{Desc: "主机名"},
+		},
 	}
 }
 
