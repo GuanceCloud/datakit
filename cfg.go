@@ -33,9 +33,9 @@ func DefaultConfig() *Config {
 
 			flushInterval: Duration{Duration: time.Second * 10},
 			Interval:      "10s",
-			StrictMode:    false,
+			ProtectMode:   true,
 
-			HTTPBind: "0.0.0.0:9529",
+			HTTPListen: "localhost:9529",
 
 			LogLevel:  "info",
 			Log:       filepath.Join(InstallDir, "log"),
@@ -100,17 +100,11 @@ type MainConfig struct {
 	UUID           string `toml:"-"`
 	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
 
-	Name     string      `toml:"name"`
-	DataWay  *DataWayCfg `toml:"dataway,omitempty"`
-	HTTPBind string      `toml:"http_server_addr"`
-	GrpcPort int         `toml:"inner_grpc_port"`
+	Name    string      `toml:"name,omitempty"`
+	DataWay *DataWayCfg `toml:"dataway,omitempty"`
 
-	// For old datakit verison conf, there may exist these fields,
-	// if these tags missing, TOML will parse error
-	DeprecatedFtGateway        string `toml:"ftdataway,omitempty"`
-	DeprecatedIntervalDuration int64  `toml:"interval_duration,omitempty"`
-	DeprecatedConfigDir        string `toml:"config_dir,omitempty"`
-	DeprecatedOmitHostname     bool   `toml:"omit_hostname,omitempty"`
+	HTTPBindDeprecated string `toml:"http_server_addr,omitempty"`
+	HTTPListen         string `toml:"http_listen,omitempty"`
 
 	Log       string `toml:"log"`
 	LogLevel  string `toml:"log_level"`
@@ -119,8 +113,8 @@ type MainConfig struct {
 	GinLog     string            `toml:"gin_log"`
 	GlobalTags map[string]string `toml:"global_tags"`
 
-	StrictMode  bool `toml:"strict_mode,omitempty"`
 	EnablePProf bool `toml:"enable_pprof,omitempty"`
+	ProtectMode bool `toml:"protect_mode,omitempty"`
 
 	Interval             string `toml:"interval"`
 	flushInterval        Duration
