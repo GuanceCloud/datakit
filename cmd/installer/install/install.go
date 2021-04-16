@@ -89,7 +89,7 @@ func InstallNewDatakit(svc service.Service) {
 		datakit.Cfg.MainCfg.GlobalTags = datakit.ParseGlobalTags(GlobalTags)
 	}
 
-	datakit.Cfg.MainCfg.HTTPBind = fmt.Sprintf("0.0.0.0:%d", Port)
+	datakit.Cfg.MainCfg.HTTPListen = fmt.Sprintf("localhost:%d", Port)
 	datakit.Cfg.MainCfg.InstallDate = time.Now()
 
 	if DatakitName != "" {
