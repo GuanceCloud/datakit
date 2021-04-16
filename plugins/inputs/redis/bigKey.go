@@ -2,10 +2,7 @@ package redis
 
 import (
 	"time"
-	// "fmt"
-
 	"github.com/go-redis/redis"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -16,9 +13,6 @@ type bigKeyMeasurement struct {
 	tags              map[string]string
 	fields            map[string]interface{}
 	ts                time.Time
-	lastTimestampSeen map[string]int64
-	keys              []string
-	WarnOnMissingKeys bool
 }
 
 func (m *bigKeyMeasurement) LineProto() (*io.Point, error) {
@@ -43,28 +37,40 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func CollectBigKeyMeasurement(input *Input) *bigKeyMeasurement {
-	m := &bigKeyMeasurement{
-		client:            input.client,
-		tags:              make(map[string]string),
-		fields:            make(map[string]interface{}),
-		lastTimestampSeen: make(map[string]int64),
-		keys:              input.Keys,
-		WarnOnMissingKeys: input.WarnOnMissingKeys,
+func (i *Input) getKeys() {
+	for _, pattern := range i.Keys {
+		var cursor uint64
+		for {
+			var keys []string
+			var err error
+			keys, cursor, err = i.client.Scan(cursor, pattern, 10).Result()
+			if err != nil {
+				l.Errorf("redis pattern key %s scan fail error %v", pattern, err)
+			}
+
+			i.resKeys = append(i.resKeys, keys...)
+			if cursor == 0 {
+				break
+			}
+		}
 	}
-
-	m.name = "redis_bigkey"
-	m.tags = input.Tags
-	// m.tags["db_name"] = fmt.Sprintf("%d", input.DB)
-	m.getData()
-
-	return m
 }
 
 // 数据源获取数据
-func (m *bigKeyMeasurement) getData() error {
-	for _, key := range m.keys {
+func (i *Input) getData() error {
+	for _, key := range i.resKeys {
 		found := false
+
+		m := &commandMeasurement{
+			name:    "redis_bigkey",
+			tags:    make(map[string]string),
+			fields:  make(map[string]interface{}),
+		}
+
+		for key, value := range i.Tags {
+			m.tags[key] = value
+		}
+
 		m.tags["key"] = key
 
 		for _, op := range []string{
@@ -75,20 +81,22 @@ func (m *bigKeyMeasurement) getData() error {
 			"PFCOUNT",
 			"STRLEN",
 		} {
-			if val, err := m.client.Do(op, key).Result(); err == nil && val != nil {
+			if val, err := i.client.Do(op, key).Result(); err == nil && val != nil {
 				found = true
-				m.fields["key_length"] = val
+				m.fields["value_length"] = val
 				break
 			}
 		}
 
 		if !found {
-			if m.WarnOnMissingKeys {
+			if i.WarnOnMissingKeys {
 				l.Warnf("%s key not found in redis", key)
 			}
 
-			m.fields["key_length"] = 0
+			m.fields["value_length"] = 0
 		}
+
+		i.collectCache = append(i.collectCache, m)
 	}
 
 	return nil
