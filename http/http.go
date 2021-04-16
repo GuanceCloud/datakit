@@ -53,7 +53,9 @@ func Start(bind string) {
 	httpBind = bind
 
 	// start HTTP server
-	go HttpStart(bind)
+	go func() {
+		HttpStart(bind)
+	}()
 }
 
 func ReloadDatakit() error {
