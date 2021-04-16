@@ -30,7 +30,7 @@
 
 ### 采集器配置
 
-进入 DataKit 安装目录下的 `conf.d/docker` 目录，复制 `docker.conf.sample` 并命名为 `docker.conf`。示例如下：
+进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
 ```toml
 [inputs.docker]
@@ -66,12 +66,21 @@
     [inputs.docker.tags]
         # tags1 = "value1"
 ```
-
 - 通过对 `collect_metric` 等三个配置项的开关，选择是否要开启此类数据的采集
+- datkait 在连接 kubernetes 时，可能会因为 kubernetes 配置问题报错。以下是这两种报错的解决办法
+    - `/run/secrets/kubernetes.io/serviceaccount/token: no such file or directory`。执行如下两个命令：
+        - `mkdir -p /run/secrets/kubernetes.io/serviceaccount`
+        - `touch /run/secrets/kubernetes.io/serviceaccount/token`
+    - `error making HTTP request to http://<k8s-host>/stats/summary: dial tcp <k8s-hosst>:10255: connect: connect refused`，按如下方式调整 k8s 配置：
+        - 编辑所有节点的 `/var/lib/kubelet/config.yaml` 文件，加入`readOnlyPort` 这个参数：`readOnlyPort: 10255`
+        - 重启kubelet 服务：`systemctl restart kubelet.service`
+
 - 当 `include_exited` 为 `true` 会采集非运行状态的容器
-- `log_option` 为数组配置，可以有多个。`container_name_match` 为正则表达式，如果容器名能匹配该正则，将使用 `source` 和 `service` 以及 `pipeline`
-- 当 `pipeline` 为空值或该文件不存在时，将不使用 pipeline 功能
-- 正则表达式[文档链接](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
+
+### Docker容器日志采集说明
+
+- `log_option` 为数组配置，可以有多个。`container_name_match` 为正则表达式（[文档链接](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)），如果容器名能匹配该正则，会使用 `source` 和 `service` 以及 `pipeline` 配置参数
+- `pipeline` 为空值或该文件不存在时，将不使用 pipeline 功能
 
 **使用 pipeline 功能时，取其中的 `time` 字段作为此条数据的产生时间。如果没有 `time` 字段或解析此字段失败，默认使用数据采集到的时间**
 
@@ -91,46 +100,7 @@
 | `d`, `debug`, `trace`, `verbose` | `debug`    |
 | `o`, `s`, `OK`                   | `OK`       |
 
-## 指标集
-
-### `docker_containers`
-
--  标签
-
-| 名称                  | 描述                             |
-| :--                   | ---                              |
-| `container_id`        | 容器id                           |
-| `container_name`      | 容器名称                         |
-| `image_name`          | 容器镜像名称                     |
-| `docker_image`        | 镜像名称+版本号                  |
-| `host`                | 主机名                           |
-| `stats`               | 运行状态，running/exited/removed |
-| `kube_container_name` | TODO                             |
-| `kube_daemon_set`     | TODO                             |
-| `kube_deployment`     | TODO                             |
-| `kube_namespace`      | TODO                             |
-| `kube_ownerref_kind`  | TODO                             |
-| `pod_name`            | pod名称                          |
-| `pod_phase`           | pod生命周期                      |
-
-- 指标列表
-
-| 名称                 | 描述 | 类型  | 单位    |
-| :--                  | ---  | :-:   | :-:     |
-| `from_kubernetes`    | TODO | bool  | -       |
-| `cpu_usage_percent`  | TODO | float | percent |
-| `mem_limit`          | TODO | int   | bytes   |
-| `mem_usage`          | TODO | int   | bytes   |
-| `mem_usage_percent`  | TODO | float | percent |
-| `mem_failed_count`   | TODO | int   | bytes   |
-| `network_bytes_rcvd` | TODO | int   | bytes   |
-| `network_bytes_sent` | TODO | int   | bytes   |
-| `block_read_byte`    | TODO | int   | bytes   |
-| `block_write_byte`   | TODO | int   | bytes   |
-
-#### Docker容器日志
-
-指标集为配置文件 `inputs.docker.log_option` 字段 `source`，比如配置如下：
+指标集为配置文件 `inputs.docker.log_option` 字段 `source`，例如配置如下：
 
 ```toml
 [[inputs.docker.log_option]]
@@ -142,21 +112,20 @@
 
 如果日志来源的容器，容器名能够匹配 `container_name_match` 正则，该容器日志的指标集为 `source` 字段。
 
-如果没有匹配到或 `source` 为空，指标集为容器名
+如果没有匹配到或 `source` 为空，指标集为容器名。
+
+## 指标集
+
+{{ range $i, $m := .Measurements }}
+
+### `{{$m.Name}}`
 
 -  标签
 
-| 名称             | 描述                          |
-| :--              | ---                           |
-| `container_name` | 容器名称                      |
-| `image_name`     | 容器镜像名称                  |
-| `stream`         | 数据流方式，stdout/stderr/tty |
+{{$m.TagsMarkdownTable}}
 
 - 指标列表
 
-| 名称              | 描述 | 类型   | 单位 |
-| :--               | ---  | :-:    | :-:  |
-| `from_kubernetes` | TODO | bool   | -    |
-| `service`         | TODO | string | -    |
-| `status`          | TODO | string | -    |
-| `message`         | TODO | string | -    |
+{{$m.FieldsMarkdownTable}}
+
+{{ end }} 
