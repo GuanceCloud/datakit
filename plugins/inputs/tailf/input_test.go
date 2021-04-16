@@ -1,12 +1,14 @@
 package tailf
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"sync"
 	"testing"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -55,15 +57,14 @@ func TestMain(t *testing.T) {
 		LogFiles:      []string{file.Name()},
 		FromBeginning: true,
 		Source:        "testing",
-		Match:         `^\d{4}-\d{2}-\d{2}`,
-		// Match: `^\S`,
+		Match:         `^\d{4}-\d{2}-\d{2}`, // Match: `^\S`
 	}
 
 	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
+		defer wg.Done()
 		tailer.Run()
-		wg.Done()
 	}()
 
 	for _, tc := range testcase {
@@ -74,10 +75,9 @@ func TestMain(t *testing.T) {
 
 	// FIXME:
 	// tailf 默认每隔 10 秒扫描一次文件路径，导致程序运行时，前 10 秒是荒废的
-	//
-	time.Sleep(time.Second * 15)
+	time.Sleep(time.Second * 13)
 
-	tailer.Stop()
+	datakit.Exit.Close()
 
 	wg.Wait()
 }
