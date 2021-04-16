@@ -127,9 +127,6 @@ func doExtract(r io.Reader, to string) error {
 
 		switch hdr.Typeflag {
 		case tar.TypeDir:
-
-			l.Debugf("extracting dir %s...", target)
-
 			if _, err := os.Stat(target); err != nil {
 				if err := os.MkdirAll(target, 0755); err != nil {
 					l.Error(err)
@@ -138,8 +135,6 @@ func doExtract(r io.Reader, to string) error {
 			}
 
 		case tar.TypeReg:
-
-			l.Debugf("extracting file %s...", target)
 
 			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
 				l.Error(err)
