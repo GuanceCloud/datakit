@@ -225,43 +225,55 @@ func (t *Tailer) Run() {
 	ticker := time.NewTicker(findNewFileInterval)
 	defer ticker.Stop()
 
-	go t.watcher.Watching(context.Background())
+	ctx, watcherCancel := context.WithCancel(context.Background())
+	go t.watcher.Watching(ctx)
+
+	// 立即执行一次，而不是等到tick到达
+	t.do()
+
+	// 如果开启 FromBeginning 选项，将停止 ticker，此 case 分支将不再进入，也不再发现新文件
+	if t.Option.FromBeginning {
+		ticker.Stop()
+	}
 
 	for {
 		select {
 		case <-t.Option.StopChan:
 			t.log.Infof("waiting for all tailers to exit")
+			watcherCancel()
 			t.watcher.Close()
 			t.wg.Wait()
 			t.log.Info("exit")
 			return
 
 		case <-ticker.C:
-			// FIXME:
-			// 程序启动到 ticker.C 中间一段时间是荒废的
-			fileList := getFileList(t.Option.Files, t.Option.IgnoreFiles)
-
-			for _, filename := range fileList {
-				if exist := t.watcher.IsExist(filename); exist {
-					continue
-				}
-				t.wg.Add(1)
-				go func(fn string) {
-					defer t.wg.Done()
-					t.tailingFile(fn)
-				}(filename)
-			}
-
-			// 如果开启 FromBeginning 选项，将停止 ticker，此 case 分支将不再进入，也不再发现新文件
-			if t.Option.FromBeginning {
-				ticker.Stop()
-			}
+			t.do()
 		}
 	}
 }
 
+func (t *Tailer) do() {
+	fileList := getFileList(t.Option.Files, t.Option.IgnoreFiles)
+
+	for _, filename := range fileList {
+		if exist := t.watcher.IsExist(filename); exist {
+			continue
+		}
+		t.wg.Add(1)
+		go func(fn string) {
+			defer t.wg.Done()
+			t.tailingFile(fn)
+		}(filename)
+	}
+}
+
 func (t *Tailer) Close() error {
-	close(t.Option.StopChan)
+	select {
+	case <-t.Option.StopChan:
+		// pass
+	default:
+		close(t.Option.StopChan)
+	}
 	return nil
 }
 
@@ -275,13 +287,15 @@ func (t *Tailer) tailingFile(filename string) {
 	defer instence.clean()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	t.watcher.Add(filename, cancel)
+	if err := t.watcher.Add(filename, cancel); err != nil {
+		t.log.Warnf("add watcher file %s error: %s", filename, err)
+	}
 
 	// 阻塞
 	instence.receiving(ctx)
 
 	if err := t.watcher.Remove(filename); err != nil {
-		t.log.Warnf("remove watcher file %s err, %s", filename, err)
+		t.log.Warnf("remove watcher file %s error: %s", filename, err)
 	}
 
 	t.log.Debugf("remove file %s from the running list", filename)
@@ -716,7 +730,6 @@ func (w *Watcher) cancelCtx(filename string) {
 	if !ok {
 		return
 	}
-
 	if cancel, ok := value.(context.CancelFunc); ok {
 		cancel()
 	}
