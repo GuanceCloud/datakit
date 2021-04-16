@@ -60,34 +60,34 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			// "active": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 			// 	Desc: "% CPU usage."},
-			"user": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+			"usage_user": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU in user mode."},
 
-			"nice": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+			"usage_nice": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU in user mode with low priority (nice)."},
 
-			"system": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+			"usage_system": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU in system mode."},
 
-			"idle": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+			"usage_idle": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU in the idle task."},
 
-			"iowait": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+			"usage_iowait": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU waiting for I/O to complete."},
 
-			"irq": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+			"usage_irq": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU servicing interrupts."},
 
-			"softirq": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+			"usage_softirq": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU servicing softirqs."},
 
-			"steal": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+			"usage_steal": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU spent in other operating systems when running in a virtualized environment."},
 
-			"guest": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+			"usage_guest": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU spent running a virtual CPU forguest operating systems under the control of the Linux kernel."},
 
-			"guest_nice": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+			"usage_guest_nice": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU spent running a niced guest(virtual CPU for guest operating systems under the control of the Linux kernel)."},
 		},
 	}
@@ -156,7 +156,7 @@ func (i *Input) Collect() error {
 			continue
 		}
 		cpuUsage, _ := CalculateUsage(cts, lastCts, totalDelta)
-		if ok := CPUStatStructToMap(fields, cpuUsage, ""); !ok {
+		if ok := CPUStatStructToMap(fields, cpuUsage, "usage_"); !ok {
 			i.logger.Error("error: collect cpu time, check cpu usage stat struct")
 			break
 		} else {
