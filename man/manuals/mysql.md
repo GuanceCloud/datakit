@@ -10,8 +10,8 @@ MySQL 指标采集，收集以下数据：
 
 - mysql global status 基础数据采集
 - scheam 相关数据
-- innodb 相关指标(TODO)
-- 主从模式(TODO)
+- innodb 相关指标 (TODO)
+- 主从模式 (TODO)
 - 支持自定义查询数据采集
 
 ## 前置条件
@@ -63,7 +63,7 @@ GRANT SELECT ON performance_schema.* TO 'datakitMonitor'@'localhost';
 
 ## 日志采集
 
-如需采集 `mysql` 的日志，将配置中`log`相关的配置打开，如需要开启msql慢查询日志，需要开启慢查询日志
+如需采集 MySQL 的日志，将配置中 log 相关的配置打开，如需要开启 MySQL 慢查询日志，需要开启慢查询日志，在 MySQL 中执行以下语句
 ```
 SET GLOBAL slow_query_log = 'ON';
 
@@ -73,5 +73,5 @@ set global log_queries_not_using_indexes = 'ON';
 
 **注意**
 - 日志路径需要填入绝对路径
-- 在使用日志采集时，需要将datakit安装在redis服务同一台主机中，或使用其它方式将日志挂载到外部系统中
+- 在使用日志采集时，需要将 datakit 安装在 MySQL 服务同一台主机中，或使用其它方式将日志挂载到外部系统中
 
