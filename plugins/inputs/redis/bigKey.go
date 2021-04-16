@@ -1,18 +1,18 @@
 package redis
 
 import (
-	"time"
 	"github.com/go-redis/redis"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"time"
 )
 
 type bigKeyMeasurement struct {
-	client            *redis.Client
-	name              string
-	tags              map[string]string
-	fields            map[string]interface{}
-	ts                time.Time
+	client *redis.Client
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
 }
 
 func (m *bigKeyMeasurement) LineProto() (*io.Point, error) {
@@ -62,9 +62,9 @@ func (i *Input) getData() error {
 		found := false
 
 		m := &commandMeasurement{
-			name:    "redis_bigkey",
-			tags:    make(map[string]string),
-			fields:  make(map[string]interface{}),
+			name:   "redis_bigkey",
+			tags:   make(map[string]string),
+			fields: make(map[string]interface{}),
 		}
 
 		for key, value := range i.Tags {
