@@ -90,6 +90,9 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 			"usage_guest_nice": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU spent running a niced guest(virtual CPU for guest operating systems)."},
 		},
+		Tags: map[string]interface{}{
+			"host": &inputs.TagInfo{Desc: "主机名"},
+		},
 	}
 }
 
@@ -132,8 +135,7 @@ func (i *Input) Collect() error {
 	time_now := time.Now()
 	for _, cts := range cpuTimes {
 		tags := map[string]string{
-			"cpu":  cts.CPU,
-			"host": datakit.Cfg.MainCfg.Hostname,
+			"cpu": cts.CPU,
 		}
 		for k, v := range i.Tags {
 			tags[k] = v
