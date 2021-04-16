@@ -46,11 +46,11 @@ type HTTPTask struct {
 	reqCost  time.Duration
 	reqError string
 
-	dnsParseTime   int64
-	connectionTime int64
-	sslTime        int64
-	ttfbTime       int64
-	downloadTime   int64
+	dnsParseTime   float64
+	connectionTime float64
+	sslTime        float64
+	ttfbTime       float64
+	downloadTime   float64
 }
 
 const MaxMsgSize = 15 * 1024 * 1024
@@ -133,8 +133,8 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 	}
 
 	if len(reasons) != 0 {
-		message[`failed_reason`] = strings.Join(reasons, `;`)
-		fields[`failed_reason`] = strings.Join(reasons, `;`)
+		message[`fail_reason`] = strings.Join(reasons, `;`)
+		fields[`fail_reason`] = strings.Join(reasons, `;`)
 	}
 
 	if t.reqError == "" && len(reasons) == 0 {
@@ -147,7 +147,7 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 		notSave = true
 	}
 
-	if v, ok := fields[`failed_reason`]; ok && !notSave && len(v.(string)) != 0 && t.resp != nil {
+	if v, ok := fields[`fail_reason`]; ok && !notSave && len(v.(string)) != 0 && t.resp != nil {
 		message[`response_header`] = t.resp.Header
 		message[`response_body`] = string(t.respBody)
 	}
@@ -219,7 +219,7 @@ type HTTPOptBody struct {
 }
 
 type HTTPOptCertificate struct {
-	IgnoreServerCertificateError bool   `json:ignore_server_certificate_error,omitempty`
+	IgnoreServerCertificateError bool   `json:"ignore_server_certificate_error,omitempty"`
 	PrivateKey                   string `json:"private_key,omitempty"`
 	Certificate                  string `json:"certificate,omitempty"`
 	CaCert                       string `json:"ca,omitempty"`
@@ -252,22 +252,22 @@ func (t *HTTPTask) Run() error {
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(dsi httptrace.DNSStartInfo) { dns = time.Now() },
 		DNSDone: func(ddi httptrace.DNSDoneInfo) {
-			t.dnsParseTime = int64(time.Since(dns) / time.Microsecond)
+			t.dnsParseTime = float64(time.Since(dns)) / float64(time.Microsecond)
 		},
 
 		TLSHandshakeStart: func() { tlsHandshake = time.Now() },
 		TLSHandshakeDone: func(cs tls.ConnectionState, err error) {
-			t.sslTime = int64(time.Since(tlsHandshake) / time.Microsecond)
+			t.sslTime = float64(time.Since(tlsHandshake)) / float64(time.Microsecond)
 		},
 
 		ConnectStart: func(network, addr string) { connect = time.Now() },
 		ConnectDone: func(network, addr string, err error) {
-			t.connectionTime = int64(time.Since(connect) / time.Microsecond)
+			t.connectionTime = float64(time.Since(connect)) / float64(time.Microsecond)
 		},
 
 		GotFirstResponseByte: func() {
 			t1 = time.Now()
-			t.ttfbTime = int64(time.Since(t.reqStart) / time.Microsecond)
+			t.ttfbTime = float64(time.Since(t.reqStart)) / float64(time.Microsecond)
 		},
 	}
 
@@ -296,6 +296,7 @@ func (t *HTTPTask) Run() error {
 		goto result
 	}
 
+	t.downloadTime = float64(time.Since(t1)) / float64(time.Microsecond)
 	t.respBody, err = ioutil.ReadAll(t.resp.Body)
 	if err != nil {
 		goto result
@@ -307,7 +308,6 @@ result:
 		t.reqError = err.Error()
 	}
 	t.reqCost = time.Since(t.reqStart)
-	t.downloadTime = int64(time.Since(t1) / time.Microsecond)
 
 	return err
 }
@@ -340,7 +340,7 @@ func (t *HTTPTask) CheckResult() (reasons []string) {
 		// check status code
 		if chk.StatusCode != nil {
 			for _, v := range chk.StatusCode {
-				if err := v.check(fmt.Sprintf("%d", t.resp.StatusCode), "HTTP status"); err != nil {
+				if err := v.check(t.resp.Status, "HTTP status"); err != nil {
 					reasons = append(reasons, err.Error())
 				}
 			}
@@ -487,26 +487,53 @@ func (t *HTTPTask) Init() error {
 
 		for _, vs := range checker.Header {
 			for _, v := range vs {
-				if v.MatchRegex != "" {
-					if re, err := regexp.Compile(v.MatchRegex); err != nil {
-						return err
-					} else {
-						v.matchRe = re
-					}
+				err := genReg(v)
+				if err != nil {
+					return err
 				}
 
-				if v.NotMatchRegex != "" {
-					if re, err := regexp.Compile(v.NotMatchRegex); err != nil {
-						return err
-					} else {
-						v.notMatchRe = re
-					}
-				}
 			}
 		}
+
+		// body
+		for _, v := range checker.Body {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+		}
+
+		// status_code
+		for _, v := range checker.StatusCode {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+		}
+
 	}
 
 	// TODO: more checking on task validity
+
+	return nil
+}
+
+func genReg(v *SuccessOption) error {
+	if v.MatchRegex != "" {
+		if re, err := regexp.Compile(v.MatchRegex); err != nil {
+			return err
+		} else {
+			v.matchRe = re
+		}
+	}
+
+	if v.NotMatchRegex != "" {
+		if re, err := regexp.Compile(v.NotMatchRegex); err != nil {
+			return err
+		} else {
+			v.notMatchRe = re
+		}
+	}
 
 	return nil
 }
