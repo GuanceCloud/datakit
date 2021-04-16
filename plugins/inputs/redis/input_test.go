@@ -18,7 +18,7 @@ func TestCollect(t *testing.T) {
 		Tags:         make(map[string]string),
 		CommandStats: true,
 		Slowlog:      false,
-		Keys:         []string{"mykey*"},
+		Keys:         []string{"queue"},
 	}
 
 	input.initCfg()
