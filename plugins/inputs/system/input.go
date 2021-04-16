@@ -70,6 +70,9 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 			"uptime":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "system uptime"},
 			// "uptime_format": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "formatted system uptime"},
 		},
+		Tags: map[string]interface{}{
+			"host": &inputs.TagInfo{Desc: "主机名"},
+		},
 	}
 }
 
@@ -109,7 +112,7 @@ func (i *Input) Collect() error {
 		return err
 	}
 
-	tags := map[string]string{"host": datakit.Cfg.MainCfg.Hostname}
+	tags := map[string]string{}
 	for k, v := range i.Tags {
 		tags[k] = v
 	}
