@@ -88,6 +88,8 @@ func (m *memMeasurement) Info() *inputs.MeasurementInfo {
 			"write_back":      NewFieldInfoB("Memory which is actively being written back to the disk. (Linux)"),
 			"write_back_tmp":  NewFieldInfoB("Memory used by FUSE for temporary writeback buffers. (Linux)"),
 		},
+		Tags: map[string]interface{}{
+			"host": &inputs.TagInfo{Desc: "主机名"}},
 	}
 }
 
@@ -143,7 +145,7 @@ func (i *Input) Collect() error {
 		fields["write_back_tmp"] = vm.WritebackTmp
 		fields["write_back"] = vm.Writeback
 	}
-	tags := map[string]string{"host": datakit.Cfg.MainCfg.Hostname}
+	tags := map[string]string{}
 	for k, v := range i.Tags {
 		tags[k] = v
 	}
