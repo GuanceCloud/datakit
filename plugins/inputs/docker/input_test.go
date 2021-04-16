@@ -14,11 +14,7 @@ import (
 
 func TestMain(t *testing.T) {
 	var err error
-	var d = Input{
-		Endpoint:     defaultEndpoint,
-		newEnvClient: NewEnvClient,
-		newClient:    NewClient,
-	}
+	var d = newInput()
 
 	d.client, err = d.newEnvClient()
 	if err != nil {
@@ -38,12 +34,7 @@ func TestMain(t *testing.T) {
 func TestGatherLog(t *testing.T) {
 	io.SetTest()
 	var err error
-	var d = Input{
-		Endpoint:        defaultEndpoint,
-		newEnvClient:    NewEnvClient,
-		newClient:       NewClient,
-		timeoutDuration: time.Second * 10,
-	}
+	var d = newInput()
 
 	d.client, err = d.newEnvClient()
 	if err != nil {
