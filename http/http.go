@@ -53,11 +53,7 @@ func Start(bind string) {
 	httpBind = bind
 
 	// start HTTP server
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		HttpStart(bind)
-	}()
+	go HttpStart(bind)
 }
 
 func ReloadDatakit() error {
@@ -276,7 +272,6 @@ func tryStartHTTPServer(srv *http.Server) {
 				break
 			}
 		}
-
 		time.Sleep(time.Second)
 	}
 
@@ -482,7 +477,7 @@ func apiManual(c *gin.Context) {
 		}
 		sort.Strings(toc.InputNames)
 
-		for k, _ := range man.OtherDocs {
+		for k := range man.OtherDocs {
 			toc.OtherDocs = append(toc.OtherDocs, k)
 		}
 		sort.Strings(toc.OtherDocs)
