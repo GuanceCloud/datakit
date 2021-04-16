@@ -3,37 +3,52 @@ package host_process
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"runtime"
+	"strings"
+	"time"
+
 	"github.com/shirou/gopsutil/host"
 	pr "github.com/shirou/gopsutil/v3/process"
 	"github.com/tweekmonster/luser"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"regexp"
-	"runtime"
-	"strings"
-	"time"
 )
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l = logger.DefaultSLogger(inputName)
+)
 
-func (_ *Processes) Catalog() string {
+func (_ *Input) Catalog() string {
 	return category
 }
 
-func (_ *Processes) SampleConfig() string {
+func (_ *Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (p *Processes) PipelineConfig() map[string]string {
+func (p *Input) PipelineConfig() map[string]string {
 	return map[string]string{
 		inputName: pipelineSample,
 	}
 }
 
-func (p *Processes) Run() {
+func (_ *Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (_ *Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&ProcessMetric{},
+		&ProcessObject{},
+	}
+}
+
+func (p *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("process start...")
@@ -91,7 +106,7 @@ func (p *Processes) Run() {
 
 }
 
-func (p *Processes) getProcesses() (processList []*pr.Process) {
+func (p *Input) getProcesses() (processList []*pr.Process) {
 	pses, err := pr.Processes()
 	if err != nil {
 		l.Errorf("[error] get process err:%s", err.Error())
@@ -142,7 +157,7 @@ func getStartTime(ps *pr.Process) int64 {
 	return start
 }
 
-func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields, message map[string]interface{}) {
+func (p *Input) Parse(ps *pr.Process) (username, state, name string, fields, message map[string]interface{}) {
 	fields = map[string]interface{}{}
 	message = map[string]interface{}{}
 	name, err := ps.Name()
@@ -210,9 +225,10 @@ func (p *Processes) Parse(ps *pr.Process) (username, state, name string, fields,
 
 }
 
-func (p *Processes) WriteObject() {
-	times := time.Now().UTC()
-	var points []string
+func (p *Input) WriteObject() {
+	t := time.Now().UTC()
+	var collectCache []inputs.Measurement
+
 	for _, ps := range p.getProcesses() {
 		username, state, name, fields, message := p.Parse(ps)
 		tags := map[string]string{
@@ -275,20 +291,23 @@ func (p *Processes) WriteObject() {
 				l.Errorf("[error] process new pipeline err:%s", err.Error())
 			}
 		}
-
-		point, err := io.MakeMetric("host_processes", tags, fields, times)
-		if err != nil {
-			l.Errorf("[error] make metric err:%s", err.Error())
-			continue
+		obj := &ProcessObject{
+			name:   inputName,
+			tags:   tags,
+			fields: fields,
+			ts:     t,
 		}
-		points = append(points, string(point))
+		collectCache = append(collectCache, obj)
 	}
-	io.NamedFeed([]byte(strings.Join(points, "\n")), io.Object, inputName)
+	if err := inputs.FeedMeasurement(inputName, io.Object, collectCache, &io.Option{CollectCost: time.Since(t)}); err != nil {
+		l.Errorf("FeedMeasurement err :%s", err.Error())
+	}
+
 }
 
-func (p *Processes) WriteMetric() {
-	times := time.Now().UTC()
-	var points []string
+func (p *Input) WriteMetric() {
+	t := time.Now().UTC()
+	var collectCache []inputs.Measurement
 	for _, ps := range p.getProcesses() {
 		username, _, name, fields, _ := p.Parse(ps)
 		tags := map[string]string{
@@ -296,18 +315,21 @@ func (p *Processes) WriteMetric() {
 			"pid":          fmt.Sprintf("%d", ps.Pid),
 			"process_name": name,
 		}
-		point, err := io.MakeMetric("host_processes", tags, fields, times)
-		if err != nil {
-			l.Errorf("[error] make metric err:%s", err.Error())
-			continue
+		metric := &ProcessMetric{
+			name:   inputName,
+			tags:   tags,
+			fields: fields,
+			ts:     t,
 		}
-		points = append(points, string(point))
+		collectCache = append(collectCache, metric)
 	}
-	io.NamedFeed([]byte(strings.Join(points, "\n")), io.Metric, inputName)
+	if err := inputs.FeedMeasurement(inputName, io.Metric, collectCache, &io.Option{CollectCost: time.Since(t)}); err != nil {
+		l.Errorf("FeedMeasurement err :%s", err.Error())
+	}
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Processes{}
+		return &Input{}
 	})
 }
