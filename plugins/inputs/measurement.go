@@ -68,6 +68,7 @@ type TagInfo struct {
 
 type MeasurementInfo struct {
 	Name   string
+	Desc   string
 	Fields map[string]interface{}
 	Tags   map[string]interface{}
 }
@@ -138,11 +139,9 @@ func NewTagInfo(desc string) *TagInfo {
 }
 
 func sortMapKey(m map[string]interface{}) (res []string) {
-
-	for k, _ := range m {
+	for k := range m {
 		res = append(res, k)
 	}
-
 	sort.Strings(res)
 	return
 }
