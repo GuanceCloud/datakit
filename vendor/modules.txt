@@ -514,7 +514,6 @@ github.com/influxdata/telegraf/plugins/inputs/apache
 github.com/influxdata/telegraf/plugins/inputs/ceph
 github.com/influxdata/telegraf/plugins/inputs/clickhouse
 github.com/influxdata/telegraf/plugins/inputs/cloudwatch
-github.com/influxdata/telegraf/plugins/inputs/disk
 github.com/influxdata/telegraf/plugins/inputs/diskio
 github.com/influxdata/telegraf/plugins/inputs/dns_query
 github.com/influxdata/telegraf/plugins/inputs/elasticsearch
@@ -533,7 +532,6 @@ github.com/influxdata/telegraf/plugins/inputs/kapacitor
 github.com/influxdata/telegraf/plugins/inputs/kernel
 github.com/influxdata/telegraf/plugins/inputs/kibana
 github.com/influxdata/telegraf/plugins/inputs/kubernetes
-github.com/influxdata/telegraf/plugins/inputs/linux_sysctl_fs
 github.com/influxdata/telegraf/plugins/inputs/memcached
 github.com/influxdata/telegraf/plugins/inputs/modbus
 github.com/influxdata/telegraf/plugins/inputs/mongodb
@@ -549,7 +547,6 @@ github.com/influxdata/telegraf/plugins/inputs/openldap
 github.com/influxdata/telegraf/plugins/inputs/openntpd
 github.com/influxdata/telegraf/plugins/inputs/ping
 github.com/influxdata/telegraf/plugins/inputs/postgresql
-github.com/influxdata/telegraf/plugins/inputs/processes
 github.com/influxdata/telegraf/plugins/inputs/procstat
 github.com/influxdata/telegraf/plugins/inputs/smart
 github.com/influxdata/telegraf/plugins/inputs/snmp
@@ -931,7 +928,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/luascript/module
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210414025948-6b572a752aed
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210415060021-68e4038d228a
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 # go.mongodb.org/mongo-driver v1.4.1
 go.mongodb.org/mongo-driver/bson
