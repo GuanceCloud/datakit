@@ -11,38 +11,61 @@
 
 ## Breaking Changes
 
-会引入很多不兼容的情况，同时也有新增的采集器。涉及的采集器列表如下：
+涉及的采集器列表如下：
 
-- cpu：DataKit 内置 CPU 采集器，移除 Telegraf CPU 采集器，配置文件保持兼容。另外，Mac 平台暂不支持 CPU 采集，后续会补上。
-- docker：重新开发了 docker 采集器，同时支持容器对象、容器日志以及容器指标采集（额外增加对 K8s 容器采集）
-- elasticsearch：DataKit 内置ES 采集器，同时移除 Telegraf 中的 ES 采集器。另外，可在该采集器中直接配置采集 ES 日志
-- jvm：DataKit 内置 JVM 采集器
-- kafka：DataKit 内置 Kafka 指标采集器，可在该采集器中直接采集 Kafka 日志
-- mem：DataKit 内置内存采集器，移除 Telegraf 内存采集器，配置文件保持兼容
-- mysql：DataKit 内置 MySQL 采集器，移除 Telegraf MySQL 采集器。可在该采集器中直接采集 MySQL 日志
-- net：DataKit 内置网络采集器，移除 Telegraf 网络采集器
-- nginx：DataKit 内置 Nginx 采集器，移除 Telegraf Ngxin 采集器。可在该采集器中直接采集 Nginx 日志
-- oracle：DataKit 内置 Oracle 采集器。可在该采集器中直接采集 Oracle 日志
-- rabbitmq：DataKit 内置 RabbitMQ 采集器。可在该采集器中直接采集 RabbitMQ 日志
-- redis：DataKit 内置 Redis 采集器。可在该采集器中直接采集 Redis 日志
-- system：DataKit 内置 system 采集器，移除 Telegraf system 采集器
+| 采集器          | 说明                                                                                                                                                                                      |
+| -----           | ----                                                                                                                                                                                      |
+| `cpu`           | DataKit 内置 CPU 采集器，移除 Telegraf CPU 采集器，配置文件保持兼容。另外，Mac 平台暂不支持 CPU 采集，后续会补上                                                                          |
+| `disk`          | DataKit 内置磁盘采集器                                                                                                                                                                    |
+| `docker`        | 重新开发了 docker 采集器，同时支持容器对象、容器日志以及容器指标采集（额外增加对 K8s 容器采集）                                                                                           |
+| `elasticsearch` | DataKit 内置ES 采集器，同时移除 Telegraf 中的 ES 采集器。另外，可在该采集器中直接配置采集 ES 日志                                                                                         |
+| `jvm`           | DataKit 内置 JVM 采集器                                                                                                                                                                   |
+| `kafka`         | DataKit 内置 Kafka 指标采集器，可在该采集器中直接采集 Kafka 日志                                                                                                                          |
+| `mem`           | DataKit 内置内存采集器，移除 Telegraf 内存采集器，配置文件保持兼容                                                                                                                        |
+| `mysql`         | DataKit 内置 MySQL 采集器，移除 Telegraf MySQL 采集器。可在该采集器中直接采集 MySQL 日志                                                                                                  |
+| `net`           | DataKit 内置网络采集器，移除 Telegraf 网络采集器。在 Linux 上，对于虚拟网卡设备，默认不再采集（需手动开启）                                                                               |
+| `nginx`         | DataKit 内置 Nginx 采集器，移除 Telegraf Ngxin 采集器。可在该采集器中直接采集 Nginx 日志                                                                                                  |
+| `oracle`        | DataKit 内置 Oracle 采集器。可在该采集器中直接采集 Oracle 日志                                                                                                                            |
+| `rabbitmq`      | DataKit 内置 RabbitMQ 采集器。可在该采集器中直接采集 RabbitMQ 日志                                                                                                                        |
+| `redis`         | DataKit 内置 Redis 采集器。可在该采集器中直接采集 Redis 日志                                                                                                                              |
+| `swap`          | DataKit 内置内存 swap 采集器                                                                                                                                                              |
+| `system`        | DataKit 内置 system 采集器，移除 Telegraf system 采集器。内置的 system 采集器新增三个指标： `load1_per_core/load5_per_core/load15_per_core`，便于客户端直接显示单核平均负载，无需额外计算 |
 
-以上采集器的更新，绝大部分涉及指标名的更新，具体参考各个采集器文档。
+以上采集器的更新，非主机类型的采集器，绝大部分涉均有指标集、指标名的更新，具体参考各个采集器文档。 
 
-## Bug 修复
+其它兼容性问题：
 
-## 特性
+- 出于安全考虑，采集器不再默认绑定所有网卡，默认绑定在 localhost:9529  上
+- 以下采集器，将不再有效，请用上面内置的采集器来采集
+	- `dockerlog`：已集成到 docker 采集器
+	- `docker_containers`：已集成到 docker 采集器
 
-- 拨测采集器（`dialtesting`）：支持中心化任务下发
-- 支持在 http://localhost:9529/man 页面浏览 DataKit 文档（只有此次新改的采集器文档集成过来了，其它采集器文档需在原来的帮助中心查看）
-	- 由于 localhost 不能远程查看文档，如果不便于开放其它绑定（如 `0.0.0.0`），也能在终端查看文档（仅 Mac/Linux 支持）：`$ ./datakit -cmd -man`，输入采集器名字（通过 `Tab` 键选择自动补全）即可查看文档
-- 所有采集器的配置项中，支持环境变量，如 `host="$K8S_HOST"`，便于容器环境的部署
+## 新增特性
 
-## v1.1.4-rc2(2021/04/07)
+- 拨测采集器（`dialtesting`）：支持中心化任务下发，在 Studio 主页，有单独的拨测入口，可创建拨测任务来试用
+- 所有采集器的配置项中，支持配置环境变量，如 `host="$K8S_HOST"`，便于容器环境的部署
+- http://localhost:9529/stats 新增更多采集器运行信息统计，包括采集频率（`frequency`）、每次上报数据条数（`avg_size`）、每次采集消耗（`avg_collect_cost`）等。部分采集器可能某些字段没有，这个不影响，因为每个采集器的采集方式不同
+- http://localhost:9529/reload 可用于重新加载采集器，比如修改了配置文件后，可以直接 `curl http://localhost:9529/reload` 即可，这种形式不会重启服务，类似 Nginx 中的 `-s reload` 功能。当然也能在浏览器上直接访问该 reload 地址，reload 成功后，会自动跳转到 stats 页面
+- 支持在 http://localhost:9529/man 页面浏览 DataKit 文档（只有此次新改的采集器文档集成过来了，其它采集器文档需在原来的帮助中心查看）。默认情况下不支持远程查看 DataKit 文档，可在终端查看（仅 Mac/Linux 支持）：
+
+```shell
+	# 进入采集器安装目录，输入采集器名字（通过 `Tab` 键选择自动补全）即可查看文档
+	$ ./datakit -cmd -man
+	man > nginx
+	(显示 Nginx 采集文档)
+	man > mysql
+	(显示 MySQL 采集文档)
+	man > Q               # 输入 Q 或 exit 退出
+```
+----
+
+# v1.1.4-rc2(2021/04/07)
 
 ### Bug 修复
 
 - 修复阿里云监控数据采集器（`aliyuncms`）频繁采集导致部分其它采集器卡死的问题。
+
+----
 
 # v1.1.4-rc1(2021/03/25)
 
@@ -50,6 +73,8 @@
 
 - 进程采集器 `message` 字段增加更多信息，便于全文搜索
 - 主机对象采集器支持自定义 tag，便于云属性同步
+
+----
 
 # v1.1.4-rc0(2021/03/25)
 
@@ -64,12 +89,14 @@
 - trace 数据增加更多业务字段（`project/env/version/http_method/http_status_code`）
 - 其它采集器各种细节改进
 
+----
 # v1.1.3-rc4(2021/03/16)
 
 ## Bug 修复
 
 - 进程采集器：修复用户名缺失导致显示空白的问题，对用户名获取失败的进程，以 `nobody` 当做其用户名。
 
+----
 # v1.1.3-rc3(2021/03/04)
 
 ## Bug 修复
@@ -83,6 +110,7 @@
 - `http://datakit:9529/reload` 页面增加每分钟采集频率（`frequency`）以及每次采集的数据量大小统计
 - `kubernetes` 指标采集器增加 node 的内存使用率（`mem_usage_percent`）采集 -->
 
+----
 # v1.1.3-rc2(2021/03/01)
 
 ## Bug 修复
@@ -91,6 +119,7 @@
 - 修正华为云对象采集器 pipeline 问题
 - 修复 Nginx/MySQL/Redis 日志采集器升级后的兼容性问题
 
+----
 # v1.1.3-rc1(2021/02/26)
 
 ### 新增功能
@@ -121,6 +150,7 @@
 
 - 移除部分原 dkctrl 命令执行功能，配置管理功能后续不再依赖该方式实现
 
+----
 # v1.1.2(2021/02/03)
 
 ### 功能改进
@@ -135,12 +165,14 @@
 - 修复 zipkin 中时间单位问题
 - 主机对象出采集器中添加 `state` 字段
 
+----
 # v1.1.1(2021/02/01)
 
 ## Bug 修复
 - 修复 mysqlmonitor 采集器 status/variable 字段均为 string 类型的问题。回退至原始字段类型。同时对 int64 溢出问题做了保护。
 - 更改进程采集器部分字段命名，使其跟主机采集器命名一致
 
+----
 # v1.1.0(2021/01/29)
 
 ## 发布说明
