@@ -8,6 +8,7 @@ import (
 	"html/template"
 	iowrite "io"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"sort"
@@ -238,9 +239,22 @@ func HttpStart(addr string) {
 	}
 
 	go func() {
-		tryStartHTTPServer(srv)
+		tryStartServer(srv)
 		l.Info("http server exit")
 	}()
+
+	// start pprof if enabled
+	var pprofSrv *http.Server
+	if datakit.Cfg.MainCfg.EnablePProf {
+		pprofSrv = &http.Server{
+			Addr: ":6060",
+		}
+
+		go func() {
+			tryStartServer(pprofSrv)
+			l.Info("pprof server exit")
+		}()
+	}
 
 	l.Debug("http server started")
 	<-stopCh
@@ -251,6 +265,15 @@ func HttpStart(addr string) {
 	} else {
 		l.Info("http server shutdown ok")
 	}
+
+	if datakit.Cfg.MainCfg.EnablePProf {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := pprofSrv.Shutdown(ctx); err != nil {
+			l.Error(err)
+		}
+		l.Infof("pprof stopped")
+	}
 }
 
 func HttpStop() {
@@ -258,26 +281,23 @@ func HttpStop() {
 	stopCh <- nil
 }
 
-func tryStartHTTPServer(srv *http.Server) {
-
+func tryStartServer(srv *http.Server) {
 	retryCnt := 0
 
 	for {
+		l.Info("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
 		if err := srv.ListenAndServe(); err != nil {
 
 			if err != http.ErrServerClosed {
+				l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
 				retryCnt++
-				l.Warnf("start HTTP server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
-				continue
 			} else {
-				l.Debugf("http server(%s) stopped on: %s", srv.Addr, err.Error())
+				l.Debugf("server(%s) stopped on: %s", srv.Addr, err.Error())
 				break
 			}
 		}
 		time.Sleep(time.Second)
 	}
-
-	stopOkCh <- nil
 }
 
 type enabledInput struct {
