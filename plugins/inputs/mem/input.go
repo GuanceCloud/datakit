@@ -17,9 +17,9 @@ const (
 	collectCycle = time.Second * 10
 	sampleCfg    = `
 [[inputs.mem]]
-	# no sample need here
-    [inputs.mem.tags]
-	# tag1 = "a"
+  ## no sample need here
+  [inputs.mem.tags]
+    # tag1 = "a"
 	`
 )
 
@@ -69,7 +69,7 @@ func (m *memMeasurement) Info() *inputs.MeasurementInfo {
 			"high_free":       NewFieldInfoB("Amount of free highmem. (Linux)"),
 			"high_total":      NewFieldInfoB("Total amount of highmem. (Linux)"),
 			"huge_pages_free": NewFieldInfoC("The number of huge pages in the pool that are not yet allocated. (Linux)"),
-			"huge_page_size":  NewFieldInfoB("The size of huge pages. (Linux)"),
+			"huge_pages_size": NewFieldInfoB("The size of huge pages. (Linux)"),
 			"huge_page_total": NewFieldInfoC("The size of the pool of huge pages. (Linux)"),
 			"low_free":        NewFieldInfoB("Amount of free lowmem. (Linux)"),
 			"low_total":       NewFieldInfoB("Total amount of lowmem. (Linux)"),
@@ -125,7 +125,7 @@ func (i *Input) Collect() error {
 		fields["high_free"] = vm.HighFree
 		fields["high_total"] = vm.HighTotal
 		fields["huge_pages_free"] = vm.HugePagesFree
-		fields["huge_page_size"] = vm.HugePageSize
+		fields["huge_pages_size"] = vm.HugePageSize
 		fields["huge_pages_total"] = vm.HugePagesTotal
 		fields["inactive"] = vm.Inactive
 		fields["low_free"] = vm.LowFree
