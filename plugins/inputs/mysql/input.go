@@ -65,6 +65,7 @@ type Input struct {
 	response         []map[string]interface{} `toml:"-"`
 	Log              *inputs.TailerOption     `toml:"log"`
 	tailer           *inputs.Tailer           `toml:"-"`
+	InnoDB           bool                     `toml:"innodb"`
 }
 
 func (i *Input) getDsnString() string {
@@ -149,6 +150,10 @@ func (i *Input) Collect() error {
 	i.collectSchemaMeasurement()
 	i.customSchemaMeasurement()
 
+	if i.InnoDB {
+		i.collectInnodbMeasurement()
+	}
+
 	return nil
 }
 
@@ -170,6 +175,26 @@ func (i *Input) collectBaseMeasurement() {
 	m.getVariables()
 	m.getLogStats()
 
+	m.submit()
+
+	i.collectCache = append(i.collectCache, m)
+}
+
+// 获取innodb指标
+func (i *Input) collectInnodbMeasurement() {
+	m := &innodbMeasurement{
+		client:  i.db,
+		resData: make(map[string]interface{}),
+		tags:    make(map[string]string),
+		fields:  make(map[string]interface{}),
+	}
+
+	m.name = "mysql_innodb"
+	for key, value := range i.Tags {
+		m.tags[key] = value
+	}
+
+	m.getInnodb()
 	m.submit()
 
 	i.collectCache = append(i.collectCache, m)
@@ -252,6 +277,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&baseMeasurement{},
 		&schemaMeasurement{},
+		&innodbMeasurement{},
 	}
 }
 
