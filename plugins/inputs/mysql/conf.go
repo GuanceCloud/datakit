@@ -18,6 +18,9 @@ const (
 
     interval = "10s"
 
+    ## @param inno_db
+    innodb = false
+
     [inputs.mysql.log]
     # required, glob logfiles
     files = ["/var/log/mysql/*.log"]
