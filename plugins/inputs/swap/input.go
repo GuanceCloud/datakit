@@ -17,9 +17,9 @@ var (
 	swapLogger   = logger.SLogger(inputName)
 	sampleCfg    = `
 [[inputs.swap]]
-# no sample need here
-    [inputs.swap.tags]
-	# tag1 = "a"
+  ## no sample need here
+  [inputs.swap.tags]
+    # tag1 = "a"
 `
 )
 
