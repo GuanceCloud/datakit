@@ -19,9 +19,9 @@ const (
 	metricName   = inputName
 	sampleCfg    = `
 [[inputs.cpu]]
-	# no sample need here
-    [inputs.cpu.tags]
-	# tag1 = "a"
+  ## no sample need here
+  [inputs.cpu.tags]
+    # tag1 = "a"
 	`
 )
 
@@ -92,6 +92,7 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "主机名"},
+			"cpu":  &inputs.TagInfo{Desc: "cpu核心"},
 		},
 	}
 }
