@@ -21,10 +21,10 @@ const (
 	metricName   = inputName
 	sampleCfg    = `
 [[inputs.system]]
-# no sample need here
-    [inputs.system.tags]
-	# tag1 = "a"
-	`
+  ## no sample need here
+  [inputs.system.tags]
+    # tag1 = "a"
+`
 )
 
 type Input struct {
