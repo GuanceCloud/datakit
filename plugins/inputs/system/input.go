@@ -21,10 +21,10 @@ const (
 	metricName   = inputName
 	sampleCfg    = `
 [[inputs.system]]
-# no sample need here
-    [inputs.system.tags]
-	# tag1 = "a"
-	`
+  ## no sample need here
+  [inputs.system.tags]
+    # tag1 = "a"
+`
 )
 
 type Input struct {
@@ -68,8 +68,8 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 			"load1_per_core":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "CPU load average over the last 1 minute per core"},
 			"load5_per_core":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "CPU load average over the last 5 minutes per core"},
 			"load15_per_core": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "CPU load average over the last 15 minutes per core"},
-			"n_cpus":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "number of CPUs"},
-			"n_users":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "number of users"},
+			"n_cpus":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.Count, Desc: "number of CPUs"},
+			"n_users":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.Count, Desc: "number of users"},
 			"uptime":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "system uptime"},
 			// "uptime_format": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "formatted system uptime"},
 		},
