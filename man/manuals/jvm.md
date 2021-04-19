@@ -2,7 +2,7 @@
 
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
-- 操作系统支持：{{.AvailableArchs}}
+- 操作系统支持：`{{.AvailableArchs}}`
 
 # 简介
 
@@ -20,7 +20,7 @@ java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar you
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
-```python
+```toml
 {{.InputSample}}
 ```
 
