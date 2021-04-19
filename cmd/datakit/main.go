@@ -263,7 +263,12 @@ func runDatakitWithHTTPServer() error {
 		return err
 	}
 
-	http.Start(datakit.Cfg.MainCfg.HTTPListen)
+	http.Start(&http.Option{
+		Bind:           datakit.Cfg.MainCfg.HTTPListen,
+		GinLog:         datakit.Cfg.MainCfg.GinLog,
+		GinReleaseMode: strings.ToLower(datakit.Cfg.MainCfg.LogLevel) != "debug",
+		PProf:          datakit.Cfg.MainCfg.EnablePProf,
+	})
 
 	return nil
 }
