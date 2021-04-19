@@ -57,7 +57,7 @@ func BuildMarkdownManual(name string) ([]byte, error) {
 
 		input := c()
 		switch i := input.(type) {
-		case inputs.InputV2: // pass
+		case inputs.InputV2:
 			sampleMeasurements := i.SampleMeasurement()
 			p = &Params{
 				InputName:      name,
