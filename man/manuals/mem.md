@@ -24,6 +24,8 @@ mem 采集器用于收集系统内存信息，一些通用的指标如主机总�
 
 ## 指标集
 
+以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
+
 {{ range $i, $m := .Measurements }}
 
 ### `{{$m.Name}}`
