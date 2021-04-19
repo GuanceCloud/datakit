@@ -2,7 +2,7 @@
 
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
-- 操作系统支持：{{.AvailableArchs}}
+- 操作系统支持：`{{.AvailableArchs}}`
 
 # 简介
 
@@ -20,7 +20,7 @@
 
 以 ubuntu 为例，需要在 `/etc/docker` 径路下打开或创建 `daemon.json` 文件，添加内容如下：
 
-```
+```json
 {
     "hosts":["tcp://0.0.0.0:2375","unix:///var/run/docker.sock"]
 }
@@ -33,39 +33,9 @@
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
 ```toml
-[inputs.docker]
-    # Docker Endpoint
-    # To use TCP, set endpoint = "tcp://[ip]:[port]"
-    # To use environment variables (ie, docker-machine), set endpoint = "ENV"
-    endpoint = "unix:///var/run/docker.sock"
-    
-    collect_metric = true
-    collect_object = true
-    collect_logging = true
-    
-    # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-    collect_metric_interval = "10s"
-    collect_object_interval = "5m"
-    
-    # Is all containers, Return all containers. By default, only running containers are shown.
-    include_exited = false
-    
-    ## Optional TLS Config
-    # tls_ca = "/path/to/ca.pem"
-    # tls_cert = "/path/to/cert.pem"
-    # tls_key = "/path/to/key.pem"
-    ## Use TLS but skip chain & host verification
-    # insecure_skip_verify = false
-    
-    # [[inputs.docker.log_option]]
-        # container_name_match = "<regexp-container-name>"
-        # source = "<your-source>"
-        # service = "<your-service>"
-        # pipeline = "<this-is-pipeline>"
-    
-    [inputs.docker.tags]
-        # tags1 = "value1"
+{{.InputSample}} 
 ```
+
 - 通过对 `collect_metric` 等三个配置项的开关，选择是否要开启此类数据的采集
 - datkait 在连接 kubernetes 时，可能会因为 kubernetes 配置问题报错。以下是这两种报错的解决办法
     - `/run/secrets/kubernetes.io/serviceaccount/token: no such file or directory`。执行如下两个命令：
@@ -115,6 +85,8 @@
 如果没有匹配到或 `source` 为空，指标集为容器名。
 
 ## 指标集
+
+以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
 
 {{ range $i, $m := .Measurements }}
 
