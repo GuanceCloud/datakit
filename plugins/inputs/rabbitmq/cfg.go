@@ -244,7 +244,7 @@ func newCountFieldInfo(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Count,
-		Unit:     inputs.UnknownUnit,
+		Unit:     inputs.NCount,
 		Desc:     desc,
 	}
 }
