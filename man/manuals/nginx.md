@@ -2,7 +2,7 @@
 
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
-- 操作系统支持：{{.AvailableArchs}}
+- 操作系统支持：`{{.AvailableArchs}}`
 
 # 简介
 
@@ -27,7 +27,7 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
-```python
+```toml
 {{.InputSample}}
 ```
 
