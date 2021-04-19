@@ -2,6 +2,7 @@
 
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
+- 操作系统支持：`{{.AvailableArchs}}`
 
 # 简介
 
@@ -15,7 +16,7 @@ swap 采集器用于采集主机 swap 内存的使用情况
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
-```python
+```toml
 {{.InputSample}}
 ```
 
