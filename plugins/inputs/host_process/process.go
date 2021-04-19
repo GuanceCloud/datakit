@@ -310,6 +310,7 @@ func (p *Input) WriteMetric() {
 	var collectCache []inputs.Measurement
 	for _, ps := range p.getProcesses() {
 		username, _, name, fields, _ := p.Parse(ps)
+		delete(fields,"state_zombie")
 		tags := map[string]string{
 			"username":     username,
 			"pid":          fmt.Sprintf("%d", ps.Pid),
