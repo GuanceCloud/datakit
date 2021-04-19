@@ -476,6 +476,15 @@ ul.a {
 	{{end}}
 </ul>
 `
+
+	headerScript = []byte(`<link rel="stylesheet"
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/default.min.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+    hljs.highlightAll();
+});
+</script>`)
 )
 
 type manualTOC struct {
@@ -532,7 +541,7 @@ func apiManual(c *gin.Context) {
 	psr := parser.NewWithExtensions(mdext)
 
 	htmlFlags := html.CommonFlags | html.HrefTargetBlank | html.TOC | html.CompletePage
-	opts := html.RendererOptions{Flags: htmlFlags}
+	opts := html.RendererOptions{Flags: htmlFlags, Head: headerScript}
 	renderer := html.NewRenderer(opts)
 
 	out := markdown.ToHTML(mdtxt, psr, renderer)
