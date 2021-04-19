@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	nhttp "net/http"
-	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path"
@@ -204,14 +203,6 @@ func dumpAllConfigSamples(fpath string) {
 }
 
 func run() {
-
-	if datakit.Cfg.MainCfg.EnablePProf {
-		go func() {
-			if err := nhttp.ListenAndServe(":6060", nil); err != nil {
-				l.Fatalf("pprof server error: %s", err.Error())
-			}
-		}()
-	}
 
 	inputs.StartTelegraf()
 
