@@ -113,7 +113,9 @@
 |---------------|----------|----|------------------------|
 | not_save |  bool  |  N | 不保存响应内容，则设置为true,默认为false|
 
-##  HTTP 拨测结果指标集
+## 指标集
+
+以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
 
 {{ range $i, $m := .Measurements }}
 
