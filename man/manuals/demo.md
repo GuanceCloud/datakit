@@ -43,9 +43,13 @@ Sample 注意事项：
 
 ## 指标集
 
+以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
+
 {{ range $i, $m := .Measurements }}
 
 ### `{{$m.Name}}`
+
+{{$m.Desc}}
 
 -  标签
 
@@ -56,3 +60,13 @@ Sample 注意事项：
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+### 日志采集
+
+如需采集 xxx 的日志，将配置中 log 相关的配置打开，如：
+
+```python
+[inputs.demo.log]
+    # 填入绝对路径
+    files = ["/path/to/demo.log"] 
+```
