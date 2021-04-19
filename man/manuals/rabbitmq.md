@@ -2,7 +2,7 @@
 
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
-- 操作系统支持：{{.AvailableArchs}}
+- 操作系统支持：`{{.AvailableArchs}}`
 
 
 # 简介
@@ -19,32 +19,31 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 
 - 安装 `rabbitmq` 以 `Ubuntu` 为例
 
-    ```shell script
-    sudo apt-get update
-    sudo apt-get install rabbitmq-server
-    sudo service rabbitmq-server start
-    ```
+```shell script
+sudo apt-get update
+sudo apt-get install rabbitmq-server
+sudo service rabbitmq-server start
+```
       
 - 开启 `REST API plug-ins` 
 
-    ```shell script
-    sudo rabbitmq-plugins enable rabbitmq-management
-    ```
+```shell script
+sudo rabbitmq-plugins enable rabbitmq-management
+```
       
 - 创建 user，比如：
 
-    ```shell script
-    rabbitmqctl add_user dataflux <SECRET>
-    rabbitmqctl set_permissions  -p / dataflux "^aliveness-test$" "^amq\.default$" ".*"
-    rabbitmqctl set_user_tags dataflux monitoring
-    ```
-  
+```shell script
+rabbitmqctl add_user dataflux <SECRET>
+rabbitmqctl set_permissions  -p / dataflux "^aliveness-test$" "^amq\.default$" ".*"
+rabbitmqctl set_user_tags dataflux monitoring
+```
 
 ## 配置
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
-```
+```toml
 {{.InputSample}}
 ```
 
@@ -73,7 +72,7 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 
 如需采集 RabbitMQ 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 RabbitMQ 日志文件的绝对路径。比如：
 
-```
+```toml
     [[inputs.rabbitmq]]
       ...
       [inputs.rabbitmq.log]
