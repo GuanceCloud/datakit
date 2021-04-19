@@ -2,7 +2,7 @@
 
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
-- 操作系统支持：{{.AvailableArchs}}
+- 操作系统支持：`{{.AvailableArchs}}`
 
 # 简介
 
@@ -24,7 +24,7 @@ Redis 指标采集器，采集以下数据：
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
-```
+```toml
 {{.InputSample}}
 ```
 
@@ -51,7 +51,7 @@ Redis 指标采集器，采集以下数据：
 ## 日志采集
 需要采集redis日志，需要开启Redis `redis.config`中日志文件输出配置
 
-```python
+```toml
 [inputs.redis.log]
     # 日志路径需要填入绝对路径
     files = ["/var/log/redis/*.log"] # 在使用日志采集时，需要将datakit安装在redis服务同一台主机中，或使用其它方式将日志挂载到外部系统中

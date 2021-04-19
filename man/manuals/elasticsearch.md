@@ -2,7 +2,7 @@
 
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
-- 操作系统支持：{{.AvailableArchs}}
+- 操作系统支持：`{{.AvailableArchs}}`
 
 # 简介
 
@@ -24,7 +24,7 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
-```python
+```toml
 {{.InputSample}}
 ```
 
