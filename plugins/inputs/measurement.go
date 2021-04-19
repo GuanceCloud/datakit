@@ -75,8 +75,8 @@ type MeasurementInfo struct {
 
 func (m *MeasurementInfo) FieldsMarkdownTable() string {
 	tableHeader := `
-| 指标 | 描述  | 数据类型 | 单位   |
-| ---- | ----  | :---:    | :----: |`
+| 指标 | 描述| 数据类型 | 单位   |
+| ---- |---- | :---:    | :----: |`
 
 	rows := []string{tableHeader}
 	keys := sortMapKey(m.Fields)
@@ -96,13 +96,14 @@ func (m *MeasurementInfo) FieldsMarkdownTable() string {
 }
 
 func (m *MeasurementInfo) TagsMarkdownTable() string {
+
 	if len(m.Tags) == 0 {
 		return "暂无"
 	}
 
 	tableHeader := `
-| 标签名  | 描述    |
-|----     | --------|`
+| 标签名 | 描述    |
+|  ----  | --------|`
 
 	rows := []string{tableHeader}
 	keys := sortMapKey(m.Tags)
