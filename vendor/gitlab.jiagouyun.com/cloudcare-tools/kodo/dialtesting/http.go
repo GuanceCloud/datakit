@@ -340,7 +340,7 @@ func (t *HTTPTask) CheckResult() (reasons []string) {
 		// check status code
 		if chk.StatusCode != nil {
 			for _, v := range chk.StatusCode {
-				if err := v.check(t.resp.Status, "HTTP status"); err != nil {
+				if err := v.check(fmt.Sprintf(`%d`, t.resp.StatusCode), "HTTP status"); err != nil {
 					reasons = append(reasons, err.Error())
 				}
 			}
