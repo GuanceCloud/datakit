@@ -10,10 +10,10 @@
 
 ## 前置条件
 
-- 进程采集器默认不采集进程指标数据，如需采集指标相关数据，可在 {{.InputName}}.conf 中 将 `open_metric` 设置为 `true`。比如：
+- 进程采集器默认不采集进程指标数据，如需采集指标相关数据，可在 `{{.InputName}}.conf` 中 将 `open_metric` 设置为 `true`。比如：
                               
   ```
-      [[inputs.host_process]]
+      [[inputs.host_processes]]
         ...
          open_metric = true
   ```
