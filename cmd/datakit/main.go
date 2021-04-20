@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	nhttp "net/http"
-	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path"
@@ -205,14 +204,6 @@ func dumpAllConfigSamples(fpath string) {
 
 func run() {
 
-	if datakit.Cfg.MainCfg.EnablePProf {
-		go func() {
-			if err := nhttp.ListenAndServe(":6060", nil); err != nil {
-				l.Fatalf("pprof server error: %s", err.Error())
-			}
-		}()
-	}
-
 	inputs.StartTelegraf()
 
 	l.Info("datakit start...")
@@ -272,7 +263,12 @@ func runDatakitWithHTTPServer() error {
 		return err
 	}
 
-	http.Start(datakit.Cfg.MainCfg.HTTPListen)
+	http.Start(&http.Option{
+		Bind:           datakit.Cfg.MainCfg.HTTPListen,
+		GinLog:         datakit.Cfg.MainCfg.GinLog,
+		GinReleaseMode: strings.ToLower(datakit.Cfg.MainCfg.LogLevel) != "debug",
+		PProf:          datakit.Cfg.MainCfg.EnablePProf,
+	})
 
 	return nil
 }
