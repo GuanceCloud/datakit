@@ -155,10 +155,12 @@ func (c *Client) read(requests []ReadRequest) ([]ReadResponse, error) {
 	}
 
 	var jResponses []jolokiaResponse
-	if err = json.Unmarshal(responseBody, &jResponses); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(responseBody))
+	decoder.UseNumber()
+	err = decoder.Decode(&jResponses)
+	if err != nil {
 		return nil, fmt.Errorf("decoding JSON response: %s: %s", err, responseBody)
 	}
-
 	return makeReadResponses(jResponses), nil
 }
 
