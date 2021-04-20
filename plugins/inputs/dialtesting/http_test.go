@@ -35,19 +35,19 @@ var httpCases = []struct {
 			URL:        "https://localhost:54323/_test_with_cert",
 			Name:       "_test_with_cert",
 			Frequency:  "1s",
-			AdvanceOptions: []*dt.HTTPAdvanceOption{
-				&dt.HTTPAdvanceOption{
-					Certificate: &dt.HTTPOptCertificate{
-						IgnoreServerCertificateError: true,
-						PrivateKey:                   string(tlsData["key"]),
-						Certificate:                  string(tlsData["crt"]),
-					},
+			AdvanceOptions: &dt.HTTPAdvanceOption{
+				Certificate: &dt.HTTPOptCertificate{
+					IgnoreServerCertificateError: true,
+					PrivateKey:                   string(tlsData["key"]),
+					Certificate:                  string(tlsData["crt"]),
 				},
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
 				&dt.HTTPSuccess{
-					StatusCode: &dt.SuccessOption{Is: "200"},
+					StatusCode: []*dt.SuccessOption{
+						&dt.SuccessOption{Is: "200"},
+					},
 				},
 			},
 		},
@@ -62,19 +62,19 @@ var httpCases = []struct {
 			Name:       "_test_with_cert",
 			Region:     "",
 			Frequency:  "1s",
-			AdvanceOptions: []*dt.HTTPAdvanceOption{
-				&dt.HTTPAdvanceOption{
-					Certificate: &dt.HTTPOptCertificate{
-						IgnoreServerCertificateError: false, // bad certificate, expect fail
-						PrivateKey:                   string(tlsData["key"]),
-						Certificate:                  string(tlsData["crt"]),
-					},
+			AdvanceOptions: &dt.HTTPAdvanceOption{
+				Certificate: &dt.HTTPOptCertificate{
+					IgnoreServerCertificateError: false, // bad certificate, expect fail
+					PrivateKey:                   string(tlsData["key"]),
+					Certificate:                  string(tlsData["crt"]),
 				},
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
 				&dt.HTTPSuccess{
-					StatusCode: &dt.SuccessOption{Is: "200"},
+					StatusCode: []*dt.SuccessOption{
+						&dt.SuccessOption{Is: "200"},
+					},
 				},
 			},
 		},
@@ -90,18 +90,18 @@ var httpCases = []struct {
 			URL:        "http://localhost:54321/_test_with_proxy",
 			Name:       "_test_with_proxy",
 			Frequency:  "1s",
-			AdvanceOptions: []*dt.HTTPAdvanceOption{
-				&dt.HTTPAdvanceOption{
-					Proxy: &dt.HTTPOptProxy{
-						URL:     "http://localhost:54322",
-						Headers: map[string]string{"X-proxy-header": "proxy-foo"},
-					},
+			AdvanceOptions: &dt.HTTPAdvanceOption{
+				Proxy: &dt.HTTPOptProxy{
+					URL:     "http://localhost:54322",
+					Headers: map[string]string{"X-proxy-header": "proxy-foo"},
 				},
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
 				&dt.HTTPSuccess{
-					StatusCode: &dt.SuccessOption{Is: "200"},
+					StatusCode: []*dt.SuccessOption{
+						&dt.SuccessOption{Is: "200"},
+					},
 				},
 			},
 		},
@@ -117,18 +117,18 @@ var httpCases = []struct {
 			URL:        "http://localhost:54321/_test_with_body",
 			Name:       "_test_with_body",
 			Frequency:  "1s",
-			AdvanceOptions: []*dt.HTTPAdvanceOption{
-				&dt.HTTPAdvanceOption{
-					RequestBody: &dt.HTTPOptBody{
-						BodyType: "application/unknown", // XXX: invalid body type
-						Body:     `{"key": "value"}`,
-					},
+			AdvanceOptions: &dt.HTTPAdvanceOption{
+				RequestBody: &dt.HTTPOptBody{
+					BodyType: "application/unknown", // XXX: invalid body type
+					Body:     `{"key": "value"}`,
 				},
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
 				&dt.HTTPSuccess{
-					StatusCode: &dt.SuccessOption{Is: "200"},
+					StatusCode: []*dt.SuccessOption{
+						&dt.SuccessOption{Is: "200"},
+					},
 				},
 			},
 		},
@@ -141,18 +141,18 @@ var httpCases = []struct {
 			URL:        "http://localhost:54321/_test_with_body",
 			Name:       "_test_with_body",
 			Frequency:  "1s",
-			AdvanceOptions: []*dt.HTTPAdvanceOption{
-				&dt.HTTPAdvanceOption{
-					RequestBody: &dt.HTTPOptBody{
-						BodyType: "application/json",
-						Body:     `{"key": "value"}`,
-					},
+			AdvanceOptions: &dt.HTTPAdvanceOption{
+				RequestBody: &dt.HTTPOptBody{
+					BodyType: "application/json",
+					Body:     `{"key": "value"}`,
 				},
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
 				&dt.HTTPSuccess{
-					StatusCode: &dt.SuccessOption{Is: "200"},
+					StatusCode: []*dt.SuccessOption{
+						&dt.SuccessOption{Is: "200"},
+					},
 				},
 			},
 		},
@@ -167,20 +167,20 @@ var httpCases = []struct {
 			URL:        "http://localhost:54321/_test_with_headers",
 			Name:       "_test_with_headers",
 			Frequency:  "1s",
-			AdvanceOptions: []*dt.HTTPAdvanceOption{
-				&dt.HTTPAdvanceOption{
-					RequestOptions: &dt.HTTPOptRequest{
-						Headers: map[string]string{
-							"X-Header-1": "foo",
-							"X-Header-2": "bar",
-						},
+			AdvanceOptions: &dt.HTTPAdvanceOption{
+				RequestOptions: &dt.HTTPOptRequest{
+					Headers: map[string]string{
+						"X-Header-1": "foo",
+						"X-Header-2": "bar",
 					},
 				},
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
 				&dt.HTTPSuccess{
-					StatusCode: &dt.SuccessOption{Is: "200"},
+					StatusCode: []*dt.SuccessOption{
+						&dt.SuccessOption{Is: "200"},
+					},
 				},
 			},
 		},
@@ -195,20 +195,20 @@ var httpCases = []struct {
 			URL:        "http://localhost:54321/_test_with_basic_auth",
 			Name:       "_test_with_basic_auth",
 			Frequency:  "1s",
-			AdvanceOptions: []*dt.HTTPAdvanceOption{
-				&dt.HTTPAdvanceOption{
-					RequestOptions: &dt.HTTPOptRequest{
-						Auth: &dt.HTTPOptAuth{
-							Username: "foo",
-							Password: "bar",
-						},
+			AdvanceOptions: &dt.HTTPAdvanceOption{
+				RequestOptions: &dt.HTTPOptRequest{
+					Auth: &dt.HTTPOptAuth{
+						Username: "foo",
+						Password: "bar",
 					},
 				},
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
 				&dt.HTTPSuccess{
-					StatusCode: &dt.SuccessOption{Is: "200"},
+					StatusCode: []*dt.SuccessOption{
+						&dt.SuccessOption{Is: "200"},
+					},
 				},
 			},
 		},
@@ -223,22 +223,22 @@ var httpCases = []struct {
 			URL:        "http://localhost:54321/_test_with_cookie",
 			Name:       "_test_with_cookie",
 			Frequency:  "1s",
-			AdvanceOptions: []*dt.HTTPAdvanceOption{
-				&dt.HTTPAdvanceOption{
-					RequestOptions: &dt.HTTPOptRequest{
-						Cookies: (&http.Cookie{
-							Name:   "_test_with_cookie",
-							Value:  "foo-bar",
-							MaxAge: 0,
-							Secure: true,
-						}).String(),
-					},
+			AdvanceOptions: &dt.HTTPAdvanceOption{
+				RequestOptions: &dt.HTTPOptRequest{
+					Cookies: (&http.Cookie{
+						Name:   "_test_with_cookie",
+						Value:  "foo-bar",
+						MaxAge: 0,
+						Secure: true,
+					}).String(),
 				},
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
 				&dt.HTTPSuccess{
-					StatusCode: &dt.SuccessOption{Is: "200"},
+					StatusCode: []*dt.SuccessOption{
+						&dt.SuccessOption{Is: "200"},
+					},
 				},
 			},
 		},
@@ -253,15 +253,15 @@ var httpCases = []struct {
 			URL:        "http://localhost:54321/_test_redirect",
 			Name:       "_test_redirect",
 			Frequency:  "1s",
-			AdvanceOptions: []*dt.HTTPAdvanceOption{
-				&dt.HTTPAdvanceOption{
-					RequestOptions: &dt.HTTPOptRequest{FollowRedirect: true},
-				},
+			AdvanceOptions: &dt.HTTPAdvanceOption{
+				RequestOptions: &dt.HTTPOptRequest{FollowRedirect: true},
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
 				&dt.HTTPSuccess{
-					StatusCode: &dt.SuccessOption{Is: "200"}, // allow redirect, should be 200
+					StatusCode: []*dt.SuccessOption{
+						&dt.SuccessOption{Is: "200"}, // allow redirect, should be 200
+					},
 				},
 			},
 		},
@@ -275,15 +275,15 @@ var httpCases = []struct {
 			URL:        "http://localhost:54321/_test_redirect",
 			Name:       "_test_redirect_disabled",
 			Frequency:  "1s",
-			AdvanceOptions: []*dt.HTTPAdvanceOption{
-				&dt.HTTPAdvanceOption{
-					RequestOptions: &dt.HTTPOptRequest{FollowRedirect: false},
-				},
+			AdvanceOptions: &dt.HTTPAdvanceOption{
+				RequestOptions: &dt.HTTPOptRequest{FollowRedirect: false},
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
 				&dt.HTTPSuccess{
-					StatusCode: &dt.SuccessOption{Is: "302"}, // disabled redirect, should be 302
+					StatusCode: []*dt.SuccessOption{
+						&dt.SuccessOption{Is: "302"}, // disabled redirect, should be 302
+					},
 				},
 			},
 		},
@@ -316,15 +316,27 @@ var httpCases = []struct {
 			Frequency:  "1s",
 			SuccessWhen: []*dt.HTTPSuccess{
 				&dt.HTTPSuccess{
-					Header: map[string]*dt.SuccessOption{
+					Header: map[string][]*dt.SuccessOption{
 
-						"Cache-Control": &dt.SuccessOption{MatchRegex: `max-ag=\d`}, // expect fail: max-age
-						"Server":        &dt.SuccessOption{Is: `Apache`},            // expect fail
+						"Cache-Control": []*dt.SuccessOption{
+							&dt.SuccessOption{MatchRegex: `max-ag=\d`}, // expect fail: max-age
+						},
+						"Server": []*dt.SuccessOption{
+							&dt.SuccessOption{Is: `Apache`}, // expect fail
+						},
 
-						"Date":            &dt.SuccessOption{Contains: "GMT"},     // ok: Date always use GMT
-						"NotExistHeader1": &dt.SuccessOption{NotMatchRegex: `.+`}, // ok
-						"NotExistHeader2": &dt.SuccessOption{IsNot: `abc`},        // ok
-						"NotExistHeader3": &dt.SuccessOption{NotContains: `def`},  // ok
+						"Date": []*dt.SuccessOption{
+							&dt.SuccessOption{Contains: "GMT"}, // ok: Date always use GMT
+						},
+						"NotExistHeader1": []*dt.SuccessOption{
+							&dt.SuccessOption{NotMatchRegex: `.+`}, // ok
+						},
+						"NotExistHeader2": []*dt.SuccessOption{
+							&dt.SuccessOption{IsNot: `abc`}, // ok
+						},
+						"NotExistHeader3": []*dt.SuccessOption{
+							&dt.SuccessOption{NotContains: `def`}, // ok
+						},
 					},
 				},
 			},
