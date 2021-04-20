@@ -110,7 +110,7 @@ type TailerOption struct {
 	Category int `toml:"-"`
 
 	// 自定义添加tag，默认会添加 "filename"
-	Tags map[string]string
+	Tags map[string]string `toml:"tags"`
 
 	StopChan chan interface{} `toml:"-"`
 }
