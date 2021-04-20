@@ -1,5 +1,4 @@
 .idea/
-iploc.bin
 .vscode/
 .DS_Store
 .orig
@@ -46,3 +45,8 @@ plugins/externals/csv/venv
 *.zip
 china-operator-ip
 **build/
+*-packr.go
+iploc.bin
+data/jolokia-jvm-agent.jar
+data/iploc.bin
+build.sh
