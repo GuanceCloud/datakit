@@ -1,6 +1,7 @@
 package jvm
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -68,20 +69,28 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 				continue
 			}
 
+			field := make(map[string]interface{})
 			for k, v := range point.Fields {
 				if v == nil {
-					delete(point.Fields, k)
+					continue
+				}
+
+				if jn, ok := v.(json.Number); ok {
+
+					field[k] = convertJsonNumber(jn)
+				} else {
+					field[k] = v
 				}
 			}
 
-			if len(point.Fields) == 0 {
+			if len(field) == 0 {
 				continue
 			}
 
 			ja.collectCache = append(ja.collectCache, &JvmMeasurement{
 				measurement,
 				mergeTags(point.Tags, tags),
-				point.Fields,
+				field,
 				time.Now(),
 			})
 		}
@@ -274,4 +283,16 @@ func findRequestAttributesWithPaths(attributes map[string][]string) []string {
 
 	sort.Strings(results)
 	return results
+}
+
+func convertJsonNumber(jn json.Number) interface{} {
+	if intVal, err := jn.Int64(); err == nil {
+		return intVal
+	}
+
+	if floatVal, err := jn.Float64(); err == nil {
+		return floatVal
+	}
+
+	return jn.String()
 }
