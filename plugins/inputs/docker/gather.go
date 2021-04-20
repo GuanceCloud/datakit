@@ -50,7 +50,7 @@ func (this *Input) gatherObject(interval time.Duration) {
 				continue
 			}
 			cost := time.Since(startTime)
-			if err := io.Feed(inputName, io.Metric, pts, &io.Option{CollectCost: cost}); err != nil {
+			if err := io.Feed(inputName, io.Object, pts, &io.Option{CollectCost: cost}); err != nil {
 				l.Error(err)
 			}
 		}
