@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
@@ -29,13 +31,18 @@ var (
 
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
+
+	x *io.IO
+
+	MaxFails = 100
 )
 
 const (
 	maxCrashCnt = 6
+	RegionInfo  = "region"
 )
 
-type DialTesting struct {
+type Input struct {
 	Region       string `toml:"region"`
 	Server       string `toml:"server,omitempty"`
 	AK           string `toml:"ak"`
@@ -52,31 +59,48 @@ type DialTesting struct {
 }
 
 const sample = `[[inputs.dialtesting]]
-	region = "" # required
+	# require，默认值为default
+	region = "default"
 
-	server = "dialtesting.dataflux.cn"
+	#  中心任务存储的服务地址，或本地json 文件全路径
+	server = "files:///your/dir/json-file-name"
 
-	pull_interval = "1m" # default 1 min
+	# 若server配为中心任务服务地址时，需要配置相应的ak或者sk
+	ak = ""
+	sk = ""
+
+	pull_interval = "1m"
 
 	[inputs.dialtesting.tags]
 	# 各种可能的 tag
 	`
 
-func (dt *DialTesting) SampleConfig() string {
+func (dt *Input) SampleConfig() string {
 	return sample
 }
 
-func (dt *DialTesting) Catalog() string {
+func (dt *Input) Catalog() string {
 	return "network"
 }
 
-func (d *DialTesting) Test() (*inputs.TestResult, error) {
-	return nil, nil
+func (dt *Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&httpMeasurement{},
+	}
+
 }
 
-func (d *DialTesting) Run() {
+func (i *Input) AvailableArchs() []string {
+	return datakit.UnknownArch
+}
+
+func (d *Input) Run() {
 
 	l = logger.SLogger(inputName)
+
+	x = io.NewIO()
+
+	StartCollect()
 
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
 	// 若为本地json文件，则读取任务
@@ -91,35 +115,27 @@ func (d *DialTesting) Run() {
 	case "http", "https":
 		d.doServerTask() // task server
 
-	default: // local json
-		data, err := ioutil.ReadFile(reqURL.String())
-		if err != nil {
-			l.Errorf(`%s`, err.Error())
-			return
-		}
+	case "file":
+		d.doLocalTask(reqURL.Path)
 
-		j, err := d.getLocalJsonTasks(data)
-		if err != nil {
-			l.Errorf(`%s`, err.Error())
-			return
-		}
+	case "":
+		d.doLocalTask(reqURL.String())
 
-		d.dispatchTasks(j)
-
-		<-datakit.Exit.Wait()
+	default:
+		l.Warnf(`no invalid scheme`)
 	}
 }
 
-func (d *DialTesting) doServerTask() {
+func (d *Input) doServerTask() {
 
 	du, err := time.ParseDuration(d.PullInterval)
 	if err != nil {
 		l.Warnf("invalid frequency: %s, use default", d.PullInterval)
-		du = time.Second * 5
+		du = time.Minute
 	}
-	if du > 30*time.Second || du < time.Second {
+	if du > 24*time.Hour || du < time.Minute {
 		l.Warnf("invalid frequency: %s, use default", d.PullInterval)
-		du = time.Second * 5
+		du = time.Minute
 	}
 
 	tick := time.NewTicker(du)
@@ -145,14 +161,27 @@ func (d *DialTesting) doServerTask() {
 
 }
 
-func (d *DialTesting) newHttpTaskRun(t dt.HTTPTask) (*dialer, error) {
+func (d *Input) doLocalTask(path string) {
+
+	j, err := d.getLocalJsonTasks(path)
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return
+	}
+
+	d.dispatchTasks(j)
+
+	<-datakit.Exit.Wait()
+}
+
+func (d *Input) newHttpTaskRun(t dt.HTTPTask) (*dialer, error) {
 
 	if err := t.Init(); err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
-	dialer, err := newDialer(&t)
+	dialer, err := newDialer(&t, d.Tags)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -176,7 +205,7 @@ func protectedRun(d *dialer) {
 	f = func(trace []byte, err error) {
 		defer rtpanic.Recover(f, nil)
 		if trace != nil {
-			l.Warnf("task %s panic: %s", d.task.ID(), err)
+			l.Warnf("task %s panic: %+#v", d.task.ID(), err)
 			crashcnt++
 			if crashcnt > maxCrashCnt {
 				l.Warnf("task %s crashed %d times, exit now", d.task.ID(), crashcnt)
@@ -190,10 +219,10 @@ func protectedRun(d *dialer) {
 }
 
 type taskPullResp struct {
-	Content map[string][]string `json:"content"`
+	Content map[string]interface{} `json:"content"`
 }
 
-func (d *DialTesting) dispatchTasks(j []byte) error {
+func (d *Input) dispatchTasks(j []byte) error {
 	var resp taskPullResp
 
 	if err := json.Unmarshal(j, &resp); err != nil {
@@ -204,16 +233,35 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 	for k, arr := range resp.Content {
 
 		switch k {
+		case RegionInfo:
+			for k, v := range arr.(map[string]interface{}) {
+				switch v.(type) {
+				case bool:
+					if v.(bool) {
+						d.Tags[k] = `true`
+					} else {
+						d.Tags[k] = `false`
+					}
+				default:
+					d.Tags[k] = v.(string)
+				}
+			}
+
+		default:
+		}
+	}
+
+	for k, arr := range resp.Content {
+
+		switch k {
 
 		case dt.ClassHTTP:
-			for _, j := range arr {
+			for _, j := range arr.([]interface{}) {
 				var t dt.HTTPTask
-				if err := json.Unmarshal([]byte(j), &t); err != nil {
+				if err := json.Unmarshal([]byte(j.(string)), &t); err != nil {
 					l.Errorf(`%s`, err.Error())
 					return err
 				}
-
-				//d.class = dt.ClassHTTP
 
 				// update dialer pos
 				ts := t.UpdateTimeUs()
@@ -221,16 +269,30 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 					d.pos = ts
 				}
 
+				l.Debugf(`%+#v`, d.curTasks[t.ID()])
+
 				if dialer, ok := d.curTasks[t.ID()]; ok { // update task
 
+					if dialer.failCnt >= MaxFails {
+						l.Warnf(`failed %d times,ignore`, dialer.failCnt)
+						delete(d.curTasks, t.ID())
+						continue
+					}
+
 					if err := dialer.updateTask(&t); err != nil {
-						l.Warnf(` %s,ignore`, err.Error())
+						l.Warnf(`%s,ignore`, err.Error())
+					}
+
+					if strings.ToLower(t.Status()) == dt.StatusStop {
 						delete(d.curTasks, t.ID())
 					}
+
 				} else { // create new task
+
+					l.Debugf(`create new task %+#v`, t)
 					dialer, err := d.newHttpTaskRun(t)
 					if err != nil {
-						l.Warnf(`%s, ignore`, err.Error())
+						l.Errorf(`%s, ignore`, err.Error())
 					} else {
 						d.curTasks[t.ID()] = dialer
 					}
@@ -252,7 +314,13 @@ func (d *DialTesting) dispatchTasks(j []byte) error {
 	return nil
 }
 
-func (d *DialTesting) getLocalJsonTasks(data []byte) ([]byte, error) {
+func (d *Input) getLocalJsonTasks(path string) ([]byte, error) {
+
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return nil, err
+	}
 
 	//转化结构，json结构转成与kodo服务一样的格式
 	var resp map[string][]interface{}
@@ -261,8 +329,9 @@ func (d *DialTesting) getLocalJsonTasks(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	res := map[string][]string{}
+	res := map[string]interface{}{}
 	for k, v := range resp {
+		vs := []string{}
 		for _, v1 := range v {
 			dt, err := json.Marshal(v1)
 			if err != nil {
@@ -270,8 +339,10 @@ func (d *DialTesting) getLocalJsonTasks(data []byte) ([]byte, error) {
 				return nil, err
 			}
 
-			res[k] = append(res[k], string(dt))
+			vs = append(vs, string(dt))
 		}
+
+		res[k] = vs
 	}
 
 	tasks := taskPullResp{
@@ -286,7 +357,7 @@ func (d *DialTesting) getLocalJsonTasks(data []byte) ([]byte, error) {
 	return rs, nil
 }
 
-func (d *DialTesting) pullTask() ([]byte, error) {
+func (d *Input) pullTask() ([]byte, error) {
 	reqURL, err := url.Parse(d.Server)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
@@ -313,9 +384,9 @@ func signReq(req *http.Request, ak, sk string) {
 	req.Header.Set("Authorization", fmt.Sprintf("DIAL_TESTING %s:%s", ak, reqSign))
 }
 
-func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
+func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 
-	reqURL.Path = "/v1/pull"
+	reqURL.Path = "/v1/task/pull"
 	reqURL.RawQuery = fmt.Sprintf("region=%s&since=%d", d.Region, sinceUs)
 
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
@@ -354,7 +425,7 @@ func (d *DialTesting) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, erro
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &DialTesting{
+		return &Input{
 			Tags:     map[string]string{},
 			curTasks: map[string]*dialer{},
 			wg:       sync.WaitGroup{},

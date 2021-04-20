@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
+	nhttp "net/http"
 	"testing"
 	"time"
 
@@ -18,46 +18,65 @@ var (
 	__bind = ":12345"
 )
 
-type dkAPICase struct {
-	api           string
-	body          []byte
-	method        string
-	gz            bool
-	expectErrCode string
-}
+func TestReload(t *testing.T) {
+	Start(&Option{Bind: __bind, GinLog: ".gin.log", PProf: true})
+	time.Sleep(time.Second)
 
-var dkApiCases = []*dkAPICase{
-	{
-		api:    "/v1/write/metric?name=test",
-		body:   []byte(`test,t1=abc f1=1i,f2=2,f3="str"`),
-		method: "POST",
-		gz:     true,
-	},
+	n := 10
 
-	{
-		api:           "/v1/write/metric?name=test",
-		body:          []byte(`test t1=abc f1=1i,f2=2,f3="str"`),
-		method:        "POST",
-		gz:            true,
-		expectErrCode: "datakit.badRequest",
-	},
+	for i := 0; i < n; i++ {
+		if err := ReloadDatakit(&reloadOption{}); err != nil {
+			t.Error(err)
+		}
+
+		go RestartHttpServer()
+		time.Sleep(time.Second)
+	}
+
+	HttpStop()
+	<-stopOkCh // wait HTTP server stop tk
+	if reloadCnt != n {
+		t.Errorf("reload count unmatch: expect %d, got %d", n, reloadCnt)
+	}
+	t.Log("HTTP server stop ok")
 }
 
 func TestAPI(t *testing.T) {
+
+	var cases = []struct {
+		api           string
+		body          []byte
+		method        string
+		gz            bool
+		expectErrCode string
+	}{
+		{
+			api:    "/v1/write/metric?name=test",
+			body:   []byte(`test,t1=abc f1=1i,f2=2,f3="str"`),
+			method: "POST",
+			gz:     true,
+		},
+
+		{
+			api:           "/v1/write/metric?name=test",
+			body:          []byte(`test t1=abc f1=1i,f2=2,f3="str"`),
+			method:        "POST",
+			gz:            true,
+			expectErrCode: "datakit.badRequest",
+		},
+	}
+
+	httpBind = __bind
 	io.SetTest()
-	datakit.Cfg.MainCfg.GinLog = "./gin.log"
+	ginLog = "./gin.log"
 
 	go func() {
-		HttpStart(__bind)
+		HttpStart()
 	}()
 
 	time.Sleep(time.Second)
-	runCases(t, dkApiCases)
-}
 
-func runCases(t *testing.T, cases []*dkAPICase) {
-
-	httpCli := &http.Client{}
+	httpCli := &nhttp.Client{}
 	var err error
 
 	for i := len(cases) - 1; i >= 0; i-- {
@@ -69,7 +88,7 @@ func runCases(t *testing.T, cases []*dkAPICase) {
 			}
 		}
 
-		req, err := http.NewRequest(tc.method,
+		req, err := nhttp.NewRequest(tc.method,
 			fmt.Sprintf("http://0.0.0.0%s%s", __bind, tc.api),
 			bytes.NewBuffer([]byte(tc.body)))
 		if err != nil {
