@@ -49,3 +49,4 @@ china-operator-ip
 iploc.bin
 data/jolokia-jvm-agent.jar
 data/iploc.bin
+build.sh
