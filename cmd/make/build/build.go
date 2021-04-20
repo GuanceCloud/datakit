@@ -100,6 +100,9 @@ func Compile() {
 		}
 	case "local":
 		archs = []string{runtime.GOOS + "/" + runtime.GOARCH}
+		if x := os.Getenv("LOCAL"); x != "" {
+			archs = strings.Split(x, "|")
+		}
 	default:
 		archs = strings.Split(Archs, "|")
 	}
@@ -112,7 +115,10 @@ func Compile() {
 		}
 
 		goos, goarch := parts[0], parts[1]
-
+		if goos == "darwin" && runtime.GOOS != "darwin" {
+			l.Warnf("skip build datakit under %s", archs[idx])
+			continue
+		}
 		dir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, AppName, goos, goarch)
 
 		err := os.MkdirAll(dir, os.ModePerm)
@@ -146,6 +152,10 @@ func compileArch(bin, goos, goarch, dir string) {
 	if goos == "windows" {
 		output += ".exe"
 	}
+	cgo_enabled := "0"
+	if goos == "darwin" {
+		cgo_enabled = "1"
+	}
 
 	args := []string{
 		"go", "build",
@@ -159,7 +169,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"GOOS=" + goos,
 		"GOARCH=" + goarch,
 		`GO111MODULE=off`,
-		"CGO_ENABLED=0",
+		"CGO_ENABLED=" + cgo_enabled,
 	}
 
 	l.Debugf("building %s", fmt.Sprintf("%s-%s/%s", goos, goarch, bin))
