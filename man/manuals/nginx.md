@@ -40,7 +40,7 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 ```
 
-- 已经开启了 `vts` 功能以后，不必再去采集 `http_stub_status_module` 模块的数据，因为 `vts` 模块的数据会包括 `http_stub_status_module` 模块的数据
+- 已经开启了 VTS 功能以后，不必再去采集 `http_stub_status_module` 模块的数据，因为 VTS 模块的数据会包括 `http_stub_status_module` 模块的数据
 
 ## 配置
 
