@@ -117,12 +117,17 @@ func (client Client) CreateBucket(bucketName string, options ...Option) error {
 
 	isStorageSet, valStroage, _ := IsOptionSet(options, storageClass)
 	isRedundancySet, valRedundancy, _ := IsOptionSet(options, redundancyType)
+	isObjectHashFuncSet, valHashFunc, _ := IsOptionSet(options, objectHashFunc)
 	if isStorageSet {
 		cbConfig.StorageClass = valStroage.(StorageClassType)
 	}
 
 	if isRedundancySet {
 		cbConfig.DataRedundancyType = valRedundancy.(DataRedundancyType)
+	}
+
+	if isObjectHashFuncSet {
+		cbConfig.ObjectHashFunction = valHashFunc.(ObjecthashFuncType)
 	}
 
 	bs, err := xml.Marshal(cbConfig)
@@ -643,6 +648,28 @@ func (client Client) GetBucketWebsite(bucketName string) (GetBucketWebsiteResult
 	defer resp.Body.Close()
 
 	err = xmlUnmarshal(resp.Body, &out)
+	return out, err
+}
+
+// GetBucketWebsiteXml gets the bucket's website config xml config.
+//
+// bucketName    the bucket name
+//
+// string   the bucket's xml config, It's only valid when error is nil.
+// error    it's nil if no error, otherwise it's an error object.
+//
+func (client Client) GetBucketWebsiteXml(bucketName string) (string, error) {
+	params := map[string]interface{}{}
+	params["website"] = nil
+	resp, err := client.do("GET", bucketName, params, nil, nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	out := string(body)
 	return out, err
 }
 
@@ -1498,6 +1525,67 @@ func (client Client) GetBucketWorm(bucketName string, options ...Option) (WormCo
 	defer resp.Body.Close()
 	err = xmlUnmarshal(resp.Body, &out)
 	return out, err
+}
+
+// SetBucketTransferAcc set bucket transfer acceleration configuration
+// bucketName the bucket name.
+// accConf bucket transfer acceleration configuration
+// error    it's nil if no error, otherwise it's an error object.
+//
+func (client Client) SetBucketTransferAcc(bucketName string, accConf TransferAccConfiguration, options ...Option) error {
+	bs, err := xml.Marshal(accConf)
+	if err != nil {
+		return err
+	}
+	buffer := new(bytes.Buffer)
+	buffer.Write(bs)
+
+	contentType := http.DetectContentType(buffer.Bytes())
+	headers := make(map[string]string)
+	headers[HTTPHeaderContentType] = contentType
+
+	params := map[string]interface{}{}
+	params["transferAcceleration"] = nil
+	resp, err := client.do("PUT", bucketName, params, headers, buffer, options...)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return CheckRespCode(resp.StatusCode, []int{http.StatusOK})
+}
+
+// GetBucketTransferAcc get bucket transfer acceleration configuration
+// bucketName the bucket name.
+// accConf bucket transfer acceleration configuration
+// error    it's nil if no error, otherwise it's an error object.
+//
+func (client Client) GetBucketTransferAcc(bucketName string, options ...Option) (TransferAccConfiguration, error) {
+	var out TransferAccConfiguration
+	params := map[string]interface{}{}
+	params["transferAcceleration"] = nil
+	resp, err := client.do("GET", bucketName, params, nil, nil)
+	if err != nil {
+		return out, err
+	}
+	defer resp.Body.Close()
+
+	err = xmlUnmarshal(resp.Body, &out)
+	return out, err
+}
+
+// DeleteBucketTransferAcc delete bucket transfer acceleration configuration
+// bucketName the bucket name.
+// error    it's nil if no error, otherwise it's an error object.
+//
+func (client Client) DeleteBucketTransferAcc(bucketName string, options ...Option) error {
+	params := map[string]interface{}{}
+	params["transferAcceleration"] = nil
+	resp, err := client.do("DELETE", bucketName, params, nil, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return CheckRespCode(resp.StatusCode, []int{http.StatusNoContent})
 }
 
 // LimitUploadSpeed set upload bandwidth limit speed,default is 0,unlimited
