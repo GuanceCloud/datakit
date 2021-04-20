@@ -79,21 +79,6 @@ func (t *StatsD) Run() {
 	p.gather()
 }
 
-func (t *StatsD) Test() (*inputs.TestResult, error) {
-	tRst := &inputs.TestResult{}
-	para := t.genParam()
-
-	pt, err := para.getMetrics(true)
-	tRst.Result = pt
-	if err != nil {
-		tRst.Desc = "链接statsd服务器错误"
-	} else {
-		tRst.Desc = "链接statsd服务正常"
-	}
-
-	return tRst, err
-}
-
 func (t *StatsD) genParam() *StatsdParams {
 	reg, _ := regexp.Compile(`:\d{1,5}$`)
 
