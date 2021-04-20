@@ -1,5 +1,3 @@
-// +build !darwin
-
 package cpu
 
 import (
@@ -19,9 +17,9 @@ const (
 	metricName   = inputName
 	sampleCfg    = `
 [[inputs.cpu]]
-	# no sample need here
-    [inputs.cpu.tags]
-	# tag1 = "a"
+  ## no sample need here
+  [inputs.cpu.tags]
+    # tag1 = "a"
 	`
 )
 
@@ -92,6 +90,7 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "主机名"},
+			"cpu":  &inputs.TagInfo{Desc: "cpu核心"},
 		},
 	}
 }
@@ -121,9 +120,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return []string{
-		datakit.OSLinux, datakit.OSWindows,
-	}
+	return datakit.AllArch
 }
 
 func (i *Input) Collect() error {
