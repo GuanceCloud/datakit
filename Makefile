@@ -1,4 +1,4 @@
-.PHONY: default test local
+.PHONY: default test local man
 
 default: local
 
@@ -11,8 +11,14 @@ TEST_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/da
 # 预发环境
 PRE_DOWNLOAD_ADDR = zhuyun-static-files-preprod.oss-cn-hangzhou.aliyuncs.com/datakit
 
-# 本地环境
-LOCAL_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit
+# 本地环境: 需配置环境变量，便于完整测试采集器的发布、更新等流程
+# export LOCAL_OSS_ACCESS_KEY='<your-oss-AK>'
+# export LOCAL_OSS_SECRET_KEY='<your-oss-SK>'
+# export LOCAL_OSS_BUCKET='<your-oss-bucket>'
+# export LOCAL_OSS_HOST='oss-cn-hangzhou.aliyuncs.com' # 一般都是这个地址
+# export LOCAL_OSS_ADDR='<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
+# 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
+LOCAL_DOWNLOAD_ADDR = ${LOCAL_OSS_ADDR}
 
 PUB_DIR = dist
 BUILD_DIR = dist
@@ -23,7 +29,7 @@ ENTRY = cmd/datakit/main.go
 
 LOCAL_ARCHS = "local"
 DEFAULT_ARCHS = "all"
-
+MAC_ARCHS = "darwin/amd64"
 VERSION := $(shell git describe --always --tags)
 DATE := $(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION := $(shell go version)
@@ -34,7 +40,7 @@ UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 
 NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(VERSION))"}}')
 NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(VERSION))"}}')
-NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支(dev/master)提交代码，以免 CI 任务失败"}}')
+NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支($(BRANCH))提交代码，以免 CI 任务失败"}}')
 
 ###################################
 # Detect telegraf update info
@@ -52,13 +58,14 @@ all: testing release preprod local
 define GIT_INFO
 //nolint
 package git
+
 const (
-	BuildAt string="$(DATE)"
-	Version string="$(VERSION)"
-	Golang string="$(GOVERSION)"
-	Commit string="$(COMMIT)"
-	Branch string="$(BRANCH)"
-	Uploader string="$(UPLOADER)"
+	BuildAt  string = "$(DATE)"
+	Version  string = "$(VERSION)"
+	Golang   string = "$(GOVERSION)"
+	Commit   string = "$(COMMIT)"
+	Branch   string = "$(BRANCH)"
+	Uploader string = "$(UPLOADER)"
 );
 endef
 export GIT_INFO
@@ -78,7 +85,6 @@ define pub
 	@echo "publish $(1) $(NAME) ..."
 	@GO111MODULE=off go run cmd/make/make.go -pub -env $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) \
 		-build-dir $(BUILD_DIR) -archs $(3)
-	@tree -Csh -L 3 $(PUB_DIR)
 endef
 
 lint:
@@ -90,24 +96,29 @@ vet:
 test:
 	@GO111MODULE=off go test ./...
 
-local:
-	@GO111MODULE=off go fmt ./...
+local: man gofmt
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
-testing:
+testing: man
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
-preprod:
+preprod: man
 	$(call build,preprod, $(DEFAULT_ARCHS), $(PRE_DOWNLOAD_ADDR))
 
-release:
+release: man
 	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
 pub_local:
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
+pub_local_mac:
+	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(MAC_ARCHS))
+
 pub_testing:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+
+pub_testing_mac:
+	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
@@ -133,8 +144,14 @@ pub_agent:
 pub_preprod:
 	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
+pub_preprod_mac:
+	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(MAC_ARCHS))
+
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+
+pub_release_mac:
+	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 test_notify:
 	@curl \
@@ -197,6 +214,13 @@ agent:
 
 ip2isp:
 	$(call build_ip2isp)
+
+man:
+	@packr2 clean
+	@packr2
+
+gofmt:
+	@GO111MODULE=off go fmt ./...
 
 clean:
 	rm -rf build/*
