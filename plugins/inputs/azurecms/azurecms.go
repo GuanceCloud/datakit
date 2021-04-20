@@ -21,13 +21,6 @@ func (_ *azureInstance) SampleConfig() string {
 	return sampleConfig
 }
 
-func (ag *azureInstance) Test() (*inputs.TestResult, error) {
-	ag.mode = "test"
-	ag.testResult = &inputs.TestResult{}
-	ag.Run()
-	return ag.testResult, ag.testError
-}
-
 func (ag *azureInstance) Run() {
 
 	moduleLogger = logger.SLogger(inputName)

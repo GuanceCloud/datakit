@@ -2,8 +2,12 @@
 
 全局定义：
 
-- 所有拨测产生的数据，都以行协议方式，通过 `/v1/write/metric` 接口存为指标数据
+- 所有拨测产生的 **数值数据**，都以行协议方式，通过 `/v1/write/metric` 接口存为指标数据
+- 所有拨测产生的 **描述数据**，都以行协议方式，通过 `/v1/write/logging` 接口存为日志数据
+	- 所有日志数据均需要一个 `status` 字段，故建议按照不同的协议（HTTP/TCP等），依据拨测结果，来确定 `status` 字段
+	- `status` 可用列表，参见[这里](https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/blob/dev/plugins/inputs/dev.md#fields)
 - 所有标记为 `*` 的字段都是必填字段
+
 ## HTTP 拨测任务定义
 
 ```python
@@ -31,7 +35,7 @@
 	# 区域：冗余字段，便于调试
 	* "regions": "beijing",
 	
-	"advance_options": {
+	"advance_options": [{
 		"request_options": {
 			"follow_redirect": true,
 			"headers": {
@@ -44,8 +48,8 @@
 				"password": ""
 			}
 		},
-		"request_body": { # 以下几个类型只能单选
-			"body_type": "text/plain|application/json|text/xml|None",
+		"request_body": { 
+			"body_type": "text/plain|application/json|text/xml", # 以下几个类型只能单选 或者为空
 			"body": ""
 		},
 		"certificate": {
@@ -59,7 +63,7 @@
 				"header1": "value1"
 			}
 		}
-	},
+	}],
 
 	* "success_when":  [ 
 		{
@@ -70,20 +74,18 @@
 			"header": {
 				"header-name":{ # 以下几个条件只能单选
 					"contains":"",
-					"does_not_contains": "",
+					"not_contains": "",
 					"is": "",
 					"is_not": "",
 					"match_regex": "",
-					"does_not_match_regex": ""
+					"not_match_regex": ""
 				},
-				"another-header-name": "...",
+				"another-header-name": {"..."},
 			},
-			"response_time": {
-				"less_than": "100ms"
-			},
+			"response_time":  "100ms",
 			"status_code": { # 以下几个条件只能单选
-				"is": 200,
-				"is_not": 400,
+				"is": "200",
+				"is_not": "400",
 				"match_regex": "ok*",
 				"not_match_regex": "*bad"
 			}
@@ -98,10 +100,12 @@
 
 ### HTTP 拨测结果数据结构定义
 
+#### 日志
+
 ```python
 {
 	"measurement": "http_dial_testing",
-	"tags": {
+	"tags": { # 基本跟指标数据一样
 		"name": "",
 		"url": "",
 		"用户额外指定的各种": "tags",
@@ -109,34 +113,47 @@
 		# 每个具体的 datakit 只会在一个 region，故这里只有单个值
 		"region": "",
 
-		"result": "OK", # 只有 OK/FAIL 两种状态，便于分组以及过滤查找
-
-		"status_code": "200/OK" # 便于分组以及过滤
+		"status": "OK", # 只有 OK/FAIL 两种状态，便于分组以及过滤查找
 
 		# HTTP 协议版本，HTTP/1.0 HTTP/1.1 等
-		"proto": "HTTP/1.0"
+		"response_dns":  1000 #DNS解析时间,单位 us
+		"response_connection": 1000#连接时间（TCP连接）,单位 us
+		"response_ssl":  1000#SSL连接时间,单位 us
+		"response_ttfb": 1000 #首次回包时间（请求响应时间）,单位 us
+		"response_download": 1000 #下载时间,单位 us
+		
+		"status_code_class": "2xx",
+		"status_code_string": "OK"
+		"status_code": "200"
+		
 	},
 
 	"fields": {
-		# 如失败，如实描述。如成功，无此指标
-		"fail_reason": "字符串描述失败原因"
-
 		# HTTP 相应时间, 单位 ms
 		"response_time": 300,
+		"proto": "HTTP/1.0"
 
 		# 返回 body 长度，单位字节。如无 body，则无此指标，或者填 0
-		"content_length": 1024,
+		"response_body_size": 1024,
 
 		# 只有 1/-1 两种状态, 1 表示成功, -1 表示失败, 便于 UI 绘制状态跃迁图（TODO: 现在前端图标支持负数么）
-		"success": 1, 
+		"success": 1,
 
 		# 其它指标可再增加...
+
+		### 在指标数据的基础上，增加如下数据
+		"message": "便于做全文: 包括请求头(request_header)/请求体(request_body)/返回头(response_header)/返回体(response_body)/fail_reason 冗余一份",
+		"fail_reason": "拨测失败原因(此处无需做全文)",
 	},
-	"time": time.Now()
+
+	"time": time.Now() 
 }
 ```
 
 注意，这里的 `fail_reason` 要描述 `body/header/response_time/status_code` 各自失败的原因。如果可以，所有原因都描述一遍，如 `response time larger than 100ms; status code match regex 4*`
+
+- 请求失败才记录 header/body，body 可截断（最大 32KB）
+- 请求成功只记录 body size（如果有 body）
 
 ## TCP 拨测任务定义
 
