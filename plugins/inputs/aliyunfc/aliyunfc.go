@@ -109,12 +109,6 @@ func (m *FC) Catalog() string {
 	return "aliyun"
 }
 
-func (m *FC) Test() (*inputs.TestResult, error) {
-	var result = inputs.TestResult{}
-	result.Desc = "aliyunfc use aliyuncms"
-	return &result, nil
-}
-
 func (m *FC) Run() {
 	return
 }
