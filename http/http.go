@@ -8,6 +8,7 @@ import (
 	"html/template"
 	iowrite "io"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"sort"
@@ -19,7 +20,6 @@ import (
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
-	"github.com/unrolled/secure"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -34,8 +34,11 @@ import (
 )
 
 var (
-	l        = logger.DefaultSLogger("http")
-	httpBind string
+	l              = logger.DefaultSLogger("http")
+	httpBind       string
+	ginLog         string
+	ginReleaseMode = true
+	pprof          bool
 
 	uptime    = time.Now()
 	reload    time.Time
@@ -46,19 +49,34 @@ var (
 	mtx      = sync.Mutex{}
 )
 
-func Start(bind string) {
+type Option struct {
+	Bind   string
+	GinLog string
+
+	GinReleaseMode bool
+	PProf          bool
+}
+
+func Start(o *Option) {
 
 	l = logger.SLogger("http")
 
-	httpBind = bind
+	httpBind = o.Bind
+	ginLog = o.GinLog
+	pprof = o.PProf
+	ginReleaseMode = o.GinReleaseMode
 
 	// start HTTP server
 	go func() {
-		HttpStart(bind)
+		HttpStart()
 	}()
 }
 
-func ReloadDatakit() error {
+type reloadOption struct {
+	ReloadInputs, ReloadTelegraf, ReloadMainCfg, ReloadIO bool
+}
+
+func ReloadDatakit(ro *reloadOption) error {
 
 	// FIXME: if config.LoadCfg() failed:
 	// we should add a function like try-load-cfg(), to testing
@@ -72,22 +90,32 @@ func ReloadDatakit() error {
 	datakit.Exit = cliutils.NewSem() // reopen
 
 	// reload configs
-	l.Info("reloading configs...")
-	if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
-		l.Errorf("load config failed: %s", err)
-		return err
+	if ro.ReloadMainCfg {
+		l.Info("reloading configs...")
+		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
+			l.Errorf("load config failed: %s", err)
+			return err
+		}
 	}
 
-	l.Info("reloading io...")
-	io.Start()
-	l.Info("reloading telegraf...")
-	inputs.StartTelegraf()
+	if ro.ReloadIO {
+		l.Info("reloading io...")
+		io.Start()
+	}
+
+	if ro.ReloadTelegraf {
+		l.Info("reloading telegraf...")
+		inputs.StartTelegraf()
+	}
 
 	resetHttpRoute()
-	l.Info("reloading inputs...")
-	if err := inputs.RunInputs(); err != nil {
-		l.Error("error running inputs: %v", err)
-		return err
+
+	if ro.ReloadInputs {
+		l.Info("reloading inputs...")
+		if err := inputs.RunInputs(); err != nil {
+			l.Error("error running inputs: %v", err)
+			return err
+		}
 	}
 
 	return nil
@@ -100,7 +128,11 @@ func RestartHttpServer() {
 	<-stopOkCh // wait HTTP server stop ok
 
 	l.Info("reload HTTP server...")
-	HttpStart(httpBind)
+
+	reload = time.Now()
+	reloadCnt++
+
+	HttpStart()
 }
 
 type welcome struct {
@@ -173,46 +205,24 @@ func corsMiddleware(c *gin.Context) {
 	c.Next()
 }
 
-func tlsHandler(addr string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		secureMiddleware := secure.New(secure.Options{
-			SSLRedirect: true,
-			SSLHost:     addr,
-		})
-		err := secureMiddleware.Process(c.Writer, c.Request)
-
-		// If there was an error, do not continue.
-		if err != nil {
-			return
-		}
-
-		c.Next()
-	}
-}
-
-func HttpStart(addr string) {
-
-	if !datakit.EnableUncheckInputs {
-		gin.SetMode(gin.ReleaseMode)
-	}
+func HttpStart() {
 
 	router := gin.New()
 
 	gin.DisableConsoleColor()
 
-	l.Infof("set gin log to %s", datakit.Cfg.MainCfg.GinLog)
-	f, err := os.Create(datakit.Cfg.MainCfg.GinLog)
+	l.Infof("set gin log to %s", ginLog)
+	f, err := os.Create(ginLog)
 	if err != nil {
 		l.Fatalf("create gin log failed: %s", err)
 	}
-
 	gin.DefaultWriter = iowrite.MultiWriter(f)
-	if datakit.Cfg.MainCfg.LogLevel != "debug" {
+
+	if ginReleaseMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	l.Debugf("HTTP bind addr:%s", addr)
+	l.Debugf("HTTP bind addr:%s", httpBind)
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -233,14 +243,27 @@ func HttpStart(addr string) {
 	router.POST(io.Tracing, func(c *gin.Context) { apiWriteTracing(c) })
 
 	srv := &http.Server{
-		Addr:    addr,
+		Addr:    httpBind,
 		Handler: router,
 	}
 
 	go func() {
-		tryStartHTTPServer(srv)
+		tryStartServer(srv)
 		l.Info("http server exit")
 	}()
+
+	// start pprof if enabled
+	var pprofSrv *http.Server
+	if pprof {
+		pprofSrv = &http.Server{
+			Addr: ":6060",
+		}
+
+		go func() {
+			tryStartServer(pprofSrv)
+			l.Info("pprof server exit")
+		}()
+	}
 
 	l.Debug("http server started")
 	<-stopCh
@@ -251,6 +274,17 @@ func HttpStart(addr string) {
 	} else {
 		l.Info("http server shutdown ok")
 	}
+
+	if pprof {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := pprofSrv.Shutdown(ctx); err != nil {
+			l.Error(err)
+		}
+		l.Infof("pprof stopped")
+	}
+
+	stopOkCh <- nil
 }
 
 func HttpStop() {
@@ -258,27 +292,23 @@ func HttpStop() {
 	stopCh <- nil
 }
 
-func tryStartHTTPServer(srv *http.Server) {
-
+func tryStartServer(srv *http.Server) {
 	retryCnt := 0
 
 	for {
+		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
 		if err := srv.ListenAndServe(); err != nil {
 
 			if err != http.ErrServerClosed {
+				l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
 				retryCnt++
-				l.Warnf("start HTTP server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
-				continue
 			} else {
-				l.Debugf("http server(%s) stopped on: %s", srv.Addr, err.Error())
+				l.Debugf("server(%s) stopped on: %s", srv.Addr, err.Error())
 				break
 			}
 		}
-
 		time.Sleep(time.Second)
 	}
-
-	stopOkCh <- nil
 }
 
 type enabledInput struct {
@@ -389,7 +419,12 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 
 func apiReload(c *gin.Context) {
 
-	if err := ReloadDatakit(); err != nil {
+	if err := ReloadDatakit(&reloadOption{
+		ReloadInputs:   true,
+		ReloadTelegraf: true,
+		ReloadMainCfg:  true,
+		ReloadIO:       true,
+	}); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrReloadDatakitFailed, err.Error()))
 		return
 	}
@@ -397,9 +432,6 @@ func apiReload(c *gin.Context) {
 	ErrOK.HttpBody(c, nil)
 
 	go func() {
-		reload = time.Now()
-		reloadCnt++
-
 		RestartHttpServer()
 		l.Info("reload HTTP server ok")
 	}()
@@ -457,6 +489,15 @@ ul.a {
 	{{end}}
 </ul>
 `
+
+	headerScript = []byte(`<link rel="stylesheet"
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/default.min.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+    hljs.highlightAll();
+});
+</script>`)
 )
 
 type manualTOC struct {
@@ -480,7 +521,7 @@ func apiManual(c *gin.Context) {
 		}
 		sort.Strings(toc.InputNames)
 
-		for k, _ := range man.OtherDocs {
+		for k := range man.OtherDocs {
 			toc.OtherDocs = append(toc.OtherDocs, k)
 		}
 		sort.Strings(toc.OtherDocs)
@@ -513,7 +554,7 @@ func apiManual(c *gin.Context) {
 	psr := parser.NewWithExtensions(mdext)
 
 	htmlFlags := html.CommonFlags | html.HrefTargetBlank | html.TOC | html.CompletePage
-	opts := html.RendererOptions{Flags: htmlFlags}
+	opts := html.RendererOptions{Flags: htmlFlags, Head: headerScript}
 	renderer := html.NewRenderer(opts)
 
 	out := markdown.ToHTML(mdtxt, psr, renderer)
