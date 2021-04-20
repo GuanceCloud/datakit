@@ -1,5 +1,3 @@
-// +build !darwin
-
 package diskio
 
 import (
@@ -103,7 +101,7 @@ type Input struct {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return []string{datakit.OSLinux, datakit.OSWindows}
+	return datakit.AllArch
 }
 
 func (i *Input) Catalog() string {
