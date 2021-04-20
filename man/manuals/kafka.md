@@ -36,7 +36,6 @@
 - 指标列表
 
 {{$m.FieldsMarkdownTable}}
-待完善补充
 
 {{ end }}
 
