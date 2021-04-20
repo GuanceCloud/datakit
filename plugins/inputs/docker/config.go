@@ -1,7 +1,8 @@
 package docker
 
 import (
-	"context"
+	"fmt"
+	"net/url"
 	"regexp"
 	"sync"
 	"time"
@@ -40,7 +41,7 @@ const (
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
   
-  [[inputs.docker.log_option]]
+  #[[inputs.docker.log_option]]
     # container_name_match = "<regexp-container-name>"
     # source = "<your-source>"
     # service = "<your-service>"
@@ -84,10 +85,21 @@ func (this *Input) loadCfg() (err error) {
 		return
 	}
 
+	// 始终认为，docker和k8s在同一台主机上
+	// 避免进行冗杂的k8s连接配置
+	var k8sURL = fmt.Sprintf(defaultKubernetesURL, "127.0.0.1")
+	if this.Endpoint != defaultEndpoint {
+		if u, err := url.Parse(this.Endpoint); err == nil {
+			k8sURL = fmt.Sprintf(defaultKubernetesURL, u.Hostname())
+		}
+	}
+
+	l.Debugf("use k8sURL %s", k8sURL)
+
 	this.kubernetes = func() *Kubernetes {
-		k := Kubernetes{URL: defaultKubernetesURL}
+		k := Kubernetes{URL: k8sURL}
 		if err := k.Init(); err != nil {
-			l.Warn(err)
+			l.Warnf("init kubernetes connect error: %s", err)
 			return nil
 		}
 		return &k
@@ -108,34 +120,27 @@ func (this *Input) loadCfg() (err error) {
 	}
 
 	// 限制最小采集间隔
-	if 0 < this.collectMetricDuration &&
-		this.collectMetricDuration < minimumCollectMetricDuration {
-		l.Warn("invalid collect_metric_interval, cannot be less than 5s. Use default interval 5s")
-		this.collectMetricDuration = minimumCollectMetricDuration
-	}
+	// if 0 < this.collectMetricDuration &&
+	// 	this.collectMetricDuration < minimumCollectMetricDuration {
+	// 	l.Warn("invalid collect_metric_interval, cannot be less than 5s. Use default interval 5s")
+	// 	this.collectMetricDuration = minimumCollectMetricDuration
+	// }
 
-	if 0 < this.collectObjectDuration &&
-		this.collectObjectDuration < minimumCollectObjectDuration {
-		l.Warn("invalid collect_object_interval, cannot be less than 5m. Use default interval 5m")
-		this.collectObjectDuration = minimumCollectObjectDuration
-	}
-
-	if this.Tags == nil {
-		this.Tags = make(map[string]string)
-	}
+	// if 0 < this.collectObjectDuration &&
+	// 	this.collectObjectDuration < minimumCollectObjectDuration {
+	// 	l.Warn("invalid collect_object_interval, cannot be less than 5m. Use default interval 5m")
+	// 	this.collectObjectDuration = minimumCollectObjectDuration
+	// }
 
 	if err = this.initLogOption(); err != nil {
 		return
 	}
-
-	this.timeoutDuration = defaultAPITimeout
 
 	return
 }
 
 func (this *Input) initLogOption() (err error) {
 	this.opts = types.ContainerListOptions{All: this.IncludeExited}
-	this.containerLogList = make(map[string]context.CancelFunc)
 
 	this.containerLogsOptions = types.ContainerLogsOptions{
 		ShowStdout: true,
@@ -147,6 +152,10 @@ func (this *Input) initLogOption() (err error) {
 	}
 
 	for _, opt := range this.LogOption {
+		// 此为基本配置，为空值时直接continue
+		if opt.NameMatch == "" {
+			continue
+		}
 		// opt.Source为空时，会默认使用 container_name
 		// opt.Service为空时，会默认使用 container_name
 		if opt.Service == "" {
