@@ -23,16 +23,16 @@ var (
 [[inputs.rabbitmq]]
 	# rabbitmq url ,required
 	url = "http://localhost:15672"
-
+	
 	# rabbitmq user, required
 	username = "guest"    
-
+	
 	# rabbitmq password, required
-  	password = "guest"
-
+	password = "guest"
+	
 	# ##(optional) collection interval, default is 30s
 	# interval = "30s"
-  
+	
 	## Optional TLS Config
 	# tls_ca = "/xxx/ca.pem"
 	# tls_cert = "/xxx/cert.cer"
