@@ -746,6 +746,7 @@ type createBucketConfiguration struct {
 	XMLName            xml.Name           `xml:"CreateBucketConfiguration"`
 	StorageClass       StorageClassType   `xml:"StorageClass,omitempty"`
 	DataRedundancyType DataRedundancyType `xml:"DataRedundancyType,omitempty"`
+	ObjectHashFunction ObjecthashFuncType `xml:"ObjectHashFunction,omitempty"`
 }
 
 // LiveChannelConfiguration defines the configuration for live-channel
@@ -1244,4 +1245,10 @@ type WormConfiguration struct {
 	State                 string   `xml:"State,omitempty"`
 	RetentionPeriodInDays int      `xml:"RetentionPeriodInDays"` // specify retention days
 	CreationDate          string   `xml:"CreationDate,omitempty"`
+}
+
+// TransferAccConfiguration define transfer acceleration configuration
+type TransferAccConfiguration struct {
+	XMLName xml.Name `xml:"TransferAccelerationConfiguration"`
+	Enabled bool     `xml:"Enabled"`
 }
