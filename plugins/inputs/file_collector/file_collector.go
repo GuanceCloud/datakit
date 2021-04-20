@@ -42,11 +42,6 @@ func (_ *FileCollector) RegHttpHandler() {
 	httpd.RegGinHandler("POST", httpPath, Handle)
 }
 
-func (_ *FileCollector) Test() (*inputs.TestResult, error) {
-	testResult := &inputs.TestResult{}
-	return testResult, nil
-}
-
 func (fc *FileCollector) initFileCollector() error {
 	fc.ctx, fc.cancelFun = context.WithCancel(context.Background())
 
