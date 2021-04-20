@@ -19,7 +19,7 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 
 - 安装 `rabbitmq` 以 `Ubuntu` 为例
 
-    ```
+    ```shell
     sudo apt-get update
     sudo apt-get install rabbitmq-server
     sudo service rabbitmq-server start
@@ -27,13 +27,13 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
       
 - 开启 `REST API plug-ins` 
     
-    ```
+    ```shell
     sudo rabbitmq-plugins enable rabbitmq-management
     ```
       
 - 创建 user，比如：
     
-    ```
+    ```shell
     rabbitmqctl add_user dataflux <SECRET>
     rabbitmqctl set_permissions  -p / dataflux "^aliveness-test$" "^amq\.default$" ".*"
     rabbitmqctl set_user_tags dataflux monitoring
