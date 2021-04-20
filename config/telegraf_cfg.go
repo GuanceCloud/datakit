@@ -119,7 +119,7 @@ func generateTelegrafConfig(c *datakit.Config, files map[string]interface{}) (st
 	// to datakit HTTP server to collecting all input's statistics.
 	// HTTP server on datakit should be open if any telegraf input enabled.
 	if c.MainCfg.DataWay != nil {
-		if buf, err = applyTelegrafHTTPOutput(c.MainCfg.HTTPBind); err != nil {
+		if buf, err = applyTelegrafHTTPOutput(c.MainCfg.HTTPListen); err != nil {
 			return "", err
 		}
 		telegrafConfig += buf
