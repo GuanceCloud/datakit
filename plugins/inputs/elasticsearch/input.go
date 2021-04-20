@@ -405,10 +405,7 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.duration)
 	defer tick.Stop()
 
-	n := 0
-
 	for {
-		n++
 		select {
 		case <-datakit.Exit.Wait():
 			if i.tail != nil {
@@ -424,7 +421,7 @@ func (i *Input) Run() {
 				l.Error(err)
 			} else {
 				if len(i.collectCache) > 0 {
-					err := inputs.FeedMeasurement("elasticsearch", io.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)})
+					err := inputs.FeedMeasurement("elasticsearch", io.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
 					if err != nil {
 						l.Errorf(err.Error())
 					}
