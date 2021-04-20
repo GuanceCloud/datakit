@@ -16,6 +16,7 @@ var (
 
 type Input struct {
 	collectCache []inputs.Measurement
+	Tags         map[string]string
 }
 
 type demoMeasurement struct {
@@ -32,6 +33,7 @@ func (m *demoMeasurement) LineProto() (*io.Point, error) {
 func (m *demoMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "demo",
+		Desc: "这是一个指标集的 demo(**务必加上每个指标集的描述**)",
 		Tags: map[string]interface{}{
 			"tag_a": &inputs.TagInfo{Desc: "示例 tag A"},
 			"tag_b": &inputs.TagInfo{Desc: "示例 tag B"},
@@ -130,6 +132,10 @@ func (i *Input) SampleConfig() string {
 	return `
 [inputs.demo]
 # 这里无需任何配置
+
+[inputs.demo.tags] # 所有采集器，都应该有 tags 配置项
+	# tag_a = "val1"
+	# tag_b = "val2"
 `
 }
 
