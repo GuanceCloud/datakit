@@ -37,7 +37,7 @@ pre code {
   display: inline-block;
   background: #eee;
   padding: 15px;
-	width: 80%;
+	width: 50%;
 }
 
 </style>`
