@@ -5,18 +5,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	iowrite "io"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"sort"
 	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/unrolled/secure"
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -25,13 +28,17 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 var (
-	l        = logger.DefaultSLogger("http")
-	httpBind string
+	l              = logger.DefaultSLogger("http")
+	httpBind       string
+	ginLog         string
+	ginReleaseMode = true
+	pprof          bool
 
 	uptime    = time.Now()
 	reload    time.Time
@@ -42,27 +49,34 @@ var (
 	mtx      = sync.Mutex{}
 )
 
-func Start(bind string) {
+type Option struct {
+	Bind   string
+	GinLog string
+
+	GinReleaseMode bool
+	PProf          bool
+}
+
+func Start(o *Option) {
 
 	l = logger.SLogger("http")
 
-	httpBind = bind
+	httpBind = o.Bind
+	ginLog = o.GinLog
+	pprof = o.PProf
+	ginReleaseMode = o.GinReleaseMode
 
 	// start HTTP server
 	go func() {
-		HttpStart(bind)
+		HttpStart()
 	}()
-
-	if !datakit.Cfg.MainCfg.DisableWebsocket {
-		go func() {
-			StartWS()
-		}()
-	} else {
-		l.Warn("websocket disabled")
-	}
 }
 
-func ReloadDatakit() error {
+type reloadOption struct {
+	ReloadInputs, ReloadTelegraf, ReloadMainCfg, ReloadIO bool
+}
+
+func ReloadDatakit(ro *reloadOption) error {
 
 	// FIXME: if config.LoadCfg() failed:
 	// we should add a function like try-load-cfg(), to testing
@@ -76,42 +90,49 @@ func ReloadDatakit() error {
 	datakit.Exit = cliutils.NewSem() // reopen
 
 	// reload configs
-	l.Info("reloading configs...")
-	if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
-		l.Errorf("load config failed: %s", err)
-		return err
+	if ro.ReloadMainCfg {
+		l.Info("reloading configs...")
+		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
+			l.Errorf("load config failed: %s", err)
+			return err
+		}
 	}
 
-	l.Info("reloading io...")
-	io.Start()
-	l.Info("reloading telegraf...")
-	inputs.StartTelegraf()
+	if ro.ReloadIO {
+		l.Info("reloading io...")
+		io.Start()
+	}
 
-	l.Info("reload ws...")
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		StartWS()
-	}()
+	if ro.ReloadTelegraf {
+		l.Info("reloading telegraf...")
+		inputs.StartTelegraf()
+	}
+
 	resetHttpRoute()
-	l.Info("reloading inputs...")
-	if err := inputs.RunInputs(); err != nil {
-		l.Error("error running inputs: %v", err)
-		return err
+
+	if ro.ReloadInputs {
+		l.Info("reloading inputs...")
+		if err := inputs.RunInputs(); err != nil {
+			l.Error("error running inputs: %v", err)
+			return err
+		}
 	}
 
 	return nil
 }
 
 func RestartHttpServer() {
-	l.Info("trigger HTTP server to stopping...")
-	stopCh <- nil // trigger HTTP server to stopping
+	HttpStop()
 
 	l.Info("wait HTTP server to stopping...")
 	<-stopOkCh // wait HTTP server stop ok
 
 	l.Info("reload HTTP server...")
-	HttpStart(httpBind)
+
+	reload = time.Now()
+	reloadCnt++
+
+	HttpStart()
 }
 
 type welcome struct {
@@ -184,53 +205,24 @@ func corsMiddleware(c *gin.Context) {
 	c.Next()
 }
 
-func tlsHandler(addr string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		secureMiddleware := secure.New(secure.Options{
-			SSLRedirect: true,
-			SSLHost:     addr,
-		})
-		err := secureMiddleware.Process(c.Writer, c.Request)
-
-		// If there was an error, do not continue.
-		if err != nil {
-			return
-		}
-
-		c.Next()
-	}
-}
-
-func HttpStart(addr string) {
-
-	if !datakit.EnableUncheckInputs {
-		gin.SetMode(gin.ReleaseMode)
-	}
+func HttpStart() {
 
 	router := gin.New()
 
 	gin.DisableConsoleColor()
 
-	l.Infof("set gin log to %s", datakit.Cfg.MainCfg.GinLog)
-	f, err := os.Create(datakit.Cfg.MainCfg.GinLog)
+	l.Infof("set gin log to %s", ginLog)
+	f, err := os.Create(ginLog)
 	if err != nil {
 		l.Fatalf("create gin log failed: %s", err)
 	}
-
 	gin.DefaultWriter = iowrite.MultiWriter(f)
-	if datakit.Cfg.MainCfg.LogLevel != "debug" {
+
+	if ginReleaseMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	httpsAddr := ""
-	if datakit.Cfg.MainCfg.TLSCert != "" && datakit.Cfg.MainCfg.TLSKey != "" {
-		parts := strings.Split(addr, ":")
-		httpsAddr = parts[0] + fmt.Sprintf(":%v", datakit.Cfg.MainCfg.HTTPSPort)
-		//router.Use(tlsHandler(httpsAddr))
-	}
-
-	l.Debugf("addr:%s, httpsAddr: %s", addr, httpsAddr)
+	l.Debugf("HTTP bind addr:%s", httpBind)
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -241,6 +233,7 @@ func HttpStart(addr string) {
 
 	// internal datakit stats API
 	router.GET("/stats", func(c *gin.Context) { apiGetInputsStats(c.Writer, c.Request) })
+	router.GET("/man", func(c *gin.Context) { apiManual(c) })
 	// ansible api
 	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
 
@@ -250,22 +243,27 @@ func HttpStart(addr string) {
 	router.POST(io.Tracing, func(c *gin.Context) { apiWriteTracing(c) })
 
 	srv := &http.Server{
-		Addr:    addr,
+		Addr:    httpBind,
 		Handler: router,
 	}
 
-	if httpsAddr != "" {
-		go func() {
-			if err := router.RunTLS(httpsAddr, datakit.Cfg.MainCfg.TLSCert, datakit.Cfg.MainCfg.TLSKey); err != nil {
-				l.Errorf("fail to start https on %s, %s", httpsAddr, err)
-			}
-		}()
-	}
-
 	go func() {
-		tryStartHTTPServer(srv)
+		tryStartServer(srv)
 		l.Info("http server exit")
 	}()
+
+	// start pprof if enabled
+	var pprofSrv *http.Server
+	if pprof {
+		pprofSrv = &http.Server{
+			Addr: ":6060",
+		}
+
+		go func() {
+			tryStartServer(pprofSrv)
+			l.Info("pprof server exit")
+		}()
+	}
 
 	l.Debug("http server started")
 	<-stopCh
@@ -276,28 +274,41 @@ func HttpStart(addr string) {
 	} else {
 		l.Info("http server shutdown ok")
 	}
-}
 
-func tryStartHTTPServer(srv *http.Server) {
-
-	retryCnt := 0
-
-	for {
-		if err := srv.ListenAndServe(); err != nil {
-
-			if err != http.ErrServerClosed {
-				time.Sleep(time.Second)
-				retryCnt++
-				l.Warnf("start HTTP server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
-				continue
-			} else {
-				l.Debugf("http server(%s) stopped on: %s", srv.Addr, err.Error())
-				break
-			}
+	if pprof {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := pprofSrv.Shutdown(ctx); err != nil {
+			l.Error(err)
 		}
+		l.Infof("pprof stopped")
 	}
 
 	stopOkCh <- nil
+}
+
+func HttpStop() {
+	l.Info("trigger HTTP server to stopping...")
+	stopCh <- nil
+}
+
+func tryStartServer(srv *http.Server) {
+	retryCnt := 0
+
+	for {
+		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
+		if err := srv.ListenAndServe(); err != nil {
+
+			if err != http.ErrServerClosed {
+				l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
+				retryCnt++
+			} else {
+				l.Debugf("server(%s) stopped on: %s", srv.Addr, err.Error())
+				break
+			}
+		}
+		time.Sleep(time.Second)
+	}
 }
 
 type enabledInput struct {
@@ -408,7 +419,12 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 
 func apiReload(c *gin.Context) {
 
-	if err := ReloadDatakit(); err != nil {
+	if err := ReloadDatakit(&reloadOption{
+		ReloadInputs:   true,
+		ReloadTelegraf: true,
+		ReloadMainCfg:  true,
+		ReloadIO:       true,
+	}); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrReloadDatakitFailed, err.Error()))
 		return
 	}
@@ -416,12 +432,131 @@ func apiReload(c *gin.Context) {
 	ErrOK.HttpBody(c, nil)
 
 	go func() {
-		reload = time.Now()
-		reloadCnt++
-
 		RestartHttpServer()
 		l.Info("reload HTTP server ok")
 	}()
 
 	c.Redirect(http.StatusFound, "/stats")
+}
+
+var (
+	manualTOCTemplate = `
+<style>
+div {
+  border: 1px solid gray;
+  /* padding: 8px; */
+}
+
+h1 {
+  text-align: center;
+  text-transform: uppercase;
+  color: #4CAF50;
+}
+
+p {
+  /* text-indent: 50px; */
+  text-align: justify;
+  /* letter-spacing: 3px; */
+}
+
+a {
+  text-decoration: none;
+  /* color: #008CBA; */
+}
+
+ul.a {
+  list-style-type: square;
+}
+</style>
+
+<h1>{{.PageTitle}}</h1>
+采集器文档列表
+<ul class="a">
+	{{ range $name := .InputNames}}
+	<li>
+	<p><a href="/man?input={{$name}}">
+			{{$name}} </a> </p> </li>
+	{{end}}
+</ul>
+
+其它文档集合
+
+<ul class="a">
+	{{ range $name := .OtherDocs}}
+	<li>
+	<p><a href="/man?input={{$name}}">
+			{{$name}} </a> </p> </li>
+	{{end}}
+</ul>
+`
+
+	headerScript = []byte(`<link rel="stylesheet"
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/default.min.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+    hljs.highlightAll();
+});
+</script>`)
+)
+
+type manualTOC struct {
+	PageTitle  string
+	InputNames []string
+	OtherDocs  []string
+}
+
+func apiManual(c *gin.Context) {
+	name := c.Query("input")
+	if name == "" { // request toc
+		toc := &manualTOC{
+			PageTitle: "DataKit文档列表",
+		}
+
+		for k, v := range inputs.Inputs {
+			switch v().(type) {
+			case inputs.InputV2:
+				toc.InputNames = append(toc.InputNames, k)
+			}
+		}
+		sort.Strings(toc.InputNames)
+
+		for k := range man.OtherDocs {
+			toc.OtherDocs = append(toc.OtherDocs, k)
+		}
+		sort.Strings(toc.OtherDocs)
+
+		t := template.New("man-toc")
+
+		tmpl, err := t.Parse(manualTOCTemplate)
+		if err != nil {
+			l.Error(err)
+			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+			return
+		}
+
+		if err := tmpl.Execute(c.Writer, toc); err != nil {
+			l.Error(err)
+			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+			return
+		}
+		return
+	}
+
+	mdtxt, err := man.BuildMarkdownManual(name)
+	if err != nil {
+		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+		return
+	}
+
+	// render markdown as HTML
+	mdext := parser.CommonExtensions
+	psr := parser.NewWithExtensions(mdext)
+
+	htmlFlags := html.CommonFlags | html.HrefTargetBlank | html.TOC | html.CompletePage
+	opts := html.RendererOptions{Flags: htmlFlags, Head: headerScript}
+	renderer := html.NewRenderer(opts)
+
+	out := markdown.ToHTML(mdtxt, psr, renderer)
+	c.Data(http.StatusOK, "text/html; charset=UTF-8", out)
 }
