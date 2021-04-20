@@ -33,7 +33,7 @@ GRANT SELECT ON sys.dba_tablespaces TO datakit;
 GRANT SELECT ON sys.dba_tablespace_usage_metrics TO datakit;
 ```
 
-备注：oracle 11g, 需要以下设定
+备注：ORACLE 11g, 需要以下设定
 
 ```sql
 ALTER SESSION SET "_ORACLE_SCRIPT"=true;
@@ -41,16 +41,15 @@ ALTER SESSION SET "_ORACLE_SCRIPT"=true;
 
 - 安装依赖包
 
-根据操作系统和oracle版本选择安装对应的安装包,参考[这里](https://oracle.github.io/odpi/doc/installation.html)，如：
+根据操作系统和 ORACLE 版本选择安装对应的安装包,参考[这里](https://oracle.github.io/odpi/doc/installation.html)，如：
 
 ```shell
-$ cat /etc/redhat-release
-$ rpm -ivh oracle-instantclient11.2-basic-11.2.0.4.0-1.x86_64.rpm
-$ echo /usr/lib/oracle/11.2/client64/lib > /etc/ld.so.conf.d/oracle-instantclient.conf
-$ ldconfig
-
-$ yum install libaio # 对应 ubuntu: apt-get install libaio1
+wget https://download.oracle.com/otn_software/linux/instantclient/211000/instantclient-basiclite-linux.x64-21.1.0.0.0.zip
+unzip instantclient-basiclite-linux.x64-21.1.0.0.0.zip
 ```
+
+将解压后的目录文件路径添加到以下配置信息中的`LD_LIBRARY_PATH`环境变量路径中
+
 
 ## 配置
 
