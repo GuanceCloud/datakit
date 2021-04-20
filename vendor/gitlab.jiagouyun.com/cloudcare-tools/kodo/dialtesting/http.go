@@ -8,9 +8,11 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"regexp"
 	"strings"
@@ -20,19 +22,20 @@ import (
 )
 
 type HTTPTask struct {
-	ExternalID     string               `json:"external_id"`
-	Name           string               `json:"name"`
-	AK             string               `json:"access_key"`
-	Method         string               `json:"method"`
-	URL            string               `json:"url"`
-	PostURL        string               `json:"post_url"`
-	CurStatus      string               `json:"status"`
-	Frequency      string               `json:"frequency"`
-	Region         string               `json:"region"` // 冗余进来，便于调试
-	SuccessWhen    []*HTTPSuccess       `json:"success_when"`
-	Tags           map[string]string    `json:"tags,omitempty"`
-	AdvanceOptions []*HTTPAdvanceOption `json:"advance_options,omitempty"`
-	UpdateTime     int64                `json:"update_time,omitempty"`
+	ExternalID     string             `json:"external_id"`
+	Name           string             `json:"name"`
+	AK             string             `json:"access_key"`
+	Method         string             `json:"method"`
+	URL            string             `json:"url"`
+	PostURL        string             `json:"post_url"`
+	CurStatus      string             `json:"status"`
+	Frequency      string             `json:"frequency"`
+	Region         string             `json:"region"` // 冗余进来，便于调试
+	SuccessWhen    []*HTTPSuccess     `json:"success_when"`
+	Tags           map[string]string  `json:"tags,omitempty"`
+	Labels         []string           `json:"labels,omitempty"`
+	AdvanceOptions *HTTPAdvanceOption `json:"advance_options,omitempty"`
+	UpdateTime     int64              `json:"update_time,omitempty"`
 
 	ticker   *time.Ticker
 	cli      *http.Client
@@ -42,7 +45,15 @@ type HTTPTask struct {
 	reqStart time.Time
 	reqCost  time.Duration
 	reqError string
+
+	dnsParseTime   float64
+	connectionTime float64
+	sslTime        float64
+	ttfbTime       float64
+	downloadTime   float64
 }
+
+const MaxMsgSize = 15 * 1024 * 1024
 
 func (t *HTTPTask) UpdateTimeUs() int64 {
 	return t.UpdateTime
@@ -80,31 +91,82 @@ func (t *HTTPTask) PostURLStr() string {
 	return t.PostURL
 }
 
+func (t *HTTPTask) GetFrequency() string {
+	return t.Frequency
+}
+
 func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
 		"name":   t.Name,
 		"url":    t.URL,
-		"region": t.Region,
 		"proto":  t.req.Proto,
-		"result": "FAIL",
+		"status": "FAIL",
+		"method": t.Method,
+	}
+
+	fields = map[string]interface{}{
+		"response_time":      int64(t.reqCost) / 1000, // 单位为us
+		"response_body_size": int64(len(t.respBody)),
+		"success":            int64(-1),
 	}
 
 	if t.resp != nil {
-		tags["status_code"] = fmt.Sprintf(`%v`, t.resp.StatusCode)
+		fields["status_code"] = t.resp.StatusCode
+		tags["status_code_string"] = t.resp.Status
+		tags["status_code_class"] = fmt.Sprintf(`%dxx`, t.resp.StatusCode/100)
 	}
 
 	for k, v := range t.Tags {
 		tags[k] = v
 	}
 
-	fields = map[string]interface{}{
-		"response_time":  int64(t.reqCost) / 1000000, // 单位为ms
-		"content_length": int64(len(t.respBody)),
-		"success":        int64(-1),
+	message := map[string]interface{}{}
+
+	if t.req != nil {
+		message[`request_body`] = t.req.Body
+		message[`request_header`] = t.req.Header
 	}
 
+	reasons := t.CheckResult()
 	if t.reqError != "" {
-		fields[`failed_reason`] = t.reqError
+		reasons = append(reasons, t.reqError)
+	}
+
+	if len(reasons) != 0 {
+		message[`fail_reason`] = strings.Join(reasons, `;`)
+		fields[`fail_reason`] = strings.Join(reasons, `;`)
+	}
+
+	if t.reqError == "" && len(reasons) == 0 {
+		tags["status"] = "OK"
+		fields["success"] = int64(1)
+	}
+
+	notSave := false
+	if t.AdvanceOptions != nil && t.AdvanceOptions.Secret != nil && t.AdvanceOptions.Secret.NoSaveResponseBody {
+		notSave = true
+	}
+
+	if v, ok := fields[`fail_reason`]; ok && !notSave && len(v.(string)) != 0 && t.resp != nil {
+		message[`response_header`] = t.resp.Header
+		message[`response_body`] = string(t.respBody)
+	}
+
+	fields[`response_dns`] = t.dnsParseTime
+	fields[`response_connection`] = t.connectionTime
+	fields[`response_ssl`] = t.sslTime
+	fields[`response_ttfb`] = t.ttfbTime
+	fields[`response_download`] = t.downloadTime
+
+	data, err := json.Marshal(message)
+	if err != nil {
+		fields[`message`] = err.Error()
+	}
+
+	if len(data) > MaxMsgSize {
+		fields[`message`] = string(data[:MaxMsgSize])
+	} else {
+		fields[`message`] = string(data)
 	}
 
 	return
@@ -123,17 +185,18 @@ func (t *HTTPTask) Check() error {
 	if t.ExternalID == "" {
 		return fmt.Errorf("external ID missing")
 	}
-	return nil
+
+	return t.Init()
 }
 
 type HTTPSuccess struct {
-	Body string `json:"body,omitempty"`
+	Body []*SuccessOption `json:"body,omitempty"`
 
 	ResponseTime string `json:"response_time,omitempty"`
 	respTime     time.Duration
 
-	Header     map[string]*SuccessOption `json:"header,omitempty"`
-	StatusCode *SuccessOption            `json:"status_code,omitempty"`
+	Header     map[string][]*SuccessOption `json:"header,omitempty"`
+	StatusCode []*SuccessOption            `json:"status_code,omitempty"`
 }
 
 type HTTPOptAuth struct {
@@ -144,36 +207,70 @@ type HTTPOptAuth struct {
 }
 
 type HTTPOptRequest struct {
-	FollowRedirect bool              `json:"follow_redirect"`
-	Headers        map[string]string `json:"headers"`
-	Cookies        string            `json:"cookies"`
-	Auth           *HTTPOptAuth      `json:"auth"`
+	FollowRedirect bool              `json:"follow_redirect,omitempty"`
+	Headers        map[string]string `json:"headers,omitempty"`
+	Cookies        string            `json:"cookies,omitempty"`
+	Auth           *HTTPOptAuth      `json:"auth,omitempty"`
 }
 
 type HTTPOptBody struct {
-	BodyType string `json:"body_type"`
-	Body     string `json:"body"`
+	BodyType string `json:"body_type,omitempty"`
+	Body     string `json:"body,omitempty"`
 }
 
 type HTTPOptCertificate struct {
-	IgnoreServerCertificateError bool   `json:ignore_server_certificate_error`
-	PrivateKey                   string `json:"private_key"`
-	Certificate                  string `json:"certificate"`
+	IgnoreServerCertificateError bool   `json:"ignore_server_certificate_error,omitempty"`
+	PrivateKey                   string `json:"private_key,omitempty"`
+	Certificate                  string `json:"certificate,omitempty"`
+	CaCert                       string `json:"ca,omitempty"`
 }
 
 type HTTPOptProxy struct {
-	URL     string            `json:"url"`
-	Headers map[string]string `json:"headers"`
+	URL     string            `json:"url,omitempty"`
+	Headers map[string]string `json:"headers,omitempty"`
 }
 
 type HTTPAdvanceOption struct {
-	RequestOptions *HTTPOptRequest     `json:"requests_options,omitempty"`
+	RequestOptions *HTTPOptRequest     `json:"request_options,omitempty"`
 	RequestBody    *HTTPOptBody        `json:"request_body,omitempty"`
 	Certificate    *HTTPOptCertificate `json:"certificate,omitempty"`
 	Proxy          *HTTPOptProxy       `json:"proxy,omitempty"`
+	Secret         *HTTPSecret         `json:"secret,omitempty"`
+}
+
+type HTTPSecret struct {
+	NoSaveResponseBody bool `json:"not_save,omitempty"`
 }
 
 func (t *HTTPTask) Run() error {
+
+	t.resp = nil
+	t.respBody = []byte(``)
+
+	var t1, connect, dns, tlsHandshake time.Time
+
+	trace := &httptrace.ClientTrace{
+		DNSStart: func(dsi httptrace.DNSStartInfo) { dns = time.Now() },
+		DNSDone: func(ddi httptrace.DNSDoneInfo) {
+			t.dnsParseTime = float64(time.Since(dns)) / float64(time.Microsecond)
+		},
+
+		TLSHandshakeStart: func() { tlsHandshake = time.Now() },
+		TLSHandshakeDone: func(cs tls.ConnectionState, err error) {
+			t.sslTime = float64(time.Since(tlsHandshake)) / float64(time.Microsecond)
+		},
+
+		ConnectStart: func(network, addr string) { connect = time.Now() },
+		ConnectDone: func(network, addr string, err error) {
+			t.connectionTime = float64(time.Since(connect)) / float64(time.Microsecond)
+		},
+
+		GotFirstResponseByte: func() {
+			t1 = time.Now()
+			t.ttfbTime = float64(time.Since(t.reqStart)) / float64(time.Microsecond)
+		},
+	}
+
 	reqURL, err := url.Parse(t.URL)
 	if err != nil {
 		goto result
@@ -189,12 +286,17 @@ func (t *HTTPTask) Run() error {
 		goto result
 	}
 
+	t.req = t.req.WithContext(httptrace.WithClientTrace(t.req.Context(), trace))
+
+	t.req.Header.Set("Connection", "close")
+
 	t.reqStart = time.Now()
 	t.resp, err = t.cli.Do(t.req)
 	if err != nil {
 		goto result
 	}
 
+	t.downloadTime = float64(time.Since(t1)) / float64(time.Microsecond)
 	t.respBody, err = ioutil.ReadAll(t.resp.Body)
 	if err != nil {
 		goto result
@@ -218,23 +320,29 @@ func (t *HTTPTask) CheckResult() (reasons []string) {
 	for _, chk := range t.SuccessWhen {
 		// check headers
 
-		for k, v := range chk.Header {
-			if err := v.check(t.resp.Header.Get(k), fmt.Sprintf("HTTP header `%s'", k)); err != nil {
-				reasons = append(reasons, err.Error())
+		for k, vs := range chk.Header {
+			for _, v := range vs {
+				if err := v.check(t.resp.Header.Get(k), fmt.Sprintf("HTTP header `%s'", k)); err != nil {
+					reasons = append(reasons, err.Error())
+				}
 			}
 		}
 
 		// check body
-		if chk.Body != "" {
-			if chk.Body != string(t.respBody) {
-				reasons = append(reasons, "body not match: `%s' <> `%s'", chk.Body, string(t.respBody))
+		if chk.Body != nil {
+			for _, v := range chk.Body {
+				if err := v.check(string(t.respBody), "response body"); err != nil {
+					reasons = append(reasons, err.Error())
+				}
 			}
 		}
 
 		// check status code
 		if chk.StatusCode != nil {
-			if err := chk.StatusCode.check(fmt.Sprintf("%d", t.resp.StatusCode), "HTTP status"); err != nil {
-				reasons = append(reasons, err.Error())
+			for _, v := range chk.StatusCode {
+				if err := v.check(fmt.Sprintf(`%d`, t.resp.StatusCode), "HTTP status"); err != nil {
+					reasons = append(reasons, err.Error())
+				}
 			}
 		}
 
@@ -249,37 +357,41 @@ func (t *HTTPTask) CheckResult() (reasons []string) {
 }
 
 func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
-	for _, opt := range t.AdvanceOptions {
-		// request options
-		if opt.RequestOptions != nil {
-			// headers
-			for k, v := range opt.RequestOptions.Headers {
-				req.Header.Add(k, v)
-			}
+	opt := t.AdvanceOptions
 
-			// cookie
-			if opt.RequestOptions.Cookies != "" {
-				req.Header.Add("Cookie", opt.RequestOptions.Cookies)
-			}
+	if opt == nil {
+		return nil
+	}
 
-			// auth
-			// TODO: add more auth options
-			if opt.RequestOptions.Auth != nil {
-				req.SetBasicAuth(opt.RequestOptions.Auth.Username, opt.RequestOptions.Auth.Password)
-			}
+	// request options
+	if opt.RequestOptions != nil {
+		// headers
+		for k, v := range opt.RequestOptions.Headers {
+			req.Header.Add(k, v)
 		}
 
-		// body options
-		if opt.RequestBody != nil {
-			req.Header.Add("Content-Type", opt.RequestBody.BodyType)
-			req.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(opt.RequestBody.Body)))
+		// cookie
+		if opt.RequestOptions.Cookies != "" {
+			req.Header.Add("Cookie", opt.RequestOptions.Cookies)
 		}
 
-		// proxy headers
-		if opt.Proxy != nil { // see https://stackoverflow.com/a/14663620/342348
-			for k, v := range opt.Proxy.Headers {
-				req.Header.Add(k, v)
-			}
+		// auth
+		// TODO: add more auth options
+		if opt.RequestOptions.Auth != nil {
+			req.SetBasicAuth(opt.RequestOptions.Auth.Username, opt.RequestOptions.Auth.Password)
+		}
+	}
+
+	// body options
+	if opt.RequestBody != nil {
+		req.Header.Add("Content-Type", opt.RequestBody.BodyType)
+		req.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(opt.RequestBody.Body)))
+	}
+
+	// proxy headers
+	if opt.Proxy != nil { // see https://stackoverflow.com/a/14663620/342348
+		for k, v := range opt.Proxy.Headers {
+			req.Header.Add(k, v)
 		}
 	}
 
@@ -308,55 +420,54 @@ func (t *HTTPTask) Init() error {
 	}
 
 	// advance options
-	for _, opt := range t.AdvanceOptions {
-		if opt.RequestOptions != nil {
-			// check FollowRedirect
-			if !opt.RequestOptions.FollowRedirect { // see https://stackoverflow.com/a/38150816/342348
-				t.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-					return http.ErrUseLastResponse
-				}
+	opt := t.AdvanceOptions
+	if opt != nil && opt.RequestOptions != nil {
+		// check FollowRedirect
+		if !opt.RequestOptions.FollowRedirect { // see https://stackoverflow.com/a/38150816/342348
+			t.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
 			}
 		}
+	}
 
-		if opt.RequestBody != nil {
-			switch opt.RequestBody.BodyType {
-			case "text/plain", "application/json", "text/xml":
-			case "": // do nothing
-			default:
-				return fmt.Errorf("invalid body type: `%s'", opt.RequestBody.BodyType)
-			}
+	if opt != nil && opt.RequestBody != nil {
+		switch opt.RequestBody.BodyType {
+		case "text/plain", "application/json", "text/xml", "application/x-www-form-urlencoded":
+		case "text/html", "multipart/form-data", "", "None": // do nothing
+		default:
+			return fmt.Errorf("invalid body type: `%s'", opt.RequestBody.BodyType)
+		}
+	}
+
+	// TLS opotions
+	if opt != nil && opt.Certificate != nil { // see https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.CaCert))
+
+		cert, err := tls.X509KeyPair([]byte(opt.Certificate.Certificate), []byte(opt.Certificate.PrivateKey))
+		if err != nil {
+			return err
 		}
 
-		// TLS opotions
-		if opt.Certificate != nil { // see https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go
-			caCertPool := x509.NewCertPool()
-			caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.Certificate))
+		t.cli.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:            caCertPool,
+				Certificates:       []tls.Certificate{cert},
+				InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError},
+		}
+	}
 
-			cert, err := tls.X509KeyPair([]byte(opt.Certificate.Certificate), []byte(opt.Certificate.PrivateKey))
-			if err != nil {
-				return err
-			}
-
-			t.cli.Transport = &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs:            caCertPool,
-					Certificates:       []tls.Certificate{cert},
-					InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError},
-			}
+	// proxy options
+	if opt != nil && opt.Proxy != nil { // see https://stackoverflow.com/a/14663620/342348
+		proxyURL, err := url.Parse(opt.Proxy.URL)
+		if err != nil {
+			return err
 		}
 
-		// proxy options
-		if opt.Proxy != nil { // see https://stackoverflow.com/a/14663620/342348
-			proxyURL, err := url.Parse(opt.Proxy.URL)
-			if err != nil {
-				return err
-			}
-
-			if t.cli.Transport == nil {
-				t.cli.Transport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
-			} else {
-				t.cli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
-			}
+		if t.cli.Transport == nil {
+			t.cli.Transport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+		} else {
+			t.cli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
 		}
 	}
 
@@ -374,26 +485,55 @@ func (t *HTTPTask) Init() error {
 			checker.respTime = du
 		}
 
-		for _, v := range checker.Header {
-			if v.MatchRegex != "" {
-				if re, err := regexp.Compile(v.MatchRegex); err != nil {
+		for _, vs := range checker.Header {
+			for _, v := range vs {
+				err := genReg(v)
+				if err != nil {
 					return err
-				} else {
-					v.matchRe = re
 				}
-			}
 
-			if v.NotMatchRegex != "" {
-				if re, err := regexp.Compile(v.NotMatchRegex); err != nil {
-					return err
-				} else {
-					v.notMatchRe = re
-				}
 			}
 		}
+
+		// body
+		for _, v := range checker.Body {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+		}
+
+		// status_code
+		for _, v := range checker.StatusCode {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+		}
+
 	}
 
 	// TODO: more checking on task validity
+
+	return nil
+}
+
+func genReg(v *SuccessOption) error {
+	if v.MatchRegex != "" {
+		if re, err := regexp.Compile(v.MatchRegex); err != nil {
+			return err
+		} else {
+			v.matchRe = re
+		}
+	}
+
+	if v.NotMatchRegex != "" {
+		if re, err := regexp.Compile(v.NotMatchRegex); err != nil {
+			return err
+		} else {
+			v.notMatchRe = re
+		}
+	}
 
 	return nil
 }

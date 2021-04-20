@@ -290,20 +290,6 @@ func (b *BaiduIndex) getExtendedIndex(tt string) {
 	}
 }
 
-func (b *BaiduIndex) Test() (*inputs.TestResult, error) {
-	b.test = true
-	b.resData = nil
-
-	b.command()
-
-	res := &inputs.TestResult{
-		Result: b.resData,
-		Desc:   "success!",
-	}
-
-	return res, nil
-}
-
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &BaiduIndex{}
