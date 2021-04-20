@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -28,29 +29,38 @@ func (this *Input) gather(option ...*gatherOption) ([]*io.Point, error) {
 	}
 
 	var pts []*io.Point
+	var wg sync.WaitGroup
 
 	for _, container := range cList {
-		tags := this.gatherContainerInfo(container)
+		wg.Add(1)
 
-		// 区分指标和对象
-		// 对象数据需要有 name 标签
-		if opt != nil && opt.IsObjectCategory {
-			tags["name"] = container.ID
-		}
+		go func(c types.Container) {
+			defer wg.Done()
 
-		fields, err := this.gatherStats(container)
-		if err != nil {
-			l.Error(err)
-			continue
-		}
+			tags := this.gatherContainerInfo(c)
 
-		pt, err := io.MakePoint(dockerContainersName, tags, fields, time.Now())
-		if err != nil {
-			l.Error(err)
-			continue
-		}
-		pts = append(pts, pt)
+			// 区分指标和对象
+			// 对象数据需要有 name 标签
+			if opt != nil && opt.IsObjectCategory {
+				tags["name"] = c.ID
+			}
+
+			fields, err := this.gatherStats(c)
+			if err != nil {
+				l.Error(err)
+				return
+			}
+
+			pt, err := io.MakePoint(dockerContainersName, tags, fields, time.Now())
+			if err != nil {
+				l.Error(err)
+				return
+			}
+			pts = append(pts, pt)
+		}(container)
 	}
+
+	wg.Wait()
 
 	return pts, nil
 }
@@ -60,7 +70,7 @@ func (this *Input) gatherContainerInfo(container types.Container) map[string]str
 		"container_id":   container.ID,
 		"container_name": getContainerName(container.Names),
 		"docker_image":   container.ImageID,
-		"image_name":     container.Image,
+		"images_name":    container.Image,
 		"state":          container.State,
 	}
 
