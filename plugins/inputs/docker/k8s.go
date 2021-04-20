@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	defaultKubernetesURL      = "http://127.0.0.1:10255"
+	defaultKubernetesURL      = "http://%s:10255"
 	defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
