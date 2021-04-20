@@ -32,5 +32,13 @@ a {
   text-decoration: none;
   color: #008CBA;
 }
+
+pre code {
+  display: inline-block;
+  background: #eee;
+  padding: 15px;
+	width: 80%;
+}
+
 </style>`
 )
