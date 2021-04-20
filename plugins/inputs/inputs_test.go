@@ -131,3 +131,20 @@ func TestRange(t *testing.T) {
 	}
 
 }
+
+/*
+func TestGetManual(t *testing.T) {
+	c, ok := Inputs["mandemo"]
+	if !ok {
+		t.Error("input mandemo not found")
+	}
+
+	demo := c().(*mandemo.Demo)
+
+	md, err := demo.GetMan()
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(md)
+} */

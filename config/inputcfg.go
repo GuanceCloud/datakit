@@ -12,28 +12,8 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
-
-func addTailfInputs(mc *datakit.MainConfig) {
-
-	src := mc.Name
-	if src == "" {
-		src = mc.UUID
-	}
-
-	tailfDatakitLog := &tailf.Tailf{
-		LogFiles: []string{
-			mc.Log,
-			datakit.AgentLogFile,
-		},
-		Source: src,
-	}
-
-	l.Infof("add input %+#v", tailfDatakitLog)
-	_ = inputs.AddInput("tailf", tailfDatakitLog, "no-config-available")
-}
 
 // load all inputs under @InstallDir/conf.d
 func LoadInputsConfig(c *datakit.Config) error {
@@ -71,6 +51,13 @@ func LoadInputsConfig(c *datakit.Config) error {
 			return nil
 		}
 
+		deprecates := checkDepercatedInputs(tbl, deprecatedInputs)
+		if len(deprecates) > 0 {
+			for k, v := range deprecates {
+				l.Warnf("input `%s' removed, please use %s instead", k, v)
+			}
+		}
+
 		if len(tbl.Fields) == 0 {
 			l.Debugf("no conf available on %s", fp)
 			return nil
@@ -87,9 +74,6 @@ func LoadInputsConfig(c *datakit.Config) error {
 	// reset inputs(for reloading)
 	l.Debug("reset inputs")
 	inputs.ResetInputs()
-	if c.MainCfg.LogUpload { // re-add tailf on datakit log
-		addTailfInputs(c.MainCfg)
-	}
 
 	for name, creator := range inputs.Inputs {
 		if !datakit.Enabled(name) {
@@ -103,7 +87,7 @@ func LoadInputsConfig(c *datakit.Config) error {
 		}
 	}
 
-	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, availableInputCfgs, c.InputFilters)
+	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, availableInputCfgs, nil)
 	if err != nil {
 		return err
 	}
@@ -122,11 +106,6 @@ func LoadInputsConfig(c *datakit.Config) error {
 }
 
 func doLoadInputConf(c *datakit.Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
-	if len(c.InputFilters) > 0 {
-		if !sliceContains(name, c.InputFilters) {
-			return nil
-		}
-	}
 
 	l.Debugf("search input cfg for %s", name)
 	searchDatakitInputCfg(c, inputcfgs, name, creator)
@@ -328,6 +307,11 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 			continue
 		}
 
+		//check exist
+		if _, err := os.Stat(fpath); err == nil {
+			continue
+		}
+
 		if err := ioutil.WriteFile(fpath, []byte(sample), os.ModePerm); err != nil {
 			l.Errorf("write input %s config failed: %s, ignored", name, err.Error())
 			continue
@@ -335,4 +319,63 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 
 		l.Infof("enable input %s ok", name)
 	}
+}
+
+func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, error) {
+
+	tbl, err := parseCfgFile(f)
+	if err != nil {
+		return nil, fmt.Errorf("[error] parse conf failed: %s", err)
+	}
+
+	inputlist := []inputs.Input{}
+
+	for field, node := range tbl.Fields {
+
+		switch field {
+		case "inputs": //nolint:goconst
+			stbl, ok := node.(*ast.Table)
+			if ok {
+				for inputName, v := range stbl.Fields {
+					inputlist, err = TryUnmarshal(v, inputName, creator)
+					if err != nil {
+						return nil, fmt.Errorf("unmarshal input failed, %s", err.Error())
+					}
+				}
+			}
+
+		default: // compatible with old version: no [[inputs.xxx]] header
+			inputlist, err = TryUnmarshal(node, "", creator)
+			if err != nil {
+				return nil, fmt.Errorf("unmarshal input failed: %s", err.Error())
+			}
+		}
+	}
+
+	return inputlist, nil
+}
+
+var (
+	deprecatedInputs = map[string]string{
+		"dockerlog":         "docker",
+		"docker_containers": "docker",
+	}
+)
+
+func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[string]string) {
+
+	res = map[string]string{}
+
+	for _, node := range tbl.Fields {
+		stbl, ok := node.(*ast.Table)
+		if !ok {
+			continue
+		}
+		for inputName := range stbl.Fields {
+			if x, ok := entries[inputName]; ok {
+				res[inputName] = x
+			}
+		}
+	}
+	return
 }

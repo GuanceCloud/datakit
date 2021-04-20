@@ -54,10 +54,6 @@ func (*Fluentd) Catalog() string {
 	return "fluentd"
 }
 
-func (Fluentd) Test() (result *inputs.TestResult, err error) {
-	return
-}
-
 func (f *Fluentd) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("Fluentd input started...")
@@ -82,6 +78,8 @@ func (f *Fluentd) Handle(w http.ResponseWriter, r *http.Request) {
 
 func extract(p *pipeline.Pipeline, body iowrite.Reader, metric string, tags map[string]string) error {
 	r := bufio.NewReader(body)
+
+	var pts []*io.Point
 
 	for {
 		bytes, err := r.ReadBytes(byte('\n'))
@@ -110,19 +108,18 @@ func extract(p *pipeline.Pipeline, body iowrite.Reader, metric string, tags map[
 			_fields["content"] = string(bytes[0 : n-1])
 		}
 
-		pt, err := io.MakeMetric(metric, _tags, _fields, tm)
+		pt, err := io.MakePoint(metric, _tags, _fields, tm)
 		if err != nil {
 			l.Errorf("make metric point error %v", err)
 			continue
 		}
+		pts = append(pts, pt)
 
-		l.Debug("point data", string(pt))
+	}
 
-		err = io.HighFreqFeed([]byte(pt), io.Logging, "")
-		if err != nil {
-			l.Errorf("push metric point error %v", err)
-			continue
-		}
+	if err := io.Feed(inputName, io.Logging, pts, &io.Option{HighFreq: true}); err != nil {
+		l.Errorf("push metric point error %v", err)
+		return err
 	}
 
 	return nil
