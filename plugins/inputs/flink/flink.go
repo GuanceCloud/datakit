@@ -53,11 +53,6 @@ func (*Flink) Catalog() string {
 	return inputName
 }
 
-func (*Flink) Test() (*inputs.TestResult, error) {
-	// 被动接收 http 数据，无法进行测试
-	return &inputs.TestResult{Desc: "success"}, nil
-}
-
 func (f *Flink) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("flink input started...")
