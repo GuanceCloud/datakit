@@ -12,7 +12,7 @@ TEST_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/da
 PRE_DOWNLOAD_ADDR = zhuyun-static-files-preprod.oss-cn-hangzhou.aliyuncs.com/datakit
 
 # 本地环境
-LOCAL_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit
+LOCAL_DOWNLOAD_ADDR = ${LOCAL_OSS_ADDR}
 
 PUB_DIR = dist
 BUILD_DIR = dist
