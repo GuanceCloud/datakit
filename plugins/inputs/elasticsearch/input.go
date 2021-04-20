@@ -198,13 +198,6 @@ type serverInfo struct {
 	masterID string
 }
 
-type metric struct {
-	Measurement string
-	Fields      map[string]interface{}
-	Tags        map[string]string
-	Time        time.Time
-}
-
 func (i serverInfo) isMaster() bool {
 	return i.nodeID == i.masterID
 }
@@ -250,23 +243,19 @@ var (
 	l         = logger.DefaultSLogger("elasticsearch")
 )
 
-func (_ *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
-func (_ *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (_ *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		"elasticsearch": pipelineCfg,
 	}
 	return pipelineMap
-}
-
-func (_ *Input) Test() {
-	return
 }
 
 func (i *Input) AvailableArchs() []string {
@@ -434,8 +423,13 @@ func (i *Input) Run() {
 			if err := i.Collect(); err != nil {
 				l.Error(err)
 			} else {
-				inputs.FeedMeasurement("elasticsearch", io.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)})
-				i.collectCache = i.collectCache[:0]
+				if len(i.collectCache) > 0 {
+					err := inputs.FeedMeasurement("elasticsearch", io.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)})
+					if err != nil {
+						l.Errorf(err.Error())
+					}
+					i.collectCache = i.collectCache[:0]
+				}
 			}
 		}
 	}
@@ -468,7 +462,9 @@ func (i *Input) gatherIndicesStats(url string) error {
 		},
 	}
 
-	i.collectCache = append(i.collectCache, metric)
+	if len(metric.fields) > 0 {
+		i.collectCache = append(i.collectCache, metric)
+	}
 
 	// All Stats
 	for m, s := range indicesStats.All {
@@ -487,7 +483,9 @@ func (i *Input) gatherIndicesStats(url string) error {
 			},
 		}
 
-		i.collectCache = append(i.collectCache, metric)
+		if len(metric.fields) > 0 {
+			i.collectCache = append(i.collectCache, metric)
+		}
 	}
 
 	// Individual Indices stats
@@ -514,7 +512,9 @@ func (i *Input) gatherIndicesStats(url string) error {
 				},
 			}
 
-			i.collectCache = append(i.collectCache, metric)
+			if len(metric.fields) > 0 {
+				i.collectCache = append(i.collectCache, metric)
+			}
 		}
 
 		if i.IndicesLevel == "shards" {
@@ -564,7 +564,9 @@ func (i *Input) gatherIndicesStats(url string) error {
 						},
 					}
 
-					i.collectCache = append(i.collectCache, metric)
+					if len(metric.fields) > 0 {
+						i.collectCache = append(i.collectCache, metric)
+					}
 				}
 			}
 		}
@@ -636,8 +638,9 @@ func (i *Input) gatherNodeStats(url string) error {
 				ts:     now,
 			},
 		}
-
-		i.collectCache = append(i.collectCache, metric)
+		if len(metric.fields) > 0 {
+			i.collectCache = append(i.collectCache, metric)
+		}
 	}
 
 	return nil
@@ -683,7 +686,9 @@ func (i *Input) gatherClusterStats(url string) error {
 		},
 	}
 
-	i.collectCache = append(i.collectCache, metric)
+	if len(metric.fields) > 0 {
+		i.collectCache = append(i.collectCache, metric)
+	}
 	return nil
 }
 
@@ -720,7 +725,9 @@ func (i *Input) gatherClusterHealth(url string) error {
 		},
 	}
 
-	i.collectCache = append(i.collectCache, metric)
+	if len(metric.fields) > 0 {
+		i.collectCache = append(i.collectCache, metric)
+	}
 
 	for name, health := range healthStats.Indices {
 		indexFields := map[string]interface{}{
@@ -744,7 +751,9 @@ func (i *Input) gatherClusterHealth(url string) error {
 			},
 		}
 
-		i.collectCache = append(i.collectCache, metric)
+		if len(metric.fields) > 0 {
+			i.collectCache = append(i.collectCache, metric)
+		}
 	}
 	return nil
 }
