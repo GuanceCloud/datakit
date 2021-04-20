@@ -108,6 +108,9 @@ preprod: man
 release: man
 	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
+release_mac: man
+	$(call build,release, $(MAC_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
+
 pub_local:
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
