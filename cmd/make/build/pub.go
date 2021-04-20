@@ -152,10 +152,18 @@ func PubDatakit() {
 		path.Join(PubDir, Release, "version"): path.Join(OSSPath, "version"),
 	}
 
+	if Archs == "darwin/amd64" {
+		delete(ossfiles, path.Join(PubDir, Release, "version"))
+	}
+
 	renameOssFiles := map[string]string{}
 
 	// tar files and collect OSS upload/backup info
 	for _, arch := range archs {
+		if arch == "darwin/amd64" && runtime.GOOS != "darwin" {
+			l.Warn("Not a darwin system, skip the upload of related files.")
+			continue
+		}
 		parts := strings.Split(arch, "/")
 		if len(parts) != 2 {
 			l.Fatalf("invalid arch %q", parts)
