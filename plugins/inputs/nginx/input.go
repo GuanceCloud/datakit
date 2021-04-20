@@ -27,13 +27,13 @@ var (
 	insecure_skip_verify = false
 	# HTTP response timeout (default: 5s)
 	response_timeout = "20s"
-
-    [inputs.nginx.log]
+	
+	[inputs.nginx.log]
 	#	files = []
 	#	# grok pipeline script path
 	#	pipeline = "nginx.p"
 	[inputs.nginx.tags]
-    # a = "b"
+	# a = "b"
 
 	
 `
@@ -88,6 +88,7 @@ func (n *Input) Run() {
 		go func() {
 			inputs.JoinPipelinePath(n.Log, "nginx.p")
 			n.Log.Source = nginx
+			n.Log.Tags = map[string]string{}
 			for k, v := range n.Tags {
 				n.Log.Tags[k] = v
 			}
