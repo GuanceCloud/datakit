@@ -104,6 +104,8 @@ func (this *Input) Run() {
 		select {
 		case <-datakit.Exit.Wait():
 			this.Stop()
+			l.Info("tailf exit")
+			return
 		}
 	}
 }
