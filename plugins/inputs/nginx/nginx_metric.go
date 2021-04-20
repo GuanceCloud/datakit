@@ -31,8 +31,10 @@ func (m *NginxMeasurement) Info() *inputs.MeasurementInfo {
 			"connection_requests": newCountFieldInfo("The total number of requests client connections"),
 		},
 		Tags: map[string]interface{}{
-			"nginx_server": inputs.NewTagInfo("nginx server host"),
-			"nginx_port":   inputs.NewTagInfo("nginx server port"),
+			"nginx_server":  inputs.NewTagInfo("nginx server host"),
+			"nginx_port":    inputs.NewTagInfo("nginx server port"),
+			"host":          inputs.NewTagInfo("host mame which installed nginx,use vts exist"),
+			"nginx_version": inputs.NewTagInfo("nginx version,use vts exist"),
 		},
 	}
 }
