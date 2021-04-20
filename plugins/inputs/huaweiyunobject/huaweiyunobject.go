@@ -43,10 +43,6 @@ func (_ *agent) Catalog() string {
 	return `huaweiyun`
 }
 
-func (ag *agent) Test() (result *inputs.TestResult, err error) {
-	return
-}
-
 func (ag *agent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
