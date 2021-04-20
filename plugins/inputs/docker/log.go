@@ -224,8 +224,6 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 			continue
 		}
 
-		fmt.Println(fields["message"])
-
 		addStatus(fields)
 
 		ts, err = takeTime(fields)
