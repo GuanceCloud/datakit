@@ -27,16 +27,14 @@ var (
 	insecure_skip_verify = false
 	# HTTP response timeout (default: 5s)
 	response_timeout = "20s"
-	
+
 	[inputs.nginx.log]
 	#	files = []
 	#	# grok pipeline script path
 	#	pipeline = "nginx.p"
 	[inputs.nginx.tags]
-	# a = "b"
+	# a = "b"`
 
-	
-`
 	pipelineCfg = `
 add_pattern("date2", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
 
