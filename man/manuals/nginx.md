@@ -12,16 +12,35 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 - NGINX 默认采集 `http_stub_status_module` 模块的数据，开启 `http_stub_status_module` 模块参见[这里](http://nginx.org/en/docs/http/ngx_http_stub_status_module.html)，开启了以后会上报 NGINX 指标集的数据
 
-- 如果您正在使用 [virtual host traffic status module](https://github.com/vozlt/nginx-module-vts) 或者想监控更多数据，建议开启 `vts` 相关数据采集，可在 nginx.conf 中将选项 `use_vts` 设置为 `true`。如何开启 `vts` 参见[这里](https://github.com/vozlt/nginx-module-vts#synopsis)。
+- 如果您正在使用 [VTS](https://github.com/vozlt/nginx-module-vts) 或者想监控更多数据，建议开启 VTS 相关数据采集，可在 `{{.InputName}}.conf` 中将选项 `use_vts` 设置为 `true`。如何开启 VTS 参见[这里](https://github.com/vozlt/nginx-module-vts#synopsis)。
 
-开启 `vts` 功能后，能产生如下指标集：
+- 开启 VTS 功能后，能产生如下指标集：
 
-- `nginx`
-- `nginx_server_zone`
-- `nginx_upstream_zone`
-- `nginx_cache_zone`
+    - `nginx`
+    - `nginx_server_zone`
+    - `nginx_upstream_zone` (NGINX 需配置 `upstream` 相关配置)
+    - `nginx_cache_zone`    (NGINX 需配置 `cache` 相关配置)
 
+- 以产生 `nginx_upstream_zone` 指标集为例，NGINX 相关配置示例如下：
 
+```
+    ...
+    http {
+       ...
+       upstream your-upstreamname {
+         server upstream-ip:upstream-port;
+      }
+       server {
+       ...
+       location / {
+       root  html;
+       index  index.html index.htm;
+       proxy_pass http://yourupstreamname;
+     }}}
+
+```
+
+- 已经开启了 VTS 功能以后，不必再去采集 `http_stub_status_module` 模块的数据，因为 VTS 模块的数据会包括 `http_stub_status_module` 模块的数据
 
 ## 配置
 
