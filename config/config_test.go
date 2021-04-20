@@ -6,60 +6,91 @@ import (
 	"os"
 	"testing"
 
+	bstoml "github.com/BurntSushi/toml"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/host_process"
 )
 
-var tomlParseCases = []struct {
-	in string
-}{
-	{
-		in: `
+func TestTomlSerialization(t *testing.T) {
+	type X struct {
+		A int    `toml:"a,___a"`
+		B string `toml:"b,__b"`
+	}
+
+	cases := []string{
+		`a = 123
+		b = "xyz"`,
+
+		`___a = 123
+		__b = "xyz"`,
+	}
+
+	for _, tc := range cases {
+		var x X
+
+		if err := toml.Unmarshal([]byte(tc), &x); err != nil {
+			t.Error(err)
+		}
+		t.Logf("bstoml: %+#v", x)
+
+		if _, err := bstoml.Decode(tc, &x); err != nil {
+			t.Error(err)
+		}
+		t.Logf("bstoml: %+#v", x)
+	}
+}
+
+func TestTomlParse(t *testing.T) {
+
+	tomlParseCases := []struct {
+		in string
+	}{
+		{
+			in: `
 		[[inputs.abc]]
 			key1 = "1-line-string"
 			key2 = '''multili
 			string
 			'''`,
-	},
+		},
 
-	{
-		in: `
+		{
+			in: `
 [[inputs.abc]]
 	key1 = 1
 	key2 = "a"
 	key3 = 3.14`,
-	},
+		},
 
-	{
-		in: `
+		{
+			in: `
 [[inputs.abc]]
 	key1 = 11
 	key2 = "aa"
 	key3 = 6.28`,
-	},
+		},
 
-	{
-		in: `
+		{
+			in: `
 [[inputs.abc]]
 	key1 = 22
 	key2 = "aaa"
 	key3 = 6.18`,
-	},
-	{
-		in: `
+		},
+		{
+			in: `
 [[inputs.def]]
 	key1 = 22
 	key2 = "aaa"
 	key3 = 6.18`,
-	},
-}
-
-func TestTomlParse(t *testing.T) {
+		},
+	}
 
 	type obj struct {
 		Key1 int     `toml:"key1"`
@@ -171,6 +202,7 @@ func TestBuildInputCfg(t *testing.T) {
 //	}
 //}
 //
+
 func TestTomlUnmarshal(t *testing.T) {
 	x := []byte(`
 global = "global config"
@@ -375,5 +407,95 @@ func TestLoadTelegrafCfg(t *testing.T) {
 	fmt.Println(cfg, err)
 	for k, _ := range conf {
 		os.Remove(k)
+	}
+}
+
+func TestRemoveDepercatedInputs(t *testing.T) {
+	cases := []struct {
+		tomlStr      string
+		res, entries map[string]string
+	}{
+		{
+			tomlStr: `[[intputs.abc]]`,
+			entries: map[string]string{"abc": "cba"},
+			res:     map[string]string{"abc": "cba"},
+		},
+
+		{
+			tomlStr: `[intputs.abc]`,
+			entries: map[string]string{"abc": "cba"},
+			res:     map[string]string{"abc": "cba"},
+		},
+
+		{
+			tomlStr: `[intputs.def]`,
+			entries: map[string]string{"abc": "cba"},
+			res:     nil,
+		},
+
+		{
+			tomlStr: `[intputs.abc.xyz]`,
+			entries: map[string]string{"abc": "cba"},
+			res:     map[string]string{"abc": "cba"},
+		},
+	}
+
+	for _, tc := range cases {
+
+		tbl, err := toml.Parse([]byte(tc.tomlStr))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		res := checkDepercatedInputs(tbl, tc.entries)
+		t.Logf("res: %+#v", res)
+		tu.Assert(t,
+			len(res) == len(tc.res),
+			"got %+#v", res)
+	}
+}
+
+func TestFeedEnvs(t *testing.T) {
+	cases := []struct {
+		str    string
+		expect string
+		env    map[string]string
+	}{
+		{
+			str: "this is env from os:  $TEST_ENV",
+
+			env: map[string]string{
+				"TEST_ENV":  "test-data",
+				"TEST_ENV2": "test-data2",
+			},
+			expect: "this is env from os:  test-data",
+		},
+
+		{
+			str: "this is env from os:  $$TEST_ENV$$",
+			env: map[string]string{
+				"TEST_ENV":  "test-data",
+				"TEST_ENV2": "test-data2",
+			},
+			expect: "this is env from os:  $test-data$$",
+		},
+
+		{
+			str: "this is env from os:  $$TEST_ENVxxx",
+			env: map[string]string{
+				"TEST_ENV":  "test-data",
+				"TEST_ENV2": "test-data2",
+			},
+			expect: "this is env from os:  $$TEST_ENVxxx",
+		},
+	}
+
+	for idx, tc := range cases {
+		for k, v := range tc.env {
+			os.Setenv(k, v)
+		}
+
+		data := feedEnvs([]byte(tc.str))
+		tu.Assert(t, tc.expect == string(data), "[%d] epxect `%s', got `%s'", idx, tc.expect, string(data))
 	}
 }
