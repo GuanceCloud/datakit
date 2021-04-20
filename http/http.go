@@ -20,7 +20,6 @@ import (
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
-	"github.com/unrolled/secure"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -69,7 +68,7 @@ func Start(o *Option) {
 
 	// start HTTP server
 	go func() {
-		HttpStart(httpBind)
+		HttpStart()
 	}()
 }
 
@@ -133,7 +132,7 @@ func RestartHttpServer() {
 	reload = time.Now()
 	reloadCnt++
 
-	HttpStart(httpBind)
+	HttpStart()
 }
 
 type welcome struct {
@@ -206,25 +205,7 @@ func corsMiddleware(c *gin.Context) {
 	c.Next()
 }
 
-func tlsHandler(addr string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		secureMiddleware := secure.New(secure.Options{
-			SSLRedirect: true,
-			SSLHost:     addr,
-		})
-		err := secureMiddleware.Process(c.Writer, c.Request)
-
-		// If there was an error, do not continue.
-		if err != nil {
-			return
-		}
-
-		c.Next()
-	}
-}
-
-func HttpStart(addr string) {
+func HttpStart() {
 
 	router := gin.New()
 
@@ -241,7 +222,7 @@ func HttpStart(addr string) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	l.Debugf("HTTP bind addr:%s", addr)
+	l.Debugf("HTTP bind addr:%s", httpBind)
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -262,7 +243,7 @@ func HttpStart(addr string) {
 	router.POST(io.Tracing, func(c *gin.Context) { apiWriteTracing(c) })
 
 	srv := &http.Server{
-		Addr:    addr,
+		Addr:    httpBind,
 		Handler: router,
 	}
 
