@@ -30,28 +30,22 @@ const (
 var (
 	Exit = cliutils.NewSem()
 	WG   = sync.WaitGroup{}
-	l    = logger.DefaultSLogger("datakit")
 
 	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
 
-	Docker = false
+	Docker  = false
+	AllOS   = []string{OSWindows, OSLinux, OSDarwin}
+	AllArch = []string{OSArchWinAmd64, OSArchWin386, OSArchLinuxArm, OSArchLinuxArm64, OSArchLinux386, OSArchLinuxAmd64, OSArchDarwinAmd64}
+
+	UnknownOS   = []string{"unknown"}
+	UnknownArch = []string{"unknown"}
 
 	OutputFile = ""
-
-	optionalInstallDir = map[string]string{
-		OSArchWinAmd64: filepath.Join(`C:\Program Files\dataflux\` + ServiceName),
-		OSArchWin386:   filepath.Join(`C:\Program Files (x86)\dataflux\` + ServiceName),
-
-		OSArchLinuxArm:    filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
-		OSArchLinuxArm64:  filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
-		OSArchLinuxAmd64:  filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
-		OSArchLinux386:    filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
-		OSArchDarwinAmd64: filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
-	}
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
 	AgentLogFile = filepath.Join(InstallDir, "embed", "agent.log")
+	OTALogFile   = filepath.Join(InstallDir, "ota.log")
 	UUIDFile     = filepath.Join(InstallDir, ".id")
 	TelegrafDir  = filepath.Join(InstallDir, "embed")
 	DataDir      = filepath.Join(InstallDir, "data")
@@ -65,6 +59,18 @@ var (
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
+
+	l                  = logger.DefaultSLogger("datakit")
+	optionalInstallDir = map[string]string{
+		OSArchWinAmd64: filepath.Join(`C:\Program Files\dataflux\` + ServiceName),
+		OSArchWin386:   filepath.Join(`C:\Program Files (x86)\dataflux\` + ServiceName),
+
+		OSArchLinuxArm:    filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchLinuxArm64:  filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchLinuxAmd64:  filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchLinux386:    filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchDarwinAmd64: filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+	}
 )
 
 func Quit() {
