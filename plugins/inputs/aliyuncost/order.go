@@ -265,8 +265,7 @@ func (co *costOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			continue
 		}
 		if co.ag.isTest() {
-			data, _ := io.MakeMetric(co.getName(), tags, fields, t)
-			co.ag.testResult.Result = append(co.ag.testResult.Result, data...)
+			// pass
 		} else if co.ag.isDebug() {
 			//data, _ := io.MakeMetric(co.getName(), tags, fields, t)
 			//fmt.Printf("-----%s\n", string(data))

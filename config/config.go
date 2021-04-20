@@ -2,9 +2,11 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
+	"os"
+	"regexp"
 	"strings"
 
 	"github.com/influxdata/toml"
@@ -16,6 +18,13 @@ import (
 
 var (
 	l = logger.DefaultSLogger("config")
+
+	// envVarRe is a regex to find environment variables in the config file
+	envVarRe      = regexp.MustCompile(`\$\{(\w+)\}|\$(\w+)`)
+	envVarEscaper = strings.NewReplacer(
+		`"`, `\"`,
+		`\`, `\\`,
+	)
 )
 
 func LoadCfg(c *datakit.Config, mcp string) error {
@@ -53,76 +62,39 @@ func LoadCfg(c *datakit.Config, mcp string) error {
 	return nil
 }
 
-func CheckConfd() error {
-	dir, err := ioutil.ReadDir(datakit.ConfdDir)
-	if err != nil {
-		return err
-	}
+func trimBOM(f []byte) []byte {
+	return bytes.TrimPrefix(f, []byte("\xef\xbb\xbf"))
+}
 
-	configed := []string{}
-	invalids := []string{}
+func feedEnvs(data []byte) []byte {
+	data = trimBOM(data)
 
-	checkSubDir := func(path string) error {
+	parameters := envVarRe.FindAllSubmatch(data, -1)
 
-		ent, err := ioutil.ReadDir(path)
-		if err != nil {
-			return err
-		}
+	l.Debugf("parameters: %s", parameters)
 
-		for _, item := range ent {
-			if item.IsDir() {
-				continue
-			}
-
-			filename := item.Name()
-
-			if filename == "." || filename == ".." { //nolint:goconst
-				continue
-			}
-
-			if filepath.Ext(filename) != ".conf" {
-				continue
-			}
-
-			var data []byte
-			data, err = ioutil.ReadFile(filepath.Join(path, filename))
-			if err != nil {
-				return err
-			}
-
-			if len(data) == 0 {
-				return fmt.Errorf("no input configured")
-			}
-
-			if tbl, err := toml.Parse(data); err != nil {
-				invalids = append(invalids, filename)
-				return err
-			} else if len(tbl.Fields) > 0 {
-				configed = append(configed, filename)
-			}
-		}
-
-		return nil
-	}
-
-	for _, item := range dir {
-		if !item.IsDir() {
+	for _, parameter := range parameters {
+		if len(parameter) != 3 {
 			continue
 		}
 
-		if item.Name() == "." || item.Name() == ".." { //nolint:goconst
+		var envvar []byte
+		if parameter[1] != nil {
+			envvar = parameter[1]
+		} else if parameter[2] != nil {
+			envvar = parameter[2]
+		} else {
 			continue
 		}
 
-		if err := checkSubDir(filepath.Join(datakit.ConfdDir, item.Name())); err != nil {
-			l.Error("checkSubDir: %s", err.Error())
+		envval, ok := os.LookupEnv(strings.TrimPrefix(string(envvar), "$"))
+		if ok {
+			envval = envVarEscaper.Replace(envval)
+			data = bytes.Replace(data, parameter[0], []byte(envval), 1)
 		}
 	}
 
-	fmt.Printf("inputs: %s\n", strings.Join(configed, ","))
-	fmt.Printf("error configuration: %s\n", strings.Join(invalids, ","))
-
-	return nil
+	return data
 }
 
 func parseCfgFile(f string) (*ast.Table, error) {
@@ -131,6 +103,8 @@ func parseCfgFile(f string) (*ast.Table, error) {
 		l.Error(err)
 		return nil, fmt.Errorf("read config %s failed: %s", f, err.Error())
 	}
+
+	data = feedEnvs(data)
 
 	tbl, err := toml.Parse(data)
 	if err != nil {
