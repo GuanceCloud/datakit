@@ -13,7 +13,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/ceph"
 	"github.com/influxdata/telegraf/plugins/inputs/clickhouse"
 	"github.com/influxdata/telegraf/plugins/inputs/cloudwatch"
-	"github.com/influxdata/telegraf/plugins/inputs/diskio"
 	"github.com/influxdata/telegraf/plugins/inputs/dns_query"
 
 	// "github.com/influxdata/telegraf/plugins/inputs/docker"
@@ -99,7 +98,6 @@ func (ti *TelegrafInput) SampleConfig() string {
 
 var (
 	TelegrafInputs = map[string]*TelegrafInput{ // Name: Catalog
-		"diskio":   {name: "diskio", Catalog: "host", Input: &diskio.DiskIO{}},
 		"procstat": {name: "procstat", Catalog: "host", Input: &procstat.Procstat{}},
 		"smart":    {name: "smart", Catalog: "host", Input: &smart.Smart{}},
 
