@@ -40,6 +40,7 @@ type Input struct {
 	Addr              string               `toml:"-"`
 	Log               *inputs.TailerOption `toml:"log"`
 	tailer            *inputs.Tailer       `toml:"-"`
+	resKeys           []string             `toml:"-"`
 }
 
 func (i *Input) initCfg() {
@@ -99,8 +100,7 @@ func (i *Input) Collect() error {
 
 	// bigkey
 	if len(i.Keys) > 0 {
-		bigKeyMeasurement := CollectBigKeyMeasurement(i)
-		i.collectCache = append(i.collectCache, bigKeyMeasurement)
+		i.collectBigKeyMeasurement()
 	}
 
 	return nil
@@ -127,6 +127,11 @@ func (i *Input) collectInfoMeasurement() {
 
 func (i *Input) collectClientMeasurement() {
 	i.getClientData()
+}
+
+func (i *Input) collectBigKeyMeasurement() {
+	i.getKeys()
+	i.getData()
 }
 
 func (i *Input) collectCommandMeasurement() {
