@@ -32,9 +32,11 @@ func (m *ServerZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"response_5xx":  newCountFieldInfo("The number of responses with status codes 5xx"),
 		},
 		Tags: map[string]interface{}{
-			"nginx_server": inputs.NewTagInfo("nginx server host"),
-			"nginx_port":   inputs.NewTagInfo("nginx server port"),
-			"server_zone":  inputs.NewTagInfo("server zone"),
+			"nginx_server":  inputs.NewTagInfo("nginx server host"),
+			"nginx_port":    inputs.NewTagInfo("nginx server port"),
+			"server_zone":   inputs.NewTagInfo("server zone"),
+			"host":          inputs.NewTagInfo("host mame which installed nginx"),
+			"nginx_version": inputs.NewTagInfo("nginx version"),
 		},
 	}
 }
@@ -68,6 +70,8 @@ func (m *UpstreamZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"nginx_port":      inputs.NewTagInfo("nginx server port"),
 			"upstream_zone":   inputs.NewTagInfo("upstream zone"),
 			"upstream_server": inputs.NewTagInfo("upstream server"),
+			"host":            inputs.NewTagInfo("host mame which installed nginx"),
+			"nginx_version":   inputs.NewTagInfo("nginx version"),
 		},
 	}
 }
@@ -101,9 +105,11 @@ func (m *CacheZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"responses_scarce":      newCountFieldInfo("The number of cache scarce"),
 		},
 		Tags: map[string]interface{}{
-			"nginx_server": inputs.NewTagInfo("nginx server host"),
-			"nginx_port":   inputs.NewTagInfo("nginx server port"),
-			"cache_zone":   inputs.NewTagInfo("cache zone"),
+			"nginx_server":  inputs.NewTagInfo("nginx server host"),
+			"nginx_port":    inputs.NewTagInfo("nginx server port"),
+			"cache_zone":    inputs.NewTagInfo("cache zone"),
+			"host":          inputs.NewTagInfo("host mame which installed nginx"),
+			"nginx_version": inputs.NewTagInfo("nginx version"),
 		},
 	}
 }
