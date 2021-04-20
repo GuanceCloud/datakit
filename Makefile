@@ -23,7 +23,7 @@ ENTRY = cmd/datakit/main.go
 
 LOCAL_ARCHS = "local"
 DEFAULT_ARCHS = "all"
-
+MAC_ARCHS = "darwin/amd64"
 VERSION := $(shell git describe --always --tags)
 DATE := $(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION := $(shell go version)
@@ -105,8 +105,14 @@ release: man
 pub_local:
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
+pub_local_mac:
+	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(MAC_ARCHS))
+
 pub_testing:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+
+pub_testing_mac:
+	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
@@ -132,8 +138,14 @@ pub_agent:
 pub_preprod:
 	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
+pub_preprod_mac:
+	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(MAC_ARCHS))
+
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+
+pub_release_mac:
+	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 test_notify:
 	@curl \
