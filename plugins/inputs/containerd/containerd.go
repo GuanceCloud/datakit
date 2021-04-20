@@ -22,21 +22,21 @@ const (
     # containerd sock file, default "/run/containerd/containerd.sock"
     # required
     location = "/run/containerd/containerd.sock"
-    
+
     # containerd namespace
     # 'ps -ef | grep containerd | grep containerd-shim' print detail
     # required
     namespace = "moby"
-    
+
     # containerd ID list，ID is string and length 64.
     # if value is "*", collect all ID
     # required
     ID_list = ["*"]
-    
+
     # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     # required, cannot be less than zero
     interval = "10s"
-    
+
     # [inputs.containerd.tags]
     # tags1 = "value1"
 `
@@ -74,28 +74,6 @@ func (*Containerd) Catalog() string {
 
 func (*Containerd) SampleConfig() string {
 	return sampleCfg
-}
-
-func (c *Containerd) Test() (*inputs.TestResult, error) {
-	l = logger.SLogger(inputName)
-
-	var result = inputs.TestResult{Desc: "数据指标获取失败，详情见错误信息"}
-	var err error
-
-	if err = c.loadCfg(); err != nil {
-		return &result, err
-	}
-
-	var data []byte
-	data, err = c.collectContainerd()
-	if err != nil {
-		return &result, err
-	}
-
-	result.Result = data
-	result.Desc = "数据指标获取成功"
-
-	return &result, err
 }
 
 func (c *Containerd) Run() {
