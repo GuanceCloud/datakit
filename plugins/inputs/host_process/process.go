@@ -175,11 +175,7 @@ func (p *Input) Parse(ps *pr.Process) (username, state, name string, fields, mes
 	} else {
 		state = status[0]
 	}
-	stateZombie := false
-	if state == "zombie" {
-		stateZombie = true
-	}
-	fields["state_zombie"] = stateZombie
+
 	mem, err := ps.MemoryInfo()
 	if err != nil {
 		l.Warnf("[warning] process:%s,pid:%d get memoryinfo err:%s", name, ps.Pid, err.Error())
@@ -237,6 +233,12 @@ func (p *Input) WriteObject() {
 			"name":         fmt.Sprintf("%s_%d", datakit.Cfg.MainCfg.Hostname, ps.Pid),
 			"process_name": name,
 		}
+
+		stateZombie := false
+		if state == "zombie" {
+			stateZombie = true
+		}
+		fields["state_zombie"] = stateZombie
 
 		fields["pid"] = ps.Pid
 		fields["start_time"] = getStartTime(ps)
