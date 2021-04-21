@@ -162,7 +162,7 @@ func (this *dockerContainersMeasurement) LineProto() (*io.Point, error) {
 func (this *dockerContainersMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: dockerContainersName,
-		Desc: "docker容器相关",
+		Desc: "Docker 容器相关",
 		Tags: map[string]interface{}{
 			"container_id":   inputs.NewTagInfo(`容器id`),
 			"container_name": inputs.NewTagInfo(`容器名称`),
@@ -179,12 +179,12 @@ func (this *dockerContainersMeasurement) Info() *inputs.MeasurementInfo {
 			// "kube_ownerref_kind":  inputs.NewTagInfo(`TODO`),
 		},
 		Fields: map[string]interface{}{
-			"from_kubernetes":    &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "该容器是否由kubernetes创建"},
+			"from_kubernetes":    &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "该容器是否由 Kubernetes 创建"},
 			"cpu_usage_percent":  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU使用率"},
 			"mem_usage_percent":  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "内存使用率"},
-			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "容器cpu增量"},
-			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "系统cpu增量"},
-			"cpu_numbers":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "CPU核心数"},
+			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "容器 CPU 增量"},
+			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "系统 CPU 增量"},
+			"cpu_numbers":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "CPU 核心数"},
 			"mem_available":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "内存可用总量"},
 			"mem_usage":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "内存使用量"},
 			"mem_failed_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "内存分配失败的次数"},
@@ -210,14 +210,14 @@ func (this *dockerContainersLogMeasurement) LineProto() (*io.Point, error) {
 func (this *dockerContainersLogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: dockerContainersLogName,
-		Desc: "docker日志指标集，默认使用容器名，如果容器名能匹配 `log_option.container_name_match` 正则，则使用对应的 `source` 字段值",
+		Desc: "Docker 日志指标集，默认使用容器名，如果容器名能匹配 `log_option.container_name_match` 正则，则使用对应的 `source` 字段值",
 		Tags: map[string]interface{}{
 			"container_name": inputs.NewTagInfo(`容器名称`),
 			"image_name":     inputs.NewTagInfo(`容器镜像名称`),
 			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty`),
 		},
 		Fields: map[string]interface{}{
-			"from_kubernetes": &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "该容器是否由kubernetes创建"},
+			"from_kubernetes": &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "该容器是否由 Kubernetes 创建"},
 			"service":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "服务名称"},
 			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK"},
 			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
