@@ -145,7 +145,6 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 
 const (
 	dockerContainersName = "docker_containers"
-	ker
 )
 
 type dockerContainersMeasurement struct {
