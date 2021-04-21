@@ -150,6 +150,7 @@ func (i *Input) runLog(defaultPile string) {
 			i.Log.Pipeline = filepath.Join(datakit.PipelineDir, pfile)
 
 			i.Log.Source = inputName
+			i.Log.Tags = make(map[string]string)
 			for k, v := range i.Tags {
 				i.Log.Tags[k] = v
 			}
@@ -206,7 +207,7 @@ func (i *Input) Catalog() string { return catalogName }
 func (i *Input) SampleConfig() string { return configSample }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.UnknownArch
+	return datakit.AllArch
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
