@@ -144,8 +144,8 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 // }
 
 const (
-	dockerContainersName    = "docker_containers"
-	dockerContainersLogName = "<your-source/container-name>"
+	dockerContainersName = "docker_containers"
+	ker
 )
 
 type dockerContainersMeasurement struct {
@@ -211,8 +211,8 @@ func (this *dockerContainersLogMeasurement) LineProto() (*io.Point, error) {
 
 func (this *dockerContainersLogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: dockerContainersLogName,
-		Desc: "Docker 日志指标集，默认使用容器名，如果容器名能匹配 `log_option.container_name_match` 正则，则使用对应的 `source` 字段值",
+		Name: "Docker 日志指标",
+		Desc: "默认使用容器名，如果容器名能匹配 `log_option.container_name_match` 正则，则使用对应的 `source` 字段值",
 		Tags: map[string]interface{}{
 			"container_name": inputs.NewTagInfo(`容器名称`),
 			"image_name":     inputs.NewTagInfo(`容器镜像名称`),
