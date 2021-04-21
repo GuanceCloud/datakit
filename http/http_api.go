@@ -49,7 +49,7 @@ func apiWriteMetric(c *gin.Context) {
 		x = append(x, &io.Point{pt})
 	}
 
-	if err = io.Feed(io.Metric, name, x, nil); err != nil {
+	if err = io.Feed(name, io.Metric, x, nil); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
