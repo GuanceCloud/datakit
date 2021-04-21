@@ -141,6 +141,32 @@ func NamedFeed(data []byte, category, name string) error {
 }
 
 // Deprecated
+func HighFreqFeedEx(name, category, metric string,
+	tags map[string]string,
+	fields map[string]interface{},
+	t ...time.Time) error {
+
+	var ts time.Time
+	if len(t) > 0 {
+		ts = t[0]
+	} else {
+		ts = time.Now().UTC()
+	}
+
+	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
+		&lp.Option{
+			ExtraTags: datakit.Cfg.MainCfg.GlobalTags,
+			Strict:    true,
+			Time:      ts,
+			Precision: "n"})
+	if err != nil {
+		return err
+	}
+
+	return defaultIO.DoFeed([]*Point{&Point{pt}}, category, name, &Option{HighFreq: true})
+}
+
+// Deprecated
 func NamedFeedEx(name, category, metric string,
 	tags map[string]string,
 	fields map[string]interface{},
