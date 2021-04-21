@@ -49,8 +49,8 @@ func (ag *agent) Run() {
 		ag.Interval.Duration = time.Minute * 5
 	}
 
-	//每分钟最多100个请求
-	limit := rate.Every(600 * time.Millisecond)
+	//每分钟最多1000个请求
+	limit := rate.Every(60 * time.Millisecond)
 	ag.limiter = rate.NewLimiter(limit, 1)
 
 	go func() {
