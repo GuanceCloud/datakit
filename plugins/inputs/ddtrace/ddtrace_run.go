@@ -151,6 +151,8 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 				tAdpter.Version = trace.GetFromPluginTag(DdtraceTags, trace.VERSION)
 			}
 
+			tAdpter.ContainerHost = span.Meta[trace.CONTAINER_HOST]
+
 			tAdpter.HttpMethod = span.Meta["http.method"]
 			tAdpter.HttpStatusCode = span.Meta["http.status_code"]
 			js, err := json.Marshal(span)
