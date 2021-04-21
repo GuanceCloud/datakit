@@ -3,7 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"encoding/json"
-	"flag"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	nhttp "net/http"
@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
+	flag "github.com/spf13/pflag"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -32,19 +33,21 @@ import (
 )
 
 var (
-	flagVersion = flag.Bool("version", false, `show version info`)
+	flagVersion = flag.BoolP("version", "v", false, `show version info`)
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
 	// tool-commands supported in datakit
-	flagCmd                 = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline            = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText                = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-	flagGrokq               = flag.Bool("grokq", false, "query groks interactively")
-	flagMan                 = flag.Bool("man", false, "read manuals of inputs")
-	flagOTA                 = flag.Bool("ota", false, "update datakit new version if available")
-	flagAcceptRCVersion     = flag.Bool("accept-rc-version", false, "accept RC version if available")
+	flagCmd             = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline        = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText            = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
+	flagMan             = flag.Bool("man", false, "read manuals of inputs")
+	flagOTA             = flag.Bool("ota", false, "update datakit new version if available")
+	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "during OTA, accept RC version if available")
+
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
-	flagExportMan           = flag.String("export-man", "", "export all inputs and related manuals to specified path")
+
+	flagExportMan = flag.String("export-man", "", "export all inputs and related manuals to specified path")
 )
 
 var (
@@ -54,6 +57,11 @@ var (
 )
 
 func main() {
+
+	flag.CommandLine.MarkHidden("show-testing-version")
+	flag.CommandLine.SortFlags = false
+	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
+
 	flag.Parse()
 
 	applyFlags()
