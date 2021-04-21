@@ -141,13 +141,8 @@ func main() {
 		l.Info(":) Install Success!")
 	}
 
-	localIP, err := datakit.LocalIP()
-	if err != nil {
-		l.Info("get local IP failed: %s", err.Error())
-	} else {
-		fmt.Printf("\n\tVisit http://%s:%d/stats to see DataKit running status.\n", localIP, *flagPort)
-		fmt.Printf("\tVisit http://%s:%d/man to see DataKit manuals.\n\n", localIP, *flagPort)
-	}
+	fmt.Printf("\n\tVisit http://localhost:%d/stats to see DataKit running status.\n", *flagPort)
+	fmt.Printf("\tVisit http://localhost:%d/man to see DataKit manuals.\n\n", *flagPort)
 }
 
 func applyFlags() {
