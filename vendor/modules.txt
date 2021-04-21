@@ -815,6 +815,8 @@ github.com/sirupsen/logrus
 github.com/soniah/gosnmp
 # github.com/spf13/cast v1.3.1
 github.com/spf13/cast
+# github.com/spf13/pflag v1.0.5
+github.com/spf13/pflag
 # github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 github.com/streadway/amqp
 # github.com/stretchr/objx v0.2.0
@@ -868,8 +870,6 @@ github.com/ucloud/ucloud-sdk-go/ucloud/response
 github.com/ucloud/ucloud-sdk-go/ucloud/version
 # github.com/ugorji/go/codec v1.2.4
 github.com/ugorji/go/codec
-# github.com/unrolled/secure v1.0.8
-github.com/unrolled/secure
 # github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 github.com/vinllen/mgo
 github.com/vinllen/mgo/bson
