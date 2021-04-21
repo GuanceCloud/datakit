@@ -40,9 +40,16 @@ func (this *Input) gather(option ...*gatherOption) ([]*io.Point, error) {
 			tags := this.gatherContainerInfo(c)
 
 			// 区分指标和对象
-			// 对象数据需要有 name 标签
+			// 对象数据需要有 name 和 container_host 标签
 			if opt != nil && opt.IsObjectCategory {
 				tags["name"] = c.ID
+
+				containerJson, err := this.client.ContainerInspect(context.Background(), c.ID)
+				if err != nil {
+					l.Warnf("gather container inspect error: %s", err)
+				} else {
+					tags["container_host"] = containerJson.Config.Hostname
+				}
 			}
 
 			fields, err := this.gatherStats(c)
