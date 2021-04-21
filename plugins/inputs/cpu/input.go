@@ -1,5 +1,3 @@
-// +build !darwin
-
 package cpu
 
 import (
@@ -122,9 +120,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return []string{
-		datakit.OSLinux, datakit.OSWindows,
-	}
+	return datakit.AllArch
 }
 
 func (i *Input) Collect() error {
