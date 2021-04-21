@@ -68,7 +68,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.UnknownArch
+	return []string{datakit.OSArchLinuxAmd64}
 }
 
 func init() {

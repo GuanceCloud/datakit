@@ -154,7 +154,7 @@ func (n *Input) handVTSResponse(r io.Reader) {
 	t := time.Unix(0, vtsResp.Now*1000000)
 	vtsResp.tags = getTags(n.Url)
 
-	vtsResp.tags["host_name"] = vtsResp.HostName
+	vtsResp.tags["host"] = vtsResp.HostName
 	vtsResp.tags["nginx_version"] = vtsResp.Version
 
 	for k, v := range n.Tags {

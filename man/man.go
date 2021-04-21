@@ -14,11 +14,13 @@ import (
 )
 
 var (
-	ManualBox = packr.New("manulas", "./manuals")
+	ManualBox = packr.New("manuals", "./manuals")
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
-		"pipeline":  "man/manuals/pipeline.md",
+		// all manuals under man/manuals/
+		"pipeline":  "pipeline.md",
 		"changelog": "man/manuals/changelog.md",
+		"datatypes": "man/manuals/datatypes.md",
 	}
 
 	l = logger.DefaultSLogger("man")
@@ -57,7 +59,7 @@ func BuildMarkdownManual(name string) ([]byte, error) {
 
 		input := c()
 		switch i := input.(type) {
-		case inputs.InputV2: // pass
+		case inputs.InputV2:
 			sampleMeasurements := i.SampleMeasurement()
 			p = &Params{
 				InputName:      name,
