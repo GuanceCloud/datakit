@@ -21,7 +21,7 @@ func TestMain(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pts, err := d.gather()
+	pts, err := d.gather(&gatherOption{IsObjectCategory: true})
 	if err != nil {
 		t.Fatal(err)
 	}
