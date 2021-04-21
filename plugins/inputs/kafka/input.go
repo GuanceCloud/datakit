@@ -44,6 +44,7 @@ func (i *Input) Run() {
 func (i *Input) runLog() {
 	inputs.JoinPipelinePath(i.Log, "kafka.p")
 	i.Log.Source = "kafka"
+	i.Log.Tags = make(map[string]string)
 	for k, v := range i.Tags {
 		i.Log.Tags[k] = v
 	}
