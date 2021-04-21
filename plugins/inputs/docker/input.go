@@ -211,7 +211,7 @@ func (this *dockerContainersLogMeasurement) LineProto() (*io.Point, error) {
 
 func (this *dockerContainersLogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "Docker 日志指标",
+		Name: "日志指标",
 		Desc: "默认使用容器名，如果容器名能匹配 `log_option.container_name_match` 正则，则使用对应的 `source` 字段值",
 		Tags: map[string]interface{}{
 			"container_name": inputs.NewTagInfo(`容器名称`),
