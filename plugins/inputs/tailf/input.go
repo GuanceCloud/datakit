@@ -52,7 +52,7 @@ type Input struct {
 	Service                 string            `toml:"service"`
 	Pipeline                string            `toml:"pipeline"`
 	DeprecatedPipeline      string            `toml:"pipeline_path"`
-	DeprecatedFromBeginning string            `toml:"from_beginning"`
+	DeprecatedFromBeginning bool              `toml:"from_beginning"`
 	IgnoreStatus            []string          `toml:"ignore_status"`
 	CharacterEncoding       string            `toml:"character_encoding"`
 	Match                   string            `toml:"match"`
