@@ -57,6 +57,7 @@ type TraceAdapter struct {
 	Pid            string
 	HttpMethod     string
 	HttpStatusCode string
+	ContainerHost  string
 
 	Tags map[string]string
 }
@@ -72,9 +73,10 @@ const (
 	STATUS_WARN     = "warning"
 	STATUS_CRITICAL = "critical"
 
-	PROJECT = "project"
-	VERSION = "version"
-	ENV     = "env"
+	PROJECT        = "project"
+	VERSION        = "version"
+	ENV            = "env"
+	CONTAINER_HOST = "container_host"
 
 	SPAN_SERVICE_APP    = "app"
 	SPAN_SERVICE_DB     = "db"
@@ -125,6 +127,10 @@ func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 		tags["span_type"] = tAdpt.SpanType
 	} else {
 		tags["span_type"] = SPAN_TYPE_ENTRY
+	}
+
+	if tAdpt.ContainerHost != "" {
+		tags["container_host"] = tAdpt.ContainerHost
 	}
 
 	fields["duration"] = tAdpt.Duration / 1000
