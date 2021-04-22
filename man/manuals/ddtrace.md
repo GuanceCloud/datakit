@@ -10,8 +10,6 @@
 
 ## 前置条件
 
-- 已安装 DataKit（[DataKit 安装文档](../../../02-datakit采集器/index.md)）
-
 - 部署对应语言的 [Datadog Tracing](https://docs.datadoghq.com/tracing/)工具软件，并配置数据上报地址为 DataKit 提供的地址
 
 ## 配置
@@ -34,8 +32,8 @@ ddtrace 的数据发送到 DataKit一共需要三步：
 
 ### 配置和链路数据监听的地址和端口
 
-打开 DataKit 安装目录下的 `datakit.conf`，找到 `http_server_addr` 配置项，配置数据接收的监听地址和端口，默认监听地址是 `0.0.0.0`，端口为 `9529`
-完成以上配置后，即可获取：ddtrace 链路数据的接收地址`HTTP协议//:绑定地址:链路端口/v0.4/traces`。例如 DataWay 的地址是 `1.2.3.4`，配置的监听地址和端口是 `0.0.0.0:9529`，ddtrace 链路数据的接收地址是： `http://1.2.3.4:9529/v0.4/traces`，如果是本机也可以使用 `localhost` 或 `127.0.0.1`，如果是内网也可以使用内网地址。
+打开 DataKit 安装目录下的 `datakit.conf`，找到 `http_listen` 配置项，配置数据接收的监听地址和端口，默认监听地址是 `0.0.0.0`，端口为 `9529`
+完成以上配置后，即可获取：ddtrace 链路数据的接收地址`HTTP协议//:绑定地址:链路端口/v0.4/traces`。例如 DataKit 的地址是 `1.2.3.4`，配置的监听地址和端口是 `0.0.0.0:9529`，ddtrace 链路数据的接收地址是： `http://1.2.3.4:9529/v0.4/traces`，如果是本机也可以使用 `localhost` 或 `127.0.0.1`，如果是内网也可以使用内网地址。
 
 **注意：**
 
@@ -46,16 +44,17 @@ ddtrace 的数据发送到 DataKit一共需要三步：
 
 通过 ddtarce 采集数据需要根据当前项目开发语言参考对应帮助文档 [Datadog Tracing](https://github.com/DataDog)。
 
-
 这里以 Python 应用作为示范
 
 第一步，安装相关依赖包
-```Python
+
+```shell
 pip install ddtrace
 ```
 
 第二步，在应用初始化时设置上报地址
-```
+
+```python
 import os
 from ddtrace import tracer
 
@@ -77,17 +76,19 @@ tracer.configure(
 
 第三步，开启应用
 
-```
+```shell
 ddtrace-run python your_app.py
 ``` 
 
 若需要链路数据和容器对象关联，需按照如下方式开启应用
-```
+
+```shell
 DD_TAGS=container_host:$HOSTNAME,other_tag:other_tag_val ddtrace-run python your_app.py
 ``` 
 
 若通过 `gunicorn` 运行，需要在应用初始化时进行如下配置，否则会产生相同的 `traceID`
-```
+
+```python
 patch(gevent=True)
 ```
 
@@ -97,12 +98,14 @@ patch(gevent=True)
 除了在应用初始化时设置项目名，环境名以及版本号外，还可通过如下两种方式设置：
 
 - 通过环境变量设置
-```
+
+```shell
 export DD_TAGS="project:your_project_name,env=test,version=v1"
 ```
 
 - 通过采集器自定义标签设置
-```
+
+```toml
 [inputs.ddtrace]
        path = "/v0.4/traces"                   # ddtrace 链路数据接收路径，默认与ddtrace官方定义的路径相同
        [inputs.ddtrace.tags]                   # 自定义标签组
@@ -112,10 +115,12 @@ export DD_TAGS="project:your_project_name,env=test,version=v1"
 ```
 
 ## 示例代码
+
 以 Python 语言作为示例代码，其它编程语言与此类似，示例中`SERVICE_A`提供 HTTP 服务，并且调用`SERVICE_B` HTTP服务。
 
 ### SERVICE_A
-```
+
+```python
 from flask import Flask
 import requests, os
 from ddtrace import tracer
@@ -141,7 +146,8 @@ if __name__ == '__main__':
 ```
 
 ### SERVICE_B
-```
+
+```python
 import os, time, requests
 from flask import Flask
 from ddtrace import tracer
