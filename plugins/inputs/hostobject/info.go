@@ -12,8 +12,6 @@ import (
 	netutil "github.com/shirou/gopsutil/net"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 type (
@@ -82,6 +80,9 @@ type (
 		Name     string `json:"name"`
 		Count    int64  `json:"count"`
 		LastTime int64  `json:"last_time"`
+
+		LastErr     string `json:"last_err"`
+		LastErrTime int64  `json:"last_err_time"`
 	}
 )
 
@@ -247,52 +248,18 @@ func getEnabledInputs() []*CollectorStatus {
 
 	inputsStats, err := io.GetStats() // get all inputs stats
 	if err != nil {
-		moduleLogger.Errorf("fail to get inputs stats, %s", err)
+		moduleLogger.Warnf("fail to get inputs stats, %s", err)
+		return nil
 	}
 
-	for k := range inputs.Inputs {
-		n, _ := inputs.InputEnabled(k)
-		if n > 0 {
-			var count int64
-			var last int64
+	for _, s := range inputsStats {
 
-			for _, s := range inputsStats {
-				if s.Name == k {
-					count = s.Count
-					last = s.Last.Unix()
-					break
-				}
-			}
-
-			sts = append(sts, &CollectorStatus{
-				Name:     k,
-				Count:    count,
-				LastTime: last,
-			})
-
-		}
-	}
-
-	for k := range tgi.TelegrafInputs {
-		n, _ := inputs.InputEnabled(k)
-		if n > 0 {
-			var count int64
-			var last int64
-
-			for _, s := range inputsStats {
-				if s.Name == k {
-					count = s.Count
-					last = s.Last.Unix()
-					break
-				}
-			}
-
-			sts = append(sts, &CollectorStatus{
-				Name:     k,
-				Count:    count,
-				LastTime: last,
-			})
-		}
+		sts = append(sts, &CollectorStatus{
+			Name:        s.Name,
+			Count:       s.Count,
+			LastTime:    s.Last.Unix(),
+			LastErr:     s.LastErr,
+			LastErrTime: s.LastErrTS.Unix()})
 	}
 
 	return sts
