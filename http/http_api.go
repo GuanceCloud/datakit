@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	influxm "github.com/influxdata/influxdb1-client/models"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -55,7 +56,6 @@ func apiWriteMetric(c *gin.Context) {
 	}
 
 	ErrOK.HttpBody(c, nil)
-	return
 }
 
 func apiWriteLogging(c *gin.Context) {
@@ -148,6 +148,47 @@ func apiWriteObject(c *gin.Context) {
 
 	if err = io.NamedFeed(body, io.Object, name); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+		return
+	}
+
+	ErrOK.HttpBody(c, nil)
+}
+
+func apiWriteSecurity(c *gin.Context) {
+	var precision string = DEFAULT_PRECISION
+	var body []byte
+	var err error
+
+	name := c.Query(NAME)
+	precision = c.Query(PRECISION)
+
+	body, err = uhttp.GinRead(c)
+	if err != nil {
+		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
+
+		return
+	}
+
+	var pts []*influxdb.Point
+	if pts, err = lp.ParsePoints(body, &lp.Option{
+		ExtraTags: datakit.Cfg.MainCfg.GlobalTags,
+		Strict:    true,
+		Precision: precision}); err != nil {
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+
+		return
+	}
+
+	l.Debugf("received security %d points from %s", len(pts), name)
+
+	var x []*io.Point
+	for _, pt := range pts {
+		x = append(x, &io.Point{pt})
+	}
+
+	if err = io.Feed(name, io.Metric, x, nil); err != nil {
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+
 		return
 	}
 
