@@ -8,9 +8,6 @@ RELEASE_DOWNLOAD_ADDR = zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.
 # 测试环境
 TEST_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit
 
-# 预发环境
-PRE_DOWNLOAD_ADDR = zhuyun-static-files-preprod.oss-cn-hangzhou.aliyuncs.com/datakit
-
 # 本地环境: 需配置环境变量，便于完整测试采集器的发布、更新等流程
 # export LOCAL_OSS_ACCESS_KEY='<your-oss-AK>'
 # export LOCAL_OSS_SECRET_KEY='<your-oss-SK>'
@@ -53,7 +50,7 @@ ifdef TELEGRAF_VERSION
 	TELEGRAF_LDFLAGS += -X main.version=$(TELEGRAF_VERSION)
 endif
 
-all: testing release preprod local
+all: testing release local
 
 define GIT_INFO
 //nolint
@@ -102,9 +99,6 @@ local: man gofmt
 testing: man
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
-preprod: man
-	$(call build,preprod, $(DEFAULT_ARCHS), $(PRE_DOWNLOAD_ADDR))
-
 release: man
 	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
@@ -141,14 +135,7 @@ pub_release_img:
 pub_agent:
 	@go run cmd/make/make.go -pub-agent -env local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
 	@go run cmd/make/make.go -pub-agent -env test -pub-dir embed -download-addr $(TEST_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
-	@go run cmd/make/make.go -pub-agent -env preprod -pub-dir embed -download-addr $(PRE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
 	@go run cmd/make/make.go -pub-agent -env release -pub-dir embed -download-addr $(RELEASE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
-
-pub_preprod:
-	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
-
-pub_preprod_mac:
-	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
