@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"encoding/json"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -80,6 +81,7 @@ const ( // categories
 	Logging          = "/v1/write/logging"
 	Tracing          = "/v1/write/tracing"
 	Rum              = "/v1/write/rum"
+	Security         = "/v1/write/security"
 	HeartBeat        = "/v1/write/heartbeat"
 
 	minGZSize = 1024
@@ -131,6 +133,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case Object:
 	case Logging:
 	case Tracing:
+	case Security:
 	case Rum:
 	default:
 		return fmt.Errorf("invalid category `%s'", category)
