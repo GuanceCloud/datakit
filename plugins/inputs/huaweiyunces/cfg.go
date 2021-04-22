@@ -48,6 +48,9 @@ const (
 #'SYS.OBS:download_bytes,upload_bytes',
 # ]
 
+# ##(optional) mapping projectId to regionId, eg. mapping 0747621b760026a52f02c009e91xxxx to cn-north-1
+#[inputs.huaweiyunces.project_regions]
+#projectId1 = 'regionId1'
 
 # ##(optional) custom tags
 #[inputs.huaweiyunces.tags]
@@ -110,6 +113,8 @@ type (
 		ProjectID string `toml:"projectid"` //deprated
 
 		Namespace []*Namespace `toml:"namespace"` //deprated
+
+		ProjectRegions map[string]string `toml:"project_regions,omitempty"`
 
 		Tags map[string]string `toml:"tags,omitempty"`
 
