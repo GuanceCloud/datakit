@@ -26,6 +26,9 @@ const (
 # ##(optional) default is 1min, should not more then interval
 #delay = '1m'
 
+# ##(optional) control the frequency of huaweiyun api call in every second, the minimum is 1 and the maximum is 1000. default is 20
+#api_frequency = 20
+
 # ##(optional) specify the project ids to collect. default will apply to all projects
 #projectids = [
 #	'614439cb10ad4bdc9f3b0bc8xxx',
@@ -91,6 +94,8 @@ type (
 
 		Interval datakit.Duration `toml:"interval"`
 		Delay    datakit.Duration `toml:"delay"`
+
+		ApiFrequency int `toml:"api_frequency"`
 
 		IncludeProjectIDs []string `toml:"projectids,omitempty"`
 		ExcludeProjectIDs []string `toml:"exclude_projectids,omitempty"`
