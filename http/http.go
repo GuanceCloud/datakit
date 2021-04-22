@@ -241,6 +241,7 @@ func HttpStart() {
 	router.POST(io.Object, func(c *gin.Context) { apiWriteObject(c) })
 	router.POST(io.Logging, func(c *gin.Context) { apiWriteLogging(c) })
 	router.POST(io.Tracing, func(c *gin.Context) { apiWriteTracing(c) })
+	router.POST(io.Security, func(c *gin.Context) { apiWriteSecurity(c) })
 
 	srv := &http.Server{
 		Addr:    httpBind,
