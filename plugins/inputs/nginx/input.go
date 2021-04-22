@@ -48,6 +48,11 @@ user_agent(agent)
 
 # error log
 grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg}, client: %{IPORHOST:client_ip}, server: %{IPORHOST:server}, request: \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\", (upstream: \"%{GREEDYDATA:upstream}\", )?host: \"%{IPORHOST:host}\"")
+grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg}, client: %{IPORHOST:client_ip}, server: %{IPORHOST:server}, request: \"%{GREEDYDATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\", host: \"%{IPORHOST:host}\"")
+grok(_,"%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg}")
+
+group_in(status, ["warn", "notice"], "warning")
+group_in(status, ["error", "crit", "alert", "emerg"], "error")
 
 cast(status_code, "int")
 cast(bytes, "int")
@@ -56,6 +61,7 @@ group_between(status_code, [200,299], "OK", status)
 group_between(status_code, [300,399], "notice", status)
 group_between(status_code, [400,499], "warning", status)
 group_between(status_code, [500,599], "error", status)
+
 
 nullif(http_ident, "-")
 nullif(http_auth, "-")
