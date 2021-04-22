@@ -49,6 +49,17 @@ const (
 # ]
 
 # ##(optional) mapping projectId to regionId, eg. mapping 0747621b760026a52f02c009e91xxxx to cn-north-1
+# ##supported regionIds:
+# ##"af-south-1"
+# ##"cn-north-4"
+# ##"cn-north-1"
+# ##"cn-east-2"
+# ##"cn-east-3"
+# ##"cn-south-1"
+# ##"cn-southwest-2"
+# ##"ap-southeast-2"
+# ##"ap-southeast-1"
+# ##"ap-southeast-3"
 #[inputs.huaweiyunces.project_regions]
 #projectId1 = 'regionId1'
 
