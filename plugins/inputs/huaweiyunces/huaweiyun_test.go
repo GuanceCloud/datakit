@@ -1,14 +1,18 @@
 package huaweiyunces
 
 import (
+	"os"
 	"testing"
 )
 
 func TestInput(t *testing.T) {
 
+	ak := os.Getenv("HUAWEIYUN_AK")
+	sk := os.Getenv("HUAWEIYUN_SK")
+
 	ag := newAgent("debug")
-	ag.AccessKeyID = "CGG2MSXKM57HDF0B089B"
-	ag.AccessKeySecret = "7ff1iStWknEqAkW872BMwO6B3GHdEsV2VkWFQWy9"
+	ag.AccessKeyID = ak
+	ag.AccessKeySecret = sk
 	ag.ApiFrequency = 20
 
 	ag.IncludeMetrics = []string{
