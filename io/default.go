@@ -87,6 +87,19 @@ func Feed(name, category string, pts []*Point, opt *Option) error {
 	return defaultIO.DoFeed(pts, category, name, opt)
 }
 
+func FeedLastError(inputName string, err string) error {
+	select {
+	case defaultIO.inLastErr <- &lastErr{
+		from: inputName,
+		err:  err,
+		ts:   time.Now(),
+	}:
+	case <-datakit.Exit.Wait():
+		l.Warnf("%s feed last error skipped on global exit", inputName)
+	}
+	return nil
+}
+
 func MakePoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
