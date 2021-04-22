@@ -57,7 +57,7 @@ drop_origin_data()
 
 	# 此处配置成 datakit 安装目录的相对路径，故所有脚本必须放在 /path/to/datakit/pipeline 目录下
 	# 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名的脚本（如 nginx -> nginx.p），
-  # 作为其默认 pipeline 配置
+	# 作为其默认 pipeline 配置
 	pipeline_ = "nginx.p"
 
 	... # 其它配置
@@ -69,8 +69,8 @@ drop_origin_data()
 
 如果在编写 pipeline 的过程中，可能编写 pipeline 或者 grok 时，需要调试，DataKit 提供了对应的调试工具。 进入 DataKit 安装目录，执行：
 
-```
-./datakit -cmd -pl <pipeline-script-name.p> -txt <txt-to-be-pipelined>
+```shell
+./datakit --cmd --pl <pipeline-script-name.p> --txt <txt-to-be-pipelined>
 ```
 
 参数说明：
@@ -118,18 +118,18 @@ _dklog_msg %{GREEDYDATA}
 
 ```Shell
 # 提取成功示例
-$ ./datakit -cmd -pl dklog_pl.p -txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+$ ./datakit --cmd --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs):
 {
-    "code": "io/io.go:458",
-    "level": "DEBUG",
-    "module": "io",
-    "msg": "post cost 6.87021ms",
-    "time": 1610358231887000000
+	"code": "io/io.go:458",
+	"level": "DEBUG",
+	"module": "io",
+	"msg": "post cost 6.87021ms",
+	"time": 1610358231887000000
 }
 
 # 提取失败示例
-$ ./datakit -cmd -pl dklog_pl.p -txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
+$ ./datakit --cmd --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
 No data extracted from pipeline
 ```
 
@@ -138,7 +138,7 @@ No data extracted from pipeline
 由于 grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具：
 
 ```Shell
-$ ./datakit -cmd -grokq
+$ ./datakit --cmd --grokq
 grokq > Mon Jan 25 19:41:17 CST 2021   # 此处输入你希望匹配的文本
         2 %{DATESTAMP_OTHER: ?}        # 工具会给出对应对的建议，越靠前匹配月精确（权重也越大）。前面的数字表明权重。
         0 %{GREEDYDATA: ?}
@@ -176,9 +176,9 @@ Bye!
 
 示例:
 
-```
+```python
 # 待处理数据
-data = "12:13:14"
+data = "21:13:14"
 
 # pipline脚本
 script = `
@@ -194,7 +194,7 @@ grok(_, "%{time}")`
 	"hour":"12",
 	"minute":"13",
 	"second":"14",
-	"message":"12:13:14"
+	"message":"21:13:14"
 }
 ```
 
@@ -214,9 +214,9 @@ grok(key, pattern)  # 对之前已经提取出来的某个 key，做再次 grok
 
 示例:
 
-```
+```python
 # 待处理数据
-data = "12:13:14"
+data = "21:13:14"
 
 # pipline脚本
 script = `
@@ -224,7 +224,7 @@ add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)")
 add_pattern("_minute", "(?:[0-5][0-9])")
 add_pattern("_hour", "(?:2[0123]|[01]?[0-9])")
 add_pattern("time", "([^0-9]?)%{HOUR:hour}:%{MINUTE:minute}(?::%{SECOND:second})([^0-9]?)")
-grok(_, "%{time}")`
+grok(_, "%{time}")
 `
 
 # 处理结果
@@ -232,7 +232,7 @@ grok(_, "%{time}")`
 	"hour":"12",
 	"minute":"13",
 	"second":"14",
-	"message":"12:13:14"
+	"message":"21:13:14"
 }
 ```
 
@@ -256,7 +256,7 @@ json(key, x.y)
 
 示例一:
 
-```
+```python
 # 待处理数据
 data = `{"info": {"age": 17, "name": "zhangsan", "height": 180}}`
 
@@ -269,29 +269,29 @@ json(zhangsan, age, "年龄")
 
 # 处理结果
 {
-  "message": "{\"info\": {\"age\": 17, \"name\": \"zhangsan\", \"height\": 180}}",
-  "zhangsan": {
-    "age": 17,
-    "height": 180,
-    "name": "zhangsan"
-  }
+	"message": "{\"info\": {\"age\": 17, \"name\": \"zhangsan\", \"height\": 180}}",
+	"zhangsan": {
+		"age": 17,
+		"height": 180,
+		"name": "zhangsan"
+	}
 }
 ```
 
 示例二:
 
-```
+```python
 # 待处理数据
 data = `{
-	  "name": {"first": "Tom", "last": "Anderson"},
-	  "age":37,
-	  "children": ["Sara","Alex","Jack"],
-	  "fav.movie": "Deer Hunter",
-	  "friends": [
-	    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
-	    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
-	    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
-	  ]
+	"name": {"first": "Tom", "last": "Anderson"},
+	"age":37,
+	"children": ["Sara","Alex","Jack"],
+	"fav.movie": "Deer Hunter",
+	"friends": [
+		{"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+		{"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+		{"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
+]
 	}`
 
 # 处理脚本
@@ -302,7 +302,7 @@ json(_, name) json(name, first)
 
 示例三:
 
-```
+```python
 # 待处理数据
 data = `[
 	    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
@@ -326,20 +326,20 @@ json(_, [0].nets[-1])
 
 示例：
 
-```
+```python
 # 待处理数据
 data = `
 {
-  "name": {"first": "Tom", "last": "Anderson"},
-  "age":37,
-  "身高": 180,
-  "children": ["Sara","Alex","Jack"],
-  "fav.movie": "Deer Hunter",
-  "friends": [
-    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
-    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
-    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
-  ]
+	"name": {"first": "Tom", "last": "Anderson"},
+	"age":37,
+	"身高": 180,
+	"children": ["Sara","Alex","Jack"],
+	"fav.movie": "Deer Hunter",
+	"friends": [
+		{"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+		{"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+		{"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
+	]
 }
 `
 
@@ -348,30 +348,30 @@ script = `json_all()`
 
 会提取出如下对象
 {
-   "age": 37,
-   "身高": 180,
-   "children[0]": "Sara",
-   "children[1]": "Alex",
-   "children[2]": "Jack",
-   "fav.movie": "Deer Hunter",
-   "friends[0].age": 44,
-   "friends[0].first": "Dale",
-   "friends[0].last": "Murphy",
-   "friends[0].nets[0]": "ig",
-   "friends[0].nets[1]": "fb",
-   "friends[0].nets[2]": "tw",
-   "friends[1].age": 68,
-   "friends[1].first": "Roger",
-   "friends[1].last": "Craig",
-   "friends[1].nets[0]": "fb",
-   "friends[1].nets[1]": "tw",
-   "friends[2].age": 47,
-   "friends[2].first": "Jane",
-   "friends[2].last": "Murphy",
-   "friends[2].nets[0]": "ig",
-   "friends[2].nets[1]": "tw",
-   "name.first": "Tom",
-   "name.last": "Anderson"
+	"age": 37,
+	"身高": 180,
+	"children[0]": "Sara",
+	"children[1]": "Alex",
+	"children[2]": "Jack",
+	"fav.movie": "Deer Hunter",
+	"friends[0].age": 44,
+	"friends[0].first": "Dale",
+	"friends[0].last": "Murphy",
+	"friends[0].nets[0]": "ig",
+	"friends[0].nets[1]": "fb",
+	"friends[0].nets[2]": "tw",
+	"friends[1].age": 68,
+	"friends[1].first": "Roger",
+	"friends[1].last": "Craig",
+	"friends[1].nets[0]": "fb",
+	"friends[1].nets[1]": "tw",
+	"friends[2].age": 47,
+	"friends[2].first": "Jane",
+	"friends[2].last": "Murphy",
+	"friends[2].nets[0]": "ig",
+	"friends[2].nets[1]": "tw",
+	"name.first": "Tom",
+	"name.last": "Anderson"
 }
 
 引用某个字段
@@ -386,30 +386,30 @@ rename('height', `身高`) # 身高因为是 Unicode 字符，需要 `` 包围�
 # 经过上面 rename 之后，对象变成如下样子
 
 {
-   "年龄": 37,
-   "height": 180,
-   "children[0]": "Sara",
-   "children[1]": "Alex",
-   "children[2]": "Jack",
-   "fav.movie": "Deer Hunter",
-   "friends[0].age": 44,
-   "friends[0].first": "Dale",
-   "friends[0].last": "Murphy",
-   "friends[0].nets[0]": "ig",
-   "friends[0].nets[1]": "fb",
-   "friends[0].nets[2]": "tw",
-   "friends[1].age": 68,
-   "friends[1].first": "Roger",
-   "friends[1].last": "Craig",
-   "friends[1].nets[0]": "fb",
-   "friends[1].nets[1]": "tw",
-   "friends[2].age": 47,
-   "friends[2].first": "Jane",
-   "friends[2].last": "Murphy",
-   "friends[2].nets[0]": "ig",
-   "f2nets": "tw",
-   "name.first": "Tom",
-   "name.last": "Anderson"
+	"年龄": 37,
+	"height": 180,
+	"children[0]": "Sara",
+	"children[1]": "Alex",
+	"children[2]": "Jack",
+	"fav.movie": "Deer Hunter",
+	"friends[0].age": 44,
+	"friends[0].first": "Dale",
+	"friends[0].last": "Murphy",
+	"friends[0].nets[0]": "ig",
+	"friends[0].nets[1]": "fb",
+	"friends[0].nets[2]": "tw",
+	"friends[1].age": 68,
+	"friends[1].first": "Roger",
+	"friends[1].last": "Craig",
+	"friends[1].nets[0]": "fb",
+	"friends[1].nets[1]": "tw",
+	"friends[2].age": 47,
+	"friends[2].first": "Jane",
+	"friends[2].last": "Murphy",
+	"friends[2].nets[0]": "ig",
+	"f2nets": "tw",
+	"name.first": "Tom",
+	"name.last": "Anderson"
 }
 
 ```
@@ -430,7 +430,7 @@ rename('abc1', abc)
 
 示例：
 
-```
+```python
 # 待处理数据
 data = `{"info": {"age": 17, "name": "zhangsan", "height": 180}}`
 
@@ -457,7 +457,7 @@ script = `json(_, info.name, "姓名")`
 
 示例：
 
-```
+```python
 # 待处理数据
 data = `{"url":"http%3a%2f%2fwww.baidu.com%2fs%3fwd%3d%e6%b5%8b%e8%af%95"}`
 
@@ -486,7 +486,7 @@ script = `json(_, url) url_decode(url)`
 
 示例：
 
-```
+```python
 # 待处理数据
 data = `{"ip":"116.228.89.206"}`
 
@@ -512,7 +512,8 @@ script = `json(_, ip) geoip(ip)`
 - `key`: 已经提取的时间戳 (必选参数)
 - `precision`：输入的时间戳精度(s, ms)
 - `fmt`：日期格式，时间格式, 支持以下模版
-```
+
+```python
 ANSIC       = "Mon Jan _2 15:04:05 2006"
 UnixDate    = "Mon Jan _2 15:04:05 MST 2006"
 RubyDate    = "Mon Jan 02 15:04:05 -0700 2006"
@@ -528,7 +529,7 @@ Kitchen     = "3:04PM"
 
 示例:
 
-```
+```python
 # 待处理数据
 data = `{"a":{"timestamp": "1610960605000", "second":2},"age":47}`
 
@@ -570,7 +571,7 @@ expr(key1 * 2 + key3, result)
 
 示例:
 
-```
+```python
 # 待处理数据
 data = `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
 
@@ -596,7 +597,7 @@ expr(a.second*10+(2+3)*5, bb)
 
 示例:
 
-```
+```python
 # 待处理数据
 data = `{"first": 1,"second":2,"thrid":"aBC","forth":true}`
 
@@ -676,7 +677,7 @@ group_in(log_level, ["error", "panic"], "not-ok", status)
 
 示例:
 
-```
+```python
 # 待处理数据
 data = `{"first": "hello","second":2,"thrid":"aBC","forth":true}`
 
@@ -699,7 +700,7 @@ script = `json(_, first) uppercase(first, "1")`
 
 示例:
 
-```
+```python
 # 待处理数据
 data = `{"first": "HeLLo","second":2,"thrid":"aBC","forth":true}`
 
@@ -723,7 +724,7 @@ script = `json(_, first) lowercase(first)`
 
 示例:
 
-```
+```python
 # 待处理数据
 data = `{"first": 1,"second":2,"thrid":"aBC","forth":true}`
 
@@ -748,7 +749,7 @@ script = `json(_, first) json(_, second) nullif(first, "1")`
 
 示例:
 
-```
+```python
 # 待处理数据
 data = `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
 
@@ -767,7 +768,7 @@ strfmt(bb, "%v %s %v", a.second, a.thrid, a.forth)
 
 示例:
 
-```
+```python
 # 待处理数据
 data = `{"age": 17, "name": "zhangsan", "height": 180}`
 
@@ -787,7 +788,7 @@ script = `drop_origin_data()`
 
 示例:
 
-```
+```python
 # 待处理数据
 data = `{"age": 17, "name": "zhangsan", "height": 180}`
 
@@ -812,116 +813,26 @@ script = `add_key(city, "shanghai")`
 - `timezone`: 指定的时区，默认为本机当前时区
 
 待处理数据支持以下格式化时间
-```
-"May 8, 2009 5:57:51 PM",
-"oct 7, 1970",
-"oct 7, '70",
-"oct. 7, 1970",
-"oct. 7, 70",
-"Mon Jan  2 15:04:05 2006",
-"Mon Jan  2 15:04:05 MST 2006",
-"Mon Jan 02 15:04:05 -0700 2006",
-"Monday, 02-Jan-06 15:04:05 MST",
-"Mon, 02 Jan 2006 15:04:05 MST",
-"Tue, 11 Jul 2017 16:28:13 +0200 (CEST)",
-"Mon, 02 Jan 2006 15:04:05 -0700",
-"Thu, 4 Jan 2018 17:53:36 +0000",
-"Mon 30 Sep 2018 09:09:09 PM UTC",
-"Mon Aug 10 15:44:11 UTC+0100 2015",
-"Thu, 4 Jan 2018 17:53:36 +0000",
-"Fri Jul 03 2015 18:04:07 GMT+0100 (GMT Daylight Time)",
-"September 17, 2012 10:09am",
-"September 17, 2012 at 10:09am PST-08",
-"September 17, 2012, 10:10:09",
-"October 7, 1970",
-"October 7th, 1970",
-"12 Feb 2006, 19:17",
-"12 Feb 2006 19:17",
-"7 oct 70",
-"7 oct 1970",
-"03 February 2013",
-"1 July 2013",
-"2013-Feb-03",
-//   mm/dd/yy
-"3/31/2014",
-"03/31/2014",
-"08/21/71",
-"8/1/71",
-"4/8/2014 22:05",
-"04/08/2014 22:05",
-"4/8/14 22:05",
-"04/2/2014 03:00:51",
-"8/8/1965 12:00:00 AM",
-"8/8/1965 01:00:01 PM",
-"8/8/1965 01:00 PM",
-"8/8/1965 1:00 PM",
-"8/8/1965 12:00 AM",
-"4/02/2014 03:00:51",
-"03/19/2012 10:11:59",
-"03/19/2012 10:11:59.3186369",
-// yyyy/mm/dd
-"2014/3/31",
-"2014/03/31",
-"2014/4/8 22:05",
-"2014/04/08 22:05",
-"2014/04/2 03:00:51",
-"2014/4/02 03:00:51",
-"2012/03/19 10:11:59",
-"2012/03/19 10:11:59.3186369",
-// yyyy:mm:dd
-"2014:3:31",
-"2014:03:31",
-"2014:4:8 22:05",
-"2014:04:08 22:05",
-"2014:04:2 03:00:51",
-"2014:4:02 03:00:51",
-"2012:03:19 10:11:59",
-"2012:03:19 10:11:59.3186369",
-// Chinese
-"2014年04月08日",
-//   yyyy-mm-ddThh
-"2006-01-02T15:04:05+0000",
-"2009-08-12T22:15:09-07:00",
-"2009-08-12T22:15:09",
-"2009-08-12T22:15:09Z",
-//   yyyy-mm-dd hh:mm:ss
-"2014-04-26 17:24:37.3186369",
-"2012-08-03 18:31:59.257000000",
-"2014-04-26 17:24:37.123",
-"2013-04-01 22:43",
-"2013-04-01 22:43:22",
-"2014-12-16 06:20:00 UTC",
-"2014-12-16 06:20:00 GMT",
-"2014-04-26 05:24:37 PM",
-"2014-04-26 13:13:43 +0800",
-"2014-04-26 13:13:43 +0800 +08",
-"2014-04-26 13:13:44 +09:00",
-"2012-08-03 18:31:59.257000000 +0000 UTC",
-"2015-09-30 18:48:56.35272715 +0000 UTC",
-"2015-02-18 00:12:00 +0000 GMT",
-"2015-02-18 00:12:00 +0000 UTC",
-"2015-02-08 03:02:00 +0300 MSK m=+0.000000001",
-"2015-02-08 03:02:00.001 +0300 MSK m=+0.000000001",
-"2017-07-19 03:21:51+00:00",
-"2014-04-26",
-"2014-04",
-"2014",
-"2014-05-11 08:20:13,787",
-// mm.dd.yy
-"3.31.2014",
-"03.31.2014",
-"08.21.71",
-"2014.03",
-"2014.03.30",
-//  yyyymmdd and similar
-"20140601",
-"20140722105203",
-// unix seconds, ms, micro, nano
-"1332151919",
-"1384216367189",
-"1384216367111222",
-"1384216367111222333",
-```
+
+| 日期格式                                           | 日期格式                                                | 日期格式                                       | 日期格式                          |
+| -----                                              | ----                                                    | ----                                           | ----                              |
+| `2014-04-26 17:24:37.3186369`                      | `May 8, 2009 5:57:51 PM`                                | `2012-08-03 18:31:59.257000000`                | `oct 7, 1970`                     |
+| `2014-04-26 17:24:37.123`                          | `oct 7, '70`                                            | `2013-04-01 22:43`                             | `oct. 7, 1970`                    |
+| `2013-04-01 22:43:22`                              | `oct. 7, 70`                                            | `2014-12-16 06:20:00 UTC`                      | `Mon Jan  2 15:04:05 2006`        |
+| `2014-12-16 06:20:00 GMT`                          | `Mon Jan  2 15:04:05 MST 2006`                          | `2014-04-26 05:24:37 PM`                       | `Mon Jan 02 15:04:05 -0700 2006`  |
+| `2014-04-26 13:13:43 +0800`                        | `Monday, 02-Jan-06 15:04:05 MST`                        | `2014-04-26 13:13:43 +0800 +08`                | `Mon, 02 Jan 2006 15:04:05 MST`   |
+| `2014-04-26 13:13:44 +09:00`                       | `Tue, 11 Jul 2017 16:28:13 +0200 (CEST)`                | `2012-08-03 18:31:59.257000000 +0000 UTC`      | `Mon, 02 Jan 2006 15:04:05 -0700` |
+| `2015-09-30 18:48:56.35272715 +0000 UTC`           | `Thu, 4 Jan 2018 17:53:36 +0000`                        | `2015-02-18 00:12:00 +0000 GMT`                | `Mon 30 Sep 2018 09:09:09 PM UTC` |
+| `2015-02-18 00:12:00 +0000 UTC`                    | `Mon Aug 10 15:44:11 UTC+0100 2015`                     | `2015-02-08 03:02:00 +0300 MSK m=+0.000000001` | `Thu, 4 Jan 2018 17:53:36 +0000`  |
+| `2015-02-08 03:02:00.001 +0300 MSK m=+0.000000001` | `Fri Jul 03 2015 18:04:07 GMT+0100 (GMT Daylight Time)` | `2017-07-19 03:21:51+00:00`                    | `September 17, 2012 10:09am`      |
+| `2014-04-26`                                       | `September 17, 2012 at 10:09am PST-08`                  | `2014-04`                                      | `September 17, 2012, 10:10:09`    |
+| `2014`                                             | `2014:3:31`                                             | `2014-05-11 08:20:13,787`                      | `2014:03:31`                      |
+| `3.31.2014`                                        | `2014:4:8 22:05`                                        | `03.31.2014`                                   | `2014:04:08 22:05`                |
+| `08.21.71`                                         | `2014:04:2 03:00:51`                                    | `2014.03`                                      | `2014:4:02 03:00:51`              |
+| `2014.03.30`                                       | `2012:03:19 10:11:59`                                   | `20140601`                                     | `2012:03:19 10:11:59.3186369`     |
+| `20140722105203`                                   | `2014年04月08日`                                        | `1332151919`                                   | `2006-01-02T15:04:05+0000`        |
+| `1384216367189`                                    | `2009-08-12T22:15:09-07:00`                             | `1384216367111222`                             | `2009-08-12T22:15:09`             |
+| `1384216367111222333`                              | `2009-08-12T22:15:09Z`                                  |
 
 JSON 提取示例:
 
@@ -946,7 +857,7 @@ default_time(time) # 将提取到的 time 字段转换成时间戳
 
 文本提取示例:
 
-```
+```python
 # 原始日志文本
 2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms
 
@@ -978,7 +889,7 @@ rename("time", log_time)
 
 示例:
 
-```
+```python
 data = `{"age": 17, "name": "zhangsan", "height": 180}`
 
 # 处理脚本
@@ -1011,7 +922,7 @@ drop_key(height)
 
 示例:
 
-```
+```python
 data = `{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36", "second":2,"thrid":"abc","forth":true}`
 
 script = `
@@ -1038,7 +949,7 @@ json(_, userAgent) user_agent(userAgent)
 
 示例:
 
-```
+```python
 # 假定 abc = "3.5s"
 parse_duration(abc) # 结果 abc = 3500000000
 
@@ -1068,13 +979,13 @@ parse_duration(abc) # 结果 abc = -2300000000
 
 示例:
 
-```
+```python
 parse_date(aa, "2021", "May", "12", "10", "10", "34", "", "Asia/Shanghai") # 结果 aa=1620785434000000000
 
 parse_date(aa, "2021", "12", "12", "10", "10", "34", "", "Asia/Shanghai") # 结果 aa=1639275034000000000
 
 parse_date(aa, "2021", "12", "12", "10", "10", "34", "100", "Asia/Shanghai") # 结果 aa=1639275034000000100
-     
+
 parse_date(aa, "20", "February", "12", "10", "10", "34", "", "+8") 结果 aa=1581473434000000000
 ```
 
@@ -1082,8 +993,7 @@ parse_date(aa, "20", "February", "12", "10", "10", "34", "", "+8") 结果 aa=158
 
 DataKit 中 grok 模式可以分为两类：全局模式与局部模式，`pattern` 目录下的模式文件都是全局模式，所有 pipeline 脚本都可使用，而在 pipeline 脚本中通过 `add_pattern()` 函数新增的模式属于局部模式，只针对当前 pipeline 脚本有效。
 
-当 DataKit 内置模式不能满足所有用户需求，用户可以自行在 pipeline 目录中增加模式文件来扩充。
- 若自定义模式是全局级别，则需在 `pattern` 目录中新建一个文件并把模式添加进去，不要在已有内置模式文件中添加或修改，因为datakit启动过程会把内置模式文件覆盖掉。
+当 DataKit 内置模式不能满足所有用户需求，用户可以自行在 pipeline 目录中增加模式文件来扩充。若自定义模式是全局级别，则需在 `pattern` 目录中新建一个文件并把模式添加进去，不要在已有内置模式文件中添加或修改，因为datakit启动过程会把内置模式文件覆盖掉。
 
 ### 添加局部模式
 
