@@ -162,8 +162,7 @@ func apiWriteSecurity(c *gin.Context) {
 	name := c.Query(NAME)
 	precision = c.Query(PRECISION)
 
-	body, err = uhttp.GinRead(c)
-	if err != nil {
+	if body, err = uhttp.GinRead(c); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
 
 		return
