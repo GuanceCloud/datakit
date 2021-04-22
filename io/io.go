@@ -268,6 +268,7 @@ func (x *IO) init() error {
 		Object:   x.dw.ObjectURL(),
 		Logging:  x.dw.LoggingURL(),
 		Tracing:  x.dw.TracingURL(),
+		Security: x.dw.SecurityURL(),
 		Rum:      x.dw.RumURL(),
 	}
 
