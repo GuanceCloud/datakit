@@ -186,11 +186,9 @@ func apiWriteSecurity(c *gin.Context) {
 		x = append(x, &io.Point{pt})
 	}
 
-	if err = io.Feed(name, io.Metric, x, nil); err != nil {
+	if err = io.Feed(name, io.Security, x, nil); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-
-		return
+	} else {
+		ErrOK.HttpBody(c, nil)
 	}
-
-	ErrOK.HttpBody(c, nil)
 }
