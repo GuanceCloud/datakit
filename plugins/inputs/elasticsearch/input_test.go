@@ -7,8 +7,10 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -74,6 +76,45 @@ func TestGatherNodeStats(t *testing.T) {
 	checkIsMaster(es, es.Servers[0], false, t)
 
 	AssertContainsTaggedFields(t, "elasticsearch_node_stats", nodestatsExpected, tags, es.collectCache)
+}
+
+func TestUtilDuration(t *testing.T) {
+	d := Duration{Duration: time.Second}
+	err := d.UnmarshalTOML([]byte("1s"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = d.UnmarshalTOML([]byte("1619059234299"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = d.UnmarshalTOML([]byte("\"1619059234299\""))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = d.UnmarshalTOML([]byte("1619059234299.001"))
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCollect(t *testing.T) {
+	es := newElasticsearchWithClient()
+	es.Servers = []string{url}
+	es.ClusterHealth = true
+	es.ClusterStats = true
+	es.ClusterHealthLevel = ""
+	es.client.Transport = newTransportMock(clusterHealthResponse)
+	es.serverInfo = make(map[string]serverInfo)
+	es.serverInfo[url] = defaultServerInfo()
+
+	err := es.Collect()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestGatherClusterHealthEmptyClusterHealth(t *testing.T) {
@@ -158,6 +199,78 @@ func TestGatherClusterHealthAlsoIndicesHealth(t *testing.T) {
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health_indices",
 		v2IndexExpected,
 		map[string]string{"index": "v2", "name": clusterName}, es.collectCache)
+}
+
+func TestGatherClusterIndicesStats(t *testing.T) {
+	es := newElasticsearchWithClient()
+	es.IndicesInclude = []string{"_all"}
+	es.Servers = []string{url}
+	es.client.Transport = newTransportMock(clusterIndicesResponse)
+	es.serverInfo = make(map[string]serverInfo)
+	es.serverInfo[url] = defaultServerInfo()
+
+	if err := es.gatherIndicesStats(""); err != nil {
+		t.Fatal(err)
+	}
+
+	AssertContainsTaggedFields(t, "elasticsearch_indices_stats",
+		clusterIndicesPrimariesExpected,
+		map[string]string{"index_name": "es"}, es.collectCache)
+}
+
+func TestGatherClusterIndiceShardsStats(t *testing.T) {
+	es := newElasticsearchWithClient()
+	es.IndicesLevel = "shards"
+	es.Servers = []string{url}
+	es.client.Transport = newTransportMock(clusterIndicesShardsResponse)
+	es.serverInfo = make(map[string]serverInfo)
+	es.serverInfo[url] = defaultServerInfo()
+
+	if err := es.gatherIndicesStats(""); err != nil {
+		t.Fatal(err)
+	}
+
+	AssertContainsTaggedFields(t, "elasticsearch_indices_stats_shards",
+		clusterIndicesPrimaryShardsExpected,
+		map[string]string{"index_name": "es", "node_id": "oqvR8I1dTpONvwRM30etww", "shard_name": "0", "type": "primary"},
+		es.collectCache)
+}
+
+func TestMapHealthStatusToCode(t *testing.T) {
+	assert.Equal(t, mapHealthStatusToCode("GREEN"), 1)
+	assert.Equal(t, mapHealthStatusToCode("YELLOW"), 2)
+	assert.Equal(t, mapHealthStatusToCode("RED"), 3)
+	assert.Equal(t, mapHealthStatusToCode("NULL"), 0)
+}
+
+func TestInput(t *testing.T) {
+	es := newElasticsearchWithClient()
+	assert.Equal(t, es.Catalog(), "elasticsearch")
+	assert.Equal(t, es.SampleConfig(), sampleConfig)
+
+	pipelineMap := es.PipelineConfig()
+	assert.Equal(t, pipelineMap["elasticsearch"], pipelineCfg)
+
+	assert.Equal(t, es.AvailableArchs(), datakit.AllArch)
+
+	samples := es.SampleMeasurement()
+	assert.Greater(t, len(samples), 0)
+}
+
+func TestMapShardStatusToCode(t *testing.T) {
+	assert.Equal(t, mapShardStatusToCode("UNASSIGNED"), 1)
+	assert.Equal(t, mapShardStatusToCode("INITIALIZING"), 2)
+	assert.Equal(t, mapShardStatusToCode("STARTED"), 3)
+	assert.Equal(t, mapShardStatusToCode("RELOCATING"), 4)
+	assert.Equal(t, mapShardStatusToCode("NULL"), 0)
+}
+
+func TestTlsConfig(t *testing.T) {
+	_, err := TLSConfig("", "", "")
+	if err == nil {
+		t.Fail()
+	}
+
 }
 
 func TestGatherClusterStatsMaster(t *testing.T) {
