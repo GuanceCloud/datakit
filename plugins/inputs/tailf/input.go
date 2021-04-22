@@ -46,17 +46,18 @@ const (
 )
 
 type Input struct {
-	LogFiles           []string          `toml:"logfiles"`
-	Ignore             []string          `toml:"ignore"`
-	Source             string            `toml:"source"`
-	Service            string            `toml:"service"`
-	Pipeline           string            `toml:"pipeline"`
-	DeprecatedPipeline string            `toml:"pipeline_path"`
-	IgnoreStatus       []string          `toml:"ignore_status"`
-	CharacterEncoding  string            `toml:"character_encoding"`
-	Match              string            `toml:"match"`
-	Tags               map[string]string `toml:"tags"`
-	FromBeginning      bool              `toml:"-"`
+	LogFiles                []string          `toml:"logfiles"`
+	Ignore                  []string          `toml:"ignore"`
+	Source                  string            `toml:"source"`
+	Service                 string            `toml:"service"`
+	Pipeline                string            `toml:"pipeline"`
+	DeprecatedPipeline      string            `toml:"pipeline_path"`
+	DeprecatedFromBeginning bool              `toml:"from_beginning"`
+	IgnoreStatus            []string          `toml:"ignore_status"`
+	CharacterEncoding       string            `toml:"character_encoding"`
+	Match                   string            `toml:"match"`
+	Tags                    map[string]string `toml:"tags"`
+	FromBeginning           bool              `toml:"-"`
 
 	tailer *inputs.Tailer
 }
