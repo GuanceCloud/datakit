@@ -36,6 +36,10 @@ type lastErr struct {
 	ts        time.Time
 }
 
+type qstats struct {
+	ch chan map[string]*InputsStat
+}
+
 type IO struct {
 	DatawayHost   string
 	HTTPTimeout   time.Duration
@@ -103,7 +107,7 @@ type iodata struct {
 }
 
 type InputsStat struct {
-	Name      string    `json:"name"`
+	//Name      string    `json:"name"`
 	Category  string    `json:"category"`
 	Frequency string    `json:"frequency,omitempty"`
 	AvgSize   int64     `json:"avg_size"`
@@ -115,9 +119,10 @@ type InputsStat struct {
 	LastErr   string    `json:"last_error,omitempty"`
 	LastErrTS time.Time `json:"last_error_ts,omitempty"`
 
-	totalCost time.Duration `json:"-"`
-
+	MaxCollectCost time.Duration `json:"max_collect_cost"`
 	AvgCollectCost time.Duration `json:"avg_collect_cost"`
+
+	totalCost time.Duration `json:"-"`
 }
 
 func TestOutput() {
@@ -176,10 +181,7 @@ func (x *IO) ioStop() {
 func (x *IO) updateLastErr(e *lastErr) {
 	stat, ok := x.inputstats[e.from]
 	if !ok {
-		stat = &InputsStat{
-			Name: e.from,
-		}
-
+		stat = &InputsStat{}
 		x.inputstats[e.from] = stat
 	}
 
@@ -193,7 +195,6 @@ func (x *IO) updateStats(d *iodata) {
 
 	if !ok {
 		stat = &InputsStat{
-			Name:  d.name,
 			Total: int64(len(d.pts)),
 			First: now,
 		}
@@ -214,6 +215,9 @@ func (x *IO) updateStats(d *iodata) {
 	if d.opt != nil {
 		stat.totalCost += d.opt.CollectCost
 		stat.AvgCollectCost = (stat.totalCost) / time.Duration(stat.Count)
+		if d.opt.CollectCost > stat.MaxCollectCost {
+			stat.MaxCollectCost = d.opt.CollectCost
+		}
 	}
 }
 
@@ -327,12 +331,10 @@ func (x *IO) StartIO(recoverable bool) {
 				x.updateLastErr(e)
 
 			case q := <-x.qstatsCh:
-				statRes := []*InputsStat{}
-				for _, v := range x.inputstats {
-					statRes = append(statRes, v)
-				}
+
 				select {
-				case q.ch <- statRes: // maybe blocking(i.e., client canceled)
+				// maybe blocking(i.e., client canceled)
+				case q.ch <- x.inputstats: // XXX: reference
 				default:
 					l.Warn("client canceled")
 					// pass
