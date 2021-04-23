@@ -331,7 +331,7 @@ func (vi *datakitVerInfo) parse() error {
 }
 
 func getVersion(addr string) (*datakitVerInfo, error) {
-	resp, err := nhttp.Get("http://" + filepath.Join(addr, "version"))
+	resp, err := nhttp.Get("http://" + path.Join(addr, "version"))
 	if err != nil {
 		return nil, err
 	}
