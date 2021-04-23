@@ -13,8 +13,6 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 - ElasticSearch 默认采集 `Node Stats` 指标，如果需要采集 `Cluster-Health` 相关指标，需要设置 `cluster_health = true`
 - 设置 `cluster_health = true` 可产生如下指标集
   - `elasticsearch_cluster_health`
-- 设置 `cluster_health = true` 和 `cluster_health_level = "indices"` 可产生如下指标集
-  - `elasticsearch_cluster_health_indices`
 - 设置 `cluster_stats = true` 可产生如下指标集
   - `elasticsearch_cluster_stats`
 
