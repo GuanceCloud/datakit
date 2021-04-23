@@ -3,6 +3,7 @@ package hostobject
 import (
 	"net"
 	"strings"
+	"time"
 
 	cpuutil "github.com/shirou/gopsutil/cpu"
 	diskutil "github.com/shirou/gopsutil/disk"
@@ -73,7 +74,7 @@ type (
 
 	HostObjectMessage struct {
 		Host       *HostInfo          `json:"host"`
-		Collectors []*CollectorStatus `json:"collectors"`
+		Collectors []*CollectorStatus `json:"collectors,omitempty"`
 	}
 
 	CollectorStatus struct {
@@ -242,7 +243,7 @@ func getDiskInfo() []*DiskInfo {
 
 func getEnabledInputs() (res []*CollectorStatus) {
 
-	inputsStats, err := io.GetStats() // get all inputs stats
+	inputsStats, err := io.GetStats(5 * time.Second) // get all inputs stats
 	if err != nil {
 		l.Warnf("fail to get inputs stats, %s", err)
 		return
