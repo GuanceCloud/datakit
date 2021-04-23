@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
@@ -497,6 +498,10 @@ func (x *IO) doFlush(pts []*Point, url string) error {
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
+
+	// append datakit info
+	req.Header.Set("X-Datakit-Info",
+		fmt.Sprintf("%s; %s", datakit.Cfg.MainCfg.Hostname, git.Version))
 
 	postbeg := time.Now()
 
