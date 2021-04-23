@@ -82,6 +82,7 @@ const ( // categories
 	Tracing          = "/v1/write/tracing"
 	Rum              = "/v1/write/rum"
 	Security         = "/v1/write/security"
+	Telegraf         = "/v1/write/telegraf"
 	HeartBeat        = "/v1/write/heartbeat"
 
 	minGZSize = 1024
