@@ -12,6 +12,7 @@ import (
 	netutil "github.com/shirou/gopsutil/net"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type (
@@ -38,7 +39,6 @@ type (
 	MemInfo struct {
 		MemoryTotal uint64 `json:"memory_total"`
 		SwapTotal   uint64 `json:"swap_total"`
-
 		usedPercent float64
 	}
 
@@ -77,19 +77,18 @@ type (
 	}
 
 	CollectorStatus struct {
-		Name     string `json:"name"`
-		Count    int64  `json:"count"`
-		LastTime int64  `json:"last_time"`
-
-		LastErr     string `json:"last_err"`
-		LastErrTime int64  `json:"last_err_time"`
+		Name        string `json:"name"`
+		Count       int64  `json:"count"`
+		LastTime    int64  `json:"last_time,omitempty"`
+		LastErr     string `json:"last_err,omitempty"`
+		LastErrTime int64  `json:"last_err_time,omitempty"`
 	}
 )
 
 func getHostMeta() *HostMetaInfo {
 	info, err := hostutil.Info()
 	if err != nil {
-		moduleLogger.Errorf("fail to get host info, %s", err)
+		l.Errorf("fail to get host info, %s", err)
 		return nil
 	}
 
@@ -109,7 +108,7 @@ func getCPUPercent() float64 {
 
 	ps, err := cpuutil.Percent(0, false)
 	if err != nil || len(ps) == 0 {
-		moduleLogger.Warnf("fail to get cpu percent: %s", err)
+		l.Warnf("fail to get cpu percent: %s", err)
 		return 0
 	}
 	return ps[0]
@@ -118,7 +117,7 @@ func getCPUPercent() float64 {
 func getCPUInfo() []*CPUInfo {
 	infos, err := cpuutil.Info()
 	if err != nil {
-		moduleLogger.Errorf("fail to get cpu info, %s", err)
+		l.Errorf("fail to get cpu info, %s", err)
 		return nil
 	}
 
@@ -141,7 +140,7 @@ func getCPUInfo() []*CPUInfo {
 func getLoad5() float64 {
 	avgstat, err := loadutil.Avg()
 	if err != nil {
-		moduleLogger.Errorf("fail to get load info, %s", err)
+		l.Errorf("fail to get load info, %s", err)
 		return 0
 	}
 
@@ -151,13 +150,13 @@ func getLoad5() float64 {
 func getMemInfo() *MemInfo {
 	minfo, err := memutil.VirtualMemory()
 	if err != nil {
-		moduleLogger.Error("fail to get memory toal, %s", err)
+		l.Error("fail to get memory toal, %s", err)
 		return nil
 	}
 
 	vinfo, err := memutil.SwapMemory()
 	if err != nil {
-		moduleLogger.Error("fail to get swap memory toal, %s", err)
+		l.Error("fail to get swap memory toal, %s", err)
 	}
 
 	return &MemInfo{
@@ -170,7 +169,7 @@ func getMemInfo() *MemInfo {
 func getNetInfo() []*NetInfo {
 	ifs, err := netutil.Interfaces()
 	if err != nil {
-		moduleLogger.Errorf("fail to get interfaces, %s", err)
+		l.Errorf("fail to get interfaces, %s", err)
 		return nil
 	}
 	var infos []*NetInfo
@@ -202,7 +201,7 @@ func getDiskInfo() []*DiskInfo {
 
 	ps, err := diskutil.Partitions(true)
 	if err != nil {
-		moduleLogger.Errorf("fail to get disk info, %s", err)
+		l.Errorf("fail to get disk info, %s", err)
 		return nil
 	}
 	var infos []*DiskInfo
@@ -228,7 +227,6 @@ func getDiskInfo() []*DiskInfo {
 			Device:     p.Device,
 			Mountpoint: p.Mountpoint,
 			Fstype:     p.Fstype,
-			//Opts:       strings.Join(p.Opts, ","),
 		}
 
 		usage, err := diskutil.Usage(p.Mountpoint)
@@ -242,27 +240,35 @@ func getDiskInfo() []*DiskInfo {
 	return infos
 }
 
-func getEnabledInputs() []*CollectorStatus {
-
-	var sts []*CollectorStatus
+func getEnabledInputs() (res []*CollectorStatus) {
 
 	inputsStats, err := io.GetStats() // get all inputs stats
 	if err != nil {
-		moduleLogger.Warnf("fail to get inputs stats, %s", err)
-		return nil
+		l.Warnf("fail to get inputs stats, %s", err)
+		return
 	}
 
-	for _, s := range inputsStats {
+	for name, _ := range inputs.InputsInfo {
+		if s, ok := inputsStats[name]; ok {
 
-		sts = append(sts, &CollectorStatus{
-			Name:        s.Name,
-			Count:       s.Count,
-			LastTime:    s.Last.Unix(),
-			LastErr:     s.LastErr,
-			LastErrTime: s.LastErrTS.Unix()})
+			ts := s.LastErrTS.Unix()
+			if ts < 0 {
+				ts = 0
+			}
+
+			res = append(res, &CollectorStatus{
+				Name:        name,
+				Count:       s.Count,
+				LastTime:    s.Last.Unix(),
+				LastErr:     s.LastErr,
+				LastErrTime: ts,
+			})
+		} else {
+			res = append(res, &CollectorStatus{Count: 0, Name: name})
+		}
 	}
 
-	return sts
+	return
 }
 
 func getHostObjectMessage() *HostObjectMessage {

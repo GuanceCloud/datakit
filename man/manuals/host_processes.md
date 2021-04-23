@@ -46,6 +46,4 @@
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} 
-
-
+{{ end }}
