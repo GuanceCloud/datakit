@@ -44,13 +44,9 @@ func Start() error {
 	return nil
 }
 
-type qstats struct {
-	ch chan []*InputsStat
-}
-
-func GetStats() ([]*InputsStat, error) {
+func GetStats() (map[string]*InputsStat, error) {
 	q := &qstats{
-		ch: make(chan []*InputsStat),
+		ch: make(chan map[string]*InputsStat),
 	}
 
 	tick := time.NewTicker(time.Second * 3)
