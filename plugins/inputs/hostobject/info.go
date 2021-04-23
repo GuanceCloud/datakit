@@ -13,7 +13,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 type (
@@ -270,28 +269,6 @@ func getEnabledInputs() []*CollectorStatus {
 				LastTime: last,
 			})
 
-		}
-	}
-
-	for k := range tgi.TelegrafInputs {
-		n, _ := inputs.InputEnabled(k)
-		if n > 0 {
-			var count int64
-			var last int64
-
-			for _, s := range inputsStats {
-				if s.Name == k {
-					count = s.Count
-					last = s.Last.Unix()
-					break
-				}
-			}
-
-			sts = append(sts, &CollectorStatus{
-				Name:     k,
-				Count:    count,
-				LastTime: last,
-			})
 		}
 	}
 

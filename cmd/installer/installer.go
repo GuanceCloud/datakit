@@ -25,10 +25,6 @@ var (
 	datakitUrl = "https://" + path.Join(DataKitBaseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion))
 
-	telegrafUrl = "https://" + path.Join(DataKitBaseURL,
-		"telegraf",
-		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
-
 	dataUrl = "https://" + path.Join(DataKitBaseURL, "data.tar.gz")
 
 	l = logger.DefaultSLogger("installer")
@@ -105,9 +101,6 @@ func main() {
 		install.CurDownloading = dlDatakit
 		install.Download(datakitUrl, datakit.InstallDir, true)
 		fmt.Printf("\n")
-		install.CurDownloading = dlAgent
-		install.Download(telegrafUrl, datakit.InstallDir, true)
-		fmt.Printf("\n")
 		install.CurDownloading = dlData
 		install.Download(dataUrl, datakit.InstallDir, true)
 		fmt.Printf("\n")
@@ -154,8 +147,7 @@ func applyFlags() {
 Golang Version: %s
        BaseUrl: %s
        DataKit: %s
-      Telegraf: %s
-`, git.Version, git.BuildAt, git.Golang, DataKitBaseURL, datakitUrl, telegrafUrl)
+`, git.Version, git.BuildAt, git.Golang, DataKitBaseURL, datakitUrl)
 		os.Exit(0)
 	}
 
@@ -166,12 +158,6 @@ Golang Version: %s
 		install.Download(datakitUrl,
 			fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
 				runtime.GOOS, runtime.GOARCH, DataKitVersion), true)
-		fmt.Printf("\n")
-
-		install.CurDownloading = dlAgent
-		install.Download(telegrafUrl,
-			fmt.Sprintf("agent-%s-%s.tar.gz",
-				runtime.GOOS, runtime.GOARCH), true)
 		fmt.Printf("\n")
 
 		install.CurDownloading = dlData
