@@ -47,7 +47,6 @@ var (
 	AgentLogFile = filepath.Join(InstallDir, "embed", "agent.log")
 	OTALogFile   = filepath.Join(InstallDir, "ota.log")
 	UUIDFile     = filepath.Join(InstallDir, ".id")
-	TelegrafDir  = filepath.Join(InstallDir, "embed")
 	DataDir      = filepath.Join(InstallDir, "data")
 	LuaDir       = filepath.Join(InstallDir, "lua")
 	ConfdDir     = filepath.Join(InstallDir, "conf.d")
