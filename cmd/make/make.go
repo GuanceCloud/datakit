@@ -19,7 +19,6 @@ var (
 	flagArchs        = flag.String("archs", "local", "os archs")
 	flagEnv          = flag.String(`env`, ``, `build for local/test/preprod/release`)
 	flagPub          = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/release/preprod`)
-	flagPubAgent     = flag.Bool("pub-agent", false, `publish telegraf`)
 	flagBuildISP     = flag.Bool("build-isp", false, "generate ISP data")
 
 	l = logger.DefaultSLogger("make")
@@ -53,11 +52,6 @@ func applyFlags() {
 	default:
 		l.Debug("under non-release, all inputs released")
 		build.ReleaseType = "all"
-	}
-
-	if *flagPubAgent {
-		build.PubTelegraf()
-		os.Exit(0)
 	}
 
 	if *flagPub {
