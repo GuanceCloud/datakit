@@ -29,7 +29,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 var (
@@ -202,17 +201,9 @@ func dumpAllConfigSamples(fpath string) {
 		}
 	}
 
-	for k, v := range tgi.TelegrafInputs {
-		sample := v.SampleConfig()
-		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), os.ModePerm); err != nil {
-			panic(err)
-		}
-	}
 }
 
 func run() {
-
-	inputs.StartTelegraf()
 
 	l.Info("datakit start...")
 	if err := runDatakitWithHTTPServer(); err != nil {
@@ -409,19 +400,10 @@ func tryOTAUpdate(ver string) error {
 	datakitUrl := "https://" + path.Join(baseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, ver))
 
-	telegrafUrl := "https://" + path.Join(baseURL,
-		"telegraf",
-		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
-
 	dataUrl := "https://" + path.Join(baseURL, "data.tar.gz")
 
 	l.Debugf("downloading %s to %s...", datakitUrl, datakit.InstallDir)
 	if err := install.Download(datakitUrl, datakit.InstallDir, false); err != nil {
-		return err
-	}
-
-	l.Debugf("downloading %s to %s...", telegrafUrl, datakit.InstallDir)
-	if err := install.Download(telegrafUrl, datakit.InstallDir, false); err != nil {
 		return err
 	}
 
