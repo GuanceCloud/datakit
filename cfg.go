@@ -455,3 +455,17 @@ func MoveDeprecatedMainCfg() {
 		l.Infof("move %s to %s", MainConfPathDeprecated, MainConfPath)
 	}
 }
+
+func ProtectedInterval(min, max, cur time.Duration) time.Duration {
+	if Cfg.MainCfg.ProtectMode {
+		if cur >= max {
+			return max
+		}
+
+		if cur <= min {
+			return min
+		}
+	}
+
+	return cur
+}
