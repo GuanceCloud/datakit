@@ -26,6 +26,9 @@ const (
 # ##(optional) default is 1min, should not more then interval
 #delay = '1m'
 
+# ##(optional) control the frequency of huaweiyun api call in every second, the minimum is 1 and the maximum is 1000. default is 20
+#api_frequency = 20
+
 # ##(optional) specify the project ids to collect. default will apply to all projects
 #projectids = [
 #	'614439cb10ad4bdc9f3b0bc8xxx',
@@ -45,6 +48,20 @@ const (
 #'SYS.OBS:download_bytes,upload_bytes',
 # ]
 
+# ##(optional) mapping projectId to regionId, eg. mapping 0747621b760026a52f02c009e91xxxx to cn-north-1
+# ##supported regionIds:
+# ##"af-south-1"
+# ##"cn-north-4"
+# ##"cn-north-1"
+# ##"cn-east-2"
+# ##"cn-east-3"
+# ##"cn-south-1"
+# ##"cn-southwest-2"
+# ##"ap-southeast-2"
+# ##"ap-southeast-1"
+# ##"ap-southeast-3"
+#[inputs.huaweiyunces.project_regions]
+#projectId1 = 'regionId1'
 
 # ##(optional) custom tags
 #[inputs.huaweiyunces.tags]
@@ -92,6 +109,8 @@ type (
 		Interval datakit.Duration `toml:"interval"`
 		Delay    datakit.Duration `toml:"delay"`
 
+		ApiFrequency int `toml:"api_frequency"`
+
 		IncludeProjectIDs []string `toml:"projectids,omitempty"`
 		ExcludeProjectIDs []string `toml:"exclude_projectids,omitempty"`
 
@@ -105,6 +124,8 @@ type (
 		ProjectID string `toml:"projectid"` //deprated
 
 		Namespace []*Namespace `toml:"namespace"` //deprated
+
+		ProjectRegions map[string]string `toml:"project_regions,omitempty"`
 
 		Tags map[string]string `toml:"tags,omitempty"`
 
