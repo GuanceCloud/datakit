@@ -320,9 +320,9 @@ type enabledInput struct {
 }
 
 type datakitStats struct {
-	InputsStats     []*io.InputsStat `json:"inputs_status"`
-	EnabledInputs   []*enabledInput  `json:"enabled_inputs"`
-	AvailableInputs []string         `json:"available_inputs"`
+	InputsStats     map[string]*io.InputsStat `json:"inputs_status"`
+	EnabledInputs   []*enabledInput           `json:"enabled_inputs"`
+	AvailableInputs []string                  `json:"available_inputs"`
 
 	Version      string    `json:"version"`
 	BuildAt      string    `json:"build_at"`
