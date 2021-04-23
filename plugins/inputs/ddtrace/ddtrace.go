@@ -63,6 +63,15 @@ func (d *Ddtrace) RegHttpHandler() {
 	http.RegHttpHandler("POST", d.Path, DdtraceTraceHandle)
 	http.RegHttpHandler("PUT", d.Path, DdtraceTraceHandle)
 }
+func (i *Ddtrace) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (i *Ddtrace) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&DdtraceMeasurement{},
+	}
+}
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
