@@ -350,7 +350,6 @@ func TestLoadCfg(t *testing.T) {
 	fmt.Println(inputs.InputsInfo)
 }
 
-
 func TestRemoveDepercatedInputs(t *testing.T) {
 	cases := []struct {
 		tomlStr      string
