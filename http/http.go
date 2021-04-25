@@ -241,6 +241,7 @@ func HttpStart() {
 	router.POST(io.Object, func(c *gin.Context) { apiWriteObject(c) })
 	router.POST(io.Logging, func(c *gin.Context) { apiWriteLogging(c) })
 	router.POST(io.Tracing, func(c *gin.Context) { apiWriteTracing(c) })
+	router.POST(io.Security, func(c *gin.Context) { apiWriteSecurity(c) })
 
 	srv := &http.Server{
 		Addr:    httpBind,
@@ -319,9 +320,9 @@ type enabledInput struct {
 }
 
 type datakitStats struct {
-	InputsStats     []*io.InputsStat `json:"inputs_status"`
-	EnabledInputs   []*enabledInput  `json:"enabled_inputs"`
-	AvailableInputs []string         `json:"available_inputs"`
+	InputsStats     map[string]*io.InputsStat `json:"inputs_status"`
+	EnabledInputs   []*enabledInput           `json:"enabled_inputs"`
+	AvailableInputs []string                  `json:"available_inputs"`
 
 	Version      string    `json:"version"`
 	BuildAt      string    `json:"build_at"`
@@ -355,7 +356,7 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	stats.InputsStats, err = io.GetStats() // get all inputs stats
+	stats.InputsStats, err = io.GetStats(time.Second * 5) // get all inputs stats
 	if err != nil {
 		l.Error(err)
 		w.WriteHeader(http.StatusBadRequest)
