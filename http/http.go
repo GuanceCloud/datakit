@@ -544,7 +544,7 @@ func apiManual(c *gin.Context) {
 		return
 	}
 
-	mdtxt, err := man.BuildMarkdownManual(name)
+	mdtxt, err := man.BuildMarkdownManual(name, &man.Option{WithCSS: true})
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
 		return
