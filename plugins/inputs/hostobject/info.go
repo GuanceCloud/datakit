@@ -301,8 +301,11 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	if len(msg.Collectors) == 0 {
 		// 此处也是为了避免采集器信息字段为空: 宁可丢弃当前这次对象采集，也不能导致采集器信息为空
 		// 采集器信息为空（或缺失）的两种可能：
+		//
 		// 1: io 忙：不便于接收查询请求
 		// 2: 具体的某个采集器，可能因为尚未来得及启动，就被要求查询运行信息，此时 io 模块肯定没有登记
+		//
+		// 故一般只有启动后第一次采集时会获取不到统计信息，后续基本都能获取到，即使拿不到，就用旧的统计信息替代
 		return nil, fmt.Errorf("collector stats missing")
 	}
 
