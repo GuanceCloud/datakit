@@ -44,16 +44,16 @@ func Start() error {
 	return nil
 }
 
-type qstats struct {
-	ch chan []*InputsStat
-}
-
-func GetStats() ([]*InputsStat, error) {
+func GetStats(timeout time.Duration) (map[string]*InputsStat, error) {
 	q := &qstats{
-		ch: make(chan []*InputsStat),
+		ch: make(chan map[string]*InputsStat),
 	}
 
-	tick := time.NewTicker(time.Second * 3)
+	if timeout <= 0 {
+		timeout = 3 * time.Second
+	}
+
+	tick := time.NewTicker(timeout)
 	defer tick.Stop()
 
 	select {
@@ -85,6 +85,19 @@ func Feed(name, category string, pts []*Point, opt *Option) error {
 	}
 
 	return defaultIO.DoFeed(pts, category, name, opt)
+}
+
+func FeedLastError(inputName string, err string) error {
+	select {
+	case defaultIO.inLastErr <- &lastErr{
+		from: inputName,
+		err:  err,
+		ts:   time.Now(),
+	}:
+	case <-datakit.Exit.Wait():
+		l.Warnf("%s feed last error skipped on global exit", inputName)
+	}
+	return nil
 }
 
 func MakePoint(name string,
@@ -138,6 +151,32 @@ func NamedFeed(data []byte, category, name string) error {
 	}
 
 	return defaultIO.DoFeed(x, category, name, nil)
+}
+
+// Deprecated
+func HighFreqFeedEx(name, category, metric string,
+	tags map[string]string,
+	fields map[string]interface{},
+	t ...time.Time) error {
+
+	var ts time.Time
+	if len(t) > 0 {
+		ts = t[0]
+	} else {
+		ts = time.Now().UTC()
+	}
+
+	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
+		&lp.Option{
+			ExtraTags: datakit.Cfg.MainCfg.GlobalTags,
+			Strict:    true,
+			Time:      ts,
+			Precision: "n"})
+	if err != nil {
+		return err
+	}
+
+	return defaultIO.DoFeed([]*Point{&Point{pt}}, category, name, &Option{HighFreq: true})
 }
 
 // Deprecated
