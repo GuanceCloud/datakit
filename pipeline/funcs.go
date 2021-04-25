@@ -3,11 +3,11 @@ package pipeline
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
-	"regexp"
-	"unicode/utf8"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
@@ -1032,13 +1032,13 @@ func Dz(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		end = utf8.RuneCountInString(cont)
 	}
 
-	if start <= 0  {
+	if start <= 0 {
 		start = 1
 	}
 
 	arrCont := []rune(cont)
 
-	for i := 0; i< len(arrCont); i++ {
+	for i := 0; i < len(arrCont); i++ {
 		if i+1 >= start && i < end {
 			if unicode.Is(unicode.Han, arrCont[i]) {
 				arrCont[i] = rune('＊')
@@ -1061,7 +1061,7 @@ func Replace(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	var key parser.Node
-	var pattern, dz  string
+	var pattern, dz string
 	switch v := funcExpr.Param[0].(type) {
 	case *parser.AttrExpr, *parser.Identifier:
 		key = v
@@ -1069,7 +1069,6 @@ func Replace(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("param key expect AttrExpr or Identifier, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
-
 
 	switch v := funcExpr.Param[1].(type) {
 	case *parser.StringLiteral:
@@ -1079,8 +1078,6 @@ func Replace(p *Pipeline, node parser.Node) (*Pipeline, error) {
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
-
-
 	switch v := funcExpr.Param[2].(type) {
 	case *parser.StringLiteral:
 		dz = v.Val
@@ -1088,8 +1085,6 @@ func Replace(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("expect StringLiteral, got %s",
 			reflect.TypeOf(funcExpr.Param[2]).String())
 	}
-
-
 
 	reg, err := regexp.Compile(pattern)
 	if err != nil {
@@ -1103,9 +1098,9 @@ func Replace(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, nil
 	}
 
-    newCont := reg.ReplaceAllString(cont, dz)
+	newCont := reg.ReplaceAllString(cont, dz)
 
-    p.setContent(key, newCont)
+	p.setContent(key, newCont)
 
 	return p, nil
 }
