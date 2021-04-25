@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds/externals"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
@@ -48,6 +49,9 @@ var (
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
 
 	flagExportMan = flag.String("export-man", "", "export all inputs and related manuals to specified path")
+
+	flagInstallExternal = flag.String("install", "", "install external tool/software")
+	flagInstallAddr     = flag.String("addr", "", "install file url path")
 )
 
 var (
@@ -303,6 +307,13 @@ func runDatakitWithCmd() {
 		}
 		return
 	}
+
+	if *flagInstallExternal != "" {
+		if err := externals.InstallExternal(*flagInstallExternal, *flagInstallAddr); err != nil {
+			l.Error(err)
+		}
+		return
+	}
 }
 
 type datakitVerInfo struct {
@@ -416,17 +427,17 @@ func tryOTAUpdate(ver string) error {
 	dataUrl := "https://" + path.Join(baseURL, "data.tar.gz")
 
 	l.Debugf("downloading %s to %s...", datakitUrl, datakit.InstallDir)
-	if err := install.Download(datakitUrl, datakit.InstallDir, false); err != nil {
+	if err := install.Download(datakitUrl, datakit.InstallDir, false, false); err != nil {
 		return err
 	}
 
 	l.Debugf("downloading %s to %s...", telegrafUrl, datakit.InstallDir)
-	if err := install.Download(telegrafUrl, datakit.InstallDir, false); err != nil {
+	if err := install.Download(telegrafUrl, datakit.InstallDir, false, false); err != nil {
 		return err
 	}
 
 	l.Debugf("downloading %s to %s...", dataUrl, datakit.InstallDir)
-	if err := install.Download(dataUrl, datakit.InstallDir, false); err != nil {
+	if err := install.Download(dataUrl, datakit.InstallDir, false, false); err != nil {
 		l.Errorf("download %s failed: %v, ignored", dataUrl, err)
 	}
 
