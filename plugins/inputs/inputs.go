@@ -160,7 +160,7 @@ func RunInputs() error {
 			go func(name string, ii *inputInfo) {
 
 				// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
-				time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
+				time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second))))
 				l.Infof("starting input %s ...", name)
 
 				defer datakit.WG.Done()
