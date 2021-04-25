@@ -8,11 +8,14 @@ RELEASE_DOWNLOAD_ADDR = zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.
 # 测试环境
 TEST_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit
 
-# 预发环境
-PRE_DOWNLOAD_ADDR = zhuyun-static-files-preprod.oss-cn-hangzhou.aliyuncs.com/datakit
-
-# 本地环境
-LOCAL_DOWNLOAD_ADDR = ${LOCAL_OSS_ADDR}
+# 本地环境: 需配置环境变量，便于完整测试采集器的发布、更新等流程
+# export LOCAL_OSS_ACCESS_KEY='<your-oss-AK>'
+# export LOCAL_OSS_SECRET_KEY='<your-oss-SK>'
+# export LOCAL_OSS_BUCKET='<your-oss-bucket>'
+# export LOCAL_OSS_HOST='oss-cn-hangzhou.aliyuncs.com' # 一般都是这个地址
+# export LOCAL_OSS_ADDR='<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
+# 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
+LOCAL_DOWNLOAD_ADDR = "${LOCAL_OSS_ADDR}"
 
 PUB_DIR = dist
 BUILD_DIR = dist
@@ -47,7 +50,7 @@ ifdef TELEGRAF_VERSION
 	TELEGRAF_LDFLAGS += -X main.version=$(TELEGRAF_VERSION)
 endif
 
-all: testing release preprod local
+all: testing release local
 
 define GIT_INFO
 //nolint
@@ -96,11 +99,11 @@ local: man gofmt
 testing: man
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
-preprod: man
-	$(call build,preprod, $(DEFAULT_ARCHS), $(PRE_DOWNLOAD_ADDR))
-
 release: man
 	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
+
+release_mac: man
+	$(call build,release, $(MAC_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
 pub_local:
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
@@ -132,14 +135,7 @@ pub_release_img:
 pub_agent:
 	@go run cmd/make/make.go -pub-agent -env local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
 	@go run cmd/make/make.go -pub-agent -env test -pub-dir embed -download-addr $(TEST_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
-	@go run cmd/make/make.go -pub-agent -env preprod -pub-dir embed -download-addr $(PRE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
 	@go run cmd/make/make.go -pub-agent -env release -pub-dir embed -download-addr $(RELEASE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
-
-pub_preprod:
-	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
-
-pub_preprod_mac:
-	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
