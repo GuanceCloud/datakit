@@ -790,3 +790,29 @@ func TestJsonAllFunc(t *testing.T) {
 
 	assertEqual(t, r, "Sara")
 }
+
+func TestDz(t *testing.T) {
+	cases := []*funcCase{
+		{
+			data:     `{"str": "13838130517"}`,
+			script:   `json(_, str) dz(str, [2, 5])`,
+			expected: int64(time.Second),
+			key:      "str",
+		},
+	}
+
+	for _, tt := range cases {
+		p, err := NewPipeline(tt.script)
+		assertEqual(t, err, p.lastErr)
+
+		p.Run(tt.data)
+
+		r, err := p.getContentStr(tt.key)
+
+		fmt.Println("=====>", r)
+
+		if !tt.fail {
+			assertEqual(t, r, tt.expected)
+		}
+	}
+}
