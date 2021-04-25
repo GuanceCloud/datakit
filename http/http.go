@@ -356,7 +356,7 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	stats.InputsStats, err = io.GetStats() // get all inputs stats
+	stats.InputsStats, err = io.GetStats(time.Second * 5) // get all inputs stats
 	if err != nil {
 		l.Error(err)
 		w.WriteHeader(http.StatusBadRequest)
