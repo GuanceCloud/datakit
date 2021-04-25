@@ -37,9 +37,10 @@ var (
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
 	// tool-commands supported in datakit
-	flagCmd             = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline        = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText            = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagCmd      = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+
 	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
 	flagMan             = flag.Bool("man", false, "read manuals of inputs")
 	flagOTA             = flag.Bool("ota", false, "update datakit new version if available")
@@ -47,7 +48,8 @@ var (
 
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
 
-	flagExportMan = flag.String("export-man", "", "export all inputs and related manuals to specified path")
+	flagExportMan  = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
+	flagIgnoreMans = flag.String("ignore-manuals", "", "disable exporting specified manuals, multiple manules seprated by `,`")
 )
 
 var (
@@ -298,7 +300,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagExportMan != "" {
-		if err := cmds.ExportMan(*flagExportMan); err != nil {
+		if err := cmds.ExportMan(*flagExportMan, *flagIgnoreMans); err != nil {
 			l.Error(err)
 		}
 		return
