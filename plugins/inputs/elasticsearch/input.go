@@ -239,12 +239,13 @@ func mapShardStatusToCode(s string) int {
 }
 
 var (
-	inputName = "elasticsearch"
-	l         = logger.DefaultSLogger("elasticsearch")
+	inputName   = "elasticsearch"
+	catalogName = "db"
+	l           = logger.DefaultSLogger("elasticsearch")
 )
 
 func (*Input) Catalog() string {
-	return inputName
+	return catalogName
 }
 
 func (*Input) SampleConfig() string {
@@ -266,11 +267,11 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&nodeStatsMeasurement{},
 		&indicesStatsMeasurement{},
-		&indicesStatsShardsMeasurement{},
-		&indicesStatsShardsTotalMeasurement{},
+		// &indicesStatsShardsMeasurement{},
+		// &indicesStatsShardsTotalMeasurement{},
 		&clusterStatsMeasurement{},
 		&clusterHealthMeasurement{},
-		&clusterHealthIndicesMeasurement{},
+		// &clusterHealthIndicesMeasurement{},
 	}
 }
 
@@ -444,24 +445,25 @@ func (i *Input) gatherIndicesStats(url string) error {
 	}
 	now := time.Now()
 
+	// disable
 	// Total Shards Stats
-	shardsStats := map[string]interface{}{}
-	for k, v := range indicesStats.Shards {
-		shardsStats[k] = v
-	}
+	// shardsStats := map[string]interface{}{}
+	// for k, v := range indicesStats.Shards {
+	// 	shardsStats[k] = v
+	// }
 
-	metric := &indicesStatsShardsTotalMeasurement{
-		elasticsearchMeasurement: elasticsearchMeasurement{
-			name:   "elasticsearch_indices_stats_shards_total",
-			tags:   map[string]string{},
-			fields: shardsStats,
-			ts:     now,
-		},
-	}
+	// metric := &indicesStatsShardsTotalMeasurement{
+	// 	elasticsearchMeasurement: elasticsearchMeasurement{
+	// 		name:   "elasticsearch_indices_stats_shards_total",
+	// 		tags:   map[string]string{},
+	// 		fields: shardsStats,
+	// 		ts:     now,
+	// 	},
+	// }
 
-	if len(metric.fields) > 0 {
-		i.collectCache = append(i.collectCache, metric)
-	}
+	// if len(metric.fields) > 0 {
+	// 	i.collectCache = append(i.collectCache, metric)
+	// }
 
 	// All Stats
 	for m, s := range indicesStats.All {
@@ -471,11 +473,20 @@ func (i *Input) gatherIndicesStats(url string) error {
 		if err != nil {
 			return err
 		}
+
+		allFields := make(map[string]interface{})
+		for k, v := range jsonParser.Fields {
+			_, ok := indicesStatsFields[k]
+			if ok {
+				allFields[k] = v
+			}
+		}
+
 		metric := &indicesStatsMeasurement{
 			elasticsearchMeasurement: elasticsearchMeasurement{
 				name:   "elasticsearch_indices_stats",
 				tags:   map[string]string{"index_name": "_all"},
-				fields: jsonParser.Fields,
+				fields: allFields,
 				ts:     now,
 			},
 		}
@@ -500,11 +511,19 @@ func (i *Input) gatherIndicesStats(url string) error {
 				return err
 			}
 
+			allFields := make(map[string]interface{})
+			for k, v := range f.Fields {
+				_, ok := indicesStatsFields[k]
+				if ok {
+					allFields[k] = v
+				}
+			}
+
 			metric := &indicesStatsMeasurement{
 				elasticsearchMeasurement: elasticsearchMeasurement{
 					name:   "elasticsearch_indices_stats",
 					tags:   indexTag,
-					fields: f.Fields,
+					fields: allFields,
 					ts:     now,
 				},
 			}
@@ -514,7 +533,8 @@ func (i *Input) gatherIndicesStats(url string) error {
 			}
 		}
 
-		if i.IndicesLevel == "shards" {
+		// disable now
+		if false && i.IndicesLevel == "shards" {
 			for shardNumber, shards := range index.Shards {
 				for _, shard := range shards {
 
@@ -623,7 +643,10 @@ func (i *Input) gatherNodeStats(url string) error {
 				return err
 			}
 			for k, v := range f.Fields {
-				allFields[k] = v
+				_, ok := nodeStatsFields[k]
+				if ok {
+					allFields[k] = v
+				}
 			}
 		}
 
@@ -669,7 +692,10 @@ func (i *Input) gatherClusterStats(url string) error {
 			return err
 		}
 		for k, v := range f.Fields {
-			allFields[k] = v
+			_, ok := clusterStatsFields[k]
+			if ok {
+				allFields[k] = v
+			}
 		}
 
 	}
@@ -713,11 +739,20 @@ func (i *Input) gatherClusterHealth(url string) error {
 		"unassigned_shards":                healthStats.UnassignedShards,
 	}
 
+	allFields := make(map[string]interface{})
+
+	for k, v := range clusterFields {
+		_, ok := clusterHealthFields[k]
+		if ok {
+			allFields[k] = v
+		}
+	}
+
 	metric := &clusterHealthMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
 			name:   "elasticsearch_cluster_health",
 			tags:   map[string]string{"name": healthStats.ClusterName},
-			fields: clusterFields,
+			fields: allFields,
 			ts:     now,
 		},
 	}
@@ -726,32 +761,34 @@ func (i *Input) gatherClusterHealth(url string) error {
 		i.collectCache = append(i.collectCache, metric)
 	}
 
-	for name, health := range healthStats.Indices {
-		indexFields := map[string]interface{}{
-			"active_primary_shards": health.ActivePrimaryShards,
-			"active_shards":         health.ActiveShards,
-			"initializing_shards":   health.InitializingShards,
-			"number_of_replicas":    health.NumberOfReplicas,
-			"number_of_shards":      health.NumberOfShards,
-			"relocating_shards":     health.RelocatingShards,
-			"status":                health.Status,
-			"status_code":           mapHealthStatusToCode(health.Status),
-			"unassigned_shards":     health.UnassignedShards,
-		}
+	// disable
+	// for name, health := range healthStats.Indices {
+	// 	indexFields := map[string]interface{}{
+	// 		"active_primary_shards": health.ActivePrimaryShards,
+	// 		"active_shards":         health.ActiveShards,
+	// 		"initializing_shards":   health.InitializingShards,
+	// 		"number_of_replicas":    health.NumberOfReplicas,
+	// 		"number_of_shards":      health.NumberOfShards,
+	// 		"relocating_shards":     health.RelocatingShards,
+	// 		"status":                health.Status,
+	// 		"status_code":           mapHealthStatusToCode(health.Status),
+	// 		"unassigned_shards":     health.UnassignedShards,
+	// 	}
 
-		metric := &clusterHealthIndicesMeasurement{
-			elasticsearchMeasurement: elasticsearchMeasurement{
-				name:   "elasticsearch_cluster_health_indices",
-				tags:   map[string]string{"index": name, "name": healthStats.ClusterName},
-				fields: indexFields,
-				ts:     now,
-			},
-		}
+	// 	metric := &clusterHealthIndicesMeasurement{
+	// 		elasticsearchMeasurement: elasticsearchMeasurement{
+	// 			name:   "elasticsearch_cluster_health_indices",
+	// 			tags:   map[string]string{"index": name, "name": healthStats.ClusterName},
+	// 			fields: indexFields,
+	// 			ts:     now,
+	// 		},
+	// 	}
 
-		if len(metric.fields) > 0 {
-			i.collectCache = append(i.collectCache, metric)
-		}
-	}
+	// 	if len(metric.fields) > 0 {
+	// 		i.collectCache = append(i.collectCache, metric)
+	// 	}
+	// }
+
 	return nil
 }
 
