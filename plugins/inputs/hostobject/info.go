@@ -3,6 +3,7 @@ package hostobject
 import (
 	"net"
 	"strings"
+	"time"
 
 	cpuutil "github.com/shirou/gopsutil/cpu"
 	diskutil "github.com/shirou/gopsutil/disk"
@@ -13,7 +14,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 type (
@@ -40,7 +40,6 @@ type (
 	MemInfo struct {
 		MemoryTotal uint64 `json:"memory_total"`
 		SwapTotal   uint64 `json:"swap_total"`
-
 		usedPercent float64
 	}
 
@@ -75,20 +74,22 @@ type (
 
 	HostObjectMessage struct {
 		Host       *HostInfo          `json:"host"`
-		Collectors []*CollectorStatus `json:"collectors"`
+		Collectors []*CollectorStatus `json:"collectors,omitempty"`
 	}
 
 	CollectorStatus struct {
-		Name     string `json:"name"`
-		Count    int64  `json:"count"`
-		LastTime int64  `json:"last_time"`
+		Name        string `json:"name"`
+		Count       int64  `json:"count"`
+		LastTime    int64  `json:"last_time,omitempty"`
+		LastErr     string `json:"last_err,omitempty"`
+		LastErrTime int64  `json:"last_err_time,omitempty"`
 	}
 )
 
 func getHostMeta() *HostMetaInfo {
 	info, err := hostutil.Info()
 	if err != nil {
-		moduleLogger.Errorf("fail to get host info, %s", err)
+		l.Errorf("fail to get host info, %s", err)
 		return nil
 	}
 
@@ -108,7 +109,7 @@ func getCPUPercent() float64 {
 
 	ps, err := cpuutil.Percent(0, false)
 	if err != nil || len(ps) == 0 {
-		moduleLogger.Warnf("fail to get cpu percent: %s", err)
+		l.Warnf("fail to get cpu percent: %s", err)
 		return 0
 	}
 	return ps[0]
@@ -117,7 +118,7 @@ func getCPUPercent() float64 {
 func getCPUInfo() []*CPUInfo {
 	infos, err := cpuutil.Info()
 	if err != nil {
-		moduleLogger.Errorf("fail to get cpu info, %s", err)
+		l.Errorf("fail to get cpu info, %s", err)
 		return nil
 	}
 
@@ -140,7 +141,7 @@ func getCPUInfo() []*CPUInfo {
 func getLoad5() float64 {
 	avgstat, err := loadutil.Avg()
 	if err != nil {
-		moduleLogger.Errorf("fail to get load info, %s", err)
+		l.Errorf("fail to get load info, %s", err)
 		return 0
 	}
 
@@ -150,13 +151,13 @@ func getLoad5() float64 {
 func getMemInfo() *MemInfo {
 	minfo, err := memutil.VirtualMemory()
 	if err != nil {
-		moduleLogger.Error("fail to get memory toal, %s", err)
+		l.Error("fail to get memory toal, %s", err)
 		return nil
 	}
 
 	vinfo, err := memutil.SwapMemory()
 	if err != nil {
-		moduleLogger.Error("fail to get swap memory toal, %s", err)
+		l.Error("fail to get swap memory toal, %s", err)
 	}
 
 	return &MemInfo{
@@ -169,7 +170,7 @@ func getMemInfo() *MemInfo {
 func getNetInfo() []*NetInfo {
 	ifs, err := netutil.Interfaces()
 	if err != nil {
-		moduleLogger.Errorf("fail to get interfaces, %s", err)
+		l.Errorf("fail to get interfaces, %s", err)
 		return nil
 	}
 	var infos []*NetInfo
@@ -201,7 +202,7 @@ func getDiskInfo() []*DiskInfo {
 
 	ps, err := diskutil.Partitions(true)
 	if err != nil {
-		moduleLogger.Errorf("fail to get disk info, %s", err)
+		l.Errorf("fail to get disk info, %s", err)
 		return nil
 	}
 	var infos []*DiskInfo
@@ -227,7 +228,6 @@ func getDiskInfo() []*DiskInfo {
 			Device:     p.Device,
 			Mountpoint: p.Mountpoint,
 			Fstype:     p.Fstype,
-			//Opts:       strings.Join(p.Opts, ","),
 		}
 
 		usage, err := diskutil.Usage(p.Mountpoint)
@@ -241,61 +241,35 @@ func getDiskInfo() []*DiskInfo {
 	return infos
 }
 
-func getEnabledInputs() []*CollectorStatus {
+func getEnabledInputs() (res []*CollectorStatus) {
 
-	var sts []*CollectorStatus
-
-	inputsStats, err := io.GetStats() // get all inputs stats
+	inputsStats, err := io.GetStats(5 * time.Second) // get all inputs stats
 	if err != nil {
-		moduleLogger.Errorf("fail to get inputs stats, %s", err)
+		l.Warnf("fail to get inputs stats, %s", err)
+		return
 	}
 
-	for k := range inputs.Inputs {
-		n, _ := inputs.InputEnabled(k)
-		if n > 0 {
-			var count int64
-			var last int64
+	for name, _ := range inputs.InputsInfo {
+		if s, ok := inputsStats[name]; ok {
 
-			for _, s := range inputsStats {
-				if s.Name == k {
-					count = s.Count
-					last = s.Last.Unix()
-					break
-				}
+			ts := s.LastErrTS.Unix()
+			if ts < 0 {
+				ts = 0
 			}
 
-			sts = append(sts, &CollectorStatus{
-				Name:     k,
-				Count:    count,
-				LastTime: last,
+			res = append(res, &CollectorStatus{
+				Name:        name,
+				Count:       s.Count,
+				LastTime:    s.Last.Unix(),
+				LastErr:     s.LastErr,
+				LastErrTime: ts,
 			})
-
+		} else {
+			res = append(res, &CollectorStatus{Count: 0, Name: name})
 		}
 	}
 
-	for k := range tgi.TelegrafInputs {
-		n, _ := inputs.InputEnabled(k)
-		if n > 0 {
-			var count int64
-			var last int64
-
-			for _, s := range inputsStats {
-				if s.Name == k {
-					count = s.Count
-					last = s.Last.Unix()
-					break
-				}
-			}
-
-			sts = append(sts, &CollectorStatus{
-				Name:     k,
-				Count:    count,
-				LastTime: last,
-			})
-		}
-	}
-
-	return sts
+	return
 }
 
 func getHostObjectMessage() *HostObjectMessage {
