@@ -867,12 +867,6 @@ func TestReplace(t *testing.T) {
 			expected: "3622**********2565",
 			key:      "str",
 		},
-		{
-			data:     `{"str": "362201200005302565"}`,
-			script:   `json(_, str) replace(str, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")`,
-			expected: "3622**********2565",
-			key:      "str",
-		},
 		// {
 		// 	data:     `{"str": "小阿卡"}`,
 		// 	script:   `json(_, str) replace(str, '([\\u4E00-\\u9FFF]{3})', "$1aaa")`,
