@@ -42,7 +42,7 @@ const (
   # insecure_skip_verify = false
   
   #[[inputs.docker.log_option]]
-    # container_name_match = "<regexp-container-name>"
+    # container_name_match = '''<regexp-container-name>'''
     # source = "<your-source>"
     # service = "<your-service>"
     # pipeline = "<this-is-pipeline>"
