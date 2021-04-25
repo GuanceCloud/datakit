@@ -39,13 +39,23 @@ func Man() {
 	p.Run()
 }
 
-func ExportMan(to string) error {
+func ExportMan(to, skipList string) error {
 	if err := os.MkdirAll(to, os.ModePerm); err != nil {
 		return err
 	}
 
+	arr := strings.Split(skipList, ",")
+	skip := map[string]bool{}
+	for _, x := range arr {
+		skip[x] = true
+	}
+
 	for k, _ := range inputs.Inputs {
-		data, err := man.BuildMarkdownManual(k)
+		if skip[k] {
+			continue
+		}
+
+		data, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: false})
 		if err != nil {
 			return err
 		}
@@ -60,7 +70,12 @@ func ExportMan(to string) error {
 	}
 
 	for k, _ := range man.OtherDocs {
-		data, err := man.BuildMarkdownManual(k)
+
+		if skip[k] {
+			continue
+		}
+
+		data, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: false})
 		if err != nil {
 			return err
 		}
@@ -88,7 +103,7 @@ func runMan(txt string) {
 		fmt.Println("Bye!")
 		os.Exit(0)
 	default:
-		x, err := man.BuildMarkdownManual(s)
+		x, err := man.BuildMarkdownManual(s, &man.Option{WithCSS: false})
 		if err != nil {
 			fmt.Printf("[E] %s\n", err.Error())
 		} else {
