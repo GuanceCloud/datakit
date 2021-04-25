@@ -77,6 +77,7 @@
 | `type`             | span 请求类型   | `app/db/web/cache/custom` |
 | `status`           | span 状态       | `ok/error`                |
 | `span_type`        | span 类型       | `entry/local/exit`        |
+| `container_host`   | 容器内部主机名   | -                         |
 
 
 ### 指标（field)
