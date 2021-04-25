@@ -196,10 +196,10 @@ func (i *Input) Collect() error {
 		if i.lastStats != nil {
 			if lastIOStat, ok := i.lastStats[name]; ok {
 				if ioStat.BytesSent >= lastIOStat.BytesSent && ts.Unix() > i.lastTime.Unix() {
-					fields["bytes_sent/sec"] = float64(ioStat.BytesSent-lastIOStat.BytesSent) / float64(ts.Unix()-i.lastTime.Unix())
-					fields["bytes_recv/sec"] = float64(ioStat.BytesRecv-lastIOStat.BytesRecv) / float64(ts.Unix()-i.lastTime.Unix())
-					fields["packets_sent/sec"] = float64(ioStat.PacketsSent-lastIOStat.PacketsSent) / float64(ts.Unix()-i.lastTime.Unix())
-					fields["packets_recv/sec"] = float64(ioStat.PacketsRecv-lastIOStat.PacketsRecv) / float64(ts.Unix()-i.lastTime.Unix())
+					fields["bytes_sent/sec"] = int64(ioStat.BytesSent-lastIOStat.BytesSent) / (ts.Unix() - i.lastTime.Unix())
+					fields["bytes_recv/sec"] = int64(ioStat.BytesRecv-lastIOStat.BytesRecv) / (ts.Unix() - i.lastTime.Unix())
+					fields["packets_sent/sec"] = int64(ioStat.PacketsSent-lastIOStat.PacketsSent) / (ts.Unix() - i.lastTime.Unix())
+					fields["packets_recv/sec"] = int64(ioStat.PacketsRecv-lastIOStat.PacketsRecv) / (ts.Unix() - i.lastTime.Unix())
 				}
 			}
 		}
@@ -224,7 +224,7 @@ func (i *Input) Collect() error {
 				sname := strings.ToLower(stat)
 				if _, ok := linuxProtoRate[sname]; ok {
 					if v, ok := fields[pname+"_"+sname]; ok && v.(int64) >= value && ts.Unix() > i.lastTime.Unix() {
-						fields[pname+"_"+sname+"/sec"] = float64(v.(int64)-value) / float64(ts.Unix()-i.lastTime.Unix())
+						fields[pname+"_"+sname+"/sec"] = (v.(int64) - value) / (ts.Unix() - i.lastTime.Unix())
 					}
 				}
 
