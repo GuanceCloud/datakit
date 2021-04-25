@@ -103,13 +103,13 @@ func main() {
 		}
 	} else {
 		install.CurDownloading = dlDatakit
-		install.Download(datakitUrl, datakit.InstallDir, true)
+		install.Download(datakitUrl, datakit.InstallDir, true, false)
 		fmt.Printf("\n")
 		install.CurDownloading = dlAgent
-		install.Download(telegrafUrl, datakit.InstallDir, true)
+		install.Download(telegrafUrl, datakit.InstallDir, true, false)
 		fmt.Printf("\n")
 		install.CurDownloading = dlData
-		install.Download(dataUrl, datakit.InstallDir, true)
+		install.Download(dataUrl, datakit.InstallDir, true, false)
 		fmt.Printf("\n")
 	}
 
@@ -165,17 +165,17 @@ Golang Version: %s
 		install.CurDownloading = dlDatakit
 		install.Download(datakitUrl,
 			fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
-				runtime.GOOS, runtime.GOARCH, DataKitVersion), true)
+				runtime.GOOS, runtime.GOARCH, DataKitVersion), true, false)
 		fmt.Printf("\n")
 
 		install.CurDownloading = dlAgent
 		install.Download(telegrafUrl,
 			fmt.Sprintf("agent-%s-%s.tar.gz",
-				runtime.GOOS, runtime.GOARCH), true)
+				runtime.GOOS, runtime.GOARCH), true, false)
 		fmt.Printf("\n")
 
 		install.CurDownloading = dlData
-		install.Download(dataUrl, "data.tar.gz", true)
+		install.Download(dataUrl, "data.tar.gz", true, false)
 		fmt.Printf("\n")
 
 		os.Exit(0)
