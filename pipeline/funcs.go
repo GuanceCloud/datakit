@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 	"regexp"
+	"unicode/utf8"
+	"unicode"
 
 	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
@@ -39,6 +41,7 @@ var (
 		"parse_duration":   ParseDuration,
 		"parse_date":       ParseDate,
 		"dz":               Dz,
+		"replace":          Replace,
 	}
 )
 
@@ -1025,28 +1028,48 @@ func Dz(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, nil
 	}
 
-	str := strings.Repeat("*", end - start + 1)
-	newCont := cont[:start-1] + str + cont[end:]
+	if end > utf8.RuneCountInString(cont) {
+		end = utf8.RuneCountInString(cont)
+	}
 
-	p.setContent(key, newCont)
+	if start <= 0  {
+		start = 1
+	}
+
+	arrCont := []rune(cont)
+
+	for i := 0; i< len(arrCont); i++ {
+		if i+1 >= start && i < end {
+			if unicode.Is(unicode.Han, arrCont[i]) {
+				arrCont[i] = rune('＊')
+			} else {
+				arrCont[i] = rune('*')
+			}
+		}
+	}
+
+	p.setContent(key, string(arrCont))
 
 	return p, nil
 }
 
 func Replace(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
-	if len(funcExpr.Param) != 2 {
-		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+
+	if len(funcExpr.Param) != 3 {
+		return p, fmt.Errorf("func %s expected 3 args", funcExpr.Name)
 	}
 
-	var key, pattern string
+	var key parser.Node
+	var pattern, dz  string
 	switch v := funcExpr.Param[0].(type) {
-	case *parser.StringLiteral:
-		key = v.Val
+	case *parser.AttrExpr, *parser.Identifier:
+		key = v
 	default:
-		return p, fmt.Errorf("expect StringLiteral, got %s",
+		return p, fmt.Errorf("param key expect AttrExpr or Identifier, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
+
 
 	switch v := funcExpr.Param[1].(type) {
 	case *parser.StringLiteral:
@@ -1055,6 +1078,18 @@ func Replace(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, fmt.Errorf("expect StringLiteral, got %s",
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
+
+
+
+	switch v := funcExpr.Param[2].(type) {
+	case *parser.StringLiteral:
+		dz = v.Val
+	default:
+		return p, fmt.Errorf("expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+
 
 	reg, err := regexp.Compile(pattern)
 	if err != nil {
@@ -1068,7 +1103,7 @@ func Replace(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, nil
 	}
 
-    newCont := reg.ReplaceAllString(cont, "*")
+    newCont := reg.ReplaceAllString(cont, dz)
 
     p.setContent(key, newCont)
 
