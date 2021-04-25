@@ -120,6 +120,22 @@ func (dc *DataWayCfg) RumURL() string {
 		dc.urlValues.Encode())
 }
 
+func (dc *DataWayCfg) SecurityURL() string {
+	if dc.Proxy {
+		return fmt.Sprintf("%s://%s%s?%s",
+			dc.scheme,
+			dc.host,
+			"/proxy",
+			"category=/v1/write/security")
+	}
+
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		"/v1/write/security",
+		dc.urlValues.Encode())
+}
+
 func (dc *DataWayCfg) KeyEventURL() string {
 
 	if dc.Proxy {

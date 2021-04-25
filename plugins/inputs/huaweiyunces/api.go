@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/basic"
@@ -23,20 +24,45 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-func (ag *agent) genCesClient(projectid, regionid string) *ces.CesClient {
+func (ag *agent) genCesClient(projectid, projectname string) (*ces.CesClient, string) {
 
 	var reg *region.Region
 	func() {
 		defer func() {
 			recover()
 		}()
-		reg = cesregion.ValueOf(regionid)
+		reg = cesregion.ValueOf(projectname)
 	}()
 
 	if reg == nil {
-		moduleLogger.Warnf("no endpoint for %s, projectid=%s", regionid, projectid)
-		//reg = region.NewRegion(regionid, fmt.Sprintf("https://ces.%s.myhuaweicloud.com", regionid))
-		return nil
+		if r, ok := ag.ProjectRegions[projectid]; ok {
+			reg = region.NewRegion(r, fmt.Sprintf("https://ces.%s.myhuaweicloud.com", r))
+		} else {
+			staticRegions := map[string]*region.Region{
+				"af-south-1":     cesregion.AF_SOUTH_1,
+				"cn-north-4":     cesregion.CN_NORTH_4,
+				"cn-north-1":     cesregion.CN_NORTH_1,
+				"cn-east-2":      cesregion.CN_EAST_2,
+				"cn-east-3":      cesregion.CN_EAST_3,
+				"cn-south-1":     cesregion.CN_SOUTH_1,
+				"cn-southwest-2": cesregion.CN_SOUTHWEST_2,
+				"ap-southeast-2": cesregion.AP_SOUTHEAST_2,
+				"ap-southeast-1": cesregion.AP_SOUTHEAST_1,
+				"ap-southeast-3": cesregion.AP_SOUTHEAST_3,
+			}
+
+			for k, v := range staticRegions {
+				if strings.Index(projectname, k) != -1 {
+					reg = v
+					break
+				}
+			}
+		}
+
+		if reg == nil {
+			moduleLogger.Warnf("no endpoint for %s(projectid)", projectname, projectid)
+			return nil, ""
+		}
 	}
 
 	auth := basic.NewCredentialsBuilder().
@@ -49,7 +75,7 @@ func (ag *agent) genCesClient(projectid, regionid string) *ces.CesClient {
 		ces.CesClientBuilder().
 			WithRegion(reg).
 			WithCredential(auth).
-			Build())
+			Build()), reg.Endpoint
 }
 
 func (ag *agent) keystoneListAuthProjects() (map[string]iammodel.AuthProjectResult, error) {
