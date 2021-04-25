@@ -44,12 +44,16 @@ func Start() error {
 	return nil
 }
 
-func GetStats() (map[string]*InputsStat, error) {
+func GetStats(timeout time.Duration) (map[string]*InputsStat, error) {
 	q := &qstats{
 		ch: make(chan map[string]*InputsStat),
 	}
 
-	tick := time.NewTicker(time.Second * 3)
+	if timeout <= 0 {
+		timeout = 3 * time.Second
+	}
+
+	tick := time.NewTicker(timeout)
 	defer tick.Stop()
 
 	select {
