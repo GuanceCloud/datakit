@@ -259,6 +259,14 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+func (i *Input) extendSelfTag(tags map[string]string) {
+	if i.Tags != nil {
+		for k, v := range i.Tags {
+			tags[k] = v
+		}
+	}
+}
+
 func (i *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
@@ -482,10 +490,13 @@ func (i *Input) gatherIndicesStats(url string) error {
 			}
 		}
 
+		tags := map[string]string{"index_name": "_all"}
+		i.extendSelfTag(tags)
+
 		metric := &indicesStatsMeasurement{
 			elasticsearchMeasurement: elasticsearchMeasurement{
 				name:   "elasticsearch_indices_stats",
-				tags:   map[string]string{"index_name": "_all"},
+				tags:   tags,
 				fields: allFields,
 				ts:     now,
 			},
@@ -519,6 +530,7 @@ func (i *Input) gatherIndicesStats(url string) error {
 				}
 			}
 
+			i.extendSelfTag(indexTag)
 			metric := &indicesStatsMeasurement{
 				elasticsearchMeasurement: elasticsearchMeasurement{
 					name:   "elasticsearch_indices_stats",
@@ -572,6 +584,7 @@ func (i *Input) gatherIndicesStats(url string) error {
 						}
 					}
 
+					i.extendSelfTag(shardTags)
 					metric := &indicesStatsShardsMeasurement{
 						elasticsearchMeasurement: elasticsearchMeasurement{
 							name:   "elasticsearch_indices_stats_shards",
@@ -650,6 +663,7 @@ func (i *Input) gatherNodeStats(url string) error {
 			}
 		}
 
+		i.extendSelfTag(tags)
 		metric := &nodeStatsMeasurement{
 			elasticsearchMeasurement: elasticsearchMeasurement{
 				name:   "elasticsearch_node_stats",
@@ -700,6 +714,7 @@ func (i *Input) gatherClusterStats(url string) error {
 
 	}
 
+	i.extendSelfTag(tags)
 	metric := &clusterStatsMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
 			name:   "elasticsearch_cluster_stats",
@@ -748,10 +763,12 @@ func (i *Input) gatherClusterHealth(url string) error {
 		}
 	}
 
+	tags := map[string]string{"name": healthStats.ClusterName}
+	i.extendSelfTag(tags)
 	metric := &clusterHealthMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
 			name:   "elasticsearch_cluster_health",
-			tags:   map[string]string{"name": healthStats.ClusterName},
+			tags:   tags,
 			fields: allFields,
 			ts:     now,
 		},
