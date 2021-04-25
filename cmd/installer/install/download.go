@@ -41,7 +41,7 @@ func (wc *writeCounter) PrintProgress() {
 	}
 }
 
-func Download(from, to string, progress bool) error {
+func Download(from, to string, progress, downloadOnly bool) error {
 
 	// disable SSL verify for some bad client
 	cli := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
@@ -64,7 +64,7 @@ func Download(from, to string, progress bool) error {
 		total: uint64(resp.ContentLength),
 	}
 
-	if DownloadOnly {
+	if downloadOnly {
 		return doDownload(io.TeeReader(resp.Body, progbar), to)
 	} else {
 		if !progress {
