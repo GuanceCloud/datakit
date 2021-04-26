@@ -5,14 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type clientMeasurement struct {
-	client  *redis.Client
+	i       *Input
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
@@ -154,6 +152,7 @@ func (m *clientMeasurement) submit() error {
 		if value, ok := m.resData[key]; ok {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
+				m.i.err = append(m.i.err, err)
 				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
 			} else {
 				m.fields[key] = val
