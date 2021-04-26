@@ -5,6 +5,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"fmt"
 )
 
 var (
@@ -12,7 +13,7 @@ var (
 )
 
 func CheckInputToml(name string, tomlcfg []byte) error {
-	if c, ok := inputs.Inputs[name]; !ok {
+	if c, ok := inputs.Inputs[name]; ok {
 		dkinput := c()
 		if err := toml.Unmarshal(tomlcfg, dkinput); err != nil {
 			l.Errorf("toml.Unmarshal: %s", err.Error())
@@ -23,4 +24,5 @@ func CheckInputToml(name string, tomlcfg []byte) error {
 		return nil
 		// TODO:
 	}
+	return fmt.Errorf("input %s not exist",name)
 }
