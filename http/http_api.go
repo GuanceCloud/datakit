@@ -162,8 +162,7 @@ func apiWriteSecurity(c *gin.Context) {
 	name := c.Query(NAME)
 	precision = c.Query(PRECISION)
 
-	body, err = uhttp.GinRead(c)
-	if err != nil {
+	if body, err = uhttp.GinRead(c); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
 
 		return
@@ -186,13 +185,11 @@ func apiWriteSecurity(c *gin.Context) {
 		x = append(x, &io.Point{pt})
 	}
 
-	if err = io.Feed(name, io.Metric, x, nil); err != nil {
+	if err = io.Feed(name, io.Security, x, nil); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-
-		return
+	} else {
+		ErrOK.HttpBody(c, nil)
 	}
-
-	ErrOK.HttpBody(c, nil)
 }
 
 func apiWriteTelegraf(c *gin.Context) {
