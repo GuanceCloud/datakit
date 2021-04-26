@@ -170,7 +170,7 @@ func (this *dockerContainersMeasurement) Info() *inputs.MeasurementInfo {
 			"name":           inputs.NewTagInfo(`对象数据的指定 ID，（仅在对象数据中存在）`),
 			"container_host": inputs.NewTagInfo(`容器内部的主机名（仅在对象数据中存在）`),
 			"host":           inputs.NewTagInfo(`容器宿主机的主机名`),
-			"stats":          inputs.NewTagInfo(`运行状态，running/exited/removed`),
+			"state":          inputs.NewTagInfo(`运行状态，running/exited/removed`),
 			"pod_name":       inputs.NewTagInfo(`pod名称`),
 			"pod_namesapce":  inputs.NewTagInfo(`pod命名空间`),
 			// "kube_container_name": inputs.NewTagInfo(`TODO`),
