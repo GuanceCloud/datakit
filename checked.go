@@ -120,6 +120,7 @@ var (
 		"lighttpd":               true,
 		"mem":                    true,
 		"memcached":              true,
+		"memcached1":             true,
 		"modbus":                 true,
 		"mongodb":                true,
 		"mongodb_oplog":          true,
