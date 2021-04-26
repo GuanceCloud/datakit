@@ -169,6 +169,32 @@ func (dc *DataWayCfg) HeartBeatURL() string {
 		dc.urlValues.Encode())
 }
 
+func (dc *DataWayCfg) ElectionURL() string {
+	var newUrlValue = make(url.Values)
+	for k, v := range dc.urlValues {
+		newUrlValue[k] = v
+	}
+	newUrlValue["id"] = []string{Cfg.MainCfg.UUID}
+
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		"/v1/election",
+		newUrlValue.Encode())
+}
+
+func (dc *DataWayCfg) ElectionHeartBeatURL() string {
+	var newUrlValue = make(url.Values)
+	for k, v := range dc.urlValues {
+		newUrlValue[k] = v
+	}
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		"/v1/election/heartbeat",
+		newUrlValue.Encode())
+}
+
 func (dc *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
 	tcpaddr := addr
 	if _, _, err := net.SplitHostPort(tcpaddr); err != nil {
