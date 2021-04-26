@@ -315,9 +315,9 @@ type enabledInput struct {
 }
 
 type datakitStats struct {
-	InputsStats     []*io.InputsStat `json:"inputs_status"`
-	EnabledInputs   []*enabledInput  `json:"enabled_inputs"`
-	AvailableInputs []string         `json:"available_inputs"`
+	InputsStats     map[string]*io.InputsStat `json:"inputs_status"`
+	EnabledInputs   []*enabledInput           `json:"enabled_inputs"`
+	AvailableInputs []string                  `json:"available_inputs"`
 
 	Version      string    `json:"version"`
 	BuildAt      string    `json:"build_at"`
@@ -351,7 +351,7 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	stats.InputsStats, err = io.GetStats() // get all inputs stats
+	stats.InputsStats, err = io.GetStats(time.Second * 5) // get all inputs stats
 	if err != nil {
 		l.Error(err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -520,7 +520,7 @@ func apiManual(c *gin.Context) {
 		return
 	}
 
-	mdtxt, err := man.BuildMarkdownManual(name)
+	mdtxt, err := man.BuildMarkdownManual(name, &man.Option{WithCSS: true})
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
 		return
