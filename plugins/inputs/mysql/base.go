@@ -11,7 +11,7 @@ import (
 )
 
 type baseMeasurement struct {
-	client  *sql.DB
+	i       *Input
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
@@ -504,13 +504,13 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 
 // 数据源获取数据
 func (m *baseMeasurement) getStatus() error {
-	if err := m.client.Ping(); err != nil {
+	if err := m.i.db.Ping(); err != nil {
 		l.Errorf("db connect error %v", err)
 		return err
 	}
 
 	globalStatusSql := "SHOW /*!50002 GLOBAL */ STATUS;"
-	rows, err := m.client.Query(globalStatusSql)
+	rows, err := m.i.db.Query(globalStatusSql)
 	if err != nil {
 		return err
 	}
@@ -535,7 +535,7 @@ func (m *baseMeasurement) getStatus() error {
 // variables data
 func (m *baseMeasurement) getVariables() error {
 	variablesSql := "SHOW GLOBAL VARIABLES;"
-	rows, err := m.client.Query(variablesSql)
+	rows, err := m.i.db.Query(variablesSql)
 	if err != nil {
 		return err
 	}
@@ -557,7 +557,7 @@ func (m *baseMeasurement) getVariables() error {
 // log stats
 func (m *baseMeasurement) getLogStats() error {
 	logSql := "SHOW BINARY LOGS;"
-	rows, err := m.client.Query(logSql)
+	rows, err := m.i.db.Query(logSql)
 	if err != nil {
 		return err
 	}
@@ -589,6 +589,7 @@ func (m *baseMeasurement) submit() error {
 		if value, ok := m.resData[key]; ok {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
+				m.i.err = append(m.i.err, err)
 				l.Errorf("baseMeasurement metric %v value %v parse error %v", key, value, err)
 			} else {
 				m.fields[key] = val
