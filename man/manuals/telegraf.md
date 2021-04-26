@@ -6,7 +6,7 @@
 
 # 简介
 
-DataKit 之前版本会集成 Telegraf 插件，为了更好的使用和支持 Telegraf ， 此前 DataKit 支持的 Telegraf 采集器全部废弃，用户如需使用 Telegraf 相关的采集器或者数据，需自行安装 Telegraf 并将数据打入 DataKit
+DataKit 之前版本会集成 Telegraf 插件，为了更好的使用和支持 Telegraf ，此前 DataKit 支持的 Telegraf 采集器全部废弃，用户如需使用 Telegraf 相关的采集器或者数据，需自行安装 Telegraf 并将数据打入 DataKit。
 
 ## Telegraf 使用并接入 DataKit 
 
@@ -63,7 +63,7 @@ sudo apt-get update && sudo apt-get install telegraf
     
 ```
 
-DataKit 是通过 http 接入 Telegraf 数据，此处的 `outputs.http` 为必填字段，如需 Telegraf 详细配置，[参见](https://docs.influxdata.com/telegraf/v1.15/administration/configuration/)
+DataKit 是通过 http 接入 Telegraf 数据，此处的 `outputs.http` 为必填字段，Telegraf Agent 详细配置，[参见](https://docs.influxdata.com/telegraf/v1.15/administration/configuration/)
 
 加入 `Telegraf plugins`,以 `mem` 为例：
 
@@ -95,7 +95,7 @@ sudo service telegraf start
 ```
 
 
-### 关于 Telegraf 数据 `tag` 问题
+### 关于 Telegraf 数据 Tag 问题
 
 - 可在 Telegraf 配置中加入 `golbal tag`,示例如下：
 
@@ -107,7 +107,7 @@ sudo service telegraf start
 
 ```
 
-- DataKit 会默认加入一些 `golbal tag`，比如 `host`, Telegraf 数据如需覆盖 `host` ,需在 Telegraf 配置中加入 `host` tag
+- DataKit 会默认加入一些 `golbal tag`，比如 `host`, Telegraf 数据如需覆盖 `host` ,需在 Telegraf 配置中加入 `host` Tag
 
 ### 关于 Telegraf 数据问题
 
