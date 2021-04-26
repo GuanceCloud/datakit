@@ -12,7 +12,7 @@ import (
 )
 
 type innodbMeasurement struct {
-	client  *sql.DB
+	i       *Input
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
@@ -436,7 +436,7 @@ func (m *innodbMeasurement) Info() *inputs.MeasurementInfo {
 
 // 数据源获取数据
 func (m *innodbMeasurement) getInnodb() error {
-	if err := m.client.Ping(); err != nil {
+	if err := m.i.db.Ping(); err != nil {
 		l.Errorf("db connect error %v", err)
 		return err
 	}
@@ -445,7 +445,7 @@ func (m *innodbMeasurement) getInnodb() error {
 
 	// run query
 	var t, name, stat string
-	err := m.client.QueryRow(globalInnodbSql).Scan(&t, &name, &stat)
+	err := m.i.db.QueryRow(globalInnodbSql).Scan(&t, &name, &stat)
 	if err != nil {
 		l.Warnf("Privilege error or engine unavailable accessing the INNODB status tables (must grant PROCESS): %s", err)
 		return err
@@ -870,6 +870,7 @@ func (m *innodbMeasurement) submit() error {
 		if value, ok := m.resData[key]; ok {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
+				m.i.err = append(m.i.err, err)
 				l.Errorf("innodbMeasurement metric %v value %v parse error %v", key, value, err)
 			} else {
 				m.fields[key] = val
