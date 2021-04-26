@@ -41,9 +41,19 @@ func Get(name string) (string, error) {
 	return ManualBox.FindString(name + ".md")
 }
 
-func BuildMarkdownManual(name string) ([]byte, error) {
+type Option struct {
+	WithCSS bool
+}
+
+func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 
 	var p *Params
+
+	css := MarkdownCSS
+
+	if !opt.WithCSS {
+		css = ""
+	}
 
 	if _, ok := OtherDocs[name]; ok {
 		p = &Params{
