@@ -76,7 +76,9 @@ func (m *diskioMeasurement) Info() *inputs.MeasurementInfo {
 			"reads":            newFieldsInfoCount("reads completed successfully"),
 			"writes":           newFieldsInfoCount("writes completed"),
 			"read_bytes":       newFieldsInfoBytes("read bytes"),
+			"read_bytes/sec":   newFieldsInfoBytesPerSec("read bytes per second"),
 			"write_bytes":      newFieldsInfoBytes("write bytes"),
+			"write_bytes/sec":  newFieldsInfoBytesPerSec("write bytes per second"),
 			"read_time":        newFieldsInfoMS("time spent reading"),
 			"write_time":       newFieldsInfoMS("time spent writing"),
 			"io_time":          newFieldsInfoMS("time spent doing I/Os"),
@@ -101,8 +103,9 @@ type Input struct {
 	Tags             map[string]string
 
 	collectCache []inputs.Measurement
-
-	diskIO DiskIO
+	lastStat     map[string]disk.IOCountersStat
+	lastTime     time.Time
+	diskIO       DiskIO
 
 	infoCache    map[string]diskInfoCache
 	deviceFilter *DevicesFilter
@@ -195,9 +198,16 @@ func (i *Input) Collect() error {
 			"merged_reads":     io.MergedReadCount,
 			"merged_writes":    io.MergedWriteCount,
 		}
+		if i.lastStat != nil {
+			if v, ok := i.lastStat[io.Name]; ok && io.ReadBytes >= v.ReadBytes {
+				fields["read_bytes/sec"] = int64(io.ReadBytes-v.ReadBytes) / (ts.Unix() - i.lastTime.Unix())
+				fields["write_bytes/sec"] = int64(io.WriteBytes-v.WriteBytes) / (ts.Unix() - i.lastTime.Unix())
+			}
+		}
 		i.collectCache = append(i.collectCache, &diskioMeasurement{name: metricName, tags: tags, fields: fields, ts: ts})
 	}
-
+	i.lastStat = diskio
+	i.lastTime = ts
 	return nil
 }
 
