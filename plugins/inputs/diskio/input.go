@@ -13,14 +13,21 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	minInterval = time.Second
+	maxInterval = time.Minute
+)
+
 var (
 	inputName    = "diskio"
 	metricName   = "diskio"
-	collectCycle = time.Second * 10
 	diskioLogger = logger.DefaultSLogger(inputName)
 	varRegex     = regexp.MustCompile(`\$(?:\w+|\{\w+\})`)
 	sampleConfig = `
 [[inputs.diskio]]
+  ##(optional) collect interval, default is 10 seconds
+  interval = '10s'
+  ## 
   ## By default, gather stats for all devices including
   ## disk partitions.
   ## Setting interfaces using regular expressions will collect these expected devices.
@@ -51,7 +58,7 @@ var (
   # 
   [inputs.diskio.tags]
     # tag1 = "a"
-  `
+`
 )
 
 type diskioMeasurement measurement
@@ -86,6 +93,7 @@ func (m *diskioMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type Input struct {
+	Interval         datakit.Duration
 	Devices          []string
 	DeviceTags       []string
 	NameTemplates    []string
@@ -195,7 +203,8 @@ func (i *Input) Collect() error {
 
 func (i *Input) Run() {
 	diskioLogger.Infof("diskio input started")
-	tick := time.NewTicker(collectCycle)
+	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 	for {
 		select {
@@ -203,9 +212,13 @@ func (i *Input) Run() {
 			start := time.Now()
 			i.collectCache = make([]inputs.Measurement, 0)
 			if err := i.Collect(); err == nil {
-				inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)})
+				if errFeed := inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
+					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
+					io.FeedLastError(inputName, errFeed.Error())
+					diskioLogger.Error(err)
+				}
 			} else {
+				io.FeedLastError(inputName, err.Error())
 				diskioLogger.Error(err)
 			}
 		case <-datakit.Exit.Wait():
