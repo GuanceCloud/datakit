@@ -30,7 +30,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/kapacitor"
 	"github.com/influxdata/telegraf/plugins/inputs/kibana"
 	"github.com/influxdata/telegraf/plugins/inputs/kubernetes"
-	"github.com/influxdata/telegraf/plugins/inputs/memcached"
+	_ "github.com/influxdata/telegraf/plugins/inputs/memcached"
 	"github.com/influxdata/telegraf/plugins/inputs/modbus"
 	"github.com/influxdata/telegraf/plugins/inputs/mongodb"
 	"github.com/influxdata/telegraf/plugins/inputs/mqtt_consumer"
@@ -122,8 +122,8 @@ var (
 		"mongodb":    {name: "mongodb", Catalog: "db", Input: &mongodb.MongoDB{}},
 		// "redis":         {name: "redis", Catalog: "db", Input: &redis.Redis{}},
 		// "elasticsearch": {name: "elasticsearch", Catalog: "db", Input: &elasticsearch.Elasticsearch{}},
-		"sqlserver":  {name: "sqlserver", Catalog: "db", Input: &sqlserver.SQLServer{}},
-		"memcached":  {name: "memcached", Catalog: "db", Input: &memcached.Memcached{}},
+		"sqlserver": {name: "sqlserver", Catalog: "db", Input: &sqlserver.SQLServer{}},
+		// "memcached":  {name: "memcached", Catalog: "db", Input: &memcached.Memcached{}},
 		"solr":       {name: "solr", Catalog: "db", Input: &solr.Solr{}},
 		"clickhouse": {name: "clickhouse", Catalog: "db", Input: &clickhouse.ClickHouse{}},
 		`influxdb`:   {name: "influxdb", Catalog: "db", Input: &influxdb.InfluxDB{}},
