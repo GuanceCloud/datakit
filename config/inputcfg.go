@@ -11,6 +11,7 @@ import (
 	"github.com/influxdata/toml/ast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
@@ -57,6 +58,8 @@ func LoadInputsConfig(c *datakit.Config) error {
 				l.Warnf("input `%s' removed, please use %s instead", k, v)
 			}
 		}
+
+		runElectionWithInputs(tbl, electionInputs)
 
 		if len(tbl.Fields) == 0 {
 			l.Debugf("no conf available on %s", fp)
@@ -355,12 +358,10 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 	return inputlist, nil
 }
 
-var (
-	deprecatedInputs = map[string]string{
-		"dockerlog":         "docker",
-		"docker_containers": "docker",
-	}
-)
+var deprecatedInputs = map[string]string{
+	"dockerlog":         "docker",
+	"docker_containers": "docker",
+}
 
 func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[string]string) {
 
@@ -378,4 +379,27 @@ func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[s
 		}
 	}
 	return
+}
+
+var electionInputs = map[string]interface{}{
+	"kubernetes": nil,
+}
+
+func runElectionWithInputs(tbl *ast.Table, entries map[string]interface{}) {
+	for _, node := range tbl.Fields {
+		stbl, ok := node.(*ast.Table)
+		if !ok {
+			continue
+		}
+		for inputName := range stbl.Fields {
+			if _, ok := entries[inputName]; !ok {
+				continue
+			}
+
+			// 初始化状态是 Dead
+			if election.CurrentStats() == election.Dead {
+				go election.StartElection()
+			}
+		}
+	}
 }
