@@ -56,8 +56,8 @@ const (
 	datakitBin = "datakit"
 
 	dlDatakit = "datakit"
-	dlAgent   = "agent"
-	dlData    = "data"
+
+	dlData = "data"
 )
 
 func main() {
@@ -98,6 +98,7 @@ func main() {
 			_ = install.ExtractDatakit(f, datakit.InstallDir)
 		}
 	} else {
+		l.Infof("download start,url%s", datakitUrl)
 		install.CurDownloading = dlDatakit
 		install.Download(datakitUrl, datakit.InstallDir, true)
 		fmt.Printf("\n")
@@ -155,6 +156,7 @@ Golang Version: %s
 		install.DownloadOnly = true
 
 		install.CurDownloading = dlDatakit
+
 		install.Download(datakitUrl,
 			fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
 				runtime.GOOS, runtime.GOARCH, DataKitVersion), true)
