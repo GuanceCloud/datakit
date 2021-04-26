@@ -378,7 +378,7 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", k))
 	}
 
-	// add available inputs(datakit+telegraf) stats
+	// add available inputs(datakit) stats
 	stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("tatal %d, datakit %d",
 		len(stats.AvailableInputs), len(inputs.Inputs)))
 
