@@ -1,14 +1,12 @@
 package datakit
 
 import (
-	"fmt"
 	"path/filepath"
 	"runtime"
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 const (
@@ -31,8 +29,6 @@ var (
 	Exit = cliutils.NewSem()
 	WG   = sync.WaitGroup{}
 
-	DKUserAgent = fmt.Sprintf("datakit(%s), %s-%s", git.Version, runtime.GOOS, runtime.GOARCH)
-
 	Docker  = false
 	AllOS   = []string{OSWindows, OSLinux, OSDarwin}
 	AllArch = []string{OSArchWinAmd64, OSArchWin386, OSArchLinuxArm, OSArchLinuxArm64, OSArchLinux386, OSArchLinuxAmd64, OSArchDarwinAmd64}
@@ -44,13 +40,11 @@ var (
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
-	AgentLogFile = filepath.Join(InstallDir, "embed", "agent.log")
-	OTALogFile   = filepath.Join(InstallDir, "ota.log")
-	UUIDFile     = filepath.Join(InstallDir, ".id")
-	TelegrafDir  = filepath.Join(InstallDir, "embed")
-	DataDir      = filepath.Join(InstallDir, "data")
-	LuaDir       = filepath.Join(InstallDir, "lua")
-	ConfdDir     = filepath.Join(InstallDir, "conf.d")
+	OTALogFile = filepath.Join(InstallDir, "ota.log")
+	UUIDFile   = filepath.Join(InstallDir, ".id")
+	DataDir    = filepath.Join(InstallDir, "data")
+	LuaDir     = filepath.Join(InstallDir, "lua")
+	ConfdDir   = filepath.Join(InstallDir, "conf.d")
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
