@@ -127,19 +127,19 @@ func (this *Input) gatherStats(container types.Container) (map[string]interface{
 	blkRead, blkWrite := calculateBlockIO(v.BlkioStats)
 
 	return map[string]interface{}{
-		"cpu_usage_percent":  calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage, v.PreCPUStats.SystemUsage, v), /*float64*/
+		"from_kubernetes":    contianerIsFromKubernetes(getContainerName(container.Names)),
+		"cpu_usage":          calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage, v.PreCPUStats.SystemUsage, v), /*float64*/
 		"cpu_delta":          calculateCPUDelta(v),
 		"cpu_system_delta":   calculateCPUSystemDelta(v),
 		"cpu_numbers":        calculateCPUNumbers(v),
-		"mem_available":      int64(v.MemoryStats.Limit),
-		"mem_used":           mem,
-		"mem_usage_percent":  memPercent, /*float64*/
+		"mem_limit":          int64(v.MemoryStats.Limit),
+		"mem_usage":          mem,
+		"mem_used_percent":   memPercent, /*float64*/
 		"mem_failed_count":   int64(v.MemoryStats.Failcnt),
 		"network_bytes_rcvd": netRx,
 		"network_bytes_sent": netTx,
 		"block_read_byte":    blkRead,
 		"block_write_byte":   blkWrite,
-		"from_kubernetes":    contianerIsFromKubernetes(getContainerName(container.Names)),
 	}, nil
 }
 
