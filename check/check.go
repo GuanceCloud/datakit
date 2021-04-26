@@ -2,9 +2,10 @@ package check
 
 import (
 	"github.com/influxdata/toml"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
 	"fmt"
 )
 
