@@ -48,6 +48,7 @@ const (
 	Percent = "%"
 
 	// TODO: add more...
+	BytesPerSec = "B/s"
 )
 
 type Measurement interface {
@@ -109,11 +110,16 @@ func (m *MeasurementInfo) TagsMarkdownTable() string {
 	rows := []string{tableHeader}
 	keys := sortMapKey(m.Tags)
 	for _, key := range keys {
-		t, ok := m.Tags[key].(*TagInfo)
-		if !ok {
-			continue
+		desc := ""
+		switch t := m.Tags[key].(type) {
+		case *TagInfo:
+			desc = t.Desc
+		case TagInfo:
+			desc = t.Desc
+		default:
 		}
-		rows = append(rows, fmt.Sprintf("|`%s`|%s|", key, t.Desc))
+
+		rows = append(rows, fmt.Sprintf("|`%s`|%s|", key, desc))
 	}
 	return strings.Join(rows, "\n")
 }
