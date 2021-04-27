@@ -244,19 +244,20 @@ func (d *Proxy) handle(c *gin.Context) {
 		}
 
 	case io.HeartBeat:
-		req, err := http.NewRequest("POST", datakit.Cfg.MainCfg.DataWay.HeartBeatURL(), c.Request.Body)
-		resp, err := cli.Do(req)
-		if err != nil {
-			l.Error(err)
-			return
+		for _, beatUrl := range datakit.Cfg.MainCfg.DataWay.HeartBeatURL() {
+			req, err := http.NewRequest("POST", beatUrl, c.Request.Body)
+			resp, err := cli.Do(req)
+			if err != nil {
+				l.Error(err)
+				return
+			}
+
+			defer resp.Body.Close()
+
+			if resp.StatusCode >= 400 {
+				l.Errorf("heart beat resp err: %+#v", resp)
+			}
 		}
-
-		defer resp.Body.Close()
-
-		if resp.StatusCode >= 400 {
-			l.Errorf("heart beat resp err: %+#v", resp)
-		}
-
 	default:
 		l.Errorf("invalid category: `%s'", category)
 	}
