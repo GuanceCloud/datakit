@@ -303,6 +303,9 @@ func (i *Input) diskTags(devName string) map[string]string {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{diskIO: disk.IOCounters}
+		return &Input{
+			diskIO:   disk.IOCounters,
+			Interval: datakit.Duration{Duration: time.Second * 10},
+		}
 	})
 }
