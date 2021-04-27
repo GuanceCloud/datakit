@@ -203,6 +203,11 @@ func parseResponse(r *bufio.Reader) (map[string]string, error) {
 	return values, nil
 }
 
+const (
+	maxInterval = 1 * time.Minute
+	minInterval = 1 * time.Second
+)
+
 func (i *Input) Run() {
 	l.Info("memcached running")
 
@@ -212,7 +217,8 @@ func (i *Input) Run() {
 	} else if duration <= 0 {
 		l.Error(fmt.Errorf("invalid interval, cannot be less than zero"))
 	}
-	i.duration = duration
+
+	i.duration = datakit.ProtectedInterval(minInterval, maxInterval, duration)
 
 	tick := time.NewTicker(i.duration)
 
@@ -224,11 +230,13 @@ func (i *Input) Run() {
 		case <-tick.C:
 			start := time.Now()
 			if err := i.Collect(); err != nil {
+				io.FeedLastError(inputName, err.Error())
 				l.Error(err)
 			} else {
 				if len(i.collectCache) > 0 {
 					err := inputs.FeedMeasurement(inputName, io.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
 					if err != nil {
+						io.FeedLastError(inputName, err.Error())
 						l.Error(err.Error())
 					}
 					i.collectCache = i.collectCache[:0]
