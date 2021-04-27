@@ -555,60 +555,60 @@ func (i *Input) gatherIndicesStats(url string) error {
 		}
 
 		// disable now
-		if false && i.IndicesLevel == "shards" {
-			for shardNumber, shards := range index.Shards {
-				for _, shard := range shards {
+		// if false && i.IndicesLevel == "shards" {
+		// 	for shardNumber, shards := range index.Shards {
+		// 		for _, shard := range shards {
 
-					// Get Shard Stats
-					flattened := JSONFlattener{}
-					err := flattened.FullFlattenJSON("", shard, true, true)
-					if err != nil {
-						return err
-					}
+		// 			// Get Shard Stats
+		// 			flattened := JSONFlattener{}
+		// 			err := flattened.FullFlattenJSON("", shard, true, true)
+		// 			if err != nil {
+		// 				return err
+		// 			}
 
-					// determine shard tag and primary/replica designation
-					shardType := "replica"
-					if flattened.Fields["routing_primary"] == true {
-						shardType = "primary"
-					}
-					delete(flattened.Fields, "routing_primary")
+		// 			// determine shard tag and primary/replica designation
+		// 			shardType := "replica"
+		// 			if flattened.Fields["routing_primary"] == true {
+		// 				shardType = "primary"
+		// 			}
+		// 			delete(flattened.Fields, "routing_primary")
 
-					routingState, ok := flattened.Fields["routing_state"].(string)
-					if ok {
-						flattened.Fields["routing_state"] = mapShardStatusToCode(routingState)
-					}
+		// 			routingState, ok := flattened.Fields["routing_state"].(string)
+		// 			if ok {
+		// 				flattened.Fields["routing_state"] = mapShardStatusToCode(routingState)
+		// 			}
 
-					routingNode, _ := flattened.Fields["routing_node"].(string)
-					shardTags := map[string]string{
-						"index_name": id,
-						"node_id":    routingNode,
-						"shard_name": string(shardNumber),
-						"type":       shardType,
-					}
+		// 			routingNode, _ := flattened.Fields["routing_node"].(string)
+		// 			shardTags := map[string]string{
+		// 				"index_name": id,
+		// 				"node_id":    routingNode,
+		// 				"shard_name": string(shardNumber),
+		// 				"type":       shardType,
+		// 			}
 
-					for key, field := range flattened.Fields {
-						switch field.(type) {
-						case string, bool:
-							delete(flattened.Fields, key)
-						}
-					}
+		// 			for key, field := range flattened.Fields {
+		// 				switch field.(type) {
+		// 				case string, bool:
+		// 					delete(flattened.Fields, key)
+		// 				}
+		// 			}
 
-					i.extendSelfTag(shardTags)
-					metric := &indicesStatsShardsMeasurement{
-						elasticsearchMeasurement: elasticsearchMeasurement{
-							name:   "elasticsearch_indices_stats_shards",
-							tags:   shardTags,
-							fields: flattened.Fields,
-							ts:     now,
-						},
-					}
+		// 			i.extendSelfTag(shardTags)
+		// 			metric := &indicesStatsShardsMeasurement{
+		// 				elasticsearchMeasurement: elasticsearchMeasurement{
+		// 					name:   "elasticsearch_indices_stats_shards",
+		// 					tags:   shardTags,
+		// 					fields: flattened.Fields,
+		// 					ts:     now,
+		// 				},
+		// 			}
 
-					if len(metric.fields) > 0 {
-						i.collectCache = append(i.collectCache, metric)
-					}
-				}
-			}
-		}
+		// 			if len(metric.fields) > 0 {
+		// 				i.collectCache = append(i.collectCache, metric)
+		// 			}
+		// 		}
+		// 	}
+		// }
 	}
 
 	return nil
