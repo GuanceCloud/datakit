@@ -47,6 +47,18 @@ func (s ConsensusState) String() string {
 	}
 }
 
+func (s ConsensusState) IsCandidate() bool {
+	return s == Candidate
+}
+
+func (s ConsensusState) IsLeader() bool {
+	return s == Leader
+}
+
+func (s ConsensusState) IsDead() bool {
+	return s == Dead
+}
+
 type ConsensusModule struct {
 	state                ConsensusState
 	electionURL          string
