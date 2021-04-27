@@ -112,10 +112,10 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 
 #### 单个采集器运行情况字段列表
 
-| 字段名          | 描述             | 类型   |
-| ---             | ----             |:---:   |
-| `name`          | 采集器名称       | string |
-| `count`         | 采集次数         | int    |
-| `last_time`     | 最近一次采集时间 | int    |
-| `last_err`      | 最后一次报错信息 | string |
-| `last_err_time` | 最后一次报错时间 | int    |
+| 字段名          | 描述                                           | 类型   |
+| ---             | ----                                           | :---:  |
+| `name`          | 采集器名称                                     | string |
+| `count`         | 采集次数                                       | int    |
+| `last_time`     | 最近一次采集时间                               | int    |
+| `last_err`      | 最后一次报错信息(默认只报告 30 分钟以内的错误) | string |
+| `last_err_time` | 最后一次报错时间                               | int    |
