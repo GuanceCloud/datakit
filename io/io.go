@@ -64,7 +64,7 @@ type IO struct {
 	cacheCnt       int64
 	fd             *os.File
 	outputFileSize int64
-	categoryURLs   map[string]string
+	categoryURLs   map[string][]string
 }
 
 func NewIO() *IO {
@@ -283,7 +283,7 @@ func (x *IO) init() error {
 	}
 
 	x.dw = dw
-	x.categoryURLs = map[string]string{
+	x.categoryURLs = map[string][]string{
 		Metric:   x.dw.MetricURL(),
 		KeyEvent: x.dw.KeyEventURL(),
 		Object:   x.dw.ObjectURL(),
@@ -364,29 +364,30 @@ func (x *IO) StartIO(recoverable bool) {
 }
 
 func (x *IO) dkHeartbeat() {
-	body := map[string]interface{}{
-		"dk_uuid":   datakit.Cfg.MainCfg.UUID,
-		"heartbeat": time.Now().Unix(),
-		"host":      datakit.Cfg.MainCfg.Hostname,
-		"token":     datakit.Cfg.MainCfg.DataWay.GetToken(),
-	}
-	bodyByte, err := json.Marshal(body)
-	if err != nil {
-		l.Errorf("[error] heartbeat json marshal err:%s", err.Error())
-		return
-	}
+	for _, beatUrl := range datakit.Cfg.MainCfg.DataWay.HeartBeatURL() {
+		body := map[string]interface{}{
+			"dk_uuid":   datakit.Cfg.MainCfg.UUID,
+			"heartbeat": time.Now().Unix(),
+			"host":      datakit.Cfg.MainCfg.Hostname,
+		}
+		bodyByte, err := json.Marshal(body)
+		if err != nil {
+			l.Errorf("[error] heartbeat json marshal err:%s", err.Error())
+			return
+		}
 
-	req, err := http.NewRequest("POST", datakit.Cfg.MainCfg.DataWay.HeartBeatURL(), bytes.NewBuffer(bodyByte))
-	resp, err := x.httpCli.Do(req)
-	if err != nil {
-		l.Error(err)
-		return
-	}
+		req, err := http.NewRequest("POST", beatUrl, bytes.NewBuffer(bodyByte))
+		resp, err := x.httpCli.Do(req)
+		if err != nil {
+			l.Error(err)
+			return
+		}
 
-	defer resp.Body.Close()
+		defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
-		l.Errorf("heart beat resp err: %+#v", resp)
+		if resp.StatusCode >= 400 {
+			l.Errorf("heart beat resp err: %+#v", resp)
+		}
 	}
 }
 
@@ -413,18 +414,19 @@ func (x *IO) flush() {
 	}
 
 	for k, v := range x.cache {
+		for _, categoryURL := range x.categoryURLs[k] {
+			if err := x.doFlush(v, categoryURL); err != nil {
+				l.Errorf("post %d to %s failed", len(v), k)
+				continue
+			}
 
-		if err := x.doFlush(v, x.categoryURLs[k]); err != nil {
-			l.Errorf("post %d to %s failed", len(v), k)
-			continue
-		}
-
-		if len(v) > 0 {
-			x.cacheCnt -= int64(len(v))
+			if len(v) > 0 {
+				x.cacheCnt -= int64(len(v))
+				l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
+				x.cache[k] = nil
+			}
 			l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
-			x.cache[k] = nil
 		}
-		l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
 	}
 
 	// flush dynamic cache: __not__ post to default dataway
