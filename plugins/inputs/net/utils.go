@@ -9,15 +9,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type NetProto func() ([]psNet.ProtoCountersStat, error)
+type NetProto func(protocols []string) ([]psNet.ProtoCountersStat, error)
 
 type NetIO func() ([]psNet.IOCountersStat, error)
 
 type NetVirtualIfaces func() (map[string]bool, error)
-
-func NetProtoCounters() ([]psNet.ProtoCountersStat, error) {
-	return psNet.ProtoCounters(nil)
-}
 
 func NetIOCounters() ([]psNet.IOCountersStat, error) {
 	return psNet.IOCounters(true)
@@ -110,7 +106,25 @@ func NewFieldsInfoIByte(desc string) *inputs.FieldInfo {
 	}
 }
 
+func NewFieldsInfoIBytePerSec(desc string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		Type:     inputs.Gauge,
+		DataType: inputs.Int,
+		Unit:     inputs.BytesPerSec,
+		Desc:     desc,
+	}
+}
+
 func NewFieldsInfoCount(desc string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		Type:     inputs.Gauge,
+		DataType: inputs.Int,
+		Unit:     inputs.Count,
+		Desc:     desc,
+	}
+}
+
+func NewFieldsInfoCountPerSec(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		Type:     inputs.Gauge,
 		DataType: inputs.Int,
