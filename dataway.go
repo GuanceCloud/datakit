@@ -4,169 +4,177 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 )
 
 type DataWayCfg struct {
-	URL     string `toml:"url"`
-	Proxy   bool   `toml:"proxy,omitempty"`
-	Timeout string `toml:"timeout"`
-
+	URL              string `toml:"url"`
+	Proxy            bool   `toml:"proxy,omitempty"`
+	Timeout          string `toml:"timeout"`
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
 	DeprecatedToken  string `toml:"token,omitempty"`
+	paramUrls        []*paramUrl
+}
 
+type paramUrl struct {
 	host      string
 	scheme    string
 	urlValues url.Values
 }
 
-func (dc *DataWayCfg) DeprecatedMetricURL() string {
+func (dc *DataWayCfg) DeprecatedMetricURL() []string {
+	var resUrls []string
 	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/metric")
+		for _, paramUrl := range dc.paramUrls {
+			itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/proxy", "category=/v1/write/metric")
+			resUrls = append(resUrls, itemUrl)
+		}
+		return resUrls
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/metrics",
-		dc.urlValues.Encode())
+	for _, paramUrl := range dc.paramUrls {
+		itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/v1/write/metrics", paramUrl.urlValues.Encode())
+		resUrls = append(resUrls, itemUrl)
+	}
+	return resUrls
 }
 
-func (dc *DataWayCfg) MetricURL() string {
-
+func (dc *DataWayCfg) MetricURL() []string {
+	var resUrls []string
 	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/metric")
+		for _, paramUrl := range dc.paramUrls {
+			itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/proxy", "category=/v1/write/metric")
+			resUrls = append(resUrls, itemUrl)
+		}
+		return resUrls
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/metric",
-		dc.urlValues.Encode())
+	for _, paramUrl := range dc.paramUrls {
+		itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/v1/write/metric", paramUrl.urlValues.Encode())
+		resUrls = append(resUrls, itemUrl)
+	}
+	return resUrls
 }
 
-func (dc *DataWayCfg) ObjectURL() string {
-
+func (dc *DataWayCfg) ObjectURL() []string {
+	var resUrls []string
 	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/object")
+		for _, paramUrl := range dc.paramUrls {
+			itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/proxy", "category=/v1/write/object")
+			resUrls = append(resUrls, itemUrl)
+		}
+		return resUrls
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/object",
-		dc.urlValues.Encode())
+	for _, paramUrl := range dc.paramUrls {
+		itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/v1/write/object", paramUrl.urlValues.Encode())
+		resUrls = append(resUrls, itemUrl)
+	}
+	return resUrls
 }
 
-func (dc *DataWayCfg) LoggingURL() string {
-
+func (dc *DataWayCfg) LoggingURL() []string {
+	var resUrls []string
 	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/logging")
+		for _, paramUrl := range dc.paramUrls {
+			itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/proxy", "category=/v1/write/logging")
+			resUrls = append(resUrls, itemUrl)
+		}
+		return resUrls
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/logging",
-		dc.urlValues.Encode())
+	for _, paramUrl := range dc.paramUrls {
+		itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/v1/write/logging", paramUrl.urlValues.Encode())
+		resUrls = append(resUrls, itemUrl)
+	}
+	return resUrls
 }
 
-func (dc *DataWayCfg) TracingURL() string {
+func (dc *DataWayCfg) TracingURL() []string {
+	var resUrls []string
 	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/tracing")
+		for _, paramUrl := range dc.paramUrls {
+			itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/proxy", "category=/v1/write/tracing")
+			resUrls = append(resUrls, itemUrl)
+		}
+		return resUrls
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/tracing",
-		dc.urlValues.Encode())
+	for _, paramUrl := range dc.paramUrls {
+		itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/v1/write/tracing", paramUrl.urlValues.Encode())
+		resUrls = append(resUrls, itemUrl)
+	}
+	return resUrls
 }
 
-func (dc *DataWayCfg) RumURL() string {
+func (dc *DataWayCfg) RumURL() []string {
+	var resUrls []string
 	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/rum")
+		for _, paramUrl := range dc.paramUrls {
+			itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/proxy", "category=/v1/write/rum")
+			resUrls = append(resUrls, itemUrl)
+		}
+		return resUrls
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/rum",
-		dc.urlValues.Encode())
+	for _, paramUrl := range dc.paramUrls {
+		itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/v1/write/rum", paramUrl.urlValues.Encode())
+		resUrls = append(resUrls, itemUrl)
+	}
+	return resUrls
 }
 
-func (dc *DataWayCfg) SecurityURL() string {
+func (dc *DataWayCfg) SecurityURL() []string {
+	var resUrls []string
 	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/security")
+		for _, paramUrl := range dc.paramUrls {
+			itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/proxy", "category=/v1/write/security")
+			resUrls = append(resUrls, itemUrl)
+		}
+		return resUrls
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/security",
-		dc.urlValues.Encode())
+	for _, paramUrl := range dc.paramUrls {
+		itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/v1/write/security", paramUrl.urlValues.Encode())
+		resUrls = append(resUrls, itemUrl)
+	}
+	return resUrls
 }
 
-func (dc *DataWayCfg) KeyEventURL() string {
-
+func (dc *DataWayCfg) KeyEventURL() []string {
+	var resUrls []string
 	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/keyevent")
+		for _, paramUrl := range dc.paramUrls {
+			itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/proxy", "category=/v1/write/keyevent")
+			resUrls = append(resUrls, itemUrl)
+		}
+		return resUrls
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/keyevent",
-		dc.urlValues.Encode())
+	for _, paramUrl := range dc.paramUrls {
+		itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/v1/write/keyevent", paramUrl.urlValues.Encode())
+		resUrls = append(resUrls, itemUrl)
+	}
+	return resUrls
 }
 
-func (dc *DataWayCfg) HeartBeatURL() string {
+func (dc *DataWayCfg) HeartBeatURL() []string {
+	var resUrls []string
 	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/heartbeat")
+		for _, paramUrl := range dc.paramUrls {
+			itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/proxy", "category=/v1/write/heartbeat")
+			resUrls = append(resUrls, itemUrl)
+		}
+		return resUrls
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/heartbeat",
-		dc.urlValues.Encode())
+	for _, paramUrl := range dc.paramUrls {
+		itemUrl := fmt.Sprintf("%s://%s%s?%s", paramUrl.scheme, paramUrl.host, "/v1/write/heartbeat", paramUrl.urlValues.Encode())
+		resUrls = append(resUrls, itemUrl)
+	}
+	return resUrls
 }
 
 func (dc *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
@@ -189,66 +197,67 @@ func (dc *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
 }
 
 func (dc *DataWayCfg) Test() error {
+	if len(dc.paramUrls) > 0 {
+		httpaddr, err := dc.tcpaddr(dc.paramUrls[0].scheme, dc.paramUrls[0].host)
+		if err != nil {
+			return err
+		}
 
-	httpaddr, err := dc.tcpaddr(dc.scheme, dc.host)
-	if err != nil {
-		return err
+		conn, err := net.DialTimeout("tcp", httpaddr, time.Second*5)
+		if err != nil {
+			l.Errorf("TCP dial host `%s' failed: %s", dc.paramUrls[0].host, err.Error())
+			return err
+		}
+
+		if err := conn.Close(); err != nil {
+			l.Errorf("Close(): %s, ignored", err.Error())
+		}
 	}
-
-	conn, err := net.DialTimeout("tcp", httpaddr, time.Second*5)
-	if err != nil {
-		l.Errorf("TCP dial host `%s' failed: %s", dc.host, err.Error())
-		return err
-	}
-
-	if err := conn.Close(); err != nil {
-		l.Errorf("Close(): %s, ignored", err.Error())
-	}
-
 	return nil
 }
 
-func (dc *DataWayCfg) addToken(tkn string) {
-	if dc.urlValues == nil {
-		dc.urlValues = url.Values{}
+func (dc *DataWayCfg) GetToken() []string {
+	resToken := []string{}
+	for _, paramUrl := range dc.paramUrls {
+		if paramUrl.urlValues != nil {
+			token := paramUrl.urlValues.Get("token")
+			resToken = append(resToken, token)
+		}
 	}
 
-	if dc.urlValues.Get("token") == "" {
-		l.Debugf("use old token %s", dc.DeprecatedToken)
-		dc.urlValues.Set("token", dc.DeprecatedToken)
-	}
+	return resToken
 }
 
-func (dc *DataWayCfg) GetToken() string {
-	if dc.urlValues == nil {
-		dc.addToken("")
-	}
-	return dc.urlValues.Get("token")
-}
-
-func ParseDataway(httpurl string) (*DataWayCfg, error) {
+func ParseDataway(httpurls string) (*DataWayCfg, error) {
 	dwcfg := &DataWayCfg{
 		Timeout: "30s",
 	}
-	if httpurl == "" {
+	if httpurls == "" {
 		return nil, fmt.Errorf("empty dataway HTTP endpoint")
 	}
-	u, err := url.Parse(httpurl)
-	if err == nil {
-		dwcfg.scheme = u.Scheme
-		dwcfg.urlValues = u.Query()
-		dwcfg.host = u.Host
-		if u.Path == "/proxy" {
-			l.Debugf("datakit proxied by %s", u.Host)
-			dwcfg.Proxy = true
+
+	urlArr := strings.Split(httpurls, ";")
+
+	for _, httpurl := range urlArr {
+		u, err := url.Parse(httpurl)
+		if err == nil {
+			paramUrl := &paramUrl{}
+
+			paramUrl.scheme = u.Scheme
+			paramUrl.urlValues = u.Query()
+			paramUrl.host = u.Host
+			if u.Path == "/proxy" {
+				l.Debugf("datakit proxied by %s", u.Host)
+				dwcfg.Proxy = true
+			} else {
+				u.Path = ""
+			}
 		} else {
-			u.Path = ""
+			l.Errorf("parse url %s failed: %s", httpurl, err.Error())
+			return nil, err
 		}
-	} else {
-		l.Errorf("parse url %s failed: %s", httpurl, err.Error())
-		return nil, err
+		dwcfg.URL = u.String()
 	}
-	dwcfg.URL = u.String()
 
 	return dwcfg, nil
 }
