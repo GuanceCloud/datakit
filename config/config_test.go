@@ -350,66 +350,6 @@ func TestLoadCfg(t *testing.T) {
 	fmt.Println(inputs.InputsInfo)
 }
 
-func TestLoadTelegrafCfg(t *testing.T) {
-
-	tele := `[agent]
-  interval = "10s"
-  round_interval = true
-  precision = "ns"
-  collection_jitter = "0s"
-  flush_interval = "10s"
-  flush_jitter = "0s"
-  metric_batch_size = 1000
-  metric_buffer_limit = 100000
-  utc = false
-  debug = false
-  quiet = false
-  logtarget = "file"
-  logfile = "/usr/local/cloudcare/dataflux/datakit/embed/agent.log"
-  logfile_rotation_interval = ""
-  logfile_rotation_max_size = "32MB"
-  logfile_rotation_max_archives = 5
-  omit_hostname = true`
-	teleCfg := datakit.TelegrafCfg{}
-	toml.Unmarshal([]byte(tele), teleCfg)
-
-	var c = datakit.Config{
-		MainCfg: &datakit.MainConfig{
-			BlackList:        []*datakit.InputHostList{},
-			WhiteList:        []*datakit.InputHostList{},
-			TelegrafAgentCfg: &teleCfg,
-		},
-	}
-	availableInputCfgs := map[string]*ast.Table{}
-	conf := map[string]string{
-		"1.conf": `[[inputs.cpu]]
-					## Whether to report per-cpu stats or not
-					percpu = false
-					## Whether to report total system cpu stats or not
-					totalcpu = true
-					## If true, collect raw CPU time metrics.
-					collect_cpu_time = false
-					## If true, compute and report the sum of all non-idle CPU states.
-					report_active = false
-
-					[[inputs.mem]]
-					# no sample need here, just open the input`,
-		"2.conf": `[[inputs.host_processes]]`,
-	}
-
-	for k, v := range conf {
-		as, _ := toml.Parse([]byte(v))
-		ioutil.WriteFile(k, []byte(v), 0777)
-		availableInputCfgs[k] = as
-
-	}
-	cfg, err := loadTelegrafInputsConfigs(&c, availableInputCfgs, nil)
-	fmt.Println(cfg, err)
-	for k, _ := range conf {
-		os.Remove(k)
-	}
-}
-
 func TestRemoveDepercatedInputs(t *testing.T) {
 	cases := []struct {
 		tomlStr      string

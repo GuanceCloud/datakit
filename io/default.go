@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -44,25 +45,33 @@ func Start() error {
 	return nil
 }
 
-func GetStats() (map[string]*InputsStat, error) {
+func GetStats(timeout time.Duration) (map[string]*InputsStat, error) {
 	q := &qstats{
-		ch: make(chan map[string]*InputsStat),
+		qid: cliutils.XID("statqid_"),
+		ch:  make(chan map[string]*InputsStat),
 	}
 
-	tick := time.NewTicker(time.Second * 3)
+	defer close(q.ch)
+
+	if timeout <= 0 {
+		timeout = 3 * time.Second
+	}
+
+	tick := time.NewTicker(timeout)
 	defer tick.Stop()
 
 	select {
 	case defaultIO.qstatsCh <- q:
 	case <-tick.C:
-		return nil, fmt.Errorf("send stats request timeout")
+		close(q.ch)
+		return nil, fmt.Errorf("default IO busy(qid: %s, %v)", q.qid, timeout)
 	}
 
 	select {
 	case res := <-q.ch:
 		return res, nil
 	case <-tick.C:
-		return nil, fmt.Errorf("get stats timeout")
+		return nil, fmt.Errorf("default IO response timeout(qid: %s, %v)", q.qid, timeout)
 	}
 }
 
