@@ -254,10 +254,6 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 
 	c.MainCfg.DataWay = dw
 
-	if c.MainCfg.DataWay.DeprecatedToken != "" { // compatible with old dataway config
-		c.MainCfg.DataWay.addToken(c.MainCfg.DataWay.DeprecatedToken)
-	}
-
 	if c.MainCfg.Interval != "" {
 		du, err := time.ParseDuration(c.MainCfg.Interval)
 		if err != nil {
