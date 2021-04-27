@@ -2,10 +2,11 @@ package check
 
 import (
 	"github.com/influxdata/toml"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
+
+	"fmt"
 )
 
 var (
@@ -13,9 +14,7 @@ var (
 )
 
 func CheckInputToml(name string, tomlcfg []byte) error {
-	if c, ok := inputs.Inputs[name]; !ok {
-		return tgi.CheckTelegrafToml(name, tomlcfg)
-	} else {
+	if c, ok := inputs.Inputs[name]; ok {
 		dkinput := c()
 		if err := toml.Unmarshal(tomlcfg, dkinput); err != nil {
 			l.Errorf("toml.Unmarshal: %s", err.Error())
@@ -26,4 +25,5 @@ func CheckInputToml(name string, tomlcfg []byte) error {
 		return nil
 		// TODO:
 	}
+	return fmt.Errorf("input %s not exist", name)
 }
