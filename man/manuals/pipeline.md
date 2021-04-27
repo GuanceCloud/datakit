@@ -989,7 +989,7 @@ parse_date(aa, "2021", "12", "12", "10", "10", "34", "100", "Asia/Shanghai") # �
 parse_date(aa, "20", "February", "12", "10", "10", "34", "", "+8") 结果 aa=1581473434000000000
 ```
 
-### `dz(key=required, range=require)`
+### `cover(key=required, range=require)`
 
 函数说明: 对指定字段上获取的字符串数据按索引范围进行数据脱敏处理
 
@@ -1008,28 +1008,28 @@ parse_date(aa, "20", "February", "12", "10", "10", "34", "", "+8") 结果 aa=158
 data = `{"str": "13789123014"}`
 
 script = `
-json(_, str) dz(str, [8, 13])
+json(_, str) cover(str, [8, 13])
 `
 
 # demo2
 data = `{"str": "13789123014"}`
 
 script = `
-json(_, str) dz(str, [2, 4])
+json(_, str) cover(str, [2, 4])
 `
 
 # demo3
 data = `{"str": "13789123014"}`
 
 script = `
-json(_, str) dz(str, [1, 1])
+json(_, str) cover(str, [1, 1])
 `
 
 # demo4
 data = `{"str": "小阿卡"}`
 
 script = `
-json(_, str) dz(str, [2, 2])
+json(_, str) cover(str, [2, 2])
 `
 ```
 
