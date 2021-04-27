@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	maxInterval            = 15 * time.Minute
-	minInterval            = 10 * time.Second
+	maxInterval = 15 * time.Minute
+	minInterval = 10 * time.Second
 )
 
 var (
@@ -49,28 +49,28 @@ type customQuery struct {
 }
 
 type Input struct {
-	Host             string                   `toml:"host"`
-	Port             int                      `toml:"port"`
-	User             string                   `toml:"user"`
-	Pass             string                   `toml:"pass"`
-	Sock             string                   `toml:"sock"`
-	Charset          string                   `toml:"charset"`
-	Timeout          string                   `toml:"connect_timeout"`
-	TimeoutDuration  time.Duration            `toml:"-"`
-	Tls              *tls                     `toml:"tls"`
-	Service          string                   `toml:"service"`
-	Interval          datakit.Duration
-	Tags             map[string]string        `toml:"tags"`
-	options          *options                 `toml:"options"`
-	Query            []*customQuery           `toml:"custom_queries"`
-	db               *sql.DB                  `toml:"-"`
-	Addr             string                   `toml:"-"`
-	collectCache     []inputs.Measurement     `toml:"-"`
-	response         []map[string]interface{} `toml:"-"`
-	Log              *inputs.TailerOption     `toml:"log"`
-	tailer           *inputs.Tailer           `toml:"-"`
-	InnoDB           bool                     `toml:"innodb"`
-	err              []error
+	Host            string        `toml:"host"`
+	Port            int           `toml:"port"`
+	User            string        `toml:"user"`
+	Pass            string        `toml:"pass"`
+	Sock            string        `toml:"sock"`
+	Charset         string        `toml:"charset"`
+	Timeout         string        `toml:"connect_timeout"`
+	TimeoutDuration time.Duration `toml:"-"`
+	Tls             *tls          `toml:"tls"`
+	Service         string        `toml:"service"`
+	Interval        datakit.Duration
+	Tags            map[string]string        `toml:"tags"`
+	options         *options                 `toml:"options"`
+	Query           []*customQuery           `toml:"custom_queries"`
+	db              *sql.DB                  `toml:"-"`
+	Addr            string                   `toml:"-"`
+	collectCache    []inputs.Measurement     `toml:"-"`
+	response        []map[string]interface{} `toml:"-"`
+	Log             *inputs.TailerOption     `toml:"log"`
+	tailer          *inputs.Tailer           `toml:"-"`
+	InnoDB          bool                     `toml:"innodb"`
+	err             []error
 }
 
 func (i *Input) getDsnString() string {
@@ -160,7 +160,7 @@ func (i *Input) Collect() error {
 // 获取base指标
 func (i *Input) collectBaseMeasurement() {
 	m := &baseMeasurement{
-		i:  i,
+		i:       i,
 		resData: make(map[string]interface{}),
 		tags:    make(map[string]string),
 		fields:  make(map[string]interface{}),
@@ -191,7 +191,7 @@ func (i *Input) collectBaseMeasurement() {
 // 获取innodb指标
 func (i *Input) collectInnodbMeasurement() {
 	m := &innodbMeasurement{
-		i:  i,
+		i:       i,
 		resData: make(map[string]interface{}),
 		tags:    make(map[string]string),
 		fields:  make(map[string]interface{}),
