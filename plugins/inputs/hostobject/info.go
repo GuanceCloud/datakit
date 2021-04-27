@@ -172,14 +172,23 @@ func getMemInfo() *MemInfo {
 	}
 }
 
-func getNetInfo() []*NetInfo {
+func getNetInfo(enableVIfaces bool) []*NetInfo {
 	ifs, err := netutil.Interfaces()
 	if err != nil {
 		l.Errorf("fail to get interfaces, %s", err)
 		return nil
 	}
 	var infos []*NetInfo
+
+	netVIfaces := map[string]bool{}
+	if !enableVIfaces {
+		netVIfaces, _ = NetIgnoreIfaces()
+	}
+
 	for _, it := range ifs {
+		if _, ok := netVIfaces[it.Name]; ok {
+			continue
+		}
 		i := &NetInfo{
 			Index:        it.Index,
 			MTU:          it.MTU,
@@ -203,7 +212,7 @@ func getNetInfo() []*NetInfo {
 	return infos
 }
 
-func getDiskInfo() []*DiskInfo {
+func getDiskInfo(ignoreFs []string) []*DiskInfo {
 
 	ps, err := diskutil.Partitions(true)
 	if err != nil {
@@ -212,16 +221,7 @@ func getDiskInfo() []*DiskInfo {
 	}
 	var infos []*DiskInfo
 
-	fstypeExcludeSet := map[string]bool{
-		"autofs":   true,
-		"tmpfs":    true,
-		"devtmpfs": true,
-		"devfs":    true,
-		"iso9660":  true,
-		"overlay":  true,
-		"aufs":     true,
-		"squashfs": true,
-	}
+	fstypeExcludeSet, _ := DiskIgnoreFs(ignoreFs)
 
 	for _, p := range ps {
 
@@ -315,8 +315,8 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		cpuPercent: getCPUPercent(),
 		load5:      getLoad5(),
 		Mem:        getMemInfo(),
-		Net:        getNetInfo(),
-		Disk:       getDiskInfo(),
+		Net:        getNetInfo(c.EnableNetVirtualInterfaces),
+		Disk:       getDiskInfo(c.IgnoreFS),
 	}
 
 	return &msg, nil
