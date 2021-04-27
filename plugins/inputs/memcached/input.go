@@ -84,7 +84,6 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) Collect() error {
-	l.Info("memcached collecting..........")
 	if len(i.Servers) == 0 && len(i.UnixSockets) == 0 {
 		return i.gatherServer(":11211", false)
 	}
