@@ -14,10 +14,9 @@ import (
 )
 
 const (
-	maxInterval            = 30 * time.Minute
-	minInterval            = 15 * time.Second
+	maxInterval = 30 * time.Minute
+	minInterval = 15 * time.Second
 )
-
 
 var (
 	inputName   = "redis"
@@ -26,13 +25,13 @@ var (
 )
 
 type Input struct {
-	Host              string               `toml:"host"`
-	Port              int                  `toml:"port"`
-	UnixSocketPath    string               `toml:"unix_socket_path"`
-	DB                int                  `toml:"db"`
-	Password          string               `toml:"password"`
-	Service           string               `toml:"service"`
-	SocketTimeout     int                  `toml:"socket_timeout"`
+	Host              string `toml:"host"`
+	Port              int    `toml:"port"`
+	UnixSocketPath    string `toml:"unix_socket_path"`
+	DB                int    `toml:"db"`
+	Password          string `toml:"password"`
+	Service           string `toml:"service"`
+	SocketTimeout     int    `toml:"socket_timeout"`
 	Interval          datakit.Duration
 	Keys              []string             `toml:"keys"`
 	WarnOnMissingKeys bool                 `toml:"warn_on_missing_keys"`
@@ -110,7 +109,7 @@ func (i *Input) Collect() error {
 
 func (i *Input) collectInfoMeasurement() {
 	m := &infoMeasurement{
-		i:  i,
+		i:       i,
 		resData: make(map[string]interface{}),
 		tags:    make(map[string]string),
 		fields:  make(map[string]interface{}),
