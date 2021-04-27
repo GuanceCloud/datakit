@@ -1,6 +1,7 @@
 package zabbix
 
 import (
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +14,11 @@ import (
 )
 
 var tbls = []string{"history", "history_uint", "trends", "trends_uint"}
+
+const (
+	MaxGatherInterval = 30 * time.Minute
+	MinGatherInterval = 10 * time.Second
+)
 
 type ZabbixInput struct {
 	Zabbix
@@ -43,6 +49,7 @@ func (z *ZabbixParam) gather() {
 		return
 	}
 
+	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	ticker := time.NewTicker(d)
 	defer ticker.Stop()
 
@@ -62,6 +69,7 @@ func (z *ZabbixParam) gather() {
 
 				_, err := z.gatherData(start, stop, tbl, false)
 				if err != nil {
+					io.FeedLastError(inputName, err.Error())
 					z.log.Errorf("gatherData %s", err.Error())
 				}
 			}
