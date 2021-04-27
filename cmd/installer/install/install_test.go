@@ -11,7 +11,7 @@ import (
 
 func TestUpdateLagacyConfig(_ *testing.T) {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	updateLagacyConfig("/usr/local/cloudcare/forethought/datakit")
+	//updateLagacyConfig("/usr/local/cloudcare/forethought/datakit")
 }
 
 func TestUpgradeMainConfigure(t *testing.T) {
