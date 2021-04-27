@@ -259,6 +259,14 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+func (i *Input) extendSelfTag(tags map[string]string) {
+	if i.Tags != nil {
+		for k, v := range i.Tags {
+			tags[k] = v
+		}
+	}
+}
+
 func (i *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
@@ -364,6 +372,11 @@ func (i *Input) Collect() error {
 	return nil
 }
 
+const (
+	maxInterval = 1 * time.Minute
+	minInterval = 1 * time.Second
+)
+
 func (i *Input) Run() {
 	// collect logs
 	if i.Log != nil {
@@ -393,7 +406,8 @@ func (i *Input) Run() {
 		return
 	}
 
-	i.duration = duration
+	i.duration = datakit.ProtectedInterval(minInterval, maxInterval, duration)
+
 	client, err := i.createHTTPClient()
 	if err != nil {
 		l.Error(err)
@@ -418,12 +432,15 @@ func (i *Input) Run() {
 
 		case <-tick.C:
 			start := time.Now()
+			l.Info("elasticsearch running...............")
 			if err := i.Collect(); err != nil {
+				io.FeedLastError(inputName, err.Error())
 				l.Error(err)
 			} else {
 				if len(i.collectCache) > 0 {
 					err := inputs.FeedMeasurement("elasticsearch", io.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
 					if err != nil {
+						io.FeedLastError(inputName, err.Error())
 						l.Errorf(err.Error())
 					}
 					i.collectCache = i.collectCache[:0]
@@ -482,10 +499,13 @@ func (i *Input) gatherIndicesStats(url string) error {
 			}
 		}
 
+		tags := map[string]string{"index_name": "_all"}
+		i.extendSelfTag(tags)
+
 		metric := &indicesStatsMeasurement{
 			elasticsearchMeasurement: elasticsearchMeasurement{
 				name:   "elasticsearch_indices_stats",
-				tags:   map[string]string{"index_name": "_all"},
+				tags:   tags,
 				fields: allFields,
 				ts:     now,
 			},
@@ -519,6 +539,7 @@ func (i *Input) gatherIndicesStats(url string) error {
 				}
 			}
 
+			i.extendSelfTag(indexTag)
 			metric := &indicesStatsMeasurement{
 				elasticsearchMeasurement: elasticsearchMeasurement{
 					name:   "elasticsearch_indices_stats",
@@ -572,6 +593,7 @@ func (i *Input) gatherIndicesStats(url string) error {
 						}
 					}
 
+					i.extendSelfTag(shardTags)
 					metric := &indicesStatsShardsMeasurement{
 						elasticsearchMeasurement: elasticsearchMeasurement{
 							name:   "elasticsearch_indices_stats_shards",
@@ -650,6 +672,7 @@ func (i *Input) gatherNodeStats(url string) error {
 			}
 		}
 
+		i.extendSelfTag(tags)
 		metric := &nodeStatsMeasurement{
 			elasticsearchMeasurement: elasticsearchMeasurement{
 				name:   "elasticsearch_node_stats",
@@ -700,6 +723,7 @@ func (i *Input) gatherClusterStats(url string) error {
 
 	}
 
+	i.extendSelfTag(tags)
 	metric := &clusterStatsMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
 			name:   "elasticsearch_cluster_stats",
@@ -748,10 +772,12 @@ func (i *Input) gatherClusterHealth(url string) error {
 		}
 	}
 
+	tags := map[string]string{"name": healthStats.ClusterName}
+	i.extendSelfTag(tags)
 	metric := &clusterHealthMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
 			name:   "elasticsearch_cluster_health",
-			tags:   map[string]string{"name": healthStats.ClusterName},
+			tags:   tags,
 			fields: allFields,
 			ts:     now,
 		},
