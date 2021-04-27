@@ -122,7 +122,7 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			}
 			tag[trace.TAG_SPAN_TYPE] = spanType
 			tag[trace.TAG_SERVICE] = span.Service
-			tag[trace.TAG_SERVICE] = span.Name
+			tag[trace.TAG_OPERATION] = span.Name
 			tag[trace.TAG_SPAN_TYPE] = ddtraceSpanType[span.Type]
 			if span.Error == 0 {
 				tag[trace.TAG_SPAN_STATUS] = trace.STATUS_OK
