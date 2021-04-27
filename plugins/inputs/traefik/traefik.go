@@ -70,6 +70,11 @@ var (
 #		tag3 = "tag3"`
 )
 
+const (
+	MaxGatherInterval = 30 * time.Minute
+	MinGatherInterval = 30 * time.Second
+)
+
 func (t *Traefik) SampleConfig() string {
 	return traefikConfigSample
 }
@@ -120,7 +125,7 @@ func (p *TraefikParam) gather() {
 		p.log.Errorf("interval type unsupported")
 		return
 	}
-
+	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 	for {
@@ -128,8 +133,10 @@ func (p *TraefikParam) gather() {
 		case <-tick.C:
 			_, err = p.getMetrics(false)
 			if err != nil {
+				io.FeedLastError(inputName, err.Error())
 				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
+
 		case <-datakit.Exit.Wait():
 			p.log.Info("input traefik exit")
 			return
