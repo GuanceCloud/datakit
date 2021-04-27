@@ -104,6 +104,8 @@ type Details struct {
 type MessageStats struct {
 	Ack                     int64
 	AckDetails              Details `json:"ack_details"`
+	Confirm                 int64   `json:"confirm"`
+	ConfirmDetail           Details `json:"ack_details_details"`
 	Deliver                 int64
 	DeliverDetails          Details `json:"deliver_details"`
 	DeliverGet              int64   `json:"deliver_get"`
