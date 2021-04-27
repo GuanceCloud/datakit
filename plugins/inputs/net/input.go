@@ -283,6 +283,11 @@ func (i *Input) Run() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{netIO: NetIOCounters, netProto: psNet.ProtoCounters, netVirtualIfaces: NetVirtualInterfaces}
+		return &Input{
+			netIO:            NetIOCounters,
+			netProto:         psNet.ProtoCounters,
+			netVirtualIfaces: NetVirtualInterfaces,
+			Interval:         datakit.Duration{Duration: time.Second * 10},
+		}
 	})
 }
