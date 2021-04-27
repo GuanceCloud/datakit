@@ -2,6 +2,7 @@ package inputs
 
 import (
 	"fmt"
+	"math/rand"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -10,7 +11,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 var (
@@ -53,16 +53,11 @@ func Add(name string, creator Creator) {
 		l.Fatalf("inputs %s exist(from datakit)", name)
 	}
 
-	if _, ok := tgi.TelegrafInputs[name]; ok {
-		l.Fatal("inputs %s exist(from telegraf)", name)
-	}
-
 	Inputs[name] = creator
 }
 
 type inputInfo struct {
 	input Input
-	ti    *tgi.TelegrafInput
 	cfg   string
 }
 
@@ -91,49 +86,10 @@ func AddSelf() {
 	AddInput("self", self(), "no config for `self' input")
 }
 
-func AddTelegrafHTTPInput() {
-	if len(InputsInfo["telegraf_http"]) == 0 {
-		if x, ok := Inputs["telegraf_http"]; ok {
-			AddInput("telegraf_http", x(), "no config for `telegraf_http'")
-		}
-	}
-}
-
 func ResetInputs() {
 	mtx.Lock()
 	defer mtx.Unlock()
 	InputsInfo = map[string][]*inputInfo{}
-}
-
-func AddTelegrafInput(name, fp string) {
-	mtx.Lock()
-	defer mtx.Unlock()
-
-	l.Debugf("add telegraf input %s from %s", name, fp)
-	InputsInfo[name] = append(InputsInfo[name],
-		&inputInfo{input: nil, /* not used */
-			ti:  nil, /*not used*/
-			cfg: fp,
-		})
-}
-
-func StartTelegraf() error {
-	if !HaveTelegrafInputs() {
-		l.Info("no telegraf inputs enabled")
-		return nil
-	}
-
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		if err := tgi.StartTelegraf(); err != nil {
-			l.Error("telegraf start failed")
-		} else {
-			l.Info("telegraf process exit ok")
-		}
-	}()
-
-	return nil
 }
 
 func RunInputs() error {
@@ -142,7 +98,7 @@ func RunInputs() error {
 	defer mtx.RUnlock()
 
 	for name, arr := range InputsInfo {
-		for idx, ii := range arr {
+		for _, ii := range arr {
 			if ii.input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
 				continue
@@ -155,9 +111,13 @@ func RunInputs() error {
 				// pass
 			}
 
-			l.Infof("starting %dth input %s ...", idx, name)
 			datakit.WG.Add(1)
 			go func(name string, ii *inputInfo) {
+
+				// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
+				time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second))))
+				l.Infof("starting input %s ...", name)
+
 				defer datakit.WG.Done()
 				protectRunningInput(name, ii)
 				l.Infof("input %s exited", name)
@@ -213,21 +173,6 @@ func addPanic(name string) {
 	panicInputs[name]++
 }
 
-func HaveTelegrafInputs() bool {
-
-	mtx.RLock()
-	defer mtx.RUnlock()
-
-	for k := range tgi.TelegrafInputs {
-		_, ok := InputsInfo[k]
-		if ok {
-			return true
-		}
-	}
-
-	return false
-}
-
 func InputEnabled(name string) (n int, cfgs []string) {
 	mtx.RLock()
 	defer mtx.RUnlock()
@@ -249,12 +194,6 @@ func GetSample(name string) (sample string, err error) {
 		sample = c().SampleConfig()
 		return
 	}
-
-	if i, ok := tgi.TelegrafInputs[name]; ok {
-		sample = i.SampleConfig()
-		return
-	}
-
 	return "", fmt.Errorf("input not found")
 }
 
