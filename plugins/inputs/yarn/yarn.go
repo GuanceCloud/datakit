@@ -162,6 +162,9 @@ const (
 	INT VAL_TYPE = iota
 	FLOAT
 	STRING
+
+	MaxGatherInterval = 30 * time.Minute
+	MinGatherInterval = 1 * time.Second
 )
 
 func (y *Yarn) Catalog() string {
@@ -216,6 +219,7 @@ func (p *YarnParam) gather() {
 		return
 	}
 
+	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 	for {
@@ -223,6 +227,7 @@ func (p *YarnParam) gather() {
 		case <-tick.C:
 			_, err = p.getMetrics(false)
 			if err != nil {
+				io.FeedLastError(inputName, err.Error())
 				p.log.Errorf("%s", err.Error())
 			}
 		case <-datakit.Exit.Wait():
