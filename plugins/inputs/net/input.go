@@ -39,8 +39,8 @@ var (
   ##
   # interfaces = ['''eth[\w-]+''', '''lo''', ]
   ##
-  ## Used to enable the collection of virtual interfaces for Linux.
-  ## Setting enable_virtual_interfaces to true will collect virtual interfaces stats.
+  ## Datakit does not collect network virtual interfaces under the linux system.
+  ## Setting enable_virtual_interfaces to true will collect virtual interfaces stats for linux.
   ##
   # enable_virtual_interfaces = true
   ##
