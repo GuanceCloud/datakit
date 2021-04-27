@@ -795,37 +795,37 @@ func TestDz(t *testing.T) {
 	cases := []*funcCase{
 		{
 			data:     `{"str": "13838130517"}`,
-			script:   `json(_, str) dz(str, [8, 13])`,
+			script:   `json(_, str) cover(str, [8, 13])`,
 			expected: "1383813****",
 			key:      "str",
 		},
 		{
 			data:     `{"str": "13838130517"}`,
-			script:   `json(_, str) dz(str, [8, 11])`,
+			script:   `json(_, str) cover(str, [8, 11])`,
 			expected: "1383813****",
 			key:      "str",
 		},
 		{
 			data:     `{"str": "13838130517"}`,
-			script:   `json(_, str) dz(str, [2, 4])`,
+			script:   `json(_, str) cover(str, [2, 4])`,
 			expected: "1***8130517",
 			key:      "str",
 		},
 		{
 			data:     `{"str": "13838130517"}`,
-			script:   `json(_, str) dz(str, [0, 3])`,
+			script:   `json(_, str) cover(str, [0, 3])`,
 			expected: "***38130517",
 			key:      "str",
 		},
 		{
 			data:     `{"str": "13838130517"}`,
-			script:   `json(_, str) dz(str, [1, 1])`,
+			script:   `json(_, str) cover(str, [1, 1])`,
 			expected: "*3838130517",
 			key:      "str",
 		},
 		{
 			data:     `{"str": "刘少波"}`,
-			script:   `json(_, str) dz(str, [2, 2])`,
+			script:   `json(_, str) cover(str, [2, 2])`,
 			expected: "刘＊波",
 			key:      "str",
 		},
