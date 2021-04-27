@@ -186,6 +186,9 @@ func (i *Input) Run() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{diskStats: &PSDisk{}}
+		return &Input{
+			diskStats: &PSDisk{},
+			Interval:  datakit.Duration{Duration: time.Second * 10},
+		}
 	})
 }
