@@ -71,6 +71,7 @@ func DdtraceTraceHandle(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err := handleDdtrace(w, r); err != nil {
+		dkio.FeedLastError(inputName, err.Error())
 		log.Errorf("%v", err)
 	}
 }
