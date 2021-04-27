@@ -74,6 +74,7 @@ func (this *Input) gatherLog() {
 	cList, err := this.client.ContainerList(ctx, this.opts)
 	if err != nil {
 		l.Error(err)
+		iod.FeedLastError(inputName, fmt.Sprintf("gather logging: %s", err.Error()))
 		return
 	}
 
@@ -94,6 +95,7 @@ func (this *Input) gatherLog() {
 			err = this.tailContainerLogs(ctx, container)
 			if err != nil && err != context.Canceled {
 				l.Error(err)
+				iod.FeedLastError(inputName, fmt.Sprintf("gather logging: %s", err.Error()))
 			}
 		}(container)
 	}
