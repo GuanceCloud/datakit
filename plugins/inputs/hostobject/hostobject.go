@@ -25,6 +25,12 @@ type Input struct {
 	Pipeline string            `toml:"pipeline"`
 	Tags     map[string]string `toml:"tags,omitempty"`
 
+	IgnoreInputsErrorsBefore datakit.Duration `toml:"ignore_inputs_errors_before,omitempty"`
+	IOTimeout                datakit.Duration `toml:"io_timeout,omitempty"`
+
+	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
+	IgnoreFS                   []string `toml:"ignore_fs"`
+
 	p *pipeline.Pipeline
 
 	collectData *hostMeasurement
@@ -45,8 +51,9 @@ func (r *Input) PipelineConfig() map[string]string {
 }
 
 const (
-	maxInterval = 30 * time.Minute
-	minInterval = 1 * time.Minute
+	maxInterval            = 30 * time.Minute
+	minInterval            = 1 * time.Minute
+	hostObjMeasurementName = "HOST"
 )
 
 func (c *Input) Run() {
@@ -56,7 +63,10 @@ func (c *Input) Run() {
 	c.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, c.Interval.Duration)
 	c.p = c.getPipeline()
 	tick := time.NewTicker(c.Interval.Duration)
+	n := 0
 	defer tick.Stop()
+
+	l.Debugf("starting %s(interval: %v)...", InputName, c.Interval)
 
 	for {
 		select {
@@ -65,6 +75,7 @@ func (c *Input) Run() {
 			return
 		case <-tick.C:
 			start := time.Now()
+			l.Debugf("start %d collecting...", n)
 			if err := c.Collect(); err != nil {
 				io.FeedLastError(InputName, err.Error())
 			} else {
@@ -75,6 +86,7 @@ func (c *Input) Run() {
 					io.FeedLastError(InputName, err.Error())
 				}
 			}
+			n++
 		}
 	}
 }
@@ -88,7 +100,7 @@ type hostMeasurement struct {
 
 func (x *hostMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "HOST",
+		Name: hostObjMeasurementName,
 		Desc: "主机对象数据采集如下数据",
 		Fields: map[string]interface{}{
 			"message":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "主机所有信息汇总"},
@@ -119,7 +131,10 @@ func (c *Input) AvailableArchs() []string {
 
 func (c *Input) Collect() error {
 
-	message := getHostObjectMessage()
+	message, err := c.getHostObjectMessage()
+	if err != nil {
+		return err
+	}
 
 	messageData, err := json.Marshal(message)
 	if err != nil {
@@ -128,7 +143,7 @@ func (c *Input) Collect() error {
 	}
 
 	c.collectData = &hostMeasurement{
-		name: "HOST",
+		name: hostObjMeasurementName,
 		fields: map[string]interface{}{
 			"message":          string(messageData),
 			"os":               message.Host.HostMeta.OS,
@@ -185,6 +200,10 @@ func (c *Input) getPipeline() *pipeline.Pipeline {
 
 func init() {
 	inputs.Add(InputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			IgnoreInputsErrorsBefore: datakit.Duration{Duration: 30 * time.Minute},
+			IOTimeout:                datakit.Duration{Duration: 10 * time.Second},
+			IgnoreFS:                 []string{"autofs", "tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"},
+		}
 	})
 }
