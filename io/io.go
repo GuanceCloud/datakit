@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
@@ -37,7 +38,8 @@ type lastErr struct {
 }
 
 type qstats struct {
-	ch chan map[string]*InputsStat
+	qid string
+	ch  chan map[string]*InputsStat
 }
 
 type IO struct {
@@ -93,6 +95,7 @@ const ( // categories
 	Tracing          = "/v1/write/tracing"
 	Rum              = "/v1/write/rum"
 	Security         = "/v1/write/security"
+	Telegraf         = "/v1/write/telegraf"
 	HeartBeat        = "/v1/write/heartbeat"
 
 	minGZSize = 1024
@@ -333,12 +336,12 @@ func (x *IO) StartIO(recoverable bool) {
 
 			case q := <-x.qstatsCh:
 
+				res := dumpStats(x.inputstats)
 				select {
-				// maybe blocking(i.e., client canceled)
-				case q.ch <- x.inputstats: // XXX: reference
-				default:
-					l.Warn("client canceled")
-					// pass
+				case <-q.ch:
+					l.Warnf("qid(%s) client canceled, ignored", q.qid)
+				case q.ch <- res: // XXX: reference
+					l.Debugf("qid(%s) response ok", q.qid)
 				}
 
 			case <-highFreqRecvTicker.C:
@@ -360,6 +363,14 @@ func (x *IO) StartIO(recoverable bool) {
 
 	l.Info("starting...")
 	f(nil, nil)
+}
+
+func dumpStats(is map[string]*InputsStat) (res map[string]*InputsStat) {
+	res = map[string]*InputsStat{}
+	for x, y := range is {
+		res[x] = y
+	}
+	return
 }
 
 func (x *IO) dkHeartbeat() {
@@ -497,6 +508,10 @@ func (x *IO) doFlush(pts []*Point, url string) error {
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
+
+	// append datakit info
+	req.Header.Set("X-Datakit-Info",
+		fmt.Sprintf("%s; %s", datakit.Cfg.MainCfg.Hostname, git.Version))
 
 	postbeg := time.Now()
 
