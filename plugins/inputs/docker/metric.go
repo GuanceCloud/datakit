@@ -89,7 +89,7 @@ func (this *Input) gatherContainerInfo(container types.Container) map[string]str
 
 	podInfo, err := this.gatherK8sPodInfo(container.ID)
 	if err != nil {
-		l.Warnf("gather k8s pod error, %s", err)
+		l.Debugf("gather k8s pod error, %s", err)
 	}
 
 	for k, v := range podInfo {
