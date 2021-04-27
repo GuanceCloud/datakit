@@ -3,6 +3,7 @@ package traceJaeger
 import (
 	"encoding/json"
 	"fmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"net/http"
 	"runtime/debug"
 
@@ -22,6 +23,7 @@ func JaegerTraceHandle(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err := handleJaegerTrace(w, r); err != nil {
+		io.FeedLastError(inputName, err.Error())
 		log.Errorf("%v", err)
 	}
 }
