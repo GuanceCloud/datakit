@@ -2,6 +2,7 @@ package traceZipkin
 
 import (
 	"fmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"net/http"
 	"runtime/debug"
 
@@ -18,6 +19,7 @@ func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err := handleZipkinTraceV1(w, r); err != nil {
+		io.FeedLastError(inputName, err.Error())
 		log.Errorf("%v", err)
 	}
 }
@@ -32,6 +34,7 @@ func ZipkinTraceHandleV2(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err := handleZipkinTraceV2(w, r); err != nil {
+		io.FeedLastError(inputName, err.Error())
 		log.Errorf("%v", err)
 	}
 }
