@@ -40,7 +40,7 @@ var (
 		"user_agent":       UserAgent,
 		"parse_duration":   ParseDuration,
 		"parse_date":       ParseDate,
-		"dz":               Dz,
+		"cover":            Dz,
 		"replace":          Replace,
 	}
 )
