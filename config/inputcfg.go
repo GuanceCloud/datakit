@@ -59,7 +59,7 @@ func LoadInputsConfig(c *datakit.Config) error {
 			}
 		}
 
-		runElectionWithInputs(tbl, electionInputs)
+		tryStartElection(tbl, electionInputs)
 
 		if len(tbl.Fields) == 0 {
 			l.Debugf("no conf available on %s", fp)
@@ -385,7 +385,7 @@ var electionInputs = map[string]interface{}{
 	"kubernetes": nil,
 }
 
-func runElectionWithInputs(tbl *ast.Table, entries map[string]interface{}) {
+func tryStartElection(tbl *ast.Table, entries map[string]interface{}) {
 	for _, node := range tbl.Fields {
 		stbl, ok := node.(*ast.Table)
 		if !ok {
@@ -397,7 +397,7 @@ func runElectionWithInputs(tbl *ast.Table, entries map[string]interface{}) {
 			}
 
 			// 初始化状态是 Dead
-			if election.CurrentStats() == election.Dead {
+			if election.CurrentStats().IsDead() {
 				go election.StartElection()
 			}
 		}
