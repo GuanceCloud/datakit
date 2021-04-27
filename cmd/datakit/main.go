@@ -19,6 +19,7 @@ import (
 	"github.com/blang/semver/v4"
 	flag "github.com/spf13/pflag"
 
+	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
@@ -43,7 +44,7 @@ var (
 	flagText            = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
 	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
 	flagMan             = flag.Bool("man", false, "read manuals of inputs")
-	flagOTA             = flag.Bool("ota", false, "update datakit new version if available")
+	flagOTA             = flag.Bool("update", false, "update datakit new version if available")
 	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "during OTA, accept RC version if available")
 
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
@@ -52,6 +53,11 @@ var (
 
 	flagInstallExternal = flag.String("install", "", "install external tool/software")
 	flagInstallAddr     = flag.String("addr", "", "install file url path")
+
+	flagStart   = flag.Bool("start", false, "start datakit")
+	flagStop    = flag.Bool("stop", false, "stop datakit")
+	flagRestart = flag.Bool("restart", false, "restart datakit")
+	flagReload  = flag.Bool("reload", false, "reload datakit")
 )
 
 var (
@@ -61,7 +67,7 @@ var (
 )
 
 func main() {
-
+	flag.CommandLine.MarkHidden("cmd")
 	flag.CommandLine.MarkHidden("show-testing-version")
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
@@ -183,10 +189,7 @@ ReleasedInputs: %s
 
 	datakit.EnableUncheckInputs = (ReleaseType == "all")
 
-	if *flagCmd {
-		runDatakitWithCmd()
-		os.Exit(0)
-	}
+	runDatakitWithCmd()
 
 	if *flagDocker {
 		datakit.Docker = true
@@ -285,34 +288,113 @@ func runDatakitWithHTTPServer() error {
 	return nil
 }
 
+func stopDatakit() {
+	svc, err := datakit.NewService()
+	if err != nil {
+		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
+		return
+	}
+
+	status, err := svc.Status()
+	if err != nil {
+		l.Warnf("get datakit service status: %s, ignored", err.Error())
+	}
+	if status == service.StatusStopped {
+		return
+	}
+
+	l.Info("stoping datakit...")
+	if err := service.Control(svc, "stop"); err != nil {
+		l.Warnf("stop service: %s, ignored", err.Error())
+	}
+	l.Info("stop datakit successful")
+}
+
+func startDatakit() {
+	svc, err := datakit.NewService()
+	if err != nil {
+		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
+		return
+	}
+
+	status, err := svc.Status()
+	if err != nil {
+		l.Warnf("get datakit service status: %s, ignored", err.Error())
+	}
+	if status == service.StatusRunning {
+		l.Info("datakit service is already running")
+		return
+	}
+
+	if err := service.Control(svc, "start"); err != nil {
+		l.Warnf("start datakit service: %s, ignored", err.Error())
+	}
+
+	l.Info("start datakit successful")
+}
+
+func restartDatakit() {
+	stopDatakit()
+	startDatakit()
+}
+
+func reloadDatakit() {
+	resp, err := nhttp.Get("http://localhost:%d/reload",)
+}
+
 func runDatakitWithCmd() {
+	if *flagCmd {
+		l.Warn("--cmd parameter has been discarded")
+		os.Exit(0)
+	}
+
 	if *flagPipeline != "" {
 		cmds.PipelineDebugger(*flagPipeline, *flagText)
-		return
+		os.Exit(0)
 	}
 
 	if *flagGrokq {
 		cmds.Grokq()
-		return
+		os.Exit(0)
 	}
 
 	if *flagMan {
 		cmds.Man()
-		return
+		os.Exit(0)
 	}
 
 	if *flagExportMan != "" {
 		if err := cmds.ExportMan(*flagExportMan); err != nil {
 			l.Error(err)
 		}
-		return
+		os.Exit(0)
 	}
 
 	if *flagInstallExternal != "" {
 		if err := externals.InstallExternal(*flagInstallExternal, *flagInstallAddr); err != nil {
 			l.Error(err)
 		}
-		return
+		os.Exit(0)
+	}
+
+	if *flagStart {
+		startDatakit()
+		os.Exit(0)
+	}
+
+	if *flagStop {
+		stopDatakit()
+		os.Exit(0)
+	}
+
+	if *flagRestart {
+		restartDatakit()
+		os.Exit(0)
+	}
+
+	if *flagReload {
+		reloadDatakit()
+		os.Exit(0)
 	}
 }
 
