@@ -10,14 +10,20 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	minInterval = time.Second
+	maxInterval = time.Minute
+)
+
 var (
-	collectCycle = time.Second * 10
-	inputName    = "swap"
-	metricName   = inputName
-	swapLogger   = logger.SLogger(inputName)
-	sampleCfg    = `
+	inputName  = "swap"
+	metricName = inputName
+	swapLogger = logger.SLogger(inputName)
+	sampleCfg  = `
 [[inputs.swap]]
-  ## no sample need here
+  ##(optional) collect interval, default is 10 seconds
+  interval = '10s'
+  ## 
   [inputs.swap.tags]
     # tag1 = "a"
 `
@@ -58,6 +64,7 @@ func (m *swapMeasurement) LineProto() (*io.Point, error) {
 }
 
 type Input struct {
+	Interval             datakit.Duration
 	Tags                 map[string]string
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr inputs.Measurement
@@ -116,16 +123,21 @@ func (i *Input) Collect() error {
 
 func (i *Input) Run() {
 	swapLogger.Infof("system input started")
-	tick := time.NewTicker(collectCycle)
+	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
 			start := time.Now()
 			if err := i.Collect(); err == nil {
-				inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)})
+				if errFeed := inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
+					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
+					io.FeedLastError(inputName, errFeed.Error())
+					swapLogger.Error(errFeed)
+				}
 			} else {
+				io.FeedLastError(inputName, err.Error())
 				swapLogger.Error(err)
 			}
 		case <-datakit.Exit.Wait():
@@ -137,6 +149,9 @@ func (i *Input) Run() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{swapStat: PSSwapStat}
+		return &Input{
+			swapStat: PSSwapStat,
+			Interval: datakit.Duration{Duration: time.Second * 10},
+		}
 	})
 }

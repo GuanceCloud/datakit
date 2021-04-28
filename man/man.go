@@ -19,6 +19,7 @@ var (
 		// value not used, just document the markdown relative path
 		// all manuals under man/manuals/
 		"pipeline":  "pipeline.md",
+		"telegraf":  "telegraf.md",
 		"changelog": "man/manuals/changelog.md",
 		"datatypes": "man/manuals/datatypes.md",
 	}
