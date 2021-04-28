@@ -49,6 +49,8 @@ func DefaultConfig() *Config {
 				&InputHostList{Hosts: []string{}, Inputs: []string{}},
 			},
 
+			EnableElection: false,
+
 			TelegrafAgentCfg: &TelegrafCfg{
 				Interval:                   "10s",
 				RoundInterval:              true,
