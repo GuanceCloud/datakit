@@ -220,7 +220,6 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 }
 
 func (n *Input) requestJSON(u string, target interface{}) error {
-
 	u = fmt.Sprintf("%s%s", n.Url, u)
 
 	req, err := http.NewRequest("GET", u, nil)
@@ -236,7 +235,6 @@ func (n *Input) requestJSON(u string, target interface{}) error {
 	}
 
 	defer resp.Body.Close()
-
 	json.NewDecoder(resp.Body).Decode(target)
 
 	return nil
