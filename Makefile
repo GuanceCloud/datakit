@@ -8,11 +8,14 @@ RELEASE_DOWNLOAD_ADDR = zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.
 # 测试环境
 TEST_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit
 
-# 预发环境
-PRE_DOWNLOAD_ADDR = zhuyun-static-files-preprod.oss-cn-hangzhou.aliyuncs.com/datakit
-
-# 本地环境
-LOCAL_DOWNLOAD_ADDR = cloudcare-kodo.oss-cn-hangzhou.aliyuncs.com/datakit
+# 本地环境: 需配置环境变量，便于完整测试采集器的发布、更新等流程
+# export LOCAL_OSS_ACCESS_KEY='<your-oss-AK>'
+# export LOCAL_OSS_SECRET_KEY='<your-oss-SK>'
+# export LOCAL_OSS_BUCKET='<your-oss-bucket>'
+# export LOCAL_OSS_HOST='oss-cn-hangzhou.aliyuncs.com' # 一般都是这个地址
+# export LOCAL_OSS_ADDR='<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
+# 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
+LOCAL_DOWNLOAD_ADDR = "${LOCAL_OSS_ADDR}"
 
 PUB_DIR = dist
 BUILD_DIR = dist
@@ -47,7 +50,7 @@ ifdef TELEGRAF_VERSION
 	TELEGRAF_LDFLAGS += -X main.version=$(TELEGRAF_VERSION)
 endif
 
-all: testing release preprod local
+all: testing release local
 
 define GIT_INFO
 //nolint
@@ -96,11 +99,11 @@ local: man gofmt
 testing: man
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
-preprod: man
-	$(call build,preprod, $(DEFAULT_ARCHS), $(PRE_DOWNLOAD_ADDR))
-
 release: man
 	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
+
+release_mac: man
+	$(call build,release, $(MAC_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
 pub_local:
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
@@ -116,7 +119,7 @@ pub_testing_mac:
 
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
-	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/telegraf/agent-linux-amd64.tar.gz" | tar -xz -C .
+	@#wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/telegraf/agent-linux-amd64.tar.gz" | tar -xz -C .
 	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(VERSION) .
 	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
@@ -124,22 +127,17 @@ pub_testing_img:
 pub_release_img:
 	# release to pub hub
 	@mkdir -p embed/linux-amd64
-	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/telegraf/agent-linux-amd64.tar.gz" | tar -xz -C .
+	@#wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/telegraf/agent-linux-amd64.tar.gz" | tar -xz -C .
 	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit:$(VERSION) .
 	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit:$(VERSION)
 
-pub_agent:
-	@go run cmd/make/make.go -pub-agent -env local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
-	@go run cmd/make/make.go -pub-agent -env test -pub-dir embed -download-addr $(TEST_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
-	@go run cmd/make/make.go -pub-agent -env preprod -pub-dir embed -download-addr $(PRE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
-	@go run cmd/make/make.go -pub-agent -env release -pub-dir embed -download-addr $(RELEASE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
+#pub_agent:
+#	@go run cmd/make/make.go -pub-agent -env local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
+#	@go run cmd/make/make.go -pub-agent -env test -pub-dir embed -download-addr $(TEST_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
+#	@go run cmd/make/make.go -pub-agent -env preprod -pub-dir embed -download-addr $(PRE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
+#	@go run cmd/make/make.go -pub-agent -env release -pub-dir embed -download-addr $(RELEASE_DOWNLOAD_ADDR) -archs $(DEFAULT_ARCHS)
 
-pub_preprod:
-	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
-
-pub_preprod_mac:
-	$(call pub,preprod,$(PRE_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
@@ -165,35 +163,35 @@ ci_notify:
 		-H 'Content-Type: application/json' \
 		-d '$(NOTIFY_CI)'
 
-define build_agent
-	@#git rm -rf telegraf
-	@#- git submodule add -f https://github.com/influxdata/telegraf.git
-
-	@echo "==== build telegraf... ===="
-	@cd telegraf && go mod download
-
-	# Linux
-	cd telegraf && GOOS=linux   GOARCH=amd64   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-amd64/agent    ./cmd/telegraf
-	cd telegraf && GOOS=linux   GOARCH=386     GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-386/agent      ./cmd/telegraf
-	@#cd telegraf && GOOS=linux  GOARCH=s390x   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-s390x/agent    ./cmd/telegraf
-	@#cd telegraf && GOOS=linux  GOARCH=ppc64le GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-ppc64le/agent  ./cmd/telegraf
-	cd telegraf && GOOS=linux   GOARCH=arm     GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm/agent      ./cmd/telegraf
-	cd telegraf && GOOS=linux   GOARCH=arm64   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm64/agent    ./cmd/telegraf
-
-	# Mac
-	# enable CGO for Mac to add CPU input
-	cd telegraf && GOOS=darwin  GOARCH=amd64 GO111MODULE=on CGO_ENABLED=1 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/darwin-amd64/agent      ./cmd/telegraf
-
-	## FreeBSD
-	##cd telegraf && GOOS=freebsd GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-386/agent      ./cmd/telegraf
-	##cd telegraf && GOOS=freebsd GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-amd64/agent    ./cmd/telegraf
-
-	# Windows
-	cd telegraf && GOOS=windows GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/windows-386/agent.exe   ./cmd/telegraf
-	cd telegraf && GOOS=windows GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/windows-amd64/agent.exe ./cmd/telegraf
-
-	tree -Csh embed
-endef
+#define build_agent
+#	@#git rm -rf telegraf
+#	@#- git submodule add -f https://github.com/influxdata/telegraf.git
+#
+#	@echo "==== build telegraf... ===="
+#	@cd telegraf && go mod download
+#
+#	# Linux
+#	cd telegraf && GOOS=linux   GOARCH=amd64   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-amd64/agent    ./cmd/telegraf
+#	cd telegraf && GOOS=linux   GOARCH=386     GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-386/agent      ./cmd/telegraf
+#	@#cd telegraf && GOOS=linux  GOARCH=s390x   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-s390x/agent    ./cmd/telegraf
+#	@#cd telegraf && GOOS=linux  GOARCH=ppc64le GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-ppc64le/agent  ./cmd/telegraf
+#	cd telegraf && GOOS=linux   GOARCH=arm     GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm/agent      ./cmd/telegraf
+#	cd telegraf && GOOS=linux   GOARCH=arm64   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/linux-arm64/agent    ./cmd/telegraf
+#
+#	# Mac
+#	# enable CGO for Mac to add CPU input
+#	cd telegraf && GOOS=darwin  GOARCH=amd64 GO111MODULE=on CGO_ENABLED=1 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/darwin-amd64/agent      ./cmd/telegraf
+#
+#	## FreeBSD
+#	##cd telegraf && GOOS=freebsd GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-386/agent      ./cmd/telegraf
+#	##cd telegraf && GOOS=freebsd GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/freebsd-amd64/agent    ./cmd/telegraf
+#
+#	# Windows
+#	cd telegraf && GOOS=windows GOARCH=386   GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/windows-386/agent.exe   ./cmd/telegraf
+#	cd telegraf && GOOS=windows GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags "$(TELEGRAF_LDFLAGS)" -o ../embed/windows-amd64/agent.exe ./cmd/telegraf
+#
+#	tree -Csh embed
+#endef
 
 
 define build_ip2isp
