@@ -387,20 +387,3 @@ func CheckExcluded(item string, blacklist, whitelist []string) bool {
 
 	return false
 }
-
-func CloudObject2Json(name, class string, obj interface{}, id string, blacklist, whitelist []string) (map[string]interface{}, error) {
-	if CheckExcluded(id, blacklist, whitelist) {
-		return nil, nil
-	}
-
-	j, err := Struct2JsonOfOneDepth(obj)
-	if err != nil {
-		return nil, fmt.Errorf("convert %s-%s failed, %s", class, name, err)
-	}
-
-	return map[string]interface{}{
-		`name`:    name,
-		`class`:   class,
-		`content`: j,
-	}, nil
-}

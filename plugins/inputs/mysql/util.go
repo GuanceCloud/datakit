@@ -118,7 +118,7 @@ func atof(str string) float64 {
 	str = strings.Trim(str, " ")
 	val, err := strconv.ParseFloat(str, 64)
 	if err != nil {
-		l.Debugf("Error occurred when parse %s to float. %s", str, err)
+		l.Warnf("Error occurred when parse %s to float. %s", str, err)
 		val = 0
 	}
 	return val
