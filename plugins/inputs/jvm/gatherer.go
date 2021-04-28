@@ -76,8 +76,7 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 				}
 
 				if jn, ok := v.(json.Number); ok {
-
-					field[k] = convertJsonNumber(jn)
+					field[k] = convertJsonNumber(k, jn, ja.Types)
 				} else {
 					field[k] = v
 				}
@@ -285,7 +284,11 @@ func findRequestAttributesWithPaths(attributes map[string][]string) []string {
 	return results
 }
 
-func convertJsonNumber(jn json.Number) interface{} {
+func convertJsonNumber(fieldName string, jn json.Number, fieldTyp map[string]string) interface{} {
+	if fieldTyp != nil {
+		return convertSpecifyType(fieldName, jn, fieldTyp)
+	}
+
 	if intVal, err := jn.Int64(); err == nil {
 		return intVal
 	}
@@ -295,4 +298,12 @@ func convertJsonNumber(jn json.Number) interface{} {
 	}
 
 	return jn.String()
+}
+
+func convertSpecifyType(fieldName string, jn json.Number, fieldTyp map[string]string) interface{} {
+	val, _ := jn.Float64()
+	if typ, ok := fieldTyp[fieldName]; ok && typ == "int" {
+		return int64(val)
+	}
+	return val
 }
