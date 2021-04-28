@@ -25,25 +25,25 @@ func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 		Name: "oracle_process",
 		Fields: map[string]interface{}{
 			// status
-			"pga_used_memory": &inputs.FieldInfo{
+			"pga_used_mem": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
 				Desc:     "PGA memory used by process",
 			},
-			"pga_allocated_memory": &inputs.FieldInfo{
+			"pga_alloc_mem": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
 				Desc:     "PGA memory allocated by process",
 			},
-			"pga_freeable_memory": &inputs.FieldInfo{
+			"pga_freeable_mem": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
 				Desc:     "PGA memory freeable by process",
 			},
-			"pga_maximum_memory": &inputs.FieldInfo{
+			"pga_max_mem": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
@@ -51,8 +51,11 @@ func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"server": &inputs.TagInfo{
+			"oracle_server": &inputs.TagInfo{
 				Desc: "Server addr",
+			},
+			"oracle_service": &inputs.TagInfo{
+				Desc: "Server service",
 			},
 			"program": &inputs.TagInfo{
 				Desc: "Program",
@@ -105,10 +108,13 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"server": &inputs.TagInfo{
+			"oracle_server": &inputs.TagInfo{
 				Desc: "Server addr",
 			},
-			"tablespace": &inputs.TagInfo{
+			"oracle_service": &inputs.TagInfo{
+				Desc: "Server service",
+			},
+			"tablespace_name": &inputs.TagInfo{
 				Desc: "Table space",
 			},
 		},
@@ -261,8 +267,11 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"server": &inputs.TagInfo{
+			"oracle_server": &inputs.TagInfo{
 				Desc: "Server addr",
+			},
+			"oracle_service": &inputs.TagInfo{
+				Desc: "Server service",
 			},
 		},
 	}
