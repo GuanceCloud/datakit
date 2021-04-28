@@ -147,7 +147,8 @@ func TestAPI(t *testing.T) {
 			t.Fatal(err)
 		}
 		if resp.StatusCode != http.StatusOK {
-			t.Fatalf("api %s request faild with status code: %s\n", cases[i].api, resp.Status)
+			t.Log("!!! failed")
+			t.Errorf("api %s request faild with status code: %s\n", cases[i].api, resp.Status)
 		}
 
 		respbody, err := ioutil.ReadAll(resp.Body)
@@ -162,12 +163,13 @@ func TestAPI(t *testing.T) {
 
 		if len(respbody) > 0 {
 			if err := json.Unmarshal(respbody, &x); err != nil {
-				t.Fatal(err)
+				t.Error(err.Error())
 			}
 
 			l.Debugf("x: %v, body: %s", x, string(respbody))
 		}
 		// testutil.Equals(t, string(tc.expectErrCode), string(x.ErrCode))
-		t.Logf("[%d] ok", i)
+		t.Log("### success")
+		t.Logf("case %s ok", cases[i].api)
 	}
 }
