@@ -1,9 +1,7 @@
 package hostobject
 
 import (
-	"context"
 	"encoding/json"
-	"runtime"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -14,9 +12,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var moduleLogger *logger.Logger
+var (
+	l = logger.DefaultSLogger(InputName)
+)
 
-type objCollector struct {
+type Input struct {
 	Name  string //deprecated
 	Class string //deprecated
 	Desc  string `toml:"description,omitempty"` //deprecated
@@ -25,88 +25,126 @@ type objCollector struct {
 	Pipeline string            `toml:"pipeline"`
 	Tags     map[string]string `toml:"tags,omitempty"`
 
+	IgnoreInputsErrorsBefore datakit.Duration `toml:"ignore_inputs_errors_before,omitempty"`
+	IOTimeout                datakit.Duration `toml:"io_timeout,omitempty"`
+
+	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
+	IgnoreFS                   []string `toml:"ignore_fs"`
+
 	p *pipeline.Pipeline
 
-	ctx       context.Context
-	cancelFun context.CancelFunc
-
-	mode string
-
-	testError error
+	collectData *hostMeasurement
 }
 
-func (c *objCollector) isTestOnce() bool {
-	return c.mode == "test"
-}
-
-func (c *objCollector) isDebug() bool {
-	return c.mode == "debug"
-}
-
-func (_ *objCollector) Catalog() string {
+func (_ *Input) Catalog() string {
 	return InputCat
 }
 
-func (_ *objCollector) SampleConfig() string {
+func (_ *Input) SampleConfig() string {
 	return SampleConfig
 }
 
-func (r *objCollector) PipelineConfig() map[string]string {
+func (r *Input) PipelineConfig() map[string]string {
 	return map[string]string{
 		InputName: pipelineSample,
 	}
 }
 
-func (c *objCollector) Run() {
+const (
+	maxInterval            = 30 * time.Minute
+	minInterval            = 1 * time.Minute
+	hostObjMeasurementName = "HOST"
+)
 
-	moduleLogger = logger.SLogger(InputName)
+func (c *Input) Run() {
 
-	if c.Interval.Duration == 0 {
-		c.Interval.Duration = 5 * time.Minute
-	}
+	l = logger.SLogger(InputName)
 
-	if c.Interval.Duration == 0 {
-		c.Interval.Duration = 5 * time.Minute
-	}
-
-	defer func() {
-		if e := recover(); e != nil {
-			if err := recover(); err != nil {
-				buf := make([]byte, 2048)
-				n := runtime.Stack(buf, false)
-				moduleLogger.Errorf("panic: %s", err)
-				moduleLogger.Errorf("%s", string(buf[:n]))
-			}
-		}
-	}()
-
-	go func() {
-		<-datakit.Exit.Wait()
-		c.cancelFun()
-	}()
-
+	c.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, c.Interval.Duration)
 	c.p = c.getPipeline()
+	tick := time.NewTicker(c.Interval.Duration)
+	n := 0
+	defer tick.Stop()
+
+	l.Debugf("starting %s(interval: %v)...", InputName, c.Interval)
 
 	for {
-
 		select {
-		case <-c.ctx.Done():
+		case <-datakit.Exit.Wait():
+			l.Infof("%s exit on sem", InputName)
 			return
-		default:
+		case <-tick.C:
+			start := time.Now()
+			l.Debugf("start %d collecting...", n)
+			if err := c.Collect(); err != nil {
+				io.FeedLastError(InputName, err.Error())
+			} else {
+				if err := inputs.FeedMeasurement(InputName,
+					io.Object,
+					[]inputs.Measurement{c.collectData},
+					&io.Option{CollectCost: time.Since(start)}); err != nil {
+					io.FeedLastError(InputName, err.Error())
+				}
+			}
+			n++
 		}
+	}
+}
 
-		message := getHostObjectMessage()
+type hostMeasurement struct {
+	name   string
+	fields map[string]interface{}
+	tags   map[string]string
+	ts     time.Time
+}
 
-		messageData, err := json.Marshal(message)
-		if err != nil {
-			moduleLogger.Errorf("json marshal err:%s", err.Error())
-			datakit.SleepContext(c.ctx, c.Interval.Duration)
-			continue
-		}
+func (x *hostMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: hostObjMeasurementName,
+		Desc: "主机对象数据采集如下数据",
+		Fields: map[string]interface{}{
+			"message":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "主机所有信息汇总"},
+			"os":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "主机操作系统类型"},
+			"start_time":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "主机启动时间（Unix 时间戳）"},
+			"datakit_ver":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "采集器版本"},
+			"cpu_usage":        &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 使用率"},
+			"mem_used_percent": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "内存使用率"},
+			"load":             &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "系统负载"},
+			"state":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "主机状态"},
+		},
+	}
+}
 
-		moduleLogger.Debugf("%s", string(messageData))
+func (x *hostMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(x.name, x.tags, x.fields)
+}
 
-		fields := map[string]interface{}{
+func (c *Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&hostMeasurement{},
+	}
+}
+
+func (c *Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (c *Input) Collect() error {
+
+	message, err := c.getHostObjectMessage()
+	if err != nil {
+		return err
+	}
+
+	messageData, err := json.Marshal(message)
+	if err != nil {
+		l.Errorf("json marshal err:%s", err.Error())
+		return err
+	}
+
+	c.collectData = &hostMeasurement{
+		name: hostObjMeasurementName,
+		fields: map[string]interface{}{
 			"message":          string(messageData),
 			"os":               message.Host.HostMeta.OS,
 			"start_time":       message.Host.HostMeta.BootTime,
@@ -115,42 +153,36 @@ func (c *objCollector) Run() {
 			"mem_used_percent": message.Host.Mem.usedPercent,
 			"load":             message.Host.load5,
 			"state":            "online",
-		}
+		},
 
-		for k, v := range c.Tags {
-			if _, ok := fields[k]; !ok {
-				fields[k] = v
-			}
-		}
-
-		if c.p != nil {
-			if result, err := c.p.Run(string(messageData)).Result(); err == nil {
-				moduleLogger.Debugf("%s", result)
-				for k, v := range result {
-					fields[k] = v
-				}
-			} else {
-				moduleLogger.Errorf("%s", err)
-			}
-		}
-
-		tags := map[string]string{
+		tags: map[string]string{
 			"name": message.Host.HostMeta.HostName,
-		}
-
-		tm := time.Now().UTC()
-
-		if c.isTestOnce() {
-			// pass
-		} else {
-			io.NamedFeedEx(InputName, io.Object, "HOST", tags, fields, tm)
-		}
-
-		datakit.SleepContext(c.ctx, c.Interval.Duration)
+		},
 	}
+
+	// merge custom tags: if conflict with fields, ignore the tag
+	for k, v := range c.Tags {
+		if _, ok := c.collectData.fields[k]; !ok {
+			c.collectData.fields[k] = v
+		} else {
+			l.Warnf("ignore tag %s: %s", k, v)
+		}
+	}
+
+	if c.p != nil {
+		if result, err := c.p.Run(string(messageData)).Result(); err == nil {
+			for k, v := range result {
+				c.collectData.fields[k] = v
+			}
+		} else {
+			l.Warnf("pipeline error: %s, ignored", err)
+		}
+	}
+
+	return nil
 }
 
-func (c *objCollector) getPipeline() *pipeline.Pipeline {
+func (c *Input) getPipeline() *pipeline.Pipeline {
 
 	fname := c.Pipeline
 	if fname == "" {
@@ -159,22 +191,19 @@ func (c *objCollector) getPipeline() *pipeline.Pipeline {
 
 	p, err := pipeline.NewPipelineByScriptPath(fname)
 	if err != nil {
-		moduleLogger.Warnf("%s", err)
+		l.Warnf("%s", err)
 		return nil
 	}
 
 	return p
 }
 
-func newInput(mode string) *objCollector {
-	o := &objCollector{}
-	o.mode = mode
-	o.ctx, o.cancelFun = context.WithCancel(context.Background())
-	return o
-}
-
 func init() {
 	inputs.Add(InputName, func() inputs.Input {
-		return newInput("")
+		return &Input{
+			IgnoreInputsErrorsBefore: datakit.Duration{Duration: 30 * time.Minute},
+			IOTimeout:                datakit.Duration{Duration: 10 * time.Second},
+			IgnoreFS:                 []string{"autofs", "tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"},
+		}
 	})
 }
