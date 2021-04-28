@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"encoding/json"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
@@ -30,6 +32,16 @@ type Option struct {
 	PostTimeout time.Duration
 }
 
+type lastErr struct {
+	from, err string
+	ts        time.Time
+}
+
+type qstats struct {
+	qid string
+	ch  chan map[string]*InputsStat
+}
+
 type IO struct {
 	DatawayHost   string
 	HTTPTimeout   time.Duration
@@ -40,8 +52,9 @@ type IO struct {
 	httpCli *http.Client
 	dw      *datakit.DataWayCfg
 
-	in  chan *iodata
-	in2 chan *iodata // high-freq chan
+	in        chan *iodata
+	in2       chan *iodata // high-freq chan
+	inLastErr chan *lastErr
 
 	inputstats map[string]*InputsStat
 	qstatsCh   chan *qstats
@@ -61,8 +74,9 @@ func NewIO() *IO {
 		MaxCacheCnt:   1024,
 		FlushInterval: time.Second * 10,
 
-		in:  make(chan *iodata, 128),
-		in2: make(chan *iodata, 128*8),
+		in:        make(chan *iodata, 128),
+		in2:       make(chan *iodata, 128*8),
+		inLastErr: make(chan *lastErr, 128),
 
 		inputstats: map[string]*InputsStat{},
 		qstatsCh:   make(chan *qstats), // blocking
@@ -80,6 +94,8 @@ const ( // categories
 	Logging          = "/v1/write/logging"
 	Tracing          = "/v1/write/tracing"
 	Rum              = "/v1/write/rum"
+	Security         = "/v1/write/security"
+	Telegraf         = "/v1/write/telegraf"
 	HeartBeat        = "/v1/write/heartbeat"
 
 	minGZSize = 1024
@@ -94,7 +110,7 @@ type iodata struct {
 }
 
 type InputsStat struct {
-	Name      string    `json:"name"`
+	//Name      string    `json:"name"`
 	Category  string    `json:"category"`
 	Frequency string    `json:"frequency,omitempty"`
 	AvgSize   int64     `json:"avg_size"`
@@ -103,9 +119,13 @@ type InputsStat struct {
 	First     time.Time `json:"first"`
 	Last      time.Time `json:"last"`
 
-	totalCost time.Duration `json:"-"`
+	LastErr   string    `json:"last_error,omitempty"`
+	LastErrTS time.Time `json:"last_error_ts,omitempty"`
 
+	MaxCollectCost time.Duration `json:"max_collect_cost"`
 	AvgCollectCost time.Duration `json:"avg_collect_cost"`
+
+	totalCost time.Duration `json:"-"`
 }
 
 func TestOutput() {
@@ -131,6 +151,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case Object:
 	case Logging:
 	case Tracing:
+	case Security:
 	case Rum:
 	default:
 		return fmt.Errorf("invalid category `%s'", category)
@@ -160,40 +181,45 @@ func (x *IO) ioStop() {
 	}
 }
 
+func (x *IO) updateLastErr(e *lastErr) {
+	stat, ok := x.inputstats[e.from]
+	if !ok {
+		stat = &InputsStat{}
+		x.inputstats[e.from] = stat
+	}
+
+	stat.LastErr = e.err
+	stat.LastErrTS = e.ts
+}
+
 func (x *IO) updateStats(d *iodata) {
 	now := time.Now()
 	stat, ok := x.inputstats[d.name]
 
 	if !ok {
-		stat := &InputsStat{
-			Name:     d.name,
-			Category: d.category,
-			Total:    int64(len(d.pts)),
-			First:    now,
-			Count:    1,
-			Last:     now,
-		}
-
-		if d.opt != nil {
-			stat.totalCost = d.opt.CollectCost
-			stat.AvgCollectCost = d.opt.CollectCost
+		stat = &InputsStat{
+			Total: int64(len(d.pts)),
+			First: now,
 		}
 		x.inputstats[d.name] = stat
-	} else {
-		stat.Total += int64(len(d.pts))
-		stat.Count++
-		stat.Last = now
-		stat.Category = d.category
+	}
 
-		if (stat.Last.Unix() - stat.First.Unix()) > 0 {
-			stat.Frequency = fmt.Sprintf("%.02f/min",
-				float64(stat.Count)/(float64(stat.Last.Unix()-stat.First.Unix())/60))
-		}
-		stat.AvgSize = (stat.Total) / stat.Count
+	stat.Total += int64(len(d.pts))
+	stat.Count++
+	stat.Last = now
+	stat.Category = d.category
 
-		if d.opt != nil {
-			stat.totalCost += d.opt.CollectCost
-			stat.AvgCollectCost = (stat.totalCost) / time.Duration(stat.Count)
+	if (stat.Last.Unix() - stat.First.Unix()) > 0 {
+		stat.Frequency = fmt.Sprintf("%.02f/min",
+			float64(stat.Count)/(float64(stat.Last.Unix()-stat.First.Unix())/60))
+	}
+	stat.AvgSize = (stat.Total) / stat.Count
+
+	if d.opt != nil {
+		stat.totalCost += d.opt.CollectCost
+		stat.AvgCollectCost = (stat.totalCost) / time.Duration(stat.Count)
+		if d.opt.CollectCost > stat.MaxCollectCost {
+			stat.MaxCollectCost = d.opt.CollectCost
 		}
 	}
 }
@@ -265,6 +291,7 @@ func (x *IO) init() error {
 		Object:   x.dw.ObjectURL(),
 		Logging:  x.dw.LoggingURL(),
 		Tracing:  x.dw.TracingURL(),
+		Security: x.dw.SecurityURL(),
 		Rum:      x.dw.RumURL(),
 	}
 
@@ -304,16 +331,17 @@ func (x *IO) StartIO(recoverable bool) {
 			case d := <-x.in:
 				x.cacheData(d, true)
 
+			case e := <-x.inLastErr:
+				x.updateLastErr(e)
+
 			case q := <-x.qstatsCh:
-				statRes := []*InputsStat{}
-				for _, v := range x.inputstats {
-					statRes = append(statRes, v)
-				}
+
+				res := dumpStats(x.inputstats)
 				select {
-				case q.ch <- statRes: // maybe blocking(i.e., client canceled)
-				default:
-					l.Warn("client canceled")
-					// pass
+				case <-q.ch:
+					l.Warnf("qid(%s) client canceled, ignored", q.qid)
+				case q.ch <- res: // XXX: reference
+					l.Debugf("qid(%s) response ok", q.qid)
 				}
 
 			case <-highFreqRecvTicker.C:
@@ -335,6 +363,14 @@ func (x *IO) StartIO(recoverable bool) {
 
 	l.Info("starting...")
 	f(nil, nil)
+}
+
+func dumpStats(is map[string]*InputsStat) (res map[string]*InputsStat) {
+	res = map[string]*InputsStat{}
+	for x, y := range is {
+		res[x] = y
+	}
+	return
 }
 
 func (x *IO) dkHeartbeat() {
@@ -472,6 +508,10 @@ func (x *IO) doFlush(pts []*Point, url string) error {
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
+
+	// append datakit info
+	req.Header.Set("X-Datakit-Info",
+		fmt.Sprintf("%s; %s", datakit.Cfg.MainCfg.Hostname, git.Version))
 
 	postbeg := time.Now()
 
