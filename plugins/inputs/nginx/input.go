@@ -11,9 +11,11 @@ import (
 )
 
 var (
-	inputName = `nginx`
-	l         = logger.DefaultSLogger(inputName)
-	sample    = `
+	inputName   = `nginx`
+	l           = logger.DefaultSLogger(inputName)
+	minInterval = time.Second
+	maxInterval = time.Second * 30
+	sample      = `
 [[inputs.nginx]]
 	url = "http://localhost/server_status"
 	# ##(optional) collection interval, default is 30s
@@ -88,6 +90,8 @@ func (_ *Input) PipelineConfig() map[string]string {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("nginx start")
+	n.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
+
 	if n.Log != nil {
 		go func() {
 			inputs.JoinPipelinePath(n.Log, "nginx.p")
@@ -112,9 +116,6 @@ func (n *Input) Run() {
 		return
 	}
 	n.client = client
-	if n.Interval.Duration == 0 {
-		n.Interval.Duration = time.Second * 30
-	}
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
@@ -127,8 +128,14 @@ func (n *Input) Run() {
 				err := inputs.FeedMeasurement(inputName, io.Metric, n.collectCache, &io.Option{CollectCost: time.Since(n.start)})
 				n.collectCache = n.collectCache[:0]
 				if err != nil {
+					n.lastErr = err
 					l.Errorf(err.Error())
+					continue
 				}
+			}
+			if n.lastErr != nil {
+				io.FeedLastError(inputName, n.lastErr.Error())
+				n.lastErr = nil
 			}
 		case <-datakit.Exit.Wait():
 			if n.tail != nil {
@@ -185,7 +192,9 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		s := &Input{}
+		s := &Input{
+			Interval: datakit.Duration{Duration: time.Second * 10},
+		}
 		return s
 	})
 }
