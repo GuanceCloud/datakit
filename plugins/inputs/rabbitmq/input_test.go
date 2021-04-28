@@ -1,20 +1,24 @@
 package rabbitmq
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/gorilla/mux"
+	"context"
 )
 
 func TestGetMetric(t *testing.T) {
-	srv := &http.Server{Addr: ":8888"}
+	r := mux.NewRouter()
+	srv := &http.Server{Addr: ":8888",Handler:r}
 
-	http.HandleFunc("/api/nodes", nodeHandle)
-	http.HandleFunc("/api/exchanges", exchangeHandle)
-	http.HandleFunc("/api/overview", overviewHandle)
-	http.HandleFunc("/api/queues", queueHandle)
+	r.HandleFunc("/api/nodes", nodeHandle)
+	r.HandleFunc("/api/exchanges", exchangeHandle)
+	r.HandleFunc("/api/overview", overviewHandle)
+	r.HandleFunc("/api/queues", queueHandle)
+	r.HandleFunc("/api/queues/{vhost}/{name}/bindings", bindingHandle)
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
@@ -46,7 +50,7 @@ func nodeHandle(w http.ResponseWriter, r *http.Request) {
 
 func queueHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	resp := `[{"messages_details":{"rate":0.0},"messages":28,"messages_unacknowledged_details":{"rate":0.0},"messages_unacknowledged":0,"messages_ready_details":{"rate":0.0},"messages_ready":28,"reductions_details":{"rate":0.0},"reductions":1424483,"message_stats":{"deliver_get_details":{"rate":0.0},"deliver_get":7,"ack_details":{"rate":0.0},"ack":0,"redeliver_details":{"rate":0.0},"redeliver":4,"deliver_no_ack_details":{"rate":0.0},"deliver_no_ack":0,"deliver_details":{"rate":0.0},"deliver":0,"get_no_ack_details":{"rate":0.0},"get_no_ack":0,"get_details":{"rate":0.0},"get":7,"publish_details":{"rate":0.0},"publish":28},"node":"rabbit@tan-ThinkPad-E450","arguments":{},"exclusive":false,"auto_delete":false,"durable":true,"vhost":"/","name":"testhjj","message_bytes_paged_out":0,"messages_paged_out":0,"backing_queue_status":{"mode":"default","q1":0,"q2":0,"delta":["delta","undefined",0,0,"undefined"],"q3":0,"q4":28,"len":28,"target_ram_count":"infinity","next_seq_id":28,"avg_ingress_rate":0.0,"avg_egress_rate":0.0,"avg_ack_ingress_rate":0.0,"avg_ack_egress_rate":0.0},"head_message_timestamp":null,"message_bytes_persistent":72,"message_bytes_ram":136,"message_bytes_unacknowledged":0,"message_bytes_ready":136,"message_bytes":136,"messages_persistent":12,"messages_unacknowledged_ram":0,"messages_ready_ram":28,"messages_ram":28,"garbage_collection":{"minor_gcs":427,"fullsweep_after":65535,"min_heap_size":233,"min_bin_vheap_size":46422,"max_heap_size":0},"state":"running","recoverable_slaves":null,"memory":143144,"consumer_utilisation":null,"consumers":0,"exclusive_consumer_tag":null,"policy":null}]`
+	resp := `[{"messages_details":{"rate":0.0},"messages":28,"messages_unacknowledged_details":{"rate":0.0},"messages_unacknowledged":0,"messages_ready_details":{"rate":0.0},"messages_ready":28,"reductions_details":{"rate":0.0},"reductions":1424483,"message_stats":{"deliver_get_details":{"rate":0.0},"deliver_get":7,"ack_details":{"rate":0.0},"ack":0,"redeliver_details":{"rate":0.0},"redeliver":4,"deliver_no_ack_details":{"rate":0.0},"deliver_no_ack":0,"deliver_details":{"rate":0.0},"deliver":0,"get_no_ack_details":{"rate":0.0},"get_no_ack":0,"get_details":{"rate":0.0},"get":7,"publish_details":{"rate":0.0},"publish":28},"node":"rabbit@tan-ThinkPad-E450","arguments":{},"exclusive":false,"auto_delete":false,"durable":true,"vhost":"hjj","name":"testhjj","message_bytes_paged_out":0,"messages_paged_out":0,"backing_queue_status":{"mode":"default","q1":0,"q2":0,"delta":["delta","undefined",0,0,"undefined"],"q3":0,"q4":28,"len":28,"target_ram_count":"infinity","next_seq_id":28,"avg_ingress_rate":0.0,"avg_egress_rate":0.0,"avg_ack_ingress_rate":0.0,"avg_ack_egress_rate":0.0},"head_message_timestamp":null,"message_bytes_persistent":72,"message_bytes_ram":136,"message_bytes_unacknowledged":0,"message_bytes_ready":136,"message_bytes":136,"messages_persistent":12,"messages_unacknowledged_ram":0,"messages_ready_ram":28,"messages_ram":28,"garbage_collection":{"minor_gcs":427,"fullsweep_after":65535,"min_heap_size":233,"min_bin_vheap_size":46422,"max_heap_size":0},"state":"running","recoverable_slaves":null,"memory":143144,"consumer_utilisation":null,"consumers":0,"exclusive_consumer_tag":null,"policy":null}]`
 	w.Write([]byte(resp))
 }
 
@@ -58,6 +62,29 @@ func overviewHandle(w http.ResponseWriter, r *http.Request) {
 
 func exchangeHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	resp := `[{"name":"","vhost":"/","type":"direct","durable":true,"auto_delete":false,"internal":false,"arguments":{},"message_stats":{"publish_out":28,"publish_out_details":{"rate":0.0},"publish_in":28,"publish_in_details":{"rate":0.0}}},{"name":"amq.direct","vhost":"/","type":"direct","durable":true,"auto_delete":false,"internal":false,"arguments":{}},{"name":"amq.fanout","vhost":"/","type":"fanout","durable":true,"auto_delete":false,"internal":false,"arguments":{}},{"name":"amq.headers","vhost":"/","type":"headers","durable":true,"auto_delete":false,"internal":false,"arguments":{}},{"name":"amq.match","vhost":"/","type":"headers","durable":true,"auto_delete":false,"internal":false,"arguments":{}},{"name":"amq.rabbitmq.log","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":true,"arguments":{}},{"name":"amq.rabbitmq.trace","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":true,"arguments":{}},{"name":"amq.topic","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{},"message_stats":{"publish_in":20,"publish_in_details":{"rate":0.0}}}]`
+	resp := `[{"name":"","vhost":"hjj","type":"direct","durable":true,"auto_delete":false,"internal":false,"arguments":{},"message_stats":{"publish_out":28,"publish_out_details":{"rate":0.0},"publish_in":28,"publish_in_details":{"rate":0.0}}},{"name":"amq.direct","vhost":"/","type":"direct","durable":true,"auto_delete":false,"internal":false,"arguments":{}},{"name":"amq.fanout","vhost":"hjj","type":"fanout","durable":true,"auto_delete":false,"internal":false,"arguments":{}},{"name":"amq.headers","vhost":"hjj","type":"headers","durable":true,"auto_delete":false,"internal":false,"arguments":{}},{"name":"amq.match","vhost":"hjj","type":"headers","durable":true,"auto_delete":false,"internal":false,"arguments":{}},{"name":"amq.rabbitmq.log","vhost":"hjj","type":"topic","durable":true,"auto_delete":false,"internal":true,"arguments":{}},{"name":"amq.rabbitmq.trace","vhost":"hjj","type":"topic","durable":true,"auto_delete":false,"internal":true,"arguments":{}},{"name":"amq.topic","vhost":"hjj","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{},"message_stats":{"publish_in":20,"publish_in_details":{"rate":0.0}}}]`
+	w.Write([]byte(resp))
+}
+
+func bindingHandle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	resp := `[{
+	"source": "",
+	"vhost": "/",
+	"destination": "testhjj",
+	"destination_type": "queue",
+	"routing_key": "testhjj",
+	"arguments": {},
+	"properties_key": "testhjj"
+	},
+	{
+	"source": "hjj",
+	"vhost": "/",
+	"destination": "testhjj",
+	"destination_type": "queue",
+	"routing_key": "fsaf",
+	"arguments": {},
+	"properties_key": "fsaf"
+	}]`
 	w.Write([]byte(resp))
 }
