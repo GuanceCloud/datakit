@@ -155,8 +155,8 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			field[trace.FIELD_PARENTID] = fmt.Sprintf("%d", span.ParentID)
 			field[trace.FIELD_TRACEID] = fmt.Sprintf("%d", span.TraceID)
 			field[trace.FIELD_SPANID] = fmt.Sprintf("%d", span.SpanID)
-			field[trace.FIELD_DURATION] = span.Duration
-			field[trace.FIELD_START] = span.Start/1000
+			field[trace.FIELD_DURATION] = span.Duration / 1000
+			field[trace.FIELD_START] = span.Start / 1000
 			if v, ok := span.Metrics["system.pid"]; ok {
 				field[trace.FIELD_PID] = fmt.Sprintf("%v", v)
 			}
