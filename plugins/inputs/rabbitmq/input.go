@@ -76,7 +76,7 @@ func (n *Input) Run() {
 				}
 			}
 			if n.lastErr != nil {
-				io.FeedLastError(inputName, err.Error())
+				io.FeedLastError(inputName, n.lastErr.Error())
 				n.lastErr = nil
 			}
 		case <-datakit.Exit.Wait():
