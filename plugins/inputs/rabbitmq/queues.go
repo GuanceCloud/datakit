@@ -14,6 +14,7 @@ func getQueues(n *Input) {
 	err := n.requestJSON("/api/queues", &Queues)
 	if err != nil {
 		l.Error(err.Error())
+		n.lastErr = err
 		return
 	}
 	ts := time.Now()
