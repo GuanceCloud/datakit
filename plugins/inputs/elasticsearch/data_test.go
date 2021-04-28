@@ -63,21 +63,21 @@ const clusterHealthResponseWithIndices = `
 `
 
 var clusterHealthExpected = map[string]interface{}{
-	"status":                           "green",
-	"status_code":                      1,
-	"timed_out":                        false,
-	"number_of_nodes":                  3,
-	"number_of_data_nodes":             3,
-	"number_of_in_flight_fetch":        0,
-	"active_primary_shards":            5,
-	"active_shards":                    15,
-	"relocating_shards":                0,
-	"initializing_shards":              0,
-	"unassigned_shards":                0,
-	"delayed_unassigned_shards":        0,
-	"number_of_pending_tasks":          0,
-	"task_max_waiting_in_queue_millis": 0,
-	"active_shards_percent_as_number":  100.0,
+	"status": "green",
+	// "status_code":                      1,
+	// "timed_out":                        false,
+	// "number_of_nodes":                  3,
+	"number_of_data_nodes": 3,
+	// "number_of_in_flight_fetch":        0,
+	"active_primary_shards": 5,
+	"active_shards":         15,
+	"relocating_shards":     0,
+	"initializing_shards":   0,
+	"unassigned_shards":     0,
+	// "delayed_unassigned_shards":        0,
+	"number_of_pending_tasks": 0,
+	// "task_max_waiting_in_queue_millis": 0,
+	// "active_shards_percent_as_number":  100.0,
 }
 
 var v1IndexExpected = map[string]interface{}{
@@ -2110,7 +2110,7 @@ const clusterIndicesResponse = `
     }
   },
   "indices": {
-    "twitter": {
+    "es": {
       "uuid": "AtNrbbl_QhirW0p7Fnq26A",
       "primaries": {
         "docs": {
@@ -2618,7 +2618,7 @@ const dateStampedIndicesResponse = `
     }
   },
   "indices": {
-    "twitter_2020_08_02": {
+    "es_2020_08_02": {
       "uuid": "AtNrbbl_QhirW0p7Fnq26A",
       "primaries": {
         "docs": {
@@ -2867,7 +2867,7 @@ const dateStampedIndicesResponse = `
         }
       }
     },
-    "twitter_2020_08_01": {
+    "es_2020_08_01": {
       "uuid": "AtNrbbl_QhirW0p7Fnq26A",
       "primaries": {
         "docs": {
@@ -3116,7 +3116,7 @@ const dateStampedIndicesResponse = `
         }
       }
     },
-    "twitter_2020_07_31": {
+    "es_2020_07_31": {
       "uuid": "AtNrbbl_QhirW0p7Fnq26A",
       "primaries": {
         "docs": {
@@ -4455,6 +4455,119 @@ var clusterIndicesExpected = map[string]interface{}{
 	"warmer_total_time_in_millis":            float64(0),
 }
 
+var clusterIndicesPrimariesExpected = map[string]interface{}{
+	"primaries_completion_size_in_bytes":               float64(0),
+	"primaries_docs_count":                             float64(999),
+	"primaries_docs_deleted":                           float64(0),
+	"primaries_fielddata_evictions":                    float64(0),
+	"primaries_fielddata_memory_size_in_bytes":         float64(0),
+	"primaries_flush_periodic":                         float64(0),
+	"primaries_flush_total":                            float64(0),
+	"primaries_flush_total_time_in_millis":             float64(0),
+	"primaries_get_current":                            float64(0),
+	"primaries_get_exists_time_in_millis":              float64(0),
+	"primaries_get_exists_total":                       float64(0),
+	"primaries_get_missing_time_in_millis":             float64(0),
+	"primaries_get_missing_total":                      float64(0),
+	"primaries_get_time_in_millis":                     float64(0),
+	"primaries_get_total":                              float64(0),
+	"primaries_indexing_delete_current":                float64(0),
+	"primaries_indexing_delete_time_in_millis":         float64(0),
+	"primaries_indexing_delete_total":                  float64(0),
+	"primaries_indexing_index_current":                 float64(0),
+	"primaries_indexing_index_failed":                  float64(0),
+	"primaries_indexing_index_time_in_millis":          float64(548),
+	"primaries_indexing_index_total":                   float64(999),
+	"primaries_indexing_is_throttled":                  false,
+	"primaries_indexing_noop_update_total":             float64(0),
+	"primaries_indexing_throttle_time_in_millis":       float64(0),
+	"primaries_merges_current":                         float64(0),
+	"primaries_merges_current_docs":                    float64(0),
+	"primaries_merges_current_size_in_bytes":           float64(0),
+	"primaries_merges_total":                           float64(0),
+	"primaries_merges_total_auto_throttle_in_bytes":    float64(62914560),
+	"primaries_merges_total_docs":                      float64(0),
+	"primaries_merges_total_size_in_bytes":             float64(0),
+	"primaries_merges_total_stopped_time_in_millis":    float64(0),
+	"primaries_merges_total_throttled_time_in_millis":  float64(0),
+	"primaries_merges_total_time_in_millis":            float64(0),
+	"primaries_query_cache_cache_count":                float64(0),
+	"primaries_query_cache_cache_size":                 float64(0),
+	"primaries_query_cache_evictions":                  float64(0),
+	"primaries_query_cache_hit_count":                  float64(0),
+	"primaries_query_cache_memory_size_in_bytes":       float64(0),
+	"primaries_query_cache_miss_count":                 float64(0),
+	"primaries_query_cache_total_count":                float64(0),
+	"primaries_recovery_current_as_source":             float64(0),
+	"primaries_recovery_current_as_target":             float64(0),
+	"primaries_recovery_throttle_time_in_millis":       float64(0),
+	"primaries_refresh_external_total":                 float64(9),
+	"primaries_refresh_external_total_time_in_millis":  float64(258),
+	"primaries_refresh_listeners":                      float64(0),
+	"primaries_refresh_total":                          float64(9),
+	"primaries_refresh_total_time_in_millis":           float64(256),
+	"primaries_request_cache_evictions":                float64(0),
+	"primaries_request_cache_hit_count":                float64(0),
+	"primaries_request_cache_memory_size_in_bytes":     float64(0),
+	"primaries_request_cache_miss_count":               float64(0),
+	"primaries_search_fetch_current":                   float64(0),
+	"primaries_search_fetch_time_in_millis":            float64(0),
+	"primaries_search_fetch_total":                     float64(0),
+	"primaries_search_open_contexts":                   float64(0),
+	"primaries_search_query_current":                   float64(0),
+	"primaries_search_query_time_in_millis":            float64(0),
+	"primaries_search_query_total":                     float64(0),
+	"primaries_search_scroll_current":                  float64(0),
+	"primaries_search_scroll_time_in_millis":           float64(0),
+	"primaries_search_scroll_total":                    float64(0),
+	"primaries_search_suggest_current":                 float64(0),
+	"primaries_search_suggest_time_in_millis":          float64(0),
+	"primaries_search_suggest_total":                   float64(0),
+	"primaries_segments_count":                         float64(3),
+	"primaries_segments_doc_values_memory_in_bytes":    float64(204),
+	"primaries_segments_fixed_bit_set_memory_in_bytes": float64(0),
+	"primaries_segments_index_writer_memory_in_bytes":  float64(0),
+	"primaries_segments_max_unsafe_auto_id_timestamp":  float64(-1),
+	"primaries_segments_memory_in_bytes":               float64(12849),
+	"primaries_segments_norms_memory_in_bytes":         float64(1152),
+	"primaries_segments_points_memory_in_bytes":        float64(9),
+	"primaries_segments_stored_fields_memory_in_bytes": float64(904),
+	"primaries_segments_term_vectors_memory_in_bytes":  float64(0),
+	"primaries_segments_terms_memory_in_bytes":         float64(10580),
+	"primaries_segments_version_map_memory_in_bytes":   float64(0),
+	"primaries_store_size_in_bytes":                    float64(267500),
+	"primaries_translog_earliest_last_modified_age":    float64(0),
+	"primaries_translog_operations":                    float64(999),
+	"primaries_translog_size_in_bytes":                 float64(226444),
+	"primaries_translog_uncommitted_operations":        float64(999),
+	"primaries_translog_uncommitted_size_in_bytes":     float64(226444),
+	"primaries_warmer_current":                         float64(0),
+	"primaries_warmer_total":                           float64(6),
+	"primaries_warmer_total_time_in_millis":            float64(0),
+}
+
+var clusterIndicesTotalExpected = map[string]interface{}{
+	"total_indexing_index_current":        float64(0),
+	"total_get_missing_total":             float64(0),
+	"total_indexing_index_time_in_millis": float64(793),
+	"total_indexing_index_total":          float64(1998),
+	"total_merges_total":                  float64(0),
+	"total_merges_total_docs":             float64(0),
+	"total_merges_current_docs":           float64(0),
+	"total_merges_total_time_in_millis":   float64(0),
+	"total_flush_total":                   float64(0),
+	"total_flush_total_time_in_millis":    float64(0),
+	"total_refresh_total":                 float64(18),
+	"total_refresh_total_time_in_millis":  float64(518),
+	"total_search_fetch_current":          float64(0),
+	"total_search_fetch_time_in_millis":   float64(0),
+	"total_search_fetch_total":            float64(0),
+	"total_search_query_current":          float64(0),
+	"total_search_query_time_in_millis":   float64(0),
+	"total_search_query_total":            float64(0),
+	"total_store_size_in_bytes":           float64(535000),
+}
+
 const clusterIndicesShardsResponse = `
 {
   "_shards": {
@@ -4711,7 +4824,7 @@ const clusterIndicesShardsResponse = `
     }
   },
   "indices": {
-    "twitter": {
+    "es": {
       "uuid": "AtNrbbl_QhirW0p7Fnq26A",
       "primaries": {
         "docs": {
