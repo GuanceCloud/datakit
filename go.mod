@@ -19,7 +19,7 @@ require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.391
 	github.com/aliyun/aliyun-log-go-sdk v0.1.5
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.8+incompatible
-	github.com/andygrunwald/go-jira v1.12.0
+	github.com/andygrunwald/go-jira v1.13.0
 	github.com/antchfx/jsonquery v1.1.4
 	github.com/apache/thrift v0.13.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
@@ -27,7 +27,6 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/c-bata/go-prompt v0.2.5
-	github.com/cloudfoundry/bytefmt v0.0.0-20200131002437-cf55d5288a48 // indirect
 	github.com/containerd/cgroups v0.0.0-20201119153540-4cbc285b3327 // indirect
 	github.com/containerd/containerd v1.4.1
 	github.com/containerd/continuity v0.0.0-20200413184840-d3ef23f19fbb // indirect
@@ -37,19 +36,16 @@ require (
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
 	github.com/dustin/go-humanize v1.0.0
+	github.com/fatih/structs v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-kit/kit v0.10.0
 	github.com/go-ole/go-ole v1.2.4
 	github.com/go-redis/redis v6.15.9+incompatible
-	github.com/go-redis/redis/v8 v8.8.0 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/envy v1.9.0 // indirect
-	github.com/gobuffalo/genny v0.6.0 // indirect
-	github.com/gobuffalo/gogen v0.2.0 // indirect
-	github.com/gobuffalo/mapi v1.2.1 // indirect
+	github.com/gobuffalo/packr v1.30.1 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.1
-	github.com/gobuffalo/syncx v0.1.0 // indirect
 	github.com/gobwas/glob v0.2.3
 	github.com/godror/godror v0.17.0
 	github.com/gofrs/flock v0.8.0
@@ -57,6 +53,7 @@ require (
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/golang/protobuf v1.5.2
 	github.com/gomarkdown/markdown v0.0.0-20210208175418-bda154fe17d8
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gopacket v1.1.17
 	github.com/hpcloud/tail v1.0.0
 	github.com/huaweicloud/huaweicloud-sdk-go-v3 v0.0.30-rc.1
@@ -83,12 +80,12 @@ require (
 	github.com/mssola/user_agent v0.5.2
 	github.com/naoina/toml v0.1.1
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
-	github.com/nightlyone/lockfile v1.0.0 // indirect
+	github.com/onsi/ginkgo v1.15.0 // indirect
+	github.com/onsi/gomega v1.10.5 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/selinux v1.5.1 // indirect
 	github.com/openzipkin/zipkin-go v0.2.2
-	github.com/pelletier/go-toml v1.9.0 // indirect
 	github.com/pingcap/errors v0.11.5-0.20190809092503-95897b64e011
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
@@ -108,17 +105,19 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.3 // indirect
+	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.7
 	github.com/tidwall/gjson v1.7.4
+	github.com/trivago/tgo v1.0.7 // indirect
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/ucloud/ucloud-sdk-go v0.14.0
 	github.com/ugorji/go/codec v1.2.4
-	github.com/unrolled/secure v1.0.8
+	github.com/urfave/negroni v1.0.0 // indirect
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/vjeantet/grok v1.0.0
 	github.com/xanzy/go-gitlab v0.31.0
@@ -126,12 +125,12 @@ require (
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210401072947-bb2a050fa753
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210419084725-f27a03525a8d
-	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57
-	golang.org/x/term v0.0.0-20210406210042-72f3dc4e9b72 // indirect
+	golang.org/x/sys v0.0.0-20210421221651-33663a62ff08
+	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed // indirect
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	google.golang.org/grpc v1.28.0
