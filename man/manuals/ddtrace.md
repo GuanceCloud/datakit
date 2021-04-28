@@ -10,23 +10,30 @@
 
 ## 前置条件
 
-- 部署对应语言的 [Datadog Tracing](https://docs.datadoghq.com/tracing/)工具软件，并配置数据上报地址为 DataKit 提供的地址
+- 安装对应语言的 ddtrace SDK：
+
+	- python: 
+	- ruby:
+	- golang:
 
 ## 配置
 
-1. 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
 ```toml
 {{.InputSample}}
 ```
 
-<!-- 第三步：在应用项目中配置数据上报地址为 DataKit 的链路数据接收地址并开启应用 -->
+编辑 `conf.d/datakit.conf`，将 `http_listen` 改为 `0.0.0.0:9529`（此处目的是开放外网访问，端口可选）
 
-2. 编辑 `conf.d/datakit.conf`，将 `http_listen` 改为 `0.0.0.0:9529`（此处目的是开放外网访问，端口可选）。此时 ddtrace 的访问地址就是 `http://<datakit-ip>:9529/v0.4/traces`。如果 trace 数据来源就是 DataKit 本机，可不用修改 `http_listen` 配置，直接使用 `http://localhost:9529/v0.4/traces` 即可。
+此时 ddtrace 的访问地址就是 `http://<datakit-ip>:9529/v0.4/traces`。如果 trace 数据来源就是 DataKit 本机，可不用修改 `http_listen` 配置，直接使用 `http://localhost:9529/v0.4/traces` 即可。
 
-## 配置并开启应用
+ddtarce 具体使用，参考：
 
-通过 ddtarce 采集数据需要根据当前项目开发语言参考对应帮助文档 [Datadog Tracing](https://github.com/DataDog)。
+	- [python](http://doc/to/python/ddtrace) 
+	- [glang]((http://doc/to/golang/ddtrace))
+	- [php]((http://doc/to/php/ddtrace))
+	- [ruby](https://github.com/DataDog/dd-trace-rb)
 
 ### Python 快速入门
 
@@ -62,12 +69,6 @@ tracer.configure(
 ```shell
 $ ddtrace-run python app.py
 ``` 
-
-若通过 `gunicorn` 运行，需要在应用初始化时进行如下配置，否则会产生相同的 `traceID`
-
-```python
-patch(gevent=True)
-```
 
 其他语言应用与此类似，配置成功后约 1~2 分钟即可在 DataFlux Studio 「应用性能监测」中查看数据。
 
@@ -199,12 +200,31 @@ $ curl http://localhost:54321/stop
 $ curl http://localhost:54322/stop
 ```
 
-也可以通过 [DQL](http://doc/to/dql) 查找数据：
+可以通过 [DQL](http://doc/to/dql) 验证上报的数据：
 
 ```python
-T::xxxx {service="SERVICE_A"} order by time desc limit 1
 
-# 贴出 DQL 返回的数据
+> T::SERVICE_A limit
+
+-----------------[ 1.SERVICE_A ]-----------------
+parent_id '14606556292855197324'
+ resource 'flask.process_response'
+ trace_id '3967842463447887098'
+     time 2021-04-28 15:24:11 +0800 CST
+span_type 'exit'
+     type 'custom'
+ duration 35
+     host 'testing.server'
+  service 'SERVICE_A'
+   source 'ddtrace'
+  span_id '11450815711192661499'
+    start 1619594651033484
+   status 'ok'
+  __docid 'T_c24gr8edtv6gq5cghnvg'
+  message '{"name":"flask.process_response","service":"SERVICE_A","resource":"flask.process_response","type":"","start":1619594651033484000,"duration":35000,"span_id":11450815711192661499,"trace_id":3967842463447887098,"parent_id":14606556292855197324,"error":0}'
+operation 'flask.process_response'
+---------
+1 rows, cost 3ms
 ```
 
 ## 指标集
