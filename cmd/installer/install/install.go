@@ -179,7 +179,7 @@ func UpgradeDatakit(svc service.Service) error {
 		l.Warnf("stop service: %s, ignored", err.Error())
 	}
 
-	for _, dir := range []string{datakit.TelegrafDir, datakit.DataDir, datakit.LuaDir, datakit.ConfdDir} {
+	for _, dir := range []string{datakit.DataDir, datakit.LuaDir, datakit.ConfdDir} {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			return err
 		}
