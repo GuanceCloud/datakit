@@ -3,9 +3,9 @@ package rabbitmq
 import (
 	"time"
 
+	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"fmt"
 	"net/url"
 )
 
@@ -50,9 +50,9 @@ func getQueues(n *Input) {
 			"message_redeliver_count":      queue.MessageStats.Redeliver,
 			"message_redeliver_rate":       queue.MessageStats.RedeliverDetails.Rate,
 		}
-		bindings ,err := n.getBindingCount(queue.Vhost,queue.Name)
+		bindings, err := n.getBindingCount(queue.Vhost, queue.Name)
 		if err != nil {
-			l.Errorf("get bindings err:%s",err.Error())
+			l.Errorf("get bindings err:%s", err.Error())
 		}
 		fields["bindings_count"] = bindings
 		metric := &QueueMeasurement{
@@ -65,19 +65,15 @@ func getQueues(n *Input) {
 	}
 }
 
-
-func (n *Input)getBindingCount(vHost,queueName string)(int,error)  {
+func (n *Input) getBindingCount(vHost, queueName string) (int, error) {
 	var binds []interface{}
 	// 此处 vhost 可能是 / 需 encode
-	err := n.requestJSON(fmt.Sprintf("/api/queues/%s/%s/bindings",url.QueryEscape(vHost),queueName),&binds)
+	err := n.requestJSON(fmt.Sprintf("/api/queues/%s/%s/bindings", url.QueryEscape(vHost), queueName), &binds)
 	if err != nil {
-		return 0,err
+		return 0, err
 	}
-	return len(binds),nil
+	return len(binds), nil
 }
-
-
-
 
 type QueueMeasurement struct {
 	name   string
@@ -114,7 +110,7 @@ func (m *QueueMeasurement) Info() *inputs.MeasurementInfo {
 			"message_publish_rate":         newRateFieldInfo("Rate per second of messages published"),
 			"message_redeliver_count":      newCountFieldInfo("Count of subset of messages in queues in deliver_get which had the redelivered flag set"),
 			"message_redeliver_rate":       newRateFieldInfo("Rate per second of subset of messages in deliver_get which had the redelivered flag set"),
-			"bindings_count":       		newCountFieldInfo("Number of bindings for a specific queue"),
+			"bindings_count":               newCountFieldInfo("Number of bindings for a specific queue"),
 		},
 
 		Tags: map[string]interface{}{
