@@ -14,11 +14,14 @@ import (
 )
 
 var (
-	ManualBox = packr.New("manulas", "./manuals")
+	ManualBox = packr.New("manuals", "./manuals")
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
-		"pipeline":  "man/manuals/pipeline.md",
+		// all manuals under man/manuals/
+		"pipeline":  "pipeline.md",
+		"telegraf":  "telegraf.md",
 		"changelog": "man/manuals/changelog.md",
+		"datatypes": "man/manuals/datatypes.md",
 	}
 
 	l = logger.DefaultSLogger("man")
@@ -39,9 +42,19 @@ func Get(name string) (string, error) {
 	return ManualBox.FindString(name + ".md")
 }
 
-func BuildMarkdownManual(name string) ([]byte, error) {
+type Option struct {
+	WithCSS bool
+}
+
+func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 
 	var p *Params
+
+	css := MarkdownCSS
+
+	if !opt.WithCSS {
+		css = ""
+	}
 
 	if _, ok := OtherDocs[name]; ok {
 		p = &Params{

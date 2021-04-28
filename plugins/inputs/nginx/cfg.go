@@ -32,6 +32,8 @@ type Input struct {
 	start time.Time
 	tail  *inputs.Tailer
 
+	lastErr error
+
 	collectCache []inputs.Measurement
 }
 
