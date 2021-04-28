@@ -2,6 +2,7 @@ package datakit
 
 import (
 	"testing"
+	"time"
 
 	t2 "github.com/BurntSushi/toml"
 
@@ -162,6 +163,58 @@ func TestGetFirstGlobalUnicastIP(t *testing.T) {
 	}
 
 	t.Logf("IP: %s", ip)
+}
+
+func TestProtectedInterval(t *testing.T) {
+	cases := []struct {
+		min, max, cur, expect time.Duration
+		fail, unprotected     bool
+	}{
+		{
+			min: time.Minute,
+			max: time.Minute * 5,
+			cur: time.Second,
+
+			expect: time.Minute,
+		},
+
+		{
+			min: time.Minute,
+			max: time.Minute * 5,
+			cur: time.Hour,
+
+			expect: time.Minute * 5,
+		},
+
+		{
+			min: time.Minute,
+			max: time.Minute * 5,
+			cur: time.Minute,
+
+			expect: time.Minute * 5,
+			fail:   true,
+		},
+
+		{
+			min: time.Minute,
+			max: time.Minute * 5,
+			cur: time.Second,
+
+			expect:      time.Second,
+			unprotected: true,
+		},
+	}
+
+	for _, c := range cases {
+		Cfg.MainCfg.ProtectMode = !c.unprotected
+
+		du := ProtectedInterval(c.min, c.max, c.cur)
+		if !c.fail {
+			tu.Assert(t, c.expect == du, "exp: %v, get %v", c.expect, du)
+		} else {
+			tu.Assert(t, c.expect != du, "exp: %v, get %v", c.expect, du)
+		}
+	}
 }
 
 /*

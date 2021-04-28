@@ -3,7 +3,6 @@ package huaweiyunces
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	cesmodel "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/ces/v1/model"
@@ -17,6 +16,8 @@ func (ag *agent) run() {
 
 	ag.reloadCloud()
 	ag.reloadCloudTime = time.Now()
+
+	moduleLogger.Debugf("start getting metris....")
 
 	for {
 		select {
@@ -47,6 +48,7 @@ func (ag *agent) reloadCloud() {
 
 	allProjects := []string{}
 	for _, p := range projects {
+		moduleLogger.Debugf("%s(%s)", p.Name, p.Id)
 		if ag.checkProjectIgnore(p.Id) {
 			continue
 		}
@@ -58,12 +60,13 @@ func (ag *agent) reloadCloud() {
 				continue
 			}
 		}
-		cli := ag.genCesClient(p.Id, regID)
+		cli, endpoint := ag.genCesClient(p.Id, regID)
 		if cli != nil {
+			moduleLogger.Debugf("client: %s(%s)", p.Name, endpoint)
 			allProjects = append(allProjects, p.Name)
 			ag.clients = append(ag.clients, &cesCli{
 				proj: p,
-				cli:  ag.genCesClient(p.Id, regID),
+				cli:  cli,
 			})
 		}
 	}
@@ -73,7 +76,7 @@ func (ag *agent) reloadCloud() {
 		return
 	}
 
-	moduleLogger.Debugf("projects: %s", strings.Join(allProjects, ","))
+	moduleLogger.Debugf("generating all metrics...")
 
 	for _, cli := range ag.clients {
 		select {
@@ -84,7 +87,6 @@ func (ag *agent) reloadCloud() {
 		cli.genRequests(ag)
 	}
 
-	moduleLogger.Debugf("generate requests finish")
 }
 
 func (cli *cesCli) loop(ag *agent) {
