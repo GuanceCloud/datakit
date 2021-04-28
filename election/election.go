@@ -2,19 +2,32 @@ package election
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
 
-	// "gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-var defaultConsensusModule = NewConsensusModule()
+var (
+	defaultConsensusModule = NewConsensusModule()
+
+	l = logger.DefaultSLogger("dk-election")
+)
 
 func StartElection() {
 	defaultConsensusModule.StartElection()
+}
+
+func SetCandidate() {
+	defaultConsensusModule.SetCandidate()
+}
+
+func SetLeader() {
+	defaultConsensusModule.SetLeader()
 }
 
 func CurrentStats() ConsensusState {
@@ -76,19 +89,19 @@ func NewConsensusModule() *ConsensusModule {
 	}
 }
 
-func (cm *ConsensusModule) setCandidate() {
+func (cm *ConsensusModule) SetCandidate() {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	cm.state = Candidate
 }
 
-func (cm *ConsensusModule) setLeader() {
+func (cm *ConsensusModule) SetLeader() {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	cm.state = Leader
 }
 
-func (cm *ConsensusModule) setDead() {
+func (cm *ConsensusModule) SetDead() {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	cm.state = Dead
@@ -99,8 +112,6 @@ func (cm *ConsensusModule) CurrentStats() ConsensusState {
 }
 
 func (cm *ConsensusModule) StartElection() {
-	cm.setCandidate()
-
 	tick := time.NewTicker(time.Second * 3)
 	defer tick.Stop()
 
@@ -115,18 +126,21 @@ func (cm *ConsensusModule) StartElection() {
 			}
 			res, err := cm.postRequest(cm.electionURL)
 			if err != nil {
-				cm.setCandidate()
+				l.Error(err)
+				cm.SetCandidate()
 			}
 
-			if res.Stauts == statusSuccess {
-				cm.setLeader()
+			if res.Content.Stauts == statusSuccess {
+				cm.SetLeader()
+				// 阻塞在此，成为 leader 之后将不再进行进行选举，而是持续发送心跳
+				cm.SendHeartbeat()
 			}
 		}
 	}
 }
 
 func (cm *ConsensusModule) SendHeartbeat() {
-	defer cm.setCandidate()
+	defer cm.SetCandidate()
 
 	tick := time.NewTicker(time.Second * 3)
 	defer tick.Stop()
@@ -137,14 +151,15 @@ func (cm *ConsensusModule) SendHeartbeat() {
 			return
 
 		case <-tick.C:
-			if cm.state.IsLeader() {
-				continue
+			if !cm.state.IsLeader() {
+				return
 			}
 			res, err := cm.postRequest(cm.electionHeartbeatURL)
 			if err != nil {
+				l.Error(err)
 				return
 			}
-			if res.Stauts != statusSuccess {
+			if res.Content.Stauts != statusSuccess {
 				return
 			}
 		}
@@ -152,8 +167,10 @@ func (cm *ConsensusModule) SendHeartbeat() {
 }
 
 type electionResult struct {
-	Stauts   string `json:"status"`
-	ErrorMsg string `json:"error_msg"`
+	Content struct {
+		Stauts   string `json:"status"`
+		ErrorMsg string `json:"error_msg"`
+	} `json:"content"`
 }
 
 const (
@@ -167,16 +184,22 @@ func (cm *ConsensusModule) postRequest(url string) (*electionResult, error) {
 		return nil, err
 	}
 
+	defer resp.Body.Close()
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
-	var e = electionResult{}
-	if err := json.Unmarshal(body, &e); err != nil {
-		return nil, err
+	// ok
+	if resp.StatusCode/100 == 2 {
+		var e = electionResult{}
+		if err := json.Unmarshal(body, &e); err != nil {
+			return nil, err
+		}
+		return &e, nil
 	}
 
-	return &e, nil
+	// bad
+	return nil, fmt.Errorf("%s", body)
 }
