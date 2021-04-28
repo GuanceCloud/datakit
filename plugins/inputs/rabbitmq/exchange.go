@@ -13,6 +13,7 @@ func getExchange(n *Input) {
 	err := n.requestJSON("/api/exchanges", &exchanges)
 	if err != nil {
 		l.Error(err.Error())
+		n.lastErr = err
 		return
 	}
 	ts := time.Now()
