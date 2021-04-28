@@ -1,8 +1,10 @@
 package hostobject
 
 import (
+	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	cpuutil "github.com/shirou/gopsutil/cpu"
 	diskutil "github.com/shirou/gopsutil/disk"
@@ -13,7 +15,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 type (
@@ -40,7 +41,6 @@ type (
 	MemInfo struct {
 		MemoryTotal uint64 `json:"memory_total"`
 		SwapTotal   uint64 `json:"swap_total"`
-
 		usedPercent float64
 	}
 
@@ -75,20 +75,26 @@ type (
 
 	HostObjectMessage struct {
 		Host       *HostInfo          `json:"host"`
-		Collectors []*CollectorStatus `json:"collectors"`
+		Collectors []*CollectorStatus `json:"collectors,omitempty"`
 	}
 
 	CollectorStatus struct {
-		Name     string `json:"name"`
-		Count    int64  `json:"count"`
-		LastTime int64  `json:"last_time"`
+		Name        string `json:"name"`
+		Count       int64  `json:"count"`
+		LastTime    int64  `json:"last_time,omitempty"`
+		LastErr     string `json:"last_err,omitempty"`
+		LastErrTime int64  `json:"last_err_time,omitempty"`
 	}
+)
+
+var (
+	collectorStatHist []*CollectorStatus
 )
 
 func getHostMeta() *HostMetaInfo {
 	info, err := hostutil.Info()
 	if err != nil {
-		moduleLogger.Errorf("fail to get host info, %s", err)
+		l.Errorf("fail to get host info, %s", err)
 		return nil
 	}
 
@@ -108,7 +114,7 @@ func getCPUPercent() float64 {
 
 	ps, err := cpuutil.Percent(0, false)
 	if err != nil || len(ps) == 0 {
-		moduleLogger.Warnf("fail to get cpu percent: %s", err)
+		l.Warnf("fail to get cpu percent: %s", err)
 		return 0
 	}
 	return ps[0]
@@ -117,7 +123,7 @@ func getCPUPercent() float64 {
 func getCPUInfo() []*CPUInfo {
 	infos, err := cpuutil.Info()
 	if err != nil {
-		moduleLogger.Errorf("fail to get cpu info, %s", err)
+		l.Errorf("fail to get cpu info, %s", err)
 		return nil
 	}
 
@@ -140,7 +146,7 @@ func getCPUInfo() []*CPUInfo {
 func getLoad5() float64 {
 	avgstat, err := loadutil.Avg()
 	if err != nil {
-		moduleLogger.Errorf("fail to get load info, %s", err)
+		l.Errorf("fail to get load info, %s", err)
 		return 0
 	}
 
@@ -150,13 +156,13 @@ func getLoad5() float64 {
 func getMemInfo() *MemInfo {
 	minfo, err := memutil.VirtualMemory()
 	if err != nil {
-		moduleLogger.Error("fail to get memory toal, %s", err)
+		l.Error("fail to get memory toal, %s", err)
 		return nil
 	}
 
 	vinfo, err := memutil.SwapMemory()
 	if err != nil {
-		moduleLogger.Error("fail to get swap memory toal, %s", err)
+		l.Error("fail to get swap memory toal, %s", err)
 	}
 
 	return &MemInfo{
@@ -166,14 +172,23 @@ func getMemInfo() *MemInfo {
 	}
 }
 
-func getNetInfo() []*NetInfo {
+func getNetInfo(enableVIfaces bool) []*NetInfo {
 	ifs, err := netutil.Interfaces()
 	if err != nil {
-		moduleLogger.Errorf("fail to get interfaces, %s", err)
+		l.Errorf("fail to get interfaces, %s", err)
 		return nil
 	}
 	var infos []*NetInfo
+
+	netVIfaces := map[string]bool{}
+	if !enableVIfaces {
+		netVIfaces, _ = NetIgnoreIfaces()
+	}
+
 	for _, it := range ifs {
+		if _, ok := netVIfaces[it.Name]; ok {
+			continue
+		}
 		i := &NetInfo{
 			Index:        it.Index,
 			MTU:          it.MTU,
@@ -197,25 +212,16 @@ func getNetInfo() []*NetInfo {
 	return infos
 }
 
-func getDiskInfo() []*DiskInfo {
+func getDiskInfo(ignoreFs []string) []*DiskInfo {
 
 	ps, err := diskutil.Partitions(true)
 	if err != nil {
-		moduleLogger.Errorf("fail to get disk info, %s", err)
+		l.Errorf("fail to get disk info, %s", err)
 		return nil
 	}
 	var infos []*DiskInfo
 
-	fstypeExcludeSet := map[string]bool{
-		"autofs":   true,
-		"tmpfs":    true,
-		"devtmpfs": true,
-		"devfs":    true,
-		"iso9660":  true,
-		"overlay":  true,
-		"aufs":     true,
-		"squashfs": true,
-	}
+	fstypeExcludeSet, _ := DiskIgnoreFs(ignoreFs)
 
 	for _, p := range ps {
 
@@ -227,7 +233,6 @@ func getDiskInfo() []*DiskInfo {
 			Device:     p.Device,
 			Mountpoint: p.Mountpoint,
 			Fstype:     p.Fstype,
-			//Opts:       strings.Join(p.Opts, ","),
 		}
 
 		usage, err := diskutil.Usage(p.Mountpoint)
@@ -241,76 +246,78 @@ func getDiskInfo() []*DiskInfo {
 	return infos
 }
 
-func getEnabledInputs() []*CollectorStatus {
+func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
 
-	var sts []*CollectorStatus
-
-	inputsStats, err := io.GetStats() // get all inputs stats
+	inputsStats, err := io.GetStats(c.IOTimeout.Duration) // get all inputs stats
 	if err != nil {
-		moduleLogger.Errorf("fail to get inputs stats, %s", err)
+		l.Warnf("fail to get inputs stats, %s", err)
+		return
 	}
 
-	for k := range inputs.Inputs {
-		n, _ := inputs.InputEnabled(k)
-		if n > 0 {
-			var count int64
-			var last int64
+	now := time.Now()
+	for name, _ := range inputs.InputsInfo {
+		if s, ok := inputsStats[name]; ok {
 
-			for _, s := range inputsStats {
-				if s.Name == k {
-					count = s.Count
-					last = s.Last.Unix()
-					break
-				}
+			ts := s.LastErrTS.Unix()
+			if ts < 0 {
+				ts = 0
 			}
 
-			sts = append(sts, &CollectorStatus{
-				Name:     k,
-				Count:    count,
-				LastTime: last,
-			})
+			lastErr := s.LastErr
+			if ts > 0 && now.Sub(s.LastErrTS) > c.IgnoreInputsErrorsBefore.Duration { // ignore errors 30min ago
+				l.Debugf("ignore error %s(%v before)", s.LastErr, now.Sub(s.LastErrTS))
+				lastErr = ""
+				ts = 0
+			}
 
+			res = append(res, &CollectorStatus{
+				Name:        name,
+				Count:       s.Count,
+				LastTime:    s.Last.Unix(),
+				LastErr:     lastErr,
+				LastErrTime: ts,
+			})
+		} else {
+			res = append(res, &CollectorStatus{Count: 0, Name: name})
 		}
 	}
 
-	for k := range tgi.TelegrafInputs {
-		n, _ := inputs.InputEnabled(k)
-		if n > 0 {
-			var count int64
-			var last int64
-
-			for _, s := range inputsStats {
-				if s.Name == k {
-					count = s.Count
-					last = s.Last.Unix()
-					break
-				}
-			}
-
-			sts = append(sts, &CollectorStatus{
-				Name:     k,
-				Count:    count,
-				LastTime: last,
-			})
-		}
-	}
-
-	return sts
+	return
 }
 
-func getHostObjectMessage() *HostObjectMessage {
+func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	var msg HostObjectMessage
 
-	msg.Collectors = getEnabledInputs()
+	stat := c.getEnabledInputs()
+
+	// NOTE: 由于获取采集器的运行情况信息时，io 模块可能较忙，导致获取不到
+	// 故此处缓存一下历史，以免在 message 字段中采集器信息字段(collectors)
+	// 为空
+	if len(stat) != 0 {
+		collectorStatHist = stat
+	}
+
+	msg.Collectors = collectorStatHist
+	if len(msg.Collectors) == 0 {
+		// 此处也是为了避免采集器信息字段为空: 宁可丢弃当前这次对象采集，也不能导致采集器信息为空
+		// 采集器信息为空（或缺失）的两种可能：
+		//
+		// 1: io 忙：不便于接收查询请求
+		// 2: 具体的某个采集器，可能因为尚未来得及启动，就被要求查询运行信息，此时 io 模块肯定没有登记
+		//
+		// 故一般只有启动后第一次采集时会获取不到统计信息，后续基本都能获取到，即使拿不到，就用旧的统计信息替代
+		return nil, fmt.Errorf("collector stats missing")
+	}
+
 	msg.Host = &HostInfo{
 		HostMeta:   getHostMeta(),
 		CPU:        getCPUInfo(),
 		cpuPercent: getCPUPercent(),
 		load5:      getLoad5(),
 		Mem:        getMemInfo(),
-		Net:        getNetInfo(),
-		Disk:       getDiskInfo(),
+		Net:        getNetInfo(c.EnableNetVirtualInterfaces),
+		Disk:       getDiskInfo(c.IgnoreFS),
 	}
 
-	return &msg
+	return &msg, nil
 }
