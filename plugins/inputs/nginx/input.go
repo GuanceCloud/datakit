@@ -11,9 +11,11 @@ import (
 )
 
 var (
-	inputName = `nginx`
-	l         = logger.DefaultSLogger(inputName)
-	sample    = `
+	inputName   = `nginx`
+	l           = logger.DefaultSLogger(inputName)
+	minInterval = time.Second
+	maxInterval = time.Second * 30
+	sample      = `
 [[inputs.nginx]]
 	url = "http://localhost/server_status"
 	# ##(optional) collection interval, default is 30s
@@ -27,16 +29,14 @@ var (
 	insecure_skip_verify = false
 	# HTTP response timeout (default: 5s)
 	response_timeout = "20s"
-	
+
 	[inputs.nginx.log]
 	#	files = []
 	#	# grok pipeline script path
 	#	pipeline = "nginx.p"
 	[inputs.nginx.tags]
-	# a = "b"
+	# a = "b"`
 
-	
-`
 	pipelineCfg = `
 add_pattern("date2", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
 
@@ -50,6 +50,11 @@ user_agent(agent)
 
 # error log
 grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg}, client: %{IPORHOST:client_ip}, server: %{IPORHOST:server}, request: \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\", (upstream: \"%{GREEDYDATA:upstream}\", )?host: \"%{IPORHOST:host}\"")
+grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg}, client: %{IPORHOST:client_ip}, server: %{IPORHOST:server}, request: \"%{GREEDYDATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\", host: \"%{IPORHOST:host}\"")
+grok(_,"%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg}")
+
+group_in(status, ["warn", "notice"], "warning")
+group_in(status, ["error", "crit", "alert", "emerg"], "error")
 
 cast(status_code, "int")
 cast(bytes, "int")
@@ -58,6 +63,7 @@ group_between(status_code, [200,299], "OK", status)
 group_between(status_code, [300,399], "notice", status)
 group_between(status_code, [400,499], "warning", status)
 group_between(status_code, [500,599], "error", status)
+
 
 nullif(http_ident, "-")
 nullif(http_auth, "-")
@@ -84,6 +90,8 @@ func (_ *Input) PipelineConfig() map[string]string {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("nginx start")
+	n.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
+
 	if n.Log != nil {
 		go func() {
 			inputs.JoinPipelinePath(n.Log, "nginx.p")
@@ -108,9 +116,6 @@ func (n *Input) Run() {
 		return
 	}
 	n.client = client
-	if n.Interval.Duration == 0 {
-		n.Interval.Duration = time.Second * 30
-	}
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
@@ -123,8 +128,14 @@ func (n *Input) Run() {
 				err := inputs.FeedMeasurement(inputName, io.Metric, n.collectCache, &io.Option{CollectCost: time.Since(n.start)})
 				n.collectCache = n.collectCache[:0]
 				if err != nil {
+					n.lastErr = err
 					l.Errorf(err.Error())
+					continue
 				}
+			}
+			if n.lastErr != nil {
+				io.FeedLastError(inputName, n.lastErr.Error())
+				n.lastErr = nil
 			}
 		case <-datakit.Exit.Wait():
 			if n.tail != nil {
@@ -181,7 +192,9 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		s := &Input{}
+		s := &Input{
+			Interval: datakit.Duration{Duration: time.Second * 10},
+		}
 		return s
 	})
 }
