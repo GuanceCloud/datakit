@@ -12,29 +12,31 @@ import (
 )
 
 const (
-	collectCycle = time.Second * 10
-	inputName    = "cpu"
-	metricName   = inputName
-	sampleCfg    = `
+	minInterval = time.Second
+	maxInterval = time.Minute
+)
+
+const (
+	inputName  = "cpu"
+	metricName = inputName
+	sampleCfg  = `
 [[inputs.cpu]]
-  ## no sample need here
+  ##(optional) collect interval, default is 10 seconds
+  interval = '10s'
+  ## 
   [inputs.cpu.tags]
     # tag1 = "a"
-	`
+`
 )
 
 type Input struct {
-	// 在配置文件中移除可配置项 percpu, totalcpu, collect_cpu_time
-	// 简化为只上报 cpu-total 的 usage stat (% CPU time)
-	// 移除前缀: `usage_`
-	PerCPU   bool `toml:"percpu"`   // deprecated
-	TotalCPU bool `toml:"totalcpu"` // deprecated
+	PerCPU         bool `toml:"percpu"`           // deprecated
+	TotalCPU       bool `toml:"totalcpu"`         // deprecated
+	CollectCPUTime bool `toml:"collect_cpu_time"` // deprecated
+	ReportActive   bool `toml:"report_active"`    // deprecated
 
-	CollectCPUTime bool `toml:"collect_cpu_time"` //
-
-	ReportActive bool `toml:"report_active"`
-
-	Tags map[string]string
+	Interval datakit.Duration
+	Tags     map[string]string
 
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr *cpuMeasurement
@@ -172,17 +174,27 @@ func (i *Input) Collect() error {
 
 func (i *Input) Run() {
 	i.logger.Infof("cpu input started")
-	tick := time.NewTicker(collectCycle)
+	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	tick := time.NewTicker(i.Interval.Duration)
+	isfirstRun := true
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
 			start := time.Now()
 			if err := i.Collect(); err == nil {
-				inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since((start))})
+				if errFeed := inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
+					&io.Option{CollectCost: time.Since((start))}); errFeed != nil {
+					if !isfirstRun {
+						io.FeedLastError(inputName, errFeed.Error())
+					} else {
+						isfirstRun = false
+					}
+
+				}
 				i.collectCache = make([]inputs.Measurement, 0)
 			} else {
+				io.FeedLastError(inputName, err.Error())
 				i.logger.Error(err)
 			}
 		case <-datakit.Exit.Wait():
@@ -195,8 +207,9 @@ func (i *Input) Run() {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			logger: logger.SLogger(inputName),
-			ps:     &CPUInfo{},
+			logger:   logger.SLogger(inputName),
+			ps:       &CPUInfo{},
+			Interval: datakit.Duration{Duration: time.Second * 10},
 		}
 	})
 }
