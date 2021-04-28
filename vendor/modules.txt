@@ -418,6 +418,8 @@ github.com/google/gopacket/layers
 github.com/google/gopacket/pcap
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
+# github.com/gorilla/mux v1.8.0
+github.com/gorilla/mux
 # github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-retryablehttp v0.6.4
@@ -816,7 +818,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20210415154028-4f45737414dc
+# golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
@@ -862,7 +864,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210420072515-93ed5bcd2bfe
+# golang.org/x/sys v0.0.0-20210421221651-33663a62ff08
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
@@ -872,7 +874,7 @@ golang.org/x/sys/windows/registry
 golang.org/x/sys/windows/svc
 golang.org/x/sys/windows/svc/eventlog
 golang.org/x/sys/windows/svc/mgr
-# golang.org/x/term v0.0.0-20210406210042-72f3dc4e9b72
+# golang.org/x/term v0.0.0-20210422114643-f5beecf764ed
 golang.org/x/term
 # golang.org/x/text v0.3.3
 golang.org/x/text/cases
