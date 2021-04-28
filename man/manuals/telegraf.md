@@ -6,7 +6,7 @@
 
 # 简介
 
-DataKit 之前版本会集成 Telegraf 插件，为了更好的使用和支持 Telegraf ，此前 DataKit 支持的 Telegraf 采集器全部废弃，用户如需使用 Telegraf 相关的采集器或者数据，需自行安装 Telegraf 并将数据打入 DataKit。
+Telegraf 是一个用 Go 编写的代理程序，是收集和报告指标和数据的代理。为了更好的使用和支持 Telegraf，DataKit 支持 Telegraf 数据接入
 
 ## Telegraf 使用并接入 DataKit 
 
@@ -17,49 +17,45 @@ DataKit 之前版本会集成 Telegraf 插件，为了更好的使用和支持 T
 - 添加 `InfluxData repository`
 
 ```shell
-
 curl -s https://repos.influxdata.com/influxdb.key | sudo apt-key add -
 source /etc/lsb-release
 echo "deb https://repos.influxdata.com/${DISTRIB_ID,,} ${DISTRIB_CODENAME} stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
-
 ```
 
 - 安装 Telegraf
 
 ```shell
-
 sudo apt-get update && sudo apt-get install telegraf
-
 ```
 
 ### Telegraf 配置
 
 默认配置文件路径：
 
-- macOS Homebrew: /usr/local/etc/telegraf.conf
-- Linux debian and RPM packages: /etc/telegraf/telegraf.conf
+- macOS Homebrew: `/usr/local/etc/telegraf.conf`
+- Linux debian and RPM packages: `/etc/telegraf/telegraf.conf`
 
 修改配置文件如下：
 
 ```
 [agent]
-    interval = "10s"
-    round_interval = true
-    precision = "ns"
-    collection_jitter = "0s"
-    flush_interval = "10s"
-    flush_jitter = "0s"
-    metric_batch_size = 1000
-    metric_buffer_limit = 100000
-    logtarget = "file"
-    logfile = "your_path.log"
+    interval                  = "10s"
+    round_interval            = true
+    precision                 = "ns"
+    collection_jitter         = "0s"
+    flush_interval            = "10s"
+    flush_jitter              = "0s"
+    metric_batch_size         = 1000
+    metric_buffer_limit       = 100000
+    logtarget                 = "file"
+    logfile                   = "your_path.log"
     logfile_rotation_interval = ""
 
 [[outputs.http]]
-  ## URL is the address to send metrics to ,required
-  url = "http://localhost:9529/v1/write/telegraf"
-  method = "POST"
-  data_format = "influx"
+    ## URL is the address to send metrics to DataKit ,required
+    url         = "http://localhost:9529/v1/write/telegraf"
+    method      = "POST"
+    data_format = "influx"
     
 ```
 
@@ -89,15 +85,13 @@ DataKit 是通过 http 接入 Telegraf 数据，此处的 `outputs.http` 为必�
 - 开启 Telegraf
 
 ```shell
-
 sudo service telegraf start
-
 ```
 
 
-### 关于 Telegraf 数据 Tag 问题
+### 关于 Telegraf 数据全局标签问题
 
-- 可在 Telegraf 配置中加入 `golbal tag`,示例如下：
+- 可在 Telegraf 配置中加入全局标签,示例如下：
 
 ```shell
 ...
@@ -107,8 +101,9 @@ sudo service telegraf start
 
 ```
 
-- DataKit 会默认加入一些 `golbal tag`，比如 `host`, Telegraf 数据如需覆盖 `host` ,需在 Telegraf 配置中加入 `host` Tag
+- 在 Telegraf 加入的标签，DataKit 就不会覆盖它，因此可以通过这种方式屏蔽 DataKit 的全局标签
 
-### 关于 Telegraf 数据问题
+### 关于 Telegraf 和 DataKit 采集器冲突问题
 
-如果 DataKit 采集器中有采集 `nginx` 指标集的数据，此时再开启 Telegraf 并写入 `nginx` 指标集的数据，数据可能会混乱甚至写入不成功，因此 DataKit 或 Telegraf 对于相同指标集的数据二选一
+- 如果 Datakit 已经存在的采集器，就不需要再使用 Telegraf 再采集了。在一般情况下，至少在 DataFlux 中，针对某一个采集器，DataKit 的采集会比 Telegraf 做的更好
+
