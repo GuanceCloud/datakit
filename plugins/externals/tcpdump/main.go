@@ -117,7 +117,7 @@ func (p *NetPacket) handle() {
 	p.Metric = "tcpdump"
 
 	if p.WriteUrl == "" {
-		p.WriteUrl = "http://0.0.0.0:9529/telegraf"
+		p.WriteUrl = "http://127.0.0.1:9529/v1/write/telegraf"
 	}
 
 	for _, dc := range device {
