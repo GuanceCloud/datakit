@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorilla/mux"
 	"context"
+	"github.com/gorilla/mux"
 )
 
 func TestGetMetric(t *testing.T) {
 	r := mux.NewRouter()
-	srv := &http.Server{Addr: ":8888",Handler:r}
+	srv := &http.Server{Addr: ":8888", Handler: r}
 
 	r.HandleFunc("/api/nodes", nodeHandle)
 	r.HandleFunc("/api/exchanges", exchangeHandle)
