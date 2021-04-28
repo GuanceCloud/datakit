@@ -3,7 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"encoding/json"
-	"flag"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	nhttp "net/http"
@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
+	flag "github.com/spf13/pflag"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -28,23 +29,26 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 var (
-	flagVersion = flag.Bool("version", false, `show version info`)
+	flagVersion = flag.BoolP("version", "v", false, `show version info`)
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
 	// tool-commands supported in datakit
-	flagCmd                 = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline            = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText                = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-	flagGrokq               = flag.Bool("grokq", false, "query groks interactively")
-	flagMan                 = flag.Bool("man", false, "read manuals of inputs")
-	flagOTA                 = flag.Bool("ota", false, "update datakit new version if available")
-	flagAcceptRCVersion     = flag.Bool("accept-rc-version", false, "accept RC version if available")
+	flagCmd      = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+
+	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
+	flagMan             = flag.Bool("man", false, "read manuals of inputs")
+	flagOTA             = flag.Bool("ota", false, "update datakit new version if available")
+	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "during OTA, accept RC version if available")
+
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
-	flagExportMan           = flag.String("export-man", "", "export all inputs and related manuals to specified path")
+
+	flagExportMan  = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
+	flagIgnoreMans = flag.String("ignore-manuals", "", "disable exporting specified manuals, multiple manules seprated by `,`")
 )
 
 var (
@@ -54,6 +58,11 @@ var (
 )
 
 func main() {
+
+	flag.CommandLine.MarkHidden("show-testing-version")
+	flag.CommandLine.SortFlags = false
+	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
+
 	flag.Parse()
 
 	applyFlags()
@@ -194,17 +203,9 @@ func dumpAllConfigSamples(fpath string) {
 		}
 	}
 
-	for k, v := range tgi.TelegrafInputs {
-		sample := v.SampleConfig()
-		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), os.ModePerm); err != nil {
-			panic(err)
-		}
-	}
 }
 
 func run() {
-
-	inputs.StartTelegraf()
 
 	l.Info("datakit start...")
 	if err := runDatakitWithHTTPServer(); err != nil {
@@ -290,7 +291,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagExportMan != "" {
-		if err := cmds.ExportMan(*flagExportMan); err != nil {
+		if err := cmds.ExportMan(*flagExportMan, *flagIgnoreMans); err != nil {
 			l.Error(err)
 		}
 		return
@@ -323,7 +324,7 @@ func (vi *datakitVerInfo) parse() error {
 }
 
 func getVersion(addr string) (*datakitVerInfo, error) {
-	resp, err := nhttp.Get("http://" + filepath.Join(addr, "version"))
+	resp, err := nhttp.Get("http://" + path.Join(addr, "version"))
 	if err != nil {
 		return nil, err
 	}
@@ -401,19 +402,10 @@ func tryOTAUpdate(ver string) error {
 	datakitUrl := "https://" + path.Join(baseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, ver))
 
-	telegrafUrl := "https://" + path.Join(baseURL,
-		"telegraf",
-		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
-
 	dataUrl := "https://" + path.Join(baseURL, "data.tar.gz")
 
 	l.Debugf("downloading %s to %s...", datakitUrl, datakit.InstallDir)
 	if err := install.Download(datakitUrl, datakit.InstallDir, false); err != nil {
-		return err
-	}
-
-	l.Debugf("downloading %s to %s...", telegrafUrl, datakit.InstallDir)
-	if err := install.Download(telegrafUrl, datakit.InstallDir, false); err != nil {
 		return err
 	}
 
