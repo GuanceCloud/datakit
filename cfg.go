@@ -243,11 +243,11 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
 	}
 
-	if c.MainCfg.DataWay.URL == "" {
+	if len(c.MainCfg.DataWay.URL) == 0 {
 		l.Fatal("dataway URL not set")
 	}
 
-	dw, err := ParseDataway(c.MainCfg.DataWay.URL)
+	dw, err := ParseDataway(c.MainCfg.DataWay.Urls)
 	if err != nil {
 		return err
 	}
@@ -358,8 +358,9 @@ func (c *Config) LoadEnvs(mcp string) error {
 	}
 
 	dwURL := os.Getenv("ENV_DATAWAY")
-	if dwURL != "" {
-		dw, err := ParseDataway(dwURL)
+	dwURLs := []string{dwURL}
+	if len(dwURL) != 0 {
+		dw, err := ParseDataway(dwURLs)
 		if err != nil {
 			return err
 		}

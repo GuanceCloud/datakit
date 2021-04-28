@@ -223,7 +223,6 @@ func (x *IO) updateStats(d *iodata) {
 }
 
 func (x *IO) cacheData(d *iodata, tryClean bool) {
-
 	if d == nil {
 		l.Warn("get empty data, ignored")
 		return
@@ -273,32 +272,13 @@ func (x *IO) init() error {
 		x.fd = f
 	}
 
-	x.httpCli = &http.Client{
-		Timeout: x.HTTPTimeout,
-	}
-
-	dw, err := datakit.ParseDataway(x.DatawayHost)
-	if err != nil {
-		return err
-	}
-
-	x.dw = dw
-	x.categoryURLs = map[string][]string{
-		Metric:   x.dw.MetricURL(),
-		KeyEvent: x.dw.KeyEventURL(),
-		Object:   x.dw.ObjectURL(),
-		Logging:  x.dw.LoggingURL(),
-		Tracing:  x.dw.TracingURL(),
-		Security: x.dw.SecurityURL(),
-		Rum:      x.dw.RumURL(),
-	}
-
 	return nil
 }
 
 func (x *IO) StartIO(recoverable bool) {
 
 	if err := x.init(); err != nil {
+		l.Errorf("init io err %v", err)
 		return
 	}
 
@@ -408,25 +388,22 @@ func (x *IO) flushAll() {
 }
 
 func (x *IO) flush() {
-
 	if x.httpCli != nil {
 		defer x.httpCli.CloseIdleConnections()
 	}
 
 	for k, v := range x.cache {
-		for _, categoryURL := range x.categoryURLs[k] {
-			if err := x.doFlush(v, categoryURL); err != nil {
-				l.Errorf("post %d to %s failed", len(v), k)
-				continue
-			}
-
-			if len(v) > 0 {
-				x.cacheCnt -= int64(len(v))
-				l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
-				x.cache[k] = nil
-			}
-			l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
+		if err := x.doFlush(v, k); err != nil {
+			l.Errorf("post %d to %s failed", len(v), k)
+			continue
 		}
+
+		if len(v) > 0 {
+			x.cacheCnt -= int64(len(v))
+			l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
+			x.cache[k] = nil
+		}
+		l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
 	}
 
 	// flush dynamic cache: __not__ post to default dataway
@@ -472,7 +449,7 @@ func (x *IO) buildBody(pts []*Point) (body []byte, gzon bool, err error) {
 	return
 }
 
-func (x *IO) doFlush(pts []*Point, url string) error {
+func (x *IO) doFlush(pts []*Point, category string) error {
 
 	if testAssert {
 		return nil
@@ -491,51 +468,9 @@ func (x *IO) doFlush(pts []*Point, url string) error {
 		return x.fileOutput(body)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
-	if err != nil {
-		l.Error(err)
-		return err
-	}
+	l.Debug("post data")
 
-	if gz {
-		req.Header.Set("Content-Encoding", "gzip")
-	}
-
-	// append datakit info
-	req.Header.Set("X-Datakit-Info",
-		fmt.Sprintf("%s; %s", datakit.Cfg.MainCfg.Hostname, git.Version))
-
-	postbeg := time.Now()
-
-	resp, err := x.httpCli.Do(req)
-	if err != nil {
-		l.Errorf("request url %s failed: %s", url, err)
-		return err
-	}
-
-	defer resp.Body.Close()
-	respbody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		l.Error(err)
-		return err
-	}
-
-	switch resp.StatusCode / 100 {
-	case 2:
-		l.Debugf("post %d to %s ok(gz: %v), cost %v, response: %s",
-			len(body), url, gz, time.Since(postbeg), string(respbody))
-		return nil
-
-	case 4:
-		l.Debugf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
-			len(body), url, resp.StatusCode, string(respbody), time.Since(postbeg))
-		return nil
-
-	case 5:
-		l.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v",
-			len(body), url, resp.Status, string(respbody), time.Since(postbeg))
-		return fmt.Errorf("dataway internal error")
-	}
+	datakit.Send(category, body, gz)
 
 	return nil
 }
