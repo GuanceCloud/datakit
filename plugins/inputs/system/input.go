@@ -187,6 +187,9 @@ func (i *Input) Run() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{logger: logger.SLogger(inputName)}
+		return &Input{
+			logger:   logger.SLogger(inputName),
+			Interval: datakit.Duration{Duration: time.Second * 10},
+		}
 	})
 }
