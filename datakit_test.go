@@ -1,6 +1,7 @@
 package datakit
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -20,33 +21,37 @@ func TestParseDataWay(t *testing.T) {
 	}{
 
 		{
-			url: "http://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
+			url: "http://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456;https://preprod-openway.cloudcare2.cn?token=456&a=b&d=e&c=123_456",
 		},
-		{
-			url: "https://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
-		},
+		// {
+		// 	url: "https://preprod-openway.cloudcare.cn?token=123&a=b&d=e&c=123_456",
+		// },
 
-		{
-			url: "http://preprod-openway.cloudcare.cn:80?token=123&a=b&d=e&c=123_456",
-		},
-		{
-			url: "https://preprod-openway.cloudcare.cn:443?token=123&a=b&d=e&c=123_456",
-		},
+		// {
+		// 	url: "http://preprod-openway.cloudcare.cn:80?token=123&a=b&d=e&c=123_456",
+		// },
+		// {
+		// 	url: "https://preprod-openway.cloudcare.cn:443?token=123&a=b&d=e&c=123_456",
+		// },
 		//
 		//		{ // dial timeout
 		//			url:  "http://1.2.3?token=123&a=b&d=e&c=123_456",
 		//			fail: true,
 		//		},
 
-		{
-			url:  "",
-			fail: true,
-		}, // empty dataway url
+		// {
+		// 	url:  "",
+		// 	fail: true,
+		// }, // empty dataway url
 	}
 
 	for idx, tc := range cases {
 
 		dw, err := ParseDataway(tc.url)
+
+		strUrls := dw.MetricURL()
+
+		fmt.Println("=====>", strUrls)
 
 		if tc.fail {
 			tu.NotOk(t, err, "")
