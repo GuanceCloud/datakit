@@ -149,6 +149,9 @@ func (i *Input) Run() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{swapStat: PSSwapStat}
+		return &Input{
+			swapStat: PSSwapStat,
+			Interval: datakit.Duration{Duration: time.Second * 10},
+		}
 	})
 }
