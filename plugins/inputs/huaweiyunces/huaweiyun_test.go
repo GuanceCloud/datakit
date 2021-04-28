@@ -1,24 +1,29 @@
 package huaweiyunces
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func TestInput(t *testing.T) {
 
-	data, err := ioutil.ReadFile("test.conf")
-	if err != nil {
-		t.Error(err)
-		return
+	ak := os.Getenv("HUAWEIYUN_AK")
+	sk := os.Getenv("HUAWEIYUN_SK")
+
+	ag := newAgent("debug")
+	ag.AccessKeyID = ak
+	ag.AccessKeySecret = sk
+	ag.ApiFrequency = 20
+
+	ag.IncludeMetrics = []string{
+		`SYS.ECS`,
+		`SYS.OBS`,
+		`AGT.ECS`,
+		`SYS.VPC`,
+		`SYS.EVS`,
+		`SYS.ELB`,
+		`SYS.RDS`,
 	}
-	ag, err := config.LoadInputConfig(data, func() inputs.Input { return newAgent("debug") })
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	ag[0].Run()
+
+	ag.Run()
 }
