@@ -12,18 +12,25 @@ import (
 )
 
 const (
-	inputName    = "mem"
-	metricName   = inputName
-	collectCycle = time.Second * 10
-	sampleCfg    = `
+	minInterval = time.Second
+	maxInterval = time.Minute
+)
+
+const (
+	inputName  = "mem"
+	metricName = inputName
+	sampleCfg  = `
 [[inputs.mem]]
-  ## no sample need here
+  ##(optional) collect interval, default is 10 seconds
+  interval = '10s'
+  ## 
   [inputs.mem.tags]
     # tag1 = "a"
-	`
+`
 )
 
 type Input struct {
+	Interval     datakit.Duration
 	Tags         map[string]string
 	collectCache []inputs.Measurement
 
@@ -159,16 +166,21 @@ func (i *Input) Collect() error {
 
 func (i *Input) Run() {
 	i.logger.Infof("memory input started")
-	tick := time.NewTicker(collectCycle)
+	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
 			start := time.Now()
 			if err := i.Collect(); err == nil {
-				inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)})
+				if errFeed := inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
+					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
+					io.FeedLastError(inputName, errFeed.Error())
+					i.logger.Error(errFeed)
+				}
 			} else {
+				io.FeedLastError(inputName, err.Error())
 				i.logger.Error(err)
 			}
 		case <-datakit.Exit.Wait():
@@ -202,6 +214,7 @@ func init() {
 			logger:   logger.SLogger(inputName),
 			platform: runtime.GOOS,
 			vmStat:   VirtualMemoryStat,
+			Interval: datakit.Duration{Duration: time.Second * 10},
 		}
 	})
 }

@@ -40,9 +40,16 @@ func (this *Input) gather(option ...*gatherOption) ([]*io.Point, error) {
 			tags := this.gatherContainerInfo(c)
 
 			// 区分指标和对象
-			// 对象数据需要有 name 标签
+			// 对象数据需要有 name 和 container_host 标签
 			if opt != nil && opt.IsObjectCategory {
 				tags["name"] = c.ID
+
+				containerJson, err := this.client.ContainerInspect(context.Background(), c.ID)
+				if err != nil {
+					l.Warnf("gather container inspect error: %s", err)
+				} else {
+					tags["container_host"] = containerJson.Config.Hostname
+				}
 			}
 
 			fields, err := this.gatherStats(c)
@@ -82,7 +89,7 @@ func (this *Input) gatherContainerInfo(container types.Container) map[string]str
 
 	podInfo, err := this.gatherK8sPodInfo(container.ID)
 	if err != nil {
-		l.Warnf("gather k8s pod error, %s", err)
+		l.Debugf("gather k8s pod error, %s", err)
 	}
 
 	for k, v := range podInfo {
@@ -120,19 +127,19 @@ func (this *Input) gatherStats(container types.Container) (map[string]interface{
 	blkRead, blkWrite := calculateBlockIO(v.BlkioStats)
 
 	return map[string]interface{}{
-		"cpu_usage_percent":  calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage, v.PreCPUStats.SystemUsage, v), /*float64*/
+		"from_kubernetes":    contianerIsFromKubernetes(getContainerName(container.Names)),
+		"cpu_usage":          calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage, v.PreCPUStats.SystemUsage, v), /*float64*/
 		"cpu_delta":          calculateCPUDelta(v),
 		"cpu_system_delta":   calculateCPUSystemDelta(v),
 		"cpu_numbers":        calculateCPUNumbers(v),
-		"mem_available":      int64(v.MemoryStats.Limit),
-		"mem_used":           mem,
-		"mem_usage_percent":  memPercent, /*float64*/
+		"mem_limit":          int64(v.MemoryStats.Limit),
+		"mem_usage":          mem,
+		"mem_used_percent":   memPercent, /*float64*/
 		"mem_failed_count":   int64(v.MemoryStats.Failcnt),
 		"network_bytes_rcvd": netRx,
 		"network_bytes_sent": netTx,
 		"block_read_byte":    blkRead,
 		"block_write_byte":   blkWrite,
-		"from_kubernetes":    contianerIsFromKubernetes(getContainerName(container.Names)),
 	}, nil
 }
 
