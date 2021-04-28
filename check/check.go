@@ -25,5 +25,5 @@ func CheckInputToml(name string, tomlcfg []byte) error {
 		return nil
 		// TODO:
 	}
-	return fmt.Errorf("input %s not exist",name)
+	return fmt.Errorf("input %s not exist", name)
 }
