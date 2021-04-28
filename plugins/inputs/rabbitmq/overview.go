@@ -13,6 +13,7 @@ func getOverview(n *Input) {
 	err := n.requestJSON("/api/overview", &overview)
 	if err != nil {
 		l.Errorf(err.Error())
+		n.lastErr = err
 		return
 	}
 	ts := time.Now()
