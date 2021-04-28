@@ -11,12 +11,14 @@ var (
 	inputName = "ddtrace"
 
 	traceDdtraceConfigSample = `
-#[inputs.ddtrace]
-#	path = "/v0.4/traces"
-#	[inputs.ddtrace.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
+[inputs.ddtrace]
+	# 此路由建议不要修改，以免跟其它路由冲突
+	path = "/v0.4/traces"
+
+	[inputs.ddtrace.tags]
+		# tag1 = "tag1"
+		# tag2 = "tag2"
+		# tag3 = "tag3"
 `
 	log *logger.Logger
 )
