@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	__host = "http://127.0.0.1"
-	__bind = ":12345"
+	__host  = "http://127.0.0.1"
+	__bind  = ":12345"
+	__token = "tkn_2dc438b6693711eb8ff97aeee04b54af"
 )
 
 func TestReload(t *testing.T) {
@@ -65,8 +66,43 @@ func TestAPI(t *testing.T) {
 			expectErrCode: "datakit.badRequest",
 		},
 		{
-			api:           "/v1/write/security?name=test&token=tkn_2dc438b6693711eb8ff97aeee04b54af",
+			api:           "/v1/write/security?name=test&token=" + __token,
 			body:          []byte(`test-01,category=host,host=ubt-server,level=warn,title=a\ demo message="passwd 发生了变化" 1619599490000652659`),
+			method:        "POST",
+			gz:            true,
+			expectErrCode: "datakit.badRequest",
+		},
+		{
+			api:           "/v1/write/tracing?name=test&token=" + __token,
+			body:          []byte(``),
+			method:        "POST",
+			gz:            true,
+			expectErrCode: "datakit.badRequest",
+		},
+		{
+			api:           "/v1/write/rum?name=test&token=" + __token,
+			body:          []byte(``),
+			method:        "POST",
+			gz:            true,
+			expectErrCode: "datakit.badRequest",
+		},
+		{
+			api:           "/v1/write/object?name=test&token=" + __token,
+			body:          []byte(``),
+			method:        "POST",
+			gz:            true,
+			expectErrCode: "datakit.badRequest",
+		},
+		{
+			api:           "/v1/write/logging?name=test&token=" + __token,
+			body:          []byte(``),
+			method:        "POST",
+			gz:            true,
+			expectErrCode: "datakit.badRequest",
+		},
+		{
+			api:           "/v1/write/keyevent?name=test&token=" + __token,
+			body:          []byte(``),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
