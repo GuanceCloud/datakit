@@ -50,3 +50,5 @@ iploc.bin
 data/jolokia-jvm-agent.jar
 data/iploc.bin
 build.sh
+client.rest
+test.output
