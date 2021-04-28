@@ -515,12 +515,13 @@ func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 				data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
 				fmt.Printf("%s\n", string(data))
 			} else {
-				io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
+				io.HighFreqFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
 			}
 		} else {
 			moduleLogger.Warnf("skip %s.%s datapoint for no value, %s", req.q.Namespace, metricName, datapoint)
 		}
 	}
+
 	return nil
 }
 
