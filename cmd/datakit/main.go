@@ -57,7 +57,8 @@ var (
 	flagStart   = flag.Bool("start", false, "start datakit")
 	flagStop    = flag.Bool("stop", false, "stop datakit")
 	flagRestart = flag.Bool("restart", false, "restart datakit")
-	flagReload  = flag.Bool("reload", false, "reload datakit")
+	flagReload  = flag.String("reload", "9529", "reload datakit")
+	flagDebug   = flag.Bool("debug", false, "run datakit in debug mode")
 )
 
 var (
@@ -69,10 +70,15 @@ var (
 func main() {
 	flag.CommandLine.MarkHidden("cmd")
 	flag.CommandLine.MarkHidden("show-testing-version")
+	//flag.CommandLine.MarkHidden("debug")
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
-
 	flag.Parse()
+
+	if args := flag.Args(); len(args) == 0 && !*flagDebug {
+		l.Warn("You should use `./datakit --start` to start datakit instead of `./datakit`")
+		os.Exit(0)
+	}
 
 	applyFlags()
 
@@ -338,8 +344,18 @@ func restartDatakit() {
 	startDatakit()
 }
 
-func reloadDatakit() {
-	resp, err := nhttp.Get("http://localhost:%d/reload",)
+func reloadDatakit(port int) {
+	resp, err := nhttp.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
+	if err != nil {
+		l.Warn(err)
+		return
+	}
+
+	if resp.StatusCode == 200 {
+		l.Info("datakit reload successful")
+	} else {
+		l.Warn("datakit reload failed: %d", resp.StatusCode)
+	}
 }
 
 func runDatakitWithCmd() {
@@ -392,10 +408,10 @@ func runDatakitWithCmd() {
 		os.Exit(0)
 	}
 
-	if *flagReload {
-		reloadDatakit()
-		os.Exit(0)
-	}
+	//if *flagReload {
+	//	reloadDatakit(*flagPort)
+	//	os.Exit(0)
+	//}
 }
 
 type datakitVerInfo struct {
