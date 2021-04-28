@@ -16,6 +16,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	MaxGatherInterval = 30 * time.Minute
+	MinGatherInterval = 1 * time.Second
+)
+
 type IoFeed func(data []byte, category, name string) error
 
 type Squid struct {
@@ -109,6 +114,7 @@ func (p *SquidParam) gather() {
 		return
 	}
 
+	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 
@@ -117,6 +123,7 @@ func (p *SquidParam) gather() {
 		case <-tick.C:
 			_, err = p.getMetrics(false)
 			if err != nil {
+				io.FeedLastError(inputName, err.Error())
 				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
 		case <-datakit.Exit.Wait():
