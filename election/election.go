@@ -2,7 +2,6 @@ package election
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -16,10 +15,6 @@ var defaultConsensusModule = NewConsensusModule()
 
 func StartElection() {
 	defaultConsensusModule.StartElection()
-}
-
-func SendHeartbeat() error {
-	return defaultConsensusModule.SendHeartbeat()
 }
 
 func CurrentStats() ConsensusState {
@@ -103,15 +98,6 @@ func (cm *ConsensusModule) CurrentStats() ConsensusState {
 	return cm.state
 }
 
-type electionResult struct {
-	Stauts string `json:"election_status"`
-}
-
-const (
-	electionSuccess      = "success"
-	electionUnsuccessful = "unsuccessful"
-)
-
 func (cm *ConsensusModule) StartElection() {
 	cm.setCandidate()
 
@@ -124,39 +110,23 @@ func (cm *ConsensusModule) StartElection() {
 			return
 
 		case <-tick.C:
-			func() {
-				resp, err := cm.httpCli.Post(cm.electionURL, "", nil)
-				if err != nil {
-					cm.setCandidate()
-				}
+			if cm.state.IsCandidate() {
+				continue
+			}
+			res, err := cm.postRequest(cm.electionURL)
+			if err != nil {
+				cm.setCandidate()
+			}
 
-				body, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					cm.setCandidate()
-				}
-				defer resp.Body.Close()
-
-				var e = electionResult{}
-
-				if err := json.Unmarshal(body, &e); err != nil {
-
-				}
-
-				if e.Stauts == electionSuccess {
-					cm.setLeader()
-				}
-			}()
+			if res.Stauts == statusSuccess {
+				cm.setLeader()
+			}
 		}
 	}
 }
 
-type heartbeatResult struct {
-}
-
-func (cm *ConsensusModule) SendHeartbeat() error {
-	if cm.state != Leader {
-		return fmt.Errorf("")
-	}
+func (cm *ConsensusModule) SendHeartbeat() {
+	defer cm.setCandidate()
 
 	tick := time.NewTicker(time.Second * 3)
 	defer tick.Stop()
@@ -164,20 +134,49 @@ func (cm *ConsensusModule) SendHeartbeat() error {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			return nil
+			return
 
 		case <-tick.C:
-			resp, err := cm.httpCli.Post(cm.electionURL, "", nil)
-			if err != nil {
-
+			if cm.state.IsLeader() {
+				continue
 			}
-
-			body, err := ioutil.ReadAll(resp.Body)
+			res, err := cm.postRequest(cm.electionHeartbeatURL)
 			if err != nil {
-
+				return
 			}
-
-			_ = body
+			if res.Stauts != statusSuccess {
+				return
+			}
 		}
 	}
+}
+
+type electionResult struct {
+	Stauts   string `json:"status"`
+	ErrorMsg string `json:"error_msg"`
+}
+
+const (
+	statusSuccess = "success"
+	statusFail    = "fail"
+)
+
+func (cm *ConsensusModule) postRequest(url string) (*electionResult, error) {
+	resp, err := cm.httpCli.Post(url, "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var e = electionResult{}
+	if err := json.Unmarshal(body, &e); err != nil {
+		return nil, err
+	}
+
+	return &e, nil
 }
