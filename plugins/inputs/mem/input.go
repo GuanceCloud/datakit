@@ -214,6 +214,7 @@ func init() {
 			logger:   logger.SLogger(inputName),
 			platform: runtime.GOOS,
 			vmStat:   VirtualMemoryStat,
+			Interval: datakit.Duration{Duration: time.Second * 10},
 		}
 	})
 }
