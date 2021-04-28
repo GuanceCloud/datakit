@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -44,29 +45,33 @@ func Start() error {
 	return nil
 }
 
-type qstats struct {
-	ch chan []*InputsStat
-}
-
-func GetStats() ([]*InputsStat, error) {
+func GetStats(timeout time.Duration) (map[string]*InputsStat, error) {
 	q := &qstats{
-		ch: make(chan []*InputsStat),
+		qid: cliutils.XID("statqid_"),
+		ch:  make(chan map[string]*InputsStat),
 	}
 
-	tick := time.NewTicker(time.Second * 3)
+	defer close(q.ch)
+
+	if timeout <= 0 {
+		timeout = 3 * time.Second
+	}
+
+	tick := time.NewTicker(timeout)
 	defer tick.Stop()
 
 	select {
 	case defaultIO.qstatsCh <- q:
 	case <-tick.C:
-		return nil, fmt.Errorf("send stats request timeout")
+		close(q.ch)
+		return nil, fmt.Errorf("default IO busy(qid: %s, %v)", q.qid, timeout)
 	}
 
 	select {
 	case res := <-q.ch:
 		return res, nil
 	case <-tick.C:
-		return nil, fmt.Errorf("get stats timeout")
+		return nil, fmt.Errorf("default IO response timeout(qid: %s, %v)", q.qid, timeout)
 	}
 }
 
@@ -85,6 +90,19 @@ func Feed(name, category string, pts []*Point, opt *Option) error {
 	}
 
 	return defaultIO.DoFeed(pts, category, name, opt)
+}
+
+func FeedLastError(inputName string, err string) error {
+	select {
+	case defaultIO.inLastErr <- &lastErr{
+		from: inputName,
+		err:  err,
+		ts:   time.Now(),
+	}:
+	case <-datakit.Exit.Wait():
+		l.Warnf("%s feed last error skipped on global exit", inputName)
+	}
+	return nil
 }
 
 func MakePoint(name string,
@@ -138,6 +156,32 @@ func NamedFeed(data []byte, category, name string) error {
 	}
 
 	return defaultIO.DoFeed(x, category, name, nil)
+}
+
+// Deprecated
+func HighFreqFeedEx(name, category, metric string,
+	tags map[string]string,
+	fields map[string]interface{},
+	t ...time.Time) error {
+
+	var ts time.Time
+	if len(t) > 0 {
+		ts = t[0]
+	} else {
+		ts = time.Now().UTC()
+	}
+
+	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
+		&lp.Option{
+			ExtraTags: datakit.Cfg.MainCfg.GlobalTags,
+			Strict:    true,
+			Time:      ts,
+			Precision: "n"})
+	if err != nil {
+		return err
+	}
+
+	return defaultIO.DoFeed([]*Point{&Point{pt}}, category, name, &Option{HighFreq: true})
 }
 
 // Deprecated
