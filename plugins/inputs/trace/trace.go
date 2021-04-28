@@ -57,6 +57,7 @@ type TraceAdapter struct {
 	Pid            string
 	HttpMethod     string
 	HttpStatusCode string
+	ContainerHost  string
 
 	Tags map[string]string
 }
@@ -72,15 +73,38 @@ const (
 	STATUS_WARN     = "warning"
 	STATUS_CRITICAL = "critical"
 
-	PROJECT = "project"
-	VERSION = "version"
-	ENV     = "env"
+	PROJECT        = "project"
+	VERSION        = "version"
+	ENV            = "env"
+	CONTAINER_HOST = "container_host"
 
 	SPAN_SERVICE_APP    = "app"
 	SPAN_SERVICE_DB     = "db"
 	SPAN_SERVICE_WEB    = "web"
 	SPAN_SERVICE_CACHE  = "cache"
 	SPAN_SERVICE_CUSTOM = "custom"
+
+	TAG_PROJECT        = "project"
+	TAG_OPERATION      = "operation"
+	TAG_SERVICE        = "service"
+	TAG_VERSION        = "version"
+	TAG_ENV            = "env"
+	TAG_HTTP_METHOD    = "http_method"
+	TAG_HTTP_CODE      = "http_status_code"
+	TAG_TYPE           = "type"
+	TAG_ENDPOINT       = "endpoint"
+	TAG_SPAN_STATUS    = "status"
+	TAG_SPAN_TYPE      = "span_type"
+	TAG_CONTAINER_HOST = "container_host"
+
+	FIELD_PARENTID = "parent_id"
+	FIELD_TRACEID  = "trace_id"
+	FIELD_SPANID   = "span_id"
+	FIELD_DURATION = "duration"
+	FIELD_START    = "start"
+	FIELD_MSG      = "message"
+	FIELD_RESOURCE = "resource"
+	FIELD_PID      = "pid"
 )
 
 var (
@@ -92,45 +116,50 @@ func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
-	tags["project"] = tAdpt.Project
-	tags["operation"] = tAdpt.OperationName
-	tags["service"] = tAdpt.ServiceName
-	tags["parent_id"] = tAdpt.ParentID
-	tags["trace_id"] = tAdpt.TraceID
-	tags["span_id"] = tAdpt.SpanID
-	tags["version"] = tAdpt.Version
-	tags["env"] = tAdpt.Env
-	tags["http_method"] = tAdpt.HttpMethod
-	tags["http_status_code"] = tAdpt.HttpStatusCode
+	tags[TAG_PROJECT] = tAdpt.Project
+	tags[TAG_OPERATION] = tAdpt.OperationName
+	tags[TAG_SERVICE] = tAdpt.ServiceName
+	tags[TAG_VERSION] = tAdpt.Version
+	tags[TAG_ENV] = tAdpt.Env
+	tags[TAG_HTTP_METHOD] = tAdpt.HttpMethod
+	tags[TAG_HTTP_CODE] = tAdpt.HttpStatusCode
 
 	if tAdpt.Type != "" {
-		tags["type"] = tAdpt.Type
+		tags[TAG_TYPE] = tAdpt.Type
 	} else {
-		tags["type"] = SPAN_SERVICE_CUSTOM
+		tags[TAG_TYPE] = SPAN_SERVICE_CUSTOM
 	}
 
 	for tag, tagV := range tAdpt.Tags {
 		tags[tag] = tagV
 	}
 
-	tags["status"] = tAdpt.Status
+	tags[TAG_SPAN_STATUS] = tAdpt.Status
 
 	if tAdpt.EndPoint != "" {
-		tags["endpoint"] = tAdpt.EndPoint
+		tags[TAG_ENDPOINT] = tAdpt.EndPoint
 	} else {
-		tags["endpoint"] = "null"
+		tags[TAG_ENDPOINT] = "null"
 	}
 
 	if tAdpt.SpanType != "" {
-		tags["span_type"] = tAdpt.SpanType
+		tags[TAG_SPAN_TYPE] = tAdpt.SpanType
 	} else {
-		tags["span_type"] = SPAN_TYPE_ENTRY
+		tags[TAG_SPAN_TYPE] = SPAN_TYPE_ENTRY
 	}
 
-	fields["duration"] = tAdpt.Duration / 1000
-	fields["start"] = tAdpt.Start / 1000
-	fields["message"] = tAdpt.Content
-	fields["resource"] = tAdpt.Resource
+	if tAdpt.ContainerHost != "" {
+		tags[TAG_CONTAINER_HOST] = tAdpt.ContainerHost
+	}
+
+	fields[FIELD_DURATION] = tAdpt.Duration / 1000
+	fields[FIELD_START] = tAdpt.Start / 1000
+	fields[FIELD_MSG] = tAdpt.Content
+	fields[FIELD_RESOURCE] = tAdpt.Resource
+
+	fields[FIELD_PARENTID] = tAdpt.ParentID
+	fields[FIELD_TRACEID] = tAdpt.TraceID
+	fields[FIELD_SPANID] = tAdpt.SpanID
 
 	ts := time.Unix(tAdpt.Start/int64(time.Second), tAdpt.Start%int64(time.Second))
 
