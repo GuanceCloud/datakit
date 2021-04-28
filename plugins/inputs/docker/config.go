@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/api/types"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
@@ -29,7 +30,6 @@ const (
   
   # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
   collect_metric_interval = "10s"
-  collect_object_interval = "5m"
   
   # Is all containers, Return all containers. By default, only running containers are shown.
   include_exited = false
@@ -50,10 +50,11 @@ const (
   [inputs.docker.tags]
     # tags1 = "value1"
 `
-	defaultEndpoint              = "unix:///var/run/docker.sock"
-	defaultAPITimeout            = time.Second * 5
-	minimumCollectMetricDuration = time.Second * 5
-	minimumCollectObjectDuration = time.Minute * 5
+	defaultEndpoint          = "unix:///var/run/docker.sock"
+	defaultAPITimeout        = time.Second * 5
+	minCollectMetricDuration = time.Second * 5
+	maxCollectMetricDuration = time.Second * 60
+	collectObjectDuration    = time.Minute * 5
 )
 
 var l = logger.DefaultSLogger(inputName)
@@ -99,38 +100,21 @@ func (this *Input) loadCfg() (err error) {
 	this.kubernetes = func() *Kubernetes {
 		k := Kubernetes{URL: k8sURL}
 		if err := k.Init(); err != nil {
-			l.Warnf("init kubernetes connect error: %s", err)
+			l.Debugf("init kubernetes connect error: %s", err)
 			return nil
 		}
 		return &k
 	}()
 
 	if this.CollectMetric {
-		this.collectMetricDuration, err = time.ParseDuration(this.CollectMetricInterval)
+		var dur time.Duration
+		dur, err = time.ParseDuration(this.CollectMetricInterval)
 		if err != nil {
 			return
 		}
+		this.collectMetricDuration = datakit.ProtectedInterval(minCollectMetricDuration, maxCollectMetricDuration, dur)
+		l.Debugf("collect metrics interval %s", this.collectMetricDuration)
 	}
-
-	if this.CollectObject {
-		this.collectObjectDuration, err = time.ParseDuration(this.CollectObjectInterval)
-		if err != nil {
-			return
-		}
-	}
-
-	// 限制最小采集间隔
-	// if 0 < this.collectMetricDuration &&
-	// 	this.collectMetricDuration < minimumCollectMetricDuration {
-	// 	l.Warn("invalid collect_metric_interval, cannot be less than 5s. Use default interval 5s")
-	// 	this.collectMetricDuration = minimumCollectMetricDuration
-	// }
-
-	// if 0 < this.collectObjectDuration &&
-	// 	this.collectObjectDuration < minimumCollectObjectDuration {
-	// 	l.Warn("invalid collect_object_interval, cannot be less than 5m. Use default interval 5m")
-	// 	this.collectObjectDuration = minimumCollectObjectDuration
-	// }
 
 	if err = this.initLogOption(); err != nil {
 		return
