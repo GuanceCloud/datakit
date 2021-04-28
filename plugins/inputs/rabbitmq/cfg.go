@@ -18,6 +18,8 @@ var (
 	inputName    = `rabbitmq`
 	l            = logger.DefaultSLogger(inputName)
 	collectCache []inputs.Measurement
+	minInterval  = time.Second
+	maxInterval  = time.Second * 30
 	lock         sync.Mutex
 	sample       = `
 [[inputs.rabbitmq]]
@@ -76,10 +78,10 @@ type Input struct {
 	// HTTP client
 	client *http.Client
 
-	tail *inputs.Tailer
-
-	start time.Time
-	wg    sync.WaitGroup
+	tail    *inputs.Tailer
+	lastErr error
+	start   time.Time
+	wg      sync.WaitGroup
 }
 
 type OverviewResponse struct {
