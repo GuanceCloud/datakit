@@ -6,9 +6,11 @@ import (
 	"io"
 	"net/http"
 	"runtime/debug"
+	"time"
 
 	"github.com/ugorji/go/codec"
 
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
@@ -69,6 +71,7 @@ func DdtraceTraceHandle(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err := handleDdtrace(w, r); err != nil {
+		dkio.FeedLastError(inputName, err.Error())
 		log.Errorf("%v", err)
 	}
 }
@@ -89,83 +92,95 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 		return err
 	}
 
-	adapterGroup := []*trace.TraceAdapter{}
+	pts := []*dkio.Point{}
 	for _, spans := range dspans {
 		spanIds, parentIds := getSpanAndParentId(spans)
 		for _, span := range spans {
-			tAdpter := &trace.TraceAdapter{}
-			tAdpter.Source = "ddtrace"
+			tag := make(map[string]string)
+			field := make(map[string]interface{})
 
+			tm := &trace.TraceMeasurement{}
+			tm.Name = "ddtrace"
+
+			spanType := ""
 			if span.ParentID == 0 {
-				tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
+				spanType = trace.SPAN_TYPE_ENTRY
 			} else {
 				if serviceName, ok := spanIds[span.ParentID]; ok {
 					if serviceName != span.Service {
-						tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
+						spanType = trace.SPAN_TYPE_ENTRY
 					} else {
 						if _, ok := parentIds[span.SpanID]; ok {
-							tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+							spanType = trace.SPAN_TYPE_LOCAL
 						} else {
-							tAdpter.SpanType = trace.SPAN_TYPE_EXIT
+							spanType = trace.SPAN_TYPE_EXIT
 						}
 					}
 				} else {
-					tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
+					spanType = trace.SPAN_TYPE_ENTRY
 				}
 			}
-
-			tAdpter.ServiceName = span.Service
-			tAdpter.OperationName = span.Name
-			tAdpter.Resource = span.Resource
-
-			tAdpter.ParentID = fmt.Sprintf("%d", span.ParentID)
-			tAdpter.TraceID = fmt.Sprintf("%d", span.TraceID)
-			tAdpter.SpanID = fmt.Sprintf("%d", span.SpanID)
-
-			tAdpter.Type = ddtraceSpanType[span.Type]
+			tag[trace.TAG_SPAN_TYPE] = spanType
+			tag[trace.TAG_SERVICE] = span.Service
+			tag[trace.TAG_OPERATION] = span.Name
+			tag[trace.TAG_TYPE] = ddtraceSpanType[span.Type]
 			if span.Error == 0 {
-				tAdpter.Status = trace.STATUS_OK
+				tag[trace.TAG_SPAN_STATUS] = trace.STATUS_OK
 			} else {
-				tAdpter.Status = trace.STATUS_ERR
+				tag[trace.TAG_SPAN_STATUS] = trace.STATUS_ERR
+			}
+			tag[trace.TAG_PROJECT] = span.Meta[trace.PROJECT]
+			if tag[trace.TAG_PROJECT] == "" {
+				tag[trace.TAG_PROJECT] = trace.GetFromPluginTag(DdtraceTags, trace.PROJECT)
 			}
 
-			tAdpter.Duration = span.Duration
-			tAdpter.Start = span.Start
+			tag[trace.TAG_ENV] = span.Meta[trace.ENV]
+			if tag[trace.TAG_ENV] == "" {
+				tag[trace.TAG_ENV] = trace.GetFromPluginTag(DdtraceTags, trace.ENV)
+			}
 
+			tag[trace.TAG_VERSION] = span.Meta[trace.VERSION]
+			if tag[trace.TAG_VERSION] == "" {
+				tag[trace.TAG_VERSION] = trace.GetFromPluginTag(DdtraceTags, trace.VERSION)
+			}
+			tag[trace.TAG_CONTAINER_HOST] = span.Meta[trace.CONTAINER_HOST]
+			tag[trace.TAG_HTTP_METHOD] = span.Meta["http.method"]
+			tag[trace.TAG_HTTP_CODE] = span.Meta["http.status_code"]
+
+			for k, v := range DdtraceTags {
+				tag[k] = v
+			}
+
+			field[trace.FIELD_RESOURCE] = span.Resource
+			field[trace.FIELD_PARENTID] = fmt.Sprintf("%d", span.ParentID)
+			field[trace.FIELD_TRACEID] = fmt.Sprintf("%d", span.TraceID)
+			field[trace.FIELD_SPANID] = fmt.Sprintf("%d", span.SpanID)
+			field[trace.FIELD_DURATION] = span.Duration / 1000
+			field[trace.FIELD_START] = span.Start / 1000
 			if v, ok := span.Metrics["system.pid"]; ok {
-				tAdpter.Pid = fmt.Sprintf("%v", v)
+				field[trace.FIELD_PID] = fmt.Sprintf("%v", v)
 			}
 
-			tAdpter.Project = span.Meta[trace.PROJECT]
-			if tAdpter.Project == "" {
-				tAdpter.Project = trace.GetFromPluginTag(DdtraceTags, trace.PROJECT)
-			}
-
-			tAdpter.Env = span.Meta[trace.ENV]
-			if tAdpter.Env == "" {
-				tAdpter.Env = trace.GetFromPluginTag(DdtraceTags, trace.ENV)
-			}
-
-			tAdpter.Version = span.Meta[trace.VERSION]
-			if tAdpter.Version == "" {
-				tAdpter.Version = trace.GetFromPluginTag(DdtraceTags, trace.VERSION)
-			}
-
-			tAdpter.HttpMethod = span.Meta["http.method"]
-			tAdpter.HttpStatusCode = span.Meta["http.status_code"]
 			js, err := json.Marshal(span)
 			if err != nil {
 				return err
 			}
-			tAdpter.Content = string(js)
-			tAdpter.Tags = DdtraceTags
+			field[trace.FIELD_MSG] = string(js)
 
-			adapterGroup = append(adapterGroup, tAdpter)
+			tm.Tags = tag
+			tm.Fields = field
+			tm.Ts = time.Unix(span.Start/int64(time.Second), span.Start%int64(time.Second))
+
+			pt, err := tm.LineProto()
+			if err != nil {
+				return err
+			}
+
+			pts = append(pts, pt)
 		}
 	}
 
-	trace.MkLineProto(adapterGroup, inputName)
-	return nil
+	return dkio.Feed(inputName, dkio.Tracing, pts, &dkio.Option{HighFreq: true})
 }
 
 func unmarshalDdtraceMsgpack(body io.ReadCloser) ([][]*Span, error) {
