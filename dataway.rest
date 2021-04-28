@@ -1,7 +1,13 @@
+### how to use this document
+### 1: install extension, rest client, in vscode
+### 2: create xxx.rest file
+### 3: edit xxx.rest file u created under rest client format
+### 4: send request by click "Send Request" at the top of every request item
+
 ###
-@host = http://localhost:30557
-@xtoken = blablabla
-@xprecision = blablabla
+@host = http://localhost:9528
+@xtoken = tkn_2dc438b6693711eb8ff97aeee04b54af
+@xprecision =
 
 
 ###
@@ -59,13 +65,9 @@ X-Precision: {{xprecision}}
 }
 
 ###
-POST {{host}}/v1/write/security HTTP/1.1
-X-Token: {{xtoken}}
-X-Precision: {{xprecision}}
+POST {{host}}/v1/write/security?token={{xtoken}} HTTP/1.1
 
-{
-  "json":"jsoncontent",
-}
+test-01,category=host,host=ubt-server,level=warn,title=a\ demo message="passwd 发生了变化" 1619598040000435871
 
 ###
 GET {{host}}/v1/check/token/:{{xtoken}} HTTP/1.1
