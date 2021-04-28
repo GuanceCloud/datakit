@@ -16,6 +16,7 @@ func (n *Input) getStubStatusModuleMetric() {
 	resp, err := n.client.Get(n.Url)
 	if err != nil {
 		l.Errorf("error making HTTP request to %s: %s", n.Url, err)
+		n.lastErr = err
 		return
 	}
 	defer resp.Body.Close()
@@ -122,6 +123,7 @@ func (n *Input) getVTSMetric() {
 	resp, err := n.client.Get(n.Url)
 	if err != nil {
 		l.Errorf("error making HTTP request to %s: %s", n.Url, err)
+		n.lastErr = err
 		return
 	}
 
