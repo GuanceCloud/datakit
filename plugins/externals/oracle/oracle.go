@@ -459,7 +459,7 @@ var execCfgs = []*ExecCfg{
 	&ExecCfg{
 		sql:        oracle_tablespace_sql,
 		metricName: "oracle_tablespace",
-		tagsMap:    []string{"tablespace"},
+		tagsMap:    []string{"tablespace_name"},
 	},
 }
 
