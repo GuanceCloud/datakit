@@ -106,9 +106,10 @@ $ pip install flask
 ```
 
 ```python
+# -*- encoding: utf8 -*-
 #--------- service_a.py ----------
 
-from flask import Flask
+from flask import Flask, request
 import requests, os
 from ddtrace import tracer
 
@@ -123,14 +124,21 @@ tracer.configure(
 
 app = Flask(__name__)
 
+def shutdown_server():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+
 @app.route('/a',  methods=['GET'])
 def index():
-    requests.get('http://127.0.0.1:43210/b')
+    requests.get('http://127.0.0.1:54322/b')
     return 'OK', 200
 
 @app.route('/stop',  methods=['GET'])
 def stop():
-    os.exit(0)
+    shutdown_server()
+    return 'Server shutting down...\n'
 
 # 启动 service A: HTTP 服务启动在 54321 端口上
 if __name__ == '__main__':
@@ -138,10 +146,12 @@ if __name__ == '__main__':
 ```
 
 ```python
+# -*- encoding: utf8 -*-
+
 #--------- service_b.py ----------
 
+from flask import Flask, request
 import os, time, requests
-from flask import Flask
 from ddtrace import tracer
 
 os.environ["DD_SERVICE"] = "SERVICE_B"
@@ -153,6 +163,12 @@ tracer.configure(
 
 app = Flask(__name__)
 
+def shutdown_server():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+
 @app.route('/b',  methods=['GET'])
 def index():
     time.sleep(1)
@@ -160,25 +176,27 @@ def index():
 
 @app.route('/stop',  methods=['GET'])
 def stop():
-    os.exit(0)
+    shutdown_server()
+    return 'Server shutting down...\n'
 
+# 启动 service B: HTTP 服务启动在 54322 端口上
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=43210, debug=True)
+    app.run(host="0.0.0.0", port=54322, debug=True)
 ```
 
 执行以下命令来验证：
 
 ```shell
 # 分别后台启动两个服务：
-$ (ddtrace-run python service_a.py &> a.log &)
-$ (ddtrace-run python service_b.py &> b.log &)
+$ (ddtrace-run python3 service_a.py &> a.log &)
+$ (ddtrace-run python3 service_b.py &> b.log &)
 
-# 调用 A 服务，促使其调用 B 服务，这样就能产生一条 trace 数据
+# 调用 A 服务，促使其调用 B 服务，这样就能产生一条 trace 数据（此处可多次尝试）
 $ curl http://localhost:54321/a
 
 # 分别停止两个服务
 $ curl http://localhost:54321/stop
-$ curl http://localhost:43210/stop
+$ curl http://localhost:54322/stop
 ```
 
 也可以通过 [DQL](http://doc/to/dql) 查找数据：
