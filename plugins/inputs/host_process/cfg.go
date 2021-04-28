@@ -35,8 +35,9 @@ type Input struct {
 	MetricInterval datakit.Duration `toml:"metric_interval,omitempty"`
 	Pipeline       string           `toml:"pipeline,omitempty"`
 
-	re     string
-	isTest bool
+	lastErr error
+	re      string
+	isTest  bool
 }
 
 type ProcessMetric struct {
