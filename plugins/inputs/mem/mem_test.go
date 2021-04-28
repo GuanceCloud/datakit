@@ -68,7 +68,7 @@ func TestMemCollect(t *testing.T) {
 	assertEqualUint64(t, vmStat.Free, collect["free"].(uint64), "free")
 	assertEqualUint64(t, vmStat.HighFree, collect["high_free"].(uint64), "high_free")
 	assertEqualUint64(t, vmStat.HighTotal, collect["high_total"].(uint64), "high_total")
-	assertEqualUint64(t, vmStat.HugePageSize, collect["huge_page_size"].(uint64), "huge_page_size")
+	assertEqualUint64(t, vmStat.HugePageSize, collect["huge_pages_size"].(uint64), "huge_pages_size")
 	assertEqualUint64(t, vmStat.HugePagesFree, collect["huge_pages_free"].(uint64), "huge_pages_free")
 	assertEqualUint64(t, vmStat.HugePagesTotal, collect["huge_pages_total"].(uint64), "huge_pages_total")
 	assertEqualUint64(t, vmStat.Inactive, collect["inactive"].(uint64), "inactive")
