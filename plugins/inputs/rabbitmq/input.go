@@ -31,6 +31,7 @@ func (_ *Input) PipelineConfig() map[string]string {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("rabbitmq start")
+	n.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	if n.Log != nil {
 		go func() {
@@ -57,9 +58,6 @@ func (n *Input) Run() {
 		return
 	}
 	n.client = client
-	if n.Interval.Duration == 0 {
-		n.Interval.Duration = time.Second * 30
-	}
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
@@ -72,9 +70,14 @@ func (n *Input) Run() {
 				err := inputs.FeedMeasurement(inputName, io.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
 				collectCache = collectCache[:0]
 				if err != nil {
+					n.lastErr = err
 					l.Errorf(err.Error())
 					continue
 				}
+			}
+			if n.lastErr != nil {
+				io.FeedLastError(inputName, n.lastErr.Error())
+				n.lastErr = nil
 			}
 		case <-datakit.Exit.Wait():
 			if n.tail != nil {
@@ -113,7 +116,9 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		s := &Input{}
+		s := &Input{
+			Interval: datakit.Duration{Duration: time.Second * 10},
+		}
 		return s
 	})
 }
