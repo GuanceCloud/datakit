@@ -14,76 +14,53 @@
 
 ## 配置
 
-ddtrace 的数据发送到 DataKit一共需要三步：
-
-第一步：在 DataKit 中开启链路数据接收服务
-
-第二步：配置和获取链路数据监听的地址和端口
-
-第三步：在应用项目中配置数据上报地址为 DataKit 的链路数据接收地址并开启应用
-
-### 开启链路数据接收服务
-
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+1. 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
 ```toml
 {{.InputSample}}
 ```
 
-### 配置和链路数据监听的地址和端口
+<!-- 第三步：在应用项目中配置数据上报地址为 DataKit 的链路数据接收地址并开启应用 -->
 
-打开 DataKit 安装目录下的 `datakit.conf`，找到 `http_listen` 配置项，配置数据接收的监听地址和端口，默认监听地址是 `0.0.0.0`，端口为 `9529`
-完成以上配置后，即可获取：ddtrace 链路数据的接收地址`HTTP协议//:绑定地址:链路端口/v0.4/traces`。例如 DataKit 的地址是 `1.2.3.4`，配置的监听地址和端口是 `0.0.0.0:9529`，ddtrace 链路数据的接收地址是： `http://1.2.3.4:9529/v0.4/traces`，如果是本机也可以使用 `localhost` 或 `127.0.0.1`，如果是内网也可以使用内网地址。
+2. 编辑 `conf.d/datakit.conf`，将 `http_listen` 改为 `0.0.0.0:9529`（此处目的是开放外网访问，端口可选）。此时 ddtrace 的访问地址就是 `http://<datakit-ip>:9529/v0.4/traces`。如果 trace 数据来源就是 DataKit 本机，可不用修改 `http_listen` 配置，直接使用 `http://localhost:9529/v0.4/traces` 即可。
 
-**注意：**
-
-- ddtrace 请求的默认路径是 `/v0.4/traces`
-- 需保证数据采集端能访问该地址
-
-### 配置并开启应用
+## 配置并开启应用
 
 通过 ddtarce 采集数据需要根据当前项目开发语言参考对应帮助文档 [Datadog Tracing](https://github.com/DataDog)。
 
-这里以 Python 应用作为示范
+### Python 快速入门
 
 第一步，安装相关依赖包
 
 ```shell
-pip install ddtrace
+$ pip install ddtrace
 ```
 
 第二步，在应用初始化时设置上报地址
 
 ```python
+# ---------- app.py ----------
+
 import os
 from ddtrace import tracer
 
-#通过环境变量设置服务名
+# 通过环境变量设置服务名
 os.environ["DD_SERVICE"] = "your_service_name"
 
-#通过环境变量设置项目名，环境名，版本号
+# 通过环境变量设置项目名，环境名，版本号
 os.environ["DD_TAGS"] = "project:your_project_name,env=test,version=v1"
 
-#设置链路数据datakit接收地址，
+# 设置链路数据 datakit 接收地址，
 tracer.configure(
-    # datakit IP 地址
-    hostname="127.0.0.1",
-
-    # datakit http 服务端口号
-    port="9529",
+    hostname="127.0.0.1",  # datakit IP 地址
+    port="9529",           # datakit http 服务端口号
 )
 ``` 
 
 第三步，开启应用
 
 ```shell
-ddtrace-run python your_app.py
-``` 
-
-若需要链路数据和容器对象关联，需按照如下方式开启应用
-
-```shell
-DD_TAGS=container_host:$HOSTNAME,other_tag:other_tag_val ddtrace-run python your_app.py
+$ ddtrace-run python app.py
 ``` 
 
 若通过 `gunicorn` 运行，需要在应用初始化时进行如下配置，否则会产生相同的 `traceID`
@@ -92,62 +69,77 @@ DD_TAGS=container_host:$HOSTNAME,other_tag:other_tag_val ddtrace-run python your
 patch(gevent=True)
 ```
 
-
-其他语言应用与此类似，配置成功后约 1-2 分钟即可在 DataFlux Studio 的 「链路追踪」中查看相关的链路数据。
+其他语言应用与此类似，配置成功后约 1~2 分钟即可在 DataFlux Studio 「应用性能监测」中查看数据。
 
 除了在应用初始化时设置项目名，环境名以及版本号外，还可通过如下两种方式设置：
 
-- 通过环境变量设置
+- 通过命令行注入环境变量
 
 ```shell
-export DD_TAGS="project:your_project_name,env=test,version=v1"
+$ DD_TAGS="project:your_project_name,env=test,version=v1 ddtrace-run python app.py"
 ```
+
+> Tips：若需要链路数据和容器对象关联，可按照如下方式开启应用（一般情况下就是修改容器中的启动命令 `CMD`）。这里的 `$HOSTNAME` 环境变量会自动替换成对应容器中的 hostname：
+
+```shell
+$ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python your_app.py
+``` 
 
 - 通过采集器自定义标签设置
 
 ```toml
 [inputs.ddtrace]
-       path = "/v0.4/traces"                   # ddtrace 链路数据接收路径，默认与ddtrace官方定义的路径相同
-       [inputs.ddtrace.tags]                   # 自定义标签组
-               project = "your_project_name"   # 设置项目名
-               env  = "your_env_name"          # 设置环境名
-               version  = "your_version"       # 设置版本信息
+	path = "/v0.4/traces"             # ddtrace 链路数据接收路径，默认与ddtrace官方定义的路径相同
+	[inputs.ddtrace.tags]             # 自定义标签组
+		project = "your_project_name"   # 设置项目名
+		env     = "your_env_name"       # 设置环境名
+		version = "your_version"        # 设置版本信息
 ```
 
-## 示例代码
+## Python Flask 完整示例
 
-以 Python 语言作为示例代码，其它编程语言与此类似，示例中`SERVICE_A`提供 HTTP 服务，并且调用`SERVICE_B` HTTP服务。
+这里以 Python 中常用的 Webserver Flask 应用为例。示例中 `SERVICE_A` 提供 HTTP 服务，并且调用 `SERVICE_B` HTTP 服务。
 
-### SERVICE_A
+```shell
+# 先确保安装 flask 包
+$ pip install flask
+```
 
 ```python
+#--------- service_a.py ----------
+
 from flask import Flask
 import requests, os
 from ddtrace import tracer
 
+# 设置服务名
 os.environ["DD_SERVICE"] = "SERVICE_A"
 
+# 配置 DataKit trace API 服务地址
 tracer.configure(
-    hostname="127.0.0.1",
-    port="12345",
+    hostname = "localhost",  # 视具体地址而定
+    port     = "9529",
 )
-
 
 app = Flask(__name__)
 
 @app.route('/a',  methods=['GET'])
 def index():
-    requests.get('http://127.0.0.1:10002/b')
+    requests.get('http://127.0.0.1:43210/b')
     return 'OK', 200
 
+@app.route('/stop',  methods=['GET'])
+def stop():
+    os.exit(0)
 
+# 启动 service A: HTTP 服务启动在 54321 端口上
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=10001, debug=True)
+    app.run(host="0.0.0.0", port=54321, debug=True)
 ```
 
-### SERVICE_B
-
 ```python
+#--------- service_b.py ----------
+
 import os, time, requests
 from flask import Flask
 from ddtrace import tracer
@@ -155,8 +147,8 @@ from ddtrace import tracer
 os.environ["DD_SERVICE"] = "SERVICE_B"
 
 tracer.configure(
-    hostname="127.0.0.1",
-    port="12345",
+    hostname="localhost",
+    port="9529",
 )
 
 app = Flask(__name__)
@@ -166,9 +158,35 @@ def index():
     time.sleep(1)
     return 'OK', 200
 
+@app.route('/stop',  methods=['GET'])
+def stop():
+    os.exit(0)
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=10002, debug=True)
+    app.run(host="0.0.0.0", port=43210, debug=True)
+```
+
+执行以下命令来验证：
+
+```shell
+# 分别后台启动两个服务：
+$ (ddtrace-run python service_a.py &> a.log &)
+$ (ddtrace-run python service_b.py &> b.log &)
+
+# 调用 A 服务，促使其调用 B 服务，这样就能产生一条 trace 数据
+$ curl http://localhost:54321/a
+
+# 分别停止两个服务
+$ curl http://localhost:54321/stop
+$ curl http://localhost:43210/stop
+```
+
+也可以通过 [DQL](http://doc/to/dql) 查找数据：
+
+```python
+T::xxxx {service="SERVICE_A"} order by time desc limit 1
+
+# 贴出 DQL 返回的数据
 ```
 
 ## 指标集
@@ -188,6 +206,3 @@ if __name__ == '__main__':
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
-
-
-
