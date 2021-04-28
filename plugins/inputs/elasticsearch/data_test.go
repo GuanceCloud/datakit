@@ -63,21 +63,21 @@ const clusterHealthResponseWithIndices = `
 `
 
 var clusterHealthExpected = map[string]interface{}{
-	"status":                           "green",
-	"status_code":                      1,
-	"timed_out":                        false,
-	"number_of_nodes":                  3,
-	"number_of_data_nodes":             3,
-	"number_of_in_flight_fetch":        0,
-	"active_primary_shards":            5,
-	"active_shards":                    15,
-	"relocating_shards":                0,
-	"initializing_shards":              0,
-	"unassigned_shards":                0,
-	"delayed_unassigned_shards":        0,
-	"number_of_pending_tasks":          0,
-	"task_max_waiting_in_queue_millis": 0,
-	"active_shards_percent_as_number":  100.0,
+	"status": "green",
+	// "status_code":                      1,
+	// "timed_out":                        false,
+	// "number_of_nodes":                  3,
+	"number_of_data_nodes": 3,
+	// "number_of_in_flight_fetch":        0,
+	"active_primary_shards": 5,
+	"active_shards":         15,
+	"relocating_shards":     0,
+	"initializing_shards":   0,
+	"unassigned_shards":     0,
+	// "delayed_unassigned_shards":        0,
+	"number_of_pending_tasks": 0,
+	// "task_max_waiting_in_queue_millis": 0,
+	// "active_shards_percent_as_number":  100.0,
 }
 
 var v1IndexExpected = map[string]interface{}{
@@ -4544,6 +4544,28 @@ var clusterIndicesPrimariesExpected = map[string]interface{}{
 	"primaries_warmer_current":                         float64(0),
 	"primaries_warmer_total":                           float64(6),
 	"primaries_warmer_total_time_in_millis":            float64(0),
+}
+
+var clusterIndicesTotalExpected = map[string]interface{}{
+	"total_indexing_index_current":        float64(0),
+	"total_get_missing_total":             float64(0),
+	"total_indexing_index_time_in_millis": float64(793),
+	"total_indexing_index_total":          float64(1998),
+	"total_merges_total":                  float64(0),
+	"total_merges_total_docs":             float64(0),
+	"total_merges_current_docs":           float64(0),
+	"total_merges_total_time_in_millis":   float64(0),
+	"total_flush_total":                   float64(0),
+	"total_flush_total_time_in_millis":    float64(0),
+	"total_refresh_total":                 float64(18),
+	"total_refresh_total_time_in_millis":  float64(518),
+	"total_search_fetch_current":          float64(0),
+	"total_search_fetch_time_in_millis":   float64(0),
+	"total_search_fetch_total":            float64(0),
+	"total_search_query_current":          float64(0),
+	"total_search_query_time_in_millis":   float64(0),
+	"total_search_query_total":            float64(0),
+	"total_store_size_in_bytes":           float64(535000),
 }
 
 const clusterIndicesShardsResponse = `
