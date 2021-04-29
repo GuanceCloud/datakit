@@ -168,7 +168,9 @@ func TestAPI(t *testing.T) {
 
 			l.Debugf("x: %v, body: %s", x, string(respbody))
 		}
+
 		// testutil.Equals(t, string(tc.expectErrCode), string(x.ErrCode))
+
 		t.Log("### success")
 		t.Logf("case %s ok", cases[i].api)
 	}
