@@ -1,6 +1,7 @@
 package hostobject
 
 import (
+	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -86,6 +87,10 @@ type (
 	}
 )
 
+var (
+	collectorStatHist []*CollectorStatus
+)
+
 func getHostMeta() *HostMetaInfo {
 	info, err := hostutil.Info()
 	if err != nil {
@@ -167,14 +172,23 @@ func getMemInfo() *MemInfo {
 	}
 }
 
-func getNetInfo() []*NetInfo {
+func getNetInfo(enableVIfaces bool) []*NetInfo {
 	ifs, err := netutil.Interfaces()
 	if err != nil {
 		l.Errorf("fail to get interfaces, %s", err)
 		return nil
 	}
 	var infos []*NetInfo
+
+	netVIfaces := map[string]bool{}
+	if !enableVIfaces {
+		netVIfaces, _ = NetIgnoreIfaces()
+	}
+
 	for _, it := range ifs {
+		if _, ok := netVIfaces[it.Name]; ok {
+			continue
+		}
 		i := &NetInfo{
 			Index:        it.Index,
 			MTU:          it.MTU,
@@ -198,7 +212,7 @@ func getNetInfo() []*NetInfo {
 	return infos
 }
 
-func getDiskInfo() []*DiskInfo {
+func getDiskInfo(ignoreFs []string) []*DiskInfo {
 
 	ps, err := diskutil.Partitions(true)
 	if err != nil {
@@ -207,16 +221,7 @@ func getDiskInfo() []*DiskInfo {
 	}
 	var infos []*DiskInfo
 
-	fstypeExcludeSet := map[string]bool{
-		"autofs":   true,
-		"tmpfs":    true,
-		"devtmpfs": true,
-		"devfs":    true,
-		"iso9660":  true,
-		"overlay":  true,
-		"aufs":     true,
-		"squashfs": true,
-	}
+	fstypeExcludeSet, _ := DiskIgnoreFs(ignoreFs)
 
 	for _, p := range ps {
 
@@ -241,14 +246,15 @@ func getDiskInfo() []*DiskInfo {
 	return infos
 }
 
-func getEnabledInputs() (res []*CollectorStatus) {
+func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
 
-	inputsStats, err := io.GetStats(5 * time.Second) // get all inputs stats
+	inputsStats, err := io.GetStats(c.IOTimeout.Duration) // get all inputs stats
 	if err != nil {
 		l.Warnf("fail to get inputs stats, %s", err)
 		return
 	}
 
+	now := time.Now()
 	for name, _ := range inputs.InputsInfo {
 		if s, ok := inputsStats[name]; ok {
 
@@ -257,11 +263,18 @@ func getEnabledInputs() (res []*CollectorStatus) {
 				ts = 0
 			}
 
+			lastErr := s.LastErr
+			if ts > 0 && now.Sub(s.LastErrTS) > c.IgnoreInputsErrorsBefore.Duration { // ignore errors 30min ago
+				l.Debugf("ignore error %s(%v before)", s.LastErr, now.Sub(s.LastErrTS))
+				lastErr = ""
+				ts = 0
+			}
+
 			res = append(res, &CollectorStatus{
 				Name:        name,
 				Count:       s.Count,
 				LastTime:    s.Last.Unix(),
-				LastErr:     s.LastErr,
+				LastErr:     lastErr,
 				LastErrTime: ts,
 			})
 		} else {
@@ -272,19 +285,39 @@ func getEnabledInputs() (res []*CollectorStatus) {
 	return
 }
 
-func getHostObjectMessage() *HostObjectMessage {
+func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	var msg HostObjectMessage
 
-	msg.Collectors = getEnabledInputs()
+	stat := c.getEnabledInputs()
+
+	// NOTE: 由于获取采集器的运行情况信息时，io 模块可能较忙，导致获取不到
+	// 故此处缓存一下历史，以免在 message 字段中采集器信息字段(collectors)
+	// 为空
+	if len(stat) != 0 {
+		collectorStatHist = stat
+	}
+
+	msg.Collectors = collectorStatHist
+	if len(msg.Collectors) == 0 {
+		// 此处也是为了避免采集器信息字段为空: 宁可丢弃当前这次对象采集，也不能导致采集器信息为空
+		// 采集器信息为空（或缺失）的两种可能：
+		//
+		// 1: io 忙：不便于接收查询请求
+		// 2: 具体的某个采集器，可能因为尚未来得及启动，就被要求查询运行信息，此时 io 模块肯定没有登记
+		//
+		// 故一般只有启动后第一次采集时会获取不到统计信息，后续基本都能获取到，即使拿不到，就用旧的统计信息替代
+		return nil, fmt.Errorf("collector stats missing")
+	}
+
 	msg.Host = &HostInfo{
 		HostMeta:   getHostMeta(),
 		CPU:        getCPUInfo(),
 		cpuPercent: getCPUPercent(),
 		load5:      getLoad5(),
 		Mem:        getMemInfo(),
-		Net:        getNetInfo(),
-		Disk:       getDiskInfo(),
+		Net:        getNetInfo(c.EnableNetVirtualInterfaces),
+		Disk:       getDiskInfo(c.IgnoreFS),
 	}
 
-	return &msg
+	return &msg, nil
 }
