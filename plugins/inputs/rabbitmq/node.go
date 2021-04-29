@@ -12,6 +12,7 @@ func getNode(n *Input) {
 	err := n.requestJSON("/api/nodes", &Nodes)
 	if err != nil {
 		l.Error(err.Error())
+		n.lastErr = err
 		return
 	}
 	ts := time.Now()

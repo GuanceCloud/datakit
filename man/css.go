@@ -1,7 +1,7 @@
 package man
 
 var (
-	css = `
+	MarkdownCSS = `
 <style>
 div {
   border: 1px solid gray;
