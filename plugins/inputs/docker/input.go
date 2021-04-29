@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"sync"
 	"time"
 
@@ -21,16 +22,16 @@ func init() {
 }
 
 type Input struct {
-	Endpoint              string            `toml:"endpoint"`
-	CollectMetric         bool              `toml:"collect_metric"`
-	CollectObject         bool              `toml:"collect_object"`
-	CollectLogging        bool              `toml:"collect_logging"`
-	CollectMetricInterval string            `toml:"collect_metric_interval"`
-	CollectObjectInterval string            `toml:"collect_object_interval"`
-	IncludeExited         bool              `toml:"include_exited"`
-	ClientConfig                            // tls config
-	LogOption             []*LogOption      `toml:"log_option"`
-	Tags                  map[string]string `toml:"tags"`
+	Endpoint                        string            `toml:"endpoint"`
+	CollectMetric                   bool              `toml:"collect_metric"`
+	CollectObject                   bool              `toml:"collect_object"`
+	CollectLogging                  bool              `toml:"collect_logging"`
+	CollectMetricInterval           string            `toml:"collect_metric_interval"`
+	DeprecatedCollectObjectInterval string            `toml:"collect_object_interval"`
+	IncludeExited                   bool              `toml:"include_exited"`
+	ClientConfig                                      // tls config
+	LogOption                       []*LogOption      `toml:"log_option"`
+	Tags                            map[string]string `toml:"tags"`
 
 	collectMetricDuration time.Duration
 	collectObjectDuration time.Duration
@@ -55,8 +56,8 @@ func newInput() *Input {
 		Tags:                  make(map[string]string),
 		newEnvClient:          NewEnvClient,
 		newClient:             NewClient,
-		collectMetricDuration: minimumCollectMetricDuration,
-		collectObjectDuration: minimumCollectObjectDuration,
+		collectMetricDuration: minCollectMetricDuration,
+		collectObjectDuration: collectObjectDuration,
 		timeoutDuration:       defaultAPITimeout,
 		containerLogList:      make(map[string]context.CancelFunc),
 	}
@@ -114,6 +115,7 @@ func (this *Input) initCfg() bool {
 
 		if err := this.loadCfg(); err != nil {
 			l.Error(err)
+			io.FeedLastError(inputName, fmt.Sprintf("load config: %s", err.Error()))
 			time.Sleep(time.Second)
 		} else {
 			break
