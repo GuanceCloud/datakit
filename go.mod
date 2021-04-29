@@ -53,6 +53,7 @@ require (
 	github.com/gomarkdown/markdown v0.0.0-20210208175418-bda154fe17d8
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gopacket v1.1.17
+	github.com/gorilla/mux v1.8.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/huaweicloud/huaweicloud-sdk-go-v3 v0.0.30-rc.1
 	github.com/imdario/mergo v0.3.9 // indirect
@@ -123,12 +124,12 @@ require (
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210401072947-bb2a050fa753
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210419084725-f27a03525a8d
-	golang.org/x/crypto v0.0.0-20210415154028-4f45737414dc
+	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20210420072515-93ed5bcd2bfe
-	golang.org/x/term v0.0.0-20210406210042-72f3dc4e9b72 // indirect
+	golang.org/x/sys v0.0.0-20210421221651-33663a62ff08
+	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed // indirect
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	google.golang.org/grpc v1.28.0
