@@ -10,11 +10,15 @@
 
 ## 前置条件
 
-- 安装对应语言的 ddtrace SDK：
+准备对应语言的 ddtrace SDK：
 
-	- python: 
-	- ruby:
-	- golang:
+- Python: https://github.com/DataDog/dd-trace-py
+- Golang: https://github.com/DataDog/dd-trace-go
+- Java: https://github.com/DataDog/dd-trace-java
+- Javascript: https://github.com/DataDog/dd-trace-js
+- PHP: https://github.com/DataDog/dd-trace-php
+- Ruby: https://github.com/DataDog/dd-trace-rb
+- C#: https://github.com/DataDog/dd-trace-dotnet
 
 ## 配置
 
@@ -24,85 +28,14 @@
 {{.InputSample}}
 ```
 
-编辑 `conf.d/datakit.conf`，将 `http_listen` 改为 `0.0.0.0:9529`（此处目的是开放外网访问，端口可选）
-
-此时 ddtrace 的访问地址就是 `http://<datakit-ip>:9529/v0.4/traces`。如果 trace 数据来源就是 DataKit 本机，可不用修改 `http_listen` 配置，直接使用 `http://localhost:9529/v0.4/traces` 即可。
-
-ddtarce 具体使用，参考：
-
-	- [python](http://doc/to/python/ddtrace) 
-	- [glang]((http://doc/to/golang/ddtrace))
-	- [php]((http://doc/to/php/ddtrace))
-	- [ruby](https://github.com/DataDog/dd-trace-rb)
-
-### Python 快速入门
-
-第一步，安装相关依赖包
-
-```shell
-$ pip install ddtrace
-```
-
-第二步，在应用初始化时设置上报地址
-
-```python
-# ---------- app.py ----------
-
-import os
-from ddtrace import tracer
-
-# 通过环境变量设置服务名
-os.environ["DD_SERVICE"] = "your_service_name"
-
-# 通过环境变量设置项目名，环境名，版本号
-os.environ["DD_TAGS"] = "project:your_project_name,env=test,version=v1"
-
-# 设置链路数据 datakit 接收地址，
-tracer.configure(
-    hostname="127.0.0.1",  # datakit IP 地址
-    port="9529",           # datakit http 服务端口号
-)
-``` 
-
-第三步，开启应用
-
-```shell
-$ ddtrace-run python app.py
-``` 
-
-其他语言应用与此类似，配置成功后约 1~2 分钟即可在 DataFlux Studio 「应用性能监测」中查看数据。
-
-除了在应用初始化时设置项目名，环境名以及版本号外，还可通过如下两种方式设置：
-
-- 通过命令行注入环境变量
-
-```shell
-$ DD_TAGS="project:your_project_name,env=test,version=v1 ddtrace-run python app.py"
-```
-
-> Tips：若需要链路数据和容器对象关联，可按照如下方式开启应用（一般情况下就是修改容器中的启动命令 `CMD`）。这里的 `$HOSTNAME` 环境变量会自动替换成对应容器中的 hostname：
-
-```shell
-$ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python your_app.py
-``` 
-
-- 通过采集器自定义标签设置
-
-```toml
-[inputs.ddtrace]
-	path = "/v0.4/traces"             # ddtrace 链路数据接收路径，默认与ddtrace官方定义的路径相同
-	[inputs.ddtrace.tags]             # 自定义标签组
-		project = "your_project_name"   # 设置项目名
-		env     = "your_env_name"       # 设置环境名
-		version = "your_version"        # 设置版本信息
-```
+编辑 `conf.d/datakit.conf`，将 `http_listen` 改为 `0.0.0.0:9529`（此处目的是开放外网访问，端口可选）。此时 ddtrace 的访问地址就是 `http://<datakit-ip>:9529/v0.4/traces`。如果 trace 数据来源就是 DataKit 本机，可不用修改 `http_listen` 配置，直接使用 `http://localhost:9529/v0.4/traces` 即可。
 
 ## Python Flask 完整示例
 
 这里以 Python 中常用的 Webserver Flask 应用为例。示例中 `SERVICE_A` 提供 HTTP 服务，并且调用 `SERVICE_B` HTTP 服务。
 
 ```shell
-# 先确保安装 flask 包
+# 先安装 flask 包
 $ pip install flask
 ```
 
@@ -117,9 +50,12 @@ from ddtrace import tracer
 # 设置服务名
 os.environ["DD_SERVICE"] = "SERVICE_A"
 
+# 通过环境变量设置项目名，环境名，版本号
+os.environ["DD_TAGS"] = "project:your_project_name,env=test,version=v1"
+
 # 配置 DataKit trace API 服务地址
 tracer.configure(
-    hostname = "localhost",  # 视具体地址而定
+    hostname = "localhost",  # 视具体 DataKit 地址而定
     port     = "9529",
 )
 
@@ -157,8 +93,11 @@ from ddtrace import tracer
 
 os.environ["DD_SERVICE"] = "SERVICE_B"
 
+# 通过环境变量设置项目名，环境名，版本号
+os.environ["DD_TAGS"] = "project:your_project_name,env=test,version=v1"
+
 tracer.configure(
-    hostname="localhost",
+    hostname = "localhost",  # 视具体 DataKit 地址而定
     port="9529",
 )
 
@@ -192,7 +131,7 @@ if __name__ == '__main__':
 $ (ddtrace-run python3 service_a.py &> a.log &)
 $ (ddtrace-run python3 service_b.py &> b.log &)
 
-# 调用 A 服务，促使其调用 B 服务，这样就能产生一条 trace 数据（此处可多次尝试）
+# 调用 A 服务，促使其调用 B 服务，这样就能产生对应 trace 数据（此处可多次执行触发）
 $ curl http://localhost:54321/a
 
 # 分别停止两个服务
@@ -225,6 +164,35 @@ span_type 'exit'
 operation 'flask.process_response'
 ---------
 1 rows, cost 3ms
+```
+
+### ddtrace 环境变量设置
+
+除了在应用初始化时设置项目名，环境名以及版本号外，还可通过如下两种方式设置：
+
+- 通过命令行注入环境变量
+
+```shell
+$ DD_TAGS="project:your_project_name,env=test,version=v1 ddtrace-run python app.py"
+```
+
+- 在 ddtrace.conf 中直接配置自定义标签：
+
+```toml
+[inputs.ddtrace]
+	path = "/v0.4/traces"             # ddtrace 链路数据接收路径，默认与ddtrace官方定义的路径相同
+	[inputs.ddtrace.tags]             # 自定义标签组
+		project = "your_project_name"   # 设置项目名
+		env     = "your_env_name"       # 设置环境名
+		version = "your_version"        # 设置版本信息
+```
+
+#### 关联 tracing 数据混合容器对象
+
+若需要链路数据和容器对象关联，可按照如下方式开启应用（一般情况下就是修改 Dockerfile 中的启动命令 `CMD`）。这里的 `$HOSTNAME` 环境变量会自动替换成对应容器中的 hostname：
+
+```shell
+$ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python your_app.py
 ```
 
 ## 指标集
