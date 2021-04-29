@@ -112,6 +112,12 @@ func PubDatakit() {
 		l.Fatalf("oss access key or secret key missing, tag=%s", strings.ToUpper(Release))
 	}
 
+	ossSlice := strings.SplitN(DownloadAddr, "/", 2)
+	if len(ossSlice) != 2 {
+		l.Fatalf("downloadAddr:%s err", DownloadAddr)
+	}
+	OSSPath = ossSlice[1]
+
 	oc := &cliutils.OssCli{
 		Host:       ossHost,
 		PartSize:   512 * 1024 * 1024,
