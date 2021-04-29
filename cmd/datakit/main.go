@@ -48,7 +48,7 @@ var (
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
 
 	flagExportMan  = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
-	flagIgnoreMans = flag.String("ignore-manuals", "", "disable exporting specified manuals, multiple manules seprated by `,`")
+	flagIgnoreMans = flag.String("ignore-manuals", "", "disable exporting specified manuals, i.e., --ignore-manuals nginx,redis,mem")
 )
 
 var (
