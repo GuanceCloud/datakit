@@ -109,6 +109,11 @@ type (
 		properties map[string]*Property
 	}
 
+	CloudApiCallInfo struct {
+		total   uint64
+		details map[string][]uint64
+	}
+
 	CMS struct {
 		RegionID        string            `toml:"region_id"`
 		AccessKeyID     string            `toml:"access_key_id"`
@@ -129,6 +134,8 @@ type (
 		limiter *rate.Limiter
 
 		mode string
+
+		apiCallInfo *CloudApiCallInfo
 	}
 
 	MetricMeta struct {
@@ -264,4 +271,25 @@ func (p *Project) applyProperty(req *MetricsRequest) {
 
 func (a *CMS) isDebug() bool {
 	return a.mode == "debug"
+}
+
+func (i *CloudApiCallInfo) Inc(apiname string, fail bool) {
+	idx := 0
+	if fail {
+		idx++
+	}
+	p := i.details[apiname]
+	if p == nil {
+		i.details[apiname] = []uint64{0, 0}
+		p = i.details[apiname]
+	}
+	p[idx] = p[idx] + 1
+}
+
+func (i *CloudApiCallInfo) String() string {
+	s := fmt.Sprintf("Total: %v\n", i.total)
+	for k, v := range i.details {
+		s += fmt.Sprintf("%s=%v, %v\n", k, v[0], v[1])
+	}
+	return s
 }
