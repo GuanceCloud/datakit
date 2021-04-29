@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"time"
 )
 
 type DataWayCfg struct {
@@ -206,20 +205,20 @@ func (dc *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
 
 func (dc *DataWayCfg) Test() error {
 
-	httpaddr, err := dc.tcpaddr(dc.scheme, dc.host)
-	if err != nil {
-		return err
-	}
-
-	conn, err := net.DialTimeout("tcp", httpaddr, time.Second*5)
-	if err != nil {
-		l.Errorf("TCP dial host `%s' failed: %s", dc.host, err.Error())
-		return err
-	}
-
-	if err := conn.Close(); err != nil {
-		l.Errorf("Close(): %s, ignored", err.Error())
-	}
+	//httpaddr, err := dc.tcpaddr(dc.scheme, dc.host)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//conn, err := net.DialTimeout("tcp", httpaddr, time.Second*5)
+	//if err != nil {
+	//	l.Errorf("TCP dial host `%s' failed: %s", dc.host, err.Error())
+	//	return err
+	//}
+	//
+	//if err := conn.Close(); err != nil {
+	//	l.Errorf("Close(): %s, ignored", err.Error())
+	//}
 
 	return nil
 }
