@@ -1,20 +1,14 @@
 package io
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"encoding/json"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
@@ -42,14 +36,11 @@ type qstats struct {
 }
 
 type IO struct {
-	DatawayHost   string
-	HTTPTimeout   time.Duration
 	MaxCacheCnt   int64
 	OutputFile    string
 	FlushInterval time.Duration
 
-	httpCli *http.Client
-	dw      *datakit.DataWayCfg
+	dw *datakit.DataWayCfg
 
 	in        chan *iodata
 	in2       chan *iodata // high-freq chan
@@ -64,25 +55,27 @@ type IO struct {
 	cacheCnt       int64
 	fd             *os.File
 	outputFileSize int64
-	categoryURLs   map[string][]string
 }
 
-func NewIO() *IO {
-	return &IO{
-		HTTPTimeout:   30 * time.Second,
+func NewIO(maxCacheCnt int64) *IO {
+	io := &IO{
 		MaxCacheCnt:   1024,
-		FlushInterval: time.Second * 10,
-
-		in:        make(chan *iodata, 128),
-		in2:       make(chan *iodata, 128*8),
-		inLastErr: make(chan *lastErr, 128),
+		FlushInterval: 10 * time.Second,
+		in:            make(chan *iodata, 128),
+		in2:           make(chan *iodata, 128*8),
+		inLastErr:     make(chan *lastErr, 128),
 
 		inputstats: map[string]*InputsStat{},
 		qstatsCh:   make(chan *qstats), // blocking
 
 		cache:        map[string][]*Point{},
 		dynamicCache: []*iodata{},
+		dw:           datakit.Cfg.MainCfg.DataWay,
 	}
+
+	io.MaxCacheCnt = maxCacheCnt
+
+	return io
 }
 
 const ( // categories
@@ -276,7 +269,6 @@ func (x *IO) init() error {
 }
 
 func (x *IO) StartIO(recoverable bool) {
-
 	if err := x.init(); err != nil {
 		l.Errorf("init io err %v", err)
 		return
@@ -326,7 +318,7 @@ func (x *IO) StartIO(recoverable bool) {
 				x.cleanHighFreqIOData()
 
 			case <-heartBeatTick.C:
-				x.dkHeartbeat()
+				x.dw.HeartBeat()
 
 			case <-tick.C:
 				l.Debugf("chan stat: %s", ChanStat())
@@ -341,34 +333,6 @@ func (x *IO) StartIO(recoverable bool) {
 
 	l.Info("starting...")
 	f(nil, nil)
-}
-
-func (x *IO) dkHeartbeat() {
-	for _, beatUrl := range datakit.Cfg.MainCfg.DataWay.HeartBeatURL() {
-		body := map[string]interface{}{
-			"dk_uuid":   datakit.Cfg.MainCfg.UUID,
-			"heartbeat": time.Now().Unix(),
-			"host":      datakit.Cfg.MainCfg.Hostname,
-		}
-		bodyByte, err := json.Marshal(body)
-		if err != nil {
-			l.Errorf("[error] heartbeat json marshal err:%s", err.Error())
-			return
-		}
-
-		req, err := http.NewRequest("POST", beatUrl, bytes.NewBuffer(bodyByte))
-		resp, err := x.httpCli.Do(req)
-		if err != nil {
-			l.Error(err)
-			return
-		}
-
-		defer resp.Body.Close()
-
-		if resp.StatusCode >= 400 {
-			l.Errorf("heart beat resp err: %+#v", resp)
-		}
-	}
 }
 
 func (x *IO) flushAll() {
@@ -388,10 +352,6 @@ func (x *IO) flushAll() {
 }
 
 func (x *IO) flush() {
-	if x.httpCli != nil {
-		defer x.httpCli.CloseIdleConnections()
-	}
-
 	for k, v := range x.cache {
 		if err := x.doFlush(v, k); err != nil {
 			l.Errorf("post %d to %s failed", len(v), k)
@@ -450,7 +410,6 @@ func (x *IO) buildBody(pts []*Point) (body []byte, gzon bool, err error) {
 }
 
 func (x *IO) doFlush(pts []*Point, category string) error {
-
 	if testAssert {
 		return nil
 	}
@@ -470,7 +429,7 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 
 	l.Debug("post data")
 
-	datakit.Send(category, body, gz)
+	x.dw.Send(category, body, gz)
 
 	return nil
 }
