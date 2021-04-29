@@ -58,6 +58,7 @@
 - 以下采集器，将不再有效，请用上面内置的采集器来采集
 	- `dockerlog`：已集成到 docker 采集器
 	- `docker_containers`：已集成到 docker 采集器
+	- `mysqlMonitor`：以集成到 mysql 采集器
 
 ## 新增特性
 
