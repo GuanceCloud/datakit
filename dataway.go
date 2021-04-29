@@ -129,11 +129,11 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) {
 		defer dw.httpCli.CloseIdleConnections()
 	}
 
-	if dw.httpCli == nil {
-		dw.httpCli = &http.Client{
-			Timeout: dw.HTTPTimeout,
-		}
-	}
+	// if dw.httpCli == nil {
+	// 	dw.httpCli = &http.Client{
+	// 		Timeout: dw.HTTPTimeout,
+	// 	}
+	// }
 
 	for _, dc := range dw.dataWayClients {
 		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
@@ -222,7 +222,7 @@ func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 		Timeout: 30 * time.Second,
 	}
 
-	if dw.Proxy {
+	if dw.HttpProxy != "" {
 		uri, err := url.Parse(dw.HttpProxy)
 		if err != nil {
 			l.Error("parse url error: ", err)
@@ -239,7 +239,7 @@ func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 		return nil, fmt.Errorf("empty dataway HTTP endpoint")
 	}
 
-	categorys := []string{"MetricDeprecated", "Metric", "KeyEvent", "Object", "Logging", "Tracing", "Rum", "Security", "HeartBeat"}
+	categorys := []string{MetricDeprecated, Metric, KeyEvent, Object, Logging, Tracing, Rum, Security, HeartBeat}
 
 	for _, httpurl := range httpurls {
 		u, err := url.Parse(httpurl)
@@ -253,7 +253,7 @@ func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 			dataWayCli.categoryUrl = make(map[string]string)
 
 			for _, category := range categorys {
-				categoryUrl := fmt.Sprintf("%s%s", baseUrl, category)
+				categoryUrl := fmt.Sprintf("%s/%s", baseUrl, category)
 				dataWayCli.categoryUrl[category] = fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, categoryUrl, dataWayCli.urlValues.Encode())
 			}
 
