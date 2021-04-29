@@ -7,7 +7,6 @@ import (
 	"text/template"
 
 	"github.com/gobuffalo/packr/v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -22,6 +21,7 @@ var (
 		"telegraf":  "telegraf.md",
 		"changelog": "man/manuals/changelog.md",
 		"datatypes": "man/manuals/datatypes.md",
+		"apis":      "man/manuals/apis.md",
 	}
 
 	l = logger.DefaultSLogger("man")
