@@ -285,10 +285,11 @@ func (c *Config) setHostname() {
 
 func (c *Config) EnableDefaultsInputs(inputlist string) {
 	inputs := []string{}
-	inputsUnique := make(map[string]byte)
+	inputsUnique := make(map[string]bool)
 
 	for _, name := range c.MainCfg.DefaultEnabledInputs {
 		if _, ok := inputsUnique[name]; !ok {
+			inputsUnique[name] = true
 			inputs = append(inputs, name)
 		}
 	}
@@ -296,6 +297,7 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 	elems := strings.Split(inputlist, ",")
 	for _, name := range elems {
 		if _, ok := inputsUnique[name]; !ok {
+			inputsUnique[name] = true
 			inputs = append(inputs, name)
 		}
 	}
