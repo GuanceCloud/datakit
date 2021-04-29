@@ -30,7 +30,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 var (
@@ -73,7 +72,7 @@ func Start(o *Option) {
 }
 
 type reloadOption struct {
-	ReloadInputs, ReloadTelegraf, ReloadMainCfg, ReloadIO bool
+	ReloadInputs, ReloadMainCfg, ReloadIO bool
 }
 
 func ReloadDatakit(ro *reloadOption) error {
@@ -101,11 +100,6 @@ func ReloadDatakit(ro *reloadOption) error {
 	if ro.ReloadIO {
 		l.Info("reloading io...")
 		io.Start()
-	}
-
-	if ro.ReloadTelegraf {
-		l.Info("reloading telegraf...")
-		inputs.StartTelegraf()
 	}
 
 	resetHttpRoute()
@@ -242,6 +236,7 @@ func HttpStart() {
 	router.POST(io.Logging, func(c *gin.Context) { apiWriteLogging(c) })
 	router.POST(io.Tracing, func(c *gin.Context) { apiWriteTracing(c) })
 	router.POST(io.Security, func(c *gin.Context) { apiWriteSecurity(c) })
+	router.POST(io.Telegraf, func(c *gin.Context) { apiWriteTelegraf(c) })
 
 	srv := &http.Server{
 		Addr:    httpBind,
@@ -376,17 +371,6 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	for k := range tgi.TelegrafInputs {
-		if !datakit.Enabled(k) {
-			continue
-		}
-
-		n, cfgs := inputs.InputEnabled(k)
-		if n > 0 {
-			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Cfgs: cfgs})
-		}
-	}
-
 	for k := range inputs.Inputs {
 		if !datakit.Enabled(k) {
 			continue
@@ -394,16 +378,9 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", k))
 	}
 
-	for k := range tgi.TelegrafInputs {
-		if !datakit.Enabled(k) {
-			continue
-		}
-		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[T] %s", k))
-	}
-
-	// add available inputs(datakit+telegraf) stats
-	stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("tatal %d, datakit %d, agent: %d",
-		len(stats.AvailableInputs), len(inputs.Inputs), len(tgi.TelegrafInputs)))
+	// add available inputs(datakit) stats
+	stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("tatal %d, datakit %d",
+		len(stats.AvailableInputs), len(inputs.Inputs)))
 
 	sort.Strings(stats.AvailableInputs)
 
@@ -421,10 +398,9 @@ func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
 func apiReload(c *gin.Context) {
 
 	if err := ReloadDatakit(&reloadOption{
-		ReloadInputs:   true,
-		ReloadTelegraf: true,
-		ReloadMainCfg:  true,
-		ReloadIO:       true,
+		ReloadInputs:  true,
+		ReloadMainCfg: true,
+		ReloadIO:      true,
 	}); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrReloadDatakitFailed, err.Error()))
 		return
@@ -544,7 +520,7 @@ func apiManual(c *gin.Context) {
 		return
 	}
 
-	mdtxt, err := man.BuildMarkdownManual(name)
+	mdtxt, err := man.BuildMarkdownManual(name, &man.Option{WithCSS: true})
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
 		return
