@@ -414,6 +414,7 @@ func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 
 			s.limiter.Wait(ctx)
 			//fmt.Printf("querys: %s", req.q.GetQueryParams())
+
 			resp, err = s.apiClient.DescribeMetricList(req.q)
 
 			if tempDelay == 0 {
@@ -446,7 +447,7 @@ func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 		if err != nil {
 			moduleLogger.Debugf("params: Namespace: %s, MetricName: %s, Period: %s, StartTime: %s, EndTime: %s, Dimensions: %s, RegionId: %s, NextToken: %s", req.q.Namespace, req.q.MetricName, req.q.Period, req.q.StartTime, req.q.EndTime, req.q.Dimensions, req.q.RegionId, resp.NextToken)
 			moduleLogger.Errorf("bad response, err: %s", err)
-			return err
+			break
 		}
 
 		req.q.NextToken = resp.NextToken
