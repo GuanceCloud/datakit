@@ -13,20 +13,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 // load all inputs under @InstallDir/conf.d
 func LoadInputsConfig(c *datakit.Config) error {
 	// create election module
 	election.NewGolbalConsensusModule()
-
-	// detect same-name input name between datakit and telegraf
-	for k := range tgi.TelegrafInputs {
-		if _, ok := inputs.Inputs[k]; ok {
-			l.Fatalf(fmt.Sprintf("same name input %s within datakit and telegraf", k))
-		}
-	}
 
 	availableInputCfgs := map[string]*ast.Table{}
 
@@ -92,20 +84,7 @@ func LoadInputsConfig(c *datakit.Config) error {
 		}
 	}
 
-	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, availableInputCfgs, nil)
-	if err != nil {
-		return err
-	}
-
-	if telegrafRawCfg != "" {
-		if err := ioutil.WriteFile(filepath.Join(datakit.TelegrafDir, "agent.conf"), []byte(telegrafRawCfg), os.ModePerm); err != nil {
-			l.Errorf("create telegraf conf failed: %s", err.Error())
-			return err
-		}
-	}
-
 	inputs.AddSelf()
-	inputs.AddTelegrafHTTPInput()
 
 	l.Debugf("datakit election status: %s", election.CurrentStats())
 
@@ -264,27 +243,6 @@ func initPluginSamples() {
 			l.Fatal(err)
 		}
 	}
-
-	// create telegraf input plugin's configures
-	for name, input := range tgi.TelegrafInputs {
-
-		if !datakit.Enabled(name) {
-			l.Debugf("initPluginSamples: ignore unchecked input %s", name)
-			continue
-		}
-
-		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf.sample")
-		l.Debugf("create telegraf conf path %s", filepath.Join(datakit.ConfdDir, input.Catalog))
-		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, input.Catalog), os.ModePerm); err != nil {
-			l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
-		}
-
-		if input, ok := tgi.TelegrafInputs[name]; ok {
-			if err := ioutil.WriteFile(cfgpath, []byte(input.SampleConfig()), 0600); err != nil {
-				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
-			}
-		}
-	}
 }
 
 func initDefaultEnabledPlugins(c *datakit.Config) {
@@ -296,10 +254,7 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 	for _, name := range c.MainCfg.DefaultEnabledInputs {
 		var fpath, sample string
 
-		if i, ok := tgi.TelegrafInputs[name]; ok {
-			fpath = filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf")
-			sample = i.SampleConfig()
-		} else if c, ok := inputs.Inputs[name]; ok {
+		if c, ok := inputs.Inputs[name]; ok {
 			i := c()
 			sample = i.SampleConfig()
 
