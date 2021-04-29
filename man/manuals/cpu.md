@@ -30,6 +30,8 @@ CPU 采集器用于系统 CPU 使用率的采集
 
 ### `{{$m.Name}}`
 
+{{$m.Desc}}
+
 -  标签
 
 {{$m.TagsMarkdownTable}}
