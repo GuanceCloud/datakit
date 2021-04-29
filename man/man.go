@@ -7,7 +7,6 @@ import (
 	"text/template"
 
 	"github.com/gobuffalo/packr/v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -18,10 +17,11 @@ var (
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
 		// all manuals under man/manuals/
-		"pipeline":    "pipeline.md",
-		"telegraf":    "telegraf.md",
-		"changelog":   "man/manuals/changelog.md",
-		"datatypes":   "man/manuals/datatypes.md",
+		"pipeline":  "pipeline.md",
+		"telegraf":  "telegraf.md",
+		"changelog": "man/manuals/changelog.md",
+		"datatypes": "man/manuals/datatypes.md",
+		"apis":      "man/manuals/apis.md",
 		"sec-checker": "man/manuals/sec-checker.md",
 	}
 
