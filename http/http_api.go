@@ -191,3 +191,38 @@ func apiWriteSecurity(c *gin.Context) {
 		ErrOK.HttpBody(c, nil)
 	}
 }
+
+func apiWriteTelegraf(c *gin.Context) {
+	body, err := uhttp.GinRead(c)
+	if err != nil {
+		l.Errorf("failed to read body, err: %s", err.Error())
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+		return
+	}
+
+	if len(body) == 0 {
+		l.Debug("empty body")
+		return
+	}
+
+	var pts []*influxdb.Point
+	if pts, err = lp.ParsePoints(body, &lp.Option{
+		Strict:    true,
+		Precision: "n"}); err != nil {
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+
+		return
+	}
+
+	l.Debugf("received security %d points from %s", len(pts), "telegraf")
+	var x []*io.Point
+	for _, pt := range pts {
+		x = append(x, &io.Point{pt})
+	}
+	if err = io.Feed("telegraf", io.Metric, x, nil); err != nil {
+		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+
+		return
+	}
+
+}
