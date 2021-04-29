@@ -175,7 +175,7 @@ func (c *Config) LoadMainConfig(p string) error {
 		return err
 	}
 
-	return c.doLoadMainConfig(cfgdata)
+	return c.DoLoadMainConfig(cfgdata)
 }
 
 func (c *Config) InitCfg(p string) error {
@@ -198,7 +198,7 @@ func (c *Config) InitCfg(p string) error {
 	return nil
 }
 
-func (c *Config) doLoadMainConfig(cfgdata []byte) error {
+func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 	_, err := bstoml.Decode(string(cfgdata), c.MainCfg)
 	if err != nil {
 		l.Errorf("unmarshal main cfg failed %s", err.Error())
