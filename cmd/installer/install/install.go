@@ -183,7 +183,11 @@ func UpgradeDatakit(svc service.Service) error {
 		l.Warnf("stop service: %s, ignored", err.Error())
 	}
 
-	writeDefInputToMainCfg()
+	if err := datakit.Cfg.LoadMainConfig(datakit.MainConfPath); err == nil {
+		writeDefInputToMainCfg()
+	} else {
+		l.Warnf("load main config: %s, ignored", err.Error())
+	}
 
 	for _, dir := range []string{datakit.DataDir, datakit.LuaDir, datakit.ConfdDir} {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
