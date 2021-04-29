@@ -3,9 +3,7 @@
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
 
-# Datakit web apis
-
-## /v1/write/metric
+# /v1/write/metric
 
 ### Example:
 
@@ -37,7 +35,7 @@ _Fields_
 > |      |      |
 > |      |      |
 
-## /v1/write/object
+# /v1/write/object
 
 ### Example:
 
@@ -69,7 +67,7 @@ _Fields_
 > |      |      |
 > |      |      |
 
-## /v1/write/rum
+# /v1/write/rum
 
 ### Example:
 
@@ -101,7 +99,7 @@ _Fields_
 > |      |      |
 > |      |      |
 
-## /v1/write/logging
+# /v1/write/logging
 
 ### Example:
 
@@ -153,7 +151,7 @@ _status_
 
 默认使用此条日志采集到的时间。如果使用 pipeline 对日志文本进行切割，且切割后的 time 字段符合转换规则，会将 time 字段转换为标准时间应用在此。
 
-## /v1/write/security
+# /v1/write/security
 
 ### Example:
 
@@ -185,7 +183,7 @@ _Fields_
 > |      |      |
 > |      |      |
 
-## /v1/write/tracing
+# /v1/write/tracing
 
 ### Example:
 
