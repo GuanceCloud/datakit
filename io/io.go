@@ -79,15 +79,15 @@ func NewIO(maxCacheCnt int64) *IO {
 }
 
 const ( // categories
-	MetricDeprecated = "/v1/write/metrics"
-	Metric           = "/v1/write/metric"
-	KeyEvent         = "/v1/write/keyevent"
-	Object           = "/v1/write/object"
-	Logging          = "/v1/write/logging"
-	Tracing          = "/v1/write/tracing"
-	Rum              = "/v1/write/rum"
-	Security         = "/v1/write/security"
-	HeartBeat        = "/v1/write/heartbeat"
+	// MetricDeprecated = "/v1/write/metrics"
+	// Metric           = "/v1/write/metric"
+	// KeyEvent         = "/v1/write/keyevent"
+	// Object           = "/v1/write/object"
+	// Logging          = "/v1/write/logging"
+	// Tracing          = "/v1/write/tracing"
+	// Rum              = "/v1/write/rum"
+	// Security         = "/v1/write/security"
+	// HeartBeat        = "/v1/write/heartbeat"
 
 	minGZSize = 1024
 )
@@ -136,14 +136,14 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	}
 
 	switch category {
-	case MetricDeprecated:
-	case Metric:
-	case KeyEvent:
-	case Object:
-	case Logging:
-	case Tracing:
-	case Security:
-	case Rum:
+	case datakit.MetricDeprecated:
+	case datakit.Metric:
+	case datakit.KeyEvent:
+	case datakit.Object:
+	case datakit.Logging:
+	case datakit.Tracing:
+	case datakit.Security:
+	case datakit.Rum:
 	default:
 		return fmt.Errorf("invalid category `%s'", category)
 	}
