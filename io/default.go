@@ -10,22 +10,13 @@ import (
 )
 
 var (
-	defaultIO = NewIO()
+	defaultMaxCacheCnt = int64(1024)
+
+	defaultIO = NewIO(defaultMaxCacheCnt)
 )
 
 func Start() error {
 	l = logger.SLogger("io")
-
-	defaultIO.DatawayHost = datakit.Cfg.MainCfg.DataWay.URL
-
-	if datakit.Cfg.MainCfg.DataWay.Timeout != "" {
-		du, err := time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Timeout)
-		if err != nil {
-			l.Warnf("parse dataway timeout failed: %s, default 30s", err.Error())
-		} else {
-			defaultIO.HTTPTimeout = du
-		}
-	}
 
 	if datakit.OutputFile != "" {
 		defaultIO.OutputFile = datakit.OutputFile
