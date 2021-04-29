@@ -53,6 +53,7 @@ require (
 	github.com/gomarkdown/markdown v0.0.0-20210208175418-bda154fe17d8
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gopacket v1.1.17
+	github.com/gorilla/mux v1.8.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/huaweicloud/huaweicloud-sdk-go-v3 v0.0.30-rc.1
 	github.com/imdario/mergo v0.3.9 // indirect
