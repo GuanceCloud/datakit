@@ -18,6 +18,9 @@ import (
 
 // load all inputs under @InstallDir/conf.d
 func LoadInputsConfig(c *datakit.Config) error {
+	// create election module
+	election.NewGolbalConsensusModule()
+
 	// detect same-name input name between datakit and telegraf
 	for k := range tgi.TelegrafInputs {
 		if _, ok := inputs.Inputs[k]; ok {
