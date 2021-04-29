@@ -13,6 +13,7 @@ func getOverview(n *Input) {
 	err := n.requestJSON("/api/overview", &overview)
 	if err != nil {
 		l.Errorf(err.Error())
+		n.lastErr = err
 		return
 	}
 	ts := time.Now()
@@ -36,6 +37,8 @@ func getOverview(n *Input) {
 
 		"message_ack_count":                    overview.MessageStats.Ack,
 		"message_ack_rate":                     overview.MessageStats.AckDetails.Rate,
+		"message_confirm_count":                overview.MessageStats.Confirm,
+		"message_confirm_rate":                 overview.MessageStats.ConfirmDetail.Rate,
 		"message_deliver_get_count":            overview.MessageStats.DeliverGet,
 		"message_deliver_get_rate":             overview.MessageStats.DeliverGetDetails.Rate,
 		"message_publish_count":                overview.MessageStats.Publish,
@@ -87,6 +90,8 @@ func (m *OverviewMeasurement) Info() *inputs.MeasurementInfo {
 
 			"message_ack_count":                    newCountFieldInfo("Number of messages delivered to clients and acknowledged"),
 			"message_ack_rate":                     newRateFieldInfo("Rate of messages delivered to clients and acknowledged per second"),
+			"message_confirm_count":                newCountFieldInfo("Count of messages confirmed"),
+			"message_confirm_rate":                 newRateFieldInfo("Rate of messages confirmed per second"),
 			"message_deliver_get_count":            newCountFieldInfo("Sum of messages delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get"),
 			"message_deliver_get_rate":             newRateFieldInfo("Rate per second of the sum of messages delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get "),
 			"message_publish_count":                newCountFieldInfo("Count of messages published"),
