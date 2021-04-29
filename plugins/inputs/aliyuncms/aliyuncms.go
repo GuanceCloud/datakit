@@ -117,6 +117,10 @@ func (c *CMS) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
 
+	c.apiCallInfo = &CloudApiCallInfo{
+		details: map[string][]uint64{},
+	}
+
 	go func() {
 		<-datakit.Exit.Wait()
 		c.cancelFun()
