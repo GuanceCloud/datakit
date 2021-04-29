@@ -49,7 +49,8 @@ func getDataWayCfg() *datakit.DataWayCfg {
 	if DataWayHTTP == "" {
 		for {
 			dwhttp := readInput("Please set DataWay HTTP URL(http[s]://host:port?token=xxx) > ")
-			dc, err = datakit.ParseDataway(dwhttp)
+			dwUrls := []string{dwhttp}
+			dc, err = datakit.ParseDataway(dwUrls)
 			if err != nil {
 				fmt.Printf("%s\n", err.Error())
 				continue
@@ -62,7 +63,8 @@ func getDataWayCfg() *datakit.DataWayCfg {
 
 		}
 	} else {
-		dc, err = datakit.ParseDataway(DataWayHTTP)
+		dwUrls := []string{DataWayHTTP}
+		dc, err = datakit.ParseDataway(dwUrls)
 		if err != nil {
 			l.Fatal(err)
 		}
@@ -140,12 +142,12 @@ func upgradeMainConfigure(cfg *datakit.Config, mcp string) error {
 
 	mc := cfg.MainCfg
 
-	if mc.DataWay.URL == "" { // use old-version configure fields to build @URL
-		mc.DataWay.URL = fmt.Sprintf("%s://%s", mc.DataWay.DeprecatedScheme, mc.DataWay.DeprecatedHost)
+	if mc.DataWay.DeprecatedURL == "" { // use old-version configure fields to build @URL
+		mc.DataWay.DeprecatedURL = fmt.Sprintf("%s://%s", mc.DataWay.DeprecatedScheme, mc.DataWay.DeprecatedHost)
 	}
 
 	if mc.DataWay.DeprecatedToken != "" {
-		mc.DataWay.URL += fmt.Sprintf("?token=%s", mc.DataWay.DeprecatedToken)
+		mc.DataWay.DeprecatedURL += fmt.Sprintf("?token=%s", mc.DataWay.DeprecatedToken)
 	}
 
 	// clear deprecated fields
