@@ -27,23 +27,6 @@ func (e EscapeError) Error() string {
 
 func TestJsonFunc(t *testing.T) {
 	var testCase = []*funcCase{
-		// {
-		// 	data:     `{
-		// 	  "name": {"first": "Tom", "last": "Anderson"},
-		// 	  "age":37,
-		// 	  "children": ["Sara","Alex","Jack"],
-		// 	  "fav.movie": "Deer Hunter",
-		// 	  "friends": [
-		// 	    ["ig", "fb", "tw"],
-		// 	    ["fb", "tw"],
-		// 	    ["ig", "tw"]
-		// 	  ]
-		// 	}`,
-		// 	script:   `json(_, friends[0][0])`,
-		// 	expected: "ig",
-		// 	key:      "friends[0][0]",
-		// 	err:      nil,
-		// },
 		{
 			data: `{
 			  "name": {"first": "Tom", "last": "Anderson"},
@@ -789,4 +772,102 @@ func TestJsonAllFunc(t *testing.T) {
 	r, err := p.getContent("children[0]")
 
 	assertEqual(t, r, "Sara")
+}
+
+func TestDz(t *testing.T) {
+	cases := []*funcCase{
+		{
+			data:     `{"str": "13838130517"}`,
+			script:   `json(_, str) cover(str, [8, 13])`,
+			expected: "1383813****",
+			key:      "str",
+		},
+		{
+			data:     `{"str": "13838130517"}`,
+			script:   `json(_, str) cover(str, [8, 11])`,
+			expected: "1383813****",
+			key:      "str",
+		},
+		{
+			data:     `{"str": "13838130517"}`,
+			script:   `json(_, str) cover(str, [2, 4])`,
+			expected: "1***8130517",
+			key:      "str",
+		},
+		{
+			data:     `{"str": "13838130517"}`,
+			script:   `json(_, str) cover(str, [0, 3])`,
+			expected: "***38130517",
+			key:      "str",
+		},
+		{
+			data:     `{"str": "13838130517"}`,
+			script:   `json(_, str) cover(str, [1, 1])`,
+			expected: "*3838130517",
+			key:      "str",
+		},
+		{
+			data:     `{"str": "刘少波"}`,
+			script:   `json(_, str) cover(str, [2, 2])`,
+			expected: "刘＊波",
+			key:      "str",
+		},
+	}
+
+	for _, tt := range cases {
+		p, err := NewPipeline(tt.script)
+		assertEqual(t, err, p.lastErr)
+
+		p.Run(tt.data)
+
+		r, err := p.getContentStr(tt.key)
+
+		fmt.Println("=======>", r)
+
+		if !tt.fail {
+			assertEqual(t, r, tt.expected)
+		}
+	}
+}
+
+func TestReplace(t *testing.T) {
+	cases := []*funcCase{
+		{
+			data:     `{"str": "13789123014"}`,
+			script:   `json(_, str) replace(str, "(1[0-9]{2})[0-9]{4}([0-9]{4})", "$1****$2")`,
+			expected: "137****3014",
+			key:      "str",
+		},
+		{
+			data:     `{"str": "zhang san"}`,
+			script:   `json(_, str) replace(str, "([a-z]*) \\w*", "$1 ***")`,
+			expected: "zhang ***",
+			key:      "str",
+		},
+		{
+			data:     `{"str": "362201200005302565"}`,
+			script:   `json(_, str) replace(str, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")`,
+			expected: "3622**********2565",
+			key:      "str",
+		},
+		{
+			data:     `{"str": "小阿卡"}`,
+			script:   `json(_, str) replace(str, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")`,
+			expected: "小＊卡",
+			key:      "str",
+		},
+	}
+
+	for _, tt := range cases {
+		p, err := NewPipeline(tt.script)
+		assertEqual(t, err, p.lastErr)
+
+		p.Run(tt.data)
+
+		r, err := p.getContentStr(tt.key)
+
+		if !tt.fail {
+			assertEqual(t, r, tt.expected)
+		}
+	}
 }
