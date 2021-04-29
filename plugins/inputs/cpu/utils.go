@@ -57,6 +57,7 @@ type UsageStat struct {
 	Steal     float64
 	Guest     float64
 	GuestNice float64
+	Total     float64
 }
 
 // calculate cpu usage
@@ -78,6 +79,7 @@ func CalculateUsage(nowT cpu.TimesStat, lastT cpu.TimesStat, totalDelta float64)
 	c.Steal = 100 * (nowT.Steal - lastT.Steal) / totalDelta
 	c.Guest = 100 * (nowT.Guest - lastT.Guest) / totalDelta
 	c.GuestNice = 100 * (nowT.GuestNice - lastT.GuestNice) / totalDelta
+	c.Total = 100 * (nowT.Total() - nowT.Idle - lastT.Total() + lastT.Idle) / totalDelta
 	return c, nil
 }
 

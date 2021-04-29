@@ -56,10 +56,12 @@ type cpuMeasurement struct {
 func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 	// see https://man7.org/linux/man-pages/man5/proc.5.html
 	return &inputs.MeasurementInfo{
+		Desc: `
+Linux cpu time 统计信息中的 user 包含 guest，nice 包含 guest_nice 。可参考 [kernel/sched/cputime.c](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/kernel/sched/cputime.c) ；  
+Datakit 使用 usage_user, usage_system, usage_nice, usage_iowait, usage_irq, usage_softirq, usage_steal 之和(即 100 - usage_idle )作为 usage_total 。
+		`,
 		Name: metricName,
 		Fields: map[string]interface{}{
-			// "active": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-			// 	Desc: "% CPU usage."},
 			"usage_user": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU in user mode."},
 
@@ -76,10 +78,10 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 				Desc: "% CPU waiting for I/O to complete."},
 
 			"usage_irq": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "% CPU servicing interrupts."},
+				Desc: "% CPU servicing hardware interrupts."},
 
 			"usage_softirq": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "% CPU servicing softirqs."},
+				Desc: "% CPU servicing soft interrupts."},
 
 			"usage_steal": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU spent in other operating systems when running in a virtualized environment."},
@@ -89,6 +91,9 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 
 			"usage_guest_nice": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU spent running a niced guest(virtual CPU for guest operating systems)."},
+
+			"usage_total": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+				Desc: "% CPU in total active usage."},
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "主机名"},
@@ -190,13 +195,12 @@ func (i *Input) Run() {
 					} else {
 						isfirstRun = false
 					}
-
 				}
-				i.collectCache = make([]inputs.Measurement, 0)
 			} else {
 				io.FeedLastError(inputName, err.Error())
 				i.logger.Error(err)
 			}
+			i.collectCache = make([]inputs.Measurement, 0)
 		case <-datakit.Exit.Wait():
 			i.logger.Infof("cpu input exit")
 			return
