@@ -12,29 +12,31 @@ import (
 )
 
 const (
-	collectCycle = time.Second * 10
-	inputName    = "cpu"
-	metricName   = inputName
-	sampleCfg    = `
+	minInterval = time.Second
+	maxInterval = time.Minute
+)
+
+const (
+	inputName  = "cpu"
+	metricName = inputName
+	sampleCfg  = `
 [[inputs.cpu]]
-  ## no sample need here
+  ##(optional) collect interval, default is 10 seconds
+  interval = '10s'
+  ## 
   [inputs.cpu.tags]
     # tag1 = "a"
-	`
+`
 )
 
 type Input struct {
-	// 在配置文件中移除可配置项 percpu, totalcpu, collect_cpu_time
-	// 简化为只上报 cpu-total 的 usage stat (% CPU time)
-	// 移除前缀: `usage_`
-	PerCPU   bool `toml:"percpu"`   // deprecated
-	TotalCPU bool `toml:"totalcpu"` // deprecated
+	PerCPU         bool `toml:"percpu"`           // deprecated
+	TotalCPU       bool `toml:"totalcpu"`         // deprecated
+	CollectCPUTime bool `toml:"collect_cpu_time"` // deprecated
+	ReportActive   bool `toml:"report_active"`    // deprecated
 
-	CollectCPUTime bool `toml:"collect_cpu_time"` //
-
-	ReportActive bool `toml:"report_active"`
-
-	Tags map[string]string
+	Interval datakit.Duration
+	Tags     map[string]string
 
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr *cpuMeasurement
@@ -54,10 +56,12 @@ type cpuMeasurement struct {
 func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 	// see https://man7.org/linux/man-pages/man5/proc.5.html
 	return &inputs.MeasurementInfo{
+		Desc: `
+Linux cpu time 统计信息中的 user 包含 guest，nice 包含 guest_nice 。可参考 [kernel/sched/cputime.c](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/kernel/sched/cputime.c) ；  
+Datakit 使用 usage_user, usage_system, usage_nice, usage_iowait, usage_irq, usage_softirq, usage_steal 之和(即 100 - usage_idle )作为 usage_total 。
+		`,
 		Name: metricName,
 		Fields: map[string]interface{}{
-			// "active": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-			// 	Desc: "% CPU usage."},
 			"usage_user": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU in user mode."},
 
@@ -74,10 +78,10 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 				Desc: "% CPU waiting for I/O to complete."},
 
 			"usage_irq": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "% CPU servicing interrupts."},
+				Desc: "% CPU servicing hardware interrupts."},
 
 			"usage_softirq": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "% CPU servicing softirqs."},
+				Desc: "% CPU servicing soft interrupts."},
 
 			"usage_steal": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU spent in other operating systems when running in a virtualized environment."},
@@ -87,6 +91,9 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 
 			"usage_guest_nice": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU spent running a niced guest(virtual CPU for guest operating systems)."},
+
+			"usage_total": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+				Desc: "% CPU in total active usage."},
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "主机名"},
@@ -172,19 +179,28 @@ func (i *Input) Collect() error {
 
 func (i *Input) Run() {
 	i.logger.Infof("cpu input started")
-	tick := time.NewTicker(collectCycle)
+	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	tick := time.NewTicker(i.Interval.Duration)
+	isfirstRun := true
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
 			start := time.Now()
 			if err := i.Collect(); err == nil {
-				inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since((start))})
-				i.collectCache = make([]inputs.Measurement, 0)
+				if errFeed := inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
+					&io.Option{CollectCost: time.Since((start))}); errFeed != nil {
+					if !isfirstRun {
+						io.FeedLastError(inputName, errFeed.Error())
+					} else {
+						isfirstRun = false
+					}
+				}
 			} else {
+				io.FeedLastError(inputName, err.Error())
 				i.logger.Error(err)
 			}
+			i.collectCache = make([]inputs.Measurement, 0)
 		case <-datakit.Exit.Wait():
 			i.logger.Infof("cpu input exit")
 			return
@@ -195,8 +211,9 @@ func (i *Input) Run() {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			logger: logger.SLogger(inputName),
-			ps:     &CPUInfo{},
+			logger:   logger.SLogger(inputName),
+			ps:       &CPUInfo{},
+			Interval: datakit.Duration{Duration: time.Second * 10},
 		}
 	})
 }
