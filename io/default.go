@@ -63,7 +63,6 @@ func GetStats(timeout time.Duration) (map[string]*InputsStat, error) {
 	select {
 	case defaultIO.qstatsCh <- q:
 	case <-tick.C:
-		close(q.ch)
 		return nil, fmt.Errorf("default IO busy(qid: %s, %v)", q.qid, timeout)
 	}
 
