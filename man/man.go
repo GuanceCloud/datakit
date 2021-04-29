@@ -22,6 +22,7 @@ var (
 		"changelog": "man/manuals/changelog.md",
 		"datatypes": "man/manuals/datatypes.md",
 		"apis":      "man/manuals/apis.md",
+		"sec-checker": "man/manuals/sec-checker.md",
 	}
 
 	l = logger.DefaultSLogger("man")

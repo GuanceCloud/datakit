@@ -7,24 +7,19 @@ const (
 	SampleConfig = `
 [inputs.hostobject]
 
-# ##(optional) collect interval, default is 5 miniutes
-interval = '5m'
+#pipeline = '' # optional
 
-# ##(optional) 
-#pipeline = ''
-
-# ## Datakit does not collect network virtual interfaces under the linux system.
-# ## Setting enable_net_virtual_interfaces to true will collect network virtual interfaces stats for linux.
+## Datakit does not collect network virtual interfaces under the linux system.
+## Setting enable_net_virtual_interfaces to true will collect network virtual interfaces stats for linux.
 # enable_net_virtual_interfaces = true
 
-# ## Ignore mount points by filesystem type.
-ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "autofs", "squashfs", "aufs"]
+## Ignore mount points by filesystem type. Default ingore following FS types
+# ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "autofs", "squashfs", "aufs"]
 
-# ##(optional) custom tags
-#[inputs.hostobject.tags]
-#  key1 = "value1"
-#  key2 = "value2"
+
+[inputs.hostobject.tags] # (optional) custom tags
+#  tag1 = "value1"
+#  tag2 = "value2"
 `
-
 	pipelineSample = ``
 )
