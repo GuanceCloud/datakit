@@ -1,24 +1,28 @@
 package aliyuncms
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func TestInput(t *testing.T) {
 
-	data, err := ioutil.ReadFile("test.conf")
-	if err != nil {
-		t.Error(err)
-		return
+	ak := os.Getenv("ALIYUNYUN_AK")
+	sk := os.Getenv("ALIYUNYUN_SK")
+
+	ag := NewAgent("debug")
+	ag.AccessKeyID = ak
+	ag.AccessKeySecret = sk
+	ag.RegionID = `cn-shanghai`
+
+	ag.Project = []*Project{
+		&Project{
+			Namespace: `acs_rds_dashboard`,
+		},
+		&Project{
+			Namespace: `acs_slb_dashboard`,
+		},
 	}
-	ag, err := config.LoadInputConfig(data, func() inputs.Input { return NewAgent("debug") })
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	ag[0].Run()
+
+	ag.Run()
 }
