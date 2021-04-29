@@ -34,6 +34,7 @@ func (i *Input) Run() {
 
 	i.PluginName = inputName
 	i.JolokiaAgent.Tags = i.Tags
+	i.JolokiaAgent.Types = KafkaTypeMap
 
 	if i.Log != nil {
 		go i.runLog()
