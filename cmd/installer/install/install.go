@@ -20,7 +20,7 @@ import (
 var (
 	l = logger.DefaultSLogger("install")
 
-	DefaultHostInputs = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net"}
+	DefaultHostInputs = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes"}
 
 	OSArch = runtime.GOOS + "/" + runtime.GOARCH
 
@@ -106,6 +106,15 @@ func InstallNewDatakit(svc service.Service) {
 		datakit.Cfg.MainCfg.UUID = string(data)
 	}
 
+	writeDefInputToMainCfg()
+
+	l.Infof("installing service %s...", datakit.ServiceName)
+	if err := service.Control(svc, "install"); err != nil {
+		l.Warnf("install service: %s, ignored", err.Error())
+	}
+}
+
+func writeDefInputToMainCfg() {
 	if EnableInputs == "" {
 		EnableInputs = strings.Join(DefaultHostInputs, ",")
 	} else {
@@ -117,11 +126,6 @@ func InstallNewDatakit(svc service.Service) {
 	// build datakit main config
 	if err := datakit.Cfg.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
-	}
-
-	l.Infof("installing service %s...", datakit.ServiceName)
-	if err := service.Control(svc, "install"); err != nil {
-		l.Warnf("install service: %s, ignored", err.Error())
 	}
 }
 
@@ -178,6 +182,8 @@ func UpgradeDatakit(svc service.Service) error {
 	if err := service.Control(svc, "stop"); err != nil {
 		l.Warnf("stop service: %s, ignored", err.Error())
 	}
+
+	writeDefInputToMainCfg()
 
 	for _, dir := range []string{datakit.DataDir, datakit.LuaDir, datakit.ConfdDir} {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
