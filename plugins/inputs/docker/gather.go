@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -24,11 +25,13 @@ func (this *Input) gatherMetric(interval time.Duration) {
 			pts, err := this.gather()
 			if err != nil {
 				l.Error(err)
+				io.FeedLastError(inputName, fmt.Sprintf("gather metric: %s", err.Error()))
 				continue
 			}
 			cost := time.Since(startTime)
 			if err := io.Feed(inputName, io.Metric, pts, &io.Option{CollectCost: cost}); err != nil {
 				l.Error(err)
+				io.FeedLastError(inputName, fmt.Sprintf("gather metric: %s", err.Error()))
 			}
 		}
 	}
@@ -47,11 +50,13 @@ func (this *Input) gatherObject(interval time.Duration) {
 			pts, err := this.gather(&gatherOption{IsObjectCategory: true})
 			if err != nil {
 				l.Error(err)
+				io.FeedLastError(inputName, fmt.Sprintf("gather object: %s", err.Error()))
 				continue
 			}
 			cost := time.Since(startTime)
 			if err := io.Feed(inputName, io.Object, pts, &io.Option{CollectCost: cost}); err != nil {
 				l.Error(err)
+				io.FeedLastError(inputName, fmt.Sprintf("gather object: %s", err.Error()))
 			}
 		}
 	}
