@@ -88,7 +88,8 @@ type JolokiaAgent struct {
 	PluginName   string `toml:"-"`
 	l            *logger.Logger
 
-	Tags map[string]string `toml:"-"`
+	Tags  map[string]string `toml:"-"`
+	Types map[string]string `toml:"-"`
 }
 
 func (ja *JolokiaAgent) Gather() error {
