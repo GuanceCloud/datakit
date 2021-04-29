@@ -6,15 +6,13 @@
 
 # 简介
 
-Telegraf 是一个用 Go 编写的代理程序，是收集和报告指标和数据的代理。为了更好的使用和支持 Telegraf，DataKit 支持 Telegraf 数据接入
+Telegraf 是一个开源的数据采集工具。DataKit 通过简单的配置即可接入 Telegraf 采集的数据集。
 
-## Telegraf 使用并接入 DataKit 
-
-### Telegraf 安装
+## Telegraf 安装
 
 以 Ubuntu 为例，其他系统 [参见](https://docs.influxdata.com/telegraf/v1.18/introduction/installation/)：
 
-- 添加 `InfluxData repository`
+添加安装源
 
 ```shell
 curl -s https://repos.influxdata.com/influxdb.key | sudo apt-key add -
@@ -22,7 +20,7 @@ source /etc/lsb-release
 echo "deb https://repos.influxdata.com/${DISTRIB_ID,,} ${DISTRIB_CODENAME} stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
 ```
 
-- 安装 Telegraf
+安装 Telegraf
 
 ```shell
 sudo apt-get update && sudo apt-get install telegraf
@@ -32,12 +30,12 @@ sudo apt-get update && sudo apt-get install telegraf
 
 默认配置文件路径：
 
-- macOS Homebrew: `/usr/local/etc/telegraf.conf`
-- Linux debian and RPM packages: `/etc/telegraf/telegraf.conf`
+- Mac: `/usr/local/etc/telegraf.conf`
+- Linux: `/etc/telegraf/telegraf.conf`
 
 修改配置文件如下：
 
-```
+```toml
 [agent]
     interval                  = "10s"
     round_interval            = true
@@ -51,59 +49,24 @@ sudo apt-get update && sudo apt-get install telegraf
     logfile                   = "your_path.log"
     logfile_rotation_interval = ""
 
+# 此处可配置 Telegraf 所采集数据的全局 tag
+[global_tags]
+  name = "zhangsan"
+
 [[outputs.http]]
     ## URL is the address to send metrics to DataKit ,required
     url         = "http://localhost:9529/v1/write/telegraf"
     method      = "POST"
-    data_format = "influx"
-    
+    data_format = "influx" # 此处必须选择 `influx`，不然 DataKit 无法解析数据
+
+# 更多其它配置 ...
 ```
 
-DataKit 是通过 http 接入 Telegraf 数据，此处的 `outputs.http` 为必填字段，Telegraf Agent 详细配置，[参见](https://docs.influxdata.com/telegraf/v1.15/administration/configuration/)
+Telegraf 采集到的数据通过 DataKit 的 HTTP 接口接入，此处的 `[[outputs.http]]` 段必须指向 DataKit 的 /v1/write/metric 接口。Telegraf 采集器的详细配置，[参见这里](https://docs.influxdata.com/telegraf)
 
-加入 `Telegraf plugins`,以 `mem` 为例：
+其他插件 [参见这个列表](https://github.com/influxdata/telegraf#input-plugins)
 
-```shell
-...
-[[inputs.mem]]
-# Read metrics about swap memory usage
-#   # gather_memory_contexts = false
-#   #   "/sys/fs/cgroup/memory",
-#   #   "/sys/fs/cgroup/memory/child1",
-#   #   "/sys/fs/cgroup/memory/child2/*",
-#   # files = ["memory.*usage*", "memory.limit_in_bytes"]
-#     "jvm.memory.pools.Metaspace.committed"
-#   ## If true, collect telegraf memory stats.
-#   # collect_memstats = true
-#   ## Remember to change host address to fit your environment.
-#   ## This collect all heap memory usage metrics.
-#     name = "heap_memory_usage"
-```
+### 注意事项
 
-其他插件 [参见](https://docs.influxdata.com/telegraf/v1.15/plugins/)
-
-- 开启 Telegraf
-
-```shell
-sudo service telegraf start
-```
-
-
-### 关于 Telegraf 数据全局标签问题
-
-- 可在 Telegraf 配置中加入全局标签,示例如下：
-
-```shell
-...
-[global_tags]
-  name = "zhangsan"
-...
-
-```
-
-- 在 Telegraf 加入的标签，DataKit 就不会覆盖它，因此可以通过这种方式屏蔽 DataKit 的全局标签
-
-### 关于 Telegraf 和 DataKit 采集器冲突问题
-
-- 如果 Datakit 已经存在的采集器，就不需要再使用 Telegraf 再采集了。在一般情况下，至少在 DataFlux 中，针对某一个采集器，DataKit 的采集会比 Telegraf 做的更好
-
+- 在 Telegraf 加入的标签（可通过 `[global_tags]` 配置），DataKit 不会覆盖它，因此可以通过这种方式屏蔽 DataKit 的全局标签（如 `host` 等）
+- 如果 DataKit 已经存在的采集器（如 CPU、内存、网络等），不建议使用 Telegraf 再采集了，这可能造成数据冲突。
