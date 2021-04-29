@@ -14,7 +14,9 @@ var (
 )
 
 const (
-	defaultInterval = "60s"
+	defaultInterval   = "60s"
+	MaxGatherInterval = 30 * time.Minute
+	MinGatherInterval = 1 * time.Second
 )
 
 type Input struct {
@@ -67,7 +69,7 @@ func (j *JolokiaAgent) Collect() {
 		j.l.Error(err)
 		return
 	}
-
+	duration = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, duration)
 	tick := time.NewTicker(duration)
 	defer tick.Stop()
 
@@ -76,6 +78,7 @@ func (j *JolokiaAgent) Collect() {
 		case <-tick.C:
 			start := time.Now()
 			if err := j.Gather(); err != nil {
+				io.FeedLastError(j.PluginName, err.Error())
 				j.l.Error(err)
 			} else {
 				inputs.FeedMeasurement(j.PluginName, io.Metric, j.collectCache,
