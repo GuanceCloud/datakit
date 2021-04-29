@@ -243,7 +243,11 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
 	}
 
-	if len(c.MainCfg.DataWay.URL) == 0 {
+	if c.MainCfg.DataWay.DeprecatedURL != "" {
+		c.MainCfg.DataWay.Urls = append(c.MainCfg.DataWay.Urls, c.MainCfg.DataWay.DeprecatedURL)
+	}
+
+	if len(c.MainCfg.DataWay.Urls) == 0 {
 		l.Fatal("dataway URL not set")
 	}
 
