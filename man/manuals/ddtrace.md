@@ -173,10 +173,10 @@ operation 'flask.process_response'
 - 通过命令行注入环境变量
 
 ```shell
-$ DD_TAGS="project:your_project_name,env=test,version=v1 ddtrace-run python app.py"
+$ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.py
 ```
 
-- 在 ddtrace.conf 中直接配置自定义标签：
+- 在 ddtrace.conf 中直接配置自定义标签。这种方式会影响**所有**发送给 DataKit tracing 服务的数据，需慎重考虑：
 
 ```toml
 [inputs.ddtrace]
@@ -187,9 +187,9 @@ $ DD_TAGS="project:your_project_name,env=test,version=v1 ddtrace-run python app.
 		version = "your_version"        # 设置版本信息
 ```
 
-#### 关联 tracing 数据混合容器对象
+#### 关联 ddtrace 数据和容器对象
 
-若需要链路数据和容器对象关联，可按照如下方式开启应用（一般情况下就是修改 Dockerfile 中的启动命令 `CMD`）。这里的 `$HOSTNAME` 环境变量会自动替换成对应容器中的 hostname：
+若需要链路数据和容器对象关联，可按照如下方式开启应用（一般情况下就是修改 Dockerfile 中的启动命令 `CMD`）。这里的 `$HOSTNAME` 环境变量会自动替换成对应容器中的主机名：
 
 ```shell
 $ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python your_app.py
