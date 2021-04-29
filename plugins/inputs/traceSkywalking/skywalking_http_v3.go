@@ -3,6 +3,7 @@ package traceSkywalking
 import (
 	"encoding/json"
 	"fmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"net/http"
 	"runtime/debug"
 
@@ -76,6 +77,7 @@ func SkywalkingTraceHandle(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err := handleSkywalkingTrace(w, r); err != nil {
+		io.FeedLastError(inputName, err.Error())
 		log.Errorf("%v", err)
 	}
 }
