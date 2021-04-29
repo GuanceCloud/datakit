@@ -22,6 +22,7 @@ const (
 [[inputs.proxy]]
     bind = "0.0.0.0"
 	port = 9530
+	path = "/proxy"
 `
 )
 
@@ -36,6 +37,7 @@ func init() {
 type Input struct {
 	Bind string `toml:"bind"`
 	Port int    `toml:"port"`
+	Path string `toml:"path"`
 }
 
 func (*Input) SampleConfig() string {
