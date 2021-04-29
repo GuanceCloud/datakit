@@ -13,10 +13,16 @@ import (
 )
 
 var (
-	defaultConsensusModule = NewConsensusModule()
+	defaultConsensusModule *ConsensusModule
 
 	l = logger.DefaultSLogger("dk-election")
 )
+
+func NewGolbalConsensusModule() {
+	electionURL := fmt.Sprintf("%s?id=%s", datakit.Cfg.MainCfg.DataWay.ElectionURL(), datakit.Cfg.MainCfg.UUID)
+	heartbeatURL := fmt.Sprintf("%s?id=%s", datakit.Cfg.MainCfg.DataWay.ElectionHeartBeatURL(), datakit.Cfg.MainCfg.UUID)
+	defaultConsensusModule = NewConsensusModule(electionURL, heartbeatURL)
+}
 
 func StartElection() {
 	defaultConsensusModule.StartElection()
@@ -76,15 +82,19 @@ type ConsensusModule struct {
 	mu      sync.Mutex
 }
 
-const defaultHTTPTimeout = time.Second * 3
+const (
+	HTTPTimeout      = time.Second * 3
+	electionInterval = time.Second * 2
+)
 
-func NewConsensusModule() *ConsensusModule {
+// NewCNewConsensusModule 两个参数是配置文件项，为了方便测试将其改为传参方式
+func NewConsensusModule(electionURL, heartbeatURL string) *ConsensusModule {
 	return &ConsensusModule{
 		state:                Dead,
-		electionURL:          datakit.Cfg.MainCfg.DataWay.ElectionURL(),
-		electionHeartbeatURL: datakit.Cfg.MainCfg.DataWay.ElectionHeartBeatURL(),
+		electionURL:          electionURL,
+		electionHeartbeatURL: heartbeatURL,
 		httpCli: &http.Client{
-			Timeout: defaultHTTPTimeout,
+			Timeout: HTTPTimeout,
 		},
 	}
 }
@@ -112,7 +122,7 @@ func (cm *ConsensusModule) CurrentStats() ConsensusState {
 }
 
 func (cm *ConsensusModule) StartElection() {
-	tick := time.NewTicker(time.Second * 3)
+	tick := time.NewTicker(electionInterval)
 	defer tick.Stop()
 
 	for {
@@ -121,13 +131,11 @@ func (cm *ConsensusModule) StartElection() {
 			return
 
 		case <-tick.C:
-			if cm.state.IsCandidate() {
-				continue
-			}
 			res, err := cm.postRequest(cm.electionURL)
 			if err != nil {
-				l.Error(err)
 				cm.SetCandidate()
+				l.Error(err)
+				continue
 			}
 
 			if res.Content.Stauts == statusSuccess {
@@ -142,7 +150,7 @@ func (cm *ConsensusModule) StartElection() {
 func (cm *ConsensusModule) SendHeartbeat() {
 	defer cm.SetCandidate()
 
-	tick := time.NewTicker(time.Second * 3)
+	tick := time.NewTicker(electionInterval)
 	defer tick.Stop()
 
 	for {
@@ -159,7 +167,11 @@ func (cm *ConsensusModule) SendHeartbeat() {
 				l.Error(err)
 				return
 			}
+			if res.Content.ErrorMsg != "" {
+				l.Debug(res.Content.ErrorMsg)
+			}
 			if res.Content.Stauts != statusSuccess {
+				cm.SetCandidate()
 				return
 			}
 		}
@@ -190,6 +202,8 @@ func (cm *ConsensusModule) postRequest(url string) (*electionResult, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Printf("election url:%s body:%s\n", url, body)
 
 	// ok
 	if resp.StatusCode/100 == 2 {
