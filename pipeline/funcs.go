@@ -3,8 +3,11 @@ package pipeline
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
@@ -37,6 +40,8 @@ var (
 		"user_agent":       UserAgent,
 		"parse_duration":   ParseDuration,
 		"parse_date":       ParseDate,
+		"cover":            Dz,
+		"replace":          Replace,
 	}
 )
 
@@ -972,4 +977,130 @@ func getGjsonResult(data, id string) interface{} {
 	default:
 		return nil
 	}
+}
+
+func Dz(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) != 2 {
+		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
+	}
+
+	set := funcExpr.Param[1].(parser.FuncArgList)
+
+	var key parser.Node
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.AttrExpr, *parser.Identifier:
+		key = v
+	default:
+		return p, fmt.Errorf("param key expect AttrExpr or Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	var start, end int
+
+	if len(set) != 2 {
+		return p, fmt.Errorf("param between range value `%v' is not expected", set)
+	}
+
+	if v, ok := set[0].(*parser.NumberLiteral); !ok {
+		return p, fmt.Errorf("range value `%v' is not expected", set)
+	} else {
+		if v.IsInt {
+			start = int(v.Int)
+		}
+	}
+
+	if v, ok := set[1].(*parser.NumberLiteral); !ok {
+		return p, fmt.Errorf("range value `%v' is not expected", set)
+	} else {
+		if v.IsInt {
+			end = int(v.Int)
+		}
+
+		if start > end {
+			return p, fmt.Errorf("range value start %v must le end %v", start, end)
+		}
+	}
+
+	cont, err := p.getContentStr(key)
+	if err != nil {
+		l.Debugf("key `%v' not exist", key)
+		return p, nil
+	}
+
+	if end > utf8.RuneCountInString(cont) {
+		end = utf8.RuneCountInString(cont)
+	}
+
+	if start <= 0 {
+		start = 1
+	}
+
+	arrCont := []rune(cont)
+
+	for i := 0; i < len(arrCont); i++ {
+		if i+1 >= start && i < end {
+			if unicode.Is(unicode.Han, arrCont[i]) {
+				arrCont[i] = rune('＊')
+			} else {
+				arrCont[i] = rune('*')
+			}
+		}
+	}
+
+	p.setContent(key, string(arrCont))
+
+	return p, nil
+}
+
+func Replace(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	funcExpr := node.(*parser.FuncExpr)
+
+	if len(funcExpr.Param) != 3 {
+		return p, fmt.Errorf("func %s expected 3 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	var pattern, dz string
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.AttrExpr, *parser.Identifier:
+		key = v
+	default:
+		return p, fmt.Errorf("param key expect AttrExpr or Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		pattern = v.Val
+	default:
+		return p, fmt.Errorf("expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[1]).String())
+	}
+
+	switch v := funcExpr.Param[2].(type) {
+	case *parser.StringLiteral:
+		dz = v.Val
+	default:
+		return p, fmt.Errorf("expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[2]).String())
+	}
+
+	reg, err := regexp.Compile(pattern)
+	if err != nil {
+		return p, fmt.Errorf("Regular expression %s parse err %v",
+			reflect.TypeOf(funcExpr.Param[1]).String(), err)
+	}
+
+	cont, err := p.getContentStr(key)
+	if err != nil {
+		l.Debugf("key `%v' not exist", key)
+		return p, nil
+	}
+
+	newCont := reg.ReplaceAllString(cont, dz)
+
+	p.setContent(key, newCont)
+
+	return p, nil
 }
