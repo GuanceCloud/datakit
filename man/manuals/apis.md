@@ -7,7 +7,7 @@
 
 ## /v1/write/metric
 
-### example:
+### Example:
 
 ```
 http://{host}:{port}/v1/write/metric?token={token}
@@ -39,7 +39,7 @@ _Fields_
 
 ## /v1/write/object
 
-### example:
+### Example:
 
 ```
 http://{host}:{port}/v1/write/object?token={token}
@@ -71,7 +71,7 @@ _Fields_
 
 ## /v1/write/rum
 
-### example:
+### Example:
 
 ```
 http://{host}:{port}/v1/write/rum?token={token}
@@ -103,7 +103,7 @@ _Fields_
 
 ## /v1/write/logging
 
-### example:
+### Example:
 
 ```
 http://{host}:{port}/v1/write/logging?token={token}
@@ -114,8 +114,6 @@ http://{host}:{port}/v1/write/logging?token={token}
 ### URL 参数:
 
 token={token_string}
-
-### Measurement:
 
 ### Measurement:
 
@@ -133,9 +131,9 @@ _Tags_
 _Fields_
 
 > | 名称    | 描述                                     |
-> | ------- | ---------------------------------------- | ------ |
-> | status  | 日志状态，分 9 级，默认为 info，详情见下 | string |
-> | message | 基础日志数据，存放有效的单行或多行数据   | string |
+> | ------- | ---------------------------------------- |
+> | status  | 日志状态，分 9 级，默认为 info，详情见下 |
+> | message | 基础日志数据，存放有效的单行或多行数据   |
 
 _status_
 
@@ -157,7 +155,7 @@ _status_
 
 ## /v1/write/security
 
-### example:
+### Example:
 
 ```
 http://{host}:{port}/v1/write/security?token={token}
@@ -189,7 +187,7 @@ _Fields_
 
 ## /v1/write/tracing
 
-### example:
+### Example:
 
 ```
 http://{host}:{port}/v1/write/tracing?token={token}
