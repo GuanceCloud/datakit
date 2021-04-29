@@ -314,6 +314,10 @@ func (p *Input) WriteMetric() {
 	t := time.Now().UTC()
 	var collectCache []inputs.Measurement
 	for _, ps := range p.getProcesses() {
+		cmd, err := ps.Cmdline() // 无cmd的进程 没有采集指标的意义
+		if err != nil || cmd == "" {
+			continue
+		}
 		username, _, name, fields, _ := p.Parse(ps)
 		tags := map[string]string{
 			"username":     username,
