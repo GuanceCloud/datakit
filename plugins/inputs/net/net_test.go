@@ -4,6 +4,7 @@ import (
 	"net"
 	"runtime"
 	"testing"
+	"time"
 
 	psNet "github.com/shirou/gopsutil/net"
 )
@@ -19,6 +20,7 @@ func TestCollect(t *testing.T) {
 	i.IgnoreProtocolStats = true
 
 	for x := 0; x < 6; x++ {
+		time.Sleep(time.Second)
 		if err := i.Collect(); err != nil {
 			t.Errorf("Error collecting network statistics: %s", err)
 		}
@@ -33,6 +35,8 @@ func TestCollect(t *testing.T) {
 	if runtime.GOOS == "linux" {
 		i.EnableVirtualInterfaces = false
 		i.IgnoreProtocolStats = false
+		i.Collect()
+		time.Sleep(time.Second)
 		i.Collect()
 	}
 }
@@ -170,7 +174,7 @@ func NetIOCounters4Test() ([]psNet.IOCountersStat, error) {
 	return r, nil
 }
 
-func NetProtoCounters4Test() ([]psNet.ProtoCountersStat, error) {
+func NetProtoCounters4Test(protocols []string) ([]psNet.ProtoCountersStat, error) {
 	r := []psNet.ProtoCountersStat{
 		psNet.ProtoCountersStat{
 			Protocol: "tcp",
@@ -205,19 +209,19 @@ func NetProtoCounters4Test() ([]psNet.ProtoCountersStat, error) {
 				"SndbufErrors": 0,
 			},
 		},
-		psNet.ProtoCountersStat{
-			Protocol: "udplite",
-			Stats: map[string]int64{
-				"IgnoredMulti": 0,
-				"InCsumErrors": 0,
-				"InDatagrams":  0,
-				"InErrors":     0,
-				"NoPorts":      0,
-				"OutDatagrams": 0,
-				"RcvbufErrors": 0,
-				"SndbufErrors": 0,
-			},
-		},
+		// psNet.ProtoCountersStat{
+		// 	Protocol: "udplite",
+		// 	Stats: map[string]int64{
+		// 		"IgnoredMulti": 0,
+		// 		"InCsumErrors": 0,
+		// 		"InDatagrams":  0,
+		// 		"InErrors":     0,
+		// 		"NoPorts":      0,
+		// 		"OutDatagrams": 0,
+		// 		"RcvbufErrors": 0,
+		// 		"SndbufErrors": 0,
+		// 	},
+		// },
 	}
 	return r, nil
 }
