@@ -18,6 +18,8 @@ var (
 	inputName    = `rabbitmq`
 	l            = logger.DefaultSLogger(inputName)
 	collectCache []inputs.Measurement
+	minInterval  = time.Second
+	maxInterval  = time.Second * 30
 	lock         sync.Mutex
 	sample       = `
 [[inputs.rabbitmq]]
@@ -76,10 +78,10 @@ type Input struct {
 	// HTTP client
 	client *http.Client
 
-	tail *inputs.Tailer
-
-	start time.Time
-	wg    sync.WaitGroup
+	tail    *inputs.Tailer
+	lastErr error
+	start   time.Time
+	wg      sync.WaitGroup
 }
 
 type OverviewResponse struct {
@@ -104,6 +106,8 @@ type Details struct {
 type MessageStats struct {
 	Ack                     int64
 	AckDetails              Details `json:"ack_details"`
+	Confirm                 int64   `json:"confirm"`
+	ConfirmDetail           Details `json:"ack_details_details"`
 	Deliver                 int64
 	DeliverDetails          Details `json:"deliver_details"`
 	DeliverGet              int64   `json:"deliver_get"`
@@ -218,7 +222,6 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 }
 
 func (n *Input) requestJSON(u string, target interface{}) error {
-
 	u = fmt.Sprintf("%s%s", n.Url, u)
 
 	req, err := http.NewRequest("GET", u, nil)
@@ -234,7 +237,6 @@ func (n *Input) requestJSON(u string, target interface{}) error {
 	}
 
 	defer resp.Body.Close()
-
 	json.NewDecoder(resp.Body).Decode(target)
 
 	return nil
