@@ -17,12 +17,13 @@ var (
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
 		// all manuals under man/manuals/
-		"pipeline":    "pipeline.md",
-		"telegraf":    "telegraf.md",
-		"changelog":   "man/manuals/changelog.md",
-		"datatypes":   "man/manuals/datatypes.md",
-		"apis":        "man/manuals/apis.md",
-		"sec-checker": "man/manuals/sec-checker.md",
+		"pipeline":       "pipeline.md",
+		"telegraf":       "telegraf.md",
+		"changelog":      "man/manuals/changelog.md",
+		"datatypes":      "man/manuals/datatypes.md",
+		"apis":           "man/manuals/apis.md",
+		"sec-checker":    "man/manuals/sec-checker.md",
+		"datakit-how-to": "man/manuals/datakit-how-to.md",
 	}
 
 	l = logger.DefaultSLogger("man")
