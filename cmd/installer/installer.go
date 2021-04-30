@@ -189,9 +189,27 @@ func createDkSoftLink() {
 		dBin = `C:\WINDOWS\system32\datakit.exe`
 	}
 
-	if err := os.Remove(dBin); err == nil {
+	if !isExist(dBin) {
 		if err := os.Symlink(sBin, dBin); err != nil {
 			l.Warnf("create datakit soft link: %s, ignored", err.Error())
 		}
 	}
+}
+
+func isExist(path string) bool {
+	_, err := os.Stat(path)
+
+	if err != nil {
+		if os.IsExist(err) {
+			return true
+		}
+
+		if os.IsNotExist(err) {
+			return false
+		}
+
+		return false
+	}
+
+	return true
 }
