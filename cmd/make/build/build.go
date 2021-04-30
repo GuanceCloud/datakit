@@ -83,29 +83,40 @@ func prepare() {
 	}
 }
 
+func parseArchs(s string) (archs []string) {
+	switch s {
+	case "all":
+
+		// read cmd-line env
+		if x := os.Getenv("ALL_ARCHS"); x != "" {
+			archs = strings.Split(x, "|")
+		} else {
+			archs = OSArches
+		}
+
+	case "local":
+		if x := os.Getenv("LOCAL"); x != "" {
+			if x == "all" { // 指定 local 为 all，便于测试全平台编译/发布
+				archs = OSArches
+			} else {
+				archs = strings.Split(x, "|")
+			}
+		} else {
+			archs = []string{runtime.GOOS + "/" + runtime.GOARCH}
+		}
+	default:
+		archs = strings.Split(s, "|")
+	}
+
+	return
+}
+
 func Compile() {
 	start := time.Now()
 
 	prepare()
 
-	var archs []string
-
-	switch Archs {
-	case "all":
-		archs = OSArches
-
-		// read cmd-line env
-		if x := os.Getenv("ALL_ARCHS"); x != "" {
-			archs = strings.Split(x, "|")
-		}
-	case "local":
-		archs = []string{runtime.GOOS + "/" + runtime.GOARCH}
-		if x := os.Getenv("LOCAL"); x != "" {
-			archs = strings.Split(x, "|")
-		}
-	default:
-		archs = strings.Split(Archs, "|")
-	}
+	archs := parseArchs(Archs)
 
 	for idx, _ := range archs {
 
