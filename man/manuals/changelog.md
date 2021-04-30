@@ -3,6 +3,24 @@
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
 
+# v1.1.6-rc0(2021/04/30)
+
+## 发布说明
+
+本次发布，对 DataKit 的一些细节做了调整：
+
+- Linux/Mac 安装完后，能直接在任何目录执行 `datakit` 命令，无需切换到 DataKit 安装目录
+- Pipeline 增加脱敏函数 `cover()`
+- 优化命令行参数，更加便捷
+- 主机对象采集，默认过滤虚拟设备（仅 Linux 支持）
+- datakit 命令支持 `--start/--stop/--restart/--reload` 几个命令（需 root 权限），更加便于大家管理 DataKit 服务
+- 安装/升级完成后，默认开启进程对象采集器（目前默认开启列表为 `cpu/disk/diskio/mem/swap/system/hostobject/net/host_processes`）
+- 日志采集器 `tailf` 改名为 `logging`，原有的 `tailf` 名称继续可用
+- 支持接入 Security 数据
+- 移除 Telegraf 安装集成。如果需要 Telegraf 功能，可查看 :9529/man 页面，有专门针对 Telegraf 安装使用的文档
+- 增加 datakit-how-to 文档，便于大家初步入门（:9529/man 页面可看到）
+- 其它一些采集器的指标采集调整
+
 # v1.1.5-rc2(2021/04/22)
 
 ### Bug 修复
