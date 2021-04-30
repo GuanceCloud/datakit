@@ -31,6 +31,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/disk"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/diskio"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/docker"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kubernetes"
 
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/docker_containers"
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dockerlog"
