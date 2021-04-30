@@ -19,11 +19,9 @@ import (
 	"github.com/blang/semver/v4"
 	flag "github.com/spf13/pflag"
 
-	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds/externals"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
@@ -52,13 +50,12 @@ var (
 	flagExportMan = flag.String("export-man", "", "export all inputs and related manuals to specified path")
 
 	flagInstallExternal = flag.String("install", "", "install external tool/software")
-	flagInstallAddr     = flag.String("addr", "", "install file url path")
 
-	flagStart   = flag.Bool("start", false, "start datakit")
-	flagStop    = flag.Bool("stop", false, "stop datakit")
-	flagRestart = flag.Bool("restart", false, "restart datakit")
-	flagReload  = flag.String("reload", "9529", "reload datakit")
-	flagDebug   = flag.Bool("debug", false, "run datakit in debug mode")
+	flagStart      = flag.Bool("start", false, "start datakit")
+	flagStop       = flag.Bool("stop", false, "stop datakit")
+	flagRestart    = flag.Bool("restart", false, "restart datakit")
+	flagReload     = flag.Bool("reload", false, "reload datakit")
+	flagReloadPort = flag.Int("reload-port", 9529, "datakit http server port")
 )
 
 var (
@@ -70,15 +67,10 @@ var (
 func main() {
 	flag.CommandLine.MarkHidden("cmd")
 	flag.CommandLine.MarkHidden("show-testing-version")
-	//flag.CommandLine.MarkHidden("debug")
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
-	flag.Parse()
 
-	if args := flag.Args(); len(args) == 0 && !*flagDebug {
-		l.Warn("You should use `./datakit --start` to start datakit instead of `./datakit`")
-		os.Exit(0)
-	}
+	flag.Parse()
 
 	applyFlags()
 
@@ -294,70 +286,6 @@ func runDatakitWithHTTPServer() error {
 	return nil
 }
 
-func stopDatakit() {
-	svc, err := datakit.NewService()
-	if err != nil {
-		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
-		return
-	}
-
-	status, err := svc.Status()
-	if err != nil {
-		l.Warnf("get datakit service status: %s, ignored", err.Error())
-	}
-	if status == service.StatusStopped {
-		return
-	}
-
-	l.Info("stoping datakit...")
-	if err := service.Control(svc, "stop"); err != nil {
-		l.Warnf("stop service: %s, ignored", err.Error())
-	}
-	l.Info("stop datakit successful")
-}
-
-func startDatakit() {
-	svc, err := datakit.NewService()
-	if err != nil {
-		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
-		return
-	}
-
-	status, err := svc.Status()
-	if err != nil {
-		l.Warnf("get datakit service status: %s, ignored", err.Error())
-	}
-	if status == service.StatusRunning {
-		l.Info("datakit service is already running")
-		return
-	}
-
-	if err := service.Control(svc, "start"); err != nil {
-		l.Warnf("start datakit service: %s, ignored", err.Error())
-	}
-
-	l.Info("start datakit successful")
-}
-
-func restartDatakit() {
-	stopDatakit()
-	startDatakit()
-}
-
-func reloadDatakit(port int) {
-	resp, err := nhttp.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
-	if err != nil {
-		l.Warn(err)
-		return
-	}
-
-	if resp.StatusCode == 200 {
-		l.Info("datakit reload successful")
-	} else {
-		l.Warn("datakit reload failed: %d", resp.StatusCode)
-	}
-}
-
 func runDatakitWithCmd() {
 	if *flagCmd {
 		l.Warn("--cmd parameter has been discarded")
@@ -387,31 +315,31 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagInstallExternal != "" {
-		if err := externals.InstallExternal(*flagInstallExternal, *flagInstallAddr); err != nil {
+		if err := cmds.InstallExternal(*flagInstallExternal); err != nil {
 			l.Error(err)
 		}
 		os.Exit(0)
 	}
 
 	if *flagStart {
-		startDatakit()
+		cmds.StartDatakit()
 		os.Exit(0)
 	}
 
 	if *flagStop {
-		stopDatakit()
+		cmds.StopDatakit()
 		os.Exit(0)
 	}
 
 	if *flagRestart {
-		restartDatakit()
+		cmds.RestartDatakit()
 		os.Exit(0)
 	}
 
-	//if *flagReload {
-	//	reloadDatakit(*flagPort)
-	//	os.Exit(0)
-	//}
+	if *flagReload {
+		cmds.ReloadDatakit(*flagReloadPort)
+		os.Exit(0)
+	}
 }
 
 type datakitVerInfo struct {

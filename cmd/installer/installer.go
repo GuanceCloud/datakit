@@ -135,6 +135,8 @@ func main() {
 		}
 	}
 
+	createDkSoftLink()
+
 	if *flagUpgrade { // upgrade new version
 		l.Info(":) Upgrade Success!")
 	} else {
@@ -187,4 +189,20 @@ Golang Version: %s
 	install.Port = *flagPort
 	install.DatakitName = *flagDatakitName
 	install.EnableInputs = *flagEnableInputs
+}
+
+func createDkSoftLink() {
+	sBin := filepath.Join(datakit.InstallDir, "datakit")
+	dBin := "/usr/local/bin/datakit"
+
+	if runtime.GOOS == "windows" {
+		sBin += ".exe"
+		dBin = `C:\WINDOWS\system32\datakit.exe`
+	}
+
+	if err := os.Remove(dBin); err == nil {
+		if err := os.Symlink(sBin, dBin); err != nil {
+			l.Warnf("create datakit soft link: %s, ignored", err.Error())
+		}
+	}
 }
