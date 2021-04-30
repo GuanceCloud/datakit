@@ -20,7 +20,11 @@ import (
 )
 
 var (
-	l = logger.DefaultSLogger(inputName)
+	l                 = logger.DefaultSLogger(inputName)
+	minObjectInterval = time.Minute * 5
+	maxObjectInterval = time.Minute * 15
+	minMetricInterval = time.Second * 30
+	maxMetricInterval = time.Minute
 )
 
 func (_ *Input) Catalog() string {
@@ -61,10 +65,8 @@ func (p *Input) Run() {
 		}
 		p.re = re
 	}
+	p.ObjectInterval.Duration = datakit.ProtectedInterval(minObjectInterval, maxObjectInterval, p.ObjectInterval.Duration)
 
-	if p.ObjectInterval.Duration < 5*time.Minute {
-		p.ObjectInterval.Duration = 5 * time.Minute
-	}
 	if p.RunTime.Duration < 10*time.Minute {
 		p.RunTime.Duration = 10 * time.Minute
 	}
@@ -72,13 +74,8 @@ func (p *Input) Run() {
 	defer tick.Stop()
 	if p.OpenMetric {
 		go func() {
-			if p.MetricInterval.Duration == 0 {
-				p.MetricInterval.Duration = 30 * time.Second
-			}
-			if p.MetricInterval.Duration < 30*time.Second {
-				l.Warnf("process write metric need greater than 30s")
-				p.MetricInterval.Duration = 30 * time.Second
-			}
+			p.MetricInterval.Duration = datakit.ProtectedInterval(minMetricInterval, maxMetricInterval, p.MetricInterval.Duration)
+
 			tick := time.NewTicker(p.MetricInterval.Duration)
 			defer tick.Stop()
 			for {
@@ -110,6 +107,7 @@ func (p *Input) getProcesses() (processList []*pr.Process) {
 	pses, err := pr.Processes()
 	if err != nil {
 		l.Errorf("[error] get process err:%s", err.Error())
+		p.lastErr = err
 		return
 	}
 
@@ -303,6 +301,11 @@ func (p *Input) WriteObject() {
 	}
 	if err := inputs.FeedMeasurement(inputName, io.Object, collectCache, &io.Option{CollectCost: time.Since(t)}); err != nil {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
+		p.lastErr = err
+	}
+	if p.lastErr != nil {
+		io.FeedLastError(inputName, p.lastErr.Error())
+		p.lastErr = nil
 	}
 
 }
@@ -311,6 +314,10 @@ func (p *Input) WriteMetric() {
 	t := time.Now().UTC()
 	var collectCache []inputs.Measurement
 	for _, ps := range p.getProcesses() {
+		cmd, err := ps.Cmdline() // 无cmd的进程 没有采集指标的意义
+		if err != nil || cmd == "" {
+			continue
+		}
 		username, _, name, fields, _ := p.Parse(ps)
 		tags := map[string]string{
 			"username":     username,
@@ -327,11 +334,19 @@ func (p *Input) WriteMetric() {
 	}
 	if err := inputs.FeedMeasurement(inputName, io.Metric, collectCache, &io.Option{CollectCost: time.Since(t)}); err != nil {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
+		p.lastErr = err
+	}
+	if p.lastErr != nil {
+		io.FeedLastError(inputName, p.lastErr.Error())
+		p.lastErr = nil
 	}
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			ObjectInterval: datakit.Duration{Duration: 5 * time.Minute},
+			MetricInterval: datakit.Duration{Duration: 30 * time.Second},
+		}
 	})
 }
