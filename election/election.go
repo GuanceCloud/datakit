@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -18,10 +19,23 @@ var (
 	l = logger.DefaultSLogger("dk-election")
 )
 
-func NewGolbalConsensusModule() {
-	electionURL := fmt.Sprintf("%s?id=%s", datakit.Cfg.MainCfg.DataWay.ElectionURL(), datakit.Cfg.MainCfg.UUID)
-	heartbeatURL := fmt.Sprintf("%s?id=%s", datakit.Cfg.MainCfg.DataWay.ElectionHeartBeatURL(), datakit.Cfg.MainCfg.UUID)
-	defaultConsensusModule = NewConsensusModule(electionURL, heartbeatURL)
+func InitGlobalConsensusModule() error {
+	// 此处默认不会报错，如果报错那一定是 DataWayCfg 的重大问题
+	// 出于严谨还是在此函数 return 一个 error
+	electionURL, err := url.Parse(datakit.Cfg.MainCfg.DataWay.ElectionURL())
+	if err != nil {
+		return err
+	}
+	electionURL.Query().Add("id", datakit.Cfg.MainCfg.UUID)
+
+	heartbeatURL, err := url.Parse(datakit.Cfg.MainCfg.DataWay.ElectionHeartBeatURL())
+	if err != nil {
+		return err
+	}
+	heartbeatURL.Query().Add("id", datakit.Cfg.MainCfg.UUID)
+
+	defaultConsensusModule = NewConsensusModule(electionURL.String(), heartbeatURL.String())
+	return nil
 }
 
 func StartElection() {
@@ -57,7 +71,7 @@ func (s ConsensusState) String() string {
 	case Dead:
 		return "Dead"
 	default:
-		panic("unreachable")
+		return "unreachable"
 	}
 }
 
