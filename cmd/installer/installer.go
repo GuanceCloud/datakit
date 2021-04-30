@@ -100,10 +100,11 @@ func main() {
 	} else {
 		l.Infof("download start,url%s", datakitUrl)
 		install.CurDownloading = dlDatakit
-		install.Download(datakitUrl, datakit.InstallDir, true)
+		install.Download(datakitUrl, datakit.InstallDir, true, false)
 		fmt.Printf("\n")
+
 		install.CurDownloading = dlData
-		install.Download(dataUrl, datakit.InstallDir, true)
+		install.Download(dataUrl, datakit.InstallDir, true, false)
 		fmt.Printf("\n")
 	}
 
@@ -129,6 +130,8 @@ func main() {
 		}
 	}
 
+	createDkSoftLink()
+
 	if *flagUpgrade { // upgrade new version
 		l.Info(":) Upgrade Success!")
 	} else {
@@ -137,6 +140,7 @@ func main() {
 
 	fmt.Printf("\n\tVisit http://localhost:%d/stats to see DataKit running status.\n", *flagPort)
 	fmt.Printf("\tVisit http://localhost:%d/man to see DataKit manuals.\n\n", *flagPort)
+	fmt.Printf("\tVisit http://localhost:%d/man/changelog to see DataKit change logs.\n\n", *flagPort)
 }
 
 func applyFlags() {
@@ -159,11 +163,11 @@ Golang Version: %s
 
 		install.Download(datakitUrl,
 			fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
-				runtime.GOOS, runtime.GOARCH, DataKitVersion), true)
+				runtime.GOOS, runtime.GOARCH, DataKitVersion), true, false)
 		fmt.Printf("\n")
 
 		install.CurDownloading = dlData
-		install.Download(dataUrl, "data.tar.gz", true)
+		install.Download(dataUrl, "data.tar.gz", true, false)
 		fmt.Printf("\n")
 
 		os.Exit(0)
@@ -174,4 +178,38 @@ Golang Version: %s
 	install.Port = *flagPort
 	install.DatakitName = *flagDatakitName
 	install.EnableInputs = *flagEnableInputs
+}
+
+func createDkSoftLink() {
+	sBin := filepath.Join(datakit.InstallDir, "datakit")
+	dBin := "/usr/local/bin/datakit"
+
+	if runtime.GOOS == "windows" {
+		sBin += ".exe"
+		dBin = `C:\WINDOWS\system32\datakit.exe`
+	}
+
+	if !isExist(dBin) {
+		if err := os.Symlink(sBin, dBin); err != nil {
+			l.Warnf("create datakit soft link: %s, ignored", err.Error())
+		}
+	}
+}
+
+func isExist(path string) bool {
+	_, err := os.Stat(path)
+
+	if err != nil {
+		if os.IsExist(err) {
+			return true
+		}
+
+		if os.IsNotExist(err) {
+			return false
+		}
+
+		return false
+	}
+
+	return true
 }
