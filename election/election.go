@@ -205,8 +205,11 @@ const (
 )
 
 func (cm *ConsensusModule) postRequest(url string) (*electionResult, error) {
+	// datakit 数据发送到 dataway，不需要添加一堆 header
+	// 简洁发送
 	resp, err := cm.httpCli.Post(url, "", nil)
 	if err != nil {
+		l.Error(err)
 		return nil, err
 	}
 
@@ -214,15 +217,15 @@ func (cm *ConsensusModule) postRequest(url string) (*electionResult, error) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		l.Errorf("request url %s failed: %s", url, err)
 		return nil, err
 	}
-
-	fmt.Printf("election url:%s body:%s\n", url, body)
 
 	// ok
 	if resp.StatusCode/100 == 2 {
 		var e = electionResult{}
 		if err := json.Unmarshal(body, &e); err != nil {
+			l.Error(err)
 			return nil, err
 		}
 		return &e, nil
