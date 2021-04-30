@@ -9,8 +9,8 @@ import (
 )
 
 func InstallTelegraf(installDir string) error {
-	url := "https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/huangbo/" + fmt.Sprintf("telegraf-%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
-	//url := "https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/huangbo/telegraf-windows_amd64.tar.gz"
+	url := "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/telegraf/" + fmt.Sprintf("telegraf-%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+
 	fmt.Printf("Start downloading Telegraf...\n")
 	if err := install.Download(url, installDir, false, false); err != nil {
 		return err
