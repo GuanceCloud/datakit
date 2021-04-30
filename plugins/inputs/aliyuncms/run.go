@@ -37,9 +37,23 @@ func (s *CMS) run(ctx context.Context) {
 		}
 	}()
 
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			moduleLogger.Infof("aliyuncloud api call info: %s", s.apiCallInfo)
+
+			datakit.SleepContext(ctx, time.Hour)
+		}
+	}()
+
 	for {
 		select {
-		case <-datakit.Exit.Wait():
+		case <-ctx.Done():
 			return
 		default:
 		}
@@ -174,6 +188,8 @@ func (s *CMS) genReqs(ctx context.Context) error {
 		s.reqs = append(s.reqs, reqs...)
 	}
 
+	moduleLogger.Infof("total metrics: %d", len(s.reqs))
+
 	return nil
 }
 
@@ -236,7 +252,9 @@ func (s *CMS) describeMetricMetaList(ctx context.Context, namespace, metricname 
 		if err != nil {
 			moduleLogger.Warnf("%s", err)
 			datakit.SleepContext(ctx, tempDelay)
+			s.apiCallInfo.Inc(`DescribeMetricMetaList`, true)
 		} else {
+			s.apiCallInfo.Inc(`DescribeMetricMetaList`, false)
 			break
 		}
 	}
@@ -396,6 +414,7 @@ func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 
 			s.limiter.Wait(ctx)
 			//fmt.Printf("querys: %s", req.q.GetQueryParams())
+
 			resp, err = s.apiClient.DescribeMetricList(req.q)
 
 			if tempDelay == 0 {
@@ -414,11 +433,13 @@ func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 
 			if err != nil {
 				//moduleLogger.Warnf("DescribeMetricList: %s", err)
+				s.apiCallInfo.Inc("DescribeMetricList", true)
 				time.Sleep(tempDelay)
 			} else {
 				if i != 0 {
 					moduleLogger.Debugf("retry successed, %d", i)
 				}
+				s.apiCallInfo.Inc("DescribeMetricList", false)
 				break
 			}
 		}
@@ -426,7 +447,7 @@ func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 		if err != nil {
 			moduleLogger.Debugf("params: Namespace: %s, MetricName: %s, Period: %s, StartTime: %s, EndTime: %s, Dimensions: %s, RegionId: %s, NextToken: %s", req.q.Namespace, req.q.MetricName, req.q.Period, req.q.StartTime, req.q.EndTime, req.q.Dimensions, req.q.RegionId, resp.NextToken)
 			moduleLogger.Errorf("bad response, err: %s", err)
-			return err
+			break
 		}
 
 		req.q.NextToken = resp.NextToken
@@ -512,8 +533,8 @@ func (s *CMS) fetchMetric(ctx context.Context, req *MetricsRequest) error {
 		if len(fields) > 0 {
 
 			if s.mode == "debug" {
-				data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
-				fmt.Printf("%s\n", string(data))
+				//data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
+				//fmt.Printf("%s\n", string(data))
 			} else {
 				io.HighFreqFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
 			}
