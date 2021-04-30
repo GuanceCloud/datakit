@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceSkywalking/v2/common"
 	swV2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceSkywalking/v2/language-agent-v2"
@@ -84,6 +85,7 @@ func (s *SkywalkingServerV2) Collect(tsc swV2.TraceSegmentReportService_CollectS
 		log.Debugf("%#v\n", string(b))
 
 		if err := skywalkGrpcV2ToLineProto(sgo); err != nil {
+			dkio.FeedLastError(inputName, err.Error())
 			log.Error(err)
 		}
 	}
