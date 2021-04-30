@@ -1,7 +1,6 @@
-package tailf
+package logging
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"sync"
