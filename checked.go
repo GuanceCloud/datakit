@@ -81,6 +81,7 @@ var (
 		"kafka":                  true,
 		"kafkalog":               true,
 		"kong":                   true,
+		"kubernetes":             true,
 		"lighttpd":               true,
 		"mem":                    true,
 		"mongodb_oplog":          true,
