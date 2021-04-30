@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -151,6 +150,7 @@ func TestTomlParse(t *testing.T) {
 //	t.Logf("fpath: %s, sample: %s", fpath, sample)
 //}
 
+/*
 func TestBuildInputCfg(t *testing.T) {
 
 	data := `
@@ -192,7 +192,7 @@ func TestBuildInputCfg(t *testing.T) {
 	}
 
 	t.Logf("sample: %s", sample)
-}
+} */
 
 //func TestLoadMainCfg(t *testing.T) {
 //
@@ -402,31 +402,42 @@ func TestFeedEnvs(t *testing.T) {
 		env    map[string]string
 	}{
 		{
-			str: "this is env from os:  $TEST_ENV",
+			str: "this is env from os:  $TEST_ENV_1",
 
 			env: map[string]string{
-				"TEST_ENV":  "test-data",
-				"TEST_ENV2": "test-data2",
+				"TEST_ENV_1":   "test-data",
+				"TEST_ENV___1": "test-data2",
 			},
 			expect: "this is env from os:  test-data",
 		},
 
 		{
-			str: "this is env from os:  $$TEST_ENV$$",
+			str: "this is env from os:  $$TEST_ENV_1$$",
 			env: map[string]string{
-				"TEST_ENV":  "test-data",
-				"TEST_ENV2": "test-data2",
+				"TEST_ENV_1":   "test-data",
+				"TEST_ENV___1": "test-data2",
 			},
 			expect: "this is env from os:  $test-data$$",
 		},
 
 		{
-			str: "this is env from os:  $$TEST_ENVxxx",
+			str:    "this is env from os:  $$TEST_ENV_2",
+			env:    map[string]string{},
+			expect: "this is env from os:  $no-value",
+		},
+
+		{
+			str:    "this is env from os:  $TEST_ENV_2",
+			env:    map[string]string{},
+			expect: "this is env from os:  no-value",
+		},
+
+		{
+			str: "this is env from os:  $TEST_ENV_2",
 			env: map[string]string{
-				"TEST_ENV":  "test-data",
-				"TEST_ENV2": "test-data2",
+				"TEST_ENV_2": "test-data2",
 			},
-			expect: "this is env from os:  $$TEST_ENVxxx",
+			expect: "this is env from os:  test-data2",
 		},
 	}
 
