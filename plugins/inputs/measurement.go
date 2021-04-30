@@ -48,6 +48,7 @@ const (
 	Percent = "%"
 
 	// TODO: add more...
+	BytesPerSec = "B/s"
 )
 
 type Measurement interface {
