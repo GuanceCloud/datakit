@@ -29,7 +29,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 var (
@@ -37,9 +36,10 @@ var (
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
 	// tool-commands supported in datakit
-	flagCmd             = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline        = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText            = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagCmd      = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+
 	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
 	flagMan             = flag.Bool("man", false, "read manuals of inputs")
 	flagOTA             = flag.Bool("update", false, "update datakit new version if available")
@@ -47,15 +47,14 @@ var (
 
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
 
-	flagExportMan = flag.String("export-man", "", "export all inputs and related manuals to specified path")
-
 	flagInstallExternal = flag.String("install", "", "install external tool/software")
-
 	flagStart      = flag.Bool("start", false, "start datakit")
 	flagStop       = flag.Bool("stop", false, "stop datakit")
 	flagRestart    = flag.Bool("restart", false, "restart datakit")
 	flagReload     = flag.Bool("reload", false, "reload datakit")
 	flagReloadPort = flag.Int("reload-port", 9529, "datakit http server port")
+	flagExportMan  = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
+	flagIgnoreMans = flag.String("ignore-manuals", "", "disable exporting specified manuals, i.e., --ignore-manuals nginx,redis,mem")
 )
 
 var (
@@ -207,17 +206,9 @@ func dumpAllConfigSamples(fpath string) {
 		}
 	}
 
-	for k, v := range tgi.TelegrafInputs {
-		sample := v.SampleConfig()
-		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), os.ModePerm); err != nil {
-			panic(err)
-		}
-	}
 }
 
 func run() {
-
-	inputs.StartTelegraf()
 
 	l.Info("datakit start...")
 	if err := runDatakitWithHTTPServer(); err != nil {
@@ -308,7 +299,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagExportMan != "" {
-		if err := cmds.ExportMan(*flagExportMan); err != nil {
+		if err := cmds.ExportMan(*flagExportMan, *flagIgnoreMans); err != nil {
 			l.Error(err)
 		}
 		os.Exit(0)
@@ -446,19 +437,10 @@ func tryOTAUpdate(ver string) error {
 	datakitUrl := "https://" + path.Join(baseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, ver))
 
-	telegrafUrl := "https://" + path.Join(baseURL,
-		"telegraf",
-		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
-
 	dataUrl := "https://" + path.Join(baseURL, "data.tar.gz")
 
 	l.Debugf("downloading %s to %s...", datakitUrl, datakit.InstallDir)
 	if err := install.Download(datakitUrl, datakit.InstallDir, false, false); err != nil {
-		return err
-	}
-
-	l.Debugf("downloading %s to %s...", telegrafUrl, datakit.InstallDir)
-	if err := install.Download(telegrafUrl, datakit.InstallDir, false, false); err != nil {
 		return err
 	}
 
