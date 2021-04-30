@@ -11,18 +11,17 @@ import (
 	"github.com/influxdata/toml/ast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 // load all inputs under @InstallDir/conf.d
 func LoadInputsConfig(c *datakit.Config) error {
-
-	// detect same-name input name between datakit and telegraf
-	for k := range tgi.TelegrafInputs {
-		if _, ok := inputs.Inputs[k]; ok {
-			l.Fatalf(fmt.Sprintf("same name input %s within datakit and telegraf", k))
-		}
+	// 初始化全局选举模块
+	// 行为简单，默认不会报错。一旦报错直接退出
+	if err := election.InitGlobalConsensusModule(); err != nil {
+		l.Errorf("init consensus module failed: %s", err)
+		return err
 	}
 
 	availableInputCfgs := map[string]*ast.Table{}
@@ -58,6 +57,8 @@ func LoadInputsConfig(c *datakit.Config) error {
 			}
 		}
 
+		tryStartElection(tbl, electionInputs)
+
 		if len(tbl.Fields) == 0 {
 			l.Debugf("no conf available on %s", fp)
 			return nil
@@ -87,20 +88,9 @@ func LoadInputsConfig(c *datakit.Config) error {
 		}
 	}
 
-	telegrafRawCfg, err := loadTelegrafInputsConfigs(c, availableInputCfgs, nil)
-	if err != nil {
-		return err
-	}
-
-	if telegrafRawCfg != "" {
-		if err := ioutil.WriteFile(filepath.Join(datakit.TelegrafDir, "agent.conf"), []byte(telegrafRawCfg), os.ModePerm); err != nil {
-			l.Errorf("create telegraf conf failed: %s", err.Error())
-			return err
-		}
-	}
-
 	inputs.AddSelf()
-	inputs.AddTelegrafHTTPInput()
+
+	l.Debugf("datakit election status: %s", election.CurrentStats())
 
 	return nil
 }
@@ -257,27 +247,6 @@ func initPluginSamples() {
 			l.Fatal(err)
 		}
 	}
-
-	// create telegraf input plugin's configures
-	for name, input := range tgi.TelegrafInputs {
-
-		if !datakit.Enabled(name) {
-			l.Debugf("initPluginSamples: ignore unchecked input %s", name)
-			continue
-		}
-
-		cfgpath := filepath.Join(datakit.ConfdDir, input.Catalog, name+".conf.sample")
-		l.Debugf("create telegraf conf path %s", filepath.Join(datakit.ConfdDir, input.Catalog))
-		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, input.Catalog), os.ModePerm); err != nil {
-			l.Fatalf("create catalog dir %s failed: %s", input.Catalog, err.Error())
-		}
-
-		if input, ok := tgi.TelegrafInputs[name]; ok {
-			if err := ioutil.WriteFile(cfgpath, []byte(input.SampleConfig()), 0600); err != nil {
-				l.Fatalf("failed to create sample configure for collector %s: %s", name, err.Error())
-			}
-		}
-	}
 }
 
 func initDefaultEnabledPlugins(c *datakit.Config) {
@@ -289,10 +258,7 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 	for _, name := range c.MainCfg.DefaultEnabledInputs {
 		var fpath, sample string
 
-		if i, ok := tgi.TelegrafInputs[name]; ok {
-			fpath = filepath.Join(datakit.ConfdDir, i.Catalog, name+".conf")
-			sample = i.SampleConfig()
-		} else if c, ok := inputs.Inputs[name]; ok {
+		if c, ok := inputs.Inputs[name]; ok {
 			i := c()
 			sample = i.SampleConfig()
 
@@ -355,12 +321,10 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 	return inputlist, nil
 }
 
-var (
-	deprecatedInputs = map[string]string{
-		"dockerlog":         "docker",
-		"docker_containers": "docker",
-	}
-)
+var deprecatedInputs = map[string]string{
+	"dockerlog":         "docker",
+	"docker_containers": "docker",
+}
 
 func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[string]string) {
 
@@ -378,4 +342,38 @@ func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[s
 		}
 	}
 	return
+}
+
+var electionInputs = map[string]interface{}{
+	"kubernetes": nil,
+}
+
+func tryStartElection(tbl *ast.Table, entries map[string]interface{}) {
+	for _, node := range tbl.Fields {
+		stbl, ok := node.(*ast.Table)
+		if !ok {
+			continue
+		}
+		for inputName := range stbl.Fields {
+			if _, ok := entries[inputName]; !ok {
+				continue
+			}
+
+			// datakit 开启选举功能，且当前选举处于初始状态
+			//
+			// 在此判断选举是否处于初始状态的原因
+			// 为了避免多重选举。
+			// 例如第一次遇到 kubernetes input，此时选举状态为初始化的 Dead，条件成立，改变状态，开始选举
+			// 第二次遇到 kubernetes input 时，如果是非初始状态 Dead，证明已经有选举在进行中，不应该再次开始选举
+
+			if datakit.Cfg.MainCfg.EnableElection && election.CurrentStats().IsDead() {
+				election.SetCandidate()
+				go election.StartElection()
+			}
+			// datakit 不开启选举，默认自己是 Leader
+			if !datakit.Cfg.MainCfg.EnableElection {
+				election.SetLeader()
+			}
+		}
+	}
 }
