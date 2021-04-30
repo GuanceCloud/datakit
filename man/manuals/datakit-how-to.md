@@ -244,4 +244,12 @@ man > Q               # 输入 Q 或 exit 退出
 
 ### DataKit 服务管理
 
+可直接使用如下命令直接管理 DataKit
+
+```shell
+$ datakit --stop
+```
+
 ### DataKit 安装额外插件
+
+Comming soon...
