@@ -42,13 +42,19 @@ var (
 
 	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
 	flagMan             = flag.Bool("man", false, "read manuals of inputs")
-	flagOTA             = flag.Bool("ota", false, "update datakit new version if available")
+	flagOTA             = flag.Bool("update", false, "update datakit new version if available")
 	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "during OTA, accept RC version if available")
 
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
 
-	flagExportMan  = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
-	flagIgnoreMans = flag.String("ignore-manuals", "", "disable exporting specified manuals, i.e., --ignore-manuals nginx,redis,mem")
+	flagInstallExternal = flag.String("install", "", "install external tool/software")
+	flagStart           = flag.Bool("start", false, "start datakit")
+	flagStop            = flag.Bool("stop", false, "stop datakit")
+	flagRestart         = flag.Bool("restart", false, "restart datakit")
+	flagReload          = flag.Bool("reload", false, "reload datakit")
+	flagReloadPort      = flag.Int("reload-port", 9529, "datakit http server port")
+	flagExportMan       = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
+	flagIgnoreMans      = flag.String("ignore-manuals", "", "disable exporting specified manuals, i.e., --ignore-manuals nginx,redis,mem")
 )
 
 var (
@@ -58,7 +64,7 @@ var (
 )
 
 func main() {
-
+	flag.CommandLine.MarkHidden("cmd")
 	flag.CommandLine.MarkHidden("show-testing-version")
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
@@ -180,10 +186,7 @@ ReleasedInputs: %s
 
 	datakit.EnableUncheckInputs = (ReleaseType == "all")
 
-	if *flagCmd {
-		runDatakitWithCmd()
-		os.Exit(0)
-	}
+	runDatakitWithCmd()
 
 	if *flagDocker {
 		datakit.Docker = true
@@ -275,26 +278,58 @@ func runDatakitWithHTTPServer() error {
 }
 
 func runDatakitWithCmd() {
+	if *flagCmd {
+		l.Warn("--cmd parameter has been discarded")
+		os.Exit(0)
+	}
+
 	if *flagPipeline != "" {
 		cmds.PipelineDebugger(*flagPipeline, *flagText)
-		return
+		os.Exit(0)
 	}
 
 	if *flagGrokq {
 		cmds.Grokq()
-		return
+		os.Exit(0)
 	}
 
 	if *flagMan {
 		cmds.Man()
-		return
+		os.Exit(0)
 	}
 
 	if *flagExportMan != "" {
 		if err := cmds.ExportMan(*flagExportMan, *flagIgnoreMans); err != nil {
 			l.Error(err)
 		}
-		return
+		os.Exit(0)
+	}
+
+	if *flagInstallExternal != "" {
+		if err := cmds.InstallExternal(*flagInstallExternal); err != nil {
+			l.Error(err)
+		}
+		os.Exit(0)
+	}
+
+	if *flagStart {
+		cmds.StartDatakit()
+		os.Exit(0)
+	}
+
+	if *flagStop {
+		cmds.StopDatakit()
+		os.Exit(0)
+	}
+
+	if *flagRestart {
+		cmds.RestartDatakit()
+		os.Exit(0)
+	}
+
+	if *flagReload {
+		cmds.ReloadDatakit(*flagReloadPort)
+		os.Exit(0)
 	}
 }
 
@@ -405,12 +440,12 @@ func tryOTAUpdate(ver string) error {
 	dataUrl := "https://" + path.Join(baseURL, "data.tar.gz")
 
 	l.Debugf("downloading %s to %s...", datakitUrl, datakit.InstallDir)
-	if err := install.Download(datakitUrl, datakit.InstallDir, false); err != nil {
+	if err := install.Download(datakitUrl, datakit.InstallDir, false, false); err != nil {
 		return err
 	}
 
 	l.Debugf("downloading %s to %s...", dataUrl, datakit.InstallDir)
-	if err := install.Download(dataUrl, datakit.InstallDir, false); err != nil {
+	if err := install.Download(dataUrl, datakit.InstallDir, false, false); err != nil {
 		l.Errorf("download %s failed: %v, ignored", dataUrl, err)
 	}
 
