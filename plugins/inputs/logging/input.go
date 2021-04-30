@@ -1,4 +1,4 @@
-package tailf
+package logging
 
 import (
 	"path/filepath"
@@ -9,10 +9,11 @@ import (
 )
 
 const (
-	inputName = "tailf"
+	inputName           = "logging"
+	deprecatedInputName = "tailf"
 
 	sampleCfg = `
-[[inputs.tailf]]
+[[inputs.logging]]
     # required, glob logfiles
     logfiles = ["/path/to/your/file.log"]
 
@@ -40,7 +41,7 @@ const (
     # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
     match = '''^\S'''
 
-    [inputs.tailf.tags]
+    [inputs.logging.tags]
     # tags1 = "value1"
 `
 )
@@ -60,6 +61,9 @@ type Input struct {
 	FromBeginning           bool              `toml:"-"`
 
 	tailer *inputs.Tailer
+
+	// 在输出 log 内容时，区分是 tailf 还是 logging
+	inputName string
 }
 
 var l = logger.DefaultSLogger(inputName)
@@ -105,7 +109,7 @@ func (this *Input) Run() {
 		select {
 		case <-datakit.Exit.Wait():
 			this.Stop()
-			l.Info("tailf exit")
+			l.Infof("%s exit", this.inputName)
 			return
 		}
 	}
@@ -129,6 +133,15 @@ func (this *Input) SampleConfig() string {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			Tags:      make(map[string]string),
+			inputName: inputName,
+		}
+	})
+	inputs.Add(deprecatedInputName, func() inputs.Input {
+		return &Input{
+			Tags:      make(map[string]string),
+			inputName: deprecatedInputName,
+		}
 	})
 }
