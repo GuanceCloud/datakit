@@ -31,6 +31,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/disk"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/diskio"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/docker"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kubernetes"
 
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/docker_containers"
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dockerlog"
@@ -93,7 +94,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/system"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/systemd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tailf"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_http"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcms"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentcost"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentobject"
