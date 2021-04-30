@@ -10,15 +10,24 @@
 
 ## 前置条件
 
-准备对应语言的 ddtrace SDK：
+准备对应语言的 ddtrace 配置：
 
 - Python: https://github.com/DataDog/dd-trace-py
 - Golang: https://github.com/DataDog/dd-trace-go
-- Java: https://github.com/DataDog/dd-trace-java
-- Javascript: https://github.com/DataDog/dd-trace-js
+- NodeJS: https://github.com/DataDog/dd-trace-js
 - PHP: https://github.com/DataDog/dd-trace-php
 - Ruby: https://github.com/DataDog/dd-trace-rb
 - C#: https://github.com/DataDog/dd-trace-dotnet
+- C++: https://github.com/opentracing/opentracing-cpp
+- Java：
+
+下载 jar 包：
+
+```shell
+$ wget -O dd-java-agent.jar https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/backups/dd-java-agent.jar
+```
+
+其它版本的 [Maven 地址](https://repo1.maven.org/maven2/com/datadoghq/dd-java-agent/)
 
 ## 配置
 
