@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"sync"
 	"time"
 
@@ -21,16 +22,16 @@ func init() {
 }
 
 type Input struct {
-	Endpoint              string            `toml:"endpoint"`
-	CollectMetric         bool              `toml:"collect_metric"`
-	CollectObject         bool              `toml:"collect_object"`
-	CollectLogging        bool              `toml:"collect_logging"`
-	CollectMetricInterval string            `toml:"collect_metric_interval"`
-	CollectObjectInterval string            `toml:"collect_object_interval"`
-	IncludeExited         bool              `toml:"include_exited"`
-	ClientConfig                            // tls config
-	LogOption             []*LogOption      `toml:"log_option"`
-	Tags                  map[string]string `toml:"tags"`
+	Endpoint                        string            `toml:"endpoint"`
+	CollectMetric                   bool              `toml:"collect_metric"`
+	CollectObject                   bool              `toml:"collect_object"`
+	CollectLogging                  bool              `toml:"collect_logging"`
+	CollectMetricInterval           string            `toml:"collect_metric_interval"`
+	DeprecatedCollectObjectInterval string            `toml:"collect_object_interval"`
+	IncludeExited                   bool              `toml:"include_exited"`
+	ClientConfig                                      // tls config
+	LogOption                       []*LogOption      `toml:"log_option"`
+	Tags                            map[string]string `toml:"tags"`
 
 	collectMetricDuration time.Duration
 	collectObjectDuration time.Duration
@@ -55,8 +56,8 @@ func newInput() *Input {
 		Tags:                  make(map[string]string),
 		newEnvClient:          NewEnvClient,
 		newClient:             NewClient,
-		collectMetricDuration: minimumCollectMetricDuration,
-		collectObjectDuration: minimumCollectObjectDuration,
+		collectMetricDuration: minCollectMetricDuration,
+		collectObjectDuration: collectObjectDuration,
 		timeoutDuration:       defaultAPITimeout,
 		containerLogList:      make(map[string]context.CancelFunc),
 	}
@@ -114,6 +115,7 @@ func (this *Input) initCfg() bool {
 
 		if err := this.loadCfg(); err != nil {
 			l.Error(err)
+			io.FeedLastError(inputName, fmt.Sprintf("load config: %s", err.Error()))
 			time.Sleep(time.Second)
 		} else {
 			break
@@ -170,7 +172,7 @@ func (this *dockerContainersMeasurement) Info() *inputs.MeasurementInfo {
 			"name":           inputs.NewTagInfo(`对象数据的指定 ID，（仅在对象数据中存在）`),
 			"container_host": inputs.NewTagInfo(`容器内部的主机名（仅在对象数据中存在）`),
 			"host":           inputs.NewTagInfo(`容器宿主机的主机名`),
-			"stats":          inputs.NewTagInfo(`运行状态，running/exited/removed`),
+			"state":          inputs.NewTagInfo(`运行状态，running/exited/removed`),
 			"pod_name":       inputs.NewTagInfo(`pod名称`),
 			"pod_namesapce":  inputs.NewTagInfo(`pod命名空间`),
 			// "kube_container_name": inputs.NewTagInfo(`TODO`),
@@ -181,13 +183,13 @@ func (this *dockerContainersMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"from_kubernetes":    &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "该容器是否由 Kubernetes 创建"},
-			"cpu_usage_percent":  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU使用率"},
-			"mem_usage_percent":  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "内存使用率"},
+			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 占主机总量的使用率"},
 			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "容器 CPU 增量"},
 			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "系统 CPU 增量"},
 			"cpu_numbers":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "CPU 核心数"},
-			"mem_available":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "内存可用总量"},
+			"mem_limit":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "内存可用总量，如果未对容器做内存限制，则为主机内存容量"},
 			"mem_usage":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "内存使用量"},
+			"mem_used_percent":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "内存使用率，使用量除以可用总量"},
 			"mem_failed_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "内存分配失败的次数"},
 			"network_bytes_rcvd": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "从网络接收到的总字节数"},
 			"network_bytes_sent": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "向网络发送出的总字节数"},
