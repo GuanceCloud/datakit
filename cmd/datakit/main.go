@@ -48,13 +48,13 @@ var (
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
 
 	flagInstallExternal = flag.String("install", "", "install external tool/software")
-	flagStart      = flag.Bool("start", false, "start datakit")
-	flagStop       = flag.Bool("stop", false, "stop datakit")
-	flagRestart    = flag.Bool("restart", false, "restart datakit")
-	flagReload     = flag.Bool("reload", false, "reload datakit")
-	flagReloadPort = flag.Int("reload-port", 9529, "datakit http server port")
-	flagExportMan  = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
-	flagIgnoreMans = flag.String("ignore-manuals", "", "disable exporting specified manuals, i.e., --ignore-manuals nginx,redis,mem")
+	flagStart           = flag.Bool("start", false, "start datakit")
+	flagStop            = flag.Bool("stop", false, "stop datakit")
+	flagRestart         = flag.Bool("restart", false, "restart datakit")
+	flagReload          = flag.Bool("reload", false, "reload datakit")
+	flagReloadPort      = flag.Int("reload-port", 9529, "datakit http server port")
+	flagExportMan       = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
+	flagIgnoreMans      = flag.String("ignore-manuals", "", "disable exporting specified manuals, i.e., --ignore-manuals nginx,redis,mem")
 )
 
 var (
