@@ -17,8 +17,12 @@ import (
 
 // load all inputs under @InstallDir/conf.d
 func LoadInputsConfig(c *datakit.Config) error {
-	// create election module
-	election.NewGolbalConsensusModule()
+	// 初始化全局选举模块
+	// 行为简单，默认不会报错。一旦报错直接退出
+	if err := election.InitGlobalConsensusModule(); err != nil {
+		l.Errorf("init consensus module failed: %s", err)
+		return err
+	}
 
 	availableInputCfgs := map[string]*ast.Table{}
 
