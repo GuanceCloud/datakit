@@ -17,6 +17,11 @@ import (
 
 type IoFeed func(data []byte, category, name string) error
 
+const (
+	MinGatherInterval = 30 * time.Second
+	MaxGatherInterval = 1 * time.Minute
+)
+
 type Ssh struct {
 	Interval       interface{}
 	Active         bool
@@ -183,6 +188,7 @@ func (p *SshParam) gather() {
 		return
 	}
 
+	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 	for {
@@ -190,6 +196,7 @@ func (p *SshParam) gather() {
 		case <-tick.C:
 			_, err := p.getMetrics(clientCfg, false)
 			if err != nil {
+				io.FeedLastError(inputName, err.Error())
 				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
 
