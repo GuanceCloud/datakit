@@ -1,20 +1,23 @@
-package tailf
+package logging
 
 import (
 	"path/filepath"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
-	inputName = "tailf"
+	inputName           = "logging"
+	deprecatedInputName = "tailf"
 
 	sampleCfg = `
-[[inputs.tailf]]
+[[inputs.logging]]
     # required, glob logfiles
-    logfiles = ["/path/to/your/file.log"]
+    logfiles = ["/var/log/syslog"]
 
     # glob filteer
     ignore = [""]
@@ -40,7 +43,7 @@ const (
     # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
     match = '''^\S'''
 
-    [inputs.tailf.tags]
+    [inputs.logging.tags]
     # tags1 = "value1"
 `
 )
@@ -60,6 +63,9 @@ type Input struct {
 	FromBeginning           bool              `toml:"-"`
 
 	tailer *inputs.Tailer
+
+	// 在输出 log 内容时，区分是 tailf 还是 logging
+	inputName string
 }
 
 var l = logger.DefaultSLogger(inputName)
@@ -105,7 +111,7 @@ func (this *Input) Run() {
 		select {
 		case <-datakit.Exit.Wait():
 			this.Stop()
-			l.Info("tailf exit")
+			l.Infof("%s exit", this.inputName)
 			return
 		}
 	}
@@ -127,8 +133,54 @@ func (this *Input) SampleConfig() string {
 	return sampleCfg
 }
 
+func (*Input) AvailableArchs() []string {
+	return []string{datakit.OSLinux}
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&loggingMeasurement{},
+	}
+}
+
+type loggingMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
+func (this *loggingMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(this.name, this.tags, this.fields, this.ts)
+}
+
+func (this *loggingMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "logging 日志采集",
+		Desc: "使用配置文件中的 `source` 字段值，如果该值为空，则默认为 `default`",
+		Tags: map[string]interface{}{
+			"filename": inputs.NewTagInfo(`此条日志来源的文件名，仅为基础文件名，并非带有全路径`),
+			"host":     inputs.NewTagInfo(`主机名`),
+			"service":  inputs.NewTagInfo("service 名称，对应配置文件中的 `service` 字段值"),
+		},
+		Fields: map[string]interface{}{
+			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志正文，默认存在，可以使用 pipeline 删除此字段"},
+			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，默认为 `info`，采集器会该字段做支持映射，映射表见上述 pipelie 配置和使用"},
+		},
+	}
+}
+
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			Tags:      make(map[string]string),
+			inputName: inputName,
+		}
+	})
+	inputs.Add(deprecatedInputName, func() inputs.Input {
+		return &Input{
+			Tags:      make(map[string]string),
+			inputName: deprecatedInputName,
+		}
 	})
 }

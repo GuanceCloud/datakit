@@ -83,6 +83,7 @@ var (
 		"kong":                   true,
 		"kubernetes":             true,
 		"lighttpd":               true,
+		"logging":                true,
 		"mem":                    true,
 		"mongodb_oplog":          true,
 		"mysql":                  true,
