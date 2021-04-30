@@ -17,24 +17,37 @@ var (
 	defaultConsensusModule *ConsensusModule
 
 	l = logger.DefaultSLogger("dk-election")
+
+	HTTPTimeout = time.Second * 3
+
+	// 选举请求间隔，和发送心跳间隔都是 3 秒
+	electionInterval = time.Second * 3
 )
 
 func InitGlobalConsensusModule() error {
-	// 此处默认不会报错，如果报错那一定是 DataWayCfg 的重大问题
-	// 出于严谨还是在此函数 return 一个 error
-	electionURL, err := url.Parse(datakit.Cfg.MainCfg.DataWay.ElectionURL())
+	l = logger.SLogger("dk-election")
+
+	electionURL, err := setURLQueryParam(
+		datakit.Cfg.MainCfg.DataWay.ElectionURL(),
+		"id",
+		datakit.Cfg.MainCfg.UUID,
+	)
 	if err != nil {
 		return err
 	}
-	electionURL.Query().Add("id", datakit.Cfg.MainCfg.UUID)
 
-	heartbeatURL, err := url.Parse(datakit.Cfg.MainCfg.DataWay.ElectionHeartBeatURL())
+	heartbeatURL, err := setURLQueryParam(
+		datakit.Cfg.MainCfg.DataWay.ElectionHeartBeatURL(),
+		"id",
+		datakit.Cfg.MainCfg.UUID,
+	)
 	if err != nil {
 		return err
 	}
-	heartbeatURL.Query().Add("id", datakit.Cfg.MainCfg.UUID)
 
-	defaultConsensusModule = NewConsensusModule(electionURL.String(), heartbeatURL.String())
+	l.Debugf("election URL: %s", electionURL)
+	l.Debugf("election heartbeat URL: %s", heartbeatURL)
+	defaultConsensusModule = NewConsensusModule(electionURL, heartbeatURL)
 	return nil
 }
 
@@ -95,11 +108,6 @@ type ConsensusModule struct {
 	httpCli *http.Client
 	mu      sync.Mutex
 }
-
-const (
-	HTTPTimeout      = time.Second * 3
-	electionInterval = time.Second * 2
-)
 
 // NewCNewConsensusModule 两个参数是配置文件项，为了方便测试将其改为传参方式
 func NewConsensusModule(electionURL, heartbeatURL string) *ConsensusModule {
@@ -205,6 +213,7 @@ const (
 )
 
 func (cm *ConsensusModule) postRequest(url string) (*electionResult, error) {
+	l.Debugf("election POST URL: %s", url)
 	// datakit 数据发送到 dataway，不需要添加一堆 header
 	// 简洁发送
 	resp, err := cm.httpCli.Post(url, "", nil)
@@ -233,4 +242,17 @@ func (cm *ConsensusModule) postRequest(url string) (*electionResult, error) {
 
 	// bad
 	return nil, fmt.Errorf("%s", body)
+}
+
+func setURLQueryParam(urlStr, paramKey, paramValue string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	q := u.Query()
+	q.Set(paramKey, paramValue)
+
+	u.RawQuery = q.Encode()
+	return u.String(), nil
 }
