@@ -136,23 +136,7 @@ func PubDatakit() {
 	curVd := getCurrentVersionInfo(url)
 
 	// upload all build archs
-	archs := []string{}
-
-	switch Archs {
-	case "all":
-		archs = OSArches
-		// read cmd-line env
-		if x := os.Getenv("ALL_ARCHS"); x != "" {
-			archs = strings.Split(x, "|")
-		}
-	case "local":
-		archs = []string{runtime.GOOS + "/" + runtime.GOARCH}
-		if x := os.Getenv("LOCAL"); x != "" {
-			archs = strings.Split(x, "|")
-		}
-	default:
-		archs = strings.Split(Archs, "|")
-	}
+	archs := parseArchs(Archs)
 
 	ossfiles := map[string]string{
 		path.Join(PubDir, Release, "version"): path.Join(OSSPath, "version"),
