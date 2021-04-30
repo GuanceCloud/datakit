@@ -168,6 +168,22 @@ func (dc *DataWayCfg) HeartBeatURL() string {
 		dc.urlValues.Encode())
 }
 
+func (dc *DataWayCfg) ElectionURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		"/v1/election",
+		dc.urlValues.Encode())
+}
+
+func (dc *DataWayCfg) ElectionHeartBeatURL() string {
+	return fmt.Sprintf("%s://%s%s?%s",
+		dc.scheme,
+		dc.host,
+		"/v1/election/heartbeat",
+		dc.urlValues.Encode())
+}
+
 func (dc *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
 	tcpaddr := addr
 	if _, _, err := net.SplitHostPort(tcpaddr); err != nil {
