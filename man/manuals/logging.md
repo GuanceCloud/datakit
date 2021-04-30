@@ -102,47 +102,52 @@ testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.
 | `d`, `debug`, `trace`, `verbose` | `debug`    |
 | `o`, `s`, `OK`                   | `OK`       |
 
-示例：
+示例：假定文本数据如下：
 
 ```
-# 文本数据：12115:M 08 Jan 17:45:41.572 # Server started, Redis version 3.0.6
+12115:M 08 Jan 17:45:41.572 # Server started, Redis version 3.0.6
+```
+pipeline 脚本：
 
-# pipeline：
+```python
 add_pattern("date2", "%{MONTHDAY} %{MONTH} %{YEAR}?%{TIME}")
 grok(_, "%{INT:pid}:%{WORD:role} %{date2:time} %{NOTSPACE:serverity} %{GREEDYDATA:msg}")
 group_in(serverity, ["#"], "warning", status)
 cast(pid, "int")
 default_time(time)
-
-# 最终结果：
-# {
-#     "message": "12115:M 08 Jan 17:45:41.572 # Server started, Redis version 3.0.6",
-#     "msg": "Server started, Redis version 3.0.6",
-#     "pid": 12115,
-#     "role": "M",
-#     "serverity": "#",
-#     "status": "warning",
-#     "time": 1610127941572000000
-# }
 ```
 
-- 如果配置文件中 pipeline_path 为空，默认使用 $source.p
-- 如果 $source.p 不存在，将不使用 pipeline 功能
-- 所有 pipeline 脚本文件，统一存放在 datakit 安装路径下的 pipeline 和 pattern 文件夹中，具体写法请看文档
-- 默认情况下，采集器会自动发现新文件，以确保符合规则的新文件能够尽快采集。
+最终结果：
+
+```python
+{
+    "message": "12115:M 08 Jan 17:45:41.572 # Server started, Redis version 3.0.6",
+    "msg": "Server started, Redis version 3.0.6",
+    "pid": 12115,
+    "role": "M",
+    "serverity": "#",
+    "status": "warning",
+    "time": 1610127941572000000
+}
+```
+
+- 如果配置文件中 `pipeline_path` 为空，默认使用 `<source-name>.p`
+- 如果 `<source-name.p>` 不存在，将不启用 pipeline 功能
+- 所有 pipeline 脚本文件，统一存放在 datakit 安装路径下的 pipeline 目录下
+- 默认情况下，采集器会自动发现新文件，以确保符合规则的新文件能够尽快采
 
 ### glob 规则简述（图表数据[来源](https://rgb-24bit.github.io/blog/2018/glob.html)）
 
 使用 glob 规则更方便地指定日志文件，以及自动发现和文件过滤。
 
-| 通配符 | 描述                               | 例子         | 匹配                       | 不匹配                      |
-| :--    | ---                                | ---          | ---                        | ----                        |
-| *      | 匹配任意数量的任何字符，包括无     | Law*         | Law, Laws, Lawyer          | GrokLaw, La, aw             |
-| ?      | 匹配任何单个字符                   | ?at          | Cat, cat, Bat, bat         | at                          |
-| [abc]  | 匹配括号中给出的一个字符           | [CB]at       | Cat, Bat                   | cat, bat                    |
-| [a-z]  | 匹配括号中给出的范围中的一个字符   | Letter[0-9]  | Letter0, Letter1 … Letter9 | Letters, Letter, Letter10   |
-| [!abc] | 匹配括号中未给出的一个字符         | [!C]at       | Bat, bat, cat              | Cat                         |
-| [!a-z] | 匹配不在括号内给定范围内的一个字符 | Letter[!3-5] | Letter1…                   | Letter3 … Letter5, Letterxx |
+| 通配符   | 描述                               | 例子           | 匹配                       | 不匹配                      |
+| :--      | ---                                | ---            | ---                        | ----                        |
+| `*`      | 匹配任意数量的任何字符，包括无     | `Law*`         | Law, Laws, Lawyer          | GrokLaw, La, aw             |
+| `?`      | 匹配任何单个字符                   | `?at`          | Cat, cat, Bat, bat         | at                          |
+| `[abc]`  | 匹配括号中给出的一个字符           | `[CB]at`       | Cat, Bat                   | cat, bat                    |
+| `[a-z]`  | 匹配括号中给出的范围中的一个字符   | `Letter[0-9]`  | Letter0, Letter1 … Letter9 | Letters, Letter, Letter10   |
+| `[!abc]` | 匹配括号中未给出的一个字符         | `[!C]at`       | Bat, bat, cat              | Cat                         |
+| `[!a-z]` | 匹配不在括号内给定范围内的一个字符 | `Letter[!3-5]` | Letter1…                   | Letter3 … Letter5, Letterxx |
 
 另需说明，除上述 glob 标准规则外，采集器也支持 `**` 进行递归地文件遍历，如示例配置所示。
 
