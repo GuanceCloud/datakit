@@ -86,7 +86,7 @@ type MainConfig struct {
 	BlackList []*InputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*InputHostList `toml:"white_lists,omitempty"`
 
-	EnableElection bool `toml:"enable_election,omitempty"`
+	EnableElection bool `toml:"enable_election"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
 }
