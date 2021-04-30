@@ -9,6 +9,7 @@ import (
 	nhttp "net/http"
 	"os"
 	"os/signal"
+	"os/user"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -65,6 +66,7 @@ var (
 
 func main() {
 	flag.CommandLine.MarkHidden("cmd")
+	flag.CommandLine.MarkHidden("install") // 1.1.6-rc1 再发布
 	flag.CommandLine.MarkHidden("show-testing-version")
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
@@ -277,10 +279,19 @@ func runDatakitWithHTTPServer() error {
 	return nil
 }
 
+func isRoot() bool {
+	u, err := user.Current()
+	if err != nil {
+		l.Errorf("get current user failed: %s", err.Error())
+		return false
+	}
+
+	return u.Username == "root"
+}
+
 func runDatakitWithCmd() {
 	if *flagCmd {
 		l.Warn("--cmd parameter has been discarded")
-		os.Exit(0)
 	}
 
 	if *flagPipeline != "" {
@@ -313,22 +324,65 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagStart {
-		cmds.StartDatakit()
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
+		if err := cmds.StartDatakit(); err != nil {
+			fmt.Printf("Start DataKit failed: %s\n", err)
+			os.Exit(-1)
+		}
+
+		fmt.Printf("Start DataKit OK") // TODO: 需说明 PID 是多少
 		os.Exit(0)
 	}
 
 	if *flagStop {
-		cmds.StopDatakit()
+
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
+		if err := cmds.StopDatakit(); err != nil {
+			fmt.Printf("Stop DataKit failed: %s\n", err)
+			os.Exit(-1)
+		}
+
+		fmt.Println("Stop DataKit OK")
 		os.Exit(0)
 	}
 
 	if *flagRestart {
-		cmds.RestartDatakit()
+
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
+		if err := cmds.RestartDatakit(); err != nil {
+			fmt.Printf("Restart DataKit failed: %s\n", err)
+			os.Exit(-1)
+		}
+
+		fmt.Printf("Restart DataKit OK")
 		os.Exit(0)
 	}
 
 	if *flagReload {
-		cmds.ReloadDatakit(*flagReloadPort)
+
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
+		if err := cmds.ReloadDatakit(*flagReloadPort); err != nil {
+			fmt.Printf("Reload DataKit failed: %s\n", err)
+			os.Exit(-1)
+		}
+
+		fmt.Printf("Reload DataKit OK")
 		os.Exit(0)
 	}
 }
