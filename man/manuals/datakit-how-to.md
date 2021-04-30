@@ -244,12 +244,11 @@ man > Q               # 输入 Q 或 exit 退出
 
 ### DataKit 服务管理
 
-可直接使用如下命令直接管理 DataKit
+可直接使用如下命令直接管理 DataKit（仅 Mac/Linux 支持）
 
 ```shell
-$ datakit --stop
+$ sudo datakit --stop
+$ sudo datakit --start
+$ sudo datakit --restart
+$ sudo datakit --reload
 ```
-
-### DataKit 安装额外插件
-
-Comming soon...

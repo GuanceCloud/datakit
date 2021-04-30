@@ -6,7 +6,7 @@
 
 ## 简介
 
-采集文件尾部数据（类似`tail -f`），上报到 DataFlux 中。
+采集文件尾部数据（类似命令行 `tail -f`），上报到 DataFlux 中。
 
 ## 配置
 
@@ -51,10 +51,10 @@
 
 ### match 使用说明
 
-设置正则表达式，符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾。
-正则表达式文档[链接](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
+设置正则表达式，符合此正则匹配的数据，被认为是一条新的日志数据，否则将其追加到上一条日志数据中。正则表达式文档[链接](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
 
-示例，原数据：
+假定原数据为：
+
 ```
 2020-10-23 06:41:56,688 INFO demo.py 1.0
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
@@ -65,9 +65,10 @@ ZeroDivisionError: division by zero
 2020-10-23 06:41:56,688 INFO demo.py 5.0
 ```
 
-match 配置 `^\d{4}-\d{2}-\d{2}.*`
+Match 配置为 `^\d{4}-\d{2}-\d{2}.*`（意即匹配形如 `2020-10-23` 这样的行首）
 
-结果数据
+切割出的行协议如下。可以看到 `Traceback ...` 这一行没有单独形成一条（行协议）日志，而是追加在上一条日志中。
+
 ```
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 1.0" 1611746438938808642
 testing,filename=/tmp/094318188 message="2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
@@ -79,15 +80,14 @@ ZeroDivisionError: division by zero
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.0" 1611746443938917265
 ```
 
-原数据的第3行至第6行，在经过 match 处理后，被追加到有效的第2行的末尾。
-
 ### pipeline 配置和使用
 
-[pipeline 文档](/man?input=pipeline)
+[Pipeline](/man?input=pipeline) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
 
-使用 pipeline 功能时，取其中的 `time` 字段作为此条数据的产生时间。如果没有 `time` 字段或解析此字段失败，默认使用当前时间
+对日志数据而言，主要提取两个字段：
 
-数据必须含有 `status` 字段。如果使用 pipeline 功能时且得到有效的 `status`，将在，否则默认使用 “info”。
+- `time`：即日志的产生时间，如果没有提取 `time` 字段或解析此字段失败，默认使用系统当前时间
+- `status`：日志的等级，如果没有提取出 `status` 字段，则默认将 `stauts` 置为 `info`
 
 有效的 `status` 字段值（不区分大小写）：
 
@@ -131,10 +131,12 @@ default_time(time)
 }
 ```
 
-- 如果配置文件中 `pipeline_path` 为空，默认使用 `<source-name>.p`
+Pipeline 的几个注意事项：
+
+- 如果 logging.conf 配置文件中 `pipeline` 为空，默认使用 `<source-name>.p`（假定 `source` 为 `nginx`，则默认使用 `nginx.p`）
 - 如果 `<source-name.p>` 不存在，将不启用 pipeline 功能
-- 所有 pipeline 脚本文件，统一存放在 datakit 安装路径下的 pipeline 目录下
-- 默认情况下，采集器会自动发现新文件，以确保符合规则的新文件能够尽快采
+- 所有 pipeline 脚本文件，统一存放在 DataKit 安装路径下的 pipeline 目录下
+- 如果日志文件配置的是通配目录，logging 采集器会自动发现新的日志文件，以确保符合规则的新日志文件能够尽快采集到
 
 ### glob 规则简述（图表数据[来源](https://rgb-24bit.github.io/blog/2018/glob.html)）
 
