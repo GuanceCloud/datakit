@@ -493,7 +493,9 @@ func apiManual(c *gin.Context) {
 		for k, v := range inputs.Inputs {
 			switch v().(type) {
 			case inputs.InputV2:
-				toc.InputNames = append(toc.InputNames, k)
+				if k != "tailf" { // tailf should not been here
+					toc.InputNames = append(toc.InputNames, k)
+				}
 			}
 		}
 		sort.Strings(toc.InputNames)
