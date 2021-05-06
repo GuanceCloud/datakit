@@ -89,7 +89,8 @@ require (
 	github.com/pingcap/parser v0.0.0-20200225075606-4cf2c2d4f51b
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
 	github.com/pkg/sftp v1.11.0
-	github.com/prometheus/common v0.20.0 // indirect
+	github.com/prometheus/client_model v0.2.0
+	github.com/prometheus/common v0.20.0
 	github.com/prometheus/procfs v0.1.3
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/rivo/uniseg v0.2.0 // indirect
