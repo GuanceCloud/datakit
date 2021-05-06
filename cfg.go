@@ -86,6 +86,8 @@ type MainConfig struct {
 	BlackList []*InputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*InputHostList `toml:"white_lists,omitempty"`
 
+	EnableElection bool `toml:"enable_election"`
+
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
 }
 
@@ -284,14 +286,26 @@ func (c *Config) setHostname() {
 }
 
 func (c *Config) EnableDefaultsInputs(inputlist string) {
-	elems := strings.Split(inputlist, ",")
-	if len(elems) == 0 {
-		return
+	inputs := []string{}
+	inputsUnique := make(map[string]bool)
+
+	for _, name := range c.MainCfg.DefaultEnabledInputs {
+		if _, ok := inputsUnique[name]; !ok {
+			inputsUnique[name] = true
+			inputs = append(inputs, name)
+		}
 	}
 
+	elems := strings.Split(inputlist, ",")
 	for _, name := range elems {
-		c.MainCfg.DefaultEnabledInputs = append(c.MainCfg.DefaultEnabledInputs, name)
+		if _, ok := inputsUnique[name]; !ok {
+			inputsUnique[name] = true
+			inputs = append(inputs, name)
+		}
 	}
+
+	c.MainCfg.DefaultEnabledInputs = inputs
+
 }
 
 func (c *Config) LoadEnvs(mcp string) error {
