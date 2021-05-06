@@ -4,6 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
 
+# Secure Checker 接入
 
 Datakit 可以直接接入 [Security Checker](http://doc/to/sec-checker) 的数据。
 
