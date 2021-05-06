@@ -241,7 +241,7 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cache[d.category] = append(x.cache[d.category], d.pts...)
 	}
 
-	x.cacheCnt++
+	x.cacheCnt += int64(len(d.pts))
 
 	if x.cacheCnt > x.MaxCacheCnt && tryClean {
 		x.flushAll()
@@ -251,7 +251,7 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 func (x *IO) cleanHighFreqIOData() {
 
 	if len(x.in2) > 0 {
-		l.Debugf("cleanning %d cache on high-freq-chan", len(x.in2))
+		l.Debugf("clean %d cache on high-freq-chan", len(x.in2))
 	}
 
 	for {
@@ -431,10 +431,9 @@ func (x *IO) flush() {
 
 		if len(v) > 0 {
 			x.cacheCnt -= int64(len(v))
-			l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
+			l.Debugf("clean %d cache on %s, remain: %d", len(v), k, x.cacheCnt)
 			x.cache[k] = nil
 		}
-		l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
 	}
 
 	// flush dynamic cache: __not__ post to default dataway
@@ -454,7 +453,9 @@ func (x *IO) flush() {
 		}
 	}
 
-	l.Debugf("clean %d/%d dynamic cache", len(x.dynamicCache), len(left))
+	if len(x.dynamicCache) > 0 {
+		l.Debugf("clean %d dynamic cache, remain: %d", len(x.dynamicCache), len(left))
+	}
 
 	x.dynamicCache = left
 }
@@ -530,17 +531,17 @@ func (x *IO) doFlush(pts []*Point, url string) error {
 
 	switch resp.StatusCode / 100 {
 	case 2:
-		l.Debugf("post %d to %s ok(gz: %v), cost %v, response: %s",
+		l.Debugf("post %d bytes to %s ok(gz: %v), cost %v, response: %s",
 			len(body), url, gz, time.Since(postbeg), string(respbody))
 		return nil
 
 	case 4:
-		l.Debugf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
+		l.Debugf("post %d bytes to %s failed(HTTP: %s): %s, cost %v, data dropped",
 			len(body), url, resp.StatusCode, string(respbody), time.Since(postbeg))
 		return nil
 
 	case 5:
-		l.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v",
+		l.Errorf("post %d bytes to %s failed(HTTP: %s): %s, cost %v",
 			len(body), url, resp.Status, string(respbody), time.Since(postbeg))
 		return fmt.Errorf("dataway internal error")
 	}
