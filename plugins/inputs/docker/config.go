@@ -156,7 +156,7 @@ func (this *Input) initLogOption() (err error) {
 				New: func() interface{} {
 					p, err := pipeline.NewPipelineFromFile(pipelinePath)
 					if err != nil {
-						l.Error(err)
+						l.Debug(err)
 						return nil
 					}
 					return p
