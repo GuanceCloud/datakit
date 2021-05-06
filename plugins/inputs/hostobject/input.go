@@ -201,6 +201,7 @@ func (c *Input) getPipeline() *pipeline.Pipeline {
 func init() {
 	inputs.Add(InputName, func() inputs.Input {
 		return &Input{
+			Interval:                 datakit.Duration{Duration: 5 * time.Minute},
 			IgnoreInputsErrorsBefore: datakit.Duration{Duration: 30 * time.Minute},
 			IOTimeout:                datakit.Duration{Duration: 10 * time.Second},
 			IgnoreFS:                 []string{"autofs", "tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"},
