@@ -71,6 +71,7 @@ type (
 		Disk       []*DiskInfo   `json:"disk"`
 		cpuPercent float64
 		load5      float64
+		cloudInfo  map[string]interface{}
 	}
 
 	HostObjectMessage struct {
@@ -287,6 +288,7 @@ func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
 
 func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	var msg HostObjectMessage
+	var err error
 
 	stat := c.getEnabledInputs()
 
@@ -317,6 +319,14 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		Mem:        getMemInfo(),
 		Net:        getNetInfo(c.EnableNetVirtualInterfaces),
 		Disk:       getDiskInfo(c.IgnoreFS),
+	}
+
+	// sync cloud extra fields
+	if v, ok := c.Tags["cloud_provider"]; ok {
+		msg.Host.cloudInfo, err = c.syncCloudInfo(v)
+		if err != nil {
+			l.Warnf("sync cloud info failed: %v, ingored", err)
+		}
 	}
 
 	return &msg, nil
