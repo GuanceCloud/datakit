@@ -91,6 +91,8 @@ func feedEnvs(data []byte) []byte {
 		if ok {
 			envval = envVarEscaper.Replace(envval)
 			data = bytes.Replace(data, parameter[0], []byte(envval), 1)
+		} else {
+			data = bytes.Replace(data, parameter[0], []byte("no-value"), 1)
 		}
 	}
 
