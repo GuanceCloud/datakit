@@ -124,7 +124,7 @@ func (this *Input) initCfg() bool {
 	return false
 }
 
-func (n *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&dockerContainersMeasurement{},
 		&dockerContainersLogMeasurement{},
