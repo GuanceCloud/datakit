@@ -52,6 +52,7 @@ func TestCPUStatStructToMap(t *testing.T) {
 		"usage_steal":      0,
 		"usage_guest":      0,
 		"usage_guest_nice": 0,
+		"usage_total":      0,
 	}
 
 	for k := range mU {
@@ -181,11 +182,9 @@ func TestCollect(t *testing.T) {
 	// fields
 	fields := i.collectCache[0].(*cpuMeasurement).fields
 
-	_, nowTotal := CpuActiveTotalTime(nowT)
-	_, lastTotal := CpuActiveTotalTime(lastT)
+	active, nowTotal := CpuActiveTotalTime(nowT)
+	lastActive, lastTotal := CpuActiveTotalTime(lastT)
 	totalDelta := nowTotal - lastTotal
-	// active, _ := CpuActiveTotalTime(nowT)
-	// lastActive, _ := CpuActiveTotalTime(lastT)
 
 	assertEqualFloat64(t, 100*(nowT.User-lastT.User-(nowT.Guest-lastT.Guest))/totalDelta, fields["usage_user"].(float64), "usage_user")
 	assertEqualFloat64(t, 100*(nowT.System-lastT.System)/totalDelta, fields["usage_system"].(float64), "usage_system")
@@ -197,7 +196,7 @@ func TestCollect(t *testing.T) {
 	assertEqualFloat64(t, 100*(nowT.Steal-lastT.Steal)/totalDelta, fields["usage_steal"].(float64), "usage_steal")
 	assertEqualFloat64(t, 100*(nowT.Guest-lastT.Guest)/totalDelta, fields["usage_guest"].(float64), "usage_guest")
 	assertEqualFloat64(t, 100*(nowT.GuestNice-lastT.GuestNice)/totalDelta, fields["usage_guest_nice"].(float64), "usage_guest_nice")
-	// assertEqualFloat64(t, 100*(active-lastActive)/totalDelta, fields["active"].(float64), "active")
+	assertEqualFloat64(t, 100*(active-lastActive)/totalDelta, fields["usage_total"].(float64), "usage_total")
 }
 
 func TestHumpToUnderline(t *testing.T) {
