@@ -20,6 +20,10 @@ var (
 )
 
 func InstallExternal(service string) error {
+
+	l.Info("Comming soon")
+	return nil
+
 	name := strings.ToLower(service)
 	dir := runtime.GOOS + "/" + runtime.GOARCH
 
