@@ -299,7 +299,7 @@ func (p *Input) WriteObject() {
 		}
 		collectCache = append(collectCache, obj)
 	}
-	if err := inputs.FeedMeasurement(inputName, io.Object, collectCache, &io.Option{CollectCost: time.Since(t)}); err != nil {
+	if err := inputs.FeedMeasurement(inputName, datakit.Object, collectCache, &io.Option{CollectCost: time.Since(t)}); err != nil {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
 		p.lastErr = err
 	}
@@ -332,7 +332,7 @@ func (p *Input) WriteMetric() {
 		}
 		collectCache = append(collectCache, metric)
 	}
-	if err := inputs.FeedMeasurement(inputName, io.Metric, collectCache, &io.Option{CollectCost: time.Since(t)}); err != nil {
+	if err := inputs.FeedMeasurement(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(t)}); err != nil {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
 		p.lastErr = err
 	}
