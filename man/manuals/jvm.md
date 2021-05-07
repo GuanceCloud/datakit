@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-# 简介
+# {{.InputName}}
 
 JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到 DataFlux，帮助分析 Java 运行情况。
 
