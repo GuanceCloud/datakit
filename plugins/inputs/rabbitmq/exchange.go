@@ -13,6 +13,7 @@ func getExchange(n *Input) {
 	err := n.requestJSON("/api/exchanges", &exchanges)
 	if err != nil {
 		l.Error(err.Error())
+		n.lastErr = err
 		return
 	}
 	ts := time.Now()
@@ -37,6 +38,8 @@ func getExchange(n *Input) {
 		fields := map[string]interface{}{
 			"message_ack_count":                    exchange.MessageStats.Ack,
 			"message_ack_rate":                     exchange.MessageStats.AckDetails.Rate,
+			"message_confirm_count":                exchange.MessageStats.Confirm,
+			"message_confirm_rate":                 exchange.MessageStats.ConfirmDetail.Rate,
 			"message_deliver_get_count":            exchange.MessageStats.DeliverGet,
 			"message_deliver_get_rate":             exchange.MessageStats.DeliverGetDetails.Rate,
 			"message_publish_count":                exchange.MessageStats.Publish,
@@ -77,6 +80,8 @@ func (m *ExchangeMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"message_ack_count":                    newCountFieldInfo("Number of messages in exchanges delivered to clients and acknowledged"),
 			"message_ack_rate":                     newRateFieldInfo("Rate of messages in exchanges delivered to clients and acknowledged per second"),
+			"message_confirm_count":                newCountFieldInfo("Count of messages in exchanges confirmed"),
+			"message_confirm_rate":                 newRateFieldInfo("Rate of messages in exchanges confirmed per second"),
 			"message_deliver_get_count":            newCountFieldInfo("Sum of messages in exchanges delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get"),
 			"message_deliver_get_rate":             newRateFieldInfo("Rate per second of the sum of exchange messages delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get"),
 			"message_publish_count":                newCountFieldInfo("Count of messages in exchanges published"),
