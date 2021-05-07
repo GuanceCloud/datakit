@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
@@ -238,7 +239,7 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 		if err != nil {
 			l.Error(err)
 		} else {
-			if err := iod.Feed(inputName, iod.Logging, []*iod.Point{pt}, &iod.Option{HighFreq: useIOHighFreq}); err != nil {
+			if err := iod.Feed(inputName, datakit.Logging, []*iod.Point{pt}, &iod.Option{HighFreq: useIOHighFreq}); err != nil {
 				l.Error(err)
 			}
 		}
