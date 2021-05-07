@@ -280,7 +280,7 @@ func (wx *WxClient) writeMetric(metric string, tags map[string]string, fields ma
 		return
 	}
 
-	if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+	if err := io.NamedFeed(data, datakit.Metric, inputName); err != nil {
 		l.Errorf("failed to io Feed, err: %s", err.Error())
 		return
 	}
@@ -383,7 +383,7 @@ func (wx *WxClient) JsErrSearch(accessToken string, startPage, limit int64) {
 			return
 		}
 
-		if err := io.NamedFeed(data, io.Logging, inputName); err != nil {
+		if err := io.NamedFeed(data, datakit.Logging, inputName); err != nil {
 			l.Errorf("failed to io Feed, err: %s", err.Error())
 			return
 		}
@@ -443,7 +443,7 @@ func (wx *WxClient) Performance(accessToken string) {
 				return
 			}
 
-			if err := io.NamedFeed(line, io.Metric, inputName); err != nil {
+			if err := io.NamedFeed(line, datakit.Metric, inputName); err != nil {
 				l.Errorf("failed to io Feed, err: %s", err.Error())
 				return
 			}
