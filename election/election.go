@@ -13,6 +13,22 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
+/*
+ * DataKit 选举说明文档
+ *
+ * 流程：
+ *      1. DataKit 开启 cfg.MainCfg.EnableElection（booler）配置
+ *      2. 当运行对应的采集器（采集器列表在 config/inputcfg.go）时，程序会创建一个 goroutine 向 DataWay 发送选举请求，并携带此 Datakit 的 token 和 UUID
+ *      3. 选举成功担任 leader 后会持续发送心跳，心跳间隔过长或选举失败，会恢复 candidate 状态并继续发送选举请求
+ *      4. 采集器端只要在采集数据时，判断当前是否为 leader 状态，具体使用见下
+ *
+ * 使用方式：
+ *      1. 在 config/inputcfg.go 的 electionInputs 中添加需要选举的采集器（目前使用此方式后续会优化）
+ *      2. 采集器中 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
+ *      3. 在采集入口处，调用 election.CurrentStats().IsLeader() 进行判断，并决定是否执行采集
+ *      4. 详见 demo 采集器
+ */
+
 var (
 	defaultConsensusModule *ConsensusModule
 
