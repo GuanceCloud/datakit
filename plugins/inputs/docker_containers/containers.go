@@ -141,7 +141,7 @@ func (d *DockerContainers) do() {
 	if err != nil {
 		return
 	}
-	if err := io.NamedFeed(data, io.Object, inputName); err != nil {
+	if err := io.NamedFeed(data, datakit.Object, inputName); err != nil {
 		l.Error(err)
 	}
 }
