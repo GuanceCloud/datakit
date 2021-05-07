@@ -230,7 +230,7 @@ func (h *httpPing) uploadData(resData Result) {
 
 	h.resData = []byte(pt.String())
 
-	io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
+	io.NamedFeed([]byte(pt.String()), datakit.Metric, inputName)
 }
 
 func tracer(r *Result) *httptrace.ClientTrace {
