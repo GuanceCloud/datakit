@@ -27,23 +27,6 @@ func (e EscapeError) Error() string {
 
 func TestJsonFunc(t *testing.T) {
 	var testCase = []*funcCase{
-		// {
-		// 	data:     `{
-		// 	  "name": {"first": "Tom", "last": "Anderson"},
-		// 	  "age":37,
-		// 	  "children": ["Sara","Alex","Jack"],
-		// 	  "fav.movie": "Deer Hunter",
-		// 	  "friends": [
-		// 	    ["ig", "fb", "tw"],
-		// 	    ["fb", "tw"],
-		// 	    ["ig", "tw"]
-		// 	  ]
-		// 	}`,
-		// 	script:   `json(_, friends[0][0])`,
-		// 	expected: "ig",
-		// 	key:      "friends[0][0]",
-		// 	err:      nil,
-		// },
 		{
 			data: `{
 			  "name": {"first": "Tom", "last": "Anderson"},
@@ -867,12 +850,12 @@ func TestReplace(t *testing.T) {
 			expected: "3622**********2565",
 			key:      "str",
 		},
-		// {
-		// 	data:     `{"str": "小阿卡"}`,
-		// 	script:   `json(_, str) replace(str, '([\\u4E00-\\u9FFF]{3})', "$1aaa")`,
-		// 	expected: "孙悟空",
-		// 	key:      "str",
-		// },
+		{
+			data:     `{"str": "小阿卡"}`,
+			script:   `json(_, str) replace(str, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")`,
+			expected: "小＊卡",
+			key:      "str",
+		},
 	}
 
 	for _, tt := range cases {
