@@ -208,12 +208,12 @@ func (r *Replication) initCfg() {
 func (r *Replication) rewriteCategory() {
 	switch r.Category {
 	case "metric":
-		r.Category = io.Metric
+		r.Category = datakit.Metric
 	case "logging":
-		r.Category = io.Logging
+		r.Category = datakit.Logging
 	default:
 		l.Warnf("invalid category '%s', only accept metric and logging. use default 'metric'", r.Category)
-		r.Category = io.Metric
+		r.Category = datakit.Metric
 	}
 }
 
