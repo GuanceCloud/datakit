@@ -124,7 +124,7 @@ func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
 	return nil
 }
 
-func (dw *DataWayCfg) Send(category string, data []byte, gz bool) {
+func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 	if dw.httpCli != nil {
 		defer dw.httpCli.CloseIdleConnections()
 	}
@@ -132,8 +132,11 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) {
 	for _, dc := range dw.dataWayClients {
 		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
 			l.Errorf("send data to dataway error %v", err)
+			return err
 		}
 	}
+
+	return nil
 }
 
 func (dw *DataWayCfg) HeartBeat() error {
