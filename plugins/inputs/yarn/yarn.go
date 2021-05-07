@@ -279,7 +279,7 @@ func (p *YarnParam) gatherMainSection(isTest bool) ([]byte, error) {
 		fields[canConect] = false
 		pt, _ := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 		if !isTest {
-			p.output.IoFeed(pt, io.Metric, inputName)
+			p.output.IoFeed(pt, datakit.Metric, inputName)
 		}
 		return pt, err
 	}
@@ -323,7 +323,7 @@ func (p *YarnParam) gatherMainSection(isTest bool) ([]byte, error) {
 	}
 
 	if !isTest {
-		err = p.output.IoFeed(pt, io.Metric, inputName)
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
 	}
 	return pt, err
 }
@@ -366,7 +366,7 @@ func (p *YarnParam) gatherAppSection() error {
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed(pt, io.Metric, inputName)
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
 		if err != nil {
 			return err
 		}
@@ -411,7 +411,7 @@ func (p *YarnParam) gatherNodeSection() error {
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed(pt, io.Metric, inputName)
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
 		if err != nil {
 			return err
 		}
@@ -554,7 +554,7 @@ func (p *YarnParam) gatherQueueSection() error {
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed(pt, io.Metric, inputName)
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
 		if err != nil {
 			return err
 		}
