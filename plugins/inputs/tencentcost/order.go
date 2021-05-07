@@ -311,7 +311,7 @@ func (o *order) handleResponse(ctx context.Context, response *billing.DescribeDe
 		if o.agent.isTest() {
 			// pass
 		} else {
-			io.NamedFeedEx(inputName, io.Metric, o.getName(), tags, fields, metrictime)
+			io.NamedFeedEx(inputName, datakit.Metric, o.getName(), tags, fields, metrictime)
 		}
 	}
 }
