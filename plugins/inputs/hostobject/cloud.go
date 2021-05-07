@@ -2,6 +2,7 @@ package hostobject
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
 )
@@ -28,10 +29,9 @@ type synchronizer interface {
 	PrivateIP() string
 	Region() string
 	ZoneID() string
-	ExtraCloudMeta() string
 }
 
-func (x *Input) syncCloudInfo(provider string) (map[string]interface{}, error) {
+func (x *Input) SyncCloudInfo(provider string) (map[string]interface{}, error) {
 
 	defer cloudCli.CloseIdleConnections()
 
@@ -41,10 +41,46 @@ func (x *Input) syncCloudInfo(provider string) (map[string]interface{}, error) {
 		return p.Sync()
 
 	case "aws":
-		return nil, fmt.Errorf("TODO")
+		p := &aws{baseURL: "http://169.254.169.254/latest/meta-data"}
+		return p.Sync()
+
 	case "tencent":
-		return nil, fmt.Errorf("TODO")
+		p := &tencent{baseURL: "http://metadata.tencentyun.com/latest/meta-data"}
+		return p.Sync()
+
 	default:
 		return nil, fmt.Errorf("unknown cloud_provider: %s", provider)
 	}
+}
+
+func metaGet(metaURL string) (res string) {
+
+	res = Unavailable
+
+	req, err := http.NewRequest("GET", metaURL, nil)
+	if err != nil {
+		l.Warn(err)
+		return
+	}
+
+	resp, err := cloudCli.Do(req)
+	if err != nil {
+		l.Warn(err)
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		l.Warnf("request %s: status code %d", metaURL, resp.StatusCode)
+		return
+	}
+
+	defer resp.Body.Close()
+	x, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		l.Warnf("read response %s: %s", metaURL, err)
+		return
+	}
+	res = string(x)
+
+	return
 }
