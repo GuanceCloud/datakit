@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-# 简介
+# {{.InputName}}
 
 NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数连接数、缓存等多种指标，并将指标采集到 DataFlux ，帮助你监控分析 NGINX 各种异常情况
 
@@ -85,6 +85,4 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 开启日志采集以后，默认会产生日志来源（`source`）为 `nginx` 的日志。
 
-**注意**
-
-- 日志采集仅支持采集已安装 DataKit 主机上的日志
+>注意：必须将 DataKit 安装在 NGINX 所在主机才能采集 NGINX 日志
