@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -124,7 +125,7 @@ func extract(body []byte, tags map[string]string) error {
 			continue
 		}
 
-		if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+		if err := io.NamedFeed(data, datakit.Metric, inputName); err != nil {
 			l.Errorf("failed to io Feed, err: %s", err.Error())
 			flag = true
 			continue
