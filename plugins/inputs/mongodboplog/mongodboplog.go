@@ -151,12 +151,12 @@ func (m *Mongodboplog) initCfg() {
 func (m *Mongodboplog) rewriteCategory() {
 	switch m.Category {
 	case "metric":
-		m.Category = io.Metric
+		m.Category = datakit.Metric
 	case "logging":
-		m.Category = io.Logging
+		m.Category = datakit.Logging
 	default:
 		l.Warnf("invalid category '%s', only accept metric and logging. use default 'metric'", m.Category)
-		m.Category = io.Metric
+		m.Category = datakit.Metric
 	}
 }
 
