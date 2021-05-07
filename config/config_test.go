@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -151,6 +150,7 @@ func TestTomlParse(t *testing.T) {
 //	t.Logf("fpath: %s, sample: %s", fpath, sample)
 //}
 
+/*
 func TestBuildInputCfg(t *testing.T) {
 
 	data := `
@@ -192,7 +192,7 @@ func TestBuildInputCfg(t *testing.T) {
 	}
 
 	t.Logf("sample: %s", sample)
-}
+} */
 
 //func TestLoadMainCfg(t *testing.T) {
 //
@@ -350,66 +350,6 @@ func TestLoadCfg(t *testing.T) {
 	fmt.Println(inputs.InputsInfo)
 }
 
-func TestLoadTelegrafCfg(t *testing.T) {
-
-	tele := `[agent]
-  interval = "10s"
-  round_interval = true
-  precision = "ns"
-  collection_jitter = "0s"
-  flush_interval = "10s"
-  flush_jitter = "0s"
-  metric_batch_size = 1000
-  metric_buffer_limit = 100000
-  utc = false
-  debug = false
-  quiet = false
-  logtarget = "file"
-  logfile = "/usr/local/cloudcare/dataflux/datakit/embed/agent.log"
-  logfile_rotation_interval = ""
-  logfile_rotation_max_size = "32MB"
-  logfile_rotation_max_archives = 5
-  omit_hostname = true`
-	teleCfg := datakit.TelegrafCfg{}
-	toml.Unmarshal([]byte(tele), teleCfg)
-
-	var c = datakit.Config{
-		MainCfg: &datakit.MainConfig{
-			BlackList:        []*datakit.InputHostList{},
-			WhiteList:        []*datakit.InputHostList{},
-			TelegrafAgentCfg: &teleCfg,
-		},
-	}
-	availableInputCfgs := map[string]*ast.Table{}
-	conf := map[string]string{
-		"1.conf": `[[inputs.cpu]]
-					## Whether to report per-cpu stats or not
-					percpu = false
-					## Whether to report total system cpu stats or not
-					totalcpu = true
-					## If true, collect raw CPU time metrics.
-					collect_cpu_time = false
-					## If true, compute and report the sum of all non-idle CPU states.
-					report_active = false
-
-					[[inputs.mem]]
-					# no sample need here, just open the input`,
-		"2.conf": `[[inputs.host_processes]]`,
-	}
-
-	for k, v := range conf {
-		as, _ := toml.Parse([]byte(v))
-		ioutil.WriteFile(k, []byte(v), 0777)
-		availableInputCfgs[k] = as
-
-	}
-	cfg, err := loadTelegrafInputsConfigs(&c, availableInputCfgs, nil)
-	fmt.Println(cfg, err)
-	for k, _ := range conf {
-		os.Remove(k)
-	}
-}
-
 func TestRemoveDepercatedInputs(t *testing.T) {
 	cases := []struct {
 		tomlStr      string
@@ -462,31 +402,42 @@ func TestFeedEnvs(t *testing.T) {
 		env    map[string]string
 	}{
 		{
-			str: "this is env from os:  $TEST_ENV",
+			str: "this is env from os:  $TEST_ENV_1",
 
 			env: map[string]string{
-				"TEST_ENV":  "test-data",
-				"TEST_ENV2": "test-data2",
+				"TEST_ENV_1":   "test-data",
+				"TEST_ENV___1": "test-data2",
 			},
 			expect: "this is env from os:  test-data",
 		},
 
 		{
-			str: "this is env from os:  $$TEST_ENV$$",
+			str: "this is env from os:  $$TEST_ENV_1$$",
 			env: map[string]string{
-				"TEST_ENV":  "test-data",
-				"TEST_ENV2": "test-data2",
+				"TEST_ENV_1":   "test-data",
+				"TEST_ENV___1": "test-data2",
 			},
 			expect: "this is env from os:  $test-data$$",
 		},
 
 		{
-			str: "this is env from os:  $$TEST_ENVxxx",
+			str:    "this is env from os:  $$TEST_ENV_2",
+			env:    map[string]string{},
+			expect: "this is env from os:  $no-value",
+		},
+
+		{
+			str:    "this is env from os:  $TEST_ENV_2",
+			env:    map[string]string{},
+			expect: "this is env from os:  no-value",
+		},
+
+		{
+			str: "this is env from os:  $TEST_ENV_2",
 			env: map[string]string{
-				"TEST_ENV":  "test-data",
-				"TEST_ENV2": "test-data2",
+				"TEST_ENV_2": "test-data2",
 			},
-			expect: "this is env from os:  $$TEST_ENVxxx",
+			expect: "this is env from os:  test-data2",
 		},
 	}
 
