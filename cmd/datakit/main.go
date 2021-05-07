@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -43,7 +44,7 @@ var (
 
 	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
 	flagMan             = flag.Bool("man", false, "read manuals of inputs")
-	flagOTA             = flag.Bool("update", false, "update datakit new version if available")
+	flagUpdate          = flag.Bool("update", false, "update datakit new version if available")
 	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "during OTA, accept RC version if available")
 
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
@@ -56,6 +57,8 @@ var (
 	flagReloadPort      = flag.Int("reload-port", 9529, "datakit http server port")
 	flagExportMan       = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnoreMans      = flag.String("ignore-manuals", "", "disable exporting specified manuals, i.e., --ignore-manuals nginx,redis,mem")
+
+	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 )
 
 var (
@@ -65,9 +68,13 @@ var (
 )
 
 func main() {
-	flag.CommandLine.MarkHidden("cmd")
+	flag.CommandLine.MarkHidden("cmd") // deprecated
+
 	flag.CommandLine.MarkHidden("install") // 1.1.6-rc1 再发布
+
+	// un-documented options
 	flag.CommandLine.MarkHidden("show-testing-version")
+
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
 
@@ -147,7 +154,27 @@ ReleasedInputs: %s
 		os.Exit(0)
 	}
 
-	if *flagOTA {
+	if *flagShowCloudInfo != "" {
+		info, err := cmds.ShowCloudInfo(*flagShowCloudInfo)
+		if err != nil {
+			fmt.Printf("Get cloud info failed: %s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		keys := []string{}
+		for k, _ := range info {
+			keys = append(keys, k)
+		}
+
+		sort.Strings(keys)
+		for _, k := range keys {
+			fmt.Printf("\t% 24s: %v\n", k, info[k])
+		}
+
+		os.Exit(0)
+	}
+
+	if *flagUpdate {
 
 		logger.SetGlobalRootLogger(datakit.OTALogFile, logger.DEBUG, logger.OPT_DEFAULT)
 		l = logger.SLogger("ota")
