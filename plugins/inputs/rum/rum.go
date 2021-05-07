@@ -34,24 +34,40 @@ var (
 	l            *logger.Logger = logger.DefaultSLogger(inputName)
 )
 
-func (_ *Rum) Catalog() string {
+type Input struct {
+	IPHeader string `toml:"ip_header,omitempty"`
+	Pipeline string `toml:"pipeline"`
+
+	pipelinePool *sync.Pool
+}
+
+func (_ *Input) Catalog() string {
 	return "rum"
 }
 
-func (_ *Rum) SampleConfig() string {
+func (_ *Input) SampleConfig() string {
 	return configSample
 }
 
-func (r *Rum) Run() {
+func (r *Input) Run() {
 }
 
-func (r *Rum) PipelineConfig() map[string]string {
+func (r *Input) SampleMeasurement() []inputs.Measurement {
+	// TODO
+	return nil
+}
+
+func (r *Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (r *Input) PipelineConfig() map[string]string {
 	return map[string]string{
 		inputName: pipelineSample,
 	}
 }
 
-func (r *Rum) RegHttpHandler() {
+func (r *Input) RegHttpHandler() {
 	l = logger.SLogger(inputName)
 
 	script := r.Pipeline
@@ -79,7 +95,7 @@ func (r *Rum) RegHttpHandler() {
 	httpd.RegGinHandler("POST", io.Rum, r.Handle)
 }
 
-func (r *Rum) getPipeline() *pipeline.Pipeline {
+func (r *Input) getPipeline() *pipeline.Pipeline {
 	if r.pipelinePool == nil {
 		return nil
 	}
@@ -136,7 +152,7 @@ func geoTags(srcip string) (tags map[string]string) {
 	return
 }
 
-func (r *Rum) handleBody(body []byte, precision, srcip string) (mpts, rumpts []*influxdb.Point, err error) {
+func (r *Input) handleBody(body []byte, precision, srcip string) (mpts, rumpts []*influxdb.Point, err error) {
 	extraTags := geoTags(srcip)
 
 	mpts, err = lp.ParsePoints(body, &lp.Option{
@@ -203,7 +219,7 @@ func (r *Rum) handleBody(body []byte, precision, srcip string) (mpts, rumpts []*
 	return mpts, rumpts, nil
 }
 
-func (r *Rum) Handle(c *gin.Context) {
+func (r *Input) Handle(c *gin.Context) {
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -278,6 +294,8 @@ func (r *Rum) Handle(c *gin.Context) {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Rum{}
+		return &Input{
+			IPHeader: "X-Forwarded-For",
+		}
 	})
 }
