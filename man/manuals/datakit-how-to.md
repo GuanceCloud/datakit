@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
-# 简介
+# DataKit 入门简介
 
 本文档主要介绍 DataKit 安装完后，如何使用 DataKit 中的基本功能，包括如下几个方面：
 
@@ -244,4 +244,11 @@ man > Q               # 输入 Q 或 exit 退出
 
 ### DataKit 服务管理
 
-### DataKit 安装额外插件
+可直接使用如下命令直接管理 DataKit（仅 Mac/Linux 支持）
+
+```shell
+$ sudo datakit --stop
+$ sudo datakit --start
+$ sudo datakit --restart
+$ sudo datakit --reload
+```
