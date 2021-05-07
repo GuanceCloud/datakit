@@ -11,13 +11,20 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	minInterval = time.Second
+	maxInterval = time.Minute
+)
+
 var (
 	inputName    = "disk"
 	metricName   = "disk"
-	collectCycle = time.Second * 10
 	diskLogger   = logger.DefaultSLogger(inputName)
 	sampleConfig = `
 [[inputs.disk]]
+  ##(optional) collect interval, default is 10 seconds
+  interval = '10s'
+  ## 
   ## By default stats will be gathered for all mount points.
   ## Set mount_points will restrict the stats to only the specified mount points.
   # mount_points = ["/"]
@@ -76,6 +83,7 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type Input struct {
+	Interval    datakit.Duration
 	MountPoints []string          `toml:"mount_points"`
 	IgnoreFS    []string          `toml:"ignore_fs"`
 	Tags        map[string]string `toml:"tags"`
@@ -153,16 +161,20 @@ func (i *Input) Collect() error {
 
 func (i *Input) Run() {
 	diskLogger.Infof("disk input started")
-	tick := time.NewTicker(collectCycle)
+	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
 			start := time.Now()
 			if err := i.Collect(); err == nil {
-				inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)})
+				if errFeed := inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
+					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
+					io.FeedLastError(inputName, errFeed.Error())
+				}
 			} else {
+				io.FeedLastError(inputName, err.Error())
 				diskLogger.Error(err)
 			}
 		case <-datakit.Exit.Wait():
@@ -174,6 +186,9 @@ func (i *Input) Run() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{diskStats: &PSDisk{}}
+		return &Input{
+			diskStats: &PSDisk{},
+			Interval:  datakit.Duration{Duration: time.Second * 10},
+		}
 	})
 }

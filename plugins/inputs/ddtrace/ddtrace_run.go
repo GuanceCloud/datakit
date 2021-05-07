@@ -71,6 +71,7 @@ func DdtraceTraceHandle(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err := handleDdtrace(w, r); err != nil {
+		dkio.FeedLastError(inputName, err.Error())
 		log.Errorf("%v", err)
 	}
 }
@@ -121,8 +122,8 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			}
 			tag[trace.TAG_SPAN_TYPE] = spanType
 			tag[trace.TAG_SERVICE] = span.Service
-			tag[trace.TAG_SERVICE] = span.Name
-			tag[trace.TAG_SPAN_TYPE] = ddtraceSpanType[span.Type]
+			tag[trace.TAG_OPERATION] = span.Name
+			tag[trace.TAG_TYPE] = ddtraceSpanType[span.Type]
 			if span.Error == 0 {
 				tag[trace.TAG_SPAN_STATUS] = trace.STATUS_OK
 			} else {
@@ -154,8 +155,8 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			field[trace.FIELD_PARENTID] = fmt.Sprintf("%d", span.ParentID)
 			field[trace.FIELD_TRACEID] = fmt.Sprintf("%d", span.TraceID)
 			field[trace.FIELD_SPANID] = fmt.Sprintf("%d", span.SpanID)
-			field[trace.FIELD_DURATION] = span.Duration
-			field[trace.FIELD_START] = span.Start
+			field[trace.FIELD_DURATION] = span.Duration / 1000
+			field[trace.FIELD_START] = span.Start / 1000
 			if v, ok := span.Metrics["system.pid"]; ok {
 				field[trace.FIELD_PID] = fmt.Sprintf("%v", v)
 			}
