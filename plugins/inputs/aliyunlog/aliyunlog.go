@@ -336,7 +336,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 				mdata, _ := io.MakeMetric(r.metricName, tags, fields, tm)
 				fmt.Printf("%s\n", string(mdata))
 			} else {
-				io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, tm)
+				io.NamedFeedEx(inputName, datakit.Logging, r.metricName, tags, fields, tm)
 			}
 
 		}
