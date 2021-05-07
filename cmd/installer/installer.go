@@ -25,10 +25,6 @@ var (
 	datakitUrl = "https://" + path.Join(DataKitBaseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion))
 
-	telegrafUrl = "https://" + path.Join(DataKitBaseURL,
-		"telegraf",
-		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
-
 	dataUrl = "https://" + path.Join(DataKitBaseURL, "data.tar.gz")
 
 	l = logger.DefaultSLogger("installer")
@@ -60,8 +56,8 @@ const (
 	datakitBin = "datakit"
 
 	dlDatakit = "datakit"
-	dlAgent   = "agent"
-	dlData    = "data"
+
+	dlData = "data"
 )
 
 func main() {
@@ -102,14 +98,13 @@ func main() {
 			_ = install.ExtractDatakit(f, datakit.InstallDir)
 		}
 	} else {
+		l.Infof("download start,url%s", datakitUrl)
 		install.CurDownloading = dlDatakit
-		install.Download(datakitUrl, datakit.InstallDir, true)
+		install.Download(datakitUrl, datakit.InstallDir, true, false)
 		fmt.Printf("\n")
-		install.CurDownloading = dlAgent
-		install.Download(telegrafUrl, datakit.InstallDir, true)
-		fmt.Printf("\n")
+
 		install.CurDownloading = dlData
-		install.Download(dataUrl, datakit.InstallDir, true)
+		install.Download(dataUrl, datakit.InstallDir, true, false)
 		fmt.Printf("\n")
 	}
 
@@ -135,6 +130,8 @@ func main() {
 		}
 	}
 
+	createDkSoftLink()
+
 	if *flagUpgrade { // upgrade new version
 		l.Info(":) Upgrade Success!")
 	} else {
@@ -142,7 +139,8 @@ func main() {
 	}
 
 	fmt.Printf("\n\tVisit http://localhost:%d/stats to see DataKit running status.\n", *flagPort)
-	fmt.Printf("\tVisit http://localhost:%d/man to see DataKit manuals.\n\n", *flagPort)
+	fmt.Printf("\tVisit http://localhost:%d/man to see DataKit manuals.\n", *flagPort)
+	fmt.Printf("\tVisit http://localhost:%d/man/changelog to see DataKit change logs.\n\n", *flagPort)
 }
 
 func applyFlags() {
@@ -154,8 +152,7 @@ func applyFlags() {
 Golang Version: %s
        BaseUrl: %s
        DataKit: %s
-      Telegraf: %s
-`, git.Version, git.BuildAt, git.Golang, DataKitBaseURL, datakitUrl, telegrafUrl)
+`, git.Version, git.BuildAt, git.Golang, DataKitBaseURL, datakitUrl)
 		os.Exit(0)
 	}
 
@@ -163,19 +160,14 @@ Golang Version: %s
 		install.DownloadOnly = true
 
 		install.CurDownloading = dlDatakit
+
 		install.Download(datakitUrl,
 			fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
-				runtime.GOOS, runtime.GOARCH, DataKitVersion), true)
-		fmt.Printf("\n")
-
-		install.CurDownloading = dlAgent
-		install.Download(telegrafUrl,
-			fmt.Sprintf("agent-%s-%s.tar.gz",
-				runtime.GOOS, runtime.GOARCH), true)
+				runtime.GOOS, runtime.GOARCH, DataKitVersion), true, false)
 		fmt.Printf("\n")
 
 		install.CurDownloading = dlData
-		install.Download(dataUrl, "data.tar.gz", true)
+		install.Download(dataUrl, "data.tar.gz", true, false)
 		fmt.Printf("\n")
 
 		os.Exit(0)
@@ -186,4 +178,38 @@ Golang Version: %s
 	install.Port = *flagPort
 	install.DatakitName = *flagDatakitName
 	install.EnableInputs = *flagEnableInputs
+}
+
+func createDkSoftLink() {
+	sBin := filepath.Join(datakit.InstallDir, "datakit")
+	dBin := "/usr/local/bin/datakit"
+
+	if runtime.GOOS == "windows" {
+		sBin += ".exe"
+		dBin = `C:\WINDOWS\system32\datakit.exe`
+	}
+
+	if !isExist(dBin) {
+		if err := os.Symlink(sBin, dBin); err != nil {
+			l.Warnf("create datakit soft link: %s, ignored", err.Error())
+		}
+	}
+}
+
+func isExist(path string) bool {
+	_, err := os.Stat(path)
+
+	if err != nil {
+		if os.IsExist(err) {
+			return true
+		}
+
+		if os.IsNotExist(err) {
+			return false
+		}
+
+		return false
+	}
+
+	return true
 }
