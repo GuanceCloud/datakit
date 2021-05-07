@@ -16,6 +16,11 @@ var (
 	ConnectionReset = errors.New("ConnectionReset")
 )
 
+const (
+	MaxGatherInterval = 30 * time.Minute
+	MinGatherInterval = 1 * time.Second
+)
+
 func (p *StatsdParams) gather() {
 	var err error
 	var d time.Duration
@@ -33,6 +38,8 @@ func (p *StatsdParams) gather() {
 		p.log.Errorf("interval type unsupported")
 		return
 	}
+
+	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 
@@ -41,6 +48,7 @@ func (p *StatsdParams) gather() {
 		case <-tick.C:
 			_, err = p.getMetrics(false)
 			if err != nil {
+				io.FeedLastError(inputName, err.Error())
 				p.reportNotUp()
 			}
 
