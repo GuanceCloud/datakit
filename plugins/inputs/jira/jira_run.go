@@ -168,7 +168,7 @@ func (p *JiraParam) getMetrics(c *jira.Client) error {
 	}
 	p.log.Debug(string(pts))
 
-	err = p.output.IoFeed(pts, io.Metric, inputName)
+	err = p.output.IoFeed(pts, datakit.Metric, inputName)
 	return err
 }
 
