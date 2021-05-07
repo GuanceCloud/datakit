@@ -76,7 +76,7 @@ func (r *Rum) RegHttpHandler() {
 	}
 
 	ipheaderName = r.IPHeader
-	httpd.RegGinHandler("POST", io.Rum, r.Handle)
+	httpd.RegGinHandler("POST", "/v1/write/rum", r.Handle)
 }
 
 func (r *Rum) getPipeline() *pipeline.Pipeline {
@@ -260,14 +260,14 @@ func (r *Rum) Handle(c *gin.Context) {
 	}
 
 	if len(x) > 0 {
-		if err = io.Feed(inputName, io.Metric, x, &io.Option{HighFreq: true}); err != nil {
+		if err = io.Feed(inputName, datakit.Metric, x, &io.Option{HighFreq: true}); err != nil {
 			uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
 			return
 		}
 	}
 
 	if len(y) > 0 {
-		if err = io.Feed(inputName, io.Rum, y, &io.Option{HighFreq: true}); err != nil {
+		if err = io.Feed(inputName, datakit.Rum, y, &io.Option{HighFreq: true}); err != nil {
 			uhttp.HttpErr(c, uhttp.Error(httpd.ErrBadReq, err.Error()))
 			return
 		}
