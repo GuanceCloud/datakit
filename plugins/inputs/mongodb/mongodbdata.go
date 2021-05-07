@@ -4,9 +4,26 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 
-	"github.com/influxdata/telegraf"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+type mongodbMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
+func (m *mongodbMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+}
+
+func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{}
+}
 
 type MongodbData struct {
 	StatLine      *StatLine
@@ -16,6 +33,8 @@ type MongodbData struct {
 	ColData       []ColData
 	ShardHostData []DbData
 	TopStatsData  []DbData
+	collectCache  []inputs.Measurement
+	collectCost   time.Duration
 }
 
 type DbData struct {
@@ -29,12 +48,13 @@ type ColData struct {
 	Fields map[string]interface{}
 }
 
-func NewMongodbData(statLine *StatLine, tags map[string]string) *MongodbData {
+func NewMongodbData(statLine *StatLine, tags map[string]string, cost time.Duration) *MongodbData {
 	return &MongodbData{
-		StatLine: statLine,
-		Tags:     tags,
-		Fields:   make(map[string]interface{}),
-		DbData:   []DbData{},
+		StatLine:    statLine,
+		Tags:        tags,
+		Fields:      make(map[string]interface{}),
+		DbData:      []DbData{},
+		collectCost: cost,
 	}
 }
 
@@ -398,8 +418,7 @@ func (d *MongodbData) AddDefaultStats() {
 
 func (d *MongodbData) addStat(statLine reflect.Value, stats map[string]string) {
 	for key, value := range stats {
-		val := statLine.FieldByName(value).Interface()
-		d.add(key, val)
+		d.add(key, statLine.FieldByName(value).Interface())
 	}
 }
 
@@ -407,54 +426,118 @@ func (d *MongodbData) add(key string, val interface{}) {
 	d.Fields[key] = val
 }
 
-func (d *MongodbData) flush(acc telegraf.Accumulator) {
-	acc.AddFields(
-		"mongodb",
-		d.Fields,
-		d.Tags,
-		d.StatLine.Time,
-	)
+func (d *MongodbData) append() {
+	now := time.Now()
+	d.collectCache = append(d.collectCache, &mongodbMeasurement{
+		name:   "mongodb",
+		tags:   d.Tags,
+		fields: d.Fields,
+		ts:     now,
+	})
 	d.Fields = make(map[string]interface{})
 
 	for _, db := range d.DbData {
 		d.Tags["db_name"] = db.Name
-		acc.AddFields(
-			"mongodb_db_stats",
-			db.Fields,
-			d.Tags,
-			d.StatLine.Time,
-		)
+		d.collectCache = append(d.collectCache, &mongodbMeasurement{
+			name:   "mongodb_db_stats",
+			tags:   d.Tags,
+			fields: db.Fields,
+			ts:     now,
+		})
 		db.Fields = make(map[string]interface{})
 	}
+
 	for _, col := range d.ColData {
 		d.Tags["collection"] = col.Name
 		d.Tags["db_name"] = col.DbName
-		acc.AddFields(
-			"mongodb_col_stats",
-			col.Fields,
-			d.Tags,
-			d.StatLine.Time,
-		)
+		d.collectCache = append(d.collectCache, &mongodbMeasurement{
+			name:   "mongodb_col_stats",
+			tags:   d.Tags,
+			fields: col.Fields,
+			ts:     now,
+		})
 		col.Fields = make(map[string]interface{})
 	}
+
 	for _, host := range d.ShardHostData {
 		d.Tags["hostname"] = host.Name
-		acc.AddFields(
-			"mongodb_shard_stats",
-			host.Fields,
-			d.Tags,
-			d.StatLine.Time,
-		)
+		d.collectCache = append(d.collectCache, &mongodbMeasurement{
+			name:   "mongodb_shard_stats",
+			tags:   d.Tags,
+			fields: host.Fields,
+			ts:     now,
+		})
 		host.Fields = make(map[string]interface{})
 	}
+
 	for _, col := range d.TopStatsData {
 		d.Tags["collection"] = col.Name
-		acc.AddFields(
-			"mongodb_top_stats",
-			col.Fields,
-			d.Tags,
-			d.StatLine.Time,
-		)
+		d.collectCache = append(d.collectCache, &mongodbMeasurement{
+			name:   "mongodb_top_stats",
+			tags:   d.Tags,
+			fields: col.Fields,
+			ts:     now,
+		})
 		col.Fields = make(map[string]interface{})
 	}
 }
+
+func (d *MongodbData) flush() {
+	if len(d.collectCache) != 0 {
+		if err := inputs.FeedMeasurement(inputName, io.Metric, d.collectCache, &io.Option{CollectCost: d.collectCost}); err != nil {
+			l.Error(err)
+		}
+	}
+}
+
+// func (d *MongodbData) flush(acc telegraf.Accumulator) {
+// 	acc.AddFields(
+// 		"mongodb",
+// 		d.Fields,
+// 		d.Tags,
+// 		d.StatLine.Time,
+// 	)
+// 	d.Fields = make(map[string]interface{})
+
+// 	for _, db := range d.DbData {
+// 		d.Tags["db_name"] = db.Name
+// 		acc.AddFields(
+// 			"mongodb_db_stats",
+// 			db.Fields,
+// 			d.Tags,
+// 			d.StatLine.Time,
+// 		)
+// 		db.Fields = make(map[string]interface{})
+// 	}
+// 	for _, col := range d.ColData {
+// 		d.Tags["collection"] = col.Name
+// 		d.Tags["db_name"] = col.DbName
+// 		acc.AddFields(
+// 			"mongodb_col_stats",
+// 			col.Fields,
+// 			d.Tags,
+// 			d.StatLine.Time,
+// 		)
+// 		col.Fields = make(map[string]interface{})
+// 	}
+// 	for _, host := range d.ShardHostData {
+// 		d.Tags["hostname"] = host.Name
+// 		acc.AddFields(
+// 			"mongodb_shard_stats",
+// 			host.Fields,
+// 			d.Tags,
+// 			d.StatLine.Time,
+// 		)
+// 		host.Fields = make(map[string]interface{})
+// 	}
+// 	for _, col := range d.TopStatsData {
+// 		d.Tags["collection"] = col.Name
+// 		acc.AddFields(
+// 			"mongodb_top_stats",
+// 			col.Fields,
+// 			d.Tags,
+// 			d.StatLine.Time,
+// 		)
+// 		col.Fields = make(map[string]interface{})
+// 	}
+// }
