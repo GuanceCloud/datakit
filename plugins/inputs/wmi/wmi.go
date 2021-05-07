@@ -104,7 +104,7 @@ func (r *Instance) run(ctx context.Context) error {
 				if r.isTest() {
 					// pass
 				} else {
-					io.NamedFeedEx(inputName, io.Metric, r.MetricName, tags, fields)
+					io.NamedFeedEx(inputName, datakit.Metric, r.MetricName, tags, fields)
 				}
 			}
 
