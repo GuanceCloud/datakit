@@ -5,7 +5,7 @@
 - 操作系统支持：`{{.AvailableArchs}}`
 
 
-# 简介
+# {{.InputName}}
 
 RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 RabbitMQ ,它能够：
 
