@@ -174,7 +174,7 @@ func (fc *FileCollector) handUpload() {
 			return
 		case <-tick:
 			if len(lines) > 0 {
-				io.NamedFeed([]byte(strings.Join(lines, "\n")), io.Logging, inputName)
+				io.NamedFeed([]byte(strings.Join(lines, "\n")), datakit.Logging, inputName)
 				lines = []string{}
 			}
 		}
