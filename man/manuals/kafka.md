@@ -4,9 +4,9 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-# 简介
+# {{.InputName}}
 
-采集 kafka 指标和日志上报到 DataFlux 中，帮助你监控分析 Kafka 各种异常情况
+采集 Kafka 指标和日志上报到 DataFlux 中，帮助你监控分析 Kafka 各种异常情况
 
 ## 前置条件
 
@@ -42,7 +42,7 @@
 
 ## 日志采集
 
-如需采集 kafka 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 Kafka 日志文件的绝对路径。比如：
+如需采集 Kafka 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 kafka 日志文件的绝对路径。比如：
 
 ```toml
     [[inputs.kafka]]
@@ -54,6 +54,4 @@
 
 开启日志采集以后，默认会产生日志来源（`source`）为 `kafka` 的日志。
 
-**注意**
-
-- 日志采集仅支持采集已安装 DataKit 主机上的日志
+>注意：必须将 DataKit 安装在 Kafka 所在主机才能采集 Kafka 日志
