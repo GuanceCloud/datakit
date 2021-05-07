@@ -9,6 +9,7 @@ import (
 	nhttp "net/http"
 	"os"
 	"os/signal"
+	"os/user"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -29,7 +30,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	tgi "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/telegraf_inputs"
 )
 
 var (
@@ -37,17 +37,25 @@ var (
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
 	// tool-commands supported in datakit
-	flagCmd             = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline        = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText            = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagCmd      = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+
 	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
 	flagMan             = flag.Bool("man", false, "read manuals of inputs")
-	flagOTA             = flag.Bool("ota", false, "update datakit new version if available")
+	flagOTA             = flag.Bool("update", false, "update datakit new version if available")
 	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "during OTA, accept RC version if available")
 
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
 
-	flagExportMan = flag.String("export-man", "", "export all inputs and related manuals to specified path")
+	flagInstallExternal = flag.String("install", "", "install external tool/software")
+	flagStart           = flag.Bool("start", false, "start datakit")
+	flagStop            = flag.Bool("stop", false, "stop datakit")
+	flagRestart         = flag.Bool("restart", false, "restart datakit")
+	flagReload          = flag.Bool("reload", false, "reload datakit")
+	flagReloadPort      = flag.Int("reload-port", 9529, "datakit http server port")
+	flagExportMan       = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
+	flagIgnoreMans      = flag.String("ignore-manuals", "", "disable exporting specified manuals, i.e., --ignore-manuals nginx,redis,mem")
 )
 
 var (
@@ -57,7 +65,8 @@ var (
 )
 
 func main() {
-
+	flag.CommandLine.MarkHidden("cmd")
+	flag.CommandLine.MarkHidden("install") // 1.1.6-rc1 再发布
 	flag.CommandLine.MarkHidden("show-testing-version")
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
@@ -179,10 +188,7 @@ ReleasedInputs: %s
 
 	datakit.EnableUncheckInputs = (ReleaseType == "all")
 
-	if *flagCmd {
-		runDatakitWithCmd()
-		os.Exit(0)
-	}
+	runDatakitWithCmd()
 
 	if *flagDocker {
 		datakit.Docker = true
@@ -202,17 +208,9 @@ func dumpAllConfigSamples(fpath string) {
 		}
 	}
 
-	for k, v := range tgi.TelegrafInputs {
-		sample := v.SampleConfig()
-		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), os.ModePerm); err != nil {
-			panic(err)
-		}
-	}
 }
 
 func run() {
-
-	inputs.StartTelegraf()
 
 	l.Info("datakit start...")
 	if err := runDatakitWithHTTPServer(); err != nil {
@@ -281,27 +279,111 @@ func runDatakitWithHTTPServer() error {
 	return nil
 }
 
+func isRoot() bool {
+	u, err := user.Current()
+	if err != nil {
+		l.Errorf("get current user failed: %s", err.Error())
+		return false
+	}
+
+	return u.Username == "root"
+}
+
 func runDatakitWithCmd() {
+	if *flagCmd {
+		l.Warn("--cmd parameter has been discarded")
+	}
+
 	if *flagPipeline != "" {
 		cmds.PipelineDebugger(*flagPipeline, *flagText)
-		return
+		os.Exit(0)
 	}
 
 	if *flagGrokq {
 		cmds.Grokq()
-		return
+		os.Exit(0)
 	}
 
 	if *flagMan {
 		cmds.Man()
-		return
+		os.Exit(0)
 	}
 
 	if *flagExportMan != "" {
-		if err := cmds.ExportMan(*flagExportMan); err != nil {
+		if err := cmds.ExportMan(*flagExportMan, *flagIgnoreMans); err != nil {
 			l.Error(err)
 		}
-		return
+		os.Exit(0)
+	}
+
+	if *flagInstallExternal != "" {
+		if err := cmds.InstallExternal(*flagInstallExternal); err != nil {
+			l.Error(err)
+		}
+		os.Exit(0)
+	}
+
+	if *flagStart {
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
+		if err := cmds.StartDatakit(); err != nil {
+			fmt.Printf("Start DataKit failed: %s\n", err)
+			os.Exit(-1)
+		}
+
+		fmt.Printf("Start DataKit OK") // TODO: 需说明 PID 是多少
+		os.Exit(0)
+	}
+
+	if *flagStop {
+
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
+		if err := cmds.StopDatakit(); err != nil {
+			fmt.Printf("Stop DataKit failed: %s\n", err)
+			os.Exit(-1)
+		}
+
+		fmt.Println("Stop DataKit OK")
+		os.Exit(0)
+	}
+
+	if *flagRestart {
+
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
+		if err := cmds.RestartDatakit(); err != nil {
+			fmt.Printf("Restart DataKit failed: %s\n", err)
+			os.Exit(-1)
+		}
+
+		fmt.Printf("Restart DataKit OK")
+		os.Exit(0)
+	}
+
+	if *flagReload {
+
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
+		if err := cmds.ReloadDatakit(*flagReloadPort); err != nil {
+			fmt.Printf("Reload DataKit failed: %s\n", err)
+			os.Exit(-1)
+		}
+
+		fmt.Printf("Reload DataKit OK")
+		os.Exit(0)
 	}
 }
 
@@ -409,24 +491,15 @@ func tryOTAUpdate(ver string) error {
 	datakitUrl := "https://" + path.Join(baseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, ver))
 
-	telegrafUrl := "https://" + path.Join(baseURL,
-		"telegraf",
-		fmt.Sprintf("agent-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH))
-
 	dataUrl := "https://" + path.Join(baseURL, "data.tar.gz")
 
 	l.Debugf("downloading %s to %s...", datakitUrl, datakit.InstallDir)
-	if err := install.Download(datakitUrl, datakit.InstallDir, false); err != nil {
-		return err
-	}
-
-	l.Debugf("downloading %s to %s...", telegrafUrl, datakit.InstallDir)
-	if err := install.Download(telegrafUrl, datakit.InstallDir, false); err != nil {
+	if err := install.Download(datakitUrl, datakit.InstallDir, false, false); err != nil {
 		return err
 	}
 
 	l.Debugf("downloading %s to %s...", dataUrl, datakit.InstallDir)
-	if err := install.Download(dataUrl, datakit.InstallDir, false); err != nil {
+	if err := install.Download(dataUrl, datakit.InstallDir, false, false); err != nil {
 		l.Errorf("download %s failed: %v, ignored", dataUrl, err)
 	}
 
