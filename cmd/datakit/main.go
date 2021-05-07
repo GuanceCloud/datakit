@@ -81,7 +81,13 @@ func main() {
 
 	applyFlags()
 
-	checkIsRuning()
+	if !checkIsRuning() {
+		savePid()
+		go rmPidFile()
+	} else {
+		l.Warn("datakit is already running")
+		os.Exit(0)
+	}
 
 	tryLoadConfig()
 
@@ -520,7 +526,7 @@ func tryOTAUpdate(ver string) error {
 	return install.UpgradeDatakit(svc)
 }
 
-func checkIsRuning() {
+func checkIsRuning() bool {
 	var oidPid int64
 	var name string
 	var p *pr.Process
@@ -530,49 +536,21 @@ func checkIsRuning() {
 
 	//pid文件不存在
 	if err != nil {
-		goto write_pid
+		return false
 	}
 
 	oidPid, err = strconv.ParseInt(string(cont), 10, 32)
 	if err != nil {
-		return
+		return false
 	}
 
 	p, _ = pr.NewProcess(int32(oidPid))
 	name, _ = p.Name()
 
 	if name == getBinName() {
-		l.Warn("datakit is already running")
-		os.Exit(0)
+		return true
 	}
-
-write_pid:
-	pid, err := getCurrPid()
-	if err != nil {
-		return
-	}
-
-	ioutil.WriteFile(pidFile, []byte(fmt.Sprintf("%d", pid)), 0x666)
-}
-
-func getCurrPid() (int64, error) {
-	processes, err := pr.Processes()
-	if err != nil {
-		return 0, err
-	}
-
-	for _, p := range processes {
-		pn, err := p.Name()
-		if err != nil {
-			continue
-		}
-
-		if pn == getBinName() {
-			return int64(p.Pid), nil
-		}
-	}
-
-	return 0, fmt.Errorf("datakit pid not found")
+	return false
 }
 
 func getBinName() string {
@@ -583,4 +561,25 @@ func getBinName() string {
 	}
 
 	return bin
+}
+
+func savePid() {
+	pid := os.Getpid()
+	pidFile := filepath.Join(datakit.InstallDir, PID_FILENAME)
+
+	err := ioutil.WriteFile(pidFile, []byte(fmt.Sprintf("%d", pid)), 0x666)
+	if err != nil {
+		l.Errorf("write %s %v", pidFile, err)
+	}
+}
+
+func rmPidFile() {
+	pidFile := filepath.Join(datakit.InstallDir, PID_FILENAME)
+
+	<-datakit.Exit.Wait()
+
+	err := os.Remove(pidFile)
+	if err != nil {
+		l.Errorf("remove %s %v", pidFile, err)
+	}
 }
