@@ -141,7 +141,7 @@ func (p *TzParams) getMetrics(isTest bool) ([]byte, error) {
 	}
 
 	if !isTest {
-		if err := p.output.ioFeed(pt, io.Metric, inputName); err != nil {
+		if err := p.output.ioFeed(pt, datakit.Metric, inputName); err != nil {
 			return pt, err
 		}
 	}

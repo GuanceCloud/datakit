@@ -262,7 +262,7 @@ func (c *CMS) fetchMetrics(req *MetricsRequest) error {
 			if c.isTest() {
 				// pass
 			} else {
-				io.NamedFeedEx(inputName, io.Metric, foramtNamespaceName(*req.q.Namespace), tags, fields)
+				io.NamedFeedEx(inputName, datakit.Metric, foramtNamespaceName(*req.q.Namespace), tags, fields)
 			}
 
 		}
