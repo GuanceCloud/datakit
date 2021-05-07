@@ -9,6 +9,7 @@ import (
 	influxm "github.com/influxdata/influxdb1-client/models"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -109,7 +110,7 @@ func extract(db, prec string, body []byte, tags map[string]string) error {
 		return err
 	}
 
-	if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+	if err := io.NamedFeed(data, datakit.Metric, inputName); err != nil {
 		return err
 	}
 
