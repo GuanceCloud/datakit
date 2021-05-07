@@ -48,48 +48,8 @@ func DefaultConfig() *Config {
 			WhiteList: []*InputHostList{
 				&InputHostList{Hosts: []string{}, Inputs: []string{}},
 			},
-
-			TelegrafAgentCfg: &TelegrafCfg{
-				Interval:                   "10s",
-				RoundInterval:              true,
-				MetricBatchSize:            1000,
-				MetricBufferLimit:          100000,
-				CollectionJitter:           "0s",
-				FlushInterval:              "10s",
-				FlushJitter:                "0s",
-				Precision:                  "ns",
-				Debug:                      false,
-				Quiet:                      false,
-				LogTarget:                  "file",
-				Logfile:                    filepath.Join(TelegrafDir, "agent.log"),
-				LogfileRotationMaxArchives: 5,
-				LogfileRotationMaxSize:     "32MB",
-				OmitHostname:               true, // do not append host tag
-			},
 		},
 	}
-}
-
-//用于支持在datakit.conf中加入telegraf的agent配置
-type TelegrafCfg struct {
-	Interval                   string `toml:"interval"`
-	RoundInterval              bool   `toml:"round_interval"`
-	Precision                  string `toml:"precision"`
-	CollectionJitter           string `toml:"collection_jitter"`
-	FlushInterval              string `toml:"flush_interval"`
-	FlushJitter                string `toml:"flush_jitter"`
-	MetricBatchSize            int    `toml:"metric_batch_size"`
-	MetricBufferLimit          int    `toml:"metric_buffer_limit"`
-	FlushBufferWhenFull        bool   `toml:"-"`
-	UTC                        bool   `toml:"utc"`
-	Debug                      bool   `toml:"debug"`
-	Quiet                      bool   `toml:"quiet"`
-	LogTarget                  string `toml:"logtarget"`
-	Logfile                    string `toml:"logfile"`
-	LogfileRotationInterval    string `toml:"logfile_rotation_interval"`
-	LogfileRotationMaxSize     string `toml:"logfile_rotation_max_size"`
-	LogfileRotationMaxArchives int    `toml:"logfile_rotation_max_archives"`
-	OmitHostname               bool   `toml:"omit_hostname"`
 }
 
 type Config struct {
@@ -118,14 +78,15 @@ type MainConfig struct {
 
 	Interval             string `toml:"interval"`
 	flushInterval        Duration
-	OutputFile           string       `toml:"output_file"`
-	Hostname             string       `toml:"hostname,omitempty"`
-	DefaultEnabledInputs []string     `toml:"default_enabled_inputs,omitempty"`
-	InstallDate          time.Time    `toml:"install_date,omitempty"`
-	TelegrafAgentCfg     *TelegrafCfg `toml:"agent"`
+	OutputFile           string    `toml:"output_file"`
+	Hostname             string    `toml:"hostname,omitempty"`
+	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
+	InstallDate          time.Time `toml:"install_date,omitempty"`
 
 	BlackList []*InputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*InputHostList `toml:"white_lists,omitempty"`
+
+	EnableElection bool `toml:"enable_election"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
 }
@@ -156,7 +117,7 @@ func (i *InputHostList) MatchInput(input string) bool {
 }
 
 func InitDirs() {
-	for _, dir := range []string{TelegrafDir,
+	for _, dir := range []string{
 		DataDir,
 		LuaDir,
 		ConfdDir,
@@ -223,10 +184,6 @@ func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 		}
 	}
 
-	if c.MainCfg.TelegrafAgentCfg.LogTarget == "file" && c.MainCfg.TelegrafAgentCfg.Logfile == "" {
-		c.MainCfg.TelegrafAgentCfg.Logfile = filepath.Join(InstallDir, "embed", "agent.log")
-	}
-
 	if c.MainCfg.OutputFile != "" {
 		OutputFile = c.MainCfg.OutputFile
 	}
@@ -266,8 +223,6 @@ func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 		}
 		IntervalDuration = du
 	}
-
-	c.MainCfg.TelegrafAgentCfg.Debug = strings.EqualFold(strings.ToLower(c.MainCfg.LogLevel), "debug")
 
 	// reset global tags
 	for k, v := range c.MainCfg.GlobalTags {
@@ -331,14 +286,26 @@ func (c *Config) setHostname() {
 }
 
 func (c *Config) EnableDefaultsInputs(inputlist string) {
-	elems := strings.Split(inputlist, ",")
-	if len(elems) == 0 {
-		return
+	inputs := []string{}
+	inputsUnique := make(map[string]bool)
+
+	for _, name := range c.MainCfg.DefaultEnabledInputs {
+		if _, ok := inputsUnique[name]; !ok {
+			inputsUnique[name] = true
+			inputs = append(inputs, name)
+		}
 	}
 
+	elems := strings.Split(inputlist, ",")
 	for _, name := range elems {
-		c.MainCfg.DefaultEnabledInputs = append(c.MainCfg.DefaultEnabledInputs, name)
+		if _, ok := inputsUnique[name]; !ok {
+			inputsUnique[name] = true
+			inputs = append(inputs, name)
+		}
 	}
+
+	c.MainCfg.DefaultEnabledInputs = inputs
+
 }
 
 func (c *Config) LoadEnvs(mcp string) error {
