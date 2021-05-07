@@ -23,6 +23,7 @@ const (
 	Rum              = "rum"
 	Security         = "security"
 	HeartBeat        = "heartbeat"
+	Telegraf         = "telegraf"
 )
 
 type DataWayCfg struct {
