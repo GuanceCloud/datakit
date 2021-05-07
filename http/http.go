@@ -483,40 +483,58 @@ type manualTOC struct {
 	OtherDocs  []string
 }
 
-func apiManual(c *gin.Context) {
-	name := c.Query("input")
-	if name == "" { // request toc
-		toc := &manualTOC{
-			PageTitle: "DataKit文档列表",
-		}
+// request manual table of conotents
+func handleTOC(c *gin.Context) {
 
-		for k, v := range inputs.Inputs {
-			switch v().(type) {
-			case inputs.InputV2:
+	toc := &manualTOC{
+		PageTitle: "DataKit文档列表",
+	}
+
+	for k, v := range inputs.Inputs {
+		switch v().(type) {
+		case inputs.InputV2:
+
+			// test if doc available
+			if _, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: true}); err != nil {
+				l.Warn(err)
+			} else {
 				toc.InputNames = append(toc.InputNames, k)
 			}
 		}
-		sort.Strings(toc.InputNames)
+	}
+	sort.Strings(toc.InputNames)
 
-		for k := range man.OtherDocs {
+	for k := range man.OtherDocs {
+		// test if doc available
+		if _, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: true}); err != nil {
+			l.Warn(err)
+		} else {
 			toc.OtherDocs = append(toc.OtherDocs, k)
 		}
-		sort.Strings(toc.OtherDocs)
+	}
+	sort.Strings(toc.OtherDocs)
 
-		t := template.New("man-toc")
+	t := template.New("man-toc")
 
-		tmpl, err := t.Parse(manualTOCTemplate)
-		if err != nil {
-			l.Error(err)
-			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
-			return
-		}
+	tmpl, err := t.Parse(manualTOCTemplate)
+	if err != nil {
+		l.Error(err)
+		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+		return
+	}
 
-		if err := tmpl.Execute(c.Writer, toc); err != nil {
-			l.Error(err)
-			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
-			return
-		}
+	if err := tmpl.Execute(c.Writer, toc); err != nil {
+		l.Error(err)
+		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+		return
+	}
+	return
+}
+
+func apiManual(c *gin.Context) {
+	name := c.Query("input")
+	if name == "" {
+		handleTOC(c)
 		return
 	}
 
