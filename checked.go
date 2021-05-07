@@ -84,6 +84,7 @@ var (
 		"lighttpd":               true,
 		"mem":                    true,
 		"mongodb_oplog":          true,
+		"mongodb":                true,
 		"mysql":                  true,
 		"mysqlog":                true,
 		"neo4j":                  true,
