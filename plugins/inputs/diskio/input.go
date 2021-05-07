@@ -13,14 +13,21 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	minInterval = time.Second
+	maxInterval = time.Minute
+)
+
 var (
 	inputName    = "diskio"
 	metricName   = "diskio"
-	collectCycle = time.Second * 10
 	diskioLogger = logger.DefaultSLogger(inputName)
 	varRegex     = regexp.MustCompile(`\$(?:\w+|\{\w+\})`)
 	sampleConfig = `
 [[inputs.diskio]]
+  ##(optional) collect interval, default is 10 seconds
+  interval = '10s'
+  ## 
   ## By default, gather stats for all devices including
   ## disk partitions.
   ## Setting interfaces using regular expressions will collect these expected devices.
@@ -51,7 +58,7 @@ var (
   # 
   [inputs.diskio.tags]
     # tag1 = "a"
-  `
+`
 )
 
 type diskioMeasurement measurement
@@ -69,7 +76,9 @@ func (m *diskioMeasurement) Info() *inputs.MeasurementInfo {
 			"reads":            newFieldsInfoCount("reads completed successfully"),
 			"writes":           newFieldsInfoCount("writes completed"),
 			"read_bytes":       newFieldsInfoBytes("read bytes"),
+			"read_bytes/sec":   newFieldsInfoBytesPerSec("read bytes per second"),
 			"write_bytes":      newFieldsInfoBytes("write bytes"),
+			"write_bytes/sec":  newFieldsInfoBytesPerSec("write bytes per second"),
 			"read_time":        newFieldsInfoMS("time spent reading"),
 			"write_time":       newFieldsInfoMS("time spent writing"),
 			"io_time":          newFieldsInfoMS("time spent doing I/Os"),
@@ -86,6 +95,7 @@ func (m *diskioMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type Input struct {
+	Interval         datakit.Duration
 	Devices          []string
 	DeviceTags       []string
 	NameTemplates    []string
@@ -93,8 +103,9 @@ type Input struct {
 	Tags             map[string]string
 
 	collectCache []inputs.Measurement
-
-	diskIO DiskIO
+	lastStat     map[string]disk.IOCountersStat
+	lastTime     time.Time
+	diskIO       DiskIO
 
 	infoCache    map[string]diskInfoCache
 	deviceFilter *DevicesFilter
@@ -187,15 +198,23 @@ func (i *Input) Collect() error {
 			"merged_reads":     io.MergedReadCount,
 			"merged_writes":    io.MergedWriteCount,
 		}
+		if i.lastStat != nil {
+			if v, ok := i.lastStat[io.Name]; ok && io.ReadBytes >= v.ReadBytes {
+				fields["read_bytes/sec"] = int64(io.ReadBytes-v.ReadBytes) / (ts.Unix() - i.lastTime.Unix())
+				fields["write_bytes/sec"] = int64(io.WriteBytes-v.WriteBytes) / (ts.Unix() - i.lastTime.Unix())
+			}
+		}
 		i.collectCache = append(i.collectCache, &diskioMeasurement{name: metricName, tags: tags, fields: fields, ts: ts})
 	}
-
+	i.lastStat = diskio
+	i.lastTime = ts
 	return nil
 }
 
 func (i *Input) Run() {
 	diskioLogger.Infof("diskio input started")
-	tick := time.NewTicker(collectCycle)
+	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 	for {
 		select {
@@ -203,9 +222,13 @@ func (i *Input) Run() {
 			start := time.Now()
 			i.collectCache = make([]inputs.Measurement, 0)
 			if err := i.Collect(); err == nil {
-				inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)})
+				if errFeed := inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
+					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
+					io.FeedLastError(inputName, errFeed.Error())
+					diskioLogger.Error(err)
+				}
 			} else {
+				io.FeedLastError(inputName, err.Error())
 				diskioLogger.Error(err)
 			}
 		case <-datakit.Exit.Wait():
@@ -280,6 +303,9 @@ func (i *Input) diskTags(devName string) map[string]string {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{diskIO: disk.IOCounters}
+		return &Input{
+			diskIO:   disk.IOCounters,
+			Interval: datakit.Duration{Duration: time.Second * 10},
+		}
 	})
 }
