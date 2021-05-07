@@ -22,6 +22,7 @@ import (
 	"golang.org/x/text/encoding/unicode"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
@@ -451,7 +452,7 @@ func (t *tailerSingle) receiving(ctx context.Context) {
 		} else {
 			if err := io.Feed(
 				t.tl.InputName,
-				io.Logging,
+				datakit.Logging,
 				[]*io.Point{pt},
 				&io.Option{HighFreq: !t.tl.Option.DisableHighFreqIODdata},
 			); err != nil {
