@@ -21,9 +21,10 @@ const (
 	metricName = inputName
 	sampleCfg  = `
 [[inputs.cpu]]
-  ##(optional) collect interval, default is 10 seconds
+  # Collect interval, default is 10 seconds(optional)
   interval = '10s'
-  ## 
+
+  # Extra tags (optional)
   [inputs.cpu.tags]
     # tag1 = "a"
 `
@@ -56,10 +57,6 @@ type cpuMeasurement struct {
 func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 	// see https://man7.org/linux/man-pages/man5/proc.5.html
 	return &inputs.MeasurementInfo{
-		Desc: `
-Linux cpu time 统计信息中的 user 包含 guest，nice 包含 guest_nice 。可参考 [kernel/sched/cputime.c](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/kernel/sched/cputime.c) ；  
-Datakit 使用 usage_user, usage_system, usage_nice, usage_iowait, usage_irq, usage_softirq, usage_steal 之和(即 100 - usage_idle )作为 usage_total 。
-		`,
 		Name: metricName,
 		Fields: map[string]interface{}{
 			"usage_user": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
@@ -93,11 +90,11 @@ Datakit 使用 usage_user, usage_system, usage_nice, usage_iowait, usage_irq, us
 				Desc: "% CPU spent running a niced guest(virtual CPU for guest operating systems)."},
 
 			"usage_total": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "% CPU in total active usage."},
+				Desc: "% CPU in total active usage, as well as (100 - usage_idle)."},
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "主机名"},
-			"cpu":  &inputs.TagInfo{Desc: "cpu核心"},
+			"cpu":  &inputs.TagInfo{Desc: "CPU 核心"},
 		},
 	}
 }
@@ -188,7 +185,7 @@ func (i *Input) Run() {
 		case <-tick.C:
 			start := time.Now()
 			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
+				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since((start))}); errFeed != nil {
 					if !isfirstRun {
 						io.FeedLastError(inputName, errFeed.Error())
