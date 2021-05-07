@@ -349,7 +349,7 @@ func newTailerSingle(tl *Tailer, filename string) (*tailerSingle, error) {
 	if t.tl.Option.Pipeline != "" {
 		t.pipe, err = pipeline.NewPipelineFromFile(t.tl.Option.Pipeline)
 		if err != nil {
-			t.tl.log.Errorf("failed of pipeline, err: %s", err)
+			t.tl.log.Warnf("failed of pipeline, err: %s", err)
 		}
 	}
 
