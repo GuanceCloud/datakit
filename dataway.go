@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 const (
@@ -129,12 +128,6 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) {
 		defer dw.httpCli.CloseIdleConnections()
 	}
 
-	// if dw.httpCli == nil {
-	// 	dw.httpCli = &http.Client{
-	// 		Timeout: dw.HTTPTimeout,
-	// 	}
-	// }
-
 	for _, dc := range dw.dataWayClients {
 		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
 			l.Errorf("send data to dataway error %v", err)
@@ -162,6 +155,26 @@ func (dw *DataWayCfg) HeartBeat() error {
 	}
 
 	return nil
+}
+
+func (dw *DataWayCfg) ElectionURL() []string {
+	var resUrl []string
+	for _, dc := range dw.dataWayClients {
+		electionUrl := dc.categoryUrl["electionUrl"]
+		resUrl = append(resUrl, electionUrl)
+	}
+
+	return resUrl
+}
+
+func (dw *DataWayCfg) ElectionHeartBeatURL() []string {
+	var resUrl []string
+	for _, dc := range dw.dataWayClients {
+		electionBeatUrl := dc.categoryUrl["electionBeatUrl"]
+		resUrl = append(resUrl, electionBeatUrl)
+	}
+
+	return resUrl
 }
 
 func (dw *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
@@ -256,6 +269,12 @@ func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 				categoryUrl := fmt.Sprintf("%s/%s", baseUrl, category)
 				dataWayCli.categoryUrl[category] = fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, categoryUrl, dataWayCli.urlValues.Encode())
 			}
+
+			// election
+			electionUrl := fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, "/v1/election", dataWayCli.urlValues.Encode())
+			electionBeatUrl := fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, "/v1/election/heartbeat", dataWayCli.urlValues.Encode())
+			dataWayCli.categoryUrl["electionUrl"] = electionUrl
+			dataWayCli.categoryUrl["electionBeatUrl"] = electionBeatUrl
 
 			dw.dataWayClients = append(dw.dataWayClients, dataWayCli)
 		} else {
