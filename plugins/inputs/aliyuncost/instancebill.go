@@ -274,7 +274,7 @@ func (cb *costInstanceBill) parseInstanceBillResponse(ctx context.Context, resp 
 			data, _ := io.MakeMetric(cb.getName(), tags, fields, t)
 			fmt.Printf("%s\n", string(data))
 		} else {
-			io.NamedFeedEx(inputName, io.Metric, cb.getName(), tags, fields)
+			io.NamedFeedEx(inputName, datakit.Metric, cb.getName(), tags, fields)
 		}
 	}
 }
