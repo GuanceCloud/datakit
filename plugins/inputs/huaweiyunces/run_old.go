@@ -133,7 +133,7 @@ func (ag *agent) runOld() {
 					data, _ := io.MakeMetric(metricSetName, tags, fields, tm)
 					fmt.Printf("%s\n", string(data))
 				} else {
-					io.NamedFeedEx(inputName, io.Metric, metricSetName, tags, fields, tm)
+					io.NamedFeedEx(inputName, datakit.Metric, metricSetName, tags, fields, tm)
 				}
 			}
 		}
