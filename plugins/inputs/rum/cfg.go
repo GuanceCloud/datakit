@@ -1,26 +1,16 @@
 package rum
 
-import "sync"
-
 const (
 	configSample = `
 [[inputs.rum]]
-# ##(optional) tell datakit which http header contains the source ip, if empty use the client ip
-ip_header = 'X-Forwarded-For'
+	# Tell datakit which http header contains the source ip, if empty use the client ip
+	ip_header = 'X-Forwarded-For' # optional
 
-# ##(optional)
-#pipeline = ''
+	#pipeline = '' # optional
 `
 
 	pipelineSample = ``
 )
-
-type Rum struct {
-	IPHeader string `toml:"ip_header,omitempty"`
-	Pipeline string `toml:"pipeline"`
-
-	pipelinePool *sync.Pool
-}
 
 var metricNames = map[string]bool{
 	`rum_web_page_performance`:          true,
