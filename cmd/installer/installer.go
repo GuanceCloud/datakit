@@ -139,7 +139,7 @@ func main() {
 	}
 
 	fmt.Printf("\n\tVisit http://localhost:%d/stats to see DataKit running status.\n", *flagPort)
-	fmt.Printf("\tVisit http://localhost:%d/man to see DataKit manuals.\n\n", *flagPort)
+	fmt.Printf("\tVisit http://localhost:%d/man to see DataKit manuals.\n", *flagPort)
 	fmt.Printf("\tVisit http://localhost:%d/man/changelog to see DataKit change logs.\n\n", *flagPort)
 }
 
