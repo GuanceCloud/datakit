@@ -439,9 +439,7 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 
 	l.Debug("post data")
 
-	x.dw.Send(category, body, gz)
-
-	return nil
+	return x.dw.Send(category, body, gz)
 }
 
 func (x *IO) fileOutput(body []byte) error {
