@@ -2,11 +2,9 @@ package datakit
 
 import (
 	"testing"
-
 	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	// "github.com/influxdata/toml"
 	//"github.com/kardianos/service"
-
 )
 
 var cfg = `
@@ -71,4 +69,3 @@ func TestUnmarshalMainCfg(t *testing.T) {
 
 	t.Log(Cfg.MainCfg.DataWay.Urls)
 }
-
