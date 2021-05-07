@@ -213,7 +213,7 @@ func (ag *agent) fetchMetric(ctx context.Context, req *metricsRequest) {
 					fmt.Printf("**** %s ****\n", string(data))
 				}
 			} else {
-				io.NamedFeedEx(inputName, io.Metric, measurement, tags, fields, tm)
+				io.NamedFeedEx(inputName, datakit.Metric, measurement, tags, fields, tm)
 			}
 
 		}
