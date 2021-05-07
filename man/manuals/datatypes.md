@@ -3,7 +3,7 @@
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
 
-# 简介
+# DataKit 支持的数据类型
 
 本文档是 DataKit 以及 DataFlux 所采集到的各种数据类型的描述，主要涉及如下几类：
 

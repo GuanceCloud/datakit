@@ -297,7 +297,7 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeIByte,
-				Desc:     "",
+				Desc:     inputs.TODO,
 			},
 
 			// OPTIONAL_STATUS

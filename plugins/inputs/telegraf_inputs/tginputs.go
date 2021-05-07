@@ -29,7 +29,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs/kafka_consumer"
 	"github.com/influxdata/telegraf/plugins/inputs/kapacitor"
 	"github.com/influxdata/telegraf/plugins/inputs/kibana"
-	"github.com/influxdata/telegraf/plugins/inputs/kubernetes"
+	// "github.com/influxdata/telegraf/plugins/inputs/kubernetes"
 	"github.com/influxdata/telegraf/plugins/inputs/memcached"
 	"github.com/influxdata/telegraf/plugins/inputs/modbus"
 	"github.com/influxdata/telegraf/plugins/inputs/mongodb"
@@ -155,8 +155,8 @@ var (
 		"exec":       {name: "exec", Catalog: "exec", Input: &exec.Exec{}},
 		"syslog":     {name: "syslog", Catalog: "syslog", Input: &syslog.Syslog{}},
 
-		"nvidia_smi":    {name: "nvidia_smi", Catalog: "nvidia", Input: &nvidia_smi.NvidiaSMI{}},
-		"kubernetes":    {name: "kubernetes", Catalog: "k8s", Sample: samples["kubernetes"], Input: &kubernetes.Kubernetes{}},
+		"nvidia_smi": {name: "nvidia_smi", Catalog: "nvidia", Input: &nvidia_smi.NvidiaSMI{}},
+		// "kubernetes":    {name: "kubernetes", Catalog: "k8s", Sample: samples["kubernetes"], Input: &kubernetes.Kubernetes{}},
 		"amqp_consumer": {name: "amqp_consumer", Catalog: "amqp", Input: &amqp_consumer.AMQPConsumer{}},
 		"github":        {name: "github", Catalog: "github", Input: &github.GitHub{}},
 		"uwsgi":         {name: "uwsgi", Catalog: "uwsgi", Input: &uwsgi.Uwsgi{}},
@@ -179,7 +179,7 @@ var (
 		// get panic:
 		//   panic: mismatching message name: got k8s.io.kubernetes.pkg.watch.versioned.Event,
 		//          want github.com/ericchiang.k8s.watch.versioned.Event
-		"kube_inventory": {name: "kube_inventory", Catalog: "k8s", Sample: samples["kube_inventory"], Input: nil},
+		// "kube_inventory": {name: "kube_inventory", Catalog: "k8s", Sample: samples["kube_inventory"], Input: nil},
 
 		// telegraf not exported
 		"phpfpm":  {name: "phpfpm", Catalog: "phpfpm", Sample: samples["phpfpm"], Input: nil},
