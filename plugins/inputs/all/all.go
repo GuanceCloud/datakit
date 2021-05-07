@@ -64,6 +64,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/lighttpd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mem"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mock"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodb"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodboplog"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysql"
 
