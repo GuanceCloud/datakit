@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
-# 简介
+# Pipeline 使用文档
 
 以下是文本处理器定义。随着不同语法的逐步支持，该文档会做不同程度的调整和增删。
 
@@ -1054,18 +1054,25 @@ script = `
 json(_, str) replace(str, "(1[0-9]{2})[0-9]{4}([0-9]{4})", "$1****$2")
 `
 
-# demo2
+# 英文名
 data = `{"str": "zhang san"}`
 
 script = `
 json(_, str) replace(str, "([a-z]*) \\w*", "$1 ***")
 `
 
-# demo3
+=======
+# 身份证号
 data = `{"str": "362201200005302565"}`
 
 script = `
 json(_, str) replace(str, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")
+
+# 中文名
+data = `{"str": "小阿卡"}`
+
+script = `
+json(_, str) replace(str, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")
 `
 ```
 
