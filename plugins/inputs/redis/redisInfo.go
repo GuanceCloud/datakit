@@ -5,14 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type infoMeasurement struct {
-	client  *redis.Client
+	i       *Input
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
@@ -333,27 +331,10 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func CollectInfoMeasurement(cli *redis.Client, tags map[string]string) *infoMeasurement {
-	m := &infoMeasurement{
-		client:  cli,
-		resData: make(map[string]interface{}),
-		tags:    make(map[string]string),
-		fields:  make(map[string]interface{}),
-	}
-
-	m.name = "redis_info"
-	m.tags = tags
-
-	m.getData()
-	m.submit()
-
-	return m
-}
-
 // 数据源获取数据
 func (m *infoMeasurement) getData() error {
 	start := time.Now()
-	info, err := m.client.Info("ALL").Result()
+	info, err := m.i.client.Info("ALL").Result()
 	if err != nil {
 		return err
 	}
@@ -362,7 +343,9 @@ func (m *infoMeasurement) getData() error {
 	latencyMs := Round(float64(elapsed)/float64(time.Millisecond), 2)
 
 	m.resData["info_latency_ms"] = latencyMs
-	m.parseInfoData(info)
+	if err := m.parseInfoData(info); err != nil {
+		return nil
+	}
 
 	return nil
 }
@@ -400,6 +383,7 @@ func (m *infoMeasurement) submit() error {
 		if value, ok := m.resData[key]; ok {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
+				m.i.err = append(m.i.err, err)
 				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
 			} else {
 				m.fields[key] = val
