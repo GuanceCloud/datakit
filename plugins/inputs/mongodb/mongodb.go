@@ -20,31 +20,33 @@ var (
 	inputName    = "mongodb"
 	sampleConfig = `
 [[inputs.mongodb]]
+	## gather interval
+	interval = "10s"
   ## An array of URLs of the form:
   ##   "mongodb://" [user ":" pass "@"] host [ ":" port]
   ## For example:
   ##   mongodb://user:auth_key@10.10.3.30:27017,
   ##   mongodb://10.10.3.33:18832,
   servers = ["mongodb://127.0.0.1:27017"]
-	## gather interval
-	interval = "10s"
   ## When true, collect cluster status
   ## Note that the query that counts jumbo chunks triggers a COLLSCAN, which
   ## may have an impact on performance.
   gather_cluster_status = true
   ## When true, collect per database stats
-  gather_perdb_stats = false
+  gather_perdb_stats = true
   ## When true, collect per collection stats
-  gather_col_stats = false
+  gather_col_stats = true
   ## List of db where collections stats are collected
   ## If empty, all db are concerned
   col_stats_dbs = ["local"]
   ## Optional TLS Config
-  tls_ca = "/etc/telegraf/ca.pem"
-  tls_cert = "/etc/telegraf/cert.pem"
-  tls_key = "/etc/telegraf/key.pem"
-  ## Use TLS but skip chain & host verification
-  insecure_skip_verify = false
+	[inputs.mongodb.ssl]
+		enabled = true
+		tls_cas = ["/etc/telegraf/ca.pem"]
+		tls_cert = "/etc/telegraf/cert.pem"
+		tls_key = "/etc/telegraf/key.pem"
+		## Use TLS but skip chain & host verification
+  	insecure_skip_verify = false
 `
 	localhost = &url.URL{Host: "mongodb://127.0.0.1:27017"}
 	l         = logger.SLogger(inputName)
@@ -56,17 +58,16 @@ type Ssl struct {
 }
 
 type Input struct {
+	ClientConfig
 	Interval            time.Duration
 	Servers             []string
-	Ssl                 Ssl
-	mongos              map[string]*Server
 	GatherClusterStatus bool
 	GatherPerdbStats    bool
 	GatherColStats      bool
 	GatherTopStat       bool
 	ColStatsDbs         []string
-	//  tlsint.ClientConfig
-	collectCache []inputs.Measurement
+	Ssl                 Ssl
+	mongos              map[string]*Server
 }
 
 func (m *Input) Catalog() string {
@@ -182,7 +183,7 @@ func (m *Input) gatherServer(server *Server) error {
 				tlsConfig.InsecureSkipVerify = true
 			}
 		} else {
-			tlsConfig, err = m.ClientConfig.TLSConfig()
+			tlsConfig, err = m.ClientConfig.TlsConfig()
 			if err != nil {
 				return err
 			}
@@ -216,8 +217,8 @@ func init() {
 			Interval:            10 * time.Second,
 			mongos:              make(map[string]*Server),
 			GatherClusterStatus: true,
-			GatherPerdbStats:    false,
-			GatherColStats:      false,
+			GatherPerdbStats:    true,
+			GatherColStats:      true,
 			ColStatsDbs:         []string{"local"},
 		}
 	})
