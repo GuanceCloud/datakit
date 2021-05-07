@@ -265,7 +265,7 @@ func (i *Input) Run() {
 		case <-tick.C:
 			start := time.Now()
 			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(netMetricName, io.Metric, i.collectCache,
+				if errFeed := inputs.FeedMeasurement(netMetricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
 					io.FeedLastError(inputName, errFeed.Error())
 					netLogger.Error(errFeed)
