@@ -55,7 +55,7 @@ func ExportMan(to, skipList string) error {
 			continue
 		}
 
-		data, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: false})
+		data, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: false, IgnoreMissing: true})
 		if err != nil {
 			return err
 		}
