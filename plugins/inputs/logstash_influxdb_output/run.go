@@ -122,19 +122,19 @@ func (r *logstashInfluxdbOutput) WriteHandler(c *gin.Context) {
 
 	parts := strings.Split(db, ":")
 
-	category := io.Logging
+	category := datakit.Logging
 	if len(parts) > 1 {
 		switch parts[1] {
 		case "metric":
-			category = io.Metric
+			category = datakit.Metric
 		case "object":
-			category = io.Object
+			category = datakit.Object
 		case "event":
 			category = io.KeyEvent
 		}
 	}
 
-	if category == io.Logging {
+	if category == datakit.Logging {
 		pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), precision)
 		if err != nil {
 			moduleLogger.Errorf("fail to parse points, %s", err)
