@@ -159,7 +159,7 @@ func (p *TraefikParam) getMetrics(isTest bool) ([]byte, error) {
 	if err != nil || resp.StatusCode != 200 {
 		fields["can_connect"] = false
 		pt, _ := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed(pt, io.Metric, inputName)
+		p.output.IoFeed(pt, datakit.Metric, inputName)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -189,7 +189,7 @@ func (p *TraefikParam) getMetrics(isTest bool) ([]byte, error) {
 	}
 
 	if !isTest {
-		err = p.output.IoFeed(pt, io.Metric, inputName)
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
 		return pt, err
 	}
 
