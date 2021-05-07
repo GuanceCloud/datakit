@@ -13,11 +13,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	minInterval = time.Second
+	maxInterval = time.Minute
+)
+
 var (
-	collectCycle   = time.Second * 10
-	inputName      = "net"
-	netMetricName  = "net"
-	netLogger      = logger.SLogger(inputName)
+	inputName     = "net"
+	netMetricName = "net"
+	netLogger     = logger.SLogger(inputName)
+
 	linuxProtoRate = map[string]bool{
 		"insegs":       true,
 		"outsegs":      true,
@@ -26,13 +31,16 @@ var (
 	}
 	sampleCfg = `
 [[inputs.net]]
+  ##(optional) collect interval, default is 10 seconds
+  interval = '10s'
+  ##
   ## By default, gathers stats from any up interface, but Linux does not contain virtual interfaces.
   ## Setting interfaces using regular expressions will collect these expected interfaces.
   ##
   # interfaces = ['''eth[\w-]+''', '''lo''', ]
   ##
-  ## Used to enable the collection of virtual interfaces for Linux.
-  ## Setting enable_virtual_interfaces to true will collect virtual interfaces stats.
+  ## Datakit does not collect network virtual interfaces under the linux system.
+  ## Setting enable_virtual_interfaces to true will collect virtual interfaces stats for linux.
   ##
   # enable_virtual_interfaces = true
   ##
@@ -124,6 +132,7 @@ func (m *netMeasurement) LineProto() (*io.Point, error) {
 }
 
 type Input struct {
+	Interval                datakit.Duration
 	IgnoreProtocolStats     bool
 	Interfaces              []string
 	EnableVirtualInterfaces bool
@@ -196,10 +205,10 @@ func (i *Input) Collect() error {
 		if i.lastStats != nil {
 			if lastIOStat, ok := i.lastStats[name]; ok {
 				if ioStat.BytesSent >= lastIOStat.BytesSent && ts.Unix() > i.lastTime.Unix() {
-					fields["bytes_sent/sec"] = float64(ioStat.BytesSent-lastIOStat.BytesSent) / float64(ts.Unix()-i.lastTime.Unix())
-					fields["bytes_recv/sec"] = float64(ioStat.BytesRecv-lastIOStat.BytesRecv) / float64(ts.Unix()-i.lastTime.Unix())
-					fields["packets_sent/sec"] = float64(ioStat.PacketsSent-lastIOStat.PacketsSent) / float64(ts.Unix()-i.lastTime.Unix())
-					fields["packets_recv/sec"] = float64(ioStat.PacketsRecv-lastIOStat.PacketsRecv) / float64(ts.Unix()-i.lastTime.Unix())
+					fields["bytes_sent/sec"] = int64(ioStat.BytesSent-lastIOStat.BytesSent) / (ts.Unix() - i.lastTime.Unix())
+					fields["bytes_recv/sec"] = int64(ioStat.BytesRecv-lastIOStat.BytesRecv) / (ts.Unix() - i.lastTime.Unix())
+					fields["packets_sent/sec"] = int64(ioStat.PacketsSent-lastIOStat.PacketsSent) / (ts.Unix() - i.lastTime.Unix())
+					fields["packets_recv/sec"] = int64(ioStat.PacketsRecv-lastIOStat.PacketsRecv) / (ts.Unix() - i.lastTime.Unix())
 				}
 			}
 		}
@@ -224,7 +233,7 @@ func (i *Input) Collect() error {
 				sname := strings.ToLower(stat)
 				if _, ok := linuxProtoRate[sname]; ok {
 					if v, ok := fields[pname+"_"+sname]; ok && v.(int64) >= value && ts.Unix() > i.lastTime.Unix() {
-						fields[pname+"_"+sname+"/sec"] = float64(v.(int64)-value) / float64(ts.Unix()-i.lastTime.Unix())
+						fields[pname+"_"+sname+"/sec"] = (v.(int64) - value) / (ts.Unix() - i.lastTime.Unix())
 					}
 				}
 
@@ -248,16 +257,21 @@ func (i *Input) Collect() error {
 
 func (i *Input) Run() {
 	netLogger.Infof("net input started")
-	tick := time.NewTicker(collectCycle)
+	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
 			start := time.Now()
 			if err := i.Collect(); err == nil {
-				inputs.FeedMeasurement(netMetricName, io.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)})
+				if errFeed := inputs.FeedMeasurement(netMetricName, io.Metric, i.collectCache,
+					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
+					io.FeedLastError(inputName, errFeed.Error())
+					netLogger.Error(errFeed)
+				}
 			} else {
+				io.FeedLastError(inputName, err.Error())
 				netLogger.Error(err)
 			}
 		case <-datakit.Exit.Wait():
@@ -269,6 +283,11 @@ func (i *Input) Run() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{netIO: NetIOCounters, netProto: psNet.ProtoCounters, netVirtualIfaces: NetVirtualInterfaces}
+		return &Input{
+			netIO:            NetIOCounters,
+			netProto:         psNet.ProtoCounters,
+			netVirtualIfaces: NetVirtualInterfaces,
+			Interval:         datakit.Duration{Duration: time.Second * 10},
+		}
 	})
 }
