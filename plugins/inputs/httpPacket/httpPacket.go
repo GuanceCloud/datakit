@@ -136,7 +136,7 @@ func (h *HttpPacket) handle(c *gin.Context) {
 	}
 
 	if len(h.LuaFiles) == 0 {
-		if err := io.NamedFeed(body, io.Metric, inputName); err != nil {
+		if err := io.NamedFeed(body, datakit.Metric, inputName); err != nil {
 			l.Error(err)
 			c.Writer.WriteHeader(http.StatusBadRequest)
 			return
@@ -157,7 +157,7 @@ func (h *HttpPacket) handle(c *gin.Context) {
 	}
 
 	// new Points struct
-	p, err := NewPointsData("points", io.Metric, pts)
+	p, err := NewPointsData("points", datakit.Metric, pts)
 	if err != nil {
 		l.Errorf("new points data, %s", err.Error())
 
