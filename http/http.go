@@ -226,7 +226,8 @@ func HttpStart() {
 	applyHTTPRoute(router)
 
 	// internal datakit stats API
-	router.GET("/stats", func(c *gin.Context) { apiGetInputsStats(c.Writer, c.Request) })
+	router.GET("/stats", func(c *gin.Context) { apiGetDatakitStats(c.Writer, c.Request) })
+	router.GET("/monitor", func(c *gin.Context) { apiGetDatakitMonitor(c.Writer, c.Request) })
 	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
 	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
 	// ansible api
@@ -306,94 +307,6 @@ func tryStartServer(srv *http.Server) {
 		}
 		time.Sleep(time.Second)
 	}
-}
-
-type enabledInput struct {
-	Input     string   `json:"input"`
-	Instances int      `json:"instances"`
-	Cfgs      []string `json:"configs"`
-	Panics    int      `json:"panic"`
-}
-
-type datakitStats struct {
-	InputsStats     map[string]*io.InputsStat `json:"inputs_status"`
-	EnabledInputs   []*enabledInput           `json:"enabled_inputs"`
-	AvailableInputs []string                  `json:"available_inputs"`
-
-	Version      string    `json:"version"`
-	BuildAt      string    `json:"build_at"`
-	Branch       string    `json:"branch"`
-	Uptime       string    `json:"uptime"`
-	OSArch       string    `json:"os_arch"`
-	Reload       time.Time `json:"reload,omitempty"`
-	ReloadCnt    int       `json:"reload_cnt"`
-	WithinDocker bool      `json:"docker"`
-	IOChanStat   string    `json:"io_chan_stats"`
-}
-
-func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
-
-	_ = r
-
-	stats := &datakitStats{
-		Version:      git.Version,
-		BuildAt:      git.BuildAt,
-		Branch:       git.Branch,
-		Uptime:       fmt.Sprintf("%v", time.Since(uptime)),
-		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		ReloadCnt:    reloadCnt,
-		WithinDocker: datakit.Docker,
-		IOChanStat:   io.ChanStat(),
-	}
-
-	if reloadCnt > 0 {
-		stats.Reload = reload
-	}
-
-	var err error
-
-	stats.InputsStats, err = io.GetStats(time.Second * 5) // get all inputs stats
-	if err != nil {
-		l.Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	for k := range inputs.Inputs {
-		if !datakit.Enabled(k) {
-			continue
-		}
-
-		n, cfgs := inputs.InputEnabled(k)
-		npanic := inputs.GetPanicCnt(k)
-		if n > 0 {
-			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Cfgs: cfgs, Panics: npanic})
-		}
-	}
-
-	for k := range inputs.Inputs {
-		if !datakit.Enabled(k) {
-			continue
-		}
-		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", k))
-	}
-
-	// add available inputs(datakit) stats
-	stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("tatal %d, datakit %d",
-		len(stats.AvailableInputs), len(inputs.Inputs)))
-
-	sort.Strings(stats.AvailableInputs)
-
-	body, err := json.MarshalIndent(stats, "", "    ")
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(body)
 }
 
 func apiReload(c *gin.Context) {
