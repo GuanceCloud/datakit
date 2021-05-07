@@ -13,11 +13,13 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/blang/semver/v4"
+	pr "github.com/shirou/gopsutil/v3/process"
 	flag "github.com/spf13/pflag"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -64,6 +66,10 @@ var (
 	ReleaseType = ""
 )
 
+const (
+	PID_FILENAME = ".pid"
+)
+
 func main() {
 	flag.CommandLine.MarkHidden("cmd")
 	flag.CommandLine.MarkHidden("install") // 1.1.6-rc1 再发布
@@ -74,6 +80,8 @@ func main() {
 	flag.Parse()
 
 	applyFlags()
+
+	checkIsRuning()
 
 	tryLoadConfig()
 
@@ -510,4 +518,69 @@ func tryOTAUpdate(ver string) error {
 	}
 
 	return install.UpgradeDatakit(svc)
+}
+
+func checkIsRuning() {
+	var oidPid int64
+	var name string
+	var p *pr.Process
+
+	pidFile := filepath.Join(datakit.InstallDir, PID_FILENAME)
+	cont, err := ioutil.ReadFile(pidFile)
+
+	//pid文件不存在
+	if err != nil {
+		goto write_pid
+	}
+
+	oidPid, err = strconv.ParseInt(string(cont), 10, 32)
+	if err != nil {
+		return
+	}
+
+	p, _ = pr.NewProcess(int32(oidPid))
+	name, _ = p.Name()
+
+	if name == getBinName() {
+		l.Warn("datakit is already running")
+		os.Exit(0)
+	}
+
+write_pid:
+	pid, err := getCurrPid()
+	if err != nil {
+		return
+	}
+
+	ioutil.WriteFile(pidFile, []byte(fmt.Sprintf("%d", pid)), 0x666)
+}
+
+func getCurrPid() (int64, error) {
+	processes, err := pr.Processes()
+	if err != nil {
+		return 0, err
+	}
+
+	for _, p := range processes {
+		pn, err := p.Name()
+		if err != nil {
+			continue
+		}
+
+		if pn == getBinName() {
+			return int64(p.Pid), nil
+		}
+	}
+
+	return 0, fmt.Errorf("datakit pid not found")
+}
+
+func getBinName() string {
+	bin := "datakit"
+
+	if runtime.GOOS == "windows" {
+		bin += ".exe"
+	}
+
+	return bin
 }
