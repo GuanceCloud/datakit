@@ -301,12 +301,15 @@ func (s *Server) gatherData(gatherClusterStatus bool, gatherDbStats bool, gather
 		if durationInSeconds == 0 {
 			durationInSeconds = 1
 		}
-		data := NewMongodbData(NewStatLine(*s.lastResult, *result, s.URL.Host, true, durationInSeconds), s.getDefaultTags())
+
+		data := NewMongodbData(NewStatLine(*s.lastResult, *result, s.URL.Host, true, durationInSeconds), s.getDefaultTags(), duration)
 		data.AddDefaultStats()
 		data.AddDbStats()
 		data.AddColStats()
 		data.AddShardHostStats()
 		data.AddTopStats()
+		data.append()
+		data.flush()
 	}
 
 	s.lastResult = result
