@@ -227,16 +227,17 @@ func HttpStart() {
 
 	// internal datakit stats API
 	router.GET("/stats", func(c *gin.Context) { apiGetInputsStats(c.Writer, c.Request) })
-	router.GET("/man", func(c *gin.Context) { apiManual(c) })
+	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
+	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
 	// ansible api
 	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
 
-	router.POST(io.Metric, func(c *gin.Context) { apiWriteMetric(c) })
-	router.POST(io.Object, func(c *gin.Context) { apiWriteObject(c) })
-	router.POST(io.Logging, func(c *gin.Context) { apiWriteLogging(c) })
-	router.POST(io.Tracing, func(c *gin.Context) { apiWriteTracing(c) })
-	router.POST(io.Security, func(c *gin.Context) { apiWriteSecurity(c) })
-	router.POST(io.Telegraf, func(c *gin.Context) { apiWriteTelegraf(c) })
+	router.POST(datakit.Metric, func(c *gin.Context) { apiWriteMetric(c) })
+	router.POST(datakit.Object, func(c *gin.Context) { apiWriteObject(c) })
+	router.POST(datakit.Logging, func(c *gin.Context) { apiWriteLogging(c) })
+	router.POST(datakit.Tracing, func(c *gin.Context) { apiWriteTracing(c) })
+	router.POST(datakit.Security, func(c *gin.Context) { apiWriteSecurity(c) })
+	router.POST(datakit.Telegraf, func(c *gin.Context) { apiWriteTelegraf(c) })
 
 	srv := &http.Server{
 		Addr:    httpBind,
@@ -451,7 +452,7 @@ ul.a {
 <ul class="a">
 	{{ range $name := .InputNames}}
 	<li>
-	<p><a href="/man?input={{$name}}">
+	<p><a href="/man/{{$name}}">
 			{{$name}} </a> </p> </li>
 	{{end}}
 </ul>
@@ -461,7 +462,7 @@ ul.a {
 <ul class="a">
 	{{ range $name := .OtherDocs}}
 	<li>
-	<p><a href="/man?input={{$name}}">
+	<p><a href="/man/{{$name}}">
 			{{$name}} </a> </p> </li>
 	{{end}}
 </ul>
@@ -483,48 +484,65 @@ type manualTOC struct {
 	OtherDocs  []string
 }
 
-func apiManual(c *gin.Context) {
-	name := c.Query("input")
-	if name == "" { // request toc
-		toc := &manualTOC{
-			PageTitle: "DataKit文档列表",
-		}
+// request manual table of conotents
+func apiManualTOC(c *gin.Context) {
 
-		for k, v := range inputs.Inputs {
-			switch v().(type) {
-			case inputs.InputV2:
-				if k != "tailf" { // tailf should not been here
-					toc.InputNames = append(toc.InputNames, k)
-				}
+	toc := &manualTOC{
+		PageTitle: "DataKit文档列表",
+	}
+
+	for k, v := range inputs.Inputs {
+		switch v().(type) {
+		case inputs.InputV2:
+
+			// test if doc available
+			if _, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: true}); err != nil {
+				l.Warn(err)
+			} else {
+				toc.InputNames = append(toc.InputNames, k)
 			}
 		}
-		sort.Strings(toc.InputNames)
+	}
+	sort.Strings(toc.InputNames)
 
-		for k := range man.OtherDocs {
+	for k := range man.OtherDocs {
+		// test if doc available
+		if _, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: true}); err != nil {
+			l.Warn(err)
+		} else {
 			toc.OtherDocs = append(toc.OtherDocs, k)
 		}
-		sort.Strings(toc.OtherDocs)
+	}
+	sort.Strings(toc.OtherDocs)
 
-		t := template.New("man-toc")
+	t := template.New("man-toc")
 
-		tmpl, err := t.Parse(manualTOCTemplate)
-		if err != nil {
-			l.Error(err)
-			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
-			return
-		}
+	tmpl, err := t.Parse(manualTOCTemplate)
+	if err != nil {
+		l.Error(err)
+		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+		return
+	}
 
-		if err := tmpl.Execute(c.Writer, toc); err != nil {
-			l.Error(err)
-			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
-			return
-		}
+	if err := tmpl.Execute(c.Writer, toc); err != nil {
+		l.Error(err)
+		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+		return
+	}
+	return
+}
+
+func apiManual(c *gin.Context) {
+
+	name := c.Param("name")
+	if name == "" {
+		c.Redirect(200, "/man")
 		return
 	}
 
 	mdtxt, err := man.BuildMarkdownManual(name, &man.Option{WithCSS: true})
 	if err != nil {
-		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+		c.Redirect(200, "/man")
 		return
 	}
 

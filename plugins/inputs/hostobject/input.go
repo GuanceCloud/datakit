@@ -80,7 +80,7 @@ func (c *Input) Run() {
 				io.FeedLastError(InputName, err.Error())
 			} else {
 				if err := inputs.FeedMeasurement(InputName,
-					io.Object,
+					datakit.Object,
 					[]inputs.Measurement{c.collectData},
 					&io.Option{CollectCost: time.Since(start)}); err != nil {
 					io.FeedLastError(InputName, err.Error())
