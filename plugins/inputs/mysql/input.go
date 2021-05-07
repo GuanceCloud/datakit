@@ -14,6 +14,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	maxInterval = 15 * time.Minute
+	minInterval = 10 * time.Second
+)
+
 var (
 	inputName   = "mysql"
 	catalogName = "db"
@@ -44,28 +49,28 @@ type customQuery struct {
 }
 
 type Input struct {
-	Host             string                   `toml:"host"`
-	Port             int                      `toml:"port"`
-	User             string                   `toml:"user"`
-	Pass             string                   `toml:"pass"`
-	Sock             string                   `toml:"sock"`
-	Charset          string                   `toml:"charset"`
-	Timeout          string                   `toml:"connect_timeout"`
-	TimeoutDuration  time.Duration            `toml:"-"`
-	Tls              *tls                     `toml:"tls"`
-	Service          string                   `toml:"service"`
-	Interval         string                   `toml:"interval"`
-	IntervalDuration time.Duration            `toml:"-"`
-	Tags             map[string]string        `toml:"tags"`
-	options          *options                 `toml:"options"`
-	Query            []*customQuery           `toml:"custom_queries"`
-	db               *sql.DB                  `toml:"-"`
-	Addr             string                   `toml:"-"`
-	collectCache     []inputs.Measurement     `toml:"-"`
-	response         []map[string]interface{} `toml:"-"`
-	Log              *inputs.TailerOption     `toml:"log"`
-	tailer           *inputs.Tailer           `toml:"-"`
-	InnoDB           bool                     `toml:"innodb"`
+	Host            string        `toml:"host"`
+	Port            int           `toml:"port"`
+	User            string        `toml:"user"`
+	Pass            string        `toml:"pass"`
+	Sock            string        `toml:"sock"`
+	Charset         string        `toml:"charset"`
+	Timeout         string        `toml:"connect_timeout"`
+	TimeoutDuration time.Duration `toml:"-"`
+	Tls             *tls          `toml:"tls"`
+	Service         string        `toml:"service"`
+	Interval        datakit.Duration
+	Tags            map[string]string        `toml:"tags"`
+	options         *options                 `toml:"options"`
+	Query           []*customQuery           `toml:"custom_queries"`
+	db              *sql.DB                  `toml:"-"`
+	Addr            string                   `toml:"-"`
+	collectCache    []inputs.Measurement     `toml:"-"`
+	response        []map[string]interface{} `toml:"-"`
+	Log             *inputs.TailerOption     `toml:"log"`
+	tailer          *inputs.Tailer           `toml:"-"`
+	InnoDB          bool                     `toml:"innodb"`
+	err             []error
 }
 
 func (i *Input) getDsnString() string {
@@ -114,18 +119,6 @@ func (i *Input) PipelineConfig() map[string]string {
 }
 
 func (i *Input) initCfg() {
-	// 采集频度
-	i.IntervalDuration = 5 * time.Minute
-
-	if i.Interval != "" {
-		du, err := time.ParseDuration(i.Interval)
-		if err != nil {
-			l.Errorf("bad interval %s: %s, use default: 1m", i.Interval, err.Error())
-		} else {
-			i.IntervalDuration = du
-		}
-	}
-
 	dsnStr := i.getDsnString()
 	l.Infof("db build dsn connect str %s", dsnStr)
 	db, err := sql.Open("mysql", dsnStr)
@@ -154,13 +147,20 @@ func (i *Input) Collect() error {
 		i.collectInnodbMeasurement()
 	}
 
+	errStr := ""
+	for _, err := range i.err {
+		errStr += " " + err.Error()
+	}
+
+	io.FeedLastError(inputName, errStr)
+
 	return nil
 }
 
 // 获取base指标
 func (i *Input) collectBaseMeasurement() {
 	m := &baseMeasurement{
-		client:  i.db,
+		i:       i,
 		resData: make(map[string]interface{}),
 		tags:    make(map[string]string),
 		fields:  make(map[string]interface{}),
@@ -171,9 +171,17 @@ func (i *Input) collectBaseMeasurement() {
 		m.tags[key] = value
 	}
 
-	m.getStatus()
-	m.getVariables()
-	m.getLogStats()
+	if err := m.getStatus(); err != nil {
+		i.err = append(i.err, err)
+	}
+
+	if err := m.getVariables(); err != nil {
+		i.err = append(i.err, err)
+	}
+
+	if err := m.getLogStats(); err != nil {
+		i.err = append(i.err, err)
+	}
 
 	m.submit()
 
@@ -183,7 +191,7 @@ func (i *Input) collectBaseMeasurement() {
 // 获取innodb指标
 func (i *Input) collectInnodbMeasurement() {
 	m := &innodbMeasurement{
-		client:  i.db,
+		i:       i,
 		resData: make(map[string]interface{}),
 		tags:    make(map[string]string),
 		fields:  make(map[string]interface{}),
@@ -194,7 +202,10 @@ func (i *Input) collectInnodbMeasurement() {
 		m.tags[key] = value
 	}
 
-	m.getInnodb()
+	if err := m.getInnodb(); err != nil {
+		i.err = append(i.err, err)
+	}
+
 	m.submit()
 
 	i.collectCache = append(i.collectCache, m)
@@ -202,8 +213,12 @@ func (i *Input) collectInnodbMeasurement() {
 
 // 获取schema指标
 func (i *Input) collectSchemaMeasurement() {
-	i.getSchemaSize()
-	i.getQueryExecTimePerSchema()
+	if err := i.getSchemaSize(); err != nil {
+		i.err = append(i.err, err)
+	}
+	if err := i.getQueryExecTimePerSchema(); err != nil {
+		i.err = append(i.err, err)
+	}
 }
 
 func (i *Input) runLog(defaultPile string) {
@@ -224,6 +239,7 @@ func (i *Input) runLog(defaultPile string) {
 			}
 			tailer, err := inputs.NewTailer(i.Log)
 			if err != nil {
+				i.err = append(i.err, err)
 				l.Errorf("init tailf err:%s", err.Error())
 				return
 			}
@@ -235,11 +251,13 @@ func (i *Input) runLog(defaultPile string) {
 
 func (i *Input) Run() {
 	l = logger.SLogger("mysql")
+	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+
 	i.initCfg()
 
 	i.runLog("mysql.p")
 
-	tick := time.NewTicker(i.IntervalDuration)
+	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
 	n := 0
@@ -251,10 +269,12 @@ func (i *Input) Run() {
 			l.Debugf("redis input gathering...")
 			start := time.Now()
 			if err := i.Collect(); err != nil {
-				l.Error(err)
+				io.FeedLastError(inputName, err.Error())
 			} else {
-				inputs.FeedMeasurement(inputName, io.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)})
+				if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
+					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)}); err != nil {
+					io.FeedLastError(inputName, err.Error())
+				}
 
 				i.collectCache = i.collectCache[:] // NOTE: do not forget to clean cache
 			}
