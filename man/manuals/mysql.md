@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-# 简介
+# {{.InputName}}
 
 MySQL 指标采集，收集以下数据：
 
@@ -77,7 +77,7 @@ set global log_queries_not_using_indexes = 'ON';
 ```python
 [inputs.mysql.log]
     # 填入绝对路径
-    files = ["/var/log/mysql/*.log"] # 在使用日志采集时，需要将 datakit 安装在 MySQL 服务同一台主机中，或使用其它方式将日志挂载到外部系统中
+    files = ["/var/log/mysql/*.log"] 
 ```
 
-
+> 注意：在使用日志采集时，需要将 DataKit 安装在 MySQL 服务同一台主机中，或使用其它方式将日志挂载到 DataKit 所在机器
