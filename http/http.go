@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	iowrite "io"
@@ -226,8 +225,8 @@ func HttpStart() {
 	applyHTTPRoute(router)
 
 	// internal datakit stats API
-	router.GET("/stats", func(c *gin.Context) { apiGetDatakitStats(c.Writer, c.Request) })
-	router.GET("/monitor", func(c *gin.Context) { apiGetDatakitMonitor(c.Writer, c.Request) })
+	router.GET("/stats", func(c *gin.Context) { apiGetDatakitStats(c) })
+	router.GET("/monitor", func(c *gin.Context) { apiGetDatakitMonitor(c) })
 	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
 	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
 	// ansible api
