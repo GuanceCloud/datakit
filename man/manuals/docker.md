@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-# 简介
+# {{.InputName}}
 
 采集 Docker 服务数据和容器数据，分别以指标、对象和日志的方式上报到 DataFlux 中。
 
