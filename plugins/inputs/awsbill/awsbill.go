@@ -258,7 +258,7 @@ func (r *AwsInstance) run(ctx context.Context) error {
 							data, _ := io.MakeMetric(metricName, tags, fields, *tm)
 							fmt.Printf("%s\n", string(data))
 						} else {
-							io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields, *tm)
+							io.NamedFeedEx(inputName, datakit.Metric, metricName, tags, fields, *tm)
 						}
 					}
 				}
