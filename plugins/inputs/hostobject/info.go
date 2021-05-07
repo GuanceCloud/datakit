@@ -1,6 +1,7 @@
 package hostobject
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -288,7 +289,6 @@ func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
 
 func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	var msg HostObjectMessage
-	var err error
 
 	stat := c.getEnabledInputs()
 
@@ -323,10 +323,19 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 
 	// sync cloud extra fields
 	if v, ok := c.Tags["cloud_provider"]; ok {
-		msg.Host.cloudInfo, err = c.syncCloudInfo(v)
+		info, err := c.SyncCloudInfo(v)
 		if err != nil {
 			l.Warnf("sync cloud info failed: %v, ingored", err)
+		} else {
+
+			j, err := json.Marshal(info)
+			if err != nil {
+				l.Warn(err)
+			} else {
+				info["extra_cloud_meta"] = string(j)
+			}
 		}
+		msg.Host.cloudInfo = info
 	}
 
 	return &msg, nil
