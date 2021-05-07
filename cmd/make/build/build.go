@@ -205,7 +205,7 @@ func buildInstaller(outdir, goos, goarch string) {
 		"-o", filepath.Join(outdir, installerExe),
 		"-ldflags",
 		fmt.Sprintf("-w -s -X main.DataKitBaseURL=%s -X main.DataKitVersion=%s", DownloadAddr, git.Version),
-		"cmd/installer/installer.go",
+		"cmd/installer/main.go",
 	}
 
 	env := []string{
