@@ -110,6 +110,7 @@ var (
 		"rum":                    true,
 		"scanport":               true,
 		"self":                   true,
+		"solr":                   true,
 		"squid":                  true,
 		"ssh":                    true,
 		"statsd":                 true,
