@@ -17,14 +17,19 @@ var (
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
 		// all manuals under man/manuals/
-		"pipeline":       "man/manuals/pipeline.md",
-		"telegraf":       "man/manuals/telegraf.md",
-		"changelog":      "man/manuals/changelog.md",
-		"datatypes":      "man/manuals/datatypes.md",
-		"apis":           "man/manuals/apis.md",
-		"sec-checker":    "man/manuals/sec-checker.md",
-		"datakit-how-to": "man/manuals/datakit-how-to.md",
-		"datakit-arch":   "man/manuals/datakit-arch.md",
+		"pipeline":             "man/manuals/pipeline.md",
+		"telegraf":             "man/manuals/telegraf.md",
+		"changelog":            "man/manuals/changelog.md",
+		"datatypes":            "man/manuals/datatypes.md",
+		"apis":                 "man/manuals/apis.md",
+		"sec-checker":          "man/manuals/sec-checker.md",
+		"datakit-how-to":       "man/manuals/datakit-how-to.md",
+		"datakit-arch":         "man/manuals/datakit-arch.md",
+		"nginx-proxy":          "man/manuals/nginx-proxy.md",
+		"dataway":              "man/manuals/dataway.md",
+		"datakit-batch-deploy": "man/manuals/datakit-batch-deploy.md",
+		"prometheus":           "man/manuals/prometheus.md",
+		"datakit-on-public":    "man/manuals/datakit-on-public.md",
 	}
 
 	l = logger.DefaultSLogger("man")
@@ -46,8 +51,9 @@ func Get(name string) (string, error) {
 }
 
 type Option struct {
-	WithCSS       bool
-	IgnoreMissing bool
+	WithCSS                       bool
+	IgnoreMissing                 bool
+	DisableMonofontOnTagFieldName bool
 }
 
 func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
@@ -58,6 +64,10 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 
 	if !opt.WithCSS {
 		css = ""
+	}
+
+	if opt.DisableMonofontOnTagFieldName {
+		inputs.MonofontOnTagFieldName = false
 	}
 
 	if _, ok := OtherDocs[name]; ok {
