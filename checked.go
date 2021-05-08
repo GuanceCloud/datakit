@@ -41,6 +41,7 @@ var (
 		"baiduIndex":             true,
 		"binlog":                 true,
 		"cloudflare":             true,
+		"cloudprober":            true,
 		"confluence":             true,
 		"containerd":             true,
 		"coredns":                true,
