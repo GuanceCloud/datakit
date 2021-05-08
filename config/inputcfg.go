@@ -130,7 +130,6 @@ func searchDatakitInputCfg(c *datakit.Config,
 			}
 
 			for _, i := range inputlist {
-
 				if err := inputs.AddInput(name, i, fp); err != nil {
 					l.Error("add %s failed: %v", name, err)
 					continue
