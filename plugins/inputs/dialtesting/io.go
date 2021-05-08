@@ -1,32 +1,13 @@
 package dialtesting
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
+// dataway (todo)
 func StartCollect() error {
-	// l = logger.SLogger("dialtesting_io")
-
-	x.DatawayHost = datakit.Cfg.MainCfg.DataWay.URL
-
-	x.MaxCacheCnt = 200
-	if datakit.Cfg.MainCfg.DataWay.Timeout != "" {
-		du, err := time.ParseDuration(datakit.Cfg.MainCfg.DataWay.Timeout)
-		if err != nil {
-			l.Warnf("parse dataway timeout failed: %s, default 30s", err.Error())
-		} else {
-			x.HTTPTimeout = du
-		}
-	}
-
-	if datakit.OutputFile != "" {
-		x.OutputFile = datakit.OutputFile
-	}
-
-	x.FlushInterval = datakit.IntervalDuration
+	// x.DatawayHost = datakit.Cfg.MainCfg.DataWay.URL
 
 	datakit.WG.Add(1)
 	go func() {
