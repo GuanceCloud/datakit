@@ -7,18 +7,18 @@ import (
 	"io/ioutil"
 )
 
-// ClientConfig represents the standard client TLS config.
-type ClientConfig struct {
-	TlsCAs             []string `json:"tls_cas" toml:"tls_cas"`
-	TlsCert            string   `json:"tls_cert" toml:"tls_cert"`
-	TlsKey             string   `json:"tls_key" toml:"tls_key"`
+// TlsClientConfig represents the standard client TLS config.
+type TlsClientConfig struct {
+	CaCerts            []string `json:"ca_certs" toml:"ca_certs"`
+	Cert               string   `json:"cert" toml:"cert"`
+	CertKey            string   `json:"cert_key" toml:"cert_key"`
 	InsecureSkipVerify bool     `json:"insecure_skip_verify" toml:"insecure_skip_verify"`
 	ServerName         string   `json:"tls_server_name" toml:"tls_server_name"`
 }
 
 // TLSConfig returns a tls.Config, may be nil without error if TLS is not
 // configured.
-func (this *ClientConfig) TlsConfig() (*tls.Config, error) {
+func (this *TlsClientConfig) TlsConfig() (*tls.Config, error) {
 	// This check returns a nil (aka, "use the default")
 	// tls.Config if no field is set that would have an effect on
 	// a TLS connection. That is, any of:
@@ -26,7 +26,7 @@ func (this *ClientConfig) TlsConfig() (*tls.Config, error) {
 	//     * peer certificate authorities,
 	//     * disabled security, or
 	//     * an SNI server name.
-	if len(this.TlsCAs) == 0 && this.TlsKey == "" && this.TlsCert == "" && !this.InsecureSkipVerify && this.ServerName == "" {
+	if len(this.CaCerts) == 0 && this.CertKey == "" && this.Cert == "" && !this.InsecureSkipVerify && this.ServerName == "" {
 		return nil, nil
 	}
 
@@ -35,16 +35,16 @@ func (this *ClientConfig) TlsConfig() (*tls.Config, error) {
 		Renegotiation:      tls.RenegotiateNever,
 	}
 
-	if len(this.TlsCAs) != 0 {
-		if pool, err := makeCertPool(this.TlsCAs); err != nil {
+	if len(this.CaCerts) != 0 {
+		if pool, err := makeCertPool(this.CaCerts); err != nil {
 			return nil, err
 		} else {
 			tlsConfig.RootCAs = pool
 		}
 	}
 
-	if this.TlsCert != "" && this.TlsKey != "" {
-		if err := loadCertificate(tlsConfig, this.TlsCert, this.TlsKey); err != nil {
+	if this.Cert != "" && this.CertKey != "" {
+		if err := loadCertificate(tlsConfig, this.Cert, this.CertKey); err != nil {
 			return nil, err
 		}
 	}
@@ -54,6 +54,17 @@ func (this *ClientConfig) TlsConfig() (*tls.Config, error) {
 	}
 
 	return tlsConfig, nil
+}
+
+func loadCertificate(config *tls.Config, certFile, keyFile string) error {
+	if cert, err := tls.LoadX509KeyPair(certFile, keyFile); err != nil {
+		return fmt.Errorf("could not load keypair %s:%s: %v\n", certFile, keyFile, err)
+	} else {
+		config.Certificates = []tls.Certificate{cert}
+		config.BuildNameToCertificate()
+
+		return nil
+	}
 }
 
 func makeCertPool(certFiles []string) (*x509.CertPool, error) {
@@ -69,15 +80,4 @@ func makeCertPool(certFiles []string) (*x509.CertPool, error) {
 	}
 
 	return pool, nil
-}
-
-func loadCertificate(config *tls.Config, certFile, keyFile string) error {
-	if cert, err := tls.LoadX509KeyPair(certFile, keyFile); err != nil {
-		return fmt.Errorf("could not load keypair %s:%s: %v\n", certFile, keyFile, err)
-	} else {
-		config.Certificates = []tls.Certificate{cert}
-		config.BuildNameToCertificate()
-
-		return nil
-	}
 }
