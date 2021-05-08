@@ -25,7 +25,7 @@ var (
 		"sec-checker":          "man/manuals/sec-checker.md",
 		"datakit-how-to":       "man/manuals/datakit-how-to.md",
 		"datakit-arch":         "man/manuals/datakit-arch.md",
-		"nginx-proxy":          "man/manuals/nginx-proxy.md",
+		"proxy":                "man/manuals/proxy.md",
 		"dataway":              "man/manuals/dataway.md",
 		"datakit-batch-deploy": "man/manuals/datakit-batch-deploy.md",
 		"prometheus":           "man/manuals/prometheus.md",
