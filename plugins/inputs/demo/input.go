@@ -115,7 +115,7 @@ func (i *Input) Run() {
 				l.Error(err)
 			} else {
 
-				inputs.FeedMeasurement(inputName, io.Metric, i.collectCache,
+				inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)})
 
 				i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache
