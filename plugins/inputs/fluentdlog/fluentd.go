@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -117,7 +118,7 @@ func extract(p *pipeline.Pipeline, body iowrite.Reader, metric string, tags map[
 
 	}
 
-	if err := io.Feed(inputName, io.Logging, pts, &io.Option{HighFreq: true}); err != nil {
+	if err := io.Feed(inputName, datakit.Logging, pts, &io.Option{HighFreq: true}); err != nil {
 		l.Errorf("push metric point error %v", err)
 		return err
 	}
