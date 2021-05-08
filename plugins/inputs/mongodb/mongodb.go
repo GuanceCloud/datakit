@@ -21,30 +21,31 @@ var (
 [[inputs.mongodb]]
 	## gather interval
 	interval = "10s"
-  ## An array of URLs of the form:
-  ##   "mongodb://" [user ":" pass "@"] host [ ":" port]
-  ## For example:
-  ##   mongodb://user:auth_key@10.10.3.30:27017,
-  ##   mongodb://10.10.3.33:18832,
-  servers = ["mongodb://127.0.0.1:27017"]
-  ## When true, collect cluster status
-  ## Note that the query that counts jumbo chunks triggers a COLLSCAN, which
-  ## may have an impact on performance.
-  gather_cluster_status = true
-  ## When true, collect per database stats
-  gather_perdb_stats = true
-  ## When true, collect per collection stats
-  gather_col_stats = true
-  ## List of db where collections stats are collected
-  ## If empty, all db are concerned
-  col_stats_dbs = ["local"]
-  ## Optional TLS Config
+	## An array of URLs of the form:
+	##   "mongodb://" [user ":" pass "@"] host [ ":" port]
+	## For example:
+	##   mongodb://user:auth_key@10.10.3.30:27017,
+	##   mongodb://10.10.3.33:18832,
+	servers = ["mongodb://127.0.0.1:27017"]
+	## When true, collect cluster status
+	## Note that the query that counts jumbo chunks triggers a COLLSCAN, which may have an impact on performance.
+	gather_cluster_status = true
+	## When true, collect per database stats
+	gather_perdb_stats = true
+	## When true, collect per collection stats
+	gather_col_stats = true
+	## When true, collect top stats
+	gather_top_stat = true
+	## List of db where collections stats are collected, If empty, all db are concerned
+	col_stats_dbs = ["local"]
+	## Optional TLS Config, enabled if true
+	enable_tls = false
 	[inputs.mongodb.tlsconf]
 		ca_certs = ["/etc/telegraf/ca.pem"]
 		cert = "/etc/telegraf/cert.pem"
 		cert_key = "/etc/telegraf/key.pem"
 		## Use TLS but skip chain & host verification
-  	insecure_skip_verify = false
+		insecure_skip_verify = false
 		server_name = ""
 `
 	localhost = &url.URL{Host: "mongodb://127.0.0.1:27017"}
@@ -52,14 +53,15 @@ var (
 )
 
 type Input struct {
-	Interval            time.Duration
-	Servers             []string
-	GatherClusterStatus bool
-	GatherPerdbStats    bool
-	GatherColStats      bool
-	GatherTopStat       bool
-	ColStatsDbs         []string
-	TlsConf             *TlsClientConfig
+	Interval            datakit.Duration `toml:"interval"`
+	Servers             []string         `toml:"servers"`
+	GatherClusterStatus bool             `toml:"gather_cluster_status"`
+	GatherPerdbStats    bool             `toml:"gather_perdb_stats"`
+	GatherColStats      bool             `toml:"gather_col_stats"`
+	GatherTopStat       bool             `toml:"gather_top_stat"`
+	ColStatsDbs         []string         `toml:"col_stats_dbs"`
+	EnableTls           bool             `toml:"enable_tls"`
+	TlsConf             *TlsClientConfig `toml:"tlsconf"`
 	mongos              map[string]*Server
 }
 
@@ -74,7 +76,7 @@ func (m *Input) SampleConfig() string {
 func (m *Input) Run() {
 	l.Info("mongodb input started")
 
-	tick := time.NewTicker(m.Interval)
+	tick := time.NewTicker(m.Interval.Duration)
 	for {
 		select {
 		case <-tick.C:
@@ -160,7 +162,7 @@ func (m *Input) gatherServer(server *Server) error {
 		dialInfo.Timeout = 5 * time.Second
 
 		var tlsConfig *tls.Config
-		if m.TlsConf != nil {
+		if m.EnableTls && m.TlsConf != nil {
 			if tlsConfig, err = m.TlsConf.TlsConfig(); err != nil {
 				return err
 			}
@@ -190,7 +192,7 @@ func (m *Input) gatherServer(server *Server) error {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			Interval:            10 * time.Second,
+			Interval:            datakit.Duration{Duration: 10 * time.Second},
 			GatherClusterStatus: true,
 			GatherPerdbStats:    true,
 			GatherColStats:      true,
