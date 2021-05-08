@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	cloudCli = &http.Client{Timeout: 3 * time.Second}
+	cloudCli = &http.Client{Timeout: 100 * time.Millisecond}
 )
 
 type synchronizer interface {
