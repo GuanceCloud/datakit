@@ -136,7 +136,7 @@ func (c *Config) LoadMainConfig(p string) error {
 		return err
 	}
 
-	return c.doLoadMainConfig(cfgdata)
+	return c.DoLoadMainConfig(cfgdata)
 }
 
 func (c *Config) InitCfg(p string) error {
@@ -159,7 +159,7 @@ func (c *Config) InitCfg(p string) error {
 	return nil
 }
 
-func (c *Config) doLoadMainConfig(cfgdata []byte) error {
+func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 	_, err := bstoml.Decode(string(cfgdata), c.MainCfg)
 	if err != nil {
 		l.Errorf("unmarshal main cfg failed %s", err.Error())
@@ -200,20 +200,20 @@ func (c *Config) doLoadMainConfig(cfgdata []byte) error {
 		c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
 	}
 
-	if c.MainCfg.DataWay.URL == "" {
+	if c.MainCfg.DataWay.DeprecatedURL != "" {
+		c.MainCfg.DataWay.Urls = append(c.MainCfg.DataWay.Urls, c.MainCfg.DataWay.DeprecatedURL)
+	}
+
+	if len(c.MainCfg.DataWay.Urls) == 0 {
 		l.Fatal("dataway URL not set")
 	}
 
-	dw, err := ParseDataway(c.MainCfg.DataWay.URL)
+	dw, err := ParseDataway(c.MainCfg.DataWay.Urls)
 	if err != nil {
 		return err
 	}
 
 	c.MainCfg.DataWay = dw
-
-	if c.MainCfg.DataWay.DeprecatedToken != "" { // compatible with old dataway config
-		c.MainCfg.DataWay.addToken(c.MainCfg.DataWay.DeprecatedToken)
-	}
 
 	if c.MainCfg.Interval != "" {
 		du, err := time.ParseDuration(c.MainCfg.Interval)
@@ -329,8 +329,9 @@ func (c *Config) LoadEnvs(mcp string) error {
 	}
 
 	dwURL := os.Getenv("ENV_DATAWAY")
-	if dwURL != "" {
-		dw, err := ParseDataway(dwURL)
+	dwURLs := []string{dwURL}
+	if len(dwURL) != 0 {
+		dw, err := ParseDataway(dwURLs)
 		if err != nil {
 			return err
 		}
