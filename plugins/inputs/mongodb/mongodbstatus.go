@@ -875,6 +875,7 @@ func parseLocks(stat ServerStatus) map[string]LockUsage {
 			lockInfo.TimeLockedMicros.Write + lockInfo.TimeLockedMicros.WriteLower,
 		}
 	}
+
 	return returnVal
 }
 
@@ -897,6 +898,7 @@ func computeLockDiffs(prevLocks, curLocks map[string]LockUsage) []LockUsage {
 	}
 	// Sort the array in order of least to most locked
 	sort.Sort(lockUsages)
+
 	return lockUsages
 }
 
@@ -905,6 +907,7 @@ func diff(newVal, oldVal, sampleTime int64) (int64, int64) {
 	if d < 0 {
 		d = newVal
 	}
+
 	return d / sampleTime, newVal
 }
 
