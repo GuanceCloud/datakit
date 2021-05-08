@@ -193,7 +193,7 @@ func (ag *agent) handleOutputs(outputs *health.DescribeEventsOutput, details *he
 			}
 		}
 
-		io.NamedFeedEx(inputName, io.Metric, ag.MetricName, tags, fields, *evt.StartTime)
+		io.NamedFeedEx(inputName, datakit.Metric, ag.MetricName, tags, fields, *evt.StartTime)
 	}
 }
 
