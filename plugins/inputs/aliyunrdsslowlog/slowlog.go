@@ -211,7 +211,7 @@ func (r *AliyunRDS) handleResponse(response *rds.DescribeSlowLogsResponse, produ
 
 		lines = append(lines, pt)
 
-		err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+		err = io.NamedFeed([]byte(pt), datakit.Metric, inputName)
 	}
 
 	r.resData = bytes.Join(lines, []byte("\n"))
