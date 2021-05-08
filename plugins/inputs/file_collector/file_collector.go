@@ -174,7 +174,7 @@ func (fc *FileCollector) handUpload() {
 			return
 		case <-tick:
 			if len(lines) > 0 {
-				io.NamedFeed([]byte(strings.Join(lines, "\n")), io.Logging, inputName)
+				io.NamedFeed([]byte(strings.Join(lines, "\n")), datakit.Logging, inputName)
 				lines = []string{}
 			}
 		}
@@ -208,9 +208,9 @@ func (fc *FileCollector) getRemotePath(name string) string {
 	name = strings.ReplaceAll(name, "/", "_")
 	name = strings.ReplaceAll(name, "\\", "_")
 	if fc.UploadType == "sftp" {
-		return filepath.Join(fc.SftpClient.UploadPath, token, hostName, name)
+		return filepath.Join(fc.SftpClient.UploadPath, token[0], hostName, name)
 	}
-	return filepath.Join(token, hostName, name)
+	return filepath.Join(token[0], hostName, name)
 }
 
 func (fc *FileCollector) WriteLog(name string, fields map[string]interface{}, notifyTime time.Time) {
