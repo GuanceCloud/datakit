@@ -204,7 +204,7 @@ func (s *Server) gatherCollectionStats(colStatsDbs []string) (*ColStats, error) 
 	return results, nil
 }
 
-func (s *Server) gatherData(gatherClusterStatus bool, gatherDbStats bool, gatherColStats bool, gatherTopStat bool, colStatsDbs []string) error {
+func (s *Server) gatherData(gatherReplicaSetStatus bool, gatherClusterStatus bool, gatherDbStats bool, gatherColStats bool, gatherTopStat bool, colStatsDbs []string) error {
 	s.Session.SetMode(mgo.Eventual, true)
 	s.Session.SetSocketTimeout(0)
 
@@ -213,20 +213,20 @@ func (s *Server) gatherData(gatherClusterStatus bool, gatherDbStats bool, gather
 		return err
 	}
 
-	// Get replica set status, an error indicates that the server is not a
-	// member of a replica set.
-	replSetStatus, err := s.gatherReplSetStatus()
-	if err != nil {
-		l.Debugf("Unable to gather replica set status: %s", err.Error())
-	}
-
-	// Gather the oplog if we are a member of a replica set.  Non-replica set
-	// members do not have the oplog collections.
-	var oplogStats *OplogStats
-	if replSetStatus != nil {
-		oplogStats, err = s.gatherOplogStats()
-		if err != nil {
-			s.authLog(fmt.Errorf("Unable to get oplog stats: %v", err))
+	// Get replica set status, an error indicates that the server is not a member of a replica set.
+	var (
+		replSetStatus *ReplSetStatus
+		oplogStats    *OplogStats
+	)
+	if gatherReplicaSetStatus {
+		if replSetStatus, err = s.gatherReplSetStatus(); err != nil {
+			l.Debugf("Unable to gather replica set status: %s", err.Error())
+		}
+		// Gather the oplog if we are a member of a replica set. Non-replica set members do not have the oplog collections.
+		if replSetStatus != nil {
+			if oplogStats, err = s.gatherOplogStats(); err != nil {
+				s.authLog(fmt.Errorf("Unable to get oplog stats: %v", err))
+			}
 		}
 	}
 
