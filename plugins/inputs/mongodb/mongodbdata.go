@@ -434,7 +434,7 @@ func (d *MongodbData) append() {
 		fields: d.Fields,
 		ts:     now,
 	})
-	d.Fields = make(map[string]interface{})
+	// d.Fields = make(map[string]interface{})
 
 	for _, db := range d.DbData {
 		d.Tags["db_name"] = db.Name
@@ -444,7 +444,7 @@ func (d *MongodbData) append() {
 			fields: db.Fields,
 			ts:     now,
 		})
-		db.Fields = make(map[string]interface{})
+		// db.Fields = make(map[string]interface{})
 	}
 
 	for _, col := range d.ColData {
@@ -456,7 +456,7 @@ func (d *MongodbData) append() {
 			fields: col.Fields,
 			ts:     now,
 		})
-		col.Fields = make(map[string]interface{})
+		// col.Fields = make(map[string]interface{})
 	}
 
 	for _, host := range d.ShardHostData {
@@ -467,7 +467,7 @@ func (d *MongodbData) append() {
 			fields: host.Fields,
 			ts:     now,
 		})
-		host.Fields = make(map[string]interface{})
+		// host.Fields = make(map[string]interface{})
 	}
 
 	for _, col := range d.TopStatsData {
@@ -478,7 +478,7 @@ func (d *MongodbData) append() {
 			fields: col.Fields,
 			ts:     now,
 		})
-		col.Fields = make(map[string]interface{})
+		// col.Fields = make(map[string]interface{})
 	}
 }
 
