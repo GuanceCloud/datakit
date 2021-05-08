@@ -233,7 +233,7 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cache[d.category] = append(x.cache[d.category], d.pts...)
 	}
 
-	x.cacheCnt++
+	x.cacheCnt += int64(len(d.pts))
 
 	if x.cacheCnt > x.MaxCacheCnt && tryClean {
 		x.flushAll()
@@ -243,7 +243,7 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 func (x *IO) cleanHighFreqIOData() {
 
 	if len(x.in2) > 0 {
-		l.Debugf("cleanning %d cache on high-freq-chan", len(x.in2))
+		l.Debugf("clean %d cache on high-freq-chan", len(x.in2))
 	}
 
 	for {
@@ -370,10 +370,9 @@ func (x *IO) flush() {
 
 		if len(v) > 0 {
 			x.cacheCnt -= int64(len(v))
-			l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
+			l.Debugf("clean %d cache on %s, remain: %d", len(v), k, x.cacheCnt)
 			x.cache[k] = nil
 		}
-		l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
 	}
 
 	// flush dynamic cache: __not__ post to default dataway
@@ -393,7 +392,9 @@ func (x *IO) flush() {
 		}
 	}
 
-	l.Debugf("clean %d/%d dynamic cache", len(x.dynamicCache), len(left))
+	if len(x.dynamicCache) > 0 {
+		l.Debugf("clean %d dynamic cache, remain: %d", len(x.dynamicCache), len(left))
+	}
 
 	x.dynamicCache = left
 }
@@ -436,8 +437,6 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 	if x.OutputFile != "" {
 		return x.fileOutput(body)
 	}
-
-	l.Debug("post data")
 
 	return x.dw.Send(category, body, gz)
 }
