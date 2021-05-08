@@ -222,7 +222,7 @@ func (i *Input) Run() {
 			start := time.Now()
 			i.collectCache = make([]inputs.Measurement, 0)
 			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
+				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
 					io.FeedLastError(inputName, errFeed.Error())
 					diskioLogger.Error(err)
