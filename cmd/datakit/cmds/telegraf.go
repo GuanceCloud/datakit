@@ -6,9 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 const (
@@ -17,6 +15,10 @@ const (
 
 func InstallTelegraf(installDir string) error {
 	url := "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/telegraf/" + fmt.Sprintf("telegraf-%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+
+	if runtime.GOOS != "windows" {
+		installDir = "/"
+	}
 
 	fmt.Printf("Start downloading Telegraf...\n")
 	if err := install.Download(url, installDir, false, false); err != nil {
@@ -29,9 +31,9 @@ func InstallTelegraf(installDir string) error {
 
 	fmt.Printf("Install Telegraf successfully!\n")
 	if runtime.GOOS == "windows" {
-		fmt.Printf("Start telegraf by `cd %v`, `copy telegraf.conf.sample telegraf.conf`, and `telegraf.exe --config <file>`\n", filepath.Join(installDir, DIR_NAME))
+		fmt.Printf("Start telegraf by `cd %v`, `copy telegraf.conf.sample tg.conf`, and `telegraf.exe --config tg.conf`\n", filepath.Join(installDir, DIR_NAME))
 	} else {
-		fmt.Printf("Start telegraf by `cd %v`, `cp telegraf.conf.sample telegraf.conf`, and `./usr/bin/telegraf --config telegraf.conf`\n", filepath.Join(installDir, DIR_NAME))
+		fmt.Printf("Start telegraf by `cd /etc/telegraf`, `cp telegraf.conf.sample tg.conf`, and `telegraf --config tg.conf`\n", filepath.Join(installDir, DIR_NAME))
 	}
 
 	fmt.Printf("Vist https://www.influxdata.com/time-series-platform/telegraf/ for more infomation.\n")
@@ -40,10 +42,12 @@ func InstallTelegraf(installDir string) error {
 }
 
 func writeTelegrafSample(installDir string) error {
-	if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
-		return err
+	var filePath string
+	if runtime.GOOS != "windows" {
+		filePath = "/etc/telegraf/telegraf.conf.sample"
+	} else {
+		filePath = filepath.Join(installDir, DIR_NAME, "telegraf.conf.sample")
 	}
 
-	file := filepath.Join(installDir, DIR_NAME, "telegraf.conf.sample")
-	return ioutil.WriteFile(file, []byte(TelegrafConfTemplate), 0x666)
+	return ioutil.WriteFile(filePath, []byte(TelegrafConfTemplate), 0x666)
 }
