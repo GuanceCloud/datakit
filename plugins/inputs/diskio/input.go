@@ -199,9 +199,14 @@ func (i *Input) Collect() error {
 			"merged_writes":    io.MergedWriteCount,
 		}
 		if i.lastStat != nil {
-			if v, ok := i.lastStat[io.Name]; ok && io.ReadBytes >= v.ReadBytes {
-				fields["read_bytes/sec"] = int64(io.ReadBytes-v.ReadBytes) / (ts.Unix() - i.lastTime.Unix())
-				fields["write_bytes/sec"] = int64(io.WriteBytes-v.WriteBytes) / (ts.Unix() - i.lastTime.Unix())
+			deltaTime := ts.Unix() - i.lastTime.Unix()
+			if v, ok := i.lastStat[io.Name]; ok && deltaTime > 0 {
+				if io.ReadBytes >= v.ReadBytes {
+					fields["read_bytes/sec"] = int64(io.ReadBytes-v.ReadBytes) / deltaTime
+				}
+				if io.WriteBytes >= v.WriteBytes {
+					fields["write_bytes/sec"] = int64(io.WriteBytes-v.WriteBytes) / deltaTime
+				}
 			}
 		}
 		i.collectCache = append(i.collectCache, &diskioMeasurement{name: metricName, tags: tags, fields: fields, ts: ts})
