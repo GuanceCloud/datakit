@@ -284,7 +284,7 @@ func (cli *cesCli) handleResponse(ag *agent, response []cesmodel.BatchMetricData
 				fmt.Printf("%s\n", string(data))
 
 			} else {
-				io.NamedFeedEx(inputName, io.Metric, measurement, tags, fields, tm)
+				io.NamedFeedEx(inputName, datakit.Metric, measurement, tags, fields, tm)
 			}
 		}
 	}
