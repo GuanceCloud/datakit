@@ -326,7 +326,7 @@ func apiReload(c *gin.Context) {
 		l.Info("reload HTTP server ok")
 	}()
 
-	c.Redirect(http.StatusFound, "/stats")
+	c.Redirect(http.StatusFound, "/monitor")
 }
 
 var (
