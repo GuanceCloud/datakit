@@ -97,6 +97,14 @@ func (m *Input) Run() {
 	}
 }
 
+func (m *Input) getMongoServer(url *url.URL) *Server {
+	if _, ok := m.mongos[url.Host]; !ok {
+		m.mongos[url.Host] = &Server{URL: url}
+	}
+
+	return m.mongos[url.Host]
+}
+
 // Reads stats from all configured servers accumulates stats.
 // Returns one of the errors encountered while gather stats (if any).
 func (m *Input) Gather() error {
@@ -138,14 +146,6 @@ func (m *Input) Gather() error {
 	wg.Wait()
 
 	return nil
-}
-
-func (m *Input) getMongoServer(url *url.URL) *Server {
-	if _, ok := m.mongos[url.Host]; !ok {
-		m.mongos[url.Host] = &Server{URL: url}
-	}
-
-	return m.mongos[url.Host]
 }
 
 func (m *Input) gatherServer(server *Server) error {
