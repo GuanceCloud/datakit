@@ -27,6 +27,8 @@ var (
 	##   mongodb://user:auth_key@10.10.3.30:27017,
 	##   mongodb://10.10.3.33:18832,
 	servers = ["mongodb://127.0.0.1:27017"]
+	## When true, collect replica set status
+	gather_replica_set_status = false
 	## When true, collect cluster status
 	## Note that the query that counts jumbo chunks triggers a COLLSCAN, which may have an impact on performance.
 	gather_cluster_status = true
@@ -53,16 +55,17 @@ var (
 )
 
 type Input struct {
-	Interval            datakit.Duration `toml:"interval"`
-	Servers             []string         `toml:"servers"`
-	GatherClusterStatus bool             `toml:"gather_cluster_status"`
-	GatherPerdbStats    bool             `toml:"gather_perdb_stats"`
-	GatherColStats      bool             `toml:"gather_col_stats"`
-	GatherTopStat       bool             `toml:"gather_top_stat"`
-	ColStatsDbs         []string         `toml:"col_stats_dbs"`
-	EnableTls           bool             `toml:"enable_tls"`
-	TlsConf             *TlsClientConfig `toml:"tlsconf"`
-	mongos              map[string]*Server
+	Interval               datakit.Duration `toml:"interval"`
+	Servers                []string         `toml:"servers"`
+	GatherReplicaSetStatus bool             `toml:"gather_replica_set_status"`
+	GatherClusterStatus    bool             `toml:"gather_cluster_status"`
+	GatherPerdbStats       bool             `toml:"gather_perdb_stats"`
+	GatherColStats         bool             `toml:"gather_col_stats"`
+	GatherTopStat          bool             `toml:"gather_top_stat"`
+	ColStatsDbs            []string         `toml:"col_stats_dbs"`
+	EnableTls              bool             `toml:"enable_tls"`
+	TlsConf                *TlsClientConfig `toml:"tlsconf"`
+	mongos                 map[string]*Server
 }
 
 func (m *Input) Catalog() string {
@@ -186,18 +189,20 @@ func (m *Input) gatherServer(server *Server) error {
 		server.Session = sess
 	}
 
-	return server.gatherData(m.GatherClusterStatus, m.GatherPerdbStats, m.GatherColStats, m.GatherTopStat, m.ColStatsDbs)
+	return server.gatherData(m.GatherReplicaSetStatus, m.GatherClusterStatus, m.GatherPerdbStats, m.GatherColStats, m.GatherTopStat, m.ColStatsDbs)
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			Interval:            datakit.Duration{Duration: 10 * time.Second},
-			GatherClusterStatus: true,
-			GatherPerdbStats:    true,
-			GatherColStats:      true,
-			ColStatsDbs:         []string{"local"},
-			mongos:              make(map[string]*Server),
+			Interval:               datakit.Duration{Duration: 10 * time.Second},
+			GatherReplicaSetStatus: false,
+			GatherClusterStatus:    true,
+			GatherPerdbStats:       true,
+			GatherColStats:         true,
+			GatherTopStat:          true,
+			ColStatsDbs:            []string{"local"},
+			mongos:                 make(map[string]*Server),
 		}
 	})
 }
