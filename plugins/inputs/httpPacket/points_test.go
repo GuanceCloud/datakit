@@ -72,7 +72,7 @@ end
 
 	luascript.Run()
 
-	p, err := NewPointsData("ptdata", io.Logging, []*influxdb.Point{pt1, pt2})
+	p, err := NewPointsData("ptdata", datakit.Logging, []*influxdb.Point{pt1, pt2})
 	if err != nil {
 		t.Fatal(err)
 	}
