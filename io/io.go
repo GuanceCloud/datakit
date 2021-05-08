@@ -79,18 +79,7 @@ func NewIO(maxCacheCnt int64) *IO {
 	return io
 }
 
-const ( // categories
-	// MetricDeprecated = "/v1/write/metrics"
-	// Metric           = "/v1/write/metric"
-	// KeyEvent         = "/v1/write/keyevent"
-	// Object           = "/v1/write/object"
-	// Logging          = "/v1/write/logging"
-	// Tracing          = "/v1/write/tracing"
-	// Rum              = "/v1/write/rum"
-	// Security         = "/v1/write/security"
-	// Telegraf         = "/v1/write/telegraf"
-	// HeartBeat        = "/v1/write/heartbeat"
-
+const (
 	minGZSize = 1024
 )
 
