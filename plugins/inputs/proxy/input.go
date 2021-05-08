@@ -22,7 +22,6 @@ const (
 [[inputs.proxy]]
     bind = "0.0.0.0"
 	port = 9530
-	path = "/proxy"
 `
 )
 
