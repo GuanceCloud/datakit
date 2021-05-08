@@ -11,6 +11,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
@@ -35,15 +36,18 @@ type datakitStats struct {
 	EnabledInputs   []*enabledInput           `json:"enabled_inputs"`
 	AvailableInputs []string                  `json:"available_inputs"`
 
-	Version      string    `json:"version"`
-	BuildAt      string    `json:"build_at"`
-	Branch       string    `json:"branch"`
-	Uptime       string    `json:"uptime"`
-	OSArch       string    `json:"os_arch"`
-	Reload       time.Time `json:"reload,omitempty"`
-	ReloadCnt    int       `json:"reload_cnt"`
-	WithinDocker bool      `json:"docker"`
-	IOChanStat   string    `json:"io_chan_stats"`
+	Version string `json:"version"`
+	BuildAt string `json:"build_at"`
+	Branch  string `json:"branch"`
+	Uptime  string `json:"uptime"`
+	OSArch  string `json:"os_arch"`
+
+	Reload     time.Time `json:"reload,omitempty"`
+	ReloadCnt  int       `json:"reload_cnt"`
+	ReloadInfo string    `json:"reload"`
+
+	WithinDocker bool   `json:"docker"`
+	IOChanStat   string `json:"io_chan_stats"`
 
 	CSS string `json:"-"`
 }
@@ -62,7 +66,7 @@ const (
 - 分支         : {{.Branch}}
 - 系统类型     : {{.OSArch}}
 - 是否容器运行 : {{.WithinDocker}}
-- Reload 情况  : {{.ReloadCnt}} 次/{{.Reload}}
+- Reload 次数  : {{.ReloadInfo}}
 - IO 消耗统计  : {{.IOChanStat}}
 
 ## 采集器运行情况
@@ -72,40 +76,13 @@ const (
 )
 
 func (x *datakitStats) InputsStatsTable() string {
-	/*
-			"category": "metric",
-			"frequency": "20.49/min",
-			"avg_size": 1,
-			"total": 29,
-			"count": 28,
-			"first": "2021-05-07T19:41:22.943257+08:00",
-			"last": "2021-05-07T19:42:44.252574+08:00",
-			"last_error": "mocked error from demo input",
-			"last_error_ts": "2021-05-07T19:42:43.923569+08:00",
-			"max_collect_cost": 1001554420,
-			"avg_collect_cost": 1000723212
-
-		Category  string    `json:"category"`
-		Frequency string    `json:"frequency,omitempty"`
-		AvgSize   int64     `json:"avg_size"`
-		Total     int64     `json:"total"`
-		Count     int64     `json:"count"`
-		First     time.Time `json:"first"`
-		Last      time.Time `json:"last"`
-
-		LastErr   string    `json:"last_error,omitempty"`
-		LastErrTS time.Time `json:"last_error_ts,omitempty"`
-
-		MaxCollectCost time.Duration `json:"max_collect_cost"`
-		AvgCollectCost time.Duration `json:"avg_collect_cost"`
-	*/
 
 	const (
 		tblHeader = `
-| 采集器 | 实例个数 | 数据类型 | 频率 | 平均 IO 大小 | 总次/点数 | 首/末采集时间（相对当前时间） | 当前错误/时间（相对当前时间） | 平均/最大采集消耗 | 奔溃次数 |
-| ----   |:----:    |----      | ---- | :----:       | :----:    | :----:                        | :----:                        | :----:            | :----:   |
+| 采集器 | 实例个数 | 数据类型 | 频率 | 平均 IO 大小 | 总次/点数 | 首/末采集时间 | 当前错误/时间 | 平均/最大采集消耗 | 奔溃次数 |
+| ----   |:----:    | :----:   |:----:| :----:       | :----:    | :----:        | :----:        | :----:            | :----:   |
 `
-		rowFmt = "|%s|%d|%s|%s|%d|%d/%d|%s/%s|%s/%s|%s/%s|%d|"
+		rowFmt = "|%s|%d|%s|%s|%d|%d/%d|%s/%s|%s(%s)|%s/%s|%d|"
 	)
 
 	if len(x.EnabledInputs) == 0 {
@@ -122,8 +99,8 @@ func (x *datakitStats) InputsStatsTable() string {
 				"-", "-", 0, 0, 0, "-", "-", "-", "-", "-", "-", 0))
 			continue
 		} else {
-			firstIO := now.Sub(s.First)
-			lastIO := now.Sub(s.Last)
+			firstIO := humanize.RelTime(s.First, now, "ago", "")
+			lastIO := humanize.RelTime(s.Last, now, "ago", "")
 
 			lastErr := "-"
 			if s.LastErr != "" {
@@ -132,7 +109,7 @@ func (x *datakitStats) InputsStatsTable() string {
 
 			lastErrTime := "-"
 			if s.LastErr != "" {
-				lastErrTime = fmt.Sprintf("%s", now.Sub(s.LastErrTS))
+				lastErrTime = humanize.RelTime(s.LastErrTS, now, "ago", "")
 			}
 
 			freq := "-"
@@ -143,7 +120,8 @@ func (x *datakitStats) InputsStatsTable() string {
 			rows = append(rows, fmt.Sprintf(rowFmt,
 				v.Input, v.Instances,
 				s.Category, freq, s.AvgSize, s.Count, s.Total, firstIO,
-				lastIO, lastErr, lastErrTime, s.AvgCollectCost, s.MaxCollectCost, v.Panics))
+				lastIO, lastErr, lastErrTime,
+				s.AvgCollectCost, s.MaxCollectCost, v.Panics))
 		}
 	}
 
@@ -153,19 +131,22 @@ func (x *datakitStats) InputsStatsTable() string {
 
 func getStats() (*datakitStats, error) {
 
+	now := time.Now()
 	stats := &datakitStats{
 		Version:      git.Version,
 		BuildAt:      git.BuildAt,
 		Branch:       git.Branch,
-		Uptime:       fmt.Sprintf("%v", time.Since(uptime)),
+		Uptime:       fmt.Sprintf("%v", now.Sub(uptime)),
 		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		ReloadCnt:    reloadCnt,
+		ReloadInfo:   "0",
 		WithinDocker: datakit.Docker,
 		IOChanStat:   io.ChanStat(),
 	}
 
 	if reloadCnt > 0 {
 		stats.Reload = reload
+		stats.ReloadInfo = fmt.Sprintf("%d(%s)", stats.ReloadCnt, humanize.RelTime(stats.Reload, now, "ago", ""))
 	}
 
 	var err error
