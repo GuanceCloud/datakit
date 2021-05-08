@@ -252,3 +252,21 @@ $ sudo datakit --start
 $ sudo datakit --restart
 $ sudo datakit --reload
 ```
+
+### DataKit 安装第三方软件
+
+目前仅支持 Telegraf 安装
+
+安装
+```shell
+$ sudo datakit --install telegraf
+```
+
+启动
+```shell
+$ sudo cp telegraf.conf.sample telegraf.conf
+$ sudo ./usr/bin/telegraf --config telegraf.conf
+```
+
+若需要修改 Telegraf 配置，在 `telegraf.conf` 文件中修改后重启 Telegraf
+
