@@ -231,7 +231,7 @@ func (i *Input) Run() {
 				l.Error(err)
 			} else {
 				if len(i.collectCache) > 0 {
-					err := inputs.FeedMeasurement(inputName, io.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
+					err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
 					if err != nil {
 						io.FeedLastError(inputName, err.Error())
 						l.Error(err.Error())

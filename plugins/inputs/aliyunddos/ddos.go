@@ -142,7 +142,7 @@ func (r *DDoS) getInstance(region string) error {
 				l.Errorf("make metric point error %v", err)
 			}
 
-			err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+			err = io.NamedFeed([]byte(pt), datakit.Metric, inputName)
 			if err != nil {
 				l.Errorf("push metric point error %v", err)
 			}
@@ -221,7 +221,7 @@ func (r *DDoS) describeInstanceDetails(instanceID, region string) error {
 
 		lines = append(lines, pt)
 
-		err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+		err = io.NamedFeed([]byte(pt), datakit.Metric, inputName)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
 		}
@@ -271,7 +271,7 @@ func (r *DDoS) describeInstanceStatistics(instanceID, region string) error {
 			l.Errorf("make metric point error %v", err)
 		}
 
-		err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+		err = io.NamedFeed([]byte(pt), datakit.Metric, inputName)
 		if err != nil {
 			l.Errorf("push metric point error %v", err)
 		}
@@ -338,7 +338,7 @@ func (r *DDoS) describeWebRules(region string) error {
 				l.Errorf("make metric point error %v", err)
 			}
 
-			err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+			err = io.NamedFeed([]byte(pt), datakit.Metric, inputName)
 			if err != nil {
 				l.Errorf("push metric point error %v", err)
 			}
@@ -407,7 +407,7 @@ func (r *DDoS) describeNetworkRules(instanceID, region string) error {
 				return err
 			}
 
-			err = io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
+			err = io.NamedFeed([]byte(pt.String()), datakit.Metric, inputName)
 		}
 
 		total := gjson.Parse(data).Get("TotalCount").Int()
