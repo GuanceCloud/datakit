@@ -46,7 +46,6 @@ server {
 ```
 [dataway]
   urls = ["https://openway.dataflux.cn/v1/write/metrics?token=tkn_76d2d1efd3ff43db984497bfb4f3c25a"]
-  HTTPTimeout = 30
   http_proxy = "http://xxx.xxx.xxx.xxx:9530" # Datakit 启动代理服务的ip和port
 ```
 
@@ -71,6 +70,5 @@ server {
 ```
 [dataway]
   urls = ["https://openway.dataflux.cn/v1/write/metrics?token=xxxxxx"]
-  HTTPTimeout = 30
   http_proxy = "http://xxx.xxx.xxx.xxx:9530" # Datakit 启动代理服务的ip和port
 ```
