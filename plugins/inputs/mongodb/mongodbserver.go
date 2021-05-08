@@ -27,12 +27,8 @@ type oplogEntry struct {
 	Timestamp bson.MongoTimestamp `bson:"ts"`
 }
 
-func IsAuthorization(err error) bool {
-	return strings.Contains(err.Error(), "not authorized")
-}
-
 func (s *Server) authLog(err error) {
-	if IsAuthorization(err) {
+	if strings.Contains(err.Error(), "not authorized") {
 		l.Debug(err.Error())
 	} else {
 		l.Error(err.Error())
@@ -278,6 +274,7 @@ func (s *Server) gatherData(gatherClusterStatus bool, gatherDbStats bool, gather
 		topStats, err := s.gatherTopStatData()
 		if err != nil {
 			l.Debugf("Unable to gather top stat data: %s", err.Error())
+
 			return err
 		}
 		topStatData = topStats
