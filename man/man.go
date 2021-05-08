@@ -30,6 +30,7 @@ var (
 		"datakit-batch-deploy": "man/manuals/datakit-batch-deploy.md",
 		"prometheus":           "man/manuals/prometheus.md",
 		"datakit-on-public":    "man/manuals/datakit-on-public.md",
+		"election":             "man/manuals/election.md",
 	}
 
 	l = logger.DefaultSLogger("man")
