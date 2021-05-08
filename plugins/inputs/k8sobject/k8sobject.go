@@ -261,7 +261,7 @@ func (k *K8sObject) Gather() {
 				log.Errorf("gatherSummary err: %v", err)
 			} else {
 				log.Debugf("%s", string(rst))
-				io.NamedFeed(rst, io.Object, pluginName)
+				io.NamedFeed(rst, datakit.Object, pluginName)
 			}
 
 		case <-datakit.Exit.Wait():
