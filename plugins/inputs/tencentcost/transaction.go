@@ -269,6 +269,6 @@ func (b *transaction) handleAccountBalance(ctx context.Context, response *billin
 
 		}
 
-		io.NamedFeedEx(inputName, io.Metric, b.getName(), tags, fields, metrictime)
+		io.NamedFeedEx(inputName, datakit.Metric, b.getName(), tags, fields, metrictime)
 	}
 }
