@@ -52,8 +52,8 @@ type dataWayClient struct {
 func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz bool) error {
 	url, ok := dc.categoryUrl[category]
 	if !ok {
-		err := fmt.Errorf("category %s not exist", category)
-		return err
+		url = category
+		// err := fmt.Errorf("category %s not exist", category)
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))

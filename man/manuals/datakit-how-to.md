@@ -253,6 +253,25 @@ $ sudo datakit --restart
 $ sudo datakit --reload
 ```
 
+### DataKit 安装第三方软件
+
+目前仅支持 Telegraf 安装
+
+安装
+```shell
+$ sudo datakit --install telegraf
+```
+
+启动
+```shell
+$ cd /etc/telegraf
+$ sudo cp telegraf.conf.sample tg.conf
+$ sudo telegraf --config tg.conf
+```
+
+若需要修改 Telegraf 配置，在 `tg.conf` 文件中修改后重启 Telegraf
+
+
 ### 其它命令
 
 - 查看云属性数据
@@ -275,3 +294,4 @@ $ datakit --show-cloud-info aws
         security_group_id: launch-wizard-1
                   zone_id: cnnw1-az2
 ```
+

@@ -77,8 +77,6 @@ const (
 func main() {
 	flag.CommandLine.MarkHidden("cmd") // deprecated
 
-	flag.CommandLine.MarkHidden("install") // 1.1.6-rc1 再发布
-
 	// un-documented options
 	flag.CommandLine.MarkHidden("show-testing-version")
 
