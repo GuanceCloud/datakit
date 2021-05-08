@@ -866,6 +866,8 @@ func TestReplace(t *testing.T) {
 
 		r, err := p.getContentStr(tt.key)
 
+		fmt.Println("res =====>", r)
+
 		if !tt.fail {
 			assertEqual(t, r, tt.expected)
 		}
