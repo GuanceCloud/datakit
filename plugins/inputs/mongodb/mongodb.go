@@ -42,11 +42,14 @@ var (
   ## Optional TLS Config
 	[inputs.mongodb.ssl]
 		enabled = true
+		cacert = []
+	[inputs.mongodb.tlsconf]
 		tls_cas = ["/etc/telegraf/ca.pem"]
 		tls_cert = "/etc/telegraf/cert.pem"
 		tls_key = "/etc/telegraf/key.pem"
 		## Use TLS but skip chain & host verification
   	insecure_skip_verify = false
+		server_name = ""
 `
 	localhost = &url.URL{Host: "mongodb://127.0.0.1:27017"}
 	l         = logger.SLogger(inputName)
@@ -58,7 +61,6 @@ type Ssl struct {
 }
 
 type Input struct {
-	ClientConfig
 	Interval            time.Duration
 	Servers             []string
 	GatherClusterStatus bool
@@ -67,6 +69,7 @@ type Input struct {
 	GatherTopStat       bool
 	ColStatsDbs         []string
 	Ssl                 Ssl
+	TlsConf             *ClientConfig
 	mongos              map[string]*Server
 }
 
