@@ -366,7 +366,7 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 		if a.isTest() {
 			// pass
 		} else {
-			io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields)
+			io.NamedFeedEx(inputName, datakit.Metric, metricName, tags, fields)
 		}
 	}
 }
