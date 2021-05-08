@@ -37,9 +37,10 @@ type qstats struct {
 }
 
 type IO struct {
-	MaxCacheCnt   int64
-	OutputFile    string
-	FlushInterval time.Duration
+	MaxCacheCnt        int64
+	MaxDynamicCacheCnt int64
+	OutputFile         string
+	FlushInterval      time.Duration
 
 	dw *datakit.DataWayCfg
 
@@ -51,30 +52,33 @@ type IO struct {
 	qstatsCh   chan *qstats
 
 	cache        map[string][]*Point
-	dynamicCache []*iodata
+	dynamicCache map[string][]*Point
 
-	cacheCnt       int64
-	fd             *os.File
-	outputFileSize int64
+	cacheCnt        int64
+	dynamicCacheCnt int64
+	fd              *os.File
+	outputFileSize  int64
 }
 
 func NewIO(maxCacheCnt int64) *IO {
 	io := &IO{
-		MaxCacheCnt:   1024,
-		FlushInterval: 10 * time.Second,
-		in:            make(chan *iodata, 128),
-		in2:           make(chan *iodata, 128*8),
-		inLastErr:     make(chan *lastErr, 128),
+		MaxCacheCnt:        1024,
+		MaxDynamicCacheCnt: 1024,
+		FlushInterval:      10 * time.Second,
+		in:                 make(chan *iodata, 128),
+		in2:                make(chan *iodata, 128*8),
+		inLastErr:          make(chan *lastErr, 128),
 
 		inputstats: map[string]*InputsStat{},
 		qstatsCh:   make(chan *qstats), // blocking
 
 		cache:        map[string][]*Point{},
-		dynamicCache: []*iodata{},
+		dynamicCache: map[string][]*Point{},
 		dw:           datakit.Cfg.MainCfg.DataWay,
 	}
 
 	io.MaxCacheCnt = maxCacheCnt
+	io.MaxDynamicCacheCnt = maxCacheCnt
 
 	return io
 }
@@ -217,12 +221,12 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 	x.updateStats(d)
 
 	if d.opt != nil && d.opt.HTTPHost != "" {
-		x.dynamicCache = append(x.dynamicCache, d)
+		x.dynamicCache[d.opt.HTTPHost] = append(x.dynamicCache[d.opt.HTTPHost], d.pts...)
+		x.dynamicCacheCnt += int64(len(d.pts))
 	} else {
 		x.cache[d.category] = append(x.cache[d.category], d.pts...)
+		x.cacheCnt += int64(len(d.pts))
 	}
-
-	x.cacheCnt += int64(len(d.pts))
 
 	if x.cacheCnt > x.MaxCacheCnt && tryClean {
 		x.flushAll()
@@ -348,6 +352,14 @@ func (x *IO) flushAll() {
 		}
 		x.cacheCnt = 0
 	}
+
+	if x.dynamicCacheCnt > x.MaxCacheCnt {
+		l.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCnt)
+		for k, _ := range x.dynamicCache {
+			x.dynamicCache[k] = nil
+		}
+		x.dynamicCacheCnt = 0
+	}
 }
 
 func (x *IO) flush() {
@@ -365,27 +377,20 @@ func (x *IO) flush() {
 	}
 
 	// flush dynamic cache: __not__ post to default dataway
-	left := []*iodata{}
-	for _, v := range x.dynamicCache {
-		v.url = v.opt.HTTPHost
-		if err := x.doFlush(v.pts, v.url); err != nil {
-			l.Errorf("post %d to %s failed", len(v.pts), v.url)
-			left = append(left, v)
+	for k, v := range x.dynamicCache {
+		if err := x.doFlush(v, k); err != nil {
+			l.Errorf("post %d to %s failed", len(v), k)
+			// clear data
+			x.dynamicCache[k] = nil
 			continue
 		}
 
-		l.Debugf("dynamic Cache %s", v.url)
-
-		if len(v.pts) > 0 {
-			x.cacheCnt -= int64(len(v.pts))
+		if len(v) > 0 {
+			x.dynamicCacheCnt -= int64(len(v))
+			l.Debugf("clean %d dynamicCache on %s, remain: %d", len(v), k, x.dynamicCacheCnt)
+			x.dynamicCache[k] = nil
 		}
 	}
-
-	if len(x.dynamicCache) > 0 {
-		l.Debugf("clean %d dynamic cache, remain: %d", len(x.dynamicCache), len(left))
-	}
-
-	x.dynamicCache = left
 }
 
 func (x *IO) buildBody(pts []*Point) (body []byte, gzon bool, err error) {
