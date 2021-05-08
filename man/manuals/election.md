@@ -8,7 +8,7 @@
 
 在批量安装 DataKit 时，可能会因为某些采集器使用相同的配置文件，导致采集到的数据重复。
 
-例如集群中有 10 台 DataKit，所有 Datakit 都开启 Kubernetes 采集器且配置相同，如此将会 10 台机器全部采集同一个 Kubernetes 服务，出现数据重复的问题。
+例如集群中有 10 台 DataKit，所有 DataKit 都开启 Kubernetes 采集器且配置相同，如此将会 10 台机器全部采集同一个 Kubernetes 服务，出现数据重复的问题。
 
 为此，DataKit 提供选举功能，特定采集器（详见下方列表）会参与选举。
 
