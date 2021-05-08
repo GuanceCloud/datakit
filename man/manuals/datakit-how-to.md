@@ -264,11 +264,12 @@ $ sudo datakit --install telegraf
 
 启动
 ```shell
-$ sudo cp telegraf.conf.sample telegraf.conf
-$ sudo ./usr/bin/telegraf --config telegraf.conf
+$ cd /etc/telegraf
+$ sudo cp telegraf.conf.sample tg.conf
+$ sudo telegraf --config tg.conf
 ```
 
-若需要修改 Telegraf 配置，在 `telegraf.conf` 文件中修改后重启 Telegraf
+若需要修改 Telegraf 配置，在 `tg.conf` 文件中修改后重启 Telegraf
 
 
 ### 其它命令
