@@ -274,7 +274,7 @@ func (cb *costBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 				data, _ := io.MakeMetric(cb.getName(), tags, fields, t)
 				fmt.Printf("%s\n", string(data))
 			} else {
-				io.NamedFeedEx(inputName, io.Metric, cb.getName(), tags, fields, t)
+				io.NamedFeedEx(inputName, datakit.Metric, cb.getName(), tags, fields, t)
 			}
 		}
 	}
