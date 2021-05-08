@@ -318,7 +318,7 @@ func (r *AliyunActiontrail) handleResponse(response *actiontrail.LookupEventsRes
 			data, _ := io.MakeMetric(r.MetricName, tags, fields, evtm)
 			fmt.Printf("-----%s\n", string(data))
 		} else {
-			io.NamedFeedEx(inputName, io.Logging, r.MetricName, tags, fields, evtm)
+			io.NamedFeedEx(inputName, datakit.Logging, r.MetricName, tags, fields, evtm)
 		}
 	}
 
