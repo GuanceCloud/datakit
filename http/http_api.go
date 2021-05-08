@@ -50,7 +50,7 @@ func apiWriteMetric(c *gin.Context) {
 		x = append(x, &io.Point{pt})
 	}
 
-	if err = io.Feed(name, io.Metric, x, nil); err != nil {
+	if err = io.Feed(name, datakit.Metric, x, nil); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
@@ -82,7 +82,7 @@ func apiWriteLogging(c *gin.Context) {
 
 	// TODO: add global tags
 
-	if err = io.NamedFeed(body, io.Logging, name); err != nil {
+	if err = io.NamedFeed(body, datakit.Logging, name); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
@@ -114,7 +114,7 @@ func apiWriteTracing(c *gin.Context) {
 
 	// TODO: add global tags
 
-	if err = io.NamedFeed(body, io.Tracing, name); err != nil {
+	if err = io.NamedFeed(body, datakit.Tracing, name); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
@@ -146,7 +146,7 @@ func apiWriteObject(c *gin.Context) {
 
 	// TODO: add global tags
 
-	if err = io.NamedFeed(body, io.Object, name); err != nil {
+	if err = io.NamedFeed(body, datakit.Object, name); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
@@ -185,7 +185,7 @@ func apiWriteSecurity(c *gin.Context) {
 		x = append(x, &io.Point{pt})
 	}
 
-	if err = io.Feed(name, io.Security, x, nil); err != nil {
+	if err = io.Feed(name, datakit.Security, x, nil); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 	} else {
 		ErrOK.HttpBody(c, nil)
@@ -219,7 +219,7 @@ func apiWriteTelegraf(c *gin.Context) {
 	for _, pt := range pts {
 		x = append(x, &io.Point{pt})
 	}
-	if err = io.Feed("telegraf", io.Metric, x, nil); err != nil {
+	if err = io.Feed("telegraf", datakit.Metric, x, nil); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 
 		return
