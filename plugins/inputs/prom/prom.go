@@ -119,7 +119,7 @@ func (p *Prom) Run() {
 				p.log.Error(err)
 				continue
 			}
-			if err := io.NamedFeed(data, io.Metric, p.InputName); err != nil {
+			if err := io.NamedFeed(data, datakit.Metric, p.InputName); err != nil {
 				p.log.Error(err)
 				continue
 			}

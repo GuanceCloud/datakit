@@ -256,7 +256,7 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig, isTest bool) ([]byte,
 	}
 
 	if !isTest {
-		err = p.output.IoFeed(pt, io.Metric, inputName)
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
 	}
 
 	return pt, err
