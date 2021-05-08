@@ -252,3 +252,26 @@ $ sudo datakit --start
 $ sudo datakit --restart
 $ sudo datakit --reload
 ```
+
+### 其它命令
+
+- 查看云属性数据
+
+如果安装 DataKit 所在的机器是一台云服务器（目前支持 `aliyun/tencent/aws` 这几种），可通过如下命令查看部分云属性数据，如（标记为 `-` 表示该字段无效）：
+
+```shell
+$ datakit --show-cloud-info aws
+
+           cloud_provider: aws
+              description: -
+     instance_charge_type: -
+              instance_id: i-09b37dc1xxxxxxxxx
+            instance_name: -
+    instance_network_type: -
+          instance_status: -
+            instance_type: t2.nano
+               private_ip: 172.31.22.123
+                   region: cn-northwest-1
+        security_group_id: launch-wizard-1
+                  zone_id: cnnw1-az2
+```
