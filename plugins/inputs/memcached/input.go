@@ -208,8 +208,6 @@ const (
 )
 
 func (i *Input) Run() {
-	l.Info("memcached running")
-
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
 		l.Error(fmt.Errorf("invalid interval, %s", err.Error()))
