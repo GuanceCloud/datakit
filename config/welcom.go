@@ -23,7 +23,13 @@ var WelcomeMsgTemplate = `
                                     OS/Arch: {{.OS}}/{{.Arch}}
                                   ReleaseAt: {{.BuildAt}}
                                      Uptime: {{.Uptime}}
+
+<li> <a href="/man"> 文档入口 </a> </li>
+<li> <a href="/man/changelog"> 版本历史 </a> </li>
+<li> <a href="/monitor"> 查看运行状态 </a> </li>
+
 		</pre>
+
 		<p>Welcome to use DataKit.</p>
 	</div>
 		</div>
