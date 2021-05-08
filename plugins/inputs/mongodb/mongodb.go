@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net"
 	"net/url"
@@ -40,13 +39,10 @@ var (
   ## If empty, all db are concerned
   col_stats_dbs = ["local"]
   ## Optional TLS Config
-	[inputs.mongodb.ssl]
-		enabled = true
-		cacert = []
 	[inputs.mongodb.tlsconf]
-		tls_cas = ["/etc/telegraf/ca.pem"]
-		tls_cert = "/etc/telegraf/cert.pem"
-		tls_key = "/etc/telegraf/key.pem"
+		ca_certs = ["/etc/telegraf/ca.pem"]
+		cert = "/etc/telegraf/cert.pem"
+		cert_key = "/etc/telegraf/key.pem"
 		## Use TLS but skip chain & host verification
   	insecure_skip_verify = false
 		server_name = ""
@@ -54,11 +50,6 @@ var (
 	localhost = &url.URL{Host: "mongodb://127.0.0.1:27017"}
 	l         = logger.SLogger(inputName)
 )
-
-type Ssl struct {
-	Enabled bool
-	CaCerts []string `toml:"cacerts"`
-}
 
 type Input struct {
 	Interval            time.Duration
@@ -68,8 +59,7 @@ type Input struct {
 	GatherColStats      bool
 	GatherTopStat       bool
 	ColStatsDbs         []string
-	Ssl                 Ssl
-	TlsConf             *ClientConfig
+	TlsConf             *TlsClientConfig
 	mongos              map[string]*Server
 }
 
@@ -161,6 +151,7 @@ func (m *Input) gatherServer(server *Server) error {
 		} else {
 			dialAddrs = []string{server.URL.Host}
 		}
+
 		dialInfo, err := mgo.ParseURL(dialAddrs[0])
 		if err != nil {
 			return fmt.Errorf("unable to parse URL %q: %s", dialAddrs[0], err.Error())
@@ -169,29 +160,11 @@ func (m *Input) gatherServer(server *Server) error {
 		dialInfo.Timeout = 5 * time.Second
 
 		var tlsConfig *tls.Config
-
-		if m.Ssl.Enabled {
-			// Deprecated TLS config
-			tlsConfig = &tls.Config{}
-			if len(m.Ssl.CaCerts) > 0 {
-				roots := x509.NewCertPool()
-				for _, caCert := range m.Ssl.CaCerts {
-					ok := roots.AppendCertsFromPEM([]byte(caCert))
-					if !ok {
-						return fmt.Errorf("failed to parse root certificate")
-					}
-				}
-				tlsConfig.RootCAs = roots
-			} else {
-				tlsConfig.InsecureSkipVerify = true
-			}
-		} else {
-			tlsConfig, err = m.ClientConfig.TlsConfig()
-			if err != nil {
+		if m.TlsConf != nil {
+			if tlsConfig, err = m.TlsConf.TlsConfig(); err != nil {
 				return err
 			}
 		}
-
 		// If configured to use TLS, add a dial function
 		if tlsConfig != nil {
 			dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
@@ -218,11 +191,11 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Interval:            10 * time.Second,
-			mongos:              make(map[string]*Server),
 			GatherClusterStatus: true,
 			GatherPerdbStats:    true,
 			GatherColStats:      true,
 			ColStatsDbs:         []string{"local"},
+			mongos:              make(map[string]*Server),
 		}
 	})
 }
