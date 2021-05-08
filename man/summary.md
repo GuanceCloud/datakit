@@ -11,6 +11,8 @@
 - [文本数据处理（Pipeline）](pipeline)
 - [SecurityChecker 接入](sec-checker)
 - [DataKit 支持的数据类型](datatypes)
+- [DataKit 安装](datakit-install)
+- [DataKit Docker 安装](datakit-docker-install)
 - [DataWay](dataway)
 
 - [CPU](cpu)
