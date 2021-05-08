@@ -72,7 +72,6 @@ const (
 
 func main() {
 	flag.CommandLine.MarkHidden("cmd")
-	flag.CommandLine.MarkHidden("install") // 1.1.6-rc1 再发布
 	flag.CommandLine.MarkHidden("show-testing-version")
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
