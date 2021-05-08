@@ -12,10 +12,9 @@ import (
 )
 
 type integration struct {
-	Title   string `yaml:"title"`
-	Catalog string `yaml:"catalog"`
-	Tags    string `yaml:"tags"`
-	DocURL  string `yaml:"url"`
+	Title  string `yaml:"title"`
+	Tags   string `yaml:"tags"`
+	DocURL string `yaml:"url"`
 }
 
 var (
@@ -72,10 +71,9 @@ func ExportIntegration(to, ignore string) error {
 			}
 
 			x := integration{
-				Title:   title,
-				Catalog: "datasource",
-				Tags:    "IT运维,指标采集",
-				DocURL:  "https://www.yuque.com/dataflux/datakit/" + k,
+				Title:  title,
+				Tags:   "IT运维,指标采集",
+				DocURL: "https://www.yuque.com/dataflux/datakit/" + k,
 			}
 
 			if err := os.MkdirAll(filepath.Join(to, k), os.ModePerm); err != nil {
