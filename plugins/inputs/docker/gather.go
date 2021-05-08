@@ -29,7 +29,7 @@ func (this *Input) gatherMetric(interval time.Duration) {
 				continue
 			}
 			cost := time.Since(startTime)
-			if err := io.Feed(inputName, io.Metric, pts, &io.Option{CollectCost: cost}); err != nil {
+			if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: cost}); err != nil {
 				l.Error(err)
 				io.FeedLastError(inputName, fmt.Sprintf("gather metric: %s", err.Error()))
 			}
@@ -54,7 +54,7 @@ func (this *Input) gatherObject(interval time.Duration) {
 				continue
 			}
 			cost := time.Since(startTime)
-			if err := io.Feed(inputName, io.Object, pts, &io.Option{CollectCost: cost}); err != nil {
+			if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: cost}); err != nil {
 				l.Error(err)
 				io.FeedLastError(inputName, fmt.Sprintf("gather object: %s", err.Error()))
 			}
