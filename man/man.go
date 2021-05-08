@@ -29,9 +29,9 @@ var (
 		"datatypes":               "man/manuals/datatypes.md",
 		"dataway":                 "man/manuals/dataway.md",
 		"election":                "man/manuals/election.md",
-		"nginx-proxy":             "man/manuals/nginx-proxy.md",
 		"pipeline":                "man/manuals/pipeline.md",
 		"prometheus":              "man/manuals/prometheus.md",
+		"proxy":                   "man/manuals/proxy.md",
 		"sec-checker":             "man/manuals/sec-checker.md",
 		"telegraf":                "man/manuals/telegraf.md",
 	}
