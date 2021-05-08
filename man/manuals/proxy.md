@@ -46,7 +46,7 @@ server {
 ```
 [dataway]
   urls = ["https://openway.dataflux.cn/v1/write/metrics?token=tkn_76d2d1efd3ff43db984497bfb4f3c25a"]
-  http_proxy = "http://xxx.xxx.xxx.xxx:9530" # Datakit 启动代理服务的ip和port
+  http_proxy = "http://xxx.xxx.xxx.xxx:9530" # nginx 启动代理服务的ip和port
 ```
 
 ## Datakit 代理
@@ -58,7 +58,7 @@ server {
 ```toml
 [[inputs.proxy]]
     bind = "0.0.0.0"
-	port = 9530
+    port = 9530
 ```
 
 配置好后，重启 DataKit 即可。
