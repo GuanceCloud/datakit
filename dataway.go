@@ -131,7 +131,6 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 
 	for _, dc := range dw.dataWayClients {
 		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
-			l.Errorf("send data to dataway error %v", err)
 			return err
 		}
 	}
