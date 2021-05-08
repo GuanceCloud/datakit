@@ -1,20 +1,14 @@
 package io
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"encoding/json"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
@@ -43,14 +37,11 @@ type qstats struct {
 }
 
 type IO struct {
-	DatawayHost   string
-	HTTPTimeout   time.Duration
 	MaxCacheCnt   int64
 	OutputFile    string
 	FlushInterval time.Duration
 
-	httpCli *http.Client
-	dw      *datakit.DataWayCfg
+	dw *datakit.DataWayCfg
 
 	in        chan *iodata
 	in2       chan *iodata // high-freq chan
@@ -65,38 +56,40 @@ type IO struct {
 	cacheCnt       int64
 	fd             *os.File
 	outputFileSize int64
-	categoryURLs   map[string]string
 }
 
-func NewIO() *IO {
-	return &IO{
-		HTTPTimeout:   30 * time.Second,
+func NewIO(maxCacheCnt int64) *IO {
+	io := &IO{
 		MaxCacheCnt:   1024,
-		FlushInterval: time.Second * 10,
-
-		in:        make(chan *iodata, 128),
-		in2:       make(chan *iodata, 128*8),
-		inLastErr: make(chan *lastErr, 128),
+		FlushInterval: 10 * time.Second,
+		in:            make(chan *iodata, 128),
+		in2:           make(chan *iodata, 128*8),
+		inLastErr:     make(chan *lastErr, 128),
 
 		inputstats: map[string]*InputsStat{},
 		qstatsCh:   make(chan *qstats), // blocking
 
 		cache:        map[string][]*Point{},
 		dynamicCache: []*iodata{},
+		dw:           datakit.Cfg.MainCfg.DataWay,
 	}
+
+	io.MaxCacheCnt = maxCacheCnt
+
+	return io
 }
 
 const ( // categories
-	MetricDeprecated = "/v1/write/metrics"
-	Metric           = "/v1/write/metric"
-	KeyEvent         = "/v1/write/keyevent"
-	Object           = "/v1/write/object"
-	Logging          = "/v1/write/logging"
-	Tracing          = "/v1/write/tracing"
-	Rum              = "/v1/write/rum"
-	Security         = "/v1/write/security"
-	Telegraf         = "/v1/write/telegraf"
-	HeartBeat        = "/v1/write/heartbeat"
+	// MetricDeprecated = "/v1/write/metrics"
+	// Metric           = "/v1/write/metric"
+	// KeyEvent         = "/v1/write/keyevent"
+	// Object           = "/v1/write/object"
+	// Logging          = "/v1/write/logging"
+	// Tracing          = "/v1/write/tracing"
+	// Rum              = "/v1/write/rum"
+	// Security         = "/v1/write/security"
+	// Telegraf         = "/v1/write/telegraf"
+	// HeartBeat        = "/v1/write/heartbeat"
 
 	minGZSize = 1024
 )
@@ -145,14 +138,14 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	}
 
 	switch category {
-	case MetricDeprecated:
-	case Metric:
-	case KeyEvent:
-	case Object:
-	case Logging:
-	case Tracing:
-	case Security:
-	case Rum:
+	case datakit.MetricDeprecated:
+	case datakit.Metric:
+	case datakit.KeyEvent:
+	case datakit.Object:
+	case datakit.Logging:
+	case datakit.Tracing:
+	case datakit.Security:
+	case datakit.Rum:
 	default:
 		return fmt.Errorf("invalid category `%s'", category)
 	}
@@ -225,7 +218,6 @@ func (x *IO) updateStats(d *iodata) {
 }
 
 func (x *IO) cacheData(d *iodata, tryClean bool) {
-
 	if d == nil {
 		l.Warn("get empty data, ignored")
 		return
@@ -241,7 +233,7 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cache[d.category] = append(x.cache[d.category], d.pts...)
 	}
 
-	x.cacheCnt++
+	x.cacheCnt += int64(len(d.pts))
 
 	if x.cacheCnt > x.MaxCacheCnt && tryClean {
 		x.flushAll()
@@ -251,7 +243,7 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 func (x *IO) cleanHighFreqIOData() {
 
 	if len(x.in2) > 0 {
-		l.Debugf("cleanning %d cache on high-freq-chan", len(x.in2))
+		l.Debugf("clean %d cache on high-freq-chan", len(x.in2))
 	}
 
 	for {
@@ -275,32 +267,12 @@ func (x *IO) init() error {
 		x.fd = f
 	}
 
-	x.httpCli = &http.Client{
-		Timeout: x.HTTPTimeout,
-	}
-
-	dw, err := datakit.ParseDataway(x.DatawayHost)
-	if err != nil {
-		return err
-	}
-
-	x.dw = dw
-	x.categoryURLs = map[string]string{
-		Metric:   x.dw.MetricURL(),
-		KeyEvent: x.dw.KeyEventURL(),
-		Object:   x.dw.ObjectURL(),
-		Logging:  x.dw.LoggingURL(),
-		Tracing:  x.dw.TracingURL(),
-		Security: x.dw.SecurityURL(),
-		Rum:      x.dw.RumURL(),
-	}
-
 	return nil
 }
 
 func (x *IO) StartIO(recoverable bool) {
-
 	if err := x.init(); err != nil {
+		l.Errorf("init io err %v", err)
 		return
 	}
 
@@ -348,7 +320,7 @@ func (x *IO) StartIO(recoverable bool) {
 				x.cleanHighFreqIOData()
 
 			case <-heartBeatTick.C:
-				x.dkHeartbeat()
+				x.dw.HeartBeat()
 
 			case <-tick.C:
 				l.Debugf("chan stat: %s", ChanStat())
@@ -373,33 +345,6 @@ func dumpStats(is map[string]*InputsStat) (res map[string]*InputsStat) {
 	return
 }
 
-func (x *IO) dkHeartbeat() {
-	body := map[string]interface{}{
-		"dk_uuid":   datakit.Cfg.MainCfg.UUID,
-		"heartbeat": time.Now().Unix(),
-		"host":      datakit.Cfg.MainCfg.Hostname,
-		"token":     datakit.Cfg.MainCfg.DataWay.GetToken(),
-	}
-	bodyByte, err := json.Marshal(body)
-	if err != nil {
-		l.Errorf("[error] heartbeat json marshal err:%s", err.Error())
-		return
-	}
-
-	req, err := http.NewRequest("POST", datakit.Cfg.MainCfg.DataWay.HeartBeatURL(), bytes.NewBuffer(bodyByte))
-	resp, err := x.httpCli.Do(req)
-	if err != nil {
-		l.Error(err)
-		return
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		l.Errorf("heart beat resp err: %+#v", resp)
-	}
-}
-
 func (x *IO) flushAll() {
 	x.flush()
 
@@ -417,24 +362,17 @@ func (x *IO) flushAll() {
 }
 
 func (x *IO) flush() {
-
-	if x.httpCli != nil {
-		defer x.httpCli.CloseIdleConnections()
-	}
-
 	for k, v := range x.cache {
-
-		if err := x.doFlush(v, x.categoryURLs[k]); err != nil {
+		if err := x.doFlush(v, k); err != nil {
 			l.Errorf("post %d to %s failed", len(v), k)
 			continue
 		}
 
 		if len(v) > 0 {
 			x.cacheCnt -= int64(len(v))
-			l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
+			l.Debugf("clean %d cache on %s, remain: %d", len(v), k, x.cacheCnt)
 			x.cache[k] = nil
 		}
-		l.Debugf("clean %d/%d cache on %s", len(v), x.cacheCnt, k)
 	}
 
 	// flush dynamic cache: __not__ post to default dataway
@@ -454,7 +392,9 @@ func (x *IO) flush() {
 		}
 	}
 
-	l.Debugf("clean %d/%d dynamic cache", len(x.dynamicCache), len(left))
+	if len(x.dynamicCache) > 0 {
+		l.Debugf("clean %d dynamic cache, remain: %d", len(x.dynamicCache), len(left))
+	}
 
 	x.dynamicCache = left
 }
@@ -480,8 +420,7 @@ func (x *IO) buildBody(pts []*Point) (body []byte, gzon bool, err error) {
 	return
 }
 
-func (x *IO) doFlush(pts []*Point, url string) error {
-
+func (x *IO) doFlush(pts []*Point, category string) error {
 	if testAssert {
 		return nil
 	}
@@ -499,53 +438,7 @@ func (x *IO) doFlush(pts []*Point, url string) error {
 		return x.fileOutput(body)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
-	if err != nil {
-		l.Error(err)
-		return err
-	}
-
-	if gz {
-		req.Header.Set("Content-Encoding", "gzip")
-	}
-
-	// append datakit info
-	req.Header.Set("X-Datakit-Info",
-		fmt.Sprintf("%s; %s", datakit.Cfg.MainCfg.Hostname, git.Version))
-
-	postbeg := time.Now()
-
-	resp, err := x.httpCli.Do(req)
-	if err != nil {
-		l.Errorf("request url %s failed: %s", url, err)
-		return err
-	}
-
-	defer resp.Body.Close()
-	respbody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		l.Error(err)
-		return err
-	}
-
-	switch resp.StatusCode / 100 {
-	case 2:
-		l.Debugf("post %d to %s ok(gz: %v), cost %v, response: %s",
-			len(body), url, gz, time.Since(postbeg), string(respbody))
-		return nil
-
-	case 4:
-		l.Debugf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
-			len(body), url, resp.StatusCode, string(respbody), time.Since(postbeg))
-		return nil
-
-	case 5:
-		l.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v",
-			len(body), url, resp.Status, string(respbody), time.Since(postbeg))
-		return fmt.Errorf("dataway internal error")
-	}
-
-	return nil
+	return x.dw.Send(category, body, gz)
 }
 
 func (x *IO) fileOutput(body []byte) error {
