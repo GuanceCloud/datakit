@@ -19,7 +19,6 @@
 - [Oracle](oracle)
 - [RabbitMQ](rabbitmq)
 - [Redis](redis)
-- [Redis](redis)
 - [Swap](swap)
 - [System](system)
 - [RUM](rum)
