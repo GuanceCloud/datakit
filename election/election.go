@@ -44,7 +44,7 @@ func InitGlobalConsensusModule() error {
 	l = logger.SLogger("dk-election")
 
 	electionURL, err := setURLQueryParam(
-		datakit.Cfg.MainCfg.DataWay.ElectionURL(),
+		datakit.Cfg.MainCfg.DataWay.ElectionURL()[0],
 		"id",
 		datakit.Cfg.MainCfg.UUID,
 	)
@@ -53,7 +53,7 @@ func InitGlobalConsensusModule() error {
 	}
 
 	heartbeatURL, err := setURLQueryParam(
-		datakit.Cfg.MainCfg.DataWay.ElectionHeartBeatURL(),
+		datakit.Cfg.MainCfg.DataWay.ElectionHeartBeatURL()[0],
 		"id",
 		datakit.Cfg.MainCfg.UUID,
 	)
