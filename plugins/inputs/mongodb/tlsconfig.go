@@ -13,7 +13,7 @@ type TlsClientConfig struct {
 	Cert               string   `json:"cert" toml:"cert"`
 	CertKey            string   `json:"cert_key" toml:"cert_key"`
 	InsecureSkipVerify bool     `json:"insecure_skip_verify" toml:"insecure_skip_verify"`
-	ServerName         string   `json:"tls_server_name" toml:"tls_server_name"`
+	ServerName         string   `json:"server_name" toml:"server_name"`
 }
 
 // TLSConfig returns a tls.Config, may be nil without error if TLS is not
