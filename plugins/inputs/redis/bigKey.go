@@ -52,6 +52,7 @@ func (i *Input) getKeys() {
 			var err error
 			keys, cursor, err = i.client.Scan(cursor, pattern, 10).Result()
 			if err != nil {
+				i.err = append(i.err, err)
 				l.Errorf("redis pattern key %s scan fail error %v", pattern, err)
 			}
 
@@ -78,7 +79,7 @@ func (i *Input) getData() error {
 			m.tags[key] = value
 		}
 
-		m.tags["db_name"] = fmt.Sprintf("%s", i.DB)
+		m.tags["db_name"] = fmt.Sprintf("%d", i.DB)
 		m.tags["key"] = key
 
 		for _, op := range []string{
