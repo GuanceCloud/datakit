@@ -5,7 +5,6 @@
 - [Datakit 批量部署](datakit-batch-deploy)
 - [Datakit 离线部署](datakit-offline-install)
 - [DataKit 代理](proxy)
-- [Nginx 代理](nginx-proxy)
 - [DataKit API](apis)
 - [DataKit 整体架构简介](datakit-arch)
 - [文本数据处理（Pipeline）](pipeline)
