@@ -27,7 +27,7 @@ ENTRY = cmd/datakit/main.go
 LOCAL_ARCHS = "local"
 DEFAULT_ARCHS = "all"
 MAC_ARCHS = "darwin/amd64"
-VERSION := $(shell git describe --always --tags)
+GIT_VERSION := $(shell git describe --always --tags)
 DATE := $(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION := $(shell go version)
 COMMIT := $(shell git rev-parse --short HEAD)
@@ -35,8 +35,8 @@ BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 COMMITER := $(shell git log -1 --pretty=format:'%an')
 UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 
-NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(VERSION))"}}')
-NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(VERSION))"}}')
+NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION))"}}')
+NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION))"}}')
 NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支($(BRANCH))提交代码，以免 CI 任务失败"}}')
 
 all: testing release local
@@ -47,7 +47,7 @@ package git
 
 const (
 	BuildAt  string = "$(DATE)"
-	Version  string = "$(VERSION)"
+	Version  string = "$(GIT_VERSION)"
 	Golang   string = "$(GOVERSION)"
 	Commit   string = "$(COMMIT)"
 	Branch   string = "$(BRANCH)"
@@ -109,15 +109,15 @@ pub_testing_mac:
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(VERSION) .
-	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(VERSION)
+	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) .
+	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION)
 
 pub_release_img:
 	# release to pub hub
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit:$(VERSION) .
-	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit:$(VERSION)
+	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) .
+	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION)
 
 #pub_agent:
 #	@go run cmd/make/make.go -pub-agent -env local -pub-dir embed -download-addr $(LOCAL_DOWNLOAD_ADDR) -archs $(LOCAL_ARCHS)
