@@ -67,7 +67,8 @@ var (
 var (
 	l = logger.DefaultSLogger("main")
 
-	ReleaseType = ""
+	ReleaseType    = ""
+	ReleaseVersion = git.Version
 )
 
 const (
@@ -135,7 +136,7 @@ func applyFlags() {
 Golang Version: %s
       Uploader: %s
 ReleasedInputs: %s
-`, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, ReleaseType)
+`, ReleaseVersion, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, ReleaseType)
 		vers, err := getOnlineVersions()
 		if err != nil {
 			fmt.Printf("Get online version failed: \n%s\n", err.Error())
@@ -510,7 +511,7 @@ func getOnlineVersions() (res map[string]*datakitVerInfo, err error) {
 }
 
 func getLocalVersion() (*datakitVerInfo, error) {
-	v := &datakitVerInfo{VersionString: strings.TrimPrefix(git.Version, "v"), Commit: git.Commit, ReleaseDate: git.BuildAt}
+	v := &datakitVerInfo{VersionString: strings.TrimPrefix(ReleaseVersion, "v"), Commit: git.Commit, ReleaseDate: git.BuildAt}
 	if err := v.parse(); err != nil {
 		return nil, err
 	}
