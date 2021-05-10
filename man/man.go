@@ -25,6 +25,7 @@ var (
 		"sec-checker":    "man/manuals/sec-checker.md",
 		"datakit-how-to": "man/manuals/datakit-how-to.md",
 		"datakit-arch":   "man/manuals/datakit-arch.md",
+		"cloudprober":    "man/manuals/cloudprober",
 	}
 
 	l = logger.DefaultSLogger("man")
