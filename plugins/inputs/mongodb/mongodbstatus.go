@@ -29,15 +29,15 @@ const (
 )
 
 type MongoStatus struct {
-	SampleTime    time.Time
 	ServerStatus  *ServerStatus
 	ReplSetStatus *ReplSetStatus
+	OplogStats    *OplogStats
 	ClusterStatus *ClusterStatus
+	ShardStats    *ShardStats
 	DbStats       *DbStats
 	ColStats      *ColStats
-	ShardStats    *ShardStats
-	OplogStats    *OplogStats
 	TopStats      *TopStats
+	SampleTime    time.Time
 }
 
 type ServerStatus struct {
