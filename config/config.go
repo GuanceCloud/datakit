@@ -39,10 +39,10 @@ func LoadCfg(c *datakit.Config, mcp string) error {
 		return err
 	}
 
-	// set global log root
-	l.Infof("set log to %s", c.MainCfg.Log)
-	logger.MaxSize = c.MainCfg.LogRotate
-	logger.SetGlobalRootLogger(c.MainCfg.Log, c.MainCfg.LogLevel, logger.OPT_DEFAULT)
+	// // set global log root
+	// l.Infof("set log to %s", c.MainCfg.Log)
+	// logger.MaxSize = c.MainCfg.LogRotate
+	// logger.SetGlobalRootLogger(c.MainCfg.Log, c.MainCfg.LogLevel, logger.OPT_DEFAULT)
 	l = logger.SLogger("config")
 
 	l.Infof("main cfg: %+#v", c.MainCfg)
