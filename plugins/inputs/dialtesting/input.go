@@ -98,7 +98,9 @@ func (d *Input) Run() {
 
 	l = logger.SLogger(inputName)
 
-	x = io.NewIO()
+	maxCacheCnt := int64(200)
+
+	x = io.NewIO(maxCacheCnt)
 
 	StartCollect()
 

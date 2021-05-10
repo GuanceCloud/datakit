@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-# 简介
+# {{.InputName}}
 
 CPU 采集器用于系统 CPU 使用率的采集
 
