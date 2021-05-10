@@ -27,45 +27,45 @@ var (
 	##   mongodb://user:auth_key@10.10.3.30:27017,
 	##   mongodb://10.10.3.33:18832,
 	servers = ["mongodb://127.0.0.1:27017"]
-	## When true, collect replica set status
-	gather_replica_set_status = false
-	## When true, collect cluster status
+	## When true, collect replica set stats
+	gather_replica_set_stats = false
+	## When true, collect cluster stats
 	## Note that the query that counts jumbo chunks triggers a COLLSCAN, which may have an impact on performance.
-	gather_cluster_status = true
+	gather_cluster_stats = true
 	## When true, collect per database stats
-	gather_perdb_stats = true
+	gather_per_db_stats = true
 	## When true, collect per collection stats
-	gather_col_stats = true
-	## When true, collect top stats
-	gather_top_stat = true
+	gather_per_col_stats = true
 	## List of db where collections stats are collected, If empty, all db are concerned
 	col_stats_dbs = ["local"]
+	## When true, collect top stats
+	gather_top_stat = true
 	## Optional TLS Config, enabled if true
 	enable_tls = false
 	[inputs.mongodb.tlsconf]
-		ca_certs = ["/etc/telegraf/ca.pem"]
-		cert = "/etc/telegraf/cert.pem"
-		cert_key = "/etc/telegraf/key.pem"
+		# ca_certs = ["/etc/datakit/ca.pem"]
+		# cert = "/etc/datakit/cert.pem"
+		# cert_key = "/etc/datakit/key.pem"
 		## Use TLS but skip chain & host verification
-		insecure_skip_verify = false
-		server_name = ""
+		# insecure_skip_verify = false
+		# server_name = ""
 `
 	localhost = &url.URL{Host: "mongodb://127.0.0.1:27017"}
 	l         = logger.SLogger(inputName)
 )
 
 type Input struct {
-	Interval               datakit.Duration `toml:"interval"`
-	Servers                []string         `toml:"servers"`
-	GatherReplicaSetStatus bool             `toml:"gather_replica_set_status"`
-	GatherClusterStatus    bool             `toml:"gather_cluster_status"`
-	GatherPerdbStats       bool             `toml:"gather_perdb_stats"`
-	GatherColStats         bool             `toml:"gather_col_stats"`
-	GatherTopStat          bool             `toml:"gather_top_stat"`
-	ColStatsDbs            []string         `toml:"col_stats_dbs"`
-	EnableTls              bool             `toml:"enable_tls"`
-	TlsConf                *TlsClientConfig `toml:"tlsconf"`
-	mongos                 map[string]*Server
+	Interval              datakit.Duration `toml:"interval"`
+	Servers               []string         `toml:"servers"`
+	GatherReplicaSetStats bool             `toml:"gather_replica_set_stats"`
+	GatherClusterStats    bool             `toml:"gather_cluster_stats"`
+	GatherPerDbStats      bool             `toml:"gather_per_db_stats"`
+	GatherPerColStats     bool             `toml:"gather_per_col_stats"`
+	ColStatsDbs           []string         `toml:"col_stats_dbs"`
+	GatherTopStat         bool             `toml:"gather_top_stat"`
+	EnableTls             bool             `toml:"enable_tls"`
+	TlsConf               *TlsClientConfig `toml:"tlsconf"`
+	mongos                map[string]*Server
 }
 
 func (m *Input) Catalog() string {
@@ -117,8 +117,6 @@ func (m *Input) Gather() error {
 	var wg sync.WaitGroup
 	for i, serv := range m.Servers {
 		if !strings.HasPrefix(serv, "mongodb://") {
-			// Preserve backwards compatibility for hostnames without a
-			// scheme, broken in go 1.8. Remove in Telegraf 2.0
 			serv = "mongodb://" + serv
 			l.Warnf("Using %q as connection URL; please update your configuration to use an URL", serv)
 			m.Servers[i] = serv
@@ -189,20 +187,20 @@ func (m *Input) gatherServer(server *Server) error {
 		server.Session = sess
 	}
 
-	return server.gatherData(m.GatherReplicaSetStatus, m.GatherClusterStatus, m.GatherPerdbStats, m.GatherColStats, m.GatherTopStat, m.ColStatsDbs)
+	return server.gatherData(m.GatherReplicaSetStats, m.GatherClusterStats, m.GatherPerDbStats, m.GatherPerColStats, m.ColStatsDbs, m.GatherTopStat)
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			Interval:               datakit.Duration{Duration: 10 * time.Second},
-			GatherReplicaSetStatus: false,
-			GatherClusterStatus:    true,
-			GatherPerdbStats:       true,
-			GatherColStats:         true,
-			GatherTopStat:          true,
-			ColStatsDbs:            []string{"local"},
-			mongos:                 make(map[string]*Server),
+			Interval:              datakit.Duration{Duration: 10 * time.Second},
+			GatherReplicaSetStats: false,
+			GatherClusterStats:    true,
+			GatherPerDbStats:      true,
+			GatherPerColStats:     true,
+			ColStatsDbs:           []string{"local"},
+			GatherTopStat:         true,
+			mongos:                make(map[string]*Server),
 		}
 	})
 }
