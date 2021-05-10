@@ -269,7 +269,6 @@ func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 	for _, httpurl := range httpurls {
 		u, err := url.Parse(httpurl)
 		if err == nil {
-			dw.Urls = append(dw.Urls, httpurl)
 			dataWayCli := &dataWayClient{}
 
 			dataWayCli.url = httpurl
