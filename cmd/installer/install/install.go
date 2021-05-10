@@ -64,7 +64,8 @@ func getDataWayCfg() *datakit.DataWayCfg {
 		}
 	} else {
 		dwUrls := []string{DataWayHTTP}
-		dc, err = datakit.ParseDataway(dwUrls)
+		datakit.Cfg.MainCfg.DataWay.Urls = dwUrls
+		dc, err = datakit.ParseDataway(datakit.Cfg.MainCfg.DataWay.Urls)
 		if err != nil {
 			l.Fatal(err)
 		}
@@ -186,6 +187,7 @@ func UpgradeDatakit(svc service.Service) error {
 	}
 
 	if err := datakit.Cfg.LoadMainConfig(datakit.MainConfPath); err == nil {
+		datakit.Cfg.MainCfg.DataWay.DeprecatedURL = ""
 		writeDefInputToMainCfg()
 	} else {
 		l.Warnf("load main config: %s, ignored", err.Error())
