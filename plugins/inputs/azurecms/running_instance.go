@@ -211,7 +211,7 @@ func (r *azureInstance) fetchMetric(ctx context.Context, info *queryListInfo) er
 					data, _ := io.MakeMetric(metricName, tags, fields, metricTime)
 					fmt.Printf("%s\n", string(data))
 				} else {
-					io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields, metricTime)
+					io.NamedFeedEx(inputName, datakit.Metric, metricName, tags, fields, metricTime)
 				}
 
 			}
