@@ -45,6 +45,13 @@ func applyFlags() {
 	build.MainEntry = *flagMain
 	build.DownloadAddr = *flagDownloadAddr
 
+	// override git.Version
+	if x := os.Getenv("VERSION"); x != "" {
+		build.ReleaseVersion = x
+	}
+
+	l.Infof("use version %s", build.ReleaseVersion)
+
 	switch *flagEnv {
 	case "release":
 		l.Debug("under release, only checked inputs released")
