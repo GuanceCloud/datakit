@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-# 简介
+# {{.InputName}}
 
 system 采集器收集系统负载、正常运行时间、CPU 核心数量以及登录的用户数。
 
