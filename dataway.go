@@ -1,190 +1,186 @@
 package datakit
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"net/url"
+	"time"
+)
+
+const (
+	baseUrl          = "/v1/write"
+	MetricDeprecated = "metrics"
+	Metric           = "metric"
+	KeyEvent         = "keyevent"
+	Object           = "object"
+	Logging          = "logging"
+	Tracing          = "tracing"
+	Rum              = "rum"
+	Security         = "security"
+	HeartBeat        = "heartbeat"
+	Telegraf         = "telegraf"
 )
 
 type DataWayCfg struct {
-	URL     string `toml:"url"`
-	Proxy   bool   `toml:"proxy,omitempty"`
-	Timeout string `toml:"timeout"`
-
-	DeprecatedHost   string `toml:"host,omitempty"`
-	DeprecatedScheme string `toml:"scheme,omitempty"`
-	DeprecatedToken  string `toml:"token,omitempty"`
-
-	host      string
-	scheme    string
-	urlValues url.Values
+	DeprecatedURL    string   `toml:"url"`
+	Urls             []string `toml:"urls"`
+	Proxy            bool     `toml:"proxy,omitempty"`
+	DeprecatedHost   string   `toml:"host,omitempty"`
+	DeprecatedScheme string   `toml:"scheme,omitempty"`
+	DeprecatedToken  string   `toml:"token,omitempty"`
+	dataWayClients   []*dataWayClient
+	httpCli          *http.Client
+	HTTPTimeout      time.Duration
+	HttpProxy        string `toml:"http_proxy"`
 }
 
-func (dc *DataWayCfg) DeprecatedMetricURL() string {
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/metric")
+type dataWayClient struct {
+	url         string
+	host        string
+	scheme      string
+	urlValues   url.Values
+	categoryUrl map[string]string
+	httpCli     *http.Client
+}
+
+// 发送数据
+func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz bool) error {
+	url, ok := dc.categoryUrl[category]
+	if !ok {
+		url = category
+		// err := fmt.Errorf("category %s not exist", category)
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/metrics",
-		dc.urlValues.Encode())
-}
-
-func (dc *DataWayCfg) MetricURL() string {
-
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/metric")
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+	if err != nil {
+		l.Error(err)
+		return err
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/metric",
-		dc.urlValues.Encode())
-}
-
-func (dc *DataWayCfg) ObjectURL() string {
-
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/object")
+	if gz {
+		req.Header.Set("Content-Encoding", "gzip")
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/object",
-		dc.urlValues.Encode())
-}
+	// append datakit info
+	req.Header.Set("X-Datakit-Info",
+		fmt.Sprintf("%s; %s", Cfg.MainCfg.Hostname, git.Version))
 
-func (dc *DataWayCfg) LoggingURL() string {
+	postbeg := time.Now()
 
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/logging")
+	dc.httpCli = cli
+
+	resp, err := dc.httpCli.Do(req)
+	if err != nil {
+		l.Errorf("request url %s failed: %s", url, err)
+		return err
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/logging",
-		dc.urlValues.Encode())
-}
-
-func (dc *DataWayCfg) TracingURL() string {
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/tracing")
+	defer resp.Body.Close()
+	respbody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		l.Error(err)
+		return err
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/tracing",
-		dc.urlValues.Encode())
-}
+	switch resp.StatusCode / 100 {
+	case 2:
+		l.Debugf("post %d to %s ok(gz: %v), cost %v, response: %s",
+			len(data), url, gz, time.Since(postbeg), string(respbody))
+		return nil
 
-func (dc *DataWayCfg) RumURL() string {
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/rum")
+	case 4:
+		l.Debugf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
+			len(data), url, resp.StatusCode, string(respbody), time.Since(postbeg))
+		return nil
+
+	case 5:
+		l.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v",
+			len(data), url, resp.Status, string(respbody), time.Since(postbeg))
+		return fmt.Errorf("dataway internal error")
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/rum",
-		dc.urlValues.Encode())
+	return nil
 }
 
-func (dc *DataWayCfg) SecurityURL() string {
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/security")
+func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
+	req, err := http.NewRequest("POST", dc.categoryUrl[HeartBeat], bytes.NewBuffer(data))
+	resp, err := dc.httpCli.Do(req)
+	if err != nil {
+		return err
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/security",
-		dc.urlValues.Encode())
-}
+	defer resp.Body.Close()
 
-func (dc *DataWayCfg) KeyEventURL() string {
-
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/keyevent")
+	if resp.StatusCode >= 400 {
+		err := fmt.Errorf("heart beat resp err: %+#v", resp)
+		return err
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/keyevent",
-		dc.urlValues.Encode())
+	return nil
 }
 
-func (dc *DataWayCfg) HeartBeatURL() string {
-	if dc.Proxy {
-		return fmt.Sprintf("%s://%s%s?%s",
-			dc.scheme,
-			dc.host,
-			"/proxy",
-			"category=/v1/write/heartbeat")
+func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
+	if dw.httpCli != nil {
+		defer dw.httpCli.CloseIdleConnections()
 	}
 
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/write/heartbeat",
-		dc.urlValues.Encode())
+	for _, dc := range dw.dataWayClients {
+		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func (dc *DataWayCfg) ElectionURL() string {
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/election",
-		dc.urlValues.Encode())
+func (dw *DataWayCfg) HeartBeat() error {
+	body := map[string]interface{}{
+		"dk_uuid":   Cfg.MainCfg.UUID,
+		"heartbeat": time.Now().Unix(),
+		"host":      Cfg.MainCfg.Hostname,
+	}
+
+	bodyByte, err := json.Marshal(body)
+	if err != nil {
+		err := fmt.Errorf("[error] heartbeat json marshal err:%s", err.Error())
+		return err
+	}
+
+	for _, dc := range dw.dataWayClients {
+		if err := dc.heartBeat(dw.httpCli, bodyByte); err != nil {
+			l.Errorf("heart beat send data error %v", err)
+		}
+	}
+
+	return nil
 }
 
-func (dc *DataWayCfg) ElectionHeartBeatURL() string {
-	return fmt.Sprintf("%s://%s%s?%s",
-		dc.scheme,
-		dc.host,
-		"/v1/election/heartbeat",
-		dc.urlValues.Encode())
+func (dw *DataWayCfg) ElectionURL() []string {
+	var resUrl []string
+	for _, dc := range dw.dataWayClients {
+		electionUrl := dc.categoryUrl["electionUrl"]
+		resUrl = append(resUrl, electionUrl)
+	}
+
+	return resUrl
 }
 
-func (dc *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
+func (dw *DataWayCfg) ElectionHeartBeatURL() []string {
+	var resUrl []string
+	for _, dc := range dw.dataWayClients {
+		electionBeatUrl := dc.categoryUrl["electionBeatUrl"]
+		resUrl = append(resUrl, electionBeatUrl)
+	}
+
+	return resUrl
+}
+
+func (dw *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
 	tcpaddr := addr
 	if _, _, err := net.SplitHostPort(tcpaddr); err != nil {
 		switch scheme {
@@ -203,67 +199,92 @@ func (dc *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
 	return tcpaddr, nil
 }
 
-func (dc *DataWayCfg) Test() error {
+func (dw *DataWayCfg) Test() error {
+	if len(dw.dataWayClients) > 0 {
+		httpaddr, err := dw.tcpaddr(dw.dataWayClients[0].scheme, dw.dataWayClients[0].host)
+		if err != nil {
+			return err
+		}
 
-	//httpaddr, err := dc.tcpaddr(dc.scheme, dc.host)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//conn, err := net.DialTimeout("tcp", httpaddr, time.Second*5)
-	//if err != nil {
-	//	l.Errorf("TCP dial host `%s' failed: %s", dc.host, err.Error())
-	//	return err
-	//}
-	//
-	//if err := conn.Close(); err != nil {
-	//	l.Errorf("Close(): %s, ignored", err.Error())
-	//}
+		conn, err := net.DialTimeout("tcp", httpaddr, time.Second*5)
+		if err != nil {
+			l.Errorf("TCP dial host `%s' failed: %s", dw.dataWayClients[0].host, err.Error())
+			return err
+		}
 
+		if err := conn.Close(); err != nil {
+			l.Errorf("Close(): %s, ignored", err.Error())
+		}
+	}
 	return nil
 }
 
-func (dc *DataWayCfg) addToken(tkn string) {
-	if dc.urlValues == nil {
-		dc.urlValues = url.Values{}
+func (dw *DataWayCfg) GetToken() []string {
+	resToken := []string{}
+	for _, dataWayClient := range dw.dataWayClients {
+		if dataWayClient.urlValues != nil {
+			token := dataWayClient.urlValues.Get("token")
+			resToken = append(resToken, token)
+		}
 	}
 
-	if dc.urlValues.Get("token") == "" {
-		l.Debugf("use old token %s", dc.DeprecatedToken)
-		dc.urlValues.Set("token", dc.DeprecatedToken)
-	}
+	return resToken
 }
 
-func (dc *DataWayCfg) GetToken() string {
-	if dc.urlValues == nil {
-		dc.addToken("")
-	}
-	return dc.urlValues.Get("token")
-}
+func ParseDataway(httpurls []string) (*DataWayCfg, error) {
+	dw := Cfg.MainCfg.DataWay
 
-func ParseDataway(httpurl string) (*DataWayCfg, error) {
-	dwcfg := &DataWayCfg{
-		Timeout: "30s",
+	dw.httpCli = &http.Client{
+		Timeout: 30 * time.Second,
 	}
-	if httpurl == "" {
+
+	if dw.HttpProxy != "" {
+		uri, err := url.Parse(dw.HttpProxy)
+		if err != nil {
+			l.Error("parse url error: ", err)
+		}
+
+		tr := &http.Transport{
+			Proxy: http.ProxyURL(uri),
+		}
+
+		dw.httpCli.Transport = tr
+	}
+
+	if len(httpurls) == 0 {
 		return nil, fmt.Errorf("empty dataway HTTP endpoint")
 	}
-	u, err := url.Parse(httpurl)
-	if err == nil {
-		dwcfg.scheme = u.Scheme
-		dwcfg.urlValues = u.Query()
-		dwcfg.host = u.Host
-		if u.Path == "/proxy" {
-			l.Debugf("datakit proxied by %s", u.Host)
-			dwcfg.Proxy = true
-		} else {
-			u.Path = ""
-		}
-	} else {
-		l.Errorf("parse url %s failed: %s", httpurl, err.Error())
-		return nil, err
-	}
-	dwcfg.URL = u.String()
 
-	return dwcfg, nil
+	categorys := []string{MetricDeprecated, Metric, KeyEvent, Object, Logging, Tracing, Rum, Security, HeartBeat}
+
+	for _, httpurl := range httpurls {
+		u, err := url.Parse(httpurl)
+		if err == nil {
+			dataWayCli := &dataWayClient{}
+
+			dataWayCli.url = httpurl
+			dataWayCli.scheme = u.Scheme
+			dataWayCli.urlValues = u.Query()
+			dataWayCli.host = u.Host
+			dataWayCli.categoryUrl = make(map[string]string)
+
+			for _, category := range categorys {
+				categoryUrl := fmt.Sprintf("%s/%s", baseUrl, category)
+				dataWayCli.categoryUrl[category] = fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, categoryUrl, dataWayCli.urlValues.Encode())
+			}
+
+			// election
+			electionUrl := fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, "/v1/election", dataWayCli.urlValues.Encode())
+			electionBeatUrl := fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, "/v1/election/heartbeat", dataWayCli.urlValues.Encode())
+			dataWayCli.categoryUrl["electionUrl"] = electionUrl
+			dataWayCli.categoryUrl["electionBeatUrl"] = electionBeatUrl
+
+			dw.dataWayClients = append(dw.dataWayClients, dataWayCli)
+		} else {
+			l.Errorf("parse url %s failed: %s", httpurl, err.Error())
+			return nil, err
+		}
+	}
+
+	return dw, nil
 }
