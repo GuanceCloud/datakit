@@ -246,17 +246,17 @@ func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool,
 
 	dbStats := &DbStats{}
 	if gatherPerDbStats {
-		names, err := s.Session.DatabaseNames()
+		dbNames, err := s.Session.DatabaseNames()
 		if err != nil {
 			l.Debugf("Unable to get database names: %q", err.Error())
 
 			return err
 		}
 
-		for _, name := range names {
-			db, err := s.gatherDbStats(name)
+		for _, dbName := range dbNames {
+			db, err := s.gatherDbStats(dbName)
 			if err != nil {
-				l.Debugf("Error getting db stats from %q: %q", name, err.Error())
+				l.Debugf("Error getting db stats from %q: %q", dbName, err.Error())
 			}
 			dbStats.Dbs = append(dbStats.Dbs, *db)
 		}
