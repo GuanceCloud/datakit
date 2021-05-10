@@ -19,18 +19,20 @@
 
 ```bash
 #!/bin/bash
+# Update DataKit if new version available
 
-update_log=/usr/local/cloudcare/dataflux/datakit/update.log
+otalog=/usr/local/cloudcare/dataflux/datakit/ota-update.log
+installer=https://static.dataflux.cn/datakit/installer-linux-amd64
 
 # 注意：如果不希望更新 RC 版本的 DataKit，可移除 `--accept-rc-version`
-datakit --check-update --accept-rc-version --update-log $update_log
+sudo datakit --check-update --accept-rc-version --update-log $otalog
 
 if [[ $? == 42 ]]; then
-	echo "update now..."
-	sudo -- sh -c "curl https://static.dataflux.cn/datakit/installer-linux-amd64 -o dk-installer &&
-		chmod +x ./dk-installer &&
-		./dk-installer -upgrade -install-log ${update_log} &&
-		rm -rf ./dk-installer"
+ echo "update now..."
+ sudo -- sh -c "curl ${installer}  -o dk-installer &&
+	 chmod +x ./dk-installer &&
+	 ./dk-installer --upgrade --install-log "${otalog}" &&
+	 rm -rf ./dk-installer"
 fi
 ```
 
@@ -53,8 +55,7 @@ Tips: crontab 基本语法如下
 
 ```
 *   *   *   *   *     <command to be execute>
-
--   -   -   -   -
+^   ^   ^   ^   ^
 |   |   |   |   |
 |   |   |   |   +----- day of week(0 - 6) (Sunday=0)
 |   |   |   +--------- month (1 - 12)   
