@@ -10,8 +10,8 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var (
@@ -207,6 +207,13 @@ func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 	if len(c.MainCfg.DataWay.Urls) == 0 {
 		l.Fatal("dataway URL not set")
 	}
+
+	// set global log root
+	l.Infof("set log to %s", c.MainCfg.Log)
+	logger.MaxSize = c.MainCfg.LogRotate
+	logger.SetGlobalRootLogger(c.MainCfg.Log, c.MainCfg.LogLevel, logger.OPT_DEFAULT)
+
+	l = logger.SLogger("datakit")
 
 	dw, err := ParseDataway(c.MainCfg.DataWay.Urls)
 	if err != nil {
