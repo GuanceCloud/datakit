@@ -27,7 +27,7 @@ const (
 )
 
 type DataWayCfg struct {
-	DeprecatedURL    string   `toml:"url"`
+	DeprecatedURL    string   `toml:"url,omitempty"`
 	Urls             []string `toml:"urls"`
 	Proxy            bool     `toml:"proxy,omitempty"`
 	DeprecatedHost   string   `toml:"host,omitempty"`
@@ -269,6 +269,7 @@ func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 	for _, httpurl := range httpurls {
 		u, err := url.Parse(httpurl)
 		if err == nil {
+			dw.Urls = append(dw.Urls, httpurl)
 			dataWayCli := &dataWayClient{}
 
 			dataWayCli.url = httpurl
