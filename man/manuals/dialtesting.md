@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-# 简介
+# {{.InputName}}
 
 该采集器是网络拨测结果数据采集，所有拨测产生的数据，都以行协议方式，通过 `/v1/write/logging` 接口,上报DataFlux平台
 
