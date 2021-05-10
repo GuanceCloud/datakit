@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-## 简介
+# {{.InputName}}
 
 采集文件尾部数据（类似命令行 `tail -f`），上报到 DataFlux 中。
 
