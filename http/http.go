@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	iowrite "io"
@@ -226,17 +225,19 @@ func HttpStart() {
 	applyHTTPRoute(router)
 
 	// internal datakit stats API
-	router.GET("/stats", func(c *gin.Context) { apiGetInputsStats(c.Writer, c.Request) })
-	router.GET("/man", func(c *gin.Context) { apiManual(c) })
+	router.GET("/stats", func(c *gin.Context) { apiGetDatakitStats(c) })
+	router.GET("/monitor", func(c *gin.Context) { apiGetDatakitMonitor(c) })
+	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
+	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
 	// ansible api
 	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
 
-	router.POST(io.Metric, func(c *gin.Context) { apiWriteMetric(c) })
-	router.POST(io.Object, func(c *gin.Context) { apiWriteObject(c) })
-	router.POST(io.Logging, func(c *gin.Context) { apiWriteLogging(c) })
-	router.POST(io.Tracing, func(c *gin.Context) { apiWriteTracing(c) })
-	router.POST(io.Security, func(c *gin.Context) { apiWriteSecurity(c) })
-	router.POST(io.Telegraf, func(c *gin.Context) { apiWriteTelegraf(c) })
+	router.POST(datakit.Metric, func(c *gin.Context) { apiWriteMetric(c) })
+	router.POST(datakit.Object, func(c *gin.Context) { apiWriteObject(c) })
+	router.POST(datakit.Logging, func(c *gin.Context) { apiWriteLogging(c) })
+	router.POST(datakit.Tracing, func(c *gin.Context) { apiWriteTracing(c) })
+	router.POST(datakit.Security, func(c *gin.Context) { apiWriteSecurity(c) })
+	router.POST(datakit.Telegraf, func(c *gin.Context) { apiWriteTelegraf(c) })
 
 	srv := &http.Server{
 		Addr:    httpBind,
@@ -307,94 +308,6 @@ func tryStartServer(srv *http.Server) {
 	}
 }
 
-type enabledInput struct {
-	Input     string   `json:"input"`
-	Instances int      `json:"instances"`
-	Cfgs      []string `json:"configs"`
-	Panics    int      `json:"panic"`
-}
-
-type datakitStats struct {
-	InputsStats     map[string]*io.InputsStat `json:"inputs_status"`
-	EnabledInputs   []*enabledInput           `json:"enabled_inputs"`
-	AvailableInputs []string                  `json:"available_inputs"`
-
-	Version      string    `json:"version"`
-	BuildAt      string    `json:"build_at"`
-	Branch       string    `json:"branch"`
-	Uptime       string    `json:"uptime"`
-	OSArch       string    `json:"os_arch"`
-	Reload       time.Time `json:"reload,omitempty"`
-	ReloadCnt    int       `json:"reload_cnt"`
-	WithinDocker bool      `json:"docker"`
-	IOChanStat   string    `json:"io_chan_stats"`
-}
-
-func apiGetInputsStats(w http.ResponseWriter, r *http.Request) {
-
-	_ = r
-
-	stats := &datakitStats{
-		Version:      git.Version,
-		BuildAt:      git.BuildAt,
-		Branch:       git.Branch,
-		Uptime:       fmt.Sprintf("%v", time.Since(uptime)),
-		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		ReloadCnt:    reloadCnt,
-		WithinDocker: datakit.Docker,
-		IOChanStat:   io.ChanStat(),
-	}
-
-	if reloadCnt > 0 {
-		stats.Reload = reload
-	}
-
-	var err error
-
-	stats.InputsStats, err = io.GetStats(time.Second * 5) // get all inputs stats
-	if err != nil {
-		l.Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	for k := range inputs.Inputs {
-		if !datakit.Enabled(k) {
-			continue
-		}
-
-		n, cfgs := inputs.InputEnabled(k)
-		npanic := inputs.GetPanicCnt(k)
-		if n > 0 {
-			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Cfgs: cfgs, Panics: npanic})
-		}
-	}
-
-	for k := range inputs.Inputs {
-		if !datakit.Enabled(k) {
-			continue
-		}
-		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", k))
-	}
-
-	// add available inputs(datakit) stats
-	stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("tatal %d, datakit %d",
-		len(stats.AvailableInputs), len(inputs.Inputs)))
-
-	sort.Strings(stats.AvailableInputs)
-
-	body, err := json.MarshalIndent(stats, "", "    ")
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(body)
-}
-
 func apiReload(c *gin.Context) {
 
 	if err := ReloadDatakit(&reloadOption{
@@ -413,7 +326,7 @@ func apiReload(c *gin.Context) {
 		l.Info("reload HTTP server ok")
 	}()
 
-	c.Redirect(http.StatusFound, "/stats")
+	c.Redirect(http.StatusFound, "/monitor")
 }
 
 var (
@@ -451,7 +364,7 @@ ul.a {
 <ul class="a">
 	{{ range $name := .InputNames}}
 	<li>
-	<p><a href="/man?input={{$name}}">
+	<p><a href="/man/{{$name}}">
 			{{$name}} </a> </p> </li>
 	{{end}}
 </ul>
@@ -461,7 +374,7 @@ ul.a {
 <ul class="a">
 	{{ range $name := .OtherDocs}}
 	<li>
-	<p><a href="/man?input={{$name}}">
+	<p><a href="/man/{{$name}}">
 			{{$name}} </a> </p> </li>
 	{{end}}
 </ul>
@@ -483,48 +396,65 @@ type manualTOC struct {
 	OtherDocs  []string
 }
 
-func apiManual(c *gin.Context) {
-	name := c.Query("input")
-	if name == "" { // request toc
-		toc := &manualTOC{
-			PageTitle: "DataKit文档列表",
-		}
+// request manual table of conotents
+func apiManualTOC(c *gin.Context) {
 
-		for k, v := range inputs.Inputs {
-			switch v().(type) {
-			case inputs.InputV2:
-				if k != "tailf" { // tailf should not been here
-					toc.InputNames = append(toc.InputNames, k)
-				}
+	toc := &manualTOC{
+		PageTitle: "DataKit文档列表",
+	}
+
+	for k, v := range inputs.Inputs {
+		switch v().(type) {
+		case inputs.InputV2:
+
+			// test if doc available
+			if _, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: true}); err != nil {
+				l.Warn(err)
+			} else {
+				toc.InputNames = append(toc.InputNames, k)
 			}
 		}
-		sort.Strings(toc.InputNames)
+	}
+	sort.Strings(toc.InputNames)
 
-		for k := range man.OtherDocs {
+	for k := range man.OtherDocs {
+		// test if doc available
+		if _, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: true}); err != nil {
+			l.Warn(err)
+		} else {
 			toc.OtherDocs = append(toc.OtherDocs, k)
 		}
-		sort.Strings(toc.OtherDocs)
+	}
+	sort.Strings(toc.OtherDocs)
 
-		t := template.New("man-toc")
+	t := template.New("man-toc")
 
-		tmpl, err := t.Parse(manualTOCTemplate)
-		if err != nil {
-			l.Error(err)
-			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
-			return
-		}
+	tmpl, err := t.Parse(manualTOCTemplate)
+	if err != nil {
+		l.Error(err)
+		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+		return
+	}
 
-		if err := tmpl.Execute(c.Writer, toc); err != nil {
-			l.Error(err)
-			c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
-			return
-		}
+	if err := tmpl.Execute(c.Writer, toc); err != nil {
+		l.Error(err)
+		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+		return
+	}
+	return
+}
+
+func apiManual(c *gin.Context) {
+
+	name := c.Param("name")
+	if name == "" {
+		c.Redirect(200, "/man")
 		return
 	}
 
 	mdtxt, err := man.BuildMarkdownManual(name, &man.Option{WithCSS: true})
 	if err != nil {
-		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
+		c.Redirect(200, "/man")
 		return
 	}
 
