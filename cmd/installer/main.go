@@ -47,9 +47,7 @@ var (
 	flagCfgTemplate = flag.String("conf-tmpl", "", `specify input config templates, can be file path or url, e.g, http://res.dataflux.cn/datakit/conf`)
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
-	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./agent-%s-%s.tar.gz",
-		runtime.GOOS, runtime.GOARCH, DataKitVersion, runtime.GOOS, runtime.GOARCH),
-		`local path of datakit and agent install files`)
+	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
 )
 
 const (
