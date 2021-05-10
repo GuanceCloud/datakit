@@ -55,7 +55,7 @@ func ExportMan(to, skipList string) error {
 			continue
 		}
 
-		data, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: false})
+		data, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: false, IgnoreMissing: true})
 		if err != nil {
 			return err
 		}
@@ -103,7 +103,7 @@ func runMan(txt string) {
 		fmt.Println("Bye!")
 		os.Exit(0)
 	default:
-		x, err := man.BuildMarkdownManual(s, &man.Option{WithCSS: false})
+		x, err := man.BuildMarkdownManual(s, &man.Option{WithCSS: false, DisableMonofontOnTagFieldName: true})
 		if err != nil {
 			fmt.Printf("[E] %s\n", err.Error())
 		} else {
