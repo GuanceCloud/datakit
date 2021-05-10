@@ -59,6 +59,19 @@ func (t *HTTPTask) UpdateTimeUs() int64 {
 	return t.UpdateTime
 }
 
+func (t *HTTPTask) Clear() {
+	t.dnsParseTime = 0.0
+	t.connectionTime = 0.0
+	t.sslTime = 0.0
+	t.downloadTime = 0.0
+	t.ttfbTime = 0.0
+	t.reqCost = 0
+
+	t.resp = nil
+	t.respBody = []byte(``)
+	t.reqError = ""
+}
+
 func (t *HTTPTask) ID() string {
 	if t.ExternalID == `` {
 		return cliutils.XID("dtst_")
@@ -244,8 +257,7 @@ type HTTPSecret struct {
 
 func (t *HTTPTask) Run() error {
 
-	t.resp = nil
-	t.respBody = []byte(``)
+	t.Clear()
 
 	var t1, connect, dns, tlsHandshake time.Time
 
