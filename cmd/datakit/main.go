@@ -39,26 +39,28 @@ var (
 	flagVersion = flag.BoolP("version", "v", false, `show version info`)
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
-	// tool-commands supported in datakit
-	flagCmd      = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagCmdDeprecated = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline      = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText          = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
 
-	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
-	flagMan             = flag.Bool("man", false, "read manuals of inputs")
-	flagUpdate          = flag.Bool("update", false, "update datakit new version if available")
-	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "during OTA, accept RC version if available")
+	flagGrokq = flag.Bool("grokq", false, "query groks interactively")
+	flagMan   = flag.Bool("man", false, "read manuals of inputs")
+
+	flagCheckUpdate     = flag.Bool("check-update", false, "check if new verison available")
+	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "during update, accept RC version if available")
+	flagUpdateLogFile   = flag.String("update-log", "", "update history log file")
 
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
 
-	flagInstallExternal = flag.String("install", "", "install external tool/software")
-	flagStart           = flag.Bool("start", false, "start datakit")
-	flagStop            = flag.Bool("stop", false, "stop datakit")
-	flagRestart         = flag.Bool("restart", false, "restart datakit")
-	flagReload          = flag.Bool("reload", false, "reload datakit")
-	flagReloadPort      = flag.Int("reload-port", 9529, "datakit http server port")
-	flagExportMan       = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
-	flagIgnoreMans      = flag.String("ignore-manuals", "", "disable exporting specified manuals, i.e., --ignore-manuals nginx,redis,mem")
+	flagInstallExternal   = flag.String("install", "", "install external tool/software")
+	flagStart             = flag.Bool("start", false, "start datakit")
+	flagStop              = flag.Bool("stop", false, "stop datakit")
+	flagRestart           = flag.Bool("restart", false, "restart datakit")
+	flagReload            = flag.Bool("reload", false, "reload datakit")
+	flagReloadPort        = flag.Int("reload-port", 9529, "datakit http server port")
+	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
+	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
+	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
 
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 )
@@ -66,7 +68,8 @@ var (
 var (
 	l = logger.DefaultSLogger("main")
 
-	ReleaseType = ""
+	ReleaseType    = ""
+	ReleaseVersion = git.Version
 )
 
 const (
@@ -75,8 +78,6 @@ const (
 
 func main() {
 	flag.CommandLine.MarkHidden("cmd") // deprecated
-
-	flag.CommandLine.MarkHidden("install") // 1.1.6-rc1 再发布
 
 	// un-documented options
 	flag.CommandLine.MarkHidden("show-testing-version")
@@ -136,7 +137,7 @@ func applyFlags() {
 Golang Version: %s
       Uploader: %s
 ReleasedInputs: %s
-`, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, ReleaseType)
+`, ReleaseVersion, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, ReleaseType)
 		vers, err := getOnlineVersions()
 		if err != nil {
 			fmt.Printf("Get online version failed: \n%s\n", err.Error())
@@ -188,10 +189,12 @@ ReleasedInputs: %s
 		os.Exit(0)
 	}
 
-	if *flagUpdate {
+	if *flagCheckUpdate {
 
-		logger.SetGlobalRootLogger(datakit.OTALogFile, logger.DEBUG, logger.OPT_DEFAULT)
-		l = logger.SLogger("ota")
+		if *flagUpdateLogFile != "" {
+			logger.SetGlobalRootLogger(*flagUpdateLogFile, logger.DEBUG, logger.OPT_DEFAULT)
+		}
+		l = logger.SLogger("ota-update")
 
 		install.Init()
 
@@ -204,24 +207,24 @@ ReleasedInputs: %s
 
 		ver := vers["Online"]
 
-		l.Debugf("online version: %v", ver)
-
 		curver, err := getLocalVersion()
 		if err != nil {
 			l.Errorf("Get online version failed: \n%s\n", err.Error())
 			os.Exit(-1)
 		}
 
+		l.Debugf("online version: %v, local version: %v", ver, curver)
+
 		if ver != nil && isNewVersion(ver, curver, *flagAcceptRCVersion) {
 			l.Infof("New online version available: %s, commit %s (release at %s)",
 				ver.version, ver.Commit, ver.ReleaseDate)
-			if err := tryOTAUpdate(ver.VersionString); err != nil {
-				l.Errorf("OTA failed: %s", err.Error())
-				os.Exit(-1)
-			}
-			l.Infof("OTA success, new verison is %s", ver.VersionString)
+			os.Exit(42)
 		} else {
-			l.Infof("OTA up to date(%s)", curver.VersionString)
+			if *flagAcceptRCVersion {
+				l.Infof("Up to date(%s)", curver.VersionString)
+			} else {
+				l.Infof("Up to date(%s), RC version skipped", curver.VersionString)
+			}
 		}
 
 		os.Exit(0)
@@ -331,7 +334,7 @@ func isRoot() bool {
 }
 
 func runDatakitWithCmd() {
-	if *flagCmd {
+	if *flagCmdDeprecated {
 		l.Warn("--cmd parameter has been discarded")
 	}
 
@@ -351,7 +354,14 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagExportMan != "" {
-		if err := cmds.ExportMan(*flagExportMan, *flagIgnoreMans); err != nil {
+		if err := cmds.ExportMan(*flagExportMan, *flagIgnore); err != nil {
+			l.Error(err)
+		}
+		os.Exit(0)
+	}
+
+	if *flagExportIntegration != "" {
+		if err := cmds.ExportIntegration(*flagExportIntegration, *flagIgnore); err != nil {
 			l.Error(err)
 		}
 		os.Exit(0)
@@ -504,7 +514,7 @@ func getOnlineVersions() (res map[string]*datakitVerInfo, err error) {
 }
 
 func getLocalVersion() (*datakitVerInfo, error) {
-	v := &datakitVerInfo{VersionString: strings.TrimPrefix(git.Version, "v"), Commit: git.Commit, ReleaseDate: git.BuildAt}
+	v := &datakitVerInfo{VersionString: strings.TrimPrefix(ReleaseVersion, "v"), Commit: git.Commit, ReleaseDate: git.BuildAt}
 	if err := v.parse(); err != nil {
 		return nil, err
 	}
@@ -524,33 +534,6 @@ func isNewVersion(newVer, curver *datakitVerInfo, acceptRC bool) bool {
 	}
 
 	return false
-}
-
-func tryOTAUpdate(ver string) error {
-	baseURL := "static.dataflux.cn/datakit"
-
-	datakitUrl := "https://" + path.Join(baseURL,
-		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, ver))
-
-	dataUrl := "https://" + path.Join(baseURL, "data.tar.gz")
-
-	l.Debugf("downloading %s to %s...", datakitUrl, datakit.InstallDir)
-	if err := install.Download(datakitUrl, datakit.InstallDir, false, false); err != nil {
-		return err
-	}
-
-	l.Debugf("downloading %s to %s...", dataUrl, datakit.InstallDir)
-	if err := install.Download(dataUrl, datakit.InstallDir, false, false); err != nil {
-		l.Errorf("download %s failed: %v, ignored", dataUrl, err)
-	}
-
-	svc, err := datakit.NewService()
-	if err != nil {
-		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
-		return err
-	}
-
-	return install.UpgradeDatakit(svc)
 }
 
 func checkIsRuning() bool {
