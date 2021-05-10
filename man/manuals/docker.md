@@ -37,7 +37,7 @@
 ```
 
 - 通过对 `collect_metric` 等三个配置项的开关，选择是否要开启此类数据的采集
-- datkait 在连接 kubernetes 时，可能会因为 kubernetes 配置问题报错。以下是这两种报错的解决办法
+- DataKit 在连接 kubernetes 时，可能会因为 kubernetes 配置问题报错。以下是这两种报错的解决办法
     - `/run/secrets/kubernetes.io/serviceaccount/token: no such file or directory`。执行如下两个命令：
         - `mkdir -p /run/secrets/kubernetes.io/serviceaccount`
         - `touch /run/secrets/kubernetes.io/serviceaccount/token`
@@ -49,8 +49,14 @@
 
 ### Docker容器日志采集说明
 
-- `log_option` 为数组配置，可以有多个。`container_name_match` 为正则表达式（[文档链接](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)），如果容器名能匹配该正则，会使用 `source` 和 `service` 以及 `pipeline` 配置参数
-- `pipeline` 为空值或该文件不存在时，将不使用 pipeline 功能
+对于 Docker 容器日志采集，有着更细致的配置，主要解决了区分日志 `source` 和使用 pipeline 的问题。
+
+日志采集配置项为 `inputs.docker.logfilter`，该项是数组配置，可以有多个。
+
+- `filter_message` 为匹配日志文本的正则表达式，该参数类型是字符串数组，只要任意一个正则匹配成功，则使用后续的 `source`、`service` 和 `pipeline` 参数。[正则表达式文档](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
+- `source` 指定数据来源，如果为空值，则默认使用容器名
+- `service` 指定该条日志的服务名，如果为空值，则使用 `source` 字段值
+- `pipeline` 只需写文件名即可，不需要写全路径，使用方式见[文档](./pipeline)。当此值为空值或该文件不存在时，将不使用 pipeline 功能
 
 **使用 pipeline 功能时，取其中的 `time` 字段作为此条数据的产生时间。如果没有 `time` 字段或解析此字段失败，默认使用数据采集到的时间**
 
@@ -70,19 +76,19 @@
 | `d`, `debug`, `trace`, `verbose` | `debug`    |
 | `o`, `s`, `OK`                   | `OK`       |
 
-指标集为配置文件 `inputs.docker.log_option` 字段 `source`，例如配置如下：
+指标集为配置文件 `inputs.docker.logfilter` 字段 `source`，例如配置如下：
 
 ```toml
-[[inputs.docker.log_option]]
-    container_name_match = "nginx-version-*"
-    source = "nginx"
-    service = "nginx"
-    pipeline = "nginx.p"
+[[inputs.docker.logfilter]]
+    filter_message = [ '''^\[GIN.*''']
+    source = "gin"
+    service = "gin"
+    pipeline = "ginlog.p"
 ```
 
-如果日志来源的容器，容器名能够匹配 `container_name_match` 正则，该容器日志的指标集为 `source` 字段。
+采集器会对所有容器日志进行正则匹配，如果有任意一条成功匹配到上述配置文件中的 `filter_message`，则会将此条日志的 `source` 和 `service` 设置为 `gin`，并使用 `ginlog.p` 的 pipeline。
 
-如果没有匹配到或 `source` 为空，指标集为容器名。
+注意，此功能需要对所有容器的日志文本进行正则匹配，假设 N 为全部 `filter_message` 正则的数量，则每一条日志文本最坏情况下需要匹配 N 次，会影响性能。
 
 ## 指标集
 
