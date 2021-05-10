@@ -21,7 +21,7 @@ const (
 var (
 	inputName     = "net"
 	netMetricName = "net"
-	netLogger     = logger.SLogger(inputName)
+	l             = logger.DefaultSLogger(inputName)
 
 	linuxProtoRate = map[string]bool{
 		"insegs":       true,
@@ -256,7 +256,8 @@ func (i *Input) Collect() error {
 }
 
 func (i *Input) Run() {
-	netLogger.Infof("net input started")
+	l = logger.SLogger(inputName)
+	l.Infof("net input started")
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
@@ -268,14 +269,14 @@ func (i *Input) Run() {
 				if errFeed := inputs.FeedMeasurement(netMetricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
 					io.FeedLastError(inputName, errFeed.Error())
-					netLogger.Error(errFeed)
+					l.Error(errFeed)
 				}
 			} else {
 				io.FeedLastError(inputName, err.Error())
-				netLogger.Error(err)
+				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():
-			netLogger.Infof("net input exit")
+			l.Infof("net input exit")
 			return
 		}
 	}
