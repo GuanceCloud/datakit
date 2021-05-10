@@ -26,6 +26,7 @@ var (
 		"datakit-install":         "man/manuals/datakit-install.md",
 		"datakit-offline-install": "man/manuals/datakit-offline-install.md",
 		"datakit-on-public":       "man/manuals/datakit-on-public.md",
+		"datakit-update-crontab":  "datakit-update-crontab.md",
 		"datatypes":               "man/manuals/datatypes.md",
 		"dataway":                 "man/manuals/dataway.md",
 		"election":                "man/manuals/election.md",
