@@ -234,7 +234,7 @@ func (dw *DataWayCfg) GetToken() []string {
 func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 	dw := Cfg.MainCfg.DataWay
 
-	if dw.HTTPTimeout != "" {
+	if dw.HTTPTimeout == "" {
 		dw.HTTPTimeout = "5s"
 	}
 
