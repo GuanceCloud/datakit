@@ -12,9 +12,9 @@ import (
 )
 
 type integration struct {
-	Title  string `yaml:"title"`
-	Tags   string `yaml:"tags"`
-	DocURL string `yaml:"url"`
+	Title  string   `yaml:"title"`
+	Tags   []string `yaml:"tags"`
+	DocURL string   `yaml:"url"`
 }
 
 var (
@@ -72,7 +72,7 @@ func ExportIntegration(to, ignore string) error {
 
 			x := integration{
 				Title:  title,
-				Tags:   "IT运维,指标采集",
+				Tags:   []string{"IT运维", "指标采集"},
 				DocURL: "https://www.yuque.com/dataflux/datakit/" + k,
 			}
 
