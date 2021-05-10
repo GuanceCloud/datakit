@@ -67,7 +67,7 @@ func (n *Input) Run() {
 		case <-tick.C:
 			n.getMetric()
 			if len(collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, io.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
+				err := inputs.FeedMeasurement(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
 				collectCache = collectCache[:0]
 				if err != nil {
 					n.lastErr = err

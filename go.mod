@@ -33,10 +33,10 @@ require (
 	github.com/containerd/fifo v0.0.0-20200410184934-f15a3290365b // indirect
 	github.com/containerd/ttrpc v1.0.1 // indirect
 	github.com/containerd/typeurl v1.0.1
-	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
 	github.com/dustin/go-humanize v1.0.0
+	github.com/elazarl/goproxy v0.0.0-20170405201442-c4fc26588b6e
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gin-gonic/gin v1.6.3
@@ -44,6 +44,8 @@ require (
 	github.com/go-ole/go-ole v1.2.4
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/gobuffalo/envy v1.9.0 // indirect
+	github.com/gobuffalo/packr v1.30.1 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.1
 	github.com/gobwas/glob v0.2.3
 	github.com/godror/godror v0.17.0
@@ -105,6 +107,7 @@ require (
 	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cast v1.3.1
+	github.com/spf13/cobra v1.1.3 // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
