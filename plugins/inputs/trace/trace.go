@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -183,7 +184,7 @@ func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 
 	}
 
-	if err := dkio.Feed(pluginName, dkio.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
+	if err := dkio.Feed(pluginName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
 		GetInstance().Errorf("io feed err: %s", err)
 	}
 }

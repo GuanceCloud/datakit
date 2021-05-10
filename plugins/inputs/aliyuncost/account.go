@@ -322,7 +322,7 @@ func (ca *costAccount) parseTransactionsResponse(ctx context.Context, balanceRes
 				data, _ := io.MakeMetric(ca.getName(), tags, fields, tm)
 				fmt.Printf("%s\n", string(data))
 			} else {
-				io.NamedFeedEx(inputName, io.Metric, ca.getName(), tags, fields, tm)
+				io.NamedFeedEx(inputName, datakit.Metric, ca.getName(), tags, fields, tm)
 			}
 		}
 	}
