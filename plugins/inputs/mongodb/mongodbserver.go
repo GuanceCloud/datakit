@@ -34,7 +34,7 @@ func (s *Server) authLog(err error) {
 	}
 }
 
-func (s *Server) gatherServerStatus() (*ServerStatus, error) {
+func (s *Server) gatherServerStats() (*ServerStatus, error) {
 	serverStatus := &ServerStatus{}
 	err := s.Session.DB("admin").Run(bson.D{
 		{
@@ -53,19 +53,19 @@ func (s *Server) gatherServerStatus() (*ServerStatus, error) {
 	return serverStatus, nil
 }
 
-func (s *Server) gatherReplSetStatus() (*ReplSetStatus, error) {
-	replSetStatus := &ReplSetStatus{}
+func (s *Server) gatherReplSetStats() (*ReplSetStats, error) {
+	ReplSetStats := &ReplSetStats{}
 	err := s.Session.DB("admin").Run(bson.D{
 		{
 			Name:  "replSetGetStatus",
 			Value: 1,
 		},
-	}, replSetStatus)
+	}, ReplSetStats)
 	if err != nil {
 		return nil, err
 	}
 
-	return replSetStatus, nil
+	return ReplSetStats, nil
 }
 
 func (s *Server) getOplogReplLag(collection string) (*OplogStats, error) {
@@ -103,7 +103,7 @@ func (s *Server) gatherOplogStats() (*OplogStats, error) {
 	return s.getOplogReplLag("oplog.$main")
 }
 
-func (s *Server) gatherClusterStatus() (*ClusterStatus, error) {
+func (s *Server) gatherClusterStats() (*ClusterStatus, error) {
 	chunkCount, err := s.Session.DB("config").C("chunks").Find(bson.M{"jumbo": true}).Count()
 	if err != nil {
 		return nil, err
@@ -202,26 +202,28 @@ func (s *Server) gatherTopStatData() (*TopStats, error) {
 	return topStats, nil
 }
 
-func (s *Server) gatherData(gatherReplicaSetStatus bool, gatherClusterStatus bool, gatherPerDbStats bool, gatherPerColStats bool, colStatsDbs []string, gatherTopStat bool) error {
+func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool, gatherPerDbStats bool, gatherPerColStats bool, colStatsDbs []string, gatherTopStat bool) error {
 	s.Session.SetMode(mgo.Eventual, true)
 	s.Session.SetSocketTimeout(0)
 
-	serverStatus, err := s.gatherServerStatus()
+	serverStatus, err := s.gatherServerStats()
 	if err != nil {
+		l.Debugf("Error gathering server status")
+
 		return err
 	}
 
 	// Get replica set status, an error indicates that the server is not a member of a replica set.
 	var (
-		replSetStatus *ReplSetStatus
-		oplogStats    *OplogStats
+		ReplSetStats *ReplSetStats
+		oplogStats   *OplogStats
 	)
-	if gatherReplicaSetStatus {
-		if replSetStatus, err = s.gatherReplSetStatus(); err != nil {
+	if gatherReplicaSetStats {
+		if ReplSetStats, err = s.gatherReplSetStats(); err != nil {
 			l.Debugf("Unable to gather replica set status: %q", err.Error())
 		}
 		// Gather the oplog if we are a member of a replica set. Non-replica set members do not have the oplog collections.
-		if replSetStatus != nil {
+		if ReplSetStats != nil {
 			if oplogStats, err = s.gatherOplogStats(); err != nil {
 				s.authLog(fmt.Errorf("Unable to get oplog stats: %q", err.Error()))
 			}
@@ -229,8 +231,8 @@ func (s *Server) gatherData(gatherReplicaSetStatus bool, gatherClusterStatus boo
 	}
 
 	var clusterStatus *ClusterStatus
-	if gatherClusterStatus {
-		status, err := s.gatherClusterStatus()
+	if gatherClusterStats {
+		status, err := s.gatherClusterStats()
 		if err != nil {
 			l.Debugf("Unable to gather cluster status: %q", err.Error())
 		}
@@ -284,7 +286,7 @@ func (s *Server) gatherData(gatherReplicaSetStatus bool, gatherClusterStatus boo
 
 	result := &MongoStatus{
 		ServerStatus:  serverStatus,
-		ReplSetStatus: replSetStatus,
+		ReplSetStats:  ReplSetStats,
 		OplogStats:    oplogStats,
 		ClusterStatus: clusterStatus,
 		ShardStats:    shardStats,
