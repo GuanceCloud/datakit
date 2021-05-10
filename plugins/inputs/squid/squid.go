@@ -154,7 +154,7 @@ func (p *SquidParam) getMetrics(isTest bool) ([]byte, error) {
 		fields["can_connect"] = false
 		pt, _ := io.MakeMetric(p.input.Squid.MetricsName, tags, fields, time.Now())
 		if !isTest {
-			p.output.IoFeed(pt, io.Metric, inputName)
+			p.output.IoFeed(pt, datakit.Metric, inputName)
 		}
 		return pt, err
 	}
@@ -188,7 +188,7 @@ func (p *SquidParam) getMetrics(isTest bool) ([]byte, error) {
 	}
 
 	if !isTest {
-		err = p.output.IoFeed(pt, io.Metric, inputName)
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
 	}
 
 	return pt, err
