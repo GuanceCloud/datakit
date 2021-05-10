@@ -5,6 +5,22 @@
 
 # DataKit 版本历史
 
+## 1.1.6-rc1(2021/05/10)
+
+### 发布说明
+
+本次发布，对 DataKit 的一些细节做了调整：
+
+- DataKit 上支持配置多个 DataWay
+- [云关联](hostobject#031406b2)通过对应 meta 接口来实现
+- 调整 docker 日志采集的[过滤方式](docker#a487059d)
+- [DataKit 支持选举](election)
+- 修复拨测历史数据清理问题
+- 大量文档[发布到语雀](https://www.yuque.com/dataflux/datakit)
+- [DataKit 支持命令行集成 Telegraf](datakit-how-to#d1b3b29b)
+- DataKit 单实例运行检测
+- DataKit [自动更新功能](datakit-update-crontab)
+
 ## 1.1.6-rc0(2021/04/30)
 
 ### 发布说明
