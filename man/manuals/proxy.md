@@ -15,8 +15,6 @@
 
 - 配置 Nginx 代理服务
 
-说明：为了解决 HTTPS 访问，需要在代理中配置两个服务，一个服务用于 HTTP 访问, 一个用于 HTTPS 访问，配置示例如下:
-
 ```
 server {
     resolver 114.114.114.114;       # 指定DNS服务器IP地址 
@@ -32,20 +30,6 @@ server {
         proxy_next_upstream error timeout invalid_header http_502;
     }
 }
-
-server {
-    resolver 114.114.114.114;       # 指定DNS服务器IP地址 
-    listen 443;
-    location / {
-        proxy_pass https://$host$request_uri;    # 设定代理服务器的协议和地址 
-        proxy_buffers 256 4k;
-        proxy_max_temp_file_size 0k;
-        proxy_connect_timeout 30;
-        proxy_send_timeout 60;
-        proxy_read_timeout 60;
-        proxy_next_upstream error timeout invalid_header http_502;
-    }
-}
 ```
 
 - 开启 Datakit 代理模式
@@ -53,7 +37,7 @@ server {
 ```toml
 [dataway]
   urls = ["https://openway.dataflux.cn/v1/write/metrics?token=tkn_76d2d1efdxxxxxxxxxxxxxxxxxxxxxxx"]
-  http_proxy = "http://xxx.xxx.xxx.xxx:9530" # nginx 启动代理服务的 IP 和 Port
+  http_proxy = "http://xxx.xxx.xxx.xxx:80" # nginx 启动代理服务的 IP 和 Port
 ```
 
 ## Datakit 代理
