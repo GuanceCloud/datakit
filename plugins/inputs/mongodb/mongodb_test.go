@@ -7,7 +7,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-func TestGatherMongoDb(t *testing.T) {
+func TestGatherServerStats(t *testing.T) {
 	input := &Input{
 		Interval:              datakit.Duration{Duration: 3 * time.Second},
 		Servers:               []string{"mongodb://127.0.0.1:27017"},
@@ -46,7 +46,7 @@ func TestGatherMongoDb(t *testing.T) {
 	}
 }
 
-func TestGatherMongoDbPerDbStat(t *testing.T) {
+func TestGatherPerDbStats(t *testing.T) {
 	input := &Input{
 		Interval:              datakit.Duration{Duration: 3 * time.Second},
 		Servers:               []string{"mongodb://127.0.0.1:27017"},
@@ -54,7 +54,7 @@ func TestGatherMongoDbPerDbStat(t *testing.T) {
 		GatherClusterStats:    false,
 		GatherPerDbStats:      true,
 		GatherPerColStats:     false,
-		ColStatsDbs:           []string{"local"},
+		ColStatsDbs:           []string{"admin", "local", "config"},
 		GatherTopStat:         false,
 		EnableTls:             false,
 		mongos:                make(map[string]*Server),
@@ -67,7 +67,7 @@ func TestGatherMongoDbPerDbStat(t *testing.T) {
 	for _, srv := range input.mongos {
 		if srv.lastResult != nil {
 			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host}, 1)
-			data.AddDefaultStats()
+			// data.AddDefaultStats()
 			data.AddDbStats()
 			data.AddColStats()
 			data.AddShardHostStats()
