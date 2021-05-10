@@ -21,13 +21,13 @@ const (
 var (
 	inputName    = "diskio"
 	metricName   = "diskio"
-	diskioLogger = logger.DefaultSLogger(inputName)
+	l            = logger.DefaultSLogger(inputName)
 	varRegex     = regexp.MustCompile(`\$(?:\w+|\{\w+\})`)
 	sampleConfig = `
 [[inputs.diskio]]
   ##(optional) collect interval, default is 10 seconds
   interval = '10s'
-  ## 
+  ##
   ## By default, gather stats for all devices including
   ## disk partitions.
   ## Setting interfaces using regular expressions will collect these expected devices.
@@ -44,18 +44,18 @@ var (
   ## Note: Most, but not all, udev properties can be accessed this way. Properties
   ## that are currently inaccessible include DEVTYPE, DEVNAME, and DEVPATH.
   # device_tags = ["ID_FS_TYPE", "ID_FS_USAGE"]
-  # 
-  ## Using the same metadata source as device_tags, 
-  ## you can also customize the name of the device through a template. 
-  ## The "name_templates" parameter is a list of templates to try to apply equipment. 
-  ## The template can contain variables of the form "$PROPERTY" or "${PROPERTY}". 
-  ## The first template that does not contain any variables that do not exist 
-  ## for the device is used as the device name label. 
-  ## A typical use case for LVM volumes is to obtain VG/LV names, 
-  ## not DM-0 names which are almost meaningless. 
-  ## In addition, "device" is reserved specifically to indicate the device name. 
+  #
+  ## Using the same metadata source as device_tags,
+  ## you can also customize the name of the device through a template.
+  ## The "name_templates" parameter is a list of templates to try to apply equipment.
+  ## The template can contain variables of the form "$PROPERTY" or "${PROPERTY}".
+  ## The first template that does not contain any variables that do not exist
+  ## for the device is used as the device name label.
+  ## A typical use case for LVM volumes is to obtain VG/LV names,
+  ## not DM-0 names which are almost meaningless.
+  ## In addition, "device" is reserved specifically to indicate the device name.
   # name_templates = ["$ID_FS_LABEL","$DM_VG_NAME/$DM_LV_NAME", "$device:$ID_FS_TYPE"]
-  # 
+  #
   [inputs.diskio.tags]
     # tag1 = "a"
 `
@@ -217,7 +217,7 @@ func (i *Input) Collect() error {
 }
 
 func (i *Input) Run() {
-	diskioLogger.Infof("diskio input started")
+	l.Infof("diskio input started")
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
@@ -230,14 +230,15 @@ func (i *Input) Run() {
 				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
 					io.FeedLastError(inputName, errFeed.Error())
-					diskioLogger.Error(err)
+					l.Error(err)
 				}
 			} else {
+				l.Error(err)
 				io.FeedLastError(inputName, err.Error())
-				diskioLogger.Error(err)
+				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():
-			diskioLogger.Infof("diskio input exit")
+			l.Infof("diskio input exit")
 			return
 		}
 	}
@@ -252,7 +253,7 @@ func (i *Input) diskName(devName string) (string, []string) {
 	}
 
 	if err != nil {
-		diskioLogger.Warnf("Error gathering disk info: %s", err)
+		l.Warnf("Error gathering disk info: %s", err)
 		return devName, devLinks
 	}
 
@@ -292,7 +293,7 @@ func (i *Input) diskTags(devName string) map[string]string {
 
 	di, err := i.diskInfo(devName)
 	if err != nil {
-		diskioLogger.Warnf("Error gathering disk info: %s", err)
+		l.Warnf("Error gathering disk info: %s", err)
 		return nil
 	}
 
