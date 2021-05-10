@@ -130,7 +130,7 @@ func (r *Security) describeSummaryInfo(region string) {
 
 	r.resData = []byte(pt.String())
 
-	err = io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
+	err = io.NamedFeed([]byte(pt.String()), datakit.Metric, inputName)
 }
 
 func (r *Security) describeSecurityStatInfo(region string) {
@@ -172,7 +172,7 @@ func (r *Security) describeSecurityStatInfo(region string) {
 		l.Errorf("make metric point error %v", err)
 	}
 
-	err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+	err = io.NamedFeed([]byte(pt), datakit.Metric, inputName)
 	if err != nil {
 		l.Errorf("push metric point error %v", err)
 	}
@@ -213,7 +213,7 @@ func (r *Security) describeRiskCheckSummary(region string) {
 
 	r.resData = pt
 
-	err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+	err = io.NamedFeed([]byte(pt), datakit.Metric, inputName)
 	if err != nil {
 		l.Errorf("push metric point error %v", err)
 	}
