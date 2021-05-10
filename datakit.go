@@ -48,12 +48,12 @@ var (
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
 
+	l                  = logger.DefaultSLogger("datakit")
 	PipelineDir        = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
 
-	l                  = logger.DefaultSLogger("datakit")
 	optionalInstallDir = map[string]string{
 		OSArchWinAmd64: filepath.Join(`C:\Program Files\dataflux\` + ServiceName),
 		OSArchWin386:   filepath.Join(`C:\Program Files (x86)\dataflux\` + ServiceName),
