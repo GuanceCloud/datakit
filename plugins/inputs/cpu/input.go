@@ -30,6 +30,8 @@ const (
 `
 )
 
+var l = logger.DefaultSLogger(inputName)
+
 type Input struct {
 	PerCPU         bool `toml:"percpu"`           // deprecated
 	TotalCPU       bool `toml:"totalcpu"`         // deprecated
@@ -42,7 +44,6 @@ type Input struct {
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr *cpuMeasurement
 
-	logger    *logger.Logger
 	lastStats map[string]cpu.TimesStat
 	ps        CPUStatInfo
 }
@@ -160,7 +161,7 @@ func (i *Input) Collect() error {
 		}
 		cpuUsage, _ := CalculateUsage(cts, lastCts, totalDelta)
 		if ok := CPUStatStructToMap(fields, cpuUsage, "usage_"); !ok {
-			i.logger.Error("error: collect cpu time, check cpu usage stat struct")
+			l.Error("error: collect cpu time, check cpu usage stat struct")
 			break
 		} else {
 			i.appendMeasurement(inputName, tags, fields, time_now)
@@ -175,7 +176,8 @@ func (i *Input) Collect() error {
 }
 
 func (i *Input) Run() {
-	i.logger.Infof("cpu input started")
+	l = logger.SLogger(inputName)
+	l.Infof("cpu input started")
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
 	isfirstRun := true
@@ -195,11 +197,11 @@ func (i *Input) Run() {
 				}
 			} else {
 				io.FeedLastError(inputName, err.Error())
-				i.logger.Error(err)
+				l.Error(err)
 			}
 			i.collectCache = make([]inputs.Measurement, 0)
 		case <-datakit.Exit.Wait():
-			i.logger.Infof("cpu input exit")
+			l.Infof("cpu input exit")
 			return
 		}
 	}
@@ -208,7 +210,6 @@ func (i *Input) Run() {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			logger:   logger.SLogger(inputName),
 			ps:       &CPUInfo{},
 			Interval: datakit.Duration{Duration: time.Second * 10},
 		}
