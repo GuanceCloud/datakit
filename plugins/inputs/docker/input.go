@@ -22,16 +22,17 @@ func init() {
 }
 
 type Input struct {
-	Endpoint                        string            `toml:"endpoint"`
-	CollectMetric                   bool              `toml:"collect_metric"`
-	CollectObject                   bool              `toml:"collect_object"`
-	CollectLogging                  bool              `toml:"collect_logging"`
-	CollectMetricInterval           string            `toml:"collect_metric_interval"`
-	DeprecatedCollectObjectInterval string            `toml:"collect_object_interval"`
-	IncludeExited                   bool              `toml:"include_exited"`
-	ClientConfig                                      // tls config
-	LogOption                       []*LogOption      `toml:"log_option"`
-	Tags                            map[string]string `toml:"tags"`
+	Endpoint                        string                 `toml:"endpoint"`
+	CollectMetric                   bool                   `toml:"collect_metric"`
+	CollectObject                   bool                   `toml:"collect_object"`
+	CollectLogging                  bool                   `toml:"collect_logging"`
+	CollectMetricInterval           string                 `toml:"collect_metric_interval"`
+	DeprecatedCollectObjectInterval string                 `toml:"collect_object_interval"`
+	IncludeExited                   bool                   `toml:"include_exited"`
+	ClientConfig                                           // tls config
+	LogFilters                      LogFilters             `toml:"logfilter"`
+	Tags                            map[string]string      `toml:"tags"`
+	DeprecatedLogOption             []*DeprecatedLogOption `toml:"log_option"`
 
 	collectMetricDuration time.Duration
 	collectObjectDuration time.Duration
