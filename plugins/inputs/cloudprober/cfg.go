@@ -17,6 +17,7 @@ var (
 	maxInterval = time.Second * 30
 	sample      = `
 [[inputs.cloudprober]]
+	# Cloudprober 默认指标路由（prometheus format）
 	url = "http://localhost:9313/metrics"
 	# ##(optional) collection interval, default is 30s
 	# interval = "30s"
