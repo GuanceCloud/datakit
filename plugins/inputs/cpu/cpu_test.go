@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/shirou/gopsutil/cpu"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -158,7 +157,7 @@ func TestCollect(t *testing.T) {
 		[]cpu.TimesStat{lastT},
 		[]cpu.TimesStat{nowT},
 	}
-	i := &Input{logger: logger.SLogger("cpu"), ps: &CPUInfoTest{timeStat: timeStats}}
+	i := &Input{ps: &CPUInfoTest{timeStat: timeStats}}
 	if err := i.Collect(); err != nil {
 		t.Error(err)
 	} else if len(i.collectCache) != 0 {
