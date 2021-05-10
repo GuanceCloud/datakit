@@ -144,11 +144,11 @@ func (i *Input) Collect() error {
 	}
 
 	ts := time.Now()
-	for _, io := range diskio {
+	for _, stat := range diskio {
 		match := false
 
 		// 匹配 disk name
-		if len(i.deviceFilter.filters) < 1 || i.deviceFilter.Match(io.Name) {
+		if len(i.deviceFilter.filters) < 1 || i.deviceFilter.Match(stat.Name) {
 			match = true
 		}
 
@@ -159,7 +159,7 @@ func (i *Input) Collect() error {
 		}
 		var devLinks []string
 
-		tags["name"], devLinks = i.diskName(io.Name)
+		tags["name"], devLinks = i.diskName(stat.Name)
 
 		if !match {
 			for _, devLink := range devLinks {
@@ -173,35 +173,40 @@ func (i *Input) Collect() error {
 			}
 		}
 
-		for t, v := range i.diskTags(io.Name) {
+		for t, v := range i.diskTags(stat.Name) {
 			tags[t] = v
 		}
 
 		if !i.SkipSerialNumber {
-			if len(io.SerialNumber) != 0 {
-				tags["serial"] = io.SerialNumber
+			if len(stat.SerialNumber) != 0 {
+				tags["serial"] = stat.SerialNumber
 			} else {
 				tags["serial"] = "unknown"
 			}
 		}
 
 		fields := map[string]interface{}{
-			"reads":            io.ReadCount,
-			"writes":           io.WriteCount,
-			"read_bytes":       io.ReadBytes,
-			"write_bytes":      io.WriteBytes,
-			"read_time":        io.ReadTime,
-			"write_time":       io.WriteTime,
-			"io_time":          io.IoTime,
-			"weighted_io_time": io.WeightedIO,
-			"iops_in_progress": io.IopsInProgress,
-			"merged_reads":     io.MergedReadCount,
-			"merged_writes":    io.MergedWriteCount,
+			"reads":            stat.ReadCount,
+			"writes":           stat.WriteCount,
+			"read_bytes":       stat.ReadBytes,
+			"write_bytes":      stat.WriteBytes,
+			"read_time":        stat.ReadTime,
+			"write_time":       stat.WriteTime,
+			"io_time":          stat.IoTime,
+			"weighted_io_time": stat.WeightedIO,
+			"iops_in_progress": stat.IopsInProgress,
+			"merged_reads":     stat.MergedReadCount,
+			"merged_writes":    stat.MergedWriteCount,
 		}
 		if i.lastStat != nil {
-			if v, ok := i.lastStat[io.Name]; ok && io.ReadBytes >= v.ReadBytes {
-				fields["read_bytes/sec"] = int64(io.ReadBytes-v.ReadBytes) / (ts.Unix() - i.lastTime.Unix())
-				fields["write_bytes/sec"] = int64(io.WriteBytes-v.WriteBytes) / (ts.Unix() - i.lastTime.Unix())
+			deltaTime := ts.Unix() - i.lastTime.Unix()
+			if v, ok := i.lastStat[stat.Name]; ok && deltaTime > 0 {
+				if stat.ReadBytes >= v.ReadBytes {
+					fields["read_bytes/sec"] = int64(stat.ReadBytes-v.ReadBytes) / deltaTime
+				}
+				if stat.WriteBytes >= v.WriteBytes {
+					fields["write_bytes/sec"] = int64(stat.WriteBytes-v.WriteBytes) / deltaTime
+				}
 			}
 		}
 		i.collectCache = append(i.collectCache, &diskioMeasurement{name: metricName, tags: tags, fields: fields, ts: ts})
@@ -222,7 +227,7 @@ func (i *Input) Run() {
 			start := time.Now()
 			i.collectCache = make([]inputs.Measurement, 0)
 			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(metricName, io.Metric, i.collectCache,
+				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
 					io.FeedLastError(inputName, errFeed.Error())
 					diskioLogger.Error(err)
