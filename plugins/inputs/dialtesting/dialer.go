@@ -95,8 +95,6 @@ func (d *dialer) run() error {
 			}
 		}
 	}
-
-	return nil
 }
 
 func (d *dialer) feedIo() error {
