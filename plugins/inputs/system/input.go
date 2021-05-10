@@ -33,12 +33,12 @@ const (
 `
 )
 
+var l = logger.DefaultSLogger(inputName)
+
 type Input struct {
 	Interval  datakit.Duration
 	Fielddrop []string
 	Tags      map[string]string
-
-	logger *logger.Logger
 
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr *systemMeasurement
@@ -146,9 +146,9 @@ func (i *Input) Collect() error {
 	if err == nil {
 		i.addField("n_users", len(users))
 	} else if os.IsNotExist(err) {
-		i.logger.Debugf("Reading users: %s", err.Error())
+		l.Debugf("Reading users: %s", err.Error())
 	} else if os.IsPermission(err) {
-		i.logger.Debug(err.Error())
+		l.Debug(err.Error())
 	}
 	uptime, err := host.Uptime()
 	if err == nil {
@@ -159,7 +159,8 @@ func (i *Input) Collect() error {
 }
 
 func (i *Input) Run() {
-	i.logger.Infof("system input started")
+	l = logger.SLogger(inputName)
+	l.Infof("system input started")
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
@@ -171,15 +172,15 @@ func (i *Input) Run() {
 				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
 					io.FeedLastError(inputName, errFeed.Error())
-					i.logger.Error(errFeed)
+					l.Error(errFeed)
 				}
 				// i.collectCache = make([]inputs.Measurement, 0)
 			} else {
 				io.FeedLastError(inputName, err.Error())
-				i.logger.Error(err)
+				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():
-			i.logger.Infof("system input exit")
+			l.Infof("system input exit")
 			return
 		}
 	}
@@ -188,7 +189,6 @@ func (i *Input) Run() {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			logger:   logger.SLogger(inputName),
 			Interval: datakit.Duration{Duration: time.Second * 10},
 		}
 	})
