@@ -128,7 +128,7 @@ func (s *Scanport) handle() {
 
 			lines = append(lines, pt)
 
-			err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+			err = io.NamedFeed([]byte(pt), datakit.Metric, inputName)
 			if err != nil {
 				l.Errorf("push metric point error %v", err)
 			}
