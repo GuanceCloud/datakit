@@ -87,7 +87,7 @@ func (n *NFSstat) Run() {
 				l.Error(err)
 				continue
 			}
-			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+			if err := io.NamedFeed(data, datakit.Metric, inputName); err != nil {
 				l.Error(err)
 				continue
 			}
