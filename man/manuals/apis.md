@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
-# 简介
+# Datakit API 文档
 
 本文档主要描述 DataKit 开放出来 HTTP API 接口。
 

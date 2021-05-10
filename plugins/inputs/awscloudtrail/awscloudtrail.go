@@ -173,7 +173,7 @@ func (r *AwsInstance) run(ctx context.Context) {
 					data, _ := io.MakeMetric(measurement, tags, fields, *evt.EventTime)
 					fmt.Printf("%s\n", string(data))
 				} else {
-					io.NamedFeedEx(inputName, io.Metric, measurement, tags, fields, *evt.EventTime)
+					io.NamedFeedEx(inputName, datakit.Metric, measurement, tags, fields, *evt.EventTime)
 				}
 			}
 
