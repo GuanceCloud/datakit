@@ -56,7 +56,7 @@
 - `filter_message` 为匹配日志文本的正则表达式，该参数类型是字符串数组，只要任意一个正则匹配成功，则使用后续的 `source`、`service` 和 `pipeline` 参数。[正则表达式文档](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
 - `source` 指定数据来源，如果为空值，则默认使用容器名
 - `service` 指定该条日志的服务名，如果为空值，则使用 `source` 字段值
-- `pipeline` 只需写文件名即可，不需要写全路径，使用方式见[文档](./pipeline)。当此值为空值或该文件不存在时，将不使用 pipeline 功能
+- `pipeline` 只需写文件名即可，不需要写全路径，使用方式见[文档](pipeline)。当此值为空值或该文件不存在时，将不使用 pipeline 功能
 
 **使用 pipeline 功能时，取其中的 `time` 字段作为此条数据的产生时间。如果没有 `time` 字段或解析此字段失败，默认使用数据采集到的时间**
 
