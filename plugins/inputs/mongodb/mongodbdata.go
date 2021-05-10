@@ -29,9 +29,9 @@ type MongodbData struct {
 	StatLine      *StatLine
 	Tags          map[string]string
 	Fields        map[string]interface{}
+	ShardHostData []DbData
 	DbData        []DbData
 	ColData       []ColData
-	ShardHostData []DbData
 	TopStatsData  []DbData
 	collectCache  []inputs.Measurement
 	collectCost   time.Duration
@@ -53,7 +53,6 @@ func NewMongodbData(statLine *StatLine, tags map[string]string, cost time.Durati
 		StatLine:    statLine,
 		Tags:        tags,
 		Fields:      make(map[string]interface{}),
-		DbData:      []DbData{},
 		collectCost: cost,
 	}
 }
@@ -182,55 +181,54 @@ func (d *MongodbData) append() {
 	now := time.Now()
 	d.collectCache = append(d.collectCache, &mongodbMeasurement{
 		name:   "mongodb",
-		tags:   d.Tags,
+		tags:   copyTags(d.Tags),
 		fields: d.Fields,
 		ts:     now,
 	})
-	// d.Fields = make(map[string]interface{})
 
 	for _, db := range d.DbData {
-		d.Tags["db_name"] = db.Name
+		tmp := copyTags(d.Tags)
+		tmp["db_name"] = db.Name
 		d.collectCache = append(d.collectCache, &mongodbMeasurement{
 			name:   "mongodb_db_stats",
-			tags:   d.Tags,
+			tags:   tmp,
 			fields: db.Fields,
 			ts:     now,
 		})
-		// db.Fields = make(map[string]interface{})
 	}
 
 	for _, col := range d.ColData {
-		d.Tags["collection"] = col.Name
-		d.Tags["db_name"] = col.DbName
+		tmp := copyTags(d.Tags)
+		tmp["collection"] = col.Name
+		tmp["db_name"] = col.DbName
 		d.collectCache = append(d.collectCache, &mongodbMeasurement{
 			name:   "mongodb_col_stats",
-			tags:   d.Tags,
+			tags:   tmp,
 			fields: col.Fields,
 			ts:     now,
 		})
-		// col.Fields = make(map[string]interface{})
 	}
 
 	for _, host := range d.ShardHostData {
-		d.Tags["hostname"] = host.Name
+		tmp := copyTags(d.Tags)
+		tmp["hostname"] = host.Name
 		d.collectCache = append(d.collectCache, &mongodbMeasurement{
 			name:   "mongodb_shard_stats",
-			tags:   d.Tags,
+			tags:   tmp,
 			fields: host.Fields,
 			ts:     now,
 		})
-		// host.Fields = make(map[string]interface{})
 	}
 
 	for _, col := range d.TopStatsData {
-		d.Tags["collection"] = col.Name
+		tmp := copyTags(d.Tags)
+		tmp["collection"] = col.Name
 		d.collectCache = append(d.collectCache, &mongodbMeasurement{
 			name:   "mongodb_top_stats",
-			tags:   d.Tags,
+			tags:   tmp,
 			fields: col.Fields,
 			ts:     now,
 		})
-		// col.Fields = make(map[string]interface{})
 	}
 }
 
@@ -240,4 +238,13 @@ func (d *MongodbData) flush() {
 			l.Error(err)
 		}
 	}
+}
+
+func copyTags(tags map[string]string) map[string]string {
+	tmp := make(map[string]string)
+	for k, v := range tags {
+		tmp[k] = v
+	}
+
+	return tmp
 }
