@@ -39,15 +39,16 @@ var (
 	flagVersion = flag.BoolP("version", "v", false, `show version info`)
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
-	// tool-commands supported in datakit
-	flagCmd      = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagCmdDeprecated = flag.Bool("cmd", false, "run datakit under command line mode")
+	flagPipeline      = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagText          = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
 
-	flagGrokq           = flag.Bool("grokq", false, "query groks interactively")
-	flagMan             = flag.Bool("man", false, "read manuals of inputs")
-	flagUpdate          = flag.Bool("update", false, "update datakit new version if available")
-	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "during OTA, accept RC version if available")
+	flagGrokq = flag.Bool("grokq", false, "query groks interactively")
+	flagMan   = flag.Bool("man", false, "read manuals of inputs")
+
+	flagCheckUpdate     = flag.Bool("check-update", false, "check if new verison available")
+	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "during update, accept RC version if available")
+	flagUpdateLogFile   = flag.String("update-log", "", "update history log file")
 
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
 
@@ -188,10 +189,12 @@ ReleasedInputs: %s
 		os.Exit(0)
 	}
 
-	if *flagUpdate {
+	if *flagCheckUpdate {
 
-		logger.SetGlobalRootLogger(datakit.OTALogFile, logger.DEBUG, logger.OPT_DEFAULT)
-		l = logger.SLogger("ota")
+		if *flagUpdateLogFile != "" {
+			logger.SetGlobalRootLogger(*flagUpdateLogFile, logger.DEBUG, logger.OPT_DEFAULT)
+		}
+		l = logger.SLogger("ota-update")
 
 		install.Init()
 
@@ -204,24 +207,24 @@ ReleasedInputs: %s
 
 		ver := vers["Online"]
 
-		l.Debugf("online version: %v", ver)
-
 		curver, err := getLocalVersion()
 		if err != nil {
 			l.Errorf("Get online version failed: \n%s\n", err.Error())
 			os.Exit(-1)
 		}
 
+		l.Debugf("online version: %v, local version: %v", ver, curver)
+
 		if ver != nil && isNewVersion(ver, curver, *flagAcceptRCVersion) {
 			l.Infof("New online version available: %s, commit %s (release at %s)",
 				ver.version, ver.Commit, ver.ReleaseDate)
-			if err := tryOTAUpdate(ver.VersionString); err != nil {
-				l.Errorf("OTA failed: %s", err.Error())
-				os.Exit(-1)
-			}
-			l.Infof("OTA success, new verison is %s", ver.VersionString)
+			os.Exit(42)
 		} else {
-			l.Infof("OTA up to date(%s)", curver.VersionString)
+			if *flagAcceptRCVersion {
+				l.Infof("Up to date(%s)", curver.VersionString)
+			} else {
+				l.Infof("Up to date(%s), RC version skipped", curver.VersionString)
+			}
 		}
 
 		os.Exit(0)
@@ -331,7 +334,7 @@ func isRoot() bool {
 }
 
 func runDatakitWithCmd() {
-	if *flagCmd {
+	if *flagCmdDeprecated {
 		l.Warn("--cmd parameter has been discarded")
 	}
 
@@ -531,33 +534,6 @@ func isNewVersion(newVer, curver *datakitVerInfo, acceptRC bool) bool {
 	}
 
 	return false
-}
-
-func tryOTAUpdate(ver string) error {
-	baseURL := "static.dataflux.cn/datakit"
-
-	datakitUrl := "https://" + path.Join(baseURL,
-		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, ver))
-
-	dataUrl := "https://" + path.Join(baseURL, "data.tar.gz")
-
-	l.Debugf("downloading %s to %s...", datakitUrl, datakit.InstallDir)
-	if err := install.Download(datakitUrl, datakit.InstallDir, false, false); err != nil {
-		return err
-	}
-
-	l.Debugf("downloading %s to %s...", dataUrl, datakit.InstallDir)
-	if err := install.Download(dataUrl, datakit.InstallDir, false, false); err != nil {
-		l.Errorf("download %s failed: %v, ignored", dataUrl, err)
-	}
-
-	svc, err := datakit.NewService()
-	if err != nil {
-		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
-		return err
-	}
-
-	return install.UpgradeDatakit(svc)
 }
 
 func checkIsRuning() bool {
