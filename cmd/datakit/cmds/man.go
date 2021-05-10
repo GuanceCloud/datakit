@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	markdown "github.com/MichaelMure/go-term-markdown"
@@ -15,6 +16,12 @@ import (
 )
 
 func Man() {
+
+	switch runtime.GOOS {
+	case "windows":
+		fmt.Println("\n[E] --man do not support Windows")
+		return
+	}
 
 	// load input-names
 	for k, _ := range inputs.Inputs {
