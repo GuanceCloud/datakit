@@ -27,7 +27,7 @@ const (
 )
 
 type DataWayCfg struct {
-	DeprecatedURL    string   `toml:"url"`
+	DeprecatedURL    string   `toml:"url,omitempty"`
 	Urls             []string `toml:"urls"`
 	Proxy            bool     `toml:"proxy,omitempty"`
 	DeprecatedHost   string   `toml:"host,omitempty"`
@@ -35,7 +35,7 @@ type DataWayCfg struct {
 	DeprecatedToken  string   `toml:"token,omitempty"`
 	dataWayClients   []*dataWayClient
 	httpCli          *http.Client
-	HTTPTimeout      time.Duration
+	HTTPTimeout      string `toml:"timeout"`
 	HttpProxy        string `toml:"http_proxy"`
 }
 
@@ -234,8 +234,17 @@ func (dw *DataWayCfg) GetToken() []string {
 func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 	dw := Cfg.MainCfg.DataWay
 
+	if dw.HTTPTimeout == "" {
+		dw.HTTPTimeout = "5s"
+	}
+
+	timeout, err := time.ParseDuration(dw.HTTPTimeout)
+	if err != nil {
+		return nil, err
+	}
+
 	dw.httpCli = &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: timeout,
 	}
 
 	if dw.HttpProxy != "" {
@@ -260,6 +269,7 @@ func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 	for _, httpurl := range httpurls {
 		u, err := url.Parse(httpurl)
 		if err == nil {
+			dw.Urls = append(dw.Urls, httpurl)
 			dataWayCli := &dataWayClient{}
 
 			dataWayCli.url = httpurl
