@@ -51,14 +51,15 @@ var (
 
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
 
-	flagInstallExternal = flag.String("install", "", "install external tool/software")
-	flagStart           = flag.Bool("start", false, "start datakit")
-	flagStop            = flag.Bool("stop", false, "stop datakit")
-	flagRestart         = flag.Bool("restart", false, "restart datakit")
-	flagReload          = flag.Bool("reload", false, "reload datakit")
-	flagReloadPort      = flag.Int("reload-port", 9529, "datakit http server port")
-	flagExportMan       = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
-	flagIgnoreMans      = flag.String("ignore-manuals", "", "disable exporting specified manuals, i.e., --ignore-manuals nginx,redis,mem")
+	flagInstallExternal   = flag.String("install", "", "install external tool/software")
+	flagStart             = flag.Bool("start", false, "start datakit")
+	flagStop              = flag.Bool("stop", false, "stop datakit")
+	flagRestart           = flag.Bool("restart", false, "restart datakit")
+	flagReload            = flag.Bool("reload", false, "reload datakit")
+	flagReloadPort        = flag.Int("reload-port", 9529, "datakit http server port")
+	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
+	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
+	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
 
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 )
@@ -75,8 +76,6 @@ const (
 
 func main() {
 	flag.CommandLine.MarkHidden("cmd") // deprecated
-
-	flag.CommandLine.MarkHidden("install") // 1.1.6-rc1 再发布
 
 	// un-documented options
 	flag.CommandLine.MarkHidden("show-testing-version")
@@ -351,7 +350,14 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagExportMan != "" {
-		if err := cmds.ExportMan(*flagExportMan, *flagIgnoreMans); err != nil {
+		if err := cmds.ExportMan(*flagExportMan, *flagIgnore); err != nil {
+			l.Error(err)
+		}
+		os.Exit(0)
+	}
+
+	if *flagExportIntegration != "" {
+		if err := cmds.ExportIntegration(*flagExportIntegration, *flagIgnore); err != nil {
 			l.Error(err)
 		}
 		os.Exit(0)
