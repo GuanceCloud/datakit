@@ -5,6 +5,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -109,13 +110,18 @@ func (i *Input) Run() {
 
 		select {
 		case <-tick.C:
+			if !election.CurrentStats().IsLeader() {
+				l.Debugf("demo input not leader, skip doing gather")
+				continue
+			}
+
 			l.Debugf("demo input gathering...")
 			start := time.Now()
 			if err := i.Collect(); err != nil {
 				l.Error(err)
 			} else {
 
-				inputs.FeedMeasurement(inputName, io.Metric, i.collectCache,
+				inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)})
 
 				i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache

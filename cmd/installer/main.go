@@ -47,9 +47,7 @@ var (
 	flagCfgTemplate = flag.String("conf-tmpl", "", `specify input config templates, can be file path or url, e.g, http://res.dataflux.cn/datakit/conf`)
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
-	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./agent-%s-%s.tar.gz",
-		runtime.GOOS, runtime.GOARCH, DataKitVersion, runtime.GOOS, runtime.GOARCH),
-		`local path of datakit and agent install files`)
+	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
 )
 
 const (
@@ -138,9 +136,13 @@ func main() {
 		l.Info(":) Install Success!")
 	}
 
-	fmt.Printf("\n\tVisit http://localhost:%d/stats to see DataKit running status.\n", *flagPort)
-	fmt.Printf("\tVisit http://localhost:%d/man to see DataKit manuals.\n", *flagPort)
-	fmt.Printf("\tVisit http://localhost:%d/man?input=changelog to see DataKit change logs.\n\n", *flagPort)
+	promptReferences()
+}
+
+func promptReferences() {
+	fmt.Printf("\n\tVisit http://localhost:%d/man/changelog to see DataKit change logs.\n", *flagPort)
+	fmt.Printf("\tVisit http://localhost:%d/stats to see DataKit running status.\n", *flagPort)
+	fmt.Printf("\tVisit http://localhost:%d/man to see DataKit manuals.\n\n", *flagPort)
 }
 
 func applyFlags() {

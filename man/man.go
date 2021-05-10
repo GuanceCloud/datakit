@@ -17,13 +17,23 @@ var (
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
 		// all manuals under man/manuals/
-		"pipeline":       "pipeline.md",
-		"telegraf":       "telegraf.md",
-		"changelog":      "man/manuals/changelog.md",
-		"datatypes":      "man/manuals/datatypes.md",
-		"apis":           "man/manuals/apis.md",
-		"sec-checker":    "man/manuals/sec-checker.md",
-		"datakit-how-to": "man/manuals/datakit-how-to.md",
+		"apis":                    "man/manuals/apis.md",
+		"changelog":               "man/manuals/changelog.md",
+		"datakit-arch":            "man/manuals/datakit-arch.md",
+		"datakit-batch-deploy":    "man/manuals/datakit-batch-deploy.md",
+		"datakit-docker-install":  "man/manuals/datakit-docker-install.md",
+		"datakit-how-to":          "man/manuals/datakit-how-to.md",
+		"datakit-install":         "man/manuals/datakit-install.md",
+		"datakit-offline-install": "man/manuals/datakit-offline-install.md",
+		"datakit-on-public":       "man/manuals/datakit-on-public.md",
+		"datatypes":               "man/manuals/datatypes.md",
+		"dataway":                 "man/manuals/dataway.md",
+		"election":                "man/manuals/election.md",
+		"pipeline":                "man/manuals/pipeline.md",
+		"prometheus":              "man/manuals/prometheus.md",
+		"proxy":                   "man/manuals/proxy.md",
+		"sec-checker":             "man/manuals/sec-checker.md",
+		"telegraf":                "man/manuals/telegraf.md",
 	}
 
 	l = logger.DefaultSLogger("man")
@@ -45,7 +55,9 @@ func Get(name string) (string, error) {
 }
 
 type Option struct {
-	WithCSS bool
+	WithCSS                       bool
+	IgnoreMissing                 bool
+	DisableMonofontOnTagFieldName bool
 }
 
 func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
@@ -56,6 +68,10 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 
 	if !opt.WithCSS {
 		css = ""
+	}
+
+	if opt.DisableMonofontOnTagFieldName {
+		inputs.MonofontOnTagFieldName = false
 	}
 
 	if _, ok := OtherDocs[name]; ok {
@@ -94,7 +110,12 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 
 	md, err := Get(name)
 	if err != nil {
-		return nil, err
+		if !opt.IgnoreMissing {
+			return nil, err
+		} else {
+			l.Warn(err)
+			return nil, nil
+		}
 	}
 	temp, err := template.New(name).Parse(md)
 	if err != nil {
