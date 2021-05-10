@@ -17,7 +17,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
@@ -132,20 +131,10 @@ func (this *Input) tailContainerLogs(ctx context.Context, container types.Contai
 	// If the container is *not* using a TTY, streams for stdout and stderr are
 	// multiplexed.
 
-	for _, opt := range this.LogOption {
-		if opt.nameCompile != nil && opt.nameCompile.MatchString(containerName) {
-			if hasTTY {
-				return tailStream(logReader, "tty", container, opt, tags)
-			} else {
-				return tailMultiplexed(logReader, container, opt, tags)
-			}
-		}
-	}
-
 	if hasTTY {
-		return tailStream(logReader, "tty", container, nil, tags)
+		return tailStream(logReader, "tty", container, this.LogFilters, tags)
 	} else {
-		return tailMultiplexed(logReader, container, nil, tags)
+		return tailMultiplexed(logReader, container, this.LogFilters, tags)
 	}
 
 }
@@ -160,7 +149,7 @@ func (this *Input) hasTTY(ctx context.Context, container types.Container) (bool,
 	return c.Config.Tty, nil
 }
 
-func tailStream(reader io.ReadCloser, stream string, container types.Container, opt *LogOption, baseTags map[string]string) error {
+func tailStream(reader io.ReadCloser, stream string, container types.Container, logFilters LogFilters, baseTags map[string]string) error {
 	defer reader.Close()
 
 	tags := make(map[string]string, len(baseTags)+1)
@@ -184,7 +173,9 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 			continue
 		}
 
-		ts, message, err := parseLine(line)
+		// 第一个参数为 docker 返回的该条日志的产生时间，此处弃用
+		// 使用 pipeline 切割所得时间
+		_, message, err := parseLine(line)
 		if err != nil {
 			l.Error(err)
 			continue
@@ -193,32 +184,36 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 		containerName := getContainerName(container.Names)
 		// default measurement is containerName, if source not empty use $source.
 		var measurement = containerName
-		var fields = map[string]interface{}{
-			"service":         containerName,
-			"from_kubernetes": contianerIsFromKubernetes(containerName),
+		var fields = make(map[string]interface{})
+
+		for _, lf := range logFilters {
+			if lf.MatchMessage(message) {
+				if lf.Source != "" {
+					measurement = lf.Source
+				}
+
+				var err error
+				fields, err = lf.RunPipeline(message)
+				if err != nil {
+					l.Debug(err)
+				}
+
+				if lf.Service != "" {
+					fields["service"] = lf.Service
+				}
+				break
+			}
 		}
 
-		// l.Debugf("get %d bytes from source: %s", len(message), measurement)
-		if opt != nil {
-			if pipe := opt.pipelinePool.Get(); pipe != nil {
-				fields, err = pipe.(*pipeline.Pipeline).Run(message).Result()
-				if err != nil {
-					l.Errorf("run pipeline error, %s", err)
-				}
-			} else {
-				// 当 opt 存在但 pipeline 不存在时，执行默认操作
-				// 与经过 pipeline 处理但是失败后，返回的 fields 相同，只有一个 message
-				fields["message"] = message
-			}
-			if opt.Source != "" {
-				measurement = opt.Source
-			}
-			if opt.Service != "" {
-				fields["service"] = opt.Service
-			}
-		} else {
+		// 没有对应的 logFilters
+		if len(fields) == 0 {
+			fields["service"] = containerName
 			fields["message"] = message
 		}
+		// 额外添加
+		fields["from_kubernetes"] = contianerIsFromKubernetes(containerName)
+
+		// l.Debugf("get %d bytes from source: %s", len(message), measurement)
 
 		if err := checkFieldsLength(fields, maxFieldsLength); err != nil {
 			// 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
@@ -229,7 +224,8 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 
 		addStatus(fields)
 
-		ts, err = takeTime(fields)
+		// pipeline切割的日志时间
+		ts, err := takeTime(fields)
 		if err != nil {
 			ts = time.Now()
 			l.Error(err)
@@ -246,7 +242,7 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 	}
 }
 
-func tailMultiplexed(src io.ReadCloser, container types.Container, opt *LogOption, baseTags map[string]string) error {
+func tailMultiplexed(src io.ReadCloser, container types.Container, lf LogFilters, baseTags map[string]string) error {
 	outReader, outWriter := io.Pipe()
 	errReader, errWriter := io.Pipe()
 
@@ -254,7 +250,7 @@ func tailMultiplexed(src io.ReadCloser, container types.Container, opt *LogOptio
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := tailStream(outReader, "stdout", container, opt, baseTags)
+		err := tailStream(outReader, "stdout", container, lf, baseTags)
 		if err != nil {
 			l.Error(err)
 		}
@@ -263,7 +259,7 @@ func tailMultiplexed(src io.ReadCloser, container types.Container, opt *LogOptio
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := tailStream(errReader, "stderr", container, opt, baseTags)
+		err := tailStream(errReader, "stderr", container, lf, baseTags)
 		if err != nil {
 			l.Error(err)
 		}
