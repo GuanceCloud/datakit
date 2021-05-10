@@ -205,7 +205,7 @@ func (ag *objectAgent) parseObject(obj interface{}, class, id string, pipeline *
 	}
 	fields["message"] = message
 
-	io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
+	io.NamedFeedEx(inputName, datakit.Object, class, tags, fields, time.Now().UTC())
 }
 
 func init() {
