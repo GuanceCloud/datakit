@@ -10,6 +10,7 @@ import (
 
 	"github.com/ugorji/go/codec"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
@@ -180,7 +181,7 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 		}
 	}
 
-	return dkio.Feed(inputName, dkio.Tracing, pts, &dkio.Option{HighFreq: true})
+	return dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true})
 }
 
 func unmarshalDdtraceMsgpack(body io.ReadCloser) ([][]*Span, error) {

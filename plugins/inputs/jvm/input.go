@@ -81,7 +81,7 @@ func (j *JolokiaAgent) Collect() {
 				io.FeedLastError(j.PluginName, err.Error())
 				j.l.Error(err)
 			} else {
-				inputs.FeedMeasurement(j.PluginName, io.Metric, j.collectCache,
+				inputs.FeedMeasurement(j.PluginName, datakit.Metric, j.collectCache,
 					&io.Option{CollectCost: time.Since(start), HighFreq: false})
 
 				j.collectCache = j.collectCache[:] // NOTE: do not forget to clean cache
