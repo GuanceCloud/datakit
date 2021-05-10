@@ -103,7 +103,7 @@ func (p *StatsdParams) getMetrics(isTest bool) ([]byte, error) {
 	}
 
 	if !isTest {
-		err = p.output.IoFeed(pt, io.Metric, inputName)
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
 	}
 
 	return pt, err
@@ -113,7 +113,7 @@ ERR:
 	pt, _ = io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 
 	if !isTest {
-		err = p.output.IoFeed(pt, io.Metric, inputName)
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
 	}
 	return pt, err
 }
@@ -158,6 +158,6 @@ func (p *StatsdParams) reportNotUp() error {
 	if err != nil {
 		return err
 	}
-	err = p.output.IoFeed(pt, io.Metric, inputName)
+	err = p.output.IoFeed(pt, datakit.Metric, inputName)
 	return err
 }
