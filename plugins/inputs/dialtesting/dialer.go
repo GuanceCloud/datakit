@@ -95,8 +95,6 @@ func (d *dialer) run() error {
 			}
 		}
 	}
-
-	return nil
 }
 
 func (d *dialer) feedIo() error {
@@ -122,7 +120,7 @@ func (d *dialer) feedIo() error {
 		return err
 	}
 
-	u.Path = u.Path + datakit.Logging // `/v1/write/logging`
+	u.Path = u.Path + "v1/write/" + datakit.Logging // `/v1/write/logging`
 
 	err = Feed(inputName, datakit.Logging, data, &io.Option{
 		HTTPHost: u.String(),
