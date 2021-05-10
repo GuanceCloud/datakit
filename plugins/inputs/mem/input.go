@@ -29,12 +29,13 @@ const (
 `
 )
 
+var l = logger.DefaultSLogger(inputName)
+
 type Input struct {
 	Interval     datakit.Duration
 	Tags         map[string]string
 	collectCache []inputs.Measurement
 
-	logger   *logger.Logger
 	vmStat   VMStat
 	platform string
 }
@@ -165,7 +166,8 @@ func (i *Input) Collect() error {
 }
 
 func (i *Input) Run() {
-	i.logger.Infof("memory input started")
+	l = logger.SLogger(inputName)
+	l.Infof("memory input started")
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
@@ -177,14 +179,14 @@ func (i *Input) Run() {
 				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
 					io.FeedLastError(inputName, errFeed.Error())
-					i.logger.Error(errFeed)
+					l.Error(errFeed)
 				}
 			} else {
 				io.FeedLastError(inputName, err.Error())
-				i.logger.Error(err)
+				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():
-			i.logger.Infof("memory input exit")
+			l.Infof("memory input exit")
 			return
 		}
 	}
@@ -211,7 +213,6 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			logger:   logger.SLogger(inputName),
 			platform: runtime.GOOS,
 			vmStat:   VirtualMemoryStat,
 			Interval: datakit.Duration{Duration: time.Second * 10},

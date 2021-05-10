@@ -232,12 +232,12 @@ func HttpStart() {
 	// ansible api
 	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
 
-	router.POST(datakit.Metric, func(c *gin.Context) { apiWriteMetric(c) })
-	router.POST(datakit.Object, func(c *gin.Context) { apiWriteObject(c) })
-	router.POST(datakit.Logging, func(c *gin.Context) { apiWriteLogging(c) })
-	router.POST(datakit.Tracing, func(c *gin.Context) { apiWriteTracing(c) })
-	router.POST(datakit.Security, func(c *gin.Context) { apiWriteSecurity(c) })
-	router.POST(datakit.Telegraf, func(c *gin.Context) { apiWriteTelegraf(c) })
+	router.POST("/v1/write/metric", func(c *gin.Context) { apiWriteMetric(c) })
+	router.POST("/v1/write/object", func(c *gin.Context) { apiWriteObject(c) })
+	router.POST("/v1/write/logging", func(c *gin.Context) { apiWriteLogging(c) })
+	router.POST("/v1/write/tracing", func(c *gin.Context) { apiWriteTracing(c) })
+	router.POST("/v1/write/security", func(c *gin.Context) { apiWriteSecurity(c) })
+	router.POST("/v1/write/telegraf", func(c *gin.Context) { apiWriteTelegraf(c) })
 
 	srv := &http.Server{
 		Addr:    httpBind,
