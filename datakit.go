@@ -40,11 +40,10 @@ var (
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
-	OTALogFile = filepath.Join(InstallDir, "ota.log")
-	UUIDFile   = filepath.Join(InstallDir, ".id")
-	DataDir    = filepath.Join(InstallDir, "data")
-	LuaDir     = filepath.Join(InstallDir, "lua")
-	ConfdDir   = filepath.Join(InstallDir, "conf.d")
+	UUIDFile = filepath.Join(InstallDir, ".id")
+	DataDir  = filepath.Join(InstallDir, "data")
+	LuaDir   = filepath.Join(InstallDir, "lua")
+	ConfdDir = filepath.Join(InstallDir, "conf.d")
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
