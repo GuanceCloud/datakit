@@ -29,15 +29,15 @@ const (
 )
 
 type MongoStatus struct {
-	ServerStatus  *ServerStatus
-	ReplSetStats  *ReplSetStats
-	OplogStats    *OplogStats
-	ClusterStatus *ClusterStatus
-	ShardStats    *ShardStats
-	DbStats       *DbStats
-	ColStats      *ColStats
-	TopStats      *TopStats
-	SampleTime    time.Time
+	ServerStatus *ServerStatus
+	ReplSetStats *ReplSetStats
+	OplogStats   *OplogStats
+	ClusterStats *ClusterStats
+	ShardStats   *ShardStats
+	DbStats      *DbStats
+	ColStats     *ColStats
+	TopStats     *TopStats
+	SampleTime   time.Time
 }
 
 type ServerStatus struct {
@@ -62,7 +62,7 @@ type ServerStatus struct {
 	OpLatencies        *OpLatenciesStats      `bson:"opLatencies"`
 	RecordStats        *DBRecordStats         `bson:"recordStats"`
 	Mem                *MemStats              `bson:"mem"`
-	Repl               *ReplStatus            `bson:"repl"`
+	Repl               *ReplStat              `bson:"repl"`
 	ShardCursorType    map[string]interface{} `bson:"shardCursorType"`
 	StorageEngine      map[string]string      `bson:"storageEngine"`
 	WiredTiger         *WiredTiger            `bson:"wiredTiger"`
@@ -116,15 +116,15 @@ type ColStatsData struct {
 	Ok             int64   `bson:"ok"`
 }
 
-// ClusterStatus stores information related to the whole cluster
-type ClusterStatus struct {
-	JumboChunksCount int64
-}
-
 // ReplSetStats stores information from replSetGetStatus
 type ReplSetStats struct {
 	Members []ReplSetMember `bson:"members"`
 	MyState int64           `bson:"myState"`
+}
+
+// ClusterStats stores information related to the whole cluster
+type ClusterStats struct {
+	JumboChunksCount int64
 }
 
 // OplogStatus stores information from getReplicationInfo
@@ -244,8 +244,8 @@ type TransactionStats struct {
 	TransCheckpoints               int64 `bson:"transaction checkpoints"`
 }
 
-// ReplStatus stores data related to replica sets.
-type ReplStatus struct {
+// ReplStat stores data related to replica sets.
+type ReplStat struct {
 	SetName      interface{} `bson:"setName"`
 	IsMaster     interface{} `bson:"ismaster"`
 	Secondary    interface{} `bson:"secondary"`
@@ -926,7 +926,7 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 		Faults:    -1,
 	}
 
-	returnVal.UptimeNanos = 1000 * 1000 * newStat.UptimeMillis
+	returnVal.UptimeNanos = newStat.UptimeMillis * int64(time.Millisecond)
 
 	// set connection info
 	returnVal.CurrentC = newStat.Connections.Current
@@ -1331,8 +1331,8 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 		}
 	}
 
-	if newMongo.ClusterStatus != nil {
-		newClusterStat := *newMongo.ClusterStatus
+	if newMongo.ClusterStats != nil {
+		newClusterStat := *newMongo.ClusterStats
 		returnVal.JumboChunksCount = newClusterStat.JumboChunksCount
 	}
 
