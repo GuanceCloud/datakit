@@ -27,8 +27,8 @@ func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
 
 type MongodbData struct {
 	StatLine      *StatLine
-	Fields        map[string]interface{}
 	Tags          map[string]string
+	Fields        map[string]interface{}
 	DbData        []DbData
 	ColData       []ColData
 	ShardHostData []DbData
