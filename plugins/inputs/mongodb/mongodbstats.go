@@ -30,7 +30,7 @@ const (
 
 type MongoStatus struct {
 	ServerStatus  *ServerStatus
-	ReplSetStatus *ReplSetStatus
+	ReplSetStats  *ReplSetStats
 	OplogStats    *OplogStats
 	ClusterStatus *ClusterStatus
 	ShardStats    *ShardStats
@@ -121,8 +121,8 @@ type ClusterStatus struct {
 	JumboChunksCount int64
 }
 
-// ReplSetStatus stores information from replSetGetStatus
-type ReplSetStatus struct {
+// ReplSetStats stores information from replSetGetStatus
+type ReplSetStats struct {
 	Members []ReplSetMember `bson:"members"`
 	MyState int64           `bson:"myState"`
 }
@@ -636,6 +636,48 @@ type LockStatus struct {
 	Global     bool
 }
 
+type ShardHostStatLine struct {
+	InUse      int64
+	Available  int64
+	Created    int64
+	Refreshing int64
+}
+type DbStatLine struct {
+	Name        string
+	Collections int64
+	Objects     int64
+	AvgObjSize  float64
+	DataSize    int64
+	StorageSize int64
+	NumExtents  int64
+	Indexes     int64
+	IndexSize   int64
+	Ok          int64
+}
+type ColStatLine struct {
+	Name           string
+	DbName         string
+	Count          int64
+	Size           int64
+	AvgObjSize     float64
+	StorageSize    int64
+	TotalIndexSize int64
+	Ok             int64
+}
+
+type TopStatLine struct {
+	CollectionName                string
+	TotalTime, TotalCount         int64
+	ReadLockTime, ReadLockCount   int64
+	WriteLockTime, WriteLockCount int64
+	QueriesTime, QueriesCount     int64
+	GetMoreTime, GetMoreCount     int64
+	InsertTime, InsertCount       int64
+	UpdateTime, UpdateCount       int64
+	RemoveTime, RemoveCount       int64
+	CommandsTime, CommandsCount   int64
+}
+
 // StatLine is a wrapper for all metrics reported by mongostat for monitored hosts.
 type StatLine struct {
 	Key string
@@ -821,49 +863,6 @@ type StatLine struct {
 	StorageFreelistSearchBucketExhausted int64
 	StorageFreelistSearchRequests        int64
 	StorageFreelistSearchScanned         int64
-}
-
-type DbStatLine struct {
-	Name        string
-	Collections int64
-	Objects     int64
-	AvgObjSize  float64
-	DataSize    int64
-	StorageSize int64
-	NumExtents  int64
-	Indexes     int64
-	IndexSize   int64
-	Ok          int64
-}
-type ColStatLine struct {
-	Name           string
-	DbName         string
-	Count          int64
-	Size           int64
-	AvgObjSize     float64
-	StorageSize    int64
-	TotalIndexSize int64
-	Ok             int64
-}
-
-type ShardHostStatLine struct {
-	InUse      int64
-	Available  int64
-	Created    int64
-	Refreshing int64
-}
-
-type TopStatLine struct {
-	CollectionName                string
-	TotalTime, TotalCount         int64
-	ReadLockTime, ReadLockCount   int64
-	WriteLockTime, WriteLockCount int64
-	QueriesTime, QueriesCount     int64
-	GetMoreTime, GetMoreCount     int64
-	InsertTime, InsertCount       int64
-	UpdateTime, UpdateCount       int64
-	RemoveTime, RemoveCount       int64
-	CommandsTime, CommandsCount   int64
 }
 
 func parseLocks(stat ServerStatus) map[string]LockUsage {
@@ -1291,8 +1290,8 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 		returnVal.NumConnections = newStat.Connections.Current
 	}
 
-	if newMongo.ReplSetStatus != nil {
-		newReplStat := *newMongo.ReplSetStatus
+	if newMongo.ReplSetStats != nil {
+		newReplStat := *newMongo.ReplSetStats
 
 		if newReplStat.Members != nil {
 			myName := newStat.Repl.Me
