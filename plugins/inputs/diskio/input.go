@@ -217,6 +217,7 @@ func (i *Input) Collect() error {
 }
 
 func (i *Input) Run() {
+	l = logger.SLogger(inputName)
 	l.Infof("diskio input started")
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
@@ -230,12 +231,11 @@ func (i *Input) Run() {
 				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
 					io.FeedLastError(inputName, errFeed.Error())
-					l.Error(err)
+					l.Error(errFeed)
 				}
 			} else {
 				l.Error(err)
 				io.FeedLastError(inputName, err.Error())
-				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():
 			l.Infof("diskio input exit")
