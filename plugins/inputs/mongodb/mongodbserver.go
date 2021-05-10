@@ -103,13 +103,13 @@ func (s *Server) gatherOplogStats() (*OplogStats, error) {
 	return s.getOplogReplLag("oplog.$main")
 }
 
-func (s *Server) gatherClusterStats() (*ClusterStatus, error) {
+func (s *Server) gatherClusterStats() (*ClusterStats, error) {
 	chunkCount, err := s.Session.DB("config").C("chunks").Find(bson.M{"jumbo": true}).Count()
 	if err != nil {
 		return nil, err
 	}
 
-	return &ClusterStatus{JumboChunksCount: int64(chunkCount)}, nil
+	return &ClusterStats{JumboChunksCount: int64(chunkCount)}, nil
 }
 
 func (s *Server) gatherShardConnPoolStats() (*ShardStats, error) {
@@ -230,13 +230,13 @@ func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool,
 		}
 	}
 
-	var clusterStatus *ClusterStatus
+	var clusterStats *ClusterStats
 	if gatherClusterStats {
 		status, err := s.gatherClusterStats()
 		if err != nil {
 			l.Debugf("Unable to gather cluster status: %q", err.Error())
 		}
-		clusterStatus = status
+		clusterStats = status
 	}
 
 	shardStats, err := s.gatherShardConnPoolStats()
@@ -285,14 +285,14 @@ func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool,
 	}
 
 	result := &MongoStatus{
-		ServerStatus:  serverStatus,
-		ReplSetStats:  ReplSetStats,
-		OplogStats:    oplogStats,
-		ClusterStatus: clusterStatus,
-		ShardStats:    shardStats,
-		DbStats:       dbStats,
-		ColStats:      collectionStats,
-		TopStats:      topStatData,
+		ServerStatus: serverStatus,
+		ReplSetStats: ReplSetStats,
+		OplogStats:   oplogStats,
+		ClusterStats: clusterStats,
+		ShardStats:   shardStats,
+		DbStats:      dbStats,
+		ColStats:     collectionStats,
+		TopStats:     topStatData,
 	}
 
 	result.SampleTime = time.Now()
@@ -305,9 +305,9 @@ func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool,
 
 		data := NewMongodbData(NewStatLine(*s.lastResult, *result, s.URL.Host, true, durationInSeconds), s.getDefaultTags(), duration)
 		data.AddDefaultStats()
+		data.AddShardHostStats()
 		data.AddDbStats()
 		data.AddColStats()
-		data.AddShardHostStats()
 		data.AddTopStats()
 		data.append()
 		data.flush()
