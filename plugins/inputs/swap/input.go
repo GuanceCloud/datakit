@@ -18,7 +18,7 @@ const (
 var (
 	inputName  = "swap"
 	metricName = inputName
-	swapLogger = logger.SLogger(inputName)
+	l          = logger.DefaultSLogger(inputName)
 	sampleCfg  = `
 [[inputs.swap]]
   ##(optional) collect interval, default is 10 seconds
@@ -122,7 +122,8 @@ func (i *Input) Collect() error {
 }
 
 func (i *Input) Run() {
-	swapLogger.Infof("system input started")
+	l = logger.SLogger(inputName)
+	l.Infof("system input started")
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
@@ -134,14 +135,14 @@ func (i *Input) Run() {
 				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
 					io.FeedLastError(inputName, errFeed.Error())
-					swapLogger.Error(errFeed)
+					l.Error(errFeed)
 				}
 			} else {
 				io.FeedLastError(inputName, err.Error())
-				swapLogger.Error(err)
+				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():
-			swapLogger.Infof("system input exit")
+			l.Infof("system input exit")
 			return
 		}
 	}
