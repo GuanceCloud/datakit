@@ -36,20 +36,18 @@ var (
 
 	flagInfo         = flag.Bool("info", false, "show installer info")
 	flagDownloadOnly = flag.Bool("download-only", false, `download datakit only, not install`)
-	flagOTA          = flag.Bool("ota", false, "upgraded by OTA")
 	flagInstallOnly  = flag.Bool("install-only", false, "install only, not start")
 
 	flagEnableInputs = flag.String("enable-inputs", "", `default enable inputs(comma splited, example: cpu,mem,disk)`)
 	flagDatakitName  = flag.String("name", "", `specify DataKit name, example: prod-env-datakit`)
 	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=__datakit_hostname,ip=__datakit_ip`)
 	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
+	flagInstallLog   = flag.String("install-log", "", "install log")
 
 	flagCfgTemplate = flag.String("conf-tmpl", "", `specify input config templates, can be file path or url, e.g, http://res.dataflux.cn/datakit/conf`)
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
-	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./agent-%s-%s.tar.gz",
-		runtime.GOOS, runtime.GOARCH, DataKitVersion, runtime.GOOS, runtime.GOARCH),
-		`local path of datakit and agent install files`)
+	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
 )
 
 const (
@@ -61,14 +59,24 @@ const (
 )
 
 func main() {
-	lopt := logger.OPT_DEFAULT | logger.OPT_STDOUT
-	if runtime.GOOS != "windows" { // disable color on windows(some color not working under windows)
-		lopt |= logger.OPT_COLOR
-	}
-
-	logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
 
 	flag.Parse()
+
+	if *flagInstallLog == "" {
+		lopt := logger.OPT_DEFAULT | logger.OPT_STDOUT
+		if runtime.GOOS != "windows" { // disable color on windows(some color not working under windows)
+			lopt |= logger.OPT_COLOR
+		}
+
+		logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
+	} else {
+		l.Infof("set log file to %s", *flagInstallLog)
+		logger.SetGlobalRootLogger(*flagInstallLog, logger.DEBUG, logger.OPT_DEFAULT)
+		install.Init()
+	}
+
+	l = logger.SLogger("installer")
+
 	datakit.InitDirs()
 	applyFlags()
 
@@ -98,13 +106,18 @@ func main() {
 			_ = install.ExtractDatakit(f, datakit.InstallDir)
 		}
 	} else {
-		l.Infof("download start,url%s", datakitUrl)
+		l.Infof("download start,url %s", datakitUrl)
 		install.CurDownloading = dlDatakit
-		install.Download(datakitUrl, datakit.InstallDir, true, false)
+		if err := install.Download(datakitUrl, datakit.InstallDir, true, false); err != nil {
+			return
+		}
+
 		fmt.Printf("\n")
 
 		install.CurDownloading = dlData
-		install.Download(dataUrl, datakit.InstallDir, true, false)
+		if err := install.Download(dataUrl, datakit.InstallDir, true, false); err != nil {
+			return
+		}
 		fmt.Printf("\n")
 	}
 
@@ -165,13 +178,18 @@ Golang Version: %s
 
 		install.CurDownloading = dlDatakit
 
-		install.Download(datakitUrl,
+		if err := install.Download(datakitUrl,
 			fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
-				runtime.GOOS, runtime.GOARCH, DataKitVersion), true, false)
+				runtime.GOOS, runtime.GOARCH, DataKitVersion), true, false); err != nil {
+			return
+		}
 		fmt.Printf("\n")
 
 		install.CurDownloading = dlData
-		install.Download(dataUrl, "data.tar.gz", true, false)
+		if err := install.Download(dataUrl, "data.tar.gz", true, false); err != nil {
+			return
+		}
+
 		fmt.Printf("\n")
 
 		os.Exit(0)
