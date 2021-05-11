@@ -156,7 +156,7 @@ func (ag *agent) parseObject(res *rmsmodel.ResourceEntity, pipeline *pipeline.Pi
 		}
 		return nil
 	} else {
-		return io.NamedFeedEx(inputName, io.Object, class, tags, fields, time.Now().UTC())
+		return io.NamedFeedEx(inputName, datakit.Object, class, tags, fields, time.Now().UTC())
 	}
 }
 
