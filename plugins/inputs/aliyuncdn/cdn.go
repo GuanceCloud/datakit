@@ -143,7 +143,7 @@ func (r *CDN) getDomain(metricName string, domain string) []string {
 
 				r.resData = []byte(pt.String())
 
-				err = io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
+				err = io.NamedFeed([]byte(pt.String()), datakit.Metric, inputName)
 			}
 		}
 
