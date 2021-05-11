@@ -65,7 +65,7 @@ func (n *Input) getMetric() {
 		l.Error(err.Error())
 		return
 	}
-	if err := inputs.FeedMeasurement(inputName, iod.Metric, collector, &iod.Option{CollectCost: time.Since(n.start)}); err != nil {
+	if err := inputs.FeedMeasurement(inputName, datakit.Metric, collector, &iod.Option{CollectCost: time.Since(n.start)}); err != nil {
 		l.Error(err.Error())
 		n.lastErr = err
 	}
