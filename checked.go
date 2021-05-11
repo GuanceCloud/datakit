@@ -86,6 +86,7 @@ var (
 		"lighttpd":               true,
 		"logging":                true,
 		"mem":                    true,
+		"memcached":              true,
 		"mongodb_oplog":          true,
 		"mysql":                  true,
 		"mysqlog":                true,
