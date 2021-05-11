@@ -30,6 +30,8 @@ func InstallExternal(service string) error {
 	switch name {
 	case "telegraf":
 		return InstallTelegraf(ExternalInstallDir[dir])
+	case "sec-check":
+		return InstallSecCheck(ExternalInstallDir[dir])
 	default:
 		return fmt.Errorf("Unsupport install %s", service)
 	}
