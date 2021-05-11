@@ -346,6 +346,7 @@ func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[s
 
 var electionInputs = map[string]interface{}{
 	"kubernetes": nil,
+	"demo":       nil,
 }
 
 func tryStartElection(tbl *ast.Table, entries map[string]interface{}) {
