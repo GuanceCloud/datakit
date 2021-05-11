@@ -270,7 +270,7 @@ func (co *costOrder) parseOrderResponse(ctx context.Context, resp *bssopenapi.Qu
 			//data, _ := io.MakeMetric(co.getName(), tags, fields, t)
 			//fmt.Printf("-----%s\n", string(data))
 		} else {
-			io.NamedFeedEx(inputName, io.Metric, co.getName(), tags, fields, t)
+			io.NamedFeedEx(inputName, datakit.Metric, co.getName(), tags, fields, t)
 		}
 	}
 
