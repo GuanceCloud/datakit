@@ -7,6 +7,7 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	bstoml "github.com/BurntSushi/toml"
 	"io"
 	"net"
 	"os"
@@ -16,8 +17,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	bstoml "github.com/BurntSushi/toml"
 )
 
 func TrimSuffixAll(s, sfx string) string {
@@ -386,4 +385,8 @@ func CheckExcluded(item string, blacklist, whitelist []string) bool {
 	}
 
 	return false
+}
+
+func TimestampMsToTime(ms int64) time.Time {
+	return time.Unix(0, ms*1000000)
 }
