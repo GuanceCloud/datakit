@@ -1,6 +1,7 @@
 package hostobject
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -71,6 +72,7 @@ type (
 		Disk       []*DiskInfo   `json:"disk"`
 		cpuPercent float64
 		load5      float64
+		cloudInfo  map[string]interface{}
 	}
 
 	HostObjectMessage struct {
@@ -317,6 +319,23 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		Mem:        getMemInfo(),
 		Net:        getNetInfo(c.EnableNetVirtualInterfaces),
 		Disk:       getDiskInfo(c.IgnoreFS),
+	}
+
+	// sync cloud extra fields
+	if v, ok := c.Tags["cloud_provider"]; ok {
+		info, err := c.SyncCloudInfo(v)
+		if err != nil {
+			l.Warnf("sync cloud info failed: %v, ingored", err)
+		} else {
+
+			j, err := json.Marshal(info)
+			if err != nil {
+				l.Warn(err)
+			} else {
+				info["extra_cloud_meta"] = string(j)
+			}
+		}
+		msg.Host.cloudInfo = info
 	}
 
 	return &msg, nil

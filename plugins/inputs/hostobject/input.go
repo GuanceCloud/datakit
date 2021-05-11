@@ -31,6 +31,8 @@ type Input struct {
 	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
 	IgnoreFS                   []string `toml:"ignore_fs"`
 
+	CloudInfo map[string]string `toml:"cloud_info"`
+
 	p *pipeline.Pipeline
 
 	collectData *hostMeasurement
@@ -158,6 +160,18 @@ func (c *Input) Collect() error {
 		tags: map[string]string{
 			"name": message.Host.HostMeta.HostName,
 		},
+	}
+
+	// append extra cloud fields: all of them as tags
+	for k, v := range message.Host.cloudInfo {
+		switch tv := v.(type) {
+		case string:
+			if tv != Unavailable {
+				c.collectData.tags[k] = tv
+			}
+		default:
+			l.Warnf("ignore non-string cloud extra field: %s: %v, ignored", k, v)
+		}
 	}
 
 	// merge custom tags: if conflict with fields, ignore the tag
