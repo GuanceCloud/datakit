@@ -17,23 +17,20 @@ var (
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
 		// all manuals under man/manuals/
-		"apis":                    "man/manuals/apis.md",
-		"changelog":               "man/manuals/changelog.md",
-		"datakit-arch":            "man/manuals/datakit-arch.md",
-		"datakit-batch-deploy":    "man/manuals/datakit-batch-deploy.md",
-		"datakit-docker-install":  "man/manuals/datakit-docker-install.md",
-		"datakit-how-to":          "man/manuals/datakit-how-to.md",
-		"datakit-install":         "man/manuals/datakit-install.md",
-		"datakit-offline-install": "man/manuals/datakit-offline-install.md",
-		"datakit-on-public":       "man/manuals/datakit-on-public.md",
-		"datatypes":               "man/manuals/datatypes.md",
-		"dataway":                 "man/manuals/dataway.md",
-		"election":                "man/manuals/election.md",
-		"pipeline":                "man/manuals/pipeline.md",
-		"prometheus":              "man/manuals/prometheus.md",
-		"proxy":                   "man/manuals/proxy.md",
-		"sec-checker":             "man/manuals/sec-checker.md",
-		"telegraf":                "man/manuals/telegraf.md",
+		"pipeline":             "man/manuals/pipeline.md",
+		"telegraf":             "man/manuals/telegraf.md",
+		"changelog":            "man/manuals/changelog.md",
+		"datatypes":            "man/manuals/datatypes.md",
+		"apis":                 "man/manuals/apis.md",
+		"sec-checker":          "man/manuals/sec-checker.md",
+		"datakit-how-to":       "man/manuals/datakit-how-to.md",
+		"datakit-arch":         "man/manuals/datakit-arch.md",
+		"nginx-proxy":          "man/manuals/nginx-proxy.md",
+		"dataway":              "man/manuals/dataway.md",
+		"datakit-batch-deploy": "man/manuals/datakit-batch-deploy.md",
+		"prometheus":           "man/manuals/prometheus.md",
+		"datakit-on-public":    "man/manuals/datakit-on-public.md",
+		"cloudprober":          "man/manuals/cloudprober",
 	}
 
 	l = logger.DefaultSLogger("man")
