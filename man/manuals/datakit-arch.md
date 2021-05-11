@@ -4,7 +4,7 @@
 
 DataKit 是 DataFlux 中至关重要的一个数据采集组件，几乎所有 DataFlux 中的数据都是来源于 DataKit。
 
-# DataKit 基础网络模型{#dk-net-arch}
+# DataKit 基础网络模型
 
 DataKit 网络模型主要分为三层，可以简单概括为用户环境、[DataWay](dataway) 以及 DataFlux，如下图所示：
 
