@@ -1,6 +1,7 @@
 package datakit
 
 import (
+	"os"
 	"testing"
 	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	// "github.com/influxdata/toml"
@@ -68,4 +69,26 @@ func TestUnmarshalMainCfg(t *testing.T) {
 	Cfg.DoLoadMainConfig([]byte(cfg))
 
 	t.Log(Cfg.MainCfg.DataWay.Urls)
+}
+
+func TestLoadEnv(t *testing.T) {
+	os.Setenv("ENV_ENABLE_INPUTS", "a,b,c,d")
+	os.Setenv("ENV_GLOBAL_TAGS", "a=b,c=d")
+	os.Setenv("ENV_LOG_LEVEL", "debug")
+	os.Setenv("ENV_LOG_LEVEL", "debug")
+	os.Setenv("ENV_UUID", "dkid_12345")
+	os.Setenv("ENV_DATAWAY", "https://openway.dataflux.cn?token=tkn_mocked")
+
+	Docker = true
+	UUIDFile = ".dk.id"
+	mcp := "mcp.conf"
+
+	os.Remove(UUIDFile)
+	os.Remove(mcp)
+
+	c := DefaultConfig()
+
+	if err := c.LoadEnvs(mcp); err != nil {
+		t.Error(err)
+	}
 }
