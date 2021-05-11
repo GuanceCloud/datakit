@@ -169,8 +169,6 @@ func (m *Input) gatherServer(server *Server) error {
 		if err != nil {
 			return fmt.Errorf("unable to parse URL %q: %s", dialAddrs[0], err.Error())
 		}
-		dialInfo.Direct = true
-		dialInfo.Timeout = 5 * time.Second
 
 		if m.EnableTls && m.TlsConf != nil {
 			if tlsConfig, err := m.TlsConf.TlsConfig(); err != nil {
@@ -181,6 +179,9 @@ func (m *Input) gatherServer(server *Server) error {
 				}
 			}
 		}
+
+		dialInfo.Direct = true
+		dialInfo.Timeout = 5 * time.Second
 
 		sess, err := mgo.DialWithInfo(dialInfo)
 		if err != nil {
