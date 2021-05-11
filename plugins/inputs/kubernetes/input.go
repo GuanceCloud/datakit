@@ -118,7 +118,7 @@ func (this *Input) gather() {
 
 	cost := time.Since(startTime)
 
-	if err := io.Feed(inputName, io.Metric, []*io.Point{pt}, &io.Option{CollectCost: cost}); err != nil {
+	if err := io.Feed(inputName, datakit.Metric, []*io.Point{pt}, &io.Option{CollectCost: cost}); err != nil {
 		l.Error(err)
 	}
 }
