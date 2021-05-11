@@ -249,7 +249,7 @@ func (h *HttpProb) handle(req *http.Request) {
 		pts = append(pts, pt)
 	}
 
-	if err = io.Feed(inputName, io.Logging, pts, &io.Option{HighFreq: true}); err != nil {
+	if err = io.Feed(inputName, datakit.Logging, pts, &io.Option{HighFreq: true}); err != nil {
 		l.Errorf("push metric point error %v", err)
 	}
 }
