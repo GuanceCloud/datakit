@@ -8,6 +8,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
+var (
+	MonofontOnTagFieldName = true
+)
+
 const (
 	TODO = "TODO" // global todo string
 
@@ -77,9 +81,16 @@ type MeasurementInfo struct {
 }
 
 func (m *MeasurementInfo) FieldsMarkdownTable() string {
-	tableHeader := `
+	const tableHeader = `
 | 指标 | 描述| 数据类型 | 单位   |
 | ---- |---- | :---:    | :----: |`
+	const monoRowfmt = "|`%s`|%s|%s|%s|" // 指标/标签列等宽字体展示
+	const normalRowfmt = "|%s|%s|%s|%s|"
+
+	rowfmt := monoRowfmt
+	if !MonofontOnTagFieldName {
+		rowfmt = normalRowfmt
+	}
 
 	rows := []string{tableHeader}
 	keys := sortMapKey(m.Fields)
@@ -89,11 +100,12 @@ func (m *MeasurementInfo) FieldsMarkdownTable() string {
 			continue
 		}
 
-		if f.Unit == "" {
-			rows = append(rows, fmt.Sprintf("|`%s`|%s|%s|-|", key, f.Desc, f.DataType))
-		} else {
-			rows = append(rows, fmt.Sprintf("|`%s`|%s|%s|%s|", key, f.Desc, f.DataType, f.Unit))
+		unit := f.Unit
+		if unit == "" {
+			unit = UnknownUnit
 		}
+
+		rows = append(rows, fmt.Sprintf(rowfmt, key, f.Desc, f.DataType, unit))
 	}
 	return strings.Join(rows, "\n")
 }
@@ -120,7 +132,11 @@ func (m *MeasurementInfo) TagsMarkdownTable() string {
 		default:
 		}
 
-		rows = append(rows, fmt.Sprintf("|`%s`|%s|", key, desc))
+		if MonofontOnTagFieldName {
+			rows = append(rows, fmt.Sprintf("|`%s`|%s|", key, desc))
+		} else {
+			rows = append(rows, fmt.Sprintf("|%s|%s|", key, desc))
+		}
 	}
 	return strings.Join(rows, "\n")
 }
