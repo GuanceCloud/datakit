@@ -22,7 +22,9 @@ func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mongodb",
 		Tags: map[string]interface{}{
-			"hostname": &inputs.TagInfo{Desc: "mongodb host"},
+			"hostname":  &inputs.TagInfo{Desc: "mongodb host"},
+			"node_type": &inputs.TagInfo{Desc: "node type in replica set"},
+			"rs_name":   &inputs.TagInfo{Desc: "replica set name"},
 		},
 		Fields: map[string]interface{}{
 			"active_reads":                              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
@@ -241,7 +243,6 @@ func (m *mongodbShardMeasurement) Info() *inputs.MeasurementInfo {
 			"created":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
 			"in_use":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
 			"refreshing": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"type":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
 		},
 	}
 }

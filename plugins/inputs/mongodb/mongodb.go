@@ -31,7 +31,7 @@ var (
 	gather_replica_set_stats = false
 	## When true, collect cluster stats
 	## Note that the query that counts jumbo chunks triggers a COLLSCAN, which may have an impact on performance.
-	gather_cluster_stats = true
+	gather_cluster_stats = false
 	## When true, collect per database stats
 	gather_per_db_stats = true
 	## When true, collect per collection stats
@@ -198,7 +198,7 @@ func init() {
 		return &Input{
 			Interval:              datakit.Duration{Duration: 10 * time.Second},
 			GatherReplicaSetStats: false,
-			GatherClusterStats:    true,
+			GatherClusterStats:    false,
 			GatherPerDbStats:      true,
 			GatherPerColStats:     true,
 			ColStatsDbs:           []string{"local"},
