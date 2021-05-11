@@ -31,4 +31,4 @@ ENV ENV_UUID=$uuid \
     ENV_GLOBAL_TAGS=$global_tags \
     ENV_HOSTNAME=$hostname
 
-CMD ["/usr/local/cloudcare/dataflux/datakit/datakit", "-docker"]
+CMD ["/usr/local/cloudcare/dataflux/datakit/datakit", "--docker"]
