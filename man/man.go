@@ -52,8 +52,9 @@ func Get(name string) (string, error) {
 }
 
 type Option struct {
-	WithCSS       bool
-	IgnoreMissing bool
+	WithCSS                       bool
+	IgnoreMissing                 bool
+	DisableMonofontOnTagFieldName bool
 }
 
 func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
@@ -64,6 +65,10 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 
 	if !opt.WithCSS {
 		css = ""
+	}
+
+	if opt.DisableMonofontOnTagFieldName {
+		inputs.MonofontOnTagFieldName = false
 	}
 
 	if _, ok := OtherDocs[name]; ok {
