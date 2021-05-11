@@ -76,6 +76,16 @@ func (m *Input) SampleConfig() string {
 	return sampleConfig
 }
 
+func (m *Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&mongodbMeasurement{},
+		&mongodbDbMeasurement{},
+		&mongodbColMeasurement{},
+		&mongodbShardMeasurement{},
+		&mongodbTopMeasurement{},
+	}
+}
+
 func (m *Input) Run() {
 	l.Info("mongodb input started")
 
@@ -162,21 +172,13 @@ func (m *Input) gatherServer(server *Server) error {
 		dialInfo.Direct = true
 		dialInfo.Timeout = 5 * time.Second
 
-		var tlsConfig *tls.Config
 		if m.EnableTls && m.TlsConf != nil {
-			if tlsConfig, err = m.TlsConf.TlsConfig(); err != nil {
+			if tlsConfig, err := m.TlsConf.TlsConfig(); err != nil {
 				return err
-			}
-		}
-		// If configured to use TLS, add a dial function
-		if tlsConfig != nil {
-			dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
-				conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
-				if err != nil {
-					fmt.Printf("error in Dial, %s\n", err.Error())
+			} else {
+				dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
+					return tls.Dial("tcp", addr.String(), tlsConfig)
 				}
-
-				return conn, err
 			}
 		}
 
