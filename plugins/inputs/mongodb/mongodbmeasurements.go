@@ -22,7 +22,7 @@ func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mongodb",
 		Tags: map[string]interface{}{
-			"hostname": &inputs.TagInfo{Desc: "mongodb server host"},
+			"hostname": &inputs.TagInfo{Desc: "mongodb host"},
 		},
 		Fields: map[string]interface{}{
 			"active_reads":                              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
@@ -171,7 +171,7 @@ func (m *mongodbDbMeasurement) Info() *inputs.MeasurementInfo {
 		Name: "mongodb_db_stats",
 		Tags: map[string]interface{}{
 			"db_name":  &inputs.TagInfo{Desc: "database name"},
-			"hostname": &inputs.TagInfo{Desc: "mongodb server host"},
+			"hostname": &inputs.TagInfo{Desc: "mongodb host"},
 		},
 		Fields: map[string]interface{}{
 			"avg_obj_size": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
@@ -202,6 +202,20 @@ func (m *mongodbColMeasurement) LineProto() (*io.Point, error) {
 func (m *mongodbColMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mongodb_col_stats",
+		Tags: map[string]interface{}{
+			"collection": &inputs.TagInfo{Desc: "collection name"},
+			"db_name":    &inputs.TagInfo{Desc: "database name"},
+			"hostname":   &inputs.TagInfo{Desc: "mongodb host"},
+		},
+		Fields: map[string]interface{}{
+			"avg_obj_size":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"count":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"ok":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"size":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"storage_size":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"total_index_size": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"type":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+		},
 	}
 }
 
@@ -219,6 +233,16 @@ func (m *mongodbShardMeasurement) LineProto() (*io.Point, error) {
 func (m *mongodbShardMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mongodb_shard_stats",
+		Tags: map[string]interface{}{
+			"hostname": &inputs.TagInfo{Desc: "mongodb host"},
+		},
+		Fields: map[string]interface{}{
+			"available":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"created":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"in_use":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"refreshing": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"type":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+		},
 	}
 }
 
@@ -236,5 +260,30 @@ func (m *mongodbTopMeasurement) LineProto() (*io.Point, error) {
 func (m *mongodbTopMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mongodb_top_stats",
+		Tags: map[string]interface{}{
+			"collection": &inputs.TagInfo{Desc: "collection name"},
+			"hostname":   &inputs.TagInfo{Desc: "mongodb host"},
+		},
+		Fields: map[string]interface{}{
+			"commands_count":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"commands_time":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"get_more_count":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"get_more_time":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"insert_count":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"insert_time":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"queries_count":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"queries_time":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"read_lock_count":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"read_lock_time":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"remove_count":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"remove_time":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"total_count":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"total_time":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"type":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"update_count":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"update_time":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"write_lock_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"write_lock_time":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+		},
 	}
 }
