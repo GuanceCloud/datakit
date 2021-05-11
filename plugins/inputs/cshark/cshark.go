@@ -391,7 +391,7 @@ func (s *Shark) streamExec(cmdStr string) error {
 		fmt.Println("point =====>", string(pt))
 
 		// io output
-		err = io.NamedFeed(pt, io.Metric, inputName)
+		err = io.NamedFeed(pt, datakit.Metric, inputName)
 		if err != nil {
 			l.Errorf("push metric point error %s", err)
 		}
