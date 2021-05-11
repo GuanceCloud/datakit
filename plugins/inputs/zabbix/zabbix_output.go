@@ -3,6 +3,7 @@ package zabbix
 import (
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -28,7 +29,7 @@ func (z *ZabbixParam) ProcessPts(pts []*influxdb.Point) error {
 		if err != nil {
 			return err
 		}
-		err = z.output.IoFeed(ps, io.Metric, inputName)
+		err = z.output.IoFeed(ps, datakit.Metric, inputName)
 		if err != nil {
 			return err
 		}
