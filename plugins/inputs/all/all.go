@@ -114,6 +114,7 @@ import (
 	// _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zaplog"
 
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/elasticsearch"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/memcached"
 
 	// removed
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
