@@ -10,21 +10,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type mongodbMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-func (m *mongodbMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
-}
-
-func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{}
-}
-
 type MongodbData struct {
 	StatLine      *StatLine
 	Tags          map[string]string
@@ -189,7 +174,7 @@ func (d *MongodbData) append() {
 	for _, db := range d.DbData {
 		tmp := copyTags(d.Tags)
 		tmp["db_name"] = db.Name
-		d.collectCache = append(d.collectCache, &mongodbMeasurement{
+		d.collectCache = append(d.collectCache, &mongodbDbMeasurement{
 			name:   "mongodb_db_stats",
 			tags:   tmp,
 			fields: db.Fields,
@@ -201,7 +186,7 @@ func (d *MongodbData) append() {
 		tmp := copyTags(d.Tags)
 		tmp["collection"] = col.Name
 		tmp["db_name"] = col.DbName
-		d.collectCache = append(d.collectCache, &mongodbMeasurement{
+		d.collectCache = append(d.collectCache, &mongodbColMeasurement{
 			name:   "mongodb_col_stats",
 			tags:   tmp,
 			fields: col.Fields,
@@ -212,7 +197,7 @@ func (d *MongodbData) append() {
 	for _, host := range d.ShardHostData {
 		tmp := copyTags(d.Tags)
 		tmp["hostname"] = host.Name
-		d.collectCache = append(d.collectCache, &mongodbMeasurement{
+		d.collectCache = append(d.collectCache, &mongodbShardMeasurement{
 			name:   "mongodb_shard_stats",
 			tags:   tmp,
 			fields: host.Fields,
@@ -223,7 +208,7 @@ func (d *MongodbData) append() {
 	for _, col := range d.TopStatsData {
 		tmp := copyTags(d.Tags)
 		tmp["collection"] = col.Name
-		d.collectCache = append(d.collectCache, &mongodbMeasurement{
+		d.collectCache = append(d.collectCache, &mongodbTopMeasurement{
 			name:   "mongodb_top_stats",
 			tags:   tmp,
 			fields: col.Fields,
