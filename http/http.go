@@ -10,25 +10,16 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"runtime"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gomarkdown/markdown"
-	"github.com/gomarkdown/markdown/html"
-	"github.com/gomarkdown/markdown/parser"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -68,64 +59,6 @@ func Start(o *Option) {
 	go func() {
 		HttpStart()
 	}()
-}
-
-type reloadOption struct {
-	ReloadInputs, ReloadMainCfg, ReloadIO bool
-}
-
-func ReloadDatakit(ro *reloadOption) error {
-
-	// FIXME: if config.LoadCfg() failed:
-	// we should add a function like try-load-cfg(), to testing
-	// if configs ok.
-
-	datakit.Exit.Close()
-	l.Info("wait all goroutines exit...")
-	datakit.WG.Wait()
-
-	l.Info("reopen datakit.Exit...")
-	datakit.Exit = cliutils.NewSem() // reopen
-
-	// reload configs
-	if ro.ReloadMainCfg {
-		l.Info("reloading configs...")
-		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
-			l.Errorf("load config failed: %s", err)
-			return err
-		}
-	}
-
-	if ro.ReloadIO {
-		l.Info("reloading io...")
-		io.Start()
-	}
-
-	resetHttpRoute()
-
-	if ro.ReloadInputs {
-		l.Info("reloading inputs...")
-		if err := inputs.RunInputs(); err != nil {
-			l.Error("error running inputs: %v", err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func RestartHttpServer() {
-	HttpStop()
-
-	l.Info("wait HTTP server to stopping...")
-	<-stopOkCh // wait HTTP server stop ok
-
-	l.Info("reload HTTP server...")
-
-	reload = time.Now()
-	reloadCnt++
-
-	HttpStart()
 }
 
 type welcome struct {
@@ -306,166 +239,4 @@ func tryStartServer(srv *http.Server) {
 		}
 		time.Sleep(time.Second)
 	}
-}
-
-func apiReload(c *gin.Context) {
-
-	if err := ReloadDatakit(&reloadOption{
-		ReloadInputs:  true,
-		ReloadMainCfg: true,
-		ReloadIO:      true,
-	}); err != nil {
-		uhttp.HttpErr(c, uhttp.Error(ErrReloadDatakitFailed, err.Error()))
-		return
-	}
-
-	ErrOK.HttpBody(c, nil)
-
-	go func() {
-		RestartHttpServer()
-		l.Info("reload HTTP server ok")
-	}()
-
-	c.Redirect(http.StatusFound, "/monitor")
-}
-
-var (
-	manualTOCTemplate = `
-<style>
-div {
-  border: 1px solid gray;
-  /* padding: 8px; */
-}
-
-h1 {
-  text-align: center;
-  text-transform: uppercase;
-  color: #4CAF50;
-}
-
-p {
-  /* text-indent: 50px; */
-  text-align: justify;
-  /* letter-spacing: 3px; */
-}
-
-a {
-  text-decoration: none;
-  /* color: #008CBA; */
-}
-
-ul.a {
-  list-style-type: square;
-}
-</style>
-
-<h1>{{.PageTitle}}</h1>
-采集器文档列表
-<ul class="a">
-	{{ range $name := .InputNames}}
-	<li>
-	<p><a href="/man/{{$name}}">
-			{{$name}} </a> </p> </li>
-	{{end}}
-</ul>
-
-其它文档集合
-
-<ul class="a">
-	{{ range $name := .OtherDocs}}
-	<li>
-	<p><a href="/man/{{$name}}">
-			{{$name}} </a> </p> </li>
-	{{end}}
-</ul>
-`
-
-	headerScript = []byte(`<link rel="stylesheet"
-      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/default.min.css">
-<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', (event) => {
-    hljs.highlightAll();
-});
-</script>`)
-)
-
-type manualTOC struct {
-	PageTitle  string
-	InputNames []string
-	OtherDocs  []string
-}
-
-// request manual table of conotents
-func apiManualTOC(c *gin.Context) {
-
-	toc := &manualTOC{
-		PageTitle: "DataKit文档列表",
-	}
-
-	for k, v := range inputs.Inputs {
-		switch v().(type) {
-		case inputs.InputV2:
-
-			// test if doc available
-			if _, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: true}); err != nil {
-				l.Warn(err)
-			} else {
-				toc.InputNames = append(toc.InputNames, k)
-			}
-		}
-	}
-	sort.Strings(toc.InputNames)
-
-	for k := range man.OtherDocs {
-		// test if doc available
-		if _, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: true}); err != nil {
-			l.Warn(err)
-		} else {
-			toc.OtherDocs = append(toc.OtherDocs, k)
-		}
-	}
-	sort.Strings(toc.OtherDocs)
-
-	t := template.New("man-toc")
-
-	tmpl, err := t.Parse(manualTOCTemplate)
-	if err != nil {
-		l.Error(err)
-		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
-		return
-	}
-
-	if err := tmpl.Execute(c.Writer, toc); err != nil {
-		l.Error(err)
-		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
-		return
-	}
-	return
-}
-
-func apiManual(c *gin.Context) {
-
-	name := c.Param("name")
-	if name == "" {
-		c.Redirect(200, "/man")
-		return
-	}
-
-	mdtxt, err := man.BuildMarkdownManual(name, &man.Option{WithCSS: true})
-	if err != nil {
-		c.Redirect(200, "/man")
-		return
-	}
-
-	// render markdown as HTML
-	mdext := parser.CommonExtensions
-	psr := parser.NewWithExtensions(mdext)
-
-	htmlFlags := html.CommonFlags | html.HrefTargetBlank | html.TOC | html.CompletePage
-	opts := html.RendererOptions{Flags: htmlFlags, Head: headerScript}
-	renderer := html.NewRenderer(opts)
-
-	out := markdown.ToHTML(mdtxt, psr, renderer)
-	c.Data(http.StatusOK, "text/html; charset=UTF-8", out)
 }
