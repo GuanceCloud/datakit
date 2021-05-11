@@ -10,6 +10,17 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+type DbData struct {
+	Name   string
+	Fields map[string]interface{}
+}
+
+type ColData struct {
+	Name   string
+	DbName string
+	Fields map[string]interface{}
+}
+
 type MongodbData struct {
 	StatLine      *StatLine
 	Tags          map[string]string
@@ -20,17 +31,6 @@ type MongodbData struct {
 	TopStatsData  []DbData
 	collectCache  []inputs.Measurement
 	collectCost   time.Duration
-}
-
-type DbData struct {
-	Name   string
-	Fields map[string]interface{}
-}
-
-type ColData struct {
-	Name   string
-	DbName string
-	Fields map[string]interface{}
 }
 
 func NewMongodbData(statLine *StatLine, tags map[string]string, cost time.Duration) *MongodbData {
