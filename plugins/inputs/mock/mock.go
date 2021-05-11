@@ -78,7 +78,7 @@ func (m *Mock) Run() {
 			}
 
 			data := []byte(pt.String())
-			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+			if err := io.NamedFeed(data, datakit.Metric, inputName); err != nil {
 				l.Error(err)
 			} else {
 				l.Debugf("feed %d bytes to io ok", len(data))
