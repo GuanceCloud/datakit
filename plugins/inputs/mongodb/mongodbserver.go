@@ -116,7 +116,8 @@ func (s *Server) gatherShardConnPoolStats() (*ShardStats, error) {
 	shardStats := &ShardStats{}
 	err := s.Session.DB("admin").Run(bson.D{
 		{
-			Name:  "shardConnPoolStats",
+			Name: "shardConnPoolStats",
+			// Name:  "connPoolStats",
 			Value: 1,
 		},
 	}, &shardStats)
