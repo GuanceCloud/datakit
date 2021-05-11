@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -57,7 +58,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	switch dataType {
 	case "metric":
-		if err := io.NamedFeed(body, io.Metric, "ansible"); err != nil {
+		if err := io.NamedFeed(body, datakit.Metric, "ansible"); err != nil {
 			l.Errorf("failed to io Feed, err: %s", err.Error())
 			return
 		}
