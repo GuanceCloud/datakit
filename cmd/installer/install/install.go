@@ -102,7 +102,7 @@ func InstallNewDatakit(svc service.Service) {
 	// XXX: load old datakit UUID file: reuse datakit UUID installed before
 	if data, err := ioutil.ReadFile(datakit.UUIDFile); err != nil {
 		datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
-		if err := datakit.CreateUUIDFile(datakit.Cfg.MainCfg.UUID); err != nil {
+		if err := datakit.CreateUUIDFile(datakit.UUIDFile, datakit.Cfg.MainCfg.UUID); err != nil {
 			l.Fatalf("create datakit id failed: %s", err.Error())
 		}
 	} else {
