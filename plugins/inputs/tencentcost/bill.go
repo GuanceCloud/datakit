@@ -351,7 +351,7 @@ func (b *bill) handleResponse(ctx context.Context, response *billing.DescribeBil
 			if b.agent.isTest() {
 				// pass
 			} else {
-				io.NamedFeedEx(inputName, io.Metric, b.getName(), tags, fields, metrictime)
+				io.NamedFeedEx(inputName, datakit.Metric, b.getName(), tags, fields, metrictime)
 			}
 		}
 	}

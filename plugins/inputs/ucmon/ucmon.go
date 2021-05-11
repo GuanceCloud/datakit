@@ -170,7 +170,7 @@ func (ag *ucInstance) fetchMetric(ctx context.Context, info *queryListInfo) erro
 							data, _ := io.MakeMetric(measurement, tags, fields, metricTime)
 							fmt.Printf("-----%s\n", data)
 						} else {
-							io.NamedFeedEx(inputName, io.Metric, measurement, tags, fields, metricTime)
+							io.NamedFeedEx(inputName, datakit.Metric, measurement, tags, fields, metricTime)
 						}
 
 					}
