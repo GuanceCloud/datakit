@@ -45,7 +45,3 @@ MongoDb collector
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
-
-## 日志采集
-
-_to be continued..._
