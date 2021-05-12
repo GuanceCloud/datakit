@@ -92,3 +92,26 @@ service cron restart
 2021-05-10T09:52:18.391+0800 INFO  ota-update datakit/main.go:219 New online version available: 1.1.6-rc0, commit 9bc4b960 (release at 2021-04-30 14:31:27)
 ...
 ```
+
+## 手动更新
+
+直接执行如下命令查看当前 DataKit 版本。如果线上有最新版本，则会提示对应的更新命令，如：
+
+```shell
+$ datakit --version
+
+       Version: 1.1.6-rc0
+        Commit: d1f4604d
+        Branch: dk-api
+ Build At(UTC): 2021-05-11 11:07:06
+Golang Version: go version go1.15.8 darwin/amd64
+      Uploader: tan-air.local/tanbiao/tanbiao
+ReleasedInputs: all
+---------------------------------------------------
+
+
+Online version available: 1.1.6-rc2, commit 85ff4854 (release at 2021-05-11 07:16:34)
+
+Upgrade:
+        sudo -- sh -c "curl https://static.dataflux.cn/datakit/installer-darwin-amd64 -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"
+```
