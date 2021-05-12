@@ -37,7 +37,7 @@ $ wget -O dd-java-agent.jar https://zhuyun-static-files-production.oss-cn-hangzh
 {{.InputSample}}
 ```
 
-编辑 `conf.d/datakit.conf`，将 `http_listen` 改为 `0.0.0.0:9529`（此处目的是开放外网访问，端口可选）。此时 ddtrace 的访问地址就是 `http://<datakit-ip>:9529/v0.4/traces`。如果 trace 数据来源就是 DataKit 本机，可不用修改 `http_listen` 配置，直接使用 `http://localhost:9529/v0.4/traces` 即可。
+编辑 `conf.d/datakit.conf`，将 `http_listen` 改为 `0.0.0.0:9529`（此处目的是开放外网访问，端口可选）。此时 ddtrace 的访问地址就是 `http://<datakit-ip>:9529`。如果 trace 数据来源就是 DataKit 本机，可不用修改 `http_listen` 配置，直接使用 `http://localhost:9529` 即可。
 
 ## Python Flask 完整示例
 
