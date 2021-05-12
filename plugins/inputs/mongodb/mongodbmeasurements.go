@@ -87,16 +87,16 @@ func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
 			"latency_writes_count":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total combined latency of operations performed on the collection for write request.`},    // (integer)
 			"member_status":          &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The state of ndoe in replica members.`},                                                   // (string)
 			// "net_in_bytes":                              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},    // (integer, bytes/sec, deprecated in 1.10; use net_out_bytes_count))
-			"net_in_bytes_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of bytes that the server has received over network connections initiated by clients or other mongod or mongos instances.`}, // (integer)
+			"net_in_bytes_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of bytes that the server has received over network connections initiated by clients or other mongod instances.`}, // (integer)
 			// "net_out_bytes":                             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},    // (integer, bytes/sec, deprecated in 1.10; use net_out_bytes_count))
-			"net_out_bytes_count":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of bytes that the server has sent over network connections initiated by clients or other mongod or mongos instances.`}, // (integer)
-			"open_connections":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The number of incoming connections from clients to the database server.`},                                                               // (integer)
-			"operation_scan_and_order":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of queries that return sorted numbers that cannot perform the sort operation using an index.`},                         // (integer)
-			"operation_write_conflicts": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of queries that encountered write conflicts.`},                                                                         // (integer)
-			"page_faults":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of page faults.`},                                                                                                      // (integer)
-			"percent_cache_dirty":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `Size in bytes of the dirty data in the cache. This value should be less than the bytes currently in the cache value.`},                // (float)
-			"percent_cache_used":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `Size in byte of the data currently in cache. This value should not be greater than the maximum bytes configured value.`},              // (float)
-			"queries":                   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of queries received since the mongod instance last started.`},                                                          // (integer)
+			"net_out_bytes_count":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of bytes that the server has sent over network connections initiated by clients or other mongod instances.`}, // (integer)
+			"open_connections":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The number of incoming connections from clients to the database server.`},                                                     // (integer)
+			"operation_scan_and_order":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of queries that return sorted numbers that cannot perform the sort operation using an index.`},               // (integer)
+			"operation_write_conflicts": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of queries that encountered write conflicts.`},                                                               // (integer)
+			"page_faults":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of page faults.`},                                                                                            // (integer)
+			"percent_cache_dirty":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `Size in bytes of the dirty data in the cache. This value should be less than the bytes currently in the cache value.`},      // (float)
+			"percent_cache_used":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `Size in byte of the data currently in cache. This value should not be greater than the maximum bytes configured value.`},    // (float)
+			"queries":                   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of queries received since the mongod instance last started.`},                                                // (integer)
 			// "queries_per_sec":                           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},    // (integer, deprecated in 1.10; use queries))
 			"queued_reads":                    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The number of operations that are currently queued and waiting for the read lock. A consistently small read-queue, particularly of shorter operations, should cause no concern.`},   // (integer)
 			"queued_writes":                   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The number of operations that are currently queued and waiting for the write lock. A consistently small write-queue, particularly of shorter operations, is no cause for concern.`}, // (integer)
@@ -211,16 +211,15 @@ func (m *mongodbDbMeasurement) Info() *inputs.MeasurementInfo {
 			"hostname": &inputs.TagInfo{Desc: "mongodb host"},
 		},
 		Fields: map[string]interface{}{
-			"avg_obj_size": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"collections":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"data_size":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"index_size":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"indexes":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"num_extents":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"objects":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"ok":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"storage_size": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"type":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
+			"avg_obj_size": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The average size of each document in bytes."},                                                                    // (float)
+			"collections":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Contains a count of the number of collections in that database."},                                                  // (integer)
+			"data_size":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total size of the uncompressed data held in this database. The dataSize decreases when you remove documents."}, // (integer)
+			"index_size":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total size of all indexes created on this database."},                                                          // (integer)
+			"indexes":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Contains a count of the total number of indexes across all collections in the database."},                          // (integer)
+			"objects":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Contains a count of the number of objects (i.e. documents) in the database across all collections."},               // (integer)
+			"ok":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Command execute state."},                                                                                           // (integer)
+			"storage_size": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total amount of space allocated to collections in this database for document storage."},                        // (integer)
+			"type":         &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Metrics type."},                                                                                                 // (string)
 		},
 	}
 }
@@ -245,13 +244,13 @@ func (m *mongodbColMeasurement) Info() *inputs.MeasurementInfo {
 			"hostname":   &inputs.TagInfo{Desc: "mongodb host"},
 		},
 		Fields: map[string]interface{}{
-			"avg_obj_size":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"count":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"ok":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"size":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"storage_size":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"total_index_size": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"type":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
+			"avg_obj_size":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The average size of an object in the collection. "},                              // (integer)
+			"count":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of objects or documents in this collection."},                         // (integer)
+			"ok":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Command execute state."},                                                         // (integer)
+			"size":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total uncompressed size in memory of all records in a collection."},          // (integer)
+			"storage_size":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total amount of storage allocated to this collection for document storage."}, // (integer)
+			"total_index_size": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total size of all indexes."},                                                 // (integer)
+			"type":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Metrics type."},                                                                  // (string)
 		},
 	}
 }
@@ -274,10 +273,10 @@ func (m *mongodbShardMeasurement) Info() *inputs.MeasurementInfo {
 			"hostname": &inputs.TagInfo{Desc: "mongodb host"},
 		},
 		Fields: map[string]interface{}{
-			"available":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"created":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"in_use":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"refreshing": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
+			"available":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The number of connections available for this host to connect to the mongos.`},                                                                                                         // (integer)
+			"created":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The number of connections the host has ever created to connect to the mongos.`},                                                                                                       // (integer)
+			"in_use":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `Reports the total number of outgoing connections from the current mongod/mongos instance to other members of the sharded cluster or replica set that are currently in use.`},          // (integer)
+			"refreshing": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `Reports the total number of outgoing connections from the current mongod/mongos instance to other members of the sharded cluster or replica set that are currently being refreshed.`}, // (integer)
 		},
 	}
 }
@@ -301,25 +300,24 @@ func (m *mongodbTopMeasurement) Info() *inputs.MeasurementInfo {
 			"hostname":   &inputs.TagInfo{Desc: "mongodb host"},
 		},
 		Fields: map[string]interface{}{
-			"commands_count":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"commands_time":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"get_more_count":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"get_more_time":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"insert_count":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"insert_time":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"queries_count":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"queries_time":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"read_lock_count":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"read_lock_time":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"remove_count":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"remove_time":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"total_count":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"total_time":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"type":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"update_count":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"update_time":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"write_lock_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
-			"write_lock_time":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ``},
+			"commands_count":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of "command" event issues.`},                // (integer)
+			"commands_time":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The amount of time in microseconds that "command" costs.`},   // (integer)
+			"get_more_count":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of "getmore" event issues.`},                // (integer)
+			"get_more_time":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The amount of time in microseconds that "getmore" costs.`},   // (integer)
+			"insert_count":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of "insert" event issues.`},                 // (integer)
+			"insert_time":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The amount of time in microseconds that "insert" costs.`},    // (integer)
+			"queries_count":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of "queries" event issues.`},                // (integer)
+			"queries_time":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The amount of time in microseconds that "queries" costs.`},   // (integer)
+			"read_lock_count":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of "readLock" event issues.`},               // (integer)
+			"read_lock_time":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The amount of time in microseconds that "readLock" costs.`},  // (integer)
+			"remove_count":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of "remove" event issues.`},                 // (integer)
+			"remove_time":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The amount of time in microseconds that "remove" costs.`},    // (integer)
+			"total_count":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of "total" event issues.`},                  // (integer)
+			"total_time":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The amount of time in microseconds that "total" costs.`},     // (integer)
+			"update_count":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of "update" event issues.`},                 // (integer)
+			"update_time":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The amount of time in microseconds that "update" costs.`},    // (integer)
+			"write_lock_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of "writeLock" event issues.`},              // (integer)
+			"write_lock_time":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The amount of time in microseconds that "writeLock" costs.`}, // (integer)
 		},
 	}
 }
