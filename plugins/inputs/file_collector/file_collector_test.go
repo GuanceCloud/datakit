@@ -67,7 +67,7 @@ func TestFsn_WriteLogByCreate(t *testing.T) {
 func newfc() *FileCollector {
 	dir, _ := os.Getwd()
 	dw, _ := datakit.ParseDataway("http://10.100.64.140:9528?token=tkn_12595c1a660711ebb18e46cf65a67f12", "")
-	datakit.Cfg.MainCfg.DataWay = dw
+	datakit.Cfg.DataWay = dw
 	region := ""
 	ak := ""
 	sk := ""
