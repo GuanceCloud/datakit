@@ -38,6 +38,17 @@ var (
 	mtx      = sync.Mutex{}
 )
 
+const (
+	LOGGING_SROUCE     = "source"
+	PRECISION          = "precision"
+	INPUT              = "input"
+	IGNORE_GLOBAL_TAGS = "ignore_global_tags"
+	CATEGORY           = "category"
+
+	DEFAULT_PRECISION = "ns"
+	DEFAULT_INPUT     = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
+)
+
 type Option struct {
 	Bind   string
 	GinLog string
@@ -160,17 +171,15 @@ func HttpStart() {
 	// internal datakit stats API
 	router.GET("/stats", func(c *gin.Context) { apiGetDatakitStats(c) })
 	router.GET("/monitor", func(c *gin.Context) { apiGetDatakitMonitor(c) })
+
 	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
 	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
-	// ansible api
+
 	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
 
-	router.POST("/v1/write/metric", func(c *gin.Context) { apiWriteMetric(c) })
-	router.POST("/v1/write/object", func(c *gin.Context) { apiWriteObject(c) })
-	router.POST("/v1/write/logging", func(c *gin.Context) { apiWriteLogging(c) })
-	router.POST("/v1/write/tracing", func(c *gin.Context) { apiWriteTracing(c) })
-	router.POST("/v1/write/security", func(c *gin.Context) { apiWriteSecurity(c) })
-	router.POST("/v1/write/telegraf", func(c *gin.Context) { apiWriteTelegraf(c) })
+	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
+
+	router.POST("/v1/write/:category", func(c *gin.Context) { apiWrite(c) })
 
 	srv := &http.Server{
 		Addr:    httpBind,
