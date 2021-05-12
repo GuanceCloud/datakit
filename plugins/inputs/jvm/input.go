@@ -19,6 +19,36 @@ const (
 	MinGatherInterval = 1 * time.Second
 )
 
+var JvmTypeMap = map[string]string{
+	"Uptime":                          "int",
+	"HeapMemoryUsageinit":             "int",
+	"HeapMemoryUsageused":             "int",
+	"HeapMemoryUsagemax":              "int",
+	"HeapMemoryUsagecommitted":        "int",
+	"NonHeapMemoryUsageinit":          "int",
+	"NonHeapMemoryUsageused":          "int",
+	"NonHeapMemoryUsagemax":           "int",
+	"NonHeapMemoryUsagecommitted":     "int",
+	"ObjectPendingFinalizationCount":  "int",
+	"CollectionTime":                  "int",
+	"CollectionCount":                 "int",
+	"DaemonThreadCount":               "int",
+	"PeakThreadCount":                 "int",
+	"ThreadCount":                     "int",
+	"TotalStartedThreadCount":         "int",
+	"LoadedClassCount":                "int",
+	"TotalLoadedClassCount":           "int",
+	"UnloadedClassCount":              "int",
+	"Usageinit":                       "int",
+	"Usagemax":                        "int",
+	"Usagecommitted":                  "int",
+	"Usageused":                       "int",
+	"PeakUsageinit":                   "int",
+	"PeakUsagemax":                    "int",
+	"PeakUsagecommitted":              "int",
+	"PeakUsageused":                   "int",
+}
+
 type Input struct {
 	JolokiaAgent
 	Tags map[string]string
@@ -32,6 +62,7 @@ func (i *Input) Run() {
 	i.PluginName = inputName
 
 	i.JolokiaAgent.Tags = i.Tags
+	i.JolokiaAgent.Types = JvmTypeMap
 
 	i.JolokiaAgent.Collect()
 }
