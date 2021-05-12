@@ -61,7 +61,7 @@ var (
 	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
-
+	flagUpdateIPDb        = flag.Bool("update-ip-db", false, "update IP address to ISP translation database")
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 )
 
@@ -435,6 +435,18 @@ func runDatakitWithCmd() {
 
 		fmt.Printf("Reload DataKit OK")
 		os.Exit(0)
+	}
+
+	if *flagUpdateIPDb {
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
+		if err := cmds.UpdateIpDB(); err != nil {
+			fmt.Printf("Reload DataKit failed: %s\n", err)
+			os.Exit(-1)
+		}
 	}
 }
 
