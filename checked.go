@@ -88,6 +88,7 @@ var (
 		"mem":                    true,
 		"memcached":              true,
 		"mongodb_oplog":          true,
+		"mongodb":                true,
 		"mysql":                  true,
 		"mysqlog":                true,
 		"neo4j":                  true,
