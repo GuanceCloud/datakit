@@ -19,13 +19,13 @@ log_level = "debug"
 log_rotate = 32
 gin_log = "/usr/local/cloudcare/dataflux/datakit/gin.log"
 interval = "10s"
-#output_file = "/usr/local/cloudcare/dataflux/datakit/mmm34.log"
+output_file = "/usr/local/cloudcare/dataflux/datakit/mmm.log"
 hostname = "iZbp152ke14timzud0du15Z"
 default_enabled_inputs = ["cpu", "disk", "diskio", "mem", "swap", "system", "net", "hostobject"]
 install_date = 2021-03-25T11:00:19Z
 
 [dataway]
-  urls = ["https://openway.dataflux.cn/v1/write/metrics?token=tkn_76d2d1efd3ff43db984497bfb4f3c25a"]
+  url = "https://openway.dataflux.cn?token=tkn_76d2d1efd3ff43db984497bfb4f3c25a"
   http_proxy = "http://127.0.0.1:8080"
   timeout = "30s"
 
