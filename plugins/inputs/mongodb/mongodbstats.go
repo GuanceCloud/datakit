@@ -89,7 +89,6 @@ type DbStatsData struct {
 	AvgObjSize  float64     `bson:"avgObjSize"`
 	DataSize    int64       `bson:"dataSize"`
 	StorageSize int64       `bson:"storageSize"`
-	NumExtents  int64       `bson:"numExtents"`
 	Indexes     int64       `bson:"indexes"`
 	IndexSize   int64       `bson:"indexSize"`
 	Ok          int64       `bson:"ok"`
@@ -649,7 +648,6 @@ type DbStatLine struct {
 	AvgObjSize  float64
 	DataSize    int64
 	StorageSize int64
-	NumExtents  int64
 	Indexes     int64
 	IndexSize   int64
 	Ok          int64
@@ -1355,7 +1353,6 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 				AvgObjSize:  dbStatsData.AvgObjSize,
 				DataSize:    dbStatsData.DataSize,
 				StorageSize: dbStatsData.StorageSize,
-				NumExtents:  dbStatsData.NumExtents,
 				Indexes:     dbStatsData.Indexes,
 				IndexSize:   dbStatsData.IndexSize,
 				Ok:          dbStatsData.Ok,
