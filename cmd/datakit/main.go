@@ -61,6 +61,7 @@ var (
 	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
+	flagManVersion        = flag.String("man-version", git.Version, "specify manuals version")
 
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 )
@@ -354,7 +355,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagExportMan != "" {
-		if err := cmds.ExportMan(*flagExportMan, *flagIgnore); err != nil {
+		if err := cmds.ExportMan(*flagExportMan, *flagIgnore, *flagManVersion); err != nil {
 			l.Error(err)
 		}
 		os.Exit(0)
