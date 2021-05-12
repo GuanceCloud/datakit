@@ -10,6 +10,7 @@ import (
 var (
 	ErrOK                  = newErr(nil, http.StatusOK)
 	ErrBadReq              = newErr(errors.New("bad request"), http.StatusBadRequest)
+	ErrInvalidCategory     = newErr(errors.New("invalid category"), http.StatusBadRequest)
 	ErrHttpReadErr         = newErr(errors.New("HTTP read error"), http.StatusInternalServerError)
 	ErrEmptyBody           = newErr(errors.New("empty body"), http.StatusBadRequest)
 	ErrReloadDatakitFailed = newErr(errors.New("reload datakit failed"), http.StatusInternalServerError)
