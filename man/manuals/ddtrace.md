@@ -148,7 +148,7 @@ $ curl http://localhost:54321/stop
 $ curl http://localhost:54322/stop
 ```
 
-可以通过 [DQL](http://doc/to/dql) 验证上报的数据：
+可以通过 [DQL](https://www.yuque.com/dataflux/doc/fsnd2r) 验证上报的数据：
 
 ```python
 

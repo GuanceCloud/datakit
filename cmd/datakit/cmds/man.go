@@ -46,7 +46,7 @@ func Man() {
 	p.Run()
 }
 
-func ExportMan(to, skipList string) error {
+func ExportMan(to, skipList, ver string) error {
 	if err := os.MkdirAll(to, os.ModePerm); err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func ExportMan(to, skipList string) error {
 			continue
 		}
 
-		data, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: false, IgnoreMissing: true})
+		data, err := man.BuildMarkdownManual(k, &man.Option{ManVersion: ver, WithCSS: false, IgnoreMissing: true})
 		if err != nil {
 			return err
 		}
@@ -82,7 +82,7 @@ func ExportMan(to, skipList string) error {
 			continue
 		}
 
-		data, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: false})
+		data, err := man.BuildMarkdownManual(k, &man.Option{ManVersion: ver, WithCSS: false})
 		if err != nil {
 			return err
 		}
