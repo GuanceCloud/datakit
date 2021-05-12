@@ -107,7 +107,6 @@ var (
 		"rabbitmq":               true,
 		"redis":                  true,
 		"redislog":               true,
-		"rum":                    true,
 		"scanport":               true,
 		"self":                   true,
 		"squid":                  true,
