@@ -23,7 +23,6 @@ const (
 	Rum              = "rum"
 	Security         = "security"
 	HeartBeat        = "heartbeat"
-	Telegraf         = "telegraf"
 )
 
 type DataWayCfg struct {
@@ -68,7 +67,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 
 	// append datakit info
 	req.Header.Set("X-Datakit-Info",
-		fmt.Sprintf("%s; %s", Cfg.MainCfg.Hostname, git.Version))
+		fmt.Sprintf("%s; %s", Cfg.Hostname, git.Version))
 
 	postbeg := time.Now()
 
@@ -140,9 +139,9 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 
 func (dw *DataWayCfg) HeartBeat() error {
 	body := map[string]interface{}{
-		"dk_uuid":   Cfg.MainCfg.UUID,
+		"dk_uuid":   Cfg.UUID,
 		"heartbeat": time.Now().Unix(),
-		"host":      Cfg.MainCfg.Hostname,
+		"host":      Cfg.Hostname,
 	}
 
 	bodyByte, err := json.Marshal(body)
@@ -232,7 +231,7 @@ func (dw *DataWayCfg) GetToken() []string {
 }
 
 func ParseDataway(httpurls []string) (*DataWayCfg, error) {
-	dw := Cfg.MainCfg.DataWay
+	dw := Cfg.DataWay
 
 	if dw.HTTPTimeout == "" {
 		dw.HTTPTimeout = "5s"
