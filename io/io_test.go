@@ -25,8 +25,7 @@ default_enabled_inputs = ["cpu", "disk", "diskio", "mem", "swap", "system", "net
 install_date = 2021-03-25T11:00:19Z
 
 [dataway]
-  urls = ["https://openway.dataflux.cn/v1/write/metrics?token=tkn_76d2d1efd3ff43db984497bfb4f3c25a",
-	      "https://openway.dataflux.cn/v1/write/metrics?token=tkn_a5cbdacf23214966aa382ae0182e972b"]
+  urls = ["https://openway.dataflux.cn/v1/write/metrics?token=tkn_76d2d1efd3ff43db984497bfb4f3c25a"]
   http_proxy = "http://127.0.0.1:8080"
   timeout = "30s"
 
@@ -148,7 +147,7 @@ func TestPushData(t *testing.T) {
 			"value2": 234,
 		}
 
-		data, err := MakePoint("test", tags, fields, time.Now())
+		data, err := MakePoint("test_proxy", tags, fields, time.Now())
 		if err != nil {
 			l.Warnf("make metric failed: %s", err.Error)
 		}
