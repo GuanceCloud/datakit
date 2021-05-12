@@ -212,7 +212,6 @@ var dbDataStats = map[string]string{
 	"avg_obj_size": "AvgObjSize",
 	"data_size":    "DataSize",
 	"storage_size": "StorageSize",
-	"num_extents":  "NumExtents",
 	"indexes":      "Indexes",
 	"index_size":   "IndexSize",
 	"ok":           "Ok",
