@@ -64,8 +64,8 @@ func getDataWayCfg() *datakit.DataWayCfg {
 		}
 	} else {
 		dwUrls := []string{DataWayHTTP}
-		datakit.Cfg.MainCfg.DataWay.Urls = dwUrls
-		dc, err = datakit.ParseDataway(datakit.Cfg.MainCfg.DataWay.Urls)
+		datakit.Cfg.DataWay.Urls = dwUrls
+		dc, err = datakit.ParseDataway(datakit.Cfg.DataWay.Urls)
 		if err != nil {
 			l.Fatal(err)
 		}
@@ -85,28 +85,28 @@ func InstallNewDatakit(svc service.Service) {
 	}
 
 	// prepare dataway info
-	datakit.Cfg.MainCfg.DataWay = getDataWayCfg()
+	datakit.Cfg.DataWay = getDataWayCfg()
 
 	// accept any install options
 	if GlobalTags != "" {
-		datakit.Cfg.MainCfg.GlobalTags = datakit.ParseGlobalTags(GlobalTags)
+		datakit.Cfg.GlobalTags = datakit.ParseGlobalTags(GlobalTags)
 	}
 
-	datakit.Cfg.MainCfg.HTTPListen = fmt.Sprintf("localhost:%d", Port)
-	datakit.Cfg.MainCfg.InstallDate = time.Now()
+	datakit.Cfg.HTTPListen = fmt.Sprintf("localhost:%d", Port)
+	datakit.Cfg.InstallDate = time.Now()
 
 	if DatakitName != "" {
-		datakit.Cfg.MainCfg.Name = DatakitName
+		datakit.Cfg.Name = DatakitName
 	}
 
 	// XXX: load old datakit UUID file: reuse datakit UUID installed before
 	if data, err := ioutil.ReadFile(datakit.UUIDFile); err != nil {
-		datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
-		if err := datakit.CreateUUIDFile(datakit.Cfg.MainCfg.UUID); err != nil {
+		datakit.Cfg.UUID = cliutils.XID("dkid_")
+		if err := datakit.CreateUUIDFile(datakit.Cfg.UUID); err != nil {
 			l.Fatalf("create datakit id failed: %s", err.Error())
 		}
 	} else {
-		datakit.Cfg.MainCfg.UUID = string(data)
+		datakit.Cfg.UUID = string(data)
 	}
 
 	writeDefInputToMainCfg()
@@ -141,11 +141,11 @@ func upgradeMainConfigure(cfg *datakit.Config, mcp string) error {
 		return err
 	}
 
-	if _, err := bstoml.Decode(string(mcdata), cfg.MainCfg); err != nil {
+	if _, err := bstoml.Decode(string(mcdata), cfg); err != nil {
 		return err
 	}
 
-	mc := cfg.MainCfg
+	mc := cfg
 
 	if mc.DataWay.DeprecatedURL == "" { // use old-version configure fields to build @URL
 		mc.DataWay.DeprecatedURL = fmt.Sprintf("%s://%s", mc.DataWay.DeprecatedScheme, mc.DataWay.DeprecatedHost)
@@ -187,7 +187,7 @@ func UpgradeDatakit(svc service.Service) error {
 	}
 
 	if err := datakit.Cfg.LoadMainConfig(datakit.MainConfPath); err == nil {
-		datakit.Cfg.MainCfg.DataWay.DeprecatedURL = ""
+		datakit.Cfg.DataWay.DeprecatedURL = ""
 		writeDefInputToMainCfg()
 	} else {
 		l.Warnf("load main config: %s, ignored", err.Error())
