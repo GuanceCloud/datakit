@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -52,60 +53,99 @@ func TestAPI(t *testing.T) {
 		gz            bool
 		expectErrCode string
 	}{
+
 		{
-			api:    "/v1/write/metric?name=test",
+			api:    "/v1/ping",
+			method: "GET",
+			gz:     false,
+		},
+
+		{
+			api:    "/v1/write/metric?input=test",
 			body:   []byte(`test,t1=abc f1=1i,f2=2,f3="str"`),
 			method: "POST",
 			gz:     true,
 		},
 		{
-			api:           "/v1/write/metric?name=test",
+			api:           "/v1/write/metric?input=test",
 			body:          []byte(`test t1=abc f1=1i,f2=2,f3="str"`),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
 		{
-			api:           "/v1/write/security?name=test&token=" + __token,
+			api:           "/v1/write/metric?input=test&token=" + __token,
 			body:          []byte(`test-01,category=host,host=ubt-server,level=warn,title=a\ demo message="passwd 发生了变化" 1619599490000652659`),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
 		{
-			api:           "/v1/write/tracing?name=test&token=" + __token,
+			api:           "/v1/write/metric?input=test&token=" + __token,
 			body:          []byte(``),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
 		{
-			api:           "/v1/write/rum?name=test&token=" + __token,
+			api:           "/v1/write/object?input=test&token=" + __token,
 			body:          []byte(``),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
 		{
-			api:           "/v1/write/object?name=test&token=" + __token,
+			api:           "/v1/write/logging?input=test&token=" + __token,
 			body:          []byte(``),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
 		{
-			api:           "/v1/write/logging?name=test&token=" + __token,
+			api:           "/v1/write/keyevent?input=test&token=" + __token,
 			body:          []byte(``),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
+
+		// rum cases
 		{
-			api:           "/v1/write/keyevent?name=test&token=" + __token,
+			api:           "/v1/write/rum?input=test&token=" + __token,
 			body:          []byte(``),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
+		},
+
+		{ // unknown RUM metric
+			api:           "/v1/write/rum?input=rum-test",
+			body:          []byte(`not_rum_metric,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			method:        `POST`,
+			gz:            true,
+			expectErrCode: "datakit.badRequest",
+		},
+
+		{ // bad line-proto
+			api:           "/v1/write/rum?input=rum-test",
+			body:          []byte(`not_rum_metric,t1=tag1,t2=tag2 f1=1.0f,f2=2i,f3="abc"`),
+			method:        `POST`,
+			gz:            true,
+			expectErrCode: "datakit.badRequest",
+		},
+
+		{
+			api:    "/v1/write/rum?input=rum-test",
+			body:   []byte(`js_error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			method: `POST`,
+			gz:     true,
+		},
+
+		{
+			api:    "/v1/write/rum",
+			body:   []byte(`rum_app_startup,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			method: `POST`,
+			gz:     true,
 		},
 	}
 
@@ -146,10 +186,6 @@ func TestAPI(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if resp.StatusCode != http.StatusOK {
-			t.Log("!!! failed")
-			t.Errorf("api %s request faild with status code: %s\n", cases[i].api, resp.Status)
-		}
 
 		respbody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -166,12 +202,17 @@ func TestAPI(t *testing.T) {
 				t.Error(err.Error())
 			}
 
-			l.Debugf("x: %v, body: %s", x, string(respbody))
+			if tc.expectErrCode != "" {
+				tu.Equals(t, string(tc.expectErrCode), string(x.ErrCode))
+			} else {
+				if resp.StatusCode != http.StatusOK {
+					t.Errorf("[FAIL][%d] api %s request faild with status code: %s, body: %s\n", i, cases[i].api, resp.Status, string(respbody))
+					continue
+				}
+				t.Logf("[%d] x: %v, body: %s", i, x, string(respbody))
+			}
 		}
 
-		// testutil.Equals(t, string(tc.expectErrCode), string(x.ErrCode))
-
-		t.Log("### success")
-		t.Logf("case %s ok", cases[i].api)
+		t.Logf("case [%d]%s ok", i, cases[i].api)
 	}
 }
