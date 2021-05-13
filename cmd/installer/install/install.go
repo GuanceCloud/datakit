@@ -209,6 +209,7 @@ func UpgradeDatakit(svc service.Service) error {
 		writeDefInputToMainCfg(mc)
 	} else {
 		l.Warnf("load main config: %s, ignored", err.Error())
+		return err
 	}
 
 	for _, dir := range []string{datakit.DataDir, datakit.ConfdDir} {
@@ -217,8 +218,11 @@ func UpgradeDatakit(svc service.Service) error {
 		}
 	}
 
-	l.Infof("installing service %s...", datakit.ServiceName)
-	return service.Control(svc, "start")
+	if err := service.Control(svc, "install"); err != nil {
+		l.Warnf("install datakit service: %s, ignored", err.Error())
+	}
+
+	return nil
 }
 
 func Init() {
