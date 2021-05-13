@@ -1,9 +1,16 @@
 package ip2isp
 
 import (
+	"bufio"
 	"fmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 const (
@@ -11,6 +18,21 @@ const (
 )
 
 var (
+	IspValid = map[string]string{
+		"chinanet": "中国电信",
+		"cmcc":     "中国移动",
+		"unicom":   "中国联通",
+		"tietong":  "中国铁通",
+		"cernet":   "教育网",
+		"cstnet":   "科技网",
+		"drpeng":   "鹏博士",
+		"googlecn": "谷歌中国",
+	}
+)
+
+var (
+	l               = logger.DefaultSLogger("ip2isp")
+	Ip2IspDb        = map[string]string{}
 	BitConvTemplate = []string{
 		"00000000",
 		"00000001",
@@ -315,4 +337,56 @@ func SearchIsp(ip string) string {
 		}
 	}
 	return "unknown"
+}
+
+func Init() error {
+	m := make(map[string]string)
+
+	fileDir := filepath.Join(datakit.InstallDir, "data", "ip2isp")
+	files, err := ioutil.ReadDir(fileDir)
+	if err != nil {
+		return err
+	}
+	for _, f := range files {
+		file := f.Name()
+
+		//去掉统计信息文件
+		if !strings.HasSuffix(file, ".txt") {
+			continue
+		}
+
+		//去掉ipv6文件
+		if strings.HasSuffix(file, "6.txt") {
+			continue
+		}
+
+		isp := strings.TrimSuffix(file, ".txt")
+		if _, ok := IspValid[isp]; !ok {
+			continue
+		}
+
+		fd, err := os.Open(filepath.Join(fileDir, file))
+		if err != nil {
+			return err
+		}
+		defer fd.Close()
+
+		scanner := bufio.NewScanner(fd)
+		for scanner.Scan() {
+			ipBitStr, err := ParseIpCIDR(scanner.Text())
+			if err != nil {
+				continue
+			}
+			m[ipBitStr] = IspValid[isp]
+		}
+	}
+
+	if len(m) != 0 {
+		Ip2IspDb = m
+		l.Infof("found new %d rules", len(m))
+	} else {
+		l.Infof("no rules founded")
+	}
+
+	return nil
 }
