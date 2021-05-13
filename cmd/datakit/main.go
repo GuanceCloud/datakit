@@ -62,8 +62,10 @@ var (
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
 	flagUpdateIPDb        = flag.Bool("update-data", false, "update iploc.bin, ip2isp")
-	flagShowCloudInfo     = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flagAddr              = flag.String("addr", "", "url path")
+	flagManVersion        = flag.String("man-version", git.Version, "specify manuals version")
+
+	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 )
 
 var (
@@ -316,10 +318,10 @@ func runDatakitWithHTTPServer() error {
 	}
 
 	http.Start(&http.Option{
-		Bind:           datakit.Cfg.MainCfg.HTTPListen,
-		GinLog:         datakit.Cfg.MainCfg.GinLog,
-		GinReleaseMode: strings.ToLower(datakit.Cfg.MainCfg.LogLevel) != "debug",
-		PProf:          datakit.Cfg.MainCfg.EnablePProf,
+		Bind:           datakit.Cfg.HTTPListen,
+		GinLog:         datakit.Cfg.GinLog,
+		GinReleaseMode: strings.ToLower(datakit.Cfg.LogLevel) != "debug",
+		PProf:          datakit.Cfg.EnablePProf,
 	})
 
 	return nil
@@ -356,7 +358,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagExportMan != "" {
-		if err := cmds.ExportMan(*flagExportMan, *flagIgnore); err != nil {
+		if err := cmds.ExportMan(*flagExportMan, *flagIgnore, *flagManVersion); err != nil {
 			l.Error(err)
 		}
 		os.Exit(0)
