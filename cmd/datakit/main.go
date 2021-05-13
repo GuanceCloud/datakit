@@ -291,7 +291,7 @@ func run() {
 }
 
 func tryLoadConfig() {
-	datakit.MoveDeprecatedMainCfg()
+	datakit.MoveDeprecatedCfg()
 
 	for {
 		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
@@ -386,7 +386,7 @@ func runDatakitWithCmd() {
 			os.Exit(-1)
 		}
 
-		fmt.Printf("Start DataKit OK") // TODO: 需说明 PID 是多少
+		fmt.Println("Start DataKit OK") // TODO: 需说明 PID 是多少
 		os.Exit(0)
 	}
 
@@ -418,7 +418,7 @@ func runDatakitWithCmd() {
 			os.Exit(-1)
 		}
 
-		fmt.Printf("Restart DataKit OK")
+		fmt.Println("Restart DataKit OK")
 		os.Exit(0)
 	}
 
@@ -434,7 +434,7 @@ func runDatakitWithCmd() {
 			os.Exit(-1)
 		}
 
-		fmt.Printf("Reload DataKit OK")
+		fmt.Println("Reload DataKit OK")
 		os.Exit(0)
 	}
 }
