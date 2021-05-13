@@ -253,9 +253,19 @@ $ sudo datakit --restart
 $ sudo datakit --reload
 ```
 
+### DataKit 更新 IP 数据库文件
+
+可直接使用如下命令更新数据库文件（仅 Mac/Linux 支持）
+
+```shell
+$ sudo datakit --update-ip-db
+```
+
+若 DataKit 在运行中，更新成功后对自动执行 Reload 操作
+
 ### DataKit 安装第三方软件
 
-目前仅支持 Telegraf 安装
+#### Telegraf 安装
 
 安装
 ```shell
@@ -271,6 +281,14 @@ $ sudo telegraf --config tg.conf
 
 若需要修改 Telegraf 配置，在 `tg.conf` 文件中修改后重启 Telegraf
 
+#### sec-check 安装
+
+安装
+```shell
+$ sudo datakit --install sec-check
+```
+
+安装成功后会自动运行，sec-check 具体使用，参见[这里](https://www.yuque.com/dataflux/sec_checker/install) 
 
 ### 其它命令
 
