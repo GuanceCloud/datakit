@@ -14,13 +14,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/configtemplate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
 	DataKitBaseURL = ""
 	DataKitVersion = ""
+
+	oldInstallDir      = "/usr/local/cloudcare/dataflux/datakit"
+	oldInstallDirWin   = `C:\Program Files\dataflux\datakit`
+	oldInstallDirWin32 = `C:\Program Files (x86)\dataflux\datakit`
 
 	datakitUrl = "https://" + path.Join(DataKitBaseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion))
@@ -44,19 +47,34 @@ var (
 	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
 	flagInstallLog   = flag.String("install-log", "", "install log")
 
-	flagCfgTemplate = flag.String("conf-tmpl", "", `specify input config templates, can be file path or url, e.g, http://res.dataflux.cn/datakit/conf`)
-
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
 )
 
 const (
 	datakitBin = "datakit"
-
-	dlDatakit = "datakit"
-
-	dlData = "data"
+	dlDatakit  = "datakit"
+	dlData     = "data"
 )
+
+func mvOldDatakit() {
+	olddir := oldInstallDir
+	switch runtime.GOOS + "/" + runtime.GOARCH {
+	case datakit.OSArchWinAmd64:
+		olddir = oldInstallDirWin
+	case datakit.OSArchWin386:
+		olddir = oldInstallDirWin32
+	}
+
+	if _, err := os.Stat(olddir); err != nil {
+		l.Debugf("path %s not exists, ingored", olddir)
+		return
+	}
+
+	if err := os.Rename(olddir, datakit.InstallDir); err != nil {
+		l.Fatalf("move %s -> %s failed: %s", olddir, datakit.InstallDir, err.Error())
+	}
+}
 
 func main() {
 
@@ -76,6 +94,9 @@ func main() {
 	}
 
 	l = logger.SLogger("installer")
+
+	// 迁移老版本 datakit 数据目录
+	mvOldDatakit()
 
 	datakit.InitDirs()
 	applyFlags()
@@ -106,7 +127,6 @@ func main() {
 			_ = install.ExtractDatakit(f, datakit.InstallDir)
 		}
 	} else {
-		l.Infof("download start,url %s", datakitUrl)
 		install.CurDownloading = dlDatakit
 		if err := install.Download(datakitUrl, datakit.InstallDir, true, false); err != nil {
 			return
@@ -131,11 +151,6 @@ func main() {
 		install.InstallNewDatakit(svc)
 	}
 
-	ct := configtemplate.NewCfgTemplate(datakit.InstallDir)
-	if err = ct.InstallConfigs(*flagCfgTemplate); err != nil {
-		l.Fatalf("fail to intsall config template, %s", err)
-	}
-
 	if !*flagInstallOnly {
 		l.Infof("starting service %s...", datakit.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
@@ -143,7 +158,7 @@ func main() {
 		}
 	}
 
-	createDkSoftLink()
+	createSymlinks()
 
 	if *flagUpgrade { // upgrade new version
 		l.Info(":) Upgrade Success!")
@@ -202,36 +217,47 @@ Golang Version: %s
 	install.EnableInputs = *flagEnableInputs
 }
 
-func createDkSoftLink() {
+func createSymlinks() error {
+
+	x := [][2]string{}
+
+	if runtime.GOOS == datakit.OSWindows {
+		x = [][2]string{
+			[2]string{
+				filepath.Join(datakit.InstallDir, "datakit.exe"),
+				`C:\WINDOWS\system32\datakit.exe`,
+			},
+		}
+	} else {
+		x = [][2]string{
+			[2]string{
+				filepath.Join(datakit.InstallDir, "datakit"),
+				"/usr/local/bin/datakit",
+			},
+		}
+	}
+
+	for _, item := range x {
+		if err := symlink(item[0], item[1]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func symlink(src, dst string) error {
 	sBin := filepath.Join(datakit.InstallDir, "datakit")
 	dBin := "/usr/local/bin/datakit"
 
-	if runtime.GOOS == "windows" {
-		sBin += ".exe"
-		dBin = `C:\WINDOWS\system32\datakit.exe`
+	l.Debugf("remove link %s...", dst)
+	if err := os.Remove(dst); err != nil {
+		l.Warnf("%s, ignored", err)
 	}
 
-	if !isExist(dBin) {
-		if err := os.Symlink(sBin, dBin); err != nil {
-			l.Warnf("create datakit soft link: %s, ignored", err.Error())
-		}
+	if err := os.Symlink(sBin, dBin); err != nil {
+		l.Errorf("create datakit soft link: %s -> %s: %s", dBin, sBin, err.Error())
+		return err
 	}
-}
-
-func isExist(path string) bool {
-	_, err := os.Stat(path)
-
-	if err != nil {
-		if os.IsExist(err) {
-			return true
-		}
-
-		if os.IsNotExist(err) {
-			return false
-		}
-
-		return false
-	}
-
-	return true
+	return nil
 }
