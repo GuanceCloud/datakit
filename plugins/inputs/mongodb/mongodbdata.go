@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -219,8 +220,9 @@ func (d *MongodbData) append() {
 
 func (d *MongodbData) flush() {
 	if len(d.collectCache) != 0 {
-		if err := inputs.FeedMeasurement(inputName, io.Metric, d.collectCache, &io.Option{CollectCost: d.collectCost}); err != nil {
+		if err := inputs.FeedMeasurement(inputName, datakit.Metric, d.collectCache, &io.Option{CollectCost: d.collectCost}); err != nil {
 			l.Error(err)
+			io.FeedLastError(inputName, err.Error())
 		}
 	}
 }
