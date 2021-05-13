@@ -3,6 +3,8 @@ package cmds
 import (
 	"fmt"
 	nhttp "net/http"
+	"os"
+	"path/filepath"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
@@ -17,17 +19,19 @@ func UpdateIpDB(port int, addr string) error {
 		addr = dataUrl
 	}
 
+	os.RemoveAll(filepath.Join(datakit.InstallDir, "data", "ip2isp"))
+
 	fmt.Printf("Start downloading data.tar.gz...\n")
+
 	if err := install.Download(addr, datakit.InstallDir, true, false); err != nil {
 		return err
 	}
-	fmt.Printf("Download and decompress data.tar.gz successfully.\n")
-	fmt.Printf("Update Ip DB successfully.\n")
 
-	_, err := nhttp.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
-	if err == nil {
-		fmt.Printf("Datakit reload successfully\n")
-	}
+	fmt.Printf("Download and decompress data.tar.gz successfully.\n")
+
+	nhttp.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
+
+	fmt.Printf("Update successfully.\n")
 
 	return nil
 }
