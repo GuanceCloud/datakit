@@ -34,8 +34,9 @@ type DataWayCfg struct {
 	DeprecatedToken  string   `toml:"token,omitempty"`
 	dataWayClients   []*dataWayClient
 	httpCli          *http.Client
-	HTTPTimeout      string `toml:"timeout"`
-	HttpProxy        string `toml:"http_proxy"`
+	HTTPTimeout      string        `toml:"timeout"`
+	TimeoutDuration  time.Duration `toml:"-"`
+	HttpProxy        string        `toml:"http_proxy"`
 }
 
 type dataWayClient struct {
@@ -108,6 +109,9 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 
 func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
 	req, err := http.NewRequest("POST", dc.categoryUrl[HeartBeat], bytes.NewBuffer(data))
+
+	dc.httpCli = cli
+
 	resp, err := dc.httpCli.Do(req)
 	if err != nil {
 		return err
@@ -128,6 +132,8 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 		defer dw.httpCli.CloseIdleConnections()
 	}
 
+	dw.initHttp()
+
 	for _, dc := range dw.dataWayClients {
 		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
 			return err
@@ -138,11 +144,17 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 }
 
 func (dw *DataWayCfg) HeartBeat() error {
+	if dw.httpCli != nil {
+		defer dw.httpCli.CloseIdleConnections()
+	}
+
 	body := map[string]interface{}{
 		"dk_uuid":   Cfg.UUID,
 		"heartbeat": time.Now().Unix(),
 		"host":      Cfg.Hostname,
 	}
+
+	dw.initHttp()
 
 	bodyByte, err := json.Marshal(body)
 	if err != nil {
@@ -242,22 +254,9 @@ func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 		return nil, err
 	}
 
-	dw.httpCli = &http.Client{
-		Timeout: timeout,
-	}
+	dw.TimeoutDuration = timeout
 
-	if dw.HttpProxy != "" {
-		uri, err := url.Parse(dw.HttpProxy)
-		if err != nil {
-			l.Error("parse url error: ", err)
-		}
-
-		tr := &http.Transport{
-			Proxy: http.ProxyURL(uri),
-		}
-
-		dw.httpCli.Transport = tr
-	}
+	dw.initHttp()
 
 	if len(httpurls) == 0 {
 		return nil, fmt.Errorf("empty dataway HTTP endpoint")
@@ -295,4 +294,25 @@ func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 	}
 
 	return dw, nil
+}
+
+func (dw *DataWayCfg) initHttp() {
+	if dw.httpCli == nil {
+		dw.httpCli = &http.Client{
+			Timeout: dw.TimeoutDuration,
+		}
+
+		if dw.HttpProxy != "" {
+			uri, err := url.Parse(dw.HttpProxy)
+			if err != nil {
+				l.Error("parse url error: ", err)
+			}
+
+			tr := &http.Transport{
+				Proxy: http.ProxyURL(uri),
+			}
+
+			dw.httpCli.Transport = tr
+		}
+	}
 }
