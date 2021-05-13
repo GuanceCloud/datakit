@@ -86,6 +86,10 @@ func (m *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func (m *Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
 func (m *Input) Run() {
 	l.Info("mongodb input started")
 
