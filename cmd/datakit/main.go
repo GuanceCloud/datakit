@@ -61,7 +61,7 @@ var (
 	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
-	flagUpdateIPDb        = flag.Bool("update-data", false, "update iploc.bin, ip2isp")
+	flagUpdateIPDb        = flag.Bool("update-ip-db", false, "update ip db")
 	flagAddr              = flag.String("addr", "", "url path")
 	flagManVersion        = flag.String("man-version", git.Version, "specify manuals version")
 
