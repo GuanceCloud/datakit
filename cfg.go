@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -21,7 +22,7 @@ var (
 )
 
 func DefaultConfig() *Config {
-	return &Config{ //nolint:dupl
+	c := &Config{ //nolint:dupl
 		GlobalTags: map[string]string{
 			"project": "",
 			"cluster": "",
@@ -40,9 +41,9 @@ func DefaultConfig() *Config {
 		},
 
 		LogLevel:  "info",
-		Log:       filepath.Join(InstallDir, "log"),
+		Log:       filepath.Join("/var/log/datakit", "log"),
 		LogRotate: 32,
-		GinLog:    filepath.Join(InstallDir, "gin.log"),
+		GinLog:    filepath.Join("/var/log/datakit", "gin.log"),
 
 		BlackList: []*InputHostList{
 			&InputHostList{Hosts: []string{}, Inputs: []string{}},
@@ -51,6 +52,14 @@ func DefaultConfig() *Config {
 			&InputHostList{Hosts: []string{}, Inputs: []string{}},
 		},
 	}
+
+	// windows 下，日志继续跟 datakit 放在一起
+	if runtime.GOOS == OSWindows {
+		c.Log = filepath.Join(InstallDir, "log")
+		c.GinLog = filepath.Join(InstallDir, "gin.log")
+	}
+
+	return c
 }
 
 type apiConfig struct {
@@ -122,7 +131,6 @@ func (i *InputHostList) MatchInput(input string) bool {
 func InitDirs() {
 	for _, dir := range []string{
 		DataDir,
-		LuaDir,
 		ConfdDir,
 		PipelineDir,
 		PipelinePatternDir} {
@@ -425,7 +433,7 @@ func LoadUUID() (string, error) {
 	}
 }
 
-func MoveDeprecatedMainCfg() {
+func MoveDeprecatedCfg() {
 	if _, err := os.Stat(MainConfPathDeprecated); err == nil {
 		if err := os.Rename(MainConfPathDeprecated, MainConfPath); err != nil {
 			l.Fatal("move deprecated main configure failed: %s", err.Error())
