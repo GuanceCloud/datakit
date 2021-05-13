@@ -184,7 +184,7 @@ func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 	// load datakit UUID
 	if c.UUIDDeprecated != "" {
 		// dump UUIDDeprecated to .id file
-		if err := CreateUUIDFile(Cfg.UUIDDeprecated); err != nil {
+		if err := CreateUUIDFile(UUIDFile, Cfg.UUIDDeprecated); err != nil {
 			l.Fatalf("create datakit id failed: %s", err.Error())
 		}
 		c.UUID = c.UUIDDeprecated
@@ -347,8 +347,8 @@ func (c *Config) LoadEnvs(mcp string) error {
 	}
 
 	dwURL := os.Getenv("ENV_DATAWAY")
-	dwURLs := []string{dwURL}
-	if len(dwURL) != 0 {
+	if dwURL != "" {
+		dwURLs := []string{dwURL}
 		dw, err := ParseDataway(dwURLs)
 		if err != nil {
 			return err
@@ -359,6 +359,7 @@ func (c *Config) LoadEnvs(mcp string) error {
 		}
 
 		c.DataWay = dw
+		c.DataWay.Urls = dwURLs
 	}
 
 	dkhost := os.Getenv("ENV_HOSTNAME")
@@ -396,7 +397,7 @@ func (c *Config) LoadEnvs(mcp string) error {
 		return fmt.Errorf("ENV_UUID not set")
 	}
 
-	if err := CreateUUIDFile(dkid); err != nil {
+	if err := CreateUUIDFile(UUIDFile, dkid); err != nil {
 		l.Errorf("create id file: %s", err.Error())
 		return err
 	}
@@ -421,8 +422,8 @@ func ParseGlobalTags(s string) map[string]string {
 	return tags
 }
 
-func CreateUUIDFile(uuid string) error {
-	return ioutil.WriteFile(UUIDFile, []byte(uuid), os.ModePerm)
+func CreateUUIDFile(f, uuid string) error {
+	return ioutil.WriteFile(f, []byte(uuid), os.ModePerm)
 }
 
 func LoadUUID() (string, error) {
