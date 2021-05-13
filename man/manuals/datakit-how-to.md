@@ -19,9 +19,9 @@ DataKit 目前支持 Linux/Windows/macOS 三种主流平台：
 
 | 操作系统                            | 架构                | 安装路径                                                                                     |
 | ---------                           | ---                 | ------                                                                                       |
-| Linux 内核 2.6.23 或更高版本        | amd64/386/arm/arm64 | `/usr/local/cloudcare/dataflux/datakit`                                                      |
-| macOS 10.11 或更高版本              | amd64               | `/usr/local/cloudcare/dataflux/datakit`                                                      |
-| Windows 7, Server 2008R2 或更高版本 | amd64/386           | 64位：`C:\Program Files\dataflux\datakit`<br />32位：`C:\Program Files(32)\dataflux\datakit` |
+| Linux 内核 2.6.23 或更高版本        | amd64/386/arm/arm64 | `/usr/local/datakit`                                                      |
+| macOS 10.11 或更高版本              | amd64               | `/usr/local/datakit`                                                      |
+| Windows 7, Server 2008R2 或更高版本 | amd64/386           | 64位：`C:\Program Files\datakit`<br />32位：`C:\Program Files(32)\datakit` |
 
 安装完成年后，DataKit 目录列表大概如下：
 
@@ -261,7 +261,11 @@ $ sudo datakit --reload
 $ sudo datakit --update-ip-db
 ```
 
-若 DataKit 在运行中，更新成功后对自动执行 Reload 操作
+若 DataKit 在运行中，更新成功后会自动执行 Reload 操作
+
+### DataKit 开启外部访问配置
+
+编辑 `conf.d/datakit.conf` 中的 `http_listen` 字段，将其改成 `0.0.0.0:9529` 或其它网卡、端口。这样就能从其它主机上请求 DataKit 接口了。
 
 ### DataKit 安装第三方软件
 

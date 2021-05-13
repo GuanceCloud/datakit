@@ -447,10 +447,18 @@ func runDatakitWithCmd() {
 			os.Exit(-1)
 		}
 
+		if runtime.GOOS == datakit.OSWindows {
+			fmt.Println("[E] not supported")
+			os.Exit(-1)
+		}
+
 		if err := cmds.UpdateIpDB(*flagReloadPort, *flagAddr); err != nil {
 			fmt.Printf("Reload DataKit failed: %s\n", err)
 			os.Exit(-1)
 		}
+
+		fmt.Println("Update IPdb ok!")
+
 		os.Exit(0)
 	}
 }
