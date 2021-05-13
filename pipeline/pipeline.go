@@ -269,7 +269,7 @@ func debugNodesHelp(f *parser.FuncExpr, prev string) {
 func Init() error {
 	l = logger.SLogger("pipeline")
 
-	if err := geo.Init(); err != nil {
+	if err := geo.LoadIPLib(); err != nil {
 		return err
 	}
 
