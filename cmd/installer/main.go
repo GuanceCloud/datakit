@@ -57,7 +57,7 @@ const (
 	dlData     = "data"
 )
 
-func mvOldDatakit() {
+func mvOldDatakit(svc service.Service) {
 	olddir := oldInstallDir
 	switch runtime.GOOS + "/" + runtime.GOARCH {
 	case datakit.OSArchWinAmd64:
@@ -69,6 +69,10 @@ func mvOldDatakit() {
 	if _, err := os.Stat(olddir); err != nil {
 		l.Debugf("path %s not exists, ingored", olddir)
 		return
+	}
+
+	if err := service.Control(svc, "uninstall"); err != nil {
+		l.Warnf("uninstall service datakit failed: %s, ignored", err.Error())
 	}
 
 	if err := os.Rename(olddir, datakit.InstallDir); err != nil {
@@ -95,17 +99,6 @@ func main() {
 
 	l = logger.SLogger("installer")
 
-	// 迁移老版本 datakit 数据目录
-	mvOldDatakit()
-
-	datakit.InitDirs()
-	applyFlags()
-
-	// create install dir if not exists
-	if err := os.MkdirAll(datakit.InstallDir, 0775); err != nil {
-		l.Fatal(err)
-	}
-
 	datakit.ServiceExecutable = filepath.Join(datakit.InstallDir, datakitBin)
 	if runtime.GOOS == datakit.OSWindows {
 		datakit.ServiceExecutable += ".exe"
@@ -120,6 +113,17 @@ func main() {
 	l.Info("stoping datakit...")
 	if err := service.Control(svc, "stop"); err != nil {
 		l.Warnf("stop service: %s, ignored", err.Error())
+	}
+
+	// 迁移老版本 datakit 数据目录
+	mvOldDatakit(svc)
+
+	datakit.InitDirs()
+	applyFlags()
+
+	// create install dir if not exists
+	if err := os.MkdirAll(datakit.InstallDir, 0775); err != nil {
+		l.Fatal(err)
 	}
 
 	if *flagOffline && *flagSrcs != "" {
@@ -144,7 +148,7 @@ func main() {
 	if *flagUpgrade { // upgrade new version
 		l.Infof("Upgrading to version %s...", DataKitVersion)
 		if err := install.UpgradeDatakit(svc); err != nil {
-			l.Fatalf("upgrade datakit failed: %s", err.Error())
+			l.Fatalf("upgrade datakit: %s, ignored", err.Error())
 		}
 	} else { // install new datakit
 		l.Infof("Installing version %s...", DataKitVersion)
