@@ -10,8 +10,8 @@ MySQL 指标采集，收集以下数据：
 
 - mysql global status 基础数据采集
 - scheam 相关数据
-- innodb 相关指标 (TODO)
-- 主从模式 (TODO)
+- innodb 相关指标 
+- 主从模式 
 - 支持自定义查询数据采集
 
 ## 前置条件
