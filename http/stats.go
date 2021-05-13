@@ -79,10 +79,10 @@ func (x *datakitStats) InputsStatsTable() string {
 
 	const (
 		tblHeader = `
-| 采集器 | 实例个数 | 数据类型 | 频率 | 平均 IO 大小 | 总次/点数 | 首/末采集时间 | 当前错误/时间 | 平均/最大采集消耗 | 奔溃次数 |
-| ----   |:----:    | :----:   |:----:| :----:       | :----:    | :----:        | :----:        | :----:            | :----:   |
+| 采集器 | 实例个数 | 数据类型 | 频率   | 平均 IO 大小 | 总次数 | 点数  | 首次采集 | 最近采集 | 当前错误(时间) | 平均采集消耗 | 最大采集消耗 | 奔溃次数 |
+| ----   | :----:   | :----:   | :----: | :----:       | :----: | :---: | :----:   | :---:    | :----:         | :----:       | :---:        | :----:   |
 `
-		rowFmt = "|%s|%d|%s|%s|%d|%d/%d|%s/%s|%s(%s)|%s/%s|%d|"
+		rowFmt = "|`%s`|%d|`%s`|%s|%d|%d|%d|%s|%s|`%s`(%s)|%s|%s|%d|"
 	)
 
 	if len(x.EnabledInputs) == 0 {
@@ -94,9 +94,22 @@ func (x *datakitStats) InputsStatsTable() string {
 	rows := []string{}
 	for _, v := range x.EnabledInputs {
 		if s, ok := x.InputsStats[v.Input]; !ok {
-			rows = append(rows, fmt.Sprintf(rowFmt,
-				v.Input, v.Instances,
-				"-", "-", 0, 0, 0, "-", "-", "-", "-", "-", "-", 0))
+			rows = append(rows,
+				fmt.Sprintf(rowFmt,
+					v.Input,
+					v.Instances,
+					"-",
+					"-",
+					0,
+					0,
+					0,
+					"-",
+					"-",
+					"-",
+					"-",
+					"-",
+					"-",
+					0))
 			continue
 		} else {
 			firstIO := humanize.RelTime(s.First, now, "ago", "")
@@ -117,11 +130,27 @@ func (x *datakitStats) InputsStatsTable() string {
 				freq = s.Frequency
 			}
 
-			rows = append(rows, fmt.Sprintf(rowFmt,
-				v.Input, v.Instances,
-				s.Category, freq, s.AvgSize, s.Count, s.Total, firstIO,
-				lastIO, lastErr, lastErrTime,
-				s.AvgCollectCost, s.MaxCollectCost, v.Panics))
+			category := "-"
+			if s.Category != "" {
+				category = s.Category
+			}
+
+			rows = append(rows,
+				fmt.Sprintf(rowFmt,
+					v.Input,
+					v.Instances,
+					category,
+					freq,
+					s.AvgSize,
+					s.Count,
+					s.Total,
+					firstIO,
+					lastIO,
+					lastErr,
+					lastErrTime,
+					s.AvgCollectCost,
+					s.MaxCollectCost,
+					v.Panics))
 		}
 	}
 
