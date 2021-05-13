@@ -69,7 +69,7 @@ default_path = "/v1/write/metrics"
 	if err := cfg.LoadMainConfig(mcp); err != nil {
 		l.Fatalf("LoadMainConfig(): %s", err.Error())
 	}
-	l.Debugf("%+#v", cfg.MainCfg.DataWay)
+	l.Debugf("%+#v", cfg.DataWay)
 
 	upgradeMainConfigure(cfg, mcp)
 
@@ -77,8 +77,8 @@ default_path = "/v1/write/metrics"
 		l.Fatalf("LoadMainConfig(): %s", err.Error())
 	}
 
-	l.Debugf("%+#v", cfg.MainCfg)
-	l.Debugf("%+#v", cfg.MainCfg.DataWay)
+	l.Debugf("%+#v", cfg)
+	l.Debugf("%+#v", cfg.DataWay)
 
 	os.RemoveAll(mcp)
 }
