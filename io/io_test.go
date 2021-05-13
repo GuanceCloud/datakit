@@ -122,7 +122,7 @@ func TestFlush(t *testing.T) {
 func TestUnmarshalMainCfg(t *testing.T) {
 	datakit.Cfg.DoLoadMainConfig([]byte(cfg))
 
-	t.Log(datakit.Cfg.MainCfg.DataWay.HttpProxy)
+	t.Log(datakit.Cfg.DataWay.HttpProxy)
 }
 
 func TestPushData(t *testing.T) {
@@ -130,7 +130,7 @@ func TestPushData(t *testing.T) {
 
 	defaultMaxCacheCnt = int64(1024)
 	x = NewIO(defaultMaxCacheCnt)
-	x.dw, _ = datakit.ParseDataway(datakit.Cfg.MainCfg.DataWay.Urls)
+	x.dw, _ = datakit.ParseDataway(datakit.Cfg.DataWay.Urls)
 	x.FlushInterval = 1 * time.Second
 
 	StartCollect()
