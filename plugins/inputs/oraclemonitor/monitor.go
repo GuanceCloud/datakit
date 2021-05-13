@@ -12,7 +12,7 @@ const (
 [[inputs.external]]
 	daemon = true
 	name = 'oraclemonitor'
-	cmd  = "/usr/local/cloudcare/dataflux/datakit/externals/oraclemonitor"
+	cmd  = "/usr/local/datakit/externals/oraclemonitor"
 	args = [
 		'-data-type'      , '<metric/logging>'          ,
 		'-instance-id'    , '<your-instance-id>'        ,
