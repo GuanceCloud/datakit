@@ -61,8 +61,9 @@ var (
 	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
-	flagUpdateIPDb        = flag.Bool("update-ip-db", false, "update IP address to ISP translation database")
-	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
+	flagUpdateIPDb        = flag.Bool("update-data", false, "update iploc.bin, ip2isp")
+	flagShowCloudInfo     = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
+	flagAddr              = flag.String("addr", "", "url path")
 )
 
 var (
@@ -80,6 +81,7 @@ func main() {
 	flag.CommandLine.MarkHidden("cmd") // deprecated
 
 	// un-documented options
+	flag.CommandLine.MarkHidden("addr")
 	flag.CommandLine.MarkHidden("show-testing-version")
 
 	flag.CommandLine.SortFlags = false
@@ -443,10 +445,11 @@ func runDatakitWithCmd() {
 			os.Exit(-1)
 		}
 
-		if err := cmds.UpdateIpDB(); err != nil {
+		if err := cmds.UpdateIpDB(*flagReloadPort, *flagAddr); err != nil {
 			fmt.Printf("Reload DataKit failed: %s\n", err)
 			os.Exit(-1)
 		}
+		os.Exit(0)
 	}
 }
 
