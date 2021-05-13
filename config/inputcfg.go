@@ -251,11 +251,11 @@ func initPluginSamples() {
 
 func initDefaultEnabledPlugins(c *datakit.Config) {
 
-	if len(c.MainCfg.DefaultEnabledInputs) == 0 {
+	if len(c.DefaultEnabledInputs) == 0 {
 		return
 	}
 
-	for _, name := range c.MainCfg.DefaultEnabledInputs {
+	for _, name := range c.DefaultEnabledInputs {
 		var fpath, sample string
 
 		if c, ok := inputs.Inputs[name]; ok {
@@ -367,12 +367,12 @@ func tryStartElection(tbl *ast.Table, entries map[string]interface{}) {
 			// 例如第一次遇到 kubernetes input，此时选举状态为初始化的 Dead，条件成立，改变状态，开始选举
 			// 第二次遇到 kubernetes input 时，如果是非初始状态 Dead，证明已经有选举在进行中，不应该再次开始选举
 
-			if datakit.Cfg.MainCfg.EnableElection && election.CurrentStats().IsDead() {
+			if datakit.Cfg.EnableElection && election.CurrentStats().IsDead() {
 				election.SetCandidate()
 				go election.StartElection()
 			}
 			// datakit 不开启选举，默认自己是 Leader
-			if !datakit.Cfg.MainCfg.EnableElection {
+			if !datakit.Cfg.EnableElection {
 				election.SetLeader()
 			}
 		}
