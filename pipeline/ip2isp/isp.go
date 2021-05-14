@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	IpV4_Len = 4
+	IpV4_Len       = 4
+	FILE_SEPERATOR = " "
 )
 
 var (
@@ -342,11 +343,44 @@ func SearchIsp(ip string) string {
 func Init() error {
 	m := make(map[string]string)
 
-	fileDir := filepath.Join(datakit.InstallDir, "data", "ip2isp")
-	files, err := ioutil.ReadDir(fileDir)
+	fd, err := os.Open(filepath.Join(datakit.InstallDir, "data", "ip2isp.txt"))
 	if err != nil {
 		return err
 	}
+	defer fd.Close()
+
+	scanner := bufio.NewScanner(fd)
+	for scanner.Scan() {
+		contents := strings.Split(scanner.Text(), FILE_SEPERATOR)
+		if len(contents) != 2 {
+			continue
+		}
+
+		ipBitStr, err := ParseIpCIDR(contents[0])
+		if err != nil {
+			continue
+		}
+		m[ipBitStr] = contents[1]
+	}
+
+	if len(m) != 0 {
+		Ip2IspDb = m
+		l.Infof("found new %d rules", len(m))
+	} else {
+		l.Infof("no rules founded")
+	}
+
+	return nil
+}
+
+func MergeIsp(from, to string) error {
+	files, err := ioutil.ReadDir(from)
+	if err != nil {
+		return err
+	}
+
+	var content []string
+
 	for _, f := range files {
 		file := f.Name()
 
@@ -365,7 +399,7 @@ func Init() error {
 			continue
 		}
 
-		fd, err := os.Open(filepath.Join(fileDir, file))
+		fd, err := os.Open(filepath.Join(from, file))
 		if err != nil {
 			return err
 		}
@@ -373,20 +407,10 @@ func Init() error {
 
 		scanner := bufio.NewScanner(fd)
 		for scanner.Scan() {
-			ipBitStr, err := ParseIpCIDR(scanner.Text())
-			if err != nil {
-				continue
-			}
-			m[ipBitStr] = IspValid[isp]
+			c := fmt.Sprintf("%v%v%v", scanner.Text(), FILE_SEPERATOR, isp)
+			content = append(content, c)
 		}
 	}
 
-	if len(m) != 0 {
-		Ip2IspDb = m
-		l.Infof("found new %d rules", len(m))
-	} else {
-		l.Infof("no rules founded")
-	}
-
-	return nil
+	return ioutil.WriteFile(to, []byte(strings.Join(content, "\n")), 0x666)
 }
