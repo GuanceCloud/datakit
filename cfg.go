@@ -323,7 +323,6 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 	}
 
 	c.DefaultEnabledInputs = inputs
-
 }
 
 func (c *Config) LoadEnvs(mcp string) error {
