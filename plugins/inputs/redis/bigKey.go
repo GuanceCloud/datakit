@@ -52,7 +52,7 @@ func (i *Input) getKeys() {
 			var err error
 			keys, cursor, err = i.client.Scan(cursor, pattern, 10).Result()
 			if err != nil {
-				i.err = append(i.err, err)
+				i.err = err
 				l.Errorf("redis pattern key %s scan fail error %v", pattern, err)
 			}
 
