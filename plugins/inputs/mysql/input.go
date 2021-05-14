@@ -70,7 +70,7 @@ type Input struct {
 	Log             *inputs.TailerOption     `toml:"log"`
 	tailer          *inputs.Tailer           `toml:"-"`
 	InnoDB          bool                     `toml:"innodb"`
-	err             []error
+	err             error
 }
 
 func (i *Input) getDsnString() string {
@@ -147,12 +147,10 @@ func (i *Input) Collect() error {
 		i.collectInnodbMeasurement()
 	}
 
-	errStr := ""
-	for _, err := range i.err {
-		errStr += " " + err.Error()
+	if i.err != nil {
+		io.FeedLastError(inputName, i.err.Error())
+		i.err = nil
 	}
-
-	io.FeedLastError(inputName, errStr)
 
 	return nil
 }
@@ -172,15 +170,15 @@ func (i *Input) collectBaseMeasurement() {
 	}
 
 	if err := m.getStatus(); err != nil {
-		i.err = append(i.err, err)
+		i.err = err
 	}
 
 	if err := m.getVariables(); err != nil {
-		i.err = append(i.err, err)
+		i.err = err
 	}
 
 	if err := m.getLogStats(); err != nil {
-		i.err = append(i.err, err)
+		i.err = err
 	}
 
 	m.submit()
@@ -203,7 +201,7 @@ func (i *Input) collectInnodbMeasurement() {
 	}
 
 	if err := m.getInnodb(); err != nil {
-		i.err = append(i.err, err)
+		i.err = err
 	}
 
 	m.submit()
@@ -214,10 +212,10 @@ func (i *Input) collectInnodbMeasurement() {
 // 获取schema指标
 func (i *Input) collectSchemaMeasurement() {
 	if err := i.getSchemaSize(); err != nil {
-		i.err = append(i.err, err)
+		i.err = err
 	}
 	if err := i.getQueryExecTimePerSchema(); err != nil {
-		i.err = append(i.err, err)
+		i.err = err
 	}
 }
 
@@ -239,7 +237,7 @@ func (i *Input) runLog(defaultPile string) {
 			}
 			tailer, err := inputs.NewTailer(i.Log)
 			if err != nil {
-				i.err = append(i.err, err)
+				i.err = err
 				l.Errorf("init tailf err:%s", err.Error())
 				return
 			}
