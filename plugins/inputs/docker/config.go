@@ -3,6 +3,7 @@ package docker
 import (
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"sync"
 	"time"
@@ -41,8 +42,10 @@ const (
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
   
-  #[[inputs.docker.log_option]]
-    # container_name_match = '''<regexp-container-name>'''
+  #[[inputs.docker.logfilter]]
+    # filter_message = [
+    #    '''<this-is-message-regexp''',
+    # ]
     # source = "<your-source>"
     # service = "<your-service>"
     # pipeline = "<this-is-pipeline>"
@@ -59,14 +62,97 @@ const (
 
 var l = logger.DefaultSLogger(inputName)
 
-type LogOption struct {
+type DeprecatedLogOption struct {
 	NameMatch string `toml:"container_name_match"`
 	Source    string `toml:"source"`
 	Service   string `toml:"service"`
 	Pipeline  string `toml:"pipeline"`
+}
+
+type LogFilters []*LogFilter
+
+type LogFilter struct {
+	FilterMessage []string `toml:"filter_message"`
+	// # filter_mutltiline = '''^\s+'''
+	FilterMultiline string `toml:"-"`
+	Source          string `toml:"source"`
+	Service         string `toml:"service"`
+	Pipeline        string `toml:"pipeline"`
 
 	pipelinePool sync.Pool
-	nameCompile  *regexp.Regexp
+
+	multilinePattern *regexp.Regexp
+	messagePattern   []*regexp.Regexp
+}
+
+func (lf *LogFilter) Init() error {
+	if lf.Service == "" {
+		lf.Service = lf.Source
+	}
+
+	if lf.FilterMultiline != "" {
+		pattern, err := regexp.Compile(lf.FilterMultiline)
+		if err != nil {
+			return fmt.Errorf("config FilterMultiline, error: %s", err)
+		}
+		lf.multilinePattern = pattern
+	}
+
+	// regexp
+	for idx, m := range lf.FilterMessage {
+		pattern, err := regexp.Compile(m)
+		if err != nil {
+			return fmt.Errorf("config FilterMessage index[%d], error: %s", idx, err)
+		}
+		lf.messagePattern = append(lf.messagePattern, pattern)
+	}
+
+	// pipeline 不是并发安全，无法支持多个 goroutine 使用同一个 pipeline 对象
+	// 所以在此处使用 pool
+	// 另，regexp 是并发安全的
+	lf.pipelinePool = sync.Pool{
+		New: func() interface{} {
+			if lf.Pipeline == "" {
+				return nil
+			}
+
+			// 即使 pipeline 配置错误，也不会影响全局
+			p, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, lf.Pipeline))
+			if err != nil {
+				l.Debugf("new pipeline error: %s", err)
+				return nil
+			}
+			return p
+		},
+	}
+
+	return nil
+}
+
+func (lf *LogFilter) RunPipeline(message string) (map[string]interface{}, error) {
+	pipe := lf.pipelinePool.Get()
+	// pipe 为空指针（即没有配置 pipeline），将返回默认值
+	if pipe == nil {
+		return map[string]interface{}{"message": message}, nil
+	}
+
+	return pipe.(*pipeline.Pipeline).Run(message).Result()
+}
+
+func (lf *LogFilter) MatchMessage(message string) bool {
+	for _, pattern := range lf.messagePattern {
+		if pattern.MatchString(message) {
+			return true
+		}
+	}
+	return false
+}
+
+func (lf *LogFilter) MatchMultiline(message string) bool {
+	if lf.multilinePattern == nil {
+		return false
+	}
+	return lf.multilinePattern.MatchString(message)
 }
 
 func (this *Input) loadCfg() (err error) {
@@ -116,15 +202,19 @@ func (this *Input) loadCfg() (err error) {
 		l.Debugf("collect metrics interval %s", this.collectMetricDuration)
 	}
 
-	if err = this.initLogOption(); err != nil {
+	if err = this.initLoggingConf(); err != nil {
 		return
 	}
 
 	return
 }
 
-func (this *Input) initLogOption() (err error) {
+func (this *Input) initLoggingConf() error {
 	this.opts = types.ContainerListOptions{All: this.IncludeExited}
+
+	if len(this.DeprecatedLogOption) != 0 {
+		l.Warn("log_option is deprecated")
+	}
 
 	this.containerLogsOptions = types.ContainerLogsOptions{
 		ShowStdout: true,
@@ -135,35 +225,11 @@ func (this *Input) initLogOption() (err error) {
 		Tail:       "0", // 默认关闭FromBeginning，避免数据量巨大。开启为 'all'
 	}
 
-	for _, opt := range this.LogOption {
-		// 此为基本配置，为空值时直接continue
-		if opt.NameMatch == "" {
-			continue
+	for _, lf := range this.LogFilters {
+		if err := lf.Init(); err != nil {
+			return err
 		}
-		// opt.Source为空时，会默认使用 container_name
-		// opt.Service为空时，会默认使用 container_name
-		if opt.Service == "" {
-			opt.Service = opt.Source
-		}
-
-		opt.nameCompile, err = regexp.Compile(opt.NameMatch)
-		if err != nil {
-			return
-		}
-
-		func(pipelinePath string) {
-			opt.pipelinePool = sync.Pool{
-				New: func() interface{} {
-					p, err := pipeline.NewPipelineFromFile(pipelinePath)
-					if err != nil {
-						l.Debug(err)
-						return nil
-					}
-					return p
-				},
-			}
-		}(opt.Pipeline)
 	}
 
-	return
+	return nil
 }
