@@ -12,42 +12,36 @@ import (
 )
 
 var s = `127.0.0.1
-ServerVersion: Apache/2.4.41 (Unix)
+ServerVersion: Apache/2.4.29 (Ubuntu)
 ServerMPM: event
-Server Built: Aug 14 2019 00:35:10
-CurrentTime: Friday, 16-Aug-2019 12:38:40 UTC
-RestartTime: Wednesday, 14-Aug-2019 07:58:26 UTC
-ParentServerConfigGeneration: 1
-ParentServerMPMGeneration: 0
-ServerUptimeSeconds: 189613
-ServerUptime: 2 days 4 hours 40 minutes 13 seconds
-Load1: 4.60
-Load5: 1.20
-Load15: 0.47
-Total Accesses: 27860
-Total kBytes: 33011
-Total Duration: 54118
-CPUUser: 18.02
-CPUSystem: 31.76
+Server Built: 2020-08-12T21:33:25
+CurrentTime: Thursday, 13-May-2021 05:40:08 UTC
+RestartTime: Thursday, 13-May-2021 03:26:29 UTC
+ParentServerConfigGeneration: 64
+ParentServerMPMGeneration: 63
+ServerUptimeSeconds: 8018
+ServerUptime: 2 hours 13 minutes 38 seconds
+Load1: 0.43
+Load5: 0.46
+Load15: 0.39
+Total Accesses: 26
+Total kBytes: 18
+CPUUser: .02
+CPUSystem: .01
 CPUChildrenUser: 0
 CPUChildrenSystem: 0
-CPULoad: .0262535
-Uptime: 189613
-ReqPerSec: .146931
-BytesPerSec: 178.275
-BytesPerReq: 1213.33
-DurationPerReq: 1.9425
-BusyWorkers: 7
-IdleWorkers: 93
-Processes: 4
-Stopping: 0
-BusyWorkers: 7
-IdleWorkers: 93
-ConnsTotal: 13
+CPULoad: .000374158
+Uptime: 8018
+ReqPerSec: .0032427
+BytesPerSec: 2.29883
+BytesPerReq: 708.923
+BusyWorkers: 1
+IdleWorkers: 49
+ConnsTotal: 1
 ConnsAsyncWriting: 0
-ConnsAsyncKeepAlive: 5
+ConnsAsyncKeepAlive: 0
 ConnsAsyncClosing: 0
-Scoreboard: __________________________________________W_____________W___________________LW_____W______W_W_______.........................`
+Scoreboard: W_________________________________________________....................................................................................................`
 
 func TestParse(t *testing.T) {
 	body := strings.NewReader(s)
