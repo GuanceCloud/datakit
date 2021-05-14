@@ -432,7 +432,6 @@ func (i *Input) Run() {
 
 		case <-tick.C:
 			start := time.Now()
-			l.Info("elasticsearch running...............")
 			if err := i.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
 				l.Error(err)
