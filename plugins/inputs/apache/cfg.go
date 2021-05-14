@@ -38,13 +38,24 @@ var (
 	[inputs.apache.tags]
 	# a = "b"`
 
+	//此处 ip_or_host 可能存在 `127.0.0.1:80 127.0.0.1` 和 `127.0.0.1`	，使用 GREEDYDATA
+	pipeline = `
+# access log 
+grok(_,"%{GREEDYDATA:ip_or_host} - - \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{NUMBER:http_code} ")
+grok(_,"%{GREEDYDATA:ip_or_host} - - \\[%{HTTPDATE:time}\\] \"-\" %{NUMBER:http_code} ")
+default_time(time)
+cast(http_code,"int")
+
+`
+	//TODO error.log  目前pipeline parse_data 不支持 传入变量
+
 	filedMap = map[string]string{
 		"IdleWorkers":         "idle_workers",
 		"BusyWorkers":         "busy_workers",
 		"CPULoad":             "cpu_load",
 		"Uptime":              "uptime",
-		"Total kBytes":        "net_bytes",
-		"Total Accesses":      "net_hits",
+		"TotalkBytes":         "net_bytes",
+		"TotalAccesses":       "net_hits",
 		"ConnsTotal":          "conns_total",
 		"ConnsAsyncWriting":   "conns_async_writing",
 		"ConnsAsyncKeepAlive": "conns_async_keep_alive",
@@ -57,15 +68,17 @@ var (
 )
 
 type Input struct {
-	Url      string            `toml:"url"`
-	Username string            `toml:"username,omitempty"`
-	Password string            `toml:"password,omitempty"`
-	Interval datakit.Duration  `toml:"interval,omitempty"`
-	Tags     map[string]string `toml:"tags,omitempty"`
+	Url      string               `toml:"url"`
+	Username string               `toml:"username,omitempty"`
+	Password string               `toml:"password,omitempty"`
+	Interval datakit.Duration     `toml:"interval,omitempty"`
+	Tags     map[string]string    `toml:"tags,omitempty"`
+	Log      *inputs.TailerOption `toml:"log"`
 
 	tls.ClientConfig
 
 	start        time.Time
+	tail         *inputs.Tailer
 	collectCache []inputs.Measurement
 	client       *http.Client
 	lastErr      error
