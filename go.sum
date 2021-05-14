@@ -1180,6 +1180,8 @@ github.com/prometheus/common v0.10.0/go.mod h1:Tlit/dnDKsSWFlCLTWaA1cyBgKHSMdTB8
 github.com/prometheus/common v0.17.0/go.mod h1:U+gB1OBLb1lF3O42bTCL+FK18tX9Oar16Clt/msog/s=
 github.com/prometheus/common v0.20.0 h1:pfeDeUdQcIxOMutNjCejsEFp7qeP+/iltHSSmLpE+hU=
 github.com/prometheus/common v0.20.0/go.mod h1:U+gB1OBLb1lF3O42bTCL+FK18tX9Oar16Clt/msog/s=
+github.com/prometheus/common v0.24.0 h1:aIycr3wRFxPUq8XlLQlGQ9aNXV3dFi5y62pe/SB262k=
+github.com/prometheus/common v0.24.0/go.mod h1:H6QK/N6XVT42whUeIdI3dp36w49c+/iMDk7UAI2qm7Q=
 github.com/prometheus/procfs v0.0.0-20180125133057-cb4147076ac7/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
 github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
 github.com/prometheus/procfs v0.0.0-20181204211112-1dc9a6cbc91a/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
@@ -1447,6 +1449,8 @@ gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210507123935-c71b6181f6de h1:
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210507123935-c71b6181f6de/go.mod h1:gz11AzDo78QUdS0CX9gcXTo+n5TY4WwCmHzRzpH/aMc=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210510100713-19044d8620fd h1:6GViyGN98qDOyVpEJBD+4FmUZ04ALi0d7KoYYNn9ugY=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210510100713-19044d8620fd/go.mod h1:gz11AzDo78QUdS0CX9gcXTo+n5TY4WwCmHzRzpH/aMc=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210514061839-1891261c7ed2 h1:c9x6ouamy27VfyL26GFmSwBQBPXReawj1Hln95o6SGs=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210514061839-1891261c7ed2/go.mod h1:gz11AzDo78QUdS0CX9gcXTo+n5TY4WwCmHzRzpH/aMc=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
