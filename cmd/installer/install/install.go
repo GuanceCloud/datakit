@@ -194,16 +194,11 @@ func UpgradeDatakit(svc service.Service) error {
 
 		// 将原来的日志位置，改成 /var/log/datakit 目录下(mac/linux, windows 继续维持原样)
 		if runtime.GOOS != datakit.OSWindows {
-			if mc.Log == "/usr/local/cloudcare/dataflux/datakit/log" {
-				_ = os.Remove(mc.Log)
-				mc.Log = "/var/log/datakit/log"
-				l.Debugf("set log to %s, remove ", mc.Log)
-			}
-			if mc.GinLog == "/usr/local/cloudcare/dataflux/datakit/gin.log" {
-				_ = os.Remove(mc.GinLog)
-				mc.GinLog = "/var/log/datakit/gin.log"
-				l.Debugf("set log to %s", mc.GinLog)
-			}
+			mc.Log = "/var/log/datakit/log"
+			l.Debugf("set log to %s, remove ", mc.Log)
+
+			mc.GinLog = "/var/log/datakit/gin.log"
+			l.Debugf("set gin log to %s", mc.GinLog)
 		}
 
 		writeDefInputToMainCfg(mc)
