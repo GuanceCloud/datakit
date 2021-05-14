@@ -3,6 +3,7 @@ package nginx
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -21,7 +22,7 @@ func (n *Input) getStubStatusModuleMetric() {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		l.Errorf("%s returned HTTP status %s", n.Url, resp.Status)
+		n.lastErr = fmt.Errorf("%s returned HTTP status %s", n.Url, resp.Status)
 		return
 	}
 	r := bufio.NewReader(resp.Body)
