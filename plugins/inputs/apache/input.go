@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -24,33 +25,33 @@ func (_ *Input) Catalog() string {
 
 func (_ *Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"apache": "",
+		"apache": pipeline,
 	}
 	return pipelineMap
 }
 
 func (n *Input) Run() {
-	//l = logger.SLogger(inputName)
+	l = logger.SLogger(inputName)
 	l.Info("apache start")
 	n.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
-	//if n.Log != nil {
-	//	go func() {
-	//		inputs.JoinPipelinePath(n.Log, "nginx.p")
-	//		n.Log.Source = nginx
-	//		n.Log.Tags = map[string]string{}
-	//		for k, v := range n.Tags {
-	//			n.Log.Tags[k] = v
-	//		}
-	//		tail, err := inputs.NewTailer(n.Log)
-	//		if err != nil {
-	//			l.Errorf("init tailf err:%s", err.Error())
-	//			return
-	//		}
-	//		n.tail = tail
-	//		tail.Run()
-	//	}()
-	//}
+	if n.Log != nil {
+		go func() {
+			inputs.JoinPipelinePath(n.Log, "apache.p")
+			n.Log.Source = inputName
+			n.Log.Tags = map[string]string{}
+			for k, v := range n.Tags {
+				n.Log.Tags[k] = v
+			}
+			tail, err := inputs.NewTailer(n.Log)
+			if err != nil {
+				l.Errorf("init tailf err:%s", err.Error())
+				return
+			}
+			n.tail = tail
+			tail.Run()
+		}()
+	}
 
 	client, err := n.createHttpClient()
 	if err != nil {
@@ -69,10 +70,10 @@ func (n *Input) Run() {
 				iod.FeedLastError(inputName, err.Error())
 			}
 		case <-datakit.Exit.Wait():
-			//if n.tail != nil {
-			//	n.tail.Close()
-			//	l.Info("nginx log exit")
-			//}
+			if n.tail != nil {
+				n.tail.Close()
+				l.Info("apache log exit")
+			}
 			l.Info("apache exit")
 			return
 		}
@@ -182,6 +183,7 @@ func (n *Input) parse(body io.Reader) error {
 
 		}
 	}
+	metric.tags = tags
 	l.Debug(metric)
 	return inputs.FeedMeasurement(inputName, datakit.Metric, []inputs.Measurement{&metric}, &iod.Option{CollectCost: time.Since(n.start)})
 }
