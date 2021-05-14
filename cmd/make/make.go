@@ -4,7 +4,9 @@ import (
 	"flag"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"os"
+	"path/filepath"
 )
 
 var (
@@ -25,10 +27,12 @@ var (
 func applyFlags() {
 
 	if *flagBuildISP {
-		//curDir, _ := os.Getwd()
-		//inputDir := filepath.Join(curDir, "china-operator-ip")
-		//outputFile := filepath.Join(curDir, "pipeline", "ip2isp", "ip2isp.go")
-		//build.GenIspFile(inputDir, outputFile)
+		curDir, _ := os.Getwd()
+		inputDir := filepath.Join(curDir, "china-operator-ip")
+		outputFile := filepath.Join(curDir, "pipeline", "ip2isp", "ip2isp.txt")
+		if err := ip2isp.MergeIsp(inputDir, outputFile); err != nil {
+			l.Errorf("MergeIsp failed: %v", err)
+		}
 
 		os.Exit(0)
 	}
