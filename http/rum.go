@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -50,10 +51,11 @@ func geoTags(srcip string) (tags map[string]string) {
 	return
 }
 
-func handleBody(body []byte, precision, srcip string) (rumpts []*influxdb.Point, err error) {
+func handleRUMBody(body []byte, precision, srcip string) (rumpts []*influxdb.Point, err error) {
 	extraTags := geoTags(srcip)
 
 	rumpts, err = lp.ParsePoints(body, &lp.Option{
+		Time:      time.Now(),
 		Precision: precision,
 		ExtraTags: extraTags,
 		Strict:    true,
@@ -81,7 +83,7 @@ func handleBody(body []byte, precision, srcip string) (rumpts []*influxdb.Point,
 	return rumpts, nil
 }
 
-func handleRUMBody(c *gin.Context, precision, input string, body []byte) {
+func handleRUM(c *gin.Context, precision, input string, body []byte) {
 
 	srcip := c.Request.Header.Get(datakit.Cfg.HTTPAPI.RUMOriginIPHeader)
 	if srcip != "" {
@@ -96,7 +98,7 @@ func handleRUMBody(c *gin.Context, precision, input string, body []byte) {
 		}
 	}
 
-	rumpts, err := handleBody(body, precision, srcip)
+	rumpts, err := handleRUMBody(body, precision, srcip)
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
