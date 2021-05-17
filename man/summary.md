@@ -3,6 +3,7 @@
 - [Telegraf 数据接入](telegraf)
 - [Prometheus 数据接入](prometheus)
 - [Security Checker 接入](sec-checker)
+- [Cloudprober 接入](cloudprober)
 - [DataKit 安装](datakit-install)
 - [Datakit 批量部署](datakit-batch-deploy)
 - [DataKit Docker 安装](datakit-docker-install)
