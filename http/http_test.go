@@ -21,6 +21,113 @@ var (
 	__token = "tkn_2dc438b6693711eb8ff97aeee04b54af"
 )
 
+func TestHandleBody(t *testing.T) {
+	var cases = []struct {
+		body []byte
+		prec string
+		fail bool
+		npts int
+		tags map[string]string
+	}{
+		{
+			prec: "s",
+			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
+			resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
+			long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			npts: 5,
+		},
+
+		{
+			body: []byte(`test t1=abc f1=1i,f2=2,f3="str"`),
+			npts: 1,
+			fail: true,
+		},
+
+		{
+			body: []byte(`test,t1=abc f1=1i,f2=2,f3="str"
+test,t1=abc f1=1i,f2=2,f3="str"
+test,t1=abc f1=1i,f2=2,f3="str"`),
+			npts: 3,
+		},
+	}
+
+	for i, tc := range cases {
+		pts, err := handleWriteBody(tc.body, tc.tags, tc.prec)
+
+		if tc.fail {
+			tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
+			t.Logf("[%d] handle body failed: %s", i, err)
+			continue
+		}
+
+		if err != nil && !tc.fail {
+			t.Errorf("[FAIL][%d] handle body failed: %s", i, err)
+			continue
+		}
+
+		tu.Equals(t, tc.npts, len(pts))
+
+		t.Logf("----------- [%d] -----------", i)
+		for _, pt := range pts {
+			t.Logf("\t%s", pt.String())
+		}
+	}
+}
+
+func TestRUMHandleBody(t *testing.T) {
+
+	var cases = []struct {
+		body []byte
+		prec string
+		fail bool
+		npts int
+	}{
+		{
+			prec: "s",
+			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
+			resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
+			long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			npts: 5,
+		},
+
+		{
+			prec: "n",
+			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			npts: 5,
+		},
+	}
+
+	for i, tc := range cases {
+		pts, err := handleRUMBody(tc.body, tc.prec, "")
+
+		if tc.fail {
+			tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
+			t.Logf("[%d] handle body failed: %s", i, err)
+			continue
+		}
+
+		if err != nil && !tc.fail {
+			t.Errorf("[FAIL][%d] handle body failed: %s", i, err)
+			continue
+		}
+
+		tu.Equals(t, tc.npts, len(pts))
+
+		t.Logf("----------- [%d] -----------", i)
+		for _, pt := range pts {
+			t.Logf("\t%s", pt.String())
+		}
+	}
+}
+
 func TestReload(t *testing.T) {
 	Start(&Option{Bind: __bind, GinLog: ".gin.log", PProf: true})
 	time.Sleep(time.Second)
