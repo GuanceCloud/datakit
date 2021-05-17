@@ -22,20 +22,21 @@ import (
 )
 
 type HTTPTask struct {
-	ExternalID     string             `json:"external_id"`
-	Name           string             `json:"name"`
-	AK             string             `json:"access_key"`
-	Method         string             `json:"method"`
-	URL            string             `json:"url"`
-	PostURL        string             `json:"post_url"`
-	CurStatus      string             `json:"status"`
-	Frequency      string             `json:"frequency"`
-	Region         string             `json:"region"` // 冗余进来，便于调试
-	SuccessWhen    []*HTTPSuccess     `json:"success_when"`
-	Tags           map[string]string  `json:"tags,omitempty"`
-	Labels         []string           `json:"labels,omitempty"`
-	AdvanceOptions *HTTPAdvanceOption `json:"advance_options,omitempty"`
-	UpdateTime     int64              `json:"update_time,omitempty"`
+	ExternalID      string             `json:"external_id"`
+	Name            string             `json:"name"`
+	AK              string             `json:"access_key"`
+	Method          string             `json:"method"`
+	URL             string             `json:"url"`
+	PostURL         string             `json:"post_url"`
+	CurStatus       string             `json:"status"`
+	Frequency       string             `json:"frequency"`
+	Region          string             `json:"region"` // 冗余进来，便于调试
+	OwnerExternalID string             `json:"owner_external_id"`
+	SuccessWhen     []*HTTPSuccess     `json:"success_when"`
+	Tags            map[string]string  `json:"tags,omitempty"`
+	Labels          []string           `json:"labels,omitempty"`
+	AdvanceOptions  *HTTPAdvanceOption `json:"advance_options,omitempty"`
+	UpdateTime      int64              `json:"update_time,omitempty"`
 
 	ticker   *time.Ticker
 	cli      *http.Client
@@ -77,6 +78,10 @@ func (t *HTTPTask) ID() string {
 		return cliutils.XID("dtst_")
 	}
 	return fmt.Sprintf("%s_%s", t.AK, t.ExternalID)
+}
+
+func (t *HTTPTask) GetOwnerExternalID() string {
+	return t.OwnerExternalID
 }
 
 func (t *HTTPTask) Stop() error {
@@ -300,10 +305,14 @@ func (t *HTTPTask) Run() error {
 
 	t.req = t.req.WithContext(httptrace.WithClientTrace(t.req.Context(), trace))
 
-	t.req.Header.Set("Connection", "close")
+	t.req.Header.Add("Connection", "close")
 
 	t.reqStart = time.Now()
 	t.resp, err = t.cli.Do(t.req)
+	if t.resp != nil {
+		defer t.resp.Body.Close()
+	}
+
 	if err != nil {
 		goto result
 	}
@@ -314,7 +323,6 @@ func (t *HTTPTask) Run() error {
 	if err != nil {
 		goto result
 	}
-	defer t.resp.Body.Close()
 
 result:
 	if err != nil {
