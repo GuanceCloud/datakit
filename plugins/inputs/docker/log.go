@@ -128,11 +128,11 @@ func (this *Input) tailContainerLogs(ctx context.Context, container types.Contai
 	if contianerIsFromKubernetes(getContainerName(container.Names)) {
 		uid, err := this.kubernetes.GatherPodUID(container.ID)
 		if err != nil {
-			l.Warn(err)
+			l.Debugf("gather k8s podUID error: %s", err)
 		} else {
 			name, err := this.kubernetes.GatherWorkName(uid)
 			if err != nil {
-				l.Warn(err)
+				l.Debugf("gather k8s workname error: %s", err)
 			} else {
 				source = name
 			}
