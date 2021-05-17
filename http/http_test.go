@@ -135,17 +135,30 @@ func TestAPI(t *testing.T) {
 		},
 
 		{
-			api:    "/v1/write/rum?input=rum-test",
-			body:   []byte(`js_error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			api:           "/v1/write/rum?input=rum-test",
+			body:          []byte(`js_error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			method:        `POST`,
+			expectErrCode: "datakit.badRequest",
+			gz:            true,
+		},
+
+		{
+			api: "/v1/write/rum?input=rum-test",
+			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
 			method: `POST`,
 			gz:     true,
 		},
 
 		{
-			api:    "/v1/write/rum",
-			body:   []byte(`rum_app_startup,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
-			method: `POST`,
-			gz:     true,
+			api:           "/v1/write/rum",
+			body:          []byte(`rum_app_startup,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			method:        `POST`,
+			gz:            true,
+			expectErrCode: "datakit.badRequest",
 		},
 	}
 
@@ -213,6 +226,6 @@ func TestAPI(t *testing.T) {
 			}
 		}
 
-		t.Logf("case [%d]%s ok", i, cases[i].api)
+		t.Logf("case [%d] ok: %s", i, cases[i].api)
 	}
 }
