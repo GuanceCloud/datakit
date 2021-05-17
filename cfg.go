@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -21,7 +22,7 @@ var (
 )
 
 func DefaultConfig() *Config {
-	return &Config{ //nolint:dupl
+	c := &Config{ //nolint:dupl
 		GlobalTags: map[string]string{
 			"project": "",
 			"cluster": "",
@@ -40,9 +41,9 @@ func DefaultConfig() *Config {
 		},
 
 		LogLevel:  "info",
-		Log:       filepath.Join(InstallDir, "log"),
+		Log:       filepath.Join("/var/log/datakit", "log"),
 		LogRotate: 32,
-		GinLog:    filepath.Join(InstallDir, "gin.log"),
+		GinLog:    filepath.Join("/var/log/datakit", "gin.log"),
 
 		BlackList: []*InputHostList{
 			&InputHostList{Hosts: []string{}, Inputs: []string{}},
@@ -51,6 +52,14 @@ func DefaultConfig() *Config {
 			&InputHostList{Hosts: []string{}, Inputs: []string{}},
 		},
 	}
+
+	// windows 下，日志继续跟 datakit 放在一起
+	if runtime.GOOS == OSWindows {
+		c.Log = filepath.Join(InstallDir, "log")
+		c.GinLog = filepath.Join(InstallDir, "gin.log")
+	}
+
+	return c
 }
 
 type apiConfig struct {
@@ -122,7 +131,6 @@ func (i *InputHostList) MatchInput(input string) bool {
 func InitDirs() {
 	for _, dir := range []string{
 		DataDir,
-		LuaDir,
 		ConfdDir,
 		PipelineDir,
 		PipelinePatternDir} {
@@ -176,7 +184,7 @@ func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 	// load datakit UUID
 	if c.UUIDDeprecated != "" {
 		// dump UUIDDeprecated to .id file
-		if err := CreateUUIDFile(Cfg.UUIDDeprecated); err != nil {
+		if err := CreateUUIDFile(UUIDFile, Cfg.UUIDDeprecated); err != nil {
 			l.Fatalf("create datakit id failed: %s", err.Error())
 		}
 		c.UUID = c.UUIDDeprecated
@@ -315,7 +323,6 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 	}
 
 	c.DefaultEnabledInputs = inputs
-
 }
 
 func (c *Config) LoadEnvs(mcp string) error {
@@ -339,8 +346,8 @@ func (c *Config) LoadEnvs(mcp string) error {
 	}
 
 	dwURL := os.Getenv("ENV_DATAWAY")
-	dwURLs := []string{dwURL}
-	if len(dwURL) != 0 {
+	if dwURL != "" {
+		dwURLs := []string{dwURL}
 		dw, err := ParseDataway(dwURLs)
 		if err != nil {
 			return err
@@ -351,6 +358,7 @@ func (c *Config) LoadEnvs(mcp string) error {
 		}
 
 		c.DataWay = dw
+		c.DataWay.Urls = dwURLs
 	}
 
 	dkhost := os.Getenv("ENV_HOSTNAME")
@@ -388,7 +396,7 @@ func (c *Config) LoadEnvs(mcp string) error {
 		return fmt.Errorf("ENV_UUID not set")
 	}
 
-	if err := CreateUUIDFile(dkid); err != nil {
+	if err := CreateUUIDFile(UUIDFile, dkid); err != nil {
 		l.Errorf("create id file: %s", err.Error())
 		return err
 	}
@@ -413,8 +421,8 @@ func ParseGlobalTags(s string) map[string]string {
 	return tags
 }
 
-func CreateUUIDFile(uuid string) error {
-	return ioutil.WriteFile(UUIDFile, []byte(uuid), os.ModePerm)
+func CreateUUIDFile(f, uuid string) error {
+	return ioutil.WriteFile(f, []byte(uuid), os.ModePerm)
 }
 
 func LoadUUID() (string, error) {
@@ -425,7 +433,7 @@ func LoadUUID() (string, error) {
 	}
 }
 
-func MoveDeprecatedMainCfg() {
+func MoveDeprecatedCfg() {
 	if _, err := os.Stat(MainConfPathDeprecated); err == nil {
 		if err := os.Rename(MainConfPathDeprecated, MainConfPath); err != nil {
 			l.Fatal("move deprecated main configure failed: %s", err.Error())
