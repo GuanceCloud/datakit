@@ -49,8 +49,14 @@ net,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 ```http
 POST /v1/write/rum?precision=n&input=my-sample-rum&ignore_global_tags=true HTTP/1.1
 
-js_error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
 ```
+
+目前 RUM 接口只接手如下几种指标集名称：`error/resource/view/long_task/action`
 
 > 注意：RUM 请求中，如果不指定 `input` 参数，默认用 `rum` 来命名。
 
