@@ -29,6 +29,7 @@ type Task interface {
 	Check() error
 	UpdateTimeUs() int64
 	GetFrequency() string
+	GetOwnerExternalID() string
 
 	Ticker() *time.Ticker
 }
