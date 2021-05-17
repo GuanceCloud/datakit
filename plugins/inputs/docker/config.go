@@ -186,8 +186,9 @@ func (this *Input) loadCfg() (err error) {
 	this.kubernetes = func() *Kubernetes {
 		k := Kubernetes{URL: k8sURL}
 		if err := k.Init(); err != nil {
-			l.Debugf("init kubernetes connect error: %s", err)
-			return nil
+			l.Debugf("read k8s token error (use empty tokne): %s", err)
+			// use empty token
+			k.BearerTokenString = ""
 		}
 		return &k
 	}()
