@@ -46,9 +46,11 @@ func apiWrite(c *gin.Context) {
 	}
 
 	precision := DEFAULT_PRECISION
-	if x := c.Query(DEFAULT_PRECISION); x != "" {
+	if x := c.Query(PRECISION); x != "" {
 		precision = x
 	}
+
+	l.Debugf("precision: %s, input: %s, category: %s", precision, input, category)
 
 	extraTags := datakit.Cfg.GlobalTags
 	if x := c.Query(IGNORE_GLOBAL_TAGS); x != "" {
