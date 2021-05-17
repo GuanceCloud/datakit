@@ -21,7 +21,7 @@
 #!/bin/bash
 # Update DataKit if new version available
 
-otalog=/usr/local/cloudcare/dataflux/datakit/ota-update.log
+otalog=/usr/local/datakit/ota-update.log
 installer=https://static.dataflux.cn/datakit/installer-linux-amd64
 
 # 注意：如果不希望更新 RC 版本的 DataKit，可移除 `--accept-rc-version`
