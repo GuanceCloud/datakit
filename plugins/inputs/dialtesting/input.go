@@ -40,7 +40,8 @@ const (
 )
 
 type Input struct {
-	Region       string `toml:"region"`
+	Region       string `toml:"region,omitempty"`
+	RegionId     string `toml:"region_id"`
 	Server       string `toml:"server,omitempty"`
 	AK           string `toml:"ak"`
 	SK           string `toml:"sk"`
@@ -56,11 +57,11 @@ type Input struct {
 }
 
 const sample = `[[inputs.dialtesting]]
-	# require，默认值为default
-	region = "default"
-
 	#  中心任务存储的服务地址，或本地json 文件全路径
 	server = "files:///your/dir/json-file-name"
+
+	# require，节点惟一标识ID
+	region_id = "default"
 
 	# 若server配为中心任务服务地址时，需要配置相应的ak或者sk
 	ak = ""
@@ -380,7 +381,7 @@ func signReq(req *http.Request, ak, sk string) {
 func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 
 	reqURL.Path = "/v1/task/pull"
-	reqURL.RawQuery = fmt.Sprintf("region=%s&since=%d", d.Region, sinceUs)
+	reqURL.RawQuery = fmt.Sprintf("region_id=%s&since=%d", d.RegionId, sinceUs)
 
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
