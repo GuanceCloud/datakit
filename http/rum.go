@@ -69,7 +69,6 @@ func handleRUMBody(body []byte, precision, srcip string) (rumpts []*influxdb.Poi
 			}
 
 			p.AddTag("message", p.String())
-			return p, nil
 
 			return p, nil
 		},
