@@ -221,3 +221,11 @@ func assertEqualFloat64(t *testing.T, expected, actual float64, mName string) {
 		t.Errorf("error: "+mName+" expected: %f \t actual %f", expected, actual)
 	}
 }
+
+func TestSampleMeasurement(t *testing.T) {
+	x := &Input{}
+
+	for _, m := range x.SampleMeasurement() {
+		_ = m.Info()
+	}
+}
