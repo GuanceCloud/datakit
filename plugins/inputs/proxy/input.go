@@ -21,7 +21,7 @@ const (
 	sampleCfg = `
 [[inputs.proxy]]
     bind = "0.0.0.0"
-	port = 9530
+    port = 9530
 `
 )
 
