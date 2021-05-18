@@ -72,267 +72,267 @@ func (*gitlabCacheMissesTotal) LineProto() (*io.Point, error)                   
 
 func (*gitlabTransactionDBCountTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabTransactionDBCountTotalMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("TODO"),
 			"controller":       inputs.NewTagInfo("TODO"),
 			"feature_category": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_transaction_db_count_total": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "TODO"},
+			"gitlab_transaction_db_count_total": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabTransactionCacheReadMissCountTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabTransactionCacheReadMissCountTotalMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("TODO"),
 			"controller":       inputs.NewTagInfo("TODO"),
 			"feature_category": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_transaction_cache_read_miss_count_total": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "TODO"},
+			"gitlab_transaction_cache_read_miss_count_total": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabRackRequestsTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabRackRequestsTotalMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"action":     inputs.NewTagInfo("TODO"),
 			"controller": inputs.NewTagInfo("TODO"),
 			"state":      inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_rack_requests_total": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_rack_requests_total": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabCacheOperationsTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabCacheOperationsTotalMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("TODO"),
 			"controller":       inputs.NewTagInfo("TODO"),
 			"feature_category": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_cache_operations_total": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_cache_operations_total": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabTransactionViewDurationTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabTransactionViewDurationTotalMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("TODO"),
 			"controller":       inputs.NewTagInfo("TODO"),
 			"feature_category": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_transaction_view_duration_total": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_transaction_view_duration_total": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabTransactionNewRedisConnectionsTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabTransactionNewRedisConnectionsTotalMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("TODO"),
 			"controller":       inputs.NewTagInfo("TODO"),
 			"feature_category": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_transaction_new_redis_connections_total": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_transaction_new_redis_connections_total": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabSQLDurationSeconds) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabSQLDurationSecondsMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("TODO"),
 			"controller":       inputs.NewTagInfo("TODO"),
 			"feature_category": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_sql_duration_seconds_count": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "TODO"},
-			"gitlab_sql_duration_seconds_sum":   inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_sql_duration_seconds_count": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: ""},
+			"gitlab_sql_duration_seconds_sum":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabCacheOperationsDurationSeconds) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabCacheOperationsDurationSecondsMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"operation": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_cache_operation_duration_seconds_count": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "TODO"},
-			"gitlab_cache_operation_duration_seconds_sum":   inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_cache_operation_duration_seconds_count": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: ""},
+			"gitlab_cache_operation_duration_seconds_sum":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabRedisClientRequestsDurationSeconds) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabRedisClientRequestsDurationSecondsMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"storage": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_redis_client_requests_duration_seconds_count": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "TODO"},
-			"gitlab_redis_client_requests_duration_seconds_sum":   inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_redis_client_requests_duration_seconds_count": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: ""},
+			"gitlab_redis_client_requests_duration_seconds_sum":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabHTTPRequestDurationSeconds) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabHTTPRequestDurationSecondsMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"method": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_http_request_duration_seconds_count": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "TODO"},
-			"gitlab_http_request_duration_seconds_sum":   inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_http_request_duration_seconds_count": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: ""},
+			"gitlab_http_request_duration_seconds_sum":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabRedisClientRequestsTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabRedisClientRequestsTotalMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"storage": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_redis_client_requests_total": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_redis_client_requests_total": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabTransactionCacheReadHitCountTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabTransactionCacheReadHitCountTotalMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("TODO"),
 			"controller":       inputs.NewTagInfo("TODO"),
 			"feature_category": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_transaction_cache_read_hit_count_total": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "TODO"},
+			"gitlab_transaction_cache_read_hit_count_total": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabTransactionDurationSeconds) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabTransactionDurationSecondsMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("TODO"),
 			"controller":       inputs.NewTagInfo("TODO"),
 			"feature_category": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_transaction_duration_seconds_count": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "TODO"},
-			"gitlab_transaction_duration_seconds_sum":   inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_transaction_duration_seconds_count": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: ""},
+			"gitlab_transaction_duration_seconds_sum":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabHTTPHealthRequestsTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabHTTPHealthRequestsTotalMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"method": inputs.NewTagInfo("TODO"),
 			"status": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_http_health_requests_total": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_http_health_requests_total": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabBanzaiCachelessRenderRealDurationSeconds) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabBanzaiCachelessRenderRealDurationSecondsMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("TODO"),
 			"controller":       inputs.NewTagInfo("TODO"),
 			"feature_category": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_banzai_cacheless_render_real_duration_seconds_count": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "TODO"},
-			"gitlab_banzai_cacheless_render_real_duration_seconds_sum":   inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_banzai_cacheless_render_real_duration_seconds_count": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: ""},
+			"gitlab_banzai_cacheless_render_real_duration_seconds_sum":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabRubyGCDurationSeconds) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabRubyGCDurationSecondsMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{},
 		Fields: map[string]interface{}{
-			"gitlab_ruby_gc_duration_seconds_count": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "TODO"},
-			"gitlab_ruby_gc_duration_seconds_sum":   inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_ruby_gc_duration_seconds_count": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: ""},
+			"gitlab_ruby_gc_duration_seconds_sum":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabRubySamplerDurationSecondsTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabRubySamplerDurationSecondsTotalMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: nil,
 		Fields: map[string]interface{}{
-			"gitlab_ruby_sampler_duration_seconds_total": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_ruby_sampler_duration_seconds_total": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabRailsQueueDurationSeconds) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabRailsQueueDurationSecondsMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: nil,
 		Fields: map[string]interface{}{
-			"gitlab_rails_queue_duration_seconds_count": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "TODO"},
-			"gitlab_rails_queue_duration_seconds_sum":   inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_rails_queue_duration_seconds_count": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: ""},
+			"gitlab_rails_queue_duration_seconds_sum":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabTransactionDBCachedCountTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabTransactionDBCachedCountTotalMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("TODO"),
 			"controller":       inputs.NewTagInfo("TODO"),
 			"feature_category": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_transaction_db_cached_count_total": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "TODO"},
+			"gitlab_transaction_db_cached_count_total": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: ""},
 		},
 	}
 }
 
 func (*gitlabCacheMissesTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabCacheMissesTotalMeasurement,
-		Desc: "TODO",
+		Desc: "",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("TODO"),
 			"controller":       inputs.NewTagInfo("TODO"),
 			"feature_category": inputs.NewTagInfo("TODO"),
 		},
 		Fields: map[string]interface{}{
-			"gitlab_cache_misses_total": inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"gitlab_cache_misses_total": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
