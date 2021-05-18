@@ -2,6 +2,7 @@ package ip2isp
 
 import (
 	"bufio"
+	"encoding/csv"
 	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"io/ioutil"
@@ -9,6 +10,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/go-yaml/yaml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
@@ -413,4 +416,51 @@ func MergeIsp(from, to string) error {
 	}
 
 	return ioutil.WriteFile(to, []byte(strings.Join(content, "\n")), 0x666)
+}
+
+func BuildContryCity(csvFile, outputFile string) error {
+	d := make(map[string]map[string][]string)
+	found := make(map[string]uint8)
+
+	f, err := os.Open(csvFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := csv.NewReader(f)
+	data, err := w.ReadAll()
+	if err != nil {
+		return err
+	}
+
+	for _, ip := range data {
+		contry := ip[3]
+		province := ip[4]
+		city := ip[5]
+		if contry == "-" || city == "-" {
+			continue
+		}
+
+		uniKey := fmt.Sprintf("%v%v%v", contry, province, city)
+		if _, ok := found[uniKey]; ok {
+			continue
+		}
+
+		c, ok := d[contry]
+		if !ok {
+			c = make(map[string][]string)
+			d[contry] = c
+		}
+
+		c[province] = append(c[province], city)
+		found[uniKey] = 0
+	}
+
+	r, err := yaml.Marshal(d)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(outputFile, r, 0x666)
 }
