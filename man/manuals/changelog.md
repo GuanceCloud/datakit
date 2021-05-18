@@ -9,8 +9,8 @@
 
 ### 发布说明
 
-- 修复 RUM 数据上传问题
-- 新增 [solr](solr)/[mongodb](mongodb)/[memcached](memcached) 采集器以及文档
+- 修复 HTTP API precision 解析问题，导致部分数据时间戳解析失败
+----
 
 ## 1.1.6-rc4(2021/05/17)
 
