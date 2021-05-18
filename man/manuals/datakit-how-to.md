@@ -30,9 +30,9 @@ DataKit 目前支持 Linux/Windows/macOS 三种主流平台：
 ├── [ 160]  data
 ├── [186M]  datakit
 ├── [ 192]  externals
-├── [2.4K]  gin.log
-├── [2.4M]  log
-└── [1.2K]  pipeline
+├── [1.2K]  pipeline
+├── [ 192]  gin.log   # Windows 平台
+└── [1.2K]  log       # Windows 平台
 ```
 
 其中：
@@ -41,9 +41,11 @@ DataKit 目前支持 Linux/Windows/macOS 三种主流平台：
 - `data`：存放 DataKit 运行所需的数据文件，如 IP 地址数据库等
 - `datakit`：DataKit 主程序，Windows 下为 `datakit.exe`
 - `externals`：部分采集器没有集成在 DataKit 主程序中，就都在这里了
-- `gin.log`：DataKit 可以接收外部的 HTTP 数据输入，这个日志文件相当于 access-log
-- `log`：DataKit 运行日志
 - `pipeline` 存放用于文本处理的脚本代码
+- `gin.log`：DataKit 可以接收外部的 HTTP 数据输入，这个日志文件相当于 HTTP 的 access-log（DataKit 日志需开启 `debug` 选项才能看到 gin.log，否则 gin.log 内容为空）
+- `log`：DataKit 运行日志
+
+> 注：Linux/Mac 平台下，DataKit 运行日志在 `/var/log/datakit` 下。
 
 ## 采集器使用
 
@@ -74,6 +76,51 @@ DataKit 的配置均使用 [Toml 文件](https://toml.io/cn)，一个典型的�
 	key = value
 	...
 ```
+
+### DataKit 主配置修改
+
+以下涉及 DataKit 主配置的修改，均需重启 DataKit。Reload 是不能使主配置更改生效的：
+
+```shell
+sudo datakit --restart
+```
+
+#### HTTP 绑定端口
+
+处于安全考虑，DataKit 的 HTTP 服务默认绑定在 localhost:9529 上，如果希望从外部访问 DataKit API，需编辑 `conf.d/datakit.conf` 中的 `http_listen` 字段，将其改成 `0.0.0.0:9529` 或其它网卡、端口。这样就能从其它主机上请求 DataKit 接口了。
+
+当你需要做如下操作时，一般都需要修改 `http_listen` 配置：
+
+- [如远程查看 DataKit 运行情况](http://localhost:9529/monitor)
+- [如远程查看 DataKit 文档](http://localhost:9529/man)
+- [RUM 采集](rum)
+- 其它诸如 [APM](ddtrace)/[安全巡检](sec-checker) 等，看具体的部署情况，可能也需要修改 `http_listen` 配置
+
+#### 全局标签（tag）的开启
+
+DataKit 允许在 `datakit.conf` 中配置全局标签，这些标签会默认添加到该 DataKit 采集的每一条数据上（前提是采集的原始数据上不带有这里配置的标签）。这里是一个全局标签配置示例：
+
+```toml
+[global_tags]
+	ip         = "__datakit_ip"
+	datakit_id = "$datakit_id"
+	project    = "biz_online_server"
+```
+
+注意，如下几个变量可用于这里的全局标签设置：
+
+- `__datakit_ip/$datakit_ip`：标签值会设置成 DataKit 获取到的第一个主网卡 IP
+- `__datakit_id/$datakit_id`：标签值会设置成 DataKit 的 ID
+
+另外，即使这里不设置全局 Tag，DataKit 也会将每一条数据追加上名为 `host` 的标签，其值为 DataKit 所在的主机名。这么做的原因是便于建立异类数据之间的关联（如关联容器数据和容器所在主机的数据）。如果要禁用这一行为，[参见这里](datakit-how-to#1aab7c29)
+
+另外注意的是，这里的标签值必须用双引号包围，否则会导致主配置解析失败。
+
+#### 日志配置修改
+
+DataKit 默认日志等级为 `debug`。编辑 `conf.d/datakit.conf`，修改 `log_level`，将其置为 `debug` 即可看到更多日志（目前只支持 `debug/info` 两个级别）。`log_level` 置为 `debug` 后，`gin.log` 也会出现 HTTP 接口上的 access-log（前提是有 HTTP 请求发给 DataKit）
+
+DataKit 默认会对日志进行分片，默认分片大小（`log_rotate`）为 32MB，总共 5 个分片（分片个数尚不支持配置）。如果嫌弃 DataKit 日志占用太多磁盘空间（最多 32 x 6 = 192MB），可减少 `log_rotate` 大小（比如改成 4，单位为 MB）。需要注意的是，gin.log 的大小不会自动做分片，故建议主配置中的 `log_level` 不要常年设置成 `debug` 级别。
 
 ### 采集器配置文件
 
@@ -263,9 +310,6 @@ $ sudo datakit --update-ip-db
 
 若 DataKit 在运行中，更新成功后会自动执行 Reload 操作
 
-### DataKit 开启外部访问配置
-
-编辑 `conf.d/datakit.conf` 中的 `http_listen` 字段，将其改成 `0.0.0.0:9529` 或其它网卡、端口。这样就能从其它主机上请求 DataKit 接口了。
 
 ### DataKit 安装第三方软件
 
