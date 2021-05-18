@@ -68,11 +68,11 @@ sudo docker build -t $img .
 
 # 启动容器
 sudo docker run -d --name=$container_name \
-	-v "${host_confd}":"/usr/local/cloudcare/dataflux/datakit/conf.d" \
-	--mount type=bind,source="$HOME/dk.log",target="/usr/local/cloudcare/dataflux/datakit/datakit.log" \
-	--mount type=bind,source="$HOME/dk.conf",target="/usr/local/cloudcare/dataflux/datakit/datakit.conf" \
-	--mount type=bind,source="$HOME/tg.conf",target="/usr/local/cloudcare/dataflux/datakit/embed/agent.conf" \
-	--mount type=bind,source="$HOME/tg.log",target="/usr/local/cloudcare/dataflux/datakit/embed/agent.log" \
+	-v "${host_confd}":"/usr/local/datakit/conf.d" \
+	--mount type=bind,source="$HOME/dk.log",target="/usr/local/datakit/datakit.log" \
+	--mount type=bind,source="$HOME/dk.conf",target="/usr/local/datakit/datakit.conf" \
+	--mount type=bind,source="$HOME/tg.conf",target="/usr/local/datakit/embed/agent.conf" \
+	--mount type=bind,source="$HOME/tg.log",target="/usr/local/datakit/embed/agent.log" \
 	-e ENV_DATAWAY="${dataway}" \
 	-e ENV_WITHIN_DOCKER=1 \
 	-e ENV_LOG_LEVEL=debug \
