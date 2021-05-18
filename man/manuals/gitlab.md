@@ -16,9 +16,7 @@
 
 首先需要打开 GitLab 服务的数据采集功能和设置白名单，具体操作见后续分段。
 
-GitLab 设置完成后，对 DataKit 进行 input 配置。注意，根据 GitLab 版本和配置不同，采集到的数据可能存在差异。
-
-此 input 支持选举功能，[关于选举](/man/election)。
+GitLab 设置完成后，对 DataKit 进行配置。注意，根据 GitLab 版本和配置不同，采集到的数据可能存在差异。
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
@@ -27,6 +25,8 @@ GitLab 设置完成后，对 DataKit 进行 input 配置。注意，根据 GitLa
 ```
 
 配置好后，重启 DataKit 即可。
+
+此 input 支持选举功能，[关于选举](/man/election)。
 
 ### GitLab开启数据采集功能
 
