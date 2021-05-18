@@ -120,6 +120,7 @@ func TestRUMHandleBody(t *testing.T) {
 		},
 		{
 			prec: "ms",
+			// 行协议指标带换行
 			body: []byte(`error,sdk_name=Web\ SDK,sdk_version=2.0.1,app_id=appid_16b35953792f4fcda0ca678d81dd6f1a,env=production,version=1.0.0,userid=60f0eae1-01b8-431e-85c9-a0b7bcb391e1,session_id=8c96307f-5ef0-4533-be8f-c84e622578cc,is_signin=F,os=Mac\ OS,os_version=10.11.6,os_version_major=10,browser=Chrome,browser_version=90.0.4430.212,browser_version_major=90,screen_size=1920*1080,network_type=4g,view_id=addb07a3-5ab9-4e30-8b4f-6713fc54fb4e,view_url=http://172.16.5.9:5003/,view_host=172.16.5.9:5003,view_path=/,view_path_group=/,view_url_query={},error_source=source,error_type=ReferenceError error_starttime=1621244127493,error_message="displayDate is not defined",error_stack="ReferenceError
   at onload @ http://172.16.5.9:5003/:25:30" 1621244127493`),
 			npts: 1,
@@ -144,7 +145,12 @@ func TestRUMHandleBody(t *testing.T) {
 
 		t.Logf("----------- [%d] -----------", i)
 		for _, pt := range pts {
-			t.Logf("\t%s", pt.String())
+			lp := pt.String()
+			t.Logf("\t%s", lp)
+			_, err := models.ParsePointsWithPrecision([]byte(lp), time.Now(), "n")
+			if err != nil {
+				t.Error(err)
+			}
 		}
 	}
 }
