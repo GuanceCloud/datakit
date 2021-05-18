@@ -22,6 +22,12 @@ var fieldMap = map[string]string{
 	"jenkins.queue.pending.value":   "queue_pending",
 	"jenkins.queue.size.value":      "queue_size",
 	"jenkins.queue.stuck.value":     "queue_stuck",
+
+	"system.cpu.load":      "system_cpu_load",
+	"vm.blocked.count":     "vm_blocked_count",
+	"vm.count":             "vm_count",
+	"vm.cpu.load":          "vm_cpu_load",
+	"vm.memory.total.used": "vm_memory_total_used ",
 }
 
 type Metric struct {
@@ -43,8 +49,8 @@ func getPluginMetric(n *Input) {
 	}
 	ts := time.Now()
 	tags := map[string]string{
-		"version": metric.Version,
-		"url":     n.Url,
+		"metric_plugin_version": metric.Version,
+		"url":                    n.Url,
 	}
 	fields := map[string]interface{}{}
 	for k, v := range metric.Gauges {
@@ -52,6 +58,10 @@ func getPluginMetric(n *Input) {
 			fields[fieldKey] = v["value"]
 		}
 	}
+	if version, ok := metric.Gauges["jenkins.versions.core"]; ok {
+		tags["version"] = (version["value"]).(string)
+	}
+
 	n.collectCache = append(n.collectCache, &Measurement{fields: fields, tags: tags, ts: ts, name: inputName})
 
 }
@@ -71,8 +81,9 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
 		Tags: map[string]interface{}{
-			"url":     inputs.NewTagInfo("jenkins url"),
-			"version": inputs.NewTagInfo("jenkins version"),
+			"url":                    inputs.NewTagInfo("jenkins url"),
+			"metric_plugin_version": inputs.NewTagInfo("jenkins plugin version"),
+			"version":                inputs.NewTagInfo("jenkins  version"),
 		},
 		Fields: map[string]interface{}{
 			"executor_count":        newCountFieldInfo("The number of executors available to Jenkins"),
@@ -89,6 +100,12 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"queue_pending":         newCountFieldInfo("Number of times a Job has been Pending in a Queue"),
 			"queue_size":            newCountFieldInfo("The number of jobs that are in the Jenkins build queue."),
 			"queue_stuck":           newCountFieldInfo("he number of jobs that are in the Jenkins build queue and currently in the blocked state"),
+
+			"system_cpu_load":      newRateFieldInfo("The system load on the Jenkins controller as reported by the JVM’s Operating System JMX bean"),
+			"vm_blocked_count":     newCountFieldInfo("The number of threads in the Jenkins JVM that are currently blocked waiting for a monitor lock."),
+			"vm_count":             newCountFieldInfo("The total number of threads in the Jenkins JVM. This is the sum of: vm.blocked.count, vm.new.count, vm.runnable.count, vm.terminated.count, vm.timed_waiting.count and vm.waiting.count"),
+			"vm_cpu_load":          newRateFieldInfo("The rate of CPU time usage by the JVM per unit time on the Jenkins controller. This is equivalent to the number of CPU cores being used by the Jenkins JVM."),
+			"vm_memory_total_used": newByteFieldInfo("The total amount of memory that the Jenkins JVM is currently using.(Units of measurement: bytes)"),
 		},
 	}
 }
