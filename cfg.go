@@ -305,7 +305,6 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 	}
 
 	c.MainCfg.DefaultEnabledInputs = inputs
-
 }
 
 func (c *Config) LoadEnvs(mcp string) error {
