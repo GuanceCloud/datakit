@@ -40,30 +40,28 @@ var (
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
-	OTALogFile = filepath.Join(InstallDir, "ota.log")
-	UUIDFile   = filepath.Join(InstallDir, ".id")
-	DataDir    = filepath.Join(InstallDir, "data")
-	LuaDir     = filepath.Join(InstallDir, "lua")
-	ConfdDir   = filepath.Join(InstallDir, "conf.d")
+	UUIDFile = filepath.Join(InstallDir, ".id")
+	DataDir  = filepath.Join(InstallDir, "data")
+	ConfdDir = filepath.Join(InstallDir, "conf.d")
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
 
+	l                  = logger.DefaultSLogger("datakit")
 	PipelineDir        = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
 
-	l                  = logger.DefaultSLogger("datakit")
 	optionalInstallDir = map[string]string{
-		OSArchWinAmd64: filepath.Join(`C:\Program Files\dataflux\` + ServiceName),
-		OSArchWin386:   filepath.Join(`C:\Program Files (x86)\dataflux\` + ServiceName),
+		OSArchWinAmd64: filepath.Join(`C:\Program Files` + ServiceName),
+		OSArchWin386:   filepath.Join(`C:\Program Files (x86)` + ServiceName),
 
-		OSArchLinuxArm:    filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
-		OSArchLinuxArm64:  filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
-		OSArchLinuxAmd64:  filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
-		OSArchLinux386:    filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
-		OSArchDarwinAmd64: filepath.Join(`/usr/local/cloudcare/dataflux/`, ServiceName),
+		OSArchLinuxArm:    filepath.Join(`/usr/local/`, ServiceName),
+		OSArchLinuxArm64:  filepath.Join(`/usr/local/`, ServiceName),
+		OSArchLinuxAmd64:  filepath.Join(`/usr/local/`, ServiceName),
+		OSArchLinux386:    filepath.Join(`/usr/local/`, ServiceName),
+		OSArchDarwinAmd64: filepath.Join(`/usr/local/`, ServiceName),
 	}
 )
 
