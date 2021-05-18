@@ -30,7 +30,7 @@ func apiWrite(c *gin.Context) {
 			datakit.Rum:
 			category = x
 		default:
-			l.Debug("invalid category: %s", x)
+			l.Debugf("invalid category: %s", x)
 			uhttp.HttpErr(c, ErrInvalidCategory)
 			return
 		}
@@ -50,7 +50,13 @@ func apiWrite(c *gin.Context) {
 		precision = x
 	}
 
-	l.Debugf("precision: %s, input: %s, category: %s", precision, input, category)
+	switch precision {
+	case "h", "m", "s", "ms", "u", "n":
+	default:
+		l.Warnf("invalid precision %s", precision)
+		uhttp.HttpErr(c, ErrInvalidPrecision)
+		return
+	}
 
 	extraTags := datakit.Cfg.GlobalTags
 	if x := c.Query(IGNORE_GLOBAL_TAGS); x != "" {
