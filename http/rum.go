@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -79,6 +80,7 @@ func handleBody(body []byte, precision, srcip string) (mpts, rumpts []*influxdb.
 	extraTags := geoTags(srcip)
 
 	mpts, err = lp.ParsePoints(body, &lp.Option{
+		Time:      time.Now(),
 		Precision: precision,
 		ExtraTags: extraTags,
 		Strict:    true,
@@ -108,6 +110,7 @@ func handleBody(body []byte, precision, srcip string) (mpts, rumpts []*influxdb.
 	extraTags["ip"] = srcip
 
 	rumpts, err = lp.ParsePoints(body, &lp.Option{
+		Time:      time.Now(),
 		Precision: precision,
 		ExtraTags: extraTags,
 		Strict:    true,
