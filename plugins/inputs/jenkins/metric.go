@@ -33,10 +33,6 @@ var fieldMap = map[string]string{
 type Metric struct {
 	Version string                            `json:"version"`
 	Gauges  map[string]map[string]interface{} `json:"gauges"`
-	//Counters   Counters   `json:"counters"`
-	//Histograms Histograms `json:"histograms"`
-	//Meters     Meters     `json:"meters"`
-	//Timers     Timers     `json:"timers"`
 }
 
 func getPluginMetric(n *Input) {
@@ -50,7 +46,7 @@ func getPluginMetric(n *Input) {
 	ts := time.Now()
 	tags := map[string]string{
 		"metric_plugin_version": metric.Version,
-		"url":                    n.Url,
+		"url":                   n.Url,
 	}
 	fields := map[string]interface{}{}
 	for k, v := range metric.Gauges {
@@ -63,7 +59,7 @@ func getPluginMetric(n *Input) {
 	}
 
 	n.collectCache = append(n.collectCache, &Measurement{fields: fields, tags: tags, ts: ts, name: inputName})
-
+	l.Debug(n.collectCache[0])
 }
 
 type Measurement struct {
@@ -81,9 +77,9 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
 		Tags: map[string]interface{}{
-			"url":                    inputs.NewTagInfo("jenkins url"),
+			"url":                   inputs.NewTagInfo("jenkins url"),
 			"metric_plugin_version": inputs.NewTagInfo("jenkins plugin version"),
-			"version":                inputs.NewTagInfo("jenkins  version"),
+			"version":               inputs.NewTagInfo("jenkins  version"),
 		},
 		Fields: map[string]interface{}{
 			"executor_count":        newCountFieldInfo("The number of executors available to Jenkins"),
