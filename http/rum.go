@@ -110,10 +110,6 @@ func handleRUM(c *gin.Context, precision, input string, body []byte) {
 		return
 	}
 
-	if input == DEFAULT_INPUT { // RUM 默认源不好直接用 datakit，故单独以 `rum' 标记之
-		input = "rum"
-	}
-
 	if len(rumpts) > 0 {
 		if err = io.Feed(input, datakit.Rum, io.WrapPoint(rumpts), &io.Option{HighFreq: true}); err != nil {
 			uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
