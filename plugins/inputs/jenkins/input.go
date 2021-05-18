@@ -34,20 +34,7 @@ func (n *Input) Run() {
 
 	if n.Log != nil {
 		go func() {
-			inputs.JoinPipelinePath(n.Log, "jenkins.p")
-			n.Log.Source = inputName
-			n.Log.Match = `^\d{4}-\d{2}-\d{2}`
-			n.Log.Tags = map[string]string{}
-			for k, v := range n.Tags {
-				n.Log.Tags[k] = v
-			}
-			tail, err := inputs.NewTailer(n.Log)
-			if err != nil {
-				l.Errorf("init tailf err:%s", err.Error())
-				return
-			}
-			n.tail = tail
-			tail.Run()
+			n.getLog()
 		}()
 	}
 
@@ -87,6 +74,23 @@ func (n *Input) Run() {
 			return
 		}
 	}
+}
+
+func (n *Input) getLog() {
+	inputs.JoinPipelinePath(n.Log, "jenkins.p")
+	n.Log.Source = inputName
+	n.Log.Match = `^\d{4}-\d{2}-\d{2}`
+	n.Log.Tags = map[string]string{}
+	for k, v := range n.Tags {
+		n.Log.Tags[k] = v
+	}
+	tail, err := inputs.NewTailer(n.Log)
+	if err != nil {
+		l.Errorf("init tailf err:%s", err.Error())
+		return
+	}
+	n.tail = tail
+	tail.Run()
 }
 
 type MetricFunc func(input *Input)
