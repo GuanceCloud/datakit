@@ -109,7 +109,7 @@ func MakePoint(name string,
 
 	p, err := lp.MakeLineProtoPoint(name, tags, fields,
 		&lp.Option{
-			ExtraTags: datakit.Cfg.MainCfg.GlobalTags,
+			ExtraTags: datakit.Cfg.GlobalTags,
 			Strict:    true,
 			Time:      ts,
 			Precision: "n"})
@@ -163,7 +163,7 @@ func HighFreqFeedEx(name, category, metric string,
 
 	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
 		&lp.Option{
-			ExtraTags: datakit.Cfg.MainCfg.GlobalTags,
+			ExtraTags: datakit.Cfg.GlobalTags,
 			Strict:    true,
 			Time:      ts,
 			Precision: "n"})
@@ -189,7 +189,7 @@ func NamedFeedEx(name, category, metric string,
 
 	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
 		&lp.Option{
-			ExtraTags: datakit.Cfg.MainCfg.GlobalTags,
+			ExtraTags: datakit.Cfg.GlobalTags,
 			Strict:    true,
 			Time:      ts,
 			Precision: "n"})
