@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-yaml/yaml"
+    yaml "gopkg.in/yaml.v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
