@@ -31,3 +31,4 @@ DataKit 选举以工作空间 ID 划分，同一个工作空间如果只有一�
 | 采集器名称 |
 | :---       |
 | Kubernetes |
+| GitLab     |
