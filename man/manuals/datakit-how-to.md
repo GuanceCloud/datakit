@@ -19,9 +19,9 @@ DataKit 目前支持 Linux/Windows/macOS 三种主流平台：
 
 | 操作系统                            | 架构                | 安装路径                                                                                     |
 | ---------                           | ---                 | ------                                                                                       |
-| Linux 内核 2.6.23 或更高版本        | amd64/386/arm/arm64 | `/usr/local/cloudcare/dataflux/datakit`                                                      |
-| macOS 10.11 或更高版本              | amd64               | `/usr/local/cloudcare/dataflux/datakit`                                                      |
-| Windows 7, Server 2008R2 或更高版本 | amd64/386           | 64位：`C:\Program Files\dataflux\datakit`<br />32位：`C:\Program Files(32)\dataflux\datakit` |
+| Linux 内核 2.6.23 或更高版本        | amd64/386/arm/arm64 | `/usr/local/datakit`                                                      |
+| macOS 10.11 或更高版本              | amd64               | `/usr/local/datakit`                                                      |
+| Windows 7, Server 2008R2 或更高版本 | amd64/386           | 64位：`C:\Program Files\datakit`<br />32位：`C:\Program Files(32)\datakit` |
 
 安装完成年后，DataKit 目录列表大概如下：
 
@@ -253,9 +253,23 @@ $ sudo datakit --restart
 $ sudo datakit --reload
 ```
 
+### DataKit 更新 IP 数据库文件
+
+可直接使用如下命令更新数据库文件（仅 Mac/Linux 支持）
+
+```shell
+$ sudo datakit --update-ip-db
+```
+
+若 DataKit 在运行中，更新成功后会自动执行 Reload 操作
+
+### DataKit 开启外部访问配置
+
+编辑 `conf.d/datakit.conf` 中的 `http_listen` 字段，将其改成 `0.0.0.0:9529` 或其它网卡、端口。这样就能从其它主机上请求 DataKit 接口了。
+
 ### DataKit 安装第三方软件
 
-目前仅支持 Telegraf 安装
+#### Telegraf 安装
 
 安装
 ```shell
@@ -271,6 +285,14 @@ $ sudo telegraf --config tg.conf
 
 若需要修改 Telegraf 配置，在 `tg.conf` 文件中修改后重启 Telegraf
 
+#### sec-check 安装
+
+安装
+```shell
+$ sudo datakit --install sec-check
+```
+
+安装成功后会自动运行，sec-check 具体使用，参见[这里](https://www.yuque.com/dataflux/sec_checker/install) 
 
 ### 其它命令
 
