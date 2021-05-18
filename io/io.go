@@ -74,7 +74,7 @@ func NewIO(maxCacheCnt int64) *IO {
 
 		cache:        map[string][]*Point{},
 		dynamicCache: map[string][]*Point{},
-		dw:           datakit.Cfg.MainCfg.DataWay,
+		dw:           datakit.Cfg.DataWay,
 	}
 
 	io.MaxCacheCnt = maxCacheCnt
@@ -228,7 +228,7 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cacheCnt += int64(len(d.pts))
 	}
 
-	if x.cacheCnt > x.MaxCacheCnt && tryClean {
+	if x.cacheCnt > x.MaxCacheCnt && tryClean || x.dynamicCacheCnt > x.MaxDynamicCacheCnt {
 		x.flushAll()
 	}
 }
