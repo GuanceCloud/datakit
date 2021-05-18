@@ -23,6 +23,11 @@ DataKit 目前支持 Linux/Windows/macOS 三种主流平台：
 | macOS 10.11 或更高版本              | amd64               | `/usr/local/datakit`                                                      |
 | Windows 7, Server 2008R2 或更高版本 | amd64/386           | 64位：`C:\Program Files\datakit`<br />32位：`C:\Program Files(32)\datakit` |
 
+> Tips：查看内核版本
+
+- Linux/Mac：`uname -r`
+- Windows：执行 `cmd` 命令（按住 Win键 + `r`，输入 `cmd` 回车），输入 `winver` 即可获取系统版本信息
+
 安装完成年后，DataKit 目录列表大概如下：
 
 ```
@@ -79,11 +84,13 @@ DataKit 的配置均使用 [Toml 文件](https://toml.io/cn)，一个典型的�
 
 ### DataKit 主配置修改
 
-以下涉及 DataKit 主配置的修改，均需重启 DataKit。Reload 是不能使主配置更改生效的：
+以下涉及 DataKit 主配置的修改，均需重启 DataKit：
 
 ```shell
 sudo datakit --restart
 ```
+
+> 注意：`--reload` 是不能使主配置更改生效的。
 
 #### HTTP 绑定端口
 
@@ -104,10 +111,11 @@ DataKit 允许在 `datakit.conf` 中配置全局标签，这些标签会默认�
 [global_tags]
 	ip         = "__datakit_ip"
 	datakit_id = "$datakit_id"
-	project    = "biz_online_server"
+	project    = "some_of_your_online_biz"
+	other_tags = "..."                    # 可追加其它更多标签
 ```
 
-注意，如下几个变量可用于这里的全局标签设置：
+注意，如下几个变量可用于这里的全局标签设置（双下划线（`__`）前缀和 `$` 都是可以的）：
 
 - `__datakit_ip/$datakit_ip`：标签值会设置成 DataKit 获取到的第一个主网卡 IP
 - `__datakit_id/$datakit_id`：标签值会设置成 DataKit 的 ID
@@ -120,7 +128,7 @@ DataKit 允许在 `datakit.conf` 中配置全局标签，这些标签会默认�
 
 DataKit 默认日志等级为 `debug`。编辑 `conf.d/datakit.conf`，修改 `log_level`，将其置为 `debug` 即可看到更多日志（目前只支持 `debug/info` 两个级别）。`log_level` 置为 `debug` 后，`gin.log` 也会出现 HTTP 接口上的 access-log（前提是有 HTTP 请求发给 DataKit）
 
-DataKit 默认会对日志进行分片，默认分片大小（`log_rotate`）为 32MB，总共 5 个分片（分片个数尚不支持配置）。如果嫌弃 DataKit 日志占用太多磁盘空间（最多 32 x 6 = 192MB），可减少 `log_rotate` 大小（比如改成 4，单位为 MB）。需要注意的是，gin.log 的大小不会自动做分片，故建议主配置中的 `log_level` 不要常年设置成 `debug` 级别。
+DataKit 默认会对日志进行分片，默认分片大小（`log_rotate`）为 32MB，总共 6 个分片（1 个当前写入分片加上 5 个切割分片，分片个数尚不支持配置）。如果嫌弃 DataKit 日志占用太多磁盘空间（最多 32 x 6 = 192MB），可减少 `log_rotate` 大小（比如改成 4，单位为 MB）。需要注意的是，gin.log 的大小不会自动做分片，故建议主配置中的 `log_level` 不要常年设置成 `debug` 级别。
 
 ### 采集器配置文件
 
