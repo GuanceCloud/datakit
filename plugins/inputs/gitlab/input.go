@@ -24,7 +24,7 @@ const (
 
     ## param type: map object, string to string
     [inputs.gitlab.tags]
-        #tag1 = "value1"
+    #tag1 = "value1"
 `
 )
 
@@ -61,10 +61,6 @@ func (*Input) SampleConfig() string {
 
 func (*Input) Catalog() string {
 	return "gitlab"
-}
-
-func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
 }
 
 func (this *Input) Run() {
@@ -142,6 +138,10 @@ func (this *Input) gatherMetrics() ([]*io.Point, error) {
 	}
 
 	return points, nil
+}
+
+func (*Input) AvailableArchs() []string {
+	return datakit.AllArch
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
