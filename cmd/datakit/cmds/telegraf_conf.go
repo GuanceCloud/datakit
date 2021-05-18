@@ -2614,7 +2614,7 @@ const (
 
 
 # Read metrics about cpu usage
-[[inputs.cpu]]
+# [[inputs.cpu]]
   ## Whether to report per-cpu stats or not
   percpu = true
   ## Whether to report total system cpu stats or not
@@ -2626,7 +2626,7 @@ const (
 
 
 # Read metrics about disk usage by mount point
-[[inputs.disk]]
+# [[inputs.disk]]
   ## By default stats will be gathered for all mount points.
   ## Set mount_points will restrict the stats to only the specified mount points.
   # mount_points = ["/"]
@@ -2636,7 +2636,7 @@ const (
 
 
 # Read metrics about disk IO by device
-[[inputs.diskio]]
+# [[inputs.diskio]]
   ## By default, telegraf will gather stats for all devices including
   ## disk partitions.
   ## Setting devices will restrict the stats to the specified devices.
@@ -2665,27 +2665,27 @@ const (
 
 
 # Get kernel statistics from /proc/stat
-[[inputs.kernel]]
+# [[inputs.kernel]]
   # no configuration
 
 
 # Read metrics about memory usage
-[[inputs.mem]]
+# [[inputs.mem]]
   # no configuration
 
 
 # Get the number of processes and group them by status
-[[inputs.processes]]
+# [[inputs.processes]]
   # no configuration
 
 
 # Read metrics about swap memory usage
-[[inputs.swap]]
+# [[inputs.swap]]
   # no configuration
 
 
 # Read metrics about system load & uptime
-[[inputs.system]]
+# [[inputs.system]]
   ## Uncomment to remove deprecated metrics.
   # fielddrop = ["uptime_format"]
 
