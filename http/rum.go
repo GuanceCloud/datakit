@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -50,10 +51,11 @@ func geoTags(srcip string) (tags map[string]string) {
 	return
 }
 
-func handleBody(body []byte, precision, srcip string) (rumpts []*influxdb.Point, err error) {
+func handleRUMBody(body []byte, precision, srcip string) (rumpts []*influxdb.Point, err error) {
 	extraTags := geoTags(srcip)
 
 	rumpts, err = lp.ParsePoints(body, &lp.Option{
+		Time:      time.Now(),
 		Precision: precision,
 		ExtraTags: extraTags,
 		Strict:    true,
@@ -66,8 +68,14 @@ func handleBody(body []byte, precision, srcip string) (rumpts []*influxdb.Point,
 				return nil, fmt.Errorf("unknow RUM data-type %s", name)
 			}
 
-			p.AddTag("message", p.String())
-			return p, nil
+			// 移除 message 中可能的换行
+			// 在行协议的 tag 上新增字段是比较方便的，而新增 field 则比较麻烦
+			// 但奇怪的是，如果 tag-value 中有换行，拼接行协议不会报错，但 dataway
+			// 解析行协议就报错了，尴尬
+
+			// TODO: 此处需验证更多其它特殊字符，看啥时候会报错，以及在 tag 或
+			// field 中是否会报错
+			p.AddTag("message", strings.Replace(p.String(), "\n", "", -1))
 
 			return p, nil
 		},
@@ -81,7 +89,7 @@ func handleBody(body []byte, precision, srcip string) (rumpts []*influxdb.Point,
 	return rumpts, nil
 }
 
-func handleRUMBody(c *gin.Context, precision, input string, body []byte) {
+func handleRUM(c *gin.Context, precision, input string, body []byte) {
 
 	srcip := c.Request.Header.Get(datakit.Cfg.HTTPAPI.RUMOriginIPHeader)
 	if srcip != "" {
@@ -96,7 +104,7 @@ func handleRUMBody(c *gin.Context, precision, input string, body []byte) {
 		}
 	}
 
-	rumpts, err := handleBody(body, precision, srcip)
+	rumpts, err := handleRUMBody(body, precision, srcip)
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
