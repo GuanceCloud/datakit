@@ -22,7 +22,7 @@ var (
 	metricNameCache        = "solr_cache"
 	metricNameRequestTimes = "solr_request_times"
 	metricNameSearcher     = "solr_searcher"
-	solrLogger             = logger.DefaultSLogger("solr")
+	l                      = logger.DefaultSLogger("solr")
 	sampleConfig           = `
 [[inputs.solr]]
   ##(optional) collect interval, default is 10 seconds
@@ -104,7 +104,8 @@ func (i *Input) AvailableArchs() []string {
 }
 
 func (i *Input) Run() {
-	solrLogger.Infof("solr input started")
+	l = logger.SLogger(inputName)
+	l.Infof("solr input started")
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	if i.Log != nil && len(i.Log.Files) > 0 {
@@ -127,7 +128,7 @@ func (i *Input) Run() {
 			}
 			i.collectCache = make([]inputs.Measurement, 0)
 		case <-datakit.Exit.Wait():
-			solrLogger.Infof("solr input exit")
+			l.Infof("solr input exit")
 			return
 		}
 	}
