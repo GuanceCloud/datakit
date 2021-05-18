@@ -42,10 +42,10 @@ DataKit 目前支持 Linux/Windows/macOS 三种主流平台：
 - `datakit`：DataKit 主程序，Windows 下为 `datakit.exe`
 - `externals`：部分采集器没有集成在 DataKit 主程序中，就都在这里了
 - `pipeline` 存放用于文本处理的脚本代码
-- `gin.log`：DataKit 可以接收外部的 HTTP 数据输入，这个日志文件相当于 HTTP 的 access-log（DataKit 日志需开启 `debug` 选项才能看到 gin.log，否则 gin.log 内容为空）
+- `gin.log`：DataKit 可以接收外部的 HTTP 数据输入，这个日志文件相当于 HTTP 的 access-log（DataKit 日志需[开启 `debug` 选项](datakit-how-to#d294fa14)才能看到 gin.log，否则 gin.log 内容为空）
 - `log`：DataKit 运行日志
 
-> 注：Linux/Mac 平台下，DataKit 运行日志在 `/var/log/datakit` 下。
+> 注：Linux/Mac 平台下，DataKit 运行日志在 `/var/log/datakit` 目录下。
 
 ## 采集器使用
 
@@ -87,12 +87,12 @@ sudo datakit --restart
 
 #### HTTP 绑定端口
 
-处于安全考虑，DataKit 的 HTTP 服务默认绑定在 localhost:9529 上，如果希望从外部访问 DataKit API，需编辑 `conf.d/datakit.conf` 中的 `http_listen` 字段，将其改成 `0.0.0.0:9529` 或其它网卡、端口。这样就能从其它主机上请求 DataKit 接口了。
+出于安全考虑，DataKit 的 HTTP 服务默认绑定在 localhost:9529 上，如果希望从外部访问 DataKit API，需编辑 `conf.d/datakit.conf` 中的 `http_listen` 字段，将其改成 `0.0.0.0:9529` 或其它网卡、端口。这样就能从其它主机上请求 DataKit 接口了。
 
 当你需要做如下操作时，一般都需要修改 `http_listen` 配置：
 
-- [如远程查看 DataKit 运行情况](http://localhost:9529/monitor)
-- [如远程查看 DataKit 文档](http://localhost:9529/man)
+- [远程查看 DataKit 运行情况](http://localhost:9529/monitor)
+- [远程查看 DataKit 文档](http://localhost:9529/man)
 - [RUM 采集](rum)
 - 其它诸如 [APM](ddtrace)/[安全巡检](sec-checker) 等，看具体的部署情况，可能也需要修改 `http_listen` 配置
 
@@ -278,7 +278,7 @@ Bye!
 
 ### 查看帮助文档
 
-为便于大家在服务端查看 DataKit 帮助文档，DataKit 提供如下交互式文档查看入口：
+为便于大家在服务端查看 DataKit 帮助文档，DataKit 提供如下交互式文档查看入口（Windows 不支持）：
 
 ```shell
 $ ./datakit --man
