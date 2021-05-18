@@ -6,12 +6,13 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var (
@@ -21,42 +22,51 @@ var (
 )
 
 func DefaultConfig() *Config {
-	return &Config{ //nolint:dupl
-		MainCfg: &MainConfig{
-			GlobalTags: map[string]string{
-				"project": "",
-				"cluster": "",
-				"site":    "",
-			},
+	c := &Config{ //nolint:dupl
+		GlobalTags: map[string]string{
+			"project": "",
+			"cluster": "",
+			"site":    "",
+		},
 
-			DataWay: &DataWayCfg{},
+		DataWay: &DataWayCfg{},
 
-			flushInterval: Duration{Duration: time.Second * 10},
-			Interval:      "10s",
-			ProtectMode:   true,
+		flushInterval: Duration{Duration: time.Second * 10},
+		Interval:      "10s",
+		ProtectMode:   true,
 
-			HTTPListen: "localhost:9529",
+		HTTPListen: "localhost:9529",
+		HTTPAPI: &apiConfig{
+			RUMOriginIPHeader: "X-Forward-For",
+		},
 
-			LogLevel:  "info",
-			Log:       filepath.Join(InstallDir, "log"),
-			LogRotate: 32,
-			GinLog:    filepath.Join(InstallDir, "gin.log"),
+		LogLevel:  "info",
+		Log:       filepath.Join("/var/log/datakit", "log"),
+		LogRotate: 32,
+		GinLog:    filepath.Join("/var/log/datakit", "gin.log"),
 
-			BlackList: []*InputHostList{
-				&InputHostList{Hosts: []string{}, Inputs: []string{}},
-			},
-			WhiteList: []*InputHostList{
-				&InputHostList{Hosts: []string{}, Inputs: []string{}},
-			},
+		BlackList: []*InputHostList{
+			&InputHostList{Hosts: []string{}, Inputs: []string{}},
+		},
+		WhiteList: []*InputHostList{
+			&InputHostList{Hosts: []string{}, Inputs: []string{}},
 		},
 	}
+
+	// windows 下，日志继续跟 datakit 放在一起
+	if runtime.GOOS == OSWindows {
+		c.Log = filepath.Join(InstallDir, "log")
+		c.GinLog = filepath.Join(InstallDir, "gin.log")
+	}
+
+	return c
+}
+
+type apiConfig struct {
+	RUMOriginIPHeader string `toml:"rum_origin_ip_header"`
 }
 
 type Config struct {
-	MainCfg *MainConfig
-}
-
-type MainConfig struct {
 	UUID           string `toml:"-"`
 	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
 
@@ -65,6 +75,8 @@ type MainConfig struct {
 
 	HTTPBindDeprecated string `toml:"http_server_addr,omitempty"`
 	HTTPListen         string `toml:"http_listen,omitempty"`
+
+	HTTPAPI *apiConfig `toml:"http_api"`
 
 	Log       string `toml:"log"`
 	LogLevel  string `toml:"log_level"`
@@ -119,7 +131,6 @@ func (i *InputHostList) MatchInput(input string) bool {
 func InitDirs() {
 	for _, dir := range []string{
 		DataDir,
-		LuaDir,
 		ConfdDir,
 		PipelineDir,
 		PipelinePatternDir} {
@@ -141,11 +152,11 @@ func (c *Config) LoadMainConfig(p string) error {
 
 func (c *Config) InitCfg(p string) error {
 
-	if c.MainCfg.Hostname == "" {
+	if c.Hostname == "" {
 		c.setHostname()
 	}
 
-	if mcdata, err := TomlMarshal(c.MainCfg); err != nil {
+	if mcdata, err := TomlMarshal(c); err != nil {
 		l.Errorf("TomlMarshal(): %s", err.Error())
 		return err
 	} else {
@@ -160,98 +171,105 @@ func (c *Config) InitCfg(p string) error {
 }
 
 func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
-	_, err := bstoml.Decode(string(cfgdata), c.MainCfg)
+	_, err := bstoml.Decode(string(cfgdata), c)
 	if err != nil {
 		l.Errorf("unmarshal main cfg failed %s", err.Error())
 		return err
 	}
 
-	if c.MainCfg.EnableUncheckedInputs {
+	if c.EnableUncheckedInputs {
 		EnableUncheckInputs = true
 	}
 
 	// load datakit UUID
-	if c.MainCfg.UUIDDeprecated != "" {
+	if c.UUIDDeprecated != "" {
 		// dump UUIDDeprecated to .id file
-		if err := CreateUUIDFile(Cfg.MainCfg.UUIDDeprecated); err != nil {
+		if err := CreateUUIDFile(UUIDFile, Cfg.UUIDDeprecated); err != nil {
 			l.Fatalf("create datakit id failed: %s", err.Error())
 		}
-		c.MainCfg.UUID = c.MainCfg.UUIDDeprecated
+		c.UUID = c.UUIDDeprecated
 	} else {
-		c.MainCfg.UUID, err = LoadUUID()
+		c.UUID, err = LoadUUID()
 		if err != nil {
 			l.Fatalf("load datakit id failed: %s", err.Error())
 		}
 	}
 
-	if c.MainCfg.OutputFile != "" {
-		OutputFile = c.MainCfg.OutputFile
+	if c.OutputFile != "" {
+		OutputFile = c.OutputFile
 	}
 
-	if c.MainCfg.Hostname == "" {
+	if c.Hostname == "" {
 		c.setHostname()
 	}
-	if c.MainCfg.GlobalTags == nil {
-		c.MainCfg.GlobalTags = map[string]string{}
+	if c.GlobalTags == nil {
+		c.GlobalTags = map[string]string{}
 	}
 
 	// add global tag implicitly
-	if _, ok := c.MainCfg.GlobalTags["host"]; !ok {
-		c.MainCfg.GlobalTags["host"] = c.MainCfg.Hostname
+	if _, ok := c.GlobalTags["host"]; !ok {
+		c.GlobalTags["host"] = c.Hostname
 	}
 
-	if c.MainCfg.DataWay.DeprecatedURL != "" {
-		c.MainCfg.DataWay.Urls = append(c.MainCfg.DataWay.Urls, c.MainCfg.DataWay.DeprecatedURL)
+	if c.DataWay.DeprecatedURL != "" {
+		c.DataWay.Urls = append(c.DataWay.Urls, c.DataWay.DeprecatedURL)
 	}
 
-	if len(c.MainCfg.DataWay.Urls) == 0 {
+	if len(c.DataWay.Urls) == 0 {
 		l.Fatal("dataway URL not set")
 	}
 
-	dw, err := ParseDataway(c.MainCfg.DataWay.Urls)
+	// set global log root
+	l.Infof("set log to %s", c.Log)
+	logger.MaxSize = c.LogRotate
+	logger.SetGlobalRootLogger(c.Log, c.LogLevel, logger.OPT_DEFAULT)
+
+	l = logger.SLogger("datakit")
+
+	dw, err := ParseDataway(c.DataWay.Urls)
 	if err != nil {
 		return err
 	}
 
-	c.MainCfg.DataWay = dw
+	c.DataWay = dw
 
-	if c.MainCfg.Interval != "" {
-		du, err := time.ParseDuration(c.MainCfg.Interval)
+	if c.Interval != "" {
+		du, err := time.ParseDuration(c.Interval)
 		if err != nil {
-			l.Warnf("parse %s failed: %s, set default to 10s", c.MainCfg.Interval)
+			l.Warnf("parse %s failed: %s, set default to 10s", c.Interval)
 			du = time.Second * 10
 		}
 		IntervalDuration = du
 	}
 
 	// reset global tags
-	for k, v := range c.MainCfg.GlobalTags {
+	for k, v := range c.GlobalTags {
 
 		// NOTE: accept `__` and `$` as tag-key prefix, to keep compatible with old prefix `$`
 		// by using `__` as prefix, avoid escaping `$` in Powershell and shell
 
 		switch strings.ToLower(v) {
 		case `__datakit_hostname`, `$datakit_hostname`:
-			if c.MainCfg.Hostname == "" {
+			if c.Hostname == "" {
 				c.setHostname()
 			}
 
-			c.MainCfg.GlobalTags[k] = c.MainCfg.Hostname
-			l.Debugf("set global tag %s: %s", k, c.MainCfg.Hostname)
+			c.GlobalTags[k] = c.Hostname
+			l.Debugf("set global tag %s: %s", k, c.Hostname)
 
 		case `__datakit_ip`, `$datakit_ip`:
-			c.MainCfg.GlobalTags[k] = "unavailable"
+			c.GlobalTags[k] = "unavailable"
 
 			if ipaddr, err := LocalIP(); err != nil {
 				l.Errorf("get local ip failed: %s", err.Error())
 			} else {
 				l.Debugf("set global tag %s: %s", k, ipaddr)
-				c.MainCfg.GlobalTags[k] = ipaddr
+				c.GlobalTags[k] = ipaddr
 			}
 
 		case `__datakit_uuid`, `__datakit_id`, `$datakit_uuid`, `$datakit_id`:
-			c.MainCfg.GlobalTags[k] = c.MainCfg.UUID
-			l.Debugf("set global tag %s: %s", k, c.MainCfg.UUID)
+			c.GlobalTags[k] = c.UUID
+			l.Debugf("set global tag %s: %s", k, c.UUID)
 
 		default:
 			// pass
@@ -259,10 +277,10 @@ func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 	}
 
 	// remove deprecated UUID field in main configure
-	if c.MainCfg.UUIDDeprecated != "" {
-		c.MainCfg.UUIDDeprecated = "" // clear deprecated UUID field
+	if c.UUIDDeprecated != "" {
+		c.UUIDDeprecated = "" // clear deprecated UUID field
 		buf := new(bytes.Buffer)
-		if err := bstoml.NewEncoder(buf).Encode(c.MainCfg); err != nil {
+		if err := bstoml.NewEncoder(buf).Encode(c); err != nil {
 			l.Fatalf("encode main configure failed: %s", err.Error())
 		}
 		if err := ioutil.WriteFile(MainConfPath, buf.Bytes(), os.ModePerm); err != nil {
@@ -280,7 +298,7 @@ func (c *Config) setHostname() {
 	if err != nil {
 		l.Errorf("get hostname failed: %s", err.Error())
 	} else {
-		c.MainCfg.Hostname = hn
+		c.Hostname = hn
 		l.Infof("set hostname to %s", hn)
 	}
 }
@@ -289,7 +307,7 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 	inputs := []string{}
 	inputsUnique := make(map[string]bool)
 
-	for _, name := range c.MainCfg.DefaultEnabledInputs {
+	for _, name := range c.DefaultEnabledInputs {
 		if _, ok := inputsUnique[name]; !ok {
 			inputsUnique[name] = true
 			inputs = append(inputs, name)
@@ -304,7 +322,7 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 		}
 	}
 
-	c.MainCfg.DefaultEnabledInputs = inputs
+	c.DefaultEnabledInputs = inputs
 }
 
 func (c *Config) LoadEnvs(mcp string) error {
@@ -319,17 +337,17 @@ func (c *Config) LoadEnvs(mcp string) error {
 
 	globalTags := os.Getenv("ENV_GLOBAL_TAGS")
 	if globalTags != "" {
-		c.MainCfg.GlobalTags = ParseGlobalTags(globalTags)
+		c.GlobalTags = ParseGlobalTags(globalTags)
 	}
 
 	loglvl := os.Getenv("ENV_LOG_LEVEL")
 	if loglvl != "" {
-		c.MainCfg.LogLevel = loglvl
+		c.LogLevel = loglvl
 	}
 
 	dwURL := os.Getenv("ENV_DATAWAY")
-	dwURLs := []string{dwURL}
-	if len(dwURL) != 0 {
+	if dwURL != "" {
+		dwURLs := []string{dwURL}
 		dw, err := ParseDataway(dwURLs)
 		if err != nil {
 			return err
@@ -339,27 +357,28 @@ func (c *Config) LoadEnvs(mcp string) error {
 			return err
 		}
 
-		c.MainCfg.DataWay = dw
+		c.DataWay = dw
+		c.DataWay.Urls = dwURLs
 	}
 
 	dkhost := os.Getenv("ENV_HOSTNAME")
 	if dkhost != "" {
 		l.Debugf("set hostname to %s from ENV", dkhost)
-		c.MainCfg.Hostname = dkhost
+		c.Hostname = dkhost
 	} else {
 		c.setHostname()
 	}
 
-	c.MainCfg.Name = os.Getenv("ENV_NAME")
+	c.Name = os.Getenv("ENV_NAME")
 
 	if fi, err := os.Stat(mcp); err != nil || fi.Size() == 0 { // create the main config
-		if c.MainCfg.UUID == "" { // datakit.conf not exit: we have to create new datakit with new UUID
-			c.MainCfg.UUID = cliutils.XID("dkid_")
+		if c.UUID == "" { // datakit.conf not exit: we have to create new datakit with new UUID
+			c.UUID = cliutils.XID("dkid_")
 		}
 
-		c.MainCfg.InstallDate = time.Now()
+		c.InstallDate = time.Now()
 
-		cfgdata, err := TomlMarshal(c.MainCfg)
+		cfgdata, err := TomlMarshal(c)
 		if err != nil {
 			l.Errorf("failed to build main cfg %s", err)
 			return err
@@ -377,7 +396,7 @@ func (c *Config) LoadEnvs(mcp string) error {
 		return fmt.Errorf("ENV_UUID not set")
 	}
 
-	if err := CreateUUIDFile(dkid); err != nil {
+	if err := CreateUUIDFile(UUIDFile, dkid); err != nil {
 		l.Errorf("create id file: %s", err.Error())
 		return err
 	}
@@ -402,8 +421,8 @@ func ParseGlobalTags(s string) map[string]string {
 	return tags
 }
 
-func CreateUUIDFile(uuid string) error {
-	return ioutil.WriteFile(UUIDFile, []byte(uuid), os.ModePerm)
+func CreateUUIDFile(f, uuid string) error {
+	return ioutil.WriteFile(f, []byte(uuid), os.ModePerm)
 }
 
 func LoadUUID() (string, error) {
@@ -414,7 +433,7 @@ func LoadUUID() (string, error) {
 	}
 }
 
-func MoveDeprecatedMainCfg() {
+func MoveDeprecatedCfg() {
 	if _, err := os.Stat(MainConfPathDeprecated); err == nil {
 		if err := os.Rename(MainConfPathDeprecated, MainConfPath); err != nil {
 			l.Fatal("move deprecated main configure failed: %s", err.Error())
@@ -424,7 +443,7 @@ func MoveDeprecatedMainCfg() {
 }
 
 func ProtectedInterval(min, max, cur time.Duration) time.Duration {
-	if Cfg.MainCfg.ProtectMode {
+	if Cfg.ProtectMode {
 		if cur >= max {
 			return max
 		}
