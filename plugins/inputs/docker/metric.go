@@ -144,9 +144,6 @@ func (this *Input) gatherStats(container types.Container) (map[string]interface{
 }
 
 func (this *Input) gatherK8sPodInfo(id string) (map[string]string, error) {
-	if this.kubernetes == nil {
-		return nil, nil
-	}
 	return this.kubernetes.GatherPodInfo(id)
 }
 
