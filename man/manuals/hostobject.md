@@ -24,7 +24,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 
 ## 开启云同步
 
-如果 DataKit 所在的主机是云主机（目前支持阿里云、腾讯云以及 AWS），那么可以通过新增一个 `tags` 字段实现云同步：
+如果 DataKit 所在的主机是云主机（目前支持阿里云、腾讯云以及 AWS），那么可通过 `cloud_provider` 标签开启云同步：
 
 ```toml
 [inputs.hostobject.tags]
