@@ -36,6 +36,10 @@ func MonitProc(proc *os.Process, name string) error {
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
 
+	if proc == nil {
+		return fmt.Errorf("invalid proc %s", name)
+	}
+
 	for {
 		select {
 		case <-tick.C:

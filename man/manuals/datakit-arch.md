@@ -11,7 +11,7 @@ DataKit 网络模型主要分为三层，可以简单概括为用户环境、[Da
 ![DataKit 基础网络模型](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-network-arch.png)
 
 1. DataKit 主要通过定期采集的方式，采集各种不同的指标，然后定时、定量通过 HTTP(s) 将数据发送给 DataWay。每个 DataKit 都会配置对应的 token，用于标识不同的用户
-> 如果用户内网环境没有开通外网请求，可以通过 [Nginx 做一层代理](nginx-proxy)出来，也可以通过 DataKit 内置的 [Proxy 采集器](proxy) 来实现流量代理
+> 如果用户内网环境没有开通外网请求，可以通过 [Nginx 做一层代理](proxy#6778a8b6)出来，也可以通过 DataKit 内置的 [Proxy 采集器](proxy) 来实现流量代理
 2. DataWay 收到数据后，转发给 DataFlux，在发给 DataFlux 的数据中，带有 API 签名
 3. DataFlux 收到合法的数据后，根据不同的数据类型，分别写入不同的存储中
 
