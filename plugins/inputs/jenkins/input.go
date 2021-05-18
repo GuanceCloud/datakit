@@ -1,52 +1,15 @@
 package jenkins
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
-	"encoding/json"
-	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-)
-
-var (
-	inputName   = `jenkins`
-	l           = logger.DefaultSLogger(inputName)
-	minInterval = time.Second
-	maxInterval = time.Second * 30
-	sample      = `
-[[inputs.jenkins]]
-	## The Jenkins URL in the format "schema://host:port",required
-	url = "http://my-jenkins-instance:8080"
-	## Metric Access Key ,generate in your-jenkins-host:/configure,required
-	key = ""
-	## Set response_timeout
-	# response_timeout = "5s"
-	
-	## Optional TLS Config
-	# tls_ca = "/xx/ca.pem"
-	# tls_cert = "/xx/cert.pem"
-	# tls_key = "/xx/key.pem"
-	## Use SSL but skip chain & host verification
-	# insecure_skip_verify = false
-	[inputs.jenkins.log]
-	#	files = []
-	#	# grok pipeline script path
-	#	pipeline = "jenkins.p"
-	[inputs.jenkins.tags]
-	# a = "b"`
-
-	pipelineCfg = `
-grok(_, "%{TIMESTAMP_ISO8601:time} \\[id=%{GREEDYDATA:id}\\]\t%{GREEDYDATA:status}\t")
-default_time(time)
-group_in(status, ["WARNING", "NOTICE"], "warning")
-group_in(status, ["SERVER", "ERROR"], "error")
-group_in(status, ["INFO"], "info")
-
-`
 )
 
 func (_ *Input) SampleConfig() string {
@@ -74,7 +37,6 @@ func (n *Input) Run() {
 			inputs.JoinPipelinePath(n.Log, "jenkins.p")
 			n.Log.Source = inputName
 			n.Log.Match = `^\d{4}-\d{2}-\d{2}`
-			n.Log.FromBeginning = true
 			n.Log.Tags = map[string]string{}
 			for k, v := range n.Tags {
 				n.Log.Tags[k] = v
