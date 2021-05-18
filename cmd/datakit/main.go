@@ -372,6 +372,11 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagInstallExternal != "" {
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
 		if err := cmds.InstallExternal(*flagInstallExternal); err != nil {
 			l.Error(err)
 		}
