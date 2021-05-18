@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -19,6 +20,113 @@ var (
 	__bind  = ":12345"
 	__token = "tkn_2dc438b6693711eb8ff97aeee04b54af"
 )
+
+func TestHandleBody(t *testing.T) {
+	var cases = []struct {
+		body []byte
+		prec string
+		fail bool
+		npts int
+		tags map[string]string
+	}{
+		{
+			prec: "s",
+			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
+			resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
+			long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			npts: 5,
+		},
+
+		{
+			body: []byte(`test t1=abc f1=1i,f2=2,f3="str"`),
+			npts: 1,
+			fail: true,
+		},
+
+		{
+			body: []byte(`test,t1=abc f1=1i,f2=2,f3="str"
+test,t1=abc f1=1i,f2=2,f3="str"
+test,t1=abc f1=1i,f2=2,f3="str"`),
+			npts: 3,
+		},
+	}
+
+	for i, tc := range cases {
+		pts, err := handleWriteBody(tc.body, tc.tags, tc.prec)
+
+		if tc.fail {
+			tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
+			t.Logf("[%d] handle body failed: %s", i, err)
+			continue
+		}
+
+		if err != nil && !tc.fail {
+			t.Errorf("[FAIL][%d] handle body failed: %s", i, err)
+			continue
+		}
+
+		tu.Equals(t, tc.npts, len(pts))
+
+		t.Logf("----------- [%d] -----------", i)
+		for _, pt := range pts {
+			t.Logf("\t%s", pt.String())
+		}
+	}
+}
+
+func TestRUMHandleBody(t *testing.T) {
+
+	var cases = []struct {
+		body []byte
+		prec string
+		fail bool
+		npts int
+	}{
+		{
+			prec: "s",
+			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
+			resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
+			long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			npts: 5,
+		},
+
+		{
+			prec: "n",
+			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			npts: 5,
+		},
+	}
+
+	for i, tc := range cases {
+		pts, err := handleRUMBody(tc.body, tc.prec, "")
+
+		if tc.fail {
+			tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
+			t.Logf("[%d] handle body failed: %s", i, err)
+			continue
+		}
+
+		if err != nil && !tc.fail {
+			t.Errorf("[FAIL][%d] handle body failed: %s", i, err)
+			continue
+		}
+
+		tu.Equals(t, tc.npts, len(pts))
+
+		t.Logf("----------- [%d] -----------", i)
+		for _, pt := range pts {
+			t.Logf("\t%s", pt.String())
+		}
+	}
+}
 
 func TestReload(t *testing.T) {
 	Start(&Option{Bind: __bind, GinLog: ".gin.log", PProf: true})
@@ -52,58 +160,110 @@ func TestAPI(t *testing.T) {
 		gz            bool
 		expectErrCode string
 	}{
+
 		{
-			api:    "/v1/write/metric?name=test",
+			api:    "/v1/ping",
+			method: "GET",
+			gz:     false,
+		},
+
+		{
+			api:    "/v1/write/metric?input=test",
 			body:   []byte(`test,t1=abc f1=1i,f2=2,f3="str"`),
 			method: "POST",
 			gz:     true,
 		},
 		{
-			api:           "/v1/write/metric?name=test",
+			api:           "/v1/write/metric?input=test",
 			body:          []byte(`test t1=abc f1=1i,f2=2,f3="str"`),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
 		{
-			api:           "/v1/write/security?name=test&token=" + __token,
+			api:           "/v1/write/metric?input=test&token=" + __token,
 			body:          []byte(`test-01,category=host,host=ubt-server,level=warn,title=a\ demo message="passwd 发生了变化" 1619599490000652659`),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
 		{
-			api:           "/v1/write/tracing?name=test&token=" + __token,
+			api:           "/v1/write/metric?input=test&token=" + __token,
 			body:          []byte(``),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
 		{
-			api:           "/v1/write/rum?name=test&token=" + __token,
+			api:           "/v1/write/object?input=test&token=" + __token,
 			body:          []byte(``),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
 		{
-			api:           "/v1/write/object?name=test&token=" + __token,
+			api:           "/v1/write/logging?input=test&token=" + __token,
 			body:          []byte(``),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
 		{
-			api:           "/v1/write/logging?name=test&token=" + __token,
+			api:           "/v1/write/keyevent?input=test&token=" + __token,
 			body:          []byte(``),
 			method:        "POST",
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
+
+		// rum cases
 		{
-			api:           "/v1/write/keyevent?name=test&token=" + __token,
+			api:           "/v1/write/rum?input=test&token=" + __token,
 			body:          []byte(``),
 			method:        "POST",
+			gz:            true,
+			expectErrCode: "datakit.badRequest",
+		},
+
+		{ // unknown RUM metric
+			api:           "/v1/write/rum?input=rum-test",
+			body:          []byte(`not_rum_metric,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			method:        `POST`,
+			gz:            true,
+			expectErrCode: "datakit.badRequest",
+		},
+
+		{ // bad line-proto
+			api:           "/v1/write/rum?input=rum-test",
+			body:          []byte(`not_rum_metric,t1=tag1,t2=tag2 f1=1.0f,f2=2i,f3="abc"`),
+			method:        `POST`,
+			gz:            true,
+			expectErrCode: "datakit.badRequest",
+		},
+
+		{
+			api:           "/v1/write/rum?input=rum-test",
+			body:          []byte(`js_error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			method:        `POST`,
+			expectErrCode: "datakit.badRequest",
+			gz:            true,
+		},
+
+		{
+			api: "/v1/write/rum?input=rum-test",
+			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			method: `POST`,
+			gz:     true,
+		},
+
+		{
+			api:           "/v1/write/rum",
+			body:          []byte(`rum_app_startup,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			method:        `POST`,
 			gz:            true,
 			expectErrCode: "datakit.badRequest",
 		},
@@ -146,10 +306,6 @@ func TestAPI(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if resp.StatusCode != http.StatusOK {
-			t.Log("!!! failed")
-			t.Errorf("api %s request faild with status code: %s\n", cases[i].api, resp.Status)
-		}
 
 		respbody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -166,12 +322,17 @@ func TestAPI(t *testing.T) {
 				t.Error(err.Error())
 			}
 
-			l.Debugf("x: %v, body: %s", x, string(respbody))
+			if tc.expectErrCode != "" {
+				tu.Equals(t, string(tc.expectErrCode), string(x.ErrCode))
+			} else {
+				if resp.StatusCode != http.StatusOK {
+					t.Errorf("[FAIL][%d] api %s request faild with status code: %s, body: %s\n", i, cases[i].api, resp.Status, string(respbody))
+					continue
+				}
+				t.Logf("[%d] x: %v, body: %s", i, x, string(respbody))
+			}
 		}
 
-		// testutil.Equals(t, string(tc.expectErrCode), string(x.ErrCode))
-
-		t.Log("### success")
-		t.Logf("case %s ok", cases[i].api)
+		t.Logf("case [%d] ok: %s", i, cases[i].api)
 	}
 }
