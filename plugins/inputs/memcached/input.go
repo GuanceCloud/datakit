@@ -208,6 +208,9 @@ const (
 )
 
 func (i *Input) Run() {
+
+	l = logger.SLogger(inputName)
+
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
 		l.Error(fmt.Errorf("invalid interval, %s", err.Error()))
