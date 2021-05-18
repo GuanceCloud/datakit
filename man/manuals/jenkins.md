@@ -7,13 +7,13 @@
 
 # {{.InputName}}
 
-Jenkins 采集器是通过插件 `Metrics` 采集数据监控 Jenkins
+Jenkins 采集器是通过插件 `Metrics` 采集数据监控 Jenkins，包括但不限于任务数，系统 cpu 使用，`jvm cpu`使用等
 
 ## 前置条件
 
 - 安装 JenKins [参见](https://www.jenkins.io/doc/book/installing/)
       
-- 下载 `Metric` 插件，[管理插件页面](https://www.jenkins.io/doc/book/managing/plugins/),[Metric 插件](https://plugins.jenkins.io/metrics/)
+- 下载 `Metric` 插件，[管理插件页面](https://www.jenkins.io/doc/book/managing/plugins/),[Metric 插件页面](https://plugins.jenkins.io/metrics/)
 
 - 在 JenKins 管理页面 `your_manage_host/configure` 生成 `Metric Access keys`
 
@@ -48,17 +48,17 @@ Jenkins 采集器是通过插件 `Metrics` 采集数据监控 Jenkins
 
 ## 日志采集
 
-如需采集 RabbitMQ 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 RabbitMQ 日志文件的绝对路径。比如：
+如需采集 JenKins 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 JenKins 日志文件的绝对路径。比如：
 
 ```toml
-    [[inputs.rabbitmq]]
+    [[inputs.JenKins]]
       ...
-      [inputs.rabbitmq.log]
-        files = ["/var/log/rabbitmq/rabbit@your-hostname.log"]
+      [inputs.JenKins.log]
+        files = ["/var/log/jenkins/jenkins.log"]
 ```
 
   
-开启日志采集以后，默认会产生日志来源（`source`）为 `rabbitmq` 的日志。
+开启日志采集以后，默认会产生日志来源（`source`）为 `jenkins` 的日志。
 
 **注意**
 
