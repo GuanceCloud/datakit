@@ -7,6 +7,7 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	bstoml "github.com/BurntSushi/toml"
 	"io"
 	"net"
 	"os"
@@ -16,8 +17,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	bstoml "github.com/BurntSushi/toml"
 )
 
 func TrimSuffixAll(s, sfx string) string {
@@ -36,6 +35,10 @@ func TrimSuffixAll(s, sfx string) string {
 func MonitProc(proc *os.Process, name string) error {
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
+
+	if proc == nil {
+		return fmt.Errorf("invalid proc %s", name)
+	}
 
 	for {
 		select {
@@ -386,4 +389,8 @@ func CheckExcluded(item string, blacklist, whitelist []string) bool {
 	}
 
 	return false
+}
+
+func TimestampMsToTime(ms int64) time.Time {
+	return time.Unix(0, ms*1000000)
 }
