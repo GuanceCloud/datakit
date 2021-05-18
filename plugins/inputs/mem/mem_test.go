@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/shirou/gopsutil/mem"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var (
@@ -50,7 +49,7 @@ func VirtualMemoryStat4Test() (*mem.VirtualMemoryStat, error) {
 }
 
 func TestMemCollect(t *testing.T) {
-	i := &Input{logger: logger.SLogger("mem"), vmStat: VirtualMemoryStat4Test}
+	i := &Input{vmStat: VirtualMemoryStat4Test}
 	i.platform = "linux" //runtime.GOOS
 	i.Collect()
 	collect := i.collectCache[0].(*memMeasurement).fields
