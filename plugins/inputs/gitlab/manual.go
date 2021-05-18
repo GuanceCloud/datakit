@@ -49,26 +49,28 @@ type gitlabRailsQueueDurationSeconds struct{}
 type gitlabTransactionDBCachedCountTotal struct{}
 type gitlabCacheMissesTotal struct{}
 
-func (*gitlabTransactionDBCountTotal) LineProto() (*io.Point, error)                  { return nil, nil }
-func (*gitlabTransactionCacheReadMissCountTotal) LineProto() (*io.Point, error)       { return nil, nil }
-func (*gitlabRackRequestsTotal) LineProto() (*io.Point, error)                        { return nil, nil }
-func (*gitlabCacheOperationsTotal) LineProto() (*io.Point, error)                     { return nil, nil }
-func (*gitlabTransactionViewDurationTotal) LineProto() (*io.Point, error)             { return nil, nil }
-func (*gitlabTransactionNewRedisConnectionsTotal) LineProto() (*io.Point, error)      { return nil, nil }
-func (*gitlabSQLDurationSeconds) LineProto() (*io.Point, error)                       { return nil, nil }
-func (*gitlabCacheOperationsDurationSeconds) LineProto() (*io.Point, error)           { return nil, nil }
-func (*gitlabRedisClientRequestsDurationSeconds) LineProto() (*io.Point, error)       { return nil, nil }
-func (*gitlabHTTPRequestDurationSeconds) LineProto() (*io.Point, error)               { return nil, nil }
-func (*gitlabRedisClientRequestsTotal) LineProto() (*io.Point, error)                 { return nil, nil }
-func (*gitlabTransactionCacheReadHitCountTotal) LineProto() (*io.Point, error)        { return nil, nil }
-func (*gitlabTransactionDurationSeconds) LineProto() (*io.Point, error)               { return nil, nil }
-func (*gitlabHTTPHealthRequestsTotal) LineProto() (*io.Point, error)                  { return nil, nil }
-func (*gitlabBanzaiCachelessRenderRealDurationSeconds) LineProto() (*io.Point, error) { return nil, nil }
-func (*gitlabRubyGCDurationSeconds) LineProto() (*io.Point, error)                    { return nil, nil }
-func (*gitlabRubySamplerDurationSecondsTotal) LineProto() (*io.Point, error)          { return nil, nil }
-func (*gitlabRailsQueueDurationSeconds) LineProto() (*io.Point, error)                { return nil, nil }
-func (*gitlabTransactionDBCachedCountTotal) LineProto() (*io.Point, error)            { return nil, nil }
-func (*gitlabCacheMissesTotal) LineProto() (*io.Point, error)                         { return nil, nil }
+func (*gitlabTransactionDBCountTotal) LineProto() (*io.Point, error)             { return nil, nil }
+func (*gitlabTransactionCacheReadMissCountTotal) LineProto() (*io.Point, error)  { return nil, nil }
+func (*gitlabRackRequestsTotal) LineProto() (*io.Point, error)                   { return nil, nil }
+func (*gitlabCacheOperationsTotal) LineProto() (*io.Point, error)                { return nil, nil }
+func (*gitlabTransactionViewDurationTotal) LineProto() (*io.Point, error)        { return nil, nil }
+func (*gitlabTransactionNewRedisConnectionsTotal) LineProto() (*io.Point, error) { return nil, nil }
+func (*gitlabSQLDurationSeconds) LineProto() (*io.Point, error)                  { return nil, nil }
+func (*gitlabCacheOperationsDurationSeconds) LineProto() (*io.Point, error)      { return nil, nil }
+func (*gitlabRedisClientRequestsDurationSeconds) LineProto() (*io.Point, error)  { return nil, nil }
+func (*gitlabHTTPRequestDurationSeconds) LineProto() (*io.Point, error)          { return nil, nil }
+func (*gitlabRedisClientRequestsTotal) LineProto() (*io.Point, error)            { return nil, nil }
+func (*gitlabTransactionCacheReadHitCountTotal) LineProto() (*io.Point, error)   { return nil, nil }
+func (*gitlabTransactionDurationSeconds) LineProto() (*io.Point, error)          { return nil, nil }
+func (*gitlabHTTPHealthRequestsTotal) LineProto() (*io.Point, error)             { return nil, nil }
+func (*gitlabBanzaiCachelessRenderRealDurationSeconds) LineProto() (*io.Point, error) {
+	return nil, nil
+}
+func (*gitlabRubyGCDurationSeconds) LineProto() (*io.Point, error)           { return nil, nil }
+func (*gitlabRubySamplerDurationSecondsTotal) LineProto() (*io.Point, error) { return nil, nil }
+func (*gitlabRailsQueueDurationSeconds) LineProto() (*io.Point, error)       { return nil, nil }
+func (*gitlabTransactionDBCachedCountTotal) LineProto() (*io.Point, error)   { return nil, nil }
+func (*gitlabCacheMissesTotal) LineProto() (*io.Point, error)                { return nil, nil }
 
 func (*gitlabTransactionDBCountTotal) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{Name: gitlabTransactionDBCountTotalMeasurement,
