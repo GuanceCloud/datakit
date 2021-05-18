@@ -1,6 +1,8 @@
 package http
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
@@ -26,7 +28,7 @@ func apiWrite(c *gin.Context) {
 			datakit.Rum:
 			category = x
 		default:
-			l.Debug("invalid category: %s", x)
+			l.Debugf("invalid category: %s", x)
 			uhttp.HttpErr(c, ErrInvalidCategory)
 			return
 		}
@@ -42,8 +44,16 @@ func apiWrite(c *gin.Context) {
 	}
 
 	precision := DEFAULT_PRECISION
-	if x := c.Query(DEFAULT_PRECISION); x != "" {
+	if x := c.Query(PRECISION); x != "" {
 		precision = x
+	}
+
+	switch precision {
+	case "h", "m", "s", "ms", "u", "n":
+	default:
+		l.Warnf("invalid precision %s", precision)
+		uhttp.HttpErr(c, ErrInvalidPrecision)
+		return
 	}
 
 	extraTags := datakit.Cfg.GlobalTags
@@ -63,6 +73,7 @@ func apiWrite(c *gin.Context) {
 	}
 
 	pts, err := lp.ParsePoints(body, &lp.Option{
+		Time:      time.Now(),
 		ExtraTags: extraTags,
 		Strict:    true,
 		Precision: precision})
