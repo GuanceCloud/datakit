@@ -19,14 +19,13 @@ log_level = "debug"
 log_rotate = 32
 gin_log = "/usr/local/cloudcare/dataflux/datakit/gin.log"
 interval = "10s"
-#output_file = "/usr/local/cloudcare/dataflux/datakit/mmm34.log"
+output_file = "/usr/local/cloudcare/dataflux/datakit/mmm.log"
 hostname = "iZbp152ke14timzud0du15Z"
 default_enabled_inputs = ["cpu", "disk", "diskio", "mem", "swap", "system", "net", "hostobject"]
 install_date = 2021-03-25T11:00:19Z
 
 [dataway]
-  urls = ["https://openway.dataflux.cn/v1/write/metrics?token=tkn_76d2d1efd3ff43db984497bfb4f3c25a",
-	      "https://openway.dataflux.cn/v1/write/metrics?token=tkn_a5cbdacf23214966aa382ae0182e972b"]
+  url = "https://openway.dataflux.cn?token=tkn_76d2d1efd3ff43db984497bfb4f3c25a"
   http_proxy = "http://127.0.0.1:8080"
   timeout = "30s"
 
@@ -123,7 +122,7 @@ func TestFlush(t *testing.T) {
 func TestUnmarshalMainCfg(t *testing.T) {
 	datakit.Cfg.DoLoadMainConfig([]byte(cfg))
 
-	t.Log(datakit.Cfg.MainCfg.DataWay.HttpProxy)
+	t.Log(datakit.Cfg.DataWay.HttpProxy)
 }
 
 func TestPushData(t *testing.T) {
@@ -131,7 +130,7 @@ func TestPushData(t *testing.T) {
 
 	defaultMaxCacheCnt = int64(1024)
 	x = NewIO(defaultMaxCacheCnt)
-	x.dw, _ = datakit.ParseDataway(datakit.Cfg.MainCfg.DataWay.Urls)
+	x.dw, _ = datakit.ParseDataway(datakit.Cfg.DataWay.Urls)
 	x.FlushInterval = 1 * time.Second
 
 	StartCollect()
@@ -148,7 +147,7 @@ func TestPushData(t *testing.T) {
 			"value2": 234,
 		}
 
-		data, err := MakePoint("test", tags, fields, time.Now())
+		data, err := MakePoint("test_proxy", tags, fields, time.Now())
 		if err != nil {
 			l.Warnf("make metric failed: %s", err.Error)
 		}
