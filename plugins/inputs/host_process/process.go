@@ -228,7 +228,7 @@ func (p *Input) WriteObject() {
 		tags := map[string]string{
 			"username":     username,
 			"state":        state,
-			"name":         fmt.Sprintf("%s_%d", datakit.Cfg.MainCfg.Hostname, ps.Pid),
+			"name":         fmt.Sprintf("%s_%d", datakit.Cfg.Hostname, ps.Pid),
 			"process_name": name,
 		}
 
