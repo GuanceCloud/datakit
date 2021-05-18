@@ -2,11 +2,9 @@ package main
 
 import (
 	"flag"
-	"os"
-	"path/filepath"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
+	"os"
 )
 
 var (
@@ -27,10 +25,10 @@ var (
 func applyFlags() {
 
 	if *flagBuildISP {
-		curDir, _ := os.Getwd()
-		inputDir := filepath.Join(curDir, "china-operator-ip")
-		outputFile := filepath.Join(curDir, "pipeline", "ip2isp", "ip2isp.go")
-		build.GenIspFile(inputDir, outputFile)
+		//curDir, _ := os.Getwd()
+		//inputDir := filepath.Join(curDir, "china-operator-ip")
+		//outputFile := filepath.Join(curDir, "pipeline", "ip2isp", "ip2isp.go")
+		//build.GenIspFile(inputDir, outputFile)
 
 		os.Exit(0)
 	}
@@ -44,6 +42,13 @@ func applyFlags() {
 	build.Release = *flagEnv
 	build.MainEntry = *flagMain
 	build.DownloadAddr = *flagDownloadAddr
+
+	// override git.Version
+	if x := os.Getenv("VERSION"); x != "" {
+		build.ReleaseVersion = x
+	}
+
+	l.Infof("use version %s", build.ReleaseVersion)
 
 	switch *flagEnv {
 	case "release":
