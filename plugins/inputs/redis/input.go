@@ -45,7 +45,7 @@ type Input struct {
 	Log               *inputs.TailerOption `toml:"log"`
 	tailer            *inputs.Tailer       `toml:"-"`
 	resKeys           []string             `toml:"-"`
-	err               []error
+	err               error
 }
 
 func (i *Input) initCfg() {
@@ -97,12 +97,10 @@ func (i *Input) Collect() error {
 		i.collectBigKeyMeasurement()
 	}
 
-	errStr := ""
-	for _, err := range i.err {
-		errStr += " " + err.Error()
+	if i.err != nil {
+		io.FeedLastError(inputName, i.err.Error())
+		i.err = nil
 	}
-
-	io.FeedLastError(inputName, errStr)
 
 	return nil
 }
@@ -121,7 +119,7 @@ func (i *Input) collectInfoMeasurement() {
 	}
 
 	if err := m.getData(); err != nil {
-		m.i.err = append(m.i.err, err)
+		m.i.err = err
 	}
 	m.submit()
 
@@ -130,7 +128,7 @@ func (i *Input) collectInfoMeasurement() {
 
 func (i *Input) collectClientMeasurement() {
 	if err := i.getClientData(); err != nil {
-		i.err = append(i.err, err)
+		i.err = err
 	}
 }
 
@@ -141,7 +139,7 @@ func (i *Input) collectBigKeyMeasurement() {
 
 func (i *Input) collectCommandMeasurement() {
 	if err := i.getCommandData(); err != nil {
-		i.err = append(i.err, err)
+		i.err = err
 	}
 }
 
@@ -163,7 +161,7 @@ func (i *Input) runLog(defaultPile string) {
 			}
 			tailer, err := inputs.NewTailer(i.Log)
 			if err != nil {
-				i.err = append(i.err, err)
+				i.err = err
 				l.Errorf("init tailf err:%s", err.Error())
 				return
 			}
