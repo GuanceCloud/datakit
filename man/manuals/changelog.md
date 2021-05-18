@@ -5,6 +5,57 @@
 
 # DataKit 版本历史
 
+## 1.1.6-rc4(2021/05/17)
+
+### 发布说明
+
+- 修复容器日志采集可能奔溃的问题
+
+----
+
+## 1.1.6-rc3(2021/05/13)
+
+### 发布说明
+
+本次发布，有如下更新：
+
+- DataKit 安装/升级后，目录变更为
+	- Linux/Mac: `/usr/local/datakit`
+	- Windows: `C:\Program Files\datakit`
+
+- 支持 [`/v1/ping` 接口](apis#50ea0eb5)
+- 移除 RUM 采集器，RUM 接口[默认已经支持](apis#f53903a9)
+- 新增 monitor 页面：http://localhost:9529/monitor，以替代之前的 /stats 页面。reload 之后自动跳转到 monitor 页面
+- 支持命令直接[安装 sec-checker](datakit-how-to#01243fef) 以及[更新 ip-db](datakit-how-to#ab5cd5ad)
+
+----
+
+## 1.1.6-rc2(2021/05/11)
+
+### Bug 修复
+
+- 修复容器部署情况下无法启动的问题
+
+----
+
+## 1.1.6-rc1(2021/05/10)
+
+### 发布说明
+
+本次发布，对 DataKit 的一些细节做了调整：
+
+- DataKit 上支持配置多个 DataWay
+- [云关联](hostobject#031406b2)通过对应 meta 接口来实现
+- 调整 docker 日志采集的[过滤方式](docker#a487059d)
+- [DataKit 支持选举](election)
+- 修复拨测历史数据清理问题
+- 大量文档[发布到语雀](https://www.yuque.com/dataflux/datakit)
+- [DataKit 支持命令行集成 Telegraf](datakit-how-to#d1b3b29b)
+- DataKit 单实例运行检测
+- DataKit [自动更新功能](datakit-update-crontab)
+
+----
+
 ## 1.1.6-rc0(2021/04/30)
 
 ### 发布说明
