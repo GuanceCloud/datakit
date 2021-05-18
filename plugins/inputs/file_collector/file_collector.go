@@ -203,8 +203,8 @@ func (fc *FileCollector) handFail() {
 }
 
 func (fc *FileCollector) getRemotePath(name string) string {
-	token := datakit.Cfg.MainCfg.DataWay.GetToken()
-	hostName := datakit.Cfg.MainCfg.Hostname
+	token := datakit.Cfg.DataWay.GetToken()
+	hostName := datakit.Cfg.Hostname
 	name = strings.ReplaceAll(name, "/", "_")
 	name = strings.ReplaceAll(name, "\\", "_")
 	if fc.UploadType == "sftp" {
