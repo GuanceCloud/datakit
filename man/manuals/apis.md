@@ -56,7 +56,7 @@ long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
 action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
 ```
 
-目前 RUM 接口只接手如下几种指标集名称：`error/resource/view/long_task/action`
+目前 RUM 接口只接收如下几种指标集名称：`error/resource/view/long_task/action`
 
 > 注意：RUM 请求中，如果不指定 `input` 参数，默认用 `rum` 来命名。
 
