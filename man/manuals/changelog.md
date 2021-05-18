@@ -5,6 +5,13 @@
 
 # DataKit 版本历史
 
+## 1.1.6-rc5(2021/05/18)
+
+### 发布说明
+
+- 修复 RUM 数据上传问题
+- 新增 [solr](solr)/[mongodb](mongodb)/[memcached](memcached) 采集器以及文档
+
 ## 1.1.6-rc4(2021/05/17)
 
 ### 发布说明
