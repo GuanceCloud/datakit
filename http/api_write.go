@@ -1,12 +1,16 @@
 package http
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 func apiWrite(c *gin.Context) {
@@ -26,7 +30,7 @@ func apiWrite(c *gin.Context) {
 			datakit.Rum:
 			category = x
 		default:
-			l.Debug("invalid category: %s", x)
+			l.Debugf("invalid category: %s", x)
 			uhttp.HttpErr(c, ErrInvalidCategory)
 			return
 		}
@@ -42,8 +46,16 @@ func apiWrite(c *gin.Context) {
 	}
 
 	precision := DEFAULT_PRECISION
-	if x := c.Query(DEFAULT_PRECISION); x != "" {
+	if x := c.Query(PRECISION); x != "" {
 		precision = x
+	}
+
+	switch precision {
+	case "h", "m", "s", "ms", "u", "n":
+	default:
+		l.Warnf("invalid precision %s", precision)
+		uhttp.HttpErr(c, ErrInvalidPrecision)
+		return
 	}
 
 	extraTags := datakit.Cfg.GlobalTags
@@ -58,15 +70,11 @@ func apiWrite(c *gin.Context) {
 	}
 
 	if category == datakit.Rum { // RUM 数据单独处理
-		handleRUMBody(c, precision, input, body)
+		handleRUM(c, precision, input, body)
 		return
 	}
 
-	pts, err := lp.ParsePoints(body, &lp.Option{
-		ExtraTags: extraTags,
-		Strict:    true,
-		Precision: precision})
-
+	pts, err := handleWriteBody(body, extraTags, precision)
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
@@ -74,10 +82,26 @@ func apiWrite(c *gin.Context) {
 
 	l.Debugf("received %d(%s) points from %s", len(pts), category, input)
 
-	if err = io.Feed(input, category, io.WrapPoint(pts), &io.Option{HighFreq: true}); err != nil {
+	err = io.Feed(input, category, io.WrapPoint(pts), &io.Option{HighFreq: true})
+
+	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-		return
+	} else {
+		ErrOK.HttpBody(c, nil)
+	}
+}
+
+func handleWriteBody(body []byte, tags map[string]string, precision string) (pts []*influxdb.Point, err error) {
+
+	pts, err = lp.ParsePoints(body, &lp.Option{
+		Time:      time.Now(),
+		ExtraTags: tags,
+		Strict:    true,
+		Precision: precision})
+
+	if err != nil {
+		return nil, err
 	}
 
-	ErrOK.HttpBody(c, nil)
+	return
 }
