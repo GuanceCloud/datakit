@@ -19,7 +19,7 @@ const (
 var (
 	inputName    = "disk"
 	metricName   = "disk"
-	diskLogger   = logger.DefaultSLogger(inputName)
+	l            = logger.DefaultSLogger(inputName)
 	sampleConfig = `
 [[inputs.disk]]
   ##(optional) collect interval, default is 10 seconds
@@ -160,7 +160,8 @@ func (i *Input) Collect() error {
 }
 
 func (i *Input) Run() {
-	diskLogger.Infof("disk input started")
+	l = logger.SLogger(inputName)
+	l.Infof("disk input started")
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
@@ -175,10 +176,10 @@ func (i *Input) Run() {
 				}
 			} else {
 				io.FeedLastError(inputName, err.Error())
-				diskLogger.Error(err)
+				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():
-			diskLogger.Infof("disk input exit")
+			l.Infof("disk input exit")
 			return
 		}
 	}
