@@ -31,6 +31,8 @@ var (
 		`windows/amd64`,
 		`windows/386`,
 	}
+
+	ReleaseVersion = git.Version
 )
 
 func runEnv(args, env []string) ([]byte, error) {
@@ -65,7 +67,7 @@ func prepare() {
 
 	// create version info
 	vd := &versionDesc{
-		Version:  strings.TrimSpace(git.Version),
+		Version:  strings.TrimSpace(ReleaseVersion),
 		Date:     git.BuildAt,
 		Uploader: git.Uploader,
 		Branch:   git.Branch,
@@ -172,7 +174,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"go", "build",
 		"-o", output,
 		"-ldflags",
-		fmt.Sprintf("-w -s -X main.ReleaseType=%s", ReleaseType),
+		fmt.Sprintf("-w -s -X main.ReleaseType=%s -X main.ReleaseVersion=%s", ReleaseType, ReleaseVersion),
 		MainEntry,
 	}
 
@@ -204,7 +206,7 @@ func buildInstaller(outdir, goos, goarch string) {
 		"go", "build",
 		"-o", filepath.Join(outdir, installerExe),
 		"-ldflags",
-		fmt.Sprintf("-w -s -X main.DataKitBaseURL=%s -X main.DataKitVersion=%s", DownloadAddr, git.Version),
+		fmt.Sprintf("-w -s -X main.DataKitBaseURL=%s -X main.DataKitVersion=%s", DownloadAddr, ReleaseVersion),
 		"cmd/installer/main.go",
 	}
 
