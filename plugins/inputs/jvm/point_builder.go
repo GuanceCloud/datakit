@@ -2,6 +2,7 @@ package jvm
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -51,7 +52,7 @@ func (pb *pointBuilder) Build(mbean string, value interface{}) []point {
 
 // extractTags generates the map of tags for a given mbean name/pattern.
 func (pb *pointBuilder) extractTags(mbean string) map[string]string {
-	propertyMap := makePropertyMap(mbean)
+	propertyMap := makePropertyMap(mbean, pb.metric.Mbean)
 	tagMap := make(map[string]string)
 
 	for key, value := range propertyMap {
@@ -193,7 +194,7 @@ func (pb *pointBuilder) fillFields(name string, value interface{}, fieldMap map[
 // applySubstitutions updates all the keys in the supplied map
 // of fields to account for $1-style substitution instructions.
 func (pb *pointBuilder) applySubstitutions(mbean string, fieldMap map[string]interface{}) {
-	properties := makePropertyMap(mbean)
+	properties := makePropertyMap(mbean, pb.metric.Mbean)
 
 	for i, subKey := range pb.substitutions[1:] {
 		symbol := fmt.Sprintf("$%d", i+1)
@@ -211,10 +212,18 @@ func (pb *pointBuilder) applySubstitutions(mbean string, fieldMap map[string]int
 
 // makePropertyMap returns a the mbean property-key list as
 // a dictionary. foo:x=y becomes map[string]string { "x": "y" }
-func makePropertyMap(mbean string) map[string]string {
+func makePropertyMap(mbean, metricMbean string) map[string]string {
 	props := make(map[string]string)
 	object := strings.SplitN(mbean, ":", 2)
 	domain := object[0]
+
+	// 如若 `Catalina:name="http*nio-*",type=ThreadPool"` 含多个 * 只取第一个 sub match；
+	// 测试发现从 jolokia api 获取数据时，mbean 为 Catalina:name="http*nio-* 会报错，
+	// 似乎 * 在 "" 内时通配符 * 不会匹配第二个 "
+	metricDomain, metricRegexMap := makeTagValueRegexMap(metricMbean)
+	if metricDomain != domain { // domain should equal
+		metricRegexMap = make(map[string]*regexp.Regexp)
+	}
 
 	if domain != "" && len(object) == 2 {
 		list := object[1]
@@ -228,6 +237,14 @@ func makePropertyMap(mbean string) map[string]string {
 
 			if key := pair[0]; key != "" {
 				props[key] = pair[1]
+
+				// 取 match[0][1] 作为 tag 值
+				if v, ok := metricRegexMap[key]; ok && v != nil {
+					match := v.FindAllStringSubmatch(pair[1], -1)
+					if len(match) >= 1 && len(match[0]) > 1 {
+						props[key] = match[0][1]
+					}
+				}
 			}
 		}
 	}
@@ -271,4 +288,30 @@ func makeSubstitutionList(mbean string) []string {
 	}
 
 	return subs
+}
+
+// mbean 里的 * 替换为 (.*) 并编译正则表达式, 贪婪匹配
+func makeTagValueRegexMap(mbean string) (string, map[string]*regexp.Regexp) {
+	subs := make(map[string]*regexp.Regexp)
+	object := strings.SplitN(mbean, ":", 2)
+	domain := object[0]
+	if domain != "" && len(object) == 2 {
+		list := object[1]
+		for _, keyProperty := range strings.Split(list, ",") {
+			pair := strings.SplitN(keyProperty, "=", 2)
+			if len(pair) == 2 && pair[0] != "" {
+				// default nil
+				subs[pair[0]] = nil
+				property := pair[1]
+				if strings.Contains(property, "*") {
+					property = strings.Replace(property, "*", "(.*)", -1)
+					if r, err := regexp.Compile(property); err == nil {
+						// if successful
+						subs[pair[0]] = r
+					}
+				}
+			}
+		}
+	}
+	return domain, subs
 }
