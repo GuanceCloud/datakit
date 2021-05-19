@@ -4,233 +4,130 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
-	"log"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
+	"golang.org/x/time/rate"
 
-	"github.com/influxdata/telegraf"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
-	batchInterval = time.Duration(5) * time.Minute
-	metricPeriod  = time.Duration(5 * time.Minute)
-	rateLimit     = 20
+	inputName    = `aliyuncost`
+	moduleLogger *logger.Logger
 
-	historyCacheDir = `/etc/datakit/aliyuncost`
+	historyCacheDir = ""
 )
 
-type (
-	AliyunCost struct {
-		Costs []*CostCfg `toml:"boa"`
-
-		runningInst []*RunningInstance
-
-		tags map[string]string
-
-		ctx       context.Context
-		cancelFun context.CancelFunc
-
-		accumulator telegraf.Accumulator
-	}
-
-	RunningInstance struct {
-		cfg *CostCfg
-
-		wg sync.WaitGroup
-
-		client *bssopenapi.Client
-
-		modules []costModule
-
-		lmtr *limiter.RateLimiter
-
-		wgSuspend sync.WaitGroup
-		mutex     sync.Mutex
-
-		cost *AliyunCost
-
-		ctx context.Context
-
-		accountName string
-		accountID   string
-	}
-
-	costModule interface {
-		getInterval() time.Duration
-		getName() string
-		run(context.Context) error
-	}
-)
-
-func (_ *AliyunCost) SampleConfig() string {
-	return aliyuncostConfigSample
+func (*agent) Catalog() string {
+	return "aliyun"
 }
 
-func (_ *AliyunCost) Description() string {
-	return ""
+func (*agent) SampleConfig() string {
+	return sampleConfig
 }
 
-func (_ *AliyunCost) Gather(telegraf.Accumulator) error {
-	return nil
-}
+func (ag *agent) Run() {
 
-func (ac *AliyunCost) Init() error {
+	moduleLogger = logger.SLogger(inputName)
 
-	for _, cfg := range ac.Costs {
-		if cfg.AccountInterval.Duration == 0 {
-			cfg.AccountInterval.Duration = 24 * time.Hour
+	go func() {
+		<-datakit.Exit.Wait()
+		ag.cancelFun()
+	}()
+
+	if !ag.isDebug() && !ag.isTest() {
+		historyCacheDir = filepath.Join(datakit.DataDir, inputName)
+		os.MkdirAll(historyCacheDir, 0775)
+	}
+
+	limit := rate.Every(60 * time.Millisecond)
+	ag.rateLimiter = rate.NewLimiter(limit, 1)
+
+	if ag.AccountInterval.Duration > 0 {
+		if ag.AccountInterval.Duration < time.Minute {
+			ag.AccountInterval.Duration = time.Minute
 		}
+		ag.subModules = append(ag.subModules, newCostAccount(ag))
+	}
 
-		if cfg.BiilInterval.Duration == 0 {
-			cfg.BiilInterval.Duration = time.Hour
+	if ag.BiilInterval.Duration > 0 {
+		if ag.BiilInterval.Duration < time.Minute {
+			ag.BiilInterval.Duration = time.Minute
 		}
-
-		if cfg.OrdertInterval.Duration == 0 {
-			cfg.OrdertInterval.Duration = time.Hour
+		if ag.ByInstance {
+			ag.subModules = append(ag.subModules, newCostInstanceBill(ag))
+		} else {
+			ag.subModules = append(ag.subModules, newCostBill(ag))
 		}
 	}
 
-	return nil
-}
-
-func (ac *AliyunCost) Start(acc telegraf.Accumulator) error {
-
-	if len(ac.Costs) == 0 {
-		log.Printf("W! [aliyuncost] no configuration found")
-		return nil
+	if ag.OrdertInterval.Duration > 0 {
+		if ag.OrdertInterval.Duration < time.Minute {
+			ag.OrdertInterval.Duration = time.Minute
+		}
+		ag.subModules = append(ag.subModules, newCostOrder(ag))
 	}
 
-	log.Printf("aliyun cost start")
-
-	ac.accumulator = acc
-
-	for _, cfg := range ac.Costs {
-
-		ri := &RunningInstance{
-			cfg:  cfg,
-			cost: ac,
-			ctx:  ac.ctx,
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		default:
 		}
 
-		// if cfg.AccountInterval.Duration > 0 {
-		// 	ri.modules = append(ri.modules, NewCostAccount(cfg, ri))
-		// }
-
-		// if cfg.BiilInterval.Duration > 0 {
-		// 	ri.modules = append(ri.modules, NewCostBill(cfg, ri))
-		// }
-
-		if cfg.OrdertInterval.Duration > 0 {
-			ri.modules = append(ri.modules, NewCostOrder(cfg, ri))
-		}
-
-		ac.runningInst = append(ac.runningInst, ri)
-	}
-
-	for _, inst := range ac.runningInst {
-
-		go func(ri *RunningInstance) {
-
-			if err := ri.run(); err != nil && err != context.Canceled {
-				log.Printf("E! [aliyuncost] %s", err)
+		var err error
+		ag.client, err = bssopenapi.NewClientWithAccessKey(ag.RegionID, ag.AccessKeyID, ag.AccessKeySecret)
+		if err != nil {
+			moduleLogger.Errorf("%s", err)
+			if ag.isTest() {
+				ag.testError = err
+				return
 			}
-
-			log.Printf("[aliyuncost] instance done")
-
-		}(inst)
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
 	}
 
-	return nil
+	//先获取account name
+	ag.queryBillOverview(ag.ctx)
+
+	var wg sync.WaitGroup
+	for _, m := range ag.subModules {
+		wg.Add(1)
+		go func(m subModule) {
+			defer wg.Done()
+			m.run(ag.ctx)
+		}(m)
+	}
+
+	wg.Wait()
 }
 
-func (ac *AliyunCost) Stop() {
-	ac.cancelFun()
-}
-
-func (s *RunningInstance) suspendHistoryFetch() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.wgSuspend.Add(1)
-}
-
-func (s *RunningInstance) resumeHistoryFetch() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.wgSuspend.Done()
-}
-
-func (s *RunningInstance) wait() {
-	s.wgSuspend.Wait()
-}
-
-func (s *RunningInstance) cacheFileKey(subname string) string {
+func (ag *agent) cacheFileKey(subname string) string {
 	m := md5.New()
-	m.Write([]byte(s.cfg.AccessKeyID))
-	m.Write([]byte(s.cfg.AccessKeySecret))
-	m.Write([]byte(s.cfg.RegionID))
+	m.Write([]byte(ag.AccessKeyID))
+	m.Write([]byte(ag.AccessKeySecret))
+	m.Write([]byte(ag.RegionID))
 	m.Write([]byte(subname))
 	return hex.EncodeToString(m.Sum(nil))
 }
 
-func (s *RunningInstance) getAccountInfo() {
-	req := bssopenapi.CreateQueryBillOverviewRequest()
-	req.BillingCycle = fmt.Sprintf("%d-%d", 2020, 1)
-
-	resp, err := s.client.QueryBillOverview(req)
-	if err != nil {
-		log.Printf("E! fail to get account info, %s", err)
-		return
-	}
-
-	s.accountName = resp.Data.AccountName
-	s.accountID = resp.Data.AccountID
-}
-
-func (s *RunningInstance) run() error {
-
-	s.lmtr = limiter.NewRateLimiter(10, time.Minute)
-	defer s.lmtr.Stop()
-
-	var err error
-	s.client, err = bssopenapi.NewClientWithAccessKey(s.cfg.RegionID, s.cfg.AccessKeyID, s.cfg.AccessKeySecret)
-	if err != nil {
-		return err
-	}
-
-	select {
-	case <-s.ctx.Done():
-		return context.Canceled
-	default:
-	}
-
-	s.getAccountInfo()
-
-	for _, boaModule := range s.modules {
-		s.wg.Add(1)
-		go func(m costModule, ctx context.Context) {
-			defer s.wg.Done()
-
-			m.run(ctx)
-
-		}(boaModule, s.ctx)
-
-	}
-
-	s.wg.Wait()
-
-	return nil
+func newAgent(mode string) *agent {
+	ag := &agent{}
+	ag.mode = mode
+	ag.ctx, ag.cancelFun = context.WithCancel(context.Background())
+	return ag
 }
 
 func init() {
-	inputs.Add("aliyuncost", func() telegraf.Input {
-		ac := &AliyunCost{}
-		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-		return ac
+	inputs.Add(inputName, func() inputs.Input {
+		return newAgent("")
 	})
 }
