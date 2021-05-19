@@ -17,6 +17,10 @@ var (
 		datakit.OSArchLinux386:    `/usr/local/`,
 		datakit.OSArchDarwinAmd64: `/usr/local/`,
 	}
+
+	availablePlugins = []string{
+		"telegraf", "scheck",
+	}
 )
 
 func InstallExternal(service string) error {
@@ -30,10 +34,12 @@ func InstallExternal(service string) error {
 	switch name {
 	case "telegraf":
 		return InstallTelegraf(ExternalInstallDir[dir])
-	case "sec-check":
+	case "sec-checker", // deprecated
+		"scheck":
 		return InstallSecCheck(ExternalInstallDir[dir])
 	default:
-		return fmt.Errorf("Unsupport install %s", service)
+		return fmt.Errorf("Unsupport install %s(available plugins: %s)",
+			service, strings.Join(availablePlugins, "/"))
 	}
 
 	return nil
