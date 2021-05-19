@@ -1,0 +1,10 @@
+<h1>{{.PageTitle}}</h1>
+
+<ul>
+	{{ range $i, $man := .InputNames}}
+
+	<p><a href="{{.ServerAddr}}/man?input={{$man.InputName}}">
+				[{{$i}}] {{$man.InputName}} </a> </p>
+
+	{{end}}
+</ul>
