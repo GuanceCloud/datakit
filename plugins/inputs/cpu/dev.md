@@ -17,7 +17,7 @@
 * cpu
     |指标|描述|数据类型|单位|
     |:--| - | -| -|
-    |core_temp|cpu core temperature|float|°C|
+    |core_temperature|cpu core temperature|float|°C|
     |usage_guest|% CPU spent running a virtual CPU for guest operating systems.|float|%|
     |usage_guest_nice|% CPU spent running a niced guest(virtual CPU for guest operating systems).|float|%|
     |usage_idle|% CPU in the idle task.|float|%|
