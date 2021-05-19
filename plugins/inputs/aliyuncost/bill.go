@@ -4,187 +4,203 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/bssopenapi"
-	"github.com/influxdata/telegraf/selfstat"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-type CostBill struct {
-	interval        time.Duration
-	name            string
-	runningInstance *RunningInstance
-	logger          *models.Logger
+type costBill struct {
+	interval    time.Duration
+	measurement string
+	ag          *agent
+
+	historyFlag int32
 }
 
-func NewCostBill(cfg *CostCfg, ri *RunningInstance) *CostBill {
-	c := &CostBill{
-		name:            "aliyun_cost_bill",
-		interval:        cfg.BiilInterval.Duration,
-		runningInstance: ri,
-	}
-	c.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
-		Name: `aliyuncost:bill`,
+func newCostBill(ag *agent) *costBill {
+	c := &costBill{
+		ag:          ag,
+		measurement: "aliyun_cost_bill",
+		interval:    ag.BiilInterval.Duration,
 	}
 	return c
 }
 
-func (cb *CostBill) run(ctx context.Context) error {
+func (cb *costBill) run(ctx context.Context) {
 
-	var wg sync.WaitGroup
+	if cb.ag.CollectHistoryData && !cb.ag.isTest() {
+		go func() {
+			cb.getHistoryData(ctx)
+		}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		//b.getLastyearData(ctx, b.runningInstance.lmtr)
-	}()
+	}
 
-	cb.getRealtimeData(ctx)
+	cb.getData(ctx)
 
-	wg.Wait()
-
-	cb.logger.Info("done")
-
-	return nil
+	moduleLogger.Info("bill done")
 }
 
-func (cb *CostBill) getRealtimeData(ctx context.Context) error {
+func (cb *costBill) getData(ctx context.Context) {
 
 	for {
-		cb.runningInstance.suspendHistoryFetch()
-		start := time.Now().Truncate(time.Minute)
+		//暂停历史数据抓取
+		atomic.AddInt32(&cb.historyFlag, 1)
+
+		//以月为单位
+		//计费项 + 明细
+		start := time.Now().Truncate(time.Hour)
 		cycle := fmt.Sprintf("%d-%02d", start.Year(), start.Month())
-		if err := cb.getBills(ctx, cycle, cb.runningInstance.lmtr, nil); err != nil && err != context.Canceled {
-			cb.logger.Errorf("%s", err)
+		if err := cb.getBills(ctx, cycle, nil); err != nil {
+			moduleLogger.Errorf("%s", err)
+			if cb.ag.isTest() {
+				cb.ag.testError = err
+				return
+			}
 		}
 
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return
 		default:
 		}
-		cb.runningInstance.resumeHistoryFetch()
-		internal.SleepContext(ctx, cb.interval)
+
+		atomic.AddInt32(&cb.historyFlag, -1)
+
+		if cb.ag.isTest() {
+			break
+		}
+
+		datakit.SleepContext(ctx, cb.interval)
 
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return
 		default:
 		}
 	}
 
 }
 
-func (cb *CostBill) getLastyearData(ctx context.Context, lmtr *limiter.RateLimiter) error {
+func (cb *costBill) getHistoryData(ctx context.Context) {
 
-	if !cb.runningInstance.cfg.CollectHistoryData {
-		return nil
+	key := "." + cb.ag.cacheFileKey(`billV2`)
+
+	if !cb.ag.CollectHistoryData {
+		delAliyunCostHistory(key)
+		return
 	}
 
-	// log.Printf("I! [aliyunboa:bill] start get bills of last year")
+	moduleLogger.Info("start getting history Bills")
 
-	// m := md5.New()
-	// m.Write([]byte(b.runningInstance.cfg.AccessKeyID))
-	// m.Write([]byte(b.runningInstance.cfg.AccessKeySecret))
-	// m.Write([]byte(b.runningInstance.cfg.RegionID))
-	// m.Write([]byte(`bills`))
-	// k1 := hex.EncodeToString(m.Sum(nil))
-	// k1 = "." + k1
+	var info *historyInfo
 
-	// billFlag, _ := config.GetLastyearFlag(k1)
+	if !cb.ag.isDebug() {
+		info, _ = getAliyunCostHistory(key)
+	}
 
-	// m.Reset()
-	// m.Write([]byte(b.runningInstance.cfg.AccessKeyID))
-	// m.Write([]byte(b.runningInstance.cfg.AccessKeySecret))
-	// m.Write([]byte(b.runningInstance.cfg.RegionID))
-	// m.Write([]byte(`bills_instance`))
-	// k2 := hex.EncodeToString(m.Sum(nil))
-	// k2 = "." + k2
+	if info == nil {
+		info = &historyInfo{}
+	} else if info.Statue == 1 {
+		moduleLogger.Infof("already fetched the history data")
+		return
+	}
 
-	// billInstanceFlag, _ := config.GetLastyearFlag(k2)
+	if info.StartTime.IsZero() {
+		info.Statue = 0
+		info.StartTime = time.Now().Truncate(time.Hour).AddDate(-1, 0, 0)
+		info.EndTime = time.Now().Truncate(time.Hour)
+	}
 
-	// if billInstanceFlag == 1 && billFlag == 1 {
-	// 	return nil
-	// }
+	info.key = key
 
-	// now := time.Now().Add(-24 * time.Hour * 30)
-	// for index := 0; index < 11; index++ {
-	// 	select {
-	// 	case <-ctx.Done():
-	// 		return context.Canceled
-	// 	default:
-	// 	}
-	// 	cycle := fmt.Sprintf("%d-%02d", now.Year(), now.Month())
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 
-	// 	if billFlag == 0 {
-	// 		if err := b.getBills(ctx, cycle, lmtr, true); err != nil {
-	// 			log.Printf("E! [aliyunboa:bill] %s", err)
-	// 		}
-	// 	}
+		if info.StartTime.Unix() >= info.EndTime.Unix() {
+			info.Statue = 1
+			if !cb.ag.isDebug() {
+				setAliyunCostHistory(key, info)
+			}
+			break
+		}
 
-	// 	if billInstanceFlag == 0 {
-	// 		if err := b.getInstnceBills(ctx, cycle, lmtr); err != nil {
-	// 			log.Printf("E! [aliyunboa:bill] %s", err)
-	// 		}
-	// 	}
+		cycle := fmt.Sprintf("%d-%02d", info.StartTime.Year(), info.StartTime.Month())
 
-	// 	now = now.Add(-24 * time.Hour * 30)
-	// }
+		if err := cb.getBills(ctx, cycle, info); err != nil {
+			moduleLogger.Errorf("%s", err)
+			time.Sleep(time.Minute)
+			continue
+		}
 
-	// config.SetLastyearFlag(k1, 1)
-	// config.SetLastyearFlag(k2, 1)
-
-	return nil
+		info.StartTime = info.StartTime.AddDate(0, 1, 0)
+		if !cb.ag.isDebug() {
+			setAliyunCostHistory(key, info)
+		}
+	}
 }
 
-func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.RateLimiter, info *historyInfo) error {
+func (cb *costBill) getBills(ctx context.Context, cycle string, info *historyInfo) error {
 
 	defer func() {
-		recover()
+		if e := recover(); e != nil {
+			moduleLogger.Errorf("panic: %v", e)
+		}
 	}()
 
-	cb.logger.Infof("start getting Bills of %s", cycle)
+	logPrefix := ""
+	if info != nil {
+		logPrefix = "(history) "
+	}
 
-	//var respBill *bssopenapi.QueryBillResponse
+	moduleLogger.Infof("%sBills of %s start", logPrefix, cycle)
 
 	req := bssopenapi.CreateQueryBillRequest()
 	req.BillingCycle = cycle
 	req.Scheme = "https"
 	req.PageSize = requests.NewInteger(300)
+	req.IsHideZeroCharge = requests.NewBoolean(true) //过滤掉原价为0
 
 	for {
 
 		if info != nil {
-			cb.runningInstance.wait()
+			for atomic.LoadInt32(&cb.historyFlag) > 0 {
+				select {
+				case <-ctx.Done():
+					return nil
+				default:
+				}
+				datakit.SleepContext(ctx, 3*time.Second)
+			}
 		}
 
 		select {
 		case <-ctx.Done():
-			return context.Canceled
-		case <-lmtr.C:
-			//
+			return nil
+		default:
 		}
 
-		resp, err := cb.runningInstance.client.QueryBill(req)
+		resp, err := cb.ag.queryBill(ctx, req)
 		if err != nil {
-			return fmt.Errorf("fail to get bill of %s: %s", cycle, err)
+			moduleLogger.Errorf("%s", err)
+			return fmt.Errorf("fail to get bill of %s", cycle)
 		}
 
-		cb.logger.Debugf("Bills(%s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", cycle, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
 
-		// if respBill == nil {
-		// 	respBill = resp
-		// } else {
-		// 	respBill.Data.Items.Item = append(respBill.Data.Items.Item, resp.Data.Items.Item...)
-		// }
+		moduleLogger.Debugf(" %sPage(%d): count=%d, TotalCount=%d, PageSize=%d", logPrefix, resp.Data.PageNum, len(resp.Data.Items.Item), resp.Data.TotalCount, resp.Data.PageSize)
 
 		if err := cb.parseBillResponse(ctx, resp); err != nil {
 			return err
@@ -197,52 +213,12 @@ func (cb *CostBill) getBills(ctx context.Context, cycle string, lmtr *limiter.Ra
 		}
 	}
 
-	// if info == nil {
-	// 	cb.logger.Infof("finish getting Bill(%s), count=%d", cycle, len(respBill.Data.Items.Item))
-	// }
+	moduleLogger.Infof("%sBills of %s end", logPrefix, cycle)
 
-	return nil //cb.parseBillResponse(ctx, respBill)
+	return nil
 }
 
-func (cb *CostBill) getInstnceBills(ctx context.Context, cycle string, lmtr *limiter.RateLimiter) error {
-
-	//var respInstill *bssopenapi.QueryInstanceBillResponse
-
-	req := bssopenapi.CreateQueryInstanceBillRequest()
-	req.BillingCycle = cycle
-	req.Scheme = "https"
-	req.PageSize = requests.NewInteger(300)
-
-	for {
-
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case <-lmtr.C:
-		}
-
-		resp, err := cb.runningInstance.client.QueryInstanceBill(req)
-		if err != nil {
-			return fmt.Errorf("fail to get instance bill of %s: %s", cycle, err)
-		} else {
-			cb.logger.Debugf("InstnceBills(%s): TotalCount=%d, PageNum=%d, PageSize=%d, count=%d", cycle, resp.Data.TotalCount, resp.Data.PageNum, resp.Data.PageSize, len(resp.Data.Items.Item))
-
-			if err := cb.parseInstanceBillResponse(ctx, resp); err != nil {
-				return err
-			}
-
-			if resp.Data.TotalCount > 0 && resp.Data.PageNum*resp.Data.PageSize < resp.Data.TotalCount {
-				req.PageNum = requests.NewInteger(resp.Data.PageNum + 1)
-			} else {
-				break
-			}
-		}
-	}
-
-	return nil // cb.parseInstanceBillResponse(ctx, respInstill)
-}
-
-func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.QueryBillResponse) error {
+func (cb *costBill) parseBillResponse(ctx context.Context, resp *bssopenapi.QueryBillResponse) error {
 
 	for _, item := range resp.Data.Items.Item {
 
@@ -253,9 +229,10 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		}
 
 		tags := map[string]string{
-			"AccountID":   resp.Data.AccountID,
-			"AccountName": resp.Data.AccountName,
-			"OwnerID":     item.OwnerID,
+			"AccountID":    resp.Data.AccountID,
+			"AccountName":  resp.Data.AccountName,
+			"OwnerID":      item.OwnerID,
+			"BillingCycle": resp.Data.BillingCycle,
 		}
 
 		tags["Item"] = item.Item
@@ -265,6 +242,8 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		tags["SubscriptionType"] = item.SubscriptionType
 		tags["Status"] = item.Status
 		tags[`Currency`] = item.Currency
+		tags[`CostUnit`] = item.CostUnit
+		tags[`Region`] = item.Region
 
 		fields := map[string]interface{}{}
 
@@ -272,7 +251,7 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		fields[`PretaxGrossAmount`] = item.PretaxGrossAmount
 		fields[`DeductedByCoupons`] = item.DeductedByCoupons
 		fields[`InvoiceDiscount`] = item.InvoiceDiscount
-		fields[`RoundDownDiscount`], _ = strconv.ParseFloat(item.RoundDownDiscount, 64)
+		fields[`RoundDownDiscount`], _ = strconv.ParseFloat(datakit.NumberFormat(item.RoundDownDiscount), 64)
 		fields[`PretaxAmount`] = item.PretaxAmount
 		fields[`DeductedByCashCoupons`] = item.DeductedByCashCoupons
 		fields[`DeductedByPrepaidCard`] = item.DeductedByPrepaidCard
@@ -285,10 +264,17 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 		}
 		t, err := time.Parse(`2006-01-02 15:04:05`, billtime)
 		if err != nil {
-			cb.logger.Warnf("fail to parse time:%v of product:%s, error: %s", billtime, item.ProductName, err)
+			moduleLogger.Warnf("fail to parse time:%v of product:%s, error: %s", billtime, item.ProductName, err)
 		} else {
-			if cb.runningInstance.cost.accumulator != nil {
-				cb.runningInstance.cost.accumulator.AddFields(cb.getName(), fields, tags, t)
+			//返回的不是utc
+			t = t.Add(-8 * time.Hour)
+			if cb.ag.isTest() {
+				// pass
+			} else if cb.ag.isDebug() {
+				data, _ := io.MakeMetric(cb.getName(), tags, fields, t)
+				fmt.Printf("%s\n", string(data))
+			} else {
+				io.NamedFeedEx(inputName, datakit.Metric, cb.getName(), tags, fields, t)
 			}
 		}
 	}
@@ -296,76 +282,10 @@ func (cb *CostBill) parseBillResponse(ctx context.Context, resp *bssopenapi.Quer
 	return nil
 }
 
-func (cb *CostBill) parseInstanceBillResponse(ctx context.Context, resp *bssopenapi.QueryInstanceBillResponse) error {
-	for _, item := range resp.Data.Items.Item {
-		tags := map[string]string{
-			"AccountID":   resp.Data.AccountID,
-			"AccountName": resp.Data.AccountName,
-		}
-
-		tags[`OwnerID`] = item.OwnerID
-		tags[`CostUnit`] = item.CostUnit
-		tags[`SubscriptionType`] = item.SubscriptionType
-		tags[`Item`] = item.Item
-		tags[`ProductCode`] = item.ProductCode
-		tags[`ProductName`] = item.ProductName
-		tags[`ProductType`] = item.ProductType
-		tags[`InstanceID`] = item.InstanceID
-		tags[`NickName`] = item.NickName
-		tags[`InstanceSpec`] = item.InstanceSpec
-		tags[`InternetIP`] = item.InternetIP
-		tags[`IntranetIP`] = item.IntranetIP
-		tags[`Region`] = item.Region
-		tags[`Zone`] = item.Zone
-		tags[`BillingItem`] = item.BillingItem
-		tags[`Currency`] = item.Currency
-
-		if item.Tag != "" {
-			kvs := strings.Split(item.Tag, `;`)
-			for _, kv := range kvs {
-				parts := strings.Split(kv, ` `)
-				if len(parts) != 2 {
-					continue
-				}
-				k := parts[0]
-				v := parts[1]
-				var key, val string
-				pos := strings.Index(k, `key:`)
-				if pos != -1 {
-					key = k[4:]
-				}
-				pos = strings.Index(v, `value:`)
-				if pos != -1 {
-					val = v[6:]
-				}
-				if key != "" {
-					tags[key] = val
-				}
-			}
-		}
-
-		fields := map[string]interface{}{}
-
-		fields[`PretaxGrossAmount`] = item.PretaxGrossAmount
-		fields[`InvoiceDiscount`] = item.InvoiceDiscount
-		fields[`DeductedByCoupons`] = item.DeductedByCoupons
-		fields[`PretaxAmount`] = item.PretaxAmount
-		fields[`DeductedByCashCoupons`] = item.DeductedByCashCoupons
-		fields[`DeductedByPrepaidCard`] = item.DeductedByPrepaidCard
-		fields[`PaymentAmount`] = item.PaymentAmount
-		fields[`OutstandingAmount`] = item.OutstandingAmount
-
-		if cb.runningInstance.cost.accumulator != nil {
-			cb.runningInstance.cost.accumulator.AddFields(cb.getName(), fields, tags)
-		}
-	}
-	return nil
-}
-
-func (cb *CostBill) getInterval() time.Duration {
+func (cb *costBill) getInterval() time.Duration {
 	return cb.interval
 }
 
-func (cb *CostBill) getName() string {
-	return cb.name
+func (cb *costBill) getName() string {
+	return cb.measurement
 }
