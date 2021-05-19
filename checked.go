@@ -35,6 +35,7 @@ var (
 		"aliyunrdsslowlog":       true,
 		"aliyunsecurity":         true,
 		"ansible":                true,
+		"apache":                 true,
 		"awsbill":                true,
 		"awscloudtrail":          true,
 		"azure_monitor":          true,
