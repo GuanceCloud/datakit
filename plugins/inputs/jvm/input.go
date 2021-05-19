@@ -115,7 +115,7 @@ func (j *JolokiaAgent) Collect() {
 				inputs.FeedMeasurement(j.PluginName, datakit.Metric, j.collectCache,
 					&io.Option{CollectCost: time.Since(start), HighFreq: false})
 
-				j.collectCache = j.collectCache[:] // NOTE: do not forget to clean cache
+				j.collectCache = j.collectCache[:0] // NOTE: do not forget to clean cache
 			}
 
 		case <-datakit.Exit.Wait():
