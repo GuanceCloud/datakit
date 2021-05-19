@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-Apache 采集器可以从 Apache 服务中采集指标和日志，并将指标采集到 DataFlux ，帮助你监控分析 Apache 各种异常情况
+Apache 采集器可以从 Apache 服务中采集请求数、连接数等，并将指标采集到 DataFlux ，帮助你监控分析 Apache 各种异常情况
 
 ## 前置条件
 
@@ -25,6 +25,11 @@ Deny from all
 Allow from your_ip
 </Location>
 ```
+
+- 重启 Apache
+
+```sudo apachectl restart```
+
 
 ## 配置
 
