@@ -120,7 +120,6 @@ func (i *Input) PipelineConfig() map[string]string {
 
 func (i *Input) initCfg() {
 	dsnStr := i.getDsnString()
-	l.Infof("db build dsn connect str %s", dsnStr)
 	db, err := sql.Open("mysql", dsnStr)
 	if err != nil {
 		l.Errorf("sql.Open(): %s", err.Error())
@@ -173,8 +172,12 @@ func (i *Input) collectBaseMeasurement() {
 		i.err = err
 	}
 
-	if err := m.getVariables(); err != nil {
-		i.err = err
+	if val, ok := m.resData["log_bin"]; ok {
+		if val == "ON" || val == "on" || val == "1" {
+			if err := m.getVariables(); err != nil {
+				i.err = err
+			}
+		}
 	}
 
 	if err := m.getLogStats(); err != nil {
@@ -264,7 +267,7 @@ func (i *Input) Run() {
 		n++
 		select {
 		case <-tick.C:
-			l.Debugf("redis input gathering...")
+			l.Debugf("mysql input gathering...")
 			start := time.Now()
 			if err := i.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
