@@ -107,6 +107,7 @@ func MakeLineProtoPoint(name string,
 	}
 
 	for k, v := range fields {
+
 		switch v.(type) {
 		case uint64:
 			if v.(uint64) > uint64(math.MaxInt64) {
@@ -129,7 +130,11 @@ func MakeLineProtoPoint(name string,
 
 		default:
 			if opt.Strict {
-				return nil, fmt.Errorf("invalid field type: %s", reflect.TypeOf(v).String())
+				if v == nil {
+					return nil, fmt.Errorf("invalid field %s, value is nil", k)
+				} else {
+					return nil, fmt.Errorf("invalid field type: %s", reflect.TypeOf(v).String())
+				}
 			}
 			delete(fields, k)
 		}
