@@ -16,7 +16,9 @@
 
 ### Docker服务监听端口配置
 
-如果需要远程采集 Docker 容器信息，需要 Docker 开启相应的监听端口。
+- 如果不需要开启远程采集 Docker，忽略此段即可
+
+- 如果需要远程采集 Docker 容器信息，则需要 Docker 开启相应的监听端口
 
 以 ubuntu 为例，需要在 `/etc/docker` 径路下打开或创建 `daemon.json` 文件，添加内容如下：
 
@@ -26,7 +28,9 @@
 }
 ```
 
-重启服务后，Docker 便可以监听 `2375` 端口。详情见[官方配置文档](https://docs.docker.com/config/daemon/#configure-the-docker-daemon)。
+重启该 Docker 服务后，便可以监听 `2375` 端口。详情见[官方配置文档](https://docs.docker.com/config/daemon/#configure-the-docker-daemon)。
+
+此外，建议在 `inputs.docker.tag` 配置（详情见下）中添加 `host` 标签字段，用以辨识远程 Docker 服务。
 
 ### 采集器配置
 
