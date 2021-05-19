@@ -46,8 +46,11 @@ grok(_,"%{GREEDYDATA:ip_or_host} - - \\[%{HTTPDATE:time}\\] \"-\" %{NUMBER:http_
 default_time(time)
 cast(http_code,"int")
 
+# error log
+grok(_,"\\[%{HTTPDERROR_DATE:time}\\] \\[%{GREEDYDATA:type}:%{GREEDYDATA:status}\\] \\[pid %{GREEDYDATA:pid}:tid %{GREEDYDATA:tid}\\] ")
+grok(_,"\\[%{HTTPDERROR_DATE:time}\\] \\[%{GREEDYDATA:type}:%{GREEDYDATA:status}\\] \\[pid %{INT:pid}\\] ")
+default_time(time)
 `
-	//TODO error.log  目前pipeline parse_data 不支持 传入变量
 
 	filedMap = map[string]string{
 		"IdleWorkers":         "idle_workers",
