@@ -5,29 +5,30 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/limiter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/models"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/selfstat"
-
-	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
-	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
+	"golang.org/x/time/rate"
 
 	cdb "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdb/v20170320"
+	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
+	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	cvm "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cvm/v20170312"
 	es "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/es/v20180416"
 	monitor "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/monitor/v20180724"
 	postgres "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/postgres/v20170312"
 	redis "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/redis/v20180412"
 	sqlserver "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sqlserver/v20180328"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
+	inputName    = `tencentcms`
+	moduleLogger *logger.Logger
+
 	batchInterval = time.Duration(5) * time.Minute
 	metricPeriod  = time.Duration(5 * time.Minute)
 	rateLimit     = 20
@@ -38,132 +39,79 @@ var (
 
 type (
 	MetricsPeriodInfo map[string][]*monitor.PeriodsSt
-
-	TencentCms struct {
-		CMSs []*CMS `toml:"cms"`
-
-		runningCms []*RunningCMS
-
-		tags map[string]string
-
-		ctx       context.Context
-		cancelFun context.CancelFunc
-
-		accumulator telegraf.Accumulator
-
-		logger *models.Logger
-	}
-
-	RunningCMS struct {
-		cfg *CMS
-		tc  *TencentCms
-
-		timer *time.Timer
-
-		wg sync.WaitGroup
-
-		credential *common.Credential
-		cpf        *profile.ClientProfile
-		client     *monitor.Client
-
-		periodsInfos map[string]MetricsPeriodInfo
-
-		ctx context.Context
-
-		logger *models.Logger
-	}
 )
 
-func (_ *TencentCms) SampleConfig() string {
+func (_ *CMS) Catalog() string {
+	return `tencentcloud`
+}
+
+func (_ *CMS) SampleConfig() string {
 	return cmsConfigSample
 }
 
-func (_ *TencentCms) Description() string {
-	return ""
-}
-
-func (tc *TencentCms) Gather(telegraf.Accumulator) error {
-	return nil
-}
-
-func (tc *TencentCms) Stop() {
-	tc.cancelFun()
-}
-
-func (c *TencentCms) Init() error {
-
-	c.logger = &models.Logger{
-		Errs: selfstat.Register("gather", "errors", nil),
-		Name: `tencentcms`,
-	}
+func (c *CMS) initialize() error {
 
 	var err error
-	for _, item := range c.CMSs {
-		if item.AccessKeySecret == "" || item.AccessKeyID == "" {
-			return fmt.Errorf("access_key_id or access_key_secret must not be empty")
-		}
-		for _, p := range item.Namespace {
-			for _, m := range p.Metrics.MetricNames {
-				req := &MetricsRequest{q: monitor.NewGetMonitorDataRequest()}
-				req.q.Period = common.Uint64Ptr(60)
-				req.q.MetricName = common.StringPtr(m)
-				req.q.Namespace = common.StringPtr(p.Name)
-				if req.q.Instances, err = p.MakeDimension(m); err != nil {
-					return err
-				}
-				MetricsRequests = append(MetricsRequests, req)
+	for _, p := range c.Namespace {
+		for _, m := range p.Metrics.MetricNames {
+			req := &MetricsRequest{q: monitor.NewGetMonitorDataRequest()}
+			req.q.Period = common.Uint64Ptr(60)
+			req.q.MetricName = common.StringPtr(m)
+			req.q.Namespace = common.StringPtr(p.Name)
+			if req.q.Instances, err = p.MakeDimension(m); err != nil {
+				return err
 			}
+			MetricsRequests = append(MetricsRequests, req)
 		}
 	}
-
 	return nil
 }
 
-func (tc *TencentCms) Start(acc telegraf.Accumulator) error {
+func (tc *CMS) Run() {
 
-	if len(tc.CMSs) == 0 {
-		tc.logger.Warnf("no configuration found")
-		return nil
-	}
+	moduleLogger = logger.SLogger(inputName)
 
-	tc.logger.Infof("starting...")
-	tc.accumulator = acc
-
-	for _, c := range tc.CMSs {
-		a := &RunningCMS{
-			cfg:          c,
-			ctx:          tc.ctx,
-			tc:           tc,
-			periodsInfos: map[string]MetricsPeriodInfo{},
-			logger:       tc.logger,
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		default:
 		}
-		tc.runningCms = append(tc.runningCms, a)
-	}
 
-	for _, c := range tc.runningCms {
-		go func(ac *RunningCMS) {
-
-			if err := ac.run(); err != nil && err != context.Canceled {
-				ac.logger.Errorf("%s", err)
+		if err := tc.initialize(); err != nil {
+			moduleLogger.Errorf("%s", err)
+			if tc.isTest() {
+				tc.testError = err
+				return
 			}
-		}(c)
-
-		c.logger.Infof("%s done", c.cfg.AccessKeyID)
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
 	}
 
-	return nil
+	go func() {
+		<-datakit.Exit.Wait()
+		tc.cancelFun()
+	}()
+
+	tc.periodsInfos = map[string]MetricsPeriodInfo{}
+	tc.run()
 }
 
-func (s *RunningCMS) run() error {
+func (s *CMS) run() error {
 
-	s.credential = common.NewCredential(s.cfg.AccessKeyID, s.cfg.AccessKeySecret)
+	s.credential = common.NewCredential(s.AccessKeyID, s.AccessKeySecret)
 	s.cpf = profile.NewClientProfile()
 	s.cpf.HttpProfile.Endpoint = "monitor.tencentcloudapi.com"
-	s.client, _ = monitor.NewClient(s.credential, s.cfg.RegionID, s.cpf)
+	s.client, _ = monitor.NewClient(s.credential, s.RegionID, s.cpf)
 
-	for _, ns := range s.cfg.Namespace {
+	for _, ns := range s.Namespace {
 		if err := s.fetchAvatiableMetrics(ns); err != nil {
-			s.logger.Errorf("fail to get base metrics of namespace \"%s\": %s", ns.Name, err)
+			moduleLogger.Errorf("fail to get base metrics of namespace \"%s\": %s", ns.Name, err)
+			if s.isTest() {
+				s.testError = err
+			}
 			return err
 		}
 	}
@@ -174,11 +122,8 @@ func (s *RunningCMS) run() error {
 	default:
 	}
 
-	lmtr := limiter.NewRateLimiter(rateLimit, time.Second)
-	defer lmtr.Stop()
-
-	s.wg.Add(1)
-	defer s.wg.Done()
+	limit := rate.Every(50 * time.Millisecond)
+	rateLimiter := rate.NewLimiter(limit, 1)
 
 	var err error
 
@@ -186,49 +131,33 @@ func (s *RunningCMS) run() error {
 
 		select {
 		case <-s.ctx.Done():
-			return context.Canceled
+			return nil
 		default:
 		}
 
-		t := time.Now()
 		for _, req := range MetricsRequests {
 
 			select {
 			case <-s.ctx.Done():
-				return context.Canceled
+				return nil
 			default:
 			}
 
-			<-lmtr.C
-			_ = req
+			rateLimiter.Wait(s.ctx)
 			if err = s.fetchMetrics(req); err != nil {
-				s.logger.Errorf(`get tencent metric "%s.%s" failed: %s`, *req.q.Namespace, *req.q.MetricName, err)
+				moduleLogger.Errorf(`get tencent metric "%s.%s" failed: %s`, *req.q.Namespace, *req.q.MetricName, err)
 			}
 		}
 
-		useage := time.Now().Sub(t)
-		if useage < batchInterval {
-			remain := batchInterval - useage
-
-			if s.timer == nil {
-				s.timer = time.NewTimer(remain)
-			} else {
-				s.timer.Reset(remain)
-			}
-			select {
-			case <-s.ctx.Done():
-				if s.timer != nil {
-					s.timer.Stop()
-					s.timer = nil
-				}
-				return context.Canceled
-			case <-s.timer.C:
-			}
+		if s.isTest() {
+			return nil
 		}
+
+		datakit.SleepContext(s.ctx, batchInterval)
 	}
 }
 
-func (c *RunningCMS) fetchMetrics(req *MetricsRequest) error {
+func (c *CMS) fetchMetrics(req *MetricsRequest) error {
 
 	if len(req.q.Instances) == 0 {
 		ids, err := c.fetchAllInstanceIds(strings.ToUpper(*req.q.Namespace))
@@ -268,7 +197,7 @@ func (c *RunningCMS) fetchMetrics(req *MetricsRequest) error {
 		}
 
 		if !validPeriod {
-			c.logger.Warnf("period of %v for %s not support, change to %v", *req.q.Period, *req.q.MetricName, minpt)
+			moduleLogger.Warnf("period of %v for %s not support, change to %v", *req.q.Period, *req.q.MetricName, minpt)
 			req.q.Period = common.Uint64Ptr(uint64(minpt))
 		}
 
@@ -286,7 +215,7 @@ func (c *RunningCMS) fetchMetrics(req *MetricsRequest) error {
 	req.q.EndTime = common.StringPtr(et)
 	req.q.StartTime = common.StringPtr(st)
 
-	c.logger.Debugf("request: %s", req.q.ToJsonString())
+	moduleLogger.Debugf("request: %s", req.q.ToJsonString())
 
 	resp, err := c.client.GetMonitorData(req.q)
 	if err != nil {
@@ -302,18 +231,21 @@ func (c *RunningCMS) fetchMetrics(req *MetricsRequest) error {
 		req.q = nq
 
 		if resp, err = c.client.GetMonitorData(req.q); err != nil {
+			if c.isTest() {
+				c.testError = err
+			}
 			return err
 		}
 
 	}
 
-	c.logger.Debugf("D! [tencentcms] Response: Period=%v, StartTime=%s, EndTime=%s", *resp.Response.Period, *resp.Response.StartTime, *resp.Response.EndTime)
+	moduleLogger.Debugf("D! [tencentcms] Response: Period=%v, StartTime=%s, EndTime=%s", *resp.Response.Period, *resp.Response.StartTime, *resp.Response.EndTime)
 
 	for _, dp := range resp.Response.DataPoints {
 
 		tags := map[string]string{}
-		if c.tc.tags != nil {
-			for k, v := range c.tc.tags {
+		if c.tags != nil {
+			for k, v := range c.tags {
 				tags[k] = v
 			}
 		}
@@ -327,16 +259,19 @@ func (c *RunningCMS) fetchMetrics(req *MetricsRequest) error {
 			fields := map[string]interface{}{}
 			fields[*req.q.MetricName] = *val
 
-			if c.tc.accumulator != nil {
-				c.tc.accumulator.AddFields(foramtNamespaceName(*req.q.Namespace), fields, tags)
+			if c.isTest() {
+				// pass
+			} else {
+				io.NamedFeedEx(inputName, datakit.Metric, foramtNamespaceName(*req.q.Namespace), tags, fields)
 			}
+
 		}
 	}
 
 	return nil
 }
 
-func (c *RunningCMS) fetchAvatiableMetrics(namespace *Namespace) error {
+func (c *CMS) fetchAvatiableMetrics(namespace *Namespace) error {
 
 	request := monitor.NewDescribeBaseMetricsRequest()
 	request.Namespace = common.StringPtr(namespace.Name)
@@ -356,7 +291,7 @@ func (c *RunningCMS) fetchAvatiableMetrics(namespace *Namespace) error {
 
 		c.periodsInfos[namespace.Name] = pinfo
 
-		c.logger.Debugf("get base metrics of %s ok: %s", namespace.Name, pinfo.String())
+		moduleLogger.Debugf("get base metrics of %s ok: %s", namespace.Name, pinfo.String())
 
 		return nil
 
@@ -365,7 +300,7 @@ func (c *RunningCMS) fetchAvatiableMetrics(namespace *Namespace) error {
 	return err
 }
 
-func (c *RunningCMS) fetchAllInstanceIds(namespace string) ([]string, error) {
+func (c *CMS) fetchAllInstanceIds(namespace string) ([]string, error) {
 
 	cpf := profile.NewClientProfile()
 
@@ -375,7 +310,7 @@ func (c *RunningCMS) fetchAllInstanceIds(namespace string) ([]string, error) {
 
 	switch namespace {
 	case "QCE/CVM":
-		client, _ := cvm.NewClient(c.credential, c.cfg.RegionID, cpf)
+		client, _ := cvm.NewClient(c.credential, c.RegionID, cpf)
 		request := cvm.NewDescribeInstancesRequest()
 		var response *cvm.DescribeInstancesResponse
 		response, err = client.DescribeInstances(request)
@@ -385,7 +320,7 @@ func (c *RunningCMS) fetchAllInstanceIds(namespace string) ([]string, error) {
 			}
 		}
 	case "QCE/CDB":
-		client, _ := cdb.NewClient(c.credential, c.cfg.RegionID, cpf)
+		client, _ := cdb.NewClient(c.credential, c.RegionID, cpf)
 		request := cdb.NewDescribeDBInstancesRequest()
 		var response *cdb.DescribeDBInstancesResponse
 		response, err = client.DescribeDBInstances(request)
@@ -396,7 +331,7 @@ func (c *RunningCMS) fetchAllInstanceIds(namespace string) ([]string, error) {
 		}
 
 	case `QCE/POSTGRES`:
-		client, _ := postgres.NewClient(c.credential, c.cfg.RegionID, cpf)
+		client, _ := postgres.NewClient(c.credential, c.RegionID, cpf)
 		request := postgres.NewDescribeDBInstancesRequest()
 		var response *postgres.DescribeDBInstancesResponse
 		response, err = client.DescribeDBInstances(request)
@@ -407,7 +342,7 @@ func (c *RunningCMS) fetchAllInstanceIds(namespace string) ([]string, error) {
 		}
 
 	case `QCE/REDIS`:
-		client, _ := redis.NewClient(c.credential, c.cfg.RegionID, cpf)
+		client, _ := redis.NewClient(c.credential, c.RegionID, cpf)
 		request := redis.NewDescribeInstancesRequest()
 		var response *redis.DescribeInstancesResponse
 		response, err = client.DescribeInstances(request)
@@ -418,7 +353,7 @@ func (c *RunningCMS) fetchAllInstanceIds(namespace string) ([]string, error) {
 		}
 
 	case `QCE/CES`:
-		client, _ := es.NewClient(c.credential, c.cfg.RegionID, cpf)
+		client, _ := es.NewClient(c.credential, c.RegionID, cpf)
 		request := es.NewDescribeInstancesRequest()
 		var response *es.DescribeInstancesResponse
 		response, err = client.DescribeInstances(request)
@@ -429,7 +364,7 @@ func (c *RunningCMS) fetchAllInstanceIds(namespace string) ([]string, error) {
 		}
 
 	case `QCE/SQLSERVER`:
-		client, _ := sqlserver.NewClient(c.credential, c.cfg.RegionID, cpf)
+		client, _ := sqlserver.NewClient(c.credential, c.RegionID, cpf)
 		request := sqlserver.NewDescribeDBInstancesRequest()
 		var response *sqlserver.DescribeDBInstancesResponse
 		response, err = client.DescribeDBInstances(request)
@@ -447,7 +382,7 @@ func (c *RunningCMS) fetchAllInstanceIds(namespace string) ([]string, error) {
 		return nil, err
 	}
 
-	c.logger.Debugf("all instanceids: %#v", instanceIds)
+	moduleLogger.Debugf("all instanceids: %#v", instanceIds)
 
 	return instanceIds, err
 }
@@ -488,8 +423,8 @@ func (m MetricsPeriodInfo) String() string {
 }
 
 func init() {
-	inputs.Add("tencentcms", func() telegraf.Input {
-		ac := &TencentCms{}
+	inputs.Add(inputName, func() inputs.Input {
+		ac := &CMS{}
 		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 		return ac
 	})
