@@ -30,7 +30,7 @@
 
 重启该 Docker 服务后，便可以监听 `2375` 端口。详情见[官方配置文档](https://docs.docker.com/config/daemon/#configure-the-docker-daemon)。
 
-此外，建议在 `inputs.docker.tag` 配置（详情见下）中添加 `host` 标签字段，用以辨识远程 Docker 服务。
+此外，建议在 `inputs.docker.tag` 配置（详情见下）中添加 `host` 标签字段，值为目标 Docker 所在的主机名，用以辨识远程 Docker 服务。
 
 ### 采集器配置
 
