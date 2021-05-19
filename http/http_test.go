@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/influxdata/influxdb1-client/models"
+
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -20,6 +22,64 @@ var (
 	__bind  = ":12345"
 	__token = "tkn_2dc438b6693711eb8ff97aeee04b54af"
 )
+
+func TestParsePoint(t *testing.T) {
+
+	var cases = []struct {
+		body []byte
+		prec string
+		npts int
+		fail bool
+	}{
+		{
+			body: []byte(`m1,t1=abc f1=123 123`),
+			prec: "h",
+			npts: 1,
+		},
+
+		{
+			body: []byte(`m1,t1=abc f1=123 123`),
+			prec: "m",
+			npts: 1,
+		},
+
+		{
+			body: []byte(`m1,t1=abc f1=123 123`),
+			prec: "s",
+			npts: 1,
+		},
+
+		{
+			body: []byte(`m1,t1=abc f1=123 123`),
+			prec: "ms",
+			npts: 1,
+		},
+
+		{
+			body: []byte(`m1,t1=abc f1=123 123`),
+			prec: "u",
+			npts: 1,
+		},
+
+		{
+			body: []byte(`m1,t1=abc f1=123 123`),
+			prec: "n",
+			npts: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		points, err := models.ParsePointsWithPrecision(tc.body, time.Now(), tc.prec)
+		if tc.fail {
+			tu.NotOk(t, err, "")
+		} else {
+			tu.Equals(t, tc.npts, len(points))
+			for _, pt := range points {
+				t.Log(pt.String())
+			}
+		}
+	}
+}
 
 func TestReload(t *testing.T) {
 	Start(&Option{Bind: __bind, GinLog: ".gin.log", PProf: true})
@@ -47,12 +107,18 @@ func TestReload(t *testing.T) {
 func TestAPI(t *testing.T) {
 
 	var cases = []struct {
-		api           string
-		body          []byte
-		method        string
-		gz            bool
-		expectErrCode string
+		api    string
+		body   []byte
+		method string
+		gz     bool
+		fail   bool
 	}{
+		{
+			api:    "/v1/write/metric?precision=mss",
+			body:   []byte(`rum_app_startup,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621315267`),
+			method: `POST`,
+			fail:   true,
+		},
 
 		{
 			api:    "/v1/ping",
@@ -67,71 +133,70 @@ func TestAPI(t *testing.T) {
 			gz:     true,
 		},
 		{
-			api:           "/v1/write/metric?input=test",
-			body:          []byte(`test t1=abc f1=1i,f2=2,f3="str"`),
-			method:        "POST",
-			gz:            true,
-			expectErrCode: "datakit.badRequest",
+			api:    "/v1/write/metric?input=test",
+			body:   []byte(`test t1=abc f1=1i,f2=2,f3="str"`),
+			method: "POST",
+			gz:     true,
+			fail:   true,
 		},
 		{
-			api:           "/v1/write/metric?input=test&token=" + __token,
-			body:          []byte(`test-01,category=host,host=ubt-server,level=warn,title=a\ demo message="passwd 发生了变化" 1619599490000652659`),
-			method:        "POST",
-			gz:            true,
-			expectErrCode: "datakit.badRequest",
+			api:    "/v1/write/metric?input=test&token=" + __token,
+			body:   []byte(`test-01,category=host,host=ubt-server,level=warn,title=a\ demo message="passwd 发生了变化" 1619599490000652659`),
+			method: "POST",
+			gz:     true,
 		},
 		{
-			api:           "/v1/write/metric?input=test&token=" + __token,
-			body:          []byte(``),
-			method:        "POST",
-			gz:            true,
-			expectErrCode: "datakit.badRequest",
+			api:    "/v1/write/metric?input=test&token=" + __token,
+			body:   []byte(``),
+			method: "POST",
+			gz:     true,
+			fail:   true,
 		},
 		{
-			api:           "/v1/write/object?input=test&token=" + __token,
-			body:          []byte(``),
-			method:        "POST",
-			gz:            true,
-			expectErrCode: "datakit.badRequest",
+			api:    "/v1/write/object?input=test&token=" + __token,
+			body:   []byte(``),
+			method: "POST",
+			gz:     true,
+			fail:   true,
 		},
 		{
-			api:           "/v1/write/logging?input=test&token=" + __token,
-			body:          []byte(``),
-			method:        "POST",
-			gz:            true,
-			expectErrCode: "datakit.badRequest",
+			api:    "/v1/write/logging?input=test&token=" + __token,
+			body:   []byte(``),
+			method: "POST",
+			gz:     true,
+			fail:   true,
 		},
 		{
-			api:           "/v1/write/keyevent?input=test&token=" + __token,
-			body:          []byte(``),
-			method:        "POST",
-			gz:            true,
-			expectErrCode: "datakit.badRequest",
+			api:    "/v1/write/keyevent?input=test&token=" + __token,
+			body:   []byte(``),
+			method: "POST",
+			gz:     true,
+			fail:   true,
 		},
 
 		// rum cases
 		{
-			api:           "/v1/write/rum?input=test&token=" + __token,
-			body:          []byte(``),
-			method:        "POST",
-			gz:            true,
-			expectErrCode: "datakit.badRequest",
+			api:    "/v1/write/rum?input=test&token=" + __token,
+			body:   []byte(``),
+			method: "POST",
+			gz:     true,
+			fail:   true,
 		},
 
 		{ // unknown RUM metric
-			api:           "/v1/write/rum?input=rum-test",
-			body:          []byte(`not_rum_metric,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
-			method:        `POST`,
-			gz:            true,
-			expectErrCode: "datakit.badRequest",
+			api:    "/v1/write/rum?input=rum-test",
+			body:   []byte(`not_rum_metric,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			method: `POST`,
+			gz:     true,
+			fail:   true,
 		},
 
 		{ // bad line-proto
-			api:           "/v1/write/rum?input=rum-test",
-			body:          []byte(`not_rum_metric,t1=tag1,t2=tag2 f1=1.0f,f2=2i,f3="abc"`),
-			method:        `POST`,
-			gz:            true,
-			expectErrCode: "datakit.badRequest",
+			api:    "/v1/write/rum?input=rum-test",
+			body:   []byte(`not_rum_metric,t1=tag1,t2=tag2 f1=1.0f,f2=2i,f3="abc"`),
+			method: `POST`,
+			gz:     true,
+			fail:   true,
 		},
 
 		{
@@ -146,6 +211,20 @@ func TestAPI(t *testing.T) {
 			body:   []byte(`rum_app_startup,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
 			method: `POST`,
 			gz:     true,
+		},
+
+		{
+			api:    "/v1/write/rum?precision=ms",
+			body:   []byte(`rum_app_startup,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621315267`),
+			method: `POST`,
+			gz:     true,
+		},
+
+		{
+			api:    "/v1/write/xxx?precision=ms",
+			body:   []byte(`rum_app_startup,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621315267`),
+			method: `POST`,
+			fail:   true,
 		},
 	}
 
@@ -162,8 +241,7 @@ func TestAPI(t *testing.T) {
 	httpCli := &nhttp.Client{}
 	var err error
 
-	for i := len(cases) - 1; i >= 0; i-- {
-		tc := cases[i]
+	for i, tc := range cases {
 		if tc.gz {
 			tc.body, err = datakit.GZip(tc.body)
 			if err != nil {
@@ -171,8 +249,9 @@ func TestAPI(t *testing.T) {
 			}
 		}
 
-		req, err := nhttp.NewRequest(tc.method,
-			fmt.Sprintf("%s%s%s", __host, __bind, tc.api),
+		urlstr := fmt.Sprintf("%s%s%s", __host, __bind, tc.api)
+		t.Logf("request URL: %s", urlstr)
+		req, err := nhttp.NewRequest(tc.method, urlstr,
 			bytes.NewBuffer([]byte(tc.body)))
 		if err != nil {
 			t.Fatal(err)
@@ -197,22 +276,19 @@ func TestAPI(t *testing.T) {
 			Msg     string `json:"message"`
 		}
 
+		if tc.fail {
+			tu.Assert(t, resp.StatusCode != http.StatusOK, "[%d] http should be failed, but ok", i)
+		} else {
+			tu.Assert(t, resp.StatusCode == http.StatusOK,
+				"[%d] request failed, http code %d, body: %s", i, resp.Status, string(respbody))
+		}
+
 		if len(respbody) > 0 {
 			if err := json.Unmarshal(respbody, &x); err != nil {
 				t.Error(err.Error())
 			}
-
-			if tc.expectErrCode != "" {
-				tu.Equals(t, string(tc.expectErrCode), string(x.ErrCode))
-			} else {
-				if resp.StatusCode != http.StatusOK {
-					t.Errorf("[FAIL][%d] api %s request faild with status code: %s, body: %s\n", i, cases[i].api, resp.Status, string(respbody))
-					continue
-				}
-				t.Logf("[%d] x: %v, body: %s", i, x, string(respbody))
-			}
 		}
 
-		t.Logf("case [%d]%s ok", i, cases[i].api)
+		t.Logf("case [%d] %s ok", i, cases[i].api)
 	}
 }
