@@ -1,16 +1,23 @@
+// +build !386,!arm
+
 package binlog
 
 import (
 	"context"
 	"io"
-	"log"
+	"sync"
 	"time"
 
 	blog "github.com/siddontang/go-log/log"
 
-	"github.com/influxdata/telegraf"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
+
+var (
+	moduleLogger *logger.Logger
+	inputName    = `binlog`
 )
 
 type Binlog struct {
@@ -20,24 +27,24 @@ type Binlog struct {
 
 	runningBinlogs []*RunningBinloger
 
+	wg sync.WaitGroup
+
 	tags map[string]string
 
 	ctx       context.Context
 	cancelfun context.CancelFunc
 
-	accumulator telegraf.Accumulator
+	mode string
+
+	testError error
+}
+
+func (_ *Binlog) Catalog() string {
+	return "db"
 }
 
 func (_ *Binlog) SampleConfig() string {
 	return binlogConfigSample
-}
-
-func (_ *Binlog) Description() string {
-	return ""
-}
-
-func (b *Binlog) Gather(telegraf.Accumulator) error {
-	return nil
 }
 
 type adapterLogWriter struct {
@@ -45,7 +52,7 @@ type adapterLogWriter struct {
 }
 
 func (al *adapterLogWriter) Write(p []byte) (n int, err error) {
-	log.Printf("D! [binlog] %s", string(p))
+	moduleLogger.Debugf("%s", string(p))
 	return len(p), nil
 }
 
@@ -57,57 +64,63 @@ func setupLogger() {
 	blog.SetDefaultLogger(blogger)
 }
 
-func (b *Binlog) Start(acc telegraf.Accumulator) error {
+func (b *Binlog) Run() {
+
+	moduleLogger = logger.SLogger(inputName)
 
 	if len(b.Instances) == 0 {
-		log.Printf("W! [binlog] no config found")
-		return nil
+		moduleLogger.Warnf("no config found")
+		return
 	}
 
 	setupLogger()
 
-	b.accumulator = acc
-
-	log.Printf("I! Binlog start")
+	go func() {
+		<-datakit.Exit.Wait()
+		b.cancelfun()
+		for _, rb := range b.runningBinlogs {
+			rb.stop()
+		}
+	}()
 
 	for _, inst := range b.Instances {
 
-		inst.applyDefault()
+		b.wg.Add(1)
 
-		bl := NewRunningBinloger(inst)
-		bl.binlog = b
+		go func(inst *InstanceConfig) {
+			defer b.wg.Done()
 
-		b.runningBinlogs = append(b.runningBinlogs, bl)
+			inst.applyDefault()
 
-		go func(rb *RunningBinloger) {
+			bl := NewRunningBinloger(inst)
+			bl.binlog = b
+
+			b.runningBinlogs = append(b.runningBinlogs, bl)
 
 			for {
-				if err := rb.run(b.ctx); err != nil && err != context.Canceled {
-					log.Printf("E! %s", err.Error())
-					internal.SleepContext(b.ctx, time.Second*3)
+
+				select {
+				case <-datakit.Exit.Wait():
+					return
+				default:
+				}
+
+				if err := bl.run(b.ctx); err != nil && err != context.Canceled {
+					moduleLogger.Errorf("%s", err.Error())
+					datakit.SleepContext(b.ctx, time.Second*3)
 				} else if err == context.Canceled {
 					break
 				}
 			}
 
-			log.Printf("I! Binlog done")
-
-		}(bl)
-
+		}(inst)
 	}
 
-	return nil
-}
-
-func (b *Binlog) Stop() {
-	b.cancelfun()
-	for _, rb := range b.runningBinlogs {
-		rb.stop()
-	}
+	b.wg.Wait()
 }
 
 func init() {
-	inputs.Add("binlog", func() telegraf.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		b := &Binlog{}
 		b.ctx, b.cancelfun = context.WithCancel(context.Background())
 		return b
