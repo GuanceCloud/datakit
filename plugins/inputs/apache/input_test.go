@@ -78,14 +78,14 @@ func TestGetMetric(t *testing.T) {
 
 	n := Input{
 		Url:      "http://127.0.0.1:12345/server_status",
-		Interval: datakit.Duration{Duration: time.Second * 2},
+		Interval: datakit.Duration{Duration: time.Second * 1},
 	}
 	go func() {
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 2)
 		datakit.Exit.Close()
+		close(opt.Exit)
 	}()
 	n.Run()
-	close(opt.Exit)
 	wg.Wait()
 
 }
