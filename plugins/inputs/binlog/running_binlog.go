@@ -1,3 +1,5 @@
+// +build !386,!arm
+
 package binlog
 
 import (
@@ -7,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -46,7 +47,7 @@ func NewRunningBinloger(cfg *InstanceConfig) *RunningBinloger {
 }
 
 type RunningBinloger struct {
-	m sync.Mutex
+	//m sync.Mutex
 
 	binlog *Binlog
 
@@ -69,13 +70,13 @@ type RunningBinloger struct {
 
 	delay *uint32
 
-	ctx context.Context
+	//ctx context.Context
 }
 
 func (rb *RunningBinloger) run(ctx context.Context) error {
 
 	if err := recover(); err != nil {
-		log.Printf("E! panic come, %s", err)
+		moduleLogger.Errorf("panic, %s", err)
 	}
 
 	rb.tables = make(map[string]*schema.Table)
@@ -86,7 +87,7 @@ func (rb *RunningBinloger) run(ctx context.Context) error {
 	var err error
 
 	if err = rb.prepareSyncer(); err != nil {
-		log.Printf("E! [binlog] prepareSyncer error, %s", err)
+		moduleLogger.Errorf("prepareSyncer error, %s", err)
 		return err
 	}
 
@@ -116,15 +117,15 @@ func (rb *RunningBinloger) run(ctx context.Context) error {
 
 	rb.master.UpdateTimestamp(uint32(time.Now().Unix()))
 	if err = rb.getMasterStatus(rb.master); err != nil {
-		log.Printf("E! [binlog] check if mysql binlog enabled?")
+		moduleLogger.Errorf("check if mysql binlog enabled?")
 		return err
 	}
 
-	log.Printf("I! [binlog] check requirments ok")
+	moduleLogger.Infof("check requirments ok")
 
 	if err := rb.doSync(ctx); err != nil {
 		if err != context.Canceled && errors.Cause(err) != context.Canceled {
-			log.Printf("E! [binlog] sync err: %s", err)
+			moduleLogger.Errorf("sync err: %s", err)
 			return err
 		}
 	}
@@ -187,8 +188,7 @@ func (rb *RunningBinloger) Execute(cmd string, args ...interface{}) (rr *mysql.R
 		if rb.conn == nil {
 			rb.conn, err = client.Connect(rb.cfg.Addr, rb.cfg.User, rb.cfg.Password, "")
 			if err != nil {
-				log.Printf("E! fail to connect mysql(-h%s -u%s), %s", rb.cfg.Addr, rb.cfg.User, err)
-				return nil, err
+				return nil, fmt.Errorf("fail to connect mysql(%s/%s), %s", rb.cfg.Addr, rb.cfg.User, err)
 			}
 		}
 
@@ -211,7 +211,7 @@ func (rb *RunningBinloger) checkBinlogRowImage(image string) error {
 	// now only log
 	if rb.cfg.Flavor == mysql.MySQLFlavor {
 		if res, err := rb.Execute(`SHOW GLOBAL VARIABLES LIKE "binlog_row_image"`); err != nil {
-			log.Printf("E! fail to get binlog_row_image, %s", err)
+			moduleLogger.Errorf("fail to get binlog_row_image, %s", err)
 			return err
 		} else {
 			// MySQL has binlog row image from 5.6, so older will return empty
@@ -236,10 +236,10 @@ func (rb *RunningBinloger) checkBinlogRowFormat() error {
 		return err
 	}
 
-	log.Printf("I! row format: %s", rowFormat)
+	moduleLogger.Debugf("row format: %s", rowFormat)
 
 	if rowFormat != "ROW" {
-		log.Printf("E! binlog_row_format should be ROW")
+		moduleLogger.Errorf("binlog_row_format should be ROW")
 		return fmt.Errorf("binlog_row_format should be ROW")
 	}
 
@@ -261,12 +261,12 @@ func (rb *RunningBinloger) GetMasterPos() (mysql.Position, error) {
 func (rb *RunningBinloger) checkMysqlVersion() error {
 	es, err := rb.Execute(`SELECT version();`)
 	if err != nil {
-		log.Printf("E! fail to execute 'SELECT version();', %s", err)
+		moduleLogger.Errorf("fail to execute 'SELECT version();', %s", err)
 		return err
 	}
 
 	ver, _ := es.GetString(0, 0)
-	log.Printf("I! [binlog] mysql server version: %s", ver)
+	moduleLogger.Debugf("mysql server version: %s", ver)
 	if strings.Contains(strings.ToLower(ver), "maria") {
 		rb.cfg.Flavor = "mariadb"
 	}
@@ -362,7 +362,7 @@ func (rb *RunningBinloger) getTable(db string, table string) (*schema.Table, *Da
 	//fmt.Println(key)
 	target := rb.checkTableMatch(db, table)
 	if target == nil {
-		log.Printf("E! table %s.%s is excluded by config", db, table)
+		//rb.binlog.logger.Warnf("table %s.%s not in configuration, ignored", db, table)
 		return nil, nil, ErrExcludedTable
 	}
 
@@ -387,7 +387,7 @@ func (rb *RunningBinloger) getTable(db string, table string) (*schema.Table, *Da
 	if err != nil {
 		// check table not exists
 		if ok, err1 := schema.IsTableExist(rb, db, table); err1 == nil && !ok {
-			log.Printf("E! [binlog] table %s.%s not exists, %s", db, table, err1)
+			moduleLogger.Errorf("table %s.%s not exists, %s", db, table, err1)
 			return nil, nil, schema.ErrTableNotExist
 		}
 		// work around : RDS HAHeartBeat
@@ -418,8 +418,14 @@ func (rb *RunningBinloger) getTable(db string, table string) (*schema.Table, *Da
 			// log error and return ErrMissingTableMeta
 			return nil, nil, schema.ErrMissingTableMeta
 		}
-		log.Printf("E! [binlog] get table meta failed: %s", err)
+		moduleLogger.Errorf("get table meta failed: %s", err)
 		return nil, nil, err
+	} else {
+		cols := []string{}
+		for _, cl := range t.Columns {
+			cols = append(cols, fmt.Sprintf("%s(%s)", cl.Name, cl.RawType))
+		}
+		moduleLogger.Debugf("table info %s.%s: %s", db, table, strings.Join(cols, " - "))
 	}
 
 	rb.tableLock.Lock()
