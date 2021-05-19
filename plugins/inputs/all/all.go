@@ -40,7 +40,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/file_collector"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flink"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/fluentdlog"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/k8s"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kube_state"
 
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/goruntime"
