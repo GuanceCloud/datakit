@@ -101,6 +101,7 @@ var (
 		"nginxlog":               true,
 		"oraclemonitor":          true,
 		"oracle":                 true,
+		"postgresql":             true,
 		"postgresql_replication": true,
 		"processes":              true,
 		"prom":                   true,
