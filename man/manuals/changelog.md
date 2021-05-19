@@ -26,9 +26,9 @@
 
 本次发布，有如下更新：
 
-- DataKit 安装/升级后，目录变更为
-	- Linux/Mac: `/usr/local/datakit`
-	- Windows: `C:\Program Files\datakit`
+- DataKit 安装/升级后，安装目录变更为
+	- Linux/Mac: `/usr/local/datakit`，日志目录为 `/var/log/datakit`
+	- Windows: `C:\Program Files\datakit`，日志目录就在安装目录下
 
 - 支持 [`/v1/ping` 接口](apis#50ea0eb5)
 - 移除 RUM 采集器，RUM 接口[默认已经支持](apis#f53903a9)
