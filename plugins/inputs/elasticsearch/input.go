@@ -133,7 +133,7 @@ const sampleConfig = `
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
 
-[inputs.elasticsearch.log]
+# [inputs.elasticsearch.log]
   #	files = []
   ## grok pipeline script path
   #	pipeline = "elasticsearch.p"
