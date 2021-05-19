@@ -1,107 +1,165 @@
-.PHONY: default test
+.PHONY: default test local man
 
-default: release
+default: local
 
 # 正式环境
 RELEASE_DOWNLOAD_ADDR = zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit
 
-PUB_DIR = pub
+# 测试环境
+TEST_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit
+
+# 本地环境: 需配置环境变量，便于完整测试采集器的发布、更新等流程
+# export LOCAL_OSS_ACCESS_KEY='<your-oss-AK>'
+# export LOCAL_OSS_SECRET_KEY='<your-oss-SK>'
+# export LOCAL_OSS_BUCKET='<your-oss-bucket>'
+# export LOCAL_OSS_HOST='oss-cn-hangzhou.aliyuncs.com' # 一般都是这个地址
+# export LOCAL_OSS_ADDR='<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
+# 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
+LOCAL_DOWNLOAD_ADDR = "${LOCAL_OSS_ADDR}"
+
+PUB_DIR = dist
+BUILD_DIR = dist
+
 BIN = datakit
 NAME = datakit
-ENTRY = main.go
+ENTRY = cmd/datakit/main.go
 
-VERSION := $(shell git describe --always --tags)
+LOCAL_ARCHS = "local"
+DEFAULT_ARCHS = "all"
+MAC_ARCHS = "darwin/amd64"
+GIT_VERSION := $(shell git describe --always --tags)
+DATE := $(shell date -u +'%Y-%m-%d %H:%M:%S')
+GOVERSION := $(shell go version)
+COMMIT := $(shell git rev-parse --short HEAD)
+BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+COMMITER := $(shell git log -1 --pretty=format:'%an')
+UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 
-all: test release preprod local
+NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION))"}}')
+NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION))"}}')
+NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支($(BRANCH))提交代码，以免 CI 任务失败"}}')
 
+define GIT_INFO
+//nolint
+package git
 
-local:
-	$(call build,local,$(LOCAL_KODO_HOST),$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_SSL),$(LOCAL_PORT))
+const (
+	BuildAt  string = "$(DATE)"
+	Version  string = "$(GIT_VERSION)"
+	Golang   string = "$(GOVERSION)"
+	Commit   string = "$(COMMIT)"
+	Branch   string = "$(BRANCH)"
+	Uploader string = "$(UPLOADER)"
+);
+endef
+export GIT_INFO
 
-
-release:
-	@echo "===== $(BIN) release ===="
-	@rm -rf $(PUB_DIR)/release
-	@mkdir -p build $(PUB_DIR)/release
+define build
+	@echo "===== $(BIN) $(1) ===="
+	@rm -rf $(PUB_DIR)/$(1)/*
+	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
 	@mkdir -p git
-	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
-		 -download-addr $(RELEASE_DOWNLOAD_ADDR) -release release -pub-dir $(PUB_DIR)
-	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	#@tar czf $(PUB_DIR)/release/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
-	tree -Csh $(PUB_DIR)
+	@echo "$$GIT_INFO" > git/git.go
+	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
+		 -env $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
+	@tree -Csh -L 3 $(BUILD_DIR)
+endef
+
+define pub
+	@echo "publish $(1) $(NAME) ..."
+	@GO111MODULE=off go run cmd/make/make.go -pub -env $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) \
+		-build-dir $(BUILD_DIR) -archs $(3)
+endef
+
+lint:
+	@golangci-lint run --timeout 1h | tee check.err # https://golangci-lint.run/usage/install/#local-installation
+
+vet:
+	@go vet ./...
 
 test:
-	@echo "===== $(BIN) test ===="
-	@rm -rf $(PUB_DIR)/test
-	@mkdir -p build $(PUB_DIR)/test
-	@mkdir -p git
-	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "linux/amd64" \
-		 -download-addr $(TEST_DOWNLOAD_ADDR) -release test -pub-dir $(PUB_DIR)
-	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	#@tar czf $(PUB_DIR)/test/$(NAME)-$(VERSION).tar.gz autostart agent -C build .
-	tree -Csh $(PUB_DIR)
+	@GO111MODULE=off go test ./...
 
-test_win:
-	@echo "===== $(BIN) test_win ===="
-	@rm -rf $(PUB_DIR)/test_win
-	@mkdir -p build $(PUB_DIR)/test_win
-	@mkdir -p git
-	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "windows/amd64" \
-		 -download-addr $(TEST_DOWNLOAD_ADDR_WIN) -release test -pub-dir $(PUB_DIR) -windows
-	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	#@tar czf $(PUB_DIR)/test_win/$(NAME)-$(VERSION).tar.gz -C windows agent.exe -C ../build .
-	tree -Csh $(PUB_DIR)
+local: man gofmt
+	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
-release_win:
-	@echo "===== $(BIN) release_win ===="
-	@rm -rf $(PUB_DIR)/release_win
-	@mkdir -p build $(PUB_DIR)/release_win
-	@mkdir -p git
-	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "windows/amd64" \
-		 -download-addr $(RELEASE_DOWNLOAD_ADDR) -release release -pub-dir $(PUB_DIR) -windows
-	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	#@tar czf $(PUB_DIR)/test_win/$(NAME)-$(VERSION).tar.gz -C windows agent.exe -C ../build .
-	tree -Csh $(PUB_DIR)
+testing: man
+	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
+release: man
+	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
-test_mac:
-	@echo "===== $(BIN) test_mac ===="
-	@rm -rf $(PUB_DIR)/test_mac
-	@mkdir -p build $(PUB_DIR)/test_mac
-	@mkdir -p git
-	@echo 'package git; const (Sha1 string=""; BuildAt string=""; Version string=""; Golang string="")' > git/git.go
-	@go run make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir build -archs "darwin/amd64" \
-		 -download-addr $(TEST_DOWNLOAD_ADDR_WIN) -release test -pub-dir $(PUB_DIR) -mac
-	#@strip build/$(NAME)-linux-amd64/$(BIN)
-	@tar czf $(PUB_DIR)/test_mac/$(NAME)-$(VERSION).tar.gz -C mac agent -C ../build .
-	tree -Csh $(PUB_DIR)
+release_mac: man
+	$(call build,release, $(MAC_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
 pub_local:
-	$(call pub,local)
+	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
-pub_test:
-	@echo "publish test ${BIN} ..."
-	@go run make.go -pub -release test -pub-dir $(PUB_DIR) -name $(NAME)
+pub_local_mac:
+	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
-pub_test_win:
-	@echo "publish test windows ${BIN} ..."
-	@go run make.go -pub -release test -pub-dir $(PUB_DIR) -archs "windows/amd64" -name $(NAME) -windows
+pub_testing:
+	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
-pub_release_win:
-	@echo "publish release windows ${BIN} ..."
-	@go run make.go -pub -release release -pub-dir $(PUB_DIR) -archs "windows/amd64" -name $(NAME) -windows
+pub_testing_mac:
+	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
-pub_preprod:
-	@echo "publish preprod ${BIN} ..."
-	@go run make.go -pub -release preprod -pub-dir $(PUB_DIR) -name $(NAME)
+pub_testing_img:
+	@mkdir -p embed/linux-amd64
+	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
+	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) .
+	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION)
+
+pub_release_img:
+	# release to pub hub
+	@mkdir -p embed/linux-amd64
+	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
+	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) .
+	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION)
 
 pub_release:
-	@echo "publish release ${BIN} ..."
-	@go run make.go -pub -release release -pub-dir $(PUB_DIR) -name $(NAME)
+	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+
+pub_release_mac:
+	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(MAC_ARCHS))
+
+test_notify:
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87' \
+		-H 'Content-Type: application/json' \
+		-d '$(NOTIFY_MSG_TEST)'
+
+release_notify:
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=5109b365f7be669c45c5677418a1c2fe7d5251485a09f514131177b203ed785f' \
+		-H 'Content-Type: application/json' \
+		-d '$(NOTIFY_MSG_RELEASE)'
+
+ci_notify:
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87' \
+		-H 'Content-Type: application/json' \
+		-d '$(NOTIFY_CI)'
+
+define build_ip2isp
+	rm -rf china-operator-ip
+	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
+	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
+endef
+
+.PHONY: agent
+agent:
+	$(call build_agent)
+
+ip2isp:
+	$(call build_ip2isp)
+
+man:
+	@packr2 clean
+	@packr2
+
+gofmt:
+	@GO111MODULE=off go fmt ./...
 
 clean:
 	rm -rf build/*
