@@ -2,6 +2,7 @@ package ip2isp
 
 import (
 	"bufio"
+	"encoding/csv"
 	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"io/ioutil"
@@ -10,11 +11,14 @@ import (
 	"strconv"
 	"strings"
 
+	yaml "gopkg.in/yaml.v2"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 const (
-	IpV4_Len = 4
+	IpV4_Len       = 4
+	FILE_SEPERATOR = " "
 )
 
 var (
@@ -342,11 +346,44 @@ func SearchIsp(ip string) string {
 func Init() error {
 	m := make(map[string]string)
 
-	fileDir := filepath.Join(datakit.InstallDir, "data", "ip2isp")
-	files, err := ioutil.ReadDir(fileDir)
+	fd, err := os.Open(filepath.Join(datakit.InstallDir, "data", "ip2isp.txt"))
 	if err != nil {
 		return err
 	}
+	defer fd.Close()
+
+	scanner := bufio.NewScanner(fd)
+	for scanner.Scan() {
+		contents := strings.Split(scanner.Text(), FILE_SEPERATOR)
+		if len(contents) != 2 {
+			continue
+		}
+
+		ipBitStr, err := ParseIpCIDR(contents[0])
+		if err != nil {
+			continue
+		}
+		m[ipBitStr] = contents[1]
+	}
+
+	if len(m) != 0 {
+		Ip2IspDb = m
+		l.Infof("found new %d rules", len(m))
+	} else {
+		l.Infof("no rules founded")
+	}
+
+	return nil
+}
+
+func MergeIsp(from, to string) error {
+	files, err := ioutil.ReadDir(from)
+	if err != nil {
+		return err
+	}
+
+	var content []string
+
 	for _, f := range files {
 		file := f.Name()
 
@@ -365,7 +402,7 @@ func Init() error {
 			continue
 		}
 
-		fd, err := os.Open(filepath.Join(fileDir, file))
+		fd, err := os.Open(filepath.Join(from, file))
 		if err != nil {
 			return err
 		}
@@ -373,20 +410,57 @@ func Init() error {
 
 		scanner := bufio.NewScanner(fd)
 		for scanner.Scan() {
-			ipBitStr, err := ParseIpCIDR(scanner.Text())
-			if err != nil {
-				continue
-			}
-			m[ipBitStr] = IspValid[isp]
+			c := fmt.Sprintf("%v%v%v", scanner.Text(), FILE_SEPERATOR, isp)
+			content = append(content, c)
 		}
 	}
 
-	if len(m) != 0 {
-		Ip2IspDb = m
-		l.Infof("found new %d rules", len(m))
-	} else {
-		l.Infof("no rules founded")
+	return ioutil.WriteFile(to, []byte(strings.Join(content, "\n")), 0x666)
+}
+
+func BuildContryCity(csvFile, outputFile string) error {
+	d := make(map[string]map[string][]string)
+	found := make(map[string]uint8)
+
+	f, err := os.Open(csvFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := csv.NewReader(f)
+	data, err := w.ReadAll()
+	if err != nil {
+		return err
 	}
 
-	return nil
+	for _, ip := range data {
+		contry := ip[3]
+		province := ip[4]
+		city := ip[5]
+		if contry == "-" || city == "-" {
+			continue
+		}
+
+		uniKey := fmt.Sprintf("%v%v%v", contry, province, city)
+		if _, ok := found[uniKey]; ok {
+			continue
+		}
+
+		c, ok := d[contry]
+		if !ok {
+			c = make(map[string][]string)
+			d[contry] = c
+		}
+
+		c[province] = append(c[province], city)
+		found[uniKey] = 0
+	}
+
+	r, err := yaml.Marshal(d)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(outputFile, r, 0x666)
 }

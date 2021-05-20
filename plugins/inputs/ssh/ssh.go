@@ -15,14 +15,42 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type IoFeed func(data []byte, category, name string) error
-
 const (
 	MinGatherInterval = 30 * time.Second
 	MaxGatherInterval = 1 * time.Minute
+
+	inputName       = "ssh"
+	defaultInterval = "60s"
+
+	SshConfigSample = `### You need to configure an [[inputs.ssh]] for each ssh/sftp to be monitored.
+### host: ssh/sftp service ip:port, if "127.0.0.1", default port is 22.
+### interval: monitor interval, the default value is "60s".
+### username: the user name of ssh/sftp.
+### password: the password of ssh/sftp. optional
+### sftpCheck: whether to monitor sftp.
+### privateKeyFile: rsa file path.
+### metricsName: the name of metric, default is "ssh"
+
+[[inputs.ssh]]
+	interval = "60s"
+	host     = "127.0.0.1:22"
+	username = "xxx"
+	password = "xxx"
+	sftpCheck      = false
+	privateKeyFile = ""
+	metricsName    ="ssh"
+	[inputs.ssh.tags]
+		tag1 = "tag1"
+		tag2 = "tag2"
+		tag3 = "tag3"
+`
 )
 
-type Ssh struct {
+var (
+	l = logger.DefaultSLogger(inputName)
+)
+
+type Input struct {
 	Interval       interface{}
 	Active         bool
 	Host           string
@@ -34,111 +62,60 @@ type Ssh struct {
 	Tags           map[string]string
 }
 
-type SshInput struct {
-	Ssh
-}
-
-type SshOutput struct {
-	IoFeed
-}
-
-type SshParam struct {
-	input  SshInput
-	output SshOutput
-	log    *logger.Logger
-}
-
-const sshConfigSample = `### You need to configure an [[inputs.ssh]] for each ssh/sftp to be monitored.
-### host: ssh/sftp service ip:port, if "127.0.0.1", default port is 22.
-### interval: monitor interval, the default value is "60s".
-### username: the user name of ssh/sftp.
-### password: the password of ssh/sftp. optional
-### sftpCheck: whether to monitor sftp.
-### privateKeyFile: rsa file path.
-### metricsName: the name of metric, default is "ssh"
-
-#[[inputs.ssh]]
-#	interval = "60s"
-#	host     = "127.0.0.1:22"
-#	username = "xxx"
-#	password = "xxx"
-#	sftpCheck      = false
-#	privateKeyFile = ""
-#	metricsName    ="ssh"
-#	[inputs.ssh.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
-
-#[[inputs.ssh]]
-#	interval = "60s"
-#	host     = "127.0.0.1:22"
-#	username = "xxx"
-#	password = "xxx"
-#	sftpCheck      = false
-#	privateKeyFile = ""
-#	metricsName    ="ssh"
-#	[inputs.ssh.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
-`
-
 var (
-	inputName         = "ssh"
-	defaultMetricName = inputName
-	defaultInterval   = "60s"
-	sshCfgErr         = errors.New("both password and privateKeyFile missed")
+	sshCfgErr = errors.New("both password and privateKeyFile missed")
 )
 
-func (s *Ssh) Catalog() string {
-	return "ssh"
-}
-
-func (s *Ssh) SampleConfig() string {
-	return sshConfigSample
-}
-
-func (s *Ssh) Run() {
-	if s.Host == "" {
+func (i *Input) Run() {
+	if i.Host == "" {
+		l.Errorf("host configuration missed")
 		return
 	}
 
-	p := s.genParam()
-	p.log.Infof("ssh input started...")
-	p.gather()
-}
-
-func (s *Ssh) genParam() *SshParam {
 	reg, _ := regexp.Compile(`:\d{1,5}$`)
 
-	if s.MetricsName == "" {
-		s.MetricsName = defaultMetricName
+	if i.MetricsName == "" {
+		i.MetricsName = inputName
 	}
 
-	if s.Interval == nil {
-		s.Interval = defaultInterval
+	if i.Interval == nil {
+		i.Interval = defaultInterval
 	}
 
-	if !reg.MatchString(s.Host) {
-		s.Host += ":22"
+	if !reg.MatchString(i.Host) {
+		i.Host += ":22"
 	}
 
-	input := SshInput{*s}
-	output := SshOutput{io.NamedFeed}
-
-	p := &SshParam{input, output, logger.SLogger("ssh")}
-	return p
+	l.Infof("ssh input started...")
+	i.gather()
 }
 
-func (p *SshParam) getSshClientConfig() (*ssh.ClientConfig, error) {
+func (i *Input) Catalog() string {
+	return inputName
+}
+
+func (i *Input) SampleConfig() string {
+	return SshConfigSample
+}
+
+func (i *Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (i *Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&SshMeasurement{},
+	}
+}
+
+func (i *Input) getSshClientConfig() (*ssh.ClientConfig, error) {
 	var auth []ssh.AuthMethod
-	if p.input.Password != "" {
+	if i.Password != "" {
 		auth = []ssh.AuthMethod{
-			ssh.Password(p.input.Password),
+			ssh.Password(i.Password),
 		}
-	} else if p.input.PrivateKeyFile != "" {
-		secretCont, err := ioutil.ReadFile(p.input.PrivateKeyFile)
+	} else if i.PrivateKeyFile != "" {
+		secretCont, err := ioutil.ReadFile(i.PrivateKeyFile)
 		if err != nil {
 			return nil, err
 		}
@@ -158,33 +135,33 @@ func (p *SshParam) getSshClientConfig() (*ssh.ClientConfig, error) {
 	}
 
 	return &ssh.ClientConfig{
-		User:            p.input.UserName,
+		User:            i.UserName,
 		Auth:            auth,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}, nil
 }
 
-func (p *SshParam) gather() {
+func (i *Input) gather() {
 	var d time.Duration
 	var err error
 
-	switch p.input.Interval.(type) {
+	switch i.Interval.(type) {
 	case int64:
-		d = time.Duration(p.input.Interval.(int64)) * time.Second
+		d = time.Duration(i.Interval.(int64)) * time.Second
 	case string:
-		d, err = time.ParseDuration(p.input.Interval.(string))
+		d, err = time.ParseDuration(i.Interval.(string))
 		if err != nil {
-			p.log.Errorf("parse interval err: %s", err.Error())
+			l.Errorf("parse interval err: %s", err.Error())
 			return
 		}
 	default:
-		p.log.Errorf("interval type unsupported")
+		l.Errorf("interval type unsupported")
 		return
 	}
 
-	clientCfg, err := p.getSshClientConfig()
+	clientCfg, err := i.getSshClientConfig()
 	if err != nil {
-		p.log.Errorf("SshClientConfig err: %s", err.Error())
+		l.Errorf("SshClientConfig err: %s", err.Error())
 		return
 	}
 
@@ -194,30 +171,34 @@ func (p *SshParam) gather() {
 	for {
 		select {
 		case <-tick.C:
-			_, err := p.getMetrics(clientCfg, false)
+			start := time.Now()
+			collectCache, err := i.getMetrics(clientCfg)
 			if err != nil {
 				io.FeedLastError(inputName, err.Error())
-				p.log.Errorf("getMetrics err: %s", err.Error())
+				l.Errorf("getMetrics err: %s", err.Error())
+			} else {
+				inputs.FeedMeasurement(inputName, datakit.Metric, collectCache,
+					&io.Option{CollectCost: time.Since(start), HighFreq: false})
 			}
 
 		case <-datakit.Exit.Wait():
-			p.log.Info("input statsd exit")
+			l.Infof("input %v exit", inputName)
 			return
 		}
 	}
 }
 
-func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig, isTest bool) ([]byte, error) {
+func (i *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]inputs.Measurement, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
-	tags["host"] = p.input.Host
-	for tag, tagV := range p.input.Tags {
+	tags["host"] = i.Host
+	for tag, tagV := range i.Tags {
 		tags[tag] = tagV
 	}
 	//ssh检查
 	var sshRst bool
-	sshClient, err := ssh.Dial("tcp", p.input.Host, clientCfg)
+	sshClient, err := ssh.Dial("tcp", i.Host, clientCfg)
 	if err == nil {
 		sshRst = true
 		defer sshClient.Close()
@@ -228,7 +209,7 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig, isTest bool) ([]byte,
 	fields["ssh_check"] = sshRst
 
 	//sftp检查
-	if p.input.SftpCheck {
+	if i.SftpCheck {
 		var sftpRst bool
 		if err == nil {
 			sftp_client, err := sftp.NewClient(sshClient)
@@ -250,16 +231,14 @@ func (p *SshParam) getMetrics(clientCfg *ssh.ClientConfig, isTest bool) ([]byte,
 		fields["sftp_check"] = sftpRst
 	}
 
-	pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
-	if err != nil {
-		return nil, err
+	pt := &SshMeasurement{
+		i.MetricsName,
+		tags,
+		fields,
+		time.Now(),
 	}
 
-	if !isTest {
-		err = p.output.IoFeed(pt, datakit.Metric, inputName)
-	}
-
-	return pt, err
+	return []inputs.Measurement{pt}, err
 }
 
 func getMsInterval(d time.Duration) float64 {
@@ -269,7 +248,7 @@ func getMsInterval(d time.Duration) float64 {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		p := &Ssh{}
-		return p
+		i := &Input{}
+		return i
 	})
 }
