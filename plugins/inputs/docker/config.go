@@ -205,8 +205,8 @@ func (this *Input) loadCfg() (err error) {
 		if err != nil {
 			return
 		}
-		this.collectMetricDuration = datakit.ProtectedInterval(minCollectMetricDuration, maxCollectMetricDuration, dur)
-		l.Debugf("collect metrics interval %s", this.collectMetricDuration)
+		this.metricDuration = datakit.ProtectedInterval(minCollectMetricDuration, maxCollectMetricDuration, dur)
+		l.Debugf("collect metrics interval %s", this.metricDuration)
 	}
 
 	if err = this.initLoggingConf(); err != nil {
