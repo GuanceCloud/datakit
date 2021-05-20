@@ -53,11 +53,17 @@ const (
   [inputs.docker.tags]
     # tags1 = "value1"
 `
-	defaultEndpoint          = "unix:///var/run/docker.sock"
-	defaultAPITimeout        = time.Second * 5
+	defaultEndpoint = "unix:///var/run/docker.sock"
+	// Docker API 超时时间
+	defaultAPITimeout = time.Second * 5
+	// 最小指标采集间隔
 	minCollectMetricDuration = time.Second * 5
+	// 最大指标采集间隔
 	maxCollectMetricDuration = time.Second * 60
-	collectObjectDuration    = time.Minute * 5
+	// 对象采集间隔
+	collectObjectDuration = time.Minute * 5
+	// 定时发现新日志源
+	loggingHitDuration = time.Second * 5
 )
 
 var l = logger.DefaultSLogger(inputName)
