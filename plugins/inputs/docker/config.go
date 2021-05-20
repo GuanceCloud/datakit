@@ -20,36 +20,44 @@ const (
 
 	sampleCfg = `
 [inputs.docker]
-  # Docker Endpoint
-  # To use TCP, set endpoint = "tcp://[ip]:[port]"
-  # To use environment variables (ie, docker-machine), set endpoint = "ENV"
+  ## param type: string - default: unix:///var/run/docker.sock
+  ## To use TCP, set endpoint = "tcp://[ip]:[port]"
+  ## To use environment variables (ie, docker-machine), set endpoint = "ENV"
   endpoint = "unix:///var/run/docker.sock"
   
-  collect_metric = true
+  ## param type: boolean
+  collect_metric = false
   collect_object = true
   collect_logging = true
   
-  # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  ## param type: string - optional: time units are "ms", "s", "m", "h" - default: 10s
   collect_metric_interval = "10s"
   
-  # Is all containers, Return all containers. By default, only running containers are shown.
+  ## param type: boolean - default: false
+  ## Is all containers, Return all containers. By default, only running containers are shown.
   include_exited = false
   
-  ## Optional TLS Config
+  ## param type: string - optional: TLS Config
   # tls_ca = "/path/to/ca.pem"
   # tls_cert = "/path/to/cert.pem"
   # tls_key = "/path/to/key.pem"
-  ## Use TLS but skip chain & host verification
+  ## param type: boolean - optional: Use TLS but skip chain & host verification
   # insecure_skip_verify = false
   
-  #[[inputs.docker.logfilter]]
+  ## param type: logfilter object
+  # [[inputs.docker.logfilter]]
+
+    ## param type: string array
     # filter_message = [
     #    '''<this-is-message-regexp''',
     # ]
+
+    ## param type: string
     # source = "<your-source>"
     # service = "<your-service>"
     # pipeline = "<this-is-pipeline>"
   
+  ## param type: map object, string to string
   [inputs.docker.tags]
     # tags1 = "value1"
 `
