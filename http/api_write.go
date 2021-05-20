@@ -17,6 +17,8 @@ func apiWrite(c *gin.Context) {
 	var body []byte
 	var err error
 
+	input := DEFAULT_INPUT
+
 	category := ""
 
 	if x := c.Param(CATEGORY); x != "" {
@@ -25,10 +27,15 @@ func apiWrite(c *gin.Context) {
 			datakit.Logging,
 			datakit.Object,
 			datakit.Tracing,
-			datakit.Security,
-			datakit.KeyEvent,
-			datakit.Rum:
+			datakit.KeyEvent:
+
 			category = x
+		case datakit.Rum:
+			category = x
+			input = "rum"
+		case datakit.Security:
+			category = x
+			input = "sechecker"
 		default:
 			l.Debugf("invalid category: %s", x)
 			uhttp.HttpErr(c, ErrInvalidCategory)
@@ -40,7 +47,6 @@ func apiWrite(c *gin.Context) {
 		return
 	}
 
-	input := DEFAULT_INPUT
 	if x := c.Query(INPUT); x != "" {
 		input = x
 	}
