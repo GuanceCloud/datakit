@@ -6,7 +6,6 @@ import (
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	nhttp "net/http"
-	"strings"
 )
 
 var (
@@ -95,13 +94,15 @@ func RestartDatakit() error {
 
 func ReloadDatakit(port int) error {
 	// FIXME: 如果没有绑定在 localhost 怎么办? 此处需解析 datakit 所用的 conf
-	_, err := nhttp.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
-	if err != nil {
-		if strings.Contains(err.Error(), "monitor") {
-			return nil
-		}
-		return err
+	client := &nhttp.Client{
+		CheckRedirect: func(req *nhttp.Request, via []*nhttp.Request) error {
+			return nhttp.ErrUseLastResponse
+		},
+	}
+	_, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
+	if err == nhttp.ErrUseLastResponse {
+		return nil
 	}
 
-	return nil
+	return err
 }
