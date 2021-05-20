@@ -83,4 +83,6 @@ set global log_queries_not_using_indexes = 'ON';
 
 > 注意：在使用日志采集时，需要将 DataKit 安装在 MySQL 服务同一台主机中，或使用其它方式将日志挂载到 DataKit 所在机器
 
-> 另，MySQL 支持输出 RDS 格式的 pipeline，只需在配置文件中将 `pipeline` 参数改为 `mysql_rds.p` 即可
+### RDS 格式的慢日志切割
+
+MySQL 支持 RDS 格式的慢日志切割，只需在配置文件中将 `pipeline` 参数改为 `mysql_rds.p` 即可。
