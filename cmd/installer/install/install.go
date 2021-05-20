@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	bstoml "github.com/BurntSushi/toml"
 	"github.com/kardianos/service"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -134,52 +134,25 @@ func writeDefInputToMainCfg(mc *datakit.Config) {
 	}
 }
 
-func upgradeMainConfigure(cfg *datakit.Config, mcp string) error {
+func upgradeMainConfig(c *datakit.Config) (*datakit.Config, error) {
 
-	datakit.MoveDeprecatedCfg()
-
-	mcdata, err := ioutil.ReadFile(mcp)
-	if err != nil {
-		return err
+	if c.DataWay != nil {
+		c.DataWay.DeprecatedURL = ""
 	}
 
-	if _, err := bstoml.Decode(string(mcdata), cfg); err != nil {
-		return err
+	// XXX: 无脑更改日志位置
+	switch runtime.GOOS {
+	case datakit.OSWindows:
+		c.Log = filepath.Join(datakit.InstallDir, "log")
+		c.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
+	default:
+		c.Log = "/var/log/datakit/log"
+		c.GinLog = "/var/log/datakit/gin.log"
 	}
+	l.Debugf("set log to %s, remove ", c.Log)
+	l.Debugf("set gin log to %s", c.GinLog)
 
-	mc := cfg
-
-	if mc.DataWay.DeprecatedURL == "" { // use old-version configure fields to build @URL
-		mc.DataWay.DeprecatedURL = fmt.Sprintf("%s://%s", mc.DataWay.DeprecatedScheme, mc.DataWay.DeprecatedHost)
-	}
-
-	if mc.DataWay.DeprecatedToken != "" {
-		mc.DataWay.DeprecatedURL += fmt.Sprintf("?token=%s", mc.DataWay.DeprecatedToken)
-	}
-
-	// clear deprecated fields
-	mc.DataWay.DeprecatedToken = ""
-	mc.DataWay.DeprecatedHost = ""
-	mc.DataWay.DeprecatedScheme = ""
-
-	for _, v := range DefaultHostInputs {
-		exists := false
-		for _, iv := range mc.DefaultEnabledInputs {
-			if v == iv {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			mc.DefaultEnabledInputs = append(mc.DefaultEnabledInputs, v)
-		}
-	}
-
-	//backup datakit.conf
-	backfile := mcp + fmt.Sprintf(".bkp.%v", time.Now().Unix())
-	ioutil.WriteFile(backfile, mcdata, 0664)
-
-	return cfg.InitCfg(mcp)
+	return c, nil
 }
 
 func UpgradeDatakit(svc service.Service) error {
@@ -190,17 +163,7 @@ func UpgradeDatakit(svc service.Service) error {
 
 	mc := datakit.Cfg
 	if err := mc.LoadMainConfig(datakit.MainConfPath); err == nil {
-		mc.DataWay.DeprecatedURL = ""
-
-		// 将原来的日志位置，改成 /var/log/datakit 目录下(mac/linux, windows 继续维持原样)
-		if runtime.GOOS != datakit.OSWindows {
-			mc.Log = "/var/log/datakit/log"
-			l.Debugf("set log to %s, remove ", mc.Log)
-
-			mc.GinLog = "/var/log/datakit/gin.log"
-			l.Debugf("set gin log to %s", mc.GinLog)
-		}
-
+		mc, _ = upgradeMainConfig(mc)
 		writeDefInputToMainCfg(mc)
 	} else {
 		l.Warnf("load main config: %s, ignored", err.Error())
