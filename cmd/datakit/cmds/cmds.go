@@ -2,11 +2,11 @@ package cmds
 
 import (
 	"fmt"
-	nhttp "net/http"
-
 	"github.com/c-bata/go-prompt"
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	nhttp "net/http"
+	"strings"
 )
 
 var (
@@ -95,15 +95,13 @@ func RestartDatakit() error {
 
 func ReloadDatakit(port int) error {
 	// FIXME: 如果没有绑定在 localhost 怎么办? 此处需解析 datakit 所用的 conf
-	resp, err := nhttp.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
+	_, err := nhttp.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
 	if err != nil {
+		if strings.Contains(err.Error(), "monitor") {
+			return nil
+		}
 		return err
 	}
 
-	if resp.StatusCode == 200 {
-		l.Info("datakit reload successful")
-		return nil
-	} else {
-		return fmt.Errorf("datakit reload failed: %d", resp.StatusCode)
-	}
+	return nil
 }
