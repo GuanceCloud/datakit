@@ -34,15 +34,15 @@ const (
 [[inputs.ssh]]
 	interval = "60s"
 	host     = "127.0.0.1:22"
-	username = "xxx"
-	password = "xxx"
+	username = "<your_username>"
+	password = "<your_password>"
 	sftpCheck      = false
 	privateKeyFile = ""
 	metricsName    ="ssh"
-	[inputs.ssh.tags]
-		tag1 = "tag1"
-		tag2 = "tag2"
-		tag3 = "tag3"
+#	[inputs.ssh.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
 `
 )
 
