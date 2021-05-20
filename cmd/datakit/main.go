@@ -438,7 +438,7 @@ func runDatakitWithCmd() {
 		}
 
 		if err := cmds.ReloadDatakit(*flagReloadPort); err != nil {
-			fmt.Printf("Reload DataKit failed: %s\n", err)
+			fmt.Printf("Reload DataKit Failed\n")
 			os.Exit(-1)
 		}
 
