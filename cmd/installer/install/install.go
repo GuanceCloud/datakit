@@ -20,7 +20,8 @@ import (
 var (
 	l = logger.DefaultSLogger("install")
 
-	DefaultHostInputs = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes"}
+	DefaultHostInputs          = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes"}
+	DefaultHostInputsWithLinux = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "docker"}
 
 	OSArch = runtime.GOOS + "/" + runtime.GOARCH
 
@@ -115,10 +116,16 @@ func InstallNewDatakit(svc service.Service) {
 }
 
 func writeDefInputToMainCfg(mc *datakit.Config) {
+
+	var hostInputs = DefaultHostInputs
+	if runtime.GOOS == datakit.OSLinux {
+		hostInputs = DefaultHostInputsWithLinux
+	}
+
 	if EnableInputs == "" {
-		EnableInputs = strings.Join(DefaultHostInputs, ",")
+		EnableInputs = strings.Join(hostInputs, ",")
 	} else {
-		EnableInputs = EnableInputs + "," + strings.Join(DefaultHostInputs, ",")
+		EnableInputs = EnableInputs + "," + strings.Join(hostInputs, ",")
 	}
 
 	mc.EnableDefaultsInputs(EnableInputs)
