@@ -60,17 +60,12 @@ func getDataWayCfg() *datakit.DataWayCfg {
 				continue
 			}
 			break
-
 		}
 	} else {
 		dwUrls := []string{DataWayHTTP}
 		datakit.Cfg.DataWay.Urls = dwUrls
 		dc, err = datakit.ParseDataway(datakit.Cfg.DataWay.Urls)
 		if err != nil {
-			l.Fatal(err)
-		}
-
-		if err := dc.Test(); err != nil {
 			l.Fatal(err)
 		}
 	}
