@@ -333,6 +333,10 @@ func ParseIpCIDR(ipCidr string) (string, error) {
 }
 
 func SearchIsp(ip string) string {
+	if len(Ip2IspDb) == 0 {
+		return "unknown"
+	}
+
 	for i := 32; i > 0; i-- {
 		ipCidr := fmt.Sprintf("%s/%v", ip, i)
 		ipBitStr, _ := ParseIpCIDR(ipCidr)
@@ -345,8 +349,14 @@ func SearchIsp(ip string) string {
 
 func Init() error {
 	m := make(map[string]string)
+	f := filepath.Join(datakit.InstallDir, "data", "ip2isp.txt")
 
-	fd, err := os.Open(filepath.Join(datakit.InstallDir, "data", "ip2isp.txt"))
+	if !datakit.FileExist(f) {
+		l.Warnf("%v not found", f)
+		return nil
+	}
+
+	fd, err := os.Open(f)
 	if err != nil {
 		return err
 	}
