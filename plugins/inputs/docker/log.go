@@ -33,9 +33,6 @@ const (
 	useIOHighFreq = true
 )
 
-type containerLog struct {
-}
-
 func (this *Input) addToContainerList(containerID string, cancel context.CancelFunc) error {
 	this.mu.Lock()
 	defer this.mu.Unlock()
