@@ -2,6 +2,23 @@
 
 # DataKit 版本历史
 
+## 1.1.7-rc0(2021/05/20)
+
+### 发布说明
+
+新增采集器：
+
+- [Apache](apache)
+- [Jenkis](jenkis)
+- [Cloudprober 接入](cloudprober)
+- [Solr](solr)
+- [Tomcat](tomcat)
+- [SSH](ssh)
+- [Gitlab](gitlab)
+- [Mongodb](mongodb)
+
+其它各种 bug 修复。
+
 ## 1.1.6-rc7(2021/05/19)
 
 ### 发布说明
