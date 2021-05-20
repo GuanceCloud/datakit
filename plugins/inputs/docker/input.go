@@ -110,7 +110,7 @@ func (this *Input) initCfg() bool {
 	// 如果配置文件中使用默认 endpoint 且该文件不存在，说明其没有安装 docker（经测试，docker service 停止后，sock 文件依然存在）
 	// 此行为是为了应对 default_enabled_inputs 行为，避免在没有安装 docker 的主机上开启 docker，然后无限 error
 	if this.Endpoint == defaultEndpoint {
-		if _, err := os.Stat(this.Endpoint); os.IsNotExist(err) {
+		if _, err := os.Stat(defaultEndpointPath); os.IsNotExist(err) {
 			msg := fmt.Sprintf("check defaultEndpoint: %s is not exist, exit", this.Endpoint)
 			l.Errorf(msg)
 			io.FeedLastError(inputName, msg)
