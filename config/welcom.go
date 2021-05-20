@@ -5,6 +5,7 @@ var WelcomeMsgTemplate = `
 	<html>
 
 	<head>
+	  <meta charset="UTF-8">
 		<title>DataWay Endpoint</title>
 	</head>
 	<body>
