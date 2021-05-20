@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -34,9 +35,10 @@ type Input struct {
 	Tags                            map[string]string      `toml:"tags"`
 	DeprecatedLogOption             []*DeprecatedLogOption `toml:"log_option"`
 
-	collectMetricDuration time.Duration
-	collectObjectDuration time.Duration
-	timeoutDuration       time.Duration
+	metricDuration     time.Duration
+	objectDuration     time.Duration
+	loggingHitDuration time.Duration
+	apiTimeoutDuration time.Duration
 
 	newEnvClient         func() (Client, error)
 	newClient            func(string, *tls.Config) (Client, error)
@@ -53,14 +55,15 @@ type Input struct {
 
 func newInput() *Input {
 	return &Input{
-		Endpoint:              defaultEndpoint,
-		Tags:                  make(map[string]string),
-		newEnvClient:          NewEnvClient,
-		newClient:             NewClient,
-		collectMetricDuration: minCollectMetricDuration,
-		collectObjectDuration: collectObjectDuration,
-		timeoutDuration:       defaultAPITimeout,
-		containerLogList:      make(map[string]context.CancelFunc),
+		Endpoint:           defaultEndpoint,
+		Tags:               make(map[string]string),
+		newEnvClient:       NewEnvClient,
+		newClient:          NewClient,
+		metricDuration:     minCollectMetricDuration,
+		objectDuration:     collectObjectDuration,
+		loggingHitDuration: loggingHitDuration,
+		apiTimeoutDuration: defaultAPITimeout,
+		containerLogList:   make(map[string]context.CancelFunc),
 	}
 }
 
@@ -89,22 +92,34 @@ func (this *Input) Run() {
 	l.Info("docker input start")
 
 	if this.CollectMetric {
-		go this.gatherMetric(this.collectMetricDuration)
+		go this.gatherMetric()
 	}
 
 	if this.CollectObject {
-		go this.gatherObject(this.collectObjectDuration)
+		go this.gatherObject()
 	}
 
 	if this.CollectLogging {
-		// 共用同一个interval
-		go this.gatherLoggoing(this.collectMetricDuration)
+		go this.gatherLoggoing()
 	}
 
 	l.Info("docker exit success")
 }
 
 func (this *Input) initCfg() bool {
+	// 如果配置文件中使用默认 endpoint 且该文件不存在，说明其没有安装 docker（经测试，docker service 停止后，sock 文件依然存在）
+	// 此行为是为了应对 default_enabled_inputs 行为，避免在没有安装 docker 的主机上开启 docker，然后无限 error
+	if this.Endpoint == defaultEndpoint {
+		if _, err := os.Stat(defaultEndpointPath); os.IsNotExist(err) {
+			msg := fmt.Sprintf("check defaultEndpoint: %s is not exist, exit", this.Endpoint)
+			l.Errorf(msg)
+			io.FeedLastError(inputName, msg)
+
+			// 预料之中的退出
+			return true
+		}
+	}
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -131,20 +146,6 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&dockerContainersLogMeasurement{},
 	}
 }
-
-// type dockerMeasurement struct {
-// 	name   string
-// 	tags   map[string]string
-// 	fields map[string]interface{}
-// 	ts     time.Time
-// }
-//
-// type dockerLogMeasurement struct {
-// 	name   string
-// 	tags   map[string]string
-// 	fields map[string]interface{}
-// 	ts     time.Time
-// }
 
 const (
 	dockerContainersName = "docker_containers"
@@ -188,6 +189,7 @@ func (this *dockerContainersMeasurement) Info() *inputs.MeasurementInfo {
 			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "容器 CPU 增量"},
 			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "系统 CPU 增量"},
 			"cpu_numbers":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "CPU 核心数"},
+			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "容器对象详情，（仅在对象数据中存在）"},
 			"mem_limit":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "内存可用总量，如果未对容器做内存限制，则为主机内存容量"},
 			"mem_usage":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "内存使用量"},
 			"mem_used_percent":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "内存使用率，使用量除以可用总量"},
