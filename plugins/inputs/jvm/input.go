@@ -106,7 +106,7 @@ var JvmTypeMap = map[string]string{
 
 type Input struct {
 	inputs.JolokiaAgent
-	Tags map[string]string
+	Tags map[string]string `toml:"tags"`
 }
 
 func (i *Input) Run() {
@@ -118,7 +118,6 @@ func (i *Input) Run() {
 
 	i.JolokiaAgent.Tags = i.Tags
 	i.JolokiaAgent.Types = JvmTypeMap
-
 	i.JolokiaAgent.Collect()
 }
 
