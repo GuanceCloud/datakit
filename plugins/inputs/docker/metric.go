@@ -19,7 +19,7 @@ func (this *Input) gather(option ...*gatherOption) ([]*io.Point, error) {
 	}
 
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
+	ctx, cancel := context.WithTimeout(ctx, this.apiTimeoutDuration)
 	defer cancel()
 
 	cList, err := this.client.ContainerList(ctx, this.opts)
@@ -56,6 +56,27 @@ func (this *Input) gather(option ...*gatherOption) ([]*io.Point, error) {
 			if err != nil {
 				l.Error(err)
 				return
+			}
+
+			// 对象数据包含 message 字段，其值为 tags 和 fields 所有 Key/Value 的 JSON Marshal
+			if opt != nil && opt.IsObjectCategory {
+				// 将 tags 和 fields 降维到一层 K/V，避免观看混乱（另外一种方式是 struct{ Tags map[string]string, Fields map[string]interface{} } { // XX }
+				// 需要额外的时空间开销，但 object 采集频率不高，可以接受
+				message, err := json.Marshal(func() map[string]interface{} {
+					var result = make(map[string]interface{}, len(tags)+len(fields))
+					for k, v := range tags {
+						result[k] = v
+					}
+					for k, v := range fields {
+						result[k] = v
+					}
+					return result
+				})
+				if err != nil {
+					l.Error(err)
+					return
+				}
+				fields["message"] = string(message)
 			}
 
 			pt, err := io.MakePoint(dockerContainersName, tags, fields, time.Now())
