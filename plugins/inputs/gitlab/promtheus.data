@@ -1,0 +1,1249 @@
+# HELP deployments Multiprocess metric
+# TYPE deployments gauge
+deployments{version="13.11.4-ee"} 1
+# HELP gitlab_banzai_cacheless_render_real_duration_seconds Multiprocess metric
+# TYPE gitlab_banzai_cacheless_render_real_duration_seconds histogram
+gitlab_banzai_cacheless_render_real_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="+Inf"} 33
+gitlab_banzai_cacheless_render_real_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="0.001"} 0
+gitlab_banzai_cacheless_render_real_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="0.01"} 0
+gitlab_banzai_cacheless_render_real_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="0.1"} 21
+gitlab_banzai_cacheless_render_real_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="1"} 32
+gitlab_banzai_cacheless_render_real_duration_seconds_count{controller="HelpController",action="index",feature_category="not_owned"} 33
+gitlab_banzai_cacheless_render_real_duration_seconds_sum{controller="HelpController",action="index",feature_category="not_owned"} 16.670275287819095
+# HELP gitlab_cache_misses_total Multiprocess metric
+# TYPE gitlab_cache_misses_total counter
+gitlab_cache_misses_total{controller="HelpController",action="index",feature_category="not_owned"} 268
+gitlab_cache_misses_total{controller="MetricsController",action="index",feature_category=""} 4
+gitlab_cache_misses_total{controller="RootController",action="index",feature_category="projects"} 0
+# HELP gitlab_cache_operation_duration_seconds Multiprocess metric
+# TYPE gitlab_cache_operation_duration_seconds histogram
+gitlab_cache_operation_duration_seconds_bucket{operation="read",le="+Inf"} 630
+gitlab_cache_operation_duration_seconds_bucket{operation="read",le="0.0001"} 364
+gitlab_cache_operation_duration_seconds_bucket{operation="read",le="0.001"} 600
+gitlab_cache_operation_duration_seconds_bucket{operation="read",le="0.01"} 630
+gitlab_cache_operation_duration_seconds_bucket{operation="read",le="0.1"} 630
+gitlab_cache_operation_duration_seconds_bucket{operation="read",le="1.0"} 630
+gitlab_cache_operation_duration_seconds_bucket{operation="read",le="1.0e-05"} 0
+gitlab_cache_operation_duration_seconds_bucket{operation="write",le="+Inf"} 239
+gitlab_cache_operation_duration_seconds_bucket{operation="write",le="0.0001"} 186
+gitlab_cache_operation_duration_seconds_bucket{operation="write",le="0.001"} 234
+gitlab_cache_operation_duration_seconds_bucket{operation="write",le="0.01"} 239
+gitlab_cache_operation_duration_seconds_bucket{operation="write",le="0.1"} 239
+gitlab_cache_operation_duration_seconds_bucket{operation="write",le="1.0"} 239
+gitlab_cache_operation_duration_seconds_bucket{operation="write",le="1.0e-05"} 0
+gitlab_cache_operation_duration_seconds_count{operation="read"} 630
+gitlab_cache_operation_duration_seconds_count{operation="write"} 239
+gitlab_cache_operation_duration_seconds_sum{operation="read"} 0.21287668112199754
+gitlab_cache_operation_duration_seconds_sum{operation="write"} 0.0513931296300143
+# HELP gitlab_cache_operations_total Multiprocess metric
+# TYPE gitlab_cache_operations_total counter
+gitlab_cache_operations_total{controller="HelpController",action="index",feature_category="not_owned",operation="read"} 622
+gitlab_cache_operations_total{controller="HelpController",action="index",feature_category="not_owned",operation="write"} 235
+gitlab_cache_operations_total{controller="MetricsController",action="index",feature_category="",operation="read"} 8
+gitlab_cache_operations_total{controller="MetricsController",action="index",feature_category="",operation="write"} 4
+gitlab_cache_operations_total{controller="RootController",action="index",feature_category="projects",operation="read"} 0
+gitlab_cache_operations_total{controller="RootController",action="index",feature_category="projects",operation="write"} 0
+# HELP gitlab_database_connection_pool_busy Multiprocess metric
+# TYPE gitlab_database_connection_pool_busy gauge
+gitlab_database_connection_pool_busy{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_0"} 0
+gitlab_database_connection_pool_busy{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_1"} 0
+gitlab_database_connection_pool_busy{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_2"} 0
+gitlab_database_connection_pool_busy{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_3"} 0
+gitlab_database_connection_pool_busy{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_4"} 0
+gitlab_database_connection_pool_busy{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_5"} 0
+# HELP gitlab_database_connection_pool_connections Multiprocess metric
+# TYPE gitlab_database_connection_pool_connections gauge
+gitlab_database_connection_pool_connections{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_0"} 1
+gitlab_database_connection_pool_connections{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_1"} 1
+gitlab_database_connection_pool_connections{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_2"} 1
+gitlab_database_connection_pool_connections{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_3"} 1
+gitlab_database_connection_pool_connections{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_4"} 1
+gitlab_database_connection_pool_connections{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_5"} 1
+# HELP gitlab_database_connection_pool_dead Multiprocess metric
+# TYPE gitlab_database_connection_pool_dead gauge
+gitlab_database_connection_pool_dead{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_0"} 0
+gitlab_database_connection_pool_dead{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_1"} 0
+gitlab_database_connection_pool_dead{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_2"} 0
+gitlab_database_connection_pool_dead{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_3"} 0
+gitlab_database_connection_pool_dead{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_4"} 0
+gitlab_database_connection_pool_dead{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_5"} 0
+# HELP gitlab_database_connection_pool_idle Multiprocess metric
+# TYPE gitlab_database_connection_pool_idle gauge
+gitlab_database_connection_pool_idle{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_0"} 1
+gitlab_database_connection_pool_idle{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_1"} 1
+gitlab_database_connection_pool_idle{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_2"} 1
+gitlab_database_connection_pool_idle{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_3"} 1
+gitlab_database_connection_pool_idle{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_4"} 1
+gitlab_database_connection_pool_idle{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_5"} 1
+# HELP gitlab_database_connection_pool_size Multiprocess metric
+# TYPE gitlab_database_connection_pool_size gauge
+gitlab_database_connection_pool_size{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_0"} 15
+gitlab_database_connection_pool_size{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_1"} 15
+gitlab_database_connection_pool_size{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_2"} 15
+gitlab_database_connection_pool_size{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_3"} 15
+gitlab_database_connection_pool_size{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_4"} 15
+gitlab_database_connection_pool_size{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_5"} 15
+# HELP gitlab_database_connection_pool_waiting Multiprocess metric
+# TYPE gitlab_database_connection_pool_waiting gauge
+gitlab_database_connection_pool_waiting{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_0"} 0
+gitlab_database_connection_pool_waiting{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_1"} 0
+gitlab_database_connection_pool_waiting{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_2"} 0
+gitlab_database_connection_pool_waiting{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_3"} 0
+gitlab_database_connection_pool_waiting{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_4"} 0
+gitlab_database_connection_pool_waiting{host="/var/opt/gitlab/postgresql",port="5432",class="ActiveRecord::Base",pid="puma_5"} 0
+# HELP gitlab_rails_queue_duration_seconds Multiprocess metric
+# TYPE gitlab_rails_queue_duration_seconds histogram
+gitlab_rails_queue_duration_seconds_bucket{controller="",action="",feature_category="",le="+Inf"} 38
+gitlab_rails_queue_duration_seconds_bucket{controller="",action="",feature_category="",le="0.005"} 5
+gitlab_rails_queue_duration_seconds_bucket{controller="",action="",feature_category="",le="0.01"} 10
+gitlab_rails_queue_duration_seconds_bucket{controller="",action="",feature_category="",le="0.025"} 25
+gitlab_rails_queue_duration_seconds_bucket{controller="",action="",feature_category="",le="0.05"} 31
+gitlab_rails_queue_duration_seconds_bucket{controller="",action="",feature_category="",le="0.1"} 34
+gitlab_rails_queue_duration_seconds_bucket{controller="",action="",feature_category="",le="0.25"} 37
+gitlab_rails_queue_duration_seconds_bucket{controller="",action="",feature_category="",le="0.5"} 37
+gitlab_rails_queue_duration_seconds_bucket{controller="",action="",feature_category="",le="1"} 37
+gitlab_rails_queue_duration_seconds_bucket{controller="",action="",feature_category="",le="10"} 38
+gitlab_rails_queue_duration_seconds_bucket{controller="",action="",feature_category="",le="2.5"} 37
+gitlab_rails_queue_duration_seconds_bucket{controller="",action="",feature_category="",le="5"} 38
+gitlab_rails_queue_duration_seconds_count{controller="",action="",feature_category=""} 38
+gitlab_rails_queue_duration_seconds_sum{controller="",action="",feature_category=""} 4.410736
+# HELP gitlab_redis_client_requests_duration_seconds Multiprocess metric
+# TYPE gitlab_redis_client_requests_duration_seconds histogram
+gitlab_redis_client_requests_duration_seconds_bucket{storage="cache",le="+Inf"} 364
+gitlab_redis_client_requests_duration_seconds_bucket{storage="cache",le="0.1"} 362
+gitlab_redis_client_requests_duration_seconds_bucket{storage="cache",le="0.5"} 364
+gitlab_redis_client_requests_duration_seconds_bucket{storage="cache",le="0.75"} 364
+gitlab_redis_client_requests_duration_seconds_bucket{storage="cache",le="1"} 364
+gitlab_redis_client_requests_duration_seconds_bucket{storage="shared_state",le="+Inf"} 33
+gitlab_redis_client_requests_duration_seconds_bucket{storage="shared_state",le="0.1"} 33
+gitlab_redis_client_requests_duration_seconds_bucket{storage="shared_state",le="0.5"} 33
+gitlab_redis_client_requests_duration_seconds_bucket{storage="shared_state",le="0.75"} 33
+gitlab_redis_client_requests_duration_seconds_bucket{storage="shared_state",le="1"} 33
+gitlab_redis_client_requests_duration_seconds_count{storage="cache"} 364
+gitlab_redis_client_requests_duration_seconds_count{storage="shared_state"} 33
+gitlab_redis_client_requests_duration_seconds_sum{storage="cache"} 0.90988048199999982
+gitlab_redis_client_requests_duration_seconds_sum{storage="shared_state"} 0.034248632999999994
+# HELP gitlab_redis_client_requests_total Multiprocess metric
+# TYPE gitlab_redis_client_requests_total counter
+gitlab_redis_client_requests_total{storage="cache"} 364
+gitlab_redis_client_requests_total{storage="shared_state"} 33
+# HELP gitlab_ruby_threads_max_expected_threads Multiprocess metric
+# TYPE gitlab_ruby_threads_max_expected_threads gauge
+gitlab_ruby_threads_max_expected_threads{pid="puma_0"} 5
+gitlab_ruby_threads_max_expected_threads{pid="puma_1"} 5
+gitlab_ruby_threads_max_expected_threads{pid="puma_2"} 5
+gitlab_ruby_threads_max_expected_threads{pid="puma_3"} 5
+gitlab_ruby_threads_max_expected_threads{pid="puma_4"} 5
+gitlab_ruby_threads_max_expected_threads{pid="puma_5"} 5
+# HELP gitlab_ruby_threads_running_threads Multiprocess metric
+# TYPE gitlab_ruby_threads_running_threads gauge
+gitlab_ruby_threads_running_threads{thread_name="database_sampler",uses_db_connection="no",pid="puma_0"} 1
+gitlab_ruby_threads_running_threads{thread_name="database_sampler",uses_db_connection="no",pid="puma_1"} 1
+gitlab_ruby_threads_running_threads{thread_name="database_sampler",uses_db_connection="no",pid="puma_2"} 1
+gitlab_ruby_threads_running_threads{thread_name="database_sampler",uses_db_connection="no",pid="puma_3"} 1
+gitlab_ruby_threads_running_threads{thread_name="database_sampler",uses_db_connection="no",pid="puma_4"} 1
+gitlab_ruby_threads_running_threads{thread_name="database_sampler",uses_db_connection="no",pid="puma_5"} 1
+gitlab_ruby_threads_running_threads{thread_name="database_sampler",uses_db_connection="yes",pid="puma_0"} 0
+gitlab_ruby_threads_running_threads{thread_name="database_sampler",uses_db_connection="yes",pid="puma_1"} 0
+gitlab_ruby_threads_running_threads{thread_name="database_sampler",uses_db_connection="yes",pid="puma_2"} 0
+gitlab_ruby_threads_running_threads{thread_name="database_sampler",uses_db_connection="yes",pid="puma_3"} 0
+gitlab_ruby_threads_running_threads{thread_name="database_sampler",uses_db_connection="yes",pid="puma_4"} 0
+gitlab_ruby_threads_running_threads{thread_name="database_sampler",uses_db_connection="yes",pid="puma_5"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma server",uses_db_connection="no",pid="puma_0"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma server",uses_db_connection="no",pid="puma_1"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma server",uses_db_connection="no",pid="puma_2"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma server",uses_db_connection="no",pid="puma_3"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma server",uses_db_connection="no",pid="puma_4"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma server",uses_db_connection="no",pid="puma_5"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma server",uses_db_connection="yes",pid="puma_0"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma server",uses_db_connection="yes",pid="puma_1"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma server",uses_db_connection="yes",pid="puma_2"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma server",uses_db_connection="yes",pid="puma_3"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma server",uses_db_connection="yes",pid="puma_4"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma server",uses_db_connection="yes",pid="puma_5"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma stat payload",uses_db_connection="no",pid="puma_0"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma stat payload",uses_db_connection="no",pid="puma_1"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma stat payload",uses_db_connection="no",pid="puma_2"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma stat payload",uses_db_connection="no",pid="puma_3"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma stat payload",uses_db_connection="no",pid="puma_4"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma stat payload",uses_db_connection="no",pid="puma_5"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma stat payload",uses_db_connection="yes",pid="puma_0"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma stat payload",uses_db_connection="yes",pid="puma_1"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma stat payload",uses_db_connection="yes",pid="puma_2"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma stat payload",uses_db_connection="yes",pid="puma_3"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma stat payload",uses_db_connection="yes",pid="puma_4"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma stat payload",uses_db_connection="yes",pid="puma_5"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool reaper",uses_db_connection="no",pid="puma_0"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool reaper",uses_db_connection="no",pid="puma_1"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool reaper",uses_db_connection="no",pid="puma_2"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool reaper",uses_db_connection="no",pid="puma_3"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool reaper",uses_db_connection="no",pid="puma_4"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool reaper",uses_db_connection="no",pid="puma_5"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool reaper",uses_db_connection="yes",pid="puma_0"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool reaper",uses_db_connection="yes",pid="puma_1"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool reaper",uses_db_connection="yes",pid="puma_2"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool reaper",uses_db_connection="yes",pid="puma_3"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool reaper",uses_db_connection="yes",pid="puma_4"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool reaper",uses_db_connection="yes",pid="puma_5"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool trimmer",uses_db_connection="no",pid="puma_0"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool trimmer",uses_db_connection="no",pid="puma_1"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool trimmer",uses_db_connection="no",pid="puma_2"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool trimmer",uses_db_connection="no",pid="puma_3"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool trimmer",uses_db_connection="no",pid="puma_4"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool trimmer",uses_db_connection="no",pid="puma_5"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool trimmer",uses_db_connection="yes",pid="puma_0"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool trimmer",uses_db_connection="yes",pid="puma_1"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool trimmer",uses_db_connection="yes",pid="puma_2"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool trimmer",uses_db_connection="yes",pid="puma_3"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool trimmer",uses_db_connection="yes",pid="puma_4"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool trimmer",uses_db_connection="yes",pid="puma_5"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool",uses_db_connection="no",pid="puma_0"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool",uses_db_connection="no",pid="puma_1"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool",uses_db_connection="no",pid="puma_2"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool",uses_db_connection="no",pid="puma_3"} 2
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool",uses_db_connection="no",pid="puma_4"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool",uses_db_connection="no",pid="puma_5"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool",uses_db_connection="yes",pid="puma_0"} 3
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool",uses_db_connection="yes",pid="puma_1"} 3
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool",uses_db_connection="yes",pid="puma_2"} 3
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool",uses_db_connection="yes",pid="puma_3"} 2
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool",uses_db_connection="yes",pid="puma_4"} 4
+gitlab_ruby_threads_running_threads{thread_name="puma threadpool",uses_db_connection="yes",pid="puma_5"} 3
+gitlab_ruby_threads_running_threads{thread_name="puma worker check pipe",uses_db_connection="no",pid="puma_0"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma worker check pipe",uses_db_connection="no",pid="puma_1"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma worker check pipe",uses_db_connection="no",pid="puma_2"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma worker check pipe",uses_db_connection="no",pid="puma_3"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma worker check pipe",uses_db_connection="no",pid="puma_4"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma worker check pipe",uses_db_connection="no",pid="puma_5"} 1
+gitlab_ruby_threads_running_threads{thread_name="puma worker check pipe",uses_db_connection="yes",pid="puma_0"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma worker check pipe",uses_db_connection="yes",pid="puma_1"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma worker check pipe",uses_db_connection="yes",pid="puma_2"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma worker check pipe",uses_db_connection="yes",pid="puma_3"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma worker check pipe",uses_db_connection="yes",pid="puma_4"} 0
+gitlab_ruby_threads_running_threads{thread_name="puma worker check pipe",uses_db_connection="yes",pid="puma_5"} 0
+gitlab_ruby_threads_running_threads{thread_name="ruby_sampler",uses_db_connection="no",pid="puma_0"} 1
+gitlab_ruby_threads_running_threads{thread_name="ruby_sampler",uses_db_connection="no",pid="puma_1"} 1
+gitlab_ruby_threads_running_threads{thread_name="ruby_sampler",uses_db_connection="no",pid="puma_2"} 1
+gitlab_ruby_threads_running_threads{thread_name="ruby_sampler",uses_db_connection="no",pid="puma_3"} 1
+gitlab_ruby_threads_running_threads{thread_name="ruby_sampler",uses_db_connection="no",pid="puma_4"} 1
+gitlab_ruby_threads_running_threads{thread_name="ruby_sampler",uses_db_connection="no",pid="puma_5"} 1
+gitlab_ruby_threads_running_threads{thread_name="ruby_sampler",uses_db_connection="yes",pid="puma_0"} 0
+gitlab_ruby_threads_running_threads{thread_name="ruby_sampler",uses_db_connection="yes",pid="puma_1"} 0
+gitlab_ruby_threads_running_threads{thread_name="ruby_sampler",uses_db_connection="yes",pid="puma_2"} 0
+gitlab_ruby_threads_running_threads{thread_name="ruby_sampler",uses_db_connection="yes",pid="puma_3"} 0
+gitlab_ruby_threads_running_threads{thread_name="ruby_sampler",uses_db_connection="yes",pid="puma_4"} 0
+gitlab_ruby_threads_running_threads{thread_name="ruby_sampler",uses_db_connection="yes",pid="puma_5"} 0
+gitlab_ruby_threads_running_threads{thread_name="threads_sampler",uses_db_connection="no",pid="puma_0"} 1
+gitlab_ruby_threads_running_threads{thread_name="threads_sampler",uses_db_connection="no",pid="puma_1"} 1
+gitlab_ruby_threads_running_threads{thread_name="threads_sampler",uses_db_connection="no",pid="puma_2"} 1
+gitlab_ruby_threads_running_threads{thread_name="threads_sampler",uses_db_connection="no",pid="puma_3"} 1
+gitlab_ruby_threads_running_threads{thread_name="threads_sampler",uses_db_connection="no",pid="puma_4"} 1
+gitlab_ruby_threads_running_threads{thread_name="threads_sampler",uses_db_connection="no",pid="puma_5"} 1
+gitlab_ruby_threads_running_threads{thread_name="threads_sampler",uses_db_connection="yes",pid="puma_0"} 0
+gitlab_ruby_threads_running_threads{thread_name="threads_sampler",uses_db_connection="yes",pid="puma_1"} 0
+gitlab_ruby_threads_running_threads{thread_name="threads_sampler",uses_db_connection="yes",pid="puma_2"} 0
+gitlab_ruby_threads_running_threads{thread_name="threads_sampler",uses_db_connection="yes",pid="puma_3"} 0
+gitlab_ruby_threads_running_threads{thread_name="threads_sampler",uses_db_connection="yes",pid="puma_4"} 0
+gitlab_ruby_threads_running_threads{thread_name="threads_sampler",uses_db_connection="yes",pid="puma_5"} 0
+gitlab_ruby_threads_running_threads{thread_name="unnamed",uses_db_connection="no",pid="puma_0"} 2
+gitlab_ruby_threads_running_threads{thread_name="unnamed",uses_db_connection="no",pid="puma_1"} 2
+gitlab_ruby_threads_running_threads{thread_name="unnamed",uses_db_connection="no",pid="puma_2"} 1
+gitlab_ruby_threads_running_threads{thread_name="unnamed",uses_db_connection="no",pid="puma_3"} 2
+gitlab_ruby_threads_running_threads{thread_name="unnamed",uses_db_connection="no",pid="puma_4"} 1
+gitlab_ruby_threads_running_threads{thread_name="unnamed",uses_db_connection="no",pid="puma_5"} 1
+gitlab_ruby_threads_running_threads{thread_name="unnamed",uses_db_connection="yes",pid="puma_0"} 1
+gitlab_ruby_threads_running_threads{thread_name="unnamed",uses_db_connection="yes",pid="puma_1"} 1
+gitlab_ruby_threads_running_threads{thread_name="unnamed",uses_db_connection="yes",pid="puma_2"} 1
+gitlab_ruby_threads_running_threads{thread_name="unnamed",uses_db_connection="yes",pid="puma_3"} 1
+gitlab_ruby_threads_running_threads{thread_name="unnamed",uses_db_connection="yes",pid="puma_4"} 1
+gitlab_ruby_threads_running_threads{thread_name="unnamed",uses_db_connection="yes",pid="puma_5"} 1
+# HELP gitlab_sql_duration_seconds Multiprocess metric
+# TYPE gitlab_sql_duration_seconds histogram
+gitlab_sql_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="+Inf"} 221
+gitlab_sql_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="0.05"} 220
+gitlab_sql_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="0.1"} 221
+gitlab_sql_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="0.25"} 221
+gitlab_sql_duration_seconds_bucket{controller="RootController",action="index",feature_category="projects",le="+Inf"} 0
+gitlab_sql_duration_seconds_bucket{controller="RootController",action="index",feature_category="projects",le="0.05"} 0
+gitlab_sql_duration_seconds_bucket{controller="RootController",action="index",feature_category="projects",le="0.1"} 0
+gitlab_sql_duration_seconds_bucket{controller="RootController",action="index",feature_category="projects",le="0.25"} 0
+gitlab_sql_duration_seconds_count{controller="HelpController",action="index",feature_category="not_owned"} 221
+gitlab_sql_duration_seconds_count{controller="RootController",action="index",feature_category="projects"} 0
+gitlab_sql_duration_seconds_sum{controller="HelpController",action="index",feature_category="not_owned"} 0.34428647125605494
+gitlab_sql_duration_seconds_sum{controller="RootController",action="index",feature_category="projects"} 0
+# HELP gitlab_transaction_cache_read_hit_count_total Multiprocess metric
+# TYPE gitlab_transaction_cache_read_hit_count_total counter
+gitlab_transaction_cache_read_hit_count_total{controller="HelpController",action="index",feature_category="not_owned"} 107
+gitlab_transaction_cache_read_hit_count_total{controller="MetricsController",action="index",feature_category=""} 4
+# HELP gitlab_transaction_cache_read_miss_count_total Multiprocess metric
+# TYPE gitlab_transaction_cache_read_miss_count_total counter
+gitlab_transaction_cache_read_miss_count_total{controller="HelpController",action="index",feature_category="not_owned"} 86
+gitlab_transaction_cache_read_miss_count_total{controller="MetricsController",action="index",feature_category=""} 4
+gitlab_transaction_cache_read_miss_count_total{controller="RootController",action="index",feature_category="projects"} 0
+# HELP gitlab_transaction_db_cached_count_total Multiprocess metric
+# TYPE gitlab_transaction_db_cached_count_total counter
+gitlab_transaction_db_cached_count_total{controller="HelpController",action="index",feature_category="not_owned"} 132
+# HELP gitlab_transaction_db_count_total Multiprocess metric
+# TYPE gitlab_transaction_db_count_total counter
+gitlab_transaction_db_count_total{controller="HelpController",action="index",feature_category="not_owned"} 221
+gitlab_transaction_db_count_total{controller="RootController",action="index",feature_category="projects"} 0
+# HELP gitlab_transaction_duration_seconds Multiprocess metric
+# TYPE gitlab_transaction_duration_seconds histogram
+gitlab_transaction_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="+Inf"} 33
+gitlab_transaction_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="0.1"} 0
+gitlab_transaction_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="0.25"} 20
+gitlab_transaction_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="0.5"} 24
+gitlab_transaction_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="1.0"} 29
+gitlab_transaction_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="2.5"} 32
+gitlab_transaction_duration_seconds_bucket{controller="HelpController",action="index",feature_category="not_owned",le="5.0"} 32
+gitlab_transaction_duration_seconds_bucket{controller="MetricsController",action="index",feature_category="",le="+Inf"} 140
+gitlab_transaction_duration_seconds_bucket{controller="MetricsController",action="index",feature_category="",le="0.1"} 136
+gitlab_transaction_duration_seconds_bucket{controller="MetricsController",action="index",feature_category="",le="0.25"} 137
+gitlab_transaction_duration_seconds_bucket{controller="MetricsController",action="index",feature_category="",le="0.5"} 138
+gitlab_transaction_duration_seconds_bucket{controller="MetricsController",action="index",feature_category="",le="1.0"} 138
+gitlab_transaction_duration_seconds_bucket{controller="MetricsController",action="index",feature_category="",le="2.5"} 139
+gitlab_transaction_duration_seconds_bucket{controller="MetricsController",action="index",feature_category="",le="5.0"} 139
+gitlab_transaction_duration_seconds_bucket{controller="RootController",action="index",feature_category="projects",le="+Inf"} 0
+gitlab_transaction_duration_seconds_bucket{controller="RootController",action="index",feature_category="projects",le="0.1"} 0
+gitlab_transaction_duration_seconds_bucket{controller="RootController",action="index",feature_category="projects",le="0.25"} 0
+gitlab_transaction_duration_seconds_bucket{controller="RootController",action="index",feature_category="projects",le="0.5"} 0
+gitlab_transaction_duration_seconds_bucket{controller="RootController",action="index",feature_category="projects",le="1.0"} 0
+gitlab_transaction_duration_seconds_bucket{controller="RootController",action="index",feature_category="projects",le="2.5"} 0
+gitlab_transaction_duration_seconds_bucket{controller="RootController",action="index",feature_category="projects",le="5.0"} 0
+gitlab_transaction_duration_seconds_count{controller="HelpController",action="index",feature_category="not_owned"} 33
+gitlab_transaction_duration_seconds_count{controller="MetricsController",action="index",feature_category=""} 140
+gitlab_transaction_duration_seconds_count{controller="RootController",action="index",feature_category="projects"} 0
+gitlab_transaction_duration_seconds_sum{controller="HelpController",action="index",feature_category="not_owned"} 58.792698075762019
+gitlab_transaction_duration_seconds_sum{controller="MetricsController",action="index",feature_category=""} 9.61207451520022
+gitlab_transaction_duration_seconds_sum{controller="RootController",action="index",feature_category="projects"} 0
+# HELP gitlab_transaction_new_redis_connections_total Multiprocess metric
+# TYPE gitlab_transaction_new_redis_connections_total counter
+gitlab_transaction_new_redis_connections_total{controller="HelpController",action="index",feature_category="not_owned"} 1
+gitlab_transaction_new_redis_connections_total{controller="MetricsController",action="index",feature_category=""} 1
+# HELP gitlab_transaction_rails_queue_duration_total Multiprocess metric
+# TYPE gitlab_transaction_rails_queue_duration_total gauge
+gitlab_transaction_rails_queue_duration_total{controller="",action="",feature_category=""} 68.86865234375
+# HELP gitlab_transaction_view_duration_total Multiprocess metric
+# TYPE gitlab_transaction_view_duration_total counter
+gitlab_transaction_view_duration_total{controller="HelpController",action="index",feature_category="not_owned"} 55214.90357327275
+gitlab_transaction_view_duration_total{controller="MetricsController",action="index",feature_category=""} 7.3693692684173584
+# HELP http_health_requests_total Multiprocess metric
+# TYPE http_health_requests_total counter
+http_health_requests_total{status="200",method="get"} 140
+# HELP http_request_duration_seconds Multiprocess metric
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{method="delete",le="+Inf"} 0
+http_request_duration_seconds_bucket{method="delete",le="0.05"} 0
+http_request_duration_seconds_bucket{method="delete",le="0.1"} 0
+http_request_duration_seconds_bucket{method="delete",le="0.25"} 0
+http_request_duration_seconds_bucket{method="delete",le="0.5"} 0
+http_request_duration_seconds_bucket{method="delete",le="0.7"} 0
+http_request_duration_seconds_bucket{method="delete",le="1"} 0
+http_request_duration_seconds_bucket{method="delete",le="10"} 0
+http_request_duration_seconds_bucket{method="delete",le="2.5"} 0
+http_request_duration_seconds_bucket{method="delete",le="25"} 0
+http_request_duration_seconds_bucket{method="delete",le="5"} 0
+http_request_duration_seconds_bucket{method="get",le="+Inf"} 33
+http_request_duration_seconds_bucket{method="get",le="0.05"} 0
+http_request_duration_seconds_bucket{method="get",le="0.1"} 0
+http_request_duration_seconds_bucket{method="get",le="0.25"} 19
+http_request_duration_seconds_bucket{method="get",le="0.5"} 24
+http_request_duration_seconds_bucket{method="get",le="0.7"} 28
+http_request_duration_seconds_bucket{method="get",le="1"} 28
+http_request_duration_seconds_bucket{method="get",le="10"} 32
+http_request_duration_seconds_bucket{method="get",le="2.5"} 32
+http_request_duration_seconds_bucket{method="get",le="25"} 32
+http_request_duration_seconds_bucket{method="get",le="5"} 32
+http_request_duration_seconds_bucket{method="head",le="+Inf"} 0
+http_request_duration_seconds_bucket{method="head",le="0.05"} 0
+http_request_duration_seconds_bucket{method="head",le="0.1"} 0
+http_request_duration_seconds_bucket{method="head",le="0.25"} 0
+http_request_duration_seconds_bucket{method="head",le="0.5"} 0
+http_request_duration_seconds_bucket{method="head",le="0.7"} 0
+http_request_duration_seconds_bucket{method="head",le="1"} 0
+http_request_duration_seconds_bucket{method="head",le="10"} 0
+http_request_duration_seconds_bucket{method="head",le="2.5"} 0
+http_request_duration_seconds_bucket{method="head",le="25"} 0
+http_request_duration_seconds_bucket{method="head",le="5"} 0
+http_request_duration_seconds_bucket{method="options",le="+Inf"} 0
+http_request_duration_seconds_bucket{method="options",le="0.05"} 0
+http_request_duration_seconds_bucket{method="options",le="0.1"} 0
+http_request_duration_seconds_bucket{method="options",le="0.25"} 0
+http_request_duration_seconds_bucket{method="options",le="0.5"} 0
+http_request_duration_seconds_bucket{method="options",le="0.7"} 0
+http_request_duration_seconds_bucket{method="options",le="1"} 0
+http_request_duration_seconds_bucket{method="options",le="10"} 0
+http_request_duration_seconds_bucket{method="options",le="2.5"} 0
+http_request_duration_seconds_bucket{method="options",le="25"} 0
+http_request_duration_seconds_bucket{method="options",le="5"} 0
+http_request_duration_seconds_bucket{method="patch",le="+Inf"} 0
+http_request_duration_seconds_bucket{method="patch",le="0.05"} 0
+http_request_duration_seconds_bucket{method="patch",le="0.1"} 0
+http_request_duration_seconds_bucket{method="patch",le="0.25"} 0
+http_request_duration_seconds_bucket{method="patch",le="0.5"} 0
+http_request_duration_seconds_bucket{method="patch",le="0.7"} 0
+http_request_duration_seconds_bucket{method="patch",le="1"} 0
+http_request_duration_seconds_bucket{method="patch",le="10"} 0
+http_request_duration_seconds_bucket{method="patch",le="2.5"} 0
+http_request_duration_seconds_bucket{method="patch",le="25"} 0
+http_request_duration_seconds_bucket{method="patch",le="5"} 0
+http_request_duration_seconds_bucket{method="post",le="+Inf"} 0
+http_request_duration_seconds_bucket{method="post",le="0.05"} 0
+http_request_duration_seconds_bucket{method="post",le="0.1"} 0
+http_request_duration_seconds_bucket{method="post",le="0.25"} 0
+http_request_duration_seconds_bucket{method="post",le="0.5"} 0
+http_request_duration_seconds_bucket{method="post",le="0.7"} 0
+http_request_duration_seconds_bucket{method="post",le="1"} 0
+http_request_duration_seconds_bucket{method="post",le="10"} 0
+http_request_duration_seconds_bucket{method="post",le="2.5"} 0
+http_request_duration_seconds_bucket{method="post",le="25"} 0
+http_request_duration_seconds_bucket{method="post",le="5"} 0
+http_request_duration_seconds_bucket{method="put",le="+Inf"} 0
+http_request_duration_seconds_bucket{method="put",le="0.05"} 0
+http_request_duration_seconds_bucket{method="put",le="0.1"} 0
+http_request_duration_seconds_bucket{method="put",le="0.25"} 0
+http_request_duration_seconds_bucket{method="put",le="0.5"} 0
+http_request_duration_seconds_bucket{method="put",le="0.7"} 0
+http_request_duration_seconds_bucket{method="put",le="1"} 0
+http_request_duration_seconds_bucket{method="put",le="10"} 0
+http_request_duration_seconds_bucket{method="put",le="2.5"} 0
+http_request_duration_seconds_bucket{method="put",le="25"} 0
+http_request_duration_seconds_bucket{method="put",le="5"} 0
+http_request_duration_seconds_count{method="delete"} 0
+http_request_duration_seconds_count{method="get"} 33
+http_request_duration_seconds_count{method="head"} 0
+http_request_duration_seconds_count{method="options"} 0
+http_request_duration_seconds_count{method="patch"} 0
+http_request_duration_seconds_count{method="post"} 0
+http_request_duration_seconds_count{method="put"} 0
+http_request_duration_seconds_sum{method="delete"} 0
+http_request_duration_seconds_sum{method="get"} 62.857285022735596
+http_request_duration_seconds_sum{method="head"} 0
+http_request_duration_seconds_sum{method="options"} 0
+http_request_duration_seconds_sum{method="patch"} 0
+http_request_duration_seconds_sum{method="post"} 0
+http_request_duration_seconds_sum{method="put"} 0
+# HELP http_requests_total Multiprocess metric
+# TYPE http_requests_total counter
+http_requests_total{method="delete",status="200",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="delete",status="200",feature_category="code_review"} 0
+http_requests_total{method="delete",status="200",feature_category="continuous_integration"} 0
+http_requests_total{method="delete",status="200",feature_category="not_owned"} 0
+http_requests_total{method="delete",status="200",feature_category="source_code_management"} 0
+http_requests_total{method="delete",status="200",feature_category="unknown"} 0
+http_requests_total{method="delete",status="202",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="delete",status="202",feature_category="code_review"} 0
+http_requests_total{method="delete",status="202",feature_category="continuous_integration"} 0
+http_requests_total{method="delete",status="202",feature_category="not_owned"} 0
+http_requests_total{method="delete",status="202",feature_category="source_code_management"} 0
+http_requests_total{method="delete",status="202",feature_category="unknown"} 0
+http_requests_total{method="delete",status="204",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="delete",status="204",feature_category="code_review"} 0
+http_requests_total{method="delete",status="204",feature_category="continuous_integration"} 0
+http_requests_total{method="delete",status="204",feature_category="not_owned"} 0
+http_requests_total{method="delete",status="204",feature_category="source_code_management"} 0
+http_requests_total{method="delete",status="204",feature_category="unknown"} 0
+http_requests_total{method="delete",status="303",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="delete",status="303",feature_category="code_review"} 0
+http_requests_total{method="delete",status="303",feature_category="continuous_integration"} 0
+http_requests_total{method="delete",status="303",feature_category="not_owned"} 0
+http_requests_total{method="delete",status="303",feature_category="source_code_management"} 0
+http_requests_total{method="delete",status="303",feature_category="unknown"} 0
+http_requests_total{method="delete",status="400",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="delete",status="400",feature_category="code_review"} 0
+http_requests_total{method="delete",status="400",feature_category="continuous_integration"} 0
+http_requests_total{method="delete",status="400",feature_category="not_owned"} 0
+http_requests_total{method="delete",status="400",feature_category="source_code_management"} 0
+http_requests_total{method="delete",status="400",feature_category="unknown"} 0
+http_requests_total{method="delete",status="401",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="delete",status="401",feature_category="code_review"} 0
+http_requests_total{method="delete",status="401",feature_category="continuous_integration"} 0
+http_requests_total{method="delete",status="401",feature_category="not_owned"} 0
+http_requests_total{method="delete",status="401",feature_category="source_code_management"} 0
+http_requests_total{method="delete",status="401",feature_category="unknown"} 0
+http_requests_total{method="delete",status="403",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="delete",status="403",feature_category="code_review"} 0
+http_requests_total{method="delete",status="403",feature_category="continuous_integration"} 0
+http_requests_total{method="delete",status="403",feature_category="not_owned"} 0
+http_requests_total{method="delete",status="403",feature_category="source_code_management"} 0
+http_requests_total{method="delete",status="403",feature_category="unknown"} 0
+http_requests_total{method="delete",status="404",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="delete",status="404",feature_category="code_review"} 0
+http_requests_total{method="delete",status="404",feature_category="continuous_integration"} 0
+http_requests_total{method="delete",status="404",feature_category="not_owned"} 0
+http_requests_total{method="delete",status="404",feature_category="source_code_management"} 0
+http_requests_total{method="delete",status="404",feature_category="unknown"} 0
+http_requests_total{method="delete",status="500",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="delete",status="500",feature_category="code_review"} 0
+http_requests_total{method="delete",status="500",feature_category="continuous_integration"} 0
+http_requests_total{method="delete",status="500",feature_category="not_owned"} 0
+http_requests_total{method="delete",status="500",feature_category="source_code_management"} 0
+http_requests_total{method="delete",status="500",feature_category="unknown"} 0
+http_requests_total{method="delete",status="503",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="delete",status="503",feature_category="code_review"} 0
+http_requests_total{method="delete",status="503",feature_category="continuous_integration"} 0
+http_requests_total{method="delete",status="503",feature_category="not_owned"} 0
+http_requests_total{method="delete",status="503",feature_category="source_code_management"} 0
+http_requests_total{method="delete",status="503",feature_category="unknown"} 0
+http_requests_total{method="get",status="200",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="200",feature_category="code_review"} 0
+http_requests_total{method="get",status="200",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="200",feature_category="not_owned"} 33
+http_requests_total{method="get",status="200",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="200",feature_category="unknown"} 0
+http_requests_total{method="get",status="204",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="204",feature_category="code_review"} 0
+http_requests_total{method="get",status="204",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="204",feature_category="not_owned"} 0
+http_requests_total{method="get",status="204",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="204",feature_category="unknown"} 0
+http_requests_total{method="get",status="301",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="301",feature_category="code_review"} 0
+http_requests_total{method="get",status="301",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="301",feature_category="not_owned"} 0
+http_requests_total{method="get",status="301",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="301",feature_category="unknown"} 0
+http_requests_total{method="get",status="302",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="302",feature_category="code_review"} 0
+http_requests_total{method="get",status="302",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="302",feature_category="not_owned"} 0
+http_requests_total{method="get",status="302",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="302",feature_category="unknown"} 0
+http_requests_total{method="get",status="303",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="303",feature_category="code_review"} 0
+http_requests_total{method="get",status="303",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="303",feature_category="not_owned"} 0
+http_requests_total{method="get",status="303",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="303",feature_category="unknown"} 0
+http_requests_total{method="get",status="304",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="304",feature_category="code_review"} 0
+http_requests_total{method="get",status="304",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="304",feature_category="not_owned"} 0
+http_requests_total{method="get",status="304",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="304",feature_category="unknown"} 0
+http_requests_total{method="get",status="307",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="307",feature_category="code_review"} 0
+http_requests_total{method="get",status="307",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="307",feature_category="not_owned"} 0
+http_requests_total{method="get",status="307",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="307",feature_category="unknown"} 0
+http_requests_total{method="get",status="400",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="400",feature_category="code_review"} 0
+http_requests_total{method="get",status="400",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="400",feature_category="not_owned"} 0
+http_requests_total{method="get",status="400",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="400",feature_category="unknown"} 0
+http_requests_total{method="get",status="401",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="401",feature_category="code_review"} 0
+http_requests_total{method="get",status="401",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="401",feature_category="not_owned"} 0
+http_requests_total{method="get",status="401",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="401",feature_category="unknown"} 0
+http_requests_total{method="get",status="403",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="403",feature_category="code_review"} 0
+http_requests_total{method="get",status="403",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="403",feature_category="not_owned"} 0
+http_requests_total{method="get",status="403",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="403",feature_category="unknown"} 0
+http_requests_total{method="get",status="404",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="404",feature_category="code_review"} 0
+http_requests_total{method="get",status="404",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="404",feature_category="not_owned"} 0
+http_requests_total{method="get",status="404",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="404",feature_category="unknown"} 0
+http_requests_total{method="get",status="410",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="410",feature_category="code_review"} 0
+http_requests_total{method="get",status="410",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="410",feature_category="not_owned"} 0
+http_requests_total{method="get",status="410",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="410",feature_category="unknown"} 0
+http_requests_total{method="get",status="422",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="422",feature_category="code_review"} 0
+http_requests_total{method="get",status="422",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="422",feature_category="not_owned"} 0
+http_requests_total{method="get",status="422",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="422",feature_category="unknown"} 0
+http_requests_total{method="get",status="429",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="429",feature_category="code_review"} 0
+http_requests_total{method="get",status="429",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="429",feature_category="not_owned"} 0
+http_requests_total{method="get",status="429",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="429",feature_category="unknown"} 0
+http_requests_total{method="get",status="500",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="500",feature_category="code_review"} 0
+http_requests_total{method="get",status="500",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="500",feature_category="not_owned"} 0
+http_requests_total{method="get",status="500",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="500",feature_category="unknown"} 0
+http_requests_total{method="get",status="503",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="get",status="503",feature_category="code_review"} 0
+http_requests_total{method="get",status="503",feature_category="continuous_integration"} 0
+http_requests_total{method="get",status="503",feature_category="not_owned"} 0
+http_requests_total{method="get",status="503",feature_category="source_code_management"} 0
+http_requests_total{method="get",status="503",feature_category="unknown"} 0
+http_requests_total{method="head",status="200",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="head",status="200",feature_category="code_review"} 0
+http_requests_total{method="head",status="200",feature_category="continuous_integration"} 0
+http_requests_total{method="head",status="200",feature_category="not_owned"} 0
+http_requests_total{method="head",status="200",feature_category="source_code_management"} 0
+http_requests_total{method="head",status="200",feature_category="unknown"} 0
+http_requests_total{method="head",status="204",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="head",status="204",feature_category="code_review"} 0
+http_requests_total{method="head",status="204",feature_category="continuous_integration"} 0
+http_requests_total{method="head",status="204",feature_category="not_owned"} 0
+http_requests_total{method="head",status="204",feature_category="source_code_management"} 0
+http_requests_total{method="head",status="204",feature_category="unknown"} 0
+http_requests_total{method="head",status="301",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="head",status="301",feature_category="code_review"} 0
+http_requests_total{method="head",status="301",feature_category="continuous_integration"} 0
+http_requests_total{method="head",status="301",feature_category="not_owned"} 0
+http_requests_total{method="head",status="301",feature_category="source_code_management"} 0
+http_requests_total{method="head",status="301",feature_category="unknown"} 0
+http_requests_total{method="head",status="302",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="head",status="302",feature_category="code_review"} 0
+http_requests_total{method="head",status="302",feature_category="continuous_integration"} 0
+http_requests_total{method="head",status="302",feature_category="not_owned"} 0
+http_requests_total{method="head",status="302",feature_category="source_code_management"} 0
+http_requests_total{method="head",status="302",feature_category="unknown"} 0
+http_requests_total{method="head",status="303",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="head",status="303",feature_category="code_review"} 0
+http_requests_total{method="head",status="303",feature_category="continuous_integration"} 0
+http_requests_total{method="head",status="303",feature_category="not_owned"} 0
+http_requests_total{method="head",status="303",feature_category="source_code_management"} 0
+http_requests_total{method="head",status="303",feature_category="unknown"} 0
+http_requests_total{method="head",status="401",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="head",status="401",feature_category="code_review"} 0
+http_requests_total{method="head",status="401",feature_category="continuous_integration"} 0
+http_requests_total{method="head",status="401",feature_category="not_owned"} 0
+http_requests_total{method="head",status="401",feature_category="source_code_management"} 0
+http_requests_total{method="head",status="401",feature_category="unknown"} 0
+http_requests_total{method="head",status="403",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="head",status="403",feature_category="code_review"} 0
+http_requests_total{method="head",status="403",feature_category="continuous_integration"} 0
+http_requests_total{method="head",status="403",feature_category="not_owned"} 0
+http_requests_total{method="head",status="403",feature_category="source_code_management"} 0
+http_requests_total{method="head",status="403",feature_category="unknown"} 0
+http_requests_total{method="head",status="404",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="head",status="404",feature_category="code_review"} 0
+http_requests_total{method="head",status="404",feature_category="continuous_integration"} 0
+http_requests_total{method="head",status="404",feature_category="not_owned"} 0
+http_requests_total{method="head",status="404",feature_category="source_code_management"} 0
+http_requests_total{method="head",status="404",feature_category="unknown"} 0
+http_requests_total{method="head",status="410",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="head",status="410",feature_category="code_review"} 0
+http_requests_total{method="head",status="410",feature_category="continuous_integration"} 0
+http_requests_total{method="head",status="410",feature_category="not_owned"} 0
+http_requests_total{method="head",status="410",feature_category="source_code_management"} 0
+http_requests_total{method="head",status="410",feature_category="unknown"} 0
+http_requests_total{method="head",status="500",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="head",status="500",feature_category="code_review"} 0
+http_requests_total{method="head",status="500",feature_category="continuous_integration"} 0
+http_requests_total{method="head",status="500",feature_category="not_owned"} 0
+http_requests_total{method="head",status="500",feature_category="source_code_management"} 0
+http_requests_total{method="head",status="500",feature_category="unknown"} 0
+http_requests_total{method="options",status="200",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="options",status="200",feature_category="code_review"} 0
+http_requests_total{method="options",status="200",feature_category="continuous_integration"} 0
+http_requests_total{method="options",status="200",feature_category="not_owned"} 0
+http_requests_total{method="options",status="200",feature_category="source_code_management"} 0
+http_requests_total{method="options",status="200",feature_category="unknown"} 0
+http_requests_total{method="options",status="404",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="options",status="404",feature_category="code_review"} 0
+http_requests_total{method="options",status="404",feature_category="continuous_integration"} 0
+http_requests_total{method="options",status="404",feature_category="not_owned"} 0
+http_requests_total{method="options",status="404",feature_category="source_code_management"} 0
+http_requests_total{method="options",status="404",feature_category="unknown"} 0
+http_requests_total{method="patch",status="200",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="patch",status="200",feature_category="code_review"} 0
+http_requests_total{method="patch",status="200",feature_category="continuous_integration"} 0
+http_requests_total{method="patch",status="200",feature_category="not_owned"} 0
+http_requests_total{method="patch",status="200",feature_category="source_code_management"} 0
+http_requests_total{method="patch",status="200",feature_category="unknown"} 0
+http_requests_total{method="patch",status="202",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="patch",status="202",feature_category="code_review"} 0
+http_requests_total{method="patch",status="202",feature_category="continuous_integration"} 0
+http_requests_total{method="patch",status="202",feature_category="not_owned"} 0
+http_requests_total{method="patch",status="202",feature_category="source_code_management"} 0
+http_requests_total{method="patch",status="202",feature_category="unknown"} 0
+http_requests_total{method="patch",status="204",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="patch",status="204",feature_category="code_review"} 0
+http_requests_total{method="patch",status="204",feature_category="continuous_integration"} 0
+http_requests_total{method="patch",status="204",feature_category="not_owned"} 0
+http_requests_total{method="patch",status="204",feature_category="source_code_management"} 0
+http_requests_total{method="patch",status="204",feature_category="unknown"} 0
+http_requests_total{method="patch",status="400",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="patch",status="400",feature_category="code_review"} 0
+http_requests_total{method="patch",status="400",feature_category="continuous_integration"} 0
+http_requests_total{method="patch",status="400",feature_category="not_owned"} 0
+http_requests_total{method="patch",status="400",feature_category="source_code_management"} 0
+http_requests_total{method="patch",status="400",feature_category="unknown"} 0
+http_requests_total{method="patch",status="403",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="patch",status="403",feature_category="code_review"} 0
+http_requests_total{method="patch",status="403",feature_category="continuous_integration"} 0
+http_requests_total{method="patch",status="403",feature_category="not_owned"} 0
+http_requests_total{method="patch",status="403",feature_category="source_code_management"} 0
+http_requests_total{method="patch",status="403",feature_category="unknown"} 0
+http_requests_total{method="patch",status="404",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="patch",status="404",feature_category="code_review"} 0
+http_requests_total{method="patch",status="404",feature_category="continuous_integration"} 0
+http_requests_total{method="patch",status="404",feature_category="not_owned"} 0
+http_requests_total{method="patch",status="404",feature_category="source_code_management"} 0
+http_requests_total{method="patch",status="404",feature_category="unknown"} 0
+http_requests_total{method="patch",status="409",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="patch",status="409",feature_category="code_review"} 0
+http_requests_total{method="patch",status="409",feature_category="continuous_integration"} 0
+http_requests_total{method="patch",status="409",feature_category="not_owned"} 0
+http_requests_total{method="patch",status="409",feature_category="source_code_management"} 0
+http_requests_total{method="patch",status="409",feature_category="unknown"} 0
+http_requests_total{method="patch",status="416",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="patch",status="416",feature_category="code_review"} 0
+http_requests_total{method="patch",status="416",feature_category="continuous_integration"} 0
+http_requests_total{method="patch",status="416",feature_category="not_owned"} 0
+http_requests_total{method="patch",status="416",feature_category="source_code_management"} 0
+http_requests_total{method="patch",status="416",feature_category="unknown"} 0
+http_requests_total{method="patch",status="500",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="patch",status="500",feature_category="code_review"} 0
+http_requests_total{method="patch",status="500",feature_category="continuous_integration"} 0
+http_requests_total{method="patch",status="500",feature_category="not_owned"} 0
+http_requests_total{method="patch",status="500",feature_category="source_code_management"} 0
+http_requests_total{method="patch",status="500",feature_category="unknown"} 0
+http_requests_total{method="post",status="200",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="200",feature_category="code_review"} 0
+http_requests_total{method="post",status="200",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="200",feature_category="not_owned"} 0
+http_requests_total{method="post",status="200",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="200",feature_category="unknown"} 0
+http_requests_total{method="post",status="201",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="201",feature_category="code_review"} 0
+http_requests_total{method="post",status="201",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="201",feature_category="not_owned"} 0
+http_requests_total{method="post",status="201",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="201",feature_category="unknown"} 0
+http_requests_total{method="post",status="202",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="202",feature_category="code_review"} 0
+http_requests_total{method="post",status="202",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="202",feature_category="not_owned"} 0
+http_requests_total{method="post",status="202",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="202",feature_category="unknown"} 0
+http_requests_total{method="post",status="204",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="204",feature_category="code_review"} 0
+http_requests_total{method="post",status="204",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="204",feature_category="not_owned"} 0
+http_requests_total{method="post",status="204",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="204",feature_category="unknown"} 0
+http_requests_total{method="post",status="301",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="301",feature_category="code_review"} 0
+http_requests_total{method="post",status="301",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="301",feature_category="not_owned"} 0
+http_requests_total{method="post",status="301",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="301",feature_category="unknown"} 0
+http_requests_total{method="post",status="302",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="302",feature_category="code_review"} 0
+http_requests_total{method="post",status="302",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="302",feature_category="not_owned"} 0
+http_requests_total{method="post",status="302",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="302",feature_category="unknown"} 0
+http_requests_total{method="post",status="303",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="303",feature_category="code_review"} 0
+http_requests_total{method="post",status="303",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="303",feature_category="not_owned"} 0
+http_requests_total{method="post",status="303",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="303",feature_category="unknown"} 0
+http_requests_total{method="post",status="304",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="304",feature_category="code_review"} 0
+http_requests_total{method="post",status="304",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="304",feature_category="not_owned"} 0
+http_requests_total{method="post",status="304",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="304",feature_category="unknown"} 0
+http_requests_total{method="post",status="400",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="400",feature_category="code_review"} 0
+http_requests_total{method="post",status="400",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="400",feature_category="not_owned"} 0
+http_requests_total{method="post",status="400",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="400",feature_category="unknown"} 0
+http_requests_total{method="post",status="401",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="401",feature_category="code_review"} 0
+http_requests_total{method="post",status="401",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="401",feature_category="not_owned"} 0
+http_requests_total{method="post",status="401",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="401",feature_category="unknown"} 0
+http_requests_total{method="post",status="403",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="403",feature_category="code_review"} 0
+http_requests_total{method="post",status="403",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="403",feature_category="not_owned"} 0
+http_requests_total{method="post",status="403",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="403",feature_category="unknown"} 0
+http_requests_total{method="post",status="404",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="404",feature_category="code_review"} 0
+http_requests_total{method="post",status="404",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="404",feature_category="not_owned"} 0
+http_requests_total{method="post",status="404",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="404",feature_category="unknown"} 0
+http_requests_total{method="post",status="406",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="406",feature_category="code_review"} 0
+http_requests_total{method="post",status="406",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="406",feature_category="not_owned"} 0
+http_requests_total{method="post",status="406",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="406",feature_category="unknown"} 0
+http_requests_total{method="post",status="409",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="409",feature_category="code_review"} 0
+http_requests_total{method="post",status="409",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="409",feature_category="not_owned"} 0
+http_requests_total{method="post",status="409",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="409",feature_category="unknown"} 0
+http_requests_total{method="post",status="410",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="410",feature_category="code_review"} 0
+http_requests_total{method="post",status="410",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="410",feature_category="not_owned"} 0
+http_requests_total{method="post",status="410",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="410",feature_category="unknown"} 0
+http_requests_total{method="post",status="412",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="412",feature_category="code_review"} 0
+http_requests_total{method="post",status="412",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="412",feature_category="not_owned"} 0
+http_requests_total{method="post",status="412",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="412",feature_category="unknown"} 0
+http_requests_total{method="post",status="422",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="422",feature_category="code_review"} 0
+http_requests_total{method="post",status="422",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="422",feature_category="not_owned"} 0
+http_requests_total{method="post",status="422",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="422",feature_category="unknown"} 0
+http_requests_total{method="post",status="429",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="429",feature_category="code_review"} 0
+http_requests_total{method="post",status="429",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="429",feature_category="not_owned"} 0
+http_requests_total{method="post",status="429",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="429",feature_category="unknown"} 0
+http_requests_total{method="post",status="500",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="500",feature_category="code_review"} 0
+http_requests_total{method="post",status="500",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="500",feature_category="not_owned"} 0
+http_requests_total{method="post",status="500",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="500",feature_category="unknown"} 0
+http_requests_total{method="post",status="503",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="post",status="503",feature_category="code_review"} 0
+http_requests_total{method="post",status="503",feature_category="continuous_integration"} 0
+http_requests_total{method="post",status="503",feature_category="not_owned"} 0
+http_requests_total{method="post",status="503",feature_category="source_code_management"} 0
+http_requests_total{method="post",status="503",feature_category="unknown"} 0
+http_requests_total{method="put",status="200",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="200",feature_category="code_review"} 0
+http_requests_total{method="put",status="200",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="200",feature_category="not_owned"} 0
+http_requests_total{method="put",status="200",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="200",feature_category="unknown"} 0
+http_requests_total{method="put",status="202",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="202",feature_category="code_review"} 0
+http_requests_total{method="put",status="202",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="202",feature_category="not_owned"} 0
+http_requests_total{method="put",status="202",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="202",feature_category="unknown"} 0
+http_requests_total{method="put",status="204",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="204",feature_category="code_review"} 0
+http_requests_total{method="put",status="204",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="204",feature_category="not_owned"} 0
+http_requests_total{method="put",status="204",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="204",feature_category="unknown"} 0
+http_requests_total{method="put",status="400",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="400",feature_category="code_review"} 0
+http_requests_total{method="put",status="400",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="400",feature_category="not_owned"} 0
+http_requests_total{method="put",status="400",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="400",feature_category="unknown"} 0
+http_requests_total{method="put",status="401",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="401",feature_category="code_review"} 0
+http_requests_total{method="put",status="401",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="401",feature_category="not_owned"} 0
+http_requests_total{method="put",status="401",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="401",feature_category="unknown"} 0
+http_requests_total{method="put",status="403",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="403",feature_category="code_review"} 0
+http_requests_total{method="put",status="403",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="403",feature_category="not_owned"} 0
+http_requests_total{method="put",status="403",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="403",feature_category="unknown"} 0
+http_requests_total{method="put",status="404",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="404",feature_category="code_review"} 0
+http_requests_total{method="put",status="404",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="404",feature_category="not_owned"} 0
+http_requests_total{method="put",status="404",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="404",feature_category="unknown"} 0
+http_requests_total{method="put",status="405",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="405",feature_category="code_review"} 0
+http_requests_total{method="put",status="405",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="405",feature_category="not_owned"} 0
+http_requests_total{method="put",status="405",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="405",feature_category="unknown"} 0
+http_requests_total{method="put",status="406",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="406",feature_category="code_review"} 0
+http_requests_total{method="put",status="406",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="406",feature_category="not_owned"} 0
+http_requests_total{method="put",status="406",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="406",feature_category="unknown"} 0
+http_requests_total{method="put",status="409",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="409",feature_category="code_review"} 0
+http_requests_total{method="put",status="409",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="409",feature_category="not_owned"} 0
+http_requests_total{method="put",status="409",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="409",feature_category="unknown"} 0
+http_requests_total{method="put",status="410",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="410",feature_category="code_review"} 0
+http_requests_total{method="put",status="410",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="410",feature_category="not_owned"} 0
+http_requests_total{method="put",status="410",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="410",feature_category="unknown"} 0
+http_requests_total{method="put",status="422",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="422",feature_category="code_review"} 0
+http_requests_total{method="put",status="422",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="422",feature_category="not_owned"} 0
+http_requests_total{method="put",status="422",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="422",feature_category="unknown"} 0
+http_requests_total{method="put",status="500",feature_category="authentication_and_authorization"} 0
+http_requests_total{method="put",status="500",feature_category="code_review"} 0
+http_requests_total{method="put",status="500",feature_category="continuous_integration"} 0
+http_requests_total{method="put",status="500",feature_category="not_owned"} 0
+http_requests_total{method="put",status="500",feature_category="source_code_management"} 0
+http_requests_total{method="put",status="500",feature_category="unknown"} 0
+http_requests_total{status="302",method="get",feature_category="projects"} 0
+# HELP puma_active_connections Multiprocess metric
+# TYPE puma_active_connections gauge
+puma_active_connections{worker="worker_0",pid="puma_master"} 0
+puma_active_connections{worker="worker_1",pid="puma_master"} 0
+puma_active_connections{worker="worker_2",pid="puma_master"} 0
+puma_active_connections{worker="worker_3",pid="puma_master"} 0
+puma_active_connections{worker="worker_4",pid="puma_master"} 0
+puma_active_connections{worker="worker_5",pid="puma_master"} 0
+# HELP puma_idle_threads Multiprocess metric
+# TYPE puma_idle_threads gauge
+puma_idle_threads{worker="worker_0",pid="puma_master"} 4
+puma_idle_threads{worker="worker_1",pid="puma_master"} 4
+puma_idle_threads{worker="worker_2",pid="puma_master"} 4
+puma_idle_threads{worker="worker_3",pid="puma_master"} 4
+puma_idle_threads{worker="worker_4",pid="puma_master"} 4
+puma_idle_threads{worker="worker_5",pid="puma_master"} 4
+# HELP puma_max_threads Multiprocess metric
+# TYPE puma_max_threads gauge
+puma_max_threads{worker="worker_0",pid="puma_master"} 4
+puma_max_threads{worker="worker_1",pid="puma_master"} 4
+puma_max_threads{worker="worker_2",pid="puma_master"} 4
+puma_max_threads{worker="worker_3",pid="puma_master"} 4
+puma_max_threads{worker="worker_4",pid="puma_master"} 4
+puma_max_threads{worker="worker_5",pid="puma_master"} 4
+# HELP puma_pool_capacity Multiprocess metric
+# TYPE puma_pool_capacity gauge
+puma_pool_capacity{worker="worker_0",pid="puma_master"} 4
+puma_pool_capacity{worker="worker_1",pid="puma_master"} 4
+puma_pool_capacity{worker="worker_2",pid="puma_master"} 4
+puma_pool_capacity{worker="worker_3",pid="puma_master"} 4
+puma_pool_capacity{worker="worker_4",pid="puma_master"} 4
+puma_pool_capacity{worker="worker_5",pid="puma_master"} 4
+# HELP puma_queued_connections Multiprocess metric
+# TYPE puma_queued_connections gauge
+puma_queued_connections{worker="worker_0",pid="puma_master"} 0
+puma_queued_connections{worker="worker_1",pid="puma_master"} 0
+puma_queued_connections{worker="worker_2",pid="puma_master"} 0
+puma_queued_connections{worker="worker_3",pid="puma_master"} 0
+puma_queued_connections{worker="worker_4",pid="puma_master"} 0
+puma_queued_connections{worker="worker_5",pid="puma_master"} 0
+# HELP puma_running Multiprocess metric
+# TYPE puma_running gauge
+puma_running{worker="worker_0",pid="puma_master"} 4
+puma_running{worker="worker_1",pid="puma_master"} 4
+puma_running{worker="worker_2",pid="puma_master"} 4
+puma_running{worker="worker_3",pid="puma_master"} 4
+puma_running{worker="worker_4",pid="puma_master"} 4
+puma_running{worker="worker_5",pid="puma_master"} 4
+# HELP puma_running_workers Multiprocess metric
+# TYPE puma_running_workers gauge
+puma_running_workers{worker="master",pid="puma_master"} 6
+# HELP puma_stale_workers Multiprocess metric
+# TYPE puma_stale_workers gauge
+puma_stale_workers{worker="master",pid="puma_master"} 0
+# HELP puma_workers Multiprocess metric
+# TYPE puma_workers gauge
+puma_workers{worker="master",pid="puma_master"} 6
+# HELP rack_requests_total Multiprocess metric
+# TYPE rack_requests_total counter
+rack_requests_total{controller="help",action="index",route="",state="completed"} 33
+rack_requests_total{controller="metrics",action="index",route="",state="completed"} 140
+rack_requests_total{controller="root",action="index",route="",state="completed"} 0
+# HELP ruby_file_descriptors Multiprocess metric
+# TYPE ruby_file_descriptors gauge
+ruby_file_descriptors{pid="puma_0"} 44
+ruby_file_descriptors{pid="puma_1"} 44
+ruby_file_descriptors{pid="puma_2"} 44
+ruby_file_descriptors{pid="puma_3"} 44
+ruby_file_descriptors{pid="puma_4"} 44
+ruby_file_descriptors{pid="puma_5"} 46
+# HELP ruby_gc_duration_seconds Multiprocess metric
+# TYPE ruby_gc_duration_seconds histogram
+ruby_gc_duration_seconds_bucket{le="+Inf"} 10
+ruby_gc_duration_seconds_bucket{le="0.01"} 0
+ruby_gc_duration_seconds_bucket{le="0.05"} 0
+ruby_gc_duration_seconds_bucket{le="0.1"} 7
+ruby_gc_duration_seconds_bucket{le="0.2"} 9
+ruby_gc_duration_seconds_bucket{le="0.3"} 9
+ruby_gc_duration_seconds_bucket{le="0.5"} 9
+ruby_gc_duration_seconds_bucket{le="1"} 10
+ruby_gc_duration_seconds_count 10
+ruby_gc_duration_seconds_sum 1.6609129999999801
+# HELP ruby_gc_stat_compact_count Multiprocess metric
+# TYPE ruby_gc_stat_compact_count gauge
+ruby_gc_stat_compact_count{pid="puma_0"} 0
+ruby_gc_stat_compact_count{pid="puma_1"} 0
+ruby_gc_stat_compact_count{pid="puma_2"} 0
+ruby_gc_stat_compact_count{pid="puma_3"} 0
+ruby_gc_stat_compact_count{pid="puma_4"} 0
+ruby_gc_stat_compact_count{pid="puma_5"} 0
+# HELP ruby_gc_stat_count Multiprocess metric
+# TYPE ruby_gc_stat_count gauge
+ruby_gc_stat_count{pid="puma_0"} 109
+ruby_gc_stat_count{pid="puma_1"} 109
+ruby_gc_stat_count{pid="puma_2"} 109
+ruby_gc_stat_count{pid="puma_3"} 108
+ruby_gc_stat_count{pid="puma_4"} 109
+ruby_gc_stat_count{pid="puma_5"} 108
+# HELP ruby_gc_stat_heap_allocatable_pages Multiprocess metric
+# TYPE ruby_gc_stat_heap_allocatable_pages gauge
+ruby_gc_stat_heap_allocatable_pages{pid="puma_0"} 0
+ruby_gc_stat_heap_allocatable_pages{pid="puma_1"} 0
+ruby_gc_stat_heap_allocatable_pages{pid="puma_2"} 0
+ruby_gc_stat_heap_allocatable_pages{pid="puma_3"} 0
+ruby_gc_stat_heap_allocatable_pages{pid="puma_4"} 0
+ruby_gc_stat_heap_allocatable_pages{pid="puma_5"} 0
+# HELP ruby_gc_stat_heap_allocated_pages Multiprocess metric
+# TYPE ruby_gc_stat_heap_allocated_pages gauge
+ruby_gc_stat_heap_allocated_pages{pid="puma_0"} 9623
+ruby_gc_stat_heap_allocated_pages{pid="puma_1"} 9623
+ruby_gc_stat_heap_allocated_pages{pid="puma_2"} 9623
+ruby_gc_stat_heap_allocated_pages{pid="puma_3"} 9623
+ruby_gc_stat_heap_allocated_pages{pid="puma_4"} 9623
+ruby_gc_stat_heap_allocated_pages{pid="puma_5"} 9623
+# HELP ruby_gc_stat_heap_available_slots Multiprocess metric
+# TYPE ruby_gc_stat_heap_available_slots gauge
+ruby_gc_stat_heap_available_slots{pid="puma_0"} 3922377
+ruby_gc_stat_heap_available_slots{pid="puma_1"} 3922377
+ruby_gc_stat_heap_available_slots{pid="puma_2"} 3922377
+ruby_gc_stat_heap_available_slots{pid="puma_3"} 3922377
+ruby_gc_stat_heap_available_slots{pid="puma_4"} 3922377
+ruby_gc_stat_heap_available_slots{pid="puma_5"} 3922377
+# HELP ruby_gc_stat_heap_eden_pages Multiprocess metric
+# TYPE ruby_gc_stat_heap_eden_pages gauge
+ruby_gc_stat_heap_eden_pages{pid="puma_0"} 9623
+ruby_gc_stat_heap_eden_pages{pid="puma_1"} 9623
+ruby_gc_stat_heap_eden_pages{pid="puma_2"} 9623
+ruby_gc_stat_heap_eden_pages{pid="puma_3"} 9623
+ruby_gc_stat_heap_eden_pages{pid="puma_4"} 9623
+ruby_gc_stat_heap_eden_pages{pid="puma_5"} 9623
+# HELP ruby_gc_stat_heap_final_slots Multiprocess metric
+# TYPE ruby_gc_stat_heap_final_slots gauge
+ruby_gc_stat_heap_final_slots{pid="puma_0"} 0
+ruby_gc_stat_heap_final_slots{pid="puma_1"} 0
+ruby_gc_stat_heap_final_slots{pid="puma_2"} 0
+ruby_gc_stat_heap_final_slots{pid="puma_3"} 0
+ruby_gc_stat_heap_final_slots{pid="puma_4"} 0
+ruby_gc_stat_heap_final_slots{pid="puma_5"} 0
+# HELP ruby_gc_stat_heap_free_slots Multiprocess metric
+# TYPE ruby_gc_stat_heap_free_slots gauge
+ruby_gc_stat_heap_free_slots{pid="puma_0"} 395316
+ruby_gc_stat_heap_free_slots{pid="puma_1"} 438930
+ruby_gc_stat_heap_free_slots{pid="puma_2"} 460633
+ruby_gc_stat_heap_free_slots{pid="puma_3"} 521560
+ruby_gc_stat_heap_free_slots{pid="puma_4"} 499337
+ruby_gc_stat_heap_free_slots{pid="puma_5"} 256138
+# HELP ruby_gc_stat_heap_live_slots Multiprocess metric
+# TYPE ruby_gc_stat_heap_live_slots gauge
+ruby_gc_stat_heap_live_slots{pid="puma_0"} 3527061
+ruby_gc_stat_heap_live_slots{pid="puma_1"} 3483447
+ruby_gc_stat_heap_live_slots{pid="puma_2"} 3461744
+ruby_gc_stat_heap_live_slots{pid="puma_3"} 3400817
+ruby_gc_stat_heap_live_slots{pid="puma_4"} 3423040
+ruby_gc_stat_heap_live_slots{pid="puma_5"} 3666239
+# HELP ruby_gc_stat_heap_marked_slots Multiprocess metric
+# TYPE ruby_gc_stat_heap_marked_slots gauge
+ruby_gc_stat_heap_marked_slots{pid="puma_0"} 2958905
+ruby_gc_stat_heap_marked_slots{pid="puma_1"} 2958705
+ruby_gc_stat_heap_marked_slots{pid="puma_2"} 2957230
+ruby_gc_stat_heap_marked_slots{pid="puma_3"} 2956969
+ruby_gc_stat_heap_marked_slots{pid="puma_4"} 2957755
+ruby_gc_stat_heap_marked_slots{pid="puma_5"} 2956913
+# HELP ruby_gc_stat_heap_sorted_length Multiprocess metric
+# TYPE ruby_gc_stat_heap_sorted_length gauge
+ruby_gc_stat_heap_sorted_length{pid="puma_0"} 9623
+ruby_gc_stat_heap_sorted_length{pid="puma_1"} 9623
+ruby_gc_stat_heap_sorted_length{pid="puma_2"} 9623
+ruby_gc_stat_heap_sorted_length{pid="puma_3"} 9623
+ruby_gc_stat_heap_sorted_length{pid="puma_4"} 9623
+ruby_gc_stat_heap_sorted_length{pid="puma_5"} 9623
+# HELP ruby_gc_stat_heap_tomb_pages Multiprocess metric
+# TYPE ruby_gc_stat_heap_tomb_pages gauge
+ruby_gc_stat_heap_tomb_pages{pid="puma_0"} 0
+ruby_gc_stat_heap_tomb_pages{pid="puma_1"} 0
+ruby_gc_stat_heap_tomb_pages{pid="puma_2"} 0
+ruby_gc_stat_heap_tomb_pages{pid="puma_3"} 0
+ruby_gc_stat_heap_tomb_pages{pid="puma_4"} 0
+ruby_gc_stat_heap_tomb_pages{pid="puma_5"} 0
+# HELP ruby_gc_stat_major_gc_count Multiprocess metric
+# TYPE ruby_gc_stat_major_gc_count gauge
+ruby_gc_stat_major_gc_count{pid="puma_0"} 24
+ruby_gc_stat_major_gc_count{pid="puma_1"} 24
+ruby_gc_stat_major_gc_count{pid="puma_2"} 24
+ruby_gc_stat_major_gc_count{pid="puma_3"} 24
+ruby_gc_stat_major_gc_count{pid="puma_4"} 24
+ruby_gc_stat_major_gc_count{pid="puma_5"} 24
+# HELP ruby_gc_stat_malloc_increase_bytes Multiprocess metric
+# TYPE ruby_gc_stat_malloc_increase_bytes gauge
+ruby_gc_stat_malloc_increase_bytes{pid="puma_0"} 7677560
+ruby_gc_stat_malloc_increase_bytes{pid="puma_1"} 11780808
+ruby_gc_stat_malloc_increase_bytes{pid="puma_2"} 11431584
+ruby_gc_stat_malloc_increase_bytes{pid="puma_3"} 24538960
+ruby_gc_stat_malloc_increase_bytes{pid="puma_4"} 11588984
+ruby_gc_stat_malloc_increase_bytes{pid="puma_5"} 22230512
+# HELP ruby_gc_stat_malloc_increase_bytes_limit Multiprocess metric
+# TYPE ruby_gc_stat_malloc_increase_bytes_limit gauge
+ruby_gc_stat_malloc_increase_bytes_limit{pid="puma_0"} 33554432
+ruby_gc_stat_malloc_increase_bytes_limit{pid="puma_1"} 33554432
+ruby_gc_stat_malloc_increase_bytes_limit{pid="puma_2"} 33554432
+ruby_gc_stat_malloc_increase_bytes_limit{pid="puma_3"} 33554432
+ruby_gc_stat_malloc_increase_bytes_limit{pid="puma_4"} 33554432
+ruby_gc_stat_malloc_increase_bytes_limit{pid="puma_5"} 33554432
+# HELP ruby_gc_stat_minor_gc_count Multiprocess metric
+# TYPE ruby_gc_stat_minor_gc_count gauge
+ruby_gc_stat_minor_gc_count{pid="puma_0"} 85
+ruby_gc_stat_minor_gc_count{pid="puma_1"} 85
+ruby_gc_stat_minor_gc_count{pid="puma_2"} 85
+ruby_gc_stat_minor_gc_count{pid="puma_3"} 84
+ruby_gc_stat_minor_gc_count{pid="puma_4"} 85
+ruby_gc_stat_minor_gc_count{pid="puma_5"} 84
+# HELP ruby_gc_stat_old_objects Multiprocess metric
+# TYPE ruby_gc_stat_old_objects gauge
+ruby_gc_stat_old_objects{pid="puma_0"} 2721591
+ruby_gc_stat_old_objects{pid="puma_1"} 2723446
+ruby_gc_stat_old_objects{pid="puma_2"} 2722757
+ruby_gc_stat_old_objects{pid="puma_3"} 2720667
+ruby_gc_stat_old_objects{pid="puma_4"} 2723170
+ruby_gc_stat_old_objects{pid="puma_5"} 2720621
+# HELP ruby_gc_stat_old_objects_limit Multiprocess metric
+# TYPE ruby_gc_stat_old_objects_limit gauge
+ruby_gc_stat_old_objects_limit{pid="puma_0"} 4636464
+ruby_gc_stat_old_objects_limit{pid="puma_1"} 4636464
+ruby_gc_stat_old_objects_limit{pid="puma_2"} 4636464
+ruby_gc_stat_old_objects_limit{pid="puma_3"} 4636464
+ruby_gc_stat_old_objects_limit{pid="puma_4"} 4636464
+ruby_gc_stat_old_objects_limit{pid="puma_5"} 4636464
+# HELP ruby_gc_stat_oldmalloc_increase_bytes Multiprocess metric
+# TYPE ruby_gc_stat_oldmalloc_increase_bytes gauge
+ruby_gc_stat_oldmalloc_increase_bytes{pid="puma_0"} 99667368
+ruby_gc_stat_oldmalloc_increase_bytes{pid="puma_1"} 103745568
+ruby_gc_stat_oldmalloc_increase_bytes{pid="puma_2"} 103435464
+ruby_gc_stat_oldmalloc_increase_bytes{pid="puma_3"} 82996192
+ruby_gc_stat_oldmalloc_increase_bytes{pid="puma_4"} 95259792
+ruby_gc_stat_oldmalloc_increase_bytes{pid="puma_5"} 80682432
+# HELP ruby_gc_stat_oldmalloc_increase_bytes_limit Multiprocess metric
+# TYPE ruby_gc_stat_oldmalloc_increase_bytes_limit gauge
+ruby_gc_stat_oldmalloc_increase_bytes_limit{pid="puma_0"} 104306636
+ruby_gc_stat_oldmalloc_increase_bytes_limit{pid="puma_1"} 104306636
+ruby_gc_stat_oldmalloc_increase_bytes_limit{pid="puma_2"} 104306636
+ruby_gc_stat_oldmalloc_increase_bytes_limit{pid="puma_3"} 104306636
+ruby_gc_stat_oldmalloc_increase_bytes_limit{pid="puma_4"} 104306636
+ruby_gc_stat_oldmalloc_increase_bytes_limit{pid="puma_5"} 104306636
+# HELP ruby_gc_stat_remembered_wb_unprotected_objects Multiprocess metric
+# TYPE ruby_gc_stat_remembered_wb_unprotected_objects gauge
+ruby_gc_stat_remembered_wb_unprotected_objects{pid="puma_0"} 45418
+ruby_gc_stat_remembered_wb_unprotected_objects{pid="puma_1"} 45464
+ruby_gc_stat_remembered_wb_unprotected_objects{pid="puma_2"} 45465
+ruby_gc_stat_remembered_wb_unprotected_objects{pid="puma_3"} 45327
+ruby_gc_stat_remembered_wb_unprotected_objects{pid="puma_4"} 45469
+ruby_gc_stat_remembered_wb_unprotected_objects{pid="puma_5"} 45325
+# HELP ruby_gc_stat_remembered_wb_unprotected_objects_limit Multiprocess metric
+# TYPE ruby_gc_stat_remembered_wb_unprotected_objects_limit gauge
+ruby_gc_stat_remembered_wb_unprotected_objects_limit{pid="puma_0"} 85154
+ruby_gc_stat_remembered_wb_unprotected_objects_limit{pid="puma_1"} 85154
+ruby_gc_stat_remembered_wb_unprotected_objects_limit{pid="puma_2"} 85154
+ruby_gc_stat_remembered_wb_unprotected_objects_limit{pid="puma_3"} 85154
+ruby_gc_stat_remembered_wb_unprotected_objects_limit{pid="puma_4"} 85154
+ruby_gc_stat_remembered_wb_unprotected_objects_limit{pid="puma_5"} 85154
+# HELP ruby_gc_stat_total_allocated_objects Multiprocess metric
+# TYPE ruby_gc_stat_total_allocated_objects gauge
+ruby_gc_stat_total_allocated_objects{pid="puma_0"} 26484402
+ruby_gc_stat_total_allocated_objects{pid="puma_1"} 26686477
+ruby_gc_stat_total_allocated_objects{pid="puma_2"} 26886484
+ruby_gc_stat_total_allocated_objects{pid="puma_3"} 26330659
+ruby_gc_stat_total_allocated_objects{pid="puma_4"} 26524358
+ruby_gc_stat_total_allocated_objects{pid="puma_5"} 26156881
+# HELP ruby_gc_stat_total_allocated_pages Multiprocess metric
+# TYPE ruby_gc_stat_total_allocated_pages gauge
+ruby_gc_stat_total_allocated_pages{pid="puma_0"} 9623
+ruby_gc_stat_total_allocated_pages{pid="puma_1"} 9623
+ruby_gc_stat_total_allocated_pages{pid="puma_2"} 9623
+ruby_gc_stat_total_allocated_pages{pid="puma_3"} 9623
+ruby_gc_stat_total_allocated_pages{pid="puma_4"} 9623
+ruby_gc_stat_total_allocated_pages{pid="puma_5"} 9623
+# HELP ruby_gc_stat_total_freed_objects Multiprocess metric
+# TYPE ruby_gc_stat_total_freed_objects gauge
+ruby_gc_stat_total_freed_objects{pid="puma_0"} 22957341
+ruby_gc_stat_total_freed_objects{pid="puma_1"} 23203030
+ruby_gc_stat_total_freed_objects{pid="puma_2"} 23424740
+ruby_gc_stat_total_freed_objects{pid="puma_3"} 22929842
+ruby_gc_stat_total_freed_objects{pid="puma_4"} 23101318
+ruby_gc_stat_total_freed_objects{pid="puma_5"} 22490642
+# HELP ruby_gc_stat_total_freed_pages Multiprocess metric
+# TYPE ruby_gc_stat_total_freed_pages gauge
+ruby_gc_stat_total_freed_pages{pid="puma_0"} 0
+ruby_gc_stat_total_freed_pages{pid="puma_1"} 0
+ruby_gc_stat_total_freed_pages{pid="puma_2"} 0
+ruby_gc_stat_total_freed_pages{pid="puma_3"} 0
+ruby_gc_stat_total_freed_pages{pid="puma_4"} 0
+ruby_gc_stat_total_freed_pages{pid="puma_5"} 0
+# HELP ruby_process_cpu_seconds_total Multiprocess metric
+# TYPE ruby_process_cpu_seconds_total gauge
+ruby_process_cpu_seconds_total{pid="puma_0"} 3.8723282010000002
+ruby_process_cpu_seconds_total{pid="puma_1"} 3.6653895209999998
+ruby_process_cpu_seconds_total{pid="puma_2"} 4.1976340319999998
+ruby_process_cpu_seconds_total{pid="puma_3"} 5.7669193129999998
+ruby_process_cpu_seconds_total{pid="puma_4"} 3.7717555109999998
+ruby_process_cpu_seconds_total{pid="puma_5"} 3.1906574280000002
+# HELP ruby_process_max_fds Multiprocess metric
+# TYPE ruby_process_max_fds gauge
+ruby_process_max_fds{pid="puma_0"} 50000
+ruby_process_max_fds{pid="puma_1"} 50000
+ruby_process_max_fds{pid="puma_2"} 50000
+ruby_process_max_fds{pid="puma_3"} 50000
+ruby_process_max_fds{pid="puma_4"} 50000
+ruby_process_max_fds{pid="puma_5"} 50000
+# HELP ruby_process_proportional_memory_bytes Multiprocess metric
+# TYPE ruby_process_proportional_memory_bytes gauge
+ruby_process_proportional_memory_bytes{pid="puma_0"} 290124800
+ruby_process_proportional_memory_bytes{pid="puma_1"} 289215488
+ruby_process_proportional_memory_bytes{pid="puma_2"} 314912768
+ruby_process_proportional_memory_bytes{pid="puma_3"} 268400640
+ruby_process_proportional_memory_bytes{pid="puma_4"} 294062080
+ruby_process_proportional_memory_bytes{pid="puma_5"} 260368384
+# HELP ruby_process_resident_memory_bytes Multiprocess metric
+# TYPE ruby_process_resident_memory_bytes gauge
+ruby_process_resident_memory_bytes{pid="puma_0"} 510656512
+ruby_process_resident_memory_bytes{pid="puma_1"} 502759424
+ruby_process_resident_memory_bytes{pid="puma_2"} 519991296
+ruby_process_resident_memory_bytes{pid="puma_3"} 489312256
+ruby_process_resident_memory_bytes{pid="puma_4"} 507387904
+ruby_process_resident_memory_bytes{pid="puma_5"} 483766272
+# HELP ruby_process_start_time_seconds Multiprocess metric
+# TYPE ruby_process_start_time_seconds gauge
+ruby_process_start_time_seconds{pid="puma_0"} 1621233750
+ruby_process_start_time_seconds{pid="puma_1"} 1621233750
+ruby_process_start_time_seconds{pid="puma_2"} 1621233750
+ruby_process_start_time_seconds{pid="puma_3"} 1621233750
+ruby_process_start_time_seconds{pid="puma_4"} 1621233750
+ruby_process_start_time_seconds{pid="puma_5"} 1621233750
+# HELP ruby_process_unique_memory_bytes Multiprocess metric
+# TYPE ruby_process_unique_memory_bytes gauge
+ruby_process_unique_memory_bytes{pid="puma_0"} 246870016
+ruby_process_unique_memory_bytes{pid="puma_1"} 249810944
+ruby_process_unique_memory_bytes{pid="puma_2"} 277762048
+ruby_process_unique_memory_bytes{pid="puma_3"} 225345536
+ruby_process_unique_memory_bytes{pid="puma_4"} 254971904
+ruby_process_unique_memory_bytes{pid="puma_5"} 215805952
+# HELP ruby_sampler_duration_seconds_total Multiprocess metric
+# TYPE ruby_sampler_duration_seconds_total counter
+ruby_sampler_duration_seconds_total 5.4415020308224484
