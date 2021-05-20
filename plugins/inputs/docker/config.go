@@ -15,6 +15,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
+// ## To use environment variables (ie, docker-machine), set endpoint = "ENV"
+
 const (
 	inputName = "docker"
 
@@ -22,7 +24,6 @@ const (
 [inputs.docker]
   ## param type: string - default: unix:///var/run/docker.sock
   ## To use TCP, set endpoint = "tcp://[ip]:[port]"
-  ## To use environment variables (ie, docker-machine), set endpoint = "ENV"
   endpoint = "unix:///var/run/docker.sock"
   
   ## param type: boolean
