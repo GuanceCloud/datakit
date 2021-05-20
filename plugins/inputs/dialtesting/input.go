@@ -412,6 +412,7 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 		return body, nil
 	default:
 		l.Warn("request %s failed(%s): %s", d.Server, resp.Status, string(body))
+		//error_code = kodo.RegionNotFoundOrDisabled, 停止掉所有任务
 		return nil, fmt.Errorf("pull task failed")
 	}
 
