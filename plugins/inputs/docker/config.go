@@ -15,49 +15,65 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
+// ## To use environment variables (ie, docker-machine), set endpoint = "ENV"
+
 const (
 	inputName = "docker"
 
 	sampleCfg = `
 [inputs.docker]
-  # Docker Endpoint
-  # To use TCP, set endpoint = "tcp://[ip]:[port]"
-  # To use environment variables (ie, docker-machine), set endpoint = "ENV"
+  ## param type: string - default: unix:///var/run/docker.sock
+  ## To use TCP, set endpoint = "tcp://[ip]:[port]"
   endpoint = "unix:///var/run/docker.sock"
   
-  collect_metric = true
+  ## param type: boolean
+  collect_metric = false
   collect_object = true
   collect_logging = true
   
-  # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  ## param type: string - optional: time units are "ms", "s", "m", "h" - default: 10s
   collect_metric_interval = "10s"
   
-  # Is all containers, Return all containers. By default, only running containers are shown.
+  ## param type: boolean - default: false
+  ## Is all containers, Return all containers. By default, only running containers are shown.
   include_exited = false
   
-  ## Optional TLS Config
+  ## param type: string - optional: TLS Config
   # tls_ca = "/path/to/ca.pem"
   # tls_cert = "/path/to/cert.pem"
   # tls_key = "/path/to/key.pem"
-  ## Use TLS but skip chain & host verification
+  ## param type: boolean - optional: Use TLS but skip chain & host verification
   # insecure_skip_verify = false
   
-  #[[inputs.docker.logfilter]]
+  ## param type: logfilter object
+  # [[inputs.docker.logfilter]]
+
+    ## param type: string array
     # filter_message = [
     #    '''<this-is-message-regexp''',
     # ]
+
+    ## param type: string
     # source = "<your-source>"
     # service = "<your-service>"
     # pipeline = "<this-is-pipeline>"
   
+  ## param type: map object, string to string
   [inputs.docker.tags]
     # tags1 = "value1"
 `
-	defaultEndpoint          = "unix:///var/run/docker.sock"
-	defaultAPITimeout        = time.Second * 5
+	defaultEndpoint     = "unix:///var/run/docker.sock"
+	defaultEndpointPath = "/var/run/docker.sock"
+	// Docker API 超时时间
+	defaultAPITimeout = time.Second * 5
+	// 最小指标采集间隔
 	minCollectMetricDuration = time.Second * 5
+	// 最大指标采集间隔
 	maxCollectMetricDuration = time.Second * 60
-	collectObjectDuration    = time.Minute * 5
+	// 对象采集间隔
+	collectObjectDuration = time.Minute * 5
+	// 定时发现新日志源
+	loggingHitDuration = time.Second * 5
 )
 
 var l = logger.DefaultSLogger(inputName)
@@ -199,8 +215,8 @@ func (this *Input) loadCfg() (err error) {
 		if err != nil {
 			return
 		}
-		this.collectMetricDuration = datakit.ProtectedInterval(minCollectMetricDuration, maxCollectMetricDuration, dur)
-		l.Debugf("collect metrics interval %s", this.collectMetricDuration)
+		this.metricDuration = datakit.ProtectedInterval(minCollectMetricDuration, maxCollectMetricDuration, dur)
+		l.Debugf("collect metrics interval %s", this.metricDuration)
 	}
 
 	if err = this.initLoggingConf(); err != nil {
