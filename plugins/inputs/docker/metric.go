@@ -124,7 +124,7 @@ const streamStats = false
 
 func (this *Input) gatherStats(container types.Container) (map[string]interface{}, error) {
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
+	ctx, cancel := context.WithTimeout(ctx, this.apiTimeoutDuration)
 	defer cancel()
 
 	resp, err := this.client.ContainerStats(ctx, container.ID, streamStats)
