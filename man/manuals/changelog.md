@@ -5,6 +5,15 @@
 
 # DataKit 版本历史
 
+## 1.1.6-rc6(2021/05/19)
+
+### 发布说明
+
+- 修复部分采集器（MySQL/Redis）数据处理过程中， 因缺少指标导致的数据问题
+- 其它一些 bug 修复
+
+----
+
 ## 1.1.6-rc5(2021/05/18)
 
 ### 发布说明
@@ -26,9 +35,9 @@
 
 本次发布，有如下更新：
 
-- DataKit 安装/升级后，目录变更为
-	- Linux/Mac: `/usr/local/datakit`
-	- Windows: `C:\Program Files\datakit`
+- DataKit 安装/升级后，安装目录变更为
+	- Linux/Mac: `/usr/local/datakit`，日志目录为 `/var/log/datakit`
+	- Windows: `C:\Program Files\datakit`，日志目录就在安装目录下
 
 - 支持 [`/v1/ping` 接口](apis#50ea0eb5)
 - 移除 RUM 采集器，RUM 接口[默认已经支持](apis#f53903a9)
