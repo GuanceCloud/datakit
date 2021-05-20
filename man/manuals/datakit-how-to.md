@@ -249,7 +249,7 @@ DataKit 内置很多不同的小工具，便于大家日常使用。
 指定 pipeline 脚本名称（`--pl`，pipeline 脚本必须放在 `<DataKit 安装目录>/pipeline` 目录下），输入一段文本（`--txt`）即可判断提取是否成功
 
 ```shell
-$ ./datakit --pl your_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+$ datakit --pl your_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs): # 表示切割成功
 {
 	"code"   : "io/io.go: 458",       # 对应代码位置
@@ -267,7 +267,7 @@ No data extracted from pipeline
 由于 grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
 
 ```Shell
-$ ./datakit --grokq
+$ datakit --grokq
 grokq > Mon Jan 25 19:41:17 CST 2021   # 此处输入你希望匹配的文本
         2 %{DATESTAMP_OTHER: ?}        # 工具会给出对应对的建议，越靠前匹配月精确（权重也越大）。前面的数字表明权重。
         0 %{GREEDYDATA: ?}
@@ -289,7 +289,7 @@ Bye!
 为便于大家在服务端查看 DataKit 帮助文档，DataKit 提供如下交互式文档查看入口（Windows 不支持）：
 
 ```shell
-$ ./datakit --man
+$ datakit --man
 man > nginx
 (显示 Nginx 采集文档)
 man > mysql
@@ -321,30 +321,36 @@ $ sudo datakit --update-ip-db
 
 ### DataKit 安装第三方软件
 
-#### Telegraf 安装
+#### Telegraf 集成
 
-安装
+> 注意：建议在使用 Telegraf 之前，先确 DataKit 是否能满足期望的数据采集。如果 DataKit 已经支持，不建议用 Telegraf 来采集，这可能会导致数据冲突，从而造成使用上的困扰。
+
+安装 Telegraf 集成
+
 ```shell
 $ sudo datakit --install telegraf
 ```
 
-启动
+启动 Telegraf
+
 ```shell
 $ cd /etc/telegraf
-$ sudo cp telegraf.conf.sample tg.conf
-$ sudo telegraf --config tg.conf
+$ sudo cp telegraf.conf.sample telegraf.conf
+$ sudo telegraf --config telegraf.conf
 ```
 
-若需要修改 Telegraf 配置，在 `tg.conf` 文件中修改后重启 Telegraf
+关于 Telegraf 的使用事项，参见[这里](telegraf)。
 
-#### sec-check 安装
+#### Security Checker 集成
 
-安装
+安装 Security Checker
+
 ```shell
-$ sudo datakit --install sec-check
+$ sudo datakit --install scheck
+$ sudo datakit --install sec-checker  # 该命名即将废弃
 ```
 
-安装成功后会自动运行，sec-check 具体使用，参见[这里](https://www.yuque.com/dataflux/sec_checker/install) 
+安装成功后会自动运行，Security Checker 具体使用，参见[这里](https://www.yuque.com/dataflux/sec_checker/install) 
 
 ### 其它命令
 

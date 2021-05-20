@@ -111,10 +111,12 @@ func (i *Input) parseCommandData(list string) error {
 			m.resData[key] = val
 		}
 
-		m.submit()
-		m.ts = time.Now()
-
-		i.collectCache = append(i.collectCache, m)
+		if err := m.submit(); err == nil {
+			if len(m.fields) > 0 {
+				m.ts = time.Now()
+				i.collectCache = append(i.collectCache, m)
+			}
+		}
 	}
 
 	return nil
@@ -128,6 +130,7 @@ func (m *commandMeasurement) submit() error {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
 				l.Errorf("commandMeasurement metric %v value %v parse error %v", key, value, err)
+				return err
 			} else {
 				m.fields[key] = val
 			}
