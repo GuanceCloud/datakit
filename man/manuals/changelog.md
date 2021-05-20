@@ -1,8 +1,5 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
-
 # DataKit 版本历史
 
 ## 1.1.6-rc7(2021/05/19)
