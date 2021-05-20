@@ -17,7 +17,7 @@ MySQL 指标采集，收集以下数据：
 
 ## 前置条件
 
-- 创建监控账号
+- 创建监控账号（一般情况，需用 MySQL `root` 账号登陆才能创建 MySQL 用户）
 
 ```sql
     CREATE USER 'datakitMonitor'@'localhost' IDENTIFIED BY '<UNIQUEPASSWORD>';
