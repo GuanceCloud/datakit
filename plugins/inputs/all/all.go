@@ -92,6 +92,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tencentobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tidb"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/timezone"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tomcat"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceJaeger"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceSkywalking"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceZipkin"
