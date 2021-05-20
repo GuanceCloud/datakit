@@ -45,7 +45,7 @@ const (
 	IGNORE_GLOBAL_TAGS = "ignore_global_tags"
 	CATEGORY           = "category"
 
-	DEFAULT_PRECISION = "ns"
+	DEFAULT_PRECISION = "n"
 	DEFAULT_INPUT     = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
 )
 
