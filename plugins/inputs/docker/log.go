@@ -33,9 +33,6 @@ const (
 	useIOHighFreq = true
 )
 
-type containerLog struct {
-}
-
 func (this *Input) addToContainerList(containerID string, cancel context.CancelFunc) error {
 	this.mu.Lock()
 	defer this.mu.Unlock()
@@ -68,7 +65,7 @@ func (this *Input) cancelTails() error {
 
 func (this *Input) gatherLog() {
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
+	ctx, cancel := context.WithTimeout(ctx, this.apiTimeoutDuration)
 	defer cancel()
 
 	cList, err := this.client.ContainerList(ctx, this.opts)
@@ -156,7 +153,7 @@ func (this *Input) tailContainerLogs(ctx context.Context, container types.Contai
 }
 
 func (this *Input) hasTTY(ctx context.Context, container types.Container) (bool, error) {
-	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
+	ctx, cancel := context.WithTimeout(ctx, this.apiTimeoutDuration)
 	defer cancel()
 	c, err := this.client.ContainerInspect(ctx, container.ID)
 	if err != nil {
