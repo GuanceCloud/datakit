@@ -105,6 +105,7 @@ func (this *Input) tailContainerLogs(ctx context.Context, container types.Contai
 
 	tags := map[string]string{
 		"container_name": containerName,
+		"container_id":   container.ID,
 		"image_name":     imageName,
 	}
 	for k, v := range this.Tags {
