@@ -2614,29 +2614,29 @@ const (
 
 
 # Read metrics about cpu usage
-[[inputs.cpu]]
-  ## Whether to report per-cpu stats or not
-  percpu = true
-  ## Whether to report total system cpu stats or not
-  totalcpu = true
-  ## If true, collect raw CPU time metrics
-  collect_cpu_time = false
-  ## If true, compute and report the sum of all non-idle CPU states
-  report_active = false
+# [[inputs.cpu]]
+#  ## Whether to report per-cpu stats or not
+#  percpu = true
+#  ## Whether to report total system cpu stats or not
+#  totalcpu = true
+#  ## If true, collect raw CPU time metrics
+#  collect_cpu_time = false
+#  ## If true, compute and report the sum of all non-idle CPU states
+#  report_active = false
 
 
 # Read metrics about disk usage by mount point
-[[inputs.disk]]
-  ## By default stats will be gathered for all mount points.
-  ## Set mount_points will restrict the stats to only the specified mount points.
-  # mount_points = ["/"]
-
-  ## Ignore mount points by filesystem type.
-  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
+# [[inputs.disk]]
+#  ## By default stats will be gathered for all mount points.
+#  ## Set mount_points will restrict the stats to only the specified mount points.
+#  # mount_points = ["/"]
+#
+#  ## Ignore mount points by filesystem type.
+#  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
 
 
 # Read metrics about disk IO by device
-[[inputs.diskio]]
+# [[inputs.diskio]]
   ## By default, telegraf will gather stats for all devices including
   ## disk partitions.
   ## Setting devices will restrict the stats to the specified devices.
@@ -2665,27 +2665,27 @@ const (
 
 
 # Get kernel statistics from /proc/stat
-[[inputs.kernel]]
+# [[inputs.kernel]]
   # no configuration
 
 
 # Read metrics about memory usage
-[[inputs.mem]]
+# [[inputs.mem]]
   # no configuration
 
 
 # Get the number of processes and group them by status
-[[inputs.processes]]
+# [[inputs.processes]]
   # no configuration
 
 
 # Read metrics about swap memory usage
-[[inputs.swap]]
+# [[inputs.swap]]
   # no configuration
 
 
 # Read metrics about system load & uptime
-[[inputs.system]]
+# [[inputs.system]]
   ## Uncomment to remove deprecated metrics.
   # fielddrop = ["uptime_format"]
 
@@ -5154,7 +5154,7 @@ const (
 #   # timeout = "5ms"
 
 
-# # A plugin to collect stats from Opensmtpd - a validating, recursive, and caching DNS resolver 
+# # A plugin to collect stats from Opensmtpd - a validating, recursive, and caching DNS resolver
 # [[inputs.opensmtpd]]
 #   ## If running as a restricted user you can prepend sudo for additional access:
 #   #use_sudo = false
@@ -6240,7 +6240,7 @@ const (
 # 	## This value is propagated to pqos tool. Interval format is defined by pqos itself.
 # 	## If not provided or provided 0, will be set to 10 = 10x100ms = 1s.
 # 	# sampling_interval = "10"
-# 	
+#
 # 	## Optionally specify the path to pqos executable.
 # 	## If not provided, auto discovery will be performed.
 # 	# pqos_path = "/usr/local/bin/pqos"
@@ -6248,12 +6248,12 @@ const (
 # 	## Optionally specify if IPC and LLC_Misses metrics shouldn't be propagated.
 # 	## If not provided, default value is false.
 # 	# shortened_metrics = false
-# 	
+#
 # 	## Specify the list of groups of CPU core(s) to be provided as pqos input.
 # 	## Mandatory if processes aren't set and forbidden if processes are specified.
 # 	## e.g. ["0-3", "4,5,6"] or ["1-3,4"]
 # 	# cores = ["0-3"]
-# 	
+#
 # 	## Specify the list of processes for which Metrics will be collected.
 # 	## Mandatory if cores aren't set and forbidden if cores are specified.
 # 	## e.g. ["qemu", "pmd"]
@@ -6982,7 +6982,7 @@ const (
 # 	## This value is propagated to pqos tool. Interval format is defined by pqos itself.
 # 	## If not provided or provided 0, will be set to 10 = 10x100ms = 1s.
 # 	# sampling_interval = "10"
-# 	
+#
 # 	## Optionally specify the path to pqos executable.
 # 	## If not provided, auto discovery will be performed.
 # 	# pqos_path = "/usr/local/bin/pqos"
@@ -6990,12 +6990,12 @@ const (
 # 	## Optionally specify if IPC and LLC_Misses metrics shouldn't be propagated.
 # 	## If not provided, default value is false.
 # 	# shortened_metrics = false
-# 	
+#
 # 	## Specify the list of groups of CPU core(s) to be provided as pqos input.
 # 	## Mandatory if processes aren't set and forbidden if processes are specified.
 # 	## e.g. ["0-3", "4,5,6"] or ["1-3,4"]
 # 	# cores = ["0-3"]
-# 	
+#
 # 	## Specify the list of processes for which Metrics will be collected.
 # 	## Mandatory if cores aren't set and forbidden if cores are specified.
 # 	## e.g. ["qemu", "pmd"]
