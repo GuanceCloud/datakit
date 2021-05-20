@@ -92,6 +92,8 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 
 			"usage_total": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU in total active usage, as well as (100 - usage_idle)."},
+			"core_temperature": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Celsius,
+				Desc: "CPU core temperature"},
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "主机名"},
@@ -160,10 +162,15 @@ func (i *Input) Collect() error {
 			continue
 		}
 		cpuUsage, _ := CalculateUsage(cts, lastCts, totalDelta)
+
 		if ok := CPUStatStructToMap(fields, cpuUsage, "usage_"); !ok {
 			l.Error("error: collect cpu time, check cpu usage stat struct")
 			break
 		} else {
+			if temp, err := CoreTempAvg(); err == nil {
+				// 不增加新tag， 计算 core temp 的平均值
+				fields["core_temperature"] = temp
+			}
 			i.appendMeasurement(inputName, tags, fields, time_now)
 			// i.addField("active", 100 * (active-lastActive)/totalDelta)
 		}
