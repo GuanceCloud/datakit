@@ -43,6 +43,11 @@ func Geo(ip string) (*ipL.IP2Locationrecord, error) {
 
 func LoadIPLib() error {
 	var err error
+	if !datakit.FileExist(Ip2LocDbPath) {
+		l.Warnf("%v not found", Ip2LocDbPath)
+		return nil
+	}
+
 	Db, err = ipL.OpenDB(Ip2LocDbPath)
 	return err
 }
