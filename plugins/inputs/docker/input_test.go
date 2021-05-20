@@ -41,7 +41,7 @@ func TestGatherLog(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = d.initLogOption(); err != nil {
+	if err = d.initLoggingConf(); err != nil {
 		t.Fatal(err)
 	}
 
