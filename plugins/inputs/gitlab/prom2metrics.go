@@ -8,12 +8,13 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
+const prefixName = "gitlab_"
+
 var ignoreList = map[string]interface{}{
 	"http_requests_total": nil,
 }
 
 type samplePoint struct {
-	name   string
 	tags   map[string]string
 	fields map[string]interface{}
 }
@@ -31,10 +32,6 @@ func promTextToMetrics(data io.Reader) ([]*samplePoint, error) {
 	for name, metric := range metrics {
 		if _, ok := ignoreList[name]; ok {
 			continue
-		}
-
-		if !strings.HasPrefix(name, "gitlab_") {
-			name = "gitlab_" + name
 		}
 
 		switch metric.GetType() {
@@ -59,9 +56,8 @@ func (p *prom) counter(name string, metrics []*dto.Metric) []*samplePoint {
 			continue
 		}
 		pts = append(pts, &samplePoint{
-			name:   name,
 			tags:   labelToTags(m.GetLabel()),
-			fields: map[string]interface{}{name: m.GetCounter().GetValue()},
+			fields: map[string]interface{}{strings.TrimPrefix(name, prefixName): m.GetCounter().GetValue()},
 		})
 	}
 	return pts
@@ -74,11 +70,10 @@ func (p *prom) histogram(name string, metrics []*dto.Metric) []*samplePoint {
 			continue
 		}
 		pts = append(pts, &samplePoint{
-			name: name,
 			tags: labelToTags(m.GetLabel()),
 			fields: map[string]interface{}{
-				name + "_count": float64(m.GetHistogram().GetSampleCount()),
-				name + "_sum":   m.GetHistogram().GetSampleSum(),
+				strings.TrimPrefix(name, prefixName) + "_count": float64(m.GetHistogram().GetSampleCount()),
+				strings.TrimPrefix(name, prefixName) + "_sum":   m.GetHistogram().GetSampleSum(),
 			},
 		})
 	}
