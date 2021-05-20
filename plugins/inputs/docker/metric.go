@@ -71,7 +71,7 @@ func (this *Input) gather(option ...*gatherOption) ([]*io.Point, error) {
 						result[k] = v
 					}
 					return result
-				})
+				}())
 				if err != nil {
 					l.Error(err)
 					return
