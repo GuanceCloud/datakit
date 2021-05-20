@@ -3,9 +3,12 @@ package cpu
 import (
 	"fmt"
 	"reflect"
+	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/host"
 )
 
 type CPUStatInfo interface {
@@ -42,6 +45,33 @@ func (c *CPUInfoTest) CPUTimes(perCPU, totalCPU bool) ([]cpu.TimesStat, error) {
 		return r, nil
 	}
 	return nil, fmt.Errorf("")
+}
+
+func CoreTempAvg() (float64, error) {
+	if runtime.GOOS == "linux" {
+		sensorTempStat, err := host.SensorsTemperatures()
+		if err != nil {
+			return 0, err
+		}
+		regexpC, err := regexp.Compile(`coretemp_core[\d]_input`)
+		if err != nil {
+			return 0, err
+		}
+		temp, count := 0.0, 0
+		for _, v := range sensorTempStat {
+			if regexpC.MatchString(v.SensorKey) {
+				temp += v.Temperature
+				count++
+			}
+		}
+		if count > 0 {
+			return temp / float64(count), nil
+		} else {
+			return 0, fmt.Errorf("no coretemp data or regexp error")
+		}
+	}
+	return 0, fmt.Errorf("os is not supported")
+
 }
 
 // cpu usage stat
