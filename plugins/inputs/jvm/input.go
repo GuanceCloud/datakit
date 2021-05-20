@@ -106,7 +106,7 @@ var JvmTypeMap = map[string]string{
 
 type Input struct {
 	inputs.JolokiaAgent
-	Tags map[string]string  `toml:"tags"`
+	Tags map[string]string `toml:"tags"`
 }
 
 func (i *Input) Run() {
