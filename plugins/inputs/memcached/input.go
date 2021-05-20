@@ -248,7 +248,6 @@ func (i *Input) Run() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		l.Info("add memcached")
 		return &Input{}
 	})
 }
