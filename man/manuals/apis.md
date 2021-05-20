@@ -22,7 +22,7 @@
 
 HTTP body 为行协议。
 
-- 日志(logging)示例
+### 日志(logging)示例
 
 ```http
 POST /v1/write/logging?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -34,7 +34,7 @@ redis,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 
 注意：行协议中的 measurement-name 会作为日志的 `source` 字段来存储。
 
-- 时序数据(metric)示例
+### 时序数据(metric)示例
 
 ```http
 POST /v1/write/metric?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -44,7 +44,7 @@ mem,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 net,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 ```
 
-- RUM 数据示例
+### RUM 数据示例
 
 ```http
 POST /v1/write/rum?precision=n&input=my-sample-rum&ignore_global_tags=true HTTP/1.1
