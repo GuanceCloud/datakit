@@ -62,7 +62,8 @@ const (
   [inputs.docker.tags]
     # tags1 = "value1"
 `
-	defaultEndpoint = "unix:///var/run/docker.sock"
+	defaultEndpoint     = "unix:///var/run/docker.sock"
+	defaultEndpointPath = "/var/run/docker.sock"
 	// Docker API 超时时间
 	defaultAPITimeout = time.Second * 5
 	// 最小指标采集间隔
