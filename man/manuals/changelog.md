@@ -2,6 +2,33 @@
 
 # DataKit 版本历史
 
+## 1.1.7-rc0(2021/05/20)
+
+### 发布说明
+
+新增采集器：
+
+- [Apache](apache)
+- [Cloudprober 接入](cloudprober)
+- [Gitlab](gitlab)
+- [Jenkins](jenkins)
+- [Memcached](memcached)
+- [Mongodb](mongodb)
+- [SSH](ssh)
+- [Solr](solr)
+- [Tomcat](tomcat)
+
+新功能相关：
+
+- 网络拨测支持私有节点接入
+- Linux 平台默认开启容器对象、日志采集
+- CPU 采集器支持温度数据采集
+- [MySQL 慢日志支持阿里云 RDS 格式切割](mysql#ee953f78)
+
+其它各种 Bug 修复。
+
+----
+
 ## 1.1.6-rc7(2021/05/19)
 
 ### 发布说明
