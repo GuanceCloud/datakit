@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"errors"
 	"log"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -22,7 +23,7 @@ var (
 )
 
 var (
-	command      = "sensors"
+	defCommand   = "sensors"
 	defPath      = "/usr/bin/sensors"
 	defInterval  = datakit.Duration{Duration: 10 * time.Second}
 	defTimeout   = datakit.Duration{Duration: 3 * time.Second}
@@ -30,13 +31,13 @@ var (
 	sampleConfig = `
 [[inputs.sensors]]
 	## Command path of 'senssor' usually under /usr/bin/sensors
-	path = "/usr/bin/senssors"
+	# path = "/usr/bin/senssors"
 
 	## Gathering interval
-	interval = "10s"
+	# interval = "10s"
 
 	## Command timeout
-	timeout = "3s"
+	# timeout = "3s"
 `
 	l = logger.SLogger(inputName)
 )
@@ -65,6 +66,16 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 func (i *Input) Run() {
 	l.Info("sensors input started")
+
+	if finfo, err := os.Stat(i.Path); err != nil || finfo.IsDir() {
+		l.Error(err.Error())
+		if i.Path, err = exec.LookPath(defCommand); err != nil {
+			l.Errorf("Can not find executable sensor command, install 'lm-sensors' first.")
+
+			return
+		}
+		l.Infof("Fallback: use %q for gathering instead.", i.Path)
+	}
 
 	tick := time.NewTicker(i.Interval.Duration)
 	for {
