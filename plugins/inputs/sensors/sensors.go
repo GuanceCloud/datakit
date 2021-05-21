@@ -182,7 +182,7 @@ func parse(output string) ([]inputs.Measurement, error) {
 }
 
 func init() {
-	inputs.Add("sensors", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Path:     defPath,
 			Interval: defInterval,
