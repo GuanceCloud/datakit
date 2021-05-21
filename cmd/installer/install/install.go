@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	bstoml "github.com/BurntSushi/toml"
 	"github.com/kardianos/service"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -20,7 +20,8 @@ import (
 var (
 	l = logger.DefaultSLogger("install")
 
-	DefaultHostInputs = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes"}
+	DefaultHostInputs          = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes"}
+	DefaultHostInputsWithLinux = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "docker"}
 
 	OSArch = runtime.GOOS + "/" + runtime.GOARCH
 
@@ -60,17 +61,12 @@ func getDataWayCfg() *datakit.DataWayCfg {
 				continue
 			}
 			break
-
 		}
 	} else {
 		dwUrls := []string{DataWayHTTP}
-		datakit.Cfg.MainCfg.DataWay.Urls = dwUrls
-		dc, err = datakit.ParseDataway(datakit.Cfg.MainCfg.DataWay.Urls)
+		datakit.Cfg.DataWay.Urls = dwUrls
+		dc, err = datakit.ParseDataway(datakit.Cfg.DataWay.Urls)
 		if err != nil {
-			l.Fatal(err)
-		}
-
-		if err := dc.Test(); err != nil {
 			l.Fatal(err)
 		}
 	}
@@ -84,32 +80,34 @@ func InstallNewDatakit(svc service.Service) {
 		l.Warnf("uninstall service: %s, ignored", err.Error())
 	}
 
+	mc := datakit.Cfg
+
 	// prepare dataway info
-	datakit.Cfg.MainCfg.DataWay = getDataWayCfg()
+	mc.DataWay = getDataWayCfg()
 
 	// accept any install options
 	if GlobalTags != "" {
-		datakit.Cfg.MainCfg.GlobalTags = datakit.ParseGlobalTags(GlobalTags)
+		mc.GlobalTags = datakit.ParseGlobalTags(GlobalTags)
 	}
 
-	datakit.Cfg.MainCfg.HTTPListen = fmt.Sprintf("localhost:%d", Port)
-	datakit.Cfg.MainCfg.InstallDate = time.Now()
+	mc.HTTPListen = fmt.Sprintf("localhost:%d", Port)
+	mc.InstallDate = time.Now()
 
 	if DatakitName != "" {
-		datakit.Cfg.MainCfg.Name = DatakitName
+		mc.Name = DatakitName
 	}
 
 	// XXX: load old datakit UUID file: reuse datakit UUID installed before
 	if data, err := ioutil.ReadFile(datakit.UUIDFile); err != nil {
-		datakit.Cfg.MainCfg.UUID = cliutils.XID("dkid_")
-		if err := datakit.CreateUUIDFile(datakit.Cfg.MainCfg.UUID); err != nil {
+		mc.UUID = cliutils.XID("dkid_")
+		if err := datakit.CreateUUIDFile(datakit.UUIDFile, mc.UUID); err != nil {
 			l.Fatalf("create datakit id failed: %s", err.Error())
 		}
 	} else {
-		datakit.Cfg.MainCfg.UUID = string(data)
+		mc.UUID = string(data)
 	}
 
-	writeDefInputToMainCfg()
+	writeDefInputToMainCfg(mc)
 
 	l.Infof("installing service %s...", datakit.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
@@ -117,67 +115,46 @@ func InstallNewDatakit(svc service.Service) {
 	}
 }
 
-func writeDefInputToMainCfg() {
-	if EnableInputs == "" {
-		EnableInputs = strings.Join(DefaultHostInputs, ",")
-	} else {
-		EnableInputs = EnableInputs + "," + strings.Join(DefaultHostInputs, ",")
+func writeDefInputToMainCfg(mc *datakit.Config) {
+
+	var hostInputs = DefaultHostInputs
+	if runtime.GOOS == datakit.OSLinux {
+		hostInputs = DefaultHostInputsWithLinux
 	}
 
-	datakit.Cfg.EnableDefaultsInputs(EnableInputs)
+	if EnableInputs == "" {
+		EnableInputs = strings.Join(hostInputs, ",")
+	} else {
+		EnableInputs = EnableInputs + "," + strings.Join(hostInputs, ",")
+	}
+
+	mc.EnableDefaultsInputs(EnableInputs)
 
 	// build datakit main config
-	if err := datakit.Cfg.InitCfg(datakit.MainConfPath); err != nil {
+	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 }
 
-func upgradeMainConfigure(cfg *datakit.Config, mcp string) error {
+func upgradeMainConfig(c *datakit.Config) (*datakit.Config, error) {
 
-	datakit.MoveDeprecatedMainCfg()
-
-	mcdata, err := ioutil.ReadFile(mcp)
-	if err != nil {
-		return err
+	if c.DataWay != nil {
+		c.DataWay.DeprecatedURL = ""
 	}
 
-	if _, err := bstoml.Decode(string(mcdata), cfg.MainCfg); err != nil {
-		return err
+	// XXX: 无脑更改日志位置
+	switch runtime.GOOS {
+	case datakit.OSWindows:
+		c.Log = filepath.Join(datakit.InstallDir, "log")
+		c.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
+	default:
+		c.Log = "/var/log/datakit/log"
+		c.GinLog = "/var/log/datakit/gin.log"
 	}
+	l.Debugf("set log to %s, remove ", c.Log)
+	l.Debugf("set gin log to %s", c.GinLog)
 
-	mc := cfg.MainCfg
-
-	if mc.DataWay.DeprecatedURL == "" { // use old-version configure fields to build @URL
-		mc.DataWay.DeprecatedURL = fmt.Sprintf("%s://%s", mc.DataWay.DeprecatedScheme, mc.DataWay.DeprecatedHost)
-	}
-
-	if mc.DataWay.DeprecatedToken != "" {
-		mc.DataWay.DeprecatedURL += fmt.Sprintf("?token=%s", mc.DataWay.DeprecatedToken)
-	}
-
-	// clear deprecated fields
-	mc.DataWay.DeprecatedToken = ""
-	mc.DataWay.DeprecatedHost = ""
-	mc.DataWay.DeprecatedScheme = ""
-
-	for _, v := range DefaultHostInputs {
-		exists := false
-		for _, iv := range mc.DefaultEnabledInputs {
-			if v == iv {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			mc.DefaultEnabledInputs = append(mc.DefaultEnabledInputs, v)
-		}
-	}
-
-	//backup datakit.conf
-	backfile := mcp + fmt.Sprintf(".bkp.%v", time.Now().Unix())
-	ioutil.WriteFile(backfile, mcdata, 0664)
-
-	return cfg.InitCfg(mcp)
+	return c, nil
 }
 
 func UpgradeDatakit(svc service.Service) error {
@@ -186,21 +163,26 @@ func UpgradeDatakit(svc service.Service) error {
 		l.Warnf("stop service: %s, ignored", err.Error())
 	}
 
-	if err := datakit.Cfg.LoadMainConfig(datakit.MainConfPath); err == nil {
-		datakit.Cfg.MainCfg.DataWay.DeprecatedURL = ""
-		writeDefInputToMainCfg()
+	mc := datakit.Cfg
+	if err := mc.LoadMainConfig(datakit.MainConfPath); err == nil {
+		mc, _ = upgradeMainConfig(mc)
+		writeDefInputToMainCfg(mc)
 	} else {
 		l.Warnf("load main config: %s, ignored", err.Error())
+		return err
 	}
 
-	for _, dir := range []string{datakit.DataDir, datakit.LuaDir, datakit.ConfdDir} {
+	for _, dir := range []string{datakit.DataDir, datakit.ConfdDir} {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			return err
 		}
 	}
 
-	l.Infof("installing service %s...", datakit.ServiceName)
-	return service.Control(svc, "start")
+	if err := service.Control(svc, "install"); err != nil {
+		l.Warnf("install datakit service: %s, ignored", err.Error())
+	}
+
+	return nil
 }
 
 func Init() {
