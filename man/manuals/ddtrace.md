@@ -59,6 +59,9 @@ from ddtrace import tracer
 # 设置服务名
 os.environ["DD_SERVICE"] = "SERVICE_A"
 
+# 设置服务名映射关系
+os.environ["DD_SERVICE_MAPPING"] = "postgres:postgresql,defaultdb:postgresql"
+
 # 通过环境变量设置项目名，环境名，版本号
 os.environ["DD_TAGS"] = "project:your_project_name,env=test,version=v1"
 
@@ -100,7 +103,11 @@ from flask import Flask, request
 import os, time, requests
 from ddtrace import tracer
 
+# 设置服务名
 os.environ["DD_SERVICE"] = "SERVICE_B"
+
+# 设置服务名映射关系
+os.environ["DD_SERVICE_MAPPING"] = "postgres:postgresql,defaultdb:postgresql"
 
 # 通过环境变量设置项目名，环境名，版本号
 os.environ["DD_TAGS"] = "project:your_project_name,env=test,version=v1"
