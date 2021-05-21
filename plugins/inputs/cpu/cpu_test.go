@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/shirou/gopsutil/cpu"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -158,7 +157,7 @@ func TestCollect(t *testing.T) {
 		[]cpu.TimesStat{lastT},
 		[]cpu.TimesStat{nowT},
 	}
-	i := &Input{logger: logger.SLogger("cpu"), ps: &CPUInfoTest{timeStat: timeStats}}
+	i := &Input{ps: &CPUInfoTest{timeStat: timeStats}}
 	if err := i.Collect(); err != nil {
 		t.Error(err)
 	} else if len(i.collectCache) != 0 {
@@ -175,8 +174,8 @@ func TestCollect(t *testing.T) {
 	if tags["cpu"] != "cpu-total" {
 		t.Errorf("cpu:%s expected: cpu-total", tags["cpu"])
 	}
-	if tags["host"] != datakit.Cfg.MainCfg.Hostname {
-		t.Errorf("host name:%s expected: %s", tags["cpu"], datakit.Cfg.MainCfg.Hostname)
+	if tags["host"] != datakit.Cfg.Hostname {
+		t.Errorf("host name:%s expected: %s", tags["cpu"], datakit.Cfg.Hostname)
 	}
 
 	// fields
@@ -220,5 +219,13 @@ func TestHumpToUnderline(t *testing.T) {
 func assertEqualFloat64(t *testing.T, expected, actual float64, mName string) {
 	if expected != actual {
 		t.Errorf("error: "+mName+" expected: %f \t actual %f", expected, actual)
+	}
+}
+
+func TestSampleMeasurement(t *testing.T) {
+	x := &Input{}
+
+	for _, m := range x.SampleMeasurement() {
+		_ = m.Info()
 	}
 }
