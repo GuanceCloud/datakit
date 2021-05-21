@@ -33,9 +33,6 @@ const (
 	useIOHighFreq = true
 )
 
-type containerLog struct {
-}
-
 func (this *Input) addToContainerList(containerID string, cancel context.CancelFunc) error {
 	this.mu.Lock()
 	defer this.mu.Unlock()
@@ -68,7 +65,7 @@ func (this *Input) cancelTails() error {
 
 func (this *Input) gatherLog() {
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
+	ctx, cancel := context.WithTimeout(ctx, this.apiTimeoutDuration)
 	defer cancel()
 
 	cList, err := this.client.ContainerList(ctx, this.opts)
@@ -108,6 +105,7 @@ func (this *Input) tailContainerLogs(ctx context.Context, container types.Contai
 
 	tags := map[string]string{
 		"container_name": containerName,
+		"container_id":   container.ID,
 		"image_name":     imageName,
 	}
 	for k, v := range this.Tags {
@@ -124,6 +122,21 @@ func (this *Input) tailContainerLogs(ctx context.Context, container types.Contai
 		return err
 	}
 
+	var source string
+	if contianerIsFromKubernetes(getContainerName(container.Names)) {
+		uid, err := this.kubernetes.GatherPodUID(container.ID)
+		if err != nil {
+			l.Debugf("gather k8s podUID error: %s", err)
+		} else {
+			name, err := this.kubernetes.GatherWorkName(uid)
+			if err != nil {
+				l.Debugf("gather k8s workname error: %s", err)
+			} else {
+				source = name
+			}
+		}
+	}
+
 	// If the container is using a TTY, there is only a single stream
 	// (stdout), and data is copied directly from the container output stream,
 	// no extra multiplexing or headers.
@@ -132,15 +145,15 @@ func (this *Input) tailContainerLogs(ctx context.Context, container types.Contai
 	// multiplexed.
 
 	if hasTTY {
-		return tailStream(logReader, "tty", container, this.LogFilters, tags)
+		return tailStream(logReader, "tty", container, this.LogFilters, tags, source)
 	} else {
-		return tailMultiplexed(logReader, container, this.LogFilters, tags)
+		return tailMultiplexed(logReader, container, this.LogFilters, tags, source)
 	}
 
 }
 
 func (this *Input) hasTTY(ctx context.Context, container types.Container) (bool, error) {
-	ctx, cancel := context.WithTimeout(ctx, this.timeoutDuration)
+	ctx, cancel := context.WithTimeout(ctx, this.apiTimeoutDuration)
 	defer cancel()
 	c, err := this.client.ContainerInspect(ctx, container.ID)
 	if err != nil {
@@ -149,7 +162,7 @@ func (this *Input) hasTTY(ctx context.Context, container types.Container) (bool,
 	return c.Config.Tty, nil
 }
 
-func tailStream(reader io.ReadCloser, stream string, container types.Container, logFilters LogFilters, baseTags map[string]string) error {
+func tailStream(reader io.ReadCloser, stream string, container types.Container, logFilters LogFilters, baseTags map[string]string, source string) error {
 	defer reader.Close()
 
 	tags := make(map[string]string, len(baseTags)+1)
@@ -182,8 +195,13 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 		}
 
 		containerName := getContainerName(container.Names)
-		// default measurement is containerName, if source not empty use $source.
+		// measurement 默认使用容器名，如果该容器是 k8s 创建，则尝试获取它的 work name（work-load）
+		// 如果该字段值（即 source 参数）不为空，则使用
 		var measurement = containerName
+		if source != "" {
+			measurement = source
+		}
+
 		var fields = make(map[string]interface{})
 
 		for _, lf := range logFilters {
@@ -242,7 +260,7 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 	}
 }
 
-func tailMultiplexed(src io.ReadCloser, container types.Container, lf LogFilters, baseTags map[string]string) error {
+func tailMultiplexed(src io.ReadCloser, container types.Container, lf LogFilters, baseTags map[string]string, source string) error {
 	outReader, outWriter := io.Pipe()
 	errReader, errWriter := io.Pipe()
 
@@ -250,7 +268,7 @@ func tailMultiplexed(src io.ReadCloser, container types.Container, lf LogFilters
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := tailStream(outReader, "stdout", container, lf, baseTags)
+		err := tailStream(outReader, "stdout", container, lf, baseTags, source)
 		if err != nil {
 			l.Error(err)
 		}
@@ -259,7 +277,7 @@ func tailMultiplexed(src io.ReadCloser, container types.Container, lf LogFilters
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := tailStream(errReader, "stderr", container, lf, baseTags)
+		err := tailStream(errReader, "stderr", container, lf, baseTags, source)
 		if err != nil {
 			l.Error(err)
 		}
