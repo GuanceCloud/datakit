@@ -105,7 +105,9 @@ func (i *Input) getData() error {
 			m.fields["value_length"] = 0
 		}
 
-		i.collectCache = append(i.collectCache, m)
+		if len(m.fields) > 0 {
+			i.collectCache = append(i.collectCache, m)
+		}
 	}
 
 	return nil
