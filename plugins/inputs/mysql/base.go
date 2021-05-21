@@ -591,6 +591,7 @@ func (m *baseMeasurement) submit() error {
 			if err != nil {
 				m.i.err = err
 				l.Errorf("baseMeasurement metric %v value %v parse error %v", key, value, err)
+				return err
 			} else {
 				m.fields[key] = val
 			}
