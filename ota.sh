@@ -1,7 +1,7 @@
 #!/bin/bash
 # Update DataKit if new version available
 
-update_log=/usr/local/cloudcare/dataflux/datakit/update.log
+update_log=/usr/local/datakit/update.log
 
 datakit --check-update --accept-rc-version --update-log $update_log
 
