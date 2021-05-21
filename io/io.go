@@ -74,7 +74,7 @@ func NewIO(maxCacheCnt int64) *IO {
 
 		cache:        map[string][]*Point{},
 		dynamicCache: map[string][]*Point{},
-		dw:           datakit.Cfg.MainCfg.DataWay,
+		dw:           datakit.Cfg.DataWay,
 	}
 
 	io.MaxCacheCnt = maxCacheCnt
