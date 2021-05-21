@@ -1,6 +1,6 @@
 # summary
 
-# preinstall
+# prerequisite
 
 # config sample
 
