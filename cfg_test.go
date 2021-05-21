@@ -1,13 +1,31 @@
 package datakit
 
 import (
+	"bytes"
+	"os"
 	"testing"
+
 	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	// "github.com/influxdata/toml"
 	//"github.com/kardianos/service"
+
+	bstoml "github.com/BurntSushi/toml"
 )
 
-var cfg = `
+func TestDefaultToml(t *testing.T) {
+	c := DefaultConfig()
+
+	buf := new(bytes.Buffer)
+	if err := bstoml.NewEncoder(buf).Encode(c); err != nil {
+		l.Fatalf("encode main configure failed: %s", err.Error())
+	}
+
+	t.Logf("%s", string(buf.Bytes()))
+}
+
+func TestUnmarshalCfg(t *testing.T) {
+
+	var cfg = `
 	name = ""
 #http_server_addr = "0.0.0.0:9529"
 http_listen="0.0.0.0:9529"
@@ -64,8 +82,29 @@ install_date = 2021-03-25T11:00:19Z
   inputs = []
 	`
 
-func TestUnmarshalMainCfg(t *testing.T) {
 	Cfg.DoLoadMainConfig([]byte(cfg))
 
-	t.Log(Cfg.MainCfg.DataWay.Urls)
+	t.Log(Cfg.DataWay.Urls)
+}
+
+func TestLoadEnv(t *testing.T) {
+	os.Setenv("ENV_ENABLE_INPUTS", "a,b,c,d")
+	os.Setenv("ENV_GLOBAL_TAGS", "a=b,c=d")
+	os.Setenv("ENV_LOG_LEVEL", "debug")
+	os.Setenv("ENV_LOG_LEVEL", "debug")
+	os.Setenv("ENV_UUID", "dkid_12345")
+	os.Setenv("ENV_DATAWAY", "https://openway.dataflux.cn?token=tkn_mocked")
+
+	Docker = true
+	UUIDFile = ".dk.id"
+	mcp := "mcp.conf"
+
+	os.Remove(UUIDFile)
+	os.Remove(mcp)
+
+	c := DefaultConfig()
+
+	if err := c.LoadEnvs(mcp); err != nil {
+		t.Error(err)
+	}
 }
