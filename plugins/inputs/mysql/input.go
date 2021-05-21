@@ -113,7 +113,8 @@ func (i *Input) getDsnString() string {
 
 func (i *Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"mysql": pipelineCfg,
+		"mysql":     pipelineCfg,
+		"mysql_rds": rdsPipelineCfg,
 	}
 	return pipelineMap
 }
@@ -184,9 +185,11 @@ func (i *Input) collectBaseMeasurement() {
 		i.err = err
 	}
 
-	m.submit()
-
-	i.collectCache = append(i.collectCache, m)
+	if err := m.submit(); err == nil {
+		if len(m.fields) > 0 {
+			i.collectCache = append(i.collectCache, m)
+		}
+	}
 }
 
 // 获取innodb指标
@@ -207,9 +210,11 @@ func (i *Input) collectInnodbMeasurement() {
 		i.err = err
 	}
 
-	m.submit()
-
-	i.collectCache = append(i.collectCache, m)
+	if err := m.submit(); err == nil {
+		if len(m.fields) > 0 {
+			i.collectCache = append(i.collectCache, m)
+		}
+	}
 }
 
 // 获取schema指标
@@ -277,7 +282,7 @@ func (i *Input) Run() {
 					io.FeedLastError(inputName, err.Error())
 				}
 
-				i.collectCache = i.collectCache[:] // NOTE: do not forget to clean cache
+				i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache
 			}
 
 		case <-datakit.Exit.Wait():
