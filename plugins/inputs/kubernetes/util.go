@@ -1,9 +1,9 @@
 package kubernetes
 
 import (
-	"strconv"
 	"fmt"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"strconv"
 )
 
 func convertQuantity(s string, m float64) int64 {
@@ -30,4 +30,3 @@ func atoi(s string) int64 {
 	}
 	return i
 }
-
