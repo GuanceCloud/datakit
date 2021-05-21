@@ -35,6 +35,7 @@ var (
 		"proxy":                   "man/manuals/proxy.md",
 		"sec-checker":             "man/manuals/sec-checker.md",
 		"telegraf":                "man/manuals/telegraf.md",
+		"rum":                     "man/manuals/rum.md",
 	}
 
 	l = logger.DefaultSLogger("man")
@@ -59,6 +60,7 @@ type Option struct {
 	WithCSS                       bool
 	IgnoreMissing                 bool
 	DisableMonofontOnTagFieldName bool
+	ManVersion                    string
 }
 
 func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
@@ -66,9 +68,14 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 	var p *Params
 
 	css := MarkdownCSS
+	ver := git.Version
 
 	if !opt.WithCSS {
 		css = ""
+	}
+
+	if opt.ManVersion != "" {
+		ver = opt.ManVersion
 	}
 
 	if opt.DisableMonofontOnTagFieldName {
@@ -77,7 +84,7 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 
 	if _, ok := OtherDocs[name]; ok {
 		p = &Params{
-			Version:     git.Version,
+			Version:     ver,
 			ReleaseDate: git.BuildAt,
 			CSS:         css,
 		}
@@ -95,7 +102,7 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 				InputName:      name,
 				InputSample:    i.SampleConfig(),
 				Catalog:        i.Catalog(),
-				Version:        git.Version,
+				Version:        ver,
 				ReleaseDate:    git.BuildAt,
 				CSS:            css,
 				AvailableArchs: strings.Join(i.AvailableArchs(), ","),

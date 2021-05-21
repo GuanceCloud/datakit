@@ -52,7 +52,9 @@ const (
 	Percent = "%"
 
 	// TODO: add more...
-	BytesPerSec = "B/s"
+	BytesPerSec    = "B/s"
+	RequestsPerSec = "reqs/s"
+	Celsius        = "°C"
 )
 
 type Measurement interface {
