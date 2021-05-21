@@ -19,29 +19,39 @@ var (
 	inputName    = "mongodb"
 	sampleConfig = `
 [[inputs.mongodb]]
-	## gather interval
+	## Gathering interval
 	interval = "10s"
+
 	## An array of URLs of the form:
 	##   "mongodb://" [user ":" pass "@"] host [ ":" port]
 	## For example:
 	##   mongodb://user:auth_key@10.10.3.30:27017,
 	##   mongodb://10.10.3.33:18832,
 	servers = ["mongodb://127.0.0.1:27017"]
+
 	## When true, collect replica set stats
 	gather_replica_set_stats = false
+
 	## When true, collect cluster stats
 	## Note that the query that counts jumbo chunks triggers a COLLSCAN, which may have an impact on performance.
 	gather_cluster_stats = false
+
 	## When true, collect per database stats
 	gather_per_db_stats = true
+
 	## When true, collect per collection stats
 	gather_per_col_stats = true
+
 	## List of db where collections stats are collected, If empty, all db are concerned
 	col_stats_dbs = ["local"]
+
 	## When true, collect top stats
 	gather_top_stat = true
+
 	## Optional TLS Config, enabled if true
 	enable_tls = false
+
+	## TLS connection config
 	[inputs.mongodb.tlsconf]
 		# ca_certs = ["/etc/datakit/ca.pem"]
 		# cert = "/etc/datakit/cert.pem"
@@ -68,15 +78,19 @@ type Input struct {
 	mongos                map[string]*Server
 }
 
-func (m *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
-func (m *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (m *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&mongodbMeasurement{},
 		&mongodbDbMeasurement{},
@@ -86,10 +100,6 @@ func (m *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (m *Input) AvailableArchs() []string {
-	return datakit.AllArch
-}
-
 func (m *Input) Run() {
 	l.Info("mongodb input started")
 
@@ -97,10 +107,8 @@ func (m *Input) Run() {
 	for {
 		select {
 		case <-tick.C:
-			// var lastErr error
 			if err := m.Gather(); err != nil {
-				// lastErr = err
-				l.Errorf(err.Error())
+				l.Error(err.Error())
 				continue
 			}
 		case <-datakit.Exit.Wait():
