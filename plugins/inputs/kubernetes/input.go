@@ -1,17 +1,17 @@
 package kubernetes
 
 import (
-	"time"
-	"sync"
 	"context"
-	"io/ioutil"
-	"strings"
+	"k8s.io/client-go/rest"
+	"sync"
+	"time"
+
+	"github.com/influxdata/telegraf/filter"
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"github.com/influxdata/telegraf/filter"
 )
 
 const (
@@ -26,11 +26,11 @@ var (
 )
 
 var availableCollectors = map[string]func(ctx context.Context, i *Input){
-	"daemonsets":             collectDaemonSets,
-	"deployments":            collectDeployments,
+	// "daemonsets":             collectDaemonSets,
+	// "deployments":            collectDeployments,
 	// "endpoints":              collectEndpoints,
 	// "ingress":                collectIngress,
-	"nodes":                  collectNodes,
+	// "nodes":                  collectNodes,
 	// "pods":                   collectPods,
 	// "services":               collectServices,
 	// "statefulsets":           collectStatefulSets,
@@ -39,12 +39,16 @@ var availableCollectors = map[string]func(ctx context.Context, i *Input){
 }
 
 type Input struct {
-	Service      string `toml:"service"`
-	Interval     datakit.Duration
-	Tags         map[string]string    `toml:"tags"`
-	collectCache []inputs.Measurement `toml:"-"`
-	err          error
+	Service                string `toml:"service"`
+	Interval               datakit.Duration
+	ObjectInterval         string               `toml:"object_Interval"`
+	ObjectIntervalDuration time.Duration        `toml:"_"`
+	Tags                   map[string]string    `toml:"tags"`
+	collectCache           []inputs.Measurement `toml:"-"`
+	collectObjectCache     []inputs.Measurement `toml:"-"`
+	lastErr                error
 
+	KubeConfigPath    string `toml:"kube_config_path"`
 	URL               string `toml:"url"`
 	BearerToken       string `toml:"bearer_token"`
 	BearerTokenString string `toml:"bearer_token_string"`
@@ -58,33 +62,33 @@ type Input struct {
 	SelectorExclude []string `toml:"selector_exclude"`
 
 	tls.ClientConfig
-	client *client
-	mu     sync.Mutex
+	client         *client
+	mu             sync.Mutex
 	selectorFilter filter.Filter
 }
 
 func (i *Input) initCfg() error {
-	var defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
-	// If neither are provided, use the default service account.
-	if i.BearerToken == "" && i.BearerTokenString == "" {
-		i.BearerToken = defaultServiceAccountPath
-	}
-
-	if i.BearerToken != "" {
-		token, err := ioutil.ReadFile(i.BearerToken)
-		if err != nil {
-			return err
-		}
-		i.BearerTokenString = strings.TrimSpace(string(token))
-	}
-
 	TimeoutDuration, err := time.ParseDuration(i.Timeout)
 	if err != nil {
 		TimeoutDuration = 5 * time.Second
 	}
 
-	i.client, err = newClient(i.URL, i.Namespace, i.BearerTokenString, i.TimeoutDuration, i.ClientConfig)
+	var (
+		config *rest.Config
+	)
 
+	i.TimeoutDuration = TimeoutDuration
+
+	if i.KubeConfigPath != "" {
+		config, err = createConfigByKubePath(i.KubeConfigPath)
+		if err != nil {
+			return err
+		}
+	} else if i.URL != "" {
+		config, err = createConfigByToken(i.URL, i.BearerTokenString, i.TLSCA, i.InsecureSkipVerify)
+	}
+
+	i.client, err = newClient(config, 5*time.Second)
 	if err != nil {
 		return err
 	}
@@ -127,9 +131,9 @@ func (i *Input) Collect() error {
 
 	wg.Wait()
 
-	if i.err != nil {
-		io.FeedLastError(inputName, i.err.Error())
-		i.err = nil
+	if i.lastErr != nil {
+		io.FeedLastError(inputName, i.lastErr.Error())
+		i.lastErr = nil
 	}
 
 	return nil
@@ -137,20 +141,44 @@ func (i *Input) Collect() error {
 
 func (i *Input) Run() {
 	l = logger.SLogger("kubernetes")
-
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
-	err := i.initCfg()
+	i.ObjectIntervalDuration = 5 * time.Minute
+	i.ObjectIntervalDuration, _ = time.ParseDuration(i.ObjectInterval)
+
+	i.lastErr = i.initCfg()
+
+	if i.lastErr != nil {
+		io.FeedLastError(inputName, i.lastErr.Error())
+		i.lastErr = nil
+		return
+	}
 
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
+
+	objectTick := time.NewTicker(i.ObjectIntervalDuration)
+	defer objectTick.Stop()
+
+	go func() {
+		start := time.Now()
+		if err := i.CollectObject(); err != nil {
+			io.FeedLastError(inputName, err.Error())
+		} else {
+			if err := inputs.FeedMeasurement(inputName, datakit.Object, i.collectObjectCache,
+				&io.Option{CollectCost: time.Since(start)}); err != nil {
+				io.FeedLastError(inputName, err.Error())
+			}
+			i.collectObjectCache = i.collectObjectCache[:0]
+		}
+	}()
 
 	n := 0
 	for {
 		n++
 		select {
 		case <-tick.C:
-			l.Debugf("kubernetes input gathering...")
+			l.Debugf("kubernetes metric input gathering...")
 			start := time.Now()
 			if err := i.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
@@ -160,7 +188,19 @@ func (i *Input) Run() {
 					io.FeedLastError(inputName, err.Error())
 				}
 
-				i.collectCache = i.collectCache[:] // NOTE: do not forget to clean cache
+				i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache
+			}
+		case <-objectTick.C:
+			l.Debugf("kubernetes object input gathering...")
+			start := time.Now()
+			if err := i.CollectObject(); err != nil {
+				io.FeedLastError(inputName, err.Error())
+			} else {
+				if err := inputs.FeedMeasurement(inputName, datakit.Object, i.collectObjectCache,
+					&io.Option{CollectCost: time.Since(start)}); err != nil {
+					io.FeedLastError(inputName, err.Error())
+				}
+				i.collectObjectCache = i.collectObjectCache[:0]
 			}
 		case <-datakit.Exit.Wait():
 			l.Info("kubernetes exit")
@@ -178,8 +218,7 @@ func (i *Input) AvailableArchs() []string {
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-	}
+	return []inputs.Measurement{}
 }
 
 func init() {
