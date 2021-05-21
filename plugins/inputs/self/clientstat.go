@@ -28,7 +28,7 @@ type ClientStat struct {
 }
 
 func (s *ClientStat) Update() {
-	s.HostName = datakit.Cfg.MainCfg.Hostname
+	s.HostName = datakit.Cfg.Hostname
 
 	var memStatus runtime.MemStats
 	runtime.ReadMemStats(&memStatus)
@@ -46,7 +46,7 @@ func (s *ClientStat) ToMetric() *io.Point {
 	measurement := "datakit"
 
 	tags := map[string]string{
-		"uuid":    datakit.Cfg.MainCfg.UUID,
+		"uuid":    datakit.Cfg.UUID,
 		"vserion": git.Version,
 		"os":      s.OS,
 		"arch":    s.Arch,
