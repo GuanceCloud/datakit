@@ -64,7 +64,7 @@ func (m *Mock) Run() {
 
 			pt, err := influxdb.NewPoint(m.Metric,
 				map[string]string{
-					"from": datakit.Cfg.MainCfg.Hostname,
+					"from": datakit.Cfg.Hostname,
 				},
 				map[string]interface{}{
 					"f1": randomdata.Number(0, 100),

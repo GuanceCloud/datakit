@@ -17,7 +17,7 @@ import (
  * DataKit 选举说明文档
  *
  * 流程：
- *      1. DataKit 开启 cfg.MainCfg.EnableElection（booler）配置
+ *      1. DataKit 开启 cfg.EnableElection（booler）配置
  *      2. 当运行对应的采集器（采集器列表在 config/inputcfg.go）时，程序会创建一个 goroutine 向 DataWay 发送选举请求，并携带此 Datakit 的 token 和 UUID
  *      3. 选举成功担任 leader 后会持续发送心跳，心跳间隔过长或选举失败，会恢复 candidate 状态并继续发送选举请求
  *      4. 采集器端只要在采集数据时，判断当前是否为 leader 状态，具体使用见下
@@ -44,18 +44,18 @@ func InitGlobalConsensusModule() error {
 	l = logger.SLogger("dk-election")
 
 	electionURL, err := setURLQueryParam(
-		datakit.Cfg.MainCfg.DataWay.ElectionURL()[0],
+		datakit.Cfg.DataWay.ElectionURL()[0],
 		"id",
-		datakit.Cfg.MainCfg.UUID,
+		datakit.Cfg.UUID,
 	)
 	if err != nil {
 		return err
 	}
 
 	heartbeatURL, err := setURLQueryParam(
-		datakit.Cfg.MainCfg.DataWay.ElectionHeartBeatURL()[0],
+		datakit.Cfg.DataWay.ElectionHeartBeatURL()[0],
 		"id",
-		datakit.Cfg.MainCfg.UUID,
+		datakit.Cfg.UUID,
 	)
 	if err != nil {
 		return err
