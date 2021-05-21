@@ -7,9 +7,11 @@ import (
 const (
 	StatusStop = "stop"
 
-	ClassHTTP  = "HTTP"
-	ClassTCP   = "TCP"
-	ClassDNS   = "DNS"
+	ClassHTTP     = "HTTP"
+	ClassTCP      = "TCP"
+	ClassDNS      = "DNS"
+	ClassHeadless = "HEADLESS"
+
 	ClassOther = "OTHER"
 )
 
@@ -29,6 +31,7 @@ type Task interface {
 	Check() error
 	UpdateTimeUs() int64
 	GetFrequency() string
+	GetOwnerExternalID() string
 
 	Ticker() *time.Ticker
 }
