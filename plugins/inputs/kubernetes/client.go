@@ -1,18 +1,26 @@
 package kubernetes
 
 import (
-	"time"
 	"context"
-
+	"errors"
+	"fmt"
+	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"net"
+	"os"
+	"time"
 	// netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	certutil "k8s.io/client-go/util/cert"
 
 	"github.com/influxdata/telegraf/plugins/common/tls"
 )
+
+var ErrNotInCluster = errors.New("unable to load in-cluster configuration, KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT must be defined")
 
 type client struct {
 	namespace string
@@ -20,19 +28,73 @@ type client struct {
 	*kubernetes.Clientset
 }
 
-func newClient(baseURL, namespace, bearerToken string, timeout time.Duration, tlsConfig tls.ClientConfig) (*client, error) {
-	c, err := kubernetes.NewForConfig(&rest.Config{
-		TLSClientConfig: rest.TLSClientConfig{
-			ServerName: baseURL,
-			Insecure:   tlsConfig.InsecureSkipVerify,
-			CAFile:     tlsConfig.TLSCA,
-			CertFile:   tlsConfig.TLSCert,
-			KeyFile:    tlsConfig.TLSKey,
-		},
-		BearerToken:   bearerToken,
-		ContentConfig: rest.ContentConfig{},
-	})
+func createConfigByKubePath(kubePath string) (*rest.Config, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", kubePath)
+	if err != nil {
+		return nil, err
+	}
 
+	return config, nil
+}
+
+func createConfigByToken(baseURL, bearerToken string, caFile string, insecureSkipVerify bool) (*rest.Config, error) {
+	const (
+		tokenFile  = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+		rootCAFile = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	)
+
+	if baseURL == "" {
+		host, port := os.Getenv("KUBERNETES_SERVICE_HOST"), os.Getenv("KUBERNETES_SERVICE_PORT")
+		if len(host) == 0 || len(port) == 0 {
+			return nil, ErrNotInCluster
+		}
+		baseURL = "https://" + net.JoinHostPort(host, port)
+	}
+
+	if bearerToken == "" {
+		token, err := ioutil.ReadFile(tokenFile)
+		if err != nil {
+			return nil, err
+		}
+		bearerToken = string(token)
+	}
+
+	tlsClientConfig := rest.TLSClientConfig{
+		Insecure: insecureSkipVerify,
+	}
+
+	if caFile == "" {
+		caFile = rootCAFile
+	}
+	if _, err := certutil.NewPool(caFile); err != nil {
+		return nil, fmt.Errorf("Expected to load root CA config from %s, but got err: %v", caFile, err)
+	} else {
+		tlsClientConfig.CAFile = caFile
+	}
+
+	return &rest.Config{
+		Host:            baseURL,
+		TLSClientConfig: tlsClientConfig,
+		BearerToken:     bearerToken,
+	}, nil
+}
+
+func createConfigByCert(baseURL string, tlsConfig *tls.ClientConfig) *rest.Config {
+	config := &rest.Config{
+		TLSClientConfig: rest.TLSClientConfig{
+			Insecure: tlsConfig.InsecureSkipVerify,
+			CAFile:   tlsConfig.TLSCA,
+			CertFile: tlsConfig.TLSCert,
+			KeyFile:  tlsConfig.TLSKey,
+		},
+		Host: baseURL,
+	}
+
+	return config
+}
+
+func newClient(config *rest.Config, timeout time.Duration) (*client, error) {
+	c, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +102,6 @@ func newClient(baseURL, namespace, bearerToken string, timeout time.Duration, tl
 	return &client{
 		Clientset: c,
 		timeout:   timeout,
-		namespace: namespace,
 	}, nil
 }
 
