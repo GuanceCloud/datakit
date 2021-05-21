@@ -107,7 +107,7 @@ func (m *Input) Run() {
 	for {
 		select {
 		case <-tick.C:
-			if err := m.Gather(); err != nil {
+			if err := m.gather(); err != nil {
 				l.Error(err.Error())
 				continue
 			}
@@ -129,7 +129,7 @@ func (m *Input) getMongoServer(url *url.URL) *Server {
 
 // Reads stats from all configured servers accumulates stats.
 // Returns one of the errors encountered while gather stats (if any).
-func (m *Input) Gather() error {
+func (m *Input) gather() error {
 	if len(m.Servers) == 0 {
 		m.gatherServer(m.getMongoServer(localhost))
 
