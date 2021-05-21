@@ -7,8 +7,10 @@ import (
 )
 
 var (
-	inputName    = "smart"
-	SampleConfig = `
+	defSmartCtlPath = "/usr/bin/smartctl"
+	defNvmePath     = "/usr/bin/nvme"
+	inputName       = "smart"
+	SampleConfig    = `
 [[inputs.smart]]
 	## The path to the smartctl executable
   # path_smartctl = "/usr/bin/smartctl"
@@ -64,17 +66,27 @@ type Input struct {
 }
 
 func (*Input) Catalog() string {
-
+	return inputName
 }
 
 func (*Input) SampleConfig() string {
-
+	return SampleConfig
 }
 
 func (*Input) AvailabelArch() []string {
 	return datakit.AllArch
 }
 
+func (i *Input) Run() {
+
+}
+
+func (i *Input) gather() {
+
+}
+
 func init() {
-	inputs.Add("")
+	inputs.Add(inputName, func() inputs.Input {
+		return &Input{}
+	})
 }
