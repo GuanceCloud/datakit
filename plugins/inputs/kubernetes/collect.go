@@ -10,7 +10,7 @@ func collectDaemonSets(ctx context.Context, i *Input) {
 	list, err := i.client.getDaemonSets(ctx)
 	if err != nil {
 		i.mu.Lock()
-		i.err = err
+		i.lastErr = err
 		i.mu.Unlock()
 		return
 	}
@@ -62,7 +62,7 @@ func collectDeployments(ctx context.Context, i *Input) {
 	list, err := i.client.getDeployments(ctx)
 	if err != nil {
 		i.mu.Lock()
-		i.err = err
+		i.lastErr = err
 		i.mu.Unlock()
 		return
 	}
@@ -104,7 +104,7 @@ func collectNodes(ctx context.Context, i *Input) {
 	list, err := i.client.getNodes(ctx)
 	if err != nil {
 		i.mu.Lock()
-		i.err = err
+		i.lastErr = err
 		i.mu.Unlock()
 		return
 	}
@@ -126,8 +126,8 @@ func (i *Input) gatherNode(n corev1.Node) {
 
 	m.tags["name"] = n.Name
 
-	m.fields["replicas_available"] = n.Status.AvailableReplicas
-	m.fields["replicas_unavailable"] = n.Status.UnavailableReplicas
+	// m.fields["replicas_available"] = n.Status.AvailableReplicas
+	// m.fields["replicas_unavailable"] = n.Status.UnavailableReplicas
 	m.fields["created"] = n.GetCreationTimestamp().UnixNano()
 
 	for resourceName, val := range n.Status.Capacity {
