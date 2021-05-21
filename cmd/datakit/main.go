@@ -61,6 +61,9 @@ var (
 	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
+	flagUpdateIPDb        = flag.Bool("update-ip-db", false, "update ip db")
+	flagAddr              = flag.String("addr", "", "url path")
+	flagManVersion        = flag.String("man-version", git.Version, "specify manuals version")
 
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 )
@@ -80,6 +83,7 @@ func main() {
 	flag.CommandLine.MarkHidden("cmd") // deprecated
 
 	// un-documented options
+	flag.CommandLine.MarkHidden("addr")
 	flag.CommandLine.MarkHidden("show-testing-version")
 
 	flag.CommandLine.SortFlags = false
@@ -290,7 +294,7 @@ func run() {
 }
 
 func tryLoadConfig() {
-	datakit.MoveDeprecatedMainCfg()
+	datakit.MoveDeprecatedCfg()
 
 	for {
 		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
@@ -314,10 +318,10 @@ func runDatakitWithHTTPServer() error {
 	}
 
 	http.Start(&http.Option{
-		Bind:           datakit.Cfg.MainCfg.HTTPListen,
-		GinLog:         datakit.Cfg.MainCfg.GinLog,
-		GinReleaseMode: strings.ToLower(datakit.Cfg.MainCfg.LogLevel) != "debug",
-		PProf:          datakit.Cfg.MainCfg.EnablePProf,
+		Bind:           datakit.Cfg.HTTPListen,
+		GinLog:         datakit.Cfg.GinLog,
+		GinReleaseMode: strings.ToLower(datakit.Cfg.LogLevel) != "debug",
+		PProf:          datakit.Cfg.EnablePProf,
 	})
 
 	return nil
@@ -354,7 +358,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagExportMan != "" {
-		if err := cmds.ExportMan(*flagExportMan, *flagIgnore); err != nil {
+		if err := cmds.ExportMan(*flagExportMan, *flagIgnore, *flagManVersion); err != nil {
 			l.Error(err)
 		}
 		os.Exit(0)
@@ -368,6 +372,11 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagInstallExternal != "" {
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
 		if err := cmds.InstallExternal(*flagInstallExternal); err != nil {
 			l.Error(err)
 		}
@@ -385,7 +394,7 @@ func runDatakitWithCmd() {
 			os.Exit(-1)
 		}
 
-		fmt.Printf("Start DataKit OK") // TODO: 需说明 PID 是多少
+		fmt.Println("Start DataKit OK") // TODO: 需说明 PID 是多少
 		os.Exit(0)
 	}
 
@@ -417,7 +426,7 @@ func runDatakitWithCmd() {
 			os.Exit(-1)
 		}
 
-		fmt.Printf("Restart DataKit OK")
+		fmt.Println("Restart DataKit OK")
 		os.Exit(0)
 	}
 
@@ -429,11 +438,32 @@ func runDatakitWithCmd() {
 		}
 
 		if err := cmds.ReloadDatakit(*flagReloadPort); err != nil {
+			fmt.Printf("Reload DataKit Failed\n")
+			os.Exit(-1)
+		}
+
+		fmt.Println("Reload DataKit OK")
+		os.Exit(0)
+	}
+
+	if *flagUpdateIPDb {
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
+		if runtime.GOOS == datakit.OSWindows {
+			fmt.Println("[E] not supported")
+			os.Exit(-1)
+		}
+
+		if err := cmds.UpdateIpDB(*flagReloadPort, *flagAddr); err != nil {
 			fmt.Printf("Reload DataKit failed: %s\n", err)
 			os.Exit(-1)
 		}
 
-		fmt.Printf("Reload DataKit OK")
+		fmt.Println("Update IPdb ok!")
+
 		os.Exit(0)
 	}
 }
