@@ -54,6 +54,7 @@ const (
 	// TODO: add more...
 	BytesPerSec    = "B/s"
 	RequestsPerSec = "reqs/s"
+	Celsius        = "°C"
 )
 
 type Measurement interface {
