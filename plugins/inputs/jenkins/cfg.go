@@ -37,7 +37,9 @@ var (
 	#	# grok pipeline script path
 	#	pipeline = "jenkins.p"
 	[inputs.jenkins.tags]
-	# a = "b"`
+	# some_tag = "some_value"
+	# more_tag = "some_other_value"
+	# ...`
 
 	pipelineCfg = `
 grok(_, "%{TIMESTAMP_ISO8601:time} \\[id=%{GREEDYDATA:id}\\]\t%{GREEDYDATA:status}\t")

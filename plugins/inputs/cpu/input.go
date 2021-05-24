@@ -24,9 +24,10 @@ const (
   # Collect interval, default is 10 seconds(optional)
   interval = '10s'
 
-  # Extra tags (optional)
-  [inputs.cpu.tags]
-    # tag1 = "a"
+[[inputs.cpu.tags]]
+  # some_tag = "some_tag"
+  # more_tag = "more_tag"
+
 `
 )
 
