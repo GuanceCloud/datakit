@@ -78,8 +78,10 @@ urls = ["http://localhost:8080/jolokia"]
 ## grok pipeline script path
 #  pipeline = "kafka.p"
 
-#[inputs.kafka.tags]
-#  a = "b"
+[inputs.kafka.tags]
+#  tag1 = "val1"
+#  tag2 = "val2"
+#  tag3 = "val3"
 `
 
 	pipelineCfg = `
