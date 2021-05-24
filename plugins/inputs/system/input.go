@@ -27,12 +27,10 @@ const (
 [[inputs.system]]
   ##(optional) collect interval, default is 10 seconds
   interval = '10s'
-  ## 
-[[inputs.system.tags]]
-  # some_tag = "some_tag"
-  # more_tag = "more_tag"
 
-`
+[inputs.system.tags]
+# some_tag = "some_value"
+# more_tag = "some_other_value"`
 )
 
 var l = logger.DefaultSLogger(inputName)
