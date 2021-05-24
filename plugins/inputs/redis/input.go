@@ -151,7 +151,7 @@ func (i *Input) collectCommandMeasurement() {
 
 func (i *Input) runLog(defaultPile string) error {
 
-	if len(i.tailer.Option.Files) == 0 {
+	if len(i.Log.Files) == 0 {
 		return nil
 	}
 
