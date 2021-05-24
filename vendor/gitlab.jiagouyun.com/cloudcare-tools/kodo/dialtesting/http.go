@@ -22,20 +22,21 @@ import (
 )
 
 type HTTPTask struct {
-	ExternalID     string             `json:"external_id"`
-	Name           string             `json:"name"`
-	AK             string             `json:"access_key"`
-	Method         string             `json:"method"`
-	URL            string             `json:"url"`
-	PostURL        string             `json:"post_url"`
-	CurStatus      string             `json:"status"`
-	Frequency      string             `json:"frequency"`
-	Region         string             `json:"region"` // 冗余进来，便于调试
-	SuccessWhen    []*HTTPSuccess     `json:"success_when"`
-	Tags           map[string]string  `json:"tags,omitempty"`
-	Labels         []string           `json:"labels,omitempty"`
-	AdvanceOptions *HTTPAdvanceOption `json:"advance_options,omitempty"`
-	UpdateTime     int64              `json:"update_time,omitempty"`
+	ExternalID      string             `json:"external_id"`
+	Name            string             `json:"name"`
+	AK              string             `json:"access_key"`
+	Method          string             `json:"method"`
+	URL             string             `json:"url"`
+	PostURL         string             `json:"post_url"`
+	CurStatus       string             `json:"status"`
+	Frequency       string             `json:"frequency"`
+	Region          string             `json:"region"` // 冗余进来，便于调试
+	OwnerExternalID string             `json:"owner_external_id"`
+	SuccessWhen     []*HTTPSuccess     `json:"success_when"`
+	Tags            map[string]string  `json:"tags,omitempty"`
+	Labels          []string           `json:"labels,omitempty"`
+	AdvanceOptions  *HTTPAdvanceOption `json:"advance_options,omitempty"`
+	UpdateTime      int64              `json:"update_time,omitempty"`
 
 	ticker   *time.Ticker
 	cli      *http.Client
@@ -59,11 +60,28 @@ func (t *HTTPTask) UpdateTimeUs() int64 {
 	return t.UpdateTime
 }
 
+func (t *HTTPTask) Clear() {
+	t.dnsParseTime = 0.0
+	t.connectionTime = 0.0
+	t.sslTime = 0.0
+	t.downloadTime = 0.0
+	t.ttfbTime = 0.0
+	t.reqCost = 0
+
+	t.resp = nil
+	t.respBody = []byte(``)
+	t.reqError = ""
+}
+
 func (t *HTTPTask) ID() string {
 	if t.ExternalID == `` {
 		return cliutils.XID("dtst_")
 	}
 	return fmt.Sprintf("%s_%s", t.AK, t.ExternalID)
+}
+
+func (t *HTTPTask) GetOwnerExternalID() string {
+	return t.OwnerExternalID
 }
 
 func (t *HTTPTask) Stop() error {
@@ -244,8 +262,7 @@ type HTTPSecret struct {
 
 func (t *HTTPTask) Run() error {
 
-	t.resp = nil
-	t.respBody = []byte(``)
+	t.Clear()
 
 	var t1, connect, dns, tlsHandshake time.Time
 
@@ -288,26 +305,29 @@ func (t *HTTPTask) Run() error {
 
 	t.req = t.req.WithContext(httptrace.WithClientTrace(t.req.Context(), trace))
 
-	t.req.Header.Set("Connection", "close")
+	t.req.Header.Add("Connection", "close")
 
 	t.reqStart = time.Now()
 	t.resp, err = t.cli.Do(t.req)
+	if t.resp != nil {
+		defer t.resp.Body.Close()
+	}
+
 	if err != nil {
 		goto result
 	}
 
 	t.downloadTime = float64(time.Since(t1)) / float64(time.Microsecond)
+	t.reqCost = time.Since(t.reqStart)
 	t.respBody, err = ioutil.ReadAll(t.resp.Body)
 	if err != nil {
 		goto result
 	}
-	defer t.resp.Body.Close()
 
 result:
 	if err != nil {
 		t.reqError = err.Error()
 	}
-	t.reqCost = time.Since(t.reqStart)
 
 	return err
 }
