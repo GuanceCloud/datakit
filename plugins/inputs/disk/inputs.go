@@ -32,7 +32,7 @@ var (
   ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
 
 
-	[inputs.disk.tags]
+  [inputs.disk.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"`
 )
