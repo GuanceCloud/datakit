@@ -111,6 +111,29 @@ func ReloadDatakit(port int) error {
 	return err
 }
 
+func DatakitStatus() (string, error) {
+
+	svc, err := datakit.NewService()
+	if err != nil {
+		return "", err
+	}
+
+	status, err := svc.Status()
+	if err != nil {
+		return "", err
+	}
+	switch status {
+	case service.StatusUnknown:
+		return "unknown", nil
+	case service.StatusRunning:
+		return "running", nil
+	case service.StatusStopped:
+		return "stopped", nil
+	default:
+		return "", fmt.Errorf("should not been here")
+	}
+}
+
 func IPInfo(ip string) (map[string]string, error) {
 	if err := geo.LoadIPLib(); err != nil {
 		return nil, err
