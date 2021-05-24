@@ -2,11 +2,12 @@ package main
 
 import (
 	"flag"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"os"
 	"path/filepath"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
 )
 
 var (
@@ -28,9 +29,30 @@ func applyFlags() {
 
 	if *flagBuildISP {
 		curDir, _ := os.Getwd()
-		inputDir := filepath.Join(curDir, "china-operator-ip")
-		outputFile := filepath.Join(curDir, "pipeline", "ip2isp", "ip2isp.go")
-		build.GenIspFile(inputDir, outputFile)
+
+		inputIpDir := filepath.Join(curDir, "china-operator-ip")
+		ip2ispFile := filepath.Join(curDir, "pipeline", "ip2isp", "ip2isp.txt")
+		os.Remove(ip2ispFile)
+
+		if err := ip2isp.MergeIsp(inputIpDir, ip2ispFile); err != nil {
+			l.Errorf("MergeIsp failed: %v", err)
+		} else {
+			l.Infof("merge ip2isp file in `%v`", ip2ispFile)
+		}
+
+		inputFile := filepath.Join(curDir, "IP2LOCATION-LITE-DB11.CSV")
+		outputFile := filepath.Join(curDir, "pipeline", "ip2isp", "contry_city.yaml")
+		if !datakit.FileExist(inputFile) {
+			l.Errorf("%v not exist, you can download from `https://lite.ip2location.com/download?id=9`", inputFile)
+			os.Exit(0)
+		}
+		os.Remove(ip2ispFile)
+
+		if err := ip2isp.BuildContryCity(inputFile, outputFile); err != nil {
+			l.Errorf("BuildContryCity failed: %v", err)
+		} else {
+			l.Infof("contry and city list in file  `%v`", outputFile)
+		}
 
 		os.Exit(0)
 	}
@@ -44,6 +66,13 @@ func applyFlags() {
 	build.Release = *flagEnv
 	build.MainEntry = *flagMain
 	build.DownloadAddr = *flagDownloadAddr
+
+	// override git.Version
+	if x := os.Getenv("VERSION"); x != "" {
+		build.ReleaseVersion = x
+	}
+
+	l.Infof("use version %s", build.ReleaseVersion)
 
 	switch *flagEnv {
 	case "release":

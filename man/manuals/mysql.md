@@ -10,13 +10,14 @@ MySQL 指标采集，收集以下数据：
 
 - mysql global status 基础数据采集
 - scheam 相关数据
-- innodb 相关指标 (TODO)
-- 主从模式 (TODO)
+- innodb 相关指标
 - 支持自定义查询数据采集
+
+>  主从模式相关的 MySQL 指标采集尚未支持（Comming Soon...）
 
 ## 前置条件
 
-- 创建监控账号
+- 创建监控账号（一般情况，需用 MySQL `root` 账号登陆才能创建 MySQL 用户）
 
 ```sql
     CREATE USER 'datakitMonitor'@'localhost' IDENTIFIED BY '<UNIQUEPASSWORD>';
@@ -81,3 +82,7 @@ set global log_queries_not_using_indexes = 'ON';
 ```
 
 > 注意：在使用日志采集时，需要将 DataKit 安装在 MySQL 服务同一台主机中，或使用其它方式将日志挂载到 DataKit 所在机器
+
+### RDS 格式的慢日志切割
+
+MySQL 支持 RDS 格式的慢日志切割，只需在配置文件中将 `pipeline` 参数改为 `mysql_rds.p` 即可。
