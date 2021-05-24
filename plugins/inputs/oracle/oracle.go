@@ -12,7 +12,7 @@ const (
 [[inputs.external]]
 	daemon = true
 	name = 'oracle'
-	cmd  = "/usr/local/cloudcare/dataflux/datakit/externals/oracle"
+	cmd  = "/usr/local/datakit/externals/oracle"
 	args = [
 		'--interval'       , '1m'                        ,
 		'--host'           , '<your-oracle-host>'        ,
