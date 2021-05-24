@@ -24,10 +24,10 @@ var (
 const sampleConfig = `
 [[inputs.postgresql]]
 ## 服务器地址
-# url格式 
-#	postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
+# url格式
+# postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
 # 简单字符串格式
-# 	host=localhost user=pqgotest password=... sslmode=... dbname=app_production
+# host=localhost user=pqgotest password=... sslmode=... dbname=app_production
 
 address = "postgres://postgres@localhost/test?sslmode=disable"
 
@@ -80,9 +80,8 @@ type scanner interface {
 }
 
 type Input struct {
-	Address          string `toml:"address"`
-	Outputaddress    string `toml:"outputaddress"`
-	IsPgBouncer      bool
+	Address          string               `toml:"address"`
+	Outputaddress    string               `toml:"outputaddress"`
 	IgnoredDatabases []string             `toml:"ignored_databases"`
 	Databases        []string             `toml:"databases"`
 	Interval         string               `toml:"interval"`
@@ -121,9 +120,11 @@ func (m inputMeasurement) Info() *inputs.MeasurementInfo {
 func (*Input) Catalog() string {
 	return catalogName
 }
+
 func (*Input) SampleConfig() string {
 	return sampleConfig
 }
+
 func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
@@ -270,6 +271,12 @@ func (i *Input) accRow(columnMap map[string]*interface{}) error {
 	}
 
 	tags := map[string]string{"server": tagAddress, "db": "postgres"}
+
+	if i.Tags != nil {
+		for k, v := range i.Tags {
+			tags[k] = v
+		}
+	}
 
 	fields := make(map[string]interface{})
 	for col, val := range columnMap {
