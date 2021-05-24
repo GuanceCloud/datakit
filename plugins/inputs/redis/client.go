@@ -137,9 +137,11 @@ func (i *Input) parseClientData(list string) error {
 		}
 
 		m.ts = time.Now()
-		m.submit()
-
-		i.collectCache = append(i.collectCache, m)
+		if err := m.submit(); err == nil {
+			if len(m.fields) > 0 {
+				i.collectCache = append(i.collectCache, m)
+			}
+		}
 	}
 
 	return nil
@@ -152,8 +154,9 @@ func (m *clientMeasurement) submit() error {
 		if value, ok := m.resData[key]; ok {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
-				m.i.err = append(m.i.err, err)
+				m.i.err = err
 				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
+				return err
 			} else {
 				m.fields[key] = val
 			}
