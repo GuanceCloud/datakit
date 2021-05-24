@@ -21,18 +21,18 @@ const (
 
 	sampleCfg = `
 [[inputs.mongodb_oplog]]
-    # MongoDB URL: mongodb://user:password@host:port/database
-    # required
+    ## MongoDB URL: mongodb://user:password@host:port/database
+    ## required
     mongodb_url="mongodb://127.0.0.1:27017"
 
-    # required
+    ## required
     database="<your-database>"
 
-    # required
+    ## required
     collection="<your-collection>"
 
-    # category only accept "metric" and "logging"
-    # if category is invalid, default use "metric"
+    ## category only accept "metric" and "logging"
+    ## if category is invalid, default use "metric"
     category = "metric"
 
     # tags path
@@ -41,16 +41,17 @@ const (
     	# "/a/b/c/e"
     ]
 
-    # fields path. required
-    # type in ["int", "float", "bool", "string"]
+    ## fields path. required
+    ## type in ["int", "float", "bool", "string"]
     [inputs.mongodb_oplog.fieldList]
         # "<path>" = "<type>"
 	# "/a/c/d" = "int"
     	# "/a/c/f[1]/e/f" = "bool"
     	# "/a/c/f\\[0\\]" = "int"
 
-    # [inputs.mongodb_oplog.tags]
-    # tags1 = "value1"
+    [inputs.mongodb_oplog.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 
 	timestampBitOffset = 32

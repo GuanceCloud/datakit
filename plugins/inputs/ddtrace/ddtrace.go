@@ -16,9 +16,9 @@ var (
 	path = "/v0.4/traces"
 
 	[inputs.ddtrace.tags]
-		# tag1 = "tag1"
-		# tag2 = "tag2"
-		# tag3 = "tag3"
+		# tag1 = "val1"
+		# tag2 = "val2"
+		# tag3 = "val3"
 `
 	log *logger.Logger
 )
