@@ -1,3 +1,9 @@
+// +build linux
+
+/*
+	Test this file with docker:
+	docker run --rm -it -w /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/sensors -v $GOPATH:/root/go ubuntu.golang:latest go test -v .
+*/
 package sensors
 
 import (
@@ -5,15 +11,12 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-type entry struct {
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func TestParse(t *testing.T) {
-	output := `coretemp-isa-0000
+var output = `coretemp-isa-0000
 Adapter: ISA adapter
 Package id 0:
   temp1_input: 32.000
@@ -64,6 +67,12 @@ temp1:
   temp1_emergency_hyst: 5.000
 `
 
+type entry struct {
+	tags   map[string]string
+	fields map[string]interface{}
+}
+
+func TestParseLogic(t *testing.T) {
 	var (
 		lines   = strings.Split(strings.TrimSpace(output), "\n")
 		tags    = make(map[string]string)
@@ -109,5 +118,26 @@ temp1:
 		log.Println(v.tags)
 		log.Println(v.fields)
 		log.Println("##############")
+	}
+}
+
+func TestParse(t *testing.T) {
+	input := &Input{
+		Path:     "/usr/bin/sensors",
+		Interval: datakit.Duration{Duration: 10 * time.Second},
+		Timeout:  datakit.Duration{Duration: 3 * time.Second},
+		Tags:     map[string]string{"key1": "tag1", "key2": "tag2"},
+	}
+	ms, err := input.parse(output)
+	if err != nil {
+		log.Panicln(err.Error())
+	}
+	for _, v := range ms {
+		log.Println("$$$$$$")
+		tmp := v.(*sensorsMeasurement)
+		log.Println(tmp.name)
+		log.Println(tmp.tags)
+		log.Println(tmp.fields)
+		log.Println(tmp.ts)
 	}
 }
