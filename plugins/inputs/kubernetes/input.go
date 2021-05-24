@@ -48,7 +48,7 @@ type Input struct {
 	collectObjectCache     []inputs.Measurement `toml:"-"`
 	lastErr                error
 
-	StateUrl		  string `toml:"kube_state_metric"`
+	StateUrl          string `toml:"kube_state_metric"`
 	KubeConfigPath    string `toml:"kube_config_path"`
 	URL               string `toml:"url"`
 	BearerToken       string `toml:"bearer_token"`
