@@ -26,9 +26,9 @@ const (
     ## grok pipeline script path
     # pipeline = "tomcat.p"
 
-  ### Extra tags (optional)
-  [inputs.tomcat.tags]
-    # tag1 = "a"
+[[inputs.tomcat.tags]]
+  # some_tag = "some_tag"
+  # more_tag = "more_tag"
 
 ### Tomcat metrics
 [[inputs.tomcat.metric]]
