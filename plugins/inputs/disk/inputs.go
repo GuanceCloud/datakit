@@ -30,8 +30,11 @@ var (
   # mount_points = ["/"]
   ## Ignore mount points by filesystem type.
   ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
-  [inputs.disk.tags]
-    # tag1 = "a"
+
+[[inputs.disk.tags]]
+  # some_tag = "some_tag"
+  # more_tag = "more_tag"
+
 `
 )
 
