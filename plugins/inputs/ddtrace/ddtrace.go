@@ -12,10 +12,10 @@ var (
 
 	traceDdtraceConfigSample = `
 [inputs.ddtrace]
-	# 此路由建议不要修改，以免跟其它路由冲突
-	path = "/v0.4/traces"
+  # 此路由建议不要修改，以免跟其它路由冲突
+  path = "/v0.4/traces"
 
-	[inputs.ddtrace.tags]
+  [inputs.ddtrace.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...`
