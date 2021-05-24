@@ -30,6 +30,8 @@ const (
 `
 )
 
+var l = logger.DefaultSLogger(inputName)
+
 type Input struct {
 	PerCPU         bool `toml:"percpu"`           // deprecated
 	TotalCPU       bool `toml:"totalcpu"`         // deprecated
@@ -42,7 +44,6 @@ type Input struct {
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr *cpuMeasurement
 
-	logger    *logger.Logger
 	lastStats map[string]cpu.TimesStat
 	ps        CPUStatInfo
 }
@@ -91,6 +92,8 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 
 			"usage_total": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU in total active usage, as well as (100 - usage_idle)."},
+			"core_temperature": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Celsius,
+				Desc: "CPU core temperature"},
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "主机名"},
@@ -159,10 +162,15 @@ func (i *Input) Collect() error {
 			continue
 		}
 		cpuUsage, _ := CalculateUsage(cts, lastCts, totalDelta)
+
 		if ok := CPUStatStructToMap(fields, cpuUsage, "usage_"); !ok {
-			i.logger.Error("error: collect cpu time, check cpu usage stat struct")
+			l.Error("error: collect cpu time, check cpu usage stat struct")
 			break
 		} else {
+			if temp, err := CoreTempAvg(); err == nil {
+				// 不增加新tag， 计算 core temp 的平均值
+				fields["core_temperature"] = temp
+			}
 			i.appendMeasurement(inputName, tags, fields, time_now)
 			// i.addField("active", 100 * (active-lastActive)/totalDelta)
 		}
@@ -175,7 +183,8 @@ func (i *Input) Collect() error {
 }
 
 func (i *Input) Run() {
-	i.logger.Infof("cpu input started")
+	l = logger.SLogger(inputName)
+	l.Infof("cpu input started")
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
 	isfirstRun := true
@@ -195,11 +204,11 @@ func (i *Input) Run() {
 				}
 			} else {
 				io.FeedLastError(inputName, err.Error())
-				i.logger.Error(err)
+				l.Error(err)
 			}
 			i.collectCache = make([]inputs.Measurement, 0)
 		case <-datakit.Exit.Wait():
-			i.logger.Infof("cpu input exit")
+			l.Infof("cpu input exit")
 			return
 		}
 	}
@@ -208,7 +217,6 @@ func (i *Input) Run() {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			logger:   logger.SLogger(inputName),
 			ps:       &CPUInfo{},
 			Interval: datakit.Duration{Duration: time.Second * 10},
 		}

@@ -89,7 +89,9 @@ func (i *Input) getSchemaSize() error {
 		m.tags["schema_name"] = key
 		m.ts = time.Now()
 
-		i.collectCache = append(i.collectCache, m)
+		if len(m.fields) > 0 {
+			i.collectCache = append(i.collectCache, m)
+		}
 	}
 
 	return nil
@@ -132,7 +134,9 @@ func (i *Input) getQueryExecTimePerSchema() error {
 		m.tags["schema_name"] = key
 		m.ts = time.Now()
 
-		i.collectCache = append(i.collectCache, m)
+		if len(m.fields) > 0 {
+			i.collectCache = append(i.collectCache, m)
+		}
 	}
 
 	return nil
