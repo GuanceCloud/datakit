@@ -2,10 +2,14 @@ package cmds
 
 import (
 	"fmt"
+	nhttp "net/http"
+
 	"github.com/c-bata/go-prompt"
 	"github.com/kardianos/service"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	nhttp "net/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
 var (
@@ -105,4 +109,26 @@ func ReloadDatakit(port int) error {
 	}
 
 	return err
+}
+
+func IPInfo(ip string) (map[string]string, error) {
+	if err := geo.LoadIPLib(); err != nil {
+		return nil, err
+	}
+	if err := ip2isp.Init(); err != nil {
+		return nil, err
+	}
+
+	x, err := geo.Geo(ip)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]string{
+		"city":     x.City,
+		"province": x.Region,
+		"country":  x.Country_short,
+		"isp":      ip2isp.SearchIsp(ip),
+		"ip":       ip,
+	}, nil
 }
