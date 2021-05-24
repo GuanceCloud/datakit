@@ -372,6 +372,11 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagInstallExternal != "" {
+		if !isRoot() {
+			l.Error("Permission Denied")
+			os.Exit(-1)
+		}
+
 		if err := cmds.InstallExternal(*flagInstallExternal); err != nil {
 			l.Error(err)
 		}
@@ -433,7 +438,7 @@ func runDatakitWithCmd() {
 		}
 
 		if err := cmds.ReloadDatakit(*flagReloadPort); err != nil {
-			fmt.Printf("Reload DataKit failed: %s\n", err)
+			fmt.Printf("Reload DataKit Failed\n")
 			os.Exit(-1)
 		}
 
