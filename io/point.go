@@ -7,3 +7,11 @@ import (
 type Point struct {
 	*influxdb.Point
 }
+
+func WrapPoint(pts []*influxdb.Point) (x []*Point) {
+
+	for _, pt := range pts {
+		x = append(x, &Point{pt})
+	}
+	return
+}
