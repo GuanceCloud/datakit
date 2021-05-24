@@ -79,6 +79,49 @@ func (k *Kubernetes) GatherPodInfo(containerID string) (map[string]string, error
 	return m, nil
 }
 
+func (k *Kubernetes) GatherPodUID(containerID string) (string, error) {
+	var podApi Pods
+	err := k.LoadJson(fmt.Sprintf("%s/pods", k.URL), &podApi)
+	if err != nil {
+		return "", err
+	}
+
+	containerID = fmt.Sprintf("docker://%s", containerID)
+
+	for _, podMetadata := range podApi.Items {
+		if len(podMetadata.Status.ContainerStatuses) == 0 {
+			continue
+		}
+		for _, containerStauts := range podMetadata.Status.ContainerStatuses {
+			if containerStauts.ContainerID == containerID {
+				return podMetadata.Metadata.UID, nil
+			}
+		}
+	}
+
+	return "", nil
+}
+
+func (k *Kubernetes) GatherWorkName(uid string) (string, error) {
+	var nodeApi Node
+	err := k.LoadJson(fmt.Sprintf("%s/stats/summary", k.URL), &nodeApi)
+	if err != nil {
+		return "", err
+	}
+
+	for _, podMetadata := range nodeApi.Pods {
+		if len(podMetadata.Containers) == 0 {
+			continue
+		}
+
+		if podMetadata.PodRef.UID == uid {
+			return podMetadata.Containers[0].Name, nil
+		}
+	}
+
+	return "", nil
+}
+
 func (k *Kubernetes) LoadJson(url string, v interface{}) error {
 	var req, err = http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -120,24 +163,30 @@ func (k *Kubernetes) LoadJson(url string, v interface{}) error {
 type Pods struct {
 	Kind       string `json:"kind"`
 	ApiVersion string `json:"apiVersion"`
-	Items      []Item `json:"items"`
+	Items      []struct {
+		Metadata struct {
+			Name      string            `json:"name"`
+			Namespace string            `json:"namespace"`
+			UID       string            `json:"uid"`
+			Labels    map[string]string `json:"labels"`
+		} `json:"metadata"`
+
+		Status struct {
+			ContainerStatuses []struct {
+				ContainerID string `json:"containerID"`
+			} `json:"containerStatuses"`
+		} `json:"status"`
+	} `json:"items"`
 }
 
-type Item struct {
-	Metadata Metadata `json:"metadata"`
-	Status   Status   `json:"status"`
-}
+type Node struct {
+	Pods []struct {
+		PodRef struct {
+			UID string `json:"uid"`
+		} `json:"podRef"`
 
-type Metadata struct {
-	Name      string            `json:"name"`
-	Namespace string            `json:"namespace"`
-	Labels    map[string]string `json:"labels"`
-}
-
-type Status struct {
-	ContainerStatuses []ContainerStatus `json:"containerStatuses"`
-}
-
-type ContainerStatus struct {
-	ContainerID string `json:"containerID"`
+		Containers []struct {
+			Name string `json:"name"`
+		} `json:"containers"`
+	} `json:"pods"`
 }
