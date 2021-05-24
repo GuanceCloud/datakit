@@ -28,7 +28,7 @@ func createHTTPClient(timeout datakit.Duration) *http.Client {
 // log error
 func logError(err error) {
 	if err != nil {
-		solrLogger.Error(err)
+		l.Error(err)
 		io.FeedLastError(inputName, err.Error())
 	}
 }
