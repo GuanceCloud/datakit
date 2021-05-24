@@ -18,8 +18,8 @@ const (
 	cmd = "python3" # required
 
 	args = [
-		"/usr/local/cloudcare/dataflux/datakit/externals/qyt_all/main.py",
-		"/usr/local/cloudcare/dataflux/datakit/externals/qyt_all/config.conf"
+		"/usr/local/datakit/externals/qyt_all/main.py",
+		"/usr/local/datakit/externals/qyt_all/config.conf"
 	]
 
 	envs = ['LD_LIBRARY_PATH=/path/to/lib:$LD_LIBRARY_PATH',]
