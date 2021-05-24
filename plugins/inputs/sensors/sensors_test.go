@@ -1,5 +1,3 @@
-// +build linux
-
 package sensors
 
 import (
@@ -64,7 +62,6 @@ temp1:
   temp1_crit_hyst: 5.000
   temp1_emergency: 135.000
   temp1_emergency_hyst: 5.000
-
 `
 
 	var (
