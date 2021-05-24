@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"net"
@@ -26,6 +27,7 @@ type client struct {
 	namespace string
 	timeout   time.Duration
 	*kubernetes.Clientset
+	restClient *http.Client
 }
 
 func createConfigByKubePath(kubePath string) (*rest.Config, error) {
@@ -94,15 +96,37 @@ func createConfigByCert(baseURL string, tlsConfig *tls.ClientConfig) *rest.Confi
 }
 
 func newClient(config *rest.Config, timeout time.Duration) (*client, error) {
-	c, err := kubernetes.NewForConfig(config)
+	cli := &client{
+		timeout:   timeout,
+	}
+
+	if config != nil {
+		c, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			return nil, err
+		}
+
+		cli.Clientset = c
+	}
+
+	cli.restClient = &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	return cli, nil
+}
+
+func (c *client) promMetrics(url string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return &client{
-		Clientset: c,
-		timeout:   timeout,
-	}, nil
+	resp, err := c.restClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (c *client) getDaemonSets(ctx context.Context) (*appsv1.DaemonSetList, error) {
@@ -122,12 +146,6 @@ func (c *client) getEndpoints(ctx context.Context) (*corev1.EndpointsList, error
 	defer cancel()
 	return c.CoreV1().Endpoints(c.namespace).List(metav1.ListOptions{})
 }
-
-// func (c *client) getIngress(ctx context.Context) (*netv1.IngressList, error) {
-// 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-// 	defer cancel()
-// 	return c.NetworkingV1().Ingresses(c.namespace).List(metav1.ListOptions{})
-// }
 
 func (c *client) getNodes(ctx context.Context) (*corev1.NodeList, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
