@@ -4,7 +4,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jvm"
 )
 
 var (
@@ -20,7 +19,7 @@ var (
 )
 
 type Input struct {
-	jvm.JolokiaAgent
+	inputs.JolokiaAgent
 	Log  *inputs.TailerOption `toml:"log"`
 	Tags map[string]string    `toml:"tags"`
 }
