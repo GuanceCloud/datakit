@@ -24,12 +24,12 @@ const (
 
 	sampleCfg = `
 [inputs.puppetagent]
-    # puppetagent location of lastrunfile
-    # required
+    ## puppetagent location of lastrunfile
     location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
 
-    # [inputs.puppetagent.tags]
-    # tags1 = "value1"
+    [inputs.puppetagent.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 )
 
