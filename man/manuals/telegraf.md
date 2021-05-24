@@ -6,6 +6,8 @@
 
 # Telegraf 接入
 
+> 注意：建议在使用 Telegraf 之前，先确 DataKit 是否能满足期望的数据采集。如果 DataKit 已经支持，不建议用 Telegraf 来采集，这可能会导致数据冲突，从而造成使用上的困扰。
+
 Telegraf 是一个开源的数据采集工具。DataKit 通过简单的配置即可接入 Telegraf 采集的数据集。
 
 ## Telegraf 安装
@@ -32,6 +34,9 @@ sudo apt-get update && sudo apt-get install telegraf
 
 - Mac: `/usr/local/etc/telegraf.conf`
 - Linux: `/etc/telegraf/telegraf.conf`
+- Windows：配置文件就在 Telegraf 二进制同级目录（视具体安装情况而定）
+
+> 注意： Mac 下，如果通过 [`datakit --install telegraf` 安装](datakit-how-to#df09fa95)，则配置目录和 Linux 一样。
 
 修改配置文件如下：
 
@@ -55,18 +60,32 @@ sudo apt-get update && sudo apt-get install telegraf
 
 [[outputs.http]]
     ## URL is the address to send metrics to DataKit ,required
-    url         = "http://localhost:9529/v1/write/telegraf"
+    url         = "http://localhost:9529/v1/write/metric?input=telegraf"
     method      = "POST"
     data_format = "influx" # 此处必须选择 `influx`，不然 DataKit 无法解析数据
 
 # 更多其它配置 ...
 ```
 
-Telegraf 采集到的数据通过 DataKit 的 HTTP 接口接入，此处的 `[[outputs.http]]` 段必须指向 DataKit 的 /v1/write/metric 接口。Telegraf 采集器的详细配置，[参见这里](https://docs.influxdata.com/telegraf)
+如果 [DataKit API 位置有调整](datakit-how-to#f2d2b6db)，需调整如下配置，将 `url` 设置到 DataKit API 真实的地址即可：
 
-其他插件 [参见这个列表](https://github.com/influxdata/telegraf#input-plugins)
+```toml
+[[outputs.http]]
+   ## URL is the address to send metrics to
+   url = "http://127.0.0.1:9529/v1/write/metric?input=telegraf"
+```
 
-### 注意事项
+Telegraf 的采集配置跟 DataKit 类似，也是 [Toml 格式](https://toml.io/cn)，具体每个采集器基本都是以 `[[inputs.xxxx]]` 作为入口，这里以开启 `nvidia_smi` 采集为例：
 
-- 在 Telegraf 加入的标签（可通过 `[global_tags]` 配置），DataKit 不会覆盖它，因此可以通过这种方式屏蔽 DataKit 的全局标签（如 `host` 等）
-- 如果 DataKit 已经存在的采集器（如 CPU、内存、网络等），不建议使用 Telegraf 再采集了，这可能造成数据冲突。
+```toml
+[[inputs.nvidia_smi]]
+  ## Optional: path to nvidia-smi binary, defaults to $PATH via exec.LookPath
+  bin_path = "/usr/bin/nvidia-smi"
+
+  ## Optional: timeout for GPU polling
+  timeout = "5s"
+```
+
+Telegraf 采集器的详细配置，[参见这里](https://docs.influxdata.com/telegraf)
+
+更多 Telegraf 插件，[参见这个列表](https://github.com/influxdata/telegraf#input-plugins)
