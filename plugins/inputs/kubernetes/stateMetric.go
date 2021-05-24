@@ -1,16 +1,15 @@
 package kubernetes
 
 import (
-	"time"
-	"strings"
 	"fmt"
 	"github.com/prometheus/common/expfmt"
+	"strings"
+	"time"
 	// dto "github.com/prometheus/client_model/go"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
-
 
 type stateMetric struct {
 	name   string
@@ -98,11 +97,11 @@ func (i *Input) collectStateMetric() error {
 		// name匹配, 提取前半部分做指标集名, 后半部分为指标名
 		measurement, _ := getMeasurement(name)
 
-        // tags
-        var tags = make(map[string]string)
-        var fields = make(map[string]interface{})
+		// tags
+		var tags = make(map[string]string)
+		var fields = make(map[string]interface{})
 
-        var tm = time.Now()
+		var tm = time.Now()
 		for _, m := range metric.GetMetric() {
 			for _, lab := range m.GetLabel() {
 				tags[lab.GetName()] = lab.GetValue()
