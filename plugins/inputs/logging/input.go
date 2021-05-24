@@ -16,35 +16,36 @@ const (
 
 	sampleCfg = `
 [[inputs.logging]]
-    # required, glob logfiles
+    ## required, glob logfiles
     logfiles = ["/var/log/syslog"]
 
-    # glob filteer
+    ## glob filteer
     ignore = [""]
 
-    # your logging source, if it's empty, use 'default'
+    ## your logging source, if it's empty, use 'default'
     source = ""
 
-    # add service tag, if it's empty, use $source.
+    ## add service tag, if it's empty, use $source.
     service = ""
 
-    # grok pipeline script path
+    ## grok pipeline script path
     pipeline = ""
 
-    # optional status:
-    #   "emerg","alert","critical","error","warning","info","debug","OK"
+    ## optional status:
+    ##   "emerg","alert","critical","error","warning","info","debug","OK"
     ignore_status = []
 
-    # optional encodings:
-    #    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+    ## optional encodings:
+    ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
     character_encoding = ""
 
-    # The pattern should be a regexp. Note the use of '''this regexp'''
-    # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+    ## The pattern should be a regexp. Note the use of '''this regexp'''
+    ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
     match = '''^\S'''
 
     [inputs.logging.tags]
-    # tags1 = "value1"
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 )
 
