@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"net"
+	"net/http"
 	"os"
 	"time"
 	// netv1 "k8s.io/api/networking/v1"
@@ -97,7 +97,7 @@ func createConfigByCert(baseURL string, tlsConfig *tls.ClientConfig) *rest.Confi
 
 func newClient(config *rest.Config, timeout time.Duration) (*client, error) {
 	cli := &client{
-		timeout:   timeout,
+		timeout: timeout,
 	}
 
 	if config != nil {
