@@ -32,18 +32,17 @@ const (
 ### metricsName: the name of metric, default is "ssh"
 
 [[inputs.ssh]]
-	interval = "60s"
-	host     = "127.0.0.1:22"
-	username = "<your_username>"
-	password = "<your_password>"
-	sftpCheck      = false
-	privateKeyFile = ""
-	metricsName    ="ssh"	
-	[inputs.ssh.tags]
-	#	tag1 = "val1"
-	#	tag2 = "val2"
-	#	tag3 = "val3"
-`
+  interval = "60s"
+  host     = "127.0.0.1:22"
+  username = "<your_username>"
+  password = "<your_password>"
+  sftpCheck      = false
+  privateKeyFile = ""
+
+  [inputs.ssh.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...`
 )
 
 var (
