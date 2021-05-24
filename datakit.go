@@ -54,8 +54,8 @@ var (
 	GRPCSock           = ""
 
 	optionalInstallDir = map[string]string{
-		OSArchWinAmd64: filepath.Join(`C:\Program Files` + ServiceName),
-		OSArchWin386:   filepath.Join(`C:\Program Files (x86)` + ServiceName),
+		OSArchWinAmd64: filepath.Join(`C:\Program Files`, ServiceName),
+		OSArchWin386:   filepath.Join(`C:\Program Files (x86)`, ServiceName),
 
 		OSArchLinuxArm:    filepath.Join(`/usr/local/`, ServiceName),
 		OSArchLinuxArm64:  filepath.Join(`/usr/local/`, ServiceName),
