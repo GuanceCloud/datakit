@@ -14,26 +14,30 @@ const (
 
 	sampleConfig = `
 [[inputs.host_processes]]
- ## process name support regexp
- # process_name = [".*datakit.*"]
- ## process min run time default 10m,Collection  the process of running more than ten minutes
- min_run_time     = "10m"
- ## open collection metric
- open_metric = false
- ## pipeline path
- # pipeline = ""
+  ## process name support regexp
+  # process_name = [".*datakit.*"]
+  ## process min run time default 10m,Collection  the process of running more than ten minutes
+  min_run_time     = "10m"
+  ## open collection metric
+  open_metric = false
+  ## pipeline path
+  # pipeline = ""
+  [inputs.host_processes.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
 `
 
 	pipelineSample = ``
 )
 
 type Input struct {
-	ProcessName    []string         `toml:"process_name,omitempty"`
-	ObjectInterval datakit.Duration `toml:"object_interval,omitempty"`
-	RunTime        datakit.Duration `toml:"min_run_time,omitempty"`
-	OpenMetric     bool             `toml:"open_metric,omitempty"`
-	MetricInterval datakit.Duration `toml:"metric_interval,omitempty"`
-	Pipeline       string           `toml:"pipeline,omitempty"`
+	ProcessName    []string          `toml:"process_name,omitempty"`
+	ObjectInterval datakit.Duration  `toml:"object_interval,omitempty"`
+	RunTime        datakit.Duration  `toml:"min_run_time,omitempty"`
+	OpenMetric     bool              `toml:"open_metric,omitempty"`
+	MetricInterval datakit.Duration  `toml:"metric_interval,omitempty"`
+	Pipeline       string            `toml:"pipeline,omitempty"`
+	Tags           map[string]string `toml:"tags"`
 
 	lastErr error
 	re      string
