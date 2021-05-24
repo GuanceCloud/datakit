@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 
 	"github.com/dustin/go-humanize"
 )
@@ -44,7 +43,7 @@ func (vd *versionDesc) withoutGitCommit() string {
 func tarFiles(goos, goarch string) {
 
 	gz := filepath.Join(PubDir, Release, fmt.Sprintf("%s-%s-%s-%s.tar.gz",
-		AppName, goos, goarch, git.Version))
+		AppName, goos, goarch, ReleaseVersion))
 	args := []string{
 		`czf`,
 		gz,
@@ -58,6 +57,7 @@ func tarFiles(goos, goarch string) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	l.Debugf("tar %s...", gz)
 	err := cmd.Run()
 	if err != nil {
 		l.Fatal(err)
@@ -162,14 +162,14 @@ func PubDatakit() {
 
 		tarFiles(parts[0], parts[1])
 
-		gzName := fmt.Sprintf("%s-%s-%s.tar.gz", AppName, goos+"-"+goarch, git.Version)
+		gzName := fmt.Sprintf("%s-%s-%s.tar.gz", AppName, goos+"-"+goarch, ReleaseVersion)
 
 		ossfiles[path.Join(PubDir, Release, gzName)] = path.Join(OSSPath, gzName)
 
 		if goos == "windows" {
 			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
 
-			if curVd != nil && curVd.Version != git.Version {
+			if curVd != nil && curVd.Version != ReleaseVersion {
 				renameOssFiles[path.Join(OSSPath, installerExe)] =
 					path.Join(OSSPath, fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, curVd.Version))
 			}
@@ -177,7 +177,7 @@ func PubDatakit() {
 		} else {
 			installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
 
-			if curVd != nil && curVd.Version != git.Version {
+			if curVd != nil && curVd.Version != ReleaseVersion {
 				renameOssFiles[path.Join(OSSPath, installerExe)] =
 					path.Join(OSSPath, fmt.Sprintf("installer-%s-%s-%s", goos, goarch, curVd.Version))
 			}
