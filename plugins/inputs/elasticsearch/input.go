@@ -138,8 +138,10 @@ const sampleConfig = `
   ## grok pipeline script path
   #	pipeline = "elasticsearch.p"
 	
-  [inputs.elasticsearch.tags]
-   # a = "b"
+[inputs.elasticsearch.tags]
+	# some_tag = "some_value"
+	# more_tag = "some_other_value"
+	# ...
 `
 
 const pipelineCfg = `
