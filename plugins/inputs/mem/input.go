@@ -24,8 +24,10 @@ const (
   ##(optional) collect interval, default is 10 seconds
   interval = '10s'
   ## 
-  [inputs.mem.tags]
-    # tag1 = "a"
+
+[[inputs.mem.tags]]
+  # some_tag = "some_tag"
+  # more_tag = "more_tag"
 `
 )
 
