@@ -127,6 +127,7 @@ var (
 		"tencentobject":          true,
 		"tidb":                   true,
 		"timezone":               true,
+		"tomcat":                 true,
 		"traceJaeger":            true,
 		"traceSkywalking":        true,
 		"traceZipkin":            true,

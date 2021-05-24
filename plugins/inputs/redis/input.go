@@ -121,9 +121,12 @@ func (i *Input) collectInfoMeasurement() {
 	if err := m.getData(); err != nil {
 		m.i.err = err
 	}
-	m.submit()
 
-	i.collectCache = append(i.collectCache, m)
+	if err := m.submit(); err == nil {
+		if len(m.fields) > 0 {
+			i.collectCache = append(i.collectCache, m)
+		}
+	}
 }
 
 func (i *Input) collectClientMeasurement() {
@@ -199,7 +202,7 @@ func (i *Input) Run() {
 					io.FeedLastError(inputName, err.Error())
 				}
 
-				i.collectCache = i.collectCache[:] // NOTE: do not forget to clean cache
+				i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache
 			}
 
 		case <-datakit.Exit.Wait():
