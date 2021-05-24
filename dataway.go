@@ -23,11 +23,10 @@ const (
 	Rum              = "rum"
 	Security         = "security"
 	HeartBeat        = "heartbeat"
-	Telegraf         = "telegraf"
 )
 
 type DataWayCfg struct {
-	DeprecatedURL    string   `toml:"url"`
+	DeprecatedURL    string   `toml:"url,omitempty"`
 	Urls             []string `toml:"urls"`
 	Proxy            bool     `toml:"proxy,omitempty"`
 	DeprecatedHost   string   `toml:"host,omitempty"`
@@ -35,8 +34,9 @@ type DataWayCfg struct {
 	DeprecatedToken  string   `toml:"token,omitempty"`
 	dataWayClients   []*dataWayClient
 	httpCli          *http.Client
-	HTTPTimeout      time.Duration
-	HttpProxy        string `toml:"http_proxy"`
+	HTTPTimeout      string        `toml:"timeout"`
+	TimeoutDuration  time.Duration `toml:"-"`
+	HttpProxy        string        `toml:"http_proxy"`
 }
 
 type dataWayClient struct {
@@ -68,7 +68,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 
 	// append datakit info
 	req.Header.Set("X-Datakit-Info",
-		fmt.Sprintf("%s; %s", Cfg.MainCfg.Hostname, git.Version))
+		fmt.Sprintf("%s; %s", Cfg.Hostname, git.Version))
 
 	postbeg := time.Now()
 
@@ -109,6 +109,9 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 
 func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
 	req, err := http.NewRequest("POST", dc.categoryUrl[HeartBeat], bytes.NewBuffer(data))
+
+	dc.httpCli = cli
+
 	resp, err := dc.httpCli.Do(req)
 	if err != nil {
 		return err
@@ -129,6 +132,8 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 		defer dw.httpCli.CloseIdleConnections()
 	}
 
+	dw.initHttp()
+
 	for _, dc := range dw.dataWayClients {
 		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
 			return err
@@ -139,11 +144,17 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 }
 
 func (dw *DataWayCfg) HeartBeat() error {
-	body := map[string]interface{}{
-		"dk_uuid":   Cfg.MainCfg.UUID,
-		"heartbeat": time.Now().Unix(),
-		"host":      Cfg.MainCfg.Hostname,
+	if dw.httpCli != nil {
+		defer dw.httpCli.CloseIdleConnections()
 	}
+
+	body := map[string]interface{}{
+		"dk_uuid":   Cfg.UUID,
+		"heartbeat": time.Now().Unix(),
+		"host":      Cfg.Hostname,
+	}
+
+	dw.initHttp()
 
 	bodyByte, err := json.Marshal(body)
 	if err != nil {
@@ -232,24 +243,20 @@ func (dw *DataWayCfg) GetToken() []string {
 }
 
 func ParseDataway(httpurls []string) (*DataWayCfg, error) {
-	dw := Cfg.MainCfg.DataWay
+	dw := Cfg.DataWay
 
-	dw.httpCli = &http.Client{
-		Timeout: 30 * time.Second,
+	if dw.HTTPTimeout == "" {
+		dw.HTTPTimeout = "5s"
 	}
 
-	if dw.HttpProxy != "" {
-		uri, err := url.Parse(dw.HttpProxy)
-		if err != nil {
-			l.Error("parse url error: ", err)
-		}
-
-		tr := &http.Transport{
-			Proxy: http.ProxyURL(uri),
-		}
-
-		dw.httpCli.Transport = tr
+	timeout, err := time.ParseDuration(dw.HTTPTimeout)
+	if err != nil {
+		return nil, err
 	}
+
+	dw.TimeoutDuration = timeout
+
+	dw.initHttp()
 
 	if len(httpurls) == 0 {
 		return nil, fmt.Errorf("empty dataway HTTP endpoint")
@@ -287,4 +294,25 @@ func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 	}
 
 	return dw, nil
+}
+
+func (dw *DataWayCfg) initHttp() {
+	if dw.httpCli == nil {
+		dw.httpCli = &http.Client{
+			Timeout: dw.TimeoutDuration,
+		}
+
+		if dw.HttpProxy != "" {
+			uri, err := url.Parse(dw.HttpProxy)
+			if err != nil {
+				l.Error("parse url error: ", err)
+			}
+
+			tr := &http.Transport{
+				Proxy: http.ProxyURL(uri),
+			}
+
+			dw.httpCli.Transport = tr
+		}
+	}
 }
