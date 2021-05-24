@@ -38,14 +38,20 @@ var (
 
 	## Command timeout
 	# timeout = "3s"
+
+	## Customer tags, if set will be seen with every metric.
+	[inputs.sensors.tags]
+		# "key1" = "value1"
+		# "key2" = "value2"
 `
 	l = logger.SLogger(inputName)
 )
 
 type Input struct {
-	Path     string           `toml:"path"`
-	Interval datakit.Duration `toml:"interval"`
-	Timeout  datakit.Duration `toml:timeout`
+	Path     string            `toml:"path"`
+	Interval datakit.Duration  `toml:"interval"`
+	Timeout  datakit.Duration  `toml:timeout`
+	Tags     map[string]string `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
@@ -64,24 +70,24 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{}
 }
 
-func (i *Input) Run() {
+func (s *Input) Run() {
 	l.Info("sensors input started")
 
-	if finfo, err := os.Stat(i.Path); err != nil || finfo.IsDir() {
+	if finfo, err := os.Stat(s.Path); err != nil || finfo.IsDir() {
 		l.Error(err.Error())
-		if i.Path, err = exec.LookPath(defCommand); err != nil {
+		if s.Path, err = exec.LookPath(defCommand); err != nil {
 			l.Errorf("Can not find executable sensor command, install 'lm-sensors' first.")
 
 			return
 		}
-		l.Infof("Fallback: use %q for gathering instead.", i.Path)
+		l.Infof("Fallback: use %q for gathering instead.", s.Path)
 	}
 
-	tick := time.NewTicker(i.Interval.Duration)
+	tick := time.NewTicker(s.Interval.Duration)
 	for {
 		select {
 		case <-tick.C:
-			if err := i.Gather(); err != nil {
+			if err := s.gather(); err != nil {
 				l.Error(err.Error())
 				io.FeedLastError(inputName, err.Error())
 				continue
@@ -94,9 +100,9 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) Gather() error {
+func (s *Input) gather() error {
 	var (
-		cmd   = exec.Command(i.Path, "-u")
+		cmd   = exec.Command(s.Path, "-u")
 		buf   bytes.Buffer
 		start = time.Now()
 	)
@@ -107,7 +113,7 @@ func (i *Input) Gather() error {
 		return err
 	}
 
-	timeout := time.AfterFunc(i.Timeout.Duration, func() {
+	timeout := time.AfterFunc(s.Timeout.Duration, func() {
 		if err := cmd.Process.Kill(); err != nil {
 			l.Error(err.Error())
 		}
@@ -122,17 +128,25 @@ func (i *Input) Gather() error {
 		return err
 	}
 
-	if cache, err := parse(string(buf.Bytes())); err != nil {
+	if cache, err := s.parse(string(buf.Bytes())); err != nil {
 		return err
 	} else {
 		return inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)})
 	}
 }
 
-func parse(output string) ([]inputs.Measurement, error) {
+func (s *Input) getCustomerTags() map[string]string {
+	if len(s.Tags) != 0 {
+		return s.Tags
+	} else {
+		return make(map[string]string)
+	}
+}
+
+func (s *Input) parse(output string) ([]inputs.Measurement, error) {
 	var (
 		lines  = strings.Split(strings.TrimSpace(output), "\n")
-		tags   = make(map[string]string)
+		tags   = s.getCustomerTags()
 		fields = make(map[string]interface{})
 		cache  []inputs.Measurement
 	)
@@ -144,7 +158,7 @@ func parse(output string) ([]inputs.Measurement, error) {
 				fields: fields,
 				ts:     time.Now(),
 			})
-			tags = make(map[string]string)
+			tags = s.getCustomerTags()
 			fields = make(map[string]interface{})
 		} else {
 			if strings.Contains(line, ":") {
@@ -182,12 +196,14 @@ func parse(output string) ([]inputs.Measurement, error) {
 			}
 		}
 	}
-	cache = append(cache, &sensorsMeasurement{
-		name:   inputName,
-		tags:   tags,
-		fields: fields,
-		ts:     time.Now(),
-	})
+	if len(fields) != 0 {
+		cache = append(cache, &sensorsMeasurement{
+			name:   inputName,
+			tags:   tags,
+			fields: fields,
+			ts:     time.Now(),
+		})
+	}
 
 	return cache, nil
 }
