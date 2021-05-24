@@ -46,7 +46,9 @@ var (
 	#	# grok pipeline script path
 	#	pipeline = "rabbitmq.p"
 	[inputs.rabbitmq.tags]
-	# a = "b"
+	# some_tag = "some_value"
+	# more_tag = "some_other_value"
+	# ...
 
 `
 	pipelineCfg = `
