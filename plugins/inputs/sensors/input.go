@@ -128,7 +128,7 @@ func (s *Input) gather() error {
 		return err
 	}
 
-	if cache, err := parse(string(buf.Bytes())); err != nil {
+	if cache, err := s.parse(string(buf.Bytes())); err != nil {
 		return err
 	} else {
 		return inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)})
@@ -196,12 +196,14 @@ func (s *Input) parse(output string) ([]inputs.Measurement, error) {
 			}
 		}
 	}
-	cache = append(cache, &sensorsMeasurement{
-		name:   inputName,
-		tags:   tags,
-		fields: fields,
-		ts:     time.Now(),
-	})
+	if len(fields) != 0 {
+		cache = append(cache, &sensorsMeasurement{
+			name:   inputName,
+			tags:   tags,
+			fields: fields,
+			ts:     time.Now(),
+		})
+	}
 
 	return cache, nil
 }
