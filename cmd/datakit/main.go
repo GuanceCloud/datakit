@@ -71,6 +71,7 @@ var (
 	flagStop       = flag.Bool("stop", false, "stop datakit")
 	flagRestart    = flag.Bool("restart", false, "restart datakit")
 	flagReload     = flag.Bool("reload", false, "reload datakit")
+	flagStatus     = flag.Bool("status", false, "show datakit service status")
 	flagReloadPort = flag.Int("reload-port", 9529, "datakit http server port")
 
 	// partially update
@@ -470,6 +471,16 @@ func runDatakitWithCmd() {
 		}
 
 		fmt.Println("Reload DataKit OK")
+		os.Exit(0)
+	}
+
+	if *flagStatus {
+		x, err := cmds.DatakitStatus()
+		if err != nil {
+			fmt.Println("Get DataKit status failed: %s\n", err)
+			os.Exit(-1)
+		}
+		fmt.Println(x)
 		os.Exit(0)
 	}
 
