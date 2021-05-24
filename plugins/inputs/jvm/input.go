@@ -71,6 +71,11 @@ const (
     mbean    = "java.lang:name=*,type=MemoryPool"
     paths    = ["Usage", "PeakUsage", "CollectionUsage"]
     tag_keys = ["name"]
+
+  [inputs.jvm.tags]
+#   tag1 = "val1"
+#   tag2 = "val2"
+#   tag3 = "val3"
 `
 )
 
