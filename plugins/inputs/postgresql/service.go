@@ -2,7 +2,6 @@ package postgresql
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -27,7 +26,6 @@ func (p *SqlService) Start() (err error) {
 
 	if p.DB, err = sql.Open("postgres", connectionString); err != nil {
 		l.Error("connect error: ", connectionString)
-		fmt.Println(connectionString)
 		return err
 	}
 
