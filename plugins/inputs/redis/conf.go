@@ -9,7 +9,7 @@ const (
     # db = 0
     # password = "<PASSWORD>"
 
-	## @param service - string - optional
+  ## @param service - string - optional
     # service = "<SERVICE>"
 
     ## @param interval - number - optional - default: 15
