@@ -19,51 +19,51 @@ var (
 	inputName    = "mongodb"
 	sampleConfig = `
 [[inputs.mongodb]]
-	## Gathering interval
-	interval = "10s"
+  ## Gathering interval
+  interval = "10s"
 
-	## An array of URLs of the form:
-	##   "mongodb://" [user ":" pass "@"] host [ ":" port]
-	## For example:
-	##   mongodb://user:auth_key@10.10.3.30:27017,
-	##   mongodb://10.10.3.33:18832,
-	servers = ["mongodb://127.0.0.1:27017"]
+  ## An array of URLs of the form:
+  ##   "mongodb://" [user ":" pass "@"] host [ ":" port]
+  ## For example:
+  ##   mongodb://user:auth_key@10.10.3.30:27017,
+  ##   mongodb://10.10.3.33:18832,
+  servers = ["mongodb://127.0.0.1:27017"]
 
-	## When true, collect replica set stats
-	gather_replica_set_stats = false
+  ## When true, collect replica set stats
+  gather_replica_set_stats = false
 
-	## When true, collect cluster stats
-	## Note that the query that counts jumbo chunks triggers a COLLSCAN, which may have an impact on performance.
-	gather_cluster_stats = false
+  ## When true, collect cluster stats
+  ## Note that the query that counts jumbo chunks triggers a COLLSCAN, which may have an impact on performance.
+  gather_cluster_stats = false
 
-	## When true, collect per database stats
-	gather_per_db_stats = true
+  ## When true, collect per database stats
+  gather_per_db_stats = true
 
-	## When true, collect per collection stats
-	gather_per_col_stats = true
+  ## When true, collect per collection stats
+  gather_per_col_stats = true
 
-	## List of db where collections stats are collected, If empty, all db are concerned.
-	col_stats_dbs = ["local"]
+  ## List of db where collections stats are collected, If empty, all db are concerned.
+  col_stats_dbs = ["local"]
 
-	## When true, collect top command stats.
-	gather_top_stat = true
+  ## When true, collect top command stats.
+  gather_top_stat = true
 
-	## Optional TLS Config, enabled if true.
-	enable_tls = false
+  ## Optional TLS Config, enabled if true.
+  enable_tls = false
 
-	## TLS connection config
-	[inputs.mongodb.tlsconf]
-		# ca_certs = ["/etc/datakit/ca.pem"]
-		# cert = "/etc/datakit/cert.pem"
-		# cert_key = "/etc/datakit/key.pem"
-		## Use TLS but skip chain & host verification
-		# insecure_skip_verify = false
-		# server_name = ""
+  ## TLS connection config
+  [inputs.mongodb.tlsconf]
+    # ca_certs = ["/etc/datakit/ca.pem"]
+    # cert = "/etc/datakit/cert.pem"
+    # cert_key = "/etc/datakit/key.pem"
+    ## Use TLS but skip chain & host verification
+    # insecure_skip_verify = false
+    # server_name = ""
 
-	## Customer tags, if set will be seen with every metric.
-	[inputs.mongodb.tags]
-		# "key1" = "value1"
-		# "key2" = "value2"
+  ## Customer tags, if set will be seen with every metric.
+  [inputs.mongodb.tags]
+    # "key1" = "value1"
+    # "key2" = "value2"
 `
 	localhost = &url.URL{Host: "mongodb://127.0.0.1:27017"}
 	defTags   map[string]string
