@@ -9,7 +9,7 @@ const (
     # db = 0
     # password = "<PASSWORD>"
 
-	## @param service - string - optional
+  ## @param service - string - optional
     # service = "<SERVICE>"
 
     ## @param interval - number - optional - default: 15
@@ -56,12 +56,9 @@ const (
     # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
     match = '''^\S.*'''
 
-    [inputs.tailf.tags]
-    # tags1 = "value1"
-
     [inputs.redis.tags]
-    # tag1 = val1
-    # tag2 = val2
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 
 	pipelineCfg = `
