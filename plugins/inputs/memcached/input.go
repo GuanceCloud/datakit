@@ -208,6 +208,9 @@ const (
 )
 
 func (i *Input) Run() {
+
+	l = logger.SLogger(inputName)
+
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
 		l.Error(fmt.Errorf("invalid interval, %s", err.Error()))
@@ -245,7 +248,6 @@ func (i *Input) Run() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		l.Info("add memcached")
 		return &Input{}
 	})
 }
