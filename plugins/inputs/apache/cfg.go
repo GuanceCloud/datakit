@@ -36,8 +36,10 @@ var (
 	#	# grok pipeline script path
 	#	pipeline = "nginx.p"
 	[inputs.apache.tags]
-	# a = "b"`
-
+	# some_tag = "some_value"
+	# more_tag = "some_other_value"
+	# ...
+`
 	//此处 ip_or_host 可能存在 `127.0.0.1:80 127.0.0.1` 和 `127.0.0.1`	，使用 GREEDYDATA
 	pipeline = `
 # access log 
