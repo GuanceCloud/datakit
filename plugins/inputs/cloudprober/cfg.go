@@ -28,7 +28,9 @@ var (
 	## Use TLS but skip chain & host verification
 	insecure_skip_verify = false
 	[inputs.cloudprober.tags]
-	# a = "b"`
+	# some_tag = "some_value"
+	# more_tag = "some_other_value"
+	# ...`
 )
 
 type Input struct {
