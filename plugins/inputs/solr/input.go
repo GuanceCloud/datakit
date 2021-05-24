@@ -40,8 +40,10 @@ var (
     ## grok pipeline script path
     # pipeline = "solr.p"
 
-  [inputs.solr.tags]
-    # tag1 = "a"
+[[inputs.solr.tags]]
+  # some_tag = "some_tag"
+  # more_tag = "more_tag"
+
 `
 	pipelineCfg = `
 add_pattern("solrReporter","(?:[.\\w\\d]+)")
