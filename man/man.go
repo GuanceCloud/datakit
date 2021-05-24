@@ -35,6 +35,7 @@ var (
 		"proxy":                   "man/manuals/proxy.md",
 		"sec-checker":             "man/manuals/sec-checker.md",
 		"telegraf":                "man/manuals/telegraf.md",
+		"rum":                     "man/manuals/rum.md",
 	}
 
 	l = logger.DefaultSLogger("man")
