@@ -48,6 +48,7 @@ type Input struct {
 	collectObjectCache     []inputs.Measurement `toml:"-"`
 	lastErr                error
 
+	StateUrl		  string `toml:"kube_state_metric"`
 	KubeConfigPath    string `toml:"kube_config_path"`
 	URL               string `toml:"url"`
 	BearerToken       string `toml:"bearer_token"`
@@ -99,8 +100,13 @@ func (i *Input) initCfg() error {
 }
 
 func (i *Input) globalTag() {
-	i.Tags["url"] = i.URL
-	i.Tags["service_name"] = i.Service
+	if i.URL != "" {
+		i.Tags["url"] = i.URL
+	}
+
+	if i.Service != "" {
+		i.Tags["service_name"] = i.Service
+	}
 }
 
 func (i *Input) Collect() error {
@@ -218,7 +224,9 @@ func (i *Input) AvailableArchs() []string {
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{}
+	return []inputs.Measurement{
+		&podObject{},
+	}
 }
 
 func init() {
