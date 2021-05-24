@@ -90,7 +90,9 @@ func (i *Input) handleResponse(qy *customQuery, resMap []map[string]interface{})
 		}
 		m.ts = time.Now()
 
-		i.collectCache = append(i.collectCache, m)
+		if len(m.fields) > 0 {
+			i.collectCache = append(i.collectCache, m)
+		}
 	}
 
 	return nil
