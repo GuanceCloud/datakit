@@ -106,19 +106,19 @@ func (x *CsvMetric) Run() {
 		intVal = int(interval) / 1e9
 	}
 
-	if datakit.Cfg.MainCfg.HTTPListen == "" {
+	if datakit.Cfg.HTTPListen == "" {
 		l.Errorf("missed http_server_addr configuration in datakit.conf")
 		return
 	}
 
-	port := strings.Split(datakit.Cfg.MainCfg.HTTPListen, ":")[1]
+	port := strings.Split(datakit.Cfg.HTTPListen, ":")[1]
 	args := []string{
 		filepath.Join(datakit.InstallDir, "externals", "csv", "main.py"),
 		"--metric", encodeStr,
 		"--interval", fmt.Sprintf("%d", intVal),
 		"--http", "http://127.0.0.1:" + port,
 		"--log_file", filepath.Join(datakit.InstallDir, "externals", logFile),
-		"--log_level", datakit.Cfg.MainCfg.LogLevel,
+		"--log_level", datakit.Cfg.LogLevel,
 	}
 
 	if x.PythonEnv != "" {
