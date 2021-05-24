@@ -38,11 +38,11 @@ const (
 	password = "<your_password>"
 	sftpCheck      = false
 	privateKeyFile = ""
-	metricsName    ="ssh"
-#	[inputs.ssh.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
+	metricsName    ="ssh"	
+	[inputs.ssh.tags]
+	#	tag1 = "val1"
+	#	tag2 = "val2"
+	#	tag3 = "val3"
 `
 )
 
