@@ -12,8 +12,8 @@ type gatherOption struct {
 	IsObjectCategory bool
 }
 
-func (this *Input) gatherMetric(interval time.Duration) {
-	tick := time.NewTicker(interval)
+func (this *Input) gatherMetric() {
+	tick := time.NewTicker(this.metricDuration)
 	defer tick.Stop()
 	for {
 		select {
@@ -37,34 +37,42 @@ func (this *Input) gatherMetric(interval time.Duration) {
 	}
 }
 
-func (this *Input) gatherObject(interval time.Duration) {
-	tick := time.NewTicker(interval)
+func (this *Input) gatherObject() {
+	objectFunc := func() {
+		startTime := time.Now()
+		pts, err := this.gather(&gatherOption{IsObjectCategory: true})
+		if err != nil {
+			l.Error(err)
+			io.FeedLastError(inputName, fmt.Sprintf("gather object: %s", err.Error()))
+			return
+		}
+		cost := time.Since(startTime)
+		if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: cost}); err != nil {
+			l.Error(err)
+			io.FeedLastError(inputName, fmt.Sprintf("gather object: %s", err.Error()))
+		}
+	}
+
+	// 在即进入 for tick 之前，先执行一次，避免等待太久
+	objectFunc()
+
+	tick := time.NewTicker(this.objectDuration)
 	defer tick.Stop()
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
 			return
 
 		case <-tick.C:
-			startTime := time.Now()
-			pts, err := this.gather(&gatherOption{IsObjectCategory: true})
-			if err != nil {
-				l.Error(err)
-				io.FeedLastError(inputName, fmt.Sprintf("gather object: %s", err.Error()))
-				continue
-			}
-			cost := time.Since(startTime)
-			if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: cost}); err != nil {
-				l.Error(err)
-				io.FeedLastError(inputName, fmt.Sprintf("gather object: %s", err.Error()))
-			}
+			objectFunc()
 		}
 	}
 }
 
-func (this *Input) gatherLoggoing(hitInterval time.Duration) {
+func (this *Input) gatherLoggoing() {
 	// 定期发现新容器，从而获取其日志数据
-	tick := time.NewTicker(hitInterval)
+	tick := time.NewTicker(this.loggingHitDuration)
 	defer tick.Stop()
 	for {
 		select {
