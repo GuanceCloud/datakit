@@ -79,9 +79,9 @@ urls = ["http://localhost:8080/jolokia"]
 #  pipeline = "kafka.p"
 
 [inputs.kafka.tags]
-#  tag1 = "val1"
-#  tag2 = "val2"
-#  tag3 = "val3"
+# some_tag = "some_value"
+# more_tag = "some_other_value"
+# ...
 `
 
 	pipelineCfg = `
