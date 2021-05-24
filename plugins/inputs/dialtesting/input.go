@@ -16,7 +16,6 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
@@ -32,8 +31,6 @@ var (
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
 
-	x *io.IO
-
 	MaxFails = 100
 )
 
@@ -43,7 +40,8 @@ const (
 )
 
 type Input struct {
-	Region       string `toml:"region"`
+	Region       string `toml:"region,omitempty"`
+	RegionId     string `toml:"region_id"`
 	Server       string `toml:"server,omitempty"`
 	AK           string `toml:"ak"`
 	SK           string `toml:"sk"`
@@ -59,11 +57,11 @@ type Input struct {
 }
 
 const sample = `[[inputs.dialtesting]]
-	# require，默认值为default
-	region = "default"
-
 	#  中心任务存储的服务地址，或本地json 文件全路径
 	server = "files:///your/dir/json-file-name"
+
+	# require，节点惟一标识ID
+	region_id = "default"
 
 	# 若server配为中心任务服务地址时，需要配置相应的ak或者sk
 	ak = ""
@@ -97,12 +95,6 @@ func (i *Input) AvailableArchs() []string {
 func (d *Input) Run() {
 
 	l = logger.SLogger(inputName)
-
-	maxCacheCnt := int64(200)
-
-	x = io.NewIO(maxCacheCnt)
-
-	StartCollect()
 
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
 	// 若为本地json文件，则读取任务
@@ -389,7 +381,7 @@ func signReq(req *http.Request, ak, sk string) {
 func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 
 	reqURL.Path = "/v1/task/pull"
-	reqURL.RawQuery = fmt.Sprintf("region=%s&since=%d", d.Region, sinceUs)
+	reqURL.RawQuery = fmt.Sprintf("region_id=%s&since=%d", d.RegionId, sinceUs)
 
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
@@ -420,9 +412,21 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 		return body, nil
 	default:
 		l.Warn("request %s failed(%s): %s", d.Server, resp.Status, string(body))
+		//error_code = kodo.RegionNotFoundOrDisabled, 停止掉所有任务
+		if strings.Contains(string(body), `kodo.RegionNotFoundOrDisabled`) {
+			//stop all
+			d.stopAlltask()
+		}
 		return nil, fmt.Errorf("pull task failed")
 	}
 
+}
+
+func (d *Input) stopAlltask() {
+	for tid, dialer := range d.curTasks {
+		dialer.stop()
+		delete(d.curTasks, tid)
+	}
 }
 
 func init() {
