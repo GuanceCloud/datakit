@@ -14,6 +14,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -73,6 +74,16 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (s *Input) Run() {
 	l.Info("sensors input started")
 
+	var err error
+	if s.Path == "" || !path.IsFileExists(s.Path) {
+		if s.Path, err = exec.LookPath(defCommand); err != nil {
+			l.Errorf("Can not find executable sensor command, install 'lm-sensors' first.")
+
+			return
+		}
+		l.Info("Command fallback to %q due to invalide path provided in 'sensors' input", s.Path)
+	}
+
 	if finfo, err := os.Stat(s.Path); err != nil || finfo.IsDir() {
 		l.Error(err.Error())
 		if s.Path, err = exec.LookPath(defCommand); err != nil {
@@ -87,7 +98,7 @@ func (s *Input) Run() {
 	for {
 		select {
 		case <-tick.C:
-			if err := s.gather(); err != nil {
+			if err = s.gather(); err != nil {
 				l.Error(err.Error())
 				io.FeedLastError(inputName, err.Error())
 				continue
