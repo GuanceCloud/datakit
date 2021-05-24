@@ -22,7 +22,7 @@ const (
   # default_tag_prefix      = ""
   # default_field_prefix    = ""
   # default_field_separator = "."
- 
+
   # username = ""
   # password = ""
   # response_timeout = "5s"
@@ -73,10 +73,9 @@ const (
     tag_keys = ["name"]
 
   [inputs.jvm.tags]
-#   tag1 = "val1"
-#   tag2 = "val2"
-#   tag3 = "val3"
-`
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...`
 )
 
 var JvmTypeMap = map[string]string{
