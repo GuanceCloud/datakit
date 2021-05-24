@@ -26,6 +26,10 @@ const (
 		'LD_LIBRARY_PATH=/opt/oracle/instantclient_19_8:$LD_LIBRARY_PATH',
 	]
 
+	[inputs.external.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
+
 	#############################
 	# 参数说明(标 * 为必选项)
 	#############################
@@ -50,6 +54,17 @@ type Input struct {
 }
 
 func (i *Input) Run() {
+	tagsStr := ""
+	for tagKey, tagVal := range i.Tags {
+		tagStr := tagKey + "=" + tagVal + ";"
+		tagsStr += tagStr
+	}
+
+	if tagsStr != "" {
+		tagsStr = "--tags " + tagsStr
+	}
+
+	i.Args = append(i.Args, tagsStr)
 	// FIXME: 如果改成松散配置读取方式（只要是 .conf，直接读取并启动之）
 	// 这里得到 .Run() 方法要去掉。
 	i.ExernalInput.Run()
