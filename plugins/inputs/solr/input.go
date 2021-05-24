@@ -41,8 +41,8 @@ var (
     # pipeline = "solr.p"
 
  [inputs.solr.tags]
-	# some_tag = "some_value"
-	# more_tag = "some_other_value"
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
 
 `
 	pipelineCfg = `
