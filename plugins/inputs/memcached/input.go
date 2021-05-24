@@ -25,8 +25,10 @@ const sampleConfig = `
 	# 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
 	interval = "10s"
 
-	[inputs.memcached.tags]
-	# a = "b"
+[inputs.memcached.tags]
+	# some_tag = "some_value"
+	# more_tag = "some_other_value"
+	# ...
 `
 
 var (
@@ -167,6 +169,12 @@ func (i *Input) gatherServer(address string, unix bool) error {
 			} else {
 				fields[key] = value
 			}
+		}
+	}
+
+	if i.Tags != nil {
+		for k, v := range i.Tags {
+			tags[k] = v
 		}
 	}
 
