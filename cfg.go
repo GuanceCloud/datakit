@@ -41,8 +41,8 @@ func DefaultConfig() *Config {
 		},
 
 		LogLevel:  "info",
-		Log:       filepath.Join("/var/log/datakit", "log"),
 		LogRotate: 32,
+		Log:       filepath.Join("/var/log/datakit", "log"),
 		GinLog:    filepath.Join("/var/log/datakit", "gin.log"),
 
 		BlackList: []*InputHostList{
@@ -101,6 +101,15 @@ type Config struct {
 	EnableElection bool `toml:"enable_election"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
+}
+
+func (c *Config) String() string {
+	buf := new(bytes.Buffer)
+	if err := bstoml.NewEncoder(buf).Encode(c); err != nil {
+		return ""
+	}
+
+	return buf.String()
 }
 
 type InputHostList struct {
