@@ -20,9 +20,9 @@ import (
 )
 
 var (
-	defSmartCmd = "smartctl"
+	defSmartCmd     = "smartctl"
 	defSmartCtlPath = "/usr/bin/smartctl"
-	defNvmeCmd = "nvme"
+	defNvmeCmd      = "nvme"
 	defNvmePath     = "/usr/bin/nvme"
 	defInterval     = datakit.Duration{Duration: 10 * time.Second}
 	defTimeout      = datakit.Duration{Duration: 3 * time.Second}
@@ -104,8 +104,22 @@ func (*Input) AvailabelArch() []string {
 func (s *Input) Run() {
 	l.Info("smartctl input started")
 
+	var err error
 	if s.SmartCtlPath == "" || !path.IsFileExists(s.SmartCtlPath) {
-		
+		if s.SmartCtlPath, err = exec.LookPath(defSmartCmd); err != nil {
+			l.Errorf("Can not find executable sensor command, install 'smartmontools' first.")
+
+			return
+		}
+		l.Info("Command fallback to %q due to invalide path provided in 'smart' input", s.SmartCtlPath)
+	}
+	if s.NvmePath == "" || !path.IsFileExists(s.NvmePath) {
+		if s.NvmePath, err = exec.LookPath(defNvmeCmd); err != nil {
+			l.Errorf("Can not find executable sensor command, install 'nvme-cli' first.")
+
+			return
+		}
+		l.Info("Command fallback to %q due to invalide path provided in 'smart' input", s.NvmePath)
 	}
 
 	tick := time.NewTicker(s.Interval.Duration)
