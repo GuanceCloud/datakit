@@ -1,16 +1,20 @@
 package smart
 
 import (
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
 	defSmartCtlPath = "/usr/bin/smartctl"
 	defNvmePath     = "/usr/bin/nvme"
-	inputName       = "smart"
-	SampleConfig    = `
+
+	inputName    = "smart"
+	SampleConfig = `
 [[inputs.smart]]
 	## The path to the smartctl executable
   # path_smartctl = "/usr/bin/smartctl"
@@ -78,10 +82,26 @@ func (*Input) AvailabelArch() []string {
 }
 
 func (i *Input) Run() {
+	l.Info("smartctl input started")
 
+	tick := time.NewTicker(i.Interval.Duration)
+	for {
+		select {
+		case <-tick.C:
+			if err := i.gather(); err != nil {
+				l.Error(err.Error())
+				io.FeedLastError(inputName, err.Error())
+				continue
+			}
+		case <-datakit.Exit.Wait():
+			l.Info("smart input exits")
+
+			return
+		}
+	}
 }
 
-func (i *Input) gather() {
+func (i *Input) gather() error {
 
 }
 
