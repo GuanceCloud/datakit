@@ -24,10 +24,10 @@ var (
 const sampleConfig = `
 [[inputs.postgresql]]
 ## 服务器地址
-# url格式 
-#	postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
+# url格式
+# postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
 # 简单字符串格式
-# 	host=localhost user=pqgotest password=... sslmode=... dbname=app_production
+# host=localhost user=pqgotest password=... sslmode=... dbname=app_production
 
 address = "postgres://postgres@localhost/test?sslmode=disable"
 
@@ -67,6 +67,7 @@ type Rows interface {
 	Next() bool
 	Scan(...interface{}) error
 }
+
 type Service interface {
 	Start() error
 	Stop()
@@ -80,17 +81,15 @@ type scanner interface {
 }
 
 type Input struct {
-	Address          string `toml:"address"`
-	Outputaddress    string `toml:"outputaddress"`
-	IsPgBouncer      bool
+	Address          string               `toml:"address"`
+	Outputaddress    string               `toml:"outputaddress"`
 	IgnoredDatabases []string             `toml:"ignored_databases"`
 	Databases        []string             `toml:"databases"`
 	Interval         string               `toml:"interval"`
 	Tags             map[string]string    `toml:"tags"`
 	Log              *inputs.TailerOption `toml:"log"`
 
-	service Service
-
+	service      Service
 	tail         *inputs.Tailer
 	duration     time.Duration
 	collectCache []inputs.Measurement
@@ -121,9 +120,11 @@ func (m inputMeasurement) Info() *inputs.MeasurementInfo {
 func (*Input) Catalog() string {
 	return catalogName
 }
+
 func (*Input) SampleConfig() string {
 	return sampleConfig
 }
+
 func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
@@ -140,12 +141,12 @@ func (*Input) PipelineConfig() map[string]string {
 	}
 }
 
-var kvMatcher, _ = regexp.Compile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
-
 func (p *Input) SanitizedAddress() (sanitizedAddress string, err error) {
 	var (
 		canonicalizedAddress string
 	)
+
+	var kvMatcher, _ = regexp.Compile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
 
 	if p.Outputaddress != "" {
 		return p.Outputaddress, nil
@@ -270,6 +271,12 @@ func (i *Input) accRow(columnMap map[string]*interface{}) error {
 	}
 
 	tags := map[string]string{"server": tagAddress, "db": "postgres"}
+
+	if i.Tags != nil {
+		for k, v := range i.Tags {
+			tags[k] = v
+		}
+	}
 
 	fields := make(map[string]interface{})
 	for col, val := range columnMap {
