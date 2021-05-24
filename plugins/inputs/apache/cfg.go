@@ -17,30 +17,33 @@ var (
 	maxInterval = time.Second * 30
 	sample      = `
 [[inputs.apache]]
-	url = "http://127.0.0.1/server-status?auto"
-	# ##(optional) collection interval, default is 30s
-	# interval = "30s"
-	
-	# username = ""
-	# password = ""
+  url = "http://127.0.0.1/server-status?auto"
+  # ##(optional) collection interval, default is 30s
+  # interval = "30s"
 
-	## Optional TLS Config
-	# tls_ca = "/xxx/ca.pem"
-	# tls_cert = "/xxx/cert.cer"
-	# tls_key = "/xxx/key.key"
-	## Use TLS but skip chain & host verification
-	insecure_skip_verify = false
+  # username = ""
+  # password = ""
 
-	[inputs.apache.log]
-	#	files = []
-	#	# grok pipeline script path
-	#	pipeline = "nginx.p"
-	[inputs.apache.tags]
-	# a = "b"`
+  ## Optional TLS Config
+  # tls_ca = "/xxx/ca.pem"
+  # tls_cert = "/xxx/cert.cer"
+  # tls_key = "/xxx/key.key"
+  ## Use TLS but skip chain & host verification
+  insecure_skip_verify = false
+
+  [inputs.apache.log]
+  # files = []
+  # grok pipeline script path
+  # pipeline = "nginx.p"
+
+  [inputs.apache.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ... `
 
 	//此处 ip_or_host 可能存在 `127.0.0.1:80 127.0.0.1` 和 `127.0.0.1`	，使用 GREEDYDATA
 	pipeline = `
-# access log 
+# access log
 grok(_,"%{GREEDYDATA:ip_or_host} - - \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{NUMBER:http_code} ")
 grok(_,"%{GREEDYDATA:ip_or_host} - - \\[%{HTTPDATE:time}\\] \"-\" %{NUMBER:http_code} ")
 default_time(time)
