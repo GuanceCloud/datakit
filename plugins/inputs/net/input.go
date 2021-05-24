@@ -49,8 +49,11 @@ var (
   ##
   # ignore_protocol_stats = false
   ##
-  [inputs.net.tags]
-    # tag1 = "a"
+
+[[inputs.net.tags]]
+  # some_tag = "some_tag"
+  # more_tag = "more_tag"
+
 `
 )
 
