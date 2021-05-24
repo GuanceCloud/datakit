@@ -70,25 +70,34 @@ func (c *Input) Run() {
 
 	l.Debugf("starting %s(interval: %v)...", InputName, c.Interval)
 
+	c.singleCollect(n) // 1st shot on datakit startup
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Infof("%s exit on sem", InputName)
 			return
 		case <-tick.C:
-			start := time.Now()
 			l.Debugf("start %d collecting...", n)
-			if err := c.Collect(); err != nil {
-				io.FeedLastError(InputName, err.Error())
-			} else {
-				if err := inputs.FeedMeasurement(InputName,
-					datakit.Object,
-					[]inputs.Measurement{c.collectData},
-					&io.Option{CollectCost: time.Since(start)}); err != nil {
-					io.FeedLastError(InputName, err.Error())
-				}
-			}
+			c.singleCollect(n)
 			n++
+		}
+	}
+}
+
+func (c *Input) singleCollect(n int) {
+
+	l.Debugf("start %d collecting...", n)
+
+	start := time.Now()
+	if err := c.Collect(); err != nil {
+		io.FeedLastError(InputName, err.Error())
+	} else {
+		if err := inputs.FeedMeasurement(InputName,
+			datakit.Object,
+			[]inputs.Measurement{c.collectData},
+			&io.Option{CollectCost: time.Since(start)}); err != nil {
+			io.FeedLastError(InputName, err.Error())
 		}
 	}
 }
