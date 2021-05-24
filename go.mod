@@ -133,8 +133,8 @@ require (
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/alertmanager v0.18.0 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/common v0.20.0 // indirect
+	github.com/prometheus/client_model v0.2.0
+	github.com/prometheus/common v0.20.0
 	github.com/prometheus/procfs v0.1.3
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/rivo/uniseg v0.2.0 // indirect
@@ -173,11 +173,10 @@ require (
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/zmb3/gogetdoc v0.0.0-20190228002656-b37376c5da6a // indirect
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210401072947-bb2a050fa753
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210519105539-c994e3887777
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210518080501-4a4d76e11d89
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0 // indirect
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210519105539-c994e3887777
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/mod v0.4.2 // indirect
