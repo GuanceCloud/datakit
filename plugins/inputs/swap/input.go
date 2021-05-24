@@ -23,10 +23,11 @@ var (
 [[inputs.swap]]
   ##(optional) collect interval, default is 10 seconds
   interval = '10s'
-  ## 
-[[inputs.swap.tags]]
-  # some_tag = "some_tag"
-  # more_tag = "more_tag"
+  ##
+
+[inputs.swap.tags]
+# some_tag = "some_value"
+# more_tag = "some_other_value"
 
 `
 )
