@@ -24,11 +24,9 @@ const (
   # Collect interval, default is 10 seconds(optional)
   interval = '10s'
 
-[[inputs.cpu.tags]]
-  # some_tag = "some_tag"
-  # more_tag = "more_tag"
-
-`
+[inputs.cpu.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"`
 )
 
 var l = logger.DefaultSLogger(inputName)
