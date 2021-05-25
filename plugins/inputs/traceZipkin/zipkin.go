@@ -1,8 +1,8 @@
 package traceZipkin
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -12,8 +12,8 @@ var (
 
 	traceZipkinConfigSample = `
 #[inputs.traceZipkin]
-#   pathV1 = "/api/v1/spans"
-#   pathV2 = "/api/v2/spans"
+#	pathV1 = "/api/v1/spans"
+#	pathV2 = "/api/v2/spans"
 #	[inputs.traceZipkin.tags]
 #		tag1 = "tag1"
 #		tag2 = "tag2"
@@ -22,16 +22,21 @@ var (
 	log *logger.Logger
 )
 
-var ZipkinTags       map[string]string
+const (
+	defaultZipkinPathV1 = "/api/v1/spans"
+	defaultZipkinPathV2 = "/api/v2/spans"
+)
+
+var ZipkinTags map[string]string
 
 type Zipkin struct {
-	Tags  map[string]string
+	Tags map[string]string
 }
 
 type TraceZipkin struct {
-	PathV1  string
-	PathV2  string
-	Tags    map[string]string
+	PathV1 string
+	PathV2 string
+	Tags   map[string]string
 }
 
 func (_ *TraceZipkin) Catalog() string {
@@ -47,7 +52,7 @@ func (t *TraceZipkin) Run() {
 	log.Infof("%s input started...", inputName)
 
 	if t != nil {
-		ZipkinTags       = t.Tags
+		ZipkinTags = t.Tags
 	}
 
 	<-datakit.Exit.Wait()
@@ -55,13 +60,15 @@ func (t *TraceZipkin) Run() {
 }
 
 func (t *TraceZipkin) RegHttpHandler() {
-	if t.PathV1 != "" {
-		http.RegHttpHandler("POST", t.PathV1, ZipkinTraceHandleV1Wrap)
+	if t.PathV1 == "" {
+		t.PathV1 = defaultZipkinPathV1
 	}
+	http.RegHttpHandler("POST", t.PathV1, ZipkinTraceHandleV1)
 
-	if t.PathV2 != "" {
-		http.RegHttpHandler("POST", t.PathV2, ZipkinTraceHandleV2Wrap)
+	if t.PathV2 == "" {
+		t.PathV2 = defaultZipkinPathV2
 	}
+	http.RegHttpHandler("POST", t.PathV2, ZipkinTraceHandleV2)
 }
 
 func init() {

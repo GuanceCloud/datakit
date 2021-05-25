@@ -2,6 +2,7 @@ package pgreplication
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	ioeof "io"
 	"strconv"
@@ -10,7 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"database/sql"
 	"github.com/jackc/pgx"
 	_ "github.com/lib/pq"
 	"github.com/nickelser/parselogical"
@@ -27,50 +27,55 @@ const (
 	defaultMeasurement = "postgresql_replication"
 
 	sampleCfg = `
-# [[inputs.postgresql_replication]]
-#	# required
-# 	host="127.0.0.1"
-#
-#	# required
-# 	port=25432
-#
-# 	# postgres user (need replication privilege)
-#	# required
-# 	user="testuser"
-#
-#	# required
-# 	password="pwd"
-#
-#	# required
-# 	database="testdb"
-#
-#	table="test_table"
-#
-# 	# exlcude the events of postgres
-# 	# there are 3 events: "INSERT","UPDATE","DELETE"
-#	# required
-# 	events=["INSERT"]
-#
-# 	# tags
-# 	tag_colunms=[]
-#
-# 	# fields. required
-# 	field_colunms=["fieldName"]
-#
-# 	# [inputs.postgresql_replication.tags]
-# 	# tags1 = "value1"
+[[inputs.postgresql_replication]]
+    # required
+    host="127.0.0.1"
+
+    # required
+    port=25432
+
+    # postgres user (need replication privilege)
+    # required
+    user="<your-user>"
+
+    # required
+    password="<your-password>"
+
+    # required
+    database="<your-database>"
+
+    # if table is empty, default collect all table.
+    table="<your-table>"
+
+    # category only accept "metric" and "logging"
+    # if category is invalid, default use "metric"
+    category = "metric"
+
+    # there are 3 events: "INSERT","UPDATE","DELETE"
+    # required
+    events=["INSERT"]
+
+    # tags
+    tag_colunms=[]
+
+    # fields. required
+    field_colunms=["fieldName"]
+
+    # [inputs.postgresql_replication.tags]
+    # tags1 = "value1"
 `
 )
 
-var (
-	l *logger.Logger
-
-	testAssert bool
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Replication{}
+		return &Replication{
+			Tags:            make(map[string]string),
+			eventsOperation: make(map[string]interface{}),
+			tagKeys:         make(map[string]interface{}),
+			fieldKeys:       make(map[string]interface{}),
+		}
 	})
 }
 
@@ -81,6 +86,7 @@ type Replication struct {
 	Password  string            `toml:"password"`
 	Database  string            `toml:"database"`
 	Table     string            `toml:"table"`
+	Category  string            `toml:"category"`
 	Events    []string          `toml:"events"`
 	TagList   []string          `toml:"tag_colunms"`
 	FieldList []string          `toml:"field_colunms"`
@@ -102,29 +108,18 @@ type Replication struct {
 	sendStatusLock sync.Mutex
 }
 
-func (_ *Replication) Catalog() string {
+func (*Replication) Catalog() string {
 	return "db"
 }
 
-func (_ *Replication) SampleConfig() string {
+func (*Replication) SampleConfig() string {
 	return sampleCfg
 }
 
 func (r *Replication) Run() {
 	l = logger.SLogger(inputName)
 
-	if r.Tags == nil {
-		r.Tags = make(map[string]string)
-	}
-	r.updateParamList()
-
-	r.pgConfig = pgx.ConnConfig{
-		Host:     r.Host,
-		Port:     r.Port,
-		Database: r.Database,
-		User:     r.User,
-		Password: r.Password,
-	}
+	r.initCfg()
 
 	for {
 		select {
@@ -151,18 +146,13 @@ func (r *Replication) Run() {
 const sendHeartbeatInterval = 5
 
 func (r *Replication) runloop() {
-
 	tick := time.NewTicker(time.Second * sendHeartbeatInterval)
+	defer tick.Stop()
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			if err := r.replicationConn.Close(); err != nil {
-				l.Errorf("replication connection close err: %s", err.Error())
-			}
-			if err := r.deleteSelfSlot(); err != nil {
-				l.Errorf("delete self slot err: %s", err.Error())
-			}
+			r.closeConn()
 			l.Info("exit")
 			return
 
@@ -192,11 +182,7 @@ func (r *Replication) runloop() {
 	}
 }
 
-func (r *Replication) updateParamList() {
-	r.eventsOperation = make(map[string]interface{})
-	r.tagKeys = make(map[string]interface{})
-	r.fieldKeys = make(map[string]interface{})
-
+func (r *Replication) initCfg() {
 	for _, event := range r.Events {
 		r.eventsOperation[event] = nil
 	}
@@ -206,10 +192,32 @@ func (r *Replication) updateParamList() {
 	for _, field := range r.FieldList {
 		r.fieldKeys[field] = nil
 	}
+
+	r.pgConfig = pgx.ConnConfig{
+		Host:     r.Host,
+		Port:     r.Port,
+		Database: r.Database,
+		User:     r.User,
+		Password: r.Password,
+	}
+	r.slotName = fmt.Sprintf("datakit_slot_%d", time.Now().UnixNano())
+
+	r.rewriteCategory()
+}
+
+func (r *Replication) rewriteCategory() {
+	switch r.Category {
+	case "metric":
+		r.Category = datakit.Metric
+	case "logging":
+		r.Category = datakit.Logging
+	default:
+		l.Warnf("invalid category '%s', only accept metric and logging. use default 'metric'", r.Category)
+		r.Category = datakit.Metric
+	}
 }
 
 func (r *Replication) checkAndResetConn() error {
-
 	if r.replicationConn != nil && r.replicationConn.IsAlive() {
 		return nil
 	}
@@ -220,7 +228,6 @@ func (r *Replication) checkAndResetConn() error {
 		}
 	}
 
-	r.slotName = fmt.Sprintf("datakit_slot_%d", time.Now().UnixNano())
 	conn, err := pgx.ReplicationConnect(r.pgConfig)
 	if err != nil {
 		return err
@@ -231,12 +238,23 @@ func (r *Replication) checkAndResetConn() error {
 	}
 
 	if err := conn.StartReplication(r.slotName, 0, -1); err != nil {
-		_ = conn.Close()
+		conn.Close()
 		return err
 	}
 
 	r.replicationConn = conn
 	return nil
+}
+
+func (r *Replication) closeConn() {
+	if r.replicationConn != nil {
+		if err := r.replicationConn.Close(); err != nil {
+			l.Errorf("replication connection close err: %s", err.Error())
+		}
+	}
+	if err := r.deleteSelfSlot(); err != nil {
+		l.Errorf("delete self slot err: %s", err.Error())
+	}
 }
 
 func (r *Replication) getReceivedWal() uint64 {
@@ -259,7 +277,6 @@ func (r *Replication) replicationMsgHandle(msg *pgx.ReplicationMessage) {
 	}
 
 	if msg.ServerHeartbeat != nil {
-
 		if msg.ServerHeartbeat.ServerWalEnd > r.getReceivedWal() {
 			r.setReceivedWal(msg.ServerHeartbeat.ServerWalEnd)
 		}
@@ -296,15 +313,12 @@ func (r *Replication) replicationMsgHandle(msg *pgx.ReplicationMessage) {
 			return
 		}
 
-		if testAssert {
-			l.Debugf("Data: %s", string(data))
+		if err := io.NamedFeed(data, r.Category, inputName); err != nil {
+			l.Errorf("io feed err, category: %s, error: %s", r.Category, err)
+			return
 		}
 
-		if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
-			l.Errorf("io feed err: %s", err.Error())
-		} else {
-			l.Debugf("feed %d bytes to io ok", len(data))
-		}
+		l.Debugf("feed %d bytes to io %s ok", len(data), r.Category)
 	}
 }
 
@@ -326,7 +340,6 @@ func (r *Replication) sendStatus() error {
 }
 
 func (r *Replication) buildPoint(result *parselogical.ParseResult) ([]byte, error) {
-
 	var tags = make(map[string]string)
 	var fields = make(map[string]interface{}, len(r.fieldKeys))
 
@@ -349,7 +362,6 @@ func (r *Replication) buildPoint(result *parselogical.ParseResult) ([]byte, erro
 }
 
 func typeAssert(typer, value string) interface{} {
-
 	switch typer {
 	case "smallint", "integer", "bigint", "real", "double precision", "smallserial", "serial", "bigserial", "money":
 		if val, err := strconv.ParseInt(value, 10, 64); err == nil {
@@ -372,7 +384,6 @@ func typeAssert(typer, value string) interface{} {
 }
 
 func (r *Replication) deleteSelfSlot() error {
-
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", r.User, r.Password, r.Host, r.Port, r.Database)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -380,8 +391,7 @@ func (r *Replication) deleteSelfSlot() error {
 	}
 	defer db.Close()
 
-	sqlstr := fmt.Sprintf("SELECT pg_drop_replication_slot('%s')", r.slotName)
-	_, err = db.Exec(sqlstr)
+	_, err = db.Exec("SELECT pg_drop_replication_slot('?')", r.slotName)
 	if err != nil {
 		return err
 	}
