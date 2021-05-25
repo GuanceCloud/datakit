@@ -19,39 +19,38 @@ const (
 
 	sampleCfg = `
 [inputs.containerd]
-	# containerd sock file, default "/run/containerd/containerd.sock"
-	# required
-	location = "/run/containerd/containerd.sock"
+    # containerd sock file, default "/run/containerd/containerd.sock"
+    # required
+    location = "/run/containerd/containerd.sock"
 
-	# containerd namespace
-	# 'ps -ef | grep containerd | grep containerd-shim' print detail
-	# required
-	namespace = "moby"
+    # containerd namespace
+    # 'ps -ef | grep containerd | grep containerd-shim' print detail
+    # required
+    namespace = "moby"
 
-	# containerd ID list，ID is string and length 64.
-	# if value is "*", collect all ID
-	# required
-	ID_list = ["*"]
+    # containerd ID list，ID is string and length 64.
+    # if value is "*", collect all ID
+    # required
+    ID_list = ["*"]
 
-	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	# required
-	interval = "10s"
+    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    # required, cannot be less than zero
+    interval = "10s"
 
-	# [inputs.containerd.tags]
-	# tags1 = "value1"
+    # [inputs.containerd.tags]
+    # tags1 = "value1"
 `
-	containerdSock = "/run/containerd/containerd.sock"
 )
 
-var (
-	l *logger.Logger
-
-	testAssert = false
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Containerd{}
+		return &Containerd{
+			Interval: datakit.Cfg.Interval,
+			Tags:     make(map[string]string),
+			ids:      make(map[string]interface{}),
+		}
 	})
 }
 
@@ -61,10 +60,6 @@ type Containerd struct {
 	Interval  string            `toml:"interval"`
 	IDList    []string          `toml:"ID_list"`
 	Tags      map[string]string `toml:"tags"`
-
-	// forward compatibility
-	HostPath     string `toml:"host_path"`
-	CollectCycle string `toml:"collect_cycle"`
 	// get all ids metrics
 	isAll bool
 	// id cache
@@ -73,18 +68,18 @@ type Containerd struct {
 	duration time.Duration
 }
 
-func (_ *Containerd) Catalog() string {
+func (*Containerd) Catalog() string {
 	return inputName
 }
 
-func (_ *Containerd) SampleConfig() string {
+func (*Containerd) SampleConfig() string {
 	return sampleCfg
 }
 
 func (c *Containerd) Run() {
 	l = logger.SLogger(inputName)
 
-	if c.loadcfg() {
+	if c.initCfg() {
 		return
 	}
 	ticker := time.NewTicker(c.duration)
@@ -104,11 +99,7 @@ func (c *Containerd) Run() {
 				l.Error(err)
 				continue
 			}
-			if testAssert {
-				fmt.Printf("containerd data: %s", string(data))
-				continue
-			}
-			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+			if err := io.NamedFeed(data, datakit.Metric, inputName); err != nil {
 				l.Error(err)
 				continue
 			}
@@ -117,18 +108,7 @@ func (c *Containerd) Run() {
 	}
 }
 
-func (c *Containerd) loadcfg() bool {
-	if c.Location == "" && c.HostPath != "" {
-		c.Location = c.HostPath
-	}
-	if c.Location == "" {
-		c.Location = containerdSock
-		l.Infof("location is empty, use default location %s", containerdSock)
-	}
-	if c.Interval == "" && c.CollectCycle != "" {
-		c.Interval = c.CollectCycle
-	}
-
+func (c *Containerd) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -138,29 +118,37 @@ func (c *Containerd) loadcfg() bool {
 			// nil
 		}
 
-		d, err := time.ParseDuration(c.Interval)
-		if err != nil || d <= 0 {
-			l.Errorf("invalid interval, %s", err.Error())
+		if err := c.loadCfg(); err != nil {
+			l.Error(err)
 			time.Sleep(time.Second)
-			continue
+		} else {
+			break
 		}
-		c.duration = d
-		break
 	}
 
-	if c.Tags == nil {
-		c.Tags = make(map[string]string)
+	return false
+}
+
+func (c *Containerd) loadCfg() (err error) {
+	if c.Location == "" {
+		err = fmt.Errorf("location cannot be empty")
+		return
+	}
+
+	c.duration, err = time.ParseDuration(c.Interval)
+	if err != nil {
+		err = fmt.Errorf("invalid interval, %s", err.Error())
+		return
+	} else if c.duration <= 0 {
+		err = fmt.Errorf("invalid interval, cannot be less than zero")
+		return
 	}
 
 	c.isAll = len(c.IDList) == 1 && c.IDList[0] == "*"
 
-	c.ids = func() map[string]interface{} {
-		m := make(map[string]interface{})
-		for _, v := range c.IDList {
-			m[v] = nil
-		}
-		return m
-	}()
+	for _, v := range c.IDList {
+		c.ids[v] = nil
+	}
 
-	return false
+	return
 }

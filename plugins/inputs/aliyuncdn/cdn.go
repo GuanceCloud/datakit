@@ -141,7 +141,9 @@ func (r *CDN) getDomain(metricName string, domain string) []string {
 					l.Errorf("[influxdb convert point] failed, %v", err.Error())
 				}
 
-				err = io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
+				r.resData = []byte(pt.String())
+
+				err = io.NamedFeed([]byte(pt.String()), datakit.Metric, inputName)
 			}
 		}
 
