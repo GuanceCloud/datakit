@@ -42,8 +42,6 @@ func handleJaegerTrace(w http.ResponseWriter, r *http.Request) error {
 }
 
 func parseJaegerThrift(octets []byte) error {
-	adapterGroup := []*trace.TraceAdapter{}
-
 	buffer := thrift.NewTMemoryBuffer()
 	if _, err := buffer.Write(octets); err != nil {
 		return err
@@ -53,6 +51,12 @@ func parseJaegerThrift(octets []byte) error {
 	if err := batch.Read(transport); err != nil {
 		return err
 	}
+
+	return processBatch(batch)
+}
+
+func processBatch(batch *j.Batch) error {
+	adapterGroup := []*trace.TraceAdapter{}
 
 	project, ver, env := getExpandInfo(batch)
 	if project == "" {
