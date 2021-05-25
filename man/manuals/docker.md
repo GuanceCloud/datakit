@@ -114,7 +114,7 @@ endpoint = "tcp://remote-docker-ip:port"
 
 如果主机上装有 Kubernetes，则 DataKit 会尝试连接 Kubernetes 服务，进行容器和 Kubernetes 关联，可以得到该容器在 Kubernetes 服务中的 pod 相关信息。
 
-例如该容器由 Kubernetes 创建，可以得到 `pod_name` 和 `pod_namespace` 两个指标数据。
+例如该容器由 Kubernetes 创建，可以得到 `pod_name` 和 `pod_namespace` 两个对象数据。
 
 注意，DataKit 只会关联本机的 Kubernetes 服务，不会关键远程 Kubernetes 服务。即尝试连接 Kubernetes 服务的地址是 `127.0.0.1:10255`。
 
