@@ -231,6 +231,9 @@ func (p *Input) WriteObject() {
 			"name":         fmt.Sprintf("%s_%d", datakit.Cfg.Hostname, ps.Pid),
 			"process_name": name,
 		}
+		for k, v := range p.Tags {
+			tags[k] = v
+		}
 
 		stateZombie := false
 		if state == "zombie" {
@@ -323,6 +326,9 @@ func (p *Input) WriteMetric() {
 			"username":     username,
 			"pid":          fmt.Sprintf("%d", ps.Pid),
 			"process_name": name,
+		}
+		for k, v := range p.Tags {
+			tags[k] = v
 		}
 		metric := &ProcessMetric{
 			name:   inputName,
