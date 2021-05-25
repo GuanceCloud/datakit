@@ -54,4 +54,16 @@ type TencentCost struct {
 	cancelFun context.CancelFunc
 
 	subModules []subModule
+
+	mode string
+
+	testError error
+}
+
+func (ag *TencentCost) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *TencentCost) isDebug() bool {
+	return ag.mode == "debug"
 }
