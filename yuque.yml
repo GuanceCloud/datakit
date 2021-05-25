@@ -1,0 +1,3 @@
+# 配置请参考：https://www.yuque.com/waquehq/docs/configuration
+repo: 'dataflux/datakit'
+pattern: '.docs/*.md'

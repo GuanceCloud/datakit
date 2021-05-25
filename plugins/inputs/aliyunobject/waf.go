@@ -1,31 +1,53 @@
 package aliyunobject
 
 import (
-	"encoding/json"
-	waf "github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"time"
+
+	waf "github.com/aliyun/alibaba-cloud-sdk-go/services/waf-openapi"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
 	wafSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.waf]
-
-# ## @param - custom tags for waf object - [list of key:value element] - optional
-#[inputs.aliyunobject.waf.tags]
-# key1 = 'val1'
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_waf.p"
+	# ## @param - custom tags for waf object - [list of key:value element] - optional
+	
+`
+	wafPipelineConfig = `
+json(_, Region)
+json(_, PayType)
+json(_, Status)
+json(_, InDebt)
+json(_, SubscriptionType)
 `
 )
 
 type Waf struct {
-	Tags               map[string]string `toml:"tags,omitempty"`
+	Disable      bool              `toml:"disable"`
+	Tags         map[string]string `toml:"tags,omitempty"`
+	PipelinePath string            `toml:"pipeline,omitempty"`
+	p            *pipeline.Pipeline
+}
+
+func (e *Waf) disabled() bool {
+	return e.Disable
 }
 
 func (e *Waf) run(ag *objectAgent) {
 	var cli *waf.Client
 	var err error
-
+	p, err := newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] waf new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 	for {
 
 		select {
@@ -39,7 +61,7 @@ func (e *Waf) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -51,11 +73,11 @@ func (e *Waf) run(ag *objectAgent) {
 		req := waf.CreateDescribeInstanceInfoRequest()
 		resp, err := cli.DescribeInstanceInfo(req)
 		if err != nil {
-			moduleLogger.Errorf("%s", err)
+			moduleLogger.Errorf("waf object: %s", err)
 			break
 		}
 		e.handleResponse(resp, ag)
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -64,39 +86,8 @@ func (e *Waf) handleResponse(resp *waf.DescribeInstanceInfoResponse, ag *objectA
 		moduleLogger.Warnf("%s", "waf payType 0")
 		return
 	}
-	var objs []map[string]interface{}
-	tags := map[string]interface{}{
-		"__class":    "aliyun_waf",
-		"__provider": "aliyun",
-		"InDebt": resp.InstanceInfo.InDebt,
-		"InstanceId": resp.InstanceInfo.InstanceId,
-		"PayType": resp.InstanceInfo.PayType,
-		"Region": resp.InstanceInfo.Region,
-		"Status": resp.InstanceInfo.Status,
-		"SubscriptionType": resp.InstanceInfo.SubscriptionType,
+	tags := map[string]string{
+		"name": resp.InstanceInfo.InstanceId,
 	}
-
-	obj := map[string]interface{}{
-		"__name": resp.InstanceInfo.InstanceId,
-		"EndDate": resp.InstanceInfo.EndDate,
-		"RemainDay": resp.InstanceInfo.RemainDay,
-		"Trial": resp.InstanceInfo.Trial,
-
-	}
-	for k, v := range e.Tags {
-		tags[k] = v
-	}
-	for k, v := range ag.Tags {
-		if _, have := tags[k]; !have {
-			tags[k] = v
-		}
-	}
-	obj["__tags"] = tags
-	objs = append(objs, obj)
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
-		moduleLogger.Errorf("%s", err)
-	}
+	ag.parseObject(resp.InstanceInfo, "aliyun_waf", resp.InstanceInfo.InstanceId, e.p, []string{}, []string{}, tags)
 }

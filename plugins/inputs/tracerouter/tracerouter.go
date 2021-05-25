@@ -111,7 +111,9 @@ func (t *TraceRouter) parseHopData(resultHop traceroute.TracerouteResult) {
 				l.Errorf("make metric point error %v", err)
 			}
 
-			err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+			t.resData = pt
+
+			err = io.NamedFeed([]byte(pt), datakit.Logging, inputName)
 			if err != nil {
 				l.Errorf("push metric point error %v", err)
 			}

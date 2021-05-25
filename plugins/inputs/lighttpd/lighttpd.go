@@ -17,28 +17,32 @@ const (
 
 	sampleCfg = `
 [[inputs.lighttpd]]
-	# lighttpd status url
-	# required
-	url = "http://127.0.0.1:8080/server-status"
+    # lighttpd status url
+    # required
+    url = "http://127.0.0.1:8080/server-status"
 
-	# lighttpd version is "v1" or "v2"
-	# required
-	version = "v1"
+    # lighttpd version is "v1" or "v2"
+    # required
+    version = "v1"
 
-	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	# required
-	interval = "10s"
+    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    # required, cannot be less than zero
+    interval = "10s"
 
-	# [inputs.lighttpd.tags]
-	# tags1 = "value1"
+    # [inputs.lighttpd.tags]
+    # from = "127.0.0.1:8080"
+    # tags1 = "value1"
 `
 )
 
-var l *logger.Logger
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Lighttpd{}
+		return &Lighttpd{
+			Interval: datakit.Cfg.Interval,
+			Tags:     make(map[string]string),
+		}
 	})
 }
 
@@ -48,27 +52,24 @@ type Lighttpd struct {
 	Interval string            `toml:"interval"`
 	Tags     map[string]string `toml:"tags"`
 
-	// forward compatibility
-	CollectCycle string `toml:"collect_cycle"`
-
 	statusURL     string
 	statusVersion Version
 
 	duration time.Duration
 }
 
-func (_ *Lighttpd) SampleConfig() string {
+func (*Lighttpd) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *Lighttpd) Catalog() string {
+func (*Lighttpd) Catalog() string {
 	return inputName
 }
 
 func (h *Lighttpd) Run() {
 	l = logger.SLogger(inputName)
 
-	if h.loadcfg() {
+	if h.initCfg() {
 		return
 	}
 	ticker := time.NewTicker(h.duration)
@@ -83,12 +84,12 @@ func (h *Lighttpd) Run() {
 			return
 
 		case <-ticker.C:
-			data, err := LighttpdStatusParse(h.statusURL, h.statusVersion, h.Tags)
+			data, err := h.getMetrics()
 			if err != nil {
 				l.Error(err)
 				continue
 			}
-			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+			if err := io.NamedFeed(data, datakit.Metric, inputName); err != nil {
 				l.Error(err)
 				continue
 			}
@@ -96,13 +97,7 @@ func (h *Lighttpd) Run() {
 		}
 	}
 }
-
-func (h *Lighttpd) loadcfg() bool {
-
-	if h.Interval == "" && h.CollectCycle != "" {
-		h.Interval = h.CollectCycle
-	}
-
+func (h *Lighttpd) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -112,37 +107,36 @@ func (h *Lighttpd) loadcfg() bool {
 			// nil
 		}
 
-		d, err := time.ParseDuration(h.CollectCycle)
-		if err != nil || d <= 0 {
-			l.Errorf("invalid interval, %s", err.Error())
+		if err := h.loadCfg(); err != nil {
+			l.Error(err)
 			time.Sleep(time.Second)
-			continue
-		}
-		h.duration = d
-
-		if h.Version == "v1" {
-			h.statusURL = fmt.Sprintf("%s?json", h.URL)
-			h.statusVersion = v1
-			break
-		} else if h.Version == "v2" {
-			h.statusURL = fmt.Sprintf("%s?format=plain", h.URL)
-			h.statusVersion = v2
-			break
 		} else {
-			l.Error("invalid lighttpd version")
-			time.Sleep(time.Second)
+			break
 		}
-	}
-
-	if h.Tags == nil {
-		h.Tags = make(map[string]string)
-	}
-	if _, ok := h.Tags["url"]; !ok {
-		h.Tags["url"] = h.URL
-	}
-	if _, ok := h.Tags["version"]; !ok {
-		h.Tags["version"] = h.Version
 	}
 
 	return false
+}
+
+func (h *Lighttpd) loadCfg() (err error) {
+	h.duration, err = time.ParseDuration(h.Interval)
+	if err != nil {
+		err = fmt.Errorf("invalid interval, %s", err.Error())
+		return
+	} else if h.duration <= 0 {
+		err = fmt.Errorf("invalid interval, cannot be less than zero")
+		return
+	}
+
+	if h.Version == "v1" {
+		h.statusURL = fmt.Sprintf("%s?json", h.URL)
+		h.statusVersion = v1
+		return
+	} else if h.Version == "v2" {
+		h.statusURL = fmt.Sprintf("%s?format=plain", h.URL)
+		h.statusVersion = v2
+		return
+	} else {
+		return fmt.Errorf("invalid lighttpd version")
+	}
 }

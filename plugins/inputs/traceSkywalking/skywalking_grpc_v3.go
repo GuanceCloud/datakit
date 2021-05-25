@@ -1,19 +1,19 @@
 package traceSkywalking
 
 import (
+	"encoding/base64"
 	"os"
 	"os/exec"
-	"runtime"
 	"path/filepath"
-	"encoding/base64"
+	"runtime"
 
 	"github.com/influxdata/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 func SkyWalkingServerRunV3(s *Skywalking) {
+	rpcServ := "unix://" + datakit.GRPCDomainSock
 	log.Info("skywalking V3 gRPC starting...")
 
 	bin := filepath.Join(datakit.InstallDir, "externals", "skywalkingGrpcV3")
@@ -34,11 +34,14 @@ func SkyWalkingServerRunV3(s *Skywalking) {
 
 	b64cfg := base64.StdEncoding.EncodeToString(cfg)
 
+	if datakit.GRPCSock != "" {
+		rpcServ = datakit.GRPCSock
+	}
 	args := []string{
 		"-cfg", b64cfg,
-		"-rpc-server", "unix://" + datakit.GRPCDomainSock,
+		"-rpc-server", rpcServ,
 		"-log", filepath.Join(datakit.InstallDir, "externals", "skywalkingGrpcV3.log"),
-		"-log-level", config.Cfg.MainCfg.LogLevel,
+		"-log-level", datakit.Cfg.LogLevel,
 	}
 
 	cmd := exec.Command(bin, args...)
