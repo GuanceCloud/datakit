@@ -412,7 +412,7 @@ func parseURL(uri string) (string, error) {
 		accrue(k, q.Get(k))
 	}
 
-	sort.Strings(kvs) // Makes testing easier (not a performance concern)
+	sort.Strings(kvs)
 	return strings.Join(kvs, " "), nil
 }
 
