@@ -3,19 +3,15 @@ package traceJaeger
 import (
 	"encoding/json"
 	"fmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"net/http"
 	"runtime/debug"
 
-	"github.com/gin-gonic/gin"
 	"github.com/uber/jaeger-client-go/thrift"
 	j "github.com/uber/jaeger-client-go/thrift-gen/jaeger"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
-
-func JaegerTraceHandleWrap(c *gin.Context) {
-	JaegerTraceHandle(c.Writer, c.Request)
-}
 
 func JaegerTraceHandle(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("trace handle with path: %s", r.URL.Path)
@@ -27,6 +23,7 @@ func JaegerTraceHandle(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err := handleJaegerTrace(w, r); err != nil {
+		io.FeedLastError(inputName, err.Error())
 		log.Errorf("%v", err)
 	}
 }
@@ -57,31 +54,47 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 
+	project, ver, env := getExpandInfo(batch)
+	if project == "" {
+		project = trace.GetFromPluginTag(JaegerTags, trace.PROJECT)
+	}
+
+	if ver == "" {
+		ver = trace.GetFromPluginTag(JaegerTags, trace.VERSION)
+	}
+
+	if env == "" {
+		env = trace.GetFromPluginTag(JaegerTags, trace.ENV)
+	}
+
 	for _, s := range batch.Spans {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "jaeger"
+		tAdpter.Project = project
+		tAdpter.Version = ver
+		tAdpter.Env = env
 
-		tAdpter.Duration    = s.Duration
-		tAdpter.TimestampUs = s.StartTime
+		tAdpter.Duration = s.Duration * 1000
+		tAdpter.Start = s.StartTime * 1000
 		sJson, err := json.Marshal(s)
 		if err != nil {
 			return err
 		}
 		tAdpter.Content = string(sJson)
 
-		tAdpter.Class         = "tracing"
-		tAdpter.ServiceName   = batch.Process.ServiceName
+		tAdpter.ServiceName = batch.Process.ServiceName
 		tAdpter.OperationName = s.OperationName
 		if s.ParentSpanId != 0 {
-			tAdpter.ParentID      = fmt.Sprintf("%d", s.ParentSpanId)
+			tAdpter.ParentID = fmt.Sprintf("%d", s.ParentSpanId)
 		}
 
 		tAdpter.TraceID = fmt.Sprintf("%x%x", uint64(s.TraceIdHigh), uint64(s.TraceIdLow))
-		tAdpter.SpanID  = fmt.Sprintf("%d", s.SpanId)
+		tAdpter.SpanID = fmt.Sprintf("%d", s.SpanId)
 
+		tAdpter.Status = trace.STATUS_OK
 		for _, tag := range s.Tags {
 			if tag.Key == "error" {
-				tAdpter.IsError = "true"
+				tAdpter.Status = trace.STATUS_ERR
 				break
 			}
 		}
@@ -92,4 +105,45 @@ func parseJaegerThrift(octets []byte) error {
 
 	trace.MkLineProto(adapterGroup, inputName)
 	return nil
+}
+
+func getExpandInfo(batch *j.Batch) (project, ver, env string) {
+	if batch.Process == nil {
+		return
+	}
+	for _, tag := range batch.Process.Tags {
+		if tag == nil {
+			continue
+		}
+
+		if tag.Key == trace.PROJECT {
+			project = fmt.Sprintf("%v", getTagValue(tag))
+		}
+
+		if tag.Key == trace.VERSION {
+			ver = fmt.Sprintf("%v", getTagValue(tag))
+		}
+
+		if tag.Key == trace.ENV {
+			env = fmt.Sprintf("%v", getTagValue(tag))
+		}
+	}
+	return
+}
+
+func getTagValue(tag *j.Tag) interface{} {
+	switch tag.VType {
+	case j.TagType_STRING:
+		return *(tag.VStr)
+	case j.TagType_DOUBLE:
+		return *(tag.VDouble)
+	case j.TagType_BOOL:
+		return *(tag.VBool)
+	case j.TagType_LONG:
+		return *(tag.VLong)
+	case j.TagType_BINARY:
+		return tag.VBinary
+	default:
+		return nil
+	}
 }
