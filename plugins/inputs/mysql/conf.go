@@ -13,13 +13,13 @@ const (
     ## @param connect_timeout - number - optional - default: 10
     # connect_timeout = 10
 
-    ## @param service - string - optional
+    ## Deprecated
     # service = "<SERVICE>"
 
     interval = "10s"
 
     ## @param inno_db
-    innodb = false
+    innodb = true
 
     [inputs.mysql.log]
     # required, glob logfiles
@@ -46,8 +46,9 @@ const (
     #     fieldKeys = ["column3", "column1"]
 
     [inputs.mysql.tags]
-    # tag1 = val1
-    # tag2 = val2
+		# service = "MySQL"
+		# some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 
 	rdsPipelineCfg = `
