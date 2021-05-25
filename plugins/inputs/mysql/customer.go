@@ -37,18 +37,31 @@ func (m *customerMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) customSchemaMeasurement() {
+func (i *Input) customSchemaMeasurement() ([]inputs.Measurement, error) {
+	ms := []inputs.Measurement{}
+
 	for _, item := range i.Query {
 		resMap, err := i.query(item.sql)
 		if err != nil {
 			l.Errorf("custom sql %v query faild %v", item.sql, err)
+			return nil, err
 		}
 
-		i.handleResponse(item, resMap)
+		x, err := i.handleResponse(item, resMap)
+		if err != nil {
+			return nil, err
+		}
+
+		ms = append(ms, x...)
 	}
+	return ms, nil
 }
 
-func (i *Input) handleResponse(qy *customQuery, resMap []map[string]interface{}) error {
+func (i *Input) handleResponse(qy *customQuery,
+	resMap []map[string]interface{}) ([]inputs.Measurement, error) {
+
+	ms := []inputs.Measurement{}
+
 	for _, item := range resMap {
 		m := &customerMeasurement{
 			name:   qy.metric,
@@ -91,11 +104,11 @@ func (i *Input) handleResponse(qy *customQuery, resMap []map[string]interface{})
 		m.ts = time.Now()
 
 		if len(m.fields) > 0 {
-			i.collectCache = append(i.collectCache, m)
+			ms = append(ms, m)
 		}
 	}
 
-	return nil
+	return ms, nil
 }
 
 func (i *Input) query(sql string) ([]map[string]interface{}, error) {
