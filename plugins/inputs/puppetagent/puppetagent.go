@@ -24,26 +24,22 @@ const (
 
 	sampleCfg = `
 [inputs.puppetagent]
-	# puppetagent location of lastrunfile
-	# default "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
-	# required
-	location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
-	
-	# [inputs.puppetagent.tags]
-	# tags1 = "value1"
+    # puppetagent location of lastrunfile
+    # required
+    location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
+
+    # [inputs.puppetagent.tags]
+    # tags1 = "value1"
 `
-	lastrunfileLocation = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
 )
 
-var (
-	l *logger.Logger
-
-	testAssert bool
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &PuppetAgent{}
+		return &PuppetAgent{
+			Tags: make(map[string]string),
+		}
 	})
 }
 
@@ -53,59 +49,30 @@ type PuppetAgent struct {
 	watcher  *fsnotify.Watcher
 }
 
-func (_ *PuppetAgent) SampleConfig() string {
+func (*PuppetAgent) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *PuppetAgent) Catalog() string {
+func (*PuppetAgent) Catalog() string {
 	return "puppet"
 }
 
 func (pa *PuppetAgent) Run() {
 	l = logger.SLogger(inputName)
 
-	if pa.loadcfg() {
+	if pa.initCfg() {
 		return
 	}
 
-	var err error
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return
-		default:
-			// nil
-		}
-
-		pa.watcher, err = fsnotify.NewWatcher()
-		if err != nil {
-			l.Error(err)
-			time.Sleep(time.Second)
-			continue
-		}
-		err = pa.watcher.Add(pa.Location)
-		if err != nil {
-			pa.watcher.Close()
-			l.Error(err)
-			time.Sleep(time.Second)
-			continue
-		}
-		break
-	}
-	defer pa.watcher.Close()
-
 	pa.do()
+	defer pa.stop()
 }
 
-func (pa *PuppetAgent) loadcfg() bool {
-	var err error
+func (pa *PuppetAgent) stop() {
+	pa.watcher.Close()
+}
 
-	if pa.Location == "" {
-		pa.Location = lastrunfileLocation
-		l.Infof("location is empty, use default location %s", lastrunfileLocation)
-	}
-
+func (pa *PuppetAgent) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -115,19 +82,43 @@ func (pa *PuppetAgent) loadcfg() bool {
 			// nil
 		}
 
-		if _, err = os.Stat(pa.Location); err != nil {
+		if err := pa.loadCfg(); err != nil {
+			l.Error(err)
 			time.Sleep(time.Second)
-			continue
+		} else {
+			break
 		}
-		break
 	}
-
-	if pa.Tags == nil {
-		pa.Tags = make(map[string]string)
-	}
-	pa.Tags["location"] = pa.Location
 
 	return false
+}
+
+func (pa *PuppetAgent) loadCfg() (err error) {
+	if pa.Location == "" {
+		err = fmt.Errorf("location cannot be empty")
+		return
+	}
+
+	if _, err = os.Stat(pa.Location); err != nil {
+		err = fmt.Errorf("invalid interval, %s", err.Error())
+		return
+	}
+
+	pa.watcher, err = fsnotify.NewWatcher()
+	if err != nil {
+		return
+	}
+	err = pa.watcher.Add(pa.Location)
+	if err != nil {
+		pa.watcher.Close()
+		return
+	}
+
+	if _, ok := pa.Tags["location"]; !ok {
+		pa.Tags["location"] = pa.Location
+	}
+
+	return
 }
 
 func (pa *PuppetAgent) do() {
@@ -146,10 +137,6 @@ func (pa *PuppetAgent) do() {
 				continue
 			}
 
-			if testAssert {
-				fmt.Printf("get event: %v\n", event)
-			}
-
 			if event.Op&fsnotify.Write == fsnotify.Write ||
 				event.Op&fsnotify.Chmod == fsnotify.Chmod {
 
@@ -158,11 +145,7 @@ func (pa *PuppetAgent) do() {
 					l.Error(err)
 					continue
 				}
-				if testAssert {
-					fmt.Printf("data: %s\n", string(data))
-					continue
-				}
-				if err := io.Feed(data, io.Metric); err != nil {
+				if err := io.NamedFeed(data, datakit.Metric, inputName); err != nil {
 					l.Error(err)
 					continue
 				}
@@ -172,14 +155,14 @@ func (pa *PuppetAgent) do() {
 			if event.Op&fsnotify.Remove == fsnotify.Remove {
 				_ = pa.watcher.Remove(pa.Location)
 				if err := pa.watcher.Add(pa.Location); err != nil {
-					l.Errorf(err.Error())
+					l.Error(err)
 					time.Sleep(time.Second)
 				}
 			}
 
 		case err, ok := <-pa.watcher.Errors:
 			if !ok {
-				l.Warn(err.Error())
+				l.Warn(err)
 			}
 		}
 	}
@@ -233,7 +216,7 @@ func buildPoint(fn string, tags map[string]string) ([]byte, error) {
 		return nil, err
 	}
 
-	if len(fn) == 0 {
+	if fn == "" {
 		return nil, fmt.Errorf("location file is empty")
 	}
 

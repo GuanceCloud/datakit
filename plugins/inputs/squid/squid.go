@@ -16,6 +16,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	MaxGatherInterval = 30 * time.Minute
+	MinGatherInterval = 1 * time.Second
+)
+
 type IoFeed func(data []byte, category, name string) error
 
 type Squid struct {
@@ -45,12 +50,7 @@ var (
 	defaultMetricName = inputName
 	defaultInterval   = "60s"
 	defaultPort       = 3218
-	squidConfigSample = `### interval: monitor interval, the default value is "60s".
-### active: whether to monitor squid.
-### metricsName: the name of metric, default is "squid"
-
-#[inputs.squid]
-#	active   = true
+	squidConfigSample = `#[inputs.squid]
 #	interval = "60s"
 #	port     = 3128
 #	metricsName = "squid"
@@ -74,9 +74,12 @@ func (s *Squid) Description() string {
 }
 
 func (s *Squid) Run() {
-	if !s.Active {
-		return
-	}
+	p := s.genParam()
+	p.log.Info("squid input started...")
+	p.gather()
+}
+
+func (s *Squid) genParam() *SquidParam {
 	if s.MetricsName == "" {
 		s.MetricsName = defaultMetricName
 	}
@@ -90,9 +93,7 @@ func (s *Squid) Run() {
 	input := SquidInput{*s}
 	output := SquidOutput{io.NamedFeed}
 	p := &SquidParam{input, output, logger.SLogger("squid")}
-
-	p.log.Info("squid input started...")
-	p.gather()
+	return p
 }
 
 func (p *SquidParam) gather() {
@@ -113,14 +114,16 @@ func (p *SquidParam) gather() {
 		return
 	}
 
+	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 
 	for {
 		select {
 		case <-tick.C:
-			err = p.getMetrics()
+			_, err = p.getMetrics(false)
 			if err != nil {
+				io.FeedLastError(inputName, err.Error())
 				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
 		case <-datakit.Exit.Wait():
@@ -130,7 +133,7 @@ func (p *SquidParam) gather() {
 	}
 }
 
-func (p *SquidParam) getMetrics() (err error) {
+func (p *SquidParam) getMetrics(isTest bool) ([]byte, error) {
 	var outInfo bytes.Buffer
 
 	tags := make(map[string]string)
@@ -146,12 +149,14 @@ func (p *SquidParam) getMetrics() (err error) {
 
 	cmd := exec.Command("squidclient", "-p", portStr, "mgr:counters")
 	cmd.Stdout = &outInfo
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		fields["can_connect"] = false
 		pt, _ := io.MakeMetric(p.input.Squid.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed(pt, io.Metric, inputName)
-		return
+		if !isTest {
+			p.output.IoFeed(pt, datakit.Metric, inputName)
+		}
+		return pt, err
 	}
 
 	s := bufio.NewScanner(strings.NewReader(outInfo.String()))
@@ -179,11 +184,14 @@ func (p *SquidParam) getMetrics() (err error) {
 
 	pt, err := io.MakeMetric(p.input.Squid.MetricsName, tags, fields, time.Now())
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	err = p.output.IoFeed(pt, io.Metric, inputName)
-	return
+	if !isTest {
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
+	}
+
+	return pt, err
 }
 
 func init() {

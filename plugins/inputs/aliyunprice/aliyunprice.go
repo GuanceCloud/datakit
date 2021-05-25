@@ -66,8 +66,20 @@ type (
 		cancelFun context.CancelFunc
 
 		wg sync.WaitGroup
+
+		mode string
+
+		testError error
 	}
 )
+
+func (a *AliyunPriceAgent) isTest() bool {
+	return a.mode == "test"
+}
+
+func (a *AliyunPriceAgent) isDebug() bool {
+	return a.mode == "debug"
+}
 
 func (r *priceReq) String() string {
 	return ``
@@ -80,10 +92,6 @@ func (_ *AliyunPriceAgent) Catalog() string {
 func (_ *AliyunPriceAgent) SampleConfig() string {
 	return globalConfig + ecsSampleConfig + rdsSampleConfig + eipSampleConfig + slbSampleConfig
 }
-
-// func (_ *AliyunPriceAgent) Description() string {
-// 	return `Collect price of aliyun products.`
-// }
 
 func (a *AliyunPriceAgent) Run() {
 
@@ -206,6 +214,10 @@ func (a *AliyunPriceAgent) Run() {
 
 					if err != nil {
 						moduleLogger.Warnf("get price failed")
+						if a.isTest() {
+							a.testError = err
+							return
+						}
 						time.Sleep(tempDelay)
 					} else {
 						if i != 0 {
@@ -232,6 +244,10 @@ func (a *AliyunPriceAgent) Run() {
 					return
 				default:
 				}
+			}
+
+			if a.isTest() {
+				break
 			}
 
 			datakit.SleepContext(a.ctx, time.Second*5)
@@ -347,7 +363,11 @@ func (a *AliyunPriceAgent) handleResponse(respData *bssopenapi.Data, req *priceR
 			metricName = "aliyun_price"
 		}
 
-		io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields)
+		if a.isTest() {
+			// pass
+		} else {
+			io.NamedFeedEx(inputName, datakit.Metric, metricName, tags, fields)
+		}
 	}
 }
 
