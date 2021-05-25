@@ -3,10 +3,7 @@
 package sensors
 
 import (
-	"bytes"
-	"errors"
 	"log"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -14,13 +11,10 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-)
-
-var (
-	ErrSensorsTimeout = errors.New("Command 'sensors' process timeout")
 )
 
 var (
@@ -84,16 +78,6 @@ func (s *Input) Run() {
 		l.Info("Command fallback to %q due to invalide path provided in 'sensors' input", s.Path)
 	}
 
-	if finfo, err := os.Stat(s.Path); err != nil || finfo.IsDir() {
-		l.Error(err.Error())
-		if s.Path, err = exec.LookPath(defCommand); err != nil {
-			l.Errorf("Can not find executable sensor command, install 'lm-sensors' first.")
-
-			return
-		}
-		l.Infof("Fallback: use %q for gathering instead.", s.Path)
-	}
-
 	tick := time.NewTicker(s.Interval.Duration)
 	for {
 		select {
@@ -112,34 +96,15 @@ func (s *Input) Run() {
 }
 
 func (s *Input) gather() error {
-	var (
-		cmd   = exec.Command(s.Path, "-u")
-		buf   bytes.Buffer
-		start = time.Now()
-	)
-	cmd.Stdout = &buf
-	cmd.Stderr = nil
-	err := cmd.Start()
+	start := time.Now()
+	output, err := cmd.RunWithTimeout(s.Timeout.Duration, false, s.Path, "-u")
 	if err != nil {
+		l.Errorf("Command process failed: %q", output)
+
 		return err
 	}
 
-	timeout := time.AfterFunc(s.Timeout.Duration, func() {
-		if err := cmd.Process.Kill(); err != nil {
-			l.Error(err.Error())
-		}
-	})
-
-	err = cmd.Wait()
-
-	if !timeout.Stop() && err == nil {
-		err = ErrSensorsTimeout
-	}
-	if err != nil {
-		return err
-	}
-
-	if cache, err := s.parse(string(buf.Bytes())); err != nil {
+	if cache, err := s.parse(string(output)); err != nil {
 		return err
 	} else {
 		return inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)})
