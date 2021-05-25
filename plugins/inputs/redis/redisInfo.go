@@ -2,9 +2,9 @@ package redis
 
 import (
 	"bufio"
+	"github.com/go-redis/redis"
 	"strings"
 	"time"
-	"github.com/go-redis/redis"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
