@@ -205,7 +205,11 @@ var (
 	intelAttributes = map[string]struct {
 		ID    string
 		Name  string
+<<<<<<< HEAD
 		Parse func(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error
+=======
+		Parse func(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error
+>>>>>>> dev
 	}{
 		"program_fail_count": {
 			Name: "Program_Fail_Count",
@@ -236,8 +240,13 @@ var (
 		},
 		"timed_workload_timer": {
 			Name: "Timed_Workload_Timer",
+<<<<<<< HEAD
 			Parse: func(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error {
 				return parseCommaSeparatedIntWithCache(cache, fields, tags, strings.TrimSuffix(str, " min"))
+=======
+			Parse: func(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error {
+				return parseCommaSeparatedIntWithAccumulator(acc, fields, tags, strings.TrimSuffix(str, " min"))
+>>>>>>> dev
 			},
 		},
 		"thermal_throttle_status": {
@@ -292,6 +301,7 @@ func parseRawValue(rawVal string) (int64, error) {
 	return duration, nil
 }
 
+<<<<<<< HEAD
 func parseWearLeveling(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error {
 	var min, max, avg int64
 
@@ -321,6 +331,20 @@ func parseTimedWorkload(cache *[]inputs.Measurement, fields map[string]interface
 }
 
 func parseThermalThrottle(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error {
+=======
+func parseBytesWritten(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error {
+	var value int64
+
+	if _, err := fmt.Sscanf(str, "sectors: %d", &value); err != nil {
+		return err
+	}
+	fields["raw_value"] = value
+	acc.AddFields("smart_attribute", fields, tags)
+	return nil
+}
+
+func parseThermalThrottle(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error {
+>>>>>>> dev
 	var percentage float64
 	var count int64
 
@@ -330,15 +354,24 @@ func parseThermalThrottle(cache *[]inputs.Measurement, fields map[string]interfa
 
 	fields["raw_value"] = percentage
 	tags["name"] = "Thermal_Throttle_Status_Prc"
+<<<<<<< HEAD
 	*cache = append(*cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
 
 	fields["raw_value"] = count
 	tags["name"] = "Thermal_Throttle_Status_Cnt"
 	*cache = append(*cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
+=======
+	acc.AddFields("smart_attribute", fields, tags)
+
+	fields["raw_value"] = count
+	tags["name"] = "Thermal_Throttle_Status_Cnt"
+	acc.AddFields("smart_attribute", fields, tags)
+>>>>>>> dev
 
 	return nil
 }
 
+<<<<<<< HEAD
 func parseBytesWritten(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error {
 	var value int64
 
@@ -348,6 +381,32 @@ func parseBytesWritten(cache *[]inputs.Measurement, fields map[string]interface{
 	fields["raw_value"] = value
 	*cache = append(*cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
 
+=======
+func parseWearLeveling(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error {
+	var min, max, avg int64
+
+	if _, err := fmt.Sscanf(str, "min: %d, max: %d, avg: %d", &min, &max, &avg); err != nil {
+		return err
+	}
+	values := []int64{min, max, avg}
+	for i, submetricName := range []string{"Min", "Max", "Avg"} {
+		fields["raw_value"] = values[i]
+		tags["name"] = fmt.Sprintf("Wear_Leveling_%s", submetricName)
+		acc.AddFields("smart_attribute", fields, tags)
+	}
+
+	return nil
+}
+
+func parseTimedWorkload(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error {
+	var value float64
+
+	if _, err := fmt.Sscanf(str, "%f", &value); err != nil {
+		return err
+	}
+	fields["raw_value"] = value
+	acc.AddFields("smart_attribute", fields, tags)
+>>>>>>> dev
 	return nil
 }
 
@@ -355,7 +414,10 @@ func parseInt(str string) int64 {
 	if i, err := strconv.ParseInt(str, 10, 64); err == nil {
 		return i
 	}
+<<<<<<< HEAD
 
+=======
+>>>>>>> dev
 	return 0
 }
 
@@ -377,19 +439,30 @@ func parsePercentageInt(fields, deviceFields map[string]interface{}, str string)
 
 func parseDataUnits(fields, deviceFields map[string]interface{}, str string) error {
 	units := strings.Fields(str)[0]
+<<<<<<< HEAD
 
 	return parseCommaSeparatedInt(fields, deviceFields, units)
 }
 
 func parseCommaSeparatedIntWithCache(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error {
+=======
+	return parseCommaSeparatedInt(fields, deviceFields, units)
+}
+
+func parseCommaSeparatedIntWithAccumulator(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error {
+>>>>>>> dev
 	i, err := strconv.ParseInt(strings.Replace(str, ",", "", -1), 10, 64)
 	if err != nil {
 		return err
 	}
 
 	fields["raw_value"] = i
+<<<<<<< HEAD
 	*cache = append(*cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
 
+=======
+	acc.AddFields("smart_attribute", fields, tags)
+>>>>>>> dev
 	return nil
 }
 
