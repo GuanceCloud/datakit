@@ -3,26 +3,23 @@ package envoy
 import (
 	"testing"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
-func __init() {
-	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_DEFAULT)
-	l = logger.SLogger(inputName)
-	testAssert = true
-}
-
 func TestMain(t *testing.T) {
+	io.TestOutput()
 
-	__init()
-
-	var envoyer = Envoy{
-		Host:     "127.0.0.1",
-		Port:     9901,
-		Interval: "10s",
-		TLSOpen:  false,
+	p := prom.Prom{
+		URL:            "http://127.0.0.1:9901/stats/prometheus",
+		Interval:       "10s",
+		Tags:           map[string]string{"TestTags": "TestValue"},
+		InputName:      inputName,
+		CatalogStr:     inputName,
+		SampleCfg:      sampleCfg,
+		IgnoreFunc:     ignore,
+		PromToNameFunc: nil,
 	}
 
-	envoyer.Run()
-
+	p.Run()
 }
