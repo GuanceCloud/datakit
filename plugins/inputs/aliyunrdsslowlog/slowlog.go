@@ -1,6 +1,7 @@
 package aliyunrdsslowlog
 
 import (
+	"bytes"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -175,6 +176,8 @@ func (r *AliyunRDS) handleResponse(response *rds.DescribeSlowLogsResponse, produ
 		return nil
 	}
 
+	var lines [][]byte
+
 	for _, point := range response.Items.SQLSlowLog {
 		tags := map[string]string{}
 		fields := map[string]interface{}{}
@@ -206,8 +209,12 @@ func (r *AliyunRDS) handleResponse(response *rds.DescribeSlowLogsResponse, produ
 			l.Errorf("make metric point error %v", err)
 		}
 
-		err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+		lines = append(lines, pt)
+
+		err = io.NamedFeed([]byte(pt), datakit.Metric, inputName)
 	}
+
+	r.resData = bytes.Join(lines, []byte("\n"))
 
 	return nil
 }
