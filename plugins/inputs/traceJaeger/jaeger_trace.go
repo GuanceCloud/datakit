@@ -1,6 +1,7 @@
 package traceJaeger
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -46,9 +47,9 @@ func parseJaegerThrift(octets []byte) error {
 	if _, err := buffer.Write(octets); err != nil {
 		return err
 	}
-	transport := thrift.NewTBinaryProtocolTransport(buffer)
+	transport := thrift.NewTBinaryProtocolConf(buffer, &thrift.TConfiguration{})
 	batch := &j.Batch{}
-	if err := batch.Read(transport); err != nil {
+	if err := batch.Read(context.TODO(), transport); err != nil {
 		return err
 	}
 
