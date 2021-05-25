@@ -64,6 +64,17 @@ MySQL 指标采集，收集以下数据：
 
 {{ end }}
 
+## Binlog 开启
+
+在采集 MySQL binlog 相关指标中，需要开启 MySQL 对应 binlog 功能：
+
+```sql
+-- ON:开启, OFF:关闭
+SHOW VARIABLES LIKE 'log_bin';
+```
+
+binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging)，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu)
+
 ## 日志采集
 
 如需采集 MySQL 的日志，将配置中 log 相关的配置打开，如需要开启 MySQL 慢查询日志，需要开启慢查询日志，在 MySQL 中执行以下语句
