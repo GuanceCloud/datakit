@@ -2,13 +2,14 @@ package trace
 
 import (
 	"bytes"
-	"gitlab.jiagouyun.com/cloudcare-tools/ftagent/utils"
+	"compress/gzip"
 	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -32,29 +33,79 @@ type ZipkinTracer struct {
 }
 
 type TraceAdapter struct {
-	Source      string
-	Duration    int64
-	TimestampUs int64
-	Content     string
+	Source string
 
-	Class         string
-	ServiceName   string
-	OperationName string
-	ParentID      string
-	TraceID       string
-	SpanID        string
-	IsError       string
-	SpanType      string
-	EndPoint      string
+	//纳秒单位
+	Duration int64
+
+	//纳秒单位
+	Start   int64
+	Content string
+
+	Project        string
+	Version        string
+	Env            string
+	ServiceName    string
+	OperationName  string
+	Resource       string
+	ParentID       string
+	TraceID        string
+	SpanID         string
+	Status         string
+	SpanType       string
+	EndPoint       string
+	Type           string
+	Pid            string
+	HttpMethod     string
+	HttpStatusCode string
+	ContainerHost  string
 
 	Tags map[string]string
 }
 
 const (
-	US_PER_SECOND   int64 = 1000000
-	SPAN_TYPE_ENTRY       = "entry"
-	SPAN_TYPE_LOCAL       = "local"
-	SPAN_TYPE_EXIT        = "exit"
+	SPAN_TYPE_ENTRY = "entry"
+	SPAN_TYPE_LOCAL = "local"
+	SPAN_TYPE_EXIT  = "exit"
+
+	STATUS_OK       = "ok"
+	STATUS_ERR      = "error"
+	STATUS_INFO     = "info"
+	STATUS_WARN     = "warning"
+	STATUS_CRITICAL = "critical"
+
+	PROJECT        = "project"
+	VERSION        = "version"
+	ENV            = "env"
+	CONTAINER_HOST = "container_host"
+
+	SPAN_SERVICE_APP    = "app"
+	SPAN_SERVICE_DB     = "db"
+	SPAN_SERVICE_WEB    = "web"
+	SPAN_SERVICE_CACHE  = "cache"
+	SPAN_SERVICE_CUSTOM = "custom"
+
+	TAG_PROJECT        = "project"
+	TAG_OPERATION      = "operation"
+	TAG_SERVICE        = "service"
+	TAG_VERSION        = "version"
+	TAG_ENV            = "env"
+	TAG_HTTP_METHOD    = "http_method"
+	TAG_HTTP_CODE      = "http_status_code"
+	TAG_TYPE           = "type"
+	TAG_ENDPOINT       = "endpoint"
+	TAG_SPAN_STATUS    = "status"
+	TAG_SPAN_TYPE      = "span_type"
+	TAG_CONTAINER_HOST = "container_host"
+
+	FIELD_PARENTID = "parent_id"
+	FIELD_TRACEID  = "trace_id"
+	FIELD_SPANID   = "span_id"
+	FIELD_DURATION = "duration"
+	FIELD_START    = "start"
+	FIELD_MSG      = "message"
+	FIELD_RESOURCE = "resource"
+	FIELD_PID      = "pid"
 )
 
 var (
@@ -62,64 +113,79 @@ var (
 	once sync.Once
 )
 
-func BuildLineProto(tAdpt *TraceAdapter) ([]byte, error) {
+func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
-	tags["__class"] = tAdpt.Class
-	tags["__operationName"] = tAdpt.OperationName
-	tags["__serviceName"] = tAdpt.ServiceName
-	tags["__parentID"] = tAdpt.ParentID
-	tags["__traceID"] = tAdpt.TraceID
-	tags["__spanID"] = tAdpt.SpanID
+	tags[TAG_PROJECT] = tAdpt.Project
+	tags[TAG_OPERATION] = tAdpt.OperationName
+	tags[TAG_SERVICE] = tAdpt.ServiceName
+	tags[TAG_VERSION] = tAdpt.Version
+	tags[TAG_ENV] = tAdpt.Env
+	tags[TAG_HTTP_METHOD] = tAdpt.HttpMethod
+	tags[TAG_HTTP_CODE] = tAdpt.HttpStatusCode
+
+	if tAdpt.Type != "" {
+		tags[TAG_TYPE] = tAdpt.Type
+	} else {
+		tags[TAG_TYPE] = SPAN_SERVICE_CUSTOM
+	}
 
 	for tag, tagV := range tAdpt.Tags {
 		tags[tag] = tagV
 	}
-	if tAdpt.IsError == "true" {
-		tags["__isError"] = "true"
-	} else {
-		tags["__isError"] = "false"
-	}
+
+	tags[TAG_SPAN_STATUS] = tAdpt.Status
 
 	if tAdpt.EndPoint != "" {
-		tags["__endpoint"] = tAdpt.EndPoint
+		tags[TAG_ENDPOINT] = tAdpt.EndPoint
 	} else {
-		tags["__endpoint"] = "null"
+		tags[TAG_ENDPOINT] = "null"
 	}
 
 	if tAdpt.SpanType != "" {
-		tags["__spanType"] = tAdpt.SpanType
+		tags[TAG_SPAN_TYPE] = tAdpt.SpanType
 	} else {
-		tags["__spanType"] = SPAN_TYPE_ENTRY
+		tags[TAG_SPAN_TYPE] = SPAN_TYPE_ENTRY
 	}
 
-	fields["__duration"] = tAdpt.Duration
-	fields["__content"] = tAdpt.Content
+	if tAdpt.ContainerHost != "" {
+		tags[TAG_CONTAINER_HOST] = tAdpt.ContainerHost
+	}
 
-	ts := time.Unix(tAdpt.TimestampUs/US_PER_SECOND, (tAdpt.TimestampUs%US_PER_SECOND)*1000)
+	fields[FIELD_DURATION] = tAdpt.Duration / 1000
+	fields[FIELD_START] = tAdpt.Start / 1000
+	fields[FIELD_MSG] = tAdpt.Content
+	fields[FIELD_RESOURCE] = tAdpt.Resource
 
-	pt, err := dkio.MakeMetric(tAdpt.Source, tags, fields, ts)
+	fields[FIELD_PARENTID] = tAdpt.ParentID
+	fields[FIELD_TRACEID] = tAdpt.TraceID
+	fields[FIELD_SPANID] = tAdpt.SpanID
+
+	ts := time.Unix(tAdpt.Start/int64(time.Second), tAdpt.Start%int64(time.Second))
+
+	pt, err := dkio.MakePoint(tAdpt.Source, tags, fields, ts)
 	if err != nil {
 		GetInstance().Errorf("build metric err: %s", err)
 		return nil, err
 	}
 
-	lineProtoStr := string(pt)
-	GetInstance().Debugf(lineProtoStr)
 	return pt, err
 }
 
 func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
+	var pts []*dkio.Point
 	for _, tAdpt := range adapterGroup {
 		pt, err := BuildLineProto(tAdpt)
 		if err != nil {
 			continue
 		}
+		pts = append(pts, pt)
 
-		if err := dkio.NamedFeed(pt, dkio.Logging, pluginName); err != nil {
-			GetInstance().Errorf("io feed err: %s", err)
-		}
+	}
+
+	if err := dkio.Feed(pluginName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
+		GetInstance().Errorf("io feed err: %s", err)
 	}
 }
 
@@ -140,7 +206,7 @@ func ParseHttpReq(r *http.Request) (*TraceReqInfo, error) {
 	defer r.Body.Close()
 
 	if contentEncoding == "gzip" {
-		body, err = utils.ReadCompressed(bytes.NewReader(body), true)
+		body, err = ReadCompressed(bytes.NewReader(body), true)
 		if err != nil {
 			return req, err
 		}
@@ -149,10 +215,39 @@ func ParseHttpReq(r *http.Request) (*TraceReqInfo, error) {
 	return req, err
 }
 
+func ReadCompressed(body *bytes.Reader, isGzip bool) ([]byte, error) {
+	var data []byte
+	var err error
+
+	if isGzip {
+		reader, err := gzip.NewReader(body)
+		if err != nil {
+			return nil, err
+		}
+
+		data, err = ioutil.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		data, err = ioutil.ReadAll(body)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return data, nil
+}
+
 //GetInstance 用于获取单例模式对象
 func GetInstance() *logger.Logger {
 	once.Do(func() {
 		log = logger.SLogger("trace")
 	})
 	return log
+}
+
+func GetFromPluginTag(tags map[string]string, tagName string) string {
+	return tags[tagName]
 }
