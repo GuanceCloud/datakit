@@ -33,17 +33,17 @@ type Input struct {
 	Service           string `toml:"service"`
 	SocketTimeout     int    `toml:"socket_timeout"`
 	Interval          datakit.Duration
-	Keys              []string             `toml:"keys"`
-	WarnOnMissingKeys bool                 `toml:"warn_on_missing_keys"`
-	CommandStats      bool                 `toml:"command_stats"`
-	Slowlog           bool                 `toml:"slow_log"`
-	SlowlogMaxLen     int                  `toml:"slowlog-max-len"`
-	Tags              map[string]string    `toml:"tags"`
-	client            *redis.Client        `toml:"-"`
-	Addr              string               `toml:"-"`
-	Log               *inputs.TailerOption `toml:"log"`
-	tailer            *inputs.Tailer       `toml:"-"`
-	start             time.Time            `toml:"-"`
+	Keys              []string                               `toml:"keys"`
+	WarnOnMissingKeys bool                                   `toml:"warn_on_missing_keys"`
+	CommandStats      bool                                   `toml:"command_stats"`
+	Slowlog           bool                                   `toml:"slow_log"`
+	SlowlogMaxLen     int                                    `toml:"slowlog-max-len"`
+	Tags              map[string]string                      `toml:"tags"`
+	client            *redis.Client                          `toml:"-"`
+	Addr              string                                 `toml:"-"`
+	Log               *inputs.TailerOption                   `toml:"log"`
+	tailer            *inputs.Tailer                         `toml:"-"`
+	start             time.Time                              `toml:"-"`
 	collectors        []func() ([]inputs.Measurement, error) `toml:"-"`
 }
 
@@ -113,7 +113,7 @@ func (i *Input) collectInfoMeasurement() ([]inputs.Measurement, error) {
 		m.tags[key] = value
 	}
 
-    // get data
+	// get data
 	if err := m.getData(); err != nil {
 		return nil, err
 	}
@@ -220,14 +220,14 @@ func (i *Input) Run() {
 	for {
 		if err := i.initCfg(); err != nil {
 			io.FeedLastError(inputName, err.Error())
-			time.Sleep(5*time.Second)
+			time.Sleep(5 * time.Second)
 		} else {
-		    break
+			break
 		}
 	}
 
 	if err := i.runLog("redis.p"); err != nil {
-
+		io.FeedLastError(inputName, err.Error())
 	}
 
 	tick := time.NewTicker(i.Interval.Duration)
@@ -237,15 +237,16 @@ func (i *Input) Run() {
 		i.collectInfoMeasurement,
 		i.collectClientMeasurement,
 		i.collectCommandMeasurement,
+		i.collectDBMeasurement,
 	}
 
 	if len(i.Keys) > 0 {
 		i.collectors = append(i.collectors, i.collectBigKeyMeasurement)
-    }
+	}
 
-    if i.Slowlog {
-    	i.collectors = append(i.collectors, i.collectSlowlogMeasurement)
-    }
+	if i.Slowlog {
+		i.collectors = append(i.collectors, i.collectSlowlogMeasurement)
+	}
 
 	for {
 		select {
