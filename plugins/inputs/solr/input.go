@@ -27,10 +27,10 @@ var (
 [[inputs.solr]]
   ##(optional) collect interval, default is 10 seconds
   interval = '10s'
- 
+
   ## specify a list of one or more Solr servers
   servers = ["http://localhost:8983"]
-  
+
   ## Optional HTTP Basic Auth Credentials
   # username = "username"
   # password = "pa$$word"
@@ -40,15 +40,17 @@ var (
     ## grok pipeline script path
     # pipeline = "solr.p"
 
-  [inputs.solr.tags]
-    # tag1 = "a"
+ [inputs.solr.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+
 `
 	pipelineCfg = `
 add_pattern("solrReporter","(?:[.\\w\\d]+)")
 add_pattern("solrParams", "(?:[A-Za-z0-9$.+!*'|(){},~@#%&/=:;_?\\-\\[\\]<>]*)")
 add_pattern("solrPath", "(?:%{PATH}|null)")
 grok(_,"%{TIMESTAMP_ISO8601:time}%{SPACE}%{LOGLEVEL:status}%{SPACE}\\(%{NOTSPACE:thread}\\)%{SPACE}\\[%{SPACE}%{NOTSPACE}?\\]%{SPACE}%{solrReporter:reporter}%{SPACE}\\[%{NOTSPACE:core}\\]%{SPACE}webapp=%{NOTSPACE:webapp}%{SPACE}path=%{solrPath:path}%{SPACE}params=\\{%{solrParams:params}\\}(?:%{SPACE}hits=%{NUMBER:hits})?%{SPACE}status=%{NUMBER:qstatus}%{SPACE}QTime=%{NUMBER:qtime}")
-grok(_,"%{TIMESTAMP_ISO8601:time}%{SPACE}%{LOGLEVEL:status}%{SPACE}\\(%{NOTSPACE:thread}\\)%{SPACE}\\[%{SPACE}%{NOTSPACE}?\\]%{SPACE}%{solrReporter:reporter}.*") 
+grok(_,"%{TIMESTAMP_ISO8601:time}%{SPACE}%{LOGLEVEL:status}%{SPACE}\\(%{NOTSPACE:thread}\\)%{SPACE}\\[%{SPACE}%{NOTSPACE}?\\]%{SPACE}%{solrReporter:reporter}.*")
 default_time(time,"UTC")
 `
 )
