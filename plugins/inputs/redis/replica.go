@@ -50,18 +50,21 @@ func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func CollectReplicaMeasurement(cli *redis.Client) *replicaMeasurement {
+func (i *Input) collectReplicaMeasurement() ([]inputs.Measurement, error) {
 	m := &replicaMeasurement{
-		client:  cli,
+		client:  i.client,
 		resData: make(map[string]interface{}),
 		tags:    make(map[string]string),
 		fields:  make(map[string]interface{}),
 	}
 
-	m.getData()
+	if err := m.getData(); err != nil {
+		return nil, err
+	}
+
 	m.submit()
 
-	return m
+	return []inputs.Measurement{m}, nil
 }
 
 // 数据源获取数据
@@ -70,12 +73,13 @@ func (m *replicaMeasurement) getData() error {
 	if err != nil {
 		return err
 	}
+
 	m.parseInfoData(list)
 
 	return nil
 }
 
-// 解析返回结果
+// 解析返回
 func (m *replicaMeasurement) parseInfoData(list string) error {
 	var masterDownSeconds, masterOffset, slaveOffset float64
 	var masterStatus, slaveID, ip, port string
@@ -83,6 +87,7 @@ func (m *replicaMeasurement) parseInfoData(list string) error {
 
 	rdr := strings.NewReader(list)
 	scanner := bufio.NewScanner(rdr)
+
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -163,6 +168,7 @@ func (m *replicaMeasurement) submit() error {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
 				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
+				return err
 			} else {
 				m.fields[key] = val
 			}
