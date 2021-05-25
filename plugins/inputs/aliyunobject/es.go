@@ -1,42 +1,61 @@
 package aliyunobject
 
 import (
-	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/elasticsearch"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
 	elasticsearchSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.elasticsearch]
-
-# ## @param - custom tags - [list of elasticsearch instanceid] - optional
-#instanceids = []
-
-# ## @param - custom tags - [list of excluded elasticsearch instanceid] - optional
-#exclude_instanceids = []
-
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.elasticsearch.tags]
-# key1 = 'val1'
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_elasticsearch.p"
+	# ##(optional) list of elasticsearch instanceid
+	#instanceids = []
+	# ##(optional) list of excluded elasticsearch instanceid
+	#exclude_instanceids = []
+`
+	elasticsearchPipelineConifg = `
+json(_, instanceId)
+json(_, paymentType)
+json(_, status)
+json(_, dedicateMaster)
+json(_, resourceGroupId)
 `
 )
 
 type Elasticsearch struct {
+	Disable            bool              `toml:"disable"`
 	Tags               map[string]string `toml:"tags,omitempty"`
 	InstancesIDs       []string          `toml:"instanceids,omitempty"`
 	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string            `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
+}
+
+func (e *Elasticsearch) disabled() bool {
+	return e.Disable
 }
 
 func (e *Elasticsearch) run(ag *objectAgent) {
 	var cli *elasticsearch.Client
 	var err error
-
+	p, err := newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] elasticsearch new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 	for {
 		select {
 		case <-ag.ctx.Done():
@@ -49,7 +68,7 @@ func (e *Elasticsearch) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -64,7 +83,7 @@ func (e *Elasticsearch) run(ag *objectAgent) {
 		size := 100
 		req := elasticsearch.CreateListInstanceRequest()
 		for {
-			moduleLogger.Infof("pageNume %v, pagesize %v", page, size)
+			moduleLogger.Debugf("pageNume %v, pagesize %v", page, size)
 			if len(e.InstancesIDs) > 0 {
 				if page <= len(e.InstancesIDs) {
 					req.InstanceId = e.InstancesIDs[page-1]
@@ -104,86 +123,16 @@ func (e *Elasticsearch) run(ag *objectAgent) {
 			}
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
 func (e *Elasticsearch) handleResponse(resp *elasticsearch.ListInstanceResponse, ag *objectAgent) {
-	var objs []map[string]interface{}
-
 	for _, inst := range resp.Result {
-
-		if len(e.ExcludeInstanceIDs) > 0 {
-			exclude := false
-			for _, v := range e.ExcludeInstanceIDs {
-				if v == inst.InstanceId {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf("%s_%s", inst.Description, inst.InstanceId),
 		}
-
-		obj := map[string]interface{}{
-			`__name`: inst.Description,
-			`clientNodeConfiguration`: inst.ClientNodeConfiguration,
-			`createdAt`: inst.CreatedAt,
-			`elasticDataNodeConfiguration`: inst.ElasticDataNodeConfiguration,
-			`esVersion`: inst.EsVersion,
-			`kibanaConfiguration`: inst.KibanaConfiguration,
-			`masterConfiguration`: inst.MasterConfiguration,
-			`networkConfig`: inst.NetworkConfig,
-			`nodeAmount`: inst.NodeAmount,
-			`nodeSpec`: inst.NodeSpec,
-		}
-
-		tags := map[string]interface{}{
-			`__class`:  `aliyun_elasticsearch`,
-			`provider`: `aliyun`,
-			`InstanceId`: inst.InstanceId,
-			`advancedDedicateMaster`: inst.AdvancedDedicateMaster,
-			`dedicateMaster`: inst.DedicateMaster,
-			`paymentType`: inst.PaymentType,
-			`ResourceGroupId`: inst.ResourceGroupId,
-			`Status`:          inst.Status,
-		}
-
-		//tags on es instance
-		for _, t := range inst.Tags {
-			if _, have := tags[t.TagKey]; !have {
-				tags[t.TagKey] = t.TagValue
-			} else {
-				tags[`custom_`+t.TagKey] = t.TagValue
-			}
-		}
-
-		//add es object custom tags
-		for k, v := range e.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj["__tags"] = tags
-
-		objs = append(objs, obj)
+		ag.parseObject(inst, "aliyun_elasticsearch", inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, tags)
 	}
 
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
-		moduleLogger.Errorf("%s", err)
-	}
 }
