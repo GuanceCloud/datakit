@@ -44,6 +44,7 @@ type Input struct {
 	Log               *inputs.TailerOption `toml:"log"`
 	tailer            *inputs.Tailer       `toml:"-"`
 	start             time.Time            `toml:"-"`
+	collectors        []func() ([]inputs.Measurement, error) `toml:"-"`
 }
 
 func (i *Input) initCfg() error {
@@ -77,70 +78,23 @@ func (i *Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
-func (i *Input) Collect() {
-	// redis info metric
-	if ms, err := i.collectInfoMeasurement(); err != nil {
-		io.FeedLastError(inputName, err.Error())
-	} else {
-		if len(ms) > 0 {
-			if err := inputs.FeedMeasurement(inputName, datakit.Metric, ms,
-				&io.Option{CollectCost: time.Since(i.start)}); err != nil {
-				io.FeedLastError(inputName, err.Error())
-			}
-		}
-	}
-
-	// 获取客户端信息
-	if ms, err := i.collectClientMeasurement(); err != nil {
-		io.FeedLastError(inputName, err.Error())
-	} else {
-		if len(ms) > 0 {
-			if err := inputs.FeedMeasurement(inputName, datakit.Metric, ms,
-				&io.Option{CollectCost: time.Since(i.start)}); err != nil {
-				io.FeedLastError(inputName, err.Error())
-			}
-		}
-	}
-
-	// db command
-	if ms, err := i.collectCommandMeasurement(); err != nil {
-		io.FeedLastError(inputName, err.Error())
-	} else {
-		if len(ms) > 0 {
-			if err := inputs.FeedMeasurement(inputName, datakit.Metric, ms,
-				&io.Option{CollectCost: time.Since(i.start)}); err != nil {
-				io.FeedLastError(inputName, err.Error())
-			}
-		}
-	}
-
-	// slowlog
-	if i.Slowlog {
-		if ms, err := i.collectSlowlogMeasurement(); err != nil {
+func (i *Input) Collect() error {
+	for _, f := range i.collectors {
+		if ms, err := f(); err != nil {
 			io.FeedLastError(inputName, err.Error())
 		} else {
 			if len(ms) > 0 {
-				if err := inputs.FeedMeasurement(inputName, datakit.Metric, ms,
+				if err := inputs.FeedMeasurement(inputName,
+					datakit.Metric,
+					ms,
 					&io.Option{CollectCost: time.Since(i.start)}); err != nil {
-					io.FeedLastError(inputName, err.Error())
+					l.Error(err)
 				}
 			}
 		}
 	}
 
-	// bigkey
-	if len(i.Keys) > 0 {
-		if ms, err := i.collectBigKeyMeasurement(); err != nil {
-			io.FeedLastError(inputName, err.Error())
-		} else {
-			if len(ms) > 0 {
-				if err := inputs.FeedMeasurement(inputName, datakit.Metric, ms,
-					&io.Option{CollectCost: time.Since(i.start)}); err != nil {
-					io.FeedLastError(inputName, err.Error())
-				}
-			}
-		}
-	}
+	return nil
 }
 
 func (i *Input) collectInfoMeasurement() ([]inputs.Measurement, error) {
@@ -226,7 +180,6 @@ func (i *Input) collectSlowlogMeasurement() ([]inputs.Measurement, error) {
 }
 
 func (i *Input) runLog(defaultPile string) error {
-
 	if len(i.Log.Files) == 0 {
 		return nil
 	}
@@ -280,10 +233,21 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
-	n := 0
+	i.collectors = []func() ([]inputs.Measurement, error){
+		i.collectInfoMeasurement,
+		i.collectClientMeasurement,
+		i.collectCommandMeasurement,
+	}
+
+	if len(i.Keys) > 0 {
+		i.collectors = append(i.collectors, i.collectBigKeyMeasurement)
+    }
+
+    if i.Slowlog {
+    	i.collectors = append(i.collectors, i.collectSlowlogMeasurement)
+    }
 
 	for {
-		n++
 		select {
 		case <-tick.C:
 			l.Debugf("redis input gathering...")
