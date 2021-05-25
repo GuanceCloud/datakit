@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2018 Ugorji Nwoke. All rights reserved.
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
 // Use of this source code is governed by a MIT license found in the LICENSE file.
 
 /*
@@ -17,6 +17,8 @@ Supported Serialization formats are:
 This package will carefully use 'package unsafe' for performance reasons in specific places.
 You can build without unsafe use by passing the safe or appengine tag
 i.e. 'go install -tags=safe ...'.
+
+This library works with both the standard `gc` and the `gccgo` compilers.
 
 For detailed usage information, read the primer at http://ugorji.net/blog/go-codec-primer .
 
@@ -44,7 +46,7 @@ Rich Feature Set includes:
     (struct, slice, map, primitives, pointers, interface{}, etc)
   - Extensions to support efficient encoding/decoding of any named types
   - Support encoding.(Binary|Text)(M|Unm)arshaler interfaces
-  - Support IsZero() bool to determine if a value is a zero value.
+  - Support using existence of `IsZero() bool` to determine if a value is a zero value.
     Analogous to time.Time.IsZero() bool.
   - Decoding without a schema (into a interface{}).
     Includes Options to configure what specific map or slice type to use

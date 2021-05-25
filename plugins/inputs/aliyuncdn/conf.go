@@ -16,7 +16,7 @@ const (
 #     ## metric name
 #     metricName = "aliyun_cdn_summary"
 
-#  [inputs.aliyuncdn..metric]
+#  [inputs.aliyuncdn.metric]
 #     ## 该参数为阿里云api action, 支持以下action
 #     ## describeDomainBpsData,describeDomainTrafficData,describeDomainHitRateData,describeDomainReqHitRateData,describeDomainSrcBpsData,describeDomainSrcTrafficData,describeDomainUvData,describeDomainPvData,
 #     ## describeDomainTopClientIpVisit, describeDomainISPData, describeDomainTopUrlVisit, describeDomainSrcTopUrlVisit, describeTopDomainsByFlow, describeDomainTopReferVisit
@@ -51,4 +51,6 @@ type CDN struct {
 	Summary         *Summary `toml:"summary"`
 	Interval        string   `toml:"interval"`
 	client          *cdn.Client
+	test            bool   `toml:"-"`
+	resData         []byte `toml:"-"`
 }
