@@ -57,19 +57,22 @@ var (
 	traefikConfigSample = `
 ### You need to configure an [[inputs.traefik]] for each traefik to be monitored.
 ### interval: monitor interval, the default value is "60s".
-### active: whether to monitor traefik.
 ### url: traefik service WebUI url.
 ### metricsName: the name of metric, default is "traefik"
 
 #[[inputs.traefik]]
 #	interval    = "60s"
-#	active      = true
 #	url         = "http://127.0.0.1:8080/health"
 #	metricsName = "traefik"
 #	[inputs.traefik.tags]
 #		tag1 = "tag1"
 #		tag2 = "tag2"
 #		tag3 = "tag3"`
+)
+
+const (
+	MaxGatherInterval = 30 * time.Minute
+	MinGatherInterval = 30 * time.Second
 )
 
 func (t *Traefik) SampleConfig() string {
@@ -81,10 +84,16 @@ func (t *Traefik) Catalog() string {
 }
 
 func (t *Traefik) Run() {
-	if !t.Active || t.Url == "" {
+	if t.Url == "" {
 		return
 	}
 
+	p := t.genParam()
+	p.log.Infof("traefik input started...")
+	p.gather()
+}
+
+func (t *Traefik) genParam() *TraefikParam {
 	if t.MetricsName == "" {
 		t.MetricsName = defaultMetricName
 	}
@@ -97,10 +106,8 @@ func (t *Traefik) Run() {
 	output := TraefikOutput{io.NamedFeed}
 
 	p := &TraefikParam{input, output, logger.SLogger("traefik")}
-	p.log.Infof("traefik input started...")
-	p.gather()
+	return p
 }
-
 func (p *TraefikParam) gather() {
 	var d time.Duration
 	var err error
@@ -118,16 +125,18 @@ func (p *TraefikParam) gather() {
 		p.log.Errorf("interval type unsupported")
 		return
 	}
-
+	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
-			err = p.getMetrics()
+			_, err = p.getMetrics(false)
 			if err != nil {
+				io.FeedLastError(inputName, err.Error())
 				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
+
 		case <-datakit.Exit.Wait():
 			p.log.Info("input traefik exit")
 			return
@@ -135,7 +144,7 @@ func (p *TraefikParam) gather() {
 	}
 }
 
-func (p *TraefikParam) getMetrics() (err error) {
+func (p *TraefikParam) getMetrics(isTest bool) ([]byte, error) {
 	var s TraefikServStats
 	s.TotalStatCodeCnt = make(map[string]int)
 
@@ -150,13 +159,13 @@ func (p *TraefikParam) getMetrics() (err error) {
 	if err != nil || resp.StatusCode != 200 {
 		fields["can_connect"] = false
 		pt, _ := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed(pt, io.Metric, inputName)
-		return
+		p.output.IoFeed(pt, datakit.Metric, inputName)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if err := json.NewDecoder(resp.Body).Decode(&s); err != nil {
-		return fmt.Errorf("decode json err: %s", err.Error())
+		return nil, fmt.Errorf("decode json err: %s", err.Error())
 	}
 
 	tags["pid"] = fmt.Sprintf("%d", s.Pid)
@@ -176,10 +185,15 @@ func (p *TraefikParam) getMetrics() (err error) {
 
 	pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
-		return
+		return pt, err
 	}
-	err = p.output.IoFeed(pt, io.Metric, inputName)
-	return
+
+	if !isTest {
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
+		return pt, err
+	}
+
+	return pt, nil
 }
 
 func getReadableTimeStr(d time.Duration) string {

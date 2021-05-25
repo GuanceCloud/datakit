@@ -33,6 +33,10 @@ type Binlog struct {
 
 	ctx       context.Context
 	cancelfun context.CancelFunc
+
+	mode string
+
+	testError error
 }
 
 func (_ *Binlog) Catalog() string {
@@ -42,10 +46,6 @@ func (_ *Binlog) Catalog() string {
 func (_ *Binlog) SampleConfig() string {
 	return binlogConfigSample
 }
-
-// func (_ *Binlog) Description() string {
-// 	return ""
-// }
 
 type adapterLogWriter struct {
 	io.Writer

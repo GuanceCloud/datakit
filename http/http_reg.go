@@ -2,37 +2,61 @@ package http
 
 import (
 	"net/http"
-	"github.com/gin-gonic/gin"
-	"strings"
 	"reflect"
 	"runtime"
+	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
-type RegHttpInfo struct {
-	Method string
-	Path   string
+func resetHttpRoute() {
+	mtx.Lock()
+	defer mtx.Unlock()
+	httpRouteList = make(map[string]*httpRouteInfo)
+}
+
+type httpRouteInfo struct {
+	Method  string
+	Path    string
 	Handler gin.HandlerFunc
 }
 
-var (
-	httpRegList = make([]*RegHttpInfo, 0, 16)
-)
+var httpRouteList = make(map[string]*httpRouteInfo)
 
-func RegHttpHandler(method, path string, handler gin.HandlerFunc) {
-	regInfo := &RegHttpInfo{
-		method,
-		path,
-		handler,
+func RegHttpHandler(method, path string, handler http.HandlerFunc) {
+	method = strings.ToUpper(method)
+	if _, ok := httpRouteList[method+path]; ok {
+		l.Warnf("failed to register %s %s by handler %s to HTTP server because of exists", method, path, getFunctionName(handler, '/'))
+	} else {
+		httpRouteList[method+path] = &httpRouteInfo{
+			Method:  method,
+			Path:    path,
+			Handler: func(c *gin.Context) { handler(c.Writer, c.Request) },
+		}
 	}
-	httpRegList = append(httpRegList, regInfo)
 }
 
-func RegPathToHttpServ(router *gin.Engine) {
-	for _, regInfo := range httpRegList {
-		method  := strings.ToUpper(regInfo.Method)
-		path    := regInfo.Path
-		handler := regInfo.Handler
-		l.Infof("register %s %s by handler %s to HTTP server", method, path, getFunctionName(handler,'/'))
+func RegGinHandler(method, path string, handler gin.HandlerFunc) {
+	method = strings.ToUpper(method)
+	if _, ok := httpRouteList[method+path]; ok {
+		l.Warnf("failed to register %s %s by handler %s to HTTP server because of exists", method, path, getFunctionName(handler, '/'))
+	} else {
+		httpRouteList[method+path] = &httpRouteInfo{
+			Method:  method,
+			Path:    path,
+			Handler: handler,
+		}
+	}
+}
+
+func applyHTTPRoute(router *gin.Engine) {
+	for _, routeInfo := range httpRouteList {
+		method := routeInfo.Method
+		path := routeInfo.Path
+		handler := routeInfo.Handler
+
+		l.Infof("register %s %s by handler %s to HTTP server", method, path, getFunctionName(handler, '/'))
+
 		switch method {
 		case http.MethodPost:
 			router.POST(path, handler)
@@ -51,7 +75,6 @@ func RegPathToHttpServ(router *gin.Engine) {
 		}
 	}
 }
-
 
 func getFunctionName(i interface{}, seps ...rune) string {
 	fn := runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
