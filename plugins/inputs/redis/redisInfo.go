@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"strings"
 	"time"
+	"github.com/go-redis/redis"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type infoMeasurement struct {
-	i       *Input
+	cli     *redis.Client
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
@@ -334,9 +335,9 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 // 数据源获取数据
 func (m *infoMeasurement) getData() error {
 	start := time.Now()
-	info, err := m.i.client.Info("ALL").Result()
+	info, err := m.cli.Info("ALL").Result()
 	if err != nil {
-		l.Error(err)
+		l.Error("redis exec command `All`, happen error,", err)
 		return err
 	}
 	elapsed := time.Since(start)
@@ -345,7 +346,7 @@ func (m *infoMeasurement) getData() error {
 
 	m.resData["info_latency_ms"] = latencyMs
 	if err := m.parseInfoData(info); err != nil {
-		l.Error(err)
+		l.Error("redis exec command `All` result data, parse error,", err)
 		return err
 	}
 
