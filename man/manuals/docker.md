@@ -95,7 +95,14 @@
 
 重启该 Docker 服务后，便可以监听 `2375` 端口。详情见[官方配置文档](https://docs.docker.com/config/daemon/#configure-the-docker-daemon)。
 
-远程主机 Docker 服务开启端口监听后，需要在 DataKit 配置文件中指定 `inputs.docker.endpoint` 为该 `tcp://ip:port`。例如该主机 IP 是 `192.168.0.11`，则配置文件中 `inputs.docker.endpoint` 是 `tcp://192.168.0.11:2375`。
+远程主机 Docker 服务开启端口监听后，需要在 DataKit 配置文件中指定 `inputs.docker.endpoint` 为该 `tcp://ip:port`。
+
+例如该主机 IP 是 `192.168.0.11`，则配置参数如下：
+
+```
+[inputs.docker]
+	endpoint = "tcp://192.168.0.11:2375"
+```
 
 此外，建议在 `[inputs.docker.tag]` 中添加目标 Docker 的信息，用以辨识远程 Docker 服务：
 
