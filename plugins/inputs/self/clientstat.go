@@ -4,10 +4,9 @@ import (
 	"runtime"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 var (
@@ -29,7 +28,7 @@ type ClientStat struct {
 }
 
 func (s *ClientStat) Update() {
-	s.HostName = config.Cfg.MainCfg.Hostname
+	s.HostName = datakit.Cfg.Hostname
 
 	var memStatus runtime.MemStats
 	runtime.ReadMemStats(&memStatus)
@@ -40,23 +39,23 @@ func (s *ClientStat) Update() {
 	s.HeapObjects = int64(memStatus.HeapObjects)
 }
 
-func (s *ClientStat) ToMetric() *influxdb.Point {
+func (s *ClientStat) ToMetric() *io.Point {
 
 	s.Uptime = int64(time.Now().Sub(StartTime) / time.Second)
 
 	measurement := "datakit"
 
 	tags := map[string]string{
-		"uuid":    config.Cfg.MainCfg.UUID,
+		"uuid":    datakit.Cfg.UUID,
 		"vserion": git.Version,
 		"os":      s.OS,
 		"arch":    s.Arch,
+		"host":    s.HostName,
 	}
 
 	fields := map[string]interface{}{
-		"hostname": s.HostName,
-		"pid":      s.PID,
-		"uptime":   s.Uptime,
+		"pid":    s.PID,
+		"uptime": s.Uptime,
 
 		"num_goroutines": s.NumGoroutines,
 		"heap_alloc":     s.HeapAlloc,
@@ -64,7 +63,10 @@ func (s *ClientStat) ToMetric() *influxdb.Point {
 		"heap_objects":   s.HeapObjects,
 	}
 
-	m, _ := influxdb.NewPoint(measurement, tags, fields, time.Now().UTC())
+	pt, err := io.MakePoint(measurement, tags, fields)
+	if err != nil {
+		l.Error(err)
+	}
 
-	return m
+	return pt
 }

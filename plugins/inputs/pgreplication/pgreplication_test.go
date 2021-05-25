@@ -3,17 +3,11 @@ package pgreplication
 import (
 	"testing"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-func __init() {
-	logger.SetGlobalRootLogger("", logger.DEBUG, logger.OPT_DEFAULT)
-	l = logger.SLogger(inputName)
-	testAssert = true
-}
-
 func TestMain(t *testing.T) {
-	__init()
+	io.TestOutput()
 
 	var r = Replication{
 		Host:     "172.16.0.43",
@@ -40,4 +34,23 @@ func TestMain(t *testing.T) {
 	// }
 	r.Run()
 
+}
+
+func TestRewriteCategory(t *testing.T) {
+	testcase := []string{
+		"metric",
+		"logging",
+		"invalid",
+		"",
+	}
+
+	for _, tc := range testcase {
+		m := &Replication{
+			Category: tc,
+		}
+		t.Logf("source: %v\n", m.Category)
+
+		m.rewriteCategory()
+		t.Logf("valid:  %v\n\n", m.Category)
+	}
 }
