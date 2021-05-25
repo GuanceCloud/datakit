@@ -173,12 +173,7 @@ func (s *Input) parse(output string) ([]inputs.Measurement, error) {
 		}
 	}
 	if len(fields) != 0 {
-		cache = append(cache, &sensorsMeasurement{
-			name:   inputName,
-			tags:   tags,
-			fields: fields,
-			ts:     time.Now(),
-		})
+		cache = append(cache, &sensorsMeasurement{name: inputName, tags: tags, fields: fields, ts: time.Now()})
 	}
 
 	return cache, nil
