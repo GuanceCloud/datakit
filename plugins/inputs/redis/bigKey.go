@@ -44,7 +44,8 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) getKeys() {
+func (i *Input) getKeys() ([]string, error) {
+	var res []string
 	for _, pattern := range i.Keys {
 		var cursor uint64
 		for {
@@ -52,21 +53,25 @@ func (i *Input) getKeys() {
 			var err error
 			keys, cursor, err = i.client.Scan(cursor, pattern, 10).Result()
 			if err != nil {
-				i.err = err
 				l.Errorf("redis pattern key %s scan fail error %v", pattern, err)
+				return nil, err
 			}
 
-			i.resKeys = append(i.resKeys, keys...)
+			res = append(res, keys...)
 			if cursor == 0 {
 				break
 			}
 		}
 	}
+
+	return res, nil
 }
 
 // 数据源获取数据
-func (i *Input) getData() error {
-	for _, key := range i.resKeys {
+func (i *Input) getData(resKeys []string) ([]inputs.Measurement, error) {
+	var collectCache []inputs.Measurement
+
+	for _, key := range resKeys {
 		found := false
 
 		m := &commandMeasurement{
@@ -106,9 +111,9 @@ func (i *Input) getData() error {
 		}
 
 		if len(m.fields) > 0 {
-			i.collectCache = append(i.collectCache, m)
+			collectCache = append(collectCache, m)
 		}
 	}
 
-	return nil
+	return collectCache, nil
 }
