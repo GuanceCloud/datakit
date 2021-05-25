@@ -1,51 +1,49 @@
-# -*- encoding: utf8 -*-
-
-import threading
+# -*- coding:utf-8 -*-
 import requests
-import os
-import grpc
+import logging
+from urllib.parse import urljoin
 
-from rpc import dk_pb2_grpc
-from rpc import dk_pb2
+METRICS_PATH = "/v1/write/metric"
+OBJECTS_PATH = "/v1/write/object"
+PATH_FORMAT  = "{}?name={}"
+
+HTTP_ADDR = ""
+def set_http_addr(addr):
+    global HTTP_ADDR
+    HTTP_ADDR = addr
+
 
 class Downloder:
-    def __init__(self, *args):
-        self.down_files = args
+    def __init__(self, file):
+        self.down_files = file
 
     def down(self):
-        thread = []
-        down_succ = []
-        down_fail = []
-
-        for url, file_path in self.down_files:
-            t = threading.Thread(target=self.down_task, args=(url, file_path))
-            thread.append(t)
-            t.start()
-
-        for t in thread:
-            t.join()
-
-        for url, file_path in self.down_files:
-            if os.path.isfile(file_path):
-                down_succ.append((url, file_path))
-            else:
-                down_fail.append((url, file_path))
-
-        return down_succ, down_fail
-
-    def down_task(self, url, file_path):
-        r = requests.get(url)
-        with open(file_path, "wb") as f:
+        r = requests.get(self.down_files[0])
+        with open(self.down_files[1], "wb") as f:
             f.write(r.content)
 
-class Sender:
-    def __init__(self, rpc_server=''):
-        chan = grpc.insecure_channel(rpc_server)
-        self.sender = dk_pb2_grpc.DataKitStub(chan)
+
+class MetricSender:
+    def __init__(self):
+        self._metrics_path = urljoin(HTTP_ADDR, PATH_FORMAT.format(METRICS_PATH, "csvmetric"))
 
     def send(self, data):
-        req = dk_pb2.Request(Lines=data, Name='csvkit')
         try:
-            resp = self.sender.Send(req, None)
+            resp = requests.post(self._metrics_path, data.encode())
         except Exception as ex:
-            pass # TODO
+            logging.error("send {} exception {}".format(self._metrics_path, ex))
+        else:
+            logging.info("send {} {}".format(self._metrics_path, resp))
+
+
+class ObjectSender:
+    def __init__(self):
+        self._objects_path = urljoin(HTTP_ADDR, PATH_FORMAT.format(OBJECTS_PATH, "csvobject"))
+
+    def send(self, data):
+        try:
+            resp = requests.post(self._objects_path, data.encode())
+        except Exception as ex:
+            logging.error("send {} exception {}".format(self._objects_path, ex))
+        else:
+            logging.info("send {} {}".format(self._objects_path, resp))

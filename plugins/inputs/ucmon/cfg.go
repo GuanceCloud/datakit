@@ -5,38 +5,53 @@ import (
 	"time"
 
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
 	sampleConfig = `
+#(required)
 #[[inputs.ucloud_monitor]]
+
+#(required)
 #public_key = ''
+
+#(required)
 #private_key = ''
+
+#(required)
 #region = ''
+
+#(required)
 #zone = ''
+
+#(optional) use the default project if empty. sub account must not be empty
 #project_id = ''
 
+#(required)
 #[[inputs.ucloud_monitor.resource]]
+
+# ##(required) resource type
 #resource_type = ''
+
+# ##(required) should be none-empty expect for 'sharebandwidth'(default use the first available resource id)
 #resource_id = ''
 
-#[[inputs.ucloud_monitor.resource.metrics]]
-#metric_name = ''
-# #interval = '5m' #default 5 minitues
+# ##(optional)
+#interval='5m'
+
+# ##(required) names of metric to collect
+#metrics=[]
 `
 )
 
 type (
-	ucMetric struct {
-		MetricName string
-		Interval   datakit.Duration
-	}
-
 	ucResource struct {
 		ResourceType string
 		ResourceID   string
-		Metrics      []*ucMetric
+		Interval     datakit.Duration
+		Metrics      []string
 	}
 
 	ucInstance struct {
@@ -53,15 +68,13 @@ type (
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
-	}
 
-	metricMeta struct {
-		//unit string
+		mode string
+
+		testError error
 	}
 
 	queryListInfo struct {
-		//meta *metricMeta
-
 		intervalTime time.Duration
 
 		resourceID   string
@@ -72,6 +85,14 @@ type (
 	}
 )
 
+func (ag *ucInstance) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *ucInstance) isDebug() bool {
+	return ag.mode == "debug"
+}
+
 func (a *ucInstance) genQueryInfo() []*queryListInfo {
 
 	var infos []*queryListInfo
@@ -81,8 +102,8 @@ func (a *ucInstance) genQueryInfo() []*queryListInfo {
 			info := &queryListInfo{
 				resourceID:   res.ResourceID,
 				resourceType: res.ResourceType,
-				metricname:   ms.MetricName,
-				intervalTime: ms.Interval.Duration,
+				metricname:   ms,
+				intervalTime: res.Interval.Duration,
 			}
 
 			if info.intervalTime == 0 {
