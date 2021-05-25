@@ -4,15 +4,16 @@ import (
 	"bufio"
 	"fmt"
 	"os/exec"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
-	"github.com/influxdata/telegraf/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmd"
+	ipath "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -53,7 +54,7 @@ var (
   ## Skip checking disks in this power mode. Defaults to "standby" to not wake up disks that have stopped rotating.
   ## See --nocheck in the man pages for smartctl.
   ## smartctl version 5.41 and 5.42 have faulty detection of power mode and might require changing this value to "never" depending on your disks.
-  # nocheck = "standby"
+  # no_check = "standby"
 
   ## Gather all returned S.M.A.R.T. attribute metrics and the detailed
   ## information from each drive into the 'smart_attribute' measurement.
@@ -83,7 +84,7 @@ type Input struct {
 	Timeout          datakit.Duration `toml:"timeout"`
 	EnableExtensions []string         `toml:"enable_extensions"`
 	UseSudo          bool             `toml:"use_sudo"`
-	NoCheck          bool             `toml:"nocheck"`
+	NoCheck          string           `toml:"no_check"`
 	Attributes       bool             `toml:"attributes"`
 	Excludes         []string         `toml:"excludes"`
 	Devices          []string         `toml:"devices"`
@@ -105,7 +106,7 @@ func (s *Input) Run() {
 	l.Info("smartctl input started")
 
 	var err error
-	if s.SmartCtlPath == "" || !path.IsFileExists(s.SmartCtlPath) {
+	if s.SmartCtlPath == "" || !ipath.IsFileExists(s.SmartCtlPath) {
 		if s.SmartCtlPath, err = exec.LookPath(defSmartCmd); err != nil {
 			l.Errorf("Can not find executable sensor command, install 'smartmontools' first.")
 
@@ -113,7 +114,7 @@ func (s *Input) Run() {
 		}
 		l.Info("Command fallback to %q due to invalide path provided in 'smart' input", s.SmartCtlPath)
 	}
-	if s.NvmePath == "" || !path.IsFileExists(s.NvmePath) {
+	if s.NvmePath == "" || !ipath.IsFileExists(s.NvmePath) {
 		if s.NvmePath, err = exec.LookPath(defNvmeCmd); err != nil {
 			l.Errorf("Can not find executable sensor command, install 'nvme-cli' first.")
 
@@ -157,8 +158,8 @@ func (s *Input) gather() error {
 			if err != nil {
 				return err
 			}
-			NVMeDevices := distinguishNVMeDevices(devicesFromConfig, scannedNVMeDevices)
-			s.getVendorNVMeAttributes(NVMeDevices)
+			nvmeDevices := distinguishNVMeDevices(devicesFromConfig, scannedNVMeDevices)
+			s.getVendorNVMeAttributes(nvmeDevices)
 		}
 
 		return nil
@@ -180,20 +181,34 @@ func (s *Input) gather() error {
 	return nil
 }
 
+func excludedDevice(excludes []string, deviceLine string) bool {
+	device := strings.Split(deviceLine, " ")
+	if len(device) != 0 {
+		for _, exclude := range excludes {
+			if device[0] == exclude {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 // Scan for S.M.A.R.T. devices from smartctl
 func (s *Input) scanDevices(ignoreExcludes bool, scanArgs ...string) ([]string, error) {
-	out, err := runCmd(s.Timeout, s.UseSudo, s.PathSmartctl, scanArgs...)
+	output, err := cmd.RunWithTimeout(s.Timeout.Duration, s.UseSudo, s.SmartCtlPath, scanArgs...)
 	if err != nil {
-		return []string{}, fmt.Errorf("failed to run command '%s %s': %s - %s", s.PathSmartctl, scanArgs, err, string(out))
+		return nil, fmt.Errorf("failed to run command '%s %s': %s - %s", s.SmartCtlPath, scanArgs, err, string(output))
 	}
+
 	var devices []string
-	for _, line := range strings.Split(string(out), "\n") {
+	for _, line := range strings.Split(string(output), "\n") {
 		dev := strings.Split(line, " ")
 		if len(dev) <= 1 {
 			continue
 		}
 		if !ignoreExcludes {
-			if !excludedDev(s.Excludes, strings.TrimSpace(dev[0])) {
+			if !excludedDevice(s.Excludes, strings.TrimSpace(dev[0])) {
 				devices = append(devices, strings.TrimSpace(dev[0]))
 			}
 		} else {
@@ -213,81 +228,96 @@ func (s *Input) scanAllDevices(ignoreExcludes bool) ([]string, []string, error) 
 	}
 
 	// this will return only NVMe devices
-	NVMeDevices, err := s.scanDevices(ignoreExcludes, "--scan", "--device=nvme")
+	nvmeDevices, err := s.scanDevices(ignoreExcludes, "--scan", "--device=nvme")
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// to handle all versions of smartctl this will return only non NVMe devices
-	nonNVMeDevices := difference(devices, NVMeDevices)
+	nonNVMeDevices := difference(devices, nvmeDevices)
 
-	return NVMeDevices, nonNVMeDevices, nil
+	return nvmeDevices, nonNVMeDevices, nil
 }
 
 // Get info and attributes for each S.M.A.R.T. device
 func (s *Input) getAttributes(devices []string) {
+	start := time.Now()
+
 	var wg sync.WaitGroup
 	wg.Add(len(devices))
 	for _, device := range devices {
-		go gatherDisk(s.Timeout, s.UseSudo, s.Attributes, s.PathSmartctl, s.Nocheck, device, &wg)
+		go func() {
+			if cache, err := gatherDisk(s.Timeout.Duration, s.UseSudo, s.Attributes, s.SmartCtlPath, s.NoCheck, device); err != nil {
+				io.FeedLastError(inputName, err.Error())
+			} else {
+				if err := inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)}); err != nil {
+					io.FeedLastError(inputName, err.Error())
+				}
+			}
+			wg.Done()
+		}()
 	}
 	wg.Wait()
 }
 
 func (s *Input) getVendorNVMeAttributes(devices []string) {
-	NVMeDevices := getDeviceInfoForNVMeDisks(acc, devices, s.PathNVMe, s.Timeout, s.UseSudo)
+	start := time.Now()
+	nvmeDevices := getDeviceInfoForNVMeDisks(devices, s.NvmePath, s.Timeout.Duration, s.UseSudo)
 
 	var wg sync.WaitGroup
-	for _, device := range NVMeDevices {
+	for _, device := range nvmeDevices {
 		if contains(s.EnableExtensions, "auto-on") {
 			switch device.vendorID {
 			case intelVID:
 				wg.Add(1)
-				go gatherIntelNVMeDisk(acc, s.Timeout, s.UseSudo, s.PathNVMe, device, &wg)
+				go func() {
+					if cache, err := gatherIntelNVMeDisk(s.Timeout.Duration, s.UseSudo, s.NvmePath, device); err != nil {
+						io.FeedLastError(inputName, err.Error())
+					} else {
+						if err := inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)}); err != nil {
+							io.FeedLastError(inputName, err.Error())
+						}
+					}
+					wg.Done()
+				}()
 			}
 		} else if contains(s.EnableExtensions, "Intel") && device.vendorID == intelVID {
 			wg.Add(1)
-			go gatherIntelNVMeDisk(acc, s.Timeout, s.UseSudo, s.PathNVMe, device, &wg)
+			go func() {
+				if cache, err := gatherIntelNVMeDisk(s.Timeout.Duration, s.UseSudo, s.NvmePath, device); err != nil {
+					io.FeedLastError(inputName, err.Error())
+				} else {
+					if err := inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)}); err != nil {
+						io.FeedLastError(inputName, err.Error())
+					}
+				}
+				wg.Done()
+			}()
 		}
 	}
 	wg.Wait()
 }
 
 func distinguishNVMeDevices(userDevices []string, availableNVMeDevices []string) []string {
-	var NVMeDevices []string
-
+	var nvmeDevices []string
 	for _, userDevice := range userDevices {
 		for _, NVMeDevice := range availableNVMeDevices {
 			// double check. E.g. in case when nvme0 is equal nvme0n1, will check if "nvme0" part is present.
 			if strings.Contains(NVMeDevice, userDevice) || strings.Contains(userDevice, NVMeDevice) {
-				NVMeDevices = append(NVMeDevices, userDevice)
+				nvmeDevices = append(nvmeDevices, userDevice)
 			}
 		}
 	}
 
-	return NVMeDevices
+	return nvmeDevices
 }
 
-func excludedDev(excludes []string, deviceLine string) bool {
-	device := strings.Split(deviceLine, " ")
-	if len(device) != 0 {
-		for _, exclude := range excludes {
-			if device[0] == exclude {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-func getDeviceInfoForNVMeDisks(devices []string, nvme string, timeout config.Duration, useSudo bool) []nvmeDevice {
-	var NVMeDevices []nvmeDevice
-
+func getDeviceInfoForNVMeDisks(devices []string, nvme string, timeout time.Duration, useSudo bool) []nvmeDevice {
+	var nvmeDevices []nvmeDevice
 	for _, device := range devices {
 		vid, sn, mn, err := gatherNVMeDeviceInfo(nvme, device, timeout, useSudo)
 		if err != nil {
-			acc.AddError(fmt.Errorf("cannot find device info for %s device", device))
+			io.FeedLastError(inputName, fmt.Sprintf("cannot find device info for %s device", device))
 			continue
 		}
 		newDevice := nvmeDevice{
@@ -296,24 +326,20 @@ func getDeviceInfoForNVMeDisks(devices []string, nvme string, timeout config.Dur
 			model:        mn,
 			serialNumber: sn,
 		}
-		NVMeDevices = append(NVMeDevices, newDevice)
+		nvmeDevices = append(nvmeDevices, newDevice)
 	}
 
-	return NVMeDevices
+	return nvmeDevices
 }
 
-func gatherNVMeDeviceInfo(nvme, device string, timeout config.Duration, useSudo bool) (string, string, string, error) {
-	args := []string{"id-ctrl"}
-	args = append(args, strings.Split(device, " ")...)
-	out, err := runCmd(timeout, useSudo, nvme, args...)
+func gatherNVMeDeviceInfo(nvme, device string, timeout time.Duration, useSudo bool) (string, string, string, error) {
+	args := append([]string{"id-ctrl"}, strings.Split(device, " ")...)
+	output, err := cmd.RunWithTimeout(timeout, useSudo, nvme, args...)
 	if err != nil {
 		return "", "", "", err
 	}
-	outStr := string(out)
 
-	vid, sn, mn, err := findNVMeDeviceInfo(outStr)
-
-	return vid, sn, mn, err
+	return findNVMeDeviceInfo(string(output))
 }
 
 func findNVMeDeviceInfo(output string) (string, string, string, error) {
@@ -343,22 +369,17 @@ func findNVMeDeviceInfo(output string) (string, string, string, error) {
 	return vid, sn, mn, nil
 }
 
-func gatherIntelNVMeDisk(timeout config.Duration, usesudo bool, nvme string, device nvmeDevice, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	args := []string{"intel", "smart-log-add"}
-	args = append(args, strings.Split(device.name, " ")...)
-	out, e := runCmd(timeout, usesudo, nvme, args...)
-	outStr := string(out)
-
-	_, er := exitStatus(e)
-	if er != nil {
-		acc.AddError(fmt.Errorf("failed to run command '%s %s': %s - %s", nvme, strings.Join(args, " "), e, outStr))
-		return
+func gatherIntelNVMeDisk(timeout time.Duration, useSudo bool, nvme string, device nvmeDevice) ([]inputs.Measurement, error) {
+	args := append([]string{"intel", "smart-log-add"}, strings.Split(device.name, " ")...)
+	output, err := cmd.RunWithTimeout(timeout, useSudo, nvme, args...)
+	if _, err = cmd.ExitStatus(err); err != nil {
+		return nil, fmt.Errorf("failed to run command '%s %s': %s - %s", nvme, strings.Join(args, " "), err, string(output))
 	}
 
-	scanner := bufio.NewScanner(strings.NewReader(outStr))
-
+	var (
+		cache   []inputs.Measurement
+		scanner = bufio.NewScanner(strings.NewReader(string(output)))
+	)
 	for scanner.Scan() {
 		line := scanner.Text()
 		tags := map[string]string{}
@@ -377,32 +398,29 @@ func gatherIntelNVMeDisk(timeout config.Duration, usesudo bool, nvme string, dev
 					tags["id"] = attr.ID
 				}
 
-				parse := parseCommaSeparatedIntWithAccumulator
+				parse := parseCommaSeparatedIntWithCache
 				if attr.Parse != nil {
 					parse = attr.Parse
 				}
 
-				if err := parse(acc, fields, tags, matches[3]); err != nil {
+				if err := parse(&cache, fields, tags, matches[3]); err != nil {
 					continue
 				}
 			}
 		}
 	}
+
+	return cache, nil
 }
 
-func gatherDisk(timeout config.Duration, usesudo, collectAttributes bool, smartctl, nocheck, device string, wg *sync.WaitGroup) {
-	defer wg.Done()
+func gatherDisk(timeout time.Duration, sudo, collectAttributes bool, smartctl, nocheck, device string) ([]inputs.Measurement, error) {
 	// smartctl 5.41 & 5.42 have are broken regarding handling of --nocheck/-n
-	args := []string{"--info", "--health", "--attributes", "--tolerance=verypermissive", "-n", nocheck, "--format=brief"}
-	args = append(args, strings.Split(device, " ")...)
-	out, e := runCmd(timeout, usesudo, smartctl, args...)
-	outStr := string(out)
-
+	args := append([]string{"--info", "--health", "--attributes", "--tolerance=verypermissive", "-n", nocheck, "--format=brief"}, strings.Split(device, " ")...)
+	output, err := cmd.RunWithTimeout(timeout, sudo, smartctl, args...)
 	// Ignore all exit statuses except if it is a command line parse error
-	exitStatus, er := exitStatus(e)
-	if er != nil {
-		acc.AddError(fmt.Errorf("failed to run command '%s %s': %s - %s", smartctl, strings.Join(args, " "), e, outStr))
-		return
+	exitStatus, err := cmd.ExitStatus(err)
+	if err != nil {
+		return nil, err
 	}
 
 	deviceTags := map[string]string{}
@@ -411,8 +429,10 @@ func gatherDisk(timeout config.Duration, usesudo, collectAttributes bool, smartc
 	deviceFields := make(map[string]interface{})
 	deviceFields["exit_status"] = exitStatus
 
-	scanner := bufio.NewScanner(strings.NewReader(outStr))
-
+	var (
+		cache   []inputs.Measurement
+		scanner = bufio.NewScanner(strings.NewReader(string(output)))
+	)
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -450,8 +470,7 @@ func gatherDisk(timeout config.Duration, usesudo, collectAttributes bool, smartc
 		fields := make(map[string]interface{})
 
 		if collectAttributes {
-			keys := [...]string{"device", "model", "serial_no", "wwn", "capacity", "enabled"}
-			for _, key := range keys {
+			for _, key := range [...]string{"device", "model", "serial_no", "wwn", "capacity", "enabled"} {
 				if value, ok := deviceTags[key]; ok {
 					tags[key] = value
 				}
@@ -482,7 +501,7 @@ func gatherDisk(timeout config.Duration, usesudo, collectAttributes bool, smartc
 					fields["raw_value"] = val
 				}
 
-				acc.AddFields("smart_attribute", fields, tags)
+				cache = append(cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
 			}
 
 			// If the attribute matches on the one in deviceFieldIds
@@ -509,28 +528,17 @@ func gatherDisk(timeout config.Duration, usesudo, collectAttributes bool, smartc
 					if err := parse(fields, deviceFields, matches[2]); err != nil {
 						continue
 					}
-					// if the field is classified as an attribute, only add it
-					// if collectAttributes is true
+					// if the field is classified as an attribute, only add it if collectAttributes is true
 					if collectAttributes {
-						acc.AddFields("smart_attribute", fields, tags)
+						cache = append(cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
 					}
 				}
 			}
 		}
 	}
-	acc.AddFields("smart_device", deviceFields, deviceTags)
-}
+	cache = append(cache, &smartMeasurement{name: "smart_device", tags: deviceTags, fields: deviceFields, ts: time.Now()})
 
-// Command line parse errors are denoted by the exit code having the 0 bit set.
-// All other errors are drive/communication errors and should be ignored.
-func exitStatus(err error) (int, error) {
-	if exiterr, ok := err.(*exec.ExitError); ok {
-		if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-			return status.ExitStatus(), nil
-		}
-	}
-
-	return 0, err
+	return cache, nil
 }
 
 func contains(args []string, element string) bool {
