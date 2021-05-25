@@ -25,6 +25,7 @@ const (
   [inputs.host_processes.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
+  # ...
 `
 
 	pipelineSample = ``
@@ -62,7 +63,7 @@ func (m *ProcessMetric) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"threads":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "线程数"),
 			"rss":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeIByte, "Resident Set Size （常驻内存大小）"),
-			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "cpu使用占比（%*100）"),
+			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "cpu使用占比（%*100），进程自启动以来所占 CPU 百分比，该值相对会比较稳定（跟 top 的瞬时百分比不同）"),
 			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "mem使用占比（%*100）"),
 			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "open_files 个数(仅支持linux)"),
 		},
@@ -95,7 +96,7 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 			"start_time":       newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationMS, "进程启动时间"),
 			"threads":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "线程数"),
 			"rss":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeIByte, "Resident Set Size （常驻内存大小）"),
-			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "cpu使用占比（%*100）"),
+			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "cpu使用占比（%*100），进程自启动以来所占 CPU 百分比，该值相对会比较稳定（跟 top 的瞬时百分比不同）"),
 			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "mem使用占比（%*100）"),
 			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "open_files 个数(仅支持linux)"),
 			"work_directory":   newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "工作目录(仅支持linux)"),
