@@ -7,37 +7,58 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
 	slbSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.slb]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
 
-# ## @param - custom tags - [list of slb instanceid] - optional
-#instanceids = ['']
+	#pipeline = "aliyun_slb.p"
+	# ##(optional) list of slb instanceid
+	#instanceids = ['']
+	
+	# ##(optional) list of excluded slb instanceid
+	#exclude_instanceids = ['']
+`
+	slbPipelineConfig = `
+json(_, LoadBalancerId)
+json(_, LoadBalancerStatus)
+json(_, PayType)
+json(_, Address)
+json(_, RegionId)
 
-# ## @param - custom tags - [list of excluded slb instanceid] - optional
-#exclude_instanceids = ['']
-
-# ## @param - custom tags for slb object - [list of key:value element] - optional
-#[inputs.aliyunobject.slb.tags]
-# key1 = 'val1'
 `
 )
 
 type Slb struct {
-	Tags               map[string]string `toml:"tags,omitempty"`
-	InstancesIDs       []string          `toml:"instanceids,omitempty"`
-	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	Disable            bool     `toml:"disable"`
+	InstancesIDs       []string `toml:"instanceids,omitempty"`
+	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string   `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
+}
+
+func (s *Slb) disabled() bool {
+	return s.Disable
 }
 
 func (s *Slb) run(ag *objectAgent) {
 	var cli *slb.Client
 	var err error
-
+	p, err := newPipeline(s.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] slb new pipeline err:%s", err.Error())
+		return
+	}
+	s.p = p
 	for {
 
 		select {
@@ -51,6 +72,10 @@ func (s *Slb) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
+		if ag.isTest() {
+			ag.testError = err
+			return
+		}
 		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
@@ -87,6 +112,10 @@ func (s *Slb) run(ag *objectAgent) {
 				s.handleResponse(resp, ag)
 			} else {
 				moduleLogger.Errorf("%s", err)
+				if ag.isTest() {
+					ag.testError = err
+					return
+				}
 				break
 			}
 
@@ -97,6 +126,10 @@ func (s *Slb) run(ag *objectAgent) {
 			req.PageNumber = requests.NewInteger(pageNum)
 		}
 
+		if ag.isTest() {
+			break
+		}
+
 		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
@@ -105,70 +138,11 @@ func (s *Slb) handleResponse(resp *slb.DescribeLoadBalancersResponse, ag *object
 
 	moduleLogger.Debugf("SLB TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 
-	var objs []map[string]interface{}
-
 	for _, inst := range resp.LoadBalancers.LoadBalancer {
-
-		if len(s.ExcludeInstanceIDs) > 0 {
-			exclude := false
-			for _, v := range s.ExcludeInstanceIDs {
-				if v == inst.LoadBalancerId {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf(`%s_%s`, inst.LoadBalancerName, inst.LoadBalancerId),
 		}
+		ag.parseObject(inst, "aliyun_slb", inst.LoadBalancerId, s.p, s.ExcludeInstanceIDs, s.InstancesIDs, tags)
 
-		obj := map[string]interface{}{
-			`__name`: fmt.Sprintf(`%s(%s)`, inst.LoadBalancerName, inst.LoadBalancerId),
-		}
-
-		obj[`NetworkType`] = inst.NetworkType
-		obj[`CreationTime`] = inst.CreateTime
-		obj[`AddressIPVersion`] = inst.AddressIPVersion
-
-		tags := map[string]interface{}{
-			`__class`:            `SLB`,
-			`provider`:           `aliyun`,
-			`InternetChargeType`: inst.InternetChargeType,
-			`ResourceGroupId`:    inst.ResourceGroupId,
-			`LoadBalancerId`:     inst.LoadBalancerId,
-			`LoadBalancerName`:   inst.LoadBalancerName,
-			`LoadBalancerStatus`: inst.LoadBalancerStatus,
-			`PayType`:            inst.PayType,
-			`Address`:            inst.Address,
-			`AddressType`:        inst.AddressType,
-			`RegionId`:           inst.RegionId,
-			`MasterZoneId`:       inst.MasterZoneId,
-			`SlaveZoneId`:        inst.SlaveZoneId,
-			`VSwitchId`:          inst.VSwitchId,
-			`VpcId`:              inst.VpcId,
-		}
-
-		//add ecs object custom tags
-		for k, v := range s.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj["__tags"] = tags
-
-		objs = append(objs, obj)
-	}
-
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
-		moduleLogger.Errorf("%s", err)
 	}
 }
