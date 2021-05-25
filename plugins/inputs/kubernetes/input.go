@@ -25,18 +25,7 @@ var (
 	l           = logger.DefaultSLogger("kubernetes")
 )
 
-var availableCollectors = map[string]func(ctx context.Context, i *Input){
-	// "daemonsets":             collectDaemonSets,
-	// "deployments":            collectDeployments,
-	// "endpoints":              collectEndpoints,
-	// "ingress":                collectIngress,
-	// "nodes":                  collectNodes,
-	// "pods":                   collectPods,
-	// "services":               collectServices,
-	// "statefulsets":           collectStatefulSets,
-	// "persistentvolumes":      collectPersistentVolumes,
-	// "persistentvolumeclaims": collectPersistentVolumeClaims,
-}
+
 
 type Input struct {
 	Service                string `toml:"service"`
@@ -110,10 +99,20 @@ func (i *Input) globalTag() {
 }
 
 func (i *Input) Collect() error {
+	var availableCollectors = map[string]func(ctx context.Context) error {
+		"daemonsets":             i.collectDaemonSets,
+		"deployments":            i.collectDeployments,
+		"endpoints":              i.collectEndpoints,
+		// "ingress":                collectIngress,
+		"services":               i.collectServices,
+		"statefulsets":           i.collectStatefulSets,
+		"persistentvolumes":      i.collectPersistentVolumes,
+		"persistentvolumeclaims": i.collectPersistentVolumeClaims,
+	}
+
 	i.collectCache = []inputs.Measurement{}
 
 	ctx := context.Background()
-	wg := sync.WaitGroup{}
 
 	resourceFilter, err := filter.NewIncludeExcludeFilter(i.ResourceInclude, i.ResourceExclude)
 	if err != nil {
@@ -127,19 +126,10 @@ func (i *Input) Collect() error {
 
 	for collector, f := range availableCollectors {
 		if resourceFilter.Match(collector) {
-			wg.Add(1)
-			go func(f func(ctx context.Context, i *Input)) {
-				defer wg.Done()
-				f(ctx, i)
+			func(f func(ctx context.Context) error) {
+				f(ctx)
 			}(f)
 		}
-	}
-
-	wg.Wait()
-
-	if i.lastErr != nil {
-		io.FeedLastError(inputName, i.lastErr.Error())
-		i.lastErr = nil
 	}
 
 	return nil
