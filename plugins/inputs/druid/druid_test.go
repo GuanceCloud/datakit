@@ -48,8 +48,5 @@ func TestExtract(t *testing.T) {
   }
 ]
 `
-
-	testAssert = true
-	t.Logf("%v\n", extract([]byte(data)))
-
+	t.Logf("%v\n", extract([]byte(data), nil))
 }

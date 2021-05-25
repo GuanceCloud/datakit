@@ -2,20 +2,12 @@ package traceZipkin
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"net/http"
 	"runtime/debug"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
-
-func ZipkinTraceHandleV1Wrap(c *gin.Context) {
-	ZipkinTraceHandleV1(c.Writer, c.Request)
-}
-
-func ZipkinTraceHandleV2Wrap(c *gin.Context) {
-	ZipkinTraceHandleV2(c.Writer, c.Request)
-}
 
 func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("trace handle with path: %s", r.URL.Path)
@@ -27,6 +19,7 @@ func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err := handleZipkinTraceV1(w, r); err != nil {
+		io.FeedLastError(inputName, err.Error())
 		log.Errorf("%v", err)
 	}
 }
@@ -41,6 +34,7 @@ func ZipkinTraceHandleV2(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err := handleZipkinTraceV2(w, r); err != nil {
+		io.FeedLastError(inputName, err.Error())
 		log.Errorf("%v", err)
 	}
 }
