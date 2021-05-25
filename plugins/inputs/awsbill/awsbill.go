@@ -19,21 +19,17 @@ import (
 )
 
 var (
-	inputName    = "aws_billing"
+	inputName    = "awsbill"
 	moduleLogger *logger.Logger
 )
 
-func (_ *AwsInstance) Catalog() string {
+func (*AwsInstance) Catalog() string {
 	return "aws"
 }
 
-func (_ *AwsInstance) SampleConfig() string {
+func (*AwsInstance) SampleConfig() string {
 	return sampleConfig
 }
-
-// func (_ *AwsBillAgent) Description() string {
-// 	return ""
-// }
 
 func (a *AwsInstance) Run() {
 
@@ -46,12 +42,8 @@ func (a *AwsInstance) Run() {
 
 	a.billingMetrics = make(map[string]*cloudwatch.Metric)
 
-	if a.MetricName == "" {
-		a.MetricName = "aws_billing"
-	}
-
 	if a.Interval.Duration == 0 {
-		a.Interval.Duration = time.Hour * 6
+		a.Interval.Duration = time.Hour * 4
 	}
 
 	limit := rate.Every(50 * time.Millisecond)
@@ -61,10 +53,10 @@ func (a *AwsInstance) Run() {
 }
 
 func (r *AwsInstance) initClient() error {
-	cred := credentials.NewStaticCredentials(r.AccessKey, r.AccessSecret, r.AccessToken)
+	cred := credentials.NewStaticCredentials(r.AccessKey, r.AccessSecret, "")
 
 	cfg := aws.NewConfig()
-	cfg.WithCredentials(cred).WithRegion(r.RegionID) //.WithRegion(`cn-north-1`)
+	cfg.WithCredentials(cred).WithRegion(r.RegionID)
 
 	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigDisable,
@@ -75,7 +67,7 @@ func (r *AwsInstance) initClient() error {
 		return err
 	}
 
-	r.cloudwatchClient = cloudwatch.New(sess, aws.NewConfig().WithRegion(`us-east-1`))
+	r.cloudwatchClient = cloudwatch.New(sess, aws.NewConfig() /*.WithRegion(`us-east-1`)*/)
 
 	return nil
 }
@@ -107,6 +99,22 @@ func (r *AwsInstance) getSupportMetrics() error {
 	}
 
 	for i, ms := range result.Metrics {
+
+		//只拿'按关联账户和服务'的指标
+		valid := 0
+		for _, d := range ms.Dimensions {
+			switch aws.StringValue(d.Name) {
+			case "ServiceName", "LinkedAccount":
+				valid++
+			}
+			if valid == 2 {
+				break
+			}
+		}
+		if valid != 2 {
+			continue
+		}
+
 		r.billingMetrics[fmt.Sprintf("dk%d", i)] = ms
 	}
 
@@ -185,6 +193,10 @@ func (r *AwsInstance) run(ctx context.Context) error {
 
 		if err := r.initClient(); err != nil {
 			moduleLogger.Errorf("fail to init client, %s", err)
+			if r.isTest() {
+				r.testError = err
+				return err
+			}
 			time.Sleep(time.Second)
 		} else {
 			break
@@ -193,10 +205,13 @@ func (r *AwsInstance) run(ctx context.Context) error {
 	}
 
 	if err := r.getSupportMetrics(); err != nil {
+		if r.isTest() {
+			r.testError = err
+		}
 		return err
 	}
 
-	metricName := r.MetricName
+	metricName := `awsbill`
 
 	for {
 		select {
@@ -205,13 +220,17 @@ func (r *AwsInstance) run(ctx context.Context) error {
 		default:
 		}
 
-		end_time := time.Now().UTC().Truncate(time.Minute)
-		start_time := end_time.Add(-r.Interval.Duration)
+		endTime := time.Now().UTC().Truncate(time.Minute)
+		startTime := endTime.Add(-r.Interval.Duration)
 
-		response, err := r.getMetric(ctx, start_time, end_time)
+		response, err := r.getMetric(ctx, startTime, endTime)
 
 		if err != nil {
 			moduleLogger.Errorf("fail to GetMetricData, %s", err)
+			if r.isTest() {
+				r.testError = err
+				return err
+			}
 		} else {
 			for _, res := range response.MetricDataResults {
 				if *res.StatusCode != cloudwatch.StatusCodeComplete {
@@ -233,22 +252,36 @@ func (r *AwsInstance) run(ctx context.Context) error {
 							tags[*dm.Name] = *dm.Value
 						}
 
-						io.NamedFeedEx(inputName, io.Metric, metricName, tags, fields, *tm)
+						if r.isTest() {
+							// pass
+						} else if r.isDebug() {
+							data, _ := io.MakeMetric(metricName, tags, fields, *tm)
+							fmt.Printf("%s\n", string(data))
+						} else {
+							io.NamedFeedEx(inputName, datakit.Metric, metricName, tags, fields, *tm)
+						}
 					}
 				}
 			}
 
 		}
 
+		if r.isTest() {
+			return nil
+		}
 		datakit.SleepContext(ctx, r.Interval.Duration)
 	}
 
 }
 
+func newInstance() *AwsInstance {
+	ac := &AwsInstance{}
+	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
+	return ac
+}
+
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		ac := &AwsInstance{}
-		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-		return ac
+		return newInstance()
 	})
 }

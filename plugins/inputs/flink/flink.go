@@ -9,6 +9,8 @@ import (
 	influxm "github.com/influxdata/influxdb1-client/models"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -18,21 +20,24 @@ const (
 
 	sampleCfg = `
 [[inputs.flink]]
-	db = "flink"
-	# [inputs.flink.tags]
-	# tags1 = "value1"
+    # require
+    db = "flink"
+
+    # [inputs.flink.tags]
+    # tags1 = "value1"
 `
 )
 
 var (
-	l *logger.Logger
-
-	dbList = Flinks{m: make(map[string]map[string]string), mut: &sync.RWMutex{}}
+	l      = logger.DefaultSLogger(inputName)
+	dbList = Flinks{m: make(map[string]interface{}), mu: sync.RWMutex{}}
 )
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Flink{}
+		return &Flink{
+			Tags: make(map[string]string),
+		}
 	})
 }
 
@@ -41,11 +46,11 @@ type Flink struct {
 	Tags map[string]string `toml:"tags"`
 }
 
-func (_ *Flink) SampleConfig() string {
+func (*Flink) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *Flink) Catalog() string {
+func (*Flink) Catalog() string {
 	return inputName
 }
 
@@ -53,13 +58,17 @@ func (f *Flink) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("flink input started...")
 
-	dbList.Store(f.DB, f.Tags)
+	dbList.Store(f.DB)
 }
 
-func Handle(w http.ResponseWriter, r *http.Request) {
+func (f *Flink) RegHttpHandler() {
+	httpd.RegHttpHandler("POST", "/write", f.Handle)
+}
+
+func (f *Flink) Handle(w http.ResponseWriter, r *http.Request) {
 	db := r.URL.Query().Get("db")
-	if _, ok := dbList.Load(db); !ok {
-		l.Errorf("not open db %s", db)
+	if dbList.IsExist(db) {
+		l.Errorf("not found db %s", db)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -72,7 +81,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := extract(db, r.URL.Query().Get("precision"), body); err == nil {
+	if err := extract(db, r.URL.Query().Get("precision"), body, f.Tags); err == nil {
 		w.WriteHeader(http.StatusOK)
 	} else {
 		l.Errorf("failed to handle, %s", err.Error())
@@ -80,7 +89,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func extract(db string, prec string, body []byte) error {
+func extract(db, prec string, body []byte, tags map[string]string) error {
 	pts, err := influxm.ParsePointsWithPrecision(body, time.Now().UTC(), prec)
 	if err != nil {
 		return err
@@ -96,13 +105,12 @@ func extract(db string, prec string, body []byte) error {
 		fields[string(pt.Name())] = ptFields["value"]
 	}
 
-	tags, _ := dbList.Load(db)
 	data, err := io.MakeMetric(db, tags, fields, pts[0].Time())
 	if err != nil {
 		return err
 	}
 
-	if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+	if err := io.NamedFeed(data, datakit.Metric, inputName); err != nil {
 		return err
 	}
 
@@ -110,22 +118,21 @@ func extract(db string, prec string, body []byte) error {
 }
 
 type Flinks struct {
-	// map[db]map[tags1]value1
-	m   map[string]map[string]string
-	mut *sync.RWMutex
+	m  map[string]interface{}
+	mu sync.RWMutex
 }
 
-func (f *Flinks) Store(key string, value map[string]string) {
-	f.mut.Lock()
-	defer f.mut.Unlock()
+func (f *Flinks) Store(key string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
-	f.m[key] = value
+	f.m[key] = nil
 }
 
-func (f *Flinks) Load(key string) (map[string]string, bool) {
-	f.mut.Lock()
-	defer f.mut.Unlock()
+func (f *Flinks) IsExist(key string) bool {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
 
-	v, ok := f.m[key]
-	return v, ok
+	_, exist := f.m[key]
+	return exist
 }
