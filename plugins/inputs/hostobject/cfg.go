@@ -1,21 +1,25 @@
 package hostobject
 
 const (
-	inputName = "hostobject"
+	InputName = "hostobject"
+	InputCat  = "host"
 
-	sampleConfig = `
-#[inputs.hostobject]
-# ##(optional) default use host name
-#name = ''
+	SampleConfig = `
+[inputs.hostobject]
 
-# ##(optional) default is Servers
-#class = 'Servers'
+#pipeline = '' # optional
 
-# ##(optional) collect interval, default is 3 miniutes
-#interval = '3m'
+## Datakit does not collect network virtual interfaces under the linux system.
+## Setting enable_net_virtual_interfaces to true will collect network virtual interfaces stats for linux.
+# enable_net_virtual_interfaces = true
 
-# ##(optional) custom tags
-#[inputs.hostobject.tags]
-# key1 = 'val1'
+## Ignore mount points by filesystem type. Default ingore following FS types
+# ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "autofs", "squashfs", "aufs"]
+
+
+[inputs.hostobject.tags] # (optional) custom tags
+#  cloud_provider = "aliyun" # aliyun/tencent/aws
+#  tag2 = "value2"
 `
+	pipelineSample = ``
 )
