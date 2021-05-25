@@ -1,16 +1,16 @@
 package traceZipkin
 
 import (
-	"fmt"
-	"time"
-	"unsafe"
+	"encoding/binary"
 	"encoding/json"
+	"fmt"
+	"net"
+	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	zipkincore "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceZipkin/zipkinV1_core"
-
 )
 
 type Endpoint struct {
@@ -27,9 +27,9 @@ type Annotation struct {
 }
 
 type BinaryAnnotation struct {
-	Key            string         `json:"key"`
-	Value          string         `json:"value"`
-	Host           *Endpoint      `json:"endpoint,omitempty"`
+	Key   string    `json:"key"`
+	Value string    `json:"value"`
+	Host  *Endpoint `json:"endpoint,omitempty"`
 }
 
 type ZipkinSpanV1 struct {
@@ -41,21 +41,32 @@ type ZipkinSpanV1 struct {
 	Duration  int64  `thrift:"duration,11" db:"duration" json:"duration,omitempty"`
 	Debug     bool   `thrift:"debug,9" db:"debug" json:"debug,omitempty"`
 
-	Annotations []*Annotation `thrift:"annotations,6" db:"annotations" json:"annotations"`
+	Annotations       []*Annotation       `thrift:"annotations,6" db:"annotations" json:"annotations"`
 	BinaryAnnotations []*BinaryAnnotation `thrift:"binary_annotations,8" db:"binary_annotations" json:"binaryAnnotations"`
 }
 
 func getFirstTimestamp(zs *ZipkinSpanV1) int64 {
+	var ts int64
+	var isFound bool
+	ts = 0x7FFFFFFFFFFFFFFF
 	for _, ano := range zs.Annotations {
-		if ano.Timestamp != 0 {
-			return ano.Timestamp
+		if ano.Timestamp == 0 {
+			continue
+		}
+		if ano.Timestamp < ts {
+			isFound = true
+			ts = ano.Timestamp
 		}
 	}
 
-	return time.Now().UnixNano()/1000
-
+	if isFound {
+		return ts * 1000
+	}
+	return time.Now().UnixNano()
 }
 func parseZipkinJsonV1(octets []byte) error {
+	log.Debugf("->|%v|<-", string(octets))
+
 	spans := []*ZipkinSpanV1{}
 	if err := json.Unmarshal(octets, &spans); err != nil {
 		return err
@@ -66,10 +77,10 @@ func parseZipkinJsonV1(octets []byte) error {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "zipkin"
 
-		tAdpter.Duration = zs.Duration
-		tAdpter.TimestampUs = zs.Timestamp
-		if tAdpter.TimestampUs == 0 {
-			tAdpter.TimestampUs = getFirstTimestamp(zs)
+		tAdpter.Duration = zs.Duration * 1000
+		tAdpter.Start = zs.Timestamp * 1000
+		if tAdpter.Start == 0 {
+			tAdpter.Start = getFirstTimestamp(zs)
 		}
 
 		js, err := json.Marshal(zs)
@@ -78,11 +89,10 @@ func parseZipkinJsonV1(octets []byte) error {
 		}
 		tAdpter.Content = string(js)
 
-		tAdpter.Class = "tracing"
 		tAdpter.OperationName = zs.Name
 		tAdpter.ParentID = zs.ParentID
-		tAdpter.TraceID  = zs.TraceID
-		tAdpter.SpanID   = zs.ID
+		tAdpter.TraceID = zs.TraceID
+		tAdpter.SpanID = zs.ID
 
 		for _, ano := range zs.Annotations {
 			if ano.Host != nil && ano.Host.ServiceName != "" {
@@ -100,11 +110,16 @@ func parseZipkinJsonV1(octets []byte) error {
 			}
 		}
 
+		tAdpter.Status = trace.STATUS_OK
 		for _, bno := range zs.BinaryAnnotations {
 			if bno != nil && bno.Key == "error" {
-				tAdpter.IsError = "true"
+				tAdpter.Status = trace.STATUS_ERR
 				break
 			}
+		}
+
+		if tAdpter.Duration == 0 {
+			tAdpter.Duration = getDurationByAno(zs.Annotations)
 		}
 		tAdpter.Tags = ZipkinTags
 
@@ -115,29 +130,58 @@ func parseZipkinJsonV1(octets []byte) error {
 	return nil
 }
 
+func getDurationByAno(anos []*Annotation) int64 {
+	if len(anos) < 2 {
+		return 0
+	}
+
+	var startTs, stopTs int64
+	startTs = 0x7FFFFFFFFFFFFFFF
+	for _, ano := range anos {
+		if ano.Timestamp == 0 {
+			continue
+		}
+		if ano.Timestamp > stopTs {
+			stopTs = ano.Timestamp
+		}
+
+		if ano.Timestamp < startTs {
+			startTs = ano.Timestamp
+		}
+	}
+	if stopTs > startTs {
+		return (stopTs - startTs) * 1000
+	}
+	return 0
+}
+
+func int2ip(i uint32) []byte {
+	bs := make([]byte, 4)
+	binary.BigEndian.PutUint32(bs, i)
+	return bs
+}
+
 func zipkinConvThrift2Json(z *zipkincore.Span) *zipkincore.SpanJsonApater {
 	zc := &zipkincore.SpanJsonApater{}
 	zc.TraceID = uint64(z.TraceID)
-	zc.Name    = z.Name
-	zc.ID      = uint64(z.ID)
+	zc.Name = z.Name
+	zc.ID = uint64(z.ID)
 	if z.ParentID != nil {
-		zc.ParentID= uint64(*z.ParentID)
+		zc.ParentID = uint64(*z.ParentID)
 	}
 
 	for _, ano := range z.Annotations {
 		jAno := zipkincore.AnnotationJsonApater{}
 		jAno.Timestamp = uint64(ano.Timestamp)
-		jAno.Value   = ano.Value
+		jAno.Value = ano.Value
 		if ano.Host != nil {
 			ep := &zipkincore.EndpointJsonApater{}
 			ep.ServiceName = ano.Host.ServiceName
 			ep.Port = ano.Host.Port
 			ep.Ipv6 = append(ep.Ipv6, ano.Host.Ipv6...)
-			ptr := uintptr(unsafe.Pointer(&ano.Host.Ipv4))
-			for i:= 3; i >=0; i-- {
-				p := ptr + uintptr(i)
-				ep.Ipv4 = append(ep.Ipv4, *((*byte)(unsafe.Pointer(p))))
-			}
+
+			ipbytes := int2ip(uint32(ano.Host.Ipv4))
+			ep.Ipv4 = net.IP(ipbytes)
 			jAno.Host = ep
 		}
 		zc.Annotations = append(zc.Annotations, jAno)
@@ -153,22 +197,21 @@ func zipkinConvThrift2Json(z *zipkincore.Span) *zipkincore.SpanJsonApater {
 			ep.ServiceName = bno.Host.ServiceName
 			ep.Port = bno.Host.Port
 			ep.Ipv6 = append(ep.Ipv6, bno.Host.Ipv6...)
-			ptr := uintptr(unsafe.Pointer(&bno.Host.Ipv4))
-			for i:= 3; i >= 0; i-- {
-				p := ptr + uintptr(i)
-				ep.Ipv4 = append(ep.Ipv4, *((*byte)(unsafe.Pointer(p))))
-			}
+
+			ipbytes := int2ip(uint32(bno.Host.Ipv4))
+			ep.Ipv4 = net.IP(ipbytes)
+
 			jBno.Host = ep
 		}
 		zc.BinaryAnnotations = append(zc.BinaryAnnotations, jBno)
 	}
-	zc.Debug   = z.Debug
+	zc.Debug = z.Debug
 	if z.Timestamp != nil {
 		zc.Timestamp = uint64(*z.Timestamp)
 	}
 
 	if z.Duration != nil {
-		zc.Duration  = uint64(*z.Duration)
+		zc.Duration = uint64(*z.Duration)
 	}
 
 	if z.TraceIDHigh != nil {
@@ -178,7 +221,7 @@ func zipkinConvThrift2Json(z *zipkincore.Span) *zipkincore.SpanJsonApater {
 	return zc
 }
 
-func parseZipkinThriftV1(octets []byte) error{
+func parseZipkinThriftV1(octets []byte) error {
 	zspans, err := unmarshalZipkinThriftV1(octets)
 	if err != nil {
 		return err
@@ -191,15 +234,15 @@ func parseZipkinThriftV1(octets []byte) error{
 		tAdpter.Source = "zipkin"
 
 		if zs.Duration != nil {
-			tAdpter.Duration = *zs.Duration
+			tAdpter.Duration = (*zs.Duration) * 1000
 		}
 
 		if zs.Timestamp != nil {
-			tAdpter.TimestampUs = *zs.Timestamp
+			tAdpter.Start = (*zs.Timestamp) * 1000
 		} else {
-			tAdpter.TimestampUs = time.Now().UnixNano()/1000
+			//tAdpter.TimestampUs = time.Now().UnixNano() / 1000
+			tAdpter.Start = getStartTimestamp(zs)
 		}
-
 
 		js, err := json.Marshal(z)
 		if err != nil {
@@ -207,7 +250,6 @@ func parseZipkinThriftV1(octets []byte) error{
 		}
 		tAdpter.Content = string(js)
 
-		tAdpter.Class = "tracing"
 		tAdpter.OperationName = zs.Name
 		if zs.ParentID != nil {
 			tAdpter.ParentID = fmt.Sprintf("%d", uint64(*zs.ParentID))
@@ -232,11 +274,15 @@ func parseZipkinThriftV1(octets []byte) error{
 			}
 		}
 
+		tAdpter.Status = trace.STATUS_OK
 		for _, bno := range zs.BinaryAnnotations {
 			if bno != nil && bno.Key == "error" {
-				tAdpter.IsError = "true"
+				tAdpter.Status = trace.STATUS_ERR
 				break
 			}
+		}
+		if tAdpter.Duration == 0 {
+			tAdpter.Duration = getDurationThriftAno(zs.Annotations)
 		}
 
 		tAdpter.Tags = ZipkinTags
@@ -259,13 +305,13 @@ func unmarshalZipkinThriftV1(octets []byte) ([]*zipkincore.Span, error) {
 		return nil, err
 	}
 
-	spans := make([]*zipkincore.Span, size)
+	spans := make([]*zipkincore.Span, 0)
 	for i := 0; i < size; i++ {
 		zs := &zipkincore.Span{}
 		if err = zs.Read(transport); err != nil {
 			return nil, err
 		}
-		spans[i] = zs
+		spans = append(spans, zs)
 	}
 
 	if err = transport.ReadListEnd(); err != nil {
@@ -273,4 +319,49 @@ func unmarshalZipkinThriftV1(octets []byte) ([]*zipkincore.Span, error) {
 	}
 
 	return spans, nil
+}
+
+func getStartTimestamp(zs *zipkincore.Span) int64 {
+	var ts int64
+	var isFound bool
+	ts = 0x7FFFFFFFFFFFFFFF
+	for _, ano := range zs.Annotations {
+		if ano.Timestamp == 0 {
+			continue
+		}
+		if ano.Timestamp < ts {
+			isFound = true
+			ts = ano.Timestamp
+		}
+	}
+
+	if isFound {
+		return ts * 1000
+	}
+	return time.Now().UnixNano()
+}
+
+func getDurationThriftAno(anos []*zipkincore.Annotation) int64 {
+	if len(anos) < 2 {
+		return 0
+	}
+
+	var startTs, stopTs int64
+	startTs = 0x7FFFFFFFFFFFFFFF
+	for _, ano := range anos {
+		if ano.Timestamp == 0 {
+			continue
+		}
+		if ano.Timestamp > stopTs {
+			stopTs = ano.Timestamp
+		}
+
+		if ano.Timestamp < startTs {
+			startTs = ano.Timestamp
+		}
+	}
+	if stopTs > startTs {
+		return (stopTs - startTs) * 1000
+	}
+	return 0
 }
