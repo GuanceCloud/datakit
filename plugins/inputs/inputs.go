@@ -2,58 +2,62 @@ package inputs
 
 import (
 	"fmt"
+	"math/rand"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/influxdata/toml/ast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-type Input interface {
-	Catalog() string
-	Run()
-	SampleConfig() string
-
-	// add more...
-}
-
-type HttpRegInput interface {
-	Input
-	RegHttpHandler()
-}
-
-type Creator func() Input
-
 var (
 	Inputs     = map[string]Creator{}
-	inputInfos = map[string][]*inputInfo{}
+	InputsInfo = map[string][]*inputInfo{}
 
-	l *logger.Logger = logger.DefaultSLogger("inputs")
-
+	l           = logger.DefaultSLogger("inputs")
 	panicInputs = map[string]int{}
 	mtx         = sync.RWMutex{}
 )
 
+type Input interface {
+	Catalog() string
+	Run()
+	SampleConfig() string
+	// add more...
+}
+
+type HTTPInput interface {
+	Input
+	RegHttpHandler()
+}
+
+type PipelineInput interface {
+	Input
+	PipelineConfig() map[string]string
+}
+
+// new input interface got extra interfaces, for better documentation
+type InputV2 interface {
+	Input
+	SampleMeasurement() []Measurement
+	AvailableArchs() []string
+}
+
+type Creator func() Input
+
 func Add(name string, creator Creator) {
 	if _, ok := Inputs[name]; ok {
-		panic(fmt.Sprintf("inputs %s exist(from datakit)", name))
+		l.Fatalf("inputs %s exist(from datakit)", name)
 	}
 
-	if _, ok := TelegrafInputs[name]; ok {
-		panic(fmt.Sprintf("inputs %s exist(from telegraf)", name))
-	}
-
-	l.Infof("add input %s", name)
 	Inputs[name] = creator
 }
 
 type inputInfo struct {
 	input Input
-	ti    *TelegrafInput
 	cfg   string
 }
 
@@ -70,111 +74,50 @@ func (ii *inputInfo) Run() {
 	}
 }
 
-func AddInput(name string, input Input, table *ast.Table, fp string) error {
-
+func AddInput(name string, input Input, fp string) error {
 	mtx.Lock()
 	defer mtx.Unlock()
-
-	var dur time.Duration
-	var err error
-	if node, ok := table.Fields["interval"]; ok {
-		if kv, ok := node.(*ast.KeyValue); ok {
-			if str, ok := kv.Value.(*ast.String); ok {
-				dur, err = time.ParseDuration(str.Value)
-				if err != nil {
-					l.Errorf("parse duration(%s) from %s failed: %s", str.Value, name, err.Error())
-					return err
-				}
-			}
-		}
-	}
-
-	l.Debugf("try set MaxLifeCheckInterval to %v from %s...", dur, name)
-	if datakit.MaxLifeCheckInterval+5*time.Second < dur { // use the max interval from all inputs
-		datakit.MaxLifeCheckInterval = dur
-		l.Debugf("set MaxLifeCheckInterval to %v from %s", dur, name)
-	}
-
-	inputInfos[name] = append(inputInfos[name], &inputInfo{input: input, cfg: fp})
-
+	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input, cfg: fp})
 	return nil
 }
 
-func InputInstaces(name string) int {
-	mtx.RLock()
-	defer mtx.RUnlock()
-
-	if arr, ok := inputInfos[name]; ok {
-		return len(arr)
-	}
-	return 0
+func AddSelf() {
+	self, _ := Inputs["self"]
+	AddInput("self", self(), "no config for `self' input")
 }
 
 func ResetInputs() {
-
 	mtx.Lock()
 	defer mtx.Unlock()
-	inputInfos = map[string][]*inputInfo{}
-}
-
-func AddSelf(i Input) {
-
-	mtx.Lock()
-	defer mtx.Unlock()
-
-	inputInfos["self"] = append(inputInfos["self"], &inputInfo{input: i, cfg: "no config for `self' input"})
-}
-
-func AddTelegrafInput(name, fp string) {
-
-	mtx.Lock()
-	defer mtx.Unlock()
-
-	l.Debugf("add telegraf input %s from %s", name, fp)
-	inputInfos[name] = append(inputInfos[name],
-		&inputInfo{input: nil, /* not used */
-			ti:  nil, /*not used*/
-			cfg: fp})
-}
-
-func StartTelegraf() error {
-
-	if !HaveTelegrafInputs() {
-		l.Info("no telegraf inputs enabled")
-		return nil
-	}
-
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		_ = doStartTelegraf()
-
-		l.Info("telegraf process exit ok")
-	}()
-
-	return nil
+	InputsInfo = map[string][]*inputInfo{}
 }
 
 func RunInputs() error {
-
 	l = logger.SLogger("inputs")
 	mtx.RLock()
 	defer mtx.RUnlock()
 
-	for name, arr := range inputInfos {
+	for name, arr := range InputsInfo {
 		for _, ii := range arr {
 			if ii.input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
 				continue
 			}
+
 			switch inp := ii.input.(type) {
-			case HttpRegInput:
+			case HTTPInput:
 				inp.RegHttpHandler()
+			default:
+				// pass
 			}
 
-			l.Infof("starting input %s ...", name)
 			datakit.WG.Add(1)
 			go func(name string, ii *inputInfo) {
+
+				// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
+				time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second))))
+				l.Infof("starting input %s ...", name)
+
 				defer datakit.WG.Done()
 				protectRunningInput(name, ii)
 				l.Infof("input %s exited", name)
@@ -205,7 +148,7 @@ func protectRunningInput(name string, ii *inputInfo) {
 
 			if len(crashTime) >= MaxCrash {
 				l.Warnf("input %s crash %d times(at %+#v), exit now.",
-					name, len(crashTime), strings.Join(crashTime, ","))
+					name, len(crashTime), strings.Join(crashTime, "\n"))
 				return
 			}
 		}
@@ -214,22 +157,6 @@ func protectRunningInput(name string, ii *inputInfo) {
 	}
 
 	f(nil, nil)
-}
-
-func InputEnabled(name string) (int, []string) {
-	mtx.RLock()
-	defer mtx.RUnlock()
-	arr, ok := inputInfos[name]
-	if !ok {
-		return 0, nil
-	}
-
-	cfgs := []string{}
-	for _, i := range arr {
-		cfgs = append(cfgs, i.cfg)
-	}
-
-	return len(arr), cfgs
 }
 
 func GetPanicCnt(name string) int {
@@ -244,4 +171,36 @@ func addPanic(name string) {
 	defer mtx.Unlock()
 
 	panicInputs[name]++
+}
+
+func InputEnabled(name string) (n int, cfgs []string) {
+	mtx.RLock()
+	defer mtx.RUnlock()
+	arr, ok := InputsInfo[name]
+	if !ok {
+		return
+	}
+
+	for _, i := range arr {
+		cfgs = append(cfgs, i.cfg)
+	}
+
+	n = len(arr)
+	return
+}
+
+func GetSample(name string) (sample string, err error) {
+	if c, ok := Inputs[name]; ok {
+		sample = c().SampleConfig()
+		return
+	}
+	return "", fmt.Errorf("input not found")
+}
+
+func JoinPipelinePath(op *TailerOption, defaultPipeline string) {
+	if op.Pipeline != "" {
+		op.Pipeline = filepath.Join(datakit.PipelineDir, op.Pipeline)
+	} else {
+		op.Pipeline = filepath.Join(datakit.PipelineDir, defaultPipeline)
+	}
 }

@@ -11,18 +11,28 @@ variables:
 stages:
   - deploy
 
-build-dev:
+#build-dev:
+#  stage: deploy
+#  only:
+#    - dev
+#  script:
+#    # only check building, not publish
+#    - make ci_notify
+#    - make testing
+#    - make test_notify
+#  tags:
+#    - cloudcare-ft
+
+build-testing:
   stage: deploy
   only:
-    - dev
+    - testing
   script:
+    # building && publish testing
     - make ci_notify
-    - make test
-    - make pub_test
-    # disable them to save CI time
-    #- make preprod
-    #- make pub_preprod
-    #- make pub_testing_img
+    - make testing
+    - make pub_testing
+    - make pub_testing_img
     - make test_notify
   tags:
     - cloudcare-ft
